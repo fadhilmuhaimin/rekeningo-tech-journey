@@ -1,0 +1,98 @@
+# Keadaan awal sama dengan akhir m6.txt bagian G (database bersih): kolom transaksi.jumlah, server v1. App 1.0 membaca field "jumlah", app 1.1 membaca "nominal".
+# Di lab, setiap versi server adalah binary di folder sementara.
+
+# --- A. Kode expand: field nominal ditambah di samping jumlah, kolom database tidak diubah ---
+#   internal/handler/handler.go  + Nominal *int64 `json:"nominal"`   (request bayar)
+#   internal/handler/handler.go  + if in.Jumlah == nil { in.Jumlah = in.Nominal }
+#   internal/repo/transaksi.go   + Nominal int64 `json:"nominal"`   (GET /transfers/{id})
+#   internal/repo/transaksi.go   + t.Nominal = t.Jumlah
+#   internal/repo/riwayat.go     + Nominal int64 `json:"nominal"`   (riwayat)
+#   internal/repo/riwayat.go     + x.Nominal = x.Jumlah
+$ go build -o api-t1-expand ./cmd/api
+# migration: tidak ada. Kolom transaksi.jumlah tetap; nama nominal hanya ada di JSON.
+
+# --- B. Keadaan awal: v1 berjalan, Budi memakai app 1.0, Dimas app 1.1 ---
+# server: api-t1 (v1)
+# persiapan: admin top-up minggu 1, 100 karyawan x Rp250.000 (rinciannya di topup.txt)
+# persiapan: login Budi (419) dan Dimas (417); keduanya membayar dari app 1.0 (Rp25.000 dan Rp20.000), lalu Dimas memperbarui app ke 1.1
+
+# --- C. Deploy expand: prober memanggil riwayat tiap detik, perintah dijalankan di antara dua putaran ---
+detik  HP Budi                                  HP Dimas
+1      app 1.0 · 200 · jumlah 25000             app 1.1 · 200 · field nominal tidak ada
+$ kill -TERM <pid server lama>
+2      app 1.0 · tidak ada jawaban              app 1.1 · tidak ada jawaban
+$ ./api-t1-expand &   # server expand menyala
+3      app 1.0 · 200 · jumlah 25000             app 1.1 · 200 · nominal 20000
+4      app 1.0 · 200 · jumlah 25000             app 1.1 · 200 · nominal 20000
+# Ringkasan 4 putaran:
+# HP Budi: 3 berhasil, 1 tidak ada jawaban
+# HP Dimas: 1 field nominal tidak ada, 1 tidak ada jawaban, 2 berhasil
+$ curl -i -X GET '/akun/419/riwayat' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"riwayat":[{"id":1,"arah":"keluar","lawan":"Warung Ani","jumlah":25000,"nominal":25000,"waktu":"<hari ini>T<jam>+07:00"}]}
+
+# --- D. Bayar dari app 1.0 (mengirim jumlah) dan app 1.1 (mengirim nominal) ke server expand ---
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "jumlah": 25000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/3
+
+{"id":3,"saldo":200000}
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Dimas>' -d '{"ke": 418, "nominal": 20000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/4
+
+{"id":4,"saldo":210000}
+$ psql -c "SELECT id, nama, saldo FROM akun WHERE id IN (417, 418, 419) ORDER BY id"
+ id  |    nama    | saldo  
+-----+------------+--------
+ 417 | Dimas      | 210000
+ 418 | Warung Ani |  90000
+ 419 | Budi       | 200000
+(3 rows)
+
+
+# --- E. Migration expand: kolom baru yang boleh kosong, server expand yang sedang jalan tidak terganggu ---
+# Contoh migration (latihan lab, bukan kejadian di cerita): nomor sesudah 000007 di m6.txt.
+# 000008_transaksi_catatan.up.sql berisi ALTER TABLE ini. Kode server expand tidak menyebut kolom catatan.
+$ psql -c "ALTER TABLE transaksi ADD COLUMN catatan text"
+detik  HP Budi                                  HP Dimas
+1      app 1.0 · 200 · jumlah 25000             app 1.1 · 200 · nominal 20000
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "jumlah": 25000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/5
+
+{"id":5,"saldo":175000}
+$ psql -c "SELECT count(*) AS transaksi, count(catatan) AS berisi_catatan FROM transaksi"
+ transaksi | berisi_catatan 
+-----------+----------------
+         5 |              0
+(1 row)
+
+
+# --- F. Contract: jumlah tidak dikirim dan tidak dibaca lagi, sesudah tidak ada app 1.0 ---
+# Di lab: Budi memperbarui app ke 1.1, jadi tidak ada lagi HP yang membaca atau mengirim jumlah.
+# Kode contract = kode expand dengan perubahan ini:
+#   internal/handler/handler.go  Jumlah *int64 `json:"jumlah"`  ->  `json:"-"`   (request bayar)
+#   internal/handler/handler.go  []string{"ke", "jumlah"}  ->  []string{"ke", "nominal"}
+#   internal/service/bayar.go    ErrValidasi{"jumlah",  ->  ErrValidasi{"nominal",
+#   internal/repo/transaksi.go   Jumlah int64 `json:"jumlah"`  ->  `json:"-"`   (GET /transfers/{id})
+#   internal/repo/riwayat.go     Jumlah int64 `json:"jumlah"`  ->  `json:"-"`   (riwayat)
+$ go build -o api-t1-contract ./cmd/api
+detik  HP Budi                                  HP Dimas
+1      app 1.1 · 200 · nominal 25000            app 1.1 · 200 · nominal 20000
+$ kill -TERM <pid server lama>
+2      app 1.1 · tidak ada jawaban              app 1.1 · tidak ada jawaban
+$ ./api-t1-contract &   # server contract menyala
+3      app 1.1 · 200 · nominal 25000            app 1.1 · 200 · nominal 20000
+4      app 1.1 · 200 · nominal 25000            app 1.1 · 200 · nominal 20000
+# Kalau masih ada satu HP dengan app 1.0, contract mengulang m6.txt bagian D:
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "jumlah": 25000}'
+HTTP/1.1 400 Bad Request
+Content-Type: application/problem+json
+
+{"type":"/problems/field-wajib","title":"Field wajib tidak dikirim","status":400,"errors":[{"field":"nominal","pesan":"wajib diisi"}]}

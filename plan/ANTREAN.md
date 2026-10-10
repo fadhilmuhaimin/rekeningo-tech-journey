@@ -281,7 +281,7 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### 1.33 · App versi lama + ADR 10
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: E1 ditulis ulang ke `tahap-1/` dengan ADR 10 (field tidak pernah diganti nama, expand lalu contract) yang berdiri sendiri tanpa rekaman B4.2; widget alur; tanpa Snippet `api-t1-lama`.

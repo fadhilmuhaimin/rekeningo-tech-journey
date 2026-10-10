@@ -1,0 +1,208 @@
+---
+title: "1.33 App versi lama, dan ADR 10"
+description: App di HP tidak berganti versi bersamaan dengan server. Field API tidak pernah diganti nama; field baru ditambahkan dulu (expand), dan yang lama dihapus sesudah tidak ada app yang membacanya (contract). Memuat ADR 10.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import versi from "../../../../data/diagram/t1-versi.json";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 9 menit · coba 3 menit · Prasyarat: [[t1-m6]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Field di API tidak pernah diganti nama di tempat. Field baru ditambahkan di samping yang lama (expand), dan yang lama dihapus (contract) sesudah tidak ada app yang membacanya.
+
+<Rantai data={versi} ringkas />
+
+Di [[t1-m6]], `jumlah` diganti `nominal` dalam satu deploy, dan tidak satu pun versi server melayani app 1.0 dan app 1.1 sekaligus. Server expand di rekaman lab melayani keduanya tanpa mengubah kolom database.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Kenapa mengganti nama field sama akibatnya dengan menghapus field?
+2. Server mengirim `jumlah` dan `nominal`. Kapan `jumlah` boleh dihapus?
+3. Migration seperti apa yang boleh ikut satu deploy, supaya image sebelumnya tetap bisa dijalankan lagi?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: satu server bisa melayani app lama dan app baru selama field lama tetap dikirim.">
+
+Ulangi perubahan M6 dengan expand. Ini latihan lab, bukan kejadian di cerita. Setiap status diambil dari rekaman lab.
+
+<WidgetLama nama="alur" src="data/skenario/t1-versi.json" />
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+App di HP tidak berganti versi bersamaan dengan server. Server berganti saat Raka men-deploy, sedangkan app berganti saat setiap orang memperbaruinya. Di [[t1-m6]], sore harinya Sinta menghitung 11 HP yang belum diperbarui ke app 1.1 (angka cerita).
+
+Sebagai mobile engineer, kamu mengenal ini dari sisi app: build lama tetap terpasang di HP orang. Dari sisi backend, pertanyaannya berbeda: sampai kapan bentuk request dan response lama harus tetap dilayani?
+
+Panduan kompatibilitas API Google (AIP-180) menjawab sebagian. Mengganti nama sama dengan menghapus lalu menambah. Dalam satu versi mayor, komponen baru boleh ditambah, tapi yang lama tidak boleh dihapus ([AIP-180](https://google.aip.dev/180)).
+
+### Cara kerjanya
+
+Expand lalu contract memecah satu perubahan yang merusak menjadi tiga fase. Martin Fowler menyebutnya parallel change: expand, migrate, contract ([martinfowler.com](https://martinfowler.com/bliki/ParallelChange.html)).
+
+1. **Expand.** Server menambah `nominal` di samping `jumlah`. Response mengirim keduanya, dan request boleh membawa salah satunya.
+2. **Migrate.** App baru membaca `nominal`, app lama tetap membaca `jumlah`. Fase ini berlangsung selama orang memperbarui app, jadi biasanya paling lama.
+3. **Contract.** Sesudah tidak ada request dari app lama, server berhenti mengirim dan membaca `jumlah`.
+
+Rekaman lab mulai dari keadaan akhir `m6.txt`: kolom `jumlah`, server v1, Budi dengan app 1.0, dan Dimas dengan app 1.1. Kode expand hanya menambah:
+
+<Snippet file="labs/api-t1/output/versi.txt" lines="4:12" title="Rekaman lab: labs/api-t1/output/versi.txt" />
+
+Nama `nominal` hanya ada di JSON. Server mengisinya dari kolom `jumlah`, jadi deploy ini tidak butuh migration. Prober memanggil riwayat dari kedua HP tiap detik:
+
+<Snippet file="labs/api-t1/output/versi.txt" lines="19:34" title="Rekaman lab: labs/api-t1/output/versi.txt" />
+
+Putaran 2 kosong karena server lama dihentikan sebelum server expand menyala. Sesudahnya, kedua app mendapat `200` dengan field yang dibacanya. Pembayaran dalam kedua bentuk request juga diterima:
+
+<Snippet file="labs/api-t1/output/versi.txt" lines="36:55" title="Rekaman lab: labs/api-t1/output/versi.txt" />
+
+Kode expand memakai `jumlah` bila kedua field dikirim. AIP-180 meminta perilaku seperti ini ditulis jelas, karena client bisa mengirim dua nilai yang bertentangan.
+
+Contract di rekaman dijalankan sesudah Budi memperbarui app ke 1.1. Field `jumlah` diberi tag `json:"-"`, jadi tidak dikirim dan tidak dibaca lagi. Baris terakhir adalah request bentuk app 1.0 ke server contract:
+
+<Snippet file="labs/api-t1/output/versi.txt" lines="77:98" title="Rekaman lab: labs/api-t1/output/versi.txt" />
+
+Jawabannya `400`, sama dengan `m6.txt` bagian D. Contract yang terlalu cepat mengulang M6 untuk app yang tersisa.
+
+### Migration mengikuti aturan yang sama
+
+Image lama hanya menolong selama skema database cocok dengan kode lama ([[C3]]). Di `m6.txt` bagian F, v1 yang dibangun ulang menjawab `500`, karena migration 000006 sudah mengganti nama kolom.
+
+Migration expand hanya menambah. Contoh di rekaman memakai nomor berikutnya, 000008, untuk kolom `catatan` yang boleh kosong:
+
+<Snippet file="labs/api-t1/output/versi.txt" lines="58:74" title="Rekaman lab: labs/api-t1/output/versi.txt" />
+
+Server expand yang sedang jalan tidak menyebut kolom `catatan`, jadi riwayat tetap `200` dan pembayaran tetap tercatat. Kolom baru dibuat boleh kosong atau punya default, karena INSERT dari kode lama tidak mengisinya. Kolom `NOT NULL` menolak nilai kosong ([PostgreSQL 17: constraints](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-NOT-NULL)).
+
+### Di sisi app dan di stack lain
+
+Expand tidak merusak app 1.0 karena field yang tidak dikenal diabaikan. Di kedua sisi, itu perilaku bawaan:
+
+| Bagian | Field yang tidak dikenal | Field yang hilang | Sumber |
+|---|---|---|---|
+| Server Go, `encoding/json` (lab) | Diabaikan; `DisallowUnknownFields` membuatnya error | Field pointer tetap `nil`; handler lab menjawab `400` field wajib | [pkg.go.dev](https://pkg.go.dev/encoding/json) |
+| App Flutter, `json_serializable` | Diabaikan; `disallowUnrecognizedKeys: true` melempar `UnrecognizedKeysException` | `defaultValue` dipakai bila key tidak ada atau `null`; `required: true` melempar `MissingRequiredKeysException` | [disallowUnrecognizedKeys](https://pub.dev/documentation/json_annotation/latest/json_annotation/JsonSerializable/disallowUnrecognizedKeys.html), [defaultValue](https://pub.dev/documentation/json_annotation/latest/json_annotation/JsonKey/defaultValue.html), [required](https://pub.dev/documentation/json_annotation/latest/json_annotation/JsonKey/required.html) |
+
+*Ilustrasi, tidak dijalankan di lab:* app baru membaca `nominal`, lalu jatuh ke `jumlah` bila `nominal` tidak ada ([dart.dev: operator `??`](https://dart.dev/language/operators)).
+
+```dart
+final nominal = (json['nominal'] ?? json['jumlah']) as int;
+```
+
+Dengan cara itu, riwayat di app baru tetap terbaca kalau server di-rollback ke image sebelum expand. App 1.1 di cerita hanya membaca `nominal`, dan `m6.txt` bagian G menunjukkan akibatnya.
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 10: field tidak pernah diganti nama, expand lalu contract
+
+**Kebutuhan.** Di M6, satu deploy mengganti `jumlah` jadi `nominal`. App 1.0 kehilangan riwayat dan gagal membayar, sedangkan kembali ke v1 merusak app 1.1 (`m6.txt` bagian C, D, G). Di cerita, Sinta menghitung sendiri 11 HP yang belum diperbarui sore itu. Server `api-t1` tidak mencatat versi app yang memanggilnya.
+
+| Opsi | Kelebihan | Kekurangan |
+|---|---|---|
+| Ganti nama di tempat, lalu app dipaksa update | Satu nama, tanpa masa transisi | PRD v1 tidak memuat pemeriksaan versi, jadi server tidak bisa meminta app 1.0 update. HP yang tidak bisa update kehilangan akses |
+| Versi API di URL (`/v1` dan `/v2`) | App lama tetap memakai `/v1` | Dua set handler dan tes dirawat bersamaan, untuk satu nama field |
+| Server memilih bentuk response menurut versi app di header | Setiap app mendapat bentuk yang dikenalnya | Request app 1.0 tidak membawa versi app. Percabangan per versi tumbuh di setiap handler |
+| **Field tidak pernah diganti nama; expand lalu contract** | Satu server melayani app lama dan baru; image sebelumnya tetap bisa dijalankan | Dua nama untuk satu nilai selama migrate; contract butuh bukti tidak ada app lama |
+
+Paksa update memang ada di platform. Contohnya, mode immediate di Android menampilkan layar penuh yang mewajibkan update sebelum app dipakai lagi ([Android: in-app updates](https://developer.android.com/guide/playcore/in-app-updates)). Mekanisme itu harus sudah ada di app sebelum dibutuhkan, jadi tidak menolong app 1.0.
+
+**Yang dipilih.**
+
+1. Nama field di kontrak tidak diganti dan tidak dihapus dalam satu deploy. Label layar boleh berbeda dari nama field: layar Bayar menulis "Nominal", field-nya `jumlah`.
+2. Perubahan bentuk dimulai dengan expand. Field baru ditambahkan di samping yang lama, response mengirim keduanya, dan field baru di request tidak wajib (AIP-180). Perilaku bila keduanya dikirim ditulis di kontrak OpenAPI.
+3. App yang membaca field baru dirilis sesudah server expand berjalan. Selama migrate, app itu tetap membaca field lama bila field baru tidak ada.
+4. Migration di satu deploy hanya menambah: tabel baru, atau kolom yang boleh kosong atau punya default (000008 di rekaman). Kolom yang dibaca image sebelumnya tidak diganti nama atau dihapus, supaya rollback ADR 9 tetap jalan.
+5. Contract hanya sesudah tidak ada request dari app yang memakai field lama. Selama hal itu belum bisa dihitung, contract tidak dijalankan dan server mengirim kedua field.
+6. Setiap perubahan kontrak tetap melewati pemeriksaan ADR 3 di [[B1.4|1.18]]. Contract menghapus field wajib dari response, jenis perubahan yang ditolak pemeriksaan itu di rekaman 1.18.
+
+Akibatnya untuk Tahap 1: app 1.0 dan app 1.1 dilayani satu server expand, seperti rekaman bagian C dan D. Field `jumlah` tidak dihapus selama uji coba.
+
+**Pre-mortem.** Enam bulan lagi, keputusan ini gagal. Tiga penyebab yang paling mungkin:
+
+- Contract dijalankan menurut tanggal, padahal masih ada HP dengan app lama. Request-nya ditolak `400`, seperti baris terakhir `versi.txt`. Pencegahnya butir 5.
+- Server di-rollback ke image sebelum expand, sesudah app baru hanya membaca field baru. App baru rusak seperti app 1.1 di `m6.txt` bagian G. Pencegahnya butir 3.
+- Contract tidak pernah dijalankan, dan dua nama untuk satu nilai menumpuk. Fowler mencatat risiko ini: tanpa contract, keadaannya bisa lebih buruk dari awal. Pencegahnya: setiap field lama dicatat di kontrak OpenAPI bersama syarat contract-nya.
+
+**Kapan keputusan ini salah.** Saat perubahan tidak bisa ditulis sebagai tambahan. Contohnya tipe field berubah: AIP-180 melarangnya dalam satu versi, dan perubahan format nilai butuh versi API baru. Juga saat app lama tidak pernah habis, misalnya di HP yang tidak bisa memasang versi baru. Saat itu yang dibutuhkan adalah versi minimum dari server, yang harus dibangun di app lebih dulu.
+
+**Yang merevisinya nanti.** Rencana pipeline Rekeningo memeriksa migration expand/contract secara otomatis di Tahap 3, dan menjalankan tes kontrak OpenAPI di CI Tahap 4.
+
+### Sengaja belum dilakukan
+
+| Yang belum | Kenapa sekarang tidak | Dibahas di |
+|---|---|---|
+| Versi app di setiap request, dihitung per versi | App 1.0 tidak mengirimnya; di cerita, 11 HP masih dihitung Sinta | Tahap 3, bersama observability |
+| Contract untuk `jumlah` | Belum ada hitungan request per versi app (butir 5) | Sesudah hitungan itu ada |
+| Versi minimum dan layar wajib update | Butuh versi app di request, dan mekanismenya harus ada di app lebih dulu | Sesudah hitungan itu ada |
+| Migration expand/contract dicek otomatis | CI pertama hanya menjalankan `go vet`, `go test`, dan gosec | Tahap 3 |
+| Tes otomatis yang mengirim request app lama ke server baru | Kontrak dibandingkan oasdiff di lab 1.18, tapi CI pertama belum menjalankannya | Tahap 4, tes kontrak OpenAPI |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Layar Bayar menulis "Nominal", tapi field-nya `jumlah`. Apakah field itu perlu diganti nama supaya cocok?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. Label layar adalah urusan app dan bisa berubah di setiap rilis. Nama field adalah kontrak dengan setiap app yang sudah terpasang. Kalau nama baru benar-benar dibutuhkan, tambahkan field baru dan biarkan `jumlah` sampai tidak ada app yang membacanya.
+
+</details>
+
+**2.** Server expand sudah berjalan seminggu. Kamu ingin menghapus `jumlah` hari Jumat. Apa yang harus kamu ketahui lebih dulu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Apakah masih ada request dari app yang membaca atau mengirim `jumlah`. Tanggal tidak menjawabnya. Di rekaman, satu request bentuk app 1.0 ke server contract dijawab `400`, sama dengan M6.
+
+</details>
+
+**3.** Mana yang aman ikut satu deploy, kalau image sebelumnya mungkin dijalankan lagi: `ADD COLUMN catatan text`, `RENAME COLUMN jumlah TO nominal`, atau `DROP COLUMN jumlah`?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Hanya `ADD COLUMN catatan text`. Kolom itu boleh kosong dan tidak disebut kode lama, seperti rekaman 000008. `RENAME COLUMN` membuat image lama menjawab `500` karena kolom `jumlah` tidak ada (`m6.txt` bagian F). `DROP COLUMN jumlah` menghapus kolom yang masih dibaca kode lama, jadi akibatnya sama.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Diff tidak mengganti tag JSON atau nama field yang sudah dikirim ke app. Nama baru ditulis sebagai field baru di samping yang lama.
+- [ ] Field baru di request tidak wajib, dan perilaku bila field lama dan baru sama-sama dikirim tertulis.
+- [ ] Migration di diff yang sama tidak memuat `RENAME COLUMN` atau `DROP COLUMN` untuk kolom yang dibaca image sebelumnya.
+- [ ] Model Dart untuk response server tidak memakai `disallowUnrecognizedKeys: true`, dan field yang bisa hilang punya `defaultValue` atau tipe nullable.
+- [ ] Penghapusan field disertai bukti tidak ada request dari app lama, bukan tanggal.
+
+### Bacaan lanjut
+
+- [AIP-180: Backwards compatibility](https://google.aip.dev/180)
+- [Martin Fowler: Parallel Change](https://martinfowler.com/bliki/ParallelChange.html)
+- [json_annotation: JsonSerializable.disallowUnrecognizedKeys](https://pub.dev/documentation/json_annotation/latest/json_annotation/JsonSerializable/disallowUnrecognizedKeys.html)
+- [Android: In-app updates](https://developer.android.com/guide/playcore/in-app-updates)
+
+</Blok>
+
+<SkripLama daftar={["cerita","hp","alur-core","alur"]} />

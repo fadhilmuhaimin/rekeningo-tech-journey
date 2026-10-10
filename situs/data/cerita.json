@@ -50,7 +50,7 @@
         "tim": "1 developer"
       },
       "jalur_inti": {
-        "menit": 276,
+        "menit": 279,
         "halaman": 31
       },
       "bagian": [
@@ -1038,13 +1038,15 @@
     },
     {
       "id": "E1",
-      "judul": "App versi lama yang tidak bisa dipaksa update",
+      "judul": "App versi lama",
       "tahap": 1,
       "topik": "Khusus app mobile",
-      "path": "e-mobile/e1-app-versi-lama.md",
-      "prasyarat": [],
+      "path": "tahap-1/app-versi-lama.md",
+      "prasyarat": [
+        "t1-m6"
+      ],
       "inti": true,
-      "masalah": "Perubahan API membuat app versi lama crash",
+      "masalah": "Perubahan API merusak app versi lama",
       "ada": true,
       "jenis": "konsep",
       "bagian": 4,
@@ -1055,9 +1057,8 @@
       "adr": [
         10
       ],
-      "lama": true,
       "nomor": "1.33",
-      "menit": 9
+      "menit": 12
     },
     {
       "id": "t1-m7",

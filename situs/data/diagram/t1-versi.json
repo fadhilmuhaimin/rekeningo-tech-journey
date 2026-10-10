@@ -1,0 +1,41 @@
+{
+  "id": "t1-versi",
+  "judul": "Ganti nama atau expand",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t1 · m6.txt dan versi.txt"
+  },
+  "baris": [
+    {
+      "label": "Ganti nama",
+      "sub": "M6",
+      "simpul": [
+        {
+          "teks": "jumlah → nominal",
+          "kode": true
+        },
+        {
+          "teks": "App 1.0 rusak",
+          "sub": "200 · tanpa jumlah",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Expand",
+      "sub": "tambah dulu",
+      "simpul": [
+        {
+          "teks": "jumlah + nominal",
+          "kode": true
+        },
+        {
+          "teks": "App 1.0 dan 1.1",
+          "sub": "200 · keduanya",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Field lama baru dihapus sesudah tidak ada app yang membacanya."
+}

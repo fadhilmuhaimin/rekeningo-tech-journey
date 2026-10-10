@@ -15,7 +15,6 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Catatan untuk halaman Tahap 1 berikutnya
 
-- 1.33 (E1): prasyarat B4.2 dibuang; ADR 10 (expand lalu contract) harus berdiri sendiri, tanpa rekaman crash B4.2.
 - 1.39 (F1) menyerap F2: hapus halaman F2 dan entrinya di PR yang sama (pola keputusan 150).
 - 1.31 `deploy.txt`: kode api-t1 diambil dari commit main `f128167` (`KODE_V1` di `run.py`), Dockerfile dari folder lab; hash 390ff47/f5ea0b4 (±27 tempat: halaman, `t1-deploy.json`, `t1-deploy-tag.json`, `kartu.json`) hanya berubah bila salah satunya diubah, dan `harap` membuat lab gagal keras.
 - 1.36 (Tim-infra) memakai ulang `labs/api-t1/deploy/compose.yaml` dan `ci.yml` dari 1.31; jeda ganti container belum diukur, jangan tulis angkanya tanpa rekaman.
@@ -46,10 +45,11 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-11 · 1.32 Testing di branch `tahap-1/testing` (keputusan 250, 251), PR #163: perbaikan review diterapkan (tes membaca `TEST_DATABASE_URL` dengan penjaga `lab`/`tahap1`, keempat endpoint ber-ID dites 404, Snippet bagian A dan E, tab Django, catatan Dart). Menunggu tinjauan ulang; jangan merge sebelum disetujui. Berikutnya sesudah merge: python3 tools/antrean.py berikut
+2026-10-11 · 1.33 App versi lama + ADR 10 di branch `tahap-1/app-versi-lama` (keputusan 252, 253): rekaman `versi.txt`, halaman `tahap-1/app-versi-lama.mdx`, alur `t1-versi`; E1 lama dan `e1-versi.json` dihapus. PR menunggu tinjauan; jangan merge sebelum disetujui. Berikutnya sesudah merge: python3 tools/antrean.py berikut
 
 ## Pelajaran
 
+- Data widget lama (skenario alur) ditulis di `situs/lama/widgets/data/`; `situs/public/widgets/` tidak dilacak git dan disalin saat build. `tools/sinkron_cerita.py` mengabaikan argumen (`--help` pun langsung menyinkronkan).
 - Astro 7 `preview` otomatis jadi daemon bila agen terdeteksi, dan bila daemon lama hidup ia keluar tanpa menyalakan server baru; `curl /` berhasil tidak membuktikan server melayani build ini (G1 memakai penanda per jalan di `situs/dist`).
 - Island yang mengganti versi statis wajib memesan tinggi akhirnya di SSR; ukur CLS dengan modul JS ditunda dan gulir tanpa input (`ukur-diagram.mjs` bagian 7), karena tangkapan dan `layar.mjs` tidak melihat geser.
 - Island React Astro di-hydrate di `startTransition` dan atribut `ssr` dilepas sebelum React selesai; keadaan yang dibaca dari DOM di efek butuh CSS yang menyembunyikan isi SSR sampai cocok, bukan selektor `[ssr]`.

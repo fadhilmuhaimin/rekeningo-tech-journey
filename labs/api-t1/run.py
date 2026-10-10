@@ -1205,6 +1205,151 @@ def _rekam_m6(tmp):
                "# Rekaman halaman sesudah 1.30 mulai dari keadaan ini: kolom jumlah, kode v1.\n")
     tulis("m6.txt")
 
+# 1.33 App versi lama + ADR 10 (keputusan 252): expand lalu contract untuk field nominal, lanjutan m6 bagian G.
+# Setiap entri: file, teks lama, teks baru, jumlah kemunculan, baris yang ditulis ke rekaman.
+EXPAND_UBAH = [
+    ("internal/handler/handler.go", 'Jumlah *int64 `json:"jumlah"`',
+     'Jumlah *int64 `json:"jumlah"`\n\t\tNominal *int64 `json:"nominal"`', 1, '+ Nominal *int64 `json:"nominal"`   (request bayar)'),
+    ("internal/handler/handler.go", 'if p := wajibAda([]string{"ke", "jumlah"}',
+     'if in.Jumlah == nil {\n\t\tin.Jumlah = in.Nominal\n\t}\n\tif p := wajibAda([]string{"ke", "jumlah"}', 1,
+     '+ if in.Jumlah == nil { in.Jumlah = in.Nominal }'),
+    ("internal/repo/transaksi.go", 'Jumlah int64     `json:"jumlah"`',
+     'Jumlah int64     `json:"jumlah"`\n\tNominal int64    `json:"nominal"`', 1, '+ Nominal int64 `json:"nominal"`   (GET /transfers/{id})'),
+    ("internal/repo/transaksi.go", "\tif errors.Is(err, sql.ErrNoRows) {\n\t\treturn t, ErrTidakAda",
+     "\tt.Nominal = t.Jumlah\n\tif errors.Is(err, sql.ErrNoRows) {\n\t\treturn t, ErrTidakAda", 1, "+ t.Nominal = t.Jumlah"),
+    ("internal/repo/riwayat.go", 'Jumlah int64     `json:"jumlah"`',
+     'Jumlah int64     `json:"jumlah"`\n\tNominal int64    `json:"nominal"`', 1, '+ Nominal int64 `json:"nominal"`   (riwayat)'),
+    ("internal/repo/riwayat.go", "&x.Jumlah, &x.Waktu); err != nil {\n\t\t\treturn nil, err\n\t\t}",
+     "&x.Jumlah, &x.Waktu); err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\tx.Nominal = x.Jumlah", 1,
+     "+ x.Nominal = x.Jumlah"),
+]
+# Contract dijalankan di atas kode expand: jumlah tidak dikirim dan tidak dibaca lagi (`json:"-"`).
+CONTRACT_UBAH = [
+    ("internal/handler/handler.go", 'Jumlah *int64 `json:"jumlah"`', 'Jumlah *int64 `json:"-"`', 1,
+     'Jumlah *int64 `json:"jumlah"`  ->  `json:"-"`   (request bayar)'),
+    ("internal/handler/handler.go", '[]string{"ke", "jumlah"}', '[]string{"ke", "nominal"}', 1,
+     '[]string{"ke", "jumlah"}  ->  []string{"ke", "nominal"}'),
+    ("internal/service/bayar.go", 'ErrValidasi{"jumlah",', 'ErrValidasi{"nominal",', 1,
+     'ErrValidasi{"jumlah",  ->  ErrValidasi{"nominal",'),
+    ("internal/repo/transaksi.go", 'Jumlah int64     `json:"jumlah"`', 'Jumlah int64     `json:"-"`', 1,
+     'Jumlah int64 `json:"jumlah"`  ->  `json:"-"`   (GET /transfers/{id})'),
+    ("internal/repo/riwayat.go", 'Jumlah int64     `json:"jumlah"`', 'Jumlah int64     `json:"-"`', 1,
+     'Jumlah int64 `json:"jumlah"`  ->  `json:"-"`   (riwayat)'),
+]
+
+
+def bangun_dari_v1(tmp, nama, *daftar_ubah):
+    """Salinan kode v1 dengan perubahan teks berurutan, dibangun ke tmp/<nama>. Kode lab sendiri tidak disentuh.
+    Hanya perubahan dari daftar terakhir yang ditulis ke rekaman."""
+    src = tmp / f"src-{nama}"
+    src.mkdir()
+    for f in ("go.mod", "go.sum"):
+        shutil.copy2(HERE / f, src / f)
+    for f in ("cmd", "internal"):
+        shutil.copytree(HERE / f, src / f)
+    for ubah in daftar_ubah:
+        for f, lama, baru, n, _ in ubah:
+            teks = (src / f).read_text()
+            harap(teks.count(lama), n, f"{nama}: '{lama.splitlines()[0]}' di {f}")
+            (src / f).write_text(teks.replace(lama, baru))
+    b = tmp / nama
+    subprocess.run(["go", "build", "-o", str(b), "./cmd/api"], cwd=src, check=True)
+    for f, _, _, _, tampil in daftar_ubah[-1]:
+        log.append(f"#   {f:<28} {tampil}\n")
+    log.append(f"$ go build -o {nama} ./cmd/api\n")
+    return b
+
+
+def ganti_server(p, bin, label):
+    """Server lama berhenti, prober berputar sekali tanpa jawaban, server baru menyala."""
+    log.append("$ kill -TERM <pid server lama>\n")
+    stop()
+    p.putaran()
+    mulai(bin=bin, tampil=f"$ ./{bin.name} &   # {label} menyala")
+
+
+def rekam_versi():
+    """1.33 App versi lama + ADR 10 (keputusan 252): satu server melayani app 1.0 dan app 1.1, lalu contract."""
+    tmp = pathlib.Path(tempfile.mkdtemp(prefix="api-t1-versi-"))
+    try:
+        _rekam_versi(tmp)
+    finally:
+        stop()
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _rekam_versi(tmp):
+    reset()
+    samarkan_hari_ini()
+    log.append("# Keadaan awal sama dengan akhir m6.txt bagian G (database bersih): kolom transaksi.jumlah, server v1. App 1.0 membaca field \"jumlah\", app 1.1 membaca \"nominal\".\n"
+               "# Di lab, setiap versi server adalah binary di folder sementara.\n")
+    bagian("A. Kode expand: field nominal ditambah di samping jumlah, kolom database tidak diubah")
+    bin_expand = bangun_dari_v1(tmp, "api-t1-expand", EXPAND_UBAH)
+    log.append("# migration: tidak ada. Kolom transaksi.jumlah tetap; nama nominal hanya ada di JSON.\n")
+
+    bagian("B. Keadaan awal: v1 berjalan, Budi memakai app 1.0, Dimas app 1.1")
+    mulai(tampil="# server: api-t1 (v1)")
+    topup_awal()
+    k = len(log)
+    budi = login("budi@lestari.example", "sementara-419", "<token sesi Budi>")
+    dimas = login("dimas@lestari.example", "sementara-417", "<token sesi Dimas>")
+    for token, n in ((budi, 25000), (dimas, 20000)):
+        s, _ = curl("POST", "/transfers", json.dumps({"ke": 418, "jumlah": n}), token=token)
+        harap(s, 201, "bayar ke Warung Ani di v1")
+    del log[k:]
+    log.append("# persiapan: login Budi (419) dan Dimas (417); keduanya membayar dari app 1.0 (Rp25.000 dan Rp20.000), lalu Dimas memperbarui app ke 1.1\n")
+
+    bagian("C. Deploy expand: prober memanggil riwayat tiap detik, perintah dijalankan di antara dua putaran")
+    log.append(f"{'detik':<7}{'HP Budi':<41}HP Dimas\n")
+    p = Prober([["Budi", budi, 419, "1.0"], ["Dimas", dimas, 417, "1.1"]])
+    p.putaran()
+    ganti_server(p, bin_expand, "server expand")
+    p.putaran(2)
+    dua = ["200 · jumlah 25000", "200 · nominal 20000"]
+    harap(p.hasil, [["200 · jumlah 25000", "200 · field nominal tidak ada"], ["tidak ada jawaban"] * 2, dua, dua],
+          "expand: app 1.0 dan app 1.1 sama-sama 200")
+    log.append(f"# Ringkasan {len(p.hasil)} putaran:\n")
+    p.ringkasan()
+    s, b = curl("GET", "/akun/419/riwayat", token=budi)
+    x = json.loads(b)["riwayat"][0]
+    harap((s, x["jumlah"], x["nominal"]), (200, 25000, 25000), "expand: riwayat mengirim jumlah dan nominal")
+
+    bagian("D. Bayar dari app 1.0 (mengirim jumlah) dan app 1.1 (mengirim nominal) ke server expand")
+    s1, _ = curl("POST", "/transfers", '{"ke": 418, "jumlah": 25000}', token=budi)
+    s2, _ = curl("POST", "/transfers", '{"ke": 418, "nominal": 20000}', token=dimas)
+    harap((s1, s2), (201, 201), "expand: kedua bentuk request diterima")
+    saldo = sql("SELECT id, nama, saldo FROM akun WHERE id IN (417, 418, 419) ORDER BY id")
+    harap(re.findall(r"\|\s*(\d+)\s*$", saldo, re.M), ["210000", "90000", "200000"], "saldo sesudah empat pembayaran")
+
+    bagian("E. Migration expand: kolom baru yang boleh kosong, server expand yang sedang jalan tidak terganggu")
+    log.append("# Contoh migration (latihan lab, bukan kejadian di cerita): nomor sesudah 000007 di m6.txt.\n"
+               "# 000008_transaksi_catatan.up.sql berisi ALTER TABLE ini. Kode server expand tidak menyebut kolom catatan.\n")
+    sql("ALTER TABLE transaksi ADD COLUMN catatan text")
+    log.append(f"{'detik':<7}{'HP Budi':<41}HP Dimas\n")
+    p = Prober([["Budi", budi, 419, "1.0"], ["Dimas", dimas, 417, "1.1"]])
+    p.putaran()
+    harap(p.hasil, [dua], "sesudah 000008: riwayat kedua app tetap 200")
+    s, _ = curl("POST", "/transfers", '{"ke": 418, "jumlah": 25000}', token=budi)
+    harap(s, 201, "sesudah 000008: server expand tetap mencatat pembayaran")
+    isi = sql("SELECT count(*) AS transaksi, count(catatan) AS berisi_catatan FROM transaksi")
+    harap(re.findall(r"^\s*(\d+)\s*\|\s*(\d+)\s*$", isi, re.M), [("5", "0")], "lima transaksi, catatan kosong semua")
+
+    bagian("F. Contract: jumlah tidak dikirim dan tidak dibaca lagi, sesudah tidak ada app 1.0")
+    log.append("# Di lab: Budi memperbarui app ke 1.1, jadi tidak ada lagi HP yang membaca atau mengirim jumlah.\n"
+               "# Kode contract = kode expand dengan perubahan ini:\n")
+    bin_contract = bangun_dari_v1(tmp, "api-t1-contract", EXPAND_UBAH, CONTRACT_UBAH)
+    log.append(f"{'detik':<7}{'HP Budi':<41}HP Dimas\n")
+    p = Prober([["Budi", budi, 419, "1.1"], ["Dimas", dimas, 417, "1.1"]])
+    p.putaran()
+    ganti_server(p, bin_contract, "server contract")
+    p.putaran(2)
+    baru = ["200 · nominal 25000", "200 · nominal 20000"]
+    harap(p.hasil, [baru, ["tidak ada jawaban"] * 2, baru, baru], "contract: app 1.1 tetap 200")
+    log.append("# Kalau masih ada satu HP dengan app 1.0, contract mengulang m6.txt bagian D:\n")
+    s, b = curl("POST", "/transfers", '{"ke": 418, "jumlah": 25000}', token=budi)
+    harap((s, json.loads(b)["errors"][0]["field"]), (400, "nominal"), "contract: request app 1.0 ditolak")
+    tulis("versi.txt")
+
 # 1.31 Deployment dan rollback (keputusan 247): image per commit, rollback = tag lama, satu container lewat Compose.
 DEPLOY = HERE / "deploy"
 DB_CONTAINER = DB.replace("127.0.0.1:54333", "db:5432")
@@ -1457,6 +1602,6 @@ def rekam_testing():
 
 if __name__ == "__main__":
     subprocess.run(["go", "build", "-o", str(BIN), "./cmd/api"], cwd=HERE, check=True)
-    pilihan = sys.argv[1:] or ["login", "topup", "bayar", "riwayat", "pertukaran", "relasi", "m1", "http", "m2", "m3", "injection", "lapisan", "m4", "koreksi", "m5", "authz", "m6", "deploy", "testing"]
+    pilihan = sys.argv[1:] or ["login", "topup", "bayar", "riwayat", "pertukaran", "relasi", "m1", "http", "m2", "m3", "injection", "lapisan", "m4", "koreksi", "m5", "authz", "m6", "deploy", "testing", "versi"]
     for p in pilihan:
         globals()["rekam_" + p.replace("-", "_")]()

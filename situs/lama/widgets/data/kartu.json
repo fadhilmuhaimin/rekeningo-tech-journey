@@ -221,7 +221,7 @@
   "judul": "1.18 Kontrak OpenAPI dan ADR 3",
   "url": "tahap-1/kontrak-openapi/",
   "tanya": "Endpoint bayar ingin menambah field `catatan` yang wajib di request. App di HP penguji belum mengirimnya. Aman?",
-  "jawab": "Tidak. App lama tidak mengirim `catatan`, jadi semua pembayarannya akan ditolak `400`. Jadikan opsional dulu, dengan nilai bawaan di server. Baru wajibkan setelah semua app sudah diperbarui (1.33 App versi lama yang tidak bisa dipaksa update)."
+  "jawab": "Tidak. App lama tidak mengirim `catatan`, jadi semua pembayarannya akan ditolak `400`. Jadikan opsional dulu, dengan nilai bawaan di server. Baru wajibkan setelah semua app sudah diperbarui (1.33 App versi lama)."
  },
  {
   "id": "B1.4-2",
@@ -446,7 +446,7 @@
   "judul": "1.31 Deployment dan rollback",
   "url": "tahap-1/deployment-rollback/",
   "tanya": "Kamu menjalankan `TAG=390ff47 docker compose up -d` untuk rollback. Container menyala, tapi riwayat menjawab `500`, dan log server mencatat `column t.jumlah does not exist`. Apa yang terjadi?",
-  "jawab": "Deploy sebelumnya juga menjalankan migration yang mengganti nama kolom. Image `390ff47` berisi kode lama yang masih membaca `jumlah`. Rollback image mengganti kode, bukan skema; rekamannya di `m6.txt` bagian F. Karena itu migration harus tetap cocok dengan image sebelumnya (ADR 10 di 1.33 App versi lama yang tidak bisa dipaksa update)."
+  "jawab": "Deploy sebelumnya juga menjalankan migration yang mengganti nama kolom. Image `390ff47` berisi kode lama yang masih membaca `jumlah`. Rollback image mengganti kode, bukan skema; rekamannya di `m6.txt` bagian F. Karena itu migration harus tetap cocok dengan image sebelumnya (ADR 10 di 1.33 App versi lama)."
  },
  {
   "id": "C3-2",
@@ -491,26 +491,26 @@
  {
   "id": "E1-1",
   "halaman": "E1",
-  "judul": "1.33 App versi lama yang tidak bisa dipaksa update",
-  "url": "e-mobile/e1-app-versi-lama/",
-  "tanya": "Kenapa app membaca `/config` saat dibuka, bukan saat request pertama gagal?",
-  "jawab": "Kalau menunggu gagal, Budi sudah melihat error atau crash lebih dulu. Membaca di awal memberi kesempatan menampilkan layar update yang jelas sebelum fitur yang rusak dipakai."
+  "judul": "1.33 App versi lama",
+  "url": "tahap-1/app-versi-lama/",
+  "tanya": "Layar Bayar menulis \"Nominal\", tapi field-nya `jumlah`. Apakah field itu perlu diganti nama supaya cocok?",
+  "jawab": "Tidak. Label layar adalah urusan app dan bisa berubah di setiap rilis. Nama field adalah kontrak dengan setiap app yang sudah terpasang. Kalau nama baru benar-benar dibutuhkan, tambahkan field baru dan biarkan `jumlah` sampai tidak ada app yang membacanya."
  },
  {
   "id": "E1-2",
   "halaman": "E1",
-  "judul": "1.33 App versi lama yang tidak bisa dipaksa update",
-  "url": "e-mobile/e1-app-versi-lama/",
-  "tanya": "Jelaskan kenapa `426 Upgrade Required` kurang tepat untuk \"versi app terlalu lama\".",
-  "jawab": "RFC 9110 mendefinisikan `426` untuk meminta client pindah protokol, dengan header `Upgrade` yang wajib. Versi app bukan protokol. Memakai `426` tetap bisa berjalan kalau app memahaminya, tapi maknanya tidak sesuai standar dan bisa membingungkan proxy atau developer lain."
+  "judul": "1.33 App versi lama",
+  "url": "tahap-1/app-versi-lama/",
+  "tanya": "Server expand sudah berjalan seminggu. Kamu ingin menghapus `jumlah` hari Jumat. Apa yang harus kamu ketahui lebih dulu?",
+  "jawab": "Apakah masih ada request dari app yang membaca atau mengirim `jumlah`. Tanggal tidak menjawabnya. Di rekaman, satu request bentuk app 1.0 ke server contract dijawab `400`, sama dengan M6."
  },
  {
   "id": "E1-3",
   "halaman": "E1",
-  "judul": "1.33 App versi lama yang tidak bisa dipaksa update",
-  "url": "e-mobile/e1-app-versi-lama/",
-  "tanya": "Metric menunjukkan 3% request masih dari v1.4. Apa yang kamu lakukan sebelum menaikkan versi minimum?",
-  "jawab": "Naikkan `versi_disarankan` dulu supaya app menampilkan ajakan update yang bisa dilewati. Pantau beberapa minggu, cek apakah ada kelompok yang tidak bisa update (OS lama), lalu putuskan bersama pemilik produk. Baru kemudian naikkan versi minimum."
+  "judul": "1.33 App versi lama",
+  "url": "tahap-1/app-versi-lama/",
+  "tanya": "Mana yang aman ikut satu deploy, kalau image sebelumnya mungkin dijalankan lagi: `ADD COLUMN catatan text`, `RENAME COLUMN jumlah TO nominal`, atau `DROP COLUMN jumlah`?",
+  "jawab": "Hanya `ADD COLUMN catatan text`. Kolom itu boleh kosong dan tidak disebut kode lama, seperti rekaman 000008. `RENAME COLUMN` membuat image lama menjawab `500` karena kolom `jumlah` tidak ada (`m6.txt` bagian F). `DROP COLUMN jumlah` menghapus kolom yang masih dibaca kode lama, jadi akibatnya sama."
  },
  {
   "id": "D1-1",
@@ -1047,7 +1047,7 @@
   "judul": "4.4 OAuth dan login sosial",
   "url": "b-fondasi/b5-2-oauth-oidc/",
   "tanya": "App Rekeningo versi baru selalu mengirim PKCE, tapi server identitas tidak mewajibkannya. Apakah serangan di widget sudah tertutup?",
-  "jawab": "Belum. App versi lama yang belum mengirim PKCE masih terpasang di banyak HP (1.33 App versi lama yang tidak bisa dipaksa update). Selama server menerima alur tanpa PKCE, code dari versi lama bisa dicegat dan ditukar. Serangan baru tertutup setelah server menolak setiap alur tanpa PKCE."
+  "jawab": "Belum. App versi lama yang belum mengirim PKCE masih terpasang di banyak HP (1.33 App versi lama). Selama server menerima alur tanpa PKCE, code dari versi lama bisa dicegat dan ditukar. Serangan baru tertutup setelah server menolak setiap alur tanpa PKCE."
  },
  {
   "id": "B5.2-2",

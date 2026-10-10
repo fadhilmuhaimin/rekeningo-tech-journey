@@ -1,0 +1,122 @@
+{
+  "versi": 2,
+  "judul": "Satu server untuk app 1.0 dan app 1.1",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/api-t1/output/versi.txt",
+    "fileVarian": "labs/api-t1/output/versi.txt",
+    "catatan": "Server Go (labs/api-t1) + PostgreSQL 17 dari database bersih. Latihan lab, bukan kejadian di cerita. Prober memanggil riwayat dari dua HP tiap detik. Jalur utama: bagian B, C, D. Ubah satu hal: bagian F."
+  },
+  "pengantar": "Mulai dari keadaan sesudah M6: server v1 melayani app 1.0, tidak app 1.1. Tebak dulu, lalu ganti v1 dengan server expand dan lihat kedua HP. Sesudahnya centang 'Ubah satu hal' untuk contract.",
+  "komponen": [
+    { "id": "budi", "label": "HP Budi · app 1.0" },
+    { "id": "dimas", "label": "HP Dimas · app 1.1" },
+    { "id": "api", "label": "Server api-t1" },
+    { "id": "db", "label": "PostgreSQL" }
+  ],
+  "perangkat": [
+    { "id": "hp-budi", "label": "HP Budi" },
+    { "id": "hp-dimas", "label": "HP Dimas" }
+  ],
+  "layarAwal": {
+    "hp-budi": { "judul": "Riwayat · app 1.0", "waktu": "–", "isi": [{ "jenis": "baris", "kiri": "Ke Warung Ani", "kanan": "Rp25.000" }] },
+    "hp-dimas": { "judul": "Riwayat · app 1.1", "waktu": "–", "isi": [{ "jenis": "toast", "teks": "Riwayat tidak bisa dimuat", "nada": "warn" }] }
+  },
+  "predict": {
+    "q": "Server expand mengirim jumlah dan nominal. Kolom database tetap bernama jumlah. Begitu server itu menyala, apa yang diterima kedua HP?",
+    "options": [
+      "Budi 200, Dimas tetap tanpa nominal",
+      "Budi kehilangan jumlah, Dimas 200",
+      "Keduanya 200 dengan field yang dibacanya",
+      "Keduanya 500, karena kolom nominal tidak ada"
+    ],
+    "answer": 2,
+    "varian": false,
+    "explain": "Server expand mengisi nominal dari kolom jumlah, jadi database tidak perlu berubah. App 1.0 membaca jumlah, app 1.1 membaca nominal. Rekaman lab bagian C, putaran 3 dan 4."
+  },
+  "langkah": [
+    {
+      "dari": "budi",
+      "ke": "api",
+      "judul": "Detik 1: v1 melayani app 1.0 saja",
+      "kirim": "GET /akun/419/riwayat   HP Budi\n200 · jumlah 25000\nGET /akun/417/riwayat   HP Dimas\n200 · field nominal tidak ada",
+      "jelas": "Keadaan sesudah M6. Server mengirim jumlah. App 1.1 di HP Dimas mencari nominal, jadi riwayatnya tidak bisa dimuat.",
+      "nada": "warn",
+      "layar": {
+        "hp-budi": { "judul": "Riwayat · app 1.0", "waktu": "–", "nada": "good", "isi": [{ "jenis": "baris", "kiri": "Ke Warung Ani", "kanan": "Rp25.000" }] },
+        "hp-dimas": { "judul": "Riwayat · app 1.1", "waktu": "–", "nada": "warn", "isi": [{ "jenis": "toast", "teks": "Riwayat tidak bisa dimuat", "nada": "warn" }] }
+      }
+    },
+    {
+      "dari": "api",
+      "judul": "Server lama berhenti, tanpa migration",
+      "kirim": "$ kill -TERM <pid server lama>\ndetik 2: kedua HP tidak ada jawaban",
+      "jelas": "Satu putaran prober kosong, karena server expand baru dinyalakan sesudahnya. Kolom jumlah tidak diubah, jadi deploy ini tidak menjalankan migration.",
+      "nada": "warn",
+      "layar": {
+        "hp-budi": { "judul": "Riwayat · app 1.0", "waktu": "–", "nada": "warn", "isi": [{ "jenis": "toast", "teks": "Tidak bisa terhubung", "nada": "warn" }] },
+        "hp-dimas": { "judul": "Riwayat · app 1.1", "waktu": "–", "nada": "warn", "isi": [{ "jenis": "toast", "teks": "Tidak bisa terhubung", "nada": "warn" }] }
+      }
+    },
+    {
+      "dari": "api",
+      "ke": "dimas",
+      "judul": "Detik 3–4: server expand menjawab kedua app",
+      "kirim": "$ ./api-t1-expand &\nGET /akun/419/riwayat   HP Budi\n200 · jumlah 25000\nGET /akun/417/riwayat   HP Dimas\n200 · nominal 20000",
+      "jelas": "Response berisi jumlah dan nominal dengan nilai yang sama. Setiap app membaca nama yang dikenalnya dan mengabaikan yang lain.",
+      "nada": "good",
+      "layar": {
+        "hp-budi": { "judul": "Riwayat · app 1.0", "waktu": "–", "nada": "good", "isi": [{ "jenis": "baris", "kiri": "Ke Warung Ani", "kanan": "Rp25.000" }] },
+        "hp-dimas": { "judul": "Riwayat · app 1.1", "waktu": "–", "nada": "good", "isi": [{ "jenis": "baris", "kiri": "Ke Warung Ani", "kanan": "Rp20.000" }] }
+      }
+    },
+    {
+      "dari": "budi",
+      "ke": "api",
+      "judul": "Budi membayar dari app 1.0",
+      "kirim": "POST /transfers\n{\"ke\": 418, \"jumlah\": 25000}\n201 Created · saldo 200000",
+      "jelas": "App 1.0 tetap mengirim jumlah. Server expand menerimanya seperti v1.",
+      "nada": "good",
+      "layar": {
+        "hp-budi": { "judul": "Bayar · app 1.0", "waktu": "–", "nada": "good", "isi": [{ "jenis": "baris", "kiri": "Ke Warung Ani", "kanan": "Rp25.000" }, { "jenis": "baris", "kiri": "Saldo", "kanan": "Rp200.000" }] }
+      }
+    },
+    {
+      "dari": "dimas",
+      "ke": "api",
+      "judul": "Dimas membayar dari app 1.1",
+      "kirim": "POST /transfers\n{\"ke\": 418, \"nominal\": 20000}\n201 Created · saldo 210000",
+      "jelas": "App 1.1 mengirim nominal. Server expand memakainya karena jumlah tidak dikirim. Saldo Warung Ani jadi Rp90.000 dari empat pembayaran.",
+      "nada": "good",
+      "layar": {
+        "hp-dimas": { "judul": "Bayar · app 1.1", "waktu": "–", "nada": "good", "isi": [{ "jenis": "baris", "kiri": "Ke Warung Ani", "kanan": "Rp20.000" }, { "jenis": "baris", "kiri": "Saldo", "kanan": "Rp210.000" }] }
+      }
+    }
+  ],
+  "varian": {
+    "label": "Budi memperbarui app ke 1.1, lalu jumlah dihapus (contract)",
+    "mulai": 5,
+    "langkah": [
+      {
+        "dari": "api",
+        "ke": "budi",
+        "judul": "Contract: jumlah tidak dikirim lagi",
+        "kirim": "$ kill -TERM <pid server lama>\n$ ./api-t1-contract &\nGET /akun/419/riwayat   HP Budi · app 1.1\n200 · nominal 25000\nGET /akun/417/riwayat   HP Dimas · app 1.1\n200 · nominal 20000",
+        "jelas": "Rekaman bagian F. Contract dijalankan sesudah tidak ada lagi HP dengan app 1.0. Kedua HP tetap 200.",
+        "nada": "good",
+        "layar": {
+          "hp-budi": { "judul": "Riwayat · app 1.1", "waktu": "–", "nada": "good", "isi": [{ "jenis": "baris", "kiri": "Ke Warung Ani", "kanan": "Rp25.000" }] },
+          "hp-dimas": { "judul": "Riwayat · app 1.1", "waktu": "–", "nada": "good", "isi": [{ "jenis": "baris", "kiri": "Ke Warung Ani", "kanan": "Rp20.000" }] }
+        }
+      },
+      {
+        "dari": "budi",
+        "ke": "api",
+        "judul": "Request bentuk app 1.0 ke server contract",
+        "kirim": "POST /transfers\n{\"ke\": 418, \"jumlah\": 25000}\n400 Bad Request\nfield nominal: wajib diisi",
+        "jelas": "Rekaman bagian F, baris terakhir. Satu app 1.0 yang tersisa mengulang M6. Karena itu contract menunggu hitungan request, bukan tanggal.",
+        "nada": "warn"
+      }
+    ]
+  }
+}
