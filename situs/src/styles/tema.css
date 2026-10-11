@@ -321,7 +321,7 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-hp__app { font-weight: 800; font-size: 1.1em; color: var(--k-system-ink); }
 .sl-markdown-content .bb-hp__saldo { background: var(--k-system-padat); color: var(--ink-di-aksen); border-radius: 0.7rem; padding: 0.45rem 0.55rem; }
 .sl-markdown-content .bb-hp__saldo small { display: block; opacity: 0.85; font-size: 0.85em; }
-.sl-markdown-content .bb-hp__saldo strong { font-size: 1.3em; letter-spacing: 0.01em; color: inherit; }
+.sl-markdown-content .bb-hp__saldo strong { font-size: 1.3em; letter-spacing: 0.01em; color: inherit; font-variant-numeric: tabular-nums; }
 .sl-markdown-content .bb-hp__saldo.is-warn { background: var(--k-warn-padat); }
 .sl-markdown-content .bb-hp__row { display: flex; justify-content: space-between; gap: 0.4rem; padding: 0.3rem 0; border-bottom: 1px solid var(--garis); }
 .sl-markdown-content .bb-hp__row.is-warn strong { color: var(--k-warn-ink); }
@@ -780,6 +780,8 @@ body:has(.beranda) .content-panel { padding-block: 0.6rem; border-top: 0; }
 .sl-markdown-content .jt-tabel { display: table; width: 100%; margin: 0.4rem 0 0.8rem; font-size: 1em; }
 .sl-markdown-content .jt-tabel :is(th, td) { padding: 0.35rem 0.5rem; text-align: left; }
 .sl-markdown-content .jt-tabel .jt-angka { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Nilai akhir untuk pembaca layar; angka yang sedang bergerak di sampingnya aria-hidden (I5d, keputusan 352). */
+.sl-markdown-content .bb-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .sl-markdown-content .jt-tabel tr.is-berubah td { background: var(--k-system-fill); color: var(--k-system-ink); }
 .sl-markdown-content .jt-tabel tr.jt-total :is(th, td) { border-top: 2px solid var(--garis-2); font-weight: 700; }
 .sl-markdown-content .jt-tabel tr.jt-total.is-good td { color: var(--k-good-ink); }

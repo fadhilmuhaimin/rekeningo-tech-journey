@@ -1,10 +1,36 @@
 // Widget React pertama (keputusan 144): jalankan perintah satu per satu, lihat jumlah semua saldo.
 // Semua teks dari data JSON; logika di logika.ts.
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { DataJumlahTotal } from "./skema";
 import { batas, keadaan, rupiah, type Status } from "./logika";
+import { tweenAngka } from "../../gerak/angka";
 
 const kelasStatus: Record<Status, string> = { ok: "is-good", proses: "", gagal: "is-warn" };
+
+// Rupiah yang bergerak singkat dari nilai lama saat pembaca menekan tombol (I5d, keputusan 352). Pembaca layar
+// membaca nilai akhir di `.bb-sr`; angka yang bergerak aria-hidden. Render pertama (juga SSR) langsung nilai akhir.
+// useLayoutEffect: frame pertama tween (nilai lama) ditulis sebelum browser menggambar nilai akhir dari React.
+function Rupiah({ nilai }: { nilai: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const tampil = useRef(nilai);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || tampil.current === nilai) {
+      tampil.current = nilai;
+      return;
+    }
+    const tw = tweenAngka(el, tampil.current, nilai, rupiah);
+    return () => {
+      tampil.current = tw.berhenti();
+    };
+  }, [nilai]);
+  return (
+    <>
+      <span className="bb-sr">{rupiah(nilai)}</span>
+      <span ref={ref} aria-hidden="true">{rupiah(nilai)}</span>
+    </>
+  );
+}
 
 export default function JumlahTotal({ data: mentah }: { data: unknown }) {
   const data = DataJumlahTotal.parse(mentah);
@@ -80,12 +106,12 @@ export default function JumlahTotal({ data: mentah }: { data: unknown }) {
           {data.akun.map((a) => (
             <tr key={a.id} className={k.berubah.includes(a.id) ? "is-berubah" : ""}>
               <td>{a.nama}</td>
-              <td className="jt-angka">{rupiah(k.saldo[a.id])}</td>
+              <td className="jt-angka"><Rupiah nilai={k.saldo[a.id]} /></td>
             </tr>
           ))}
           <tr className={"jt-total " + kelasStatus[k.cek.totalTetap]}>
             <th scope="row">{L.total}</th>
-            <td className="jt-angka">{rupiah(k.total)}</td>
+            <td className="jt-angka"><Rupiah nilai={k.total} /></td>
           </tr>
           <tr>
             <th scope="row">{L.transaksi}</th>

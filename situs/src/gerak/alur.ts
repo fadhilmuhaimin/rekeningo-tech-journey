@@ -9,6 +9,7 @@
 // Dengan prefers-reduced-motion tidak ada gerak sama sekali: paket langsung di posisi akhirnya.
 import { animate } from "motion/mini";
 import { durasi, easing } from "./token";
+import { tweenAngka } from "./angka";
 
 /** Posisi paket dalam piksel (offsetLeft, offsetTop di dalam jalurnya). */
 export interface Titik {
@@ -40,8 +41,8 @@ export function geserPaket(el: HTMLElement | null, awal: Titik, akhir: Titik, ba
   return k ? animate(el, k, { duration: durasi.sedang, ease: easing.masuk }) : null;
 }
 
-/** Daftarkan gerak di `window.BB` (objek widget lama); alur.js memanggilnya hanya bila ada. */
+/** Daftarkan gerak di `window.BB` (objek widget lama): paket dan saldo HP (I5d); alur.js memanggilnya hanya bila ada. */
 export function pasangGerakAlur(w: Window & { BB?: Record<string, unknown> } = window) {
   w.BB = w.BB || {};
-  w.BB.gerakAlur = { geser: geserPaket };
+  w.BB.gerakAlur = { geser: geserPaket, angka: tweenAngka };
 }

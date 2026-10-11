@@ -5,6 +5,7 @@
 // Blok lipat (I5a, keputusan 238) di halaman konsep: klik kepala membuka/menutup dengan gerak (frame pertama belum penuh),
 // dengan reduced motion langsung penuh/tertutup tanpa animasi, klik kedua di tengah gerak membalik arah, dan tanpa
 // JavaScript <details> tetap bisa dibuka. Widget alur (I5c, keputusan 261): paket data bergerak hanya sesudah Berikutnya.
+// Angka (I5d, keputusan 352): total jumlah-total dan saldo HP bergerak sesudah klik, langsung final dengan reduced motion.
 //   node tools/ukur-gerak.mjs --url http://127.0.0.1:4321
 //   node tools/ukur-gerak.mjs --url ... --axe /path/axe.min.js   # + axe-core di halaman uji, gelap dan terang
 import { readFileSync, readdirSync } from "node:fs";
@@ -352,6 +353,71 @@ if (!okAlur) gagal++;
   if (jejak.gagal) gagal++;
   await page.close();
 }
+
+// Angka bergerak (I5d, keputusan 352): total di widget jumlah-total (1.11) dan saldo di HP widget alur (1.9).
+// Klik sungguhan (locator.click); teks direkam tiap frame oleh listener capture yang dipasang sebelum klik.
+// Tanpa reduced motion: frame pertama masih nilai lama, ada angka antara, frame terakhir nilai akhir. Dengan reduce:
+// frame pertama sudah nilai akhir. Di kedua mode: semua frame berformat rupiah, nilai akhir sama dengan yang dibaca
+// pembaca layar (`.bb-sr`, aria-label HP), ukuran wadah tidak berubah selama tween, dan teks tidak berubah saat dimuat.
+const RUPIAH = /^−?Rp\d{1,3}(\.\d{3})*$/;
+const kasusAngka = [
+  {
+    nama: "jumlah-total 1.11", path: "/" + registri.halaman.find((h) => h.nomor === "1.11").path.replace(/\.mdx?$/, "/"),
+    widget: ".jt", siap: "astro-island:not([ssr]) .jt", tebak: ".jt .bb-predict__opts button", maju: ".jt .bb-btn--primary",
+    sel: ".jt-total td > [aria-hidden]", wadah: ".jt-tabel", sr: ".jt-total td > .bb-sr",
+  },
+  {
+    nama: "saldo HP 1.9", path: HAL_ALUR, widget: ".bb-alur", siap: ".bb-alur .bb-predict button", tebak: ".bb-alur .bb-predict button",
+    maju: ".bb-alur button.bb-btn--primary",
+    sel: ".bb-alur__phone .bb-hp__saldo strong", wadah: ".bb-alur__phone", sr: ".bb-alur__phone .bb-hp",
+  },
+];
+for (const c of kasusAngka) for (const reducedMotion of ["no-preference", "reduce"]) {
+  const page = await browser.newPage({ viewport: { width: 375, height: 667 }, reducedMotion });
+  await page.goto(url + c.path, { waitUntil: "networkidle" });
+  await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true)));
+  await page.locator(c.widget).first().scrollIntoViewIfNeeded();
+  await page.waitForSelector(c.siap);
+  const teksMuat = await page.evaluate((s) => document.querySelector(s)?.textContent ?? null, c.sel);
+  await page.waitForTimeout(400);
+  const muatTetap = teksMuat === (await page.evaluate((s) => document.querySelector(s)?.textContent ?? null, c.sel));
+  await page.locator(c.tebak).first().click();
+  let r = null;
+  for (let k = 0; k < 8 && !r; k++) {
+    await page.evaluate(({ sel, wadah }) => {
+      window.__angka = null;
+      document.addEventListener("click", () => {
+        const rek = { sebelum: document.querySelector(sel)?.textContent, frame: [], ukuran: [] };
+        window.__angka = rek;
+        const f = () => {
+          rek.frame.push(document.querySelector(sel)?.textContent);
+          const b = document.querySelector(wadah).getBoundingClientRect();
+          rek.ukuran.push(`${Math.round(b.width * 2) / 2}x${Math.round(b.height * 2) / 2}`);
+          if (rek.frame.length < 40) requestAnimationFrame(f);
+        };
+        requestAnimationFrame(f);
+      }, { capture: true, once: true });
+    }, c);
+    await page.locator(c.maju).first().click();
+    await page.waitForTimeout(800);
+    const x = await page.evaluate((sr) => ({ ...window.__angka, sr: document.querySelector(sr)?.getAttribute("aria-label") || document.querySelector(sr)?.textContent }), c.sr);
+    if (x.sebelum && x.frame.at(-1) && x.sebelum !== x.frame.at(-1)) r = { k, ...x };
+  }
+  let ok = muatTetap && !!r;
+  let ket = "saldo tidak berubah";
+  if (r) {
+    const akhir = r.frame.at(-1);
+    const antara = new Set(r.frame.filter((t) => t !== r.sebelum && t !== akhir)).size;
+    const format = r.frame.every((t) => RUPIAH.test(t));
+    const ukuranTetap = new Set(r.ukuran).size === 1;
+    const srAkhir = r.sr === akhir || r.sr.includes(` ${akhir}`);
+    ok &&= format && ukuranTetap && srAkhir && (reducedMotion === "reduce" ? r.frame[0] === akhir : r.frame[0] === r.sebelum && antara > 0);
+    ket = `klik ${r.k + 1}: ${r.sebelum} -> frame pertama ${r.frame[0]}, ${antara} angka antara, akhir ${akhir}; format rupiah ${format}; ukuran wadah ${[...new Set(r.ukuran)].join("/")}; pembaca layar nilai akhir ${srAkhir}`;
+  }
+  console.log(`${ok ? "ok" : "GAGAL"} angka ${c.nama} ${reducedMotion}: teks saat dimuat ${muatTetap ? "tetap" : "BERUBAH"}; ${ket}`);
+  if (!ok) gagal++;
+  await page.close();
+}
 await browser.close();
-console.log(gagal ? "Fondasi gerak GAGAL" : "Reduced motion mematikan gerak (contoh, blok, teka-teki, Berikutnya, alur); tanpa itu gerak berjalan");
+console.log(gagal ? "Fondasi gerak GAGAL" : "Reduced motion mematikan gerak (contoh, blok, teka-teki, Berikutnya, alur, angka); tanpa itu gerak berjalan");
 process.exit(gagal ? 1 : 0);
