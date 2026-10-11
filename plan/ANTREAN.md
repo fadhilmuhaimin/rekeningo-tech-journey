@@ -407,11 +407,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### I5c-c · Alur di HP lanskap
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: I5c
 - selesai bila: di 667×375 paket dan tombol Berikutnya terlihat bersamaan sesudah setiap klik di semua halaman alur (sekarang paket di luar layar di 176 dari 193 klik, sama dengan main), mis. syarat mode sempit `lebar < 600 || innerHeight < 500`; pemeriksaan 667×375 masuk `ukur-gerak.mjs`.
-- catatan: ditemukan peninjau PR #175 putaran 2.
+- catatan: ditemukan peninjau PR #175 putaran 2. Selesai: keputusan 350, PR #180.
 
 ### I5c-d · CLS halaman alur di CI
 
@@ -425,11 +425,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### 1.35 · Keamanan 3: secret + ADR 11
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 1.34
 - selesai bila: halaman `t1-secret` dengan ADR 11 (`.env.example`, pre-commit gitleaks, secret hanya di server), minimal tiga opsi dan "kapan keputusan ini salah"; lab api-t1.
-- catatan: Jalur Security.
+- catatan: Jalur Security. Selesai: keputusan 300, PR #179.
 
 ### K2 · Crosscheck kecil 1.34–1.35
 
