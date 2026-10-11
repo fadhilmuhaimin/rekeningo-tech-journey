@@ -479,11 +479,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### 1.36 · Tim dan infra Tahap 1
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: halaman `t1-tim-infra` dengan template tim-infra: satu orang, satu VPS, CI pertama, dengan file nyata dari repo lab; widget alur.
-- catatan: Jalur DevOps.
+- catatan: Jalur DevOps. Selesai: keputusan 302, PR #186.
 
 ### 1.37 · M8: Uji coba lolos, PRD v2 datang
 
@@ -497,11 +497,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### I5d · Angka berubah dengan tween
 
 - jenis: interaksi
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: I3
 - selesai bila: jumlah-total dan saldo di mockup HP berubah dengan tween singkat dari token gerak; tangkapan sebelum/sesudah; butir I6.
-- catatan: -
+- catatan: Selesai: keputusan 352, PR #182.
 
 ### 1.38 · Kerangka berpikir dan estimasi
 
