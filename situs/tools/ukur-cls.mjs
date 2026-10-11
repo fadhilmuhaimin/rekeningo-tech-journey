@@ -3,8 +3,10 @@
 // pergantian versi statis (HTML build) ke versi hidup, bukan kebetulan skrip sudah ada sebelum paint pertama.
 // Dua posisi: atas halaman (seperti dibuka biasa) dan widget alur pertama yang terlihat di dekat atas layar
 // (seperti dibuka dari tautan ke bloknya), dengan scroll anchoring dimatikan seperti browser yang tidak memilikinya.
-// Pergeseran tanpa input (hadRecentInput false) dijumlah. Gagal bila satu halaman di satu ukuran melewati BATAS, atau
-// bila tinggi host alur sebelum skrip (versi statis dari build) berbeda lebih dari SELISIH px dengan versi hidupnya.
+// Pergeseran tanpa input (hadRecentInput false) dijumlah. Gagal bila tinggi host alur sebelum skrip (versi statis dari
+// build) berbeda lebih dari SELISIH px dengan versi hidupnya: hanya itu yang bisa membuat alur menggeser isi lain.
+// CLS halaman di atas BATAS dicetak "lewat" dengan sumbernya tanpa menggagalkan: di CI sumbernya bagian lain halaman
+// (mis. .content-panel naik 29 px di HP saat modul datang), bukan alur (keputusan 263).
 //   node tools/ukur-cls.mjs --url http://127.0.0.1:4321 [--halaman /tahap-1/perjalanan-request/] [--rinci]
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
@@ -108,10 +110,10 @@ await Promise.all(
   }),
 );
 for (const [k, r] of [...hasilPer].sort()) {
-  const buruk = r.total > BATAS || r.selisih > SELISIH;
+  const buruk = r.selisih > SELISIH;
   if (buruk) gagal++;
-  baris.push(`${buruk ? "GAGAL" : r.total > 0.01 ? "tipis" : "ok"} ${r.total.toFixed(3)} selisih ${r.selisih}px ${k} (${r.posisi})` +
-    (rinci || buruk ? `  tinggi ${r.tinggi}; ` + r.sumber.slice(0, 4).join(", ") : ""));
+  baris.push(`${buruk ? "GAGAL" : r.total > BATAS ? "lewat" : r.total > 0.01 ? "tipis" : "ok"} ${r.total.toFixed(3)} selisih ${r.selisih}px ${k} (${r.posisi})` +
+    (rinci || buruk || r.total > BATAS ? `  tinggi ${r.tinggi}; ` + r.sumber.slice(0, 4).join(", ") : ""));
 }
 await browser.close();
 console.log(baris.join("\n"));
@@ -120,7 +122,7 @@ const maks = (w) => Math.max(0, ...[...hasilPer].filter(([k]) => k.includes(` ${
 console.log(
   `CLS alur: ${daftar.length} halaman, maks 375 ${maks(375).toFixed(3)}, maks 1366 ${maks(1366).toFixed(3)}, ` +
     `${new Set([...hasilPer].filter(([, r]) => r.total > 0.01).map(([k]) => k.split(" ")[0])).size} halaman > 0,01, ` +
-    `selisih tinggi maks ${Math.max(0, ...[...hasilPer.values()].map((r) => r.selisih))}px, ${gagal} gagal (batas ${BATAS}, ${SELISIH}px)`,
+    `${[...hasilPer.values()].filter((r) => r.total > BATAS).length} lewat ${BATAS}, selisih tinggi maks ${Math.max(0, ...[...hasilPer.values()].map((r) => r.selisih))}px, ${gagal} gagal (batas selisih ${SELISIH}px)`,
 );
 if (!nilai.length) {
   console.error("Tidak ada halaman alur di dist/.");
