@@ -50,8 +50,8 @@
         "tim": "1 developer"
       },
       "jalur_inti": {
-        "menit": 291,
-        "halaman": 32
+        "menit": 301,
+        "halaman": 33
       },
       "bagian": [
         {
@@ -1120,8 +1120,12 @@
         "backend"
       ],
       "masalah": "Satu orang memegang app, backend, server, dan rilis",
-      "ada": false,
-      "nomor": "1.36"
+      "ada": true,
+      "prasyarat": [
+        "t1-secret"
+      ],
+      "nomor": "1.36",
+      "menit": 10
     },
     {
       "id": "t1-m8",

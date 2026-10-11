@@ -1,0 +1,214 @@
+{
+  "versi": 2,
+  "judul": "VPS mati: apa yang kembali dari cadangan",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/api-t1/output/cadangan.txt",
+    "catatan": "Server Go (labs/api-t1) + PostgreSQL 17 dari database bersih. VPS yang mati diperankan dengan DROP SCHEMA; ini latihan lab, bukan kejadian di cerita. Ubah satu hal: bagian A, C, dan D tanpa bagian B."
+  },
+  "pengantar": "API dan database Tahap 1 berada di satu VPS. Ikuti satu cadangan, satu pembayaran sesudahnya, lalu VPS yang mati. Sesudah itu centang 'Ubah satu hal' dan lihat VPS yang mati tanpa cadangan.",
+  "komponen": [
+    {
+      "id": "budi",
+      "label": "HP Budi · app 1.0"
+    },
+    {
+      "id": "api",
+      "label": "VPS · API"
+    },
+    {
+      "id": "db",
+      "label": "VPS · PostgreSQL"
+    },
+    {
+      "id": "file",
+      "label": "File cadangan"
+    }
+  ],
+  "perangkat": [
+    {
+      "id": "hp-budi",
+      "label": "HP Budi"
+    }
+  ],
+  "layarAwal": {
+    "hp-budi": {
+      "judul": "Saldo · app 1.0",
+      "waktu": "–",
+      "isi": [
+        {
+          "jenis": "baris",
+          "kiri": "Saldo",
+          "kanan": "Rp250.000"
+        }
+      ]
+    }
+  },
+  "predict": {
+    "q": "Cadangan dibuat sesudah pembayaran Rp25.000 dan sebelum pembayaran Rp20.000. VPS mati, lalu cadangan dipulihkan. Berapa saldo Budi di HP?",
+    "options": [
+      "Rp205.000, sama dengan sebelum VPS mati",
+      "Rp225.000, sama dengan saat cadangan dibuat",
+      "Rp250.000, saldo awal minggu",
+      "Tidak terbaca, karena Budi harus login ulang"
+    ],
+    "answer": 1,
+    "varian": false,
+    "explain": "pg_dump menyimpan keadaan database saat perintah mulai. Rekaman bagian E: saldo 225000, satu transaksi, dan sesi Budi ikut kembali karena tabel sesi ada di cadangan."
+  },
+  "langkah": [
+    {
+      "dari": "budi",
+      "ke": "api",
+      "judul": "Budi membayar Rp25.000",
+      "kirim": "POST /transfers {\"ke\": 418, \"jumlah\": 25000}\n201 · saldo 225000",
+      "jelas": "Rekaman bagian A. Pembayaran ini terjadi sebelum cadangan dibuat.",
+      "nada": "good",
+      "layar": {
+        "hp-budi": {
+          "judul": "Saldo · app 1.0",
+          "waktu": "–",
+          "isi": [
+            {
+              "jenis": "baris",
+              "kiri": "Saldo",
+              "kanan": "Rp225.000"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "db",
+      "ke": "file",
+      "judul": "Cadangan dibuat",
+      "kirim": "$ pg_dump -U lab -d lab -n tahap1 -Fc -f tahap1.dump\ntotal_saldo 25000000 · transaksi 1",
+      "jelas": "Rekaman bagian B. File berisi keadaan database saat pg_dump mulai. Di VPS sungguhan file ini disalin keluar VPS."
+    },
+    {
+      "dari": "budi",
+      "ke": "api",
+      "judul": "Budi membayar Rp20.000 sesudah cadangan",
+      "kirim": "POST /transfers {\"ke\": 418, \"jumlah\": 20000}\n201 · saldo 205000",
+      "jelas": "Rekaman bagian C. Pembayaran ini ada di database, tapi tidak ada di file cadangan.",
+      "nada": "good",
+      "layar": {
+        "hp-budi": {
+          "judul": "Saldo · app 1.0",
+          "waktu": "–",
+          "isi": [
+            {
+              "jenis": "baris",
+              "kiri": "Saldo",
+              "kanan": "Rp205.000"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "api",
+      "ke": "budi",
+      "judul": "Database hilang (lab memerankan VPS mati)",
+      "kirim": "DROP SCHEMA tahap1 CASCADE   # lab memerankan VPS mati\nGET /akun/419\n500 Internal Server Error\nlog server: relation \"sesi\" does not exist",
+      "jelas": "Rekaman bagian D. API dan database berada di VPS yang sama, jadi keduanya hilang bersama. Di VPS yang benar-benar mati, API pun tidak menjawab dan HP hanya melihat koneksi gagal. Lab hanya menghapus schema, jadi API masih sempat menjawab 500.",
+      "nada": "warn",
+      "layar": {
+        "hp-budi": {
+          "judul": "Saldo · app 1.0",
+          "waktu": "–",
+          "nada": "warn",
+          "isi": [
+            {
+              "jenis": "toast",
+              "teks": "Saldo tidak bisa dimuat",
+              "nada": "warn"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "file",
+      "ke": "db",
+      "judul": "VPS baru: cadangan dipulihkan",
+      "kirim": "$ pg_restore -U lab -d lab tahap1.dump\ntotal_saldo 25000000 · transaksi 1",
+      "jelas": "Rekaman bagian E. Total saldo kembali sama dengan total top-up, dengan satu transaksi. Pembayaran Rp20.000 tidak tercatat di mana pun."
+    },
+    {
+      "dari": "api",
+      "ke": "budi",
+      "judul": "Saldo kembali ke saat cadangan",
+      "kirim": "GET /akun/419\n200 · saldo 225000\nGET /akun/419/riwayat\n200 · 1 transaksi",
+      "jelas": "Rekaman bagian E. Yang hilang adalah semua yang tercatat sesudah pg_dump mulai.",
+      "nada": "warn",
+      "layar": {
+        "hp-budi": {
+          "judul": "Saldo · app 1.0",
+          "waktu": "–",
+          "isi": [
+            {
+              "jenis": "baris",
+              "kiri": "Saldo",
+              "kanan": "Rp225.000"
+            },
+            {
+              "jenis": "baris",
+              "kiri": "Ke Warung Ani",
+              "kanan": "Rp25.000"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "tidak ada cadangan: bagian B dilewati",
+    "mulai": 1,
+    "langkah": [
+      {
+        "dari": "budi",
+        "ke": "api",
+        "judul": "Budi membayar Rp20.000",
+        "kirim": "POST /transfers {\"ke\": 418, \"jumlah\": 20000}\n201 · saldo 205000",
+        "jelas": "Rekaman bagian C. Tidak ada file cadangan; isi database hanya ada di VPS.",
+        "nada": "good",
+        "layar": {
+          "hp-budi": {
+            "judul": "Saldo · app 1.0",
+            "waktu": "–",
+            "isi": [
+              {
+                "jenis": "baris",
+                "kiri": "Saldo",
+                "kanan": "Rp205.000"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "api",
+        "ke": "budi",
+        "judul": "Database hilang (lab memerankan VPS mati)",
+        "kirim": "DROP SCHEMA tahap1 CASCADE   # lab memerankan VPS mati\nGET /akun/419\n500 Internal Server Error\nlog server: relation \"sesi\" does not exist",
+        "jelas": "Rekaman bagian D. Tanpa file cadangan, tidak ada yang bisa dipulihkan. Di VPS yang benar-benar mati, API pun tidak menjawab dan HP hanya melihat koneksi gagal. Lab hanya menghapus schema, jadi API masih sempat menjawab 500.",
+        "nada": "warn",
+        "layar": {
+          "hp-budi": {
+            "judul": "Saldo · app 1.0",
+            "waktu": "–",
+            "nada": "warn",
+            "isi": [
+              {
+                "jenis": "toast",
+                "teks": "Saldo tidak bisa dimuat",
+                "nada": "warn"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

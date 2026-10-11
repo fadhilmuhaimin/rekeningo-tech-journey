@@ -537,6 +537,30 @@
   "jawab": "CI hijau, tapi password di riwayat masih membuka database. `.gitleaksignore` hanya membuat gitleaks diam, dan password tidak berubah. Urutannya: ganti password, lalu catat fingerprint."
  },
  {
+  "id": "t1-tim-infra-1",
+  "halaman": "t1-tim-infra",
+  "judul": "1.36 Tim dan infra Tahap 1: satu orang, satu VPS, CI pertama",
+  "url": "tahap-1/tim-infra/",
+  "tanya": "CI hijau untuk commit baru. Apa yang berubah di HP Budi?",
+  "jawab": "Belum ada. CI berhenti sesudah image bertag hash commit masuk registry. Versi baru hanya berjalan sesudah Raka menjalankan `TAG=<hash> docker compose up -d` di VPS."
+ },
+ {
+  "id": "t1-tim-infra-2",
+  "halaman": "t1-tim-infra",
+  "judul": "1.36 Tim dan infra Tahap 1: satu orang, satu VPS, CI pertama",
+  "url": "tahap-1/tim-infra/",
+  "tanya": "Kenapa API dan PostgreSQL di satu VPS adalah satu risiko, bukan dua?",
+  "jawab": "Satu kejadian di VPS menghentikan keduanya sekaligus. Image API bisa ditarik lagi dari registry, tapi isi database hanya kembali dari cadangan yang disimpan di luar VPS."
+ },
+ {
+  "id": "t1-tim-infra-3",
+  "halaman": "t1-tim-infra",
+  "judul": "1.36 Tim dan infra Tahap 1: satu orang, satu VPS, CI pertama",
+  "url": "tahap-1/tim-infra/",
+  "tanya": "Cadangan dibuat pagi hari, lalu VPS mati sore hari. Apa yang kembali sesudah pemulihan?",
+  "jawab": "Keadaan database saat `pg_dump` mulai pagi itu. Semua pembayaran sesudahnya hilang. Rekaman `cadangan.txt` bagian E menunjukkan saldo Budi Rp225.000, bukan Rp205.000."
+ },
+ {
   "id": "D1-1",
   "halaman": "D1",
   "judul": "1.38 Kerangka berpikir dan estimasi",

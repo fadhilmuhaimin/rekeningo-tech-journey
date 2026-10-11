@@ -1,0 +1,38 @@
+{
+  "id": "t1-tim-infra",
+  "judul": "Siapa menjalankan apa di Tahap 1",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "File lab api-t1 · ci.yml, compose.yaml"
+  },
+  "baris": [
+    {
+      "label": "CI",
+      "sub": "setiap push",
+      "simpul": [
+        {
+          "teks": "vet · test · gosec · gitleaks"
+        },
+        {
+          "teks": "Image bertag hash",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Raka",
+      "sub": "di VPS",
+      "simpul": [
+        {
+          "teks": "TAG=<hash> up -d",
+          "kode": true
+        },
+        {
+          "teks": "Migration, rollback",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "CI tidak memegang kunci ke VPS."
+}
