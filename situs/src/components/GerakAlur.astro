@@ -1,0 +1,11 @@
+---
+/**
+ * Gerak paket data widget alur (I5c, keputusan 261). Dipasang SkripLama hanya di halaman yang memuat alur.
+ * Modul dimuat sesudah skrip widget lama; alur.js memanggil BB.gerakAlur hanya saat pembaca menekan tombol,
+ * jadi sebelum modul siap widget tetap jalan tanpa gerak.
+ */
+---
+<script>
+  import { pasangGerakAlur } from "../gerak/alur";
+  pasangGerakAlur();
+</script>

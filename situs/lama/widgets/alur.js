@@ -6,13 +6,15 @@
  *
  * Format data (v1 dan v2) dan semua logika murni ada di alur-core.js (BB.alurCore).
  * File ini hanya mengurus DOM. Skema divalidasi saat build (tools/validasi_skenario.mjs).
- * Butuh hp.js (BB.phone).
+ * Butuh hp.js (BB.phone). Gerak paket saat tombol ditekan datang dari src/gerak/alur.ts (BB.gerakAlur,
+ * keputusan 261); tanpa modul itu, atau dengan reduced motion, paket langsung di posisi akhirnya.
  */
 (function () {
   "use strict";
   var BB = window.BB;
   var core = BB.alurCore;
   var LEBAR_MIN = 110;  // px per komponen; di bawah ini jalur menjadi rel vertikal
+  var LEBAR_SEMPIT = 600;  // px lebar widget; di bawah ini (HP) tombol pindah tepat di bawah jalur
 
   BB.mounts.alur = function (host) {
     BB.fetchJSON(host.dataset.src).then(function (raw) {
@@ -70,9 +72,10 @@
           if (pBox) pBox.querySelectorAll(".bb-predict__a").forEach(function (a) { a.remove(); });
           // Lompat ke langkah pertama yang berbeda: di situlah pelajarannya.
           if (guessed) i = Math.min(list.length, d.varian.mulai + 1);
-          render();
+          render(true);
         });
-        root.appendChild(BB.el("label", { class: "bb-alur__varian" }, [cb, " Ubah satu hal: " + d.varian.label]));
+        var varianBox = BB.el("label", { class: "bb-alur__varian" }, [cb, " Ubah satu hal: " + d.varian.label]);
+        root.appendChild(varianBox);
       }
       root.appendChild(lanes);
       root.appendChild(track);
@@ -86,10 +89,31 @@
 
       // Rel vertikal kalau lebar per komponen < LEBAR_MIN px. Tata letak horizontal
       // tidak disentuh sama sekali: DOM hanya berubah saat beralih ke vertikal.
-      var vertikal = false;
+      // Sempit (HP): DOM diurutkan ulang menjadi jalur, tombol, tebakan, varian, lalu detail dan HP (CSS menaruh
+      // detail di atas HP). Semua yang tingginya berubah ada di bawah tombol, jadi jalur dan tombol diam antarlangkah,
+      // paket dan Berikutnya terlihat bersamaan, dan urutan fokus sama dengan urutan tampil (perbaikan PR #175).
+      var vertikal = false, sempit = false;
+      var atasAsli = [pBox, varianBox].filter(Boolean);  // varianBox: var, undefined bila tanpa varian
+      function urutSempit(mau) {
+        if (mau === sempit) return;
+        sempit = mau;
+        // Chrome membuang fokus dari elemen yang dipindah insertBefore; fokus dikembalikan ke elemen yang sama.
+        var aktif = document.activeElement;
+        var jalur = rail && rail.parentNode === root ? rail : lanes;
+        if (sempit) {
+          var stlh = rail && rail.parentNode === root ? rail : track;
+          [controls].concat(atasAsli).reverse().forEach(function (x) { root.insertBefore(x, stlh.nextSibling); });
+        } else {
+          atasAsli.forEach(function (x) { root.insertBefore(x, jalur); });
+          root.appendChild(controls);
+        }
+        if (aktif && root.contains(aktif) && document.activeElement !== aktif) aktif.focus({ preventScroll: true });
+        root.classList.toggle("is-sempit", sempit);
+      }
       function tata() {
         var w = root.clientWidth;
         var mau = w > 0 && w / n < LEBAR_MIN;
+        urutSempit(w > 0 && (mau || w < LEBAR_SEMPIT));
         if (mau === vertikal) return;
         vertikal = mau;
         if (vertikal) {
@@ -109,7 +133,7 @@
       function go(k) {
         if (!guessed && k > 0) return;
         i = Math.max(0, Math.min(list.length, k));
-        render();
+        render(true);
       }
 
       function renderPhones() {
@@ -124,8 +148,23 @@
         });
       }
 
-      function render() {
+      // Tengah komponen j di rel vertikal, dari tinggi baris sebenarnya.
+      function mid(j) { var e = laneEls[j]; return e.offsetTop + e.offsetHeight / 2; }
+      // Tengah celah antara baris j dan j + 1: titik tengah dua pusat baris jatuh di dalam baris yang lebih tinggi.
+      function celah(j) { var e = laneEls[j]; return (e.offsetTop + e.offsetHeight + laneEls[j + 1].offsetTop) / 2; }
+      // Posisi paket (px) bila ditaruh di nilai left (horizontal, %) atau top (vertikal, px), lalu dikembalikan.
+      function titikDi(nilai) {
+        var prop = vertikal ? "top" : "left", lama = packet.style[prop];
+        packet.style[prop] = nilai;
+        var t = { x: packet.offsetLeft, y: packet.offsetTop };
+        packet.style[prop] = lama;
+        return t;
+      }
+
+      // gerak true hanya dari tombol, panah, dan varian: paket berangkat dari komponen asal ke posisi akhirnya.
+      function render(gerak) {
         var st = i > 0 ? list[i - 1] : null;
+        var sebelum = packet.hidden ? null : { x: packet.offsetLeft, y: packet.offsetTop };
         var owner = core.pemilikLapisan(d, st);
         var a = st ? core.indexOf(d, st.dari) : -1, b = st && st.ke != null ? core.indexOf(d, st.ke) : -1;
         laneEls.forEach(function (lane, j) {
@@ -143,12 +182,17 @@
           packet.textContent = b < 0 ? "●" : b > a ? "→" : "←";
         }
         if (st && vertikal) {
-          // Posisi dari tinggi baris sebenarnya: tengah komponen, atau di antara dua komponen.
-          var mid = function (j) { var e = laneEls[j]; return e.offsetTop + e.offsetHeight / 2; };
-          packet.style.top = (b < 0 ? mid(a) : (mid(a) + mid(b)) / 2) + "px";
+          // Posisi dari tinggi baris sebenarnya: tengah komponen, atau di celah antara tujuan dan tetangganya di sisi asal.
+          var sisi = b < 0 ? -1 : core.sisiAsal(a, b);
+          packet.style.top = (b < 0 || sisi === b ? mid(b < 0 ? a : b) : celah(Math.min(b, sisi))) + "px";
           packet.className = "bb-alur__packet" + (b < 0 ? " is-local" : b > a ? " is-down" : " is-up") +
             (st.nada ? " is-" + st.nada : "");
           packet.textContent = b < 0 ? "●" : b > a ? "↓" : "↑";
+        }
+        if (gerak && st && BB.gerakAlur) {
+          var akhir = { x: packet.offsetLeft, y: packet.offsetTop };
+          var awal = b >= 0 ? titikDi(vertikal ? mid(a) + "px" : (a + 0.5) * 100 / n + "%") : (sebelum || akhir);
+          BB.gerakAlur.geser(packet, awal, akhir, !sebelum);
         }
         renderPhones();
         title.textContent = st ? i + ". " + st.judul : (guessed ? "Tekan Berikutnya untuk mulai." : "Tebak dulu, lalu tekan Berikutnya.");

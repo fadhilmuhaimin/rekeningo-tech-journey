@@ -380,11 +380,38 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### I5c · Widget alur
 
 - jenis: interaksi
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: I3
 - selesai bila: widget alur (pindah ke React bila belum): paket data bergerak dari komponen ke komponen saat Berikutnya ditekan; lapisan yang aktif tersorot; semua halaman yang memakai alur tetap jalan; tangkapan sebelum/sesudah; butir I6.
-- catatan: -
+- catatan: keputusan 261
+
+### I5c-a · Kontras mockup HP mode terang
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: I5c
+- selesai bila: axe `color-contrast` 0 pelanggaran di halaman alur mode terang, termasuk `.bb-hp__saldo small` (3,6:1) dan `.bb-hp__saldo > strong` (putih di #0075EB, 4,42:1), juga `.bb-alur__packet`; `contrast.py`/`palette.py` memeriksa pasangan yang dipakai CSS sebagai teks (`--ink-di-aksen` di atas `--k-system-edge`, tema.css ±319 dan ±347) supaya celah ini tertutup; palet tetap sesuai CLAUDE.md.
+- catatan: ditemukan peninjau PR #175; ada di main sebelum I5c.
+
+### I5c-b · CLS alur saat dimuat
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: I5c
+- selesai bila: widget alur memesan tinggi sejak SSR (atau render awal statis) sehingga CLS saat dimuat ≤ 0,1 di semua halaman alur (di main 15 halaman > 0,01, nilai bervariasi, mis. b4-2 0,278, b5-2 0,075–0,320), diukur dengan modul JS ditunda dan masuk gerbang.
+- catatan: ditemukan peninjau PR #175.
+
+### I5c-c · Alur di HP lanskap
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: I5c
+- selesai bila: di 667×375 paket dan tombol Berikutnya terlihat bersamaan sesudah setiap klik di semua halaman alur (sekarang paket di luar layar di 176 dari 193 klik, sama dengan main), mis. syarat mode sempit `lebar < 600 || innerHeight < 500`; pemeriksaan 667×375 masuk `ukur-gerak.mjs`.
+- catatan: ditemukan peninjau PR #175 putaran 2.
 
 ### 1.35 · Keamanan 3: secret + ADR 11
 

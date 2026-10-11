@@ -342,6 +342,9 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-alur__lane.is-warn { border-color: var(--k-warn-edge); background: var(--k-warn-fill); box-shadow: 0 0 0 2px var(--k-warn-edge) inset; }
 .sl-markdown-content .bb-alur__layers { list-style: none; margin: 0.35rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; }
 .sl-markdown-content .bb-alur__layers li { margin: 0; font-size: 0.78em; padding: 0.1rem 0.3rem; border-radius: 6px; border: 1px dashed var(--k-old-edge); color: var(--k-old-ink); background: var(--bg); }
+/* Lebar tebal lapisan dipesan sejak awal: menebalkan lapisan aktif tidak melipat ulang baris rel di HP, jadi rel dan
+   tombol di bawahnya tidak bergeser antarlangkah (perbaikan PR #175; terlihat di CI dengan font cadangan). */
+.sl-markdown-content .bb-alur__layers li::after { content: attr(data-l); display: block; height: 0; overflow: hidden; visibility: hidden; font-weight: 700; }
 .sl-markdown-content .bb-alur__layers li.is-on { border-style: solid; border-color: var(--k-system-edge); color: var(--k-system-ink); font-weight: 700; }
 .sl-markdown-content .bb-alur__track { position: relative; height: 1.7rem; margin: 0.2rem 0 0.4rem; }
 .sl-markdown-content .bb-alur__packet { position: absolute; top: 0.1rem; transform: translateX(-50%); min-width: 2.2rem; padding: 0.1rem 0.5rem; border-radius: 999px; text-align: center; font-weight: 800; background: var(--k-system-edge); color: var(--ink-di-aksen); font-size: 0.9em; }
@@ -357,12 +360,12 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-alur__payload[hidden] { display: none; }
 .sl-markdown-content .bb-alur__payload { margin: 0 0 0.5rem; padding: 0.5rem 0.6rem; border-radius: 8px; background: var(--k-old-fill); border: 0; font-size: 0.8em; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sl-markdown-content .bb-alur__explain { margin: 0; font-size: 0.92em; line-height: 1.6; }
-.sl-markdown-content .bb-alur.is-vertikal { display: flex; flex-direction: column; }
-.sl-markdown-content .bb-alur.is-vertikal .bb-alur__body { display: contents; }
-.sl-markdown-content .bb-alur.is-vertikal .bb-alur__detail { order: 1; }
-.sl-markdown-content .bb-alur.is-vertikal .bb-alur__rail { order: 2; }
-.sl-markdown-content .bb-alur.is-vertikal .bb-alur__phone { order: 3; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.6rem; }
-.sl-markdown-content .bb-alur.is-vertikal > .bb-row { order: 4; }
+/* Sempit (HP, alur.js menata DOM): jalur, tombol, tebakan, lalu detail di atas HP. Yang tingginya berubah ada di bawah
+   tombol, jadi jalur dan tombol diam antarlangkah dan paket terlihat bersama Berikutnya (perbaikan PR #175). */
+.sl-markdown-content .bb-alur.is-sempit { display: flex; flex-direction: column; }
+.sl-markdown-content .bb-alur.is-sempit .bb-alur__body { display: contents; }
+.sl-markdown-content .bb-alur.is-sempit .bb-alur__detail { order: 1; }
+.sl-markdown-content .bb-alur.is-sempit .bb-alur__phone { order: 2; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.6rem; }
 .sl-markdown-content .bb-alur__rail { position: relative; padding-left: 2.6rem; margin: 0.6rem 0 0; }
 .sl-markdown-content .bb-alur__rail::before { content: ""; position: absolute; left: 1.15rem; top: 0.3rem; bottom: 0.3rem; border-left: 2px dashed var(--k-old-edge); }
 .sl-markdown-content .bb-alur.is-vertikal .bb-alur__lanes { grid-template-columns: 1fr !important; gap: 0.3rem; margin: 0; }

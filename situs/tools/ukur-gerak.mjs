@@ -4,10 +4,10 @@
 // Juga memeriksa bahwa halaman tanpa gerak memuat 0 animasi saat dibuka (aturan: tidak ada animasi yang berjalan sendiri).
 // Blok lipat (I5a, keputusan 238) di halaman konsep: klik kepala membuka/menutup dengan gerak (frame pertama belum penuh),
 // dengan reduced motion langsung penuh/tertutup tanpa animasi, klik kedua di tengah gerak membalik arah, dan tanpa
-// JavaScript <details> tetap bisa dibuka.
+// JavaScript <details> tetap bisa dibuka. Widget alur (I5c, keputusan 261): paket data bergerak hanya sesudah Berikutnya.
 //   node tools/ukur-gerak.mjs --url http://127.0.0.1:4321
 //   node tools/ukur-gerak.mjs --url ... --axe /path/axe.min.js   # + axe-core di halaman uji, gelap dan terang
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { chromium } from "@playwright/test";
 
 const arg = (nama, bawaan) => {
@@ -217,6 +217,131 @@ for (const pth of halBerikutnya) for (const [w, h] of [[375, 667], [1366, 657]])
   if (!ok) gagal++;
   await page.close();
 }
+// Widget alur (I5c, keputusan 261): 0 animasi saat dimuat; sesudah Berikutnya paket bergerak dari komponen asal
+// (frame pertama masih tergeser, ada animasi); dengan reduced motion frame pertama sudah di posisi akhir tanpa
+// animasi. Posisi paket saat diam sama di kedua mode, di rel vertikal (375) dan jalur mendatar (1366).
+const HAL_ALUR = "/tahap-1/fitur-bayar/"; // empat komponen: rel vertikal di 375, mendatar di 1366
+const diamAlur = {};
+for (const [w, h] of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no-preference", "reduce"]) {
+  const page = await browser.newPage({ viewport: { width: w, height: h }, reducedMotion });
+  await page.goto(url + HAL_ALUR, { waitUntil: "networkidle" });
+  await page.waitForSelector(".bb-alur .bb-predict button");
+  const r = await page.evaluate(async () => {
+    const tunggu = (ms) => new Promise((ok) => setTimeout(ok, ms));
+    const frame = () => new Promise((ok) => requestAnimationFrame(() => ok()));
+    const animasiAwal = document.getAnimations().length;
+    document.querySelectorAll("details").forEach((d) => (d.open = true));
+    const alur = document.querySelector(".bb-alur");
+    alur.scrollIntoView({ block: "center", behavior: "instant" });
+    alur.querySelector(".bb-predict button").click();
+    const maju = [...alur.querySelectorAll("button")].find((b) => b.textContent.startsWith("Berikutnya"));
+    const pk = alur.querySelector(".bb-alur__packet");
+    const ambil = () => { const s = getComputedStyle(pk); const b = pk.getBoundingClientRect(); return { translate: s.translate, opacity: Number(s.opacity), anim: pk.getAnimations().length, x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) }; };
+    maju.click();
+    await frame();
+    const muncul = ambil();
+    await tunggu(600);
+    maju.click();
+    await frame();
+    const f1 = ambil();
+    await tunggu(600);
+    const akhir = ambil();
+    const ar = alur.getBoundingClientRect();
+    return { animasiAwal, muncul, f1, akhir: { ...akhir, x: akhir.x - Math.round(ar.left), y: akhir.y - Math.round(ar.top) }, vertikal: alur.classList.contains("is-vertikal") };
+  });
+  const nol = (t) => t === "none" || /^0px( 0px)?$/.test(t);
+  const ok = reducedMotion === "reduce"
+    ? r.animasiAwal === 0 && r.muncul.anim === 0 && r.muncul.opacity === 1 && r.f1.anim === 0 && nol(r.f1.translate) && nol(r.akhir.translate)
+    : r.animasiAwal === 0 && r.muncul.anim > 0 && r.muncul.opacity < 1 && r.f1.anim > 0 && !nol(r.f1.translate) && r.akhir.anim === 0 && nol(r.akhir.translate);
+  console.log(`${ok ? "ok" : "GAGAL"} alur ${w}x${h} ${r.vertikal ? "rel vertikal" : "mendatar"} ${reducedMotion}: animasi saat dimuat ${r.animasiAwal}; langkah 1 frame pertama opacity ${r.muncul.opacity.toFixed(2)} animasi ${r.muncul.anim}; langkah 2 frame pertama translate ${r.f1.translate} animasi ${r.f1.anim}; diam di ${r.akhir.x},${r.akhir.y}`);
+  if (!ok) gagal++;
+  (diamAlur[w] ||= []).push(r.akhir);
+  await page.close();
+}
+for (const [w, [a, b]] of Object.entries(diamAlur)) {
+  const ok = Math.abs(a.x - b.x) <= 1 && Math.abs(a.y - b.y) <= 1;
+  console.log(`${ok ? "ok" : "GAGAL"} alur ${w}: posisi diam paket sama dengan dan tanpa reduced motion (${a.x},${a.y} vs ${b.x},${b.y})`);
+  if (!ok) gagal++;
+}
+
+// Widget alur di HP (perbaikan PR #175, keputusan 261): di 375x667, di semua halaman alur, paket dan tombol Berikutnya
+// terlihat bersamaan sesudah setiap klik. Sebelum klik, tombol digulir ke tepi bawah layar (posisi terburuk sesudah
+// pembaca menggulir sampai tombol tampak). Paket diukur di frame pertama (masih di komponen asal) dan saat diam:
+// jarak atas paket ke atas tombol <= tinggi layar dikurangi tinggi tombol, dan paket berada di dalam viewport.
+const DOCS = new URL("../src/content/docs/", import.meta.url);
+const halAlur = readdirSync(DOCS, { recursive: true })
+  .filter((f) => f.endsWith(".mdx") && readFileSync(new URL(f, DOCS), "utf8").includes('<WidgetLama nama="alur"'))
+  .map((f) => ("/" + f.replace(/\\/g, "/").replace(/\.mdx$/, "").replace(/(^|\/)index$/, "") + "/").replace(/\/+/g, "/"))
+  .sort();
+let klikAlur = 0, jarakMaks = 0;
+const alurGagal = [];
+for (const pth of halAlur) {
+  const page = await browser.newPage({ viewport: { width: 375, height: 667 } });
+  await page.goto(url + pth, { waitUntil: "networkidle" });
+  const ada = await page.waitForSelector(".bb-alur .bb-row button", { state: "attached", timeout: 10000 }).catch(() => null);
+  const r = ada ? await page.evaluate(async () => {
+    const frame = () => new Promise((ok) => requestAnimationFrame(() => ok()));
+    document.querySelectorAll("details").forEach((d) => (d.open = true));
+    const vh = innerHeight, hasil = [];
+    for (const alur of document.querySelectorAll(".bb-alur")) {
+      alur.querySelector(".bb-predict button")?.click();
+      const maju = [...alur.querySelectorAll(".bb-row button")].find((b) => b.textContent.startsWith("Berikutnya"));
+      const pk = alur.querySelector(".bb-alur__packet");
+      for (let k = 1; maju && !maju.disabled && k <= 40; k++) {
+        scrollBy({ top: maju.getBoundingClientRect().bottom - (vh - 8), behavior: "instant" });
+        maju.click();
+        const f0 = pk.getBoundingClientRect();
+        await Promise.all(pk.getAnimations().map((a) => a.finished.catch(() => null)));
+        await frame();
+        const diam = pk.getBoundingClientRect(), bt = maju.getBoundingClientRect();
+        const atas = Math.min(f0.top, diam.top), bawah = Math.max(f0.bottom, diam.bottom);
+        hasil.push({ k, jarak: Math.round(bt.top - atas), batas: Math.round(vh - bt.height),
+          terlihat: !pk.hidden && atas >= 0 && bawah <= vh && bt.top >= 0 && bt.bottom <= vh,
+          ukuran: `paket ${Math.round(atas)}..${Math.round(bawah)} tombol ${Math.round(bt.top)}..${Math.round(bt.bottom)}` });
+      }
+    }
+    return hasil;
+  }) : [];
+  const buruk = r.filter((x) => x.jarak > x.batas || !x.terlihat);
+  klikAlur += r.length;
+  jarakMaks = Math.max(jarakMaks, ...r.map((x) => x.jarak));
+  if (!r.length || buruk.length) alurGagal.push(`${pth} ${buruk.length}/${r.length} (jarak maks ${Math.max(0, ...r.map((x) => x.jarak))} px; ${buruk.slice(0, 3).map((x) => `langkah ${x.k}: ${x.ukuran}`).join("; ")})`);
+  await page.close();
+}
+const okAlur = halAlur.length > 0 && !alurGagal.length;
+console.log(`${okAlur ? "ok" : "GAGAL"} alur 375x667: paket dan tombol Berikutnya terlihat bersamaan di ${halAlur.length} halaman, ${klikAlur} klik; jarak paket ke tombol maks ${jarakMaks} px (batas 667 dikurangi tinggi tombol)`);
+for (const x of alurGagal) console.log(`  GAGAL ${x}`);
+if (!okAlur) gagal++;
+
+// Fokus bertahan saat lebar melewati batas mode sempit (perbaikan PR #175 putaran 2, keputusan 261): urutSempit memindah
+// tombol dengan insertBefore, dan Chrome membuang fokus elemen yang dipindah. Fokus di Berikutnya, lalu ubah ukuran
+// 375x667 -> 667x375 -> 375x667 -> 1366x657 -> 375x667; sesudah setiap ubah ukuran activeElement tetap tombol itu.
+{
+  const page = await browser.newPage({ viewport: { width: 375, height: 667 } });
+  await page.goto(url + HAL_ALUR, { waitUntil: "networkidle" });
+  await page.waitForSelector(".bb-alur .bb-predict button");
+  await page.evaluate(() => {
+    const alur = document.querySelector(".bb-alur");
+    alur.querySelector(".bb-predict button").click();
+    const maju = [...alur.querySelectorAll(".bb-row button")].find((b) => b.textContent.startsWith("Berikutnya"));
+    maju.dataset.ujiFokus = "1";
+    maju.focus();
+  });
+  const jejak = [];
+  for (const [w, h] of [[667, 375], [375, 667], [1366, 657], [375, 667]]) {
+    await page.setViewportSize({ width: w, height: h });
+    const r = await page.evaluate(async () => {
+      for (let k = 0; k < 3; k++) await new Promise((ok) => requestAnimationFrame(ok));
+      const ae = document.activeElement;
+      return { tetap: ae?.dataset?.ujiFokus === "1", nama: ae ? ae.tagName : "null", sempit: document.querySelector(".bb-alur").classList.contains("is-sempit") };
+    });
+    jejak.push(`${w}x${h} ${r.sempit ? "sempit" : "lebar"} ${r.tetap ? "Berikutnya" : r.nama}`);
+    if (!r.tetap) jejak.gagal = true;
+  }
+  console.log(`${jejak.gagal ? "GAGAL" : "ok"} alur fokus: Berikutnya tetap terfokus saat ubah ukuran (${jejak.join(" -> ")})`);
+  if (jejak.gagal) gagal++;
+  await page.close();
+}
 await browser.close();
-console.log(gagal ? "Fondasi gerak GAGAL" : "Reduced motion mematikan gerak (contoh, blok, teka-teki, Berikutnya); tanpa itu gerak berjalan");
+console.log(gagal ? "Fondasi gerak GAGAL" : "Reduced motion mematikan gerak (contoh, blok, teka-teki, Berikutnya, alur); tanpa itu gerak berjalan");
 process.exit(gagal ? 1 : 0);
