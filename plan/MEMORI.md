@@ -48,7 +48,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-11 · I5c widget alur + perbaikan tinjauan PR #175 di branch `interaksi/i5c-alur` (keputusan 261; jangan merge sebelum disetujui pengatur): di HP (widget < 600 px) alur.js mengurutkan DOM jalur, tombol, tebakan, detail, HP (`is-sempit`); lompatan diam di antara tujuan dan tetangganya (`core.sisiAsal`); `ukur-gerak.mjs` memeriksa paket dan tombol terlihat bersamaan di semua halaman alur 375×667. Putaran 2: fokus dikembalikan sesudah `urutSempit` memindah tombol; paket lompatan di tengah celah antarbaris (`celah()`). Tugas baru I5c-a (kontras mockup HP), I5c-b (CLS alur), I5c-c (HP lanskap 667×375). Uji semua halaman alur dari `situs/`: `node tangkapan/i5c-uji.mjs http://localhost:4321 ../tmp/x.json [--reduce] [--lebar 1366]` (tangkapan/ di-.gitignore). Berikutnya: `python3 tools/antrean.py berikut`.
+2026-10-11 · I5c-a kontras mockup HP mode terang di branch `perbaikan/i5c-a-kontras-hp` (keputusan 262): axe color-contrast di semua halaman alur (375/1366, gelap/terang) lewat `situs/tangkapan/axe-alur.mjs`; latar padat ber-teks pindah ke token turunan `--k-*-padat` (gelap = edge, terang = ink), `tools/contrast.py` membaca pasangan teks/latar dari tema.css. File: tema.css, contrast.py, KEPUTUSAN, ANTREAN, STATUS. Jangan merge; PR untuk ditinjau pengatur.
 
 ## Pelajaran
 
