@@ -3,13 +3,16 @@
  * Memuat widget lama apa adanya dari public/widgets/ (salinan situs/lama/widgets, dibuat tools/siapkan-aset.mjs).
  * Urutan sama dengan situs lama: core dulu, lalu widget. Setiap file memanggil
  * BB.mountAll() di akhir, jadi tidak perlu inisialisasi tambahan. Dipasang sekali di akhir halaman.
- * Halaman dengan alur juga memuat GerakAlur (gerak paket data, keputusan 261).
+ * Halaman dengan alur juga memuat GerakAlur (gerak paket data, keputusan 261); halaman dengan race memuat GerakRace
+ * (langkah baru di garis waktu, keputusan 353).
  * Tooltip istilah dimuat MarkdownContent.astro di semua halaman (keputusan 123).
  */
 import GerakAlur from "./GerakAlur.astro";
+import GerakRace from "./GerakRace.astro";
 interface Props { daftar?: string[] }
 const { daftar = ["cerita", "runsql-core", "runsql", "stackstep"] } = Astro.props;
 ---
 <script is:inline src="/widgets/core.js"></script>
 {daftar.map((n) => <script is:inline src={`/widgets/${n}.js`}></script>)}
 {daftar.includes("alur") && <GerakAlur />}
+{daftar.includes("race") && <GerakRace />}
