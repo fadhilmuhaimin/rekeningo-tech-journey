@@ -48,16 +48,16 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-11 · I5c-b selesai di branch `perbaikan/i5c-b-cls-alur` (keputusan 263): versi statis alur dari build (`src/lib/alur-statis.ts`, container query di tema.css) dan arsitektur dirender saat build; `ukur-cls.mjs` di gerbang (CLS dan selisih tinggi statis/hidup). Jangan merge; PR untuk ditinjau pengatur. Berikutnya: `python3 tools/antrean.py berikut`.
+2026-10-11 · Perbaikan review PR #177 (I5c-b, keputusan 263) di branch `perbaikan/i5c-b-cls-alur`: margin statis `1.6rem`, host alur selebar wadah, `ukur-cls.mjs` memeriksa jarak saudara, x, lebar, dan 1440×900; I5c-d (CLS halaman di CI) masuk ANTREAN. Jangan merge; PR ditinjau pengatur. Berikutnya: `python3 tools/antrean.py berikut`.
 
 ## Pelajaran
 
+- `offsetHeight` host tidak melihat margin anak yang runtuh keluar host, dan containment (container query) membuat lebar intrinsik 0: bandingkan letak elemen sesudahnya serta x dan lebar host, termasuk di 1440 px (wadah 1024).
 - Widget alur hanya menerima nada `warn` dan `good` (`alur-core.js` NADA, diperiksa `tools/validasi_skenario.mjs` saat build); Rantai menerima juga `system`.
 - ADR 7: policy RLS yang menyaring `UPDATE` membuat kredit ke baris orang lain jadi `UPDATE 0` tanpa error (`b5-rls` bagian 5); RLS di Rekeningo hanya untuk baca, di tabel ledger Tahap 2.
 - `insertBefore`/`appendChild` atas elemen yang sedang terfokus membuat Chrome memindah fokus ke BODY; simpan `document.activeElement` sebelum memindah DOM dan kembalikan dengan `focus({ preventScroll: true })` (alur.js `urutSempit`, diperiksa `ukur-gerak.mjs`).
 - Retrospektif I4–1.28: halaman lama yang ditulis ulang membawa data lab lama yang bertentangan dengan naskah (JWT 15 menit di B5.1, ID teks `budi`/`ani` di b5-rls); cocokkan rekaman lama dengan skema v1 dan ADR naskah sebelum dipakai ulang. Satu rekaman khusus per halaman (`authz.txt`) lebih jelas daripada potongan dari lima file rekaman.
 - Lab SQL yang di-pipe ke `grep` kehilangan exit status psql; tambahkan pemeriksaan hasil di Makefile (pola `labs/b5-rls/Makefile`).
-- OWASP API Security pindah ke `api-security.owasp.org` (308 dari `owasp.org/API-Security/...`); link baru memakai alamat baru.
 - Retrospektif K0e–I3: alat ukur kecil (ukur-gerak, ukur-ilustrasi, ukur-judul) menangkap yang tidak terlihat di tangkapan. Pola: ukur dulu, perbaiki, ukur ulang, masukkan alat ke gerbang.
 - Motion `reducedMotion="user"` hanya mematikan transform dan layout; ukur frame pertama sesudah klik.
 - Route baru di `src/pages/` atau `import()` lazy mengubah chunk bersama Vite: semua halaman berganti hash; bandingkan sidik `tmp/sidik_dist.py`.
