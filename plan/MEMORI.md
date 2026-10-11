@@ -48,11 +48,10 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-11 · I5c widget alur selesai di branch `interaksi/i5c-alur` (keputusan 261; PR menunggu tinjauan, jangan merge sebelum disetujui pengatur): gerak paket `situs/src/gerak/alur.ts` + `GerakAlur.astro` lewat SkripLama, `<noscript>` daftar langkah di WidgetLama. Uji semua halaman alur dari `situs/`: `node tangkapan/i5c-uji.mjs http://localhost:4321 ../tmp/x.json [--reduce] [--lebar 1366]` (tangkapan/ di-.gitignore). Berikutnya: `python3 tools/antrean.py berikut`.
+2026-10-11 · I5c widget alur + perbaikan tinjauan PR #175 di branch `interaksi/i5c-alur` (keputusan 261; jangan merge sebelum disetujui pengatur): di HP (widget < 600 px) alur.js mengurutkan DOM jalur, tombol, tebakan, detail, HP (`is-sempit`); lompatan diam di antara tujuan dan tetangganya (`core.sisiAsal`); `ukur-gerak.mjs` memeriksa paket dan tombol terlihat bersamaan di semua halaman alur 375×667. Tugas baru I5c-a (kontras mockup HP) dan I5c-b (CLS alur). Uji semua halaman alur dari `situs/`: `node tangkapan/i5c-uji.mjs http://localhost:4321 ../tmp/x.json [--reduce] [--lebar 1366]` (tangkapan/ di-.gitignore). Berikutnya: `python3 tools/antrean.py berikut`.
 
 ## Pelajaran
 
-- Island yang mengganti versi statis wajib memesan tinggi akhirnya di SSR; ukur CLS dengan modul JS ditunda dan gulir tanpa input (`ukur-diagram.mjs` bagian 7), karena tangkapan dan `layar.mjs` tidak melihat geser.
 - Island React Astro di-hydrate di `startTransition` dan atribut `ssr` dilepas sebelum React selesai; keadaan yang dibaca dari DOM di efek butuh CSS yang menyembunyikan isi SSR sampai cocok, bukan selektor `[ssr]`.
 - Widget alur hanya menerima nada `warn` dan `good` (`alur-core.js` NADA, diperiksa `tools/validasi_skenario.mjs` saat build); Rantai menerima juga `system`.
 - ADR 7: policy RLS yang menyaring `UPDATE` membuat kredit ke baris orang lain jadi `UPDATE 0` tanpa error (`b5-rls` bagian 5); RLS di Rekeningo hanya untuk baca, di tabel ledger Tahap 2.
@@ -78,3 +77,4 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - layar.mjs tidak menghitung Snippet sebagai visual Inti; Inti butuh Rantai atau widget (1.32 gagal 4 ukuran sebelum Rantai).
 - Markup pesanan yang meniru komponen (mis. `figure.diagram` di `.peta__pesan`) ikut tertangkap selector alat ukur; kecualikan wadahnya (`:not(.peta__pesan figure)`, `:scope >`).
 - Menutup blok di atas tombol yang diklik menggeser semua yang di bawahnya; ukur top tujuan sebelum dan sesudah `open = false`, lalu `scrollBy({ behavior: "instant" })` sebesar selisihnya. Scroll anchoring Chromium tidak mengoreksinya (K1xe).
+- zsh tidak memecah `$VAR` tanpa tanda kutip menjadi beberapa argumen (daftar halaman jadi satu URL); kirim daftar lewat `xargs`.
