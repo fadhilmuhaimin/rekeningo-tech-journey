@@ -1,12 +1,15 @@
 ---
 /**
  * Titik pasang widget lama (situs/lama/widgets/*.js, dimuat apa adanya lewat SkripLama).
- * Alur (keputusan 261): tanpa JavaScript, langkah skenario tampil sebagai daftar di <noscript>. Dengan JavaScript
- * <noscript> tidak ikut tata letak, jadi widget yang diisi skrip tidak menggeser apa pun dibanding sebelumnya.
+ * Alur (keputusan 261): tanpa JavaScript, langkah skenario tampil sebagai daftar di <noscript>. Dengan JavaScript,
+ * versi statis langkah awal (keputusan 263, src/lib/alur-statis.ts) memesan tinggi widget sampai alur.js menggantinya,
+ * jadi isi di bawahnya tidak bergeser saat dimuat. Versi statis ditaruh pertama, sebelum <noscript>, supaya aturan
+ * jarak antarsaudara Starlight memperlakukannya sama dengan widget hidup.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { htmlAlurStatis, type IntiAlur, type SkenarioAlur } from "../lib/alur-statis";
 
 interface Props { nama: string; src?: string; tahap?: number | string; [k: `data-${string}`]: string }
 const { nama, src, tahap, ...lain } = Astro.props; // atribut data-* lain (mis. data-modes untuk race) diteruskan apa adanya
@@ -14,16 +17,38 @@ const { nama, src, tahap, ...lain } = Astro.props; // atribut data-* lain (mis. 
 interface Langkah { dari: string; ke?: string; judul: string; jelas: string }
 interface Skenario { judul: string; komponen: { id: string; label: string }[]; langkah: Langkah[] }
 let alur: Skenario | null = null;
+let statis = "";
 if (nama === "alur" && src) {
   // Build dijalankan dari situs/ (bun run --cwd situs build). Salinan di public/widgets dibuat siapkan-aset.mjs:
   // sudah divalidasi tools/validasi_skenario.mjs dan [[ID]] sudah diganti judul halaman, sama dengan yang dibaca widget.
   const akar = process.cwd();
   const core = createRequire(path.join(akar, "package.json"))(path.join(akar, "lama/widgets/alur-core.js"));
   alur = core.normalize(JSON.parse(fs.readFileSync(path.join(akar, "public/widgets", src), "utf8")));
+  statis = htmlAlurStatis(alur as unknown as SkenarioAlur, core as IntiAlur);
 }
+// Arsitektur tahap (keputusan 263): diagram statis dari registry dirender saat build; cerita.js tidak mengisinya lagi,
+// jadi Inti tidak bergeser saat skrip datang dan diagram tetap tampil tanpa JavaScript.
+interface Simpul { label: string; catatan?: string; baru?: boolean; berubah?: boolean; lepas?: boolean }
+let arsitektur: { no: number; baris: Simpul[][]; caption: string } | null = null;
+if (nama === "arsitektur" && tahap != null) {
+  const cerita = JSON.parse(fs.readFileSync(path.join(process.cwd(), "public/widgets/data/cerita.json"), "utf8"));
+  const t = cerita.tahap.find((x: { no: number }) => x.no === Number(tahap));
+  if (!t?.arsitektur) throw new Error(`arsitektur: tahap ${tahap} tidak ada di cerita.json`);
+  arsitektur = { no: t.no, ...t.arsitektur };
+}
+const semuaSimpul = arsitektur?.baris.flat().map((n) => n.label + (n.catatan ? ` (${n.catatan})` : "")) ?? [];
 const label = (id?: string) => alur?.komponen.find((k) => k.id === id)?.label ?? "";
 ---
-<div data-bb={nama} data-src={src} data-tahap={tahap} {...lain}>{alur && (
+<div data-bb={nama} data-src={src} data-tahap={tahap} {...lain}>{arsitektur && (
+  <figure class="bb-fig bb-arch" role="img" aria-label={`Arsitektur Tahap ${arsitektur.no}: ${semuaSimpul.join(", ")}.`}>
+    {arsitektur.baris.map((baris) => (
+      <ol class="bb-flow bb-flow--plain">{baris.map((n) => (
+        <li class={(n.baru || n.berubah ? "is-new" : "is-old") + (n.lepas ? " is-lepas" : "")} title={n.catatan || ""}>{n.label}</li>
+      ))}</ol>
+    ))}
+    <figcaption>{arsitektur.caption}</figcaption>
+  </figure>
+)}{alur && (<Fragment set:html={statis} />)}{alur && (
   <noscript>
     <div class="bb-alur-statis">
       <p><strong>{alur.judul}</strong></p>

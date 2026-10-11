@@ -377,6 +377,37 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-alur.is-vertikal .bb-alur__layers li { font-size: 0.72em; padding: 0.05rem 0.25rem; }
 .sl-markdown-content .bb-alur.is-vertikal .bb-alur__track { position: absolute; left: 0; top: 0; bottom: 0; width: 2.3rem; height: auto; margin: 0; }
 .sl-markdown-content .bb-alur.is-vertikal .bb-alur__packet { left: 50% !important; transform: translate(-50%, -50%); min-width: 0; width: 1.9rem; padding: 0.1rem 0; }
+/* Versi statis langkah awal (I5c-b, keputusan 263; src/lib/alur-statis.ts) memesan tinggi widget sampai alur.js
+   menggantinya. Pembungkus luar selebar widget, dalam selebar satu komponen ((lebar - 2 px garis) / --n), sehingga
+   container query meniru tata() di alur.js: sempit bila clientWidth < 600, rel vertikal bila clientWidth / n < 110.
+   Aturan di bawah menyalin .is-sempit dan .is-vertikal di atas; ukur-cls.mjs menggagalkan gerbang bila tingginya
+   berbeda dengan versi hidup. Margin .bb-widget (1,6em pada 0,85em) pindah ke pembungkus agar tetap runtuh seperti aslinya.
+   Host [data-bb] selebar isinya (fit-content, keputusan 209) dan isi alur hidup selalu lebih lebar dari wadah (penjelasan
+   satu baris), jadi host selebar wadah; containment membuat lebar isi pembungkus 0, maka lebar intrinsiknya diisi 100vw. */
+.sl-markdown-content .bb-alur-pesan { container: alur-lebar / inline-size; contain-intrinsic-inline-size: 100vw; margin: calc(1.6em * 0.85) 0; }
+.sl-markdown-content .bb-alur-pesan__per { container: alur-per / inline-size; width: calc((100% - 2px) / var(--n)); }
+.sl-markdown-content .bb-alur--statis { width: calc(100% * var(--n) + 2px); margin: 0; }
+.sl-markdown-content .bb-alur__rel-statis { display: contents; }
+@media (scripting: none) { .sl-markdown-content .bb-alur-pesan { display: none; } }
+@container alur-lebar (width < 602px) {
+  .sl-markdown-content .bb-alur--statis { display: flex; flex-direction: column; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__body { display: contents; }
+  .sl-markdown-content .bb-alur--statis :is(.bb-alur__rel-statis, .bb-alur__lanes, .bb-alur__track) { order: 1; }
+  .sl-markdown-content .bb-alur--statis > .bb-row { order: 2; }
+  .sl-markdown-content .bb-alur--statis > .bb-predict { order: 3; }
+  .sl-markdown-content .bb-alur--statis > .bb-alur__varian { order: 4; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__detail { order: 5; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__phone { order: 6; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.6rem; }
+}
+@container alur-per (width < 110px) {
+  .sl-markdown-content .bb-alur--statis .bb-alur__rel-statis { display: block; position: relative; padding-left: 2.6rem; margin: 0.6rem 0 0; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__rel-statis::before { content: ""; position: absolute; left: 1.15rem; top: 0.3rem; bottom: 0.3rem; border-left: 2px dashed var(--k-old-edge); }
+  .sl-markdown-content .bb-alur--statis .bb-alur__lanes { grid-template-columns: 1fr !important; gap: 0.3rem; margin: 0; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__lane { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; text-align: left; padding: 0.35rem 0.5rem; min-height: 2.25rem; font-size: 0.8em; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__layers { flex-direction: row; flex-wrap: wrap; margin: 0; gap: 0.2rem; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__layers li { font-size: 0.72em; padding: 0.05rem 0.25rem; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__track { position: absolute; left: 0; top: 0; bottom: 0; width: 2.3rem; height: auto; margin: 0; }
+}
 @media (max-width: 50em) {
   .sl-markdown-content .bb-alur__body { grid-template-columns: 1fr; }
   .sl-markdown-content .bb-alur__phone { display: flex; justify-content: center; }
