@@ -48,7 +48,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-11 · I5c-b CLS alur saat dimuat di branch `perbaikan/i5c-b-cls-alur`: ukur CLS saat dimuat di semua halaman alur (375×667, 1366×657, modul JS ditunda), widget alur memesan tinggi langkah pertama sejak build, pemeriksaan CLS masuk gerbang. File: situs/lama/widgets/alur.js, situs/tools (alat ukur), tema.css, cek_situs.sh, KEPUTUSAN, ANTREAN, STATUS. Jangan merge; PR untuk ditinjau pengatur.
+2026-10-11 · I5c-b selesai di branch `perbaikan/i5c-b-cls-alur` (keputusan 263): versi statis alur dari build (`src/lib/alur-statis.ts`, container query di tema.css) dan arsitektur dirender saat build; `ukur-cls.mjs` di gerbang (CLS dan selisih tinggi statis/hidup). Jangan merge; PR untuk ditinjau pengatur. Berikutnya: `python3 tools/antrean.py berikut`.
 
 ## Pelajaran
 

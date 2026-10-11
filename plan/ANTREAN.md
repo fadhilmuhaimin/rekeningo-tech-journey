@@ -398,7 +398,7 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### I5c-b · CLS alur saat dimuat
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: I5c
 - selesai bila: widget alur memesan tinggi sejak SSR (atau render awal statis) sehingga CLS saat dimuat ≤ 0,1 di semua halaman alur (di main 15 halaman > 0,01, nilai bervariasi, mis. b4-2 0,278, b5-2 0,075–0,320), diukur dengan modul JS ditunda dan masuk gerbang.
