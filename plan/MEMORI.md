@@ -48,7 +48,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-11 · I5c-a perbaikan review PR #176 di branch `perbaikan/i5c-a-kontras-hp` (keputusan 262): `tools/contrast.py` menyelesaikan `inherit`/`transparent` ke aturan leluhur atau `body`, gagal (exit 1) untuk nilai yang tidak bisa dihitung, dan mencetak jumlah dibaca/dilewati; `tools/test_contrast.py` masuk gerbang. File: contrast.py, test_contrast.py, cek_situs.sh, KEPUTUSAN, MEMORI. Jangan merge; PR untuk ditinjau pengatur.
+2026-10-11 · I5c-b CLS alur saat dimuat di branch `perbaikan/i5c-b-cls-alur`: ukur CLS saat dimuat di semua halaman alur (375×667, 1366×657, modul JS ditunda), widget alur memesan tinggi langkah pertama sejak build, pemeriksaan CLS masuk gerbang. File: situs/lama/widgets/alur.js, situs/tools (alat ukur), tema.css, cek_situs.sh, KEPUTUSAN, ANTREAN, STATUS. Jangan merge; PR untuk ditinjau pengatur.
 
 ## Pelajaran
 
