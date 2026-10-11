@@ -48,10 +48,11 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-12 · Mode paralel (keputusan 264). Konten: 1.35 selesai (#179); K2 berjalan di `../rjt-konten`. Teknis: I5c-c selesai (#180); I5c-d (#181) lolos tinjauan, menunggu gabung main; I5d (#182) perlu perbaikan seleksi angka dobel. Pengatur mencatat ANTREAN/MEMORI/STATUS lewat PR `catat/*`.
+2026-10-12 · Mode paralel (keputusan 264). Konten: 1.35 (#179) dan K2 (#184) selesai; 1.36 berjalan di `../rjt-konten`. Teknis: I5c-c (#180) dan I5c-d (#181) selesai; I5d (#182) dalam perbaikan; berikutnya I5e, K2a–K2d. Pengatur mencatat ANTREAN/MEMORI/STATUS lewat PR `catat/*`.
 
 ## Pelajaran
 
+- K2 (1.34–1.35, keputusan 301): alur baca, href, dan konsistensi secret lolos; sesudah 1.35 tombol Lanjut menuju 1.38 lama sampai 1.36 terbit. CI berbasis pull_request tidak berjalan selama PR CONFLICTING: cek `gh pr view <n> --json mergeable` sebelum menunggu run, batasi tunggu 5 menit. Hitung pipe tanpa escape untuk tabel KEPUTUSAN.
 - `offsetHeight` host tidak melihat margin anak yang runtuh keluar host, dan containment (container query) membuat lebar intrinsik 0: bandingkan letak elemen sesudahnya serta x dan lebar host, termasuk di 1440 px (wadah 1024).
 - Widget alur hanya menerima nada `warn` dan `good` (`alur-core.js` NADA, diperiksa `tools/validasi_skenario.mjs` saat build); Rantai menerima juga `system`.
 - ADR 7: policy RLS yang menyaring `UPDATE` membuat kredit ke baris orang lain jadi `UPDATE 0` tanpa error (`b5-rls` bagian 5); RLS di Rekeningo hanya untuk baca, di tabel ledger Tahap 2.
