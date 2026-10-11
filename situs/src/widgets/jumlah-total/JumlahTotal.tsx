@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { DataJumlahTotal } from "./skema";
 import { batas, keadaan, rupiah, type Status } from "./logika";
-import { tweenAngka } from "../../gerak/angka";
+import { gerakkanAngka } from "../../gerak/angka";
 
 const kelasStatus: Record<Status, string> = { ok: "is-good", proses: "", gagal: "is-warn" };
 
@@ -12,22 +12,14 @@ const kelasStatus: Record<Status, string> = { ok: "is-good", proses: "", gagal: 
 // memuat satu nilai. Selama tween angka yang bergerak aria-hidden dan pembaca layar membaca nilai akhir di `.bb-sr`
 // (tidak ikut terseleksi, `user-select: none`). Posisi span angka tetap (slot `.bb-sr` kosong di luar tween), jadi
 // React tidak mengganti elemen yang sedang digerakkan. useLayoutEffect: frame pertama tween (nilai lama) dan `.bb-sr`
-// tertulis sebelum browser menggambar.
+// tertulis sebelum browser menggambar. `bergerak` kembali false di setiap jalur tanpa tween berjalan, termasuk klik
+// ganda yang menyela tween sebelum frame pertamanya (gerakkanAngka, perbaikan review 2).
 function Rupiah({ nilai }: { nilai: number }) {
   const ref = useRef<HTMLSpanElement>(null);
   const tampil = useRef(nilai);
   const [bergerak, setBergerak] = useState(false);
   useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el || tampil.current === nilai) {
-      tampil.current = nilai;
-      return;
-    }
-    setBergerak(true);
-    const tw = tweenAngka(el, tampil.current, nilai, rupiah, undefined, () => {
-      tampil.current = nilai;
-      setBergerak(false);
-    });
+    const tw = gerakkanAngka(ref.current, tampil.current, nilai, rupiah, setBergerak);
     return () => {
       tampil.current = tw.berhenti();
     };

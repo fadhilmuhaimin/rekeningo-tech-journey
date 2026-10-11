@@ -450,6 +450,31 @@ for (const c of kasusAngka) for (const reducedMotion of ["no-preference", "reduc
   if (!ok) gagal++;
   await page.close();
 }
+// Klik ganda Berikutnya di 1.11 (perbaikan review 2, keputusan 352): klik pertama memulai tween total, klik kedua
+// menyelanya sebelum frame pertamanya dan mengembalikan total ke angka yang sedang tampil. Sesudahnya tidak ada tween
+// berjalan, jadi tidak ada `.bb-sr` dan setiap sel angka berisi satu anak dengan satu nilai, tanpa bagian aria-hidden.
+for (const reducedMotion of ["no-preference", "reduce"]) {
+  const c = kasusAngka[0];
+  const page = await browser.newPage({ viewport: { width: 375, height: 667 }, reducedMotion });
+  await page.goto(url + c.path, { waitUntil: "networkidle" });
+  await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true)));
+  await page.locator(c.widget).first().scrollIntoViewIfNeeded();
+  await page.waitForSelector(c.siap);
+  await page.locator(c.tebak).first().click();
+  await page.locator(c.maju).first().dblclick();
+  await page.waitForTimeout(800);
+  const x = await page.evaluate((s) => ({
+    langkah: document.querySelectorAll(".jt .bb-step.is-done").length,
+    sr: document.querySelectorAll(".jt .bb-sr").length,
+    tersembunyi: document.querySelectorAll(".jt td.jt-angka [aria-hidden]").length,
+    sel: [...document.querySelectorAll(s)].map((td) => ({ anak: [...td.childNodes].filter((n) => n.nodeType !== 8).length, teks: td.textContent })),
+  }), c.angka);
+  const dobel = x.sel.filter((s) => s.anak !== 1 || !satuNilai(s.teks));
+  const ok = x.langkah === 2 && x.sr === 0 && x.tersembunyi === 0 && x.sel.length > 0 && !dobel.length;
+  console.log(`${ok ? "ok" : "GAGAL"} angka ${c.nama} klik ganda Berikutnya ${reducedMotion}: ${x.langkah} langkah jalan; .bb-sr ${x.sr}, aria-hidden ${x.tersembunyi}; ${x.sel.length} sel angka ${dobel.length ? "DOBEL " + dobel.map((s) => `${s.anak} anak "${s.teks}"`).join(", ") : "masing-masing satu anak satu nilai"}`);
+  if (!ok) gagal++;
+  await page.close();
+}
 await browser.close();
 console.log(gagal ? "Fondasi gerak GAGAL" : "Reduced motion mematikan gerak (contoh, blok, teka-teki, Berikutnya, alur, angka); tanpa itu gerak berjalan");
 process.exit(gagal ? 1 : 0);

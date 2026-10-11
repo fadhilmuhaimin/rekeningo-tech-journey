@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { nilaiAntara, tweenAngka } from "./angka";
+import { gerakkanAngka, nilaiAntara, tweenAngka } from "./angka";
 import { durasi } from "./token";
 import { rupiah } from "../widgets/jumlah-total/logika";
 
@@ -100,5 +100,70 @@ describe("tweenAngka", () => {
     t.berhenti();
     while (j.frame());
     expect(disela).not.toHaveBeenCalled();
+  });
+});
+
+// Meniru efek komponen Rupiah: setiap nilai baru menyela tween sebelumnya, lalu mulai dari angka yang sedang tampil.
+function sel(awal: number, kurangi = false) {
+  const el = { textContent: rupiah(awal) } as HTMLElement;
+  const jejak: boolean[] = [];
+  const lapor = (b: boolean) => jejak.push(b);
+  let tw = gerakkanAngka(el, awal, awal, rupiah, lapor, kurangi);
+  return {
+    el,
+    jejak,
+    ke(nilai: number) {
+      tw = gerakkanAngka(el, tw.berhenti(), nilai, rupiah, lapor, kurangi);
+    },
+    bergerak: () => jejak.at(-1),
+  };
+}
+
+describe("gerakkanAngka", () => {
+  it("klik ganda: tween disela sebelum frame pertama dan kembali ke angka yang tampil, bergerak false", () => {
+    const j = jam();
+    const s = sel(25_000_000);
+    s.ke(24_975_000);
+    expect(s.bergerak()).toBe(true);
+    s.ke(25_000_000);
+    expect(s.bergerak()).toBe(false);
+    expect(s.el.textContent).toBe("Rp25.000.000");
+    expect(j.frame()).toBe(false);
+  });
+
+  it("bergerak true hanya selama tween berjalan: disela ke nilai lain, angka antara yang sama, frame terakhir", () => {
+    const j = jam();
+    const s = sel(0);
+    s.ke(100_000);
+    j.frame();
+    j.frame();
+    s.ke(50_000);
+    expect(s.bergerak()).toBe(true);
+    while (j.frame());
+    expect(s.bergerak()).toBe(false);
+    expect(s.el.textContent).toBe("Rp50.000");
+
+    s.ke(100_000);
+    j.frame();
+    j.frame();
+    const tampil = Number(s.el.textContent!.replace(/\D/g, ""));
+    s.ke(tampil);
+    expect(s.bergerak()).toBe(false);
+    expect(j.frame()).toBe(false);
+  });
+
+  it("reduced motion dan elemen belum ada: tidak pernah bergerak", () => {
+    const j = jam();
+    const s = sel(250_000, true);
+    s.ke(225_000);
+    s.ke(250_000);
+    s.ke(225_000);
+    expect(s.jejak.every((b) => b === false)).toBe(true);
+    expect(s.el.textContent).toBe("Rp225.000");
+    expect(j.frame()).toBe(false);
+
+    const lapor = vi.fn();
+    expect(gerakkanAngka(null, 0, 100_000, rupiah, lapor, false).berhenti()).toBe(100_000);
+    expect(lapor).toHaveBeenCalledExactlyOnceWith(false);
   });
 });

@@ -66,3 +66,31 @@ export function tweenAngka(
     },
   };
 }
+
+/**
+ * Satu langkah efek komponen angka (Rupiah di jumlah-total): gerakkan `el` dari angka yang sedang tampil (`dari`,
+ * hasil `berhenti()` tween sebelumnya) ke `ke`, dan laporkan lewat `bergerak` apakah tween sedang berjalan.
+ * `bergerak(true)` hanya bila tween benar-benar berjalan; setiap jalur yang berakhir tanpa tween berjalan melapor
+ * `false`: frame terakhir, nilai sama dengan angka yang tampil (juga sesudah tween disela sebelum frame pertamanya,
+ * misalnya klik ganda Berikutnya; perbaikan review 2, keputusan 352), reduced motion, dan elemen belum ada.
+ */
+export function gerakkanAngka(
+  el: HTMLElement | null,
+  dari: number,
+  ke: number,
+  format: (n: number) => string,
+  bergerak: (b: boolean) => void,
+  kurangi = kurangiGerak(),
+): Tween {
+  if (!el || dari === ke) {
+    bergerak(false);
+    return { berhenti: () => ke };
+  }
+  let jalan = true;
+  const tw = tweenAngka(el, dari, ke, format, kurangi, () => {
+    jalan = false;
+    bergerak(false);
+  });
+  if (jalan) bergerak(true);
+  return tw;
+}
