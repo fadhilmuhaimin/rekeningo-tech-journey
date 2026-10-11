@@ -48,6 +48,8 @@
   };
 
   BB.mounts.arsitektur = function (host) {
+    // Sudah dirender saat build (WidgetLama.astro, keputusan 263): tidak diisi ulang, supaya tidak ada yang bergeser.
+    if (host.querySelector(".bb-arch")) return;
     tahapOf(host).then(function (r) {
       var a = r.t.arsitektur;
       var semua = [];
