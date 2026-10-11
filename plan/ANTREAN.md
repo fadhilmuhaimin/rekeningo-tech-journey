@@ -404,6 +404,15 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - selesai bila: widget alur memesan tinggi sejak SSR (atau render awal statis) sehingga CLS saat dimuat ≤ 0,1 di semua halaman alur (di main 15 halaman > 0,01, nilai bervariasi, mis. b4-2 0,278, b5-2 0,075–0,320), diukur dengan modul JS ditunda dan masuk gerbang.
 - catatan: ditemukan peninjau PR #175.
 
+### I5c-c · Alur di HP lanskap
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: I5c
+- selesai bila: di 667×375 paket dan tombol Berikutnya terlihat bersamaan sesudah setiap klik di semua halaman alur (sekarang paket di luar layar di 176 dari 193 klik, sama dengan main), mis. syarat mode sempit `lebar < 600 || innerHeight < 500`; pemeriksaan 667×375 masuk `ukur-gerak.mjs`.
+- catatan: ditemukan peninjau PR #175 putaran 2.
+
 ### 1.35 · Keamanan 3: secret + ADR 11
 
 - jenis: konten

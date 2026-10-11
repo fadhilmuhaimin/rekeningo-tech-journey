@@ -48,14 +48,14 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-11 · I5c widget alur + perbaikan tinjauan PR #175 di branch `interaksi/i5c-alur` (keputusan 261; jangan merge sebelum disetujui pengatur): di HP (widget < 600 px) alur.js mengurutkan DOM jalur, tombol, tebakan, detail, HP (`is-sempit`); lompatan diam di antara tujuan dan tetangganya (`core.sisiAsal`); `ukur-gerak.mjs` memeriksa paket dan tombol terlihat bersamaan di semua halaman alur 375×667. Tugas baru I5c-a (kontras mockup HP) dan I5c-b (CLS alur). Uji semua halaman alur dari `situs/`: `node tangkapan/i5c-uji.mjs http://localhost:4321 ../tmp/x.json [--reduce] [--lebar 1366]` (tangkapan/ di-.gitignore). Berikutnya: `python3 tools/antrean.py berikut`.
+2026-10-11 · I5c widget alur + perbaikan tinjauan PR #175 di branch `interaksi/i5c-alur` (keputusan 261; jangan merge sebelum disetujui pengatur): di HP (widget < 600 px) alur.js mengurutkan DOM jalur, tombol, tebakan, detail, HP (`is-sempit`); lompatan diam di antara tujuan dan tetangganya (`core.sisiAsal`); `ukur-gerak.mjs` memeriksa paket dan tombol terlihat bersamaan di semua halaman alur 375×667. Putaran 2: fokus dikembalikan sesudah `urutSempit` memindah tombol; paket lompatan di tengah celah antarbaris (`celah()`). Tugas baru I5c-a (kontras mockup HP), I5c-b (CLS alur), I5c-c (HP lanskap 667×375). Uji semua halaman alur dari `situs/`: `node tangkapan/i5c-uji.mjs http://localhost:4321 ../tmp/x.json [--reduce] [--lebar 1366]` (tangkapan/ di-.gitignore). Berikutnya: `python3 tools/antrean.py berikut`.
 
 ## Pelajaran
 
 - Island React Astro di-hydrate di `startTransition` dan atribut `ssr` dilepas sebelum React selesai; keadaan yang dibaca dari DOM di efek butuh CSS yang menyembunyikan isi SSR sampai cocok, bukan selektor `[ssr]`.
 - Widget alur hanya menerima nada `warn` dan `good` (`alur-core.js` NADA, diperiksa `tools/validasi_skenario.mjs` saat build); Rantai menerima juga `system`.
 - ADR 7: policy RLS yang menyaring `UPDATE` membuat kredit ke baris orang lain jadi `UPDATE 0` tanpa error (`b5-rls` bagian 5); RLS di Rekeningo hanya untuk baca, di tabel ledger Tahap 2.
-- Konteks awal tiap iterasi loop 94–103k token, puncak 127–209k; 46% token yang diproses berasal dari panggilan dengan konteks > 150k. Penyumbang hasil alat terbesar: gambar (22%), grep (17%), PROTOKOL dibaca ulang (10%), `tail` KEPUTUSAN (baris ribuan karakter).
+- `insertBefore`/`appendChild` atas elemen yang sedang terfokus membuat Chrome memindah fokus ke BODY; simpan `document.activeElement` sebelum memindah DOM dan kembalikan dengan `focus({ preventScroll: true })` (alur.js `urutSempit`, diperiksa `ukur-gerak.mjs`).
 - Retrospektif I4–1.28: halaman lama yang ditulis ulang membawa data lab lama yang bertentangan dengan naskah (JWT 15 menit di B5.1, ID teks `budi`/`ani` di b5-rls); cocokkan rekaman lama dengan skema v1 dan ADR naskah sebelum dipakai ulang. Satu rekaman khusus per halaman (`authz.txt`) lebih jelas daripada potongan dari lima file rekaman.
 - Lab SQL yang di-pipe ke `grep` kehilangan exit status psql; tambahkan pemeriksaan hasil di Makefile (pola `labs/b5-rls/Makefile`).
 - OWASP API Security pindah ke `api-security.owasp.org` (308 dari `owasp.org/API-Security/...`); link baru memakai alamat baru.
