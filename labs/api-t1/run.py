@@ -1799,7 +1799,7 @@ def _rekam_m7(tmp):
     catat("# latihan lab, bukan kejadian di cerita: nilai <password-latihan> tidak dipakai di mana pun.\n"
           f"$ git add catatan-vps.env && git commit --no-verify -m \"Catatan VPS\"\n# exit status {r.returncode}\n"
           f"$ git log --oneline -1\n{g('minggu 5', 'log', '--oneline', '-1').stdout}\n"
-          f"$ gitleaks git --redact -v --log-opts=-1 .   # seperti CI memindai commit yang di-push\n{k}# exit status {rc}\n")
+          f"$ gitleaks git --redact -v --log-opts=-1 .   # commit yang di-push saja; langkah CI ADR 11 memindai seluruh riwayat (bagian J)\n{k}# exit status {rc}\n")
 
     # 1.35 ADR 11 (keputusan 300): urutan rotasi di VPS. Sesi A dibuka sebelum ALTER ROLE dan tetap terbuka.
     bagian("I. Rotasi di VPS: ALTER ROLE tidak menutup sesi yang sudah terbuka")
@@ -1861,8 +1861,9 @@ def _rekam_m7(tmp):
     harap((rc, k.count("Finding:"), "catatan-vps.env" in k, re.search(r"(?m)^File:\s+\.env$", k) is None),
           (1, 1, True, True), ".gitleaksignore hanya membuang dua temuan minggu 1")
     catat("# latihan lab: repo yang sama, termasuk commit latihan bagian H. Langkah CI di ADR 11 memindai clone penuh.\n"
-          f"$ gitleaks git --redact -v .   # sebelum .gitleaksignore\n"
-          f"{re.search(r'WRN leaks found: \d+', k0).group(0)}   (dua di commit minggu 1, satu di catatan-vps.env)\n"
+          f"$ gitleaks git --redact -v .   # sebelum .gitleaksignore, baris akhir saja\n"
+          f"{re.search(r'WRN leaks found: \d+', k0).group(0)}\n"
+          "# dua di commit minggu 1, satu di catatan-vps.env\n"
           f"# exit status {rc0}\n\n"
           f"$ cat .gitleaksignore\n{(repo / '.gitleaksignore').read_text()}"
           "$ git add .gitleaksignore && git commit -m \"Abaikan temuan minggu 1: password sudah diganti\"\n\n"

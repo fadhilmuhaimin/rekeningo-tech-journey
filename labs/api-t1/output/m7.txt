@@ -177,7 +177,7 @@ $ git add catatan-vps.env && git commit --no-verify -m "Catatan VPS"
 $ git log --oneline -1
 71b853f Catatan VPS
 
-$ gitleaks git --redact -v --log-opts=-1 .   # seperti CI memindai commit yang di-push
+$ gitleaks git --redact -v --log-opts=-1 .   # commit yang di-push saja; langkah CI ADR 11 memindai seluruh riwayat (bagian J)
 Finding:     POSTGRES_PASSWORD=REDACTED
 Secret:      REDACTED
 RuleID:      generic-api-key
@@ -220,8 +220,9 @@ t
 
 # --- J. CI memindai seluruh riwayat: temuan lama dicatat di .gitleaksignore ---
 # latihan lab: repo yang sama, termasuk commit latihan bagian H. Langkah CI di ADR 11 memindai clone penuh.
-$ gitleaks git --redact -v .   # sebelum .gitleaksignore
-WRN leaks found: 3   (dua di commit minggu 1, satu di catatan-vps.env)
+$ gitleaks git --redact -v .   # sebelum .gitleaksignore, baris akhir saja
+WRN leaks found: 3
+# dua di commit minggu 1, satu di catatan-vps.env
 # exit status 1
 
 $ cat .gitleaksignore

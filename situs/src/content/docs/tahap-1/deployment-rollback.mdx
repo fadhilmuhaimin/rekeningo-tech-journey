@@ -70,7 +70,7 @@ Dari tag ini, `git show 390ff47` menunjukkan kode yang sedang jalan. Tag seperti
 
 <Snippet file="labs/api-t1/output/deploy.txt" lines="18:20" title="Rekaman lab: labs/api-t1/output/deploy.txt" />
 
-`DATABASE_URL` tidak ditulis di `compose.yaml`. Compose mengisinya dari environment shell, atau dari file `.env` di folder proyek ([docs.docker.com](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/)). Lab memberikannya lewat environment shell. Di VPS nilainya ada di `.env`, sesuai ADR 11 di [[t1-secret]].
+Nilai `DATABASE_URL` tidak ditulis di `compose.yaml`. Compose mengisinya dari environment shell, atau dari file `.env` di folder proyek ([docs.docker.com](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/)). Lab memberikannya lewat environment shell. Di VPS nilainya ada di `.env`, sesuai ADR 11 di [[t1-secret]].
 
 **Deploy dan rollback memakai perintah yang sama.** Saat tag berubah, `up` menghentikan container lama lalu membuat yang baru ([docs.docker.com](https://docs.docker.com/reference/cli/docker/compose/up/)). Prober membaca riwayat Budi di antara dua perintah:
 
