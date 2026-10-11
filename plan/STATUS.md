@@ -81,6 +81,7 @@ Diperbarui 2026-10-11. 34 dari 42 halaman selesai. Crosscheck K1 (1.26–1.30, k
 | `tools/jalankan-otomatis.sh` | `claude -p` per iterasi, `dontAsk` + allowlist, model Opus 5.5 dengan cadangan Opus 4.8, syarat berhenti, laporan pagi + notifikasi |
 | Hemat konteks (235) | Loop CLI dihentikan pemilik 2026-10-10; diganti sesi pengatur + satu subagent per tugas. CLAUDE.md mengimpor `plan/RINGKAS.md`, bukan CERITA/PROPOSAL penuh; MEMORI ≤ 80 baris; PROTOKOL bagian k |
 | `tools/antrean.py` | Pemeriksa format (masuk gerbang), pemilih tugas berikutnya, parkir dari skrip |
+| Mode paralel (264) | Sejak 2026-10-11: jalur konten `../rjt-konten` (1.35–1.42, K2, K3) dan jalur teknis `../rjt-teknis` (I5c-c, I5c-d, I5d, I5e; lalu I5f, P3, P4, R1–R6); pengatur mencatat dan merge di folder utama |
 | Gerbang dan preview (249) | `tools/cek_situs.sh --layar` menghentikan daemon preview worktree ini sebelum mulai dan di trap; gagal keras bila server di port bukan build ini (G1) |
 
 ## Redesain tampilan (sesi 2026-10-09, di-merge lewat #120)
