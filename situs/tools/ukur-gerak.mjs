@@ -4,7 +4,7 @@
 // Juga memeriksa bahwa halaman tanpa gerak memuat 0 animasi saat dibuka (aturan: tidak ada animasi yang berjalan sendiri).
 // Blok lipat (I5a, keputusan 238) di halaman konsep: klik kepala membuka/menutup dengan gerak (frame pertama belum penuh),
 // dengan reduced motion langsung penuh/tertutup tanpa animasi, klik kedua di tengah gerak membalik arah, dan tanpa
-// JavaScript <details> tetap bisa dibuka.
+// JavaScript <details> tetap bisa dibuka. Widget alur (I5c, keputusan 261): paket data bergerak hanya sesudah Berikutnya.
 //   node tools/ukur-gerak.mjs --url http://127.0.0.1:4321
 //   node tools/ukur-gerak.mjs --url ... --axe /path/axe.min.js   # + axe-core di halaman uji, gelap dan terang
 import { readFileSync } from "node:fs";
@@ -217,6 +217,52 @@ for (const pth of halBerikutnya) for (const [w, h] of [[375, 667], [1366, 657]])
   if (!ok) gagal++;
   await page.close();
 }
+// Widget alur (I5c, keputusan 261): 0 animasi saat dimuat; sesudah Berikutnya paket bergerak dari komponen asal
+// (frame pertama masih tergeser, ada animasi); dengan reduced motion frame pertama sudah di posisi akhir tanpa
+// animasi. Posisi paket saat diam sama di kedua mode, di rel vertikal (375) dan jalur mendatar (1366).
+const HAL_ALUR = "/tahap-1/fitur-bayar/"; // empat komponen: rel vertikal di 375, mendatar di 1366
+const diamAlur = {};
+for (const [w, h] of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no-preference", "reduce"]) {
+  const page = await browser.newPage({ viewport: { width: w, height: h }, reducedMotion });
+  await page.goto(url + HAL_ALUR, { waitUntil: "networkidle" });
+  await page.waitForSelector(".bb-alur .bb-predict button");
+  const r = await page.evaluate(async () => {
+    const tunggu = (ms) => new Promise((ok) => setTimeout(ok, ms));
+    const frame = () => new Promise((ok) => requestAnimationFrame(() => ok()));
+    const animasiAwal = document.getAnimations().length;
+    document.querySelectorAll("details").forEach((d) => (d.open = true));
+    const alur = document.querySelector(".bb-alur");
+    alur.scrollIntoView({ block: "center", behavior: "instant" });
+    alur.querySelector(".bb-predict button").click();
+    const maju = [...alur.querySelectorAll("button")].find((b) => b.textContent.startsWith("Berikutnya"));
+    const pk = alur.querySelector(".bb-alur__packet");
+    const ambil = () => { const s = getComputedStyle(pk); const b = pk.getBoundingClientRect(); return { translate: s.translate, opacity: Number(s.opacity), anim: pk.getAnimations().length, x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) }; };
+    maju.click();
+    await frame();
+    const muncul = ambil();
+    await tunggu(600);
+    maju.click();
+    await frame();
+    const f1 = ambil();
+    await tunggu(600);
+    const akhir = ambil();
+    const ar = alur.getBoundingClientRect();
+    return { animasiAwal, muncul, f1, akhir: { ...akhir, x: akhir.x - Math.round(ar.left), y: akhir.y - Math.round(ar.top) }, vertikal: alur.classList.contains("is-vertikal") };
+  });
+  const nol = (t) => t === "none" || /^0px( 0px)?$/.test(t);
+  const ok = reducedMotion === "reduce"
+    ? r.animasiAwal === 0 && r.muncul.anim === 0 && r.muncul.opacity === 1 && r.f1.anim === 0 && nol(r.f1.translate) && nol(r.akhir.translate)
+    : r.animasiAwal === 0 && r.muncul.anim > 0 && r.muncul.opacity < 1 && r.f1.anim > 0 && !nol(r.f1.translate) && r.akhir.anim === 0 && nol(r.akhir.translate);
+  console.log(`${ok ? "ok" : "GAGAL"} alur ${w}x${h} ${r.vertikal ? "rel vertikal" : "mendatar"} ${reducedMotion}: animasi saat dimuat ${r.animasiAwal}; langkah 1 frame pertama opacity ${r.muncul.opacity.toFixed(2)} animasi ${r.muncul.anim}; langkah 2 frame pertama translate ${r.f1.translate} animasi ${r.f1.anim}; diam di ${r.akhir.x},${r.akhir.y}`);
+  if (!ok) gagal++;
+  (diamAlur[w] ||= []).push(r.akhir);
+  await page.close();
+}
+for (const [w, [a, b]] of Object.entries(diamAlur)) {
+  const ok = Math.abs(a.x - b.x) <= 1 && Math.abs(a.y - b.y) <= 1;
+  console.log(`${ok ? "ok" : "GAGAL"} alur ${w}: posisi diam paket sama dengan dan tanpa reduced motion (${a.x},${a.y} vs ${b.x},${b.y})`);
+  if (!ok) gagal++;
+}
 await browser.close();
-console.log(gagal ? "Fondasi gerak GAGAL" : "Reduced motion mematikan gerak (contoh, blok, teka-teki, Berikutnya); tanpa itu gerak berjalan");
+console.log(gagal ? "Fondasi gerak GAGAL" : "Reduced motion mematikan gerak (contoh, blok, teka-teki, Berikutnya, alur); tanpa itu gerak berjalan");
 process.exit(gagal ? 1 : 0);

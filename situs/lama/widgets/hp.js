@@ -15,7 +15,7 @@
   var BB = window.BB;
 
   function sinyal(n) {
-    var box = BB.el("span", { class: "bb-hp__sig", "aria-label": "sinyal " + n + " dari 4" });
+    var box = BB.el("span", { class: "bb-hp__sig", "aria-hidden": "true" });  // isi role="img" tidak dibacakan; aria-label di span dilarang (axe)
     for (var i = 1; i <= 4; i++) box.appendChild(BB.el("i", { class: i <= n ? "is-on" : "" }));
     return box;
   }

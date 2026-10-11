@@ -6,7 +6,8 @@
  *
  * Format data (v1 dan v2) dan semua logika murni ada di alur-core.js (BB.alurCore).
  * File ini hanya mengurus DOM. Skema divalidasi saat build (tools/validasi_skenario.mjs).
- * Butuh hp.js (BB.phone).
+ * Butuh hp.js (BB.phone). Gerak paket saat tombol ditekan datang dari src/gerak/alur.ts (BB.gerakAlur,
+ * keputusan 261); tanpa modul itu, atau dengan reduced motion, paket langsung di posisi akhirnya.
  */
 (function () {
   "use strict";
@@ -70,7 +71,7 @@
           if (pBox) pBox.querySelectorAll(".bb-predict__a").forEach(function (a) { a.remove(); });
           // Lompat ke langkah pertama yang berbeda: di situlah pelajarannya.
           if (guessed) i = Math.min(list.length, d.varian.mulai + 1);
-          render();
+          render(true);
         });
         root.appendChild(BB.el("label", { class: "bb-alur__varian" }, [cb, " Ubah satu hal: " + d.varian.label]));
       }
@@ -109,7 +110,7 @@
       function go(k) {
         if (!guessed && k > 0) return;
         i = Math.max(0, Math.min(list.length, k));
-        render();
+        render(true);
       }
 
       function renderPhones() {
@@ -124,8 +125,21 @@
         });
       }
 
-      function render() {
+      // Tengah komponen j di rel vertikal, dari tinggi baris sebenarnya.
+      function mid(j) { var e = laneEls[j]; return e.offsetTop + e.offsetHeight / 2; }
+      // Posisi paket (px) bila ditaruh di nilai left (horizontal, %) atau top (vertikal, px), lalu dikembalikan.
+      function titikDi(nilai) {
+        var prop = vertikal ? "top" : "left", lama = packet.style[prop];
+        packet.style[prop] = nilai;
+        var t = { x: packet.offsetLeft, y: packet.offsetTop };
+        packet.style[prop] = lama;
+        return t;
+      }
+
+      // gerak true hanya dari tombol, panah, dan varian: paket berangkat dari komponen asal ke posisi akhirnya.
+      function render(gerak) {
         var st = i > 0 ? list[i - 1] : null;
+        var sebelum = packet.hidden ? null : { x: packet.offsetLeft, y: packet.offsetTop };
         var owner = core.pemilikLapisan(d, st);
         var a = st ? core.indexOf(d, st.dari) : -1, b = st && st.ke != null ? core.indexOf(d, st.ke) : -1;
         laneEls.forEach(function (lane, j) {
@@ -144,11 +158,15 @@
         }
         if (st && vertikal) {
           // Posisi dari tinggi baris sebenarnya: tengah komponen, atau di antara dua komponen.
-          var mid = function (j) { var e = laneEls[j]; return e.offsetTop + e.offsetHeight / 2; };
           packet.style.top = (b < 0 ? mid(a) : (mid(a) + mid(b)) / 2) + "px";
           packet.className = "bb-alur__packet" + (b < 0 ? " is-local" : b > a ? " is-down" : " is-up") +
             (st.nada ? " is-" + st.nada : "");
           packet.textContent = b < 0 ? "●" : b > a ? "↓" : "↑";
+        }
+        if (gerak && st && BB.gerakAlur) {
+          var akhir = { x: packet.offsetLeft, y: packet.offsetTop };
+          var awal = b >= 0 ? titikDi(vertikal ? mid(a) + "px" : (a + 0.5) * 100 / n + "%") : (sebelum || akhir);
+          BB.gerakAlur.geser(packet, awal, akhir, !sebelum);
         }
         renderPhones();
         title.textContent = st ? i + ". " + st.judul : (guessed ? "Tekan Berikutnya untuk mulai." : "Tebak dulu, lalu tekan Berikutnya.");

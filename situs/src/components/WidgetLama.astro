@@ -1,6 +1,37 @@
 ---
-/** Titik pasang widget lama (situs/lama/widgets/*.js, dimuat apa adanya lewat SkripLama). */
+/**
+ * Titik pasang widget lama (situs/lama/widgets/*.js, dimuat apa adanya lewat SkripLama).
+ * Alur (keputusan 261): tanpa JavaScript, langkah skenario tampil sebagai daftar di <noscript>. Dengan JavaScript
+ * <noscript> tidak ikut tata letak, jadi widget yang diisi skrip tidak menggeser apa pun dibanding sebelumnya.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { createRequire } from "node:module";
+
 interface Props { nama: string; src?: string; tahap?: number | string; [k: `data-${string}`]: string }
 const { nama, src, tahap, ...lain } = Astro.props; // atribut data-* lain (mis. data-modes untuk race) diteruskan apa adanya
+
+interface Langkah { dari: string; ke?: string; judul: string; jelas: string }
+interface Skenario { judul: string; komponen: { id: string; label: string }[]; langkah: Langkah[] }
+let alur: Skenario | null = null;
+if (nama === "alur" && src) {
+  // Build dijalankan dari situs/ (bun run --cwd situs build). Salinan di public/widgets dibuat siapkan-aset.mjs:
+  // sudah divalidasi tools/validasi_skenario.mjs dan [[ID]] sudah diganti judul halaman, sama dengan yang dibaca widget.
+  const akar = process.cwd();
+  const core = createRequire(path.join(akar, "package.json"))(path.join(akar, "lama/widgets/alur-core.js"));
+  alur = core.normalize(JSON.parse(fs.readFileSync(path.join(akar, "public/widgets", src), "utf8")));
+}
+const label = (id?: string) => alur?.komponen.find((k) => k.id === id)?.label ?? "";
 ---
-<div data-bb={nama} data-src={src} data-tahap={tahap} {...lain}></div>
+<div data-bb={nama} data-src={src} data-tahap={tahap} {...lain}>{alur && (
+  <noscript>
+    <div class="bb-alur-statis">
+      <p><strong>{alur.judul}</strong></p>
+      <ol>
+        {alur.langkah.map((st) => (
+          <li><strong>{label(st.dari)}{st.ke ? ` → ${label(st.ke)}` : ""}: {st.judul}</strong> {st.jelas}</li>
+        ))}
+      </ol>
+    </div>
+  </noscript>
+)}</div>
