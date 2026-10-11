@@ -96,7 +96,7 @@ Sesudah VPS mati dan cadangan dipulihkan, total saldo kembali sama dengan total 
 Pembayaran Rp20.000 sesudah `pg_dump` tidak tercatat di mana pun. Jarak antara cadangan terakhir dan saat VPS mati adalah data yang hilang. Ada tiga syarat lain:
 
 1. Cadangan baru terbukti setelah pernah dipulihkan. Lab memulihkannya dan membandingkan total saldo.
-2. File cadangan harus berada di luar VPS. File di disk yang sama ikut hilang bersama VPS. Di lab file itu tetap di container database, jadi `DROP SCHEMA` tidak menyentuhnya; VPS yang benar-benar mati ikut menghapusnya.
+2. File cadangan harus berada di luar VPS. File di disk yang sama ikut hilang bersama VPS. Di lab file itu tetap di container database, jadi `DROP SCHEMA` tidak menyentuhnya; di VPS yang benar-benar mati, file itu ikut hilang.
 3. `pg_dump` tidak menyimpan role database. Role disimpan terpisah dengan `pg_dumpall --globals-only` ([postgresql.org](https://www.postgresql.org/docs/17/backup-dump.html)).
 
 Lab memakai `-n tahap1` karena database lab dipakai bersama lab lain. Dokumentasi `pg_dump` menulis bahwa dump satu schema tidak dijamin bisa dipulihkan sendirian ke database kosong ([postgresql.org](https://www.postgresql.org/docs/17/app-pgdump.html)). Di VPS, database Rekeningo di-dump utuh.
