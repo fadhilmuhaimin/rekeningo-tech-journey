@@ -19,6 +19,9 @@ export default defineConfig({
       defaultLocale: "root",
       locales: { root: { label: "Bahasa Indonesia", lang: "id" } },
       customCss: ["./src/styles/tema.css"],
+      // Satoshi tegak diminta sejak <head>, sejajar dengan CSS, bukan sesudah layout pertama (keputusan 351): jendela
+      // fallback lebih pendek, jadi font lebih jarang tukar sesudah paint pertama.
+      head: [{ tag: "link", attrs: { rel: "preload", href: "/fonts/Satoshi-Variable.woff2", as: "font", type: "font/woff2", crossorigin: "anonymous" } }],
       sidebar: sidebar(),
       components: {
         ThemeProvider: "./src/components/ThemeProvider.astro",
