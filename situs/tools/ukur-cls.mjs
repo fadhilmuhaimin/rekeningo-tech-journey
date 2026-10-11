@@ -3,10 +3,12 @@
 // pergantian versi statis (HTML build) ke versi hidup, bukan kebetulan skrip sudah ada sebelum paint pertama.
 // Dua posisi: atas halaman (seperti dibuka biasa) dan widget alur pertama yang terlihat di dekat atas layar
 // (seperti dibuka dari tautan ke bloknya), dengan scroll anchoring dimatikan seperti browser yang tidak memilikinya.
-// Pergeseran tanpa input (hadRecentInput false) dijumlah. Gagal bila tinggi host alur sebelum skrip (versi statis dari
-// build) berbeda lebih dari SELISIH px dengan versi hidupnya: hanya itu yang bisa membuat alur menggeser isi lain.
+// Pergeseran tanpa input (hadRecentInput false) dijumlah. Gagal bila host alur sebelum skrip (versi statis dari build)
+// berbeda lebih dari SELISIH px dengan versi hidupnya pada salah satu ukuran: tinggi host, jarak elemen sesudah host ke
+// elemen sebelum host (menangkap margin yang runtuh keluar host, yang tidak terlihat di offsetHeight), serta x dan lebar
+// host (di 1440 px wadahnya 1024 px dan host fit-content bisa lebih sempit dari wadah). Hanya itu cara alur menggeser isi lain.
 // CLS halaman di atas BATAS dicetak "lewat" dengan sumbernya tanpa menggagalkan: di CI sumbernya bagian lain halaman
-// (mis. .content-panel naik 29 px di HP saat modul datang), bukan alur (keputusan 263).
+// (mis. .content-panel naik 29 px di HP saat modul datang), bukan alur (keputusan 263, tugas I5c-d).
 //   node tools/ukur-cls.mjs --url http://127.0.0.1:4321 [--halaman /tahap-1/perjalanan-request/] [--rinci]
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
@@ -25,6 +27,7 @@ const SELISIH = 1;
 const UKURAN = [
   { width: 375, height: 667 },
   { width: 1366, height: 657 },
+  { width: 1440, height: 900 },
 ];
 
 // Halaman alur dibaca dari hasil build, bukan daftar tulis tangan.
@@ -66,8 +69,24 @@ async function ukur(h, ukuran, posisi) {
   // Parser selesai (skrip widget klasik sudah jalan, skenario dan modul masih tertunda): versi statis yang tampil.
   await page.goto(url + h, { waitUntil: "commit" });
   await page.waitForFunction(() => document.readyState !== "loading", null, { polling: 20 });
+  // Per host terlihat: tinggi, x, lebar, dan jarak elemen sesudah host ke bawah elemen sebelum host. Saudara dicari
+  // naik ke induk bila host anak pertama atau terakhir, supaya margin yang runtuh lewat induk ikut terukur.
   const tinggi = () =>
-    page.evaluate(() => [...document.querySelectorAll('[data-bb="alur"]')].map((x) => (x.getClientRects().length ? x.offsetHeight : null)));
+    page.evaluate(() =>
+      [...document.querySelectorAll('[data-bb="alur"]')].map((x) => {
+        if (!x.getClientRects().length) return null;
+        const dekat = (arah) => {
+          for (let n = x; n; n = n.parentElement) if (n[arah]) return n[arah];
+          return null;
+        };
+        const r = x.getBoundingClientRect();
+        const a = dekat("previousElementSibling");
+        const b = dekat("nextElementSibling");
+        const jarak = a && b ? b.getBoundingClientRect().top - a.getBoundingClientRect().bottom : null;
+        return { h: x.offsetHeight, x: r.left, w: r.width, jarak };
+      }),
+    );
+  await page.evaluate(() => document.fonts.ready);
   const sebelum = await tinggi();
   if (posisi === "widget") {
     // Sebelum skrip datang: gulir ke widget alur pertama yang tampil (blok terbuka).
@@ -88,8 +107,13 @@ async function ukur(h, ukuran, posisi) {
   await page.waitForTimeout(400);
   const hasil = await page.evaluate(() => window.__cls);
   const sesudah = await tinggi();
-  hasil.selisih = Math.max(0, ...sebelum.map((t, i) => (t == null ? 0 : Math.abs(t - sesudah[i]))));
-  hasil.tinggi = sebelum.map((t, i) => `${t}→${sesudah[i]}`).join(" ");
+  const beda = (k) => Math.max(0, ...sebelum.map((t, i) => (t == null || sesudah[i] == null || t[k] == null ? 0 : Math.abs(t[k] - sesudah[i][k]))));
+  const bulat = (v) => Math.round(v * 100) / 100;
+  hasil.rinci = { tinggi: beda("h"), saudara: bulat(beda("jarak")), x: bulat(beda("x")), lebar: bulat(beda("w")) };
+  hasil.selisih = Math.max(...Object.values(hasil.rinci));
+  hasil.tinggi = sebelum
+    .map((t, i) => (t ? `${t.h}→${sesudah[i]?.h} lebar ${bulat(t.w)}→${bulat(sesudah[i]?.w)} jarak ${bulat(t.jarak)}→${bulat(sesudah[i]?.jarak)}` : "tersembunyi"))
+    .join("; ");
   await ctx.close();
   return hasil;
 }
@@ -104,25 +128,28 @@ await Promise.all(
       const r = await ukur(t.h, t.u, t.p);
       const k = `${t.h} ${t.u.width}x${t.u.height}`;
       const lama = hasilPer.get(k);
-      if (!lama || r.total > lama.total) hasilPer.set(k, { ...r, posisi: t.p, selisih: Math.max(r.selisih, lama?.selisih ?? 0) });
-      else lama.selisih = Math.max(lama.selisih, r.selisih);
+      const gabung = (a, b) => Object.fromEntries(Object.keys(a).map((n) => [n, Math.max(a[n], b?.[n] ?? 0)]));
+      if (!lama || r.total > lama.total) hasilPer.set(k, { ...r, posisi: t.p, selisih: Math.max(r.selisih, lama?.selisih ?? 0), rinci: gabung(r.rinci, lama?.rinci) });
+      else Object.assign(lama, { selisih: Math.max(lama.selisih, r.selisih), rinci: gabung(lama.rinci, r.rinci) });
     }
   }),
 );
 for (const [k, r] of [...hasilPer].sort()) {
   const buruk = r.selisih > SELISIH;
   if (buruk) gagal++;
-  baris.push(`${buruk ? "GAGAL" : r.total > BATAS ? "lewat" : r.total > 0.01 ? "tipis" : "ok"} ${r.total.toFixed(3)} selisih ${r.selisih}px ${k} (${r.posisi})` +
+  const d = r.rinci;
+  baris.push(`${buruk ? "GAGAL" : r.total > BATAS ? "lewat" : r.total > 0.01 ? "tipis" : "ok"} ${r.total.toFixed(3)} selisih tinggi ${d.tinggi} saudara ${d.saudara} x ${d.x} lebar ${d.lebar}px ${k} (${r.posisi})` +
     (rinci || buruk || r.total > BATAS ? `  tinggi ${r.tinggi}; ` + r.sumber.slice(0, 4).join(", ") : ""));
 }
 await browser.close();
 console.log(baris.join("\n"));
 const nilai = [...hasilPer.values()].map((r) => r.total);
 const maks = (w) => Math.max(0, ...[...hasilPer].filter(([k]) => k.includes(` ${w}x`)).map(([, r]) => r.total));
+const maksRinci = (n) => Math.max(0, ...[...hasilPer.values()].map((r) => r.rinci[n]));
 console.log(
-  `CLS alur: ${daftar.length} halaman, maks 375 ${maks(375).toFixed(3)}, maks 1366 ${maks(1366).toFixed(3)}, ` +
+  `CLS alur: ${daftar.length} halaman, maks 375 ${maks(375).toFixed(3)}, maks 1366 ${maks(1366).toFixed(3)}, maks 1440 ${maks(1440).toFixed(3)}, ` +
     `${new Set([...hasilPer].filter(([, r]) => r.total > 0.01).map(([k]) => k.split(" ")[0])).size} halaman > 0,01, ` +
-    `${[...hasilPer.values()].filter((r) => r.total > BATAS).length} lewat ${BATAS}, selisih tinggi maks ${Math.max(0, ...[...hasilPer.values()].map((r) => r.selisih))}px, ${gagal} gagal (batas selisih ${SELISIH}px)`,
+    `${[...hasilPer.values()].filter((r) => r.total > BATAS).length} lewat ${BATAS}, selisih maks: tinggi ${maksRinci("tinggi")} saudara ${maksRinci("saudara")} x ${maksRinci("x")} lebar ${maksRinci("lebar")}px, ${gagal} gagal (batas selisih ${SELISIH}px)`,
 );
 if (!nilai.length) {
   console.error("Tidak ada halaman alur di dist/.");
