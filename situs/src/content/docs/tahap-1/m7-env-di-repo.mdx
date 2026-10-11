@@ -82,6 +82,6 @@ Jalankan sendiri dengan `make -C labs/api-t1 run BAGIAN=m7`. Lab membuat repo se
 <Blok nama="Konsep yang lahir">
 
 - [[t1-secret]]: Keamanan 3, secret di repo dan di server. Halaman itu memuat ADR 11: `.env.example` tanpa nilai, gitleaks sebagai pre-commit hook, dan secret hanya di server. Aturan gitleaks untuk password di dalam URL, yang tidak ditandai di rekaman ini, juga dibahas di sana.
-- [[C3]]: deployment dan rollback. `DATABASE_URL` di VPS dan token GHCR dengan izin `read:packages` adalah secret jenis yang sama dengan isi `.env` ini. ADR 11 memutuskan tempat menyimpannya, dan kenapa CI belum diberi kunci ke VPS.
+- [[C3]]: deployment dan rollback. `DATABASE_URL` di VPS dan token GHCR dengan izin `read:packages` adalah secret jenis yang sama dengan isi `.env` ini. ADR 11 memutuskan tempat menyimpannya dan menjelaskan kenapa CI belum diberi kunci ke VPS.
 
 </Blok>

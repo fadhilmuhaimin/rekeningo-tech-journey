@@ -207,7 +207,7 @@ href internal di `<main>`: 1.31 (33), 1.33 (20), 1.34 (7), 1.35 (30); 0 tujuan a
 | Tahap yang merevisi | Cocok: Tahap 3 staging, CI penuh, dan kunci deploy; Tahap 4 secret manager, cloud managed, tiga tim | 1.31 baris 156, 162; 1.35 baris 173, 179–182; CERITA tabel tahap baris 66–67; PROPOSAL baris 151 |
 | Server expand sejak 1.33 | Cocok: rotasi 1.35 langkah 3 menjalankan "hash yang sedang jalan"; 1.34–1.35 tidak menyebut `jumlah` atau `nominal` | 1.33 baris 142 |
 | Minggu, tokoh, commit | Cocok: M7 minggu 5 sesudah M6, password di clone minggu 1–5, commit `80952b1` sama di kedua halaman; hanya Raka, tanpa nomor akun, Cek diri 2 memakai "seseorang", bukan Dimas | 1.34 baris 14, 47, 57; 1.35 baris 137, 163, 199 |
-| Chip Rantai rotasi (catatan peninjau #179 a) | Nyata: "baris kedua dari m7.txt bagian I" bisa terbaca baris kedua file, padahal maksudnya baris kedua Rantai | Diperbaiki: "Urutan ADR 11 · Container lama dari m7.txt bagian I". Nama baris sama dengan label baris Rantai; tanpa titik dua supaya tidak bertumpuk (pola K1x butir f) |
+| Chip Rantai rotasi (catatan peninjau #179 a) | Nyata: "baris kedua dari m7.txt bagian I" bisa terbaca baris kedua file, padahal maksudnya baris kedua Rantai | Diperbaiki: "Urutan ADR 11 · Container lama m7.txt bagian I". Nama baris sama dengan label baris Rantai; tanpa titik dua supaya tidak bertumpuk (pola K1x butir f); tanpa "dari" supaya chip 320 px muat di 360 px (versi dengan "dari" 349 px meluap) |
 
 ### Layar pertama
 
