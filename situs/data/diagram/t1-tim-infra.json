@@ -34,5 +34,5 @@
       ]
     }
   ],
-  "catatan": "CI berhenti di registry dan tidak memegang kunci ke VPS."
+  "catatan": "CI tidak memegang kunci ke VPS."
 }
