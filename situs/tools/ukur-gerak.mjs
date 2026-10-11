@@ -296,7 +296,8 @@ for (const pth of halAlur) {
         const diam = pk.getBoundingClientRect(), bt = maju.getBoundingClientRect();
         const atas = Math.min(f0.top, diam.top), bawah = Math.max(f0.bottom, diam.bottom);
         hasil.push({ k, jarak: Math.round(bt.top - atas), batas: Math.round(vh - bt.height),
-          terlihat: !pk.hidden && atas >= 0 && bawah <= vh && bt.top >= 0 && bt.bottom <= vh });
+          terlihat: !pk.hidden && atas >= 0 && bawah <= vh && bt.top >= 0 && bt.bottom <= vh,
+          ukuran: `paket ${Math.round(atas)}..${Math.round(bawah)} tombol ${Math.round(bt.top)}..${Math.round(bt.bottom)}` });
       }
     }
     return hasil;
@@ -304,7 +305,7 @@ for (const pth of halAlur) {
   const buruk = r.filter((x) => x.jarak > x.batas || !x.terlihat);
   klikAlur += r.length;
   jarakMaks = Math.max(jarakMaks, ...r.map((x) => x.jarak));
-  if (!r.length || buruk.length) alurGagal.push(`${pth} ${buruk.length}/${r.length} (jarak maks ${Math.max(0, ...r.map((x) => x.jarak))} px)`);
+  if (!r.length || buruk.length) alurGagal.push(`${pth} ${buruk.length}/${r.length} (jarak maks ${Math.max(0, ...r.map((x) => x.jarak))} px; ${buruk.slice(0, 3).map((x) => `langkah ${x.k}: ${x.ukuran}`).join("; ")})`);
   await page.close();
 }
 const okAlur = halAlur.length > 0 && !alurGagal.length;

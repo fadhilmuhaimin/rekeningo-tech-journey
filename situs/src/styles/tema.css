@@ -342,6 +342,9 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-alur__lane.is-warn { border-color: var(--k-warn-edge); background: var(--k-warn-fill); box-shadow: 0 0 0 2px var(--k-warn-edge) inset; }
 .sl-markdown-content .bb-alur__layers { list-style: none; margin: 0.35rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; }
 .sl-markdown-content .bb-alur__layers li { margin: 0; font-size: 0.78em; padding: 0.1rem 0.3rem; border-radius: 6px; border: 1px dashed var(--k-old-edge); color: var(--k-old-ink); background: var(--bg); }
+/* Lebar tebal lapisan dipesan sejak awal: menebalkan lapisan aktif tidak melipat ulang baris rel di HP, jadi rel dan
+   tombol di bawahnya tidak bergeser antarlangkah (perbaikan PR #175; terlihat di CI dengan font cadangan). */
+.sl-markdown-content .bb-alur__layers li::after { content: attr(data-l); display: block; height: 0; overflow: hidden; visibility: hidden; font-weight: 700; }
 .sl-markdown-content .bb-alur__layers li.is-on { border-style: solid; border-color: var(--k-system-edge); color: var(--k-system-ink); font-weight: 700; }
 .sl-markdown-content .bb-alur__track { position: relative; height: 1.7rem; margin: 0.2rem 0 0.4rem; }
 .sl-markdown-content .bb-alur__packet { position: absolute; top: 0.1rem; transform: translateX(-50%); min-width: 2.2rem; padding: 0.1rem 0.5rem; border-radius: 999px; text-align: center; font-weight: 800; background: var(--k-system-edge); color: var(--ink-di-aksen); font-size: 0.9em; }
