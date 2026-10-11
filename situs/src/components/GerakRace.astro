@@ -1,0 +1,11 @@
+---
+/**
+ * Gerak langkah baru di garis waktu widget race (I5e, keputusan 353). Dipasang SkripLama hanya di halaman yang memuat
+ * race. race.js memanggil BB.gerakRace hanya saat pembaca menekan Berikutnya, jadi sebelum modul siap widget tetap
+ * jalan tanpa gerak.
+ */
+---
+<script>
+  import { pasangGerakRace } from "../gerak/race";
+  pasangGerakRace();
+</script>
