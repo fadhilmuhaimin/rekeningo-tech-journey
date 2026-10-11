@@ -4,6 +4,7 @@ Gagal (exit 1) kalau ada yang di bawah ambang.
     python tools/contrast.py [--md]
 """
 import pathlib
+import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -85,6 +86,89 @@ for nama, m in MODE.items():
             (f"[{nama}][{k}] edge vs halaman", edge, bg, BIG),
             (f"[{nama}][{k}] edge vs kotak", edge, bg2, BIG),
         ]
+
+# Pasangan teks/latar yang benar-benar dipakai tema.css (I5c-a, keputusan 262). Dibaca dari CSS, bukan daftar tangan,
+# supaya pasangan baru ikut diperiksa di kedua mode (celah lama: --ink-di-aksen di latar --k-system-edge, 4,43:1).
+# Tiga bentuk: (1) satu aturan menulis color dan background; (2) aturan pengubah (.is-x, [attr], :hover) mewarisi
+# color atau background dari aturan dasarnya; (3) aturan turunan ("DASAR anak") dengan color atau opacity < 1 di atas
+# latar aturan dasar dan semua pengubahnya. opacity dicampur ke latar (teks tanpa latar sendiri). Ambang 4,5:1:
+# teks widget tidak ada yang >= 18,66 px tebal atau 24 px (WCAG 2.2 SC 1.4.3, "large scale").
+CSS = pathlib.Path(__file__).resolve().parent.parent / "situs" / "src" / "styles" / "tema.css"
+ATURAN = re.compile(r"([^{}]+)\{([^{}]*)\}")
+PENGUBAH = re.compile(r"(\.is-[\w-]+|\[[^\]]*\]|::?[\w-]+(\([^()]*\))?)+$")
+
+
+def tanpa_komentar(teks):
+    return re.sub(r"/\*.*?\*/", "", teks, flags=re.S)
+
+
+def token_css(teks):
+    root, terang, bersama = {}, {}, {}
+    for sel, isi in ATURAN.findall(tanpa_komentar(teks)):
+        sel = " ".join(sel.split())
+        tujuan = {":root": root, ':root[data-theme="light"]': terang, ':root, :root[data-theme="light"]': bersama}.get(sel)
+        if tujuan is not None:
+            tujuan.update(re.findall(r"(--[\w-]+)\s*:\s*([^;]+);", isi))
+    return {"gelap": {**root, **bersama}, "terang": {**root, **terang, **bersama}}
+
+
+def warna(nilai, tok, dalam=0):
+    nilai = nilai.strip()
+    m = re.fullmatch(r"var\((--[\w-]+)(?:\s*,\s*(.+))?\)", nilai)
+    if m and dalam < 10:
+        isi = tok.get(m.group(1), m.group(2))
+        return warna(isi, tok, dalam + 1) if isi else None
+    if re.fullmatch(r"#[0-9a-fA-F]{3}", nilai):
+        return "#" + "".join(c * 2 for c in nilai[1:])
+    return nilai.upper() if re.fullmatch(r"#[0-9a-fA-F]{6}", nilai) else None
+
+
+def campur(fg, bg, a):
+    f, b = ([int(h[i:i + 2], 16) for i in (1, 3, 5)] for h in (fg, bg))
+    return "#" + "".join(f"{round(a * x + (1 - a) * y):02X}" for x, y in zip(f, b))
+
+
+def pasangan_css(teks):
+    aturan = {}
+    for sel, isi in ATURAN.findall(tanpa_komentar(teks)):
+        if sel.strip().startswith((":root", "@")):
+            continue
+        d = dict((k.strip(), v.strip()) for k, v in re.findall(r"([\w-]+)\s*:\s*([^;]+)", isi))
+        latar = d.get("background-color", d.get("background"))
+        for s in sel.split(","):
+            s = " ".join(s.split())
+            a = aturan.setdefault(s, {})
+            a.update({k: v for k, v in (("color", d.get("color")), ("latar", latar), ("opacity", d.get("opacity"))) if v})
+    dasar = {s: PENGUBAH.sub("", s) for s in aturan}
+    hasil = set()
+    for s, a in aturan.items():
+        b = aturan.get(dasar[s], {}) if dasar[s] != s else {}
+        c, l = a.get("color", b.get("color")), a.get("latar", b.get("latar"))
+        if c and l and ("color" in a or "latar" in a):
+            hasil.add((s, c, l, 1.0))
+        if "latar" in a:
+            continue
+        for anc in aturan:  # bentuk 3: turunan dari aturan dasar yang punya latar, dan semua pengubahnya
+            if not s.startswith(anc + " ") or anc != dasar[anc]:
+                continue
+            op = float(a.get("opacity", "1"))
+            if "color" not in a and op >= 1:
+                continue
+            for varian in [x for x in aturan if dasar[x] == anc]:
+                v = aturan[varian]
+                cv, lv = a.get("color", v.get("color", aturan[anc].get("color"))), v.get("latar", aturan[anc].get("latar"))
+                if cv and lv:
+                    hasil.add((f"{s} (di {varian})", cv, lv, op))
+    return sorted(hasil)
+
+
+teks_css = CSS.read_text()
+for nama, tok in token_css(teks_css).items():
+    for sel, c, l, op in pasangan_css(teks_css):
+        fg, bg = warna(c, tok), warna(l, tok)
+        if fg and bg:
+            rows.append((f"[{nama}] tema.css {sel}: {c} di {l}" + (f" opacity {op}" if op < 1 else ""),
+                         campur(fg, bg, op) if op < 1 else fg, bg, TXT))
 
 md = "--md" in sys.argv
 fail = 0
