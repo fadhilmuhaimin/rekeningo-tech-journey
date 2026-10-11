@@ -380,11 +380,13 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 /* Versi statis langkah awal (I5c-b, keputusan 263; src/lib/alur-statis.ts) memesan tinggi widget sampai alur.js
    menggantinya. Pembungkus luar selebar widget, dalam selebar satu komponen ((lebar - 2 px garis) / --n), sehingga
    container query meniru tata() di alur.js: sempit bila clientWidth < 600, rel vertikal bila clientWidth / n < 110.
-   Aturan di bawah menyalin .is-sempit dan .is-vertikal di atas; ukur-cls.mjs menggagalkan gerbang bila tingginya
-   berbeda dengan versi hidup. Margin .bb-widget (1,6em pada 0,85em) pindah ke pembungkus agar tetap runtuh seperti aslinya.
-   Host [data-bb] selebar isinya (fit-content, keputusan 209) dan isi alur hidup selalu lebih lebar dari wadah (penjelasan
-   satu baris), jadi host selebar wadah; containment membuat lebar isi pembungkus 0, maka lebar intrinsiknya diisi 100vw. */
-.sl-markdown-content .bb-alur-pesan { container: alur-lebar / inline-size; contain-intrinsic-inline-size: 100vw; margin: calc(1.6em * 0.85) 0; }
+   Aturan di bawah menyalin .is-sempit dan .is-vertikal di atas; ukur-cls.mjs menggagalkan gerbang bila tinggi, x, atau
+   lebar host, atau letak elemen sesudahnya, berbeda lebih dari 1 px dengan versi hidup. Margin .bb-widget pindah ke
+   pembungkus agar tetap runtuh seperti aslinya: 1,6em pada font widget 1rem (aturan "Widget: dasar 1rem" di bawah), jadi
+   1.6rem, bukan 1,6em font teks isi. Lebar: containment membuat lebar intrinsik pembungkus 0, sedangkan host [data-bb]
+   selebar isinya (fit-content, keputusan 209) dan isi alur hidup bisa lebih sempit dari wadah 1024 px (mis. 986 px), jadi
+   host alur selebar wadah di kedua versi (aturan div[data-bb="alur"] sesudah aturan fit-content). */
+.sl-markdown-content .bb-alur-pesan { container: alur-lebar / inline-size; margin: 1.6rem 0; }
 .sl-markdown-content .bb-alur-pesan__per { container: alur-per / inline-size; width: calc((100% - 2px) / var(--n)); }
 .sl-markdown-content .bb-alur--statis { width: calc(100% * var(--n) + 2px); margin: 0; }
 .sl-markdown-content .bb-alur__rel-statis { display: contents; }
@@ -941,6 +943,9 @@ main > .content-panel:first-of-type > .sl-container { max-width: var(--rk-ukur);
 .sl-markdown-content.sl-markdown-content :is(.sl-markdown-content > *, .blok__isi.blok__isi > *):is(div.highlight, table, [data-bb], figure:not(.blok__ilustrasi), astro-island, .tabbed-set, pre, .expressive-code, figure.peta-fitur) {
   width: fit-content; min-width: min(100%, var(--rk-ukur)); max-width: 100%; margin-inline: auto;
 }
+/* Widget alur selebar wadah, bukan selebar isi (keputusan 263): versi statis dari build tidak punya lebar isi (container
+   query), jadi kedua versi harus sama lebar supaya pergantiannya tidak menggeser widget ke samping. */
+.sl-markdown-content.sl-markdown-content :is(.sl-markdown-content > *, .blok__isi.blok__isi > *):is(div[data-bb="alur"]) { width: 100%; }
 /* Garis pemisah blok pindah ke kepala blok, supaya selebar teks. */
 .sl-markdown-content details.blok { border-top: 0; }
 .sl-markdown-content details.blok:last-of-type { border-bottom: 0; }
