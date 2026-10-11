@@ -47,7 +47,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-11 · 1.34-lab selesai di branch `tahap-1/m7-lab` (keputusan 259; PR menunggu tinjauan, jangan merge sebelum disetujui pengatur): bagian `m7` di `labs/api-t1/run.py`, rekaman `labs/api-t1/output/m7.txt` (tiga run identik, lab penuh tanpa diff rekaman lain), README root bagian M7. Berikutnya: `python3 tools/antrean.py berikut` (1.34 halaman).
+2026-10-11 · 1.34 M7: `.env` di repo, branch `tahap-1/m7-env`. Halaman masalah `t1-m7` (peran security) dari `labs/api-t1/output/m7.txt`, pola 1.26/1.30. File: `situs/src/content/docs/tahap-1/m7-env-di-repo.mdx`, `situs/data/cerita.json`, `alat/indeks-topik.mdx`, KEPUTUSAN, STATUS, ANTREAN. ADR 11 tetap milik 1.35.
 
 ## Pelajaran
 
