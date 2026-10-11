@@ -48,7 +48,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-11 · I5c widget alur di branch `interaksi/i5c-alur` (PR menunggu tinjauan, jangan merge): inventaris halaman alur, ukur JS, putuskan React vs vanilla + `motion/mini` (pola 238), paket data bergerak saat Berikutnya, lapisan aktif tersorot. File: `situs/lama/widgets/alur.js`, `situs/src/gerak/`, `tema.css`, alat ukur gerak. Berikutnya: `python3 tools/antrean.py berikut`.
+2026-10-11 · I5c widget alur selesai di branch `interaksi/i5c-alur` (keputusan 261; PR menunggu tinjauan, jangan merge sebelum disetujui pengatur): gerak paket `situs/src/gerak/alur.ts` + `GerakAlur.astro` lewat SkripLama, `<noscript>` daftar langkah di WidgetLama. Uji semua halaman alur dari `situs/`: `node tangkapan/i5c-uji.mjs http://localhost:4321 ../tmp/x.json [--reduce] [--lebar 1366]` (tangkapan/ di-.gitignore). Berikutnya: `python3 tools/antrean.py berikut`.
 
 ## Pelajaran
 

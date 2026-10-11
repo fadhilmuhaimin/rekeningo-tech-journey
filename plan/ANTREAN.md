@@ -380,11 +380,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### I5c · Widget alur
 
 - jenis: interaksi
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: I3
 - selesai bila: widget alur (pindah ke React bila belum): paket data bergerak dari komponen ke komponen saat Berikutnya ditekan; lapisan yang aktif tersorot; semua halaman yang memakai alur tetap jalan; tangkapan sebelum/sesudah; butir I6.
-- catatan: -
+- catatan: keputusan 261
 
 ### 1.35 · Keamanan 3: secret + ADR 11
 
