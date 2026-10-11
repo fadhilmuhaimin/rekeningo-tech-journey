@@ -1074,8 +1074,12 @@
       ],
       "label": "Masalah 7 · minggu 5",
       "masalah": "Password database ikut ter-commit",
-      "ada": false,
-      "nomor": "1.34"
+      "ada": true,
+      "prasyarat": [
+        "C3"
+      ],
+      "nomor": "1.34",
+      "menit": 7
     },
     {
       "id": "t1-secret",

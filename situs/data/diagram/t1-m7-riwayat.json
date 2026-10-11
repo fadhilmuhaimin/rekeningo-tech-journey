@@ -1,0 +1,52 @@
+{
+  "id": "t1-m7-riwayat",
+  "judul": "Sesudah .env dihapus",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t1 · m7.txt"
+  },
+  "baris": [
+    {
+      "label": "Riwayat git",
+      "sub": "repo api-t1",
+      "simpul": [
+        {
+          "teks": "80952b1",
+          "sub": "minggu 1, .env masuk",
+          "kode": true
+        },
+        {
+          "teks": "030e999",
+          "sub": "minggu 5, .env dilepas",
+          "kode": true
+        },
+        {
+          "teks": "git show 80952b1:.env",
+          "sub": "password masih tercetak",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Password",
+      "sub": "role rekeningo_app",
+      "simpul": [
+        {
+          "teks": "Password dari riwayat",
+          "sub": "masih membuka database",
+          "nada": "warn"
+        },
+        {
+          "teks": "ALTER ROLE",
+          "sub": "password baru",
+          "nada": "system"
+        },
+        {
+          "teks": "Password dari riwayat",
+          "sub": "ditolak",
+          "nada": "good"
+        }
+      ]
+    }
+  ]
+}

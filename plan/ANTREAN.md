@@ -371,11 +371,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### 1.34 · M7: .env di repo
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 1.34-lab
 - selesai bila: halaman `t1-m7` (masalah, peran security) dengan template masalah dari rekaman M7.
-- catatan: -
+- catatan: keputusan 260. ADR 11 dan bagian E, G, H `m7.txt` untuk 1.35.
 
 ### I5c · Widget alur
 

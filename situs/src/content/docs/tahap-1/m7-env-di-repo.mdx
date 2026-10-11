@@ -1,0 +1,87 @@
+---
+title: "1.34 M7: File .env di repo"
+description: Minggu 5. Raka menemukan file .env berisi password database di repo sejak commit pertama. Ia menghapus file itu, tapi password-nya masih bisa dibaca dari riwayat git.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import riwayat from "../../../../data/diagram/t1-m7-riwayat.json";
+import Snippet from "../../../components/Snippet.astro";
+
+<p class="meta">Baca 5 menit · coba 2 menit · Prasyarat: [[C3]]</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 5, sesudah deploy hari Senin. Raka menyiapkan CI pertama untuk repo `api-t1` dan membaca daftar file yang dilacak git.
+
+Di daftar itu ada `.env`, bersama `README.md` dan `go.mod`. Isinya password role `rekeningo_app` di Postgres VPS, di `POSTGRES_PASSWORD` dan di dalam `DATABASE_URL`.
+
+File itu masuk di commit pertama, minggu 1, saat Raka membuat repo dengan `git add .`. Sejak itu password database yang menyimpan semua saldo ada di setiap clone repo ini.
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+File itu seharusnya tidak di repo, jadi Raka mengeluarkannya. Ia melepas `.env` dari git, menulis `.env` ke `.gitignore`, dan membuat commit "Hapus .env dari repo".
+
+`git ls-files` tidak lagi menampilkan `.env`. Bagi Raka, urusannya selesai.
+
+<details class="question">
+<summary>Tebak dulu: sesudah commit itu, apakah password di `.env` masih bisa dibaca dari repo?</summary>
+
+Ya. Commit baru hanya mencatat bahwa file dilepas. Commit minggu 1 tetap ada dengan isi yang sama, dan password di database belum berubah. Blok berikutnya menunjukkan rekamannya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Menghapus file menyisakan dua hal: isi file di commit lama, dan password yang masih berlaku di database. Commit penghapusan tidak menyentuh keduanya.
+
+<Rantai data={riwayat} />
+
+Rekaman lab dari repo git sementara yang meniru laptop Raka. Nilai di `.env` dibangkitkan saat lab berjalan, lalu diganti label `<password-lama>` di rekaman:
+
+<Snippet file="labs/api-t1/output/m7.txt" lines="22:39" title="Rekaman lab: labs/api-t1/output/m7.txt" />
+
+`git rm --cached` hanya melepas file dari index, dan file di laptop dibiarkan ([git-scm.com](https://git-scm.com/docs/git-rm)). `git log -- .env` masih menampilkan commit minggu 1. `git show 80952b1:.env` mencetak isi file dari commit itu.
+
+Menghapus file juga tidak mengubah password di database. Password yang dibaca dari riwayat masih membuka Postgres, sampai `ALTER ROLE` memberi password baru:
+
+<Snippet file="labs/api-t1/output/m7.txt" lines="110:123" title="Rekaman lab: labs/api-t1/output/m7.txt" />
+
+Password baru diisi di `.env` laptop dan `.env` di VPS. Kedua file itu tidak dilacak git.
+
+Urutan ini sama dengan panduan GitHub untuk data sensitif. Langkah pertamanya adalah revoke atau mengganti secret itu ([docs.github.com](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)). Menulis ulang riwayat dengan git-filter-repo datang sesudahnya, dan commit lama tetap bisa dibaca di fork yang sudah memuatnya.
+
+Lab tidak menulis ulang riwayat. Password lama tetap di commit `80952b1`, tapi sesudah `ALTER ROLE` password itu tidak lagi membuka database.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Di repo ini Raka tahu commit mana yang memuat `.env`. Di repo yang lebih besar, kamu perlu alat yang memeriksa semua commit. gitleaks membaca patch dari `git log -p` dan mencocokkannya dengan aturan bawaannya ([gitleaks v8.30.1](https://github.com/gitleaks/gitleaks/blob/v8.30.1/README.md)).
+
+<details class="question">
+<summary>Tebak dulu: gitleaks dijalankan dua kali, untuk commit terakhir saja dan untuk seluruh riwayat. Berapa temuan di masing-masing?</summary>
+
+Commit terakhir: nol. gitleaks hanya memeriksa baris yang ditambahkan dan melewati file yang dihapus ([sources/git.go v8.30.1](https://github.com/gitleaks/gitleaks/blob/v8.30.1/sources/git.go)). Commit penghapusan hanya menambah `.env` ke `.gitignore` (5 byte yang dipindai). Di commit itu password hanya muncul sebagai baris yang dihapus.
+
+Seluruh riwayat: satu, di commit minggu 1. Baris `DATABASE_URL` memuat password yang sama, tapi tidak ditandai aturan bawaan.
+
+</details>
+
+<Snippet file="labs/api-t1/output/m7.txt" lines="41:65" title="Rekaman lab: labs/api-t1/output/m7.txt" />
+
+Yang berubah di antara dua perintah hanya `--log-opts=-1`, yang membatasi `git log` ke satu commit terakhir. Hasilnya berubah dari `no leaks found` ke `leaks found: 1`. `--redact` mengganti secret dengan `REDACTED`, jadi output pemindaian tidak ikut membocorkan password.
+
+Jalankan sendiri dengan `make -C labs/api-t1 run BAGIAN=m7`. Lab membuat repo sementara, menjalankan gitleaks, dan menulis ulang `labs/api-t1/output/m7.txt`.
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t1-secret]]: Keamanan 3, secret di repo dan di server. Halaman itu memuat ADR 11: `.env.example` tanpa nilai, gitleaks sebagai pre-commit hook, dan secret hanya di server. Aturan gitleaks untuk password di dalam URL, yang tidak ditandai di rekaman ini, juga dibahas di sana.
+- [[C3]]: deployment dan rollback. `DATABASE_URL` di VPS, token GHCR dengan izin `read:packages`, dan kunci CI ke VPS adalah secret jenis yang sama dengan isi `.env` ini. Tempat menyimpannya diputuskan di ADR 11.
+
+</Blok>

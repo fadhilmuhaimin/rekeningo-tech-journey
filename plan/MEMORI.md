@@ -23,7 +23,8 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Ilustrasi latar Grup Lestari belum ada; ilustrasi baru wajib lolos `ukur-ilustrasi.mjs` (tambahkan path halamannya ke alat itu). `situs/lama/assets/cerita/tahap-1.svg` tidak dipakai lagi.
 - Tabel "Angka di tahap ini" ditulis ulang di 1.37/1.38, angka dari `tahap[0].asumsi`.
 - `/cara-pakai/` (A0) masih menjelaskan susunan lama; tulis ulang untuk lima blok dan tiga pintu.
-- 1.34/1.35 (keputusan 259): `m7.txt` commit `80952b1` (minggu 1, `.env`) dan `030e999` (hapus); gitleaks v8.30.1 aturan bawaan 1 temuan (`POSTGRES_PASSWORD`), `DATABASE_URL` tidak ditandai, aturan `url-dengan-password` 2; password lama ditolak sesudah `ALTER ROLE`; hook menolak `.env.example` berisi password; `--no-verify` lolos hook, pemindaian commit menangkapnya. `.gitleaks.toml` repo ini belum punya aturan URL (bahan ADR 11).
+- 1.35 (keputusan 259, 260): 1.34 menampilkan bagian A–D dan F `m7.txt`; E (aturan `url-dengan-password`), G (hook menolak `.env.example` berisi password), H (`--no-verify` lolos hook, pemindaian commit menangkapnya) untuk ADR 11. 1.31 dan 1.34 meneruskan `DATABASE_URL` di VPS, token GHCR `read:packages`, dan kunci CI ke ADR 11. gitleaks hanya memindai baris tambahan (`sources/git.go` v8.30.1); jangan tulis bahwa commit penghapusan "tidak memuat password".
+- 1.35 ADR 11 wajib: (a) rotasi = `ALTER ROLE rekeningo_app`, lalu `.env` VPS, lalu `docker compose up -d`; di antaranya container API masih membawa `DATABASE_URL` lama dan koneksi baru gagal (downtime, belum direkam); (b) `compose.yaml` 1.31 membaca `${DATABASE_URL}` dari shell atau `.env` di folder proyek, sedangkan 1.31 baris 73 menulis "tidak ditulis di file" dan 1.34 menulis `.env` di VPS: samakan; (c) bila aturan `url-dengan-password` ditambahkan ke `.gitleaks.toml` repo (sekarang hanya `useDefault` dan allowlist `.venv`/`site`), `labs/api-t1/output/m7.txt` kena 5 temuan (baris 20, 38, 93, 121, 141: `<password-lama>`, `<password-baru>`, `REDACTED`); perlu allowlist sempit regex `<password-[a-z]+>|REDACTED`.
 - Audit bahasa menolak "kantor" (pakai "perusahaan") dan "pemakai" (pakai "user").
 - Pola tulis ulang halaman lama: pindah ke `tahap-1/<slug>.mdx`, lima blok, contoh PRD v1; hapus file lama dan data widget lama; perbarui `path`, `prasyarat`, hapus `lama` di registry, perbarui `alat/indeks-topik.mdx`, lalu `python3 tools/sinkron_cerita.py`.
 
@@ -47,7 +48,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-11 · 1.34-lab selesai di branch `tahap-1/m7-lab` (keputusan 259; PR menunggu tinjauan, jangan merge sebelum disetujui pengatur): bagian `m7` di `labs/api-t1/run.py`, rekaman `labs/api-t1/output/m7.txt` (tiga run identik, lab penuh tanpa diff rekaman lain), README root bagian M7. Berikutnya: `python3 tools/antrean.py berikut` (1.34 halaman).
+2026-10-11 · 1.34 M7 selesai di branch `tahap-1/m7-env` (keputusan 260; PR menunggu tinjauan, jangan merge sebelum disetujui pengatur): `tahap-1/m7-env-di-repo.mdx`, Rantai `t1-m7-riwayat`, registry `t1-m7` ada. Berikutnya: `python3 tools/antrean.py berikut`.
 
 ## Pelajaran
 
