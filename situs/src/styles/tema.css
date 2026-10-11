@@ -28,6 +28,8 @@
   --k-good-fill:   #0F2A26; --k-good-edge:   #3DBFA8; --k-good-ink:   #7FE0CC;
   --k-warn-fill:   #3A2410; --k-warn-edge:   #F0A04B; --k-warn-ink:   #FFC58A;
   --k-old-fill:    #1C1C1F; --k-old-edge:    #7C7C84; --k-old-ink:    #B5B5BC;
+  /* latar padat yang memuat teks --ink-di-aksen (saldo HP, paket alur): gelap = edge, terang = ink, ≥ 4,5:1 (keputusan 262) */
+  --k-system-padat: var(--k-system-edge); --k-good-padat: var(--k-good-edge); --k-warn-padat: var(--k-warn-edge);
 }
 
 /* ── Token: terang (satu klik, dipelihara setara) ───────────────────────── */
@@ -46,6 +48,7 @@
   --k-good-fill:   #DEFFF8; --k-good-edge:   #0F766E; --k-good-ink:   #0F766E;
   --k-warn-fill:   #FFF4E6; --k-warn-edge:   #D26B00; --k-warn-ink:   #9A4C00;
   --k-old-fill:    #F3F4F7; --k-old-edge:    #6B7280; --k-old-ink:    #51565E;
+  --k-system-padat: var(--k-system-ink); --k-good-padat: var(--k-good-ink); --k-warn-padat: var(--k-warn-ink);
 }
 
 /* ── Pemetaan ke Starlight, Shiki, dan token lama widget (--c-*) ─────────── */
@@ -316,10 +319,10 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-hp__sig i:nth-child(3) { height: 75%; } .sl-markdown-content .bb-hp__sig i:nth-child(4) { height: 100%; }
 .sl-markdown-content .bb-hp__sig i.is-on { background: var(--teks); }
 .sl-markdown-content .bb-hp__app { font-weight: 800; font-size: 1.1em; color: var(--k-system-ink); }
-.sl-markdown-content .bb-hp__saldo { background: var(--k-system-edge); color: var(--ink-di-aksen); border-radius: 0.7rem; padding: 0.45rem 0.55rem; }
+.sl-markdown-content .bb-hp__saldo { background: var(--k-system-padat); color: var(--ink-di-aksen); border-radius: 0.7rem; padding: 0.45rem 0.55rem; }
 .sl-markdown-content .bb-hp__saldo small { display: block; opacity: 0.85; font-size: 0.85em; }
 .sl-markdown-content .bb-hp__saldo strong { font-size: 1.3em; letter-spacing: 0.01em; color: inherit; }
-.sl-markdown-content .bb-hp__saldo.is-warn { background: var(--k-warn-edge); }
+.sl-markdown-content .bb-hp__saldo.is-warn { background: var(--k-warn-padat); }
 .sl-markdown-content .bb-hp__row { display: flex; justify-content: space-between; gap: 0.4rem; padding: 0.3rem 0; border-bottom: 1px solid var(--garis); }
 .sl-markdown-content .bb-hp__row.is-warn strong { color: var(--k-warn-ink); }
 .sl-markdown-content .bb-hp__row.is-good strong { color: var(--k-good-ink); }
@@ -347,9 +350,9 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-alur__layers li::after { content: attr(data-l); display: block; height: 0; overflow: hidden; visibility: hidden; font-weight: 700; }
 .sl-markdown-content .bb-alur__layers li.is-on { border-style: solid; border-color: var(--k-system-edge); color: var(--k-system-ink); font-weight: 700; }
 .sl-markdown-content .bb-alur__track { position: relative; height: 1.7rem; margin: 0.2rem 0 0.4rem; }
-.sl-markdown-content .bb-alur__packet { position: absolute; top: 0.1rem; transform: translateX(-50%); min-width: 2.2rem; padding: 0.1rem 0.5rem; border-radius: 999px; text-align: center; font-weight: 800; background: var(--k-system-edge); color: var(--ink-di-aksen); font-size: 0.9em; }
-.sl-markdown-content .bb-alur__packet.is-warn { background: var(--k-warn-edge); }
-.sl-markdown-content .bb-alur__packet.is-good { background: var(--k-good-edge); }
+.sl-markdown-content .bb-alur__packet { position: absolute; top: 0.1rem; transform: translateX(-50%); min-width: 2.2rem; padding: 0.1rem 0.5rem; border-radius: 999px; text-align: center; font-weight: 800; background: var(--k-system-padat); color: var(--ink-di-aksen); font-size: 0.9em; }
+.sl-markdown-content .bb-alur__packet.is-warn { background: var(--k-warn-padat); }
+.sl-markdown-content .bb-alur__packet.is-good { background: var(--k-good-padat); }
 .sl-markdown-content .bb-alur__body { display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: start; }
 .sl-markdown-content .bb-alur__phone:has(.bb-alur__device) { display: flex; flex-wrap: wrap; gap: 0.6rem; }
 .sl-markdown-content .bb-alur__device { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }

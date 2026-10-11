@@ -48,11 +48,10 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-11 · I5c widget alur + perbaikan tinjauan PR #175 di branch `interaksi/i5c-alur` (keputusan 261; jangan merge sebelum disetujui pengatur): di HP (widget < 600 px) alur.js mengurutkan DOM jalur, tombol, tebakan, detail, HP (`is-sempit`); lompatan diam di antara tujuan dan tetangganya (`core.sisiAsal`); `ukur-gerak.mjs` memeriksa paket dan tombol terlihat bersamaan di semua halaman alur 375×667. Putaran 2: fokus dikembalikan sesudah `urutSempit` memindah tombol; paket lompatan di tengah celah antarbaris (`celah()`). Tugas baru I5c-a (kontras mockup HP), I5c-b (CLS alur), I5c-c (HP lanskap 667×375). Uji semua halaman alur dari `situs/`: `node tangkapan/i5c-uji.mjs http://localhost:4321 ../tmp/x.json [--reduce] [--lebar 1366]` (tangkapan/ di-.gitignore). Berikutnya: `python3 tools/antrean.py berikut`.
+2026-10-11 · I5c-a perbaikan review PR #176 di branch `perbaikan/i5c-a-kontras-hp` (keputusan 262): `tools/contrast.py` menyelesaikan `inherit`/`transparent` ke aturan leluhur atau `body`, gagal (exit 1) untuk nilai yang tidak bisa dihitung, dan mencetak jumlah dibaca/dilewati; `tools/test_contrast.py` masuk gerbang. File: contrast.py, test_contrast.py, cek_situs.sh, KEPUTUSAN, MEMORI. Jangan merge; PR untuk ditinjau pengatur.
 
 ## Pelajaran
 
-- Island React Astro di-hydrate di `startTransition` dan atribut `ssr` dilepas sebelum React selesai; keadaan yang dibaca dari DOM di efek butuh CSS yang menyembunyikan isi SSR sampai cocok, bukan selektor `[ssr]`.
 - Widget alur hanya menerima nada `warn` dan `good` (`alur-core.js` NADA, diperiksa `tools/validasi_skenario.mjs` saat build); Rantai menerima juga `system`.
 - ADR 7: policy RLS yang menyaring `UPDATE` membuat kredit ke baris orang lain jadi `UPDATE 0` tanpa error (`b5-rls` bagian 5); RLS di Rekeningo hanya untuk baca, di tabel ledger Tahap 2.
 - `insertBefore`/`appendChild` atas elemen yang sedang terfokus membuat Chrome memindah fokus ke BODY; simpan `document.activeElement` sebelum memindah DOM dan kembalikan dengan `focus({ preventScroll: true })` (alur.js `urutSempit`, diperiksa `ukur-gerak.mjs`).
@@ -78,3 +77,4 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Markup pesanan yang meniru komponen (mis. `figure.diagram` di `.peta__pesan`) ikut tertangkap selector alat ukur; kecualikan wadahnya (`:not(.peta__pesan figure)`, `:scope >`).
 - Menutup blok di atas tombol yang diklik menggeser semua yang di bawahnya; ukur top tujuan sebelum dan sesudah `open = false`, lalu `scrollBy({ behavior: "instant" })` sebesar selisihnya. Scroll anchoring Chromium tidak mengoreksinya (K1xe).
 - zsh tidak memecah `$VAR` tanpa tanda kutip menjadi beberapa argumen (daftar halaman jadi satu URL); kirim daftar lewat `xargs`.
+- Pemeriksa yang menyaring data wajib menghitung dan mencetak yang dilewati: `if fg and bg:` di contrast.py membuang 26 pasangan per mode tanpa pesan; buktikan pemeriksa bisa gagal dengan uji mutasi pada salinan (`tools/test_contrast.py`).

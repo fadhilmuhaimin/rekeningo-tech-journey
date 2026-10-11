@@ -389,11 +389,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### I5c-a · Kontras mockup HP mode terang
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: I5c
 - selesai bila: axe `color-contrast` 0 pelanggaran di halaman alur mode terang, termasuk `.bb-hp__saldo small` (3,6:1) dan `.bb-hp__saldo > strong` (putih di #0075EB, 4,42:1), juga `.bb-alur__packet`; `contrast.py`/`palette.py` memeriksa pasangan yang dipakai CSS sebagai teks (`--ink-di-aksen` di atas `--k-system-edge`, tema.css ±319 dan ±347) supaya celah ini tertutup; palet tetap sesuai CLAUDE.md.
-- catatan: ditemukan peninjau PR #175; ada di main sebelum I5c.
+- catatan: ditemukan peninjau PR #175; ada di main sebelum I5c. Selesai: keputusan 262.
 
 ### I5c-b · CLS alur saat dimuat
 

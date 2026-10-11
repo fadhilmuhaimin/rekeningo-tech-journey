@@ -5,6 +5,8 @@ Setiap warna bermakna punya tiga peran:
   fill = isi kotak / latar
   edge = garis tepi (≥ 3:1 terhadap fill dan putih)
   ink  = teks berwarna di atas fill atau putih (≥ 4.5:1)
+Di tema.css ada turunan keempat, --k-*-padat = latar padat yang memuat teks --ink-di-aksen
+(gelap = edge, terang = ink, keputusan 262); contrast.py membaca pasangan itu langsung dari tema.css.
 """
 KINDS = {
     #          fill       edge       ink
