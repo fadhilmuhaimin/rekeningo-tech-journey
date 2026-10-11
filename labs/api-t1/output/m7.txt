@@ -1,7 +1,7 @@
 # repo: repo git sementara meniru laptop Raka. Nama dan tanggal commit tetap, jadi hash sama di setiap rekaman.
 # Nilai di .env palsu: dibangkitkan saat lab berjalan, tidak ada di file repo, dan diganti label di rekaman.
 # gitleaks: go install github.com/zricethezav/gitleaks/v8@v8.30.1, dipanggil dengan --redact (secret tidak dicetak).
-# database VPS: Postgres lab (labs/b3-race) memerankan database di VPS untuk bagian F.
+# database VPS: Postgres lab (labs/b3-race) memerankan database di VPS untuk bagian F dan I.
 # Banner gambar gitleaks yang dicetak hook di bagian G dibuang dari rekaman.
 
 # --- A. Minggu 1: repo pertama, .env ikut ter-commit ---
@@ -155,16 +155,16 @@ c609ee5 Tambah aturan gitleaks untuk password di URL
 # commit tidak dibuat; HEAD tetap c609ee5
 
 $ cat .env.example
-# Salin ke .env, lalu isi. Nilai asli hanya ada di laptop dan di VPS.
+# Salin ke .env, lalu isi. Laptop: database lokal. Nilai untuk VPS hanya ada di VPS.
 POSTGRES_PASSWORD=
 DATABASE_URL=
 $ git add .env.example && git commit -m "Tambah .env.example"
 INF 0 commits scanned.
-INF scanned ~103 bytes (103 bytes) in <durasi>
+INF scanned ~118 bytes (118 bytes) in <durasi>
 INF no leaks found
 # exit status 0
 $ git log --oneline
-15fd073 Tambah .env.example
+84c35b4 Tambah .env.example
 c609ee5 Tambah aturan gitleaks untuk password di URL
 030e999 Hapus .env dari repo
 80952b1 Kerangka api-t1
@@ -175,7 +175,7 @@ c609ee5 Tambah aturan gitleaks untuk password di URL
 $ git add catatan-vps.env && git commit --no-verify -m "Catatan VPS"
 # exit status 0
 $ git log --oneline -1
-5358b91 Catatan VPS
+71b853f Catatan VPS
 
 $ gitleaks git --redact -v --log-opts=-1 .   # seperti CI memindai commit yang di-push
 Finding:     POSTGRES_PASSWORD=REDACTED
@@ -184,13 +184,66 @@ RuleID:      generic-api-key
 Entropy:     4.168296
 File:        catatan-vps.env
 Line:        1
-Commit:      5358b91e11a8d2a8334a928ffd3cdac00c0d9ad1
+Commit:      71b853fddf5712067121689ede60dfe5a8037b42
 Author:      Raka
 Email:       raka@lestari.example
 Date:        2026-02-11T03:00:00Z
-Fingerprint: 5358b91e11a8d2a8334a928ffd3cdac00c0d9ad1:catatan-vps.env:generic-api-key:1
+Fingerprint: 71b853fddf5712067121689ede60dfe5a8037b42:catatan-vps.env:generic-api-key:1
 
 INF 1 commits scanned.
 INF scanned ~43 bytes (43 bytes) in <durasi>
 WRN leaks found: 1
 # exit status 1
+
+# --- I. Rotasi di VPS: ALTER ROLE tidak menutup sesi yang sudah terbuka ---
+# latihan lab, bukan kejadian di cerita. Sesi A dibuka dengan password yang sedang berlaku, seperti koneksi
+# di pool container API, atau sesi siapa pun yang sudah masuk dengan password itu sebelum diganti.
+$ psql "postgres://rekeningo_app:<password-baru>@db/lab"   # sesi A, dibiarkan terbuka
+(sesi A) SELECT current_user
+-> masuk sebagai rekeningo_app
+
+$ psql -c "ALTER ROLE rekeningo_app PASSWORD '<password-rotasi>'"
+ALTER ROLE
+(sesi A) SELECT current_user
+-> masih jalan: rekeningo_app
+$ psql "postgres://rekeningo_app:<password-baru>@db/lab" -c 'SELECT current_user'   # koneksi baru, password lama
+-> ditolak: password authentication failed for user "rekeningo_app"
+$ psql "postgres://rekeningo_app:<password-rotasi>@db/lab" -c 'SELECT current_user'   # koneksi baru, password baru
+-> masuk sebagai rekeningo_app
+
+$ psql -At -c "SELECT pg_terminate_backend(pid, 5000) FROM pg_stat_activity
+            WHERE usename = 'rekeningo_app' AND backend_start < '<waktu ALTER ROLE>'"
+t
+(sesi A) SELECT current_user
+-> terputus: terminating connection due to administrator command
+# Satu baris t: hanya sesi A yang dibuka sebelum ALTER ROLE.
+
+# --- J. CI memindai seluruh riwayat: temuan lama dicatat di .gitleaksignore ---
+# latihan lab: repo yang sama, termasuk commit latihan bagian H. Langkah CI di ADR 11 memindai clone penuh.
+$ gitleaks git --redact -v .   # sebelum .gitleaksignore
+WRN leaks found: 3   (dua di commit minggu 1, satu di catatan-vps.env)
+# exit status 1
+
+$ cat .gitleaksignore
+80952b1fb9e2248479e915249fa903d75db394c1:.env:generic-api-key:2
+80952b1fb9e2248479e915249fa903d75db394c1:.env:url-dengan-password:3
+$ git add .gitleaksignore && git commit -m "Abaikan temuan minggu 1: password sudah diganti"
+
+$ gitleaks git --redact -v .
+Finding:     POSTGRES_PASSWORD=REDACTED
+Secret:      REDACTED
+RuleID:      generic-api-key
+Entropy:     4.168296
+File:        catatan-vps.env
+Line:        1
+Commit:      71b853fddf5712067121689ede60dfe5a8037b42
+Author:      Raka
+Email:       raka@lestari.example
+Date:        2026-02-11T03:00:00Z
+Fingerprint: 71b853fddf5712067121689ede60dfe5a8037b42:catatan-vps.env:generic-api-key:1
+
+INF 6 commits scanned.
+INF scanned ~816 bytes (816 bytes) in <durasi>
+WRN leaks found: 1
+# exit status 1
+# Dua temuan minggu 1 dilewati menurut fingerprint-nya. Temuan di commit lain tetap menggagalkan pemindaian.
