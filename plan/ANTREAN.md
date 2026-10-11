@@ -416,11 +416,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### I5c-d · CLS halaman alur di CI
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: I5c-b
 - selesai bila: `ukur-cls.mjs` gagal (bukan `lewat`) bila CLS halaman > 0,1; run CI hijau dengan 0 lewat di 28 halaman × 375×667 dan 1366×657 (dua posisi, modul ditunda 600 ms); setiap sumber dari run 38140527859 hilang atau < 0,01: `.content-panel` naik 29 px di 375 saat modul datang (m6 0,342; m2 0,340; b3-2 dan b5-2 0,336; authentication 0,318; fitur-bayar 0,244); `figure.rantai`/`.rantai__baris` naik 20–31 px (authorization 0,270; app-versi-lama 0,239; deployment-rollback 0,174); `figure.bb-fig` dan diagram arsitektur naik 30 px (kontrak-openapi 0,238; b2-5 0,194; b10-1 0,171); `details.blok` naik 31 px (fitur-login 0,106); `li` sidebar naik 21 px di 1366 (b3-2, b5-2, d2, e3); penyebab beda lokal (0 lewat) dan CI dicatat di keputusan.
-- catatan: ditemukan peninjau PR #177. CI run 38144799335 juga mengukur 1440×900: 45 baris lewat (375: 21, 1366: 8, 1440: 16), maks 0,473 di validation-error (`.content-panel` y200→158); sumber di 1440: `?` y228→207 di 6 halaman, `li` sidebar 21 px, `.bb-predict` 32 px; tambahkan 1440 ke syarat. Jalur teknis (keputusan 264).
+- catatan: ditemukan peninjau PR #177. CI run 38144799335 juga mengukur 1440×900: 45 baris lewat (375: 21, 1366: 8, 1440: 16), maks 0,473 di validation-error (`.content-panel` y200→158); sumber di 1440: `?` y228→207 di 6 halaman, `li` sidebar 21 px, `.bb-predict` 32 px; tambahkan 1440 ke syarat. Jalur teknis (keputusan 264). Selesai: keputusan 351, PR #181.
 
 ### 1.35 · Keamanan 3: secret + ADR 11
 
@@ -434,11 +434,47 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### K2 · Crosscheck kecil 1.34–1.35
 
 - jenis: crosscheck
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: bagian K2 di `plan/CROSSCHECK-KECIL.md` memuat 1.34–1.35 serta sambungan 1.33 → 1.34 dan 1.35 → 1.36 dengan bukti; temuan menjadi tugas perbaikan di bawah K2.
-- catatan: 1.31–1.33 sudah diperiksa di K1x (keputusan 254).
+- catatan: 1.31–1.33 sudah diperiksa di K1x (keputusan 254). Selesai: keputusan 301, PR #184.
+
+### K2a · Kontras langkah runsql yang dilewati
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: -
+- selesai bila: `.bb-step.is-skipped` (teks SQL dan label "→ tidak dijalankan") ≥ 4,5:1 di gelap dan terang, diukur di 1.22 M4 dengan computed style (opacity leluhur dikalikan, warna dicampur ke latar); teks tidak lagi diredupkan dengan `opacity`, coretan dan label tetap.
+- catatan: Dari K2 (keputusan 301). Ukuran sekarang: terang SQL 3,96:1, label 2,87:1; gelap SQL 5,50:1, label 3,54:1. Jalur teknis (keputusan 264).
+
+### K2b · Celah tools/contrast.py
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: K2a
+- selesai bila: aturan yang hanya menulis `color`, atau hanya menulis latar, dipasangkan dengan aturan leluhur atau latar halaman; `opacity` di aturan induk ikut diturunkan ke warna turunannya; ada tes di `tools/test_contrast.py`; `.bb-step.is-skipped` (sebelum K2a) tertangkap oleh tes mutasi.
+- catatan: Dari K2 (keputusan 301): 146 aturan color saja, 57 latar saja, 6 aturan opacity tidak pernah dipasangkan (termasuk is-skipped dan tautan sidebar `menyusul`). Jalur teknis.
+
+### K2c · Kolom tabel KEPUTUSAN
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: -
+- selesai bila: baris 157, 247, 252, 253 di `plan/KEPUTUSAN.md` punya 5 kolom tanpa mengubah isi; gerbang menolak baris tabel yang jumlah pipe tanpa escape-nya berbeda dari header (`\|` di dalam teks tidak dihitung), dengan uji mutasi.
+- catatan: Dari K2 (keputusan 301). Baris 157 rusak karena `||` di code span tanpa escape. Jalur teknis; kalau jalur konten sedang punya PR terbuka yang mengubah KEPUTUSAN, kerjakan sesudah PR itu di-merge.
+
+### K2d · Chip sumber Rantai tidak meluap di HP
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: -
+- selesai bila: chip sumber di `Rantai.astro` (kini `white-space: nowrap`) tidak pernah lebih lebar dari figure di 360×740 dan 375×667 (boleh membungkus atau dipendekkan secara visual tanpa memotong informasi); alat di gerbang memeriksa `scrollWidth` = lebar viewport di 360×740 untuk seluruh halaman, bukan hanya layar pertama.
+- catatan: Dari peninjau PR #184: chip 349 px meluap 21 px di 360×740 dan membuat halaman bisa digulir ke samping; `layar.mjs` tidak menangkapnya karena chip di bawah layar pertama. Jalur teknis.
 
 ### 1.36 · Tim dan infra Tahap 1
 

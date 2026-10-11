@@ -1,10 +1,36 @@
 // Widget React pertama (keputusan 144): jalankan perintah satu per satu, lihat jumlah semua saldo.
 // Semua teks dari data JSON; logika di logika.ts.
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { DataJumlahTotal } from "./skema";
 import { batas, keadaan, rupiah, type Status } from "./logika";
+import { gerakkanAngka } from "../../gerak/angka";
 
 const kelasStatus: Record<Status, string> = { ok: "is-good", proses: "", gagal: "is-warn" };
+
+// Rupiah yang bergerak singkat dari nilai lama saat pembaca menekan tombol (I5d, keputusan 352). Di luar tween
+// (juga SSR dan tanpa JavaScript) sel hanya berisi satu angka biasa, jadi seleksi, salinan, dan indeks pencarian
+// memuat satu nilai. Selama tween angka yang bergerak aria-hidden dan pembaca layar membaca nilai akhir di `.bb-sr`
+// (tidak ikut terseleksi, `user-select: none`). Posisi span angka tetap (slot `.bb-sr` kosong di luar tween), jadi
+// React tidak mengganti elemen yang sedang digerakkan. useLayoutEffect: frame pertama tween (nilai lama) dan `.bb-sr`
+// tertulis sebelum browser menggambar. `bergerak` kembali false di setiap jalur tanpa tween berjalan, termasuk klik
+// ganda yang menyela tween sebelum frame pertamanya (gerakkanAngka, perbaikan review 2).
+function Rupiah({ nilai }: { nilai: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const tampil = useRef(nilai);
+  const [bergerak, setBergerak] = useState(false);
+  useLayoutEffect(() => {
+    const tw = gerakkanAngka(ref.current, tampil.current, nilai, rupiah, setBergerak);
+    return () => {
+      tampil.current = tw.berhenti();
+    };
+  }, [nilai]);
+  return (
+    <>
+      {bergerak && <span className="bb-sr">{rupiah(nilai)}</span>}
+      <span ref={ref} aria-hidden={bergerak || undefined}>{rupiah(nilai)}</span>
+    </>
+  );
+}
 
 export default function JumlahTotal({ data: mentah }: { data: unknown }) {
   const data = DataJumlahTotal.parse(mentah);
@@ -80,12 +106,12 @@ export default function JumlahTotal({ data: mentah }: { data: unknown }) {
           {data.akun.map((a) => (
             <tr key={a.id} className={k.berubah.includes(a.id) ? "is-berubah" : ""}>
               <td>{a.nama}</td>
-              <td className="jt-angka">{rupiah(k.saldo[a.id])}</td>
+              <td className="jt-angka"><Rupiah nilai={k.saldo[a.id]} /></td>
             </tr>
           ))}
           <tr className={"jt-total " + kelasStatus[k.cek.totalTetap]}>
             <th scope="row">{L.total}</th>
-            <td className="jt-angka">{rupiah(k.total)}</td>
+            <td className="jt-angka"><Rupiah nilai={k.total} /></td>
           </tr>
           <tr>
             <th scope="row">{L.transaksi}</th>

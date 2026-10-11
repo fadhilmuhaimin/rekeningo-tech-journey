@@ -7,7 +7,8 @@
  * Format data (v1 dan v2) dan semua logika murni ada di alur-core.js (BB.alurCore).
  * File ini hanya mengurus DOM. Skema divalidasi saat build (tools/validasi_skenario.mjs).
  * Butuh hp.js (BB.phone). Gerak paket saat tombol ditekan datang dari src/gerak/alur.ts (BB.gerakAlur,
- * keputusan 261); tanpa modul itu, atau dengan reduced motion, paket langsung di posisi akhirnya.
+ * keputusan 261); tanpa modul itu, atau dengan reduced motion, paket langsung di posisi akhirnya. Saldo di layar
+ * HP bergerak dari nilai lama lewat BB.gerakAlur.angka (keputusan 352), dengan aturan yang sama.
  */
 (function () {
   "use strict";
@@ -140,16 +141,34 @@
         render(true);
       }
 
-      function renderPhones() {
+      // Saldo yang tampil per perangkat. Saat pembaca menekan tombol dan saldo perangkat yang sama berubah, angkanya
+      // bergerak singkat dari nilai lama (BB.gerakAlur.angka, src/gerak/angka.ts, keputusan 352). Teksnya ada di dalam
+      // role="img" yang aria-label-nya sudah nilai akhir, jadi pembaca layar tidak membaca angka antara.
+      var saldoLalu = {};
+      var tweenSaldo = [];
+      function renderPhones(gerak) {
+        tweenSaldo.forEach(function (t) { saldoLalu[t.id] = t.tw.berhenti(); });
+        tweenSaldo = [];
+        var saldoBaru = {};
+        var tween = gerak && BB.gerakAlur && BB.gerakAlur.angka;
+        function hp(x) {
+          var el = BB.phone(x.layar), ke = x.layar.saldo, dari = saldoLalu[x.p.id];
+          if (ke == null) return el;
+          saldoBaru[x.p.id] = ke;
+          var angka = el.querySelector(".bb-hp__saldo strong");
+          if (tween && angka && dari != null && dari !== ke) tweenSaldo.push({ id: x.p.id, tw: BB.gerakAlur.angka(angka, dari, ke, BB.rp) });
+          return el;
+        }
         phoneBox.innerHTML = "";
         var shown = d.perangkat.map(function (p) { return { p: p, layar: core.layarAt(d, list, i - 1, p.id) }; })
           .filter(function (x) { return x.layar; });
-        if (shown.length === 1 && d.perangkat.length === 1) { phoneBox.appendChild(BB.phone(shown[0].layar)); return; }
+        if (shown.length === 1 && d.perangkat.length === 1) phoneBox.appendChild(hp(shown[0]));
         // Beberapa perangkat: berdampingan, masing-masing berlabel.
-        shown.forEach(function (x) {
-          phoneBox.appendChild(BB.el("figure", { class: "bb-alur__device" }, [BB.phone(x.layar),
+        else shown.forEach(function (x) {
+          phoneBox.appendChild(BB.el("figure", { class: "bb-alur__device" }, [hp(x),
             BB.el("figcaption", { text: x.p.label })]));
         });
+        saldoLalu = saldoBaru;
       }
 
       // Tengah komponen j di rel vertikal, dari tinggi baris sebenarnya.
@@ -198,7 +217,7 @@
           var awal = b >= 0 ? titikDi(vertikal ? mid(a) + "px" : (a + 0.5) * 100 / n + "%") : (sebelum || akhir);
           BB.gerakAlur.geser(packet, awal, akhir, !sebelum);
         }
-        renderPhones();
+        renderPhones(gerak);
         title.textContent = st ? i + ". " + st.judul : (guessed ? "Tekan Berikutnya untuk mulai." : "Tebak dulu, lalu tekan Berikutnya.");
         title.className = "bb-alur__title" + (st && st.nada ? " is-" + st.nada : "");
         payload.textContent = st && st.kirim ? st.kirim : "";
