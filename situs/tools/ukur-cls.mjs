@@ -8,6 +8,8 @@
 // dengan versi hidupnya: tinggi host, jarak elemen sesudah host ke elemen sebelum host (menangkap margin yang runtuh
 // keluar host, yang tidak terlihat di offsetHeight), serta x dan lebar host (di 1440 px wadahnya 1024 px dan host
 // fit-content bisa lebih sempit dari wadah).
+// Race (I5e, keputusan 353): halaman dengan widget race ikut diukur dengan cara yang sama (host race versi statis dari
+// build lawan versi hidup race.js), ditambah posisi ketiga "race": widget race pertama yang tampil di dekat atas layar.
 // Ukuran 667x375 (keputusan 350): mode sempit juga bergantung tinggi layar, yang tidak terbaca container query.
 // Tiruan CI (keputusan 351): di CI Satoshi sering datang sesudah paint pertama dan fallback Linux jauh lebih lebar, jadi
 // baris membungkus ulang saat font tukar. --font-telat <ms> menunda /fonts/*, --fallback <font> mengganti system-ui di CSS
@@ -39,17 +41,24 @@ const UKURAN = [
   { width: 1440, height: 900 },
 ];
 
-// Halaman alur dibaca dari hasil build, bukan daftar tulis tangan.
+// Halaman alur dan race dibaca dari hasil build, bukan daftar tulis tangan.
+const HOST = '[data-bb="alur"], [data-bb="race"]';
+const halRace = new Set();
 function halamanAlur(dir, akar = dir, hasil = []) {
   for (const n of readdirSync(dir)) {
     const p = path.join(dir, n);
     if (statSync(p).isDirectory()) halamanAlur(p, akar, hasil);
-    else if (n === "index.html" && readFileSync(p, "utf8").includes('data-bb="alur"'))
-      hasil.push("/" + path.relative(akar, path.dirname(p)).split(path.sep).join("/") + (dir === akar ? "" : "/"));
+    else if (n === "index.html") {
+      const html = readFileSync(p, "utf8");
+      const h = "/" + path.relative(akar, path.dirname(p)).split(path.sep).join("/") + (dir === akar ? "" : "/");
+      if (html.includes('data-bb="race"')) halRace.add(h);
+      if (html.includes('data-bb="alur"') || html.includes('data-bb="race"')) hasil.push(h);
+    }
   }
   return hasil.sort();
 }
-const daftar = satu ? [satu] : halamanAlur(path.resolve("dist"));
+const semua = halamanAlur(path.resolve("dist"));
+const daftar = satu ? [satu] : semua;
 
 const browser = await chromium.launch();
 
@@ -91,8 +100,8 @@ async function ukur(h, ukuran, posisi) {
   // Per host terlihat: tinggi, x, lebar, dan jarak elemen sesudah host ke bawah elemen sebelum host. Saudara dicari
   // naik ke induk bila host anak pertama atau terakhir, supaya margin yang runtuh lewat induk ikut terukur.
   const tinggi = () =>
-    page.evaluate(() =>
-      [...document.querySelectorAll('[data-bb="alur"]')].map((x) => {
+    page.evaluate((sel) =>
+      [...document.querySelectorAll(sel)].map((x) => {
         if (!x.getClientRects().length) return null;
         const dekat = (arah) => {
           for (let n = x; n; n = n.parentElement) if (n[arah]) return n[arah];
@@ -103,10 +112,17 @@ async function ukur(h, ukuran, posisi) {
         const b = dekat("nextElementSibling");
         const jarak = a && b ? b.getBoundingClientRect().top - a.getBoundingClientRect().bottom : null;
         return { h: x.offsetHeight, x: r.left, w: r.width, jarak };
-      }),
+      }), HOST,
     );
   await page.evaluate(() => document.fonts.ready);
   const sebelum = await tinggi();
+  if (posisi === "race") {
+    await page.evaluate(() => {
+      const w = [...document.querySelectorAll('[data-bb="race"]')].find((x) => x.getClientRects().length);
+      for (const e of [document.documentElement, document.body]) e.style.overflowAnchor = "none";
+      if (w) window.scrollTo(0, w.getBoundingClientRect().top + window.scrollY - 80);
+    });
+  }
   if (posisi === "widget") {
     // Sebelum skrip datang: gulir ke widget alur pertama yang tampil (blok terbuka).
     await page.evaluate(() => {
@@ -119,7 +135,8 @@ async function ukur(h, ukuran, posisi) {
   // Selesai bila setiap host alur sudah berisi versi hidup: versi statis dari build juga .bb-alur, jadi yang dicari
   // .bb-alur tanpa .bb-alur--statis (alur.js mengganti isi host).
   await page
-    .waitForFunction(() => [...document.querySelectorAll('[data-bb="alur"]')].every((x) => x.querySelector(".bb-alur:not(.bb-alur--statis)")), null, {
+    .waitForFunction(() => [...document.querySelectorAll('[data-bb="alur"]')].every((x) => x.querySelector(".bb-alur:not(.bb-alur--statis)")) &&
+      [...document.querySelectorAll('[data-bb="race"]')].every((x) => x.classList.contains("bb-race")), null, {
       timeout: 15000,
     })
     .catch(() => {});
@@ -140,7 +157,7 @@ async function ukur(h, ukuran, posisi) {
 
 let gagal = 0;
 const baris = [];
-const antre = daftar.flatMap((h) => UKURAN.flatMap((u) => ["atas", "widget"].map((p) => ({ h, u, p }))));
+const antre = daftar.flatMap((h) => UKURAN.flatMap((u) => ["atas", "widget", ...(halRace.has(h) ? ["race"] : [])].map((p) => ({ h, u, p }))));
 const hasilPer = new Map();
 await Promise.all(
   Array.from({ length: 4 }, async () => {
