@@ -78,4 +78,27 @@ describe("tweenAngka", () => {
     expect(tampil).toBeLessThan(100_000);
     expect(j.frame()).toBe(false);
   });
+
+  it("selesai dipanggil sekali saat nilai akhir tampil, tidak bila disela", () => {
+    const j = jam();
+    const el = { textContent: "" } as HTMLElement;
+    const selesai = vi.fn();
+    tweenAngka(el, 250_000, 225_000, rupiah, false, () => selesai(el.textContent));
+    j.frame();
+    expect(selesai).not.toHaveBeenCalled();
+    while (j.frame());
+    expect(selesai).toHaveBeenCalledOnce();
+    expect(selesai).toHaveBeenCalledWith("Rp225.000");
+
+    const langsung = vi.fn();
+    tweenAngka(el, 25_000_000, 24_975_000, rupiah, true, langsung);
+    expect(langsung).toHaveBeenCalledOnce();
+
+    const disela = vi.fn();
+    const t = tweenAngka(el, 0, 100_000, rupiah, false, disela);
+    j.frame();
+    t.berhenti();
+    while (j.frame());
+    expect(disela).not.toHaveBeenCalled();
+  });
 });

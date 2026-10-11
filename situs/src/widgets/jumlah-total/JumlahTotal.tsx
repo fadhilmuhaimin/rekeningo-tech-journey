@@ -7,27 +7,35 @@ import { tweenAngka } from "../../gerak/angka";
 
 const kelasStatus: Record<Status, string> = { ok: "is-good", proses: "", gagal: "is-warn" };
 
-// Rupiah yang bergerak singkat dari nilai lama saat pembaca menekan tombol (I5d, keputusan 352). Pembaca layar
-// membaca nilai akhir di `.bb-sr`; angka yang bergerak aria-hidden. Render pertama (juga SSR) langsung nilai akhir.
-// useLayoutEffect: frame pertama tween (nilai lama) ditulis sebelum browser menggambar nilai akhir dari React.
+// Rupiah yang bergerak singkat dari nilai lama saat pembaca menekan tombol (I5d, keputusan 352). Di luar tween
+// (juga SSR dan tanpa JavaScript) sel hanya berisi satu angka biasa, jadi seleksi, salinan, dan indeks pencarian
+// memuat satu nilai. Selama tween angka yang bergerak aria-hidden dan pembaca layar membaca nilai akhir di `.bb-sr`
+// (tidak ikut terseleksi, `user-select: none`). Posisi span angka tetap (slot `.bb-sr` kosong di luar tween), jadi
+// React tidak mengganti elemen yang sedang digerakkan. useLayoutEffect: frame pertama tween (nilai lama) dan `.bb-sr`
+// tertulis sebelum browser menggambar.
 function Rupiah({ nilai }: { nilai: number }) {
   const ref = useRef<HTMLSpanElement>(null);
   const tampil = useRef(nilai);
+  const [bergerak, setBergerak] = useState(false);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el || tampil.current === nilai) {
       tampil.current = nilai;
       return;
     }
-    const tw = tweenAngka(el, tampil.current, nilai, rupiah);
+    setBergerak(true);
+    const tw = tweenAngka(el, tampil.current, nilai, rupiah, undefined, () => {
+      tampil.current = nilai;
+      setBergerak(false);
+    });
     return () => {
       tampil.current = tw.berhenti();
     };
   }, [nilai]);
   return (
     <>
-      <span className="bb-sr">{rupiah(nilai)}</span>
-      <span ref={ref} aria-hidden="true">{rupiah(nilai)}</span>
+      {bergerak && <span className="bb-sr">{rupiah(nilai)}</span>}
+      <span ref={ref} aria-hidden={bergerak || undefined}>{rupiah(nilai)}</span>
     </>
   );
 }

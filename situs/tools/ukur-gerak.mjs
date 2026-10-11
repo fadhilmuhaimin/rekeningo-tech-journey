@@ -358,20 +358,32 @@ if (!okAlur) gagal++;
 // Klik sungguhan (locator.click); teks direkam tiap frame oleh listener capture yang dipasang sebelum klik.
 // Tanpa reduced motion: frame pertama masih nilai lama, ada angka antara, frame terakhir nilai akhir. Dengan reduce:
 // frame pertama sudah nilai akhir. Di kedua mode: semua frame berformat rupiah, nilai akhir sama dengan yang dibaca
-// pembaca layar (`.bb-sr`, aria-label HP), ukuran wadah tidak berubah selama tween, dan teks tidak berubah saat dimuat.
+// pembaca layar di setiap frame (teks sel tanpa bagian aria-hidden, aria-label HP), ukuran wadah tidak berubah selama
+// tween, dan teks tidak berubah saat dimuat. Seleksi dan salin (perbaikan review, keputusan 352): sesudah tween setiap sel
+// angka berisi satu nilai, klik ganda pada angka menyeleksi satu rupiah, salinan tabel tanpa dua rupiah berdempetan, dan
+// HTML hasil build (teks tanpa JavaScript, juga yang dibaca Pagefind) berisi satu nilai per sel angka.
 const RUPIAH = /^−?Rp\d{1,3}(\.\d{3})*$/;
+const satuNilai = (t) => RUPIAH.test(t) || /^\d+$/.test(t);
 const kasusAngka = [
   {
     nama: "jumlah-total 1.11", path: "/" + registri.halaman.find((h) => h.nomor === "1.11").path.replace(/\.mdx?$/, "/"),
     widget: ".jt", siap: "astro-island:not([ssr]) .jt", tebak: ".jt .bb-predict__opts button", maju: ".jt .bb-btn--primary",
-    sel: ".jt-total td > [aria-hidden]", wadah: ".jt-tabel", sr: ".jt-total td > .bb-sr",
+    sel: ".jt-total td > span:last-child", wadah: ".jt-tabel", sr: ".jt-total td", angka: ".jt-tabel td.jt-angka", salin: ".jt-tabel",
+    ssr: /<td class="jt-angka"[^>]*>([\s\S]*?)<\/td>/g,
   },
   {
     nama: "saldo HP 1.9", path: HAL_ALUR, widget: ".bb-alur", siap: ".bb-alur .bb-predict button", tebak: ".bb-alur .bb-predict button",
     maju: ".bb-alur button.bb-btn--primary",
-    sel: ".bb-alur__phone .bb-hp__saldo strong", wadah: ".bb-alur__phone", sr: ".bb-alur__phone .bb-hp",
+    sel: ".bb-alur__phone .bb-hp__saldo strong", wadah: ".bb-alur__phone", sr: ".bb-alur__phone .bb-hp", angka: ".bb-alur__phone .bb-hp__saldo strong",
   },
 ];
+for (const c of kasusAngka.filter((k) => k.ssr)) {
+  const html = await (await fetch(url + c.path)).text();
+  const sel = [...html.matchAll(c.ssr)].map((m) => m[1].replace(/<!--[\s\S]*?-->|<[^>]+>/g, ""));
+  const ok = sel.length > 0 && sel.every(satuNilai);
+  console.log(`${ok ? "ok" : "GAGAL"} angka ${c.nama} HTML build: ${sel.length} sel angka, ${ok ? "masing-masing satu nilai" : "ada yang dobel: " + sel.filter((t) => !satuNilai(t)).slice(0, 2).join(", ")}`);
+  if (!ok) gagal++;
+}
 for (const c of kasusAngka) for (const reducedMotion of ["no-preference", "reduce"]) {
   const page = await browser.newPage({ viewport: { width: 375, height: 667 }, reducedMotion });
   await page.goto(url + c.path, { waitUntil: "networkidle" });
@@ -384,13 +396,18 @@ for (const c of kasusAngka) for (const reducedMotion of ["no-preference", "reduc
   await page.locator(c.tebak).first().click();
   let r = null;
   for (let k = 0; k < 8 && !r; k++) {
-    await page.evaluate(({ sel, wadah }) => {
+    await page.evaluate(({ sel, wadah, sr }) => {
       window.__angka = null;
+      // Yang dibaca pembaca layar: aria-label, atau teks tanpa bagian aria-hidden.
+      const aks = (e) => !e ? "" : e.getAttribute("aria-label") ?? [...e.childNodes].map((n) => n.nodeType === 3 ? n.data
+        : n.nodeType === 1 && n.getAttribute("aria-hidden") !== "true" ? aks(n) : "").join("");
+      window.__aks = () => aks(document.querySelector(sr));
       document.addEventListener("click", () => {
-        const rek = { sebelum: document.querySelector(sel)?.textContent, frame: [], ukuran: [] };
+        const rek = { sebelum: document.querySelector(sel)?.textContent, frame: [], aks: [], ukuran: [] };
         window.__angka = rek;
         const f = () => {
           rek.frame.push(document.querySelector(sel)?.textContent);
+          rek.aks.push(aks(document.querySelector(sr)));
           const b = document.querySelector(wadah).getBoundingClientRect();
           rek.ukuran.push(`${Math.round(b.width * 2) / 2}x${Math.round(b.height * 2) / 2}`);
           if (rek.frame.length < 40) requestAnimationFrame(f);
@@ -400,7 +417,7 @@ for (const c of kasusAngka) for (const reducedMotion of ["no-preference", "reduc
     }, c);
     await page.locator(c.maju).first().click();
     await page.waitForTimeout(800);
-    const x = await page.evaluate((sr) => ({ ...window.__angka, sr: document.querySelector(sr)?.getAttribute("aria-label") || document.querySelector(sr)?.textContent }), c.sr);
+    const x = await page.evaluate(() => ({ ...window.__angka, sr: window.__aks() }));
     if (x.sebelum && x.frame.at(-1) && x.sebelum !== x.frame.at(-1)) r = { k, ...x };
   }
   let ok = muatTetap && !!r;
@@ -410,10 +427,25 @@ for (const c of kasusAngka) for (const reducedMotion of ["no-preference", "reduc
     const antara = new Set(r.frame.filter((t) => t !== r.sebelum && t !== akhir)).size;
     const format = r.frame.every((t) => RUPIAH.test(t));
     const ukuranTetap = new Set(r.ukuran).size === 1;
-    const srAkhir = r.sr === akhir || r.sr.includes(` ${akhir}`);
+    const srAkhir = [...r.aks, r.sr].every((t) => t === akhir || t.includes(` ${akhir}`));
     ok &&= format && ukuranTetap && srAkhir && (reducedMotion === "reduce" ? r.frame[0] === akhir : r.frame[0] === r.sebelum && antara > 0);
     ket = `klik ${r.k + 1}: ${r.sebelum} -> frame pertama ${r.frame[0]}, ${antara} angka antara, akhir ${akhir}; format rupiah ${format}; ukuran wadah ${[...new Set(r.ukuran)].join("/")}; pembaca layar nilai akhir ${srAkhir}`;
   }
+  const teksAngka = await page.evaluate((s) => [...document.querySelectorAll(s)].map((e) => e.textContent), c.angka);
+  const angkaSatu = teksAngka.length > 0 && teksAngka.every(satuNilai);
+  await page.locator(c.sel).first().dblclick();
+  const pilih = await page.evaluate(() => getSelection().toString().trim());
+  const salin = !c.salin ? "" : await page.evaluate((s) => {
+    const g = getSelection(), rg = document.createRange();
+    rg.selectNodeContents(document.querySelector(s));
+    g.removeAllRanges();
+    g.addRange(rg);
+    return g.toString();
+  }, c.salin);
+  const salinSatu = !/\d−?Rp\d/.test(salin);
+  ok &&= angkaSatu && RUPIAH.test(pilih) && salinSatu;
+  ket += `; teks sel angka ${angkaSatu ? "satu nilai" : "DOBEL " + teksAngka.find((t) => !satuNilai(t))}; klik ganda menyeleksi "${pilih}"`;
+  if (c.salin) ket += `; salinan tabel ${salinSatu ? "satu nilai per sel" : "DOBEL " + salin.match(/\S*\d−?Rp\d\S*/)[0]}`;
   console.log(`${ok ? "ok" : "GAGAL"} angka ${c.nama} ${reducedMotion}: teks saat dimuat ${muatTetap ? "tetap" : "BERUBAH"}; ${ket}`);
   if (!ok) gagal++;
   await page.close();

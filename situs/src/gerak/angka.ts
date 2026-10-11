@@ -29,7 +29,8 @@ const kurangiGerak = () => typeof matchMedia === "function" && matchMedia("(pref
 
 /**
  * Ubah teks `el` dari `dari` ke `ke` dalam durasi token `sedang` dengan kurva `masuk`.
- * Frame pertama (sinkron, sebelum browser menggambar) menampilkan `dari`.
+ * Frame pertama (sinkron, sebelum browser menggambar) menampilkan `dari`. `selesai` dipanggil saat nilai akhir
+ * tampil (langsung, atau di frame terakhir), tidak bila tween dihentikan.
  */
 export function tweenAngka(
   el: HTMLElement,
@@ -37,9 +38,11 @@ export function tweenAngka(
   ke: number,
   format: (n: number) => string,
   kurangi = kurangiGerak(),
+  selesai?: () => void,
 ): Tween {
   if (kurangi || dari === ke) {
     el.textContent = format(ke);
+    selesai?.();
     return { berhenti: () => ke };
   }
   const kurva = cubicBezier(...easing.masuk);
@@ -53,6 +56,7 @@ export function tweenAngka(
     sekarang = nilaiAntara(dari, ke, p >= 1 ? 1 : kurva(p));
     el.textContent = format(sekarang);
     if (p < 1) id = requestAnimationFrame(langkah);
+    else selesai?.();
   };
   id = requestAnimationFrame(langkah);
   return {
