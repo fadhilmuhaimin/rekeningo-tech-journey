@@ -33,6 +33,7 @@ echo "build strict lolos (0 warning)"
 
 echo "== ID internal tidak tampil"; $PY tools/cek_id_tampil.py
 echo "== kontras dua mode";          $PY tools/contrast.py | tail -1
+echo "== uji pemeriksa kontras (lolos palsu, keputusan 262)"; $PY tools/test_contrast.py | tail -1
 echo "== tipe (astro check, strict)"
 LOG=$(mktemp)
 if ! bun run --cwd situs cek-tipe >"$LOG" 2>&1; then sed 's/\x1b\[[0-9;]*m//g' "$LOG" | grep -B1 -A4 " - error" || true; rm -f "$LOG"; echo "GAGAL: tipe"; exit 1; fi
