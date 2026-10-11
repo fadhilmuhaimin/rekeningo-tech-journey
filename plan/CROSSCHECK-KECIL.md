@@ -170,3 +170,65 @@ Branch `crosscheck/k1x` (main 7fdc0ad, P1 sudah di-merge lewat #165). Build `bun
 - K1xc: skema `Bearer` tidak peka huruf di lab `api-t1`.
 - K1xd: rekaman `rls.txt` untuk klaim bagian 10 tampil di 1.29.
 - K1xe: Berikutnya blok 1 di halaman ADR dan konsep: blok tujuan tidak meloncat jauh ke atas layar saat blok 1 menutup.
+
+## K2 · 1.34–1.35 (2026-10-12)
+
+Branch `crosscheck/k2` dari main 8cae5e2 (1.35 sudah di-merge lewat #179). Build `bun run --cwd situs build`: 81 halaman, exit 0. Preview di port 4323. Alat: `situs/tangkapan/k2-nav.mjs` (alur baca, klik Berikutnya, href internal dicek ke `situs/dist/`), `situs/tangkapan/k2-skip.mjs` (kontras langkah runsql yang dilewati), `tmp/k2_kolom.py` (kolom KEPUTUSAN), `tmp/k2_celah.py` (aturan yang tidak dipasangkan `tools/contrast.py`); semuanya di folder yang di-.gitignore. 1.31–1.33 sudah diperiksa di K1x; di sini hanya sambungannya dan teks 1.31 yang diubah 1.35.
+
+### Alur baca 1.33 → 1.34 → 1.35 → 1.36
+
+`node situs/tangkapan/k2-nav.mjs http://127.0.0.1:4323 situs/dist` di 375×667 dan 1366×657: 1.31, 1.33, 1.34, dan 1.35 `200`, `scrollWidth` sama dengan lebar viewport, 0 error konsol. Di tiap halaman, Berikutnya blok 1–4 digulir ke layar, diklik, lalu dibaca 900 ms sesudahnya: blok tujuan terbuka dan terlihat, 16 dari 16 per ukuran (top 80–232 px).
+
+| Halaman | Blok (dua pertama terbuka) | Blok 5 dan Lanjut → | Breadcrumb HP | Sidebar aktif |
+|---|---|---|---|---|
+| 1.31 Deployment + ADR 9 | lima blok konsep | `/tahap-1/testing/` (1.32) | Tahap 1 | 1.31 |
+| 1.33 App versi lama + ADR 10 | lima blok konsep | `/tahap-1/m7-env-di-repo/` (1.34) | Tahap 1 | 1.33 |
+| 1.34 M7 | Gejala, Yang Raka kira, Yang sebenarnya, Coba sendiri, Konsep yang lahir | `/tahap-1/secret/` (1.35) | Tahap 1 › minggu 5 | 1.34 |
+| 1.35 Keamanan 3 + ADR 11 | lima blok konsep | `/d-system-design/d1-kerangka-berpikir/` (1.38 lama) | Tahap 1 | 1.35 |
+
+Di desktop breadcrumb keempatnya "Tahap 1 · Uji coba Gedung A › Masalah yang muncul". Sambungan 1.33 → 1.34 yang di K1x belum bisa diperiksa sekarang ada: `[[berikutnya]]` di Inti 1.33 dan Lanjut menunjuk 1.34. 1.35 → 1.36: 1.36 dan 1.37 belum ditulis, jadi `urutanBaca` meloncat ke 1.38 lama, pola yang sama dengan 1.33 → 1.38 di K1x. 1.38 lama `200`, Sebelumnya → `/tahap-1/secret/`, 0 error konsol. Bukan temuan; Lanjut pindah sendiri ke 1.36 saat halaman itu terbit.
+
+Isi sambungannya cocok. 1.33 berakhir dengan server expand yang melayani app 1.0 dan 1.1. 1.34 dibuka "Minggu 5, sesudah deploy hari Senin", saat Raka menyiapkan CI pertama dari 1.31. Inti 1.35 menyambung ke M7: password `rekeningo_app` ikut di setiap clone sejak minggu 1.
+
+### Tautan
+
+href internal di `<main>`: 1.31 (33), 1.33 (20), 1.34 (7), 1.35 (30); 0 tujuan atau anchor salah. Yang tanpa target hanya 1.31 → `/tahap-1/tim-infra/` (1.36) dua kali, dengan kelas `rujukan-menyusul` dan `title="Halaman ini belum ditulis"`. 1.34 dan 1.35 tidak merujuk 1.36.
+
+### Cocok lintas halaman
+
+| Yang diperiksa | Hasil | Bukti |
+|---|---|---|
+| Asal `DATABASE_URL` | Cocok: environment shell dulu, lalu `.env` di folder proyek; lab lewat shell, VPS lewat `.env` | 1.31 baris 73; 1.35 baris 92; `compose.yaml` baris 10 |
+| Siapa menyimpan apa | Cocok: password VPS di `.env` VPS dengan `chmod 600`, token GHCR di file konfigurasi Docker VPS, laptop memakai database lokal. 1.34 baris 53 (password baru juga di `.env` laptop) dikoreksi terang-terangan oleh ADR 11 butir 5 | 1.35 baris 76–80, 153 |
+| Token GHCR | Cocok: dari VPS personal access token (classic) dengan `read:packages`; di Actions hanya `GITHUB_TOKEN` per job | 1.31 baris 99; 1.34 baris 85; 1.35 baris 79, 82, 84, 154 |
+| Kunci CI ke VPS | Tidak cocok: 1.34 baris 85 menyebut "kunci CI ke VPS" sebagai secret yang tempatnya diputuskan ADR 11, padahal ADR 11 sengaja tidak membuatnya | 1.35 baris 80, 154; 1.31 baris 162. Diperbaiki langsung |
+| gitleaks: baris tambahan dan seluruh riwayat | Cocok: satu commit hanya baris yang ditambahkan; CI dengan `fetch-depth: 0` memindai seluruh riwayat | 1.34 baris 68 (`sources/git.go` v8.30.1); 1.35 baris 60, 104, 152, 161 |
+| Pemicu CI (catatan peninjau #179 b) | Tidak cocok: 1.35 baris 104 "di setiap push", sedangkan baris 152 dan 1.31 baris 91, 142 "setiap push ke `main`" | `labs/api-t1/deploy/ci.yml` baris 6–7 `push: branches: [main]`. Diperbaiki langsung |
+| Tahap yang merevisi | Cocok: Tahap 3 staging, CI penuh, dan kunci deploy; Tahap 4 secret manager, cloud managed, tiga tim | 1.31 baris 156, 162; 1.35 baris 173, 179–182; CERITA tabel tahap baris 66–67; PROPOSAL baris 151 |
+| Server expand sejak 1.33 | Cocok: rotasi 1.35 langkah 3 menjalankan "hash yang sedang jalan"; 1.34–1.35 tidak menyebut `jumlah` atau `nominal` | 1.33 baris 142 |
+| Minggu, tokoh, commit | Cocok: M7 minggu 5 sesudah M6, password di clone minggu 1–5, commit `80952b1` sama di kedua halaman; hanya Raka, tanpa nomor akun, Cek diri 2 memakai "seseorang", bukan Dimas | 1.34 baris 14, 47, 57; 1.35 baris 137, 163, 199 |
+| Chip Rantai rotasi (catatan peninjau #179 a) | Nyata: "baris kedua dari m7.txt bagian I" bisa terbaca baris kedua file, padahal maksudnya baris kedua Rantai | Diperbaiki: "Urutan ADR 11 · Container lama dari m7.txt bagian I". Nama baris sama dengan label baris Rantai; tanpa titik dua supaya tidak bertumpuk (pola K1x butir f) |
+
+### Layar pertama
+
+`layar.mjs` di gerbang: `LOLOS: 0 gagal, 0 margin tipis.` Margin 1.35 di 375×667 / 1366×657: 106 / 47 px. 1.34 (masalah) "tanpa Inti", tidak diukur, sama dengan 1.26 dan 1.30 di K1. Dua tangkapan HP gelap dibuka. 1.34: breadcrumb "Tahap 1 › minggu 5", judul bernomor, Gejala terbuka dengan "Blok 1 dari 5"; ketiga pertanyaan 3 detik terjawab. `api-t1` di paragraf pertama terpotong di tanda hubung ("api-" / "t1"), pemenggalan bawaan browser untuk code inline; tidak dijadikan tugas. 1.35: Inti dan Rantai ringkas dua baris di layar pertama. Simpul pertama baris Repo dan VPS tidak sejajar (±17 px, karena lebar label berbeda); kecil, dicatat untuk jalur teknis tanpa tugas.
+
+### Temuan lintas repo dari pengatur
+
+| Butir | Nilai | Tindakan |
+|---|---|---|
+| (i) Baris KEPUTUSAN dengan jumlah kolom tak seragam | Sebagian. Dihitung tanpa `\|` (pipe yang di-escape di isi sel), 202, 219, 227, dan 229 sudah 6 `\|` dan tampil benar. Yang nyata: 157 dengan 10, karena `ILIKE '%'\|\|$1\|\|'%'` ditulis tanpa escape di code span; tabel GFM tetap memecah sel di pipe dalam code span ([GFM spec, tables](https://github.github.com/gfm/#tables-extension-)). 247 hanya 3, 252 dan 253 hanya 4 | K2c |
+| (ii) runsql `.bb-step.is-skipped { opacity: 0.55 }` | Diukur di 1.22 M4 (tiga langkah dilewati), 1366×657, warna dari computed style dan opacity dikomposit ke latar halaman. Teks SQL (14,4 px): gelap 5,50:1, terang 3,96:1. Label "→ tidak dijalankan" (13,6 px): gelap 3,54:1, terang 2,87:1. Tanpa opacity 16,80 / 17,74 dan 9,53 / 9,66. Tiga dari empat di bawah 4,5:1 (WCAG 2.2 SC 1.4.3); langkah yang dilewati adalah isi, bukan komponen nonaktif. Hitungan pengatur cocok (3,96 / 2,86 / 3,54) | K2a |
+| (iii) Celah `tools/contrast.py` | Nyata. Fungsi `pasangan_css` sendiri menghasilkan 90 pasangan dari 81 selector. 146 aturan yang hanya menulis `color` dan 57 yang hanya menulis latar tidak pernah dipasangkan. 6 aturan `opacity` juga tidak, termasuk `.bb-step.is-skipped` (karena itu butir ii lolos gerbang) dan link sidebar `menyusul`. Sebabnya: bentuk 1 butuh color dan latar di aturan yang sama atau aturan dasarnya, bentuk 3 hanya untuk turunan aturan berlatar, dan opacity di aturan induk tidak diturunkan ke color turunannya | K2b |
+
+### Diperbaiki langsung di PR ini
+
+- 1.35 `secret.mdx` baris 104: "di setiap push ke `main`".
+- 1.34 `m7-env-di-repo.mdx` baris 85: kunci CI ke VPS tidak lagi disebut sebagai secret yang ada; ADR 11 memutuskan kenapa CI belum diberi kunci itu.
+- `situs/data/diagram/t1-secret-rotasi.json`: chip sumber Rantai rotasi.
+
+### Tugas perbaikan yang lahir
+
+- K2a (teknis): langkah runsql yang dilewati ≥ 4,5:1 di dua tema, teks SQL dan label, tanpa `opacity` pada teks; coret dan label "tidak dijalankan" tetap.
+- K2b (teknis): `contrast.py` memasangkan aturan yang hanya menulis `color` atau hanya latar dengan pasangan dari aturan leluhur atau halaman, dan menurunkan opacity induk ke turunannya; tes di `tools/test_contrast.py`.
+- K2c (teknis): baris KEPUTUSAN 157, 247, 252, 253 jadi lima kolom, dan gerbang menolak baris dengan jumlah pipe tanpa escape yang berbeda dari header.
