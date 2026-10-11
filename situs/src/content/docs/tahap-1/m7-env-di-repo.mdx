@@ -65,7 +65,7 @@ Di repo ini Raka tahu commit mana yang memuat `.env`. Di repo yang lebih besar, 
 <details class="question">
 <summary>Tebak dulu: gitleaks dijalankan dua kali, untuk commit terakhir saja dan untuk seluruh riwayat. Berapa temuan di masing-masing?</summary>
 
-Commit terakhir: nol. gitleaks hanya memeriksa baris yang ditambahkan, dan commit penghapusan hanya menambah `.env` ke `.gitignore` (5 byte yang dipindai). Di commit itu password hanya muncul sebagai baris yang dihapus.
+Commit terakhir: nol. gitleaks hanya memeriksa baris yang ditambahkan dan melewati file yang dihapus ([sources/git.go v8.30.1](https://github.com/gitleaks/gitleaks/blob/v8.30.1/sources/git.go)). Commit penghapusan hanya menambah `.env` ke `.gitignore` (5 byte yang dipindai). Di commit itu password hanya muncul sebagai baris yang dihapus.
 
 Seluruh riwayat: satu, di commit minggu 1. Baris `DATABASE_URL` memuat password yang sama, tapi tidak ditandai aturan bawaan.
 
@@ -73,7 +73,7 @@ Seluruh riwayat: satu, di commit minggu 1. Baris `DATABASE_URL` memuat password 
 
 <Snippet file="labs/api-t1/output/m7.txt" lines="41:65" title="Rekaman lab: labs/api-t1/output/m7.txt" />
 
-Yang berubah di antara dua perintah hanya `--log-opts=-1`, yang membatasi `git log` ke satu commit terakhir. Hasilnya berubah dari `no leaks found` ke `leaks found: 1`. gitleaks hanya membaca baris yang ditambahkan di setiap patch dan melewati file yang dihapus ([sources/git.go v8.30.1](https://github.com/gitleaks/gitleaks/blob/v8.30.1/sources/git.go)). `--redact` mengganti secret dengan `REDACTED`, jadi output pemindaian tidak ikut membocorkan password.
+Yang berubah di antara dua perintah hanya `--log-opts=-1`, yang membatasi `git log` ke satu commit terakhir. Hasilnya berubah dari `no leaks found` ke `leaks found: 1`. `--redact` mengganti secret dengan `REDACTED`, jadi output pemindaian tidak ikut membocorkan password.
 
 Jalankan sendiri dengan `make -C labs/api-t1 run BAGIAN=m7`. Lab membuat repo sementara, menjalankan gitleaks, dan menulis ulang `labs/api-t1/output/m7.txt`.
 
