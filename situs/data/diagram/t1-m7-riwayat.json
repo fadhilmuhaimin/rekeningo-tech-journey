@@ -29,7 +29,7 @@
     },
     {
       "label": "Password",
-      "sub": "Postgres di VPS",
+      "sub": "role rekeningo_app",
       "simpul": [
         {
           "teks": "Password dari riwayat",
