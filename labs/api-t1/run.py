@@ -1875,8 +1875,62 @@ def _rekam_m7(tmp):
     tulis("m7.txt")
 
 
+def rekam_cadangan():
+    """1.36 Tim dan infra: database di VPS yang sama, satu cadangan pg_dump, lalu dipulihkan (keputusan 302)."""
+    reset()
+    samarkan_hari_ini()
+    exec_db = PSQL[:7]   # docker compose ... exec -T db
+    log.append("# Latihan lab, bukan kejadian di cerita: naskah Tahap 1 tidak menyebut cadangan database.\n"
+               "# database VPS: Postgres lab (labs/b3-race), schema tahap1. VPS yang mati diperankan dengan DROP SCHEMA.\n"
+               "# File cadangan disimpan di container database lab. Di VPS sungguhan file itu disalin keluar VPS.\n")
+    mulai()
+    bagian("A. Persiapan: Budi membayar Rp25.000 ke Warung Ani")
+    topup_awal()
+    budi = login("budi@lestari.example", "sementara-419", "<token sesi Budi>")
+    s, b = curl("POST", "/transfers", '{"ke": 418, "jumlah": 25000}', token=budi)
+    harap((s, json.loads(b)["saldo"]), (201, 225000), "bayar Rp25.000")
+
+    bagian("B. Cadangan: pg_dump menyalin schema tahap1 ke satu file")
+    r = subprocess.run(exec_db + ["pg_dump", "-U", "lab", "-d", "lab", "-n", "tahap1", "-Fc", "-f", "/tmp/tahap1.dump"],
+                       capture_output=True, text=True)
+    harap((r.returncode, r.stderr), (0, ""), "pg_dump")
+    log.append("$ pg_dump -U lab -d lab -n tahap1 -Fc -f tahap1.dump\n")
+    r = subprocess.run(exec_db + ["pg_restore", "-l", "/tmp/tahap1.dump"], capture_output=True, text=True)
+    tabel = sorted(re.findall(r"TABLE DATA tahap1 (\S+)", r.stdout))
+    harap((r.returncode, [t for t in ("akun", "sesi", "transaksi") if t in tabel]), (0, ["akun", "sesi", "transaksi"]),
+          "isi cadangan")
+    log.append("$ pg_restore -l tahap1.dump   # hanya nama tabel di baris TABLE DATA\n" + "\n".join(tabel) + "\n")
+    harap(total(), ["25000000", "25000000", "1"], "total saat cadangan")
+
+    bagian("C. Sesudah cadangan: Budi membayar Rp20.000 ke Warung Ani")
+    s, b = curl("POST", "/transfers", '{"ke": 418, "jumlah": 20000}', token=budi)
+    harap((s, json.loads(b)["saldo"]), (201, 205000), "bayar Rp20.000")
+    harap(total(), ["25000000", "25000000", "2"], "total sebelum database hilang")
+
+    bagian("D. VPS mati bersama database: HP Budi tidak bisa membaca saldo")
+    sql("DROP SCHEMA tahap1 CASCADE")
+    s, _ = curl("GET", "/akun/419", token=budi)
+    harap(s, 500, "akun tanpa database")
+    stop()
+
+    bagian("E. VPS baru: cadangan dipulihkan, server dinyalakan lagi")
+    r = subprocess.run(exec_db + ["pg_restore", "-U", "lab", "-d", "lab", "/tmp/tahap1.dump"], capture_output=True, text=True)
+    harap((r.returncode, r.stderr), (0, ""), "pg_restore")
+    log.append("$ pg_restore -U lab -d lab tahap1.dump\n")
+    mulai()
+    harap(total(), ["25000000", "25000000", "1"], "total sesudah pulih")
+    s, b = curl("GET", "/akun/419", token=budi)
+    harap((s, json.loads(b)["saldo"]), (200, 225000), "saldo Budi sesudah pulih")
+    s, b = curl("GET", "/akun/419/riwayat", token=budi)
+    harap((s, [x["jumlah"] for x in json.loads(b)["riwayat"]]), (200, [25000]), "riwayat sesudah pulih")
+    subprocess.run(exec_db + ["rm", "-f", "/tmp/tahap1.dump"], check=True)
+    log.append("# Semua yang tercatat sebelum pg_dump kembali, termasuk sesi Budi (tabel sesi ada di cadangan).\n"
+               "# Pembayaran Rp20.000 sesudah pg_dump tidak ada di cadangan, jadi hilang bersama database.\n")
+    tulis("cadangan.txt")
+
+
 if __name__ == "__main__":
     subprocess.run(["go", "build", "-o", str(BIN), "./cmd/api"], cwd=HERE, check=True)
-    pilihan = sys.argv[1:] or ["login", "topup", "bayar", "riwayat", "pertukaran", "relasi", "m1", "http", "m2", "m3", "injection", "lapisan", "m4", "koreksi", "m5", "authz", "m6", "deploy", "testing", "versi", "m7"]
+    pilihan = sys.argv[1:] or ["login", "topup", "bayar", "riwayat", "pertukaran", "relasi", "m1", "http", "m2", "m3", "injection", "lapisan", "m4", "koreksi", "m5", "authz", "m6", "deploy", "testing", "versi", "m7", "cadangan"]
     for p in pilihan:
         globals()["rekam_" + p.replace("-", "_")]()

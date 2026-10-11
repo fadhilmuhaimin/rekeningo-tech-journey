@@ -1,0 +1,78 @@
+# Latihan lab, bukan kejadian di cerita: naskah Tahap 1 tidak menyebut cadangan database.
+# database VPS: Postgres lab (labs/b3-race), schema tahap1. VPS yang mati diperankan dengan DROP SCHEMA.
+# File cadangan disimpan di container database lab. Di VPS sungguhan file itu disalin keluar VPS.
+# server: ./api-t1
+
+# --- A. Persiapan: Budi membayar Rp25.000 ke Warung Ani ---
+# persiapan: admin top-up minggu 1, 100 karyawan x Rp250.000 (rinciannya di topup.txt)
+$ curl -i -X POST '/login' -d '{"email": "budi@lestari.example", "password": "sementara-419"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"kedaluwarsa_detik":28800,"token":"<token sesi Budi>"}
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "jumlah": 25000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/1
+
+{"id":1,"saldo":225000}
+
+# --- B. Cadangan: pg_dump menyalin schema tahap1 ke satu file ---
+$ pg_dump -U lab -d lab -n tahap1 -Fc -f tahap1.dump
+$ pg_restore -l tahap1.dump   # hanya nama tabel di baris TABLE DATA
+akun
+koreksi
+sesi
+topup
+transaksi
+$ psql -c "SELECT (SELECT sum(saldo) FROM akun) AS total_saldo, (SELECT sum(nominal) FROM topup) AS total_topup, (SELECT count(*) FROM transaksi) AS transaksi"
+ total_saldo | total_topup | transaksi 
+-------------+-------------+-----------
+    25000000 |    25000000 |         1
+(1 row)
+
+
+# --- C. Sesudah cadangan: Budi membayar Rp20.000 ke Warung Ani ---
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "jumlah": 20000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/2
+
+{"id":2,"saldo":205000}
+$ psql -c "SELECT (SELECT sum(saldo) FROM akun) AS total_saldo, (SELECT sum(nominal) FROM topup) AS total_topup, (SELECT count(*) FROM transaksi) AS transaksi"
+ total_saldo | total_topup | transaksi 
+-------------+-------------+-----------
+    25000000 |    25000000 |         2
+(1 row)
+
+
+# --- D. VPS mati bersama database: HP Budi tidak bisa membaca saldo ---
+$ psql -c "DROP SCHEMA tahap1 CASCADE"
+$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/problem+json
+
+{"type":"/problems/internal","title":"Terjadi kesalahan di server","status":500}
+server log: error internal: ERROR: relation "sesi" does not exist (SQLSTATE 42P01)
+
+# --- E. VPS baru: cadangan dipulihkan, server dinyalakan lagi ---
+$ pg_restore -U lab -d lab tahap1.dump
+# server: ./api-t1
+$ psql -c "SELECT (SELECT sum(saldo) FROM akun) AS total_saldo, (SELECT sum(nominal) FROM topup) AS total_topup, (SELECT count(*) FROM transaksi) AS transaksi"
+ total_saldo | total_topup | transaksi 
+-------------+-------------+-----------
+    25000000 |    25000000 |         1
+(1 row)
+
+$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":419,"jenis":"karyawan","nama":"Budi","saldo":225000}
+$ curl -i -X GET '/akun/419/riwayat' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"riwayat":[{"id":1,"arah":"keluar","lawan":"Warung Ani","jumlah":25000,"waktu":"<hari ini>T<jam>+07:00"}]}
+# Semua yang tercatat sebelum pg_dump kembali, termasuk sesi Budi (tabel sesi ada di cadangan).
+# Pembayaran Rp20.000 sesudah pg_dump tidak ada di cadangan, jadi hilang bersama database.
