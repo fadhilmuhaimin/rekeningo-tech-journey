@@ -50,8 +50,8 @@
         "tim": "1 developer"
       },
       "jalur_inti": {
-        "menit": 279,
-        "halaman": 31
+        "menit": 291,
+        "halaman": 32
       },
       "bagian": [
         {
@@ -1099,8 +1099,12 @@
         11
       ],
       "masalah": "Menghapus file tidak menghapus secret dari riwayat git",
-      "ada": false,
-      "nomor": "1.35"
+      "ada": true,
+      "prasyarat": [
+        "t1-m7"
+      ],
+      "nomor": "1.35",
+      "menit": 12
     },
     {
       "id": "t1-tim-infra",
