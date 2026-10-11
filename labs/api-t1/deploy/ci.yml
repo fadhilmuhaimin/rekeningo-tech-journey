@@ -13,12 +13,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # ADR 11: gitleaks memindai seluruh riwayat, bukan satu commit
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - run: go vet ./...
       - run: go test ./...
       - run: go run github.com/securego/gosec/v2/cmd/gosec@v2.29.0 -include=G201,G202 ./...
+      # ADR 11 (1.35): .gitleaks.toml dan .gitleaksignore dibaca dari root repo. Hook di laptop bisa dilewati; langkah ini tidak.
+      - run: go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact -v .
       - uses: docker/login-action@v4
         with:
           registry: ghcr.io

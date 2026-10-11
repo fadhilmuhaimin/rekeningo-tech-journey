@@ -513,6 +513,30 @@
   "jawab": "Hanya `ADD COLUMN catatan text`. Kolom itu boleh kosong dan tidak disebut kode lama, seperti rekaman 000008. `RENAME COLUMN` membuat image lama menjawab `500` karena kolom `jumlah` tidak ada (`m6.txt` bagian F). `DROP COLUMN jumlah` juga membuat image lama gagal karena kolom itu tidak ada. Akibatnya lebih buruk: isi kolom tidak bisa dibaca lagi lewat SQL, jadi migration mundur pun tidak bisa mengembalikan angkanya (PostgreSQL 17: ALTER TABLE)."
  },
  {
+  "id": "t1-secret-1",
+  "halaman": "t1-secret",
+  "judul": "1.35 Secret di repo dan di server",
+  "url": "tahap-1/secret/",
+  "tanya": "Raka memakai laptop baru, meng-clone repo, lalu langsung bekerja. Seminggu kemudian ia meng-commit file berisi token GHCR. Apa yang terjadi?",
+  "jawab": "Commit diterima, karena hook tidak ikut di-clone. Kalau aturan gitleaks mengenali format token itu, langkah CI menandainya sesudah push. Saat itu token sudah ada di remote, jadi token harus dicabut dan diganti."
+ },
+ {
+  "id": "t1-secret-2",
+  "halaman": "t1-secret",
+  "judul": "1.35 Secret di repo dan di server",
+  "url": "tahap-1/secret/",
+  "tanya": "Raka mengganti password, mengisi `.env` VPS, menjalankan `docker compose up -d`, lalu berhenti. Seseorang sudah membuka psql dengan password dari riwayat sejak pagi. Apakah sesinya masih jalan?",
+  "jawab": "Masih. Rekaman bagian I menunjukkan `ALTER ROLE` tidak memutus sesi yang sudah terbuka. Sesi itu baru berhenti di langkah 4, `pg_terminate_backend` untuk sesi yang dibuka sebelum rotasi."
+ },
+ {
+  "id": "t1-secret-3",
+  "halaman": "t1-secret",
+  "judul": "1.35 Secret di repo dan di server",
+  "url": "tahap-1/secret/",
+  "tanya": "CI gagal karena temuan di commit minggu 1. Sebelum mengganti password, Raka menambah fingerprint-nya ke `.gitleaksignore` supaya CI hijau. Apa masalahnya?",
+  "jawab": "CI hijau, tapi password di riwayat masih membuka database. `.gitleaksignore` hanya membuat gitleaks diam, dan password tidak berubah. Urutannya: ganti password, lalu catat fingerprint."
+ },
+ {
   "id": "D1-1",
   "halaman": "D1",
   "judul": "1.38 Kerangka berpikir dan estimasi",

@@ -1691,7 +1691,7 @@ def _rekam_m7(tmp):
     catat("# repo: repo git sementara meniru laptop Raka. Nama dan tanggal commit tetap, jadi hash sama di setiap rekaman.\n"
           "# Nilai di .env palsu: dibangkitkan saat lab berjalan, tidak ada di file repo, dan diganti label di rekaman.\n"
           f"# gitleaks: go install {GITLEAKS}, dipanggil dengan --redact (secret tidak dicetak).\n"
-          "# database VPS: Postgres lab (labs/b3-race) memerankan database di VPS untuk bagian F.\n"
+          "# database VPS: Postgres lab (labs/b3-race) memerankan database di VPS untuk bagian F dan I.\n"
           "# Banner gambar gitleaks yang dicetak hook di bagian G dibuang dari rekaman.\n")
 
     bagian("A. Minggu 1: repo pertama, .env ikut ter-commit")
@@ -1780,7 +1780,7 @@ def _rekam_m7(tmp):
     catat("# .env.example disalin dari .env, password baru ikut tersalin.\n"
           f"$ git add .env.example && git commit -m \"Tambah .env.example\"\n{rapikan(r.stdout + r.stderr)}# exit status {r.returncode}\n"
           f"$ git log --oneline -1\n{g('minggu 5', 'log', '--oneline', '-1').stdout}# commit tidak dibuat; HEAD tetap {head}\n\n")
-    (repo / ".env.example").write_text("# Salin ke .env, lalu isi. Nilai asli hanya ada di laptop dan di VPS.\n"
+    (repo / ".env.example").write_text("# Salin ke .env, lalu isi. Laptop: database lokal. Nilai untuk VPS hanya ada di VPS.\n"
                                        "POSTGRES_PASSWORD=\nDATABASE_URL=\n")
     g("minggu 5", "add", ".env.example")
     r = g("minggu 5", "commit", "-q", "-m", "Tambah .env.example", cek=False)
@@ -1799,10 +1799,79 @@ def _rekam_m7(tmp):
     catat("# latihan lab, bukan kejadian di cerita: nilai <password-latihan> tidak dipakai di mana pun.\n"
           f"$ git add catatan-vps.env && git commit --no-verify -m \"Catatan VPS\"\n# exit status {r.returncode}\n"
           f"$ git log --oneline -1\n{g('minggu 5', 'log', '--oneline', '-1').stdout}\n"
-          f"$ gitleaks git --redact -v --log-opts=-1 .   # seperti CI memindai commit yang di-push\n{k}# exit status {rc}\n")
+          f"$ gitleaks git --redact -v --log-opts=-1 .   # commit yang di-push saja; langkah CI ADR 11 memindai seluruh riwayat (bagian J)\n{k}# exit status {rc}\n")
+
+    # 1.35 ADR 11 (keputusan 300): urutan rotasi di VPS. Sesi A dibuka sebelum ALTER ROLE dan tetap terbuka.
+    bagian("I. Rotasi di VPS: ALTER ROLE tidak menutup sesi yang sudah terbuka")
+    import psycopg
+    rotasi = palsu("password-rotasi")
+    label[rotasi] = "<password-rotasi>"
+
+    def admin(q):
+        return subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-At", "-c", q], check=True, capture_output=True,
+                              text=True).stdout.strip()
+
+    sesi = psycopg.connect(host="127.0.0.1", port=54333, dbname="lab", user=ROLE_M7, password=baru,
+                           connect_timeout=5, autocommit=True)
+    try:
+        a_awal = sesi.execute("SELECT current_user").fetchone()[0]
+        waktu = admin("SELECT clock_timestamp()")
+        admin(f"ALTER ROLE {ROLE_M7} PASSWORD '{rotasi}'")
+        a_tengah = sesi.execute("SELECT current_user").fetchone()[0]
+        pakai_lama, pakai_rotasi = masuk(baru), masuk(rotasi)
+        putus = admin(f"SELECT pg_terminate_backend(pid, 5000) FROM pg_stat_activity "
+                      f"WHERE usename = '{ROLE_M7}' AND backend_start < '{waktu}'")
+        try:
+            sesi.execute("SELECT current_user")
+            a_akhir = "masih jalan"
+        except psycopg.OperationalError as e:
+            a_akhir = ("terputus: terminating connection due to administrator command"
+                       if "terminating connection due to administrator command" in str(e) else "terputus: " + str(e))
+    finally:
+        sesi.close()
+    harap((a_awal, a_tengah, pakai_lama.startswith("ditolak: password authentication failed"), pakai_rotasi, putus, a_akhir),
+          (ROLE_M7, ROLE_M7, True, f"masuk sebagai {ROLE_M7}", "t",
+           "terputus: terminating connection due to administrator command"),
+          "sesi lama hidup sesudah ALTER ROLE sampai diputus; koneksi baru hanya dengan password baru")
+    catat("# latihan lab, bukan kejadian di cerita. Sesi A dibuka dengan password yang sedang berlaku, seperti koneksi\n"
+          "# di pool container API, atau sesi siapa pun yang sudah masuk dengan password itu sebelum diganti.\n"
+          f"$ psql \"postgres://{ROLE_M7}:<password-baru>@db/lab\"   # sesi A, dibiarkan terbuka\n"
+          f"(sesi A) SELECT current_user\n-> masuk sebagai {a_awal}\n\n"
+          f"$ psql -c \"ALTER ROLE {ROLE_M7} PASSWORD '<password-rotasi>'\"\nALTER ROLE\n"
+          f"(sesi A) SELECT current_user\n-> masih jalan: {a_tengah}\n"
+          f"$ psql \"postgres://{ROLE_M7}:<password-baru>@db/lab\" -c 'SELECT current_user'   # koneksi baru, password lama\n"
+          f"-> {pakai_lama}\n"
+          f"$ psql \"postgres://{ROLE_M7}:<password-rotasi>@db/lab\" -c 'SELECT current_user'   # koneksi baru, password baru\n"
+          f"-> {pakai_rotasi}\n\n"
+          f"$ psql -At -c \"SELECT pg_terminate_backend(pid, 5000) FROM pg_stat_activity\n"
+          f"            WHERE usename = '{ROLE_M7}' AND backend_start < '<waktu ALTER ROLE>'\"\n{putus}\n"
+          f"(sesi A) SELECT current_user\n-> {a_akhir}\n"
+          "# Satu baris t: hanya sesi A yang dibuka sebelum ALTER ROLE.\n")
+
+    # 1.35 ADR 11 (keputusan 300): langkah CI memindai seluruh riwayat; temuan yang password-nya sudah diganti diabaikan.
+    bagian("J. CI memindai seluruh riwayat: temuan lama dicatat di .gitleaksignore")
+    c1_penuh = g("minggu 5", "rev-parse", c1).stdout.strip()
+    rc0, k0 = scan()
+    sidik = sorted(s for s in re.findall(r"(?m)^Fingerprint:\s+(\S+)$", k0) if s.startswith(c1_penuh + ":"))
+    harap((rc0, k0.count("Finding:"), len(sidik)), (1, 3, 2), "seluruh riwayat: dua temuan minggu 1, satu temuan latihan")
+    (repo / ".gitleaksignore").write_text("".join(s + "\n" for s in sidik))
+    g("minggu 5", "add", ".gitleaksignore")
+    g("minggu 5", "commit", "-q", "-m", "Abaikan temuan minggu 1: password sudah diganti")
+    rc, k = scan()
+    harap((rc, k.count("Finding:"), "catatan-vps.env" in k, re.search(r"(?m)^File:\s+\.env$", k) is None),
+          (1, 1, True, True), ".gitleaksignore hanya membuang dua temuan minggu 1")
+    catat("# latihan lab: repo yang sama, termasuk commit latihan bagian H. Langkah CI di ADR 11 memindai clone penuh.\n"
+          f"$ gitleaks git --redact -v .   # sebelum .gitleaksignore, baris akhir saja\n"
+          f"{re.search(r'WRN leaks found: \d+', k0).group(0)}\n"
+          "# dua di commit minggu 1, satu di catatan-vps.env\n"
+          f"# exit status {rc0}\n\n"
+          f"$ cat .gitleaksignore\n{(repo / '.gitleaksignore').read_text()}"
+          "$ git add .gitleaksignore && git commit -m \"Abaikan temuan minggu 1: password sudah diganti\"\n\n"
+          f"$ gitleaks git --redact -v .\n{k}# exit status {rc}\n"
+          "# Dua temuan minggu 1 dilewati menurut fingerprint-nya. Temuan di commit lain tetap menggagalkan pemindaian.\n")
 
     teks = "".join(log)
-    harap([s in teks for s in (lama, baru, latihan, str(tmp))], [False] * 4, "rekaman tidak memuat nilai palsu atau path sementara")
+    harap([s in teks for s in (lama, baru, latihan, rotasi, str(tmp))], [False] * 5, "rekaman tidak memuat nilai palsu atau path sementara")
     tulis("m7.txt")
 
 
