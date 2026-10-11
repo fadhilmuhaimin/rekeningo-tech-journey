@@ -270,7 +270,7 @@ for (const [w, [a, b]] of Object.entries(diamAlur)) {
 // pembaca menggulir sampai tombol tampak). Paket diukur di frame pertama (masih di komponen asal) dan saat diam:
 // jarak atas paket ke atas tombol <= tinggi layar dikurangi header tetap dan tinggi tombol, dan paket berada di antara
 // bawah header tetap dan bawah viewport. HP lanskap 667x375 dan 844x390 ikut (I5c-c, keputusan 350): sebelumnya lebar
-// widget di 667x375 >= 600 px, jadi tata letak lebar menaruh detail dan HP di antara paket dan tombol (190 dari 199 klik
+// widget di 667x375 >= 600 px, jadi tata letak lebar menaruh detail dan HP di antara paket dan tombol (±190 dari 199 klik
 // paket di luar layar).
 const DOCS = new URL("../src/content/docs/", import.meta.url);
 const halAlur = readdirSync(DOCS, { recursive: true })

@@ -24,8 +24,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Ilustrasi latar Grup Lestari belum ada; ilustrasi baru wajib lolos `ukur-ilustrasi.mjs` (tambahkan path halamannya ke alat itu). `situs/lama/assets/cerita/tahap-1.svg` tidak dipakai lagi.
 - Tabel "Angka di tahap ini" ditulis ulang di 1.37/1.38, angka dari `tahap[0].asumsi`.
 - `/cara-pakai/` (A0) masih menjelaskan susunan lama; tulis ulang untuk lima blok dan tiga pintu.
-- 1.35 (keputusan 259, 260): 1.34 menampilkan bagian A–D dan F `m7.txt`; E (aturan `url-dengan-password`), G (hook menolak `.env.example` berisi password), H (`--no-verify` lolos hook, pemindaian commit menangkapnya) untuk ADR 11. 1.31 dan 1.34 meneruskan `DATABASE_URL` di VPS, token GHCR `read:packages`, dan kunci CI ke ADR 11. gitleaks hanya memindai baris tambahan (`sources/git.go` v8.30.1); jangan tulis bahwa commit penghapusan "tidak memuat password".
-- 1.35 ADR 11 wajib: (a) rotasi = `ALTER ROLE rekeningo_app`, lalu `.env` VPS, lalu `docker compose up -d`; di antaranya container API masih membawa `DATABASE_URL` lama dan koneksi baru gagal (downtime, belum direkam); (b) `compose.yaml` 1.31 membaca `${DATABASE_URL}` dari shell atau `.env` di folder proyek, sedangkan 1.31 baris 73 menulis "tidak ditulis di file" dan 1.34 menulis `.env` di VPS: samakan; (c) bila aturan `url-dengan-password` ditambahkan ke `.gitleaks.toml` repo (sekarang hanya `useDefault` dan allowlist `.venv`/`site`), `labs/api-t1/output/m7.txt` kena 5 temuan (baris 20, 38, 93, 121, 141: `<password-lama>`, `<password-baru>`, `REDACTED`); perlu allowlist sempit regex `<password-[a-z]+>|REDACTED`.
+- 1.36 (Tim-infra) memakai `labs/api-t1/deploy/ci.yml` yang sudah berisi langkah gitleaks dan `fetch-depth: 0` (1.35); CI tidak memegang kunci ke VPS (ADR 11, deploy manual sampai Tahap 3).
 - Audit bahasa menolak "kantor" (pakai "perusahaan") dan "pemakai" (pakai "user").
 - Pola tulis ulang halaman lama: pindah ke `tahap-1/<slug>.mdx`, lima blok, contoh PRD v1; hapus file lama dan data widget lama; perbarui `path`, `prasyarat`, hapus `lama` di registry, perbarui `alat/indeks-topik.mdx`, lalu `python3 tools/sinkron_cerita.py`.
 
@@ -49,7 +48,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-11 · Mode paralel (keputusan 264) dimulai sesudah #177. Jalur konten: 1.35 di `../rjt-konten`. Jalur teknis: I5c-c di `../rjt-teknis`. Pengatur di folder utama mencatat ANTREAN/MEMORI/STATUS dan merge. Berikutnya per jalur: urutan di keputusan 264.
+2026-10-12 · Mode paralel (keputusan 264). Konten: 1.35 selesai (#179); K2 berjalan di `../rjt-konten`. Teknis: I5c-c selesai (#180); I5c-d (#181) lolos tinjauan, menunggu gabung main; I5d (#182) perlu perbaikan seleksi angka dobel. Pengatur mencatat ANTREAN/MEMORI/STATUS lewat PR `catat/*`.
 
 ## Pelajaran
 

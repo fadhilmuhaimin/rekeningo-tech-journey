@@ -70,7 +70,7 @@ Dari tag ini, `git show 390ff47` menunjukkan kode yang sedang jalan. Tag seperti
 
 <Snippet file="labs/api-t1/output/deploy.txt" lines="18:20" title="Rekaman lab: labs/api-t1/output/deploy.txt" />
 
-`DATABASE_URL` diberikan saat perintah dijalankan, tidak ditulis di file. Dari mana nilai itu datang di VPS dibahas di [[t1-m7]].
+Nilai `DATABASE_URL` tidak ditulis di `compose.yaml`. Compose mengisinya dari environment shell, atau dari file `.env` di folder proyek ([docs.docker.com](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/)). Lab memberikannya lewat environment shell. Di VPS nilainya ada di `.env`, sesuai ADR 11 di [[t1-secret]].
 
 **Deploy dan rollback memakai perintah yang sama.** Saat tag berubah, `up` menghentikan container lama lalu membuat yang baru ([docs.docker.com](https://docs.docker.com/reference/cli/docker/compose/up/)). Prober membaca riwayat Budi di antara dua perintah:
 
@@ -88,7 +88,7 @@ Container memakai image yang sama persis dengan sebelum deploy. Tidak ada yang d
 
 Image lama hanya menolong selama skema masih cocok dengan kode lama. Aturan migration yang tetap cocok dengan image sebelumnya adalah ADR 10 di [[E1]].
 
-**CI pertama.** Di laptop, Raka bisa melewatkan satu langkah tanpa sadar. CI menjalankan langkah yang sama di setiap push ke `main`: `go vet`, `go test`, gosec, lalu build image dan push ke registry.
+**CI pertama.** Di laptop, Raka bisa melewatkan satu langkah tanpa sadar. CI menjalankan langkah yang sama di setiap push ke `main`: `go vet`, `go test`, gosec, lalu build image dan push ke registry. Langkah gitleaks dan `fetch-depth: 0` ditambahkan ADR 11 di [[t1-secret]].
 
 <Snippet file="labs/api-t1/deploy/ci.yml" lang="yaml" title="labs/api-t1/deploy/ci.yml" />
 
@@ -96,7 +96,7 @@ File ini contoh untuk repo Rekeningo dan tidak dijalankan di repo panduan ini. V
 
 Nama image di registry harus huruf kecil, karena aturan nama image OCI hanya menerima `[a-z0-9]` dan pemisah ([OCI distribution-spec](https://github.com/opencontainers/distribution-spec/blob/main/spec.md)). Login ke registry memakai `GITHUB_TOKEN` bawaan workflow dengan izin `packages: write` ([docs.github.com](https://docs.github.com/en/packages/managing-github-packages-using-github-actions-workflows/publishing-and-installing-a-package-with-github-actions)). Deploy tetap satu perintah di VPS, dijalankan Raka sesudah CI hijau.
 
-Image yang pertama di-push ke GitHub Container Registry (GHCR) bersifat privat, jadi VPS perlu `docker login ghcr.io` dengan token yang punya izin `read:packages` sebelum bisa menarik image ([docs.github.com](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)). Token itu secret, dan tempat menyimpannya dibahas di [[t1-m7]]. Lab membangun image di mesin yang sama, jadi langkah tarik dari registry tidak direkam.
+Image yang pertama di-push ke GitHub Container Registry (GHCR) bersifat privat, jadi VPS perlu `docker login ghcr.io` dengan token yang punya izin `read:packages` sebelum bisa menarik image ([docs.github.com](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)). Token itu secret, dan tempat menyimpannya diputuskan ADR 11 di [[t1-secret]]. Lab membangun image di mesin yang sama, jadi langkah tarik dari registry tidak direkam.
 
 ### Infra Tahap 1: satu VPS dan Compose
 
@@ -159,7 +159,7 @@ Polanya sama dengan nomor build di `pubspec.yaml`. Setiap rilis app punya nomorn
 
 | Yang belum | Kenapa sekarang tidak | Dibahas di |
 |---|---|---|
-| CI men-deploy sendiri ke VPS | CI butuh kunci akses ke VPS, dan cara menyimpan secret belum dibahas | [[t1-m7]] |
+| CI men-deploy sendiri ke VPS | CI butuh kunci akses ke VPS, dan ADR 11 sengaja belum membuatnya | [[t1-secret]] |
 | Migration dijalankan otomatis oleh pipeline | Migration harus terbukti cocok dengan image lama dulu | [[E1]] |
 | Tes yang menangkap riwayat kosong | CI hanya menjalankan tes yang sudah ada | [[C1]] |
 | Deploy tanpa jeda | Butuh dua instance dan load balancer; puncak 0,14 request per detik | [[t1-tim-infra]] |
