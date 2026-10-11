@@ -1,16 +1,19 @@
-// CLS saat dimuat di semua halaman yang memuat widget alur (I5c-b, keputusan 263).
+// CLS saat dimuat di semua halaman yang memuat widget alur (I5c-b, keputusan 263; I5c-d, keputusan 351).
 // Skrip widget (/widgets/*), data skenario, dan modul /_astro/*.js ditunda TUNDA ms, supaya yang terukur adalah
 // pergantian versi statis (HTML build) ke versi hidup, bukan kebetulan skrip sudah ada sebelum paint pertama.
 // Dua posisi: atas halaman (seperti dibuka biasa) dan widget alur pertama yang terlihat di dekat atas layar
 // (seperti dibuka dari tautan ke bloknya), dengan scroll anchoring dimatikan seperti browser yang tidak memilikinya.
-// Pergeseran tanpa input (hadRecentInput false) dijumlah. Gagal bila host alur sebelum skrip (versi statis dari build)
-// berbeda lebih dari SELISIH px dengan versi hidupnya pada salah satu ukuran: tinggi host, jarak elemen sesudah host ke
-// elemen sebelum host (menangkap margin yang runtuh keluar host, yang tidak terlihat di offsetHeight), serta x dan lebar
-// host (di 1440 px wadahnya 1024 px dan host fit-content bisa lebih sempit dari wadah). Hanya itu cara alur menggeser isi lain.
+// Pergeseran tanpa input (hadRecentInput false) dijumlah. Gagal bila CLS halaman di atas BATAS pada salah satu ukuran
+// dan posisi (sumbernya dicetak), atau bila host alur sebelum skrip (versi statis dari build) berbeda lebih dari SELISIH px
+// dengan versi hidupnya: tinggi host, jarak elemen sesudah host ke elemen sebelum host (menangkap margin yang runtuh
+// keluar host, yang tidak terlihat di offsetHeight), serta x dan lebar host (di 1440 px wadahnya 1024 px dan host
+// fit-content bisa lebih sempit dari wadah).
 // Ukuran 667x375 (keputusan 350): mode sempit juga bergantung tinggi layar, yang tidak terbaca container query.
-// CLS halaman di atas BATAS dicetak "lewat" dengan sumbernya tanpa menggagalkan: di CI sumbernya bagian lain halaman
-// (mis. .content-panel naik 29 px di HP saat modul datang), bukan alur (keputusan 263, tugas I5c-d).
+// Tiruan CI (keputusan 351): di CI Satoshi sering datang sesudah paint pertama dan fallback Linux jauh lebih lebar, jadi
+// baris membungkus ulang saat font tukar. --font-telat <ms> menunda /fonts/*, --fallback <font> mengganti system-ui di CSS
+// (mis. Verdana, selebar DejaVu Sans). Contoh: --font-telat 1500 --fallback Verdana.
 //   node tools/ukur-cls.mjs --url http://127.0.0.1:4321 [--halaman /tahap-1/perjalanan-request/] [--rinci]
+//     [--font-telat 1500] [--fallback Verdana]
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
@@ -22,8 +25,11 @@ const arg = (nama, bawaan) => {
 const url = arg("--url", "http://127.0.0.1:4321");
 const satu = arg("--halaman", null);
 const rinci = process.argv.includes("--rinci");
+const FONT_TELAT = Number(arg("--font-telat", 0));
+const FALLBACK = arg("--fallback", null);
 const BATAS = 0.1;
-const TUNDA = 600;
+// Di tiruan CI modul datang sesudah font, supaya versi statis tetap diukur dengan font akhirnya.
+const TUNDA = 600 + FONT_TELAT;
 const SELISIH = 1;
 const UKURAN = [
   { width: 375, height: 667 },
@@ -54,6 +60,16 @@ async function ukur(h, ukuran, posisi) {
     await new Promise((s) => setTimeout(s, TUNDA));
     await rute.continue().catch(() => {});
   });
+  if (FONT_TELAT)
+    await page.route(/\/fonts\//, async (rute) => {
+      await new Promise((s) => setTimeout(s, FONT_TELAT));
+      await rute.continue().catch(() => {});
+    });
+  if (FALLBACK)
+    await page.route(/\/_astro\/.+\.css(\?.*)?$/, async (rute) => {
+      const res = await rute.fetch();
+      await rute.fulfill({ response: res, body: (await res.text()).replaceAll("system-ui", FALLBACK) });
+    });
   await page.addInitScript(() => {
     window.__cls = { total: 0, sumber: [] };
     new PerformanceObserver((l) => {
@@ -100,9 +116,10 @@ async function ukur(h, ukuran, posisi) {
       return w ? `scrollY ${Math.round(scrollY)} tinggi ${w.offsetHeight} hidup ${!!w.querySelector(".bb-alur")}` : "tanpa host terlihat";
     }).then((x) => rinci && console.log("  ", h, ukuran.width, x));
   }
-  // Selesai bila setiap host alur sudah berisi versi hidup.
+  // Selesai bila setiap host alur sudah berisi versi hidup: versi statis dari build juga .bb-alur, jadi yang dicari
+  // .bb-alur tanpa .bb-alur--statis (alur.js mengganti isi host).
   await page
-    .waitForFunction(() => [...document.querySelectorAll('[data-bb="alur"]')].every((x) => x.querySelector(".bb-alur")), null, {
+    .waitForFunction(() => [...document.querySelectorAll('[data-bb="alur"]')].every((x) => x.querySelector(".bb-alur:not(.bb-alur--statis)")), null, {
       timeout: 15000,
     })
     .catch(() => {});
@@ -138,10 +155,10 @@ await Promise.all(
   }),
 );
 for (const [k, r] of [...hasilPer].sort()) {
-  const buruk = r.selisih > SELISIH;
+  const buruk = r.selisih > SELISIH || r.total > BATAS;
   if (buruk) gagal++;
   const d = r.rinci;
-  baris.push(`${buruk ? "GAGAL" : r.total > BATAS ? "lewat" : r.total > 0.01 ? "tipis" : "ok"} ${r.total.toFixed(3)} selisih tinggi ${d.tinggi} saudara ${d.saudara} x ${d.x} lebar ${d.lebar}px ${k} (${r.posisi})` +
+  baris.push(`${buruk ? "GAGAL" : r.total > 0.01 ? "tipis" : "ok"} ${r.total.toFixed(3)} selisih tinggi ${d.tinggi} saudara ${d.saudara} x ${d.x} lebar ${d.lebar}px ${k} (${r.posisi})` +
     (rinci || buruk || r.total > BATAS ? `  tinggi ${r.tinggi}; ` + r.sumber.slice(0, 4).join(", ") : ""));
 }
 await browser.close();
@@ -152,7 +169,8 @@ const maksRinci = (n) => Math.max(0, ...[...hasilPer.values()].map((r) => r.rinc
 console.log(
   `CLS alur: ${daftar.length} halaman, maks 375 ${maks(375).toFixed(3)}, maks 667 ${maks(667).toFixed(3)}, maks 1366 ${maks(1366).toFixed(3)}, maks 1440 ${maks(1440).toFixed(3)}, ` +
     `${new Set([...hasilPer].filter(([, r]) => r.total > 0.01).map(([k]) => k.split(" ")[0])).size} halaman > 0,01, ` +
-    `${[...hasilPer.values()].filter((r) => r.total > BATAS).length} lewat ${BATAS}, selisih maks: tinggi ${maksRinci("tinggi")} saudara ${maksRinci("saudara")} x ${maksRinci("x")} lebar ${maksRinci("lebar")}px, ${gagal} gagal (batas selisih ${SELISIH}px)`,
+    `${[...hasilPer.values()].filter((r) => r.total > BATAS).length} di atas batas CLS ${BATAS}, selisih maks: tinggi ${maksRinci("tinggi")} saudara ${maksRinci("saudara")} x ${maksRinci("x")} lebar ${maksRinci("lebar")}px, ${gagal} gagal (batas CLS ${BATAS}, selisih ${SELISIH}px)` +
+    (FONT_TELAT || FALLBACK ? `, tiruan CI: font telat ${FONT_TELAT} ms, fallback ${FALLBACK ?? "-"}` : ""),
 );
 if (!nilai.length) {
   console.error("Tidak ada halaman alur di dist/.");
