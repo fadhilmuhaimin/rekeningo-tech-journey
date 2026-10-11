@@ -312,6 +312,36 @@ const okAlur = halAlur.length > 0 && !alurGagal.length;
 console.log(`${okAlur ? "ok" : "GAGAL"} alur 375x667: paket dan tombol Berikutnya terlihat bersamaan di ${halAlur.length} halaman, ${klikAlur} klik; jarak paket ke tombol maks ${jarakMaks} px (batas 667 dikurangi tinggi tombol)`);
 for (const x of alurGagal) console.log(`  GAGAL ${x}`);
 if (!okAlur) gagal++;
+
+// Fokus bertahan saat lebar melewati batas mode sempit (perbaikan PR #175 putaran 2, keputusan 261): urutSempit memindah
+// tombol dengan insertBefore, dan Chrome membuang fokus elemen yang dipindah. Fokus di Berikutnya, lalu ubah ukuran
+// 375x667 -> 667x375 -> 375x667 -> 1366x657 -> 375x667; sesudah setiap ubah ukuran activeElement tetap tombol itu.
+{
+  const page = await browser.newPage({ viewport: { width: 375, height: 667 } });
+  await page.goto(url + HAL_ALUR, { waitUntil: "networkidle" });
+  await page.waitForSelector(".bb-alur .bb-predict button");
+  await page.evaluate(() => {
+    const alur = document.querySelector(".bb-alur");
+    alur.querySelector(".bb-predict button").click();
+    const maju = [...alur.querySelectorAll(".bb-row button")].find((b) => b.textContent.startsWith("Berikutnya"));
+    maju.dataset.ujiFokus = "1";
+    maju.focus();
+  });
+  const jejak = [];
+  for (const [w, h] of [[667, 375], [375, 667], [1366, 657], [375, 667]]) {
+    await page.setViewportSize({ width: w, height: h });
+    const r = await page.evaluate(async () => {
+      for (let k = 0; k < 3; k++) await new Promise((ok) => requestAnimationFrame(ok));
+      const ae = document.activeElement;
+      return { tetap: ae?.dataset?.ujiFokus === "1", nama: ae ? ae.tagName : "null", sempit: document.querySelector(".bb-alur").classList.contains("is-sempit") };
+    });
+    jejak.push(`${w}x${h} ${r.sempit ? "sempit" : "lebar"} ${r.tetap ? "Berikutnya" : r.nama}`);
+    if (!r.tetap) jejak.gagal = true;
+  }
+  console.log(`${jejak.gagal ? "GAGAL" : "ok"} alur fokus: Berikutnya tetap terfokus saat ubah ukuran (${jejak.join(" -> ")})`);
+  if (jejak.gagal) gagal++;
+  await page.close();
+}
 await browser.close();
 console.log(gagal ? "Fondasi gerak GAGAL" : "Reduced motion mematikan gerak (contoh, blok, teka-teki, Berikutnya, alur); tanpa itu gerak berjalan");
 process.exit(gagal ? 1 : 0);

@@ -97,6 +97,8 @@
       function urutSempit(mau) {
         if (mau === sempit) return;
         sempit = mau;
+        // Chrome membuang fokus dari elemen yang dipindah insertBefore; fokus dikembalikan ke elemen yang sama.
+        var aktif = document.activeElement;
         var jalur = rail && rail.parentNode === root ? rail : lanes;
         if (sempit) {
           var stlh = rail && rail.parentNode === root ? rail : track;
@@ -105,6 +107,7 @@
           atasAsli.forEach(function (x) { root.insertBefore(x, jalur); });
           root.appendChild(controls);
         }
+        if (aktif && root.contains(aktif) && document.activeElement !== aktif) aktif.focus({ preventScroll: true });
         root.classList.toggle("is-sempit", sempit);
       }
       function tata() {
@@ -147,6 +150,8 @@
 
       // Tengah komponen j di rel vertikal, dari tinggi baris sebenarnya.
       function mid(j) { var e = laneEls[j]; return e.offsetTop + e.offsetHeight / 2; }
+      // Tengah celah antara baris j dan j + 1: titik tengah dua pusat baris jatuh di dalam baris yang lebih tinggi.
+      function celah(j) { var e = laneEls[j]; return (e.offsetTop + e.offsetHeight + laneEls[j + 1].offsetTop) / 2; }
       // Posisi paket (px) bila ditaruh di nilai left (horizontal, %) atau top (vertikal, px), lalu dikembalikan.
       function titikDi(nilai) {
         var prop = vertikal ? "top" : "left", lama = packet.style[prop];
@@ -177,8 +182,9 @@
           packet.textContent = b < 0 ? "●" : b > a ? "→" : "←";
         }
         if (st && vertikal) {
-          // Posisi dari tinggi baris sebenarnya: tengah komponen, atau di antara tujuan dan tetangganya di sisi asal.
-          packet.style.top = (b < 0 ? mid(a) : (mid(b) + mid(core.sisiAsal(a, b))) / 2) + "px";
+          // Posisi dari tinggi baris sebenarnya: tengah komponen, atau di celah antara tujuan dan tetangganya di sisi asal.
+          var sisi = b < 0 ? -1 : core.sisiAsal(a, b);
+          packet.style.top = (b < 0 || sisi === b ? mid(b < 0 ? a : b) : celah(Math.min(b, sisi))) + "px";
           packet.className = "bb-alur__packet" + (b < 0 ? " is-local" : b > a ? " is-down" : " is-up") +
             (st.nada ? " is-" + st.nada : "");
           packet.textContent = b < 0 ? "●" : b > a ? "↓" : "↑";
