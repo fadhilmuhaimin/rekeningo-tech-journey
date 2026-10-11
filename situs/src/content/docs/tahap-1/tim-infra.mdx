@@ -61,7 +61,7 @@ Kalau kamu pernah merilis app sendirian, pola ini sudah kamu kenal. Build, tanda
 
 App Flutter di HP memanggil satu API. API dan PostgreSQL berjalan di VPS yang sama. Asumsi naskah: puncak Tahap 1 adalah 0,14 request per detik, dan hitungannya ada di [[D1]].
 
-Tujuh masalah Tahap 1, dari M1 sampai M7, menyangkut kebenaran data, keamanan, dan cara kerja, bukan kapasitas. Mesin kedua tidak menjawab satu pun dari tujuh masalah itu. Mesin kedua juga menambah satu hal lagi yang harus dijaga satu orang.
+Tujuh masalah sejauh ini, dari M1 sampai M7, menyangkut kebenaran data, keamanan, dan cara kerja, bukan kapasitas. Mesin kedua tidak menjawab satu pun dari tujuh masalah itu. Mesin kedua juga menambah satu hal lagi yang harus dijaga satu orang.
 
 ### CI berhenti di registry
 
@@ -93,10 +93,10 @@ Sesudah VPS mati dan cadangan dipulihkan, total saldo kembali sama dengan total 
 
 <Snippet file="labs/api-t1/output/cadangan.txt" lines="58:71" title="Rekaman lab: labs/api-t1/output/cadangan.txt" />
 
-Pembayaran Rp20.000 sesudah `pg_dump` tidak tercatat di mana pun. Jarak antara cadangan terakhir dan saat VPS mati adalah data yang hilang. Lab menunjukkan tiga syarat lain:
+Pembayaran Rp20.000 sesudah `pg_dump` tidak tercatat di mana pun. Jarak antara cadangan terakhir dan saat VPS mati adalah data yang hilang. Ada tiga syarat lain:
 
 1. Cadangan baru terbukti setelah pernah dipulihkan. Lab memulihkannya dan membandingkan total saldo.
-2. File cadangan harus berada di luar VPS. File di disk yang sama ikut hilang bersama VPS.
+2. File cadangan harus berada di luar VPS. File di disk yang sama ikut hilang bersama VPS. Di lab file itu tetap di container database, jadi `DROP SCHEMA` tidak menyentuhnya; VPS yang benar-benar mati ikut menghapusnya.
 3. `pg_dump` tidak menyimpan role database. Role disimpan terpisah dengan `pg_dumpall --globals-only` ([postgresql.org](https://www.postgresql.org/docs/17/backup-dump.html)).
 
 Lab memakai `-n tahap1` karena database lab dipakai bersama lab lain. Dokumentasi `pg_dump` menulis bahwa dump satu schema tidak dijamin bisa dipulihkan sendirian ke database kosong ([postgresql.org](https://www.postgresql.org/docs/17/app-pgdump.html)). Di VPS, database Rekeningo di-dump utuh.
@@ -144,7 +144,7 @@ Untuk satu orang, langkah terkecil adalah `pg_dump` yang disalin keluar VPS dan 
 <details class="success">
 <summary>Jawaban</summary>
 
-Belum ada. CI berhenti sesudah image bertag hash commit masuk registry. Versi baru baru berjalan sesudah Raka menjalankan `TAG=<hash> docker compose up -d` di VPS.
+Belum ada. CI berhenti sesudah image bertag hash commit masuk registry. Versi baru hanya berjalan sesudah Raka menjalankan `TAG=<hash> docker compose up -d` di VPS.
 
 </details>
 

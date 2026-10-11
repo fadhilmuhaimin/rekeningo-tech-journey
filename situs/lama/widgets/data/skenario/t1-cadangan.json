@@ -109,9 +109,9 @@
     {
       "dari": "api",
       "ke": "budi",
-      "judul": "VPS mati bersama database",
+      "judul": "Database hilang (lab memerankan VPS mati)",
       "kirim": "DROP SCHEMA tahap1 CASCADE   # lab memerankan VPS mati\nGET /akun/419\n500 Internal Server Error\nlog server: relation \"sesi\" does not exist",
-      "jelas": "Rekaman bagian D. API dan database berada di VPS yang sama, jadi keduanya hilang bersama.",
+      "jelas": "Rekaman bagian D. API dan database berada di VPS yang sama, jadi keduanya hilang bersama. Di VPS yang benar-benar mati, API pun tidak menjawab dan HP hanya melihat koneksi gagal. Lab hanya menghapus schema, jadi API masih sempat menjawab 500.",
       "nada": "warn",
       "layar": {
         "hp-budi": {
@@ -190,9 +190,9 @@
       {
         "dari": "api",
         "ke": "budi",
-        "judul": "VPS mati bersama database",
+        "judul": "Database hilang (lab memerankan VPS mati)",
         "kirim": "DROP SCHEMA tahap1 CASCADE   # lab memerankan VPS mati\nGET /akun/419\n500 Internal Server Error\nlog server: relation \"sesi\" does not exist",
-        "jelas": "Rekaman bagian D. Tanpa file cadangan, tidak ada yang bisa dipulihkan. Migration bisa membuat tabel lagi, tapi tabelnya kosong.",
+        "jelas": "Rekaman bagian D. Tanpa file cadangan, tidak ada yang bisa dipulihkan. Migration bisa membuat tabel lagi, tapi tabelnya kosong. Di VPS yang benar-benar mati, API pun tidak menjawab dan HP hanya melihat koneksi gagal. Lab hanya menghapus schema, jadi API masih sempat menjawab 500.",
         "nada": "warn",
         "layar": {
           "hp-budi": {

@@ -542,7 +542,7 @@
   "judul": "1.36 Tim dan infra Tahap 1: satu orang, satu VPS, CI pertama",
   "url": "tahap-1/tim-infra/",
   "tanya": "CI hijau untuk commit baru. Apa yang berubah di HP Budi?",
-  "jawab": "Belum ada. CI berhenti sesudah image bertag hash commit masuk registry. Versi baru baru berjalan sesudah Raka menjalankan `TAG=<hash> docker compose up -d` di VPS."
+  "jawab": "Belum ada. CI berhenti sesudah image bertag hash commit masuk registry. Versi baru hanya berjalan sesudah Raka menjalankan `TAG=<hash> docker compose up -d` di VPS."
  },
  {
   "id": "t1-tim-infra-2",
