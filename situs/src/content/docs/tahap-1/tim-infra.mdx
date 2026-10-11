@@ -1,0 +1,185 @@
+---
+title: "1.36 Tim dan infra Tahap 1: satu orang, satu VPS, CI pertama"
+description: Siapa memegang apa di Tahap 1, infra satu VPS dengan Compose dan CI pertama dari file lab, dan cadangan database yang dibuktikan lewat pemulihan.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import peran from "../../../../data/diagram/t1-tim-infra.json";
+import cerita from "../../../../data/cerita.json";
+import DiagramArsitektur from "../../../diagram/DiagramArsitektur";
+import { Arsitektur } from "../../../diagram/skema";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 7 menit · coba 3 menit · Prasyarat: [[t1-secret]] · Jalur inti</p>
+
+<Blok nama="Siapa memegang apa" buka>
+
+## Inti
+
+Di Tahap 1, satu orang memegang app, backend, server, dan rilis. CI memeriksa setiap push; deploy dan rollback tetap dikerjakan Raka.
+
+<Rantai data={peran} ringkas />
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. CI hijau untuk commit baru. Apa yang berubah di HP Budi?
+2. Kenapa API dan PostgreSQL di satu VPS adalah satu risiko, bukan dua?
+3. Cadangan dibuat pagi hari, lalu VPS mati sore hari. Apa yang kembali sesudah pemulihan?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+### Siapa menjalankan setiap pekerjaan
+
+PRD v1 menulis batasannya: satu engineer selama 6 minggu, dan satu VPS milik Divisi TI. Tabel ini memetakan pekerjaan Tahap 1 ke orang atau mesin yang menjalankannya.
+
+| Pekerjaan | Siapa | Tertulis di |
+|---|---|---|
+| PRD, prioritas, dan lingkup uji coba | Sinta | [[t1-prd]] |
+| Aturan "setiap rupiah tertelusur" | Pak Hadi | [[t1-prd]] |
+| App Flutter, API, skema, dan migration | Raka, di laptop | Repo Rekeningo |
+| `go vet`, `go test`, gosec, gitleaks, image | CI, setiap push ke `main` | `ci.yml` |
+| Deploy, rollback, dan ganti password database | Raka, di VPS | ADR 9 di [[C3]], ADR 11 di [[t1-secret]] |
+| Mesin VPS | Divisi TI | PRD v1 |
+| Cadangan database | Belum ada yang memegang | PRD v1 dan ADR 9 tidak menyebutnya |
+
+Yang tidak tertulis di repo hanya ada di ingatan Raka. Karena itu setiap langkah yang bisa ditulis dijadikan file: Dockerfile, `compose.yaml`, `ci.yml`, migration, dan `.env.example`. Pipeline adalah ingatan yang tidak gemetar.
+
+Kalau kamu pernah merilis app sendirian, pola ini sudah kamu kenal. Build, tanda tangan, dan unggah ke store berjalan dari satu laptop. Bedanya, backend juga harus tetap menyala di antara dua rilis.
+
+</Blok>
+
+<Blok nama="Infra tahap ini" buka aman="Kalau berhenti di sini, kamu sudah tahu: API dan database Tahap 1 berbagi satu VPS, dan cadangan hanya memulihkan apa yang tercatat sebelum pg_dump mulai.">
+
+### Tiga komponen di dua tempat
+
+<DiagramArsitektur client:visible id="diagram-t1" judul="Arsitektur Tahap 1" data={Arsitektur.parse(cerita.tahap[0].arsitektur)} />
+
+App Flutter di HP memanggil satu API. API dan PostgreSQL berjalan di VPS yang sama. Asumsi naskah: puncak Tahap 1 adalah 0,14 request per detik, dan hitungannya ada di [[D1]].
+
+Tujuh masalah Tahap 1, dari M1 sampai M7, menyangkut kebenaran data, keamanan, dan cara kerja, bukan kapasitas. Mesin kedua tidak menjawab satu pun dari tujuh masalah itu. Mesin kedua juga menambah satu hal lagi yang harus dijaga satu orang.
+
+### CI berhenti di registry
+
+Workflow CI berjalan di setiap push ke `main`. Izinnya hanya membaca repo dan menulis image ke registry:
+
+<Snippet file="labs/api-t1/deploy/ci.yml" lines="4:11" lang="yaml" title="labs/api-t1/deploy/ci.yml" />
+
+Tidak ada langkah SSH dan tidak ada secret VPS di workflow ini. Begitu satu izin ditulis di blok `permissions`, izin `GITHUB_TOKEN` yang tidak ditulis menjadi `none` ([docs.github.com](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#permissions)). Deploy tetap satu perintah yang dijalankan Raka di VPS sesudah CI hijau, sesuai ADR 9.
+
+| File | Tempatnya | Isinya | Halaman |
+|---|---|---|---|
+| `Dockerfile` | Repo | Build dua tahap ke image tanpa shell | [[C3]] |
+| `deploy/ci.yml` | Repo, dijalankan GitHub Actions | Pemeriksaan dan image bertag hash commit | [[C3]], [[t1-secret]] |
+| `deploy/compose.yaml` | Repo, disalin ke VPS | Satu service `api`, tag wajib diisi, restart otomatis | [[C3]] |
+| File migration | Repo, dijalankan Raka dengan `migrate up` | Perubahan skema | [[B4.1]] |
+| `.env` | Hanya di VPS | `DATABASE_URL` dan password | [[t1-secret]] |
+
+### Satu VPS, satu tempat data
+
+Image API bisa ditarik lagi dari registry. Isi database hanya ada di VPS itu, kecuali ada cadangan di tempat lain. Lab memerankan VPS yang mati dengan menghapus schema database; ini latihan lab, bukan kejadian di cerita.
+
+<WidgetLama nama="alur" src="data/skenario/t1-cadangan.json" />
+
+`pg_dump` menulis isi database ke satu file. Hasilnya adalah snapshot saat perintah mulai. Selama berjalan, `pg_dump` tidak memblokir baca dan tulis lain, kecuali perintah yang butuh exclusive lock seperti kebanyakan `ALTER TABLE` ([postgresql.org](https://www.postgresql.org/docs/17/backup-dump.html)).
+
+<Snippet file="labs/api-t1/output/cadangan.txt" lines="20:32" title="Rekaman lab: labs/api-t1/output/cadangan.txt" />
+
+Sesudah VPS mati dan cadangan dipulihkan, total saldo kembali sama dengan total top-up. Saldo Budi kembali ke angka saat `pg_dump` mulai:
+
+<Snippet file="labs/api-t1/output/cadangan.txt" lines="58:71" title="Rekaman lab: labs/api-t1/output/cadangan.txt" />
+
+Pembayaran Rp20.000 sesudah `pg_dump` tidak tercatat di mana pun. Jarak antara cadangan terakhir dan saat VPS mati adalah data yang hilang. Lab menunjukkan tiga syarat lain:
+
+1. Cadangan baru terbukti setelah pernah dipulihkan. Lab memulihkannya dan membandingkan total saldo.
+2. File cadangan harus berada di luar VPS. File di disk yang sama ikut hilang bersama VPS.
+3. `pg_dump` tidak menyimpan role database. Role disimpan terpisah dengan `pg_dumpall --globals-only` ([postgresql.org](https://www.postgresql.org/docs/17/backup-dump.html)).
+
+Lab memakai `-n tahap1` karena database lab dipakai bersama lab lain. Dokumentasi `pg_dump` menulis bahwa dump satu schema tidak dijamin bisa dipulihkan sendirian ke database kosong ([postgresql.org](https://www.postgresql.org/docs/17/app-pgdump.html)). Di VPS, database Rekeningo di-dump utuh.
+
+</Blok>
+
+<Blok nama="Yang pecah saat tumbuh">
+
+### Batas bentuk Tahap 1
+
+Setiap baris adalah batas yang diterima untuk 100 karyawan dan 3 warung di satu gedung. Kolom terakhir adalah rencana PROPOSAL; naskah tahap berikutnya belum ditulis.
+
+| Batas sekarang | Tanda sudah pecah | Arah berikutnya (rencana) |
+|---|---|---|
+| Satu orang men-deploy dari VPS | Orang kedua ikut men-deploy | Pipeline yang men-deploy dan staging terpisah, Tahap 3 |
+| Satu container API, dengan jeda saat diganti | Pembayaran berjalan sepanjang hari di banyak gedung | Dua instance di belakang reverse proxy, Tahap 3 |
+| Database di VPS yang sama, tanpa cadangan terjadwal | Data yang boleh hilang harus dihitung dalam menit | Cadangan terjadwal di Tahap 3, PostgreSQL terkelola di Tahap 4 |
+| Satu VPS | VPS menjadi satu titik gagal untuk seluruh kampus | Infra cloud terkelola, Tahap 4 |
+
+Jeda saat container diganti belum diukur lab. Angkanya ditulis sesudah ada rekaman, bukan ditebak.
+
+### Celah yang belum ditutup: cadangan
+
+PRD v1 tidak menyebut cadangan, dan ADR 9 tidak memuatnya. Lab di blok sebelumnya menunjukkan harga celah itu. Tanpa file cadangan, migration bisa membuat tabel lagi, tapi saldo 100 karyawan dan 3 warung tidak kembali.
+
+Untuk satu orang, langkah terkecil adalah `pg_dump` yang disalin keluar VPS dan pernah dicoba dipulihkan. Cadangan yang dijadwalkan dan diuji rutin ada di rencana Tahap 3.
+
+### Sengaja belum dilakukan
+
+| Yang belum | Kenapa sekarang tidak | Dibahas di |
+|---|---|---|
+| CI men-deploy sendiri ke VPS | CI butuh kunci akses ke VPS, dan ADR 11 sengaja belum membuatnya | [[t1-secret]] |
+| Pemeriksa arah `cek_arah.py` di CI | Hanya Raka yang menulis kode, dan ia menjalankannya sebelum commit; satu langkah di `ci.yml` saat orang kedua bergabung | [[B7.1]] |
+| Tes yang mencocokkan response dengan kontrak OpenAPI | Rekaman lab masih dibaca manusia; tes kontrak masuk pipeline di rencana Tahap 4 | [[B1.4]] |
+| Deploy tanpa jeda | Butuh dua instance dan reverse proxy, pada puncak 0,14 request per detik | [[C3]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** CI hijau untuk commit baru. Apa yang berubah di HP Budi?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Belum ada. CI berhenti sesudah image bertag hash commit masuk registry. Versi baru baru berjalan sesudah Raka menjalankan `TAG=<hash> docker compose up -d` di VPS.
+
+</details>
+
+**2.** Kenapa API dan PostgreSQL di satu VPS adalah satu risiko, bukan dua?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Satu kejadian di VPS menghentikan keduanya sekaligus. Image API bisa ditarik lagi dari registry, tapi isi database hanya kembali dari cadangan yang disimpan di luar VPS.
+
+</details>
+
+**3.** Cadangan dibuat pagi hari, lalu VPS mati sore hari. Apa yang kembali sesudah pemulihan?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Keadaan database saat `pg_dump` mulai pagi itu. Semua pembayaran sesudahnya hilang. Rekaman `cadangan.txt` bagian E menunjukkan saldo Budi Rp225.000, bukan Rp205.000.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Workflow CI tidak memuat kunci SSH atau password VPS, dan izin `GITHUB_TOKEN` ditulis di blok `permissions`.
+- [ ] File Compose menyebut tag image yang tetap, dan tidak memuat secret.
+- [ ] Perintah cadangan menyimpan file di luar mesin database.
+- [ ] Ada catatan kapan cadangan terakhir dicoba dipulihkan, dan berapa total saldonya.
+
+### Bacaan lanjut
+
+- [PostgreSQL 17: Backup and Restore](https://www.postgresql.org/docs/17/backup.html) · [pg_dump](https://www.postgresql.org/docs/17/app-pgdump.html)
+- [GitHub Actions: Workflow syntax, `permissions`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#permissions)
+- [Docker Compose: `up`](https://docs.docker.com/reference/cli/docker/compose/up/)
+- [The Twelve-Factor App: Build, release, run](https://12factor.net/build-release-run)
+
+</Blok>
+
+<SkripLama daftar={["cerita","hp","alur-core","alur"]} />
