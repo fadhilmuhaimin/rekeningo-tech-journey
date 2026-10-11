@@ -14,6 +14,7 @@
   var BB = window.BB;
   var core = BB.alurCore;
   var LEBAR_MIN = 110;  // px per komponen; di bawah ini jalur menjadi rel vertikal
+  var LEBAR_SEMPIT = 600;  // px lebar widget; di bawah ini (HP) tombol pindah tepat di bawah jalur
 
   BB.mounts.alur = function (host) {
     BB.fetchJSON(host.dataset.src).then(function (raw) {
@@ -73,7 +74,8 @@
           if (guessed) i = Math.min(list.length, d.varian.mulai + 1);
           render(true);
         });
-        root.appendChild(BB.el("label", { class: "bb-alur__varian" }, [cb, " Ubah satu hal: " + d.varian.label]));
+        var varianBox = BB.el("label", { class: "bb-alur__varian" }, [cb, " Ubah satu hal: " + d.varian.label]);
+        root.appendChild(varianBox);
       }
       root.appendChild(lanes);
       root.appendChild(track);
@@ -87,10 +89,28 @@
 
       // Rel vertikal kalau lebar per komponen < LEBAR_MIN px. Tata letak horizontal
       // tidak disentuh sama sekali: DOM hanya berubah saat beralih ke vertikal.
-      var vertikal = false;
+      // Sempit (HP): DOM diurutkan ulang menjadi jalur, tombol, tebakan, varian, lalu detail dan HP (CSS menaruh
+      // detail di atas HP). Semua yang tingginya berubah ada di bawah tombol, jadi jalur dan tombol diam antarlangkah,
+      // paket dan Berikutnya terlihat bersamaan, dan urutan fokus sama dengan urutan tampil (perbaikan PR #175).
+      var vertikal = false, sempit = false;
+      var atasAsli = [pBox, varianBox].filter(Boolean);  // varianBox: var, undefined bila tanpa varian
+      function urutSempit(mau) {
+        if (mau === sempit) return;
+        sempit = mau;
+        var jalur = rail && rail.parentNode === root ? rail : lanes;
+        if (sempit) {
+          var stlh = rail && rail.parentNode === root ? rail : track;
+          [controls].concat(atasAsli).reverse().forEach(function (x) { root.insertBefore(x, stlh.nextSibling); });
+        } else {
+          atasAsli.forEach(function (x) { root.insertBefore(x, jalur); });
+          root.appendChild(controls);
+        }
+        root.classList.toggle("is-sempit", sempit);
+      }
       function tata() {
         var w = root.clientWidth;
         var mau = w > 0 && w / n < LEBAR_MIN;
+        urutSempit(w > 0 && (mau || w < LEBAR_SEMPIT));
         if (mau === vertikal) return;
         vertikal = mau;
         if (vertikal) {
@@ -157,8 +177,8 @@
           packet.textContent = b < 0 ? "●" : b > a ? "→" : "←";
         }
         if (st && vertikal) {
-          // Posisi dari tinggi baris sebenarnya: tengah komponen, atau di antara dua komponen.
-          packet.style.top = (b < 0 ? mid(a) : (mid(a) + mid(b)) / 2) + "px";
+          // Posisi dari tinggi baris sebenarnya: tengah komponen, atau di antara tujuan dan tetangganya di sisi asal.
+          packet.style.top = (b < 0 ? mid(a) : (mid(b) + mid(core.sisiAsal(a, b))) / 2) + "px";
           packet.className = "bb-alur__packet" + (b < 0 ? " is-local" : b > a ? " is-down" : " is-up") +
             (st.nada ? " is-" + st.nada : "");
           packet.textContent = b < 0 ? "●" : b > a ? "↓" : "↑";

@@ -357,12 +357,12 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-alur__payload[hidden] { display: none; }
 .sl-markdown-content .bb-alur__payload { margin: 0 0 0.5rem; padding: 0.5rem 0.6rem; border-radius: 8px; background: var(--k-old-fill); border: 0; font-size: 0.8em; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sl-markdown-content .bb-alur__explain { margin: 0; font-size: 0.92em; line-height: 1.6; }
-.sl-markdown-content .bb-alur.is-vertikal { display: flex; flex-direction: column; }
-.sl-markdown-content .bb-alur.is-vertikal .bb-alur__body { display: contents; }
-.sl-markdown-content .bb-alur.is-vertikal .bb-alur__detail { order: 1; }
-.sl-markdown-content .bb-alur.is-vertikal .bb-alur__rail { order: 2; }
-.sl-markdown-content .bb-alur.is-vertikal .bb-alur__phone { order: 3; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.6rem; }
-.sl-markdown-content .bb-alur.is-vertikal > .bb-row { order: 4; }
+/* Sempit (HP, alur.js menata DOM): jalur, tombol, tebakan, lalu detail di atas HP. Yang tingginya berubah ada di bawah
+   tombol, jadi jalur dan tombol diam antarlangkah dan paket terlihat bersama Berikutnya (perbaikan PR #175). */
+.sl-markdown-content .bb-alur.is-sempit { display: flex; flex-direction: column; }
+.sl-markdown-content .bb-alur.is-sempit .bb-alur__body { display: contents; }
+.sl-markdown-content .bb-alur.is-sempit .bb-alur__detail { order: 1; }
+.sl-markdown-content .bb-alur.is-sempit .bb-alur__phone { order: 2; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.6rem; }
 .sl-markdown-content .bb-alur__rail { position: relative; padding-left: 2.6rem; margin: 0.6rem 0 0; }
 .sl-markdown-content .bb-alur__rail::before { content: ""; position: absolute; left: 1.15rem; top: 0.3rem; bottom: 0.3rem; border-left: 2px dashed var(--k-old-edge); }
 .sl-markdown-content .bb-alur.is-vertikal .bb-alur__lanes { grid-template-columns: 1fr !important; gap: 0.3rem; margin: 0; }

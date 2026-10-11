@@ -7,7 +7,7 @@
 // JavaScript <details> tetap bisa dibuka. Widget alur (I5c, keputusan 261): paket data bergerak hanya sesudah Berikutnya.
 //   node tools/ukur-gerak.mjs --url http://127.0.0.1:4321
 //   node tools/ukur-gerak.mjs --url ... --axe /path/axe.min.js   # + axe-core di halaman uji, gelap dan terang
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { chromium } from "@playwright/test";
 
 const arg = (nama, bawaan) => {
@@ -263,6 +263,54 @@ for (const [w, [a, b]] of Object.entries(diamAlur)) {
   console.log(`${ok ? "ok" : "GAGAL"} alur ${w}: posisi diam paket sama dengan dan tanpa reduced motion (${a.x},${a.y} vs ${b.x},${b.y})`);
   if (!ok) gagal++;
 }
+
+// Widget alur di HP (perbaikan PR #175, keputusan 261): di 375x667, di semua halaman alur, paket dan tombol Berikutnya
+// terlihat bersamaan sesudah setiap klik. Sebelum klik, tombol digulir ke tepi bawah layar (posisi terburuk sesudah
+// pembaca menggulir sampai tombol tampak). Paket diukur di frame pertama (masih di komponen asal) dan saat diam:
+// jarak atas paket ke atas tombol <= tinggi layar dikurangi tinggi tombol, dan paket berada di dalam viewport.
+const DOCS = new URL("../src/content/docs/", import.meta.url);
+const halAlur = readdirSync(DOCS, { recursive: true })
+  .filter((f) => f.endsWith(".mdx") && readFileSync(new URL(f, DOCS), "utf8").includes('<WidgetLama nama="alur"'))
+  .map((f) => ("/" + f.replace(/\\/g, "/").replace(/\.mdx$/, "").replace(/(^|\/)index$/, "") + "/").replace(/\/+/g, "/"))
+  .sort();
+let klikAlur = 0, jarakMaks = 0;
+const alurGagal = [];
+for (const pth of halAlur) {
+  const page = await browser.newPage({ viewport: { width: 375, height: 667 } });
+  await page.goto(url + pth, { waitUntil: "networkidle" });
+  const ada = await page.waitForSelector(".bb-alur .bb-row button", { state: "attached", timeout: 10000 }).catch(() => null);
+  const r = ada ? await page.evaluate(async () => {
+    const frame = () => new Promise((ok) => requestAnimationFrame(() => ok()));
+    document.querySelectorAll("details").forEach((d) => (d.open = true));
+    const vh = innerHeight, hasil = [];
+    for (const alur of document.querySelectorAll(".bb-alur")) {
+      alur.querySelector(".bb-predict button")?.click();
+      const maju = [...alur.querySelectorAll(".bb-row button")].find((b) => b.textContent.startsWith("Berikutnya"));
+      const pk = alur.querySelector(".bb-alur__packet");
+      for (let k = 1; maju && !maju.disabled && k <= 40; k++) {
+        scrollBy({ top: maju.getBoundingClientRect().bottom - (vh - 8), behavior: "instant" });
+        maju.click();
+        const f0 = pk.getBoundingClientRect();
+        await Promise.all(pk.getAnimations().map((a) => a.finished.catch(() => null)));
+        await frame();
+        const diam = pk.getBoundingClientRect(), bt = maju.getBoundingClientRect();
+        const atas = Math.min(f0.top, diam.top), bawah = Math.max(f0.bottom, diam.bottom);
+        hasil.push({ k, jarak: Math.round(bt.top - atas), batas: Math.round(vh - bt.height),
+          terlihat: !pk.hidden && atas >= 0 && bawah <= vh && bt.top >= 0 && bt.bottom <= vh });
+      }
+    }
+    return hasil;
+  }) : [];
+  const buruk = r.filter((x) => x.jarak > x.batas || !x.terlihat);
+  klikAlur += r.length;
+  jarakMaks = Math.max(jarakMaks, ...r.map((x) => x.jarak));
+  if (!r.length || buruk.length) alurGagal.push(`${pth} ${buruk.length}/${r.length} (jarak maks ${Math.max(0, ...r.map((x) => x.jarak))} px)`);
+  await page.close();
+}
+const okAlur = halAlur.length > 0 && !alurGagal.length;
+console.log(`${okAlur ? "ok" : "GAGAL"} alur 375x667: paket dan tombol Berikutnya terlihat bersamaan di ${halAlur.length} halaman, ${klikAlur} klik; jarak paket ke tombol maks ${jarakMaks} px (batas 667 dikurangi tinggi tombol)`);
+for (const x of alurGagal) console.log(`  GAGAL ${x}`);
+if (!okAlur) gagal++;
 await browser.close();
 console.log(gagal ? "Fondasi gerak GAGAL" : "Reduced motion mematikan gerak (contoh, blok, teka-teki, Berikutnya, alur); tanpa itu gerak berjalan");
 process.exit(gagal ? 1 : 0);

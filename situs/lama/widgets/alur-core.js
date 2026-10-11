@@ -71,12 +71,18 @@
     return -1;
   }
 
-  // Posisi paket dalam persen lebar jalur: tengah komponen, atau di antara dua komponen.
+  // Tetangga tujuan b di sisi asal a. Paket pindah diam di antara b dan tetangga ini: untuk komponen
+  // bersebelahan itu titik tengah a dan b; untuk lompatan (jarak >= 2) paket tidak berhenti di komponen tengah.
+  function sisiAsal(a, b) { return b + (a > b ? 1 : a < b ? -1 : 0); }
+
+  // Posisi paket dalam persen lebar jalur: tengah komponen (langkah lokal), atau setengah lajur dari tujuan ke arah asal.
   function packetPos(d, st) {
     var n = d.komponen.length;
     var center = function (j) { return (j + 0.5) * 100 / n; };
     var a = indexOf(d, st.dari);
-    return st.ke == null ? center(a) : (center(a) + center(indexOf(d, st.ke))) / 2;
+    if (st.ke == null) return center(a);
+    var b = indexOf(d, st.ke);
+    return (center(b) + center(sisiAsal(a, b))) / 2;
   }
 
   // Komponen pemilik lapisan yang disorot: dari dulu, lalu ke.
@@ -155,7 +161,7 @@
   }
 
   var api = { normalize: normalize, validate: validate, steps: steps, layarAt: layarAt,
-    packetPos: packetPos, pemilikLapisan: pemilikLapisan, indexOf: indexOf, MAKS_LANGKAH: MAKS_LANGKAH };
+    packetPos: packetPos, sisiAsal: sisiAsal, pemilikLapisan: pemilikLapisan, indexOf: indexOf, MAKS_LANGKAH: MAKS_LANGKAH };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else (root.BB = root.BB || {}).alurCore = api;
 })(this);
