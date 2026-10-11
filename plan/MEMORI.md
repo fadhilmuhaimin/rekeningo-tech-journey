@@ -48,7 +48,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-11 · 1.34 M7 selesai di branch `tahap-1/m7-env` (keputusan 260; PR menunggu tinjauan, jangan merge sebelum disetujui pengatur): `tahap-1/m7-env-di-repo.mdx`, Rantai `t1-m7-riwayat`, registry `t1-m7` ada. Berikutnya: `python3 tools/antrean.py berikut`.
+2026-10-11 · I5c widget alur di branch `interaksi/i5c-alur` (PR menunggu tinjauan, jangan merge): inventaris halaman alur, ukur JS, putuskan React vs vanilla + `motion/mini` (pola 238), paket data bergerak saat Berikutnya, lapisan aktif tersorot. File: `situs/lama/widgets/alur.js`, `situs/src/gerak/`, `tema.css`, alat ukur gerak. Berikutnya: `python3 tools/antrean.py berikut`.
 
 ## Pelajaran
 
