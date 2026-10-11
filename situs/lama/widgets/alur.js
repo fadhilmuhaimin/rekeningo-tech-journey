@@ -208,7 +208,11 @@
           revealed = true;
         }
       }
-      host.appendChild(root);
+      // Versi statis dari build (WidgetLama.astro, keputusan 263) diganti dalam tugas yang sama dengan render dan tata,
+      // jadi tidak ada frame tanpa widget; tingginya sama, jadi isi di bawahnya tidak bergeser.
+      var statis = host.querySelector(".bb-alur-pesan");
+      if (statis) statis.replaceWith(root);
+      else host.appendChild(root);
       render();
       tata();
       if (window.ResizeObserver) new ResizeObserver(tata).observe(root);
