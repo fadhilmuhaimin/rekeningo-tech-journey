@@ -267,22 +267,28 @@ for (const [w, [a, b]] of Object.entries(diamAlur)) {
 // Widget alur di HP (perbaikan PR #175, keputusan 261): di 375x667, di semua halaman alur, paket dan tombol Berikutnya
 // terlihat bersamaan sesudah setiap klik. Sebelum klik, tombol digulir ke tepi bawah layar (posisi terburuk sesudah
 // pembaca menggulir sampai tombol tampak). Paket diukur di frame pertama (masih di komponen asal) dan saat diam:
-// jarak atas paket ke atas tombol <= tinggi layar dikurangi tinggi tombol, dan paket berada di dalam viewport.
+// jarak atas paket ke atas tombol <= tinggi layar dikurangi header tetap dan tinggi tombol, dan paket berada di antara
+// bawah header tetap dan bawah viewport. HP lanskap 667x375 dan 844x390 ikut (I5c-c, keputusan 350): sebelumnya lebar
+// widget di 667x375 >= 600 px, jadi tata letak lebar menaruh detail dan HP di antara paket dan tombol (190 dari 199 klik
+// paket di luar layar).
 const DOCS = new URL("../src/content/docs/", import.meta.url);
 const halAlur = readdirSync(DOCS, { recursive: true })
   .filter((f) => f.endsWith(".mdx") && readFileSync(new URL(f, DOCS), "utf8").includes('<WidgetLama nama="alur"'))
   .map((f) => ("/" + f.replace(/\\/g, "/").replace(/\.mdx$/, "").replace(/(^|\/)index$/, "") + "/").replace(/\/+/g, "/"))
   .sort();
+for (const [lw, lh] of [[375, 667], [667, 375], [844, 390]]) {
 let klikAlur = 0, jarakMaks = 0;
 const alurGagal = [];
 for (const pth of halAlur) {
-  const page = await browser.newPage({ viewport: { width: 375, height: 667 } });
+  const page = await browser.newPage({ viewport: { width: lw, height: lh } });
   await page.goto(url + pth, { waitUntil: "networkidle" });
   const ada = await page.waitForSelector(".bb-alur .bb-row button", { state: "attached", timeout: 10000 }).catch(() => null);
   const r = ada ? await page.evaluate(async () => {
     const frame = () => new Promise((ok) => requestAnimationFrame(() => ok()));
     document.querySelectorAll("details").forEach((d) => (d.open = true));
     const vh = innerHeight, hasil = [];
+    const hd = document.querySelector("header.header");
+    const hdr = hd && getComputedStyle(hd).position === "fixed" ? hd.getBoundingClientRect().bottom : 0;
     for (const alur of document.querySelectorAll(".bb-alur")) {
       alur.querySelector(".bb-predict button")?.click();
       const maju = [...alur.querySelectorAll(".bb-row button")].find((b) => b.textContent.startsWith("Berikutnya"));
@@ -295,8 +301,8 @@ for (const pth of halAlur) {
         await frame();
         const diam = pk.getBoundingClientRect(), bt = maju.getBoundingClientRect();
         const atas = Math.min(f0.top, diam.top), bawah = Math.max(f0.bottom, diam.bottom);
-        hasil.push({ k, jarak: Math.round(bt.top - atas), batas: Math.round(vh - bt.height),
-          terlihat: !pk.hidden && atas >= 0 && bawah <= vh && bt.top >= 0 && bt.bottom <= vh,
+        hasil.push({ k, jarak: Math.round(bt.top - atas), batas: Math.floor(vh - hdr - bt.height),
+          terlihat: !pk.hidden && atas >= hdr && bawah <= vh && bt.top >= hdr && bt.bottom <= vh,
           ukuran: `paket ${Math.round(atas)}..${Math.round(bawah)} tombol ${Math.round(bt.top)}..${Math.round(bt.bottom)}` });
       }
     }
@@ -309,13 +315,17 @@ for (const pth of halAlur) {
   await page.close();
 }
 const okAlur = halAlur.length > 0 && !alurGagal.length;
-console.log(`${okAlur ? "ok" : "GAGAL"} alur 375x667: paket dan tombol Berikutnya terlihat bersamaan di ${halAlur.length} halaman, ${klikAlur} klik; jarak paket ke tombol maks ${jarakMaks} px (batas 667 dikurangi tinggi tombol)`);
-for (const x of alurGagal) console.log(`  GAGAL ${x}`);
+const klikLuar = alurGagal.reduce((t, x) => t + Number(x.split(" ")[1].split("/")[0]), 0);
+console.log(`${okAlur ? "ok" : "GAGAL"} alur ${lw}x${lh}: paket dan tombol Berikutnya terlihat bersamaan di ${halAlur.length} halaman, ${klikAlur} klik, ${klikLuar} di luar layar; jarak paket ke tombol maks ${jarakMaks} px (batas ${lh} dikurangi header dan tinggi tombol)`);
+for (const x of alurGagal.slice(0, 8)) console.log(`  GAGAL ${x}`);
 if (!okAlur) gagal++;
+}
 
 // Fokus bertahan saat lebar melewati batas mode sempit (perbaikan PR #175 putaran 2, keputusan 261): urutSempit memindah
 // tombol dengan insertBefore, dan Chrome membuang fokus elemen yang dipindah. Fokus di Berikutnya, lalu ubah ukuran
-// 375x667 -> 667x375 -> 375x667 -> 1366x657 -> 375x667; sesudah setiap ubah ukuran activeElement tetap tombol itu.
+// 375x667 -> 667x375 -> 375x667 -> 1366x657 -> 1366x450 -> 1366x657 -> 375x667; sesudah setiap ubah ukuran
+// activeElement tetap tombol itu, dan mode sempit sesuai ukuran (keputusan 350: sempit juga bila tinggi layar < 500 px;
+// 1366x657 -> 1366x450 hanya mengubah tinggi, jadi lebar widget tetap dan yang menata ulang adalah matchMedia).
 {
   const page = await browser.newPage({ viewport: { width: 375, height: 667 } });
   await page.goto(url + HAL_ALUR, { waitUntil: "networkidle" });
@@ -328,17 +338,17 @@ if (!okAlur) gagal++;
     maju.focus();
   });
   const jejak = [];
-  for (const [w, h] of [[667, 375], [375, 667], [1366, 657], [375, 667]]) {
+  for (const [w, h, mauSempit] of [[667, 375, true], [375, 667, true], [1366, 657, false], [1366, 450, true], [1366, 657, false], [375, 667, true]]) {
     await page.setViewportSize({ width: w, height: h });
     const r = await page.evaluate(async () => {
       for (let k = 0; k < 3; k++) await new Promise((ok) => requestAnimationFrame(ok));
       const ae = document.activeElement;
       return { tetap: ae?.dataset?.ujiFokus === "1", nama: ae ? ae.tagName : "null", sempit: document.querySelector(".bb-alur").classList.contains("is-sempit") };
     });
-    jejak.push(`${w}x${h} ${r.sempit ? "sempit" : "lebar"} ${r.tetap ? "Berikutnya" : r.nama}`);
-    if (!r.tetap) jejak.gagal = true;
+    jejak.push(`${w}x${h} ${r.sempit ? "sempit" : "lebar"}${r.sempit === mauSempit ? "" : " (SALAH)"} ${r.tetap ? "Berikutnya" : r.nama}`);
+    if (!r.tetap || r.sempit !== mauSempit) jejak.gagal = true;
   }
-  console.log(`${jejak.gagal ? "GAGAL" : "ok"} alur fokus: Berikutnya tetap terfokus saat ubah ukuran (${jejak.join(" -> ")})`);
+  console.log(`${jejak.gagal ? "GAGAL" : "ok"} alur fokus: Berikutnya tetap terfokus dan mode sempit sesuai ukuran saat ubah ukuran (${jejak.join(" -> ")})`);
   if (jejak.gagal) gagal++;
   await page.close();
 }

@@ -363,7 +363,7 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-alur__payload[hidden] { display: none; }
 .sl-markdown-content .bb-alur__payload { margin: 0 0 0.5rem; padding: 0.5rem 0.6rem; border-radius: 8px; background: var(--k-old-fill); border: 0; font-size: 0.8em; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sl-markdown-content .bb-alur__explain { margin: 0; font-size: 0.92em; line-height: 1.6; }
-/* Sempit (HP, alur.js menata DOM): jalur, tombol, tebakan, lalu detail di atas HP. Yang tingginya berubah ada di bawah
+/* Sempit (HP lebar < 600 px atau tinggi layar < 500 px, alur.js menata DOM): jalur, tombol, tebakan, lalu detail di atas HP. Yang tingginya berubah ada di bawah
    tombol, jadi jalur dan tombol diam antarlangkah dan paket terlihat bersama Berikutnya (perbaikan PR #175). */
 .sl-markdown-content .bb-alur.is-sempit { display: flex; flex-direction: column; }
 .sl-markdown-content .bb-alur.is-sempit .bb-alur__body { display: contents; }
@@ -379,7 +379,8 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-alur.is-vertikal .bb-alur__packet { left: 50% !important; transform: translate(-50%, -50%); min-width: 0; width: 1.9rem; padding: 0.1rem 0; }
 /* Versi statis langkah awal (I5c-b, keputusan 263; src/lib/alur-statis.ts) memesan tinggi widget sampai alur.js
    menggantinya. Pembungkus luar selebar widget, dalam selebar satu komponen ((lebar - 2 px garis) / --n), sehingga
-   container query meniru tata() di alur.js: sempit bila clientWidth < 600, rel vertikal bila clientWidth / n < 110.
+   container query meniru tata() di alur.js: sempit bila clientWidth < 600 (atau tinggi layar < 500 px: @media di
+   bawah), rel vertikal bila clientWidth / n < 110.
    Aturan di bawah menyalin .is-sempit dan .is-vertikal di atas; ukur-cls.mjs menggagalkan gerbang bila tinggi, x, atau
    lebar host, atau letak elemen sesudahnya, berbeda lebih dari 1 px dengan versi hidup. Margin .bb-widget pindah ke
    pembungkus agar tetap runtuh seperti aslinya: 1,6em pada font widget 1rem (aturan "Widget: dasar 1rem" di bawah), jadi
@@ -392,6 +393,19 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-alur__rel-statis { display: contents; }
 @media (scripting: none) { .sl-markdown-content .bb-alur-pesan { display: none; } }
 @container alur-lebar (width < 602px) {
+  .sl-markdown-content .bb-alur--statis { display: flex; flex-direction: column; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__body { display: contents; }
+  .sl-markdown-content .bb-alur--statis :is(.bb-alur__rel-statis, .bb-alur__lanes, .bb-alur__track) { order: 1; }
+  .sl-markdown-content .bb-alur--statis > .bb-row { order: 2; }
+  .sl-markdown-content .bb-alur--statis > .bb-predict { order: 3; }
+  .sl-markdown-content .bb-alur--statis > .bb-alur__varian { order: 4; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__detail { order: 5; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__phone { order: 6; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.6rem; }
+}
+/* Layar pendek (HP lanskap, keputusan 350): alur.js juga memakai mode sempit bila tinggi layar < 500 px (kueri yang sama
+   lewat matchMedia). Container query tidak bisa membaca tinggi layar, jadi aturan alur-lebar di atas disalin di sini;
+   ukur-cls.mjs memeriksanya di 667x375. */
+@media (height < 500px) {
   .sl-markdown-content .bb-alur--statis { display: flex; flex-direction: column; }
   .sl-markdown-content .bb-alur--statis .bb-alur__body { display: contents; }
   .sl-markdown-content .bb-alur--statis :is(.bb-alur__rel-statis, .bb-alur__lanes, .bb-alur__track) { order: 1; }

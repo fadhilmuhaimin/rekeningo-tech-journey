@@ -15,6 +15,10 @@
   var core = BB.alurCore;
   var LEBAR_MIN = 110;  // px per komponen; di bawah ini jalur menjadi rel vertikal
   var LEBAR_SEMPIT = 600;  // px lebar widget; di bawah ini (HP) tombol pindah tepat di bawah jalur
+  // Layar pendek (HP lanskap, keputusan 350): di tata letak lebar detail dan HP ada di antara paket dan tombol, jadi
+  // keduanya tidak muat bersamaan di tinggi < 500 px; mode sempit ikut berlaku. Kueri yang sama dipakai versi statis
+  // (tema.css, @media (height < 500px)), karena container query tidak bisa membaca tinggi layar.
+  var PENDEK = window.matchMedia ? window.matchMedia("(height < 500px)") : null;
 
   BB.mounts.alur = function (host) {
     BB.fetchJSON(host.dataset.src).then(function (raw) {
@@ -89,7 +93,7 @@
 
       // Rel vertikal kalau lebar per komponen < LEBAR_MIN px. Tata letak horizontal
       // tidak disentuh sama sekali: DOM hanya berubah saat beralih ke vertikal.
-      // Sempit (HP): DOM diurutkan ulang menjadi jalur, tombol, tebakan, varian, lalu detail dan HP (CSS menaruh
+      // Sempit (HP, atau layar pendek): DOM diurutkan ulang menjadi jalur, tombol, tebakan, varian, lalu detail dan HP (CSS menaruh
       // detail di atas HP). Semua yang tingginya berubah ada di bawah tombol, jadi jalur dan tombol diam antarlangkah,
       // paket dan Berikutnya terlihat bersamaan, dan urutan fokus sama dengan urutan tampil (perbaikan PR #175).
       var vertikal = false, sempit = false;
@@ -113,7 +117,7 @@
       function tata() {
         var w = root.clientWidth;
         var mau = w > 0 && w / n < LEBAR_MIN;
-        urutSempit(w > 0 && (mau || w < LEBAR_SEMPIT));
+        urutSempit(w > 0 && (mau || w < LEBAR_SEMPIT || !!(PENDEK && PENDEK.matches)));
         if (mau === vertikal) return;
         vertikal = mau;
         if (vertikal) {
@@ -217,6 +221,8 @@
       tata();
       if (window.ResizeObserver) new ResizeObserver(tata).observe(root);
       else window.addEventListener("resize", tata);
+      // Tinggi saja yang berubah (jendela dipendekkan) tidak mengubah lebar widget, jadi ResizeObserver diam.
+      if (PENDEK && PENDEK.addEventListener) PENDEK.addEventListener("change", tata);
     }).catch(function (e) { host.textContent = "Alur gagal dimuat: " + e.message; });
   };
 

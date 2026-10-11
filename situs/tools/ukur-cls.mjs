@@ -7,6 +7,7 @@
 // berbeda lebih dari SELISIH px dengan versi hidupnya pada salah satu ukuran: tinggi host, jarak elemen sesudah host ke
 // elemen sebelum host (menangkap margin yang runtuh keluar host, yang tidak terlihat di offsetHeight), serta x dan lebar
 // host (di 1440 px wadahnya 1024 px dan host fit-content bisa lebih sempit dari wadah). Hanya itu cara alur menggeser isi lain.
+// Ukuran 667x375 (keputusan 350): mode sempit juga bergantung tinggi layar, yang tidak terbaca container query.
 // CLS halaman di atas BATAS dicetak "lewat" dengan sumbernya tanpa menggagalkan: di CI sumbernya bagian lain halaman
 // (mis. .content-panel naik 29 px di HP saat modul datang), bukan alur (keputusan 263, tugas I5c-d).
 //   node tools/ukur-cls.mjs --url http://127.0.0.1:4321 [--halaman /tahap-1/perjalanan-request/] [--rinci]
@@ -26,6 +27,8 @@ const TUNDA = 600;
 const SELISIH = 1;
 const UKURAN = [
   { width: 375, height: 667 },
+  // HP lanskap: mode sempit alur ikut tinggi layar (< 500 px, keputusan 350), versi statis lewat media query tinggi.
+  { width: 667, height: 375 },
   { width: 1366, height: 657 },
   { width: 1440, height: 900 },
 ];
@@ -147,7 +150,7 @@ const nilai = [...hasilPer.values()].map((r) => r.total);
 const maks = (w) => Math.max(0, ...[...hasilPer].filter(([k]) => k.includes(` ${w}x`)).map(([, r]) => r.total));
 const maksRinci = (n) => Math.max(0, ...[...hasilPer.values()].map((r) => r.rinci[n]));
 console.log(
-  `CLS alur: ${daftar.length} halaman, maks 375 ${maks(375).toFixed(3)}, maks 1366 ${maks(1366).toFixed(3)}, maks 1440 ${maks(1440).toFixed(3)}, ` +
+  `CLS alur: ${daftar.length} halaman, maks 375 ${maks(375).toFixed(3)}, maks 667 ${maks(667).toFixed(3)}, maks 1366 ${maks(1366).toFixed(3)}, maks 1440 ${maks(1440).toFixed(3)}, ` +
     `${new Set([...hasilPer].filter(([, r]) => r.total > 0.01).map(([k]) => k.split(" ")[0])).size} halaman > 0,01, ` +
     `${[...hasilPer.values()].filter((r) => r.total > BATAS).length} lewat ${BATAS}, selisih maks: tinggi ${maksRinci("tinggi")} saudara ${maksRinci("saudara")} x ${maksRinci("x")} lebar ${maksRinci("lebar")}px, ${gagal} gagal (batas selisih ${SELISIH}px)`,
 );
