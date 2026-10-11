@@ -413,7 +413,6 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - selesai bila: di 667×375 paket dan tombol Berikutnya terlihat bersamaan sesudah setiap klik di semua halaman alur (sekarang paket di luar layar di 176 dari 193 klik, sama dengan main), mis. syarat mode sempit `lebar < 600 || innerHeight < 500`; pemeriksaan 667×375 masuk `ukur-gerak.mjs`.
 - catatan: ditemukan peninjau PR #175 putaran 2.
 
-
 ### I5c-d · CLS halaman alur di CI
 
 - jenis: perbaikan
@@ -421,7 +420,8 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - percobaan: 0
 - bergantung: I5c-b
 - selesai bila: `ukur-cls.mjs` gagal (bukan `lewat`) bila CLS halaman > 0,1; run CI hijau dengan 0 lewat di 28 halaman × 375×667 dan 1366×657 (dua posisi, modul ditunda 600 ms); setiap sumber dari run 38140527859 hilang atau < 0,01: `.content-panel` naik 29 px di 375 saat modul datang (m6 0,342; m2 0,340; b3-2 dan b5-2 0,336; authentication 0,318; fitur-bayar 0,244); `figure.rantai`/`.rantai__baris` naik 20–31 px (authorization 0,270; app-versi-lama 0,239; deployment-rollback 0,174); `figure.bb-fig` dan diagram arsitektur naik 30 px (kontrak-openapi 0,238; b2-5 0,194; b10-1 0,171); `details.blok` naik 31 px (fitur-login 0,106); `li` sidebar naik 21 px di 1366 (b3-2, b5-2, d2, e3); penyebab beda lokal (0 lewat) dan CI dicatat di keputusan.
-- catatan: ditemukan peninjau PR #177.
+- catatan: ditemukan peninjau PR #177. CI run 38144799335 juga mengukur 1440×900: 45 baris lewat (375: 21, 1366: 8, 1440: 16), maks 0,473 di validation-error (`.content-panel` y200→158); sumber di 1440: `?` y228→207 di 6 halaman, `li` sidebar 21 px, `.bb-predict` 32 px; tambahkan 1440 ke syarat. Jalur teknis (keputusan 264).
+
 ### 1.35 · Keamanan 3: secret + ADR 11
 
 - jenis: konten
