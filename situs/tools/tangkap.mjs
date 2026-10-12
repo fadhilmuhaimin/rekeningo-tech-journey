@@ -15,7 +15,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const UKURAN = [{ nama: "desktop", width: 1366, height: 657 }, { nama: "hp", width: 375, height: 667, mobile: true }];
 const MODE = ["dark", "light"];
 
-const browser = awasi(await chromium.launch()); // batas waktu per halaman (keputusan 360)
+const browser = awasi(await chromium.launch(), { alat: "tangkap" }); // batas waktu per halaman (keputusan 360)
 let masalah = 0;
 for (const p of PATHS) {
   const nama = p === "/" ? "beranda" : p.replace(/^\/|\/$/g, "").replace(/\//g, "_");

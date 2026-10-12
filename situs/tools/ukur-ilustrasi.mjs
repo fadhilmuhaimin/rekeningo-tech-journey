@@ -16,7 +16,7 @@ const halaman = ["/tahap-1/prd-v1/", "/tahap-1/m1-nominal-minus/", "/tahap-1/m2-
 const ukuran = [[375, 667], [1366, 657]];
 const JARAK = 2; // satuan viewBox minimal antara teks dan tepi bingkai
 
-const browser = awasi(await chromium.launch()); // batas waktu per halaman (keputusan 360)
+const browser = awasi(await chromium.launch(), { alat: "ilustrasi" }); // batas waktu per halaman (keputusan 360)
 let gagal = 0;
 for (const [w, h] of ukuran) {
   for (const tema of ["dark", "light"]) {

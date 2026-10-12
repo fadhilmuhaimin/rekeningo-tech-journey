@@ -57,7 +57,7 @@ async function ukur(page) {
 
 const diam = (s) => s.opacity === 1 && (s.transform === "none" || s.transform === "matrix(1, 0, 0, 1, 0, 0)");
 
-const browser = awasi(await chromium.launch()); // batas waktu per halaman (keputusan 360)
+const browser = awasi(await chromium.launch(), { alat: "gerak" }); // batas waktu per halaman (keputusan 360)
 let gagal = 0;
 for (const reducedMotion of ["no-preference", "reduce"]) {
   const page = await browser.newPage({ viewport: { width: 375, height: 667 }, reducedMotion });

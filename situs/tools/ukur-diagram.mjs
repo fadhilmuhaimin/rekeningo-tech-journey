@@ -18,7 +18,7 @@ const arg = (nama, bawaan) => {
 const url = arg("--url", "http://127.0.0.1:4321") + "/uji/diagram/";
 const AXE = arg("--axe", undefined);
 
-const browser = awasi(await chromium.launch()); // batas waktu per halaman (keputusan 360)
+const browser = awasi(await chromium.launch(), { alat: "diagram" }); // batas waktu per halaman (keputusan 360)
 let gagal = 0;
 const lapor = (ok, pesan) => {
   console.log(`${ok ? "ok" : "GAGAL"} ${pesan}`);

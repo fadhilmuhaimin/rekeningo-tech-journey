@@ -42,7 +42,7 @@ const UKUR = `(async () => {
   const b = vis.getBoundingClientRect();
   return { bottom: Math.round(b.bottom), tinggi: window.innerHeight, scrollX: document.documentElement.scrollWidth > document.documentElement.clientWidth };
 })()`;
-const browser = awasi(await chromium.launch()); // batas waktu per halaman (keputusan 360)
+const browser = awasi(await chromium.launch(), { alat: "layar" }); // batas waktu per halaman (keputusan 360)
 let gagal = 0, tipis = 0;
 for (const p of halaman()) {
   const baris = [];

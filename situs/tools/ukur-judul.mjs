@@ -15,7 +15,7 @@ const halaman = arg("--path", "/tahap-1/m4-rp70000-hilang/,/tahap-1/adr-transact
 const ukuran = [[375, 667], [1366, 657]];
 const LEBIH = 4; // px: celah ke meta minimal sebesar celah antar baris judul + LEBIH
 
-const browser = awasi(await chromium.launch()); // batas waktu per halaman (keputusan 360)
+const browser = awasi(await chromium.launch(), { alat: "judul" }); // batas waktu per halaman (keputusan 360)
 let gagal = 0;
 for (const [w, h] of ukuran) {
   for (const tema of ["dark", "light"]) {
