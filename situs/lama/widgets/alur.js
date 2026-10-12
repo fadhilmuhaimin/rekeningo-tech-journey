@@ -64,7 +64,18 @@
 
       var pBox = null;
       if (d.predict) {
-        pBox = BB.predict(d.predict, function () { guessed = true; render(); });
+        pBox = BB.predict(d.predict, function (pilih) {
+          guessed = true;
+          // Sesudah menebak (I5c-g, keputusan 363) pilihan diciutkan jadi satu baris jawaban; pertanyaannya tetap, karena
+          // jawabannya baru dibuka di akhir jalur. Tombol pilihan yang disembunyikan membuang fokus ke body, dan panah
+          // kiri/kanan hanya bekerja di dalam widget, jadi fokus pindah ke Berikutnya, langkah yang sekarang terbuka.
+          pBox.classList.add("is-ditebak");
+          pBox.appendChild(BB.el("p", { class: "bb-predict__pilihan" },
+            [BB.el("strong", { text: "Tebakanmu: " }), d.predict.options[pilih]]));
+          var fokus = document.activeElement;
+          render();
+          if (!fokus || fokus === document.body || pBox.contains(fokus)) next.focus({ preventScroll: true });
+        });
       }
       if (d.varian) {
         var cb = BB.el("input", { type: "checkbox" });
@@ -80,16 +91,20 @@
         });
         var varianBox = BB.el("label", { class: "bb-alur__varian" }, [cb, " Ubah satu hal: " + d.varian.label]);
       }
-      // Satu urutan di semua ukuran (I5c-e, keputusan 358): jalur, tombol, tebakan, varian, lalu detail dan HP. Semua yang
-      // tingginya berubah antarlangkah (detail, HP, jawaban tebakan) ada di bawah tombol, jadi jalur dan tombol diam,
-      // paket dan Berikutnya terlihat bersamaan, dan urutan fokus sama dengan urutan tampil. Sebelumnya tata letak lebar
-      // menaruh detail dan HP di atas tombol, dan detail yang memanjang mendorong Berikutnya keluar layar di 1366x657.
+      // Satu urutan di semua ukuran (I5c-e, keputusan 358): jalur, tombol, lalu HP dan kolom detail. Semua yang tingginya
+      // berubah antarlangkah (detail, HP, jawaban tebakan) ada di bawah tombol, jadi jalur dan tombol diam, paket dan
+      // Berikutnya terlihat bersamaan, dan urutan fokus sama dengan urutan tampil. Sebelumnya tata letak lebar menaruh
+      // detail dan HP di atas tombol, dan detail yang memanjang mendorong Berikutnya keluar layar di 1366x657.
+      // Tebakan dan varian ada di kolom detail, sesudah penjelasan langkah (I5c-g, keputusan 363): di antara tombol dan
+      // detail keduanya mendorong judul langkah 224-387 px di bawah paket. Sebelum menebak penjelasannya pengantar, jadi
+      // tebakan tetap tepat di bawah kalimat "Tebak dulu"; detail tetap satu-satunya bagian aria-live.
       root.appendChild(lanes);
       root.appendChild(track);
       var rail = null;  // dibuat saat pertama kali beralih ke rel vertikal
       root.appendChild(controls);
-      [pBox, varianBox].forEach(function (x) { if (x) root.appendChild(x); });  // varianBox: var, undefined bila tanpa varian
-      root.appendChild(BB.el("div", { class: "bb-alur__body" }, [phoneBox, detail]));
+      var kolom = BB.el("div", { class: "bb-alur__kolom" }, [detail]);
+      [pBox, varianBox].forEach(function (x) { if (x) kolom.appendChild(x); });  // varianBox: var, undefined bila tanpa varian
+      root.appendChild(BB.el("div", { class: "bb-alur__body" }, [phoneBox, kolom]));
       root.addEventListener("keydown", function (e) {
         if (e.key === "ArrowRight") { go(i + 1); e.preventDefault(); }
         if (e.key === "ArrowLeft") { go(i - 1); e.preventDefault(); }

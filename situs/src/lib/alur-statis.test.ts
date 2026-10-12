@@ -35,6 +35,14 @@ describe("htmlAlurStatis", () => {
     expect(html).toContain('<button type="button" class="bb-btn bb-btn--primary" disabled>');
   });
 
+  it("urutan sama dengan alur.js: tombol, lalu HP dan kolom detail berisi penjelasan, tebakan, varian (keputusan 363)", () => {
+    const html = htmlAlurStatis(skenario(3), core);
+    const letak = ["bb-row", "bb-alur__body", "bb-alur__phone", "bb-alur__kolom", "bb-alur__detail", "bb-predict", "bb-alur__varian"]
+      .map((k) => html.indexOf(`class="${k}"`));
+    expect(letak.every((x) => x > -1)).toBe(true);
+    expect([...letak].sort((a, b) => a - b)).toEqual(letak);
+  });
+
   it("meloloskan teks skenario sebagai teks, bukan HTML", () => {
     expect(htmlAlurStatis(skenario(2), core)).toContain("Bayar &lt;warung&gt; &quot;Ani&quot;");
   });

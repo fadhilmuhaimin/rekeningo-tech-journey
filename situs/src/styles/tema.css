@@ -388,12 +388,22 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-alur__payload[hidden] { display: none; }
 .sl-markdown-content .bb-alur__payload { margin: 0 0 0.5rem; padding: 0.5rem 0.6rem; border-radius: 8px; background: var(--k-old-fill); border: 0; font-size: 0.8em; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sl-markdown-content .bb-alur__explain { margin: 0; font-size: 0.92em; line-height: 1.6; }
+/* Kolom detail (I5c-g, keputusan 363): penjelasan langkah, lalu tebakan dan varian. Sesudah menebak, pilihan diciutkan
+   jadi satu baris "Tebakanmu: ..." (alur.js); pertanyaannya tetap untuk jawaban di akhir jalur. */
+/* Margin atas ditulis sendiri: aturan jarak antarsaudara Starlight (1rem) memberi body 1rem di bawah tombol dan kolom
+   1rem lagi di dalam grid, sehingga judul langkah 79 px di bawah paket. Dengan 0.6rem (runtuh dengan margin tombol)
+   judul ±57 px di bawah paket di 1366x657; batasnya 60 px (ukur-detail-alur.mjs). */
+.sl-markdown-content .bb-alur__body { margin-top: 0.6rem; }
+.sl-markdown-content .bb-alur__kolom { min-width: 0; margin-top: 0; }
+.sl-markdown-content .bb-alur__kolom .bb-predict { margin: 0.8rem 0 0.5rem; }
+.sl-markdown-content .bb-alur .bb-predict.is-ditebak .bb-predict__opts { display: none; }
+.sl-markdown-content .bb-predict__pilihan { margin: 0; }
 /* Urutan DOM sama di semua ukuran (I5c-e, keputusan 358): jalur, tombol, tebakan, varian, lalu detail dan HP. Yang
    tingginya berubah ada di bawah tombol, jadi jalur dan tombol diam antarlangkah dan paket terlihat bersama Berikutnya
    (perbaikan PR #175). Sempit (HP lebar < 600 px atau tinggi layar < 500 px): detail di atas HP, satu kolom. */
 .sl-markdown-content .bb-alur.is-sempit { display: flex; flex-direction: column; }
 .sl-markdown-content .bb-alur.is-sempit .bb-alur__body { display: contents; }
-.sl-markdown-content .bb-alur.is-sempit .bb-alur__detail { order: 1; }
+.sl-markdown-content .bb-alur.is-sempit .bb-alur__kolom { order: 1; }
 .sl-markdown-content .bb-alur.is-sempit .bb-alur__phone { order: 2; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.6rem; }
 .sl-markdown-content .bb-alur__rail { position: relative; padding-left: 2.6rem; margin: 0.6rem 0 0; }
 .sl-markdown-content .bb-alur__rail::before { content: ""; position: absolute; left: 1.15rem; top: 0.3rem; bottom: 0.3rem; border-left: 2px dashed var(--k-old-edge); }
@@ -421,7 +431,7 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 @container alur-lebar (width < 602px) {
   .sl-markdown-content .bb-alur--statis { display: flex; flex-direction: column; }
   .sl-markdown-content .bb-alur--statis .bb-alur__body { display: contents; }
-  .sl-markdown-content .bb-alur--statis .bb-alur__detail { order: 1; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__kolom { order: 1; }
   .sl-markdown-content .bb-alur--statis .bb-alur__phone { order: 2; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.6rem; }
 }
 /* Layar pendek (HP lanskap, keputusan 350): alur.js juga memakai mode sempit bila tinggi layar < 500 px (kueri yang sama
@@ -430,7 +440,7 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 @media (height < 500px) {
   .sl-markdown-content .bb-alur--statis { display: flex; flex-direction: column; }
   .sl-markdown-content .bb-alur--statis .bb-alur__body { display: contents; }
-  .sl-markdown-content .bb-alur--statis .bb-alur__detail { order: 1; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__kolom { order: 1; }
   .sl-markdown-content .bb-alur--statis .bb-alur__phone { order: 2; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.6rem; }
 }
 @container alur-per (width < 110px) {
@@ -445,7 +455,7 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 @media (max-width: 50em) {
   .sl-markdown-content .bb-alur__body { grid-template-columns: 1fr; }
   .sl-markdown-content .bb-alur__phone { display: flex; justify-content: center; }
-  .sl-markdown-content .bb-alur__detail { order: -1; }
+  .sl-markdown-content .bb-alur__kolom { order: -1; }
   .sl-markdown-content .bb-alur__lanes { gap: 0.3rem; }
   .sl-markdown-content .bb-alur__lane { padding: 0.35rem 0.25rem; font-size: 0.78em; }
   .sl-markdown-content .bb-alur__layers li { font-size: 0.7em; padding: 0.05rem 0.15rem; }
