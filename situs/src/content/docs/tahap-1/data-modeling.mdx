@@ -1,9 +1,12 @@
 ---
 title: "1.12 Data modeling dan relasi"
-description: Tabel apa yang ada, kolom apa yang disimpan, dan tabel mana menunjuk ke mana. Di Rekeningo v1, empat tabel menunjuk ke akun lewat lima foreign key.
+description: Tabel apa yang ada, kolom apa yang disimpan, dan tabel mana menunjuk ke mana. Di skema minggu 1 Rekeningo, tiga tabel menunjuk ke akun lewat lima foreign key.
 ---
 import Blok from "../../../components/Blok.astro";
 import Snippet from "../../../components/Snippet.astro";
+import Rantai from "../../../components/Rantai.astro";
+import rujukan from "../../../../data/diagram/t1-relasi-rujukan.json";
+import salinRujuk from "../../../../data/diagram/t1-relasi-salin-rujuk.json";
 import TabSet from "../../../components/TabSet.astro";
 import WidgetLama from "../../../components/WidgetLama.astro";
 import SkripLama from "../../../components/SkripLama.astro";
@@ -14,18 +17,13 @@ import SkripLama from "../../../components/SkripLama.astro";
 
 ## Inti
 
-Data modeling adalah memutuskan tabel apa yang ada dan tabel mana menunjuk ke mana. Di Rekeningo v1, setiap catatan menunjuk ke `akun`:
+Data modeling adalah memutuskan tabel apa yang ada dan tabel mana menunjuk ke mana.
 
-<figure class="bb-fig">
-<ol class="bb-flow is-rujuk">
-<li><code>sesi.akun_id</code> → <code>akun</code></li>
-<li><code>topup.akun_id</code>, <code>admin_id</code> → <code>akun</code></li>
-<li><code>transaksi.dari</code>, <code>ke</code> → <code>akun</code></li>
-</ol>
-<figcaption>Rekaman lab api-t1: lima foreign key, semuanya ke akun(id).</figcaption>
-</figure>
+<Rantai data={rujukan} ringkas />
 
-Foreign key membuat database menolak catatan yang menunjuk ke akun yang tidak ada.
+Skema minggu 1 punya tiga tabel yang menunjuk ke `akun`: `sesi`, `topup`, dan `transaksi`. Rekaman lab mencatat lima foreign key, semuanya ke `akun(id)`. Riwayat Budi menampilkan nama warung karena baris `transaksi` dibaca bersama baris `akun` yang ditunjuk kolom `ke`.
+
+Foreign key membuat database menolak catatan yang menunjuk ke akun yang tidak ada. Transaksi ke akun 999 ditolak oleh `transaksi_ke_fkey`. Akun Warung Ani juga tidak bisa dihapus selama masih punya transaksi, jadi riwayat Budi tidak kehilangan penerimanya.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -71,6 +69,8 @@ Aturan Pak Hadi membuat ini lebih dari soal tampilan. Setiap rupiah harus bisa d
 <Snippet file="labs/api-t1/output/relasi.txt" lines="29:36" title="Rekaman lab: labs/api-t1/output/relasi.txt" />
 
 **4. Salin yang harus tetap, rujuk yang harus terkini.** Nama warung dirujuk lewat `transaksi.ke`, jadi riwayat menampilkan nama terbaru. Jumlah pembayaran disalin ke baris transaksi, karena Rp25.000 yang sudah dibayar tidak boleh berubah.
+
+<Rantai data={salinRujuk} />
 
 <Snippet file="labs/api-t1/output/relasi.txt" lines="39:45" title="Rekaman lab: labs/api-t1/output/relasi.txt" />
 

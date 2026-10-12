@@ -1,0 +1,26 @@
+{
+  "id": "t1-relasi-salin-rujuk",
+  "judul": "Ani mengganti nama warung: yang dirujuk ikut berubah, yang disalin tetap",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab api-t1 · relasi.txt" },
+  "baris": [
+    {
+      "label": "Dirujuk",
+      "sub": "nama warung, lewat transaksi.ke",
+      "simpul": [
+        { "teks": "Budi membayar Rp25.000", "sub": "ke akun 418, Warung Ani" },
+        { "teks": "UPDATE akun", "kode": true, "sub": "nama jadi Warung Bu Ani" },
+        { "teks": "riwayat Budi", "sub": "lawan: Warung Bu Ani", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Disalin",
+      "sub": "jumlah, di transaksi.jumlah",
+      "simpul": [
+        { "teks": "Budi membayar Rp25.000", "sub": "25000 disimpan di baris transaksi" },
+        { "teks": "UPDATE akun", "kode": true, "sub": "baris transaksi tidak disentuh" },
+        { "teks": "riwayat Budi", "sub": "jumlah: 25000", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Rekaman relasi.txt bagian A dan E. Yang dirujuk menampilkan nilai terbaru, dan yang disalin menyimpan nilai saat kejadian."
+}
