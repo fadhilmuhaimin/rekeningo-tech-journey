@@ -15,9 +15,9 @@
   var BB = window.BB;
   var core = BB.alurCore;
   var LEBAR_MIN = 110;  // px per komponen; di bawah ini jalur menjadi rel vertikal
-  var LEBAR_SEMPIT = 600;  // px lebar widget; di bawah ini (HP) tombol pindah tepat di bawah jalur
-  // Layar pendek (HP lanskap, keputusan 350): di tata letak lebar detail dan HP ada di antara paket dan tombol, jadi
-  // keduanya tidak muat bersamaan di tinggi < 500 px; mode sempit ikut berlaku. Kueri yang sama dipakai versi statis
+  var LEBAR_SEMPIT = 600;  // px lebar widget; di bawah ini (HP) detail pindah ke atas HP dalam satu kolom
+  // Layar pendek (HP lanskap, keputusan 350): mode sempit ikut berlaku. Dulu itu juga menaruh tombol tepat di bawah
+  // jalur; sejak keputusan 358 tombol di bawah jalur di semua ukuran. Kueri yang sama dipakai versi statis
   // (tema.css, @media (height < 500px)), karena container query tidak bisa membaca tinggi layar.
   var PENDEK = window.matchMedia ? window.matchMedia("(height < 500px)") : null;
 
@@ -65,7 +65,6 @@
       var pBox = null;
       if (d.predict) {
         pBox = BB.predict(d.predict, function () { guessed = true; render(); });
-        root.appendChild(pBox);
       }
       if (d.varian) {
         var cb = BB.el("input", { type: "checkbox" });
@@ -80,45 +79,30 @@
           render(true);
         });
         var varianBox = BB.el("label", { class: "bb-alur__varian" }, [cb, " Ubah satu hal: " + d.varian.label]);
-        root.appendChild(varianBox);
       }
+      // Satu urutan di semua ukuran (I5c-e, keputusan 358): jalur, tombol, tebakan, varian, lalu detail dan HP. Semua yang
+      // tingginya berubah antarlangkah (detail, HP, jawaban tebakan) ada di bawah tombol, jadi jalur dan tombol diam,
+      // paket dan Berikutnya terlihat bersamaan, dan urutan fokus sama dengan urutan tampil. Sebelumnya tata letak lebar
+      // menaruh detail dan HP di atas tombol, dan detail yang memanjang mendorong Berikutnya keluar layar di 1366x657.
       root.appendChild(lanes);
       root.appendChild(track);
       var rail = null;  // dibuat saat pertama kali beralih ke rel vertikal
-      root.appendChild(BB.el("div", { class: "bb-alur__body" }, [phoneBox, detail]));
       root.appendChild(controls);
+      [pBox, varianBox].forEach(function (x) { if (x) root.appendChild(x); });  // varianBox: var, undefined bila tanpa varian
+      root.appendChild(BB.el("div", { class: "bb-alur__body" }, [phoneBox, detail]));
       root.addEventListener("keydown", function (e) {
         if (e.key === "ArrowRight") { go(i + 1); e.preventDefault(); }
         if (e.key === "ArrowLeft") { go(i - 1); e.preventDefault(); }
       });
 
-      // Rel vertikal kalau lebar per komponen < LEBAR_MIN px. Tata letak horizontal
-      // tidak disentuh sama sekali: DOM hanya berubah saat beralih ke vertikal.
-      // Sempit (HP, atau layar pendek): DOM diurutkan ulang menjadi jalur, tombol, tebakan, varian, lalu detail dan HP (CSS menaruh
-      // detail di atas HP). Semua yang tingginya berubah ada di bawah tombol, jadi jalur dan tombol diam antarlangkah,
-      // paket dan Berikutnya terlihat bersamaan, dan urutan fokus sama dengan urutan tampil (perbaikan PR #175).
-      var vertikal = false, sempit = false;
-      var atasAsli = [pBox, varianBox].filter(Boolean);  // varianBox: var, undefined bila tanpa varian
-      function urutSempit(mau) {
-        if (mau === sempit) return;
-        sempit = mau;
-        // Chrome membuang fokus dari elemen yang dipindah insertBefore; fokus dikembalikan ke elemen yang sama.
-        var aktif = document.activeElement;
-        var jalur = rail && rail.parentNode === root ? rail : lanes;
-        if (sempit) {
-          var stlh = rail && rail.parentNode === root ? rail : track;
-          [controls].concat(atasAsli).reverse().forEach(function (x) { root.insertBefore(x, stlh.nextSibling); });
-        } else {
-          atasAsli.forEach(function (x) { root.insertBefore(x, jalur); });
-          root.appendChild(controls);
-        }
-        if (aktif && root.contains(aktif) && document.activeElement !== aktif) aktif.focus({ preventScroll: true });
-        root.classList.toggle("is-sempit", sempit);
-      }
+      // Rel vertikal kalau lebar per komponen < LEBAR_MIN px: jalur dan paket masuk satu rel, di tempat yang sama.
+      // Sempit (HP, atau layar pendek): hanya kelas is-sempit; CSS menaruh detail di atas HP. Urutan DOM tidak berubah,
+      // jadi tombol yang terfokus tidak pernah dipindah (Chrome membuang fokus elemen yang dipindah insertBefore).
+      var vertikal = false;
       function tata() {
         var w = root.clientWidth;
         var mau = w > 0 && w / n < LEBAR_MIN;
-        urutSempit(w > 0 && (mau || w < LEBAR_SEMPIT || !!(PENDEK && PENDEK.matches)));
+        root.classList.toggle("is-sempit", w > 0 && (mau || w < LEBAR_SEMPIT || !!(PENDEK && PENDEK.matches)));
         if (mau === vertikal) return;
         vertikal = mau;
         if (vertikal) {

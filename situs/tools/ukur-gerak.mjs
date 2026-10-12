@@ -271,14 +271,16 @@ for (const [w, [a, b]] of Object.entries(diamAlur)) {
 // jarak atas paket ke atas tombol <= tinggi layar dikurangi header tetap dan tinggi tombol, dan paket berada di antara
 // bawah header tetap dan bawah viewport. HP lanskap 667x375 dan 844x390 ikut (I5c-c, keputusan 350): sebelumnya lebar
 // widget di 667x375 >= 600 px, jadi tata letak lebar menaruh detail dan HP di antara paket dan tombol (±190 dari 199 klik
-// paket di luar layar).
+// paket di luar layar). Desktop 1366x657 ikut (I5c-e, keputusan 358): tata letak lebar dulu menaruh tebakan, varian, lalu
+// detail dan HP di antara paket dan tombol, jadi detail yang memanjang mendorong Berikutnya ke bawah layar; sekarang
+// urutannya sama dengan mode sempit. Baris ringkasan juga menghitung klik yang membuat tombol sendiri keluar layar.
 const DOCS = new URL("../src/content/docs/", import.meta.url);
 const halAlur = readdirSync(DOCS, { recursive: true })
   .filter((f) => f.endsWith(".mdx") && readFileSync(new URL(f, DOCS), "utf8").includes('<WidgetLama nama="alur"'))
   .map((f) => ("/" + f.replace(/\\/g, "/").replace(/\.mdx$/, "").replace(/(^|\/)index$/, "") + "/").replace(/\/+/g, "/"))
   .sort();
-for (const [lw, lh] of [[375, 667], [667, 375], [844, 390]]) {
-let klikAlur = 0, jarakMaks = 0;
+for (const [lw, lh] of [[375, 667], [667, 375], [844, 390], [1366, 657]]) {
+let klikAlur = 0, jarakMaks = 0, tombolLuar = 0;
 const alurGagal = [];
 for (const pth of halAlur) {
   const page = await browser.newPage({ viewport: { width: lw, height: lh } });
@@ -303,6 +305,7 @@ for (const pth of halAlur) {
         const diam = pk.getBoundingClientRect(), bt = maju.getBoundingClientRect();
         const atas = Math.min(f0.top, diam.top), bawah = Math.max(f0.bottom, diam.bottom);
         hasil.push({ k, jarak: Math.round(bt.top - atas), batas: Math.floor(vh - hdr - bt.height),
+          tombol: bt.top >= hdr && bt.bottom <= vh,
           terlihat: !pk.hidden && atas >= hdr && bawah <= vh && bt.top >= hdr && bt.bottom <= vh,
           ukuran: `paket ${Math.round(atas)}..${Math.round(bawah)} tombol ${Math.round(bt.top)}..${Math.round(bt.bottom)}` });
       }
@@ -311,19 +314,21 @@ for (const pth of halAlur) {
   }) : [];
   const buruk = r.filter((x) => x.jarak > x.batas || !x.terlihat);
   klikAlur += r.length;
+  tombolLuar += r.filter((x) => !x.tombol).length;
   jarakMaks = Math.max(jarakMaks, ...r.map((x) => x.jarak));
   if (!r.length || buruk.length) alurGagal.push(`${pth} ${buruk.length}/${r.length} (jarak maks ${Math.max(0, ...r.map((x) => x.jarak))} px; ${buruk.slice(0, 3).map((x) => `langkah ${x.k}: ${x.ukuran}`).join("; ")})`);
   await page.close();
 }
 const okAlur = halAlur.length > 0 && !alurGagal.length;
 const klikLuar = alurGagal.reduce((t, x) => t + Number(x.split(" ")[1].split("/")[0]), 0);
-console.log(`${okAlur ? "ok" : "GAGAL"} alur ${lw}x${lh}: paket dan tombol Berikutnya terlihat bersamaan di ${halAlur.length} halaman, ${klikAlur} klik, ${klikLuar} di luar layar; jarak paket ke tombol maks ${jarakMaks} px (batas ${lh} dikurangi header dan tinggi tombol)`);
+console.log(`${okAlur ? "ok" : "GAGAL"} alur ${lw}x${lh}: paket dan tombol Berikutnya terlihat bersamaan di ${halAlur.length} halaman, ${klikAlur} klik, ${klikLuar} di luar layar (tombol Berikutnya sendiri ${tombolLuar}); jarak paket ke tombol maks ${jarakMaks} px (batas ${lh} dikurangi header dan tinggi tombol)`);
 for (const x of alurGagal.slice(0, 8)) console.log(`  GAGAL ${x}`);
 if (!okAlur) gagal++;
 }
 
-// Fokus bertahan saat lebar melewati batas mode sempit (perbaikan PR #175 putaran 2, keputusan 261): urutSempit memindah
-// tombol dengan insertBefore, dan Chrome membuang fokus elemen yang dipindah. Fokus di Berikutnya, lalu ubah ukuran
+// Fokus bertahan saat lebar melewati batas mode sempit (perbaikan PR #175 putaran 2, keputusan 261): dulu urutSempit
+// memindah tombol dengan insertBefore, dan Chrome membuang fokus elemen yang dipindah; sejak keputusan 358 urutan DOM
+// sama di semua ukuran, dan pemeriksaan ini menjaganya. Fokus di Berikutnya, lalu ubah ukuran
 // 375x667 -> 667x375 -> 375x667 -> 1366x657 -> 1366x450 -> 1366x657 -> 375x667; sesudah setiap ubah ukuran
 // activeElement tetap tombol itu, dan mode sempit sesuai ukuran (keputusan 350: sempit juga bila tinggi layar < 500 px;
 // 1366x657 -> 1366x450 hanya mengubah tinggi, jadi lebar widget tetap dan yang menata ulang adalah matchMedia).
