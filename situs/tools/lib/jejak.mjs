@@ -28,7 +28,10 @@ export async function sesiBrowser(browser) {
 
 export async function pasangJejak(page, sesiCdpBrowser = null) {
   const j = { page, langkah: "belum mulai", sejak: Date.now(), detak: null, detakPada: 0, jedaMaks: 0, minta: new Map(), cdp: null, sesiCdpBrowser };
-  j.tandai = (langkah) => { j.langkah = langkah; j.sejak = Date.now(); };
+  j.tandai = (langkah) => {
+    j.langkah = langkah; j.sejak = Date.now();
+    if (langkah === "goto") { j.detak = null; j.detakPada = 0; } // detak dokumen sebelumnya bukan milik navigasi ini
+  };
   page.on("console", (m) => {
     if (m.type() !== "debug" || !m.text().startsWith("__detak ")) return;
     j.detak = m.text().slice(8); j.detakPada = Date.now();
@@ -60,6 +63,9 @@ export async function pasangJejak(page, sesiCdpBrowser = null) {
   }
   return j;
 }
+
+// Request xhr/fetch yang belum selesai: macet yang menunggu jaringan dari kode halaman, bukan renderer diam.
+export const tertundaXhr = (j) => [...j.minta.keys()].filter((r) => ["xhr", "fetch"].includes(r.resourceType())).map((r) => r.url().slice(0, 80));
 
 const METRIK = ["ScriptDuration", "LayoutDuration", "RecalcStyleDuration", "TaskDuration"];
 async function metrik(j) {

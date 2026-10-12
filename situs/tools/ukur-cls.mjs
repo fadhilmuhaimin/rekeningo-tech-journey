@@ -20,7 +20,7 @@
 // statis selesai diukur (lepas), supaya alur dan race tidak hidup sebelum diukur. Pagar: alat gagal bila ada host
 // terlihat yang sudah hidup saat versi statis diukur, karena itu berarti versi hidup dibandingkan dengan dirinya sendiri.
 // Batas waktu per halaman, ukuran, dan posisi (G2b, keputusan 364): page.evaluate tidak punya timeout (keputusan 360),
-// jadi setiap ukuran dibungkus denganBatas 45 s (normal terlama ±2,1 s tenggat + 15 s menunggu versi hidup + 10 s
+// jadi setiap ukuran dibungkus denganBatas 45 s (BATAS_CLS_MS mengubahnya; normal terlama ±2,1 s tenggat + 15 s menunggu versi hidup + 10 s
 // networkidle). Yang macet mencetak `MACET cls <ukuran> <halaman> (<posisi>)` dengan diagnosa jejak.mjs, exit 1.
 //   node tools/ukur-cls.mjs --url http://127.0.0.1:4321 [--halaman /tahap-1/perjalanan-request/] [--rinci]
 //     [--font-telat 1500] [--fallback Verdana] [--ukuran 375,667] [--paralel 8]
@@ -43,7 +43,7 @@ const BATAS = 0.1;
 // Di tiruan CI modul datang sesudah font, supaya versi statis tetap diukur dengan font akhirnya.
 const TUNDA = 600 + FONT_TELAT;
 const SELISIH = 1;
-const BATAS_CLS = Number(process.env.BATAS_HALAMAN_MS) || 45_000;
+const BATAS_CLS = Number(process.env.BATAS_CLS_MS) || 45_000; // env sendiri: BATAS_HALAMAN_MS milik alat 30 s
 // Konteks yang berjalan bersamaan. Waktu ukur hampir seluruhnya menunggu tenggat font dan modul, bukan CPU; run CI
 // percobaan mode font telat memakai --paralel 8 (keputusan 359); gerbang juga, sejak keputusan 361.
 const PARALEL = Number(arg("--paralel", 4));

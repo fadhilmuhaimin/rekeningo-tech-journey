@@ -9,14 +9,15 @@
 // Elemen penyebab luapan (yang keluar viewport, di luar wadah gulir seperti <pre> dan bukan elemen fixed) dicetak supaya sumbernya terlihat.
 // Gagal bila ada luapan, atau bila tidak satu pun chip terukur (pemeriksaan tidak boleh lolos karena kosong).
 // Ringkasan juga mencetak jeda thread utama terlama (long task atau detak terlambat, lib/jejak.mjs, keputusan 364).
-// Halaman yang macet karena renderer diam (thread utama tertahan di luar JavaScript, CPU semua proses < 0,2 s per detik)
-// diulang sekali di halaman baru dengan baris ULANG dan peringatan Actions; paling banyak 2 per run (keputusan 364).
+// SEMENTARA sampai G2d (keputusan 364): halaman yang macet karena renderer diam (thread utama tertahan di luar
+// JavaScript, CPU semua proses < 0,2 s per detik, tanpa xhr/fetch tertunda) diulang sekali di konteks baru dengan baris
+// ULANG, peringatan Actions, dan ringkasan langkah; paling banyak 2 per run.
 //   node tools/ukur-luapan.mjs --url http://127.0.0.1:4321 [--halaman /tahap-1/cadangan/] [--rinci]
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
 import { denganBatas, Macet } from "./lib/batas.mjs";
-import { pasangJejak, diagnosaJejak, sesiBrowser } from "./lib/jejak.mjs";
+import { pasangJejak, diagnosaJejak, sesiBrowser, tertundaXhr } from "./lib/jejak.mjs";
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const BASE = arg("--url", "http://127.0.0.1:4321");
@@ -123,46 +124,67 @@ const cdpBrowser = await sesiBrowser(browser);
 let gagal = 0, jumlahChip = 0;
 const diulang = []; // halaman yang diulang sesudah renderer diam
 const ULANG_MAKS = 2;
+// Ulangan terlihat di tiga tempat: log (ULANG), anotasi Actions, dan ringkasan langkah (GITHUB_STEP_SUMMARY), karena
+// anotasi tidak muncul di `gh pr checks`.
+function catatUlang(k, pesan) {
+  console.log(`ULANG ${pesan.replace(/^MACET /, "")}`);
+  if (process.env.GITHUB_ACTIONS) console.log(`::warning title=ukur-luapan diulang::renderer diam di ${k}, diulang sekali di konteks baru (keputusan 364)`);
+  if (process.env.GITHUB_STEP_SUMMARY)
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `- ukur-luapan: renderer diam di \`${k}\`, diulang sekali di konteks baru (keputusan 364, sementara sampai G2d)\n`);
+}
 let jedaMaks = { ms: 0, p: "-" }; // jeda antardetak terlama di halaman: lama thread utama renderer tidak bebas (keputusan 364)
 const maks = {}; // per ukuran: chip Rantai terlebar dibanding figure-nya
 const baris = [];
 await Promise.all(UKURAN.map(async (u) => {
-  const ctx = await browser.newContext({ viewport: { width: u.width, height: u.height }, isMobile: true, hasTouch: true, reducedMotion: "reduce" });
+  const opsi = { viewport: { width: u.width, height: u.height }, isMobile: true, hasTouch: true, reducedMotion: "reduce" };
+  const ctx = await browser.newContext(opsi);
   const antre = [...daftar];
+  // Batas per halaman: page.evaluate tidak punya timeout sendiri. Halaman yang macet menghentikan alat dengan
+  // nama halaman, ukuran, dan hasil diagnosa, exit 1, sebelum timeout langkah CI (keputusan 360). Diagnosanya dari
+  // jejak yang dipasang sebelum navigasi (lib/jejak.mjs, keputusan 364), karena halaman yang macet tidak menjawab.
+  const ukurDi = (page, jejak, p, label) => denganBatas(async () => {
+    jejak.tandai("goto");
+    await page.goto(BASE + p, { waitUntil: "load" });
+    jejak.tandai("evaluate ukur");
+    return page.evaluate(ukur);
+  }, label, { diagnosa: () => diagnosaJejak(jejak, () => page.evaluate(diagnosa)), msDiagnosa: 10_000 });
   await Promise.all(Array.from({ length: PARALEL }, async () => {
     let page = await ctx.newPage();
     let jejak = await pasangJejak(page, cdpBrowser);
     for (let p = antre.shift(); p !== undefined; p = antre.shift()) {
-      // Batas per halaman: page.evaluate tidak punya timeout sendiri. Halaman yang macet menghentikan alat dengan
-      // nama halaman, ukuran, dan hasil diagnosa, exit 1, sebelum timeout langkah CI (keputusan 360). Diagnosanya dari
-      // jejak yang dipasang sebelum navigasi (lib/jejak.mjs, keputusan 364), karena halaman yang macet tidak menjawab.
+      const k = `${u.nama} ${p}`;
       let h;
       try {
-        h = await denganBatas(async () => {
-          jejak.tandai("goto");
-          await page.goto(BASE + p, { waitUntil: "load" });
-          jejak.tandai("evaluate ukur");
-          return page.evaluate(ukur);
-        }, `luapan ${u.nama} ${p}`, { diagnosa: () => diagnosaJejak(jejak, () => page.evaluate(diagnosa)), msDiagnosa: 10_000 });
+        h = await ukurDi(page, jejak, p, `luapan ${k}`);
       } catch (e) {
         if (!(e instanceof Macet)) throw e;
-        // Renderer diam (keputusan 364): diulang sekali di halaman baru, tercatat. Kode halaman yang berputar, CPU yang
-        // sibuk, halaman yang sama dua kali, atau lebih dari ULANG_MAKS kali dalam satu run tetap MACET dan exit 1.
-        const k = `${u.nama} ${p}`;
-        if (jejak.diam && !diulang.includes(k) && diulang.length < ULANG_MAKS) {
-          diulang.push(k);
-          console.log(`ULANG ${e.message.replace(/^MACET /, "")}`);
-          if (process.env.GITHUB_ACTIONS) console.log(`::warning title=ukur-luapan diulang::renderer diam di ${k}, diulang sekali (keputusan 364)`);
-          await denganBatas(() => page.close(), "tutup", { ms: 5000 }).catch(() => {});
-          page = await ctx.newPage();
-          jejak = await pasangJejak(page, cdpBrowser);
-          antre.unshift(p);
-          continue;
+        // SEMENTARA sampai G2d menemukan akar macet di Tahap 1 (keputusan 364): renderer diam diulang sekali di konteks
+        // baru, tercatat. Kode halaman yang berputar, CPU yang sibuk, xhr/fetch yang tertunda, macet lagi di konteks
+        // baru, atau lebih dari ULANG_MAKS halaman dalam satu run tetap MACET dan exit 1.
+        const xhr = tertundaXhr(jejak);
+        const tolak = !jejak.diam ? "" : xhr.length ? `xhr/fetch tertunda: ${xhr.slice(0, 3).join(", ")}` : diulang.length >= ULANG_MAKS ? `sudah ${ULANG_MAKS} halaman diulang` : null;
+        if (tolak !== null) { console.log(e.message + (tolak ? ` (tidak diulang, ${tolak})` : "")); process.exit(1); }
+        diulang.push(k);
+        catatUlang(k, e.message);
+        await denganBatas(() => page.close(), "tutup", { ms: 5000 }).catch(() => {});
+        // Konteks baru dengan opsi yang sama: localStorage, cookie, dan cache dari kunjungan pertama tidak terbawa,
+        // jadi bug yang hanya muncul saat penyimpanan kosong tetap macet di ulangan (review PR #222).
+        const ctxUlang = await browser.newContext(opsi);
+        const pageUlang = await ctxUlang.newPage();
+        const jejakUlang = await pasangJejak(pageUlang, cdpBrowser);
+        try {
+          h = await ukurDi(pageUlang, jejakUlang, p, `luapan ${k} (diulang di konteks baru)`);
+        } catch (e2) {
+          if (!(e2 instanceof Macet)) throw e2;
+          console.log(`${e2.message} (macet lagi sesudah diulang)`);
+          process.exit(1);
         }
-        console.log(e.message + (diulang.includes(k) ? " (macet lagi sesudah diulang)" : diulang.length >= ULANG_MAKS ? ` (sudah ${ULANG_MAKS} halaman diulang)` : ""));
-        process.exit(1);
+        await denganBatas(() => ctxUlang.close(), "tutup konteks ulang", { ms: 10_000 }).catch(() => {});
+        page = await ctx.newPage();
+        jejak = await pasangJejak(page, cdpBrowser);
+        jejak.jedaMaks = jejakUlang.jedaMaks;
       }
-      if (jejak.jedaMaks > jedaMaks.ms) jedaMaks = { ms: jejak.jedaMaks, p: `${u.nama} ${p}` };
+      if (jejak.jedaMaks > jedaMaks.ms) jedaMaks = { ms: jejak.jedaMaks, p: k };
       jejak.jedaMaks = 0;
       const masalah = [];
       if (h.sw > h.vw) masalah.push(`scrollWidth ${h.sw} > viewport ${h.vw}${h.penyebab.length ? ": " + h.penyebab.join("; ") : ""}`);
