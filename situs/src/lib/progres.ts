@@ -30,6 +30,7 @@ export interface Penyimpanan {
 // Path halaman di situs ini: diawali satu "/", tanpa skema, tanpa "//". Dipakai beranda sebagai href kartu Lanjutkan,
 // jadi pola ini juga menutup `javascript:` dan tautan ke situs lain.
 const Path = z.string().max(200).regex(/^\/(?!\/)[A-Za-z0-9._~\-/%]*$/);
+const unik = (a: string[]) => new Set(a).size === a.length;
 const IdBlok = z.string().regex(/^blok-[a-z0-9-]{1,60}$/);
 // Huruf atau angka di depan: menolak "__proto__".
 const IdKartu = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,59}$/);
@@ -37,12 +38,11 @@ const Judul = z.string().max(200);
 const Tanggal = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const JALUR = ["generalis", ...PERAN] as const;
 
-const Blok = z.object({ halaman: Path, selesai: z.array(IdBlok).min(1).max(12) });
+const Blok = z.object({ halaman: Path, selesai: z.array(IdBlok).min(1).max(12).refine((a) => unik(a), "blok ganda") });
 const Selesai = z.object({ halaman: Path, waktu: z.iso.datetime(), judul: Judul });
 const Kartu = z.object({ id: IdKartu, kotak: z.number().int().min(1).max(5), jadwal: Tanggal });
 const Terakhir = z.object({ halaman: Path, judul: Judul.min(1), blok: z.number().int().min(0).max(20) });
 
-const unik = (a: string[]) => new Set(a).size === a.length;
 
 export const FileProgres = z.object({
   format: z.literal(FORMAT),
@@ -128,7 +128,13 @@ export function bacaFile(teks: string, ukuran: number): HasilBaca {
   if (data === undefined) return { ok: false, pesan: "File ini bukan JSON yang bisa dibaca. Pilih file rekeningo-progres-….json hasil Ekspor progres." };
   const amplop = z.object({ format: z.unknown(), versi: z.unknown() }).safeParse(data);
   if (!amplop.success || amplop.data.format !== FORMAT) return { ok: false, pesan: "File ini bukan file progres Rekeningo. Pilih file hasil Ekspor progres." };
-  if (amplop.data.versi !== VERSI) return { ok: false, pesan: `File ini memakai format versi ${String(amplop.data.versi)}, sedangkan halaman ini membaca versi ${VERSI}. Tidak ada yang diubah.` };
+  // Nilai versi dari file hanya ditulis bila bilangan bulat: array bersarang ribuan tingkat membuat String() melempar
+  // RangeError, dan teks bebas dari file tidak ikut tampil.
+  const versi = amplop.data.versi;
+  if (versi !== VERSI) {
+    const nama = typeof versi === "number" && Number.isInteger(versi) ? `versi ${versi}` : "versi yang tidak dikenal";
+    return { ok: false, pesan: `File ini memakai format ${nama}, sedangkan halaman ini membaca versi ${VERSI}. Tidak ada yang diubah.` };
+  }
   const hasil = FileProgres.safeParse(data);
   if (!hasil.success) {
     const isu = hasil.error.issues[0]!;

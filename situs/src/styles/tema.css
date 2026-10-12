@@ -1128,7 +1128,8 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .progres__tanya { border-top: 1px solid var(--garis); padding-top: 0.6rem; margin-top: 0.4rem; }
 .sl-markdown-content .progres__tanya > p { margin: 0; color: var(--teks); }
 .sl-markdown-content .progres__status { margin: 0 0 0.6rem; color: var(--teks-2); }
-.sl-markdown-content .progres__status:empty { display: none; }
+/* Live region tetap di pohon aksesibilitas saat kosong (MDN ARIA live regions); hanya margin yang hilang. */
+.sl-markdown-content .progres__status:empty { margin: 0; }
 .sl-markdown-content .progres__status.is-good { color: var(--k-good-ink); }
 .sl-markdown-content .progres__status.is-warn { color: var(--k-warn-ink); }
 .sl-markdown-content .progres__banding { width: 100%; margin: 0.6rem 0 0; font-variant-numeric: tabular-nums; }

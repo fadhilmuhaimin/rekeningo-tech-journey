@@ -13,14 +13,14 @@
     <input type="file" accept="application/json,.json" data-progres-file hidden />
   </div>
   <div class="progres__tanya" data-progres-tanya hidden>
-    <p data-progres-isi></p>
+    <p id="progres-isi" data-progres-isi></p>
     <table class="progres__banding">
       <thead><tr><th scope="col">Isi</th><th scope="col">File</th><th scope="col">Browser ini</th></tr></thead>
       <tbody data-progres-tabel></tbody>
     </table>
     <div class="bb-row">
-      <button type="button" class="bb-btn bb-btn--primary" data-progres-mode="gabung">Gabungkan</button>
-      <button type="button" class="bb-btn" data-progres-mode="ganti">Ganti progres di browser ini</button>
+      <button type="button" class="bb-btn bb-btn--primary" data-progres-mode="gabung" aria-describedby="progres-isi">Gabungkan</button>
+      <button type="button" class="bb-btn" data-progres-mode="ganti" aria-describedby="progres-isi">Ganti progres di browser ini</button>
       <button type="button" class="bb-btn bb-btn--quiet" data-progres-batal>Batal</button>
     </div>
   </div>
@@ -38,11 +38,14 @@
     const isi = $<HTMLParagraphElement>("[data-progres-isi]");
     const input = $<HTMLInputElement>("[data-progres-file]");
     const tabel = $<HTMLTableSectionElement>("[data-progres-tabel]");
+    const pilih = $<HTMLButtonElement>("[data-progres-pilih]");
+    const UMUM = "File ini tidak bisa dibaca. Tidak ada yang diubah. Pilih file hasil Ekspor progres.";
     const muat = () => import("../lib/progres");
     const LABEL: Record<string, string> = { generalis: "Generalis", mobile: "Mobile", web: "Web", backend: "Backend", devops: "DevOps", security: "Security" };
     let siap: FileProgres | null = null;
 
-    // Teks dari file selalu lewat textContent, tidak pernah sebagai HTML.
+    // Teks dari file selalu lewat textContent, tidak pernah sebagai HTML. Status adalah live region yang selalu ada di
+    // pohon aksesibilitas, juga saat kosong; pengumuman dibaca saat isinya berubah.
     const lapor = (teks: string, nada: "biasa" | "good" | "warn" = "biasa") => {
       status.textContent = teks;
       status.className = "progres__status" + (nada === "biasa" ? "" : " is-" + nada);
@@ -55,7 +58,8 @@
     $<HTMLButtonElement>("[data-progres-ekspor]").addEventListener("click", async () => {
       const s = penyimpanan();
       if (!s) return lapor("Browser ini tidak mengizinkan penyimpanan, jadi tidak ada progres untuk diekspor.", "warn");
-      const p = await muat();
+      let p: typeof import("../lib/progres");
+      try { p = await muat(); } catch { return lapor("Alat ekspor gagal dimuat. Muat ulang halaman, lalu coba lagi.", "warn"); }
       const kini = new Date();
       const { file, dilewati } = p.ekspor(s, kini);
       const r = p.ringkas(file);
@@ -66,18 +70,35 @@
       document.body.append(a);
       a.click();
       a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      // Dilepas sesudah 60 detik, bukan seketika: unduhan di sebagian browser HP mulai sesudah klik selesai [perlu verifikasi].
+      setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
       lapor(`File ${a.download} diunduh: ${kalimat(r)}.` + (dilewati.length ? ` ${dilewati.length} entri rusak dilewati.` : ""), "good");
     });
 
-    $<HTMLButtonElement>("[data-progres-pilih]").addEventListener("click", () => input.click());
+    pilih.addEventListener("click", () => input.click());
+    // Menyembunyikan kotak pilihan saat fokus ada di dalamnya membuat fokus jatuh ke BODY: kembalikan ke tombol Impor.
+    const tutupTanya = () => {
+      if (tanya.contains(document.activeElement)) pilih.focus({ preventScroll: true });
+      tanya.hidden = true;
+    };
 
     input.addEventListener("change", async () => {
       const f = input.files?.[0];
       input.value = "";
       siap = null;
-      tanya.hidden = true;
+      tutupTanya();
       if (!f) return;
+      try {
+        await baca(f);
+      } catch {
+        // Import modul, f.text(), atau isi file yang tak terduga: tidak ada yang diubah.
+        siap = null;
+        tutupTanya();
+        lapor(UMUM, "warn");
+      }
+    });
+
+    async function baca(f: File) {
       const p = await muat();
       const hasil = p.bacaFile(f.size > p.BATAS_BYTE ? "" : await f.text(), f.size);
       if (!hasil.ok) return lapor(hasil.pesan, "warn");
@@ -105,7 +126,7 @@
       lapor("");
       tanya.hidden = false;
       $<HTMLButtonElement>('[data-progres-mode="gabung"]').focus();
-    });
+    }
 
     tanya.addEventListener("click", async (e) => {
       const b = (e.target as Element).closest<HTMLButtonElement>("button");
@@ -113,9 +134,10 @@
       const mode = b.dataset.progresMode as "gabung" | "ganti" | undefined;
       const file = siap;
       siap = null;
-      tanya.hidden = true;
+      tutupTanya();
       if (!mode) return lapor("Impor dibatalkan. Tidak ada yang diubah.");
-      const p = await muat();
+      let p: typeof import("../lib/progres");
+      try { p = await muat(); } catch { return lapor("Alat impor gagal dimuat. Tidak ada yang diubah.", "warn"); }
       const s = penyimpanan();
       try {
         if (!s) throw new p.GagalSimpan("localStorage");

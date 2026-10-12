@@ -91,6 +91,16 @@ describe("bacaFile", () => {
     expect(bacaFile(JSON.stringify(f), 100)).toEqual({ ok: false, pesan: "File ini memakai format versi 2, sedangkan halaman ini membaca versi 1. Tidak ada yang diubah." });
   });
 
+  it("tidak menulis nilai versi yang bukan bilangan bulat, termasuk array bersarang 5000 tingkat", () => {
+    const umum = "File ini memakai format versi yang tidak dikenal, sedangkan halaman ini membaca versi 1. Tidak ada yang diubah.";
+    const dalam = `{"format":"${FORMAT}","versi":${"[".repeat(5000)}${"]".repeat(5000)}}`;
+    expect(() => String(JSON.parse(dalam).versi)).toThrow(RangeError);
+    expect(bacaFile(dalam, dalam.length)).toEqual({ ok: false, pesan: umum });
+    for (const versi of ["<img src=x onerror=alert(1)>", 1.5, null, { a: 1 }, true]) {
+      expect(bacaFile(JSON.stringify({ format: FORMAT, versi }), 50)).toEqual({ ok: false, pesan: umum });
+    }
+  });
+
   it("menolak nilai yang tidak lolos skema dan menyebut letaknya", () => {
     const f = JSON.parse(sah());
     f.kartu[0].kotak = 6;
@@ -104,6 +114,9 @@ describe("bacaFile", () => {
     const i = JSON.parse(sah());
     i.blok[0].selesai = ['blok-x"]'];
     expect(bacaFile(JSON.stringify(i), 100).ok).toBe(false);
+    const d = JSON.parse(sah());
+    d.blok[0].selesai = ["blok-mulai", "blok-mulai"];
+    expect(bacaFile(JSON.stringify(d), 100)).toMatchObject({ ok: false, pesan: expect.stringContaining("blok.0.selesai") });
     const j = JSON.parse(sah());
     j.kartu.push({ ...j.kartu[0] });
     expect(bacaFile(JSON.stringify(j), 100)).toMatchObject({ ok: false, pesan: expect.stringContaining('"kartu"') });
