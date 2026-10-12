@@ -24,7 +24,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Ilustrasi latar Grup Lestari belum ada; ilustrasi baru wajib lolos `ukur-ilustrasi.mjs` (tambahkan path halamannya ke alat itu). `situs/lama/assets/cerita/tahap-1.svg` tidak dipakai lagi.
 - Tabel "Angka di tahap ini" ditulis ulang di 1.37/1.38, angka dari `tahap[0].asumsi`.
 - `/cara-pakai/` (A0) masih menjelaskan susunan lama; tulis ulang untuk lima blok dan tiga pintu.
-- 1.40 (ADR 12): memuat cache, queue, service kedua, k8s (naskah; 1.38 Putuskan merujuk [[t1-adr-12]]) serta cadangan terjadwal, pemeriksa arah di CI, dan tes kontrak di CI sebagai "sengaja belum", konsisten dengan tabel 1.36. Angka lintas tahap ada di [[D1]] (`tahap-1/kerangka-estimasi`).
+- 1.41/1.42: rekaman `labs/api-t1/output/sengaja-belum.txt` (1.40) membuktikan dua yang pecah di Tahap 2 — bagian B: dua Bayar bersamaan lolos pemeriksaan service, yang menahan constraint (23514 → 500 di v1, perilaku v1); bagian C–E: Bayar diulang sesudah response hilang tercatat dua kali. Jawaban 1.42 "ADR 5 dibuka lagi" bersandar di sini; keempat yang ditunda ADR 12 tidak ada di jalur kedua kejadian.
 - Audit bahasa menolak "kantor" (pakai "perusahaan") dan "pemakai" (pakai "user").
 - Pola tulis ulang halaman lama: pindah ke `tahap-1/<slug>.mdx`, lima blok, contoh PRD v1; hapus file lama dan data widget lama; perbarui `path`, `prasyarat`, hapus `lama` di registry, perbarui `alat/indeks-topik.mdx`, lalu `python3 tools/sinkron_cerita.py`.
 
@@ -49,7 +49,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-12 · Mode paralel (keputusan 264). Konten: 1.35–1.39, K2 selesai; 1.40 berjalan di `../rjt-konten`; sisa K3, 1.41, 1.42. Teknis: I5c-c, I5c-d, I5d, I5e, K2a, K2b, K2d, G2 selesai; I5c-e berjalan; berikutnya I5c-f, G2a, K2c. Catatan pengatur di `tmp/catatan-pengatur.md`.
+2026-10-12 · Mode paralel (keputusan 264). Konten: 1.35–1.40, K2 selesai; K3 berjalan di `../rjt-konten`; sisa 1.41, 1.42. Teknis: I5c-c, I5c-d, I5d, I5e, K2a, K2b, K2d, G2 selesai; I5c-e (#202) dalam tinjauan; berikutnya I5c-f, G2a, K2c, lalu I5f, P3, P4, R1–R6 sesudah konten selesai. Catatan pengatur di `tmp/catatan-pengatur.md`.
 
 ## Pelajaran
 

@@ -560,11 +560,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### 1.40 · ADR 12: Sengaja belum dilakukan
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: halaman `t1-adr-12` (adr, ★): tanpa cache, queue, service kedua, k8s, masing-masing dengan alasan dan "kapan keputusan ini salah"; menyebut dua yang pecah di Tahap 2 (dua request bersamaan; retry dari app).
-- catatan: -
+- catatan: Selesai: keputusan 306, PR #201.
 
 ### K3 · Crosscheck kecil 1.36–1.40
 
