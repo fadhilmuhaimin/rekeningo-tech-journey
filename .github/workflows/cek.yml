@@ -82,8 +82,11 @@ jobs:
         run: bash tools/get_fonts.sh
       - name: Pasang dependency
         run: bun install --cwd situs --frozen-lockfile
+      # Batas waktu langkah di bawah timeout job. Job yang kena timeout-minutes berakhir `cancelled`, dan
+      # `gh pr checks` menghitung cancelled terpisah dari gagal, jadi gerbang yang macet terbaca hijau.
+      # timeout (GNU coreutils) keluar 124, atau 137 bila perlu KILL, jadi langkahnya `failure` (keputusan 357).
       - name: Gerbang kualitas situs tanpa browser
-        run: bash tools/cek_situs.sh
+        run: timeout -k 30s 5m bash tools/cek_situs.sh
       # Daftar kelompok diambil dari skrip yang sama dengan laptop, jadi CI tidak bisa melewatkan alat ukur.
       - name: Kelompok alat ukur
         id: matriks
@@ -122,10 +125,12 @@ jobs:
         with:
           name: situs-dist
           path: situs/dist
+      # 9 menit di bawah timeout job 12 menit, supaya alat yang macet membuat job gagal, bukan cancelled
+      # (lihat langkah gerbang di job build).
       - name: Alat ukur
         env:
           KELOMPOK: ${{ matrix.kelompok }}
-        run: bash tools/cek_situs.sh --ukur "$KELOMPOK"
+        run: timeout -k 30s 9m bash tools/cek_situs.sh --ukur "$KELOMPOK"
       - uses: actions/upload-artifact@v7
         if: always()
         with:

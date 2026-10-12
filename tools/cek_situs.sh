@@ -27,7 +27,8 @@ case "$MODE" in
     printf ']}\n'; exit 0 ;;
   --ukur)
     UKUR="${2:-}"
-    if [ -z "$UKUR" ]; then echo "GAGAL: --ukur butuh nama alat, mis. --ukur \"gerak\""; exit 1; fi
+    # Hanya spasi juga daftar kosong: tanpa ini loop di bawah tidak menjalankan alat apa pun lalu lolos.
+    if [ -z "${UKUR//[[:space:]]/}" ]; then echo "GAGAL: --ukur butuh nama alat, mis. --ukur \"gerak\""; exit 1; fi
     for n in $UKUR; do
       case " ${KELOMPOK_UKUR[*]} " in *" $n "*) ;; *) echo "GAGAL: alat ukur tidak dikenal: $n (dikenal: ${KELOMPOK_UKUR[*]})"; exit 1 ;; esac
     done
@@ -126,6 +127,9 @@ if [ "$MODE" = "--layar" ] || [ "$MODE" = "--ukur" ]; then
     exit 1
   fi
   if [ "$MODE" = "--ukur" ]; then DAFTAR="$UKUR"; else DAFTAR="${KELOMPOK_UKUR[*]}"; fi
-  for n in $DAFTAR; do jalan_ukur "$n"; done
+  JALAN=0
+  for n in $DAFTAR; do jalan_ukur "$n"; JALAN=$((JALAN + 1)); done
+  # Pagar kedua: gerbang yang tidak mengukur apa pun tidak boleh lolos (keputusan 357).
+  if [ "$JALAN" -eq 0 ]; then echo "GAGAL: tidak ada alat ukur yang dijalankan"; exit 1; fi
 fi
 if [ "$MODE" = "--ukur" ]; then echo "== alat ukur lolos: $UKUR"; else echo "== semua pemeriksaan lolos"; fi
