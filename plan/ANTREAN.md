@@ -668,11 +668,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### R3 · Visual layar pertama: 1.15, 1.16, 1.18
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: sama dengan R1 untuk 1.15, 1.16, 1.18.
-- catatan: -
+- catatan: PR #223, keputusan 313; satu putaran; gabung main oleh pengatur (tmp/gabung_keputusan.sh).
 
 ### R4 · Visual layar pertama: 1.20, 1.21, 1.23
 
@@ -704,11 +704,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### G2b · Batas waktu ukur-cls dan halaman yang menahan renderer
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: G2a, I5c-h
 - selesai bila: `situs/tools/ukur-cls.mjs` (paralel) memakai `denganBatas` per halaman dari `situs/tools/lib/batas.mjs` dan mencetak `MACET cls <ukuran> <halaman>` dengan exit 1; penyebab thread utama renderer tertahan di `/tahap-1/m5-angka-di-url/` 360×740 (run 38257090943) dicari lewat pengulangan di branch `percobaan/**` dan dicatat, atau dibuktikan tidak terulang dalam ≥ 10 putaran.
-- catatan: Dari pelaksana dan peninjau PR #211 (keputusan 360). Jalur teknis.
+- catatan: Dari pelaksana dan peninjau PR #211 (keputusan 360). Jalur teknis. PR #222, keputusan 364; dua putaran (klaim "bukan isi halaman" dibantah data; ulang di konteks baru).
 
 ### G2c · Pagar lebar font fallback di CI
 
@@ -726,7 +726,7 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - percobaan: 0
 - bergantung: -
 - selesai bila: saringan Kartu ulang "Hanya dari halaman yang sudah kutandai selesai" dan `/cerita/peta/` membaca kunci progres yang sungguh ditulis halaman sekarang (bukan `bb1:selesai` lama), dengan tes; Peta cerita menulis enam tahap, bukan lima.
-- catatan: Dari pelaksana P3 (keputusan 310). Jalur teknis-halaman.
+- catatan: Dari pelaksana P3 (keputusan 310). Jalur teknis-halaman. P7 (keputusan 365): `bb1:selesai` masih ditulis widget lama di 26 halaman, jadi bukan kunci mati; halaman Tahap 1 menulis `rtj-blok`. Bila kunci selesai diganti, naikkan `versi` di `situs/src/lib/progres.ts` dan tulis pemindah dari versi 1.
 
 ### P6 · Tautan relatif .md yang 404
 
@@ -740,11 +740,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### P7 · Ekspor dan impor progres pembaca
 
 - jenis: interaksi
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: progres pembaca (blok selesai, halaman selesai, jalur, kartu) bisa diekspor ke satu file JSON dan diimpor kembali, divalidasi Zod, dengan tes Vitest; tombolnya ada di `/cara-pakai/` dan halaman itu menjelaskannya; tanpa akun, tanpa server.
-- catatan: PROPOSAL "Keputusan final": progres di localStorage + ekspor/impor; belum dibangun (pelaksana dan peninjau P3). Jalur teknis.
+- catatan: PROPOSAL "Keputusan final": progres di localStorage + ekspor/impor; belum dibangun (pelaksana dan peninjau P3). Jalur teknis. PR #221, keputusan 365; dua putaran (versi bersarang, live region, fokus).
 
 ### P8 · Klaim Beranda dan Kartu ulang sesuai kode
 
