@@ -1,0 +1,83 @@
+# server: ./api-t1
+
+# --- A. Persiapan: saldo Budi Rp250.000 ---
+# persiapan: admin top-up minggu 1, 100 karyawan x Rp250.000 (rinciannya di topup.txt)
+$ curl -i -X POST '/login' -d '{"email": "budi@lestari.example", "password": "sementara-419"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"kedaluwarsa_detik":28800,"token":"<token sesi Budi>"}
+
+# --- B. Dua request Bayar Rp200.000 dari akun Budi tiba hampir bersamaan ---
+# Lab menahan baris Budi dari sesi psql lain (SELECT ... FOR UPDATE), supaya kedua request pasti
+# membaca saldo sebelum salah satunya menulis. Tanpa penahan, urutan ini bisa terjadi, bisa tidak,
+# tergantung selisih waktu kedua request.
+$ psql -c "SELECT count(*) FROM pg_stat_activity WHERE application_name = 'api-t1' AND wait_event_type = 'Lock'"
+ 2
+# Kedua request sudah lolos pemeriksaan saldo di service dan sama-sama menunggu di UPDATE saldo.
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "jumlah": 200000}'   # request 1 dari 2, diurutkan menurut status
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/1
+
+{"id":1,"saldo":50000}
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "jumlah": 200000}'   # request 2 dari 2, diurutkan menurut status
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/problem+json
+
+{"type":"/problems/internal","title":"Terjadi kesalahan di server","status":500}
+
+# --- C. Saldo dan catatan sesudah dua request bersamaan ---
+$ psql -c "SELECT id, nama, saldo FROM akun WHERE id IN (418, 419) ORDER BY id"
+ id  |    nama    | saldo  
+-----+------------+--------
+ 418 | Warung Ani | 200000
+ 419 | Budi       |  50000
+(2 rows)
+
+$ psql -c "SELECT (SELECT sum(saldo) FROM akun) AS total_saldo, (SELECT sum(nominal) FROM topup) AS total_topup, (SELECT count(*) FROM transaksi) AS transaksi"
+ total_saldo | total_topup | transaksi 
+-------------+-------------+-----------
+    25000000 |    25000000 |         1
+(1 row)
+
+
+# --- D. Bayar Rp25.000; response pertama tidak sampai ke HP, app mengirim ulang body yang sama ---
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "jumlah": 25000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/2
+
+{"id":2,"saldo":25000}
+# HP Budi tidak menerima response di atas (sinyal putus). App menganggapnya gagal dan mengirim ulang.
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "jumlah": 25000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/3
+
+{"id":3,"saldo":0}
+
+# --- E. Budi membayar sekali; server mencatat dua pembayaran ---
+$ psql -c "SELECT id, dari, ke, jumlah FROM transaksi ORDER BY id"
+ id | dari | ke  | jumlah 
+----+------+-----+--------
+  1 |  419 | 418 | 200000
+  2 |  419 | 418 |  25000
+  3 |  419 | 418 |  25000
+(3 rows)
+
+$ psql -c "SELECT id, nama, saldo FROM akun WHERE id = 419"
+ id  | nama | saldo 
+-----+------+-------
+ 419 | Budi |     0
+(1 row)
+
+$ psql -c "SELECT (SELECT sum(saldo) FROM akun) AS total_saldo, (SELECT sum(nominal) FROM topup) AS total_topup, (SELECT count(*) FROM transaksi) AS transaksi"
+ total_saldo | total_topup | transaksi 
+-------------+-------------+-----------
+    25000000 |    25000000 |         3
+(1 row)
+
+# Total saldo tetap sama dengan total top-up: tidak ada uang yang hilang atau muncul.
+# Yang salah adalah niat Budi: ia membayar sekali, server mencatat dua kali.
+server log: error internal: ERROR: new row for relation "akun" violates check constraint "saldo_tidak_negatif" (SQLSTATE 23514)

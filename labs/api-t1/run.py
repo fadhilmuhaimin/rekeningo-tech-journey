@@ -1929,8 +1929,90 @@ def rekam_cadangan():
     tulis("cadangan.txt")
 
 
+# --- 1.40 ADR 12: dua yang belum pernah diuji selama uji coba (keputusan 306) ---
+MENUNGGU_LOCK = ("SELECT count(*) FROM pg_stat_activity "
+                 "WHERE application_name = 'api-t1' AND wait_event_type = 'Lock'")
+PENAHAN_SIAP = ("SELECT count(*) FROM pg_stat_activity WHERE application_name = 'psql' "
+                "AND state = 'idle in transaction' AND backend_xid IS NOT NULL")
+
+
+def curl_diam(path, body, token):
+    """curl tanpa menulis ke log: dua thread berjalan bersamaan, jadi urutan tulisnya tidak tetap."""
+    r = subprocess.run(["curl", "-s", "-i", "-X", "POST", URL + path, "-H", f"Authorization: Bearer {token}",
+                        "-H", "Content-Type: application/json", "--data-binary", body],
+                       capture_output=True, text=True).stdout.replace("\r\n", "\n")
+    r = "\n".join(l for l in r.splitlines() if not l.startswith(("Date:", "Content-Length:")))
+    return int(r.split()[1]), r
+
+
+def tunggu_sql(q, harus, apa):
+    for _ in range(200):
+        if subprocess.run(PSQL + ["-At", "-c", q], capture_output=True, text=True).stdout.strip() == harus:
+            return
+        time.sleep(0.05)
+    gagal(apa)
+
+
+def rekam_sengaja_belum():
+    """1.40 ADR 12: dua request Bayar bersamaan, lalu Bayar yang dikirim ulang app (keputusan 306)."""
+    import threading
+    reset()
+    mulai()
+    bagian("A. Persiapan: saldo Budi Rp250.000")
+    topup_awal()
+    budi = login("budi@lestari.example", "sementara-419", "<token sesi Budi>")
+
+    bagian("B. Dua request Bayar Rp200.000 dari akun Budi tiba hampir bersamaan")
+    log.append("# Lab menahan baris Budi dari sesi psql lain (SELECT ... FOR UPDATE), supaya kedua request pasti\n"
+               "# membaca saldo sebelum salah satunya menulis. Tanpa penahan, urutan ini bisa terjadi, bisa tidak,\n"
+               "# tergantung selisih waktu kedua request.\n")
+    tahan = subprocess.Popen(PSQL + ["-v", "ON_ERROR_STOP=1"], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.PIPE, text=True)
+    tahan.stdin.write("SET search_path = tahap1; BEGIN; SELECT saldo FROM akun WHERE id = 419 FOR UPDATE;\n")
+    tahan.stdin.flush()
+    tunggu_sql(PENAHAN_SIAP, "1", "sesi penahan tidak memegang baris Budi")
+    body = '{"ke": 418, "jumlah": 200000}'
+    hasil = []
+    th = [threading.Thread(target=lambda: hasil.append(curl_diam("/transfers", body, budi))) for _ in range(2)]
+    for t in th:
+        t.start()
+    tunggu_sql(MENUNGGU_LOCK, "2", "kedua request tidak sampai ke UPDATE saldo")
+    log.append(f"$ psql -c \"{MENUNGGU_LOCK}\"\n 2\n"
+               "# Kedua request sudah lolos pemeriksaan saldo di service dan sama-sama menunggu di UPDATE saldo.\n")
+    tahan.stdin.write("COMMIT;\n")
+    tahan.stdin.close()
+    harap(tahan.wait(), 0, "sesi penahan")
+    for t in th:
+        t.join()
+    hasil.sort()
+    for i, (_, r) in enumerate(hasil, 1):
+        log.append(f"$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{body}'"
+                   f"   # request {i} dari 2, diurutkan menurut status\n{samarkan(r)}\n")
+    harap([s for s, _ in hasil], [201, 500], "status dua request bersamaan")
+    harap(json.loads(hasil[0][1].split("\n\n", 1)[1])["saldo"], 50000, "saldo sesudah request yang lolos")
+
+    bagian("C. Saldo dan catatan sesudah dua request bersamaan")
+    harap("50000" in sql("SELECT id, nama, saldo FROM akun WHERE id IN (418, 419) ORDER BY id"), True, "saldo Budi 50.000")
+    harap(total(), ["25000000", "25000000", "1"], "total sesudah dua request bersamaan")
+
+    bagian("D. Bayar Rp25.000; response pertama tidak sampai ke HP, app mengirim ulang body yang sama")
+    s, b = curl("POST", "/transfers", '{"ke": 418, "jumlah": 25000}', token=budi)
+    harap((s, json.loads(b)["saldo"]), (201, 25000), "bayar pertama")
+    log.append("# HP Budi tidak menerima response di atas (sinyal putus). App menganggapnya gagal dan mengirim ulang.\n")
+    s, b = curl("POST", "/transfers", '{"ke": 418, "jumlah": 25000}', token=budi)
+    harap((s, json.loads(b)["saldo"]), (201, 0), "bayar yang dikirim ulang")
+
+    bagian("E. Budi membayar sekali; server mencatat dua pembayaran")
+    harap(sql("SELECT id, dari, ke, jumlah FROM transaksi ORDER BY id").count(" 25000"), 2, "dua baris Rp25.000")
+    harap(" 0\n" in sql("SELECT id, nama, saldo FROM akun WHERE id = 419"), True, "saldo Budi 0")
+    harap(total(), ["25000000", "25000000", "3"], "total sesudah dikirim ulang")
+    log.append("# Total saldo tetap sama dengan total top-up: tidak ada uang yang hilang atau muncul.\n"
+               "# Yang salah adalah niat Budi: ia membayar sekali, server mencatat dua kali.\n")
+    tulis("sengaja-belum.txt")
+
+
 if __name__ == "__main__":
     subprocess.run(["go", "build", "-o", str(BIN), "./cmd/api"], cwd=HERE, check=True)
-    pilihan = sys.argv[1:] or ["login", "topup", "bayar", "riwayat", "pertukaran", "relasi", "m1", "http", "m2", "m3", "injection", "lapisan", "m4", "koreksi", "m5", "authz", "m6", "deploy", "testing", "versi", "m7", "cadangan"]
+    pilihan = sys.argv[1:] or ["login", "topup", "bayar", "riwayat", "pertukaran", "relasi", "m1", "http", "m2", "m3", "injection", "lapisan", "m4", "koreksi", "m5", "authz", "m6", "deploy", "testing", "versi", "m7", "cadangan", "sengaja-belum"]
     for p in pilihan:
         globals()["rekam_" + p.replace("-", "_")]()
