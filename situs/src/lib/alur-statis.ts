@@ -105,9 +105,11 @@ export function htmlAlurStatis(d: SkenarioAlur, core: IntiAlur): string {
     el("button", { type: "button", class: "bb-btn", disabled: true }, "← Sebelumnya") +
       el("button", { type: "button", class: "bb-btn bb-btn--primary", disabled: !!d.predict }, "Berikutnya →") +
       el("span", { class: "bb-muted bb-alur__count" }, `Langkah 0 dari ${list.length}`));
+  // Tebakan dan varian di kolom detail sesudah penjelasan, sama dengan alur.js (I5c-g, keputusan 363).
   const root = el("div", { class: "bb-widget bb-alur bb-alur--statis" },
-    head + el("div", { class: "bb-alur__rel-statis" }, lanes + track) + tombol + tebak + varian +
-      el("div", { class: "bb-alur__body" }, el("div", { class: "bb-alur__phone" }, hp) + detail));
+    head + el("div", { class: "bb-alur__rel-statis" }, lanes + track) + tombol +
+      el("div", { class: "bb-alur__body" }, el("div", { class: "bb-alur__phone" }, hp) +
+        el("div", { class: "bb-alur__kolom" }, detail + tebak + varian)));
   // Dua pembungkus untuk container query: luar = lebar widget (sempit < 600 px), dalam = lebar per komponen (rel vertikal).
   return el("div", { class: "bb-alur-pesan", "aria-hidden": "true", inert: true, style: `--n: ${n}` },
     el("div", { class: "bb-alur-pesan__per" }, root));

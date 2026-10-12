@@ -3,6 +3,9 @@ title: "1.20 Keamanan 1: SQL injection dan ADR 4"
 description: Kenapa menyambung input ke teks SQL membuka seluruh database, kenapa parameter query menutupnya, dan di mana parameter tidak menolong. Memuat ADR 4.
 ---
 import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import duaCara from "../../../../data/diagram/t1-sqli-dua-cara.json";
+import namaKolom from "../../../../data/diagram/t1-sqli-nama-kolom.json";
 import Snippet from "../../../components/Snippet.astro";
 import CariBug from "../../../widgets/cari-bug/CariBug.tsx";
 import caribug from "../../../../data/widget/t1-sqli-caribug.json";
@@ -16,19 +19,11 @@ import SkripLama from "../../../components/SkripLama.astro";
 
 SQL injection terjadi saat input ikut menjadi teks perintah SQL. Parameter query mengirim perintah dan data secara terpisah, jadi data tetap data.
 
-<figure class="bb-fig bb-arch">
-<ol class="bb-flow">
-<li class="is-warn">teks + <code>cari</code></li>
-<li class="is-warn">satu teks</li>
-<li class="is-warn"><code>cari</code> jadi perintah</li>
-</ol>
-<ol class="bb-flow">
-<li class="is-good">teks + <code>$1</code></li>
-<li class="is-good"><code>cari</code> terpisah</li>
-<li class="is-good"><code>cari</code> tetap data</li>
-</ol>
-<figcaption>Atas: pencarian minggu 2. Bawah: versi benar. Keduanya direkam di blok Paham.</figcaption>
-</figure>
+<Rantai data={duaCara} ringkas />
+
+Di mode rentan M3, server menyambung `' OR 1=1 --` ke teks SQL. PostgreSQL menerima satu teks, dan syarat `WHERE` jadi benar untuk setiap baris. Response `200` membawa saldo setiap akun.
+
+Di versi benar, teks SQL tidak pernah berubah, dan isi pencarian sampai sebagai nilai `$1`. Input yang sama hanya dibandingkan dengan kolom `nama`, jadi hasilnya kosong. Parameter tidak bisa membawa nama kolom; untuk `ORDER BY`, server memakai allowlist.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -90,6 +85,10 @@ Draf laporan warung di blok Coba lain cerita. Tes ke database membuktikan `urut`
 <Snippet file="labs/api-t1/output/injection.txt" lines="77:94" title="Rekaman lab: labs/api-t1/output/injection.txt" />
 
 Penyebabnya terlihat di kode sumber gosec v2.29.0: aturan ini memeriksa query di dalam assignment (`rows, err := ...`) dan pernyataan biasa, bukan query yang langsung di-`return` ([rules/sql.go](https://github.com/securego/gosec/blob/v2.29.0/rules/sql.go)). Linter menangkap pola yang ia kenal. Tes dengan input jahat dan review tetap dibutuhkan.
+
+Ketiga rekaman untuk nama kolom, berdampingan:
+
+<Rantai data={namaKolom} />
 
 **Field minimal.** M3 punya dua kesalahan, dan yang kedua bukan injection: query mengambil `saldo` semua akun, lalu mengirimnya apa adanya. Versi benar memakai struct khusus layar pencarian:
 
