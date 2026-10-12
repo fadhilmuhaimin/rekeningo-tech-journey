@@ -73,21 +73,21 @@
       "dari": 0,
       "ke": 1,
       "judul": "Request berangkat lewat HTTPS",
-      "kirim": "POST /transfers HTTP/1.1\nHost: api.rekeningo.example\nAuthorization: Bearer 7f3a9c2e41...\nContent-Type: application/json\n\n{\"ke\": \"warung-ani\", \"jumlah\": 25000}",
-      "jelas": "Method POST karena request ini membuat data baru. Header Authorization membawa token sesi Budi. Body berisi JSON. Di Flutter, semua ini satu panggilan http.post(...)."
+      "kirim": "POST /transfers HTTP/1.1\nHost: api.rekeningo.example\nAuthorization: Bearer <token sesi Budi>\nContent-Type: application/json\n\n{\"ke\": 418, \"jumlah\": 25000}",
+      "jelas": "Method POST karena request ini membuat data baru. Header Authorization membawa token sesi Budi. Body berisi JSON: ke adalah nomor akun Warung Ani (418), bukan namanya. Di Flutter, semua ini satu panggilan http.post(...)."
     },
     {
       "dari": 1,
       "lapisan": "handler",
       "judul": "Handler menerima dan memeriksa request",
-      "kirim": "token valid      → user = budi (id 17)\nJSON terbaca     → ke = \"warung-ani\", jumlah = 25000\njumlah > 0       ✓",
+      "kirim": "token valid      → peminta = akun 419 (Budi)\nJSON terbaca     → ke = 418, jumlah = 25000\nkeduanya angka   ✓",
       "jelas": "Handler mengurus semua yang berbau HTTP: membaca JSON, memeriksa token, memeriksa format. Kalau gagal, perjalanan berhenti di sini dengan status 400 (format salah) atau 401 (belum login)."
     },
     {
       "dari": 1,
       "lapisan": "logika bisnis",
       "judul": "Logika bisnis menerapkan aturan Rekeningo",
-      "kirim": "penerima ada              ✓\nbukan ke diri sendiri     ✓\nsaldo Budi ≥ Rp25.000     ✓ (dicek di database)",
+      "kirim": "jumlah 25000 masuk akal     ✓\nakun 418 adalah warung      ✓\nsaldo Budi 250000 ≥ 25000   ✓ (dibaca dari database)",
       "jelas": "Lapisan ini tidak tahu soal HTTP atau JSON. Ia hanya tahu aturan Rekeningo, jadi aturannya bisa dites tanpa menyalakan server. Kalau aturan dilanggar, misalnya saldo kurang, perjalanan berhenti di sini dan app menerima 422 dengan pesan yang bisa ditampilkan."
     },
     {
@@ -95,14 +95,14 @@
       "ke": 2,
       "lapisan": "akses data",
       "judul": "Akses data mengirim SQL ke PostgreSQL",
-      "kirim": "BEGIN;\nUPDATE akun SET saldo = saldo - 25000 WHERE id = 17;\nUPDATE akun SET saldo = saldo + 25000 WHERE id = 42;\nINSERT INTO transaksi (dari, ke, jumlah) VALUES (17, 42, 25000);\nCOMMIT;",
-      "jelas": "Tiga perubahan dibungkus satu transaction: semua tersimpan, atau tidak ada yang tersimpan. Kalau query gagal tanpa diduga, misalnya database tidak terjangkau, app menerima 500. Apa yang terjadi tanpa transaction dibahas di [[B3.1]]."
+      "kirim": "begin\nUPDATE akun SET saldo = saldo - $1 WHERE id = $2 RETURNING saldo\nUPDATE akun SET saldo = saldo + $1 WHERE id = $2\nINSERT INTO transaksi (dari, ke, jumlah) VALUES ($1, $2, $3) RETURNING id\ncommit",
+      "jelas": "Tiga perubahan dibungkus satu transaction: semua tersimpan, atau tidak ada yang tersimpan. Angkanya dikirim terpisah dari teks SQL sebagai $1, $2, $3: jumlah 25000, akun 419 (Budi), dan akun 418 (Warung Ani). Kalau query gagal tanpa diduga, misalnya database tidak terjangkau, app menerima 500. Apa yang terjadi tanpa transaction dibahas di [[B3.1]]."
     },
     {
       "dari": 2,
       "nada": "good",
       "judul": "PostgreSQL menyimpan secara permanen",
-      "kirim": "COMMIT  → tersimpan\nsaldo budi:       Rp250.000 → Rp225.000\nsaldo warung ani: Rp1.150.000 → Rp1.175.000",
+      "kirim": "COMMIT  → tersimpan\nsaldo Budi (419):       Rp250.000 → Rp225.000\nsaldo Warung Ani (418): Rp0 → Rp25.000\ntransaksi 1:            419 → 418, Rp25.000",
       "jelas": "Setelah COMMIT, perubahan bertahan walau server mati sedetik kemudian. Mulai titik ini, pembayaran sudah terjadi, apa pun yang menimpa langkah berikutnya."
     },
     {
@@ -110,7 +110,7 @@
       "ke": 1,
       "lapisan": "akses data",
       "judul": "Hasil kembali ke API",
-      "kirim": "COMMIT OK · transaksi id 812",
+      "kirim": "COMMIT OK · transaksi id 1 · saldo Budi 225000",
       "jelas": "Akses data meneruskan hasilnya ke logika bisnis, lalu ke handler. Tidak ada lapisan yang berbicara langsung ke lapisan yang bukan tetangganya."
     },
     {
@@ -118,8 +118,8 @@
       "ke": 0,
       "lapisan": "handler",
       "judul": "Response berangkat ke HP",
-      "kirim": "HTTP/1.1 201 Created\nContent-Type: application/json\n\n{\"id\": 812, \"saldo\": 225000}",
-      "jelas": "Status 201 berarti data baru berhasil dibuat. Body membawa saldo terbaru, jadi app tidak perlu request kedua untuk memperbarui layar."
+      "kirim": "HTTP/1.1 201 Created\nContent-Type: application/json\nLocation: /transfers/1\n\n{\"id\":1,\"saldo\":225000}",
+      "jelas": "Status 201 berarti data baru berhasil dibuat, dan header Location menunjuk alamat transaksi itu. Body membawa saldo terbaru, jadi app tidak perlu request kedua untuk memperbarui layar."
     },
     {
       "dari": 0,
@@ -154,7 +154,7 @@
         "ke": 0,
         "nada": "warn",
         "judul": "Response hilang di jalan",
-        "kirim": "HTTP/1.1 201 Created\n{\"id\": 812, \"saldo\": 225000}\n\n✗ koneksi putus sebelum sampai",
+        "kirim": "HTTP/1.1 201 Created\n{\"id\":1,\"saldo\":225000}\n\n✗ koneksi putus sebelum sampai",
         "jelas": "Budi masuk lift di Gedung A. Server sudah mengirim 201, tapi response tidak pernah sampai ke HP."
       },
       {
@@ -190,13 +190,15 @@
         "ke": 1,
         "nada": "warn",
         "judul": "Budi menekan Coba lagi",
-        "kirim": "POST /transfers\n{\"ke\": \"warung-ani\", \"jumlah\": 25000}",
-        "jelas": "Request yang sama dikirim lagi. Backend tidak tahu ini ulangan, jadi tanpa pengaman ia memproses pembayaran kedua. Pengamannya, idempotency key, muncul di Tahap 2."
+        "kirim": "POST /transfers\n{\"ke\": 418, \"jumlah\": 25000}",
+        "jelas": "Request yang sama dikirim lagi. Backend tidak tahu ini ulangan, jadi ia memproses pembayaran kedua. Di rekaman lab, kedua Bayar mendapat 201 dan tercatat sebagai dua transaksi. Pengamannya, idempotency key, muncul di Tahap 2."
       }
     ]
   },
   "sumber": {
-    "jenis": "ilustrasi",
-    "catatan": "Alur disusun dari konsep, bukan rekaman. Status dan body mengikuti desain Rekeningo (fiktif)."
+    "jenis": "rekaman",
+    "file": "labs/api-t1/output/bayar.txt",
+    "fileVarian": "labs/api-t1/output/sengaja-belum.txt",
+    "catatan": "Server Go (labs/api-t1) + PostgreSQL 17, direkam dengan curl -i dari database bersih; SQL dari log statement PostgreSQL. Jalur utama: bayar.txt bagian B–D. Ubah satu hal: Bayar diulang sesudah response hilang, sengaja-belum.txt bagian D–E (saldo awal Budi di sana berbeda)."
   }
 }
