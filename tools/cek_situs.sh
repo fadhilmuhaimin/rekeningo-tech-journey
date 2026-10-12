@@ -76,5 +76,7 @@ if [ "${1:-}" = "--layar" ]; then
   (cd situs && node tools/ukur-diagram.mjs --url "http://127.0.0.1:$PORT")
   echo "== CLS widget alur saat dimuat, skrip ditunda (I5c-b)"
   (cd situs && node tools/ukur-cls.mjs --url "http://127.0.0.1:$PORT" | grep -v "^ok ")
+  echo "== kontras langkah runsql setelah dijalankan, computed style (K2a)"
+  (cd situs && node tools/ukur-kontras.mjs --url "http://127.0.0.1:$PORT")
 fi
 echo "== semua pemeriksaan lolos"
