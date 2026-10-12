@@ -44,6 +44,8 @@ if [ "$MODE" != "--ukur" ]; then
   $PY tools/sinkron_cerita.py --check >/dev/null
 
   echo "== antrean loop otomatis"; $PY tools/antrean.py --check
+  echo "== tabel plan: pipe tanpa escape per baris = header (keputusan 362)"; $PY tools/cek_tabel_plan.py
+  echo "== uji pemeriksa tabel plan (lolos palsu, keputusan 362)"; $PY tools/test_cek_tabel_plan.py | tail -1
   echo "== batas baris file yang diimpor CLAUDE.md (keputusan 235)"
   $PY tools/ukur_konteks.py --cek-baris plan/MEMORI.md:80 plan/RINGKAS.md:60
   echo "== istilah";              $PY tools/build_istilah.py --check

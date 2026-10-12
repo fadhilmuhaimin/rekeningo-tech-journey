@@ -497,29 +497,29 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### I5c-h · Mode font telat di gerbang CI
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: I5c-f
 - selesai bila: lima kasus yang hanya gagal di CI Linux dengan `ukur-cls.mjs --font-telat 1500 --fallback Verdana` diperbaiki di komponen/CSS (b11-2-proxy-bff 667 0,196; d2-scaling 375 0,108 dan 667 0,168; authentication 1440 0,172; kontrak-openapi 1440 0,161), lalu mode font telat dipasang di kelompok CLS gerbang (`--paralel 8`) dan CI hijau dengan 0 di atas 0,1; percobaan dilakukan lewat commit di branch karena lebar glyph Linux tidak bisa ditiru di macOS.
-- catatan: Dari PR #206 (keputusan 359). Jalur teknis.
+- catatan: Dari PR #206 (keputusan 359). Jalur teknis. PR #213, keputusan 361; satu putaran (opsional Blink/Firefox/Safari di KEPUTUSAN).
 
 ### G2a · Batas waktu per halaman di alat ukur
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: G2
 - selesai bila: `situs/tools/ukur-luapan.mjs` dan alat lain yang memakai `page.evaluate` tanpa batas (cari dengan grep) punya batas waktu per halaman (mis. `Promise.race` dengan timer, atau `waitForFunction` dengan `timeout`), gagal cepat dengan nama halaman dan ukuran; penyebab macet ±8 menit di run 38227021065 percobaan 1 dicari (mis. `document.fonts.ready` atau rAF di tab latar) dan dicatat; langkah pasang (bun install, Chromium Playwright) di `cek.yml` juga dibungkus `timeout` supaya macet di sana berakhir `failure`, bukan `cancelled`.
-- catatan: Dari pelaksana dan peninjau PR #198 (keputusan 357). `gh pr checks` v2.93.0 tidak menghitung `cancelled` sebagai gagal. Jalur teknis.
+- catatan: Dari pelaksana dan peninjau PR #198 (keputusan 357). `gh pr checks` v2.93.0 tidak menghitung `cancelled` sebagai gagal. Jalur teknis. PR #211 (squash), keputusan 360; dua putaran (merge commit "# Conflicts", komentar dan format MACET).
 
 ### K2c · Kolom tabel KEPUTUSAN
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: baris 157, 247, 252, 253 di `plan/KEPUTUSAN.md` punya 5 kolom tanpa mengubah isi; gerbang menolak baris tabel yang jumlah pipe tanpa escape-nya berbeda dari header (`\|` di dalam teks tidak dihitung), dengan uji mutasi.
-- catatan: Dari K2 (keputusan 301). Baris 157 rusak karena `||` di code span tanpa escape. Jalur teknis; kalau jalur konten sedang punya PR terbuka yang mengubah KEPUTUSAN, kerjakan sesudah PR itu di-merge.
+- catatan: Dari K2 (keputusan 301). Baris 157 rusak karena `||` di code span tanpa escape. Jalur teknis; kalau jalur konten sedang punya PR terbuka yang mengubah KEPUTUSAN, kerjakan sesudah PR itu di-merge. PR #215, keputusan 362; dua putaran (backslash genap sebelum pipe, kapan salah).
 
 ### K2d · Chip sumber Rantai tidak meluap di HP
 
@@ -754,6 +754,24 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - bergantung: -
 - selesai bila: `Beranda.astro` tidak lagi menulis "Kamu mendapat lima halaman" untuk semua peran (Dashboard web memberi 0) dan tidak menjanjikan halaman web di Tahap 3 bila registry tidak punya halaman ber-`peran` web; `alat/kartu-ulang.mdx` menyebut batas waktu temuan Roediger & Karpicke 2006 (unggul di tes 2 hari dan 1 minggu, kalah di tes 5 menit), seperti `tahap-1/rekap.mdx`.
 - catatan: Dari peninjau P3 (keputusan 310). Jalur teknis-halaman.
+
+### P9 · Contoh request 1.5 sesuai rekaman
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: R1
+- selesai bila: tabel request di Paham 1.5 dan data widget `a2-alur.json` memakai body dan response dari `labs/api-t1/output/bayar.txt` B (`"ke"` berupa angka akun, id dari rekaman), bukan `"ke": "warung-ani"` dan `"id": 812`; `ke` berupa teks dijelaskan sebagai 400 sesuai `m2.txt` C bila disebut.
+- catatan: Dari pelaksana dan peninjau R1 (keputusan 311). Jalur teknis-halaman.
+
+### P10 · Sisa CSS lama dan panah Rantai ringkas di HP
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: R1
+- selesai bila: aturan CSS `bb-map` (±16 aturan di `tema.css`) yang tidak dipakai halaman mana pun dihapus sesudah dicek dengan grep atas `dist/`; panah sesudah simpul Rantai ringkas yang membungkus tidak menggantung ke gutter kanan di 360 dan 375 px (contoh 1.6 "periksa saldo", ±8 px), diperiksa `ukur-luapan.mjs` atau alat ukur Rantai.
+- catatan: Dari pelaksana dan peninjau R1 (keputusan 311). Jalur teknis.
 
 ### X1 · Crosscheck penuh Tahap 1
 
