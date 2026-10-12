@@ -26,7 +26,7 @@
     },
     {
       "label": "3. Jumlah semua saldo tetap",
-      "sub": "query SUM atas tabel akun",
+      "sub": "pasangan kurang + tambah; SUM memeriksa sesudahnya",
       "simpul": [
         { "teks": "Rp25.000.000", "sub": "sebelum bayar" },
         { "teks": "Rp25.000.000", "sub": "sesudah bayar Rp25.000" },
