@@ -3,6 +3,9 @@ title: "1.6 Struktur folder pertama: handler, service, repo"
 description: Sebelum menulis kode, Raka memisahkan HTTP, aturan uang, dan SQL ke tiga tempat, supaya aturan uang hanya punya satu rumah saat PRD v2 datang.
 ---
 import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import duaSusunan from "../../../../data/diagram/t1-folder-dua-susunan.json";
+import turunNaik from "../../../../data/diagram/t1-folder-turun-naik.json";
 import WidgetLama from "../../../components/WidgetLama.astro";
 import SkripLama from "../../../components/SkripLama.astro";
 import Snippet from "../../../components/Snippet.astro";
@@ -13,16 +16,13 @@ import Snippet from "../../../components/Snippet.astro";
 
 ## Inti
 
-Struktur folder pertama memisahkan kode menurut tugasnya: handler untuk HTTP, service untuk aturan uang, dan repo untuk SQL. Tujuannya satu: setiap aturan uang hanya punya satu tempat.
+Struktur folder pertama memisahkan kode menurut tugasnya: handler untuk HTTP, service untuk aturan uang, dan repo untuk SQL.
 
-<figure class="bb-fig" role="img" aria-label="Tiga folder: handler untuk HTTP, service untuk aturan uang, repo untuk SQL. Request masuk lewat handler, turun ke service, lalu ke repo.">
-<ol class="bb-flow">
-<li><code>handler/</code> HTTP: JSON, sesi, status code</li>
-<li><code>service/</code> aturan uang</li>
-<li><code>repo/</code> SQL</li>
-</ol>
-<figcaption>Request masuk lewat handler, turun ke service, lalu ke repo. Tidak ada yang melompat.</figcaption>
-</figure>
+<Rantai data={duaSusunan} ringkas />
+
+Langkahnya sama, rumahnya berbeda. Handler membaca JSON dan menulis response, service memeriksa saldo, dan repo menjalankan `UPDATE`. Request turun dari handler ke service lalu ke repo, dan tidak ada yang melompat.
+
+Tujuannya satu: setiap aturan uang hanya punya satu tempat. PRD v1 punya empat fitur yang mengubah atau membaca saldo, dan PRD v2 menambah transfer antar karyawan. Kalau aturan uang tinggal di service, aturan Pak Hadi diubah di satu tempat, bukan di setiap handler.
 
 </Blok>
 
@@ -66,6 +66,10 @@ Aturan arahnya sederhana:
 1. Handler memanggil service. Handler tidak menulis SQL dan tidak memutuskan aturan uang.
 2. Service memanggil repo. Service tidak tahu HTTP, JSON, atau status code.
 3. Repo hanya menjalankan SQL. Repo tidak tahu aturan uang.
+
+Di lab `api-t1`, pembayaran yang saldonya kurang berjalan seperti ini:
+
+<Rantai data={turunNaik} />
 
 Lab `labs/api-t1` memakai struktur ini, dengan satu beda di skema: satu file `schema.sql`, bukan folder `migrations/`. Lab juga punya file untuk menjalankannya. Migration dipraktikkan di [[B4.1]]. Setiap lapisan adalah satu package Go, dan komentar package-nya menyebut tugasnya.
 

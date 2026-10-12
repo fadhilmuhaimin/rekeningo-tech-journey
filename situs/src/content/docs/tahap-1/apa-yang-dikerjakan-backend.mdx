@@ -3,6 +3,9 @@ title: "1.3 Apa yang dikerjakan backend"
 description: Backend menyimpan data bersama, menegakkan aturan uang, dan memegang izin. App boleh memeriksa apa saja, tapi keputusan akhir ada di backend.
 ---
 import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import keputusan from "../../../../data/diagram/t1-backend-keputusan.json";
+import susunan from "../../../../data/diagram/t1-backend-susunan.json";
 import WidgetLama from "../../../components/WidgetLama.astro";
 import SkripLama from "../../../components/SkripLama.astro";
 
@@ -12,9 +15,13 @@ import SkripLama from "../../../components/SkripLama.astro";
 
 ## Inti
 
-Backend adalah program di server milik tim. Ia menyimpan data bersama, menegakkan aturan uang, dan memutuskan siapa boleh apa. App boleh memeriksa apa saja, tapi keputusan akhir ada di backend.
+Backend adalah program di server milik tim. Ia menyimpan data bersama, menegakkan aturan uang, dan memutuskan siapa boleh apa.
 
-<WidgetLama nama="arsitektur" tahap={1} />
+<Rantai data={keputusan} ringkas />
+
+App boleh memeriksa saldo sebelum tombol Bayar aktif, tapi hanya untuk memberi kabar cepat. Backend memeriksa lagi, dan hanya jawaban backend yang mengubah saldo. Request yang dikirim lewat `curl` tanpa app tetap melewati pemeriksaan yang sama.
+
+Data bersama juga hanya bisa tinggal di backend. Saldo Budi harus sama di HP dan laptopnya, dan Ani harus melihat pembayaran masuk di HP warungnya. Database di HP, seperti sqflite atau Hive, hanya melayani satu perangkat.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -55,35 +62,7 @@ Di Flutter, kamu terbiasa dengan sqflite atau Hive sebagai sumber data. Itu bena
 
 ### Cara kerjanya
 
-<figure class="bb-map" role="img" aria-label="Pembagian kerja Rekeningo Tahap 1: App Flutter untuk tampilan, validasi cepat, dan draft. Monolith API dengan tiga lapisan: handler, logika bisnis, akses data. PostgreSQL menyimpan akun dan transaksi dengan constraint.">
-<div class="bb-map__grid">
-<div class="bb-map__box is-old">
-<strong>App Flutter</strong>
-<ul>
-<li>Tampilan dan navigasi</li>
-<li>Validasi cepat (format)</li>
-<li>Draft dan cache lokal</li>
-</ul>
-</div>
-<div class="bb-map__arrow"><b>⇄</b>HTTPS<br />JSON</div>
-<div class="bb-map__box">
-<strong>Monolith API</strong>
-<div class="bb-map__layer"><b>handler</b><span>terima request, periksa sesi dan format</span></div>
-<div class="bb-map__layer"><b>logika bisnis</b><span>aturan: saldo cukup, nominal lebih dari 0</span></div>
-<div class="bb-map__layer"><b>akses data</b><span>query ke database</span></div>
-</div>
-<div class="bb-map__arrow"><b>⇄</b>SQL</div>
-<div class="bb-map__box">
-<strong>PostgreSQL</strong>
-<ul>
-<li>Tabel akun, transaksi</li>
-<li>Constraint: saldo ≥ 0</li>
-<li>Satu source of truth</li>
-</ul>
-</div>
-</div>
-<figcaption>Abu-abu = di HP user. Biru = di server milik tim, tempat keputusan diambil.</figcaption>
-</figure>
+<Rantai data={susunan} />
 
 Di Tahap 1, backend Rekeningo adalah satu monolith: satu aplikasi yang memuat semua fitur dan di-deploy sebagai satu unit. Backend itu punya empat tugas:
 

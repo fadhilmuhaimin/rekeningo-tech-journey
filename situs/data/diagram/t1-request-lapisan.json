@@ -1,0 +1,38 @@
+{
+  "id": "t1-request-lapisan",
+  "judul": "Tiga lapisan, tiga tempat berhenti",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t1 · status di catatan"
+  },
+  "baris": [
+    {
+      "label": "Bayar ke warung",
+      "sub": "POST /transfers",
+      "simpul": [
+        {
+          "teks": "handler",
+          "sub": "token, format JSON, tipe data · gagal: 401 tanpa token atau token tidak berlaku, 400 format salah",
+          "nada": "system"
+        },
+        {
+          "teks": "logika bisnis",
+          "sub": "penerima akun warung, saldo cukup · gagal: 422 dengan pesan yang bisa ditampilkan",
+          "nada": "system"
+        },
+        {
+          "teks": "akses data",
+          "sub": "query dan constraint database · gagal: 500 untuk error yang tidak terduga",
+          "nada": "system"
+        },
+        {
+          "teks": "201 Created",
+          "kode": true,
+          "sub": "body membawa saldo terbaru",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Setiap status direkam lab api-t1: 401 di http.txt bagian F (tanpa token) dan login.txt bagian E (token sesudah logout), 400 di m2.txt, 422 di bayar.txt bagian F dan G, 500 di sengaja-belum.txt bagian B, 201 di bayar.txt bagian B."
+}
