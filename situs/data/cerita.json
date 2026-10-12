@@ -50,7 +50,7 @@
         "tim": "1 developer"
       },
       "jalur_inti": {
-        "menit": 312,
+        "menit": 318,
         "halaman": 34
       },
       "bagian": [
@@ -1170,42 +1170,23 @@
     },
     {
       "id": "F1",
-      "judul": "Menulis spesifikasi untuk AI",
+      "judul": "Spesifikasi untuk AI dan review kode AI",
       "tahap": 1,
       "topik": "Bekerja dengan AI",
-      "path": "f-ai-belajar/f1-spesifikasi-untuk-ai.md",
+      "path": "tahap-1/spesifikasi-ai.md",
       "prasyarat": [
-        "B1.4"
+        "D1"
       ],
       "inti": true,
-      "masalah": "Kode AI tidak sesuai maksud",
+      "masalah": "Draf AI berjalan di demo, tapi melanggar aturan uang",
       "ada": true,
       "jenis": "konsep",
       "bagian": 4,
       "peran": [
         "backend"
       ],
-      "lama": true,
       "nomor": "1.39",
-      "menit": 6
-    },
-    {
-      "id": "F2",
-      "judul": "Review kode backend buatan AI",
-      "tahap": 1,
-      "topik": "Bekerja dengan AI",
-      "path": "f-ai-belajar/f2-review-kode-ai.md",
-      "prasyarat": [
-        "F1"
-      ],
-      "masalah": "Ragu menyetujui kode atau desain buatan AI",
-      "ada": true,
-      "bagian": 4,
-      "peran": [
-        "backend"
-      ],
-      "lebur_ke": "F1",
-      "menit": 11
+      "menit": 12
     },
     {
       "id": "t1-adr-12",
