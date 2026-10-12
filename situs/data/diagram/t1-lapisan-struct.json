@@ -1,0 +1,55 @@
+{
+  "id": "t1-lapisan-struct",
+  "judul": "Struct dari repo sampai ke app",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t1 · m3.txt, lapisan.txt"
+  },
+  "baris": [
+    {
+      "label": "Mode rentan M3",
+      "sub": "cari=Ani, m3.txt B",
+      "simpul": [
+        {
+          "teks": "repo.Akun",
+          "kode": true,
+          "sub": "id, jenis, nama, saldo",
+          "nada": "warn"
+        },
+        {
+          "teks": "service, handler",
+          "sub": "diteruskan apa adanya; cek_arah.py lolos",
+          "nada": "system"
+        },
+        {
+          "teks": "saldo ikut ke app",
+          "sub": "{\"id\":418,\"jenis\":\"warung\",\"nama\":\"Warung Ani\",\"saldo\":0}",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Versi benar",
+      "sub": "cari=Ani, m3.txt E",
+      "simpul": [
+        {
+          "teks": "repo.WarungRingkas",
+          "kode": true,
+          "sub": "id, nama; struct khusus layar dari ADR 4",
+          "nada": "good"
+        },
+        {
+          "teks": "service, handler",
+          "sub": "meneruskan tanpa mengubah field",
+          "nada": "system"
+        },
+        {
+          "teks": "hanya id dan nama",
+          "sub": "{\"id\":418,\"nama\":\"Warung Ani\"}",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Daftar import tidak melihat tipe data. Field yang sampai ke app ditentukan struct milik repo."
+}

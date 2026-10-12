@@ -7,59 +7,42 @@
   },
   "baris": [
     {
-      "label": "Lab api-t1",
-      "sub": "arah yang diizinkan",
+      "label": "Arah",
+      "sub": "go list, bagian A",
       "simpul": [
         {
-          "teks": "handler/",
-          "kode": true,
+          "teks": "handler",
           "sub": "HTTP; mengimpor service",
           "nada": "system"
         },
         {
-          "teks": "service/",
-          "kode": true,
+          "teks": "service",
           "sub": "aturan uang; mengimpor repo",
           "nada": "system"
         },
         {
-          "teks": "repo/",
-          "kode": true,
+          "teks": "repo",
           "sub": "SQL; satu-satunya yang mengimpor database/sql",
           "nada": "system"
-        },
-        {
-          "teks": "cek_arah.py: lolos",
-          "kode": true,
-          "sub": "tiga lapisan, exit 0",
-          "nada": "good"
         }
       ]
     },
     {
       "label": "Pintas AI",
-      "sub": "file sementara pintas_ai.go",
+      "sub": "pintas_ai.go, bagian C",
       "simpul": [
         {
-          "teks": "handler/ + database/sql",
-          "kode": true,
-          "sub": "menjalankan SELECT sendiri",
+          "teks": "handler + SQL",
+          "sub": "SELECT di handler; go build tetap exit 0",
           "nada": "warn"
         },
         {
-          "teks": "go build: exit 0",
-          "kode": true,
-          "sub": "compiler tidak tahu soal lapisan",
-          "nada": "warn"
-        },
-        {
-          "teks": "cek_arah.py: exit 1",
-          "kode": true,
-          "sub": "handler: mengimpor database/sql (dilarang)",
+          "teks": "ditolak",
+          "sub": "cek_arah.py exit 1",
           "nada": "good"
         }
       ]
     }
   ],
-  "catatan": "Biru: arah yang diizinkan. Kuning: pintas yang lolos compiler. Hijau: pemeriksa arah yang menjawab benar."
+  "catatan": "Biru: arah yang diizinkan. Kuning: pintas yang lolos compiler. Hijau: pemeriksa arah yang menolaknya."
 }
