@@ -608,7 +608,11 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 /* Halaman umpan balik (core.js: umpan-balik-data) */
 .sl-markdown-content .bb-fb-sum { color: var(--teks-2); }
 /* Tooltip istilah (javascripts/istilah.js): abbr dari remark-abbr, popover dari skrip lama */
-.sl-markdown-content abbr { text-decoration: none; border: 0; cursor: inherit; }
+/* Istilah tidak dipenggal di antara kata (keputusan 359): kotak hover dan popover satu baris, dan saat Satoshi datang
+   terlambat istilah tidak melompat dari ujung satu baris ke awal baris berikutnya (e3 375: CLS 0,184). */
+.sl-markdown-content abbr { text-decoration: none; border: 0; cursor: inherit; white-space: nowrap; }
+/* Hanya di prosa: di sel tabel istilah yang tidak boleh dipenggal melebarkan kolom, dan tabel di HP melewati wadahnya. */
+.sl-markdown-content :is(td, th) abbr { white-space: normal; }
 .sl-markdown-content abbr.istilah { cursor: help; text-decoration: underline dotted var(--k-system-edge); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
 .sl-markdown-content abbr.istilah:hover, .sl-markdown-content abbr.istilah:focus-visible { background: var(--k-system-fill); border-radius: 3px; outline: none; }
 .istilah-pop { position: absolute; z-index: 10; max-width: 20rem; padding: 0.75rem 0.9rem 0.7rem; background: var(--bg); border: 1px solid var(--garis-2); border-left: 3px solid var(--k-system-edge); border-radius: 8px; color: var(--teks); font-size: 0.85rem; line-height: 1.5; font-family: var(--sl-font); }

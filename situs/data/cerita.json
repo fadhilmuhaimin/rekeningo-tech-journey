@@ -50,8 +50,8 @@
         "tim": "1 developer"
       },
       "jalur_inti": {
-        "menit": 340,
-        "halaman": 36
+        "menit": 345,
+        "halaman": 37
       },
       "bagian": [
         {
@@ -1238,9 +1238,13 @@
       "bagian": 6,
       "inti": true,
       "masalah": "Keputusan Tahap 1 mana yang akan dibuka lagi?",
-      "ada": false,
+      "ada": true,
       "pendek": "Pratinjau PRD v2",
-      "nomor": "1.42"
+      "prasyarat": [
+        "t1-rekap"
+      ],
+      "nomor": "1.42",
+      "menit": 5
     },
     {
       "id": "T2",
