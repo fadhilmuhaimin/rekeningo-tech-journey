@@ -633,6 +633,47 @@
   "jawab": "Salah. Request ulang tetap masuk sebagai pesan baru, dan queue standar SQS bisa mengirim satu pesan lebih dari sekali. Yang membedakan request ulang dari pembayaran baru adalah tanda dari app, dan itu dibahas di Tahap 2 (2.3 Retry dan idempotency key)."
  },
  {
+  "id": "t1-rekap-1",
+  "halaman": "t1-rekap",
+  "judul": "1.41 Yang dibawa keluar dari Tahap 1",
+  "url": "tahap-1/rekap/",
+  "tanya": "Raka menambah `GET /warung/{id}/laporan-bulanan`. Handler memeriksa token, lalu service mengambil laporan untuk `{id}`. Ani mengganti `{id}` dengan id warung lain. Apa yang ia terima, dan seharusnya apa?",
+  "jawab": "Dengan kode itu Ani menerima laporan warung lain. Token hanya membuktikan siapa Ani (authentication), belum apakah warung itu miliknya (authorization). Service harus mencocokkan pemilik warung dengan akun yang login, dan menjawab 404 seperti warung yang tidak ada (ADR 7)."
+ },
+ {
+  "id": "t1-rekap-2",
+  "halaman": "t1-rekap",
+  "judul": "1.41 Yang dibawa keluar dari Tahap 1",
+  "url": "tahap-1/rekap/",
+  "tanya": "AI menulis filter tanggal untuk riwayat. App memakai date picker, jadi Raka menganggap `mulai` sudah pasti berbentuk tanggal. Aman?",
+  "jawab": "Tidak. Date picker hanya membatasi user yang memakai app. Request bisa dikirim tanpa app, seperti yang dilakukan Dimas. `mulai` disambung ke string SQL, jadi tanda kutip di dalamnya mengubah query. Kirim `mulai` sebagai parameter `$2`, dan periksa formatnya di backend: tanggal yang tidak terbaca dijawab 400.",
+  "kode": "q := \"SELECT id, ke, jumlah, dibuat FROM transaksi WHERE dari = $1 AND dibuat >= '\" + mulai + \"'\"\nrows, err := r.db.QueryContext(ctx, q, akunID)"
+ },
+ {
+  "id": "t1-rekap-3",
+  "halaman": "t1-rekap",
+  "judul": "1.41 Yang dibawa keluar dari Tahap 1",
+  "url": "tahap-1/rekap/",
+  "tanya": "Pak Hadi ingin layar saldo menyebut kapan saldo itu terakhir berubah. Raka berencana mengubah `saldo` di `GET /akun/{id}` dari angka menjadi objek berisi angka dan waktu. Sebagian HP masih memakai app versi lama yang membaca `saldo` sebagai angka. Urutan rilis apa yang tidak merusaknya?",
+  "jawab": "Tipe `saldo` tidak diubah. App versi lama mengharapkan angka, jadi objek di tempat itu membuatnya gagal membaca response, seperti rename di M6. AIP-180 melarang tipe field yang sudah ada diubah. Perubahannya ditulis sebagai tambahan. Field baru, misalnya `saldo_rinci`, masuk kontrak OpenAPI lebih dulu (ADR 3). Server lalu mengirim `saldo` dan `saldo_rinci` bersamaan, dan app baru membaca `saldo_rinci` (expand, ADR 10). `saldo` baru dihapus sesudah tidak ada app yang membacanya (contract)."
+ },
+ {
+  "id": "t1-rekap-4",
+  "halaman": "t1-rekap",
+  "judul": "1.41 Yang dibawa keluar dari Tahap 1",
+  "url": "tahap-1/rekap/",
+  "tanya": "Admin ingin memperbaiki saldo yang salah dengan satu `UPDATE akun SET saldo = ...` langsung di psql. Kalimat mana yang dilanggar, dan apa gantinya?",
+  "jawab": "\"Setiap angka yang berubah punya alasan tertulis.\" `UPDATE` langsung mengubah saldo tanpa siapa, kapan, dan kenapa. Gantinya `POST /koreksi` (ADR 6): baris `koreksi` dengan alasan dan admin-nya ditulis bersama perubahan saldo dalam satu transaction (ADR 5)."
+ },
+ {
+  "id": "t1-rekap-5",
+  "halaman": "t1-rekap",
+  "judul": "1.41 Yang dibawa keluar dari Tahap 1",
+  "url": "tahap-1/rekap/",
+  "tanya": "Sinta bertanya apakah PRD v2 untuk 1.000 karyawan butuh server kedua. Apa yang kamu kerjakan lebih dulu, dan masalah apa yang diuji lebih dulu?",
+  "jawab": "Hitung dulu: 1.000 × 30% × 40 ÷ 86.400 × 10 ≈ 1,4 request per detik di puncak (asumsi naskah Tahap 2). Kapasitas VPS Tahap 1 belum pernah diukur, jadi angka itu dijawab dengan pengukuran, bukan tebakan. Yang diuji lebih dulu adalah kebenaran data: dua Bayar bersamaan dan Bayar yang diulang Budi sesudah app menampilkan gagal."
+ },
+ {
   "id": "B3.2-1",
   "halaman": "B3.2",
   "judul": "2.1 Race condition dan lock",

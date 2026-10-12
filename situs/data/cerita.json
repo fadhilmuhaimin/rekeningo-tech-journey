@@ -50,8 +50,8 @@
         "tim": "1 developer"
       },
       "jalur_inti": {
-        "menit": 329,
-        "halaman": 35
+        "menit": 345,
+        "halaman": 37
       },
       "bagian": [
         {
@@ -1221,8 +1221,12 @@
       "bagian": 5,
       "inti": true,
       "masalah": "Mengingat sepuluh konsep Tahap 1 dalam satu kalimat masing-masing",
-      "ada": false,
-      "nomor": "1.41"
+      "ada": true,
+      "prasyarat": [
+        "t1-adr-12"
+      ],
+      "nomor": "1.41",
+      "menit": 11
     },
     {
       "id": "t1-jembatan",
@@ -1234,9 +1238,13 @@
       "bagian": 6,
       "inti": true,
       "masalah": "Keputusan Tahap 1 mana yang akan dibuka lagi?",
-      "ada": false,
+      "ada": true,
       "pendek": "Pratinjau PRD v2",
-      "nomor": "1.42"
+      "prasyarat": [
+        "t1-rekap"
+      ],
+      "nomor": "1.42",
+      "menit": 5
     },
     {
       "id": "T2",

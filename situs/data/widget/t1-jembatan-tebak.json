@@ -1,0 +1,38 @@
+{
+  "id": "t1-jembatan-tebak",
+  "judul": "Keputusan yang dibuka lagi",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Naskah Tahap 1 bagian 6; labs/api-t1/output/sengaja-belum.txt bagian B dan C"
+  },
+  "adegan": [
+    "Sinta membagikan PRD v2, dan Raka membuka lagi 12 ADR yang ia tulis selama uji coba Gedung A."
+  ],
+  "pertanyaan": "ADR mana yang akan dibuka lagi?",
+  "pilihan": [
+    {
+      "teks": "ADR 12: cache, queue, dan server kedua, karena user naik dari 100 ke 1.000.",
+      "benar": false,
+      "alasan": "Puncak PRD v2 ±1,4 request per detik (asumsi naskah, halaman 1.37). Yang pecah lebih dulu adalah kebenaran data, bukan kapasitas."
+    },
+    {
+      "teks": "ADR 6 dan ADR 5: tabel koreksi, dan transaction di service.",
+      "benar": true,
+      "alasan": "Selama saldo adalah kolom yang di-UPDATE, tutup buku tidak bisa dibuktikan dari data, jadi tabel koreksi diganti ledger double-entry. Di rekaman, dua Bayar Rp200.000 bersamaan sama-sama lolos pemeriksaan saldo; transaction tidak mencegahnya, constraint yang menahan, dan Budi melihat 500."
+    },
+    {
+      "teks": "ADR 1: backend sendiri diganti BaaS, karena timnya tetap kecil.",
+      "benar": false,
+      "alasan": "ADR 1 diputuskan dari siapa yang boleh mengubah saldo. Syarat baru Pak Hadi membuat pertanyaan itu makin penting, bukan hilang."
+    }
+  ],
+  "penutup": "Keduanya soal kebenaran data, bukan kapasitas. Tahap 2 dimulai dari PRD v2 lengkap dan kedua ADR ini.",
+  "label": {
+    "sumber": "Rekaman lab · sengaja-belum.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}
