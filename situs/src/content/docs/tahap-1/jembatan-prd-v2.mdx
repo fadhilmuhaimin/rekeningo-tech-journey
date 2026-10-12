@@ -1,0 +1,77 @@
+---
+title: "1.42 Jembatan: pratinjau PRD v2"
+description: Minggu 6. Sinta membagikan PRD v2 untuk seluruh kampus, dengan transfer antar karyawan dan syarat baru Pak Hadi. Dari 12 ADR Tahap 1, tebak mana yang akan dibuka lagi.
+---
+import Blok from "../../../components/Blok.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import dataTebak from "../../../../data/widget/t1-jembatan-tebak.json";
+import { muat, label, url as urlHalaman } from "../../../../tools/registri.mjs";
+
+export const hs = muat().halaman;
+export const tautanTebak = ["T2", "t1-adr-transaction"]
+  .map((id) => hs.find((h) => h.id === id && h.ada))
+  .filter(Boolean)
+  .map((h) => ({ label: label(h), href: urlHalaman(h) }));
+
+<p class="meta">Baca 4 menit · coba 1 menit · Prasyarat: [[t1-rekap]] · Jalur inti</p>
+
+Ini pratinjau PRD v2, dokumen kedua yang Sinta tulis untuk Rekeningo. Halaman ini hanya menampilkan apa yang diminta; membangunnya adalah isi Tahap 2.
+
+<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v2">
+  <dl><div><dt>Penulis</dt><dd>Sinta, unit Inisiatif Digital</dd></div><div><dt>Syarat baru</dt><dd>Pak Hadi, Kepala Divisi Keuangan</dd></div></dl>
+  <dl><div><dt>Lingkup</dt><dd>Seluruh kampus pusat: 1.000 karyawan, 12 warung</dd></div><div><dt>Tim</dt><dd>Raka dan 1 engineer baru</dd></div></dl>
+</div>
+
+<Blok nama="Pratinjau PRD v2" buka>
+
+Uji coba Gedung A berakhir di minggu 6. Dari 100 penguji, 91 aktif, dan rekonsiliasi tiga warung selesai dalam 4 jam dengan selisih 0 ([[t1-m8]]).
+
+PRD v2 mengubah tiga hal dari PRD v1:
+
+| | PRD v1 | PRD v2 |
+|---|---|---|
+| Lingkup | Gedung A: 100 karyawan, 3 warung | Seluruh kampus pusat: 1.000 karyawan, 12 warung |
+| Uang berpindah | Dari karyawan ke warung | Juga dari karyawan ke karyawan |
+| Keuangan | Pak Hadi mencocokkan buku warung dengan data Rekeningo | Tutup buku bulanan otomatis |
+
+Pak Hadi menambah satu syarat: "tutup buku bulanan harus bisa dibuktikan dari data, bukan dari rekap."
+
+Selama uji coba, Raka menulis 12 ADR; daftarnya ada di [[t1-rekap]]. PRD v2 akan membuka lagi sebagian dari keputusan itu.
+
+<Tebak client:visible data={dataTebak} tautan={tautanTebak} />
+
+</Blok>
+
+<Blok nama="Ruang lingkup">
+
+Empat fitur diminta di PRD v2. Tiga di antaranya sudah muncul di PRD v1 sebagai sesuatu yang ditunda atau dikerjakan dengan tangan.
+
+| Fitur | Asalnya di Tahap 1 |
+|---|---|
+| Transfer antar karyawan | PRD v1 prioritas P2: diminta Budi untuk patungan makan siang, ditunda ke v2 |
+| Pencairan warung terjadwal | PRD v1 prioritas P1: admin membayar warung dari rekap, di luar sistem, seminggu sekali |
+| Tutup buku bulanan otomatis | Syarat baru Pak Hadi; di uji coba, Pak Hadi mencocokkan buku tiga warung selama 4 jam |
+| Ekspor laporan bulanan | Baru di PRD v2 |
+
+Prioritas dan rincian tiap fitur ada di PRD v2 lengkap, di awal Tahap 2.
+
+</Blok>
+
+<Blok nama="Pertanyaan terbuka">
+
+PRD v2 belum menjawab dua pertanyaan ini. Keduanya sudah terlihat di rekaman [[t1-adr-12]], sebelum satu baris kode Tahap 2 ditulis.
+
+1. **Apa yang terjadi kalau dua transfer dari akun yang sama datang hampir bersamaan?** Dua Bayar Rp200.000 dari saldo Rp250.000 sama-sama lolos pemeriksaan saldo di service. Constraint `saldo_tidak_negatif` menahan yang kedua, dan Budi melihat 500.
+2. **Apa yang terjadi kalau response tidak sampai dan Budi menekan Bayar lagi?** Budi membayar Rp25.000 sekali, dan server mencatat dua transaksi.
+
+PRD v2 menambah transfer antar karyawan. Kedua kejadian itu tidak lagi terbatas di kasir warung; setiap transfer bisa mengalaminya.
+
+</Blok>
+
+<Blok nama="Menuju Tahap 2">
+
+Tahap 2 dimulai dari PRD v2 lengkap dan dua ADR yang dibuka lagi: ADR 6 dan ADR 5. Hitungan di [[t1-m8]] memberi puncak ±1,4 request per detik untuk PRD v2 (asumsi naskah), jadi yang dibuka lagi adalah keputusan tentang kebenaran data, bukan kapasitas.
+
+Tahap 1 selesai di sini. Halaman berikutnya adalah cerita Tahap 2.
+
+</Blok>
