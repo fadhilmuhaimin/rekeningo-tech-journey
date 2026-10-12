@@ -1,0 +1,28 @@
+{
+  "id": "t1-estimasi-langkah",
+  "judul": "Lima langkah sebelum memilih teknologi",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Angka beban: asumsi naskah · cerita.json"
+  },
+  "baris": [
+    {
+      "label": "Hitung",
+      "sub": "langkah 1–3",
+      "simpul": [
+        { "teks": "Kebutuhan", "sub": "uang tidak boleh hilang" },
+        { "teks": "Estimasi", "sub": "puncak ±0,14 per detik", "nada": "system" },
+        { "teks": "Bottleneck", "sub": "kebenaran data", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Putuskan",
+      "sub": "langkah 4–5",
+      "simpul": [
+        { "teks": "Desain", "sub": "1 API, 1 PostgreSQL" },
+        { "teks": "Trade-off", "sub": "sengaja belum dilakukan", "nada": "old" }
+      ]
+    }
+  ],
+  "catatan": "Teknologi dipilih di langkah 4, sesudah angka beban dan bottleneck diketahui."
+}

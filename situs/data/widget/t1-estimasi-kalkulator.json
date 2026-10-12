@@ -1,0 +1,44 @@
+{
+  "id": "t1-estimasi-kalkulator",
+  "judul": "Puncak beban di kelima tahap",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Asumsi naskah dari cerita.json untuk Tahap 1–5, bukan pengukuran."
+  },
+  "skenario": [
+    { "label": "Tahap 1", "tahap": 1 },
+    { "label": "Tahap 2", "tahap": 2 },
+    { "label": "Tahap 3", "tahap": 3 },
+    { "label": "Tahap 4", "tahap": 4 },
+    { "label": "Tahap 5", "tahap": 5 }
+  ],
+  "awal": 0,
+  "tebak": {
+    "q": "Tahap 5 punya 1.000.000 user, sepuluh ribu kali Tahap 1. Berapa request per detik di jam paling ramai?",
+    "pilihan": [
+      "±1.400",
+      "±14.000",
+      "±140.000"
+    ],
+    "jawaban": 0,
+    "skenario": 4,
+    "alasan": "Hanya 20% user aktif per hari, dan request sehari dibagi ke 86.400 detik. Hasilnya 12.000.000 ÷ 86.400 × 10 ≈ 1.400 per detik, sepuluh ribu kali puncak Tahap 1 yang 0,14."
+  },
+  "label": {
+    "sumber": "Asumsi",
+    "tebakDulu": "Tebak dulu:",
+    "lanjut": "Sekarang pilih “Tahap 5” di atas tabel.",
+    "ubah": "Tahap",
+    "asumsi": "asumsi",
+    "detik": "detik",
+    "ms": "ms",
+    "baris": {
+      "user": "User terdaftar",
+      "dau": "User aktif per hari",
+      "reqHari": "Request per hari",
+      "rata": "Rata-rata, request per detik",
+      "puncak": "Puncak, request per detik"
+    },
+    "kesimpulan": "Di jam paling ramai, satu request datang kira-kira tiap {jarak}."
+  }
+}
