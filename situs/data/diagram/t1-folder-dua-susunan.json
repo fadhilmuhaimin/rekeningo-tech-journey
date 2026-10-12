@@ -1,0 +1,27 @@
+{
+  "id": "t1-folder-dua-susunan",
+  "judul": "Empat langkah bayar, dua susunan",
+  "sumber": { "jenis": "ilustrasi", "teks": "Ilustrasi · rencana Raka, dipakai lab api-t1" },
+  "baris": [
+    {
+      "label": "Satu handler",
+      "sub": "godaan pertama",
+      "simpul": [
+        { "teks": "baca JSON", "nada": "old" },
+        { "teks": "periksa saldo", "nada": "old" },
+        { "teks": "UPDATE", "kode": true, "nada": "old" },
+        { "teks": "tulis response", "nada": "old" }
+      ]
+    },
+    {
+      "label": "Tiga folder",
+      "sub": "rencana Raka",
+      "simpul": [
+        { "teks": "handler/", "kode": true, "sub": "baca JSON, tulis response", "nada": "system" },
+        { "teks": "service/", "kode": true, "sub": "periksa saldo", "nada": "system" },
+        { "teks": "repo/", "kode": true, "sub": "UPDATE", "nada": "system" }
+      ]
+    }
+  ],
+  "catatan": "Abu-abu: semua langkah di satu fungsi handler. Biru: langkah yang sama, dibagi menurut tugasnya."
+}

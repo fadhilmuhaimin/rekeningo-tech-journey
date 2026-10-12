@@ -1,0 +1,27 @@
+{
+  "id": "t1-folder-turun-naik",
+  "judul": "Saldo kurang: turun lalu naik",
+  "sumber": { "jenis": "rekaman", "teks": "Kode lab api-t1 · rekaman bayar.txt bagian F" },
+  "baris": [
+    {
+      "label": "Turun",
+      "sub": "Budi membayar Rp30.000, saldonya Rp25.000",
+      "simpul": [
+        { "teks": "handler/", "kode": true, "sub": "baca JSON, ambil akun dari sesi", "nada": "system" },
+        { "teks": "service/", "kode": true, "sub": "Bayar memeriksa aturan uang", "nada": "system" },
+        { "teks": "repo/", "kode": true, "sub": "Akun: baca saldo dengan SQL", "nada": "system" }
+      ]
+    },
+    {
+      "label": "Naik",
+      "sub": "jawaban kembali ke app",
+      "simpul": [
+        { "teks": "service/", "kode": true, "sub": "saldo lebih kecil dari jumlah", "nada": "system" },
+        { "teks": "ErrSaldoKurang", "kode": true, "sub": "error Go biasa, tanpa status code", "nada": "warn" },
+        { "teks": "handler/", "kode": true, "sub": "memetakan error ke status", "nada": "system" },
+        { "teks": "422", "kode": true, "sub": "problem saldo-kurang", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Service tidak tahu status code, dan repo tidak tahu kenapa saldo dibaca. Hanya handler yang menerjemahkan error ke HTTP."
+}

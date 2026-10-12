@@ -1,0 +1,19 @@
+{
+  "id": "t1-backend-susunan",
+  "judul": "Pembagian kerja Rekeningo Tahap 1",
+  "sumber": { "jenis": "ilustrasi", "teks": "Susunan Tahap 1 · sama dengan lab api-t1" },
+  "baris": [
+    {
+      "label": "Satu request",
+      "sub": "dari HP sampai database",
+      "simpul": [
+        { "teks": "App Flutter", "sub": "tampilan, validasi format, draft dan cache lokal", "nada": "old" },
+        { "teks": "handler", "kode": true, "sub": "terima request lewat HTTPS + JSON, periksa sesi dan format", "nada": "system" },
+        { "teks": "logika bisnis", "sub": "aturan: saldo cukup, nominal lebih dari 0", "nada": "system" },
+        { "teks": "akses data", "sub": "query SQL ke database", "nada": "system" },
+        { "teks": "PostgreSQL", "sub": "tabel akun dan transaksi, constraint saldo ≥ 0", "nada": "system" }
+      ]
+    }
+  ],
+  "catatan": "Abu-abu: di HP user. Biru: di server milik tim, tempat keputusan diambil. Handler, logika bisnis, dan akses data ada di satu monolith API."
+}
