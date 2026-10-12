@@ -1,0 +1,39 @@
+{
+  "id": "t1-pertukaran-tiga-penjaga",
+  "judul": "Tiga hal yang harus benar, dan penjaganya di v1",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab api-t1 · bayar.txt, pertukaran.txt" },
+  "baris": [
+    {
+      "label": "1. Semua atau tidak sama sekali",
+      "sub": "satu transaction di service/",
+      "simpul": [
+        { "teks": "begin", "kode": true },
+        { "teks": "UPDATE", "kode": true, "sub": "saldo Budi dikurangi" },
+        { "teks": "UPDATE", "kode": true, "sub": "saldo Ani ditambah" },
+        { "teks": "INSERT", "kode": true, "sub": "satu baris transaksi" },
+        { "teks": "commit", "kode": true, "sub": "ketiganya tersimpan bersama", "nada": "good" }
+      ]
+    },
+    {
+      "label": "2. Tidak ada saldo di bawah nol",
+      "sub": "dua pagar di jalur yang sama",
+      "simpul": [
+        { "teks": "Bayar Rp30.000", "sub": "sisa saldo Rp25.000" },
+        { "teks": "service memeriksa", "sub": "pagar pertama: 422 Saldo tidak cukup", "nada": "system" },
+        { "teks": "UPDATE", "kode": true, "sub": "hanya terjadi kalau service lupa memeriksa", "nada": "warn" },
+        { "teks": "saldo_tidak_negatif", "kode": true, "sub": "pagar terakhir: UPDATE ditolak, saldo tetap Rp25.000", "nada": "good" }
+      ]
+    },
+    {
+      "label": "3. Jumlah semua saldo tetap",
+      "sub": "pasangan kurang + tambah; SUM memeriksa sesudahnya",
+      "simpul": [
+        { "teks": "Rp25.000.000", "sub": "sebelum bayar" },
+        { "teks": "Rp25.000.000", "sub": "sesudah bayar Rp25.000" },
+        { "teks": "Rp25.000.000", "sub": "sesudah Rp30.000 ditolak" },
+        { "teks": "= semua top-up", "sub": "100 karyawan × Rp250.000", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Log PostgreSQL dari bayar.txt bagian D. Penolakan 422 dari pertukaran.txt bagian F, constraint dari bagian G, dan query SUM dari bagian B, D, dan F."
+}

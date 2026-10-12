@@ -1,0 +1,92 @@
+{
+  "id": "t1-http-satu-alamat",
+  "judul": "Satu alamat, empat jawaban",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t1 · http.txt"
+  },
+  "baris": [
+    {
+      "label": "Token Budi",
+      "sub": "pemilik transaksi",
+      "simpul": [
+        {
+          "teks": "GET /transfers/1",
+          "kode": true
+        },
+        {
+          "teks": "200 OK",
+          "kode": true,
+          "nada": "good"
+        },
+        {
+          "teks": "isi transaksi Rp25.000",
+          "sub": "dari 419 ke 418",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Tanpa token",
+      "simpul": [
+        {
+          "teks": "GET /transfers/1",
+          "kode": true
+        },
+        {
+          "teks": "401 Unauthorized",
+          "kode": true,
+          "nada": "warn"
+        },
+        {
+          "teks": "Www-Authenticate: Bearer",
+          "kode": true,
+          "sub": "wajib menyertai 401",
+          "nada": "system"
+        }
+      ]
+    },
+    {
+      "label": "Token Dimas",
+      "sub": "bukan pemilik",
+      "simpul": [
+        {
+          "teks": "GET /transfers/1",
+          "kode": true
+        },
+        {
+          "teks": "404 Not Found",
+          "kode": true,
+          "nada": "warn"
+        },
+        {
+          "teks": "sama dengan transaksi 999",
+          "sub": "yang memang tidak ada",
+          "nada": "system"
+        }
+      ]
+    },
+    {
+      "label": "Method DELETE",
+      "sub": "tidak didaftarkan",
+      "simpul": [
+        {
+          "teks": "DELETE /transfers/1",
+          "kode": true
+        },
+        {
+          "teks": "405 Method Not Allowed",
+          "kode": true,
+          "nada": "warn"
+        },
+        {
+          "teks": "Allow: GET, HEAD",
+          "kode": true,
+          "sub": "method yang diterima",
+          "nada": "system"
+        }
+      ]
+    }
+  ],
+  "catatan": "Yang diganti hanya token atau method. Status dan header berubah mengikutinya."
+}
