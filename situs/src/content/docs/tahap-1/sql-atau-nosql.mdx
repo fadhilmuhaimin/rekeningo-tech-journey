@@ -21,7 +21,7 @@ Pilih database dari bentuk data dan aturan yang harus dijaga, bukan dari reputas
 
 Pembayaran ke warung mengubah dua saldo dan menulis satu catatan, dan ketiganya harus berubah bersama. Saldo tidak boleh negatif, dan catatan harus menunjuk ke akun yang ada. Di PostgreSQL, aturan itu dijaga transaction, constraint `CHECK`, dan foreign key, sehingga rekaman lab menunjukkan saldo negatif dan akun 999 sama-sama ditolak database.
 
-Document database juga punya transaction, tetapi rujukan antar-dokumen diselesaikan aplikasi dengan query tambahan ([MongoDB: Database references](https://www.mongodb.com/docs/manual/reference/database-references/)). Kecepatan juga bergantung pada pola akses. Dengan asumsi Tahap 1, puncaknya ±0,14 request per detik, jadi kecepatan mesin bukan faktor penentu.
+Document database juga punya transaction, tetapi dokumentasi MongoDB meminta logika aplikasi menjaga rujukan antar-dokumen tetap konsisten bila skema membutuhkannya ([MongoDB: Data consistency](https://www.mongodb.com/docs/manual/data-modeling/data-consistency/)). Kecepatan juga bergantung pada pola akses. Dengan asumsi Tahap 1, puncaknya ±0,14 request per detik, jadi kecepatan mesin bukan faktor penentu.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -74,7 +74,7 @@ Ketiganya soal **hubungan antar-data dan aturan**, bukan kecepatan. Di lab `api-
 | Pertanyaan | Relasional (PostgreSQL) | Document database |
 |---|---|---|
 | Bentuk data | Tabel dengan skema tetap; perubahan lewat migration | Dokumen JSON; bentuk bisa berbeda antar-dokumen |
-| Hubungan antar-data | Foreign key dijaga database ([[B2.1]]) | Rujukan antar-dokumen dijaga kode aplikasi [perlu verifikasi per produk] |
+| Hubungan antar-data | Foreign key dijaga database ([[B2.1]]) | Rujukan antar-dokumen dijaga logika aplikasi ([MongoDB: Data consistency](https://www.mongodb.com/docs/manual/data-modeling/data-consistency/)); Firestore [perlu verifikasi] |
 | Aturan data | `CHECK`, `UNIQUE`, `NOT NULL` di database | Validasi skema per dokumen (MongoDB) atau aturan keamanan (Firestore) |
 | Banyak perubahan sekaligus | Transaction, bagian inti sejak awal | Tersedia ([MongoDB](https://www.mongodb.com/docs/manual/core/transactions/), [Firestore](https://firebase.google.com/docs/firestore/manage-data/transactions)), dengan batasan masing-masing |
 | Query baru yang tidak direncanakan | `JOIN`, `GROUP BY` bebas | Biasanya butuh index baru atau bentuk dokumen baru |
