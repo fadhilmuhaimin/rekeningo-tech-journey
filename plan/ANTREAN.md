@@ -470,11 +470,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### K2b · Celah tools/contrast.py
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: K2a
 - selesai bila: aturan yang hanya menulis `color`, atau hanya menulis latar, dipasangkan dengan aturan leluhur atau latar halaman; `opacity` di aturan induk ikut diturunkan ke warna turunannya; ada tes di `tools/test_contrast.py`; `.bb-step.is-skipped` (sebelum K2a) tertangkap oleh tes mutasi.
-- catatan: Dari K2 (keputusan 301): 146 aturan color saja, 57 latar saja, 6 aturan opacity tidak pernah dipasangkan (termasuk is-skipped dan tautan sidebar `menyusul`). Jalur teknis.
+- catatan: Dari K2 (keputusan 301): 146 aturan color saja, 57 latar saja, 6 aturan opacity tidak pernah dipasangkan (termasuk is-skipped dan tautan sidebar `menyusul`). Jalur teknis. Selesai: keputusan 355, PR #192.
 
 ### G2 · Waktu gerbang CI di bawah batas
 
@@ -533,11 +533,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### 1.38 · Kerangka berpikir dan estimasi
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 1.37
 - selesai bila: D1 ditulis ulang ke `tahap-1/` dengan widget kalkulator; angka dari `tahap[0].asumsi`.
-- catatan: -
+- catatan: Selesai: keputusan 304, PR #194.
 
 ### 1.39 · Spesifikasi untuk AI dan review kode AI
 
@@ -564,7 +564,7 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - percobaan: 0
 - bergantung: -
 - selesai bila: bagian K3 di `plan/CROSSCHECK-KECIL.md` memuat 1.36–1.40 dengan bukti; temuan menjadi tugas perbaikan di bawah K3.
-- catatan: -
+- catatan: Periksa juga klaim kapasitas tanpa load test di 1.31 `deployment-rollback.mdx` (~baris 103, "Satu proses Go menjawab beban itu"), dari pelaksana 1.38.
 
 ### I5e · Race: garis waktu dua client
 
