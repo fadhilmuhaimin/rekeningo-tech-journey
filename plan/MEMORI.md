@@ -50,10 +50,11 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-12 · Mode paralel (keputusan 264). Konten: 1.35–1.40, K2, K3 selesai; 1.41 berjalan di `../rjt-konten`; sisa 1.42. Teknis: I5c-c, I5c-d, I5d, I5e, I5c-e, K2a, K2b, K2d, G2 selesai; I5c-f berjalan; berikutnya G2a, I5c-g, K2c, lalu I5f, P3, P4, R1–R6 sesudah konten selesai. Catatan pengatur di `tmp/catatan-pengatur.md`.
+2026-10-12 · Mode paralel (keputusan 264). Konten: 1.35–1.41, K2, K3 selesai; 1.42 (terakhir) berjalan di `../rjt-konten`. Teknis: I5c-c/d/e, I5d, I5e, K2a/b/d, G2 selesai; I5c-f (#206) dalam perbaikan; berikutnya G2a, I5c-g, I5c-h, K2c, lalu I5f, P3, P4, R1–R6. Sesudah itu X1, X2. Catatan pengatur di `tmp/catatan-pengatur.md`.
 
 ## Pelajaran
 
+- Mode font telat (`ukur-cls.mjs --font-telat`) di macOS tidak meniru CI: "Satoshi Fallback" memakai Arial di Mac dan lebar glyph Chromium Linux berbeda, jadi tepi baris jatuh di paragraf lain; ukur font telat lewat commit percobaan di CI (keputusan 359).
 - `gh pr checks` (v2.93.0) tidak menghitung check `cancelled` sebagai gagal: job yang kena `timeout-minutes` bisa terbaca hijau. Sebelum merge, pastikan semua job `success` (`gh run view <id> --json jobs`), dan tunggu run untuk head yang benar terdaftar dulu (tanpa run, `--watch` langsung selesai).
 - `layar.mjs` dan `tangkap.mjs` mengukur keadaan awal halaman (blok terlipat, island di bawah layar belum hidup); luapan horizontal di blok terlipat hanya tertangkap `ukur-luapan.mjs`, yang membuka semua blok dan menggulir sampai bawah (keputusan 356). Docker Desktop bisa tertahan dialog izin macOS: rekaman resmi tetap di container, cluster PG sementara hanya untuk mencoba.
 - Widget lama yang mengganti teks pemuat sesudah fetch butuh versi statis dari build (pola `alur-statis.ts`, `race-statis.ts`); `contrast.py` tidak membaca `color: inherit` bila induk hanya dikenali lewat kelas lain, jadi tulis token warna eksplisit di elemen teks widget (keputusan 353).
@@ -71,7 +72,6 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Ukur konteks sesi pengatur 1.28 (tools/ukur_konteks.py pada transcript subagen): awal 65–66k (loop lama 94–101k), puncak pelaksana 279k, 24,9 juta token diproses, 86% di atas 150k; peninjau 98–176k. Pelaksana wajib serah-terima di ±120k (PROTOKOL k.4).
 - Animasi CSS yang dipicu event `toggle` (async) mulai satu sampai dua frame sesudah `<details>` terbuka: isi penuh sempat berkedip. Ukur frame per rAF sesudah klik sungguhan (`page.click`, bukan `el.click()`, yang tidak mengirim pointerdown). `page.click` lebih dulu menggulir ke elemen: ukur gulir dari tombol yang sudah di layar, bukan `scrollY` sebelum klik (K1xe).
 - Penanda selesai di `tmp/` bisa tertinggal dari sesi lama (K1: `tmp/cek-hasil.txt` membuat Monitor menyala saat gerbang masih jalan); hapus penanda sebelum gerbang mulai, atau tunggu prosesnya (`pgrep -f cek_situs`).
-- `tmp/sidik_dist.py` hanya menghitung file yang dirujuk HTML; chunk yang diimpor island (React Flow) terlihat lewat `tmp/ukur_diagram_js.py` atau byte jaringan (`situs/tangkapan/i5b-jaringan.mjs`). React Flow `fitView` hanya untuk node awal: data baru = ReactFlow baru (`key`).
 - layar.mjs tidak menghitung Snippet sebagai visual Inti; Inti butuh Rantai atau widget (1.32 gagal 4 ukuran sebelum Rantai).
 - Markup pesanan yang meniru komponen (mis. `figure.diagram` di `.peta__pesan`) ikut tertangkap selector alat ukur; kecualikan wadahnya (`:not(.peta__pesan figure)`, `:scope >`).
 - Menutup blok di atas tombol yang diklik menggeser semua yang di bawahnya; ukur top tujuan sebelum dan sesudah `open = false`, lalu `scrollBy({ behavior: "instant" })` sebesar selisihnya. Scroll anchoring Chromium tidak mengoreksinya (K1xe).

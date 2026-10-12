@@ -494,6 +494,15 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - selesai bila: sesudah pembaca menebak, kotak tebakan dan varian di widget alur tidak lagi memisahkan detail langkah dari jalur dan tombol (mis. kotak tebakan diciutkan menjadi satu baris jawaban sesudah menebak); di 1366×657 jarak paket ke judul detail kembali ≤ 60 px dan penjelasan langkah terbaca utuh tanpa menggulir di ≥ 20 dari 23 langkah; tombol Berikutnya tetap di layar (cek `ukur-gerak.mjs`); versi statis dan `ukur-cls.mjs` tetap 0 px; tanpa animasi otomatis.
 - catatan: Dari peninjau PR #202 (keputusan 358): jarak paket ke judul detail naik 30 → 224–286 px (1.40: 297–387 px); penjelasan utuh tanpa gulir turun 20/23 → 14/23. Jalur teknis.
 
+### I5c-h · Mode font telat di gerbang CI
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: I5c-f
+- selesai bila: lima kasus yang hanya gagal di CI Linux dengan `ukur-cls.mjs --font-telat 1500 --fallback Verdana` diperbaiki di komponen/CSS (b11-2-proxy-bff 667 0,196; d2-scaling 375 0,108 dan 667 0,168; authentication 1440 0,172; kontrak-openapi 1440 0,161), lalu mode font telat dipasang di kelompok CLS gerbang (`--paralel 8`) dan CI hijau dengan 0 di atas 0,1; percobaan dilakukan lewat commit di branch karena lebar glyph Linux tidak bisa ditiru di macOS.
+- catatan: Dari PR #206 (keputusan 359). Jalur teknis.
+
 ### G2a · Batas waktu per halaman di alat ukur
 
 - jenis: perbaikan
@@ -596,11 +605,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### 1.41 · Yang dibawa keluar dari Tahap 1
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: halaman `t1-rekap` dengan 10 kalimat dari naskah bagian 5, masing-masing terikat ke kejadiannya, plus Cek diri gabungan; widget kartu.
-- catatan: -
+- catatan: Selesai: keputusan 308, PR #207.
 
 ### 1.42 · Jembatan: pratinjau PRD v2
 
@@ -699,7 +708,7 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - percobaan: 0
 - bergantung: -
 - selesai bila: isi `plan/PROMPT-CROSSCHECK.md` dijalankan; `plan/LAPORAN-TAHAP-1.md` ditulis; setiap perbaikan dari laporan menjadi tugas perbaikan baru sesudah X1 (satu tugas per perbaikan, bukan dikerjakan di iterasi X1).
-- catatan: -
+- catatan: Dari pelaksana 1.41: jumlah akun M3 tidak seragam — 1.19 `m3-tanda-kutip.mdx` ~21 "100 karyawan, tiga warung, dan admin" (104) vs `labs/api-t1/output/m3.txt` ~36 tiga + "99 akun lain" (102) vs M5 103.
 
 ### X2 · Penutup Tahap 1
 
