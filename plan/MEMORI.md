@@ -43,6 +43,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 ## Perlu dicek pemilik
 
 - PROPOSAL tidak konsisten soal deploy: tabel infra (~149) menulis Tahap 2 deploy lewat SSH dari Actions, tabel pipeline (~430–431) menulis Tahap 2 manual dan staging Tahap 3, (~432) blue/green Tahap 4; halaman 1.31, 1.35, 1.36, 1.40 mengikuti tabel pipeline ("deploy tanpa jeda" Tahap 3 dari dua instance ~150). Mohon diputuskan.
+- Dashboard web: CERITA-TAHAP-1:66, registry Tahap 3 `skala.prd`, PROPOSAL:461 dan :688 menaruhnya di Tahap 3; PROPOSAL:77 di Tahap 2. Beranda (keputusan 316) tidak menyebut tahap. Mohon diputuskan.
 - M8 (1.37, keputusan 303): naskah menulis "91/100 penguji aktif", asumsi registry 30% user aktif per hari; halaman memakai 91 sebagai aktif selama uji coba dan menulis kepekaannya terbuka (0,14–0,42 RPS). Mohon konfirmasi tafsiran.
 - Redesain #120: usulan perubahan PROPOSAL "Desain visual final" dan CLAUDE.md `<tampilan>` di `plan/AUDIT-TAMPILAN.md` bagian 6, belum diubah.
 - ADR 7 (keputusan 240): RLS sebagai pagar kedua dipasang di tabel ledger Tahap 2, tidak di tabel v1 `api-t1` (rekaman `b5-rls` bagian 5: policy pemilik membuat bayar ke warung `UPDATE 0`). Kalau RLS harus sudah berjalan di Tahap 1, perlu tugas lab `api-t1` sendiri.
@@ -53,7 +54,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-13 · Mode paralel (keputusan 264). Konten tuntas; `../rjt-konten` dihapus. Jalur teknis-halaman `../rjt-halaman` (PORT 4323, 310–349): P3, R1–R5 selesai; P8 berjalan; lalu R6 (sesudah P10), P4, P5, P6, P9, I5f. Jalur teknis `../rjt-teknis` (4324, 350–399): I5c-f/g/h, G2a, G2b, K2c, P7 selesai; P10 (#226) ditinjau, G2c dan G2d berjalan. Sesudah itu hapus worktree, X1, X2. Catatan pengatur di `tmp/catatan-pengatur.md`.
+2026-10-13 · Mode paralel (keputusan 264). Konten tuntas; `../rjt-konten` dihapus. Jalur teknis-halaman `../rjt-halaman` (PORT 4323, 310–349): P3, P8, R1–R5 selesai; P6, P9 (#233), R6 berjalan; lalu P4, P5, I5f. Jalur teknis `../rjt-teknis` (4324, 350–399): I5c-f/g/h, G2a, G2b, K2c, P7, P10 selesai; G2c (#232) dan G2d (#231) putaran 2; lalu G2e. Sesudah itu hapus worktree, X1, X2. Catatan pengatur di `tmp/catatan-pengatur.md`.
 
 ## Pelajaran
 
