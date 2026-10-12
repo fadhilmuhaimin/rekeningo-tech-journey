@@ -1,0 +1,82 @@
+[
+ {
+  "id": "t1-rekap-k1",
+  "halaman": "A4",
+  "judul": "1.4 Backend sendiri, bukan BaaS",
+  "url": "tahap-1/adr-1-backend-sendiri/",
+  "tanya": "PRD v1: setiap rupiah tunjangan harus bisa ditelusuri, dan Pak Hadi menolak angka yang berubah tanpa catatan. Raka memilih backend sendiri, bukan BaaS. Apa yang menentukan pilihan itu?",
+  "jawab": "Yang menentukan bukan kecepatan, tapi siapa yang boleh mengubah saldo."
+ },
+ {
+  "id": "t1-rekap-k2",
+  "halaman": "t1-m1",
+  "judul": "1.14 Nominal minus lolos",
+  "url": "tahap-1/m1-nominal-minus/",
+  "tanya": "M1: server menerima Bayar dengan jumlah -5000. Saldo pembayar naik dari Rp250.000 ke Rp255.000, dan Warung Ani jadi -Rp5.000. Kalimat apa yang lahir?",
+  "jawab": "App boleh mengecek bentuk; hanya backend memutuskan uang; database menjaga pagar terakhir (ADR 2)."
+ },
+ {
+  "id": "t1-rekap-k3",
+  "halaman": "t1-m2",
+  "judul": "1.17 amount atau nominal",
+  "url": "tahap-1/m2-amount-nominal/",
+  "tanya": "M2 dan M6: satu angka punya tiga nama, yaitu Nominal di layar, amount di Dart, dan jumlah di server. Lalu satu deploy mengganti jumlah jadi nominal. Kalimat apa yang lahir?",
+  "jawab": "Satu orang pun butuh perjanjian dengan dirinya sendiri: kontrak OpenAPI sebelum kode (ADR 3), dan field tidak pernah diganti nama (ADR 10)."
+ },
+ {
+  "id": "t1-rekap-k4",
+  "halaman": "t1-m3",
+  "judul": "1.19 Tanda kutip di pencarian",
+  "url": "tahap-1/m3-tanda-kutip/",
+  "tanya": "M3: Budi mencari warung dengan tanda kutip dan melihat Error 500. Dimas mengetik ' OR 1=1 -- dan melihat akun lain beserta saldonya. Kalimat apa yang lahir?",
+  "jawab": "Jangan sambung string; parameter selalu (ADR 4)."
+ },
+ {
+  "id": "t1-rekap-k5",
+  "halaman": "t1-m4",
+  "judul": "1.22 Rp70.000 yang hilang",
+  "url": "tahap-1/m4-rp70000-hilang/",
+  "tanya": "M4: Budi membayar Rp70.000 dan layarnya menulis gagal. Saldonya Rp180.000, bukan Rp250.000, dan Warung Ani tidak menerima apa-apa. Kalimat apa yang lahir?",
+  "jawab": "Dua perubahan uang terjadi bersama, atau tidak sama sekali (ADR 5)."
+ },
+ {
+  "id": "t1-rekap-k6",
+  "halaman": "t1-adr-transaction",
+  "judul": "1.24 Transaction di service dan tabel koreksi",
+  "url": "tahap-1/adr-transaction-koreksi/",
+  "tanya": "M4, Senin pagi: jumlah semua saldo Rp24.930.000, jumlah semua top-up Rp25.000.000. Pak Hadi bertanya \"Rp70.000 ini ke mana?\" dan tidak ada baris yang menjawabnya. Kalimat apa yang lahir?",
+  "jawab": "Setiap angka yang berubah punya alasan tertulis (ADR 6: tabel koreksi dengan siapa, kapan, dan kenapa)."
+ },
+ {
+  "id": "t1-rekap-k7",
+  "halaman": "t1-m5",
+  "judul": "1.26 Angka di URL",
+  "url": "tahap-1/m5-angka-di-url/",
+  "tanya": "M5: login Dimas sah. Ia mengganti 417 jadi 418 di URL dan melihat saldo Warung Ani. Akun 401 sampai 503 memberi 103 baris. Kalimat apa yang lahir?",
+  "jawab": "Tahu siapa kamu belum berarti tahu kamu boleh apa (ADR 7: pemilik ditanya di service, 404 bukan 403)."
+ },
+ {
+  "id": "t1-rekap-k8",
+  "halaman": "t1-m6",
+  "judul": "1.30 Deploy hari Senin",
+  "url": "tahap-1/m6-deploy-hari-senin/",
+  "tanya": "M6: satu deploy mengganti nama kolom dan menimpa binary lama. App versi lama error, dan tidak ada versi lama untuk kembali. Kalimat apa yang lahir?",
+  "jawab": "Pipeline adalah ingatan yang tidak gemetar (ADR 9: image per commit, rollback = tag lama, CI pertama)."
+ },
+ {
+  "id": "t1-rekap-k9",
+  "halaman": "t1-m7",
+  "judul": "1.34 File .env di repo",
+  "url": "tahap-1/m7-env-di-repo/",
+  "tanya": "M7: .env berisi password database ikut ter-commit. Sesudah file itu dihapus dari repo, git show atas commit lama masih mencetak password-nya. Kalimat apa yang lahir?",
+  "jawab": "Riwayat git tidak pernah lupa (ADR 11: nama secret di repo, nilainya hanya di server)."
+ },
+ {
+  "id": "t1-rekap-k10",
+  "halaman": "t1-m8",
+  "judul": "1.37 Uji coba lolos, PRD v2 datang",
+  "url": "tahap-1/m8-uji-coba-lolos/",
+  "tanya": "M8: 91 dari 100 penguji aktif, rekonsiliasi 4 jam, selisih 0. PRD v2 datang, dan Raka langsung merencanakan VPS lebih besar, server kedua, dan load balancer. Kalimat apa yang lahir?",
+  "jawab": "Hitung dulu; masalah pertama hampir selalu kebenaran data, bukan kapasitas. Puncak Tahap 1 ±0,14 request per detik (asumsi naskah)."
+ }
+]
