@@ -105,7 +105,7 @@ jalan_ukur() {
       echo "== luapan horizontal seluruh halaman 360 dan 375, chip di dalam wadahnya (K2d)"
       (cd situs && node tools/ukur-luapan.mjs --url "$URL") ;;
     alur)
-      echo "== detail alur dekat jalur sesudah menebak, 1366x657 (I5c-g)"
+      echo "== detail alur dekat jalur sesudah menebak 1366x657, fokus sesudah tebakan keyboard 375x667 (I5c-g)"
       (cd situs && node tools/ukur-detail-alur.mjs --url "$URL") ;;
     *) echo "GAGAL: alat ukur $1 ada di KELOMPOK_UKUR tetapi tidak punya perintah"; exit 1 ;;
   esac

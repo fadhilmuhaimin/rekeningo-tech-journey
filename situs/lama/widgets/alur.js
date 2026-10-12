@@ -74,12 +74,29 @@
             [BB.el("strong", { text: "Tebakanmu: " }), d.predict.options[pilih]]));
           var fokus = document.activeElement;
           render();
-          if (!fokus || fokus === document.body || pBox.contains(fokus)) next.focus({ preventScroll: true });
+          if (fokus && fokus !== document.body && !pBox.contains(fokus)) return;
+          // Keyboard: focus() biasa, supaya browser menggulir tombol ke layar dengan scroll-padding-top Starlight (header
+          // tetap); dengan preventScroll fokus di HP bisa jatuh ke tombol di balik header atau di atas layar (WCAG 2.2
+          // SC 2.4.11). Pointer: halaman tidak digulir; fokus ke Berikutnya hanya bila tombol utuh terlihat, selain itu ke
+          // widget (tabindex 0, sedang terlihat karena baru diklik), supaya panah kiri/kanan tetap bekerja.
+          if (lewatKeyboard) next.focus();
+          else (utuhTerlihat(next) ? next : root).focus({ preventScroll: true });
         });
+        // Click dari Enter atau Spasi punya event.detail 0. Dicatat di fase capture, sebelum handler tombol pilihan.
+        pBox.addEventListener("click", function (e) { lewatKeyboard = e.detail === 0; }, true);
+      }
+      var lewatKeyboard = false;
+      function utuhTerlihat(el) {
+        var r = el.getBoundingClientRect();
+        var atas = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+        return r.top >= atas && r.bottom <= window.innerHeight;
       }
       if (d.varian) {
         var cb = BB.el("input", { type: "checkbox" });
         cb.addEventListener("change", function () {
+          // Kotak centang ada di bawah detail dan jawaban tebakan (keputusan 363), jadi keduanya yang berganti menggesernya.
+          // Gulir sebesar geserannya supaya kotak tetap di bawah jari atau pointer (pola K1xe); tanpa gerak.
+          var atas = cb.getBoundingClientRect().top;
           varianOn = cb.checked;
           list = core.steps(d, varianOn);
           // Jawaban tebakan dibuka lagi di akhir jalur yang baru.
@@ -88,6 +105,8 @@
           // Lompat ke langkah pertama yang berbeda: di situlah pelajarannya.
           if (guessed) i = Math.min(list.length, d.varian.mulai + 1);
           render(true);
+          var geser = cb.getBoundingClientRect().top - atas;
+          if (geser) window.scrollBy({ top: geser, behavior: "instant" });
         });
         var varianBox = BB.el("label", { class: "bb-alur__varian" }, [cb, " Ubah satu hal: " + d.varian.label]);
       }
