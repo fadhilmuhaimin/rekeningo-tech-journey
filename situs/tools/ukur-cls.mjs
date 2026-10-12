@@ -13,10 +13,12 @@
 // Ukuran 667x375 (keputusan 350): mode sempit juga bergantung tinggi layar, yang tidak terbaca container query.
 // Tiruan CI (keputusan 351): di CI Satoshi sering datang sesudah paint pertama dan fallback Linux jauh lebih lebar, jadi
 // baris membungkus ulang saat font tukar. --font-telat <ms> menunda /fonts/*, --fallback <font> mengganti system-ui di CSS
-// (mis. Verdana, selebar DejaVu Sans). Contoh: --font-telat 1500 --fallback Verdana. Gerbang memakai mode ini (keputusan
-// 359), supaya hasil CI tidak bergantung kapan font datang: font selalu datang sesudah paint pertama.
-// Penundaan dihitung dari navigasi (tenggat), bukan per request: modul yang diimpor modul lain dan skenario yang diambil
-// alur.js datang segera sesudah tenggat, tidak menunggu TUNDA lagi di setiap tingkat impor (keputusan 359).
+// (mis. Verdana, selebar DejaVu Sans). Contoh: --font-telat 1500 --fallback Verdana. Gerbang (tools/cek_situs.sh) belum
+// memakai mode ini: di CI Linux lima kasus masih di atas batas (keputusan 359), jadi gerbang menjalankan mode biasa.
+// Penundaan dihitung dari navigasi (tenggat), bukan per request (keputusan 359). Skrip widget klasik dilepas di tenggat,
+// supaya parser selesai. Skenario JSON (/widgets/**/*.json) dan modul /_astro ditahan sampai tenggat lewat dan versi
+// statis selesai diukur (lepas), supaya alur dan race tidak hidup sebelum diukur. Pagar: alat gagal bila ada host
+// terlihat yang sudah hidup saat versi statis diukur, karena itu berarti versi hidup dibandingkan dengan dirinya sendiri.
 //   node tools/ukur-cls.mjs --url http://127.0.0.1:4321 [--halaman /tahap-1/perjalanan-request/] [--rinci]
 //     [--font-telat 1500] [--fallback Verdana] [--ukuran 375,667] [--paralel 8]
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -36,8 +38,8 @@ const BATAS = 0.1;
 // Di tiruan CI modul datang sesudah font, supaya versi statis tetap diukur dengan font akhirnya.
 const TUNDA = 600 + FONT_TELAT;
 const SELISIH = 1;
-// Konteks yang berjalan bersamaan. Waktu ukur hampir seluruhnya menunggu tenggat font dan modul, bukan CPU, jadi mode
-// font telat di gerbang memakai 8 (keputusan 359).
+// Konteks yang berjalan bersamaan. Waktu ukur hampir seluruhnya menunggu tenggat font dan modul, bukan CPU; run CI
+// percobaan mode font telat memakai --paralel 8 (keputusan 359). Gerbang memakai bawaan 4.
 const PARALEL = Number(arg("--paralel", 4));
 const SEMUA_UKURAN = [
   { width: 375, height: 667 },
@@ -79,8 +81,16 @@ async function ukur(h, ukuran, posisi) {
   const page = await ctx.newPage();
   let mulai = Date.now();
   const tunggu = (ms) => new Promise((s) => setTimeout(s, Math.max(0, mulai + ms - Date.now())));
-  await page.route(/\/(widgets\/.+\.(js|json)|_astro\/.+\.js)(\?.*)?$/, async (rute) => {
+  let lepas;
+  const dilepas = new Promise((s) => (lepas = s));
+  // Skrip klasik memblokir parser: cukup tenggat, supaya readyState bisa lewat dari "loading".
+  await page.route(/\/widgets\/.+\.js(\?.*)?$/, async (rute) => {
     await tunggu(TUNDA);
+    await rute.continue().catch(() => {});
+  });
+  // Skenario dan modul: tenggat lewat dan versi statis sudah diukur.
+  await page.route(/\/(widgets\/.+\.json|_astro\/.+\.js)(\?.*)?$/, async (rute) => {
+    await Promise.all([tunggu(TUNDA), dilepas]);
     await rute.continue().catch(() => {});
   });
   if (FONT_TELAT)
@@ -126,7 +136,9 @@ async function ukur(h, ukuran, posisi) {
         const a = dekat("previousElementSibling");
         const b = dekat("nextElementSibling");
         const jarak = a && b ? b.getBoundingClientRect().top - a.getBoundingClientRect().bottom : null;
-        return { h: x.offsetHeight, x: r.left, w: r.width, jarak };
+        // Hidup: alur.js sudah mengganti versi statis, atau race.js sudah memasang kelas bb-race.
+        const hidup = x.dataset.bb === "race" ? x.classList.contains("bb-race") : !!x.querySelector(".bb-alur:not(.bb-alur--statis)");
+        return { h: x.offsetHeight, x: r.left, w: r.width, jarak, hidup };
       }), HOST,
     );
   await page.evaluate(() => document.fonts.ready);
@@ -144,9 +156,11 @@ async function ukur(h, ukuran, posisi) {
       const w = [...document.querySelectorAll('[data-bb="alur"]')].find((x) => x.getClientRects().length);
       for (const e of [document.documentElement, document.body]) e.style.overflowAnchor = "none";
       if (w) window.scrollTo(0, w.getBoundingClientRect().top + window.scrollY - 80);
-      return w ? `scrollY ${Math.round(scrollY)} tinggi ${w.offsetHeight} hidup ${!!w.querySelector(".bb-alur")}` : "tanpa host terlihat";
+      return w ? `scrollY ${Math.round(scrollY)} tinggi ${w.offsetHeight} hidup ${!!w.querySelector(".bb-alur:not(.bb-alur--statis)")}` : "tanpa host terlihat";
     }).then((x) => rinci && console.log("  ", h, ukuran.width, x));
   }
+  // Versi statis sudah diukur (dan halaman sudah digulir): skenario dan modul boleh datang.
+  lepas();
   // Selesai bila setiap host alur sudah berisi versi hidup: versi statis dari build juga .bb-alur, jadi yang dicari
   // .bb-alur tanpa .bb-alur--statis (alur.js mengganti isi host).
   await page
@@ -163,6 +177,8 @@ async function ukur(h, ukuran, posisi) {
   const bulat = (v) => Math.round(v * 100) / 100;
   hasil.rinci = { tinggi: beda("h"), saudara: bulat(beda("jarak")), x: bulat(beda("x")), lebar: bulat(beda("w")) };
   hasil.selisih = Math.max(...Object.values(hasil.rinci));
+  hasil.terlihat = sebelum.filter(Boolean).length;
+  hasil.hidup = sebelum.filter((t) => t?.hidup).length;
   hasil.tinggi = sebelum
     .map((t, i) => (t ? `${t.h}→${sesudah[i]?.h} lebar ${bulat(t.w)}→${bulat(sesudah[i]?.w)} jarak ${bulat(t.jarak)}→${bulat(sesudah[i]?.jarak)}` : "tersembunyi"))
     .join("; ");
@@ -171,6 +187,8 @@ async function ukur(h, ukuran, posisi) {
 }
 
 let gagal = 0;
+let hidupSebelum = 0;
+let terlihatSebelum = 0;
 const baris = [];
 const antre = daftar.flatMap((h) => UKURAN.flatMap((u) => ["atas", "widget", ...(halRace.has(h) ? ["race"] : [])].map((p) => ({ h, u, p }))));
 const hasilPer = new Map();
@@ -178,19 +196,24 @@ await Promise.all(
   Array.from({ length: PARALEL }, async () => {
     for (let t = antre.shift(); t; t = antre.shift()) {
       const r = await ukur(t.h, t.u, t.p);
+      hidupSebelum += r.hidup;
+      terlihatSebelum += r.terlihat;
       const k = `${t.h} ${t.u.width}x${t.u.height}`;
       const lama = hasilPer.get(k);
       const gabung = (a, b) => Object.fromEntries(Object.keys(a).map((n) => [n, Math.max(a[n], b?.[n] ?? 0)]));
-      if (!lama || r.total > lama.total) hasilPer.set(k, { ...r, posisi: t.p, selisih: Math.max(r.selisih, lama?.selisih ?? 0), rinci: gabung(r.rinci, lama?.rinci) });
-      else Object.assign(lama, { selisih: Math.max(lama.selisih, r.selisih), rinci: gabung(lama.rinci, r.rinci) });
+      const hidup = Math.max(r.hidup, lama?.hidup ?? 0);
+      if (!lama || r.total > lama.total) hasilPer.set(k, { ...r, posisi: t.p, selisih: Math.max(r.selisih, lama?.selisih ?? 0), rinci: gabung(r.rinci, lama?.rinci), hidup });
+      else Object.assign(lama, { selisih: Math.max(lama.selisih, r.selisih), rinci: gabung(lama.rinci, r.rinci), hidup });
     }
   }),
 );
 for (const [k, r] of [...hasilPer].sort()) {
-  const buruk = r.selisih > SELISIH || r.total > BATAS;
+  // Host yang sudah hidup saat versi statis diukur membuat selisih 0 palsu (hidup lawan hidup).
+  const buruk = r.selisih > SELISIH || r.total > BATAS || r.hidup > 0;
   if (buruk) gagal++;
   const d = r.rinci;
   baris.push(`${buruk ? "GAGAL" : r.total > 0.01 ? "tipis" : "ok"} ${r.total.toFixed(3)} selisih tinggi ${d.tinggi} saudara ${d.saudara} x ${d.x} lebar ${d.lebar}px ${k} (${r.posisi})` +
+    (r.hidup ? `  ${r.hidup} host sudah hidup saat versi statis diukur` : "") +
     (rinci || buruk || r.total > BATAS ? `  tinggi ${r.tinggi}; ` + r.sumber.slice(0, 4).join(", ") : ""));
 }
 await browser.close();
@@ -201,7 +224,7 @@ const maksRinci = (n) => Math.max(0, ...[...hasilPer.values()].map((r) => r.rinc
 console.log(
   `CLS alur: ${daftar.length} halaman, maks 375 ${maks(375).toFixed(3)}, maks 667 ${maks(667).toFixed(3)}, maks 1366 ${maks(1366).toFixed(3)}, maks 1440 ${maks(1440).toFixed(3)}, ` +
     `${new Set([...hasilPer].filter(([, r]) => r.total > 0.01).map(([k]) => k.split(" ")[0])).size} halaman > 0,01, ` +
-    `${[...hasilPer.values()].filter((r) => r.total > BATAS).length} di atas batas CLS ${BATAS}, selisih maks: tinggi ${maksRinci("tinggi")} saudara ${maksRinci("saudara")} x ${maksRinci("x")} lebar ${maksRinci("lebar")}px, ${gagal} gagal (batas CLS ${BATAS}, selisih ${SELISIH}px)` +
+    `${[...hasilPer.values()].filter((r) => r.total > BATAS).length} di atas batas CLS ${BATAS}, selisih maks: tinggi ${maksRinci("tinggi")} saudara ${maksRinci("saudara")} x ${maksRinci("x")} lebar ${maksRinci("lebar")}px, host hidup saat versi statis diukur ${hidupSebelum} dari ${terlihatSebelum} host terlihat, ${gagal} gagal (batas CLS ${BATAS}, selisih ${SELISIH}px)` +
     (FONT_TELAT || FALLBACK ? `, tiruan CI: font telat ${FONT_TELAT} ms, fallback ${FALLBACK ?? "-"}` : ""),
 );
 if (!nilai.length) {
