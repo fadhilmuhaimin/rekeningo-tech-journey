@@ -1,0 +1,22 @@
+{
+  "id": "t1-pertukaran-dua-bayar",
+  "judul": "Budi membayar dua kali",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab api-t1 · pertukaran.txt" },
+  "baris": [
+    {
+      "label": "Rp25.000",
+      "sub": "ke Warung Ani, diterima",
+      "simpul": [
+        { "teks": "total tetap Rp25.000.000", "sub": "Budi Rp225.000, Ani Rp25.000, satu baris transaksi", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Rp30.000",
+      "sub": "sesudah bayar Rp200.000",
+      "simpul": [
+        { "teks": "> saldo", "sub": "sisa saldo Budi Rp25.000", "nada": "warn" },
+        { "teks": "422", "kode": true, "sub": "Saldo tidak cukup; tidak ada yang berubah", "nada": "good" }
+      ]
+    }
+  ]
+}
