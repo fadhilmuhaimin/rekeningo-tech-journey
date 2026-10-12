@@ -1,0 +1,43 @@
+== A. Alat otomatis pada kode_ai.go
+$ go vet ./...   # go1.27.1
+(exit code 0)
+
+$ gosec ./...    # gosec v2.29.0
+Results:
+[kode_ai.go:32] - G706 (CWE-117): Log injection via taint analysis (Confidence: HIGH, Severity: LOW)
+[kode_ai.go:34] - G104 (CWE-703): Errors unhandled (Confidence: HIGH, Severity: LOW)
+[kode_ai.go:37] - G104 (CWE-703): Errors unhandled (Confidence: HIGH, Severity: LOW)
+[kode_ai.go:40] - G104 (CWE-703): Errors unhandled (Confidence: HIGH, Severity: LOW)
+[kode_ai.go:43] - G104 (CWE-703): Errors unhandled (Confidence: HIGH, Severity: LOW)
+[kode_ai.go:44] - G104 (CWE-703): Errors unhandled (Confidence: HIGH, Severity: LOW)
+[kode_ai.go:45] - G104 (CWE-703): Errors unhandled (Confidence: HIGH, Severity: LOW)
+[kode_ai.go:46] - G104 (CWE-703): Errors unhandled (Confidence: HIGH, Severity: LOW)
+[kode_ai.go:54] - G114 (CWE-676): Use of net/http serve function that has no support for setting timeouts (Confidence: HIGH, Severity: MEDIUM)
+(exit code 1)
+
+== B. Tes penerimaan dari spesifikasi, ke PostgreSQL bersih (schema dibuat ulang tiap tes)
+$ go test -v -count=1 ./...
+=== RUN   TestDemoSaldoPindah
+--- PASS: TestDemoSaldoPindah
+=== RUN   TestAturan1BodyDariApp
+    penerimaan_test.go:80: status 200, saldo Dimas 250000; mau 201 dan 225000
+--- FAIL: TestAturan1BodyDariApp
+=== RUN   TestAturan1DariDiBodyDiabaikan
+    penerimaan_test.go:89: saldo Budi 200000; mau tetap 225000
+--- FAIL: TestAturan1DariDiBodyDiabaikan
+=== RUN   TestAturan2JumlahMinus
+    penerimaan_test.go:97: status 200, total saldo 550000; mau 422 dan 500000
+--- FAIL: TestAturan2JumlahMinus
+=== RUN   TestAturan3KeTidakAda
+    penerimaan_test.go:105: status 200, total saldo 475000; mau 422 dan 500000
+--- FAIL: TestAturan3KeTidakAda
+=== RUN   TestAturan4TanpaToken
+    penerimaan_test.go:113: status 200, saldo Dimas 225000; mau 401 dan 250000
+--- FAIL: TestAturan4TanpaToken
+=== RUN   TestSifat3TokenTidakDiLog
+    penerimaan_test.go:122: log memuat token: "bayar: token Bearer token-dimas"
+--- FAIL: TestSifat3TokenTidakDiLog
+FAIL
+FAIL	lab/f2
+FAIL
+(exit code 1)
