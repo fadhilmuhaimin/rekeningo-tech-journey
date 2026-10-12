@@ -587,50 +587,26 @@
  {
   "id": "F1-1",
   "halaman": "F1",
-  "judul": "1.39 Menulis spesifikasi untuk AI",
-  "url": "f-ai-belajar/f1-spesifikasi-untuk-ai/",
+  "judul": "1.39 Spesifikasi untuk AI dan review kode AI",
+  "url": "tahap-1/spesifikasi-ai/",
   "tanya": "Spesifikasimu berisi \"pastikan aman dari race condition\". Kenapa kalimat ini lemah?",
-  "jawab": "Tidak bisa dicek. AI bisa menjawab dengan menambah komentar atau mutex di memori, yang tidak melindungi dari dua instance. Tulis sifatnya (UPDATE atomik dengan syarat saldo, dibahas di 2.1 Race condition) dan test penerimaannya (dua transfer paralel, total saldo tetap)."
+  "jawab": "Kalimat itu tidak bisa dicek. AI bisa menjawabnya dengan komentar atau mutex di memori, yang tidak melindungi dua instance. Tulis sifatnya (`UPDATE ... SET saldo = saldo - $1` dalam satu transaction, 1.24 Transaction di service dan tabel koreksi) dan tesnya (dua bayar bersamaan, total saldo tetap)."
  },
  {
   "id": "F1-2",
   "halaman": "F1",
-  "judul": "1.39 Menulis spesifikasi untuk AI",
-  "url": "f-ai-belajar/f1-spesifikasi-untuk-ai/",
-  "tanya": "Jelaskan kenapa aturan \"pengirim selalu dari token\" perlu ditulis eksplisit.",
-  "jawab": "Bentuk yang paling umum di contoh internet adalah `{\"dari\": ..., \"ke\": ..., \"jumlah\": ...}`. Tanpa aturan itu, AI mungkin mempercayai `dari` dari body, dan siapa pun bisa mentransfer dari akun orang lain. Ini masalah authorization (1.28 Authorization) yang tidak terlihat di demo."
+  "judul": "1.39 Spesifikasi untuk AI dan review kode AI",
+  "url": "tahap-1/spesifikasi-ai/",
+  "tanya": "Kamu memperbaiki ketujuh temuan G104 dengan menangani setiap error dan menjawab `500`. Tes Aturan 3 (bayar ke akun 999) masih gagal. Kenapa?",
+  "jawab": "Ketiga perintah masih berjalan sendiri-sendiri. UPDATE saldo Dimas sudah tersimpan sebelum INSERT ditolak, jadi Rp25.000 tetap hilang walaupun response-nya `500`. Yang menutupnya adalah aturan 3 (cek `ke` sebelum saldo disentuh) dan sifat wajib 1 (satu transaction)."
  },
  {
   "id": "F1-3",
   "halaman": "F1",
-  "judul": "1.39 Menulis spesifikasi untuk AI",
-  "url": "f-ai-belajar/f1-spesifikasi-untuk-ai/",
-  "tanya": "Apa gunanya bagian Batasan?",
-  "jawab": "Membatasi luas perubahan: tidak ada dependency baru, migration lama tidak disentuh, endpoint lain tidak diubah. Perubahan di luar lingkup sulit direview dan bisa merusak hal yang tidak kamu periksa."
- },
- {
-  "id": "F2-1",
-  "halaman": "F2",
-  "judul": "Review kode backend buatan AI",
-  "url": "f-ai-belajar/f2-review-kode-ai/",
-  "tanya": "gosec melaporkan \"Errors unhandled\" di 8 baris. Kamu memperbaiki semuanya dan gosec bersih. Masalah apa yang masih ada di handler contoh?",
-  "jawab": "Enam masalah tersisa, dan tidak satu pun ditandai alat di rekaman: - SQL disusun dari string input user. - Pengirim diambil dari body. - Uang memakai `float64`. - Saldo dihitung dengan baca-lalu-tulis. - Saldo kurang dijawab `200`. - HTTP keluar di dalam transaction."
- },
- {
-  "id": "F2-2",
-  "halaman": "F2",
-  "judul": "Review kode backend buatan AI",
-  "url": "f-ai-belajar/f2-review-kode-ai/",
-  "tanya": "Jelaskan kenapa izin diperiksa lebih dulu dari penamaan.",
-  "jawab": "Kesalahan izin membuka data atau uang orang lain, dan dampaknya tidak bisa dibatalkan setelah dieksploitasi. Penamaan yang buruk hanya memperlambat developer. Review punya waktu dan perhatian terbatas, jadi dipakai untuk risiko terbesar dulu."
- },
- {
-  "id": "F2-3",
-  "halaman": "F2",
-  "judul": "Review kode backend buatan AI",
-  "url": "f-ai-belajar/f2-review-kode-ai/",
-  "tanya": "AI mengusulkan Redis cache untuk saldo di Tahap 1. Pertanyaan mana dari daftar di atas yang paling cepat memutuskan?",
-  "jawab": "Pertanyaan 1: metric mana yang menunjukkan masalahnya hari ini. Di Tahap 1, puncaknya ±0,14 request per detik, jadi tidak ada masalah kecepatan. Pertanyaan 3 juga menentukan: saldo di cache bisa stale, padahal saldo adalah data uang."
+  "judul": "1.39 Spesifikasi untuk AI dan review kode AI",
+  "url": "tahap-1/spesifikasi-ai/",
+  "tanya": "Kenapa izin diperiksa lebih dulu daripada penamaan?",
+  "jawab": "Kesalahan izin membuka uang atau data orang lain, dan akibatnya tidak bisa dibatalkan sesudah dipakai. Penamaan yang buruk hanya memperlambat developer. Waktu review terbatas, jadi dipakai untuk risiko terbesar dulu."
  },
  {
   "id": "B3.2-1",

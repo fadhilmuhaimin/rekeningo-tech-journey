@@ -1,0 +1,239 @@
+---
+title: "1.39 Spesifikasi untuk AI dan review kode AI"
+description: Kenapa draf AI dari satu kalimat bisa berjalan di demo tapi melanggar aturan uang, bagaimana spesifikasi dan tes penerimaan memindahkan keputusan kembali ke kamu, dan urutan review berdasarkan risiko.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import review from "../../../../data/diagram/t1-ai-review.json";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 9 menit · coba 3 menit · template bisa disalin · Prasyarat: [[D1]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+AI mengisi setiap hal yang tidak kamu tulis dengan tebakan. Spesifikasi menulis aturan dan tes penerimaan lebih dulu; review membuktikannya dengan tes, bukan linter hijau.
+
+<Rantai data={review} ringkas />
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. gosec menandai sembilan baris di sebuah draf, dan semuanya diperbaiki. Apakah draf itu siap di-merge?
+2. Kenapa tes penerimaan lebih berguna daripada kalimat "pastikan aman"?
+3. Di review, mana yang diperiksa pertama: penamaan, atau alur uang dan izin?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: linter menandai pola kode, sedangkan aturan uang dan izin hanya tertangkap oleh tes yang ditulis dari aturan itu.">
+
+Draf di bawah datang dari permintaan satu kalimat untuk `POST /transfers`. Kodenya ditulis untuk lab dan meniru kesalahan yang sudah muncul di Tahap 1, jadi ini ilustrasi, bukan keluaran satu model AI. Hasil gosec dan ketujuh tes adalah rekaman lab.
+
+<Snippet file="labs/f2-review/kode_ai.go" region="draf" lang="go" title="labs/f2-review/kode_ai.go (ilustrasi)" />
+
+Tebak dulu, lalu cek: masalah mana yang ditandai gosec, dan mana yang hanya terlihat di tes?
+
+<WidgetLama nama="pilah" src="data/t1-ai-pilah.json" />
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Uji coba selesai, dan PRD v2 menambah transfer antar karyawan ([[t1-m8]]). Endpoint baru itu akan ditulis Raka bersama AI, seperti draf laporan warung di [[t1-sql-injection]]. Sebelum mulai, Raka ingin tahu seberapa jauh ia bisa mempercayai draf seperti itu.
+
+Ia memilih soal yang jawabannya sudah ia tahu: bayar ke warung. Permintaannya satu kalimat, dan draf datang lengkap dengan contoh curl. Raka menjalankan contoh itu. Saldo Dimas turun dari Rp250.000 ke Rp225.000, saldo Warung Ani naik Rp25.000.
+
+Lalu ia menulis contoh curl itu sebagai tes, ditambah enam tes dari aturan v1. Hanya tes demo yang lolos. Bayar ke akun 999 dijawab `200`, dan total saldo semua akun turun Rp25.000, seperti Jumat minggu 3 di [[t1-m4]].
+
+### Cara kerjanya
+
+**Yang terlihat di rekaman.** gosec menandai sembilan baris. Tujuh di antaranya G104, error yang diabaikan:
+
+<Snippet file="labs/f2-review/output/review.txt" lines="5:16" title="Rekaman lab: labs/f2-review/output/review.txt" />
+
+Tes penerimaan dijalankan ke PostgreSQL sungguhan, dengan schema yang dibuat ulang sebelum setiap tes. Hanya demo yang lolos:
+
+<Snippet file="labs/f2-review/output/review.txt" lines="20:39" title="Rekaman lab: labs/f2-review/output/review.txt" />
+
+Tes 3 sampai 7 mengirim `dari` seperti contoh curl draf, supaya setiap aturan dites sendiri. Tes 2 mengirim body dari app, tanpa `dari`. Draf membaca saldo akun 0, menganggap saldo kurang, lalu menjawab `200`.
+
+Perhatikan juga apa yang tidak ditandai gosec. Baris UPDATE pertama memakai `fmt.Sprintf`, tapi isinya dua angka `%d`. Aturan G201 di gosec v2.29.0 sengaja melewatkan verb angka ([rules/sql.go](https://github.com/securego/gosec/blob/v2.29.0/rules/sql.go)), jadi baris itu tidak dilaporkan. Masalah baris itu memang bukan injection: ia menulis saldo hasil hitungan Go, sehingga dua bayar bersamaan bisa saling menimpa. Itu diuji di Tahap 2.
+
+**Spesifikasi: enam bagian.** Setiap bagian menutup satu tebakan di draf tadi.
+
+| Bagian | Isinya | Tebakan draf yang ditutupnya |
+|---|---|---|
+| Konteks | Versi, lapisan handler → service → repo ([[B7.1]]), potongan kode yang sudah ada | Satu fungsi besar yang menyentuh SQL langsung |
+| Kontrak | Potongan `openapi-expand.yaml` untuk `/transfers` ([[B1.4]], [[E1]]) | Body `{dari, ke, jumlah}` dan `200` untuk semua |
+| Aturan bernomor | Aturan bisnis, satu per baris | Pengirim dari body, jumlah tanpa batas |
+| Sifat wajib | Transaction, parameter query, isi log | Tiga perintah terpisah, token di log |
+| Tes penerimaan | Skenario yang harus lolos, termasuk kasus gagal | "Pastikan aman" yang tidak bisa dicek |
+| Batasan | Yang tidak boleh diubah atau ditambah | Dependency baru, migration lama diubah |
+
+Pilih satu hal di bawah, lalu bandingkan siapa yang memutuskannya:
+
+<WidgetLama nama="banding" src="data/t1-ai-banding.json" />
+
+**Template** (bisa disalin). Aturan dan tes di bawah sama dengan yang dijalankan lab:
+
+```markdown
+## Tugas
+Endpoint POST /transfers di API Rekeningo: karyawan yang login membayar warung.
+
+## Konteks
+- Go 1.27.1, net/http, database/sql + pgx v5, PostgreSQL 17.
+- Lapisan handler → service → repo. Handler tidak menulis SQL.
+- Error memakai problem+json, seperti handler.go yang sudah ada (tempel potongannya).
+
+## Kontrak
+(tempel potongan openapi-expand.yaml untuk /transfers)
+
+## Aturan
+1. Pengirim selalu dari token sesi, tidak pernah dari body.
+2. Nominal (jumlah atau nominal, lihat kontrak) integer rupiah, 1 sampai 200.000. Di luar itu: 422 dengan nama field-nya.
+3. ke harus akun warung. Kalau tidak: 422, errors[field=ke].
+4. Tanpa token atau token ditolak: 401. Service tidak dipanggil.
+5. Saldo kurang: 422, type /problems/saldo-kurang.
+
+## Sifat wajib
+1. Kurangi saldo, tambah saldo, dan catat transaksi dalam satu transaction yang dibuka service.
+2. Setiap nilai dari request masuk sebagai $n. Tidak ada fmt.Sprintf ke teks SQL.
+3. Token, password, dan header Authorization tidak pernah masuk log.
+
+## Tes penerimaan (harus ditulis dan lolos)
+- Body dari app {ke, jumlah}, token Dimas: 201, Location, saldo Dimas 225.000.
+- Token Dimas, dari: 419 di body: saldo Budi tetap.
+- Jumlah -50.000: 422, total saldo semua akun tetap.
+- Ke akun 999: 422, total saldo tetap.
+- Tanpa token: 401, saldo tetap.
+- Log sesudah bayar tidak memuat token.
+
+## Batasan
+- Jangan menambah dependency. Jangan mengubah migration yang sudah ada.
+- Jangan mengubah endpoint lain.
+
+## Keluaran
+Diff per file, lalu tabel: aturan atau sifat nomor berapa dipenuhi di baris mana, dan dites oleh tes mana.
+```
+
+Bagian Keluaran membuat review lebih cepat. Kamu tidak mencari aturan di seluruh diff; kamu mengecek tabel pemetaan satu baris demi satu baris.
+
+**Review berdasarkan risiko.** Waktu review terbatas, jadi urutannya mengikuti akibat terbesar:
+
+| Urutan | Periksa | Halaman |
+|---|---|---|
+| 1 | Izin: pengirim dari token, setiap ID di path atau body dicek pemiliknya | [[B5.1]], [[t1-idor]] |
+| 2 | Uang: satu transaction, `saldo = saldo - $1`, integer, constraint | [[B3.1]], [[t1-adr-transaction]] |
+| 3 | Input ke SQL dan isi log | [[t1-sql-injection]], [[t1-secret]] |
+| 4 | Jalur gagal: status code, format error, error yang diabaikan | [[B1.1]], [[B6]] |
+| 5 | Tes: ada kasus gagal, ada akses ke data orang lain | [[C1]] |
+| 6 | Baru sesudah itu: penamaan, gaya, duplikasi | – |
+
+Panduan code review Google menempatkan desain sebagai hal terpenting, dan mengingatkan bahwa tes tidak menguji dirinya sendiri: manusia yang memastikan tesnya benar ([eng-practices](https://google.github.io/eng-practices/review/reviewer/looking-for.html)). Untuk draf AI, artinya kamu juga membaca tes yang ditulis AI, bukan hanya melihatnya lolos.
+
+**Kenapa kebiasaan ini perlu.** Dalam studi Perry dkk. di ACM CCS 2023, peserta yang dibantu asisten AI menulis kode yang kurang aman dibanding kelompok tanpa asisten. Mereka juga lebih sering yakin kodenya aman ([arXiv 2211.03622](https://arxiv.org/abs/2211.03622)). Studi itu memakai model 2022, jadi angkanya belum tentu sama untuk model sekarang. Yang tetap berlaku adalah polanya: demo yang berjalan menambah rasa yakin, bukan bukti.
+
+**Saat AI mengusulkan komponen baru.** Cache, queue, atau service kedua tidak dinilai dari kodenya, tapi dari lima pertanyaan:
+
+1. Masalah apa yang dijawab, dan angka mana yang menunjukkannya hari ini?
+2. Apa yang terjadi saat komponen ini lambat atau mati?
+3. Data apa yang bisa berbeda antara komponen ini dan database, dan berapa lama?
+4. Bagaimana mundurnya kalau ternyata salah?
+5. Siapa yang merawat, memonitor, dan meng-upgrade-nya?
+
+Kalau pertanyaan 1 tidak punya jawaban, keputusannya biasanya "belum". Di Tahap 1, puncaknya ±0,14 request per detik ([[D1]]).
+
+### Di stack lain
+
+Di semua stack, alat statis menangkap pola kode, bukan aturan bisnis. Baris di bawah dicek ke dokumentasi masing-masing dan tidak dijalankan, kecuali Go.
+
+| Stack | Alat statis yang umum | Tetap direview manusia |
+|---|---|---|
+| Go | `go vet`, [gosec](https://github.com/securego/gosec) (dijalankan di lab) | Pemilik akun, alur uang |
+| Express | ESLint dengan [eslint-plugin-security](https://github.com/eslint-community/eslint-plugin-security) | Pemilik akun, alur uang |
+| Laravel | [Larastan](https://github.com/larastan/larastan) (PHPStan) | Policy dan scope query |
+| Django | [Bandit](https://bandit.readthedocs.io/), `manage.py check --deploy` | Filter pemilik di query |
+| Dart (Serverpod) | [`dart analyze`](https://dart.dev/tools/dart-analyze) dengan aturan lint | Pemilik akun, alur uang |
+
+Kalau tidak memakai spesifikasi dan tes penerimaan, review jatuh ke "kodenya terlihat rapi dan demo berjalan". Draf lab lolos ukuran itu, padahal enam tes penerimaan gagal.
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Gaya permintaan | Kelebihan | Kekurangan |
+|---|---|---|
+| Satu kalimat | Cepat untuk eksperimen dan kode yang dibuang | Semua keputusan penting ditebak, seperti draf lab |
+| Spesifikasi lengkap | Hasil bisa dicek terhadap aturan dan tes | Butuh waktu menulis sebelum kode pertama |
+| Spesifikasi + tes ditulis kamu lebih dulu | Paling bisa dipercaya: draf harus membuat tesmu lolos | Paling lama di awal |
+
+| Cara review | Kelebihan | Kekurangan |
+|---|---|---|
+| Hanya CI hijau | Tidak butuh waktu manusia | Izin dan uang lolos, seperti rekaman lab |
+| Baris demi baris dari atas | Teliti | Lambat; perhatian habis di penamaan sebelum sampai ke uang |
+| Berdasarkan risiko + tabel pemetaan | Fokus ke akibat terbesar, cepat dicek | Butuh spesifikasi yang bagus di awal |
+
+Rule of thumb untuk Tahap 1: kode yang menyentuh uang, izin, atau data user ditulis dari spesifikasi lengkap, dan tes penerimaannya ditulis kamu, bukan AI.
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Spesifikasimu berisi "pastikan aman dari race condition". Kenapa kalimat ini lemah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Kalimat itu tidak bisa dicek. AI bisa menjawabnya dengan komentar atau mutex di memori, yang tidak melindungi dua instance. Tulis sifatnya (`UPDATE ... SET saldo = saldo - $1` dalam satu transaction, [[t1-adr-transaction]]) dan tesnya (dua bayar bersamaan, total saldo tetap).
+
+</details>
+
+**2.** Kamu memperbaiki ketujuh temuan G104 dengan menangani setiap error dan menjawab `500`. Tes Aturan 3 (bayar ke akun 999) masih gagal. Kenapa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Ketiga perintah masih berjalan sendiri-sendiri. UPDATE saldo Dimas sudah tersimpan sebelum INSERT ditolak, jadi Rp25.000 tetap hilang walaupun response-nya `500`. Yang menutupnya adalah aturan 3 (cek `ke` sebelum saldo disentuh) dan sifat wajib 1 (satu transaction).
+
+</details>
+
+**3.** Kenapa izin diperiksa lebih dulu daripada penamaan?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Kesalahan izin membuka uang atau data orang lain, dan akibatnya tidak bisa dibatalkan sesudah dipakai. Penamaan yang buruk hanya memperlambat developer. Waktu review terbatas, jadi dipakai untuk risiko terbesar dulu.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Setiap aturan dan sifat wajib punya baris kode dan tes di tabel pemetaan.
+- [ ] Identitas peminta selalu dari token. Setiap ID di path atau body dicek pemiliknya.
+- [ ] Semua baris uang berada di satu transaction, dengan `saldo = saldo - $1`.
+- [ ] Tidak ada input yang masuk ke teks SQL, dan tidak ada token di log.
+- [ ] Tes yang ditulis AI dibaca: ada kasus gagal, dan setiap tes memeriksa saldo, bukan hanya status.
+- [ ] Tidak ada perubahan di luar batasan: dependency, migration lama, endpoint lain.
+
+### Bacaan lanjut
+
+- [Google eng-practices: What to look for in a code review](https://google.github.io/eng-practices/review/reviewer/looking-for.html)
+- [Perry dkk., Do Users Write More Insecure Code with AI Assistants? (CCS 2023)](https://arxiv.org/abs/2211.03622)
+- [Anthropic: Prompt engineering overview](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/overview): kriteria sukses dan cara mengujinya ditulis sebelum prompt
+
+</Blok>
+
+<SkripLama daftar={["cerita","pilah","banding"]} />

@@ -1,0 +1,28 @@
+{
+  "id": "t1-ai-review",
+  "judul": "Draf AI sebelum di-merge",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab · labs/f2-review/output/review.txt"
+  },
+  "baris": [
+    {
+      "label": "Tulis dulu",
+      "sub": "sebelum meminta",
+      "simpul": [
+        { "teks": "Aturan", "sub": "5 aturan, 3 sifat wajib" },
+        { "teks": "Tes penerimaan", "sub": "6 tes dari aturan", "nada": "system" }
+      ]
+    },
+    {
+      "label": "Periksa",
+      "sub": "draf satu kalimat",
+      "simpul": [
+        { "teks": "gosec", "sub": "9 baris ditandai" },
+        { "teks": "Tes", "sub": "hanya demo lolos", "nada": "warn" },
+        { "teks": "Review", "sub": "izin, uang, data", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Contoh curl dari draf berjalan. Enam tes penerimaan lainnya gagal."
+}

@@ -21,11 +21,11 @@ describe("registry cerita.json", () => {
     const d = baca();
     const h = d.halaman.find((x: { id: string }) => x.id === "t1-m1");
     delete h.jenis;
-    d.halaman.find((x: { id: string }) => x.id === "F2").lebur_ke = "ZZ";
+    d.halaman.find((x: { id: string }) => x.id === "F1").lebur_ke = "ZZ";
     const r = Registry.safeParse(d);
     expect(r.success).toBe(false);
     const pesan = r.error!.issues.map((i) => i.message).join(" | ");
     expect(pesan).toContain("t1-m1 di Tahap 1 tanpa jenis");
-    expect(pesan).toContain("F2.lebur_ke menunjuk ZZ");
+    expect(pesan).toContain("F1.lebur_ke menunjuk ZZ");
   });
 });

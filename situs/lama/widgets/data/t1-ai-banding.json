@@ -1,0 +1,84 @@
+{
+  "judul": "Siapa yang memutuskan: kamu lewat spesifikasi, atau AI lewat tebakan",
+  "opsi": [
+    {
+      "id": "kalimat",
+      "nama": "Opsi A · Permintaan satu kalimat (draf lab)",
+      "baris": [
+        [
+          { "id": "k-body", "label": "Body", "sub": "dari, ke, jumlah" },
+          { "id": "k-handler", "label": "Handler", "sub": "satu fungsi, tanpa cek" },
+          { "id": "k-db", "label": "PostgreSQL", "sub": "3 perintah terpisah" }
+        ],
+        [
+          { "id": "k-status", "label": "Status", "sub": "200 untuk semua" },
+          { "id": "k-log", "label": "Log", "sub": "isi Authorization" }
+        ]
+      ],
+      "judulBaris": ["Request", "Ditebak AI"]
+    },
+    {
+      "id": "spek",
+      "nama": "Opsi B · Spesifikasi enam bagian",
+      "baris": [
+        [
+          { "id": "s-token", "label": "Token sesi", "sub": "pengirim, aturan 1" },
+          { "id": "s-service", "label": "Service", "sub": "aturan 2, 3, 5" },
+          { "id": "s-tx", "label": "Transaction", "sub": "sifat wajib 1" }
+        ],
+        [
+          { "id": "s-kontrak", "label": "Kontrak", "sub": "201, 401, 422" },
+          { "id": "s-tes", "label": "Tes penerimaan", "sub": "6 tes + demo" }
+        ]
+      ],
+      "judulBaris": ["Request", "Ditulis kamu"]
+    }
+  ],
+  "fitur": [
+    {
+      "label": "Token Dimas, dari 419 di body",
+      "sorot": { "kalimat": ["k-body", "k-db"], "spek": ["s-token", "s-tes"] },
+      "catatan": {
+        "kalimat": "Draf memakai dari dari body. Rekaman: saldo Budi turun dari Rp225.000 ke Rp200.000.",
+        "spek": "Aturan 1: pengirim selalu dari token. TestAturan1DariDiBodyDiabaikan memeriksa saldo Budi tetap Rp225.000."
+      },
+      "nada": { "kalimat": "warn" }
+    },
+    {
+      "label": "Jumlah -50.000",
+      "sorot": { "kalimat": ["k-handler", "k-db", "k-status"], "spek": ["s-service", "s-kontrak"] },
+      "catatan": {
+        "kalimat": "Tidak ada cek jumlah. Rekaman: status 200, total saldo semua akun naik dari Rp500.000 ke Rp550.000.",
+        "spek": "Aturan 2: 1 sampai 200.000. Di luar itu 422 dengan field jumlah, dan saldo tidak disentuh."
+      },
+      "nada": { "kalimat": "warn" }
+    },
+    {
+      "label": "Bayar ke akun 999",
+      "sorot": { "kalimat": ["k-db", "k-status"], "spek": ["s-service", "s-tx"] },
+      "catatan": {
+        "kalimat": "UPDATE ke akun 999 mengenai 0 baris, INSERT ditolak foreign key, error diabaikan. Rekaman: status 200, total saldo Rp475.000.",
+        "spek": "Aturan 3 menolak dengan 422 sebelum saldo disentuh. Sifat wajib 1 membatalkan ketiga perintah bila salah satu gagal."
+      },
+      "nada": { "kalimat": "warn" }
+    },
+    {
+      "label": "Tanpa token",
+      "sorot": { "kalimat": ["k-handler", "k-status"], "spek": ["s-token", "s-kontrak"] },
+      "catatan": {
+        "kalimat": "Draf tidak membaca token sama sekali. Rekaman: status 200, saldo Dimas turun ke Rp225.000.",
+        "spek": "Aturan 4: 401, dan service tidak pernah dipanggil."
+      },
+      "nada": { "kalimat": "warn" }
+    },
+    {
+      "label": "Isi log",
+      "sorot": { "kalimat": ["k-log"], "spek": ["s-tes"] },
+      "catatan": {
+        "kalimat": "Rekaman log: bayar: token Bearer token-dimas. Siapa pun yang membaca log bisa memakai token itu selama sesinya berlaku.",
+        "spek": "Sifat wajib 3: token tidak pernah masuk log. TestSifat3TokenTidakDiLog memeriksanya."
+      },
+      "nada": { "kalimat": "warn" }
+    }
+  ]
+}
