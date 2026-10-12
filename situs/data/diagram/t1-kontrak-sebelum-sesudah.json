@@ -1,0 +1,51 @@
+{
+  "id": "t1-kontrak-sebelum-sesudah",
+  "judul": "Body yang sama, sebelum dan sesudah ADR 3",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t1 · m2.txt"
+  },
+  "baris": [
+    {
+      "label": "Nama berbeda",
+      "sub": "app mengirim amount",
+      "simpul": [
+        {
+          "teks": "{\"ke\": 418, \"amount\": 25000}",
+          "kode": true
+        },
+        {
+          "teks": "sebelum: 422, jumlah harus > 0",
+          "sub": "jumlah dianggap 0",
+          "nada": "warn"
+        },
+        {
+          "teks": "sesudah: 400, jumlah wajib diisi",
+          "sub": "/problems/field-wajib",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Tipe berbeda",
+      "sub": "field ke berupa teks",
+      "simpul": [
+        {
+          "teks": "{\"ke\": \"418\", \"jumlah\": 25000}",
+          "kode": true
+        },
+        {
+          "teks": "sebelum: 400 tanpa nama field",
+          "sub": "Body bukan JSON yang valid",
+          "nada": "warn"
+        },
+        {
+          "teks": "sesudah: 400, ke string bukan int64",
+          "sub": "/problems/tipe-salah",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Yang berubah hanya isi jawaban: sesudah ADR 3, server menyebut nama field yang salah."
+}
