@@ -1,0 +1,25 @@
+{
+  "id": "t1-database-dua-cara",
+  "judul": "Dua cara memilih database untuk Rekeningo",
+  "sumber": { "jenis": "ilustrasi", "teks": "Ilustrasi · dokumentasi MongoDB dan PostgreSQL" },
+  "baris": [
+    {
+      "label": "Dari reputasi",
+      "sub": "pertanyaan Sinta",
+      "simpul": [
+        { "teks": "NoSQL lebih cepat", "sub": "tanpa menyebut pola akses", "nada": "old" },
+        { "teks": "document database", "sub": "misalnya MongoDB", "nada": "old" },
+        { "teks": "rujukan dijaga kode", "sub": "bukan oleh database", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Dari data",
+      "sub": "pembayaran ke warung",
+      "simpul": [
+        { "teks": "dua saldo + satu catatan", "sub": "harus berubah bersama" },
+        { "teks": "transaction, CHECK, foreign key", "sub": "dijaga database", "nada": "system" },
+        { "teks": "PostgreSQL", "sub": "keputusan v1", "nada": "good" }
+      ]
+    }
+  ]
+}

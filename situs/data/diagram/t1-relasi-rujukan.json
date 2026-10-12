@@ -1,0 +1,25 @@
+{
+  "id": "t1-relasi-rujukan",
+  "judul": "Kolom transaksi.ke menunjuk ke akun",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab api-t1 · relasi.txt" },
+  "baris": [
+    {
+      "label": "Akun ada",
+      "sub": "Budi membayar ke akun 418",
+      "simpul": [
+        { "teks": "transaksi.ke", "kode": true, "sub": "418" },
+        { "teks": "akun(id)", "kode": true, "sub": "418 ada: Warung Ani" },
+        { "teks": "nama di riwayat", "sub": "tampil di riwayat Budi", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Akun tidak ada",
+      "sub": "INSERT ke akun 999",
+      "simpul": [
+        { "teks": "transaksi.ke", "kode": true, "sub": "999" },
+        { "teks": "akun(id)", "kode": true, "sub": "999 tidak ada", "nada": "warn" },
+        { "teks": "ditolak", "sub": "transaksi_ke_fkey", "nada": "good" }
+      ]
+    }
+  ]
+}
