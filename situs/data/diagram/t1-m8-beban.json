@@ -1,0 +1,29 @@
+{
+  "id": "t1-m8-beban",
+  "judul": "Yang diukur dan yang belum",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Asumsi naskah · cerita.json"
+  },
+  "baris": [
+    {
+      "label": "Beban",
+      "sub": "jam paling ramai",
+      "simpul": [
+        { "teks": "Uji coba: 100 user", "sub": "puncak ±0,14 per detik" },
+        { "teks": "PRD v2: 1.000 user", "sub": "puncak ±1,4 per detik", "nada": "system" },
+        { "teks": "Kapasitas VPS", "sub": "belum pernah diukur", "nada": "old" }
+      ]
+    },
+    {
+      "label": "Bayar",
+      "sub": "HP Budi",
+      "simpul": [
+        { "teks": "Bayar ditekan dua kali" },
+        { "teks": "Satu request atau dua?", "sub": "app belum pernah dicoba", "nada": "warn" },
+        { "teks": "Satu pembayaran atau dua?", "sub": "berapa pun jumlah user", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Angka beban naik sepuluh kali dan tetap di bawah dua request per detik. Dua ketukan dari satu HP tidak bergantung pada angka itu."
+}
