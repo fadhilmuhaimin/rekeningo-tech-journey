@@ -3,6 +3,9 @@ title: "1.16 HTTP: method, status, header"
 description: Method menyatakan maksud request, status code menyatakan hasilnya, dan header membawa informasi tambahan. App memutuskan apa yang ditampilkan dari ketiganya, tanpa menebak isi body.
 ---
 import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import tigaBagian from "../../../../data/diagram/t1-http-tiga-bagian.json";
+import satuAlamat from "../../../../data/diagram/t1-http-satu-alamat.json";
 import Snippet from "../../../components/Snippet.astro";
 import TabSet from "../../../components/TabSet.astro";
 import WidgetLama from "../../../components/WidgetLama.astro";
@@ -14,16 +17,13 @@ import SkripLama from "../../../components/SkripLama.astro";
 
 ## Inti
 
-Method menyatakan maksud request, status code menyatakan hasilnya, dan header membawa informasi tambahan. App harus bisa memutuskan apa yang ditampilkan dari ketiganya, tanpa menebak isi body.
+Method menyatakan maksud request, status code menyatakan hasilnya, dan header membawa informasi tambahan.
 
-<figure class="bb-fig">
-<ol class="bb-flow">
-<li><code>POST /transfers</code></li>
-<li class="is-good"><code>201</code> + <code>Location</code></li>
-<li><code>GET /transfers/1</code></li>
-</ol>
-<figcaption>Rekaman lab api-t1: satu pembayaran dibuat, lalu dibuka lagi lewat alamat di header.</figcaption>
-</figure>
+<Rantai data={tigaBagian} ringkas />
+
+Budi membayar lewat `POST /transfers`. Server menjawab `201 Created` dengan header `Location: /transfers/1`, jadi app bisa membuka transaksi itu tanpa menyusun alamatnya sendiri. Kalau alamat yang sama dibuka tanpa token, server menjawab `401` dan header `WWW-Authenticate` yang menyebut skema autentikasi yang diterima.
+
+Dari ketiganya, app memutuskan apa yang ditampilkan tanpa menebak isi body: `201` berarti pembayaran tercatat, `401` berarti Budi harus login lagi. Method juga menentukan boleh tidaknya request diulang. `GET` aman diulang, sedangkan `POST /transfers` yang diulang bisa membuat pembayaran kedua.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -78,6 +78,10 @@ Di [[t1-m1]], input yang sama menghasilkan tiga status berbeda tergantung versi 
 | `Location: /transfers/1` | response `201` | Alamat resource yang baru dibuat |
 | `WWW-Authenticate` | response `401` | Cara autentikasi yang diterima. Wajib menyertai `401` ([RFC 9110 §15.5.2](https://www.rfc-editor.org/rfc/rfc9110.html#status.401)) |
 | `Allow` | response `405` | Method yang diterima path ini |
+
+Alamat yang sama, `/transfers/1`, dijawab berbeda saat token atau method-nya diganti:
+
+<Rantai data={satuAlamat} />
 
 Rekaman lab dari database bersih. Pembayaran dibuat, lalu alamat di `Location` dibuka:
 

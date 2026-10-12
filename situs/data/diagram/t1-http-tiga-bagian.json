@@ -1,0 +1,35 @@
+{
+  "id": "t1-http-tiga-bagian",
+  "judul": "Method, status, header satu pembayaran",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t1 · http.txt"
+  },
+  "baris": [
+    {
+      "label": "Bayar",
+      "sub": "Budi ke Warung Ani, Rp25.000",
+      "simpul": [
+        {
+          "teks": "POST /transfers",
+          "kode": true,
+          "sub": "method: membuat",
+          "nada": "system"
+        },
+        {
+          "teks": "201",
+          "kode": true,
+          "sub": "status: Created",
+          "nada": "good"
+        },
+        {
+          "teks": "Location: /transfers/1",
+          "kode": true,
+          "sub": "header: alamat transaksi baru",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Method di kiri, status di tengah, header di kanan."
+}

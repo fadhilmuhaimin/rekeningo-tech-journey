@@ -82,9 +82,10 @@ const tanda = jenis.split(" · ").filter((x) => x && !ulang(x)).join(" · ");
     document.addEventListener("toggle", () => requestAnimationFrame(ukur), true);
     ukur();
   }
-  // Halaman terakhir yang dibuka, untuk kartu Lanjutkan di beranda (keputusan 208).
+  // Halaman terakhir yang dibuka, untuk kartu Lanjutkan di beranda (keputusan 208). Halaman tempat ekspor dan impor
+  // progres (/cara-pakai/, keputusan 365) tidak dicatat: file ekspor membawa halaman tempat pembaca berhenti membaca.
   const nav = document.querySelector<HTMLElement>("nav.kamu[data-judul-halaman]");
-  if (nav) {
+  if (nav && !document.querySelector("[data-progres-pembaca]")) {
     const catat = { u: location.pathname, j: nav.dataset.judulHalaman, n: document.querySelectorAll("details.blok").length };
     try { localStorage.setItem("rtj-terakhir", JSON.stringify(catat)); } catch { /* mode privat */ }
   }
