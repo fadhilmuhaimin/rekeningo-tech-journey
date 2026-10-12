@@ -488,11 +488,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### I5c-g · Detail alur dekat jalur di desktop sesudah menebak
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: I5c-e
 - selesai bila: sesudah pembaca menebak, kotak tebakan dan varian di widget alur tidak lagi memisahkan detail langkah dari jalur dan tombol (mis. kotak tebakan diciutkan menjadi satu baris jawaban sesudah menebak); di 1366×657 jarak paket ke judul detail kembali ≤ 60 px dan penjelasan langkah terbaca utuh tanpa menggulir di ≥ 20 dari 23 langkah; tombol Berikutnya tetap di layar (cek `ukur-gerak.mjs`); versi statis dan `ukur-cls.mjs` tetap 0 px; tanpa animasi otomatis.
-- catatan: Dari peninjau PR #202 (keputusan 358): jarak paket ke judul detail naik 30 → 224–286 px (1.40: 297–387 px); penjelasan utuh tanpa gulir turun 20/23 → 14/23. Jalur teknis.
+- catatan: Dari peninjau PR #202 (keputusan 358): jarak paket ke judul detail naik 30 → 224–286 px (1.40: 297–387 px); penjelasan utuh tanpa gulir turun 20/23 → 14/23. Jalur teknis. PR #219, keputusan 363; dua putaran (fokus keyboard di HP, WCAG 2.4.11).
 
 ### I5c-h · Mode font telat di gerbang CI
 
@@ -677,29 +677,20 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### R4 · Visual layar pertama: 1.20, 1.21, 1.23
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: sama dengan R1 untuk 1.20, 1.21, 1.23.
-- catatan: -
+- catatan: PR #225, keputusan 314; satu putaran; gabung KEPUTUSAN oleh pengatur.
 
 ### R5 · Visual layar pertama: 1.24, 1.25
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: 1.24 (ADR: diagram di blok Kebutuhan seperti 1.4) dan 1.25 (konsep: seperti R1) punya visual di layar pertama.
-- catatan: Ditulis di main tanpa redesain.
-
-### R6 · Aturan layar: visual wajib di layar pertama
-
-- jenis: perbaikan
-- status: antre
-- percobaan: 0
-- bergantung: R1, R2, R3, R4, R5
-- selesai bila: `situs/tools/layar.mjs` gagal bila halaman berblok tidak menampilkan visual di layar pertama 4 ukuran; alat ukur Rantai (P10) gagal bila satu baris Rantai ringkas di Inti membungkus lebih dari dua baris visual di 360 atau 375 px; semua halaman Tahap 1 yang ada lolos (halaman yang gagal diperbaiki di tugas ini, satu commit per halaman).
-- catatan: Setengah jalan dari sesi redesain (MEMORI sesi 3, langkah 6).
+- catatan: Ditulis di main tanpa redesain. PR #228, keputusan 315; satu putaran; 1.24 tidak diubah.
 
 ### G2b · Batas waktu ukur-cls dan halaman yang menahan renderer
 
@@ -781,6 +772,15 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - bergantung: G2b
 - selesai bila: penyebab renderer diam (`pthread_cond_wait`, metrik CDP tak menjawab) yang hanya muncul di halaman `/tahap-1/` di 360×740 dan 375×667 ditemukan lewat varian percobaan (mis. tanpa skrip `Blok.astro`, localStorage diganti stub, tanpa island) ≥ 48 putaran per varian di branch `percobaan/**`, atau tumpukan bersimbol Chromium; bila penyebabnya kode situs, diperbaiki dan `ULANG` di ukur-luapan turun ke 0 dalam ≥ 48 putaran; bila di Chromium headless, bukti dan laporan bug dicatat.
 - catatan: Dari PR #222 (keputusan 364): 27 MACET dalam 240 putaran, semuanya halaman Tahap 1. Bisa jadi risiko pembaca nyata (halaman membeku di HP). Jalur teknis.
+
+### R6 · Aturan layar: visual wajib di layar pertama
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: R1, R2, R3, R4, R5, P10
+- selesai bila: `situs/tools/layar.mjs` gagal bila halaman berblok tidak menampilkan visual di layar pertama 4 ukuran; alat ukur Rantai (P10) gagal bila satu baris Rantai ringkas di Inti membungkus lebih dari dua baris visual di 360 atau 375 px; semua halaman Tahap 1 yang ada lolos (halaman yang gagal diperbaiki di tugas ini, satu commit per halaman).
+- catatan: Setengah jalan dari sesi redesain (MEMORI sesi 3, langkah 6).
 
 ### X1 · Crosscheck penuh Tahap 1
 
