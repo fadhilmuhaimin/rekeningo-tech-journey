@@ -102,69 +102,80 @@ function ukurHost(host) {
   return hasil;
 }
 
+// Empat konteks (ukuran x mode) berjalan bersamaan di satu browser; setiap konteks punya halaman, localStorage, dan
+// PGlite sendiri. Keluaran ditampung per konteks lalu dicetak dalam urutan tetap, supaya log sama dari run ke run.
+// Berurutan butuh ±34 s di CI, padahal job situs sudah dekat batas waktunya (keputusan 354).
 const browser = await chromium.launch();
-let gagal = 0;
-for (const uk of UKURAN) {
-  for (const tema of TEMA) {
-    const ctx = await browser.newContext({ viewport: uk, colorScheme: tema });
-    await ctx.addInitScript((t) => { try { localStorage.setItem("starlight-theme", t); } catch {} }, tema);
-    const page = await ctx.newPage();
-    const galatKonsol = [];
-    page.on("pageerror", (e) => galatKonsol.push(String(e)));
-    let dilewati = 0;
-    const min = {};
-    for (const h of halaman) {
-      await page.goto(url + h, { waitUntil: "networkidle" });
-      const host = page.locator('[data-bb="runsql"]');
-      const jumlah = await host.count();
-      const ukuran = [];
-      for (let k = 0; k < jumlah; k++) {
-        const w = host.nth(k);
-        // Blok yang terlipat (Paham, Putuskan, Kunci) dibuka seperti pembaca membukanya.
-        await w.evaluate((el) => { for (let d = el.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true; });
-        await w.locator(".bb-predict .bb-btn--opt").first().waitFor({ timeout: 15000 });
-        await w.locator(".bb-predict .bb-btn--opt").first().click();
-        const tunggu = () => w.evaluate((el) => new Promise((ok, tolak) => {
-          const t0 = performance.now();
-          (function cek() {
-            const st = el.querySelector('[role="status"].bb-muted');
-            const selesai = el.querySelector(".bb-step.is-ok, .bb-step.is-err, .bb-step.is-skipped, .bb-step.is-auto");
-            if (selesai && st && st.textContent !== "Menjalankan...") return ok();
-            if (performance.now() - t0 > 15000) return tolak(new Error("runsql tidak selesai dalam 15 s"));
-            setTimeout(cek, 50);
-          })();
-        }));
-        await w.locator(".bb-btn--primary").click();
+async function periksa(uk, tema) {
+  const log = [];
+  let gagal = 0;
+  const ctx = await browser.newContext({ viewport: uk, colorScheme: tema });
+  await ctx.addInitScript((t) => { try { localStorage.setItem("starlight-theme", t); } catch {} }, tema);
+  const page = await ctx.newPage();
+  const galatKonsol = [];
+  page.on("pageerror", (e) => galatKonsol.push(String(e)));
+  let dilewati = 0;
+  const min = {};
+  for (const h of halaman) {
+    await page.goto(url + h, { waitUntil: "networkidle" });
+    const host = page.locator('[data-bb="runsql"]');
+    const jumlah = await host.count();
+    const ukuran = [];
+    for (let k = 0; k < jumlah; k++) {
+      const w = host.nth(k);
+      // Blok yang terlipat (Paham, Putuskan, Kunci) dibuka seperti pembaca membukanya.
+      await w.evaluate((el) => { for (let d = el.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true; });
+      await w.locator(".bb-predict .bb-btn--opt").first().waitFor({ timeout: 15000 });
+      await w.locator(".bb-predict .bb-btn--opt").first().click();
+      const tunggu = () => w.evaluate((el) => new Promise((ok, tolak) => {
+        const t0 = performance.now();
+        (function cek() {
+          const st = el.querySelector('[role="status"].bb-muted');
+          const selesai = el.querySelector(".bb-step.is-ok, .bb-step.is-err, .bb-step.is-skipped, .bb-step.is-auto");
+          if (selesai && st && st.textContent !== "Menjalankan...") return ok();
+          if (performance.now() - t0 > 15000) return tolak(new Error("runsql tidak selesai dalam 15 s"));
+          setTimeout(cek, 50);
+        })();
+      }));
+      await w.locator(".bb-btn--primary").click();
+      await tunggu();
+      ukuran.push(...(await w.evaluate(ukurHost)));
+      const cb = w.locator('.bb-toggle input[type="checkbox"]');
+      if (await cb.count()) {
+        await cb.check();
         await tunggu();
         ukuran.push(...(await w.evaluate(ukurHost)));
-        const cb = w.locator('.bb-toggle input[type="checkbox"]');
-        if (await cb.count()) {
-          await cb.check();
-          await tunggu();
-          ukuran.push(...(await w.evaluate(ukurHost)));
-        }
-      }
-      for (const u of ukuran) {
-        if (u.keadaan === "is-skipped" && u.nama === "sql") dilewati++;
-        const kunci = `${u.keadaan} ${u.nama}`;
-        if ("ok" in u) {
-          if (!u.ok) { gagal++; console.log(`GAGAL ${h} ${uk.width} ${tema}: langkah dilewati tanpa ${u.nama}`); }
-          continue;
-        }
-        if (!(kunci in min) || u.rasio < min[kunci]) min[kunci] = u.rasio;
-        const salah = [];
-        if (u.rasio < AMBANG) salah.push(`${u.rasio.toFixed(2)}:1 < ${AMBANG}:1`);
-        if (u.opacity < 1) salah.push(`diredupkan opacity ${u.opacity.toFixed(2)}`);
-        if (salah.length) { gagal++; console.log(`GAGAL ${h} ${uk.width} ${tema}: ${kunci} "${u.teks}" ${salah.join(", ")}`); }
-        else if (rinci) console.log(`ok ${h} ${uk.width} ${tema}: ${kunci} ${u.rasio.toFixed(2)}:1`);
       }
     }
-    if (!dilewati) { gagal++; console.log(`GAGAL ${uk.width} ${tema}: tidak ada langkah dilewati yang terukur`); }
-    if (galatKonsol.length) { gagal++; console.log(`GAGAL ${uk.width} ${tema}: error halaman ${galatKonsol.join(" | ")}`); }
-    const ringkas = Object.entries(min).sort().map(([k, v]) => `${k} ${v.toFixed(2)}`).join(" · ");
-    console.log(`${uk.width}x${uk.height} ${tema}: ${halaman.length} halaman, ${dilewati} SQL dilewati; minimum: ${ringkas}`);
-    await ctx.close();
+    for (const u of ukuran) {
+      if (u.keadaan === "is-skipped" && u.nama === "sql") dilewati++;
+      const kunci = `${u.keadaan} ${u.nama}`;
+      if ("ok" in u) {
+        if (!u.ok) { gagal++; log.push(`GAGAL ${h} ${uk.width} ${tema}: langkah dilewati tanpa ${u.nama}`); }
+        continue;
+      }
+      if (!(kunci in min) || u.rasio < min[kunci]) min[kunci] = u.rasio;
+      const salah = [];
+      if (u.rasio < AMBANG) salah.push(`${u.rasio.toFixed(2)}:1 < ${AMBANG}:1`);
+      if (u.opacity < 1) salah.push(`diredupkan opacity ${u.opacity.toFixed(2)}`);
+      if (salah.length) { gagal++; log.push(`GAGAL ${h} ${uk.width} ${tema}: ${kunci} "${u.teks}" ${salah.join(", ")}`); }
+      else if (rinci) log.push(`ok ${h} ${uk.width} ${tema}: ${kunci} ${u.rasio.toFixed(2)}:1`);
+    }
   }
+  if (!dilewati) { gagal++; log.push(`GAGAL ${uk.width} ${tema}: tidak ada langkah dilewati yang terukur`); }
+  if (galatKonsol.length) { gagal++; log.push(`GAGAL ${uk.width} ${tema}: error halaman ${galatKonsol.join(" | ")}`); }
+  const ringkas = Object.entries(min).sort().map(([k, v]) => `${k} ${v.toFixed(2)}`).join(" · ");
+  log.push(`${uk.width}x${uk.height} ${tema}: ${halaman.length} halaman, ${dilewati} SQL dilewati; minimum: ${ringkas}`);
+  await ctx.close();
+  return { log, gagal };
+}
+const tugas = UKURAN.flatMap((uk) => TEMA.map((tema) => periksa(uk, tema)));
+// allSettled: satu konteks yang melempar (timeout, halaman tidak termuat) dihitung gagal tanpa menghentikan yang lain.
+const hasil = await Promise.allSettled(tugas);
+let gagal = 0;
+for (const r of hasil) {
+  if (r.status === "fulfilled") { for (const baris of r.value.log) console.log(baris); gagal += r.value.gagal; }
+  else { gagal++; console.log(`GAGAL: ${r.reason?.message ?? r.reason}`); }
 }
 await browser.close();
 console.log(gagal ? `\n${gagal} gagal` : `\nkontras langkah runsql lolos (≥ ${AMBANG}:1, tanpa opacity)`);
