@@ -388,12 +388,22 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-alur__payload[hidden] { display: none; }
 .sl-markdown-content .bb-alur__payload { margin: 0 0 0.5rem; padding: 0.5rem 0.6rem; border-radius: 8px; background: var(--k-old-fill); border: 0; font-size: 0.8em; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sl-markdown-content .bb-alur__explain { margin: 0; font-size: 0.92em; line-height: 1.6; }
+/* Kolom detail (I5c-g, keputusan 363): penjelasan langkah, lalu tebakan dan varian. Sesudah menebak, pilihan diciutkan
+   jadi satu baris "Tebakanmu: ..." (alur.js); pertanyaannya tetap untuk jawaban di akhir jalur. */
+/* Margin atas ditulis sendiri: aturan jarak antarsaudara Starlight (1rem) memberi body 1rem di bawah tombol dan kolom
+   1rem lagi di dalam grid, sehingga judul langkah 79 px di bawah paket. Dengan 0.6rem (runtuh dengan margin tombol)
+   judul ±57 px di bawah paket di 1366x657; batasnya 60 px (ukur-detail-alur.mjs). */
+.sl-markdown-content .bb-alur__body { margin-top: 0.6rem; }
+.sl-markdown-content .bb-alur__kolom { min-width: 0; margin-top: 0; }
+.sl-markdown-content .bb-alur__kolom .bb-predict { margin: 0.8rem 0 0.5rem; }
+.sl-markdown-content .bb-alur .bb-predict.is-ditebak .bb-predict__opts { display: none; }
+.sl-markdown-content .bb-predict__pilihan { margin: 0; }
 /* Urutan DOM sama di semua ukuran (I5c-e, keputusan 358): jalur, tombol, tebakan, varian, lalu detail dan HP. Yang
    tingginya berubah ada di bawah tombol, jadi jalur dan tombol diam antarlangkah dan paket terlihat bersama Berikutnya
    (perbaikan PR #175). Sempit (HP lebar < 600 px atau tinggi layar < 500 px): detail di atas HP, satu kolom. */
 .sl-markdown-content .bb-alur.is-sempit { display: flex; flex-direction: column; }
 .sl-markdown-content .bb-alur.is-sempit .bb-alur__body { display: contents; }
-.sl-markdown-content .bb-alur.is-sempit .bb-alur__detail { order: 1; }
+.sl-markdown-content .bb-alur.is-sempit .bb-alur__kolom { order: 1; }
 .sl-markdown-content .bb-alur.is-sempit .bb-alur__phone { order: 2; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.6rem; }
 .sl-markdown-content .bb-alur__rail { position: relative; padding-left: 2.6rem; margin: 0.6rem 0 0; }
 .sl-markdown-content .bb-alur__rail::before { content: ""; position: absolute; left: 1.15rem; top: 0.3rem; bottom: 0.3rem; border-left: 2px dashed var(--k-old-edge); }
@@ -421,7 +431,7 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 @container alur-lebar (width < 602px) {
   .sl-markdown-content .bb-alur--statis { display: flex; flex-direction: column; }
   .sl-markdown-content .bb-alur--statis .bb-alur__body { display: contents; }
-  .sl-markdown-content .bb-alur--statis .bb-alur__detail { order: 1; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__kolom { order: 1; }
   .sl-markdown-content .bb-alur--statis .bb-alur__phone { order: 2; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.6rem; }
 }
 /* Layar pendek (HP lanskap, keputusan 350): alur.js juga memakai mode sempit bila tinggi layar < 500 px (kueri yang sama
@@ -430,7 +440,7 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 @media (height < 500px) {
   .sl-markdown-content .bb-alur--statis { display: flex; flex-direction: column; }
   .sl-markdown-content .bb-alur--statis .bb-alur__body { display: contents; }
-  .sl-markdown-content .bb-alur--statis .bb-alur__detail { order: 1; }
+  .sl-markdown-content .bb-alur--statis .bb-alur__kolom { order: 1; }
   .sl-markdown-content .bb-alur--statis .bb-alur__phone { order: 2; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.6rem; }
 }
 @container alur-per (width < 110px) {
@@ -445,7 +455,7 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 @media (max-width: 50em) {
   .sl-markdown-content .bb-alur__body { grid-template-columns: 1fr; }
   .sl-markdown-content .bb-alur__phone { display: flex; justify-content: center; }
-  .sl-markdown-content .bb-alur__detail { order: -1; }
+  .sl-markdown-content .bb-alur__kolom { order: -1; }
   .sl-markdown-content .bb-alur__lanes { gap: 0.3rem; }
   .sl-markdown-content .bb-alur__lane { padding: 0.35rem 0.25rem; font-size: 0.78em; }
   .sl-markdown-content .bb-alur__layers li { font-size: 0.7em; padding: 0.05rem 0.15rem; }
@@ -590,24 +600,7 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 /* Teks hanya untuk pembaca layar; tidak ikut terseleksi atau tersalin (nilai akhir angka jumlah-total, keputusan 352). */
 .bb-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; -webkit-user-select: none; user-select: none; }
 .bb-inti { color: var(--k-warn-ink); font-size: 0.8em; margin-left: 0.3em; }
-/* Peta komponen besar (HTML statis, 1.1) */
-.sl-markdown-content figure.bb-map { margin: 1.2em 0; padding: 0.8rem; border: 1px solid var(--garis); border-radius: 12px; }
-.sl-markdown-content .bb-map__grid { display: grid; grid-template-columns: 1fr auto 1.3fr auto 1fr; gap: 0.5rem; align-items: stretch; }
-.sl-markdown-content .bb-map__box { border: 1px solid var(--k-system-edge); background: var(--k-system-fill); border-radius: 10px; padding: 0.5rem 0.6rem; font-size: 0.85em; }
-.sl-markdown-content .bb-map__box > strong { display: block; color: var(--k-system-ink); margin-bottom: 0.3rem; font-size: 1.05em; }
-.sl-markdown-content .bb-map__box ul { margin: 0; padding-left: 1rem; }
-.sl-markdown-content .bb-map__box li { margin: 0.1rem 0; }
-.sl-markdown-content .bb-map__box.is-old { border-color: var(--k-old-edge); background: var(--k-old-fill); }
-.sl-markdown-content .bb-map__box.is-old > strong { color: var(--k-old-ink); }
-.sl-markdown-content .bb-map__layer { background: var(--bg); border: 1px dashed var(--k-system-edge); border-radius: 8px; padding: 0.3rem 0.45rem; margin: 0.3rem 0; }
-.sl-markdown-content .bb-map__layer b { display: block; font-size: 0.85em; color: var(--judul); }
-.sl-markdown-content .bb-map__layer span { font-size: 0.8em; color: var(--teks-2); }
-.sl-markdown-content .bb-map__arrow { align-self: center; text-align: center; font-size: 0.78em; color: var(--teks-2); }
-.sl-markdown-content .bb-map__arrow b { display: block; font-size: 1.3em; color: var(--teks); }
-.sl-markdown-content figure.bb-map figcaption { font-size: 0.85em; color: var(--teks-2); margin-top: 0.6rem; max-width: none; text-align: left; }
 @media (max-width: 50em) {
-  .sl-markdown-content .bb-map__grid { grid-template-columns: 1fr; }
-  .sl-markdown-content .bb-map__arrow b { transform: rotate(90deg); }
   .sl-markdown-content .bb-hps { flex-direction: column; align-items: center; }
   .sl-markdown-content .bb-hps__item { flex: none; width: 11.5rem; }
   .sl-markdown-content .bb-hps__arrow { transform: rotate(90deg); }
@@ -1088,7 +1081,11 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .rantai__label span { color: var(--teks-2); font-size: var(--rk-ui); }
 .sl-markdown-content ol.rantai__simpul { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1.6rem; }
 .sl-markdown-content ol.rantai__simpul > li { position: relative; margin: 0; display: grid; gap: 0.2rem; align-content: start; padding: 0.6rem 0.75rem; border: 1px solid var(--garis-2); border-radius: 8px; background: var(--bg); }
-.sl-markdown-content ol.rantai__simpul > li:not(:last-child)::after { content: "→"; position: absolute; right: -1.3rem; top: 50%; transform: translateY(-50%); color: var(--teks-2); }
+/* Panah dekoratif: teks alternatif kosong (`/ ""`, Chrome 77, Firefox 128, Safari 17.4) supaya pembaca layar tidak membacanya,
+   sama dengan li.rantai__panah aria-hidden di HP; deklarasi pertama untuk browser yang belum mengenalnya (P10, keputusan 366). */
+.sl-markdown-content ol.rantai__simpul > li:not(:last-child)::after { content: "→"; content: "→" / ""; position: absolute; right: -1.3rem; top: 50%; transform: translateY(-50%); color: var(--teks-2); }
+/* li.rantai__panah (Rantai ringkas) hanya tampil di HP, lihat di bawah; di tempat lain panahnya ::after. */
+.sl-markdown-content ol.rantai__simpul > li.rantai__panah { display: none; }
 .rantai__simpul b { color: var(--judul); font-weight: 600; }
 .rantai__simpul span { color: var(--teks-2); font-size: var(--rk-ui); }
 .sl-markdown-content .rantai__simpul code { font-size: var(--rk-ui); white-space: pre-wrap; overflow-wrap: anywhere; background: transparent; padding: 0; color: var(--judul); }
@@ -1104,7 +1101,7 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
   .rantai__baris { grid-template-columns: 1fr; }
   .sl-markdown-content ol.rantai__simpul { grid-auto-flow: row; grid-auto-columns: auto; grid-auto-rows: auto; align-items: start; gap: 1.1rem; }
   .sl-markdown-content ol.rantai__simpul > li { padding: 0.45rem 0.65rem; gap: 0.1rem; }
-  .sl-markdown-content ol.rantai__simpul > li:not(:last-child)::after { content: "↓"; right: auto; left: 1rem; top: auto; bottom: -1.15rem; transform: none; }
+  .sl-markdown-content ol.rantai__simpul > li:not(:last-child)::after { content: "↓"; content: "↓" / ""; right: auto; left: 1rem; top: auto; bottom: -1.15rem; transform: none; }
 }
 /* Rantai ringkas di Inti (K0a): di HP simpul mengalir mendatar, tanpa sub dan catatan, supaya utuh di 375×667. */
 .sl-markdown-content figure.rantai--ringkas { gap: 0.6rem; margin-top: 0.8rem; }
@@ -1113,13 +1110,20 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content figure.rantai--ringkas + * { margin-top: 1.1rem; }
 @media (max-width: 50em) {
   .sl-markdown-content figure.rantai--ringkas { gap: 0.45rem; margin-top: 0.3rem; }
-  .rantai--ringkas .rantai__baris { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 1.5rem; }
+  /* Panah jadi item flex sendiri (li.rantai__panah, P10, keputusan 366), jadi flex tidak pernah menaruhnya di luar kolom;
+     dulu panah ::after menggantung ke gutter kanan bila simpul terakhir di garis hampir menyentuh tepi. Jarak antarsimpul
+     tetap 1,5rem = gap 0,125rem + kotak panah 1,25rem (glyph di tengah) + gap 0,125rem, jadi simpul putus di tempat yang
+     sama. Panah tinggal di ujung garis bila sisa garis >= 1,375rem (lebar kotak tetap, tidak ikut font); kalau tidak,
+     panah membuka garis berikutnya. */
+  .rantai--ringkas .rantai__baris { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.125rem; }
+  .sl-markdown-content .rantai--ringkas .rantai__label { margin-right: 1.375rem; }
   .rantai--ringkas .rantai__label span, .rantai--ringkas .rantai__simpul span { display: none; }
   .sl-markdown-content .rantai--ringkas ol.rantai__simpul { display: contents; }
   .rantai--ringkas .rantai__label b::after { content: ":"; }
   .sl-markdown-content .rantai--ringkas ol.rantai__simpul > li { padding: 0.1rem 0.45rem; font-size: var(--rk-ui-kecil); }
   .sl-markdown-content .rantai--ringkas .rantai__simpul code { font-size: inherit; }
-  .sl-markdown-content .rantai--ringkas ol.rantai__simpul > li:not(:last-child)::after { content: "→"; left: auto; right: -1.15rem; top: 50%; bottom: auto; transform: translateY(-50%); }
+  .sl-markdown-content .rantai--ringkas ol.rantai__simpul > li:not(:last-child)::after { content: none; }
+  .sl-markdown-content .rantai--ringkas ol.rantai__simpul > li.rantai__panah { display: block; flex: none; width: 1.25rem; padding: 0; border: 0; background: none; text-align: center; color: var(--teks-2); -webkit-user-select: none; user-select: none; }
 }
 /* Starlight memberi margin-bottom 1.25rem pada anak terakhir butir daftar; kotak diagram tidak memakainya. */
 .sl-markdown-content :is(ol.rantai__simpul, ol.peta-fitur__grid) > li > * { margin-bottom: 0; }

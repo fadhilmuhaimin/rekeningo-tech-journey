@@ -64,11 +64,39 @@
 
       var pBox = null;
       if (d.predict) {
-        pBox = BB.predict(d.predict, function () { guessed = true; render(); });
+        pBox = BB.predict(d.predict, function (pilih) {
+          guessed = true;
+          // Sesudah menebak (I5c-g, keputusan 363) pilihan diciutkan jadi satu baris jawaban; pertanyaannya tetap, karena
+          // jawabannya baru dibuka di akhir jalur. Tombol pilihan yang disembunyikan membuang fokus ke body, dan panah
+          // kiri/kanan hanya bekerja di dalam widget, jadi fokus pindah ke Berikutnya, langkah yang sekarang terbuka.
+          pBox.classList.add("is-ditebak");
+          pBox.appendChild(BB.el("p", { class: "bb-predict__pilihan" },
+            [BB.el("strong", { text: "Tebakanmu: " }), d.predict.options[pilih]]));
+          var fokus = document.activeElement;
+          render();
+          if (fokus && fokus !== document.body && !pBox.contains(fokus)) return;
+          // Keyboard: focus() biasa, supaya browser menggulir tombol ke layar dengan scroll-padding-top Starlight (header
+          // tetap); dengan preventScroll fokus di HP bisa jatuh ke tombol di balik header atau di atas layar (WCAG 2.2
+          // SC 2.4.11). Pointer: halaman tidak digulir; fokus ke Berikutnya hanya bila tombol utuh terlihat, selain itu ke
+          // widget (tabindex 0, sedang terlihat karena baru diklik), supaya panah kiri/kanan tetap bekerja.
+          if (lewatKeyboard) next.focus();
+          else (utuhTerlihat(next) ? next : root).focus({ preventScroll: true });
+        });
+        // Click dari Enter atau Spasi punya event.detail 0. Dicatat di fase capture, sebelum handler tombol pilihan.
+        pBox.addEventListener("click", function (e) { lewatKeyboard = e.detail === 0; }, true);
+      }
+      var lewatKeyboard = false;
+      function utuhTerlihat(el) {
+        var r = el.getBoundingClientRect();
+        var atas = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+        return r.top >= atas && r.bottom <= window.innerHeight;
       }
       if (d.varian) {
         var cb = BB.el("input", { type: "checkbox" });
         cb.addEventListener("change", function () {
+          // Kotak centang ada di bawah detail dan jawaban tebakan (keputusan 363), jadi keduanya yang berganti menggesernya.
+          // Gulir sebesar geserannya supaya kotak tetap di bawah jari atau pointer (pola K1xe); tanpa gerak.
+          var atas = cb.getBoundingClientRect().top;
           varianOn = cb.checked;
           list = core.steps(d, varianOn);
           // Jawaban tebakan dibuka lagi di akhir jalur yang baru.
@@ -77,19 +105,25 @@
           // Lompat ke langkah pertama yang berbeda: di situlah pelajarannya.
           if (guessed) i = Math.min(list.length, d.varian.mulai + 1);
           render(true);
+          var geser = cb.getBoundingClientRect().top - atas;
+          if (geser) window.scrollBy({ top: geser, behavior: "instant" });
         });
         var varianBox = BB.el("label", { class: "bb-alur__varian" }, [cb, " Ubah satu hal: " + d.varian.label]);
       }
-      // Satu urutan di semua ukuran (I5c-e, keputusan 358): jalur, tombol, tebakan, varian, lalu detail dan HP. Semua yang
-      // tingginya berubah antarlangkah (detail, HP, jawaban tebakan) ada di bawah tombol, jadi jalur dan tombol diam,
-      // paket dan Berikutnya terlihat bersamaan, dan urutan fokus sama dengan urutan tampil. Sebelumnya tata letak lebar
-      // menaruh detail dan HP di atas tombol, dan detail yang memanjang mendorong Berikutnya keluar layar di 1366x657.
+      // Satu urutan di semua ukuran (I5c-e, keputusan 358): jalur, tombol, lalu HP dan kolom detail. Semua yang tingginya
+      // berubah antarlangkah (detail, HP, jawaban tebakan) ada di bawah tombol, jadi jalur dan tombol diam, paket dan
+      // Berikutnya terlihat bersamaan, dan urutan fokus sama dengan urutan tampil. Sebelumnya tata letak lebar menaruh
+      // detail dan HP di atas tombol, dan detail yang memanjang mendorong Berikutnya keluar layar di 1366x657.
+      // Tebakan dan varian ada di kolom detail, sesudah penjelasan langkah (I5c-g, keputusan 363): di antara tombol dan
+      // detail keduanya mendorong judul langkah 224-387 px di bawah paket. Sebelum menebak penjelasannya pengantar, jadi
+      // tebakan tetap tepat di bawah kalimat "Tebak dulu"; detail tetap satu-satunya bagian aria-live.
       root.appendChild(lanes);
       root.appendChild(track);
       var rail = null;  // dibuat saat pertama kali beralih ke rel vertikal
       root.appendChild(controls);
-      [pBox, varianBox].forEach(function (x) { if (x) root.appendChild(x); });  // varianBox: var, undefined bila tanpa varian
-      root.appendChild(BB.el("div", { class: "bb-alur__body" }, [phoneBox, detail]));
+      var kolom = BB.el("div", { class: "bb-alur__kolom" }, [detail]);
+      [pBox, varianBox].forEach(function (x) { if (x) kolom.appendChild(x); });  // varianBox: var, undefined bila tanpa varian
+      root.appendChild(BB.el("div", { class: "bb-alur__body" }, [phoneBox, kolom]));
       root.addEventListener("keydown", function (e) {
         if (e.key === "ArrowRight") { go(i + 1); e.preventDefault(); }
         if (e.key === "ArrowLeft") { go(i - 1); e.preventDefault(); }
