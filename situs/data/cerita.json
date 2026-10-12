@@ -50,8 +50,8 @@
         "tim": "1 developer"
       },
       "jalur_inti": {
-        "menit": 318,
-        "halaman": 34
+        "menit": 329,
+        "halaman": 35
       },
       "bagian": [
         {
@@ -1204,8 +1204,12 @@
         12
       ],
       "masalah": "Tergoda menambah cache, queue, dan service sebelum perlu",
-      "ada": false,
-      "nomor": "1.40"
+      "ada": true,
+      "prasyarat": [
+        "F1"
+      ],
+      "nomor": "1.40",
+      "menit": 11
     },
     {
       "id": "t1-rekap",

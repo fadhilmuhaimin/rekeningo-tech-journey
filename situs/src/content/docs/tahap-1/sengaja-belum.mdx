@@ -1,0 +1,174 @@
+---
+title: "1.40 ADR 12: Sengaja belum dilakukan"
+description: ADR 12. Cache, queue, service kedua, dan Kubernetes tidak dipasang di Tahap 1, masing-masing dengan alasan dari angka Tahap 1 dan pemicu kapan keputusan ini salah. Dua yang pecah lebih dulu di Tahap 2 bukan soal kapasitas.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import empat from "../../../../data/diagram/t1-adr12-empat.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Snippet from "../../../components/Snippet.astro";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[F1]] · Jalur inti</p>
+
+<Blok nama="Kebutuhan" buka>
+
+Minggu 6, PRD v2 meminta Rekeningo untuk 1.000 karyawan dan 12 warung. Di [[t1-m8]] Raka menulis tiga rencana: VPS lebih besar, server kedua, dan load balancer. Hitungan di [[D1]] memberi puncak ±0,14 request per detik untuk Tahap 1, dan ±1,4 untuk Tahap 2 (asumsi naskah).
+
+Engineer kedua masuk di Tahap 2. Ia akan membuka repo tanpa cache, tanpa queue, dan tanpa cluster. Tanpa catatan, ia tidak tahu apakah itu keputusan atau kelupaan.
+
+Raka menulis ADR untuk yang tidak ia bangun. Pertanyaannya sama untuk setiap komponen: **masalah apa yang dijawabnya hari ini, dengan angka Tahap 1?**
+
+<Rantai data={empat} ringkas />
+
+</Blok>
+
+<Blok nama="Opsi" buka>
+
+Ada tiga cara memperlakukan komponen yang belum dibutuhkan.
+
+| | A. Pasang sekarang | B. Siapkan antarmuka, belum dipasang | C. Tunda dengan pemicu tertulis |
+|---|---|---|---|
+| Cara kerja | Cache, queue dengan worker, service kedua, dan cluster Kubernetes dipasang sebelum PRD v2 dimulai | Kode punya `interface` Cache dan Queue dengan implementasi kosong; komponennya dipasang nanti | Komponen tidak dipasang. ADR ini mencatat alasannya dan kejadian yang membuatnya perlu |
+| Kelebihan | Saat beban naik, komponennya sudah ada | Saat komponen dipasang, kode pemanggilnya tidak berubah | Setiap komponen yang ada menjawab masalah yang terlihat; setiap yang tidak ada punya alasan tertulis |
+| Kekurangan | Empat komponen menjawab masalah yang belum muncul di Tahap 1 | Bentuk antarmuka ditebak sebelum masalahnya diketahui | Pemicu harus diperhatikan; kalau terlambat terlihat, pemasangan jadi terburu-buru |
+| Biaya operasional | Satu orang memelihara empat komponen tambahan: update, pemantauan, pemulihan | Kode tambahan yang dites dan dipelihara tanpa pemanggil sungguhan | Membaca ulang ADR ini setiap kali PRD baru datang |
+
+### Empat yang ditunda
+
+| Komponen | Masalah yang dijawabnya | Keadaan Tahap 1 | Biaya kalau dipasang sekarang |
+|---|---|---|---|
+| Cache | Data yang sama dibaca berulang kali, lebih cepat daripada query ke database | Puncak ±0,14 request per detik. Data transaksi setahun ±6,6 MB, lebih kecil dari default `shared_buffers` PostgreSQL 128 MB (asumsi naskah) | Saldo di cache bisa tertinggal dari database. Setiap Bayar harus juga memperbarui atau menghapus cache |
+| Queue | Pekerjaan lambat yang tidak perlu ditunggu user, misalnya notifikasi | Bayar adalah dua UPDATE dan satu INSERT dalam satu transaction, tanpa panggilan ke luar (`bayar.txt` bagian D) | Queue standar SQS mengirim pesan at-least-once, jadi pemrosesnya harus aman bila pesan yang sama datang dua kali. Worker adalah proses kedua yang dipantau |
+| Service kedua | Tim atau beban yang perlu di-deploy sendiri-sendiri | Satu orang, satu repo, satu binary | Pembayaran yang menyentuh dua service tidak lagi bisa dibungkus satu transaction ([[t1-adr-transaction]]). Panggilan antar service bisa gagal di tengah |
+| Kubernetes | Banyak container di banyak mesin, dijadwalkan dan dipulihkan otomatis | Satu container API dengan Compose; PostgreSQL di VPS yang sama ([[t1-tim-infra]]) | Control plane (kube-apiserver, etcd, scheduler, controller manager) dipelihara orang yang sama, untuk satu container aplikasi |
+
+Sumber: [PostgreSQL 17: shared_buffers](https://www.postgresql.org/docs/17/runtime-config-resource.html), [Amazon SQS: at-least-once delivery](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues-at-least-once-delivery.html), [microservices.io: Database per service](https://microservices.io/patterns/data/database-per-service.html), [Kubernetes: komponen cluster](https://kubernetes.io/docs/concepts/overview/components/).
+
+### Yang juga sengaja belum
+
+Baris-baris ini sama dengan tabel di [[t1-tim-infra]], ditambah cadangan terjadwal.
+
+| Yang belum | Kenapa sekarang tidak | Rencana |
+|---|---|---|
+| Cadangan terjadwal | PRD v1 tidak menyebut cadangan. Celah ini dan langkah terkecilnya, `pg_dump` yang disalin keluar VPS, tercatat di [[t1-tim-infra]] | Tahap 3 |
+| Pemeriksa arah `cek_arah.py` di CI | Hanya Raka yang menulis kode, dan ia menjalankannya sebelum commit ([[B7.1]]) | Saat engineer kedua bergabung, Tahap 2 |
+| Tes yang mencocokkan response dengan kontrak OpenAPI di CI | Rekaman lab masih dibaca manusia ([[B1.4]]) | Tahap 4 |
+| CI men-deploy sendiri ke VPS | CI butuh kunci akses ke VPS, dan ADR 11 sengaja belum membuatnya ([[t1-secret]]) | Tahap 3, bersama staging |
+| Deploy tanpa jeda | Butuh dua instance dan reverse proxy, pada puncak 0,14 request per detik ([[C3]]) | Tahap 3 |
+
+</Blok>
+
+<Blok nama="Yang dipilih dan kenapa">
+
+**Keputusan: opsi C.** Cache, queue, service kedua, dan Kubernetes tidak dipasang di Tahap 1. Setiap komponen punya pemicu berupa kejadian yang terlihat orang, bukan tanggal.
+
+Alasan pertama adalah beban. Pada ±0,14 request per detik, satu request datang kira-kira tiap 7 detik di jam makan siang. Kapasitas VPS Raka belum pernah diukur, karena lab Tahap 1 belum menjalankan load test ([[t1-m8]]).
+
+Alasan kedua adalah orangnya. Raka memegang app, backend, server, dan rilis sendirian ([[t1-tim-infra]]). Setiap komponen tambahan adalah satu proses lagi yang di-update, dipantau, dan dipulihkan oleh orang yang sama.
+
+Opsi B ditolak karena bentuk antarmuka cache dan queue bergantung pada masalah yang belum terlihat. Antarmuka itu harus dites dan dipelihara sebelum ada pemanggil sungguhan.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Pemicunya datang, tapi tidak ada yang melihat. Pemantauan baru ada di rencana Tahap 3. Pencegahannya: pemicu ditulis sebagai kejadian yang dilihat orang, dan ADR ini dibaca ulang setiap PRD baru datang.
+2. ADR ini memberi rasa aman palsu: kapasitas sudah dipikirkan, jadi sistem dianggap siap. Padahal yang pecah lebih dulu bukan kapasitas. Pencegahannya: dua kejadian yang belum pernah diuji direkam dan ditulis di ADR ini juga.
+3. Saat pemicu datang, semua komponen dipasang sekaligus. Pencegahannya: satu komponen per masalah, dengan urutan perbaiki query dan index, keluarkan kerja lambat, cache, lalu tambah instance.
+
+</Blok>
+
+<Blok nama="Wujud di kode">
+
+ADR ini terlihat dari yang tidak ada. File Compose di VPS hanya menjalankan satu container, yaitu API. PostgreSQL berjalan di VPS yang sama, dan tidak ada container cache, queue, atau worker.
+
+<Snippet file="labs/api-t1/deploy/compose.yaml" lines="4:14" lang="yaml" title="labs/api-t1/deploy/compose.yaml" />
+
+Satu baris komentar di service menandai tempat yang pecah lebih dulu. `Bayar` membaca saldo lewat `s.repo.Akun`, lalu membandingkannya dengan jumlah.
+
+<Snippet file="labs/api-t1/internal/service/bayar.go" region="bayar" lang="go" title="labs/api-t1/internal/service/bayar.go" />
+
+Di antara membaca dan menulis, tidak ada yang mencegah request lain membaca angka yang sama. Komentar itu menunda masalahnya ke Tahap 2, dan blok berikutnya merekam akibatnya.
+
+</Blok>
+
+<Blok nama="Coba keduanya">
+
+Selama 6 minggu uji coba, dua hal tidak pernah diuji ([[t1-m8]]): dua request yang datang hampir bersamaan, dan Bayar yang diulang Budi sesudah app menampilkan gagal. Rekaman ini menjalankan keduanya di server v1. Tebak dulu, lalu ikuti langkahnya.
+
+<WidgetLama nama="alur" src="data/skenario/t1-sengaja-belum.json" />
+
+Kedua jalur hanya melewati HP, API, dan PostgreSQL. Keempat komponen yang ditunda tidak menyentuh pemeriksaan saldo di service. Tidak satu pun juga membedakan request ulang dari pembayaran baru.
+
+<Snippet file="labs/api-t1/output/sengaja-belum.txt" lines="60:83" title="Rekaman lab: labs/api-t1/output/sengaja-belum.txt" />
+
+</Blok>
+
+<Blok nama="Kapan keputusan ini salah">
+
+Setiap baris di bawah adalah pemicu untuk membuka ADR ini lagi. Kolom terakhir adalah rencana PROPOSAL; naskah tahap berikutnya belum ditulis.
+
+| Komponen | Salah saat | Rencana |
+|---|---|---|
+| Cache | Data yang sama dibaca jauh lebih sering daripada ditulis, dan query serta index sudah diperbaiki | Tahap 3: katalog warung dibaca ribuan kali |
+| Queue | Ada pekerjaan lambat di dalam request, misalnya notifikasi push yang menahan response Bayar | Tahap 3: outbox dan worker |
+| Service kedua | Beberapa tim bentrok di satu repo dan perlu deploy sendiri-sendiri | Tahap 4: modular monolith dan satu service pembayaran |
+| Kubernetes | Puluhan container di beberapa mesin, dengan deploy terpisah per tim | Tahap 5, mulai dari k3s di lab |
+
+ADR 12 direvisi sebagian di setiap tahap. Tahap 3 merevisi cache, worker, dua instance, dan cadangan terjadwal. Tahap 4 merevisi service kedua dan tes kontrak di CI, lalu Tahap 5 merevisi Kubernetes.
+
+### Yang pecah lebih dulu, dan bukan kapasitas
+
+Dua kejadian di blok Coba keduanya adalah yang pecah di Tahap 2. Keduanya soal kebenaran data, dan tidak satu pun dijawab oleh komponen yang ditunda.
+
+1. **Dua request bersamaan.** Pemeriksaan saldo di service membaca angka yang sudah tidak berlaku. Di v1, constraint `saldo_tidak_negatif` menahan saldo negatif, dan Budi melihat 500. Tahap 2 membuka lagi ADR 5, karena transaction saja tidak cukup saat dua request bersamaan ([[B3.2]]).
+2. **Retry dari app.** Saat response tidak sampai, app v1 menampilkan gagal dan Budi mengulang ([[t1-fitur-bayar]]). Server tidak bisa membedakan request ulang itu dari pembayaran kedua. PRD v2 menambah transfer antar karyawan, jadi setiap retry bisa memindahkan uang dua kali. Tahap 2 menjawabnya dengan idempotency key ([[E3]]).
+
+### Cek diri
+
+**1.** Engineer kedua bergabung di Tahap 2 dan bertanya kenapa saldo tidak di-cache. Jawab dengan angka Tahap 1.
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Puncak Tahap 1 ±0,14 request per detik, dan data transaksi setahun ±6,6 MB, keduanya asumsi naskah. Cache menambah risiko saldo yang tertinggal dari database. ADR ini dibuka lagi saat ada data yang dibaca jauh lebih sering daripada ditulis, seperti katalog warung di rencana Tahap 3.
+
+</details>
+
+**2.** Di rekaman dua request bersamaan, apa yang menahan saldo Budi supaya tidak negatif: pemeriksaan di service, transaction, atau constraint?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Constraint `saldo_tidak_negatif`. Pemeriksaan di service lolos untuk keduanya, karena keduanya membaca Rp250.000. Transaction membuat request yang ditolak batal seluruhnya, jadi saldo Warung Ani hanya bertambah Rp200.000 sekali (rekaman bagian C).
+
+</details>
+
+**3.** Benar atau salah: memasang queue di depan endpoint Bayar mencegah dobel bayar saat Budi mengulang Bayar.
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Salah. Request ulang tetap masuk sebagai pesan baru, dan queue standar SQS bisa mengirim satu pesan lebih dari sekali. Yang membedakan request ulang dari pembayaran baru adalah tanda dari app, dan itu dibahas di Tahap 2 ([[E3]]).
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Setiap komponen baru (cache, queue, service) disertai masalah tahap ini yang dijawabnya, dengan angka.
+- [ ] Angka uang yang harus selalu terbaru, seperti saldo, tidak dibaca dari cache.
+- [ ] Pemroses pesan dari queue tetap benar bila pesan yang sama datang dua kali.
+- [ ] Pemeriksaan "baca lalu bandingkan" pada saldo tidak dianggap aman untuk dua request bersamaan.
+
+### Bacaan lanjut
+
+- [PostgreSQL 17: Resource Consumption, shared_buffers](https://www.postgresql.org/docs/17/runtime-config-resource.html)
+- [Amazon SQS: at-least-once delivery](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues-at-least-once-delivery.html)
+- [microservices.io: Database per service](https://microservices.io/patterns/data/database-per-service.html)
+- [Kubernetes: Cluster components](https://kubernetes.io/docs/concepts/overview/components/)
+- [Michael Nygard: Documenting Architecture Decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)
+
+<WidgetLama nama="umpan-balik" />
+
+</Blok>
+
+<SkripLama daftar={["cerita","hp","alur-core","alur"]} />

@@ -609,6 +609,30 @@
   "jawab": "Kesalahan izin membuka uang atau data orang lain, dan akibatnya tidak bisa dibatalkan sesudah dipakai. Penamaan yang buruk hanya memperlambat developer. Waktu review terbatas, jadi dipakai untuk risiko terbesar dulu."
  },
  {
+  "id": "t1-adr-12-1",
+  "halaman": "t1-adr-12",
+  "judul": "1.40 Sengaja belum dilakukan",
+  "url": "tahap-1/sengaja-belum/",
+  "tanya": "Engineer kedua bergabung di Tahap 2 dan bertanya kenapa saldo tidak di-cache. Jawab dengan angka Tahap 1.",
+  "jawab": "Puncak Tahap 1 ±0,14 request per detik, dan data transaksi setahun ±6,6 MB, keduanya asumsi naskah. Cache menambah risiko saldo yang tertinggal dari database. ADR ini dibuka lagi saat ada data yang dibaca jauh lebih sering daripada ditulis, seperti katalog warung di rencana Tahap 3."
+ },
+ {
+  "id": "t1-adr-12-2",
+  "halaman": "t1-adr-12",
+  "judul": "1.40 Sengaja belum dilakukan",
+  "url": "tahap-1/sengaja-belum/",
+  "tanya": "Di rekaman dua request bersamaan, apa yang menahan saldo Budi supaya tidak negatif: pemeriksaan di service, transaction, atau constraint?",
+  "jawab": "Constraint `saldo_tidak_negatif`. Pemeriksaan di service lolos untuk keduanya, karena keduanya membaca Rp250.000. Transaction membuat request yang ditolak batal seluruhnya, jadi saldo Warung Ani hanya bertambah Rp200.000 sekali (rekaman bagian C)."
+ },
+ {
+  "id": "t1-adr-12-3",
+  "halaman": "t1-adr-12",
+  "judul": "1.40 Sengaja belum dilakukan",
+  "url": "tahap-1/sengaja-belum/",
+  "tanya": "Benar atau salah: memasang queue di depan endpoint Bayar mencegah dobel bayar saat Budi mengulang Bayar.",
+  "jawab": "Salah. Request ulang tetap masuk sebagai pesan baru, dan queue standar SQS bisa mengirim satu pesan lebih dari sekali. Yang membedakan request ulang dari pembayaran baru adalah tanda dari app, dan itu dibahas di Tahap 2 (2.3 Retry dan idempotency key)."
+ },
+ {
   "id": "B3.2-1",
   "halaman": "B3.2",
   "judul": "2.1 Race condition dan lock",
