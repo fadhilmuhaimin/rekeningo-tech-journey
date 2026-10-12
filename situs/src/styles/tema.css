@@ -250,8 +250,9 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-step.is-err .bb-step__res, .sl-markdown-content .bb-step.is-wait .bb-step__res { color: var(--k-warn-ink); font-weight: 600; }
 .sl-markdown-content .bb-step.is-err, .sl-markdown-content .bb-step.is-wait { background: var(--k-warn-fill); }
 .sl-markdown-content .bb-step.is-auto { background: var(--k-good-fill); }
-.sl-markdown-content .bb-step.is-skipped { opacity: 0.55; }
-.sl-markdown-content .bb-step.is-skipped .bb-step__sql { text-decoration: line-through; }
+/* Langkah yang tidak dijalankan (K2a, keputusan 354): warna sekunder + coretan + label "→ tidak dijalankan", tanpa opacity,
+   supaya teks tetap >= 4,5:1 di dua mode. Diukur dari computed style oleh tools/ukur-kontras.mjs. */
+.sl-markdown-content .bb-step.is-skipped .bb-step__sql { color: var(--teks-2); text-decoration: line-through; }
 .sl-markdown-content .bb-ba { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
 .sl-markdown-content .bb-ba__panel { border: 1px solid var(--garis); border-radius: 8px; padding: 0.5rem 0.6rem; min-width: 0; }
 .sl-markdown-content .bb-ba__panel h4 { margin: 0 0 0.2rem; font-size: 0.9em; }

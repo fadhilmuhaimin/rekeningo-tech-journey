@@ -61,7 +61,8 @@ jobs:
   situs_baru:
     name: situs (Astro)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Job di main 13m54-14m51 sebelum K2a; batas 15 menit memotong run PR #189 (keputusan 354).
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       # Node tetap dipakai untuk astro, Playwright, dan node:test; bun hanya pemasang paket
