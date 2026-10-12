@@ -497,11 +497,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### K2d · Chip sumber Rantai tidak meluap di HP
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: chip sumber di `Rantai.astro` (kini `white-space: nowrap`) tidak pernah lebih lebar dari figure di 360×740 dan 375×667 (boleh membungkus atau dipendekkan secara visual tanpa memotong informasi); alat di gerbang memeriksa `scrollWidth` = lebar viewport di 360×740 untuk seluruh halaman, bukan hanya layar pertama.
-- catatan: Dari peninjau PR #184: chip 349 px meluap 21 px di 360×740 dan membuat halaman bisa digulir ke samping; `layar.mjs` tidak menangkapnya karena chip di bawah layar pertama. Jalur teknis.
+- catatan: Dari peninjau PR #184: chip 349 px meluap 21 px di 360×740 dan membuat halaman bisa digulir ke samping; `layar.mjs` tidak menangkapnya karena chip di bawah layar pertama. Jalur teknis. Selesai: keputusan 356, PR #195 (alat ukur-luapan.mjs di gerbang).
 
 ### 1.36 · Tim dan infra Tahap 1
 
@@ -542,11 +542,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### 1.39 · Spesifikasi untuk AI dan review kode AI
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: F1 ditulis ulang ke `tahap-1/` dan menyerap F2; halaman F2 dan entrinya dihapus di PR yang sama (pola keputusan 150, sudah direncanakan registry v2); tes registri disesuaikan; widget banding dan pilah; lab f2-review.
-- catatan: -
+- catatan: Selesai: keputusan 305, PR #197 (F2 diserap dan dihapus; lab f2-review identik di container postgres:17.11).
 
 ### 1.40 · ADR 12: Sengaja belum dilakukan
 
