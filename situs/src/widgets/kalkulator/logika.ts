@@ -37,17 +37,29 @@ export function titik(n: number): string {
   return (n < 0 ? "−" : "") + s;
 }
 
-/** Dua angka penting dengan koma desimal: 0,01389 → "0,014"; 1,389 → "1,4"; 138,9 → "140"; 1.389 → "1.400". */
-export function duaAngka(x: number): string {
+/** n angka penting dengan koma desimal: (0,01389, 2) → "0,014"; (0,13889, 3) → "0,139". */
+export function angkaPenting(x: number, n: number): string {
   if (x === 0 || !Number.isFinite(x)) return "0";
   const ax = Math.abs(x);
   let e = Math.floor(Math.log10(ax));
-  let r = Math.round(ax / 10 ** (e - 1)) * 10 ** (e - 1);
+  let r = Math.round(ax / 10 ** (e - n + 1)) * 10 ** (e - n + 1);
   if (r >= 10 ** (e + 1)) e += 1; // 0,0996 dibulatkan jadi 0,10: satu desimal lebih sedikit
-  r = Math.round(ax / 10 ** (e - 1)) * 10 ** (e - 1);
-  const des = Math.max(0, 1 - e);
+  r = Math.round(ax / 10 ** (e - n + 1)) * 10 ** (e - n + 1);
+  const des = Math.max(0, n - 1 - e);
   const [bulat, pecahan] = r.toFixed(des).split(".");
   return (x < 0 ? "−" : "") + titik(Number(bulat)) + (pecahan ? "," + pecahan : "");
+}
+
+/** Dua angka penting: 0,01389 → "0,014"; 1,389 → "1,4"; 138,9 → "140"; 1.389 → "1.400". */
+export function duaAngka(x: number): string {
+  return angkaPenting(x, 2);
+}
+
+/** Rata-rata di cara hitung puncak: dua angka penting, atau tiga bila hasil kali dua angka itu tampil
+ *  beda dari puncak (0,14 × 24 = 3,4, padahal puncaknya 3,3; maka ditulis 0,139 × 24). */
+export function rataDiCara(rata: number, faktor: number): string {
+  const sama = duaAngka(Number(rata.toPrecision(2)) * faktor) === duaAngka(rata * faktor);
+  return sama ? duaAngka(rata) : angkaPenting(rata, 3);
 }
 
 /** Jarak antar request: detik bila ≥ 1 detik, milidetik bila kurang. */
@@ -77,7 +89,7 @@ export function baris(a: Asumsi, labelAsumsi: string): Baris[] {
     { kunci: "dau", nilai: h.dau, skala: 1, cara: `${titik(a.user)} × ${duaAngka(a.aktif)}%` },
     { kunci: "reqHari", nilai: h.reqHari, skala: 1, cara: `${titik(h.dau)} × ${duaAngka(a.req)}` },
     { kunci: "rata", nilai: h.rata, skala: 1e4, cara: `${titik(h.reqHari)} ÷ ${titik(DETIK_SEHARI)}` },
-    { kunci: "puncak", nilai: h.puncak, skala: 1e4, cara: `${duaAngka(h.rata)} × ${duaAngka(a.puncak)}` },
+    { kunci: "puncak", nilai: h.puncak, skala: 1e4, cara: `${rataDiCara(h.rata, a.puncak)} × ${duaAngka(a.puncak)}` },
   ];
 }
 

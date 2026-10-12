@@ -79,6 +79,13 @@ describe("data t1-m8", () => {
     expect(berubah(sk[0], sk[1])).toEqual(["user", "dau", "reqHari", "rata", "puncak", "jarak"]);
   });
 
+  it("cara hitung puncak konsisten dengan angka puncak yang tampil", () => {
+    const cara = (i: number) => baris(sk[i], "asumsi").find((x) => x.kunci === "puncak")!.cara;
+    expect(cara(1)).toBe("0,14 × 10");
+    expect(cara(2)).toBe("0,139 × 24");
+    expect(duaAngka(0.139 * 24)).toBe(duaAngka(hitung(sk[2]).puncak));
+  });
+
   it("kesimpulan mengikuti angka skenario", () => {
     expect(kesimpulan(data.label.kesimpulan, sk[0], satuan)).toContain("7,2 detik");
     expect(kesimpulan(data.label.kesimpulan, sk[1], satuan)).toContain("720 ms");

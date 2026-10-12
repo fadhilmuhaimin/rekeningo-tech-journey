@@ -41,7 +41,16 @@ export default function Kalkulator({ data: mentah, asumsi: asumsiMentah }: { dat
   const [pilih, setPilih] = useState(data.awal);
   const [sebelum, setSebelum] = useState(data.awal);
   const [dibuka, setDibuka] = useState(false);
+  const skenarioRef = useRef<HTMLDivElement>(null);
   const a = skenario[pilih];
+
+  // Tombol tebakan jadi nonaktif sesudah diklik, dan Chrome memindah fokusnya ke BODY. Fokus dipindah ke
+  // tombol skenario pertama yang aktif, supaya Tab berlanjut dari widget ini.
+  useLayoutEffect(() => {
+    if (tebakan === null) return;
+    const tombol = skenarioRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)");
+    tombol?.focus({ preventScroll: true });
+  }, [tebakan]);
   const ubah = pilih === sebelum ? [] : berubah(skenario[sebelum], a);
 
   const gantiSkenario = (i: number) => {
@@ -76,7 +85,7 @@ export default function Kalkulator({ data: mentah, asumsi: asumsiMentah }: { dat
         </div>
       </div>
 
-      <div className="bb-row" role="group" aria-label={L.ubah}>
+      <div className="bb-row" role="group" aria-label={L.ubah} ref={skenarioRef}>
         {data.skenario.map((s, i) => (
           <button
             key={s.label}
