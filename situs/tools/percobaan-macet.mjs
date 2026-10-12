@@ -5,7 +5,8 @@
 //   nama lain berjalan seperti kontrol (dipakai untuk lengan yang mengubah dist, mis. tanpa-blok, tanpa-island).
 //   JEJAK=1: trace Chromium seluruh proses (ring buffer); saat macet trace disimpan ke jejak/ dan slice yang masih
 //   terbuka per thread dicetak (baris JEJAK). Di macOS macet tidak pernah muncul (0 dari 10.080 muat); jalankan di
-//   runner Linux, mis. lewat branch percobaan/** dengan workflow sementara (contoh: run 38292073724).
+//   runner Linux lewat branch percobaan/** dengan workflow tidak aktif tools/percobaan/percobaan-g2d.yml (cara pakai
+//   di kepala file itu; halaman sintetis dari tools/percobaan/halaman-sintetis.mjs).
 //   Dipakai untuk memeriksa ulang setelah Playwright/Chromium naik versi: bila kontrol 60 putaran tanpa KEJADIAN,
 //   ulang sekali di ukur-luapan bisa dicabut (keputusan 367).
 //   cd situs && LENGAN=kontrol PUTARAN=30 node tools/percobaan-macet.mjs
