@@ -1,0 +1,32 @@
+{
+  "id": "t1-kontrak-field-wajib",
+  "judul": "Body yang tidak cocok dengan kontrak",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t1 · m2.txt"
+  },
+  "baris": [
+    {
+      "label": "Body",
+      "sub": "sesudah ADR 3",
+      "simpul": [
+        {
+          "teks": "amount",
+          "kode": true,
+          "sub": "app mengirim 25000 dengan nama lama"
+        },
+        {
+          "teks": "kontrak: jumlah wajib",
+          "sub": "required: ke, jumlah",
+          "nada": "system"
+        },
+        {
+          "teks": "400: jumlah wajib diisi",
+          "sub": "nama field disebut",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Server ditulis mengikuti openapi.yaml; server tidak membaca file itu saat berjalan."
+}

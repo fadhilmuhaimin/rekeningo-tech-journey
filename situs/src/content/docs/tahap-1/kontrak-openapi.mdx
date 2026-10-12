@@ -3,6 +3,9 @@ title: "1.18 Kontrak OpenAPI dan ADR 3"
 description: Satu file yang menulis nama, tipe, dan batas setiap field, dibaca app dan backend, dan diperiksa mesin. Memuat ADR 3, kontrak sebelum kode.
 ---
 import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import fieldWajib from "../../../../data/diagram/t1-kontrak-field-wajib.json";
+import sebelumSesudah from "../../../../data/diagram/t1-kontrak-sebelum-sesudah.json";
 import Snippet from "../../../components/Snippet.astro";
 import WidgetLama from "../../../components/WidgetLama.astro";
 import SkripLama from "../../../components/SkripLama.astro";
@@ -13,16 +16,13 @@ import SkripLama from "../../../components/SkripLama.astro";
 
 ## Inti
 
-Kontrak API menulis bentuk request dan response dalam format yang dibaca mesin. Satu file, tiga pembaca:
+Kontrak API menulis nama, tipe, dan batas setiap field dalam satu file yang bisa diperiksa mesin.
 
-<figure class="bb-fig">
-<ol class="bb-flow is-rujuk">
-<li>app Dart</li>
-<li>server Go</li>
-<li>pemeriksa kontrak</li>
-</ol>
-<figcaption>Ketiganya membaca <code>openapi.yaml</code>. Satu orang pun butuh perjanjian dengan dirinya sendiri.</figcaption>
-</figure>
+<Rantai data={fieldWajib} ringkas />
+
+Raka membaca `openapi.yaml` saat menulis app Dart, dan server ditulis mengikuti file yang sama. Karena kontrak menyebut `jumlah` wajib, body berisi `amount` dari [[t1-m2]] kini dijawab `400` yang menyebut field itu. Sebelum kontrak, request yang sama dijawab `422` tentang nominal, padahal app mengirim 25000.
+
+Pemeriksa kontrak membandingkan file lama dan baru sebelum perubahan dipakai. Menambah field opsional `no_hp` lolos dengan exit code 0. Mengganti `saldo` jadi `balance` ditolak dengan exit code 1, karena app yang sudah terpasang masih membaca `saldo`.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -103,7 +103,11 @@ Rekaman lab, untuk lint dan dua perubahan:
 
 <Snippet file="labs/api-t1/internal/handler/handler.go" region="baca-json" lang="go" title="labs/api-t1/internal/handler/handler.go" />
 
-Request yang sama dengan [[t1-m2]], sesudah perbaikan:
+Dua request dari [[t1-m2]], dijawab server sebelum dan sesudah ADR 3:
+
+<Rantai data={sebelumSesudah} />
+
+Body lengkap sesudah perbaikan:
 
 <Snippet file="labs/api-t1/output/m2.txt" lines="59:68" title="Rekaman lab: labs/api-t1/output/m2.txt" />
 
