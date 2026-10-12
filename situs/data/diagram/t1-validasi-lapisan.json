@@ -28,7 +28,7 @@
         {
           "teks": "database: 500",
           "sub": "constraint menolak, tanpa alasan untuk app",
-          "nada": "system"
+          "nada": "warn"
         }
       ]
     }

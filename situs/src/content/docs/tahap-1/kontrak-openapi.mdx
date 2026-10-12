@@ -20,7 +20,7 @@ Kontrak API menulis nama, tipe, dan batas setiap field dalam satu file yang bisa
 
 <Rantai data={fieldWajib} ringkas />
 
-Raka membaca `openapi.yaml` saat menulis app Dart, dan server ditulis mengikuti file yang sama. Karena kontrak menyebut `jumlah` wajib, body berisi `amount` dari [[t1-m2]] kini dijawab `400` yang menyebut field itu. Sebelum kontrak, request yang sama dijawab `422` tentang nominal, padahal app mengirim 25000.
+Raka membaca `openapi.yaml` saat menulis app Dart, dan server ditulis mengikuti file yang sama. Karena kontrak menyebut `jumlah` wajib, body berisi `amount` dari [[t1-m2]] kini dijawab `400` yang menyebut field itu. Sebelum kontrak, request yang sama dijawab `422` untuk field `jumlah`, padahal app mengirim 25000.
 
 Pemeriksa kontrak membandingkan file lama dan baru sebelum perubahan dipakai. Menambah field opsional `no_hp` lolos dengan exit code 0. Mengganti `saldo` jadi `balance` ditolak dengan exit code 1, karena app yang sudah terpasang masih membaca `saldo`.
 
