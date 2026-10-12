@@ -1,5 +1,6 @@
 """Hitung rasio kontras WCAG semua kombinasi warna yang DIPAKAI situs dan gambar.
 Gagal (exit 1) kalau ada yang di bawah ambang, atau ada pasangan tema.css yang nilainya tidak bisa dihitung.
+Diuji tools/test_contrast.py (tes mutasi pada salinan tema.css).
 
     python tools/contrast.py [--md] [--css PATH]
 """
@@ -89,23 +90,63 @@ for nama, m in MODE.items():
         ]
 
 
-# Pasangan teks/latar yang benar-benar dipakai tema.css (I5c-a, keputusan 262). Dibaca dari CSS, bukan daftar tangan,
+# Pasangan teks/latar yang dipakai tema.css (I5c-a keputusan 262, K2b keputusan 355). Dibaca dari CSS, bukan daftar tangan,
 # supaya pasangan baru ikut diperiksa di kedua mode (celah lama: --ink-di-aksen di latar --k-system-edge, 4,43:1).
-# Tiga bentuk: (1) satu aturan menulis color dan background; (2) aturan pengubah (.is-x, [attr], :hover) mewarisi
-# color atau background dari aturan dasarnya; (3) aturan turunan ("DASAR anak") dengan color atau opacity < 1 di atas
-# latar aturan dasar dan semua pengubahnya. opacity dicampur ke latar (teks tanpa latar sendiri). Ambang 4,5:1:
-# teks widget tidak ada yang >= 18,66 px tebal atau 24 px (WCAG 2.2 SC 1.4.3, "large scale").
-# Tidak ada pasangan yang dilewati diam-diam (perbaikan review PR #176): color: inherit diselesaikan ke color aturan
-# leluhur di CSS; background transparent/none ke latar aturan leluhur, lalu ke latar halaman (aturan body). inherit
-# yang tidak punya leluhur di CSS gagal, kecuali tercatat di PENGECUALIAN beserta alasannya. Nilai yang tidak bisa
-# dihitung (alpha < 1, oklch, color-mix selain srgb, token tidak ada) membuat skrip exit 1 dengan selector dan nilainya.
+# Setiap aturan yang menulis color, latar (background, background-color), atau opacity menghasilkan pasangan untuk
+# elemennya. Teks dan latar elemen itu dikomposit lewat lapisan dari elemen ke luar:
+#   1. elemen sendiri: aturan itu, ditambah aturan yang lebih umum untuk elemen yang sama, yaitu selector tanpa
+#      pengubah di akhir (.is-x, [attr], :hover, :not(..), ::before; satu per satu) dan tanpa modifier BEM (.b--m -> .b);
+#   2. leluhur, terdekat dulu: awalan selector yang diikuti spasi atau ">" (awalan yang diikuti "+" atau "~" saudara,
+#      bukan leluhur), dan blok BEM dari elemen BEM (.b__e dianggap ada di dalam .b dengan awalan yang sama);
+#   3. body: latar dari tema.css, warna teks bawaan Starlight 0.42.5 (reset.css: body { color: var(--sl-color-text);
+#      background-color: var(--sl-color-bg) }).
+# color yang tidak ditulis, inherit, atau currentColor diambil dari lapisan terdekat yang menulisnya, lalu body. Latar
+# transparent, none, inherit, atau tidak ditulis = tembus. opacity lapisan mengalikan seluruh isinya (latarnya sendiri,
+# teks, dan turunannya) di atas lapisan di bawahnya, seperti group opacity di browser (dicampur di ruang sRGB).
+# Leluhur yang punya varian (pengubah, modifier BEM, versi @media/@container) diperiksa sekali per varian:
+# "<aturan> (di <varian>)". Aturan di dalam @media/@container adalah varian dari selector yang sama di luar, bukan
+# penimpanya. :is()/:where() tanpa kurung bersarang diurai jadi satu selector per argumen.
+# Ambang 4,5:1: teks widget tidak ada yang >= 18,66 px tebal atau 24 px (WCAG 2.2 SC 1.4.3, "large scale").
+# Elemen grafis tanpa teks (GRAFIS) diperiksa >= 3:1 latarnya terhadap latar di bawahnya (SC 1.4.11); keduanya ditulis
+# per selector dengan alasan. Tidak ada yang dilewati diam-diam: PENGECUALIAN memuat alasan, dicetak beserta rasionya, dan entri yang tidak cocok
+# dengan pasangan mana pun membuat skrip gagal. Nilai yang tidak bisa dihitung (alpha < 1, oklch, gradient, color-mix
+# selain srgb, token tidak ada) membuat skrip exit 1 dengan selector dan nilainya.
+# Batas yang diketahui (heuristik selector, bukan DOM; situs/tools/ukur-kontras.mjs mengukur DOM runsql sesudah klik):
+#   - BEM tidak menyimpan kedalaman: .b__e dianggap anak langsung .b, kecuali INDUK_DOM menyebut pembungkusnya;
+#   - leluhur hanya dikenali lewat awalan selector dan BEM. Elemen yang di DOM ada di dalam .x, tapi selector-nya tidak
+#     diawali .x dan bukan .x__y, dianggap langsung di atas body (mis. html[data-peran] .sidebar-content a);
+#   - latar dari CSS Starlight atau komponen di luar tema.css tidak terlihat (header, sidebar): dianggap tembus;
+#   - satu varian per leluhur sekaligus; dua varian di dua leluhur berbeda tidak dikombinasikan; varian keadaan
+#     elemen sendiri (:hover dan sebagainya) diperiksa sebagai aturan sendiri;
+#   - specificity tidak dihitung: selector yang lebih panjang menang atas yang lebih umum, @media menang atas
+#     selector yang sama di luar @media;
+#   - :not()/:has() dengan kurung bersarang tidak dilepas sebagai pengubah; CSS nesting gagal keras;
+#   - style inline dan kelas yang hanya ditulis JavaScript tidak terlihat.
 CSS = pathlib.Path(__file__).resolve().parent.parent / "situs" / "src" / "styles" / "tema.css"
 if "--css" in sys.argv:  # dipakai tools/test_contrast.py dengan salinan tema.css yang diubah
     CSS = pathlib.Path(sys.argv[sys.argv.index("--css") + 1])
-ATURAN = re.compile(r"([^{}]+)\{([^{}]*)\}")
-PENGUBAH = re.compile(r"(\.is-[\w-]+|\[[^\]]*\]|::?[\w-]+(\([^()]*\))?)+$")
-KOSONG = ("transparent", "none")
-PENGECUALIAN = {}  # selector -> alasan; untuk color: inherit yang induknya tidak bisa ditentukan dari CSS
+SATU_PENGUBAH = re.compile(r"(\.is-[\w-]+|\[[^\]]*\]|::?[\w-]+(\([^()]*\))?)$")
+BEM_MOD = re.compile(r"\.([\w-]+?)--[\w-]+")
+BEM_ELEMEN = re.compile(r"\.([\w-]+?)__[\w-]+")
+KOSONG = ("transparent", "none", "inherit")
+WARISAN = ("inherit", "currentcolor")
+BAWAAN_BODY = {"color": "var(--sl-color-text)", "latar": "var(--sl-color-bg)"}  # Starlight 0.42.5 style/reset.css
+PENGECUALIAN = {  # selector -> alasan; cocok dengan aturan itu sendiri atau dengan leluhur "(di <selector>)"
+    ".sl-markdown-content .bb-btn:disabled": "tombol nonaktif (opacity 0.45): WCAG 2.2 SC 1.4.3 Incidental, teks bagian "
+                                             "komponen UI yang tidak aktif tidak punya syarat kontras",
+    ".tabbed-set > input": "radio tab disembunyikan (opacity 0, lebar 0): tidak terlihat oleh siapa pun (SC 1.4.3 "
+                           "Incidental); teks tab ada di label",
+}
+GRAFIS = {  # selector -> isinya: elemen tanpa teks yang hanya menulis latar; latarnya diperiksa >= 3:1 terhadap latar
+    # di bawahnya (WCAG 2.2 SC 1.4.11 Non-text Contrast), bukan sebagai teks
+    ".sl-markdown-content .bb-hp__sig i.is-on": "batang sinyal 3 px di mockup HP",
+    ".sl-markdown-content .bb-ember__token i.is-isi": "bulatan token 0,8rem yang terisi",
+    ".sl-markdown-content .bb-peta__bar i": "isi bilah progres peta",
+    ".baca-progres span": "bilah progres baca 3 px",
+}
+INDUK_DOM = {  # blok BEM -> elemen BEM yang membungkus semua elemen lain blok itu di DOM (BEM tidak menyimpan kedalaman)
+    "bb-hp": "bb-hp__screen",  # situs/src/lib/alur-statis.ts dan situs/lama/widgets/hp.js: .bb-hp > .bb-hp__screen > isi layar
+}
 NAMA_WARNA = {"white": "#FFFFFF", "black": "#000000"}
 
 
@@ -113,13 +154,34 @@ def tanpa_komentar(teks):
     return re.sub(r"/\*.*?\*/", "", teks, flags=re.S)
 
 
+def blok_css(teks):
+    """-> [(at-rule pembungkus, selector, isi)] untuk setiap aturan berdeklarasi. CSS nesting gagal keras."""
+    hasil, tumpuk, buf = [], [], ""
+    for ch in tanpa_komentar(teks):
+        dalam_aturan = bool(tumpuk) and not tumpuk[-1].startswith("@")
+        if ch == "{":
+            if dalam_aturan:
+                raise SystemExit(f"{CSS.name}: CSS nesting di dalam '{tumpuk[-1]}' tidak didukung contrast.py")
+            tumpuk.append(" ".join(buf.split()))
+            buf = ""
+        elif ch == "}":
+            pembuka = tumpuk.pop() if tumpuk else ""
+            if pembuka and not pembuka.startswith("@"):
+                hasil.append((tuple(tumpuk), pembuka, buf))
+            buf = ""
+        elif ch == ";" and not dalam_aturan:
+            buf = ""  # @import/@charset, deklarasi @font-face
+        else:
+            buf += ch
+    return hasil
+
+
 def token_css(teks):
     root, terang, bersama = {}, {}, {}
-    for sel, isi in ATURAN.findall(tanpa_komentar(teks)):
-        sel = " ".join(sel.split())
+    for _, sel, isi in blok_css(teks):
         tujuan = {":root": root, ':root[data-theme="light"]': terang, ':root, :root[data-theme="light"]': bersama}.get(sel)
         if tujuan is not None:
-            tujuan.update(re.findall(r"(--[\w-]+)\s*:\s*([^;]+);", isi))
+            tujuan.update(re.findall(r"(--[\w-]+)\s*:\s*([^;]+);", isi + ";"))
     return {"gelap": {**root, **bersama}, "terang": {**root, **terang, **bersama}}
 
 
@@ -194,84 +256,184 @@ def warna(nilai, tok, dalam=0):
     raise ValueError(f"{nilai}: bentuk warna tidak didukung (pakai hex, rgb(), hsl(), color-mix(in srgb, ...) opak, atau var())")
 
 
-def campur(fg, bg, a):
-    f, b = ([int(h[i:i + 2], 16) for i in (1, 3, 5)] for h in (fg, bg))
-    return "#" + "".join(f"{round(a * x + (1 - a) * y):02X}" for x, y in zip(f, b))
+def komposit(fg, lapis):
+    """-> (teks, latar) yang terlihat. lapis: [(latar #hex atau None, opacity)] dari elemen ke body. Setiap lapisan
+    menggambar isinya di atas latarnya sendiri, lalu seluruhnya dikalikan opacity-nya (group opacity)."""
+    def atas(a, b):  # a di atas b, (rgb, alpha) tanpa premultiply
+        (ca, aa), (cb, ab) = a, b
+        al = aa + ab * (1 - aa)
+        return ([(x * aa + y * ab * (1 - aa)) / al for x, y in zip(ca, cb)] if al else [0, 0, 0], al)
+    rgb = lambda h: [int(h[i:i + 2], 16) for i in (1, 3, 5)]  # noqa: E731
+    t, b = (rgb(fg), 1.0), ([0, 0, 0], 0.0)
+    for latar, op in lapis:
+        if latar:
+            t, b = atas(t, (rgb(latar), 1.0)), atas(b, (rgb(latar), 1.0))
+        t, b = (t[0], t[1] * op), (b[0], b[1] * op)
+    kanvas = ([255, 255, 255], 1.0)  # hanya terpakai bila body sendiri tembus
+    return heks(atas(t, kanvas)[0]), heks(atas(b, kanvas)[0])
+
+
+def kompon(sel):
+    """Selector dipecah di spasi tingkat atas: compound dan combinator (spasi di dalam :has(+ x) tidak memecah)."""
+    bagian, dalam, buf = [], 0, ""
+    for ch in sel:
+        if ch == " " and dalam == 0:
+            bagian, buf = bagian + [buf] if buf else bagian, ""
+            continue
+        dalam += (ch in "([") - (ch in ")]")
+        buf += ch
+    return bagian + [buf] if buf else bagian
+
+
+def urai(sel):
+    """:is()/:where() tanpa kurung bersarang -> satu selector per argumen."""
+    m = re.search(r":(?:is|where)\(([^()]*)\)", sel)
+    return [y for x in pisah(m.group(1)) for y in urai(sel[:m.start()] + x + sel[m.end():])] if m else [sel]
 
 
 def pasangan_css(teks):
-    """-> (pasangan, pengecualian, galat). pasangan: (selector, color, latar, opacity, catatan penyelesaian)."""
-    aturan = {}
-    for sel, isi in ATURAN.findall(tanpa_komentar(teks)):
-        if sel.strip().startswith((":root", "@")):
+    """-> [(label, selector yang dicocokkan ke PENGECUALIAN/GRAFIS, color, [(latar, opacity)] dari elemen ke body, catatan, jenis)]."""
+    aturan, polos = {}, {}  # kunci ("@media (..) sel" atau "sel") -> deklarasi; kunci -> selector tanpa at-rule
+    for konteks, sel, isi in blok_css(teks):
+        if sel.startswith(":root"):
             continue
-        d = dict((k.strip(), v.strip()) for k, v in re.findall(r"([\w-]+)\s*:\s*([^;]+)", isi))
-        latar = d.get("background-color", d.get("background"))
-        for s in sel.split(","):
-            s = " ".join(s.split())
-            a = aturan.setdefault(s, {})
-            a.update({k: v for k, v in (("color", d.get("color")), ("latar", latar), ("opacity", d.get("opacity"))) if v})
-    dasar = {s: PENGUBAH.sub("", s) for s in aturan}
+        d = {k.lower(): re.sub(r"\s*!important$", "", v.strip()) for k, v in re.findall(r"([\w-]+)\s*:\s*([^;]+)", isi)}
+        tulis = {k: v for k, v in (("color", d.get("color")), ("latar", d.get("background-color", d.get("background"))),
+                                   ("opacity", d.get("opacity"))) if v}
+        for s in pisah(sel) if tulis else []:
+            for u in urai(" ".join(s.split())):
+                kunci = " ".join([*konteks, u])
+                polos[kunci] = u
+                aturan.setdefault(kunci, {}).update(tulis)
 
-    def leluhur(s):  # aturan yang selector-nya awalan turunan dari s, terdekat dulu
-        return sorted((x for x in aturan if s.startswith(x + " ")), key=len, reverse=True)
+    def lepas(s):  # selector yang lebih umum untuk elemen yang sama, atau None
+        t = SATU_PENGUBAH.sub("", s, count=1)
+        if t == s:
+            tok = kompon(s)
+            t = " ".join(tok[:-1] + [BEM_MOD.sub(r".\1", tok[-1], count=1)])
+        return None if t == s or not t.strip() or t[-1] in " >+~" else t
 
-    hasil = {}
-    for s, a in aturan.items():
-        b = aturan.get(dasar[s], {}) if dasar[s] != s else {}
-        c, l = a.get("color", b.get("color")), a.get("latar", b.get("latar"))
-        if c and l and ("color" in a or "latar" in a):
-            hasil[s] = (c, l, 1.0, leluhur(s))
-        if "latar" in a:
-            continue
-        for anc in aturan:  # bentuk 3: turunan dari aturan dasar yang punya latar, dan semua pengubahnya
-            if not s.startswith(anc + " ") or anc != dasar[anc]:
+    def urutan(s):  # s lalu selector yang makin umum untuk elemen yang sama
+        hasil = []
+        while s:
+            hasil, s = hasil + [s], lepas(s)
+        return hasil
+
+    jalur = {k: list(dict.fromkeys([k, *urutan(polos[k])])) for k in aturan}
+    lebih_khusus, media = {}, {}
+    for k, j in jalur.items():
+        for x in j[1:]:
+            lebih_khusus.setdefault(x, []).append(k)
+        if k != polos[k]:
+            media.setdefault(polos[k], []).append(k)
+
+    def gabung(rantai):  # deklarasi dari yang paling umum ke yang paling khusus
+        p = {}
+        for x in reversed(rantai):
+            p.update(aturan.get(x, {}))
+        return p
+
+    def lapisan(nama, rantai, keadaan):
+        """-> (nama, deklarasi, [(varian, deklarasi)]). Varian: versi @media dari tiap anggota rantai (disisipkan di
+        depan anggota itu), dan bila keadaan=True, aturan yang lebih khusus untuk elemen yang sama (.x.is-y, .x:hover)."""
+        alt = [(v, gabung(rantai[:i] + [v] + rantai[i:])) for i, x in enumerate(rantai) for v in media.get(x, []) if v not in rantai]
+        if keadaan:
+            alt += [(v, gabung(jalur[v])) for v in lebih_khusus.get(rantai[0], []) if v not in rantai and v not in dict(alt)]
+        return nama, gabung(rantai), alt
+
+    def leluhur(sel):  # selector leluhur, terdekat dulu
+        tok, hasil = kompon(sel), []
+
+        def bem(s):  # .b__e -> pembungkus dari INDUK_DOM atau .b; None bila compound terakhir bukan elemen BEM
+            t = kompon(s)
+            m = BEM_ELEMEN.search(t[-1])
+            if not m:
+                return None
+            induk = INDUK_DOM.get(m.group(1))
+            return " ".join(t[:-1] + ["." + (induk if induk and m.group(0)[1:] != induk else m.group(1))])
+
+        def dengan_bem(p):
+            rantai = [p]
+            while (q := bem(rantai[-1])) and q not in rantai:
+                rantai.append(q)
+            return rantai
+        hasil += dengan_bem(sel)
+        for i in range(len(tok) - 2, -1, -1):
+            if tok[i] in (">", "+", "~") or tok[i + 1] in ("+", "~"):
                 continue
-            op = float(a.get("opacity", "1"))
-            if "color" not in a and op >= 1:
+            hasil += dengan_bem(" ".join(tok[:i + 1]))
+        return [x for x in dict.fromkeys(hasil) if x != sel]
+
+    hasil = []
+    for k in aturan:
+        dek0 = lapisan(k, jalur[k], False)  # versi @media dari selector k sendiri sudah jadi aturan (dan pasangan) sendiri
+        lv = [(dek0[0], dek0[1], [(v, d) for v, d in dek0[2] if polos[v] != polos[k]])]
+        lv += [x for x in (lapisan(p, urutan(p), True) for p in leluhur(polos[k]) if p != "body") if x[1] or x[2]]
+        if "body" not in jalur[k]:
+            nama, dek, alt = lapisan("body", ["body"], True)
+            lv.append((nama, {**BAWAAN_BODY, **dek}, [(v, {**BAWAAN_BODY, **d}) for v, d in alt]))
+        else:
+            lv[0] = (lv[0][0], {**BAWAAN_BODY, **lv[0][1]}, lv[0][2])
+        sudah = set()
+        kombinasi = [(None, [d for _, d, _ in lv])] + [
+            (v, [dv if j == i else d for j, (_, d, _) in enumerate(lv)]) for i, (_, _, alt) in enumerate(lv) for v, dv in alt]
+        jenis = "color+latar" if {"color", "latar"} <= aturan[k].keys() else "color saja" if "color" in aturan[k] else \
+            "latar saja" if "latar" in aturan[k] else "opacity saja"
+        for v, dek in kombinasi:
+            nama = [v if v and dek[j] is not lv[j][1] else lv[j][0] for j in range(len(lv))]
+            asal_c = next(j for j, d in enumerate(dek) if d.get("color", "inherit").lower() not in WARISAN)
+            lapis = [(d["latar"] if d.get("latar", "none").lower() not in KOSONG else None, d.get("opacity", "1")) for d in dek]
+            tanda = (dek[asal_c]["color"], tuple(lapis))
+            if tanda in sudah:
                 continue
-            for varian in [x for x in aturan if dasar[x] == anc]:
-                v = aturan[varian]
-                cv, lv = a.get("color", v.get("color", aturan[anc].get("color"))), v.get("latar", aturan[anc].get("latar"))
-                if cv and lv:
-                    hasil[f"{s} (di {varian})"] = (cv, lv, op, list(dict.fromkeys([varian, anc, *leluhur(anc)])))
-    halaman = aturan.get("body", {}).get("latar")
-    pasangan, pengecualian, galat = [], [], []
-    for sel, (c, l, op, rantai) in sorted(hasil.items()):
-        catatan = []
-        if c.strip().lower() == "inherit":
-            asal = next((x for x in rantai if aturan[x].get("color", "inherit").lower() != "inherit"), None)
-            if asal is None:
-                (pengecualian if sel.split(" (di ")[0] in PENGECUALIAN else galat).append(
-                    (sel, c, l, PENGECUALIAN.get(sel.split(" (di ")[0], "color: inherit tanpa aturan leluhur ber-color di CSS")))
-                continue
-            c = aturan[asal]["color"]
-            catatan.append(f"color inherit -> {c} dari {asal}")
-        if l.strip().lower() in KOSONG:
-            asal = next((x for x in rantai if aturan[x].get("latar", "transparent").lower() not in KOSONG), None)
-            if asal is None and halaman is None:
-                galat.append((sel, c, l, "latar transparent dan aturan body tanpa background"))
-                continue
-            l0, l = l, aturan[asal]["latar"] if asal else halaman
-            catatan.append(f"latar {l0} -> {l} dari {asal or 'body (latar halaman)'}")
-        pasangan.append((sel, c, l, op, "; ".join(catatan)))
-    return pasangan, pengecualian, galat
+            sudah.add(tanda)
+            asal_l = next((j for j, (l, _) in enumerate(lapis) if l), None)
+            catatan = ([f"color dari {nama[asal_c]}"] if asal_c else []) + \
+                      ([f"latar dari {nama[asal_l]}"] if asal_l else []) + \
+                      [f"opacity {op} dari {nama[j]}" for j, (_, op) in enumerate(lapis) if op.strip() not in ("1", "1.0", "100%")]
+            hasil.append((k + (f" (di {v})" if v else ""), {k, v}, dek[asal_c]["color"], lapis, "; ".join(catatan),
+                          "opacity" if any(op.strip() not in ("1", "1.0", "100%") for _, op in lapis) and jenis != "opacity saja"
+                          else jenis))
+    return hasil
 
 
 teks_css = CSS.read_text()
-pasangan, pengecualian, galat = pasangan_css(teks_css)
-galat = [("semua", *g) for g in galat]
+pasangan = pasangan_css(teks_css)
+galat, pengecualian = [], []
 dibaca = selesai = 0
+jenis = {}
 for nama, tok in token_css(teks_css).items():
-    for sel, c, l, op, catatan in pasangan:
+    for label, cocok, c, lapis, catatan, jn in pasangan:
+        l0 = next((l for l, _ in lapis if l), "-")
         try:
-            fg, bg = warna(c, tok), warna(l, tok)
+            fg = warna(c, tok)
+            ls = [(warna(l, tok) if l else None, angka(op.strip(), 1)) for l, op in lapis]
+            grafis = next((GRAFIS[x] for x in cocok if x in GRAFIS), None)
+            if grafis and not ls[0][0]:
+                raise ValueError("elemen GRAFIS tanpa latar sendiri")
         except ValueError as e:
-            galat.append((nama, sel, c, l, str(e)))
+            galat.append((nama, label, c, l0, str(e)))
+            continue
+        if grafis:  # latar elemen sebagai "teks", di atas latar lapisan di bawahnya
+            sisa = [x for x in catatan.split("; ") if x and not x.startswith("color dari")]
+            fg, ls[0], c, catatan = ls[0][0], (None, ls[0][1]), f"latar {l0}", "; ".join([grafis, "SC 1.4.11 non-teks", *sisa])
+            l0 = next((l for l, _ in lapis[1:] if l), "-")
+        teks_t, latar_t = komposit(fg, ls)
+        op = 1.0
+        for _, o in ls:
+            op *= o
+        judul = f"[{nama}] tema.css {label}: {c} di {l0}" + (f" opacity {op:.2f}" if op < 1 else "") + (f" [{catatan}]" if catatan else "")
+        kecuali = next((x for x in cocok if x in PENGECUALIAN), None)
+        if kecuali:
+            pengecualian.append((judul, ratio(teks_t, latar_t), PENGECUALIAN[kecuali]))
             continue
         dibaca, selesai = dibaca + 1, selesai + bool(catatan)
-        rows.append((f"[{nama}] tema.css {sel}: {c} di {l}" + (f" opacity {op}" if op < 1 else "") + (f" [{catatan}]" if catatan else ""),
-                     campur(fg, bg, op) if op < 1 else fg, bg, TXT))
+        jn = "grafis" if grafis else jn
+        jenis[jn] = jenis.get(jn, 0) + 1
+        rows.append((judul, teks_t, latar_t, BIG if grafis else TXT))
+dikenal = {x for p in pasangan for x in p[1]}
+galat += [("semua", s, "-", "-", "PENGECUALIAN/GRAFIS tidak cocok dengan aturan mana pun di tema.css")
+          for s in [*PENGECUALIAN, *GRAFIS] if s not in dikenal]
 
 md = "--md" in sys.argv
 fail = 0
@@ -285,10 +447,11 @@ for name, fg, bg, need in rows:
         print(f"| {name} | `{fg}` | `{bg}` | {r:.2f}:1 | {need}:1 | {'Lolos' if ok else 'GAGAL'} |")
     else:
         print(f"{'OK  ' if ok else 'FAIL'} {r:5.2f} (≥{need}) {name}: {fg} on {bg}")
-print(f"\n{CSS.name}: {len(pasangan)} pasangan per mode; {dibaca} dibaca di dua mode ({selesai} lewat induk), "
-      f"{len(pengecualian)} dilewati sebagai pengecualian, {len(galat)} tidak terbaca")
-for sel, c, l, alasan in pengecualian:
-    print(f"DILEWATI (pengecualian) {sel}: color {c}, latar {l}: {alasan}")
+rincian = ", ".join(f"{n} {jn}" for jn, n in sorted(jenis.items()))
+print(f"\n{CSS.name}: {len(pasangan)} pasangan per mode ({rincian} di dua mode); {dibaca} dibaca di dua mode "
+      f"({selesai} lewat induk), {len(pengecualian)} dilewati sebagai pengecualian, {len(galat)} tidak terbaca")
+for judul, r, alasan in pengecualian:
+    print(f"DILEWATI (pengecualian) {r:5.2f} {judul}: {alasan}")
 for nama, sel, c, l, alasan in galat:
     print(f"TIDAK TERBACA [{nama}] {sel}: color {c}, latar {l}: {alasan}")
 print(f"\n{len(rows) - fail}/{len(rows)} lolos · {CSS.name}: {dibaca} pasangan dibaca ({selesai} lewat induk), "
