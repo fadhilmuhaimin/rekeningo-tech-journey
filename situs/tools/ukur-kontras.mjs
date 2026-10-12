@@ -12,6 +12,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
+import { denganBatas } from "./lib/batas.mjs";
 
 const arg = (nama, bawaan) => {
   const i = process.argv.indexOf(nama);
@@ -117,36 +118,39 @@ async function periksa(uk, tema) {
   let dilewati = 0;
   const min = {};
   for (const h of halaman) {
-    await page.goto(url + h, { waitUntil: "networkidle" });
-    const host = page.locator('[data-bb="runsql"]');
-    const jumlah = await host.count();
     const ukuran = [];
-    for (let k = 0; k < jumlah; k++) {
-      const w = host.nth(k);
-      // Blok yang terlipat (Paham, Putuskan, Kunci) dibuka seperti pembaca membukanya.
-      await w.evaluate((el) => { for (let d = el.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true; });
-      await w.locator(".bb-predict .bb-btn--opt").first().waitFor({ timeout: 15000 });
-      await w.locator(".bb-predict .bb-btn--opt").first().click();
-      const tunggu = () => w.evaluate((el) => new Promise((ok, tolak) => {
-        const t0 = performance.now();
-        (function cek() {
-          const st = el.querySelector('[role="status"].bb-muted');
-          const selesai = el.querySelector(".bb-step.is-ok, .bb-step.is-err, .bb-step.is-skipped, .bb-step.is-auto");
-          if (selesai && st && st.textContent !== "Menjalankan...") return ok();
-          if (performance.now() - t0 > 15000) return tolak(new Error("runsql tidak selesai dalam 15 s"));
-          setTimeout(cek, 50);
-        })();
-      }));
-      await w.locator(".bb-btn--primary").click();
-      await tunggu();
-      ukuran.push(...(await w.evaluate(ukurHost)));
-      const cb = w.locator('.bb-toggle input[type="checkbox"]');
-      if (await cb.count()) {
-        await cb.check();
+    // Batas per halaman (keputusan 360): halaman yang macet membuat konteks ini gagal dengan nama halaman dan ukuran.
+    await denganBatas(async () => {
+      await page.goto(url + h, { waitUntil: "networkidle" });
+      const host = page.locator('[data-bb="runsql"]');
+      const jumlah = await host.count();
+      for (let k = 0; k < jumlah; k++) {
+        const w = host.nth(k);
+        // Blok yang terlipat (Paham, Putuskan, Kunci) dibuka seperti pembaca membukanya.
+        await w.evaluate((el) => { for (let d = el.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true; });
+        await w.locator(".bb-predict .bb-btn--opt").first().waitFor({ timeout: 15000 });
+        await w.locator(".bb-predict .bb-btn--opt").first().click();
+        const tunggu = () => w.evaluate((el) => new Promise((ok, tolak) => {
+          const t0 = performance.now();
+          (function cek() {
+            const st = el.querySelector('[role="status"].bb-muted');
+            const selesai = el.querySelector(".bb-step.is-ok, .bb-step.is-err, .bb-step.is-skipped, .bb-step.is-auto");
+            if (selesai && st && st.textContent !== "Menjalankan...") return ok();
+            if (performance.now() - t0 > 15000) return tolak(new Error("runsql tidak selesai dalam 15 s"));
+            setTimeout(cek, 50);
+          })();
+        }));
+        await w.locator(".bb-btn--primary").click();
         await tunggu();
         ukuran.push(...(await w.evaluate(ukurHost)));
+        const cb = w.locator('.bb-toggle input[type="checkbox"]');
+        if (await cb.count()) {
+          await cb.check();
+          await tunggu();
+          ukuran.push(...(await w.evaluate(ukurHost)));
+        }
       }
-    }
+    }, `kontras ${uk.width}x${uk.height} ${tema} ${h}`);
     for (const u of ukuran) {
       if (u.keadaan === "is-skipped" && u.nama === "sql") dilewati++;
       const kunci = `${u.keadaan} ${u.nama}`;
