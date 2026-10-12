@@ -443,11 +443,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### I5c-e · Berikutnya alur terlihat di desktop
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: di 1366×657, sesudah setiap klik Berikutnya di semua halaman alur, tombol Berikutnya tetap di dalam layar (sekarang 18 dari 199 klik terdorong keluar karena detail di atasnya memanjang: b10-2, e3, app-versi-lama, authorization, deployment-rollback, idor-token-app, dan lainnya; sama dengan main); pemeriksaan 1366×657 masuk `ukur-gerak.mjs`.
-- catatan: Dari pelaksana PR #180 (keputusan 350). Jalur teknis.
+- catatan: Dari pelaksana PR #180 (keputusan 350). Jalur teknis. Selesai: keputusan 358, PR #202.
 
 ### I5c-f · CLS di CI tahan font yang terlambat
 
@@ -484,6 +484,15 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - bergantung: -
 - selesai bila: job situs CI selesai jauh di bawah `timeout-minutes` (target ≤ 12 menit dari ±15 menit sekarang, batas 20): mis. job dipecah jadi build + artefak `dist` lalu job matriks paralel untuk alat ukur Playwright, atau konteks ukuran×mode dijalankan paralel di `layar.mjs`, `ukur-cls.mjs`, `ukur-gerak.mjs` seperti `ukur-kontras.mjs` (keputusan 354); hasil alat sama persis sebelum/sesudah; durasi sebelum/sesudah dicatat.
 - catatan: Dari PR #189: job situs 14m51–15m07 di main/PR (layar pertama + tangkapan sampai CLS ±10m20, CLS alur ±3m24); PR #189 terpotong di 15 menit sebelum batas dinaikkan. Jalur teknis. Selesai: keputusan 357, PR #198 (job situs 15m11 → workflow ±6m30; langkah dibungkus timeout supaya macet = failure, bukan cancelled).
+
+### I5c-g · Detail alur dekat jalur di desktop sesudah menebak
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: I5c-e
+- selesai bila: sesudah pembaca menebak, kotak tebakan dan varian di widget alur tidak lagi memisahkan detail langkah dari jalur dan tombol (mis. kotak tebakan diciutkan menjadi satu baris jawaban sesudah menebak); di 1366×657 jarak paket ke judul detail kembali ≤ 60 px dan penjelasan langkah terbaca utuh tanpa menggulir di ≥ 20 dari 23 langkah; tombol Berikutnya tetap di layar (cek `ukur-gerak.mjs`); versi statis dan `ukur-cls.mjs` tetap 0 px; tanpa animasi otomatis.
+- catatan: Dari peninjau PR #202 (keputusan 358): jarak paket ke judul detail naik 30 → 224–286 px (1.40: 297–387 px); penjelasan utuh tanpa gulir turun 20/23 → 14/23. Jalur teknis.
 
 ### G2a · Batas waktu per halaman di alat ukur
 
@@ -569,11 +578,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### K3 · Crosscheck kecil 1.36–1.40
 
 - jenis: crosscheck
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: bagian K3 di `plan/CROSSCHECK-KECIL.md` memuat 1.36–1.40 dengan bukti; temuan menjadi tugas perbaikan di bawah K3.
-- catatan: Periksa juga klaim kapasitas tanpa load test di 1.31 `deployment-rollback.mdx` (~baris 103, "Satu proses Go menjawab beban itu"), dari pelaksana 1.38.
+- catatan: Periksa juga klaim kapasitas tanpa load test di 1.31 `deployment-rollback.mdx` (~baris 103, "Satu proses Go menjawab beban itu"), dari pelaksana 1.38. Selesai: keputusan 307, PR #204 (tanpa tugas baru; klaim kapasitas 1.31 dan chip ADR 1/ADR 12 diperbaiki).
 
 ### I5e · Race: garis waktu dua client
 
