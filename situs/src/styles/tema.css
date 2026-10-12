@@ -23,8 +23,13 @@
    400 17 px fallback tetap selebar Liberation Sans tanpa penyesuaian (31.174 px lawan Satoshi 30.850 px untuk 4.000 huruf)
    dan Satoshi 600 4% lebih lebar daripada di macOS, sehingga label sidebar dan kata di tepi baris pindah baris saat font
    tukar. geometricPrecision membuat Chromium di Linux dan ChromeOS memakai subpixel positioning tanpa hinting
-   (font_platform_data.cc, QuerySystemRenderStyle); di macOS, Windows, dan Android Chromium tidak berubah. Firefox
-   memperlakukannya sama dengan optimizeLegibility (MDN text-rendering). */
+   (font_platform_data.cc, QuerySystemRenderStyle); di macOS, Windows, dan Android hinting tidak berubah. Di semua platform
+   Blink juga menyalakan kerning dan ligatur (font_description.cc, UpdateTypesettingFeatures), yang bisa mematikan shaping
+   kata per kata bila font punya spasi di GPOS/GSUB; untuk Satoshi, fallback, dan JetBrains Mono hasilnya sama (Chromium
+   macOS, 6 halaman × 375 dan 1366 px: 0 kotak teks beda, lebar ketiga font identik). Firefox: auto di bawah 20 px memakai
+   optimize speed, geometricPrecision tidak (nsLayoutUtils::GetTextRunFlagsForStyle), jadi teks isi 17–19 px kini
+   menghitung bounding box glyph; kerning tidak berubah, biayanya kecil [perlu verifikasi besarnya]. Safari: WebKit
+   (FontCascade.h) menyalakan kerning dan shaping untuk semua nilai selain optimizeSpeed, jadi sama dengan auto. */
 html { text-rendering: geometricPrecision; }
 
 /* ── Token: gelap (default) ─────────────────────────────────────────────── */
