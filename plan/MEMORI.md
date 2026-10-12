@@ -51,7 +51,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-12 · Mode paralel (keputusan 264). Konten tuntas (1.35–1.42, K2, K3); `../rjt-konten` dihapus. Sesudahnya jalur teknis-halaman `../rjt-halaman` (PORT 4323, keputusan 310–349) untuk P3–P8, R1–R6, I5f; jalur teknis `../rjt-teknis` (4324, 350–399) untuk G2a–G2c, I5c-g/h, K2c. Selesai: I5c-f, P3, G2a, I5c-h. Terbuka: K2c (#215), R1 (#216), R2, I5c-g. Sesudah itu hapus worktree, X1, X2. Catatan pengatur di `tmp/catatan-pengatur.md`.
+2026-10-12 · Mode paralel (keputusan 264). Konten tuntas (1.35–1.42, K2, K3); `../rjt-konten` dihapus. Sesudahnya jalur teknis-halaman `../rjt-halaman` (PORT 4323, keputusan 310–349) untuk P3–P8, R1–R6, I5f; jalur teknis `../rjt-teknis` (4324, 350–399) untuk G2a–G2c, I5c-g/h, K2c. Selesai: I5c-f, P3, G2a, I5c-h. Selesai juga K2c. Terbuka: R1 (#216), R2, I5c-g, G2b. Sesudah itu hapus worktree, X1, X2. Catatan pengatur di `tmp/catatan-pengatur.md`.
 
 ## Pelajaran
 
@@ -74,4 +74,5 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - layar.mjs tidak menghitung Snippet sebagai visual Inti; Inti butuh Rantai atau widget (1.32 gagal 4 ukuran sebelum Rantai).
 - Menutup blok di atas tombol yang diklik menggeser semua yang di bawahnya; ukur top tujuan sebelum dan sesudah `open = false`, lalu `scrollBy({ behavior: "instant" })` sebesar selisihnya. Scroll anchoring Chromium tidak mengoreksinya (K1xe).
 - zsh tidak memecah `$VAR` tanpa tanda kutip menjadi beberapa argumen (daftar halaman jadi satu URL); kirim daftar lewat `xargs`.
+- Tabel `plan/*.md` diperiksa `tools/cek_tabel_plan.py` di gerbang (keputusan 362): pipe di teks atau code span ditulis `\|`; jangan tulis `\\|`.
 - Pemeriksa yang menyaring data wajib menghitung dan mencetak yang dilewati: `if fg and bg:` di contrast.py membuang 26 pasangan per mode tanpa pesan; buktikan pemeriksa bisa gagal dengan uji mutasi pada salinan (`tools/test_contrast.py`).
