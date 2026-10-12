@@ -3,6 +3,9 @@ title: "1.5 Perjalanan satu request"
 description: Tap Bayar menghasilkan satu HTTP request yang melewati handler, logika bisnis, dan akses data, lalu kembali sebagai response. Setiap langkah bisa gagal.
 ---
 import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import duaKemungkinan from "../../../../data/diagram/t1-request-dua-kemungkinan.json";
+import lapisan from "../../../../data/diagram/t1-request-lapisan.json";
 import WidgetLama from "../../../components/WidgetLama.astro";
 import SkripLama from "../../../components/SkripLama.astro";
 
@@ -12,9 +15,13 @@ import SkripLama from "../../../components/SkripLama.astro";
 
 ## Inti
 
-Tap Bayar menghasilkan satu HTTP request. Request melewati handler, logika bisnis, dan akses data, lalu kembali sebagai response. Setiap langkah bisa gagal, dan app harus siap.
+Tap Bayar menghasilkan satu HTTP request yang melewati handler, logika bisnis, dan akses data, lalu kembali sebagai response.
 
-<WidgetLama nama="arsitektur" tahap={1} />
+<Rantai data={duaKemungkinan} ringkas />
+
+Setiap lapisan boleh menghentikan perjalanan, dan app harus siap untuk tiap jawaban. Handler menolak token yang salah dengan `401` dan format yang salah dengan `400`. Logika bisnis menolak saldo kurang dengan `422`. Error yang tidak terduga di akses data berakhir sebagai `500`.
+
+Satu kegagalan tidak membawa status apa pun: response hilang di jalan. Di rekaman lab, server sudah menyimpan pembayaran, HP Budi menampilkan gagal, dan Bayar kedua tercatat sebagai pembayaran kedua. Karena itu tombol "Coba lagi" berbahaya untuk aksi yang memindahkan uang.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -68,11 +75,7 @@ Satu request terdiri dari empat bagian. Satu response terdiri dari dua.
 
 Di backend Rekeningo, bayar ke warung adalah transfer dari akun karyawan ke akun warung, jadi path-nya `/transfers`. Di dalam API, request melewati tiga lapisan, dan masing-masing boleh menghentikan perjalanan:
 
-| Lapisan | Memeriksa | Kalau gagal, app menerima |
-|---|---|---|
-| Handler | Token, format JSON, tipe data | `401` belum login, `400` format salah |
-| Logika bisnis | Aturan Rekeningo: penerima ada, saldo cukup | `422`, dengan pesan yang bisa ditampilkan |
-| Akses data | Query berhasil, constraint database | `500` kalau ada error yang tidak terduga |
+<Rantai data={lapisan} />
 
 Ada satu kegagalan yang **tidak** menghasilkan status apa pun: response hilang di jalan. App hanya tahu "tidak ada jawaban". App tidak bisa membedakan "server gagal" dari "server sukses, tapi jawabannya hilang".
 
