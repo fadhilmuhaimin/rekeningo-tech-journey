@@ -1,75 +1,110 @@
 ---
 title: "Cara pakai panduan ini"
+description: Halaman konsep punya lima blok lipat, dan beranda punya tiga pintu masuk. Halaman ini menjelaskan keduanya, navigasi di setiap halaman, dan label sumber.
 ---
-import WidgetLama from "../../components/WidgetLama.astro";
-import SkripLama from "../../components/SkripLama.astro";
+import Rantai from "../../components/Rantai.astro";
+import limaBlok from "../../../data/diagram/a0-lima-blok.json";
 
-<p class="meta">Baca 3 menit · Mulai dari sini · Jalur inti</p>
+<p class="meta">Baca 4 menit · Mulai dari sini · Jalur inti</p>
 
 ## Inti
 
-Panduan ini mengajarkan konsep backend lewat satu aplikasi fiktif yang tumbuh. Setiap halaman memakai susunan yang sama. Kamu boleh melompat kalau sudah tahu.
+Setiap halaman konsep terdiri dari lima blok lipat. Dua blok pertama sudah terbuka saat halaman dimuat.
 
-<figure class="bb-fig" role="img" aria-label="Susunan satu halaman: Inti dengan diagram, Lihat sendiri, Kenapa ini ada, Di stack lain, Cek diri.">
-<ol class="bb-flow">
-<li>Inti + diagram</li>
-<li>Lihat sendiri</li>
-<li>Kenapa ini ada</li>
-<li>Di stack lain</li>
-<li>Cek diri</li>
-</ol>
-<figcaption>Lima bagian utama yang ada di setiap halaman konsep.</figcaption>
-</figure>
+<Rantai data={limaBlok} ringkas />
+
+Kalau waktumu sedikit, baca dua blok yang terbuka. Tombol Berikutnya di akhir setiap blok menutup blok itu dan membuka blok sesudahnya. Di blok terakhir, tombol yang sama membawamu ke halaman berikutnya.
+
+## Lima blok di halaman konsep
+
+| Blok | Isinya | Kenapa ada |
+|---|---|---|
+| **Mulai** | Inti: satu atau dua kalimat dan satu diagram. Di bawahnya ada "Sudah tahu? Cek 3 pertanyaan" yang terlipat. | Gambaran utuh sebelum detail. Kalau ketiga pertanyaan terjawab, kamu boleh melompat. |
+| **Coba** | Satu widget yang kamu jalankan sendiri, mis. SQL di browser, langkah satu request, atau baris kode yang dicari bug-nya. | Kamu menebak dulu, lalu melihat hasilnya. |
+| **Paham** | Kenapa konsep ini ada, cara kerjanya, dan kode yang sama di beberapa stack. | Konsep dulu, framework belakangan. |
+| **Putuskan** | Trade-off antar opsi dan yang sengaja belum dilakukan di tahap ini. | Bahan keputusan, dengan alasan dari angka cerita. |
+| **Kunci** | Cek diri dengan jawaban terlipat, daftar cek saat me-review kode AI, dan bacaan lanjut. | Untuk ingatan beberapa hari kemudian, mengingat kembali jawaban lebih menguatkan daripada membaca ulang ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/)). |
+
+Blok Coba ditutup dengan kalimat "Kalau berhenti di sini, kamu sudah tahu: ...". Kalimat itu menandai tempat berhenti yang aman. Tiga blok sesudahnya boleh dibaca di hari lain.
+
+Kepala setiap blok menulis posisinya, dan di halaman konsep, masalah, dan ADR juga perkiraan waktu bacanya: "Blok 3 dari 5 · 5 menit". Blok dianggap selesai sesudah kamu menggulir sampai akhirnya atau menekan Berikutnya. Membuka blok saja belum dihitung.
+
+Banyak halaman menampilkan kode yang sama di beberapa stack, mis. Go, Laravel, Django, Dart (Serverpod), dan Supabase. Konsepnya sama. Yang berbeda hanya siapa yang mengerjakan apa.
+
+## Jenis halaman lain
+
+Tidak semua halaman berbentuk konsep. Nama bloknya mengikuti pekerjaan halaman itu, dan tombol Berikutnya tetap ada di setiap blok.
+
+| Jenis | Blok | Terbuka saat dimuat |
+|---|---|---|
+| PRD | Minimal tiga, mis. Latar masalah, Tujuan, Ruang lingkup uji coba | Satu |
+| Fitur ke teknis | Minimal tiga, namanya mengikuti fiturnya | Dua |
+| Masalah | Gejala, Yang Raka kira, Yang sebenarnya, Coba sendiri, Konsep yang lahir | Dua |
+| ADR | Kebutuhan, Opsi, Yang dipilih dan kenapa, Wujud di kode, Coba keduanya, Kapan keputusan ini salah | Dua |
+| Tim dan infra | Minimal tiga, mis. Siapa memegang apa, Infra tahap ini | Dua |
+
+Halaman masalah membuka "Yang Raka kira" sebelum "Yang sebenarnya". Kamu ikut menebak penyebabnya sebelum melihat jawabannya.
+
+## Tiga pintu di beranda
+
+[Beranda](/) punya tiga pintu masuk di bawah tombol "Mulai dari PRD". Pilih yang paling dekat dengan alasanmu datang.
+
+| Pintu | Yang kamu dapat | Cocok kalau |
+|---|---|---|
+| **[Cerita](/#peta)** | Peta enam tahap. Setiap tahap menulis PRD-nya, user-nya, siapa yang membuat, dan bentuk sistemnya. | Kamu ingin belajar berurutan, mulai dari PRD v1. |
+| **[Peran](/#peran)** | Pertanyaan "sehari-hari kamu mengerjakan apa?" dengan enam jawaban. Lima jawaban memberi lima halaman untuk dibaca dulu. Dashboard web belum punya halaman sampai Tahap 3, jadi jawaban itu menunjuk jalur inti. | Kamu ingin mulai dari pekerjaanmu sekarang. |
+| **[Masalah](/#masalah)** | Kotak pencarian gejala, mis. "saldo hilang". Hasilnya halaman masalah yang membahas gejala itu. | Kamu sedang melihat gejala yang mirip di sistemmu. |
+
+Ketiga pintu menuju halaman yang sama. Bedanya hanya halaman mana yang kamu buka pertama.
+
+## Navigasi di setiap halaman
+
+- **Kamu di sini**: baris di atas judul menulis tahap, bagian, dan jenis halaman. Di HP baris ini dipendekkan.
+- **Isi halaman**: tombol di baris yang sama membuka daftar blok. Blok yang sudah selesai diberi tanda ✓.
+- **Sidebar** punya grup Pembuka, satu grup per tahap, Studi sampingan, dan Alat. Semua grup terlipat, kecuali grup halaman yang sedang kamu buka. Tahap 1 dibagi menjadi enam bagian, dari PRD sampai Jembatan ke Tahap 2. Tanda ★ menandai jalur inti.
+- **Jalur** adalah menu kecil di atas sidebar dengan pilihan Generalis, Mobile, Web, Backend, DevOps, dan Security. Jalur menebalkan halaman untuk peran yang dipilih, dan tidak ada halaman yang disembunyikan. Generalis tidak menebalkan apa pun, jadi ikuti tanda ★.
+- **Mode fokus** ada di kepala halaman. Di layar lebar, tombol ini menyembunyikan sidebar dan daftar isi.
+- **Tema** dipilih di kepala halaman: Gelap (bawaan) atau Terang.
+- **Garis progres**: garis tipis di bawah kepala halaman memanjang saat kamu menggulir.
+- **Sebelumnya dan Berikutnya** di bawah setiap halaman mengikuti urutan baca, bukan urutan sidebar.
+
+Pilihan peran di beranda dan Jalur di sidebar adalah pengaturan yang sama. Di HP, sidebar, Jalur, dan Tema ada di menu kepala halaman. Grup Tahap 2 sampai 5 bertanda versi lama, karena isinya belum ditulis ulang mengikuti cerita baru.
+
+## Progres tersimpan di browser ini
+
+Status blok, halaman terakhir yang kamu buka, jalur, mode fokus, dan tema disimpan di `localStorage` browser ini. Kartu "Lanjutkan" di beranda membaca data itu dan menulis berapa blok yang sudah selesai. Tidak ada akun, dan data ini tidak dikirim ke server. Kalau kamu pindah browser atau menghapus data situs, progresnya mulai dari nol, karena ekspor dan impor progres belum ada.
+
+## Label sumber
+
+Angka, status code, dan output di halaman diberi salah satu label ini.
+
+- **Rekaman lab**: output asli dari program yang dijalankan di `labs/`, mis. API Go dan PostgreSQL 17 di Docker.
+- **Ilustrasi**: contoh atau widget yang disusun dari konsep, bukan direkam dari sistem sungguhan.
+- **Asumsi**: angka beban di cerita. Rumusnya ditulis di halaman, jadi kamu bisa mengganti angkanya.
+- **Tidak dijalankan**: kode hanya dicek ke dokumentasi resmi, tidak dijalankan di lab.
+- **[perlu verifikasi]**: klaim yang belum bisa dicek ke sumber primer.
+
+Diagram dan widget membawa labelnya sebagai chip di samping judul, mis. chip Ilustrasi di diagram Inti halaman ini.
+
+## Alat bantu
+
+- **[[Glosarium]]** memuat definisi satu kalimat. Istilah bergaris titik-titik di halaman mana pun bisa disentuh untuk melihat definisinya.
+- **[[Kartu]]** mengumpulkan soal Cek diri dari semua halaman, dengan jadwal ulang bertingkat.
+- **[[Indeks]]** menyusun halaman yang sama per topik, untuk kamu yang mencari satu konsep.
+- **[[Kamus]]** menerjemahkan nama API yang sama di beberapa stack.
+
+Jawaban kartu ulang juga hanya tersimpan di browser ini.
 
 ## Untuk siapa
 
-Panduan ini untuk mobile engineer yang ingin paham backend secara utuh, lintas stack. Targetnya bukan menghafal framework. Targetnya tiga kemampuan:
+Panduan ini untuk mobile engineer yang ingin paham backend secara utuh, lintas stack. Targetnya tiga kemampuan:
 
 1. Memahami konsep dan memilih opsi beserta trade-off-nya.
 2. Menulis spesifikasi yang jelas, termasuk untuk AI.
 3. Me-review kode backend buatan AI dan tahu apa yang harus dicek.
 
-Kode di setiap halaman ditampilkan di beberapa stack: Go, Node.js, Laravel, Django, Spring, dan Supabase atau Firebase. Konsepnya sama. Yang berbeda hanya siapa yang mengerjakan apa.
+:::note[Penafian]
+Rekeningo dan seluruh ceritanya fiktif. Cerita ini tidak mengklaim kepatuhan terhadap regulasi pembayaran, perlindungan data, atau aturan lain yang berlaku di dunia nyata.
+:::
 
-## Susunan satu halaman
-
-| Bagian | Isinya | Kenapa ada |
-|---|---|---|
-| **Kamu di sini** | Tahap cerita dan rekapnya | Supaya kamu tahu posisimu tanpa membuka halaman lain |
-| **Sudah tahu? Cek 3 pertanyaan** | Pertanyaan pembuka yang dilipat | Kalau bisa menjawab ketiganya, lompat. Kalau salah, pertanyaannya tetap membantu belajar |
-| **Inti** + diagram | Tiga kalimat dan arsitektur tahap itu | Gambaran utuh sebelum detail |
-| **Lihat sendiri** | Widget: skenario langkah demi langkah atau SQL yang bisa dijalankan | Kamu menebak dulu, lalu melihat hasilnya |
-| **Kenapa ini ada** | Adegan cerita yang memunculkan masalahnya | Konsep muncul karena kebutuhan, bukan karena daftar materi |
-| **Cara kerjanya** | Penjelasan netral, tanpa stack tertentu | Konsep dulu, framework belakangan |
-| **Di stack lain** | Kode yang sama di beberapa stack | Melihat bahwa konsepnya sama |
-| **Trade-off** | Kelebihan dan kekurangan tiap opsi | Bahan keputusan |
-| **Cek diri** | Tiga soal, minimal satu "jelaskan kenapa" | Mengingat lebih kuat dari membaca ulang |
-| **Saat me-review kode AI** | Daftar cek 3–5 butir | Langsung bisa dipakai saat review |
-
-## Label yang perlu kamu kenal
-
-- **Ilustrasi**: widget atau contoh disusun dari konsep, bukan direkam dari sistem sungguhan.
-- **Rekaman lab**: output asli dari program yang dijalankan di `labs/`, mis. PostgreSQL 17 di Docker.
-- **Tidak dijalankan**: kode hanya dicek ke dokumentasi resmi, tidak dijalankan di lab.
-- **Asumsi**: angka beban di cerita. Rumusnya selalu ditulis, jadi kamu bisa mengganti angkanya.
-- **[perlu verifikasi]**: klaim yang belum bisa dicek ke sumber primer.
-
-## Alat bantu
-
-- **Tandai selesai** di baris meta setiap halaman. Statusnya muncul di [Peta cerita](cerita/peta.md).
-- **[Kartu ulang](alat/kartu-ulang.md)**: soal Cek diri dari halaman yang sudah kamu baca, dengan jadwal ulang bertingkat.
-- **[Glosarium](alat/glosarium.md)**: definisi satu kalimat. Istilah bergaris titik-titik di halaman mana pun bisa disentuh untuk melihat definisinya.
-- **Terlalu berat · Pas · Terlalu ringan** di akhir halaman. Semua penilaian terkumpul di [Umpan balik](alat/umpan-balik.md).
-
-Semua data di atas hanya tersimpan di browser ini (`localStorage`).
-
-!!! note "Penafian"
-
-    Rekeningo dan seluruh ceritanya fiktif. Cerita ini tidak mengklaim kepatuhan terhadap regulasi pembayaran, perlindungan data, atau aturan lain yang berlaku di dunia nyata.
-
-<a class="tombol" href="/cerita/">Mulai cerita Rekeningo →</a>
-
-<WidgetLama nama="umpan-balik" />
-
-
-<SkripLama daftar={[]} />
+Siap mulai? Buka [[t1-prd]].

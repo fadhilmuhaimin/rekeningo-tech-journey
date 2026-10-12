@@ -452,11 +452,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### I5c-f · CLS di CI tahan font yang terlambat
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: `ukur-cls.mjs` dengan `--font-telat 1500 --fallback Verdana` lolos (CLS ≤ 0,1) di semua halaman alur dan ukuran; e3-retry-idempotency 375 (sekarang 0,184 karena "Idempotency key" muat di fallback tetapi tidak di Satoshi) diperbaiki; mode font telat dijalankan di gerbang supaya hasil CI tidak bergantung waktu datang font.
-- catatan: Dari peninjau PR #181 (keputusan 351). Jalur teknis.
+- catatan: Dari peninjau PR #181 (keputusan 351). Jalur teknis. PR #206, keputusan 359; tiga putaran (pagar host hidup, abbr hanya prosa, KEPUTUSAN).
 
 ### K2a · Kontras langkah runsql yang dilewati
 
@@ -632,11 +632,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### P3 · Halaman cara pakai untuk lima blok dan tiga pintu
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: `/cara-pakai/` menjelaskan lima blok dan tiga pintu (cerita, peran, masalah), bukan susunan lima bagian lama; audit bahasa 0 error.
-- catatan: Dari MEMORI "Catatan untuk penulisan ulang Tahap 1".
+- catatan: Dari MEMORI "Catatan untuk penulisan ulang Tahap 1". PR #212, keputusan 310; dua putaran (saran peran, Generalis, batas waktu Roediger).
 
 ### P4 · Ilustrasi latar perusahaan Grup Lestari
 
@@ -700,6 +700,60 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - bergantung: R1, R2, R3, R4, R5
 - selesai bila: `situs/tools/layar.mjs` gagal bila halaman berblok tidak menampilkan visual di layar pertama 4 ukuran; semua halaman Tahap 1 yang ada lolos.
 - catatan: Setengah jalan dari sesi redesain (MEMORI sesi 3, langkah 6).
+
+### G2b · Batas waktu ukur-cls dan halaman yang menahan renderer
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: G2a, I5c-h
+- selesai bila: `situs/tools/ukur-cls.mjs` (paralel) memakai `denganBatas` per halaman dari `situs/tools/lib/batas.mjs` dan mencetak `MACET cls <ukuran> <halaman>` dengan exit 1; penyebab thread utama renderer tertahan di `/tahap-1/m5-angka-di-url/` 360×740 (run 38257090943) dicari lewat pengulangan di branch `percobaan/**` dan dicatat, atau dibuktikan tidak terulang dalam ≥ 10 putaran.
+- catatan: Dari pelaksana dan peninjau PR #211 (keputusan 360). Jalur teknis.
+
+### G2c · Pagar lebar font fallback di CI
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: I5c-h
+- selesai bila: gerbang gagal bila lebar span uji "Satoshi Fallback" di CI berbeda > 0,5% dari Satoshi atau lebarnya bilangan bulat (tanda hinting), dengan uji mutasi; pesan menyebut versi runner dan font.
+- catatan: Dari PR #213 (keputusan 361): label `ubuntu-latest` pindah versi [perlu verifikasi tanggal], set font atau hinting bisa berubah tanpa ketahuan. Jalur teknis.
+
+### P5 · Kunci progres lama di Kartu ulang dan Peta cerita
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: -
+- selesai bila: saringan Kartu ulang "Hanya dari halaman yang sudah kutandai selesai" dan `/cerita/peta/` membaca kunci progres yang sungguh ditulis halaman sekarang (bukan `bb1:selesai` lama), dengan tes; Peta cerita menulis enam tahap, bukan lima.
+- catatan: Dari pelaksana P3 (keputusan 310). Jalur teknis-halaman.
+
+### P6 · Tautan relatif .md yang 404
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: -
+- selesai bila: tautan relatif berakhiran `.md` di `situs/src/content/docs/**` (mis. `cerita/index.mdx` `(peta.md)`) diganti `[[ID]]` atau path yang benar; gerbang gagal bila tautan internal di `dist/` menuju halaman yang tidak ada, dengan uji mutasi.
+- catatan: Dari pelaksana P3 (keputusan 310); link checker masih "Belum" di STATUS Fase 0. Jalur teknis-halaman.
+
+### P7 · Ekspor dan impor progres pembaca
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: -
+- selesai bila: progres pembaca (blok selesai, halaman selesai, jalur, kartu) bisa diekspor ke satu file JSON dan diimpor kembali, divalidasi Zod, dengan tes Vitest; tombolnya ada di `/cara-pakai/` dan halaman itu menjelaskannya; tanpa akun, tanpa server.
+- catatan: PROPOSAL "Keputusan final": progres di localStorage + ekspor/impor; belum dibangun (pelaksana dan peninjau P3). Jalur teknis.
+
+### P8 · Klaim Beranda dan Kartu ulang sesuai kode
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: -
+- selesai bila: `Beranda.astro` tidak lagi menulis "Kamu mendapat lima halaman" untuk semua peran (Dashboard web memberi 0) dan tidak menjanjikan halaman web di Tahap 3 bila registry tidak punya halaman ber-`peran` web; `alat/kartu-ulang.mdx` menyebut batas waktu temuan Roediger & Karpicke 2006 (unggul di tes 2 hari dan 1 minggu, kalah di tes 5 menit), seperti `tahap-1/rekap.mdx`.
+- catatan: Dari peninjau P3 (keputusan 310). Jalur teknis-halaman.
 
 ### X1 · Crosscheck penuh Tahap 1
 

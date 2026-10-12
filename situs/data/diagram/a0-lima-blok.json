@@ -1,0 +1,45 @@
+{
+  "id": "a0-lima-blok",
+  "judul": "Lima blok di satu halaman konsep",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Ilustrasi · susunan halaman situs ini"
+  },
+  "baris": [
+    {
+      "label": "Terbuka",
+      "sub": "saat halaman dimuat",
+      "simpul": [
+        {
+          "teks": "Mulai",
+          "sub": "Inti dan 3 pertanyaan",
+          "nada": "system"
+        },
+        {
+          "teks": "Coba",
+          "sub": "tebak, lalu lihat hasilnya",
+          "nada": "system"
+        }
+      ]
+    },
+    {
+      "label": "Terlipat",
+      "sub": "dibuka saat perlu",
+      "simpul": [
+        {
+          "teks": "Paham",
+          "sub": "kenapa dan cara kerjanya"
+        },
+        {
+          "teks": "Putuskan",
+          "sub": "trade-off"
+        },
+        {
+          "teks": "Kunci",
+          "sub": "Cek diri, review kode AI"
+        }
+      ]
+    }
+  ],
+  "catatan": "Tombol Berikutnya di akhir setiap blok membuka blok sesudahnya."
+}
