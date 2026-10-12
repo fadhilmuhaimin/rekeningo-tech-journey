@@ -36,7 +36,8 @@ const jalur = arg("--path", "/tahap-1/authentication/");
 const ujiMutasi = process.argv.includes("--uji-mutasi");
 // 0,5 %: di kalibrasi keputusan 351, size-adjust 0,5 poin dari titik terbaik (97,5 dan 98,5 %) menambah blok teks yang
 // berubah tinggi dari 123 ke 140–142 (dari 23.131), 1,5 poin (96,5 %) ke 271. Korpus beku: 400 −0,01 % (macOS) dan
-// −0,06 % (CI), 600 −0,30 % dan −0,28 %; hinting atau fallback lain memberi +1,05 % sampai +16 % (keputusan 361, 368).
+// −0,06 % (CI), 600 −0,30 % dan −0,28 %; hinting memberi +1,05 % (400) dan −6,39 % (600), fallback tanpa local() yang
+// cocok sekitar +16 % (keputusan 351, 361, 368).
 const AMBANG = 0.005;
 const UKURAN = 17; // px, teks isi di HP (keputusan 201); angka keputusan 361 juga diukur di 17 px
 const HURUF = 4000;
