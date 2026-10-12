@@ -740,11 +740,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### P8 · Klaim Beranda dan Kartu ulang sesuai kode
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: `Beranda.astro` tidak lagi menulis "Kamu mendapat lima halaman" untuk semua peran (Dashboard web memberi 0) dan tidak menjanjikan halaman web di Tahap 3 bila registry tidak punya halaman ber-`peran` web; `alat/kartu-ulang.mdx` menyebut batas waktu temuan Roediger & Karpicke 2006 (unggul di tes 2 hari dan 1 minggu, kalah di tes 5 menit), seperti `tahap-1/rekap.mdx`.
-- catatan: Dari peninjau P3 (keputusan 310). Jalur teknis-halaman.
+- catatan: Dari peninjau P3 (keputusan 310). Jalur teknis-halaman. PR #229, keputusan 316; dua putaran (kalimat Cepeda).
 
 ### P9 · Contoh request 1.5 sesuai rekaman
 
@@ -758,11 +758,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### P10 · Sisa CSS lama dan panah Rantai ringkas di HP
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: R1
 - selesai bila: aturan CSS `bb-map` (±16 aturan di `tema.css`) yang tidak dipakai halaman mana pun dihapus sesudah dicek dengan grep atas `dist/`; panah sesudah simpul Rantai ringkas yang membungkus tidak menggantung ke gutter kanan di 360 dan 375 px (contoh 1.6 "periksa saldo", ±8 px), diperiksa `ukur-luapan.mjs` atau alat ukur Rantai.
-- catatan: Dari pelaksana dan peninjau R1 (keputusan 311). Jalur teknis.
+- catatan: Dari pelaksana dan peninjau R1 (keputusan 311). Jalur teknis. PR #226, keputusan 366; satu putaran + gabung main (KELOMPOK_UKUR dengan alur).
 
 ### G2d · Akar macet renderer di halaman Tahap 1
 
@@ -772,6 +772,15 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - bergantung: G2b
 - selesai bila: penyebab renderer diam (`pthread_cond_wait`, metrik CDP tak menjawab) yang hanya muncul di halaman `/tahap-1/` di 360×740 dan 375×667 ditemukan lewat varian percobaan (mis. tanpa skrip `Blok.astro`, localStorage diganti stub, tanpa island) ≥ 48 putaran per varian di branch `percobaan/**`, atau tumpukan bersimbol Chromium; bila penyebabnya kode situs, diperbaiki dan `ULANG` di ukur-luapan turun ke 0 dalam ≥ 48 putaran; bila di Chromium headless, bukti dan laporan bug dicatat.
 - catatan: Dari PR #222 (keputusan 364): 27 MACET dalam 240 putaran, semuanya halaman Tahap 1. Bisa jadi risiko pembaca nyata (halaman membeku di HP). Jalur teknis.
+
+### G2e · Ulang sekali yang sama untuk ukur-cls
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: G2d
+- selesai bila: `ukur-cls.mjs` memakai syarat ulang sekali yang sama dengan ukur-luapan (renderer diam lewat `jejak`, tanpa xhr/fetch tertunda, batas jumlah ulang, peringatan Actions dan ringkasan langkah) dari satu modul bersama di `situs/tools/lib/`, bukan salinan; uji mutasi seperti keputusan 364.
+- catatan: Dari peninjau PR #231: lengan konteks per halaman (cara kerja ukur-cls) macet 3/60, dan ukur-cls pernah macet di run 38257090943. Jalur teknis.
 
 ### R6 · Aturan layar: visual wajib di layar pertama
 
