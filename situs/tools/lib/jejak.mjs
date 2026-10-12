@@ -73,7 +73,11 @@ async function cpu(j) {
 }
 
 // evaluasi: fungsi yang mengembalikan janji page.evaluate(diagnosa halaman). Hasilnya teks untuk pesan MACET.
+// Mengisi j.diam = true bila thread utama tertahan di luar JavaScript (metrik tidak menjawab) dan semua proses browser
+// hampir tidak memakai CPU (< 0,2 s dalam 1 s): renderer menunggu sesuatu yang tidak datang, bukan kode halaman yang
+// berputar dan bukan CPU yang kurang (pola semua macet di percobaan G2b, keputusan 364).
 export async function diagnosaJejak(j, evaluasi) {
+  j.diam = false;
   const kini = Date.now();
   const bagian = [`langkah Node "${j.langkah}" sejak ${detik(kini - j.sejak)}`,
     j.detakPada ? `detak terakhir ${detik(kini - j.detakPada)} lalu (${j.detak})` : "belum ada detak dari dokumen ini"];
@@ -90,6 +94,7 @@ export async function diagnosaJejak(j, evaluasi) {
     const naik = Object.keys(c1).filter((k) => k.startsWith("renderer") && k in c0).map((k) => [k, c1[k] - c0[k]]).sort((a, b) => b[1] - a[1]);
     const semua = Object.keys(c1).filter((k) => k in c0).reduce((s, k) => s + c1[k] - c0[k], 0);
     bagian.push(`CPU ${naik.length} renderer selama 1 s: ${naik.slice(0, 3).map(([k, v]) => `${k} ${v.toFixed(2)} s`).join(", ")}; semua proses ${semua.toFixed(2)} s`);
+    j.diam = !(m0 && m1) && semua < 0.2;
   } else bagian.push("CPU proses tidak terbaca");
   if (m0 && m1) {
     if (TUMPUKAN) {

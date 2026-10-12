@@ -9,6 +9,8 @@
 // Elemen penyebab luapan (yang keluar viewport, di luar wadah gulir seperti <pre> dan bukan elemen fixed) dicetak supaya sumbernya terlihat.
 // Gagal bila ada luapan, atau bila tidak satu pun chip terukur (pemeriksaan tidak boleh lolos karena kosong).
 // Ringkasan juga mencetak jeda thread utama terlama (long task atau detak terlambat, lib/jejak.mjs, keputusan 364).
+// Halaman yang macet karena renderer diam (thread utama tertahan di luar JavaScript, CPU semua proses < 0,2 s per detik)
+// diulang sekali di halaman baru dengan baris ULANG dan peringatan Actions; paling banyak 2 per run (keputusan 364).
 //   node tools/ukur-luapan.mjs --url http://127.0.0.1:4321 [--halaman /tahap-1/cadangan/] [--rinci]
 import fs from "node:fs";
 import path from "node:path";
@@ -119,6 +121,8 @@ const daftar = satu ? [satu] : halaman();
 const browser = await chromium.launch();
 const cdpBrowser = await sesiBrowser(browser);
 let gagal = 0, jumlahChip = 0;
+const diulang = []; // halaman yang diulang sesudah renderer diam
+const ULANG_MAKS = 2;
 let jedaMaks = { ms: 0, p: "-" }; // jeda antardetak terlama di halaman: lama thread utama renderer tidak bebas (keputusan 364)
 const maks = {}; // per ukuran: chip Rantai terlebar dibanding figure-nya
 const baris = [];
@@ -126,8 +130,8 @@ await Promise.all(UKURAN.map(async (u) => {
   const ctx = await browser.newContext({ viewport: { width: u.width, height: u.height }, isMobile: true, hasTouch: true, reducedMotion: "reduce" });
   const antre = [...daftar];
   await Promise.all(Array.from({ length: PARALEL }, async () => {
-    const page = await ctx.newPage();
-    const jejak = await pasangJejak(page, cdpBrowser);
+    let page = await ctx.newPage();
+    let jejak = await pasangJejak(page, cdpBrowser);
     for (let p = antre.shift(); p !== undefined; p = antre.shift()) {
       // Batas per halaman: page.evaluate tidak punya timeout sendiri. Halaman yang macet menghentikan alat dengan
       // nama halaman, ukuran, dan hasil diagnosa, exit 1, sebelum timeout langkah CI (keputusan 360). Diagnosanya dari
@@ -142,7 +146,20 @@ await Promise.all(UKURAN.map(async (u) => {
         }, `luapan ${u.nama} ${p}`, { diagnosa: () => diagnosaJejak(jejak, () => page.evaluate(diagnosa)), msDiagnosa: 10_000 });
       } catch (e) {
         if (!(e instanceof Macet)) throw e;
-        console.log(e.message);
+        // Renderer diam (keputusan 364): diulang sekali di halaman baru, tercatat. Kode halaman yang berputar, CPU yang
+        // sibuk, halaman yang sama dua kali, atau lebih dari ULANG_MAKS kali dalam satu run tetap MACET dan exit 1.
+        const k = `${u.nama} ${p}`;
+        if (jejak.diam && !diulang.includes(k) && diulang.length < ULANG_MAKS) {
+          diulang.push(k);
+          console.log(`ULANG ${e.message.replace(/^MACET /, "")}`);
+          if (process.env.GITHUB_ACTIONS) console.log(`::warning title=ukur-luapan diulang::renderer diam di ${k}, diulang sekali (keputusan 364)`);
+          await denganBatas(() => page.close(), "tutup", { ms: 5000 }).catch(() => {});
+          page = await ctx.newPage();
+          jejak = await pasangJejak(page, cdpBrowser);
+          antre.unshift(p);
+          continue;
+        }
+        console.log(e.message + (diulang.includes(k) ? " (macet lagi sesudah diulang)" : diulang.length >= ULANG_MAKS ? ` (sudah ${ULANG_MAKS} halaman diulang)` : ""));
         process.exit(1);
       }
       if (jejak.jedaMaks > jedaMaks.ms) jedaMaks = { ms: jejak.jedaMaks, p: `${u.nama} ${p}` };
@@ -159,11 +176,12 @@ await Promise.all(UKURAN.map(async (u) => {
     }
     await page.close();
   }));
-  await ctx.close();
+  // Renderer yang diam bisa menahan penutupan; batas 10 s, sisanya ditutup bersama proses.
+  await denganBatas(() => ctx.close(), "tutup konteks", { ms: 10_000 }).catch(() => {});
 }));
-await browser.close();
+await denganBatas(() => browser.close(), "tutup browser", { ms: 10_000 }).catch(() => {});
 if (jumlahChip === 0) { gagal++; baris.push("GAGAL tidak ada chip .bb-chip yang terukur (pemeriksaan kosong)"); }
 if (baris.length) console.log(baris.sort().join("\n"));
 const ringkas = UKURAN.map((u) => maks[u.nama] ? `${u.nama} chip Rantai maks ${maks[u.nama].lebar}/${maks[u.nama].wadah} px (${maks[u.nama].p})` : `${u.nama} tanpa chip Rantai`).join("; ");
-console.log(`luapan: ${daftar.length} halaman × ${UKURAN.length} ukuran, ${jumlahChip} chip, ${gagal} gagal; ${ringkas}; jeda thread utama terlama ${jedaMaks.ms} ms (${jedaMaks.p}); ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+console.log(`luapan: ${daftar.length} halaman × ${UKURAN.length} ukuran, ${jumlahChip} chip, ${gagal} gagal; ${ringkas}; jeda thread utama terlama ${jedaMaks.ms} ms (${jedaMaks.p}); ${diulang.length} diulang sesudah renderer diam${diulang.length ? ` (${diulang.join(", ")})` : ""}; ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 process.exit(gagal ? 1 : 0);
