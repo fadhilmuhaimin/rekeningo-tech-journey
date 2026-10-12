@@ -16,7 +16,7 @@ PY=${PYTHON:-python3}
 # CI menjalankan satu kelompok per job, paralel, dari daftar yang sama (--matriks-ci), jadi laptop dan CI
 # selalu memeriksa hal yang sama. Durasi alat di CI main 5eb37bd, berurutan: kelompok pertama 257 s, kedua 309 s,
 # ketiga 279 s; seluruh gerbang 14m30 (keputusan 357). Alat baru masuk ke kelompok terpendek.
-KELOMPOK_UKUR=("layar judul ilustrasi" "gerak" "diagram cls kontras luapan")
+KELOMPOK_UKUR=("layar judul ilustrasi" "gerak" "diagram cls kontras luapan alur")
 
 MODE="${1:-}"
 case "$MODE" in
@@ -104,6 +104,9 @@ jalan_ukur() {
     luapan)
       echo "== luapan horizontal seluruh halaman 360 dan 375, chip di dalam wadahnya (K2d)"
       (cd situs && node tools/ukur-luapan.mjs --url "$URL") ;;
+    alur)
+      echo "== detail alur dekat jalur sesudah menebak 1366x657, fokus sesudah tebakan keyboard 375x667 (I5c-g)"
+      (cd situs && node tools/ukur-detail-alur.mjs --url "$URL") ;;
     *) echo "GAGAL: alat ukur $1 ada di KELOMPOK_UKUR tetapi tidak punya perintah"; exit 1 ;;
   esac
 }
