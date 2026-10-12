@@ -4,6 +4,9 @@ description: Setiap kali uang berpindah, tiga hal harus benar - semua perubahan 
 ---
 import Blok from "../../../components/Blok.astro";
 import Snippet from "../../../components/Snippet.astro";
+import Rantai from "../../../components/Rantai.astro";
+import duaBayar from "../../../../data/diagram/t1-pertukaran-dua-bayar.json";
+import tigaPenjaga from "../../../../data/diagram/t1-pertukaran-tiga-penjaga.json";
 import JumlahTotal from "../../../widgets/jumlah-total/JumlahTotal.tsx";
 import dataPertukaran from "../../../../data/widget/t1-pertukaran.json";
 
@@ -13,18 +16,13 @@ import dataPertukaran from "../../../../data/widget/t1-pertukaran.json";
 
 ## Inti
 
-Pertukaran saldo adalah satu pembayaran yang mengubah dua saldo sekaligus dan menulis satu catatan. Contohnya Budi membayar Rp25.000 ke Warung Ani:
+Pertukaran saldo adalah satu pembayaran yang mengubah dua saldo sekaligus dan menulis satu catatan.
 
-<figure class="bb-fig">
-<ol class="bb-flow">
-<li>Budi −Rp25.000</li>
-<li>Warung Ani +Rp25.000</li>
-<li class="is-good">Catat: 419 → 418, Rp25.000</li>
-</ol>
-<figcaption>Rekaman lab api-t1: jumlah semua saldo Rp25.000.000, sebelum dan sesudah.</figcaption>
-</figure>
+<Rantai data={duaBayar} ringkas />
 
-Tiga hal harus selalu benar: ketiga perubahan terjadi semua atau tidak sama sekali, tidak ada saldo di bawah nol, dan jumlah semua saldo tidak berubah.
+Sebelum Budi membayar, jumlah semua saldo Rp25.000.000, sama dengan jumlah semua top-up. Sesudah pembayaran Rp25.000, saldo Budi Rp225.000 dan saldo Warung Ani Rp25.000. Jumlahnya tetap Rp25.000.000, dan tabel `transaksi` bertambah satu baris.
+
+Tiga hal harus selalu benar: ketiga perubahan terjadi semua atau tidak sama sekali, tidak ada saldo di bawah nol, dan jumlah semua saldo tidak berubah. Sesudah membayar Rp200.000 ke Warung Sari, Budi mencoba membayar Rp30.000 dengan sisa saldo Rp25.000. Server menjawab `422`, dan jumlah semua saldo tetap Rp25.000.000.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -59,13 +57,11 @@ Jumlah semua saldo jadi ukuran yang dipakai di semua masalah Tahap 1 berikutnya.
 
 ### Cara kerjanya
 
-Setiap hal yang harus benar punya penjaga sendiri di backend v1:
+Setiap hal yang harus benar punya penjaga sendiri di backend v1. Log PostgreSQL untuk hal pertama ada di [[t1-fitur-bayar]], dan mekanisme transaction dijelaskan di [[B3.1]].
 
-| Yang harus benar | Penjaganya di v1 | Bukti |
-|---|---|---|
-| 1. Semua atau tidak sama sekali | Satu transaction, dibuka di `service/`, membungkus dua `UPDATE` dan satu `INSERT` | Log PostgreSQL di [[t1-fitur-bayar]]; mekanismenya di [[B3.1]] |
-| 2. Tidak ada saldo di bawah nol | Service memeriksa saldo sebelum uang disentuh; constraint `saldo_tidak_negatif` menolak sisanya | Rekaman F dan G di bawah |
-| 3. Jumlah semua saldo tetap | Setiap pengurangan punya pasangan penambahan dengan jumlah yang sama | Query `SUM` di rekaman B, D, dan F |
+<Rantai data={tigaPenjaga} />
+
+Hal ketiga tidak dijaga constraint apa pun. Jumlahnya tetap karena setiap pengurangan punya pasangan penambahan dengan jumlah yang sama, di dalam transaction yang sama. Query `SUM` hanya memeriksanya sesudah kejadian.
 
 Kode service di lab sudah menjalankan ketiga perubahan dalam satu transaction. Di server uji coba, transaction ini baru ditambahkan setelah [[t1-m4]] di minggu 3.
 

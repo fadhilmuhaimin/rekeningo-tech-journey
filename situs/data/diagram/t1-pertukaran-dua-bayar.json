@@ -1,0 +1,25 @@
+{
+  "id": "t1-pertukaran-dua-bayar",
+  "judul": "Dua pembayaran Budi, satu total",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab api-t1 · pertukaran.txt" },
+  "baris": [
+    {
+      "label": "Bayar Rp25.000",
+      "sub": "ke Warung Ani, diterima",
+      "simpul": [
+        { "teks": "Budi −Rp25.000", "sub": "jadi Rp225.000" },
+        { "teks": "Ani +Rp25.000", "sub": "jadi Rp25.000" },
+        { "teks": "catat transaksi", "sub": "satu baris baru" },
+        { "teks": "total Rp25.000.000", "sub": "sama seperti sebelum", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Bayar Rp30.000",
+      "sub": "sisa saldo Budi Rp25.000",
+      "simpul": [
+        { "teks": "422", "kode": true, "sub": "Saldo tidak cukup", "nada": "warn" },
+        { "teks": "tidak ada yang berubah", "sub": "total tetap Rp25.000.000", "nada": "good" }
+      ]
+    }
+  ]
+}
