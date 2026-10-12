@@ -15,8 +15,8 @@ PY=${PYTHON:-python3}
 # Alat ukur Playwright dalam tiga kelompok. --layar menjalankan semuanya berurutan menurut daftar ini;
 # CI menjalankan satu kelompok per job, paralel, dari daftar yang sama (--matriks-ci), jadi laptop dan CI
 # selalu memeriksa hal yang sama. Durasi alat di CI main 5eb37bd, berurutan: kelompok pertama 257 s, kedua 309 s,
-# ketiga 279 s; seluruh gerbang 14m30 (keputusan 357). Alat baru masuk ke kelompok terpendek.
-KELOMPOK_UKUR=("layar judul ilustrasi" "gerak" "diagram cls kontras luapan alur")
+# ketiga 279 s; seluruh gerbang 14m30 (keputusan 357). Alat baru masuk ke kelompok terpendek (font: keputusan 368).
+KELOMPOK_UKUR=("layar judul ilustrasi font" "gerak" "diagram cls kontras luapan alur")
 
 MODE="${1:-}"
 case "$MODE" in
@@ -88,6 +88,10 @@ jalan_ukur() {
     ilustrasi)
       echo "== teks ilustrasi di dalam bingkai (K0c, K0e)"
       (cd situs && node tools/ukur-ilustrasi.mjs --url "$URL") ;;
+    font)
+      # Runner CI bisa berganti OS, font, atau hinting tanpa perubahan di repo (keputusan 368); keluaran menyebut runner dan font.
+      echo "== lebar Satoshi Fallback sama dengan Satoshi, glyph pecahan, pagar bisa gagal (G2c)"
+      (cd situs && node tools/ukur-font.mjs --url "$URL" --uji-mutasi) ;;
     gerak)
       echo "== reduced motion mematikan gerak (I3)"
       (cd situs && node tools/ukur-gerak.mjs --url "$URL") ;;
