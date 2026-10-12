@@ -1,24 +1,51 @@
 {
   "id": "t1-backend-keputusan",
   "judul": "Siapa yang memutuskan saldo cukup",
-  "sumber": { "jenis": "ilustrasi", "teks": "Ilustrasi · bayar ke warung, PRD v1" },
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Ilustrasi · bayar ke warung, PRD v1"
+  },
   "baris": [
     {
       "label": "Lewat app",
       "sub": "Budi menekan Bayar",
       "simpul": [
-        { "teks": "app: saldo cukup?", "sub": "kabar cepat, belum keputusan", "nada": "old" },
-        { "teks": "backend: saldo cukup?", "sub": "keputusan akhir", "nada": "system" },
-        { "teks": "tersimpan", "sub": "saldo berubah di database", "nada": "good" }
+        {
+          "teks": "app: saldo cukup?",
+          "sub": "kabar cepat, belum keputusan",
+          "nada": "old"
+        },
+        {
+          "teks": "backend: saldo cukup?",
+          "sub": "keputusan akhir",
+          "nada": "system"
+        },
+        {
+          "teks": "tersimpan",
+          "sub": "saldo berubah di database",
+          "nada": "good"
+        }
       ]
     },
     {
       "label": "Lewat curl",
-      "sub": "Dimas mengirim request tanpa app",
+      "sub": "Dimas, tanpa app, membayar lebih dari saldonya",
       "simpul": [
-        { "teks": "app dilewati", "sub": "pemeriksaan di HP tidak berjalan", "nada": "warn" },
-        { "teks": "backend: saldo cukup?", "sub": "pemeriksaan yang sama", "nada": "system" },
-        { "teks": "ditolak", "sub": "saldo tidak berubah", "nada": "good" }
+        {
+          "teks": "app dilewati",
+          "sub": "pemeriksaan di HP tidak berjalan",
+          "nada": "warn"
+        },
+        {
+          "teks": "backend: saldo cukup?",
+          "sub": "pemeriksaan yang sama",
+          "nada": "system"
+        },
+        {
+          "teks": "ditolak: saldo kurang",
+          "sub": "saldo tidak berubah",
+          "nada": "good"
+        }
       ]
     }
   ],

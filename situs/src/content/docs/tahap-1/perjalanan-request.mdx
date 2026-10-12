@@ -19,7 +19,7 @@ Tap Bayar menghasilkan satu HTTP request yang melewati handler, logika bisnis, d
 
 <Rantai data={duaKemungkinan} ringkas />
 
-Setiap lapisan boleh menghentikan perjalanan, dan app harus siap untuk tiap jawaban. Handler menolak token yang salah dengan `401` dan format yang salah dengan `400`. Logika bisnis menolak saldo kurang dengan `422`. Error yang tidak terduga di akses data berakhir sebagai `500`.
+Setiap lapisan boleh menghentikan perjalanan, dan app harus siap untuk tiap jawaban. Handler menolak request tanpa token atau dengan token yang tidak berlaku dengan `401`, dan format yang salah dengan `400`. Logika bisnis menolak saldo kurang dengan `422`. Error yang tidak terduga di akses data berakhir sebagai `500`.
 
 Satu kegagalan tidak membawa status apa pun: response hilang di jalan. Di rekaman lab, server sudah menyimpan pembayaran, HP Budi menampilkan gagal, dan Bayar kedua tercatat sebagai pembayaran kedua. Karena itu tombol "Coba lagi" berbahaya untuk aksi yang memindahkan uang.
 
@@ -79,7 +79,7 @@ Di backend Rekeningo, bayar ke warung adalah transfer dari akun karyawan ke akun
 
 Ada satu kegagalan yang **tidak** menghasilkan status apa pun: response hilang di jalan. App hanya tahu "tidak ada jawaban". App tidak bisa membedakan "server gagal" dari "server sukses, tapi jawabannya hilang".
 
-Karena itu tombol "Coba lagi" berbahaya untuk aksi yang memindahkan uang. Solusinya, idempotency key, ada di Tahap 2. Arti tiap status code didefinisikan di [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), dan ringkasannya ada di [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status).
+Tombol "Coba lagi" untuk aksi yang memindahkan uang baru aman bila server bisa mengenali request yang diulang. Caranya, idempotency key, ada di Tahap 2. Arti tiap status code didefinisikan di [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), dan ringkasannya ada di [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status).
 
 ### Di stack lain
 
