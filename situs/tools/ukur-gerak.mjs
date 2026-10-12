@@ -475,6 +475,102 @@ for (const reducedMotion of ["no-preference", "reduce"]) {
   if (!ok) gagal++;
   await page.close();
 }
+// Widget race (I5e, keputusan 353): garis waktu dua client. 0 animasi saat dimuat. Sesudah tebakan, fokus di
+// Berikutnya. Setiap Berikutnya menambah satu baris di bawah: tanpa reduced motion frame pertamanya masih bergerak
+// (opacity < 1, ada animasi) dan baris yang sudah lewat tidak bergerak; dengan reduced motion frame pertama sudah final
+// tanpa animasi. Sesudah langkah terakhir: semua langkah ada dan tidak terpotong kotak bergulir mana pun (langkah lewat
+// tetap terlihat), lencana A dan B ada di dua lajur berbeda (A kiri, B kanan), teks langkah lewat dan sekarang >= 4,5:1
+// di gelap dan terang, dengan opacity leluhur dikalikan dan warna dicampur ke latar. Sebelumnya dan ganti tab tidak menggerakkan apa pun.
+// Pemilih baris sengaja umum (`ol > li` di widget), jadi pemeriksaan yang sama berlaku untuk daftar satu kolom lama.
+const HAL_RACE = "/b-fondasi/b3-2-race-condition-lock/";
+for (const [w, h] of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no-preference", "reduce"]) {
+  const page = await browser.newPage({ viewport: { width: w, height: h }, reducedMotion });
+  await page.goto(url + HAL_RACE, { waitUntil: "networkidle" });
+  await page.waitForSelector('[data-bb="race"].bb-race .bb-predict button');
+  const r = await page.evaluate(async () => {
+    const tunggu = (ms) => new Promise((ok) => setTimeout(ok, ms));
+    const frame = () => new Promise((ok) => requestAnimationFrame(() => ok()));
+    const animasiAwal = document.getAnimations().length;
+    document.querySelectorAll("details").forEach((d) => (d.open = true));
+    const host = document.querySelector('[data-bb="race"]');
+    host.scrollIntoView({ block: "start", behavior: "instant" });
+    host.querySelector(".bb-predict button").click();
+    const tombol = (awal) => [...host.querySelectorAll(".bb-row button")].find((b) => b.textContent.startsWith(awal));
+    const maju = tombol("Berikutnya");
+    const fokus = document.activeElement === maju;
+    const baris = () => [...host.querySelectorAll("ol > li")];
+    const anim = (el) => el.getAnimations({ subtree: true }).length;
+    let gerak = 0, final = 0, lewatGerak = 0, klik = 0;
+    while (!maju.disabled && klik < 30) {
+      maju.click();
+      klik++;
+      await frame();
+      const b = baris();
+      const baru = b.at(-1);
+      if (baru && anim(baru) > 0 && Number(getComputedStyle(baru).opacity) < 1) gerak++;
+      if (baru && anim(baru) === 0 && getComputedStyle(baru).opacity === "1") final++;
+      lewatGerak += b.slice(0, -1).filter((x) => anim(x) > 0).length;
+      await tunggu(320);
+    }
+    const b = baris();
+    const sisaAnim = anim(host);
+    // Terpotong: baris di luar kotak leluhur yang overflow-nya bukan visible.
+    const terpotong = b.filter((li) => {
+      const r = li.getBoundingClientRect();
+      if (!li.getClientRects().length || r.height === 0) return true;
+      for (let n = li.parentElement; n && n !== document.body; n = n.parentElement) {
+        const s = getComputedStyle(n);
+        if (/(auto|scroll|hidden|clip)/.test(s.overflowY)) {
+          const k = n.getBoundingClientRect();
+          if (r.top < k.top - 1 || r.bottom > k.bottom + 1) return true;
+        }
+      }
+      return false;
+    }).length;
+    const xLencana = (a) => b.map((li) => li.querySelector(".bb-actor")).filter((x) => x && x.textContent === a).map((x) => x.getBoundingClientRect().left);
+    const xa = xLencana("A"), xb = xLencana("B");
+    const lajur = xa.length && xb.length ? Math.round(Math.min(...xb) - Math.max(...xa)) : 0;
+    // Kontras teks dengan opacity leluhur dikalikan dan latar bertumpuk dicampur.
+    const rgba = (c) => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(/[\s,\/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; };
+    const campur = (atas, bawah, a) => atas.slice(0, 3).map((v, k) => v * a + bawah[k] * (1 - a));
+    const latar = (el) => {
+      const lapis = [];
+      for (let n = el; n; n = n.parentElement) { const c = rgba(getComputedStyle(n).backgroundColor); if (c && c[3] > 0) { lapis.push(c); if (c[3] === 1) break; } }
+      let hasil = [255, 255, 255];
+      for (const c of lapis.reverse()) hasil = campur(c, hasil, c[3]);
+      return hasil;
+    };
+    const lum = (c) => { const [r, g, bb] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * bb; };
+    const rasio = (el) => {
+      let op = 1;
+      for (let n = el; n; n = n.parentElement) op *= Number(getComputedStyle(n).opacity);
+      const bg = latar(el), fg = rgba(getComputedStyle(el).color);
+      const t = campur(fg, bg, fg[3] * op);
+      const [l1, l2] = [lum(t), lum(bg)].sort((x, y) => y - x);
+      return (l1 + 0.05) / (l2 + 0.05);
+    };
+    const teks = (li) => [...li.querySelectorAll("*")].filter((e) => !e.closest(".bb-sr") && !e.classList.contains("bb-actor") && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
+    const minRasio = () => Math.min(...b.flatMap((li) => teks(li).map((e) => rasio(e))));
+    const tema = document.documentElement.dataset.theme;
+    const minKontras = {};
+    for (const t of ["dark", "light"]) { document.documentElement.dataset.theme = t; minKontras[t] = b.length ? minRasio() : 0; }
+    document.documentElement.dataset.theme = tema;
+    tombol("← Sebelumnya").click();
+    await frame();
+    const mundurAnim = anim(host);
+    host.querySelectorAll(".bb-tab")[1].click();
+    await frame();
+    const tabAnim = anim(host);
+    return { animasiAwal, fokus, klik, gerak, final, lewatGerak, sisaAnim, n: b.length, terpotong, lajur, minKontras, mundurAnim, tabAnim };
+  });
+  const lajurOk = r.lajur > 20;
+  const ok = r.animasiAwal === 0 && r.fokus && r.n === r.klik && r.n > 0 && r.terpotong === 0 && lajurOk && r.minKontras.dark >= 4.5 && r.minKontras.light >= 4.5 &&
+    r.lewatGerak === 0 && r.sisaAnim === 0 && r.mundurAnim === 0 && r.tabAnim === 0 &&
+    (reducedMotion === "reduce" ? r.gerak === 0 && r.final === r.klik : r.gerak === r.klik);
+  console.log(`${ok ? "ok" : "GAGAL"} race ${w}x${h} ${reducedMotion}: animasi saat dimuat ${r.animasiAwal}; fokus sesudah tebakan di Berikutnya ${r.fokus}; ${r.klik} klik, ${r.gerak} baris baru bergerak di frame pertama, ${r.final} langsung final, ${r.lewatGerak} gerak di baris lewat; ${r.n} baris, ${r.terpotong} terpotong; jarak lajur A ke B ${r.lajur} px; kontras teks baris min gelap ${r.minKontras.dark.toFixed(2)}:1, terang ${r.minKontras.light.toFixed(2)}:1; animasi sesudah Sebelumnya ${r.mundurAnim}, sesudah ganti tab ${r.tabAnim}`);
+  if (!ok) gagal++;
+  await page.close();
+}
 await browser.close();
-console.log(gagal ? "Fondasi gerak GAGAL" : "Reduced motion mematikan gerak (contoh, blok, teka-teki, Berikutnya, alur, angka); tanpa itu gerak berjalan");
+console.log(gagal ? "Fondasi gerak GAGAL" : "Reduced motion mematikan gerak (contoh, blok, teka-teki, Berikutnya, alur, angka, race); tanpa itu gerak berjalan");
 process.exit(gagal ? 1 : 0);

@@ -476,16 +476,48 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-client.is-waiting { background: var(--k-warn-fill); border-color: var(--k-warn-edge); }
 .sl-markdown-content .bb-db { background: var(--bg-2); }
 .sl-markdown-content .bb-client__head { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
-.sl-markdown-content .bb-client__sql.is-now { font-weight: 700; }
-.sl-markdown-content .bb-client__sql { display: block; margin-top: 0.3rem; font-size: 0.8em; white-space: pre-wrap; word-break: break-word; background: transparent; padding: 0; }
-.sl-markdown-content .bb-vars { margin: 0.3rem 0 0; display: grid; grid-template-columns: auto auto; gap: 0 0.5rem; justify-content: start; }
+/* Label di atas nilai: di HP kartu client selebar setengah widget, dan "saldo yang dibaca Rp100.000" sebaris meluap. */
+.sl-markdown-content .bb-vars { margin: 0.3rem 0 0; display: grid; grid-template-columns: minmax(0, 1fr); }
 .sl-markdown-content .bb-vars dt { color: var(--teks-2); font-weight: 400; margin: 0; }
 .sl-markdown-content .bb-vars dd { margin: 0; font-weight: 700; }
 .sl-markdown-content .bb-db__row { display: flex; justify-content: space-between; gap: 0.5rem; align-items: center; margin-top: 0.3rem; }
 .sl-markdown-content .bb-db__row p { margin: 0; }
 .sl-markdown-content .bb-db__saldo { font-size: 1.3em; font-weight: 700; color: var(--judul); }
 .sl-markdown-content .bb-now { min-height: 2.6em; margin: 0.4rem 0; font-weight: 500; }
-.sl-markdown-content .bb-timeline { max-height: 18rem; overflow-y: auto; border-top: 1px solid var(--garis); padding-top: 0.3rem; }
+/* Garis waktu dua client (I5e, keputusan 353). Satu baris per langkah, waktu turun; kolom nomor lalu dua lajur.
+   Sempit (HP): lajur bertumpuk seperti percakapan, kartu A menempel rel kiri dan kartu B rel kanan, masing-masing 4/5
+   lebar, jadi teks tetap selebar mungkin dan pemilik langkah terbaca dari sisinya. Lebar (>= 34rem): dua kolom sama.
+   Langkah lewat memakai warna sekunder (bukan opacity, K2a); langkah sekarang teks utama dan garis tepi sistem.
+   Lajur client yang menunggu lock bergaris putus-putus jingga (warna tepi warn, grafis >= 3:1). Tanpa kotak bergulir:
+   semua langkah yang sudah lewat tetap di halaman. */
+.sl-markdown-content .bb-race-garis { container: race-garis / inline-size; margin: 0.6rem 0 0; padding-top: 0.5rem; border-top: 1px solid var(--garis); }
+.sl-markdown-content :is(.bb-race-garis__kepala, .bb-race-langkah) { display: grid; grid-template-columns: [no] 1.75rem [a] 1fr [b] 3fr [a-akhir] 1fr [b-akhir]; }
+@container race-garis (width >= 34rem) {
+  .sl-markdown-content :is(.bb-race-garis__kepala, .bb-race-langkah) { grid-template-columns: [no] 1.75rem [a] 1fr [a-akhir] 0.6rem [b] 1fr [b-akhir]; }
+}
+.sl-markdown-content .bb-race-garis__kepala { font-weight: 600; color: var(--judul); }
+.sl-markdown-content .bb-race-garis__kepala > span { display: inline-flex; gap: 0.35rem; align-items: center; }
+.sl-markdown-content .bb-race-garis__a { grid-row: 1; grid-column: a / a-akhir; padding-left: 0.4rem; }
+.sl-markdown-content .bb-race-garis__b { grid-row: 1; grid-column: b / b-akhir; justify-self: end; padding-right: 0.4rem; }
+.sl-markdown-content .bb-race-garis__daftar { list-style: none; display: grid; gap: 0.45rem; margin: 0.45rem 0 0; padding: 0; }
+.sl-markdown-content .bb-race-langkah { position: relative; margin: 0; align-items: start; }
+.sl-markdown-content .bb-race-langkah::before, .sl-markdown-content .bb-race-langkah::after { content: ""; position: absolute; top: -0.45rem; bottom: 0; }
+.sl-markdown-content .bb-race-langkah::before { left: 1.75rem; border-left: 2px solid var(--garis-2); }
+.sl-markdown-content .bb-race-langkah::after { right: 0; border-right: 2px solid var(--garis-2); }
+.sl-markdown-content .bb-race-langkah.is-tunggu-A::before { border-left: 3px dashed var(--k-warn-edge); }
+.sl-markdown-content .bb-race-langkah.is-tunggu-B::after { border-right: 3px dashed var(--k-warn-edge); }
+.sl-markdown-content .bb-race-langkah__no { grid-column: no; padding: 0.4rem 0.45rem 0 0; text-align: right; color: var(--teks-2); font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .bb-race-langkah__isi { display: flex; flex-wrap: wrap; gap: 0.15rem 0.45rem; align-items: baseline; min-width: 0; margin: 0; padding: 0.35rem 0.55rem; border: 1px solid var(--garis-2); border-radius: 6px; background: var(--bg); color: var(--teks); }
+.sl-markdown-content .is-A > .bb-race-langkah__isi { grid-column: a / a-akhir; margin-left: 0.4rem; }
+.sl-markdown-content .is-B > .bb-race-langkah__isi { grid-column: b / b-akhir; margin-right: 0.4rem; }
+.sl-markdown-content .bb-race-langkah__sql { flex: 1 1 8rem; min-width: 0; white-space: pre-wrap; word-break: break-word; background: transparent; padding: 0; color: var(--teks); font-size: max(var(--rk-ui-kecil), 0.9em); }
+.sl-markdown-content .bb-race-langkah__hasil { flex-basis: 100%; padding-left: 1.8rem; font-size: max(var(--rk-ui-kecil), 0.9em); }
+.sl-markdown-content .bb-race-langkah.is-lewat > .bb-race-langkah__isi, .sl-markdown-content .bb-race-langkah.is-lewat .bb-race-langkah__sql { color: var(--teks-2); }
+.sl-markdown-content .bb-race-langkah.is-current > .bb-race-langkah__isi { outline: 2px solid var(--k-system-edge); outline-offset: -1px; }
+.sl-markdown-content .bb-race-langkah.is-wait > .bb-race-langkah__isi { background: var(--k-warn-fill); border-color: var(--k-warn-edge); }
+.sl-markdown-content .bb-race-langkah.is-wait .bb-race-langkah__hasil { color: var(--k-warn-ink); font-weight: 600; }
+.sl-markdown-content .bb-race-garis__catatan { display: none; margin: 0.45rem 0 0; font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .bb-race-garis:has(.is-tunggu-A, .is-tunggu-B) .bb-race-garis__catatan { display: block; }
 .sl-markdown-content .bb-summary { margin: 0.6rem 0 0; padding-left: 0.6rem; border-left: 3px solid var(--k-old-edge); }
 .sl-markdown-content .bb-summary:empty { display: none; }
 .sl-markdown-content .bb-step.is-current { outline: 2px solid var(--k-system-edge); }

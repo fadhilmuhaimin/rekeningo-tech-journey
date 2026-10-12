@@ -66,6 +66,8 @@ Dipindah dari plan/MEMORI.md saat MEMORI dipangkas ke 80 baris (keputusan 235, 2
 - (dipindah dari MEMORI 2026-10-11) Retrospektif K0e–I3: alat ukur kecil (ukur-gerak, ukur-ilustrasi, ukur-judul) menangkap yang tidak terlihat di tangkapan. Pola: ukur dulu, perbaiki, ukur ulang, masukkan alat ke gerbang.
 - (dipindah dari MEMORI 2026-10-11) Motion `reducedMotion="user"` hanya mematikan transform dan layout; ukur frame pertama sesudah klik.
 - (dipindah dari MEMORI 2026-10-11) Route baru di `src/pages/` atau `import()` lazy mengubah chunk bersama Vite: semua halaman berganti hash; bandingkan sidik `tmp/sidik_dist.py`.
+- (dipindah dari MEMORI 2026-10-12) Retrospektif I4–1.28: halaman lama yang ditulis ulang membawa data lab lama yang bertentangan dengan naskah (JWT 15 menit di B5.1, ID teks `budi`/`ani` di b5-rls); cocokkan rekaman lama dengan skema v1 dan ADR naskah sebelum dipakai ulang. Satu rekaman khusus per halaman (`authz.txt`) lebih jelas daripada potongan dari lima file rekaman.
+- (dipindah dari MEMORI 2026-10-12) Lab SQL yang di-pipe ke `grep` kehilangan exit status psql; tambahkan pemeriksaan hasil di Makefile (pola `labs/b5-rls/Makefile`).
 
 ## Sedang dikerjakan (sampai 2026-10-10)
 

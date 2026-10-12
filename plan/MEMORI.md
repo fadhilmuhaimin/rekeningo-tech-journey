@@ -14,17 +14,17 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - M2: naskah menulis server membaca `nominal`; lab dan halaman sejak 1.9 memakai `jumlah` (label layar "Nominal"). Usul: naskah menyebut `jumlah`, atau dibiarkan.
 - M5: naskah menulis "100 saldo"; lab membaca 103 akun (100 karyawan + 3 warung), 1.26 menulis 103. Usul: naskah menyebut 103.
 - M6/ADR 10: naskah belum menyebut deploy server expand (`jumlah` + `nominal`) yang memulihkan app 1.1 sesudah M6; 1.33 memakainya (Raka men-deploy expand sesudah ADR 10, `versi.txt` bagian B–D, keputusan 252). Mohon naskah diperbarui atau dikonfirmasi.
+- Cadangan database: naskah Tahap 1 tidak menyebutnya, padahal API dan PostgreSQL ada di satu VPS. 1.36 menulisnya sebagai celah terbuka + latihan lab (keputusan 302). Usul: Raka menjalankan `pg_dump` manual sebelum setiap migration dan menyalinnya keluar VPS, atau risiko diterima sampai cadangan terjadwal Tahap 3.
 
 ## Catatan untuk halaman Tahap 1 berikutnya
 
 - Sejak 1.33 server cerita = expand (`jumlah` + `nominal`, kontrak `labs/b1-openapi/openapi-expand.yaml`). Rekaman atau Snippet 1.34+ yang menampilkan handler bayar, body transfers/riwayat, atau kontrak dibangun dari varian expand (`bangun_dari_v1(tmp, nama, EXPAND_UBAH)` di `run.py`, `openapi-expand.yaml`), atau diberi label "kode v1 sebelum expand".
 - 1.39 (F1) menyerap F2: hapus halaman F2 dan entrinya di PR yang sama (pola keputusan 150).
 - 1.31 `deploy.txt`: kode api-t1 diambil dari commit main `f128167` (`KODE_V1` di `run.py`), Dockerfile dari folder lab; hash 390ff47/f5ea0b4 (±27 tempat: halaman, `t1-deploy.json`, `t1-deploy-tag.json`, `kartu.json`) hanya berubah bila salah satunya diubah, dan `harap` membuat lab gagal keras.
-- 1.36 (Tim-infra) memakai ulang `labs/api-t1/deploy/compose.yaml` dan `ci.yml` dari 1.31; jeda ganti container belum diukur, jangan tulis angkanya tanpa rekaman.
 - Ilustrasi latar Grup Lestari belum ada; ilustrasi baru wajib lolos `ukur-ilustrasi.mjs` (tambahkan path halamannya ke alat itu). `situs/lama/assets/cerita/tahap-1.svg` tidak dipakai lagi.
 - Tabel "Angka di tahap ini" ditulis ulang di 1.37/1.38, angka dari `tahap[0].asumsi`.
 - `/cara-pakai/` (A0) masih menjelaskan susunan lama; tulis ulang untuk lima blok dan tiga pintu.
-- 1.36 (Tim-infra) memakai `labs/api-t1/deploy/ci.yml` yang sudah berisi langkah gitleaks dan `fetch-depth: 0` (1.35); CI tidak memegang kunci ke VPS (ADR 11, deploy manual sampai Tahap 3).
+- 1.37/1.38 boleh merujuk `labs/api-t1/output/cadangan.txt`; 1.36 merujuk [[D1]] untuk 0,14 RPS. 1.40 (ADR 12) memuat cadangan terjadwal, pemeriksa arah di CI, dan tes kontrak di CI sebagai "sengaja belum", konsisten dengan tabel Sengaja belum dilakukan 1.36.
 - Audit bahasa menolak "kantor" (pakai "perusahaan") dan "pemakai" (pakai "user").
 - Pola tulis ulang halaman lama: pindah ke `tahap-1/<slug>.mdx`, lima blok, contoh PRD v1; hapus file lama dan data widget lama; perbarui `path`, `prasyarat`, hapus `lama` di registry, perbarui `alat/indeks-topik.mdx`, lalu `python3 tools/sinkron_cerita.py`.
 
@@ -48,17 +48,16 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-12 · Mode paralel (keputusan 264). Konten: 1.35 (#179) dan K2 (#184) selesai; 1.36 berjalan di `../rjt-konten`. Teknis: I5c-c (#180) dan I5c-d (#181) selesai; I5d (#182) dalam perbaikan; berikutnya I5e, K2a–K2d. Pengatur mencatat ANTREAN/MEMORI/STATUS lewat PR `catat/*`.
+2026-10-12 · Mode paralel (keputusan 264). Konten: 1.35, K2, 1.36 selesai; 1.37 berjalan di `../rjt-konten`. Teknis: I5c-c, I5c-d, I5d selesai; I5e (#187) dalam tinjauan; berikutnya K2a, K2b, K2d, lalu K2c. Pengatur mencatat lewat PR `catat/*`; bila PR konten terbuka, PR teknis yang siap ditahan sampai PR konten di-merge.
 
 ## Pelajaran
 
+- Angka yang bergerak: `tweenAngka`/`gerakkanAngka` dari `situs/src/gerak/angka.ts`; teks khusus pembaca layar hanya dirender selama tween (kalau selalu ada, angka dobel saat diseleksi dan masuk HTML/indeks), dan status "sedang bergerak" diambil dari hasil tween, bukan dari guard yang keluar lebih awal (keputusan 352).
 - K2 (1.34–1.35, keputusan 301): alur baca, href, dan konsistensi secret lolos; sesudah 1.35 tombol Lanjut menuju 1.38 lama sampai 1.36 terbit. CI berbasis pull_request tidak berjalan selama PR CONFLICTING: cek `gh pr view <n> --json mergeable` sebelum menunggu run, batasi tunggu 5 menit. Hitung pipe tanpa escape untuk tabel KEPUTUSAN.
 - `offsetHeight` host tidak melihat margin anak yang runtuh keluar host, dan containment (container query) membuat lebar intrinsik 0: bandingkan letak elemen sesudahnya serta x dan lebar host, termasuk di 1440 px (wadah 1024).
 - Widget alur hanya menerima nada `warn` dan `good` (`alur-core.js` NADA, diperiksa `tools/validasi_skenario.mjs` saat build); Rantai menerima juga `system`.
 - ADR 7: policy RLS yang menyaring `UPDATE` membuat kredit ke baris orang lain jadi `UPDATE 0` tanpa error (`b5-rls` bagian 5); RLS di Rekeningo hanya untuk baca, di tabel ledger Tahap 2.
 - `insertBefore`/`appendChild` atas elemen yang sedang terfokus membuat Chrome memindah fokus ke BODY; simpan `document.activeElement` sebelum memindah DOM dan kembalikan dengan `focus({ preventScroll: true })` (alur.js `urutSempit`, diperiksa `ukur-gerak.mjs`).
-- Retrospektif I4–1.28: halaman lama yang ditulis ulang membawa data lab lama yang bertentangan dengan naskah (JWT 15 menit di B5.1, ID teks `budi`/`ani` di b5-rls); cocokkan rekaman lama dengan skema v1 dan ADR naskah sebelum dipakai ulang. Satu rekaman khusus per halaman (`authz.txt`) lebih jelas daripada potongan dari lima file rekaman.
-- Lab SQL yang di-pipe ke `grep` kehilangan exit status psql; tambahkan pemeriksaan hasil di Makefile (pola `labs/b5-rls/Makefile`).
 - Perubahan CSS global di atas Inti menggeser layar pertama semua halaman; simpan keluaran `layar.mjs` sebelum dan bandingkan sesudahnya (`tmp/banding_layar.py`).
 - Setelah gerbang lolos, perubahan teks apa pun wajib diikuti `python3 tools/sinkron_cerita.py` dan gerbang ulang (CI #119 gagal karena `kartu.json` tertinggal).
 - `git rm` langsung men-stage penghapusan; `git add <file baru> && git commit` ikut membawanya. Hapus file lama di commit yang sama dengan perubahan registry, supaya setiap commit tetap bisa dibangun.
