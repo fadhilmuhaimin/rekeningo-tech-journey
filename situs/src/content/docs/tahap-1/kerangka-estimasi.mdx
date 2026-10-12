@@ -34,7 +34,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 <Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: puncak beban dihitung dari user, rasio aktif, request per user, dan faktor puncak, dan satu juta user tidak berarti satu juta request per detik.">
 
-Rumusnya sama dengan [[t1-m8]], sekarang untuk kelima tahap. Tebak dulu, lalu pilih tahap dan lihat baris mana yang berubah.
+Rumusnya sama dengan [[t1-m8]], sekarang untuk kelima tahap. Tebak dulu, lalu pilih tahap dan bandingkan asumsi di bawah tiap baris: user, rasio aktif, dan request per user.
 
 <Kalkulator client:visible data={dataKalkulator} asumsi={cerita.tahap.map((t) => t.asumsi)} />
 
@@ -60,7 +60,7 @@ Kerangka berpikir memberi urutan supaya pertanyaan kapasitas datang sesudah angk
 | 2. Estimasi | Berapa besar bebannya, kira-kira? | ±0,14 request per detik di puncak |
 | 3. Bottleneck | Apa yang paling mungkin rusak lebih dulu? | Kebenaran data, bukan kapasitas |
 | 4. Desain | Apa yang paling sederhana yang menjawab langkah 1–3? | Satu API, satu PostgreSQL, satu VPS |
-| 5. Trade-off | Apa yang sengaja belum dilakukan, dan kapan dipertimbangkan lagi? | Belum ada cache, queue, server kedua ([[t1-adr-12]]) |
+| 5. Trade-off | Apa yang sengaja belum dilakukan, dan kapan dipertimbangkan lagi? | Belum ada cache, queue, service kedua ([[t1-adr-12]]) |
 
 **Rumus estimasi.** Semua angka di bawah adalah asumsi naskah dari `cerita.json` (`tahap[].asumsi`), bukan hasil pengukuran.
 
@@ -87,9 +87,11 @@ Angka di tabel ini diperiksa terhadap `cerita.json` setiap kali situs dibangun. 
 
 **Rata-rata dan puncak.** Rata-rata membagi request sehari ke 86.400 detik, padahal beban tidak rata sepanjang hari. Faktor puncak membandingkan jam paling ramai dengan rata-rata harian. Faktor 10 berarti jam paling ramai memuat 10 ÷ 24, atau ±42%, dari request sehari.
 
-**Batas faktor puncak.** Faktor 1 berarti beban rata dari pukul 00.00 sampai 24.00. Faktor 24 berarti semua request sehari masuk di satu jam, seperti skenario "Satu jam" di [[t1-m8]]. Kalau semua request sehari masuk dalam 10 menit, faktornya 86.400 ÷ 600 = 144.
+**Batas faktor puncak.** Faktor 1 berarti beban rata dari pukul 00.00 sampai 24.00. Faktor 24 adalah batas atasnya: semua request sehari masuk di satu jam, seperti skenario "Satu jam" di [[t1-m8]].
 
-**Faktor puncak adalah asumsi.** Angka 10 berasal dari naskah, bukan dari log. Begitu ada log akses, angka itu diganti: hitung request di jam tersibuk, bagi 3.600, lalu bagi dengan rata-rata harian.
+Kalau puncak diukur per 10 menit, bukan per jam, dan semua request sehari masuk di 10 menit itu, faktornya 86.400 ÷ 600 = 144. Makin pendek jendela ukurnya, makin tinggi faktornya.
+
+**Faktor puncak adalah asumsi.** Angka 10 berasal dari naskah, bukan dari log. Begitu ada log akses, angka itu diganti: hitung request di jam tersibuk, bagi 3.600, lalu bagi dengan rata-rata per detik sehari.
 
 **Back-of-the-envelope.** Estimasi kasar mencari besaran, bukan angka tepat, jadi dua angka penting sudah cukup. Pertanyaan yang berguna: apakah keputusan berubah kalau angkanya dua kali atau sepuluh kali lebih besar? Puncak Tahap 1 dikali sepuluh tetap ±1,4 request per detik.
 
