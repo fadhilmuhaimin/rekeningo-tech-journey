@@ -650,20 +650,20 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### R1 · Visual layar pertama: 1.3, 1.5, 1.6
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: di tiap halaman Inti = kalimat → visual → dua paragraf rinci, plus satu diagram di Paham (`Rantai.astro` atau `PetaFitur.astro`, data JSON + Zod); visual tampil di layar pertama 4 ukuran; satu commit per halaman.
-- catatan: Setengah jalan dari sesi redesain (MEMORI sesi 3, langkah 5): langkah 1–4 selesai di #120.
+- catatan: Setengah jalan dari sesi redesain (MEMORI sesi 3, langkah 5): langkah 1–4 selesai di #120. PR #216, keputusan 311; dua putaran (simpul "ditolak" tanpa saldo kurang). Audit R2–R5 di laporan pelaksana: 1.24 sudah memenuhi R5.
 
 ### R2 · Visual layar pertama: 1.11, 1.12, 1.13
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: sama dengan R1 untuk 1.11, 1.12, 1.13.
-- catatan: -
+- catatan: PR #220, keputusan 312; dua putaran (klaim MongoDB $lookup, Rantai 1.11 lima baris di 375).
 
 ### R3 · Visual layar pertama: 1.15, 1.16, 1.18
 
@@ -698,7 +698,7 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - status: antre
 - percobaan: 0
 - bergantung: R1, R2, R3, R4, R5
-- selesai bila: `situs/tools/layar.mjs` gagal bila halaman berblok tidak menampilkan visual di layar pertama 4 ukuran; semua halaman Tahap 1 yang ada lolos.
+- selesai bila: `situs/tools/layar.mjs` gagal bila halaman berblok tidak menampilkan visual di layar pertama 4 ukuran; alat ukur Rantai (P10) gagal bila satu baris Rantai ringkas di Inti membungkus lebih dari dua baris visual di 360 atau 375 px; semua halaman Tahap 1 yang ada lolos (halaman yang gagal diperbaiki di tugas ini, satu commit per halaman).
 - catatan: Setengah jalan dari sesi redesain (MEMORI sesi 3, langkah 6).
 
 ### G2b · Batas waktu ukur-cls dan halaman yang menahan renderer
@@ -772,6 +772,15 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - bergantung: R1
 - selesai bila: aturan CSS `bb-map` (±16 aturan di `tema.css`) yang tidak dipakai halaman mana pun dihapus sesudah dicek dengan grep atas `dist/`; panah sesudah simpul Rantai ringkas yang membungkus tidak menggantung ke gutter kanan di 360 dan 375 px (contoh 1.6 "periksa saldo", ±8 px), diperiksa `ukur-luapan.mjs` atau alat ukur Rantai.
 - catatan: Dari pelaksana dan peninjau R1 (keputusan 311). Jalur teknis.
+
+### G2d · Akar macet renderer di halaman Tahap 1
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: G2b
+- selesai bila: penyebab renderer diam (`pthread_cond_wait`, metrik CDP tak menjawab) yang hanya muncul di halaman `/tahap-1/` di 360×740 dan 375×667 ditemukan lewat varian percobaan (mis. tanpa skrip `Blok.astro`, localStorage diganti stub, tanpa island) ≥ 48 putaran per varian di branch `percobaan/**`, atau tumpukan bersimbol Chromium; bila penyebabnya kode situs, diperbaiki dan `ULANG` di ukur-luapan turun ke 0 dalam ≥ 48 putaran; bila di Chromium headless, bukti dan laporan bug dicatat.
+- catatan: Dari PR #222 (keputusan 364): 27 MACET dalam 240 putaran, semuanya halaman Tahap 1. Bisa jadi risiko pembaca nyata (halaman membeku di HP). Jalur teknis.
 
 ### X1 · Crosscheck penuh Tahap 1
 
