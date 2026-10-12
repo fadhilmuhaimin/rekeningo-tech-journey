@@ -1,6 +1,6 @@
 {
   "id": "t1-migration-drift",
-  "judul": "Minggu 2: versi sama, skema berbeda",
+  "judul": "Minggu 2: psql mengubah skema, bukan versi",
   "sumber": {
     "jenis": "rekaman",
     "teks": "Rekaman lab b4-migration · migrate.txt"
@@ -8,14 +8,11 @@
   "baris": [
     {
       "label": "Laptop",
+      "sub": "migrate up file 1–3",
       "simpul": [
         {
-          "teks": "migrate up",
-          "kode": true,
-          "sub": "file 1–3"
-        },
-        {
-          "teks": "Versi 3"
+          "teks": "Versi 3",
+          "sub": "migrate version"
         },
         {
           "teks": "2 constraint",
@@ -26,23 +23,15 @@
     },
     {
       "label": "Server",
+      "sub": "migrate up file 1–3, lalu ALTER TABLE lewat psql",
       "simpul": [
         {
-          "teks": "migrate up",
-          "kode": true,
-          "sub": "file 1–3"
-        },
-        {
-          "teks": "ALTER TABLE lewat psql",
-          "sub": "ditambah tangan, tanpa file",
-          "nada": "warn"
-        },
-        {
-          "teks": "Versi 3"
+          "teks": "Versi 3",
+          "sub": "migrate version"
         },
         {
           "teks": "3 constraint",
-          "sub": "dengan batas_saldo_warung",
+          "sub": "dengan batas_saldo_warung, tanpa file",
           "nada": "warn"
         }
       ]

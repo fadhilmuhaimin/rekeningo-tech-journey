@@ -1,0 +1,53 @@
+{
+  "id": "t1-migration-dirty",
+  "judul": "Sesudah 5 (dirty): force 5 di dua keadaan skema",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Ilustrasi · baris pertama dari rekaman migrate.txt"
+  },
+  "baris": [
+    {
+      "label": "Batas sudah ada",
+      "sub": "server di rekaman, bagian D–E",
+      "simpul": [
+        {
+          "teks": "migrate force 5",
+          "kode": true,
+          "sub": "sesudah skema diperiksa"
+        },
+        {
+          "teks": "no change",
+          "kode": true,
+          "sub": "migrate up sesudahnya"
+        },
+        {
+          "teks": "Versi 5, batas ada",
+          "sub": "skema sama dengan isi file 5",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Batas belum ada",
+      "sub": "tidak dijalankan di lab",
+      "simpul": [
+        {
+          "teks": "migrate force 5",
+          "kode": true,
+          "sub": "tanpa memeriksa skema"
+        },
+        {
+          "teks": "no change",
+          "kode": true,
+          "sub": "output yang sama"
+        },
+        {
+          "teks": "Versi 5, batas tidak ada",
+          "sub": "file 5 tidak akan dijalankan lagi di server ini",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kalau batas belum ada, versi yang sesuai isi skema adalah 4: force 4, lalu migrate up menjalankan file 5 lagi."
+}

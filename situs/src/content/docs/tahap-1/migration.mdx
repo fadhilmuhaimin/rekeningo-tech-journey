@@ -5,6 +5,7 @@ description: Setiap perubahan skema adalah file bernomor di Git, dan database me
 import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
 import drift from "../../../../data/diagram/t1-migration-drift.json";
+import dirty from "../../../../data/diagram/t1-migration-dirty.json";
 import Snippet from "../../../components/Snippet.astro";
 import TabSet from "../../../components/TabSet.astro";
 import WidgetLama from "../../../components/WidgetLama.astro";
@@ -82,6 +83,10 @@ Raka memeriksa skema server, melihat batasnya sama persis dengan isi migration 5
 <Snippet file="labs/b4-migration/output/migrate.txt" lines="80:84" title="Rekaman lab: labs/b4-migration/output/migrate.txt" />
 
 `force` hanya mengubah catatan versi, bukan skema. Setelah itu, laptop dan server sama-sama versi 5, dengan constraint yang sama.
+
+Output `no change` tidak membuktikan skema sudah benar. Kalau batas belum ada di server, perintah yang sama memberi output yang sama:
+
+<Rantai data={dirty} />
 
 **Tiga aturan kerja.**
 
