@@ -1070,6 +1070,8 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content ol.rantai__simpul { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1.6rem; }
 .sl-markdown-content ol.rantai__simpul > li { position: relative; margin: 0; display: grid; gap: 0.2rem; align-content: start; padding: 0.6rem 0.75rem; border: 1px solid var(--garis-2); border-radius: 8px; background: var(--bg); }
 .sl-markdown-content ol.rantai__simpul > li:not(:last-child)::after { content: "→"; position: absolute; right: -1.3rem; top: 50%; transform: translateY(-50%); color: var(--teks-2); }
+/* li.rantai__panah (Rantai ringkas) hanya tampil di HP, lihat di bawah; di tempat lain panahnya ::after. */
+.sl-markdown-content ol.rantai__simpul > li.rantai__panah { display: none; }
 .rantai__simpul b { color: var(--judul); font-weight: 600; }
 .rantai__simpul span { color: var(--teks-2); font-size: var(--rk-ui); }
 .sl-markdown-content .rantai__simpul code { font-size: var(--rk-ui); white-space: pre-wrap; overflow-wrap: anywhere; background: transparent; padding: 0; color: var(--judul); }
@@ -1094,13 +1096,20 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content figure.rantai--ringkas + * { margin-top: 1.1rem; }
 @media (max-width: 50em) {
   .sl-markdown-content figure.rantai--ringkas { gap: 0.45rem; margin-top: 0.3rem; }
-  .rantai--ringkas .rantai__baris { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 1.5rem; }
+  /* Panah jadi item flex sendiri (li.rantai__panah, P10, keputusan 366), jadi flex tidak pernah menaruhnya di luar kolom;
+     dulu panah ::after menggantung ke gutter kanan bila simpul terakhir di garis hampir menyentuh tepi. Jarak antarsimpul
+     tetap 1,5rem = gap 0,125rem + kotak panah 1,25rem (glyph di tengah) + gap 0,125rem, jadi simpul putus di tempat yang
+     sama. Panah tinggal di ujung garis bila sisa garis >= 1,375rem (lebar kotak tetap, tidak ikut font); kalau tidak,
+     panah membuka garis berikutnya. */
+  .rantai--ringkas .rantai__baris { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.125rem; }
+  .sl-markdown-content .rantai--ringkas .rantai__label { margin-right: 1.375rem; }
   .rantai--ringkas .rantai__label span, .rantai--ringkas .rantai__simpul span { display: none; }
   .sl-markdown-content .rantai--ringkas ol.rantai__simpul { display: contents; }
   .rantai--ringkas .rantai__label b::after { content: ":"; }
   .sl-markdown-content .rantai--ringkas ol.rantai__simpul > li { padding: 0.1rem 0.45rem; font-size: var(--rk-ui-kecil); }
   .sl-markdown-content .rantai--ringkas .rantai__simpul code { font-size: inherit; }
-  .sl-markdown-content .rantai--ringkas ol.rantai__simpul > li:not(:last-child)::after { content: "→"; left: auto; right: -1.15rem; top: 50%; bottom: auto; transform: translateY(-50%); }
+  .sl-markdown-content .rantai--ringkas ol.rantai__simpul > li:not(:last-child)::after { content: none; }
+  .sl-markdown-content .rantai--ringkas ol.rantai__simpul > li.rantai__panah { display: block; flex: none; width: 1.25rem; padding: 0; border: 0; background: none; text-align: center; color: var(--teks-2); }
 }
 /* Starlight memberi margin-bottom 1.25rem pada anak terakhir butir daftar; kotak diagram tidak memakainya. */
 .sl-markdown-content :is(ol.rantai__simpul, ol.peta-fitur__grid) > li > * { margin-bottom: 0; }

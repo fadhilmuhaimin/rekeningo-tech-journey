@@ -7,6 +7,8 @@
  * `ringkas` (K0a): untuk Inti, supaya diagram utuh di layar pertama 375×667. Di HP simpul mengalir mendatar dan
  * keterangan kecil (sub, catatan) disembunyikan; teks simpul harus bisa dibaca tanpa sub. Rinciannya di paragraf.
  *   <Rantai data={json} ringkas />
+ * Rantai ringkas punya `li.rantai__panah` (aria-hidden) di antara dua simpul. Di HP panah itu item flex, jadi flex tidak
+ * pernah menaruhnya di luar kolom saat simpul membungkus (P10, keputusan 366); di desktop ia tersembunyi dan panahnya ::after.
  */
 import { DataRantai } from "../lib/rantai";
 
@@ -20,11 +22,14 @@ const CHIP: Record<string, string> = { rekaman: "is-system", ilustrasi: "is-warn
     <div class="rantai__baris">
       <p class="rantai__label"><b>{b.label}</b>{b.sub && <span>{b.sub}</span>}</p>
       <ol class="rantai__simpul">
-        {b.simpul.map((s) => (
-          <li class:list={[`is-${s.nada}`]}>
-            {s.kode ? <code translate="no">{s.teks}</code> : <b>{s.teks}</b>}
-            {s.sub && <span>{s.sub}</span>}
-          </li>
+        {b.simpul.map((s, i) => (
+          <>
+            {ringkas && i > 0 && <li class="rantai__panah" aria-hidden="true" data-pagefind-ignore>→</li>}
+            <li class:list={[`is-${s.nada}`]}>
+              {s.kode ? <code translate="no">{s.teks}</code> : <b>{s.teks}</b>}
+              {s.sub && <span>{s.sub}</span>}
+            </li>
+          </>
         ))}
       </ol>
     </div>
