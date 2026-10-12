@@ -1,0 +1,43 @@
+{
+  "id": "t1-sqli-dua-cara",
+  "judul": "Input yang sama, dua cara kirim",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t1 · injection.txt"
+  },
+  "baris": [
+    {
+      "label": "Disambung",
+      "sub": "mode rentan M3, bagian A",
+      "simpul": [
+        {
+          "teks": "jadi SQL",
+          "sub": "' OR 1=1 -- masuk ke teks SQL",
+          "nada": "warn"
+        },
+        {
+          "teks": "semua akun",
+          "sub": "200 OK, dengan saldo setiap akun",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Parameter",
+      "sub": "versi benar, bagian B",
+      "simpul": [
+        {
+          "teks": "tetap nilai",
+          "sub": "$1 = ''' OR 1=1 --'",
+          "nada": "good"
+        },
+        {
+          "teks": "hasil kosong",
+          "sub": "200 OK, {\"warung\":[]}",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kuning: isi pencarian ikut menjadi perintah SQL. Hijau: isi pencarian hanya dibandingkan dengan kolom nama."
+}
