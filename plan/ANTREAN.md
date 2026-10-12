@@ -614,11 +614,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### 1.42 · Jembatan: pratinjau PRD v2
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: halaman `t1-jembatan` (prd, ★) menampilkan pratinjau PRD v2 dari naskah bagian 6 dan widget tebak (`situs/src/widgets/tebak/`): dari 12 ADR, mana yang dibuka lagi; jawabannya ADR 6 dan ADR 5 dengan alasan naskah.
-- catatan: -
+- catatan: PR #209, keputusan 309; satu putaran tinjauan.
 
 ### I5f · Diagram arsitektur di halaman tahap dan ADR
 
