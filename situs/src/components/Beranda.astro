@@ -83,7 +83,7 @@ const pembukaSaran = (p: string) => {
   const isi = daftar.length < n ? `${daftar.length} dari ${n}` : `${n}`;
   return p === "generalis"
     ? `Daftar ini memuat ${isi} halaman jalur inti, menurut urutan baca. Di sidebar, halaman jalur inti bertanda ★.`
-    : `Daftar ini memuat ${isi} halaman yang ditonjolkan untuk peran ini, menurut urutan baca. Sidebar menebalkan semua ${n} halaman itu.`;
+    : `Daftar ini memuat ${isi} halaman yang ditonjolkan untuk peran ini, menurut urutan baca. Sidebar menebalkan ${n === 1 ? "halaman itu" : `semua ${n} halaman itu`}.`;
 };
 const awalInti = saranPeran.generalis!.daftar[0];
 
