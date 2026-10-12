@@ -440,6 +440,24 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - selesai bila: bagian K2 di `plan/CROSSCHECK-KECIL.md` memuat 1.34–1.35 serta sambungan 1.33 → 1.34 dan 1.35 → 1.36 dengan bukti; temuan menjadi tugas perbaikan di bawah K2.
 - catatan: 1.31–1.33 sudah diperiksa di K1x (keputusan 254). Selesai: keputusan 301, PR #184.
 
+### I5c-e · Berikutnya alur terlihat di desktop
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: -
+- selesai bila: di 1366×657, sesudah setiap klik Berikutnya di semua halaman alur, tombol Berikutnya tetap di dalam layar (sekarang 18 dari 199 klik terdorong keluar karena detail di atasnya memanjang: b10-2, e3, app-versi-lama, authorization, deployment-rollback, idor-token-app, dan lainnya; sama dengan main); pemeriksaan 1366×657 masuk `ukur-gerak.mjs`.
+- catatan: Dari pelaksana PR #180 (keputusan 350). Jalur teknis.
+
+### I5c-f · CLS di CI tahan font yang terlambat
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: -
+- selesai bila: `ukur-cls.mjs` dengan `--font-telat 1500 --fallback Verdana` lolos (CLS ≤ 0,1) di semua halaman alur dan ukuran; e3-retry-idempotency 375 (sekarang 0,184 karena "Idempotency key" muat di fallback tetapi tidak di Satoshi) diperbaiki; mode font telat dijalankan di gerbang supaya hasil CI tidak bergantung waktu datang font.
+- catatan: Dari peninjau PR #181 (keputusan 351). Jalur teknis.
+
 ### K2a · Kontras langkah runsql yang dilewati
 
 - jenis: perbaikan
@@ -542,11 +560,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### I5e · Race: garis waktu dua client
 
 - jenis: interaksi
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: I3
 - selesai bila: widget race menampilkan garis waktu dua client; langkah yang lewat tetap terlihat; langkah baru masuk dengan gerak; tangkapan sebelum/sesudah; butir I6.
-- catatan: -
+- catatan: Selesai: keputusan 353, PR #187.
 
 ### 1.41 · Yang dibawa keluar dari Tahap 1
 
