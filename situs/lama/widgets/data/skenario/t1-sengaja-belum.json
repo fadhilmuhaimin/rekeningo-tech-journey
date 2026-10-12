@@ -98,7 +98,7 @@
     }
   ],
   "varian": {
-    "label": "request kedua datang sesudah yang pertama selesai",
+    "label": "Budi mengulang Bayar Rp25.000 sesudah response hilang",
     "mulai": 0,
     "langkah": [
       {
@@ -107,7 +107,17 @@
         "judul": "Budi menekan Bayar Rp25.000 sekali",
         "kirim": "POST /transfers {\"ke\": 418, \"jumlah\": 25000}\n201 · {\"id\":2,\"saldo\":25000}",
         "jelas": "Rekaman bagian D. Saldo Budi Rp50.000 sesudah bagian C. Server mencatat pembayaran dan menjawab 201.",
-        "nada": "good"
+        "nada": "good",
+        "layar": {
+          "hp-budi": {
+            "judul": "Bayar ke Warung Ani",
+            "waktu": "–",
+            "isi": [
+              { "jenis": "baris", "kiri": "Saldo", "kanan": "Rp50.000" },
+              { "jenis": "baris", "kiri": "Nominal", "kanan": "Rp25.000" }
+            ]
+          }
+        }
       },
       {
         "dari": "api",
@@ -122,6 +132,7 @@
             "waktu": "–",
             "nada": "warn",
             "isi": [
+              { "jenis": "baris", "kiri": "Saldo", "kanan": "Rp50.000" },
               { "jenis": "baris", "kiri": "Nominal", "kanan": "Rp25.000" },
               { "jenis": "toast", "teks": "Pembayaran gagal", "nada": "warn" }
             ]

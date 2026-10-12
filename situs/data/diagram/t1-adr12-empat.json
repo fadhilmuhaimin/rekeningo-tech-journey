@@ -15,7 +15,7 @@
       "label": "Queue",
       "simpul": [
         { "teks": "Kerja lambat di request", "sub": "masalah yang dijawab" },
-        { "teks": "Bayar: 3 perintah SQL", "sub": "tanpa panggilan ke luar", "nada": "good" },
+        { "teks": "Bayar: 3 perintah, 1 transaction", "sub": "tanpa panggilan ke luar", "nada": "good" },
         { "teks": "Tahap 3", "sub": "notifikasi push" }
       ]
     },

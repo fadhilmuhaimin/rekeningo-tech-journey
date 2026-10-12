@@ -622,7 +622,7 @@
   "judul": "1.40 Sengaja belum dilakukan",
   "url": "tahap-1/sengaja-belum/",
   "tanya": "Di rekaman dua request bersamaan, apa yang menahan saldo Budi supaya tidak negatif: pemeriksaan di service, transaction, atau constraint?",
-  "jawab": "Constraint `saldo_tidak_negatif`. Pemeriksaan di service lolos untuk keduanya, karena keduanya membaca Rp250.000. Transaction membuat request yang ditolak batal seluruhnya, jadi saldo Warung Ani hanya bertambah Rp200.000 sekali (rekaman bagian C)."
+  "jawab": "Constraint `saldo_tidak_negatif`. Pemeriksaan di service lolos untuk keduanya, karena keduanya membaca Rp250.000. Transaction tidak menahan apa pun di sini: langkah pertamanya adalah UPDATE saldo Budi, jadi request kedua berhenti sebelum saldo Warung Ani disentuh (rekaman bagian C)."
  },
  {
   "id": "t1-adr-12-3",

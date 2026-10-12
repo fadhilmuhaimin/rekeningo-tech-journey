@@ -93,7 +93,7 @@ Di antara membaca dan menulis, tidak ada yang mencegah request lain membaca angk
 
 <Blok nama="Coba keduanya">
 
-Selama 6 minggu uji coba, dua hal tidak pernah diuji ([[t1-m8]]): dua request yang datang hampir bersamaan, dan Bayar yang diulang Budi sesudah app menampilkan gagal. Rekaman ini menjalankan keduanya di server v1. Tebak dulu, lalu ikuti langkahnya.
+Selama 6 minggu uji coba, dua hal tidak pernah diuji ([[t1-m8]]). Keduanya adalah dua request yang datang hampir bersamaan dan Bayar yang diulang Budi sesudah app menampilkan gagal. Rekaman ini menjalankan keduanya di server v1. Tebak dulu, lalu ikuti langkahnya.
 
 <WidgetLama nama="alur" src="data/skenario/t1-sengaja-belum.json" />
 
@@ -139,7 +139,7 @@ Puncak Tahap 1 ±0,14 request per detik, dan data transaksi setahun ±6,6 MB, ke
 <details class="success">
 <summary>Jawaban</summary>
 
-Constraint `saldo_tidak_negatif`. Pemeriksaan di service lolos untuk keduanya, karena keduanya membaca Rp250.000. Transaction membuat request yang ditolak batal seluruhnya, jadi saldo Warung Ani hanya bertambah Rp200.000 sekali (rekaman bagian C).
+Constraint `saldo_tidak_negatif`. Pemeriksaan di service lolos untuk keduanya, karena keduanya membaca Rp250.000. Transaction tidak menahan apa pun di sini: langkah pertamanya adalah UPDATE saldo Budi, jadi request kedua berhenti sebelum saldo Warung Ani disentuh (rekaman bagian C).
 
 </details>
 
