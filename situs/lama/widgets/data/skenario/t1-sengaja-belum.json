@@ -1,0 +1,158 @@
+{
+  "versi": 2,
+  "judul": "Dua hal yang tidak pernah diuji selama uji coba",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/api-t1/output/sengaja-belum.txt",
+    "catatan": "Server Go (labs/api-t1, kode v1 sebelum expand) + PostgreSQL 17 dari database bersih. Lab menahan baris Budi dari sesi psql lain supaya kedua request pasti membaca saldo sebelum salah satunya menulis. Ubah satu hal: request kedua datang sesudah yang pertama selesai, karena Budi mengulang Bayar (bagian D dan E)."
+  },
+  "pengantar": "Ikuti dua request Bayar dari akun Budi yang tiba hampir bersamaan. Sesudah itu centang 'Ubah satu hal' dan lihat Bayar yang diulang Budi sesudah app menampilkan gagal.",
+  "komponen": [
+    { "id": "budi", "label": "HP Budi" },
+    { "id": "api", "label": "API · service" },
+    { "id": "db", "label": "PostgreSQL" }
+  ],
+  "perangkat": [
+    { "id": "hp-budi", "label": "HP Budi" }
+  ],
+  "layarAwal": {
+    "hp-budi": {
+      "judul": "Saldo",
+      "waktu": "–",
+      "isi": [
+        { "jenis": "baris", "kiri": "Saldo", "kanan": "Rp250.000" }
+      ]
+    }
+  },
+  "predict": {
+    "q": "Saldo Budi Rp250.000. Dua request Bayar Rp200.000 dari akun Budi tiba hampir bersamaan, dan keduanya membaca saldo sebelum salah satunya menulis. Apa hasilnya?",
+    "options": [
+      "Keduanya 201, saldo Budi minus Rp150.000",
+      "Satu 201, satu 422 \"saldo tidak cukup\"",
+      "Satu 201, satu 500, saldo Budi Rp50.000",
+      "Keduanya ditolak, saldo tetap Rp250.000"
+    ],
+    "answer": 2,
+    "varian": false,
+    "explain": "Rekaman bagian B dan C. Pemeriksaan saldo di service lolos untuk keduanya, karena keduanya membaca Rp250.000. Constraint saldo_tidak_negatif menolak UPDATE kedua, dan handler menjawab 500 karena tidak mengenal error itu."
+  },
+  "langkah": [
+    {
+      "dari": "budi",
+      "ke": "api",
+      "judul": "Dua request Bayar tiba hampir bersamaan",
+      "kirim": "POST /transfers {\"ke\": 418, \"jumlah\": 200000}\nPOST /transfers {\"ke\": 418, \"jumlah\": 200000}",
+      "jelas": "Rekaman bagian B. Tanpa penahan dari lab, urutan ini bisa terjadi, bisa tidak, tergantung selisih waktu kedua request."
+    },
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Keduanya lolos pemeriksaan saldo",
+      "kirim": "SELECT count(*) FROM pg_stat_activity\n  WHERE application_name = 'api-t1'\n  AND wait_event_type = 'Lock'\n→ 2",
+      "jelas": "Rekaman bagian B. Kedua request sudah menunggu di UPDATE saldo, jadi keduanya lolos pemeriksaan di service. Keduanya membaca Rp250.000 sebelum ada yang menulis.",
+      "nada": "warn"
+    },
+    {
+      "dari": "db",
+      "ke": "api",
+      "judul": "Request pertama berhasil",
+      "kirim": "UPDATE akun SET saldo = saldo - 200000 WHERE id = 419\nCOMMIT\n201 · {\"id\":1,\"saldo\":50000}",
+      "jelas": "Rekaman bagian B; teks UPDATE diambil dari repo/transaksi.go. Request yang lebih dulu mendapat baris Budi menyelesaikan transaction-nya.",
+      "nada": "good",
+      "layar": {
+        "hp-budi": {
+          "judul": "Saldo",
+          "waktu": "–",
+          "isi": [
+            { "jenis": "baris", "kiri": "Saldo", "kanan": "Rp50.000" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "db",
+      "ke": "api",
+      "judul": "Request kedua ditolak database",
+      "kirim": "50000 - 200000 = -150000\nERROR: new row for relation \"akun\" violates\n  check constraint \"saldo_tidak_negatif\"\n500 · Terjadi kesalahan di server",
+      "jelas": "Rekaman bagian B dan log server. Constraint dari ADR 2 menolak saldo negatif, dan transaction kedua batal seluruhnya. Budi melihat 500, bukan \"saldo tidak cukup\".",
+      "nada": "warn",
+      "layar": {
+        "hp-budi": {
+          "judul": "Saldo",
+          "waktu": "–",
+          "nada": "warn",
+          "isi": [
+            { "jenis": "baris", "kiri": "Saldo", "kanan": "Rp50.000" },
+            { "jenis": "toast", "teks": "Terjadi kesalahan di server", "nada": "warn" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "db",
+      "ke": "api",
+      "judul": "Total uang tetap benar",
+      "kirim": "total_saldo 25000000 · total_topup 25000000\ntransaksi 1 · saldo Warung Ani 200000",
+      "jelas": "Rekaman bagian C. Uang tidak hilang, karena database menjaga pagar terakhir. Pemeriksaan saldo di service tidak menahan apa pun di sini.",
+      "nada": "good"
+    }
+  ],
+  "varian": {
+    "label": "request kedua datang sesudah yang pertama selesai",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "budi",
+        "ke": "api",
+        "judul": "Budi menekan Bayar Rp25.000 sekali",
+        "kirim": "POST /transfers {\"ke\": 418, \"jumlah\": 25000}\n201 · {\"id\":2,\"saldo\":25000}",
+        "jelas": "Rekaman bagian D. Saldo Budi Rp50.000 sesudah bagian C. Server mencatat pembayaran dan menjawab 201.",
+        "nada": "good"
+      },
+      {
+        "dari": "api",
+        "ke": "budi",
+        "judul": "Response tidak sampai ke HP",
+        "kirim": "201 · {\"id\":2,\"saldo\":25000}   # sinyal putus",
+        "jelas": "Rekaman bagian D. App tidak tahu pembayaran sudah tercatat, jadi ia menampilkan gagal.",
+        "nada": "warn",
+        "layar": {
+          "hp-budi": {
+            "judul": "Bayar ke Warung Ani",
+            "waktu": "–",
+            "nada": "warn",
+            "isi": [
+              { "jenis": "baris", "kiri": "Nominal", "kanan": "Rp25.000" },
+              { "jenis": "toast", "teks": "Pembayaran gagal", "nada": "warn" }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "budi",
+        "ke": "api",
+        "judul": "Budi menekan Bayar lagi",
+        "kirim": "POST /transfers {\"ke\": 418, \"jumlah\": 25000}\n201 · {\"id\":3,\"saldo\":0}",
+        "jelas": "Rekaman bagian D. Bagi server, ini pembayaran baru yang sah. Tidak ada yang membedakan request ulang dari pembayaran kedua.",
+        "nada": "warn",
+        "layar": {
+          "hp-budi": {
+            "judul": "Saldo",
+            "waktu": "–",
+            "isi": [
+              { "jenis": "baris", "kiri": "Saldo", "kanan": "Rp0" }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "db",
+        "ke": "api",
+        "judul": "Dua baris Rp25.000, total tetap seimbang",
+        "kirim": "transaksi 2 · 419 → 418 · 25000\ntransaksi 3 · 419 → 418 · 25000\ntotal_saldo 25000000 · total_topup 25000000",
+        "jelas": "Rekaman bagian E. Total saldo tetap sama dengan total top-up. Yang salah adalah niat Budi: ia membayar sekali, server mencatat dua kali.",
+        "nada": "warn"
+      }
+    ]
+  }
+}
