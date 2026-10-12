@@ -1,0 +1,35 @@
+{
+  "id": "t1-validasi-format",
+  "judul": "Tiga lapisan menolak, satu format jawaban",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab api-t1 · m2.txt, m1.txt" },
+  "baris": [
+    {
+      "label": "Handler",
+      "sub": "field ke berupa teks",
+      "simpul": [
+        { "teks": "\"ke\": \"418\"", "kode": true },
+        { "teks": "400 Bad Request", "kode": true, "nada": "system" },
+        { "teks": "/problems/json-rusak", "kode": true, "sub": "tanpa nama field, minggu 1", "nada": "old" }
+      ]
+    },
+    {
+      "label": "Service",
+      "sub": "nominal minus",
+      "simpul": [
+        { "teks": "\"jumlah\": -5000", "kode": true },
+        { "teks": "422 Unprocessable Entity", "kode": true, "nada": "system" },
+        { "teks": "/problems/validasi", "kode": true, "sub": "errors menyebut field jumlah", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Database",
+      "sub": "service tanpa pemeriksaan",
+      "simpul": [
+        { "teks": "\"jumlah\": -5000", "kode": true },
+        { "teks": "500 Internal Server Error", "kode": true, "sub": "constraint saldo_tidak_negatif", "nada": "warn" },
+        { "teks": "/problems/internal", "kode": true, "sub": "pesan constraint hanya di log", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "App memilih pesan dari type dan errors. Title dan detail ditulis untuk manusia."
+}
