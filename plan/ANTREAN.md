@@ -479,11 +479,20 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### G2 · Waktu gerbang CI di bawah batas
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: job situs CI selesai jauh di bawah `timeout-minutes` (target ≤ 12 menit dari ±15 menit sekarang, batas 20): mis. job dipecah jadi build + artefak `dist` lalu job matriks paralel untuk alat ukur Playwright, atau konteks ukuran×mode dijalankan paralel di `layar.mjs`, `ukur-cls.mjs`, `ukur-gerak.mjs` seperti `ukur-kontras.mjs` (keputusan 354); hasil alat sama persis sebelum/sesudah; durasi sebelum/sesudah dicatat.
-- catatan: Dari PR #189: job situs 14m51–15m07 di main/PR (layar pertama + tangkapan sampai CLS ±10m20, CLS alur ±3m24); PR #189 terpotong di 15 menit sebelum batas dinaikkan. Jalur teknis.
+- catatan: Dari PR #189: job situs 14m51–15m07 di main/PR (layar pertama + tangkapan sampai CLS ±10m20, CLS alur ±3m24); PR #189 terpotong di 15 menit sebelum batas dinaikkan. Jalur teknis. Selesai: keputusan 357, PR #198 (job situs 15m11 → workflow ±6m30; langkah dibungkus timeout supaya macet = failure, bukan cancelled).
+
+### G2a · Batas waktu per halaman di alat ukur
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: G2
+- selesai bila: `situs/tools/ukur-luapan.mjs` dan alat lain yang memakai `page.evaluate` tanpa batas (cari dengan grep) punya batas waktu per halaman (mis. `Promise.race` dengan timer, atau `waitForFunction` dengan `timeout`), gagal cepat dengan nama halaman dan ukuran; penyebab macet ±8 menit di run 38227021065 percobaan 1 dicari (mis. `document.fonts.ready` atau rAF di tab latar) dan dicatat; langkah pasang (bun install, Chromium Playwright) di `cek.yml` juga dibungkus `timeout` supaya macet di sana berakhir `failure`, bukan `cancelled`.
+- catatan: Dari pelaksana dan peninjau PR #198 (keputusan 357). `gh pr checks` v2.93.0 tidak menghitung `cancelled` sebagai gagal. Jalur teknis.
 
 ### K2c · Kolom tabel KEPUTUSAN
 
