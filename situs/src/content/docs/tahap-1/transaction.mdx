@@ -5,6 +5,7 @@ description: Transaction menjadikan beberapa perintah database satu unit. Berhas
 import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
 import commitRollback from "../../../../data/diagram/t1-transaction-commit-rollback.json";
+import pengirimRollback from "../../../../data/diagram/t1-transaction-pengirim-rollback.json";
 import Snippet from "../../../components/Snippet.astro";
 import TabSet from "../../../components/TabSet.astro";
 import WidgetLama from "../../../components/WidgetLama.astro";
@@ -23,11 +24,6 @@ Transaction menjadikan beberapa perintah database satu unit: berhasil semua, ata
 Setelah `begin`, setiap perintah mengubah data, tapi perubahannya belum permanen. Pembayaran Rp25.000 menjalankan dua `UPDATE` dan satu `INSERT`, lalu `commit` menyimpan ketiganya sekaligus. App menerima `201`, saldo Budi Rp225.000, dan saldo Ani Rp25.000.
 
 Pembayaran Rp70.000 di versi benar M4 berhenti di `UPDATE` kedua karena batas saldo warung. Server mengirim `rollback`, dan `UPDATE` pertama ikut batal. Saldo Budi tetap Rp250.000, dan total saldo tetap Rp25.000.000.
-
-<figure>
-<Snippet file="labs/api-t1/output/m4.txt" lines="76:79" />
-<figcaption>Rekaman lab M4, versi benar: yang diterima PostgreSQL.</figcaption>
-</figure>
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -148,9 +144,18 @@ Kalau kamu pernah memakai `database.transaction((txn) async { ... })` di [sqflit
 
 Sifat "semua atau tidak sama sekali" ini disebut **atomicity**, huruf A di ACID. Dokumentasi PostgreSQL mendefinisikannya begini: dari sudut pandang transaction lain, sebuah transaction terjadi seluruhnya atau tidak sama sekali ([PostgreSQL: Transactions](https://www.postgresql.org/docs/current/tutorial-transactions.html)).
 
-Satu hal yang sering terlewat: database tidak menutup transaction sendiri saat satu perintah gagal. Aplikasi yang harus mengakhirinya. Di rekaman Inti, `rollback` dikirim oleh `defer tx.Rollback()` di kode Go, bukan oleh PostgreSQL.
+Satu hal yang sering terlewat: database tidak menutup transaction sendiri saat satu perintah gagal. Aplikasi yang harus mengakhirinya. Di rekaman M4 versi benar, `rollback` dikirim oleh `defer tx.Rollback()` di kode Go, bukan oleh PostgreSQL:
+
+<figure>
+<Snippet file="labs/api-t1/output/m4.txt" lines="76:79" />
+<figcaption>Rekaman lab M4, versi benar: yang diterima PostgreSQL.</figcaption>
+</figure>
 
 Untuk satu perintah SQL saja, `BEGIN` tidak diperlukan. PostgreSQL membungkus setiap perintah dengan transaction implisit (sumber yang sama). Di M4, setiap `UPDATE` memang atomic sendiri-sendiri; yang tidak atomic adalah gabungan ketiganya.
+
+Tiga rekaman dengan `UPDATE` yang ditolak constraint menunjukkan siapa yang mengakhiri transaction-nya:
+
+<Rantai data={pengirimRollback} />
 
 Di lab `api-t1`, transaction untuk satu pembayaran dibuka di service, lewat `DalamTx` dari repo:
 

@@ -1,0 +1,76 @@
+{
+  "id": "t1-transaction-pengirim-rollback",
+  "judul": "Siapa mengakhiri transaction yang gagal",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t1 · m4.txt; b3-stack · laravel-transfer.txt, supabase-transfer.txt"
+  },
+  "baris": [
+    {
+      "label": "Go, lab api-t1",
+      "sub": "DalamTx di repo",
+      "simpul": [
+        {
+          "teks": "begin",
+          "kode": true,
+          "sub": "dikirim db.BeginTx di DalamTx"
+        },
+        {
+          "teks": "UPDATE ditolak",
+          "sub": "batas_saldo_warung",
+          "nada": "warn"
+        },
+        {
+          "teks": "rollback",
+          "kode": true,
+          "sub": "dikirim defer tx.Rollback() di kode lab",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Laravel",
+      "sub": "$db->transaction(closure)",
+      "simpul": [
+        {
+          "teks": "BEGIN",
+          "kode": true,
+          "sub": "dikirim framework"
+        },
+        {
+          "teks": "UPDATE ditolak",
+          "sub": "akun_check",
+          "nada": "warn"
+        },
+        {
+          "teks": "ROLLBACK",
+          "kode": true,
+          "sub": "dikirim framework saat closure melempar exception",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Supabase",
+      "sub": "fungsi SQL transfer, satu perintah",
+      "simpul": [
+        {
+          "teks": "select transfer(...)",
+          "kode": true,
+          "sub": "tanpa BEGIN: transaction implisit"
+        },
+        {
+          "teks": "UPDATE ditolak",
+          "sub": "akun_check, di dalam fungsi",
+          "nada": "warn"
+        },
+        {
+          "teks": "seluruh fungsi batal",
+          "sub": "tidak ada ROLLBACK di log; saldo Budi tetap",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Di dua baris pertama, ROLLBACK datang dari kode aplikasi. Di baris ketiga, perintahnya hanya satu, jadi PostgreSQL membatalkan transaction implisitnya."
+}
