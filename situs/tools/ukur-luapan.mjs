@@ -12,6 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
+import { denganBatas, Macet } from "./lib/batas.mjs";
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const BASE = arg("--url", "http://127.0.0.1:4321");
@@ -34,19 +35,27 @@ function halaman() {
   return out.sort();
 }
 
-// Dijalankan di halaman: buka semua blok, gulir sampai bawah, lalu ukur.
+// Dijalankan di halaman: buka semua blok, gulir sampai bawah, lalu ukur. window.__tahap mencatat penantian yang
+// sedang berjalan, dibaca diagnosa() bila halaman melewati batas waktu (keputusan 360).
 async function ukur() {
+  const tahap = (t) => { window.__tahap = t; };
   const rAF = () => new Promise((r) => requestAnimationFrame(() => r()));
+  tahap("document.fonts.ready");
   await document.fonts.ready;
   for (const d of document.querySelectorAll("details")) d.open = true;
+  tahap("rAF sesudah membuka details");
   await rAF();
   for (let y = 0; y < document.documentElement.scrollHeight; y += innerHeight) {
     window.scrollTo(0, y);
+    tahap(`rAF sesudah gulir ke ${y}`);
     await rAF();
   }
   window.scrollTo(0, 0);
+  tahap("setTimeout 250 ms");
   await new Promise((r) => setTimeout(r, 250));
+  tahap("rAF terakhir");
   await rAF();
+  tahap("mengukur");
   const root = document.documentElement;
   const vw = root.clientWidth;
   const nama = (el) => {
@@ -93,6 +102,16 @@ async function ukur() {
   return hasil;
 }
 
+// Dijalankan di halaman yang melewati batas: penantian mana yang belum selesai dan keadaan yang bisa menahannya.
+async function diagnosa() {
+  const lewat = (ms, teks) => new Promise((r) => setTimeout(() => r(teks), ms));
+  const rAF = await Promise.race([new Promise((r) => requestAnimationFrame(() => r("jalan"))), lewat(1000, "tidak dijadwalkan dalam 1 s")]);
+  const muat = [...document.fonts].filter((f) => f.status === "loading").map((f) => `${f.family} ${f.weight} ${f.style}`);
+  return `tahap "${window.__tahap ?? "belum mulai"}", visibilityState ${document.visibilityState}, hasFocus ${document.hasFocus()}, `
+    + `fonts ${document.fonts.status}${muat.length ? ` (memuat ${muat.join(", ")})` : ""}, rAF ${rAF}, `
+    + `scrollY ${Math.round(scrollY)} dari scrollHeight ${document.documentElement.scrollHeight}, innerHeight ${innerHeight}`;
+}
+
 const t0 = Date.now();
 const daftar = satu ? [satu] : halaman();
 const browser = await chromium.launch();
@@ -105,8 +124,17 @@ await Promise.all(UKURAN.map(async (u) => {
   await Promise.all(Array.from({ length: PARALEL }, async () => {
     const page = await ctx.newPage();
     for (let p = antre.shift(); p !== undefined; p = antre.shift()) {
-      await page.goto(BASE + p, { waitUntil: "load" });
-      const h = await page.evaluate(ukur);
+      // Batas per halaman: page.evaluate tidak punya timeout sendiri. Halaman yang macet menghentikan alat dengan
+      // nama halaman, ukuran, dan hasil diagnosa, exit 1, sebelum timeout langkah CI (keputusan 360).
+      let h;
+      try {
+        h = await denganBatas(async () => { await page.goto(BASE + p, { waitUntil: "load" }); return page.evaluate(ukur); },
+          `luapan ${u.nama} ${p}`, { diagnosa: () => page.evaluate(diagnosa) });
+      } catch (e) {
+        if (!(e instanceof Macet)) throw e;
+        console.log(e.message);
+        process.exit(1);
+      }
       const masalah = [];
       if (h.sw > h.vw) masalah.push(`scrollWidth ${h.sw} > viewport ${h.vw}${h.penyebab.length ? ": " + h.penyebab.join("; ") : ""}`);
       for (const c of h.chip) {
