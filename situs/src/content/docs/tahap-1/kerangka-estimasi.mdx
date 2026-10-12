@@ -1,0 +1,184 @@
+---
+title: "1.38 Kerangka berpikir dan estimasi"
+description: Desain dimulai dari kebutuhan dan angka, bukan dari teknologi. Lima langkah dari PRD ke desain, rumus estimasi beban, dan kalkulator yang sama untuk kelima tahap Rekeningo.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import langkah from "../../../../data/diagram/t1-estimasi-langkah.json";
+import Kalkulator from "../../../widgets/kalkulator/Kalkulator.tsx";
+import dataKalkulator from "../../../../data/widget/t1-estimasi-kalkulator.json";
+import cerita from "../../../../data/cerita.json";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t1-m8]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Desain dimulai dari kebutuhan dan angka beban, bukan dari daftar teknologi. Estimasi memberi besaran beban, bukan kapasitas server.
+
+<Rantai data={langkah} ringkas />
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. 12.000 request per hari, faktor puncak 10. Berapa request per detik di jam paling ramai?
+2. Faktor puncak 24 berarti apa tentang request dalam sehari?
+3. Bisakah estimasi menjawab "butuh berapa server"?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: puncak beban dihitung dari user, rasio aktif, request per user, dan faktor puncak, dan satu juta user tidak berarti satu juta request per detik.">
+
+Rumusnya sama dengan [[t1-m8]], sekarang untuk kelima tahap. Tebak dulu, lalu pilih tahap dan lihat baris mana yang berubah.
+
+<Kalkulator client:visible data={dataKalkulator} asumsi={cerita.tahap.map((t) => t.asumsi)} />
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Di [[t1-m8]], PRD v2 membuat Raka langsung menulis tiga rencana: VPS lebih besar, server kedua, dan load balancer. Ketiganya menjawab pertanyaan kapasitas, padahal bebannya belum dihitung.
+
+Hitungan memberi ±1,4 request per detik untuk PRD v2. Tujuh masalah Tahap 1 (M1–M7) juga tidak satu pun soal kapasitas. Semuanya soal data yang salah, akses yang salah, rilis, dan secret.
+
+Kerangka berpikir memberi urutan supaya pertanyaan kapasitas datang sesudah angka, bukan sebelumnya. Tanpa urutan itu, desain mengikuti artikel yang terakhir dibaca.
+
+### Cara kerjanya
+
+**Lima langkah**, dipakai lagi di setiap tahap:
+
+| Langkah | Pertanyaan | Contoh PRD v1 |
+|---|---|---|
+| 1. Kebutuhan | Apa yang harus bisa dilakukan, dan sifat apa yang harus dijaga? | Top-up, bayar, riwayat; uang tidak boleh hilang |
+| 2. Estimasi | Berapa besar bebannya, kira-kira? | ±0,14 request per detik di puncak |
+| 3. Bottleneck | Apa yang paling mungkin rusak lebih dulu? | Kebenaran data, bukan kapasitas |
+| 4. Desain | Apa yang paling sederhana yang menjawab langkah 1–3? | Satu API, satu PostgreSQL, satu VPS |
+| 5. Trade-off | Apa yang sengaja belum dilakukan, dan kapan dipertimbangkan lagi? | Belum ada cache, queue, server kedua ([[t1-adr-12]]) |
+
+**Rumus estimasi.** Semua angka di bawah adalah asumsi naskah dari `cerita.json` (`tahap[].asumsi`), bukan hasil pengukuran.
+
+```text
+user aktif per hari = user terdaftar × rasio aktif harian
+request per hari    = user aktif per hari × request per user aktif
+rata-rata per detik = request per hari ÷ 86.400 detik
+puncak per detik    = rata-rata per detik × faktor puncak
+data per tahun      = user aktif per hari × transaksi per user × 365 × ukuran per baris
+```
+
+| Besaran | Nilai | Cara hitung (semua asumsi) |
+|---|---|---|
+| Puncak request per detik (Tahap 1) | ±0,14 | 100 × 30% × 40 ÷ 86.400 × 10 |
+| Puncak request per detik (Tahap 2) | ±1,4 | 1.000 × 30% × 40 ÷ 86.400 × 10 |
+| Puncak request per detik (Tahap 3) | ±17 | 10.000 × 25% × 60 ÷ 86.400 × 10 |
+| Puncak request per detik (Tahap 4) | ±140 | 100.000 × 20% × 60 ÷ 86.400 × 10 |
+| Puncak request per detik (Tahap 5) | ±1.400 | 1.000.000 × 20% × 60 ÷ 86.400 × 10 |
+| Data transaksi per tahun (Tahap 1) | ±6,6 MB | 30 × 2 transaksi × 365 × 300 byte |
+| Data transaksi per tahun (Tahap 3) | ±550 MB | 2.500 × 2 transaksi × 365 × 300 byte |
+| Data transaksi per tahun (Tahap 5) | ±44 GB | 200.000 × 2 transaksi × 365 × 300 byte |
+
+Angka di tabel ini diperiksa terhadap `cerita.json` setiap kali situs dibangun. Kalkulator di blok Coba membaca asumsi yang sama.
+
+**Rata-rata dan puncak.** Rata-rata membagi request sehari ke 86.400 detik, padahal beban tidak rata sepanjang hari. Faktor puncak membandingkan jam paling ramai dengan rata-rata harian. Faktor 10 berarti jam paling ramai memuat 10 ÷ 24, atau ±42%, dari request sehari.
+
+**Batas faktor puncak.** Faktor 1 berarti beban rata dari pukul 00.00 sampai 24.00. Faktor 24 berarti semua request sehari masuk di satu jam, seperti skenario "Satu jam" di [[t1-m8]]. Kalau semua request sehari masuk dalam 10 menit, faktornya 86.400 ÷ 600 = 144.
+
+**Faktor puncak adalah asumsi.** Angka 10 berasal dari naskah, bukan dari log. Begitu ada log akses, angka itu diganti: hitung request di jam tersibuk, bagi 3.600, lalu bagi dengan rata-rata harian.
+
+**Back-of-the-envelope.** Estimasi kasar mencari besaran, bukan angka tepat, jadi dua angka penting sudah cukup. Pertanyaan yang berguna: apakah keputusan berubah kalau angkanya dua kali atau sepuluh kali lebih besar? Puncak Tahap 1 dikali sepuluh tetap ±1,4 request per detik.
+
+Kalau kamu pernah memperkirakan ukuran cache gambar di app dari jumlah gambar × ukuran rata-rata, caranya sama. Kalikan besaran yang diketahui, lalu lihat ordenya.
+
+**Dua cara membaca angka.** Pertama, cari lompatan besaran. Dari Tahap 1 ke Tahap 3, puncak naik ±125 kali, tapi tetap di bawah 20 request per detik.
+
+Kedua, gabungkan dengan lama kerja tiap request lewat Little's Law (L = λ × W, [[B2.5]]). Ilustrasi, bukan rekaman lab: kalau 17 request per detik masing-masing menahan koneksi database 2 detik, butuh ±34 koneksi sekaligus. Kalau tiap request hanya 20 ms, cukup ±0,34 koneksi rata-rata.
+
+**Yang tidak dijawab estimasi.** Estimasi tidak menyebut berapa request per detik yang sanggup dilayani satu server. Angka itu bergantung pada query, data, dan mesinnya, jadi hanya load test di sistem sendiri yang bisa menjawabnya. Panduan SRE Google juga menyebut request per detik ukuran kapasitas yang buruk, karena biaya tiap request berbeda dan berubah ([Handling Overload](https://sre.google/sre-book/handling-overload/)).
+
+### Di stack lain
+
+Kerangka ini tidak bergantung pada stack. Yang berbeda hanya alat untuk mengganti angka asumsi dengan angka nyata:
+
+| Stack | Alat untuk mendapatkan angka nyata |
+|---|---|
+| Semua | Log akses dan metric request per detik ([[C2]]) |
+| Semua | Load test, mis. [k6](https://grafana.com/docs/k6/latest/), terhadap salinan sistem |
+| PostgreSQL | `EXPLAIN ANALYZE` untuk lama tiap query ([[B2.3]]) |
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Pendekatan | Kelebihan | Kekurangan |
+|---|---|---|
+| Desain dari daftar teknologi populer | Terasa "siap skala" | Biaya belajar dan operasional untuk masalah yang belum ada |
+| Desain dari kebutuhan + estimasi | Sederhana, alasannya bisa dijelaskan | Harus diulang saat angka berubah, yaitu di setiap tahap |
+| Tanpa estimasi sama sekali | Cepat mulai | Tidak tahu kapan desain harus berubah |
+
+### Lima langkah untuk PRD v2
+
+| Langkah | Jawaban sementara |
+|---|---|
+| 1. Kebutuhan | Transfer antar karyawan, tutup buku otomatis; setiap rupiah tertelusur |
+| 2. Estimasi | ±1,4 request per detik di puncak (asumsi Tahap 2) |
+| 3. Bottleneck | Dua request yang datang hampir bersamaan, dan Bayar yang ditekan dua kali ([[t1-m8]]) |
+| 4. Desain | Dijawab di Tahap 2, mulai dari [[B3.2]] |
+| 5. Trade-off | Yang ditunda di Tahap 1 tertulis di [[t1-adr-12]] |
+
+Langkah 3 menunjuk masalah kebenaran data, bukan kapasitas. Karena itu Tahap 2 dimulai dari saldo dan dobel bayar, bukan dari server kedua.
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Tahap 3 punya 10.000 user, 25% aktif, 60 request per user aktif, faktor puncak 10. Hitung puncak request per detik.
+
+<details class="success">
+<summary>Jawaban</summary>
+
+User aktif per hari = 10.000 × 25% = 2.500. Request per hari = 2.500 × 60 = 150.000. Rata-rata = 150.000 ÷ 86.400 ≈ 1,7 per detik. Puncak ≈ 17 per detik.
+
+</details>
+
+**2.** Jelaskan kenapa angka puncak request per detik saja tidak cukup untuk memutuskan perlu menambah server.
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Beban juga bergantung pada lama kerja setiap request dan sumber daya yang dipegangnya, mis. koneksi database. 17 request per detik bisa ringan atau berat, tergantung apakah tiap request menahan koneksi 20 ms atau 2 detik. Kapasitas server hanya bisa diketahui lewat pengukuran.
+
+</details>
+
+**3.** Sinta meminta "sistem harus bisa menangani sejuta user". Apa pertanyaan pertamamu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Kapan, dan berapa yang aktif bersamaan? Sejuta user terdaftar dengan 20% aktif harian berbeda jauh dari sejuta user yang menekan Bayar di detik yang sama. Pertanyaan itu mengubah permintaan jadi angka yang bisa dihitung, lalu diputuskan per tahap.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Desain yang diusulkan AI menyebut kebutuhan dan angka beban yang dijawabnya.
+- [ ] Setiap komponen tambahan (cache, queue, service baru) punya masalah nyata yang dijawabnya hari ini.
+- [ ] Angka kapasitas yang disebut AI punya sumber pengukuran, bukan tebakan.
+- [ ] Ada daftar "sengaja belum dilakukan" beserta sinyal kapan dipertimbangkan lagi.
+
+### Bacaan lanjut
+
+- Kleppmann & Riccomini, *Designing Data-Intensive Applications*, edisi 2 (O'Reilly, 2026), bab 1–2
+- [Google SRE book: Handling Overload](https://sre.google/sre-book/handling-overload/), bagian "The Pitfalls of Queries per Second"
+- [Little 1961, Operations Research 9(3)](https://doi.org/10.1287/opre.9.3.383)
+
+</Blok>
