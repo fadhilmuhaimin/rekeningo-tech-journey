@@ -10,6 +10,7 @@
 //   node tools/ukur-gerak.mjs --url ... --axe /path/axe.min.js   # + axe-core di halaman uji, gelap dan terang
 import { readFileSync, readdirSync } from "node:fs";
 import { chromium } from "@playwright/test";
+import { awasi } from "./lib/batas.mjs";
 
 const arg = (nama, bawaan) => {
   const i = process.argv.indexOf(nama);
@@ -56,7 +57,7 @@ async function ukur(page) {
 
 const diam = (s) => s.opacity === 1 && (s.transform === "none" || s.transform === "matrix(1, 0, 0, 1, 0, 0)");
 
-const browser = await chromium.launch();
+const browser = awasi(await chromium.launch(), { alat: "gerak" }); // batas waktu per halaman (keputusan 360)
 let gagal = 0;
 for (const reducedMotion of ["no-preference", "reduce"]) {
   const page = await browser.newPage({ viewport: { width: 375, height: 667 }, reducedMotion });
