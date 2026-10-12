@@ -748,6 +748,8 @@ body:has(.beranda) .content-panel { padding-block: 0.6rem; border-top: 0; }
 .peran__saran ol { margin: 0; padding-left: 1.4rem; display: grid; gap: 0.5rem; }
 .peran__saran li { color: var(--teks-2); }
 .peran__saran a { color: var(--aksen); font-weight: 600; }
+.peran__catatan { margin: 0 0 0.75rem; color: var(--teks-2); }
+.peran__catatan a { text-decoration: underline; text-underline-offset: 0.15em; }
 /* Pencarian masalah */
 .masalah__cari { width: 100%; max-width: 36rem; font: inherit; font-size: 1.1rem; padding: 0.7rem 0.9rem; border-radius: 8px; border: 1px solid var(--garis-2); background: var(--bg-2); color: var(--teks); }
 .masalah__saran { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin: 0.7rem 0 0; color: var(--teks-2); }
