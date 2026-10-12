@@ -125,7 +125,7 @@ Status untuk saldo kurang (`400`, `409`, atau `422`) adalah keputusan tersendiri
 <details class="success">
 <summary>Jawaban</summary>
 
-Handler yang menolaknya, karena ini soal format data: server mengharapkan angka. App menerima status `400 Bad Request`, dan saldo Budi tidak berubah (rekaman lab `labs/api-t1/output/m2.txt`). Logika bisnis tidak perlu dijalankan sama sekali.
+Handler yang menolaknya, karena ini soal format data: server mengharapkan angka. App menerima status `400 Bad Request` dengan `tipe-salah` untuk field `ke` (rekaman lab `labs/api-t1/output/m2.txt` bagian E). Logika bisnis tidak dijalankan sama sekali, jadi saldo Budi tidak berubah.
 
 </details>
 

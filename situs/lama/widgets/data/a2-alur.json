@@ -87,7 +87,7 @@
       "dari": 1,
       "lapisan": "logika bisnis",
       "judul": "Logika bisnis menerapkan aturan Rekeningo",
-      "kirim": "jumlah 25000 masuk akal     ✓\nakun 418 adalah warung      ✓\nsaldo Budi 250000 ≥ 25000   ✓ (dibaca dari database)",
+      "kirim": "0 < 25000 ≤ 200000          ✓\nakun 418 adalah warung      ✓\nsaldo Budi 250000 ≥ 25000   ✓ (dibaca dari database)",
       "jelas": "Lapisan ini tidak tahu soal HTTP atau JSON. Ia hanya tahu aturan Rekeningo, jadi aturannya bisa dites tanpa menyalakan server. Kalau aturan dilanggar, misalnya saldo kurang, perjalanan berhenti di sini dan app menerima 422 dengan pesan yang bisa ditampilkan."
     },
     {
@@ -96,7 +96,7 @@
       "lapisan": "akses data",
       "judul": "Akses data mengirim SQL ke PostgreSQL",
       "kirim": "begin\nUPDATE akun SET saldo = saldo - $1 WHERE id = $2 RETURNING saldo\nUPDATE akun SET saldo = saldo + $1 WHERE id = $2\nINSERT INTO transaksi (dari, ke, jumlah) VALUES ($1, $2, $3) RETURNING id\ncommit",
-      "jelas": "Tiga perubahan dibungkus satu transaction: semua tersimpan, atau tidak ada yang tersimpan. Angkanya dikirim terpisah dari teks SQL sebagai $1, $2, $3: jumlah 25000, akun 419 (Budi), dan akun 418 (Warung Ani). Kalau query gagal tanpa diduga, misalnya database tidak terjangkau, app menerima 500. Apa yang terjadi tanpa transaction dibahas di [[B3.1]]."
+      "jelas": "Tiga perubahan dibungkus satu transaction: semua tersimpan, atau tidak ada yang tersimpan ([[B3.1]] membahas yang terjadi tanpanya). Nilainya (jumlah 25000, akun 419 milik Budi, akun 418 milik Warung Ani) dikirim terpisah dari teks SQL. Tanda $1, $2, $3 hanya penanda tempat, dan isinya berbeda di tiap statement. Kalau query gagal tanpa diduga, misalnya database tidak terjangkau, app menerima 500."
     },
     {
       "dari": 2,
