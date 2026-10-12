@@ -1954,7 +1954,7 @@ def tunggu_sql(q, harus, apa):
 
 
 def rekam_sengaja_belum():
-    """1.40 ADR 12: dua request Bayar bersamaan, lalu Bayar yang dikirim ulang app (keputusan 306)."""
+    """1.40 ADR 12: dua request Bayar bersamaan, lalu Bayar yang diulang Budi sesudah app menampilkan gagal (keputusan 306)."""
     import threading
     reset()
     mulai()
@@ -1995,17 +1995,17 @@ def rekam_sengaja_belum():
     harap("50000" in sql("SELECT id, nama, saldo FROM akun WHERE id IN (418, 419) ORDER BY id"), True, "saldo Budi 50.000")
     harap(total(), ["25000000", "25000000", "1"], "total sesudah dua request bersamaan")
 
-    bagian("D. Bayar Rp25.000; response pertama tidak sampai ke HP, app mengirim ulang body yang sama")
+    bagian("D. Bayar Rp25.000; response pertama tidak sampai ke HP, Budi menekan Bayar lagi")
     s, b = curl("POST", "/transfers", '{"ke": 418, "jumlah": 25000}', token=budi)
     harap((s, json.loads(b)["saldo"]), (201, 25000), "bayar pertama")
-    log.append("# HP Budi tidak menerima response di atas (sinyal putus). App menganggapnya gagal dan mengirim ulang.\n")
+    log.append("# HP Budi tidak menerima response di atas (sinyal putus). App menampilkan gagal, dan Budi menekan Bayar lagi.\n")
     s, b = curl("POST", "/transfers", '{"ke": 418, "jumlah": 25000}', token=budi)
-    harap((s, json.loads(b)["saldo"]), (201, 0), "bayar yang dikirim ulang")
+    harap((s, json.loads(b)["saldo"]), (201, 0), "bayar yang diulang")
 
     bagian("E. Budi membayar sekali; server mencatat dua pembayaran")
     harap(sql("SELECT id, dari, ke, jumlah FROM transaksi ORDER BY id").count(" 25000"), 2, "dua baris Rp25.000")
     harap(" 0\n" in sql("SELECT id, nama, saldo FROM akun WHERE id = 419"), True, "saldo Budi 0")
-    harap(total(), ["25000000", "25000000", "3"], "total sesudah dikirim ulang")
+    harap(total(), ["25000000", "25000000", "3"], "total sesudah diulang")
     log.append("# Total saldo tetap sama dengan total top-up: tidak ada uang yang hilang atau muncul.\n"
                "# Yang salah adalah niat Budi: ia membayar sekali, server mencatat dua kali.\n")
     tulis("sengaja-belum.txt")

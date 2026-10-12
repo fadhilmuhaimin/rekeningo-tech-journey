@@ -42,14 +42,14 @@ $ psql -c "SELECT (SELECT sum(saldo) FROM akun) AS total_saldo, (SELECT sum(nomi
 (1 row)
 
 
-# --- D. Bayar Rp25.000; response pertama tidak sampai ke HP, app mengirim ulang body yang sama ---
+# --- D. Bayar Rp25.000; response pertama tidak sampai ke HP, Budi menekan Bayar lagi ---
 $ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "jumlah": 25000}'
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /transfers/2
 
 {"id":2,"saldo":25000}
-# HP Budi tidak menerima response di atas (sinyal putus). App menganggapnya gagal dan mengirim ulang.
+# HP Budi tidak menerima response di atas (sinyal putus). App menampilkan gagal, dan Budi menekan Bayar lagi.
 $ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "jumlah": 25000}'
 HTTP/1.1 201 Created
 Content-Type: application/json
