@@ -163,7 +163,7 @@ body { background: var(--bg); }
 
 /* Blok kode dari komponen Snippet (div.highlight + pre.shiki) */
 .sl-markdown-content .highlight { margin: 1em 0; }
-.sl-markdown-content .highlight .filename { display: block; font-size: 0.78em; color: var(--teks-2); background: var(--bg-3); border: 1px solid var(--garis); border-bottom: 0; border-radius: 8px 8px 0 0; padding: 0.3rem 0.8rem; font-family: var(--sl-font-mono); }
+.sl-markdown-content .highlight .filename { display: block; overflow-wrap: anywhere; font-size: 0.78em; color: var(--teks-2); background: var(--bg-3); border: 1px solid var(--garis); border-bottom: 0; border-radius: 8px 8px 0 0; padding: 0.3rem 0.8rem; font-family: var(--sl-font-mono); }
 .sl-markdown-content .highlight.has-title pre { border-radius: 0 0 8px 8px; margin-top: 0; }
 .sl-markdown-content pre.shiki .line { display: inline-block; min-width: 100%; }
 
@@ -263,7 +263,10 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content table.bb-table th, .sl-markdown-content table.bb-table td { padding: 0.2rem 0.6rem; border: 1px solid var(--garis); text-align: left; }
 .sl-markdown-content table.bb-table th { background: var(--bg-3); }
 .sl-markdown-content table.bb-table td.is-diff { background: var(--k-system-fill); font-weight: 700; }
-.sl-markdown-content .bb-chip { font-size: 0.72em; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 999px; border: 1px solid var(--k-old-edge); color: var(--k-old-ink); background: var(--k-old-fill); white-space: nowrap; }
+/* Chip selalu item flex (judul widget, figcaption Rantai): tidak menyusut selama muat (flex-shrink 0, sama dengan nowrap
+   dulu), tetapi tidak pernah lebih lebar dari wadahnya; teks yang lebih panjang membungkus di dalam chip (K2d, keputusan
+   356). Radius 1.2em tetap pil untuk satu baris dan jadi persegi membulat bila dua baris. */
+.sl-markdown-content .bb-chip { font-size: 0.72em; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 1.2em; border: 1px solid var(--k-old-edge); color: var(--k-old-ink); background: var(--k-old-fill); flex-shrink: 0; max-width: 100%; overflow-wrap: anywhere; }
 .sl-markdown-content .bb-chip.is-warn { border-color: var(--k-warn-edge); color: var(--k-warn-ink); background: var(--k-warn-fill); }
 .sl-markdown-content .bb-chip.is-system { border-color: var(--k-system-edge); color: var(--k-system-ink); background: var(--k-system-fill); }
 .sl-markdown-content p.meta .bb-selesai { font-size: inherit; }
@@ -1064,7 +1067,7 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 /* ==========================================================================
    Diagram rantai (keputusan 212): baris berlabel, simpul berpanah, nada token.
    ========================================================================== */
-.sl-markdown-content figure.rantai { margin-top: 1.2rem; font-size: 1rem; line-height: 1.4; display: grid; gap: 0.9rem; }
+.sl-markdown-content figure.rantai { margin-top: 1.2rem; font-size: 1rem; line-height: 1.4; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.9rem; }
 .rantai__judul { display: flex; flex-wrap: wrap; gap: 0.3rem 0.7rem; align-items: center; margin: 0; color: var(--judul); font-size: 1rem; text-align: left; }
 .rantai__baris { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 0.4rem 1rem; align-items: center; }
 .sl-markdown-content .rantai__label { margin: 0; display: grid; gap: 0.1rem; }
