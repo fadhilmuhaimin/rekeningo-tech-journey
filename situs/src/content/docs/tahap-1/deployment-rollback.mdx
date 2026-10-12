@@ -100,7 +100,7 @@ Image yang pertama di-push ke GitHub Container Registry (GHCR) bersifat privat, 
 
 ### Infra Tahap 1: satu VPS dan Compose
 
-API Tahap 1 berjalan sebagai satu container di satu VPS. Asumsi naskah: puncak Tahap 1 adalah 0,14 request per detik. Satu proses Go menjawab beban itu, jadi tambahan mesin hanya menambah hal yang harus dijaga satu orang.
+API Tahap 1 berjalan sebagai satu container di satu VPS. Asumsi naskah: puncak Tahap 1 adalah 0,14 request per detik. Kapasitas satu proses Go di VPS itu belum diukur dengan load test ([[t1-m8]]), sedangkan tambahan mesin pasti menambah hal yang harus dijaga satu orang.
 
 Compose memberi tiga hal yang dibutuhkan di sini: konfigurasi container tertulis di repo, deploy dan rollback lewat satu perintah, dan restart otomatis. `restart: unless-stopped` menyalakan ulang container apa pun exit code-nya, kecuali container itu dihentikan dengan sengaja ([docs.docker.com](https://docs.docker.com/reference/compose-file/services/#restart)).
 
@@ -162,7 +162,7 @@ Polanya sama dengan nomor build di `pubspec.yaml`. Setiap rilis app punya nomorn
 | CI men-deploy sendiri ke VPS | CI butuh kunci akses ke VPS, dan ADR 11 sengaja belum membuatnya | [[t1-secret]] |
 | Migration dijalankan otomatis oleh pipeline | Migration harus terbukti cocok dengan image lama dulu | [[E1]] |
 | Tes yang menangkap riwayat kosong | CI hanya menjalankan tes yang sudah ada | [[C1]] |
-| Deploy tanpa jeda | Butuh dua instance dan load balancer; puncak 0,14 request per detik | [[t1-tim-infra]] |
+| Deploy tanpa jeda | Butuh dua instance dan reverse proxy; puncak 0,14 request per detik | [[t1-tim-infra]] |
 
 </Blok>
 
