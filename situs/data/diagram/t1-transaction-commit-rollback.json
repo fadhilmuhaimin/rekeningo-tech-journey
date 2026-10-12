@@ -7,24 +7,12 @@
   },
   "baris": [
     {
-      "label": "Bayar Rp25.000",
-      "sub": "semua perintah berhasil",
+      "label": "Rp25.000",
+      "sub": "bayar.txt D: begin, dua UPDATE, satu INSERT",
       "simpul": [
         {
-          "teks": "begin",
-          "kode": true
-        },
-        {
-          "teks": "Budi −Rp25.000",
-          "sub": "belum permanen"
-        },
-        {
-          "teks": "Ani +Rp25.000",
-          "sub": "belum permanen"
-        },
-        {
-          "teks": "INSERT transaksi",
-          "sub": "catatan transaksi, belum permanen"
+          "teks": "semua lolos",
+          "sub": "Budi −Rp25.000, Ani +Rp25.000, catatan transaksi; belum permanen"
         },
         {
           "teks": "commit",
@@ -35,26 +23,18 @@
       ]
     },
     {
-      "label": "Bayar Rp70.000",
-      "sub": "batas warung Rp1.500.000",
+      "label": "Rp70.000",
+      "sub": "m4.txt D: batas warung Rp1.500.000",
       "simpul": [
         {
-          "teks": "begin",
-          "kode": true
-        },
-        {
-          "teks": "Budi −Rp70.000",
-          "sub": "belum permanen"
-        },
-        {
-          "teks": "Ani +Rp70.000 ditolak",
-          "sub": "batas_saldo_warung",
+          "teks": "satu ditolak",
+          "sub": "UPDATE saldo Ani melanggar batas_saldo_warung",
           "nada": "warn"
         },
         {
           "teks": "rollback",
           "kode": true,
-          "sub": "Budi tetap Rp250.000; total Rp25.000.000",
+          "sub": "UPDATE Budi ikut batal; Budi tetap Rp250.000",
           "nada": "good"
         }
       ]

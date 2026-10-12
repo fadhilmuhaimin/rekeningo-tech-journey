@@ -5,6 +5,7 @@ description: Handler tahu HTTP, service tahu aturan uang, repo tahu SQL. Setelah
 import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
 import lapisanArah from "../../../../data/diagram/t1-lapisan-arah.json";
+import lapisanStruct from "../../../../data/diagram/t1-lapisan-struct.json";
 import Snippet from "../../../components/Snippet.astro";
 import TabSet from "../../../components/TabSet.astro";
 import WidgetLama from "../../../components/WidgetLama.astro";
@@ -104,6 +105,10 @@ Compiler menerima kode itu. Pemeriksa arah menolaknya, karena sekarang ada dua f
 <Snippet file="labs/api-t1/internal/repo/repo.go" lines="11:16" lang="go" title="labs/api-t1/internal/repo/repo.go" />
 
 Di M3, struct inilah yang membawa saldo ke layar Dimas. Di Tahap 1, Raka memilih jalan sederhana dari ADR 4: repo punya struct khusus per layar, seperti `WarungRingkas`. Pemisahan tipe antar lapisan baru dibutuhkan saat tim bertambah.
+
+Pencarian `cari=Ani` yang sama, sebelum dan sesudah struct khusus layar:
+
+<Rantai data={lapisanStruct} />
 
 **Kapan berlebihan.** Untuk satu orang, lapisan berikut biasanya menambah file tanpa menjawab masalah:
 

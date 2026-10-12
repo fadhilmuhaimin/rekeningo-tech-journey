@@ -1,0 +1,69 @@
+{
+  "id": "t1-sqli-nama-kolom",
+  "judul": "Nama kolom dari app: tiga cara",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t1 · injection.txt"
+  },
+  "baris": [
+    {
+      "label": "ORDER BY $1",
+      "sub": "bagian D, psql",
+      "simpul": [
+        {
+          "teks": "nama DESC",
+          "kode": true,
+          "sub": "dikirim sebagai nilai $1"
+        },
+        {
+          "teks": "nilai sama di setiap baris",
+          "sub": "tidak ada error",
+          "nada": "warn"
+        },
+        {
+          "teks": "tidak terurut",
+          "sub": "Warung Ani tetap di baris pertama",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Draf AI",
+      "sub": "bagian E, urut disambung ke teks",
+      "simpul": [
+        {
+          "teks": "(SELECT 1/0)",
+          "kode": true,
+          "sub": "isi parameter urut"
+        },
+        {
+          "teks": "dijalankan sebagai SQL",
+          "sub": "division by zero (SQLSTATE 22012)",
+          "nada": "warn"
+        },
+        {
+          "teks": "gosec: 0 temuan",
+          "sub": "Issues : 0",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Allowlist",
+      "sub": "bagian E, laporan.go versi benar",
+      "simpul": [
+        {
+          "teks": "(SELECT 1/0)",
+          "kode": true,
+          "sub": "isi parameter urut yang sama"
+        },
+        {
+          "teks": "ditolak",
+          "sub": "urut tidak dikenal: \"(SELECT 1/0)\"",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Parameter hanya menjaga nilai. Untuk nama kolom, server memilih potongan SQL dari kunci yang ia kenal."
+}

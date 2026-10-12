@@ -3,6 +3,7 @@ title: "Cara pakai panduan ini"
 description: Halaman konsep punya lima blok lipat, dan beranda punya tiga pintu masuk. Halaman ini menjelaskan keduanya, navigasi di setiap halaman, dan label sumber.
 ---
 import Rantai from "../../components/Rantai.astro";
+import ProgresPembaca from "../../components/ProgresPembaca.astro";
 import limaBlok from "../../../data/diagram/a0-lima-blok.json";
 
 <p class="meta">Baca 4 menit · Mulai dari sini · Jalur inti</p>
@@ -72,7 +73,20 @@ Pilihan peran di beranda dan Jalur di sidebar adalah pengaturan yang sama. Di HP
 
 ## Progres tersimpan di browser ini
 
-Status blok, halaman terakhir yang kamu buka, jalur, mode fokus, dan tema disimpan di `localStorage` browser ini. Kartu "Lanjutkan" di beranda membaca data itu dan menulis berapa blok yang sudah selesai. Tidak ada akun, dan data ini tidak dikirim ke server. Kalau kamu pindah browser atau menghapus data situs, progresnya mulai dari nol, karena ekspor dan impor progres belum ada.
+Status blok, halaman terakhir yang kamu buka, jalur, mode fokus, dan tema disimpan di `localStorage` browser ini. Kartu "Lanjutkan" di beranda membaca data itu dan menulis berapa blok yang sudah selesai. Tidak ada akun, dan data ini tidak dikirim ke server. Kalau kamu menghapus data situs tanpa ekspor, progresnya mulai dari nol.
+
+Untuk pindah ke browser atau HP lain, tekan **Ekspor progres** di bawah. Browser mengunduh satu file JSON bertanggal hari itu, mis. `rekeningo-progres-2026-10-13.json`. Di browser baru, buka halaman ini, tekan **Impor progres**, lalu pilih file itu.
+
+<ProgresPembaca />
+
+Yang ikut diekspor: blok yang selesai, halaman versi lama yang kamu tandai selesai, jadwal kartu ulang, jalur, dan halaman terakhir. Tema dan mode fokus tidak ikut, karena keduanya pengaturan per perangkat. Penilaian halaman punya ekspor sendiri di [[Umpan]].
+
+Sebelum ada yang berubah, halaman ini menampilkan isi file di samping isi browser ini, lalu memberi dua pilihan:
+
+- **Gabungkan**: blok dan halaman selesai dari file ditambahkan. Kartu ulang dan jalur yang sudah ada di browser ini tidak ditimpa.
+- **Ganti**: progres di browser ini dihapus, lalu diisi dari file.
+
+Di kedua pilihan, halaman terakhir diambil dari file bila file memuatnya, jadi kartu Lanjutkan di beranda menunjuk ke tempat kamu berhenti. File diperlakukan sebagai data, bukan kode. File yang bukan JSON, lebih besar dari 256 KB, berformat versi lain, atau berisi nilai di luar aturan ditolak, dan progres di browser ini tidak diubah.
 
 ## Label sumber
 
@@ -93,7 +107,7 @@ Diagram dan widget membawa labelnya sebagai chip di samping judul, mis. chip Ilu
 - **[[Indeks]]** menyusun halaman yang sama per topik, untuk kamu yang mencari satu konsep.
 - **[[Kamus]]** menerjemahkan nama API yang sama di beberapa stack.
 
-Jawaban kartu ulang juga hanya tersimpan di browser ini.
+Jawaban kartu ulang juga hanya tersimpan di browser ini, dan ikut diekspor bersama progres.
 
 ## Untuk siapa
 
