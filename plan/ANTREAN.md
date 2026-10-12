@@ -497,20 +497,20 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### I5c-h · Mode font telat di gerbang CI
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: I5c-f
 - selesai bila: lima kasus yang hanya gagal di CI Linux dengan `ukur-cls.mjs --font-telat 1500 --fallback Verdana` diperbaiki di komponen/CSS (b11-2-proxy-bff 667 0,196; d2-scaling 375 0,108 dan 667 0,168; authentication 1440 0,172; kontrak-openapi 1440 0,161), lalu mode font telat dipasang di kelompok CLS gerbang (`--paralel 8`) dan CI hijau dengan 0 di atas 0,1; percobaan dilakukan lewat commit di branch karena lebar glyph Linux tidak bisa ditiru di macOS.
-- catatan: Dari PR #206 (keputusan 359). Jalur teknis.
+- catatan: Dari PR #206 (keputusan 359). Jalur teknis. PR #213, keputusan 361; satu putaran (opsional Blink/Firefox/Safari di KEPUTUSAN).
 
 ### G2a · Batas waktu per halaman di alat ukur
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: G2
 - selesai bila: `situs/tools/ukur-luapan.mjs` dan alat lain yang memakai `page.evaluate` tanpa batas (cari dengan grep) punya batas waktu per halaman (mis. `Promise.race` dengan timer, atau `waitForFunction` dengan `timeout`), gagal cepat dengan nama halaman dan ukuran; penyebab macet ±8 menit di run 38227021065 percobaan 1 dicari (mis. `document.fonts.ready` atau rAF di tab latar) dan dicatat; langkah pasang (bun install, Chromium Playwright) di `cek.yml` juga dibungkus `timeout` supaya macet di sana berakhir `failure`, bukan `cancelled`.
-- catatan: Dari pelaksana dan peninjau PR #198 (keputusan 357). `gh pr checks` v2.93.0 tidak menghitung `cancelled` sebagai gagal. Jalur teknis.
+- catatan: Dari pelaksana dan peninjau PR #198 (keputusan 357). `gh pr checks` v2.93.0 tidak menghitung `cancelled` sebagai gagal. Jalur teknis. PR #211 (squash), keputusan 360; dua putaran (merge commit "# Conflicts", komentar dan format MACET).
 
 ### K2c · Kolom tabel KEPUTUSAN
 

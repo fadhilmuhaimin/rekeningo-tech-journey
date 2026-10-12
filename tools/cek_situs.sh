@@ -44,6 +44,8 @@ if [ "$MODE" != "--ukur" ]; then
   $PY tools/sinkron_cerita.py --check >/dev/null
 
   echo "== antrean loop otomatis"; $PY tools/antrean.py --check
+  echo "== tabel plan: pipe tanpa escape per baris = header (keputusan 362)"; $PY tools/cek_tabel_plan.py
+  echo "== uji pemeriksa tabel plan (lolos palsu, keputusan 362)"; $PY tools/test_cek_tabel_plan.py | tail -1
   echo "== batas baris file yang diimpor CLAUDE.md (keputusan 235)"
   $PY tools/ukur_konteks.py --cek-baris plan/MEMORI.md:80 plan/RINGKAS.md:60
   echo "== istilah";              $PY tools/build_istilah.py --check
@@ -93,8 +95,9 @@ jalan_ukur() {
       echo "== diagram: versi statis, scroll, keyboard (I4)"
       (cd situs && node tools/ukur-diagram.mjs --url "$URL") ;;
     cls)
-      echo "== CLS widget alur saat dimuat, skrip ditunda (I5c-b)"
-      (cd situs && node tools/ukur-cls.mjs --url "$URL" | grep -v "^ok ") ;;
+      # Mode font telat (keputusan 361): Satoshi selalu datang sesudah paint pertama, seperti di jaringan lambat.
+      echo "== CLS widget alur saat dimuat, skrip dan font ditunda (I5c-b, I5c-h)"
+      (cd situs && node tools/ukur-cls.mjs --url "$URL" --font-telat 1500 --fallback Verdana --paralel 8 | grep -v "^ok ") ;;
     kontras)
       echo "== kontras langkah runsql setelah dijalankan, computed style (K2a)"
       (cd situs && node tools/ukur-kontras.mjs --url "$URL") ;;
