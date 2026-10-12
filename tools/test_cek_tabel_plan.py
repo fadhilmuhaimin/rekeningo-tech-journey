@@ -2,7 +2,8 @@
 
 Kasus pertama dan kedua adalah baris 157 dan 247 sebelum K2c (keputusan 362): `||` di code span tanpa escape
 memecah sel (GFM memotong sel berlebih, jadi Kenapa dan Alternatif hilang dari tampilan), dan baris tanpa sel
-Tanggal menaruh seluruh isi di kolom Tanggal. KEPUTUSAN.md tidak diubah; salinan ditulis ke direktori sementara.
+Tanggal menaruh seluruh isi di kolom Tanggal. Kasus backslash dan baris tanpa pipe pembuka mengikuti perilaku GitHub
+yang direkam lewat `gh api markdown`. KEPUTUSAN.md tidak diubah; salinan ditulis ke direktori sementara.
 
     python3 tools/test_cek_tabel_plan.py
 """
@@ -57,8 +58,21 @@ KASUS = [
     ("pipe tanpa escape di code span baris terakhir", sisip_di_akhir("`a | b`"), 1,
      [f":{TERAKHIR} keputusan {NO_TERAKHIR}: 7 pipe tanpa escape"]),
     ("pipe dengan escape di code span lolos", sisip_di_akhir("`a \\| b`"), 0, [" 0 gagal"]),
-    ("backslash ber-escape lalu pipe tetap pemisah (cmark-gfm)", sisip_di_akhir("C:\\\\| D"), 1,
-     [f":{TERAKHIR} keputusan {NO_TERAKHIR}: 7 pipe tanpa escape"]),
+    # Backslash sebelum pipe: GitHub tidak pernah memecah, micromark memecah bila jumlahnya genap (keputusan 362).
+    ("backslash genap sebelum pipe ditolak sebagai ambigu", sisip_di_akhir("C:\\\\| D"), 1,
+     [f":{TERAKHIR} keputusan {NO_TERAKHIR}: backslash genap sebelum pipe di kolom"]),
+    ("backslash ganjil sebelum pipe lolos (kedua renderer: pipe di dalam sel)", sisip_di_akhir("C:\\\\\\| D"), 0,
+     [" 0 gagal"]),
+    ("baris tanpa pipe pembuka gagal dan baris sesudahnya tetap diperiksa (GFM contoh 202)",
+     "\n".join(BARIS[:B157] + ["lanjutan tanpa pipe pembuka"] + BARIS[B157:TERAKHIR - 1]
+               + [BARIS[TERAKHIR - 1][:-1] + "`a | b` |"] + BARIS[TERAKHIR:]), 1,
+     [f":{B157 + 1} baris tanpa pipe pembuka ikut tabel header baris 5",
+      f":{TERAKHIR + 1} keputusan {NO_TERAKHIR}: 7 pipe tanpa escape"]),
+    ("judul sesudah baris tabel mengakhiri tabel",
+     ASLI.rstrip("\n") + "\n\n| a | b |\n|---|---|\n| 1 | 2 |\n# Judul\n", 0, [" 0 gagal"]),
+    ("sel pertama ber-escape tetap utuh di pesan",
+     ASLI.rstrip("\n") + "\n\n| a \\| b | c |\n|---|---|\n| x \\| y | z | w |\n", 1,
+     ["baris tabel 'x \\| y': 4 pipe tanpa escape"]),
     ("tabel di dalam blok kode berpagar tidak dihitung",
      ASLI.rstrip("\n") + "\n\n```text\n| a | b |\n|---|---|\n| 1 | 2 | 3 |\n```\n", 0, [" 0 gagal"]),
     ("pembatas tidak cocok dengan header",
