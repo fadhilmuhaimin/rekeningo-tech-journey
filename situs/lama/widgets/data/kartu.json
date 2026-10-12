@@ -564,25 +564,25 @@
   "id": "D1-1",
   "halaman": "D1",
   "judul": "1.38 Kerangka berpikir dan estimasi",
-  "url": "d-system-design/d1-kerangka-berpikir/",
-  "tanya": "Tahap 2 punya 1.000 user, 30% aktif, 40 request per user aktif, faktor puncak 10. Hitung puncak request per detik.",
-  "jawab": "DAU = 1.000 × 30% = 300. Request per hari = 300 × 40 = 12.000. Rata-rata = 12.000 ÷ 86.400 ≈ 0,14 per detik. Puncak ≈ 1,4 per detik."
+  "url": "tahap-1/kerangka-estimasi/",
+  "tanya": "Tahap 3 punya 10.000 user, 25% aktif, 60 request per user aktif, faktor puncak 10. Hitung puncak request per detik.",
+  "jawab": "User aktif per hari = 10.000 × 25% = 2.500. Request per hari = 2.500 × 60 = 150.000. Rata-rata = 150.000 ÷ 86.400 ≈ 1,7 per detik. Puncak ≈ 17 per detik."
  },
  {
   "id": "D1-2",
   "halaman": "D1",
   "judul": "1.38 Kerangka berpikir dan estimasi",
-  "url": "d-system-design/d1-kerangka-berpikir/",
-  "tanya": "Jelaskan kenapa angka puncak RPS saja tidak cukup untuk memutuskan perlu menambah server.",
+  "url": "tahap-1/kerangka-estimasi/",
+  "tanya": "Jelaskan kenapa angka puncak request per detik saja tidak cukup untuk memutuskan perlu menambah server.",
   "jawab": "Beban juga bergantung pada lama kerja setiap request dan sumber daya yang dipegangnya, mis. koneksi database. 17 request per detik bisa ringan atau berat, tergantung apakah tiap request menahan koneksi 20 ms atau 2 detik. Kapasitas server hanya bisa diketahui lewat pengukuran."
  },
  {
   "id": "D1-3",
   "halaman": "D1",
   "judul": "1.38 Kerangka berpikir dan estimasi",
-  "url": "d-system-design/d1-kerangka-berpikir/",
+  "url": "tahap-1/kerangka-estimasi/",
   "tanya": "Sinta meminta \"sistem harus bisa menangani sejuta user\". Apa pertanyaan pertamamu?",
-  "jawab": "Kapan, dan berapa yang aktif bersamaan? Sejuta user terdaftar dengan 20% aktif harian berbeda jauh dari sejuta user online di detik yang sama. Pertanyaan itu mengubah permintaan jadi angka yang bisa dihitung, lalu diputuskan per tahap."
+  "jawab": "Kapan, dan berapa yang aktif bersamaan? Sejuta user terdaftar dengan 20% aktif harian berbeda jauh dari sejuta user yang menekan Bayar di detik yang sama. Pertanyaan itu mengubah permintaan jadi angka yang bisa dihitung, lalu diputuskan per tahap."
  },
  {
   "id": "F1-1",

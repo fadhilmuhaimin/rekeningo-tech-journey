@@ -50,7 +50,7 @@
         "tim": "1 developer"
       },
       "jalur_inti": {
-        "menit": 310,
+        "menit": 312,
         "halaman": 34
       },
       "bagian": [
@@ -1153,9 +1153,9 @@
       "judul": "Kerangka berpikir dan estimasi",
       "tahap": 1,
       "topik": "Desain sistem",
-      "path": "d-system-design/d1-kerangka-berpikir.md",
+      "path": "tahap-1/kerangka-estimasi.md",
       "prasyarat": [
-        "t1-prd"
+        "t1-m8"
       ],
       "inti": true,
       "masalah": "Tidak tahu harus mulai dari mana saat mendesain",
@@ -1165,9 +1165,8 @@
       "peran": [
         "backend"
       ],
-      "lama": true,
       "nomor": "1.38",
-      "menit": 9
+      "menit": 11
     },
     {
       "id": "F1",

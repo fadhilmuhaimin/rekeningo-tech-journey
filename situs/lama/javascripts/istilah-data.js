@@ -1006,7 +1006,7 @@ window.ISTILAH = {
   "n": "1.38 Kerangka berpikir dan estimasi",
   "s": "istilah-trade-off",
   "t": "Trade-off",
-  "u": "d-system-design/d1-kerangka-berpikir/"
+  "u": "tahap-1/kerangka-estimasi/"
  },
  "Transaction": {
   "b": "B3.1",
@@ -1734,7 +1734,7 @@ window.ISTILAH = {
   "n": "1.38 Kerangka berpikir dan estimasi",
   "s": "istilah-trade-off",
   "t": "Trade-off",
-  "u": "d-system-design/d1-kerangka-berpikir/"
+  "u": "tahap-1/kerangka-estimasi/"
  },
  "transaction": {
   "b": "B3.1",

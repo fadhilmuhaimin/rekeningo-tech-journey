@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import cerita from "../../../data/cerita.json";
 import dataM8 from "../../../data/widget/t1-m8-kalkulator.json";
+import dataEstimasi from "../../../data/widget/t1-estimasi-kalkulator.json";
 import { DaftarAsumsi, DataKalkulator } from "./skema";
 import { baris, berubah, duaAngka, format, hitung, jarak, kesimpulan, siapkan, titik } from "./logika";
 
@@ -90,6 +91,44 @@ describe("data t1-m8", () => {
     expect(kesimpulan(data.label.kesimpulan, sk[0], satuan)).toContain("7,2 detik");
     expect(kesimpulan(data.label.kesimpulan, sk[1], satuan)).toContain("720 ms");
     expect(kesimpulan(data.label.kesimpulan, sk[2], satuan)).toContain("300 ms");
+  });
+});
+
+describe("data t1-estimasi (1.38)", () => {
+  const data = DataKalkulator.parse(dataEstimasi);
+  const sk = siapkan(data, registry);
+
+  it("satu skenario per tahap, tanpa perubahan asumsi", () => {
+    expect(sk).toEqual(registry.slice(0, 5));
+    expect(data.skenario.map((s) => s.tahap)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("Tahap 5: puncak 1.400, sepuluh ribu kali Tahap 1, jawaban tebakan cocok", () => {
+    const h = hitung(sk[data.tebak.skenario]);
+    expect(duaAngka(h.puncak)).toBe("1.400");
+    expect(h.puncak / hitung(sk[data.awal]).puncak).toBeCloseTo(10_000, 6);
+    expect(data.tebak.pilihan[data.tebak.jawaban]).toContain(duaAngka(h.puncak));
+    expect(data.tebak.alasan).toContain(duaAngka(h.puncak));
+    expect(data.tebak.alasan).toContain(duaAngka(hitung(sk[data.awal]).puncak));
+    expect(data.tebak.alasan).toContain(titik(h.reqHari));
+  });
+
+  it("kesimpulan per tahap: 7,2 detik sampai 0,72 ms", () => {
+    expect(sk.map((a) => kesimpulan(data.label.kesimpulan, a, satuan).match(/tiap (.+)\.$/)![1])).toEqual([
+      "7,2 detik",
+      "720 ms",
+      "58 ms",
+      "7,2 ms",
+      "0,72 ms",
+    ]);
+  });
+
+  it("cara hitung puncak tiap tahap konsisten dengan angka puncak", () => {
+    for (const a of sk) {
+      const cara = baris(a, "asumsi").find((x) => x.kunci === "puncak")!.cara;
+      const [rata, faktor] = cara.split(" × ").map((x) => Number(x.replaceAll(".", "").replace(",", ".")));
+      expect(duaAngka(rata * faktor)).toBe(duaAngka(hitung(a).puncak));
+    }
   });
 });
 
