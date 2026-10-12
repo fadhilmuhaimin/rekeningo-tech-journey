@@ -23,11 +23,11 @@ Kalau waktumu sedikit, baca dua blok yang terbuka. Tombol Berikutnya di akhir se
 | **Coba** | Satu widget yang kamu jalankan sendiri, mis. SQL di browser, langkah satu request, atau baris kode yang dicari bug-nya. | Kamu menebak dulu, lalu melihat hasilnya. |
 | **Paham** | Kenapa konsep ini ada, cara kerjanya, dan kode yang sama di beberapa stack. | Konsep dulu, framework belakangan. |
 | **Putuskan** | Trade-off antar opsi dan yang sengaja belum dilakukan di tahap ini. | Bahan keputusan, dengan alasan dari angka cerita. |
-| **Kunci** | Cek diri dengan jawaban terlipat, daftar cek saat me-review kode AI, dan bacaan lanjut. | Mengingat kembali jawaban lebih menguatkan ingatan daripada membaca ulang ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/)). |
+| **Kunci** | Cek diri dengan jawaban terlipat, daftar cek saat me-review kode AI, dan bacaan lanjut. | Untuk ingatan beberapa hari kemudian, mengingat kembali jawaban lebih menguatkan daripada membaca ulang ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/)). |
 
 Blok Coba ditutup dengan kalimat "Kalau berhenti di sini, kamu sudah tahu: ...". Kalimat itu menandai tempat berhenti yang aman. Tiga blok sesudahnya boleh dibaca di hari lain.
 
-Kepala setiap blok menulis posisinya, dan di halaman konsep juga perkiraan waktu bacanya: "Blok 3 dari 5 · 5 menit". Blok dianggap selesai sesudah kamu menggulir sampai akhirnya atau menekan Berikutnya. Membuka blok saja belum dihitung.
+Kepala setiap blok menulis posisinya, dan di halaman konsep, masalah, dan ADR juga perkiraan waktu bacanya: "Blok 3 dari 5 · 5 menit". Blok dianggap selesai sesudah kamu menggulir sampai akhirnya atau menekan Berikutnya. Membuka blok saja belum dihitung.
 
 Banyak halaman menampilkan kode yang sama di beberapa stack, mis. Go, Laravel, Django, Dart (Serverpod), dan Supabase. Konsepnya sama. Yang berbeda hanya siapa yang mengerjakan apa.
 
@@ -52,7 +52,7 @@ Halaman masalah membuka "Yang Raka kira" sebelum "Yang sebenarnya". Kamu ikut me
 | Pintu | Yang kamu dapat | Cocok kalau |
 |---|---|---|
 | **[Cerita](/#peta)** | Peta enam tahap. Setiap tahap menulis PRD-nya, user-nya, siapa yang membuat, dan bentuk sistemnya. | Kamu ingin belajar berurutan, mulai dari PRD v1. |
-| **[Peran](/#peran)** | Pertanyaan "sehari-hari kamu mengerjakan apa?" dengan enam jawaban. Setiap jawaban memberi lima halaman untuk dibaca dulu. | Kamu ingin mulai dari pekerjaanmu sekarang. |
+| **[Peran](/#peran)** | Pertanyaan "sehari-hari kamu mengerjakan apa?" dengan enam jawaban. Lima jawaban memberi lima halaman untuk dibaca dulu. Dashboard web belum punya halaman sampai Tahap 3, jadi jawaban itu menunjuk jalur inti. | Kamu ingin mulai dari pekerjaanmu sekarang. |
 | **[Masalah](/#masalah)** | Kotak pencarian gejala, mis. "saldo hilang". Hasilnya halaman masalah yang membahas gejala itu. | Kamu sedang melihat gejala yang mirip di sistemmu. |
 
 Ketiga pintu menuju halaman yang sama. Bedanya hanya halaman mana yang kamu buka pertama.
@@ -61,10 +61,10 @@ Ketiga pintu menuju halaman yang sama. Bedanya hanya halaman mana yang kamu buka
 
 - **Kamu di sini**: baris di atas judul menulis tahap, bagian, dan jenis halaman. Di HP baris ini dipendekkan.
 - **Isi halaman**: tombol di baris yang sama membuka daftar blok. Blok yang sudah selesai diberi tanda ✓.
-- **Sidebar**: satu grup per tahap, terlipat kecuali grup halaman yang sedang kamu buka. Tahap 1 dibagi menjadi enam bagian, dari PRD sampai Jembatan ke Tahap 2. Tanda ★ menandai jalur inti.
-- **Jalur**: menu kecil di atas sidebar dengan pilihan Generalis, Mobile, Web, Backend, DevOps, dan Security. Jalur hanya menebalkan halaman untuk peran itu, dan tidak ada halaman yang disembunyikan. Generalis menyorot jalur inti.
-- **Mode fokus**: tombol di kepala halaman. Di layar lebar, tombol ini menyembunyikan sidebar dan daftar isi.
-- **Tema**: pemilih di kepala halaman, Gelap (bawaan) atau Terang.
+- **Sidebar** punya grup Pembuka, satu grup per tahap, Studi sampingan, dan Alat. Semua grup terlipat, kecuali grup halaman yang sedang kamu buka. Tahap 1 dibagi menjadi enam bagian, dari PRD sampai Jembatan ke Tahap 2. Tanda ★ menandai jalur inti.
+- **Jalur** adalah menu kecil di atas sidebar dengan pilihan Generalis, Mobile, Web, Backend, DevOps, dan Security. Jalur menebalkan halaman untuk peran yang dipilih, dan tidak ada halaman yang disembunyikan. Generalis tidak menebalkan apa pun, jadi ikuti tanda ★.
+- **Mode fokus** ada di kepala halaman. Di layar lebar, tombol ini menyembunyikan sidebar dan daftar isi.
+- **Tema** dipilih di kepala halaman: Gelap (bawaan) atau Terang.
 - **Garis progres**: garis tipis di bawah kepala halaman memanjang saat kamu menggulir.
 - **Sebelumnya dan Berikutnya** di bawah setiap halaman mengikuti urutan baca, bukan urutan sidebar.
 
@@ -88,10 +88,10 @@ Diagram dan widget membawa labelnya sebagai chip di samping judul, mis. chip Ilu
 
 ## Alat bantu
 
-- **[[Glosarium]]**: definisi satu kalimat. Istilah bergaris titik-titik di halaman mana pun bisa disentuh untuk melihat definisinya.
-- **[[Kartu]]**: soal Cek diri dari semua halaman, dengan jadwal ulang bertingkat.
-- **[[Indeks]]**: halaman yang sama disusun per topik, untuk kamu yang mencari satu konsep.
-- **[[Kamus]]**: nama API yang sama di beberapa stack.
+- **[[Glosarium]]** memuat definisi satu kalimat. Istilah bergaris titik-titik di halaman mana pun bisa disentuh untuk melihat definisinya.
+- **[[Kartu]]** mengumpulkan soal Cek diri dari semua halaman, dengan jadwal ulang bertingkat.
+- **[[Indeks]]** menyusun halaman yang sama per topik, untuk kamu yang mencari satu konsep.
+- **[[Kamus]]** menerjemahkan nama API yang sama di beberapa stack.
 
 Jawaban kartu ulang juga hanya tersimpan di browser ini.
 
