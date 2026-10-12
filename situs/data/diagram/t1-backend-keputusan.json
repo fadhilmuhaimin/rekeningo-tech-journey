@@ -1,0 +1,26 @@
+{
+  "id": "t1-backend-keputusan",
+  "judul": "Siapa yang memutuskan saldo cukup",
+  "sumber": { "jenis": "ilustrasi", "teks": "Ilustrasi · bayar ke warung, PRD v1" },
+  "baris": [
+    {
+      "label": "Lewat app",
+      "sub": "Budi menekan Bayar",
+      "simpul": [
+        { "teks": "app: saldo cukup?", "sub": "kabar cepat, belum keputusan", "nada": "old" },
+        { "teks": "backend: saldo cukup?", "sub": "keputusan akhir", "nada": "system" },
+        { "teks": "tersimpan", "sub": "saldo berubah di database", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Lewat curl",
+      "sub": "Dimas mengirim request tanpa app",
+      "simpul": [
+        { "teks": "app dilewati", "sub": "pemeriksaan di HP tidak berjalan", "nada": "warn" },
+        { "teks": "backend: saldo cukup?", "sub": "pemeriksaan yang sama", "nada": "system" },
+        { "teks": "ditolak", "sub": "saldo tidak berubah", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Abu-abu: di HP user. Biru: di server milik tim. Kuning: jalan yang melewati app. Hijau: hasil yang benar."
+}
