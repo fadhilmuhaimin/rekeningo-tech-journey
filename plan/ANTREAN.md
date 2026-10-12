@@ -515,11 +515,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### K2c · Kolom tabel KEPUTUSAN
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: baris 157, 247, 252, 253 di `plan/KEPUTUSAN.md` punya 5 kolom tanpa mengubah isi; gerbang menolak baris tabel yang jumlah pipe tanpa escape-nya berbeda dari header (`\|` di dalam teks tidak dihitung), dengan uji mutasi.
-- catatan: Dari K2 (keputusan 301). Baris 157 rusak karena `||` di code span tanpa escape. Jalur teknis; kalau jalur konten sedang punya PR terbuka yang mengubah KEPUTUSAN, kerjakan sesudah PR itu di-merge.
+- catatan: Dari K2 (keputusan 301). Baris 157 rusak karena `||` di code span tanpa escape. Jalur teknis; kalau jalur konten sedang punya PR terbuka yang mengubah KEPUTUSAN, kerjakan sesudah PR itu di-merge. PR #215, keputusan 362; dua putaran (backslash genap sebelum pipe, kapan salah).
 
 ### K2d · Chip sumber Rantai tidak meluap di HP
 
@@ -754,6 +754,24 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - bergantung: -
 - selesai bila: `Beranda.astro` tidak lagi menulis "Kamu mendapat lima halaman" untuk semua peran (Dashboard web memberi 0) dan tidak menjanjikan halaman web di Tahap 3 bila registry tidak punya halaman ber-`peran` web; `alat/kartu-ulang.mdx` menyebut batas waktu temuan Roediger & Karpicke 2006 (unggul di tes 2 hari dan 1 minggu, kalah di tes 5 menit), seperti `tahap-1/rekap.mdx`.
 - catatan: Dari peninjau P3 (keputusan 310). Jalur teknis-halaman.
+
+### P9 · Contoh request 1.5 sesuai rekaman
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: R1
+- selesai bila: tabel request di Paham 1.5 dan data widget `a2-alur.json` memakai body dan response dari `labs/api-t1/output/bayar.txt` B (`"ke"` berupa angka akun, id dari rekaman), bukan `"ke": "warung-ani"` dan `"id": 812`; `ke` berupa teks dijelaskan sebagai 400 sesuai `m2.txt` C bila disebut.
+- catatan: Dari pelaksana dan peninjau R1 (keputusan 311). Jalur teknis-halaman.
+
+### P10 · Sisa CSS lama dan panah Rantai ringkas di HP
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: R1
+- selesai bila: aturan CSS `bb-map` (±16 aturan di `tema.css`) yang tidak dipakai halaman mana pun dihapus sesudah dicek dengan grep atas `dist/`; panah sesudah simpul Rantai ringkas yang membungkus tidak menggantung ke gutter kanan di 360 dan 375 px (contoh 1.6 "periksa saldo", ±8 px), diperiksa `ukur-luapan.mjs` atau alat ukur Rantai.
+- catatan: Dari pelaksana dan peninjau R1 (keputusan 311). Jalur teknis.
 
 ### X1 · Crosscheck penuh Tahap 1
 
