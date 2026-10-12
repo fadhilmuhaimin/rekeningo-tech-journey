@@ -41,6 +41,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Perlu dicek pemilik
 
+- M8 (1.37, keputusan 303): naskah menulis "91/100 penguji aktif", asumsi registry 30% user aktif per hari; halaman memakai 91 sebagai aktif selama uji coba dan menulis kepekaannya terbuka (0,14–0,42 RPS). Mohon konfirmasi tafsiran.
 - Redesain #120: usulan perubahan PROPOSAL "Desain visual final" dan CLAUDE.md `<tampilan>` di `plan/AUDIT-TAMPILAN.md` bagian 6, belum diubah.
 - ADR 7 (keputusan 240): RLS sebagai pagar kedua dipasang di tabel ledger Tahap 2, tidak di tabel v1 `api-t1` (rekaman `b5-rls` bagian 5: policy pemilik membuat bayar ke warung `UPDATE 0`). Kalau RLS harus sudah berjalan di Tahap 1, perlu tugas lab `api-t1` sendiri.
 - Cloudflare Pages (keputusan 115): butuh API token (Account > Cloudflare Pages > Edit) dan Account ID, lalu `gh secret set CLOUDFLARE_API_TOKEN` dan `gh secret set CLOUDFLARE_ACCOUNT_ID`.
@@ -48,7 +49,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-12 · Mode paralel (keputusan 264), dilanjutkan sesudah restart sesi. Konten: 1.35, K2, 1.36 selesai; 1.37 (branch `tahap-1/m8`) dilanjutkan di `../rjt-konten`. Teknis: I5c-c, I5c-d, I5d, I5e selesai; K2a (#189) dalam tinjauan; berikutnya K2b, K2d, I5c-e, I5c-f, lalu K2c. Catatan pengatur di `tmp/catatan-pengatur.md` (scratchpad hilang saat restart).
+2026-10-12 · Mode paralel (keputusan 264). Konten: 1.35, K2, 1.36, 1.37 selesai; 1.38 berjalan di `../rjt-konten`. Teknis: I5c-c, I5c-d, I5d, I5e, K2a selesai; K2b (#192) dalam perbaikan; berikutnya K2d, I5c-e, I5c-f, G2, lalu K2c. Catatan pengatur di `tmp/catatan-pengatur.md`.
 
 ## Pelajaran
 

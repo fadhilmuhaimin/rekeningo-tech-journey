@@ -461,11 +461,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### K2a · Kontras langkah runsql yang dilewati
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: `.bb-step.is-skipped` (teks SQL dan label "→ tidak dijalankan") ≥ 4,5:1 di gelap dan terang, diukur di 1.22 M4 dengan computed style (opacity leluhur dikalikan, warna dicampur ke latar); teks tidak lagi diredupkan dengan `opacity`, coretan dan label tetap.
-- catatan: Dari K2 (keputusan 301). Ukuran sekarang: terang SQL 3,96:1, label 2,87:1; gelap SQL 5,50:1, label 3,54:1. Jalur teknis (keputusan 264).
+- catatan: Dari K2 (keputusan 301). Ukuran sekarang: terang SQL 3,96:1, label 2,87:1; gelap SQL 5,50:1, label 3,54:1. Jalur teknis (keputusan 264). Selesai: keputusan 354, PR #189 (juga menaikkan timeout job situs CI 15 ke 20 menit).
 
 ### K2b · Celah tools/contrast.py
 
@@ -475,6 +475,15 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - bergantung: K2a
 - selesai bila: aturan yang hanya menulis `color`, atau hanya menulis latar, dipasangkan dengan aturan leluhur atau latar halaman; `opacity` di aturan induk ikut diturunkan ke warna turunannya; ada tes di `tools/test_contrast.py`; `.bb-step.is-skipped` (sebelum K2a) tertangkap oleh tes mutasi.
 - catatan: Dari K2 (keputusan 301): 146 aturan color saja, 57 latar saja, 6 aturan opacity tidak pernah dipasangkan (termasuk is-skipped dan tautan sidebar `menyusul`). Jalur teknis.
+
+### G2 · Waktu gerbang CI di bawah batas
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: -
+- selesai bila: job situs CI selesai jauh di bawah `timeout-minutes` (target ≤ 12 menit dari ±15 menit sekarang, batas 20): mis. job dipecah jadi build + artefak `dist` lalu job matriks paralel untuk alat ukur Playwright, atau konteks ukuran×mode dijalankan paralel di `layar.mjs`, `ukur-cls.mjs`, `ukur-gerak.mjs` seperti `ukur-kontras.mjs` (keputusan 354); hasil alat sama persis sebelum/sesudah; durasi sebelum/sesudah dicatat.
+- catatan: Dari PR #189: job situs 14m51–15m07 di main/PR (layar pertama + tangkapan sampai CLS ±10m20, CLS alur ±3m24); PR #189 terpotong di 15 menit sebelum batas dinaikkan. Jalur teknis.
 
 ### K2c · Kolom tabel KEPUTUSAN
 
@@ -506,11 +515,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### 1.37 · M8: Uji coba lolos, PRD v2 datang
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: halaman `t1-m8` (masalah, ★) dengan widget React baru kalkulator (logika murni di `.ts`, data divalidasi Zod, tes Vitest); puncak 0,14 RPS dihitung terbuka dari `tahap[0].asumsi`; tabel "Angka di tahap ini" ditulis ulang di sini atau di 1.38.
-- catatan: -
+- catatan: Selesai: keputusan 303, PR #191.
 
 ### I5d · Angka berubah dengan tween
 
