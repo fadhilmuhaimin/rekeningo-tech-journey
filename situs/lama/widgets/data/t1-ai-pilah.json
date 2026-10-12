@@ -1,0 +1,12 @@
+{
+  "judul": "Siapa yang menangkap masalah ini lebih dulu?",
+  "kelompok": ["gosec menandai barisnya", "Hanya tes yang menangkap", "Belum tertangkap"],
+  "item": [
+    { "teks": "Token Dimas memindah Rp25.000 milik Budi, karena dari diambil dari body", "jawab": 1, "kenapa": "Tidak ada aturan gosec yang tahu siapa pemilik akun. TestAturan1DariDiBodyDiabaikan: saldo Budi 200000, mau tetap 225000." },
+    { "teks": "Jumlah -50000 menambah Rp50.000 ke saldo Dimas", "jawab": 1, "kenapa": "Batas jumlah adalah aturan bisnis Rekeningo, bukan pola kode. TestAturan2JumlahMinus: status 200, total saldo semua akun 550000, mau 500000." },
+    { "teks": "Bayar ke akun 999 menghilangkan Rp25.000", "jawab": 0, "kenapa": "gosec menandai kode_ai.go:45 sebagai G104, error INSERT diabaikan. Menangani error saja belum cukup: tanpa transaction, UPDATE saldo Dimas sudah tersimpan. Tes Aturan 3 melihat total 475000." },
+    { "teks": "Header Authorization tertulis utuh di log", "jawab": 0, "kenapa": "gosec menandai kode_ai.go:32 sebagai G706, log injection: isi header bisa memalsukan baris log. Bahwa token ikut tersimpan baru terlihat di TestSifat3TokenTidakDiLog." },
+    { "teks": "Dua bayar Dimas yang bersamaan saling menimpa saldo", "jawab": 2, "kenapa": "Baris UPDATE pertama menulis angka hasil hitungan Go, bukan saldo - $1. gosec hanya menandai error-nya, dan ketujuh tes mengirim satu request sekali jalan. Dua request bersamaan diuji di Tahap 2." },
+    { "teks": "Server berjalan tanpa batas waktu baca dan tulis", "jawab": 0, "kenapa": "gosec G114 di kode_ai.go:54: http.ListenAndServe tidak bisa diberi timeout. Temuan ini benar, tapi tidak menyentuh uang." }
+  ]
+}
