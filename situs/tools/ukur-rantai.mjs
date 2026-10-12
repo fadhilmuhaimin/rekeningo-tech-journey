@@ -97,7 +97,7 @@ async function ukur(toleransi) {
           if (a.right !== "auto") kiri = pbKanan - parseFloat(a.right) - lebar;
           else if (a.left !== "auto") kiri = pbKiri + parseFloat(a.left);
           else { r.keluar.push(`panah ${di}: left dan right auto`); continue; }
-          cek(`panah "${a.content.replace(/"/g, "")}" ${di}`, kiri + geser, kiri + geser + lebar);
+          cek(`panah "${(a.content.match(/"([^"]*)"/) || [, a.content])[1]}" ${di}`, kiri + geser, kiri + geser + lebar);
         }
       }
     }
