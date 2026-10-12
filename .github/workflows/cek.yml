@@ -1,6 +1,8 @@
 # Gerbang kualitas yang sama dengan laptop, dijalankan di setiap PR dan setiap push ke main.
-# Job situs menjalankan `tools/cek_situs.sh --layar` (keputusan 111); yang disiapkan di sini hanya
-# lingkungannya (Node 22, bun, Chromium Playwright, font). MkDocs dihapus (keputusan 112).
+# Laptop menjalankan `tools/cek_situs.sh --layar` (keputusan 111). Di CI pemeriksaan yang sama dibagi:
+# job build menjalankan bagian tanpa browser dan membangun dist sekali, lalu satu job per kelompok alat ukur
+# Playwright berjalan paralel atas dist itu (keputusan 357). Yang disiapkan di sini hanya lingkungannya
+# (Node 22, bun, Chromium Playwright, font). MkDocs dihapus (keputusan 112).
 # Versi action dicek ke halaman rilis masing-masing pada 2026-10-08 (keputusan 99).
 name: cek
 
@@ -58,11 +60,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_CONFIG: .gitleaks.toml
 
+  # Bagian tanpa browser: registry, istilah, audit bahasa, build strict, ID internal, kontras dua mode, tipe, tes.
   situs_baru:
-    name: situs (Astro)
+    name: situs (Astro) build
     runs-on: ubuntu-latest
-    # Job di main 13m54-14m51 sebelum K2a; batas 15 menit memotong run PR #189 (keputusan 354).
-    timeout-minutes: 20
+    # Sebelum keputusan 357 satu job menjalankan semuanya: 14m47-15m36 di PR #189/#195.
+    timeout-minutes: 8
+    outputs:
+      matriks: ${{ steps.matriks.outputs.matriks }}
     steps:
       - uses: actions/checkout@v7
       # Node tetap dipakai untuk astro, Playwright, dan node:test; bun hanya pemasang paket
@@ -77,24 +82,57 @@ jobs:
         run: bash tools/get_fonts.sh
       - name: Pasang dependency
         run: bun install --cwd situs --frozen-lockfile
-      - name: Pasang Chromium Playwright
-        run: cd situs && bunx playwright install --with-deps chromium
-      # Satu skrip untuk laptop dan CI: registry, istilah, audit bahasa, build strict, ID internal,
-      # kontras dua mode, tes, layar pertama 4 ukuran, tangkapan 2 ukuran x 2 mode (keputusan 111).
-      - name: Gerbang kualitas situs
-        run: bash tools/cek_situs.sh --layar
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: tangkapan-situs
-          path: situs/tangkapan/*.png
-          retention-days: 7
-      # Hasil build yang sudah lolos gerbang dipakai job deploy, supaya yang di-deploy sama dengan yang diperiksa.
+      - name: Gerbang kualitas situs tanpa browser
+        run: bash tools/cek_situs.sh
+      # Daftar kelompok diambil dari skrip yang sama dengan laptop, jadi CI tidak bisa melewatkan alat ukur.
+      - name: Kelompok alat ukur
+        id: matriks
+        run: echo "matriks=$(bash tools/cek_situs.sh --matriks-ci)" >> "$GITHUB_OUTPUT"
+      # Satu build untuk semua alat ukur dan untuk job deploy, supaya yang di-deploy sama dengan yang diperiksa.
       - uses: actions/upload-artifact@v7
         with:
           name: situs-dist
           path: situs/dist
           retention-days: 3
+
+  # Alat ukur Playwright, satu kelompok per job, paralel atas dist dari job build (keputusan 357).
+  situs_ukur:
+    name: situs (Astro) ukur ${{ matrix.kelompok }}
+    needs: situs_baru
+    runs-on: ubuntu-latest
+    # Kelompok terlama ±5m15 alat + ±1 menit persiapan di PR #195.
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false   # kelompok lain tetap melapor walau satu gagal
+      matrix: ${{ fromJSON(needs.situs_baru.outputs.matriks) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - name: Pasang dependency
+        run: bun install --cwd situs --frozen-lockfile
+      - name: Pasang Chromium Playwright
+        run: cd situs && bunx playwright install --with-deps chromium
+      # Font sudah ada di dist (get_fonts.sh menyalinnya ke situs/public sebelum build).
+      - uses: actions/download-artifact@v8
+        with:
+          name: situs-dist
+          path: situs/dist
+      - name: Alat ukur
+        env:
+          KELOMPOK: ${{ matrix.kelompok }}
+        run: bash tools/cek_situs.sh --ukur "$KELOMPOK"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: tangkapan-situs-${{ strategy.job-index }}
+          path: situs/tangkapan/*.png
+          if-no-files-found: ignore
+          retention-days: 7
 
   # Cloudflare Pages lewat Direct Upload (keputusan 115). Setiap PR mendapat preview per branch; push ke main = produksi.
   # Butuh dua secret repo: CLOUDFLARE_API_TOKEN (izin Account > Cloudflare Pages > Edit) dan CLOUDFLARE_ACCOUNT_ID.
@@ -102,7 +140,7 @@ jobs:
   # Sumber: https://developers.cloudflare.com/pages/how-to/use-direct-upload-with-continuous-integration/
   deploy:
     name: deploy Cloudflare Pages
-    needs: situs_baru
+    needs: [situs_baru, situs_ukur]
     if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
