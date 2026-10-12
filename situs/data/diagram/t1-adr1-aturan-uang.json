@@ -1,7 +1,7 @@
 {
   "id": "t1-adr1-aturan-uang",
   "judul": "Bayar ke warung: di mana aturan uang tinggal?",
-  "sumber": { "jenis": "ilustrasi", "teks": "Ringkasan dokumentasi resmi · sumber di blok Opsi" },
+  "sumber": { "jenis": "ilustrasi", "teks": "Ringkasan dokumentasi · sumber di blok Opsi" },
   "baris": [
     {
       "label": "A. Supabase",

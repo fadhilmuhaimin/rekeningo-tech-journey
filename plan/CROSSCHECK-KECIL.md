@@ -232,3 +232,80 @@ href internal di `<main>`: 1.31 (33), 1.33 (20), 1.34 (7), 1.35 (30); 0 tujuan a
 - K2a (teknis): langkah runsql yang dilewati ≥ 4,5:1 di dua tema, teks SQL dan label, tanpa `opacity` pada teks; coret dan label "tidak dijalankan" tetap.
 - K2b (teknis): `contrast.py` memasangkan aturan yang hanya menulis `color` atau hanya latar dengan pasangan dari aturan leluhur atau halaman, dan menurunkan opacity induk ke turunannya; tes di `tools/test_contrast.py`.
 - K2c (teknis): baris KEPUTUSAN 157, 247, 252, 253 jadi lima kolom, dan gerbang menolak baris dengan jumlah pipe tanpa escape yang berbeda dari header.
+
+## K3 · 1.36–1.40 (2026-10-12)
+
+Branch `crosscheck/k3` dari main 6e3f41e (1.40 sudah di-merge lewat #201). Build `bun run --cwd situs build`: 83 halaman, exit 0. Preview di port 4323. Alat: `situs/tangkapan/k3-nav.mjs` (salinan `k2-nav.mjs` dengan daftar halaman baru, Sebelumnya, dan sidebar menyusul), `k3-ukur.mjs` (baris chip dan tinggi island sesudah hidup), `k3-kalk.mjs` (susunan kalkulator), `k3-foto.mjs` (dua tangkapan HP), `tmp/k3_angka.py` (angka beban di semua halaman dan data Tahap 1); semuanya di folder yang di-.gitignore.
+
+### Alur baca 1.35 → 1.36 → 1.37 → 1.38 → 1.39 → 1.40 → 1.41
+
+`node situs/tangkapan/k3-nav.mjs http://127.0.0.1:4323 dist` di 375×667 dan 1366×657: keenam halaman `200`, `scrollWidth` sama dengan lebar viewport, 0 error konsol. Berikutnya di setiap blok kecuali yang terakhir digulir ke layar, diklik, lalu dibaca 900 ms sesudahnya: blok tujuan terbuka dan terlihat, 24 dari 24 per ukuran (top 80–232 px).
+
+| Halaman | Blok (dua pertama terbuka) | Lanjut → | Sebelumnya ← | Breadcrumb HP |
+|---|---|---|---|---|
+| 1.35 Secret + ADR 11 | lima blok konsep | `/tahap-1/tim-infra/` (1.36) | 1.34 | Tahap 1 |
+| 1.36 Tim dan infra | Siapa memegang apa, Infra tahap ini, Yang pecah saat tumbuh, Kunci | `/tahap-1/m8-uji-coba-lolos/` (1.37) | 1.35 | Tahap 1 |
+| 1.37 M8 | Gejala, Yang Raka kira, Yang sebenarnya, Coba sendiri, Konsep yang lahir | `/tahap-1/kerangka-estimasi/` (1.38) | 1.36 | Tahap 1 › minggu 6 |
+| 1.38 Kerangka dan estimasi | lima blok konsep | `/tahap-1/spesifikasi-ai/` (1.39) | 1.37 | Tahap 1 |
+| 1.39 Spesifikasi AI | lima blok konsep | `/tahap-1/sengaja-belum/` (1.40) | 1.38 | Tahap 1 |
+| 1.40 ADR 12 | enam blok ADR | `/cerita/tahap-2/` | 1.39 | Tahap 1 |
+
+Sidebar aktif di setiap halaman adalah halaman itu sendiri. Breadcrumb desktop keenamnya "Tahap 1 · Uji coba Gedung A › Masalah yang muncul", sesuai bagian 4 di registry (`tahap[0].bagian`) dan peta halaman naskah (1.36 bagian 4). Sambungan 1.35 → 1.36 yang di K2 masih meloncat ke 1.38 lama sekarang benar: `[[berikutnya]]` di Inti 1.35 dan Lanjut menunjuk 1.36. 1.40 → 1.41: 1.41 dan 1.42 belum ditulis, jadi Lanjut menunjuk `/cerita/tahap-2/`, pola yang sama dengan 1.35 → 1.38 lama di K2. Di sidebar, 1.41 dan 1.42 tampil dengan `data-nav="inti menyusul"` dan `title="Halaman ini belum ditulis"`. 1.40 tidak merujuk 1.41 atau 1.42 di teksnya. Bukan temuan; Lanjut pindah sendiri saat 1.41 terbit.
+
+Isi sambungannya cocok. 1.35 berakhir dengan secret di `.env` VPS; 1.36 dibuka dari batasan PRD v1 (satu engineer, satu VPS Divisi TI). 1.37 Jumat minggu 6: 91 dari 100 penguji aktif, rekonsiliasi 4 jam, selisih 0 sesudah koreksi Rp70.000, PRD v2 1.000 karyawan dan 12 warung, sama dengan naskah (M8 baris 159, tabel tahap baris 24). 1.38 membuka dari tiga rencana Raka di 1.37, 1.39 dari transfer antar karyawan PRD v2, 1.40 dari keduanya.
+
+### Tautan
+
+href internal di `<main>`: 1.35 (30), 1.36 (32), 1.37 (13), 1.38 (25), 1.39 (31), 1.40 (28); 0 tujuan atau anchor salah, 0 `rujukan-menyusul`.
+
+Rujukan ke kelima halaman dari halaman lain (39 kemunculan `[[D1]]`, `[[F1]]`, `[[t1-adr-12]]`, `[[t1-m8]]`, `[[t1-tim-infra]]`) dan janji di tempat asalnya:
+
+| Asal | Janji | Dijawab di |
+|---|---|---|
+| 1.4 baris 54 | Satu VPS mati dan datanya hilang, dibahas di 1.36 | 1.36 "Satu VPS, satu tempat data" dan rekaman `cadangan.txt` |
+| 1.18 baris 151 | Tes kontrak, belum ada CI backend → 1.36 | 1.36 baris 133: tes kontrak masuk pipeline Tahap 4 |
+| 1.21 baris 146 | Pemeriksa arah di CI → 1.36 | 1.36 baris 132: satu langkah di `ci.yml` saat orang kedua bergabung |
+| 1.30 baris 91 | Satu VPS, Compose, CI pertama | 1.36 Inti dan blok 2 |
+| 1.31 baris 107 dan 165 | Jeda saat container diganti, VPS mati, deploy tanpa jeda → 1.36 | 1.36 baris 115, 117, 119: dua instance di belakang reverse proxy Tahap 3, jeda belum diukur lab |
+| 1.13 baris 78 | Puncak ±0,14 dihitung di 1.38 | 1.38 baris 77 |
+| 1.18 baris 78 | Spesifikasi yang tepat untuk AI → 1.39 | 1.39 template enam bagian |
+| C2 baris 70 | Token, PIN, password tidak masuk log → 1.39 | 1.39 sifat wajib 3 dan tes "Log sesudah bayar tidak memuat token" |
+| Glosarium (Trade-off), D4b, D4c, D5 | Kerangka kebutuhan → estimasi → bottleneck → desain → trade-off | 1.38 tabel lima langkah, urutan sama dengan D4c baris 31 |
+| Tahap 5 baris 44 | "Biaya per transaksi sebagai requirement ([[D1]])" | Sebagian: 1.38 menyebut biaya operasional di trade-off, bukan biaya per transaksi. Kalimat asalnya sendiri menulis bahwa masalah itu belum punya halaman. Tidak dijadikan tugas; diperbaiki saat Tahap 5 ditulis ulang |
+| 1.37 baris 73 | Celah dua request bersamaan sudah tertulis di 1.9, 1.24, 1.5 | 1.9 baris 46, 1.24 baris 122, 1.5 baris 143 |
+
+### Cocok lintas halaman
+
+| Yang diperiksa | Hasil | Bukti |
+|---|---|---|
+| Angka beban | Cocok. Puncak 0,14 / 1,4 / 17 / 140 / 1.400 dan data ±6,6 MB / ±550 MB dihitung ulang dari `tahap[].asumsi` (100 × 30% × 40 ÷ 86.400 × 10 = 0,139; 30 × 2 × 365 × 300 byte = 6,57 MB). 29 kemunculan 0,14 dan 9 kemunculan ±1,4 di 16 file sama | `tmp/k3_angka.py`; 1.37 baris 54–59, 1.38 baris 77–83, 1.40 baris 16, 41, 133 |
+| Faktor 10 / 24 / 144 | Cocok: 10 asumsi naskah (10 ÷ 24 ≈ 42% request sehari di jam ramai), 24 batas atas per jam (kalkulator "Satu jam", 1,4 → 3,3), 144 batas atas per 10 menit | 1.38 baris 88–92; `t1-m8-kalkulator.json` baris 29 |
+| 91 penguji vs 30% aktif | Cocok dan hanya di 1.37: 91 × 40 ÷ 86.400 × 10 ≈ 0,42, tiga kali 0,14, tetap di bawah satu request per detik | 1.37 baris 16, 63; naskah M8 |
+| Tahap untuk yang ditunda | Cocok di 1.36, 1.38, 1.40, dan 1.35: cache dan queue Tahap 3, service kedua Tahap 4, Kubernetes Tahap 5 (k3s), cadangan terjadwal Tahap 3, staging dan CI yang men-deploy Tahap 3, dua instance Tahap 3, tes kontrak di CI Tahap 4, `cek_arah.py` di CI saat engineer kedua masuk (Tahap 2), PostgreSQL terkelola Tahap 4 | 1.36 baris 114–117, 125, 132–133; 1.40 baris 54–58, 112–117; 1.35 baris 181. PROPOSAL baris 150–152, 313–316, 430–432 |
+| PROPOSAL dengan dirinya sendiri | Tidak cocok di PROPOSAL, bukan di halaman. Tabel infra baris 149 menulis Tahap 2 "GitHub Actions … deploy ke VPS lewat SSH"; tabel pipeline baris 430 menulis Tahap 2 "deploy manual dengan satu perintah" dan baris 431 staging otomatis di Tahap 3. Halaman 1.31, 1.35, 1.36, 1.40 mengikuti tabel pipeline (CI pertama sudah di Tahap 1 menurut peta halaman naskah, CI men-deploy Tahap 3) | Untuk pemilik ("Perlu dicek pemilik"); PROPOSAL tidak diubah |
+| "load balancer" dan "reverse proxy" | Tidak cocok: baris "Deploy tanpa jeda" di 1.31 menulis load balancer, di 1.36 dan 1.40 reverse proxy (PROPOSAL baris 150: reverse proxy). "Load balancer" di 1.37 dan 1.40 baris 16 adalah rencana Raka di cerita dan tetap | 1.31 baris 165. Diperbaiki langsung |
+| Klaim kapasitas tanpa load test | Tidak cocok di 1.31 baris 103: "Satu proses Go menjawab beban itu", padahal 1.37 baris 67, 1.38 baris 104, dan 1.40 baris 66 menulis kapasitas VPS belum pernah diukur karena lab Tahap 1 belum menjalankan load test. Pencarian "menjawab beban", "cukup", "sanggup", "kapasitas", "mampu melayani" di semua halaman dan data Tahap 1 tidak menemukan klaim kapasitas lain; sisanya kalimat tentang 100 akun di kolom saldo atau yang justru menolak klaim kapasitas | Diperbaiki langsung |
+| Tokoh | Cocok: 1.36–1.38 dan 1.40 hanya Raka, Sinta, Pak Hadi, Budi; 1.39 memakai token Dimas dan `dari: 419` (akun Budi) di tes penerimaan, sesuai Dimas yang mencoba. Saldo Dimas Rp250.000 → Rp225.000 sama dengan rekaman `f2-review` | 1.39 baris 53, 113–114 |
+| Batas jumlah | Cocok: 1 sampai Rp200.000 di 1.15, kontrak `openapi-expand.yaml` baris 230–231, tes `f2-review`, dan template 1.39 | 1.39 baris 102 |
+
+### Layar pertama dan ukuran
+
+Gerbang `PORT_PREVIEW=4323 bash tools/cek_situs.sh --layar`: LOLOS; `layar.mjs` `LOLOS: 0 gagal, 0 margin tipis.` Dua tangkapan HP gelap 375×667 dibuka. 1.36: breadcrumb "Tahap 1", judul bernomor, blok "Siapa memegang apa · Blok 1 dari 4", Inti, dan Rantai peran utuh (top 443, bottom 615); ketiga pertanyaan 3 detik terjawab. 1.40 (ADR, tidak diukur `layar.mjs`): Kebutuhan terbuka dengan paragraf PRD v2 dan dua rujukan; Rantai empat komponen di bawah layar pertama (top 854), sama dengan halaman ADR lain.
+
+`ukur-luapan.mjs`: 82 halaman × 360×740 dan 375×667, 150 chip (75 per ukuran), 0 gagal. KEPUTUSAN 356 menulis 70 chip pada survei K2d; sesudah 1.36–1.40 jumlahnya 75 per ukuran. Dicatat saja.
+
+| Catatan | Nilai | Tindakan |
+|---|---|---|
+| Chip Rantai ADR 1 "Ringkasan dokumentasi resmi · sumber di blok Opsi" | 2 baris di 360 dan 375 (328×46, 343×46), 1 baris di 1366 (352 px) | Dipendekkan di data jadi "Ringkasan dokumentasi · sumber di blok Opsi": 1 baris, 313 px di 360 |
+| Chip Rantai ADR 12 "Angka: asumsi naskah (cerita.json) · tahap: rencana PROPOSAL, naskah tahap berikutnya belum ditulis" | 3 baris di 360 dan 375 (66 px). Tidak tertangkap gerbang: K2d sengaja mengizinkan chip panjang membungkus, dan `layar.mjs` tidak mengukur ADR | Dipendekkan jadi "Asumsi naskah · tahap dari rencana PROPOSAL": 1 baris, 325 px di 360. Keterangan "naskah tahap berikutnya belum ditulis" tetap di 1.40 baris 108 |
+| Kalkulator 1.38 di 375×667 | 811 px awal, 1.001 px sesudah tebakan dan Tahap 5. Tombol skenario di 281–368, tabel sampai 766, kalimat kesimpulan mulai 783 | Tidak dijadikan tugas. Dari tombol skenario sampai akhir tabel 485 px dan sampai paragraf pertama kesimpulan 556 px, jadi angka yang berubah dan kalimatnya masuk satu layar di bawah header 56 px. Jawaban tebakan muncul sesudah skenario dipilih, di bawah kesimpulan (855–991): bila tombol di atas layar, ±100 px terakhirnya perlu satu gulir pendek. Dicatat untuk R1–R6 bila susunan widget ditinjau. 1.37 memakai komponen yang sama: 791–900 px |
+
+### Diperbaiki langsung di PR ini
+
+- 1.31 `deployment-rollback.mdx` baris 103: klaim kapasitas diganti "Kapasitas satu proses Go di VPS itu belum diukur dengan load test ([[t1-m8]]), …".
+- 1.31 `deployment-rollback.mdx` baris 165: "dua instance dan reverse proxy", sama dengan 1.36 dan 1.40.
+- `situs/data/diagram/t1-adr1-aturan-uang.json` dan `t1-adr12-empat.json`: chip sumber satu baris di HP.
+
+### Tugas perbaikan yang lahir
+
+Tidak ada. Untuk pemilik: tabel infra PROPOSAL baris 149 dan tabel pipeline baris 430–431 berbeda soal siapa yang men-deploy di Tahap 2.
