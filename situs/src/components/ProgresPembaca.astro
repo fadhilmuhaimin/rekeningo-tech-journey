@@ -1,0 +1,132 @@
+---
+/**
+ * Ekspor dan impor progres pembaca (P7, keputusan 365). Dua tombol di /cara-pakai/: Ekspor mengunduh satu file JSON
+ * lewat Blob, Impor membaca file pilihan pembaca, memeriksanya dengan Zod, menulis ringkasannya, lalu menunggu pilihan
+ * Gabungkan atau Ganti. Tanpa akun dan tanpa server. Logika di src/lib/progres.ts (dites Vitest) dimuat saat tombol
+ * pertama ditekan, jadi Zod tidak ikut diunduh saat halaman dibuka. Tanpa JavaScript kotak ini tersembunyi.
+ */
+---
+<div class="progres" data-progres-pembaca hidden>
+  <div class="bb-row">
+    <button type="button" class="bb-btn" data-progres-ekspor>Ekspor progres</button>
+    <button type="button" class="bb-btn" data-progres-pilih>Impor progres</button>
+    <input type="file" accept="application/json,.json" data-progres-file hidden />
+  </div>
+  <div class="progres__tanya" data-progres-tanya hidden>
+    <p data-progres-isi></p>
+    <table class="progres__banding">
+      <thead><tr><th scope="col">Isi</th><th scope="col">File</th><th scope="col">Browser ini</th></tr></thead>
+      <tbody data-progres-tabel></tbody>
+    </table>
+    <div class="bb-row">
+      <button type="button" class="bb-btn bb-btn--primary" data-progres-mode="gabung">Gabungkan</button>
+      <button type="button" class="bb-btn" data-progres-mode="ganti">Ganti progres di browser ini</button>
+      <button type="button" class="bb-btn bb-btn--quiet" data-progres-batal>Batal</button>
+    </div>
+  </div>
+  <p class="progres__status" role="status" aria-live="polite" data-progres-status></p>
+</div>
+
+<script>
+  import type { FileProgres, Ringkasan } from "../lib/progres";
+
+  const kotak = document.querySelector<HTMLElement>("[data-progres-pembaca]");
+  if (kotak) {
+    const $ = <T extends HTMLElement>(s: string) => kotak.querySelector<T>(s)!;
+    const status = $<HTMLParagraphElement>("[data-progres-status]");
+    const tanya = $<HTMLDivElement>("[data-progres-tanya]");
+    const isi = $<HTMLParagraphElement>("[data-progres-isi]");
+    const input = $<HTMLInputElement>("[data-progres-file]");
+    const tabel = $<HTMLTableSectionElement>("[data-progres-tabel]");
+    const muat = () => import("../lib/progres");
+    const LABEL: Record<string, string> = { generalis: "Generalis", mobile: "Mobile", web: "Web", backend: "Backend", devops: "DevOps", security: "Security" };
+    let siap: FileProgres | null = null;
+
+    // Teks dari file selalu lewat textContent, tidak pernah sebagai HTML.
+    const lapor = (teks: string, nada: "biasa" | "good" | "warn" = "biasa") => {
+      status.textContent = teks;
+      status.className = "progres__status" + (nada === "biasa" ? "" : " is-" + nada);
+    };
+    const kalimat = (r: Ringkasan) =>
+      `${r.blok} blok selesai di ${r.halaman} halaman, ${r.selesai} halaman ditandai selesai, ${r.kartu} kartu ulang` +
+      (r.jalur ? `, jalur ${LABEL[r.jalur] ?? r.jalur}` : "") + (r.terakhir ? `, halaman terakhir ${r.terakhir}` : "");
+    const penyimpanan = (): Storage | null => { try { return window.localStorage; } catch { return null; } };
+
+    $<HTMLButtonElement>("[data-progres-ekspor]").addEventListener("click", async () => {
+      const s = penyimpanan();
+      if (!s) return lapor("Browser ini tidak mengizinkan penyimpanan, jadi tidak ada progres untuk diekspor.", "warn");
+      const p = await muat();
+      const kini = new Date();
+      const { file, dilewati } = p.ekspor(s, kini);
+      const r = p.ringkas(file);
+      if (!r.blok && !r.selesai && !r.kartu && !r.jalur && !r.terakhir) return lapor("Belum ada progres di browser ini untuk diekspor.");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(file, null, 2)], { type: "application/json" }));
+      a.download = p.namaFile(kini);
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      lapor(`File ${a.download} diunduh: ${kalimat(r)}.` + (dilewati.length ? ` ${dilewati.length} entri rusak dilewati.` : ""), "good");
+    });
+
+    $<HTMLButtonElement>("[data-progres-pilih]").addEventListener("click", () => input.click());
+
+    input.addEventListener("change", async () => {
+      const f = input.files?.[0];
+      input.value = "";
+      siap = null;
+      tanya.hidden = true;
+      if (!f) return;
+      const p = await muat();
+      const hasil = p.bacaFile(f.size > p.BATAS_BYTE ? "" : await f.text(), f.size);
+      if (!hasil.ok) return lapor(hasil.pesan, "warn");
+      const s = penyimpanan();
+      if (!s) return lapor("Browser ini tidak mengizinkan penyimpanan, jadi progres tidak bisa dimuat.", "warn");
+      siap = hasil.file;
+      const tanggal = new Date(siap.dibuat).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+      const [dariFile, diSini] = [p.ringkas(siap), p.ringkas(p.ekspor(s, new Date()).file)];
+      isi.textContent = `File tanggal ${tanggal} terbaca. Bandingkan isinya, lalu pilih cara memuatnya.`;
+      const baris: [string, (r: Ringkasan) => string][] = [
+        ["Blok selesai", (r) => `${r.blok} di ${r.halaman} halaman`],
+        ["Halaman ditandai selesai", (r) => String(r.selesai)],
+        ["Kartu ulang", (r) => String(r.kartu)],
+        ["Jalur", (r) => (r.jalur ? LABEL[r.jalur] ?? r.jalur : "–")],
+        ["Halaman terakhir", (r) => r.terakhir ?? "–"],
+      ];
+      tabel.replaceChildren(...baris.map(([label, isiSel]) => {
+        const tr = document.createElement("tr");
+        const th = document.createElement("th");
+        th.scope = "row";
+        th.textContent = label;
+        tr.append(th, ...[dariFile, diSini].map((r) => { const td = document.createElement("td"); td.textContent = isiSel(r); return td; }));
+        return tr;
+      }));
+      lapor("");
+      tanya.hidden = false;
+      $<HTMLButtonElement>('[data-progres-mode="gabung"]').focus();
+    });
+
+    tanya.addEventListener("click", async (e) => {
+      const b = (e.target as Element).closest<HTMLButtonElement>("button");
+      if (!b || !siap) return;
+      const mode = b.dataset.progresMode as "gabung" | "ganti" | undefined;
+      const file = siap;
+      siap = null;
+      tanya.hidden = true;
+      if (!mode) return lapor("Impor dibatalkan. Tidak ada yang diubah.");
+      const p = await muat();
+      const s = penyimpanan();
+      try {
+        if (!s) throw new p.GagalSimpan("localStorage");
+        p.terapkan(s, file, mode);
+      } catch {
+        return lapor("Browser ini menolak menyimpan progres. Progres yang lama tetap seperti sebelumnya.", "warn");
+      }
+      const r = p.ringkas(p.ekspor(s, new Date()).file);
+      lapor(`Progres dimuat. Di browser ini sekarang: ${kalimat(r)}.`, "good");
+    });
+
+    kotak.hidden = false;
+  }
+</script>
