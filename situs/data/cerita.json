@@ -50,8 +50,8 @@
         "tim": "1 developer"
       },
       "jalur_inti": {
-        "menit": 301,
-        "halaman": 33
+        "menit": 310,
+        "halaman": 34
       },
       "bagian": [
         {
@@ -1141,8 +1141,12 @@
       ],
       "label": "Masalah 8 · minggu 6",
       "masalah": "Uji coba berhasil, lalu lingkupnya naik sepuluh kali",
-      "ada": false,
-      "nomor": "1.37"
+      "ada": true,
+      "prasyarat": [
+        "t1-tim-infra"
+      ],
+      "nomor": "1.37",
+      "menit": 9
     },
     {
       "id": "D1",

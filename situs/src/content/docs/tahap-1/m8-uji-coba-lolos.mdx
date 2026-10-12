@@ -1,0 +1,95 @@
+---
+title: "1.37 M8: Uji coba lolos, PRD v2 datang"
+description: Minggu 6. Uji coba Gedung A lolos, dan Sinta datang dengan PRD v2 untuk seluruh kampus. Raka mengira servernya harus diperbesar. Hitungan memberi puncak 0,14 request per detik; yang belum pernah diuji adalah dua request yang datang hampir bersamaan.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import beban from "../../../../data/diagram/t1-m8-beban.json";
+import Kalkulator from "../../../widgets/kalkulator/Kalkulator.tsx";
+import dataKalkulator from "../../../../data/widget/t1-m8-kalkulator.json";
+import cerita from "../../../../data/cerita.json";
+
+<p class="meta">Baca 6 menit · coba 3 menit · Prasyarat: [[t1-tim-infra]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Jumat minggu 6, uji coba Gedung A berakhir. Sinta membuka laporannya di rapat singkat bersama Raka dan Pak Hadi. Dari 100 penguji, 91 aktif memakai Rekeningo selama uji coba.
+
+Pak Hadi mencocokkan buku tiga warung dengan data Rekeningo dalam 4 jam. Selisihnya 0, setelah koreksi Rp70.000 dari minggu 3 yang alasannya tercatat di tabel koreksi.
+
+Sinta lalu membagikan dokumen baru: PRD v2. Lingkupnya seluruh kampus, 1.000 karyawan dan 12 warung. Fitur barunya transfer antar karyawan dan tutup buku otomatis untuk Keuangan.
+
+"Server yang sekarang cukup untuk seluruh kampus?" tanya Sinta. Raka belum bisa menjawab.
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka membaca angka di PRD v2: user naik dari 100 ke 1.000. Sepuluh kali lebih banyak orang, jadi menurutnya server juga harus jauh lebih besar.
+
+Di catatannya ia menulis tiga rencana: VPS dengan CPU dan memori lebih besar, server kedua, dan load balancer di depan keduanya.
+
+<details class="question">
+<summary>Tebak dulu: dengan 1.000 user, berapa request per detik yang masuk ke server di jam paling ramai?</summary>
+
+Sekitar 1,4, atau satu request kira-kira tiap 0,7 detik. Uji coba sendiri hanya ±0,14 request per detik. Blok berikutnya menghitung keduanya terbuka dari asumsi naskah.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Beban dihitung dulu, sebelum server dipilih. Semua angka di blok ini asumsi naskah dari `cerita.json` (`tahap[].asumsi`), bukan hasil pengukuran.
+
+```text
+user aktif per hari = user terdaftar × rasio aktif harian
+request per hari    = user aktif per hari × request per user aktif
+rata-rata per detik = request per hari ÷ 86.400 detik
+puncak per detik    = rata-rata per detik × faktor puncak
+```
+
+| Besaran | Nilai | Cara hitung (semua asumsi) |
+|---|---|---|
+| User terdaftar (Tahap 1) | 100 | Penguji Gedung A |
+| User aktif harian (Tahap 1) | 30 | 100 × 30% |
+| Request per hari (Tahap 1) | 1.200 | 30 × 40 request |
+| Puncak request per detik (Tahap 1) | ±0,14 | 1.200 ÷ 86.400 × 10 |
+| Data transaksi per tahun (Tahap 1) | ±6,6 MB | 30 × 2 transaksi × 365 × 300 byte |
+| Puncak request per detik (Tahap 2) | ±1,4 | PRD v2: 1.000 × 30% × 40 ÷ 86.400 × 10 |
+
+**Rata-rata dan puncak.** Rata-rata membagi request sehari ke 86.400 detik, padahal tidak ada yang membayar makan siang pukul 03.00. Faktor puncak 10 menganggap jam paling ramai sepuluh kali rata-rata harian. Hasilnya ±0,14 request per detik: di jam makan siang uji coba, satu request datang kira-kira tiap 7 detik.
+
+**Kalau asumsinya terlalu kecil.** Asumsi naskah menghitung 30 user aktif per hari, sedangkan 91 penguji aktif selama uji coba. Kalau ke-91 penguji itu aktif setiap hari, puncaknya 91 × 40 ÷ 86.400 × 10 ≈ 0,42 request per detik. Angka itu tiga kali lebih besar dan tetap di bawah satu request per detik.
+
+**PRD v2 mengubah satu angka.** Asumsi Tahap 2 memakai rasio aktif, request per user, dan faktor puncak yang sama dengan Tahap 1. Hanya user terdaftar yang naik, dari 100 ke 1.000. Setiap langkah rumus adalah perkalian atau pembagian, jadi puncaknya ikut naik sepuluh kali: ±1,4 request per detik.
+
+**Yang tidak dijawab estimasi.** Estimasi tidak menyebut berapa request per detik yang sanggup dilayani VPS Raka. Angka itu hanya bisa diukur dengan load test di sistem sendiri, dan lab Tahap 1 belum menjalankannya. Rencana tiga komponen Raka menjawab kapasitas yang belum pernah diukur, untuk beban yang baru saja dihitung kecil.
+
+<Rantai data={beban} />
+
+**Yang belum pernah diuji.** Angka puncak adalah rata-rata dalam satu jam ramai. Angka itu tidak menjelaskan dua request dari satu HP yang datang hampir bersamaan. Selama 6 minggu uji coba, tidak ada yang mencoba apa yang terjadi saat Budi menekan Bayar dua kali.
+
+Celahnya sudah tertulis di halaman sebelumnya. Di [[t1-fitur-bayar]], service membaca saldo lalu membandingkannya, dan cara itu benar untuk satu request. Di [[t1-adr-transaction]], transaction tidak mencegah dua pembayaran Budi membaca saldo yang sama. Di [[A2]], request yang diulang sesudah timeout berarti meminta pembayaran kedua.
+
+Kapasitas yang belum diukur dan dua ketukan yang belum diuji adalah dua pertanyaan berbeda. Tahap 2, "Saldo salah dan dobel bayar", mulai dari yang kedua.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Faktor puncak 10 adalah asumsi, sedangkan tunjangan makan dibayar di sekitar jam makan siang. Tebak dulu, lalu ganti skenario dan lihat baris mana yang berubah.
+
+<Kalkulator client:visible data={dataKalkulator} asumsi={cerita.tahap.map((t) => t.asumsi)} />
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[D1]]: kerangka berpikir dan estimasi. Estimasi adalah langkah kedua dari lima, sesudah kebutuhan dan sebelum desain. Halaman itu akan memakai kalkulator yang sama untuk kelima tahap.
+- [[t1-tim-infra]]: cara kerja satu orang dengan satu VPS dan CI pertama. Rencana server kedua dan load balancer menambah pekerjaan untuk orang yang sama.
+- [[F1]]: spesifikasi untuk AI dan review kode AI. Satu orang yang menulis kode dengan bantuan AI tetap harus membaca dan menguji setiap baris uang.
+- [[t1-adr-12]]: ADR 12, sengaja belum dilakukan. Cache, queue, service kedua, dan Kubernetes ditunda, masing-masing dengan syarat kapan dipertimbangkan lagi.
+- [[B3.2]]: dua request yang membaca saldo yang sama, di Tahap 2.
+
+</Blok>
