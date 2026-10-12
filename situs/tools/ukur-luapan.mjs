@@ -9,9 +9,12 @@
 // Elemen penyebab luapan (yang keluar viewport, di luar wadah gulir seperti <pre> dan bukan elemen fixed) dicetak supaya sumbernya terlihat.
 // Gagal bila ada luapan, atau bila tidak satu pun chip terukur (pemeriksaan tidak boleh lolos karena kosong).
 // Ringkasan juga mencetak jeda thread utama terlama (long task atau detak terlambat, lib/jejak.mjs, keputusan 364).
-// SEMENTARA sampai G2d (keputusan 364): halaman yang macet karena renderer diam (thread utama tertahan di luar
-// JavaScript, CPU semua proses < 0,2 s per detik, tanpa xhr/fetch tertunda) diulang sekali di konteks baru dengan baris
-// ULANG, peringatan Actions, dan ringkasan langkah; paling banyak 2 per run.
+// Halaman yang macet karena renderer diam (thread utama tertahan di luar JavaScript, CPU semua proses < 0,2 s per
+// detik, tanpa xhr/fetch tertunda) diulang sekali di konteks baru dengan baris ULANG, peringatan Actions, dan ringkasan
+// langkah; paling banyak 2 per run (keputusan 364). Akarnya di Chromium, bukan kode situs (G2d, keputusan 367): trace
+// seluruh proses menunjukkan thread utama menunggu commit di LayerTreeHost::WaitForCommitCompletion, sedangkan tugas
+// raster cc yang dibutuhkan aktivasi tidak pernah dijalankan lagi. Jadi ulang sekali dipertahankan sampai Chromium
+// Playwright yang baru lolos ulang tools/percobaan-macet.mjs tanpa macet.
 //   node tools/ukur-luapan.mjs --url http://127.0.0.1:4321 [--halaman /tahap-1/cadangan/] [--rinci]
 import fs from "node:fs";
 import path from "node:path";
@@ -130,7 +133,7 @@ function catatUlang(k, pesan) {
   console.log(`ULANG ${pesan.replace(/^MACET /, "")}`);
   if (process.env.GITHUB_ACTIONS) console.log(`::warning title=ukur-luapan diulang::renderer diam di ${k}, diulang sekali di konteks baru (keputusan 364)`);
   if (process.env.GITHUB_STEP_SUMMARY)
-    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `- ukur-luapan: renderer diam di \`${k}\`, diulang sekali di konteks baru (keputusan 364, sementara sampai G2d)\n`);
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `- ukur-luapan: renderer diam di \`${k}\`, diulang sekali di konteks baru (keputusan 364, 367: macet commit/raster Chromium)\n`);
 }
 let jedaMaks = { ms: 0, p: "-" }; // jeda antardetak terlama di halaman: lama thread utama renderer tidak bebas (keputusan 364)
 const maks = {}; // per ukuran: chip Rantai terlebar dibanding figure-nya
@@ -158,9 +161,9 @@ await Promise.all(UKURAN.map(async (u) => {
         h = await ukurDi(page, jejak, p, `luapan ${k}`);
       } catch (e) {
         if (!(e instanceof Macet)) throw e;
-        // SEMENTARA sampai G2d menemukan akar macet di Tahap 1 (keputusan 364): renderer diam diulang sekali di konteks
-        // baru, tercatat. Kode halaman yang berputar, CPU yang sibuk, xhr/fetch yang tertunda, macet lagi di konteks
-        // baru, atau lebih dari ULANG_MAKS halaman dalam satu run tetap MACET dan exit 1.
+        // Renderer diam (macet commit/raster Chromium, keputusan 364 dan 367) diulang sekali di konteks baru, tercatat.
+        // Kode halaman yang berputar, CPU yang sibuk, xhr/fetch yang tertunda, macet lagi di konteks baru, atau lebih
+        // dari ULANG_MAKS halaman dalam satu run tetap MACET dan exit 1.
         const xhr = tertundaXhr(jejak);
         const tolak = !jejak.diam ? "" : xhr.length ? `xhr/fetch tertunda: ${xhr.slice(0, 3).join(", ")}` : diulang.length >= ULANG_MAKS ? `sudah ${ULANG_MAKS} halaman diulang` : null;
         if (tolak !== null) { console.log(e.message + (tolak ? ` (tidak diulang, ${tolak})` : "")); process.exit(1); }
