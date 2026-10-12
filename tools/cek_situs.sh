@@ -93,8 +93,9 @@ jalan_ukur() {
       echo "== diagram: versi statis, scroll, keyboard (I4)"
       (cd situs && node tools/ukur-diagram.mjs --url "$URL") ;;
     cls)
-      echo "== CLS widget alur saat dimuat, skrip ditunda (I5c-b)"
-      (cd situs && node tools/ukur-cls.mjs --url "$URL" | grep -v "^ok ") ;;
+      # Mode font telat (keputusan 361): Satoshi selalu datang sesudah paint pertama, seperti di jaringan lambat.
+      echo "== CLS widget alur saat dimuat, skrip dan font ditunda (I5c-b, I5c-h)"
+      (cd situs && node tools/ukur-cls.mjs --url "$URL" --font-telat 1500 --fallback Verdana --paralel 8 | grep -v "^ok ") ;;
     kontras)
       echo "== kontras langkah runsql setelah dijalankan, computed style (K2a)"
       (cd situs && node tools/ukur-kontras.mjs --url "$URL") ;;
