@@ -13,8 +13,8 @@
 // Ukuran 667x375 (keputusan 350): mode sempit juga bergantung tinggi layar, yang tidak terbaca container query.
 // Tiruan CI (keputusan 351): di CI Satoshi sering datang sesudah paint pertama dan fallback Linux jauh lebih lebar, jadi
 // baris membungkus ulang saat font tukar. --font-telat <ms> menunda /fonts/*, --fallback <font> mengganti system-ui di CSS
-// (mis. Verdana, selebar DejaVu Sans). Contoh: --font-telat 1500 --fallback Verdana. Gerbang (tools/cek_situs.sh) belum
-// memakai mode ini: di CI Linux lima kasus masih di atas batas (keputusan 359), jadi gerbang menjalankan mode biasa.
+// (mis. Verdana, selebar DejaVu Sans). Gerbang (tools/cek_situs.sh) memakai --font-telat 1500 --fallback Verdana --paralel 8
+// sejak keputusan 361, sesudah tema.css memakai text-rendering: geometricPrecision (lebar glyph pecahan di Chromium Linux).
 // Penundaan dihitung dari navigasi (tenggat), bukan per request (keputusan 359). Skrip widget klasik dilepas di tenggat,
 // supaya parser selesai. Skenario JSON (/widgets/**/*.json) dan modul /_astro ditahan sampai tenggat lewat dan versi
 // statis selesai diukur (lepas), supaya alur dan race tidak hidup sebelum diukur. Pagar: alat gagal bila ada host
@@ -39,7 +39,7 @@ const BATAS = 0.1;
 const TUNDA = 600 + FONT_TELAT;
 const SELISIH = 1;
 // Konteks yang berjalan bersamaan. Waktu ukur hampir seluruhnya menunggu tenggat font dan modul, bukan CPU; run CI
-// percobaan mode font telat memakai --paralel 8 (keputusan 359). Gerbang memakai bawaan 4.
+// percobaan mode font telat memakai --paralel 8 (keputusan 359); gerbang juga, sejak keputusan 361.
 const PARALEL = Number(arg("--paralel", 4));
 const SEMUA_UKURAN = [
   { width: 375, height: 667 },
@@ -109,12 +109,16 @@ async function ukur(h, ukuran, posisi) {
       for (const e of l.getEntries()) {
         if (e.hadRecentInput) continue;
         window.__cls.total += e.value;
-        const n = e.sources?.[0]?.node;
-        const kelas = n && n.className ? "." + String(n.className).split(" ")[0] : "";
-        const r = e.sources?.[0];
-        const teks = n && n.textContent ? ` "${n.textContent.trim().slice(0, 30)}"` : "";
-        const geser = r ? ` y${Math.round(r.previousRect.y)}→${Math.round(r.currentRect.y)}` : "";
-        window.__cls.sumber.push(`${e.value.toFixed(3)} ${n ? n.nodeName.toLowerCase() + kelas : "?"}${geser}${teks}`);
+        // Semua sumber (paling banyak lima per entri) dengan kotak sebelum dan sesudah. Text node yang titik awalnya
+        // pindah baris (kata di tepi baris) melompat ratusan px mendatar walau kotaknya sama (keputusan 359, 361).
+        for (const r of e.sources ?? []) {
+          const n = r.node;
+          const kelas = n && n.className ? "." + String(n.className).split(" ")[0] : "";
+          const induk = n?.parentElement ? n.parentElement.nodeName.toLowerCase() + ">" : "";
+          const teks = n && n.textContent ? ` "${n.textContent.trim().replace(/\s+/g, " ").slice(0, 40)}"` : "";
+          const k = (q) => `${Math.round(q.x)},${Math.round(q.y)} ${Math.round(q.width)}x${Math.round(q.height)}`;
+          window.__cls.sumber.push(`${e.value.toFixed(3)} ${n ? induk + n.nodeName.toLowerCase() + kelas : "?"} ${k(r.previousRect)}→${k(r.currentRect)}${teks}`);
+        }
       }
     }).observe({ type: "layout-shift", buffered: true });
   });
@@ -214,7 +218,7 @@ for (const [k, r] of [...hasilPer].sort()) {
   const d = r.rinci;
   baris.push(`${buruk ? "GAGAL" : r.total > 0.01 ? "tipis" : "ok"} ${r.total.toFixed(3)} selisih tinggi ${d.tinggi} saudara ${d.saudara} x ${d.x} lebar ${d.lebar}px ${k} (${r.posisi})` +
     (r.hidup ? `  ${r.hidup} host sudah hidup saat versi statis diukur` : "") +
-    (rinci || buruk || r.total > BATAS ? `  tinggi ${r.tinggi}; ` + r.sumber.slice(0, 4).join(", ") : ""));
+    (rinci || buruk || r.total > BATAS ? `  tinggi ${r.tinggi}; ` + r.sumber.slice(0, 8).join(" | ") : ""));
 }
 await browser.close();
 console.log(baris.join("\n"));
