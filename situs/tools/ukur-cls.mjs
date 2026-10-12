@@ -19,11 +19,16 @@
 // supaya parser selesai. Skenario JSON (/widgets/**/*.json) dan modul /_astro ditahan sampai tenggat lewat dan versi
 // statis selesai diukur (lepas), supaya alur dan race tidak hidup sebelum diukur. Pagar: alat gagal bila ada host
 // terlihat yang sudah hidup saat versi statis diukur, karena itu berarti versi hidup dibandingkan dengan dirinya sendiri.
+// Batas waktu per halaman, ukuran, dan posisi (G2b, keputusan 364): page.evaluate tidak punya timeout (keputusan 360),
+// jadi setiap ukuran dibungkus denganBatas 45 s (normal terlama ±2,1 s tenggat + 15 s menunggu versi hidup + 10 s
+// networkidle). Yang macet mencetak `MACET cls <ukuran> <halaman> (<posisi>)` dengan diagnosa jejak.mjs, exit 1.
 //   node tools/ukur-cls.mjs --url http://127.0.0.1:4321 [--halaman /tahap-1/perjalanan-request/] [--rinci]
 //     [--font-telat 1500] [--fallback Verdana] [--ukuran 375,667] [--paralel 8]
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
+import { denganBatas, Macet } from "./lib/batas.mjs";
+import { pasangJejak, diagnosaJejak, sesiBrowser } from "./lib/jejak.mjs";
 
 const arg = (nama, bawaan) => {
   const i = process.argv.indexOf(nama);
@@ -38,6 +43,7 @@ const BATAS = 0.1;
 // Di tiruan CI modul datang sesudah font, supaya versi statis tetap diukur dengan font akhirnya.
 const TUNDA = 600 + FONT_TELAT;
 const SELISIH = 1;
+const BATAS_CLS = Number(process.env.BATAS_HALAMAN_MS) || 45_000;
 // Konteks yang berjalan bersamaan. Waktu ukur hampir seluruhnya menunggu tenggat font dan modul, bukan CPU; run CI
 // percobaan mode font telat memakai --paralel 8 (keputusan 359); gerbang juga, sejak keputusan 361.
 const PARALEL = Number(arg("--paralel", 4));
@@ -75,10 +81,14 @@ const semua = halamanAlur(path.resolve("dist"));
 const daftar = satu ? [satu] : semua;
 
 const browser = await chromium.launch();
+const cdpBrowser = await sesiBrowser(browser);
 
-async function ukur(h, ukuran, posisi) {
+// kotak: halaman dan jejaknya, dibaca diagnosa bila ukuran ini melewati batas waktu.
+async function ukur(h, ukuran, posisi, kotak = {}) {
   const ctx = await browser.newContext({ viewport: ukuran });
   const page = await ctx.newPage();
+  const jejak = await pasangJejak(page, cdpBrowser);
+  Object.assign(kotak, { page, jejak });
   let mulai = Date.now();
   const tunggu = (ms) => new Promise((s) => setTimeout(s, Math.max(0, mulai + ms - Date.now())));
   let lepas;
@@ -124,8 +134,11 @@ async function ukur(h, ukuran, posisi) {
   });
   // Parser selesai (skrip widget klasik sudah jalan, skenario dan modul masih tertunda): versi statis yang tampil.
   mulai = Date.now();
+  jejak.tandai("goto");
   await page.goto(url + h, { waitUntil: "commit" });
-  await page.waitForFunction(() => document.readyState !== "loading", null, { polling: 20 });
+  jejak.tandai("menunggu readyState");
+  // Tanpa timeout sendiri: batasnya denganBatas per ukuran, supaya yang macet tercetak sebagai MACET dengan diagnosa.
+  await page.waitForFunction(() => document.readyState !== "loading", null, { polling: 20, timeout: 0 });
   // Per host terlihat: tinggi, x, lebar, dan jarak elemen sesudah host ke bawah elemen sebelum host. Saudara dicari
   // naik ke induk bila host anak pertama atau terakhir, supaya margin yang runtuh lewat induk ikut terukur.
   const tinggi = () =>
@@ -145,7 +158,9 @@ async function ukur(h, ukuran, posisi) {
         return { h: x.offsetHeight, x: r.left, w: r.width, jarak, hidup };
       }), HOST,
     );
+  jejak.tandai("document.fonts.ready");
   await page.evaluate(() => document.fonts.ready);
+  jejak.tandai("mengukur versi statis");
   const sebelum = await tinggi();
   if (posisi === "race") {
     await page.evaluate(() => {
@@ -165,6 +180,7 @@ async function ukur(h, ukuran, posisi) {
   }
   // Versi statis sudah diukur (dan halaman sudah digulir): skenario dan modul boleh datang.
   lepas();
+  jejak.tandai("menunggu versi hidup");
   // Selesai bila setiap host alur sudah berisi versi hidup: versi statis dari build juga .bb-alur, jadi yang dicari
   // .bb-alur tanpa .bb-alur--statis (alur.js mengganti isi host).
   await page
@@ -173,8 +189,11 @@ async function ukur(h, ukuran, posisi) {
       timeout: 15000,
     })
     .catch(() => {});
-  await page.waitForLoadState("networkidle").catch(() => {});
+  jejak.tandai("networkidle");
+  // 10 s (bawaan library 30 s): batas per ukuran 45 s harus di atas jumlah penantian sah.
+  await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
   await page.waitForTimeout(400);
+  jejak.tandai("mengukur versi hidup");
   const hasil = await page.evaluate(() => window.__cls);
   const sesudah = await tinggi();
   const beda = (k) => Math.max(0, ...sebelum.map((t, i) => (t == null || sesudah[i] == null || t[k] == null ? 0 : Math.abs(t[k] - sesudah[i][k]))));
@@ -196,10 +215,28 @@ let terlihatSebelum = 0;
 const baris = [];
 const antre = daftar.flatMap((h) => UKURAN.flatMap((u) => ["atas", "widget", ...(halRace.has(h) ? ["race"] : [])].map((p) => ({ h, u, p }))));
 const hasilPer = new Map();
+let terlama = { ms: 0, k: "-" };
 await Promise.all(
   Array.from({ length: PARALEL }, async () => {
     for (let t = antre.shift(); t; t = antre.shift()) {
-      const r = await ukur(t.h, t.u, t.p);
+      const kotak = {};
+      const label = `cls ${t.u.width}x${t.u.height} ${t.h} (${t.p})`;
+      const t0 = Date.now();
+      let r;
+      try {
+        r = await denganBatas(() => ukur(t.h, t.u, t.p, kotak), label, {
+          ms: BATAS_CLS,
+          msDiagnosa: 10_000,
+          diagnosa: () => kotak.jejak
+            ? diagnosaJejak(kotak.jejak, () => kotak.page.evaluate(() => `readyState ${document.readyState}, fonts ${document.fonts.status}, CLS ${window.__cls?.total.toFixed(3)}`))
+            : "halaman belum dibuka",
+        });
+      } catch (e) {
+        if (!(e instanceof Macet)) throw e;
+        console.log(e.message);
+        process.exit(1);
+      }
+      if (Date.now() - t0 > terlama.ms) terlama = { ms: Date.now() - t0, k: label.slice(4) };
       hidupSebelum += r.hidup;
       terlihatSebelum += r.terlihat;
       const k = `${t.h} ${t.u.width}x${t.u.height}`;
@@ -229,7 +266,8 @@ console.log(
   `CLS alur: ${daftar.length} halaman, maks 375 ${maks(375).toFixed(3)}, maks 667 ${maks(667).toFixed(3)}, maks 1366 ${maks(1366).toFixed(3)}, maks 1440 ${maks(1440).toFixed(3)}, ` +
     `${new Set([...hasilPer].filter(([, r]) => r.total > 0.01).map(([k]) => k.split(" ")[0])).size} halaman > 0,01, ` +
     `${[...hasilPer.values()].filter((r) => r.total > BATAS).length} di atas batas CLS ${BATAS}, selisih maks: tinggi ${maksRinci("tinggi")} saudara ${maksRinci("saudara")} x ${maksRinci("x")} lebar ${maksRinci("lebar")}px, host hidup saat versi statis diukur ${hidupSebelum} dari ${terlihatSebelum} host terlihat, ${gagal} gagal (batas CLS ${BATAS}, selisih ${SELISIH}px)` +
-    (FONT_TELAT || FALLBACK ? `, tiruan CI: font telat ${FONT_TELAT} ms, fallback ${FALLBACK ?? "-"}` : ""),
+    (FONT_TELAT || FALLBACK ? `, tiruan CI: font telat ${FONT_TELAT} ms, fallback ${FALLBACK ?? "-"}` : "") +
+    `; ukuran terlama ${(terlama.ms / 1000).toFixed(1)} s (${terlama.k}), batas ${BATAS_CLS / 1000} s`,
 );
 if (!nilai.length) {
   console.error("Tidak ada halaman alur di dist/.");

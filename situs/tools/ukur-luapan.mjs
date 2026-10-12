@@ -8,11 +8,13 @@
 //      .sl-markdown-content) dan teksnya tidak terpotong (scrollWidth chip <= clientWidth).
 // Elemen penyebab luapan (yang keluar viewport, di luar wadah gulir seperti <pre> dan bukan elemen fixed) dicetak supaya sumbernya terlihat.
 // Gagal bila ada luapan, atau bila tidak satu pun chip terukur (pemeriksaan tidak boleh lolos karena kosong).
+// Ringkasan juga mencetak jeda thread utama terlama (long task atau detak terlambat, lib/jejak.mjs, keputusan 364).
 //   node tools/ukur-luapan.mjs --url http://127.0.0.1:4321 [--halaman /tahap-1/cadangan/] [--rinci]
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
 import { denganBatas, Macet } from "./lib/batas.mjs";
+import { pasangJejak, diagnosaJejak, sesiBrowser } from "./lib/jejak.mjs";
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const BASE = arg("--url", "http://127.0.0.1:4321");
@@ -115,7 +117,9 @@ async function diagnosa() {
 const t0 = Date.now();
 const daftar = satu ? [satu] : halaman();
 const browser = await chromium.launch();
+const cdpBrowser = await sesiBrowser(browser);
 let gagal = 0, jumlahChip = 0;
+let jedaMaks = { ms: 0, p: "-" }; // jeda antardetak terlama di halaman: lama thread utama renderer tidak bebas (keputusan 364)
 const maks = {}; // per ukuran: chip Rantai terlebar dibanding figure-nya
 const baris = [];
 await Promise.all(UKURAN.map(async (u) => {
@@ -123,18 +127,26 @@ await Promise.all(UKURAN.map(async (u) => {
   const antre = [...daftar];
   await Promise.all(Array.from({ length: PARALEL }, async () => {
     const page = await ctx.newPage();
+    const jejak = await pasangJejak(page, cdpBrowser);
     for (let p = antre.shift(); p !== undefined; p = antre.shift()) {
       // Batas per halaman: page.evaluate tidak punya timeout sendiri. Halaman yang macet menghentikan alat dengan
-      // nama halaman, ukuran, dan hasil diagnosa, exit 1, sebelum timeout langkah CI (keputusan 360).
+      // nama halaman, ukuran, dan hasil diagnosa, exit 1, sebelum timeout langkah CI (keputusan 360). Diagnosanya dari
+      // jejak yang dipasang sebelum navigasi (lib/jejak.mjs, keputusan 364), karena halaman yang macet tidak menjawab.
       let h;
       try {
-        h = await denganBatas(async () => { await page.goto(BASE + p, { waitUntil: "load" }); return page.evaluate(ukur); },
-          `luapan ${u.nama} ${p}`, { diagnosa: () => page.evaluate(diagnosa) });
+        h = await denganBatas(async () => {
+          jejak.tandai("goto");
+          await page.goto(BASE + p, { waitUntil: "load" });
+          jejak.tandai("evaluate ukur");
+          return page.evaluate(ukur);
+        }, `luapan ${u.nama} ${p}`, { diagnosa: () => diagnosaJejak(jejak, () => page.evaluate(diagnosa)), msDiagnosa: 10_000 });
       } catch (e) {
         if (!(e instanceof Macet)) throw e;
         console.log(e.message);
         process.exit(1);
       }
+      if (jejak.jedaMaks > jedaMaks.ms) jedaMaks = { ms: jejak.jedaMaks, p: `${u.nama} ${p}` };
+      jejak.jedaMaks = 0;
       const masalah = [];
       if (h.sw > h.vw) masalah.push(`scrollWidth ${h.sw} > viewport ${h.vw}${h.penyebab.length ? ": " + h.penyebab.join("; ") : ""}`);
       for (const c of h.chip) {
@@ -153,5 +165,5 @@ await browser.close();
 if (jumlahChip === 0) { gagal++; baris.push("GAGAL tidak ada chip .bb-chip yang terukur (pemeriksaan kosong)"); }
 if (baris.length) console.log(baris.sort().join("\n"));
 const ringkas = UKURAN.map((u) => maks[u.nama] ? `${u.nama} chip Rantai maks ${maks[u.nama].lebar}/${maks[u.nama].wadah} px (${maks[u.nama].p})` : `${u.nama} tanpa chip Rantai`).join("; ");
-console.log(`luapan: ${daftar.length} halaman × ${UKURAN.length} ukuran, ${jumlahChip} chip, ${gagal} gagal; ${ringkas}; ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+console.log(`luapan: ${daftar.length} halaman × ${UKURAN.length} ukuran, ${jumlahChip} chip, ${gagal} gagal; ${ringkas}; jeda thread utama terlama ${jedaMaks.ms} ms (${jedaMaks.p}); ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 process.exit(gagal ? 1 : 0);
