@@ -1,0 +1,27 @@
+Baca 7 menit · coba 3 menit · Prasyarat: 1.26 Angka di URL · Jalur inti
+Authentication menjawab satu pertanyaan di setiap request: siapa yang mengirimnya?
+Login
+Request
+Password hanya dikirim saat login. Sesudah itu server bertanya: hash token ini milik sesi siapa?
+Budi mengirim password sekali, saat login. Server membalas token acak yang berlaku 8 jam dan hanya menyimpan SHA-256 token itu di tabel sesi. Setiap request berikutnya membawa token di header Authorization, dan server mencari hash-nya untuk tahu akun pengirimnya.
+Di 1.26 Angka di URL, bagian ini sudah benar: server tahu persis bahwa yang bertanya adalah Dimas. Yang tidak ada adalah pertanyaan kedua, "boleh apa?". Itu authorization, di halaman berikutnya.
+Yakin dengan ketiganya? Lompat ke 1.28 Authorization.
+Berikutnya: Coba →
+Ikuti satu request Budi melewati pemeriksaan sesi. Header, query, dan body di widget ini diambil dari rekaman lab api-t1.
+Tebak dulu, lalu tekan Berikutnya.
+Budi sudah login. Ikuti satu request ke saldonya melewati pemeriksaan sesi. Setelah itu centang 'Ubah satu hal': Budi menekan Keluar, lalu token yang sama dikirim lagi.
+Tebak dulu: Nanti kamu akan mengubah satu hal: Budi menekan Keluar, lalu HP-nya mengirim token yang sama. Di langkah mana server tahu token itu tidak berlaku lagi?
+Kalau berhenti di sini, kamu sudah tahu: setiap request membawa token, dan server mencocokkan hash token itu dengan tabel sesi.
+Berikutnya: Paham →
+HTTP tidak mengingat request sebelumnya. Request kedua dari HP Budi tiba tanpa tanda bahwa HP yang sama baru saja login. Server harus menanyakan "siapa kamu?" lagi di setiap request.
+Dua jawaban naif sama-sama gagal. Mengirim password di setiap request berarti app menyimpan password di HP, dan password ikut tercatat kalau ditaruh di URL. Mempercayai nomor akun dari app berarti siapa pun yang mengganti angka bisa mengaku sebagai orang lain.
+Kalau kamu pernah memasang interceptor di dio yang menambah header Authorization ke setiap request, kamu sudah memegang separuh mekanisme ini. Halaman ini membahas separuh lainnya: apa yang server lakukan dengan header itu.
+1. Password disimpan sebagai hash yang sengaja lambat. Tabel akun menyimpan hash bcrypt, bukan password. Kelambatannya membuat setiap tebakan password dari tabel yang bocor butuh waktu, sehingga menebak jutaan password jadi lama. Lab memakai bcrypt.DefaultCost, yaitu 10, sama dengan batas minimum OWASP.
+OWASP kini menempatkan Argon2id sebagai pilihan pertama dan bcrypt untuk sistem lama (OWASP: Password Storage). Penggantian ke Argon2id ditunda ke Tahap 2, bersama batas percobaan login.
+2. Gagal login tidak membocorkan apa pun. Password salah dan email yang tidak terdaftar mendapat jawaban yang sama persis. Untuk email yang tidak ada, service tetap menjalankan bcrypt terhadap hash palsu, supaya lama jawabannya tidak berbeda jauh.
+3. Token acak, yang disimpan hash-nya. Service membuat token dari 32 byte crypto/rand, yaitu 256 bit. OWASP meminta minimal 64 bit entropi (OWASP: Session Management). Database hanya menyimpan SHA-256 token, jadi isi tabel sesi yang bocor tidak bisa dipakai sebagai token.
+4. Setiap request diperiksa di satu tempat. Fungsi wajibLogin membungkus semua endpoint yang butuh login. Kalau header kosong atau sesinya tidak ada, ia menjawab 401 dan endpoint di belakangnya tidak pernah jalan.
+Header WWW-Authenticate mengikuti RFC 6750 §3.1, dan statusnya selalu 401. Request tanpa token sama sekali hanya mendapat Bearer, tanpa kode error. Token yang kedaluwarsa, dicabut, atau rusak mendapat Bearer error="invalid_token". Dengan begitu app bisa membedakan token yang ditolak dari token yang lupa dikirim.
+Akun pemilik sesi disimpan di context request, dan handler membacanya lewat peminta(r), bukan dari URL.
+5. Logout dan batas waktu ditegakkan server. Query sesi hanya menerima baris dengan kedaluwarsa > now, jadi sesi mati sendiri setelah 8 jam. Logout menghapus barisnya, dan token yang sama langsung ditolak:
+Sesi di server, atau JWT. JWT adalah token ya

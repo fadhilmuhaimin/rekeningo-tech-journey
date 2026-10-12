@@ -3,18 +3,25 @@
 // membulatkan lebar glyph ke piksel utuh (hinting) kecuali `text-rendering: geometricPrecision` (keputusan 361).
 // Runner CI bisa berganti OS, font, atau Chromium tanpa ada yang berubah di repo (label ubuntu-latest pindah ke
 // Ubuntu 26.04 bertahap 19 Oktober–19 November 2026), jadi alat ini mengukur keduanya di setiap gerbang:
-//   1. Prosa ±4.000 huruf dari halaman (span nowrap, 17 px) dalam Satoshi dan Satoshi Fallback, 400 dan 600:
-//      gagal bila |fallback / Satoshi − 1| > 0,5 %.
+//   1. Korpus beku `ukur-font-korpus.txt` (4.000 huruf prosa 1.27 Authentication per 2026-10-13, satu paragraf per
+//      baris, digabung dengan spasi) dalam span nowrap 17 px, Satoshi dan Satoshi Fallback, 400 dan 600: gagal bila
+//      selisih fallback terhadap Satoshi lebih dari 0,5 %. Teksnya beku karena rasio dua font bergantung pada teks:
+//      prosa 26 halaman di Chromium macOS yang sama memberi rasio 600 dari +0,35 sampai −0,95 % dan 400 dari −0,37
+//      sampai +0,43 % (peninjau #232). Dengan teks halaman, PR konten bisa menggagalkan pagar yang pesannya menyalahkan
+//      runner. Halaman hanya dibuka untuk memuat CSS (tema.css) dan font; isinya tidak diukur.
 //   2. 62 glyph (a–z, A–Z, 0–9) satu span per glyph untuk keenam font (termasuk JetBrains Mono dan fallback mono):
 //      gagal bila semua lebarnya bilangan bulat, tanda hinting. Per glyph, bukan lebar prosa: lebar tata letak berkelipatan
 //      1/64 px, jadi prosa bisa bulat kebetulan (Satoshi 600 di CI 32.223,00 px walau 59 dari 62 glyph-nya pecahan).
-// Lebar prosa JetBrains Mono lawan fallback-nya hanya dicetak: tidak ada fallback mono bermetrik.
+//      Font mono: ke-62 glyph sama lebar, jadi praktis satu sampel (JetBrains Mono 0,6 em × 17 px = 10,2 px; di ukuran
+//      yang membuat lebar itu bulat, mis. 15 px = 9 px, cek ini gagal palsu).
+// Lebar prosa JetBrains Mono lawan fallback-nya dan sebaran rasio per potongan 1.000 huruf hanya dicetak.
 // Font yang benar-benar dipakai dibaca lewat CDP CSS.getPlatformFontsForNode, bukan ditebak dari font-family.
 //   node tools/ukur-font.mjs --url http://127.0.0.1:4321 [--path /tahap-1/authentication/] [--uji-mutasi]
-// --uji-mutasi: sesudah pengukuran biasa, buktikan pagar bisa gagal. size-adjust kedua aturan Satoshi Fallback dikali
-// 1,02 dan 0,98 (aturan asli disalin dari stylesheet, ditambahkan sesudahnya) harus gagal di semua platform;
-// `text-rendering: auto` harus gagal karena lebar bulat di Linux (di macOS dan Windows Chromium tidak memakai hinting
-// itu, jadi mutasi ini dilewati dan dicetak). Mutasi yang lolos membuat alat gagal.
+// --uji-mutasi: sesudah pengukuran biasa, buktikan tiap pemeriksa bisa gagal; tiap mutasi harus memicu temuan jenis
+// yang diharapkan, bukan sembarang temuan: size-adjust kedua aturan Satoshi Fallback ×1,02 dan ×0,98 (aturan asli
+// disalin dari stylesheet, ditambahkan sesudahnya) → selisih; /fonts/*.woff2 diblokir → font web tidak termuat;
+// `text-rendering: auto` → lebar bulat, hanya di Linux (Chromium macOS dan Windows tidak memakai hinting itu, jadi
+// mutasi ini dilewati dan dicetak). Mutasi tanpa temuan yang diharapkan membuat alat gagal.
 import { readFileSync } from "node:fs";
 import os from "node:os";
 import { chromium } from "@playwright/test";
@@ -28,11 +35,16 @@ const url = arg("--url", "http://127.0.0.1:4321");
 const jalur = arg("--path", "/tahap-1/authentication/");
 const ujiMutasi = process.argv.includes("--uji-mutasi");
 // 0,5 %: di kalibrasi keputusan 351, size-adjust 0,5 poin dari titik terbaik (97,5 dan 98,5 %) menambah blok teks yang
-// berubah tinggi dari 123 ke 140–142 (dari 23.131), 1,5 poin (96,5 %) ke 271. Selisih sekarang −0,06 % (400), −0,28 % (600).
+// berubah tinggi dari 123 ke 140–142 (dari 23.131), 1,5 poin (96,5 %) ke 271. Korpus beku: 400 −0,01 % (macOS) dan
+// −0,06 % (CI), 600 −0,30 % dan −0,28 %; hinting atau fallback lain memberi +1,05 % sampai +16 % (keputusan 361, 368).
 const AMBANG = 0.005;
 const UKURAN = 17; // px, teks isi di HP (keputusan 201); angka keputusan 361 juga diukur di 17 px
 const HURUF = 4000;
+const POTONG = 1000; // huruf per potongan untuk sebaran rasio (info)
 const GLYPH = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+const KORPUS = new URL("./ukur-font-korpus.txt", import.meta.url);
+const prosa = readFileSync(KORPUS, "utf8").split("\n").map((b) => b.trim()).filter(Boolean).join(" ");
 
 // Versi runner untuk pesan: /etc/os-release di Linux, ImageOS/ImageVersion dari image runner GitHub bila ada.
 const runner = (() => {
@@ -46,25 +58,20 @@ const runner = (() => {
 })();
 
 const FONT = [
-  { id: "s400", nama: "Satoshi 400", family: '"Satoshi"', weight: 400, web: true },
+  { id: "s400", nama: "Satoshi 400", family: '"Satoshi"', weight: 400, web: "Satoshi" },
   { id: "f400", nama: "Satoshi Fallback 400", family: '"Satoshi Fallback"', weight: 400 },
-  { id: "s600", nama: "Satoshi 600", family: '"Satoshi"', weight: 600, web: true },
+  { id: "s600", nama: "Satoshi 600", family: '"Satoshi"', weight: 600, web: "Satoshi" },
   { id: "f600", nama: "Satoshi Fallback 600", family: '"Satoshi Fallback"', weight: 600 },
   // Fallback mono = sisa --sl-font-mono sesudah JetBrains Mono (tema.css).
-  { id: "m400", nama: "JetBrains Mono 400", family: '"JetBrains Mono"', weight: 400, web: true },
+  { id: "m400", nama: "JetBrains Mono 400", family: '"JetBrains Mono"', weight: 400, web: "JetBrains Mono" },
   { id: "n400", nama: "fallback mono 400", family: "ui-monospace, Menlo, monospace", weight: 400 },
 ];
 const PASANGAN = [["s400", "f400", true], ["s600", "f600", true], ["m400", "n400", false]]; // [web, fallback, dijaga]
 
-const MUTASI = {
-  "size-adjust ×1,02": { linuxSaja: false, fn: ubahSizeAdjust, arg: 1.02 },
-  "size-adjust ×0,98": { linuxSaja: false, fn: ubahSizeAdjust, arg: 0.98 },
-  "text-rendering: auto": { linuxSaja: true, fn: tambahCss, arg: "html { text-rendering: auto !important; }" },
-};
 // Kedua fungsi dijalankan di halaman (page.evaluate), jadi tidak memakai apa pun dari luar.
 function tambahCss(css) { const s = document.createElement("style"); s.textContent = css; document.head.append(s); }
-// Dijalankan di halaman. Aturan salinan ditambahkan sesudah aturan asli dengan deskriptor sama dan menggantikannya
-// (terukur: lebar fallback 400 naik 1,91 % di CI, 1,97 % di macOS).
+// Aturan salinan ditambahkan sesudah aturan asli dengan deskriptor sama dan menggantikannya (terukur: lebar fallback 400
+// naik 1,91 % di CI, 1,97 % di macOS).
 function ubahSizeAdjust(kali) {
   const aturan = [];
   for (const ss of document.styleSheets) {
@@ -77,11 +84,19 @@ function ubahSizeAdjust(kali) {
   document.head.append(s);
 }
 
+// harap: jenis temuan yang wajib muncul. sebelum: dipanggil sebelum halaman dibuka; fn/arg: dijalankan di halaman sesudahnya.
+const MUTASI = {
+  "size-adjust ×1,02": { harap: "selisih", fn: ubahSizeAdjust, arg: 1.02 },
+  "size-adjust ×0,98": { harap: "selisih", fn: ubahSizeAdjust, arg: 0.98 },
+  "font web diblokir": { harap: "muat", sebelum: (page) => page.route("**/fonts/*.woff2", (r) => r.abort()) },
+  "text-rendering: auto": { harap: "hinting", linuxSaja: true, fn: tambahCss, arg: "html { text-rendering: auto !important; }" },
+};
+
 async function ukur(page) {
-  return page.evaluate(async ({ FONT, UKURAN, HURUF, GLYPH }) => {
-    const prosa = [...document.querySelectorAll(".sl-markdown-content p")].map((p) => p.textContent).join(" ").replace(/\s+/g, " ").trim().slice(0, HURUF);
-    for (const w of [400, 600]) await document.fonts.load(`${w} ${UKURAN}px Satoshi`, prosa);
-    await document.fonts.load(`400 ${UKURAN}px "JetBrains Mono"`, prosa);
+  return page.evaluate(async ({ FONT, UKURAN, GLYPH, prosa, POTONG }) => {
+    // load() menolak bila font gagal dimuat (mis. diblokir); kegagalan itu dinilai dari font platform, bukan di sini.
+    for (const w of [400, 600]) await document.fonts.load(`${w} ${UKURAN}px Satoshi`, prosa).catch(() => {});
+    await document.fonts.load(`400 ${UKURAN}px "JetBrains Mono"`, prosa).catch(() => {});
     const wadah = document.createElement("div");
     wadah.id = "ukur-font";
     wadah.style.cssText = "position:absolute;left:0;top:0;visibility:hidden;pointer-events:none";
@@ -94,25 +109,31 @@ async function ukur(page) {
       wadah.append(s, document.createElement("br"));
       return s;
     };
-    const hasil = {};
+    const potong = [];
+    for (let i = 0; i + POTONG <= prosa.length; i += POTONG) potong.push(prosa.slice(i, i + POTONG));
+    const el = {};
     for (const f of FONT) {
-      const p = span(f, prosa, `ukur-font-${f.id}`);
-      const g = [...GLYPH].map((c) => span(f, c));
-      hasil[f.id] = { p, g };
+      el[f.id] = {
+        p: span(f, prosa, `ukur-font-${f.id}`),
+        k: potong.map((t) => span(f, t)),
+        g: [...GLYPH].map((c) => span(f, c)),
+      };
     }
     document.body.append(wadah);
     await document.fonts.ready;
-    const keluar = { huruf: prosa.length, tr: getComputedStyle(document.documentElement).textRendering, font: {} };
+    const lebar = (s) => s.getBoundingClientRect().width;
+    const keluar = { tr: getComputedStyle(document.documentElement).textRendering, font: {} };
     for (const f of FONT) {
-      const lebarG = hasil[f.id].g.map((s) => s.getBoundingClientRect().width);
+      const lebarG = el[f.id].g.map(lebar);
       keluar.font[f.id] = {
-        prosa: hasil[f.id].p.getBoundingClientRect().width,
+        prosa: lebar(el[f.id].p),
+        potong: el[f.id].k.map(lebar),
         pecahan: lebarG.filter((x) => x !== Math.round(x)).length,
         glyph: lebarG.length,
       };
     }
     return keluar;
-  }, { FONT, UKURAN, HURUF, GLYPH });
+  }, { FONT, UKURAN, GLYPH, prosa, POTONG });
 }
 
 // Font sistem yang dipakai tiap span prosa (nama keluarga + jumlah glyph), dari CDP.
@@ -132,72 +153,82 @@ async function fontPlatform(page) {
 }
 
 const angka = (x) => x.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const persen = (x) => `${x >= 0 ? "+" : "−"}${Math.abs(x * 100).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+const persen = (x) => {
+  const r = Math.round(x * 10000) / 100; // dibulatkan dulu, supaya −0,004 % tidak tercetak "−0,00 %"
+  return `${r > 0 ? "+" : r < 0 ? "−" : ""}${Math.abs(r).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+};
 const namaPlatform = (daftar) => daftar.map((x) => `${x.familyName}${x.isCustomFont ? " (web)" : ""} ${x.glyphCount}`).join(" + ") || "?";
+const cari = (id) => FONT.find((f) => f.id === id);
 
-// Satu skenario: halaman baru, mutasi (bila ada), ukur, nilai. Mengembalikan daftar pelanggaran.
+// Satu skenario: halaman baru, mutasi (bila ada), ukur, nilai. Mengembalikan temuan { jenis, teks }.
 async function skenario(browser, label, mutasi) {
   const page = await browser.newPage({ viewport: { width: 1366, height: 657 } });
-  const laporan = [];
+  const temuan = [];
+  const catat = (jenis, teks) => temuan.push({ jenis, teks });
   try {
     await denganBatas(async () => {
+      if (mutasi?.sebelum) await mutasi.sebelum(page);
       await page.goto(url + jalur, { waitUntil: "networkidle" });
-      if (mutasi) await page.evaluate(mutasi.fn, mutasi.arg);
+      if (mutasi?.fn) await page.evaluate(mutasi.fn, mutasi.arg);
       const u = await ukur(page);
       const pf = await fontPlatform(page);
-      if (!mutasi) {
-        console.log(`font: ${jalur}, prosa ${u.huruf} huruf ${UKURAN} px, text-rendering ${u.tr}`);
-        for (const f of FONT) console.log(`  ${f.nama}: ${namaPlatform(pf[f.id])}`);
-      }
-      if (u.huruf < HURUF * 0.9) laporan.push(`prosa ${jalur} hanya ${u.huruf} huruf (butuh ±${HURUF})`);
+      const cetak = (s) => { if (!mutasi) console.log(s); };
+      cetak(`font: korpus beku ${prosa.length} huruf ${UKURAN} px (CSS dan font dari ${jalur}), text-rendering ${u.tr}`);
+      for (const f of FONT) cetak(`  ${f.nama}: ${namaPlatform(pf[f.id])}`);
       for (const f of FONT) {
-        if (f.web && !pf[f.id].some((x) => x.isCustomFont && x.familyName.includes(f.nama.split(" ")[0]))) {
-          laporan.push(`${f.nama} tidak termuat dari /fonts (dipakai ${namaPlatform(pf[f.id])}); perbandingan tidak sah`);
+        if (f.web && !pf[f.id].some((x) => x.isCustomFont && x.familyName.includes(f.web))) {
+          catat("muat", `${f.nama} tidak termuat dari /fonts (dipakai ${namaPlatform(pf[f.id])}); perbandingan tidak sah`);
         }
         const g = u.font[f.id];
-        if (g.pecahan === 0) laporan.push(`${f.nama} (${namaPlatform(pf[f.id])}): ${g.glyph} lebar glyph semuanya bilangan bulat, tanda hinting; keputusan 361 tidak berlaku lagi di runner ini`);
+        if (g.pecahan === 0) catat("hinting", `${f.nama} (${namaPlatform(pf[f.id])}): ${g.glyph} lebar glyph semuanya bilangan bulat, tanda hinting; keputusan 361 tidak berlaku lagi di runner ini`);
       }
       for (const [a, b, dijaga] of PASANGAN) {
         const wa = u.font[a].prosa, wb = u.font[b].prosa, d = wb / wa - 1;
-        const fa = FONT.find((f) => f.id === a), fb = FONT.find((f) => f.id === b);
         const buruk = dijaga && Math.abs(d) > AMBANG;
         const bulat = (w) => (w === Math.round(w) ? " bulat" : "");
-        const baris = `${fa.nama} ${angka(wa)} px${bulat(wa)} · ${fb.nama} ${angka(wb)} px${bulat(wb)} (${namaPlatform(pf[b])}) · selisih ${persen(d)}${dijaga ? "" : " (info)"}`;
-        if (!mutasi) console.log(`${buruk ? "GAGAL" : "ok"} ${baris}`);
-        if (buruk) laporan.push(`lebar ${baris}, di atas ${persen(AMBANG).slice(1)}`);
+        const baris = `${cari(a).nama} ${angka(wa)} px${bulat(wa)} · ${cari(b).nama} ${angka(wb)} px${bulat(wb)} (${namaPlatform(pf[b])}) · selisih ${persen(d)}${dijaga ? "" : " (info)"}`;
+        cetak(`${buruk ? "GAGAL" : "ok"} ${baris}`);
+        if (buruk) catat("selisih", `lebar ${baris}, di atas ${persen(AMBANG).slice(1)}`);
       }
-      if (!mutasi) {
-        const pec = FONT.map((f) => `${f.nama.replace("Satoshi Fallback", "Fallback")} ${u.font[f.id].pecahan}/${u.font[f.id].glyph}`).join(", ");
-        console.log(`  glyph berlebar pecahan: ${pec}`);
-      }
+      const sebaran = PASANGAN.filter(([, , dijaga]) => dijaga).map(([a, b]) => {
+        const r = u.font[a].potong.map((wa, i) => u.font[b].potong[i] / wa - 1);
+        return `${cari(a).nama.split(" ")[1]} ${persen(Math.min(...r))} … ${persen(Math.max(...r))}`;
+      });
+      cetak(`  sebaran selisih ${u.font.s400.potong.length} potongan ${POTONG} huruf (info): ${sebaran.join(", ")}`);
+      cetak(`  glyph berlebar pecahan: ${FONT.map((f) => `${f.nama.replace("Satoshi Fallback", "Fallback")} ${u.font[f.id].pecahan}/${u.font[f.id].glyph}`).join(", ")}`);
     }, `font ${label} ${jalur}`);
   } finally {
     await page.close();
   }
-  return laporan;
+  return temuan;
 }
 
 const browser = await chromium.launch();
 const page0 = await browser.newPage();
 const ua = await page0.evaluate(() => navigator.userAgent);
 await page0.close();
+const label = `[runner ${runner}, Chromium ${browser.version()}]`;
 console.log(`font: runner ${runner}; Chromium ${browser.version()}; ${ua}`);
 
 let gagal = 0;
+if (prosa.length < HURUF) {
+  console.log(`GAGAL korpus ${KORPUS.pathname} hanya ${prosa.length} huruf, butuh ≥ ${HURUF}`);
+  gagal++;
+}
 const dasar = await skenario(browser, "dasar");
-for (const l of dasar) console.log(`GAGAL ${l} [runner ${runner}, Chromium ${browser.version()}]`);
+for (const t of dasar) console.log(`GAGAL ${t.teks} ${label}`);
 gagal += dasar.length;
 
 if (ujiMutasi) {
   for (const [nama, m] of Object.entries(MUTASI)) {
     if (m.linuxSaja && process.platform !== "linux") { console.log(`dilewati mutasi ${nama}: Chromium ${process.platform} tidak memakai hinting Linux`); continue; }
-    const l = await skenario(browser, `mutasi ${nama}`, m);
-    if (l.length) console.log(`ok mutasi ${nama} tertangkap: ${l[0]}`);
-    else {
-      const sebab = m.linuxSaja ? "; Chromium di runner ini tidak lagi membulatkan lebar glyph tanpa geometricPrecision, tinjau keputusan 361 dan 368" : "";
-      console.log(`GAGAL mutasi ${nama} lolos: pagar tidak bisa gagal${sebab} [runner ${runner}, Chromium ${browser.version()}]`);
-      gagal++;
-    }
+    const t = await skenario(browser, `mutasi ${nama}`, m);
+    const kena = t.find((x) => x.jenis === m.harap);
+    if (kena) { console.log(`ok mutasi ${nama} tertangkap (${m.harap}): ${kena.teks}`); continue; }
+    const lain = t.length ? `; temuan lain: ${[...new Set(t.map((x) => x.jenis))].join(", ")}` : "";
+    const sebab = m.linuxSaja ? "; Chromium di runner ini tidak lagi membulatkan lebar glyph tanpa geometricPrecision, tinjau keputusan 361 dan 368" : "";
+    console.log(`GAGAL mutasi ${nama} lolos: tidak ada temuan ${m.harap}, pemeriksanya tidak bisa gagal${lain}${sebab} ${label}`);
+    gagal++;
   }
 }
 await browser.close();
