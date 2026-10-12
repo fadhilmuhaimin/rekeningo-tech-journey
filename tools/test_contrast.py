@@ -65,7 +65,7 @@ KASUS = [
      1, [Gagal("[terang] tema.css .uji-redup: var(--garis-2) di var(--bg) [latar dari body]")]),
     ("latar saja memakai teks leluhur",
      tambah(".uji-kotak { color: var(--ink-di-aksen); }\n.uji-kotak .uji-isi { background: var(--bg-2); }"),
-     1, ["FAIL", "[gelap] tema.css .uji-kotak .uji-isi: var(--ink-di-aksen) di var(--bg-2) [color dari .uji-kotak]"]),
+     1, [Gagal("[gelap] tema.css .uji-kotak .uji-isi: var(--ink-di-aksen) di var(--bg-2) [color dari .uji-kotak]")]),
     ("opacity induk turun ke warna anak",
      tambah(".uji-induk { opacity: 0.5; }\n.uji-induk .uji-anak { color: var(--teks-2); }"),
      1, [Gagal("[terang] tema.css .uji-induk .uji-anak: var(--teks-2) di var(--bg) opacity 0.50 [latar dari body; opacity 0.5 dari .uji-induk]")]),
