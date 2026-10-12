@@ -15,15 +15,16 @@ export class Macet extends Error {}
 const detik = (ms) => `${(ms / 1000).toFixed(ms % 1000 ? 1 : 0)} s`;
 
 // kerja: janji atau fungsi yang mengembalikan janji. diagnosa: fungsi async yang dipanggil saat batas habis; hasilnya
-// (teks) ditambahkan ke pesan, dengan batas 5 s sendiri karena halaman yang macet bisa juga tidak menjawab.
-export async function denganBatas(kerja, label, { ms = BATAS_MS, diagnosa } = {}) {
+// (teks) ditambahkan ke pesan, dengan batas msDiagnosa (bawaan 5 s) sendiri karena halaman yang macet bisa juga tidak
+// menjawab; diagnosa jejak.mjs butuh ±6 s (keputusan 364).
+export async function denganBatas(kerja, label, { ms = BATAS_MS, diagnosa, msDiagnosa = 5000 } = {}) {
   let timer;
   const habis = new Promise((_, tolak) => { timer = setTimeout(() => tolak(new Macet(`MACET ${label}: tidak selesai dalam ${detik(ms)}`)), ms); });
   try {
     return await Promise.race([typeof kerja === "function" ? kerja() : kerja, habis]);
   } catch (e) {
     if (e instanceof Macet && diagnosa) {
-      const d = await denganBatas(diagnosa, "diagnosa", { ms: 5000 }).catch((x) => `halaman tidak menjawab (${x.message.replace(/^MACET /, "")})`);
+      const d = await denganBatas(diagnosa, "diagnosa", { ms: msDiagnosa }).catch((x) => `halaman tidak menjawab (${x.message.replace(/^MACET /, "")})`);
       e.message += `; ${d}`;
     }
     throw e;
