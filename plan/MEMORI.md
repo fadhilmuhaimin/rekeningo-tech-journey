@@ -48,10 +48,11 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-12 · Mode paralel (keputusan 264). Konten: 1.35, K2, 1.36 selesai; 1.37 berjalan di `../rjt-konten`. Teknis: I5c-c, I5c-d, I5d selesai; I5e (#187) dalam tinjauan; berikutnya K2a, K2b, K2d, lalu K2c. Pengatur mencatat lewat PR `catat/*`; bila PR konten terbuka, PR teknis yang siap ditahan sampai PR konten di-merge.
+2026-10-12 · Mode paralel (keputusan 264), dilanjutkan sesudah restart sesi. Konten: 1.35, K2, 1.36 selesai; 1.37 (branch `tahap-1/m8`) dilanjutkan di `../rjt-konten`. Teknis: I5c-c, I5c-d, I5d, I5e selesai; K2a (#189) dalam tinjauan; berikutnya K2b, K2d, I5c-e, I5c-f, lalu K2c. Catatan pengatur di `tmp/catatan-pengatur.md` (scratchpad hilang saat restart).
 
 ## Pelajaran
 
+- Widget lama yang mengganti teks pemuat sesudah fetch butuh versi statis dari build (pola `alur-statis.ts`, `race-statis.ts`); `contrast.py` tidak membaca `color: inherit` bila induk hanya dikenali lewat kelas lain, jadi tulis token warna eksplisit di elemen teks widget (keputusan 353).
 - Angka yang bergerak: `tweenAngka`/`gerakkanAngka` dari `situs/src/gerak/angka.ts`; teks khusus pembaca layar hanya dirender selama tween (kalau selalu ada, angka dobel saat diseleksi dan masuk HTML/indeks), dan status "sedang bergerak" diambil dari hasil tween, bukan dari guard yang keluar lebih awal (keputusan 352).
 - K2 (1.34–1.35, keputusan 301): alur baca, href, dan konsistensi secret lolos; sesudah 1.35 tombol Lanjut menuju 1.38 lama sampai 1.36 terbit. CI berbasis pull_request tidak berjalan selama PR CONFLICTING: cek `gh pr view <n> --json mergeable` sebelum menunggu run, batasi tunggu 5 menit. Hitung pipe tanpa escape untuk tabel KEPUTUSAN.
 - `offsetHeight` host tidak melihat margin anak yang runtuh keluar host, dan containment (container query) membuat lebar intrinsik 0: bandingkan letak elemen sesudahnya serta x dan lebar host, termasuk di 1440 px (wadah 1024).
