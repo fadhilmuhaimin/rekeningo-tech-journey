@@ -93,8 +93,9 @@ jalan_ukur() {
       echo "== diagram: versi statis, scroll, keyboard (I4)"
       (cd situs && node tools/ukur-diagram.mjs --url "$URL") ;;
     cls)
-      echo "== CLS widget alur saat dimuat, skrip ditunda (I5c-b)"
-      (cd situs && node tools/ukur-cls.mjs --url "$URL" | grep -v "^ok ") ;;
+      # Font selalu datang sesudah paint pertama (keputusan 359): hasil tidak bergantung kapan font tiba di runner.
+      echo "== CLS widget alur saat dimuat, skrip ditunda, font telat (I5c-b, I5c-f)"
+      (cd situs && node tools/ukur-cls.mjs --url "$URL" --font-telat 1500 --fallback Verdana --paralel 8 | grep -v "^ok ") ;;
     kontras)
       echo "== kontras langkah runsql setelah dijalankan, computed style (K2a)"
       (cd situs && node tools/ukur-kontras.mjs --url "$URL") ;;

@@ -13,9 +13,12 @@
 // Ukuran 667x375 (keputusan 350): mode sempit juga bergantung tinggi layar, yang tidak terbaca container query.
 // Tiruan CI (keputusan 351): di CI Satoshi sering datang sesudah paint pertama dan fallback Linux jauh lebih lebar, jadi
 // baris membungkus ulang saat font tukar. --font-telat <ms> menunda /fonts/*, --fallback <font> mengganti system-ui di CSS
-// (mis. Verdana, selebar DejaVu Sans). Contoh: --font-telat 1500 --fallback Verdana.
+// (mis. Verdana, selebar DejaVu Sans). Contoh: --font-telat 1500 --fallback Verdana. Gerbang memakai mode ini (keputusan
+// 359), supaya hasil CI tidak bergantung kapan font datang: font selalu datang sesudah paint pertama.
+// Penundaan dihitung dari navigasi (tenggat), bukan per request: modul yang diimpor modul lain dan skenario yang diambil
+// alur.js datang segera sesudah tenggat, tidak menunggu TUNDA lagi di setiap tingkat impor (keputusan 359).
 //   node tools/ukur-cls.mjs --url http://127.0.0.1:4321 [--halaman /tahap-1/perjalanan-request/] [--rinci]
-//     [--font-telat 1500] [--fallback Verdana]
+//     [--font-telat 1500] [--fallback Verdana] [--ukuran 375,667] [--paralel 8]
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
@@ -33,13 +36,22 @@ const BATAS = 0.1;
 // Di tiruan CI modul datang sesudah font, supaya versi statis tetap diukur dengan font akhirnya.
 const TUNDA = 600 + FONT_TELAT;
 const SELISIH = 1;
-const UKURAN = [
+// Konteks yang berjalan bersamaan. Waktu ukur hampir seluruhnya menunggu tenggat font dan modul, bukan CPU, jadi mode
+// font telat di gerbang memakai 8 (keputusan 359).
+const PARALEL = Number(arg("--paralel", 4));
+const SEMUA_UKURAN = [
   { width: 375, height: 667 },
   // HP lanskap: mode sempit alur ikut tinggi layar (< 500 px, keputusan 350), versi statis lewat media query tinggi.
   { width: 667, height: 375 },
   { width: 1366, height: 657 },
   { width: 1440, height: 900 },
 ];
+const PILIH = arg("--ukuran", null)?.split(",").map(Number);
+const UKURAN = PILIH ? SEMUA_UKURAN.filter((u) => PILIH.includes(u.width)) : SEMUA_UKURAN;
+if (!UKURAN.length || (PILIH && UKURAN.length !== PILIH.length)) {
+  console.error(`--ukuran tidak dikenal: ${PILIH} (dikenal: ${SEMUA_UKURAN.map((u) => u.width)})`);
+  process.exit(1);
+}
 
 // Halaman alur dan race dibaca dari hasil build, bukan daftar tulis tangan.
 const HOST = '[data-bb="alur"], [data-bb="race"]';
@@ -65,13 +77,15 @@ const browser = await chromium.launch();
 async function ukur(h, ukuran, posisi) {
   const ctx = await browser.newContext({ viewport: ukuran });
   const page = await ctx.newPage();
+  let mulai = Date.now();
+  const tunggu = (ms) => new Promise((s) => setTimeout(s, Math.max(0, mulai + ms - Date.now())));
   await page.route(/\/(widgets\/.+\.(js|json)|_astro\/.+\.js)(\?.*)?$/, async (rute) => {
-    await new Promise((s) => setTimeout(s, TUNDA));
+    await tunggu(TUNDA);
     await rute.continue().catch(() => {});
   });
   if (FONT_TELAT)
     await page.route(/\/fonts\//, async (rute) => {
-      await new Promise((s) => setTimeout(s, FONT_TELAT));
+      await tunggu(FONT_TELAT);
       await rute.continue().catch(() => {});
     });
   if (FALLBACK)
@@ -95,6 +109,7 @@ async function ukur(h, ukuran, posisi) {
     }).observe({ type: "layout-shift", buffered: true });
   });
   // Parser selesai (skrip widget klasik sudah jalan, skenario dan modul masih tertunda): versi statis yang tampil.
+  mulai = Date.now();
   await page.goto(url + h, { waitUntil: "commit" });
   await page.waitForFunction(() => document.readyState !== "loading", null, { polling: 20 });
   // Per host terlihat: tinggi, x, lebar, dan jarak elemen sesudah host ke bawah elemen sebelum host. Saudara dicari
@@ -160,7 +175,7 @@ const baris = [];
 const antre = daftar.flatMap((h) => UKURAN.flatMap((u) => ["atas", "widget", ...(halRace.has(h) ? ["race"] : [])].map((p) => ({ h, u, p }))));
 const hasilPer = new Map();
 await Promise.all(
-  Array.from({ length: 4 }, async () => {
+  Array.from({ length: PARALEL }, async () => {
     for (let t = antre.shift(); t; t = antre.shift()) {
       const r = await ukur(t.h, t.u, t.p);
       const k = `${t.h} ${t.u.width}x${t.u.height}`;
