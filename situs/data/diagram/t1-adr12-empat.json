@@ -1,0 +1,40 @@
+{
+  "id": "t1-adr12-empat",
+  "judul": "Empat komponen: masalah yang dijawab, keadaan Tahap 1, dan rencana tahapnya",
+  "sumber": { "jenis": "asumsi", "teks": "Angka: asumsi naskah (cerita.json) · tahap: rencana PROPOSAL, naskah tahap berikutnya belum ditulis" },
+  "baris": [
+    {
+      "label": "Cache",
+      "simpul": [
+        { "teks": "Baca yang sama berulang", "sub": "masalah yang dijawab" },
+        { "teks": "±0,14 request/detik", "sub": "puncak Tahap 1, asumsi", "nada": "good" },
+        { "teks": "Tahap 3", "sub": "katalog warung" }
+      ]
+    },
+    {
+      "label": "Queue",
+      "simpul": [
+        { "teks": "Kerja lambat di request", "sub": "masalah yang dijawab" },
+        { "teks": "Bayar: 3 perintah, 1 transaction", "sub": "tanpa panggilan ke luar", "nada": "good" },
+        { "teks": "Tahap 3", "sub": "notifikasi push" }
+      ]
+    },
+    {
+      "label": "Service kedua",
+      "simpul": [
+        { "teks": "Tim yang deploy terpisah", "sub": "masalah yang dijawab" },
+        { "teks": "Satu orang, satu repo", "sub": "Raka sendiri", "nada": "good" },
+        { "teks": "Tahap 4", "sub": "service pembayaran" }
+      ]
+    },
+    {
+      "label": "Kubernetes",
+      "simpul": [
+        { "teks": "Container di banyak mesin", "sub": "masalah yang dijawab" },
+        { "teks": "Satu VPS, Compose", "sub": "satu container API", "nada": "good" },
+        { "teks": "Tahap 5", "sub": "k3s di lab" }
+      ]
+    }
+  ],
+  "catatan": "Hijau: keadaan Tahap 1. Di keempat baris, masalah yang dijawab komponen itu belum ada di Tahap 1."
+}
