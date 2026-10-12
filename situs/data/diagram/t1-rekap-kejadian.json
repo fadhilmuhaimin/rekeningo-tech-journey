@@ -1,0 +1,28 @@
+{
+  "id": "t1-rekap-kejadian",
+  "judul": "Delapan kejadian Tahap 1 dalam urutan minggu",
+  "sumber": { "jenis": "ilustrasi", "teks": "Naskah Tahap 1 · urutan kejadian" },
+  "baris": [
+    {
+      "label": "Minggu 1–3",
+      "sub": "data dan uang",
+      "simpul": [
+        { "teks": "M1 nominal minus", "sub": "validation" },
+        { "teks": "M2 nama field", "sub": "kontrak API" },
+        { "teks": "M3 tanda kutip", "sub": "SQL injection" },
+        { "teks": "M4 Rp70.000", "sub": "transaction", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Minggu 4–6",
+      "sub": "akses, rilis, beban",
+      "simpul": [
+        { "teks": "M5 angka di URL", "sub": "authorization" },
+        { "teks": "M6 deploy", "sub": "rollback" },
+        { "teks": "M7 .env", "sub": "secret" },
+        { "teks": "M8 PRD v2", "sub": "estimasi", "nada": "system" }
+      ]
+    }
+  ],
+  "catatan": "Kalimat pertama lahir dari PRD v1; sembilan lainnya lahir dari kedelapan kejadian ini."
+}

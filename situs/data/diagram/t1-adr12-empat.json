@@ -1,7 +1,7 @@
 {
   "id": "t1-adr12-empat",
   "judul": "Empat komponen: masalah yang dijawab, keadaan Tahap 1, dan rencana tahapnya",
-  "sumber": { "jenis": "asumsi", "teks": "Asumsi naskah · tahap dari rencana PROPOSAL" },
+  "sumber": { "jenis": "asumsi", "teks": "Asumsi naskah · tahap dari rencana panduan" },
   "baris": [
     {
       "label": "Cache",

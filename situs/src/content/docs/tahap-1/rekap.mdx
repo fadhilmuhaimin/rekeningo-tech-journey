@@ -1,0 +1,172 @@
+---
+title: "1.41 Yang dibawa keluar dari Tahap 1"
+description: Sepuluh kalimat dari Tahap 1, masing-masing terikat ke kejadian yang melahirkannya, dengan kartu untuk menebak kalimatnya dan Cek diri yang menggabungkan beberapa konsep.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import kejadian from "../../../../data/diagram/t1-rekap-kejadian.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 7 menit · coba 4 menit · Prasyarat: [[t1-adr-12]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Tahap 1 meninggalkan sepuluh kalimat. Setiap kalimat lahir dari satu kejadian, jadi yang diingat lebih dulu kejadiannya, lalu kalimatnya.
+
+<Rantai data={kejadian} ringkas />
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Form di app sudah menolak nominal minus. Kenapa backend tetap harus memeriksanya?
+2. Token login Budi sah. Apa yang masih harus ditanyakan sebelum server mengirim saldo akun lain?
+3. User akan bertambah sepuluh kali lipat. Apa yang dikerjakan sebelum memilih server?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah punya sepuluh kalimat Tahap 1, masing-masing dengan kejadiannya.">
+
+Setiap kartu menunjukkan satu kejadian. Tebak kalimat yang lahir darinya, lalu buka jawabannya. Tautan di kartu membawa ke halaman kejadian itu.
+
+<WidgetLama nama="kartu" src="data/t1-rekap-kartu.json" />
+
+Kartu yang kamu tandai **Ingat** baru muncul lagi sesuai jadwal kotaknya, seperti di [[Kartu]]. Daftar lengkap sepuluh kalimat selalu ada di blok Paham.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Konsep Tahap 1 tersebar di empat puluh halaman, dari [[t1-prd]] sampai [[t1-adr-12]]. Untuk ingatan beberapa hari kemudian, mengingat kembali jawaban lebih menguatkan daripada membaca ulang ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/)).
+
+Karena itu setiap konsep diringkas jadi satu kalimat, dan setiap kalimat diikat ke satu kejadian yang bisa kamu bayangkan. Halaman ini tidak menjelaskan ulang konsepnya. Setiap kalimat menunjuk halaman tempat konsep itu dijelaskan.
+
+### Sepuluh kalimat
+
+1. **Yang menentukan bukan kecepatan, tapi siapa yang boleh mengubah saldo.** PRD v1 meminta setiap rupiah tunjangan bisa ditelusuri, dan Pak Hadi menolak angka yang berubah tanpa catatan siapa, kapan, kenapa. Konsep: backend sendiri lawan BaaS, di [[A4]].
+2. **App boleh mengecek bentuk; hanya backend memutuskan uang; database menjaga pagar terakhir.** Di [[t1-m1]], server menerima Bayar dengan jumlah -5000, dan saldo pembayar naik dari Rp250.000 ke Rp255.000. Konsep: validation dua lapis, di [[B6]].
+3. **Satu orang pun butuh perjanjian dengan dirinya sendiri.** Di [[t1-m2]], satu angka punya tiga nama: Nominal, `amount`, dan `jumlah`. Di [[t1-m6]], satu deploy mengganti `jumlah` jadi `nominal`. Konsep: kontrak API, di [[B1.4]] dan [[E1]].
+4. **Jangan sambung string; parameter selalu.** Di [[t1-m3]], tanda kutip dari Budi berakhir Error 500, dan `' OR 1=1 --` dari Dimas menampilkan akun lain beserta saldonya. Konsep: SQL injection dan lapisan dasar, di [[t1-sql-injection]] dan [[B7.1]].
+5. **Dua perubahan uang terjadi bersama, atau tidak sama sekali.** Di [[t1-m4]], Budi membayar Rp70.000 dan layarnya menulis gagal, tetapi saldonya tetap berkurang dan Warung Ani tidak menerima apa-apa. Konsep: transaction, di [[B3.1]].
+6. **Setiap angka yang berubah punya alasan tertulis.** Masih di M4, Pak Hadi bertanya "Rp70.000 ini ke mana?", dan tidak ada baris di database yang bisa menjawabnya. Konsep: catatan perubahan, di [[t1-adr-transaction]].
+7. **Tahu siapa kamu belum berarti tahu kamu boleh apa.** Di [[t1-m5]], login Dimas sah, lalu ia mengganti `417` jadi `418` di URL dan melihat saldo Warung Ani. Konsep: authentication lawan authorization, di [[B5.1]], [[B5.3]], dan [[t1-idor]].
+8. **Pipeline adalah ingatan yang tidak gemetar.** Di [[t1-m6]], deploy menimpa binary lama dan app versi lama error, tanpa versi lama untuk kembali. Konsep: deployment, di [[C3]] dan [[t1-tim-infra]].
+9. **Riwayat git tidak pernah lupa.** Di [[t1-m7]], `.env` yang sudah dihapus dari repo masih terbaca dari commit lama. Konsep: secret, di [[t1-secret]].
+10. **Hitung dulu; masalah pertama hampir selalu kebenaran data, bukan kapasitas.** Di [[t1-m8]], PRD v2 datang dan Raka langsung merencanakan server kedua, padahal puncak Tahap 1 ±0,14 request per detik (asumsi naskah). Konsep: estimasi, di [[D1]].
+
+### Yang belum diuji
+
+Kesepuluh kalimat diuji satu request demi satu request. Rekaman `sengaja-belum.txt` di [[t1-adr-12]] menunjukkan dua hal yang belum dijawab Tahap 1.
+
+- Dua Bayar Rp200.000 yang datang bersamaan berakhir 201 dan 500.
+- Bayar Rp25.000 yang diulang Budi sesudah app menampilkan gagal tercatat dua baris.
+
+Keduanya soal kebenaran data, bukan kapasitas, dan menurut halaman itu keduanya yang pecah lebih dulu di Tahap 2.
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Dua belas keputusan Tahap 1
+
+Keputusan di balik sepuluh kalimat itu tertulis di dua belas ADR. Tabel ini merangkum keputusannya dan kejadian yang memicunya; alasannya ada di halaman masing-masing.
+
+| ADR | Keputusan | Lahir dari |
+|---|---|---|
+| 1 | Backend sendiri, bukan BaaS | PRD v1, [[A4]] |
+| 2 | `problem+json`, 400 lawan 422, constraint `saldo >= 0` | M1, [[B6]] |
+| 3 | Kontrak OpenAPI sebelum kode | M2, [[B1.4]] |
+| 4 | Parameter query, allowlist, linter, dan field minimal di response | M3, [[t1-sql-injection]] |
+| 5 | Transaction dibuka di service | M4, [[t1-adr-transaction]] |
+| 6 | Tabel `koreksi` dengan alasan | M4, [[t1-adr-transaction]] |
+| 7 | Pemilik ditanya di service, RLS sebagai pagar kedua, 404 bukan 403 | M5, [[t1-idor]] |
+| 8 | Sesi acak di server, token di secure storage, JWT ditunda | M5, [[t1-idor]] |
+| 9 | Image per commit, rollback = tag lama, CI pertama | M6, [[C3]] |
+| 10 | Field tidak pernah diganti nama: expand lalu contract | M6, [[E1]] |
+| 11 | Nama secret di repo, nilainya hanya di server | M7, [[t1-secret]] |
+| 12 | Cache, queue, service kedua, dan Kubernetes sengaja belum dipasang | M8, [[t1-adr-12]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Raka menambah `GET /warung/{id}/laporan-bulanan`. Handler memeriksa token, lalu service mengambil laporan untuk `{id}`. Ani mengganti `{id}` dengan id warung lain. Apa yang ia terima, dan seharusnya apa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Dengan kode itu Ani menerima laporan warung lain. Token hanya membuktikan siapa Ani (authentication), belum apakah warung itu miliknya (authorization). Service harus mencocokkan pemilik warung dengan akun yang login, dan menjawab 404 seperti warung yang tidak ada (ADR 7).
+
+</details>
+
+**2.** AI menulis filter tanggal untuk riwayat. App memakai date picker, jadi Raka menganggap `mulai` sudah pasti berbentuk tanggal. Aman?
+
+```go
+q := "SELECT id, ke, jumlah, dibuat FROM transaksi WHERE dari = $1 AND dibuat >= '" + mulai + "'"
+rows, err := r.db.QueryContext(ctx, q, akunID)
+```
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. Date picker hanya membatasi user yang memakai app. Request bisa dikirim tanpa app, seperti yang dilakukan Dimas. `mulai` disambung ke string SQL, jadi tanda kutip di dalamnya mengubah query. Kirim `mulai` sebagai parameter `$2`, dan periksa formatnya di backend: tanggal yang tidak terbaca dijawab 400.
+
+</details>
+
+**3.** Pak Hadi ingin layar saldo menyebut kapan saldo itu terakhir berubah. Raka berencana mengubah `saldo` di `GET /akun/{id}` dari angka menjadi objek berisi angka dan waktu. Sebagian HP masih memakai app versi lama yang membaca `saldo` sebagai angka. Urutan rilis apa yang tidak merusaknya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tipe `saldo` tidak diubah. App versi lama mengharapkan angka, jadi objek di tempat itu membuatnya gagal membaca response, seperti rename di M6. [AIP-180](https://google.aip.dev/180) melarang tipe field yang sudah ada diubah.
+
+Perubahannya ditulis sebagai tambahan. Field baru, misalnya `saldo_rinci`, masuk kontrak OpenAPI lebih dulu (ADR 3). Server lalu mengirim `saldo` dan `saldo_rinci` bersamaan, dan app baru membaca `saldo_rinci` (expand, ADR 10). `saldo` baru dihapus sesudah tidak ada app yang membacanya (contract).
+
+</details>
+
+**4.** Admin ingin memperbaiki saldo yang salah dengan satu `UPDATE akun SET saldo = ...` langsung di psql. Kalimat mana yang dilanggar, dan apa gantinya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+"Setiap angka yang berubah punya alasan tertulis." `UPDATE` langsung mengubah saldo tanpa siapa, kapan, dan kenapa. Gantinya `POST /koreksi` (ADR 6): baris `koreksi` dengan alasan dan admin-nya ditulis bersama perubahan saldo dalam satu transaction (ADR 5).
+
+</details>
+
+**5.** Sinta bertanya apakah PRD v2 untuk 1.000 karyawan butuh server kedua. Apa yang kamu kerjakan lebih dulu, dan masalah apa yang diuji lebih dulu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Hitung dulu: 1.000 × 30% × 40 ÷ 86.400 × 10 ≈ 1,4 request per detik di puncak (asumsi naskah Tahap 2). Kapasitas VPS Tahap 1 belum pernah diukur, jadi angka itu dijawab dengan pengukuran, bukan tebakan. Yang diuji lebih dulu adalah kebenaran data: dua Bayar bersamaan dan Bayar yang diulang Budi sesudah app menampilkan gagal.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Aturan uang diperiksa di service, dan database punya constraint sebagai pagar terakhir.
+- [ ] Setiap query memakai parameter, tidak ada nilai dari request yang disambung ke string SQL.
+- [ ] Perubahan yang menyentuh lebih dari satu baris uang ada di dalam satu transaction.
+- [ ] Endpoint yang membaca data akun menanyakan pemiliknya, bukan hanya memeriksa login.
+- [ ] Field yang sudah dipakai app tidak diganti nama atau dihapus dalam satu rilis.
+- [ ] Tidak ada secret di kode, contoh konfigurasi, atau riwayat commit.
+
+### Bacaan lanjut
+
+- [Roediger & Karpicke 2006, Psychological Science 17(3)](https://pubmed.ncbi.nlm.nih.gov/16507066/)
+- [Cepeda dkk. 2006, Psychological Bulletin 132(3)](https://pubmed.ncbi.nlm.nih.gov/16719566/)
+- [[Kartu]]: soal Cek diri dari semua halaman yang sudah kamu baca
+
+</Blok>
+
+<SkripLama daftar={["cerita","kartu"]} />
