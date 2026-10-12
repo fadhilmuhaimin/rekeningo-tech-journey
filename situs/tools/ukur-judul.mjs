@@ -4,6 +4,7 @@
 // mata lalu membaca meta sebagai baris ketiga judul (hukum kedekatan).
 //   node tools/ukur-judul.mjs --url http://127.0.0.1:4321
 import { chromium } from "@playwright/test";
+import { awasi } from "./lib/batas.mjs";
 
 const arg = (nama, bawaan) => {
   const i = process.argv.indexOf(nama);
@@ -14,7 +15,7 @@ const halaman = arg("--path", "/tahap-1/m4-rp70000-hilang/,/tahap-1/adr-transact
 const ukuran = [[375, 667], [1366, 657]];
 const LEBIH = 4; // px: celah ke meta minimal sebesar celah antar baris judul + LEBIH
 
-const browser = await chromium.launch();
+const browser = awasi(await chromium.launch()); // batas waktu per halaman (keputusan 360)
 let gagal = 0;
 for (const [w, h] of ukuran) {
   for (const tema of ["dark", "light"]) {

@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
+import { awasi } from "./lib/batas.mjs";
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const BASE = arg("--url", "http://127.0.0.1:4321");
@@ -41,7 +42,7 @@ const UKUR = `(async () => {
   const b = vis.getBoundingClientRect();
   return { bottom: Math.round(b.bottom), tinggi: window.innerHeight, scrollX: document.documentElement.scrollWidth > document.documentElement.clientWidth };
 })()`;
-const browser = await chromium.launch();
+const browser = awasi(await chromium.launch()); // batas waktu per halaman (keputusan 360)
 let gagal = 0, tipis = 0;
 for (const p of halaman()) {
   const baris = [];

@@ -9,6 +9,7 @@
 //   node tools/ukur-diagram.mjs --url http://127.0.0.1:4321
 //   node tools/ukur-diagram.mjs --url ... --axe /path/axe.min.js   # + axe-core, gelap dan terang
 import { chromium } from "@playwright/test";
+import { awasi } from "./lib/batas.mjs";
 
 const arg = (nama, bawaan) => {
   const i = process.argv.indexOf(nama);
@@ -17,7 +18,7 @@ const arg = (nama, bawaan) => {
 const url = arg("--url", "http://127.0.0.1:4321") + "/uji/diagram/";
 const AXE = arg("--axe", undefined);
 
-const browser = await chromium.launch();
+const browser = awasi(await chromium.launch()); // batas waktu per halaman (keputusan 360)
 let gagal = 0;
 const lapor = (ok, pesan) => {
   console.log(`${ok ? "ok" : "GAGAL"} ${pesan}`);

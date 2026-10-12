@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
+import { awasi } from "./lib/batas.mjs";
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const BASE = arg("--url", "http://127.0.0.1:4321");
@@ -14,7 +15,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const UKURAN = [{ nama: "desktop", width: 1366, height: 657 }, { nama: "hp", width: 375, height: 667, mobile: true }];
 const MODE = ["dark", "light"];
 
-const browser = await chromium.launch();
+const browser = awasi(await chromium.launch()); // batas waktu per halaman (keputusan 360)
 let masalah = 0;
 for (const p of PATHS) {
   const nama = p === "/" ? "beranda" : p.replace(/^\/|\/$/g, "").replace(/\//g, "_");
