@@ -26,8 +26,18 @@ def tambah(css):
     return BODY, BODY + "\n" + css
 
 
+class Gagal(str):
+    """Teks wajib yang harus ada di baris berawalan FAIL, bukan sekadar di keluaran (exit 1 bisa datang dari pasangan lain)."""
+
+
+def ada(wajib, keluaran):
+    if isinstance(wajib, Gagal):
+        return any(baris.startswith("FAIL") and wajib in baris for baris in keluaran.splitlines())
+    return wajib in keluaran
+
+
 KASUS = [
-    # nama, (cari, ganti) atau None, exit yang diharapkan, teks yang wajib ada di keluaran
+    # nama, (cari, ganti) atau None, exit yang diharapkan, teks yang wajib ada di keluaran (Gagal: di baris FAIL)
     ("tema.css apa adanya", None, 0, [" 0 tidak terbaca", "DILEWATI (pengecualian)"]),
     ("token terang lewat color-mix() (review #176)",
      ("--k-system-padat: var(--k-system-ink);", "--k-system-padat: color-mix(in srgb, var(--k-system-edge) 100%, #fff 0%);"),
@@ -50,21 +60,21 @@ KASUS = [
     ("color saja di atas induk BEM gelap",
      tambah(".uji-kartu { background: var(--k-system-padat); color: var(--ink-di-aksen); }\n"
             ".uji-kartu__catatan { color: var(--teks-2); }"),
-     1, ["[gelap] tema.css .uji-kartu__catatan: var(--teks-2) di var(--k-system-padat) [latar dari .uji-kartu]"]),
+     1, [Gagal("[gelap] tema.css .uji-kartu__catatan: var(--teks-2) di var(--k-system-padat) [latar dari .uji-kartu]")]),
     ("color saja tanpa leluhur memakai latar halaman", tambah(".uji-redup { color: var(--garis-2); }"),
-     1, ["[terang] tema.css .uji-redup: var(--garis-2) di var(--bg) [latar dari body]"]),
+     1, [Gagal("[terang] tema.css .uji-redup: var(--garis-2) di var(--bg) [latar dari body]")]),
     ("latar saja memakai teks leluhur",
      tambah(".uji-kotak { color: var(--ink-di-aksen); }\n.uji-kotak .uji-isi { background: var(--bg-2); }"),
      1, ["FAIL", "[gelap] tema.css .uji-kotak .uji-isi: var(--ink-di-aksen) di var(--bg-2) [color dari .uji-kotak]"]),
     ("opacity induk turun ke warna anak",
      tambah(".uji-induk { opacity: 0.5; }\n.uji-induk .uji-anak { color: var(--teks-2); }"),
-     1, ["[terang] tema.css .uji-induk .uji-anak: var(--teks-2) di var(--bg) opacity 0.50 [latar dari body; opacity 0.5 dari .uji-induk]"]),
+     1, [Gagal("[terang] tema.css .uji-induk .uji-anak: var(--teks-2) di var(--bg) opacity 0.50 [latar dari body; opacity 0.5 dari .uji-induk]")]),
     ("@media menjadi varian, tidak menimpa aturan dasar",
      tambah("@media (max-width: 50em) { .sl-markdown-content .bb-hp__saldo { background: var(--k-system-edge); } }"),
      1, ["FAIL  4.43 (≥4.5) [terang] tema.css @media (max-width: 50em) .sl-markdown-content .bb-hp__saldo:",
          "OK    8.28 (≥4.5) [terang] tema.css .sl-markdown-content .bb-hp__saldo:"]),
     (":is() diurai, tidak terpecah di koma", tambah(".uji-is :is(.a, .b) { color: var(--garis-2); }"),
-     1, ["[terang] tema.css .uji-is .a:", "[terang] tema.css .uji-is .b:"]),
+     1, [Gagal("[terang] tema.css .uji-is .a:"), Gagal("[terang] tema.css .uji-is .b:")]),
     ("PENGECUALIAN yang tidak lagi cocok membuat gagal",
      (".sl-markdown-content .bb-btn:disabled {", ".sl-markdown-content .bb-btn[disabled] {"),
      1, ["PENGECUALIAN/GRAFIS tidak cocok", "FAIL  2.92 (≥4.5) [terang] tema.css .sl-markdown-content .bb-btn[disabled]:"]),
@@ -80,7 +90,7 @@ with tempfile.TemporaryDirectory() as tmp:
         path = pathlib.Path(tmp) / "tema.css"
         path.write_text(css)
         p = subprocess.run([sys.executable, str(AKAR / "tools" / "contrast.py"), "--css", str(path)], capture_output=True, text=True)
-        hilang = [w for w in wajib if w not in p.stdout]
+        hilang = [w for w in wajib if not ada(w, p.stdout)]
         ok = p.returncode == harap and not hilang
         gagal += not ok
         print(f"{'OK  ' if ok else 'GAGAL'} exit {p.returncode} (harap {harap}) {nama}" + (f"; tidak ada di keluaran: {hilang}" if hilang else ""))
