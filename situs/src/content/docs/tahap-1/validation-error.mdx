@@ -3,6 +3,9 @@ title: "1.15 Validation dua lapis dan format error"
 description: App boleh memeriksa bentuk; hanya backend memutuskan uang; database menjaga pagar terakhir. Error dijawab dengan status yang tepat dan satu format, problem+json. Memuat ADR 2.
 ---
 import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import validasiLapisan from "../../../../data/diagram/t1-validasi-lapisan.json";
+import validasiFormat from "../../../../data/diagram/t1-validasi-format.json";
 import Snippet from "../../../components/Snippet.astro";
 import TabSet from "../../../components/TabSet.astro";
 import WidgetLama from "../../../components/WidgetLama.astro";
@@ -14,17 +17,13 @@ import SkripLama from "../../../components/SkripLama.astro";
 
 ## Inti
 
-Validation memeriksa input sebelum ia mengubah data, di empat tempat:
+Validation memeriksa input sebelum ia mengubah data, dan lapisan pertama yang menolak menentukan jawaban untuk app.
 
-<figure class="bb-fig">
-<ol class="bb-flow">
-<li>App: bentuk</li>
-<li>Handler: <code>400</code></li>
-<li>Service: <code>422</code></li>
-<li class="is-good">DB: constraint</li>
-</ol>
-<figcaption>Lapisan pertama yang menolak menentukan jawaban untuk app.</figcaption>
-</figure>
+<Rantai data={validasiLapisan} ringkas />
+
+Pemeriksaan di app membantu Budi melihat salahnya sebelum menekan Bayar. Request yang sama tetap bisa dikirim lewat `curl`, jadi service yang memutuskan aturan uang, sebelum saldo berubah. Di rekaman lab versi benar, bayar -5000 dijawab `422` dengan field `jumlah`, dan saldo Budi tetap Rp250.000.
+
+Handler hanya memeriksa bentuk body: `ke` yang dikirim sebagai teks dijawab `400` sebelum service dipanggil. Constraint database adalah pagar terakhir. Kalau service lupa memeriksa, database tetap menolak saldo negatif, tapi app hanya menerima `500` tanpa alasan.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -82,6 +81,10 @@ Rekaman lab dari database bersih, versi benar. Nominal minus dijawab `422`, dan 
 | `detail` | Penjelasan kejadian ini | Manusia saja. RFC melarang client mem-parse field ini |
 
 RFC 9457 mengizinkan **extension member**, yaitu field tambahan milikmu sendiri ([§3.2](https://www.rfc-editor.org/rfc/rfc9457.html#name-extension-members)). Rekeningo memakai `errors` untuk daftar field yang salah, supaya app tidak perlu mengambil nama field dari kalimat.
+
+Dari lapisan mana pun penolakannya, app menerima bentuk yang sama dan memilih pesan dari `type`:
+
+<Rantai data={validasiFormat} />
 
 <Snippet file="labs/api-t1/internal/handler/handler.go" region="problem" lang="go" title="labs/api-t1/internal/handler/handler.go" />
 

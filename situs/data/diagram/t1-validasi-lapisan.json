@@ -1,0 +1,37 @@
+{
+  "id": "t1-validasi-lapisan",
+  "judul": "Empat tempat memeriksa satu pembayaran",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t1 · m1.txt, m2.txt"
+  },
+  "baris": [
+    {
+      "label": "Bayar",
+      "sub": "dari HP Budi sampai database",
+      "simpul": [
+        {
+          "teks": "app: bentuk",
+          "sub": "tidak direkam; bisa dilewati curl",
+          "nada": "old"
+        },
+        {
+          "teks": "handler: 400",
+          "sub": "JSON rusak: field ke berupa teks",
+          "nada": "system"
+        },
+        {
+          "teks": "service: 422",
+          "sub": "aturan uang, jumlah -5000",
+          "nada": "system"
+        },
+        {
+          "teks": "database: 500",
+          "sub": "constraint menolak, tanpa alasan untuk app",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Uang dijaga service dan constraint, bukan app."
+}
