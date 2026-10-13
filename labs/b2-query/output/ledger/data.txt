@@ -1,0 +1,96 @@
+-- Lab b2-query versi ledger · data satu tahun Tahap 2
+-- PostgreSQL 17.11 · schema b2_ledger · TimeZone Asia/Jakarta (WIB)
+-- Rekaman dari database bersih: make -C labs/b2-query run-ledger (keputusan 520).
+
+# --- A. Asal angka ---
+Naskah (plan/CERITA-TAHAP-2.md): 1.000 karyawan, 12 warung, top-up tiap Senin, pencairan tiap Jumat,
+  transaksi per hari = 1.000 user x 30% aktif x 3 = 900 (bagian Pertumbuhan skala).
+Data lab (labs/b2-query/ledger_data.py, random.Random(15)): 364 hari mulai Senin 2025-10-06,
+  top-up Rp250.000 per karyawan, 85% bayar ke warung dan 15% kiriman antar karyawan,
+  Warung Ani dipilih 3x lebih sering dari warung lain, Budi membayar 6x lebih sering dan menerima
+  kiriman patungan 40x lebih sering dari karyawan lain. Pembayar dipilih ulang bila saldonya kurang.
+
+# --- B. Jalur muat: satu transaction, trigger invarian dimatikan selama COPY ---
+Skema: labs/b3-ledger/schema.sql apa adanya (tanpa index riwayat).
+=> BEGIN;
+=> ALTER TABLE jurnal DISABLE TRIGGER USER;
+=> ALTER TABLE posting DISABLE TRIGGER USER;
+  tabel  |           trigger            | aktif
+---------+------------------------------+-------
+ jurnal  | jurnal_seimbang              | D
+ jurnal  | jurnal_tidak_dikosongkan     | D
+ jurnal  | jurnal_tidak_diubah          | D
+ jurnal  | pembalik_cermin_asal         | D
+ posting | jurnal_seimbang              | D
+ posting | posting_tidak_dikosongkan    | D
+ posting | posting_tidak_diubah         | D
+ posting | saldo_karyawan_tidak_negatif | D
+(8 rows)
+=> COPY akun (id, nama, email, peran) FROM STDIN;   -- 1.014 baris
+=> COPY buku (id, akun_id, jenis, saldo_cache) FROM STDIN;   -- 1.014 baris
+=> COPY jurnal (id, jenis, keterangan, dibuat_oleh, dibuat) FROM STDIN;   -- 380.224 baris
+=> COPY posting (id, jurnal_id, buku_id, jumlah, dibuat) FROM STDIN;   -- 760.448 baris
+=> ALTER TABLE jurnal ENABLE TRIGGER USER;
+=> ALTER TABLE posting ENABLE TRIGGER USER;
+=> COMMIT;
+  tabel  |           trigger            | aktif
+---------+------------------------------+-------
+ jurnal  | jurnal_seimbang              | O
+ jurnal  | jurnal_tidak_dikosongkan     | O
+ jurnal  | jurnal_tidak_diubah          | O
+ jurnal  | pembalik_cermin_asal         | O
+ posting | jurnal_seimbang              | O
+ posting | posting_tidak_dikosongkan    | O
+ posting | posting_tidak_diubah         | O
+ posting | saldo_karyawan_tidak_negatif | O
+(8 rows)
+
+# --- C. Statistik planner dari seluruh baris, autovacuum dimatikan di tabel lab ---
+=> ALTER TABLE jurnal SET (autovacuum_enabled = false);
+=> ALTER TABLE posting SET (autovacuum_enabled = false);
+=> SET default_statistics_target = 10000;
+=> VACUUM (ANALYZE) akun, buku, jurnal, posting;
+ANALYZE mengambil sampel 300 x statistics target baris; 3.000.000 > 760.448, jadi semua baris dibaca dan
+rencana sama di setiap rekaman. Autovacuum tidak boleh menimpa statistik ini di tengah lab (keputusan 523).
+
+# --- D. Isi sesudah muat ---
+=> SELECT j.jenis, count(DISTINCT j.id) AS jurnal, count(*) AS posting FROM jurnal j JOIN posting p ON p.jurnal_id = j.id GROUP BY ROLLUP (j.jenis) ORDER BY j.jenis NULLS LAST
+   jenis   | jurnal | posting
+-----------+--------+---------
+ bayar     | 278596 |  557192
+ pencairan |    624 |    1248
+ topup     |  52000 |  104000
+ transfer  |  49004 |   98008
+ total     | 380224 |  760448
+(5 rows)
+=> SELECT a.nama, b.id AS buku, count(p.id) AS posting FROM akun a JOIN buku b ON b.akun_id = a.id JOIN posting p ON p.buku_id = b.id WHERE a.id IN (419, 418) GROUP BY a.nama, b.id ORDER BY a.nama
+    nama    | buku | posting
+------------+------+---------
+ Budi       |   20 |    3892
+ Warung Ani | 1003 |   59762
+(2 rows)
+=> SELECT (p.dibuat AT TIME ZONE 'Asia/Jakarta')::date AS hari, count(*) AS posting FROM posting p WHERE p.buku_id = 1003 GROUP BY 1 ORDER BY 2 DESC, 1 DESC LIMIT 3
+    hari    | posting
+------------+---------
+ 2026-04-29 |     194
+ 2025-12-18 |     194
+ 2026-02-16 |     193
+(3 rows)
+Hari ramai Warung Ani = 2026-04-29 (posting terbanyak di buku Warung Ani; seri dipecah tanggal terbaru).
+
+# --- E. Invarian diperiksa atas seluruh data sesudah muat ---
+                                pemeriksaan                                | hasil
+---------------------------------------------------------------------------+-------
+ 1. jurnal tidak seimbang (kurang dari dua posting atau jumlah bukan 0)    | 0
+ 3. posting karyawan yang membuat saldo berjalan negatif (urut dibuat, id) | 0
+ saldo_cache yang berbeda dari jumlah posting                              | 0
+ jumlah semua posting (harus 0)                                            | 0
+(4 rows)
+Invarian 2 (append-only) tidak bisa dilanggar oleh COPY: COPY hanya menambah baris.
+
+# --- F. Trigger aktif lagi: jurnal tidak seimbang ditolak saat COMMIT ---
+=> BEGIN;
+   INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('bayar', 'Uji', 417) RETURNING id;
+   INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (<id>, 19, -5000);
+   COMMIT;
+ERROR:  23514 jurnal_seimbang: jurnal 380225 tidak seimbang: ...

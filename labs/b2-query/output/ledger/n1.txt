@@ -1,0 +1,65 @@
+-- Lab b2-query versi ledger · N+1 lawan satu query JOIN
+-- PostgreSQL 17.11 · schema b2_ledger · TimeZone Asia/Jakarta (WIB)
+-- Rekaman dari database bersih: make -C labs/b2-query run-ledger (keputusan 520).
+-- Waktu, Buffers, Heap Blocks, Memory, dan ukuran adalah pembanding dari mesin lab, bukan janji;
+-- make cek-ledger tidak membandingkannya (keputusan 523). Data: data.txt.
+
+# --- A. Cara M11: daftar dulu, lalu nama lawan satu query per baris ---
+=> SELECT p.id, p.jurnal_id, j.jenis, p.jumlah, p.dibuat
+   FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+   WHERE p.buku_id = %(buku)s
+   ORDER BY p.dibuat DESC, p.id DESC LIMIT 20
+   -- lalu untuk setiap baris:
+=> SELECT coalesce(a.nama, CASE b.jenis WHEN 'tunjangan' THEN 'Tunjangan makan' WHEN 'kas_pencairan' THEN 'Pencairan' END)
+   FROM posting q JOIN buku b ON b.id = q.buku_id LEFT JOIN akun a ON a.id = b.akun_id
+   WHERE q.jurnal_id = %(jurnal)s AND q.buku_id <> %(buku)s
+   ORDER BY q.id LIMIT 1
+
+# --- B. ADR 15: satu query, lawan dicari di dalam query yang sama ---
+=> SELECT p.id, p.jurnal_id, j.jenis, p.jumlah, p.dibuat,
+          coalesce(la.nama, CASE lb.jenis WHEN 'tunjangan' THEN 'Tunjangan makan' WHEN 'kas_pencairan' THEN 'Pencairan' END) AS lawan
+   FROM posting p
+   JOIN jurnal j ON j.id = p.jurnal_id
+   LEFT JOIN LATERAL (SELECT q.buku_id FROM posting q
+                      WHERE q.jurnal_id = p.jurnal_id AND q.buku_id <> p.buku_id ORDER BY q.id LIMIT 1) l ON true
+   LEFT JOIN buku lb ON lb.id = l.buku_id
+   LEFT JOIN akun la ON la.id = lb.akun_id
+   WHERE p.buku_id = %(buku)s
+   ORDER BY p.dibuat DESC, p.id DESC LIMIT 20
+
+# --- C. Lima baris pertama riwayat Budi: sama di kedua cara ---
+ jurnal |  jenis   |  arah  |     lawan     |  jumlah
+--------+----------+--------+---------------+----------
+ 380033 | transfer | masuk  | Karyawan 961  | Rp50.000
+ 380014 | transfer | masuk  | Karyawan 842  | Rp50.000
+ 379909 | transfer | masuk  | Karyawan 1233 | Rp50.000
+ 379808 | bayar    | keluar | Warung Ani    | Rp8.000
+ 379730 | transfer | masuk  | Karyawan 1135 | Rp50.000
+(5 rows)
+Ketiga permintaan di bawah menghasilkan baris yang sama persis (urutan, jenis, lawan, jumlah) di kedua cara.
+
+# --- D. Jumlah query per permintaan ---
+      permintaan      | cara | baris | query (client) | query (log server)
+----------------------+------+-------+----------------+--------------------
+ Riwayat Budi hal. 1  | N+1  |    20 |             21 |                 21
+ Riwayat Budi hal. 1  | JOIN |    20 |              1 |                  1
+ Laporan harian Ani   | N+1  |   194 |            195 |                195
+ Laporan harian Ani   | JOIN |   194 |              1 |                  1
+ Seluruh riwayat Budi | N+1  |  3892 |           3893 |               3893
+ Seluruh riwayat Budi | JOIN |  3892 |              1 |                  1
+(6 rows)
+Log server: container berjalan dengan log_statement=all; setiap percobaan memakai application_name sendiri,
+dan satu query penanda di akhir tidak dihitung. Index tidak mengubah jumlah query.
+
+# --- E. Waktu per permintaan (pembanding, bukan janji) ---
+      permintaan      | cara | tanpa index riwayat | dengan index riwayat
+----------------------+------+---------------------+----------------------
+ Riwayat Budi hal. 1  | N+1  |      30.5 ms        |      10.4 ms
+ Riwayat Budi hal. 1  | JOIN |      27.4 ms        |       1.4 ms
+ Laporan harian Ani   | N+1  |     106.1 ms        |      94.4 ms
+ Laporan harian Ani   | JOIN |       9.3 ms        |       2.2 ms
+ Seluruh riwayat Budi | N+1  |    1936.4 ms        |    1902.2 ms
+ Seluruh riwayat Budi | JOIN |      30.6 ms        |      31.5 ms
+(6 rows)
+Median 5 kali sesudah satu pemanasan, diukur di client Python (psycopg 3) ke PostgreSQL di Docker di mesin yang
+sama: tanpa jaringan antara server API dan database. Mesin lab dipakai lab lain bersamaan.

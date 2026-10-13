@@ -1,0 +1,308 @@
+-- Lab b2-query versi ledger · index posting (buku_id, dibuat, id): EXPLAIN (ANALYZE, BUFFERS) sebelum dan sesudah
+-- PostgreSQL 17.11 · schema b2_ledger · TimeZone Asia/Jakarta (WIB)
+-- Rekaman dari database bersih: make -C labs/b2-query run-ledger (keputusan 520).
+-- Waktu, Buffers, Heap Blocks, Memory, dan ukuran adalah pembanding dari mesin lab, bukan janji;
+-- make cek-ledger tidak membandingkannya (keputusan 523). Data: data.txt.
+
+# --- A. Index di tabel posting sebelum M11 ---
+=> SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'posting' AND schemaname = current_schema() ORDER BY 1
+   indexname    |                                 indexdef
+----------------+--------------------------------------------------------------------------
+ posting_buku   | CREATE INDEX posting_buku ON b2_ledger.posting USING btree (buku_id)
+ posting_jurnal | CREATE INDEX posting_jurnal ON b2_ledger.posting USING btree (jurnal_id)
+ posting_pkey   | CREATE UNIQUE INDEX posting_pkey ON b2_ledger.posting USING btree (id)
+(3 rows)
+
+# --- B. Riwayat Budi, halaman pertama (20 baris), tanpa index riwayat ---
+=> EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+   SELECT p.id, p.jurnal_id, j.jenis, p.jumlah, p.dibuat
+   FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+   WHERE p.buku_id = 20
+   ORDER BY p.dibuat DESC, p.id DESC LIMIT 20
+Limit (actual time=31.513..31.515 rows=20 loops=1)
+  Buffers: shared hit=6107
+  ->  Sort (actual time=31.512..31.513 rows=20 loops=1)
+        Sort Key: p.dibuat DESC, p.id DESC
+        Sort Method: top-N heapsort  Memory: 27kB
+        Buffers: shared hit=6107
+        ->  Hash Join (actual time=2.508..31.139 rows=3892 loops=1)
+              Hash Cond: (j.id = p.jurnal_id)
+              Buffers: shared hit=6101
+              ->  Seq Scan on jurnal j (actual time=0.002..12.232 rows=380224 loops=1)
+                    Buffers: shared hit=3280
+              ->  Hash (actual time=2.503..2.503 rows=3892 loops=1)
+                    Buckets: 4096  Batches: 1  Memory Usage: 276kB
+                    Buffers: shared hit=2821
+                    ->  Bitmap Heap Scan on posting p (actual time=0.355..2.296 rows=3892 loops=1)
+                          Recheck Cond: (buku_id = 20)
+                          Heap Blocks: exact=2812
+                          Buffers: shared hit=2821
+                          ->  Bitmap Index Scan on posting_buku (actual time=0.196..0.196 rows=3892 loops=1)
+                                Index Cond: (buku_id = 20)
+                                Buffers: shared hit=9
+Planning:
+  Buffers: shared hit=239
+Planning Time: 0.827 ms
+Execution Time: 31.525 ms
+
+# --- C. Laporan harian Warung Ani, hari ramai 2026-04-29, tanpa index riwayat ---
+=> EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+   SELECT p.id, p.jurnal_id, j.jenis, p.jumlah, p.dibuat
+   FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+   WHERE p.buku_id = 1003 AND p.dibuat >= '2026-04-29 00:00+07' AND p.dibuat < '2026-04-30 00:00+07'
+   ORDER BY p.dibuat, p.id
+Sort (actual time=7.737..7.744 rows=194 loops=1)
+  Sort Key: p.dibuat, p.id
+  Sort Method: quicksort  Memory: 35kB
+  Buffers: shared hit=6341
+  ->  Nested Loop (actual time=4.743..7.719 rows=194 loops=1)
+        Buffers: shared hit=6341
+        ->  Bitmap Heap Scan on posting p (actual time=4.729..7.589 rows=194 loops=1)
+              Recheck Cond: (buku_id = 1003)
+              Filter: ((dibuat >= '2026-04-29 00:00:00+07'::timestamp with time zone) AND (dibuat < '2026-04-30 00:00:00+07'::timestamp with time zone))
+              Rows Removed by Filter: 59568
+              Heap Blocks: exact=5516
+              Buffers: shared hit=5565
+              ->  Bitmap Index Scan on posting_buku (actual time=0.860..0.860 rows=59762 loops=1)
+                    Index Cond: (buku_id = 1003)
+                    Buffers: shared hit=49
+        ->  Index Scan using jurnal_pkey on jurnal j (actual time=0.001..0.001 rows=1 loops=194)
+              Index Cond: (id = p.jurnal_id)
+              Buffers: shared hit=776
+Planning:
+  Buffers: shared hit=25
+Planning Time: 0.742 ms
+Execution Time: 7.773 ms
+
+# --- D. Satu query JOIN (ADR 15) untuk riwayat Budi halaman pertama, tanpa index riwayat ---
+=> EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+   SELECT p.id, p.jurnal_id, j.jenis, p.jumlah, p.dibuat,
+          coalesce(la.nama, CASE lb.jenis WHEN 'tunjangan' THEN 'Tunjangan makan' WHEN 'kas_pencairan' THEN 'Pencairan' END) AS lawan
+   FROM posting p
+   JOIN jurnal j ON j.id = p.jurnal_id
+   LEFT JOIN LATERAL (SELECT q.buku_id FROM posting q
+                      WHERE q.jurnal_id = p.jurnal_id AND q.buku_id <> p.buku_id ORDER BY q.id LIMIT 1) l ON true
+   LEFT JOIN buku lb ON lb.id = l.buku_id
+   LEFT JOIN akun la ON la.id = lb.akun_id
+   WHERE p.buku_id = 20
+   ORDER BY p.dibuat DESC, p.id DESC LIMIT 20
+Limit (actual time=42.188..42.192 rows=20 loops=1)
+  Buffers: shared hit=27117
+  ->  Sort (actual time=42.188..42.190 rows=20 loops=1)
+        Sort Key: p.dibuat DESC, p.id DESC
+        Sort Method: top-N heapsort  Memory: 30kB
+        Buffers: shared hit=27117
+        ->  Nested Loop Left Join (actual time=1.905..41.718 rows=3892 loops=1)
+              Buffers: shared hit=27117
+              ->  Nested Loop Left Join (actual time=1.890..40.206 rows=3892 loops=1)
+                    Buffers: shared hit=24393
+                    ->  Nested Loop Left Join (actual time=1.886..38.632 rows=3892 loops=1)
+                          Buffers: shared hit=21666
+                          ->  Hash Join (actual time=1.879..31.066 rows=3892 loops=1)
+                                Hash Cond: (j.id = p.jurnal_id)
+                                Buffers: shared hit=6098
+                                ->  Seq Scan on jurnal j (actual time=0.003..11.549 rows=380224 loops=1)
+                                      Buffers: shared hit=3280
+                                ->  Hash (actual time=1.870..1.871 rows=3892 loops=1)
+                                      Buckets: 4096  Batches: 1  Memory Usage: 306kB
+                                      Buffers: shared hit=2818
+                                      ->  Bitmap Heap Scan on posting p (actual time=0.359..1.617 rows=3892 loops=1)
+                                            Recheck Cond: (buku_id = 20)
+                                            Heap Blocks: exact=2812
+                                            Buffers: shared hit=2818
+                                            ->  Bitmap Index Scan on posting_buku (actual time=0.181..0.181 rows=3892 loops=1)
+                                                  Index Cond: (buku_id = 20)
+                                                  Buffers: shared hit=6
+                          ->  Limit (actual time=0.002..0.002 rows=1 loops=3892)
+                                Buffers: shared hit=15568
+                                ->  Sort (actual time=0.002..0.002 rows=1 loops=3892)
+                                      Sort Key: q.id
+                                      Sort Method: quicksort  Memory: 25kB
+                                      Buffers: shared hit=15568
+                                      ->  Index Scan using posting_jurnal on posting q (actual time=0.001..0.001 rows=1 loops=3892)
+                                            Index Cond: (jurnal_id = p.jurnal_id)
+                                            Filter: (buku_id <> p.buku_id)
+                                            Rows Removed by Filter: 1
+                                            Buffers: shared hit=15568
+                    ->  Memoize (actual time=0.000..0.000 rows=1 loops=3892)
+                          Cache Key: q.buku_id
+                          Cache Mode: logical
+                          Hits: 2983  Misses: 909  Evictions: 0  Overflows: 0  Memory Usage: 121kB
+                          Buffers: shared hit=2727
+                          ->  Index Scan using buku_pkey on buku lb (actual time=0.001..0.001 rows=1 loops=909)
+                                Index Cond: (id = q.buku_id)
+                                Buffers: shared hit=2727
+              ->  Memoize (actual time=0.000..0.000 rows=1 loops=3892)
+                    Cache Key: lb.akun_id
+                    Cache Mode: logical
+                    Hits: 2983  Misses: 909  Evictions: 0  Overflows: 0  Memory Usage: 114kB
+                    Buffers: shared hit=2724
+                    ->  Index Scan using akun_pkey on akun la (actual time=0.001..0.001 rows=1 loops=909)
+                          Index Cond: (id = lb.akun_id)
+                          Buffers: shared hit=2724
+Planning:
+  Buffers: shared hit=173
+Planning Time: 1.043 ms
+Execution Time: 42.213 ms
+
+# --- E. Index riwayat (ADR 15) ---
+=> CREATE INDEX posting_riwayat ON posting (buku_id, dibuat, id);
+-- selesai dalam 245 ms (pembanding)
+=> SELECT c.relname AS relasi, pg_size_pretty(pg_relation_size(c.oid)) AS ukuran FROM pg_class c WHERE c.relname IN ('posting', 'posting_buku', 'posting_jurnal', 'posting_riwayat') AND c.relnamespace = current_schema()::regnamespace ORDER BY 1
+      relasi     |  ukuran
+-----------------+---------
+ posting         | 50 MB
+ posting_buku    | 5240 kB
+ posting_jurnal  | 15 MB
+ posting_riwayat | 29 MB
+(4 rows)
+
+# --- F. Riwayat Budi, halaman pertama (20 baris), dengan index riwayat ---
+=> EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+   SELECT p.id, p.jurnal_id, j.jenis, p.jumlah, p.dibuat
+   FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+   WHERE p.buku_id = 20
+   ORDER BY p.dibuat DESC, p.id DESC LIMIT 20
+Limit (actual time=0.070..0.114 rows=20 loops=1)
+  Buffers: shared hit=99 read=3
+  ->  Nested Loop (actual time=0.069..0.113 rows=20 loops=1)
+        Buffers: shared hit=99 read=3
+        ->  Index Scan Backward using posting_riwayat on posting p (actual time=0.064..0.075 rows=20 loops=1)
+              Index Cond: (buku_id = 20)
+              Buffers: shared hit=19 read=3
+        ->  Index Scan using jurnal_pkey on jurnal j (actual time=0.002..0.002 rows=1 loops=20)
+              Index Cond: (id = p.jurnal_id)
+              Buffers: shared hit=80
+Planning:
+  Buffers: shared hit=228 read=1
+Planning Time: 1.199 ms
+Execution Time: 0.121 ms
+
+# --- G. Laporan harian Warung Ani, hari ramai 2026-04-29, dengan index riwayat ---
+=> EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+   SELECT p.id, p.jurnal_id, j.jenis, p.jumlah, p.dibuat
+   FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+   WHERE p.buku_id = 1003 AND p.dibuat >= '2026-04-29 00:00+07' AND p.dibuat < '2026-04-30 00:00+07'
+   ORDER BY p.dibuat, p.id
+Sort (actual time=0.284..0.288 rows=194 loops=1)
+  Sort Key: p.dibuat, p.id
+  Sort Method: quicksort  Memory: 35kB
+  Buffers: shared hit=793 read=3
+  ->  Nested Loop (actual time=0.101..0.267 rows=194 loops=1)
+        Buffers: shared hit=793 read=3
+        ->  Bitmap Heap Scan on posting p (actual time=0.076..0.112 rows=194 loops=1)
+              Recheck Cond: ((buku_id = 1003) AND (dibuat >= '2026-04-29 00:00:00+07'::timestamp with time zone) AND (dibuat < '2026-04-30 00:00:00+07'::timestamp with time zone))
+              Heap Blocks: exact=16
+              Buffers: shared hit=17 read=3
+              ->  Bitmap Index Scan on posting_riwayat (actual time=0.072..0.072 rows=194 loops=1)
+                    Index Cond: ((buku_id = 1003) AND (dibuat >= '2026-04-29 00:00:00+07'::timestamp with time zone) AND (dibuat < '2026-04-30 00:00:00+07'::timestamp with time zone))
+                    Buffers: shared hit=1 read=3
+        ->  Index Scan using jurnal_pkey on jurnal j (actual time=0.001..0.001 rows=1 loops=194)
+              Index Cond: (id = p.jurnal_id)
+              Buffers: shared hit=776
+Planning:
+  Buffers: shared hit=25
+Planning Time: 0.747 ms
+Execution Time: 0.303 ms
+
+# --- H. Satu query JOIN (ADR 15) untuk riwayat Budi halaman pertama, dengan index riwayat ---
+=> EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+   SELECT p.id, p.jurnal_id, j.jenis, p.jumlah, p.dibuat,
+          coalesce(la.nama, CASE lb.jenis WHEN 'tunjangan' THEN 'Tunjangan makan' WHEN 'kas_pencairan' THEN 'Pencairan' END) AS lawan
+   FROM posting p
+   JOIN jurnal j ON j.id = p.jurnal_id
+   LEFT JOIN LATERAL (SELECT q.buku_id FROM posting q
+                      WHERE q.jurnal_id = p.jurnal_id AND q.buku_id <> p.buku_id ORDER BY q.id LIMIT 1) l ON true
+   LEFT JOIN buku lb ON lb.id = l.buku_id
+   LEFT JOIN akun la ON la.id = lb.akun_id
+   WHERE p.buku_id = 20
+   ORDER BY p.dibuat DESC, p.id DESC LIMIT 20
+Limit (actual time=0.051..0.157 rows=20 loops=1)
+  Buffers: shared hit=287
+  ->  Nested Loop Left Join (actual time=0.051..0.156 rows=20 loops=1)
+        Buffers: shared hit=287
+        ->  Nested Loop Left Join (actual time=0.030..0.115 rows=20 loops=1)
+              Buffers: shared hit=233
+              ->  Nested Loop Left Join (actual time=0.025..0.090 rows=20 loops=1)
+                    Buffers: shared hit=179
+                    ->  Nested Loop (actual time=0.012..0.036 rows=20 loops=1)
+                          Buffers: shared hit=99
+                          ->  Index Scan Backward using posting_riwayat on posting p (actual time=0.008..0.013 rows=20 loops=1)
+                                Index Cond: (buku_id = 20)
+                                Buffers: shared hit=19
+                          ->  Index Scan using jurnal_pkey on jurnal j (actual time=0.001..0.001 rows=1 loops=20)
+                                Index Cond: (id = p.jurnal_id)
+                                Buffers: shared hit=80
+                    ->  Limit (actual time=0.002..0.003 rows=1 loops=20)
+                          Buffers: shared hit=80
+                          ->  Sort (actual time=0.002..0.002 rows=1 loops=20)
+                                Sort Key: q.id
+                                Sort Method: quicksort  Memory: 25kB
+                                Buffers: shared hit=80
+                                ->  Index Scan using posting_jurnal on posting q (actual time=0.002..0.002 rows=1 loops=20)
+                                      Index Cond: (jurnal_id = p.jurnal_id)
+                                      Filter: (buku_id <> p.buku_id)
+                                      Rows Removed by Filter: 1
+                                      Buffers: shared hit=80
+              ->  Memoize (actual time=0.001..0.001 rows=1 loops=20)
+                    Cache Key: q.buku_id
+                    Cache Mode: logical
+                    Hits: 2  Misses: 18  Evictions: 0  Overflows: 0  Memory Usage: 3kB
+                    Buffers: shared hit=54
+                    ->  Index Scan using buku_pkey on buku lb (actual time=0.001..0.001 rows=1 loops=18)
+                          Index Cond: (id = q.buku_id)
+                          Buffers: shared hit=54
+        ->  Memoize (actual time=0.002..0.002 rows=1 loops=20)
+              Cache Key: lb.akun_id
+              Cache Mode: logical
+              Hits: 2  Misses: 18  Evictions: 0  Overflows: 0  Memory Usage: 3kB
+              Buffers: shared hit=54
+              ->  Index Scan using akun_pkey on akun la (actual time=0.001..0.001 rows=1 loops=18)
+                    Index Cond: (id = lb.akun_id)
+                    Buffers: shared hit=54
+Planning:
+  Buffers: shared hit=173
+Planning Time: 1.093 ms
+Execution Time: 0.177 ms
+
+# --- I. Kolom pertama index tidak ada di WHERE: semua posting satu hari (laporan Keuangan) ---
+=> EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+   SELECT count(*) FROM posting p WHERE p.dibuat >= '2026-04-29 00:00+07' AND p.dibuat < '2026-04-30 00:00+07'
+Aggregate (actual time=28.246..28.247 rows=1 loops=1)
+  Buffers: shared hit=6344
+  ->  Seq Scan on posting p (actual time=15.625..28.198 rows=1800 loops=1)
+        Filter: ((dibuat >= '2026-04-29 00:00:00+07'::timestamp with time zone) AND (dibuat < '2026-04-30 00:00:00+07'::timestamp with time zone))
+        Rows Removed by Filter: 758648
+        Buffers: shared hit=6344
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.139 ms
+Execution Time: 28.264 ms
+
+# --- Ringkasan: node yang membaca tabel atau index (rows = baris keluar dari node, dijumlah semua loop) ---
+       permintaan      | index riwayat |                          node                          |  rows
+-----------------------+---------------+--------------------------------------------------------+--------
+ Riwayat Budi hal. 1   | tanpa         | Seq Scan on jurnal j                                   | 380224
+ Riwayat Budi hal. 1   | tanpa         | Bitmap Heap Scan on posting p                          |   3892
+ Riwayat Budi hal. 1   | tanpa         | Bitmap Index Scan on posting_buku                      |   3892
+ Laporan harian Ani    | tanpa         | Bitmap Heap Scan on posting p                          |    194
+ Laporan harian Ani    | tanpa         | Bitmap Index Scan on posting_buku                      |  59762
+ Laporan harian Ani    | tanpa         | Index Scan using jurnal_pkey on jurnal j               |    194
+ JOIN Budi hal. 1      | tanpa         | Seq Scan on jurnal j                                   | 380224
+ JOIN Budi hal. 1      | tanpa         | Bitmap Heap Scan on posting p                          |   3892
+ JOIN Budi hal. 1      | tanpa         | Bitmap Index Scan on posting_buku                      |   3892
+ JOIN Budi hal. 1      | tanpa         | Index Scan using posting_jurnal on posting q           |   3892
+ JOIN Budi hal. 1      | tanpa         | Index Scan using buku_pkey on buku lb                  |    909
+ JOIN Budi hal. 1      | tanpa         | Index Scan using akun_pkey on akun la                  |    909
+ Riwayat Budi hal. 1   | dengan        | Index Scan Backward using posting_riwayat on posting p |     20
+ Riwayat Budi hal. 1   | dengan        | Index Scan using jurnal_pkey on jurnal j               |     20
+ Laporan harian Ani    | dengan        | Bitmap Heap Scan on posting p                          |    194
+ Laporan harian Ani    | dengan        | Bitmap Index Scan on posting_riwayat                   |    194
+ Laporan harian Ani    | dengan        | Index Scan using jurnal_pkey on jurnal j               |    194
+ JOIN Budi hal. 1      | dengan        | Index Scan Backward using posting_riwayat on posting p |     20
+ JOIN Budi hal. 1      | dengan        | Index Scan using jurnal_pkey on jurnal j               |     20
+ JOIN Budi hal. 1      | dengan        | Index Scan using posting_jurnal on posting q           |     20
+ JOIN Budi hal. 1      | dengan        | Index Scan using buku_pkey on buku lb                  |     18
+ JOIN Budi hal. 1      | dengan        | Index Scan using akun_pkey on akun la                  |     18
+ Semua buku, satu hari | dengan        | Seq Scan on posting p                                  |   1800
+(23 rows)
