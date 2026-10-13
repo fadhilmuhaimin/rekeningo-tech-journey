@@ -1,0 +1,223 @@
+-- Lab b3-isolasi (ledger) · laporan tutup buku saat jurnal baru masuk
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_isolasi · default_transaction_isolation = read committed
+-- Rekaman dari database bersih: make -C labs/b3-isolasi run-ledger (keputusan 440).
+-- Persiapan tiap skenario: schema baru dari labs/b3-ledger/schema.sql, lalu dua jurnal (keputusan 441):
+--   jurnal 1 pembuka: Warung Ani Rp285.000, Dimas Rp35.000; jurnal 2 top-up: Budi Rp100.000.
+--   Buku 1 tunjangan, 2 pembuka, 3 Budi, 4 Warung Ani, 5 Citra, 6 Dimas.
+-- A dan B adalah dua koneksi. Urutan perintah ditentukan skrip, satu langkah per baris, bukan oleh waktu.
+
+# --- Laporan di READ COMMITTED ---
+-- Laporan tutup buku dalam dua perintah, seperti dua fungsi repo: mutasi dari posting, saldo akhir dari saldo_cache.
+-- Di READ COMMITTED setiap perintah memakai snapshot baru.
+[A] => BEGIN ISOLATION LEVEL READ COMMITTED;
+BEGIN
+-- perintah 1: saldo awal dan mutasi per buku, dari posting
+[A] => SELECT p.buku_id AS buku,
+              coalesce(sum(p.jumlah) FILTER (WHERE j.jenis = 'pembuka'), 0) AS saldo_awal,
+              coalesce(sum(p.jumlah) FILTER (WHERE j.jenis <> 'pembuka'), 0) AS mutasi
+       FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+       GROUP BY p.buku_id ORDER BY p.buku_id;
+ buku | saldo_awal |  mutasi
+------+------------+---------
+    1 |          0 | -100000
+    2 |    -320000 |       0
+    3 |          0 |  100000
+    4 |     285000 |       0
+    6 |      35000 |       0
+(5 rows)
+-- B: Budi bayar Rp25.000 ke Warung Ani, lengkap sampai COMMIT, di antara dua perintah laporan
+[B] => BEGIN ISOLATION LEVEL READ COMMITTED;
+BEGIN
+[B] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('bayar', 'Bayar nasi goreng', 419) RETURNING id;
+ id
+----
+  3
+(1 row)
+[B] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 3, -25000), (3, 4, 25000);
+INSERT 0 2
+[B] => UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+       FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 3 GROUP BY buku_id) p
+       WHERE b.id = p.buku_id;
+UPDATE 2
+[B] => COMMIT;
+COMMIT
+-- perintah 2: saldo akhir per buku, dari saldo_cache
+[A] => SELECT b.id AS buku, coalesce(a.nama, b.jenis) AS nama, b.saldo_cache AS saldo_akhir
+       FROM buku b LEFT JOIN akun a ON a.id = b.akun_id ORDER BY b.id;
+ buku |    nama    | saldo_akhir
+------+------------+-------------
+    1 | tunjangan  |     -100000
+    2 | pembuka    |     -320000
+    3 | Budi       |       75000
+    4 | Warung Ani |      310000
+    5 | Citra      |           0
+    6 | Dimas      |       35000
+(6 rows)
+[A] => COMMIT;
+COMMIT
+-- app menggabungkan hasil perintah 1 dan 2 di memori (bukan perintah SQL); selisih = saldo_akhir - (saldo_awal + mutasi):
+-- buku |    nama    | saldo_awal |  mutasi | saldo_akhir | selisih
+--------+------------+------------+---------+-------------+---------
+--    1 | tunjangan  |          0 | -100000 |     -100000 |       0
+--    2 | pembuka    |    -320000 |       0 |     -320000 |       0
+--    3 | Budi       |          0 |  100000 |       75000 |  -25000
+--    4 | Warung Ani |     285000 |       0 |      310000 |   25000
+--    5 | Citra      |          0 |       0 |           0 |       0
+--    6 | Dimas      |      35000 |       0 |       35000 |       0
+-- Laporan tidak cocok di buku Budi dan Warung Ani, Rp25.000 masing-masing. Setiap jurnal tetap seimbang:
+-- perintah 1 dibaca sebelum jurnal B COMMIT, perintah 2 sesudahnya.
+
+# --- Laporan di REPEATABLE READ ---
+-- Langkah sama persis. Di REPEATABLE READ snapshot diambil saat perintah pertama dan dipakai sampai COMMIT.
+[A] => BEGIN ISOLATION LEVEL REPEATABLE READ;
+BEGIN
+-- perintah 1: saldo awal dan mutasi per buku, dari posting
+[A] => SELECT p.buku_id AS buku,
+              coalesce(sum(p.jumlah) FILTER (WHERE j.jenis = 'pembuka'), 0) AS saldo_awal,
+              coalesce(sum(p.jumlah) FILTER (WHERE j.jenis <> 'pembuka'), 0) AS mutasi
+       FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+       GROUP BY p.buku_id ORDER BY p.buku_id;
+ buku | saldo_awal |  mutasi
+------+------------+---------
+    1 |          0 | -100000
+    2 |    -320000 |       0
+    3 |          0 |  100000
+    4 |     285000 |       0
+    6 |      35000 |       0
+(5 rows)
+-- B: Budi bayar Rp25.000 ke Warung Ani, lengkap sampai COMMIT, di antara dua perintah laporan
+[B] => BEGIN ISOLATION LEVEL REPEATABLE READ;
+BEGIN
+[B] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('bayar', 'Bayar nasi goreng', 419) RETURNING id;
+ id
+----
+  3
+(1 row)
+[B] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 3, -25000), (3, 4, 25000);
+INSERT 0 2
+[B] => UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+       FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 3 GROUP BY buku_id) p
+       WHERE b.id = p.buku_id;
+UPDATE 2
+[B] => COMMIT;
+COMMIT
+-- perintah 2: saldo akhir per buku, dari saldo_cache
+[A] => SELECT b.id AS buku, coalesce(a.nama, b.jenis) AS nama, b.saldo_cache AS saldo_akhir
+       FROM buku b LEFT JOIN akun a ON a.id = b.akun_id ORDER BY b.id;
+ buku |    nama    | saldo_akhir
+------+------------+-------------
+    1 | tunjangan  |     -100000
+    2 | pembuka    |     -320000
+    3 | Budi       |      100000
+    4 | Warung Ani |      285000
+    5 | Citra      |           0
+    6 | Dimas      |       35000
+(6 rows)
+[A] => COMMIT;
+COMMIT
+-- app menggabungkan hasil perintah 1 dan 2 di memori (bukan perintah SQL); selisih = saldo_akhir - (saldo_awal + mutasi):
+-- buku |    nama    | saldo_awal |  mutasi | saldo_akhir | selisih
+--------+------------+------------+---------+-------------+---------
+--    1 | tunjangan  |          0 | -100000 |     -100000 |       0
+--    2 | pembuka    |    -320000 |       0 |     -320000 |       0
+--    3 | Budi       |          0 |  100000 |      100000 |       0
+--    4 | Warung Ani |     285000 |       0 |      285000 |       0
+--    5 | Citra      |          0 |       0 |           0 |       0
+--    6 | Dimas      |      35000 |       0 |       35000 |       0
+-- Laporan cocok untuk keadaan sebelum jurnal B. Jurnal B tidak hilang; ia masuk laporan berikutnya:
+[A] => BEGIN ISOLATION LEVEL REPEATABLE READ;
+BEGIN
+[A] => SELECT p.buku_id AS buku,
+              coalesce(sum(p.jumlah) FILTER (WHERE j.jenis = 'pembuka'), 0) AS saldo_awal,
+              coalesce(sum(p.jumlah) FILTER (WHERE j.jenis <> 'pembuka'), 0) AS mutasi
+       FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+       GROUP BY p.buku_id ORDER BY p.buku_id;
+ buku | saldo_awal |  mutasi
+------+------------+---------
+    1 |          0 | -100000
+    2 |    -320000 |       0
+    3 |          0 |   75000
+    4 |     285000 |   25000
+    6 |      35000 |       0
+(5 rows)
+[A] => SELECT b.id AS buku, coalesce(a.nama, b.jenis) AS nama, b.saldo_cache AS saldo_akhir
+       FROM buku b LEFT JOIN akun a ON a.id = b.akun_id ORDER BY b.id;
+ buku |    nama    | saldo_akhir
+------+------------+-------------
+    1 | tunjangan  |     -100000
+    2 | pembuka    |     -320000
+    3 | Budi       |       75000
+    4 | Warung Ani |      310000
+    5 | Citra      |           0
+    6 | Dimas      |       35000
+(6 rows)
+[A] => COMMIT;
+COMMIT
+-- app menggabungkan hasil perintah 1 dan 2 di memori (bukan perintah SQL); selisih = saldo_akhir - (saldo_awal + mutasi):
+-- buku |    nama    | saldo_awal |  mutasi | saldo_akhir | selisih
+--------+------------+------------+---------+-------------+---------
+--    1 | tunjangan  |          0 | -100000 |     -100000 |       0
+--    2 | pembuka    |    -320000 |       0 |     -320000 |       0
+--    3 | Budi       |          0 |   75000 |       75000 |       0
+--    4 | Warung Ani |     285000 |   25000 |      310000 |       0
+--    5 | Citra      |          0 |       0 |           0 |       0
+--    6 | Dimas      |      35000 |       0 |       35000 |       0
+
+# --- Laporan di SERIALIZABLE ---
+-- Langkah sama, A dan B SERIALIZABLE. A hanya membaca: tidak ada siklus, dua-duanya COMMIT.
+[A] => BEGIN ISOLATION LEVEL SERIALIZABLE;
+BEGIN
+-- perintah 1: saldo awal dan mutasi per buku, dari posting
+[A] => SELECT p.buku_id AS buku,
+              coalesce(sum(p.jumlah) FILTER (WHERE j.jenis = 'pembuka'), 0) AS saldo_awal,
+              coalesce(sum(p.jumlah) FILTER (WHERE j.jenis <> 'pembuka'), 0) AS mutasi
+       FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+       GROUP BY p.buku_id ORDER BY p.buku_id;
+ buku | saldo_awal |  mutasi
+------+------------+---------
+    1 |          0 | -100000
+    2 |    -320000 |       0
+    3 |          0 |  100000
+    4 |     285000 |       0
+    6 |      35000 |       0
+(5 rows)
+-- B: Budi bayar Rp25.000 ke Warung Ani, lengkap sampai COMMIT, di antara dua perintah laporan
+[B] => BEGIN ISOLATION LEVEL SERIALIZABLE;
+BEGIN
+[B] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('bayar', 'Bayar nasi goreng', 419) RETURNING id;
+ id
+----
+  3
+(1 row)
+[B] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 3, -25000), (3, 4, 25000);
+INSERT 0 2
+[B] => UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+       FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 3 GROUP BY buku_id) p
+       WHERE b.id = p.buku_id;
+UPDATE 2
+[B] => COMMIT;
+COMMIT
+-- perintah 2: saldo akhir per buku, dari saldo_cache
+[A] => SELECT b.id AS buku, coalesce(a.nama, b.jenis) AS nama, b.saldo_cache AS saldo_akhir
+       FROM buku b LEFT JOIN akun a ON a.id = b.akun_id ORDER BY b.id;
+ buku |    nama    | saldo_akhir
+------+------------+-------------
+    1 | tunjangan  |     -100000
+    2 | pembuka    |     -320000
+    3 | Budi       |      100000
+    4 | Warung Ani |      285000
+    5 | Citra      |           0
+    6 | Dimas      |       35000
+(6 rows)
+[A] => COMMIT;
+COMMIT
+-- app menggabungkan hasil perintah 1 dan 2 di memori (bukan perintah SQL); selisih = saldo_akhir - (saldo_awal + mutasi):
+-- buku |    nama    | saldo_awal |  mutasi | saldo_akhir | selisih
+--------+------------+------------+---------+-------------+---------
+--    1 | tunjangan  |          0 | -100000 |     -100000 |       0
+--    2 | pembuka    |    -320000 |       0 |     -320000 |       0
+--    3 | Budi       |          0 |  100000 |      100000 |       0
+--    4 | Warung Ani |     285000 |       0 |      285000 |       0
+--    5 | Citra      |          0 |       0 |           0 |       0
+--    6 | Dimas      |      35000 |       0 |       35000 |       0
+-- Hasilnya sama dengan REPEATABLE READ.

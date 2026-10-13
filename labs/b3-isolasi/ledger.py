@@ -294,8 +294,87 @@ def rekam_dirty_read():
     tulis("dirty-read.txt", "READ UNCOMMITTED di PostgreSQL", PENGANTAR_DATA)
 
 
+# ---------- B. laporan tutup buku dua perintah ----------
+
+LAPORAN_MUTASI = """SELECT p.buku_id AS buku,
+       coalesce(sum(p.jumlah) FILTER (WHERE j.jenis = 'pembuka'), 0) AS saldo_awal,
+       coalesce(sum(p.jumlah) FILTER (WHERE j.jenis <> 'pembuka'), 0) AS mutasi
+FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+GROUP BY p.buku_id ORDER BY p.buku_id;"""
+
+LAPORAN_SALDO = """SELECT b.id AS buku, coalesce(a.nama, b.jenis) AS nama, b.saldo_cache AS saldo_akhir
+FROM buku b LEFT JOIN akun a ON a.id = b.akun_id ORDER BY b.id;"""
+
+
+def gabung_laporan(mutasi, akhir):
+    """Yang dilakukan app sesudah dua perintah: saldo_akhir dibandingkan dengan saldo_awal + mutasi per buku."""
+    m = {r[0]: (int(r[1]), int(r[2])) for r in mutasi}
+    hasil = []
+    for buku, nama, s_akhir in akhir:
+        awal, mut = m.get(buku, (0, 0))
+        hasil.append((buku, nama, awal, mut, s_akhir, s_akhir - (awal + mut)))
+    catat("-- app menggabungkan hasil perintah 1 dan 2 di memori (bukan perintah SQL); selisih = saldo_akhir - (saldo_awal + mutasi):")
+    for l in tabel(["buku", "nama", "saldo_awal", "mutasi", "saldo_akhir", "selisih"], hasil):
+        catat("--" + l)
+    return [(r[0], r[5]) for r in hasil if r[5] != 0]
+
+
+def laporan(level, selisih_harus, catatan):
+    a, b = dua_sesi()
+    bagian(f"Laporan di {level}")
+    for l in catatan:
+        catat("-- " + l)
+    a(f"BEGIN ISOLATION LEVEL {level};")
+    catat("-- perintah 1: saldo awal dan mutasi per buku, dari posting")
+    mutasi = a(LAPORAN_MUTASI).isi
+    catat("-- B: Budi bayar Rp25.000 ke Warung Ani, lengkap sampai COMMIT, di antara dua perintah laporan")
+    b(f"BEGIN ISOLATION LEVEL {level};")
+    tulis_jurnal(b, "bayar", "Bayar nasi goreng", BUDI, [(B_BUDI, -25000), (B_ANI, 25000)], True)
+    harap(b("COMMIT;").status, "COMMIT", "COMMIT bayar B")
+    catat("-- perintah 2: saldo akhir per buku, dari saldo_cache")
+    akhir = a(LAPORAN_SALDO).isi
+    harap(a("COMMIT;").status, "COMMIT", "COMMIT laporan A")
+    selisih = gabung_laporan(mutasi, akhir)
+    harap(selisih, selisih_harus, f"selisih laporan {level}")
+    harap(Diam.satu("""SELECT (SELECT count(*) FROM (SELECT jurnal_id FROM posting GROUP BY jurnal_id
+                                                      HAVING sum(jumlah) <> 0) x) || ' ' || (SELECT sum(jumlah) FROM posting)"""),
+          "0 0", f"semua jurnal seimbang sesudah laporan {level}")
+    a.tutup()
+    b.tutup()
+    return selisih, mutasi
+
+
+def rekam_laporan():
+    selisih, _ = laporan(RC, [(B_BUDI, -25000), (B_ANI, 25000)], [
+        "Laporan tutup buku dalam dua perintah, seperti dua fungsi repo: mutasi dari posting, saldo akhir dari saldo_cache.",
+        "Di READ COMMITTED setiap perintah memakai snapshot baru."])
+    catat("-- Laporan tidak cocok di buku Budi dan Warung Ani, Rp25.000 masing-masing. Setiap jurnal tetap seimbang:")
+    catat("-- perintah 1 dibaca sebelum jurnal B COMMIT, perintah 2 sesudahnya.")
+    ringkas.append(("laporan", RC, "tidak cocok di 2 buku, selisih Rp25.000", "-", 75000))
+
+    selisih, _ = laporan(RR, [], [
+        "Langkah sama persis. Di REPEATABLE READ snapshot diambil saat perintah pertama dan dipakai sampai COMMIT."])
+    catat("-- Laporan cocok untuk keadaan sebelum jurnal B. Jurnal B tidak hilang; ia masuk laporan berikutnya:")
+    a = Sesi("A")
+    a(f"BEGIN ISOLATION LEVEL {RR};")
+    mutasi = a(LAPORAN_MUTASI).isi
+    akhir = a(LAPORAN_SALDO).isi
+    a("COMMIT;")
+    harap(gabung_laporan(mutasi, akhir), [], "laporan berikutnya")
+    harap([r for r in mutasi if r[0] == B_BUDI], [(B_BUDI, 0, 75000)], "mutasi Budi di laporan berikutnya")
+    a.tutup()
+    ringkas.append(("laporan", RR, "cocok; bayar B masuk laporan berikutnya", "-", 75000))
+
+    selisih, _ = laporan(SER, [], [
+        "Langkah sama, A dan B SERIALIZABLE. A hanya membaca: tidak ada siklus, dua-duanya COMMIT."])
+    catat("-- Hasilnya sama dengan REPEATABLE READ.")
+    ringkas.append(("laporan", SER, "cocok", "-", 75000))
+    tulis("laporan.txt", "laporan tutup buku saat jurnal baru masuk", PENGANTAR_DATA)
+
+
 def main():
     rekam_dirty_read()
+    rekam_laporan()
 
 
 if __name__ == "__main__":
