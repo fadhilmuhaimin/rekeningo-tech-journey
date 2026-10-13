@@ -18,6 +18,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Cadangan database: naskah Tahap 1 tidak menyebutnya, padahal API dan PostgreSQL ada di satu VPS. 1.36 menulisnya sebagai celah terbuka + latihan lab (keputusan 302). Usul: Raka menjalankan `pg_dump` manual sebelum setiap migration dan menyalinnya keluar VPS, atau risiko diterima sampai cadangan terjadwal Tahap 3.
 - 1.42: naskah bagian 6 menulis jawaban tebak (ADR 6, ADR 5) dibuka di halaman pertama Tahap 2; 1.42 sudah membukanya di widget tebak dan blok "Menuju Tahap 2" (sesuai ANTREAN). Usul: halaman pertama Tahap 2 mengulang dan memperluasnya, naskah cukup menyebut keduanya. Prioritas fitur PRD v2 (P0–P2) dan durasinya belum ada di naskah.
 - Naskah `CERITA-TAHAP-1.md` ±64 menulis "Transfer setengah jadi" (Tahap 2), halaman Cerita memakai "Pembayaran setengah jadi" yang lebih tepat; ±43 menulis "Lima tokoh" padahal tabelnya enam. Usul: naskah diselaraskan (XF2, keputusan 372).
+- Tahap 2: naskah menulis 2.8 "ADR 12: dari kolom saldo ke ledger", padahal ADR 12 sudah dipakai 1.40 ("Sengaja belum dilakukan") dan ADR Tahap 2 lain bernomor 13–21. Usul: 2.8 jadi ADR 13 dan nomor berikutnya bergeser (21 → 22), atau 2.8 tanpa nomor baru ("ADR 6 diganti"). Registry sementara menulis judul naskah.
 
 ## Catatan untuk halaman Tahap 1 berikutnya
 
@@ -42,6 +43,14 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Per halaman: branch `tahap-1/<slug>` dari main; lab dulu bila perlu (PR sendiri); halaman (PR sendiri); KEPUTUSAN + STATUS + MEMORI + ANTREAN; merge bila CI hijau; akhiri "Siap dilanjutkan dari <halaman>". Setelah 1.42: `plan/PROMPT-CROSSCHECK.md`, lalu `plan/LAPORAN-TAHAP-1.md`.
 - Mode paralel: konflik PR yang hanya baris tambahan di `plan/KEPUTUSAN.md` digabung pengatur dengan `tmp/gabung_keputusan.sh <branch> <nomor>` (union baris, cek tidak ada baris hilang, `cek_tabel_plan.py`, push biasa); gerbang ulangnya CI di head gabungan. PR yang file-nya terpisah dari perubahan main terbaru boleh di-merge tanpa gabung ulang; CI push ke main diawasi sesudahnya.
 
+## Diputuskan malam ini
+
+- X1 dan X2 sudah selesai sebelum malam ini (PR #249), jadi tidak diulang: ERD1 masuk sesudah X2 sebagai pengecualian pembekuan; sesudahnya hanya 1.12 dicek ulang 4 varian dan LAPORAN-TAHAP-1 mendapat satu baris. Alasan: perubahan hanya di satu halaman; mengulang X1 penuh tidak menambah bukti.
+- 1.12 hanya mendapat diagram statis. Widget ERD bertumbuh dibangun dan diuji di `/uji/erd/`, belum dipasang di 1.12 atau 2.9 sampai pemilik meninjau Tahap 1. Alasan: paling mudah dibatalkan; halaman Tahap 1 sedang ditinjau.
+- Nomor keputusan Tahap 2 mengikuti prompt di naskah: jalur lab/konten 400–449, teknis 450–499, pengatur 376–399. Alasan: dua jalur tidak berebut nomor.
+- Judul 2.8 di registry ditulis persis naskah ("ADR 12: dari kolom saldo ke ledger") walau 1.40 sudah ADR 12; lihat Usulan perubahan cerita. Alasan: CERITA paling tinggi; mengganti judul satu baris registry mudah.
+- Lab pencairan bernama `t2-pencairan` (pola lab khusus tahap `t3-bayar`, `t5-replika`). Halaman 2.x bergantung pada tugas gerbang `T2-mulai` yang hanya pemilik tandai selesai, jadi `antrean.py berikut` tidak pernah memilih halaman. Alasan: larangan menulis halaman malam ini dijaga alat, bukan ingatan.
+
 ## Perlu dicek pemilik
 
 - PROPOSAL tidak konsisten soal deploy: tabel infra (~149) menulis Tahap 2 deploy lewat SSH dari Actions, tabel pipeline (~430–431) menulis Tahap 2 manual dan staging Tahap 3, (~432) blue/green Tahap 4; halaman 1.31, 1.35, 1.36, 1.40 mengikuti tabel pipeline ("deploy tanpa jeda" Tahap 3 dari dua instance ~150). Mohon diputuskan.
@@ -56,20 +65,10 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-13 · Tahap 1 selesai, menunggu tinjauan pemilik (keputusan 369–374; laporan `plan/LAPORAN-TAHAP-1.md`, PR #249). ANTREAN Tahap 1 habis (88 tugas selesai). Polesan dan tugas yang dipindah di `plan/SETELAH-TAHAP-1.md`; PR #232 (G2c) dan branch `perbaikan/r6-aturan-layar` (R6, WIP) dibiarkan untuk sesudah tinjauan. Jangan mulai Tahap 2 sebelum `plan/CERITA-TAHAP-2.md` dari pemilik. Untuk melanjutkan: baca `plan/LAPORAN-TAHAP-1.md` bagian "10 hal teratas", tunggu keputusan pemilik, lalu pindahkan tugas dari SETELAH-TAHAP-1 ke ANTREAN sesuai arahan.
+2026-10-13 23.30 WITA · Mode malam (prompt pemilik, tanpa bertanya): ERD1 (ERD Tahap 1 statis di 1.12, pengecualian pembekuan, keputusan 375) di jalur teknis; lalu persiapan Tahap 2 dari `plan/CERITA-TAHAP-2.md`: RINGKAS, ANTREAN Tahap 2, registry 33 halaman "segera", `tools/erd.py` Tahap 2 dan widget ERD bertumbuh (teknis), lab Tahap 2 urut ANTREAN (jalur lab). Halaman 2.x TIDAK ditulis malam ini. Worktree `../rjt-teknis` (4324) dan `../rjt-lab` (4323, satu-satunya yang merekam lab). Akhir: `plan/LAPORAN-PAGI.md` lalu "Selesai untuk malam ini". Melanjutkan: `python3 tools/antrean.py berikut` dan `git worktree list`.
 
 ## Pelajaran
 
-- Mode font telat (`ukur-cls.mjs --font-telat`, di gerbang sejak 361) di macOS tidak meniru CI: Chromium Linux membulatkan lebar glyph ke piksel (hinting), jadi size-adjust yang dikalibrasi di macOS gagal tanpa `text-rendering: geometricPrecision`; cari sumber CLS di text node yang titik awalnya melompat ratusan px mendatar. Ukur lewat commit di branch `percobaan/**` (keputusan 359, 361).
-- `page.evaluate` Playwright tidak punya timeout (kNoTimeout); alat ukur baru wajib memakai `awasi(browser, { alat })` (sekuensial) atau `denganBatas` (paralel) dari `situs/tools/lib/batas.mjs`. Macet intermiten di CI dicari dengan mengulang di branch `percobaan/**` (keputusan 360). Warning `ukur-luapan diulang` (baris `ULANG`, ringkasan langkah) berarti renderer diam di halaman Tahap 1, diulang sekali di konteks baru; sementara sampai G2d (keputusan 364).
-- `gh pr checks` (v2.93.0) tidak menghitung check `cancelled` sebagai gagal: job yang kena `timeout-minutes` bisa terbaca hijau. Sebelum merge, pastikan semua job `success` (`gh run view <id> --json jobs`), dan tunggu run untuk head yang benar terdaftar dulu (tanpa run, `--watch` langsung selesai).
-- Batas API GitHub (5.000/jam per user, dibagi semua agen): `gh run watch` bawaan memeriksa tiap 3 s; dengan 6+ agen kena 403. Pakai `tmp/tunggu_pr.sh` (interval 30 s) atau `--interval 60`; bila 403, tunggu ±5 menit (2026-10-12).
-- `layar.mjs` dan `tangkap.mjs` mengukur keadaan awal halaman (blok terlipat, island di bawah layar belum hidup); luapan horizontal di blok terlipat hanya tertangkap `ukur-luapan.mjs`, yang membuka semua blok dan menggulir sampai bawah (keputusan 356). Docker Desktop bisa tertahan dialog izin macOS: rekaman resmi tetap di container, cluster PG sementara hanya untuk mencoba.
-- Widget lama yang mengganti teks pemuat sesudah fetch butuh versi statis dari build (pola `alur-statis.ts`, `race-statis.ts`); `contrast.py` tidak membaca `color: inherit` bila induk hanya dikenali lewat kelas lain, jadi tulis token warna eksplisit di elemen teks widget (keputusan 353).
-- Angka yang bergerak: `tweenAngka`/`gerakkanAngka` dari `situs/src/gerak/angka.ts`; teks khusus pembaca layar hanya dirender selama tween (kalau selalu ada, angka dobel saat diseleksi dan masuk HTML/indeks), dan status "sedang bergerak" diambil dari hasil tween, bukan dari guard yang keluar lebih awal (keputusan 352).
-- `offsetHeight` host tidak melihat margin anak yang runtuh keluar host, dan containment (container query) membuat lebar intrinsik 0: bandingkan letak elemen sesudahnya serta x dan lebar host, termasuk di 1440 px (wadah 1024).
-- Widget alur hanya menerima nada `warn` dan `good` (`alur-core.js` NADA, diperiksa `tools/validasi_skenario.mjs` saat build); Rantai menerima juga `system`.
-- ADR 7: policy RLS yang menyaring `UPDATE` membuat kredit ke baris orang lain jadi `UPDATE 0` tanpa error (`b5-rls` bagian 5); RLS di Rekeningo hanya untuk baca, di tabel ledger Tahap 2.
 - Widget alur: satu urutan DOM di semua ukuran (jalur, tombol, tebakan, varian, detail + HP); mode sempit hanya kelas `is-sempit`, tanpa memindah DOM (keputusan 358). Bila DOM terpaksa dipindah, simpan `document.activeElement` dan kembalikan dengan `focus({ preventScroll: true })`: Chrome memindah fokus ke BODY.
 - Perubahan CSS global di atas Inti menggeser layar pertama semua halaman; simpan keluaran `layar.mjs` sebelum dan bandingkan sesudahnya (`tmp/banding_layar.py`).
 - Setelah gerbang lolos, perubahan teks apa pun wajib diikuti `python3 tools/sinkron_cerita.py` dan gerbang ulang (CI #119 gagal karena `kartu.json` tertinggal).
