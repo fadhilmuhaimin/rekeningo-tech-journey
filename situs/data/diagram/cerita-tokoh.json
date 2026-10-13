@@ -1,0 +1,27 @@
+{
+  "id": "cerita-tokoh",
+  "judul": "Enam tokoh dan tempatnya di Tahap 1",
+  "sumber": { "jenis": "ilustrasi", "teks": "Ringkasan naskah Tahap 1" },
+  "baris": [
+    {
+      "label": "Uang tunjangan",
+      "sub": "dari Keuangan sampai warung",
+      "simpul": [
+        { "teks": "Admin Keuangan mengisi saldo", "sub": "tiap Senin, 100 akun" },
+        { "teks": "Budi membayar dari HP", "sub": "di warung Ani" },
+        { "teks": "Ani menerima", "sub": "dicocokkan dengan bukunya" },
+        { "teks": "Pak Hadi menelusuri", "sub": "sampai rupiah terakhir", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Sistemnya",
+      "sub": "yang ditulis, dibangun, dan dicoba",
+      "simpul": [
+        { "teks": "Sinta menulis PRD", "sub": "satu PRD per tahap", "nada": "system" },
+        { "teks": "Raka membangun app dan backend", "sub": "sendiri, dengan bantuan AI", "nada": "system" },
+        { "teks": "Dimas mencoba celahnya", "sub": "penasaran, bukan jahat", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Baris atas mengikuti tujuan PRD v1: setiap rupiah tunjangan bisa ditelusuri dari Keuangan sampai warung."
+}
