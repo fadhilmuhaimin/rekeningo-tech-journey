@@ -686,11 +686,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### P5 · Kunci progres lama di Kartu ulang dan Peta cerita
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: saringan Kartu ulang "Hanya dari halaman yang sudah kutandai selesai" dan `/cerita/peta/` membaca kunci progres yang sungguh ditulis halaman sekarang (bukan `bb1:selesai` lama), dengan tes; Peta cerita menulis enam tahap, bukan lima.
-- catatan: Dari pelaksana P3 (keputusan 310). Jalur teknis-halaman. P7 (keputusan 365): `bb1:selesai` masih ditulis widget lama di 26 halaman, jadi bukan kunci mati; halaman Tahap 1 menulis `rtj-blok`. Bila kunci selesai diganti, naikkan `versi` di `situs/src/lib/progres.ts` dan tulis pemindah dari versi 1.
+- catatan: Dari pelaksana P3 (keputusan 310). Jalur teknis-halaman. P7 (keputusan 365): `bb1:selesai` masih ditulis widget lama di 26 halaman, jadi bukan kunci mati; halaman Tahap 1 menulis `rtj-blok`. Bila kunci selesai diganti, naikkan `versi` di `situs/src/lib/progres.ts` dan tulis pemindah dari versi 1. PR #237, keputusan 320; dua putaran (race Peta cerita lawan DataSelesai).
 
 ### P6 · Tautan relatif .md yang 404
 

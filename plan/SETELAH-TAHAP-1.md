@@ -68,3 +68,4 @@ Tugas dan temuan yang sengaja tidak dikerjakan di Tahap 1 (keputusan 369, lingku
 - `404.md`: menyuruh pembaca "lewat sidebar", padahal halaman splash tanpa sidebar (peninjau P6).
 - `situs/tools/percobaan/percobaan-g2d.yml` baris 92 dan 99: dua langkah upload-artifact bernama sama (peninjau G2d, keputusan 367).
 - G2d lanjutan: belah isi salah satu dari enam halaman yang paling sering macet untuk mencari pemicu dan reproduksi mandiri; mengirim laporan bug Chromium menunggu keputusan pemilik (keputusan 367).
+- Peta cerita: garis putus-putus kartu Tahap 6 tipis di mode terang (dekorasi; teks "proyeksi, belum ditulis" sudah ada) (peninjau P5, keputusan 320).
