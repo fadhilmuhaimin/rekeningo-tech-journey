@@ -15,10 +15,10 @@ import PetaDiagram from "../diagram/PetaDiagram";
 import { Arsitektur } from "../diagram/skema";
 import { varPesan } from "../diagram/tata";
 
-type H = { id: string; judul: string; tahap: unknown; path: string; ada?: boolean; masalah?: string; nomor?: string; peran?: string[]; inti?: boolean; menit?: number };
+type H = { id: string; judul: string; tahap: unknown; path: string; ada?: boolean; masalah?: string; nomor?: string; peran?: string[]; inti?: boolean; menit?: number; lama?: boolean };
 type Node = { label: string; baru?: boolean; berubah?: boolean; catatan?: string; lepas?: boolean };
 type Skala = { pendek: string; lingkup: string; user: string; pembuat: string; prd: string };
-type T = { no: number; nama: string; versi?: string; skala?: Skala; arsitektur?: { baris: Node[][]; caption?: string } };
+type T = { no: number; nama: string; versi?: string; naskah?: string; skala?: Skala; arsitektur?: { baris: Node[][]; caption?: string } };
 const d = muat();
 const hs: H[] = d.halaman;
 const urut: H[] = urutanBaca(d);
@@ -35,16 +35,19 @@ const tautanTebak = [cari("t1-m4"), cari("t1-pertukaran-saldo"), cari("B3.1")]
 
 // Status tahap dari registry: tahap yang semua halamannya ada ditulis "Selesai", bukan "Sedang ditulis: 42 dari 42"
 // (XF4, keputusan 370).
+// Halaman lama di slot naskah baru (`lama`) belum dihitung ditulis; jumlahnya disebut terpisah (keputusan 450).
 const statusTahap = (no: number) => {
   const semua = hs.filter((h) => h.tahap === no && h.nomor);
-  const ada = semua.filter((h) => h.ada).length;
-  return ada === semua.length ? `Selesai: ${semua.length} halaman` : `Sedang ditulis: ${ada} dari ${semua.length} halaman`;
+  const ada = semua.filter((h) => h.ada && !h.lama).length;
+  const lama = semua.filter((h) => h.ada && h.lama).length;
+  if (ada === semua.length) return `Selesai: ${semua.length} halaman`;
+  return `Sedang ditulis: ${ada} dari ${semua.length} halaman` + (lama ? `; ${lama} versi lama bisa dibaca` : "");
 };
 type Peta = { no: number; nama: string; skala?: Skala; diagram?: { baris: Node[][]; caption?: string }; status: string; lama: boolean; href?: string };
 const tahap: Peta[] = [
   ...d.tahap.map((t: T) => ({
     no: t.no, nama: t.nama, skala: t.skala, diagram: t.arsitektur,
-    status: t.versi === "lama" ? "Versi lama tersedia; ditulis ulang setelah Tahap 1" : statusTahap(t.no),
+    status: t.versi === "lama" && !t.naskah ? "Versi lama tersedia; ditulis ulang setelah Tahap 1" : statusTahap(t.no),
     lama: t.versi === "lama",
     href: awalTahap(t.no) ? url(awalTahap(t.no)!) : undefined,
   })),
@@ -94,7 +97,8 @@ const pembukaSaran = (p: string) => {
 const awalInti = saranPeran.generalis!.daftar[0];
 
 // Pencarian masalah: data dan saran kata kunci yang pasti memberi hasil.
-const masalah = hs.filter((h) => h.ada && h.masalah).map((h) => ({ m: h.masalah!, l: label(h), u: url(h) }));
+// Halaman yang belum ditulis ikut dicari, tanpa tautan dan bertanda "segera" (keputusan 450).
+const masalah = hs.filter((h) => h.masalah).map((h) => ({ m: h.masalah!, l: label(h), u: h.ada ? url(h) : "" }));
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 const cocok = (q: string) => masalah.filter((x) => norm(q).split(/\s+/).every((k) => norm(x.m + " " + x.l).includes(k)));
 const saranCari = ["saldo hilang", "nominal minus", "error 500", "dobel bayar", "app versi lama", "deploy"].filter((q) => cocok(q).length > 0).slice(0, 4);
@@ -260,11 +264,15 @@ const cara = hs.find((h) => h.id === "A0");
     const kata = norm(input.value).split(/\s+/).filter(Boolean);
     hasil.replaceChildren();
     if (!kata.length) return;
-    const cocok = data.filter((x) => { const t = norm(x.m + " " + x.l); return kata.every((k) => t.includes(k)); }).slice(0, 5);
+    // Halaman yang bisa dibaca lebih dulu; halaman "segera" (tanpa url) sesudahnya.
+    const cocok = data.filter((x) => { const t = norm(x.m + " " + x.l); return kata.every((k) => t.includes(k)); })
+      .sort((a, b) => Number(!a.u) - Number(!b.u)).slice(0, 5);
     if (!cocok.length) { const li = document.createElement("li"); li.textContent = "Belum ada halaman untuk gejala itu. Coba kata lain, mis. saldo atau login."; hasil.append(li); return; }
     for (const x of cocok) {
-      const li = document.createElement("li"), a = document.createElement("a"), s = document.createElement("span");
-      a.href = x.u; a.textContent = x.l; s.textContent = x.m; li.append(a, s); hasil.append(li);
+      const li = document.createElement("li"), s = document.createElement("span");
+      if (x.u) { const a = document.createElement("a"); a.href = x.u; a.textContent = x.l; li.append(a); }
+      else { const b = document.createElement("b"); b.className = "masalah__segera"; b.textContent = `${x.l} · segera`; li.append(b); }
+      s.textContent = x.m; li.append(s); hasil.append(li);
     }
   };
   input.addEventListener("input", tampil);

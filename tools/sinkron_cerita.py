@@ -112,7 +112,7 @@ def indeks(hs, lama):
             continue
         out += ["", f"## {topik}", "", "| Halaman | Tahap | Masalah yang dijawab |", "|---|---|---|"]
         for h in isi:
-            nama = f"[{label(h)}]({url_mutlak(h['path'])})" if h["ada"] else f"{label(h)} · *menyusul*"
+            nama = f"[{label(h)}]({url_mutlak(h['path'])})" if h["ada"] else f"{label(h)} · *segera*"
             t = f"Tahap {h['tahap']}" if isinstance(h["tahap"], int) else {"sampingan": "Studi sampingan"}.get(h["tahap"], "")
             out.append(f"| {nama} | {t} | {h.get('masalah', '–')} |")
     return kepala + "\n".join(out) + ekor
@@ -123,7 +123,7 @@ def daftar_tahap(no, hs):
     for h in hs:
         if h["tahap"] != no or not h.get("masalah"):
             continue
-        nama = f"[{label(h)}]({url_mutlak(h['path'])})" if h["ada"] else f"{label(h)} · *menyusul*"
+        nama = f"[{label(h)}]({url_mutlak(h['path'])})" if h["ada"] else f"{label(h)} · *segera*"
         out.append(f"| {h['masalah']} | {nama} |")
     return "\n".join(out)
 
