@@ -1,7 +1,7 @@
 """Uji tools/erd.py --cek dengan salinan yang diubah: pemeriksa harus gagal, bukan lolos palsu (keputusan 375).
 
-File sumber dan JSON ERD disalin ke direktori sementara; yang asli tidak diubah. Bagian akhir menguji hitung_selisih
-(dipakai Tahap 2) dengan data buatan, tanpa database.
+File sumber dan JSON ERD semua tahap disalin ke direktori sementara; yang asli tidak diubah. Bagian akhir menguji
+hitung_selisih dengan data buatan dan bersihkan() dengan potongan SQL, tanpa database.
 
     python3 tools/test_erd.py
 """
@@ -19,13 +19,15 @@ erd = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(erd)
 
 JSON1 = "situs/data/erd/tahap-1.json"
+JSON2 = "situs/data/erd/tahap-2.json"
 SUMBER = erd.TAHAP[1]["sumber"][0]
 PEMBANDING = erd.TAHAP[1]["pembanding"][0]
+MIGRASI_T2 = [f for f in erd.TAHAP[2]["sumber"] if f.startswith("labs/api-t2/")]
 
 
-def ubah_json(fungsi):
+def ubah_json(fungsi, rel=JSON1):
     def f(root):
-        p = root / JSON1
+        p = root / rel
         d = json.loads(p.read_text(encoding="utf-8"))
         fungsi(d)
         p.write_text(erd.tulis_json(d), encoding="utf-8")
@@ -62,13 +64,22 @@ KASUS = [  # nama, ubah salinan, exit harapan, teks yang harus ada di keluaran
     ("daftar sumber berbeda dari konfigurasi", ubah_json(lambda d: d["sumber"]["file"].pop()), 1, "daftar file sumber"),
     ("selisih diisi padahal tidak ada tahap sebelumnya",
      ubah_json(lambda d: d.update(selisih={k: [] for k in erd.KUNCI["selisih"]})), 1, "selisih harus null"),
+    # Tahap 2 (keputusan 470): migration api-t2 ikut hash; selisih dihitung ulang dari kedua JSON.
+    ("migration api-t2 berubah tanpa JSON Tahap 2 dibangun ulang", tambah_baris(MIGRASI_T2[-1]), 1, "file sumber berubah"),
+    ("JSON Tahap 2 hilang", lambda r: (r / JSON2).unlink(), 1, "tahap-2.json: belum ada"),
+    ("tujuan pindah diubah tangan di JSON Tahap 2",
+     ubah_json(lambda d: d["selisih"]["tabel_dihapus"][0].update(pindah_ke="jurnal"), JSON2), 1, "selisih tidak sama"),
+    ("kolom baru dihapus dari selisih Tahap 2",
+     ubah_json(lambda d: d["selisih"]["kolom_baru"].pop(), JSON2), 1, "selisih tidak sama"),
+    ("tahap-1.json diubah tangan dengan format sah: selisih Tahap 2 menangkapnya",
+     ubah_json(lambda d: akun(d)["kolom"][2].update(tipe="character varying")), 1, "tahap-2.json: selisih tidak sama"),
 ]
 
 gagal = 0
 for nama, ubah, harap, wajib in KASUS:
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
-        for rel in erd.semua_file(erd.TAHAP[1]) + [JSON1]:
+        for rel in sorted({f for c in erd.TAHAP.values() for f in erd.semua_file(c)}) + [JSON1, JSON2]:
             (root / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(AKAR / rel, root / rel)
         ubah(root)
@@ -142,6 +153,42 @@ SELISIH += [
     ("nama tabel ber-schema ditolak", lambda: erd.bersihkan("ALTER TABLE tahap1.akun ADD COLUMN x int;\n", "uji"), SystemExit),
     ("SET search_path di tengah baris ditolak",
      lambda: erd.bersihkan("CREATE TABLE x (id int); SET search_path = public;\n", "uji"), SystemExit),
+]
+# bersihkan dan migration api-t2 (keputusan 471): `SET search_path FROM CURRENT` hanya sebagai atribut CREATE FUNCTION.
+LAIN = ["b3_ledger", "public", "tahap1", "tahap2", "tahap2_arsip"]  # contoh schema lab yang ada saat membangun
+FUNGSI = "CREATE FUNCTION f() RETURNS trigger\nLANGUAGE plpgsql {atribut} AS $$\nBEGIN\n{isi}\n  RETURN NULL;\nEND $$;\n"
+f_ok = FUNGSI.format(atribut="SET search_path FROM CURRENT", isi="  PERFORM 1;")
+SELISIH += [
+    ("migration api-t2 lolos bersihkan dan tidak diubah",
+     lambda: [f for f in MIGRASI_T2 if erd.bersihkan((AKAR / f).read_text(), f, LAIN) != (AKAR / f).read_text()], []),
+    ("token_sql tidak kehilangan satu karakter pun",
+     lambda: all("".join(t for _, t in erd.token_sql((AKAR / f).read_text())) == (AKAR / f).read_text()
+                 for f in MIGRASI_T2 + [SUMBER]), True),
+    ("atribut fungsi SET search_path FROM CURRENT diterima", lambda: erd.bersihkan(f_ok, "uji", LAIN) == f_ok, True),
+    ("atribut sesudah body juga diterima",
+     lambda: bool(erd.bersihkan("CREATE OR REPLACE FUNCTION g() RETURNS int AS $f$ SELECT 1; $f$\n"
+                                "  LANGUAGE sql SET search_path FROM CURRENT;\n", "uji", LAIN)), True),
+    ("SET search_path FROM CURRENT di luar CREATE FUNCTION ditolak",
+     lambda: erd.bersihkan("CREATE TABLE x (id int);\nSET search_path FROM CURRENT;\n", "uji"), SystemExit),
+    ("ALTER FUNCTION ... SET search_path FROM CURRENT ditolak",
+     lambda: erd.bersihkan("ALTER FUNCTION f() SET search_path FROM CURRENT;\n", "uji"), SystemExit),
+    ("fungsi dengan SET search_path = tahap1 ditolak",
+     lambda: erd.bersihkan(FUNGSI.format(atribut="SET search_path = tahap1", isi=""), "uji"), SystemExit),
+    ("body fungsi yang menyebut tahap1.akun ditolak",
+     lambda: erd.bersihkan(FUNGSI.format(atribut="SET search_path FROM CURRENT", isi="  DELETE FROM tahap1.akun;"),
+                           "uji"), SystemExit),
+    ("SET search_path di body fungsi tidak dibuang diam-diam, tetapi ditolak",
+     lambda: erd.bersihkan(FUNGSI.format(atribut="", isi="SET search_path = public;"), "uji"), SystemExit),
+    ("'--' di dalam string tidak menyembunyikan SQL sesudahnya",
+     lambda: erd.bersihkan("CREATE TABLE x (a text DEFAULT '--'); ALTER TABLE tahap1.akun ADD COLUMN y int;\n", "uji"),
+     SystemExit),
+    ("schema lab lain dari database ditolak",
+     lambda: erd.bersihkan("INSERT INTO b3_ledger.buku (jenis) VALUES ('selisih');\n", "uji", LAIN), SystemExit),
+    ("schema lab lain bertanda kutip ditolak",
+     lambda: erd.bersihkan('CREATE TABLE x AS TABLE "tahap2_arsip".transaksi;\n', "uji", LAIN), SystemExit),
+    ("alias tabel tidak dikira schema",
+     lambda: bool(erd.bersihkan("UPDATE buku b SET saldo_cache = p.jumlah FROM posting p WHERE p.buku_id = b.id;\n",
+                                "uji", LAIN)), True),
 ]
 for nama, jalan, harap in SELISIH:
     try:
