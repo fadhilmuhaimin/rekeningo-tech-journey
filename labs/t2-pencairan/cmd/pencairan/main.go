@@ -391,6 +391,11 @@ func buatFile(ctx context.Context, db *pgx.Conn, id int64, periode, dir string, 
 	if err := os.Rename(sementara, akhir); err != nil {
 		return err
 	}
+	// Sync file tidak menyimpan nama barunya. Tanpa Sync folder, server mati listrik sesudah COMMIT di bawah bisa
+	// meninggalkan batch dikirim tanpa file (fsync(2), keputusan 506).
+	if err := syncFolder(dir); err != nil {
+		return err
+	}
 	fmt.Printf("file %s dibuat\n", filepath.Base(akhir))
 	berhenti("file")
 	if _, err := tx.Exec(ctx, `UPDATE batch_pencairan SET status = 'dikirim' WHERE id = $1`, id); err != nil {
@@ -401,6 +406,16 @@ func buatFile(ctx context.Context, db *pgx.Conn, id int64, periode, dir string, 
 	}
 	fmt.Printf("batch %d: dikirim\n", id)
 	return nil
+}
+
+// syncFolder menyimpan isi folder (termasuk hasil rename) ke disk.
+func syncFolder(dir string) error {
+	d, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	return d.Sync()
 }
 
 type hitung struct {
