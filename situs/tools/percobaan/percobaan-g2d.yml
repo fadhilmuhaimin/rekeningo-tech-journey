@@ -1,0 +1,105 @@
+# TIDAK AKTIF di folder ini (GitHub hanya menjalankan .github/workflows/). Workflow percobaan G2d (keputusan 367),
+# disimpan supaya kriteria cabut ulang sekali di ukur-luapan bisa diulang sesudah Playwright naik versi.
+# Cara mengulang: buat branch percobaan/g2d-<nama> dari main, salin file ini ke .github/workflows/percobaan-g2d.yml,
+# ubah `branches: [main, 'percobaan/**']` di cek.yml branch itu menjadi `branches: [main]`, push, lalu hapus branch-nya.
+# Lengan: kontrol, konteks-per-halaman, tanpa-buka, tanpa-blok, tanpa-island, chromium-penuh, headed, tanpa-gpu,
+# lain (halaman selain Tahap 1), minimal-a dan minimal-b (halaman sintetis dari halaman-sintetis.mjs).
+# JEJAK: "1" merekam trace Chromium saat macet (artefak jejak-*, ±340 MB per macet). Run asal: 38292073724,
+# 38292859022, 38292720341, 38297495604.
+name: percobaan-g2d
+
+on:
+  push:
+    branches: ['percobaan/g2d-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: timeout -k 15s 2m bash tools/get_fonts.sh
+      - run: timeout -k 15s 2m bun install --cwd situs --frozen-lockfile
+      - run: timeout -k 15s 4m bun run --cwd situs build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist-g2d
+          path: situs/dist
+          retention-days: 2
+
+  lengan:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        lengan: [kontrol, konteks-per-halaman, tanpa-buka, tanpa-blok, tanpa-island, chromium-penuh, headed, tanpa-gpu, lain, minimal-a, minimal-b]
+        pecahan: [1, 2]
+    env:
+      LENGAN: ${{ matrix.lengan }}
+      PUTARAN: "30"
+      SARING: ${{ startsWith(matrix.lengan, 'minimal') && format('/{0}/', matrix.lengan) || (matrix.lengan == 'lain' && '!/tahap-1/' || '/tahap-1/') }}
+      JEJAK: ""
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - run: timeout -k 15s 2m bun install --cwd situs --frozen-lockfile
+      - run: cd situs && timeout -k 15s 4m bunx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist-g2d
+          path: situs/dist
+      - name: Ubah dist untuk lengan
+        run: |
+          (cd situs && node tools/percobaan/halaman-sintetis.mjs)
+          case "$LENGAN" in
+            tanpa-blok)
+              perl -0pi -e 's#<script type="module" src="/_astro/Blok\.astro_[^"]*"></script>##g' situs/dist/tahap-1/*/index.html
+              echo "halaman Tahap 1 yang masih memuat Blok: $(grep -l 'Blok\.astro_' situs/dist/tahap-1/*/index.html | wc -l)" ;;
+            tanpa-island)
+              perl -0pi -e 's#customElements\.(define|get)\("astro-island"#customElements.$1("astro-island-mati"#g' situs/dist/tahap-1/*/index.html
+              echo "halaman Tahap 1 yang masih mendefinisikan astro-island: $(grep -l 'define("astro-island"' situs/dist/tahap-1/*/index.html | wc -l)" ;;
+          esac
+      - name: Preview
+        run: |
+          bun run --cwd situs preview --background --port 4321 --host 127.0.0.1 > preview.log 2>&1 || true
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:4321/tahap-1/testing/ && exit 0; sleep 1; done
+          cat preview.log; exit 1
+      - name: Percobaan
+        run: |
+          cd situs
+          if [ "$LENGAN" = headed ]; then
+            timeout -k 30s 34m xvfb-run -a --server-args="-screen 0 1366x768x24" node tools/percobaan-macet.mjs
+          else
+            timeout -k 30s 34m node tools/percobaan-macet.mjs
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: jejak-${{ matrix.lengan }}-${{ matrix.pecahan }}
+          path: situs/jejak/*.json
+          if-no-files-found: ignore
+          retention-days: 3
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: jejak-${{ matrix.lengan }}-${{ matrix.pecahan }}
+          path: situs/jejak/*.json
+          if-no-files-found: ignore
+          retention-days: 3
