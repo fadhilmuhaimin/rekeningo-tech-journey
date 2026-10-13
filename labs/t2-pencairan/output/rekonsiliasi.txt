@@ -1,0 +1,162 @@
+-- Lab t2-pencairan · rekonsiliasi file lawan ledger sebelum file dibuat
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema t2_pencairan · isolation read committed · periode 2026-W43
+-- Rekaman dari database bersih: make -C labs/t2-pencairan run (keputusan 500).
+-- Data lab: 12 warung, saldo dibuat sebagai jurnal pembuka; Warung Ani Rp310.000 dari naskah (keputusan 504).
+-- Format file transfer fiktif, bukan format bank mana pun (keputusan 505).
+-- Rekonsiliasi berjalan di job sebelum file diberi nama akhir: isi file sementara dibaca ulang dan dicocokkan
+-- dengan jurnal pencairan batch di ledger (per warung, total, dan mutasi buku kas pencairan).
+
+# --- A. Cacat disuntik: pembuat file menulis baris Warung 508 dua kali, bentuk yang sama dengan M15 ---
+-- Flag -uji-baris-dobel hanya ada untuk lab ini; job tanpa flag tidak pernah menulis baris dua kali.
+
+$ ./pencairan -mode benar -periode 2026-W43 -dir kerja -uji-baris-dobel 508
+batch 1 periode 2026-W43 dibuat: 12 baris, total Rp2.450.000
+baris 1 Warung Ani Rp310.000: jurnal 14 COMMIT
+baris 2 Warung Sari Rp185.000: jurnal 15 COMMIT
+baris 3 Warung Mie Pak Joko Rp420.000: jurnal 16 COMMIT
+baris 4 Warung 505 Rp240.000: jurnal 17 COMMIT
+baris 5 Warung 506 Rp95.000: jurnal 18 COMMIT
+baris 6 Warung 507 Rp360.000: jurnal 19 COMMIT
+baris 7 Warung 508 Rp15.000: jurnal 20 COMMIT
+baris 8 Warung 509 Rp275.000: jurnal 21 COMMIT
+baris 9 Warung 510 Rp130.000: jurnal 22 COMMIT
+baris 10 Warung 511 Rp205.000: jurnal 23 COMMIT
+baris 11 Warung 512 Rp160.000: jurnal 24 COMMIT
+baris 12 Warung 513 Rp55.000: jurnal 25 COMMIT
+batch 1: dijurnal
+rekonsiliasi batch 1: file 13 baris Rp2.465.000; ledger 12 jurnal pencairan, kas pencairan +Rp2.450.000
+  beda 508 Warung 508: file 2 baris Rp30.000, ledger 1 jurnal Rp15.000
+rekonsiliasi: DITOLAK (1 warung beda, selisih total Rp15.000)
+galat: rekonsiliasi menolak: file tidak dibuat
+   -- exit 3
+=> SELECT id, periode, status, total FROM batch_pencairan;
+ id | periode  |  status  |  total
+----+----------+----------+---------
+  1 | 2026-W43 | dijurnal | 2450000
+(1 row)
+=> SELECT b.buku_id AS buku, a.nama, b.jumlah, b.jurnal_id
+   FROM baris_pencairan b JOIN buku k ON k.id = b.buku_id JOIN akun a ON a.id = k.akun_id
+   WHERE b.batch_id = 1 ORDER BY b.buku_id;
+ buku |         nama        | jumlah | jurnal_id
+------+---------------------+--------+-----------
+    5 | Warung Ani          | 310000 |        14
+    6 | Warung Sari         | 185000 |        15
+    7 | Warung Mie Pak Joko | 420000 |        16
+    8 | Warung 505          | 240000 |        17
+    9 | Warung 506          |  95000 |        18
+   10 | Warung 507          | 360000 |        19
+   11 | Warung 508          |  15000 |        20
+   12 | Warung 509          | 275000 |        21
+   13 | Warung 510          | 130000 |        22
+   14 | Warung 511          | 205000 |        23
+   15 | Warung 512          | 160000 |        24
+   16 | Warung 513          |  55000 |        25
+(12 rows)
+
+$ ls kerja/
+   -- (kosong)
+-- Batch tetap dijurnal, file sementara dihapus, nama akhir tidak pernah ada. Keuangan tidak menerima file.
+
+# --- B. Pembuat file diperbaiki; job dijalankan lagi ---
+
+$ ./pencairan -mode benar -periode 2026-W43 -dir kerja
+batch 1 periode 2026-W43 sudah ada, status dijurnal
+rekonsiliasi batch 1: file 12 baris Rp2.450.000; ledger 12 jurnal pencairan, kas pencairan +Rp2.450.000
+rekonsiliasi: cocok
+file pencairan-2026-W43.csv dibuat
+batch 1: dikirim
+   -- exit 0
+
+$ cat kerja/pencairan-2026-W43.csv
+akun_warung,nama_penerima,jumlah,berita
+418,Warung Ani,310000,Pencairan Rekeningo 2026-W43
+502,Warung Sari,185000,Pencairan Rekeningo 2026-W43
+503,Warung Mie Pak Joko,420000,Pencairan Rekeningo 2026-W43
+505,Warung 505,240000,Pencairan Rekeningo 2026-W43
+506,Warung 506,95000,Pencairan Rekeningo 2026-W43
+507,Warung 507,360000,Pencairan Rekeningo 2026-W43
+508,Warung 508,15000,Pencairan Rekeningo 2026-W43
+509,Warung 509,275000,Pencairan Rekeningo 2026-W43
+510,Warung 510,130000,Pencairan Rekeningo 2026-W43
+511,Warung 511,205000,Pencairan Rekeningo 2026-W43
+512,Warung 512,160000,Pencairan Rekeningo 2026-W43
+513,Warung 513,55000,Pencairan Rekeningo 2026-W43
+   -- 12 baris data, total Rp2.450.000
+
+# --- C. Jurnal pencairan dibalik di ledger sebelum file dibuat ---
+-- Schema dan folder kerja dibuat ulang. Job berhenti sesudah status dijurnal, sebelum membuat file.
+
+$ ./pencairan -mode benar -periode 2026-W43 -dir kerja -berhenti dijurnal
+batch 1 periode 2026-W43 dibuat: 12 baris, total Rp2.450.000
+baris 1 Warung Ani Rp310.000: jurnal 14 COMMIT
+baris 2 Warung Sari Rp185.000: jurnal 15 COMMIT
+baris 3 Warung Mie Pak Joko Rp420.000: jurnal 16 COMMIT
+baris 4 Warung 505 Rp240.000: jurnal 17 COMMIT
+baris 5 Warung 506 Rp95.000: jurnal 18 COMMIT
+baris 6 Warung 507 Rp360.000: jurnal 19 COMMIT
+baris 7 Warung 508 Rp15.000: jurnal 20 COMMIT
+baris 8 Warung 509 Rp275.000: jurnal 21 COMMIT
+baris 9 Warung 510 Rp130.000: jurnal 22 COMMIT
+baris 10 Warung 511 Rp205.000: jurnal 23 COMMIT
+baris 11 Warung 512 Rp160.000: jurnal 24 COMMIT
+baris 12 Warung 513 Rp55.000: jurnal 25 COMMIT
+batch 1: dijurnal
+titik henti dijurnal: proses dimatikan (SIGKILL)
+   -- proses mati (SIGKILL): defer dan COMMIT berikutnya tidak pernah dijalankan
+   -- koneksi job di PostgreSQL ikut berakhir; transaction yang belum COMMIT, bila ada, di-rollback
+-- Data lab: admin membalik jurnal pencairan Warung 508 (jurnal 20) sebelum file dibuat.
+=> BEGIN;
+BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, membalik_jurnal_id, dibuat_oleh)
+   VALUES ('pembalik', 'Pencairan Warung 508 ditunda: rekening tujuan belum dikonfirmasi', 20, 400) RETURNING id;
+ id
+----
+ 26
+(1 row)
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES
+     (26, (SELECT id FROM buku WHERE akun_id = 508), 15000),
+     (26, (SELECT id FROM buku WHERE akun_id IS NULL AND jenis = 'kas_pencairan'), -15000);
+INSERT 0 2
+=> UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+   FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 26 GROUP BY buku_id) p
+   WHERE b.id = p.buku_id;
+UPDATE 2
+=> COMMIT;
+COMMIT
+
+$ ./pencairan -mode benar -periode 2026-W43 -dir kerja
+batch 1 periode 2026-W43 sudah ada, status dijurnal
+rekonsiliasi batch 1: file 12 baris Rp2.450.000; ledger 12 jurnal pencairan, kas pencairan +Rp2.435.000
+  beda 508 Warung 508: file 1 baris Rp15.000, ledger 1 jurnal Rp0
+rekonsiliasi: DITOLAK (1 warung beda, selisih total Rp15.000)
+galat: rekonsiliasi menolak: file tidak dibuat
+   -- exit 3
+=> SELECT id, periode, status, total FROM batch_pencairan;
+ id | periode  |  status  |  total
+----+----------+----------+---------
+  1 | 2026-W43 | dijurnal | 2450000
+(1 row)
+=> SELECT b.buku_id AS buku, a.nama, b.jumlah, b.jurnal_id
+   FROM baris_pencairan b JOIN buku k ON k.id = b.buku_id JOIN akun a ON a.id = k.akun_id
+   WHERE b.batch_id = 1 ORDER BY b.buku_id;
+ buku |         nama        | jumlah | jurnal_id
+------+---------------------+--------+-----------
+    5 | Warung Ani          | 310000 |        14
+    6 | Warung Sari         | 185000 |        15
+    7 | Warung Mie Pak Joko | 420000 |        16
+    8 | Warung 505          | 240000 |        17
+    9 | Warung 506          |  95000 |        18
+   10 | Warung 507          | 360000 |        19
+   11 | Warung 508          |  15000 |        20
+   12 | Warung 509          | 275000 |        21
+   13 | Warung 510          | 130000 |        22
+   14 | Warung 511          | 205000 |        23
+   15 | Warung 512          | 160000 |        24
+   16 | Warung 513          |  55000 |        25
+(12 rows)
+
+$ ls kerja/
+   -- (kosong)
+-- Baris pencairan dibuat dari saldo Jumat 15.00 dan tidak berubah; ledger sudah mengembalikan Rp15.000 ke
+-- Warung 508. Tanpa rekonsiliasi, file akan mencairkan uang yang di ledger tidak lagi dicairkan.
+-- Job tidak memperbaikinya sendiri: batch tetap dijurnal sampai orang memutuskan (keputusan 503).
