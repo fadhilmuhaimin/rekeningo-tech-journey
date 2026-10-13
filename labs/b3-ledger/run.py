@@ -266,10 +266,143 @@ def jurnal(s, jenis, keterangan, oleh, posting, membalik=None, perbarui_cache=Tr
     return j
 
 
+# ---------- A. migrasi ----------
+
+def rekam_migrasi():
+    buat_schema()
+    v1 = Sesi(SCHEMA_V1)
+    v1.conn.execute(SEED_V1)
+
+    catat("-- Data v1 adalah data lab: potongan kecil akhir uji coba Gedung A, nomor akun dari seed api-t1 (keputusan 406).")
+    catat(f"-- Tabel v1 ada di schema {SCHEMA_V1}, dibuat dari labs/api-t1/schema.sql apa adanya.")
+    bagian("A. v1: saldo adalah kolom")
+    v1("SELECT id, jenis, nama, saldo FROM akun ORDER BY id;")
+    v1("SELECT id, akun_id, jumlah, admin_id, alasan FROM koreksi;")
+
+    bagian("B. v1: kenapa saldo Budi Rp180.000? Tiga tabel digabung dengan tangan")
+    v1("""SELECT 'topup' AS dari_tabel, nominal AS jumlah, keterangan FROM topup WHERE akun_id = 419
+UNION ALL
+SELECT 'transaksi', -jumlah, 'bayar ke akun ' || ke FROM transaksi WHERE dari = 419
+UNION ALL
+SELECT 'transaksi', jumlah, 'diterima dari akun ' || dari FROM transaksi WHERE ke = 419
+UNION ALL
+SELECT 'koreksi', jumlah, alasan FROM koreksi WHERE akun_id = 419
+ORDER BY dari_tabel DESC;""")
+    r = v1("""SELECT saldo AS kolom_saldo,
+       (SELECT coalesce(sum(nominal), 0) FROM topup WHERE akun_id = 419)
+     - (SELECT coalesce(sum(jumlah), 0) FROM transaksi WHERE dari = 419)
+     + (SELECT coalesce(sum(jumlah), 0) FROM transaksi WHERE ke = 419)
+     + (SELECT coalesce(sum(jumlah), 0) FROM koreksi WHERE akun_id = 419) AS dari_tiga_tabel
+FROM akun WHERE id = 419;""")
+    harap(r, [(180000, 250000)], "saldo Budi v1 lawan tiga tabel")
+    catat("-- Tiga tabel menjelaskan Rp250.000, kolom saldo menulis Rp180.000. Rp70.000 yang terpotong saat M4")
+    catat("-- tidak punya baris; yang tercatat hanya koreksinya.")
+    harap(Diam.satu(f"SELECT sum(saldo) FROM {SCHEMA_V1}.akun"), 500000, "total saldo v1")
+    harap(Diam.satu(f"SELECT sum(nominal) FROM {SCHEMA_V1}.topup"), 500000, "total top-up v1")
+
+    bagian("C. Migrasi dalam satu transaction: saldo jadi jurnal pembuka, koreksi jadi jurnal pembalik")
+    s = Sesi()
+    s("BEGIN;")
+    s((HERE / "migrasi_v1.sql").read_text(), tampil=r"\i migrasi_v1.sql")
+    s("COMMIT;")
+
+    bagian("D. Jurnal hasil migrasi")
+    s("SELECT id, jenis, membalik_jurnal_id AS membalik, dibuat_oleh, keterangan FROM jurnal ORDER BY id;")
+    s("""SELECT p.jurnal_id AS jurnal, p.buku_id AS buku, coalesce(a.nama, b.jenis) AS nama_buku, p.jumlah
+FROM posting p JOIN buku b ON b.id = p.buku_id LEFT JOIN akun a ON a.id = b.akun_id
+ORDER BY p.jurnal_id, p.id;""")
+
+    bagian("E. Saldo tiap akun sebelum dan sesudah migrasi")
+    r = s(f"""SELECT v1.id AS akun, v1.nama, v1.saldo AS saldo_v1, b.id AS buku,
+       coalesce(sum(p.jumlah), 0) AS jumlah_posting, b.saldo_cache,
+       v1.saldo = coalesce(sum(p.jumlah), 0) AND v1.saldo = coalesce(b.saldo_cache, 0) AS sama
+FROM {SCHEMA_V1}.akun v1
+LEFT JOIN buku b ON b.akun_id = v1.id
+LEFT JOIN posting p ON p.buku_id = b.id
+GROUP BY v1.id, v1.nama, v1.saldo, b.id
+ORDER BY v1.id;""")
+    harap([x[-1] for x in r], [True] * 5, "saldo tiap akun sama sebelum dan sesudah migrasi")
+    r = s("""SELECT b.id AS buku, b.jenis, coalesce(sum(p.jumlah), 0) AS jumlah_posting
+FROM buku b LEFT JOIN posting p ON p.buku_id = b.id
+WHERE b.akun_id IS NULL
+GROUP BY b.id ORDER BY b.id;""")
+    harap(r, [(1, "tunjangan", 0), (2, "kas_pencairan", 0), (3, "pembuka", -500000), (4, "selisih", 0)], "buku sistem")
+    catat("-- Buku pembuka menyimpan lawan seluruh saldo v1 (Rp500.000 = total top-up v1). Buku selisih kembali 0:")
+    catat("-- potongan M4 dan koreksinya sekarang dua jurnal yang saling membalik.")
+    harap(Diam.semua("SELECT id, jenis, membalik_jurnal_id FROM jurnal ORDER BY id"),
+          [(1, "pembuka", None), (2, "pembuka", None), (3, "pembuka", None), (4, "selisih", None), (5, "pembalik", 4)],
+          "jurnal migrasi")
+    s.tutup()
+    v1.tutup()
+    tulis("migrasi.txt", "migrasi data v1 ke ledger")
+
+
+# ---------- B. lima kejadian ----------
+
+def rekam_kejadian():
+    s = Sesi()
+    tunjangan, kas = buku_sistem("tunjangan"), buku_sistem("kas_pencairan")
+    budi, ani, sari = buku_akun(BUDI), buku_akun(ANI), buku_akun(SARI)
+
+    bagian("A. Akun baru Tahap 2: Citra (data lab), lalu semua buku")
+    s(f"INSERT INTO akun (id, nama, email, peran) VALUES ({CITRA}, 'Citra', 'citra@lestari.example', 'karyawan');")
+    citra = s(f"INSERT INTO buku (akun_id, jenis, batas_harian) VALUES ({CITRA}, 'karyawan', 500000) RETURNING id;")[0][0]
+    s("SELECT b.id AS buku, b.jenis, a.nama, b.saldo_cache FROM buku b LEFT JOIN akun a ON a.id = b.akun_id ORDER BY b.id;")
+
+    bagian("B. Lima kejadian naskah bagian 3: satu kejadian = satu transaction")
+    catat("-- saldo_cache diperbarui di transaction yang sama, dari posting jurnal itu sendiri (keputusan 402).")
+    catat(f"\n-- 1. Top-up Rp250.000 ke Budi: buku {tunjangan} tunjangan -250.000, buku {budi} Budi +250.000")
+    j_topup = jurnal(s, "topup", "Tunjangan makan minggu 1 Tahap 2", ADMIN, [(tunjangan, -250000), (budi, 250000)])
+    catat(f"\n-- 2. Budi bayar Rp25.000 ke Warung Ani: buku {budi} Budi -25.000, buku {ani} Warung Ani +25.000")
+    j_bayar = jurnal(s, "bayar", "Bayar makan siang di Warung Ani", BUDI, [(budi, -25000), (ani, 25000)])
+    catat(f"\n-- 3. Budi transfer Rp20.000 ke Citra: buku {budi} Budi -20.000, buku {citra} Citra +20.000")
+    jurnal(s, "transfer", "Patungan makan siang ke Citra", BUDI, [(budi, -20000), (citra, 20000)])
+    harap(saldo(ani), 310000, "saldo Warung Ani sebelum pencairan")
+    catat(f"\n-- 4. Pencairan Jumat Rp310.000 (seluruh saldo Warung Ani): buku {ani} -310.000, buku {kas} kas pencairan +310.000")
+    jurnal(s, "pencairan", "Pencairan Jumat 15.00 Warung Ani", SISTEM, [(ani, -310000), (kas, 310000)])
+    catat(f"\n-- 5a. Salah bayar (data lab): Budi menekan Bayar ke Warung Sari, buku {budi} -15.000, buku {sari} +15.000")
+    j_salah = jurnal(s, "bayar", "Bayar makan siang di Warung Sari", BUDI, [(budi, -15000), (sari, 15000)])
+    catat(f"\n-- 5b. Admin membalik jurnal {j_salah}: posting cermin, alasan, dan rujukan ke jurnal asal")
+    j_balik = jurnal(s, "pembalik",
+                     f"Salah bayar: Budi menekan Bayar ke Warung Sari, padahal makan siangnya sudah dibayar ke Warung Ani (jurnal {j_bayar})",
+                     ADMIN, [(sari, -15000), (budi, 15000)], membalik=j_salah)
+    harap((j_topup, j_salah, j_balik), (6, 10, 11), "nomor jurnal lima kejadian")
+
+    bagian("C. Saldo = jumlah posting, dan cocok dengan saldo_cache")
+    r = s("""SELECT b.id AS buku, b.jenis, a.nama, coalesce(sum(p.jumlah), 0) AS saldo, b.saldo_cache,
+       coalesce(sum(p.jumlah), 0) = b.saldo_cache AS cocok
+FROM buku b LEFT JOIN akun a ON a.id = b.akun_id LEFT JOIN posting p ON p.buku_id = b.id
+GROUP BY b.id, a.nama ORDER BY b.id;""")
+    harap([(x[0], x[3], x[5]) for x in r],
+          [(1, -250000, True), (2, 310000, True), (3, -500000, True), (4, 0, True), (5, 35000, True),
+           (6, 0, True), (7, 385000, True), (8, 0, True), (9, 20000, True)], "saldo semua buku")
+    r = s("SELECT sum(jumlah) AS jumlah_semua_posting FROM posting;")
+    harap(r, [(0,)], "jumlah semua posting")
+
+    bagian("D. Jejak: kejadian apa saja yang membuat saldo Budi jadi Rp385.000 (satu query)")
+    r = s(f"""SELECT p.jurnal_id AS jurnal, j.jenis, p.jumlah,
+       sum(p.jumlah) OVER (ORDER BY p.dibuat, p.id) AS saldo,
+       (SELECT string_agg(coalesce(a2.nama, b2.jenis), ', ')
+          FROM posting p2 JOIN buku b2 ON b2.id = p2.buku_id LEFT JOIN akun a2 ON a2.id = b2.akun_id
+         WHERE p2.jurnal_id = p.jurnal_id AND p2.buku_id <> p.buku_id) AS lawan,
+       j.membalik_jurnal_id AS membalik, j.keterangan
+FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+WHERE p.buku_id = (SELECT id FROM buku WHERE akun_id = {BUDI})
+ORDER BY p.dibuat, p.id;""")
+    harap([(x[0], x[2], x[3]) for x in r],
+          [(3, 180000, 180000), (4, -70000, 110000), (5, 70000, 180000), (6, 250000, 430000),
+           (7, -25000, 405000), (8, -20000, 385000), (10, -15000, 370000), (11, 15000, 385000)], "jejak Budi")
+    catat("-- Jurnal 3-5 dibuat dalam satu transaction migrasi (nilai dibuat sama). Saldo antara Rp110.000 hanya urutan")
+    catat("-- baris di dalam transaction itu, bukan saldo yang pernah dilihat Budi. Riwayat sebelum migrasi tetap di tabel v1.")
+    s.tutup()
+    tulis("kejadian.txt", "lima kejadian sebagai posting, saldo, dan jejak")
+
+
 # ---------- main ----------
 
 def main():
-    buat_schema()
+    rekam_migrasi()
+    rekam_kejadian()
 
 
 if __name__ == "__main__":
