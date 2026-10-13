@@ -372,9 +372,176 @@ def rekam_laporan():
     tulis("laporan.txt", "laporan tutup buku saat jurnal baru masuk", PENGANTAR_DATA)
 
 
+# ---------- C. dua transfer bersamaan ----------
+
+def baca_saldo(s, level, nama):
+    h = s(f"BEGIN ISOLATION LEVEL {level};")
+    harap(h.status, "BEGIN", f"BEGIN {nama}")
+    return s(f"SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = {B_BUDI};").isi[0][0]
+
+
+def cek_app(s, saldo_dilihat, jumlah):
+    cukup = saldo_dilihat >= jumlah
+    catat(f"-- app {s.label}: saldo {saldo_dilihat} {'>=' if cukup else '<'} {jumlah}, "
+          + ("lanjut menulis jurnal" if cukup else "tolak \"saldo kurang\""))
+    return cukup
+
+
+def transfer_ulang(s, level, ke, jumlah, nama, cache_):
+    """Kode transfer dengan retry: seluruh transaction diulang dari awal bila SQLSTATE 40001, paling banyak 3 kali.
+    Dijalankan tanpa selingan (transaction lain sudah selesai). Mengembalikan (hasil, percobaan ke berapa)."""
+    for ke_n in range(2, BATAS_PERCOBAAN + 1):
+        catat(f"-- app {s.label}: ulang transaction dari awal, percobaan {ke_n}")
+        dilihat = baca_saldo(s, level, nama)
+        if not cek_app(s, dilihat, jumlah):
+            s("ROLLBACK;")
+            return "saldo kurang", ke_n
+        h, _ = tulis_jurnal(s, "transfer", f"Transfer ke {nama}", BUDI, [(B_BUDI, -jumlah), (ke, jumlah)], cache_)
+        if h.ok:
+            h = s("COMMIT;")
+        if h.ok:
+            return "COMMIT", ke_n
+        s("ROLLBACK;")
+        if h.sqlstate != "40001":
+            return h.sqlstate, ke_n
+    gagal("retry habis")
+
+
+def akhir_transfer(saldo_harus, cache_harus):
+    harap((saldo(B_BUDI), cache(B_BUDI)), (saldo_harus, cache_harus), "saldo Budi akhir skenario")
+    catat(f"-- Akhir: saldo Budi dari posting {saldo_harus}, saldo_cache {cache_harus}.")
+
+
+def transfer_awal(level, cache_):
+    """Langkah bersama: A dan B sama-sama membaca saldo Rp100.000 sebelum salah satunya menulis."""
+    a, b = dua_sesi()
+    sa = baca_saldo(a, level, "Citra")
+    sb = baca_saldo(b, level, "Dimas")
+    harap((sa, sb), (100000, 100000), "saldo yang dilihat A dan B")
+    cek_app(a, sa, 70000)
+    ha, _ = tulis_jurnal(a, "transfer", "Transfer ke Citra", BUDI, [(B_BUDI, -70000), (B_CITRA, 70000)], cache_)
+    harap(ha.ok, True, "tulis jurnal A")
+    cek_app(b, sb, 50000)
+    hb, _ = tulis_jurnal(b, "transfer", "Transfer ke Dimas", BUDI, [(B_BUDI, -50000), (B_DIMAS, 50000)], cache_)
+    return a, b, hb
+
+
+PENGANTAR_TRANSFER = [
+    "Angka M9: saldo Budi Rp100.000; A transfer Rp70.000 ke Citra, B transfer Rp50.000 ke Dimas.",
+    "Kode transfer: BEGIN, baca saldo dari posting, cek di app, INSERT jurnal dan posting, COMMIT. Tanpa lock eksplisit.",
+    "Invarian 3 (saldo buku karyawan tidak negatif) diperiksa trigger saat COMMIT (labs/b3-ledger/schema.sql).",
+]
+
+
+def rekam_transfer():
+    # READ COMMITTED
+    bagian(f"1. {RC}")
+    catat("-- Pemeriksaan invarian 3 saat COMMIT B memakai snapshot baru, jadi melihat jurnal A yang sudah COMMIT.")
+    a, b, hb = transfer_awal(RC, False)
+    harap(hb.ok, True, "tulis jurnal B")
+    harap(a("COMMIT;").status, "COMMIT", "COMMIT A")
+    harap(b("COMMIT;").sqlstate, "23514", "COMMIT B")
+    akhir_transfer(30000, 100000)
+    catat("-- B ditolak database (23514), bukan oleh pemeriksaan saldo di app. Kode retry hanya mengulang 40001,")
+    catat("-- jadi app B menerima error database, bukan jawaban \"saldo kurang\".")
+    catat("-- Bila dua COMMIT dikirim pada saat yang sama, keduanya bisa lolos (labs/b3-ledger/output/batas.txt 2b).")
+    ringkas.append(("transfer", RC, "COMMIT B ditolak invarian 3", "23514", 30000))
+    a.tutup()
+    b.tutup()
+
+    # REPEATABLE READ
+    bagian(f"2. {RR}")
+    catat("-- Langkah sama. Pemeriksaan invarian 3 saat COMMIT B memakai snapshot B, yang diambil sebelum A COMMIT.")
+    a, b, hb = transfer_awal(RR, False)
+    harap(hb.ok, True, "tulis jurnal B")
+    harap(a("COMMIT;").status, "COMMIT", "COMMIT A")
+    harap(b("COMMIT;").status, "COMMIT", "COMMIT B")
+    akhir_transfer(-20000, 100000)
+    catat("-- Dua-duanya COMMIT tanpa error. A dan B tidak mengubah baris yang sama (keduanya hanya INSERT),")
+    catat("-- jadi tidak ada 40001. Invarian 3 lolos di B karena snapshot B belum berisi posting A.")
+    ringkas.append(("transfer", RR, "dua-duanya COMMIT", "-", -20000))
+    a.tutup()
+    b.tutup()
+
+    # SERIALIZABLE
+    bagian(f"3. {SER}")
+    catat("-- Langkah sama. SERIALIZABLE mencatat apa yang dibaca tiap transaction (SIReadLock) tanpa memblokir.")
+    a, b, hb = transfer_awal(SER, False)
+    hasil_b = transfer_serializable(a, b, hb)
+    akhir_transfer(30000, 100000)
+    ringkas.append(("transfer", SER, f"COMMIT B 40001; retry: {hasil_b}", "40001", 30000))
+    a.tutup()
+    b.tutup()
+    tulis("transfer.txt", "dua transfer bersamaan per isolation level", PENGANTAR_DATA + PENGANTAR_TRANSFER + [
+        "Bagian ini tidak memperbarui saldo_cache (pola itu di transfer-cache.txt), jadi saldo_cache Budi tetap 100000."])
+
+
+def transfer_serializable(a, b, hb):
+    harap(hb.ok, True, "tulis jurnal B")
+    harap(a("COMMIT;").status, "COMMIT", "COMMIT A")
+    h = b("COMMIT;")
+    harap(h.sqlstate, "40001", "COMMIT B")
+    b("ROLLBACK;")
+    hasil, n = transfer_ulang(b, SER, B_DIMAS, 50000, "Dimas", False)
+    harap((hasil, n), ("saldo kurang", 2), "retry B")
+    catat("-- B mendapat jawaban \"saldo kurang\" dari kode app, bukan error database.")
+    return "saldo kurang"
+
+
+# ---------- D. dua transfer dengan saldo_cache ----------
+
+def rekam_transfer_cache():
+    pengantar = PENGANTAR_DATA + PENGANTAR_TRANSFER + [
+        "Bagian ini memakai pola api-t2 (keputusan 402): saldo_cache diperbarui di transaction yang sama dengan jurnal.",
+        "UPDATE baris buku Budi mengunci baris itu sampai COMMIT atau ROLLBACK."]
+
+    bagian(f"1. {RC}")
+    a, b, hb = transfer_awal(RC, True)
+    harap(hb.menunggu, True, "B menunggu lock baris buku Budi")
+    harap(a("COMMIT;").status, "COMMIT", "COMMIT A")
+    harap(b.lanjut().ok, True, "UPDATE B sesudah lock dilepas")
+    harap(b("COMMIT;").sqlstate, "23514", "COMMIT B")
+    akhir_transfer(30000, 30000)
+    catat("-- Di READ COMMITTED, UPDATE yang menunggu dijalankan ulang atas versi baris terbaru, lalu invarian 3 menolak B.")
+    ringkas.append(("transfer-cache", RC, "B menunggu lock; COMMIT B ditolak invarian 3", "23514", 30000))
+    a.tutup()
+    b.tutup()
+
+    for nomor, level in ((2, RR), (3, SER)):
+        bagian(f"{nomor}. {level}")
+        a, b, hb = transfer_awal(level, True)
+        harap(hb.menunggu, True, "B menunggu lock baris buku Budi")
+        harap(a("COMMIT;").status, "COMMIT", "COMMIT A")
+        harap(b.lanjut().sqlstate, "40001", "UPDATE B sesudah A COMMIT")
+        b("ROLLBACK;")
+        hasil, n = transfer_ulang(b, level, B_DIMAS, 50000, "Dimas", True)
+        harap((hasil, n), ("saldo kurang", 2), f"retry B {level}")
+        akhir_transfer(30000, 30000)
+        catat("-- Baris buku Budi sudah diubah A sesudah snapshot B diambil: B tidak boleh mengubahnya, 40001.")
+        catat("-- Percobaan 2 memakai snapshot baru, melihat saldo Rp30.000, dan app menjawab \"saldo kurang\".")
+        ringkas.append(("transfer-cache", level, "B menunggu lock, lalu 40001; retry: saldo kurang", "40001", 30000))
+        a.tutup()
+        b.tutup()
+    tulis("transfer-cache.txt", "dua transfer bersamaan, saldo_cache diperbarui di transaction", pengantar)
+
+
+# ---------- ringkasan ----------
+
+def rekam_ringkasan():
+    catat("")
+    for l in tabel(["rekaman", "isolation level", "yang terjadi", "SQLSTATE", "saldo_budi"], ringkas):
+        catat(l)
+    tulis("ringkasan.txt", "ringkasan per isolation level", [
+        "Satu baris per skenario dari dirty-read.txt, laporan.txt, transfer.txt, transfer-cache.txt.",
+        "saldo_budi = saldo akhir Budi, dihitung dari posting."])
+
+
 def main():
     rekam_dirty_read()
     rekam_laporan()
+    rekam_transfer()
+    rekam_transfer_cache()
+    rekam_ringkasan()
 
 
 if __name__ == "__main__":
