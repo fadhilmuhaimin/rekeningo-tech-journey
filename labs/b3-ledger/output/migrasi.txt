@@ -1,0 +1,116 @@
+-- Lab b3-ledger · migrasi data v1 ke ledger
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_ledger · isolation read committed
+-- Rekaman dari database bersih: make -C labs/b3-ledger run (keputusan 400).
+-- Data v1 adalah data lab: potongan kecil akhir uji coba Gedung A, nomor akun dari seed api-t1 (keputusan 406).
+-- Tabel v1 ada di schema b3_ledger_v1, dibuat dari labs/api-t1/schema.sql apa adanya.
+
+# --- A. v1: saldo adalah kolom ---
+=> SELECT id, jenis, nama, saldo FROM akun ORDER BY id;
+  id |  jenis   |       nama      | saldo
+-----+----------+-----------------+--------
+ 400 | admin    | Admin Tunjangan |      0
+ 417 | karyawan | Dimas           |  35000
+ 418 | warung   | Warung Ani      | 285000
+ 419 | karyawan | Budi            | 180000
+ 502 | warung   | Warung Sari     |      0
+(5 rows)
+=> SELECT id, akun_id, jumlah, admin_id, alasan FROM koreksi;
+ id | akun_id | jumlah | admin_id |                                                         alasan
+----+---------+--------+----------+------------------------------------------------------------------------------------------------------------------------
+  1 |     419 |  70000 |      400 | Pembayaran Budi ke Warung Ani, Jumat minggu 3 pukul 12.15, gagal di tengah; saldo terpotong tanpa baris transaksi (M4)
+(1 row)
+
+# --- B. v1: kenapa saldo Budi Rp180.000? Tiga tabel digabung dengan tangan ---
+=> SELECT 'topup' AS dari_tabel, nominal AS jumlah, keterangan FROM topup WHERE akun_id = 419
+   UNION ALL
+   SELECT 'transaksi', -jumlah, 'bayar ke akun ' || ke FROM transaksi WHERE dari = 419
+   UNION ALL
+   SELECT 'transaksi', jumlah, 'diterima dari akun ' || dari FROM transaksi WHERE ke = 419
+   UNION ALL
+   SELECT 'koreksi', jumlah, alasan FROM koreksi WHERE akun_id = 419
+   ORDER BY dari_tabel DESC;
+ dari_tabel | jumlah |                                                       keterangan
+------------+--------+------------------------------------------------------------------------------------------------------------------------
+ transaksi  | -70000 | bayar ke akun 418
+ topup      | 250000 | Tunjangan makan minggu 1
+ koreksi    |  70000 | Pembayaran Budi ke Warung Ani, Jumat minggu 3 pukul 12.15, gagal di tengah; saldo terpotong tanpa baris transaksi (M4)
+(3 rows)
+=> SELECT saldo AS kolom_saldo,
+          (SELECT coalesce(sum(nominal), 0) FROM topup WHERE akun_id = 419)
+        - (SELECT coalesce(sum(jumlah), 0) FROM transaksi WHERE dari = 419)
+        + (SELECT coalesce(sum(jumlah), 0) FROM transaksi WHERE ke = 419)
+        + (SELECT coalesce(sum(jumlah), 0) FROM koreksi WHERE akun_id = 419) AS dari_tiga_tabel
+   FROM akun WHERE id = 419;
+ kolom_saldo | dari_tiga_tabel
+-------------+-----------------
+      180000 |          250000
+(1 row)
+-- Tiga tabel menjelaskan Rp250.000, kolom saldo menulis Rp180.000. Rp70.000 yang terpotong saat M4
+-- tidak punya baris; yang tercatat hanya koreksinya.
+
+# --- C. Migrasi dalam satu transaction: saldo jadi jurnal pembuka, koreksi jadi jurnal pembalik ---
+=> BEGIN;
+BEGIN
+=> \i migrasi_v1.sql
+NOTICE:  migrasi: 5 akun, 3 jurnal pembuka, 1 koreksi jadi 2 jurnal
+DO
+=> COMMIT;
+COMMIT
+
+# --- D. Jurnal hasil migrasi ---
+=> SELECT id, jenis, membalik_jurnal_id AS membalik, dibuat_oleh, keterangan FROM jurnal ORDER BY id;
+ id |  jenis   | membalik | dibuat_oleh |                                                               keterangan
+----+----------+----------+-------------+---------------------------------------------------------------------------------------------------------------------------------------
+  1 | pembuka  |          |           1 | Saldo awal Dimas per tanggal migrasi, dari kolom saldo v1
+  2 | pembuka  |          |           1 | Saldo awal Warung Ani per tanggal migrasi, dari kolom saldo v1
+  3 | pembuka  |          |           1 | Saldo awal Budi per tanggal migrasi, dari kolom saldo v1
+  4 | selisih  |          |           1 | Perubahan saldo Budi yang tidak punya baris di v1; dibalik oleh koreksi v1 #1
+  5 | pembalik |        4 |         400 | Koreksi v1 #1: Pembayaran Budi ke Warung Ani, Jumat minggu 3 pukul 12.15, gagal di tengah; saldo terpotong tanpa baris transaksi (M4)
+(5 rows)
+=> SELECT p.jurnal_id AS jurnal, p.buku_id AS buku, coalesce(a.nama, b.jenis) AS nama_buku, p.jumlah
+   FROM posting p JOIN buku b ON b.id = p.buku_id LEFT JOIN akun a ON a.id = b.akun_id
+   ORDER BY p.jurnal_id, p.id;
+ jurnal | buku | nama_buku  |  jumlah
+--------+------+------------+---------
+      1 |    5 | Dimas      |   35000
+      1 |    3 | pembuka    |  -35000
+      2 |    6 | Warung Ani |  285000
+      2 |    3 | pembuka    | -285000
+      3 |    7 | Budi       |  180000
+      3 |    3 | pembuka    | -180000
+      4 |    7 | Budi       |  -70000
+      4 |    4 | selisih    |   70000
+      5 |    7 | Budi       |   70000
+      5 |    4 | selisih    |  -70000
+(10 rows)
+
+# --- E. Saldo tiap akun sebelum dan sesudah migrasi ---
+=> SELECT v1.id AS akun, v1.nama, v1.saldo AS saldo_v1, b.id AS buku,
+          coalesce(sum(p.jumlah), 0) AS jumlah_posting, b.saldo_cache,
+          v1.saldo = coalesce(sum(p.jumlah), 0) AND v1.saldo = coalesce(b.saldo_cache, 0) AS sama
+   FROM b3_ledger_v1.akun v1
+   LEFT JOIN buku b ON b.akun_id = v1.id
+   LEFT JOIN posting p ON p.buku_id = b.id
+   GROUP BY v1.id, v1.nama, v1.saldo, b.id
+   ORDER BY v1.id;
+ akun |       nama      | saldo_v1 | buku | jumlah_posting | saldo_cache | sama
+------+-----------------+----------+------+----------------+-------------+------
+  400 | Admin Tunjangan |        0 |      |              0 |             | t
+  417 | Dimas           |    35000 |    5 |          35000 |       35000 | t
+  418 | Warung Ani      |   285000 |    6 |         285000 |      285000 | t
+  419 | Budi            |   180000 |    7 |         180000 |      180000 | t
+  502 | Warung Sari     |        0 |    8 |              0 |           0 | t
+(5 rows)
+=> SELECT b.id AS buku, b.jenis, coalesce(sum(p.jumlah), 0) AS jumlah_posting
+   FROM buku b LEFT JOIN posting p ON p.buku_id = b.id
+   WHERE b.akun_id IS NULL
+   GROUP BY b.id ORDER BY b.id;
+ buku |     jenis     | jumlah_posting
+------+---------------+----------------
+    1 | tunjangan     |              0
+    2 | kas_pencairan |              0
+    3 | pembuka       |        -500000
+    4 | selisih       |              0
+(4 rows)
+-- Buku pembuka menyimpan lawan seluruh saldo v1 (Rp500.000 = total top-up v1). Buku selisih kembali 0:
+-- potongan M4 dan koreksinya sekarang dua jurnal yang saling membalik.

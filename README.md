@@ -91,6 +91,7 @@ Hampir semua lab memakai satu PostgreSQL bersama di port `54333`. Setiap lab pun
 | `tahap1` | `api-t1` (versi naskah Tahap 1, keputusan 132) |
 | `b2`, `b2q` | `b2-model`, `b2-query` (`e5-payload` membaca `b2q`, jadi jalankan `b2-query` dulu) |
 | `b3r`, `b3s`, `b33` | `b3-race`, `b3-stack`, `b3-isolasi` |
+| `b3_ledger`, `b3_ledger_v1` | `b3-ledger` (ledger Tahap 2; `b3_ledger_v1` dibuat dari `labs/api-t1/schema.sql` sebagai sumber migrasi) |
 | `b4m`, `b4` | `b4-migration`, `b4-skema` |
 | `b5`, `b9` | `b5-rls`, `b9-cache` |
 | `pembayaran`, `pesanan` | `b7-2-modul` (dua modul, dua schema) |
@@ -144,6 +145,7 @@ Lab yang punya `Makefile` dijalankan dengan `make -C labs/<nama> run`. Sisanya d
 | `b3-stack` | 1.11, 1.23, 2.1 | `make -C labs/b3-stack run` (butuh Go, Node, PHP + Composer; gagal bila hasil satu stack tidak sesuai skenario) |
 | `b5-rls` | 1.28, 1.29 | `make -C labs/b5-rls run` (gagal bila hasil RLS tidak sesuai) |
 | `f2-review` | F2 (halaman lama) | `make -C labs/f2-review run` |
+| `b3-ledger` | Belum dirujuk halaman (rencana 2.4, 2.6–2.8) | `make -C labs/b3-ledger run`; `make -C labs/b3-ledger cek` merekam ulang dan gagal bila rekaman berbeda dari yang di-commit |
 | `b3-race` | 2.1 | `make -C labs/b3-race run` |
 | `b3-isolasi` | 2.2 | `make -C labs/b3-isolasi run` |
 | `e3-idempotency` | 2.3 | `make -C labs/e3-idempotency run` |

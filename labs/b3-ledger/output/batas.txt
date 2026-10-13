@@ -1,0 +1,156 @@
+-- Lab b3-ledger · batas invarian 3: dua transaction bersamaan
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_ledger · isolation read committed
+-- Rekaman dari database bersih: make -C labs/b3-ledger run (keputusan 400).
+-- Persiapan tiap skenario: schema baru dari schema.sql, Budi top-up Rp100.000 (jurnal 1).
+-- Buku 2 = Budi, 3 = Citra, 4 = Dimas. A dan B adalah dua koneksi (HP dan tablet Budi).
+
+# --- 1. Tanpa lock, COMMIT bergantian ---
+-- A dan B sama-sama melihat saldo Rp100.000. Pemeriksaan invarian 3 berjalan saat COMMIT,
+-- dan pemeriksaan milik B sudah melihat jurnal A yang COMMIT lebih dulu.
+[A] => BEGIN;
+BEGIN
+[A] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 2;
+ saldo_budi
+------------
+     100000
+(1 row)
+[A] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id;
+ id
+----
+  2
+(1 row)
+[A] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000);
+INSERT 0 2
+[B] => BEGIN;
+BEGIN
+[B] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 2;
+ saldo_budi
+------------
+     100000
+(1 row)
+[B] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Dimas', 419) RETURNING id;
+ id
+----
+  3
+(1 row)
+[B] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 2, -50000), (3, 4, 50000);
+INSERT 0 2
+[A] => COMMIT;
+COMMIT
+[B] => COMMIT;
+ERROR:  saldo buku 2 (karyawan) jadi -20000 sesudah jurnal 3
+   -- SQLSTATE 23514 check_violation, constraint saldo_karyawan_tidak_negatif
+=> SELECT (SELECT sum(jumlah) FROM posting WHERE buku_id = 2) AS saldo_budi,
+          (SELECT saldo_cache FROM buku WHERE id = 2) AS saldo_cache;
+ saldo_budi | saldo_cache
+------------+-------------
+      30000 |      100000
+(1 row)
+-- saldo_cache tidak diperbarui di skenario 1 dan 2; selisihnya ditemukan pemeriksaan cache tiap malam.
+
+# --- 2. Tanpa lock, pemeriksaan A dan B selesai sebelum salah satunya COMMIT ---
+-- SET CONSTRAINTS ALL IMMEDIATE menjalankan pemeriksaan sekarang, bukan saat COMMIT, supaya urutannya bisa
+-- diulang. Tanpa perintah ini pemeriksaan berjalan di dalam COMMIT, sebelum hasilnya terlihat transaction
+-- lain, jadi celahnya tetap ada (2b). Pemeriksaan B tidak melihat posting A yang belum COMMIT (READ COMMITTED).
+[A] => BEGIN;
+BEGIN
+[A] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 2;
+ saldo_budi
+------------
+     100000
+(1 row)
+[A] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id;
+ id
+----
+  2
+(1 row)
+[A] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000);
+INSERT 0 2
+[A] => SET CONSTRAINTS ALL IMMEDIATE;
+SET CONSTRAINTS
+[B] => BEGIN;
+BEGIN
+[B] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 2;
+ saldo_budi
+------------
+     100000
+(1 row)
+[B] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Dimas', 419) RETURNING id;
+ id
+----
+  3
+(1 row)
+[B] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 2, -50000), (3, 4, 50000);
+INSERT 0 2
+[B] => SET CONSTRAINTS ALL IMMEDIATE;
+SET CONSTRAINTS
+[A] => COMMIT;
+COMMIT
+[B] => COMMIT;
+COMMIT
+=> SELECT (SELECT sum(jumlah) FROM posting WHERE buku_id = 2) AS saldo_budi,
+          (SELECT saldo_cache FROM buku WHERE id = 2) AS saldo_cache;
+ saldo_budi | saldo_cache
+------------+-------------
+     -20000 |      100000
+(1 row)
+-- Dua-duanya COMMIT. Saldo Budi -Rp20.000: invarian 3 tanpa lock hanya benar untuk satu transaction.
+
+# --- 2b. Tanpa SET CONSTRAINTS: COMMIT A dan B dikirim bersamaan, 50 kali ---
+-- Tiap percobaan: schema baru, A dan B menulis jurnal seperti skenario 1, lalu kedua COMMIT dilepas bersamaan.
+-- Berapa kali persisnya bergantung mesin, jadi rekaman hanya mencatat apakah kejadian itu muncul.
+dua-duanya COMMIT, saldo Budi -20000: muncul
+
+# --- 3. saldo_cache diperbarui di transaction yang sama: UPDATE mengunci baris buku Budi ---
+-- Pola kejadian.txt. B menunggu lock baris buku sampai A COMMIT, lalu pemeriksaan B melihat jurnal A.
+[A] => BEGIN;
+BEGIN
+[A] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 2;
+ saldo_budi
+------------
+     100000
+(1 row)
+[A] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id;
+ id
+----
+  2
+(1 row)
+[A] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000);
+INSERT 0 2
+[A] => UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+       FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 2 GROUP BY buku_id) p
+       WHERE b.id = p.buku_id;
+UPDATE 2
+[B] => BEGIN;
+BEGIN
+[B] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 2;
+ saldo_budi
+------------
+     100000
+(1 row)
+[B] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Dimas', 419) RETURNING id;
+ id
+----
+  3
+(1 row)
+[B] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 2, -50000), (3, 4, 50000);
+INSERT 0 2
+[B] => UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+       FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 3 GROUP BY buku_id) p
+       WHERE b.id = p.buku_id;
+   -- menunggu lock (transactionid): transaction lain memegang baris yang sama
+[A] => COMMIT;
+COMMIT
+[B]    (lanjut sesudah lock dilepas)
+UPDATE 2
+[B] => COMMIT;
+ERROR:  saldo buku 2 (karyawan) jadi -20000 sesudah jurnal 3
+   -- SQLSTATE 23514 check_violation, constraint saldo_karyawan_tidak_negatif
+=> SELECT (SELECT sum(jumlah) FROM posting WHERE buku_id = 2) AS saldo_budi,
+          (SELECT saldo_cache FROM buku WHERE id = 2) AS saldo_cache;
+ saldo_budi | saldo_cache
+------------+-------------
+      30000 |       30000
+(1 row)
+-- Yang menahan saldo negatif di sini adalah lock baris buku, bukan pemeriksaan invarian 3 sendirian.
+-- B tetap gagal dengan error database, bukan jawaban saldo kurang dari kode: itu masalah M9 (lab b3-race).
