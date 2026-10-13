@@ -80,7 +80,7 @@ jalan_ukur() {
   local URL="http://127.0.0.1:$PORT"
   case "$1" in
     layar)
-      echo "== layar pertama 4 ukuran + tangkapan"
+      echo "== layar pertama 4 ukuran: visual Inti utuh, halaman lima blok wajib Inti (R6) + tangkapan"
       (cd situs && node tools/layar.mjs --url "$URL" && node tools/tangkap.mjs --url "$URL") ;;
     judul)
       echo "== jarak judul ke meta (K0d)"
@@ -105,7 +105,7 @@ jalan_ukur() {
       echo "== luapan horizontal seluruh halaman 360 dan 375, chip di dalam wadahnya (K2d)"
       (cd situs && node tools/ukur-luapan.mjs --url "$URL") ;;
     rantai)
-      echo "== simpul dan panah Rantai di dalam figure 360 dan 375 (P10)"
+      echo "== simpul dan panah Rantai di dalam figure (P10), Rantai ringkas Inti maks 2 garis per baris data (R6), 360 dan 375"
       (cd situs && node tools/ukur-rantai.mjs --url "$URL") ;;
     alur)
       echo "== detail alur dekat jalur sesudah menebak 1366x657, fokus sesudah tebakan keyboard 375x667 (I5c-g)"

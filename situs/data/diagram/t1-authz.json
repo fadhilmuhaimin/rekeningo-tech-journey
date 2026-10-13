@@ -10,13 +10,13 @@
       "label": "Data orang lain",
       "simpul": [
         {
-          "teks": "Dimas: GET /transfers/1",
+          "teks": "GET /transfers/1",
           "kode": true,
-          "sub": "transaksi Budi ke Ani"
+          "sub": "token Dimas, transaksi Budi ke Ani"
         },
         {
-          "teks": "Bukan pembayar atau penerima",
-          "sub": "service bertanya pemilik",
+          "teks": "Dimas bukan pemilik",
+          "sub": "bukan pembayar atau penerima; service bertanya pemilik",
           "nada": "system"
         },
         {
@@ -30,9 +30,9 @@
       "label": "Aksi khusus peran",
       "simpul": [
         {
-          "teks": "Budi: POST /topup",
+          "teks": "POST /topup",
           "kode": true,
-          "sub": "untuk dirinya sendiri"
+          "sub": "token Budi, untuk dirinya sendiri"
         },
         {
           "teks": "Budi bukan admin",

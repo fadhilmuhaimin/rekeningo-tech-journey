@@ -11,14 +11,9 @@
       "sub": "bagian B di bayar.txt",
       "simpul": [
         {
-          "teks": "POST /transfers",
-          "kode": true,
-          "sub": "satu request",
-          "nada": "system"
-        },
-        {
           "teks": "handler",
-          "nada": "system"
+          "nada": "system",
+          "sub": "menerima POST /transfers"
         },
         {
           "teks": "logika bisnis",
@@ -29,9 +24,9 @@
           "nada": "system"
         },
         {
-          "teks": "201 Created",
+          "teks": "201",
           "kode": true,
-          "sub": "HP: berhasil",
+          "sub": "Created, HP: berhasil",
           "nada": "good"
         }
       ]
@@ -41,9 +36,9 @@
       "sub": "bagian D–E di sengaja-belum.txt",
       "simpul": [
         {
-          "teks": "201 Created",
+          "teks": "201",
           "kode": true,
-          "sub": "sudah tersimpan",
+          "sub": "Created, sudah tersimpan",
           "nada": "system"
         },
         {

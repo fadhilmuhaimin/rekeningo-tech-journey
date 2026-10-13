@@ -7,8 +7,8 @@
       "label": "Minggu 1–3",
       "sub": "data dan uang",
       "simpul": [
-        { "teks": "M1 nominal minus", "sub": "validation" },
-        { "teks": "M2 nama field", "sub": "kontrak API" },
+        { "teks": "M1 minus", "sub": "nominal minus lolos, validation" },
+        { "teks": "M2 field", "sub": "nama field beda, kontrak API" },
         { "teks": "M3 tanda kutip", "sub": "SQL injection" },
         { "teks": "M4 Rp70.000", "sub": "transaction", "nada": "warn" }
       ]

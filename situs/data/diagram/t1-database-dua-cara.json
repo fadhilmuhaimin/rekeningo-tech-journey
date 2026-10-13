@@ -17,7 +17,7 @@
       "sub": "pembayaran ke warung",
       "simpul": [
         { "teks": "dua saldo + satu catatan", "sub": "harus berubah bersama" },
-        { "teks": "transaction, CHECK, foreign key", "sub": "dijaga database", "nada": "system" },
+        { "teks": "transaction + constraint", "sub": "CHECK dan foreign key, dijaga database", "nada": "system" },
         { "teks": "PostgreSQL", "sub": "keputusan v1", "nada": "good" }
       ]
     }

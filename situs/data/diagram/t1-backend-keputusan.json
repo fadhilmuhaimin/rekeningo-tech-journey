@@ -42,8 +42,8 @@
           "nada": "system"
         },
         {
-          "teks": "ditolak: saldo kurang",
-          "sub": "saldo tidak berubah",
+          "teks": "ditolak",
+          "sub": "saldo kurang, saldo tidak berubah",
           "nada": "good"
         }
       ]
