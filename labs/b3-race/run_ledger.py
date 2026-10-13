@@ -297,6 +297,8 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     with psycopg.connect(DSN, autocommit=True) as c:
         versi = c.execute("SHOW server_version").fetchone()[0]
+        # "read committed" di kepala rekaman dan JSON adalah default server, bukan tulisan tetap yang tidak dicek.
+        harap(c.execute("SHOW default_transaction_isolation").fetchone()[0], "read committed", "isolation default server")
     baris_banding = []
     for cara in CARA:
         buat_schema()
