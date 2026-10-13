@@ -821,11 +821,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### ERD1 · ERD Tahap 1 dari skema lab, statis di 1.12
 
 - jenis: konten
-- status: dikerjakan
+- status: selesai
 - percobaan: 0
 - bergantung: X2
 - selesai bila: `tools/erd.py` membangun skema akhir Tahap 1 `labs/api-t1` di schema sementara PostgreSQL lab, membaca katalog (tabel, kolom, tipe, PK, FK, UNIQUE, CHECK, index) dan menulis `situs/data/erd/tahap-1.json` yang deterministik beserta hash sumbernya; `tools/erd.py --cek` (tanpa database) masuk gerbang dan gagal bila sumber skema berubah tanpa JSON ikut dibuat ulang; 1.12 menampilkan diagram statis bertoken (tabel, kolom penting, PK/FK, relasi) tanpa JavaScript, teks tidak di dalam SVG, terbaca di 375×667 dan 1366×657 gelap dan terang, kontras lolos, layar pertama 1.12 tidak bergeser; selisih dengan blok mermaid ERD Tahap 1 di `plan/CERITA-TAHAP-2.md` bagian 3b tercatat (skema lab yang benar).
-- catatan: Permintaan pemilik 2026-10-13, pengecualian pembekuan lingkup (keputusan 375). Jalur teknis malam ini. Widget interaktif ERD bertumbuh menyusul di Tahap 2.
+- catatan: Permintaan pemilik 2026-10-13, pengecualian pembekuan lingkup (keputusan 375). PR #253: `tools/erd.py` (schema.sql + migration 000005 M4 di schema sementara yang di-ROLLBACK; 000006/000007 saling membatalkan, 000008 latihan lab), `--cek` di gerbang, Zod + Vitest, `Erd.astro` statis di blok Paham 1.12. Peninjau: baris "Sengaja belum dilakukan" 1.12 diselaraskan dengan ERD (index riwayat sudah ada). Polesan ke `plan/SETELAH-TAHAP-1.md`.
 
 ## Tahap 2
 
@@ -843,7 +843,7 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 ### T2-registry · Registry 33 halaman Tahap 2, yang belum ditulis tampil segera
 
 - jenis: interaksi
-- status: antre
+- status: dikerjakan
 - percobaan: 0
 - bergantung: T2-naskah
 - selesai bila: `situs/data/cerita.json` memuat 2.1–2.33 dengan judul, jenis, bagian, ★, peran (naskah "Jalur per peran"), prasyarat, dan lab sesuai peta halaman Tahap 2; halaman yang belum ditulis tampil "segera" di sidebar, peta, breadcrumb, dan Berikutnya, bukan tautan 404; halaman Tahap 2 lama tetap ada sampai digantikan, ditandai "versi lama", dan nomor lamanya tidak bertabrakan dengan 2.1–2.33; Tahap 1 tidak berubah; `sinkron_cerita.py`, `cek_tautan.py`, dan gerbang lolos.
@@ -861,11 +861,11 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 ### lab-b3-ledger · Lab b3-ledger: jurnal, posting, tiga invarian
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: T2-naskah
 - selesai bila: Lab baru `labs/b3-ledger` (schema sendiri di PostgreSQL bersama, `make -C labs/b3-ledger run`, gagal keras bila hasil berbeda dari harapan): tabel `akun`, `buku`, `jurnal`, `posting` mengikuti naskah bagian 3 dan 3b (selisih dengan blok mermaid dicatat; lab yang benar); tiga invarian dijaga database dan penolakannya direkam dengan SQLSTATE: jurnal tidak seimbang, UPDATE atau DELETE posting, saldo buku karyawan negatif sesudah jurnal; lima kejadian di tabel bagian 3 (top-up, bayar, transfer, pencairan, pembalik) direkam sebagai posting; saldo = jumlah posting dan cocok dengan `saldo_cache`; migrasi data v1 (kolom saldo jadi jurnal pembuka per akun, `koreksi` jadi jurnal pembalik) dengan saldo tiap akun sama sebelum dan sesudah; tutup buku per buku (saldo awal + mutasi = saldo akhir) dan seluruh jurnal seimbang; rekaman diulang dari database bersih dan identik (status, saldo, urutan; bukan waktu).
-- catatan: Jalur lab. Dipakai 2.4, 2.6, 2.7, 2.8. Desain skema di sini menjadi dasar api-t2 dan lab Tahap 2 lain.
+- catatan: Jalur lab. PR #254, keputusan 400–407: schema `b3_ledger` + `b3_ledger_v1`, invarian lewat trigger (23514 deferred, 23001), `saldo_cache` diperbarui kode app, invarian 3 tidak kebal dua COMMIT bersamaan (`batas.txt`; lock di b3-race), migrasi koreksi = jurnal asal lawan buku selisih + pembalik, `make cek`. Peninjau membetulkan alasan 402 dan rujukan 403. Polesan ke `plan/SETELAH-TAHAP-2.md`.
 
 ### lab-api-t2 · Lab api-t2: api-t1 naik ke ledger
 
@@ -883,7 +883,7 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - percobaan: 0
 - bergantung: ERD1, lab-api-t2
 - selesai bila: `tools/erd.py` membaca skema akhir `labs/api-t2` dan menulis `situs/data/erd/tahap-2.json` beserta selisih terhadap Tahap 1 (tabel baru, kolom baru atau berubah, tabel dihapus dan ke mana isinya pindah, mengikuti tabel "Apa yang berubah dan kenapa" naskah 3b); `--cek` di gerbang mencakup Tahap 2; selisih dengan blok mermaid ERD Tahap 2 naskah tercatat (lab yang benar).
-- catatan: Jalur teknis.
+- catatan: Jalur teknis. Dari tinjauan ERD1: `--cek` hanya menutup hash file sumber, jadi JSON yang diubah tangan dengan format sah tetap lolos; pertimbangkan job CI dengan service PostgreSQL yang membangun ulang lalu membandingkan. `hitung_selisih` belum melihat CHECK dan index; `MASIH_SCHEMA` akan menolak fungsi yang memakai `SET search_path`.
 
 ### lab-b3-race · Lab b3-race ke ledger: M9 dan empat cara mengunci
 
