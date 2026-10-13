@@ -86,6 +86,10 @@ X1 crosscheck penuh selesai 2026-10-13 (keputusan 370, `plan/LAPORAN-TAHAP-1.md`
 
 Tahap 1: crosscheck selesai (2026-10-13). X2 menutup Tahap 1: `plan/LAPORAN-TAHAP-1.md` memuat apa yang selesai, daftar Setelah Tahap 1 (5 tugas, 47 polesan di `plan/SETELAH-TAHAP-1.md`), 10 hal untuk dilihat pemilik, hasil crosscheck X1, dan cek akhir 8 tangkapan (PR #249). Tahap 1 selesai, menunggu tinjauan pemilik. Tahap 2 tidak dimulai; menunggu `plan/CERITA-TAHAP-2.md`.
 
+## Persiapan Tahap 2 (mode malam 2026-10-13/14)
+
+Naskah `plan/CERITA-TAHAP-2.md` disimpan kata per kata; RINGKAS dan ANTREAN Tahap 2 (55 tugas, gerbang pemilik `T2-mulai` sebelum halaman) di PR #252. ERD1 (#253, keputusan 375): `tools/erd.py`, `situs/data/erd/tahap-1.json`, diagram statis di 1.12. Lab `b3-ledger` (#254, keputusan 400–407): jurnal, posting, tiga invarian, migrasi v1, tutup buku. Halaman 2.x belum ditulis; menunggu tinjauan pemilik atas Tahap 1.
+
 ## Sistem kerja otomatis (keputusan 216)
 
 | Bagian | Keadaan |

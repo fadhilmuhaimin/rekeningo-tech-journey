@@ -1,0 +1,50 @@
+# Lab api-t2 · tes Go untuk aturan uang
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap2 · server Go di 127.0.0.1:18093
+# Rekaman dari database bersih: make -C labs/api-t2 run (keputusan 408).
+
+# --- A. Tes aturan uang dengan PostgreSQL sungguhan (schema tahap2_tes, skema akhir Tahap 2) ---
+$ TEST_DATABASE_URL=<schema tahap2_tes> go test -v -count=1 -p 1 ./...
+?     lab/apit2/cmd/api  [no test files]
+?     lab/apit2/internal/handler  [no test files]
+?     lab/apit2/internal/repo  [no test files]
+=== RUN   TestBayarMenolakJumlahDiLuarBatas
+=== RUN   TestBayarMenolakJumlahDiLuarBatas/-70000
+=== RUN   TestBayarMenolakJumlahDiLuarBatas/0
+=== RUN   TestBayarMenolakJumlahDiLuarBatas/200001
+--- PASS: TestBayarMenolakJumlahDiLuarBatas
+    --- PASS: TestBayarMenolakJumlahDiLuarBatas/-70000
+    --- PASS: TestBayarMenolakJumlahDiLuarBatas/0
+    --- PASS: TestBayarMenolakJumlahDiLuarBatas/200001
+=== RUN   TestKirimMenolakNominalBukanPositif
+--- PASS: TestKirimMenolakNominalBukanPositif
+=== RUN   TestBatasHarian
+--- PASS: TestBatasHarian
+=== RUN   TestBacaCSV
+--- PASS: TestBacaCSV
+=== RUN   TestKursorBolakBalik
+--- PASS: TestKursorBolakBalik
+=== RUN   TestKirimBatasHarian
+--- PASS: TestKirimBatasHarian
+=== RUN   TestKirimBersamaanTidakNegatif
+--- PASS: TestKirimBersamaanTidakNegatif
+=== RUN   TestTopupSatuBarisSalahSemuaDitolak
+--- PASS: TestTopupSatuBarisSalahSemuaDitolak
+=== RUN   TestTopupSeribuAkunSatuTransaction
+--- PASS: TestTopupSeribuAkunSatuTransaction
+=== RUN   TestRiwayatKursorTanpaGandaTanpaTerlewat
+--- PASS: TestRiwayatKursorTanpaGandaTanpaTerlewat
+=== RUN   TestBalikSekali
+--- PASS: TestBalikSekali
+=== RUN   TestTutupBukuSeimbang
+--- PASS: TestTutupBukuSeimbang
+PASS
+ok    lab/apit2/internal/service
+# exit status 0
+
+# --- B. Tanpa TEST_DATABASE_URL: tes database dilewati, tes tanpa database tetap jalan ---
+$ go test -count=1 ./...
+?     lab/apit2/cmd/api  [no test files]
+?     lab/apit2/internal/handler  [no test files]
+?     lab/apit2/internal/repo  [no test files]
+ok    lab/apit2/internal/service
+# exit status 0

@@ -1,0 +1,52 @@
+# Lab api-t2 · riwayat dengan kursor (dibuat, id)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap2 · server Go di 127.0.0.1:18093
+# Rekaman dari database bersih: make -C labs/api-t2 run (keputusan 408).
+# server: ./api-t2
+
+# --- A. Halaman pertama, tiga baris per halaman (app 2.0) ---
+$ curl -i -X GET '/akun/419/riwayat?batas=3' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"berikutnya":"<kursor: posting 2225>","riwayat":[{"id":1131,"jenis":"pembalik","arah":"masuk","lawan":"Warung Sari","jumlah":15000,"nominal":15000,"waktu":"<waktu>"},{"id":1130,"jenis":"bayar","arah":"keluar","lawan":"Warung Sari","jumlah":15000,"nominal":15000,"waktu":"<waktu>"},{"id":1123,"jenis":"transfer","arah":"keluar","lawan":"Citra","jumlah":80000,"nominal":80000,"waktu":"<waktu>"}]}
+
+# --- B. Sebelum Budi menggulir, Dimas mengirim Rp5.000 ke Budi ---
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Dimas>' -d '{"ke_nomor_karyawan": "K00419", "nominal": 5000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/1132
+
+{"id":1132,"saldo":280000,"sisa_batas_harian":495000}
+
+# --- C. Halaman kedua dan ketiga dari kursor: tidak ada baris ganda, tidak ada yang terlewat ---
+$ curl -i -X GET '/akun/419/riwayat?batas=3&kursor=<kursor: posting 2225>' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"berikutnya":"<kursor: posting 2219>","riwayat":[{"id":1122,"jenis":"bayar","arah":"keluar","lawan":"Warung Ani","jumlah":25000,"nominal":25000,"waktu":"<waktu>"},{"id":1121,"jenis":"transfer","arah":"masuk","lawan":"Citra","jumlah":500000,"nominal":500000,"waktu":"<waktu>"},{"id":1120,"jenis":"transfer","arah":"keluar","lawan":"Citra","jumlah":400000,"nominal":400000,"waktu":"<waktu>"}]}
+$ curl -i -X GET '/akun/419/riwayat?batas=3&kursor=<kursor: posting 2219>' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"berikutnya":"<kursor: posting 207>","riwayat":[{"id":1119,"jenis":"transfer","arah":"keluar","lawan":"Citra","jumlah":20000,"nominal":20000,"waktu":"<waktu>"},{"id":136,"jenis":"topup","arah":"masuk","lawan":"Tunjangan makan","jumlah":250000,"nominal":250000,"waktu":"<waktu>"},{"id":114,"jenis":"pembalik","arah":"masuk","lawan":"Selisih v1","jumlah":70000,"nominal":70000,"waktu":"<waktu>"}]}
+
+# Pembanding: OFFSET 3 sesudah kiriman Dimas (cara M12) mengulang baris terakhir halaman pertama
+=> SELECT p.jurnal_id, j.jenis, p.jumlah FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+   WHERE p.buku_id = (SELECT id FROM buku WHERE akun_id = 419) ORDER BY p.dibuat DESC, p.id DESC LIMIT 3 OFFSET 3
+ jurnal_id |  jenis   | jumlah
+-----------+----------+--------
+      1123 | transfer | -80000
+      1122 | bayar    | -25000
+      1121 | transfer | 500000
+(3 rows)
+
+# --- D. App 1.0 tanpa kursor: 20 baris pertama, field lama tetap ada ---
+$ curl -i -X GET '/akun/419/riwayat' -H 'Authorization: Bearer <token sesi Budi>'   # body diringkas
+HTTP/1.1 200 · 12 baris · field baris pertama: id, jenis, arah, lawan, jumlah, nominal, waktu · berikutnya: null
+
+# --- E. Kursor yang bukan dari server ---
+$ curl -i -X GET '/akun/419/riwayat?kursor=halaman-2' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"kursor","pesan":"bukan kursor dari halaman sebelumnya"}]}

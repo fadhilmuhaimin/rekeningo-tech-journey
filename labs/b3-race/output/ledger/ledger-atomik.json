@@ -1,0 +1,182 @@
+{
+ "id": "ledger-atomik",
+ "title": "UPDATE atomik bersyarat",
+ "summary": "Hanya A yang COMMIT. UPDATE milik B menunggu lock baris buku, lalu syarat saldo_cache >= 50000 dicek ulang ke versi baris terbaru: 0 baris berubah.",
+ "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+ "isolation": "read committed",
+ "start": 100000,
+ "withdraw": {
+  "A": 70000,
+  "B": 50000
+ },
+ "final": 30000,
+ "recorded": "2026-10-14",
+ "steps": [
+  {
+   "actor": "A",
+   "sql": "BEGIN",
+   "result": "BEGIN",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "BEGIN",
+   "result": "BEGIN",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "UPDATE buku SET saldo_cache = saldo_cache - 70000 WHERE id = 2 AND saldo_cache >= 70000",
+   "result": "UPDATE 1",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (No Key Update)",
+   "waiting": [],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "UPDATE buku SET saldo_cache = saldo_cache - 50000 WHERE id = 2 AND saldo_cache >= 50000",
+   "result": "MENUNGGU lock",
+   "note": "menunggu lock (transactionid)",
+   "committed": 100000,
+   "lock": "A (No Key Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": null,
+   "result": "1 baris berubah: saldo cukup dan sudah dipotong, lanjut menulis jurnal",
+   "note": "kode aplikasi",
+   "committed": 100000,
+   "lock": "A (No Key Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id",
+   "result": "2",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (No Key Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000)",
+   "result": "INSERT 0 2",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (No Key Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "UPDATE buku SET saldo_cache = saldo_cache + 70000 WHERE id = 3",
+   "result": "UPDATE 1",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (No Key Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "COMMIT",
+   "result": "COMMIT",
+   "note": "",
+   "committed": 30000,
+   "lock": "B (For No Key Update)",
+   "waiting": [],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "UPDATE buku SET saldo_cache = saldo_cache - 50000 WHERE id = 2 AND saldo_cache >= 50000",
+   "result": "UPDATE 0",
+   "note": "lanjut sesudah A COMMIT: syarat WHERE dicek ulang ke versi baris terbaru",
+   "committed": 30000,
+   "lock": "B (For No Key Update)",
+   "waiting": [],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "B",
+   "sql": null,
+   "result": "0 baris berubah: saldo kurang, transfer ditolak",
+   "note": "kode aplikasi",
+   "committed": 30000,
+   "lock": "B (For No Key Update)",
+   "waiting": [],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "ROLLBACK",
+   "result": "ROLLBACK",
+   "note": "",
+   "committed": 30000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  }
+ ]
+}

@@ -1,0 +1,295 @@
+{
+ "id": "ledger-serializable",
+ "title": "SERIALIZABLE + retry",
+ "summary": "Hanya A yang COMMIT. Kodenya sama dengan versi tanpa lock, tapi PostgreSQL membatalkan COMMIT B dengan 40001. B mengulang sekali dan menolak.",
+ "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+ "isolation": "serializable",
+ "start": 100000,
+ "withdraw": {
+  "A": 70000,
+  "B": 50000
+ },
+ "final": 30000,
+ "recorded": "2026-10-14",
+ "steps": [
+  {
+   "actor": "A",
+   "sql": "BEGIN ISOLATION LEVEL SERIALIZABLE",
+   "result": "BEGIN",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "BEGIN ISOLATION LEVEL SERIALIZABLE",
+   "result": "BEGIN",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "SELECT sum(jumlah) AS saldo FROM posting WHERE buku_id = 2",
+   "result": "100000",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {}
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "SELECT sum(jumlah) AS saldo FROM posting WHERE buku_id = 2",
+   "result": "100000",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": null,
+   "result": "saldo Rp100.000 >= Rp70.000, lanjut menulis jurnal",
+   "note": "kode aplikasi",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": null,
+   "result": "saldo Rp100.000 >= Rp50.000, lanjut menulis jurnal",
+   "note": "kode aplikasi",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id",
+   "result": "2",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000)",
+   "result": "INSERT 0 2",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (For Key Share)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Dimas', 419) RETURNING id",
+   "result": "3",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (For Key Share)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 2, -50000), (3, 4, 50000)",
+   "result": "INSERT 0 2",
+   "note": "",
+   "committed": 100000,
+   "lock": "A,B (For Key Share)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "COMMIT",
+   "result": "COMMIT",
+   "note": "",
+   "committed": 30000,
+   "lock": "B (For Key Share)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "COMMIT",
+   "result": "ERROR 40001 serialization_failure: could not serialize access due to read/write dependencies among transactions",
+   "note": "",
+   "committed": 30000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": null,
+   "result": "COMMIT gagal dengan 40001: ulangi seluruh transaction dari awal (retry 1)",
+   "note": "kode aplikasi",
+   "committed": 30000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "BEGIN ISOLATION LEVEL SERIALIZABLE",
+   "result": "BEGIN",
+   "note": "",
+   "committed": 30000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "SELECT sum(jumlah) AS saldo FROM posting WHERE buku_id = 2",
+   "result": "30000",
+   "note": "",
+   "committed": 30000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 30000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": null,
+   "result": "saldo Rp30.000 < Rp50.000: saldo kurang, transfer ditolak",
+   "note": "kode aplikasi",
+   "committed": 30000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 30000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "ROLLBACK",
+   "result": "ROLLBACK",
+   "note": "",
+   "committed": 30000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 30000
+    }
+   }
+  }
+ ]
+}

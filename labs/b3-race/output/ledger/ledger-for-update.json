@@ -1,0 +1,208 @@
+{
+ "id": "ledger-for-update",
+ "title": "SELECT ... FOR UPDATE",
+ "summary": "Hanya A yang COMMIT. B tertahan di SELECT ... FOR UPDATE sampai A COMMIT, lalu membaca saldo_cache terbaru Rp30.000 dan menolak.",
+ "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+ "isolation": "read committed",
+ "start": 100000,
+ "withdraw": {
+  "A": 70000,
+  "B": 50000
+ },
+ "final": 30000,
+ "recorded": "2026-10-14",
+ "steps": [
+  {
+   "actor": "A",
+   "sql": "BEGIN",
+   "result": "BEGIN",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "BEGIN",
+   "result": "BEGIN",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "SELECT saldo_cache FROM buku WHERE id = 2 FOR UPDATE",
+   "result": "100000",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (For Update)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {}
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "SELECT saldo_cache FROM buku WHERE id = 2 FOR UPDATE",
+   "result": "MENUNGGU lock",
+   "note": "menunggu lock (transactionid)",
+   "committed": 100000,
+   "lock": "A (For Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": null,
+   "result": "saldo_cache Rp100.000 >= Rp70.000, lanjut menulis jurnal",
+   "note": "kode aplikasi",
+   "committed": 100000,
+   "lock": "A (For Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id",
+   "result": "2",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (For Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000)",
+   "result": "INSERT 0 2",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (For Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 2 GROUP BY buku_id) p WHERE b.id = p.buku_id",
+   "result": "UPDATE 2",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "COMMIT",
+   "result": "COMMIT",
+   "note": "",
+   "committed": 30000,
+   "lock": "B (For Update)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {}
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "SELECT saldo_cache FROM buku WHERE id = 2 FOR UPDATE",
+   "result": "30000",
+   "note": "lanjut sesudah A COMMIT: FOR UPDATE mengembalikan versi baris terbaru",
+   "committed": 30000,
+   "lock": "B (For Update)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 30000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": null,
+   "result": "saldo_cache Rp30.000 < Rp50.000: saldo kurang, transfer ditolak",
+   "note": "kode aplikasi",
+   "committed": 30000,
+   "lock": "B (For Update)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 30000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "ROLLBACK",
+   "result": "ROLLBACK",
+   "note": "",
+   "committed": 30000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 30000
+    }
+   }
+  }
+ ]
+}

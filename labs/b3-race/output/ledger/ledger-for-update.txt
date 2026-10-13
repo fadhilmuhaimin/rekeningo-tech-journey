@@ -1,0 +1,26 @@
+-- Lab b3-race (ledger) · SELECT ... FOR UPDATE
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_race · isolation read committed
+-- Saldo Budi 100000. A (HP) transfer 70000 ke Citra, B (tablet) transfer 50000 ke Dimas.
+-- Rekaman dari database bersih: make -C labs/b3-race run-ledger (keputusan 430).
+-- [lock: ...] = pemegang row lock di baris buku Budi dan modenya (pgrowlocks).
+--
+-- Baris buku Budi dikunci di awal transaction jurnal, saldo_cache dibaca dari baris itu, cache diperbarui
+-- sebelum COMMIT (pola keputusan 402). Invarian 3 tetap diperiksa saat COMMIT sebagai pagar kedua.
+
+ 1 [A] BEGIN  -> BEGIN
+ 2 [B] BEGIN  -> BEGIN
+ 3 [A] SELECT saldo_cache FROM buku WHERE id = 2 FOR UPDATE  -> 100000   [lock: A (For Update)]
+ 4 [B] SELECT saldo_cache FROM buku WHERE id = 2 FOR UPDATE  -> MENUNGGU lock   [lock: A (For Update)]
+         -- menunggu lock (transactionid)
+ 5 [A] (saldo_cache Rp100.000 >= Rp70.000, lanjut menulis jurnal)   [lock: A (For Update)]
+ 6 [A] INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id  -> 2   [lock: A (For Update)]
+ 7 [A] INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000)  -> INSERT 0 2   [lock: A (For Update)]
+ 8 [A] UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 2 GROUP BY buku_id) p WHERE b.id = p.buku_id  -> UPDATE 2   [lock: A (Update)]
+ 9 [A] COMMIT  -> COMMIT   [lock: B (For Update)]   [saldo COMMIT 30000]
+10 [B] SELECT saldo_cache FROM buku WHERE id = 2 FOR UPDATE  -> 30000   [lock: B (For Update)]
+         -- lanjut sesudah A COMMIT: FOR UPDATE mengembalikan versi baris terbaru
+11 [B] (saldo_cache Rp30.000 < Rp50.000: saldo kurang, transfer ditolak)   [lock: B (For Update)]
+12 [B] ROLLBACK  -> ROLLBACK
+
+-- akhir: A COMMIT; B ditolak kode: saldo kurang; menunggu lock 1; retry 0
+-- saldo Budi (jumlah posting) 30000; saldo_cache 30000; jurnal transfer 1

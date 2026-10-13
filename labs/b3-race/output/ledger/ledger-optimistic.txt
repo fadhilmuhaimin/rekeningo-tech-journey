@@ -1,0 +1,32 @@
+-- Lab b3-race (ledger) · Optimistic lock (kolom versi)
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_race · isolation read committed
+-- Saldo Budi 100000. A (HP) transfer 70000 ke Citra, B (tablet) transfer 50000 ke Dimas.
+-- Rekaman dari database bersih: make -C labs/b3-race run-ledger (keputusan 430).
+-- [lock: ...] = pemegang row lock di baris buku Budi dan modenya (pgrowlocks).
+--
+-- Baca saldo_cache dan versi tanpa lock dan tanpa transaction, hitung saldo baru di kode, lalu simpan dengan
+-- syarat versi belum berubah. 0 baris = ada transfer lain yang menulis duluan: ulangi dari membaca.
+-- Tidak ada lock saat membaca. Saat menulis, UPDATE B tetap menunggu row lock A yang belum COMMIT.
+
+ 1 [A] SELECT saldo_cache, versi FROM buku WHERE id = 2  -> 100000 | 0
+ 2 [B] SELECT saldo_cache, versi FROM buku WHERE id = 2  -> 100000 | 0
+ 3 [A] (saldo_cache Rp100.000 >= Rp70.000, lanjut. Saldo baru Rp30.000, disimpan dengan syarat versi masih 0)
+ 4 [B] (saldo_cache Rp100.000 >= Rp50.000, lanjut. Saldo baru Rp50.000, disimpan dengan syarat versi masih 0)
+ 5 [A] BEGIN  -> BEGIN
+ 6 [A] UPDATE buku SET saldo_cache = 30000, versi = versi + 1 WHERE id = 2 AND versi = 0  -> UPDATE 1   [lock: A (No Key Update)]
+ 7 [B] BEGIN  -> BEGIN   [lock: A (No Key Update)]
+ 8 [B] UPDATE buku SET saldo_cache = 50000, versi = versi + 1 WHERE id = 2 AND versi = 0  -> MENUNGGU lock   [lock: A (No Key Update)]
+         -- menunggu lock (transactionid)
+ 9 [A] INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id  -> 2   [lock: A (No Key Update)]
+10 [A] INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000)  -> INSERT 0 2   [lock: A (No Key Update)]
+11 [A] UPDATE buku SET saldo_cache = saldo_cache + 70000 WHERE id = 3  -> UPDATE 1   [lock: A (No Key Update)]
+12 [A] COMMIT  -> COMMIT   [lock: B (For No Key Update)]   [saldo COMMIT 30000]
+13 [B] UPDATE buku SET saldo_cache = 50000, versi = versi + 1 WHERE id = 2 AND versi = 0  -> UPDATE 0   [lock: B (For No Key Update)]
+         -- lanjut sesudah A COMMIT: syarat versi = 0 dicek ulang ke versi baris terbaru
+14 [B] (0 baris berubah: versi sudah berubah. Batalkan, lalu ulangi dari membaca (retry 1))   [lock: B (For No Key Update)]
+15 [B] ROLLBACK  -> ROLLBACK
+16 [B] SELECT saldo_cache, versi FROM buku WHERE id = 2  -> 30000 | 1
+17 [B] (saldo_cache Rp30.000 < Rp50.000: saldo kurang, transfer ditolak)
+
+-- akhir: A COMMIT; B ditolak kode: saldo kurang; menunggu lock 1; retry 1
+-- saldo Budi (jumlah posting) 30000; saldo_cache 30000; jurnal transfer 1

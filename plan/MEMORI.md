@@ -19,6 +19,8 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - 1.42: naskah bagian 6 menulis jawaban tebak (ADR 6, ADR 5) dibuka di halaman pertama Tahap 2; 1.42 sudah membukanya di widget tebak dan blok "Menuju Tahap 2" (sesuai ANTREAN). Usul: halaman pertama Tahap 2 mengulang dan memperluasnya, naskah cukup menyebut keduanya. Prioritas fitur PRD v2 (P0–P2) dan durasinya belum ada di naskah.
 - Naskah `CERITA-TAHAP-1.md` ±64 menulis "Transfer setengah jadi" (Tahap 2), halaman Cerita memakai "Pembayaran setengah jadi" yang lebih tepat; ±43 menulis "Lima tokoh" padahal tabelnya enam. Usul: naskah diselaraskan (XF2, keputusan 372).
 - Tahap 2: naskah menulis 2.8 "ADR 12: dari kolom saldo ke ledger", padahal ADR 12 sudah dipakai 1.40 ("Sengaja belum dilakukan") dan ADR Tahap 2 lain bernomor 13–21. Usul: 2.8 jadi ADR 13 dan nomor berikutnya bergeser (21 → 22), atau 2.8 tanpa nomor baru ("ADR 6 diganti"). Registry sementara menulis judul naskah.
+- Tahap 2 bagian 3b, ERD Tahap 1: blok mermaid berbeda dari `labs/api-t1` di delapan hal (keputusan 375: `peran`→`jenis`, `hash_password`→`password_hash`, tanpa `akun.batas_saldo` (CHECK Rp1.500.000 warung) dan `akun.dibuat`, `topup.jumlah`→`nominal`, `dibuat_oleh`→`admin_id`, `koreksi` tanpa `transaksi_id`, relasi admin), dan tabel "Apa yang berubah" menulis Tahap 1 "tanpa index riwayat" padahal CERITA-TAHAP-1 ±125 dan lab punya index `transaksi (dari, dibuat)` dan `(ke, dibuat)`. Diagram mengikuti lab. Usul: blok mermaid dan baris itu diselaraskan.
+- M9: lab `b3-ledger` (keputusan 403, `batas.txt`) membuktikan "keduanya berhasil, saldo −Rp20.000" hanya terjadi bila pemeriksaan saldo kedua transfer jalan sebelum salah satunya commit; bila kode memperbarui `saldo_cache` di transaction yang sama, transfer kedua menunggu lock baris lalu ditolak (500). Usul: naskah M9 menyebut kode minggu 1 memeriksa saldo dari jumlah posting tanpa memperbarui cache.
 
 ## Catatan untuk halaman Tahap 1 berikutnya
 
@@ -50,6 +52,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Nomor keputusan Tahap 2 mengikuti prompt di naskah: jalur lab/konten 400–449, teknis 450–499, pengatur 376–399. Alasan: dua jalur tidak berebut nomor.
 - Judul 2.8 di registry ditulis persis naskah ("ADR 12: dari kolom saldo ke ledger") walau 1.40 sudah ADR 12; lihat Usulan perubahan cerita. Alasan: CERITA paling tinggi; mengganti judul satu baris registry mudah.
 - Lab pencairan bernama `t2-pencairan` (pola lab khusus tahap `t3-bayar`, `t5-replika`). Halaman 2.x bergantung pada tugas gerbang `T2-mulai` yang hanya pemilik tandai selesai, jadi `antrean.py berikut` tidak pernah memilih halaman. Alasan: larangan menulis halaman malam ini dijaga alat, bukan ingatan.
+- Dua jalur lab berjalan bersamaan (api-t2 dan b3-race, lalu lab berikutnya) di PostgreSQL bersama dengan schema, port, dan rentang nomor keputusan sendiri; container tidak boleh di-down. Alasan: tujuh lab sisa tidak muat satu jalur dalam satu malam; isolasi schema sudah berlaku sejak keputusan 80. Rekaman ledger lab lama ditulis ke file baru supaya halaman versi lama tidak berubah.
 
 ## Perlu dicek pemilik
 
@@ -65,13 +68,10 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-13 23.30 WITA · Mode malam (prompt pemilik, tanpa bertanya): ERD1 (ERD Tahap 1 statis di 1.12, pengecualian pembekuan, keputusan 375) di jalur teknis; lalu persiapan Tahap 2 dari `plan/CERITA-TAHAP-2.md`: RINGKAS, ANTREAN Tahap 2, registry 33 halaman "segera", `tools/erd.py` Tahap 2 dan widget ERD bertumbuh (teknis), lab Tahap 2 urut ANTREAN (jalur lab). Halaman 2.x TIDAK ditulis malam ini. Worktree `../rjt-teknis` (4324) dan `../rjt-lab` (4323, satu-satunya yang merekam lab). Akhir: `plan/LAPORAN-PAGI.md` lalu "Selesai untuk malam ini". Melanjutkan: `python3 tools/antrean.py berikut` dan `git worktree list`.
+2026-10-14 01.00 WITA · Mode malam (prompt pemilik, tanpa bertanya). Selesai: naskah Tahap 2, RINGKAS, ANTREAN Tahap 2 (#252), ERD1 (#253, keputusan 375), lab-b3-ledger (#254, 400–407). Berjalan: T2-registry (`../rjt-teknis`, 4324, 450+), lab-api-t2 (`../rjt-lab`, 4323, 408–429), lab-b3-race (`../rjt-tinjau2`, 4326, 430–439); tiap PR lewat peninjau sebelum merge. Berikutnya: I6-erd, ERD2; lab b3-isolasi, t2-pencairan, e3-idempotency, b2-query, b4-skema, c4-ratelimit. Halaman 2.x TIDAK ditulis. Akhir: `plan/LAPORAN-PAGI.md`, lalu "Selesai untuk malam ini". Melanjutkan: `git worktree list`, `gh pr list --state open`, `python3 tools/antrean.py ringkas`.
 
 ## Pelajaran
 
-- Widget alur: satu urutan DOM di semua ukuran (jalur, tombol, tebakan, varian, detail + HP); mode sempit hanya kelas `is-sempit`, tanpa memindah DOM (keputusan 358). Bila DOM terpaksa dipindah, simpan `document.activeElement` dan kembalikan dengan `focus({ preventScroll: true })`: Chrome memindah fokus ke BODY.
-- Perubahan CSS global di atas Inti menggeser layar pertama semua halaman; simpan keluaran `layar.mjs` sebelum dan bandingkan sesudahnya (`tmp/banding_layar.py`).
-- Setelah gerbang lolos, perubahan teks apa pun wajib diikuti `python3 tools/sinkron_cerita.py` dan gerbang ulang (CI #119 gagal karena `kartu.json` tertinggal).
 - Merge ditolak pengaman: berhenti, laporkan di baris pertama, jangan memulai halaman berikutnya di atas PR yang belum di-merge.
 - layar.mjs tidak menghitung Snippet sebagai visual Inti; Inti butuh Rantai atau widget (1.32 gagal 4 ukuran sebelum Rantai).
 - Tabel `plan/*.md` diperiksa `tools/cek_tabel_plan.py` di gerbang (keputusan 362): pipe di teks atau code span ditulis `\|`; jangan tulis `\\|`.

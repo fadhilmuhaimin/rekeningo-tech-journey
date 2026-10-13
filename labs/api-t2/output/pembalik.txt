@@ -1,0 +1,49 @@
+# Lab api-t2 · koreksi sebagai jurnal pembalik
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap2 · server Go di 127.0.0.1:18093
+# Rekaman dari database bersih: make -C labs/api-t2 run (keputusan 408).
+# server: ./api-t2
+
+# --- A. Budi salah bayar Rp15.000 ke Warung Sari ---
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 502, "nominal": 15000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/1130
+
+{"id":1130,"saldo":390000}
+
+# --- B. Admin membalik jurnal itu dengan alasan; jurnal asal tidak diubah ---
+$ curl -i -X POST '/jurnal/1130/pembalik' -H 'Authorization: Bearer <token sesi admin>' -d '{"alasan": "Budi salah memilih warung, uang dikembalikan atas konfirmasi Warung Sari"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"id":1131,"membalik":1130}
+=> SELECT j.id, j.jenis, j.membalik_jurnal_id, b.jenis AS buku, a.nama, p.jumlah FROM jurnal j JOIN posting p ON p.jurnal_id = j.id JOIN buku b ON b.id = p.buku_id JOIN akun a ON a.id = b.akun_id WHERE j.id IN (1130, 1131) ORDER BY p.id
+  id  |  jenis   | membalik_jurnal_id |   buku   |     nama    | jumlah
+------+----------+--------------------+----------+-------------+--------
+ 1130 | bayar    |                    | karyawan | Budi        | -15000
+ 1130 | bayar    |                    | warung   | Warung Sari |  15000
+ 1131 | pembalik |               1130 | karyawan | Budi        |  15000
+ 1131 | pembalik |               1130 | warung   | Warung Sari | -15000
+(4 rows)
+
+# --- C. Yang ditolak: dibalik dua kali, alasan pendek, bukan admin, koreksi gaya Tahap 1 ---
+$ curl -i -X POST '/jurnal/1130/pembalik' -H 'Authorization: Bearer <token sesi admin>' -d '{"alasan": "Budi salah memilih warung, dibalik lagi"}'
+HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{"type":"/problems/sudah-dibalik","title":"Jurnal ini sudah pernah dibalik","status":409}
+$ curl -i -X POST '/jurnal/1129/pembalik' -H 'Authorization: Bearer <token sesi admin>' -d '{"alasan": "salah"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"alasan","pesan":"wajib, minimal 20 karakter: kenapa jurnal ini dibalik"}]}
+$ curl -i -X POST '/jurnal/1130/pembalik' -H 'Authorization: Bearer <token sesi Budi>' -d '{"alasan": "saya ingin uang saya kembali sekarang"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/dilarang","title":"Hanya admin yang boleh membalik jurnal","status":403}
+$ curl -i -X POST '/koreksi' -H 'Authorization: Bearer <token sesi admin>' -d '{"akun": 419, "jumlah": 15000, "alasan": "koreksi saldo tangan seperti Tahap 1"}'
+HTTP/1.1 410 Gone
+Content-Type: application/problem+json
+
+{"type":"/problems/diganti","title":"Koreksi saldo diganti jurnal pembalik","status":410,"detail":"Pakai POST /jurnal/{id}/pembalik dengan alasan; saldo tidak diubah tanpa jurnal."}
