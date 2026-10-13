@@ -33,12 +33,18 @@ const tautanTebak = [cari("t1-m4"), cari("t1-pertukaran-saldo"), cari("B3.1")]
   .slice(0, 2)
   .map((h) => ({ label: label(h), href: url(h) }));
 
-const t1 = hs.filter((h) => h.tahap === 1 && h.nomor);
+// Status tahap dari registry: tahap yang semua halamannya ada ditulis "Selesai", bukan "Sedang ditulis: 42 dari 42"
+// (XF4, keputusan 370).
+const statusTahap = (no: number) => {
+  const semua = hs.filter((h) => h.tahap === no && h.nomor);
+  const ada = semua.filter((h) => h.ada).length;
+  return ada === semua.length ? `Selesai: ${semua.length} halaman` : `Sedang ditulis: ${ada} dari ${semua.length} halaman`;
+};
 type Peta = { no: number; nama: string; skala?: Skala; diagram?: { baris: Node[][]; caption?: string }; status: string; lama: boolean; href?: string };
 const tahap: Peta[] = [
   ...d.tahap.map((t: T) => ({
     no: t.no, nama: t.nama, skala: t.skala, diagram: t.arsitektur,
-    status: t.versi === "lama" ? "Versi lama tersedia; ditulis ulang setelah Tahap 1" : `Sedang ditulis: ${t1.filter((h) => h.ada).length} dari ${t1.length} halaman`,
+    status: t.versi === "lama" ? "Versi lama tersedia; ditulis ulang setelah Tahap 1" : statusTahap(t.no),
     lama: t.versi === "lama",
     href: awalTahap(t.no) ? url(awalTahap(t.no)!) : undefined,
   })),
@@ -183,7 +189,8 @@ const cara = hs.find((h) => h.id === "A0");
       <span>Coba:</span>
       {saranCari.map((q) => <button type="button" class="masalah__chip" data-isi={q}>{q}</button>)}
     </p>
-    <ul class="masalah__hasil" role="status" aria-live="polite"></ul>
+    {/* Live region membungkus list, bukan list itu sendiri: role status di ul membuat tiap li kehilangan induk list (XF4). */}
+    <div role="status" aria-live="polite"><ul class="masalah__hasil"></ul></div>
   </section>
 
   {cara && <p class="beranda__kecil"><a href={url(cara)}>Cara pakai panduan ini</a></p>}

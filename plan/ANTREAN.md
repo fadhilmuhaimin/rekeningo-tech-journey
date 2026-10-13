@@ -749,11 +749,65 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### X1 · Crosscheck penuh Tahap 1
 
 - jenis: crosscheck
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: (lingkup beku, keputusan 369) temuan hanya masuk ANTREAN sebagai tugas perbaikan bila kategorinya rusak, aksesibilitas, kontras, atau gerbang yang benar-benar gagal; temuan lain langsung ditulis ke `plan/SETELAH-TAHAP-1.md`. Isi `plan/PROMPT-CROSSCHECK.md` dijalankan; `plan/LAPORAN-TAHAP-1.md` ditulis; setiap perbaikan dari laporan menjadi tugas perbaikan baru sesudah X1 (satu tugas per perbaikan, bukan dikerjakan di iterasi X1).
-- catatan: Dari pelaksana 1.41: jumlah akun M3 tidak seragam — 1.19 `m3-tanda-kutip.mdx` ~21 "100 karyawan, tiga warung, dan admin" (104) vs `labs/api-t1/output/m3.txt` ~36 tiga + "99 akun lain" (102) vs M5 103. Dari peninjau P9 (keputusan 317): dari kode, `Service.Bayar` tidak memeriksa bahwa peminta adalah karyawan, jadi Warung Ani mungkin bisa membayar ke akunnya sendiri (418→418) dan baris itu terhitung di laporan warung [belum dibuktikan lab]; bila terbukti, kategorinya rusak.
+- catatan: Dari pelaksana 1.41: jumlah akun M3 tidak seragam — 1.19 `m3-tanda-kutip.mdx` ~21 "100 karyawan, tiga warung, dan admin" (104) vs `labs/api-t1/output/m3.txt` ~36 tiga + "99 akun lain" (102) vs M5 103. Dari peninjau P9 (keputusan 317): dari kode, `Service.Bayar` tidak memeriksa bahwa peminta adalah karyawan, jadi Warung Ani mungkin bisa membayar ke akunnya sendiri (418→418) dan baris itu terhitung di laporan warung [belum dibuktikan lab]; bila terbukti, kategorinya rusak. Crosscheck dipecah X1a/X1b/X1c (baca saja) lalu laporan PR #240, keputusan 370; tujuh perbaikan jadi XF1–XF6.
+
+### XF1 · Jumlah akun di rekaman M3
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: X1
+- selesai bila: `labs/api-t1/run.py` tidak lagi menulis "99 akun lain" dengan tangan; teks dan `harap` menghitung jumlah akun dari database (104 menurut seed `isiAwal`); `m3.txt` direkam ulang dari database bersih di container dan rekaman lain `api-t1` tidak berubah kecuali yang memang bergantung; halaman yang mengutip m3.txt cocok; keputusan baru mengoreksi angka 102 di keputusan 157.
+- catatan: Kategori rusak (X1, keputusan 370). Butuh Docker.
+
+### XF2 · Halaman Cerita sesuai naskah Tahap 1
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: X1
+- selesai bila: `situs/src/content/docs/cerita/index.mdx` memakai cerita dan tokoh dari `plan/CERITA-TAHAP-1.md` (Gedung A, PRD v1, Raka, Sinta, Budi, Ani, Pak Hadi, Dimas), bukan cerita lama (MVP 1–100, pesan makan siang); `tokoh.svg` tidak berlatar putih di mode gelap atau diganti; audit bahasa 0 error.
+- catatan: Kategori rusak (X1, keputusan 370).
+
+### XF3 · Peran 1.28 di registry sesuai naskah
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: X1
+- selesai bila: entri 1.28 di `situs/data/cerita.json` tidak memuat peran `security` (naskah `CERITA-TAHAP-1.md` ±242 tidak memasukkannya ke jalur Security), atau keputusan baru menjelaskan bedanya; beranda dan sidebar menghitung ulang dari registry.
+- catatan: Kategori rusak (X1, keputusan 370).
+
+### XF4 · Beranda: status Tahap 1 dan hasil pencarian masalah
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: X1
+- selesai bila: `Beranda.astro` tidak lagi menulis "Sedang ditulis: 42 dari 42 halaman" untuk Tahap 1 yang selesai; daftar hasil pencarian masalah tidak lagi memakai `ul role="status"` yang membuat `li` kehilangan induk list (live region dipisah dari list).
+- catatan: Kategori rusak + aksesibilitas (X1, keputusan 370).
+
+### XF5 · 1.16: reason phrase SHOULD, bukan wajib
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: X1
+- selesai bila: `tahap-1/http.mdx` ±98 dan ±223 menulis bahwa client sebaiknya mengabaikan reason phrase (RFC 9112 §4 SHOULD), bukan wajib/harus.
+- catatan: Kategori rusak (X1, keputusan 370).
+
+### XF6 · Label checkbox daftar periksa
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: X1
+- selesai bila: checkbox disabled di daftar periksa "Saat me-review kode AI, cek ini" (25 halaman Tahap 1) punya nama yang dapat diakses atau tidak diekspos sebagai kontrol tanpa nama; dicek terhadap aturan axe/WCAG yang berlaku (sumber primer).
+- catatan: Kategori aksesibilitas [perlu verifikasi] (X1, keputusan 370).
 
 ### X2 · Penutup Tahap 1
 
