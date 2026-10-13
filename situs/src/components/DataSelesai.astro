@@ -4,9 +4,10 @@
  * WidgetLama.astro di samping widget kartu dan peta-cerita.
  * Saat build: daftar id blok setiap halaman berblok, dibaca dari MDX yang sama dengan yang dirender Blok.astro, ditulis
  * sebagai JSON di halaman (±4 KB untuk 42 halaman Tahap 1). Di browser: window.BB.halamanSelesai(path) dari
- * src/lib/selesai.ts. Skrip modul berjalan sesudah HTML selesai dibaca dan sebelum DOMContentLoaded, jadi sudah ada
- * saat widget lama dipasang (core.js memasang widget di DOMContentLoaded). Widget lama tetap membaca penanda
- * versi lama bila fungsi ini tidak ada.
+ * src/lib/selesai.ts. Widget lama dipasang saat halaman masih dibaca (setiap file widget memanggil BB.mountAll()),
+ * sebelum skrip modul ini berjalan; karena itu kartu dan peta menunggu BB.domSiap (DOMContentLoaded). Skrip modul
+ * tanpa async, beserta modul yang diimpornya, dijalankan sebelum DOMContentLoaded, jadi fungsi ini sudah ada saat
+ * keduanya menghitung. Bila skrip ini gagal dimuat, widget lama membaca penanda versi lama saja.
  */
 import { getCollection } from "astro:content";
 import { idBlok } from "../lib/blok";

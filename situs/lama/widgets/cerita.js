@@ -108,7 +108,10 @@
   }
 
   BB.mounts["peta-cerita"] = function (host) {
-    load().then(function (d) {
+    // Tunggu DOMContentLoaded juga: cerita.json bisa tiba sebelum skrip modul DataSelesai memasang BB.halamanSelesai,
+    // dan peta tidak dirender ulang (keputusan 320).
+    Promise.all([load(), BB.domSiap]).then(function (x) {
+      var d = x[0];
       var wrap = BB.el("div", { class: "bb-peta" });
       d.tahap.forEach(function (t) {
         var hs = d.halaman.filter(function (h) { return h.tahap === t.no && !/^T\d/.test(h.id); });

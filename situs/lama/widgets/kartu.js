@@ -51,7 +51,10 @@
   function hariIni() { return new Date().toISOString().slice(0, 10); }
 
   BB.mounts.kartu = function (host) {
-    BB.fetchJSON(host.dataset.src).then(function (semua) {
+    // Saringan memanggil BB.halamanSelesai dari skrip modul DataSelesai; kartu baru tampil sesudah DOMContentLoaded,
+    // saat skrip modul sudah berjalan, supaya saringan yang dicentang cepat tidak jatuh ke penanda lama (keputusan 320).
+    Promise.all([BB.fetchJSON(host.dataset.src), BB.domSiap]).then(function (x) {
+      var semua = x[0];
       var states = {};
       semua.forEach(function (c) { var s = BB.store.get("kartu:" + c.id); if (s) states[c.id] = s; });
       var siteRoot = BB.base.replace(/widgets\/$/, "");
