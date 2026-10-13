@@ -182,6 +182,20 @@ SELISIH += [
     ("'--' di dalam string tidak menyembunyikan SQL sesudahnya",
      lambda: erd.bersihkan("CREATE TABLE x (a text DEFAULT '--'); ALTER TABLE tahap1.akun ADD COLUMN y int;\n", "uji"),
      SystemExit),
+    # Keputusan 474: empat bentuk yang dibaca lexer PostgreSQL sebagai kode, tetapi oleh token versi 471 sebagai
+    # komentar, sehingga perintah sesudahnya lolos tanpa diperiksa (dicek di PostgreSQL 17: SELECT sesudahnya jalan).
+    ("'--' di dalam nama bertanda kutip tidak menyembunyikan SQL sesudahnya",
+     lambda: erd.bersihkan('CREATE TABLE "a--" (x int); SET search_path = public;\n', "uji", LAIN), SystemExit),
+    ("string E'\\'' tidak menggeser batas string",
+     lambda: erd.bersihkan("SELECT E'\\'' , ' -- ' ; SET search_path = public;\n", "uji", LAIN), SystemExit),
+    ("$ di tengah nama bukan awal body dollar",
+     lambda: erd.bersihkan("CREATE TABLE a$b$c (x int); SELECT $b$ -- $b$; SET search_path = public;\n", "uji", LAIN),
+     SystemExit),
+    ("komentar /* */ bersarang ditolak",
+     lambda: erd.bersihkan("/* /* */ ' */ SELECT ' -- ' ; SET search_path = public;\n", "uji", LAIN), SystemExit),
+    ("nama bertanda kutip dan string E sah diterima tanpa diubah",
+     lambda: erd.bersihkan('CREATE TABLE "x" ("a--b" text DEFAULT E\'it\\\'s\');\n', "uji", LAIN)
+     == 'CREATE TABLE "x" ("a--b" text DEFAULT E\'it\\\'s\');\n', True),
     ("schema lab lain dari database ditolak",
      lambda: erd.bersihkan("INSERT INTO b3_ledger.buku (jenis) VALUES ('selisih');\n", "uji", LAIN), SystemExit),
     ("schema lab lain bertanda kutip ditolak",

@@ -11,6 +11,8 @@ milik file sumber (`DROP SCHEMA tahap1 CASCADE`, `CREATE SCHEMA`, `SET search_pa
 yang masih menyebut schema (kata SCHEMA, search_path, `tahapN.`, atau nama schema lab yang ada di database) ditolak,
 supaya lab lain yang sedang merekam di schema sendiri tidak tersentuh. Pengecualian: atribut fungsi
 `SET search_path FROM CURRENT` (ledger Tahap 2), yang menyimpan schema sementara itu sendiri (keputusan 471).
+Sesudah setiap file, search_path harus tetap dan transaction tidak boleh memegang lock tabel di schema lain
+(keputusan 474), jadi SQL yang lolos pemeriksaan teks tetapi menyentuh lab lain ikut gagal.
 `pembanding` adalah jalur kedua ke skema yang sama (mis. file migration); katalognya harus identik dengan `sumber`.
 
 Hasil: situs/data/erd/tahap-<n>.json, deterministik (urutan tetap, tanpa waktu, tanpa nama schema sementara),
@@ -100,10 +102,18 @@ AKSI_FK = {"a": "NO ACTION", "r": "RESTRICT", "c": "CASCADE", "n": "SET NULL", "
 PERINTAH_SCHEMA = re.compile(
     r"^\s*(DROP\s+SCHEMA|CREATE\s+SCHEMA|SET\s+search_path(?!\s+FROM\s+CURRENT\b))\b[^;]*;\s*(--.*)?$", re.I | re.M)
 MASIH_SCHEMA = re.compile(r"\b(SCHEMA|search_path)\b|\btahap\d+\s*\.", re.I)
-# Token SQL: komentar, string, body dollar-quoted, titik koma, sisanya kode. Cukup untuk memisah pernyataan dan
-# tahu mana yang kode; bukan parser SQL.
-TOKEN = re.compile(r"(?P<komentar>--[^\n]*|/\*.*?\*/)|(?P<teks>'(?:[^']|'')*')"
-                   r"|(?P<dollar>\$(?P<tag>[A-Za-z_]\w*|)\$.*?\$(?P=tag)\$)|(?P<titik>;)|(?P<kode>[^-/'$;]+|.)", re.S)
+# Token SQL: komentar, string, nama bertanda kutip, body dollar-quoted, titik koma, sisanya kode. Cukup untuk memisah
+# pernyataan dan tahu mana yang kode; bukan parser SQL. Mengikuti lexer PostgreSQL (scan.l) di empat hal yang membuat
+# `--` atau `/*` jatuh di tempat yang salah bila diabaikan (keputusan 474): nama "a--b" (kutip ganda, "" = satu
+# kutip), string E'..\'..' (backslash meloloskan kutip), `$` di tengah nama (a$b$c satu nama, bukan awal body), dan
+# tag dollar non-ASCII. Komentar /* */ bersarang ditolak di bersihkan(), bukan diikuti.
+_NAMA = "A-Za-z0-9_$\u0080-\U0010FFFF"  # ident_cont PostgreSQL: huruf, angka, _, $, byte non-ASCII
+TOKEN = re.compile(r"(?P<komentar>--[^\n]*|/\*.*?\*/)"
+                   rf"|(?P<teks>(?<![{_NAMA}])[eE]'(?:[^'\\]|\\.|'')*'|'(?:[^']|'')*')"
+                   r'|(?P<nama>"(?:[^"]|"")*")'
+                   rf"|(?P<dollar>(?<![{_NAMA}])\$(?P<tag>(?:[A-Za-z_]|[^\x00-\x7f])(?:[A-Za-z0-9_]|[^\x00-\x7f])*|)"
+                   r"\$.*?\$(?P=tag)\$)"
+                   r"""|(?P<titik>;)|(?P<kode>(?:[^-/'$;"eE]|[eE](?!'))+|.)""", re.S)
 FUNGSI = re.compile(r"\s*CREATE\s+(?:OR\s+REPLACE\s+)?(?:FUNCTION|PROCEDURE)\b", re.I)
 DARI_SEKARANG = re.compile(r"\bSET\s+search_path\s+FROM\s+CURRENT\b", re.I)
 
@@ -138,7 +148,7 @@ def tulis_json(data):
 
 
 def token_sql(sql):
-    """(jenis, teks) per token; jenis: komentar, teks (string), dollar (body), titik, kode. Gabungannya = sql."""
+    """(jenis, teks) per token; jenis: komentar, teks (string), nama (bertanda kutip), dollar (body), titik, kode. Gabungannya = sql."""
     return [(m.lastgroup, m.group(0)) for m in TOKEN.finditer(sql)]  # lastgroup grup luar: dollar, bukan tag
 
 
@@ -151,13 +161,15 @@ def bersihkan(sql, f, lain=()):
     dengan SET LOCAL dan file sumber tidak bisa mengubahnya); `pastikan_fungsi()` memeriksanya sesudah dijalankan.
     `lain`: nama schema yang ada di database saat membangun (mis. b3_ledger, tahap2_arsip); `nama.` ditolak juga."""
     # Perintah schema dicari di salinan yang isi string dan body-nya ditutup (panjang dan baris tetap).
-    tutup = "".join(re.sub(r"[^\n]", "x", t) if j in ("teks", "dollar") else t for j, t in token_sql(sql))
+    tutup = "".join(re.sub(r"[^\n]", "x", t) if j in ("teks", "nama", "dollar") else t for j, t in token_sql(sql))
     for m in reversed(list(PERINTAH_SCHEMA.finditer(tutup))):
         sql = sql[:m.start()] + sql[m.end():]
     # Yang diperiksa: semua kecuali komentar, termasuk string dan body fungsi.
     periksa_teks, fungsi = [], None  # fungsi: None = belum tahu jenis pernyataan ini
     for j, t in token_sql(sql):
         if j == "komentar":
+            if t.startswith("/*") and "/*" in t[2:]:  # PostgreSQL menutupnya di */ yang lebih jauh dari regex ini
+                gagal(f"{f}: komentar /* */ bersarang belum didukung erd.py ({t[:40]!r})")
             continue
         if j == "titik":
             fungsi = None
@@ -233,18 +245,42 @@ def baca_katalog(cur, schema):
     return tabel
 
 
-def bangun_katalog(cur, schema, files):
+def bangun_katalog(cur, schema, files, izin=()):
+    """izin: schema sementara lain di transaction yang sama (sumber, saat membangun pembanding)."""
     # Schema lab lain yang ada sekarang (bukan pg_*, bukan information_schema): file sumber tidak boleh menyebutnya.
     cur.execute(r"""SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg\_%' AND nspname <> 'information_schema'
                     AND nspname NOT LIKE 'erd\_t%' ORDER BY 1""")
     lain = [r[0] for r in cur.fetchall()]
     cur.execute(f'CREATE SCHEMA "{schema}"')
     cur.execute(f'SET LOCAL search_path = "{schema}"')
+    cur.execute("SELECT current_setting('search_path')")
+    jalur = cur.fetchone()[0]
     for f in files:
         cur.execute(bersihkan((AKAR / f).read_text(encoding="utf-8"), f, lain))
-    cur.execute(f'SET LOCAL search_path = "{schema}"')  # file sumber tidak boleh mengubahnya, tapi pastikan
+        pastikan_di_schema(cur, f, jalur, [schema, *izin])
     pastikan_fungsi(cur, schema)
     return baca_katalog(cur, schema)
+
+
+def pastikan_di_schema(cur, f, jalur, izin):
+    """Pagar kedua sesudah setiap file (keputusan 474). bersihkan() membaca teks, jadi tidak melihat search_path yang
+    diubah lewat string gabungan (`set_config('search' || '_path', ...)`) atau EXECUTE. Di sini yang diperiksa akibatnya:
+    search_path masih schema sementara, dan transaction ini tidak memegang lock relasi di schema lain. Membaca,
+    menulis, mengubah, atau membuat tabel di schema mana pun memegang lock relasi sampai ROLLBACK, jadi file yang
+    menyentuh lab lain gagal di sini sebelum katalog dibaca; ROLLBACK di bangun() membatalkan semuanya."""
+    cur.execute("SELECT current_setting('search_path')")
+    sekarang = cur.fetchone()[0]
+    if sekarang != jalur:
+        gagal(f"{f}: search_path berubah jadi {sekarang!r} sesudah file dijalankan (harap {jalur!r})")
+    cur.execute(r"""SELECT DISTINCT n.nspname || '.' || c.relname FROM pg_locks l
+                    JOIN pg_class c ON c.oid = l.relation JOIN pg_namespace n ON n.oid = c.relnamespace
+                    WHERE l.pid = pg_backend_pid() AND l.locktype = 'relation'
+                      AND l.database = (SELECT oid FROM pg_database WHERE datname = current_database())
+                      AND n.nspname <> ALL(%s) AND n.nspname NOT LIKE 'pg\_%%' AND n.nspname <> 'information_schema'
+                    ORDER BY 1""", (izin,))
+    luar = [r[0] for r in cur.fetchall()]
+    if luar:
+        gagal(f"{f}: menyentuh tabel di luar schema sementara: {', '.join(luar)}")
 
 
 def pastikan_fungsi(cur, schema):
@@ -343,7 +379,7 @@ def bangun(n):
             versi = int(cur.fetchone()[0]) // 10000
             tabel = bangun_katalog(cur, schema, cfg["sumber"])
             if cfg["pembanding"]:
-                banding = bangun_katalog(cur, schema + "_banding", cfg["pembanding"])
+                banding = bangun_katalog(cur, schema + "_banding", cfg["pembanding"], izin=[schema])
                 d = beda_pertama(tabel, banding)
                 if d:
                     gagal(f"Tahap {n}: sumber dan pembanding tidak menghasilkan skema yang sama ({d})")
