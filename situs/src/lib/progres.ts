@@ -10,6 +10,7 @@
 // disusun di sini dari nilai yang lolos pola, tidak pernah diambil mentah dari file.
 import { z } from "zod";
 import { PERAN } from "./registri";
+import { KUNCI_BLOK, KUNCI_SELESAI } from "./selesai";
 
 export const FORMAT = "rekeningo-progres";
 export const VERSI = 1;
@@ -17,7 +18,7 @@ export const VERSI = 1;
  *  172 kartu (keputusan 365). */
 export const BATAS_BYTE = 256 * 1024;
 
-export const K = { blok: "rtj-blok:", selesai: "bb1:selesai:", kartu: "bb1:kartu:", peran: "rtj-peran", terakhir: "rtj-terakhir" } as const;
+export const K = { blok: KUNCI_BLOK, selesai: KUNCI_SELESAI, kartu: "bb1:kartu:", peran: "rtj-peran", terakhir: "rtj-terakhir" } as const;
 
 export interface Penyimpanan {
   readonly length: number;

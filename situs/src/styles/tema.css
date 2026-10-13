@@ -578,7 +578,7 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-hps__item figcaption { max-width: 11.5rem; font-size: 0.8em; color: var(--teks-2); text-align: center; margin: 0; }
 .sl-markdown-content .bb-hps__arrow { align-self: center; font-size: 1.2em; font-weight: 700; color: var(--teks-2); }
 .sl-markdown-content .bb-hps__cap { font-size: 0.85em; margin: 0.5rem 0 0; }
-/* Peta cerita (cerita.js): lima tahap, progres, daftar halaman; indeks masalah */
+/* Peta cerita (cerita.js): enam tahap, progres, daftar halaman; indeks masalah */
 .sl-markdown-content .bb-peta { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.8rem; margin: 1em 0; }
 .sl-markdown-content .bb-peta__tahap { border: 1px solid var(--garis); border-radius: 12px; padding: 0.6rem 0.7rem; }
 /* Margin saudara Starlight menurunkan kartu kedua dst. 16 px di grid; semua kartu mulai sejajar (K0f, keputusan 228). */
@@ -587,6 +587,9 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 /* Baris user + progres sampai empat baris di 1366 px; line-height 1,7 isi artikel membuat diagram kartu pertama
    jatuh 14 px dari tepi layar setelah meta K0d. 1,45 cukup untuk teks UI pendek (K0f, keputusan 228). */
 .sl-markdown-content .bb-peta__user { margin: 0 0 0.35rem; font-size: 0.8em; line-height: 1.45; }
+/* Tahap proyeksi (Tahap 6) tanpa halaman dan diagram: garis putus-putus, sama dengan tab proyeksi di beranda. */
+.sl-markdown-content .bb-peta__tahap.is-proyeksi { border-style: dashed; align-self: start; }
+.sl-markdown-content .bb-peta__prd { margin: 0; font-size: 0.85em; line-height: 1.45; color: var(--teks); }
 .sl-markdown-content .bb-peta__bar { height: 0.4rem; border-radius: 999px; background: var(--k-old-fill); overflow: hidden; margin-bottom: 0.5rem; }
 .sl-markdown-content .bb-peta__bar i { display: block; height: 100%; background: var(--k-good-edge); }
 .sl-markdown-content figure.bb-peta__arch { margin: 0 0 0.4rem; }

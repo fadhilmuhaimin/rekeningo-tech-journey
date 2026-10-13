@@ -1,0 +1,31 @@
+---
+/**
+ * Satu definisi "halaman selesai" untuk widget lama Kartu ulang dan Peta cerita (P5, keputusan 320). Dipasang
+ * WidgetLama.astro di samping widget kartu dan peta-cerita.
+ * Saat build: daftar id blok setiap halaman berblok, dibaca dari MDX yang sama dengan yang dirender Blok.astro, ditulis
+ * sebagai JSON di halaman (±4 KB untuk 42 halaman Tahap 1). Di browser: window.BB.halamanSelesai(path) dari
+ * src/lib/selesai.ts. Widget lama dipasang saat halaman masih dibaca (setiap file widget memanggil BB.mountAll()),
+ * sebelum skrip modul ini berjalan; karena itu kartu dan peta menunggu BB.domSiap (DOMContentLoaded). Skrip modul
+ * tanpa async, beserta modul yang diimpornya, dijalankan sebelum DOMContentLoaded, jadi fungsi ini sudah ada saat
+ * keduanya menghitung. Bila skrip ini gagal dimuat, widget lama membaca penanda versi lama saja.
+ */
+import { getCollection } from "astro:content";
+import { idBlok } from "../lib/blok";
+import { urlDariId } from "../../tools/registri.mjs";
+
+const docs = await getCollection("docs");
+const peta = Object.fromEntries(
+  docs.map((e) => [urlDariId(e.id), idBlok(e.body ?? "")] as const).filter(([, id]) => id.length).sort(([a], [b]) => (a < b ? -1 : 1)),
+);
+// Path dan id blok hanya huruf, angka, dan tanda baca URL; "<" tetap di-escape supaya isi tidak bisa menutup elemen.
+const isi = JSON.stringify(peta).replace(/</g, "\\u003c");
+---
+<script is:inline type="application/json" data-blok-halaman set:html={isi}></script>
+<script>
+  import { halamanSelesai, type BlokHalaman } from "../lib/selesai";
+  let peta: BlokHalaman = {};
+  try { peta = JSON.parse(document.querySelector("script[data-blok-halaman]")?.textContent || "{}"); } catch { /* hanya penanda versi lama yang terbaca */ }
+  const simpanan = { getItem: (k: string) => { try { return localStorage.getItem(k); } catch { return null; } } };
+  const w = window as unknown as { BB?: { halamanSelesai?: (path: string) => boolean } };
+  (w.BB ??= {}).halamanSelesai = (path) => halamanSelesai(simpanan, path, peta);
+</script>

@@ -59,6 +59,8 @@ const id = slugBlok(nama);
 
 <script>
   import { alihkan, hentikan, lipat } from "../gerak/lipat";
+  // Sama dengan KUNCI_BLOK di lib/selesai.ts (diperiksa selesai.test.ts); ditulis di sini supaya halaman berblok tidak
+  // memuat satu chunk lagi hanya untuk konstanta.
   const kunci = "rtj-blok:" + location.pathname;
   const baca = (): string[] => { try { return JSON.parse(localStorage.getItem(kunci) || "[]"); } catch { return []; } };
   const simpan = (a: string[]) => { try { localStorage.setItem(kunci, JSON.stringify(a)); } catch { /* mode privat */ } };

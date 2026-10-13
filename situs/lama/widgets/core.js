@@ -227,6 +227,14 @@
     });
   }
   BB.mountAll = mountAll;
+  // Setiap file widget memanggil BB.mountAll() di akhirnya, jadi widget dipasang saat halaman masih dibaca, sebelum
+  // skrip modul berjalan. Widget yang memakai fungsi dari skrip modul (BB.halamanSelesai, DataSelesai.astro) menunggu
+  // janji ini: skrip modul tanpa async dijalankan sebelum DOMContentLoaded (HTML Standard, "the end"), termasuk
+  // modul yang diimpornya (keputusan 320).
+  BB.domSiap = new Promise(function (r) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { r(); }, { once: true });
+    else r();
+  });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mountAll);
   else mountAll();
 })();

@@ -51,7 +51,10 @@
   function hariIni() { return new Date().toISOString().slice(0, 10); }
 
   BB.mounts.kartu = function (host) {
-    BB.fetchJSON(host.dataset.src).then(function (semua) {
+    // Saringan memanggil BB.halamanSelesai dari skrip modul DataSelesai; kartu baru tampil sesudah DOMContentLoaded,
+    // saat skrip modul sudah berjalan, supaya saringan yang dicentang cepat tidak jatuh ke penanda lama (keputusan 320).
+    Promise.all([BB.fetchJSON(host.dataset.src), BB.domSiap]).then(function (x) {
+      var semua = x[0];
       var states = {};
       semua.forEach(function (c) { var s = BB.store.get("kartu:" + c.id); if (s) states[c.id] = s; });
       var siteRoot = BB.base.replace(/widgets\/$/, "");
@@ -65,11 +68,13 @@
       host.appendChild(BB.el("div", { class: "bb-widget bb-kartu" }, [
         BB.el("div", { class: "bb-widget__head" }, [BB.el("strong", { text: "Kartu ulang" }),
           BB.el("span", { class: "bb-muted", text: "Jawab dalam kepala dulu, baru buka jawabannya" })]),
-        info, BB.el("label", null, [cb, " Hanya dari halaman yang sudah kutandai selesai"]), card, boxes]));
+        info, BB.el("label", null, [cb, " Hanya dari halaman yang sudah selesai kubaca"]), card, boxes]));
 
+      // Satu definisi "halaman selesai" (keputusan 320): BB.halamanSelesai dari DataSelesai.astro membaca penanda
+      // "Tandai selesai" halaman versi lama dan blok halaman Tahap 1. Tanpa fungsi itu, hanya penanda versi lama.
       function selesai(c) {
         var p = new URL(siteRoot + c.url, location.href).pathname;
-        return !!BB.store.get("selesai:" + p);
+        return BB.halamanSelesai ? BB.halamanSelesai(p) : !!BB.store.get("selesai:" + p);
       }
       function pool() { return hanyaSelesai ? semua.filter(selesai) : semua; }
 
@@ -94,7 +99,7 @@
         renderBoxes();
         if (i >= antre.length) {
           card.appendChild(BB.el("p", { text: antre.length ? "Sesi selesai. Kartu berikutnya muncul sesuai jadwalnya." :
-            hanyaSelesai ? "Belum ada kartu jatuh tempo dari halaman yang kamu tandai selesai." : "Tidak ada kartu jatuh tempo hari ini." }));
+            hanyaSelesai ? "Belum ada kartu jatuh tempo dari halaman yang sudah selesai kamu baca." : "Tidak ada kartu jatuh tempo hari ini." }));
           return;
         }
         var c = antre[i];

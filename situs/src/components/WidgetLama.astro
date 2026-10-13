@@ -7,12 +7,15 @@
  * jarak antarsaudara Starlight memperlakukannya sama dengan widget hidup.
  * Race (keputusan 353): versi statis render pertama (src/lib/race-statis.ts) dari rekaman tab-tab di data-modes, dengan
  * alasan yang sama: race.js menggantinya sesudah rekaman datang tanpa menggeser isi di bawahnya.
+ * Kartu dan peta cerita (keputusan 320): DataSelesai memberi widget lama satu definisi "halaman selesai"
+ * (BB.halamanSelesai) yang juga membaca blok halaman Tahap 1, bukan hanya penanda "Tandai selesai" versi lama.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { htmlAlurStatis, type IntiAlur, type SkenarioAlur } from "../lib/alur-statis";
 import { htmlRaceStatis, type RekamanRace } from "../lib/race-statis";
+import DataSelesai from "./DataSelesai.astro";
 
 interface Props { nama: string; src?: string; tahap?: number | string; [k: `data-${string}`]: string }
 const { nama, src, tahap, ...lain } = Astro.props; // atribut data-* lain (mis. data-modes untuk race) diteruskan apa adanya
@@ -69,3 +72,4 @@ const label = (id?: string) => alur?.komponen.find((k) => k.id === id)?.label ??
     </div>
   </noscript>
 )}</div>
+{(nama === "kartu" || nama === "peta-cerita") && <DataSelesai />}
