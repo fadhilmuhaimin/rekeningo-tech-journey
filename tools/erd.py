@@ -16,7 +16,8 @@ dengan daftar file sumber dan sha256 gabungannya. `--cek` gagal bila file sumber
 bila bentuk JSON salah, atau bila selisih terhadap tahap sebelumnya tidak sama dengan hitungan ulang dari kedua JSON.
 
 Tahap baru = satu entri di TAHAP. `sebelumnya` membuat erd.py menghitung selisih (tabel baru, tabel dihapus beserta
-ke mana isinya pindah, kolom baru, kolom dihapus, kolom berubah). Ke mana isi tabel pindah tidak bisa dibaca dari
+ke mana isinya pindah, kolom baru, kolom dihapus, kolom berubah, dan aturan (PK, FK, UNIQUE, CHECK, index) yang baru,
+dihapus, atau berubah di tabel yang ada di kedua tahap; keputusan 460). Ke mana isi tabel pindah tidak bisa dibaca dari
 katalog, jadi ditulis tangan di `pindah`; tabel yang dihapus tanpa entri `pindah` membuat pembangunan gagal.
 Kolom yang berganti nama tercatat sebagai kolom dihapus + kolom baru.
 """
@@ -201,7 +202,7 @@ def hitung_selisih(lama, baru, pindah):
         gagal(f"entri `pindah` untuk tabel yang tidak dihapus: {', '.join(basi)}")
     s = {"terhadap": lama["tahap"], "tabel_baru": [n for n in B if n not in L],
          "tabel_dihapus": [{"nama": n, "pindah_ke": pindah[n]} for n in dihapus],
-         "kolom_baru": [], "kolom_dihapus": [], "kolom_berubah": []}
+         "kolom_baru": [], "kolom_dihapus": [], "kolom_berubah": [], "aturan_berubah": []}
     for n in (n for n in B if n in L):
         kl = {k["nama"]: k for k in L[n]["kolom"]}
         kb = {k["nama"]: k for k in B[n]["kolom"]}
@@ -209,7 +210,26 @@ def hitung_selisih(lama, baru, pindah):
         s["kolom_dihapus"] += [{"tabel": n, "kolom": k} for k in kl if k not in kb]
         for k in (k for k in kb if k in kl and kb[k] != kl[k]):
             s["kolom_berubah"].append({"tabel": n, "kolom": k, "sebelum": kl[k], "sesudah": kb[k]})
+        s["aturan_berubah"] += selisih_aturan(n, L[n], B[n])
     return s
+
+
+def selisih_aturan(n, lama, baru):
+    """PK, foreign key, UNIQUE, CHECK, dan index yang baru, dihapus, atau berubah isinya di satu tabel yang ada di
+    kedua tahap (keputusan 460). Tanpa ini tabel yang hanya mendapat aturan baru (mis. CHECK batas saldo warung di M4,
+    index riwayat) tampil "tetap". Aturan dikenali dari namanya; PK tidak bernama di JSON, jadi namanya "pk"."""
+    hasil = []
+    if lama["pk"] != baru["pk"]:
+        ubah = "baru" if not lama["pk"] else "dihapus" if not baru["pk"] else "berubah"
+        hasil.append({"tabel": n, "jenis": "pk", "nama": "pk", "ubah": ubah})
+    for jenis in ("fk", "unik", "cek", "index"):
+        al = {a["nama"]: a for a in lama[jenis]}
+        ab = {a["nama"]: a for a in baru[jenis]}
+        for nama in sorted(set(al) | set(ab)):
+            ubah = "baru" if nama not in al else "dihapus" if nama not in ab else "berubah" if al[nama] != ab[nama] else None
+            if ubah:
+                hasil.append({"tabel": n, "jenis": jenis, "nama": nama, "ubah": ubah})
+    return hasil
 
 
 def bangun(n):
@@ -275,7 +295,8 @@ KUNCI = {
     "unik": {"nama", "kolom"},
     "cek": {"nama", "kolom", "ekspresi"},
     "index": {"nama", "unik", "definisi"},
-    "selisih": {"terhadap", "tabel_baru", "tabel_dihapus", "kolom_baru", "kolom_dihapus", "kolom_berubah"},
+    "selisih": {"terhadap", "tabel_baru", "tabel_dihapus", "kolom_baru", "kolom_dihapus", "kolom_berubah",
+                "aturan_berubah"},
 }
 NAMA = re.compile(r"^[a-z_][a-z0-9_]*$")
 

@@ -16,7 +16,7 @@ PY=${PYTHON:-python3}
 # CI menjalankan satu kelompok per job, paralel, dari daftar yang sama (--matriks-ci), jadi laptop dan CI
 # selalu memeriksa hal yang sama. Durasi alat di CI main 5eb37bd, berurutan: kelompok pertama 257 s, kedua 309 s,
 # ketiga 279 s; seluruh gerbang 14m30 (keputusan 357). Alat baru masuk ke kelompok terpendek.
-KELOMPOK_UKUR=("layar judul ilustrasi rantai" "gerak" "diagram cls kontras luapan alur")
+KELOMPOK_UKUR=("layar judul ilustrasi rantai" "gerak erd" "diagram cls kontras luapan alur")
 
 MODE="${1:-}"
 case "$MODE" in
@@ -98,6 +98,9 @@ jalan_ukur() {
     diagram)
       echo "== diagram: versi statis, scroll, keyboard (I4)"
       (cd situs && node tools/ukur-diagram.mjs --url "$URL") ;;
+    erd)
+      echo "== ERD bertumbuh: versi statis, scroll, keyboard, reduced motion, CLS, React Flow hanya di halamannya (I6-erd)"
+      (cd situs && node tools/ukur-erd.mjs --url "$URL") ;;
     cls)
       # Mode font telat (keputusan 361): Satoshi selalu datang sesudah paint pertama, seperti di jaringan lambat.
       echo "== CLS widget alur saat dimuat, skrip dan font ditunda (I5c-b, I5c-h)"

@@ -101,7 +101,36 @@ SELISIH = [
         "kolom_dihapus": [{"tabel": "akun", "kolom": "saldo"}],
         "kolom_berubah": [{"tabel": "akun", "kolom": "id",
                            "sebelum": {"nama": "id", "tipe": "bigint", "wajib": True, "bawaan": None},
-                           "sesudah": {"nama": "id", "tipe": "integer", "wajib": True, "bawaan": None}}]}),
+                           "sesudah": {"nama": "id", "tipe": "integer", "wajib": True, "bawaan": None}}],
+        "aturan_berubah": []}),
+]
+# Aturan (keputusan 460): tabel yang hanya mendapat CHECK baru (M4 batas saldo warung) harus tercatat berubah.
+lama_a = {"tahap": 1, "tabel": [dict(tabel("akun", "id", "saldo"), pk=["id"],
+                                     cek=[{"nama": "saldo_tidak_negatif", "kolom": ["saldo"], "ekspresi": "saldo >= 0"}],
+                                     index=[{"nama": "akun_saldo", "unik": False, "definisi": "btree (saldo)"}])]}
+baru_a = {"tahap": 2, "tabel": [dict(tabel("akun", "id", "saldo"), pk=["id", "saldo"],
+                                     cek=[{"nama": "batas_saldo_warung", "kolom": ["saldo"], "ekspresi": "saldo <= 1500000"},
+                                          {"nama": "saldo_tidak_negatif", "kolom": ["saldo"], "ekspresi": "saldo > 0"}])]}
+SELISIH += [
+    ("aturan baru, dihapus, dan berubah tercatat walau kolom sama",
+     lambda: erd.hitung_selisih(lama_a, baru_a, {})["aturan_berubah"], [
+         {"tabel": "akun", "jenis": "pk", "nama": "pk", "ubah": "berubah"},
+         {"tabel": "akun", "jenis": "cek", "nama": "batas_saldo_warung", "ubah": "baru"},
+         {"tabel": "akun", "jenis": "cek", "nama": "saldo_tidak_negatif", "ubah": "berubah"},
+         {"tabel": "akun", "jenis": "index", "nama": "akun_saldo", "ubah": "dihapus"}]),
+    ("tahap tanpa perubahan aturan: daftar kosong", lambda: erd.hitung_selisih(lama_a, lama_a, {})["aturan_berubah"], []),
+]
+# Data uji Tahap 2 widget ERD bertumbuh (situs/src/erd/uji/tahap-2.json, keputusan 461): bentuknya lolos periksa() dan
+# selisihnya sama dengan hitungan erd.py terhadap tahap-1.json sungguhan, jadi widget diuji dengan format yang akan
+# ditulis ERD2, bukan format tebakan.
+UJI2 = json.loads((AKAR / "situs/src/erd/uji/tahap-2.json").read_text(encoding="utf-8"))
+T1 = json.loads((AKAR / JSON1).read_text(encoding="utf-8"))
+SELISIH += [
+    ("data uji Tahap 2 lolos periksa()", lambda: erd.periksa(UJI2, 2), []),
+    ("data uji Tahap 2: selisih = hitung_selisih(tahap-1.json, data uji)",
+     lambda: erd.hitung_selisih(T1, UJI2, {x["nama"]: x["pindah_ke"] for x in UJI2["selisih"]["tabel_dihapus"]}) == UJI2["selisih"], True),
+    ("data uji Tahap 2 ditulis format erd.py",
+     lambda: (AKAR / "situs/src/erd/uji/tahap-2.json").read_text(encoding="utf-8") == erd.tulis_json(UJI2), True),
 ]
 # bersihkan: perintah schema schema.sql dibuang; SQL yang masih menyebut schema ditolak sebelum dijalankan.
 SKEMA_SQL = (AKAR / SUMBER).read_text(encoding="utf-8")
