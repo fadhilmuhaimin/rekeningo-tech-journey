@@ -64,16 +64,16 @@ Varian "sinyal putus" di widget juga bukan teori. PRD v1 sudah mencatat sinyal b
 
 ### Cara kerjanya
 
-Satu request terdiri dari empat bagian. Satu response terdiri dari dua.
+Satu request terdiri dari empat bagian. Satu response terdiri dari tiga. Contohnya diambil dari rekaman lab `labs/api-t1/output/bayar.txt`.
 
 | Request | Contoh: bayar ke warung | Response | Contoh |
 |---|---|---|---|
 | Method | `POST` (membuat data baru) | Status | `201 Created` |
-| Path | `/transfers` | Body | `{"id": 812, "saldo": 225000}` |
-| Header | `Authorization: Bearer ...` | | |
-| Body | `{"ke": "warung-ani", "jumlah": 25000}` | | |
+| Path | `/transfers` | Header | `Location: /transfers/1` |
+| Header | `Authorization: Bearer ...` | Body | `{"id":1,"saldo":225000}` |
+| Body | `{"ke": 418, "jumlah": 25000}` | | |
 
-Di backend Rekeningo, bayar ke warung adalah transfer dari akun karyawan ke akun warung, jadi path-nya `/transfers`. Di dalam API, request melewati tiga lapisan, dan masing-masing boleh menghentikan perjalanan:
+Di backend Rekeningo, bayar ke warung adalah transfer dari akun karyawan ke akun warung, jadi path-nya `/transfers`. Field `ke` berisi nomor akun Warung Ani (418), bukan namanya. Di dalam API, request melewati tiga lapisan, dan masing-masing boleh menghentikan perjalanan:
 
 <Rantai data={lapisan} />
 
@@ -120,12 +120,12 @@ Status untuk saldo kurang (`400`, `409`, atau `422`) adalah keputusan tersendiri
 
 ### Cek diri
 
-**1.** Budi mengirim nominal `"dua puluh lima ribu"` (teks, bukan angka). Lapisan mana yang menolak, dan status apa yang ia terima?
+**1.** App mengirim `{"ke": "418", "jumlah": 25000}`: nomor akun sebagai teks, bukan angka. Lapisan mana yang menolak, dan status apa yang diterima app?
 
 <details class="success">
 <summary>Jawaban</summary>
 
-Handler yang menolaknya, karena ini soal format data. App menerima status `400 Bad Request`. Logika bisnis tidak perlu dijalankan sama sekali.
+Handler yang menolaknya, karena ini soal format data: server mengharapkan angka. App menerima status `400 Bad Request` dengan `tipe-salah` untuk field `ke` (rekaman lab `labs/api-t1/output/m2.txt` bagian E). Logika bisnis tidak dijalankan sama sekali, jadi saldo Budi tidak berubah.
 
 </details>
 
