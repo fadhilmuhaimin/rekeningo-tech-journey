@@ -52,8 +52,8 @@
   "halaman": "A2",
   "judul": "1.5 Perjalanan satu request",
   "url": "tahap-1/perjalanan-request/",
-  "tanya": "Budi mengirim nominal `\"dua puluh lima ribu\"` (teks, bukan angka). Lapisan mana yang menolak, dan status apa yang ia terima?",
-  "jawab": "Handler yang menolaknya, karena ini soal format data. App menerima status `400 Bad Request`. Logika bisnis tidak perlu dijalankan sama sekali."
+  "tanya": "App mengirim `{\"ke\": \"418\", \"jumlah\": 25000}`: nomor akun sebagai teks, bukan angka. Lapisan mana yang menolak, dan status apa yang diterima app?",
+  "jawab": "Handler yang menolaknya, karena ini soal format data: server mengharapkan angka. App menerima status `400 Bad Request` dengan `tipe-salah` untuk field `ke` (rekaman lab `labs/api-t1/output/m2.txt` bagian E). Logika bisnis tidak dijalankan sama sekali, jadi saldo Budi tidak berubah."
  },
  {
   "id": "A2-2",
