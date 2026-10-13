@@ -1,6 +1,6 @@
 # Status
 
-Diperbarui: 2026-10-13 (Tahap 1 selesai, menunggu tinjauan pemilik; laporan di `plan/LAPORAN-TAHAP-1.md`). Catatan singkat tentang keadaan panduan dan pekerjaan yang masih terbuka. Keputusan dan alasannya ada di [KEPUTUSAN.md](KEPUTUSAN.md).
+Diperbarui: 2026-10-14 (Tahap 1 selesai, menunggu tinjauan pemilik; persiapan Tahap 2 selesai malam ini, `plan/LAPORAN-PAGI.md`). Catatan singkat tentang keadaan panduan dan pekerjaan yang masih terbuka. Keputusan dan alasannya ada di [KEPUTUSAN.md](KEPUTUSAN.md).
 
 ## Keadaan sekarang
 
@@ -88,7 +88,7 @@ Tahap 1: crosscheck selesai (2026-10-13). X2 menutup Tahap 1: `plan/LAPORAN-TAHA
 
 ## Persiapan Tahap 2 (mode malam 2026-10-13/14)
 
-Naskah `plan/CERITA-TAHAP-2.md` disimpan kata per kata; RINGKAS dan ANTREAN Tahap 2 (55 tugas, gerbang pemilik `T2-mulai` sebelum halaman) di PR #252. ERD1 (#253, keputusan 375): `tools/erd.py`, `situs/data/erd/tahap-1.json`, diagram statis di 1.12. Lab `b3-ledger` (#254, keputusan 400–407): jurnal, posting, tiga invarian, migrasi v1, tutup buku. Lab `api-t2` (#256, keputusan 408–418): api-t1 naik ke ledger lewat expand/migrate/contract, transfer antar karyawan, top-up CSV, riwayat kursor, tutup buku. Lab `b3-race` versi ledger (#257, 430–434). Registry 33 halaman Tahap 2 dengan "segera" (#258, 450). Lab versi ledger: `b3-isolasi` (#259, 440–447), `t2-pencairan` baru (#260, 500–508), `e3-idempotency` (#263, 510–518); rekaman lama untuk halaman versi lama tidak berubah. Halaman 2.x belum ditulis; menunggu tinjauan pemilik atas Tahap 1.
+Naskah `plan/CERITA-TAHAP-2.md` disimpan kata per kata; RINGKAS dan ANTREAN Tahap 2 (55 tugas, gerbang pemilik `T2-mulai` sebelum halaman) di PR #252. ERD1 (#253, keputusan 375): `tools/erd.py`, `situs/data/erd/tahap-1.json`, diagram statis di 1.12. Lab `b3-ledger` (#254, keputusan 400–407): jurnal, posting, tiga invarian, migrasi v1, tutup buku. Lab `api-t2` (#256, keputusan 408–418): api-t1 naik ke ledger lewat expand/migrate/contract, transfer antar karyawan, top-up CSV, riwayat kursor, tutup buku. Lab `b3-race` versi ledger (#257, 430–434). Registry 33 halaman Tahap 2 dengan "segera" (#258, 450). Lab versi ledger: `b3-isolasi` (#259, 440–447), `t2-pencairan` baru (#260, 500–508), `e3-idempotency` (#263, 510–518); rekaman lama untuk halaman versi lama tidak berubah. Lab `b2-query` (#266, 520–526), `b4-skema` (#264, 530–537), `c4-ratelimit` (#268, 540–550); widget ERD bertumbuh di `/uji/erd/` (#262, 460–467); ERD Tahap 2 dari api-t2 (#265, 470–473). Tugas baru dari tinjauan: `lab-api-t2a` (keamanan), `A11y-diagram` (aksesibilitas). Laporan `plan/LAPORAN-PAGI.md`. Halaman 2.x belum ditulis; menunggu tinjauan pemilik atas Tahap 1.
 
 ## Sistem kerja otomatis (keputusan 216)
 

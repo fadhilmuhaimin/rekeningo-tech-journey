@@ -22,17 +22,12 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Tahap 2 bagian 3b, ERD Tahap 1: blok mermaid berbeda dari `labs/api-t1` di delapan hal (keputusan 375: `peran`→`jenis`, `hash_password`→`password_hash`, tanpa `akun.batas_saldo` (CHECK Rp1.500.000 warung) dan `akun.dibuat`, `topup.jumlah`→`nominal`, `dibuat_oleh`→`admin_id`, `koreksi` tanpa `transaksi_id`, relasi admin), dan tabel "Apa yang berubah" menulis Tahap 1 "tanpa index riwayat" padahal CERITA-TAHAP-1 ±125 dan lab punya index `transaksi (dari, dibuat)` dan `(ke, dibuat)`. Diagram mengikuti lab. Usul: blok mermaid dan baris itu diselaraskan.
 - M9: lab `b3-ledger` (keputusan 403, `batas.txt`) membuktikan "keduanya berhasil, saldo −Rp20.000" hanya terjadi bila pemeriksaan saldo kedua transfer jalan sebelum salah satunya commit; bila kode memperbarui `saldo_cache` di transaction yang sama, transfer kedua menunggu lock baris lalu ditolak (500). Usul: naskah M9 menyebut kode minggu 1 memeriksa saldo dari jumlah posting tanpa memperbarui cache.
 - Tahap 2, urutan minggu: M9 (minggu 1) sudah berjalan di ledger, padahal M13 (minggu 4) adalah migrasi ke ledger itu sendiri (api-t2, keputusan 409–412). Juga: asal nomor karyawan tidak disebut (lab: `K` + nomor akun); `akun.saldo` membeku antara migrate dan contract (naskah "dipertahankan sebagai cache" ditafsirkan `buku.saldo_cache`); riwayat app sesudah migrasi dimulai dari jurnal pembuka.
+- Tahap 2, angka naskah yang tidak terulang di lab: M11 "4 detik" (lab ±30 ms per halaman, ±1,9 detik seluruh riwayat; minggu 3 baru ±44 ribu posting, keputusan 521, 526), M13 "40 detik" (lab 5 detik; lama datang dari antrean di belakang laporan, 536), M15 Rp15.000 (data lab menaruh saldo itu di titik henti, 504), M9 −Rp20.000 (hanya lewat alat lab, 431). Usul: naskah menyebut mekanismenya; angkanya tetap ilustrasi cerita.
+- Tahap 2, lain-lain: M10 "Budi menekan Bayar lagi" direkam sebagai retry app dengan request sama (e3); nomor rekening tujuan warung belum ada di ERD 3b (505); mermaid ERD Tahap 2 berbeda dari lab di beberapa kolom (473: `peran`/`jenis`, `hash_password`, `akun.nama`, PK `baris_pencairan`).
 
-## Catatan untuk halaman Tahap 1 berikutnya
+## Catatan untuk halaman Tahap 2
 
-- Sejak 1.33 server cerita = expand (`jumlah` + `nominal`, kontrak `labs/b1-openapi/openapi-expand.yaml`). Rekaman atau Snippet 1.34+ yang menampilkan handler bayar, body transfers/riwayat, atau kontrak dibangun dari varian expand (`bangun_dari_v1(tmp, nama, EXPAND_UBAH)` di `run.py`, `openapi-expand.yaml`), atau diberi label "kode v1 sebelum expand".
-- 1.39 (F1) menyerap F2: hapus halaman F2 dan entrinya di PR yang sama (pola keputusan 150).
-- 1.31 `deploy.txt`: kode api-t1 diambil dari commit main `f128167` (`KODE_V1` di `run.py`), Dockerfile dari folder lab; hash 390ff47/f5ea0b4 (±27 tempat: halaman, `t1-deploy.json`, `t1-deploy-tag.json`, `kartu.json`) hanya berubah bila salah satunya diubah, dan `harap` membuat lab gagal keras.
-- Ilustrasi latar Grup Lestari belum ada; ilustrasi baru wajib lolos `ukur-ilustrasi.mjs` (tambahkan path halamannya ke alat itu). `situs/lama/assets/cerita/tahap-1.svg` tidak dipakai lagi.
-- Tabel "Angka di tahap ini" ditulis ulang di 1.37/1.38, angka dari `tahap[0].asumsi`.
-- 1.41/1.42: rekaman `labs/api-t1/output/sengaja-belum.txt` (1.40) membuktikan dua yang pecah di Tahap 2 — bagian B: dua Bayar bersamaan lolos pemeriksaan service, yang menahan constraint (23514 → 500 di v1, perilaku v1); bagian C–E: Bayar diulang sesudah response hilang tercatat dua kali. Jawaban 1.42 "ADR 5 dibuka lagi" bersandar di sini; keempat yang ditunda ADR 12 tidak ada di jalur kedua kejadian.
-- Audit bahasa menolak "kantor" (pakai "perusahaan") dan "pemakai" (pakai "user").
-- Pola tulis ulang halaman lama: pindah ke `tahap-1/<slug>.mdx`, lima blok, contoh PRD v1; hapus file lama dan data widget lama; perbarui `path`, `prasyarat`, hapus `lama` di registry, perbarui `alat/indeks-topik.mdx`, lalu `python3 tools/sinkron_cerita.py`.
+- Temuan lab untuk halaman 2.x ada di butir `catatan` tugasnya di ANTREAN dan di `plan/SETELAH-TAHAP-2.md`; catatan halaman Tahap 1 dipindah ke PELAJARAN-ARSIP (2026-10-14).
 
 ## Perintah dan pola kerja
 
@@ -55,6 +50,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Lab pencairan bernama `t2-pencairan` (pola lab khusus tahap `t3-bayar`, `t5-replika`). Halaman 2.x bergantung pada tugas gerbang `T2-mulai` yang hanya pemilik tandai selesai, jadi `antrean.py berikut` tidak pernah memilih halaman. Alasan: larangan menulis halaman malam ini dijaga alat, bukan ingatan.
 - Dua jalur lab berjalan bersamaan (api-t2 dan b3-race, lalu lab berikutnya) di PostgreSQL bersama dengan schema, port, dan rentang nomor keputusan sendiri; container tidak boleh di-down. Alasan: tujuh lab sisa tidak muat satu jalur dalam satu malam; isolasi schema sudah berlaku sejak keputusan 80. Rekaman ledger lab lama ditulis ke file baru supaya halaman versi lama tidak berubah.
 - Registry Tahap 2 menggeser nomor rujukan halaman lama di 9 halaman Tahap 1 (2.1/2.3/2.4/2.6 → 2.11/2.14/2.19/2.17; judul dan tujuan sama) dan diterima; `tahap[1]` di registry (user, nama, rekap) belum diubah ke naskah Tahap 2 supaya kalkulator 1.37/1.38 tidak berubah. Nomor keputusan lab sisa malam ini 500–549. Alasan: paling mudah dibatalkan, Tahap 1 sedang ditinjau.
+- Temuan keamanan dan aksesibilitas dari tinjauan jadi tugas `lab-api-t2a` dan `A11y-diagram` sebelum `T2-mulai`; polesan ke `plan/SETELAH-TAHAP-2.md`. Alasan: kategori yang boleh masuk antrean di bawah pembekuan.
 
 ## Perlu dicek pemilik
 
@@ -69,12 +65,14 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Renderer Chromium di CI diam total ±0,13% per muat di halaman Tahap 1 (keputusan 364, 367): mekanismenya di pipeline commit/aktivasi/raster Chromium, 28/31 kasus di enam halaman yang banyak kodenya, juga saat muat tanpa gulir; Xvfb headed ikut, macOS 0/10.080. Risiko di Chrome HP pembaca belum diketahui. Kirim draf laporan bug Chromium (PR #231)?
 - Keamanan api-t2 (tinjauan #256): nomor karyawan `K` + nomor akun mudah ditebak, `/kiriman` membedakan nomor terdaftar, dan kiriman Rp1 membuka nama penerima di riwayat, jadi nama 1.000 karyawan bisa dikumpulkan dengan Rp1.000 sehari (api-t1 tidak membuka ini). Usul: masuk M16/2.28 (batas per akun untuk cek penerima) atau tugas perbaikan api-t2 sebelum halaman 2.3.
 - Idempotency-Key (e3, keputusan 512): draft-ietf-httpapi-idempotency-key-header-07 berstatus Expired Internet-Draft (datatracker), bukan RFC, dan belum ada di registry IANA HTTP fields; halaman 2.13/2.14 menyebutnya draft kedaluwarsa. ADR 14 perlu memutuskan nasib app 1.0/1.1 yang tidak mengirim key (lab menolak 400).
+- Lab Tahap 2: argon2id 64 MiB [perlu verifikasi] terhadap RAM VPS Tahap 2; akun terkunci dijawab 401 generik (550), jadi Ani mengira lupa password: 2.27/2.28 butuh jalur lupa password, mohon konfirmasi; kursor riwayat bisa melewatkan transaksi yang COMMIT belakangan (ADR 16, tinjauan #266).
 
 ## Sedang dikerjakan
 
-2026-10-14 03.15 WITA · Mode malam (prompt pemilik, tanpa bertanya). Selesai dan merge: #252 naskah/RINGKAS/ANTREAN, #253 ERD1, #254 b3-ledger, #256 api-t2, #257 b3-race, #258 registry, #259 b3-isolasi, #260 t2-pencairan, #263 e3-idempotency. Berjalan: tinjau #262 I6-erd (`../rjt-teknis2`), ERD2 (`../rjt-teknis3`, di atas #262, 470–479), tinjau #264 b4-skema (`../rjt-teknis`), b2-query (`../rjt-tinjau2`, 520–529), c4-ratelimit (`../rjt-lab4`, 540–549). Halaman 2.x TIDAK ditulis. Akhir: `plan/LAPORAN-PAGI.md`, "Selesai untuk malam ini". Melanjutkan: `git worktree list`, `gh pr list --state open`, `python3 tools/antrean.py ringkas`.
+2026-10-14 06.00 WITA · Mode malam selesai ("Selesai untuk malam ini"; laporan `plan/LAPORAN-PAGI.md`). Persiapan Tahap 2 lengkap: naskah, RINGKAS, ANTREAN, registry 33 halaman "segera", ERD Tahap 1 dan 2, widget ERD bertumbuh di `/uji/erd/`, sembilan lab (b3-ledger, api-t2, b3-race, b3-isolasi, t2-pencairan, e3-idempotency, b2-query, b4-skema, c4-ratelimit), semua lewat peninjau. Halaman 2.x belum ditulis (gerbang `T2-mulai`). Worktree `../rjt-*` dihapus. Untuk melanjutkan: pemilik meninjau Tahap 1 dan LAPORAN-PAGI, lalu `python3 tools/antrean.py berikut` (lab-api-t2a, A11y-diagram), lalu `T2-mulai`.
 
 ## Pelajaran
 
 
 - PR yang CONFLICTING dengan main tidak memicu CI (`cek.yml` hanya `pull_request`), dan `tmp/tunggu_pr.sh` berakhir "TIDAK ADA RUN": cek `gh pr view <n> --json mergeable` dulu; konflik baris tambahan KEPUTUSAN/README digabung `tmp/gabung_urut.sh <branch> <nomor>` (union, KEPUTUSAN diurutkan). Lab yang menunggu lock dengan ambang waktu tetap gagal palsu saat mesin ramai: tunggu sampai selesai atau `pg_stat_activity` menunjukkan Lock (2026-10-14).
+- Dua lapis menangkap celah yang lolos pelaksana: c4 (`/ganti-password` tanpa rate limit, salt tetap), api-t2 (Bayar v1 dijawab 201 tanpa ledger). Peninjau wajib uji mutasi dan baca kode; cek `mergeable` lagi sesudah CI hijau; scratchpad dipakai bersama agen, tulis ke subfolder unik (2026-10-14).
