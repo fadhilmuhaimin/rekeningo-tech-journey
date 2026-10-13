@@ -398,11 +398,252 @@ ORDER BY p.dibuat, p.id;""")
     tulis("kejadian.txt", "lima kejadian sebagai posting, saldo, dan jejak")
 
 
+# ---------- C. tiga invarian ----------
+
+def rekam_invarian():
+    s = Sesi()
+    tunjangan, budi, citra = buku_sistem("tunjangan"), buku_akun(BUDI), buku_akun(CITRA)
+    jumlah_jurnal = Diam.satu("SELECT count(*) FROM jurnal")
+
+    bagian("A. Invarian 1: jurnal harus seimbang (diperiksa saat COMMIT)")
+    catat(f"-- Top-up dengan salah ketik: tunjangan -250.000, Budi +25.000")
+    j = jurnal(s, "topup", "Tunjangan makan, salah ketik", ADMIN, [(tunjangan, -250000), (budi, 25000)],
+               tolak=("23514", "jurnal_seimbang"))
+    s(f"SELECT count(*) AS jurnal_{j} FROM jurnal WHERE id = {j};")
+    catat("\n-- Jurnal tanpa posting")
+    jurnal(s, "topup", "Jurnal kosong", ADMIN, [], tolak=("23514", "jurnal_seimbang"))
+
+    bagian("B. Invarian 2: posting dan jurnal tidak bisa diubah atau dihapus")
+    j_topup = Diam.satu("SELECT min(id) FROM jurnal WHERE jenis = 'topup'")
+    j_salah = Diam.satu("SELECT membalik_jurnal_id FROM jurnal WHERE jenis = 'pembalik' ORDER BY id DESC LIMIT 1")
+    s(f"UPDATE posting SET jumlah = 2500000 WHERE jurnal_id = {j_topup} AND buku_id = {budi};",
+      tolak=("23001", "posting_tidak_diubah"))
+    s(f"DELETE FROM posting WHERE jurnal_id = {j_salah};", tolak=("23001", "posting_tidak_diubah"))
+    s("TRUNCATE posting;", tolak=("23001", "posting_tidak_diubah"))
+    s(f"UPDATE jurnal SET keterangan = 'Tunjangan makan minggu 2' WHERE id = {j_topup};",
+      tolak=("23001", "jurnal_tidak_diubah"))
+    catat("-- Batas: pemilik tabel dan superuser bisa mematikan trigger (ALTER TABLE ... DISABLE TRIGGER,")
+    catat("-- session_replication_role = replica). Lab ini berjalan sebagai superuser lab; app memakai role lain (keputusan 401).")
+
+    bagian("C. Invarian 3: saldo buku karyawan tidak boleh negatif sesudah transaction (diperiksa saat COMMIT)")
+    catat(f"-- Budi (saldo Rp385.000) transfer Rp400.000 ke Citra: INSERT dan UPDATE diterima, COMMIT ditolak")
+    jurnal(s, "transfer", "Transfer lebih besar dari saldo", BUDI, [(budi, -400000), (citra, 400000)],
+           tolak=("23514", "saldo_karyawan_tidak_negatif"))
+    r = s(f"""SELECT (SELECT sum(jumlah) FROM posting WHERE buku_id = {budi}) AS saldo_budi,
+       (SELECT saldo_cache FROM buku WHERE id = {budi}) AS saldo_cache;""")
+    harap(r, [(385000, 385000)], "saldo Budi sesudah transfer ditolak")
+
+    bagian("D. Jurnal pembalik: cermin jurnal asal, dan satu jurnal hanya dibalik sekali")
+    catat(f"-- Membalik top-up jurnal {j_topup} dengan jumlah yang berbeda")
+    jurnal(s, "pembalik", f"Top-up jurnal {j_topup} seharusnya Rp200.000, bukan Rp250.000", ADMIN,
+           [(budi, -200000), (tunjangan, 200000)], membalik=j_topup, tolak=("23514", "pembalik_cermin_asal"))
+    catat(f"\n-- Membalik jurnal {j_salah} sekali lagi")
+    s("BEGIN;")
+    s(f"INSERT INTO jurnal (jenis, keterangan, membalik_jurnal_id, dibuat_oleh) VALUES ('pembalik', "
+      f"'Salah bayar ke Warung Sari dibalik lagi', {j_salah}, {ADMIN}) RETURNING id;",
+      tolak=("23505", "jurnal_membalik_jurnal_id_key"))
+    s("ROLLBACK;")
+    harap(Diam.satu("SELECT count(*) FROM jurnal"), jumlah_jurnal, "tidak ada jurnal baru dari penolakan")
+    s.tutup()
+    tulis("invarian.txt", "tiga invarian ditolak database")
+
+
+# ---------- D. tutup buku ----------
+
+def rekam_tutup_buku():
+    s = Sesi()
+    catat("-- Periode lab: sesudah migrasi (jurnal pembuka) sampai sekarang. Tutup buku bulanan memakai batas bulan.")
+    catat("-- saldo_awal + masuk + keluar dihitung dari posting; saldo_akhir dibaca dari saldo_cache, sumber yang terpisah.")
+    bagian("A. Per buku: saldo awal + mutasi = saldo akhir")
+    r = s("""WITH periode AS (
+  SELECT max(dibuat) AS awal FROM jurnal WHERE jenis = 'pembuka'
+), mutasi AS (
+  SELECT p.buku_id,
+         coalesce(sum(p.jumlah) FILTER (WHERE p.dibuat <= periode.awal), 0) AS saldo_awal,
+         coalesce(sum(p.jumlah) FILTER (WHERE p.dibuat > periode.awal AND p.jumlah > 0), 0) AS masuk,
+         coalesce(sum(p.jumlah) FILTER (WHERE p.dibuat > periode.awal AND p.jumlah < 0), 0) AS keluar
+  FROM posting p, periode
+  GROUP BY p.buku_id
+)
+SELECT b.id AS buku, coalesce(a.nama, b.jenis) AS nama,
+       coalesce(m.saldo_awal, 0) AS saldo_awal, coalesce(m.masuk, 0) AS masuk, coalesce(m.keluar, 0) AS keluar,
+       b.saldo_cache AS saldo_akhir,
+       coalesce(m.saldo_awal + m.masuk + m.keluar, 0) = b.saldo_cache AS cocok
+FROM buku b LEFT JOIN akun a ON a.id = b.akun_id LEFT JOIN mutasi m ON m.buku_id = b.id
+ORDER BY b.id;""")
+    harap([(x[0], x[2], x[3], x[4], x[5], x[6]) for x in r],
+          [(1, 0, 0, -250000, -250000, True), (2, 0, 310000, 0, 310000, True),
+           (3, -500000, 0, 0, -500000, True), (4, 0, 0, 0, 0, True), (5, 35000, 0, 0, 35000, True),
+           (6, 285000, 25000, -310000, 0, True), (7, 180000, 265000, -60000, 385000, True),
+           (8, 0, 15000, -15000, 0, True), (9, 0, 20000, 0, 20000, True)], "tutup buku per buku")
+
+    bagian("B. Seluruh sistem: semua jurnal seimbang, jumlah semua buku 0")
+    r = s("""SELECT (SELECT count(*) FROM jurnal) AS jurnal,
+       (SELECT count(*) FROM (SELECT jurnal_id FROM posting GROUP BY jurnal_id
+                              HAVING sum(jumlah) <> 0 OR count(*) < 2) x) AS tidak_seimbang,
+       (SELECT count(*) FROM jurnal j WHERE NOT EXISTS (SELECT 1 FROM posting p WHERE p.jurnal_id = j.id)) AS tanpa_posting,
+       (SELECT sum(jumlah) FROM posting) AS jumlah_semua_posting;""")
+    harap(r, [(11, 0, 0, 0)], "seluruh jurnal seimbang")
+    r = s("""SELECT b.jenis, count(*) AS buku, sum(b.saldo_cache) AS saldo
+FROM buku b GROUP BY b.jenis ORDER BY min(b.id);""")
+    harap([(x[0], x[2]) for x in r], [("tunjangan", -250000), ("kas_pencairan", 310000), ("pembuka", -500000),
+                                     ("selisih", 0), ("karyawan", 440000), ("warung", 0)], "saldo per jenis buku")
+    catat("-- Uang karyawan dan warung Rp440.000 = pembuka Rp500.000 + top-up Rp250.000 - pencairan Rp310.000.")
+    s.tutup()
+    tulis("tutup-buku.txt", "tutup buku per buku dan seluruh sistem")
+
+
+# ---------- E. batas invarian 3: dua transaction bersamaan ----------
+
+# Angka M9 naskah: saldo Budi Rp100.000, transfer Rp70.000 ke Citra dan Rp50.000 ke Dimas hampir bersamaan.
+SEED_BATAS = """
+INSERT INTO akun (id, nama, email, peran) VALUES
+  (1,   'Sistem Rekeningo', 'sistem@lestari.example',          'sistem'),
+  (400, 'Admin Tunjangan',  'admin.tunjangan@lestari.example', 'admin'),
+  (417, 'Dimas',            'dimas@lestari.example',           'karyawan'),
+  (419, 'Budi',             'budi@lestari.example',            'karyawan'),
+  (504, 'Citra',            'citra@lestari.example',           'karyawan');
+INSERT INTO buku (akun_id, jenis) VALUES (NULL, 'tunjangan'), (419, 'karyawan'), (504, 'karyawan'), (417, 'karyawan');
+BEGIN;
+INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('topup', 'Tunjangan makan', 400);
+INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (1, 1, -100000), (1, 2, 100000);
+UPDATE buku SET saldo_cache = saldo_cache - 100000 WHERE id = 1;
+UPDATE buku SET saldo_cache = saldo_cache + 100000 WHERE id = 2;
+COMMIT;
+"""
+B_BUDI, B_CITRA, B_DIMAS = 2, 3, 4
+
+
+def langkah_transfer(s, ke, jumlah, nama):
+    """Cek saldo lalu tulis jurnal, tanpa lock: urutan yang dipakai kode transfer sebelum M9."""
+    s("BEGIN;")
+    r = s(f"SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = {B_BUDI};")
+    harap(r, [(100000,)], f"saldo yang dilihat transfer ke {nama}")
+    j = s(f"INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke {nama}', {BUDI}) RETURNING id;")[0][0]
+    s(f"INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES ({j}, {B_BUDI}, -{jumlah}), ({j}, {ke}, {jumlah});")
+    return j
+
+
+def akhir_batas(s, saldo_harus, cache_harus):
+    r = s(f"""SELECT (SELECT sum(jumlah) FROM posting WHERE buku_id = {B_BUDI}) AS saldo_budi,
+       (SELECT saldo_cache FROM buku WHERE id = {B_BUDI}) AS saldo_cache;""")
+    harap(r, [(saldo_harus, cache_harus)], "saldo Budi akhir skenario")
+
+
+def skenario(judul, catatan):
+    buat_schema()
+    with sambung(SCHEMA) as c:
+        c.execute(SEED_BATAS)
+    bagian(judul)
+    for l in catatan:
+        catat("-- " + l)
+    return Sesi(label="A"), Sesi(label="B"), Sesi()
+
+
+PERCOBAAN = 50
+
+
+def commit_bersamaan(kali):
+    """Hitung berapa kali dua COMMIT yang dilepas bersamaan sama-sama lolos. Tidak masuk rekaman."""
+    lolos_dua = 0
+    for _ in range(kali):
+        buat_schema()
+        with sambung(SCHEMA) as c:
+            c.execute(SEED_BATAS)
+        a, b = sambung(SCHEMA), sambung(SCHEMA)
+        for k, ke, x in ((a, B_CITRA, 70000), (b, B_DIMAS, 50000)):
+            k.execute("BEGIN")
+            j = k.execute(f"INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer', {BUDI}) RETURNING id").fetchone()[0]
+            k.execute(f"INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES ({j}, {B_BUDI}, -{x}), ({j}, {ke}, {x})")
+        pagar, lolos, ditolak = threading.Barrier(2), [], []
+
+        def commit(k):
+            pagar.wait()
+            try:
+                k.execute("COMMIT")
+                lolos.append(k)
+            except psycopg.Error as e:
+                ditolak.append((e.sqlstate, e.diag.constraint_name))
+
+        t = [threading.Thread(target=commit, args=(k,)) for k in (a, b)]
+        for x in t:
+            x.start()
+        for x in t:
+            x.join()
+        harap(set(ditolak) <= {("23514", "saldo_karyawan_tidak_negatif")}, True, f"penolakan COMMIT bersamaan {ditolak}")
+        harap(len(lolos) >= 1, True, "minimal satu COMMIT lolos")
+        if len(lolos) == 2:
+            harap(saldo(B_BUDI), -20000, "saldo Budi sesudah dua COMMIT lolos")
+            lolos_dua += 1
+        a.close()
+        b.close()
+    return lolos_dua
+
+
+def rekam_batas():
+    catat("-- Persiapan tiap skenario: schema baru dari schema.sql, Budi top-up Rp100.000 (jurnal 1).")
+    catat(f"-- Buku {B_BUDI} = Budi, {B_CITRA} = Citra, {B_DIMAS} = Dimas. A dan B adalah dua koneksi (HP dan tablet Budi).")
+
+    a, b, s = skenario("1. Tanpa lock, COMMIT bergantian", [
+        "A dan B sama-sama melihat saldo Rp100.000. Pemeriksaan invarian 3 berjalan saat COMMIT,",
+        "dan pemeriksaan milik B sudah melihat jurnal A yang COMMIT lebih dulu."])
+    langkah_transfer(a, B_CITRA, 70000, "Citra")
+    langkah_transfer(b, B_DIMAS, 50000, "Dimas")
+    a("COMMIT;")
+    b("COMMIT;", tolak=("23514", "saldo_karyawan_tidak_negatif"))
+    akhir_batas(s, 30000, 100000)
+    catat("-- saldo_cache tidak diperbarui di skenario 1 dan 2; selisihnya ditemukan pemeriksaan cache tiap malam.")
+    for x in (a, b, s):
+        x.tutup()
+
+    a, b, s = skenario("2. Tanpa lock, pemeriksaan A dan B selesai sebelum salah satunya COMMIT", [
+        "SET CONSTRAINTS ALL IMMEDIATE menjalankan pemeriksaan sekarang, bukan saat COMMIT, supaya urutannya bisa",
+        "diulang. Tanpa perintah ini pemeriksaan berjalan di dalam COMMIT, sebelum hasilnya terlihat transaction",
+        "lain, jadi celahnya tetap ada (2b). Pemeriksaan B tidak melihat posting A yang belum COMMIT (READ COMMITTED)."])
+    langkah_transfer(a, B_CITRA, 70000, "Citra")
+    a("SET CONSTRAINTS ALL IMMEDIATE;")
+    langkah_transfer(b, B_DIMAS, 50000, "Dimas")
+    b("SET CONSTRAINTS ALL IMMEDIATE;")
+    a("COMMIT;")
+    b("COMMIT;")
+    akhir_batas(s, -20000, 100000)
+    catat("-- Dua-duanya COMMIT. Saldo Budi -Rp20.000: invarian 3 tanpa lock hanya benar untuk satu transaction.")
+    for x in (a, b, s):
+        x.tutup()
+
+    bagian(f"2b. Tanpa SET CONSTRAINTS: COMMIT A dan B dikirim bersamaan, {PERCOBAAN} kali")
+    catat("-- Tiap percobaan: schema baru, A dan B menulis jurnal seperti skenario 1, lalu kedua COMMIT dilepas bersamaan.")
+    catat("-- Berapa kali persisnya bergantung mesin, jadi rekaman hanya mencatat apakah kejadian itu muncul.")
+    n = commit_bersamaan(PERCOBAAN)
+    harap(n > 0, True, "dua COMMIT bersamaan pernah sama-sama lolos")
+    catat(f"dua-duanya COMMIT, saldo Budi -20000: {'muncul' if n else 'tidak muncul'}")
+
+    a, b, s = skenario("3. saldo_cache diperbarui di transaction yang sama: UPDATE mengunci baris buku Budi", [
+        "Pola kejadian.txt. B menunggu lock baris buku sampai A COMMIT, lalu pemeriksaan B melihat jurnal A."])
+    j = langkah_transfer(a, B_CITRA, 70000, "Citra")
+    a(PERBARUI_CACHE.format(j=j))
+    j = langkah_transfer(b, B_DIMAS, 50000, "Dimas")
+    b(PERBARUI_CACHE.format(j=j))
+    harap(b._tunda is not None, True, "B menunggu lock baris buku")
+    a("COMMIT;")
+    b.lanjut()
+    b("COMMIT;", tolak=("23514", "saldo_karyawan_tidak_negatif"))
+    akhir_batas(s, 30000, 30000)
+    catat("-- Yang menahan saldo negatif di sini adalah lock baris buku, bukan pemeriksaan invarian 3 sendirian.")
+    catat("-- B tetap gagal dengan error database, bukan jawaban saldo kurang dari kode: itu masalah M9 (lab b3-race).")
+    for x in (a, b, s):
+        x.tutup()
+    tulis("batas.txt", "batas invarian 3: dua transaction bersamaan")
+
+
 # ---------- main ----------
 
 def main():
     rekam_migrasi()
     rekam_kejadian()
+    rekam_invarian()
+    rekam_tutup_buku()
+    rekam_batas()
 
 
 if __name__ == "__main__":

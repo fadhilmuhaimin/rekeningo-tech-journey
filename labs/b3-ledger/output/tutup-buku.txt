@@ -1,0 +1,58 @@
+-- Lab b3-ledger · tutup buku per buku dan seluruh sistem
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_ledger · isolation read committed
+-- Rekaman dari database bersih: make -C labs/b3-ledger run (keputusan 400).
+-- Periode lab: sesudah migrasi (jurnal pembuka) sampai sekarang. Tutup buku bulanan memakai batas bulan.
+-- saldo_awal + masuk + keluar dihitung dari posting; saldo_akhir dibaca dari saldo_cache, sumber yang terpisah.
+
+# --- A. Per buku: saldo awal + mutasi = saldo akhir ---
+=> WITH periode AS (
+     SELECT max(dibuat) AS awal FROM jurnal WHERE jenis = 'pembuka'
+   ), mutasi AS (
+     SELECT p.buku_id,
+            coalesce(sum(p.jumlah) FILTER (WHERE p.dibuat <= periode.awal), 0) AS saldo_awal,
+            coalesce(sum(p.jumlah) FILTER (WHERE p.dibuat > periode.awal AND p.jumlah > 0), 0) AS masuk,
+            coalesce(sum(p.jumlah) FILTER (WHERE p.dibuat > periode.awal AND p.jumlah < 0), 0) AS keluar
+     FROM posting p, periode
+     GROUP BY p.buku_id
+   )
+   SELECT b.id AS buku, coalesce(a.nama, b.jenis) AS nama,
+          coalesce(m.saldo_awal, 0) AS saldo_awal, coalesce(m.masuk, 0) AS masuk, coalesce(m.keluar, 0) AS keluar,
+          b.saldo_cache AS saldo_akhir,
+          coalesce(m.saldo_awal + m.masuk + m.keluar, 0) = b.saldo_cache AS cocok
+   FROM buku b LEFT JOIN akun a ON a.id = b.akun_id LEFT JOIN mutasi m ON m.buku_id = b.id
+   ORDER BY b.id;
+ buku |      nama     | saldo_awal | masuk  |  keluar | saldo_akhir | cocok
+------+---------------+------------+--------+---------+-------------+-------
+    1 | tunjangan     |          0 |      0 | -250000 |     -250000 | t
+    2 | kas_pencairan |          0 | 310000 |       0 |      310000 | t
+    3 | pembuka       |    -500000 |      0 |       0 |     -500000 | t
+    4 | selisih       |          0 |      0 |       0 |           0 | t
+    5 | Dimas         |      35000 |      0 |       0 |       35000 | t
+    6 | Warung Ani    |     285000 |  25000 | -310000 |           0 | t
+    7 | Budi          |     180000 | 265000 |  -60000 |      385000 | t
+    8 | Warung Sari   |          0 |  15000 |  -15000 |           0 | t
+    9 | Citra         |          0 |  20000 |       0 |       20000 | t
+(9 rows)
+
+# --- B. Seluruh sistem: semua jurnal seimbang, jumlah semua buku 0 ---
+=> SELECT (SELECT count(*) FROM jurnal) AS jurnal,
+          (SELECT count(*) FROM (SELECT jurnal_id FROM posting GROUP BY jurnal_id
+                                 HAVING sum(jumlah) <> 0 OR count(*) < 2) x) AS tidak_seimbang,
+          (SELECT count(*) FROM jurnal j WHERE NOT EXISTS (SELECT 1 FROM posting p WHERE p.jurnal_id = j.id)) AS tanpa_posting,
+          (SELECT sum(jumlah) FROM posting) AS jumlah_semua_posting;
+ jurnal | tidak_seimbang | tanpa_posting | jumlah_semua_posting
+--------+----------------+---------------+----------------------
+     11 |              0 |             0 |                    0
+(1 row)
+=> SELECT b.jenis, count(*) AS buku, sum(b.saldo_cache) AS saldo
+   FROM buku b GROUP BY b.jenis ORDER BY min(b.id);
+     jenis     | buku |  saldo
+---------------+------+---------
+ tunjangan     |    1 | -250000
+ kas_pencairan |    1 |  310000
+ pembuka       |    1 | -500000
+ selisih       |    1 |       0
+ karyawan      |    3 |  440000
+ warung        |    2 |       0
+(6 rows)
+-- Uang karyawan dan warung Rp440.000 = pembuka Rp500.000 + top-up Rp250.000 - pencairan Rp310.000.

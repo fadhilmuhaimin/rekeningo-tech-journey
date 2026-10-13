@@ -1,0 +1,114 @@
+-- Lab b3-ledger · tiga invarian ditolak database
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_ledger · isolation read committed
+-- Rekaman dari database bersih: make -C labs/b3-ledger run (keputusan 400).
+
+# --- A. Invarian 1: jurnal harus seimbang (diperiksa saat COMMIT) ---
+-- Top-up dengan salah ketik: tunjangan -250.000, Budi +25.000
+=> BEGIN;
+BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('topup', 'Tunjangan makan, salah ketik', 400) RETURNING id;
+ id
+----
+ 12
+(1 row)
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (12, 1, -250000), (12, 7, 25000);
+INSERT 0 2
+=> UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+   FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 12 GROUP BY buku_id) p
+   WHERE b.id = p.buku_id;
+UPDATE 2
+=> COMMIT;
+ERROR:  jurnal 12 tidak seimbang: 2 posting, jumlah -225000
+HINT:  Jurnal butuh minimal dua posting yang jumlahnya 0.
+   -- SQLSTATE 23514 check_violation, constraint jurnal_seimbang
+=> SELECT count(*) AS jurnal_12 FROM jurnal WHERE id = 12;
+ jurnal_12
+-----------
+         0
+(1 row)
+
+-- Jurnal tanpa posting
+=> BEGIN;
+BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('topup', 'Jurnal kosong', 400) RETURNING id;
+ id
+----
+ 13
+(1 row)
+=> COMMIT;
+ERROR:  jurnal 13 tidak seimbang: 0 posting, jumlah 0
+HINT:  Jurnal butuh minimal dua posting yang jumlahnya 0.
+   -- SQLSTATE 23514 check_violation, constraint jurnal_seimbang
+
+# --- B. Invarian 2: posting dan jurnal tidak bisa diubah atau dihapus ---
+=> UPDATE posting SET jumlah = 2500000 WHERE jurnal_id = 6 AND buku_id = 7;
+ERROR:  UPDATE pada posting ditolak: baris posting tidak pernah diubah atau dihapus
+HINT:  Koreksi lewat jurnal pembalik.
+   -- SQLSTATE 23001 restrict_violation, constraint posting_tidak_diubah
+=> DELETE FROM posting WHERE jurnal_id = 10;
+ERROR:  DELETE pada posting ditolak: baris posting tidak pernah diubah atau dihapus
+HINT:  Koreksi lewat jurnal pembalik.
+   -- SQLSTATE 23001 restrict_violation, constraint posting_tidak_diubah
+=> TRUNCATE posting;
+ERROR:  TRUNCATE pada posting ditolak: baris posting tidak pernah diubah atau dihapus
+HINT:  Koreksi lewat jurnal pembalik.
+   -- SQLSTATE 23001 restrict_violation, constraint posting_tidak_diubah
+=> UPDATE jurnal SET keterangan = 'Tunjangan makan minggu 2' WHERE id = 6;
+ERROR:  UPDATE pada jurnal ditolak: baris jurnal tidak pernah diubah atau dihapus
+HINT:  Koreksi lewat jurnal pembalik.
+   -- SQLSTATE 23001 restrict_violation, constraint jurnal_tidak_diubah
+-- Batas: pemilik tabel dan superuser bisa mematikan trigger (ALTER TABLE ... DISABLE TRIGGER,
+-- session_replication_role = replica). Lab ini berjalan sebagai superuser lab; app memakai role lain (keputusan 401).
+
+# --- C. Invarian 3: saldo buku karyawan tidak boleh negatif sesudah transaction (diperiksa saat COMMIT) ---
+-- Budi (saldo Rp385.000) transfer Rp400.000 ke Citra: INSERT dan UPDATE diterima, COMMIT ditolak
+=> BEGIN;
+BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer lebih besar dari saldo', 419) RETURNING id;
+ id
+----
+ 14
+(1 row)
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (14, 7, -400000), (14, 9, 400000);
+INSERT 0 2
+=> UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+   FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 14 GROUP BY buku_id) p
+   WHERE b.id = p.buku_id;
+UPDATE 2
+=> COMMIT;
+ERROR:  saldo buku 7 (karyawan) jadi -15000 sesudah jurnal 14
+   -- SQLSTATE 23514 check_violation, constraint saldo_karyawan_tidak_negatif
+=> SELECT (SELECT sum(jumlah) FROM posting WHERE buku_id = 7) AS saldo_budi,
+          (SELECT saldo_cache FROM buku WHERE id = 7) AS saldo_cache;
+ saldo_budi | saldo_cache
+------------+-------------
+     385000 |      385000
+(1 row)
+
+# --- D. Jurnal pembalik: cermin jurnal asal, dan satu jurnal hanya dibalik sekali ---
+-- Membalik top-up jurnal 6 dengan jumlah yang berbeda
+=> BEGIN;
+BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, membalik_jurnal_id, dibuat_oleh) VALUES ('pembalik', 'Top-up jurnal 6 seharusnya Rp200.000, bukan Rp250.000', 6, 400) RETURNING id;
+ id
+----
+ 15
+(1 row)
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (15, 7, -200000), (15, 1, 200000);
+INSERT 0 2
+=> UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+   FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 15 GROUP BY buku_id) p
+   WHERE b.id = p.buku_id;
+UPDATE 2
+=> COMMIT;
+ERROR:  jurnal 15 bukan cermin jurnal asal 6
+   -- SQLSTATE 23514 check_violation, constraint pembalik_cermin_asal
+
+-- Membalik jurnal 10 sekali lagi
+=> BEGIN;
+BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, membalik_jurnal_id, dibuat_oleh) VALUES ('pembalik', 'Salah bayar ke Warung Sari dibalik lagi', 10, 400) RETURNING id;
+ERROR:  duplicate key value violates unique constraint "jurnal_membalik_jurnal_id_key"
+   -- SQLSTATE 23505 unique_violation, constraint jurnal_membalik_jurnal_id_key
+=> ROLLBACK;
+ROLLBACK
