@@ -1,0 +1,113 @@
+# Lab api-t2 · transfer antar karyawan, batas harian, lock buku
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap2 · server Go di 127.0.0.1:18093
+# Rekaman dari database bersih: make -C labs/api-t2 run (keputusan 408).
+# server: ./api-t2
+
+# --- A. Budi mengirim Rp20.000 ke Citra lewat nomor karyawan (app 2.0) ---
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke_nomor_karyawan": "K00504", "nominal": 20000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/1119
+
+{"id":1119,"saldo":410000,"sisa_batas_harian":480000}
+=> SELECT p.jurnal_id, j.jenis, b.jenis AS buku, a.nama, p.jumlah FROM posting p JOIN jurnal j ON j.id = p.jurnal_id JOIN buku b ON b.id = p.buku_id JOIN akun a ON a.id = b.akun_id WHERE p.jurnal_id = 1119 ORDER BY p.id
+ jurnal_id |  jenis   |   buku   |  nama | jumlah
+-----------+----------+----------+-------+--------
+      1119 | transfer | karyawan | Budi  | -20000
+      1119 | transfer | karyawan | Citra |  20000
+(2 rows)
+$ curl -i -X GET '/transfers/1119' -H 'Authorization: Bearer <token sesi Citra>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1119,"jenis":"transfer","dari":419,"ke":504,"jumlah":20000,"nominal":20000,"waktu":"<waktu>"}
+
+# --- B. Permintaan yang ditolak sebelum uang berpindah ---
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke_nomor_karyawan": "K09999", "nominal": 20000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"ke_nomor_karyawan","pesan":"tidak terdaftar"}]}
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke_nomor_karyawan": "K00419", "nominal": 20000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"ke_nomor_karyawan","pesan":"nomor milik pengirim sendiri"}]}
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke_nomor_karyawan": "K00504", "nominal": 0}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nominal","pesan":"harus lebih dari 0"}]}
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke_nomor_karyawan": "K00504", "jumlah": 20000}'
+HTTP/1.1 400 Bad Request
+Content-Type: application/problem+json
+
+{"type":"/problems/field-wajib","title":"Field wajib tidak dikirim","status":400,"errors":[{"field":"nominal","pesan":"wajib diisi"}]}
+
+# --- C. Batas Rp500.000 per hari, dihitung dari jurnal transfer keluar sejak 00.00 WIB ---
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke_nomor_karyawan": "K00504", "nominal": 400000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/1120
+
+{"id":1120,"saldo":10000,"sisa_batas_harian":80000}
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Citra>' -d '{"ke_nomor_karyawan": "K00419", "nominal": 800000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/batas-harian","title":"Batas kiriman hari ini terlewati","status":422,"detail":"Kiriman ke rekan paling banyak Rp500.000 per hari, dihitung sejak pukul 00.00 WIB."}
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Citra>' -d '{"ke_nomor_karyawan": "K00419", "nominal": 500000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/1121
+
+{"id":1121,"saldo":170000,"sisa_batas_harian":0}
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Citra>' -d '{"ke_nomor_karyawan": "K00419", "nominal": 1}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/batas-harian","title":"Batas kiriman hari ini terlewati","status":422,"detail":"Kiriman ke rekan paling banyak Rp500.000 per hari, dihitung sejak pukul 00.00 WIB."}
+=> SELECT a.nama, b.saldo_cache, b.batas_harian FROM buku b JOIN akun a ON a.id = b.akun_id WHERE b.akun_id IN (419, 504) ORDER BY a.id
+  nama | saldo_cache | batas_harian
+-------+-------------+--------------
+ Budi  |      510000 |       500000
+ Citra |      170000 |       500000
+(2 rows)
+
+# Bayar ke warung tidak dihitung batas kiriman: Budi bayar Rp25.000 ke Warung Ani (app 2.0, nominal)
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "nominal": 25000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/1122
+
+{"id":1122,"saldo":485000}
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke_nomor_karyawan": "K00504", "nominal": 80000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/1123
+
+{"id":1123,"saldo":405000,"sisa_batas_harian":0}
+
+# --- D. Saldo tidak cukup ---
+# Karyawan 600 (akun kampus baru) hanya punya top-up minggu 1 Tahap 2: Rp250.000
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Karyawan 600>' -d '{"ke_nomor_karyawan": "K00504", "nominal": 300000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/saldo-kurang","title":"Saldo tidak cukup","status":422}
+
+# --- E. Sepuluh kiriman Rp20.000 bersamaan dari saldo Rp100.000: buku dikunci, tidak ada saldo negatif ---
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Karyawan 700>' -d '{"ke_nomor_karyawan": "K00701", "nominal": 150000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/1124
+
+{"id":1124,"saldo":100000,"sisa_batas_harian":350000}
+# 10 thread, masing-masing: POST /kiriman {"ke_nomor_karyawan": "K00701", "nominal": 20000}
+5 x HTTP 201
+5 x HTTP 422 /problems/saldo-kurang
+=> SELECT b.saldo_cache, (SELECT sum(jumlah) FROM posting p WHERE p.buku_id = b.id) AS jumlah_posting FROM buku b WHERE b.akun_id = 700
+ saldo_cache | jumlah_posting
+-------------+----------------
+           0 |              0
+(1 row)

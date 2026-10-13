@@ -1,0 +1,232 @@
+# Lab api-t2 · expand, migrate, contract dengan app versi lama di setiap langkah
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap2 · server Go di 127.0.0.1:18093
+# Rekaman dari database bersih: make -C labs/api-t2 run (keputusan 408).
+
+# --- A. Langkah 0 · akhir Tahap 1: server v1 (expand, ADR 10), kolom saldo ---
+# persiapan (lewat API v1, rinciannya di labs/api-t1): seed 104 akun Gedung A; top-up minggu 1,
+#   100 karyawan x Rp250.000; Dimas bayar Warung Ani 5 kali (Rp215.000); M4: saldo Budi terpotong
+#   Rp70.000 tanpa baris, koreksi +Rp70.000, bayar ulang Rp70.000 (data sama dengan b3-ledger, keputusan 406)
+# server: ./api-t1-expand (kode labs/api-t1 + EXPAND_UBAH), role api_t2
+=> SELECT id, jenis, nama, saldo FROM akun WHERE id IN (417, 418, 419, 420, 421, 502) ORDER BY id
+  id |  jenis   |     nama     | saldo
+-----+----------+--------------+--------
+ 417 | karyawan | Dimas        |  35000
+ 418 | warung   | Warung Ani   | 285000
+ 419 | karyawan | Budi         | 180000
+ 420 | karyawan | Karyawan 420 | 250000
+ 421 | karyawan | Karyawan 421 | 250000
+ 502 | warung   | Warung Sari  |      0
+(6 rows)
+=> SELECT jenis, count(*) AS akun, sum(saldo) AS saldo FROM akun GROUP BY jenis ORDER BY jenis
+  jenis   | akun |  saldo
+----------+------+----------
+ admin    |    1 |        0
+ karyawan |  100 | 24715000
+ warung   |    3 |   285000
+(3 rows)
+
+# App versi lama: bayar Rp10.000 ke Warung Sari, baca saldo, baca riwayat (field menurut versi app)
+langkah 0  app 1.0 (Karyawan 420) bayar 201 · saldo 200 240000 · riwayat 200 jumlah 10000
+langkah 0  app 1.1 (Karyawan 421) bayar 201 · saldo 200 240000 · riwayat 200 nominal 10000
+
+# --- B. Langkah 1 · expand (rilis 1): tabel ledger ditambah, server v1 tetap jalan tanpa restart ---
+$ psql -1 -f migrasi/000009_akun_tahap2.up.sql
+COMMIT
+$ psql -1 -f migrasi/000010_ledger_tabel.up.sql
+COMMIT
+$ psql -1 -f migrasi/000011_ledger_pendukung.up.sql
+COMMIT
+# 000010 dibuat dari labs/b3-ledger/schema.sql tanpa blok akun (keputusan 409)
+=> SELECT count(*) AS jurnal, (SELECT count(*) FROM buku) AS buku FROM jurnal
+ jurnal | buku
+--------+------
+      0 |    0
+(1 row)
+
+# Akun kampus pusat didaftarkan (data lab, keputusan 413): Citra 504, warung 505-513, karyawan 514-1412
+$ DATABASE_URL=<pemilik schema> ./api-t2 -seed-kampus
+=> SELECT jenis, count(*) AS akun, count(nomor_karyawan) AS bernomor, count(*) FILTER (WHERE wajib_ganti_password) AS wajib_ganti FROM akun GROUP BY jenis ORDER BY jenis
+  jenis   | akun | bernomor | wajib_ganti
+----------+------+----------+-------------
+ admin    |    1 |        0 |           0
+ karyawan | 1000 |      900 |         900
+ warung   |   12 |        0 |           9
+(3 rows)
+
+# App versi lama, server v1 di atas skema expand
+langkah 1  app 1.0 (Karyawan 420) bayar 201 · saldo 200 230000 · riwayat 200 jumlah 10000
+langkah 1  app 1.1 (Karyawan 421) bayar 201 · saldo 200 230000 · riwayat 200 nominal 10000
+
+# --- C. Langkah 2 · migrate (rilis 2): server v1 berhenti, saldo jadi jurnal, server v2 menyala ---
+$ kill -TERM <pid server v1>   # mulai jeda deploy
+# Selama jeda ini app mendapat 'tidak ada jawaban', sama dengan deploy Tahap 1 (1.31)
+# Migrate dan hak akses app sesudahnya dalam satu transaction (keputusan 414, 417)
+$ psql -1 -f migrasi/000012_ledger_migrasi.up.sql -f <hak akses di bawah>   # satu transaction
+NOTICE:  migrasi: 1012 buku akun, 102 jurnal pembuka, 1 koreksi jadi 2 jurnal
+=> REVOKE ALL ON ALL TABLES IN SCHEMA tahap2 FROM api_t2
+REVOKE
+=> GRANT SELECT (id, jenis, nama, email, password_hash, nomor_karyawan, wajib_ganti_password, gagal_login, terkunci_sampai) ON akun TO api_t2
+GRANT
+=> GRANT UPDATE (password_hash, wajib_ganti_password, gagal_login, terkunci_sampai) ON akun TO api_t2
+GRANT
+=> GRANT SELECT, INSERT, DELETE ON sesi TO api_t2
+GRANT
+=> GRANT SELECT, UPDATE (saldo_cache, versi) ON buku TO api_t2
+GRANT
+=> GRANT SELECT, INSERT ON jurnal, posting TO api_t2
+GRANT
+=> GRANT SELECT, INSERT, UPDATE, DELETE ON kunci_idempotensi TO api_t2
+GRANT
+=> GRANT SELECT, INSERT, UPDATE ON batch_pencairan, baris_pencairan TO api_t2
+GRANT
+=> GRANT SELECT ON transaksi, topup, koreksi TO api_t2
+GRANT
+=> GRANT USAGE ON ALL SEQUENCES IN SCHEMA tahap2 TO api_t2
+GRANT
+COMMIT
+$ ./api-t2 &   # server v2 menyala, role api_t2
+
+# Saldo setiap akun sama sebelum dan sesudah: kolom saldo v1 = saldo_cache = jumlah posting
+=> SELECT count(*) AS buku_akun,
+          count(*) FILTER (WHERE a.saldo = b.saldo_cache AND b.saldo_cache = (SELECT coalesce(sum(jumlah), 0) FROM posting p WHERE p.buku_id = b.id)) AS sama
+   FROM akun a JOIN buku b ON b.akun_id = a.id
+ buku_akun | sama
+-----------+------
+      1012 | 1012
+(1 row)
+=> SELECT a.id, a.nama, a.saldo AS saldo_v1, b.saldo_cache,
+          (SELECT coalesce(sum(jumlah), 0) FROM posting p WHERE p.buku_id = b.id) AS jumlah_posting
+   FROM akun a JOIN buku b ON b.akun_id = a.id WHERE a.id IN (417, 418, 419, 420, 421, 502) ORDER BY a.id
+  id |     nama     | saldo_v1 | saldo_cache | jumlah_posting
+-----+--------------+----------+-------------+----------------
+ 417 | Dimas        |    35000 |       35000 |          35000
+ 418 | Warung Ani   |   285000 |      285000 |         285000
+ 419 | Budi         |   180000 |      180000 |         180000
+ 420 | Karyawan 420 |   230000 |      230000 |         230000
+ 421 | Karyawan 421 |   230000 |      230000 |         230000
+ 502 | Warung Sari  |    40000 |       40000 |          40000
+(6 rows)
+=> SELECT jenis, count(*) AS jurnal FROM jurnal GROUP BY jenis ORDER BY jenis
+  jenis   | jurnal
+----------+--------
+ pembalik |      1
+ pembuka  |    102
+ selisih  |      1
+(3 rows)
+=> SELECT min(id) AS jurnal_pertama, (SELECT max(id) FROM transaksi) AS transaksi_v1_terakhir FROM jurnal
+ jurnal_pertama | transaksi_v1_terakhir
+----------------+-----------------------
+             11 |                    10
+(1 row)
+$ ./api-t2 -cek-cache   # job malam
+cek cache: 1016 buku diperiksa, 0 tidak cocok
+# exit status 0
+
+# App versi lama, server v2 (ledger)
+langkah 2  app 1.0 (Karyawan 420) bayar 201 · saldo 200 220000 · riwayat 200 jumlah 10000
+langkah 2  app 1.1 (Karyawan 421) bayar 201 · saldo 200 220000 · riwayat 200 nominal 10000
+
+# Budi membuka riwayat di app 1.0: transaksi v1 tidak ikut, diganti saldo awal dan pasangan koreksi
+$ curl -i -X GET '/akun/419/riwayat' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"berikutnya":null,"riwayat":[{"id":114,"jenis":"pembalik","arah":"masuk","lawan":"Selisih v1","jumlah":70000,"nominal":70000,"waktu":"<waktu>"},{"id":113,"jenis":"selisih","arah":"keluar","lawan":"Selisih v1","jumlah":70000,"nominal":70000,"waktu":"<waktu>"},{"id":29,"jenis":"pembuka","arah":"masuk","lawan":"Saldo awal","jumlah":180000,"nominal":180000,"waktu":"<waktu>"}]}
+
+# Tautan lama /transfers/6 (bayar ulang Budi di v1): nomor itu tidak pernah dipakai jurnal
+$ curl -i -X GET '/transfers/6' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{"type":"/problems/tidak-ditemukan","title":"Transaksi tidak ditemukan","status":404}
+
+# Rollback ke server v1 sesudah migrate: database menolak, bukan saldo yang diam-diam berbeda
+$ ./api-t1-expand -addr 127.0.0.1:18094 &
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Karyawan 420>' -d '{"ke": 502, "jumlah": 10000}'
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/problem+json
+
+{"type":"/problems/internal","title":"Terjadi kesalahan di server","status":500}
+$ curl -i -X GET '/akun/420' -H 'Authorization: Bearer <token sesi Karyawan 420>'
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/problem+json
+
+{"type":"/problems/internal","title":"Terjadi kesalahan di server","status":500}
+server log: error internal: ERROR: permission denied for table akun (SQLSTATE 42501)
+server log: error internal: ERROR: permission denied for table akun (SQLSTATE 42501)
+
+# --- D. Langkah 3 · contract (rilis 3): kolom saldo dan tabel v1 dihapus, server v2 tetap jalan ---
+# Di cerita: akhir Tahap 2, sesudah cek cache tiap malam cocok. Di lab: langsung sesudah langkah 2.
+# Isi tabel v1 disalin ke schema arsip dulu (langkah operasional, bukan migration):
+=> CREATE SCHEMA tahap2_arsip
+CREATE SCHEMA
+=> CREATE TABLE tahap2_arsip.transaksi AS TABLE tahap2.transaksi
+SELECT 10
+=> CREATE TABLE tahap2_arsip.topup AS TABLE tahap2.topup
+SELECT 100
+=> CREATE TABLE tahap2_arsip.koreksi AS TABLE tahap2.koreksi
+SELECT 1
+=> CREATE TABLE tahap2_arsip.saldo_v1 AS SELECT id, saldo FROM tahap2.akun
+SELECT 1014
+$ psql -1 -f migrasi/000013_saldo_contract.up.sql
+COMMIT
+=> SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema() ORDER BY table_name
+     table_name
+-------------------
+ akun
+ baris_pencairan
+ batch_pencairan
+ buku
+ jurnal
+ kunci_idempotensi
+ posting
+ sesi
+(8 rows)
+=> SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'akun' ORDER BY ordinal_position
+     column_name      |        data_type
+----------------------+--------------------------
+ id                   | bigint
+ jenis                | text
+ nama                 | text
+ email                | text
+ password_hash        | text
+ nomor_karyawan       | text
+ wajib_ganti_password | boolean
+ gagal_login          | integer
+ terkunci_sampai      | timestamp with time zone
+(9 rows)
+
+# App versi lama, server v2 di atas skema akhir Tahap 2
+langkah 3  app 1.0 (Karyawan 420) bayar 201 · saldo 200 210000 · riwayat 200 jumlah 10000
+langkah 3  app 1.1 (Karyawan 421) bayar 201 · saldo 200 210000 · riwayat 200 nominal 10000
+$ ./api-t2 -cek-cache   # job malam
+cek cache: 1016 buku diperiksa, 0 tidak cocok
+# exit status 0
+
+# --- E. Cek cache tiap malam menemukan cache yang melenceng ---
+# Diperankan: kode yang salah menulis cache tanpa posting (sebagai pemilik schema)
+=> UPDATE buku SET saldo_cache = saldo_cache + 5000 WHERE akun_id = 420
+UPDATE 1
+$ ./api-t2 -cek-cache   # job malam
+buku 24 (karyawan Karyawan 420): saldo_cache 215000, jumlah posting 210000, selisih 5000
+cek cache: 1016 buku diperiksa, 1 tidak cocok
+# exit status 1
+=> UPDATE buku b SET saldo_cache = (SELECT coalesce(sum(jumlah), 0) FROM posting p WHERE p.buku_id = b.id) WHERE akun_id = 420
+UPDATE 1
+$ ./api-t2 -cek-cache   # job malam
+cek cache: 1016 buku diperiksa, 0 tidak cocok
+# exit status 0
+
+# --- F. Role app bukan pemilik tabel: invarian tidak bisa dimatikan dari server ---
+api_t2=> ALTER TABLE posting DISABLE TRIGGER posting_tidak_diubah;
+ERROR:  must be owner of table posting
+   -- SQLSTATE 42501
+api_t2=> UPDATE posting SET jumlah = 1 WHERE id = 1;
+ERROR:  permission denied for table posting
+   -- SQLSTATE 42501
+api_t2=> UPDATE buku SET jenis = 'warung' WHERE akun_id = 419;
+ERROR:  permission denied for table buku
+   -- SQLSTATE 42501
+api_t2=> SET session_replication_role = replica;
+ERROR:  permission denied to set parameter "session_replication_role"
+   -- SQLSTATE 42501
