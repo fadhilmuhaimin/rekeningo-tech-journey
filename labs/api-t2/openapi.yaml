@@ -1,0 +1,394 @@
+openapi: 3.1.0
+info:
+  title: Rekeningo API v2 (fiktif)
+  version: 2.0.0
+  description: Kontrak server labs/api-t2 (Tahap 2, ledger, keputusan 416). Endpoint Tahap 1 tetap dengan kontrak expand ADR 10, jadi app 1.0 dan 1.1 jalan tanpa diubah; /koreksi diganti jurnal pembalik. Lab, bukan layanan sungguhan.
+  license: { name: MIT, identifier: MIT }
+servers:
+  - url: http://127.0.0.1:18093
+security:
+  - bearer: []
+paths:
+  /login:
+    post:
+      operationId: login
+      summary: Login dengan email perusahaan dan password sementara
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Sesi dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, kedaluwarsa_detik]
+                properties:
+                  token: { type: string, description: Token sesi acak; simpan di secure storage }
+                  kedaluwarsa_detik: { type: integer }
+        '401': { $ref: '#/components/responses/Problem' }
+  /logout:
+    post:
+      operationId: logout
+      summary: Matikan sesi ini di server
+      responses:
+        '204': { description: Sesi dimatikan }
+        '401': { $ref: '#/components/responses/Problem' }
+  /topup:
+    post:
+      operationId: topup
+      summary: Admin mengisi saldo dari CSV (nomor_karyawan,nominal; email,nominal tetap diterima), satu jurnal per akun dalam satu transaction
+      parameters:
+        - { name: keterangan, in: query, required: true, schema: { type: string, minLength: 1 } }
+      requestBody:
+        required: true
+        content:
+          text/csv:
+            schema: { type: string }
+      responses:
+        '200':
+          description: Semua baris diproses dalam satu transaction
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [akun, total]
+                properties:
+                  akun: { type: integer }
+                  total: { $ref: '#/components/schemas/Rupiah' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  # --8<-- [start:koreksi]
+  /koreksi:
+    post:
+      operationId: koreksi
+      deprecated: true
+      summary: Diganti POST /jurnal/{id}/pembalik; saldo tidak diubah tanpa jurnal (aturan Pak Hadi Tahap 2)
+      responses:
+        '401': { $ref: '#/components/responses/Problem' }
+        '410': { $ref: '#/components/responses/Problem' }
+  # --8<-- [end:koreksi]
+  # --8<-- [start:transfer]
+  /transfers:
+    post:
+      operationId: bayar
+      summary: Bayar dari akun karyawan yang login ke akun warung
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermintaanBayar'
+      responses:
+        '201':
+          description: Pembayaran dibuat
+          headers:
+            Location:
+              description: Alamat pembayaran yang baru dibuat, misalnya /transfers/1
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HasilBayar'
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  # --8<-- [end:transfer]
+  /transfers/{id}:
+    get:
+      operationId: lihatTransaksi
+      summary: Satu jurnal bayar atau kiriman; hanya pengirim atau penerimanya. Nomor transaksi v1 dijawab 404
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Pembayaran
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Transaksi' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /kiriman:
+    post:
+      operationId: kirim
+      summary: Kirim uang ke rekan lewat nomor karyawan; paling banyak Rp500.000 per hari sejak 00.00 WIB (PRD v2)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanKiriman' }
+      responses:
+        '201':
+          description: Jurnal transfer dibuat
+          headers:
+            Location:
+              description: Alamat jurnal yang baru dibuat, misalnya /transfers/2001
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HasilKiriman' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /jurnal/{id}/pembalik:
+    post:
+      operationId: balikJurnal
+      summary: Admin membalik satu jurnal dengan alasan; jurnal asal tidak diubah, satu jurnal paling banyak dibalik sekali
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [alasan]
+              properties:
+                alasan: { type: string, minLength: 20 }
+      responses:
+        '201':
+          description: Jurnal pembalik dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, membalik]
+                properties:
+                  id: { type: integer, format: int64 }
+                  membalik: { type: integer, format: int64 }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /tutup-buku:
+    get:
+      operationId: tutupBuku
+      summary: Laporan bulanan untuk Keuangan; saldo awal + masuk - keluar = saldo akhir per buku, dan seluruh jurnal seimbang
+      parameters:
+        - name: periode
+          in: query
+          required: true
+          schema: { type: string, pattern: '^[0-9]{4}-[0-9]{2}$' }
+      responses:
+        '200':
+          description: Tutup buku
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TutupBuku' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /akun/{id}:
+    get:
+      operationId: lihatAkun
+      summary: Akun milik sendiri, dengan saldo
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Akun
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Akun' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /akun/{id}/riwayat:
+    get:
+      operationId: riwayat
+      summary: Posting milik sendiri, terbaru dulu; halaman berikutnya lewat kursor (ADR 16)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: kursor
+          in: query
+          description: Nilai berikutnya dari halaman sebelumnya. Tanpa kursor = halaman pertama (app 1.0 dan 1.1).
+          schema: { type: string }
+        - name: batas
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        '200':
+          description: Riwayat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [riwayat, berikutnya]
+                properties:
+                  riwayat:
+                    type: array
+                    maxItems: 50
+                    items: { $ref: '#/components/schemas/BarisRiwayat' }
+                  berikutnya:
+                    type: [string, 'null']
+                    description: Kursor halaman berikutnya; null bila tidak ada baris lagi
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /warung/{id}/laporan:
+    get:
+      operationId: laporanWarung
+      summary: Jumlah dan total pembayaran masuk per hari (waktu Jakarta); hanya pemilik warung
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - { name: dari, in: query, required: true, schema: { type: string, format: date } }
+        - { name: sampai, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Laporan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [warung, per_hari]
+                properties:
+                  warung: { type: integer, format: int64 }
+                  per_hari:
+                    type: array
+                    items:
+                      type: object
+                      required: [tanggal, transaksi, total]
+                      properties:
+                        tanggal: { type: string, format: date }
+                        transaksi: { type: integer }
+                        total: { $ref: '#/components/schemas/Rupiah' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer }
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+  responses:
+    Problem:
+      description: Error RFC 9457
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+  schemas:
+    Rupiah: { type: integer, format: int64, description: 'Rupiah, tanpa desimal' }
+    # --8<-- [start:skema-bayar]
+    PermintaanBayar:
+      type: object
+      required: [ke]
+      anyOf:
+        - required: [jumlah]
+        - required: [nominal]
+      description: 'Wajib salah satu: jumlah (app 1.0) atau nominal (app 1.1). Bila keduanya dikirim, server memakai jumlah.'
+      properties:
+        ke: { type: integer, format: int64, description: Nomor akun warung penerima }
+        jumlah: { type: integer, format: int64, minimum: 1, maximum: 200000, description: 'Rupiah; field lama, dihapus (contract) sesudah tidak ada request dari app 1.0' }
+        nominal: { type: integer, format: int64, minimum: 1, maximum: 200000, description: 'Rupiah; ditambah di 1.1.0 (expand)' }
+    HasilBayar:
+      type: object
+      required: [id, saldo]
+      properties:
+        id: { type: integer, format: int64 }
+        saldo: { $ref: '#/components/schemas/Rupiah' }
+    # --8<-- [end:skema-bayar]
+    Akun:
+      type: object
+      required: [id, jenis, nama, saldo]
+      properties:
+        id: { type: integer, format: int64 }
+        jenis: { type: string, enum: [karyawan, warung, admin] }
+        nama: { type: string }
+        saldo: { $ref: '#/components/schemas/Rupiah', description: 'buku.saldo_cache; 0 untuk akun tanpa buku' }
+        nomor_karyawan: { type: string, description: Ditambah Tahap 2; hanya akun karyawan }
+    Transaksi:
+      type: object
+      required: [id, jenis, dari, ke, jumlah, nominal, waktu]
+      description: 'Jurnal bayar atau transfer. jumlah dan nominal berisi angka yang sama.'
+      properties:
+        id: { type: integer, format: int64 }
+        jenis: { type: string, enum: [bayar, transfer] }
+        dari: { type: integer, format: int64 }
+        ke: { type: integer, format: int64 }
+        jumlah: { $ref: '#/components/schemas/Rupiah' }
+        nominal: { $ref: '#/components/schemas/Rupiah' }
+        waktu: { type: string, format: date-time }
+    BarisRiwayat:
+      type: object
+      required: [id, jenis, arah, lawan, jumlah, nominal, waktu]
+      description: 'Satu posting di buku sendiri; id = nomor jurnal. jumlah dan nominal berisi angka yang sama.'
+      properties:
+        id: { type: integer, format: int64 }
+        jenis: { type: string, enum: [pembuka, selisih, topup, bayar, transfer, pencairan, pembalik] }
+        arah: { type: string, enum: [keluar, masuk] }
+        lawan: { type: string }
+        jumlah: { $ref: '#/components/schemas/Rupiah' }
+        nominal: { $ref: '#/components/schemas/Rupiah' }
+        waktu: { type: string, format: date-time }
+    PermintaanKiriman:
+      type: object
+      required: [ke_nomor_karyawan, nominal]
+      properties:
+        ke_nomor_karyawan: { type: string, description: 'Nomor karyawan penerima, misalnya K00504' }
+        nominal: { type: integer, format: int64, minimum: 1, maximum: 500000 }
+    HasilKiriman:
+      type: object
+      required: [id, saldo, sisa_batas_harian]
+      properties:
+        id: { type: integer, format: int64 }
+        saldo: { $ref: '#/components/schemas/Rupiah' }
+        sisa_batas_harian: { $ref: '#/components/schemas/Rupiah' }
+    TutupBuku:
+      type: object
+      required: [periode, buku, sistem]
+      properties:
+        periode: { type: string }
+        buku:
+          type: array
+          items:
+            type: object
+            required: [buku, jenis, saldo_awal, masuk, keluar, saldo_akhir, saldo_cache]
+            properties:
+              buku: { type: integer, format: int64 }
+              jenis: { type: string }
+              nama: { type: string }
+              saldo_awal: { $ref: '#/components/schemas/Rupiah' }
+              masuk: { $ref: '#/components/schemas/Rupiah' }
+              keluar: { $ref: '#/components/schemas/Rupiah' }
+              saldo_akhir: { $ref: '#/components/schemas/Rupiah' }
+              saldo_cache: { $ref: '#/components/schemas/Rupiah' }
+        sistem:
+          type: object
+          required: [jurnal, jurnal_tidak_seimbang, jumlah_semua_posting, jumlah_semua_saldo_akhir]
+          properties:
+            jurnal: { type: integer }
+            jurnal_tidak_seimbang: { type: integer }
+            jumlah_semua_posting: { $ref: '#/components/schemas/Rupiah' }
+            jumlah_semua_saldo_akhir: { $ref: '#/components/schemas/Rupiah' }
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, description: Pengenal jenis masalah; app memilih pesan dari field ini }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string, description: Untuk manusia; jangan di-parse }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              baris: { type: integer }
+              pesan: { type: string }
