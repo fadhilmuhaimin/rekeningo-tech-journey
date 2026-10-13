@@ -12,11 +12,14 @@ package main
 
 import (
 	"context"
+	"encoding/csv"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -42,6 +45,7 @@ func main() {
 	periode := flag.String("periode", "", "periode pencairan, mis. 2026-W43")
 	dir := flag.String("dir", ".", "folder file transfer")
 	urutan := flag.String("urutan", "file-dulu", "versi rentan: file-dulu atau jurnal-dulu")
+	dobel := flag.Int64("uji-baris-dobel", 0, "khusus lab: pembuat file menulis baris akun ini dua kali")
 	flag.Parse()
 
 	ctx := context.Background()
@@ -54,6 +58,8 @@ func main() {
 	switch *mode {
 	case "rentan":
 		err = rentan(ctx, db, *periode, *dir, *urutan)
+	case "benar":
+		err = benar(ctx, db, *periode, *dir, *dobel)
 	default:
 		err = fmt.Errorf("mode %q tidak dikenal", *mode)
 	}
@@ -179,6 +185,212 @@ func catatJurnal(ctx context.Context, tx pgx.Tx, w baris, periode string) (int64
 		FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = $1 GROUP BY buku_id) p
 		WHERE b.id = p.buku_id`, j)
 	return j, err
+}
+
+// ---------- versi benar (ADR 19) ----------
+
+// benar menjalankan tiga langkah. Setiap langkah membaca status batch dulu, jadi job yang berhenti di mana pun
+// bisa dijalankan lagi dengan perintah yang sama.
+func benar(ctx context.Context, db *pgx.Conn, periode, dir string, dobel int64) error {
+	// 1. Batch per periode. UNIQUE (periode) membuat batch hanya dibuat sekali; jumlah per warung dibekukan di
+	//    baris_pencairan saat itu juga, jadi uang yang masuk sesudahnya ikut periode berikutnya.
+	tx, err := db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	tag, err := tx.Exec(ctx, `INSERT INTO batch_pencairan (periode, status) VALUES ($1, 'dibuat') ON CONFLICT (periode) DO NOTHING`, periode)
+	if err != nil {
+		return err
+	}
+	var id, total int64
+	var status string
+	if err := tx.QueryRow(ctx, `SELECT id, status FROM batch_pencairan WHERE periode = $1`, periode).Scan(&id, &status); err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 1 {
+		n, err := tx.Exec(ctx, `
+			INSERT INTO baris_pencairan (batch_id, buku_id, jumlah)
+			SELECT $1, b.id, s.saldo
+			FROM buku b
+			CROSS JOIN LATERAL (SELECT coalesce(sum(p.jumlah), 0) AS saldo FROM posting p WHERE p.buku_id = b.id) s
+			WHERE b.jenis = 'warung' AND s.saldo > 0`, id)
+		if err != nil {
+			return err
+		}
+		if err := tx.QueryRow(ctx, `
+			UPDATE batch_pencairan SET total = (SELECT coalesce(sum(jumlah), 0) FROM baris_pencairan WHERE batch_id = $1)
+			WHERE id = $1 RETURNING total`, id).Scan(&total); err != nil {
+			return err
+		}
+		fmt.Printf("batch %d periode %s dibuat: %d baris, total %s\n", id, periode, n.RowsAffected(), rp(total))
+	} else {
+		fmt.Printf("batch %d periode %s sudah ada, status %s\n", id, periode, status)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	if status == "dikirim" {
+		fmt.Println("batch sudah dikirim: tidak ada yang dikerjakan")
+		return nil
+	}
+
+	// 2. Satu transaction per baris: jurnal dan baris_pencairan.jurnal_id di-COMMIT bersama.
+	if status == "dibuat" {
+		if err := jurnalkan(ctx, db, id); err != nil {
+			return err
+		}
+	}
+
+	// 3. File dibuat dari database, baru diberi nama akhir.
+	return buatFile(ctx, db, id, periode, dir, dobel)
+}
+
+func barisBatch(ctx context.Context, q interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+}, id int64) ([]baris, error) {
+	rows, _ := q.Query(ctx, `
+		SELECT b.buku_id, a.id, a.nama, b.jumlah, coalesce(b.jurnal_id, 0)
+		FROM baris_pencairan b JOIN buku k ON k.id = b.buku_id JOIN akun a ON a.id = k.akun_id
+		WHERE b.batch_id = $1 ORDER BY b.buku_id`, id)
+	return pgx.CollectRows(rows, func(r pgx.CollectableRow) (baris, error) {
+		var w baris
+		err := r.Scan(&w.buku, &w.akun, &w.nama, &w.jumlah, &w.jurnal)
+		return w, err
+	})
+}
+
+func jurnalkan(ctx context.Context, db *pgx.Conn, id int64) error {
+	daftar, err := barisBatch(ctx, db, id)
+	if err != nil {
+		return err
+	}
+	periode := ""
+	if err := db.QueryRow(ctx, `SELECT periode FROM batch_pencairan WHERE id = $1`, id).Scan(&periode); err != nil {
+		return err
+	}
+	for i, w := range daftar {
+		n := i + 1
+		if w.jurnal != 0 {
+			fmt.Printf("baris %d %s: sudah dicatat jurnal %d, dilewati\n", n, w.nama, w.jurnal)
+			continue
+		}
+		tx, err := db.Begin(ctx)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback(ctx)
+		// Kunci baris. Kalau proses lain sudah mencatatnya sesudah daftar dibaca, baris tidak cocok lagi.
+		var ada int
+		err = tx.QueryRow(ctx, `SELECT 1 FROM baris_pencairan WHERE batch_id = $1 AND buku_id = $2 AND jurnal_id IS NULL FOR UPDATE`,
+			id, w.buku).Scan(&ada)
+		if errors.Is(err, pgx.ErrNoRows) {
+			tx.Rollback(ctx)
+			fmt.Printf("baris %d %s: sudah dicatat proses lain, dilewati\n", n, w.nama)
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		// Kunci buku warung, lalu pastikan saldo masih cukup untuk jumlah yang dibekukan.
+		var saldo int64
+		if _, err := tx.Exec(ctx, `SELECT 1 FROM buku WHERE id = $1 FOR UPDATE`, w.buku); err != nil {
+			return err
+		}
+		if err := tx.QueryRow(ctx, `SELECT coalesce(sum(jumlah), 0) FROM posting WHERE buku_id = $1`, w.buku).Scan(&saldo); err != nil {
+			return err
+		}
+		if saldo < w.jumlah {
+			return fmt.Errorf("saldo %s %s kurang dari baris pencairan %s; batch %d berhenti", w.nama, rp(saldo), rp(w.jumlah), id)
+		}
+		j, err := catatJurnal(ctx, tx, w, periode)
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE baris_pencairan SET jurnal_id = $3 WHERE batch_id = $1 AND buku_id = $2`, id, w.buku, j); err != nil {
+			return err
+		}
+		berhenti(fmt.Sprintf("jurnal:%d", n))
+		if err := tx.Commit(ctx); err != nil {
+			return err
+		}
+		fmt.Printf("baris %d %s %s: jurnal %d COMMIT\n", n, w.nama, rp(w.jumlah), j)
+	}
+	tag, err := db.Exec(ctx, `
+		UPDATE batch_pencairan SET status = 'dijurnal'
+		WHERE id = $1 AND status = 'dibuat'
+		  AND NOT EXISTS (SELECT 1 FROM baris_pencairan WHERE batch_id = $1 AND jurnal_id IS NULL)`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 1 {
+		fmt.Printf("batch %d: dijurnal\n", id)
+	}
+	berhenti("dijurnal")
+	return nil
+}
+
+func buatFile(ctx context.Context, db *pgx.Conn, id int64, periode, dir string, dobel int64) error {
+	tx, err := db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	var status string
+	// Satu pembuat file per batch: proses kedua menunggu di sini, lalu melihat status dikirim.
+	if err := tx.QueryRow(ctx, `SELECT status FROM batch_pencairan WHERE id = $1 FOR UPDATE`, id).Scan(&status); err != nil {
+		return err
+	}
+	if status == "dikirim" {
+		fmt.Println("batch sudah dikirim: tidak ada yang dikerjakan")
+		return nil
+	}
+	if status != "dijurnal" {
+		return fmt.Errorf("batch %d berstatus %s, belum semua baris dijurnal", id, status)
+	}
+	daftar, err := barisBatch(ctx, tx, id)
+	if err != nil {
+		return err
+	}
+	akhir := filepath.Join(dir, "pencairan-"+periode+".csv")
+	sementara := akhir + ".sementara"
+	f, err := os.OpenFile(sementara, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	// encoding/csv memberi tanda kutip bila nama warung berisi koma; Fprintf versi rentan tidak.
+	cw := csv.NewWriter(f)
+	cw.Write(strings.Split(kepala, ","))
+	for _, w := range daftar {
+		r := []string{strconv.FormatInt(w.akun, 10), w.nama, strconv.FormatInt(w.jumlah, 10), "Pencairan Rekeningo " + periode}
+		cw.Write(r)
+		if w.akun == dobel {
+			cw.Write(r) // cacat yang disuntik lab: baris yang sama dua kali, seperti M15
+		}
+	}
+	cw.Flush()
+	if err := cw.Error(); err != nil {
+		return err
+	}
+	if err := f.Sync(); err != nil {
+		return err
+	}
+
+	// rename mengganti file lama dalam satu langkah.
+	if err := os.Rename(sementara, akhir); err != nil {
+		return err
+	}
+	fmt.Printf("file %s dibuat\n", filepath.Base(akhir))
+	berhenti("file")
+	if _, err := tx.Exec(ctx, `UPDATE batch_pencairan SET status = 'dikirim' WHERE id = $1`, id); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	fmt.Printf("batch %d: dikirim\n", id)
+	return nil
 }
 
 // rp menulis rupiah dengan titik ribuan: Rp2.450.000.
