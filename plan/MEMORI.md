@@ -55,7 +55,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-13 · X1 crosscheck penuh Tahap 1 (keputusan 369: temuan hanya masuk ANTREAN bila rusak, aksesibilitas, kontras, atau gerbang gagal; lainnya ke `plan/SETELAH-TAHAP-1.md`). Semua tugas sebelum X1 selesai; semua worktree `../rjt-*` dihapus. X1 dipecah: X1a peta halaman + registry + proposal, X1b tiga skill per halaman, X1c gerbang + tangkapan (satu-satunya yang membangun di folder utama, port 4321). Hasil ke `plan/LAPORAN-TAHAP-1.md`; lalu perbaikan per tugas, X2, berhenti. Catatan pengatur di `tmp/catatan-pengatur.md`.
+2026-10-13 · X1 selesai (keputusan 370, `plan/LAPORAN-TAHAP-1.md`). Berikutnya XF1–XF6 (perbaikan non-polesan dari X1), lalu X2 melengkapi LAPORAN-TAHAP-1 (selesai, Setelah Tahap 1, 10 hal untuk pemilik) dan berhenti: "Tahap 1 selesai, menunggu tinjauan pemilik". Catatan pengatur di `tmp/catatan-pengatur.md`.
 
 ## Pelajaran
 
