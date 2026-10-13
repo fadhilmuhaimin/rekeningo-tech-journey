@@ -1,0 +1,12 @@
+{
+  "format": 1,
+  "tahap": {
+    "1": {
+      "akun": ["B2.1", "t1-fitur-login"],
+      "sesi": ["t1-fitur-login", "B5.1"],
+      "topup": ["t1-fitur-topup"],
+      "transaksi": ["t1-fitur-bayar", "t1-fitur-saldo"],
+      "koreksi": ["t1-adr-transaction"]
+    }
+  }
+}
