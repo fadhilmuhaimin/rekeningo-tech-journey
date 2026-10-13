@@ -51,11 +51,11 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Cloudflare Pages (keputusan 115): butuh API token (Account > Cloudflare Pages > Edit) dan Account ID, lalu `gh secret set CLOUDFLARE_API_TOKEN` dan `gh secret set CLOUDFLARE_ACCOUNT_ID`.
 - Serverpod 4 (1.32): apakah exception buatan sendiri sampai ke tes `withServerpod` dengan tipe aslinya [perlu verifikasi].
 - CI Linux (keputusan 361): `ubuntu-latest` pindah ke 26.04 bertahap 19 Okt–19 Nov 2026 (changelog GitHub 2026-09-17); usul pin `ubuntu-24.04` atau run percobaan 26.04 (tugas G2c). `geometricPrecision` membuat teks di Linux/ChromeOS tanpa hinting (sedikit lebih lembut di layar DPI rendah); biaya di Firefox [perlu verifikasi].
-- Halaman Tahap 1 membuat renderer Chromium headless shell diam total ±0,13% per muat di CI (28 kasus, 0 di halaman lain; keputusan 364). Risiko pembaca di Chrome HP sungguhan belum diketahui; dicari di G2d.
+- Renderer Chromium di CI diam total ±0,13% per muat di halaman Tahap 1 (keputusan 364, 367): mekanismenya di pipeline commit/aktivasi/raster Chromium, 28/31 kasus di enam halaman yang banyak kodenya, juga saat muat tanpa gulir; Xvfb headed ikut, macOS 0/10.080. Risiko di Chrome HP pembaca belum diketahui. Kirim draf laporan bug Chromium (PR #231)?
 
 ## Sedang dikerjakan
 
-2026-10-13 · Lingkup Tahap 1 beku (keputusan 369). Tersisa: P5 (berjalan di `../rjt-halaman`), P6 (#234), P9 (#233), G2d (#231) dalam tinjauan atau CI; lalu hapus semua worktree `../rjt-*`, X1 dan X2 di folder utama, lalu berhenti. Polesan di `plan/SETELAH-TAHAP-1.md`. Catatan pengatur di `tmp/catatan-pengatur.md`.
+2026-10-13 · Lingkup Tahap 1 beku (keputusan 369). Selesai sesudah beku: P6, P9, G2d. Tersisa: P5 (#237) dalam tinjauan; lalu hapus semua worktree `../rjt-*`, X1 dan X2 di folder utama, lalu berhenti. Polesan di `plan/SETELAH-TAHAP-1.md`. Catatan pengatur di `tmp/catatan-pengatur.md`.
 
 ## Pelajaran
 

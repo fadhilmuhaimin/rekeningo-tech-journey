@@ -695,11 +695,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### P6 · Tautan relatif .md yang 404
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: tautan relatif berakhiran `.md` di `situs/src/content/docs/**` (mis. `cerita/index.mdx` `(peta.md)`) diganti `[[ID]]` atau path yang benar; gerbang gagal bila tautan internal di `dist/` menuju halaman yang tidak ada, dengan uji mutasi.
-- catatan: Dari pelaksana P3 (keputusan 310); link checker masih "Belum" di STATUS Fase 0. Jalur teknis-halaman.
+- catatan: Dari pelaksana P3 (keputusan 310); link checker masih "Belum" di STATUS Fase 0. Jalur teknis-halaman. PR #234, keputusan 318; satu putaran.
 
 ### P7 · Ekspor dan impor progres pembaca
 
@@ -722,11 +722,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### P9 · Contoh request 1.5 sesuai rekaman
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: R1
 - selesai bila: tabel request di Paham 1.5 dan data widget `a2-alur.json` memakai body dan response dari `labs/api-t1/output/bayar.txt` B (`"ke"` berupa angka akun, id dari rekaman), bukan `"ke": "warung-ani"` dan `"id": 812`; `ke` berupa teks dijelaskan sebagai 400 sesuai `m2.txt` C bila disebut.
-- catatan: Dari pelaksana dan peninjau R1 (keputusan 311). Jalur teknis-halaman.
+- catatan: Dari pelaksana dan peninjau R1 (keputusan 311). Jalur teknis-halaman. PR #233, keputusan 317; dua putaran (pemetaan $1–$3 per statement).
 
 ### P10 · Sisa CSS lama dan panah Rantai ringkas di HP
 
@@ -740,11 +740,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### G2d · Akar macet renderer di halaman Tahap 1
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: G2b
 - selesai bila: penyebab renderer diam (`pthread_cond_wait`, metrik CDP tak menjawab) yang hanya muncul di halaman `/tahap-1/` di 360×740 dan 375×667 ditemukan lewat varian percobaan (mis. tanpa skrip `Blok.astro`, localStorage diganti stub, tanpa island) ≥ 48 putaran per varian di branch `percobaan/**`, atau tumpukan bersimbol Chromium; bila penyebabnya kode situs, diperbaiki dan `ULANG` di ukur-luapan turun ke 0 dalam ≥ 48 putaran; bila di Chromium headless, bukti dan laporan bug dicatat.
-- catatan: Dari PR #222 (keputusan 364): 27 MACET dalam 240 putaran, semuanya halaman Tahap 1. Bisa jadi risiko pembaca nyata (halaman membeku di HP). Jalur teknis.
+- catatan: Dari PR #222 (keputusan 364): 27 MACET dalam 240 putaran, semuanya halaman Tahap 1. Bisa jadi risiko pembaca nyata (halaman membeku di HP). Jalur teknis. PR #231, keputusan 367; dua putaran (macet saat muat, konsentrasi di enam halaman).
 
 ### X1 · Crosscheck penuh Tahap 1
 
