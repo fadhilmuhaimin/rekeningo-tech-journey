@@ -95,6 +95,94 @@ def s_tanpa_lock(rec, A, B, paksa):
     return dict(A="COMMIT", B="ERROR 23514 saat COMMIT", retry=0)
 
 
+def s_for_update(rec, A, B):
+    """ADR 13 (naskah): kunci baris buku Budi di awal transaction jurnal, lalu baca saldo_cache dari baris itu."""
+    q = f"SELECT saldo_cache FROM buku WHERE id = {B_BUDI} FOR UPDATE"
+    for k in (A, B):
+        k.sql("BEGIN")
+    harap(A.sql(q, simpan=["saldo_dibaca"]).satu(), SALDO_AWAL, "saldo_cache yang dibaca A")
+    harap(B.sql(q, simpan=["saldo_dibaca"]).tunggu, "transactionid", "B menunggu lock baris buku")
+    cek_saldo(rec, A, A.vars["saldo_dibaca"], "saldo_cache")
+    j = tulis_jurnal(A)
+    A.sql(PERBARUI_CACHE.format(j=j))
+    A.sql("COMMIT")
+    r = B.lanjut("lanjut sesudah A COMMIT: FOR UPDATE mengembalikan versi baris terbaru")
+    harap(r.satu(), 30000, "saldo_cache yang dibaca B sesudah menunggu")
+    cek_saldo(rec, B, r.satu(), "saldo_cache")
+    B.sql("ROLLBACK")
+    return dict(A="COMMIT", B="ditolak kode: saldo kurang", retry=0)
+
+
+def s_atomik(rec, A, B):
+    """Cek dan potong saldo_cache dalam satu UPDATE bersyarat, sebelum jurnal ditulis."""
+    def potong(k):
+        x = TRANSFER[k.nama][0]
+        return f"UPDATE buku SET saldo_cache = saldo_cache - {x} WHERE id = {B_BUDI} AND saldo_cache >= {x}"
+    for k in (A, B):
+        k.sql("BEGIN")
+    harap(A.sql(potong(A)).status, "UPDATE 1", "UPDATE A")
+    harap(B.sql(potong(B)).tunggu, "transactionid", "B menunggu lock baris buku")
+    rec.app("A", "1 baris berubah: saldo cukup dan sudah dipotong, lanjut menulis jurnal")
+    tulis_jurnal(A)
+    A.sql(f"UPDATE buku SET saldo_cache = saldo_cache + 70000 WHERE id = {B_CITRA}")
+    A.sql("COMMIT")
+    r = B.lanjut("lanjut sesudah A COMMIT: syarat WHERE dicek ulang ke versi baris terbaru")
+    harap(r.status, "UPDATE 0", "UPDATE B sesudah menunggu")
+    rec.app("B", "0 baris berubah: saldo kurang, transfer ditolak")
+    B.sql("ROLLBACK")
+    return dict(A="COMMIT", B="ditolak kode: saldo kurang", retry=0)
+
+
+def s_optimistic(rec, A, B):
+    """Baca saldo_cache dan versi tanpa lock; simpan hanya bila versi belum berubah, kalau berubah ulangi dari awal."""
+    q = f"SELECT saldo_cache, versi FROM buku WHERE id = {B_BUDI}"
+
+    def simpan(k):
+        x = TRANSFER[k.nama][0]
+        return (f"UPDATE buku SET saldo_cache = {k.vars['saldo_dibaca'] - x}, versi = versi + 1 "
+                f"WHERE id = {B_BUDI} AND versi = {k.vars['versi']}")
+    for k in (A, B):
+        harap(k.sql(q, simpan=["saldo_dibaca", "versi"]).rows, [(SALDO_AWAL, 0)], f"bacaan {k.nama}")
+    for k in (A, B):
+        x = TRANSFER[k.nama][0]
+        rec.app(k.nama, f"saldo_cache {rp(SALDO_AWAL)} >= {rp(x)}, lanjut. Saldo baru {rp(SALDO_AWAL - x)}, "
+                        f"disimpan dengan syarat versi masih 0")
+    A.sql("BEGIN")
+    harap(A.sql(simpan(A)).status, "UPDATE 1", "UPDATE A")
+    B.sql("BEGIN")
+    harap(B.sql(simpan(B)).tunggu, "transactionid", "B menunggu lock baris buku")
+    tulis_jurnal(A)
+    A.sql(f"UPDATE buku SET saldo_cache = saldo_cache + 70000 WHERE id = {B_CITRA}")
+    A.sql("COMMIT")
+    r = B.lanjut("lanjut sesudah A COMMIT: syarat versi = 0 dicek ulang ke versi baris terbaru")
+    harap(r.status, "UPDATE 0", "UPDATE B sesudah menunggu")
+    rec.app("B", "0 baris berubah: versi sudah berubah. Batalkan, lalu ulangi dari membaca (retry 1)")
+    B.sql("ROLLBACK")
+    harap(B.sql(q, simpan=["saldo_dibaca", "versi"]).rows, [(30000, 1)], "bacaan ulang B")
+    cek_saldo(rec, B, B.vars["saldo_dibaca"], "saldo_cache")
+    return dict(A="COMMIT", B="ditolak kode: saldo kurang", retry=1)
+
+
+def s_serializable(rec, A, B):
+    """Kode sama dengan versi tanpa lock, di isolation level SERIALIZABLE, dengan retry untuk SQLSTATE 40001."""
+    for k in (A, B):
+        k.sql("BEGIN ISOLATION LEVEL SERIALIZABLE")
+    for k in (A, B):
+        harap(k.sql(BACA_POSTING, simpan=["saldo_dibaca"]).satu(), SALDO_AWAL, f"saldo yang dibaca {k.nama}")
+    for k in (A, B):
+        cek_saldo(rec, k, k.vars["saldo_dibaca"])
+    for k in (A, B):
+        tulis_jurnal(k)
+    A.sql("COMMIT")
+    B.sql("COMMIT", tolak="40001")
+    rec.app("B", "COMMIT gagal dengan 40001: ulangi seluruh transaction dari awal (retry 1)")
+    B.sql("BEGIN ISOLATION LEVEL SERIALIZABLE")
+    harap(B.sql(BACA_POSTING, simpan=["saldo_dibaca"]).satu(), 30000, "saldo yang dibaca B saat retry")
+    cek_saldo(rec, B, B.vars["saldo_dibaca"])
+    B.sql("ROLLBACK")
+    return dict(A="COMMIT", B="40001 saat COMMIT, retry: saldo kurang", retry=1)
+
+
 # Urutan langkah yang sama untuk semua cara: A dan B sama-sama mulai, lalu statement pertama B yang menyentuh saldo
 # berjalan saat transaction A masih terbuka (keputusan 431).
 CARA = [
@@ -118,6 +206,38 @@ CARA = [
          catatan=[
              "Kode yang sama dengan ledger-tanpa-lock, tanpa alat lab: A COMMIT sebelum B COMMIT.",
              "Pemeriksaan invarian 3 milik B berjalan di dalam COMMIT B dan sudah melihat jurnal A.",
+         ]),
+    dict(id="ledger-for-update", judul="SELECT ... FOR UPDATE", fn=s_for_update,
+         isolation="read committed", final=30000, cache=30000,
+         summary="Hanya A yang COMMIT. B tertahan di SELECT ... FOR UPDATE sampai A COMMIT, lalu membaca saldo_cache "
+                 "terbaru Rp30.000 dan menolak.",
+         catatan=[
+             "Baris buku Budi dikunci di awal transaction jurnal, saldo_cache dibaca dari baris itu, cache diperbarui",
+             "sebelum COMMIT (pola keputusan 402). Invarian 3 tetap diperiksa saat COMMIT sebagai pagar kedua.",
+         ]),
+    dict(id="ledger-atomik", judul="UPDATE atomik bersyarat", fn=s_atomik,
+         isolation="read committed", final=30000, cache=30000,
+         summary="Hanya A yang COMMIT. UPDATE milik B menunggu lock baris buku, lalu syarat saldo_cache >= 50000 dicek "
+                 "ulang ke versi baris terbaru: 0 baris berubah.",
+         catatan=[
+             "Cek dan potong saldo_cache dalam satu UPDATE bersyarat sebelum jurnal ditulis. 0 baris = saldo kurang.",
+         ]),
+    dict(id="ledger-optimistic", judul="Optimistic lock (kolom versi)", fn=s_optimistic,
+         isolation="read committed", final=30000, cache=30000,
+         summary="Hanya A yang COMMIT. UPDATE milik B tetap menunggu lock baris yang sedang ditulis A, lalu gagal "
+                 "karena versi sudah 1. B mengulang sekali dan menolak.",
+         catatan=[
+             "Baca saldo_cache dan versi tanpa lock dan tanpa transaction, hitung saldo baru di kode, lalu simpan dengan",
+             "syarat versi belum berubah. 0 baris = ada transfer lain yang menulis duluan: ulangi dari membaca.",
+             "Tidak ada lock saat membaca. Saat menulis, UPDATE B tetap menunggu row lock A yang belum COMMIT.",
+         ]),
+    dict(id="ledger-serializable", judul="SERIALIZABLE + retry", fn=s_serializable,
+         isolation="serializable", final=30000, cache=100000,
+         summary="Hanya A yang COMMIT. Kodenya sama dengan versi tanpa lock, tapi PostgreSQL membatalkan COMMIT B "
+                 "dengan 40001. B mengulang sekali dan menolak.",
+         catatan=[
+             "Kode yang sama dengan ledger-tanpa-lock (cache tidak disentuh), dijalankan dengan BEGIN ISOLATION LEVEL",
+             "SERIALIZABLE. App mengulang seluruh transaction bila SQLSTATE 40001 (dokumentasi PostgreSQL 17 bagian 13.5).",
          ]),
 ]
 

@@ -1,0 +1,29 @@
+-- Lab b3-race (ledger) · SERIALIZABLE + retry
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_race · isolation serializable
+-- Saldo Budi 100000. A (HP) transfer 70000 ke Citra, B (tablet) transfer 50000 ke Dimas.
+-- Rekaman dari database bersih: make -C labs/b3-race run-ledger (keputusan 430).
+-- [lock: ...] = pemegang row lock di baris buku Budi dan modenya (pgrowlocks).
+--
+-- Kode yang sama dengan ledger-tanpa-lock (cache tidak disentuh), dijalankan dengan BEGIN ISOLATION LEVEL
+-- SERIALIZABLE. App mengulang seluruh transaction bila SQLSTATE 40001 (dokumentasi PostgreSQL 17 bagian 13.5).
+
+ 1 [A] BEGIN ISOLATION LEVEL SERIALIZABLE  -> BEGIN
+ 2 [B] BEGIN ISOLATION LEVEL SERIALIZABLE  -> BEGIN
+ 3 [A] SELECT sum(jumlah) AS saldo FROM posting WHERE buku_id = 2  -> 100000
+ 4 [B] SELECT sum(jumlah) AS saldo FROM posting WHERE buku_id = 2  -> 100000
+ 5 [A] (saldo Rp100.000 >= Rp70.000, lanjut menulis jurnal)
+ 6 [B] (saldo Rp100.000 >= Rp50.000, lanjut menulis jurnal)
+ 7 [A] INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id  -> 2
+ 8 [A] INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000)  -> INSERT 0 2   [lock: A (For Key Share)]
+ 9 [B] INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Dimas', 419) RETURNING id  -> 3   [lock: A (For Key Share)]
+10 [B] INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 2, -50000), (3, 4, 50000)  -> INSERT 0 2   [lock: A,B (For Key Share)]
+11 [A] COMMIT  -> COMMIT   [lock: B (For Key Share)]   [saldo COMMIT 30000]
+12 [B] COMMIT  -> ERROR 40001 serialization_failure: could not serialize access due to read/write dependencies among transactions
+13 [B] (COMMIT gagal dengan 40001: ulangi seluruh transaction dari awal (retry 1))
+14 [B] BEGIN ISOLATION LEVEL SERIALIZABLE  -> BEGIN
+15 [B] SELECT sum(jumlah) AS saldo FROM posting WHERE buku_id = 2  -> 30000
+16 [B] (saldo Rp30.000 < Rp50.000: saldo kurang, transfer ditolak)
+17 [B] ROLLBACK  -> ROLLBACK
+
+-- akhir: A COMMIT; B 40001 saat COMMIT, retry: saldo kurang; menunggu lock 0; retry 1
+-- saldo Budi (jumlah posting) 30000; saldo_cache 100000; jurnal transfer 1
