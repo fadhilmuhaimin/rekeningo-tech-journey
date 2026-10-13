@@ -1,0 +1,88 @@
+# Lab api-t2 · tutup buku bulanan dan jurnal yang terlambat COMMIT
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap2 · server Go di 127.0.0.1:18093
+# Rekaman dari database bersih: make -C labs/api-t2 run (keputusan 408).
+# server: ./api-t2
+
+# --- A. Tutup buku bulan berjalan (PRD v2, P0): per buku dan seluruh sistem, dari posting ---
+# Seluruh lab berjalan di bulan ini, jadi saldo awal 0 dan jurnal pembuka migrasi masuk sebagai mutasi
+$ curl -i -X GET '/tutup-buku?periode=<bulan ini>' -H 'Authorization: Bearer <token sesi admin>'   # body 1016 buku, diringkas run.py
+HTTP/1.1 200 OK
+buku: 1016, awal + masuk - keluar = akhir = saldo_cache: 1016, tidak cocok: 0
+sistem: {"jurnal": 1122, "jurnal_tidak_seimbang": 0, "jumlah_semua_posting": 0, "jumlah_semua_saldo_akhir": 0}
+     jenis     | buku | saldo_awal |   masuk   |   keluar  | saldo_akhir
+---------------+------+------------+-----------+-----------+-------------
+ karyawan      | 1000 |          0 | 276015000 |   1405000 |   274610000
+ kas_pencairan |    1 |          0 |         0 |         0 |           0
+ pembuka       |    1 |          0 |         0 |  25000000 |   -25000000
+ selisih       |    1 |          0 |     70000 |     70000 |           0
+ tunjangan     |    1 |          0 |         0 | 250000000 |  -250000000
+ warung        |   12 |          0 |    405000 |     15000 |      390000
+(6 rows)
+     nama    | saldo_awal |  masuk  | keluar | saldo_akhir | saldo_cache
+-------------+------------+---------+--------+-------------+-------------
+ Budi        |          0 | 1020000 | 610000 |      410000 |      410000
+ Citra       |          0 |  750000 | 500000 |      250000 |      250000
+ Warung Ani  |          0 |  310000 |      0 |      310000 |      310000
+ Warung Sari |          0 |   95000 |  15000 |       80000 |       80000
+(4 rows)
+
+# --- B. Yang ditolak ---
+$ curl -i -X GET '/tutup-buku?periode=<bulan ini>' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/dilarang","title":"Hanya admin yang boleh membuka tutup buku","status":403}
+$ curl -i -X GET '/tutup-buku?periode=Oktober' -H 'Authorization: Bearer <token sesi admin>'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"periode","pesan":"bulan dengan format YYYY-MM"}]}
+
+# --- C. Jurnal yang COMMIT sesudah laporan bisa membawa waktu sebelum laporan (keputusan 407) ---
+# Transaction [A] menulis jurnal top-up lalu belum COMMIT; laporan dibuat; lalu [A] COMMIT
+[A] => BEGIN; INSERT INTO jurnal ... ('topup', 'Top-up susulan', 400); INSERT INTO posting ... (-1000, +1000); UPDATE buku ... saldo_cache;
+$ curl -i -X GET '/tutup-buku?periode=<bulan ini>' -H 'Authorization: Bearer <token sesi admin>'   # body 1016 buku, diringkas run.py
+HTTP/1.1 200 OK
+buku: 1016, awal + masuk - keluar = akhir = saldo_cache: 1016, tidak cocok: 0
+sistem: {"jurnal": 1122, "jurnal_tidak_seimbang": 0, "jumlah_semua_posting": 0, "jumlah_semua_saldo_akhir": 0}
+     jenis     | buku | saldo_awal |   masuk   |   keluar  | saldo_akhir
+---------------+------+------------+-----------+-----------+-------------
+ karyawan      | 1000 |          0 | 276015000 |   1405000 |   274610000
+ kas_pencairan |    1 |          0 |         0 |         0 |           0
+ pembuka       |    1 |          0 |         0 |  25000000 |   -25000000
+ selisih       |    1 |          0 |     70000 |     70000 |           0
+ tunjangan     |    1 |          0 |         0 | 250000000 |  -250000000
+ warung        |   12 |          0 |    405000 |     15000 |      390000
+(6 rows)
+     nama    | saldo_awal |  masuk  | keluar | saldo_akhir | saldo_cache
+-------------+------------+---------+--------+-------------+-------------
+ Budi        |          0 | 1020000 | 610000 |      410000 |      410000
+ Citra       |          0 |  750000 | 500000 |      250000 |      250000
+ Warung Ani  |          0 |  310000 |      0 |      310000 |      310000
+ Warung Sari |          0 |   95000 |  15000 |       80000 |       80000
+(4 rows)
+[A] => COMMIT;
+=> SELECT count(*) FROM jurnal WHERE dibuat < <waktu laporan>;   -- sesudah [A] COMMIT
+jurnal: 1123 (laporan menghitung 1122); jurnal [A] dibuat sebelum laporan: t
+# dibuat = now() = awal transaction [A]. Laporan untuk periode yang sudah ditutup bisa berubah sesudahnya
+# bila ada transaction yang terbuka saat penutupan; tutup buku perlu menunggu transaction itu (lihat KEPUTUSAN 415).
+$ curl -i -X GET '/tutup-buku?periode=<bulan ini>' -H 'Authorization: Bearer <token sesi admin>'   # body 1016 buku, diringkas run.py
+HTTP/1.1 200 OK
+buku: 1016, awal + masuk - keluar = akhir = saldo_cache: 1016, tidak cocok: 0
+sistem: {"jurnal": 1123, "jurnal_tidak_seimbang": 0, "jumlah_semua_posting": 0, "jumlah_semua_saldo_akhir": 0}
+     jenis     | buku | saldo_awal |   masuk   |   keluar  | saldo_akhir
+---------------+------+------------+-----------+-----------+-------------
+ karyawan      | 1000 |          0 | 276016000 |   1405000 |   274611000
+ kas_pencairan |    1 |          0 |         0 |         0 |           0
+ pembuka       |    1 |          0 |         0 |  25000000 |   -25000000
+ selisih       |    1 |          0 |     70000 |     70000 |           0
+ tunjangan     |    1 |          0 |         0 | 250001000 |  -250001000
+ warung        |   12 |          0 |    405000 |     15000 |      390000
+(6 rows)
+     nama    | saldo_awal |  masuk  | keluar | saldo_akhir | saldo_cache
+-------------+------------+---------+--------+-------------+-------------
+ Budi        |          0 | 1021000 | 610000 |      411000 |      411000
+ Citra       |          0 |  750000 | 500000 |      250000 |      250000
+ Warung Ani  |          0 |  310000 |      0 |      310000 |      310000
+ Warung Sari |          0 |   95000 |  15000 |       80000 |       80000
+(4 rows)

@@ -1,0 +1,66 @@
+# Lab api-t2 · top-up CSV 1.000 akun dalam satu transaction
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap2 · server Go di 127.0.0.1:18093
+# Rekaman dari database bersih: make -C labs/api-t2 run (keputusan 408).
+# server: ./api-t2
+
+# --- A. Senin minggu 1 Tahap 2: satu file HR, 1.000 akun x Rp250.000, satu transaction ---
+=> SELECT count(*) AS jurnal, (SELECT saldo_cache FROM buku WHERE jenis = 'tunjangan') AS tunjangan FROM jurnal
+ jurnal | tunjangan
+--------+-----------
+    108 |         0
+(1 row)
+$ curl -i -X POST '/topup?keterangan=Tunjangan%20makan%20minggu%201%20Tahap%202' -H 'Authorization: Bearer <token sesi admin>' -H 'Content-Type: text/csv' -d 'nomor_karyawan,nominal\nK00401,250000\n ... (1.000 baris)'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"akun":1000,"total":250000000}
+=> SELECT count(*) AS jurnal_topup, sum(p.jumlah) FILTER (WHERE p.jumlah > 0) AS masuk, sum(p.jumlah) AS jumlah_posting FROM jurnal j JOIN posting p ON p.jurnal_id = j.id WHERE j.jenis = 'topup'
+ jurnal_topup |   masuk   | jumlah_posting
+--------------+-----------+----------------
+         2000 | 250000000 |              0
+(1 row)
+=> SELECT b.jenis, a.nama, b.saldo_cache FROM buku b LEFT JOIN akun a ON a.id = b.akun_id WHERE b.jenis = 'tunjangan' OR b.akun_id IN (419, 504) ORDER BY b.id
+   jenis   |  nama | saldo_cache
+-----------+-------+-------------
+ tunjangan |       |  -250000000
+ karyawan  | Budi  |      430000
+ karyawan  | Citra |      250000
+(3 rows)
+
+# --- B. File dengan satu baris salah (baris 735 memakai titik ribuan): seluruh file ditolak ---
+=> SELECT count(*) AS jurnal, (SELECT saldo_cache FROM buku WHERE jenis = 'tunjangan') AS tunjangan FROM jurnal
+ jurnal | tunjangan
+--------+------------
+   1108 | -250000000
+(1 row)
+$ curl -i -X POST '/topup?keterangan=Tunjangan%20makan%20minggu%202%20Tahap%202' -H 'Authorization: Bearer <token sesi admin>' -H 'Content-Type: text/csv' -d 'nomor_karyawan,nominal\n ... \nK01146,250.000\n ... (1.000 baris)'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/csv-ditolak","title":"CSV ditolak; tidak ada saldo yang berubah","status":422,"errors":[{"baris":735,"field":"nominal","pesan":"harus angka rupiah tanpa titik"}]}
+=> SELECT count(*) AS jurnal, (SELECT saldo_cache FROM buku WHERE jenis = 'tunjangan') AS tunjangan FROM jurnal
+ jurnal | tunjangan
+--------+------------
+   1108 | -250000000
+(1 row)
+
+# --- C. Nomor yang sama dua kali, nomor warung, nomor tidak terdaftar ---
+$ curl -i -X POST '/topup?keterangan=Tunjangan%20makan%20minggu%202%20Tahap%202' -H 'Authorization: Bearer <token sesi admin>' -H 'Content-Type: text/csv' -d 'nomor_karyawan,nominal
+K00419,250000
+K00504,250000
+K00419,250000
+K09999,250000
+'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/csv-ditolak","title":"CSV ditolak; tidak ada saldo yang berubah","status":422,"errors":[{"baris":4,"field":"nomor_karyawan","pesan":"sudah ada di baris 2"},{"baris":5,"field":"nomor_karyawan","pesan":"tidak terdaftar"}]}
+
+# Karyawan mencoba top-up
+$ curl -i -X POST '/topup?keterangan=coba' -H 'Authorization: Bearer <token sesi Budi>' -H 'Content-Type: text/csv' -d 'nomor_karyawan,nominal
+K00419,1000
+'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/dilarang","title":"Hanya admin tunjangan yang boleh top-up","status":403}
