@@ -1,0 +1,33 @@
+-- Lab b3-race (ledger) · Tanpa lock
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_race · isolation read committed
+-- Saldo Budi 100000. A (HP) transfer 70000 ke Citra, B (tablet) transfer 50000 ke Dimas.
+-- Rekaman dari database bersih: make -C labs/b3-race run-ledger (keputusan 430).
+-- [lock: ...] = pemegang row lock di baris buku Budi dan modenya (pgrowlocks).
+--
+-- Kode transfer sebelum M9: baca jumlah posting, cek saldo di kode, tulis jurnal. Tanpa lock; saldo_cache tidak
+-- disentuh (dicek ulang tiap malam). Invarian 3 (labs/b3-ledger/schema.sql) diperiksa saat COMMIT tanpa lock.
+-- SET CONSTRAINTS ALL IMMEDIATE adalah alat lab: pemeriksaan yang sama dijalankan sekarang supaya urutannya bisa
+-- diulang. Di produksi urutan ini terjadi saat dua COMMIT tiba hampir bersamaan: di dalam COMMIT, PostgreSQL
+-- menjalankan trigger deferred, lalu menulis WAL, baru transaction terlihat (xact.c CommitTransaction:
+-- AfterTriggerFireDeferred, RecordTransactionCommit, ProcArrayEndTransaction). Pemeriksaan B bisa berjalan
+-- di celah itu. labs/b3-ledger/output/batas.txt 2b: muncul tanpa SET CONSTRAINTS (keputusan 403).
+
+ 1 [A] BEGIN  -> BEGIN
+ 2 [B] BEGIN  -> BEGIN
+ 3 [A] SELECT sum(jumlah) AS saldo FROM posting WHERE buku_id = 2  -> 100000
+ 4 [B] SELECT sum(jumlah) AS saldo FROM posting WHERE buku_id = 2  -> 100000
+ 5 [A] (saldo Rp100.000 >= Rp70.000, lanjut menulis jurnal)
+ 6 [B] (saldo Rp100.000 >= Rp50.000, lanjut menulis jurnal)
+ 7 [A] INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id  -> 2
+ 8 [A] INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000)  -> INSERT 0 2   [lock: A (For Key Share)]
+ 9 [B] INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Dimas', 419) RETURNING id  -> 3   [lock: A (For Key Share)]
+10 [B] INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 2, -50000), (3, 4, 50000)  -> INSERT 0 2   [lock: A,B (For Key Share)]
+11 [A] SET CONSTRAINTS ALL IMMEDIATE  -> SET CONSTRAINTS   [lock: A,B (For Key Share)]
+         -- alat lab: pemeriksaan invarian 3 dijalankan sekarang, bukan di dalam COMMIT (lihat kepala rekaman)
+12 [B] SET CONSTRAINTS ALL IMMEDIATE  -> SET CONSTRAINTS   [lock: A,B (For Key Share)]
+         -- alat lab: pemeriksaan invarian 3 dijalankan sekarang, bukan di dalam COMMIT (lihat kepala rekaman); jurnal A belum COMMIT, jadi tidak terlihat
+13 [A] COMMIT  -> COMMIT   [lock: B (For Key Share)]   [saldo COMMIT 30000]
+14 [B] COMMIT  -> COMMIT   [saldo COMMIT -20000]
+
+-- akhir: A COMMIT; B COMMIT; menunggu lock 0; retry 0
+-- saldo Budi (jumlah posting) -20000; saldo_cache 100000; jurnal transfer 2

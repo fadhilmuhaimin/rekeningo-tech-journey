@@ -1,0 +1,25 @@
+-- Lab b3-race (ledger) · Tanpa lock, COMMIT bergantian
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_race · isolation read committed
+-- Saldo Budi 100000. A (HP) transfer 70000 ke Citra, B (tablet) transfer 50000 ke Dimas.
+-- Rekaman dari database bersih: make -C labs/b3-race run-ledger (keputusan 430).
+-- [lock: ...] = pemegang row lock di baris buku Budi dan modenya (pgrowlocks).
+--
+-- Kode yang sama dengan ledger-tanpa-lock, tanpa alat lab: A COMMIT sebelum B COMMIT.
+-- Pemeriksaan invarian 3 milik B berjalan di dalam COMMIT B dan sudah melihat jurnal A.
+
+ 1 [A] BEGIN  -> BEGIN
+ 2 [B] BEGIN  -> BEGIN
+ 3 [A] SELECT sum(jumlah) AS saldo FROM posting WHERE buku_id = 2  -> 100000
+ 4 [B] SELECT sum(jumlah) AS saldo FROM posting WHERE buku_id = 2  -> 100000
+ 5 [A] (saldo Rp100.000 >= Rp70.000, lanjut menulis jurnal)
+ 6 [B] (saldo Rp100.000 >= Rp50.000, lanjut menulis jurnal)
+ 7 [A] INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id  -> 2
+ 8 [A] INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000)  -> INSERT 0 2   [lock: A (For Key Share)]
+ 9 [B] INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Dimas', 419) RETURNING id  -> 3   [lock: A (For Key Share)]
+10 [B] INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 2, -50000), (3, 4, 50000)  -> INSERT 0 2   [lock: A,B (For Key Share)]
+11 [A] COMMIT  -> COMMIT   [lock: B (For Key Share)]   [saldo COMMIT 30000]
+12 [B] COMMIT  -> ERROR 23514 check_violation: saldo buku 2 (karyawan) jadi -20000 sesudah jurnal 3
+         -- pemeriksaan invarian 3 milik B sudah melihat jurnal A yang COMMIT lebih dulu
+
+-- akhir: A COMMIT; B ERROR 23514 saat COMMIT; menunggu lock 0; retry 0
+-- saldo Budi (jumlah posting) 30000; saldo_cache 100000; jurnal transfer 1
