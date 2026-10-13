@@ -101,7 +101,9 @@ class Klien:
     def sql(self, q, simpan=(), tolak=None, note=""):
         """Jalankan q. tolak = SQLSTATE yang harus muncul. Statement yang tertahan lock dicatat sebagai MENUNGGU."""
         kotak = {}
-        t = threading.Thread(target=self._kerja, args=(q, kotak))
+        # daemon: bila lab gagal saat statement lain masih menunggu lock, proses tetap keluar (exit 1). Thread biasa
+        # ditunggu Python saat keluar, padahal lock-nya dipegang koneksi yang belum ditutup: lab macet, bukan gagal.
+        t = threading.Thread(target=self._kerja, args=(q, kotak), daemon=True)
         t.start()
         t.join(0.3)
         if t.is_alive():
