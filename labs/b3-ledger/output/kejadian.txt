@@ -1,0 +1,177 @@
+-- Lab b3-ledger · lima kejadian sebagai posting, saldo, dan jejak
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_ledger · isolation read committed
+-- Rekaman dari database bersih: make -C labs/b3-ledger run (keputusan 400).
+
+# --- A. Akun baru Tahap 2: Citra (data lab), lalu semua buku ---
+=> INSERT INTO akun (id, nama, email, peran) VALUES (504, 'Citra', 'citra@lestari.example', 'karyawan');
+INSERT 0 1
+=> INSERT INTO buku (akun_id, jenis, batas_harian) VALUES (504, 'karyawan', 500000) RETURNING id;
+ id
+----
+  9
+(1 row)
+=> SELECT b.id AS buku, b.jenis, a.nama, b.saldo_cache FROM buku b LEFT JOIN akun a ON a.id = b.akun_id ORDER BY b.id;
+ buku |     jenis     |     nama    | saldo_cache
+------+---------------+-------------+-------------
+    1 | tunjangan     |             |           0
+    2 | kas_pencairan |             |           0
+    3 | pembuka       |             |     -500000
+    4 | selisih       |             |           0
+    5 | karyawan      | Dimas       |       35000
+    6 | warung        | Warung Ani  |      285000
+    7 | karyawan      | Budi        |      180000
+    8 | warung        | Warung Sari |           0
+    9 | karyawan      | Citra       |           0
+(9 rows)
+
+# --- B. Lima kejadian naskah bagian 3: satu kejadian = satu transaction ---
+-- saldo_cache diperbarui di transaction yang sama, dari posting jurnal itu sendiri (keputusan 402).
+
+-- 1. Top-up Rp250.000 ke Budi: buku 1 tunjangan -250.000, buku 7 Budi +250.000
+=> BEGIN;
+BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('topup', 'Tunjangan makan minggu 1 Tahap 2', 400) RETURNING id;
+ id
+----
+  6
+(1 row)
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (6, 1, -250000), (6, 7, 250000);
+INSERT 0 2
+=> UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+   FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 6 GROUP BY buku_id) p
+   WHERE b.id = p.buku_id;
+UPDATE 2
+=> COMMIT;
+COMMIT
+
+-- 2. Budi bayar Rp25.000 ke Warung Ani: buku 7 Budi -25.000, buku 6 Warung Ani +25.000
+=> BEGIN;
+BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('bayar', 'Bayar makan siang di Warung Ani', 419) RETURNING id;
+ id
+----
+  7
+(1 row)
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (7, 7, -25000), (7, 6, 25000);
+INSERT 0 2
+=> UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+   FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 7 GROUP BY buku_id) p
+   WHERE b.id = p.buku_id;
+UPDATE 2
+=> COMMIT;
+COMMIT
+
+-- 3. Budi transfer Rp20.000 ke Citra: buku 7 Budi -20.000, buku 9 Citra +20.000
+=> BEGIN;
+BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Patungan makan siang ke Citra', 419) RETURNING id;
+ id
+----
+  8
+(1 row)
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (8, 7, -20000), (8, 9, 20000);
+INSERT 0 2
+=> UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+   FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 8 GROUP BY buku_id) p
+   WHERE b.id = p.buku_id;
+UPDATE 2
+=> COMMIT;
+COMMIT
+
+-- 4. Pencairan Jumat Rp310.000 (seluruh saldo Warung Ani): buku 6 -310.000, buku 2 kas pencairan +310.000
+=> BEGIN;
+BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('pencairan', 'Pencairan Jumat 15.00 Warung Ani', 1) RETURNING id;
+ id
+----
+  9
+(1 row)
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (9, 6, -310000), (9, 2, 310000);
+INSERT 0 2
+=> UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+   FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 9 GROUP BY buku_id) p
+   WHERE b.id = p.buku_id;
+UPDATE 2
+=> COMMIT;
+COMMIT
+
+-- 5a. Salah bayar (data lab): Budi menekan Bayar ke Warung Sari, buku 7 -15.000, buku 8 +15.000
+=> BEGIN;
+BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('bayar', 'Bayar makan siang di Warung Sari', 419) RETURNING id;
+ id
+----
+ 10
+(1 row)
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (10, 7, -15000), (10, 8, 15000);
+INSERT 0 2
+=> UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+   FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 10 GROUP BY buku_id) p
+   WHERE b.id = p.buku_id;
+UPDATE 2
+=> COMMIT;
+COMMIT
+
+-- 5b. Admin membalik jurnal 10: posting cermin, alasan, dan rujukan ke jurnal asal
+=> BEGIN;
+BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, membalik_jurnal_id, dibuat_oleh) VALUES ('pembalik', 'Salah bayar: Budi menekan Bayar ke Warung Sari, padahal makan siangnya sudah dibayar ke Warung Ani (jurnal 7)', 10, 400) RETURNING id;
+ id
+----
+ 11
+(1 row)
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (11, 8, -15000), (11, 7, 15000);
+INSERT 0 2
+=> UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+   FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 11 GROUP BY buku_id) p
+   WHERE b.id = p.buku_id;
+UPDATE 2
+=> COMMIT;
+COMMIT
+
+# --- C. Saldo = jumlah posting, dan cocok dengan saldo_cache ---
+=> SELECT b.id AS buku, b.jenis, a.nama, coalesce(sum(p.jumlah), 0) AS saldo, b.saldo_cache,
+          coalesce(sum(p.jumlah), 0) = b.saldo_cache AS cocok
+   FROM buku b LEFT JOIN akun a ON a.id = b.akun_id LEFT JOIN posting p ON p.buku_id = b.id
+   GROUP BY b.id, a.nama ORDER BY b.id;
+ buku |     jenis     |     nama    |  saldo  | saldo_cache | cocok
+------+---------------+-------------+---------+-------------+-------
+    1 | tunjangan     |             | -250000 |     -250000 | t
+    2 | kas_pencairan |             |  310000 |      310000 | t
+    3 | pembuka       |             | -500000 |     -500000 | t
+    4 | selisih       |             |       0 |           0 | t
+    5 | karyawan      | Dimas       |   35000 |       35000 | t
+    6 | warung        | Warung Ani  |       0 |           0 | t
+    7 | karyawan      | Budi        |  385000 |      385000 | t
+    8 | warung        | Warung Sari |       0 |           0 | t
+    9 | karyawan      | Citra       |   20000 |       20000 | t
+(9 rows)
+=> SELECT sum(jumlah) AS jumlah_semua_posting FROM posting;
+ jumlah_semua_posting
+----------------------
+                    0
+(1 row)
+
+# --- D. Jejak: kejadian apa saja yang membuat saldo Budi jadi Rp385.000 (satu query) ---
+=> SELECT p.jurnal_id AS jurnal, j.jenis, p.jumlah,
+          sum(p.jumlah) OVER (ORDER BY p.dibuat, p.id) AS saldo,
+          (SELECT string_agg(coalesce(a2.nama, b2.jenis), ', ')
+             FROM posting p2 JOIN buku b2 ON b2.id = p2.buku_id LEFT JOIN akun a2 ON a2.id = b2.akun_id
+            WHERE p2.jurnal_id = p.jurnal_id AND p2.buku_id <> p.buku_id) AS lawan,
+          j.membalik_jurnal_id AS membalik, j.keterangan
+   FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+   WHERE p.buku_id = (SELECT id FROM buku WHERE akun_id = 419)
+   ORDER BY p.dibuat, p.id;
+ jurnal |  jenis   | jumlah | saldo  |    lawan    | membalik |                                                               keterangan
+--------+----------+--------+--------+-------------+----------+---------------------------------------------------------------------------------------------------------------------------------------
+      3 | pembuka  | 180000 | 180000 | pembuka     |          | Saldo awal Budi per tanggal migrasi, dari kolom saldo v1
+      4 | selisih  | -70000 | 110000 | selisih     |          | Perubahan saldo Budi yang tidak punya baris di v1; dibalik oleh koreksi v1 #1
+      5 | pembalik |  70000 | 180000 | selisih     |        4 | Koreksi v1 #1: Pembayaran Budi ke Warung Ani, Jumat minggu 3 pukul 12.15, gagal di tengah; saldo terpotong tanpa baris transaksi (M4)
+      6 | topup    | 250000 | 430000 | tunjangan   |          | Tunjangan makan minggu 1 Tahap 2
+      7 | bayar    | -25000 | 405000 | Warung Ani  |          | Bayar makan siang di Warung Ani
+      8 | transfer | -20000 | 385000 | Citra       |          | Patungan makan siang ke Citra
+     10 | bayar    | -15000 | 370000 | Warung Sari |          | Bayar makan siang di Warung Sari
+     11 | pembalik |  15000 | 385000 | Warung Sari |       10 | Salah bayar: Budi menekan Bayar ke Warung Sari, padahal makan siangnya sudah dibayar ke Warung Ani (jurnal 7)
+(8 rows)
+-- Jurnal 3-5 dibuat dalam satu transaction migrasi (nilai dibuat sama). Saldo antara Rp110.000 hanya urutan
+-- baris di dalam transaction itu, bukan saldo yang pernah dilihat Budi. Riwayat sebelum migrasi tetap di tabel v1.
