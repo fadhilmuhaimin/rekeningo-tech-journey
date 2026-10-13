@@ -843,16 +843,16 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 ### T2-registry · Registry 33 halaman Tahap 2, yang belum ditulis tampil segera
 
 - jenis: interaksi
-- status: dikerjakan
+- status: selesai
 - percobaan: 0
 - bergantung: T2-naskah
 - selesai bila: `situs/data/cerita.json` memuat 2.1–2.33 dengan judul, jenis, bagian, ★, peran (naskah "Jalur per peran"), prasyarat, dan lab sesuai peta halaman Tahap 2; halaman yang belum ditulis tampil "segera" di sidebar, peta, breadcrumb, dan Berikutnya, bukan tautan 404; halaman Tahap 2 lama tetap ada sampai digantikan, ditandai "versi lama", dan nomor lamanya tidak bertabrakan dengan 2.1–2.33; Tahap 1 tidak berubah; `sinkron_cerita.py`, `cek_tautan.py`, dan gerbang lolos.
-- catatan: Jalur teknis. Naskah bagian "Prompt untuk Claude Code" butir 3.
+- catatan: Jalur teknis. PR #258, keputusan 450: delapan halaman lama mengambil slot naskah dengan `lama: true` (B3.2→2.11, B3.3→2.12, E3→2.14, B2.4→2.16, B2.3→2.17, B1.3→2.19, E5→2.20, B4.2→2.22), T2 diganti 2.1; 25 halaman "segera" tanpa href (`rute-segera.ts`), Berikutnya melompatinya; Vitest mencocokkan registry dengan peta naskah. Tahap 1 berubah hanya di 17 rujukan nomor di 9 halaman. Peninjau: lolos tanpa perbaikan.
 
 ### I6-erd · Widget ERD bertumbuh
 
 - jenis: interaksi
-- status: antre
+- status: dikerjakan
 - percobaan: 0
 - bergantung: ERD1
 - selesai bila: Komponen React di atas `@xyflow/react` dengan data `situs/data/erd/*.json` divalidasi Zod; satu tabel = satu node (nama, kolom; PK, FK, UNIQUE, CHECK ditandai teks, bukan hanya warna), relasi sebagai edge FK; pemilih tahap dan mode bandingkan dua tahap berdampingan; warna dari token (baru, berubah, tetap), tabel dihapus putus-putus dengan keterangan ke mana isinya pindah; klik atau keyboard pada tabel membuka kolom lengkap dan tautan halaman dari registry; versi statis untuk pembaca layar dan tanpa JavaScript; dimuat hanya di halaman yang memakainya; scroll halaman tidak tertangkap di 375×667; reduced motion tanpa gerak; axe 0; diuji di `/uji/erd/` dengan data Tahap 1 dan data uji Tahap 2 (data nyata sesudah ERD2).
@@ -870,11 +870,11 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 ### lab-api-t2 · Lab api-t2: api-t1 naik ke ledger
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-b3-ledger
 - selesai bila: `labs/api-t2` (Go, schema sendiri) berangkat dari api-t1 dan naik ke ledger lewat expand → migrate → contract (naskah bagian 3 "Migrasi"): kolom saldo jadi `buku.saldo_cache` yang dicek ulang terhadap jumlah posting, tabel koreksi jadi jurnal pembalik, app versi lama tetap jalan di tiap langkah (direkam); endpoint transfer antar karyawan lewat nomor karyawan dengan batas Rp500.000 per hari dan buku dikunci di dalam transaction jurnal, bayar, top-up CSV 1.000 akun dalam satu transaction (satu baris salah = seluruh file ditolak), riwayat dengan kursor `(dibuat, id)`, tutup buku bulanan; tes Go untuk aturan uang; rekaman `output/*.txt` dari database bersih, diulang identik; kontrak OpenAPI v2 bila endpoint berubah.
-- catatan: Jalur lab. Dipakai 2.3, 2.9, 2.23, 2.24. Mode rentan per masalah (M9, M10, M11, M12, M14, M16) tidak wajib di sini; lab masalahnya atau tugas `<halaman>-lab` boleh menambahnya.
+- catatan: Jalur lab. PR #256, keputusan 408–418: expand (000009–000011, server v1 tetap jalan), migrate in-place satu transaction dengan LOCK tabel v1 dan hak akses app di transaction yang sama (417), contract membuang `akun.saldo` dan tabel v1 sesudah disalin ke `tahap2_arsip`; 8 tabel naskah 3b ada, idempotency/pencairan/login belum berperilaku (410); role `api_t2` hanya UPDATE `buku (saldo_cache, versi)`; buku dikunci `ORDER BY id FOR UPDATE`; top-up > 1 MiB 413 (418); `go test` 12 di PostgreSQL. Peninjau memperbaiki 417 dan 418.
 
 ### ERD2 · ERD Tahap 2 dari api-t2 dan selisihnya
 
@@ -888,38 +888,38 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 ### lab-b3-race · Lab b3-race ke ledger: M9 dan empat cara mengunci
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-b3-ledger
 - selesai bila: `labs/b3-race` ditulis ulang ke ledger untuk M9: dua transfer bersamaan dari buku Budi (saldo Rp100.000; Rp70.000 dan Rp50.000) di dua koneksi; versi rentan (baca jumlah posting lalu tulis jurnal tanpa lock) merekam apa yang benar-benar terjadi, termasuk saldo −Rp20.000 bila pemeriksaan saldo bisa dilewati; empat cara direkam dan dibandingkan (`SELECT … FOR UPDATE` pada buku, UPDATE atomik bersyarat, optimistic lock `versi`, SERIALIZABLE + retry) dengan status, jumlah retry, dan saldo akhir; replay untuk widget race tetap jalan; rekaman dari database bersih, diulang identik.
-- catatan: Jalur lab. Dipakai 2.10, 2.11.
+- catatan: Jalur lab. PR #257, keputusan 430–434: `run_ledger.py` + `rekam.py`, rekaman `output/ledger/`, target `run-ledger`/`cek-ledger`; rentan dua urutan (−Rp20.000 lewat `SET CONSTRAINTS ALL IMMEDIATE` sebagai alat lab; COMMIT bergantian B 23514); empat cara berakhir Rp30.000 satu jurnal; enam replay `ledger-<cara>.json` belum dipasang. Peninjau: thread statement daemon supaya lab gagal keras, tidak macet (434).
 
 ### lab-b3-isolasi · Lab b3-isolasi ke ledger
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-b3-ledger
 - selesai bila: `labs/b3-isolasi` ditulis ulang ke ledger untuk 2.12: anomali yang benar-benar terjadi di PostgreSQL per isolation level (READ COMMITTED, REPEATABLE READ, SERIALIZABLE) pada skenario Rekeningo (mis. laporan tutup buku yang membaca saat jurnal masuk, dua transfer) dengan SQLSTATE 40001 dan retry; klaim tiap level dicek ke dokumentasi PostgreSQL; rekaman dari database bersih, diulang identik.
-- catatan: Jalur lab. Dipakai 2.12.
+- catatan: Jalur lab. PR #259, keputusan 440–447: `ledger.py`, rekaman `output/ledger/`, `run-ledger`/`cek-ledger`; laporan tutup buku dua statement salah di READ COMMITTED dan seimbang di REPEATABLE READ/SERIALIZABLE; tanpa lock buku, REPEATABLE READ lebih lemah dari READ COMMITTED untuk invarian 3 (trigger saat COMMIT membaca snapshot transaction). Peninjau: deteksi tunggu lock tanpa ambang waktu (446), saldo dibaca dari posting dan kalimat RC dibetulkan (447).
 
 ### lab-t2-pencairan · Lab t2-pencairan: job Jumat dan rekonsiliasi
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-b3-ledger
 - selesai bila: Lab baru `labs/t2-pencairan` untuk 2.5, 2.25, 2.26 (M15): job pencairan Jumat membuat jurnal pencairan per warung dan satu file transfer bank (CSV); versi rentan: server restart di tengah lalu job jalan lagi, satu warung muncul dua kali di file tetapi sekali di ledger (selisih sesuai naskah atau angka rekaman berlabel); versi benar: batch per periode dengan kunci unik `periode`, status batch, baris pencairan per buku, aman dijalankan dua kali; rekonsiliasi otomatis ledger lawan file sebelum file dibuat (menolak bila beda); rekaman dari database bersih, diulang identik.
-- catatan: Jalur lab. Nama lab dipilih malam ini (MEMORI "Diputuskan malam ini").
+- catatan: Jalur lab. PR #260, keputusan 500–508: job Go `cmd/pencairan`; rentan menulis baris file sebelum COMMIT lalu SIGKILL sesudah baris 7, job ulang menulis Warung 508 lagi (file Rp2.465.000 lawan ledger Rp2.450.000); ADR 19 tiga langkah yang bisa dilanjutkan, rekonsiliasi sebelum file dibuat (exit 3 bila beda); tabel sama dengan api-t2 000011. Peninjau: sync folder sesudah rename (506), periode wajib minggu ISO dan path di dalam `-dir` (507), batas yang dicoba tanpa direkam (508); empat job bersamaan × 40 tetap 12 jurnal.
 
 ### lab-e3-idempotency · Lab e3-idempotency diselaraskan ke M10 dan ledger
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-b3-ledger
 - selesai bila: `labs/e3-idempotency` diselaraskan ke M10: Bayar Rp25.000 diulang sesudah response hilang tercatat dua kali tanpa key; dengan key yang dibuat app sekali per niat bayar, server menyimpan hasil per key 24 jam di `kunci_idempotensi` (hash permintaan, status, respons, jurnal): ulangan mendapat respons yang sama tanpa jurnal kedua, key sama dengan body beda ditolak, ulangan saat permintaan pertama masih diproses ditangani; status standar header dicek ke sumber primer (IETF); rekaman dari database bersih, diulang identik; nama mode dan file lama boleh tetap (keputusan 86).
-- catatan: Jalur lab. Dipakai 2.13, 2.14.
+- catatan: Jalur lab. PR #263, keputusan 510–518: server ledger sendiri di samping versi lama; klaim key `diproses` di-commit sendiri lalu satu transaction `FOR UPDATE NOWAIT` menulis jurnal + `selesai` (55P03 → 409); header dan status mengikuti draft IETF -07 yang sudah kedaluwarsa; titik henti server, bukan waktu; client Dart satu key per niat bayar, 4 percobaan dengan backoff + jitter; key dipendekkan di rekaman karena gitleaks. Peninjau: lolos tanpa perbaikan (30 request bersamaan → 1 jurnal).
 
 ### lab-b2-query · Lab b2-query ke ledger: N+1, index, kursor
 

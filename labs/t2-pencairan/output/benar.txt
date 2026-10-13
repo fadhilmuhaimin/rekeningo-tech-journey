@@ -1,0 +1,298 @@
+-- Lab t2-pencairan · ADR 19: batch per periode, aman dijalankan dua kali
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema t2_pencairan · isolation read committed · periode 2026-W43
+-- Rekaman dari database bersih: make -C labs/t2-pencairan run (keputusan 500).
+-- Data lab: 12 warung, saldo dibuat sebagai jurnal pembuka; Warung Ani Rp310.000 dari naskah (keputusan 504).
+-- Format file transfer fiktif, bukan format bank mana pun (keputusan 505).
+-- ADR 19: batch per periode (UNIQUE periode), baris pencairan per buku, satu transaction per baris yang
+-- menulis jurnal dan baris_pencairan.jurnal_id bersama. File dibuat dari database sesudah semua baris
+-- dijurnal dan rekonsiliasi cocok. Tabel: labs/t2-pencairan/schema.sql (sama dengan api-t2 000011).
+
+# --- A. Saldo warung Jumat 15.00 (data lab yang sama dengan rentan.txt) ---
+=> SELECT a.id AS akun, a.nama, b.id AS buku, coalesce(sum(p.jumlah), 0) AS saldo, b.saldo_cache
+   FROM buku b JOIN akun a ON a.id = b.akun_id LEFT JOIN posting p ON p.buku_id = b.id
+   WHERE b.jenis = 'warung'
+   GROUP BY a.id, a.nama, b.id ORDER BY b.id;
+ akun |         nama        | buku | saldo  | saldo_cache
+------+---------------------+------+--------+-------------
+  418 | Warung Ani          |    5 | 310000 |      310000
+  502 | Warung Sari         |    6 | 185000 |      185000
+  503 | Warung Mie Pak Joko |    7 | 420000 |      420000
+  505 | Warung 505          |    8 | 240000 |      240000
+  506 | Warung 506          |    9 |  95000 |       95000
+  507 | Warung 507          |   10 | 360000 |      360000
+  508 | Warung 508          |   11 |  15000 |       15000
+  509 | Warung 509          |   12 | 275000 |      275000
+  510 | Warung 510          |   13 | 130000 |      130000
+  511 | Warung 511          |   14 | 205000 |      205000
+  512 | Warung 512          |   15 | 160000 |      160000
+  513 | Warung 513          |   16 |  55000 |       55000
+(12 rows)
+-- 12 warung, total Rp2.450.000. Job memproses warung urut nomor buku; Warung 508 adalah yang ketujuh.
+
+# --- B. Job berjalan; server restart di titik yang sama: baris ketujuh, sebelum COMMIT ---
+
+$ ./pencairan -mode benar -periode 2026-W43 -dir kerja -berhenti jurnal:7
+batch 1 periode 2026-W43 dibuat: 12 baris, total Rp2.450.000
+baris 1 Warung Ani Rp310.000: jurnal 14 COMMIT
+baris 2 Warung Sari Rp185.000: jurnal 15 COMMIT
+baris 3 Warung Mie Pak Joko Rp420.000: jurnal 16 COMMIT
+baris 4 Warung 505 Rp240.000: jurnal 17 COMMIT
+baris 5 Warung 506 Rp95.000: jurnal 18 COMMIT
+baris 6 Warung 507 Rp360.000: jurnal 19 COMMIT
+titik henti jurnal:7: proses dimatikan (SIGKILL)
+   -- proses mati (SIGKILL): defer dan COMMIT berikutnya tidak pernah dijalankan
+   -- koneksi job di PostgreSQL ikut berakhir; transaction yang belum COMMIT, bila ada, di-rollback
+=> SELECT id, periode, status, total FROM batch_pencairan;
+ id | periode  | status |  total
+----+----------+--------+---------
+  1 | 2026-W43 | dibuat | 2450000
+(1 row)
+=> SELECT b.buku_id AS buku, a.nama, b.jumlah, b.jurnal_id
+   FROM baris_pencairan b JOIN buku k ON k.id = b.buku_id JOIN akun a ON a.id = k.akun_id
+   WHERE b.batch_id = 1 ORDER BY b.buku_id;
+ buku |         nama        | jumlah | jurnal_id
+------+---------------------+--------+-----------
+    5 | Warung Ani          | 310000 |        14
+    6 | Warung Sari         | 185000 |        15
+    7 | Warung Mie Pak Joko | 420000 |        16
+    8 | Warung 505          | 240000 |        17
+    9 | Warung 506          |  95000 |        18
+   10 | Warung 507          | 360000 |        19
+   11 | Warung 508          |  15000 |
+   12 | Warung 509          | 275000 |
+   13 | Warung 510          | 130000 |
+   14 | Warung 511          | 205000 |
+   15 | Warung 512          | 160000 |
+   16 | Warung 513          |  55000 |
+(12 rows)
+
+$ ls kerja/
+   -- (kosong)
+-- Enam baris punya jurnal, enam belum. Belum ada file: file baru dibuat sesudah semua baris dijurnal.
+
+# --- C. Server hidup lagi; job dijalankan lagi dengan perintah yang sama ---
+
+$ ./pencairan -mode benar -periode 2026-W43 -dir kerja
+batch 1 periode 2026-W43 sudah ada, status dibuat
+baris 1 Warung Ani: sudah dicatat jurnal 14, dilewati
+baris 2 Warung Sari: sudah dicatat jurnal 15, dilewati
+baris 3 Warung Mie Pak Joko: sudah dicatat jurnal 16, dilewati
+baris 4 Warung 505: sudah dicatat jurnal 17, dilewati
+baris 5 Warung 506: sudah dicatat jurnal 18, dilewati
+baris 6 Warung 507: sudah dicatat jurnal 19, dilewati
+baris 7 Warung 508 Rp15.000: jurnal 21 COMMIT
+baris 8 Warung 509 Rp275.000: jurnal 22 COMMIT
+baris 9 Warung 510 Rp130.000: jurnal 23 COMMIT
+baris 10 Warung 511 Rp205.000: jurnal 24 COMMIT
+baris 11 Warung 512 Rp160.000: jurnal 25 COMMIT
+baris 12 Warung 513 Rp55.000: jurnal 26 COMMIT
+batch 1: dijurnal
+rekonsiliasi batch 1: file 12 baris Rp2.450.000; ledger 12 jurnal pencairan, kas pencairan +Rp2.450.000
+rekonsiliasi: cocok
+file pencairan-2026-W43.csv dibuat
+batch 1: dikirim
+   -- exit 0
+=> SELECT id, periode, status, total FROM batch_pencairan;
+ id | periode  |  status |  total
+----+----------+---------+---------
+  1 | 2026-W43 | dikirim | 2450000
+(1 row)
+=> SELECT b.buku_id AS buku, a.nama, b.jumlah, b.jurnal_id
+   FROM baris_pencairan b JOIN buku k ON k.id = b.buku_id JOIN akun a ON a.id = k.akun_id
+   WHERE b.batch_id = 1 ORDER BY b.buku_id;
+ buku |         nama        | jumlah | jurnal_id
+------+---------------------+--------+-----------
+    5 | Warung Ani          | 310000 |        14
+    6 | Warung Sari         | 185000 |        15
+    7 | Warung Mie Pak Joko | 420000 |        16
+    8 | Warung 505          | 240000 |        17
+    9 | Warung 506          |  95000 |        18
+   10 | Warung 507          | 360000 |        19
+   11 | Warung 508          |  15000 |        21
+   12 | Warung 509          | 275000 |        22
+   13 | Warung 510          | 130000 |        23
+   14 | Warung 511          | 205000 |        24
+   15 | Warung 512          | 160000 |        25
+   16 | Warung 513          |  55000 |        26
+(12 rows)
+=> SELECT p.jurnal_id AS jurnal, coalesce(a.nama, b.jenis) AS buku, p.jumlah
+   FROM posting p JOIN buku b ON b.id = p.buku_id LEFT JOIN akun a ON a.id = b.akun_id
+   WHERE p.jurnal_id = 14 ORDER BY p.id;
+ jurnal |      buku     |  jumlah
+--------+---------------+---------
+     14 | Warung Ani    | -310000
+     14 | kas_pencairan |  310000
+(2 rows)
+
+$ cat kerja/pencairan-2026-W43.csv
+akun_warung,nama_penerima,jumlah,berita
+418,Warung Ani,310000,Pencairan Rekeningo 2026-W43
+502,Warung Sari,185000,Pencairan Rekeningo 2026-W43
+503,Warung Mie Pak Joko,420000,Pencairan Rekeningo 2026-W43
+505,Warung 505,240000,Pencairan Rekeningo 2026-W43
+506,Warung 506,95000,Pencairan Rekeningo 2026-W43
+507,Warung 507,360000,Pencairan Rekeningo 2026-W43
+508,Warung 508,15000,Pencairan Rekeningo 2026-W43
+509,Warung 509,275000,Pencairan Rekeningo 2026-W43
+510,Warung 510,130000,Pencairan Rekeningo 2026-W43
+511,Warung 511,205000,Pencairan Rekeningo 2026-W43
+512,Warung 512,160000,Pencairan Rekeningo 2026-W43
+513,Warung 513,55000,Pencairan Rekeningo 2026-W43
+   -- 12 baris data, total Rp2.450.000
+=> CREATE TEMP TABLE file_bank (akun_warung bigint, nama_penerima text, jumlah bigint, berita text);
+CREATE TABLE
+=> \copy file_bank FROM 'kerja/pencairan-2026-W43.csv' (FORMAT csv, HEADER)
+COPY 12
+=> SELECT (SELECT count(*) FROM file_bank) AS baris_file,
+          (SELECT sum(jumlah) FROM file_bank) AS total_file,
+          (SELECT count(*) FROM jurnal WHERE jenis = 'pencairan') AS jurnal_pencairan,
+          (SELECT sum(p.jumlah) FROM posting p JOIN buku b ON b.id = p.buku_id
+            WHERE b.jenis = 'kas_pencairan') AS mutasi_kas_pencairan;
+ baris_file | total_file | jurnal_pencairan | mutasi_kas_pencairan
+------------+------------+------------------+----------------------
+         12 |    2450000 |               12 |              2450000
+(1 row)
+-- Selisih file - ledger: Rp0.
+=> SELECT coalesce(f.akun, l.akun) AS akun, coalesce(f.nama, l.nama) AS nama,
+          coalesce(f.baris, 0) AS baris_file, coalesce(f.jumlah, 0) AS jumlah_file,
+          coalesce(l.jurnal, 0) AS jurnal_ledger, coalesce(l.jumlah, 0) AS jumlah_ledger
+   FROM (SELECT akun_warung AS akun, min(nama_penerima) AS nama, count(*) AS baris, sum(jumlah) AS jumlah
+           FROM file_bank GROUP BY akun_warung) f
+   FULL JOIN (SELECT b.akun_id AS akun, a.nama, count(*) AS jurnal, -sum(p.jumlah) AS jumlah
+                FROM jurnal j JOIN posting p ON p.jurnal_id = j.id
+                JOIN buku b ON b.id = p.buku_id AND b.jenis = 'warung' JOIN akun a ON a.id = b.akun_id
+               WHERE j.jenis = 'pencairan' GROUP BY b.akun_id, a.nama) l ON l.akun = f.akun
+   WHERE f.baris IS DISTINCT FROM l.jurnal OR f.jumlah IS DISTINCT FROM l.jumlah
+   ORDER BY 1;
+ akun | nama | baris_file | jumlah_file | jurnal_ledger | jumlah_ledger
+------+------+------------+-------------+---------------+---------------
+(0 rows)
+=> DROP TABLE file_bank;
+DROP TABLE
+
+$ sha256sum kerja/pencairan-2026-W43.csv
+f103518a3142a37fb80288b85a8215f2640093de9d0003e12aaba9da414d1083  kerja/pencairan-2026-W43.csv
+
+# --- D. Budi bayar Rp25.000 ke Warung Ani sesudah batch dikirim; job dijalankan lagi untuk periode yang sama ---
+=> BEGIN;
+BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('bayar', 'Bayar makan siang di Warung Ani', 419) RETURNING id;
+ id
+----
+ 27
+(1 row)
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES
+     (27, (SELECT id FROM buku WHERE akun_id = 419), -25000),
+     (27, (SELECT id FROM buku WHERE akun_id = 418), 25000);
+INSERT 0 2
+=> UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+   FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 27 GROUP BY buku_id) p
+   WHERE b.id = p.buku_id;
+UPDATE 2
+=> COMMIT;
+COMMIT
+
+$ ./pencairan -mode benar -periode 2026-W43 -dir kerja
+batch 1 periode 2026-W43 sudah ada, status dikirim
+batch sudah dikirim: tidak ada yang dikerjakan
+   -- exit 0
+=> SELECT (SELECT count(*) FROM jurnal WHERE jenis = 'pencairan') AS jurnal_pencairan,
+          (SELECT sum(jumlah) FROM posting WHERE buku_id = (SELECT id FROM buku WHERE akun_id = 418)) AS saldo_warung_ani;
+ jurnal_pencairan | saldo_warung_ani
+------------------+------------------
+               12 |            25000
+(1 row)
+
+$ sha256sum kerja/pencairan-2026-W43.csv
+f103518a3142a37fb80288b85a8215f2640093de9d0003e12aaba9da414d1083  kerja/pencairan-2026-W43.csv
+-- Job ketiga tidak menulis jurnal dan tidak menyentuh file (sha256 sama). Rp25.000 Warung Ani tetap di
+-- bukunya untuk periode berikutnya: jumlah yang dicairkan dibekukan saat batch dibuat, bukan saat job jalan.
+
+# --- E. Server restart sesudah file diberi nama akhir, sebelum status dikirim ---
+-- Schema dan folder kerja dibuat ulang dari data lab yang sama.
+
+$ ./pencairan -mode benar -periode 2026-W43 -dir kerja -berhenti file
+batch 1 periode 2026-W43 dibuat: 12 baris, total Rp2.450.000
+baris 1 Warung Ani Rp310.000: jurnal 14 COMMIT
+baris 2 Warung Sari Rp185.000: jurnal 15 COMMIT
+baris 3 Warung Mie Pak Joko Rp420.000: jurnal 16 COMMIT
+baris 4 Warung 505 Rp240.000: jurnal 17 COMMIT
+baris 5 Warung 506 Rp95.000: jurnal 18 COMMIT
+baris 6 Warung 507 Rp360.000: jurnal 19 COMMIT
+baris 7 Warung 508 Rp15.000: jurnal 20 COMMIT
+baris 8 Warung 509 Rp275.000: jurnal 21 COMMIT
+baris 9 Warung 510 Rp130.000: jurnal 22 COMMIT
+baris 10 Warung 511 Rp205.000: jurnal 23 COMMIT
+baris 11 Warung 512 Rp160.000: jurnal 24 COMMIT
+baris 12 Warung 513 Rp55.000: jurnal 25 COMMIT
+batch 1: dijurnal
+rekonsiliasi batch 1: file 12 baris Rp2.450.000; ledger 12 jurnal pencairan, kas pencairan +Rp2.450.000
+rekonsiliasi: cocok
+file pencairan-2026-W43.csv dibuat
+titik henti file: proses dimatikan (SIGKILL)
+   -- proses mati (SIGKILL): defer dan COMMIT berikutnya tidak pernah dijalankan
+   -- koneksi job di PostgreSQL ikut berakhir; transaction yang belum COMMIT, bila ada, di-rollback
+=> SELECT id, periode, status, total FROM batch_pencairan;
+ id | periode  |  status  |  total
+----+----------+----------+---------
+  1 | 2026-W43 | dijurnal | 2450000
+(1 row)
+=> SELECT b.buku_id AS buku, a.nama, b.jumlah, b.jurnal_id
+   FROM baris_pencairan b JOIN buku k ON k.id = b.buku_id JOIN akun a ON a.id = k.akun_id
+   WHERE b.batch_id = 1 ORDER BY b.buku_id;
+ buku |         nama        | jumlah | jurnal_id
+------+---------------------+--------+-----------
+    5 | Warung Ani          | 310000 |        14
+    6 | Warung Sari         | 185000 |        15
+    7 | Warung Mie Pak Joko | 420000 |        16
+    8 | Warung 505          | 240000 |        17
+    9 | Warung 506          |  95000 |        18
+   10 | Warung 507          | 360000 |        19
+   11 | Warung 508          |  15000 |        20
+   12 | Warung 509          | 275000 |        21
+   13 | Warung 510          | 130000 |        22
+   14 | Warung 511          | 205000 |        23
+   15 | Warung 512          | 160000 |        24
+   16 | Warung 513          |  55000 |        25
+(12 rows)
+
+$ ls kerja/
+pencairan-2026-W43.csv
+
+$ sha256sum kerja/pencairan-2026-W43.csv
+f103518a3142a37fb80288b85a8215f2640093de9d0003e12aaba9da414d1083  kerja/pencairan-2026-W43.csv
+
+$ ./pencairan -mode benar -periode 2026-W43 -dir kerja
+batch 1 periode 2026-W43 sudah ada, status dijurnal
+rekonsiliasi batch 1: file 12 baris Rp2.450.000; ledger 12 jurnal pencairan, kas pencairan +Rp2.450.000
+rekonsiliasi: cocok
+file pencairan-2026-W43.csv dibuat
+batch 1: dikirim
+   -- exit 0
+=> SELECT id, periode, status, total FROM batch_pencairan;
+ id | periode  |  status |  total
+----+----------+---------+---------
+  1 | 2026-W43 | dikirim | 2450000
+(1 row)
+=> SELECT b.buku_id AS buku, a.nama, b.jumlah, b.jurnal_id
+   FROM baris_pencairan b JOIN buku k ON k.id = b.buku_id JOIN akun a ON a.id = k.akun_id
+   WHERE b.batch_id = 1 ORDER BY b.buku_id;
+ buku |         nama        | jumlah | jurnal_id
+------+---------------------+--------+-----------
+    5 | Warung Ani          | 310000 |        14
+    6 | Warung Sari         | 185000 |        15
+    7 | Warung Mie Pak Joko | 420000 |        16
+    8 | Warung 505          | 240000 |        17
+    9 | Warung 506          |  95000 |        18
+   10 | Warung 507          | 360000 |        19
+   11 | Warung 508          |  15000 |        20
+   12 | Warung 509          | 275000 |        21
+   13 | Warung 510          | 130000 |        22
+   14 | Warung 511          | 205000 |        23
+   15 | Warung 512          | 160000 |        24
+   16 | Warung 513          |  55000 |        25
+(12 rows)
+
+$ sha256sum kerja/pencairan-2026-W43.csv
+f103518a3142a37fb80288b85a8215f2640093de9d0003e12aaba9da414d1083  kerja/pencairan-2026-W43.csv
+-- File dibuat ulang dari database dengan isi yang sama per byte, lalu menggantikan file lama lewat rename.

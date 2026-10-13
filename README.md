@@ -92,6 +92,8 @@ Hampir semua lab memakai satu PostgreSQL bersama di port `54333`. Setiap lab pun
 | `b2`, `b2q` | `b2-model`, `b2-query` (`e5-payload` membaca `b2q`, jadi jalankan `b2-query` dulu) |
 | `b3r`, `b3s`, `b33` | `b3-race`, `b3-stack`, `b3-isolasi` |
 | `b3_ledger`, `b3_ledger_v1` | `b3-ledger` (ledger Tahap 2; `b3_ledger_v1` dibuat dari `labs/api-t1/schema.sql` sebagai sumber migrasi) |
+| `b3_isolasi` | `b3-isolasi` versi ledger (skema dari `labs/b3-ledger/schema.sql`) |
+| `t2_pencairan` | `t2-pencairan` (job pencairan Jumat; ledger dari `labs/b3-ledger/schema.sql`, tabel pencairan dari `schema.sql` lab) |
 | `b4m`, `b4` | `b4-migration`, `b4-skema` |
 | `b5`, `b9` | `b5-rls`, `b9-cache` |
 | `pembayaran`, `pesanan` | `b7-2-modul` (dua modul, dua schema) |
@@ -146,8 +148,9 @@ Lab yang punya `Makefile` dijalankan dengan `make -C labs/<nama> run`. Sisanya d
 | `b5-rls` | 1.28, 1.29 | `make -C labs/b5-rls run` (gagal bila hasil RLS tidak sesuai) |
 | `f2-review` | F2 (halaman lama) | `make -C labs/f2-review run` |
 | `b3-ledger` | Belum dirujuk halaman (rencana 2.4, 2.6–2.8) | `make -C labs/b3-ledger run`; `make -C labs/b3-ledger cek` merekam ulang dan gagal bila rekaman berbeda dari yang di-commit |
+| `t2-pencairan` | Belum dirujuk halaman (rencana 2.5, 2.25, 2.26) | `make -C labs/t2-pencairan run` (butuh Go); `make -C labs/t2-pencairan cek` merekam ulang dan gagal bila rekaman berbeda atau ada rekaman baru yang belum di-commit |
 | `b3-race` | 2.1 | `make -C labs/b3-race run` |
-| `b3-isolasi` | 2.2 | `make -C labs/b3-isolasi run` |
+| `b3-isolasi` | 2.2 (halaman lama); versi ledger untuk 2.12 belum dirujuk halaman | `make -C labs/b3-isolasi run`; versi ledger `make -C labs/b3-isolasi run-ledger`, dan `cek-ledger` merekam ulang lalu gagal bila rekaman berbeda dari yang di-commit atau ada file baru |
 | `e3-idempotency` | 2.3 | `make -C labs/e3-idempotency run` |
 | `b2-query` | 2.4–2.6 | `make -C labs/b2-query run` |
 | `e5-payload` | 2.7 | `make -C labs/e5-payload run` |

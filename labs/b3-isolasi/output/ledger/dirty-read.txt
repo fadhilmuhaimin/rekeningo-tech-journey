@@ -1,0 +1,46 @@
+-- Lab b3-isolasi (ledger) · READ UNCOMMITTED di PostgreSQL
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_isolasi · default_transaction_isolation = read committed
+-- Rekaman dari database bersih: make -C labs/b3-isolasi run-ledger (keputusan 440).
+-- Persiapan tiap skenario: schema baru dari labs/b3-ledger/schema.sql, lalu dua jurnal (keputusan 441):
+--   jurnal 1 pembuka: Warung Ani Rp285.000, Dimas Rp35.000; jurnal 2 top-up: Budi Rp100.000.
+--   Buku 1 tunjangan, 2 pembuka, 3 Budi, 4 Warung Ani, 5 Citra, 6 Dimas.
+-- A dan B adalah dua koneksi. Urutan perintah ditentukan skrip, satu langkah per baris, bukan oleh waktu.
+
+# --- READ UNCOMMITTED: jurnal yang belum COMMIT tidak terlihat ---
+-- B mencatat Budi bayar Rp25.000 ke Warung Ani tanpa COMMIT. A membaca saldo Budi dari posting.
+[B] => BEGIN;
+BEGIN
+[B] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('bayar', 'Bayar nasi goreng', 419) RETURNING id;
+ id
+----
+  3
+(1 row)
+[B] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 3, -25000), (3, 4, 25000);
+INSERT 0 2
+[B] => UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+       FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = 3 GROUP BY buku_id) p
+       WHERE b.id = p.buku_id;
+UPDATE 2
+[A] => BEGIN ISOLATION LEVEL READ UNCOMMITTED;
+BEGIN
+[A] => SHOW transaction_isolation;
+ transaction_isolation
+-----------------------
+ read uncommitted
+(1 row)
+[A] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 3;
+ saldo_budi
+------------
+     100000
+(1 row)
+-- A tidak melihat posting B yang belum COMMIT: tidak ada dirty read walau level yang diminta READ UNCOMMITTED.
+[B] => COMMIT;
+COMMIT
+[A] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 3;
+ saldo_budi
+------------
+      75000
+(1 row)
+-- Perintah kedua A melihat jurnal B yang sudah COMMIT: nonrepeatable read, perilaku READ COMMITTED.
+[A] => COMMIT;
+COMMIT
