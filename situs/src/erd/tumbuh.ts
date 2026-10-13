@@ -107,7 +107,7 @@ export const UKURAN = {
   kepala: 44, // nama tabel + status
   baris: 24, // satu kolom (line-height tetap di CSS)
   bawah: 8, // padding bawah node
-  barisPindah: 3, // baris teks "isinya pindah ke" di node tabel dihapus
+  hurufPindah: 18, // huruf per baris teks "Isinya pindah ke ..." yang pasti muat di node tersempit (keputusan 466)
   jarakX: 32,
   jarakY: 48,
   lajurAwal: 14, // tata satu kolom: edge berbelok di lajur kiri, lajur pertama 14 px dari node
@@ -132,8 +132,18 @@ export type TataEdge = {
 };
 export type Tata = { bentuk: Bentuk; kolom: number; node: TataNode[]; edge: TataEdge[]; lebar: number; tinggi: number };
 
+/** Teks di node tabel yang dihapus. */
+export const teksPindah = (t: TabelTampil) => `Isinya pindah ke ${t.pindahKe}`;
+
+/**
+ * Banyak baris yang dipesan untuk teks pindah di node tabel dihapus (keputusan 466). Tata dihitung tanpa DOM, jadi
+ * banyak baris diperkirakan dari panjang teks dengan huruf per baris yang muat di node tersempit (lebarMin, HP 320 px);
+ * di node yang lebih lebar sisa barisnya kosong, tidak terpotong. Minimal dua baris.
+ */
+export const barisPindah = (t: TabelTampil) => Math.max(2, Math.ceil(teksPindah(t).length / UKURAN.hurufPindah));
+
 export const tinggiNode = (t: TabelTampil) =>
-  UKURAN.kepala + (t.bayangan ? UKURAN.barisPindah : t.kolom.length) * UKURAN.baris + UKURAN.bawah;
+  UKURAN.kepala + (t.bayangan ? barisPindah(t) : t.kolom.length) * UKURAN.baris + UKURAN.bawah;
 
 /** Foreign key yang digambar sebagai edge: dari tabel yang merujuk ke tabel yang dirujuk; tabel bayangan tanpa edge. */
 export function daftarFk(tabel: TabelTampil[]) {

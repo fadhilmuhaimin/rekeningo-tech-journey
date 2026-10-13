@@ -228,8 +228,8 @@
   line-height: 24px;
   color: var(--teks);
   white-space: normal;
+  /* Banyak baris (-webkit-line-clamp) dari komponen: barisPindah() di tumbuh.ts, sama dengan tinggi node (keputusan 466). */
   display: -webkit-box;
-  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

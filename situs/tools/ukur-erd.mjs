@@ -3,7 +3,8 @@
 // - dengan JS: satu kolom berlajur di 375 px, grid di 1366 px; 11 node, 11 edge, semua node di dalam wadah;
 //   bandingkan: 13 node, berdampingan di 1366 px dan bertumpuk di 375 px;
 // - di 375×667 roda dan gestur sentuh di atas diagram tetap menggulir halaman (scroll tidak tertangkap);
-// - node bisa dicapai dengan Tab dan dibuka dengan Enter; detail (kolom lengkap, tautan registry) di bawah diagram;
+// - node bisa dicapai dengan Tab dan dibuka dengan Enter; detail (kolom lengkap, tautan registry) di bawah diagram,
+//   digulir ke layar; kalimat pindah tabel dihapus tidak terpotong; label Inggris React Flow tidak terbaca;
 // - berganti tahap = gerak masuk; dengan reduced motion 0 animasi dan fungsi tetap;
 // - CLS ≤ 0,1 dan geser 0 px saat island di-hydrate (gulir pelan, modul JS ditunda 300 ms);
 // - halaman tanpa diagram tidak memuat React Flow; ukuran JS /uji/erd/ dicetak (baris "info").
@@ -72,6 +73,11 @@ const bentuk = (page) =>
       edge: f.querySelectorAll(".react-flow__edge").length,
       luar,
       statisSr: f.querySelector(".erd-tumbuh__statis").classList.contains("sr-only"),
+      // Teks yang terpotong di node: kalimat pindah tabel dihapus (harus 0, keputusan 466) dan nama (dicetak saja).
+      pindahPotong: [...f.querySelectorAll(".erd-tumbuh__pindah")].filter((x) => x.scrollHeight > x.clientHeight + 1).length,
+      namaPotong: [...f.querySelectorAll(".erd-tumbuh__node code")].filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.textContent),
+      // Label bawaan React Flow berbahasa Inggris yang terbaca pembaca layar (keputusan 466).
+      inggris: [...f.querySelectorAll('[aria-roledescription], [aria-label^="Edge from"]')].filter((x) => !x.closest('[aria-hidden="true"]')).length,
       berdampingan: !!f.querySelector(".erd-tumbuh__panel.is-berdampingan"),
       lebarDok: document.documentElement.scrollWidth - innerWidth,
     };
@@ -90,6 +96,8 @@ for (const [lebar, tinggi, harus] of [
     // 2. Bentuk dan isi wadah.
     const b = await bentuk(page);
     lapor(b.bentuk === harus && b.node === 11 && b.edge === 11 && b.luar === 0 && b.statisSr && b.lebarDok <= 0, `${tag}: ${b.bentuk}, ${b.node} node, ${b.edge} edge, ${b.luar} di luar wadah, luapan halaman ${b.lebarDok} px`);
+    lapor(b.pindahPotong === 0 && b.inggris === 0, `${tag}: kalimat pindah terpotong ${b.pindahPotong}, label React Flow berbahasa Inggris terbaca ${b.inggris}`);
+    if (b.namaPotong.length) console.log(`info ${tag}: nama terpotong elipsis di node (lengkap di detail dan versi statis): ${b.namaPotong.join(", ")}`);
 
     // 3. Scroll tidak tertangkap (layar sempit).
     if (lebar < 500) {
@@ -131,6 +139,18 @@ for (const [lebar, tinggi, harus] of [
     const fokus = await page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? "");
     await page.keyboard.press("Enter");
     await page.waitForTimeout(50);
+    // Detail digulir ke layar sesudah dipilih (keputusan 467): utuh, atau awalnya di layar bila lebih tinggi dari layar
+    // (HP: detail akun ±710 px). Dengan gulir halus butuh beberapa ratus ms.
+    const terlihat = await page
+      .waitForFunction(
+        (FIG) => {
+          const r = document.querySelector(`${FIG} .erd-tumbuh__detail`).getBoundingClientRect();
+          return r.top >= 0 && (r.bottom <= innerHeight + 1 || r.top <= innerHeight / 3);
+        },
+        FIG,
+        { timeout: 3000 },
+      )
+      .then(() => true, () => false);
     const d = await page.evaluate((FIG) => {
       const f = document.querySelector(FIG);
       const det = f.querySelector(".erd-tumbuh__detail");
@@ -144,8 +164,8 @@ for (const [lebar, tinggi, harus] of [
       };
     }, FIG);
     lapor(
-      fokus.startsWith("Tabel akun") && d.teks.includes("password_hash") && d.teks.includes("Dijelaskan di") && d.diBawah && d.ditekan === "true" && d.status.includes("akun"),
-      `${tag}: Tab ke "${fokus}", Enter → detail ${d.teks.length} karakter, tautan ${d.tautan.join(" ") || "(segera)"}`,
+      fokus.startsWith("Tabel akun") && d.teks.includes("password_hash") && d.teks.includes("Dijelaskan di") && d.diBawah && d.ditekan === "true" && d.status.includes("akun") && terlihat,
+      `${tag}: Tab ke "${fokus}", Enter → detail ${d.teks.length} karakter, ${terlihat ? "digulir ke layar" : "TIDAK terlihat di layar"}, tautan ${d.tautan.join(" ") || "(segera)"}`,
     );
 
     // 5. Berganti tahap: gerak masuk, atau 0 animasi dengan reduced motion; isi berganti ke Tahap 1.
