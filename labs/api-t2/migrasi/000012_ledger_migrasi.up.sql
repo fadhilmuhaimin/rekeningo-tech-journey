@@ -5,6 +5,8 @@
 SET LOCAL lock_timeout = '3s';
 -- Server v1 yang terlanjur jalan tidak bisa menulis tabel v1 sampai migrasi selesai; membaca tetap bisa.
 -- Tanpa lock ini, tulisan bersamaan membuat cek langkah 6 gagal dan seluruh migrasi batal (catatan peninjau #254).
+-- Tulisan yang mengantre di belakang lock ini berjalan sesudah COMMIT. Karena itu hak akses app dicabut di
+-- transaction yang sama dengan file ini (labs/api-t2/run.py, keputusan 417), bukan sesudahnya.
 LOCK TABLE akun, transaksi, topup, koreksi IN EXCLUSIVE MODE;
 
 DO $$

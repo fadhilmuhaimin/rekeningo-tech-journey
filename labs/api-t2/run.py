@@ -117,17 +117,23 @@ def sql(q, tampil=True, schema=SCHEMA):
         return isi
 
 
-def migrasi(nama, tampil=True):
-    """Satu file migration dalam satu transaction (SET LOCAL di file butuh transaction)."""
-    pesan = []
+def migrasi(nama, tampil=True, sesudah=()):
+    """Satu file migration dalam satu transaction (SET LOCAL di file butuh transaction).
+    sesudah: perintah yang ikut COMMIT bersama file itu (hak akses app sesudah 000012, keputusan 417)."""
+    pesan, status = [], []
     with sambung(autocommit=False) as c:
         c.add_notice_handler(lambda d: pesan.append(d.message_primary))
         c.execute((HERE / "migrasi" / nama).read_text())
+        for q in sesudah:
+            status.append((q, c.execute(q).statusmessage))
         c.commit()
     if tampil:
-        catat(f"$ psql -1 -f migrasi/{nama}")
+        catat(f"$ psql -1 -f migrasi/{nama}" + (" -f <hak akses di bawah>   # satu transaction" if sesudah else ""))
         for p in pesan:
             catat(f"NOTICE:  {p}")
+        for q, st in status:
+            catat("=> " + q)
+            catat(st)
         catat("COMMIT")
 
 
@@ -149,7 +155,9 @@ HAK_V1 = [f"GRANT USAGE ON SCHEMA {SCHEMA} TO api_t2",
           f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {SCHEMA} TO api_t2",
           f"GRANT USAGE ON ALL SEQUENCES IN SCHEMA {SCHEMA} TO api_t2"]
 # Sesudah migrate: tabel v1 hanya bisa dibaca, kolom saldo tidak bisa dibaca atau ditulis app.
-# Server v1 yang terlanjur jalan gagal keras (500), bukan diam-diam menulis saldo di luar ledger.
+# Dijalankan di transaction yang sama dengan 000012 (keputusan 417). Tulisan server v1 yang terlanjur jalan
+# mengantre di belakang LOCK TABLE dan berjalan sesudah COMMIT. Bila hak dicabut sesudah COMMIT, tulisan itu
+# lolos (201) dan saldonya hanya ada di tabel v1. Di transaction yang sama, tulisan itu ditolak (500).
 HAK_V2 = [f"REVOKE ALL ON ALL TABLES IN SCHEMA {SCHEMA} FROM api_t2",
           "GRANT SELECT (id, jenis, nama, email, password_hash, nomor_karyawan, wajib_ganti_password, gagal_login,"
           " terkunci_sampai) ON akun TO api_t2",
@@ -331,9 +339,8 @@ def rekam_migrasi(tmp):
     bagian("C. Langkah 2 · migrate (rilis 2): server v1 berhenti, saldo jadi jurnal, server v2 menyala")
     stop(tampil="$ kill -TERM <pid server v1>   # mulai jeda deploy")
     catat("# Selama jeda ini app mendapat 'tidak ada jawaban', sama dengan deploy Tahap 1 (1.31)")
-    migrasi("000012_ledger_migrasi.up.sql")
-    catat("# Hak akses app sesudah migrate (keputusan 414):")
-    hak(HAK_V2)
+    catat("# Migrate dan hak akses app sesudahnya dalam satu transaction (keputusan 414, 417)")
+    migrasi("000012_ledger_migrasi.up.sql", sesudah=HAK_V2)
     mulai(BIN, tampil="$ ./api-t2 &   # server v2 menyala, role api_t2")
     catat("\n# Saldo setiap akun sama sebelum dan sesudah: kolom saldo v1 = saldo_cache = jumlah posting")
     sql("""SELECT count(*) AS buku_akun,

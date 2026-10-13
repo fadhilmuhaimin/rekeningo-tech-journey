@@ -60,10 +60,9 @@ langkah 1  app 1.1 (Karyawan 421) bayar 201 · saldo 200 230000 · riwayat 200 n
 # --- C. Langkah 2 · migrate (rilis 2): server v1 berhenti, saldo jadi jurnal, server v2 menyala ---
 $ kill -TERM <pid server v1>   # mulai jeda deploy
 # Selama jeda ini app mendapat 'tidak ada jawaban', sama dengan deploy Tahap 1 (1.31)
-$ psql -1 -f migrasi/000012_ledger_migrasi.up.sql
+# Migrate dan hak akses app sesudahnya dalam satu transaction (keputusan 414, 417)
+$ psql -1 -f migrasi/000012_ledger_migrasi.up.sql -f <hak akses di bawah>   # satu transaction
 NOTICE:  migrasi: 1012 buku akun, 102 jurnal pembuka, 1 koreksi jadi 2 jurnal
-COMMIT
-# Hak akses app sesudah migrate (keputusan 414):
 => REVOKE ALL ON ALL TABLES IN SCHEMA tahap2 FROM api_t2
 REVOKE
 => GRANT SELECT (id, jenis, nama, email, password_hash, nomor_karyawan, wajib_ganti_password, gagal_login, terkunci_sampai) ON akun TO api_t2
@@ -84,6 +83,7 @@ GRANT
 GRANT
 => GRANT USAGE ON ALL SEQUENCES IN SCHEMA tahap2 TO api_t2
 GRANT
+COMMIT
 $ ./api-t2 &   # server v2 menyala, role api_t2
 
 # Saldo setiap akun sama sebelum dan sesudah: kolom saldo v1 = saldo_cache = jumlah posting
