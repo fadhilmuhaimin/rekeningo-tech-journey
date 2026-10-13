@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -62,6 +63,9 @@ func main() {
 		err = benar(ctx, db, *periode, *dir, *dobel)
 	default:
 		err = fmt.Errorf("mode %q tidak dikenal", *mode)
+	}
+	if errors.Is(err, errDitolak) {
+		keluar(3, err)
 	}
 	if err != nil {
 		keluar(1, err)
@@ -189,6 +193,8 @@ func catatJurnal(ctx context.Context, tx pgx.Tx, w baris, periode string) (int64
 
 // ---------- versi benar (ADR 19) ----------
 
+var errDitolak = errors.New("rekonsiliasi menolak: file tidak dibuat")
+
 // benar menjalankan tiga langkah. Setiap langkah membaca status batch dulu, jadi job yang berhenti di mana pun
 // bisa dijalankan lagi dengan perintah yang sama.
 func benar(ctx context.Context, db *pgx.Conn, periode, dir string, dobel int64) error {
@@ -242,7 +248,7 @@ func benar(ctx context.Context, db *pgx.Conn, periode, dir string, dobel int64) 
 		}
 	}
 
-	// 3. File dibuat dari database, baru diberi nama akhir.
+	// 3. File dibuat dari database, dicocokkan dengan ledger, baru diberi nama akhir.
 	return buatFile(ctx, db, id, periode, dir, dobel)
 }
 
@@ -377,7 +383,11 @@ func buatFile(ctx context.Context, db *pgx.Conn, id int64, periode, dir string, 
 		return err
 	}
 
-	// rename mengganti file lama dalam satu langkah.
+	if err := rekonsiliasi(ctx, tx, id, sementara); err != nil {
+		os.Remove(sementara)
+		return err
+	}
+	// Nama akhir baru ada sesudah rekonsiliasi cocok. rename mengganti file lama dalam satu langkah.
 	if err := os.Rename(sementara, akhir); err != nil {
 		return err
 	}
@@ -390,6 +400,109 @@ func buatFile(ctx context.Context, db *pgx.Conn, id int64, periode, dir string, 
 		return err
 	}
 	fmt.Printf("batch %d: dikirim\n", id)
+	return nil
+}
+
+type hitung struct {
+	nama   string
+	n      int64
+	jumlah int64
+}
+
+// rekonsiliasi membaca ulang file yang akan diunggah, lalu mencocokkannya dengan jurnal pencairan batch ini di
+// ledger: per warung (banyak baris dan jumlah), total, dan mutasi buku kas pencairan. Jurnal pembalik yang membalik
+// jurnal pencairan batch ini ikut dijumlah, jadi pencairan yang dibatalkan di ledger tidak lolos ke file.
+func rekonsiliasi(ctx context.Context, tx pgx.Tx, id int64, path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	rec, err := csv.NewReader(f).ReadAll()
+	if err != nil {
+		return err
+	}
+	if len(rec) == 0 || strings.Join(rec[0], ",") != kepala {
+		return fmt.Errorf("kepala file bukan %q", kepala)
+	}
+	file := map[int64]*hitung{}
+	var fileN, fileTotal int64
+	for _, r := range rec[1:] {
+		akun, err1 := strconv.ParseInt(r[0], 10, 64)
+		jml, err2 := strconv.ParseInt(r[2], 10, 64)
+		if err := errors.Join(err1, err2); err != nil {
+			return err
+		}
+		if file[akun] == nil {
+			file[akun] = &hitung{nama: r[1]}
+		}
+		file[akun].n++
+		file[akun].jumlah += jml
+		fileN++
+		fileTotal += jml
+	}
+
+	ledger := map[int64]*hitung{}
+	rows, _ := tx.Query(ctx, `
+		SELECT k.akun_id, a.nama, count(*) FILTER (WHERE j.jenis = 'pencairan'), -sum(p.jumlah)
+		FROM baris_pencairan b
+		JOIN jurnal j  ON j.id = b.jurnal_id OR j.membalik_jurnal_id = b.jurnal_id
+		JOIN posting p ON p.jurnal_id = j.id
+		JOIN buku k    ON k.id = p.buku_id AND k.jenis = 'warung'
+		JOIN akun a    ON a.id = k.akun_id
+		WHERE b.batch_id = $1
+		GROUP BY k.akun_id, a.nama`, id)
+	var akun int64
+	var h hitung
+	if _, err := pgx.ForEachRow(rows, []any{&akun, &h.nama, &h.n, &h.jumlah}, func() error {
+		c := h
+		ledger[akun] = &c
+		return nil
+	}); err != nil {
+		return err
+	}
+	var kas, jurnalN int64
+	if err := tx.QueryRow(ctx, `
+		SELECT coalesce(sum(p.jumlah), 0), count(DISTINCT j.id) FILTER (WHERE j.jenis = 'pencairan')
+		FROM baris_pencairan b
+		JOIN jurnal j  ON j.id = b.jurnal_id OR j.membalik_jurnal_id = b.jurnal_id
+		JOIN posting p ON p.jurnal_id = j.id
+		JOIN buku k    ON k.id = p.buku_id AND k.jenis = 'kas_pencairan'
+		WHERE b.batch_id = $1`, id).Scan(&kas, &jurnalN); err != nil {
+		return err
+	}
+
+	fmt.Printf("rekonsiliasi batch %d: file %d baris %s; ledger %d jurnal pencairan, kas pencairan +%s\n",
+		id, fileN, rp(fileTotal), jurnalN, rp(kas))
+	var semua []int64
+	for a := range file {
+		semua = append(semua, a)
+	}
+	for a := range ledger {
+		if file[a] == nil {
+			semua = append(semua, a)
+		}
+	}
+	sort.Slice(semua, func(i, j int) bool { return semua[i] < semua[j] })
+	beda := 0
+	for _, a := range semua {
+		fh, lh := file[a], ledger[a]
+		if fh == nil {
+			fh = &hitung{nama: lh.nama}
+		}
+		if lh == nil {
+			lh = &hitung{nama: fh.nama}
+		}
+		if fh.n != lh.n || fh.jumlah != lh.jumlah {
+			beda++
+			fmt.Printf("  beda %d %s: file %d baris %s, ledger %d jurnal %s\n", a, fh.nama, fh.n, rp(fh.jumlah), lh.n, rp(lh.jumlah))
+		}
+	}
+	if beda > 0 || fileN != jurnalN || fileTotal != kas {
+		fmt.Printf("rekonsiliasi: DITOLAK (%d warung beda, selisih total %s)\n", beda, rp(fileTotal-kas))
+		return errDitolak
+	}
+	fmt.Println("rekonsiliasi: cocok")
 	return nil
 }
 
