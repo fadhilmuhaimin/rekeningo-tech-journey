@@ -1,0 +1,10 @@
+-- Lab b3-race (ledger) · empat cara mengunci dibandingkan dengan versi tanpa lock (M9)
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_race · saldo Budi 100000; A 70000 ke Citra, B 50000 ke Dimas
+-- Rekaman dari database bersih: make -C labs/b3-race run-ledger (keputusan 430). Rincian: ledger-<cara>.txt.
+-- menunggu = langkah yang tertahan row lock; saldo = jumlah posting buku Budi; cache = buku.saldo_cache.
+
+              cara             |   A    |            B            | menunggu | retry | saldo  | cache  | jurnal
+-------------------------------+--------+-------------------------+----------+-------+--------+--------+--------
+ Tanpa lock                    | COMMIT | COMMIT                  |        0 |     0 | -20000 | 100000 |      2
+ Tanpa lock, COMMIT bergantian | COMMIT | ERROR 23514 saat COMMIT |        0 |     0 |  30000 | 100000 |      1
+(2 rows)
