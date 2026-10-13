@@ -33,28 +33,35 @@ satu tebakan per akun. Kunci per akun (ambang 5) tidak pernah aktif: tiap akun c
 
 Denial of service + kunci bertahap: penyerang sengaja menggagalkan login Ani untuk menguncinya.
   5 tebakan salah ke akun Ani            → 401: 5
-  kunci ke-1: Ani (IP sendiri, password BENAR) ditolak 423 Akun terkunci sementara, sisa 60 s
-  kunci ke-2: kunci pertama lewat, 1 gagal lagi → Ani ditolak, sisa 120 s (dua kali lipat)
-  kunci ke-3: 1 gagal lagi → Ani ditolak, sisa 240 s (dua kali lipat lagi)
+  kunci ke-1: Ani (IP sendiri, password BENAR) ditolak 401 Email atau password salah
+    database: terkunci_sampai 60 s lagi. Jawabannya sama dengan password salah,
+    jadi penyerang tidak tahu akun ini terdaftar dan terkunci; Ani mengira lupa password.
+  kunci ke-2: kunci pertama lewat, 1 gagal lagi → Ani ditolak 401, terkunci 120 s lagi (dua kali lipat)
+  kunci ke-3: 1 gagal lagi → Ani ditolak 401, terkunci 240 s lagi (dua kali lipat lagi)
   Ani terkunci berulang tiap pagi; kunci per akun saja menghukum korban, bukan penyerang.
 
 == D. Rate limit DUA LAPIS di memori (MODE=dua-lapis): per IP dan per akun
 Serangan sama seperti C, tapi lapis per-IP menolak banjir dari satu IP sebelum menyentuh database.
   29 akun disemprot dari 203.0.113.9 → 401: 10 · 429: 19
   (429 = ditolak lapis per-IP; Karyawan 514 di urutan akhir tidak sempat dicoba)
+  argon2id dijalankan 10 kali, query akun 10 kali untuk 29 percobaan
+  (yang ditolak 429 tidak menyentuh database dan tidak menjalankan argon2id)
   Ani (IP sendiri, password BENAR)       → 200  ok=True (tidak kena limit penyerang)
 
 Lapis per-akun: tebakan terfokus ke satu akun dari satu IP dibatasi walau IP belum penuh.
   8 tebakan ke akun Budi dari satu IP     → 401: 5 · 429: 3
   (5 sampai ke pemeriksaan password, sisanya 429 dari lapis per-akun)
+  tebakan ke-9 lewat /ganti-password (password lama) → 429 Terlalu banyak percobaan untuk akun ini
+  (endpoint yang memeriksa password lama memakai pengaman yang sama, bukan pintu samping)
 
 == E. IP dari header: memercayai X-Forwarded-For dari client sembarang adalah CELAH
 Penyerang mengirim tiap percobaan dengan X-Forwarded-For berbeda (menukar IP), tanpa lewat proxy kita.
   IP_SUMBER=xff-mentah: 20 percobaan, tiap kali IP palsu baru → 401: 20
   (tidak ada 429: lapis per-IP tak berguna karena penyerang menukar IP tiap request)
-  IP_SUMBER=proxy, penyerang tanpa penanda proxy → 401: 10 · 429: 10
-  (header diabaikan, IP diambil dari koneksi 127.0.0.1; 10 lolos lalu 429: penukaran IP gagal)
-  Request LEWAT proxy tepercaya (ada penanda), IP dari header dipercaya → 200 ok=True
+  IP_SUMBER=proxy, penyerang menebak penanda proxy → 401: 10 · 429: 10
+  (penanda tanpa rahasia yang benar diabaikan, IP diambil dari koneksi 127.0.0.1;
+  10 lolos lalu 429: penukaran IP gagal)
+  Request LEWAT proxy kita (penanda berisi rahasia bersama), IP dari header dipercaya → 200 ok=True
 
 == F. Dua instance: bucket di memori tidak dibagi (ADR 20)
 Rate limit hidup di memori tiap proses. Dengan dua server, penyerang satu IP yang bergantian

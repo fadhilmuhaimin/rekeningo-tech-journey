@@ -11,18 +11,24 @@
 // jadi rekaman tidak bergantung pada tidur sungguhan dan bisa diulang identik.
 //
 // IP client ditentukan oleh IP_SUMBER:
-//   koneksi        ambil dari alamat koneksi (RemoteAddr). Aman: client tidak bisa memalsukannya.
-//   xff-mentah     percaya X-Forwarded-For dari client mana pun (CELAH; lihat rekaman bagian E).
-//   proxy          percaya X-Forwarded-For HANYA bila request membawa penanda proxy tepercaya
-//                  (X-Lab-Proxy), yang di produksi hanya dipasang oleh reverse proxy yang kita kelola.
+//
+//	koneksi        ambil dari alamat koneksi (RemoteAddr). Aman: client tidak bisa memalsukannya.
+//	xff-mentah     percaya X-Forwarded-For dari client mana pun (CELAH; lihat rekaman bagian E).
+//	proxy          percaya X-Forwarded-For HANYA bila request datang dari reverse proxy kita. Di lab
+//	               semua koneksi berasal dari 127.0.0.1, jadi proxy dikenali dari header X-Lab-Proxy
+//	               berisi rahasia bersama PROXY_RAHASIA (acak per run, tidak pernah ditulis ke repo).
+//	               Di produksi: percaya hanya bila alamat koneksi adalah alamat proxy kita.
+//
 // X-Lab-IP adalah IP client yang ditiru lab (berperan sebagai isi X-Forwarded-For).
+// Header X-Lab-* dan endpoint /lab/* hanya untuk lab ini.
 package main
 
 import (
 	"bufio"
 	"context"
-	"crypto/sha256"
+	"crypto/rand"
 	"crypto/subtle"
+	_ "embed"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -63,9 +69,9 @@ const (
 // bukan pada IP, dan durasi kunci boleh bertahap (menggandakan). NIST SP 800-63B §3.2.2 menyebut
 // batas atas 100 percobaan gagal berturut per authenticator; kita pilih lebih ketat untuk lab.
 const (
-	ambangAkun     = 5               // gagal berturut sebelum akun dikunci
-	kunciDasar     = 60 * time.Second // durasi kunci pertama
-	kunciMaksTingkat = 5             // kunci maksimum = kunciDasar << 5 = 32 menit
+	ambangAkun       = 5                // gagal berturut sebelum akun dikunci
+	kunciDasar       = 60 * time.Second // durasi kunci pertama
+	kunciMaksTingkat = 5                // kunci maksimum = kunciDasar << 5 = 32 menit
 )
 
 // --8<-- [end:ambang]
@@ -134,6 +140,7 @@ func enkodeHash(password string, salt []byte) string {
 
 // cocokHash membandingkan password dengan hash tersimpan, waktu-konstan terhadap isi tag.
 func cocokHash(password, hash string) bool {
+	hitungHash.Add(1) // penghitung lab: membuktikan request yang ditolak rate limit tidak menjalankan argon2id
 	bagian := strings.Split(hash, "$")
 	if len(bagian) != 6 || bagian[1] != "argon2id" {
 		return false
@@ -145,36 +152,43 @@ func cocokHash(password, hash string) bool {
 	}
 	salt, err1 := base64.RawStdEncoding.DecodeString(bagian[4])
 	tag, err2 := base64.RawStdEncoding.DecodeString(bagian[5])
-	if err1 != nil || err2 != nil {
+	if err1 != nil || err2 != nil || p < 1 || len(tag) != int(hashPanjang) {
 		return false
 	}
-	ulang := argon2.IDKey([]byte(password), salt, t, m, p, uint32(len(tag)))
+	ulang := argon2.IDKey([]byte(password), salt, t, m, p, hashPanjang)
 	return subtle.ConstantTimeCompare(ulang, tag) == 1
 }
 
 // --8<-- [end:hash]
 
-// hashPalsu dipakai saat email tidak terdaftar, supaya waktu respons mirip password salah.
-var hashPalsu = enkodeHash("bukan-password-siapa-pun", []byte("saltpalsulab0000"))
-
-// saltLab membuat salt deterministik dari id akun, HANYA untuk lab supaya rekaman identik tiap run.
-// Di produksi salt wajib acak (crypto/rand); lihat komentar seed.
-func saltLab(id int64, versi string) []byte {
-	s := sha256.Sum256([]byte(fmt.Sprintf("c4-login-salt:%d:%s", id, versi)))
-	return s[:saltPanjang]
+// saltAcak membuat salt baru dari crypto/rand untuk setiap hash. Rekaman lab tetap identik karena
+// tidak pernah mencetak hash; salt tetap atau diturunkan dari id akun tidak dipakai di mana pun.
+func saltAcak() []byte {
+	b := make([]byte, saltPanjang)
+	if _, err := rand.Read(b); err != nil {
+		log.Fatalf("crypto/rand: %v", err)
+	}
+	return b
 }
+
+// hashPalsu dipakai saat email tidak terdaftar atau akun terkunci, supaya waktu respons mirip
+// password salah.
+var hashPalsu = enkodeHash("bukan-password-siapa-pun", saltAcak())
+
+// Penghitung untuk rekaman lab (GET /lab/hitung, hanya bila LAB_JAM=1).
+var hitungHash, hitungQuery atomic.Int64
 
 // ==== blocklist password bocor ====
 
+// Daftar ikut di dalam binary (go:embed), jadi server tidak membaca path dari luar saat jalan.
+//
+//go:embed daftar-bocor.txt
+var teksBocor string
+
 var daftarBocor = map[string]bool{}
 
-func muatBocor(path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	s := bufio.NewScanner(f)
+func muatBocor() error {
+	s := bufio.NewScanner(strings.NewReader(teksBocor))
 	for s.Scan() {
 		baris := strings.TrimSpace(s.Text())
 		if baris == "" || strings.HasPrefix(baris, "#") {
@@ -188,19 +202,20 @@ func muatBocor(path string) error {
 // ==== server ====
 
 type server struct {
-	db        *pgxpool.Pool
-	mode      string // "per-akun" atau "dua-lapis"
-	ipSumber  string // "koneksi", "xff-mentah", "proxy"
-	perIP     *pembatas
-	perAkun   *pembatas
+	db           *pgxpool.Pool
+	mode         string // "per-akun" atau "dua-lapis"
+	ipSumber     string // "koneksi", "xff-mentah", "proxy"
+	proxyRahasia string // isi X-Lab-Proxy yang hanya diketahui proxy kita (mode proxy)
+	perIP        *pembatas
+	perAkun      *pembatas
 }
 
 type problem struct {
-	Type    string `json:"type"`
-	Title   string `json:"title"`
-	Status  int    `json:"status"`
-	Detail  string `json:"detail,omitempty"`
-	Tunggu  int    `json:"retry_after,omitempty"`
+	Type   string `json:"type"`
+	Title  string `json:"title"`
+	Status int    `json:"status"`
+	Detail string `json:"detail,omitempty"`
+	Tunggu int    `json:"retry_after,omitempty"`
 }
 
 func tulis(w http.ResponseWriter, status int, v any) {
@@ -226,9 +241,11 @@ func (s *server) clientIP(r *http.Request) string {
 			return xff
 		}
 	case "proxy":
-		// Hanya percaya X-Lab-IP bila request datang lewat proxy tepercaya kita (penanda rahasia,
-		// di lab cukup keberadaan header). Reverse proxy sungguhan yang menaruh X-Forwarded-For.
-		if xff != "" && r.Header.Get("X-Lab-Proxy") == "tepercaya" {
+		// Hanya percaya X-Lab-IP bila request datang lewat proxy kita: X-Lab-Proxy harus berisi
+		// rahasia bersama, dibandingkan waktu-konstan. Nilai tebakan client diabaikan (rekaman bagian E).
+		penanda := r.Header.Get("X-Lab-Proxy")
+		if xff != "" && s.proxyRahasia != "" &&
+			subtle.ConstantTimeCompare([]byte(penanda), []byte(s.proxyRahasia)) == 1 {
 			return xff
 		}
 	}
@@ -261,6 +278,7 @@ type akun struct {
 }
 
 func (s *server) akunLewatEmail(ctx context.Context, email string) (*akun, error) {
+	hitungQuery.Add(1)
 	var a akun
 	err := s.db.QueryRow(ctx,
 		`SELECT id, password_hash, wajib_ganti_password, gagal_login, terkunci_sampai
@@ -273,12 +291,10 @@ func (s *server) akunLewatEmail(ctx context.Context, email string) (*akun, error
 }
 
 // --8<-- [start:login]
-func (s *server) login(w http.ResponseWriter, r *http.Request) {
-	var in struct{ Email, Password string }
-	if json.NewDecoder(r.Body).Decode(&in) != nil || in.Email == "" || in.Password == "" {
-		tulisProblem(w, problem{Type: "/problems/body", Title: "Body harus JSON berisi email dan password", Status: 400})
-		return
-	}
+// periksaMasuk menjalankan semua pengaman sebelum password dianggap benar. Dipakai /login dan
+// /ganti-password, jadi endpoint yang memeriksa password lama tidak bisa dipakai untuk menebak
+// tanpa batas. Bila false, response sudah ditulis.
+func (s *server) periksaMasuk(w http.ResponseWriter, r *http.Request, email, password string) (*akun, bool) {
 	now := sekarang()
 	ip := s.clientIP(r)
 
@@ -288,48 +304,83 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		if ok, tunggu := s.perIP.izinkan("ip:"+ip, now); !ok {
 			tulisProblem(w, problem{Type: "/problems/rate-limit-ip", Title: "Terlalu banyak percobaan dari alamat ini",
 				Status: 429, Tunggu: detik(tunggu)})
-			return
+			return nil, false
 		}
-		if ok, tunggu := s.perAkun.izinkan("akun:"+in.Email, now); !ok {
+		if ok, tunggu := s.perAkun.izinkan("akun:"+email, now); !ok {
 			tulisProblem(w, problem{Type: "/problems/rate-limit-akun", Title: "Terlalu banyak percobaan untuk akun ini",
 				Status: 429, Tunggu: detik(tunggu)})
-			return
+			return nil, false
 		}
 	}
 
-	a, err := s.akunLewatEmail(r.Context(), in.Email)
+	a, err := s.akunLewatEmail(r.Context(), email)
 	if err != nil {
 		// Email tidak terdaftar: tetap jalankan argon2id sekali supaya waktu respons mirip,
 		// dan jawab 401 yang sama dengan password salah (jangan bantu penyerang membedakan).
-		cocokHash(in.Password, hashPalsu)
+		cocokHash(password, hashPalsu)
 		tulisProblem(w, problem{Type: "/problems/login-gagal", Title: "Email atau password salah", Status: 401})
-		return
+		return nil, false
 	}
 
 	// Kunci per akun di database. Inilah yang membuat "akun Ani terkunci": bila ini satu-satunya
 	// pertahanan, penyerang bisa mengunci akun orang lain dengan sengaja gagal (denial of service).
+	// Jawabannya sama dengan password salah, termasuk waktu hash: pesan "akun terkunci" akan memberi
+	// tahu penyerang bahwa email itu terdaftar (OWASP Authentication Cheat Sheet, pesan error generik).
 	if a.terkunci != nil && a.terkunci.After(now) {
-		sisa := int(math.Ceil(a.terkunci.Sub(now).Seconds()))
-		tulisProblem(w, problem{Type: "/problems/akun-terkunci", Title: "Akun terkunci sementara",
-			Status: 423, Tunggu: sisa, Detail: "Coba lagi setelah " + strconv.Itoa(sisa) + " detik"})
-		return
+		cocokHash(password, hashPalsu)
+		tulisProblem(w, problem{Type: "/problems/login-gagal", Title: "Email atau password salah", Status: 401})
+		return nil, false
 	}
 
-	if !cocokHash(in.Password, a.hash) {
-		gagal := a.gagal + 1
-		if gagal >= ambangAkun {
-			sampai := now.Add(durasiKunci(gagal))
-			_, _ = s.db.Exec(r.Context(),
-				`UPDATE akun SET gagal_login = $1, terkunci_sampai = $2 WHERE id = $3`, gagal, sampai, a.id)
-		} else {
-			_, _ = s.db.Exec(r.Context(), `UPDATE akun SET gagal_login = $1 WHERE id = $2`, gagal, a.id)
+	if !cocokHash(password, a.hash) {
+		if err := s.catatGagal(r.Context(), a.id, now); err != nil {
+			// Gagal mencatat = tolak (fail closed), jangan diam-diam memberi percobaan gratis.
+			tulisProblem(w, problem{Type: "/problems/internal", Title: "Gagal mencatat percobaan", Status: 500})
+			return nil, false
 		}
 		tulisProblem(w, problem{Type: "/problems/login-gagal", Title: "Email atau password salah", Status: 401})
-		return
+		return nil, false
 	}
 
 	// Benar: reset penghitung dan kunci.
-	_, _ = s.db.Exec(r.Context(), `UPDATE akun SET gagal_login = 0, terkunci_sampai = NULL WHERE id = $1`, a.id)
+	if _, err := s.db.Exec(r.Context(),
+		`UPDATE akun SET gagal_login = 0, terkunci_sampai = NULL WHERE id = $1`, a.id); err != nil {
+		tulisProblem(w, problem{Type: "/problems/internal", Title: "Gagal menyimpan", Status: 500})
+		return nil, false
+	}
+	return a, true
+}
+
+// catatGagal menaikkan penghitung di database dalam satu UPDATE (bukan baca di Go lalu tulis), jadi
+// percobaan yang datang bersamaan tidak saling menimpa dan ambang tidak bisa dilewati dengan paralel.
+func (s *server) catatGagal(ctx context.Context, id int64, now time.Time) error {
+	var gagal int
+	if err := s.db.QueryRow(ctx,
+		`UPDATE akun SET gagal_login = gagal_login + 1 WHERE id = $1 RETURNING gagal_login`, id).
+		Scan(&gagal); err != nil {
+		return err
+	}
+	if gagal < ambangAkun {
+		return nil
+	}
+	// GREATEST: kunci yang lebih panjang dari percobaan bersamaan tidak tertimpa yang lebih pendek.
+	_, err := s.db.Exec(ctx,
+		`UPDATE akun SET terkunci_sampai = GREATEST(terkunci_sampai, $2) WHERE id = $1`,
+		id, now.Add(durasiKunci(gagal)))
+	return err
+}
+
+func (s *server) login(w http.ResponseWriter, r *http.Request) {
+	var in struct{ Email, Password string }
+	r.Body = http.MaxBytesReader(w, r.Body, 4096) // password raksasa tidak boleh sampai ke argon2id
+	if json.NewDecoder(r.Body).Decode(&in) != nil || in.Email == "" || in.Password == "" {
+		tulisProblem(w, problem{Type: "/problems/body", Title: "Body harus JSON berisi email dan password", Status: 400})
+		return
+	}
+	a, ok := s.periksaMasuk(w, r, in.Email, in.Password)
+	if !ok {
+		return
+	}
 	if a.wajib {
 		// Login diterima, tapi hanya boleh ganti password dulu (password pertama wajib diganti).
 		tulis(w, 200, map[string]any{"ok": true, "wajib_ganti_password": true,
@@ -348,16 +399,17 @@ func (s *server) gantiPassword(w http.ResponseWriter, r *http.Request) {
 		PasswordLama string `json:"password_lama"`
 		PasswordBaru string `json:"password_baru"`
 	}
-	if json.NewDecoder(r.Body).Decode(&in) != nil || in.Email == "" {
+	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	if json.NewDecoder(r.Body).Decode(&in) != nil || in.Email == "" || in.PasswordLama == "" {
 		tulisProblem(w, problem{Type: "/problems/body", Title: "Body tidak lengkap", Status: 400})
 		return
 	}
-	a, err := s.akunLewatEmail(r.Context(), in.Email)
-	if err != nil || !cocokHash(in.PasswordLama, a.hash) {
-		tulisProblem(w, problem{Type: "/problems/login-gagal", Title: "Email atau password lama salah", Status: 401})
+	// Password lama melewati pengaman yang sama dengan /login (rate limit, kunci, penghitung gagal).
+	a, ok := s.periksaMasuk(w, r, in.Email, in.PasswordLama)
+	if !ok {
 		return
 	}
-	// NIST SP 800-63B §3.1.1.2: password faktor tunggal minimal 15 karakter; cek lawan daftar bocor.
+	// NIST SP 800-63B-4 §3.1.1.2: password faktor tunggal minimal 15 karakter; cek lawan daftar bocor.
 	if len([]rune(in.PasswordBaru)) < 15 {
 		tulisProblem(w, problem{Type: "/problems/password-lemah", Title: "Password baru minimal 15 karakter", Status: 422})
 		return
@@ -367,8 +419,8 @@ func (s *server) gantiPassword(w http.ResponseWriter, r *http.Request) {
 			Title: "Password baru ada di daftar password yang pernah bocor; pilih yang lain", Status: 422})
 		return
 	}
-	hash := enkodeHash(in.PasswordBaru, saltLab(a.id, "baru"))
-	_, err = s.db.Exec(r.Context(),
+	hash := enkodeHash(in.PasswordBaru, saltAcak())
+	_, err := s.db.Exec(r.Context(),
 		`UPDATE akun SET password_hash = $1, wajib_ganti_password = false WHERE id = $2`, hash, a.id)
 	if err != nil {
 		tulisProblem(w, problem{Type: "/problems/internal", Title: "Gagal menyimpan", Status: 500})
@@ -389,6 +441,10 @@ func (s *server) labJam(w http.ResponseWriter, r *http.Request) {
 	tulis(w, 200, map[string]any{"ok": true, "sekarang": sekarang().Format(time.RFC3339)})
 }
 
+func labHitung(w http.ResponseWriter, _ *http.Request) {
+	tulis(w, 200, map[string]any{"argon2id": hitungHash.Load(), "query_akun": hitungQuery.Load()})
+}
+
 func detik(d time.Duration) int {
 	return int(math.Ceil(d.Seconds()))
 }
@@ -399,11 +455,7 @@ func main() {
 	if url == "" {
 		log.Fatal("DATABASE_URL kosong")
 	}
-	bocor := os.Getenv("DAFTAR_BOCOR")
-	if bocor == "" {
-		bocor = "daftar-bocor.txt"
-	}
-	if err := muatBocor(bocor); err != nil {
+	if err := muatBocor(); err != nil {
 		log.Fatalf("muat daftar bocor: %v", err)
 	}
 
@@ -421,14 +473,18 @@ func main() {
 		return
 	}
 
-	perIP := pembatasBaru(10, 10.0/60)   // 10 percobaan burst, isi ulang 10 per menit
-	perAkun := pembatasBaru(5, 5.0/60)   // 5 percobaan burst per akun, isi ulang 5 per menit
+	perIP := pembatasBaru(10, 10.0/60) // 10 percobaan burst, isi ulang 10 per menit
+	perAkun := pembatasBaru(5, 5.0/60) // 5 percobaan burst per akun, isi ulang 5 per menit
 	s := &server{
-		db:       pool,
-		mode:     getenvDefault("MODE", "dua-lapis"),
-		ipSumber: getenvDefault("IP_SUMBER", "koneksi"),
-		perIP:    perIP,
-		perAkun:  perAkun,
+		db:           pool,
+		mode:         getenvDefault("MODE", "dua-lapis"),
+		ipSumber:     getenvDefault("IP_SUMBER", "koneksi"),
+		proxyRahasia: os.Getenv("PROXY_RAHASIA"),
+		perIP:        perIP,
+		perAkun:      perAkun,
+	}
+	if s.ipSumber == "proxy" && len(s.proxyRahasia) < 32 {
+		log.Fatal("IP_SUMBER=proxy butuh PROXY_RAHASIA acak minimal 32 karakter")
 	}
 
 	mux := http.NewServeMux()
@@ -436,11 +492,20 @@ func main() {
 	mux.HandleFunc("POST /ganti-password", s.gantiPassword)
 	if os.Getenv("LAB_JAM") == "1" {
 		mux.HandleFunc("POST /lab/jam", s.labJam)
+		mux.HandleFunc("GET /lab/hitung", labHitung)
 	}
 
 	port := getenvDefault("PORT", "18170")
 	log.Printf("c4-login mendengar di 127.0.0.1:%s (mode=%s ip_sumber=%s)", port, s.mode, s.ipSumber)
-	log.Fatal(http.ListenAndServe("127.0.0.1:"+port, mux)) // port terpakai = gagal keras
+	srv := &http.Server{
+		Addr:              "127.0.0.1:" + port,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second, // client lambat tidak boleh menahan koneksi tanpa batas
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+	log.Fatal(srv.ListenAndServe()) // port terpakai = gagal keras
 }
 
 func getenvDefault(k, d string) string {

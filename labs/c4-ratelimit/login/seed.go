@@ -71,8 +71,7 @@ func seed(ctx context.Context, pool *pgxpool.Pool) error {
 		return err
 	}
 	for _, a := range seedAkunDaftar() {
-		// Salt deterministik HANYA untuk lab (rekaman identik tiap run). Di produksi salt wajib acak.
-		hash := enkodeHash(a.password, saltLab(a.id, "awal"))
+		hash := enkodeHash(a.password, saltAcak())
 		var nomor any
 		if a.jenis == "karyawan" {
 			nomor = fmt.Sprintf("K%05d", a.id)
