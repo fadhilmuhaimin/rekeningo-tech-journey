@@ -171,9 +171,10 @@ body { background: var(--bg); }
 .sidebar-content a[data-nav~="inti"]::after { content: " ★"; color: var(--k-warn-ink); font-size: 0.8em; }
 .sidebar-content a[data-nav~="menyusul"] { color: var(--teks-2); }
 .sidebar-content a[data-nav~="menyusul"]:not([aria-current]) { opacity: 0.7; }
-/* Halaman versi lama yang akan digabung atau digantikan halaman baru (keputusan 117); title menjelaskan ke mana. */
-.sidebar-content a[data-nav~="lama"] { font-style: italic; color: var(--teks-2); }
-.sl-markdown-content a.rujukan-menyusul { text-decoration: underline dotted; text-underline-offset: 3px; }
+/* Halaman versi lama yang akan digabung atau digantikan halaman baru (keputusan 117); title menjelaskan ke mana.
+   Warnanya warna tautan biasa (bisa dibaca, ditandai badge "versi lama"); abu-abu hanya untuk "segera" (keputusan 450). */
+.sidebar-content a[data-nav~="lama"] { font-style: italic; }
+.sl-markdown-content span.rujukan-menyusul { color: var(--teks-2); }
 
 /* Blok kode dari komponen Snippet (div.highlight + pre.shiki) */
 .sl-markdown-content .highlight { margin: 1em 0; }
@@ -761,6 +762,7 @@ body:has(.beranda) .content-panel { padding-block: 0.6rem; border-top: 0; }
 .masalah__hasil { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: 0.7rem; max-width: 42rem; }
 .masalah__hasil li { display: grid; gap: 0.1rem; color: var(--teks-2); }
 .masalah__hasil a { color: var(--aksen); font-weight: 600; }
+.masalah__hasil .masalah__segera { color: var(--teks); font-weight: 600; }
 @media (max-width: 62em) {
   .beranda__depan { grid-template-columns: 1fr; gap: 1.5rem; padding-top: 0.6rem; }
   .peta__tab { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -929,6 +931,11 @@ starlight-toc a, .right-sidebar a, starlight-toc h2 { font-size: var(--rk-ui); }
 /* Sidebar: tanpa opacity dan tanpa huruf miring (kontras ≥ 8:1; panduan disleksia menghindari italic). */
 .sidebar-content a[data-nav~="menyusul"]:not([aria-current]) { opacity: 1; }
 .sidebar-content a[data-nav~="lama"] { font-style: normal; }
+/* Badge "segera" dan "versi lama" (keputusan 450): teks bertoken 14 px dengan garis tipis, bukan isi warna aksen
+   bawaan Starlight, supaya tidak bersaing dengan halaman yang bisa dibaca. Butir "segera" tanpa href: kursor biasa. */
+.sidebar-content .sl-badge.nav-tanda { color: var(--teks-2); background-color: transparent; border-color: var(--garis); font-family: inherit; font-size: var(--rk-ui-kecil); font-weight: 400; white-space: nowrap; }
+.sidebar-content a[aria-current] .sl-badge.nav-tanda { color: inherit; border-color: currentColor; }
+.sidebar-content a[data-nav~="menyusul"]:not([href]) { cursor: default; }
 /* Sisa teks < 14 px dari pemindaian audit-tampilan.mjs (keputusan 201). */
 .kamu__tag { font-size: var(--rk-ui); }
 nav.bb-lanjut a span { font-size: var(--rk-ui); }

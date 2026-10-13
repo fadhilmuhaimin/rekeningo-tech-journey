@@ -6,6 +6,8 @@ import { Arsitektur } from "../diagram/skema";
 export const PERAN = ["mobile", "web", "backend", "devops", "security"] as const;
 export const JENIS = ["prd", "fitur", "masalah", "konsep", "adr", "tim-infra"] as const;
 const Tahap = z.union([z.number().int().min(1).max(6), z.enum(["pembuka", "sampingan", "alat"])]);
+/** Nomor bagian naskah: 1–6, atau sub-bagian seperti "3b" (CERITA-TAHAP-2 "3b. Skema data"). */
+const NoBagian = z.union([z.number().int().min(1).max(6), z.string().regex(/^[1-6][a-z]$/)]);
 
 export const Halaman = z
   .object({
@@ -14,7 +16,7 @@ export const Halaman = z
     tahap: Tahap,
     path: z.string().regex(/^[a-z0-9\-/]+\.md$/),
     jenis: z.enum(JENIS).optional(),
-    bagian: z.number().int().min(1).max(6).optional(),
+    bagian: NoBagian.optional(),
     inti: z.boolean().optional(),
     peran: z.array(z.enum(PERAN)).optional(),
     adr: z.array(z.number().int().positive()).optional(),
@@ -32,13 +34,15 @@ export const Halaman = z
     ada: z.boolean().optional(),
     nomor: z.string().optional(),
     menit: z.number().optional(),
+    /** Lab yang dipakai halaman menurut peta halaman naskah (nama folder di labs/, termasuk yang belum dibuat). */
+    lab: z.array(z.string().regex(/^[a-z0-9\-]+$/)).min(1).optional(),
   })
   .strict();
 
 // Skala tahap dari naskah (CERITA "Skala yang akan dilalui cerita" dan "Eskalasi"), dipakai peta beranda (keputusan 208).
 const Skala = z.object({ pendek: z.string(), lingkup: z.string(), user: z.string(), pembuat: z.string(), prd: z.string() }).strict();
 
-const Bagian = z.object({ no: z.number().int().min(1), nama: z.string().min(2) }).strict();
+const Bagian = z.object({ no: NoBagian, nama: z.string().min(2) }).strict();
 
 export const Registry = z
   .object({
@@ -57,6 +61,8 @@ export const Registry = z
           jalur_inti: z.object({ menit: z.number(), halaman: z.number() }).optional(),
           bagian: z.array(Bagian).optional(),
           naskah: z.string().optional(),
+          /** Data tahap ini (nama, rekap, arsitektur, asumsi) masih versi lama. Dengan `naskah`, daftar halamannya sudah
+           *  mengikuti naskah baru dan penanda versi lama pindah ke halaman (`lama`, `diganti_oleh`). */
           versi: z.literal("lama").optional(),
           skala: Skala.optional(),
         })

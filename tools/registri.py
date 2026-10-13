@@ -91,6 +91,6 @@ def ganti_token(teks, d, link=False):
         if not link:
             return teks_link
         if not h["ada"]:
-            return f"{teks_link} *(menyusul)*"
+            return f"{teks_link} *(segera)*"
         return f"[{teks_link}]({url_mutlak(h['path'])})"
     return TOKEN.sub(f, teks)

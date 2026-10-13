@@ -1,0 +1,25 @@
+-- Lab b3-race (ledger) · UPDATE atomik bersyarat
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_race · isolation read committed
+-- Saldo Budi 100000. A (HP) transfer 70000 ke Citra, B (tablet) transfer 50000 ke Dimas.
+-- Rekaman dari database bersih: make -C labs/b3-race run-ledger (keputusan 430).
+-- [lock: ...] = pemegang row lock di baris buku Budi dan modenya (pgrowlocks).
+--
+-- Cek dan potong saldo_cache dalam satu UPDATE bersyarat sebelum jurnal ditulis. 0 baris = saldo kurang.
+
+ 1 [A] BEGIN  -> BEGIN
+ 2 [B] BEGIN  -> BEGIN
+ 3 [A] UPDATE buku SET saldo_cache = saldo_cache - 70000 WHERE id = 2 AND saldo_cache >= 70000  -> UPDATE 1   [lock: A (No Key Update)]
+ 4 [B] UPDATE buku SET saldo_cache = saldo_cache - 50000 WHERE id = 2 AND saldo_cache >= 50000  -> MENUNGGU lock   [lock: A (No Key Update)]
+         -- menunggu lock (transactionid)
+ 5 [A] (1 baris berubah: saldo cukup dan sudah dipotong, lanjut menulis jurnal)   [lock: A (No Key Update)]
+ 6 [A] INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id  -> 2   [lock: A (No Key Update)]
+ 7 [A] INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000)  -> INSERT 0 2   [lock: A (No Key Update)]
+ 8 [A] UPDATE buku SET saldo_cache = saldo_cache + 70000 WHERE id = 3  -> UPDATE 1   [lock: A (No Key Update)]
+ 9 [A] COMMIT  -> COMMIT   [lock: B (For No Key Update)]   [saldo COMMIT 30000]
+10 [B] UPDATE buku SET saldo_cache = saldo_cache - 50000 WHERE id = 2 AND saldo_cache >= 50000  -> UPDATE 0   [lock: B (For No Key Update)]
+         -- lanjut sesudah A COMMIT: syarat WHERE dicek ulang ke versi baris terbaru
+11 [B] (0 baris berubah: saldo kurang, transfer ditolak)   [lock: B (For No Key Update)]
+12 [B] ROLLBACK  -> ROLLBACK
+
+-- akhir: A COMMIT; B ditolak kode: saldo kurang; menunggu lock 1; retry 0
+-- saldo Budi (jumlah posting) 30000; saldo_cache 30000; jurnal transfer 1
