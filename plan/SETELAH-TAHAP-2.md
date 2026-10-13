@@ -53,3 +53,30 @@ Polesan dan pencegahan dari tinjauan lab dan halaman Tahap 2 yang sengaja tidak 
 - Komentar `NiatBayar`: sesudah jawaban final (termasuk 422 saldo kurang yang disimpan 24 jam) tap baru harus membuat niat baru; 2.14 menulis aturan ini.
 - Klaim 513 tentang key milik akun lain belum punya bukti lab (server selalu memakai Budi). `polaKunci` menolak UUID huruf besar (RFC 9562 membolehkan saat masuk); retry bersamaan atas key `selesai` bisa 409 karena NOWAIT; `.timeout()` Dart tidak membatalkan request; `Retry-After` belum dibaca; keterangan `aturan.txt` untuk 400 ke-4 (key bukan UUID).
 - Usul api-t2 (517): pola `denganKunci` di `/transfers` dan `/kiriman`; `CHECK ((status='selesai') = (respons IS NOT NULL))` dan index `kedaluwarsa`; opsional `PRIMARY KEY (akun_id, kunci)`. gitleaks `generic-api-key` menandai `Idempotency-Key: "<UUID>"`: halaman 2.13/2.14 memendekkan key.
+
+## Temuan polesan dari lab-b2-query (#266, keputusan 520–526)
+
+- `n1.txt`: "Index tidak mengubah jumlah query" dan "hasil identik" hanya diukur sebelum index dibuat; dua-tiga kalimat rekaman > 25 kata.
+- `data.txt` C "rencana sama di setiap rekaman" juga bergantung pada `random_page_cost`, `work_mem`, `effective_cache_size` server: kunci di `OPSI`. Autovacuum dimatikan sesudah COMMIT muat; `pembalik_cermin_asal` tidak diperiksa sesudah muat (data tanpa jurnal pembalik).
+- Rekam risiko kursor (transaksi yang COMMIT belakangan terlewat) sebagai bagian `pagination.txt` sebelum 2.19 ditulis.
+
+## Temuan polesan dari I6-erd (#262, keputusan 460–467)
+
+- `membalik_jurnal_id` terpotong elipsis di node; petunjuk "Pilih tabel…" di bawah diagram; di mode bandingkan Tahap 1 (1366) garis yang memutar membentuk bingkai dan semua panah ke `akun` bertemu satu titik; label kunci 12 px (±10,4 px di zoom 0,87).
+- Pemilih tahap tampil walau satu tahap; "foreign key" tanpa `translate="no"`; siklus FK di tahap nanti membuat build gagal; CI tidak menjalankan gestur sentuh sintetis (hanya `touch-action`). `role="application"` pembungkus React Flow tidak bisa diganti lewat prop.
+
+## Temuan polesan dari lab-b4-skema (#264, keputusan 530–537)
+
+- Rilis 1 punya jendela 3 detik (bayar P1 harus antre sebelum M menyerah): mesin sangat ramai bisa gagal palsu (gagal keras). `bayar()` dan `BATCH` menyusun SQL dengan `str.format` dari angka internal.
+- Tanpa FOR UPDATE bayar Budi tetap menunggu karena `buka_buku` meng-UPDATE `nomor_karyawan`, jadi rekaman tidak membedakan kedua versi. Lab tidak punya penolak tulisan server v1 seperti REVOKE di api-t2 (hanya tertangkap cek malam). README root baris b4-skema belum menyebut `run-ledger`, 2.21, 2.22.
+
+## Temuan polesan dari lab-c4-ratelimit (#268, keputusan 540–550)
+
+- Map bucket di memori tumbuh tanpa batas karena key-nya email/IP dari penyerang; email belum dinormalisasi. x/crypto v0.58.0 sudah ada (2026-10-09).
+- Teks keputusan 546 dan 549 masih menggambarkan penanda proxy konstan dan salt tetap (diganti 550); satu kolom rekaman B tidak rata; deskripsi PR #268 belum diperbarui.
+
+## Temuan polesan dari ERD2 (#265, keputusan 470–473)
+
+- Job CI dengan service PostgreSQL yang membangun ulang ERD dan membandingkan (menutup celah `--cek` yang hanya memeriksa hash sumber; juga catatan ERD1).
+- `nomor_karyawan` terpotong "nomor_kar…" di node `akun` (HP dan desktop); teks pindah "arsip v1" belum menjelaskan bahwa itu schema arsip.
+- Pagar lock `pastikan_di_schema()` menangkap pelanggaran sesudah SQL jalan; efek di luar transaction (mis. `nextval` sequence lab lain) tidak dibatalkan ROLLBACK. Pagar sebenarnya: role database per lab tanpa hak di schema lain (sekarang semua lab memakai satu role `lab`).
