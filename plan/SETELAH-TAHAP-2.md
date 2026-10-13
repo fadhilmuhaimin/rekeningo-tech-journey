@@ -32,3 +32,24 @@ Polesan dan pencegahan dari tinjauan lab dan halaman Tahap 2 yang sengaja tidak 
 - Lima halaman lama memakai judul naskah "+ ADR 13–17" di sidebar, Berikutnya, dan kartu, padahal H1 dan isinya belum memuat ADR itu.
 - CSS sorotan peran `html[data-peran] a[data-peran~]` mengalahkan gaya abu-abu butir "segera" (peran Security: tiga butir tampak bisa dibaca; badge tetap ada). Beranda menulis "menebalkan semua 11 halaman", padahal 14 (3 segera).
 - Daftar peran di Vitest ditulis manual, tidak dibaca dari "Jalur per peran" naskah.
+
+## Temuan polesan dari lab-b3-isolasi (#259, keputusan 440–447)
+
+- Tambahkan `harap` `SHOW transaction_isolation` di tiap skenario supaya `run-ledger` sendiri gagal bila level tertukar.
+- Penomoran beda dengan b3-race ("retry 1" lawan "percobaan 2", buku Budi id 2 lawan 3): seragamkan saat 2.11 dan 2.12 ditulis; sumber `trigger.c`/`snapmgr.c` layak masuk rasional 443.
+- `api-t2` `TutupBuku` menjalankan dua query di pool, bukan satu transaction: ringkasan sistem bisa dari snapshot lebih baru (catat untuk 2.4, sesuai 442).
+- README belum memuat schema `b3_race` dan target `run-ledger` b3-race; baris b3-race masih menulis 2.1. `b3-race` masih memakai ambang waktu 0,3/0,5/3 detik (gagal palsu saat mesin ramai), b3-isolasi sudah tidak.
+
+## Temuan polesan dari lab-t2-pencairan (#260, keputusan 500–508)
+
+- 2.26 wajib menulis "Keuangan mengambil file menurut status `dikirim`": file basi dengan nama akhir bisa tersisa sesudah job berhenti setelah rename lalu jurnal dibalik (508); `benar.txt` E belum menyebutnya.
+- Periode sebaiknya dihitung dari tanggal Jumat (2026-W44 yang diketik di Jumat W43 diterima); batch kosong tetap jadi `dikirim` dengan file berisi kepala; `-urutan` tak dikenal membuat job rentan diam.
+- Rekonsiliasi menurunkan kedua sisi dari `baris_pencairan`, jadi jumlah beku yang salah tidak tertangkap; pembalik dari pembalik tidak dihitung.
+- CSV: nama yang diawali "=" tidak di-escape (berisiko saat file dibuka di spreadsheet). Beberapa komentar rekaman > 25 kata. Nomor rekening tujuan belum ada di ERD (505).
+
+## Temuan polesan dari lab-e3-idempotency (#263, keputusan 510–518)
+
+- Lock baris key bisa tertahan lama bila host server membeku sampai TCP keepalive mendeteksinya (ulangan dapat 409): usul `idle_in_transaction_session_timeout` di role app api-t2.
+- Komentar `NiatBayar`: sesudah jawaban final (termasuk 422 saldo kurang yang disimpan 24 jam) tap baru harus membuat niat baru; 2.14 menulis aturan ini.
+- Klaim 513 tentang key milik akun lain belum punya bukti lab (server selalu memakai Budi). `polaKunci` menolak UUID huruf besar (RFC 9562 membolehkan saat masuk); retry bersamaan atas key `selesai` bisa 409 karena NOWAIT; `.timeout()` Dart tidak membatalkan request; `Retry-After` belum dibaca; keterangan `aturan.txt` untuk 400 ke-4 (key bukan UUID).
+- Usul api-t2 (517): pola `denganKunci` di `/transfers` dan `/kiriman`; `CHECK ((status='selesai') = (respons IS NOT NULL))` dan index `kedaluwarsa`; opsional `PRIMARY KEY (akun_id, kunci)`. gitleaks `generic-api-key` menandai `Idempotency-Key: "<UUID>"`: halaman 2.13/2.14 memendekkan key.

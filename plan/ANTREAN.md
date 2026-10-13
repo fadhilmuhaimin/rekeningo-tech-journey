@@ -897,29 +897,29 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 ### lab-b3-isolasi · Lab b3-isolasi ke ledger
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-b3-ledger
 - selesai bila: `labs/b3-isolasi` ditulis ulang ke ledger untuk 2.12: anomali yang benar-benar terjadi di PostgreSQL per isolation level (READ COMMITTED, REPEATABLE READ, SERIALIZABLE) pada skenario Rekeningo (mis. laporan tutup buku yang membaca saat jurnal masuk, dua transfer) dengan SQLSTATE 40001 dan retry; klaim tiap level dicek ke dokumentasi PostgreSQL; rekaman dari database bersih, diulang identik.
-- catatan: Jalur lab. Dipakai 2.12.
+- catatan: Jalur lab. PR #259, keputusan 440–447: `ledger.py`, rekaman `output/ledger/`, `run-ledger`/`cek-ledger`; laporan tutup buku dua statement salah di READ COMMITTED dan seimbang di REPEATABLE READ/SERIALIZABLE; tanpa lock buku, REPEATABLE READ lebih lemah dari READ COMMITTED untuk invarian 3 (trigger saat COMMIT membaca snapshot transaction). Peninjau: deteksi tunggu lock tanpa ambang waktu (446), saldo dibaca dari posting dan kalimat RC dibetulkan (447).
 
 ### lab-t2-pencairan · Lab t2-pencairan: job Jumat dan rekonsiliasi
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-b3-ledger
 - selesai bila: Lab baru `labs/t2-pencairan` untuk 2.5, 2.25, 2.26 (M15): job pencairan Jumat membuat jurnal pencairan per warung dan satu file transfer bank (CSV); versi rentan: server restart di tengah lalu job jalan lagi, satu warung muncul dua kali di file tetapi sekali di ledger (selisih sesuai naskah atau angka rekaman berlabel); versi benar: batch per periode dengan kunci unik `periode`, status batch, baris pencairan per buku, aman dijalankan dua kali; rekonsiliasi otomatis ledger lawan file sebelum file dibuat (menolak bila beda); rekaman dari database bersih, diulang identik.
-- catatan: Jalur lab. Nama lab dipilih malam ini (MEMORI "Diputuskan malam ini").
+- catatan: Jalur lab. PR #260, keputusan 500–508: job Go `cmd/pencairan`; rentan menulis baris file sebelum COMMIT lalu SIGKILL sesudah baris 7, job ulang menulis Warung 508 lagi (file Rp2.465.000 lawan ledger Rp2.450.000); ADR 19 tiga langkah yang bisa dilanjutkan, rekonsiliasi sebelum file dibuat (exit 3 bila beda); tabel sama dengan api-t2 000011. Peninjau: sync folder sesudah rename (506), periode wajib minggu ISO dan path di dalam `-dir` (507), batas yang dicoba tanpa direkam (508); empat job bersamaan × 40 tetap 12 jurnal.
 
 ### lab-e3-idempotency · Lab e3-idempotency diselaraskan ke M10 dan ledger
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-b3-ledger
 - selesai bila: `labs/e3-idempotency` diselaraskan ke M10: Bayar Rp25.000 diulang sesudah response hilang tercatat dua kali tanpa key; dengan key yang dibuat app sekali per niat bayar, server menyimpan hasil per key 24 jam di `kunci_idempotensi` (hash permintaan, status, respons, jurnal): ulangan mendapat respons yang sama tanpa jurnal kedua, key sama dengan body beda ditolak, ulangan saat permintaan pertama masih diproses ditangani; status standar header dicek ke sumber primer (IETF); rekaman dari database bersih, diulang identik; nama mode dan file lama boleh tetap (keputusan 86).
-- catatan: Jalur lab. Dipakai 2.13, 2.14.
+- catatan: Jalur lab. PR #263, keputusan 510–518: server ledger sendiri di samping versi lama; klaim key `diproses` di-commit sendiri lalu satu transaction `FOR UPDATE NOWAIT` menulis jurnal + `selesai` (55P03 → 409); header dan status mengikuti draft IETF -07 yang sudah kedaluwarsa; titik henti server, bukan waktu; client Dart satu key per niat bayar, 4 percobaan dengan backoff + jitter; key dipendekkan di rekaman karena gitleaks. Peninjau: lolos tanpa perbaikan (30 request bersamaan → 1 jurnal).
 
 ### lab-b2-query · Lab b2-query ke ledger: N+1, index, kursor
 
