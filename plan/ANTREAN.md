@@ -620,15 +620,6 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - selesai bila: halaman `t1-jembatan` (prd, ★) menampilkan pratinjau PRD v2 dari naskah bagian 6 dan widget tebak (`situs/src/widgets/tebak/`): dari 12 ADR, mana yang dibuka lagi; jawabannya ADR 6 dan ADR 5 dengan alasan naskah.
 - catatan: PR #209, keputusan 309; satu putaran tinjauan.
 
-### I5f · Diagram arsitektur di halaman tahap dan ADR
-
-- jenis: interaksi
-- status: antre
-- percobaan: 0
-- bergantung: I4
-- selesai bila: diagram kotak statis di halaman tahap dan halaman ADR (banding) diganti DiagramArsitektur; MEMORI mendapat bagian "Untuk halaman baru": cara memakai DiagramArsitektur dan token gerak; tangkapan sebelum/sesudah; butir I6.
-- catatan: Widget lain hanya bila jelas membantu pemahaman; alasannya dicatat di keputusan.
-
 ### P3 · Halaman cara pakai untuk lima blok dan tiga pintu
 
 - jenis: perbaikan
@@ -637,15 +628,6 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - bergantung: -
 - selesai bila: `/cara-pakai/` menjelaskan lima blok dan tiga pintu (cerita, peran, masalah), bukan susunan lima bagian lama; audit bahasa 0 error.
 - catatan: Dari MEMORI "Catatan untuk penulisan ulang Tahap 1". PR #212, keputusan 310; dua putaran (saran peran, Generalis, batas waktu Roediger).
-
-### P4 · Ilustrasi latar perusahaan Grup Lestari
-
-- jenis: perbaikan
-- status: antre
-- percobaan: 0
-- bergantung: -
-- selesai bila: adegan latar perusahaan baru di `Ilustrasi.astro` (kampus tiga gedung, kantin, warung tenant; token gelap/terang, tanpa teks di SVG) dipakai di 1.1 PRD v1; `contrast.py` lolos.
-- catatan: Naskah meminta satu ilustrasi latar dan satu per masalah M3–M6.
 
 ### R1 · Visual layar pertama: 1.3, 1.5, 1.6
 
@@ -700,15 +682,6 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - bergantung: G2a, I5c-h
 - selesai bila: `situs/tools/ukur-cls.mjs` (paralel) memakai `denganBatas` per halaman dari `situs/tools/lib/batas.mjs` dan mencetak `MACET cls <ukuran> <halaman>` dengan exit 1; penyebab thread utama renderer tertahan di `/tahap-1/m5-angka-di-url/` 360×740 (run 38257090943) dicari lewat pengulangan di branch `percobaan/**` dan dicatat, atau dibuktikan tidak terulang dalam ≥ 10 putaran.
 - catatan: Dari pelaksana dan peninjau PR #211 (keputusan 360). Jalur teknis. PR #222, keputusan 364; dua putaran (klaim "bukan isi halaman" dibantah data; ulang di konteks baru).
-
-### G2c · Pagar lebar font fallback di CI
-
-- jenis: perbaikan
-- status: antre
-- percobaan: 0
-- bergantung: I5c-h
-- selesai bila: gerbang gagal bila lebar span uji "Satoshi Fallback" di CI berbeda > 0,5% dari Satoshi atau lebarnya bilangan bulat (tanda hinting), dengan uji mutasi; pesan menyebut versi runner dan font.
-- catatan: Dari PR #213 (keputusan 361): label `ubuntu-latest` pindah versi [perlu verifikasi tanggal], set font atau hinting bisa berubah tanpa ketahuan. Jalur teknis.
 
 ### P5 · Kunci progres lama di Kartu ulang dan Peta cerita
 
@@ -773,32 +746,14 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - selesai bila: penyebab renderer diam (`pthread_cond_wait`, metrik CDP tak menjawab) yang hanya muncul di halaman `/tahap-1/` di 360×740 dan 375×667 ditemukan lewat varian percobaan (mis. tanpa skrip `Blok.astro`, localStorage diganti stub, tanpa island) ≥ 48 putaran per varian di branch `percobaan/**`, atau tumpukan bersimbol Chromium; bila penyebabnya kode situs, diperbaiki dan `ULANG` di ukur-luapan turun ke 0 dalam ≥ 48 putaran; bila di Chromium headless, bukti dan laporan bug dicatat.
 - catatan: Dari PR #222 (keputusan 364): 27 MACET dalam 240 putaran, semuanya halaman Tahap 1. Bisa jadi risiko pembaca nyata (halaman membeku di HP). Jalur teknis.
 
-### G2e · Ulang sekali yang sama untuk ukur-cls
-
-- jenis: perbaikan
-- status: antre
-- percobaan: 0
-- bergantung: G2d
-- selesai bila: `ukur-cls.mjs` memakai syarat ulang sekali yang sama dengan ukur-luapan (renderer diam lewat `jejak`, tanpa xhr/fetch tertunda, batas jumlah ulang, peringatan Actions dan ringkasan langkah) dari satu modul bersama di `situs/tools/lib/`, bukan salinan; uji mutasi seperti keputusan 364.
-- catatan: Dari peninjau PR #231: lengan konteks per halaman (cara kerja ukur-cls) macet 3/60, dan ukur-cls pernah macet di run 38257090943. Jalur teknis.
-
-### R6 · Aturan layar: visual wajib di layar pertama
-
-- jenis: perbaikan
-- status: antre
-- percobaan: 0
-- bergantung: R1, R2, R3, R4, R5, P10
-- selesai bila: `situs/tools/layar.mjs` gagal bila halaman berblok tidak menampilkan visual di layar pertama 4 ukuran; alat ukur Rantai (P10) gagal bila satu baris Rantai ringkas di Inti membungkus lebih dari dua baris visual di 360 atau 375 px; semua halaman Tahap 1 yang ada lolos (halaman yang gagal diperbaiki di tugas ini, satu commit per halaman).
-- catatan: Setengah jalan dari sesi redesain (MEMORI sesi 3, langkah 6).
-
 ### X1 · Crosscheck penuh Tahap 1
 
 - jenis: crosscheck
 - status: antre
 - percobaan: 0
 - bergantung: -
-- selesai bila: isi `plan/PROMPT-CROSSCHECK.md` dijalankan; `plan/LAPORAN-TAHAP-1.md` ditulis; setiap perbaikan dari laporan menjadi tugas perbaikan baru sesudah X1 (satu tugas per perbaikan, bukan dikerjakan di iterasi X1).
-- catatan: Dari pelaksana 1.41: jumlah akun M3 tidak seragam — 1.19 `m3-tanda-kutip.mdx` ~21 "100 karyawan, tiga warung, dan admin" (104) vs `labs/api-t1/output/m3.txt` ~36 tiga + "99 akun lain" (102) vs M5 103.
+- selesai bila: (lingkup beku, keputusan 369) temuan hanya masuk ANTREAN sebagai tugas perbaikan bila kategorinya rusak, aksesibilitas, kontras, atau gerbang yang benar-benar gagal; temuan lain langsung ditulis ke `plan/SETELAH-TAHAP-1.md`. Isi `plan/PROMPT-CROSSCHECK.md` dijalankan; `plan/LAPORAN-TAHAP-1.md` ditulis; setiap perbaikan dari laporan menjadi tugas perbaikan baru sesudah X1 (satu tugas per perbaikan, bukan dikerjakan di iterasi X1).
+- catatan: Dari pelaksana 1.41: jumlah akun M3 tidak seragam — 1.19 `m3-tanda-kutip.mdx` ~21 "100 karyawan, tiga warung, dan admin" (104) vs `labs/api-t1/output/m3.txt` ~36 tiga + "99 akun lain" (102) vs M5 103. Dari peninjau P9 (keputusan 317): dari kode, `Service.Bayar` tidak memeriksa bahwa peminta adalah karyawan, jadi Warung Ani mungkin bisa membayar ke akunnya sendiri (418→418) dan baris itu terhitung di laporan warung [belum dibuktikan lab]; bila terbukti, kategorinya rusak.
 
 ### X2 · Penutup Tahap 1
 
@@ -806,5 +761,5 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - status: antre
 - percobaan: 0
 - bergantung: X1
-- selesai bila: semua tugas dari X1 selesai atau diparkir; tangkapan seluruh Tahap 1 dilihat; laporan di STATUS dan baris "Tahap 1: crosscheck selesai"; tidak ada tugas Tahap 2 yang dimulai.
+- selesai bila: (lingkup beku, keputusan 369) `plan/LAPORAN-TAHAP-1.md` memuat apa yang selesai, daftar "Setelah Tahap 1" (dari `plan/SETELAH-TAHAP-1.md`), dan 10 hal teratas yang perlu dilihat pemilik sendiri (halaman dan apa yang diperhatikan); temuan X2 mengikuti aturan yang sama dengan X1; pengatur lalu berhenti dengan kalimat "Tahap 1 selesai, menunggu tinjauan pemilik". Semua tugas dari X1 selesai atau diparkir; tangkapan seluruh Tahap 1 dilihat; laporan di STATUS dan baris "Tahap 1: crosscheck selesai"; tidak ada tugas Tahap 2 yang dimulai.
 - catatan: Tahap 2 menunggu `plan/CERITA-TAHAP-2.md` dari pemilik.
