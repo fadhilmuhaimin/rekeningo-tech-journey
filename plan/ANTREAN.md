@@ -826,3 +826,502 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - bergantung: X2
 - selesai bila: `tools/erd.py` membangun skema akhir Tahap 1 `labs/api-t1` di schema sementara PostgreSQL lab, membaca katalog (tabel, kolom, tipe, PK, FK, UNIQUE, CHECK, index) dan menulis `situs/data/erd/tahap-1.json` yang deterministik beserta hash sumbernya; `tools/erd.py --cek` (tanpa database) masuk gerbang dan gagal bila sumber skema berubah tanpa JSON ikut dibuat ulang; 1.12 menampilkan diagram statis bertoken (tabel, kolom penting, PK/FK, relasi) tanpa JavaScript, teks tidak di dalam SVG, terbaca di 375×667 dan 1366×657 gelap dan terang, kontras lolos, layar pertama 1.12 tidak bergeser; selisih dengan blok mermaid ERD Tahap 1 di `plan/CERITA-TAHAP-2.md` bagian 3b tercatat (skema lab yang benar).
 - catatan: Permintaan pemilik 2026-10-13, pengecualian pembekuan lingkup (keputusan 375). Jalur teknis malam ini. Widget interaktif ERD bertumbuh menyusul di Tahap 2.
+
+## Tahap 2
+
+Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab dulu (jalur teknis dan jalur lab), lalu gerbang pemilik `T2-mulai`, lalu halaman 2.1–2.33 dengan crosscheck kecil tiap 5 halaman, X1-t2 dan X2-t2 di akhir. Lingkup dibekukan sejak awal: tugas baru dari peninjau atau crosscheck hanya kategori rusak, aksesibilitas, kontras, atau gerbang gagal; polesan ke `plan/SETELAH-TAHAP-2.md`. Nomor keputusan: jalur lab/konten 400–449, teknis 450–499. Dua jalur bisa mengerjakan tugas bersamaan; status `dikerjakan` hanya untuk satu tugas (pemeriksa), tugas jalur kedua tetap `antre` sampai selesai.
+
+### T2-naskah · Simpan naskah Tahap 2, RINGKAS, dan antrean Tahap 2
+
+- jenis: crosscheck
+- status: selesai
+- percobaan: 0
+- bergantung: X2
+- selesai bila: `plan/CERITA-TAHAP-2.md` identik byte demi byte dengan lampiran pemilik; `plan/RINGKAS.md` (≤ 60 baris) memuat peta halaman Tahap 2 satu baris per halaman dan Tahap 1 diringkas; bagian Tahap 2 di ANTREAN berurutan lab sebelum halaman, crosscheck kecil tiap 5 halaman, X1 dan X2 di akhir.
+- catatan: Mode malam 2026-10-13. PR #252 (naskah), PR berikutnya (RINGKAS, ANTREAN).
+
+### T2-registry · Registry 33 halaman Tahap 2, yang belum ditulis tampil segera
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: T2-naskah
+- selesai bila: `situs/data/cerita.json` memuat 2.1–2.33 dengan judul, jenis, bagian, ★, peran (naskah "Jalur per peran"), prasyarat, dan lab sesuai peta halaman Tahap 2; halaman yang belum ditulis tampil "segera" di sidebar, peta, breadcrumb, dan Berikutnya, bukan tautan 404; halaman Tahap 2 lama tetap ada sampai digantikan, ditandai "versi lama", dan nomor lamanya tidak bertabrakan dengan 2.1–2.33; Tahap 1 tidak berubah; `sinkron_cerita.py`, `cek_tautan.py`, dan gerbang lolos.
+- catatan: Jalur teknis. Naskah bagian "Prompt untuk Claude Code" butir 3.
+
+### I6-erd · Widget ERD bertumbuh
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: ERD1
+- selesai bila: Komponen React di atas `@xyflow/react` dengan data `situs/data/erd/*.json` divalidasi Zod; satu tabel = satu node (nama, kolom; PK, FK, UNIQUE, CHECK ditandai teks, bukan hanya warna), relasi sebagai edge FK; pemilih tahap dan mode bandingkan dua tahap berdampingan; warna dari token (baru, berubah, tetap), tabel dihapus putus-putus dengan keterangan ke mana isinya pindah; klik atau keyboard pada tabel membuka kolom lengkap dan tautan halaman dari registry; versi statis untuk pembaca layar dan tanpa JavaScript; dimuat hanya di halaman yang memakainya; scroll halaman tidak tertangkap di 375×667; reduced motion tanpa gerak; axe 0; diuji di `/uji/erd/` dengan data Tahap 1 dan data uji Tahap 2 (data nyata sesudah ERD2).
+- catatan: Jalur teknis. Aturan I6 di "Definisi selesai bersama". Belum dipasang di halaman konten sampai pemilik meninjau Tahap 1 (MEMORI "Diputuskan malam ini"); pemasangan di 1.12 dan 2.9 ikut tugas 2.9.
+
+### lab-b3-ledger · Lab b3-ledger: jurnal, posting, tiga invarian
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: T2-naskah
+- selesai bila: Lab baru `labs/b3-ledger` (schema sendiri di PostgreSQL bersama, `make -C labs/b3-ledger run`, gagal keras bila hasil berbeda dari harapan): tabel `akun`, `buku`, `jurnal`, `posting` mengikuti naskah bagian 3 dan 3b (selisih dengan blok mermaid dicatat; lab yang benar); tiga invarian dijaga database dan penolakannya direkam dengan SQLSTATE: jurnal tidak seimbang, UPDATE atau DELETE posting, saldo buku karyawan negatif sesudah jurnal; lima kejadian di tabel bagian 3 (top-up, bayar, transfer, pencairan, pembalik) direkam sebagai posting; saldo = jumlah posting dan cocok dengan `saldo_cache`; migrasi data v1 (kolom saldo jadi jurnal pembuka per akun, `koreksi` jadi jurnal pembalik) dengan saldo tiap akun sama sebelum dan sesudah; tutup buku per buku (saldo awal + mutasi = saldo akhir) dan seluruh jurnal seimbang; rekaman diulang dari database bersih dan identik (status, saldo, urutan; bukan waktu).
+- catatan: Jalur lab. Dipakai 2.4, 2.6, 2.7, 2.8. Desain skema di sini menjadi dasar api-t2 dan lab Tahap 2 lain.
+
+### lab-api-t2 · Lab api-t2: api-t1 naik ke ledger
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-b3-ledger
+- selesai bila: `labs/api-t2` (Go, schema sendiri) berangkat dari api-t1 dan naik ke ledger lewat expand → migrate → contract (naskah bagian 3 "Migrasi"): kolom saldo jadi `buku.saldo_cache` yang dicek ulang terhadap jumlah posting, tabel koreksi jadi jurnal pembalik, app versi lama tetap jalan di tiap langkah (direkam); endpoint transfer antar karyawan lewat nomor karyawan dengan batas Rp500.000 per hari dan buku dikunci di dalam transaction jurnal, bayar, top-up CSV 1.000 akun dalam satu transaction (satu baris salah = seluruh file ditolak), riwayat dengan kursor `(dibuat, id)`, tutup buku bulanan; tes Go untuk aturan uang; rekaman `output/*.txt` dari database bersih, diulang identik; kontrak OpenAPI v2 bila endpoint berubah.
+- catatan: Jalur lab. Dipakai 2.3, 2.9, 2.23, 2.24. Mode rentan per masalah (M9, M10, M11, M12, M14, M16) tidak wajib di sini; lab masalahnya atau tugas `<halaman>-lab` boleh menambahnya.
+
+### ERD2 · ERD Tahap 2 dari api-t2 dan selisihnya
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: ERD1, lab-api-t2
+- selesai bila: `tools/erd.py` membaca skema akhir `labs/api-t2` dan menulis `situs/data/erd/tahap-2.json` beserta selisih terhadap Tahap 1 (tabel baru, kolom baru atau berubah, tabel dihapus dan ke mana isinya pindah, mengikuti tabel "Apa yang berubah dan kenapa" naskah 3b); `--cek` di gerbang mencakup Tahap 2; selisih dengan blok mermaid ERD Tahap 2 naskah tercatat (lab yang benar).
+- catatan: Jalur teknis.
+
+### lab-b3-race · Lab b3-race ke ledger: M9 dan empat cara mengunci
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-b3-ledger
+- selesai bila: `labs/b3-race` ditulis ulang ke ledger untuk M9: dua transfer bersamaan dari buku Budi (saldo Rp100.000; Rp70.000 dan Rp50.000) di dua koneksi; versi rentan (baca jumlah posting lalu tulis jurnal tanpa lock) merekam apa yang benar-benar terjadi, termasuk saldo −Rp20.000 bila pemeriksaan saldo bisa dilewati; empat cara direkam dan dibandingkan (`SELECT … FOR UPDATE` pada buku, UPDATE atomik bersyarat, optimistic lock `versi`, SERIALIZABLE + retry) dengan status, jumlah retry, dan saldo akhir; replay untuk widget race tetap jalan; rekaman dari database bersih, diulang identik.
+- catatan: Jalur lab. Dipakai 2.10, 2.11.
+
+### lab-b3-isolasi · Lab b3-isolasi ke ledger
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-b3-ledger
+- selesai bila: `labs/b3-isolasi` ditulis ulang ke ledger untuk 2.12: anomali yang benar-benar terjadi di PostgreSQL per isolation level (READ COMMITTED, REPEATABLE READ, SERIALIZABLE) pada skenario Rekeningo (mis. laporan tutup buku yang membaca saat jurnal masuk, dua transfer) dengan SQLSTATE 40001 dan retry; klaim tiap level dicek ke dokumentasi PostgreSQL; rekaman dari database bersih, diulang identik.
+- catatan: Jalur lab. Dipakai 2.12.
+
+### lab-t2-pencairan · Lab t2-pencairan: job Jumat dan rekonsiliasi
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-b3-ledger
+- selesai bila: Lab baru `labs/t2-pencairan` untuk 2.5, 2.25, 2.26 (M15): job pencairan Jumat membuat jurnal pencairan per warung dan satu file transfer bank (CSV); versi rentan: server restart di tengah lalu job jalan lagi, satu warung muncul dua kali di file tetapi sekali di ledger (selisih sesuai naskah atau angka rekaman berlabel); versi benar: batch per periode dengan kunci unik `periode`, status batch, baris pencairan per buku, aman dijalankan dua kali; rekonsiliasi otomatis ledger lawan file sebelum file dibuat (menolak bila beda); rekaman dari database bersih, diulang identik.
+- catatan: Jalur lab. Nama lab dipilih malam ini (MEMORI "Diputuskan malam ini").
+
+### lab-e3-idempotency · Lab e3-idempotency diselaraskan ke M10 dan ledger
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-b3-ledger
+- selesai bila: `labs/e3-idempotency` diselaraskan ke M10: Bayar Rp25.000 diulang sesudah response hilang tercatat dua kali tanpa key; dengan key yang dibuat app sekali per niat bayar, server menyimpan hasil per key 24 jam di `kunci_idempotensi` (hash permintaan, status, respons, jurnal): ulangan mendapat respons yang sama tanpa jurnal kedua, key sama dengan body beda ditolak, ulangan saat permintaan pertama masih diproses ditangani; status standar header dicek ke sumber primer (IETF); rekaman dari database bersih, diulang identik; nama mode dan file lama boleh tetap (keputusan 86).
+- catatan: Jalur lab. Dipakai 2.13, 2.14.
+
+### lab-b2-query · Lab b2-query ke ledger: N+1, index, kursor
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-b3-ledger
+- selesai bila: `labs/b2-query` diselaraskan ke M11 dan M12 di atas posting: riwayat N+1 (nama lawan diambil satu per satu) lawan satu query JOIN dengan jumlah query; `EXPLAIN (ANALYZE, BUFFERS)` sebelum dan sesudah index `posting (buku_id, dibuat, id)`; pagination offset menggandakan dan menghilangkan baris saat transaksi baru masuk, kursor `(dibuat, id)` tidak; waktu ditulis sebagai pembanding berlabel, bukan janji; rekaman dari database bersih, struktur hasil identik.
+- catatan: Jalur lab. Dipakai 2.15–2.19.
+
+### lab-b4-skema · Lab b4-skema diselaraskan ke M13
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-b3-ledger
+- selesai bila: `labs/b4-skema` diselaraskan ke M13: ALTER pada tabel besar saat ada transaction berjalan membuat pembayaran berikutnya menunggu (durasi direkam), `lock_timeout` membuat migrasi gagal cepat dan aman diulang, backfill bertahap per 1.000 baris, expand/migrate/contract tiga rilis dengan app versi lama tetap membaca riwayat; klaim lock dicek ke dokumentasi PostgreSQL; rekaman dari database bersih, diulang identik.
+- catatan: Jalur lab. Dipakai 2.21, 2.22.
+
+### lab-c4-ratelimit · Lab c4-ratelimit diselaraskan ke M16
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: T2-naskah
+- selesai bila: `labs/c4-ratelimit` diselaraskan ke M16, hanya terhadap container lokal dan dengan beberapa percobaan, bukan skrip massal: banyak akun fiktif dicoba dari satu IP dengan daftar password bocor fiktif; kunci per akun saja membuat akun Ani terkunci berulang; rate limit dua lapis di memori (per IP dan per akun) dengan kunci bertahap; wajib ganti password pertama; hash argon2id dengan parameter dari sumber primer (RFC 9106, OWASP); Redis tidak dipakai (ADR 20); rekaman dari database bersih, diulang identik.
+- catatan: Jalur lab. Dipakai 2.27, 2.28.
+
+### T2-mulai · Pemilik membuka penulisan halaman Tahap 2
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: X2, T2-registry
+- selesai bila: Pemilik meninjau Tahap 1 dan menyatakan halaman Tahap 2 boleh ditulis (prompt di naskah bagian "Prompt untuk Claude Code").
+- catatan: Gerbang pemilik: hanya pemilik yang menandai selesai; pengatur dan subagen tidak mengerjakannya. Semua halaman 2.x bergantung padanya.
+
+### 2.1 · PRD v2: Rekeningo untuk seluruh kampus
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: T2-mulai
+- selesai bila: halaman PRD 2.1 sesuai `plan/CERITA-TAHAP-2.md` bagian 1 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Menggantikan halaman cerita Tahap 2 lama.
+
+### 2.2 · Dari fitur ke pekerjaan teknis v2
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.1
+- selesai bila: halaman Fitur→teknis 2.2 sesuai `plan/CERITA-TAHAP-2.md` bagian 2 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.3 · Fitur: transfer antar karyawan
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.2, lab-api-t2
+- selesai bila: halaman Fitur→teknis 2.3 sesuai `plan/CERITA-TAHAP-2.md` bagian 2 dan peta halaman Tahap 2 (★); rekaman dari `labs/api-t2`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.4 · Fitur: tutup buku bulanan
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.3, lab-b3-ledger
+- selesai bila: halaman Fitur→teknis 2.4 sesuai `plan/CERITA-TAHAP-2.md` bagian 2 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.5 · Fitur: pencairan warung terjadwal
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.4, lab-t2-pencairan
+- selesai bila: halaman Fitur→teknis 2.5 sesuai `plan/CERITA-TAHAP-2.md` bagian 2 dan peta halaman Tahap 2 (tanpa ★); rekaman dari `labs/t2-pencairan`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### K4 · Crosscheck kecil 2.1–2.5
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: 2.5
+- selesai bila: bagian K4 di `plan/CROSSCHECK-KECIL.md` memuat 2.1–2.5 dengan bukti tangkapan; temuan kategori rusak, aksesibilitas, kontras, atau gerbang gagal menjadi tugas perbaikan di bawah K4; polesan ke `plan/SETELAH-TAHAP-2.md`.
+- catatan: -
+
+### 2.6 · Kenapa saldo bukan kolom
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: K4, lab-b3-ledger
+- selesai bila: halaman Konsep 2.6 sesuai `plan/CERITA-TAHAP-2.md` bagian 3 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.7 · Ledger double-entry: jurnal, posting, invarian
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.6, lab-b3-ledger
+- selesai bila: halaman Konsep 2.7 sesuai `plan/CERITA-TAHAP-2.md` bagian 3 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.8 · ADR 12: dari kolom saldo ke ledger
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.7, lab-b3-ledger
+- selesai bila: halaman ADR 2.8 sesuai `plan/CERITA-TAHAP-2.md` bagian 3 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Nomor ADR bertabrakan dengan 1.40; lihat MEMORI "Usulan perubahan cerita".
+
+### 2.9 · Skema data: ERD Tahap 1 → Tahap 2 dan pertumbuhannya
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.8, ERD2, I6-erd
+- selesai bila: halaman Konsep 2.9 sesuai `plan/CERITA-TAHAP-2.md` bagian 3b dan peta halaman Tahap 2 (★); data ERD dari `labs/api-t1` dan `labs/api-t2` (ERD2) dan widget I6-erd; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Memasang widget ERD bertumbuh di 2.9 (bandingkan Tahap 1 dan 2) dan di 1.12 (ERD Tahap 1) sesuai naskah.
+
+### 2.10 · M9: Saldo −Rp20.000
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.9, lab-b3-race
+- selesai bila: halaman Masalah 2.10 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-race`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### K5 · Crosscheck kecil 2.6–2.10
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: 2.10
+- selesai bila: bagian K5 di `plan/CROSSCHECK-KECIL.md` memuat 2.6–2.10 dengan bukti tangkapan; temuan kategori rusak, aksesibilitas, kontras, atau gerbang gagal menjadi tugas perbaikan di bawah K5; polesan ke `plan/SETELAH-TAHAP-2.md`.
+- catatan: -
+
+### 2.11 · Race condition dan lock + ADR 13
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: K5, lab-b3-race
+- selesai bila: halaman Konsep+ADR 2.11 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-race`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Isi lama B3.2 dipakai ulang.
+
+### 2.12 · Isolation level secara praktis
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.11, lab-b3-isolasi
+- selesai bila: halaman Konsep 2.12 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (tanpa ★); rekaman dari `labs/b3-isolasi`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Isi lama B3.3 dipakai ulang.
+
+### 2.13 · M10: Nasi goreng dibayar dua kali
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.12, lab-e3-idempotency
+- selesai bila: halaman Masalah 2.13 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/e3-idempotency`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.14 · Retry dan idempotency key + ADR 14
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.13, lab-e3-idempotency
+- selesai bila: halaman Konsep+ADR 2.14 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/e3-idempotency`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Isi lama E3 dipakai ulang.
+
+### 2.15 · M11: Riwayat 4 detik
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.14, lab-b2-query
+- selesai bila: halaman Masalah 2.15 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### K6 · Crosscheck kecil 2.11–2.15
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: 2.15
+- selesai bila: bagian K6 di `plan/CROSSCHECK-KECIL.md` memuat 2.11–2.15 dengan bukti tangkapan; temuan kategori rusak, aksesibilitas, kontras, atau gerbang gagal menjadi tugas perbaikan di bawah K6; polesan ke `plan/SETELAH-TAHAP-2.md`.
+- catatan: -
+
+### 2.16 · N+1 query
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: K6, lab-b2-query
+- selesai bila: halaman Konsep 2.16 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Isi lama B2.4 dipakai ulang.
+
+### 2.17 · Index dan query plan + ADR 15
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.16, lab-b2-query
+- selesai bila: halaman Konsep+ADR 2.17 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Isi lama B2.3 dipakai ulang.
+
+### 2.18 · M12: Transaksi muncul dua kali
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.17, lab-b2-query
+- selesai bila: halaman Masalah 2.18 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (tanpa ★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.19 · Pagination kursor + ADR 16
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.18, lab-b2-query
+- selesai bila: halaman Konsep+ADR 2.19 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Isi lama B1.3 dipakai ulang.
+
+### 2.20 · Ukuran payload dan kuota HP
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.19
+- selesai bila: halaman Konsep 2.20 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (tanpa ★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Lab `e5-payload` yang ada; bila rekamannya perlu diselaraskan ke cerita, sisipkan `2.20-lab`. Isi lama E5 dipakai ulang.
+
+### K7 · Crosscheck kecil 2.16–2.20
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: 2.20
+- selesai bila: bagian K7 di `plan/CROSSCHECK-KECIL.md` memuat 2.16–2.20 dengan bukti tangkapan; temuan kategori rusak, aksesibilitas, kontras, atau gerbang gagal menjadi tugas perbaikan di bawah K7; polesan ke `plan/SETELAH-TAHAP-2.md`.
+- catatan: -
+
+### 2.21 · M13: Migrasi di jam makan siang
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: K7, lab-b4-skema
+- selesai bila: halaman Masalah 2.21 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b4-skema`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.22 · Ubah skema tanpa downtime + ADR 17
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.21, lab-b4-skema
+- selesai bila: halaman Konsep+ADR 2.22 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b4-skema`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Isi lama B4.2 dipakai ulang.
+
+### 2.23 · M14: Batas harian yang hilang
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.22, lab-api-t2
+- selesai bila: halaman Masalah 2.23 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/api-t2`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Rekaman merge yang menghapus batas harian dan tes yang menangkapnya kemungkinan butuh `2.23-lab`.
+
+### 2.24 · Tim dan infra Tahap 2: review, branch protection, tes integrasi + ADR 18
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.23, lab-api-t2
+- selesai bila: halaman Tim-infra 2.24 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/api-t2`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.25 · M15: Rp15.000 di file bank
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.24, lab-t2-pencairan
+- selesai bila: halaman Masalah 2.25 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/t2-pencairan`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### K8 · Crosscheck kecil 2.21–2.25
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: 2.25
+- selesai bila: bagian K8 di `plan/CROSSCHECK-KECIL.md` memuat 2.21–2.25 dengan bukti tangkapan; temuan kategori rusak, aksesibilitas, kontras, atau gerbang gagal menjadi tugas perbaikan di bawah K8; polesan ke `plan/SETELAH-TAHAP-2.md`.
+- catatan: -
+
+### 2.26 · Job terjadwal yang idempoten dan rekonsiliasi + ADR 19
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: K8, lab-t2-pencairan
+- selesai bila: halaman Konsep+ADR 2.26 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/t2-pencairan`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.27 · M16: Akun Ani terkunci
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.26, lab-c4-ratelimit
+- selesai bila: halaman Masalah 2.27 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/c4-ratelimit`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Hanya container lokal; beberapa percobaan, bukan skrip massal.
+
+### 2.28 · Keamanan 4: brute force, credential stuffing, hash password + ADR 20
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.27, lab-c4-ratelimit
+- selesai bila: halaman Keamanan+ADR 2.28 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/c4-ratelimit`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.29 · M17: Tutup buku kedua lolos, PRD v3 datang
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.28
+- selesai bila: halaman Masalah 2.29 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.30 · Estimasi Tahap 2 → 3
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.29
+- selesai bila: halaman Konsep 2.30 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### K9 · Crosscheck kecil 2.26–2.30
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: 2.30
+- selesai bila: bagian K9 di `plan/CROSSCHECK-KECIL.md` memuat 2.26–2.30 dengan bukti tangkapan; temuan kategori rusak, aksesibilitas, kontras, atau gerbang gagal menjadi tugas perbaikan di bawah K9; polesan ke `plan/SETELAH-TAHAP-2.md`.
+- catatan: -
+
+### 2.31 · ADR 21: Sengaja belum dilakukan
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: K9
+- selesai bila: halaman ADR 2.31 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.32 · Yang dibawa keluar dari Tahap 2
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.31
+- selesai bila: halaman Konsep 2.32 sesuai `plan/CERITA-TAHAP-2.md` bagian 5 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 2.33 · Jembatan: pratinjau PRD v3
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 2.32
+- selesai bila: halaman PRD 2.33 sesuai `plan/CERITA-TAHAP-2.md` bagian 6 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### X1-t2 · Crosscheck penuh Tahap 2
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: 2.33
+- selesai bila: 33 halaman Tahap 2 ditangkap di 4 varian dan dicocokkan dengan naskah dan registry; tiga pertanyaan navigasi per halaman; widget ERD terpasang di 1.12 dan 2.9 dengan data dari skema lab; semua rekaman lab Tahap 2 diulang dari database bersih; temuan non-polesan jadi tugas perbaikan di bawah X1-t2.
+- catatan: -
+
+### X2-t2 · Penutup Tahap 2
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: X1-t2
+- selesai bila: `plan/LAPORAN-TAHAP-2.md` memuat apa yang selesai, daftar "Setelah Tahap 2", dan 10 hal teratas yang perlu dilihat pemilik sendiri; pengatur berhenti dengan "Tahap 2 selesai, menunggu tinjauan pemilik" dan tidak memulai Tahap 3.
+- catatan: -

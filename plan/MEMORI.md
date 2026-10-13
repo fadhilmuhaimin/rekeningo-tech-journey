@@ -49,6 +49,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - 1.12 hanya mendapat diagram statis. Widget ERD bertumbuh dibangun dan diuji di `/uji/erd/`, belum dipasang di 1.12 atau 2.9 sampai pemilik meninjau Tahap 1. Alasan: paling mudah dibatalkan; halaman Tahap 1 sedang ditinjau.
 - Nomor keputusan Tahap 2 mengikuti prompt di naskah: jalur lab/konten 400–449, teknis 450–499, pengatur 376–399. Alasan: dua jalur tidak berebut nomor.
 - Judul 2.8 di registry ditulis persis naskah ("ADR 12: dari kolom saldo ke ledger") walau 1.40 sudah ADR 12; lihat Usulan perubahan cerita. Alasan: CERITA paling tinggi; mengganti judul satu baris registry mudah.
+- Lab pencairan bernama `t2-pencairan` (pola lab khusus tahap `t3-bayar`, `t5-replika`). Halaman 2.x bergantung pada tugas gerbang `T2-mulai` yang hanya pemilik tandai selesai, jadi `antrean.py berikut` tidak pernah memilih halaman. Alasan: larangan menulis halaman malam ini dijaga alat, bukan ingatan.
 
 ## Perlu dicek pemilik
 
