@@ -56,7 +56,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-13 · X1 dan XF1–XF6 selesai (keputusan 370–374). Berikutnya X2: lengkapi `plan/LAPORAN-TAHAP-1.md` (apa yang selesai, daftar Setelah Tahap 1, 10 hal untuk dilihat pemilik), lalu berhenti dengan "Tahap 1 selesai, menunggu tinjauan pemilik". Catatan pengatur di `tmp/catatan-pengatur.md`.
+2026-10-13 · Tahap 1 selesai, menunggu tinjauan pemilik (keputusan 369–374; laporan `plan/LAPORAN-TAHAP-1.md`, PR #249). ANTREAN Tahap 1 habis (88 tugas selesai). Polesan dan tugas yang dipindah di `plan/SETELAH-TAHAP-1.md`; PR #232 (G2c) dan branch `perbaikan/r6-aturan-layar` (R6, WIP) dibiarkan untuk sesudah tinjauan. Jangan mulai Tahap 2 sebelum `plan/CERITA-TAHAP-2.md` dari pemilik. Untuk melanjutkan: baca `plan/LAPORAN-TAHAP-1.md` bagian "10 hal teratas", tunggu keputusan pemilik, lalu pindahkan tugas dari SETELAH-TAHAP-1 ke ANTREAN sesuai arahan.
 
 ## Pelajaran
 

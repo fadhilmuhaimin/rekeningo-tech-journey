@@ -812,8 +812,8 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### X2 · Penutup Tahap 1
 
 - jenis: crosscheck
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: X1
 - selesai bila: (lingkup beku, keputusan 369) `plan/LAPORAN-TAHAP-1.md` memuat apa yang selesai, daftar "Setelah Tahap 1" (dari `plan/SETELAH-TAHAP-1.md`), dan 10 hal teratas yang perlu dilihat pemilik sendiri (halaman dan apa yang diperhatikan); temuan X2 mengikuti aturan yang sama dengan X1; pengatur lalu berhenti dengan kalimat "Tahap 1 selesai, menunggu tinjauan pemilik". Semua tugas dari X1 selesai atau diparkir; tangkapan seluruh Tahap 1 dilihat; laporan di STATUS dan baris "Tahap 1: crosscheck selesai"; tidak ada tugas Tahap 2 yang dimulai.
-- catatan: Tahap 2 menunggu `plan/CERITA-TAHAP-2.md` dari pemilik.
+- catatan: Tahap 2 menunggu `plan/CERITA-TAHAP-2.md` dari pemilik. PR #249 (LAPORAN-TAHAP-1: apa yang selesai, Setelah Tahap 1, 10 hal pemilik, cek akhir 8 tangkapan); keputusan 369.

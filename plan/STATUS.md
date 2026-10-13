@@ -1,6 +1,6 @@
 # Status
 
-Diperbarui: 2026-10-09 (redesain #120 di-merge; sistem kerja otomatis siap, keputusan 216). Catatan singkat tentang keadaan panduan dan pekerjaan yang masih terbuka. Keputusan dan alasannya ada di [KEPUTUSAN.md](KEPUTUSAN.md).
+Diperbarui: 2026-10-13 (Tahap 1 selesai, menunggu tinjauan pemilik; laporan di `plan/LAPORAN-TAHAP-1.md`). Catatan singkat tentang keadaan panduan dan pekerjaan yang masih terbuka. Keputusan dan alasannya ada di [KEPUTUSAN.md](KEPUTUSAN.md).
 
 ## Keadaan sekarang
 
@@ -83,6 +83,8 @@ Diperbarui 2026-10-12. 42 dari 42 halaman selesai (mode paralel, keputusan 264);
 Lingkup Tahap 1 dibekukan 2026-10-13 (keputusan 369): hanya perbaikan rusak, aksesibilitas, kontras, dan gerbang yang gagal; polesan di `plan/SETELAH-TAHAP-1.md`.
 
 X1 crosscheck penuh selesai 2026-10-13 (keputusan 370, `plan/LAPORAN-TAHAP-1.md`): gerbang LOLOS, 42/42 halaman menjawab tiga pertanyaan di 4 varian, 39 lolos isi, 3 perlu dibenahi (1.16, 1.19, 1.28); tujuh perbaikan non-polesan jadi XF1–XF6; 25 polesan ke `plan/SETELAH-TAHAP-1.md`. XF1–XF6 selesai 2026-10-13: XF1 (371, m3.txt kini menghitung akun dari database: 3 + 101 = 104, 22 rekaman lain identik), XF2 (372, halaman Cerita ditulis ulang dari naskah Tahap 1, `tokoh.svg` diganti Rantai bertoken), XF3 (1.28 tanpa peran security, jalur Security 6 halaman sesuai naskah), XF4 (beranda "Selesai: 42 halaman" dari registry; live region dipisah dari list), XF5 (1.16 reason phrase "sebaiknya (SHOULD)" sesuai RFC 9112 §4), XF6 (374, checkbox task list disabled `aria-hidden`: 128 → 0 tanpa nama di Tahap 1, 250 → 0 seluruh situs).
+
+Tahap 1: crosscheck selesai (2026-10-13). X2 menutup Tahap 1: `plan/LAPORAN-TAHAP-1.md` memuat apa yang selesai, daftar Setelah Tahap 1 (5 tugas, 47 polesan di `plan/SETELAH-TAHAP-1.md`), 10 hal untuk dilihat pemilik, hasil crosscheck X1, dan cek akhir 8 tangkapan (PR #249). Tahap 1 selesai, menunggu tinjauan pemilik. Tahap 2 tidak dimulai; menunggu `plan/CERITA-TAHAP-2.md`.
 
 ## Sistem kerja otomatis (keputusan 216)
 
