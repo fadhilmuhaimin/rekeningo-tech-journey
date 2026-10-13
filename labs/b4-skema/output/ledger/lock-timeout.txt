@@ -19,7 +19,7 @@
 # seluruh statement (PostgreSQL 17, Client Connection Defaults). Dipasang dengan SET LOCAL di file
 # migration, jadi hanya berlaku untuk transaction migrasi, bukan untuk server.
  6 [-] cek skema sesudah percobaan 1
-      -> kolom nomor_karyawan belum ada; akun_jenis_check masih yang lama (tanpa 'sistem'): DROP CONSTRAINT ikut dibatalkan, tidak ada yang setengah jadi
+      -> kolom nomor_karyawan belum ada; akun_jenis_check masih yang lama (tanpa 'sistem'): statement pertama (DROP CONSTRAINT) yang menunggu lock dibatalkan dan transaction di-ROLLBACK, tidak ada yang setengah jadi
  7 [R] COMMIT
       -> laporan selesai
  8 [M] percobaan 2: BEGIN; isi 000009_akun_tahap2.up.sql; COMMIT

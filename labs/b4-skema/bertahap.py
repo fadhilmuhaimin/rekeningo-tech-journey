@@ -54,7 +54,8 @@ def rilis_1(lab):
     harap((kolom, cek), (0, [(False,)]), "skema sesudah percobaan 1 gagal")
     lab.langkah("-", "cek skema sesudah percobaan 1",
                 "kolom nomor_karyawan belum ada; akun_jenis_check masih yang lama (tanpa 'sistem'): "
-                "DROP CONSTRAINT ikut dibatalkan, tidak ada yang setengah jadi")
+                "statement pertama (DROP CONSTRAINT) yang menunggu lock dibatalkan dan transaction di-ROLLBACK, "
+                "tidak ada yang setengah jadi")
     R.sql("COMMIT")
     lab.langkah("R", "COMMIT", "laporan selesai")
     h = M.jalan(jalankan_berkas(EXPAND[0]))
@@ -161,8 +162,9 @@ def rilis_2_3(lab):
     BF.sql("COMMIT")
     lab.langkah("BF", "batch 1: COMMIT", "lock 1.000 baris akun dilepas")
     lab.tulis("#   Bayar yang menyentuh akun di batch menunggu paling lama satu batch (lock baris, bukan lock tabel).")
-    lab.tulis("#   lock_timeout di batch membuat backfill menyerah bila tertahan bayar yang lama, sebelum bayar lain antre")
-    lab.tulis("#   di belakang 1.000 baris yang sudah dikuncinya; batch itu di-ROLLBACK dan bisa diulang dari id yang sama.")
+    lab.tulis("#   Bila batch sendiri tertahan bayar yang lama, lock_timeout memotongnya sesudah 3 detik. Bayar lain yang antre")
+    lab.tulis("#   di belakang baris yang sudah dikunci batch ikut menunggu paling lama selama itu. Batch yang gagal di-ROLLBACK")
+    lab.tulis("#   dan bisa diulang dari id yang sama (mekanisme dari dokumentasi lock_timeout; tidak direkam di lab ini).")
     hp = P.selesai()
     if "err" in hp:
         gagal(f"P gagal: {hp['err']}")

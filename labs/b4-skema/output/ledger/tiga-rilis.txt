@@ -39,8 +39,9 @@ rilis 2 (tulis dua, baca v1)      app 1.1 (Karyawan 421) bayar COMMIT · nomor 1
  6 [BF] batch 1: COMMIT
       -> lock 1.000 baris akun dilepas
 #   Bayar yang menyentuh akun di batch menunggu paling lama satu batch (lock baris, bukan lock tabel).
-#   lock_timeout di batch membuat backfill menyerah bila tertahan bayar yang lama, sebelum bayar lain antre
-#   di belakang 1.000 baris yang sudah dikuncinya; batch itu di-ROLLBACK dan bisa diulang dari id yang sama.
+#   Bila batch sendiri tertahan bayar yang lama, lock_timeout memotongnya sesudah 3 detik. Bayar lain yang antre
+#   di belakang baris yang sudah dikunci batch ikut menunggu paling lama selama itu. Batch yang gagal di-ROLLBACK
+#   dan bisa diulang dari id yang sama (mekanisme dari dokumentasi lock_timeout; tidak direkam di lab ini).
  7 [P] (lanjut sesudah batch 1 COMMIT)
       -> COMMIT · nomor 15.998 · buka_buku 0
  8 [X] bayar Karyawan 1405 ke Warung Sari (502) Rp10.000, akun belum di-backfill
