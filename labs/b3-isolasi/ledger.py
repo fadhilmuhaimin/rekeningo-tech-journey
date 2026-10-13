@@ -293,7 +293,7 @@ def rekam_dirty_read():
     a("COMMIT;")
     a.tutup()
     b.tutup()
-    ringkas.append(("dirty-read", RU, "posting B tidak terlihat sebelum COMMIT", "-", 75000))
+    ringkas.append(("dirty-read", RU, "posting B tidak terlihat sebelum COMMIT", "-", saldo(B_BUDI)))
     tulis("dirty-read.txt", "READ UNCOMMITTED di PostgreSQL", PENGANTAR_DATA)
 
 
@@ -353,7 +353,7 @@ def rekam_laporan():
         "Di READ COMMITTED setiap perintah memakai snapshot baru."])
     catat("-- Laporan tidak cocok di buku Budi dan Warung Ani, Rp25.000 masing-masing. Setiap jurnal tetap seimbang:")
     catat("-- perintah 1 dibaca sebelum jurnal B COMMIT, perintah 2 sesudahnya.")
-    ringkas.append(("laporan", RC, "tidak cocok di 2 buku, selisih Rp25.000", "-", 75000))
+    ringkas.append(("laporan", RC, "tidak cocok di 2 buku, selisih Rp25.000", "-", saldo(B_BUDI)))
 
     selisih, _ = laporan(RR, [], [
         "Langkah sama persis. Di REPEATABLE READ snapshot diambil saat perintah pertama dan dipakai sampai COMMIT."])
@@ -366,12 +366,12 @@ def rekam_laporan():
     harap(gabung_laporan(mutasi, akhir), [], "laporan berikutnya")
     harap([r for r in mutasi if r[0] == B_BUDI], [(B_BUDI, 0, 75000)], "mutasi Budi di laporan berikutnya")
     a.tutup()
-    ringkas.append(("laporan", RR, "cocok; bayar B masuk laporan berikutnya", "-", 75000))
+    ringkas.append(("laporan", RR, "cocok; bayar B masuk laporan berikutnya", "-", saldo(B_BUDI)))
 
     selisih, _ = laporan(SER, [], [
         "Langkah sama, A dan B SERIALIZABLE. A hanya membaca: tidak ada siklus, dua-duanya COMMIT."])
     catat("-- Hasilnya sama dengan REPEATABLE READ.")
-    ringkas.append(("laporan", SER, "cocok", "-", 75000))
+    ringkas.append(("laporan", SER, "cocok", "-", saldo(B_BUDI)))
     tulis("laporan.txt", "laporan tutup buku saat jurnal baru masuk", PENGANTAR_DATA)
 
 
@@ -448,7 +448,7 @@ def rekam_transfer():
     catat("-- B ditolak database (23514), bukan oleh pemeriksaan saldo di app. Kode retry hanya mengulang 40001,")
     catat("-- jadi app B menerima error database, bukan jawaban \"saldo kurang\".")
     catat("-- Bila dua COMMIT dikirim pada saat yang sama, keduanya bisa lolos (labs/b3-ledger/output/batas.txt 2b).")
-    ringkas.append(("transfer", RC, "COMMIT B ditolak invarian 3", "23514", 30000))
+    ringkas.append(("transfer", RC, "COMMIT B ditolak invarian 3", "23514", saldo(B_BUDI)))
     a.tutup()
     b.tutup()
 
@@ -462,7 +462,7 @@ def rekam_transfer():
     akhir_transfer(-20000, 100000)
     catat("-- Dua-duanya COMMIT tanpa error. A dan B tidak mengubah baris yang sama (keduanya hanya INSERT),")
     catat("-- jadi tidak ada 40001. Invarian 3 lolos di B karena snapshot B belum berisi posting A.")
-    ringkas.append(("transfer", RR, "dua-duanya COMMIT", "-", -20000))
+    ringkas.append(("transfer", RR, "dua-duanya COMMIT", "-", saldo(B_BUDI)))
     a.tutup()
     b.tutup()
 
@@ -472,7 +472,7 @@ def rekam_transfer():
     a, b, hb = transfer_awal(SER, False)
     hasil_b = transfer_serializable(a, b, hb)
     akhir_transfer(30000, 100000)
-    ringkas.append(("transfer", SER, f"COMMIT B 40001; retry: {hasil_b}", "40001", 30000))
+    ringkas.append(("transfer", SER, f"COMMIT B 40001; retry: {hasil_b}", "40001", saldo(B_BUDI)))
     a.tutup()
     b.tutup()
     tulis("transfer.txt", "dua transfer bersamaan per isolation level", PENGANTAR_DATA + PENGANTAR_TRANSFER + [
@@ -505,8 +505,9 @@ def rekam_transfer_cache():
     harap(b.lanjut().ok, True, "UPDATE B sesudah lock dilepas")
     harap(b("COMMIT;").sqlstate, "23514", "COMMIT B")
     akhir_transfer(30000, 30000)
-    catat("-- Di READ COMMITTED, UPDATE yang menunggu dijalankan ulang atas versi baris terbaru, lalu invarian 3 menolak B.")
-    ringkas.append(("transfer-cache", RC, "B menunggu lock; COMMIT B ditolak invarian 3", "23514", 30000))
+    catat("-- Di READ COMMITTED, UPDATE B yang menunggu diterapkan ke versi baris buatan A (WHERE dinilai ulang),")
+    catat("-- bukan dijalankan ulang dari awal. Saat COMMIT B, invarian 3 menolak B.")
+    ringkas.append(("transfer-cache", RC, "B menunggu lock; COMMIT B ditolak invarian 3", "23514", saldo(B_BUDI)))
     a.tutup()
     b.tutup()
 
@@ -522,7 +523,7 @@ def rekam_transfer_cache():
         akhir_transfer(30000, 30000)
         catat("-- Baris buku Budi sudah diubah A sesudah snapshot B diambil: B tidak boleh mengubahnya, 40001.")
         catat("-- Percobaan 2 memakai snapshot baru, melihat saldo Rp30.000, dan app menjawab \"saldo kurang\".")
-        ringkas.append(("transfer-cache", level, "B menunggu lock, lalu 40001; retry: saldo kurang", "40001", 30000))
+        ringkas.append(("transfer-cache", level, "B menunggu lock, lalu 40001; retry: saldo kurang", "40001", saldo(B_BUDI)))
         a.tutup()
         b.tutup()
     tulis("transfer-cache.txt", "dua transfer bersamaan, saldo_cache diperbarui di transaction", pengantar)

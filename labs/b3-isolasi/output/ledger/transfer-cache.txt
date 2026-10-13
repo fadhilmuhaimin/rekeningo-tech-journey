@@ -58,7 +58,8 @@ UPDATE 2
 ERROR:  saldo buku 3 (karyawan) jadi -20000 sesudah jurnal 4
    -- SQLSTATE 23514 check_violation, constraint saldo_karyawan_tidak_negatif
 -- Akhir: saldo Budi dari posting 30000, saldo_cache 30000.
--- Di READ COMMITTED, UPDATE yang menunggu dijalankan ulang atas versi baris terbaru, lalu invarian 3 menolak B.
+-- Di READ COMMITTED, UPDATE B yang menunggu diterapkan ke versi baris buatan A (WHERE dinilai ulang),
+-- bukan dijalankan ulang dari awal. Saat COMMIT B, invarian 3 menolak B.
 
 # --- 2. REPEATABLE READ ---
 [A] => BEGIN ISOLATION LEVEL REPEATABLE READ;
