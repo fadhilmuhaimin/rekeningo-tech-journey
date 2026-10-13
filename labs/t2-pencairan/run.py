@@ -367,11 +367,147 @@ def rekam_rentan():
     tulis("rentan.txt", "M15: job pencairan berjalan dua kali sesudah server restart")
 
 
+# ---------- B. versi benar (ADR 19) ----------
+
+def batch(s, status, jurnal_baris):
+    r = s("SELECT id, periode, status, total FROM batch_pencairan;")
+    harap(r, [(1, PERIODE, status, TOTAL)], "batch")
+    r = s("""SELECT b.buku_id AS buku, a.nama, b.jumlah, b.jurnal_id
+FROM baris_pencairan b JOIN buku k ON k.id = b.buku_id JOIN akun a ON a.id = k.akun_id
+WHERE b.batch_id = 1 ORDER BY b.buku_id;""")
+    harap([(x[2], x[3]) for x in r], [(w[3], j) for w, j in zip(WARUNG, jurnal_baris)], "baris pencairan")
+
+
+def rekam_benar():
+    mulai()
+    s = Sesi()
+    catat("-- ADR 19: batch per periode (UNIQUE periode), baris pencairan per buku, satu transaction per baris yang")
+    catat("-- menulis jurnal dan baris_pencairan.jurnal_id bersama. File dibuat dari database sesudah semua baris")
+    catat("-- dijurnal dan rekonsiliasi cocok. Tabel: labs/t2-pencairan/schema.sql (sama dengan api-t2 000011).")
+    bagian("A. Saldo warung Jumat 15.00 (data lab yang sama dengan rentan.txt)")
+    saldo_warung(s)
+
+    bagian("B. Job berjalan; server restart di titik yang sama: baris ketujuh, sebelum COMMIT")
+    out = job("-mode", "benar", "-periode", PERIODE, "-dir", "kerja", "-berhenti", "jurnal:7", kode=-9)
+    harap(out[0], f"batch 1 periode {PERIODE} dibuat: 12 baris, total {rp(TOTAL)}", "batch dibuat")
+    batch(s, "dibuat", list(range(14, 20)) + [None] * 6)
+    harap(ls(), [], "belum ada file sebelum batch dijurnal")
+    catat("-- Enam baris punya jurnal, enam belum. Belum ada file: file baru dibuat sesudah semua baris dijurnal.")
+
+    bagian("C. Server hidup lagi; job dijalankan lagi dengan perintah yang sama")
+    out = job("-mode", "benar", "-periode", PERIODE, "-dir", "kerja")
+    harap(out[0], f"batch 1 periode {PERIODE} sudah ada, status dibuat", "batch dipakai lagi")
+    harap(out[-3:], ["rekonsiliasi: cocok", f"file {FILE} dibuat", "batch 1: dikirim"], "akhir job benar")
+    batch(s, "dikirim", list(range(14, 20)) + list(range(21, 27)))
+    r = s("""SELECT p.jurnal_id AS jurnal, coalesce(a.nama, b.jenis) AS buku, p.jumlah
+FROM posting p JOIN buku b ON b.id = p.buku_id LEFT JOIN akun a ON a.id = b.akun_id
+WHERE p.jurnal_id = 14 ORDER BY p.id;""")
+    harap([(x[1], x[2]) for x in r], [("Warung Ani", -310000), ("kas_pencairan", 310000)], "jurnal pencairan Warung Ani")
+    harap(cat(), [(w[0], w[3]) for w in WARUNG], "file batch benar")
+    tutup_buku(s, TOTAL, [])
+    h = sha()
+
+    bagian("D. Budi bayar Rp25.000 ke Warung Ani sesudah batch dikirim; job dijalankan lagi untuk periode yang sama")
+    s("BEGIN;")
+    j = s("INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('bayar', 'Bayar makan siang di Warung Ani', 419) RETURNING id;")[0][0]
+    harap(j, 27, "jurnal bayar Budi")
+    s(f"""INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES
+  ({j}, (SELECT id FROM buku WHERE akun_id = 419), -25000),
+  ({j}, (SELECT id FROM buku WHERE akun_id = 418), 25000);""")
+    s(f"""UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = {j} GROUP BY buku_id) p
+WHERE b.id = p.buku_id;""")
+    s("COMMIT;")
+    out = job("-mode", "benar", "-periode", PERIODE, "-dir", "kerja")
+    harap(out, [f"batch 1 periode {PERIODE} sudah ada, status dikirim", "batch sudah dikirim: tidak ada yang dikerjakan"],
+          "job ketiga")
+    r = s("""SELECT (SELECT count(*) FROM jurnal WHERE jenis = 'pencairan') AS jurnal_pencairan,
+       (SELECT sum(jumlah) FROM posting WHERE buku_id = (SELECT id FROM buku WHERE akun_id = 418)) AS saldo_warung_ani;""")
+    harap(r, [(12, 25000)], "sesudah job ketiga")
+    harap(sha(), h, "file tidak berubah sesudah job ketiga")
+    catat("-- Job ketiga tidak menulis jurnal dan tidak menyentuh file (sha256 sama). Rp25.000 Warung Ani tetap di")
+    catat("-- bukunya untuk periode berikutnya: jumlah yang dicairkan dibekukan saat batch dibuat, bukan saat job jalan.")
+
+    bagian("E. Server restart sesudah file diberi nama akhir, sebelum status dikirim")
+    s.tutup()
+    mulai()
+    s = Sesi()
+    catat("-- Schema dan folder kerja dibuat ulang dari data lab yang sama.")
+    job("-mode", "benar", "-periode", PERIODE, "-dir", "kerja", "-berhenti", "file", kode=-9)
+    batch(s, "dijurnal", list(range(14, 26)))
+    harap(ls(), [FILE], "file sudah ada sebelum status dikirim")
+    h1 = sha()
+    out = job("-mode", "benar", "-periode", PERIODE, "-dir", "kerja")
+    harap(out[0], f"batch 1 periode {PERIODE} sudah ada, status dijurnal", "job sesudah henti di file")
+    harap(out[-3:], ["rekonsiliasi: cocok", f"file {FILE} dibuat", "batch 1: dikirim"], "akhir job sesudah henti di file")
+    batch(s, "dikirim", list(range(14, 26)))
+    harap(sha(), h1, "file dibuat ulang identik")
+    harap(h1, h, "file sama dengan bagian C")
+    catat("-- File dibuat ulang dari database dengan isi yang sama per byte, lalu menggantikan file lama lewat rename.")
+    s.tutup()
+    tulis("benar.txt", "ADR 19: batch per periode, aman dijalankan dua kali")
+
+
+# ---------- C. rekonsiliasi ----------
+
+def rekam_rekonsiliasi():
+    mulai()
+    s = Sesi()
+    catat("-- Rekonsiliasi berjalan di job sebelum file diberi nama akhir: isi file sementara dibaca ulang dan dicocokkan")
+    catat("-- dengan jurnal pencairan batch di ledger (per warung, total, dan mutasi buku kas pencairan).")
+    bagian("A. Cacat disuntik: pembuat file menulis baris Warung 508 dua kali, bentuk yang sama dengan M15")
+    catat("-- Flag -uji-baris-dobel hanya ada untuk lab ini; job tanpa flag tidak pernah menulis baris dua kali.")
+    out = job("-mode", "benar", "-periode", PERIODE, "-dir", "kerja", "-uji-baris-dobel", "508", kode=3)
+    harap(out[-3:], [f"rekonsiliasi batch 1: file 13 baris {rp(TOTAL + 15000)}; ledger 12 jurnal pencairan, kas pencairan +{rp(TOTAL)}",
+                     "  beda 508 Warung 508: file 2 baris Rp30.000, ledger 1 jurnal Rp15.000",
+                     "rekonsiliasi: DITOLAK (1 warung beda, selisih total Rp15.000)"], "rekonsiliasi menolak baris dobel")
+    batch(s, "dijurnal", list(range(14, 26)))
+    harap(ls(), [], "file tidak dibuat sesudah ditolak")
+    catat("-- Batch tetap dijurnal, file sementara dihapus, nama akhir tidak pernah ada. Keuangan tidak menerima file.")
+
+    bagian("B. Pembuat file diperbaiki; job dijalankan lagi")
+    out = job("-mode", "benar", "-periode", PERIODE, "-dir", "kerja")
+    harap(out[-3:], ["rekonsiliasi: cocok", f"file {FILE} dibuat", "batch 1: dikirim"], "job sesudah perbaikan")
+    harap(cat(), [(w[0], w[3]) for w in WARUNG], "file sesudah perbaikan")
+
+    bagian("C. Jurnal pencairan dibalik di ledger sebelum file dibuat")
+    s.tutup()
+    mulai()
+    s = Sesi()
+    catat("-- Schema dan folder kerja dibuat ulang. Job berhenti sesudah status dijurnal, sebelum membuat file.")
+    job("-mode", "benar", "-periode", PERIODE, "-dir", "kerja", "-berhenti", "dijurnal", kode=-9)
+    catat("-- Data lab: admin membalik jurnal pencairan Warung 508 (jurnal 20) sebelum file dibuat.")
+    s("BEGIN;")
+    j = s(f"""INSERT INTO jurnal (jenis, keterangan, membalik_jurnal_id, dibuat_oleh)
+VALUES ('pembalik', 'Pencairan Warung 508 ditunda: rekening tujuan belum dikonfirmasi', 20, {ADMIN}) RETURNING id;""")[0][0]
+    harap(j, 26, "jurnal pembalik")
+    s(f"""INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES
+  ({j}, (SELECT id FROM buku WHERE akun_id = 508), 15000),
+  ({j}, (SELECT id FROM buku WHERE akun_id IS NULL AND jenis = 'kas_pencairan'), -15000);""")
+    s(f"""UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah
+FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = {j} GROUP BY buku_id) p
+WHERE b.id = p.buku_id;""")
+    s("COMMIT;")
+    out = job("-mode", "benar", "-periode", PERIODE, "-dir", "kerja", kode=3)
+    harap(out[-3:], [f"rekonsiliasi batch 1: file 12 baris {rp(TOTAL)}; ledger 12 jurnal pencairan, kas pencairan +{rp(TOTAL - 15000)}",
+                     "  beda 508 Warung 508: file 1 baris Rp15.000, ledger 1 jurnal Rp0",
+                     "rekonsiliasi: DITOLAK (1 warung beda, selisih total Rp15.000)"], "rekonsiliasi menolak pencairan yang dibalik")
+    batch(s, "dijurnal", list(range(14, 26)))
+    harap(ls(), [], "file tidak dibuat sesudah pembalik")
+    catat("-- Baris pencairan dibuat dari saldo Jumat 15.00 dan tidak berubah; ledger sudah mengembalikan Rp15.000 ke")
+    catat("-- Warung 508. Tanpa rekonsiliasi, file akan mencairkan uang yang di ledger tidak lagi dicairkan.")
+    catat("-- Job tidak memperbaikinya sendiri: batch tetap dijurnal sampai orang memutuskan (keputusan 503).")
+    s.tutup()
+    tulis("rekonsiliasi.txt", "rekonsiliasi file lawan ledger sebelum file dibuat")
+
+
 # ---------- main ----------
 
 def main():
     bangun_job()
     rekam_rentan()
+    rekam_benar()
+    rekam_rekonsiliasi()
     Diam.conn.close()
 
 
