@@ -1,0 +1,293 @@
+/* Widget ERD bertumbuh (I6-erd, keputusan 460–465). Hanya base.css React Flow; semua warna dari token tema.css.
+   Status juga ditulis sebagai teks di node: baru = good, berubah = warn, tetap dan tahap pertama = old,
+   dihapus = old dengan garis putus-putus. Ukuran node (tinggi kepala dan baris) sama dengan UKURAN di tumbuh.ts. */
+.erd-tumbuh {
+  margin: 1.5rem 0;
+  font-size: var(--rk-ui);
+  line-height: 1.45;
+}
+.erd-tumbuh__judul {
+  color: var(--judul);
+  margin: 0 0 0.6rem;
+}
+.erd-tumbuh__kontrol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  margin: 0 0 0.6rem;
+}
+.erd-tumbuh__pilih {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+.erd-tumbuh__kontrol button {
+  min-height: 2.75rem; /* target sentuh 44 px */
+  padding: 0.35rem 0.9rem;
+  border: 1.5px solid var(--garis-2);
+  border-radius: 0.5rem;
+  background: var(--bg);
+  color: var(--teks);
+  font: inherit;
+  cursor: pointer;
+}
+.erd-tumbuh__kontrol button[aria-pressed="true"] {
+  border-color: var(--k-system-edge);
+  background: var(--k-system-fill);
+  color: var(--k-system-ink);
+  font-weight: 600;
+}
+.erd-tumbuh__kontrol button:focus-visible,
+.erd-tumbuh__node:focus-visible {
+  outline: 2px solid var(--aksen);
+  outline-offset: 3px;
+}
+
+.erd-tumbuh__legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.6rem;
+  font-size: 0.875rem;
+}
+.erd-tumbuh__legenda > span {
+  padding: 0.05rem 0.5rem;
+  border: 1.5px solid var(--k-old-edge);
+  border-radius: 0.4rem;
+  background: var(--k-old-fill);
+  color: var(--k-old-ink);
+}
+.erd-tumbuh__legenda > .erd-tumbuh__legenda-baru { border-color: var(--k-good-edge); background: var(--k-good-fill); color: var(--k-good-ink); }
+.erd-tumbuh__legenda > .erd-tumbuh__legenda-berubah { border-color: var(--k-warn-edge); background: var(--k-warn-fill); color: var(--k-warn-ink); }
+.erd-tumbuh__legenda > .erd-tumbuh__legenda-dihapus { border-style: dashed; background: var(--bg); }
+
+/* Tinggi wadah dipesan sejak SSR dari varPesan() (tumbuh.ts): tinggi tata satu kolom, lalu selisih tinggi untuk
+   2, 3, dan 4 kolom bila lebar container (100cqw) sudah mencapai ambang kolom itu. clamp(0px, …, 1px) memberi
+   tangga 0 atau 1 px; +0,5 px karena komponen membulatkan lebar sebelum menghitung kolom. Versi statis dan panel
+   berbagi satu sel grid, jadi statis duduk di dalam ruang yang dipesan dan hydrate tidak menggeser halaman. */
+.erd-tumbuh__panggung {
+  display: grid;
+  container-type: inline-size;
+}
+.erd-tumbuh__panggung > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+  /* cqw diselesaikan di elemen yang memakai variabel ini, terhadap container .erd-tumbuh__panggung. */
+  --erd-pesan: calc(
+    var(--erd-t1) + clamp(0px, (100cqw - var(--erd-a2) + 0.5px) * 10000, 1px) * var(--erd-d2) +
+      clamp(0px, (100cqw - var(--erd-a3) + 0.5px) * 10000, 1px) * var(--erd-d3) +
+      clamp(0px, (100cqw - var(--erd-a4) + 0.5px) * 10000, 1px) * var(--erd-d4)
+  );
+}
+.erd-tumbuh__wadah {
+  width: 100%;
+  height: var(--erd-pesan);
+  color: var(--teks-2); /* currentColor untuk kepala panah */
+}
+.erd-tumbuh__panel {
+  display: grid;
+  gap: 1rem;
+}
+.erd-tumbuh__panel.is-berdampingan {
+  grid-template-columns: 1fr 1fr;
+  gap: 24px; /* sama dengan jarak di komponen (lebar sisi = (lebar - 24) / 2) */
+}
+.erd-tumbuh__sisi {
+  min-width: 0;
+}
+.erd-tumbuh__sisi-judul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.6rem;
+  align-items: center;
+  margin: 0 0 0.4rem;
+}
+/* Sebelum hydrate versi statis dipotong setinggi pesanan (sesaat); tanpa JS tingginya bebas. */
+@media (scripting: enabled) {
+  .erd-tumbuh__statis {
+    max-height: var(--erd-pesan);
+    overflow: hidden;
+  }
+}
+@media (scripting: none) {
+  .erd-tumbuh__wadah {
+    height: auto;
+  }
+}
+.erd-tumbuh .react-flow {
+  background: transparent;
+  --xy-edge-stroke: var(--teks-2);
+}
+/* Panel tidak pernah menangkap gerak jari atau roda: halaman tetap bisa digulir di atas diagram. */
+.erd-tumbuh .react-flow__pane,
+.erd-tumbuh .react-flow__renderer {
+  touch-action: pan-y;
+  cursor: default;
+}
+.erd-tumbuh .react-flow__edge-path {
+  stroke: var(--teks-2);
+  stroke-width: 1.5;
+}
+.erd-tumbuh .react-flow__handle {
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+}
+.erd-tumbuh .react-flow__node {
+  cursor: default;
+}
+
+/* Node: kepala 44 px, baris 24 px, padding bawah 8 px (UKURAN di tumbuh.ts). */
+.erd-tumbuh__node {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: block;
+  padding: 0 0.6rem 8px;
+  border: 1.5px solid var(--k-old-edge);
+  border-radius: 0.5rem;
+  background: var(--k-old-fill);
+  color: var(--teks);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.erd-tumbuh__node.is-baru { border-color: var(--k-good-edge); background: var(--k-good-fill); }
+.erd-tumbuh__node.is-berubah { border-color: var(--k-warn-edge); background: var(--k-warn-fill); }
+.erd-tumbuh__node.is-dihapus { border-style: dashed; background: var(--bg); }
+.erd-tumbuh__node[aria-pressed="true"] { border-width: 3px; }
+.erd-tumbuh__kepala {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  height: 44px;
+  border-bottom: 1px solid var(--garis-2);
+}
+.erd-tumbuh .erd-tumbuh__kepala code {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--judul);
+  background: none;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.erd-tumbuh__status,
+.erd-tumbuh__ubah {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--k-old-ink);
+}
+.is-baru > .erd-tumbuh__kepala .erd-tumbuh__status,
+.erd-tumbuh__baris.is-baru .erd-tumbuh__ubah { color: var(--k-good-ink); }
+.is-berubah > .erd-tumbuh__kepala .erd-tumbuh__status,
+.erd-tumbuh__baris.is-berubah .erd-tumbuh__ubah { color: var(--k-warn-ink); }
+.erd-tumbuh__baris {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  height: 24px;
+  line-height: 24px;
+  white-space: nowrap;
+}
+.erd-tumbuh .erd-tumbuh__baris > code {
+  font-size: 0.85rem;
+  background: none;
+  padding: 0;
+  color: var(--teks);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.erd-tumbuh .erd-tumbuh__baris.is-dihapus > code {
+  text-decoration: line-through;
+  color: var(--teks-2);
+}
+.erd-tumbuh__label {
+  display: inline-flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+.erd-tumbuh__kunci {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--k-system-ink);
+}
+.erd-tumbuh__pindah {
+  display: block;
+  padding-top: 0.3rem;
+  line-height: 24px;
+  color: var(--teks);
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Versi statis sebelum JS dan untuk pembaca layar. */
+.erd-tumbuh__statis ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+.erd-tumbuh__statis > .erd-tumbuh__statis-panel > ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.5rem 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+.erd-tumbuh__statis-panel > p {
+  margin: 0 0 0.4rem;
+}
+.erd-tumbuh__statis li {
+  margin: 0;
+}
+
+/* Teks di bawah diagram sejajar dengan kolom baca (--rk-ukur). */
+.erd-tumbuh__sumber,
+.erd-tumbuh__detail {
+  max-width: var(--rk-ukur);
+}
+.erd-tumbuh__sumber {
+  margin: 0.4rem 0 0;
+}
+.erd-tumbuh__detail {
+  min-height: 1.65em;
+  margin-top: 0.6rem;
+}
+.erd-tumbuh__detail > p,
+.erd-tumbuh__detail > ul {
+  margin: 0 0 0.5rem;
+}
+.erd-tumbuh__detail ul {
+  padding-left: 1.2rem;
+}
+.erd-tumbuh__detail-judul {
+  font-weight: 600;
+  color: var(--judul);
+}
+.erd-tumbuh__detail code {
+  overflow-wrap: anywhere;
+}
+.erd-tumbuh__petunjuk {
+  color: var(--teks-2);
+  font-size: 0.9rem;
+}
+.erd-tumbuh__petunjuk.is-belum {
+  visibility: hidden;
+}
+@media (scripting: none) {
+  .erd-tumbuh__petunjuk {
+    display: none;
+  }
+}
