@@ -1,6 +1,6 @@
 {
   "id": "t1-estimasi-kalkulator",
-  "judul": "Puncak beban di kelima tahap",
+  "judul": "Puncak beban di Tahap 1 sampai 5",
   "sumber": {
     "jenis": "asumsi",
     "teks": "Asumsi naskah dari cerita.json untuk Tahap 1–5, bukan pengukuran."

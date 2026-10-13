@@ -70,8 +70,9 @@
     }).catch(function (e) { host.textContent = "Diagram gagal dimuat: " + e.message; });
   };
 
-  /* ---- Peta cerita: lima tahap, arsitektur yang berkembang, status halaman, indeks masalah ---- */
-  // Status "selesai" dibaca dari penanda "Tandai selesai" (core.js, kunci selesai:<path>).
+  /* ---- Peta cerita: enam tahap (Tahap 6 proyeksi), arsitektur yang berkembang, status halaman, indeks masalah ---- */
+  // Status "selesai" dari BB.halamanSelesai (DataSelesai.astro, keputusan 320): penanda "Tandai selesai" halaman
+  // versi lama (kunci selesai:<path>) atau semua blok halaman Tahap 1 selesai. Tanpa fungsi itu, hanya penanda lama.
   function siteRoot() { return BB.base.replace(/widgets\/$/, ""); }
   // a/b.md -> a/b/, a/index.md -> a/, index.md -> "" (URL MkDocs)
   function urlOf(h) {
@@ -80,7 +81,7 @@
   }
   function selesai(h) {
     var p = new URL(urlOf(h), location.href).pathname;
-    return !!BB.store.get("selesai:" + p);
+    return BB.halamanSelesai ? BB.halamanSelesai(p) : !!BB.store.get("selesai:" + p);
   }
 
   function archFig(t) {
@@ -137,6 +138,14 @@
           BB.el("h3", null, [judul]),
           BB.el("p", { class: "bb-muted bb-peta__user", text: t.user + " · " + done.length + " dari " + hs.length + " halaman selesai · " + jalurInti(t) }),
           bar, archFig(t), BB.el("details", null, [BB.el("summary", { text: "Daftar halaman (" + ada.length + " ada)" }), ul])]));
+      });
+      // Tahap proyeksi (registry "proyeksi", Tahap 6): belum ada halaman dan diagram, jadi hanya skala dan PRD-nya.
+      (d.proyeksi || []).forEach(function (t) {
+        var prd = t.skala && t.skala.prd ? t.skala.prd.replace(/^PRD v\d+ \(proyeksi\): /, "") : "";
+        wrap.appendChild(BB.el("section", { class: "bb-peta__tahap is-proyeksi" }, [
+          BB.el("h3", null, [BB.el("span", { text: "Tahap " + t.no + " · " + t.nama })]),
+          BB.el("p", { class: "bb-muted bb-peta__user", text: t.user + " · proyeksi, belum ditulis" }),
+          prd ? BB.el("p", { class: "bb-peta__prd", text: "PRD v" + t.no + ": " + prd }) : null]));
       });
       host.appendChild(wrap);
     }).catch(function (e) { host.textContent = "Peta gagal dimuat: " + e.message; });

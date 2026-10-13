@@ -25,6 +25,11 @@ export function slugBlok(nama: string): string {
   return "blok-" + nama.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+/** id elemen semua blok halaman, sama dengan data-blok yang dirender Blok.astro dan dicatat di rtj-blok:<path>. */
+export function idBlok(mdx: string): string[] {
+  return daftarBlok(mdx).map((b) => slugBlok(b.nama));
+}
+
 /** Menit blok: atribut di halaman, kalau tidak ada dari templat. */
 export function menitBlok(jenis: string | undefined, b: InfoBlok): number | undefined {
   return b.menit ?? TEMPLAT[jenis ?? ""]?.blok?.find((t) => t.nama === b.nama)?.menit;

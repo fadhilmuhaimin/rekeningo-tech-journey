@@ -1,6 +1,6 @@
 ---
 title: "1.38 Kerangka berpikir dan estimasi"
-description: Desain dimulai dari kebutuhan dan angka, bukan dari teknologi. Lima langkah dari PRD ke desain, rumus estimasi beban, dan kalkulator yang sama untuk kelima tahap Rekeningo.
+description: Desain dimulai dari kebutuhan dan angka, bukan dari teknologi. Lima langkah dari PRD ke desain, rumus estimasi beban, dan kalkulator yang sama untuk Tahap 1 sampai 5.
 ---
 import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
@@ -34,7 +34,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 <Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: puncak beban dihitung dari user, rasio aktif, request per user, dan faktor puncak, dan satu juta user tidak berarti satu juta request per detik.">
 
-Rumusnya sama dengan [[t1-m8]], sekarang untuk kelima tahap. Tebak dulu, lalu pilih tahap dan bandingkan asumsi di bawah tiap baris: user, rasio aktif, dan request per user.
+Rumusnya sama dengan [[t1-m8]], sekarang untuk Tahap 1 sampai 5. Tahap 6 masih proyeksi, jadi belum punya asumsi beban. Tebak dulu, lalu pilih tahap dan bandingkan asumsi di bawah tiap baris: user, rasio aktif, dan request per user.
 
 <Kalkulator client:visible data={dataKalkulator} asumsi={cerita.tahap.map((t) => t.asumsi)} />
 
