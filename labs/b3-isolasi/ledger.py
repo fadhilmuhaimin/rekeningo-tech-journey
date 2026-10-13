@@ -26,6 +26,7 @@ SISTEM, ADMIN, DIMAS, ANI, BUDI, CITRA = 1, 400, 417, 418, 419, 504
 B_TUNJANGAN, B_PEMBUKA, B_BUDI, B_ANI, B_CITRA, B_DIMAS = 1, 2, 3, 4, 5, 6
 RC, RR, SER, RU = "READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE", "READ UNCOMMITTED"
 BATAS_PERCOBAAN = 3
+BATAS_DETIK = 30   # pengaman supaya lab tidak macet tanpa akhir; bukan penentu hasil (keputusan 446)
 
 
 def gagal(pesan):
@@ -122,14 +123,19 @@ class Sesi:
         kotak = {}
         t = threading.Thread(target=self._kerja, args=(q, kotak), daemon=True)
         t.start()
-        t.join(0.3)
-        if t.is_alive():
-            tunggu = Diam.tunggu_lock(self.pid)
-            if not tunggu:
-                gagal(f"perintah {self.label} lama tetapi tidak menunggu lock: {b[0]}")
-            catat(f"   -- {self.label} menunggu lock ({tunggu}): transaction lain memegang baris yang sama")
-            self._tunda = (t, kotak)
-            return Hasil(menunggu=True)
+        # Ditunggu sampai perintah selesai atau terlihat menunggu lock, mana yang lebih dulu. Perintah yang lambat
+        # karena mesin sibuk tetap ditunggu sampai selesai: tidak ada ambang waktu yang menentukan hasil (keputusan 446).
+        akhir = time.monotonic() + BATAS_DETIK
+        t.join(0.05)
+        while t.is_alive():
+            tunggu = Diam.menunggu_lock(self.pid)
+            if tunggu:
+                catat(f"   -- {self.label} menunggu lock ({tunggu}): transaction lain memegang baris yang sama")
+                self._tunda = (t, kotak)
+                return Hasil(menunggu=True)
+            if time.monotonic() > akhir:
+                gagal(f"perintah {self.label} tidak selesai dalam {BATAS_DETIK} detik dan tidak menunggu lock: {b[0]}")
+            t.join(0.05)
         return self._selesai(kotak)
 
     def lanjut(self):
@@ -138,9 +144,9 @@ class Sesi:
             gagal(f"sesi {self.label} tidak sedang menunggu")
         t, kotak = self._tunda
         self._tunda = None
-        t.join(10)
+        t.join(BATAS_DETIK)
         if t.is_alive():
-            gagal(f"perintah {self.label} masih menunggu sesudah lock dilepas")
+            gagal(f"perintah {self.label} masih menunggu {BATAS_DETIK} detik sesudah lock dilepas")
         catat(f"[{self.label}]    (lanjut sesudah lock dilepas)")
         return self._selesai(kotak)
 
@@ -184,15 +190,12 @@ class Diam:
         return cls.conn.execute(q).fetchone()[0]
 
     @classmethod
-    def tunggu_lock(cls, pid, batas=3.0):
-        akhir = time.time() + batas
-        while time.time() < akhir:
-            r = cls.conn.execute("SELECT wait_event_type, wait_event FROM pg_stat_activity WHERE pid = %s",
-                                 (pid,)).fetchone()
-            if r and r[0] == "Lock":
-                return r[1]
-            time.sleep(0.05)
-        return None
+    def menunggu_lock(cls, pid):
+        """Jenis lock yang sedang ditunggu backend pid (mis. transactionid), atau None. Disaring pid sesi sendiri,
+        jadi sesi agen lain di database bersama tidak terbaca."""
+        r = cls.conn.execute("SELECT wait_event_type, wait_event FROM pg_stat_activity WHERE pid = %s",
+                             (pid,)).fetchone()
+        return r[1] if r and r[0] == "Lock" else None
 
 
 def saldo(buku):
