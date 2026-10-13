@@ -64,3 +64,7 @@ Tugas dan temuan yang sengaja tidak dikerjakan di Tahap 1 (keputusan 369, lingku
 - Ekspor progres: `revokeObjectURL` 60 s untuk Safari iOS [perlu verifikasi] (keputusan 365).
 - 1.13: perilaku Firestore untuk rujukan antar-dokumen masih [perlu verifikasi] (keputusan 312).
 - Proses: setiap PR jalur paralel menambah baris di akhir KEPUTUSAN sehingga PR lain konflik; usulan di `plan/USULAN-PERBAIKAN.md`.
+- `tools/cek_tautan.py`: `#:~:text=` internal dianggap anchor rusak, srcset `data:` dipecah di koma (rusak palsu, belum ada di dist); kunci `path` di `widgets/data/cerita.json` tidak diperiksa; `<a href>` kosong dilewati tanpa dihitung (peninjau P6, keputusan 318).
+- `404.md`: menyuruh pembaca "lewat sidebar", padahal halaman splash tanpa sidebar (peninjau P6).
+- `situs/tools/percobaan/percobaan-g2d.yml` baris 92 dan 99: dua langkah upload-artifact bernama sama (peninjau G2d, keputusan 367).
+- G2d lanjutan: belah isi salah satu dari enam halaman yang paling sering macet untuk mencari pemicu dan reproduksi mandiri; mengirim laporan bug Chromium menunggu keputusan pemilik (keputusan 367).

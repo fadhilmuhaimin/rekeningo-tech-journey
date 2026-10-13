@@ -19,10 +19,13 @@ if (!lama) {
   if (h?.adr?.length) bagian.push(`ADR ${h.adr.join(" dan ")}`);
 }
 ---
-{/* Beranda (template splash) menulis judulnya sendiri di Beranda.astro. */}
-{Astro.locals.starlightRoute.entry.data.template !== "splash" && (
-  <>
-    <KamuDiSini jenis={bagian.join(" · ")} />
-    <Default />
-  </>
-)}
+{/* Beranda menulis judulnya sendiri di Beranda.astro. Halaman splash lain (404) tetap butuh h1#_top bawaan
+    Starlight: tujuan tautan "Lewati ke konten" (keputusan 318). */}
+{urlDariId(Astro.locals.starlightRoute.entry.id) === "/" ? null
+  : Astro.locals.starlightRoute.entry.data.template === "splash" ? <Default />
+  : (
+    <>
+      <KamuDiSini jenis={bagian.join(" · ")} />
+      <Default />
+    </>
+  )}

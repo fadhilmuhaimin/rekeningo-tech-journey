@@ -63,6 +63,8 @@ if [ "$MODE" != "--ukur" ]; then
   echo "build strict lolos (0 warning)"
 
   echo "== ID internal tidak tampil"; $PY tools/cek_id_tampil.py
+  echo "== tautan internal di dist: path, anchor, data widget (P6, keputusan 318)"; $PY tools/cek_tautan.py
+  echo "== uji pemeriksa tautan (lolos palsu, keputusan 318)"; $PY tools/test_cek_tautan.py | tail -1
   echo "== kontras dua mode";          $PY tools/contrast.py | tail -1
   echo "== uji pemeriksa kontras (lolos palsu, keputusan 262)"; $PY tools/test_contrast.py | tail -1
   echo "== tipe (astro check, strict)"

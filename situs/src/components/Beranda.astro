@@ -97,7 +97,8 @@ const cara = hs.find((h) => h.id === "A0");
 <div class="beranda not-content">
   <div class="beranda__depan">
     <section class="beranda__atas" data-layar-pertama="semua" aria-label="Mulai">
-      <h1 class="beranda__judul">Rekeningo Tech Journey</h1>
+      {/* id = PAGE_TITLE_ID Starlight: tujuan tautan "Lewati ke konten" (keputusan 318). */}
+      <h1 class="beranda__judul" id="_top">Rekeningo Tech Journey</h1>
       <p class="beranda__janji">Belajar backend lewat satu dompet digital fiktif yang tumbuh dari 100 karyawan sampai jutaan user.</p>
       <div class="beranda__aksi">
         {mulai && <a class="beranda__mulai" href={url(mulai)}>{prd ? "Mulai dari PRD" : "Mulai dari Tahap 1"} →</a>}
