@@ -1,0 +1,113 @@
+-- Lab b2-query versi ledger · pagination OFFSET lawan kursor (dibuat, id) saat kiriman baru masuk
+-- PostgreSQL 17.11 · schema b2_ledger · TimeZone Asia/Jakarta (WIB)
+-- Rekaman dari database bersih: make -C labs/b2-query run-ledger (keputusan 520).
+-- Sesudah index riwayat dan query JOIN (ADR 15). Kiriman baru lewat jalur biasa: satu transaction, trigger
+-- invarian aktif, dibuat = now() (sesudah semua data lab). Buffers dan waktu = pembanding (keputusan 523).
+
+# --- A. OFFSET (cara M12), 5 baris per halaman supaya ringkas ---
+=> SELECT p.id, p.jurnal_id, j.jenis, p.jumlah, p.dibuat,
+          coalesce(la.nama, CASE lb.jenis WHEN 'tunjangan' THEN 'Tunjangan makan' WHEN 'kas_pencairan' THEN 'Pencairan' END) AS lawan
+   FROM posting p
+   JOIN jurnal j ON j.id = p.jurnal_id
+   LEFT JOIN LATERAL (SELECT q.buku_id FROM posting q
+                      WHERE q.jurnal_id = p.jurnal_id AND q.buku_id <> p.buku_id ORDER BY q.id LIMIT 1) l ON true
+   LEFT JOIN buku lb ON lb.id = l.buku_id
+   LEFT JOIN akun la ON la.id = lb.akun_id
+   WHERE p.buku_id = 20
+   ORDER BY p.dibuat DESC, p.id DESC LIMIT 5 OFFSET 0
+ posting | jurnal |  jenis   |  arah  |     lawan     |  jumlah  | catatan
+---------+--------+----------+--------+---------------+----------+---------
+  760066 | 380033 | transfer | masuk  | Karyawan 961  | Rp50.000 |
+  760028 | 380014 | transfer | masuk  | Karyawan 842  | Rp50.000 |
+  759818 | 379909 | transfer | masuk  | Karyawan 1233 | Rp50.000 |
+  759615 | 379808 | bayar    | keluar | Warung Ani    | Rp8.000  |
+  759460 | 379730 | transfer | masuk  | Karyawan 1135 | Rp50.000 |
+(5 rows)
+Dimas mengirim Rp5.000 ke Budi: jurnal 380226.
+=> ... LIMIT 5 OFFSET 5
+ posting | jurnal |  jenis   |  arah  |     lawan     |  jumlah  | catatan
+---------+--------+----------+--------+---------------+----------+---------
+  759460 | 379730 | transfer | masuk  | Karyawan 1135 | Rp50.000 | ganda
+  759127 | 379564 | bayar    | keluar | Warung 509    | Rp5.000  |
+  759027 | 379514 | bayar    | keluar | Warung 512    | Rp15.000 |
+  758974 | 379487 | transfer | masuk  | Karyawan 1103 | Rp25.000 |
+  758878 | 379439 | transfer | masuk  | Karyawan 1035 | Rp50.000 |
+(5 rows)
+Di layar: 10 baris, 9 posting berbeda. Kiriman Dimas (jurnal 380226) tidak ada di daftar.
+
+# --- B. Kursor (dibuat, id) baris terakhir yang sudah tampil ---
+=> SELECT p.id, p.jurnal_id, j.jenis, p.jumlah, p.dibuat,
+          coalesce(la.nama, CASE lb.jenis WHEN 'tunjangan' THEN 'Tunjangan makan' WHEN 'kas_pencairan' THEN 'Pencairan' END) AS lawan
+   FROM posting p
+   JOIN jurnal j ON j.id = p.jurnal_id
+   LEFT JOIN LATERAL (SELECT q.buku_id FROM posting q
+                      WHERE q.jurnal_id = p.jurnal_id AND q.buku_id <> p.buku_id ORDER BY q.id LIMIT 1) l ON true
+   LEFT JOIN buku lb ON lb.id = l.buku_id
+   LEFT JOIN akun la ON la.id = lb.akun_id
+   WHERE p.buku_id = 20
+   ORDER BY p.dibuat DESC, p.id DESC LIMIT 5
+ posting | jurnal |  jenis   |  arah  |     lawan     |  jumlah  | catatan
+---------+--------+----------+--------+---------------+----------+---------
+  760451 | 380226 | transfer | masuk  | Dimas         | Rp5.000  |
+  760066 | 380033 | transfer | masuk  | Karyawan 961  | Rp50.000 |
+  760028 | 380014 | transfer | masuk  | Karyawan 842  | Rp50.000 |
+  759818 | 379909 | transfer | masuk  | Karyawan 1233 | Rp50.000 |
+  759615 | 379808 | bayar    | keluar | Warung Ani    | Rp8.000  |
+(5 rows)
+kursor = ('2026-10-04 13:25:14.430937+07:00', 759615)
+Citra mengirim Rp5.000 ke Budi: jurnal 380227.
+=> ... WHERE p.buku_id = 20 AND (p.dibuat, p.id) < ('2026-10-04 13:25:14.430937+07:00', 759615) ORDER BY p.dibuat DESC, p.id DESC LIMIT 5
+ posting | jurnal |  jenis   |  arah  |     lawan     |  jumlah  | catatan
+---------+--------+----------+--------+---------------+----------+---------
+  759460 | 379730 | transfer | masuk  | Karyawan 1135 | Rp50.000 |
+  759127 | 379564 | bayar    | keluar | Warung 509    | Rp5.000  |
+  759027 | 379514 | bayar    | keluar | Warung 512    | Rp15.000 |
+  758974 | 379487 | transfer | masuk  | Karyawan 1103 | Rp25.000 |
+  758878 | 379439 | transfer | masuk  | Karyawan 1035 | Rp50.000 |
+(5 rows)
+Lebih baru dari baris pertama halaman 1 (app memintanya saat daftar ditarik ke bawah; dibuat = now()):
+=> ... WHERE p.buku_id = 20 AND (p.dibuat, p.id) > (<dibuat posting 760451>, 760451) ORDER BY p.dibuat, p.id
+ posting | jurnal |  jenis   |  arah | lawan |  jumlah | catatan
+---------+--------+----------+-------+-------+---------+---------
+  760453 | 380227 | transfer | masuk | Citra | Rp5.000 |
+(1 row)
+Di layar: 11 baris, 11 posting berbeda. Kiriman Citra (jurnal 380227) ada.
+
+# --- C. Seluruh riwayat Budi, 20 baris per halaman, satu kiriman masuk sebelum setiap halaman berikutnya ---
+  cara  | halaman | baris tampil | ganda | posting lama terlewat | kiriman baru | kiriman baru tidak tampil
+--------+---------+--------------+-------+-----------------------+--------------+---------------------------
+ OFFSET |     205 |         4098 |   204 |                     0 |          204 |                       204
+ kursor |     205 |         4302 |     0 |                     0 |          204 |                         0
+(2 rows)
+OFFSET: setiap kiriman menggeser semua baris lama satu posisi, jadi setiap halaman mengulang satu baris dari
+halaman sebelumnya, dan kiriman yang masuk di atas tidak pernah tampil. Posting lama tidak terlewat karena
+ledger hanya bertambah (append-only); baris lama terlewat hanya bila ada baris yang hilang dari atas daftar.
+Kursor: halaman berikutnya dimulai sesudah (dibuat, id) baris terakhir, dan kiriman baru diambil sekali
+lewat (dibuat, id) > baris pertama.
+
+# --- D. Halaman jauh: 20 baris mulai posisi 1.001 ---
+
+# --- D1. OFFSET 1000 ---
+=> EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+   SELECT p.id, p.jumlah, p.dibuat FROM posting p WHERE p.buku_id = 20 ORDER BY p.dibuat DESC, p.id DESC LIMIT 20 OFFSET 1000
+Limit (actual time=0.175..0.179 rows=20 loops=1)
+  Buffers: shared hit=472
+  ->  Index Scan Backward using posting_riwayat on posting p (actual time=0.003..0.150 rows=1020 loops=1)
+        Index Cond: (buku_id = 20)
+        Buffers: shared hit=472
+Planning Time: 0.020 ms
+Execution Time: 0.182 ms
+
+# --- D2. Kursor = (dibuat, id) baris ke-1.000 ---
+=> EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)
+   SELECT p.id, p.jumlah, p.dibuat FROM posting p WHERE p.buku_id = 20 AND (p.dibuat, p.id) < ('2026-08-10 12:05:54.437084+07:00', 646169) ORDER BY p.dibuat DESC, p.id DESC LIMIT 20
+Limit (actual time=0.005..0.009 rows=20 loops=1)
+  Buffers: shared hit=19
+  ->  Index Scan Backward using posting_riwayat on posting p (actual time=0.005..0.008 rows=20 loops=1)
+        Index Cond: ((buku_id = 20) AND (ROW(dibuat, id) < ROW('2026-08-10 12:05:54.437084+07'::timestamp with time zone, 646169)))
+        Buffers: shared hit=19
+Planning Time: 0.066 ms
+Execution Time: 0.013 ms
+
+Kedua query menghasilkan 20 baris yang sama. OFFSET membaca 1.020 baris dari index lalu membuang 1.000;
+kursor mulai membaca tepat sesudah baris ke-1.000.
