@@ -817,3 +817,12 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 - bergantung: X1
 - selesai bila: (lingkup beku, keputusan 369) `plan/LAPORAN-TAHAP-1.md` memuat apa yang selesai, daftar "Setelah Tahap 1" (dari `plan/SETELAH-TAHAP-1.md`), dan 10 hal teratas yang perlu dilihat pemilik sendiri (halaman dan apa yang diperhatikan); temuan X2 mengikuti aturan yang sama dengan X1; pengatur lalu berhenti dengan kalimat "Tahap 1 selesai, menunggu tinjauan pemilik". Semua tugas dari X1 selesai atau diparkir; tangkapan seluruh Tahap 1 dilihat; laporan di STATUS dan baris "Tahap 1: crosscheck selesai"; tidak ada tugas Tahap 2 yang dimulai.
 - catatan: Tahap 2 menunggu `plan/CERITA-TAHAP-2.md` dari pemilik. PR #249 (LAPORAN-TAHAP-1: apa yang selesai, Setelah Tahap 1, 10 hal pemilik, cek akhir 8 tangkapan); keputusan 369.
+
+### ERD1 · ERD Tahap 1 dari skema lab, statis di 1.12
+
+- jenis: konten
+- status: dikerjakan
+- percobaan: 0
+- bergantung: X2
+- selesai bila: `tools/erd.py` membangun skema akhir Tahap 1 `labs/api-t1` di schema sementara PostgreSQL lab, membaca katalog (tabel, kolom, tipe, PK, FK, UNIQUE, CHECK, index) dan menulis `situs/data/erd/tahap-1.json` yang deterministik beserta hash sumbernya; `tools/erd.py --cek` (tanpa database) masuk gerbang dan gagal bila sumber skema berubah tanpa JSON ikut dibuat ulang; 1.12 menampilkan diagram statis bertoken (tabel, kolom penting, PK/FK, relasi) tanpa JavaScript, teks tidak di dalam SVG, terbaca di 375×667 dan 1366×657 gelap dan terang, kontras lolos, layar pertama 1.12 tidak bergeser; selisih dengan blok mermaid ERD Tahap 1 di `plan/CERITA-TAHAP-2.md` bagian 3b tercatat (skema lab yang benar).
+- catatan: Permintaan pemilik 2026-10-13, pengecualian pembekuan lingkup (keputusan 375). Jalur teknis malam ini. Widget interaktif ERD bertumbuh menyusul di Tahap 2.
