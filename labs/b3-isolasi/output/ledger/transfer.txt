@@ -1,0 +1,148 @@
+-- Lab b3-isolasi (ledger) · dua transfer bersamaan per isolation level
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_isolasi · default_transaction_isolation = read committed
+-- Rekaman dari database bersih: make -C labs/b3-isolasi run-ledger (keputusan 440).
+-- Persiapan tiap skenario: schema baru dari labs/b3-ledger/schema.sql, lalu dua jurnal (keputusan 441):
+--   jurnal 1 pembuka: Warung Ani Rp285.000, Dimas Rp35.000; jurnal 2 top-up: Budi Rp100.000.
+--   Buku 1 tunjangan, 2 pembuka, 3 Budi, 4 Warung Ani, 5 Citra, 6 Dimas.
+-- A dan B adalah dua koneksi. Urutan perintah ditentukan skrip, satu langkah per baris, bukan oleh waktu.
+-- Angka M9: saldo Budi Rp100.000; A transfer Rp70.000 ke Citra, B transfer Rp50.000 ke Dimas.
+-- Kode transfer: BEGIN, baca saldo dari posting, cek di app, INSERT jurnal dan posting, COMMIT. Tanpa lock eksplisit.
+-- Invarian 3 (saldo buku karyawan tidak negatif) diperiksa trigger saat COMMIT (labs/b3-ledger/schema.sql).
+-- Bagian ini tidak memperbarui saldo_cache (pola itu di transfer-cache.txt), jadi saldo_cache Budi tetap 100000.
+
+# --- 1. READ COMMITTED ---
+-- Pemeriksaan invarian 3 saat COMMIT B memakai snapshot baru, jadi melihat jurnal A yang sudah COMMIT.
+[A] => BEGIN ISOLATION LEVEL READ COMMITTED;
+BEGIN
+[A] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 3;
+ saldo_budi
+------------
+     100000
+(1 row)
+[B] => BEGIN ISOLATION LEVEL READ COMMITTED;
+BEGIN
+[B] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 3;
+ saldo_budi
+------------
+     100000
+(1 row)
+-- app A: saldo 100000 >= 70000, lanjut menulis jurnal
+[A] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id;
+ id
+----
+  3
+(1 row)
+[A] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 3, -70000), (3, 5, 70000);
+INSERT 0 2
+-- app B: saldo 100000 >= 50000, lanjut menulis jurnal
+[B] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Dimas', 419) RETURNING id;
+ id
+----
+  4
+(1 row)
+[B] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (4, 3, -50000), (4, 6, 50000);
+INSERT 0 2
+[A] => COMMIT;
+COMMIT
+[B] => COMMIT;
+ERROR:  saldo buku 3 (karyawan) jadi -20000 sesudah jurnal 4
+   -- SQLSTATE 23514 check_violation, constraint saldo_karyawan_tidak_negatif
+-- Akhir: saldo Budi dari posting 30000, saldo_cache 100000.
+-- B ditolak database (23514), bukan oleh pemeriksaan saldo di app. Kode retry hanya mengulang 40001,
+-- jadi app B menerima error database, bukan jawaban "saldo kurang".
+-- Bila dua COMMIT dikirim pada saat yang sama, keduanya bisa lolos (labs/b3-ledger/output/batas.txt 2b).
+
+# --- 2. REPEATABLE READ ---
+-- Langkah sama. Pemeriksaan invarian 3 saat COMMIT B memakai snapshot B, yang diambil sebelum A COMMIT.
+[A] => BEGIN ISOLATION LEVEL REPEATABLE READ;
+BEGIN
+[A] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 3;
+ saldo_budi
+------------
+     100000
+(1 row)
+[B] => BEGIN ISOLATION LEVEL REPEATABLE READ;
+BEGIN
+[B] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 3;
+ saldo_budi
+------------
+     100000
+(1 row)
+-- app A: saldo 100000 >= 70000, lanjut menulis jurnal
+[A] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id;
+ id
+----
+  3
+(1 row)
+[A] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 3, -70000), (3, 5, 70000);
+INSERT 0 2
+-- app B: saldo 100000 >= 50000, lanjut menulis jurnal
+[B] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Dimas', 419) RETURNING id;
+ id
+----
+  4
+(1 row)
+[B] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (4, 3, -50000), (4, 6, 50000);
+INSERT 0 2
+[A] => COMMIT;
+COMMIT
+[B] => COMMIT;
+COMMIT
+-- Akhir: saldo Budi dari posting -20000, saldo_cache 100000.
+-- Dua-duanya COMMIT tanpa error. A dan B tidak mengubah baris yang sama (keduanya hanya INSERT),
+-- jadi tidak ada 40001. Invarian 3 lolos di B karena snapshot B belum berisi posting A.
+
+# --- 3. SERIALIZABLE ---
+-- Langkah sama. SERIALIZABLE mencatat apa yang dibaca tiap transaction (SIReadLock) tanpa memblokir.
+[A] => BEGIN ISOLATION LEVEL SERIALIZABLE;
+BEGIN
+[A] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 3;
+ saldo_budi
+------------
+     100000
+(1 row)
+[B] => BEGIN ISOLATION LEVEL SERIALIZABLE;
+BEGIN
+[B] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 3;
+ saldo_budi
+------------
+     100000
+(1 row)
+-- app A: saldo 100000 >= 70000, lanjut menulis jurnal
+[A] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id;
+ id
+----
+  3
+(1 row)
+[A] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 3, -70000), (3, 5, 70000);
+INSERT 0 2
+-- app B: saldo 100000 >= 50000, lanjut menulis jurnal
+[B] => INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Dimas', 419) RETURNING id;
+ id
+----
+  4
+(1 row)
+[B] => INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (4, 3, -50000), (4, 6, 50000);
+INSERT 0 2
+[A] => COMMIT;
+COMMIT
+[B] => COMMIT;
+ERROR:  could not serialize access due to read/write dependencies among transactions
+DETAIL:  Reason code: Canceled on identification as a pivot, during conflict out checking.
+HINT:  The transaction might succeed if retried.
+   -- SQLSTATE 40001 serialization_failure
+[B] => ROLLBACK;
+ROLLBACK
+-- app B: ulang transaction dari awal, percobaan 2
+[B] => BEGIN ISOLATION LEVEL SERIALIZABLE;
+BEGIN
+[B] => SELECT sum(jumlah) AS saldo_budi FROM posting WHERE buku_id = 3;
+ saldo_budi
+------------
+      30000
+(1 row)
+-- app B: saldo 30000 < 50000, tolak "saldo kurang"
+[B] => ROLLBACK;
+ROLLBACK
+-- B mendapat jawaban "saldo kurang" dari kode app, bukan error database.
+-- Akhir: saldo Budi dari posting 30000, saldo_cache 100000.

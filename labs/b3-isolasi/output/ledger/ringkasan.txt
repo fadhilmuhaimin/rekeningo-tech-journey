@@ -1,0 +1,18 @@
+-- Lab b3-isolasi (ledger) · ringkasan per isolation level
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema b3_isolasi · default_transaction_isolation = read committed
+-- Rekaman dari database bersih: make -C labs/b3-isolasi run-ledger (keputusan 440).
+-- Satu baris per skenario dari dirty-read.txt, laporan.txt, transfer.txt, transfer-cache.txt.
+-- saldo_budi = saldo akhir Budi, dihitung dari posting.
+
+    rekaman     | isolation level  |                   yang terjadi                   | SQLSTATE | saldo_budi
+----------------+------------------+--------------------------------------------------+----------+------------
+ dirty-read     | READ UNCOMMITTED | posting B tidak terlihat sebelum COMMIT          | -        |      75000
+ laporan        | READ COMMITTED   | tidak cocok di 2 buku, selisih Rp25.000          | -        |      75000
+ laporan        | REPEATABLE READ  | cocok; bayar B masuk laporan berikutnya          | -        |      75000
+ laporan        | SERIALIZABLE     | cocok                                            | -        |      75000
+ transfer       | READ COMMITTED   | COMMIT B ditolak invarian 3                      | 23514    |      30000
+ transfer       | REPEATABLE READ  | dua-duanya COMMIT                                | -        |     -20000
+ transfer       | SERIALIZABLE     | COMMIT B 40001; retry: saldo kurang              | 40001    |      30000
+ transfer-cache | READ COMMITTED   | B menunggu lock; COMMIT B ditolak invarian 3     | 23514    |      30000
+ transfer-cache | REPEATABLE READ  | B menunggu lock, lalu 40001; retry: saldo kurang | 40001    |      30000
+ transfer-cache | SERIALIZABLE     | B menunggu lock, lalu 40001; retry: saldo kurang | 40001    |      30000
