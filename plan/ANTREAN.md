@@ -852,11 +852,11 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 ### I6-erd · Widget ERD bertumbuh
 
 - jenis: interaksi
-- status: dikerjakan
+- status: selesai
 - percobaan: 0
 - bergantung: ERD1
 - selesai bila: Komponen React di atas `@xyflow/react` dengan data `situs/data/erd/*.json` divalidasi Zod; satu tabel = satu node (nama, kolom; PK, FK, UNIQUE, CHECK ditandai teks, bukan hanya warna), relasi sebagai edge FK; pemilih tahap dan mode bandingkan dua tahap berdampingan; warna dari token (baru, berubah, tetap), tabel dihapus putus-putus dengan keterangan ke mana isinya pindah; klik atau keyboard pada tabel membuka kolom lengkap dan tautan halaman dari registry; versi statis untuk pembaca layar dan tanpa JavaScript; dimuat hanya di halaman yang memakainya; scroll halaman tidak tertangkap di 375×667; reduced motion tanpa gerak; axe 0; diuji di `/uji/erd/` dengan data Tahap 1 dan data uji Tahap 2 (data nyata sesudah ERD2).
-- catatan: Jalur teknis. Aturan I6 di "Definisi selesai bersama". Belum dipasang di halaman konten sampai pemilik meninjau Tahap 1 (MEMORI "Diputuskan malam ini"); pemasangan di 1.12 dan 2.9 ikut tugas 2.9.
+- catatan: Jalur teknis. PR #262, keputusan 460–467: `ErdTumbuh.tsx` di atas @xyflow/react, `aturan_berubah` di selisih, `halaman.json` tabel → halaman registry, versi statis, `ukur-erd.mjs` di gerbang (kelompok "gerak erd"); hanya di `/uji/erd/` (174,0 KB gzip). Peninjau: edge `aria-hidden` (label bawaan React Flow berbahasa Inggris), node tabel dihapus tidak lagi memotong kalimat pindah, detail digulir ke layar (466, 467).
 
 ### lab-b3-ledger · Lab b3-ledger: jurnal, posting, tiga invarian
 
@@ -879,11 +879,11 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 ### ERD2 · ERD Tahap 2 dari api-t2 dan selisihnya
 
 - jenis: interaksi
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: ERD1, lab-api-t2
 - selesai bila: `tools/erd.py` membaca skema akhir `labs/api-t2` dan menulis `situs/data/erd/tahap-2.json` beserta selisih terhadap Tahap 1 (tabel baru, kolom baru atau berubah, tabel dihapus dan ke mana isinya pindah, mengikuti tabel "Apa yang berubah dan kenapa" naskah 3b); `--cek` di gerbang mencakup Tahap 2; selisih dengan blok mermaid ERD Tahap 2 naskah tercatat (lab yang benar).
-- catatan: Jalur teknis. Dari tinjauan ERD1: `--cek` hanya menutup hash file sumber, jadi JSON yang diubah tangan dengan format sah tetap lolos; pertimbangkan job CI dengan service PostgreSQL yang membangun ulang lalu membandingkan. `hitung_selisih` belum melihat CHECK dan index; `MASIH_SCHEMA` akan menolak fungsi yang memakai `SET search_path`.
+- catatan: Jalur teknis. PR #265, keputusan 470–473: `TAHAP[2]` = skema akhir Tahap 1 + api-t2 000009–000013 (pembanding b4-migration identik); `tahap-2.json` 8 tabel, 11 FK; selisih 6 tabel baru, 3 dihapus (topup dan transaksi diarsip, koreksi jadi jurnal selisih + pembalik), `akun` +4 kolom −`saldo`, 6 aturan berubah; `bersihkan()` membaca token SQL (`SET search_path FROM CURRENT` hanya sebagai atribut fungsi) dan menutup tiga celah lama; `/uji/erd/` memakai data lab. Job CI pembangun ulang ERD ditunda (SETELAH-TAHAP-2). Peninjau (474): tokenizer `bersihkan()` mengikuti lexer PostgreSQL (nama bertanda kutip, string E, `$` di tengah nama; komentar bersarang ditolak) karena empat bentuk SQL bisa menyembunyikan `SET search_path` di balik "komentar"; pagar `pastikan_di_schema()` sesudah tiap file memeriksa `search_path` dan lock di luar schema sementara; `test_erd.py` 50/50.
 
 ### lab-b3-race · Lab b3-race ke ledger: M9 dan empat cara mengunci
 
@@ -924,29 +924,47 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 ### lab-b2-query · Lab b2-query ke ledger: N+1, index, kursor
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-b3-ledger
 - selesai bila: `labs/b2-query` diselaraskan ke M11 dan M12 di atas posting: riwayat N+1 (nama lawan diambil satu per satu) lawan satu query JOIN dengan jumlah query; `EXPLAIN (ANALYZE, BUFFERS)` sebelum dan sesudah index `posting (buku_id, dibuat, id)`; pagination offset menggandakan dan menghilangkan baris saat transaksi baru masuk, kursor `(dibuat, id)` tidak; waktu ditulis sebagai pembanding berlabel, bukan janji; rekaman dari database bersih, struktur hasil identik.
-- catatan: Jalur lab. Dipakai 2.15–2.19.
+- catatan: Jalur lab. PR #266, keputusan 520–526: `run_ledger.py`, data satu tahun dari rumus naskah (760.448 posting, Budi 3.892), muat dengan `DISABLE TRIGGER USER` lalu ketiga invarian diperiksa; yang dibandingkan hanya node, index, rows, jumlah query, baris ganda; N+1 21 lawan 1 query; Index Scan Backward 20 baris sesudah `posting_riwayat`; OFFSET 204 ganda + 204 tidak tampil, kursor 0/0/0. Peninjau: lolos tanpa perbaikan.
 
 ### lab-b4-skema · Lab b4-skema diselaraskan ke M13
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-b3-ledger
 - selesai bila: `labs/b4-skema` diselaraskan ke M13: ALTER pada tabel besar saat ada transaction berjalan membuat pembayaran berikutnya menunggu (durasi direkam), `lock_timeout` membuat migrasi gagal cepat dan aman diulang, backfill bertahap per 1.000 baris, expand/migrate/contract tiga rilis dengan app versi lama tetap membaca riwayat; klaim lock dicek ke dokumentasi PostgreSQL; rekaman dari database bersih, diulang identik.
-- catatan: Jalur lab. Dipakai 2.21, 2.22.
+- catatan: Jalur lab. PR #264, keputusan 530–537: lab ledger memakai migration api-t2 000009–000013 apa adanya; versi salah (ALTER di belakang laporan terbuka: bayar antre ≥ 5 detik lalu 42703, app lama berhenti membaca riwayat), `lock_timeout` 3 detik 55P03 lalu ulang berhasil, migrate tanpa jeda dengan backfill per 1.000 akun, cek malam 0 beda sebelum contract; app lama dimodelkan di Dart. Peninjau: dua kalimat lock di rekaman dibetulkan (537).
 
 ### lab-c4-ratelimit · Lab c4-ratelimit diselaraskan ke M16
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: T2-naskah
 - selesai bila: `labs/c4-ratelimit` diselaraskan ke M16, hanya terhadap container lokal dan dengan beberapa percobaan, bukan skrip massal: banyak akun fiktif dicoba dari satu IP dengan daftar password bocor fiktif; kunci per akun saja membuat akun Ani terkunci berulang; rate limit dua lapis di memori (per IP dan per akun) dengan kunci bertahap; wajib ganti password pertama; hash argon2id dengan parameter dari sumber primer (RFC 9106, OWASP); Redis tidak dipakai (ADR 20); rekaman dari database bersih, diulang identik.
-- catatan: Jalur lab. Dipakai 2.27, 2.28.
+- catatan: Jalur lab. PR #268, keputusan 540–550: lab baru `labs/c4-ratelimit/login`, argon2id t=3 p=4 m=64 MiB, kunci per akun berlipat 60 detik sampai 32 menit, dua lapis di memori (10 per IP, 5 per akun) sebelum DB dan argon2id, tanpa Redis, wajib ganti password pertama (≥ 15 karakter, NIST SP 800-63B-4). Peninjau menutup enam celah (550): `/ganti-password` tanpa rate limit, salt tetap, 423 membuka akun terdaftar (kini 401 generik), penanda proxy yang bisa dipalsukan, kenaikan `gagal_login` tidak atomik, temuan gosec.
+
+### lab-api-t2a · Pengaman cek penerima dan login di api-t2
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: lab-api-t2, lab-c4-ratelimit
+- selesai bila: `labs/api-t2`: `/kiriman` dan cek penerima dibatasi per akun dan per IP dengan pola `labs/c4-ratelimit/login` (keputusan 545, 550), sehingga nama 1.000 karyawan tidak bisa dikumpulkan lewat kiriman Rp1; akun terkunci dijawab 401 generik; 104 akun Gedung A `wajib_ganti_password` sesuai cerita M16; bila nomor karyawan yang mudah ditebak dipertahankan, risikonya tertulis di keputusan; rekaman dari database bersih, `go test` dan `make cek` lolos.
+- catatan: Kategori keamanan, dari tinjauan #256 dan #268 (MEMORI "Perlu dicek pemilik"). Sebelum halaman 2.3 dan 2.27.
+
+### A11y-diagram · Label pembaca layar DiagramArsitektur berbahasa Indonesia
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: I6-erd
+- selesai bila: Edge DiagramArsitektur (beranda, `/uji/diagram/`, halaman yang memakainya) tidak lagi membacakan label bawaan React Flow berbahasa Inggris ("Edge from X to Y"), node tanpa `aria-roledescription` Inggris (pola keputusan 466); `ukur-diagram.mjs` gagal bila label Inggris kembali; axe 0; layar pertama dan CLS tidak berubah.
+- catatan: Kategori aksesibilitas, dari tinjauan #262 (keputusan 466). Menyentuh beranda; boleh di bawah pembekuan Tahap 1 (keputusan 369).
 
 ### T2-mulai · Pemilik membuka penulisan halaman Tahap 2
 
@@ -1054,7 +1072,7 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - percobaan: 0
 - bergantung: 2.9, lab-b3-race
 - selesai bila: halaman Masalah 2.10 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-race`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: Dari lab b3-race (431, tinjauan #257): −Rp20.000 hanya bisa direkam lewat alat lab `SET CONSTRAINTS ALL IMMEDIATE`; bila dua request tumpang tindih, hasil yang lebih mungkin B 23514 (500); frekuensi di produksi belum diukur.
 
 ### K5 · Crosscheck kecil 2.6–2.10
 
@@ -1072,7 +1090,7 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - percobaan: 0
 - bergantung: K5, lab-b3-race
 - selesai bila: halaman Konsep+ADR 2.11 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-race`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Isi lama B3.2 dipakai ulang.
+- catatan: Isi lama B3.2 dipakai ulang. Dari b3-race (432, 433): enam replay `ledger-<cara>.json` siap; footer race.js, mode "Update" langkah 8, dan warna tab "bergantian" perlu dibetulkan (SETELAH-TAHAP-2).
 
 ### 2.12 · Isolation level secara praktis
 
@@ -1081,7 +1099,7 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - percobaan: 0
 - bergantung: 2.11, lab-b3-isolasi
 - selesai bila: halaman Konsep 2.12 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (tanpa ★); rekaman dari `labs/b3-isolasi`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Isi lama B3.3 dipakai ulang.
+- catatan: Isi lama B3.3 dipakai ulang. Dari b3-isolasi (443): tanpa lock baris buku, REPEATABLE READ lebih lemah dari READ COMMITTED untuk invarian 3; jangan menulis RR sebagai pilihan lebih aman.
 
 ### 2.13 · M10: Nasi goreng dibayar dua kali
 
@@ -1090,7 +1108,7 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - percobaan: 0
 - bergantung: 2.12, lab-e3-idempotency
 - selesai bila: halaman Masalah 2.13 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/e3-idempotency`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: Dari e3 (512, 518): Idempotency-Key adalah draft IETF -07 yang sudah kedaluwarsa, bukan standar; key di contoh dipendekkan karena gitleaks.
 
 ### 2.14 · Retry dan idempotency key + ADR 14
 
@@ -1099,7 +1117,7 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - percobaan: 0
 - bergantung: 2.13, lab-e3-idempotency
 - selesai bila: halaman Konsep+ADR 2.14 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/e3-idempotency`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Isi lama E3 dipakai ulang.
+- catatan: Isi lama E3 dipakai ulang. Dari e3 (514, tinjauan #263): sesudah jawaban final (termasuk 422 yang disimpan 24 jam) tap baru = niat baru; ADR 14 memutuskan nasib app 1.0/1.1 tanpa key.
 
 ### 2.15 · M11: Riwayat 4 detik
 
@@ -1108,7 +1126,7 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - percobaan: 0
 - bergantung: 2.14, lab-b2-query
 - selesai bila: halaman Masalah 2.15 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: Dari b2-query (521, 526): "4 detik" naskah tidak terulang di lab (halaman ±30 ms, seluruh riwayat Budi ±1,9 detik dengan 3.893 query); data satu tahun, bukan minggu 3.
 
 ### K6 · Crosscheck kecil 2.11–2.15
 
@@ -1153,7 +1171,7 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - percobaan: 0
 - bergantung: 2.18, lab-b2-query
 - selesai bila: halaman Konsep+ADR 2.19 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Isi lama B1.3 dipakai ulang.
+- catatan: Isi lama B1.3 dipakai ulang. Dari tinjauan #266: kursor `(dibuat, id)` bisa melewatkan transaksi yang mulai lebih dulu dan COMMIT sesudah halaman dibaca (`dibuat` = awal transaction); ADR 16 wajib membahasnya; rekaman belum memuatnya.
 
 ### 2.20 · Ukuran payload dan kuota HP
 
@@ -1180,7 +1198,7 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - percobaan: 0
 - bergantung: K7, lab-b4-skema
 - selesai bila: halaman Masalah 2.21 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b4-skema`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: Dari b4-skema (536, 537): "40 detik" tidak direkam; lama tunggu = sisa transaction panjang + lama migrasi, bukan ALTER itu sendiri.
 
 ### 2.22 · Ubah skema tanpa downtime + ADR 17
 
@@ -1234,7 +1252,7 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - percobaan: 0
 - bergantung: K8, lab-t2-pencairan
 - selesai bila: halaman Konsep+ADR 2.26 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/t2-pencairan`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: Dari t2-pencairan (508): Keuangan mengambil file menurut status `dikirim`, bukan menurut ada atau tidaknya file.
 
 ### 2.27 · M16: Akun Ani terkunci
 
@@ -1243,7 +1261,7 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - percobaan: 0
 - bergantung: 2.26, lab-c4-ratelimit
 - selesai bila: halaman Masalah 2.27 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/c4-ratelimit`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Hanya container lokal; beberapa percobaan, bukan skrip massal.
+- catatan: Hanya container lokal; beberapa percobaan, bukan skrip massal. Dari c4-ratelimit (550): akun terkunci dijawab 401 generik, jadi Ani mengira lupa password; halaman menyebut jalur lupa password atau notifikasi lewat jalur lain (mohon konfirmasi pemilik).
 
 ### 2.28 · Keamanan 4: brute force, credential stuffing, hash password + ADR 20
 
