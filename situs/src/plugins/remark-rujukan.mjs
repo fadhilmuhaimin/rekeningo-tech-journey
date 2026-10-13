@@ -1,6 +1,6 @@
 // Rujukan antar halaman [[ID]], [[ID|teks]], [[berikutnya]] -> link berjudul + nomor tampilan.
 // ID tidak pernah tampil. ID yang tidak dikenal menggagalkan build (padanan hook MkDocs).
-// Link ke halaman yang belum ditulis diberi kelas rujukan-menyusul (keputusan 104).
+// Rujukan ke halaman yang belum ditulis jadi teks "segera" tanpa tautan, bukan link ke 404 (keputusan 104, 450).
 import path from "node:path";
 import { muat, byId, label, url, urutanBaca, urlDariId, SITE_DOCS, JUDUL_MENYUSUL } from "../../tools/registri.mjs";
 
@@ -30,9 +30,11 @@ export default function remarkRujukan() {
     }
 
     function linkNode(h, teks) {
-      const props = {};
-      if (!h.diporting) { props.class = "rujukan-menyusul"; props.title = JUDUL_MENYUSUL; }
-      return { type: "link", url: url(h), children: [{ type: "text", value: teks }], data: { hProperties: props } };
+      if (!h.diporting) {
+        const props = { class: "rujukan-menyusul", title: JUDUL_MENYUSUL };
+        return { type: "emphasis", children: [{ type: "text", value: `${teks} (segera)` }], data: { hName: "span", hProperties: props } };
+      }
+      return { type: "link", url: url(h), children: [{ type: "text", value: teks }], data: { hProperties: {} } };
     }
 
     function pecah(node) {

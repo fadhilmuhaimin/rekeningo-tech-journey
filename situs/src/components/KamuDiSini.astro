@@ -8,10 +8,12 @@ import { muat, label, url, urlDariId, dariUrl } from "../../tools/registri.mjs";
 
 const d = muat();
 const h = dariUrl(d, urlDariId(Astro.locals.starlightRoute.entry.id));
-type Tahap = { no: number; nama: string; rekap: string; sebelumnya: string; versi?: string; bagian?: { no: number; nama: string }[] };
+type Tahap = { no: number; nama: string; rekap: string; sebelumnya: string; versi?: string; naskah?: string; bagian?: { no: number | string; nama: string }[] };
 const t: Tahap | undefined = h && Number.isInteger(h.tahap) ? d.tahap.find((x: Tahap) => x.no === h.tahap) : undefined;
 const NAMA: Record<string, string> = { pembuka: "Pembuka", sampingan: "Studi sampingan", alat: "Alat" };
 const kelompok = h ? (t?.bagian?.find((b) => b.no === h.bagian)?.nama ?? h.kelompok) : undefined;
+// Tahap bernaskah dengan data tahap versi lama (Tahap 2 sejak keputusan 450): "(versi lama)" hanya di halaman lama.
+const versiLama = t?.versi === "lama" && (!t.naskah || !!(h?.lama || h?.lebur_ke || h?.diganti_oleh));
 const pembuka = t ? d.halaman.find((x: { tahap: unknown; ada: boolean }) => x.tahap === t.no && x.ada) : undefined;
 // Redesain (keputusan 202): daftar isi tersembunyi bawaan; tombol ini membukanya di semua ukuran layar.
 const adaToc = (Astro.locals.starlightRoute.toc?.items?.length ?? 0) > 0;
@@ -30,7 +32,7 @@ const tanda = jenis.split(" · ").filter((x) => x && !ulang(x)).join(" · ");
   <nav class="kamu" aria-label="Kamu di sini" data-judul-halaman={label(h)}>
     <ol class="kamu__jalur">
       {t
-        ? <li><a href={pembuka ? url(pembuka) : undefined} title={t.rekap}>Tahap {t.no}<span class="kamu__panjang"> · {t.nama}{t.versi === "lama" ? " (versi lama)" : ""}</span></a></li>
+        ? <li><a href={pembuka ? url(pembuka) : undefined} title={t.rekap}>Tahap {t.no}<span class="kamu__panjang"> · {t.nama}{versiLama ? " (versi lama)" : ""}</span></a></li>
         : <li>{NAMA[h.tahap] ?? h.tahap}</li>}
       {kelompok && <li class="kamu__panjang">{kelompok}</li>}
       <li aria-current="page" class:list={["kamu__ini", { "kamu__ini--jenis": tanda }]}><span class="kamu__sr">{label(h, true)}</span>{tanda && <span aria-hidden="true">{tanda}</span>}</li>
