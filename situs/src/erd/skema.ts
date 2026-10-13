@@ -56,6 +56,12 @@ export const Selisih = z
     kolom_baru: z.array(KolomDi),
     kolom_dihapus: z.array(KolomDi),
     kolom_berubah: z.array(KolomDi.extend({ sebelum: Kolom, sesudah: Kolom }).strict()),
+    // PK, FK, UNIQUE, CHECK, index yang baru, dihapus, atau berubah di tabel yang ada di kedua tahap (keputusan 460).
+    aturan_berubah: z.array(
+      z
+        .object({ tabel: Nama, jenis: z.enum(["pk", "fk", "unik", "cek", "index"]), nama: Nama, ubah: z.enum(["baru", "dihapus", "berubah"]) })
+        .strict(),
+    ),
   })
   .strict();
 
@@ -88,6 +94,17 @@ export const DataErd = z
     if (d.tahap === 1 && d.selisih !== null) ctx.addIssue({ code: "custom", message: "Tahap 1 tidak punya tahap sebelumnya" });
   });
 
+// Halaman yang menjelaskan tiap tabel, per tahap (situs/data/erd/halaman.json, keputusan 462): ID halaman registry.
+// Judul, nomor, dan tautan dibaca dari registry saat build, jadi tidak pernah tertinggal dari sidebar.
+export const PetaHalaman = z
+  .object({
+    format: z.literal(1),
+    tahap: z.record(z.string().regex(/^[1-9]$/), z.record(Nama, z.array(z.string().min(1)).min(1))),
+  })
+  .strict();
+
 export type Kolom = z.infer<typeof Kolom>;
 export type Tabel = z.infer<typeof Tabel>;
 export type DataErd = z.infer<typeof DataErd>;
+export type Selisih = z.infer<typeof Selisih>;
+export type PetaHalaman = z.infer<typeof PetaHalaman>;

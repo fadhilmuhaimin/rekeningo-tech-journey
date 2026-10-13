@@ -20,7 +20,7 @@ describe("skema ERD", () => {
     ["CHECK tidak terurut", (d) => d.tabel[0].cek.reverse()],
     ["wajib bukan boolean", (d) => (d.tabel[0].kolom[0].wajib = "ya")],
     ["sha256 rusak", (d) => (d.sumber.sha256 = "abc")],
-    ["selisih di Tahap 1", (d) => (d.selisih = { terhadap: 1, tabel_baru: [], tabel_dihapus: [], kolom_baru: [], kolom_dihapus: [], kolom_berubah: [] })],
+    ["selisih di Tahap 1", (d) => (d.selisih = { terhadap: 1, tabel_baru: [], tabel_dihapus: [], kolom_baru: [], kolom_dihapus: [], kolom_berubah: [], aturan_berubah: [] })],
     ["format lain", (d) => (d.format = 2)],
   ];
   it.each(mutasi)("menolak: %s", (_n, ubah) => {
