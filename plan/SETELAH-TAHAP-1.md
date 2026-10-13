@@ -107,3 +107,10 @@ Dari crosscheck X1 (keputusan 370). Bukti di `tmp/crosscheck/x1a.md`, `x1b.md`, 
 - Halaman Cerita (XF2, #246, keputusan 372): baris 372 belum punya "Sumber:" dan "Salah bila:" eksplisit; `cerita/index.mdx` ±68 "Setiap tahap mengikuti urutan yang sama" sebaiknya "Tahap 1 mengikuti …, tahap berikutnya akan mengikuti pola yang sama" (naskah ±71); Rantai tokoh ±809 px di HP; panah sesudah "Enam kota" menggantung di akhir baris bb-flow (sudah ada sebelum XF2).
 - Task list (XF6, #247, keputusan 374): bila nanti ada butir `- [x]`, status centangnya ikut tersembunyi dari pembaca layar; "salah bila" di 374 sebaiknya menyebut kasus ini.
 
+## Temuan polesan dari ERD1 (#253, keputusan 375)
+
+- `tools/erd.py --cek` lolos bila isi JSON diubah tangan dengan format sah (tipe kolom diganti `integer`); hash hanya menutup file sumber, bukan kode `erd.py`. Usul: job CI dengan service PostgreSQL yang membangun ulang lalu membandingkan (dicatat juga di ERD2).
+- `hitung_selisih` mengabaikan perubahan CHECK dan index; urutan tabel `ORDER BY oid`; tabel partisi akan tampil terpisah; policy, fungsi, dan trigger tidak dibaca.
+- 1.12 desktop: figure ERD dan catatannya ±1018 px, lebih lebar dari kolom teks; "Garis menandai 7 foreign key" padahal terlihat 4 garis; subjudul dan figcaption hampir sama, "Diagram ini dibangun dari" muncul dua kali; diagram menulis `bigint` sedangkan snippet menulis `bigserial`.
+- Ligatur JetBrains Mono hanya dimatikan di ERD; snippet lain masih menampilkan `>=` sebagai ligatur.
+- Tanpa `.gitattributes`, checkout CRLF mengubah hash sumber ERD.

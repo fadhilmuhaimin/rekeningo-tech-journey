@@ -26,6 +26,8 @@ Diperiksa X2 di main `51d9870`, 2026-10-13. Angka diambil dari registry `situs/d
 18. Crosscheck berjalan per lima halaman (K0–K3), lalu X1 untuk seluruh Tahap 1. Tujuh perbaikan dari X1 selesai lewat enam PR (#242–#247).
 19. Lingkup dibekukan 2026-10-13 (keputusan 369). Tahap 2 belum dimulai dan menunggu `plan/CERITA-TAHAP-2.md`.
 
+Sesudah X2 (2026-10-14, permintaan pemilik, keputusan 375): 1.12 mendapat ERD Tahap 1 statis dari skema lab (`tools/erd.py`, PR #253). Hanya 1.12 yang dicek ulang di 4 varian (gerbang, axe 0, layar pertama identik); X1 tidak diulang.
+
 ### Cek akhir X2
 
 Delapan halaman ditangkap ulang dari build `51d9870`, masing-masing 4 varian. Hasilnya 32/32 tanpa scroll horizontal dan tanpa error konsol. Satu gambar per halaman dilihat langsung, campuran HP dan desktop, gelap dan terang. Semua lolos tes 3 detik; catatan di kolom terakhir sudah tercatat sebagai polesan.
