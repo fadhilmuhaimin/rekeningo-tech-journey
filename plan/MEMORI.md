@@ -17,6 +17,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - M6/ADR 10: naskah belum menyebut deploy server expand (`jumlah` + `nominal`) yang memulihkan app 1.1 sesudah M6; 1.33 memakainya (Raka men-deploy expand sesudah ADR 10, `versi.txt` bagian B–D, keputusan 252). Mohon naskah diperbarui atau dikonfirmasi.
 - Cadangan database: naskah Tahap 1 tidak menyebutnya, padahal API dan PostgreSQL ada di satu VPS. 1.36 menulisnya sebagai celah terbuka + latihan lab (keputusan 302). Usul: Raka menjalankan `pg_dump` manual sebelum setiap migration dan menyalinnya keluar VPS, atau risiko diterima sampai cadangan terjadwal Tahap 3.
 - 1.42: naskah bagian 6 menulis jawaban tebak (ADR 6, ADR 5) dibuka di halaman pertama Tahap 2; 1.42 sudah membukanya di widget tebak dan blok "Menuju Tahap 2" (sesuai ANTREAN). Usul: halaman pertama Tahap 2 mengulang dan memperluasnya, naskah cukup menyebut keduanya. Prioritas fitur PRD v2 (P0–P2) dan durasinya belum ada di naskah.
+- Naskah `CERITA-TAHAP-1.md` ±64 menulis "Transfer setengah jadi" (Tahap 2), halaman Cerita memakai "Pembayaran setengah jadi" yang lebih tepat; ±43 menulis "Lima tokoh" padahal tabelnya enam. Usul: naskah diselaraskan (XF2, keputusan 372).
 
 ## Catatan untuk halaman Tahap 1 berikutnya
 
@@ -55,7 +56,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-13 · X1 selesai (keputusan 370, `plan/LAPORAN-TAHAP-1.md`). Berikutnya XF1–XF6 (perbaikan non-polesan dari X1), lalu X2 melengkapi LAPORAN-TAHAP-1 (selesai, Setelah Tahap 1, 10 hal untuk pemilik) dan berhenti: "Tahap 1 selesai, menunggu tinjauan pemilik". Catatan pengatur di `tmp/catatan-pengatur.md`.
+2026-10-13 · X1 dan XF1–XF6 selesai (keputusan 370–374). Berikutnya X2: lengkapi `plan/LAPORAN-TAHAP-1.md` (apa yang selesai, daftar Setelah Tahap 1, 10 hal untuk dilihat pemilik), lalu berhenti dengan "Tahap 1 selesai, menunggu tinjauan pemilik". Catatan pengatur di `tmp/catatan-pengatur.md`.
 
 ## Pelajaran
 
@@ -72,7 +73,6 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Widget alur: satu urutan DOM di semua ukuran (jalur, tombol, tebakan, varian, detail + HP); mode sempit hanya kelas `is-sempit`, tanpa memindah DOM (keputusan 358). Bila DOM terpaksa dipindah, simpan `document.activeElement` dan kembalikan dengan `focus({ preventScroll: true })`: Chrome memindah fokus ke BODY.
 - Perubahan CSS global di atas Inti menggeser layar pertama semua halaman; simpan keluaran `layar.mjs` sebelum dan bandingkan sesudahnya (`tmp/banding_layar.py`).
 - Setelah gerbang lolos, perubahan teks apa pun wajib diikuti `python3 tools/sinkron_cerita.py` dan gerbang ulang (CI #119 gagal karena `kartu.json` tertinggal).
-- `git rm` langsung men-stage penghapusan; `git add <file baru> && git commit` ikut membawanya. Hapus file lama di commit yang sama dengan perubahan registry, supaya setiap commit tetap bisa dibangun.
 - Merge ditolak pengaman: berhenti, laporkan di baris pertama, jangan memulai halaman berikutnya di atas PR yang belum di-merge.
 - layar.mjs tidak menghitung Snippet sebagai visual Inti; Inti butuh Rantai atau widget (1.32 gagal 4 ukuran sebelum Rantai).
 - Tabel `plan/*.md` diperiksa `tools/cek_tabel_plan.py` di gerbang (keputusan 362): pipe di teks atau code span ditulis `\|`; jangan tulis `\\|`.
