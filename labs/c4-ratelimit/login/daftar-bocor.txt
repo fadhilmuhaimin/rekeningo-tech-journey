@@ -1,0 +1,36 @@
+# Daftar password bocor FIKTIF untuk lab c4-ratelimit (M16).
+# Semua baris di sini adalah password lemah buatan sendiri, bukan daftar bocor sungguhan
+# dan bukan rahasia. Dipakai dua arah:
+#   1. sebagai blocklist: password baru yang cocok dengan salah satu baris ini ditolak
+#      saat ganti password (OWASP/NIST: cek password baru lawan daftar yang diketahui bocor).
+#   2. sebagai wordlist penyerang di rekaman credential stuffing (beberapa puluh percobaan,
+#      bukan skrip massal).
+# Baris diawali # diabaikan. Pembandingan tidak membedakan huruf besar/kecil.
+123456
+123456789
+password
+password1
+qwerty
+qwerty123
+abc123
+111111
+iloveyou
+admin
+letmein
+welcome
+monyet
+rahasia
+bismillah
+indonesia
+sayang
+rekeningo
+rekeningo123
+lestari2026
+gedung-a
+warung123
+sementara
+changeme
+# Beberapa yang cukup panjang (>= 15 karakter) tapi tetap umum dan pernah bocor:
+rekeningolestari
+qwertyuiopasdfgh
+123456789012345
