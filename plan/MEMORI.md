@@ -55,7 +55,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-13 · Lingkup Tahap 1 beku (keputusan 369). Selesai sesudah beku: P6, P9, G2d. Tersisa: P5 (#237) dalam tinjauan; lalu hapus semua worktree `../rjt-*`, X1 dan X2 di folder utama, lalu berhenti. Polesan di `plan/SETELAH-TAHAP-1.md`. Catatan pengatur di `tmp/catatan-pengatur.md`.
+2026-10-13 · X1 crosscheck penuh Tahap 1 (keputusan 369: temuan hanya masuk ANTREAN bila rusak, aksesibilitas, kontras, atau gerbang gagal; lainnya ke `plan/SETELAH-TAHAP-1.md`). Semua tugas sebelum X1 selesai; semua worktree `../rjt-*` dihapus. X1 dipecah: X1a peta halaman + registry + proposal, X1b tiga skill per halaman, X1c gerbang + tangkapan (satu-satunya yang membangun di folder utama, port 4321). Hasil ke `plan/LAPORAN-TAHAP-1.md`; lalu perbaikan per tugas, X2, berhenti. Catatan pengatur di `tmp/catatan-pengatur.md`.
 
 ## Pelajaran
 
