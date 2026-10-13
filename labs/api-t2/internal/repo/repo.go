@@ -1,4 +1,5 @@
 // Package repo adalah lapisan akses data: hanya SQL. Tidak tahu HTTP, tidak tahu aturan uang.
+// Tahap 2: saldo dibaca dari buku.saldo_cache; uang hanya berpindah lewat jurnal dan posting (ledger.go).
 package repo
 
 import (
@@ -12,7 +13,9 @@ type Akun struct {
 	ID    int64  `json:"id"`
 	Jenis string `json:"jenis"`
 	Nama  string `json:"nama"`
-	Saldo int64  `json:"saldo"`
+	Saldo int64  `json:"saldo"` // buku.saldo_cache; 0 untuk akun tanpa buku (admin)
+	// NomorKaryawan ditambah Tahap 2 (field baru, app lama mengabaikannya).
+	NomorKaryawan *string `json:"nomor_karyawan,omitempty"`
 }
 
 var ErrTidakAda = errors.New("tidak ada")
@@ -23,8 +26,11 @@ func Baru(db *sql.DB) Repo { return Repo{db: db} }
 
 func (r Repo) Akun(ctx context.Context, id int64) (Akun, error) {
 	var a Akun
-	err := r.db.QueryRowContext(ctx, `SELECT id, jenis, nama, saldo FROM akun WHERE id = $1`, id).
-		Scan(&a.ID, &a.Jenis, &a.Nama, &a.Saldo)
+	err := r.db.QueryRowContext(ctx, `
+		SELECT a.id, a.jenis, a.nama, coalesce(b.saldo_cache, 0), a.nomor_karyawan
+		FROM akun a LEFT JOIN buku b ON b.akun_id = a.id
+		WHERE a.id = $1`, id).
+		Scan(&a.ID, &a.Jenis, &a.Nama, &a.Saldo, &a.NomorKaryawan)
 	if errors.Is(err, sql.ErrNoRows) {
 		return a, ErrTidakAda
 	}
@@ -64,12 +70,15 @@ func (r Repo) HapusSesi(ctx context.Context, tokenHash string) error {
 
 // --8<-- [end:sesi]
 
-// SeedAkun dipakai -seed: isi data awal uji coba Gedung A.
-func (r Repo) SeedAkun(ctx context.Context, a Akun, email, passwordHash string) error {
-	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO akun (id, jenis, nama, email, password_hash, saldo) VALUES ($1, $2, $3, $4, $5, $6)`,
-		a.ID, a.Jenis, a.Nama, email, passwordHash, a.Saldo)
-	return err
+// AkunLewatNomor: akun karyawan pemilik nomor karyawan, untuk transfer antar karyawan.
+func (r Repo) AkunLewatNomor(ctx context.Context, nomor string) (Akun, error) {
+	var a Akun
+	err := r.db.QueryRowContext(ctx, `SELECT id, jenis, nama FROM akun WHERE nomor_karyawan = $1`, nomor).
+		Scan(&a.ID, &a.Jenis, &a.Nama)
+	if errors.Is(err, sql.ErrNoRows) {
+		return a, ErrTidakAda
+	}
+	return a, err
 }
 
 // WarungRingkas adalah hasil pencarian warung yang aman dikirim ke app: hanya id dan nama.
@@ -100,23 +109,3 @@ func (r Repo) CariWarung(ctx context.Context, cari string) ([]WarungRingkas, err
 }
 
 // --8<-- [end:cari-warung]
-
-// CariWarungRentanM3 menyambung string pencarian langsung ke SQL, dan mengambil semua kolom semua akun.
-// Dua kesalahan sekaligus: SQL injection, dan response yang membocorkan saldo. Hanya dipakai mode -rentan m3.
-func (r Repo) CariWarungRentanM3(ctx context.Context, cari string) ([]Akun, error) {
-	q := "SELECT id, jenis, nama, saldo FROM akun WHERE nama LIKE '%" + cari + "%'"
-	rows, err := r.db.QueryContext(ctx, q) //nolint:rowserrcheck // lab: rows.Err dicek di bawah
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	out := []Akun{}
-	for rows.Next() {
-		var a Akun
-		if err := rows.Scan(&a.ID, &a.Jenis, &a.Nama, &a.Saldo); err != nil {
-			return nil, err
-		}
-		out = append(out, a)
-	}
-	return out, rows.Err()
-}
