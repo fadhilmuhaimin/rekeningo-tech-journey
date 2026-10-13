@@ -205,7 +205,7 @@
   "judul": "1.16 HTTP: method, status, header",
   "url": "tahap-1/http/",
   "tanya": "Jelaskan kenapa app tidak boleh bergantung pada teks \"Unprocessable Entity\" di status line.",
-  "jawab": "RFC 9112 menyatakan client harus mengabaikan teks itu, karena bisa berbeda antar server atau hilang di HTTP/2. Buktinya ada di lab: Go menulis \"Unprocessable Entity\", padahal RFC 9110 menamainya \"Unprocessable Content\". Yang bisa diandalkan hanya angka `422`."
+  "jawab": "RFC 9112 menyatakan client sebaiknya (SHOULD) mengabaikan teks itu, karena bisa berbeda antar server atau hilang di HTTP/2. Buktinya ada di lab: Go menulis \"Unprocessable Entity\", padahal RFC 9110 menamainya \"Unprocessable Content\". Yang bisa diandalkan hanya angka `422`."
  },
  {
   "id": "B1.1-3",
