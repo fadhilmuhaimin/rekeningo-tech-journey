@@ -93,9 +93,9 @@ func berhenti(titik string) {
 
 // ---------- versi rentan (M15) ----------
 
-// rentan mencairkan saldo setiap warung saat ini. Baris file ditulis di dalam transaction jurnal, sebelum COMMIT:
-// kalau file gagal ditulis, jurnal ikut batal. File dibuka dengan O_APPEND supaya baris yang sudah ditulis tidak
-// hilang bila job berhenti di tengah.
+// rentan mencairkan saldo setiap warung saat ini. Urutan bawaan (file-dulu): baris file ditulis di dalam transaction
+// jurnal, sebelum COMMIT, supaya file yang gagal ditulis membatalkan jurnal. -urutan jurnal-dulu menulis baris sesudah
+// COMMIT. File dibuka dengan O_APPEND supaya baris yang sudah ditulis tidak hilang bila job berhenti di tengah.
 func rentan(ctx context.Context, db *pgx.Conn, periode, dir, urutan string) error {
 	f, err := os.OpenFile(filepath.Join(dir, "pencairan-"+periode+".csv"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
