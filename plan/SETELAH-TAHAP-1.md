@@ -69,3 +69,33 @@ Tugas dan temuan yang sengaja tidak dikerjakan di Tahap 1 (keputusan 369, lingku
 - `situs/tools/percobaan/percobaan-g2d.yml` baris 92 dan 99: dua langkah upload-artifact bernama sama (peninjau G2d, keputusan 367).
 - G2d lanjutan: belah isi salah satu dari enam halaman yang paling sering macet untuk mencari pemicu dan reproduksi mandiri; mengirim laporan bug Chromium menunggu keputusan pemilik (keputusan 367).
 - Peta cerita: garis putus-putus kartu Tahap 6 tipis di mode terang (dekorasi; teks "proyeksi, belum ditulis" sudah ada) (peninjau P5, keputusan 320).
+
+## Temuan polesan dari X1
+
+Dari crosscheck X1 (keputusan 370). Bukti di `tmp/crosscheck/x1a.md`, `x1b.md`, `x1c.md` (lokal, di-gitignore). Temuan yang sudah ada di atas (id `__span-*` ganda, Firestore 1.13, ilustrasi latar P4, Rantai R6) tidak diulang.
+
+- 1.8 dan 1.10: lab naskah `b2-model` dan `b2-query` diganti `api-t1` tanpa nomor keputusan (135, 136, 139, 141 tidak menyebutnya). Usulan: satu baris keputusan yang merujuk alasan keputusan 145 (x1a).
+- Judul ADR tidak seragam: title 1.4 tanpa "ADR 1:", sedangkan 1.24 dan 1.40 memuat nomor ADR. H1 1.24 juga beda dari judul registry yang dipakai sidebar, Sebelumnya/Berikutnya, dan breadcrumb. Usulan: satu pola untuk ketiganya, cek `ukur-judul.mjs` di HP (x1a, x1c).
+- `labs/api-t1/internal/service/bayar.go:22-41`: akun warung bisa memanggil `POST /transfers`. Ke diri sendiri jadi `500` dari `CHECK (dari <> ke)`, ke warung lain `201`. Halaman tidak menjanjikan larangan; perbaikan menunggu keputusan pemilik (x1a).
+- `cerita/tahap-2.mdx:11` sesudah 1.42: 1.42 menjanjikan PRD v2 dan ADR 5–6 di awal Tahap 2, Tahap 2 lama tidak memuatnya. Penanda "(versi lama)" breadcrumb tersembunyi di HP (`tema.css:193`). Opsional: satu kalimat di blok "Menuju Tahap 2" (x1a).
+- `Ilustrasi.astro:22-128`: 24 elemen `<text>` SVG di ilustrasi prd dan m1–m6, lawan PROPOSAL baris 557 (keputusan 207). Menunggu pemilik (x1a).
+- `PilihTema.astro:11-19`: tema terang dipilih lewat `<select>`, dua interaksi; PROPOSAL menulis satu klik (keputusan 119) (x1a).
+- Indeks masalah hanya ada di beranda, `cerita/peta.mdx`, dan Pagefind; PROPOSAL baris 509 juga menyebut sidebar (x1a).
+- `Blok.astro:54`: Berikutnya di blok terakhir tanpa perkiraan menit, PROPOSAL baris 508 memintanya (x1a).
+- `ThemeProvider.astro:13-14`: `localStorage.getItem` tanpa try/catch. Di peramban yang memblokir storage, `PilihTema` ikut gagal; default gelap tetap berlaku dari `:root`. Sama dengan kode Starlight 0.42.5 (x1a).
+- `Beranda.astro:225-231`: tab peta tahap hanya menerima panah kiri dan kanan, tanpa Home/End (pola tab WAI-ARIA, opsional) (x1a).
+- Daftar isi kanan memuat "Inti" di 24 halaman (`astro.config.mjs:41`, level 2), PROPOSAL baris 510 menulis hanya lima blok (x1a).
+- Coba pilah tanpa "ubah satu hal" dan chip sumber di 1.2, 1.3, 1.16, 1.21, 1.32, 1.39: `pilah.js` tanpa `predict`, `varian`, atau `BB.sumberChip`. Usulan: field `sumber` opsional, pengecualian "ubah" dicatat di KEPUTUSAN (x1b).
+- Coba banding tanpa "tebak dulu" dan chip di 1.4 (`adr-1-backend-sendiri.mdx:71`) dan 1.6; 1.13 sudah punya tebakan `<details>`, tetap tanpa chip. Usulan: `<details>` "Tebak dulu" seperti 1.13, `sumber` di `banding.js` (x1b).
+- Coba runsql tanpa chip sumber di 1.8, 1.10, 1.12, 1.14, 1.22, 1.24; label hanya di teks. Usulan: chip "Ilustrasi" di kepala runsql, atau label teks diterima lewat keputusan (x1b).
+- 1.23 `transaction.mdx:41-45`: Coba stackstep tanpa "tebak dulu". Usulan: satu `<details>` sebelum widget (x1b).
+- 1.41 `rekap.mdx`: Coba kartu tanpa "ubah satu hal" dan chip. Usulan: dicatat sebagai pengecualian bentuk rekap (x1b).
+- Widget di luar Coba tanpa chip: 1.3 hp, 1.16 stackstep, 1.28 pilah, 1.29 banding, 1.32 stackstep, 1.39 banding (`x1b-widget-luar-coba.txt`). Ikut perbaikan pilah, banding, dan stackstep (x1b).
+- 1.23 `transaction.mdx:74` dan `:85`: "PHP 8.5.8" dan "Python 3.14.7" tidak ada di rekaman. Usulan: `labs/b3-stack/rekam.py` mencetak versi runtime di kepala output (x1b).
+- 1.10 `fitur-saldo.mdx:43`: label "PostgreSQL 18" bertaut ke `/docs/current/`, lab memakai 17.11. Usulan: `/docs/17/`, pola 1.40 baris 46 (x1b).
+- 1.13 `sql-atau-nosql.mdx:123`: "cache atau antrean" jadi "cache atau queue" (x1b).
+- 13 peringatan panjang audit bahasa di 7 halaman: 1.19:21; 1.26:71, :87; 1.29:22, :149, :151, :233; 1.31:105; 1.33:150; 1.35:171; 1.39:3, :69, :143 (`audit.txt`) (x1b).
+- `tools/audit_bahasa.py:31`: `EXTRA_GLOBS` tidak mencakup `situs/data/widget/` dan `situs/data/diagram/` (62 file; audit manual 0 error, 7 peringatan). Usulan: `situs/data/**/*.json` (x1b).
+- runsql memakai sql.js (SQLite), bukan PGlite (keputusan 144 menunda). Di 1.12 panel Before memperlihatkan FK yang tidak ditegakkan. Usulan: satu kalimat di Coba 1.12 bahwa PostgreSQL selalu menegakkan foreign key (x1b).
+- 1.22–1.40 (19 halaman): entri aktif sidebar di bawah lipatan 1366×657 (top 639–1410 px), juga sesudah Berikutnya. Usulan: `scrollIntoView({ block: "center" })` di panel sidebar saat dimuat (x1c).
+- 1.32, 1.41, 1.33: sisa layar pertama 375×667 20, 21, dan 24 px, batasnya 20. Tanpa tindakan sekarang; siapa pun yang mengubah kepala halaman atau Inti ketiganya harus mengukur ulang (x1c).
