@@ -10,7 +10,7 @@ import petaT2 from "./uji/halaman.json";
 import { DataErd, PetaHalaman } from "./skema";
 import {
   UKURAN, ambangKolom, bisaBanding, daftarFk, jumlahKolom, namaTombol, peringkat, ringkasan, tampilSebelum, tampilTahap, tata,
-  tautanHalaman, teksAturan, teksKolom, tinggiNode, urutan, varPesan, type TabelTampil,
+  tautanHalaman, teksAturan, teksKolom, teksPindah, barisPindah, tinggiNode, urutan, varPesan, type TabelTampil,
 } from "./tumbuh";
 import { muat, url } from "../../tools/registri.mjs";
 
@@ -129,9 +129,14 @@ describe("tata letak", () => {
         }
       }
   });
-  it("tinggi node: kepala + baris kolom; bayangan tiga baris", () => {
+  it("tinggi node: kepala + baris kolom; bayangan sebanyak baris teks pindahnya", () => {
     expect(tinggiNode(x2[0])).toBe(UKURAN.kepala + 10 * UKURAN.baris + UKURAN.bawah);
-    expect(tinggiNode(x2.at(-1)!)).toBe(UKURAN.kepala + UKURAN.barisPindah * UKURAN.baris + UKURAN.bawah);
+    // topup: kalimat terpanjang (86 huruf) dapat 5 baris, tidak terpotong di node tersempit (keputusan 466).
+    const topup = x2.find((t) => t.nama === "topup" && t.bayangan)!;
+    expect(teksPindah(topup).length).toBe(86);
+    expect(barisPindah(topup)).toBe(5);
+    expect(tinggiNode(topup)).toBe(UKURAN.kepala + 5 * UKURAN.baris + UKURAN.bawah);
+    expect(barisPindah({ ...topup, pindahKe: "a" })).toBe(2);
   });
   it("tinggi pesanan SSR sama dengan tinggi tata di setiap jumlah kolom", () => {
     for (const x of [x1, x2]) {

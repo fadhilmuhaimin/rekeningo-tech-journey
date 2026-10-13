@@ -16,7 +16,8 @@ import type { DataErd } from "./skema";
 import { ringkasCek, ringkasIndex } from "./erd";
 import { muncul } from "../gerak/muncul";
 import {
-  LABEL_STATUS, ambangKolom, bisaBanding, namaTombol, ringkasan, tampilSebelum, tampilTahap, tata, teksAturan, teksKolom, varPesan,
+  LABEL_STATUS, ambangKolom, barisPindah, bisaBanding, namaTombol, ringkasan, tampilSebelum, tampilTahap, tata, teksAturan, teksKolom,
+  teksPindah, varPesan,
   type TabelTampil, type Tata, type TautanTahap,
 } from "./tumbuh";
 
@@ -53,7 +54,10 @@ function NodeTabel({ data }: NodeProps<Node<DataNode>>) {
           {t.status && <span className="erd-tumbuh__status">{LABEL_STATUS[t.status]}</span>}
         </span>
         {t.bayangan ? (
-          <span className="erd-tumbuh__pindah">Isinya pindah ke {t.pindahKe}</span>
+          // Tinggi node memesan baris sebanyak barisPindah(), jadi kalimat tidak terpotong (keputusan 466).
+          <span className="erd-tumbuh__pindah" style={{ WebkitLineClamp: barisPindah(t) }}>
+            {teksPindah(t)}
+          </span>
         ) : (
           t.kolom.map((k) => (
             <span key={k.kolom.nama} className={`erd-tumbuh__baris is-${k.status ?? "awal"}`}>
@@ -179,6 +183,8 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [] }: P
   const [mauBanding, setBanding] = useState(false);
   const [pilihan, setPilihan] = useState<{ sisi: Sisi; nama: string } | null>(null);
   const diubah = useRef(false);
+  const detail = useRef<HTMLDivElement>(null);
+  const dibuka = useRef(false);
   const banding = mauBanding && bisaBanding(data, no);
   const sebelum = data.find((d) => d.tahap === no)?.selisih?.terhadap ?? null;
 
@@ -196,6 +202,16 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [] }: P
     diubah.current = false;
     muncul(panggung.current);
   }, [no, banding]);
+
+  // Detail ada di bawah diagram, bisa ribuan piksel di bawah node yang dipilih (HP: ±2.200 px). Sesudah tabel dipilih,
+  // detail digulir ke layar supaya klik terlihat hasilnya; fokus tetap di node (keputusan 467). Reduced motion: tanpa
+  // gulir halus.
+  useEffect(() => {
+    if (!dibuka.current) return;
+    dibuka.current = false;
+    const halus = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    detail.current?.scrollIntoView({ block: "nearest", behavior: halus ? "smooth" : "auto" });
+  }, [pilihan]);
 
   const sumber = (n: number) => (uji.includes(n) ? "Data uji" : `Rekaman lab · PostgreSQL ${data.find((d) => d.tahap === n)!.postgres}`);
   const panel: Panel[] = useMemo(
@@ -276,9 +292,19 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [] }: P
                     position: { x: n.x, y: n.y },
                     width: n.lebar,
                     height: n.tinggi,
-                    data: { t, dipilih, idDetail, pilih: () => setPilihan(dipilih ? null : { sisi: p.sisi, nama: n.nama }) },
+                    data: {
+                      t,
+                      dipilih,
+                      idDetail,
+                      pilih: () => {
+                        dibuka.current = !dipilih;
+                        setPilihan(dipilih ? null : { sisi: p.sisi, nama: n.nama });
+                      },
+                    },
                     selectable: false,
                     focusable: false,
+                    // React Flow memberi "node" berbahasa Inggris; nama yang dibacakan ada di tombol (keputusan 466).
+                    domAttributes: { "aria-roledescription": undefined },
                   };
                 })
               : [];
@@ -294,6 +320,10 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [] }: P
                   data: { titik: e.titik },
                   focusable: false,
                   selectable: false,
+                  // Bawaan React Flow: role="img" + "Edge from X to Y" (bahasa Inggris) untuk setiap garis. Foreign key
+                  // sudah dibacakan per kolom di versi statis ("FK → akun.id"), jadi garis disembunyikan dari pembaca
+                  // layar (keputusan 466).
+                  domAttributes: { "aria-hidden": true },
                   markerEnd: { type: MarkerType.ArrowClosed, color: "currentColor", width: 14, height: 14 },
                 }))
               : [];
@@ -342,7 +372,7 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [] }: P
           <span className="bb-chip is-system">{sumber(no)}</span>
         </p>
       )}
-      <div id={idDetail} className="erd-tumbuh__detail">
+      <div id={idDetail} ref={detail} className="erd-tumbuh__detail">
         {tabelTerpilih && terpilih ? (
           <Detail t={tabelTerpilih} panel={terpilih} tautan={tautan} sebelum={sebelum} no={no} />
         ) : (

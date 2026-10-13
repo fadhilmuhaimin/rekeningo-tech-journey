@@ -1,0 +1,60 @@
+-- Lab e3-idempotency · versi ledger · ADR 14: key sekali per niat bayar, ulangan mendapat respons yang sama
+-- PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema e3_idem (labs/b3-ledger/schema.sql + ledger/schema.sql)
+-- Rekaman dari database bersih: make -C labs/e3-idempotency run-ledger (keputusan 510).
+-- Response request #1 hilang sesudah COMMIT seperti tanpa-key.txt. App mengulang dengan key yang sama;
+-- server menemukan key selesai dan mengirim respons tersimpan, tanpa jurnal kedua.
+
+-- PostgreSQL sebelumnya
+=> SELECT b.id AS buku, a.nama, coalesce(sum(p.jumlah), 0) AS saldo, b.saldo_cache
+   FROM buku b JOIN akun a ON a.id = b.akun_id LEFT JOIN posting p ON p.buku_id = b.id
+   GROUP BY b.id, a.nama ORDER BY b.id;
+ buku |    nama    | saldo  | saldo_cache
+------+------------+--------+-------------
+    2 | Budi       | 100000 |      100000
+    3 | Warung Ani |      0 |           0
+(2 rows)
+
+$ ledger/e3-ledger-server -titik putus-sesudah-commit    # server Go
+$ dart run ledger/bayar.dart key-per-niat    # app Budi
+
+-- app (Dart)
+app  Budi menekan Bayar: Rp25.000 ke Warung Ani; key niat ini 0fa0431d-7709-41aa-9e65-793a20e055fd
+app  percobaan 1  Idempotency-Key: "0fa0431d…"  → koneksi putus; ulang sesudah 230 ms
+app  percobaan 2  Idempotency-Key: "0fa0431d…"  → 201 {"id":2,"saldo":75000}
+app  layar Budi: pembayaran berhasil, saldo Rp75.000
+
+-- server (Go, satu baris per langkah)
+server  #1  POST /transfers  key 0fa0431d…  {"ke":418,"jumlah":25000}
+server  #1  key baru: status diproses
+server  #1  jurnal 2 ditulis, belum COMMIT
+server  #1  COMMIT; titik henti lab: koneksi app ditutup sebelum response 201 {"id":2,"saldo":75000} terkirim
+server  #2  POST /transfers  key 0fa0431d…  {"ke":418,"jumlah":25000}
+server  #2  key selesai, hash sama: kirim respons tersimpan, tanpa jurnal baru
+server  #2  → 201 {"id":2,"saldo":75000}
+
+-- PostgreSQL sesudahnya
+=> SELECT b.id AS buku, a.nama, coalesce(sum(p.jumlah), 0) AS saldo, b.saldo_cache
+   FROM buku b JOIN akun a ON a.id = b.akun_id LEFT JOIN posting p ON p.buku_id = b.id
+   GROUP BY b.id, a.nama ORDER BY b.id;
+ buku |    nama    | saldo | saldo_cache
+------+------------+-------+-------------
+    2 | Budi       | 75000 |       75000
+    3 | Warung Ani | 25000 |       25000
+(2 rows)
+
+=> SELECT j.id AS jurnal, j.jenis, j.keterangan, p.jumlah
+   FROM posting p JOIN jurnal j ON j.id = p.jurnal_id
+   WHERE p.buku_id = 2 ORDER BY p.id;   -- riwayat Budi
+ jurnal | jenis |        keterangan        | jumlah
+--------+-------+--------------------------+--------
+      1 | topup | Tunjangan makan          | 100000
+      2 | bayar | Bayar Budi ke Warung Ani | -25000
+(2 rows)
+
+=> SELECT left(kunci, 8) || '…' AS kunci, status, left(hash_permintaan, 12) || '…' AS hash_permintaan,
+          respons::text AS respons, jurnal_id, round(extract(epoch FROM kedaluwarsa - now()) / 3600) AS jam_tersisa
+   FROM kunci_idempotensi ORDER BY kedaluwarsa;
+   kunci   |  status | hash_permintaan |                      respons                       | jurnal_id | jam_tersisa
+-----------+---------+-----------------+----------------------------------------------------+-----------+-------------
+ 0fa0431d… | selesai | 708cd1009764…   | {"body": {"id": 2, "saldo": 75000}, "status": 201} |         2 |          24
+(1 row)
