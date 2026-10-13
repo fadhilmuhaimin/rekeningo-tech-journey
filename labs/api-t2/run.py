@@ -240,6 +240,7 @@ def curl(method, path, body=None, token=None, jenis="application/json", tampil=T
             f" -d '{tampil_body or data}'"
     r = subprocess.run(cmd, input=(data if body is not None else None), capture_output=True, text=True)
     teks = r.stdout.replace("\r\n", "\n")
+    teks = re.sub(r"^HTTP/1\.1 100 Continue\n\n", "", teks)   # curl mengirim Expect: 100-continue untuk body > 1 MiB
     kepala, _, isi = teks.partition("\n\n")
     baris = [l for l in kepala.split("\n") if not l.startswith(("Date:", "Content-Length:"))]
     status = int(baris[0].split()[1]) if baris and baris[0].startswith("HTTP/") else 0
@@ -437,7 +438,7 @@ def rekam_topup():
     s, isi = curl("POST", "/topup?keterangan=Tunjangan%20makan%20minggu%201%20Tahap%202", csv, admin, "text/csv",
                   tampil_body="nomor_karyawan,nominal\\nK00401,250000\\n ... (1.000 baris)")
     harap((s, j(isi)), (200, {"akun": 1000, "total": 250000000}), "top-up 1.000 akun")
-    sql("SELECT count(*) AS jurnal_topup, sum(p.jumlah) FILTER (WHERE p.jumlah > 0) AS masuk,"
+    sql("SELECT count(DISTINCT j.id) AS jurnal_topup, sum(p.jumlah) FILTER (WHERE p.jumlah > 0) AS masuk,"
         " sum(p.jumlah) AS jumlah_posting FROM jurnal j JOIN posting p ON p.jurnal_id = j.id WHERE j.jenis = 'topup'")
     sql("SELECT b.jenis, a.nama, b.saldo_cache FROM buku b LEFT JOIN akun a ON a.id = b.akun_id"
         " WHERE b.jenis = 'tunjangan' OR b.akun_id IN (419, 504) ORDER BY b.id")
@@ -453,10 +454,20 @@ def rekam_topup():
     sesudah = sql("SELECT count(*) AS jurnal, (SELECT saldo_cache FROM buku WHERE jenis = 'tunjangan') AS tunjangan"
                   " FROM jurnal")
     harap(sesudah, sebelum, "tidak ada jurnal dari file yang ditolak")
-    bagian("C. Nomor yang sama dua kali, nomor warung, nomor tidak terdaftar")
+    bagian("C. Nomor yang sama dua kali dan nomor tidak terdaftar")
     s, isi = curl("POST", "/topup?keterangan=Tunjangan%20makan%20minggu%202%20Tahap%202",
                   "nomor_karyawan,nominal\nK00419,250000\nK00504,250000\nK00419,250000\nK09999,250000\n", admin, "text/csv")
     harap((s, [e["baris"] for e in j(isi)["errors"]]), (422, [4, 5]), "duplikat dan tidak terdaftar")
+    bagian("D. File lebih dari 1 MiB ditolak utuh, bukan dipotong (keputusan 418)")
+    besar = "nomor_karyawan,nominal\n" + "".join(f"{n},{'0' * 1040}250000\n" for n in nomor)
+    harap(len(besar) > (1 << 20), True, "file lebih dari 1 MiB")
+    ukuran = f"{len(besar):,}".replace(",", ".")
+    catat(f"# 1.000 baris sah, nominal Rp250.000 ditulis dengan 1.040 nol di depan: {ukuran} byte")
+    sebelum = sql("SELECT count(*) AS jurnal FROM jurnal", tampil=False)
+    s, isi = curl("POST", "/topup?keterangan=Tunjangan%20makan%20minggu%202%20Tahap%202", besar, admin, "text/csv",
+                  tampil_body=f"nomor_karyawan,nominal\\nK00401,000...000250000\\n ... (1.000 baris, {ukuran} byte)")
+    harap((s, j(isi)["type"]), (413, "/problems/file-terlalu-besar"), "file terlalu besar")
+    harap(sql("SELECT count(*) AS jurnal FROM jurnal", tampil=False), sebelum, "tidak ada jurnal dari file terlalu besar")
     catat("\n# Karyawan mencoba top-up")
     budi = login("budi@lestari.example", "sementara-419", "Budi")
     harap(curl("POST", "/topup?keterangan=coba", "nomor_karyawan,nominal\nK00419,1000\n", budi, "text/csv")[0], 403,

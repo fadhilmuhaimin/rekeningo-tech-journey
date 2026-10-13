@@ -275,10 +275,21 @@ func (s Server) cariWarung(w http.ResponseWriter, r *http.Request) {
 	tulisJSON(w, 200, map[string]any{"warung": hasil})
 }
 
+// MaksCSV: 1 MiB, sama dengan Tahap 1. File HR 1.000 akun berukuran ±14 KB.
+const MaksCSV = 1 << 20
+
 // --8<-- [start:topup]
 // POST /topup?keterangan=...  body text/csv: nomor_karyawan,nominal (atau email,nominal dari Tahap 1)
+// File lebih dari MaksCSV ditolak utuh (413). LimitReader di Tahap 1 memotong file diam-diam: baris terakhir
+// yang terpotong bisa tetap angka yang sah, dan sisa file hilang tanpa pesan (keputusan 418).
 func (s Server) topup(w http.ResponseWriter, r *http.Request) {
-	isi, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	isi, err := io.ReadAll(http.MaxBytesReader(w, r.Body, MaksCSV))
+	var besar *http.MaxBytesError
+	if errors.As(err, &besar) {
+		tulisProblem(w, Problem{Type: "/problems/file-terlalu-besar", Title: "File CSV terlalu besar; tidak ada saldo yang berubah",
+			Status: 413, Detail: fmt.Sprintf("Paling banyak %d byte per file.", MaksCSV)})
+		return
+	}
 	if err != nil {
 		tulisProblem(w, Problem{Type: "/problems/body-rusak", Title: "Body tidak terbaca", Status: 400})
 		return

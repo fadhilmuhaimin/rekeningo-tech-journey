@@ -67,6 +67,7 @@ paths:
                   total: { $ref: '#/components/schemas/Rupiah' }
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
+        '413': { $ref: '#/components/responses/Problem' }   # lebih dari 1 MiB: ditolak utuh, tidak dipotong
         '422': { $ref: '#/components/responses/Problem' }
   # --8<-- [start:koreksi]
   /koreksi:

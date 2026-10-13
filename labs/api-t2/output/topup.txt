@@ -14,10 +14,10 @@ HTTP/1.1 200 OK
 Content-Type: application/json
 
 {"akun":1000,"total":250000000}
-=> SELECT count(*) AS jurnal_topup, sum(p.jumlah) FILTER (WHERE p.jumlah > 0) AS masuk, sum(p.jumlah) AS jumlah_posting FROM jurnal j JOIN posting p ON p.jurnal_id = j.id WHERE j.jenis = 'topup'
+=> SELECT count(DISTINCT j.id) AS jurnal_topup, sum(p.jumlah) FILTER (WHERE p.jumlah > 0) AS masuk, sum(p.jumlah) AS jumlah_posting FROM jurnal j JOIN posting p ON p.jurnal_id = j.id WHERE j.jenis = 'topup'
  jurnal_topup |   masuk   | jumlah_posting
 --------------+-----------+----------------
-         2000 | 250000000 |              0
+         1000 | 250000000 |              0
 (1 row)
 => SELECT b.jenis, a.nama, b.saldo_cache FROM buku b LEFT JOIN akun a ON a.id = b.akun_id WHERE b.jenis = 'tunjangan' OR b.akun_id IN (419, 504) ORDER BY b.id
    jenis   |  nama | saldo_cache
@@ -44,7 +44,7 @@ Content-Type: application/problem+json
    1108 | -250000000
 (1 row)
 
-# --- C. Nomor yang sama dua kali, nomor warung, nomor tidak terdaftar ---
+# --- C. Nomor yang sama dua kali dan nomor tidak terdaftar ---
 $ curl -i -X POST '/topup?keterangan=Tunjangan%20makan%20minggu%202%20Tahap%202' -H 'Authorization: Bearer <token sesi admin>' -H 'Content-Type: text/csv' -d 'nomor_karyawan,nominal
 K00419,250000
 K00504,250000
@@ -55,6 +55,15 @@ HTTP/1.1 422 Unprocessable Entity
 Content-Type: application/problem+json
 
 {"type":"/problems/csv-ditolak","title":"CSV ditolak; tidak ada saldo yang berubah","status":422,"errors":[{"baris":4,"field":"nomor_karyawan","pesan":"sudah ada di baris 2"},{"baris":5,"field":"nomor_karyawan","pesan":"tidak terdaftar"}]}
+
+# --- D. File lebih dari 1 MiB ditolak utuh, bukan dipotong (keputusan 418) ---
+# 1.000 baris sah, nominal Rp250.000 ditulis dengan 1.040 nol di depan: 1.054.023 byte
+$ curl -i -X POST '/topup?keterangan=Tunjangan%20makan%20minggu%202%20Tahap%202' -H 'Authorization: Bearer <token sesi admin>' -H 'Content-Type: text/csv' -d 'nomor_karyawan,nominal\nK00401,000...000250000\n ... (1.000 baris, 1.054.023 byte)'
+HTTP/1.1 413 Request Entity Too Large
+Connection: close
+Content-Type: application/problem+json
+
+{"type":"/problems/file-terlalu-besar","title":"File CSV terlalu besar; tidak ada saldo yang berubah","status":413,"detail":"Paling banyak 1048576 byte per file."}
 
 # Karyawan mencoba top-up
 $ curl -i -X POST '/topup?keterangan=coba' -H 'Authorization: Bearer <token sesi Budi>' -H 'Content-Type: text/csv' -d 'nomor_karyawan,nominal
