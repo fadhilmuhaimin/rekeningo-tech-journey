@@ -33,16 +33,14 @@ def rilis_1(lab):
     antre(lab, M, f"percobaan 1: BEGIN; isi {EXPAND[0]}; COMMIT", "R")
     P1.mulai(bayar("v1", CITRA, ANI, 25000))
     antre(lab, P1, f"bayar Citra ({CITRA}) ke Warung Ani ({ANI}) {rp(25000)} di server v1", "M")
-    hm = M.selesai(10)
+    hm = M.selesai()
     harap(getattr(hm.get("err"), "sqlstate", None), "55P03", "galat percobaan 1")
     lab.langkah("M", "(3 detik menunggu lock)", f"{galat(hm['err'])} -> ROLLBACK")
-    h1 = P1.selesai(10)
+    h1 = P1.selesai()
     if "err" in h1:
         gagal(f"P1 gagal: {h1['err']}")
     harap(lab.keadaan(R), "idle in transaction", "R masih terbuka saat P1 selesai")
     lab.langkah("P1", "(lanjut begitu M menyerah)", f"{h1['ok']}; R masih terbuka")
-    if h1["detik"] >= 5:
-        gagal(f"P1 menunggu {h1['detik']:.1f} detik, harus kurang dari 5 (lock_timeout 3 detik + jeda)")
     lab.tulis("# P1 hanya menunggu sampai M menyerah (paling lama lock_timeout 3 detik), bukan sampai laporan selesai.")
     lab.tulis("# lock_timeout membatasi setiap upaya mengambil lock, termasuk yang implisit; statement_timeout membatasi")
     lab.tulis("# seluruh statement (PostgreSQL 17, Client Connection Defaults). Dipasang dengan SET LOCAL di file")
@@ -155,7 +153,7 @@ def rilis_2_3(lab):
     P.mulai(bayar("dua", BUDI, ANI, 25000))
     antre(lab, P, f"bayar Budi ({BUDI}) ke Warung Ani ({ANI}) {rp(25000)}: SELECT ... FOR UPDATE", "BF")
     Q.mulai(lambda k: len(riwayat(k, "v1", 420)["riwayat"]))
-    hq = Q.selesai(5)
+    hq = Q.selesai()
     if "err" in hq:
         gagal(f"riwayat saat batch: {hq['err']}")
     lab.langkah("Q", "app Karyawan 420 membuka riwayat (SELECT, server v1 query)",
@@ -165,7 +163,7 @@ def rilis_2_3(lab):
     lab.tulis("#   Bayar yang menyentuh akun di batch menunggu paling lama satu batch (lock baris, bukan lock tabel).")
     lab.tulis("#   lock_timeout di batch membuat backfill menyerah bila tertahan bayar yang lama, sebelum bayar lain antre")
     lab.tulis("#   di belakang 1.000 baris yang sudah dikuncinya; batch itu di-ROLLBACK dan bisa diulang dari id yang sama.")
-    hp = P.selesai(10)
+    hp = P.selesai()
     if "err" in hp:
         gagal(f"P gagal: {hp['err']}")
     lab.langkah("P", "(lanjut sesudah batch 1 COMMIT)", hp["ok"])

@@ -129,7 +129,9 @@ class Lab:
             gagal(f"{k.nama} tertahan koneksi di luar lab (pid {blok}); jalankan ulang saat database sepi")
         return mode, objek, ", ".join(sorted(nama[b] for b in blok))
 
-    def tunggu_antre(self, k, batas=5):
+    def tunggu_antre(self, k, batas=30):
+        """Tunggu sampai k terlihat menunggu lock atau selesai, mana yang lebih dulu (tanpa ambang waktu, pola
+        keputusan 446); batas hanya pengaman supaya lab tidak macet."""
         akhir = time.monotonic() + batas
         while time.monotonic() < akhir:
             w = self.menunggu(k)
