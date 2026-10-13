@@ -1,6 +1,6 @@
 {
   "app": "Rekeningo",
-  "catatan": "Aplikasi fiktif. Sumber cerita: plan/CERITA-TAHAP-N.md (Tahap 1); Tahap 2-5 masih versi lama dari plan/STORY.md sampai naskahnya ada. Satu-satunya sumber urutan baca, 'Kamu di sini', diagram arsitektur tahap, dan peta cerita.",
+  "catatan": "Aplikasi fiktif. Sumber cerita: plan/CERITA-TAHAP-N.md (Tahap 1 dan daftar halaman Tahap 2); data Tahap 2 (nama, rekap, arsitektur, asumsi) dan Tahap 3-5 masih versi lama dari plan/STORY.md sampai naskahnya dipakai. Satu-satunya sumber urutan baca, 'Kamu di sini', diagram arsitektur tahap, dan peta cerita.",
   "tahap": [
     {
       "no": 1,
@@ -126,8 +126,8 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 52,
-        "halaman": 6
+        "menit": 60,
+        "halaman": 7
       },
       "versi": "lama",
       "skala": {
@@ -136,7 +136,38 @@
         "pembuat": "Raka + 1 engineer",
         "prd": "PRD v2: transfer antar karyawan, tutup buku otomatis untuk Keuangan",
         "pendek": "Seluruh kampus"
-      }
+      },
+      "bagian": [
+        {
+          "no": 1,
+          "nama": "PRD"
+        },
+        {
+          "no": 2,
+          "nama": "Dari fitur ke pekerjaan teknis"
+        },
+        {
+          "no": 3,
+          "nama": "Ledger double-entry"
+        },
+        {
+          "no": "3b",
+          "nama": "Skema data"
+        },
+        {
+          "no": 4,
+          "nama": "Masalah yang muncul"
+        },
+        {
+          "no": 5,
+          "nama": "Yang dibawa keluar"
+        },
+        {
+          "no": 6,
+          "nama": "Jembatan ke Tahap 3"
+        }
+      ],
+      "naskah": "plan/CERITA-TAHAP-2.md"
     },
     {
       "no": 3,
@@ -1251,11 +1282,233 @@
       "path": "cerita/tahap-2.md",
       "inti": true,
       "ada": true,
+      "bagian": 1,
+      "diganti_oleh": "t2-prd",
       "menit": 4
     },
     {
+      "id": "t2-prd",
+      "judul": "PRD v2: Rekeningo untuk seluruh kampus",
+      "tahap": 2,
+      "path": "tahap-2/prd-v2.md",
+      "topik": "Gambaran besar",
+      "jenis": "prd",
+      "bagian": 1,
+      "inti": true,
+      "masalah": "Patungan masih tunai, pencairan warung manual, dan rekap Keuangan 4 jam per gedung",
+      "prasyarat": [
+        "t1-jembatan"
+      ],
+      "ada": false,
+      "nomor": "2.1"
+    },
+    {
+      "id": "t2-fitur-teknis",
+      "judul": "Dari fitur ke pekerjaan teknis v2",
+      "tahap": 2,
+      "path": "tahap-2/fitur-ke-teknis.md",
+      "topik": "Gambaran besar",
+      "jenis": "fitur",
+      "bagian": 2,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Dari PRD v2, apa yang berubah di app, backend, dan database?",
+      "prasyarat": [
+        "t2-prd"
+      ],
+      "ada": false,
+      "nomor": "2.2"
+    },
+    {
+      "id": "t2-transfer",
+      "judul": "Fitur: transfer antar karyawan",
+      "tahap": 2,
+      "path": "tahap-2/fitur-transfer.md",
+      "topik": "API",
+      "jenis": "fitur",
+      "bagian": 2,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Karyawan membayar patungan makan siang ke teman tanpa tunai",
+      "pendek": "Fitur transfer",
+      "prasyarat": [
+        "t2-fitur-teknis"
+      ],
+      "lab": [
+        "api-t2"
+      ],
+      "ada": false,
+      "nomor": "2.3"
+    },
+    {
+      "id": "t2-tutup-buku",
+      "judul": "Fitur: tutup buku bulanan",
+      "tahap": 2,
+      "path": "tahap-2/fitur-tutup-buku.md",
+      "topik": "Data",
+      "jenis": "fitur",
+      "bagian": 2,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Keuangan ingin tutup buku bulanan selesai dalam satu hari dan terbukti dari data",
+      "pendek": "Fitur tutup buku",
+      "prasyarat": [
+        "t2-transfer"
+      ],
+      "lab": [
+        "b3-ledger"
+      ],
+      "ada": false,
+      "nomor": "2.4"
+    },
+    {
+      "id": "t2-pencairan",
+      "judul": "Fitur: pencairan warung terjadwal",
+      "tahap": 2,
+      "path": "tahap-2/fitur-pencairan.md",
+      "topik": "Operasional",
+      "jenis": "fitur",
+      "bagian": 2,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Warung menunggu admin mentransfer pencairan secara manual",
+      "pendek": "Fitur pencairan",
+      "prasyarat": [
+        "t2-tutup-buku"
+      ],
+      "lab": [
+        "t2-pencairan"
+      ],
+      "ada": false,
+      "nomor": "2.5"
+    },
+    {
+      "id": "t2-saldo-bukan-kolom",
+      "judul": "Kenapa saldo bukan kolom",
+      "tahap": 2,
+      "path": "tahap-2/saldo-bukan-kolom.md",
+      "topik": "Data",
+      "jenis": "konsep",
+      "bagian": 3,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Pak Hadi bertanya: kejadian mana yang membuat saldo Budi jadi Rp180.000?",
+      "prasyarat": [
+        "t2-tutup-buku"
+      ],
+      "lab": [
+        "b3-ledger"
+      ],
+      "ada": false,
+      "nomor": "2.6"
+    },
+    {
+      "id": "t2-ledger",
+      "judul": "Ledger double-entry: jurnal, posting, invarian",
+      "tahap": 2,
+      "path": "tahap-2/ledger.md",
+      "topik": "Data",
+      "jenis": "konsep",
+      "bagian": 3,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Setiap perpindahan uang harus tercatat dua sisi dan tidak bisa diubah diam-diam",
+      "prasyarat": [
+        "t2-saldo-bukan-kolom"
+      ],
+      "lab": [
+        "b3-ledger"
+      ],
+      "ada": false,
+      "nomor": "2.7"
+    },
+    {
+      "id": "t2-adr-ledger",
+      "judul": "ADR 12: dari kolom saldo ke ledger",
+      "tahap": 2,
+      "path": "tahap-2/adr-ledger.md",
+      "topik": "Data",
+      "jenis": "adr",
+      "bagian": 3,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        12
+      ],
+      "masalah": "Memilih model uang yang memenuhi aturan Pak Hadi: setiap rupiah tertelusur",
+      "prasyarat": [
+        "t2-ledger"
+      ],
+      "lab": [
+        "b3-ledger"
+      ],
+      "ada": false,
+      "nomor": "2.8"
+    },
+    {
+      "id": "t2-skema",
+      "judul": "Skema data: ERD Tahap 1 → Tahap 2 dan pertumbuhannya",
+      "tahap": 2,
+      "path": "tahap-2/skema-data.md",
+      "topik": "Data",
+      "jenis": "konsep",
+      "bagian": "3b",
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Tabel mana yang lahir, berubah, dan hilang saat saldo pindah ke ledger?",
+      "pendek": "Skema data Tahap 2",
+      "prasyarat": [
+        "t2-adr-ledger"
+      ],
+      "lab": [
+        "api-t1",
+        "api-t2"
+      ],
+      "ada": false,
+      "nomor": "2.9"
+    },
+    {
+      "id": "t2-m9",
+      "judul": "M9: Saldo −Rp20.000",
+      "tahap": 2,
+      "path": "tahap-2/m9-saldo-minus.md",
+      "topik": "Data",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "label": "Masalah 9 · minggu 1",
+      "masalah": "Dua transfer hampir bersamaan sama-sama lolos dan saldo Budi jadi −Rp20.000",
+      "prasyarat": [
+        "t2-skema"
+      ],
+      "lab": [
+        "b3-race"
+      ],
+      "ada": false,
+      "nomor": "2.10"
+    },
+    {
       "id": "B3.2",
-      "judul": "Race condition dan lock",
+      "judul": "Race condition dan lock + ADR 13",
       "tahap": 2,
       "topik": "Data",
       "path": "b-fondasi/b3-2-race-condition-lock.md",
@@ -1266,7 +1519,19 @@
       "masalah": "Saldo salah: dua penarikan bersamaan sama-sama lolos",
       "ada": true,
       "pendek": "Race condition",
-      "nomor": "2.1",
+      "jenis": "konsep",
+      "bagian": 4,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        13
+      ],
+      "lama": true,
+      "lab": [
+        "b3-race"
+      ],
+      "nomor": "2.11",
       "menit": 10
     },
     {
@@ -1281,12 +1546,45 @@
       "masalah": "Transaction melihat data yang \"berubah sendiri\"",
       "ada": true,
       "pendek": "Isolation level",
-      "nomor": "2.2",
+      "jenis": "konsep",
+      "bagian": 4,
+      "peran": [
+        "backend"
+      ],
+      "lama": true,
+      "lab": [
+        "b3-isolasi"
+      ],
+      "nomor": "2.12",
       "menit": 10
     },
     {
+      "id": "t2-m10",
+      "judul": "M10: Nasi goreng dibayar dua kali",
+      "tahap": 2,
+      "path": "tahap-2/m10-dibayar-dua-kali.md",
+      "topik": "Khusus app mobile",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "label": "Masalah 10 · minggu 2",
+      "masalah": "Sinyal putus, Budi menekan Bayar lagi, dan riwayatnya mencatat dua pembayaran",
+      "prasyarat": [
+        "B3.2"
+      ],
+      "lab": [
+        "e3-idempotency"
+      ],
+      "ada": false,
+      "nomor": "2.13"
+    },
+    {
       "id": "E3",
-      "judul": "Retry dan idempotency key dari app",
+      "judul": "Retry dan idempotency key + ADR 14",
       "tahap": 2,
       "topik": "Khusus app mobile",
       "path": "e-mobile/e3-retry-idempotency.md",
@@ -1297,23 +1595,44 @@
       "masalah": "Dobel bayar setelah app retry",
       "ada": true,
       "pendek": "Retry dan idempotency key",
-      "nomor": "2.3",
+      "jenis": "konsep",
+      "bagian": 4,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "adr": [
+        14
+      ],
+      "lama": true,
+      "lab": [
+        "e3-idempotency"
+      ],
+      "nomor": "2.14",
       "menit": 10
     },
     {
-      "id": "B1.3",
-      "judul": "Pagination dan idempotent method",
+      "id": "t2-m11",
+      "judul": "M11: Riwayat 4 detik",
       "tahap": 2,
-      "topik": "API",
-      "path": "b-fondasi/b1-3-pagination-idempotent.md",
-      "prasyarat": [
-        "B1.1"
-      ],
+      "path": "tahap-2/m11-riwayat-lambat.md",
+      "topik": "Data",
+      "jenis": "masalah",
+      "bagian": 4,
       "inti": true,
-      "masalah": "Riwayat panjang, halaman berikutnya berisi data ganda",
-      "ada": true,
-      "nomor": "2.4",
-      "menit": 8
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 11 · minggu 3",
+      "masalah": "Riwayat Budi butuh 4 detik dibuka dan laporan harian Ani timeout di hari ramai",
+      "prasyarat": [
+        "E3"
+      ],
+      "lab": [
+        "b2-query"
+      ],
+      "ada": false,
+      "nomor": "2.15"
     },
     {
       "id": "B2.4",
@@ -1326,12 +1645,22 @@
       ],
       "masalah": "Riwayat penjualan lambat walau datanya sedikit",
       "ada": true,
-      "nomor": "2.5",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "lama": true,
+      "lab": [
+        "b2-query"
+      ],
+      "nomor": "2.16",
       "menit": 8
     },
     {
       "id": "B2.3",
-      "judul": "Index dan query plan",
+      "judul": "Index dan query plan + ADR 15",
       "tahap": 2,
       "topik": "Data",
       "path": "b-fondasi/b2-3-index.md",
@@ -1341,12 +1670,77 @@
       "inti": true,
       "masalah": "Query lambat setelah data bertambah",
       "ada": true,
-      "nomor": "2.6",
+      "jenis": "konsep",
+      "bagian": 4,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        15
+      ],
+      "pendek": "Index dan query plan",
+      "lama": true,
+      "lab": [
+        "b2-query"
+      ],
+      "nomor": "2.17",
       "menit": 10
     },
     {
+      "id": "t2-m12",
+      "judul": "M12: Transaksi muncul dua kali",
+      "tahap": 2,
+      "path": "tahap-2/m12-muncul-dua-kali.md",
+      "topik": "API",
+      "jenis": "masalah",
+      "bagian": 4,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "label": "Masalah 12 · minggu 3",
+      "masalah": "Saat riwayat digulir, transaksi yang sama muncul dua kali dan transaksi baru hilang",
+      "prasyarat": [
+        "B2.3"
+      ],
+      "lab": [
+        "b2-query"
+      ],
+      "ada": false,
+      "nomor": "2.18"
+    },
+    {
+      "id": "B1.3",
+      "judul": "Pagination kursor + ADR 16",
+      "tahap": 2,
+      "topik": "API",
+      "path": "b-fondasi/b1-3-pagination-idempotent.md",
+      "prasyarat": [
+        "B1.1"
+      ],
+      "inti": true,
+      "masalah": "Riwayat panjang, halaman berikutnya berisi data ganda",
+      "ada": true,
+      "jenis": "konsep",
+      "bagian": 4,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "adr": [
+        16
+      ],
+      "pendek": "Pagination dan idempotent method",
+      "lama": true,
+      "lab": [
+        "b2-query"
+      ],
+      "nomor": "2.19",
+      "menit": 8
+    },
+    {
       "id": "E5",
-      "judul": "Ukuran payload dan kuota",
+      "judul": "Ukuran payload dan kuota HP",
       "tahap": 2,
       "topik": "Khusus app mobile",
       "path": "e-mobile/e5-ukuran-payload.md",
@@ -1355,12 +1749,47 @@
       ],
       "masalah": "Response besar membebani HP dan kuota",
       "ada": true,
-      "nomor": "2.7",
+      "jenis": "konsep",
+      "bagian": 4,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "lama": true,
+      "lab": [
+        "e5-payload"
+      ],
+      "nomor": "2.20",
       "menit": 8
     },
     {
+      "id": "t2-m13",
+      "judul": "M13: Migrasi di jam makan siang",
+      "tahap": 2,
+      "path": "tahap-2/m13-migrasi-siang.md",
+      "topik": "Data",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "devops",
+        "backend"
+      ],
+      "label": "Masalah 13 · minggu 4",
+      "masalah": "Migrasi ke ledger membuat semua pembayaran menunggu 40 detik saat makan siang",
+      "prasyarat": [
+        "B1.3"
+      ],
+      "lab": [
+        "b4-skema"
+      ],
+      "ada": false,
+      "nomor": "2.21"
+    },
+    {
       "id": "B4.2",
-      "judul": "Ubah skema tanpa downtime",
+      "judul": "Ubah skema tanpa downtime + ADR 17",
       "tahap": 2,
       "topik": "Data",
       "path": "b-fondasi/b4-2-ubah-skema-tanpa-downtime.md",
@@ -1370,8 +1799,267 @@
       "inti": true,
       "masalah": "Rename kolom membuat app lama crash",
       "ada": true,
-      "nomor": "2.8",
+      "jenis": "konsep",
+      "bagian": 4,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        17
+      ],
+      "pendek": "Ubah skema tanpa downtime",
+      "lama": true,
+      "lab": [
+        "b4-skema"
+      ],
+      "nomor": "2.22",
       "menit": 10
+    },
+    {
+      "id": "t2-m14",
+      "judul": "M14: Batas harian yang hilang",
+      "tahap": 2,
+      "path": "tahap-2/m14-batas-harian.md",
+      "topik": "Operasional",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 14 · minggu 5",
+      "masalah": "Dua perubahan di handler transfer digabung dan batas harian hilang tanpa ada yang sadar",
+      "prasyarat": [
+        "B4.2"
+      ],
+      "lab": [
+        "api-t2"
+      ],
+      "ada": false,
+      "nomor": "2.23"
+    },
+    {
+      "id": "t2-tim-infra",
+      "judul": "Tim dan infra Tahap 2: review, branch protection, tes integrasi + ADR 18",
+      "tahap": 2,
+      "path": "tahap-2/tim-infra.md",
+      "topik": "Operasional",
+      "jenis": "tim-infra",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        18
+      ],
+      "masalah": "Dua engineer di satu repo tanpa review dan tanpa tes yang menjaga aturan uang",
+      "pendek": "Tim dan infra Tahap 2",
+      "prasyarat": [
+        "t2-m14"
+      ],
+      "lab": [
+        "api-t2"
+      ],
+      "ada": false,
+      "nomor": "2.24"
+    },
+    {
+      "id": "t2-m15",
+      "judul": "M15: Rp15.000 di file bank",
+      "tahap": 2,
+      "path": "tahap-2/m15-file-bank.md",
+      "topik": "Operasional",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 15 · minggu 6",
+      "masalah": "Total pencairan di file bank Rp15.000 lebih besar dari mutasi ledger",
+      "prasyarat": [
+        "t2-tim-infra"
+      ],
+      "lab": [
+        "t2-pencairan"
+      ],
+      "ada": false,
+      "nomor": "2.25"
+    },
+    {
+      "id": "t2-job-rekonsiliasi",
+      "judul": "Job terjadwal yang idempoten dan rekonsiliasi + ADR 19",
+      "tahap": 2,
+      "path": "tahap-2/job-rekonsiliasi.md",
+      "topik": "Operasional",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        19
+      ],
+      "masalah": "Job pencairan jalan dua kali sesudah server restart di tengah",
+      "pendek": "Job terjadwal dan rekonsiliasi",
+      "prasyarat": [
+        "t2-m15"
+      ],
+      "lab": [
+        "t2-pencairan"
+      ],
+      "ada": false,
+      "nomor": "2.26"
+    },
+    {
+      "id": "t2-m16",
+      "judul": "M16: Akun Ani terkunci",
+      "tahap": 2,
+      "path": "tahap-2/m16-akun-terkunci.md",
+      "topik": "Keamanan",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "label": "Masalah 16 · minggu 7",
+      "masalah": "Akun Ani terkunci berkali-kali oleh ribuan percobaan login dari satu IP",
+      "prasyarat": [
+        "t2-job-rekonsiliasi"
+      ],
+      "lab": [
+        "c4-ratelimit"
+      ],
+      "ada": false,
+      "nomor": "2.27"
+    },
+    {
+      "id": "t2-login-aman",
+      "judul": "Keamanan 4: brute force, credential stuffing, hash password + ADR 20",
+      "tahap": 2,
+      "path": "tahap-2/brute-force.md",
+      "topik": "Keamanan",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "label": "Keamanan 4",
+      "adr": [
+        20
+      ],
+      "masalah": "Password yang bocor dari situs lain dipakai untuk mencoba masuk ke banyak akun",
+      "prasyarat": [
+        "t2-m16"
+      ],
+      "lab": [
+        "c4-ratelimit"
+      ],
+      "ada": false,
+      "nomor": "2.28"
+    },
+    {
+      "id": "t2-m17",
+      "judul": "M17: Tutup buku kedua lolos, PRD v3 datang",
+      "tahap": 2,
+      "path": "tahap-2/m17-prd-v3.md",
+      "topik": "Desain sistem",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 17 · minggu 8",
+      "masalah": "Tutup buku kedua lolos dengan selisih Rp0, lalu lingkupnya naik ke enam kota",
+      "prasyarat": [
+        "t2-login-aman"
+      ],
+      "ada": false,
+      "nomor": "2.29"
+    },
+    {
+      "id": "t2-estimasi",
+      "judul": "Estimasi Tahap 2 → 3",
+      "tahap": 2,
+      "path": "tahap-2/estimasi.md",
+      "topik": "Desain sistem",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Menghitung beban Tahap 3 dari angka Tahap 2 sebelum memilih komponen",
+      "prasyarat": [
+        "t2-m17"
+      ],
+      "ada": false,
+      "nomor": "2.30"
+    },
+    {
+      "id": "t2-adr-21",
+      "judul": "ADR 21: Sengaja belum dilakukan",
+      "tahap": 2,
+      "path": "tahap-2/sengaja-belum.md",
+      "topik": "Desain sistem",
+      "jenis": "adr",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        21
+      ],
+      "masalah": "Tergoda menambah cache, queue, Redis, dan server kedua sebelum perlu",
+      "prasyarat": [
+        "t2-estimasi"
+      ],
+      "ada": false,
+      "nomor": "2.31"
+    },
+    {
+      "id": "t2-rekap",
+      "judul": "Yang dibawa keluar dari Tahap 2",
+      "tahap": 2,
+      "path": "tahap-2/rekap.md",
+      "topik": "Gambaran besar",
+      "jenis": "konsep",
+      "bagian": 5,
+      "inti": true,
+      "masalah": "Mengingat sepuluh konsep Tahap 2 dalam satu kalimat masing-masing",
+      "prasyarat": [
+        "t2-adr-21"
+      ],
+      "ada": false,
+      "nomor": "2.32"
+    },
+    {
+      "id": "t2-jembatan",
+      "judul": "Jembatan: pratinjau PRD v3",
+      "tahap": 2,
+      "path": "tahap-2/jembatan-prd-v3.md",
+      "topik": "Gambaran besar",
+      "jenis": "prd",
+      "bagian": 6,
+      "inti": true,
+      "masalah": "Keputusan Tahap 2 mana yang akan dibuka lagi?",
+      "pendek": "Pratinjau PRD v3",
+      "prasyarat": [
+        "t2-rekap"
+      ],
+      "ada": false,
+      "nomor": "2.33"
     },
     {
       "id": "T3",

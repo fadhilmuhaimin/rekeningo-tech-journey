@@ -630,7 +630,7 @@
   "judul": "1.40 Sengaja belum dilakukan",
   "url": "tahap-1/sengaja-belum/",
   "tanya": "Benar atau salah: memasang queue di depan endpoint Bayar mencegah dobel bayar saat Budi mengulang Bayar.",
-  "jawab": "Salah. Request ulang tetap masuk sebagai pesan baru, dan queue standar SQS bisa mengirim satu pesan lebih dari sekali. Yang membedakan request ulang dari pembayaran baru adalah tanda dari app, dan itu dibahas di Tahap 2 (2.3 Retry dan idempotency key)."
+  "jawab": "Salah. Request ulang tetap masuk sebagai pesan baru, dan queue standar SQS bisa mengirim satu pesan lebih dari sekali. Yang membedakan request ulang dari pembayaran baru adalah tanda dari app, dan itu dibahas di Tahap 2 (2.14 Retry dan idempotency key)."
  },
  {
   "id": "t1-rekap-1",
@@ -676,7 +676,7 @@
  {
   "id": "B3.2-1",
   "halaman": "B3.2",
-  "judul": "2.1 Race condition dan lock",
+  "judul": "2.11 Race condition dan lock + ADR 13",
   "url": "b-fondasi/b3-2-race-condition-lock/",
   "tanya": "AI menulis kode ini, lengkap dengan transaction. Aman dari lost update?",
   "jawab": "Tidak aman. Ini persis tab pertama di rekaman: `SELECT` tanpa `FOR UPDATE` tidak mengunci apa pun, jadi dua request bisa membaca Rp100.000 bersamaan. Perbaikan paling kecil: tambahkan `FOR UPDATE` di `SELECT`. Alternatifnya, ganti dengan `UPDATE` atomik dan periksa `RowsAffected()`.",
@@ -685,7 +685,7 @@
  {
   "id": "B3.2-2",
   "halaman": "B3.2",
-  "judul": "2.1 Race condition dan lock",
+  "judul": "2.11 Race condition dan lock + ADR 13",
   "url": "b-fondasi/b3-2-race-condition-lock/",
   "tanya": "Di tab \"UPDATE atomik\", `UPDATE` milik B dikirim saat saldo masih Rp100.000. Kenapa hasilnya tidak -Rp20.000?",
   "jawab": "B menunggu lock milik A. Setelah A commit, PostgreSQL mengecek ulang syarat `WHERE saldo >= 50000` ke versi baris terbaru (saldo Rp30.000). Syaratnya gagal, jadi 0 baris berubah (sumber)."
@@ -693,7 +693,7 @@
  {
   "id": "B3.2-3",
   "halaman": "B3.2",
-  "judul": "2.1 Race condition dan lock",
+  "judul": "2.11 Race condition dan lock + ADR 13",
   "url": "b-fondasi/b3-2-race-condition-lock/",
   "tanya": "Jelaskan dalam satu kalimat: kenapa `Mutex` atau `synchronized` di kode aplikasi tidak cukup untuk mencegah race ini di production?",
   "jawab": "Lock di memori hanya berlaku di satu proses. Production biasanya punya beberapa instance atau proses worker yang tidak berbagi memori, jadi pengamannya harus ada di database."
@@ -701,7 +701,7 @@
  {
   "id": "B3.3-1",
   "halaman": "B3.3",
-  "judul": "2.2 Isolation level secara praktis",
+  "judul": "2.12 Isolation level secara praktis",
   "url": "b-fondasi/b3-3-isolation-level/",
   "tanya": "Rekaman laporan read committed membaca 250.000 lalu 275.000 dalam satu transaction. Apakah ini bug PostgreSQL?",
   "jawab": "Bukan. Di read committed, setiap query melihat data yang sudah commit saat query itu dimulai. Pembayaran ke Ani commit di antara dua query, jadi query kedua melihatnya. Kalau laporan butuh satu snapshot, pakai repeatable read."
@@ -709,7 +709,7 @@
  {
   "id": "B3.3-2",
   "halaman": "B3.3",
-  "judul": "2.2 Isolation level secara praktis",
+  "judul": "2.12 Isolation level secara praktis",
   "url": "b-fondasi/b3-3-isolation-level/",
   "tanya": "Jelaskan kenapa repeatable read \"aman\" untuk penarikan di rekaman, tapi tetap menuntut kode tambahan.",
   "jawab": "PostgreSQL menolak `UPDATE` milik B yang dihitung dari snapshot lama, jadi lost update tidak terjadi. Tapi B menerima error, bukan hasil. Tanpa kode yang mengulang transaction, user menerima `500`. Rekaman menunjukkan ulangan B membaca Rp30.000 dan menolak dengan benar."
@@ -717,7 +717,7 @@
  {
   "id": "B3.3-3",
   "halaman": "B3.3",
-  "judul": "2.2 Isolation level secara praktis",
+  "judul": "2.12 Isolation level secara praktis",
   "url": "b-fondasi/b3-3-isolation-level/",
   "tanya": "Ganti seluruh aplikasi ke serializable, lalu semua race selesai. Setuju?",
   "jawab": "Tidak sesederhana itu. Semua transaction penulis harus punya retry yang benar, termasuk efek di luar database yang tidak boleh terulang, mis. notifikasi. Tingkat kegagalan juga naik saat beban tinggi. Untuk satu baris saldo, `UPDATE` atomik lebih sederhana."
@@ -725,7 +725,7 @@
  {
   "id": "E3-1",
   "halaman": "E3",
-  "judul": "2.3 Retry dan idempotency key dari app",
+  "judul": "2.14 Retry dan idempotency key + ADR 14",
   "url": "e-mobile/e3-retry-idempotency/",
   "tanya": "App menerima `422 saldo_kurang`. Apakah app boleh retry otomatis?",
   "jawab": "Tidak. `422` berarti request dipahami tapi aturan bisnisnya dilanggar. Mengulang request yang sama akan ditolak dengan alasan yang sama. Retry otomatis hanya untuk kegagalan sementara: timeout, koneksi putus, `503`, dan `429`."
@@ -733,7 +733,7 @@
  {
   "id": "E3-2",
   "halaman": "E3",
-  "judul": "2.3 Retry dan idempotency key dari app",
+  "judul": "2.14 Retry dan idempotency key + ADR 14",
   "url": "e-mobile/e3-retry-idempotency/",
   "tanya": "Jelaskan kenapa response juga harus disimpan di tabel key, bukan hanya key-nya.",
   "jawab": "Retry harus menerima jawaban yang sama dengan percobaan pertama, mis. `201` dengan id pembayaran dan saldo terbaru. Kalau server hanya tahu \"key ini pernah dipakai\", ia bisa menolak retry, tapi app tidak tahu apakah pembayarannya sukses dan berapa saldonya."
@@ -741,39 +741,15 @@
  {
   "id": "E3-3",
   "halaman": "E3",
-  "judul": "2.3 Retry dan idempotency key dari app",
+  "judul": "2.14 Retry dan idempotency key + ADR 14",
   "url": "e-mobile/e3-retry-idempotency/",
   "tanya": "Budi menekan Bayar, app crash, lalu Budi membuka app lagi dan menekan Bayar di pesanan yang sama. Key mana yang harus dipakai?",
   "jawab": "Key yang sama dengan sebelum crash, karena ini aksi bayar yang sama untuk pesanan yang sama. Karena itu key disimpan bersama pesanan di penyimpanan lokal, bukan hanya di memori."
  },
  {
-  "id": "B1.3-1",
-  "halaman": "B1.3",
-  "judul": "2.4 Pagination dan idempotent method",
-  "url": "b-fondasi/b1-3-pagination-idempotent/",
-  "tanya": "Kenapa sort key cursor memakai `(dibuat, id)`, bukan `dibuat` saja?",
-  "jawab": "Dua pesanan bisa punya `dibuat` yang sama persis. Dengan `dibuat` saja, baris dengan waktu sama di batas halaman bisa terlewat atau terulang. `id` membuat sort key-nya unik."
- },
- {
-  "id": "B1.3-2",
-  "halaman": "B1.3",
-  "judul": "2.4 Pagination dan idempotent method",
-  "url": "b-fondasi/b1-3-pagination-idempotent/",
-  "tanya": "Jelaskan kenapa offset pagination bisa menampilkan item yang sama dua kali.",
-  "jawab": "`OFFSET 20` berarti \"lewati 20 baris teratas saat query ini dijalankan\". Kalau satu pesanan baru masuk di atas, baris yang tadinya posisi 20 kini posisi 21, jadi muncul lagi di halaman berikutnya. Rekaman: 199900 muncul di halaman 1 dan 2."
- },
- {
-  "id": "B1.3-3",
-  "halaman": "B1.3",
-  "judul": "2.4 Pagination dan idempotent method",
-  "url": "b-fondasi/b1-3-pagination-idempotent/",
-  "tanya": "App memanggil `DELETE /transfers-terjadwal/7` dua kali karena retry. Masalah?",
-  "jawab": "Tidak, kalau diimplementasikan sesuai arti `DELETE`: keadaan akhirnya sama, yaitu jadwal 7 tidak ada. Panggilan kedua boleh dijawab `404` atau `204`, dan app harus memperlakukan keduanya sebagai \"sudah terhapus\"."
- },
- {
   "id": "B2.4-1",
   "halaman": "B2.4",
-  "judul": "2.5 N+1 query",
+  "judul": "2.16 N+1 query",
   "url": "b-fondasi/b2-4-n-plus-1/",
   "tanya": "Endpoint riwayat memakai pagination 20 per halaman. Apakah N+1 masih masalah?",
   "jawab": "Masih. 21 query per halaman, setiap kali halaman dibuka. Rekaman: 4,5 ms vs 0,5 ms di localhost. Dengan latency jaringan, selisihnya membesar sebanding jumlah query."
@@ -781,7 +757,7 @@
  {
   "id": "B2.4-2",
   "halaman": "B2.4",
-  "judul": "2.5 N+1 query",
+  "judul": "2.16 N+1 query",
   "url": "b-fondasi/b2-4-n-plus-1/",
   "tanya": "Jelaskan kenapa N+1 tidak terlihat di laptop developer, tapi terasa di production.",
   "jawab": "Di laptop, datanya sedikit dan database ada di mesin yang sama, jadi setiap perjalanan hampir tanpa latency. Di production, jumlah pesanan lebih banyak dan setiap query menyeberangi jaringan. Biaya per query kecil, tapi dikali N."
@@ -789,7 +765,7 @@
  {
   "id": "B2.4-3",
   "halaman": "B2.4",
-  "judul": "2.5 N+1 query",
+  "judul": "2.16 N+1 query",
   "url": "b-fondasi/b2-4-n-plus-1/",
   "tanya": "Raka berencana memasang cache untuk riwayat penjualan. Apa yang sebaiknya dilakukan dulu?",
   "jawab": "Hitung query per request dan perbaiki N+1. Cache di atas N+1 tetap menjalankan 101 query setiap kali cache kosong atau kedaluwarsa, dan menambah risiko data stale."
@@ -797,7 +773,7 @@
  {
   "id": "B2.3-1",
   "halaman": "B2.3",
-  "judul": "2.6 Index dan query plan",
+  "judul": "2.17 Index dan query plan + ADR 15",
   "url": "b-fondasi/b2-3-index/",
   "tanya": "Query `WHERE toko_id = 1 ORDER BY dibuat DESC LIMIT 20` lambat. Index mana yang kamu buat: `(dibuat)`, `(toko_id)`, atau `(toko_id, dibuat)`?",
   "jawab": "`(toko_id, dibuat)`. Kolom di `WHERE` lebih dulu, lalu kolom urutan. Database lompat ke toko 1 dan membaca 20 baris pertama yang sudah terurut. Di widget, index `(dibuat)` saja membuat SQLite memindai index sambil menyaring toko."
@@ -805,7 +781,7 @@
  {
   "id": "B2.3-2",
   "halaman": "B2.3",
-  "judul": "2.6 Index dan query plan",
+  "judul": "2.17 Index dan query plan + ADR 15",
   "url": "b-fondasi/b2-3-index/",
   "tanya": "Jelaskan kenapa menambah index tidak selalu membuat sistem lebih cepat.",
   "jawab": "Setiap index harus diperbarui saat baris ditulis atau diubah, dan memakan ruang disk serta memori. Index yang tidak dipakai query mana pun hanya menambah biaya penulisan. Index dipilih dari query yang benar-benar dijalankan."
@@ -813,15 +789,39 @@
  {
   "id": "B2.3-3",
   "halaman": "B2.3",
-  "judul": "2.6 Index dan query plan",
+  "judul": "2.17 Index dan query plan + ADR 15",
   "url": "b-fondasi/b2-3-index/",
   "tanya": "Kolom `item_pesanan.pesanan_id` punya foreign key. Perlukah index?",
   "jawab": "Di PostgreSQL, ya, kalau item dicari per pesanan atau kalau pesanan pernah dihapus. Foreign key tidak membuat index sendiri. Rekaman: tanpa index, mencari 3 item memindai 600.000 baris."
  },
  {
+  "id": "B1.3-1",
+  "halaman": "B1.3",
+  "judul": "2.19 Pagination kursor + ADR 16",
+  "url": "b-fondasi/b1-3-pagination-idempotent/",
+  "tanya": "Kenapa sort key cursor memakai `(dibuat, id)`, bukan `dibuat` saja?",
+  "jawab": "Dua pesanan bisa punya `dibuat` yang sama persis. Dengan `dibuat` saja, baris dengan waktu sama di batas halaman bisa terlewat atau terulang. `id` membuat sort key-nya unik."
+ },
+ {
+  "id": "B1.3-2",
+  "halaman": "B1.3",
+  "judul": "2.19 Pagination kursor + ADR 16",
+  "url": "b-fondasi/b1-3-pagination-idempotent/",
+  "tanya": "Jelaskan kenapa offset pagination bisa menampilkan item yang sama dua kali.",
+  "jawab": "`OFFSET 20` berarti \"lewati 20 baris teratas saat query ini dijalankan\". Kalau satu pesanan baru masuk di atas, baris yang tadinya posisi 20 kini posisi 21, jadi muncul lagi di halaman berikutnya. Rekaman: 199900 muncul di halaman 1 dan 2."
+ },
+ {
+  "id": "B1.3-3",
+  "halaman": "B1.3",
+  "judul": "2.19 Pagination kursor + ADR 16",
+  "url": "b-fondasi/b1-3-pagination-idempotent/",
+  "tanya": "App memanggil `DELETE /transfers-terjadwal/7` dua kali karena retry. Masalah?",
+  "jawab": "Tidak, kalau diimplementasikan sesuai arti `DELETE`: keadaan akhirnya sama, yaitu jadwal 7 tidak ada. Panggilan kedua boleh dijawab `404` atau `204`, dan app harus memperlakukan keduanya sebagai \"sudah terhapus\"."
+ },
+ {
   "id": "E5-1",
   "halaman": "E5",
-  "judul": "2.7 Ukuran payload dan kuota",
+  "judul": "2.20 Ukuran payload dan kuota HP",
   "url": "e-mobile/e5-ukuran-payload/",
   "tanya": "Response 100 pesanan sudah gzip, hanya 2.486 B di jaringan. Kenapa bentuk ringkas tetap lebih baik?",
   "jawab": "Setelah dibuka, HP tetap mengurai 52.931 B JSON dan membuat ratusan objek di memori. Di HP lama, parsing ini yang terasa sebagai layar lambat. Bentuk ringkas hanya 8.110 B mentah."
@@ -829,7 +829,7 @@
  {
   "id": "E5-2",
   "halaman": "E5",
-  "judul": "2.7 Ukuran payload dan kuota",
+  "judul": "2.20 Ukuran payload dan kuota HP",
   "url": "e-mobile/e5-ukuran-payload/",
   "tanya": "Jelaskan kenapa lima request kecil saat membuka beranda bisa lebih boros baterai daripada satu request.",
   "jawab": "Radio HP pindah ke mode daya tinggi untuk setiap transfer dan tetap aktif beberapa saat sesudahnya. Request yang tersebar membuat radio lebih lama di mode itu. Satu request gabungan memakai satu periode aktif."
@@ -837,7 +837,7 @@
  {
   "id": "E5-3",
   "halaman": "E5",
-  "judul": "2.7 Ukuran payload dan kuota",
+  "judul": "2.20 Ukuran payload dan kuota HP",
   "url": "e-mobile/e5-ukuran-payload/",
   "tanya": "Server Go kamu belum memasang kompresi. App Flutter mengirim `Accept-Encoding: gzip`. Apakah response tetap terkompres?",
   "jawab": "Tidak. Header itu hanya menyatakan app sanggup menerima gzip. Server yang memutuskan, dan `net/http` tidak mengompres sendiri. Pasang middleware atau aktifkan di reverse proxy."
@@ -845,7 +845,7 @@
  {
   "id": "B4.2-1",
   "halaman": "B4.2",
-  "judul": "2.8 Ubah skema tanpa downtime",
+  "judul": "2.22 Ubah skema tanpa downtime + ADR 17",
   "url": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/",
   "tanya": "Susun urutannya: (a) hapus kolom `telp`, (b) backfill `no_hp`, (c) tambah kolom `no_hp`, (d) API membaca `no_hp`, (e) API menulis ke dua kolom.",
   "jawab": "c → e → b → d → a. Tulis ganda (e) harus sebelum backfill (b). Kalau terbalik, baris yang berubah setelah backfill dan sebelum tulis ganda akan punya `no_hp` yang salah."
@@ -853,7 +853,7 @@
  {
   "id": "B4.2-2",
   "halaman": "B4.2",
-  "judul": "2.8 Ubah skema tanpa downtime",
+  "judul": "2.22 Ubah skema tanpa downtime + ADR 17",
   "url": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/",
   "tanya": "Jelaskan kenapa `ALTER TABLE akun ADD COLUMN no_hp text`, yang selesai dalam 0,8 ms di lab, tetap bisa membuat app terasa macet.",
   "jawab": "Perintah itu butuh lock `ACCESS EXCLUSIVE` pada tabel. Kalau ada transaction panjang yang sedang membaca tabel itu, ALTER harus menunggu. Selama menunggu, query baru di tabel yang sama ikut antre di belakang ALTER. Dengan `lock_timeout`, ALTER menyerah dan bisa dicoba ulang, bukan menahan semua request."
@@ -861,7 +861,7 @@
  {
   "id": "B4.2-3",
   "halaman": "B4.2",
-  "judul": "2.8 Ubah skema tanpa downtime",
+  "judul": "2.22 Ubah skema tanpa downtime + ADR 17",
   "url": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/",
   "tanya": "App v1.4 tidak dipakai lagi menurut metric. Raka langsung menghapus field `telp` dari response dan kolom `telp` di migration yang sama. Apa risikonya kalau deploy itu harus di-rollback?",
   "jawab": "Kode versi sebelumnya masih membaca kolom `telp`, padahal kolomnya sudah hilang. Rollback kode jadi gagal. Karena itu contract di database biasanya dijalankan satu deploy setelah kode berhenti memakai kolom lama."
@@ -1000,7 +1000,7 @@
   "judul": "3.6 Caching dan invalidation",
   "url": "b-fondasi/b9-caching/",
   "tanya": "Jelaskan kenapa saldo tidak dibaca dari cache, walau sering dibuka.",
-  "jawab": "Saldo dipakai untuk memutuskan transfer dan pembayaran. Saldo stale bisa membuat penarikan lolos padahal uangnya sudah dipakai. Keputusan uang harus dibaca dari database, di dalam transaction, dengan update atomik (2.1 Race condition)."
+  "jawab": "Saldo dipakai untuk memutuskan transfer dan pembayaran. Saldo stale bisa membuat penarikan lolos padahal uangnya sudah dipakai. Keputusan uang harus dibaca dari database, di dalam transaction, dengan update atomik (2.11 Race condition)."
  },
  {
   "id": "B9-3",
@@ -1048,7 +1048,7 @@
   "judul": "3.8 Offline-first dan sync",
   "url": "e-mobile/e2-offline-first/",
   "tanya": "Jelaskan kenapa `op_id` dibuat saat Ani mengubah data, bukan saat app mengirim sync.",
-  "jawab": "Kiriman ulang harus membawa id yang sama dengan kiriman pertama. Kalau id dibuat saat mengirim, app yang mati lalu mengirim ulang akan membuat id baru, dan server menerapkan +10 dua kali. Ini masalah yang sama dengan idempotency key yang dibuat ulang setiap retry (2.3 Retry dan idempotency key)."
+  "jawab": "Kiriman ulang harus membawa id yang sama dengan kiriman pertama. Kalau id dibuat saat mengirim, app yang mati lalu mengirim ulang akan membuat id baru, dan server menerapkan +10 dua kali. Ini masalah yang sama dengan idempotency key yang dibuat ulang setiap retry (2.14 Retry dan idempotency key)."
  },
  {
   "id": "E2-3",

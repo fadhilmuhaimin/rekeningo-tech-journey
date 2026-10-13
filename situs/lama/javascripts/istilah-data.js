@@ -115,7 +115,7 @@ window.ISTILAH = {
  "Backfill": {
   "b": "B4.2",
   "d": "Script sekali jalan yang mengisi kolom baru untuk baris lama, biasanya bertahap per batch.",
-  "n": "2.8 Ubah skema tanpa downtime",
+  "n": "2.22 Ubah skema tanpa downtime",
   "s": "istilah-backfill",
   "t": "Backfill",
   "u": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/"
@@ -123,7 +123,7 @@ window.ISTILAH = {
  "Backoff": {
   "b": "E3",
   "d": "Jeda yang makin panjang di antara percobaan ulang, supaya server yang sedang kesulitan tidak dibanjiri.",
-  "n": "2.3 Retry dan idempotency key",
+  "n": "2.14 Retry dan idempotency key",
   "s": "istilah-backoff",
   "t": "Backoff",
   "u": "e-mobile/e3-retry-idempotency/"
@@ -195,7 +195,7 @@ window.ISTILAH = {
  "Cursor pagination": {
   "b": "B1.3",
   "d": "Pagination yang meminta \"data sesudah item X\", bukan \"halaman ke-N\", jadi tetap stabil saat data bertambah.",
-  "n": "2.4 Pagination dan idempotent method",
+  "n": "2.19 Pagination dan idempotent method",
   "s": "istilah-cursor-pagination",
   "t": "Cursor pagination",
   "u": "b-fondasi/b1-3-pagination-idempotent/"
@@ -219,7 +219,7 @@ window.ISTILAH = {
  "Deadlock": {
   "b": "B3.2",
   "d": "Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya.",
-  "n": "2.1 Race condition",
+  "n": "2.11 Race condition",
   "s": "istilah-deadlock",
   "t": "Deadlock",
   "u": "b-fondasi/b3-2-race-condition-lock/"
@@ -331,7 +331,7 @@ window.ISTILAH = {
  "Idempotency key": {
   "b": "E3",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
-  "n": "2.3 Retry dan idempotency key",
+  "n": "2.14 Retry dan idempotency key",
   "s": "istilah-idempotency-key",
   "t": "Idempotency key",
   "u": "e-mobile/e3-retry-idempotency/"
@@ -339,7 +339,7 @@ window.ISTILAH = {
  "Idempotent": {
   "b": "B1.3",
   "d": "Sifat operasi yang hasil akhirnya sama walau dijalankan sekali atau berkali-kali.",
-  "n": "2.4 Pagination dan idempotent method",
+  "n": "2.19 Pagination dan idempotent method",
   "s": "istilah-idempotent",
   "t": "Idempotent",
   "u": "b-fondasi/b1-3-pagination-idempotent/"
@@ -363,7 +363,7 @@ window.ISTILAH = {
  "Isolation level": {
   "b": "B3.3",
   "d": "Seberapa banyak perubahan dari transaction lain yang boleh terlihat oleh satu transaction yang sedang berjalan.",
-  "n": "2.2 Isolation level",
+  "n": "2.12 Isolation level",
   "s": "istilah-isolation-level",
   "t": "Isolation level",
   "u": "b-fondasi/b3-3-isolation-level/"
@@ -419,7 +419,7 @@ window.ISTILAH = {
  "Lock": {
   "b": "B3.2",
   "d": "Tanda di database bahwa satu transaction sedang memakai baris atau tabel, sehingga transaction lain harus menunggu.",
-  "n": "2.1 Race condition",
+  "n": "2.11 Race condition",
   "s": "istilah-lock",
   "t": "Lock",
   "u": "b-fondasi/b3-2-race-condition-lock/"
@@ -443,7 +443,7 @@ window.ISTILAH = {
  "Lost update": {
   "b": "B3.2",
   "d": "Perubahan yang hilang karena dua transaction membaca nilai lama yang sama lalu saling menimpa.",
-  "n": "2.1 Race condition",
+  "n": "2.11 Race condition",
   "s": "istilah-lost-update",
   "t": "Lost update",
   "u": "b-fondasi/b3-2-race-condition-lock/"
@@ -451,7 +451,7 @@ window.ISTILAH = {
  "MVCC": {
   "b": "B3.3",
   "d": "Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis.",
-  "n": "2.2 Isolation level",
+  "n": "2.12 Isolation level",
   "s": "istilah-mvcc",
   "t": "MVCC (Multi-Version Concurrency Control)",
   "u": "b-fondasi/b3-3-isolation-level/"
@@ -507,7 +507,7 @@ window.ISTILAH = {
  "N+1": {
   "b": "B2.4",
   "d": "Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.",
-  "n": "2.5 N+1 query",
+  "n": "2.16 N+1 query",
   "s": "istilah-n-1-query",
   "t": "N+1 query",
   "u": "b-fondasi/b2-4-n-plus-1/"
@@ -515,7 +515,7 @@ window.ISTILAH = {
  "N+1 query": {
   "b": "B2.4",
   "d": "Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.",
-  "n": "2.5 N+1 query",
+  "n": "2.16 N+1 query",
   "s": "istilah-n-1-query",
   "t": "N+1 query",
   "u": "b-fondasi/b2-4-n-plus-1/"
@@ -523,7 +523,7 @@ window.ISTILAH = {
  "Nonrepeatable read": {
   "b": "B3.3",
   "d": "Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.",
-  "n": "2.2 Isolation level",
+  "n": "2.12 Isolation level",
   "s": "istilah-nonrepeatable-read",
   "t": "Nonrepeatable read",
   "u": "b-fondasi/b3-3-isolation-level/"
@@ -587,7 +587,7 @@ window.ISTILAH = {
  "Optimistic lock": {
   "b": "B3.2",
   "d": "Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca.",
-  "n": "2.1 Race condition",
+  "n": "2.11 Race condition",
   "s": "istilah-optimistic-lock",
   "t": "Optimistic lock",
   "u": "b-fondasi/b3-2-race-condition-lock/"
@@ -635,7 +635,7 @@ window.ISTILAH = {
  "Pagination": {
   "b": "B1.3",
   "d": "Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu.",
-  "n": "2.4 Pagination dan idempotent method",
+  "n": "2.19 Pagination dan idempotent method",
   "s": "istilah-pagination",
   "t": "Pagination",
   "u": "b-fondasi/b1-3-pagination-idempotent/"
@@ -659,7 +659,7 @@ window.ISTILAH = {
  "Payload": {
   "b": "E5",
   "d": "Isi data yang dikirim di body request atau response, biasanya JSON.",
-  "n": "2.7 Ukuran payload dan kuota",
+  "n": "2.20 Ukuran payload dan kuota HP",
   "s": "istilah-payload",
   "t": "Payload",
   "u": "e-mobile/e5-ukuran-payload/"
@@ -667,7 +667,7 @@ window.ISTILAH = {
  "Phantom read": {
   "b": "B3.3",
   "d": "Anomali: query yang sama dalam satu transaction mengembalikan kumpulan baris berbeda, karena transaction lain menambah atau menghapus baris.",
-  "n": "2.2 Isolation level",
+  "n": "2.12 Isolation level",
   "s": "istilah-phantom-read",
   "t": "Phantom read",
   "u": "b-fondasi/b3-3-isolation-level/"
@@ -715,7 +715,7 @@ window.ISTILAH = {
  "Query plan": {
   "b": "B2.3",
   "d": "Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.",
-  "n": "2.6 Index dan query plan",
+  "n": "2.17 Index dan query plan",
   "s": "istilah-query-plan",
   "t": "Query plan",
   "u": "b-fondasi/b2-3-index/"
@@ -755,7 +755,7 @@ window.ISTILAH = {
  "Race condition": {
   "b": "B3.2",
   "d": "Hasil yang bergantung pada urutan dua proses yang berjalan bersamaan.",
-  "n": "2.1 Race condition",
+  "n": "2.11 Race condition",
   "s": "istilah-race-condition",
   "t": "Race condition",
   "u": "b-fondasi/b3-2-race-condition-lock/"
@@ -795,7 +795,7 @@ window.ISTILAH = {
  "Retry": {
   "b": "E3",
   "d": "Mengirim ulang request yang gagal atau tidak dijawab.",
-  "n": "2.3 Retry dan idempotency key",
+  "n": "2.14 Retry dan idempotency key",
   "s": "istilah-retry",
   "t": "Retry",
   "u": "e-mobile/e3-retry-idempotency/"
@@ -875,7 +875,7 @@ window.ISTILAH = {
  "Serialization anomaly": {
   "b": "B3.3",
   "d": "Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun.",
-  "n": "2.2 Isolation level",
+  "n": "2.12 Isolation level",
   "s": "istilah-serialization-anomaly",
   "t": "Serialization anomaly",
   "u": "b-fondasi/b3-3-isolation-level/"
@@ -907,7 +907,7 @@ window.ISTILAH = {
  "Snapshot": {
   "b": "B3.3",
   "d": "Gambaran isi database pada satu saat, yang dilihat oleh satu query atau satu transaction.",
-  "n": "2.2 Isolation level",
+  "n": "2.12 Isolation level",
   "s": "istilah-snapshot",
   "t": "Snapshot",
   "u": "b-fondasi/b3-3-isolation-level/"
@@ -1091,7 +1091,7 @@ window.ISTILAH = {
  "backfill": {
   "b": "B4.2",
   "d": "Script sekali jalan yang mengisi kolom baru untuk baris lama, biasanya bertahap per batch.",
-  "n": "2.8 Ubah skema tanpa downtime",
+  "n": "2.22 Ubah skema tanpa downtime",
   "s": "istilah-backfill",
   "t": "Backfill",
   "u": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/"
@@ -1099,7 +1099,7 @@ window.ISTILAH = {
  "backoff": {
   "b": "E3",
   "d": "Jeda yang makin panjang di antara percobaan ulang, supaya server yang sedang kesulitan tidak dibanjiri.",
-  "n": "2.3 Retry dan idempotency key",
+  "n": "2.14 Retry dan idempotency key",
   "s": "istilah-backoff",
   "t": "Backoff",
   "u": "e-mobile/e3-retry-idempotency/"
@@ -1147,7 +1147,7 @@ window.ISTILAH = {
  "cursor pagination": {
   "b": "B1.3",
   "d": "Pagination yang meminta \"data sesudah item X\", bukan \"halaman ke-N\", jadi tetap stabil saat data bertambah.",
-  "n": "2.4 Pagination dan idempotent method",
+  "n": "2.19 Pagination dan idempotent method",
   "s": "istilah-cursor-pagination",
   "t": "Cursor pagination",
   "u": "b-fondasi/b1-3-pagination-idempotent/"
@@ -1171,7 +1171,7 @@ window.ISTILAH = {
  "deadlock": {
   "b": "B3.2",
   "d": "Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya.",
-  "n": "2.1 Race condition",
+  "n": "2.11 Race condition",
   "s": "istilah-deadlock",
   "t": "Deadlock",
   "u": "b-fondasi/b3-2-race-condition-lock/"
@@ -1243,7 +1243,7 @@ window.ISTILAH = {
  "idempotency key": {
   "b": "E3",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
-  "n": "2.3 Retry dan idempotency key",
+  "n": "2.14 Retry dan idempotency key",
   "s": "istilah-idempotency-key",
   "t": "Idempotency key",
   "u": "e-mobile/e3-retry-idempotency/"
@@ -1251,7 +1251,7 @@ window.ISTILAH = {
  "idempotent": {
   "b": "B1.3",
   "d": "Sifat operasi yang hasil akhirnya sama walau dijalankan sekali atau berkali-kali.",
-  "n": "2.4 Pagination dan idempotent method",
+  "n": "2.19 Pagination dan idempotent method",
   "s": "istilah-idempotent",
   "t": "Idempotent",
   "u": "b-fondasi/b1-3-pagination-idempotent/"
@@ -1267,7 +1267,7 @@ window.ISTILAH = {
  "isolation level": {
   "b": "B3.3",
   "d": "Seberapa banyak perubahan dari transaction lain yang boleh terlihat oleh satu transaction yang sedang berjalan.",
-  "n": "2.2 Isolation level",
+  "n": "2.12 Isolation level",
   "s": "istilah-isolation-level",
   "t": "Isolation level",
   "u": "b-fondasi/b3-3-isolation-level/"
@@ -1299,7 +1299,7 @@ window.ISTILAH = {
  "lock": {
   "b": "B3.2",
   "d": "Tanda di database bahwa satu transaction sedang memakai baris atau tabel, sehingga transaction lain harus menunggu.",
-  "n": "2.1 Race condition",
+  "n": "2.11 Race condition",
   "s": "istilah-lock",
   "t": "Lock",
   "u": "b-fondasi/b3-2-race-condition-lock/"
@@ -1315,7 +1315,7 @@ window.ISTILAH = {
  "lost update": {
   "b": "B3.2",
   "d": "Perubahan yang hilang karena dua transaction membaca nilai lama yang sama lalu saling menimpa.",
-  "n": "2.1 Race condition",
+  "n": "2.11 Race condition",
   "s": "istilah-lost-update",
   "t": "Lost update",
   "u": "b-fondasi/b3-2-race-condition-lock/"
@@ -1371,7 +1371,7 @@ window.ISTILAH = {
  "n+1 query": {
   "b": "B2.4",
   "d": "Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.",
-  "n": "2.5 N+1 query",
+  "n": "2.16 N+1 query",
   "s": "istilah-n-1-query",
   "t": "N+1 query",
   "u": "b-fondasi/b2-4-n-plus-1/"
@@ -1379,7 +1379,7 @@ window.ISTILAH = {
  "nonrepeatable read": {
   "b": "B3.3",
   "d": "Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.",
-  "n": "2.2 Isolation level",
+  "n": "2.12 Isolation level",
   "s": "istilah-nonrepeatable-read",
   "t": "Nonrepeatable read",
   "u": "b-fondasi/b3-3-isolation-level/"
@@ -1403,7 +1403,7 @@ window.ISTILAH = {
  "optimistic lock": {
   "b": "B3.2",
   "d": "Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca.",
-  "n": "2.1 Race condition",
+  "n": "2.11 Race condition",
   "s": "istilah-optimistic-lock",
   "t": "Optimistic lock",
   "u": "b-fondasi/b3-2-race-condition-lock/"
@@ -1435,7 +1435,7 @@ window.ISTILAH = {
  "pagination": {
   "b": "B1.3",
   "d": "Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu.",
-  "n": "2.4 Pagination dan idempotent method",
+  "n": "2.19 Pagination dan idempotent method",
   "s": "istilah-pagination",
   "t": "Pagination",
   "u": "b-fondasi/b1-3-pagination-idempotent/"
@@ -1459,7 +1459,7 @@ window.ISTILAH = {
  "payload": {
   "b": "E5",
   "d": "Isi data yang dikirim di body request atau response, biasanya JSON.",
-  "n": "2.7 Ukuran payload dan kuota",
+  "n": "2.20 Ukuran payload dan kuota HP",
   "s": "istilah-payload",
   "t": "Payload",
   "u": "e-mobile/e5-ukuran-payload/"
@@ -1467,7 +1467,7 @@ window.ISTILAH = {
  "phantom read": {
   "b": "B3.3",
   "d": "Anomali: query yang sama dalam satu transaction mengembalikan kumpulan baris berbeda, karena transaction lain menambah atau menghapus baris.",
-  "n": "2.2 Isolation level",
+  "n": "2.12 Isolation level",
   "s": "istilah-phantom-read",
   "t": "Phantom read",
   "u": "b-fondasi/b3-3-isolation-level/"
@@ -1507,7 +1507,7 @@ window.ISTILAH = {
  "query plan": {
   "b": "B2.3",
   "d": "Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.",
-  "n": "2.6 Index dan query plan",
+  "n": "2.17 Index dan query plan",
   "s": "istilah-query-plan",
   "t": "Query plan",
   "u": "b-fondasi/b2-3-index/"
@@ -1523,7 +1523,7 @@ window.ISTILAH = {
  "race condition": {
   "b": "B3.2",
   "d": "Hasil yang bergantung pada urutan dua proses yang berjalan bersamaan.",
-  "n": "2.1 Race condition",
+  "n": "2.11 Race condition",
   "s": "istilah-race-condition",
   "t": "Race condition",
   "u": "b-fondasi/b3-2-race-condition-lock/"
@@ -1563,7 +1563,7 @@ window.ISTILAH = {
  "retry": {
   "b": "E3",
   "d": "Mengirim ulang request yang gagal atau tidak dijawab.",
-  "n": "2.3 Retry dan idempotency key",
+  "n": "2.14 Retry dan idempotency key",
   "s": "istilah-retry",
   "t": "Retry",
   "u": "e-mobile/e3-retry-idempotency/"
@@ -1627,7 +1627,7 @@ window.ISTILAH = {
  "serialization anomaly": {
   "b": "B3.3",
   "d": "Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun.",
-  "n": "2.2 Isolation level",
+  "n": "2.12 Isolation level",
   "s": "istilah-serialization-anomaly",
   "t": "Serialization anomaly",
   "u": "b-fondasi/b3-3-isolation-level/"
@@ -1651,7 +1651,7 @@ window.ISTILAH = {
  "snapshot": {
   "b": "B3.3",
   "d": "Gambaran isi database pada satu saat, yang dilihat oleh satu query atau satu transaction.",
-  "n": "2.2 Isolation level",
+  "n": "2.12 Isolation level",
   "s": "istilah-snapshot",
   "t": "Snapshot",
   "u": "b-fondasi/b3-3-isolation-level/"

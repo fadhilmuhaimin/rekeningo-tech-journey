@@ -131,7 +131,9 @@
           var li = BB.el("li", { class: selesai(h) ? "is-done" : h.ada ? "" : "is-todo" });
           li.appendChild(h.ada ? BB.el("a", { href: urlOf(h), text: nama }) : BB.el("span", { text: nama }));
           if (h.inti) li.appendChild(tandaInti());
-          li.appendChild(BB.el("small", { text: selesai(h) ? " · selesai" : h.ada ? "" : " · menyusul" }));
+          // Halaman yang belum ditulis "segera"; halaman lama di slot naskah baru "versi lama" (keputusan 450).
+          var lamaH = h.lama || h.lebur_ke || h.diganti_oleh;
+          li.appendChild(BB.el("small", { text: selesai(h) ? " · selesai" : !h.ada ? " · segera" : lamaH ? " · versi lama" : "" }));
           ul.appendChild(li);
         });
         var tahapHal = d.halaman.filter(function (h) { return h.id === "T" + t.no; })[0];
@@ -161,7 +163,7 @@
         var t = typeof h.tahap === "number" ? "Tahap " + h.tahap : h.tahap === "sampingan" ? "Sampingan" : "";
         tbody.appendChild(BB.el("tr", null, [
           BB.el("td", { text: h.masalah }),
-          BB.el("td", null, [h.ada ? BB.el("a", { href: urlOf(h), text: label(h) }) : BB.el("span", { text: label(h) + " · menyusul" })]),
+          BB.el("td", null, [h.ada ? BB.el("a", { href: urlOf(h), text: label(h) }) : BB.el("span", { text: label(h) + " · segera" })]),
           BB.el("td", { text: t })]));
       });
       var cari = BB.el("input", { type: "search", class: "bb-input", placeholder: "Cari masalah, mis. lambat, dobel, saldo", "aria-label": "Cari masalah" });
