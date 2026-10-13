@@ -3,7 +3,8 @@
  * Beranda (keputusan 121, dirombak 208). Layar pertama: judul, satu kalimat, "Mulai dari PRD", kartu Lanjutkan
  * (dari localStorage), tiga pintu (Cerita, Peran, Masalah) sebagai tautan ke bagiannya, dan teka-teki Rp70.000
  * (widget tebak) yang mengajak pembaca berpikir sebelum membaca. Di bawahnya tiga pintu itu sendiri: peta enam
- * tahap yang bisa dipilih, peran sebagai pertanyaan dengan lima halaman saran, dan pencarian masalah dengan saran.
+ * tahap yang bisa dipilih, peran sebagai pertanyaan dengan sampai lima halaman saran (jumlah dari registry, keputusan
+ * 316), dan pencarian masalah dengan saran.
  * Semua data dari registry; tanpa server. Diagram peta adalah satu island DiagramArsitektur (I5b, keputusan 248):
  * tab mengirim tahap terpilih, diagram berganti dengan gerak singkat; Tahap 6 (proyeksi) tanpa diagram.
  */
@@ -65,15 +66,26 @@ const cssPesan = diagramTahap.map((t) => {
     : `${sel} > .diagram, ${sel} > .peta__catatan { display: none; }\n${kaki}`;
 }).join("\n");
 
-// Peran sebagai pertanyaan: lima halaman pertama yang menonjolkan peran itu, menurut urutan baca.
+// Peran sebagai pertanyaan: sampai lima halaman pertama yang menonjolkan peran itu, menurut urutan baca. Jumlahnya
+// dihitung dari registry, bukan ditulis "lima": peran tanpa halaman ber-`peran` (Dashboard web) mendapat 0, dan
+// kalimatnya tidak menjanjikan tahap mana pun (P8, keputusan 316).
 const PERAN: [string, string][] = [
   ["mobile", "App mobile"], ["web", "Dashboard web"], ["backend", "Server dan API"],
   ["devops", "Deploy dan server"], ["security", "Keamanan"], ["generalis", "Belum tahu, ingin semuanya"],
 ];
-const saranPeran = Object.fromEntries(PERAN.map(([p]) => [p, urut
-  .filter((h) => h.ada && (p === "generalis" ? h.inti : h.peran?.includes(p)))
-  .slice(0, 5)
-  .map((h) => ({ l: label(h), u: url(h), m: h.menit }))]));
+const SARAN_MAKS = 5;
+const saranPeran = Object.fromEntries(PERAN.map(([p]) => {
+  const semua = urut.filter((h) => h.ada && (p === "generalis" ? h.inti : h.peran?.includes(p)));
+  return [p, { jumlah: semua.length, daftar: semua.slice(0, SARAN_MAKS).map((h) => ({ l: label(h), u: url(h), m: h.menit })) }];
+}));
+const pembukaSaran = (p: string) => {
+  const { jumlah: n, daftar } = saranPeran[p]!;
+  const isi = daftar.length < n ? `${daftar.length} dari ${n}` : `${n}`;
+  return p === "generalis"
+    ? `Daftar ini memuat ${isi} halaman jalur inti, menurut urutan baca. Di sidebar, halaman jalur inti bertanda ★.`
+    : `Daftar ini memuat ${isi} halaman yang ditonjolkan untuk peran ini, menurut urutan baca. Sidebar menebalkan ${n === 1 ? "halaman itu" : `semua ${n} halaman itu`}.`;
+};
+const awalInti = saranPeran.generalis!.daftar[0];
 
 // Pencarian masalah: data dan saran kata kunci yang pasti memberi hasil.
 const masalah = hs.filter((h) => h.ada && h.masalah).map((h) => ({ m: h.masalah!, l: label(h), u: url(h) }));
@@ -97,7 +109,7 @@ const cara = hs.find((h) => h.id === "A0");
       </div>
       <nav class="beranda__pintu" aria-label="Tiga cara masuk">
         <a href="#peta"><b>Cerita</b><span>Enam tahap, satu PRD demi satu PRD</span></a>
-        <a href="#peran"><b>Peran</b><span>Lima halaman untuk pekerjaanmu</span></a>
+        <a href="#peran"><b>Peran</b><span>Saran baca menurut pekerjaanmu</span></a>
         <a href="#masalah"><b>Masalah</b><span>Cari dari gejala yang kamu lihat</span></a>
       </nav>
     </section>
@@ -144,16 +156,19 @@ const cara = hs.find((h) => h.id === "A0");
 
   <section id="peran" class="beranda__bagian" aria-labelledby="judul-peran">
     <h2 id="judul-peran">Peran: sehari-hari kamu mengerjakan apa?</h2>
-    <p class="beranda__sub">Pilih satu. Kamu mendapat lima halaman untuk dibaca dulu, dan sidebar menyorot halaman lain untuk peran itu.</p>
+    <p class="beranda__sub">Pilih satu. Daftar baca di bawah dan sorotan di sidebar mengikuti pilihanmu.</p>
     <div class="peran__tanya" role="group" aria-label="Pilih peran">
       {PERAN.map(([v, l]) => <button type="button" class="peran__jawab" data-peran-pilih={v} aria-pressed="false">{l}</button>)}
     </div>
     {PERAN.map(([v]) => (
       <div class="peran__saran" data-saran={v} hidden>
-        {saranPeran[v]!.length > 0 ? (
-          <ol>{saranPeran[v]!.map((x) => <li><a href={x.u}>{x.l}</a>{x.m ? <span> · {x.m} menit</span> : null}</li>)}</ol>
+        {saranPeran[v]!.daftar.length > 0 ? (
+          <>
+            <p class="peran__catatan">{pembukaSaran(v)}</p>
+            <ol>{saranPeran[v]!.daftar.map((x) => <li><a href={x.u}>{x.l}</a>{x.m ? <span> · {x.m} menit</span> : null}</li>)}</ol>
+          </>
         ) : (
-          <p>Halaman untuk peran ini mulai muncul di Tahap 3. Sementara itu, mulai dari jalur inti: <a href={saranPeran.generalis![0]?.u}>{saranPeran.generalis![0]?.l}</a>.</p>
+          <p class="peran__catatan">Belum ada halaman yang ditonjolkan untuk peran ini, jadi sidebar juga tidak menebalkan apa pun. Sementara itu, mulai dari jalur inti: <a href={awalInti?.u}>{awalInti?.l}</a>.</p>
         )}
       </div>
     ))}
