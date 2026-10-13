@@ -95,7 +95,7 @@ Tiga detail dari rekaman di atas:
 
 - `405` dari router bawaan Go berupa teks biasa, bukan problem+json. Kalau app mengharapkan semua error berformat JSON, router perlu dikonfigurasi. Format error dibahas di [[B6]].
 - Go menulis nama header `Www-Authenticate`. Nama header tidak peka huruf besar-kecil ([RFC 9110 §5.1](https://www.rfc-editor.org/rfc/rfc9110.html#name-field-names)), jadi app harus membacanya tanpa membedakan huruf.
-- Go menulis `422 Unprocessable Entity`, nama lama sebelum RFC 9110 menggantinya jadi "Unprocessable Content". App wajib mengabaikan teks itu dan hanya membaca angkanya ([RFC 9112 §4](https://www.rfc-editor.org/rfc/rfc9112.html#name-status-line)).
+- Go menulis `422 Unprocessable Entity`, nama lama sebelum RFC 9110 menggantinya jadi "Unprocessable Content". App sebaiknya mengabaikan teks itu dan hanya membaca angkanya ([RFC 9112 §4](https://www.rfc-editor.org/rfc/rfc9112.html#name-status-line)).
 
 ### Di stack lain
 
@@ -220,7 +220,7 @@ Rekeningo v1 memakai baris ketiga. Keputusan ini salah kalau Rekeningo harus mel
 <details class="success">
 <summary>Jawaban</summary>
 
-RFC 9112 menyatakan client harus mengabaikan teks itu, karena bisa berbeda antar server atau hilang di HTTP/2. Buktinya ada di lab: Go menulis "Unprocessable Entity", padahal RFC 9110 menamainya "Unprocessable Content". Yang bisa diandalkan hanya angka `422`.
+RFC 9112 menyatakan client sebaiknya (SHOULD) mengabaikan teks itu, karena bisa berbeda antar server atau hilang di HTTP/2. Buktinya ada di lab: Go menulis "Unprocessable Entity", padahal RFC 9110 menamainya "Unprocessable Content". Yang bisa diandalkan hanya angka `422`.
 
 </details>
 
