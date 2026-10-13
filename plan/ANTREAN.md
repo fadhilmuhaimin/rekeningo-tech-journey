@@ -758,56 +758,56 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### XF1 · Jumlah akun di rekaman M3
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: X1
 - selesai bila: `labs/api-t1/run.py` tidak lagi menulis "99 akun lain" dengan tangan; teks dan `harap` menghitung jumlah akun dari database (104 menurut seed `isiAwal`); `m3.txt` direkam ulang dari database bersih di container dan rekaman lain `api-t1` tidak berubah kecuali yang memang bergantung; halaman yang mengutip m3.txt cocok; keputusan baru mengoreksi angka 102 di keputusan 157.
-- catatan: Kategori rusak (X1, keputusan 370). Butuh Docker.
+- catatan: Kategori rusak (X1, keputusan 370). Butuh Docker. PR #245, keputusan 371; satu putaran.
 
 ### XF2 · Halaman Cerita sesuai naskah Tahap 1
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: X1
 - selesai bila: `situs/src/content/docs/cerita/index.mdx` memakai cerita dan tokoh dari `plan/CERITA-TAHAP-1.md` (Gedung A, PRD v1, Raka, Sinta, Budi, Ani, Pak Hadi, Dimas), bukan cerita lama (MVP 1–100, pesan makan siang); `tokoh.svg` tidak berlatar putih di mode gelap atau diganti; audit bahasa 0 error.
-- catatan: Kategori rusak (X1, keputusan 370).
+- catatan: Kategori rusak (X1, keputusan 370). PR #246, keputusan 372; satu putaran.
 
 ### XF3 · Peran 1.28 di registry sesuai naskah
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: X1
 - selesai bila: entri 1.28 di `situs/data/cerita.json` tidak memuat peran `security` (naskah `CERITA-TAHAP-1.md` ±242 tidak memasukkannya ke jalur Security), atau keputusan baru menjelaskan bedanya; beranda dan sidebar menghitung ulang dari registry.
-- catatan: Kategori rusak (X1, keputusan 370).
+- catatan: Kategori rusak (X1, keputusan 370). PR #242; satu putaran; tanpa keputusan baru.
 
 ### XF4 · Beranda: status Tahap 1 dan hasil pencarian masalah
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: X1
 - selesai bila: `Beranda.astro` tidak lagi menulis "Sedang ditulis: 42 dari 42 halaman" untuk Tahap 1 yang selesai; daftar hasil pencarian masalah tidak lagi memakai `ul role="status"` yang membuat `li` kehilangan induk list (live region dipisah dari list).
-- catatan: Kategori rusak + aksesibilitas (X1, keputusan 370).
+- catatan: Kategori rusak + aksesibilitas (X1, keputusan 370). PR #243; satu putaran.
 
 ### XF5 · 1.16: reason phrase SHOULD, bukan wajib
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: X1
 - selesai bila: `tahap-1/http.mdx` ±98 dan ±223 menulis bahwa client sebaiknya mengabaikan reason phrase (RFC 9112 §4 SHOULD), bukan wajib/harus.
-- catatan: Kategori rusak (X1, keputusan 370).
+- catatan: Kategori rusak (X1, keputusan 370). PR #244; satu putaran.
 
 ### XF6 · Label checkbox daftar periksa
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: X1
 - selesai bila: checkbox disabled di daftar periksa "Saat me-review kode AI, cek ini" (25 halaman Tahap 1) punya nama yang dapat diakses atau tidak diekspos sebagai kontrol tanpa nama; dicek terhadap aturan axe/WCAG yang berlaku (sumber primer).
-- catatan: Kategori aksesibilitas [perlu verifikasi] (X1, keputusan 370).
+- catatan: Kategori aksesibilitas [perlu verifikasi] (X1, keputusan 370). PR #247, keputusan 374; satu putaran.
 
 ### X2 · Penutup Tahap 1
 

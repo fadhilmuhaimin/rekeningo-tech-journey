@@ -99,3 +99,11 @@ Dari crosscheck X1 (keputusan 370). Bukti di `tmp/crosscheck/x1a.md`, `x1b.md`, 
 - runsql memakai sql.js (SQLite), bukan PGlite (keputusan 144 menunda). Di 1.12 panel Before memperlihatkan FK yang tidak ditegakkan. Usulan: satu kalimat di Coba 1.12 bahwa PostgreSQL selalu menegakkan foreign key (x1b).
 - 1.22–1.40 (19 halaman): entri aktif sidebar di bawah lipatan 1366×657 (top 639–1410 px), juga sesudah Berikutnya. Usulan: `scrollIntoView({ block: "center" })` di panel sidebar saat dimuat (x1c).
 - 1.32, 1.41, 1.33: sisa layar pertama 375×667 20, 21, dan 24 px, batasnya 20. Tanpa tindakan sekarang; siapa pun yang mengubah kepala halaman atau Inti ketiganya harus mengukur ulang (x1c).
+
+## Temuan polesan dari perbaikan XF
+
+- Beranda (XF4, #243): live region hasil pencarian masalah membacakan semua judul yang cocok (sampai 5) di setiap ketikan; pola lebih tenang menurut WCAG ARIA22 contoh 1: `role="status"` hanya berisi ringkasan ("3 halaman cocok") dan list di luar region, ditambah debounce ±300–500 ms. `statusTahap` akan menulis "Selesai: 0 halaman" untuk tahap non-lama tanpa halaman bernomor (belum terjadi).
+- `labs/api-t1/run.py` m3 (XF1, #245, keputusan 371): query rentan tanpa ORDER BY, jadi urutan akun 400/418/419 di body tidak diperiksa, hanya isinya; komentar "Angka 104 juga ditulis di prosa 1.19" kurang tepat (prosa menulis 100 + 3 + 1).
+- Halaman Cerita (XF2, #246, keputusan 372): baris 372 belum punya "Sumber:" dan "Salah bila:" eksplisit; `cerita/index.mdx` ±68 "Setiap tahap mengikuti urutan yang sama" sebaiknya "Tahap 1 mengikuti …, tahap berikutnya akan mengikuti pola yang sama" (naskah ±71); Rantai tokoh ±809 px di HP; panah sesudah "Enam kota" menggantung di akhir baris bb-flow (sudah ada sebelum XF2).
+- Task list (XF6, #247, keputusan 374): bila nanti ada butir `- [x]`, status centangnya ikut tersembunyi dari pembaca layar; "salah bila" di 374 sebaiknya menyebut kasus ini.
+
