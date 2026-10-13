@@ -2,7 +2,24 @@
 # (plan/PROPOSAL.md "Jalur B: make lab di Mac"). Tidak ada compose baru: PostgreSQL 17
 # dan Redis 8 dipakai lewat compose lab yang sudah ada, supaya nama project dan port
 # sama dengan yang disebut README dan Makefile tiap lab (keputusan 100).
-.PHONY: lab lab-up lab-down cek
+.PHONY: jalan jalan-hp siapkan-situs lab lab-up lab-down cek
+
+# bun versi CI lewat npx, jadi tidak perlu bun terpasang global (cukup Node 22+).
+BUN := npx --yes bun@1.4.2
+
+# Satu perintah untuk membaca situs: font (sekali), paket, lalu server dev di
+# http://localhost:4321 dan browser terbuka sendiri. Ctrl+C menghentikannya.
+jalan: siapkan-situs
+	$(BUN) run --cwd situs dev --open
+
+# Sama dengan `jalan`, tetapi server juga bisa dibuka dari HP di Wi-Fi yang sama:
+# buka alamat "Network" yang dicetak astro.
+jalan-hp: siapkan-situs
+	$(BUN) run --cwd situs dev --host
+
+siapkan-situs:
+	@test -f situs/public/fonts/Satoshi-Variable.woff2 || bash tools/get_fonts.sh
+	$(BUN) install --cwd situs --frozen-lockfile
 
 lab:
 	bash tools/cek_lab_env.sh

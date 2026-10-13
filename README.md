@@ -24,15 +24,21 @@ Yang membedakan panduan ini:
 
 ## Menjalankan situs
 
-Butuh Node 22 atau lebih baru dan bun 1.4.2 (`curl -fsSL https://bun.com/install | bash -s "bun-v1.4.2"`). bun memasang paket dan menjalankan skrip; astro, Playwright, dan tes tetap berjalan di Node.
+Butuh Node 22 atau lebih baru. Satu perintah mengunduh font (sekali), memasang paket, menjalankan server dev, dan membuka browser:
+
+```bash
+make jalan
+```
+
+Situs terbuka di `http://localhost:4321`; Ctrl+C menghentikannya. `make jalan-hp` sama, tetapi server juga bisa dibuka dari HP di Wi-Fi yang sama lewat alamat "Network" yang dicetak astro. Kalau server sudah jalan, astro menolak menyalakan server kedua dan menunjukkan alamatnya.
+
+Keduanya memakai bun 1.4.2 lewat `npx`, jadi bun tidak perlu terpasang global. bun memasang paket dan menjalankan skrip; astro, Playwright, dan tes tetap berjalan di Node. Langkah manualnya:
 
 ```bash
 bash tools/get_fonts.sh
-bun install --cwd situs --frozen-lockfile
-bun run --cwd situs dev
-```
-
-Buka `http://127.0.0.1:4321`. Versi dependency dikunci di `situs/package.json` dan `situs/bun.lock`.
+npx --yes bun@1.4.2 install --cwd situs --frozen-lockfile
+npx --yes bun@1.4.2 run --cwd situs dev
+``` Versi dependency dikunci di `situs/package.json` dan `situs/bun.lock`.
 
 ### Font
 
