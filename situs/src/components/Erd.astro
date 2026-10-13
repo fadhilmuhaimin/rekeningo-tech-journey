@@ -1,0 +1,35 @@
+---
+/**
+ * ERD statis per tahap (keputusan 375), dari situs/data/erd/tahap-<n>.json yang dibangun tools/erd.py dari skema lab.
+ *   import erd from "../../../../data/erd/tahap-1.json";
+ *   <Erd data={erd} />
+ * Tanpa JavaScript dan tanpa teks di SVG: kotak tabel adalah HTML, garis foreign key adalah border CSS bertoken.
+ * Tata bintang (erd.ts tataBintang): tabel induk di atas, tabel yang menunjuk ke induk di bawah. HP: satu kolom dengan
+ * garis di kiri. Desktop: dua kolom dengan garis tegak di tengah, turun dari tengah kotak induk.
+ * Data yang tidak lolos skema Zod, atau yang tidak berbentuk bintang, menggagalkan build.
+ */
+import { DataErd } from "../erd/skema";
+import { bagiDua, jumlahRujukan, tataBintang } from "../erd/erd";
+import ErdTabel from "./ErdTabel.astro";
+
+const d = DataErd.parse(Astro.props.data);
+const { induk, anak } = tataBintang(d);
+const kolom = bagiDua(anak);
+const rujukan = jumlahRujukan(d, induk.nama);
+const nFk = d.tabel.reduce((n, t) => n + t.fk.length, 0);
+const judul: string = Astro.props.judul ?? `Skema akhir Tahap ${d.tahap}`;
+const semuaWajib = d.tabel.every((t) => t.kolom.every((k) => k.wajib));
+const nama = (f: string) => f.split("/").pop();
+---
+<figure class="erd" aria-label={`${judul}: ${d.tabel.length} tabel, ${nFk} foreign key`}>
+  <figcaption class="erd__judul"><strong>{judul}</strong> <span class="bb-chip is-system">Rekaman lab · PostgreSQL {d.postgres}</span></figcaption>
+  <div class="erd__induk"><ErdTabel tabel={induk} rujukan={rujukan} /></div>
+  <div class="erd__anak">
+    {kolom.map((isi) => <div class="erd__kolom">{isi.map((t) => <ErdTabel tabel={t} />)}</div>)}
+  </div>
+  <p class="erd__catatan">
+    Garis menandai {nFk} foreign key, semuanya menunjuk ke <code translate="no">{induk.nama}.{induk.pk.join(", ")}</code>.
+    {semuaWajib && " Semua kolom wajib diisi (NOT NULL)."}
+    {" "}Diagram ini dibangun dari {d.sumber.file.map((f, i) => <>{i > 0 && " dan "}<code translate="no">{nama(f)}</code></>)}.
+  </p>
+</figure>
