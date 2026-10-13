@@ -1,7 +1,7 @@
 -- Pencairan warung Tahap 2 · Rekeningo (fiktif): M15, ADR 19 (keputusan 500, 502).
 -- Dimuat sesudah labs/b3-ledger/schema.sql ke schema yang sama. File ini tidak menyebut nama schema.
 -- Bentuk tabel sama persis dengan bagian M15 di labs/api-t2/migrasi/000011_ledger_pendukung.up.sql
--- (keputusan 409, 410), supaya skema Tahap 2 tetap satu. Kalau salah satunya diubah, ubah keduanya.
+-- (keputusan 409, 410), supaya skema Tahap 2 tetap satu. run.py gagal bila keduanya berbeda (keputusan 505).
 
 -- --8<-- [start:batch-pencairan]
 -- M15, ADR 19: satu batch per periode pencairan, aman dijalankan dua kali.

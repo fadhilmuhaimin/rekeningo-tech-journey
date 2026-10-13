@@ -172,6 +172,16 @@ def bangun_job():
         gagal("go build: " + hasil.stderr)
 
 
+def cek_sama_api_t2():
+    """Tabel pencairan lab ini harus sama dengan bagian M15 migration api-t2 (keputusan 505): skema Tahap 2 satu."""
+    api = (HERE / "../api-t2/migrasi/000011_ledger_pendukung.up.sql").read_text()
+    lab = (HERE / "schema.sql").read_text()
+    awal, akhir = "CREATE TABLE batch_pencairan", "-- --8<-- [end:batch-pencairan]"
+    harap(awal in api and awal in lab and akhir in lab, True, "penanda tabel pencairan di api-t2 dan schema.sql")
+    harap(lab[lab.index(awal):lab.index(akhir)].strip(), api[api.index(awal):].strip(),
+          "tabel pencairan schema.sql lawan labs/api-t2/migrasi/000011")
+
+
 def mulai():
     """Schema dari nol: ledger b3-ledger + tabel pencairan + data lab. Folder kerja dikosongkan."""
     with psycopg.connect(DSN, autocommit=True) as c:
@@ -504,6 +514,7 @@ WHERE b.id = p.buku_id;""")
 # ---------- main ----------
 
 def main():
+    cek_sama_api_t2()
     bangun_job()
     rekam_rentan()
     rekam_benar()
