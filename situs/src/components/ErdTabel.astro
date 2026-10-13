@@ -1,0 +1,41 @@
+---
+/**
+ * Satu kotak tabel di ERD statis (keputusan 375): nama tabel, kolom dengan tipe dan label kunci berupa teks
+ * (PK, FK → tabel.kolom, UNIQUE, CHECK), lalu aturan CHECK dan index di bawahnya. Dipakai Erd.astro.
+ */
+import type { Tabel } from "../erd/skema";
+import { kunciKolom, ringkasCek, ringkasIndex, ringkasTipe } from "../erd/erd";
+
+interface Props { tabel: Tabel; rujukan?: number }
+const { tabel: t, rujukan = 0 } = Astro.props;
+---
+<div class="erd__tabel" role="group" aria-label={`tabel ${t.nama}`}>
+  <p class="erd__nama"><code translate="no">{t.nama}</code>{rujukan > 0 && <span>dirujuk {rujukan} foreign key</span>}</p>
+  <ul class="erd__baris">
+    {t.kolom.map((k) => {
+      const kunci = kunciKolom(t, k.nama);
+      return (
+        <li>
+          <code translate="no">{k.nama}</code>
+          <span class="erd__tipe" translate="no">{ringkasTipe(k.tipe)}</span>
+          {(kunci.length > 0 || !k.wajib) && (
+            <span class="erd__label">
+              {kunci.map((x) => <span class:list={["erd__kunci", { "is-sistem": x.jenis === "PK" || x.jenis === "FK" }]} translate="no">{x.teks}</span>)}
+              {!k.wajib && <span class="erd__kunci">boleh kosong</span>}
+            </span>
+          )}
+        </li>
+      );
+    })}
+  </ul>
+  {t.cek.length + t.index.length > 0 && (
+    <ul class="erd__aturan">
+      {t.cek.map((c) => (
+        <li><span class="erd__kunci" translate="no">CHECK</span> <code translate="no">{ringkasCek(c.ekspresi)}</code> <span class="erd__cnama" translate="no">{c.nama}</span></li>
+      ))}
+      {t.index.map((x) => (
+        <li><span class="erd__kunci" translate="no">INDEX</span> <code translate="no">{ringkasIndex(x.definisi)}</code> <span class="erd__cnama" translate="no">{x.nama}</span></li>
+      ))}
+    </ul>
+  )}
+</div>

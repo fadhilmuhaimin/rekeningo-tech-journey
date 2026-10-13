@@ -10,6 +10,8 @@ import salinRujuk from "../../../../data/diagram/t1-relasi-salin-rujuk.json";
 import TabSet from "../../../components/TabSet.astro";
 import WidgetLama from "../../../components/WidgetLama.astro";
 import SkripLama from "../../../components/SkripLama.astro";
+import Erd from "../../../components/Erd.astro";
+import erdTahap1 from "../../../../data/erd/tahap-1.json";
 
 <p class="meta">Baca 7 menit · coba 2 menit · Prasyarat: [[t1-pertukaran-saldo]] · Jalur inti</p>
 
@@ -75,6 +77,12 @@ Aturan Pak Hadi membuat ini lebih dari soal tampilan. Setiap rupiah harus bisa d
 <Snippet file="labs/api-t1/output/relasi.txt" lines="39:45" title="Rekaman lab: labs/api-t1/output/relasi.txt" />
 
 **5. Kolom `saldo` adalah angka turunan.** Nilainya seharusnya sama dengan semua top-up dikurangi pembayaran keluar ditambah pembayaran masuk. Di v1 angka itu disimpan langsung, bukan dihitung dari catatan. Ini akar pertanyaan Pak Hadi di [[t1-pertukaran-saldo]]: kalau saldo salah, dari baris mana kita tahu kenapa?
+
+### Skema di akhir Tahap 1
+
+Diagram ini dibangun dari skema lab di akhir uji coba enam minggu. Dibanding skema minggu 1, ada tabel `koreksi` dari [[t1-adr-transaction]] dan batas saldo warung di `akun` dari [[t1-m4]].
+
+<Erd data={erdTahap1} />
 
 ### Di stack lain
 
@@ -161,7 +169,7 @@ Untuk akun dan transaksi, Rekeningo v1 memakai tolak. Akun warung yang selesai u
 |---|---|---|
 | Menonaktifkan akun tanpa menghapusnya | Uji coba 6 minggu tidak menutup akun mana pun | Tahap 2, saat karyawan keluar dan warung berganti |
 | Saldo dihitung dari catatan, bukan disimpan | Kolom saldo cukup untuk 100 akun; lihat trade-off di [[t1-pertukaran-saldo]] | Tahap 2: ledger |
-| Index untuk riwayat yang panjang | Riwayat v1 dibatasi 20 baris | Tahap 2: [[B2.3]] |
+| Mengukur apakah index riwayat dipakai (query plan) | Riwayat v1 dibatasi 20 baris. Index `(dari, dibuat DESC)` dan `(ke, dibuat DESC)` sudah ada di diagram, tapi belum diukur | Tahap 2: [[B2.3]] |
 
 </Blok>
 

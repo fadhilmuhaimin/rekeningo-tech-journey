@@ -1144,3 +1144,47 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .progres__banding { width: 100%; margin: 0.6rem 0 0; font-variant-numeric: tabular-nums; }
 .sl-markdown-content .progres__banding :is(th, td) { padding: 0.3rem 0.5rem 0.3rem 0; vertical-align: top; }
 .sl-markdown-content .progres__banding tbody th { font-weight: 400; color: var(--teks-2); }
+
+/* ERD statis dari skema lab (Erd.astro, keputusan 375). Kotak tabel HTML, label kunci berupa teks, garis foreign key
+   berupa border bertoken (bukan latar, bukan SVG). --erd-jarak = jarak antarkotak, --erd-taji = tinggi garis cabang
+   (tengah baris nama tabel). HP: garis tegak di kiri, cabang ke setiap kotak, turun dari tepi bawah kotak induk.
+   Desktop: kotak induk di tengah, dua kolom, garis tegak di tengah celah kolom. Setiap kotak anak menggambar ruas garis
+   dari celah di atasnya sampai tepi bawahnya; kotak terakhir hanya sampai cabangnya, jadi garis tidak menggantung. */
+.sl-markdown-content figure.erd { --erd-jarak: 1rem; --erd-taji: 1.05rem; --erd-celah: 1.4rem; margin-top: 1.2rem; display: grid; gap: var(--erd-jarak); font-size: var(--rk-ui); line-height: 1.45; }
+.sl-markdown-content figure.erd > * { margin-top: 0; }
+.erd__judul { display: flex; flex-wrap: wrap; gap: 0.3rem 0.7rem; align-items: center; margin: 0; color: var(--judul); font-size: 1rem; text-align: left; }
+.sl-markdown-content .erd__anak, .sl-markdown-content .erd__kolom { display: grid; gap: var(--erd-jarak); margin: 0; align-content: start; }
+.sl-markdown-content .erd__anak { padding-left: var(--erd-celah); }
+.sl-markdown-content .erd__anak > *, .sl-markdown-content .erd__kolom > * { margin-top: 0; }
+.sl-markdown-content .erd__tabel { position: relative; margin: 0; min-width: 0; padding: 0.5rem 0.75rem 0.6rem; border: 1px solid var(--garis-2); border-radius: 8px; background: var(--bg-2); }
+.sl-markdown-content .erd__induk .erd__tabel { border-color: var(--k-system-edge); }
+.erd__anak .erd__tabel::before { content: ""; position: absolute; top: var(--erd-taji); left: calc(-1 * var(--erd-celah) + 0.45rem - 1px); width: calc(var(--erd-celah) - 0.45rem); border-top: 2px solid var(--k-system-edge); }
+.erd__anak .erd__tabel::after { content: ""; position: absolute; top: calc(-1 * var(--erd-jarak) - 1px); bottom: -1px; left: calc(-1 * var(--erd-celah) + 0.45rem - 1px); border-left: 2px solid var(--k-system-edge); }
+.erd__anak > .erd__kolom:last-child > .erd__tabel:last-child::after { bottom: auto; height: calc(var(--erd-jarak) + 1px + var(--erd-taji) + 2px); }
+.sl-markdown-content .erd__nama { margin: 0 0 0.3rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.1rem 0.6rem; }
+.sl-markdown-content .erd__nama code { padding: 0; background: transparent; color: var(--judul); font-size: 1rem; font-weight: 700; }
+.erd__nama span { color: var(--teks-2); font-size: var(--rk-ui-kecil); }
+.sl-markdown-content ul.erd__baris, .sl-markdown-content ul.erd__aturan { list-style: none; margin: 0; padding: 0; }
+.sl-markdown-content ul.erd__baris > li { margin: 0; padding: 0.2rem 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.15rem 0.5rem; border-top: 1px solid var(--garis); }
+.sl-markdown-content figure.erd code { font-variant-ligatures: none; }
+.sl-markdown-content .erd__baris code { padding: 0; background: transparent; color: var(--teks); font-size: var(--rk-ui); }
+.erd__tipe { color: var(--teks-2); font-family: var(--sl-font-mono); font-size: var(--rk-ui-kecil); }
+.erd__label { margin-left: auto; display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.erd__kunci { padding: 0 0.4rem; border: 1px solid var(--k-old-edge); border-radius: 4px; background: var(--k-old-fill); color: var(--k-old-ink); font-size: var(--rk-ui-kecil); font-weight: 700; white-space: nowrap; }
+.erd__kunci.is-sistem { border-color: var(--k-system-edge); background: var(--k-system-fill); color: var(--k-system-ink); }
+.sl-markdown-content ul.erd__aturan { margin-top: 0.35rem; display: grid; gap: 0.3rem; }
+.sl-markdown-content ul.erd__aturan > li { margin: 0; color: var(--teks-2); font-size: var(--rk-ui-kecil); overflow-wrap: anywhere; }
+.sl-markdown-content .erd__aturan code { padding: 0; background: transparent; color: var(--teks); font-size: var(--rk-ui-kecil); white-space: normal; overflow-wrap: anywhere; }
+.sl-markdown-content .erd__catatan { margin: 0; color: var(--teks-2); font-size: var(--rk-ui); }
+.sl-markdown-content .erd__catatan code { font-size: var(--rk-ui-kecil); overflow-wrap: anywhere; }
+@media (min-width: 64em) {
+  .sl-markdown-content figure.erd { --erd-celah: 2.4rem; }
+  .sl-markdown-content .erd__induk { justify-self: center; width: min(30rem, 100%); }
+  .sl-markdown-content .erd__anak { padding-left: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--erd-celah); }
+  /* Kolom kiri: cabang dan ruas di kanan kotak; kolom kanan: di kiri. Keduanya bertemu di tengah celah. */
+  .erd__anak > .erd__kolom:first-child .erd__tabel::before { left: 100%; width: calc(var(--erd-celah) / 2); }
+  .erd__anak > .erd__kolom:first-child .erd__tabel::after { left: calc(100% + var(--erd-celah) / 2); }
+  .erd__anak > .erd__kolom:last-child .erd__tabel::before { left: auto; right: 100%; width: calc(var(--erd-celah) / 2); }
+  .erd__anak > .erd__kolom:last-child .erd__tabel::after { left: auto; right: calc(100% + var(--erd-celah) / 2); }
+  .erd__anak > .erd__kolom > .erd__tabel:last-child::after { bottom: auto; height: calc(var(--erd-jarak) + 1px + var(--erd-taji) + 2px); }
+}
