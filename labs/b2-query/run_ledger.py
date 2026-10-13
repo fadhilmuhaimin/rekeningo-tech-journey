@@ -215,12 +215,125 @@ def lab_index_n1(versi, d, ramai):
     return ri, rn
 
 
+def lab_kursor(versi, d):
+    r = Rekaman("pagination OFFSET lawan kursor (dibuat, id) saat kiriman baru masuk", versi)
+    r("-- Sesudah index riwayat dan query JOIN (ADR 15). Kiriman baru lewat jalur biasa: satu transaction, trigger")
+    r("-- invarian aktif, dibuat = now() (sesudah semua data lab). Buffers dan waktu = pembanding (keputusan 523).")
+    budi = d.buku[L.BUDI]
+    with sambung() as c:
+        def kirim(dari, jumlah=5_000):
+            with c.transaction():
+                j = c.execute("INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Kiriman', %s) "
+                              "RETURNING id", (dari,)).fetchone()[0]
+                ids = c.execute("INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (%s, %s, %s), (%s, %s, %s) "
+                                "RETURNING id", (j, d.buku[dari], -jumlah, j, budi, jumlah)).fetchall()
+                c.execute(PERBARUI_CACHE, (j,))
+            return j, ids[-1][0]
+
+        def offset(n, off):
+            return c.execute(JOIN.format(where="p.buku_id = %(buku)s", urut=BARU + " LIMIT %(n)s OFFSET %(off)s"),
+                             {"buku": budi, "n": n, "off": off}).fetchall()
+
+        def kursor(n, k=None, arah="<"):
+            w = "p.buku_id = %(buku)s" + (f" AND (p.dibuat, p.id) {arah} (%(kd)s, %(ki)s)" if k else "")
+            urut = BARU if arah == "<" else "ORDER BY p.dibuat, p.id"
+            return c.execute(JOIN.format(where=w, urut=urut + (" LIMIT %(n)s" if n else "")),
+                             {"buku": budi, "n": n, "kd": k and k[0], "ki": k and k[1]}).fetchall()
+
+        def tampil(rows, sudah=()):
+            r(tabel(["posting", "jurnal", "jenis", "arah", "lawan", "jumlah", "catatan"],
+                    [(p, j, jenis, "keluar" if x < 0 else "masuk", lawan, rp(abs(x)), "ganda" if p in sudah else "")
+                     for p, j, jenis, x, _, lawan in rows]))
+
+        r.bagian("A. OFFSET (cara M12), 5 baris per halaman supaya ringkas")
+        r.sql(JOIN.format(where=f"p.buku_id = {budi}", urut=BARU + " LIMIT 5 OFFSET 0"))
+        h1 = offset(5, 0)
+        tampil(h1)
+        j, _ = kirim(L.DIMAS)
+        r(f"Dimas mengirim Rp5.000 ke Budi: jurnal {j}.")
+        r("=> ... LIMIT 5 OFFSET 5")
+        h2 = offset(5, 5)
+        tampil(h2, {x[0] for x in h1})
+        harap(h2[0][0], h1[-1][0], "OFFSET: baris pertama halaman 2 = baris terakhir halaman 1")
+        lihat = [x[0] for x in h1 + h2]
+        r(f"Di layar: {len(lihat)} baris, {len(set(lihat))} posting berbeda. Kiriman Dimas (jurnal {j}) tidak ada di "
+          "daftar.")
+
+        r.bagian("B. Kursor (dibuat, id) baris terakhir yang sudah tampil")
+        h1 = kursor(5)
+        r.sql(JOIN.format(where=f"p.buku_id = {budi}", urut=BARU + " LIMIT 5"))
+        tampil(h1)
+        k = (h1[-1][4], h1[-1][0])
+        r(f"kursor = ('{k[0]}', {k[1]})")
+        j, _ = kirim(L.CITRA)
+        r(f"Citra mengirim Rp5.000 ke Budi: jurnal {j}.")
+        r(f"=> ... WHERE p.buku_id = {budi} AND (p.dibuat, p.id) < ('{k[0]}', {k[1]}) {BARU} LIMIT 5")
+        h2 = kursor(5, k)
+        tampil(h2, {x[0] for x in h1})
+        harap(len({x[0] for x in h1} & {x[0] for x in h2}), 0, "kursor: baris ganda")
+        atas = (h1[0][4], h1[0][0])
+        r("Lebih baru dari baris pertama halaman 1 (app memintanya saat daftar ditarik ke bawah; dibuat = now()):")
+        r(f"=> ... WHERE p.buku_id = {budi} AND (p.dibuat, p.id) > (<dibuat posting {atas[1]}>, {atas[1]}) "
+          "ORDER BY p.dibuat, p.id")
+        h0 = kursor(None, atas, ">")
+        tampil(h0)
+        harap([x[1] for x in h0], [j], "kursor: yang lebih baru = kiriman Citra")
+        lihat = [x[0] for x in h0 + h1 + h2]
+        r(f"Di layar: {len(lihat)} baris, {len(set(lihat))} posting berbeda. Kiriman Citra (jurnal {j}) ada.")
+
+        r.bagian("C. Seluruh riwayat Budi, 20 baris per halaman, satu kiriman masuk sebelum setiap halaman berikutnya")
+        pengirim = [a for (a,) in c.execute("SELECT akun_id FROM buku WHERE jenis = 'karyawan' AND akun_id <> %s "
+                                            "ORDER BY saldo_cache DESC, akun_id LIMIT 10", (L.BUDI,)).fetchall()]
+        hasil = []
+        for cara in ("OFFSET", "kursor"):
+            lama = {p for (p,) in c.execute("SELECT id FROM posting WHERE buku_id = %s", (budi,)).fetchall()}
+            lihat, baru, halaman = [], set(), 0
+            while True:
+                h = offset(20, 20 * halaman) if cara == "OFFSET" else kursor(20, lihat and (akhir[4], akhir[0]))
+                halaman += 1
+                lihat += [x[0] for x in h]
+                if halaman == 1:
+                    pertama = h[0]
+                if len(h) < 20:
+                    break
+                akhir = h[-1]
+                baru.add(kirim(pengirim[len(baru) % 10])[1])
+            if cara == "kursor":
+                lihat += [x[0] for x in kursor(None, (pertama[4], pertama[0]), ">")]
+            hasil.append((cara, halaman, len(lihat), len(lihat) - len(set(lihat)), len(lama - set(lihat)),
+                          len(baru), len(baru - set(lihat))))
+        r(tabel(["cara", "halaman", "baris tampil", "ganda", "posting lama terlewat", "kiriman baru",
+                 "kiriman baru tidak tampil"], hasil))
+        harap([x[3:5] + x[6:] for x in hasil], [(hasil[0][5], 0, hasil[0][5]), (0, 0, 0)], "ganda, terlewat, tidak tampil")
+        r("OFFSET: setiap kiriman menggeser semua baris lama satu posisi, jadi setiap halaman mengulang satu baris dari")
+        r("halaman sebelumnya, dan kiriman yang masuk di atas tidak pernah tampil. Posting lama tidak terlewat karena")
+        r("ledger hanya bertambah (append-only); baris lama terlewat hanya bila ada baris yang hilang dari atas daftar.")
+        r("Kursor: halaman berikutnya dimulai sesudah (dibuat, id) baris terakhir, dan kiriman baru diambil sekali")
+        r("lewat (dibuat, id) > baris pertama.")
+
+        r.bagian("D. Halaman jauh: 20 baris mulai posisi 1.001")
+        dasar = f"SELECT p.id, p.jumlah, p.dibuat FROM posting p WHERE p.buku_id = {budi}"
+        ki, _, kd = c.execute(dasar + f" {BARU} LIMIT 1 OFFSET 999").fetchone()
+        q_off = dasar + f" {BARU} LIMIT 20 OFFSET 1000"
+        q_kur = dasar + f" AND (p.dibuat, p.id) < ('{kd}', {ki}) {BARU} LIMIT 20"
+        harap(c.execute(q_off).fetchall(), c.execute(q_kur).fetchall(), "OFFSET 1000 dan kursor: baris sama")
+        bo = explain(r, c, "D1. OFFSET 1000", q_off, ["Index Scan Backward using posting_riwayat"])
+        bk = explain(r, c, "D2. Kursor = (dibuat, id) baris ke-1.000", q_kur,
+                     ["Index Scan Backward using posting_riwayat", "ROW(dibuat, id) < ROW("])
+        harap([x[1] for x in bo if "posting_riwayat" in x[0]], [1020], "OFFSET 1000: baris dibaca index")
+        harap([x[1] for x in bk if "posting_riwayat" in x[0]], [20], "kursor: baris dibaca index")
+        r("\nKedua query menghasilkan 20 baris yang sama. OFFSET membaca 1.020 baris dari index lalu membuang 1.000;")
+        r("kursor mulai membaca tepat sesudah baris ke-1.000.")
+    return r
+
+
 def jalankan(folder):
     with sambung() as c:
         versi = c.execute("SHOW server_version").fetchone()[0].split()[0]
     rd, d, ramai = L.muat(versi)
     ri, rn = lab_index_n1(versi, d, ramai)
-    for r, nama in ((rd, "data.txt"), (rn, "n1.txt"), (ri, "index.txt")):
+    rk = lab_kursor(versi, d)
+    for r, nama in ((rd, "data.txt"), (rn, "n1.txt"), (ri, "index.txt"), (rk, "pagination.txt")):
         r.tulis(folder, nama)
 
 
