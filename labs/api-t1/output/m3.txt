@@ -33,7 +33,7 @@ HTTP/1.1 200 OK
 Content-Type: application/json
 Transfer-Encoding: chunked
 
-{"warung":[{"id":400,"jenis":"admin","nama":"Admin Tunjangan","saldo":0},{"id":418,"jenis":"warung","nama":"Warung Ani","saldo":0},{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000}, ... 99 akun lain, semuanya dengan saldo]}
+{"warung":[{"id":400,"jenis":"admin","nama":"Admin Tunjangan","saldo":0},{"id":418,"jenis":"warung","nama":"Warung Ani","saldo":0},{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000}, ... 101 akun lain, semuanya dengan saldo]}
 server log: PERINGATAN: mode rentan m3 menyala
 server log: error internal: ERROR: syntax error at or near "nasi" (SQLSTATE 42601)
 # server: ./api-t1
