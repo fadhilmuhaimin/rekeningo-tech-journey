@@ -1,0 +1,92 @@
+# M13 · rilis 2 (migrate bertahap) dan rilis 3 (contract) tanpa jeda (keputusan 534)
+# Lanjutan lock-timeout.txt di schema yang sama. Server tidak berhenti; bayar tetap masuk selama backfill.
+# Setiap langkah: app 1.0 (field jumlah) dan 1.1 (field nominal) bayar ke Warung Sari dan membuka riwayat
+# dengan model Dart app/riwayat_v1.dart.
+# Data lab (sql/ledger/00-data.sql): 1.013 akun (1 admin, 1.000 karyawan, 12 warung) dan 15.000 baris
+# transaksi (tiga minggu makan siang kampus: 1.000 karyawan x 15 hari x Rp25.000).
+
+# Kode bayar server v2 tulis dua tempat (satu transaction, BEGIN ... COMMIT):
+#   SELECT id FROM akun WHERE id IN ({dari}, {ke}) ORDER BY id FOR UPDATE
+#   SELECT buka_buku(ARRAY[{dari}, {ke}]::bigint[])
+#   UPDATE akun SET saldo = saldo - {x} WHERE id = {dari} RETURNING saldo
+#   UPDATE akun SET saldo = saldo + {x} WHERE id = {ke}
+#   INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) SELECT 'bayar', 'Bayar ke ' || nama, {dari} FROM akun WHERE id = {ke} RETURNING id
+#   INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES ({j}, (SELECT id FROM buku WHERE akun_id = {dari}), -{x}), ({j}, (SELECT id FROM buku WHERE akun_id = {ke}), {x})
+#   UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = {j} GROUP BY buku_id) p WHERE b.id = p.buku_id
+#   INSERT INTO transaksi (id, dari, ke, jumlah) VALUES ({j}, {dari}, {ke}, {x})
+
+rilis 1 (server v1)               app 1.0 (Karyawan 420) bayar COMMIT · nomor 15.002 · saldo Rp240.000
+                                  app 1.0 layar riwayat: 16 baris, teratas keluar Warung Sari 10000
+rilis 1 (server v1)               app 1.1 (Karyawan 421) bayar COMMIT · nomor 15.003 · saldo Rp240.000
+                                  app 1.1 layar riwayat: 16 baris, teratas keluar Warung Sari 10000
+
+ 1 [S] rilis 2: BEGIN; isi sql/ledger/20-persiapan.sql; COMMIT
+      -> COMMIT: akun sistem 1, empat buku sistem, fungsi buka_buku, satu ruang nomor transaksi dan jurnal
+
+rilis 2 (tulis dua, baca v1)      app 1.0 (Karyawan 420) bayar COMMIT · nomor 15.006 · buka_buku 2 · saldo Rp230.000
+                                  app 1.0 layar riwayat: 17 baris, teratas keluar Warung Sari 10000
+rilis 2 (tulis dua, baca v1)      app 1.1 (Karyawan 421) bayar COMMIT · nomor 15.008 · buka_buku 1 · saldo Rp230.000
+                                  app 1.1 layar riwayat: 17 baris, teratas keluar Warung Sari 10000
+
+ 2 [BF] batch 1: BEGIN; SET LOCAL lock_timeout = '3s'; SELECT id FROM akun WHERE jenis IN ('karyawan', 'warung') AND id > 0 ORDER BY id LIMIT 1000 FOR UPDATE
+      -> 1.000 akun dikunci (401-1400)
+ 3 [BF] batch 1: SELECT buka_buku(<1.000 id>)
+      -> 997 akun dibuka (sisanya sudah dibuka pembayaran)
+ 4 [P] bayar Budi (419) ke Warung Ani (418) Rp25.000: SELECT ... FOR UPDATE
+      -> MENUNGGU ShareLock pada baris yang dikunci transaction lain, di belakang BF
+ 5 [Q] app Karyawan 420 membuka riwayat (SELECT, server v1 query)
+      -> 17 baris, tanpa menunggu: lock baris tidak menahan SELECT biasa
+ 6 [BF] batch 1: COMMIT
+      -> lock 1.000 baris akun dilepas
+#   Bayar yang menyentuh akun di batch menunggu paling lama satu batch (lock baris, bukan lock tabel).
+#   Bila batch sendiri tertahan bayar yang lama, lock_timeout memotongnya sesudah 3 detik. Bayar lain yang antre
+#   di belakang baris yang sudah dikunci batch ikut menunggu paling lama selama itu. Batch yang gagal di-ROLLBACK
+#   dan bisa diulang dari id yang sama (mekanisme dari dokumentasi lock_timeout; tidak direkam di lab ini).
+ 7 [P] (lanjut sesudah batch 1 COMMIT)
+      -> COMMIT · nomor 15.998 · buka_buku 0
+ 8 [X] bayar Karyawan 1405 ke Warung Sari (502) Rp10.000, akun belum di-backfill
+      -> COMMIT · nomor 16.000 · buka_buku 1
+ 9 [BF] batch 2: BEGIN; SET LOCAL lock_timeout = '3s'; SELECT id FROM akun WHERE jenis IN ('karyawan', 'warung') AND id > 1400 ORDER BY id LIMIT 1000 FOR UPDATE
+      -> 12 akun dikunci (1401-1412)
+10 [BF] batch 2: SELECT buka_buku(<12 id>)
+      -> 11 akun dibuka (sisanya sudah dibuka pembayaran)
+11 [BF] batch 2: COMMIT
+12 [BF] batch 3: SELECT id FROM akun WHERE jenis IN ('karyawan', 'warung') AND id > 1412 ORDER BY id LIMIT 1000 FOR UPDATE
+      -> 0 baris; backfill selesai
+
+# Cek malam (kolom saldo v1 = saldo_cache = jumlah posting, setiap akun karyawan dan warung):
+ akun | tanpa_buku | berbeda
+------+------------+---------
+ 1012 | 0          | 0
+# Semua buku: 0 cache berbeda dari jumlah posting; jumlah semua posting 0.
+ jenis jurnal | jumlah
+--------------+--------
+ bayar        | 4
+ pembalik     | 1
+ pembuka      | 1.002
+ selisih      | 1
+
+rilis 2 (tulis dua, baca ledger)  app 1.0 (Karyawan 420) bayar COMMIT · nomor 16.012 · buka_buku 0 · saldo Rp220.000
+                                  app 1.0 layar riwayat: 3 baris, teratas keluar Warung Sari 10000
+rilis 2 (tulis dua, baca ledger)  app 1.1 (Karyawan 421) bayar COMMIT · nomor 16.013 · buka_buku 0 · saldo Rp220.000
+                                  app 1.1 layar riwayat: 3 baris, teratas keluar Warung Sari 10000
+$ curl '/akun/419/riwayat'   (Budi, app 1.0, server v2 baca ledger)
+{"riwayat":[{"id":15998,"jenis":"bayar","arah":"keluar","lawan":"Warung Ani","jumlah":25000,"nominal":25000,"waktu":"<waktu>"},{"id":15029,"jenis":"pembalik","arah":"masuk","lawan":"Selisih v1","jumlah":70000,"nominal":70000,"waktu":"<waktu>"},{"id":15028,"jenis":"selisih","arah":"keluar","lawan":"Selisih v1","jumlah":70000,"nominal":70000,"waktu":"<waktu>"},{"id":15027,"jenis":"pembuka","arah":"masuk","lawan":"Saldo awal","jumlah":180000,"nominal":180000,"waktu":"<waktu>"}],"berikutnya":null}
+
+# Kode bayar server v2 ledger saja (satu transaction, BEGIN ... COMMIT):
+#   SELECT akun_id, saldo_cache FROM buku WHERE akun_id IN ({dari}, {ke}) ORDER BY id FOR UPDATE
+#   INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) SELECT 'bayar', 'Bayar ke ' || nama, {dari} FROM akun WHERE id = {ke} RETURNING id
+#   INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES ({j}, (SELECT id FROM buku WHERE akun_id = {dari}), -{x}), ({j}, (SELECT id FROM buku WHERE akun_id = {ke}), {x})
+#   UPDATE buku b SET saldo_cache = b.saldo_cache + p.jumlah FROM (SELECT buku_id, sum(jumlah) AS jumlah FROM posting WHERE jurnal_id = {j} GROUP BY buku_id) p WHERE b.id = p.buku_id
+rilis 3 (ledger saja)             app 1.0 (Karyawan 420) bayar COMMIT · nomor 16.014 · saldo Rp210.000
+                                  app 1.0 layar riwayat: 4 baris, teratas keluar Warung Sari 10000
+rilis 3 (ledger saja)             app 1.1 (Karyawan 421) bayar COMMIT · nomor 16.015 · saldo Rp210.000
+                                  app 1.1 layar riwayat: 4 baris, teratas keluar Warung Sari 10000
+13 [S] rilis 3: BEGIN; isi 000013_saldo_contract.up.sql; DROP FUNCTION buka_buku(bigint[]); COMMIT
+      -> COMMIT: kolom saldo dan tabel transaksi, topup, koreksi dihapus
+rilis 3 (sesudah contract)        app 1.0 (Karyawan 420) bayar COMMIT · nomor 16.016 · saldo Rp200.000
+                                  app 1.0 layar riwayat: 5 baris, teratas keluar Warung Sari 10000
+rilis 3 (sesudah contract)        app 1.1 (Karyawan 421) bayar COMMIT · nomor 16.017 · saldo Rp200.000
+                                  app 1.1 layar riwayat: 5 baris, teratas keluar Warung Sari 10000
+
+# Skema akhir sama dengan api-t2 (8 tabel): akun, baris_pencairan, batch_pencairan, buku, jurnal, kunci_idempotensi, posting, sesi

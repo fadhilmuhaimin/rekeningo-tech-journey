@@ -1,0 +1,53 @@
+# M13 · migrasi ke ledger dalam satu langkah, jam makan siang (keputusan 532)
+# Isi labs/api-t2/migrasi/000009 sampai 000013 dijalankan sebagai SATU transaction tanpa SET LOCAL
+# lock_timeout, saat laporan Keuangan (R) masih terbuka dan server v1 masih melayani bayar.
+# R ditahan terbuka 5 detik sesudah bayar masuk antrean (parameter lab; naskah: 40 detik).
+# Data lab (sql/ledger/00-data.sql): 1.013 akun (1 admin, 1.000 karyawan, 12 warung) dan 15.000 baris
+# transaksi (tiga minggu makan siang kampus: 1.000 karyawan x 15 hari x Rp25.000).
+
+# Kode bayar server v1 (satu transaction, BEGIN ... COMMIT):
+#   UPDATE akun SET saldo = saldo - {x} WHERE id = {dari} RETURNING saldo
+#   UPDATE akun SET saldo = saldo + {x} WHERE id = {ke}
+#   INSERT INTO transaksi (dari, ke, jumlah) VALUES ({dari}, {ke}, {x}) RETURNING id
+
+ 1 [R] BEGIN; SELECT a.nama, count(*), sum(t.jumlah) FROM transaksi t JOIN akun a ... GROUP BY a.nama
+      -> 12 baris rekap per warung; transaction dibiarkan terbuka (laporan masih berjalan)
+ 2 [M] BEGIN; isi 000009 ... 000013 (tanpa lock_timeout); COMMIT
+      -> MENUNGGU AccessExclusiveLock pada tabel akun, di belakang R
+ 3 [P1] bayar Citra (504) ke Warung Ani (418) Rp25.000 di server v1
+      -> MENUNGGU RowExclusiveLock pada tabel akun, di belakang M
+ 4 [P2] app Karyawan 420 membuka saldo: SELECT saldo FROM akun WHERE id = 420
+      -> MENUNGGU AccessShareLock pada tabel akun, di belakang M
+
+# 5 detik kemudian laporan masih terbuka dan tiga request masih antre (pg_locks, pg_blocking_pids):
+ sesi | menunggu                            | di belakang
+------+-------------------------------------+-------------
+ R    | -                                   | -
+ M    | AccessExclusiveLock pada tabel akun | R
+ P1   | RowExclusiveLock pada tabel akun    | M
+ P2   | AccessShareLock pada tabel akun     | M
+
+ 5 [R] COMMIT
+      -> laporan selesai; lock R dilepas
+ 6 [M] (lanjut sesudah R COMMIT) ... COMMIT
+      -> COMMIT · NOTICE migrasi: 1012 buku akun, 1001 jurnal pembuka, 1 koreksi jadi 2 jurnal
+ 7 [P1] (lanjut sesudah M COMMIT)
+      -> ERROR 42703 undefined_column: column "saldo" does not exist -> server v1 menjawab 500
+ 8 [P2] (lanjut sesudah M COMMIT)
+      -> ERROR 42703 undefined_column: column "saldo" does not exist -> server v1 menjawab 500
+
+# Lama tunggu P1 dan P2 = sisa laporan R + lama migrasi M. Di lab paling sedikit 5 detik
+# (R ditahan selama itu sesudah keduanya antre); naskah: 40 detik. Keduanya tetap gagal: kolom saldo
+# sudah dihapus contract di transaction yang sama, padahal server yang melayani mereka masih v1.
+# Dokumentasi PostgreSQL 17: ALTER TABLE mengambil ACCESS EXCLUSIVE kecuali disebut lain (ALTER TABLE,
+# Description); ACCESS EXCLUSIVE bentrok dengan semua mode, termasuk ACCESS SHARE milik SELECT (13.3
+# Explicit Locking); request yang bentrok dengan request yang antre lebih dulu ikut menunggu (soft block,
+# pg_blocking_pids di 9.27; kode lock.c: conflictTab[lockmode] & lock->waitMask).
+
+# Server v2 (satu langkah) di-deploy. App 1.0 dan 1.1 membuka riwayat; response dibuat untuk app baru.
+$ curl '/akun/420/riwayat'   (Karyawan 420)
+{"riwayat":[{"jurnal":15020,"jenis":"pembuka","jumlah":250000,"lawan":null,"waktu":"<waktu>"}],"berikutnya":null}
+app 1.0 (Karyawan 420): berhenti: type 'Null' is not a subtype of type 'int' in type cast (exit code 255)
+app 1.1 (Karyawan 421): berhenti: type 'Null' is not a subtype of type 'int' in type cast (exit code 255)
+
+# Skema akhir sama dengan api-t2 (8 tabel): akun, baris_pencairan, batch_pencairan, buku, jurnal, kunci_idempotensi, posting, sesi
