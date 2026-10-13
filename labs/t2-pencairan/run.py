@@ -238,11 +238,140 @@ def tunggu_backend_berakhir():
     catat("   -- koneksi job di PostgreSQL ikut berakhir; transaction yang belum COMMIT, bila ada, di-rollback")
 
 
+def cat(nama=FILE):
+    catat(f"\n$ cat kerja/{nama}")
+    isi = (KERJA / nama).read_text().splitlines()
+    for l in isi:
+        catat(l)
+    data = [l.split(",") for l in isi[1:]]
+    catat(f"   -- {len(data)} baris data, total {rp(sum(int(d[2]) for d in data))}")
+    return [(int(d[0]), int(d[2])) for d in data]
+
+
+def ls():
+    catat("\n$ ls kerja/")
+    nama = sorted(p.name for p in KERJA.iterdir())
+    for n in nama:
+        catat(n)
+    if not nama:
+        catat("   -- (kosong)")
+    return nama
+
+
+def sha(nama=FILE):
+    h = hashlib.sha256((KERJA / nama).read_bytes()).hexdigest()
+    catat(f"\n$ sha256sum kerja/{nama}")
+    catat(f"{h}  kerja/{nama}")
+    return h
+
+
+def saldo_warung(s):
+    r = s("""SELECT a.id AS akun, a.nama, b.id AS buku, coalesce(sum(p.jumlah), 0) AS saldo, b.saldo_cache
+FROM buku b JOIN akun a ON a.id = b.akun_id LEFT JOIN posting p ON p.buku_id = b.id
+WHERE b.jenis = 'warung'
+GROUP BY a.id, a.nama, b.id ORDER BY b.id;""")
+    harap([(x[0], x[3], x[4]) for x in r], [(w[0], w[3], w[3]) for w in WARUNG], "saldo warung Jumat 15.00")
+    harap([x[2] for x in r], list(range(5, 17)), "nomor buku warung urut nomor akun")
+    catat(f"-- 12 warung, total {rp(TOTAL)}. Job memproses warung urut nomor buku; Warung 508 adalah yang ketujuh.")
+
+
+def jurnal_pencairan(s, harus):
+    r = s("""SELECT j.id AS jurnal, a.nama, p.jumlah AS posting_warung
+FROM jurnal j JOIN posting p ON p.jurnal_id = j.id JOIN buku b ON b.id = p.buku_id AND b.jenis = 'warung'
+JOIN akun a ON a.id = b.akun_id
+WHERE j.jenis = 'pencairan' ORDER BY j.id;""")
+    harap([(x[0], x[2]) for x in r], harus, "jurnal pencairan")
+    return r
+
+
+TUTUP_BUKU_TOTAL = """SELECT (SELECT count(*) FROM file_bank) AS baris_file,
+       (SELECT sum(jumlah) FROM file_bank) AS total_file,
+       (SELECT count(*) FROM jurnal WHERE jenis = 'pencairan') AS jurnal_pencairan,
+       (SELECT sum(p.jumlah) FROM posting p JOIN buku b ON b.id = p.buku_id
+         WHERE b.jenis = 'kas_pencairan') AS mutasi_kas_pencairan;"""
+
+TUTUP_BUKU_WARUNG = """SELECT coalesce(f.akun, l.akun) AS akun, coalesce(f.nama, l.nama) AS nama,
+       coalesce(f.baris, 0) AS baris_file, coalesce(f.jumlah, 0) AS jumlah_file,
+       coalesce(l.jurnal, 0) AS jurnal_ledger, coalesce(l.jumlah, 0) AS jumlah_ledger
+FROM (SELECT akun_warung AS akun, min(nama_penerima) AS nama, count(*) AS baris, sum(jumlah) AS jumlah
+        FROM file_bank GROUP BY akun_warung) f
+FULL JOIN (SELECT b.akun_id AS akun, a.nama, count(*) AS jurnal, -sum(p.jumlah) AS jumlah
+             FROM jurnal j JOIN posting p ON p.jurnal_id = j.id
+             JOIN buku b ON b.id = p.buku_id AND b.jenis = 'warung' JOIN akun a ON a.id = b.akun_id
+            WHERE j.jenis = 'pencairan' GROUP BY b.akun_id, a.nama) l ON l.akun = f.akun
+WHERE f.baris IS DISTINCT FROM l.jurnal OR f.jumlah IS DISTINCT FROM l.jumlah
+ORDER BY 1;"""
+
+
+def tutup_buku(s, total_file, beda):
+    """File yang diunggah Keuangan lawan ledger. Lab ini hanya punya satu periode."""
+    s("CREATE TEMP TABLE file_bank (akun_warung bigint, nama_penerima text, jumlah bigint, berita text);")
+    s.salin_file(FILE)
+    r = s(TUTUP_BUKU_TOTAL)
+    harap([tuple(int(v) for v in r[0])], [(r[0][0], total_file, 12, TOTAL)], "tutup buku: total file lawan ledger")
+    catat(f"-- Selisih file - ledger: {rp(total_file - TOTAL)}.")
+    r = s(TUTUP_BUKU_WARUNG)
+    harap([tuple(int(v) if not isinstance(v, str) else v for v in x) for x in r], beda, "tutup buku: warung yang beda")
+    s("DROP TABLE file_bank;")
+
+
+# ---------- A. versi rentan (M15) ----------
+
+def rekam_rentan():
+    mulai()
+    s = Sesi()
+    catat("-- Job versi pertama: satu transaction per warung. Baris file ditulis sebelum COMMIT (kalau file gagal ditulis,")
+    catat("-- jurnal ikut batal), dan file dibuka dengan O_APPEND supaya baris yang sudah ditulis tidak hilang.")
+    bagian("A. Saldo warung Jumat 15.00")
+    saldo_warung(s)
+
+    bagian("B. Job berjalan; server restart sesudah baris file ketujuh ditulis, sebelum COMMIT")
+    out = job("-mode", "rentan", "-periode", PERIODE, "-dir", "kerja", "-berhenti", "baris-file:7", kode=-9)
+    harap(out[-2:], ["baris file 7 ditulis: Warung 508 Rp15.000", "titik henti baris-file:7: proses dimatikan (SIGKILL)"],
+          "job rentan berhenti di Warung 508")
+    jurnal_pencairan(s, [(j, -w[3]) for j, w in zip(range(14, 20), WARUNG[:6])])
+    s("SELECT last_value AS nomor_jurnal_terakhir_dipakai FROM jurnal_id_seq;")
+    harap(Diam.satu("SELECT last_value FROM jurnal_id_seq"), 20, "nomor jurnal 20 terpakai transaction yang batal")
+    harap(cat(), [(w[0], w[3]) for w in WARUNG[:7]], "file sesudah job berhenti")
+    catat("-- Ledger: 6 jurnal pencairan. File: 7 baris. Jurnal Warung 508 (nomor 20) ikut transaction yang di-rollback;")
+    catat("-- barisnya di file sudah ditulis ke disk sebelum COMMIT dan tetap ada.")
+
+    bagian("C. Server hidup lagi; job dijalankan lagi dengan perintah yang sama")
+    out = job("-mode", "rentan", "-periode", PERIODE, "-dir", "kerja")
+    harap(out[0], f"pencairan {PERIODE} (rentan, file-dulu): 6 warung bersaldo", "job rentan kedua")
+    jurnal_pencairan(s, [(j, -w[3]) for j, w in zip(list(range(14, 20)) + list(range(21, 27)), WARUNG)])
+    harap(cat(), [(w[0], w[3]) for w in WARUNG[:7] + WARUNG[6:]], "file sesudah job kedua")
+    catat("-- Jalan kedua membaca saldo saat itu: enam warung pertama sudah 0, Warung 508 masih Rp15.000.")
+    catat("-- Warung 508 dua kali di file, sekali di ledger. Nomor jurnal 20 kosong: sequence tidak ikut di-rollback.")
+
+    bagian("D. Tutup buku: file yang diunggah Keuangan lawan mutasi ledger")
+    tutup_buku(s, TOTAL + 15000, [(508, "Warung 508", 2, 30000, 1, 15000)])
+    catat("-- File Rp15.000 lebih besar dari mutasi buku kas pencairan. Rp15.000 = saldo Warung 508, warung yang sedang")
+    catat("-- diproses saat proses mati (data lab menaruh titik henti di warung ketujuh).")
+
+    bagian("E. Varian: jurnal di-COMMIT dulu, baris file ditulis sesudahnya")
+    s.tutup()
+    mulai()
+    s = Sesi()
+    catat("-- Schema dan folder kerja dibuat ulang dari data lab yang sama.")
+    out = job("-mode", "rentan", "-periode", PERIODE, "-dir", "kerja", "-urutan", "jurnal-dulu",
+              "-berhenti", "commit:7", kode=-9)
+    harap(out[-2:], ["jurnal 20 COMMIT: Warung 508 Rp15.000", "titik henti commit:7: proses dimatikan (SIGKILL)"],
+          "job jurnal-dulu berhenti sesudah COMMIT Warung 508")
+    job("-mode", "rentan", "-periode", PERIODE, "-dir", "kerja", "-urutan", "jurnal-dulu")
+    harap(cat(), [(w[0], w[3]) for w in WARUNG[:6] + WARUNG[7:]], "file varian jurnal-dulu")
+    tutup_buku(s, TOTAL - 15000, [(508, "Warung 508", 0, 0, 1, 15000)])
+    catat("-- Menukar urutan memindahkan selisih ke arah sebaliknya: Warung 508 dicairkan di ledger, tidak ada di file.")
+    catat("-- Database dan file tidak bisa di-COMMIT bersama; urutan mana pun punya celah di antara keduanya.")
+    s.tutup()
+    tulis("rentan.txt", "M15: job pencairan berjalan dua kali sesudah server restart")
+
+
 # ---------- main ----------
 
 def main():
     bangun_job()
-    mulai()
+    rekam_rentan()
     Diam.conn.close()
 
 
