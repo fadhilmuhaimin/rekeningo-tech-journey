@@ -1,0 +1,38 @@
+# M13 · rilis 1 (expand) dengan lock_timeout saat laporan berjalan (keputusan 533)
+# File api-t2 000009-000011 apa adanya: setiap file satu transaction dengan SET LOCAL lock_timeout = '3s'.
+# Laporan Keuangan (R) yang sama dengan satu-langkah.txt masih terbuka saat percobaan pertama.
+# Data lab (sql/ledger/00-data.sql): 1.013 akun (1 admin, 1.000 karyawan, 12 warung) dan 15.000 baris
+# transaksi (tiga minggu makan siang kampus: 1.000 karyawan x 15 hari x Rp25.000).
+
+ 1 [R] BEGIN; SELECT a.nama, count(*), sum(t.jumlah) FROM transaksi t JOIN akun a ... GROUP BY a.nama
+      -> 12 baris rekap per warung; transaction dibiarkan terbuka (laporan masih berjalan)
+ 2 [M] percobaan 1: BEGIN; isi 000009_akun_tahap2.up.sql; COMMIT
+      -> MENUNGGU AccessExclusiveLock pada tabel akun, di belakang R
+ 3 [P1] bayar Citra (504) ke Warung Ani (418) Rp25.000 di server v1
+      -> MENUNGGU RowExclusiveLock pada tabel akun, di belakang M
+ 4 [M] (3 detik menunggu lock)
+      -> ERROR 55P03 lock_not_available: canceling statement due to lock timeout -> ROLLBACK
+ 5 [P1] (lanjut begitu M menyerah)
+      -> COMMIT · nomor 15.001; R masih terbuka
+# P1 hanya menunggu sampai M menyerah (paling lama lock_timeout 3 detik), bukan sampai laporan selesai.
+# lock_timeout membatasi setiap upaya mengambil lock, termasuk yang implisit; statement_timeout membatasi
+# seluruh statement (PostgreSQL 17, Client Connection Defaults). Dipasang dengan SET LOCAL di file
+# migration, jadi hanya berlaku untuk transaction migrasi, bukan untuk server.
+ 6 [-] cek skema sesudah percobaan 1
+      -> kolom nomor_karyawan belum ada; akun_jenis_check masih yang lama (tanpa 'sistem'): DROP CONSTRAINT ikut dibatalkan, tidak ada yang setengah jadi
+ 7 [R] COMMIT
+      -> laporan selesai
+ 8 [M] percobaan 2: BEGIN; isi 000009_akun_tahap2.up.sql; COMMIT
+      -> COMMIT; filenode akun tidak berubah: ADD COLUMN dengan default tetap tidak menulis ulang tabel
+# ALTER TABLE, Notes (PostgreSQL 17): ADD COLUMN dengan DEFAULT non-volatile atau tanpa DEFAULT tidak
+# menulis ulang tabel; DEFAULT volatile atau ganti tipe kolom menulis ulang tabel dan index-nya.
+ 9 [M] BEGIN; isi 000010_ledger_tabel.up.sql; COMMIT
+      -> COMMIT
+10 [M] BEGIN; isi 000011_ledger_pendukung.up.sql; COMMIT
+      -> COMMIT
+
+# Pembanding di tabel besar transaksi (15.000 baris), keduanya di-ROLLBACK:
+11 [M] ALTER TABLE transaksi ADD COLUMN dicek timestamptz DEFAULT '2026-10-14 12:00+07'
+      -> filenode sama: nilai default disimpan di metadata, tanpa rewrite
+12 [M] ALTER TABLE transaksi ADD COLUMN dicek timestamptz DEFAULT clock_timestamp()
+      -> filenode berubah: seluruh tabel ditulis ulang selama memegang ACCESS EXCLUSIVE
