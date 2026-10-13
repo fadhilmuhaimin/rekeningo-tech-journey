@@ -1,0 +1,64 @@
+== A. Parameter argon2id dan skema c4_login
+Hash password: argon2id, m=65536 KiB (64 MiB), t=3, p=4, salt 128-bit, tag 256-bit.
+  Sumber: RFC 9106 §4 pilihan kedua (t=3, p=4, m=64 MiB); OWASP Password Storage Cheat Sheet
+  (minimum 19 MiB, t=2, p=1 — kita di atasnya); golang.org/x/crypto/argon2 IDKey v0.57.0.
+  Satu VPS berbagi memori dengan PostgreSQL, jadi pilihan pertama RFC (m=2 GiB) tidak dipakai.
+Kunci per akun: ambang 5 gagal berturut, durasi menggandakan 60s→120s→...→32m
+  (OWASP Authentication Cheat Sheet: penghitung melekat pada akun, kunci boleh bertahap;
+  NIST SP 800-63B §3.2.2: batas atas 100 percobaan per authenticator, kita lebih ketat).
+Rate limit di memori: per IP 10 burst (isi ulang 10/menit), per akun 5 burst (5/menit).
+Redis TIDAK dipakai (ADR 20): cukup untuk satu server; batasnya di bagian F.
+
+Seed akun (fiktif):
+  warung.ani@lestari.example         wajib_ganti_password=f      Warung Ani — password sudah diganti (sasaran DoS di bagian C)
+  budi@lestari.example               wajib_ganti_password=f      Budi — password sudah diganti
+  karyawan514@lestari.example        wajib_ganti_password=f      Karyawan 514 — memakai ulang password yang ada di daftar bocor
+  karyawan515@lestari.example        wajib_ganti_password=t      Karyawan 515 — masih password sementara admin, wajib ganti
+  karyawan516..543                   28 akun password kuat unik (bukan di daftar bocor)
+
+== B. Wajib ganti password pertama; password baru lemah atau bocor ditolak
+login password sementara benar          200  wajib_ganti_password=True
+ganti ke 'pendek-123' (10 karakter)     422  Password baru minimal 15 karakter
+ganti ke 'rekeningolestari' (16 kar, bocor) 422  Password baru ada di daftar password yang pernah bocor; pilih yang lain
+ganti ke password kuat baru             200  ok=True
+login password baru                     200  wajib_ganti_password=False
+login password lama (sementara)         401  Email atau password salah
+
+== C. Pertahanan NAIF: kunci per akun saja (MODE=per-akun)
+Credential stuffing: satu penyerang (IP 203.0.113.9) menyemprot password bocor ke banyak akun,
+satu tebakan per akun. Kunci per akun (ambang 5) tidak pernah aktif: tiap akun cuma 1 percobaan.
+  29 akun disemprot dari 203.0.113.9 → 200: 1 · 401: 28
+  akun tertembus: [514] (Karyawan 514 memakai ulang 'rekeningo123')
+  akun yang terkunci oleh serangan ini: 0 (kunci per akun tidak menolong stuffing)
+
+Denial of service + kunci bertahap: penyerang sengaja menggagalkan login Ani untuk menguncinya.
+  5 tebakan salah ke akun Ani            → 401: 5
+  kunci ke-1: Ani (IP sendiri, password BENAR) ditolak 423 Akun terkunci sementara, sisa 60 s
+  kunci ke-2: kunci pertama lewat, 1 gagal lagi → Ani ditolak, sisa 120 s (dua kali lipat)
+  kunci ke-3: 1 gagal lagi → Ani ditolak, sisa 240 s (dua kali lipat lagi)
+  Ani terkunci berulang tiap pagi; kunci per akun saja menghukum korban, bukan penyerang.
+
+== D. Rate limit DUA LAPIS di memori (MODE=dua-lapis): per IP dan per akun
+Serangan sama seperti C, tapi lapis per-IP menolak banjir dari satu IP sebelum menyentuh database.
+  29 akun disemprot dari 203.0.113.9 → 401: 10 · 429: 19
+  (429 = ditolak lapis per-IP; Karyawan 514 di urutan akhir tidak sempat dicoba)
+  Ani (IP sendiri, password BENAR)       → 200  ok=True (tidak kena limit penyerang)
+
+Lapis per-akun: tebakan terfokus ke satu akun dari satu IP dibatasi walau IP belum penuh.
+  8 tebakan ke akun Budi dari satu IP     → 401: 5 · 429: 3
+  (5 sampai ke pemeriksaan password, sisanya 429 dari lapis per-akun)
+
+== E. IP dari header: memercayai X-Forwarded-For dari client sembarang adalah CELAH
+Penyerang mengirim tiap percobaan dengan X-Forwarded-For berbeda (menukar IP), tanpa lewat proxy kita.
+  IP_SUMBER=xff-mentah: 20 percobaan, tiap kali IP palsu baru → 401: 20
+  (tidak ada 429: lapis per-IP tak berguna karena penyerang menukar IP tiap request)
+  IP_SUMBER=proxy, penyerang tanpa penanda proxy → 401: 10 · 429: 10
+  (header diabaikan, IP diambil dari koneksi 127.0.0.1; 10 lolos lalu 429: penukaran IP gagal)
+  Request LEWAT proxy tepercaya (ada penanda), IP dari header dipercaya → 200 ok=True
+
+== F. Dua instance: bucket di memori tidak dibagi (ADR 20)
+Rate limit hidup di memori tiap proses. Dengan dua server, penyerang satu IP yang bergantian
+mengenai instance 1 dan 2 mendapat dua kali jatah: batas per IP efektif menggandakan.
+  24 percobaan satu IP, bergantian ke 2 instance → 401: 20 · 429: 4
+  (20 lolos = 10 per instance, bukan 10 total; Redis bersama akan menyatukannya — Tahap 3)
+
