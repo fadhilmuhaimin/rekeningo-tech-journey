@@ -1,8 +1,11 @@
 // Tes logika widget ERD bertumbuh (I6-erd, keputusan 460–465) dengan ERD Tahap 1 sungguhan dan data uji Tahap 2.
+// Data uji tetap dipakai sesudah ERD2 karena punya kasus yang tidak ada di lab (kolom berganti nama = dihapus + baru);
+// bagian akhir menguji ERD Tahap 2 sungguhan dari api-t2 (keputusan 470–472).
 import { describe, expect, it } from "vitest";
 import t1 from "../../data/erd/tahap-1.json";
 import petaT1 from "../../data/erd/halaman.json";
 import t2 from "./uji/tahap-2.json";
+import t2Lab from "../../data/erd/tahap-2.json";
 import petaT2 from "./uji/halaman.json";
 import { DataErd, PetaHalaman } from "./skema";
 import {
@@ -174,5 +177,29 @@ describe("tautan halaman dari registry", () => {
   it("ID atau tabel yang tidak dikenal menggagalkan build", () => {
     expect(() => tautanHalaman({ format: 1, tahap: { "1": { akun: ["tidak-ada"] } } }, semua, reg.halaman, url)).toThrow(/tidak ada di registry/);
     expect(() => tautanHalaman({ format: 1, tahap: { "1": { jurnal: ["B2.1"] } } }, semua, reg.halaman, url)).toThrow(/tidak ada di Tahap 1/);
+  });
+});
+
+describe("ERD Tahap 2 dari lab api-t2 (ERD2)", () => {
+  const lab = [DataErd.parse(t1), DataErd.parse(t2Lab)];
+  const x = tampilTahap(lab, 2);
+  it("status: enam tabel baru, akun berubah, sesi tetap, tiga tabel v1 dihapus dengan tujuan pindah", () => {
+    expect(nama(x)).toEqual([
+      "akun:berubah", "sesi:tetap", "buku:baru", "jurnal:baru", "posting:baru", "kunci_idempotensi:baru", "batch_pencairan:baru",
+      "baris_pencairan:baru", "topup:dihapus", "transaksi:dihapus", "koreksi:dihapus",
+    ]);
+    expect(x.filter((t) => t.bayangan).every((t) => t.pindahKe!.length > 20)).toBe(true);
+    expect(ringkasan(x)).toBe("8 tabel, 11 foreign key (6 baru, 1 berubah, 1 tetap, 3 dihapus).");
+  });
+  it("akun: saldo dihapus, nomor karyawan dan kolom login baru, batas saldo warung pindah dari CHECK akun", () => {
+    const akun = x.find((t) => t.nama === "akun")!;
+    expect(akun.kolom.filter((k) => k.status !== "tetap").map((k) => `${k.kolom.nama}:${k.status}`)).toEqual([
+      "nomor_karyawan:baru", "wajib_ganti_password:baru", "gagal_login:baru", "terkunci_sampai:baru", "saldo:dihapus",
+    ]);
+    expect(akun.aturan.map(teksAturan)).toContain("CHECK batas_saldo_warung dihapus");
+  });
+  it("setiap tabel Tahap 2 punya halaman penjelas di peta (situs/data/erd/halaman.json)", () => {
+    const hasil = tautanHalaman(PetaHalaman.parse(petaT1), lab, muat().halaman, url);
+    for (const t of lab[1].tabel) expect(hasil["2"][t.nama]?.length, t.nama).toBeGreaterThan(0);
   });
 });

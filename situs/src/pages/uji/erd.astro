@@ -1,21 +1,20 @@
 ---
 // Halaman uji widget ERD bertumbuh (I6-erd, keputusan 460–465). Bukan halaman cerita: tidak di registry, tidak di
-// sidebar, tidak diindeks. Tahap 1 = ERD sungguhan dari skema lab (situs/data/erd/tahap-1.json); Tahap 2 = data uji
-// (src/erd/uji/tahap-2.json) sampai tugas ERD2 menulis situs/data/erd/tahap-2.json dari lab api-t2.
+// sidebar, tidak diindeks. Kedua tahap = ERD sungguhan yang dibangun tools/erd.py dari skema lab: Tahap 1 dari api-t1
+// (situs/data/erd/tahap-1.json), Tahap 2 dari migration api-t2 (situs/data/erd/tahap-2.json, ERD2, keputusan 470–472).
+// Data uji src/erd/uji/tahap-2.json tinggal dipakai tes logika widget (tumbuh.test.ts).
 // Dipakai situs/tools/ukur-erd.mjs (statis tanpa JS, scroll, keyboard, reduced motion, axe gelap dan terang, CLS).
 import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
 import ErdTumbuh from "../../erd/ErdTumbuh";
 import { DataErd, PetaHalaman } from "../../erd/skema";
 import { tautanHalaman } from "../../erd/tumbuh";
 import t1 from "../../../data/erd/tahap-1.json";
-import peta1 from "../../../data/erd/halaman.json";
-import t2 from "../../erd/uji/tahap-2.json";
-import peta2 from "../../erd/uji/halaman.json";
+import t2 from "../../../data/erd/tahap-2.json";
+import petaHalaman from "../../../data/erd/halaman.json";
 import { muat, url } from "../../../tools/registri.mjs";
 
 const data = [DataErd.parse(t1), DataErd.parse(t2)];
-const peta = PetaHalaman.parse({ format: 1, tahap: { ...PetaHalaman.parse(peta1).tahap, ...PetaHalaman.parse(peta2).tahap } });
-const tautan = tautanHalaman(peta, data, muat().halaman, url);
+const tautan = tautanHalaman(PetaHalaman.parse(petaHalaman), data, muat().halaman, url);
 ---
 
 <StarlightPage
@@ -28,9 +27,9 @@ const tautan = tautanHalaman(peta, data, muat().halaman, url);
   }}
 >
   <p>
-    Halaman uji widget ERD bertumbuh. Tahap 1 dibangun dari skema lab. Tahap 2 masih data uji, disusun dari naskah
-    bagian 3b, sampai ERD Tahap 2 dibangun dari lab.
+    Halaman uji widget ERD bertumbuh. Kedua tahap dibangun dari skema lab: Tahap 1 dari api-t1, Tahap 2 dari migration
+    api-t2.
   </p>
-  <ErdTumbuh client:visible id="erd-uji" judul="Skema data dari tahap ke tahap" data={data} tautan={tautan} awal={2} uji={[2]} />
+  <ErdTumbuh client:visible id="erd-uji" judul="Skema data dari tahap ke tahap" data={data} tautan={tautan} awal={2} />
   <p>Teks sesudah diagram, supaya halaman cukup panjang untuk diuji scroll-nya.</p>
 </StarlightPage>

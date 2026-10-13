@@ -7,6 +7,16 @@
       "topup": ["t1-fitur-topup"],
       "transaksi": ["t1-fitur-bayar", "t1-fitur-saldo"],
       "koreksi": ["t1-adr-transaction"]
+    },
+    "2": {
+      "akun": ["t2-skema", "t2-transfer", "t2-login-aman"],
+      "sesi": ["B5.1"],
+      "buku": ["t2-saldo-bukan-kolom", "t2-ledger"],
+      "jurnal": ["t2-ledger", "t2-adr-ledger"],
+      "posting": ["t2-ledger", "B2.3"],
+      "kunci_idempotensi": ["E3"],
+      "batch_pencairan": ["t2-pencairan", "t2-job-rekonsiliasi"],
+      "baris_pencairan": ["t2-pencairan"]
     }
   }
 }
