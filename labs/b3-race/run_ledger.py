@@ -12,8 +12,10 @@ waktu. Sesudah tiap langkah, koneksi ketiga yang tidak direkam mencatat:
 
 Keluaran di output/ledger/. Rekaman lama output/*.txt|json (tabel akun, dipakai halaman b3-2) tidak disentuh.
   ledger-<cara>.txt   rekaman langkah demi langkah
+  ledger-<cara>.json  replay untuk widget race, format sama dengan output/for-update.json (diperiksa sebelum ditulis)
   banding.txt         status A dan B, lock, retry, saldo akhir per cara
-Rekaman tanpa waktu, jadi rekaman ulang identik per byte. Lab gagal keras bila status, SQLSTATE, lock, saldo, atau urutan berbeda.
+Rekaman tanpa waktu. `recorded` di JSON adalah tanggal isi itu pertama direkam: dipertahankan selama isi lain sama,
+jadi rekaman ulang identik per byte. Lab gagal keras bila status, SQLSTATE, lock, saldo, atau urutan berbeda.
 
     make -C labs/b3-race run-ledger      (rekam; butuh PostgreSQL bersama dari docker-compose.yml)
     make -C labs/b3-race cek-ledger      (rekam ulang, lalu bandingkan dengan yang di-commit)
@@ -255,6 +257,40 @@ def buat_schema():
         c.execute(SEED)
 
 
+# ---------- format widget race ----------
+
+def cek_format_widget(data):
+    """Replay harus bisa diputar race.js tanpa perubahan: kunci dan tipe sama dengan rekaman lama, saldo akhir salah
+    satu pilihan tebakan widget (OPTION_VALUES di situs/lama/widgets/race.js)."""
+    lama = json.loads((HERE / "output/for-update.json").read_text())
+    harap(list(data), list(lama), f"{data['id']}: kunci JSON")
+    for k, v in lama.items():
+        harap(type(data[k]).__name__, type(v).__name__, f"{data['id']}: tipe {k}")
+    harap(sorted(data["withdraw"]), ["A", "B"], f"{data['id']}: withdraw")
+    pilihan = re.search(r"OPTION_VALUES = \[([^\]]*)\]", (ROOT / "situs/lama/widgets/race.js").read_text()).group(1)
+    harap(data["final"] in [int(x) for x in pilihan.split(",")], True, f"{data['id']}: final {data['final']} di OPTION_VALUES")
+    for n, s in enumerate(data["steps"], 1):
+        harap(list(s), list(lama["steps"][0]), f"{data['id']} langkah {n}: kunci")
+        harap(s["actor"] in ("A", "B") and set(s["waiting"]) <= {"A", "B"} and sorted(s["vars"]) == ["A", "B"], True,
+              f"{data['id']} langkah {n}: actor, waiting, vars")
+        harap(isinstance(s["committed"], int) and isinstance(s["result"], str) and isinstance(s["note"], str), True,
+              f"{data['id']} langkah {n}: tipe")
+        harap(s["sql"] is None or isinstance(s["sql"], str), True, f"{data['id']} langkah {n}: sql")
+        if s["result"] == "MENUNGGU lock":
+            harap(s["actor"] in s["waiting"], True, f"{data['id']} langkah {n}: yang menunggu ada di waiting")
+
+
+def tulis_json(data):
+    """`recorded` dipertahankan bila isi lain sama dengan file yang ada."""
+    f = OUT / f"{data['id']}.json"
+    data["recorded"] = datetime.date.today().isoformat()
+    if f.exists():
+        lama = json.loads(f.read_text())
+        if {**lama, "recorded": None} == {**data, "recorded": None}:
+            data["recorded"] = lama["recorded"]
+    f.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n")
+
+
 # ---------- main ----------
 
 def main():
@@ -277,6 +313,12 @@ def main():
         for x in (A, B):
             x.tutup()
         rec.p.c.close()
+
+        data = dict(id=cara["id"], title=cara["judul"], summary=cara["summary"], postgres=versi,
+                    isolation=cara["isolation"], start=SALDO_AWAL, withdraw={"A": 70000, "B": 50000},
+                    final=final, recorded="", steps=rec.steps)
+        cek_format_widget(data)
+        tulis_json(data)
 
         menunggu = sum(1 for s in rec.steps if s["result"] == "MENUNGGU lock")
         kepala = [f"-- Lab b3-race (ledger) · {cara['judul']}",

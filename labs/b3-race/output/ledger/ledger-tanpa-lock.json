@@ -1,0 +1,244 @@
+{
+ "id": "ledger-tanpa-lock",
+ "title": "Tanpa lock",
+ "summary": "A dan B sama-sama COMMIT: Rp120.000 keluar dari saldo Rp100.000. Keduanya membaca saldo sebelum jurnal lain COMMIT, dan pemeriksaan invarian 3 keduanya juga berjalan sebelum COMMIT.",
+ "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+ "isolation": "read committed",
+ "start": 100000,
+ "withdraw": {
+  "A": 70000,
+  "B": 50000
+ },
+ "final": -20000,
+ "recorded": "2026-10-14",
+ "steps": [
+  {
+   "actor": "A",
+   "sql": "BEGIN",
+   "result": "BEGIN",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "BEGIN",
+   "result": "BEGIN",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {},
+    "B": {}
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "SELECT sum(jumlah) AS saldo FROM posting WHERE buku_id = 2",
+   "result": "100000",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {}
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "SELECT sum(jumlah) AS saldo FROM posting WHERE buku_id = 2",
+   "result": "100000",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": null,
+   "result": "saldo Rp100.000 >= Rp70.000, lanjut menulis jurnal",
+   "note": "kode aplikasi",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": null,
+   "result": "saldo Rp100.000 >= Rp50.000, lanjut menulis jurnal",
+   "note": "kode aplikasi",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id",
+   "result": "2",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000)",
+   "result": "INSERT 0 2",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (For Key Share)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Dimas', 419) RETURNING id",
+   "result": "3",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (For Key Share)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 2, -50000), (3, 4, 50000)",
+   "result": "INSERT 0 2",
+   "note": "",
+   "committed": 100000,
+   "lock": "A,B (For Key Share)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "SET CONSTRAINTS ALL IMMEDIATE",
+   "result": "SET CONSTRAINTS",
+   "note": "alat lab: pemeriksaan invarian 3 dijalankan sekarang, bukan di dalam COMMIT (lihat kepala rekaman)",
+   "committed": 100000,
+   "lock": "A,B (For Key Share)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "SET CONSTRAINTS ALL IMMEDIATE",
+   "result": "SET CONSTRAINTS",
+   "note": "alat lab: pemeriksaan invarian 3 dijalankan sekarang, bukan di dalam COMMIT (lihat kepala rekaman); jurnal A belum COMMIT, jadi tidak terlihat",
+   "committed": 100000,
+   "lock": "A,B (For Key Share)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "COMMIT",
+   "result": "COMMIT",
+   "note": "",
+   "committed": 30000,
+   "lock": "B (For Key Share)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "COMMIT",
+   "result": "COMMIT",
+   "note": "",
+   "committed": -20000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000
+    },
+    "B": {
+     "saldo_dibaca": 100000
+    }
+   }
+  }
+ ]
+}

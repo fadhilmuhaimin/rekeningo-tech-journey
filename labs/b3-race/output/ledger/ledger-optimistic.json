@@ -1,0 +1,344 @@
+{
+ "id": "ledger-optimistic",
+ "title": "Optimistic lock (kolom versi)",
+ "summary": "Hanya A yang COMMIT. UPDATE milik B tetap menunggu lock baris yang sedang ditulis A, lalu gagal karena versi sudah 1. B mengulang sekali dan menolak.",
+ "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+ "isolation": "read committed",
+ "start": 100000,
+ "withdraw": {
+  "A": 70000,
+  "B": 50000
+ },
+ "final": 30000,
+ "recorded": "2026-10-14",
+ "steps": [
+  {
+   "actor": "A",
+   "sql": "SELECT saldo_cache, versi FROM buku WHERE id = 2",
+   "result": "100000 | 0",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {}
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "SELECT saldo_cache, versi FROM buku WHERE id = 2",
+   "result": "100000 | 0",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": null,
+   "result": "saldo_cache Rp100.000 >= Rp70.000, lanjut. Saldo baru Rp30.000, disimpan dengan syarat versi masih 0",
+   "note": "kode aplikasi",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": null,
+   "result": "saldo_cache Rp100.000 >= Rp50.000, lanjut. Saldo baru Rp50.000, disimpan dengan syarat versi masih 0",
+   "note": "kode aplikasi",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "BEGIN",
+   "result": "BEGIN",
+   "note": "",
+   "committed": 100000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "UPDATE buku SET saldo_cache = 30000, versi = versi + 1 WHERE id = 2 AND versi = 0",
+   "result": "UPDATE 1",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (No Key Update)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "BEGIN",
+   "result": "BEGIN",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (No Key Update)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "UPDATE buku SET saldo_cache = 50000, versi = versi + 1 WHERE id = 2 AND versi = 0",
+   "result": "MENUNGGU lock",
+   "note": "menunggu lock (transactionid)",
+   "committed": 100000,
+   "lock": "A (No Key Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'Transfer ke Citra', 419) RETURNING id",
+   "result": "2",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (No Key Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (2, 2, -70000), (2, 3, 70000)",
+   "result": "INSERT 0 2",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (No Key Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "UPDATE buku SET saldo_cache = saldo_cache + 70000 WHERE id = 3",
+   "result": "UPDATE 1",
+   "note": "",
+   "committed": 100000,
+   "lock": "A (No Key Update)",
+   "waiting": [
+    "B"
+   ],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "A",
+   "sql": "COMMIT",
+   "result": "COMMIT",
+   "note": "",
+   "committed": 30000,
+   "lock": "B (For No Key Update)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "UPDATE buku SET saldo_cache = 50000, versi = versi + 1 WHERE id = 2 AND versi = 0",
+   "result": "UPDATE 0",
+   "note": "lanjut sesudah A COMMIT: syarat versi = 0 dicek ulang ke versi baris terbaru",
+   "committed": 30000,
+   "lock": "B (For No Key Update)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": null,
+   "result": "0 baris berubah: versi sudah berubah. Batalkan, lalu ulangi dari membaca (retry 1)",
+   "note": "kode aplikasi",
+   "committed": 30000,
+   "lock": "B (For No Key Update)",
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "ROLLBACK",
+   "result": "ROLLBACK",
+   "note": "",
+   "committed": 30000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": "SELECT saldo_cache, versi FROM buku WHERE id = 2",
+   "result": "30000 | 1",
+   "note": "",
+   "committed": 30000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 30000,
+     "versi": 1
+    }
+   }
+  },
+  {
+   "actor": "B",
+   "sql": null,
+   "result": "saldo_cache Rp30.000 < Rp50.000: saldo kurang, transfer ditolak",
+   "note": "kode aplikasi",
+   "committed": 30000,
+   "lock": null,
+   "waiting": [],
+   "vars": {
+    "A": {
+     "saldo_dibaca": 100000,
+     "versi": 0
+    },
+    "B": {
+     "saldo_dibaca": 30000,
+     "versi": 1
+    }
+   }
+  }
+ ]
+}
