@@ -23,10 +23,13 @@ type Server struct {
 
 func Baru(svc service.Service) Server { return Server{svc: svc} }
 
-// DenganRentan menyalakan satu mode rentan untuk rekaman halaman masalah (keputusan 148).
+// DenganRentan menyalakan satu mode rentan untuk rekaman halaman masalah (keputusan 148). Tahap 2 belum punya
+// mode; lab masalah M9 sampai M16 menambahkannya di sini dan di cmd/api/main.go.
 func (s Server) DenganRentan(mode string) Server { s.rentan = mode; return s }
 
 // --8<-- [start:rute]
+// Rute Tahap 2. Endpoint Tahap 1 tetap dengan kontrak yang sama (app 1.0 dan 1.1); yang baru: /kiriman,
+// kursor di riwayat, /jurnal/{id}/pembalik, /tutup-buku. /koreksi diganti jurnal pembalik (410).
 func (s Server) Rute() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /login", s.login)
@@ -36,9 +39,12 @@ func (s Server) Rute() *http.ServeMux {
 	mux.HandleFunc("POST /koreksi", s.wajibLogin(s.koreksi))
 	mux.HandleFunc("POST /transfers", s.wajibLogin(s.bayar))
 	mux.HandleFunc("GET /transfers/{id}", s.wajibLogin(s.lihatTransaksi))
+	mux.HandleFunc("POST /kiriman", s.wajibLogin(s.kirim))
 	mux.HandleFunc("GET /akun/{id}/riwayat", s.wajibLogin(s.riwayat))
 	mux.HandleFunc("GET /warung", s.wajibLogin(s.cariWarung))
 	mux.HandleFunc("GET /warung/{id}/laporan", s.wajibLogin(s.laporan))
+	mux.HandleFunc("POST /jurnal/{id}/pembalik", s.wajibLogin(s.pembalik))
+	mux.HandleFunc("GET /tutup-buku", s.wajibLogin(s.tutupBuku))
 	return mux
 }
 
@@ -180,19 +186,57 @@ func (s Server) logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s Server) lihatAkun(w http.ResponseWriter, r *http.Request) {
+// tidakDitemukan: satu bentuk 404 untuk semua sumber daya (akun, transaksi, warung, jurnal).
+func tidakDitemukan(w http.ResponseWriter, apa string) {
+	tulisProblem(w, Problem{Type: "/problems/tidak-ditemukan", Title: apa + " tidak ditemukan", Status: 404})
+}
+
+// --8<-- [start:peta-error]
+// petaError memetakan error aturan uang dari service ke status code. Error lain jadi 500.
+func (s Server) petaError(w http.ResponseWriter, err error, dilarang string) {
+	var errV service.ErrValidasi
+	var errCSV service.ErrCSV
+	switch {
+	case errors.As(err, &errV):
+		tulisProblem(w, Problem{Type: "/problems/validasi", Title: "Input tidak memenuhi aturan", Status: 422,
+			Errors: []map[string]string{{"field": errV.Field, "pesan": errV.Pesan}}})
+	case errors.As(err, &errCSV):
+		tulisProblem(w, Problem{Type: "/problems/csv-ditolak", Title: "CSV ditolak; tidak ada saldo yang berubah",
+			Status: 422, Errors: errCSV.Kesalahan})
+	case errors.Is(err, service.ErrSaldoKurang):
+		tulisProblem(w, Problem{Type: "/problems/saldo-kurang", Title: "Saldo tidak cukup", Status: 422})
+	case errors.Is(err, service.ErrBatasHarian):
+		tulisProblem(w, Problem{Type: "/problems/batas-harian", Title: "Batas kiriman hari ini terlewati", Status: 422,
+			Detail: "Kiriman ke rekan paling banyak Rp500.000 per hari, dihitung sejak pukul 00.00 WIB."})
+	case errors.Is(err, service.ErrBatasWarung):
+		tulisProblem(w, Problem{Type: "/problems/batas-warung", Title: "Saldo warung melewati batas", Status: 422})
+	case errors.Is(err, service.ErrSudahDibalik):
+		tulisProblem(w, Problem{Type: "/problems/sudah-dibalik", Title: "Jurnal ini sudah pernah dibalik", Status: 409})
+	case errors.Is(err, service.ErrDilarang):
+		tulisProblem(w, Problem{Type: "/problems/dilarang", Title: dilarang, Status: 403})
+	case errors.Is(err, service.ErrTidakDitemukan):
+		tidakDitemukan(w, "Data")
+	default:
+		s.errorInternal(w, err)
+	}
+}
+
+// --8<-- [end:peta-error]
+
+func idDariPath(r *http.Request) (int64, bool) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		tulisProblem(w, Problem{Type: "/problems/tidak-ditemukan", Title: "Akun tidak ditemukan", Status: 404})
+	return id, err == nil
+}
+
+func (s Server) lihatAkun(w http.ResponseWriter, r *http.Request) {
+	id, ok := idDariPath(r)
+	if !ok {
+		tidakDitemukan(w, "Akun")
 		return
 	}
-	lihat := s.svc.LihatAkun
-	if s.rentan == "m5" {
-		lihat = s.svc.LihatAkunM5
-	}
-	a, err := lihat(r.Context(), peminta(r), id)
+	a, err := s.svc.LihatAkun(r.Context(), peminta(r), id)
 	if errors.Is(err, service.ErrTidakDitemukan) {
-		tulisProblem(w, Problem{Type: "/problems/tidak-ditemukan", Title: "Akun tidak ditemukan", Status: 404})
+		tidakDitemukan(w, "Akun")
 		return
 	}
 	if err != nil {
@@ -202,16 +246,16 @@ func (s Server) lihatAkun(w http.ResponseWriter, r *http.Request) {
 	tulisJSON(w, 200, a)
 }
 
-// GET /transfers/{id}: alamat yang dikirim di header Location setelah 201.
+// GET /transfers/{id}: jurnal bayar atau transfer, alamat yang dikirim di header Location setelah 201.
 func (s Server) lihatTransaksi(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		tulisProblem(w, Problem{Type: "/problems/tidak-ditemukan", Title: "Transaksi tidak ditemukan", Status: 404})
+	id, ok := idDariPath(r)
+	if !ok {
+		tidakDitemukan(w, "Transaksi")
 		return
 	}
 	t, err := s.svc.LihatTransaksi(r.Context(), peminta(r), id)
 	if errors.Is(err, service.ErrTidakDitemukan) {
-		tulisProblem(w, Problem{Type: "/problems/tidak-ditemukan", Title: "Transaksi tidak ditemukan", Status: 404})
+		tidakDitemukan(w, "Transaksi")
 		return
 	}
 	if err != nil {
@@ -221,15 +265,9 @@ func (s Server) lihatTransaksi(w http.ResponseWriter, r *http.Request) {
 	tulisJSON(w, 200, t)
 }
 
-// --8<-- [start:cari-warung]
-// GET /warung?cari=<teks>: cari warung menurut nama. Versi benar; mode rentan m3 di rentan.go.
+// GET /warung?cari=<teks>: cari warung menurut nama.
 func (s Server) cariWarung(w http.ResponseWriter, r *http.Request) {
-	cari := r.URL.Query().Get("cari")
-	if s.rentan == "m3" {
-		s.cariWarungM3(w, r, cari)
-		return
-	}
-	hasil, err := s.svc.CariWarung(r.Context(), cari)
+	hasil, err := s.svc.CariWarung(r.Context(), r.URL.Query().Get("cari"))
 	if err != nil {
 		s.errorInternal(w, err)
 		return
@@ -237,10 +275,8 @@ func (s Server) cariWarung(w http.ResponseWriter, r *http.Request) {
 	tulisJSON(w, 200, map[string]any{"warung": hasil})
 }
 
-// --8<-- [end:cari-warung]
-
 // --8<-- [start:topup]
-// POST /topup?keterangan=...  body text/csv: email,nominal
+// POST /topup?keterangan=...  body text/csv: nomor_karyawan,nominal (atau email,nominal dari Tahap 1)
 func (s Server) topup(w http.ResponseWriter, r *http.Request) {
 	isi, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {
@@ -248,61 +284,24 @@ func (s Server) topup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	akun, total, err := s.svc.Topup(r.Context(), peminta(r), r.URL.Query().Get("keterangan"), string(isi))
-	var errCSV service.ErrCSV
-	switch {
-	case errors.Is(err, service.ErrDilarang):
-		tulisProblem(w, Problem{Type: "/problems/dilarang", Title: "Hanya admin tunjangan yang boleh top-up", Status: 403})
-	case errors.As(err, &errCSV):
-		tulisProblem(w, Problem{Type: "/problems/csv-ditolak", Title: "CSV ditolak; tidak ada saldo yang berubah",
-			Status: 422, Errors: errCSV.Kesalahan})
-	case err != nil:
-		s.errorInternal(w, err)
-	default:
-		tulisJSON(w, 200, map[string]any{"akun": akun, "total": total})
+	if err != nil {
+		s.petaError(w, err, "Hanya admin tunjangan yang boleh top-up")
+		return
 	}
+	tulisJSON(w, 200, map[string]any{"akun": akun, "total": total})
 }
 
 // --8<-- [end:topup]
 
-// --8<-- [start:koreksi]
-// POST /koreksi  body JSON: akun, jumlah, alasan (ADR 6)
+// POST /koreksi: koreksi saldo satu sisi Tahap 1 tidak ada lagi (aturan Pak Hadi Tahap 2).
 func (s Server) koreksi(w http.ResponseWriter, r *http.Request) {
-	var in struct {
-		Akun   *int64  `json:"akun"`
-		Jumlah *int64  `json:"jumlah"`
-		Alasan *string `json:"alasan"`
-	}
-	if p := bacaJSON(r.Body, &in); p != nil {
-		tulisProblem(w, *p)
-		return
-	}
-	if p := wajibAda([]string{"akun", "jumlah", "alasan"}, in.Akun != nil, in.Jumlah != nil, in.Alasan != nil); p != nil {
-		tulisProblem(w, *p)
-		return
-	}
-	id, saldo, err := s.svc.Koreksi(r.Context(), peminta(r), *in.Akun, *in.Jumlah, *in.Alasan)
-	var errV service.ErrValidasi
-	switch {
-	case errors.Is(err, service.ErrDilarang):
-		tulisProblem(w, Problem{Type: "/problems/dilarang", Title: "Hanya admin tunjangan yang boleh mengoreksi saldo", Status: 403})
-	case errors.As(err, &errV):
-		tulisProblem(w, Problem{Type: "/problems/validasi", Title: "Input tidak memenuhi aturan", Status: 422,
-			Errors: []map[string]string{{"field": errV.Field, "pesan": errV.Pesan}}})
-	case err != nil:
-		s.errorInternal(w, err)
-	default:
-		tulisJSON(w, 201, map[string]int64{"id": id, "saldo": saldo})
-	}
+	tulisProblem(w, Problem{Type: "/problems/diganti", Title: "Koreksi saldo diganti jurnal pembalik", Status: 410,
+		Detail: "Pakai POST /jurnal/{id}/pembalik dengan alasan; saldo tidak diubah tanpa jurnal."})
 }
 
-// --8<-- [end:koreksi]
-
 // --8<-- [start:bayar]
+// POST /transfers: bayar ke warung. Kontrak expand Tahap 1 (ADR 10): jumlah (app 1.0) atau nominal (app 1.1).
 func (s Server) bayar(w http.ResponseWriter, r *http.Request) {
-	if s.rentan == "m2" {
-		s.bayarM2(w, r)
-		return
-	}
 	// Pointer: field yang tidak dikirim berbeda dari field yang dikirim 0 (ADR 3).
 	var in struct {
 		Ke      *int64 `json:"ke"`
@@ -320,64 +319,118 @@ func (s Server) bayar(w http.ResponseWriter, r *http.Request) {
 		tulisProblem(w, *p)
 		return
 	}
-	s.selesaikanBayar(w, r, *in.Ke, *in.Jumlah)
-}
-
-// selesaikanBayar memanggil service dan memetakan hasilnya ke status code.
-func (s Server) selesaikanBayar(w http.ResponseWriter, r *http.Request, ke, jumlah int64) {
-	bayar := s.svc.Bayar
-	if s.rentan == "m1" {
-		bayar = s.svc.BayarM1
+	id, saldo, err := s.svc.Bayar(r.Context(), peminta(r), *in.Ke, *in.Jumlah)
+	if err != nil {
+		s.petaError(w, err, "Hanya karyawan yang bisa membayar")
+		return
 	}
-	if s.rentan == "m4" {
-		bayar = s.svc.BayarM4
-	}
-	id, saldo, err := bayar(r.Context(), peminta(r), ke, jumlah)
-	var errV service.ErrValidasi
-	switch {
-	case errors.As(err, &errV):
-		tulisProblem(w, Problem{Type: "/problems/validasi", Title: "Input tidak memenuhi aturan", Status: 422,
-			Errors: []map[string]string{{"field": errV.Field, "pesan": errV.Pesan}}})
-	case errors.Is(err, service.ErrSaldoKurang):
-		tulisProblem(w, Problem{Type: "/problems/saldo-kurang", Title: "Saldo tidak cukup", Status: 422})
-	case err != nil:
-		s.errorInternal(w, err)
-	default:
-		w.Header().Set("Location", fmt.Sprintf("/transfers/%d", id))
-		tulisJSON(w, 201, map[string]int64{"id": id, "saldo": saldo})
-	}
+	w.Header().Set("Location", fmt.Sprintf("/transfers/%d", id))
+	tulisJSON(w, 201, map[string]int64{"id": id, "saldo": saldo})
 }
 
 // --8<-- [end:bayar]
 
+// --8<-- [start:kirim]
+// POST /kiriman: kirim uang ke rekan lewat nomor karyawan (Tahap 2). Endpoint baru, jadi hanya nominal.
+func (s Server) kirim(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Ke      *string `json:"ke_nomor_karyawan"`
+		Nominal *int64  `json:"nominal"`
+	}
+	if p := bacaJSON(r.Body, &in); p != nil {
+		tulisProblem(w, *p)
+		return
+	}
+	if p := wajibAda([]string{"ke_nomor_karyawan", "nominal"}, in.Ke != nil, in.Nominal != nil); p != nil {
+		tulisProblem(w, *p)
+		return
+	}
+	h, err := s.svc.Kirim(r.Context(), peminta(r), *in.Ke, *in.Nominal)
+	if err != nil {
+		s.petaError(w, err, "Hanya karyawan yang bisa mengirim ke rekan")
+		return
+	}
+	w.Header().Set("Location", fmt.Sprintf("/transfers/%d", h.ID))
+	tulisJSON(w, 201, h)
+}
+
+// --8<-- [end:kirim]
+
+// --8<-- [start:riwayat]
+// GET /akun/{id}/riwayat?kursor=...&batas=...: tanpa kursor = halaman pertama (app lama tidak mengirimnya).
 func (s Server) riwayat(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	daftar, err := s.svc.Riwayat(r.Context(), peminta(r), id)
+	q := r.URL.Query()
+	daftar, berikutnya, err := s.svc.Riwayat(r.Context(), peminta(r), id, q.Get("kursor"), q.Get("batas"))
 	if errors.Is(err, service.ErrTidakDitemukan) {
-		tulisProblem(w, Problem{Type: "/problems/tidak-ditemukan", Title: "Akun tidak ditemukan", Status: 404})
+		tidakDitemukan(w, "Akun")
 		return
 	}
 	if err != nil {
-		s.errorInternal(w, err)
+		s.petaError(w, err, "")
 		return
 	}
-	tulisJSON(w, 200, map[string]any{"riwayat": daftar})
+	var k *string
+	if berikutnya != "" {
+		k = &berikutnya
+	}
+	tulisJSON(w, 200, map[string]any{"riwayat": daftar, "berikutnya": k})
 }
+
+// --8<-- [end:riwayat]
 
 func (s Server) laporan(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	q := r.URL.Query()
 	baris, err := s.svc.Laporan(r.Context(), peminta(r), id, q.Get("dari"), q.Get("sampai"))
-	var errV service.ErrValidasi
-	switch {
-	case errors.Is(err, service.ErrTidakDitemukan):
-		tulisProblem(w, Problem{Type: "/problems/tidak-ditemukan", Title: "Warung tidak ditemukan", Status: 404})
-	case errors.As(err, &errV):
-		tulisProblem(w, Problem{Type: "/problems/validasi", Title: "Input tidak memenuhi aturan", Status: 422,
-			Errors: []map[string]string{{"field": errV.Field, "pesan": errV.Pesan}}})
-	case err != nil:
-		s.errorInternal(w, err)
-	default:
-		tulisJSON(w, 200, map[string]any{"warung": id, "per_hari": baris})
+	if errors.Is(err, service.ErrTidakDitemukan) {
+		tidakDitemukan(w, "Warung")
+		return
 	}
+	if err != nil {
+		s.petaError(w, err, "")
+		return
+	}
+	tulisJSON(w, 200, map[string]any{"warung": id, "per_hari": baris})
+}
+
+// POST /jurnal/{id}/pembalik  body JSON: alasan. Hanya admin.
+func (s Server) pembalik(w http.ResponseWriter, r *http.Request) {
+	jurnal, ok := idDariPath(r)
+	if !ok {
+		tidakDitemukan(w, "Jurnal")
+		return
+	}
+	var in struct {
+		Alasan *string `json:"alasan"`
+	}
+	if p := bacaJSON(r.Body, &in); p != nil {
+		tulisProblem(w, *p)
+		return
+	}
+	if p := wajibAda([]string{"alasan"}, in.Alasan != nil); p != nil {
+		tulisProblem(w, *p)
+		return
+	}
+	id, err := s.svc.Balik(r.Context(), peminta(r), jurnal, *in.Alasan)
+	if errors.Is(err, service.ErrTidakDitemukan) {
+		tidakDitemukan(w, "Jurnal")
+		return
+	}
+	if err != nil {
+		s.petaError(w, err, "Hanya admin yang boleh membalik jurnal")
+		return
+	}
+	tulisJSON(w, 201, map[string]int64{"id": id, "membalik": jurnal})
+}
+
+// GET /tutup-buku?periode=YYYY-MM: laporan bulanan untuk Keuangan. Hanya admin.
+func (s Server) tutupBuku(w http.ResponseWriter, r *http.Request) {
+	periode := r.URL.Query().Get("periode")
+	buku, sistem, err := s.svc.TutupBuku(r.Context(), peminta(r), periode)
+	if err != nil {
+		s.petaError(w, err, "Hanya admin yang boleh membuka tutup buku")
+		return
+	}
+	tulisJSON(w, 200, map[string]any{"periode": periode, "buku": buku, "sistem": sistem})
 }
