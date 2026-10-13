@@ -5,6 +5,7 @@ Gaya datar, palet sama dengan situs/src/styles/tema.css. Teks di dalam gambar di
 cerita (siapa, di mana, apa yang terlihat di layar), bukan dekorasi.
 
 Jalankan: python3 tools/ilustrasi_cerita.py   → situs/lama/assets/cerita/*.svg
+Tokoh tidak lagi digambar di sini: halaman cerita memakai Rantai bertoken (XF2, keputusan 372).
 """
 import pathlib
 
@@ -56,28 +57,6 @@ def phone(x, y, lines, w=130, h=180, tone=BLUE):
 def bubble(x, y, w, h, s, fill=ORANGE_L, edge=ORANGE, size=20):
     return (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="12" fill="{fill}" stroke="{edge}" stroke-width="2"/>'
             + text(x + w / 2, y + h / 2 + size * 0.35, s, size=size, weight=700, fill=INK))
-
-
-def tokoh():
-    w, h = 720, 250
-    b = ['<g transform="translate(0,-80)">', f'<rect x="0" y="262" width="{w}" height="68" fill="{GRAY_L}"/>']
-    cast = [
-        (95, "Raka", "developer", "#3B5B92", "#C68A5E", NAVY, False, None),
-        (275, "Budi", "user", MINT, "#E0A980", "#3F2A1D", False, None),
-        (455, "Ani", "pemilik warung", ORANGE, "#B57B52", "#2B1B12", True, ORANGE_L),
-        (635, "Sinta", "pemilik produk", "#7C3AED", "#F0C29A", "#4A2A16", True, None),
-    ]
-    for x, name, role, shirt, skin, hair, long_hair, apron in cast:
-        b.append(person(x, 250, shirt, skin, hair, long_hair, apron))
-        b.append(text(x, 292, name, size=24, weight=800))
-        b.append(text(x, 318, role, size=18, weight=500, fill=GRAY))
-    # atribut kecil: laptop Raka, HP Budi, etalase Ani, papan Sinta
-    b.append(f'<rect x="120" y="170" width="58" height="38" rx="4" fill="{NAVY}"/><rect x="112" y="206" width="74" height="7" rx="3" fill="{GRAY}"/>')
-    b.append(f'<rect x="300" y="160" width="26" height="44" rx="5" fill="{NAVY}"/><rect x="303" y="165" width="20" height="30" rx="3" fill="{BLUE_L}"/>')
-    b.append(f'<rect x="490" y="180" width="70" height="70" rx="6" fill="{ORANGE_L}" stroke="{ORANGE}" stroke-width="2"/>' + text(525, 222, "Rp", size=22, weight=800, fill=ORANGE))
-    b.append(f'<rect x="660" y="165" width="40" height="52" rx="5" fill="{WHITE}" stroke="{GRAY}" stroke-width="2"/><path d="M668 182h24M668 194h24M668 206h16" stroke="{GRAY}" stroke-width="3"/>')
-    b.append("</g>")
-    return svg(w, h, "".join(b), "Empat tokoh cerita Rekeningo: Raka developer, Budi user, Ani pemilik warung, Sinta pemilik produk.")
 
 
 def tahap1():
@@ -136,6 +115,6 @@ def tahap2():
 
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
-    for name, fn in (("tokoh", tokoh), ("tahap-1", tahap1), ("tahap-2", tahap2)):
+    for name, fn in (("tahap-1", tahap1), ("tahap-2", tahap2)):
         (OUT / f"{name}.svg").write_text(fn())
         print("tulis", OUT / f"{name}.svg")

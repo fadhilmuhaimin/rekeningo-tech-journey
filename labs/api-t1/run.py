@@ -615,14 +615,22 @@ def rekam_m3():
     harap(s, 500, "tanda kutip: 500")
 
     bagian("D. Dimas mencoba ' OR 1=1 -- dan melihat semua akun beserta saldo")
-    bocor = ('{"warung":[{"id":400,"jenis":"admin","nama":"Admin Tunjangan","saldo":0},'
-             '{"id":418,"jenis":"warung","nama":"Warung Ani","saldo":0},'
-             '{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000},'
-             ' ... 99 akun lain, semuanya dengan saldo]}')
-    s, b = curl("GET", "/warung?cari=%27%20OR%201%3D1%20--", token=dimas, tampil_path="/warung?cari=' OR 1=1 --", resp_tampil=bocor)
+    s, b = curl("GET", "/warung?cari=%27%20OR%201%3D1%20--", token=dimas, tampil_path="/warung?cari=' OR 1=1 --")
     hasil = json.loads(b)["warung"]
-    harap((s, len(hasil) > 100, any(w["jenis"] == "karyawan" for w in hasil)),
-          (200, True, True), "injection: semua akun bocor")
+    # Jumlah akun dibaca dari database, bukan ditulis tangan (XF1, keputusan 371): seed isiAwal = admin 400,
+    # 100 karyawan, warung 418, 502, 503. Angka 104 juga ditulis di prosa 1.19.
+    jumlah_akun = int(subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-At", "-c", "SELECT count(*) FROM tahap1.akun"],
+                                     capture_output=True, text=True, check=True).stdout)
+    harap(jumlah_akun, 104, "jumlah akun seed")
+    harap((s, len(hasil), any(w["jenis"] == "karyawan" for w in hasil)),
+          (200, jumlah_akun, True), "injection: semua akun bocor")
+    # Rekaman meringkas body: tiga akun ditampilkan persis seperti dikirim server, sisanya dihitung dari body.
+    per_id = {w["id"]: w for w in hasil}
+    contoh = [json.dumps(per_id[i], ensure_ascii=False, separators=(",", ":")) for i in (400, 418, 419) if i in per_id]
+    if len(contoh) != 3 or not all(c in b for c in contoh) or b not in log[-1]:
+        gagal("ringkasan body M3 tidak sama dengan yang dikirim server")
+    log[-1] = log[-1].replace(b, '{"warung":[' + ",".join(contoh)
+                              + f', ... {len(hasil) - len(contoh)} akun lain, semuanya dengan saldo]}}')
     stop()
 
     reset()

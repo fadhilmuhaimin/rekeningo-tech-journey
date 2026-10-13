@@ -936,8 +936,7 @@
       "jenis": "konsep",
       "bagian": 4,
       "peran": [
-        "backend",
-        "security"
+        "backend"
       ],
       "nomor": "1.28",
       "menit": 11

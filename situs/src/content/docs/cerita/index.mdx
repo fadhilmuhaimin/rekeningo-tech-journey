@@ -1,69 +1,81 @@
 ---
 title: "Cerita Rekeningo: dari 100 ke 10 juta user"
 ---
+import Rantai from "../../../components/Rantai.astro";
 import SkripLama from "../../../components/SkripLama.astro";
+import tokoh from "../../../../data/diagram/cerita-tokoh.json";
 
 <p class="meta">Baca 4 menit · Mulai dari sini · Jalur inti</p>
 
 ## Inti
 
-Panduan ini mengikuti satu aplikasi fiktif, Rekeningo, dari 100 sampai 10 juta user. Setiap tahap memunculkan masalah baru. Setiap konsep backend muncul karena masalah itu, bukan karena urutan daftar materi.
+Panduan ini mengikuti satu aplikasi fiktif, Rekeningo, dari 100 karyawan di satu gedung sampai 10 juta user. Setiap tahap dibuka oleh PRD baru. Setiap konsep backend muncul karena masalah dari PRD itu, bukan karena urutan daftar materi.
 
-<figure class="bb-fig bb-arch" role="img" aria-label="Enam tahap cerita: 1 MVP, 2 saldo salah, 3 jam sibuk, 4 pihak ketiga, 5 skala jutaan, 6 regional (proyeksi).">
+<figure class="bb-fig bb-arch" role="img" aria-label="Enam tahap cerita: 1 satu gedung, 2 seluruh kampus, 3 enam kota, 4 dibuka ke publik, 5 nasional, 6 regional (proyeksi).">
 <ol class="bb-flow">
-<li class="is-new">MVP</li>
-<li class="is-old">Saldo salah</li>
-<li class="is-old">Jam sibuk</li>
-<li class="is-old">Pihak ketiga</li>
-<li class="is-old">Skala jutaan</li>
+<li class="is-new">Satu gedung</li>
+<li class="is-old">Seluruh kampus</li>
+<li class="is-old">Enam kota</li>
+<li class="is-old">Dibuka ke publik</li>
+<li class="is-old">Nasional</li>
 <li class="is-old">Regional</li>
 </ol>
 <figcaption>Enam tahap. Kamu mulai di Tahap 1 (biru). Tahap 6 masih proyeksi.</figcaption>
 </figure>
 
-## Aplikasinya
+## Perusahaan dan aplikasinya
 
-**Rekeningo (fiktif)** adalah aplikasi Flutter untuk menyimpan saldo, transfer ke sesama user, dan memesan dari toko kecil di sekitar. Warung, apotek kecil, atau toko kelontong membuka etalase di Rekeningo. Pembeli membayar dari saldo, lalu toko menyiapkan pesanan.
+**Grup Lestari** (fiktif) adalah perusahaan dengan kampus tiga gedung di pinggir kota. Di kampus itu ada ±1.200 karyawan, satu kantin bersama, dan belasan warung tenant di lantai dasar.
 
-Backend-nya mulai dari satu developer, lalu tumbuh bersama user-nya.
+Karyawan menerima tunjangan makan Rp50.000 per hari kerja. Tunjangan itu dibayar tunai di kasir setiap Senin pagi. Setiap akhir bulan, Keuangan mencocokkan kuitansi warung dengan tangan.
 
-<figure class="bb-ilus">
-![Empat tokoh: Raka developer, Budi user, Ani pemilik warung, Sinta pemilik produk.](/assets/cerita/tokoh.svg)
-</figure>
+**Rekeningo** adalah dompet internal untuk tunjangan makan itu. Admin mengisi saldo, karyawan membayar ke warung dari HP, dan warung melihat pembayaran yang masuk. Tahap 1 adalah uji coba di Gedung A: 100 karyawan, 3 warung, 6 minggu.
 
-| Tokoh | Peran | Yang dibawanya ke cerita |
+Tidak ada yang berencana membuatnya jadi produk publik. Itu terjadi belakangan, satu PRD demi satu PRD.
+
+## Tokoh
+
+<Rantai data={tokoh} />
+
+| Tokoh | Siapa | Yang dibawanya ke cerita |
 |---|---|---|
-| **Raka** | Mobile engineer Flutter yang kini juga memegang backend | Sudut pandangmu. Setiap keputusan teknis dilihat dari mata Raka. |
-| **Budi** | User. Top-up, transfer, pesan makan siang. | Bug yang terlihat user: saldo salah, dobel bayar. |
-| **Ani** | Pemilik warung di Rekeningo | Sisi toko: pesanan masuk, riwayat penjualan, sinyal tidak stabil. |
-| **Sinta** | Pemilik produk | Tuntutan bisnis: fitur baru, target pertumbuhan, kerja sama. |
+| **Raka** | Mobile engineer Divisi TI. Tiga tahun memakai Flutter, dan baru pertama kali memegang backend. Ia bekerja sendiri dengan bantuan AI. | Sudut pandangmu. Setiap konsep masuk lewat pekerjaan dan kesalahan Raka. |
+| **Sinta** | Product manager unit Inisiatif Digital. Ia menulis PRD. | PRD tiap tahap, prioritas, dan tekanan skala. |
+| **Budi** | Staf Gedung A yang makan siang di warung Ani tiap hari. Ia penguji pertama. | Semua bug yang terlihat user. |
+| **Ani** | Pemilik warung tenant di lantai dasar. Ia mencatat semuanya di buku tulis. | Sisi warung. Ani juga pengecek data paling teliti. |
+| **Pak Hadi** | Kepala Divisi Keuangan. | Syarat "setiap rupiah tertelusur" di PRD. |
+| **Dimas** | Staf TI junior Gedung C. Ia penasaran, bukan jahat. | Setiap adegan keamanan. Mulai Tahap 4, peran ini diambil pihak yang tidak dikenal. |
+
+Tokoh pendukung muncul sesuai tahap, mis. engineer kedua di Tahap 2 dan tim web di Tahap 3. Mereka baru diberi nama saat muncul.
 
 ## Enam tahap
 
-| Tahap | User | Masalah utama |
+| Tahap | User | Masalah yang muncul |
 |---|---|---|
-| 1 · MVP | 1–100 | Transfer gagal di tengah jalan, saldo hilang |
-| 2 · Saldo salah | 100–1.000 | Dua penarikan bersamaan sama-sama lolos. Dobel bayar. |
-| 3 · Jam sibuk | 1.000–10.000 | App lambat di jam makan siang |
-| 4 · Pihak ketiga | 10.000–100.000 | Payment gateway, upload file, tim bertambah |
-| 5 · Skala jutaan | 100.000+ | Satu database tidak cukup |
-| 6 · Regional | 10 juta, 3 negara | Proyeksi: multi-mata uang, aturan per negara |
+| 1 · Satu gedung | 100 karyawan Gedung A, 3 warung | Pembayaran setengah jadi, saldo akun lain terlihat, deploy mematikan app |
+| 2 · Seluruh kampus | 1.000 karyawan, 12 warung, Keuangan | Dobel tarik, dobel bayar, riwayat lambat, dua orang di satu repo |
+| 3 · Enam kota | 10.000 karyawan di 6 kota | Pool habis saat makan siang, katalog dibaca ribuan kali, login dicoba ribuan kali |
+| 4 · Dibuka ke publik | 100.000 user, merchant di luar kampus | Webhook ganda, gateway lambat, data pribadi, serangan dari luar |
+| 5 · Nasional | 1 juta user, ratusan ribu merchant | Laporan mengganggu transaksi, notifikasi ke 1 juta user, biaya cloud |
+| 6 · Regional | 10 juta user, 3 negara | Proyeksi: multi-mata uang, aturan per negara, koordinasi 10+ tim |
 
-Angka user dan beban di setiap tahap adalah asumsi cerita. Rumusnya ditulis di halaman tahap, jadi kamu bisa mengganti angkanya sendiri.
+Tahap 1 sudah ditulis penuh, dari PRD v1 sampai pratinjau PRD v2. Halaman Tahap 2 sampai 5 masih versi lama dan belum mengikuti cerita Grup Lestari. Kolom masalah untuk Tahap 2 sampai 6 adalah garis besar, dan bisa berubah saat tahapnya ditulis.
 
-Satu hal yang akan terlihat: di Tahap 1–3, masalahnya hampir selalu soal **kebenaran data** dan query yang lambat, bukan kapasitas server.
+Angka user dan beban adalah asumsi cerita. Puncak Tahap 1 hanya ±0,14 request per detik, dan hitungannya terbuka di [[t1-m8]]. Yang pecah di Tahap 1 bukan kapasitas server, tapi kebenaran data, keamanan, dan cara deploy.
 
 ## Cara membaca
 
-Setiap tahap punya satu **halaman tahap**: ceritanya, angka bebannya, arsitekturnya, dan daftar masalah yang muncul. Dari situ kamu masuk ke halaman konsep.
+Setiap tahap mengikuti urutan yang sama: PRD, fitur, pekerjaan teknis, masalah yang muncul, lalu konsep. Kamu melihat dulu apa yang diminta dan kenapa, baru teknologinya.
 
-Setiap halaman konsep dibuka dengan blok **Kamu di sini**, supaya kamu tahu posisimu dalam cerita. Di HP, blok itu satu baris yang bisa dibuka.
+Tahap ditutup dengan daftar yang sengaja belum dilakukan ([[t1-adr-12]]) dan pratinjau PRD berikutnya ([[t1-jembatan]]).
 
-Status setiap halaman, dan progress bacaanmu, ada di [[Peta]].
+Halaman konsep terdiri dari lima blok lipat: Mulai, Coba, Paham, Putuskan, Kunci. Jenis halaman lain dan navigasinya dijelaskan di [[A0]]. Baris **Kamu di sini** di atas judul menulis tahap, bagian, dan jenis halaman yang sedang kamu baca.
+
+Status setiap halaman dan progres bacaanmu ada di [[Peta]].
 
 :::note[Penafian]
 
-Rekeningo dan seluruh ceritanya fiktif. Cerita ini tidak mengklaim kepatuhan terhadap regulasi pembayaran, perlindungan data, atau aturan lain yang berlaku di dunia nyata.
+Grup Lestari, Rekeningo, dan seluruh ceritanya fiktif. Cerita ini tidak mengklaim kepatuhan terhadap regulasi pembayaran, perlindungan data, atau aturan lain yang berlaku di dunia nyata.
 :::
 
 <a class="tombol" href="/tahap-1/prd-v1/">Mulai Tahap 1 →</a>
