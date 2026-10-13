@@ -749,11 +749,11 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 ### X1 · Crosscheck penuh Tahap 1
 
 - jenis: crosscheck
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: -
 - selesai bila: (lingkup beku, keputusan 369) temuan hanya masuk ANTREAN sebagai tugas perbaikan bila kategorinya rusak, aksesibilitas, kontras, atau gerbang yang benar-benar gagal; temuan lain langsung ditulis ke `plan/SETELAH-TAHAP-1.md`. Isi `plan/PROMPT-CROSSCHECK.md` dijalankan; `plan/LAPORAN-TAHAP-1.md` ditulis; setiap perbaikan dari laporan menjadi tugas perbaikan baru sesudah X1 (satu tugas per perbaikan, bukan dikerjakan di iterasi X1).
-- catatan: Dari pelaksana 1.41: jumlah akun M3 tidak seragam — 1.19 `m3-tanda-kutip.mdx` ~21 "100 karyawan, tiga warung, dan admin" (104) vs `labs/api-t1/output/m3.txt` ~36 tiga + "99 akun lain" (102) vs M5 103. Dari peninjau P9 (keputusan 317): dari kode, `Service.Bayar` tidak memeriksa bahwa peminta adalah karyawan, jadi Warung Ani mungkin bisa membayar ke akunnya sendiri (418→418) dan baris itu terhitung di laporan warung [belum dibuktikan lab]; bila terbukti, kategorinya rusak.
+- catatan: Dari pelaksana 1.41: jumlah akun M3 tidak seragam — 1.19 `m3-tanda-kutip.mdx` ~21 "100 karyawan, tiga warung, dan admin" (104) vs `labs/api-t1/output/m3.txt` ~36 tiga + "99 akun lain" (102) vs M5 103. Dari peninjau P9 (keputusan 317): dari kode, `Service.Bayar` tidak memeriksa bahwa peminta adalah karyawan, jadi Warung Ani mungkin bisa membayar ke akunnya sendiri (418→418) dan baris itu terhitung di laporan warung [belum dibuktikan lab]; bila terbukti, kategorinya rusak. Crosscheck dipecah X1a/X1b/X1c (baca saja) lalu laporan PR #240, keputusan 370; tujuh perbaikan jadi XF1–XF6.
 
 ### XF1 · Jumlah akun di rekaman M3
 
