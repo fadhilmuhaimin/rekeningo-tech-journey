@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -34,6 +35,10 @@ const kepala = "akun_warung,nama_penerima,jumlah,berita"
 
 var titikHenti = flag.String("berhenti", "", "khusus lab: proses mematikan dirinya (SIGKILL) di titik ini")
 
+// Periode adalah kunci batch dan bagian nama file, jadi hanya satu bentuk yang diterima: minggu ISO seperti 2026-W43.
+// "2026-w43" tidak membuat batch kedua untuk Jumat yang sama, dan nama file tidak bisa keluar dari -dir (keputusan 507).
+var polaPeriode = regexp.MustCompile(`^[0-9]{4}-W(0[1-9]|[1-4][0-9]|5[0-3])$`)
+
 type baris struct {
 	buku, akun int64
 	nama       string
@@ -48,6 +53,9 @@ func main() {
 	urutan := flag.String("urutan", "file-dulu", "versi rentan: file-dulu atau jurnal-dulu")
 	dobel := flag.Int64("uji-baris-dobel", 0, "khusus lab: pembuat file menulis baris akun ini dua kali")
 	flag.Parse()
+	if !polaPeriode.MatchString(*periode) {
+		keluar(1, fmt.Errorf("periode %q bukan minggu ISO seperti 2026-W43", *periode))
+	}
 
 	ctx := context.Background()
 	db, err := pgx.Connect(ctx, os.Getenv("DATABASE_URL"))
