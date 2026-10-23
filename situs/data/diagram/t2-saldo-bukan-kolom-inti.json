@@ -17,12 +17,7 @@
         },
         {
           "teks": "catatan Rp250.000",
-          "sub": "topup + transaksi + koreksi digabung tangan",
-          "nada": "warn"
-        },
-        {
-          "teks": "Rp70.000 tanpa baris",
-          "sub": "potongan M4 tidak tercatat di tabel mana pun",
+          "sub": "topup + transaksi + koreksi; potongan M4 Rp70.000 tanpa baris",
           "nada": "warn"
         }
       ]
@@ -32,13 +27,8 @@
       "sub": "Tahap 2, kejadian.txt D",
       "simpul": [
         {
-          "teks": "satu query",
-          "sub": "posting buku Budi, satu bentuk",
-          "nada": "system"
-        },
-        {
-          "teks": "8 baris berjurnal",
-          "sub": "jenis, lawan, keterangan",
+          "teks": "posting berjurnal",
+          "sub": "8 baris Budi dalam satu query, dengan jenis, lawan, keterangan",
           "nada": "system"
         },
         {
