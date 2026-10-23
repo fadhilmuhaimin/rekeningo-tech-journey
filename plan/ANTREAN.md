@@ -1063,7 +1063,7 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: 2.3, lab-b3-ledger
+- bergantung: 2.2, lab-b3-ledger
 - selesai bila: halaman Fitur→teknis 2.4 sesuai `plan/CERITA-TAHAP-2.md` bagian 2 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: -
 
