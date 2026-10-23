@@ -80,3 +80,7 @@ Polesan dan pencegahan dari tinjauan lab dan halaman Tahap 2 yang sengaja tidak 
 - Job CI dengan service PostgreSQL yang membangun ulang ERD dan membandingkan (menutup celah `--cek` yang hanya memeriksa hash sumber; juga catatan ERD1).
 - `nomor_karyawan` terpotong "nomor_kar…" di node `akun` (HP dan desktop); teks pindah "arsip v1" belum menjelaskan bahwa itu schema arsip.
 - Pagar lock `pastikan_di_schema()` menangkap pelanggaran sesudah SQL jalan; efek di luar transaction (mis. `nextval` sequence lab lain) tidak dibatalkan ROLLBACK. Pagar sebenarnya: role database per lab tanpa hak di schema lain (sekarang semua lab memakai satu role `lab`).
+
+## Temuan polesan dari tinjauan RISET-2 (#272, keputusan 601)
+
+- `plan/RISET-TAHAP-2.md`: R2-29 (GitHub Docs) dan R2-34 (OWASP Cheat Sheet) tidak menulis versi atau tanggal ubah halaman, hanya tanggal akses di kepala; judul tautan forum di "Jebakan" belum dicocokkan karena stackoverflow.com dan security.stackexchange.com menolak WebFetch.

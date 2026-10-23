@@ -4,7 +4,7 @@ Dikerjakan 2026-10-24, skill riset-tahap (hierarki bukti dan format klaim dari a
 ## Konsep dan sumber
 | ID | Konsep | Sumber primer (versi, tanggal) | Yang dipakai halaman | Berubah sejak Okt 2026 |
 |---|---|---|---|---|
-| R2-01 | Versi PostgreSQL lab | Image `postgres:17` tanpa pin (`labs/b3-race/docker-compose.yml`), kepala rekaman 17.11; postgresql.org/support/versioning: 17.11 minor terbaru seri 17, didukung sampai 2029-11-08; versi terbaru 18.6 (18.0 rilis 2025-09-25); 19 belum ada di tabel. Dokumentasi yang dirujuk: `/docs/17/` | Kepala "Di stack lain", catatan versi di semua halaman lab | Tidak ada minor 17 baru sejak rekaman |
+| R2-01 | Versi PostgreSQL lab | Image `postgres:17` tanpa pin (`labs/b3-race/docker-compose.yml`), kepala rekaman 17.11; postgresql.org/support/versioning: 17.11 minor terbaru seri 17, didukung sampai 2029-11-08; versi stabil terbaru 18.6 (18.0 rilis 2025-09-25); 19 belum ada di tabel, tapi berita postgresql.org 3409 (2026-10-15): 19 RC 1 dirilis, GA direncanakan 2026-11-19. Dokumentasi yang dirujuk: `/docs/17/` | Kepala "Di stack lain", catatan versi di semua halaman lab | Tidak ada minor 17 baru sejak rekaman; 19 RC 1 (2026-10-15) |
 | R2-02 | PostgreSQL 18 yang menyentuh Tahap 2 | Release notes 18.0: BUFFERS otomatis di `EXPLAIN ANALYZE`, skip scan B-tree multicolumn, `uuidv7()`, `OLD`/`NEW` di `RETURNING`, asynchronous I/O | 2.17 catatan versi (lab di 17 wajib menulis BUFFERS) | Berlaku bila lab naik ke 18 |
 | R2-03 | Go | `labs/api-t2/go.mod` dan `labs/c4-ratelimit/login/go.mod`: `go 1.27.1`; go.dev/doc/devel/release: terbaru go1.27.3 (2026-10-19, perbaikan keamanan `crypto/x509`) | Kolom Go "Di stack lain" | Dua patch sesudah lab |
 | R2-04 | Driver pgx | pkg.go.dev `github.com/jackc/pgx/v5`: v5.11.0 (2026-09-07) terbaru = versi lab; GO-2026-5004 (SQL injection lewat placeholder + dollar-quoted string) hanya di v5.9.0–v5.9.1 | 2.3, 2.11 (kode Go) | Tidak berubah |
@@ -43,7 +43,7 @@ Dikerjakan 2026-10-24, skill riset-tahap (hierarki bukti dan format klaim dari a
 ## Teknik terbaru
 | Teknik | Masuk / tidak | Alasan dengan angka tahap ini | ID |
 |---|---|---|---|
-| Naik ke PostgreSQL 18 | Tidak | Semua rekaman Tahap 2 di 17.11; menaikkan image mengubah kepala dan rencana query semua rekaman (SETELAH-TAHAP-2: pin image dulu); 760.448 posting setahun tidak butuh async I/O | R2-01, R2-02 |
+| Naik ke PostgreSQL 18 atau 19 | Tidak | 19 baru RC 1 (R2-01); semua rekaman Tahap 2 di 17.11; menaikkan image mengubah kepala dan rencana query semua rekaman (SETELAH-TAHAP-2: pin image dulu); 760.448 posting setahun tidak butuh async I/O | R2-01, R2-02 |
 | `uuidv7()` untuk key atau PK | Tidak | Key dibuat app (UUID v4, RFC 9562 §5.4); lokalitas index v7 (RFC 9562 §6.11) berarti di tulis besar, bukan 1,4 RPS | R2-17, R2-02 |
 | SERIALIZABLE sebagai default | Tidak | ADR 13 memilih lock baris buku; keempat cara di lab berakhir Rp30.000 satu jurnal, SERIALIZABLE menambah retry di semua jalur tulis | R2-14, R2-11 |
 | `CREATE INDEX CONCURRENTLY` | Masuk (catatan 2.17, 2.22) | Index riwayat ditambah ke tabel yang sedang ditulis; lab membuatnya dengan CREATE INDEX biasa di data muat, jadi CONCURRENTLY berlabel Tidak dijalankan | R2-28 |
