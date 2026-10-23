@@ -953,11 +953,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### RISET-2 · Riset Tahap 2
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-c4-ratelimit
 - selesai bila: `plan/RISET-TAHAP-2.md` (≤ 120 baris) sesuai skill riset-tahap: setiap konsep 2.6–2.31 punya 1–3 sumber primer dengan versi dan tanggal dan ID `R2-nn`; yang berubah sejak PROPOSAL; teknik terbaru masuk/tidak; satu kasus industri nyata untuk ADR ledger (sumber primer); jebakan forum untuk kolom "Yang dikira"; angka beban Tahap 2 dihitung ulang dengan rumus PROPOSAL dan dibandingkan dengan registry; pengatur membuka tiga ID acak dan isinya memuat klaimnya.
-- catatan: Langkah 1 alur tahap (keputusan 554). Lab Tahap 2 sudah ada; riset menjadi jejak klaim halaman 2.x.
+- catatan: Langkah 1 alur tahap (keputusan 554). Lab Tahap 2 sudah ada; riset menjadi jejak klaim halaman 2.x. PR #272, keputusan 600: 35 baris R2-01–R2-35, kasus Square Books (2019) dengan Stripe Ledger sebagai pembanding; draft Idempotency-Key kini -08 aktif (bukan kedaluwarsa seperti 512); rumus ukuran naskah 3b lawan registry 1.38 dan 760.448 posting lab dicatat; 7 butir "Belum bisa dicek" untuk MEMORI pengatur.
 
 ### lab-api-t2a · Pengaman cek penerima dan login di api-t2
 
