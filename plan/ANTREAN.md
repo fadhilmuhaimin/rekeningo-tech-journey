@@ -1004,13 +1004,22 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - selesai bila: axe-core dipasang sebagai devDependency dengan ADR (versi dicek ke npm hari itu); `situs/tools/ukur-axe.mjs --path <p> ...` menjalankan axe dengan runOnly wcag2a, wcag2aa, wcag21aa, wcag22aa sesudah semua `<details>` dibuka dan halaman digulir sampai island hidup, di 375×667 dan 1366×657, gelap dan terang, dan keluar 1 bila ada pelanggaran; uji lolos palsu (halaman uji dengan pelanggaran sengaja membuatnya gagal); tidak masuk gerbang per PR kecuali murah, dipakai EVAL-N butir W4.
 - catatan: Kategori aksesibilitas/gerbang. Usul dari tinjauan #274 dan skill evaluasi-tahap (W4).
 
+### A11y-gulir-tabel · Wadah tabel yang digulir bisa difokus
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: G-axe
+- selesai bila: axe `scrollable-region-focusable` (SC 2.1.1) 0 di 375×667 dan 1366×657 dua tema pada 1.6, 1.11, 1.18, 1.28 dan seluruh `situs/dist` (`situs/tools/ukur-axe.mjs`): wadah tabel atau kode yang digulir ke samping bisa dicapai Tab, punya nama aksesibel, dan fokusnya terlihat; layar pertama dan CLS tidak berubah; perbaikan di komponen atau CSS bersama, bukan per halaman; teks halaman tidak berubah.
+- catatan: Kategori aksesibilitas dari G-axe (#283, keputusan 694).
+
 ### ERD-1.12 · Widget ERD bertumbuh di 1.12
 
 - jenis: interaksi
 - status: antre
 - percobaan: 0
 - bergantung: G-axe, ERD2
-- selesai bila: Blok Paham 1.12 memakai `ErdTumbuh` dengan data `situs/data/erd/tahap-1.json` (versi statis tetap untuk pembaca layar dan tanpa JS); React Flow hanya dimuat di 1.12 dan `/uji/erd/`; ukuran JS 1.12 sebelum/sesudah dicatat di `plan/AUDIT-TAMPILAN.md`; layar pertama 1.12 tidak bergeser; axe 0; lapisan svg garis ErdTumbuh tidak terbaca sebagai `image` tanpa nama di pohon aksesibilitas Chromium (CDP `Accessibility.getFullAXTree`, pola keputusan 680; temuan #274: 11 dari 12 svg garis di `/uji/erd/`); `ukur-erd.mjs` lolos dan gagal bila itu kembali.
+- selesai bila: Blok Paham 1.12 memakai `ErdTumbuh` dengan data `situs/data/erd/tahap-1.json` (versi statis tetap untuk pembaca layar dan tanpa JS); React Flow hanya dimuat di 1.12 dan `/uji/erd/`; ukuran JS 1.12 sebelum/sesudah dicatat di `plan/AUDIT-TAMPILAN.md`; layar pertama 1.12 tidak bergeser; axe 0; lapisan svg garis ErdTumbuh tidak terbaca sebagai `image` tanpa nama di pohon aksesibilitas Chromium (CDP `Accessibility.getFullAXTree`, pola keputusan 680; temuan #274: 11 dari 12 svg garis di `/uji/erd/`); klik dan tap kotak tabel ErdTumbuh sampai ke tombolnya (node React Flow pointer-events none, pola keputusan 681) dan diuji lewat koordinat; `ukur-erd.mjs` lolos dan gagal bila salah satunya kembali.
 - catatan: Langkah 4 Tahap 2 (naskah "Dipasang di: 1.12 … satu PR kecil di Tahap 1"). Pengecualian pembekuan Tahap 1 atas permintaan naskah (keputusan 555). 2.9 memasang mode bandingkan di PR halamannya.
 
 ### G-istilah · Halaman glosarium per istilah
@@ -1028,8 +1037,8 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - status: antre
 - percobaan: 0
 - bergantung: A11y-diagram
-- selesai bila: Widget race memutar enam replay `ledger-<cara>.json` dari `labs/b3-race/output/ledger/` (rentan dua urutan, FOR UPDATE, UPDATE atomik, optimistic lock, SERIALIZABLE + retry) dengan saldo dan status dari rekaman, tebak dulu sebelum hasil, pilih satu cara untuk diubah, chip sumber ke file rekaman; keyboard dan reduced motion; versi lama widget untuk halaman versi lama tidak berubah; ukuran JS dicatat; diuji di halaman `/uji/`.
-- catatan: Langkah 5 Tahap 2, dipakai 2.10 dan 2.11 (keputusan 557).
+- selesai bila: Widget race memutar enam replay `ledger-<cara>.json` dari `labs/b3-race/output/ledger/` (rentan dua urutan, FOR UPDATE, UPDATE atomik, optimistic lock, SERIALIZABLE + retry) dengan saldo dan status dari rekaman, tebak dulu sebelum hasil, pilih satu cara untuk diubah, chip sumber ke file rekaman; keyboard dan reduced motion; versi lama widget untuk halaman versi lama tidak berubah; ukuran JS dicatat; diuji di halaman `/uji/`; axe `definition-list` (SC 1.3.1) di widget race lama `/b-fondasi/b3-2-race-condition-lock/` 0 (temuan G-axe, keputusan 694).
+- catatan: Langkah 5 Tahap 2, dipakai 2.10 dan 2.11 (keputusan 557). Menyerap A11y-race-dl.
 
 ### 2.1 · PRD v2: Rekeningo untuk seluruh kampus
 
