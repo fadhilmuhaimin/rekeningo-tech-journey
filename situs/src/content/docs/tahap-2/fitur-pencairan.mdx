@@ -1,0 +1,215 @@
+---
+title: "2.5 Fitur: pencairan warung terjadwal"
+description: Setiap Jumat 15.00, job memindahkan saldo setiap warung ke kas pencairan di ledger, lalu menulis satu file transfer yang diunggah Keuangan ke bank.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-pencairan-inti.json";
+import PetaFitur from "../../../components/PetaFitur.astro";
+import petaPencairan from "../../../../data/widget/t2-peta-pencairan.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 6 menit · coba 2 menit · Prasyarat: [[t2-tutup-buku]]</p>
+
+<Blok nama="Yang diminta PRD" buka>
+
+## Inti
+
+Pencairan adalah job tiap Jumat 15.00: saldo warung pindah ke kas pencairan, lalu masuk satu file untuk bank.
+
+<Rantai data={intiDiagram} ringkas />
+
+Tidak ada user yang mengirim request. Server menjalankan job pada jamnya, lalu membaca saldo setiap warung dari jumlah posting. Untuk setiap warung, job menulis satu jurnal pencairan: buku warung berkurang, dan buku `kas_pencairan` bertambah sebanyak itu. Di rekaman lab `benar.txt` bagian A (lab t2-pencairan), 12 warung bersaldo Rp2.450.000, dan Warung Ani Rp310.000.
+
+Lalu job membuat satu file CSV, satu baris per warung, yang diunggah Keuangan ke bank dengan tangan. Sejak itu uang yang sama tercatat di dua tempat: ledger di database dan file di disk. Bagian C rekaman yang sama mencatat file 12 baris Rp2.450.000 dan mutasi `kas_pencairan` +Rp2.450.000. Pak Hadi membandingkan kedua angka itu saat tutup buku.
+
+### Baris PRD
+
+| Prioritas | Fitur | Keterangan |
+|---|---|---|
+| P0 | Pencairan warung terjadwal | Setiap Jumat 15.00: saldo warung dicairkan; Keuangan menerima satu file transfer untuk diunggah ke bank (belum ada integrasi bank) |
+
+Tujuan PRD v2 untuk fitur ini: pencairan warung terjadwal tanpa kerja admin. Di Tahap 1, warung menunggu admin mentransfer pencairan dengan tangan ([[t2-prd]]). Menurut PRD, warung berhenti memakai Rekeningo kalau pencairan terlambat atau jumlahnya beda.
+
+<PetaFitur data={petaPencairan} />
+
+Berbeda dengan bayar dan transfer, fitur ini bekerja tanpa request. Tidak ada app yang menunggu jawaban, jadi tidak ada layar yang menampilkan error kalau job gagal. Integrasi bank langsung, dashboard web untuk warung, dan notifikasi push bukan lingkup PRD v2.
+
+</Blok>
+
+<Blok nama="Coba: job dijalankan dua kali" buka aman="Kalau berhenti di sini, kamu sudah tahu: job menulis jurnal dan baris file dari saldo yang sama, dan jalan kedua membaca saldo saat itu, bukan saldo pukul 15.00.">
+
+Data empat warung ini ilustrasi, dengan saldo yang sama dengan empat warung pertama di rekaman lab. SQL-nya dijalankan sungguhan di browser. Tabel `file_bank` memerankan file CSV; di lab, file itu ditulis ke disk, di luar database.
+
+<WidgetLama nama="runsql" src="data/t2-pencairan.json" />
+
+Tabel hasil membaca dua tempat untuk setiap warung: saldo dari posting, lalu jumlah baris dan rupiah di file. Baris terakhir membandingkan mutasi `kas_pencairan` dengan total file. Di kedua panel, keduanya Rp1.155.000.
+
+Nyalakan **Ubah satu hal**: Budi membayar Rp25.000 ke Warung Ani pukul 15.05. Jalan kedua kini mencairkan Rp25.000 itu, jadi Warung Ani mendapat dua baris di file Jumat yang sama. Ledger dan file tetap sama, Rp1.180.000.
+
+Jadi hasil job bergantung pada kapan ia jalan. PRD menulis "setiap Jumat 15.00", tapi tidak menulis pembayaran pukul 15.05 milik Jumat yang mana. Widget ini juga menjalankan setiap jalan sampai selesai. Job sungguhan bisa berhenti di tengah, di antara jurnal dan file, dan akibatnya dibahas di [[t2-m15]].
+
+</Blok>
+
+<Blok nama="Job, file, dan rekaman">
+
+Job ini program Go terpisah di lab, `cmd/pencairan`, bukan endpoint API. Penggerak lab menjalankannya sebagai perintah dari database bersih, untuk periode minggu `2026-W43`. Jadwal Jumat 15.00 tidak dijalankan di lab; caranya ada di bagian Di stack lain.
+
+### Saldo yang dicairkan
+
+Job membaca saldo dari jumlah posting, dan hanya warung yang saldonya lebih dari 0. Rekaman menampilkan `saldo_cache` di sebelahnya, dan untuk 12 warung keduanya sama:
+
+<Snippet file="labs/t2-pencairan/output/benar.txt" lines="10:30" title="Rekaman lab: labs/t2-pencairan/output/benar.txt" />
+
+### Satu jurnal per warung
+
+Jurnal pencairan berisi dua posting yang jumlahnya nol, sama dengan jurnal bayar dan transfer. Ini jurnal Warung Ani:
+
+<Snippet file="labs/t2-pencairan/output/benar.txt" lines="118:125" title="Rekaman lab: labs/t2-pencairan/output/benar.txt" />
+
+Buku `kas_pencairan` menampung semua jumlah yang sudah dicairkan dari buku warung. Jadi sesudah job selesai, mutasinya sama dengan jumlah yang harus ada di file.
+
+### File untuk bank
+
+File berisi satu baris per warung: nomor akun warung, nama, jumlah, dan berita. Formatnya fiktif, bukan format bank mana pun. Nomor rekening bank warung belum ada di skema Tahap 2, jadi file lab memakai nomor akun warung di Rekeningo.
+
+<Snippet file="labs/t2-pencairan/output/benar.txt" lines="127:141" title="Rekaman lab: labs/t2-pencairan/output/benar.txt" />
+
+### File lawan ledger
+
+Sesudah file dibuat, penggerak lab memuat file itu ke tabel sementara dan membandingkannya dengan ledger. Yang dibandingkan: jumlah baris dan total file, lawan jumlah jurnal pencairan dan mutasi `kas_pencairan`.
+
+<Snippet file="labs/t2-pencairan/output/benar.txt" lines="146:155" title="Rekaman lab: labs/t2-pencairan/output/benar.txt" />
+
+Selisihnya Rp0 di sini. Di tutup buku bulan pertama, perbandingan yang sama tidak berakhir Rp0 ([[t2-m15]]). Rekaman `benar.txt` juga mematikan proses job di tengah jalan; bagian itu dibuka di [[t2-job-rekonsiliasi]].
+
+### Di stack lain
+
+**Skenario:** job pencairan dijalankan setiap Jumat 15.00 WIB di satu server. Tidak ada tab yang dijalankan, karena lab menjalankan job sebagai perintah tanpa jadwal. Setiap tab dicek ke dokumentasi pada 2026-10-24.
+
+Yang sama di semua stack: jadwal memanggil kode job, bukan endpoint, dan zona waktunya harus ditulis. Yang berbeda: tempat jadwal ditulis, dan zona waktu bawaannya. WIB adalah UTC+7, jadi 15.00 WIB sama dengan 08.00 UTC.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Tidak dijalankan. Lab menjalankan binary job ini (Go 1.27.1, pgx v5.11.0) tanpa jadwal. Unit dicek ke [systemd.timer(5)](https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html) dan [systemd.time(7)](https://www.freedesktop.org/software/systemd/man/latest/systemd.time.html), systemd 262.*
+
+<Snippet lang="ini" code={`# /etc/systemd/system/pencairan.timer
+[Timer]
+OnCalendar=Fri *-*-* 15:00:00 Asia/Jakarta
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+
+# /etc/systemd/system/pencairan.service
+[Service]
+Type=oneshot
+# Skrip pembungkus menghitung minggu ISO, lalu menjalankan pencairan -periode <minggu> -dir <folder>
+ExecStart=/opt/rekeningo/pencairan-jumat.sh`} />
+
+**Yang berbeda di stack ini:** Go tidak punya penjadwal bawaan, jadi jadwal dipegang systemd di server. Zona waktu ditulis di `OnCalendar`. Dengan `Persistent=true`, jadwal yang terlewat saat server mati dijalankan begitu timer aktif lagi, dan job itu membaca saldo saat itu.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [node-postgres: Pool](https://node-postgres.com/apis/pool), `pg` 8.23.1.*
+
+<Snippet lang="js" code={`// job/pencairan.mjs: dipanggil timer systemd yang sama dengan tab Go
+import pg from "pg";
+
+const pool = new pg.Pool();
+try {
+  await cairkan(pool, process.argv[2]); // jurnal per warung, lalu file
+} finally {
+  await pool.end();
+}`} />
+
+**Yang berbeda di stack ini:** pool yang masih memegang koneksi membuat proses Node tetap hidup. Karena itu skrip job menutupnya dengan `pool.end()`, supaya proses berakhir sesudah job selesai.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Task Scheduling](https://laravel.com/docs/13.x/scheduling).*
+
+<Snippet lang="php" code={`// routes/console.php
+use Illuminate\\Support\\Facades\\Schedule;
+
+Schedule::command('pencairan:jalankan')
+    ->fridays()
+    ->at('15:00')
+    ->timezone('Asia/Jakarta');`} />
+
+<Snippet lang="bash" code={`# satu baris crontab di server
+* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1`} />
+
+**Yang berbeda di stack ini:** jadwal tinggal di kode, jadi ikut review. Server hanya butuh satu baris cron yang memanggil `schedule:run` setiap menit. Zona waktu ditulis per task dengan `timezone()`, atau untuk semua task lewat `schedule_timezone` di config `app`.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: custom management commands](https://docs.djangoproject.com/en/6.1/howto/custom-management-commands/) dan [Django 6.0: Tasks](https://docs.djangoproject.com/en/6.0/topics/tasks/).*
+
+<Snippet lang="python" code={`# rekening/management/commands/pencairan.py
+from django.core.management.base import BaseCommand
+
+class Command(BaseCommand):
+    def add_arguments(self, parser):
+        parser.add_argument("periode")  # mis. 2026-W43
+
+    def handle(self, *args, **options):
+        cairkan(options["periode"])  # jurnal per warung, lalu file`} />
+
+**Yang berbeda di stack ini:** Django tidak punya penjadwal berkala bawaan. Tasks framework yang baru di Django 6.0 mengantre pekerjaan, tetapi tidak menyediakan worker untuk menjalankannya, dan dokumentasinya tidak menyebut jadwal berkala. Jadi job ditulis sebagai management command, lalu timer systemd tab Go menjalankan `python manage.py pencairan <minggu>`.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: Recurring tasks](https://docs.serverpod.dev/concepts/scheduling/recurring-tasks), `serverpod` 4.0.4.*
+
+<Snippet lang="dart" code={`// pencairan.jalankan: future call buatan sendiri; API ini dibuat generator Serverpod
+await pod.futureCalls
+    .callRecurring(identifier: 'pencairan-jumat')
+    .cron('0 8 * * 5') // Jumat 08.00 UTC = 15.00 WIB
+    .pencairan
+    .jalankan();`} />
+
+**Yang berbeda di stack ini:** jadwal berjalan di dalam server Serverpod, dan ekspresi cron dibaca dalam UTC. Bila server mati saat jadwal tiba, jalan itu dilakukan sekali sesudah server hidup lagi.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase Cron](https://supabase.com/docs/guides/cron), [pg_cron](https://github.com/citusdata/pg_cron), dan [PostgreSQL 17: COPY](https://www.postgresql.org/docs/17/sql-copy.html).*
+
+<Snippet lang="sql" code={`-- pencairan_jumat(): fungsi SQL buatan sendiri yang menulis jurnal per warung
+SELECT cron.schedule('pencairan-jumat', '0 8 * * 5', 'SELECT pencairan_jumat()');`} />
+
+**Yang berbeda di stack ini:** pg_cron menjalankan SQL di dalam database, dalam waktu GMT kecuali `cron.timezone` diubah. Fungsi itu bisa menulis jurnal, tetapi `COPY` ke file di server hanya boleh untuk superuser atau role `pg_write_server_files`. Jadi file untuk Keuangan dibuat proses lain di luar database.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Konsep yang akan dibutuhkan">
+
+- [[t2-ledger]]: jurnal, posting, dan invarian yang juga berlaku untuk jurnal pencairan.
+- [[t2-m15]]: apa yang terlihat Pak Hadi bila job berhenti di tengah, di antara jurnal dan file.
+- [[t2-job-rekonsiliasi]]: job terjadwal yang aman dijalankan dua kali, status batch, dan rekonsiliasi ledger lawan file.
+- [[t2-tutup-buku]]: laporan bulanan tempat file dan ledger dibandingkan.
+
+**Pertanyaan yang belum dijawab** di halaman ini:
+
+| Pertanyaan | Kenapa belum dijawab | Dijawab di |
+|---|---|---|
+| Apa yang terjadi kalau server mati di tengah job? | Widget menjalankan setiap jalan sampai selesai | [[t2-m15]] |
+| Bagaimana job tahu minggu ini sudah dicairkan? | [[t2-fitur-teknis]] menyebut status batch, tapi bentuk tabelnya diputuskan di ADR 19 | [[t2-job-rekonsiliasi]] |
+| Pembayaran pukul 15.05 milik Jumat ini atau Jumat depan? | PRD hanya menulis "setiap Jumat 15.00" | [[t2-job-rekonsiliasi]] |
+| Ke rekening bank mana uang warung dikirim? | Nomor rekening bank warung belum ada di skema Tahap 2 | Belum dijadwalkan |
+
+</Blok>
+
+<SkripLama daftar={["runsql-core","runsql"]} />
