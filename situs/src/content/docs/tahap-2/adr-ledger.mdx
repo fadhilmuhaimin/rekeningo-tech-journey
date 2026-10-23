@@ -21,7 +21,7 @@ PRD v2 punya dua syarat yang tidak bisa dipenuhi ADR 6 Tahap 1: koreksi tanpa ta
 
 Kedua syarat datang dari PRD v2 untuk 1.000 karyawan dan 12 warung ([[t2-prd]]):
 
-1. **Aturan Pak Hadi diperketat.** "Setiap rupiah di saldo siapa pun harus bisa ditelusuri ke kejadian yang membuatnya, tanpa tabel koreksi tangan". Di Tahap 1, satu baris koreksi hanya menyimpan akun, jumlah, alasan, dan admin.
+1. **Aturan Pak Hadi diperketat.** "Setiap rupiah di saldo siapa pun harus bisa ditelusuri ke kejadian yang membuatnya, tanpa tabel koreksi tangan". Di Tahap 1, satu baris koreksi menyimpan akun, jumlah, alasan, admin, dan waktu, tanpa rujukan ke pembayaran yang dikoreksi.
 2. **Tutup buku bulanan (P0).** Saldo awal + mutasi = saldo akhir, untuk setiap akun dan seluruh sistem ([[t2-tutup-buku]]). Rekaman `koreksi.txt` bagian D (lab api-t1) menghitung catatan Budi Rp320.000, padahal saldonya Rp250.000.
 
 Beban tidak ikut memutuskan. Puncak PRD v2 ±1,4 request per detik, dengan ±900 transaksi sehari (Asumsi naskah). Yang diputuskan di sini adalah kebenaran data.

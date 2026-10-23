@@ -12,7 +12,7 @@
       "simpul": [
         {
           "teks": "ADR 6: tanpa rujukan",
-          "sub": "baris koreksi hanya akun, jumlah, alasan; api-t1 koreksi.txt C",
+          "sub": "baris koreksi: akun, jumlah, alasan, admin; api-t1 koreksi.txt C",
           "nada": "warn"
         },
         {

@@ -12,7 +12,7 @@
       "Tidak keduanya"
     ],
     "answer": 1,
-    "explain": "Baris koreksi Tahap 1 hanya menyimpan akun, jumlah, dan alasan. Pembayaran yang dikoreksi hanya bisa ditebak dari teks alasan. Jurnal pembalik menyimpan membalik_jurnal_id = 2, dan database memeriksa bahwa posting-nya cermin jurnal 2."
+    "explain": "Baris koreksi Tahap 1 menyimpan akun, jumlah, alasan, admin, dan waktu, tanpa rujukan ke pembayaran. Pembayaran yang dikoreksi hanya bisa ditebak dari teks alasan. Jurnal pembalik menyimpan membalik_jurnal_id = 2, dan database memeriksa bahwa posting-nya cermin jurnal 2."
   },
   "panels": {
     "before": {
