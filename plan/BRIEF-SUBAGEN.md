@@ -16,6 +16,7 @@ Baris pembuka setiap brief: "Baca CLAUDE.md, PROTOKOL-OTOMATIS.md, dan skill yan
 - Subagen tidak mengubah `plan/MEMORI.md` dan `plan/STATUS.md` (pengatur). Di ANTREAN hanya blok tugasnya sendiri (status, percobaan, catatan) di commit penutup. KEPUTUSAN dan `plan/SETELAH-TAHAP-N.md` hanya ditambah baris (merge union lokal, keputusan 558).
 - Lab: hanya container lokal; pihak ketiga selalu tiruan lokal; rekaman dari database bersih, diulang dan dibandingkan (status, saldo, urutan; bukan waktu); lab gagal keras bila hasil meleset. Venv lab: symlink `labs/.venv` ke folder utama bila belum ada.
 - Worktree baru: `bun install --cwd situs` dan font (`bash tools/get_fonts.sh`) sebelum gerbang. Gerbang: `bash tools/cek_situs.sh --layar > tmp/cek.txt 2>&1 && echo LOLOS || echo GAGAL` lalu `tail -30 tmp/cek.txt`, dengan `PORT_PREVIEW` dari brief. PR yang hanya mengubah `plan/` atau skill boleh memakai gerbang tanpa `--layar`; CI tetap menjalankan semuanya.
+- CI: merge hanya bila `gh pr checks <n>` keluar 0. Job gagal di langkah "Pasang Chromium Playwright" dengan exit 124 berarti mirror apt lambat: `gh run rerun <run-id> --failed`, bukan perbaikan kode.
 - Batas waktu: halaman, lab, widget 120 menit; lainnya 75 menit. Lewat batas: commit yang aman, push, laporkan "lanjutkan nanti" dengan langkah berikutnya.
 
 ## Pelaksana
