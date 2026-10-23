@@ -1293,16 +1293,6 @@
       "menit": 5
     },
     {
-      "id": "T2",
-      "judul": "Tahap 2 · Ceritanya",
-      "tahap": 2,
-      "path": "cerita/tahap-2.md",
-      "ada": true,
-      "bagian": 1,
-      "diganti_oleh": "t2-prd",
-      "menit": 4
-    },
-    {
       "id": "t2-fitur-teknis",
       "judul": "Dari fitur ke pekerjaan teknis v2",
       "tahap": 2,
@@ -2060,6 +2050,16 @@
       ],
       "ada": false,
       "nomor": "2.33"
+    },
+    {
+      "id": "T2",
+      "judul": "Tahap 2 · Ceritanya",
+      "tahap": 2,
+      "path": "cerita/tahap-2.md",
+      "ada": true,
+      "bagian": 1,
+      "diganti_oleh": "t2-prd",
+      "menit": 4
     },
     {
       "id": "T3",
