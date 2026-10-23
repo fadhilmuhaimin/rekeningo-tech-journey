@@ -126,8 +126,8 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 70,
-        "halaman": 8
+        "menit": 77,
+        "halaman": 9
       },
       "versi": "lama",
       "skala": {
@@ -1308,8 +1308,9 @@
       "prasyarat": [
         "t2-prd"
       ],
-      "ada": false,
-      "nomor": "2.2"
+      "ada": true,
+      "nomor": "2.2",
+      "menit": 7
     },
     {
       "id": "t2-transfer",
