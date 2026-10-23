@@ -1,0 +1,43 @@
+{
+  "id": "t2-adr-ledger-kebutuhan",
+  "judul": "Dua syarat PRD v2: jawaban ADR 6 Tahap 1 dan jawaban ledger",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t1, api-t2, b3-ledger"
+  },
+  "baris": [
+    {
+      "label": "Koreksi",
+      "sub": "tanpa tabel koreksi tangan",
+      "simpul": [
+        {
+          "teks": "ADR 6: tanpa rujukan",
+          "sub": "baris koreksi hanya akun, jumlah, alasan; api-t1 koreksi.txt C",
+          "nada": "warn"
+        },
+        {
+          "teks": "pembalik merujuk asal",
+          "sub": "jurnal 1131 membalik jurnal 1130; api-t2 pembalik.txt B",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Tutup buku",
+      "sub": "saldo awal + mutasi = saldo akhir",
+      "simpul": [
+        {
+          "teks": "ADR 6: selisih Rp70.000",
+          "sub": "catatan Rp320.000, saldo Rp250.000; api-t1 koreksi.txt D",
+          "nada": "warn"
+        },
+        {
+          "teks": "ledger: 9 buku cocok",
+          "sub": "11 jurnal, 0 tidak seimbang; b3-ledger tutup-buku.txt",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kuning: model Tahap 1 (ADR 6). Hijau: ledger di lab. Rekaman ADR 6 diambil di akhir Tahap 1, rekaman ledger sesudah kejadian Tahap 2 di lab."
+}

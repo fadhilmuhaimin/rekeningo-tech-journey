@@ -1,0 +1,189 @@
+---
+title: "2.8 ADR 6 direvisi: dari kolom saldo ke ledger"
+description: Revisi ADR 6 di minggu 0 Tahap 2. Kolom saldo dan tabel koreksi diganti ledger double-entry yang hanya ditambah, karena aturan Pak Hadi v2 meminta setiap rupiah tertelusur ke kejadiannya. Nomornya tetap 6, bukan 12.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import kebutuhan from "../../../../data/diagram/t2-adr-ledger-kebutuhan.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Snippet from "../../../components/Snippet.astro";
+
+<p class="meta">Baca 9 menit · coba 3 menit · Prasyarat: [[t2-ledger]] · Jalur inti</p>
+
+<Blok nama="Kebutuhan" buka>
+
+PRD v2 punya dua syarat yang tidak bisa dipenuhi ADR 6 Tahap 1: koreksi tanpa tabel koreksi tangan, dan tutup buku yang dibuktikan dari data.
+
+<Rantai data={kebutuhan} ringkas />
+
+**Status:** diterima di minggu 0 Tahap 2, sebelum transfer antar karyawan ditulis. Revisi ini menggantikan ADR 6 Tahap 1, tabel koreksi ([[t1-adr-transaction]]). ADR 5, transaction di service, tetap berlaku.
+
+Kedua syarat datang dari PRD v2 untuk 1.000 karyawan dan 12 warung ([[t2-prd]]):
+
+1. **Aturan Pak Hadi diperketat.** "Setiap rupiah di saldo siapa pun harus bisa ditelusuri ke kejadian yang membuatnya, tanpa tabel koreksi tangan". Di Tahap 1, satu baris koreksi hanya menyimpan akun, jumlah, alasan, dan admin.
+2. **Tutup buku bulanan (P0).** Saldo awal + mutasi = saldo akhir, untuk setiap akun dan seluruh sistem ([[t2-tutup-buku]]). Rekaman `koreksi.txt` bagian D (lab api-t1) menghitung catatan Budi Rp320.000, padahal saldonya Rp250.000.
+
+Beban tidak ikut memutuskan. Puncak PRD v2 ±1,4 request per detik, dengan ±900 transaksi sehari (Asumsi naskah). Yang diputuskan di sini adalah kebenaran data.
+
+**Kenapa nomornya tetap 6.** Naskah menulis "ADR 12", tapi nomor itu sudah dipakai [[t1-adr-12]], dan nomor 13–21 sudah milik ADR Tahap 2 lain. Nygard menulis bahwa nomor ADR tidak dipakai ulang, dan keputusan yang dibatalkan tetap disimpan dengan tanda superseded ([Nygard, 2011](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)).
+
+Di format itu, pengganti biasanya bernomor baru. Panduan ini memakai nomor 6 supaya ADR 13–21 tetap sama dengan naskah, dan 1.24 tetap ada sebagai keputusan Tahap 1.
+
+</Blok>
+
+<Blok nama="Opsi" buka>
+
+Raka dan Nadia menulis empat opsi. Keempatnya memakai PostgreSQL yang sudah ada, dan semuanya tetap membungkus perubahan uang dalam satu transaction (ADR 5).
+
+| | A. Kolom saldo + tabel koreksi | B. Kolom saldo + tabel audit dari trigger | C. Ledger double-entry | D. Event sourcing penuh |
+|---|---|---|---|---|
+| Cara kerja | ADR 6 Tahap 1. `akun.saldo` di-UPDATE, dan setiap jenis kejadian punya tabel sendiri: `topup`, `transaksi`, `koreksi` | Kolom saldo tetap. Trigger `AFTER UPDATE` di `akun` menulis baris audit: saldo lama, saldo baru, user database, dan waktu | Setiap perpindahan uang adalah satu jurnal berisi dua posting atau lebih yang berjumlah nol. Saldo adalah jumlah posting; koreksi adalah jurnal pembalik | Setiap perubahan disimpan sebagai event di event store. Keadaan akun dibangun ulang dari event-nya, dan tampilan baca diperbarui handler terpisah |
+| Kelebihan | Sudah berjalan 6 minggu di Gedung A. Saldo dibaca dari satu baris | Perubahan saldo tanpa baris catatan, seperti potongan M4, tetap meninggalkan baris audit. Kode app tidak berubah | Saldo tidak bisa berubah tanpa baris. Lima jenis kejadian punya satu bentuk, jadi tutup buku adalah query atas satu tabel | Riwayat lengkap untuk semua data, bukan hanya uang. Keadaan di waktu lampau bisa dibangun ulang |
+| Kekurangan | Saldo bisa berubah tanpa baris catatan. Koreksi mengubah satu akun dan tidak menunjuk transaksi yang dikoreksinya | Baris audit mencatat angka yang berubah, bukan kejadiannya. Koreksi tetap lewat tabel koreksi, dan tidak ada aturan bahwa uang keluar sama dengan uang masuk | Membaca saldo berarti menjumlah, jadi butuh `saldo_cache` yang dikunci dan dicek. Data Tahap 1 harus dimigrasi. Dua transfer bersamaan tetap bisa sama-sama lolos | Tampilan baca tertinggal sebentar dari event store (eventual consistency), padahal saldo di app harus terbaru. Skema event perlu versi, karena event lama tidak diubah |
+| Biaya operasional | Rekap tangan dari tiga tabel. Di Tahap 1, Keuangan butuh 4 jam untuk satu gedung (naskah) | Satu tabel yang tumbuh di setiap UPDATE saldo. Pemilik tabel bisa mematikan trigger-nya | Job malam yang mencocokkan cache dengan posting, migrasi tiga rilis, dan ±660 ribu posting per tahun (Asumsi naskah) | Event store, handler, tampilan baca, dan replay, dipelihara dua engineer dalam 8 minggu |
+| Bukti | Rekaman lab api-t1 `koreksi.txt` D | Tidak dijalankan. [PostgreSQL 17, contoh 41.4](https://www.postgresql.org/docs/17/plpgsql-trigger.html) | Rekaman lab b3-ledger `kejadian.txt`, `invarian.txt`, `tutup-buku.txt` | Tidak dijalankan. [Fowler, 2005](https://martinfowler.com/eaaDev/EventSourcing.html); [Microsoft Learn, 2026](https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing) |
+
+Opsi B, C, dan D sama-sama menyimpan riwayat. Bedanya ada di isi riwayat itu: B mencatat angka yang berubah, D mencatat kejadian di semua data, dan C mencatat kejadian uang saja. Aturan persis jurnal, posting, dan tiga invarian di opsi C ada di [[t2-ledger]].
+
+</Blok>
+
+<Blok nama="Yang dipilih dan kenapa">
+
+**Keputusan: opsi C.** ADR 6 direvisi menjadi tujuh aturan:
+
+1. Setiap perpindahan uang adalah satu jurnal dengan minimal dua posting yang berjumlah nol, ditulis dalam satu transaction (ADR 5).
+2. Jurnal dan posting tidak pernah di-UPDATE atau DELETE. Kesalahan dikoreksi dengan jurnal pembalik: cermin jurnal asal, merujuk jurnal itu, beralasan minimal 20 karakter, dan satu jurnal hanya dibalik sekali.
+3. Saldo adalah jumlah posting satu buku. `buku.saldo_cache` hanya salinan yang ditulis di transaction yang sama, dan job malam mencocokkannya dengan posting.
+4. Tiga invarian dijaga database, bukan hanya kode: jurnal seimbang, jurnal dan posting tidak diubah, dan saldo karyawan tidak negatif.
+5. Server memakai role yang bukan pemilik tabel, dengan hak SELECT dan INSERT saja di `jurnal` dan `posting`.
+6. `POST /koreksi` Tahap 1 dijawab `410 Gone`. Hanya admin yang membuat jurnal pembalik.
+7. Data Tahap 1 masuk sebagai jurnal pembuka per akun. Setiap baris koreksi lama menjadi dua jurnal: perubahan yang tidak punya baris, dan pembaliknya.
+
+**Kenapa C.** Opsi C satu-satunya yang menjawab kedua syarat dari data. Di rekaman `tutup-buku.txt` (lab b3-ledger), 9 buku cocok dengan saldo awal + mutasi, 11 jurnal semuanya seimbang, dan jumlah semua posting 0.
+
+- **A ditolak** karena rekamannya sudah gagal di syarat kedua: catatan Budi Rp320.000, saldo Rp250.000.
+- **B ditolak** karena baris audit tidak menyebut kejadian atau lawannya, dan koreksi tetap tabel tangan. Microsoft menyebut event yang hanya mencatat keadaan baru sebagai log perubahan tanpa makna bisnis.
+- **D ditolak** karena saldo harus terbaru saat Budi menekan Bayar, sedangkan tampilan baca event sourcing baru sama sesudah handler selesai. Microsoft juga menulis bahwa pindah ke pola ini, atau keluar darinya, berbiaya besar.
+
+Microsoft menyarankan event sourcing dipakai hanya di bagian yang membutuhkannya, misalnya ledger pembayaran. Opsi C adalah bagian itu saja: jurnal di PostgreSQL yang sama, dan cache yang diperbarui di transaction yang sama dengan posting.
+
+**Kasus industri.** Square menulis keputusan yang sama untuk service settlement mereka ([Square Engineering, 2019](https://developer.squareup.com/blog/books-an-immutable-double-entry-accounting-database-service/)). Service lama menghitung saldo merchant dengan agregasi group-by yang berat, dan skemanya tidak mencegah payout yang tidak konsisten. Penggantinya database double-entry yang entrinya hanya ditambah, setiap jurnal berjumlah 0, dan kesalahan dikoreksi dengan entri baru.
+
+Batas kasus ini: satu service, ±20 TB data, di Cloud Spanner, dengan skema yang disederhanakan di tulisannya, keadaan 2019. Stripe Ledger menjadi pembanding skala, bukan contoh untuk ditiru. Menurut laporan mereka sendiri, Ledger mencatat 5 miliar event per hari sebagai proyeksi dari sistem hulu ([Stripe, 2024](https://stripe.dev/blog/ledger-stripe-system-for-tracking-and-validating-money-movement)). Rekeningo mencatat ±900 transaksi sehari (Asumsi naskah), jadi yang dipinjam adalah aturannya, bukan arsitekturnya.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Ada kode yang menulis `saldo_cache` tanpa posting, dan app menampilkan saldo yang tidak bisa dijelaskan. Pencegahannya masuk butir 3 dan 5: job malam keluar dengan status 1 saat cache berbeda Rp5.000 dari posting (rekaman api-t2 `migrasi.txt` bagian E).
+2. Seseorang membereskan data langsung di database: mematikan trigger, lalu mengubah posting. Pencegahannya butir 5: role server ditolak dengan SQLSTATE 42501 (rekaman api-t2 `migrasi.txt` bagian F). Pemilik schema dan superuser tetap bisa. Persetujuan dua orang untuk perubahan seperti itu direncanakan di Tahap 4 ([[t1-adr-transaction]]).
+3. Ledger dianggap juga menyelesaikan dua transfer bersamaan. Tanpa lock, keduanya COMMIT dan saldo Budi −Rp20.000 (rekaman `batas.txt` bagian 2). Butir 3 membuat transfer kedua menunggu lock baris cache, tapi ia ditolak database, bukan dijawab "saldo kurang" (bagian 3). Cara mengunci yang benar butuh keputusan sendiri, ADR 13 ([[t2-m9]], [[B3.2]]).
+
+</Blok>
+
+<Blok nama="Wujud di kode">
+
+**Butir 6.** Koreksi satu sisi Tahap 1 tidak ada lagi. Server v2 menjawab `POST /koreksi` dengan 410 dan menunjuk penggantinya:
+
+<Snippet file="labs/api-t2/output/pembalik.txt" lines="45:49" title="Rekaman lab: labs/api-t2/output/pembalik.txt" />
+
+**Butir 2.** Admin hanya mengirim nomor jurnal dan alasan. Service membangun posting cermin dari jurnal asal, jadi jumlahnya tidak diketik orang. `KunciBukuID` adalah lock dari ADR 13 ([[B3.2]]):
+
+<Snippet file="labs/api-t2/internal/service/akun.go" lines="70:88" lang="go" title="labs/api-t2/internal/service/akun.go" />
+
+**Butir 5.** Dari koneksi server, invarian tidak bisa dimatikan dan posting tidak bisa diubah:
+
+<Snippet file="labs/api-t2/output/migrasi.txt" lines="220:232" title="Rekaman lab: labs/api-t2/output/migrasi.txt" />
+
+**Butir 7.** Migrasi data Tahap 1 di lab b3-ledger. Saldo kolom tiga akun jadi jurnal pembuka, dan koreksi M4 jadi jurnal 4 dan 5 yang saling membalik:
+
+<Snippet file="labs/b3-ledger/output/migrasi.txt" lines="60:69" title="Rekaman lab: labs/b3-ledger/output/migrasi.txt" />
+
+</Blok>
+
+<Blok nama="Coba keduanya">
+
+Kedua panel mengoreksi salah bayar yang sama: Budi salah memilih warung dan membayar Rp15.000 ke Warung Sari. Before memakai ADR 6 Tahap 1, yaitu dua kali `POST /koreksi`, satu per akun. After memakai jurnal pembalik. Alasan dan jumlahnya dari rekaman api-t2 `pembalik.txt`, skemanya diringkas, dan SQL-nya dijalankan sungguhan di browser dengan SQLite (Ilustrasi).
+
+<WidgetLama nama="runsql" src="data/t2-adr-ledger.json" />
+
+Kedua panel berakhir dengan saldo Budi Rp250.000 dan selisih sistem 0. Bedanya di baris kedua: Before hanya punya teks alasan, sedangkan After menunjuk jurnal 2.
+
+Nyalakan **Ubah satu hal**: admin salah ketik Rp150.000 untuk Budi. Before menerima keempat perintah, dan catatan Budi tetap cocok dengan saldonya, Rp385.000. Hanya baris terakhir yang menunjukkan Rp135.000 muncul tanpa sumber. After menolak posting yang bukan cermin jurnal asal, lalu `ROLLBACK` membatalkan jurnal pembaliknya.
+
+Di PostgreSQL lab, penolakan yang sama terjadi saat `COMMIT` dengan SQLSTATE 23514 (rekaman b3-ledger `invarian.txt` bagian D). Di api-t2, salah ketik ini tidak bisa terjadi lewat API, karena service menyalin posting cermin dari jurnal asal.
+
+</Blok>
+
+<Blok nama="Kapan keputusan ini salah">
+
+Setiap baris di bawah adalah pemicu untuk membuka ADR ini lagi. Kolom terakhir adalah rencana dari tabel pertumbuhan skema di naskah Tahap 2, bagian 3b.
+
+| Salah saat | Yang terlihat | Rencana |
+|---|---|---|
+| Menjumlah posting jadi lambat | Riwayat dan tutup buku melambat walau query dan index sudah diperbaiki. Naskah memperkirakan ±440 juta posting per tahun di Tahap 5 (Asumsi) | Tahap 5: partisi `posting` per bulan dan snapshot saldo |
+| Uang tidak lagi satu mata uang | "Berjumlah nol" tidak bermakna bila satu jurnal mencampur rupiah dan mata uang lain | Tahap 6: multi-mata uang dan kurs |
+| Uang juga tercatat di luar database | Ledger bisa benar sendirian, tapi berbeda dengan catatan gateway pembayaran atau bank | Tahap 4: pembayaran gateway. Pola rekonsiliasinya dimulai di [[t2-job-rekonsiliasi]] |
+| Data pribadi harus bisa dihapus | Jurnal tidak bisa dihapus, padahal `keterangan` berisi teks bebas seperti "Patungan makan siang ke Citra" (rekaman `kejadian.txt`) | Belum dijadwalkan di naskah |
+
+**Yang akan merevisinya.** Di Tahap 2 sendiri, ADR 13 menambah lock pada baris buku saat transfer, dan ADR 17 menjalankan butir 7 dalam tiga rilis. Tahap 4 menambah audit log berantai dan persetujuan dua orang untuk perubahan di luar jurnal. Tahap 5 mempartisi `posting` per bulan dan menambah snapshot saldo.
+
+### Cek diri
+
+**1.** Seorang engineer mengusulkan opsi B: kolom saldo tetap, ditambah trigger audit. Sebutkan satu syarat PRD v2 yang tetap gagal.
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Aturan Pak Hadi. Koreksi masih lewat tabel koreksi tangan, dan baris audit hanya menulis saldo lama dan saldo baru. Dari baris audit, Pak Hadi tahu angka Budi berubah, tapi tidak tahu pembayaran mana atau ke siapa.
+
+</details>
+
+**2.** Kenapa ADR ini tidak bernomor 12, dan apa yang terjadi pada ADR 6 di halaman 1.24?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Nomor 12 sudah dipakai 1.40, dan nomor ADR tidak dipakai ulang. Nomor 13–21 juga sudah milik ADR Tahap 2 lain. ADR 6 di 1.24 tetap ada sebagai keputusan Tahap 1, dengan catatan bahwa penggantinya halaman ini.
+
+</details>
+
+**3.** Benar atau salah: dengan ledger, dua transfer Budi yang bersamaan tidak bisa membuat saldonya negatif.
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Salah. Invarian saldo tidak negatif hanya membaca, tanpa lock. Di rekaman `batas.txt` bagian 2, kedua transfer COMMIT dan saldo Budi −Rp20.000. Lock-nya diputuskan di ADR 13 ([[B3.2]]).
+
+</details>
+
+**4.** Di api-t2, kenapa admin tidak bisa salah ketik jumlah jurnal pembalik?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Admin hanya mengirim nomor jurnal dan alasan. Service menyalin setiap posting jurnal asal dengan tanda dibalik, dan database tetap memeriksa bahwa pembalik adalah cermin jurnal asal.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Tidak ada `UPDATE` atau `DELETE` pada `jurnal` dan `posting`, termasuk di migration dan skrip perbaikan data.
+- [ ] Jurnal pembalik dibangun dari posting jurnal asal, bukan dari jumlah yang diketik.
+- [ ] Role server tidak punya hak UPDATE atau DELETE di `jurnal` dan `posting`, dan bukan pemilik tabel.
+- [ ] Tidak ada endpoint atau skrip yang mengubah saldo tanpa jurnal, termasuk `POST /koreksi` lama.
+- [ ] Pemeriksaan saldo tidak dianggap aman untuk dua request bersamaan tanpa lock.
+
+### Bacaan lanjut
+
+- [Square Engineering: Books, an immutable double-entry accounting database service](https://developer.squareup.com/blog/books-an-immutable-double-entry-accounting-database-service/) (2019)
+- [Stripe: Ledger, Stripe's system for tracking and validating money movement](https://stripe.dev/blog/ledger-stripe-system-for-tracking-and-validating-money-movement) (2024)
+- [Microsoft Learn: Event Sourcing pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing)
+- [Martin Fowler: Event Sourcing](https://martinfowler.com/eaaDev/EventSourcing.html) (2005)
+- [PostgreSQL 17: Trigger functions, contoh 41.4 untuk audit](https://www.postgresql.org/docs/17/plpgsql-trigger.html)
+- [Michael Nygard: Documenting Architecture Decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) (2011)
+
+<WidgetLama nama="umpan-balik" />
+
+</Blok>
+
+<SkripLama daftar={["runsql-core","runsql"]} />

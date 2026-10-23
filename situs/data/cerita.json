@@ -126,8 +126,8 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 77,
-        "halaman": 9
+        "menit": 89,
+        "halaman": 10
       },
       "versi": "lama",
       "skala": {
@@ -1428,7 +1428,7 @@
     },
     {
       "id": "t2-adr-ledger",
-      "judul": "ADR 12: dari kolom saldo ke ledger",
+      "judul": "ADR 6 direvisi: dari kolom saldo ke ledger",
       "tahap": 2,
       "path": "tahap-2/adr-ledger.md",
       "topik": "Data",
@@ -1439,8 +1439,9 @@
         "backend"
       ],
       "adr": [
-        12
+        6
       ],
+      "label": "Revisi",
       "masalah": "Memilih model uang yang memenuhi aturan Pak Hadi: setiap rupiah tertelusur",
       "prasyarat": [
         "t2-ledger"
@@ -1448,8 +1449,9 @@
       "lab": [
         "b3-ledger"
       ],
-      "ada": false,
-      "nomor": "2.8"
+      "ada": true,
+      "nomor": "2.8",
+      "menit": 12
     },
     {
       "id": "t2-skema",
