@@ -19,6 +19,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Tahap 2, angka naskah yang tidak terulang di lab: M11 "4 detik" (lab ±30 ms per halaman, ±1,9 detik seluruh riwayat; minggu 3 baru ±44 ribu posting, keputusan 521, 526), M13 "40 detik" (lab 5 detik; lama datang dari antrean di belakang laporan, 536), M15 Rp15.000 (data lab menaruh saldo itu di titik henti, 504), M9 −Rp20.000 (hanya lewat alat lab, 431). Usul: naskah menyebut mekanismenya; angkanya tetap ilustrasi cerita.
 - Tahap 2, lain-lain: M10 "Budi menekan Bayar lagi" direkam sebagai retry app dengan request sama (e3); nomor rekening tujuan warung belum ada di ERD 3b (505); mermaid ERD Tahap 2 berbeda dari lab di beberapa kolom (473: `peran`/`jenis`, `hash_password`, `akun.nama`, PK `baris_pencairan`).
 - Tahap 2 bagian 3b, tabel pertumbuhan: baris Tahap 1 (±22 ribu) memakai 2 transaksi per user aktif, Tahap 2–4 memakai 3; registry dan 1.38 memakai 2 × 300 B; lab b2-query 760.448 posting ±99 MB. Halaman Tahap 2 memakai rumus naskah, 1.38 tidak diubah (keputusan 600).
+- 2.1: CERITA-TAHAP-1 ±13/±81 dan 1.1 menulis kampus ±1.200 karyawan, CERITA-TAHAP-2 ±1.000 (2.1 ikut Tahap 2); CERITA-TAHAP-1 ±65 dan 1.42 menyebut fitur "ekspor laporan bulanan", PRD v2 tidak (2.1 menulisnya bagian tutup buku).
 
 ## Catatan untuk halaman Tahap 2
 
@@ -45,6 +46,7 @@ Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditan
 - Crosscheck kecil K4–K9 dan X1-t2/X2-t2 dihapus dari ANTREAN; EVALUASI-TAHAP-N menggantikannya (keputusan 554).
 - Halaman 2.1 dan 2.2 ditulis sebelum lab-api-t2a karena Docker tertahan; lab tetap sebelum halaman yang memakainya (keputusan 562).
 - Angka pertumbuhan Tahap 2 memakai rumus naskah 3b; 1.38 tidak diubah (keputusan 600).
+- Halaman cerita Tahap 2 lama tidak dihapus, dipindah ke akhir Tahap 2 di registry (605). 2.4 ditulis sebelum 2.3; selama Docker tertahan, halaman memakai rekaman yang sudah ada (722).
 
 ## Perlu dicek pemilik
 
@@ -66,12 +68,10 @@ Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditan
 
 ## Sedang dikerjakan
 
-2026-10-24 · Mode penyelesaian penuh, Tahap 2 langkah halaman. Selesai: persiapan (#270, #271, #273, #275), RISET-2 (#272). Berjalan: peninjau A11y-diagram (#274, `../rjt-teknis`), pelaksana 2.1 (`../rjt-konten`, branch `tahap-2/prd-v2`). Urutan teknis berikutnya: G-ci-apt → G-istilah → G-axe → ERD-1.12 → W2-race; konten: 2.1 → 2.2, lab-api-t2a bila Docker jalan, lalu 2.3. Catatan pengatur yang belum masuk repo: `tmp/catat-antre.md`. Untuk melanjutkan: `gh pr list --state open`, `python3 tools/antrean.py ringkas`.
+2026-10-24 · Tahap 2 langkah halaman, pipa dua worktree per jalur (720). Selesai: RISET-2 (#272), A11y-diagram (#274), 2.1 (#277), G-ci-apt (#278). Berjalan: pelaksana 2.2 (`../rjt-konten2`), 2.4 (`../rjt-konten`), G-istilah (`../rjt-teknis2`), G-axe (`../rjt-teknis`). Antre: ERD-1.12 → W2-race (teknis); 2.5, 2.6 … (konten); 2.3 dan lab-api-t2a menunggu Docker. Nomor keputusan per tugas: keputusan 721. Catatan yang belum masuk repo: `tmp/catat-antre.md`. Untuk melanjutkan: `gh pr list --state open`.
 
 ## Pelajaran
 
-
-- PR yang CONFLICTING dengan main tidak memicu CI (`cek.yml` hanya `pull_request`), dan `tmp/tunggu_pr.sh` berakhir "TIDAK ADA RUN": cek `gh pr view <n> --json mergeable` dulu; konflik baris tambahan KEPUTUSAN/README digabung `tmp/gabung_urut.sh <branch> <nomor>` (union, KEPUTUSAN diurutkan). Lab yang menunggu lock dengan ambang waktu tetap gagal palsu saat mesin ramai: tunggu sampai selesai atau `pg_stat_activity` menunjukkan Lock (2026-10-14).
-- Dua lapis menangkap celah yang lolos pelaksana: c4 (`/ganti-password` tanpa rate limit, salt tetap), api-t2 (Bayar v1 dijawab 201 tanpa ledger). Peninjau wajib uji mutasi dan baca kode; cek `mergeable` lagi sesudah CI hijau; scratchpad dipakai bersama agen, tulis ke subfolder unik (2026-10-14).
 - Merge hanya bila `gh pr checks <n>` keluar 0: PR #271 ter-merge dengan job "Pasang Chromium Playwright" gagal (mirror apt lambat, exit 124; main hijau sesudah `gh run rerun --failed`). Worktree baru butuh `bash tools/get_fonts.sh` sebelum gerbang (2026-10-24).
 - Pohon aksesibilitas Chromium (CDP `Accessibility.getFullAXTree`) yang dibuktikan, bukan atribut DOM: svg pembungkus tanpa nama tetap terbaca `image` (#274). `gh pr merge --delete-branch` gagal bila worktree lain memegang main: merge tanpa itu lalu `git push origin --delete <branch>`; subagen tidak checkout main di worktree. Durasi: RISET-2 27 + 62 menit tinjau, A11y-diagram 82 menit (2026-10-24).
+- Peninjau menemukan yang lolos pelaksana di setiap tugas sejauh ini: apt memakai .deb cache hanya menurut ukuran (#278, 684), Berikutnya 2.1 menuju cerita lama (#277, 605), klik kotak diagram tidak sampai tombol (#274, 681). Pipa dua worktree per jalur (720); nomor keputusan per tugas di brief (721).
