@@ -1,0 +1,9 @@
+# Masuk dari tahap-2/prd-v2
+
+## KEPUTUSAN
+
+| 602 | 2026-10-24 | Halaman 2.1 PRD v2 (`tahap-2/prd-v2.mdx`) memakai template PRD 1.1: kepala dokumen (penulis, syarat audit, lingkup, waktu) dan delapan blok (Latar masalah terbuka dengan Rantai `t2-prd-sebelum-sesudah` berlabel Ilustrasi; Tujuan; User dan kebutuhan barunya; Ruang lingkup; Metrik dan batasan dengan aturan Pak Hadi v1 lawan v2 dan tabel beban berlabel Asumsi yang dicek `sinkron_cerita.py`; Tim dan risiko dengan tabel Nadia dari "Tokoh baru"; Pertanyaan terbuka; Yang dibuka lagi dari Tahap 1). Isi dari naskah bagian 1 dan Latar; tiga beda kata: "Pengguna" jadi "User" (audit bahasa), "Password baru" jadi "Password sementara" (makna sama dengan PRD v1 dan M16), kepala "Syarat audit" karena naskah Tahap 2 tidak menyebut penyetuju v2 (1.42 menulis "Syarat baru"). Jawaban tebak 1.42 diulang dan diperluas: ADR 6 dikaitkan ke aturan v2 dan rekaman `labs/api-t1/output/koreksi.txt` bagian D (saldo Budi Rp250.000, catatan Rp320.000), ADR 5 ke dua pertanyaan terbuka, metrik "0 tertagih dua kali", dan `sengaja-belum.txt` bagian B dan D–E; ADR 12 ditulis tidak dibuka lagi (puncak ±1,4 RPS, Asumsi registry dan RISET-TAHAP-2 "Angka tahap ini"). Tanpa lab baru, tanpa widget React | Naskah sumber tertinggi; PRD v1 dan v2 berdampingan dengan bentuk yang sama; usulan MEMORI meminta halaman pertama Tahap 2 mengulang dan memperluas jawaban 1.42; perluasan memakai rekaman yang sudah ada, jadi tidak ada angka baru tanpa label | Widget tebak kedua (mengulang 1.42); ilustrasi latar kampus baru (komponen Ilustrasi hanya punya `prd` Tahap 1, jalur teknis; jadi polesan); Snippet rekaman koreksi dan sengaja-belum (sudah tampil di 1.24 dan 1.40); tabel ADR empat kolom (meluap di 375 px) |
+
+## SETELAH-TAHAP-2
+
+- Ilustrasi latar kampus untuk blok Latar masalah 2.1, setara ilustrasi `prd` di 1.1 (keputusan 602, jalur teknis).

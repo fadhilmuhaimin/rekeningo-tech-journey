@@ -126,8 +126,8 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 60,
-        "halaman": 7
+        "menit": 65,
+        "halaman": 8
       },
       "versi": "lama",
       "skala": {
@@ -1299,8 +1299,9 @@
       "prasyarat": [
         "t1-jembatan"
       ],
-      "ada": false,
-      "nomor": "2.1"
+      "ada": true,
+      "nomor": "2.1",
+      "menit": 5
     },
     {
       "id": "t2-fitur-teknis",
