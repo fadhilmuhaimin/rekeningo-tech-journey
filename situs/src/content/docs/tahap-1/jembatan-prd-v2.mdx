@@ -8,7 +8,7 @@ import dataTebak from "../../../../data/widget/t1-jembatan-tebak.json";
 import { muat, label, url as urlHalaman } from "../../../../tools/registri.mjs";
 
 export const hs = muat().halaman;
-export const tautanTebak = ["T2", "t1-adr-transaction"]
+export const tautanTebak = ["t2-prd", "t1-adr-transaction"]
   .map((id) => hs.find((h) => h.id === id && h.ada))
   .filter(Boolean)
   .map((h) => ({ label: label(h), href: urlHalaman(h) }));

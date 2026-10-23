@@ -1034,11 +1034,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.1 · PRD v2: Rekeningo untuk seluruh kampus
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: T2-mulai, RISET-2
 - selesai bila: halaman PRD 2.1 sesuai `plan/CERITA-TAHAP-2.md` bagian 1 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Menggantikan halaman cerita Tahap 2 lama.
+- catatan: Menggantikan halaman cerita Tahap 2 lama. PR #277, keputusan 602–605: `tahap-2/prd-v2.mdx` dengan template PRD 1.1 (kepala + delapan blok, Rantai Ilustrasi, beban Asumsi), jawaban tebak 1.42 diperluas dari `koreksi.txt` D dan `sengaja-belum.txt` B, D–E; T2 lama keluar dari jalur inti dan (tinjauan, 605) pindah ke akhir Tahap 2 supaya Berikutnya 2.1 tidak menuju cerita lama, tebak 1.42 menautkan 2.1; rekaman di blok terakhir menyebut file dan bagiannya (604). Istilah baru tanpa halaman istilah (G-istilah belum selesai): debit, kredit, jurnal, tutup buku, ERP.
 
 ### 2.2 · Dari fitur ke pekerjaan teknis v2
 

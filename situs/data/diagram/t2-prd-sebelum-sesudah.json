@@ -1,0 +1,28 @@
+{
+  "id": "t2-prd-sebelum-sesudah",
+  "judul": "Seluruh kampus: sesudah uji coba dan yang diminta PRD v2",
+  "sumber": { "jenis": "ilustrasi", "teks": "Ringkasan PRD v2" },
+  "baris": [
+    {
+      "label": "Sesudah uji coba",
+      "sub": "masih di luar sistem",
+      "simpul": [
+        { "teks": "Patungan makan siang tunai", "sub": "karyawan ke karyawan" },
+        { "teks": "Pencairan warung manual", "sub": "admin mentransfer tiap warung" },
+        { "teks": "Rekap Keuangan 4 jam", "sub": "untuk satu gedung, disusun tangan" },
+        { "teks": "Rekap 10 kali lipat", "sub": "tidak mungkin dengan tangan", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Rekeningo v2",
+      "sub": "seluruh kampus pusat, 8 minggu",
+      "simpul": [
+        { "teks": "Transfer antar karyawan", "sub": "batas Rp500.000 per hari", "nada": "system" },
+        { "teks": "Pencairan tiap Jumat 15.00", "sub": "satu file transfer untuk bank", "nada": "system" },
+        { "teks": "Top-up 1.000 akun", "sub": "satu file CSV, satu operasi", "nada": "system" },
+        { "teks": "Tutup buku < 1 hari", "sub": "selisih Rp0, dibuktikan dari data", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kotak biru adalah fitur P0 di PRD v2. Kotak terakhir adalah metrik tutup buku bulan pertama."
+}
