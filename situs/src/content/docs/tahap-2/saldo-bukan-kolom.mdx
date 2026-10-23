@@ -45,6 +45,8 @@ Kedua panel menjalankan pembayaran M4 tanpa transaction: Budi membayar Rp70.000 
 
 Panel Before berhenti di langkah kedua, sama dengan rekaman lab `m4.txt`: saldo Budi Rp180.000, dan tidak ada baris `transaksi` untuk pembayaran itu. Panel After juga berhenti, di langkah ketiga. Bedanya, After tidak punya perintah "potong saldo". Potongan Budi adalah posting −Rp70.000 di jurnal 4, jadi ia muncul di catatan Budi.
 
+Penolakan di langkah ketiga After berasal dari trigger yang hanya ada di widget ini, supaya kedua panel gagal di titik yang sama. Di lab Tahap 2, batas warung disimpan di `buku.batas_saldo` dan dibaca service Bayar di dalam transaction, sebelum posting ditulis. Database lab belum menjaganya (`labs/b3-ledger/schema.sql`).
+
 Baris terakhir sama di kedua panel: Rp70.000 hilang dari sistem. Ledger sendiri tidak mencegah langkah yang gagal di tengah; transaction dan pagar di database yang mencegahnya. Database lab menolak jurnal yang posting-nya tidak berjumlah nol saat `COMMIT`, dengan SQLSTATE 23514 (rekaman lab `invarian.txt` bagian A, dibahas di [[t2-ledger]]).
 
 Nyalakan **Ubah satu hal**: Budi membayar Rp40.000, di bawah batas warung. Kedua panel kini menulis jawaban yang sama, saldo Rp210.000 dan selisih 0. Kolom saldo baru kehilangan catatan saat satu langkah gagal di tengah, atau saat ada kode yang meng-UPDATE saldo tanpa menulis catatan.
