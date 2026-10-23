@@ -1,0 +1,66 @@
+{
+  "istilah": "Jurnal",
+  "sehari_hari": "Satu jurnal menjawab pertanyaan Pak Hadi: kejadian apa yang mengubah saldo ini. Uang tidak muncul atau hilang begitu saja; setiap rupiah yang keluar dari satu buku masuk ke buku lain.",
+  "cerita": [
+    { "rujukan": "t2-prd", "teks": "Nadia datang dari tim ERP dan membawa bahasa akuntansi ke Rekeningo: debit, kredit, jurnal." },
+    { "rujukan": "t2-ledger", "teks": "Minggu 0: setiap perpindahan uang menjadi satu jurnal berisi dua posting atau lebih yang jumlahnya selalu nol." },
+    { "rujukan": "t2-adr-ledger", "teks": "Tabel `koreksi` Tahap 1 diganti: kesalahan dibatalkan dengan jurnal pembalik yang merujuk jurnal asal." }
+  ],
+  "mekanisme": [
+    "Satu kejadian (top-up, bayar, transfer, pencairan) menjadi satu baris `jurnal`: jenis, keterangan, siapa yang membuat, dan kapan.",
+    "Setiap buku yang uangnya berubah mendapat satu baris `posting`: negatif keluar, positif masuk. Budi bayar Rp25.000: buku Budi −25.000, buku Warung Ani +25.000.",
+    "Saat COMMIT, trigger `jurnal_seimbang` memeriksa bahwa jurnal punya minimal dua posting berjumlah 0. Jurnal yang tidak seimbang ditolak dengan SQLSTATE 23514.",
+    "Jurnal dan posting tidak pernah di-UPDATE atau DELETE. Kesalahan dibatalkan dengan jurnal pembalik yang merujuk jurnal asal dan menulis alasannya."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, pgx v5.11.0 lewat database/sql, PostgreSQL 17.11",
+      "teks": "`Repo.DalamTx` membuka `db.BeginTx`, menulis `INSERT INTO jurnal` lalu satu `INSERT INTO posting` per buku, dan COMMIT. Error mana pun membuat ROLLBACK.",
+      "rekaman": "labs/api-t2/output/transfer.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-postgres (pg) 8.23.1",
+      "teks": "Satu client dari `pool.connect()` menjalankan `BEGIN`, insert jurnal, insert posting, lalu `COMMIT`, dan `ROLLBACK` di blok catch. `pool.query` tidak dipakai karena tiap panggilan bisa mendapat koneksi lain.",
+      "dokumentasi": "https://node-postgres.com/features/transactions"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "`DB::transaction(function () { … })` membungkus insert jurnal dan posting. Exception di dalamnya membuat rollback, lalu dilempar ulang.",
+      "dokumentasi": "https://laravel.com/docs/13.x/database#database-transactions"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2",
+      "teks": "`with transaction.atomic():` membungkus pembuatan jurnal dan posting; exception membuat rollback. Dokumentasinya melarang menangkap exception di dalam blok atomic.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/topics/db/transactions/"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "`session.db.transaction((transaction) async { … })`, dengan `transaction: transaction` di setiap insert. Throw di dalam callback membuat rollback.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/transactions"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "supabase-js 2.118.0, PostgREST",
+      "teks": "Client tidak membuka transaction sendiri. Jurnal dan posting ditulis di satu fungsi PostgreSQL yang dipanggil `supabase.rpc()`; satu request PostgREST berjalan dalam satu transaction.",
+      "dokumentasi": "https://docs.postgrest.org/en/stable/references/transactions.html"
+    }
+  },
+  "jebakan": [
+    "Menulis posting lewat beberapa transaction. Transaction yang hanya membawa satu posting ditolak trigger `jurnal_seimbang` saat COMMIT (rekaman `invarian.txt` bagian A); tanpa trigger itu, jurnal setengah jadi tersimpan.",
+    "Memperbaiki salah bayar dengan UPDATE posting. Lab menolak UPDATE, DELETE, dan TRUNCATE pada posting dengan SQLSTATE 23001; koreksi selalu jurnal pembalik.",
+    "Mengira ledger menghapus race condition. Dua transfer bersamaan dari buku yang sama bisa sama-sama lolos pemeriksaan saldo; itu [[t2-m9]], dan jawabannya lock."
+  ],
+  "terkait": ["Debit", "Kredit", "Tutup buku", "Transaction", "Invarian", "Race condition"],
+  "sumber": [
+    { "riset": "R2-06", "judul": "Square Engineering: Books, an immutable double-entry accounting database service", "url": "https://developer.squareup.com/blog/books-an-immutable-double-entry-accounting-database-service/", "catatan": "16 Oktober 2019: jurnal harus berjumlah 0, entri hanya ditambah, kesalahan dikoreksi dengan entri baru." },
+    { "riset": "R2-38", "judul": "OpenStax, Principles of Accounting Volume 1, bagian 3.5", "url": "https://openstax.org/books/principles-financial-accounting/pages/3-5-use-journal-entries-to-record-transactions-and-post-to-t-accounts", "catatan": "Journal entry: debit di kiri, kredit di kanan, total keduanya harus sama." },
+    { "riset": "R2-08", "judul": "PostgreSQL 17: CREATE TRIGGER", "url": "https://www.postgresql.org/docs/17/sql-createtrigger.html", "catatan": "Constraint trigger bisa ditunda sampai akhir transaction, dasar pemeriksaan jurnal seimbang saat COMMIT." },
+    { "riset": "R2-08", "judul": "Rekaman lab b3-ledger: tiga invarian", "rekaman": "labs/b3-ledger/output/invarian.txt", "catatan": "Jurnal tidak seimbang ditolak 23514; UPDATE, DELETE, TRUNCATE posting ditolak 23001; jurnal pembalik harus cermin jurnal asal." },
+    { "riset": "R2-36", "judul": "Dokumentasi transaction di lima stack", "url": "https://node-postgres.com/features/transactions", "catatan": "node-postgres, Laravel, Django, Serverpod, dan PostgREST untuk Supabase; tautan per stack ada di bagian Di tiap stack. Dibuka 24 Oktober 2026." }
+  ]
+}

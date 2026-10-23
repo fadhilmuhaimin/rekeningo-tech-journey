@@ -64,7 +64,8 @@
     "Retry",
     "Idempotent",
     "At-least-once",
-    "Backoff"
+    "Backoff",
+    "Jurnal"
   ],
   "sumber": [
     {

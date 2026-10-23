@@ -297,12 +297,30 @@
   "h": null
  },
  {
+  "t": "Debit",
+  "d": "Sisi kiri sebuah jurnal akuntansi; di setiap jurnal total debit sama dengan total kredit, dan akun aset bertambah di sisi debit.",
+  "b": "t2-ledger",
+  "n": "2.7 Ledger double-entry",
+  "u": null,
+  "s": "istilah-debit",
+  "h": "/istilah/debit/"
+ },
+ {
   "t": "Enumerasi",
   "d": "Mencoba nilai satu per satu, mis. ID akun 401 sampai 503 atau daftar email, untuk mengetahui data mana yang ada.",
   "b": "t1-idor",
   "n": "1.29 IDOR, enumerasi, dan token di app",
   "u": "/tahap-1/idor-token-app/",
   "s": "istilah-enumerasi",
+  "h": null
+ },
+ {
+  "t": "ERP (Enterprise Resource Planning)",
+  "d": "Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari.",
+  "b": "t2-prd",
+  "n": "2.1 PRD v2",
+  "u": null,
+  "s": "istilah-erp",
   "h": null
  },
  {
@@ -396,6 +414,15 @@
   "h": null
  },
  {
+  "t": "Jurnal",
+  "d": "Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol.",
+  "b": "t2-ledger",
+  "n": "2.7 Ledger double-entry",
+  "u": null,
+  "s": "istilah-jurnal",
+  "h": "/istilah/jurnal/"
+ },
+ {
   "t": "JWT (JSON Web Token)",
   "d": "Token berisi data JSON plus signature, sehingga server bisa memeriksa keasliannya tanpa query ke database.",
   "b": "B5.1",
@@ -403,6 +430,15 @@
   "u": "/tahap-1/authentication/",
   "s": "istilah-jwt",
   "h": null
+ },
+ {
+  "t": "Kredit",
+  "d": "Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit.",
+  "b": "t2-ledger",
+  "n": "2.7 Ledger double-entry",
+  "u": null,
+  "s": "istilah-kredit",
+  "h": "/istilah/kredit/"
  },
  {
   "t": "Latency",
@@ -1006,6 +1042,15 @@
   "u": "/b-fondasi/b9-caching/",
   "s": "istilah-ttl",
   "h": null
+ },
+ {
+  "t": "Tutup buku",
+  "d": "Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang.",
+  "b": "t2-tutup-buku",
+  "n": "2.4 Fitur tutup buku",
+  "u": null,
+  "s": "istilah-tutup-buku",
+  "h": "/istilah/tutup-buku/"
  },
  {
   "t": "WAL (Write-Ahead Log)",
