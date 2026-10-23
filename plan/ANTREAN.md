@@ -1047,7 +1047,7 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - percobaan: 0
 - bergantung: 2.1
 - selesai bila: halaman Fitur→teknis 2.2 sesuai `plan/CERITA-TAHAP-2.md` bagian 2 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: PR #279, keputusan 604: `tahap-2/fitur-ke-teknis.mdx` dengan template 1.2 dan blok Mulai berisi Inti + Rantai ringkas `t2-fitur-dua-model` (Ilustrasi), pilah `t2-fitur-pilah.json` (dua penjelasan dari Rekaman lab api-t2 dan c4-ratelimit), tabel naskah bagian 2 dipecah dua (empat kolom kata per kata; fitur → konsep dengan tautan registry), nama index lab `posting (buku_id, dibuat, id)` di bawah tabel. Dibuat dari origin/main tanpa 2.1 (#277): cerita.json, indeks-topik, cerita/tahap-2 konflik, selesaikan dengan sinkron_cerita.py. Istilah baru tanpa halaman istilah (G-istilah belum selesai): posting, ledger, saldo awal, mutasi, job terjadwal, status batch, kursor, branch protection.
+- catatan: PR #279, keputusan 606: `tahap-2/fitur-ke-teknis.mdx` dengan template 1.2 dan blok Mulai berisi Inti + Rantai ringkas `t2-fitur-dua-model` (Ilustrasi), pilah `t2-fitur-pilah.json` (dua penjelasan dari Rekaman lab api-t2 dan c4-ratelimit), tabel naskah bagian 2 dipecah dua (empat kolom kata per kata; fitur → konsep dengan tautan registry), nama index lab `posting (buku_id, dibuat, id)` di bawah tabel. Dibuat dari origin/main tanpa 2.1 (#277): cerita.json, indeks-topik, cerita/tahap-2 konflik, selesaikan dengan sinkron_cerita.py. Istilah baru tanpa halaman istilah (G-istilah belum selesai): posting, ledger, saldo awal, mutasi, job terjadwal, status batch, kursor, branch protection.
 
 ### 2.3 · Fitur: transfer antar karyawan
 
