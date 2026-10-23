@@ -2,7 +2,7 @@
 // - tanpa JS: versi statis terlihat, role="img" dengan aria-label;
 // - dengan JS: React Flow terpasang, tegak di 375 px dan mendatar di 1366 px, semua kotak di dalam wadah;
 // - di 375×667 roda dan gestur sentuh di atas diagram tetap menggulir halaman (scroll tidak tertangkap);
-// - kotak bisa dicapai dengan Tab dan dibuka dengan Enter; catatan muncul di bawah diagram;
+// - kotak bisa dicapai dengan Tab dan dibuka dengan Enter, klik, atau tap; catatan muncul di bawah diagram;
 // - dengan reduced motion: 0 animasi sesudah memilih kotak; fungsi tetap;
 // - CLS ≤ 0,1 saat island di-hydrate: gulir pelan dengan modul JS ditunda 300 ms (HP dan desktop); tap tiap tab
 //   beranda (Tahap 2–6) sebelum hydrate: geser 0 px dan CLS 0 (keputusan 248, K1xa);
@@ -165,9 +165,11 @@ for (const [lebar, tinggi, arahHarus] of [
       };
       const [k0, k1] = await geser("main p");
       const [d0, d1] = await geser("figure.diagram .react-flow__pane");
+      // Jari yang mendarat di kotak (tombol, sejak keputusan 681 menerima pointer) tetap menggulir halaman.
+      const [t0, t1] = await geser("figure.diagram .diagram__kotak");
       const ta = await page.evaluate(() => getComputedStyle(document.querySelector("figure.diagram .react-flow__pane")).touchAction);
       const taOk = ta.includes("pan-y") || ta === "auto" || ta === "manipulation";
-      if (k1 > k0) lapor(d1 > d0 && taOk, `${tag}: sentuh di paragraf ${k0}→${k1}, di atas diagram ${d0}→${d1}, touch-action ${ta}`);
+      if (k1 > k0) lapor(d1 > d0 && t1 > t0 && taOk, `${tag}: sentuh di paragraf ${k0}→${k1}, di atas diagram ${d0}→${d1}, di atas kotak ${t0}→${t1}, touch-action ${ta}`);
       else {
         console.log(`info ${tag}: gestur sentuh sintetis tidak berjalan di lingkungan ini (paragraf ${k0}→${k1})`);
         lapor(taOk, `${tag}: touch-action panel ${ta}`);
@@ -204,6 +206,24 @@ for (const [lebar, tinggi, arahHarus] of [
       `${tag}: Tab ke "${fokus}", Enter → "${r.catatan}"`,
     );
     if (reducedMotion === "reduce") lapor(awalAnim === 0 && r.anim === 0, `${tag}: animasi ${awalAnim} sebelum, ${r.anim} sesudah memilih`);
+
+    // 4b. Klik (desktop) dan tap (HP) di tengah kotak kedua sampai ke tombolnya, bukan ke pane di belakangnya:
+    // React Flow memberi node tanpa handler pointer-events none (tinjauan #274, keputusan 681). Klik lewat koordinat,
+    // bukan element.click(), supaya hit test ikut diuji.
+    {
+      const k2 = page.locator("figure.diagram").first().locator(".diagram__kotak").nth(1);
+      await k2.scrollIntoViewIfNeeded();
+      const b = await k2.boundingBox();
+      const [x, y] = [b.x + b.width / 2, b.y + b.height / 2];
+      const kena = await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest(".diagram__kotak"), [x, y]);
+      if (lebar < 500) await page.touchscreen.tap(x, y);
+      else await page.mouse.click(x, y);
+      await page.waitForTimeout(100);
+      const label = (await k2.locator(".diagram__label").textContent()).trim();
+      const cat = (await page.locator("figure.diagram").first().locator(".diagram__catatan").textContent()).trim();
+      const ditekan = await k2.getAttribute("aria-pressed");
+      lapor(kena && cat.startsWith(`${label}.`) && ditekan === "true", `${tag}: ${lebar < 500 ? "tap" : "klik"} di tengah "${label}" ${kena ? "kena tombol" : "kena pane"} → "${cat.slice(0, 40)}", aria-pressed ${ditekan}`);
+    }
 
     if (AXE) {
       for (const tema of ["dark", "light"]) {
