@@ -542,6 +542,28 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-race-garis:has(.is-tunggu-A, .is-tunggu-B) .bb-race-garis__catatan { display: block; }
 .sl-markdown-content .bb-summary { margin: 0.6rem 0 0; padding-left: 0.6rem; border-left: 3px solid var(--k-old-edge); }
 .sl-markdown-content .bb-summary:empty { display: none; }
+/* Widget race ledger (W2-race, keputusan 707–711): tambahan di atas gaya garis waktu race (I5e). */
+.sl-markdown-content .rl-cara { margin-bottom: 0.6rem; }
+.sl-markdown-content .rl-cara > * + * { margin-top: 0; }
+.sl-markdown-content .rl-cara .bb-btn { font-size: 0.85em; padding: 0.3rem 0.65rem; border-radius: 999px; }
+.sl-markdown-content .rl-kosong { margin: 0.3rem 0 0; font-weight: 700; }
+.sl-markdown-content .bb-race-langkah .rl-catatan { color: var(--teks-2); font-style: italic; }
+.sl-markdown-content .bb-race-langkah.is-error > .bb-race-langkah__isi { border-color: var(--k-warn-edge); }
+.sl-markdown-content .bb-race-langkah.is-error .bb-race-langkah__hasil:not(.rl-catatan) { color: var(--k-warn-ink); font-weight: 600; }
+.sl-markdown-content .rl-hasil.is-warn { border-left-color: var(--k-warn-edge); }
+.sl-markdown-content .rl-hasil.is-good { border-left-color: var(--k-good-edge); }
+.sl-markdown-content .rl-hasil p { margin: 0; }
+.sl-markdown-content .rl-fakta { display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 0.15rem 0.8rem; margin: 0.5rem 0 0; }
+.sl-markdown-content .rl-fakta dt { margin: 0; color: var(--teks-2); font-weight: 400; }
+.sl-markdown-content .rl-fakta dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.sl-markdown-content .rl-beda { margin: 0.6rem 0 0; padding: 0.5rem 0.7rem; border-radius: 8px; background: var(--bg-2); }
+.sl-markdown-content .rl-beda ul { margin: 0.3rem 0; padding-left: 1.2rem; }
+.sl-markdown-content .rl-beda li { margin: 0; }
+.sl-markdown-content .rl-ganti { margin: 0.6rem 0 0; }
+@media (max-width: 30em) {
+  .sl-markdown-content .rl-fakta { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .sl-markdown-content .rl-fakta dd { margin-bottom: 0.3rem; }
+}
 .sl-markdown-content .bb-step.is-current { outline: 2px solid var(--k-system-edge); }
 @media (max-width: 50em) {
   .sl-markdown-content .bb-stage { grid-template-columns: 1fr 1fr; }
