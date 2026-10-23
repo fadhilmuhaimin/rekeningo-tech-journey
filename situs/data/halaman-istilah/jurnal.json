@@ -51,7 +51,7 @@
     }
   },
   "jebakan": [
-    "Menulis posting lewat beberapa transaction. Transaction yang hanya membawa satu posting ditolak trigger `jurnal_seimbang` saat COMMIT (rekaman `invarian.txt` bagian A); tanpa trigger itu, jurnal setengah jadi tersimpan.",
+    "Menulis posting lewat beberapa transaction. Transaction yang posting-nya belum berjumlah 0 ditolak trigger `jurnal_seimbang` saat COMMIT (rekaman `invarian.txt` bagian A); tanpa trigger itu, jurnal setengah jadi tersimpan.",
     "Memperbaiki salah bayar dengan UPDATE posting. Lab menolak UPDATE, DELETE, dan TRUNCATE pada posting dengan SQLSTATE 23001; koreksi selalu jurnal pembalik.",
     "Mengira ledger menghapus race condition. Dua transfer bersamaan dari buku yang sama bisa sama-sama lolos pemeriksaan saldo; itu [[t2-m9]], dan jawabannya lock."
   ],

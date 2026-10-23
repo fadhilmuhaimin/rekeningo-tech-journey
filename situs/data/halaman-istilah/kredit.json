@@ -9,14 +9,14 @@
     "Di buku akuntansi, kredit ditulis di kolom kanan sebuah journal entry, dan totalnya harus sama dengan total debit di kolom kiri.",
     "Akun kewajiban, ekuitas, dan pendapatan bertambah bila dikredit; akun aset dan beban berkurang bila dikredit.",
     "Square Books menulis kredit sebagai angka negatif dan debit positif, jadi satu jurnal seimbang bila jumlah semua entrinya 0.",
-    "Lab b3-ledger menulis buku yang uangnya keluar dengan `posting.jumlah` negatif. Top-up mencatat buku tunjangan −250.000 dan buku Budi +250.000."
+    "Lab b3-ledger tidak menyimpan kata kredit: buku yang uangnya keluar mendapat `posting.jumlah` negatif. Top-up mencatat buku tunjangan −250.000 dan buku Budi +250.000."
   ],
   "stack": {
     "lihat": "jurnal",
     "teks": "Kredit ditulis sebagai posting di dalam jurnal, jadi kode di keenam stack sama dengan kode jurnal."
   },
   "jebakan": [
-    "Mengira tanda negatif berlaku di semua sistem. Di buku akuntansi, jumlah ditulis positif di kolom kredit; di Square Books dan lab ini, kredit ditulis negatif. Satu sistem memakai satu konvensi dan menuliskannya di skema.",
+    "Mengira tanda negatif berlaku di semua sistem. Di buku akuntansi, jumlah ditulis positif di kolom kredit, sedangkan Square Books menulis kredit negatif. Lab ini tidak memakai kata kredit: tandanya berarti uang masuk atau keluar. Satu sistem memakai satu konvensi dan menuliskannya di skema.",
     "Mengira kredit selalu berarti saldo bertambah. Untuk akun aset seperti kas, kredit justru mengurangi saldo."
   ],
   "terkait": ["Debit", "Jurnal", "Tutup buku", "Invarian"],

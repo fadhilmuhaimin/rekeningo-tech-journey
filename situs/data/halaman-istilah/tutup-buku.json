@@ -22,7 +22,7 @@
   "mekanisme": [
     "Tentukan batas periode, mis. awal dan akhir bulan. Posting sebelum batas awal membentuk saldo awal setiap buku.",
     "Untuk setiap buku, jumlahkan posting di dalam periode menjadi masuk dan keluar: saldo awal + masuk − keluar = saldo akhir.",
-    "Bandingkan saldo akhir dengan sumber yang terpisah, yaitu `saldo_cache`. Rekaman lab api-t2: 1.016 buku, 0 tidak cocok.",
+    "Bandingkan saldo akhir dengan salinannya, `saldo_cache`. Rekaman lab api-t2: 1.016 buku, 0 tidak cocok.",
     "Periksa seluruh sistem: setiap jurnal seimbang dan jumlah semua posting 0. Rekaman yang sama: 1.122 jurnal, 0 tidak seimbang.",
     "Di akuntansi perusahaan, tutup buku juga menolkan akun sementara seperti pendapatan dan beban lewat closing entries. Buku Rekeningo Tahap 2 belum punya akun seperti itu."
   ],

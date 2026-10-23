@@ -84,7 +84,7 @@
       "riset": "R2-19",
       "judul": "RFC 9110 bagian 9.2.2: Idempotent Methods",
       "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2",
-      "catatan": "PUT, DELETE, dan metode safe idempoten; client tidak mengulang otomatis permintaan yang tidak idempoten."
+      "catatan": "PUT, DELETE, dan metode safe idempoten. Client sebaiknya tidak (SHOULD NOT) mengulang otomatis method yang tidak idempoten, kecuali ia tahu permintaan itu idempoten atau belum diterapkan."
     },
     {
       "riset": "R2-36",
