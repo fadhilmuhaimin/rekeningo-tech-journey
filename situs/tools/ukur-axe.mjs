@@ -12,8 +12,9 @@
 // bila satu langkah di atas berjalan (details, gulir dan tunggu island, tag wcag22aa, tema, ukuran). Kalau hasilnya
 // tidak persis seperti yang diharapkan, alat gagal sebelum mengukur halaman situs.
 // Exit 1 bila: ada pelanggaran (dicetak per rule, selector, halaman, ukuran, tema), uji diri meleset, tema tidak
-// berlaku, island terlihat belum hidup, rule target-size tidak ikut dijalankan, versi axe beda dari package.json,
-// daftar halaman kosong, atau halaman melewati batas waktu (lib/batas.mjs, MACET). Halaman yang macet karena renderer
+// berlaku, island terlihat belum hidup, rule target-size tidak ikut dijalankan, versi axe beda dari package.json, halaman
+// tidak dijawab HTTP 200 (keputusan 696), daftar halaman kosong, atau halaman melewati batas waktu (lib/batas.mjs,
+// MACET). Halaman yang macet karena renderer
 // diam diulang sekali di konteks baru dengan baris ULANG, paling banyak 2 per run, seperti ukur-luapan.mjs (keputusan 364, 367).
 // axe 0 belum membuktikan halaman aksesibel: fokus terlihat (SC 2.4.7, 2.4.11), urutan Tab, dan reflow 320 px
 // (SC 1.4.10) tidak punya rule di axe-core 4.14 (RISET-SKILL 13); hasil incomplete dicetak untuk dicek manusia.
@@ -130,13 +131,16 @@ const diagnosaHalaman = () => `tahap "${window.__tahap ?? "belum mulai"}", ready
 // jejak yang dipasang sebelum navigasi (lib/jejak.mjs, keputusan 364), karena halaman yang macet tidak menjawab.
 const periksa = (page, jejak, p, label) => denganBatas(async () => {
   jejak.tandai("goto");
-  await page.goto(BASE + p, { waitUntil: "load" });
+  // Path yang salah ketik atau halaman yang berganti slug dilayani 404.html; tanpa pemeriksaan ini axe memeriksa halaman
+  // 404 dan alat lolos palsu (keputusan 696). Redirect diikuti, jadi status di sini status halaman akhir.
+  const status = (await page.goto(BASE + p, { waitUntil: "load" }))?.status() ?? 0;
+  if (status !== 200) return { status };
   jejak.tandai("evaluate siapkan");
   const s = await page.evaluate(siapkan);
   jejak.tandai("addScriptTag axe");
   await page.addScriptTag({ path: AXE_PATH });
   jejak.tandai("evaluate axe.run");
-  return { ...s, ...(await page.evaluate(jalankanAxe, TAG_WCAG)) };
+  return { status, ...s, ...(await page.evaluate(jalankanAxe, TAG_WCAG)) };
 }, label, { diagnosa: () => diagnosaJejak(jejak, () => page.evaluate(diagnosaHalaman)), msDiagnosa: 10_000 });
 
 async function konteks(u, tema) {
@@ -164,6 +168,7 @@ await Promise.all(UKURAN.flatMap((u) => TEMA.map(async (tema) => {
   const jejak = await pasangJejak(page, cdpBrowser);
   try {
     const h = await periksa(page, jejak, FIXTURE, `axe uji diri ${key}`);
+    if (h.status !== 200) throw new Error(`fixture HTTP ${h.status}`);
     const dapat = h.pelanggaran.flatMap((v) => v.node.map((n) => `${v.id} ${n}`)).sort();
     const ok = JSON.stringify(dapat) === JSON.stringify([...HARAP[key]].sort()) && h.tema === tema && !h.belum.length;
     ujiPerKey[key] = { dapat: [...dapat, `tema ${h.tema}`, `island belum hidup ${h.belum.length}`], ok };
@@ -215,6 +220,7 @@ await Promise.all(UKURAN.flatMap((u) => TEMA.map(async (tema) => {
         if (!h) continue;
       }
       jumlahRun++;
+      if (h.status !== 200) { gagalLain.push(`GAGAL ${k}: HTTP ${h.status}, bukan 200 (path salah atau halaman sudah dipindah)`); continue; }
       if (h.versi !== AXE_PIN) gagalLain.push(`GAGAL ${k}: axe di halaman ${h.versi}, bukan ${AXE_PIN}`);
       if (h.tema !== tema) gagalLain.push(`GAGAL ${k}: tema halaman ${h.tema}, bukan ${tema}`);
       if (h.belum.length) gagalLain.push(`GAGAL ${k}: island terlihat belum hidup sesudah 5 s: ${h.belum.join(", ")}`);
