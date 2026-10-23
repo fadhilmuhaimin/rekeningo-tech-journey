@@ -1,24 +1,51 @@
 {
   "id": "t2-saldo-bukan-kolom-inti",
   "judul": "Kenapa saldo Budi sekian? Dua jawaban database",
-  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab b3-ledger · migrasi.txt B, kejadian.txt D" },
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b3-ledger · migrasi.txt B, kejadian.txt D"
+  },
   "baris": [
     {
       "label": "Kolom saldo",
       "sub": "Tahap 1, migrasi.txt B",
       "simpul": [
-        { "teks": "kolom Rp180.000", "sub": "akun.saldo, angka terakhir yang ditulis", "nada": "old" },
-        { "teks": "catatan Rp250.000", "sub": "topup + transaksi + koreksi digabung tangan", "nada": "warn" },
-        { "teks": "Rp70.000 tanpa baris", "sub": "potongan M4 tidak tercatat di tabel mana pun", "nada": "warn" }
+        {
+          "teks": "kolom Rp180.000",
+          "sub": "akun.saldo, angka terakhir yang ditulis",
+          "nada": "old"
+        },
+        {
+          "teks": "catatan Rp250.000",
+          "sub": "topup + transaksi + koreksi digabung tangan",
+          "nada": "warn"
+        },
+        {
+          "teks": "Rp70.000 tanpa baris",
+          "sub": "potongan M4 tidak tercatat di tabel mana pun",
+          "nada": "warn"
+        }
       ]
     },
     {
       "label": "Ledger",
       "sub": "Tahap 2, kejadian.txt D",
       "simpul": [
-        { "teks": "8 posting Budi", "sub": "satu query, satu bentuk", "nada": "system" },
-        { "teks": "tiap baris berjurnal", "sub": "jenis, lawan, keterangan", "nada": "system" },
-        { "teks": "jumlah Rp385.000", "sub": "sama dengan saldo_cache", "nada": "good" }
+        {
+          "teks": "satu query",
+          "sub": "posting buku Budi, satu bentuk",
+          "nada": "system"
+        },
+        {
+          "teks": "8 baris berjurnal",
+          "sub": "jenis, lawan, keterangan",
+          "nada": "system"
+        },
+        {
+          "teks": "jumlah Rp385.000",
+          "sub": "sama dengan saldo_cache",
+          "nada": "good"
+        }
       ]
     }
   ],
