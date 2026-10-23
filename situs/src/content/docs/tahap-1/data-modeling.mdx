@@ -10,8 +10,7 @@ import salinRujuk from "../../../../data/diagram/t1-relasi-salin-rujuk.json";
 import TabSet from "../../../components/TabSet.astro";
 import WidgetLama from "../../../components/WidgetLama.astro";
 import SkripLama from "../../../components/SkripLama.astro";
-import Erd from "../../../components/Erd.astro";
-import erdTahap1 from "../../../../data/erd/tahap-1.json";
+import ErdHalaman from "../../../components/ErdHalaman.astro";
 
 <p class="meta">Baca 7 menit · coba 2 menit · Prasyarat: [[t1-pertukaran-saldo]] · Jalur inti</p>
 
@@ -82,7 +81,7 @@ Aturan Pak Hadi membuat ini lebih dari soal tampilan. Setiap rupiah harus bisa d
 
 Diagram ini dibangun dari skema lab di akhir uji coba enam minggu. Dibanding skema minggu 1, ada tabel `koreksi` dari [[t1-adr-transaction]] dan batas saldo warung di `akun` dari [[t1-m4]].
 
-<Erd data={erdTahap1} />
+<ErdHalaman id="erd-t1" tahap={[1]} />
 
 ### Di stack lain
 

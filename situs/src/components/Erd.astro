@@ -7,6 +7,8 @@
  * Tata bintang (erd.ts tataBintang): tabel induk di atas, tabel yang menunjuk ke induk di bawah. HP: satu kolom dengan
  * garis di kiri. Desktop: dua kolom dengan garis tegak di tengah, turun dari tengah kotak induk.
  * Data yang tidak lolos skema Zod, atau yang tidak berbentuk bintang, menggagalkan build.
+ * `tanpaJudul`: tanpa figcaption, saat dipakai sebagai versi statis di dalam ErdTumbuh (ErdHalaman.astro), yang sudah
+ * menulis judul dan chip sumbernya sendiri (keputusan 697). Nama figure (aria-label) tetap.
  */
 import { DataErd } from "../erd/skema";
 import { bagiDua, jumlahRujukan, tataBintang } from "../erd/erd";
@@ -22,7 +24,7 @@ const semuaWajib = d.tabel.every((t) => t.kolom.every((k) => k.wajib));
 const nama = (f: string) => f.split("/").pop();
 ---
 <figure class="erd" aria-label={`${judul}: ${d.tabel.length} tabel, ${nFk} foreign key`}>
-  <figcaption class="erd__judul"><strong>{judul}</strong> <span class="bb-chip is-system">Rekaman lab · PostgreSQL {d.postgres}</span></figcaption>
+  {!Astro.props.tanpaJudul && <figcaption class="erd__judul"><strong>{judul}</strong> <span class="bb-chip is-system">Rekaman lab · PostgreSQL {d.postgres}</span></figcaption>}
   <div class="erd__induk"><ErdTabel tabel={induk} rujukan={rujukan} /></div>
   <div class="erd__anak">
     {kolom.map((isi) => <div class="erd__kolom">{isi.map((t) => <ErdTabel tabel={t} />)}</div>)}

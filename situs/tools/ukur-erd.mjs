@@ -12,8 +12,13 @@
 //   Chromium (CDP Accessibility.getFullAXTree): svg garis sebagai "image" tanpa nama, role="application" tanpa nama
 //   (keputusan 698, 699; pola 680, 682);
 // - klik (1366) dan tap (375) di tengah tabel lewat koordinat sampai ke tombolnya, bukan ke pane (pola 681);
+// - 1.12 Data modeling (ERD-1.12, keputusan 697): ErdTumbuh Tahap 1 di blok Paham, versi statis Erd.astro tanpa JS
+//   dan untuk pembaca layar, klik/tap, scroll, CLS saat blok dibuka; React Flow baru dimuat sesudah blok dibuka;
+//   setiap halaman di dist/ yang memakai ErdTumbuh diperiksa bawaannya.
 //   node tools/ukur-erd.mjs --url http://127.0.0.1:4321
 //   node tools/ukur-erd.mjs --url ... --axe   # + axe-core, gelap dan terang
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
 import { gzipSync } from "node:zlib";
 import { chromium } from "@playwright/test";
 import { awasi } from "./lib/batas.mjs";
@@ -34,6 +39,7 @@ const lapor = (ok, pesan) => {
   if (!ok) gagal++;
 };
 const FIG = "figure.erd-tumbuh";
+const HAL = "/tahap-1/data-modeling/"; // 1.12, satu-satunya halaman konten dengan ErdTumbuh sekarang (2.9 menyusul)
 
 // Bawaan React Flow 12.12.0 yang sampai ke pembaca layar, dibaca dari DOM (pola ukur-diagram.mjs, keputusan 466, 680,
 // 682): aria-roledescription ("node", "edge"), label "Edge from X to Y", <svg> lapisan garis di luar aria-hidden, dan
@@ -376,9 +382,195 @@ lapor(erd.flow, `/uji/erd/ memuat React Flow`);
 console.log(`info JS /uji/erd/: ${erd.file} file, ${kb(erd.mentah)} tanpa kompresi, ${kb(erd.gzip)} gzip`);
 const diagram = await js("/uji/diagram/");
 console.log(`info JS /uji/diagram/ (pembanding, React Flow + DiagramArsitektur): ${diagram.file} file, ${kb(diagram.mentah)} tanpa kompresi, ${kb(diagram.gzip)} gzip`);
-for (const h of ["/tahap-1/data-modeling/", "/cerita/"]) {
-  const r = await js(h);
-  lapor(!r.flow, `${h} tanpa diagram: React Flow ${r.flow ? "DIMUAT" : "tidak dimuat"} (JS ${r.file} file, ${kb(r.gzip)} gzip)`);
+// 1.12: ErdTumbuh ada di blok Paham yang tertutup saat dimuat, jadi React Flow baru diunduh sesudah blok dibuka.
+const halTutup = await js(HAL);
+const halBuka = await js(HAL, true);
+lapor(!halTutup.flow && halBuka.flow, `${HAL} React Flow ${halTutup.flow ? "DIMUAT" : "tidak dimuat"} saat blok tertutup, ${halBuka.flow ? "dimuat" : "TIDAK dimuat"} sesudah blok dibuka`);
+console.log(`info JS ${HAL}: blok tertutup ${halTutup.file} file, ${kb(halTutup.mentah)} tanpa kompresi, ${kb(halTutup.gzip)} gzip; semua blok dibuka ${halBuka.file} file, ${kb(halBuka.mentah)}, ${kb(halBuka.gzip)} gzip`);
+for (const h of ["/tahap-1/pertukaran-saldo/", "/cerita/"]) {
+  const r = await js(h, true);
+  lapor(!r.flow, `${h} tanpa diagram, semua blok dibuka: React Flow ${r.flow ? "DIMUAT" : "tidak dimuat"} (JS ${r.file} file, ${kb(r.gzip)} gzip)`);
+}
+
+// 9. 1.12 Data modeling (ERD-1.12, keputusan 697): ErdTumbuh Tahap 1 di blok Paham, versi statis Erd.astro.
+const bukaPaham = (page) => page.evaluate(() => (document.querySelector('details[data-blok="blok-paham"]').open = true));
+// 9a. Tanpa JS: blok dibuka (details jalan tanpa JS), versi statis Erd.astro utuh, judul dan chip sumber sekali.
+{
+  const ctx = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 375, height: 667 } });
+  const page = await ctx.newPage();
+  await page.goto(BASE + HAL);
+  await bukaPaham(page);
+  const r = await page.evaluate((FIG) => {
+    const f = document.querySelector(`details[data-blok="blok-paham"] ${FIG}`);
+    const s = f?.querySelector(".erd-tumbuh__statis");
+    const erd = s?.querySelector("figure.erd");
+    const terlihat = (el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+    return {
+      ada: !!f,
+      tabel: erd?.querySelectorAll(".erd__tabel").length ?? 0,
+      tinggi: erd?.getBoundingClientRect().height ?? 0,
+      terpotong: s ? s.scrollHeight > s.clientHeight + 1 : true,
+      flow: !!f?.querySelector(".react-flow"),
+      pemilih: !!f?.querySelector(".erd-tumbuh__kontrol"),
+      judul: [...(f?.querySelectorAll("figcaption") ?? [])].filter(terlihat).length,
+      chip: [...(f?.querySelectorAll(".bb-chip") ?? [])].filter(terlihat).length,
+    };
+  }, FIG);
+  lapor(
+    r.ada && r.tabel === 5 && r.tinggi > 300 && !r.terpotong && !r.flow && !r.pemilih && r.judul === 1 && r.chip === 1,
+    `${HAL} tanpa JS: ErdTumbuh di blok Paham ${r.ada ? "ada" : "TIDAK ada"}, Erd.astro ${r.tabel} tabel tinggi ${Math.round(r.tinggi)} px ${r.terpotong ? "terpotong" : "utuh"}, pemilih tahap ${r.pemilih ? "ADA" : "tidak ada"}, judul ${r.judul}, chip sumber ${r.chip}`,
+  );
+  await ctx.close();
+}
+// 9b. Dengan JS di 375 dan 1366, reduced motion ya/tidak.
+for (const [lebar, tinggi, harus] of [
+  [375, 667, "sempit"],
+  [1366, 657, "lebar"],
+]) {
+  for (const reducedMotion of ["no-preference", "reduce"]) {
+    const ctx = await browser.newContext({ viewport: { width: lebar, height: tinggi }, reducedMotion, hasTouch: lebar < 500 });
+    const page = await ctx.newPage();
+    await page.goto(BASE + HAL, { waitUntil: "networkidle" });
+    await bukaPaham(page);
+    await page.locator(FIG).scrollIntoViewIfNeeded();
+    await page.waitForFunction((FIG) => document.querySelectorAll(`${FIG} .react-flow__node .erd-tumbuh__node`).length > 0, FIG);
+    const tag = `${HAL} ${lebar}×${tinggi} ${reducedMotion}`;
+    const b = await bentuk(page);
+    const st = await page.evaluate((FIG) => {
+      const f = document.querySelector(FIG);
+      return { erd: f.querySelectorAll(".erd-tumbuh__statis.sr-only figure.erd .erd__tabel").length, pemilih: !!f.querySelector(".erd-tumbuh__kontrol") };
+    }, FIG);
+    lapor(
+      b.bentuk === harus && b.node === 5 && b.edge === 7 && b.luar === 0 && b.statisSr && st.erd === 5 && !st.pemilih && b.lebarDok <= 0,
+      `${tag}: ${b.bentuk}, ${b.node} node, ${b.edge} edge, ${b.luar} di luar wadah, Erd.astro untuk pembaca layar ${st.erd} tabel, pemilih tahap ${st.pemilih ? "ADA" : "tidak ada"}, luapan ${b.lebarDok} px`,
+    );
+    await laporBawaan(page, tag);
+
+    if (lebar < 500) {
+      // Roda dan gestur sentuh di atas diagram tetap menggulir halaman (pola bagian 3).
+      const pane = page.locator(`${FIG} .react-flow__pane`).first();
+      await pane.scrollIntoViewIfNeeded();
+      const kotak = await pane.boundingBox();
+      const y0 = await page.evaluate(() => window.scrollY);
+      await page.mouse.move(kotak.x + kotak.width / 2, kotak.y + Math.min(kotak.height / 2, 200));
+      await page.mouse.wheel(0, 300);
+      await page.waitForTimeout(300);
+      const y1 = await page.evaluate(() => window.scrollY);
+      const cdp = await ctx.newCDPSession(page);
+      await page.locator(`${FIG} .erd-tumbuh__node`).first().scrollIntoViewIfNeeded();
+      await page.evaluate(() => window.scrollBy(0, -80));
+      const k = await page.locator(`${FIG} .erd-tumbuh__node`).first().boundingBox();
+      const a = await page.evaluate(() => window.scrollY);
+      await cdp.send("Input.synthesizeScrollGesture", { x: Math.round(k.x + k.width / 2), y: Math.round(k.y + Math.min(k.height / 2, 150)), yDistance: -200, gestureSourceType: "touch", speed: 1200 });
+      await page.waitForTimeout(300);
+      const z = await page.evaluate(() => window.scrollY);
+      const ta = await page.evaluate((FIG) => getComputedStyle(document.querySelector(`${FIG} .erd-tumbuh__node`)).touchAction, FIG);
+      const taOk = ta.includes("pan-y") || ta === "auto" || ta === "manipulation";
+      // Gestur sintetis bisa tidak berjalan di runner Linux (bagian 3): touch-action jadi buktinya.
+      lapor(y1 > y0 && (z > a || taOk), `${tag}: roda di atas diagram ${y0}→${y1}, sentuh di atas tabel ${a}→${z}, touch-action ${ta}`);
+    }
+
+    // Klik atau tap di tengah tabel akun: detail terbuka, 1.12 tanpa tautan ke dirinya sendiri, 1.7 bertautan.
+    const anim0 = await page.evaluate(() => document.getAnimations().length);
+    const k = await klikTabel(page, "Tabel akun", lebar < 500);
+    const anim = await page.evaluate(() => document.getAnimations().length);
+    lapor(
+      k.kena.startsWith("Tabel akun") && k.ditekan === "true" && k.detail.includes("password_hash") && k.detail.includes("(halaman ini)") && k.tautan.includes("/tahap-1/fitur-login/") && !k.tautan.includes(HAL),
+      `${tag}: ${lebar < 500 ? "tap" : "klik"} di tengah tabel akun kena ${k.kena.startsWith("Tabel") ? "tombol" : k.kena} → aria-pressed ${k.ditekan}, detail ${k.detail.length} karakter, tautan ${k.tautan.join(" ") || "-"}`,
+    );
+    if (reducedMotion === "reduce") lapor(anim0 === 0 && anim === 0, `${tag}: animasi ${anim0} sebelum, ${anim} sesudah memilih tabel`);
+    // Keyboard: Tab dari tombol tabel akun ke tabel berikutnya, Enter membukanya.
+    await page.focus(`${FIG} .erd-tumbuh__node[aria-label^="Tabel akun"]`);
+    await page.keyboard.press("Tab");
+    const fokus = await page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? "");
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(50);
+    const st2 = await page.evaluate((FIG) => ({ ditekan: document.activeElement?.getAttribute("aria-pressed"), status: document.querySelector(`${FIG} [role="status"]`).textContent }), FIG);
+    lapor(fokus.startsWith("Tabel ") && !fokus.startsWith("Tabel akun") && st2.ditekan === "true" && st2.status.startsWith("Detail tabel"), `${tag}: Tab ke "${fokus}", Enter → aria-pressed ${st2.ditekan}, status "${st2.status}"`);
+
+    if (AXE && reducedMotion === "no-preference") {
+      for (const tema of ["dark", "light"]) {
+        await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), tema);
+        await page.addScriptTag({ path: AXE });
+        const v = await page.evaluate(async (tag) => {
+          const x = await window.axe.run(document, { runOnly: { type: "tag", values: tag } });
+          return x.violations.map((p) => `${p.id}(${p.nodes.length}: ${p.nodes[0]?.target?.join(" ")})`);
+        }, TAG_WCAG);
+        lapor(v.length === 0, `axe ${tag} ${tema}: ${v.length ? v.join(", ") : "0 pelanggaran"}`);
+      }
+    }
+    await ctx.close();
+  }
+}
+// 9c. CLS saat blok Paham dibuka lalu island di-hydrate: modul JS ditunda 300 ms, blok dibuka lewat skrip (bukan
+// input, jadi geser dihitung), penghitung dinolkan sesudah blok terbuka, lalu figure digulir masuk layar.
+for (const [lebar, tinggi] of [
+  [375, 667],
+  [1366, 657],
+]) {
+  const ctx = await browser.newContext({ viewport: { width: lebar, height: tinggi } });
+  await ctx.addInitScript(() => {
+    const c = (window.__cls = { nilai: 0, sesi: 0, awal: 0, akhir: 0, contoh: "" });
+    new PerformanceObserver((l) => {
+      for (const e of l.getEntries()) {
+        if (e.hadRecentInput) continue;
+        if (c.sesi && e.startTime - c.akhir < 1000 && e.startTime - c.awal < 5000) c.sesi += e.value;
+        else [c.sesi, c.awal] = [e.value, e.startTime];
+        c.akhir = e.startTime;
+        c.nilai = Math.max(c.nilai, c.sesi);
+        const n = e.sources?.[0]?.node;
+        if (n) c.contoh ||= `${e.value.toFixed(4)} ${n.nodeName?.toLowerCase()}.${String(n.className ?? "").split(" ")[0]}`;
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+  });
+  const page = await ctx.newPage();
+  await page.route(/\/_astro\/.+\.js(\?.*)?$/, async (rute) => {
+    await new Promise((s) => setTimeout(s, 300));
+    await rute.continue().catch(() => {});
+  });
+  await page.goto(BASE + HAL, { waitUntil: "load" });
+  await page.waitForTimeout(800);
+  await bukaPaham(page);
+  const posisi = () => page.evaluate((FIG) => (document.querySelector(FIG).closest("astro-island") ?? document.querySelector(FIG)).nextElementSibling.getBoundingClientRect().top + scrollY, FIG);
+  await page.evaluate(() => new Promise((s) => requestAnimationFrame(() => requestAnimationFrame(s))));
+  await page.waitForTimeout(300);
+  await page.evaluate(() => Object.assign(window.__cls, { nilai: 0, sesi: 0, awal: 0, akhir: 0, contoh: "" }));
+  const sebelum = await posisi();
+  const belum = await page.evaluate((FIG) => !document.querySelector(`${FIG} .react-flow__node`), FIG);
+  await page.evaluate((FIG) => {
+    const f = document.querySelector(FIG);
+    window.scrollTo(0, f.getBoundingClientRect().top + scrollY - 120);
+  }, FIG);
+  await page.waitForFunction((FIG) => document.querySelector(`${FIG} .react-flow__node`), FIG, { timeout: 15000 });
+  await page.waitForTimeout(600);
+  const r = { c: await page.evaluate(() => window.__cls), sesudah: await posisi() };
+  const geser = Math.abs(r.sesudah - sebelum);
+  lapor(belum && r.c.nilai <= 0.1 && geser <= 1, `CLS ${HAL} ${lebar}×${tinggi} blok dibuka, JS ditunda 300 ms: ${belum ? "statis dulu" : "SUDAH hidup sebelum diukur"}, ${r.c.nilai.toFixed(4)}${r.c.contoh ? ` (${r.c.contoh})` : ""}, isi sesudah diagram geser ${geser.toFixed(1)} px`);
+  await ctx.close();
+}
+
+// 10. Setiap halaman di dist/ yang memakai ErdTumbuh, dibaca dari hasil build, bukan daftar tulis tangan: sesudah semua
+// blok dibuka dan diagram hidup di 375×667, bawaan React Flow tidak terbaca. Halaman uji dan 1.12 sudah diperiksa di atas.
+function halamanErd(dir, akar = dir, hasil = []) {
+  for (const n of readdirSync(dir)) {
+    const p = path.join(dir, n);
+    if (statSync(p).isDirectory()) halamanErd(p, akar, hasil);
+    else if (n === "index.html" && readFileSync(p, "utf8").includes('data-erd-tumbuh="')) hasil.push("/" + path.relative(akar, path.dirname(p)).split(path.sep).join("/") + "/");
+  }
+  return hasil.sort();
+}
+const daftarErd = halamanErd(path.resolve("dist"));
+// Daftar tanpa 1.12 berarti pencarian di dist/ rusak atau widget lepas dari 1.12, bukan "lolos tanpa diperiksa".
+lapor(daftarErd.includes(HAL) && daftarErd.includes("/uji/erd/"), `halaman dengan ErdTumbuh di dist/: ${daftarErd.join(", ") || "tidak ada"}`);
+for (const h of daftarErd.filter((x) => x !== HAL && x !== "/uji/erd/")) {
+  const ctx = await browser.newContext({ viewport: { width: 375, height: 667 } });
+  const page = await ctx.newPage();
+  await page.goto(BASE + h, { waitUntil: "networkidle" });
+  await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true)));
+  for (const f of await page.locator(FIG).all()) await f.scrollIntoViewIfNeeded();
+  await page.waitForFunction((FIG) => [...document.querySelectorAll(FIG)].every((f) => f.querySelector(".react-flow__node .erd-tumbuh__node")), FIG, { timeout: 15000 });
+  await laporBawaan(page, `${h} 375×667`);
+  await ctx.close();
 }
 
 await browser.close();

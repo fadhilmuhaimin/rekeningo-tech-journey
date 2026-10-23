@@ -10,7 +10,7 @@ import petaT2 from "./uji/halaman.json";
 import { DataErd, PetaHalaman } from "./skema";
 import {
   UKURAN, ambangKolom, bisaBanding, daftarFk, jumlahKolom, namaTombol, peringkat, ringkasan, tampilSebelum, tampilTahap, tata,
-  tautanHalaman, teksAturan, teksKolom, teksPindah, barisPindah, tinggiNode, urutan, varPesan, type TabelTampil,
+  tandaiHalamanIni, tautanHalaman, teksAturan, teksKolom, teksPindah, barisPindah, tinggiNode, urutan, varPesan, type TabelTampil,
 } from "./tumbuh";
 import { muat, url } from "../../tools/registri.mjs";
 
@@ -206,5 +206,22 @@ describe("ERD Tahap 2 dari lab api-t2 (ERD2)", () => {
   it("setiap tabel Tahap 2 punya halaman penjelas di peta (situs/data/erd/halaman.json)", () => {
     const hasil = tautanHalaman(PetaHalaman.parse(petaT1), lab, muat().halaman, url);
     for (const t of lab[1].tabel) expect(hasil["2"][t.nama]?.length, t.nama).toBeGreaterThan(0);
+  });
+});
+
+describe("halaman yang sedang dibaca (ERD-1.12, keputusan 697)", () => {
+  const semua = [DataErd.parse(t1)];
+  const asli = tautanHalaman(PetaHalaman.parse(petaT1), semua, muat().halaman, url);
+  it("tautan ke 1.12 di 1.12 jadi teks tanpa tautan, tautan lain tetap", () => {
+    const hasil = tandaiHalamanIni(asli, "/tahap-1/data-modeling/");
+    expect(hasil["1"].akun[0]).toEqual({ label: "1.12 Data modeling dan relasi", href: null, catatan: "halaman ini" });
+    expect(hasil["1"].akun[1]).toEqual(asli["1"].akun[1]);
+    expect(hasil["1"].akun[1].href).toBe("/tahap-1/fitur-login/");
+    expect(hasil["1"].transaksi).toEqual(asli["1"].transaksi);
+  });
+  it("tidak mengubah data asli, dan path lain tidak menandai apa pun", () => {
+    tandaiHalamanIni(asli, "/tahap-1/data-modeling/");
+    expect(asli["1"].akun[0].href).toBe("/tahap-1/data-modeling/");
+    expect(tandaiHalamanIni(asli, "/uji/erd/")).toEqual(asli);
   });
 });
