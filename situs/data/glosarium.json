@@ -1048,7 +1048,7 @@
   "d": "Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang.",
   "b": "t2-tutup-buku",
   "n": "2.4 Fitur tutup buku",
-  "u": null,
+  "u": "/tahap-2/fitur-tutup-buku/",
   "s": "istilah-tutup-buku",
   "h": "/istilah/tutup-buku/"
  },

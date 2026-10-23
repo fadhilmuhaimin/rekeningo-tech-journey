@@ -1070,11 +1070,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.4 · Fitur: tutup buku bulanan
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.2, lab-b3-ledger
 - selesai bila: halaman Fitur→teknis 2.4 sesuai `plan/CERITA-TAHAP-2.md` bagian 2 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: PR #282, keputusan 615–618 (`plan/masuk/tahap-2-tutup-buku.md`): `tahap-2/fitur-tutup-buku.mdx`, Inti dengan Rantai ringkas dari `b3-ledger` `tutup-buku.txt` A–B, PetaFitur dan rekaman A–C `api-t2`, Coba runsql `t2-tutup-buku` (UPDATE langsung ke `saldo_cache` lawan jurnal; ubah satu hal: saldo akhir dari posting yang sama), Di stack lain enam tab (Go dijalankan), R2-45–R2-48. Lab tidak diulang: Docker tertahan. Celah jurnal terlambat COMMIT dan "< 1 hari" ditulis terbuka (618). Istilah baru tanpa halaman istilah (G-istilah belum di-merge): posting, buku, mutasi, saldo awal, saldo akhir, `saldo_cache`, `FILTER`.
 
 ### 2.5 · Fitur: pencairan warung terjadwal
 

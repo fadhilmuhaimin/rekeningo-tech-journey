@@ -1067,7 +1067,7 @@ window.ISTILAH = {
   "n": "2.4 Fitur tutup buku",
   "s": "istilah-tutup-buku",
   "t": "Tutup buku",
-  "u": null
+  "u": "tahap-2/fitur-tutup-buku/"
  },
  "WAL": {
   "b": "D3",
@@ -1832,7 +1832,7 @@ window.ISTILAH = {
   "n": "2.4 Fitur tutup buku",
   "s": "istilah-tutup-buku",
   "t": "Tutup buku",
-  "u": null
+  "u": "tahap-2/fitur-tutup-buku/"
  },
  "webhook": {
   "b": "B10.2",

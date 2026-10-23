@@ -1,0 +1,207 @@
+---
+title: "2.4 Fitur: tutup buku bulanan"
+description: Pak Hadi meminta tutup buku bulanan yang terbukti dari data. Backend menjumlahkan posting per buku, membandingkannya dengan saldo_cache, dan memeriksa seluruh jurnal seimbang.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-tutup-buku-inti.json";
+import PetaFitur from "../../../components/PetaFitur.astro";
+import petaTutupBuku from "../../../../data/widget/t2-peta-tutup-buku.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 7 menit · coba 2 menit · Prasyarat: [[t2-transfer]] · Jalur inti</p>
+
+<Blok nama="Yang diminta PRD" buka>
+
+## Inti
+
+Tutup buku membuktikan dari data bahwa setiap buku cocok dan setiap jurnal seimbang.
+
+<Rantai data={intiDiagram} ringkas />
+
+Untuk setiap buku, laporan menjumlahkan posting sebelum periode sebagai saldo awal, lalu posting selama periode sebagai uang masuk dan keluar. Hasilnya dibandingkan dengan `saldo_cache`, angka saldo yang ditulis kode setiap kali jurnal dibuat. Di rekaman lab `tutup-buku.txt` bagian A (lab b3-ledger), Budi mulai dari Rp180.000 dan berakhir di Rp385.000, sama dengan cache-nya.
+
+Lalu laporan memeriksa seluruh sistem: setiap jurnal harus punya minimal dua posting yang jumlahnya nol. Bagian B rekaman yang sama mencatat 11 jurnal, 0 tidak seimbang, dan jumlah semua posting 0. Kalau satu buku atau satu jurnal meleset, laporan menunjuk tempatnya, bukan hanya totalnya.
+
+### Baris PRD
+
+| Prioritas | Fitur | Keterangan |
+|---|---|---|
+| P0 | Tutup buku bulanan | Laporan per akun dan per warung: saldo awal + mutasi = saldo akhir, untuk seluruh sistem |
+
+Metrik PRD v2 untuk fitur ini: tutup buku bulan pertama selesai dalam kurang dari satu hari, dengan selisih Rp0. Di Tahap 1, Keuangan butuh 4 jam untuk merekap satu gedung dengan tangan (angka cerita, [[t2-prd]]).
+
+Syaratnya datang dari aturan Pak Hadi v2: "Setiap rupiah di saldo siapa pun harus bisa ditelusuri ke kejadian yang membuatnya, tanpa tabel koreksi tangan."
+
+<PetaFitur data={petaTutupBuku} />
+
+Tutup buku tidak punya layar di app Flutter. Satu request menghasilkan seluruh laporan. Rekaman membuktikan isi laporan, bukan lamanya: waktu query tidak direkam, jadi syarat "kurang dari satu hari" belum diukur.
+
+</Blok>
+
+<Blok nama="Coba: buku yang tidak cocok" buka aman="Kalau berhenti di sini, kamu sudah tahu: tutup buku menangkap saldo yang diubah tanpa jurnal, karena saldo akhir dibandingkan dengan sumber kedua.">
+
+Di Tahap 1, saldo yang salah bisa diubah dengan satu `UPDATE` lewat psql ([[t1-adr-transaction]]). Di ledger, cara itu terlihat di laporan: jumlah posting dan `saldo_cache` tidak lagi sama. Data empat buku ini ilustrasi, dan SQL-nya dijalankan sungguhan di browser.
+
+<WidgetLama nama="runsql" src="data/t2-tutup-buku.json" />
+
+Tabel hasil adalah laporan per buku: awal, masuk, dan keluar dari posting, lalu akhir dari `saldo_cache`. Nyalakan **Ubah satu hal**: saldo akhir kini dihitung dari posting yang sama. Persamaannya jadi selalu benar, dan buku Citra ikut cocok, padahal saldo yang dibaca app Citra adalah `saldo_cache` Rp30.000.
+
+Widget ini tidak memasang pagar jurnal seimbang, jadi kamu bisa melihat apa yang diperiksa laporan. Database lab memasangnya: jurnal top-up yang jumlahnya −Rp225.000 ditolak saat `COMMIT` dengan SQLSTATE 23514 (rekaman lab `invarian.txt` bagian A, lab b3-ledger).
+
+</Blok>
+
+<Blok nama="Endpoint, query, dan rekaman">
+
+Endpoint `GET /tutup-buku?periode=YYYY-MM` hanya untuk admin. Service memeriksa peran dan format periode sebelum query jalan:
+
+<Snippet file="labs/api-t2/internal/service/akun.go" region="tutup-buku" lang="go" title="labs/api-t2/internal/service/akun.go" />
+
+Rekaman lab ini dibuat dari database bersih. Token Budi mendapat `403`, dan periode yang bukan format bulan mendapat `422` dengan nama field:
+
+<Snippet file="labs/api-t2/output/tutup-buku.txt" lines="30:39" title="Rekaman lab: labs/api-t2/output/tutup-buku.txt" />
+
+### Query per buku
+
+Repo menjalankan dua query. Yang pertama menghitung empat angka untuk setiap buku, semuanya dari posting:
+
+<Snippet file="labs/api-t2/internal/repo/tutupbuku.go" lines="26:46" lang="go" title="labs/api-t2/internal/repo/tutupbuku.go" />
+
+Batas periode dihitung database: tanggal 1 pukul 00.00 WIB sampai tanggal 1 bulan berikutnya. Alasannya sama dengan laporan Ani di [[t1-fitur-saldo]]: `timestamptz` disimpan dalam UTC, jadi zona harus disebut.
+
+`FILTER (WHERE ...)` membuat satu `sum` hanya menerima posting yang memenuhi syaratnya ([PostgreSQL 17, 4.2.7](https://www.postgresql.org/docs/17/sql-expressions.html#SYNTAX-AGGREGATES)). Jadi saldo awal, masuk, keluar, dan akhir lahir dari satu query, satu baris per buku. `saldo_cache` ikut dikirim sebagai pembanding.
+
+Query kedua memeriksa setiap jurnal yang dibuat selama periode: berapa yang punya kurang dari dua posting, atau jumlahnya bukan nol.
+
+<Snippet file="labs/api-t2/internal/repo/tutupbuku.go" lines="63:73" lang="go" title="labs/api-t2/internal/repo/tutupbuku.go" />
+
+### Yang dibuktikan rekaman
+
+Rekaman lab api-t2 menjalankan tutup buku atas 1.016 buku: 1.000 karyawan, 12 warung, dan 4 buku sistem. Seluruh lab berjalan di satu bulan, jadi saldo awal 0, dan jurnal pembuka migrasi masuk sebagai mutasi.
+
+<Snippet file="labs/api-t2/output/tutup-buku.txt" lines="8:27" title="Rekaman lab: labs/api-t2/output/tutup-buku.txt" />
+
+Ringkasan dua baris pertama ditulis penggerak lab dari body: 1.016 buku cocok, 0 tidak cocok, 1.122 jurnal, 0 tidak seimbang. Tes Go `TestTutupBukuSeimbang` memeriksa persamaan yang sama untuk setiap buku dan lolos (rekaman lab `testing.txt` bagian A).
+
+Rekaman bagian C menunjukkan celah yang belum ditutup. Transaction [A] menulis jurnal top-up Rp1.000 untuk Budi, lalu belum `COMMIT` saat laporan dibuat:
+
+<Snippet file="labs/api-t2/output/tutup-buku.txt" lines="42:47" title="Rekaman lab: labs/api-t2/output/tutup-buku.txt" />
+
+Sesudah [A] `COMMIT`, laporan yang sama menghitung 1.123 jurnal, dan uang masuk Budi naik dari Rp1.020.000 ke Rp1.021.000:
+
+<Snippet file="labs/api-t2/output/tutup-buku.txt" lines="64:84" title="Rekaman lab: labs/api-t2/output/tutup-buku.txt" />
+
+Kolom `dibuat` diisi `now()`, dan `now()` adalah waktu awal transaction, bukan waktu `COMMIT` ([PostgreSQL 17, 9.9.5](https://www.postgresql.org/docs/17/functions-datetime.html#FUNCTIONS-DATETIME-CURRENT)). Jadi jurnal yang terlambat `COMMIT` bisa masuk ke periode yang sudah dilaporkan. Menutup periode dengan benar butuh menunggu transaction yang masih terbuka, atau tabel penutupan periode. Keduanya belum dibuat di lab.
+
+### Di stack lain
+
+**Skenario:** query per buku yang sama dikirim dari stack lain, lalu barisnya dibaca. Tab Go dijalankan di lab. Tab lain tidak dijalankan, hanya dicek ke dokumentasi pada 2026-10-24.
+
+Yang sama di semua stack: agregasi dikerjakan PostgreSQL, dan nilai periode dikirim sebagai parameter. Yang berbeda: tanda parameter, dan bentuk baris yang diterima kode.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: Go 1.27.1, `database/sql` + pgx v5.11.0, PostgreSQL 17.11, lab api-t2.*
+
+<Snippet file="labs/api-t2/internal/service/db_test.go" lines="279:296" lang="go" title="labs/api-t2/internal/service/db_test.go" />
+
+<Snippet file="labs/api-t2/output/testing.txt" lines="38:39" title="Rekaman lab: labs/api-t2/output/testing.txt" />
+
+**Yang berbeda di stack ini:** `rows.Scan` membaca kolom menurut urutan, jadi query di repo tidak memberi nama kolom. Query itu memakai satu `$1` di dua tempat, dan nilainya dikirim sekali.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [node-postgres: Queries](https://node-postgres.com/features/queries), `pg` 8.23.1.*
+
+<Snippet lang="js" code={`// SQL_TUTUP_BUKU: query per buku tab Go, setiap kolom diberi alias (AS saldo_awal, ...)
+const { rows } = await pool.query(SQL_TUTUP_BUKU, [periode + "-01"]);
+res.json({ periode, buku: rows });`} />
+
+**Yang berbeda di stack ini:** `rows` berisi objek dengan nama kolom sebagai key. Tanpa `AS`, nama kolom hasil hitungan dipilih otomatis oleh PostgreSQL ([PostgreSQL 17, 7.3.2](https://www.postgresql.org/docs/17/queries-select-lists.html#QUERIES-COLUMN-LABELS)), jadi setiap kolom diberi alias sendiri.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Database](https://laravel.com/docs/13.x/database#running-queries) dan [PDO::prepare](https://www.php.net/manual/en/pdo.prepare.php).*
+
+<Snippet lang="php" code={`// $sqlTutupBuku: query tab Go, $1 diganti ? di kedua tempat
+$awal = $periode . '-01';
+$buku = DB::select($sqlTutupBuku, [$awal, $awal]);
+return response()->json(['periode' => $periode, 'buku' => $buku]);`} />
+
+**Yang berbeda di stack ini:** PDO butuh satu tanda per nilai. Jadi periode dikirim dua kali. `DB::select` mengembalikan array `stdClass`, dan binding melindungi dari SQL injection.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: Performing raw SQL queries](https://docs.djangoproject.com/en/6.1/topics/db/sql/#executing-custom-sql-directly).*
+
+<Snippet lang="python" code={`from django.db import connection
+
+def tutup_buku(periode):
+    awal = periode + "-01"
+    with connection.cursor() as cursor:
+        # SQL_TUTUP_BUKU: query tab Go, $1 diganti %s di kedua tempat
+        cursor.execute(SQL_TUTUP_BUKU, [awal, awal])
+        return cursor.fetchall()`} />
+
+**Yang berbeda di stack ini:** `fetchall()` mengembalikan tuple tanpa nama kolom, mirip `Scan` di Go. Tanda `%s` ditulis tanpa tanda kutip, supaya nilainya tetap parameter.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod 4.0: Raw access](https://docs.serverpod.dev/concepts/data-and-the-database/database/raw-access).*
+
+<Snippet lang="dart" code={`Future<DatabaseResult> tutupBuku(Session session, String periode) {
+  // sqlTutupBuku: query per buku tab Go
+  return session.db.unsafeQuery(
+    sqlTutupBuku,
+    parameters: QueryParameters.positional([periode + '-01']),
+  );
+}`} />
+
+**Yang berbeda di stack ini:** query agregasi ditulis sebagai SQL mentah lewat `unsafeQuery`. Hasilnya `DatabaseResult`: setiap baris daftar nilai menurut urutan kolom, dan `toColumnMap()` memberi nama kolomnya.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Database Functions](https://supabase.com/docs/guides/database/functions), `@supabase/supabase-js` 2.118.0.*
+
+<Snippet lang="sql" code={`-- Isi fungsi: query per buku tab Go, $1 menjadi parameter periode
+CREATE FUNCTION tutup_buku(periode date) RETURNS TABLE (...) LANGUAGE sql STABLE AS $$ ... $$;
+-- Fungsi bisa dipanggil semua role secara default, termasuk anon
+REVOKE EXECUTE ON FUNCTION tutup_buku(date) FROM public, anon, authenticated;`} />
+
+<Snippet lang="js" code={`const { data, error } = await supabase.rpc('tutup_buku', { periode: '2026-11-01' })`} />
+
+**Yang berbeda di stack ini:** query tinggal di database sebagai fungsi, dan client memanggilnya lewat `rpc()`. Laporan ini membuka saldo semua buku, jadi hak `EXECUTE` dicabut dulu, lalu diberikan lagi hanya ke role yang dipakai Keuangan.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Konsep yang akan dibutuhkan">
+
+- [[t2-saldo-bukan-kolom]]: kenapa saldo awal dan mutasi tidak bisa dihitung dari kolom saldo Tahap 1.
+- [[t2-ledger]]: jurnal, posting, dan tiga invarian yang dijaga database, termasuk jurnal seimbang.
+- [[B2.3]]: kapan index membantu query seperti ini, dan cara membaca query plan-nya.
+- [[t2-m9]]: kenapa dua transfer bersamaan bisa lolos walau setiap jurnalnya seimbang.
+
+**Sengaja belum dilakukan** di v2:
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Index atau snapshot untuk tutup buku | Saldo awal adalah jumlah semua posting sebelum periode, jadi query membaca semua posting setiap kali; lamanya belum diukur | [[B2.3]]; snapshot saldo di Tahap 5 |
+| Mencegah dua transfer bersamaan | Tutup buku hanya membaca sesudah kejadian; ia tidak mengunci buku apa pun | [[t2-m9]] |
+| Menutup periode | Jurnal yang terlambat `COMMIT` bisa masuk periode yang sudah dilaporkan (rekaman bagian C) | Belum ada halaman di peta Tahap 2 |
+| Layar Keuangan atau ekspor | Naskah menyebut web sederhana atau ekspor; lab memanggil endpoint dengan curl | Belum dijadwalkan |
+
+</Blok>
+
+<SkripLama daftar={["runsql-core","runsql"]} />

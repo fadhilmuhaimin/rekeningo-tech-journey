@@ -1,0 +1,47 @@
+{
+  "id": "t2-tutup-buku",
+  "title": "Tutup buku November: buku mana yang tidak cocok?",
+  "setup": "CREATE TABLE buku (id INTEGER PRIMARY KEY, nama TEXT NOT NULL, saldo_cache INTEGER NOT NULL);\nCREATE TABLE jurnal (id INTEGER PRIMARY KEY, jenis TEXT NOT NULL, dibuat TEXT NOT NULL);\nCREATE TABLE posting (jurnal_id INTEGER NOT NULL REFERENCES jurnal (id), buku_id INTEGER NOT NULL REFERENCES buku (id), jumlah INTEGER NOT NULL CHECK (jumlah <> 0));\nINSERT INTO buku VALUES (1, 'tunjangan', -180000), (2, 'Budi', 135000), (3, 'Citra', 20000), (4, 'Warung Ani', 25000);\nINSERT INTO jurnal VALUES (1, 'topup', '2026-10-30'), (2, 'bayar', '2026-11-03'), (3, 'transfer', '2026-11-04');\nINSERT INTO posting VALUES (1, 1, -180000), (1, 2, 180000), (2, 2, -25000), (2, 4, 25000), (3, 2, -20000), (3, 3, 20000);\n-- Laporan tutup buku November: awal, masuk, dan keluar dari posting; akhir dari saldo_cache\nCREATE VIEW tutup_buku AS SELECT b.id, b.nama AS buku,\n  COALESCE(SUM(p.jumlah) FILTER (WHERE j.dibuat < '2026-11-01'), 0) AS awal,\n  COALESCE(SUM(p.jumlah) FILTER (WHERE j.dibuat >= '2026-11-01' AND p.jumlah > 0), 0) AS masuk,\n  COALESCE(-SUM(p.jumlah) FILTER (WHERE j.dibuat >= '2026-11-01' AND p.jumlah < 0), 0) AS keluar,\n  b.saldo_cache AS akhir\nFROM buku b JOIN posting p ON p.buku_id = b.id JOIN jurnal j ON j.id = p.jurnal_id\nGROUP BY b.id;",
+  "check": "SELECT buku, awal, masuk, keluar, akhir, CASE WHEN awal + masuk - keluar = akhir THEN 'ya' ELSE 'TIDAK' END AS cocok FROM tutup_buku ORDER BY id",
+  "predict": {
+    "q": "Panel After menambah Rp10.000 ke saldo Citra lewat UPDATE langsung di saldo_cache, tanpa jurnal. Apa kata tutup buku di panel After?",
+    "options": [
+      "Semua buku cocok",
+      "Buku Citra tidak cocok, dan tidak ada jurnal yang tidak seimbang",
+      "Satu jurnal tidak seimbang"
+    ],
+    "answer": 1,
+    "explain": "UPDATE langsung tidak menulis jurnal, jadi pemeriksaan seluruh jurnal tetap 0. Yang menangkapnya pemeriksaan per buku. Posting Citra berjumlah Rp20.000, tapi saldo_cache-nya Rp30.000. Before menulis Rp10.000 yang sama sebagai jurnal top-up dengan dua posting, jadi kedua angka Citra Rp30.000."
+  },
+  "panels": {
+    "before": {
+      "label": "Before: top-up Rp10.000 ke Citra lewat jurnal",
+      "onError": "rollback",
+      "steps": [
+        { "sql": "BEGIN" },
+        { "sql": "INSERT INTO jurnal VALUES (4, 'topup', '2026-11-20')" },
+        { "sql": "INSERT INTO posting VALUES (4, 1, -10000), (4, 3, 10000)", "note": "dua posting, jumlahnya 0" },
+        { "sql": "UPDATE buku SET saldo_cache = saldo_cache - 10000 WHERE id = 1" },
+        { "sql": "UPDATE buku SET saldo_cache = saldo_cache + 10000 WHERE id = 3" },
+        { "sql": "COMMIT" },
+        { "sql": "SELECT count(*) FROM (SELECT jurnal_id FROM posting GROUP BY jurnal_id HAVING sum(jumlah) <> 0 OR count(*) < 2)", "note": "seluruh sistem: jurnal yang tidak seimbang" }
+      ]
+    },
+    "after": {
+      "label": "After: Rp10.000 ditulis langsung ke saldo_cache",
+      "onError": "stop",
+      "steps": [
+        { "sql": "UPDATE buku SET saldo_cache = saldo_cache + 10000 WHERE id = 3", "note": "tanpa jurnal, tanpa posting" },
+        { "sql": "SELECT count(*) FROM (SELECT jurnal_id FROM posting GROUP BY jurnal_id HAVING sum(jumlah) <> 0 OR count(*) < 2)", "note": "seluruh sistem: jurnal yang tidak seimbang" }
+      ]
+    }
+  },
+  "toggles": [
+    {
+      "label": "saldo akhir dihitung dari posting yang sama, bukan dari saldo_cache",
+      "pairs": [
+        ["b.saldo_cache AS akhir", "COALESCE(SUM(p.jumlah), 0) AS akhir"]
+      ]
+    }
+  ]
+}
