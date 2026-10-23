@@ -1007,11 +1007,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### A11y-gulir-tabel · Wadah tabel yang digulir bisa difokus
 
 - jenis: perbaikan
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: G-axe
 - selesai bila: axe `scrollable-region-focusable` (SC 2.1.1) 0 di 375×667 dan 1366×657 dua tema pada 1.6, 1.11, 1.18, 1.28 dan seluruh `situs/dist` (`situs/tools/ukur-axe.mjs`): wadah tabel atau kode yang digulir ke samping bisa dicapai Tab, punya nama aksesibel, dan fokusnya terlihat; layar pertama dan CLS tidak berubah; perbaikan di komponen atau CSS bersama, bukan per halaman; teks halaman tidak berubah.
-- catatan: Kategori aksesibilitas dari G-axe (#283, keputusan 694).
+- catatan: Kategori aksesibilitas dari G-axe (#283, keputusan 694). Selesai 2026-10-24 di PR #286 (keputusan 712–714): plugin `situs/src/plugins/rehype-tabel-gulir.mjs` membungkus setiap tabel GFM dengan `div.tabel-gulir` `role="region"`, `aria-label` dari judul kolom (urutan "Tabel k dari n" bila kembar), `tabindex="0"`; skrip inline `situs/src/lib/tabel-gulir.ts` (ResizeObserver) mencabut ketiganya dari wadah yang tidak meluap, tanpa JavaScript semua wadah tetap berfokus; fokus 2 px `--aksen` di dalam wadah. axe 4 halaman 16 run 0, `--semua` 93 halaman 372 run `scrollable-region-focusable` 0 (sisa `definition-list` race lama, A11y-race-dl); geometri 804 pasangan tabel identik dengan main; tab stop 375 54 dari 201 wadah, 1366 2; mutasi cabut tabindex dan `meluap` false membuat `ukur-axe` gagal; gerbang `axe` 10 → 14 halaman.
 
 ### ERD-1.12 · Widget ERD bertumbuh di 1.12
 
