@@ -126,8 +126,8 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 65,
-        "halaman": 8
+        "menit": 61,
+        "halaman": 7
       },
       "versi": "lama",
       "skala": {
@@ -1276,17 +1276,6 @@
       "menit": 5
     },
     {
-      "id": "T2",
-      "judul": "Tahap 2 · Ceritanya",
-      "tahap": 2,
-      "path": "cerita/tahap-2.md",
-      "inti": true,
-      "ada": true,
-      "bagian": 1,
-      "diganti_oleh": "t2-prd",
-      "menit": 4
-    },
-    {
       "id": "t2-prd",
       "judul": "PRD v2: Rekeningo untuk seluruh kampus",
       "tahap": 2,
@@ -1302,6 +1291,16 @@
       "ada": true,
       "nomor": "2.1",
       "menit": 5
+    },
+    {
+      "id": "T2",
+      "judul": "Tahap 2 · Ceritanya",
+      "tahap": 2,
+      "path": "cerita/tahap-2.md",
+      "ada": true,
+      "bagian": 1,
+      "diganti_oleh": "t2-prd",
+      "menit": 4
     },
     {
       "id": "t2-fitur-teknis",
