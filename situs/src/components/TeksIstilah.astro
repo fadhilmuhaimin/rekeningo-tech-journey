@@ -1,0 +1,25 @@
+---
+/**
+ * Satu baris teks halaman istilah (G-istilah, keputusan 685): `kode` jadi <code translate="no">, [[ID]] jadi tautan
+ * berjudul dari registry (halaman yang belum ditulis jadi teks "(segera)" tanpa tautan, sama dengan remark-rujukan),
+ * [teks](url) jadi tautan biasa. ID yang tidak dikenal menggagalkan build.
+ */
+import { potong } from "../lib/istilah";
+import { muat, byId, label, url, JUDUL_MENYUSUL } from "../../tools/registri.mjs";
+
+const { teks, panjang = false } = Astro.props as { teks: string; panjang?: boolean };
+const by = byId(muat());
+const bagian = potong(teks).map((p) => {
+  if (p.jenis !== "rujukan") return p;
+  const h = by[p.id];
+  if (!h) throw new Error(`halaman istilah: rujukan [[${p.id}]] tidak ada di cerita.json`);
+  return { ...p, judul: p.teks ?? label(h, !panjang), href: h.diporting ? url(h) : null };
+});
+---
+{bagian.map((p) =>
+  p.jenis === "teks" ? p.teks
+  : p.jenis === "kode" ? <code translate="no">{p.teks}</code>
+  : p.jenis === "tautan" ? <a href={p.url}>{p.teks}</a>
+  : p.href ? <a href={p.href}>{p.judul}</a>
+  : <span class="rujukan-menyusul" title={JUDUL_MENYUSUL}><em>{p.judul} (segera)</em></span>
+)}

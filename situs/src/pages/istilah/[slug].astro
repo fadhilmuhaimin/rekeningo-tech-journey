@@ -1,0 +1,127 @@
+---
+// Halaman istilah (G-istilah, keputusan 685–691): satu rute per file situs/data/halaman-istilah/<slug>.json, delapan
+// bagian tetap dari PROPOSAL "Glosarium jadi halaman mendalam per istilah". Kalimat pertama = definisi baris glosarium
+// (sumber tooltip juga), jadi keduanya tidak pernah berbeda. Bagian bernilai null tampil "Belum ditulis." tanpa tautan.
+// Bukan halaman urutan baca: tidak di registry dan sidebar; jalur "Kamu di sini" menunjuk Glosarium (KamuDiSini.astro).
+// Tanpa island: halaman ini tidak memuat JavaScript sendiri, termasuk React Flow.
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import TeksIstilah from "../../components/TeksIstilah.astro";
+import { BAGIAN, Glosarium, HalamanIstilah, NAMA_STACK, STACK, semuaRujukan, slugDariS, tujuanTerkait } from "../../lib/istilah";
+import glosariumJson from "../../../data/glosarium.json";
+import { muat, byId, label, url, JUDUL_MENYUSUL } from "../../../tools/registri.mjs";
+
+export function getStaticPaths() {
+  const berkas = import.meta.glob("../../../data/halaman-istilah/*.json", { eager: true, import: "default" });
+  const glos = Glosarium.parse(glosariumJson);
+  return Object.entries(berkas).map(([p, isi]) => {
+    const slug = p.split("/").pop()!.replace(/\.json$/, "");
+    const r = HalamanIstilah.safeParse(isi);
+    if (!r.success) throw new Error(`${p}: ${r.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`);
+    const baris = glos.find((g) => slugDariS(g.s) === slug);
+    if (!baris) throw new Error(`${p}: tidak ada baris "${slug}" di glosarium.mdx (jalankan python3 tools/build_istilah.py)`);
+    if (baris.t !== r.data.istilah) throw new Error(`${p}: istilah "${r.data.istilah}" berbeda dengan glosarium "${baris.t}"`);
+    return { params: { slug }, props: { d: r.data, baris } };
+  });
+}
+
+const { d, baris } = Astro.props;
+const glos = Glosarium.parse(glosariumJson);
+const reg = muat();
+const by = byId(reg);
+for (const id of semuaRujukan(d)) if (!by[id]) throw new Error(`halaman istilah ${d.istilah}: rujukan [[${id}]] tidak ada di cerita.json`);
+const cerita = (d.cerita ?? []).map((c) => {
+  const h = by[c.rujukan];
+  return { teks: c.teks, judul: label(h), href: h.diporting ? url(h) : null };
+});
+const terkait = (d.terkait ?? []).map((n) => tujuanTerkait(n, glos));
+const rujuk = d.stack && "lihat" in d.stack ? d.stack : null;
+const enam = d.stack && !("lihat" in d.stack) ? d.stack : null;
+const lihat = rujuk ? glos.find((g) => slugDariS(g.s) === rujuk.lihat) : null;
+if (rujuk && !lihat?.h) throw new Error(`halaman istilah ${d.istilah}: stack.lihat "${rujuk.lihat}" belum punya halaman istilah`);
+const stack = enam ? STACK.map((s) => ({ nama: NAMA_STACK[s], ...enam[s] })) : null;
+const headings = BAGIAN.map(([slug, text]) => ({ depth: 2, slug, text }));
+const judul = Object.fromEntries(BAGIAN) as Record<(typeof BAGIAN)[number][0], string>;
+---
+<StarlightPage frontmatter={{ title: d.istilah, description: baris.d }} headings={headings}>
+  <div class="hal-istilah">
+    <section aria-labelledby="satu-kalimat">
+      <h2 id="satu-kalimat">{judul["satu-kalimat"]}</h2>
+      <p class="hal-istilah__kalimat">{baris.d}</p>
+    </section>
+
+    <section aria-labelledby="sehari-hari">
+      <h2 id="sehari-hari">{judul["sehari-hari"]}</h2>
+      {d.sehari_hari ? <p><TeksIstilah teks={d.sehari_hari} /></p> : <p class="hal-istilah__belum">Belum ditulis.</p>}
+    </section>
+
+    <section aria-labelledby="di-cerita">
+      <h2 id="di-cerita">{judul["di-cerita"]}</h2>
+      {cerita.length ? (
+        <ul class="hal-istilah__cerita">
+          {cerita.map((c) => (
+            <li>
+              {c.href ? <a href={c.href}>{c.judul}</a> : <span class="rujukan-menyusul" title={JUDUL_MENYUSUL}><em>{c.judul} (segera)</em></span>}
+              <span class="hal-istilah__cerita-teks"><TeksIstilah teks={c.teks} /></span>
+            </li>
+          ))}
+        </ul>
+      ) : <p class="hal-istilah__belum">Belum ditulis.</p>}
+    </section>
+
+    <section aria-labelledby="mekanisme">
+      <h2 id="mekanisme">{judul.mekanisme}</h2>
+      {d.mekanisme ? <ol class="hal-istilah__langkah">{d.mekanisme.map((m) => <li><TeksIstilah teks={m} /></li>)}</ol> : <p class="hal-istilah__belum">Belum ditulis.</p>}
+    </section>
+
+    <section aria-labelledby="di-tiap-stack">
+      <h2 id="di-tiap-stack">{judul["di-tiap-stack"]}</h2>
+      {stack ? (
+        <ul class="hal-istilah__stack">
+          {stack.map((s) => (
+            <li>
+              <p class="hal-istilah__stack-kepala">
+                <strong translate="no">{s.nama}</strong>
+                <span class:list={["bb-chip", { "is-system": s.label === "Rekaman lab" }]}>{s.label}</span>
+                <span class="hal-istilah__versi" translate="no">{s.versi}</span>
+              </p>
+              <p><TeksIstilah teks={s.teks} /></p>
+              <p class="hal-istilah__asal">
+                {"rekaman" in s
+                  ? <>Rekaman: <code translate="no">{s.rekaman}</code></>
+                  : <a href={s.dokumentasi}>Dokumentasi {s.nama}</a>}
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : rujuk && lihat?.h ? (
+        <p><TeksIstilah teks={rujuk.teks} /> <a href={`${lihat.h}#di-tiap-stack`}>Kode {lihat.t} di enam stack</a>.</p>
+      ) : <p class="hal-istilah__belum">Belum ditulis.</p>}
+    </section>
+
+    <section aria-labelledby="jebakan">
+      <h2 id="jebakan">{judul.jebakan}</h2>
+      {d.jebakan ? <ul>{d.jebakan.map((j) => <li><TeksIstilah teks={j} /></li>)}</ul> : <p class="hal-istilah__belum">Belum ditulis.</p>}
+    </section>
+
+    <section aria-labelledby="terkait">
+      <h2 id="terkait">{judul.terkait}</h2>
+      {terkait.length ? <ul class="hal-istilah__terkait">{terkait.map((t) => <li><a href={t.url}>{t.teks}</a></li>)}</ul> : <p class="hal-istilah__belum">Belum ditulis.</p>}
+    </section>
+
+    <section aria-labelledby="sumber">
+      <h2 id="sumber">{judul.sumber}</h2>
+      {d.sumber ? (
+        <ol class="hal-istilah__sumber">
+          {d.sumber.map((s) => (
+            <li>
+              {"url" in s ? <a href={s.url}>{s.judul}</a> : <>{s.judul} <span class="bb-chip is-system">Rekaman lab</span> <code translate="no">{s.rekaman}</code></>}
+              <span class="hal-istilah__catatan">{s.catatan}</span>
+            </li>
+          ))}
+        </ol>
+      ) : <p class="hal-istilah__belum">Belum ditulis.</p>}
+    </section>
+
+    <p class="hal-istilah__kembali"><a href={`/alat/glosarium/#${baris.s}`}>{d.istilah} di daftar Glosarium</a></p>
+  </div>
+</StarlightPage>
