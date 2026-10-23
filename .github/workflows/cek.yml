@@ -140,14 +140,32 @@ jobs:
           key: ${{ steps.kunci_apt.outputs.kunci }}
           restore-keys: ${{ steps.kunci_apt.outputs.awalan }}
       # apt-get memakai .deb di /var/cache/apt/archives yang nama file (paket_versi_arsitektur) dan ukurannya cocok
-      # dengan index, lalu hanya mengunduh sisanya (apt 2.8, acquire-item.cc). Perintah install tetap milik
-      # Playwright, jadi daftar paket yang terpasang, termasuk font fallback, sama dengan tanpa cache.
+      # dengan index tanpa memeriksa hash (apt 2.8.3, konstruktor pkgAcqArchive di acquire-item.cc), lalu hanya
+      # mengunduh sisanya. Isi cache Actions tidak ditandatangani, jadi setiap .deb dicocokkan dulu dengan SHA256
+      # di index apt yang ditandatangani; yang tidak cocok tidak disalin dan diunduh apt dari mirror (keputusan 684).
+      # Perintah install tetap milik Playwright, jadi daftar paket yang terpasang, termasuk font fallback, sama
+      # dengan tanpa cache.
       - name: Pasang Chromium Playwright
         run: |
           shopt -s nullglob
           deb=(~/apt-chromium/*.deb)
-          if (( ${#deb[@]} )); then sudo cp "${deb[@]}" /var/cache/apt/archives/; fi
-          echo "Dipulihkan dari cache: ${#deb[@]} file .deb"
+          cocok=0 lama=0 beda=0
+          if (( ${#deb[@]} )); then
+            timeout -k 15s 3m sudo apt-get update -qq
+            for f in "${deb[@]}"; do
+              nama=$(basename "$f" .deb)
+              paket=${nama%%_*}; versi=${nama#*_}; versi=${versi%_*}; versi=${versi//%3a/:}
+              index=$(apt-cache show "$paket=$versi" 2>/dev/null | grep '^SHA256: ' || true)
+              if [ -z "$index" ]; then lama=$((lama+1)); continue; fi
+              if grep -qx "SHA256: $(sha256sum "$f" | cut -d' ' -f1)" <<<"$index"; then
+                sudo cp "$f" /var/cache/apt/archives/; cocok=$((cocok+1))
+              else
+                beda=$((beda+1))
+              fi
+            done
+          fi
+          echo "Dari cache: ${#deb[@]} file .deb; $cocok cocok dengan index apt, $lama versinya tidak ada lagi di index, $beda berbeda"
+          (( beda == 0 )) || echo "::warning::$beda file .deb dari cache berbeda dengan SHA256 di index apt dan tidak dipakai"
           cd situs && timeout -k 15s 8m bunx playwright install --with-deps chromium
       # Hanya bila kunci persis belum ada. Yang disimpan hanya .deb yang versinya sekarang terpasang, supaya versi
       # lama dari restore-keys tidak menumpuk. actions/cache mengunggahnya di akhir job, dan hanya bila job lolos.
