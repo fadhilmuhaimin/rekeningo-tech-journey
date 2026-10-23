@@ -1,0 +1,69 @@
+<!doctype html>
+<!--
+  Fixture uji diri ukur-axe.mjs (G-axe, keputusan 693). Setiap pelanggaran di sini sengaja, dan masing-masing hanya
+  tertangkap bila satu langkah alat benar-benar berjalan:
+    1. img tanpa alt di dalam <details> tertutup: image-alt hanya bila semua details dibuka;
+    2. tombol tanpa nama yang baru dibuat saat pulau terlihat di bawah layar: button-name hanya bila halaman digulir
+       dan alat menunggu pulau hidup (atribut ssr hilang; astro-island ber-display:contents seperti di Astro 7.3.7);
+    3. dua tombol 12 x 12 px berdempetan: target-size hanya bila tag wcag22aa diminta;
+    4. teks pucat hanya di tema terang (localStorage starlight-theme): color-contrast .terang-saja hanya di tema terang;
+    5. teks gelap hanya di lebar <= 600 px: color-contrast .hp-saja hanya di 375 x 667 tema gelap.
+  Dilayani alat lewat route Playwright di /__uji-axe/, tidak masuk dist/.
+-->
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Uji diri ukur-axe</title>
+    <script>
+      try {
+        document.documentElement.dataset.theme = localStorage.getItem("starlight-theme") || "dark";
+      } catch {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
+    <style>
+      body { margin: 0; padding: 16px; font: 17px/1.65 sans-serif; background: #0b0b0c; color: #e6e6e6; }
+      [data-theme="light"] body { background: #ffffff; color: #1a1a1a; }
+      [data-theme="light"] .terang-saja { color: #c8c8c8; }
+      @media (max-width: 600px) { [data-theme="dark"] .hp-saja { color: #3a3a3c; } }
+      .kecil { display: flex; gap: 0; }
+      .kecil button { width: 12px; height: 12px; padding: 0; margin: 0; border: 1px solid currentColor; font-size: 8px; line-height: 1; }
+      .jarak { height: 3000px; }
+      astro-island { display: contents; }
+      #pulau .isi { display: block; min-height: 48px; }
+      #pulau button { width: 32px; height: 32px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Uji diri ukur-axe</h1>
+      <p class="terang-saja">Teks ini pucat hanya di tema terang.</p>
+      <p class="hp-saja">Teks ini gelap hanya di layar sempit.</p>
+      <details>
+        <summary>Buka gambar</summary>
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%237AB8FF'/%3E%3C/svg%3E" width="40" height="40" />
+      </details>
+      <div class="kecil">
+        <button type="button" aria-label="Kurangi">-</button>
+        <button type="button" aria-label="Tambah">+</button>
+      </div>
+      <div class="jarak"><p>Jarak supaya pulau di bawah layar pertama.</p></div>
+      <astro-island id="pulau" ssr><div class="isi"></div></astro-island>
+    </main>
+    <script>
+      const pulau = document.getElementById("pulau");
+      new IntersectionObserver((masuk, o) => {
+        if (!masuk.some((m) => m.isIntersecting)) return;
+        o.disconnect();
+        setTimeout(() => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "tanpa-nama";
+          pulau.firstElementChild.append(b);
+          pulau.removeAttribute("ssr");
+        }, 1000);
+      }).observe(pulau.firstElementChild);
+    </script>
+  </body>
+</html>

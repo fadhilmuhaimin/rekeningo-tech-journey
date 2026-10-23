@@ -8,6 +8,8 @@ import SkripLama from "../../../components/SkripLama.astro";
 
 Halaman ini juga sumber **tooltip**. Istilah bergaris titik-titik di halaman mana pun menampilkan definisi dari tabel ini saat disentuh atau diarahkan kursor.
 
+Istilah yang namanya berupa tautan punya **halaman istilah** sendiri. Isinya kalimat yang sama, lalu tujuh bagian: bahasa sehari-hari, cerita, mekanisme, enam stack, jebakan, istilah terkait, dan sumber.
+
 ## Istilah inti
 
 Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebelum masuk Bagian B.
@@ -52,7 +54,9 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Cursor pagination** | Pagination yang meminta "data sesudah item X", bukan "halaman ke-N", jadi tetap stabil saat data bertambah. | [[B1.3]] |
 | **Dead-letter queue** | Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya. | [[B10.1]] |
 | **Deadlock** | Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya. | [[B3.2]] |
+| **Debit** | Sisi kiri sebuah jurnal akuntansi; di setiap jurnal total debit sama dengan total kredit, dan akun aset bertambah di sisi debit. | [[t2-ledger]] |
 | **Enumerasi** | Mencoba nilai satu per satu, mis. ID akun 401 sampai 503 atau daftar email, untuk mengetahui data mana yang ada. | [[t1-idor]] |
+| **ERP** (Enterprise Resource Planning) | Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari. | [[t2-prd]] |
 | **Eventual consistency** | Data di beberapa tempat boleh berbeda sesaat, tapi akan sama setelah perubahan selesai menyebar. | [[D3]] |
 | **Expand-migrate-contract** | Urutan mengubah skema tanpa downtime: tambah yang baru, pindahkan data dan kode, baru hapus yang lama. | [[E1]], [[B4.2]] |
 | **Fan-out** | Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut. | [[D4b]] |
@@ -63,7 +67,9 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Index** | Struktur data tambahan yang mempercepat pencarian baris, dengan biaya tulis dan ruang disk. | [[B2.3]] |
 | **Invarian** | Aturan yang harus selalu benar apa pun yang terjadi, mis. transfer tidak mengubah total saldo semua akun. | [[C1]] |
 | **Isolation level** | Seberapa banyak perubahan dari transaction lain yang boleh terlihat oleh satu transaction yang sedang berjalan. | [[B3.3]] |
+| **Jurnal** | Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol. | [[t2-ledger]] |
 | **JWT** (JSON Web Token) | Token berisi data JSON plus signature, sehingga server bisa memeriksa keasliannya tanpa query ke database. | [[B5.1]] |
+| **Kredit** | Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit. | [[t2-ledger]] |
 | **Latency** | Lama waktu satu request dari dikirim sampai response diterima. | [[C2]] |
 | **Lease** | Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis. | [[B10.1]] |
 | **Little's Law** | Rumus L = λ × W: jumlah yang sedang diproses sama dengan laju kedatangan dikali lama tiap item tinggal. | [[B2.5]] |
@@ -131,6 +137,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Token bucket** | Algoritma rate limit: setiap key (IP atau akun) punya bucket berisi token yang terisi ulang dengan laju tetap, dan setiap request memakai satu token. | [[C4]] |
 | **Trace** | Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian. | [[C2]] |
 | **TTL** (Time To Live) | Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa. | [[B9]] |
+| **Tutup buku** | Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang. | [[t2-tutup-buku]] |
 | **WAL** (Write-Ahead Log) | Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary. | [[D3]] |
 | **Webhook** | HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil. | [[B10.2]] |
 | **WebSocket** | Koneksi dua arah yang tetap terbuka antara app dan server. | [[E4]] |

@@ -633,6 +633,10 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .istilah-pop__links { display: flex; gap: 0.9rem; flex-wrap: wrap; }
 .istilah-pop__links a { color: var(--aksen); font-weight: 600; text-decoration: none; }
 .istilah-pop__links a:hover { text-decoration: underline; }
+/* Fokus keyboard (keputusan 702): tautan popover bisa dicapai Tab; latar isian istilah saja hanya ±1,2:1 terhadap latar
+   halaman, jadi istilah dan tautan mendapat garis aksen (≥ 3:1, WCAG 2.2 SC 1.4.11). */
+.istilah-pop__links a:focus-visible { outline: 2px solid var(--aksen); outline-offset: 2px; border-radius: 2px; text-decoration: underline; }
+.sl-markdown-content abbr.istilah:focus-visible { outline: 2px solid var(--aksen); outline-offset: 1px; }
 .istilah-pop__links a::after { content: " \2197"; }
 .istilah-pop__glos { color: var(--teks-2) !important; font-weight: 500 !important; }
 .sl-markdown-content tr.istilah-target td { background: var(--k-system-fill); }
@@ -1195,3 +1199,20 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
   .erd__anak > .erd__kolom:last-child .erd__tabel::after { left: auto; right: calc(100% + var(--erd-celah) / 2); }
   .erd__anak > .erd__kolom > .erd__tabel:last-child::after { bottom: auto; height: calc(var(--erd-jarak) + 1px + var(--erd-taji) + 2px); }
 }
+
+/* Halaman istilah /istilah/<slug>/ (G-istilah, keputusan 685): delapan bagian tetap, tanpa island. Kalimat pertama
+   sedikit lebih besar karena dibaca dulu; bagian yang belum ditulis berwarna sekunder; baris stack bergaris kiri
+   supaya enam stack terbaca sebagai daftar terpisah di HP tanpa tabel yang bergulir ke samping. */
+.hal-istilah__kalimat { font-size: 1.12em; color: var(--judul); }
+.hal-istilah__belum { color: var(--teks-2); font-style: italic; }
+.hal-istilah__cerita > li + li, .hal-istilah__stack > li + li { margin-top: 0.9rem; }
+.hal-istilah__cerita-teks, .hal-istilah__catatan { display: block; }
+.hal-istilah__catatan { color: var(--teks-2); }
+.sl-markdown-content .hal-istilah__stack { list-style: none; padding-left: 0; }
+.hal-istilah__stack > li { border-left: 2px solid var(--garis-2); padding-left: 0.9rem; }
+.sl-markdown-content .hal-istilah__stack-kepala { display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; align-items: baseline; margin: 0; }
+.hal-istilah__versi, .hal-istilah__asal { color: var(--teks-2); font-size: var(--rk-ui); }
+.sl-markdown-content .hal-istilah__terkait { display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; list-style: none; padding-left: 0; }
+.sl-markdown-content .hal-istilah__terkait > li { margin: 0; }
+.hal-istilah__kembali { margin-top: 2rem; }
+.hal-istilah code { overflow-wrap: anywhere; }

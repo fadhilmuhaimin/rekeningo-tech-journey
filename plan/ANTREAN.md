@@ -998,11 +998,20 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### G-axe · axe-core di alat ukur untuk evaluasi
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: G-ci-apt
 - selesai bila: axe-core dipasang sebagai devDependency dengan ADR (versi dicek ke npm hari itu); `situs/tools/ukur-axe.mjs --path <p> ...` menjalankan axe dengan runOnly wcag2a, wcag2aa, wcag21aa, wcag22aa sesudah semua `<details>` dibuka dan halaman digulir sampai island hidup, di 375×667 dan 1366×657, gelap dan terang, dan keluar 1 bila ada pelanggaran; uji lolos palsu (halaman uji dengan pelanggaran sengaja membuatnya gagal); tidak masuk gerbang per PR kecuali murah, dipakai EVAL-N butir W4.
-- catatan: Kategori aksesibilitas/gerbang. Usul dari tinjauan #274 dan skill evaluasi-tahap (W4).
+- catatan: Kategori aksesibilitas/gerbang. Usul dari tinjauan #274 dan skill evaluasi-tahap (W4). Selesai 2026-10-24 di PR #283 (keputusan 692–694): `axe-core` 4.14.0 devDependency dipin (ADR 692, dipilih atas `@axe-core/playwright`, file lokal, CDN, pa11y); `situs/tools/lib/axe.mjs` satu sumber untuk semua alat (`--axe` tanpa file di ukur-diagram/erd/gerak, `AXE=1` di audit-tampilan); `situs/tools/ukur-axe.mjs --path ... \| --semua [--awalan]` dengan uji diri `situs/tests/fixture/axe-salah.html` di awal setiap run (mutasi details, gulir, tunggu island, wcag22aa, tema, ukuran semuanya membuatnya gagal); masuk gerbang kelompok pertama dengan 10 halaman (40 run, lokal 6,4 s). Run atas beranda + 42 halaman Tahap 1 + 2.1 (176 run): 4 halaman `scrollable-region-focusable` di 375×667 (1.6, 1.11, 1.18, 1.28: tabel yang digulir ke samping tidak bisa difokus); seluruh `dist/` menambah `definition-list` di widget race lama `/b-fondasi/b3-2-race-condition-lock/`. Tugas baru diusulkan ke pengatur: `A11y-gulir-tabel`, `A11y-race-dl`. Tinjauan: node incomplete dihitung penuh (`resultTypes` violations + incomplete; color-contrast 1.466 node, bukan 176, keputusan 695) dan halaman yang tidak dijawab HTTP 200 membuat alat gagal (sebelumnya path salah lolos palsu, keputusan 696).
+
+### A11y-gulir-tabel · Wadah tabel yang digulir bisa difokus
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: G-axe
+- selesai bila: axe `scrollable-region-focusable` (SC 2.1.1) 0 di 375×667 dan 1366×657 dua tema pada 1.6, 1.11, 1.18, 1.28 dan seluruh `situs/dist` (`situs/tools/ukur-axe.mjs`): wadah tabel atau kode yang digulir ke samping bisa dicapai Tab, punya nama aksesibel, dan fokusnya terlihat; layar pertama dan CLS tidak berubah; perbaikan di komponen atau CSS bersama, bukan per halaman; teks halaman tidak berubah.
+- catatan: Kategori aksesibilitas dari G-axe (#283, keputusan 694).
 
 ### ERD-1.12 · Widget ERD bertumbuh di 1.12
 
@@ -1010,17 +1019,17 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - status: antre
 - percobaan: 0
 - bergantung: G-axe, ERD2
-- selesai bila: Blok Paham 1.12 memakai `ErdTumbuh` dengan data `situs/data/erd/tahap-1.json` (versi statis tetap untuk pembaca layar dan tanpa JS); React Flow hanya dimuat di 1.12 dan `/uji/erd/`; ukuran JS 1.12 sebelum/sesudah dicatat di `plan/AUDIT-TAMPILAN.md`; layar pertama 1.12 tidak bergeser; axe 0; lapisan svg garis ErdTumbuh tidak terbaca sebagai `image` tanpa nama di pohon aksesibilitas Chromium (CDP `Accessibility.getFullAXTree`, pola keputusan 680; temuan #274: 11 dari 12 svg garis di `/uji/erd/`); `ukur-erd.mjs` lolos dan gagal bila itu kembali.
+- selesai bila: Blok Paham 1.12 memakai `ErdTumbuh` dengan data `situs/data/erd/tahap-1.json` (versi statis tetap untuk pembaca layar dan tanpa JS); React Flow hanya dimuat di 1.12 dan `/uji/erd/`; ukuran JS 1.12 sebelum/sesudah dicatat di `plan/AUDIT-TAMPILAN.md`; layar pertama 1.12 tidak bergeser; axe 0; lapisan svg garis ErdTumbuh tidak terbaca sebagai `image` tanpa nama di pohon aksesibilitas Chromium (CDP `Accessibility.getFullAXTree`, pola keputusan 680; temuan #274: 11 dari 12 svg garis di `/uji/erd/`); klik dan tap kotak tabel ErdTumbuh sampai ke tombolnya (node React Flow pointer-events none, pola keputusan 681) dan diuji lewat koordinat; `ukur-erd.mjs` lolos dan gagal bila salah satunya kembali.
 - catatan: Langkah 4 Tahap 2 (naskah "Dipasang di: 1.12 … satu PR kecil di Tahap 1"). Pengecualian pembekuan Tahap 1 atas permintaan naskah (keputusan 555). 2.9 memasang mode bandingkan di PR halamannya.
 
 ### G-istilah · Halaman glosarium per istilah
 
 - jenis: interaksi
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: A11y-diagram
 - selesai bila: Satu rute per istilah (mis. `/istilah/<slug>/`) dengan delapan bagian tetap PROPOSAL "Glosarium jadi halaman mendalam per istilah" (satu kalimat, bahasa sehari-hari, di mana muncul di cerita, mekanisme 3–5 langkah, di tiap stack, jebakan umum, istilah terkait, sumber), data divalidasi Zod, bagian yang belum ditulis tampil "belum ditulis" tanpa tautan 404; tooltip istilah tetap memakai kalimat pertama; halaman Glosarium mendaftar semua istilah dan menautkan yang sudah punya halaman; satu contoh lengkap (*idempotency key*); istilah baru dari halaman 2.x yang sudah di-merge sebelum tugas ini selesai ikut mendapat halaman; istilah lama tetap jalan; gerbang lolos.
-- catatan: Langkah 5 Tahap 2. Dipakai halaman 2.x dan sesudahnya: istilah baru di halaman mendapat halaman istilahnya di PR halaman itu (keputusan 556).
+- catatan: Langkah 5 Tahap 2. Dipakai halaman 2.x dan sesudahnya: istilah baru di halaman mendapat halaman istilahnya di PR halaman itu (keputusan 556). PR #281, keputusan 685–691: rute `/istilah/<slug>/` dari `situs/data/halaman-istilah/<slug>.json` (skema Zod, 20 tes Vitest), kalimat pertama = baris Glosarium = tooltip; lima halaman (idempotency key, debit, kredit, jurnal, tutup buku), ERP satu baris; id baris Glosarium statis; jalur Alat › Glosarium › Istilah; tanpa island (17.400 B gzip); axe 0 di 24 kombinasi; sumber R2-36–R2-40. Cara menambah istilah: README.md "Menambah halaman istilah". Nomor 684 dipakai PR #278, jadi rentang mulai 685.
 
 ### W2-race · Replay ledger di widget race
 
@@ -1028,8 +1037,8 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - status: antre
 - percobaan: 0
 - bergantung: A11y-diagram
-- selesai bila: Widget race memutar enam replay `ledger-<cara>.json` dari `labs/b3-race/output/ledger/` (rentan dua urutan, FOR UPDATE, UPDATE atomik, optimistic lock, SERIALIZABLE + retry) dengan saldo dan status dari rekaman, tebak dulu sebelum hasil, pilih satu cara untuk diubah, chip sumber ke file rekaman; keyboard dan reduced motion; versi lama widget untuk halaman versi lama tidak berubah; ukuran JS dicatat; diuji di halaman `/uji/`.
-- catatan: Langkah 5 Tahap 2, dipakai 2.10 dan 2.11 (keputusan 557).
+- selesai bila: Widget race memutar enam replay `ledger-<cara>.json` dari `labs/b3-race/output/ledger/` (rentan dua urutan, FOR UPDATE, UPDATE atomik, optimistic lock, SERIALIZABLE + retry) dengan saldo dan status dari rekaman, tebak dulu sebelum hasil, pilih satu cara untuk diubah, chip sumber ke file rekaman; keyboard dan reduced motion; versi lama widget untuk halaman versi lama tidak berubah; ukuran JS dicatat; diuji di halaman `/uji/`; axe `definition-list` (SC 1.3.1) di widget race lama `/b-fondasi/b3-2-race-condition-lock/` 0 (temuan G-axe, keputusan 694).
+- catatan: Langkah 5 Tahap 2, dipakai 2.10 dan 2.11 (keputusan 557). Menyerap A11y-race-dl.
 
 ### 2.1 · PRD v2: Rekeningo untuk seluruh kampus
 
@@ -1061,11 +1070,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.4 · Fitur: tutup buku bulanan
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.2, lab-b3-ledger
 - selesai bila: halaman Fitur→teknis 2.4 sesuai `plan/CERITA-TAHAP-2.md` bagian 2 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: PR #282, keputusan 615–618 (`plan/masuk/tahap-2-tutup-buku.md`): `tahap-2/fitur-tutup-buku.mdx`, Inti dengan Rantai ringkas dari `b3-ledger` `tutup-buku.txt` A–B, PetaFitur dan rekaman A–C `api-t2`, Coba runsql `t2-tutup-buku` (UPDATE langsung ke `saldo_cache` lawan jurnal; ubah satu hal: saldo akhir dari posting yang sama), Di stack lain enam tab (Go dijalankan), R2-45–R2-48. Lab tidak diulang: Docker tertahan. Celah jurnal terlambat COMMIT dan "< 1 hari" ditulis terbuka (618). Istilah baru tanpa halaman istilah (G-istilah belum di-merge): posting, buku, mutasi, saldo awal, saldo akhir, `saldo_cache`, `FILTER`.
 
 ### 2.5 · Fitur: pencairan warung terjadwal
 

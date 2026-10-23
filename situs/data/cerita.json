@@ -126,8 +126,8 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 68,
-        "halaman": 8
+        "menit": 77,
+        "halaman": 9
       },
       "versi": "lama",
       "skala": {
@@ -1355,8 +1355,9 @@
       "lab": [
         "b3-ledger"
       ],
-      "ada": false,
-      "nomor": "2.4"
+      "ada": true,
+      "nomor": "2.4",
+      "menit": 9
     },
     {
       "id": "t2-pencairan",
