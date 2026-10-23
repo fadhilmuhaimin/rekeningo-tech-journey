@@ -40,7 +40,8 @@ const pelaku = (n: string) => el("span", { class: `bb-actor bb-actor--${n}` }, n
 function kartuClient(n: string) {
   return el("div", { class: "bb-client" },
     el("div", { class: "bb-client__head" }, pelaku(n) + el("strong", {}, `Client ${n}`) + el("span", { class: "bb-chip" }, "siap")) +
-    el("dl", { class: "bb-vars" }, el("dd", { class: "bb-muted" }, "belum membaca apa pun")));
+    // dt hanya untuk pembaca layar, sama dengan race.js (axe definition-list, keputusan 707).
+    el("dl", { class: "bb-vars" }, el("dt", { class: "bb-sr" }, "yang sudah dibaca") + el("dd", { class: "bb-muted" }, "belum membaca apa pun")));
 }
 
 /** Render pertama race.js untuk `daftar` (urutan data-modes), statis dan tidak bisa dipakai. */
