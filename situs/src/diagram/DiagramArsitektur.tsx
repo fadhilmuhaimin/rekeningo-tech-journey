@@ -156,6 +156,9 @@ export default function DiagramArsitektur({ data, judul, id, kunci = "" }: Props
           <ReactFlow
             key={`${arah}-${kunci}`}
             id={id}
+            // React Flow memasang role="application" tanpa nama, padahal WAI-ARIA 1.2 mewajibkan nama untuk role itu
+            // (tinjauan #274, keputusan 682); role-nya tidak bisa diganti lewat props, namanya bisa.
+            aria-label={`${judul}, kotak bisa dipilih`}
             nodes={nodes}
             edges={edges}
             nodeTypes={jenisNode}

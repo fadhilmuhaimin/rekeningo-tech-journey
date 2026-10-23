@@ -53,8 +53,8 @@ const pasangCls = (ctx) =>
   });
 // Bawaan React Flow 12.12 yang sampai ke pembaca layar (A11y-diagram, pola keputusan 466): aria-roledescription
 // ("node", "edge"), aria-label "Edge from k-0-0 to k-0-1" (bahasa Inggris dan ID internal), aria-describedby ke
-// kalimat bawaan "Press enter or space to select ...", atau <svg> pembungkus garis yang terbaca sebagai "image" tanpa
-// nama. Elemen di dalam aria-hidden="true" tidak dibacakan, jadi tidak dihitung. Mengembalikan daftar temuan; kosong = lolos.
+// kalimat bawaan "Press enter or space to select ...", <svg> pembungkus garis yang terbaca sebagai "image" tanpa
+// nama, atau pembungkus role="application" tanpa nama (keputusan 682). Elemen di dalam aria-hidden="true" tidak dibacakan, jadi tidak dihitung. Mengembalikan daftar temuan; kosong = lolos.
 const bawaanTerbaca = (page, sel = "figure.diagram") =>
   page.evaluate((sel) => {
     const temuan = [];
@@ -73,13 +73,15 @@ const bawaanTerbaca = (page, sel = "figure.diagram") =>
           /^Edge from |\bk-\d+-\d+\b/.test(label) && `label "${label}"`,
           /Press enter|select an? (node|edge)/i.test(desk) && `describedby "${desk.slice(0, 40)}"`,
           x.tagName.toLowerCase() === "svg" && x.closest(".react-flow__edges") && "svg garis terbaca",
+          // WAI-ARIA 1.2: role application wajib bernama (keputusan 682).
+          x.getAttribute("role") === "application" && !(x.getAttribute("aria-label") ?? "").trim() && !x.hasAttribute("aria-labelledby") && "application tanpa nama",
         ].filter(Boolean);
         if (alasan.length) temuan.push(`${x.tagName.toLowerCase()}.${String(x.className.baseVal ?? x.className).split(" ")[0] || "-"} ${alasan.join(", ")}`);
       }
     }
     return temuan;
   }, sel);
-const laporBawaan = (t, tag) => lapor(t.length === 0, `${tag}: bawaan React Flow (label Inggris, svg garis) terbaca ${t.length}${t.length ? ` (${[...new Set(t)].slice(0, 3).join("; ")})` : ""}`);
+const laporBawaan = (t, tag) => lapor(t.length === 0, `${tag}: bawaan React Flow (label Inggris, svg garis, application tanpa nama) terbaca ${t.length}${t.length ? ` (${[...new Set(t)].slice(0, 3).join("; ")})` : ""}`);
 
 const tundaJs = (page, ms) =>
   page.route(/\/_astro\/.+\.js(\?.*)?$/, async (rute) => {
