@@ -60,7 +60,7 @@ Endpoint `GET /tutup-buku?periode=YYYY-MM` hanya untuk admin. Service memeriksa 
 
 <Snippet file="labs/api-t2/internal/service/akun.go" region="tutup-buku" lang="go" title="labs/api-t2/internal/service/akun.go" />
 
-Rekaman lab dari database bersih. Token Budi mendapat `403`, dan periode yang bukan format bulan mendapat `422` dengan nama field:
+Rekaman lab ini dibuat dari database bersih. Token Budi mendapat `403`, dan periode yang bukan format bulan mendapat `422` dengan nama field:
 
 <Snippet file="labs/api-t2/output/tutup-buku.txt" lines="30:39" title="Rekaman lab: labs/api-t2/output/tutup-buku.txt" />
 
@@ -92,7 +92,7 @@ Rekaman bagian C menunjukkan celah yang belum ditutup. Transaction [A] menulis j
 
 Sesudah [A] `COMMIT`, laporan yang sama menghitung 1.123 jurnal, dan uang masuk Budi naik dari Rp1.020.000 ke Rp1.021.000:
 
-<Snippet file="labs/api-t2/output/tutup-buku.txt" lines="64:72" title="Rekaman lab: labs/api-t2/output/tutup-buku.txt" />
+<Snippet file="labs/api-t2/output/tutup-buku.txt" lines="64:84" title="Rekaman lab: labs/api-t2/output/tutup-buku.txt" />
 
 Kolom `dibuat` diisi `now()`, dan `now()` adalah waktu awal transaction, bukan waktu `COMMIT` ([PostgreSQL 17, 9.9.5](https://www.postgresql.org/docs/17/functions-datetime.html#FUNCTIONS-DATETIME-CURRENT)). Jadi jurnal yang terlambat `COMMIT` bisa masuk ke periode yang sudah dilaporkan. Menutup periode dengan benar butuh menunggu transaction yang masih terbuka, atau tabel penutupan periode. Keduanya belum dibuat di lab.
 
