@@ -7,7 +7,10 @@
 import { muat, label, url, urlDariId, dariUrl } from "../../tools/registri.mjs";
 
 const d = muat();
-const h = dariUrl(d, urlDariId(Astro.locals.starlightRoute.entry.id));
+const sini = urlDariId(Astro.locals.starlightRoute.entry.id);
+const h = dariUrl(d, sini);
+// Halaman istilah (G-istilah, keputusan 688) tidak ada di registry: jalurnya Alat › Glosarium › Istilah.
+const istilah = !h && sini.startsWith("/istilah/") ? String(Astro.locals.starlightRoute.entry.data.title ?? "") : null;
 type Tahap = { no: number; nama: string; rekap: string; sebelumnya: string; versi?: string; naskah?: string; bagian?: { no: number | string; nama: string }[] };
 const t: Tahap | undefined = h && Number.isInteger(h.tahap) ? d.tahap.find((x: Tahap) => x.no === h.tahap) : undefined;
 const NAMA: Record<string, string> = { pembuka: "Pembuka", sampingan: "Studi sampingan", alat: "Alat" };
@@ -27,6 +30,21 @@ const ulang = (x: string) => {
 };
 const tanda = jenis.split(" · ").filter((x) => x && !ulang(x)).join(" · ");
 ---
+{istilah && (
+  <nav class="kamu" aria-label="Kamu di sini">
+    <ol class="kamu__jalur">
+      <li>Alat</li>
+      <li><a href="/alat/glosarium/">Glosarium</a></li>
+      <li aria-current="page" class="kamu__ini kamu__ini--jenis"><span class="kamu__sr">{istilah}</span><span aria-hidden="true">Istilah</span></li>
+    </ol>
+    {adaToc && (
+      <button type="button" class="kamu__toc" data-toc-tombol aria-expanded="false" aria-label="Isi halaman">
+        <svg class="kamu__toc-ikon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 3.5h1.5M5.5 3.5H14M2 8h1.5M5.5 8H14M2 12.5h1.5M5.5 12.5H14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>
+        <span class="kamu__toc-teks">Isi halaman</span>
+      </button>
+    )}
+  </nav>
+)}
 {h && (
   <div class="baca-progres" aria-hidden="true"><span data-progres></span></div>
   <nav class="kamu" aria-label="Kamu di sini" data-judul-halaman={label(h)}>
