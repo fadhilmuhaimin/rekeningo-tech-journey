@@ -22,6 +22,8 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 
 **Tugas interaksi (I6)** juga harus: ukuran JS per halaman sebelum/sesudah dicatat di `plan/AUDIT-TAMPILAN.md`, dan halaman tanpa diagram tidak memuat React Flow; dengan `prefers-reduced-motion` semua gerak hilang dan fungsi tetap; di 375×667 scroll halaman tidak tertangkap diagram; axe 0 pelanggaran di halaman yang disentuh. Tugas interaksi tidak mengubah isi halaman konten, hanya komponen yang dipakainya.
 
+**Mode penyelesaian penuh (Tahap 2–6, keputusan 551–558)** menambah: setiap tugas dikerjakan pelaksana lalu ditinjau peninjau (subagent lain) sebelum merge; setiap instruksi subagent dibuka "Baca CLAUDE.md, PROTOKOL-OTOMATIS.md, dan skill yang relevan sebelum mulai; laporkan skill mana yang dipakai", dan laporan tanpa daftar skill belum selesai; setiap angka dan output berlabel Rekaman lab, Ilustrasi, Tidak dijalankan, Asumsi, atau [perlu verifikasi]; setiap klaim di halaman tertelusur ke ID `RN-nn` di `plan/RISET-TAHAP-N.md` atau berlabel [perlu verifikasi]; istilah baru di halaman mendapat halaman istilah (G-istilah) di PR yang sama; bagian "Di stack lain" memakai enam stack (Go, Node, Laravel, Django, Serverpod, Supabase) dengan versi yang dijalankan di lab, atau label "Tidak dijalankan" dengan versi dari dokumentasi; halaman tanpa diagram tidak memuat React Flow dan ukuran JS halaman dicatat (naik > 30% dari tahap sebelumnya ditulis alasannya); halaman keamanan Tahap 5–6 yang tidak bisa direkam berlabel Ilustrasi atau [perlu verifikasi]. Branch per tahap: `tahap-N/<slug>`.
+
 **Crosscheck kecil** artinya: tangkap semua halaman di rentangnya (dua ukuran, dua mode) dan lihat sendiri; cocokkan tiap halaman dengan naskah (jenis, widget, lab, ★, peran) dan registry; jawab tiga pertanyaan navigasi per halaman; tulis hasilnya di `plan/CROSSCHECK-KECIL.md` bagian `<id>` sebagai tabel (halaman, lolos atau perlu dibenahi, bukti). Setiap temuan yang perlu dibenahi menjadi tugas perbaikan baru tepat sesudah crosscheck itu. PR crosscheck tidak mengubah halaman.
 
 ## Tugas
@@ -829,7 +831,7 @@ Berlaku untuk setiap tugas, di samping "selesai bila" masing-masing:
 
 ## Tahap 2
 
-Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab dulu (jalur teknis dan jalur lab), lalu gerbang pemilik `T2-mulai`, lalu halaman 2.1–2.33 dengan crosscheck kecil tiap 5 halaman, X1-t2 dan X2-t2 di akhir. Lingkup dibekukan sejak awal: tugas baru dari peninjau atau crosscheck hanya kategori rusak, aksesibilitas, kontras, atau gerbang gagal; polesan ke `plan/SETELAH-TAHAP-2.md`. Nomor keputusan: jalur lab/konten 400–449, teknis 450–499. Dua jalur bisa mengerjakan tugas bersamaan; status `dikerjakan` hanya untuk satu tugas (pemeriksa), tugas jalur kedua tetap `antre` sampai selesai.
+Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputusan 551–558) setiap tahap mengikuti tujuh langkah berurutan: RISET (skill riset-tahap) → NASKAH (Tahap 3–6) → LAB → ERD → WIDGET → HALAMAN → EVALUASI (skill evaluasi-tahap) + perbaikan diri skill; crosscheck kecil per 5 halaman dihapus. Lab Tahap 2 sudah selesai di mode malam. Lingkup dibekukan: tugas baru hanya kategori rusak, aksesibilitas, kontras, atau gerbang gagal; polesan ke `plan/SETELAH-TAHAP-N.md`. Nomor keputusan Tahap 2: konten 600–679, teknis 680–719, pengatur 720–799 (keputusan 553). Dua jalur (konten, teknis) di worktree masing-masing; `status: dikerjakan` hanya untuk tugas jalur konten.
 
 ### T2-naskah · Simpan naskah Tahap 2, RINGKAS, dan antrean Tahap 2
 
@@ -948,12 +950,21 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - selesai bila: `labs/c4-ratelimit` diselaraskan ke M16, hanya terhadap container lokal dan dengan beberapa percobaan, bukan skrip massal: banyak akun fiktif dicoba dari satu IP dengan daftar password bocor fiktif; kunci per akun saja membuat akun Ani terkunci berulang; rate limit dua lapis di memori (per IP dan per akun) dengan kunci bertahap; wajib ganti password pertama; hash argon2id dengan parameter dari sumber primer (RFC 9106, OWASP); Redis tidak dipakai (ADR 20); rekaman dari database bersih, diulang identik.
 - catatan: Jalur lab. PR #268, keputusan 540–550: lab baru `labs/c4-ratelimit/login`, argon2id t=3 p=4 m=64 MiB, kunci per akun berlipat 60 detik sampai 32 menit, dua lapis di memori (10 per IP, 5 per akun) sebelum DB dan argon2id, tanpa Redis, wajib ganti password pertama (≥ 15 karakter, NIST SP 800-63B-4). Peninjau menutup enam celah (550): `/ganti-password` tanpa rate limit, salt tetap, 423 membuka akun terdaftar (kini 401 generik), penanda proxy yang bisa dipalsukan, kenaikan `gagal_login` tidak atomik, temuan gosec.
 
+### RISET-2 · Riset Tahap 2
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-c4-ratelimit
+- selesai bila: `plan/RISET-TAHAP-2.md` (≤ 120 baris) sesuai skill riset-tahap: setiap konsep 2.6–2.31 punya 1–3 sumber primer dengan versi dan tanggal dan ID `R2-nn`; yang berubah sejak PROPOSAL; teknik terbaru masuk/tidak; satu kasus industri nyata untuk ADR ledger (sumber primer); jebakan forum untuk kolom "Yang dikira"; angka beban Tahap 2 dihitung ulang dengan rumus PROPOSAL dan dibandingkan dengan registry; pengatur membuka tiga ID acak dan isinya memuat klaimnya.
+- catatan: Langkah 1 alur tahap (keputusan 554). Lab Tahap 2 sudah ada; riset menjadi jejak klaim halaman 2.x.
+
 ### lab-api-t2a · Pengaman cek penerima dan login di api-t2
 
 - jenis: perbaikan
 - status: antre
 - percobaan: 0
-- bergantung: lab-api-t2, lab-c4-ratelimit
+- bergantung: RISET-2, lab-api-t2, lab-c4-ratelimit
 - selesai bila: `labs/api-t2`: `/kiriman` dan cek penerima dibatasi per akun dan per IP dengan pola `labs/c4-ratelimit/login` (keputusan 545, 550), sehingga nama 1.000 karyawan tidak bisa dikumpulkan lewat kiriman Rp1; akun terkunci dijawab 401 generik; 104 akun Gedung A `wajib_ganti_password` sesuai cerita M16; bila nomor karyawan yang mudah ditebak dipertahankan, risikonya tertulis di keputusan; rekaman dari database bersih, `go test` dan `make cek` lolos.
 - catatan: Kategori keamanan, dari tinjauan #256 dan #268 (MEMORI "Perlu dicek pemilik"). Sebelum halaman 2.3 dan 2.27.
 
@@ -969,18 +980,45 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 ### T2-mulai · Pemilik membuka penulisan halaman Tahap 2
 
 - jenis: crosscheck
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: X2, T2-registry
 - selesai bila: Pemilik meninjau Tahap 1 dan menyatakan halaman Tahap 2 boleh ditulis (prompt di naskah bagian "Prompt untuk Claude Code").
-- catatan: Gerbang pemilik: hanya pemilik yang menandai selesai; pengatur dan subagen tidak mengerjakannya. Semua halaman 2.x bergantung padanya.
+- catatan: Ditandai selesai 2026-10-23 atas prompt pemilik "mode penyelesaian penuh": pemilik melewatkan tinjauan Tahap 1 dan meninjau di akhir (keputusan 552).
+
+### ERD-1.12 · Widget ERD bertumbuh di 1.12
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: A11y-diagram, ERD2
+- selesai bila: Blok Paham 1.12 memakai `ErdTumbuh` dengan data `situs/data/erd/tahap-1.json` (versi statis tetap untuk pembaca layar dan tanpa JS); React Flow hanya dimuat di 1.12 dan `/uji/erd/`; ukuran JS 1.12 sebelum/sesudah dicatat di `plan/AUDIT-TAMPILAN.md`; layar pertama 1.12 tidak bergeser; axe 0; `ukur-erd.mjs` lolos.
+- catatan: Langkah 4 Tahap 2 (naskah "Dipasang di: 1.12 … satu PR kecil di Tahap 1"). Pengecualian pembekuan Tahap 1 atas permintaan naskah (keputusan 555). 2.9 memasang mode bandingkan di PR halamannya.
+
+### G-istilah · Halaman glosarium per istilah
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: A11y-diagram
+- selesai bila: Satu rute per istilah (mis. `/istilah/<slug>/`) dengan delapan bagian tetap PROPOSAL "Glosarium jadi halaman mendalam per istilah" (satu kalimat, bahasa sehari-hari, di mana muncul di cerita, mekanisme 3–5 langkah, di tiap stack, jebakan umum, istilah terkait, sumber), data divalidasi Zod, bagian yang belum ditulis tampil "belum ditulis" tanpa tautan 404; tooltip istilah tetap memakai kalimat pertama; halaman Glosarium mendaftar semua istilah dan menautkan yang sudah punya halaman; satu contoh lengkap (*idempotency key*); istilah lama tetap jalan; gerbang lolos.
+- catatan: Langkah 5 Tahap 2. Dipakai halaman 2.x dan sesudahnya: istilah baru di halaman mendapat halaman istilahnya di PR halaman itu (keputusan 556).
+
+### W2-race · Replay ledger di widget race
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: A11y-diagram
+- selesai bila: Widget race memutar enam replay `ledger-<cara>.json` dari `labs/b3-race/output/ledger/` (rentan dua urutan, FOR UPDATE, UPDATE atomik, optimistic lock, SERIALIZABLE + retry) dengan saldo dan status dari rekaman, tebak dulu sebelum hasil, pilih satu cara untuk diubah, chip sumber ke file rekaman; keyboard dan reduced motion; versi lama widget untuk halaman versi lama tidak berubah; ukuran JS dicatat; diuji di halaman `/uji/`.
+- catatan: Langkah 5 Tahap 2, dipakai 2.10 dan 2.11 (keputusan 557).
 
 ### 2.1 · PRD v2: Rekeningo untuk seluruh kampus
 
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: T2-mulai
+- bergantung: T2-mulai, RISET-2, lab-api-t2a, ERD-1.12, G-istilah, W2-race
 - selesai bila: halaman PRD 2.1 sesuai `plan/CERITA-TAHAP-2.md` bagian 1 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Menggantikan halaman cerita Tahap 2 lama.
 
@@ -1020,21 +1058,12 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - selesai bila: halaman Fitur→teknis 2.5 sesuai `plan/CERITA-TAHAP-2.md` bagian 2 dan peta halaman Tahap 2 (tanpa ★); rekaman dari `labs/t2-pencairan`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: -
 
-### K4 · Crosscheck kecil 2.1–2.5
-
-- jenis: crosscheck
-- status: antre
-- percobaan: 0
-- bergantung: 2.5
-- selesai bila: bagian K4 di `plan/CROSSCHECK-KECIL.md` memuat 2.1–2.5 dengan bukti tangkapan; temuan kategori rusak, aksesibilitas, kontras, atau gerbang gagal menjadi tugas perbaikan di bawah K4; polesan ke `plan/SETELAH-TAHAP-2.md`.
-- catatan: -
-
 ### 2.6 · Kenapa saldo bukan kolom
 
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: K4, lab-b3-ledger
+- bergantung: 2.5, lab-b3-ledger
 - selesai bila: halaman Konsep 2.6 sesuai `plan/CERITA-TAHAP-2.md` bagian 3 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: -
 
@@ -1074,21 +1103,12 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - selesai bila: halaman Masalah 2.10 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-race`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Dari lab b3-race (431, tinjauan #257): −Rp20.000 hanya bisa direkam lewat alat lab `SET CONSTRAINTS ALL IMMEDIATE`; bila dua request tumpang tindih, hasil yang lebih mungkin B 23514 (500); frekuensi di produksi belum diukur.
 
-### K5 · Crosscheck kecil 2.6–2.10
-
-- jenis: crosscheck
-- status: antre
-- percobaan: 0
-- bergantung: 2.10
-- selesai bila: bagian K5 di `plan/CROSSCHECK-KECIL.md` memuat 2.6–2.10 dengan bukti tangkapan; temuan kategori rusak, aksesibilitas, kontras, atau gerbang gagal menjadi tugas perbaikan di bawah K5; polesan ke `plan/SETELAH-TAHAP-2.md`.
-- catatan: -
-
 ### 2.11 · Race condition dan lock + ADR 13
 
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: K5, lab-b3-race
+- bergantung: 2.10, lab-b3-race
 - selesai bila: halaman Konsep+ADR 2.11 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-race`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Isi lama B3.2 dipakai ulang. Dari b3-race (432, 433): enam replay `ledger-<cara>.json` siap; footer race.js, mode "Update" langkah 8, dan warna tab "bergantian" perlu dibetulkan (SETELAH-TAHAP-2).
 
@@ -1128,21 +1148,12 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - selesai bila: halaman Masalah 2.15 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Dari b2-query (521, 526): "4 detik" naskah tidak terulang di lab (halaman ±30 ms, seluruh riwayat Budi ±1,9 detik dengan 3.893 query); data satu tahun, bukan minggu 3.
 
-### K6 · Crosscheck kecil 2.11–2.15
-
-- jenis: crosscheck
-- status: antre
-- percobaan: 0
-- bergantung: 2.15
-- selesai bila: bagian K6 di `plan/CROSSCHECK-KECIL.md` memuat 2.11–2.15 dengan bukti tangkapan; temuan kategori rusak, aksesibilitas, kontras, atau gerbang gagal menjadi tugas perbaikan di bawah K6; polesan ke `plan/SETELAH-TAHAP-2.md`.
-- catatan: -
-
 ### 2.16 · N+1 query
 
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: K6, lab-b2-query
+- bergantung: 2.15, lab-b2-query
 - selesai bila: halaman Konsep 2.16 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Isi lama B2.4 dipakai ulang.
 
@@ -1182,21 +1193,12 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - selesai bila: halaman Konsep 2.20 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (tanpa ★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Lab `e5-payload` yang ada; bila rekamannya perlu diselaraskan ke cerita, sisipkan `2.20-lab`. Isi lama E5 dipakai ulang.
 
-### K7 · Crosscheck kecil 2.16–2.20
-
-- jenis: crosscheck
-- status: antre
-- percobaan: 0
-- bergantung: 2.20
-- selesai bila: bagian K7 di `plan/CROSSCHECK-KECIL.md` memuat 2.16–2.20 dengan bukti tangkapan; temuan kategori rusak, aksesibilitas, kontras, atau gerbang gagal menjadi tugas perbaikan di bawah K7; polesan ke `plan/SETELAH-TAHAP-2.md`.
-- catatan: -
-
 ### 2.21 · M13: Migrasi di jam makan siang
 
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: K7, lab-b4-skema
+- bergantung: 2.20, lab-b4-skema
 - selesai bila: halaman Masalah 2.21 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b4-skema`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Dari b4-skema (536, 537): "40 detik" tidak direkam; lama tunggu = sisa transaction panjang + lama migrasi, bukan ALTER itu sendiri.
 
@@ -1236,21 +1238,12 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - selesai bila: halaman Masalah 2.25 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/t2-pencairan`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: -
 
-### K8 · Crosscheck kecil 2.21–2.25
-
-- jenis: crosscheck
-- status: antre
-- percobaan: 0
-- bergantung: 2.25
-- selesai bila: bagian K8 di `plan/CROSSCHECK-KECIL.md` memuat 2.21–2.25 dengan bukti tangkapan; temuan kategori rusak, aksesibilitas, kontras, atau gerbang gagal menjadi tugas perbaikan di bawah K8; polesan ke `plan/SETELAH-TAHAP-2.md`.
-- catatan: -
-
 ### 2.26 · Job terjadwal yang idempoten dan rekonsiliasi + ADR 19
 
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: K8, lab-t2-pencairan
+- bergantung: 2.25, lab-t2-pencairan
 - selesai bila: halaman Konsep+ADR 2.26 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/t2-pencairan`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Dari t2-pencairan (508): Keuangan mengambil file menurut status `dikirim`, bukan menurut ada atau tidaknya file.
 
@@ -1290,21 +1283,12 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - selesai bila: halaman Konsep 2.30 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: -
 
-### K9 · Crosscheck kecil 2.26–2.30
-
-- jenis: crosscheck
-- status: antre
-- percobaan: 0
-- bergantung: 2.30
-- selesai bila: bagian K9 di `plan/CROSSCHECK-KECIL.md` memuat 2.26–2.30 dengan bukti tangkapan; temuan kategori rusak, aksesibilitas, kontras, atau gerbang gagal menjadi tugas perbaikan di bawah K9; polesan ke `plan/SETELAH-TAHAP-2.md`.
-- catatan: -
-
 ### 2.31 · ADR 21: Sengaja belum dilakukan
 
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: K9
+- bergantung: 2.30
 - selesai bila: halaman ADR 2.31 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: -
 
@@ -1326,20 +1310,335 @@ Dari `plan/CERITA-TAHAP-2.md` (mode malam 2026-10-13). Urutan: persiapan dan lab
 - selesai bila: halaman PRD 2.33 sesuai `plan/CERITA-TAHAP-2.md` bagian 6 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: -
 
-### X1-t2 · Crosscheck penuh Tahap 2
+### EVAL-2 · Evaluasi Tahap 2
 
 - jenis: crosscheck
 - status: antre
 - percobaan: 0
 - bergantung: 2.33
-- selesai bila: 33 halaman Tahap 2 ditangkap di 4 varian dan dicocokkan dengan naskah dan registry; tiga pertanyaan navigasi per halaman; widget ERD terpasang di 1.12 dan 2.9 dengan data dari skema lab; semua rekaman lab Tahap 2 diulang dari database bersih; temuan non-polesan jadi tugas perbaikan di bawah X1-t2.
+- selesai bila: `plan/EVALUASI-TAHAP-2.md` sesuai skill evaluasi-tahap oleh subagent yang tidak menulis halaman Tahap 2: kartu W1–W8 dengan satu baris bukti yang bisa diulang, tiga pertanyaan pembaca di tiga halaman acak (seed 2), uji baca oleh subagent segar (5 hal membingungkan). Ada TIDAK: paling banyak 3 tugas perbaikan disisipkan tepat sesudah tugas ini, lalu `EVAL-2-ulang` sekali; sisa TIDAK dan 5 hal membingungkan ke `plan/TINJAUAN-PEMILIK.md`.
+- catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya.
+
+### DIRI-2 · Perbaikan diri sesudah Tahap 2
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: EVAL-2
+- selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-2.md` dan pelajaran MEMORI Tahap 2, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 2, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 2 selesai".
+- catatan: Langkah penutup alur tahap.
+
+## Tahap 3
+
+Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan oleh `T3-siap` dari peta halaman naskah: lab sebelum `ERD3`, halaman sesudah widget. Nomor keputusan: 800–999 (konten +0–99, teknis +100–149, pengatur +150–199).
+
+### RISET-3 · Riset Tahap 3
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: DIRI-2
+- selesai bila: `plan/RISET-TAHAP-3.md` (≤ 120 baris) sesuai skill riset-tahap untuk Tahap 3 (seluruh cabang di enam kota, PROPOSAL "Enam tahap dalam satu tabel"): konsep dengan 1–3 sumber primer bertanggal dan ID `R3-nn`, yang berubah sejak PROPOSAL, teknik terbaru masuk/tidak, satu kasus industri nyata untuk ADR dari sumber primer, jebakan forum, angka beban dan ukuran data dihitung ulang dengan rumus PROPOSAL sebagai Asumsi; pengatur membuka tiga ID acak.
 - catatan: -
 
-### X2-t2 · Penutup Tahap 2
+### NASKAH-3 · Naskah Tahap 3 (draft otomatis)
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: RISET-3
+- selesai bila: `plan/CERITA-TAHAP-3.md` dengan struktur persis CERITA-TAHAP-2 (Kenapa dokumen ini ada, Latar, Tokoh baru, 1 PRD v3, 2 Dari fitur ke pekerjaan teknis, 3 Inti teknis, 3b Skema data, 4 Masalah, 5 Yang dibawa keluar, 6 Jembatan, Peta halaman, Jalur per peran), baris pertama "Draft otomatis, belum ditinjau pemilik", memakai RISET-TAHAP-3; nomor M dan ADR melanjutkan tahap sebelumnya; peta halaman 24–32 halaman dengan kolom lab, setiap halaman masalah dipicu fitur PRD, pihak ketiga selalu tiruan lokal; peninjau konsistensi (subagent kedua) membaca naskah terhadap semua naskah sebelumnya (tokoh, nama perusahaan, angka saldo dan user, istilah glosarium, nomor ADR dan M, rantai PRD → fitur → teknis → masalah → konsep) dan semua temuannya ditutup.
+- catatan: Satu-satunya naskah yang ditulis Claude; Tahap 1–2 milik pemilik dan tidak disentuh.
+
+### T3-siap · RINGKAS, registry, dan antrean Tahap 3
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: NASKAH-3
+- selesai bila: `plan/RINGKAS.md` (≤ 60 baris) memuat peta halaman Tahap 3 satu baris per halaman dan tahap sebelumnya diringkas; registry `situs/data/cerita.json` memuat semua halaman Tahap 3 sesuai naskah (judul, jenis, bagian, ★, peran, prasyarat, lab), yang belum ditulis tampil "segera", halaman lama tahap ini menjadi `lama` bila diganti; ANTREAN mendapat tugas lab (sebelum `ERD3`) dan tugas halaman berurutan (sesudah tugas widget) dengan `selesai bila` merujuk bagian naskah; `sinkron_cerita.py`, `cek_tautan.py`, dan gerbang lolos.
+- catatan: Sekaligus mengganti `bergantung` `EVAL-3` ke halaman terakhir Tahap 3 dan `ERD3` ke lab utama Tahap 3; halaman yang memakai widget bergantung pada tugas widgetnya.
+
+### ERD3 · ERD Tahap 3 dari skema lab
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: T3-siap
+- selesai bila: `tools/erd.py` membaca skema akhir lab utama Tahap 3 dan menulis `situs/data/erd/tahap-3.json` beserta selisih terhadap Tahap 2; `--cek` di gerbang mencakup Tahap 3; widget ERD bertumbuh menampilkan Tahap 3 berdampingan dengan Tahap 2 di `/uji/erd/`; selisih dengan mermaid naskah 3b tercatat (lab yang benar).
+- catatan: `T3-siap` menambahkan lab utama Tahap 3 ke `bergantung` tugas ini.
+
+### W3-pool · Simulasi connection pool dan Little's Law
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: ERD3
+- selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: slider beban (request per detik) dan lama query; L = λ × W dihitung dan ditampilkan; antrean menunggu koneksi terlihat saat L melewati ukuran pool; angka contoh dari rekaman lab pool Tahap 3 atau berlabel Simulasi/Ilustrasi. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
+- catatan: -
+
+### W3-cache · Simulasi cache dan invalidation
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: ERD3
+- selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: baca dengan dan tanpa cache, hit/miss, TTL dan invalidasi saat saldo berubah, kasus data basi yang terlihat orang; skenario dari lab cache Tahap 3. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
+- catatan: -
+
+### W3-outbox · Timeline outbox dan worker
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: ERD3
+- selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: garis waktu jurnal + baris outbox dalam satu transaction, worker mengambil, gagal, retry, notifikasi sekali; dari rekaman lab outbox Tahap 3. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
+- catatan: -
+
+### EVAL-3 · Evaluasi Tahap 3
 
 - jenis: crosscheck
 - status: antre
 - percobaan: 0
-- bergantung: X1-t2
-- selesai bila: `plan/LAPORAN-TAHAP-2.md` memuat apa yang selesai, daftar "Setelah Tahap 2", dan 10 hal teratas yang perlu dilihat pemilik sendiri; pengatur berhenti dengan "Tahap 2 selesai, menunggu tinjauan pemilik" dan tidak memulai Tahap 3.
+- bergantung: W3-outbox
+- selesai bila: `plan/EVALUASI-TAHAP-3.md` sesuai skill evaluasi-tahap oleh subagent yang tidak menulis halaman Tahap 3: kartu W1–W8 dengan satu baris bukti yang bisa diulang, tiga pertanyaan pembaca di tiga halaman acak (seed 3), uji baca oleh subagent segar (5 hal membingungkan). Ada TIDAK: paling banyak 3 tugas perbaikan disisipkan tepat sesudah tugas ini, lalu `EVAL-3-ulang` sekali; sisa TIDAK dan 5 hal membingungkan ke `plan/TINJAUAN-PEMILIK.md`.
+- catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya.
+
+### DIRI-3 · Perbaikan diri sesudah Tahap 3
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: EVAL-3
+- selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-3.md` dan pelajaran MEMORI Tahap 3, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 3, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 3 selesai".
+- catatan: Langkah penutup alur tahap.
+
+## Tahap 4
+
+Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan oleh `T4-siap` dari peta halaman naskah: lab sebelum `ERD4`, halaman sesudah widget. Nomor keputusan: 1000–1199 (konten +0–99, teknis +100–149, pengatur +150–199).
+
+### RISET-4 · Riset Tahap 4
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: DIRI-3
+- selesai bila: `plan/RISET-TAHAP-4.md` (≤ 120 baris) sesuai skill riset-tahap untuk Tahap 4 (integrasi pihak ketiga dan tiga tim, PROPOSAL "Enam tahap dalam satu tabel"): konsep dengan 1–3 sumber primer bertanggal dan ID `R4-nn`, yang berubah sejak PROPOSAL, teknik terbaru masuk/tidak, satu kasus industri nyata untuk ADR dari sumber primer, jebakan forum, angka beban dan ukuran data dihitung ulang dengan rumus PROPOSAL sebagai Asumsi; pengatur membuka tiga ID acak.
+- catatan: -
+
+### NASKAH-4 · Naskah Tahap 4 (draft otomatis)
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: RISET-4
+- selesai bila: `plan/CERITA-TAHAP-4.md` dengan struktur persis CERITA-TAHAP-2 (Kenapa dokumen ini ada, Latar, Tokoh baru, 1 PRD v4, 2 Dari fitur ke pekerjaan teknis, 3 Inti teknis, 3b Skema data, 4 Masalah, 5 Yang dibawa keluar, 6 Jembatan, Peta halaman, Jalur per peran), baris pertama "Draft otomatis, belum ditinjau pemilik", memakai RISET-TAHAP-4; nomor M dan ADR melanjutkan tahap sebelumnya; peta halaman 24–32 halaman dengan kolom lab, setiap halaman masalah dipicu fitur PRD, pihak ketiga selalu tiruan lokal; peninjau konsistensi (subagent kedua) membaca naskah terhadap semua naskah sebelumnya (tokoh, nama perusahaan, angka saldo dan user, istilah glosarium, nomor ADR dan M, rantai PRD → fitur → teknis → masalah → konsep) dan semua temuannya ditutup.
+- catatan: Satu-satunya naskah yang ditulis Claude; Tahap 1–2 milik pemilik dan tidak disentuh.
+
+### T4-siap · RINGKAS, registry, dan antrean Tahap 4
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: NASKAH-4
+- selesai bila: `plan/RINGKAS.md` (≤ 60 baris) memuat peta halaman Tahap 4 satu baris per halaman dan tahap sebelumnya diringkas; registry `situs/data/cerita.json` memuat semua halaman Tahap 4 sesuai naskah (judul, jenis, bagian, ★, peran, prasyarat, lab), yang belum ditulis tampil "segera", halaman lama tahap ini menjadi `lama` bila diganti; ANTREAN mendapat tugas lab (sebelum `ERD4`) dan tugas halaman berurutan (sesudah tugas widget) dengan `selesai bila` merujuk bagian naskah; `sinkron_cerita.py`, `cek_tautan.py`, dan gerbang lolos.
+- catatan: Sekaligus mengganti `bergantung` `EVAL-4` ke halaman terakhir Tahap 4 dan `ERD4` ke lab utama Tahap 4; halaman yang memakai widget bergantung pada tugas widgetnya.
+
+### ERD4 · ERD Tahap 4 dari skema lab
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: T4-siap
+- selesai bila: `tools/erd.py` membaca skema akhir lab utama Tahap 4 dan menulis `situs/data/erd/tahap-4.json` beserta selisih terhadap Tahap 3; `--cek` di gerbang mencakup Tahap 4; widget ERD bertumbuh menampilkan Tahap 4 berdampingan dengan Tahap 3 di `/uji/erd/`; selisih dengan mermaid naskah 3b tercatat (lab yang benar).
+- catatan: `T4-siap` menambahkan lab utama Tahap 4 ke `bergantung` tugas ini.
+
+### W4-webhook · Scrollytelling webhook dan outbox
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: ERD4
+- selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: langkah demi langkah saat digulir (tanpa animasi otomatis): request ke gateway tiruan, webhook datang dua kali atau terlambat, outbox dan tabel event masuk, rekonsiliasi; dari rekaman lab Tahap 4. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
+- catatan: -
+
+### W4-breaker · Circuit breaker interaktif
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: ERD4
+- selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: pembaca mengatur error rate dan latensi pihak ketiga tiruan; status closed/open/half-open dan request yang ditolak cepat terlihat; ambang dari lab Tahap 4. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
+- catatan: -
+
+### W4-modul · Diagram batas modul
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: ERD4
+- selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: modular monolith: modul, API antar modul, tabel milik modul, panggilan terlarang ditandai; klik modul membuka pemilik (CODEOWNERS) dan halaman; data dari lab/registry Tahap 4. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
+- catatan: -
+
+### EVAL-4 · Evaluasi Tahap 4
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: W4-modul
+- selesai bila: `plan/EVALUASI-TAHAP-4.md` sesuai skill evaluasi-tahap oleh subagent yang tidak menulis halaman Tahap 4: kartu W1–W8 dengan satu baris bukti yang bisa diulang, tiga pertanyaan pembaca di tiga halaman acak (seed 4), uji baca oleh subagent segar (5 hal membingungkan). Ada TIDAK: paling banyak 3 tugas perbaikan disisipkan tepat sesudah tugas ini, lalu `EVAL-4-ulang` sekali; sisa TIDAK dan 5 hal membingungkan ke `plan/TINJAUAN-PEMILIK.md`.
+- catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya.
+
+### DIRI-4 · Perbaikan diri sesudah Tahap 4
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: EVAL-4
+- selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-4.md` dan pelajaran MEMORI Tahap 4, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 4, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 4 selesai".
+- catatan: Langkah penutup alur tahap.
+
+## Tahap 5
+
+Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 5 disisipkan oleh `T5-siap` dari peta halaman naskah: lab sebelum `ERD5`, halaman sesudah widget. Nomor keputusan: 1200–1399 (konten +0–99, teknis +100–149, pengatur +150–199).
+
+### RISET-5 · Riset Tahap 5
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: DIRI-4
+- selesai bila: `plan/RISET-TAHAP-5.md` (≤ 120 baris) sesuai skill riset-tahap untuk Tahap 5 (skala nasional, PROPOSAL "Enam tahap dalam satu tabel"): konsep dengan 1–3 sumber primer bertanggal dan ID `R5-nn`, yang berubah sejak PROPOSAL, teknik terbaru masuk/tidak, satu kasus industri nyata untuk ADR dari sumber primer, jebakan forum, angka beban dan ukuran data dihitung ulang dengan rumus PROPOSAL sebagai Asumsi; pengatur membuka tiga ID acak.
+- catatan: -
+
+### NASKAH-5 · Naskah Tahap 5 (draft otomatis)
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: RISET-5
+- selesai bila: `plan/CERITA-TAHAP-5.md` dengan struktur persis CERITA-TAHAP-2 (Kenapa dokumen ini ada, Latar, Tokoh baru, 1 PRD v5, 2 Dari fitur ke pekerjaan teknis, 3 Inti teknis, 3b Skema data, 4 Masalah, 5 Yang dibawa keluar, 6 Jembatan, Peta halaman, Jalur per peran), baris pertama "Draft otomatis, belum ditinjau pemilik", memakai RISET-TAHAP-5; nomor M dan ADR melanjutkan tahap sebelumnya; peta halaman 24–32 halaman dengan kolom lab, setiap halaman masalah dipicu fitur PRD, pihak ketiga selalu tiruan lokal; peninjau konsistensi (subagent kedua) membaca naskah terhadap semua naskah sebelumnya (tokoh, nama perusahaan, angka saldo dan user, istilah glosarium, nomor ADR dan M, rantai PRD → fitur → teknis → masalah → konsep) dan semua temuannya ditutup.
+- catatan: Satu-satunya naskah yang ditulis Claude; Tahap 1–2 milik pemilik dan tidak disentuh.
+
+### T5-siap · RINGKAS, registry, dan antrean Tahap 5
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: NASKAH-5
+- selesai bila: `plan/RINGKAS.md` (≤ 60 baris) memuat peta halaman Tahap 5 satu baris per halaman dan tahap sebelumnya diringkas; registry `situs/data/cerita.json` memuat semua halaman Tahap 5 sesuai naskah (judul, jenis, bagian, ★, peran, prasyarat, lab), yang belum ditulis tampil "segera", halaman lama tahap ini menjadi `lama` bila diganti; ANTREAN mendapat tugas lab (sebelum `ERD5`) dan tugas halaman berurutan (sesudah tugas widget) dengan `selesai bila` merujuk bagian naskah; `sinkron_cerita.py`, `cek_tautan.py`, dan gerbang lolos.
+- catatan: Sekaligus mengganti `bergantung` `EVAL-5` ke halaman terakhir Tahap 5 dan `ERD5` ke lab utama Tahap 5; halaman yang memakai widget bergantung pada tugas widgetnya.
+
+### ERD5 · ERD Tahap 5 dari skema lab
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: T5-siap
+- selesai bila: `tools/erd.py` membaca skema akhir lab utama Tahap 5 dan menulis `situs/data/erd/tahap-5.json` beserta selisih terhadap Tahap 4; `--cek` di gerbang mencakup Tahap 5; widget ERD bertumbuh menampilkan Tahap 5 berdampingan dengan Tahap 4 di `/uji/erd/`; selisih dengan mermaid naskah 3b tercatat (lab yang benar).
+- catatan: `T5-siap` menambahkan lab utama Tahap 5 ke `bergantung` tugas ini.
+
+### W5-lag · Simulasi replication lag
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: ERD5
+- selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: tulis ke primary, baca dari replica dengan lag yang bisa diubah; kasus saldo lama setelah transfer; read-your-writes sebagai perbaikan; dari rekaman lab replica Tahap 5. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
+- catatan: -
+
+### W5-fanout · Simulasi fan-out notifikasi
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: ERD5
+- selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: satu kejadian ke banyak penerima, antrean per partisi, backpressure; ubah jumlah penerima; dari lab Tahap 5 atau berlabel Simulasi. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
+- catatan: -
+
+### W5-zona · Peta zona arsitektur
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: ERD5
+- selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: lima lapisan dan batas tim Tahap 5 (PROPOSAL System design final) di atas DiagramArsitektur; klik zona membuka service, data, dan halaman; ledger tetap satu-satunya tempat uang bergerak. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
+- catatan: -
+
+### EVAL-5 · Evaluasi Tahap 5
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: W5-zona
+- selesai bila: `plan/EVALUASI-TAHAP-5.md` sesuai skill evaluasi-tahap oleh subagent yang tidak menulis halaman Tahap 5: kartu W1–W8 dengan satu baris bukti yang bisa diulang, tiga pertanyaan pembaca di tiga halaman acak (seed 5), uji baca oleh subagent segar (5 hal membingungkan). Ada TIDAK: paling banyak 3 tugas perbaikan disisipkan tepat sesudah tugas ini, lalu `EVAL-5-ulang` sekali; sisa TIDAK dan 5 hal membingungkan ke `plan/TINJAUAN-PEMILIK.md`.
+- catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya.
+
+### DIRI-5 · Perbaikan diri sesudah Tahap 5
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: EVAL-5
+- selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-5.md` dan pelajaran MEMORI Tahap 5, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 5, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 5 selesai".
+- catatan: Langkah penutup alur tahap.
+
+## Tahap 6
+
+Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 6 disisipkan oleh `T6-siap` dari peta halaman naskah: lab sebelum `ERD6`, halaman sesudah widget. Nomor keputusan: 1400–1599 (konten +0–99, teknis +100–149, pengatur +150–199). Tahap 6 konseptual: 10–12 halaman tanpa lab dan tanpa widget baru.
+
+### RISET-6 · Riset Tahap 6
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: DIRI-5
+- selesai bila: `plan/RISET-TAHAP-6.md` (≤ 120 baris) sesuai skill riset-tahap untuk Tahap 6 (regional (proyeksi), PROPOSAL "Enam tahap dalam satu tabel"): konsep dengan 1–3 sumber primer bertanggal dan ID `R6-nn`, yang berubah sejak PROPOSAL, teknik terbaru masuk/tidak, satu kasus industri nyata untuk ADR dari sumber primer, jebakan forum, angka beban dan ukuran data dihitung ulang dengan rumus PROPOSAL sebagai Asumsi; pengatur membuka tiga ID acak.
+- catatan: -
+
+### NASKAH-6 · Naskah Tahap 6 (draft otomatis)
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: RISET-6
+- selesai bila: `plan/CERITA-TAHAP-6.md` dengan struktur persis CERITA-TAHAP-2 (Kenapa dokumen ini ada, Latar, Tokoh baru, 1 PRD v6, 2 Dari fitur ke pekerjaan teknis, 3 Inti teknis, 3b Skema data, 4 Masalah, 5 Yang dibawa keluar, 6 Jembatan, Peta halaman, Jalur per peran), baris pertama "Draft otomatis, belum ditinjau pemilik", memakai RISET-TAHAP-6; nomor M dan ADR melanjutkan tahap sebelumnya; 10–12 halaman konseptual tanpa lab; peninjau konsistensi (subagent kedua) membaca naskah terhadap semua naskah sebelumnya (tokoh, nama perusahaan, angka saldo dan user, istilah glosarium, nomor ADR dan M, rantai PRD → fitur → teknis → masalah → konsep) dan semua temuannya ditutup.
+- catatan: Satu-satunya naskah yang ditulis Claude; Tahap 1–2 milik pemilik dan tidak disentuh.
+
+### T6-siap · RINGKAS, registry, dan antrean Tahap 6
+
+- jenis: interaksi
+- status: antre
+- percobaan: 0
+- bergantung: NASKAH-6
+- selesai bila: `plan/RINGKAS.md` (≤ 60 baris) memuat peta halaman Tahap 6 satu baris per halaman dan tahap sebelumnya diringkas; registry `situs/data/cerita.json` memuat semua halaman Tahap 6 sesuai naskah (judul, jenis, bagian, ★, peran, prasyarat, lab), yang belum ditulis tampil "segera", halaman lama tahap ini menjadi `lama` bila diganti; ANTREAN mendapat tugas lab (sebelum `ERD6`) dan tugas halaman berurutan (sesudah tugas widget) dengan `selesai bila` merujuk bagian naskah; `sinkron_cerita.py`, `cek_tautan.py`, dan gerbang lolos.
+- catatan: Sekaligus mengganti `bergantung` `EVAL-6` ke halaman terakhir Tahap 6.
+
+### EVAL-6 · Evaluasi Tahap 6
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: T6-siap
+- selesai bila: `plan/EVALUASI-TAHAP-6.md` sesuai skill evaluasi-tahap oleh subagent yang tidak menulis halaman Tahap 6: kartu W1–W8 dengan satu baris bukti yang bisa diulang, tiga pertanyaan pembaca di tiga halaman acak (seed 6), uji baca oleh subagent segar (5 hal membingungkan). Ada TIDAK: paling banyak 3 tugas perbaikan disisipkan tepat sesudah tugas ini, lalu `EVAL-6-ulang` sekali; sisa TIDAK dan 5 hal membingungkan ke `plan/TINJAUAN-PEMILIK.md`.
+- catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya.
+
+### DIRI-6 · Perbaikan diri sesudah Tahap 6
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: EVAL-6
+- selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-6.md` dan pelajaran MEMORI Tahap 6, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 6, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 6 selesai".
+- catatan: Langkah penutup alur tahap.
+
+## Penutup
+
+### LAPORAN-AKHIR · Laporan akhir enam tahap
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: DIRI-6
+- selesai bila: `plan/LAPORAN-AKHIR.md`: ringkasan 6 tahap, tautan 6 EVALUASI dan 5 RISET, isi `plan/TINJAUAN-PEMILIK.md` terurut dari yang paling penting, "Diputuskan tanpa pemilik" (MEMORI + arsip), "Setelah rilis" (SETELAH-TAHAP-1…6), perubahan skill yang dilakukan (keputusan DIRI-2…6), dan 10 halaman yang paling layak dilihat pemilik pertama; pengatur menulis "Semua tahap selesai" dan berhenti.
 - catatan: -
