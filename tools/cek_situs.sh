@@ -46,6 +46,7 @@ if [ "$MODE" != "--ukur" ]; then
   echo "== antrean loop otomatis"; $PY tools/antrean.py --check
   echo "== tabel plan: pipe tanpa escape per baris = header (keputusan 362)"; $PY tools/cek_tabel_plan.py
   echo "== uji pemeriksa tabel plan (lolos palsu, keputusan 362)"; $PY tools/test_cek_tabel_plan.py | tail -1
+  echo "== catatan masuk dari PR subagen (keputusan 564)"; $PY tools/lipat_masuk.py --cek
   echo "== ERD dari skema lab: hash sumber dan bentuk JSON (keputusan 375)"; $PY tools/erd.py --cek
   echo "== uji pemeriksa ERD (lolos palsu, keputusan 375)"; $PY tools/test_erd.py | tail -1
   echo "== batas baris file yang diimpor CLAUDE.md (keputusan 235)"
