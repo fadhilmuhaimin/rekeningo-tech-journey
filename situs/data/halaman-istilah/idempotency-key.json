@@ -1,0 +1,113 @@
+{
+  "istilah": "Idempotency key",
+  "sehari_hari": "Seperti nomor antrean: datang dua kali dengan nomor yang sama, kamu tetap dilayani sekali. Nomornya dibuat app satu kali saat Budi menekan Bayar, bukan setiap kali app mengirim ulang.",
+  "cerita": [
+    {
+      "rujukan": "t2-m10",
+      "teks": "Minggu 2: sinyal di lantai dasar putus saat Budi membayar nasi goreng Rp25.000. Permintaan yang sama sampai dua kali, dan riwayatnya menunjukkan dua pembayaran."
+    },
+    {
+      "rujukan": "E3",
+      "teks": "ADR 14: app membuat key sekali per niat bayar, dan server menyimpan hasil per key selama 24 jam."
+    }
+  ],
+  "mekanisme": [
+    "App membuat key acak (UUID) sekali saat Budi menekan Bayar, lalu mengirimnya di header `Idempotency-Key` pada percobaan pertama dan setiap retry.",
+    "Server mencatat key bersama sidik jari permintaan dengan status `diproses`. Key yang sudah ada tidak ditulis lagi (`ON CONFLICT DO NOTHING`).",
+    "Jurnal pembayaran, status `selesai`, dan respons ditulis di satu transaction. Kalau server mati sebelum COMMIT, ketiganya batal dan ulangan berikutnya mengerjakan dari awal.",
+    "Ulangan dengan key `selesai` dan permintaan yang sama mendapat respons tersimpan tanpa jurnal baru. Key sama dengan body berbeda dijawab 422; key yang masih diproses dijawab 409."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, pgx v5.11.0 lewat database/sql, PostgreSQL 17.11",
+      "teks": "Handler membaca header `Idempotency-Key`, lalu `INSERT … ON CONFLICT (kunci) DO NOTHING` ke tabel `kunci_idempotensi`. Baris key dikunci `FOR UPDATE NOWAIT` di transaction yang juga menulis jurnal.",
+      "rekaman": "labs/e3-idempotency/output/ledger/key-per-niat.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-postgres (pg) 8.23.1",
+      "teks": "Tidak ada fitur bawaan; polanya ditulis sendiri. Transaction memakai satu client dari `pool.connect()` dengan `BEGIN` dan `COMMIT`, karena dokumentasinya melarang transaction lewat `pool.query`.",
+      "dokumentasi": "https://node-postgres.com/features/transactions"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "Core tidak punya middleware idempotency key. Klaim key dan jurnal ditulis di `DB::transaction(fn)`; key ganda dari constraint UNIQUE muncul sebagai `UniqueConstraintViolationException`.",
+      "dokumentasi": "https://laravel.com/docs/13.x/database#database-transactions"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2",
+      "teks": "Core tidak punya fitur idempotency key. Klaim key dan jurnal ditulis di `transaction.atomic()`; key ganda dari constraint UNIQUE muncul sebagai `IntegrityError`.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/topics/db/transactions/"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "Header dibaca dari `session.request?.headers`. Kerja ditulis di `session.db.transaction((transaction) async {…})`; key ganda muncul sebagai `DatabaseUniqueViolationException`.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/transactions"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "supabase-js 2.118.0",
+      "teks": "Satu panggilan `supabase.rpc('bayar', args)` ke fungsi PostgreSQL berjalan dalam satu transaction, jadi klaim key dan jurnal ditulis di fungsi itu. Edge Function membaca header dengan `req.headers.get('Idempotency-Key')`.",
+      "dokumentasi": "https://supabase.com/docs/reference/javascript/rpc"
+    }
+  },
+  "jebakan": [
+    "Membuat key baru di setiap retry. Server melihat dua niat berbeda dan menulis dua jurnal (rekaman `key-per-percobaan.txt`).",
+    "Menyimpan key tanpa masa berlaku, sehingga tabelnya tumbuh terus. Lab mencatat `kedaluwarsa` 24 jam sesudah key dibuat; dokumentasi Stripe menyebut key boleh dihapus sesudah minimal 24 jam.",
+    "Menulis status `selesai` dan jurnal di dua transaction. Lab menulis keduanya di satu transaction, jadi saat koneksi putus sebelum COMMIT keduanya batal (rekaman `mati-di-tengah.txt`)."
+  ],
+  "terkait": [
+    "Retry",
+    "Idempotent",
+    "At-least-once",
+    "Backoff",
+    "Jurnal"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-17",
+      "judul": "draft-ietf-httpapi-idempotency-key-header-08",
+      "url": "https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/",
+      "catatan": "Internet-Draft aktif, 22 Oktober 2026, belum RFC. Bagian 2.7: 400 tanpa key, 409 masih diproses, 422 key dipakai ulang dengan body berbeda."
+    },
+    {
+      "riset": "R2-18",
+      "judul": "Stripe API: Idempotent requests",
+      "url": "https://docs.stripe.com/api/idempotent_requests",
+      "catatan": "API v1: status dan body permintaan pertama disimpan; key boleh dihapus sesudah minimal 24 jam; disarankan UUID v4."
+    },
+    {
+      "riset": "R2-19",
+      "judul": "RFC 9110 bagian 9.2.2: Idempotent Methods",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2",
+      "catatan": "PUT, DELETE, dan metode safe idempoten. Client sebaiknya tidak (SHOULD NOT) mengulang otomatis method yang tidak idempoten, kecuali ia tahu permintaan itu idempoten atau belum diterapkan."
+    },
+    {
+      "riset": "R2-36",
+      "judul": "Dokumentasi transaction dan constraint UNIQUE di lima stack",
+      "url": "https://node-postgres.com/features/transactions",
+      "catatan": "node-postgres, Laravel, Django, Serverpod, dan Supabase; tautan per stack ada di bagian Di tiap stack. Dibuka 24 Oktober 2026."
+    },
+    {
+      "riset": "R2-37",
+      "judul": "Laravel 13.x API: UniqueConstraintViolationException",
+      "url": "https://api.laravel.com/docs/13.x/Illuminate/Database/UniqueConstraintViolationException.html",
+      "catatan": "Exception saat constraint UNIQUE dilanggar; padanannya IntegrityError di Django dan DatabaseUniqueViolationException di Serverpod."
+    },
+    {
+      "riset": "R2-18",
+      "judul": "Rekaman lab e3-idempotency: key sekali per niat",
+      "rekaman": "labs/e3-idempotency/output/ledger/key-per-niat.txt",
+      "catatan": "Koneksi putus sesudah COMMIT, app mengulang dengan key sama, server mengirim respons tersimpan tanpa jurnal kedua."
+    },
+    {
+      "judul": "Rekaman lab e3-idempotency: key per percobaan",
+      "rekaman": "labs/e3-idempotency/output/ledger/key-per-percobaan.txt",
+      "catatan": "App membuat key baru untuk retry; server menulis dua jurnal."
+    }
+  ]
+}

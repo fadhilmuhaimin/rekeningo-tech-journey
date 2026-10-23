@@ -1016,11 +1016,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### G-istilah · Halaman glosarium per istilah
 
 - jenis: interaksi
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: A11y-diagram
 - selesai bila: Satu rute per istilah (mis. `/istilah/<slug>/`) dengan delapan bagian tetap PROPOSAL "Glosarium jadi halaman mendalam per istilah" (satu kalimat, bahasa sehari-hari, di mana muncul di cerita, mekanisme 3–5 langkah, di tiap stack, jebakan umum, istilah terkait, sumber), data divalidasi Zod, bagian yang belum ditulis tampil "belum ditulis" tanpa tautan 404; tooltip istilah tetap memakai kalimat pertama; halaman Glosarium mendaftar semua istilah dan menautkan yang sudah punya halaman; satu contoh lengkap (*idempotency key*); istilah baru dari halaman 2.x yang sudah di-merge sebelum tugas ini selesai ikut mendapat halaman; istilah lama tetap jalan; gerbang lolos.
-- catatan: Langkah 5 Tahap 2. Dipakai halaman 2.x dan sesudahnya: istilah baru di halaman mendapat halaman istilahnya di PR halaman itu (keputusan 556).
+- catatan: Langkah 5 Tahap 2. Dipakai halaman 2.x dan sesudahnya: istilah baru di halaman mendapat halaman istilahnya di PR halaman itu (keputusan 556). PR #281, keputusan 685–691: rute `/istilah/<slug>/` dari `situs/data/halaman-istilah/<slug>.json` (skema Zod, 20 tes Vitest), kalimat pertama = baris Glosarium = tooltip; lima halaman (idempotency key, debit, kredit, jurnal, tutup buku), ERP satu baris; id baris Glosarium statis; jalur Alat › Glosarium › Istilah; tanpa island (17.400 B gzip); axe 0 di 24 kombinasi; sumber R2-36–R2-40. Cara menambah istilah: README.md "Menambah halaman istilah". Nomor 684 dipakai PR #278, jadi rentang mulai 685.
 
 ### W2-race · Replay ledger di widget race
 

@@ -4,10 +4,15 @@ Kolom "Halaman" berisi rujukan [[ID]] (mis. [[B3.1]]); plugin remark situs meren
 Path dan label (nomor tampilan + judul) diambil dari registry situs/data/cerita.json (tools/registri.py);
 link popover hanya dibuat untuk halaman yang sudah ada.
 
-Menghasilkan dua file:
+Menghasilkan tiga file:
   situs/data/istilah.md               definisi abbr (*[RLS]: ...), dibaca plugin
                                     situs/src/plugins/remark-abbr.mjs (keputusan 107)
   situs/lama/javascripts/istilah-data.js  ringkasan + bab rujukan untuk popover
+  situs/data/glosarium.json           satu baris per istilah (istilah, kalimat pertama, slug, halaman istilah),
+                                    dibaca rute /istilah/<slug>/ dan plugin remark-glosarium (keputusan 685)
+
+Halaman istilah: situs/data/halaman-istilah/<slug>.json, slug = nama istilah tanpa kurung dalam huruf kecil dan strip
+(mis. "Idempotency key" -> idempotency-key). Setiap file wajib punya baris glosarium dengan slug yang sama.
 
     python tools/build_istilah.py           # tulis ulang kedua file
     python tools/build_istilah.py --check   # gagal bila file belum sinkron dengan glosarium
@@ -22,6 +27,8 @@ GLOS = ROOT / "situs/src/content/docs/alat/glosarium.mdx"
 CERITA = ROOT / "situs/data/cerita.json"
 OUT_MD = ROOT / "situs/data/istilah.md"
 OUT_JS = ROOT / "situs/lama/javascripts/istilah-data.js"
+OUT_JSON = ROOT / "situs/data/glosarium.json"
+HAL_ISTILAH = ROOT / "situs/data/halaman-istilah"
 
 # Sebutan lain yang sering dipakai di teks tapi tidak tertulis di kolom istilah.
 EXTRA = {
@@ -55,8 +62,14 @@ def nav_paths():
             for h in registri.muat()["halaman"]}
 
 
+def halaman_istilah():
+    """Slug istilah yang sudah punya halaman /istilah/<slug>/ (file situs/data/halaman-istilah/<slug>.json)."""
+    return sorted(f.stem for f in HAL_ISTILAH.glob("*.json")) if HAL_ISTILAH.exists() else []
+
+
 def parse():
     paths = nav_paths()
+    halaman = set(halaman_istilah())
     entries = []
     for line in GLOS.read_text().splitlines():
         m = re.match(r"^\| \*\*(.+?)\*\*(.*?) \| (.+?) \| (.+?) \|$", line)
@@ -82,8 +95,13 @@ def parse():
         b = re.search(r"\[\[([^\]|]+)", bab)
         bab_no = b.group(1) if b else None
         u, n = paths.get(bab_no, (None, None))
+        sl = slug(base)
         entries.append(dict(term=plain(bold + rest), d=plain(definition), b=bab_no, n=n, u=u,
-                            s="istilah-" + slug(base), keys=keys))
+                            s="istilah-" + sl, h=f"istilah/{sl}/" if sl in halaman else None, keys=keys))
+    yatim = sorted(halaman - {e["s"][len("istilah-"):] for e in entries})
+    if yatim:
+        sys.exit("halaman istilah tanpa baris di glosarium.mdx (slug harus sama dengan nama istilah): "
+                 + ", ".join(f"situs/data/halaman-istilah/{x}.json" for x in yatim))
     return entries
 
 
@@ -96,15 +114,20 @@ def render(entries):
                 continue
             md.append(f"*[{k}]: {e['d']}")
             data[k] = {"t": e["term"], "d": e["d"], "b": e["b"], "n": e["n"], "u": e["u"], "s": e["s"]}
+            if e["h"]:
+                data[k]["h"] = e["h"]
+    baris = [{"t": e["term"], "d": e["d"], "b": e["b"], "n": e["n"], "u": "/" + e["u"] if e["u"] else None, "s": e["s"],
+              "h": "/" + e["h"] if e["h"] else None} for e in entries]
+    js_ = json.dumps(baris, ensure_ascii=False, indent=1) + "\n"
     js = ("// Dibuat oleh tools/build_istilah.py dari situs/src/content/docs/alat/glosarium.mdx. Jangan diedit langsung.\n"
           "window.ISTILAH = " + json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + ";\n")
-    return "\n".join(md) + "\n", js
+    return "\n".join(md) + "\n", js, js_
 
 
 if __name__ == "__main__":
-    md, js = render(parse())
+    md, js, glos = render(parse())
     if "--check" in sys.argv:
-        stale = [p for p, c in ((OUT_MD, md), (OUT_JS, js)) if not p.exists() or p.read_text() != c]
+        stale = [p for p, c in ((OUT_MD, md), (OUT_JS, js), (OUT_JSON, glos)) if not p.exists() or p.read_text() != c]
         if stale:
             sys.exit("belum sinkron, jalankan python tools/build_istilah.py: " + ", ".join(str(p.relative_to(ROOT)) for p in stale))
         print("istilah sinkron")
@@ -113,4 +136,5 @@ if __name__ == "__main__":
     OUT_JS.parent.mkdir(parents=True, exist_ok=True)
     OUT_MD.write_text(md)
     OUT_JS.write_text(js)
+    OUT_JSON.write_text(glos)
     print(f"ok: {md.count(chr(10)) - 1} kunci istilah")

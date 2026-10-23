@@ -224,6 +224,23 @@ window.ISTILAH = {
   "t": "Deadlock",
   "u": "b-fondasi/b3-2-race-condition-lock/"
  },
+ "Debit": {
+  "b": "t2-ledger",
+  "d": "Sisi kiri sebuah jurnal akuntansi; di setiap jurnal total debit sama dengan total kredit, dan akun aset bertambah di sisi debit.",
+  "h": "istilah/debit/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-debit",
+  "t": "Debit",
+  "u": null
+ },
+ "ERP": {
+  "b": "t2-prd",
+  "d": "Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari.",
+  "n": "2.1 PRD v2",
+  "s": "istilah-erp",
+  "t": "ERP (Enterprise Resource Planning)",
+  "u": "tahap-2/prd-v2/"
+ },
  "Endpoint": {
   "b": "B1.1",
   "d": "Pasangan method dan path yang dilayani server, mis. POST /transfers.",
@@ -231,6 +248,14 @@ window.ISTILAH = {
   "s": "istilah-endpoint",
   "t": "Endpoint",
   "u": "tahap-1/http/"
+ },
+ "Enterprise Resource Planning": {
+  "b": "t2-prd",
+  "d": "Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari.",
+  "n": "2.1 PRD v2",
+  "s": "istilah-erp",
+  "t": "ERP (Enterprise Resource Planning)",
+  "u": "tahap-2/prd-v2/"
  },
  "Enumerasi": {
   "b": "t1-idor",
@@ -331,6 +356,7 @@ window.ISTILAH = {
  "Idempotency key": {
   "b": "E3",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
+  "h": "istilah/idempotency-key/",
   "n": "2.14 Retry dan idempotency key",
   "s": "istilah-idempotency-key",
   "t": "Idempotency key",
@@ -383,6 +409,24 @@ window.ISTILAH = {
   "s": "istilah-jwt",
   "t": "JWT (JSON Web Token)",
   "u": "tahap-1/authentication/"
+ },
+ "Jurnal": {
+  "b": "t2-ledger",
+  "d": "Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol.",
+  "h": "istilah/jurnal/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-jurnal",
+  "t": "Jurnal",
+  "u": null
+ },
+ "Kredit": {
+  "b": "t2-ledger",
+  "d": "Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit.",
+  "h": "istilah/kredit/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-kredit",
+  "t": "Kredit",
+  "u": null
  },
  "LSN": {
   "b": "D3",
@@ -1016,6 +1060,15 @@ window.ISTILAH = {
   "t": "Transaction",
   "u": "tahap-1/transaction/"
  },
+ "Tutup buku": {
+  "b": "t2-tutup-buku",
+  "d": "Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang.",
+  "h": "istilah/tutup-buku/",
+  "n": "2.4 Fitur tutup buku",
+  "s": "istilah-tutup-buku",
+  "t": "Tutup buku",
+  "u": null
+ },
  "WAL": {
   "b": "D3",
   "d": "Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary.",
@@ -1176,6 +1229,15 @@ window.ISTILAH = {
   "t": "Deadlock",
   "u": "b-fondasi/b3-2-race-condition-lock/"
  },
+ "debit": {
+  "b": "t2-ledger",
+  "d": "Sisi kiri sebuah jurnal akuntansi; di setiap jurnal total debit sama dengan total kredit, dan akun aset bertambah di sisi debit.",
+  "h": "istilah/debit/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-debit",
+  "t": "Debit",
+  "u": null
+ },
  "endpoint": {
   "b": "B1.1",
   "d": "Pasangan method dan path yang dilayani server, mis. POST /transfers.",
@@ -1243,6 +1305,7 @@ window.ISTILAH = {
  "idempotency key": {
   "b": "E3",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
+  "h": "istilah/idempotency-key/",
   "n": "2.14 Retry dan idempotency key",
   "s": "istilah-idempotency-key",
   "t": "Idempotency key",
@@ -1271,6 +1334,24 @@ window.ISTILAH = {
   "s": "istilah-isolation-level",
   "t": "Isolation level",
   "u": "b-fondasi/b3-3-isolation-level/"
+ },
+ "jurnal": {
+  "b": "t2-ledger",
+  "d": "Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol.",
+  "h": "istilah/jurnal/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-jurnal",
+  "t": "Jurnal",
+  "u": null
+ },
+ "kredit": {
+  "b": "t2-ledger",
+  "d": "Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit.",
+  "h": "istilah/kredit/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-kredit",
+  "t": "Kredit",
+  "u": null
  },
  "latency": {
   "b": "C2",
@@ -1743,6 +1824,15 @@ window.ISTILAH = {
   "s": "istilah-transaction",
   "t": "Transaction",
   "u": "tahap-1/transaction/"
+ },
+ "tutup buku": {
+  "b": "t2-tutup-buku",
+  "d": "Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang.",
+  "h": "istilah/tutup-buku/",
+  "n": "2.4 Fitur tutup buku",
+  "s": "istilah-tutup-buku",
+  "t": "Tutup buku",
+  "u": null
  },
  "webhook": {
   "b": "B10.2",

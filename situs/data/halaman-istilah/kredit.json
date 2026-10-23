@@ -1,0 +1,28 @@
+{
+  "istilah": "Kredit",
+  "sehari_hari": "Kredit adalah pasangan debit: sisi lain dari jurnal yang sama. Seperti debit, kredit tidak otomatis berarti uang masuk atau uang keluar.",
+  "cerita": [
+    { "rujukan": "t2-prd", "teks": "Nadia membawa bahasa akuntansi ERP ke tim: debit, kredit, jurnal." },
+    { "rujukan": "t2-ledger", "teks": "Top-up Rp250.000 ke Budi: buku tunjangan −250.000, buku Budi +250.000; satu jurnal, jumlahnya nol." }
+  ],
+  "mekanisme": [
+    "Di buku akuntansi, kredit ditulis di kolom kanan sebuah journal entry, dan totalnya harus sama dengan total debit di kolom kiri.",
+    "Akun kewajiban, ekuitas, dan pendapatan bertambah bila dikredit; akun aset dan beban berkurang bila dikredit.",
+    "Square Books menulis kredit sebagai angka negatif dan debit positif, jadi satu jurnal seimbang bila jumlah semua entrinya 0.",
+    "Lab b3-ledger tidak menyimpan kata kredit: buku yang uangnya keluar mendapat `posting.jumlah` negatif. Top-up mencatat buku tunjangan −250.000 dan buku Budi +250.000."
+  ],
+  "stack": {
+    "lihat": "jurnal",
+    "teks": "Kredit ditulis sebagai posting di dalam jurnal, jadi kode di keenam stack sama dengan kode jurnal."
+  },
+  "jebakan": [
+    "Mengira tanda negatif berlaku di semua sistem. Di buku akuntansi, jumlah ditulis positif di kolom kredit, sedangkan Square Books menulis kredit negatif. Lab ini tidak memakai kata kredit: tandanya berarti uang masuk atau keluar. Satu sistem memakai satu konvensi dan menuliskannya di skema.",
+    "Mengira kredit selalu berarti saldo bertambah. Untuk akun aset seperti kas, kredit justru mengurangi saldo."
+  ],
+  "terkait": ["Debit", "Jurnal", "Tutup buku", "Invarian"],
+  "sumber": [
+    { "riset": "R2-38", "judul": "OpenStax, Principles of Accounting Volume 1, bagian 3.5", "url": "https://openstax.org/books/principles-financial-accounting/pages/3-5-use-journal-entries-to-record-transactions-and-post-to-t-accounts", "catatan": "Kredit di kolom kanan; kewajiban, ekuitas, dan pendapatan bertambah di kredit; total debit sama dengan total kredit." },
+    { "riset": "R2-06", "judul": "Square Engineering: Books, an immutable double-entry accounting database service", "url": "https://developer.squareup.com/blog/books-an-immutable-double-entry-accounting-database-service/", "catatan": "16 Oktober 2019: debit diperlakukan positif, kredit negatif, dan setiap jurnal berjumlah 0." },
+    { "riset": "R2-09", "judul": "Rekaman lab b3-ledger: kejadian Budi", "rekaman": "labs/b3-ledger/output/kejadian.txt", "catatan": "Setiap kejadian ditulis sebagai jurnal dengan posting negatif di buku asal dan positif di buku tujuan." }
+  ]
+}
