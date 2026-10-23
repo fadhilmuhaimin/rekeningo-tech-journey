@@ -102,3 +102,17 @@ Polesan dan pencegahan dari tinjauan lab dan halaman Tahap 2 yang sengaja tidak 
 - Data `tahap[1]` registry masih versi lama (nama "Saldo salah dan dobel bayar", rekap "tiga kompleks", "menarik saldo dari HP dan tablet") dan tampil di sidebar, Kamu di sini, dan peta beranda; selaraskan ke naskah Tahap 2 sesudah pemilik meninjau kalkulator 1.37/1.38 (keputusan 603).
 - Ilustrasi latar kampus untuk blok Latar masalah 2.1, setara ilustrasi `prd` di 1.1 (keputusan 602, jalur teknis).
 - G-istilah: halaman istilah untuk debit, kredit, jurnal, tutup buku, dan ERP yang muncul pertama di 2.1 tanpa penjelasan (Definisi selesai mode penuh; G-istilah belum ada saat 2.1 di-merge, keputusan 602).
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- Halaman istilah belum diperiksa alat ukur khusus: `layar.mjs` mendaftarnya sebagai "tanpa Inti" (halaman rujukan tanpa blok Inti) dan `ukur-luapan.mjs` memeriksa luapan 360/375 seperti halaman lain; belum ada pemeriksa bahwa kalimat pertama terlihat di layar pertama 375×667.
+- Sidebar tidak menandai Glosarium sebagai halaman aktif di rute `/istilah/`; jalur "Kamu di sini" yang menunjukkan tempatnya.
+- 116 istilah lama dan istilah PROPOSAL yang belum ada (DTO, dependency injection, PL/pgSQL, Kubernetes, bottleneck, service mesh, event bus, authorization code, Read Committed) belum punya halaman; target PROPOSAL ±130.
+- Definisi lama *Idempotency key* di Glosarium 30 kata (> 25), dan halaman istilah memakainya apa adanya sebagai kalimat pertama supaya tooltip Tahap 1 tidak berubah.
+- Naskah bagian 3 menyebut posting "debit dan kredit" tanpa konvensi tanda (keputusan 691); halaman 2.7 perlu memilih satu konvensi atau menulis bahwa Rekeningo hanya memakai jumlah bertanda.
+- Popover istilah ber-`role="tooltip"` padahal berisi tautan yang kini bisa difokus (keputusan 702); pola WAI-ARIA yang cocok adalah disclosure atau dialog non-modal. Mengubahnya menyentuh semua halaman bertooltip.
+- Sumber halaman istilah: `riset` R2-18 (Stripe) dipasang di sumber rekaman lab `key-per-niat.txt` *idempotency key*; rekaman lab tidak perlu ID riset atau sebaiknya memakai ID baris lab e3.
+- Skema halaman istilah memakai `z.url()` untuk `url` dan `dokumentasi`, yang menerima skema apa pun; batasi ke `https:` supaya data dari PR berikutnya tidak bisa memasang `javascript:`.
+- Widget pilah 2.2 masih widget lama (`WidgetLama`, data `situs/lama/widgets/data/t2-fitur-pilah.json` tanpa Zod); saat pilah dipindah ke React, data 1.2 dan 2.2 ikut divalidasi (keputusan 606, jalur teknis).
+- 2.2 blok "Keputusan sebelum kode" menulis "Model ini tidak menjawab dua pertanyaan terbuka PRD v2" tapi hanya menyebut satu (race, M9); pertanyaan kedua (app mengulang request, M10 `t2-m10`) belum disebut (tinjauan PR #279).
+- Chip sumber Rantai jenis ilustrasi di halaman lain tidak menyebut kata "Ilustrasi" (mis. `t2-prd-sebelum-sesudah.json`, `t1-prd-sebelum-sesudah.json`, `cerita-tokoh.json`, `t1-rekap-kejadian.json` di `situs/data/diagram/`), jadi jenisnya hanya terbaca dari warna; usul `Rantai.astro` menambah kata jenis dari `sumber.jenis` (jalur teknis, keputusan 608).

@@ -76,3 +76,18 @@ test("1.14 M1: tanpa constraint minus lolos (Budi 255000, Ani -5000); dengan con
   for (const p of ["before", "after"]) assert.deepEqual(baris(core.runPanel(SQL, s, p, s.toggles)), ["Warung Ani|5000", "Budi|245000", "BARIS TRANSAKSI|1"]);
   assert.equal(s.predict.options[s.predict.answer], "Rp255.000");
 });
+
+test("2.4 tutup buku: jurnal cocok semua; UPDATE saldo_cache langsung membuat Citra tidak cocok; akhir dari posting tidak menangkapnya", () => {
+  const s = load("t2-tutup-buku");
+  const cocok = ["Budi|180000|0|45000|135000|ya", "Warung Ani|0|25000|0|25000|ya"];
+  const before = core.runPanel(SQL, s, "before", []);
+  assert.ok(before.log.every((l) => l.ok));
+  assert.equal(before.log[before.log.length - 1].result, "0");
+  assert.deepEqual(baris(before), ["tunjangan|-180000|0|10000|-190000|ya", cocok[0], "Citra|0|30000|0|30000|ya", cocok[1]]);
+  const after = core.runPanel(SQL, s, "after", []);
+  assert.equal(after.log[after.log.length - 1].result, "0");
+  assert.deepEqual(baris(after), ["tunjangan|-180000|0|0|-180000|ya", cocok[0], "Citra|0|20000|0|30000|TIDAK", cocok[1]]);
+  assert.equal(s.predict.options[s.predict.answer], "Buku Citra tidak cocok, dan tidak ada jurnal yang tidak seimbang");
+  assert.deepEqual(baris(core.runPanel(SQL, s, "after", s.toggles)), ["tunjangan|-180000|0|0|-180000|ya", cocok[0], "Citra|0|20000|0|20000|ya", cocok[1]]);
+  assert.deepEqual(baris(core.runPanel(SQL, s, "before", s.toggles)), baris(before));
+});
