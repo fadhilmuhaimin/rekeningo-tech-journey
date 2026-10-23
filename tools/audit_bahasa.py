@@ -28,7 +28,7 @@ KECUALI = ()
 # Halaman konseptual: boleh merangkum beberapa stack dalam satu baris tabel "Di stack lain".
 A_DIRS = ("situs/src/content/docs/a-gambaran/",)
 # Selain Markdown, teks yang tampil ke pembaca juga ada di data widget dan ilustrasi.
-EXTRA_GLOBS = ("situs/data/*.json", "situs/lama/widgets/data/**/*.json", "situs/lama/assets/cerita/*.svg")
+EXTRA_GLOBS = ("situs/data/*.json", "situs/data/halaman-istilah/*.json", "situs/lama/widgets/data/**/*.json", "situs/lama/assets/cerita/*.svg")
 # Tidak ada konten lama yang dikecualikan.
 OLD = ()
 

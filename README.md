@@ -46,6 +46,18 @@ File font tidak ikut repo. Satoshi memakai ITF Free Font License, yang mengizink
 
 Tanpa langkah ini situs tetap berjalan dengan font fallback (`Inter, system-ui, sans-serif`). JetBrains Mono untuk kode memakai SIL Open Font License 1.1.
 
+## Menambah halaman istilah
+
+Setiap istilah di Glosarium bisa punya halaman `/istilah/<slug>/` dengan delapan bagian tetap (keputusan 685–691). Istilah baru di halaman tahap mendapat halamannya di PR halaman itu. Langkahnya, tanpa menyentuh kode:
+
+1. Tambah satu baris di tabel "Semua istilah" `situs/src/content/docs/alat/glosarium.mdx`, urut abjad: `| **Nama** | Satu kalimat, paling banyak 25 kata. | [[id-halaman]] |`. Kalimat ini jadi tooltip dan kalimat pertama halaman istilah.
+2. Salin `situs/data/halaman-istilah/idempotency-key.json` ke `<slug>.json`. Slug adalah nama tanpa bagian dalam kurung, huruf kecil, spasi jadi strip ("Tutup buku" jadi `tutup-buku`), dan `istilah` ditulis persis seperti di Glosarium.
+3. Isi tujuh bagian: `sehari_hari`, `cerita` (1–4 rujukan halaman registry), `mekanisme` (3–5 langkah), `stack`, `jebakan` (2–3), `terkait` (nama istilah di Glosarium), `sumber`. Bagian yang belum siap diisi `null` dan tampil "Belum ditulis.".
+4. `stack` berisi enam kunci `go`, `node`, `laravel`, `django`, `serverpod`, `supabase`. Baris dari lab memakai `"label": "Rekaman lab"` dan `rekaman` (path file di `labs/`); baris lain `"label": "Tidak dijalankan"` dengan `versi` dan `dokumentasi` (URL resmi). Kalau kodenya sama dengan istilah lain, tulis `{"lihat": "<slug>", "teks": "..."}`.
+5. Setiap `sumber` membawa `riset` (ID baris di `plan/RISET-TAHAP-N.md`, tidak tampil di halaman), `judul`, `catatan`, dan `url` atau `rekaman`.
+6. Di teks: `` `kode` `` jadi kode, `[[id]]` jadi tautan ke halaman registry (halaman yang belum ditulis tampil "segera"), `[teks](url)` jadi tautan biasa.
+7. Jalankan `python3 tools/build_istilah.py`, lalu `bun run --cwd situs test`. Tes menolak bagian yang hilang, stack yang kurang dari enam, rekaman yang tidak ada, dan ID riset yang tidak tercatat.
+
 ## Pemeriksaan
 
 ```bash

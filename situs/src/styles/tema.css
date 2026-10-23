@@ -1195,3 +1195,20 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
   .erd__anak > .erd__kolom:last-child .erd__tabel::after { left: auto; right: calc(100% + var(--erd-celah) / 2); }
   .erd__anak > .erd__kolom > .erd__tabel:last-child::after { bottom: auto; height: calc(var(--erd-jarak) + 1px + var(--erd-taji) + 2px); }
 }
+
+/* Halaman istilah /istilah/<slug>/ (G-istilah, keputusan 685): delapan bagian tetap, tanpa island. Kalimat pertama
+   sedikit lebih besar karena dibaca dulu; bagian yang belum ditulis berwarna sekunder; baris stack bergaris kiri
+   supaya enam stack terbaca sebagai daftar terpisah di HP tanpa tabel yang bergulir ke samping. */
+.hal-istilah__kalimat { font-size: 1.12em; color: var(--judul); }
+.hal-istilah__belum { color: var(--teks-2); font-style: italic; }
+.hal-istilah__cerita > li + li, .hal-istilah__stack > li + li { margin-top: 0.9rem; }
+.hal-istilah__cerita-teks, .hal-istilah__catatan { display: block; }
+.hal-istilah__catatan { color: var(--teks-2); }
+.sl-markdown-content .hal-istilah__stack { list-style: none; padding-left: 0; }
+.hal-istilah__stack > li { border-left: 2px solid var(--garis-2); padding-left: 0.9rem; }
+.sl-markdown-content .hal-istilah__stack-kepala { display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; align-items: baseline; margin: 0; }
+.hal-istilah__versi, .hal-istilah__asal { color: var(--teks-2); font-size: var(--rk-ui); }
+.sl-markdown-content .hal-istilah__terkait { display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; list-style: none; padding-left: 0; }
+.sl-markdown-content .hal-istilah__terkait > li { margin: 0; }
+.hal-istilah__kembali { margin-top: 2rem; }
+.hal-istilah code { overflow-wrap: anywhere; }

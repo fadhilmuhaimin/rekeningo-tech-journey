@@ -357,7 +357,7 @@
   "n": "2.14 Retry dan idempotency key",
   "u": "/e-mobile/e3-retry-idempotency/",
   "s": "istilah-idempotency-key",
-  "h": null
+  "h": "/istilah/idempotency-key/"
  },
  {
   "t": "IDOR (Insecure Direct Object Reference)",

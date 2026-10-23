@@ -331,6 +331,7 @@ window.ISTILAH = {
  "Idempotency key": {
   "b": "E3",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
+  "h": "istilah/idempotency-key/",
   "n": "2.14 Retry dan idempotency key",
   "s": "istilah-idempotency-key",
   "t": "Idempotency key",
@@ -1243,6 +1244,7 @@ window.ISTILAH = {
  "idempotency key": {
   "b": "E3",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
+  "h": "istilah/idempotency-key/",
   "n": "2.14 Retry dan idempotency key",
   "s": "istilah-idempotency-key",
   "t": "Idempotency key",
