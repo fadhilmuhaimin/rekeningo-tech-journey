@@ -56,6 +56,9 @@
 }
 
 .diagram__kotak {
+  /* React Flow memberi node tanpa handler `pointer-events: none` (inline) dan tombol mewarisinya: tanpa baris ini
+     klik dan tap tidak sampai ke kotak, hanya Enter (tinjauan #274, keputusan 681). Geser dan zoom tetap mati. */
+  pointer-events: auto;
   box-sizing: border-box;
   width: 100%;
   height: 100%;
