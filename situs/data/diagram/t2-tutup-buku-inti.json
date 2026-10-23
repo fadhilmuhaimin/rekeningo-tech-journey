@@ -1,0 +1,26 @@
+{
+  "id": "t2-tutup-buku-inti",
+  "judul": "Tutup buku: satu buku, lalu seluruh sistem",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab b3-ledger · tutup-buku.txt" },
+  "baris": [
+    {
+      "label": "Buku Budi",
+      "sub": "bagian A, dari posting",
+      "simpul": [
+        { "teks": "awal Rp180.000", "sub": "posting sampai migrasi" },
+        { "teks": "+Rp265.000 −Rp60.000", "sub": "masuk dan keluar sesudahnya" },
+        { "teks": "akhir Rp385.000, cocok", "sub": "sama dengan saldo_cache", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Seluruh sistem",
+      "sub": "bagian B, semua jurnal",
+      "simpul": [
+        { "teks": "11 jurnal" },
+        { "teks": "0 tidak seimbang", "sub": "setiap jurnal berjumlah 0", "nada": "good" },
+        { "teks": "total posting 0", "sub": "jumlah semua posting", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Saldo akhir dibaca dari saldo_cache, sumber yang terpisah dari posting. Sembilan buku di rekaman itu cocok semua."
+}

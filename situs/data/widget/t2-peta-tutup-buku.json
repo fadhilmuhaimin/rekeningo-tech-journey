@@ -1,0 +1,46 @@
+{
+  "id": "t2-peta-tutup-buku",
+  "judul": "Tutup buku satu bulan: dari permintaan admin sampai laporan",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t2 · tutup-buku.txt"
+  },
+  "jalur": [
+    { "id": "admin", "nama": "Client admin", "jenis": "app" },
+    { "id": "api", "nama": "Backend", "jenis": "backend" },
+    { "id": "db", "nama": "PostgreSQL", "jenis": "db" }
+  ],
+  "langkah": [
+    {
+      "jalur": "admin",
+      "judul": "Admin meminta laporan satu bulan",
+      "kode": ["GET /tutup-buku?periode=YYYY-MM"]
+    },
+    {
+      "jalur": "api",
+      "judul": "Hanya admin, periode berformat bulan",
+      "rinci": ["Token Budi: 403", "periode=Oktober: 422"]
+    },
+    {
+      "jalur": "db",
+      "judul": "Per buku: jumlah posting sebelum dan selama periode",
+      "kode": ["sum(jumlah) FILTER (WHERE ...)", "GROUP BY buku"]
+    },
+    {
+      "jalur": "db",
+      "judul": "Seluruh sistem: jurnal yang tidak seimbang",
+      "kode": ["jurnal 1122, tidak seimbang 0", "jumlah semua posting 0"]
+    },
+    {
+      "jalur": "api",
+      "judul": "Setiap buku membawa saldo_cache sebagai pembanding",
+      "rinci": ["Saldo akhir dari posting; saldo_cache ditulis kode saat jurnal dibuat"]
+    },
+    {
+      "jalur": "admin",
+      "judul": "Client mencocokkan 1.016 buku",
+      "rinci": ["awal + masuk − keluar = akhir = saldo_cache", "Tidak cocok: 0 (dihitung penggerak lab dari body)"]
+    }
+  ],
+  "catatan": "Layar untuk Keuangan belum ada di v2: naskah menyebut web sederhana atau ekspor. Lab memanggil endpoint dengan curl dan token admin."
+}
