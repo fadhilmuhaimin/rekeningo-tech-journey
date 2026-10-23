@@ -239,7 +239,7 @@ window.ISTILAH = {
   "n": "2.1 PRD v2",
   "s": "istilah-erp",
   "t": "ERP (Enterprise Resource Planning)",
-  "u": null
+  "u": "tahap-2/prd-v2/"
  },
  "Endpoint": {
   "b": "B1.1",
@@ -255,7 +255,7 @@ window.ISTILAH = {
   "n": "2.1 PRD v2",
   "s": "istilah-erp",
   "t": "ERP (Enterprise Resource Planning)",
-  "u": null
+  "u": "tahap-2/prd-v2/"
  },
  "Enumerasi": {
   "b": "t1-idor",
