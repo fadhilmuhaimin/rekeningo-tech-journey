@@ -9,10 +9,11 @@
 // - CLS ≤ 0,1 dan geser 0 px saat island di-hydrate (gulir pelan, modul JS ditunda 300 ms);
 // - halaman tanpa diagram tidak memuat React Flow; ukuran JS /uji/erd/ dicetak (baris "info").
 //   node tools/ukur-erd.mjs --url http://127.0.0.1:4321
-//   node tools/ukur-erd.mjs --url ... --axe /path/axe.min.js   # + axe-core, gelap dan terang
+//   node tools/ukur-erd.mjs --url ... --axe   # + axe-core, gelap dan terang
 import { gzipSync } from "node:zlib";
 import { chromium } from "@playwright/test";
 import { awasi } from "./lib/batas.mjs";
+import { pilihAxe } from "./lib/axe.mjs";
 
 const arg = (nama, bawaan) => {
   const i = process.argv.indexOf(nama);
@@ -20,7 +21,7 @@ const arg = (nama, bawaan) => {
 };
 const BASE = arg("--url", "http://127.0.0.1:4321");
 const url = BASE + "/uji/erd/";
-const AXE = arg("--axe", undefined);
+const AXE = pilihAxe(); // --axe: axe-core terpasang (lib/axe.mjs, keputusan 693); --axe <file>: file lain
 
 const browser = awasi(await chromium.launch(), { alat: "erd" }); // batas waktu per halaman (keputusan 360)
 let gagal = 0;
