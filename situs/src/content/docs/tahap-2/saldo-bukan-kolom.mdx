@@ -126,7 +126,7 @@ const saldo = Number(rows[0].saldo); // int8 tiba sebagai string`} />
 </Fragment>
 <Fragment slot="t2">
 
-*Tidak dijalankan. Dicek ke [Laravel 13.x: Database](https://laravel.com/docs/13.x/database#running-a-select-query).*
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Database](https://laravel.com/docs/13.x/database#running-a-select-query) dan kode sumber [pdo_pgsql PHP 8.4](https://github.com/php/php-src/blob/PHP-8.4/ext/pdo_pgsql/pgsql_statement.c).*
 
 <Snippet lang="php" code={`$baris = DB::select(
     'select cast(coalesce(sum(jumlah), 0) as bigint) as saldo from posting where buku_id = ?',
@@ -134,7 +134,7 @@ const saldo = Number(rows[0].saldo); // int8 tiba sebagai string`} />
 );
 $saldo = $baris[0]->saldo;`} />
 
-**Yang berbeda di stack ini:** `DB::select` selalu mengembalikan array `stdClass`, jadi satu angka pun dibaca dari baris pertama lewat alias `saldo`. Untuk satu nilai tanpa baris, Laravel juga punya `DB::scalar`.
+**Yang berbeda di stack ini:** `DB::select` selalu mengembalikan array `stdClass`, jadi satu angka pun dibaca dari baris pertama lewat alias `saldo`. Untuk satu nilai tanpa baris, Laravel juga punya `DB::scalar`. Karena query memakai `cast(... AS bigint)`, pdo_pgsql di PHP 64-bit memberi `int`; tanpa cast, `numeric` dari `sum` tiba sebagai string.
 
 </Fragment>
 <Fragment slot="t3">
