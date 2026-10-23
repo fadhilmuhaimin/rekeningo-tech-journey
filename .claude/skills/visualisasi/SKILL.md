@@ -50,7 +50,10 @@ Animasi yang berjalan sendiri tidak dipakai. Semua gerak dipicu klik, scroll, at
 - Label widget adalah elemen DOM (bisa diterjemahkan browser), bukan teks dalam SVG, kecuali ilustrasi.
 - Setiap widget punya chip sumber: Rekaman lab / Ilustrasi / Asumsi.
 - Setiap widget punya "tebak dulu" sebelum hasil dan "ubah satu hal" sesudahnya.
-- Keyboard: semua kontrol bisa dioperasikan Tab/Enter; status hasil memakai role="status".
+- Keyboard: Tab mencapai semua kontrol dalam urutan baca, dan status hasil memakai role="status". Fokus terlihat dengan indikator ≥ 3:1 terhadap latar (WCAG 2.2 SC 2.4.7, 1.4.11) dan tidak tertutup penuh oleh header lengket (SC 2.4.11). Panel yang menimpa isi ditutup dengan Esc, lalu fokus kembali ke tombol yang membukanya (sumber: plan/RISET-SKILL.md 1).
+- Kontrol memakai elemen asli (`<button>`, `<a href>`, `<details>`), bukan `<div>` dengan role. Kontrol buka-tutup dan pilihan memperbarui `aria-expanded`, `aria-pressed`, atau `aria-checked` setiap kali berubah (SC 4.1.2); buktinya `locator.ariaSnapshot()` Playwright sebelum dan sesudah satu klik.
+- Target klik dan sentuh minimal 24×24 CSS px, atau berjarak sehingga lingkaran 24 px di tengahnya tidak menyentuh target lain (SC 2.5.8); tautan di dalam kalimat dikecualikan. Halaman tidak bergulir ke samping di lebar 320 CSS px (SC 1.4.10); diagram dan tabel data boleh digulir di dalam wadahnya sendiri.
+- Widget runsql tentang index atau query plan memakai data yang cukup besar dan menulis jumlah barisnya: di tabel kecil planner benar memilih Seq Scan (PostgreSQL 18 §11.12), jadi data 100 baris tidak menunjukkan guna index.
 - Data widget: JSON divalidasi Zod; logika murni di `.ts` tanpa DOM, dites Vitest.
 
 ## Tech stack visual (dicek ke registry saat dipakai)

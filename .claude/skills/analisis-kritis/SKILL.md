@@ -56,10 +56,11 @@ Klaim di halaman menyebut sumbernya. Kalau sumber tertinggi yang ada adalah 4 at
 ## Prosedur E: meninjau kode, termasuk buatan AI
 
 1. Baca kode sebelum menjalankannya. Tulis apa yang kamu kira kode ini lakukan.
-2. Jalankan: tes, linter, `go vet`, gosec/semgrep. Bandingkan dengan tebakanmu.
-3. Checklist uang: transaction membungkus semua baris uang? Cek pemilik ada? Input diparameterisasi? Idempotency key dihormati? Error dipetakan ke status yang benar? Secret tidak di kode?
+2. Jalankan: tes, linter, `go vet`, gosec/semgrep. Bandingkan dengan tebakanmu. Lab RLS dan hak akses berjalan sebagai role aplikasi, bukan superuser atau pemilik tabel, karena keduanya melewati RLS kecuali `FORCE ROW LEVEL SECURITY` (PostgreSQL 18 §5.9); aturan append-only dibuktikan dengan UPDATE dan DELETE yang ditolak saat dijalankan sebagai role itu.
+3. Checklist uang: transaction membungkus semua baris uang? Cek pemilik ada? Input diparameterisasi? Idempotency key dihormati? Error dipetakan ke status yang benar? Secret tidak di kode? Batas dari PRD (batas harian, saldo tidak negatif) dijaga server dan database, dan diuji dengan dua request bersamaan (OWASP ASVS 5.0.0 V2.3.2, V2.3.4)? Endpoint yang membuka data akun lain (cek penerima, nama di riwayat) punya batas per akun (V2.4.1)? Baris yang dikunci bersama dikunci dalam urutan tetap (`ORDER BY id FOR UPDATE`) supaya tidak deadlock (PostgreSQL 18 §13.3.4)? Tidak ada panggilan jaringan (bank, notifikasi, HTTP) di dalam transaction yang memegang lock?
 4. Cari apa yang **tidak ada**: validasi yang hilang, kasus gagal yang tidak ditangani, retry tanpa batas.
 5. Tulis temuan sebagai daftar bernomor dengan baris kode dan perbaikan konkret.
+6. Setiap temuan membawa bukti: tes atau mutasi yang gagal karena temuan itu, atau baris dokumentasi. Temuan tanpa bukti ditulis "dugaan" dan tidak memblok merge. Baca juga komentar tinjauan PR sebelumnya yang menyentuh file yang sama (sumber butir 2–6 Prosedur E yang baru: plan/RISET-SKILL.md 8–11).
 
 ## Prosedur F: saat cerita tidak masuk akal secara teknis
 
