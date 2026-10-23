@@ -1,0 +1,83 @@
+{
+  "id": "t2-saldo-bukan-kolom",
+  "title": "Pembayaran M4 di dua model: potongan mana yang punya baris?",
+  "setup": "CREATE TABLE akun (id INTEGER PRIMARY KEY, nama TEXT NOT NULL, jenis TEXT NOT NULL, saldo INTEGER NOT NULL CHECK (saldo >= 0), CONSTRAINT batas_saldo_warung CHECK (jenis <> 'warung' OR saldo <= 1500000));\nCREATE TABLE topup (id INTEGER PRIMARY KEY, akun_id INTEGER NOT NULL REFERENCES akun (id), nominal INTEGER NOT NULL CHECK (nominal > 0));\nCREATE TABLE transaksi (id INTEGER PRIMARY KEY, dari INTEGER NOT NULL REFERENCES akun (id), ke INTEGER NOT NULL REFERENCES akun (id), jumlah INTEGER NOT NULL CHECK (jumlah > 0));\nCREATE TABLE koreksi (id INTEGER PRIMARY KEY, akun_id INTEGER NOT NULL REFERENCES akun (id), jumlah INTEGER NOT NULL, alasan TEXT NOT NULL);\n-- 29 karyawan lain digabung jadi satu akun, dan pembayaran mereka ke Warung Ani jadi satu baris\nINSERT INTO akun VALUES (1, '29 karyawan lain', 'karyawan', 0), (418, 'Warung Ani', 'warung', 1450000), (419, 'Budi', 'karyawan', 250000);\nINSERT INTO topup (akun_id, nominal) VALUES (1, 1450000), (419, 250000);\nINSERT INTO transaksi (dari, ke, jumlah) VALUES (1, 418, 1450000);\n-- Catatan Budi tersebar di tiga tabel dengan bentuk berbeda\nCREATE VIEW catatan_budi AS\n  SELECT 'topup' AS catatan, nominal AS jumlah FROM topup WHERE akun_id = 419\n  UNION ALL SELECT 'transaksi ke ' || (SELECT nama FROM akun WHERE id = t.ke), -t.jumlah FROM transaksi t WHERE t.dari = 419\n  UNION ALL SELECT 'transaksi dari ' || (SELECT nama FROM akun WHERE id = t.dari), t.jumlah FROM transaksi t WHERE t.ke = 419\n  UNION ALL SELECT 'koreksi', jumlah FROM koreksi WHERE akun_id = 419;\nCREATE VIEW pertanyaan_pak_hadi AS\n  SELECT 1 AS urut, 'baris catatan Budi' AS pertanyaan, (SELECT group_concat(catatan || ' ' || printf('%+d', jumlah), '; ') FROM catatan_budi) AS jawaban_database\n  UNION ALL SELECT 2, 'jumlah catatan Budi', (SELECT coalesce(sum(jumlah), 0) FROM catatan_budi)\n  UNION ALL SELECT 3, 'saldo Budi di app', (SELECT saldo FROM akun WHERE id = 419)\n  UNION ALL SELECT 4, 'selisih seluruh sistem (harus 0)', (SELECT sum(saldo) FROM akun) - (SELECT sum(nominal) FROM topup);",
+  "check": "SELECT pertanyaan, jawaban_database FROM pertanyaan_pak_hadi ORDER BY urut",
+  "predict": {
+    "q": "Di kedua panel, Budi membayar Rp70.000 tanpa transaction, dan langkah untuk Warung Ani ditolak batas saldo. Di panel mana potongan Rp70.000 dari saldo Budi punya baris catatan?",
+    "options": [
+      "Hanya Before (kolom saldo)",
+      "Hanya After (posting)",
+      "Keduanya",
+      "Tidak keduanya"
+    ],
+    "answer": 1,
+    "explain": "Before memotong akun.saldo di langkah pertama, padahal baris transaksi baru ditulis di langkah ketiga yang tidak pernah jalan. After tidak punya perintah potong saldo: potongan Budi adalah posting -70000 di jurnal 4. Kedua panel sama-sama kehilangan Rp70.000; hanya After yang menunjuk kejadiannya."
+  },
+  "panels": {
+    "before": {
+      "label": "Before: saldo adalah kolom (Tahap 1)",
+      "onError": "stop",
+      "steps": [
+        {
+          "sql": "UPDATE akun SET saldo = saldo - 70000 WHERE id = 419",
+          "note": "potong saldo Budi"
+        },
+        {
+          "sql": "UPDATE akun SET saldo = saldo + 70000 WHERE id = 418",
+          "note": "tambah saldo Warung Ani"
+        },
+        {
+          "sql": "INSERT INTO transaksi (dari, ke, jumlah) VALUES (419, 418, 70000)",
+          "note": "catat pembayaran"
+        }
+      ]
+    },
+    "after": {
+      "label": "After: saldo adalah jumlah posting (Tahap 2)",
+      "onError": "stop",
+      "setup": "CREATE TABLE buku (id INTEGER PRIMARY KEY, nama TEXT NOT NULL, jenis TEXT NOT NULL);\nCREATE TABLE jurnal (id INTEGER PRIMARY KEY, jenis TEXT NOT NULL, keterangan TEXT NOT NULL);\nCREATE TABLE posting (id INTEGER PRIMARY KEY, jurnal_id INTEGER NOT NULL REFERENCES jurnal (id), buku_id INTEGER NOT NULL REFERENCES buku (id), jumlah INTEGER NOT NULL CHECK (jumlah <> 0));\n-- Aturan yang sama dengan Before: saldo warung paling banyak Rp1.500.000, dihitung dari jumlah posting\nCREATE TRIGGER batas_saldo_warung BEFORE INSERT ON posting\n  WHEN (SELECT jenis FROM buku WHERE id = NEW.buku_id) = 'warung'\n   AND (SELECT coalesce(sum(jumlah), 0) FROM posting WHERE buku_id = NEW.buku_id) + NEW.jumlah > 1500000\n  BEGIN SELECT RAISE(ABORT, 'batas_saldo_warung'); END;\nINSERT INTO buku VALUES (1, 'tunjangan', 'tunjangan'), (2, '29 karyawan lain', 'karyawan'), (418, 'Warung Ani', 'warung'), (419, 'Budi', 'karyawan');\nINSERT INTO jurnal VALUES (1, 'topup', 'Tunjangan 29 karyawan lain'), (2, 'topup', 'Tunjangan Budi'), (3, 'bayar', 'Pembayaran 29 karyawan lain ke Warung Ani');\nINSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (1, 1, -1450000), (1, 2, 1450000), (2, 1, -250000), (2, 419, 250000), (3, 2, -1450000), (3, 418, 1450000);\n-- Catatan Budi adalah posting buku Budi, satu bentuk untuk semua kejadian\nCREATE VIEW catatan_budi AS\n  SELECT 'jurnal ' || j.id || ' ' || j.jenis AS catatan, p.jumlah FROM posting p JOIN jurnal j ON j.id = p.jurnal_id WHERE p.buku_id = 419;\nCREATE VIEW pertanyaan_pak_hadi AS\n  SELECT 1 AS urut, 'baris catatan Budi' AS pertanyaan, (SELECT group_concat(catatan || ' ' || printf('%+d', jumlah), '; ') FROM catatan_budi) AS jawaban_database\n  UNION ALL SELECT 2, 'jumlah catatan Budi', (SELECT coalesce(sum(jumlah), 0) FROM catatan_budi)\n  UNION ALL SELECT 3, 'saldo Budi di app', (SELECT coalesce(sum(jumlah), 0) FROM posting WHERE buku_id = 419)\n  UNION ALL SELECT 4, 'selisih seluruh sistem (harus 0)', (SELECT sum(jumlah) FROM posting);",
+      "steps": [
+        {
+          "sql": "INSERT INTO jurnal VALUES (4, 'bayar', 'Budi bayar makan siang ke Warung Ani')",
+          "note": "satu kejadian"
+        },
+        {
+          "sql": "INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (4, 419, -70000)",
+          "note": "potongan Budi adalah baris ini"
+        },
+        {
+          "sql": "INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (4, 418, 70000)",
+          "note": "tambahan Warung Ani"
+        }
+      ]
+    }
+  },
+  "toggles": [
+    {
+      "label": "Budi membayar Rp40.000, di bawah batas warung",
+      "pairs": [
+        [
+          "saldo - 70000",
+          "saldo - 40000"
+        ],
+        [
+          "saldo + 70000",
+          "saldo + 40000"
+        ],
+        [
+          "(419, 418, 70000)",
+          "(419, 418, 40000)"
+        ],
+        [
+          "(4, 419, -70000)",
+          "(4, 419, -40000)"
+        ],
+        [
+          "(4, 418, 70000)",
+          "(4, 418, 40000)"
+        ]
+      ]
+    }
+  ]
+}

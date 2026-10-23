@@ -91,3 +91,18 @@ test("2.4 tutup buku: jurnal cocok semua; UPDATE saldo_cache langsung membuat Ci
   assert.deepEqual(baris(core.runPanel(SQL, s, "after", s.toggles)), ["tunjangan|-180000|0|0|-180000|ya", cocok[0], "Citra|0|20000|0|20000|ya", cocok[1]]);
   assert.deepEqual(baris(core.runPanel(SQL, s, "before", s.toggles)), baris(before));
 });
+
+test("2.6 saldo bukan kolom: M4 tanpa transaction, kolom saldo kehilangan jejak potongan, posting tidak; Rp40.000 sama di dua model", () => {
+  const s = load("t2-saldo-bukan-kolom");
+  const before = core.runPanel(SQL, s, "before", []);
+  assert.match(before.log[1].result, /CHECK constraint failed: batas_saldo_warung/);
+  assert.equal(before.log[2].skipped, true);
+  assert.deepEqual(baris(before), ["baris catatan Budi|topup +250000", "jumlah catatan Budi|250000", "saldo Budi di app|180000", "selisih seluruh sistem (harus 0)|-70000"]);
+  const after = core.runPanel(SQL, s, "after", []);
+  assert.deepEqual(after.log.map((l) => l.ok), [true, true, false]);
+  assert.match(after.log[2].result, /batas_saldo_warung/);
+  assert.deepEqual(baris(after), ["baris catatan Budi|jurnal 2 topup +250000; jurnal 4 bayar -70000", "jumlah catatan Budi|180000", "saldo Budi di app|180000", "selisih seluruh sistem (harus 0)|-70000"]);
+  assert.equal(s.predict.options[s.predict.answer], "Hanya After (posting)");
+  assert.deepEqual(baris(core.runPanel(SQL, s, "before", s.toggles)), ["baris catatan Budi|topup +250000; transaksi ke Warung Ani -40000", "jumlah catatan Budi|210000", "saldo Budi di app|210000", "selisih seluruh sistem (harus 0)|0"]);
+  assert.deepEqual(baris(core.runPanel(SQL, s, "after", s.toggles)), ["baris catatan Budi|jurnal 2 topup +250000; jurnal 4 bayar -40000", "jumlah catatan Budi|210000", "saldo Budi di app|210000", "selisih seluruh sistem (harus 0)|0"]);
+});
