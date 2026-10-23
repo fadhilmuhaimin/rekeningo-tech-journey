@@ -1,0 +1,42 @@
+{
+  "id": "t2-pencairan",
+  "title": "Jumat 15.00: job pencairan dijalankan sekali, lalu sekali lagi",
+  "setup": "CREATE TABLE buku (id INTEGER PRIMARY KEY, nama TEXT NOT NULL, jenis TEXT NOT NULL);\nCREATE TABLE jurnal (id INTEGER PRIMARY KEY, jenis TEXT NOT NULL);\nCREATE TABLE posting (jurnal_id INTEGER NOT NULL REFERENCES jurnal (id), buku_id INTEGER NOT NULL REFERENCES buku (id), jumlah INTEGER NOT NULL CHECK (jumlah <> 0));\n-- file_bank memerankan file CSV untuk bank; di lab, file itu ditulis ke disk, di luar database\nCREATE TABLE file_bank (baris INTEGER PRIMARY KEY, akun_warung INTEGER NOT NULL, nama_penerima TEXT NOT NULL, jumlah INTEGER NOT NULL);\nINSERT INTO buku VALUES (1, 'kas_pencairan', 'sistem'), (2, 'pembuka', 'sistem'), (419, 'Budi', 'karyawan'),\n  (418, 'Warung Ani', 'warung'), (502, 'Warung Sari', 'warung'), (503, 'Warung Mie Pak Joko', 'warung'), (505, 'Warung 505', 'warung');\n-- saldo awal minggu ini sebagai satu jurnal pembuka\nINSERT INTO jurnal VALUES (1, 'pembuka');\nINSERT INTO posting VALUES (1, 2, -1255000), (1, 419, 100000), (1, 418, 310000), (1, 502, 185000), (1, 503, 420000), (1, 505, 240000);",
+  "check": "SELECT buku, saldo, baris_file, di_file FROM (\n  SELECT b.id AS urut, b.nama AS buku,\n    (SELECT COALESCE(SUM(jumlah), 0) FROM posting WHERE buku_id = b.id) AS saldo,\n    (SELECT COUNT(*) FROM file_bank WHERE akun_warung = b.id) AS baris_file,\n    (SELECT COALESCE(SUM(jumlah), 0) FROM file_bank WHERE akun_warung = b.id) AS di_file\n  FROM buku b WHERE b.jenis = 'warung'\n  UNION ALL\n  SELECT 9999, 'kas_pencairan (total)', (SELECT COALESCE(SUM(jumlah), 0) FROM posting WHERE buku_id = 1),\n    (SELECT COUNT(*) FROM file_bank), (SELECT COALESCE(SUM(jumlah), 0) FROM file_bank)\n) ORDER BY urut",
+  "predict": {
+    "q": "Panel After menjalankan job yang sama dua kali, pukul 15.00 dan 15.10, dan keduanya selesai. Berapa total di file sesudahnya?",
+    "options": [
+      "Rp1.155.000, sama dengan satu jalan",
+      "Rp2.310.000, setiap warung dua kali",
+      "Jalan kedua ditolak database"
+    ],
+    "answer": 0,
+    "explain": "Jalan pertama memindahkan saldo setiap warung ke kas_pencairan, jadi saldonya Rp0. Jalan kedua hanya mencairkan warung yang saldonya lebih dari 0, dan tidak menemukan satu pun. Tidak ada jurnal baru dan tidak ada baris file baru. Hasil ini berlaku karena jalan pertama selesai."
+  },
+  "panels": {
+    "before": {
+      "label": "Before: job berjalan sekali pukul 15.00",
+      "onError": "stop",
+      "steps": [
+        { "actor": "job 15.00", "sql": "CREATE TEMP TABLE cair AS\n  SELECT (SELECT MAX(id) FROM jurnal) + ROW_NUMBER() OVER (ORDER BY b.id) AS jurnal_id,\n         b.id AS buku_id, b.nama, SUM(p.jumlah) AS jumlah\n  FROM buku b JOIN posting p ON p.buku_id = b.id\n  WHERE b.jenis = 'warung' GROUP BY b.id HAVING SUM(p.jumlah) > 0;\nINSERT INTO jurnal SELECT jurnal_id, 'pencairan' FROM cair;\nINSERT INTO posting SELECT jurnal_id, buku_id, -jumlah FROM cair;\nINSERT INTO posting SELECT jurnal_id, 1, jumlah FROM cair;\nINSERT INTO file_bank (akun_warung, nama_penerima, jumlah) SELECT buku_id, nama, jumlah FROM cair;\nSELECT COUNT(*) || ' warung dicairkan, Rp' || replace(printf('%,d', COALESCE(SUM(jumlah), 0)), ',', '.') FROM cair;\nDROP TABLE cair;", "note": "saldo warung dari posting, satu jurnal per warung, satu baris file per warung" }
+      ]
+    },
+    "after": {
+      "label": "After: job yang sama dijalankan lagi pukul 15.10",
+      "onError": "stop",
+      "steps": [
+        { "actor": "job 15.00", "sql": "CREATE TEMP TABLE cair AS\n  SELECT (SELECT MAX(id) FROM jurnal) + ROW_NUMBER() OVER (ORDER BY b.id) AS jurnal_id,\n         b.id AS buku_id, b.nama, SUM(p.jumlah) AS jumlah\n  FROM buku b JOIN posting p ON p.buku_id = b.id\n  WHERE b.jenis = 'warung' GROUP BY b.id HAVING SUM(p.jumlah) > 0;\nINSERT INTO jurnal SELECT jurnal_id, 'pencairan' FROM cair;\nINSERT INTO posting SELECT jurnal_id, buku_id, -jumlah FROM cair;\nINSERT INTO posting SELECT jurnal_id, 1, jumlah FROM cair;\nINSERT INTO file_bank (akun_warung, nama_penerima, jumlah) SELECT buku_id, nama, jumlah FROM cair;\nSELECT COUNT(*) || ' warung dicairkan, Rp' || replace(printf('%,d', COALESCE(SUM(jumlah), 0)), ',', '.') FROM cair;\nDROP TABLE cair;", "note": "jalan pertama, sama dengan Before" },
+        { "actor": "15.05", "sql": "SELECT 'belum ada pembayaran baru' AS kejadian" },
+        { "actor": "job 15.10", "sql": "CREATE TEMP TABLE cair AS\n  SELECT (SELECT MAX(id) FROM jurnal) + ROW_NUMBER() OVER (ORDER BY b.id) AS jurnal_id,\n         b.id AS buku_id, b.nama, SUM(p.jumlah) AS jumlah\n  FROM buku b JOIN posting p ON p.buku_id = b.id\n  WHERE b.jenis = 'warung' GROUP BY b.id HAVING SUM(p.jumlah) > 0;\nINSERT INTO jurnal SELECT jurnal_id, 'pencairan' FROM cair;\nINSERT INTO posting SELECT jurnal_id, buku_id, -jumlah FROM cair;\nINSERT INTO posting SELECT jurnal_id, 1, jumlah FROM cair;\nINSERT INTO file_bank (akun_warung, nama_penerima, jumlah) SELECT buku_id, nama, jumlah FROM cair;\nSELECT COUNT(*) || ' warung dicairkan, Rp' || replace(printf('%,d', COALESCE(SUM(jumlah), 0)), ',', '.') FROM cair;\nDROP TABLE cair;", "note": "jalan kedua, perintah yang sama" }
+      ]
+    }
+  },
+  "toggles": [
+    {
+      "label": "Budi membayar Rp25.000 ke Warung Ani pukul 15.05, di antara dua jalan",
+      "pairs": [
+        ["SELECT 'belum ada pembayaran baru' AS kejadian", "INSERT INTO jurnal VALUES (50, 'bayar');\nINSERT INTO posting VALUES (50, 419, -25000), (50, 418, 25000)"]
+      ]
+    }
+  ]
+}
