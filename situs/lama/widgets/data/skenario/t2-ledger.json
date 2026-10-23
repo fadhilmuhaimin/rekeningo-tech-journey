@@ -1,0 +1,123 @@
+{
+  "versi": 2,
+  "judul": "Top-up salah ketik: kapan database menolak jurnalnya?",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/b3-ledger/output/invarian.txt",
+    "fileVarian": "labs/b3-ledger/output/kejadian.txt",
+    "catatan": "PostgreSQL 17.11 dari database bersih (make -C labs/b3-ledger run). Skrip lab mengirim perintah dari satu koneksi, dengan urutan yang sama dengan kode jurnal api-t2. Jalur utama: invarian.txt bagian A, jurnal 12. Ubah satu hal: kejadian.txt bagian B, jurnal 6."
+  },
+  "pengantar": "Admin mengisi top-up tunjangan Rp250.000 untuk Budi, tapi posting Budi tertulis +25.000. Tebak dulu, lalu jalankan perintah yang sampai ke PostgreSQL satu per satu.",
+  "komponen": [
+    {
+      "id": "kode",
+      "label": "Kode top-up admin"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL",
+      "lapisan": [
+        "tabel jurnal",
+        "tabel posting",
+        "tabel buku",
+        "pemeriksaan COMMIT"
+      ]
+    }
+  ],
+  "layarAwal": {},
+  "predict": {
+    "q": "Posting tunjangan −250.000 dan posting Budi +25.000 masuk ke jurnal yang sama. Kapan database menolak jurnal ini?",
+    "options": [
+      "Saat INSERT posting, karena jumlahnya tidak nol",
+      "Saat UPDATE saldo_cache",
+      "Saat COMMIT",
+      "Tidak ditolak, karena setiap baris valid"
+    ],
+    "answer": 2,
+    "varian": false,
+    "explain": "Posting pertama jurnal mana pun membuat jumlahnya belum nol, jadi aturan jurnal seimbang baru bisa diperiksa sesudah semua posting masuk. Trigger jurnal_seimbang ditunda sampai COMMIT, lalu menolak seluruh transaction dengan SQLSTATE 23514 (rekaman invarian.txt bagian A)."
+  },
+  "langkah": [
+    {
+      "dari": "kode",
+      "ke": "db",
+      "lapisan": "tabel jurnal",
+      "judul": "Satu kejadian, satu baris jurnal",
+      "kirim": "BEGIN;\nINSERT INTO jurnal\n  (jenis, keterangan, dibuat_oleh)\nVALUES ('topup',\n  'Tunjangan makan, salah ketik', 400)\nRETURNING id;\n→ id 12",
+      "jelas": "Jurnal mencatat jenis, keterangan, dan siapa yang membuatnya. Angka uangnya belum ada di baris ini; angka ditulis di posting."
+    },
+    {
+      "dari": "kode",
+      "ke": "db",
+      "lapisan": "tabel posting",
+      "judul": "Dua posting, salah ketik di sisi Budi",
+      "kirim": "INSERT INTO posting\n  (jurnal_id, buku_id, jumlah)\nVALUES (12, 1, -250000),\n       (12, 7, 25000);\n→ INSERT 0 2",
+      "jelas": "Buku 1 adalah tunjangan, buku 7 adalah Budi. Database menerima kedua baris, karena setiap baris memenuhi CHECK jumlah bukan nol."
+    },
+    {
+      "dari": "kode",
+      "ke": "db",
+      "lapisan": "tabel buku",
+      "judul": "saldo_cache ikut diperbarui",
+      "kirim": "UPDATE buku b SET saldo_cache =\n  b.saldo_cache + p.jumlah\nFROM (SELECT buku_id, sum(jumlah)\n  AS jumlah FROM posting\n  WHERE jurnal_id = 12\n  GROUP BY buku_id) p\nWHERE b.id = p.buku_id;\n→ UPDATE 2",
+      "jelas": "Di dalam transaction ini, cache Budi sudah naik Rp25.000. Koneksi lain belum melihat perubahan itu sebelum COMMIT."
+    },
+    {
+      "dari": "kode",
+      "ke": "db",
+      "lapisan": "pemeriksaan COMMIT",
+      "judul": "COMMIT: jurnal 12 dijumlah",
+      "kirim": "COMMIT;\nERROR: jurnal 12 tidak seimbang:\n  2 posting, jumlah -225000\nHINT: Jurnal butuh minimal dua\n  posting yang jumlahnya 0.\nSQLSTATE 23514, jurnal_seimbang",
+      "jelas": "Trigger jurnal_seimbang ditunda sampai COMMIT. Ia menjumlah posting jurnal 12, mendapat −225.000, dan menolak seluruh transaction.",
+      "nada": "warn"
+    },
+    {
+      "dari": "kode",
+      "ke": "db",
+      "lapisan": "tabel jurnal",
+      "judul": "Yang tersisa sesudahnya",
+      "kirim": "SELECT count(*) AS jurnal_12\n  FROM jurnal WHERE id = 12;\n→ 0",
+      "jelas": "Jurnal, kedua posting, dan perubahan saldo_cache batal bersama. Tidak ada top-up setengah jadi yang harus dicari Pak Hadi.",
+      "nada": "good"
+    }
+  ],
+  "varian": {
+    "label": "posting Budi +250.000, sama dengan tunjangan",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "kode",
+        "ke": "db",
+        "lapisan": "tabel jurnal",
+        "judul": "Top-up yang sama, jurnal 6",
+        "kirim": "BEGIN;\nINSERT INTO jurnal\n  (jenis, keterangan, dibuat_oleh)\nVALUES ('topup',\n  'Tunjangan makan minggu 1 Tahap 2', 400)\nRETURNING id;\n→ id 6",
+        "jelas": "Rekaman kejadian.txt bagian B, kejadian 1. Perintahnya sama; nomor jurnal dan keterangannya berbeda karena direkam lebih dulu."
+      },
+      {
+        "dari": "kode",
+        "ke": "db",
+        "lapisan": "tabel posting",
+        "judul": "Dua posting dengan angka yang sama",
+        "kirim": "INSERT INTO posting\n  (jurnal_id, buku_id, jumlah)\nVALUES (6, 1, -250000),\n       (6, 7, 250000);\n→ INSERT 0 2",
+        "jelas": "Satu angka berubah: posting Budi +250.000. Uang yang keluar dari tunjangan sama dengan uang yang masuk ke Budi."
+      },
+      {
+        "dari": "kode",
+        "ke": "db",
+        "lapisan": "tabel buku",
+        "judul": "saldo_cache ikut diperbarui",
+        "kirim": "UPDATE buku b SET saldo_cache =\n  b.saldo_cache + p.jumlah\nFROM (SELECT buku_id, sum(jumlah)\n  AS jumlah FROM posting\n  WHERE jurnal_id = 6\n  GROUP BY buku_id) p\nWHERE b.id = p.buku_id;\n→ UPDATE 2",
+        "jelas": "Perintah yang sama dengan jalur utama, untuk jurnal 6."
+      },
+      {
+        "dari": "kode",
+        "ke": "db",
+        "lapisan": "pemeriksaan COMMIT",
+        "judul": "COMMIT: jurnal 6 dijumlah",
+        "kirim": "COMMIT;\n→ COMMIT",
+        "jelas": "Trigger yang sama menjumlah posting jurnal 6 dan mendapat 0. Jurnal, posting, dan cache tersimpan bersama. Kode tidak menjalankan pemeriksaan apa pun sendiri.",
+        "nada": "good"
+      }
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "id": "t2-ledger-inti",
+  "judul": "Satu jurnal, posting dua sisi, jumlahnya nol",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b3-ledger · kejadian.txt, invarian.txt"
+  },
+  "baris": [
+    {
+      "label": "Bayar",
+      "sub": "kejadian.txt bagian B, jurnal 7",
+      "simpul": [
+        {
+          "teks": "Budi −Rp25.000",
+          "sub": "posting buku Budi: uang keluar"
+        },
+        {
+          "teks": "Ani +Rp25.000",
+          "sub": "posting buku Warung Ani: uang masuk"
+        },
+        {
+          "teks": "jumlah 0: tersimpan",
+          "sub": "COMMIT diterima",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Salah ketik",
+      "sub": "invarian.txt bagian A, jurnal 12",
+      "simpul": [
+        {
+          "teks": "tunjangan −Rp250.000",
+          "sub": "posting buku tunjangan"
+        },
+        {
+          "teks": "Budi +Rp25.000",
+          "sub": "seharusnya +Rp250.000"
+        },
+        {
+          "teks": "jumlah −Rp225.000: ditolak",
+          "sub": "SQLSTATE 23514 saat COMMIT; tidak ada baris yang tersisa",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Positif berarti uang masuk ke buku itu, negatif berarti keluar. Database menjumlah posting satu jurnal saat COMMIT dan menolak jurnal yang jumlahnya bukan nol."
+}

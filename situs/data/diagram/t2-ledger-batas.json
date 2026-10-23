@@ -1,0 +1,56 @@
+{
+  "id": "t2-ledger-batas",
+  "judul": "Dua transfer dari saldo Rp100.000: kapan invarian 3 menahan",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b3-ledger · batas.txt"
+  },
+  "baris": [
+    {
+      "label": "COMMIT bergantian",
+      "sub": "skenario 1, tanpa lock",
+      "simpul": [
+        {
+          "teks": "A tersimpan",
+          "sub": "transfer Rp70.000 ke Citra"
+        },
+        {
+          "teks": "B ditolak, saldo Rp30.000",
+          "sub": "pemeriksaan B sudah melihat jurnal A",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Diperiksa bersamaan",
+      "sub": "skenario 2, tanpa lock",
+      "simpul": [
+        {
+          "teks": "A dan B tersimpan",
+          "sub": "pemeriksaan keduanya selesai sebelum salah satunya COMMIT"
+        },
+        {
+          "teks": "saldo Budi −Rp20.000",
+          "sub": "invarian 3 dilanggar",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Cache di transaction",
+      "sub": "skenario 3, UPDATE buku mengunci baris",
+      "simpul": [
+        {
+          "teks": "B menunggu lock",
+          "sub": "sampai A COMMIT"
+        },
+        {
+          "teks": "B ditolak, saldo Rp30.000",
+          "sub": "lewat error database, bukan jawaban saldo kurang",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Pemeriksaan invarian 3 hanya membaca, tanpa lock. Skenario 2b di rekaman yang sama melepas dua COMMIT bersamaan 50 kali tanpa perintah pengatur urutan, dan saldo −Rp20.000 tetap muncul."
+}
