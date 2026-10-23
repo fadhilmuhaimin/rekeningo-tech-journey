@@ -1,0 +1,42 @@
+{
+  "istilah": "Event sourcing",
+  "sehari_hari": "Event sourcing menyimpan apa yang terjadi, bukan hasil akhirnya. Keadaan sekarang dihitung ulang dari daftar kejadian, dan kejadian lama tidak pernah dihapus atau diubah.",
+  "cerita": [
+    {
+      "rujukan": "t2-adr-ledger",
+      "teks": "Minggu 0 Tahap 2: event sourcing penuh jadi opsi D dan ditolak. Saldo di app harus terbaru saat Bayar ditekan, dan dua engineer punya 8 minggu."
+    }
+  ],
+  "mekanisme": [
+    "Setiap perubahan ditulis sebagai event ke event store, misalnya `SeatsReserved` di contoh Microsoft. Event yang sudah tersimpan tidak diubah.",
+    "Keadaan satu entitas dibangun ulang dengan memutar ulang event-nya dari awal. Snapshot berkala memangkas jumlah event yang harus diputar.",
+    "Handler terpisah membaca event dan memperbarui tampilan baca (materialized view). Tampilan ini baru sama dengan event store sesudah handler selesai: eventual consistency.",
+    "Kesalahan dibatalkan dengan event baru yang membalik efek event lama, misalnya `ReservationCanceled`. Polanya sama dengan jurnal pembalik di ledger."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menyimpan event yang hanya berisi keadaan baru, misalnya sisa kursi jadi 42. Microsoft menyebut event seperti ini membuat event store jadi log perubahan tanpa makna bisnis.",
+    "Mengira ledger double-entry harus memakai event sourcing penuh. Ledger Rekeningo menyimpan jurnal di PostgreSQL yang sama dan memperbarui `saldo_cache` di transaction yang sama.",
+    "Memutar ulang event yang memicu sistem luar, seperti notifikasi atau bank. Fowler menyarankan gateway ke sistem luar dimatikan selama replay."
+  ],
+  "terkait": [
+    "Jurnal",
+    "Eventual consistency",
+    "Snapshot",
+    "Outbox"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-66",
+      "judul": "Microsoft Learn: Event Sourcing pattern",
+      "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing",
+      "catatan": "Diperbarui 2026-03-27, dibuka 2026-10-24: event store sebagai system of record, tampilan baca eventually consistent, event kompensasi, versi event, dan saran memakainya sebagian, misalnya untuk ledger pembayaran."
+    },
+    {
+      "riset": "R2-66",
+      "judul": "Martin Fowler: Event Sourcing",
+      "url": "https://martinfowler.com/eaaDev/EventSourcing.html",
+      "catatan": "12 Desember 2005, draf yang tidak diperbarui: perubahan disimpan sebagai urutan event, keadaan dibangun ulang dengan replay, dan sistem luar harus dimatikan selama replay."
+    }
+  ]
+}
