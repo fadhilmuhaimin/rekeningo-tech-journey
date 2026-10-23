@@ -1,0 +1,66 @@
+{
+  "istilah": "Double-entry",
+  "sehari_hari": "Uang tidak muncul atau hilang begitu saja: kalau saldo Budi bertambah, ada buku lain yang berkurang di kejadian yang sama. Dua sisi itu ditulis bersama, jadi jumlah catatan satu kejadian selalu nol.",
+  "cerita": [
+    {
+      "rujukan": "t2-prd",
+      "teks": "Nadia datang dari tim ERP dan membawa cara akuntansi ke Rekeningo: setiap perpindahan uang dicatat dua sisi."
+    },
+    {
+      "rujukan": "t2-ledger",
+      "teks": "Top-up dengan salah ketik, tunjangan −Rp250.000 dan Budi +Rp25.000, ditolak database saat COMMIT karena jumlahnya −Rp225.000."
+    },
+    {
+      "rujukan": "t2-tutup-buku",
+      "teks": "Karena setiap jurnal berjumlah nol, jumlah semua posting di sistem juga nol, dan tutup buku bisa memeriksanya dengan satu query."
+    }
+  ],
+  "mekanisme": [
+    "Satu kejadian ditulis sebagai satu jurnal. Setiap buku yang uangnya berubah mendapat satu posting di jurnal itu.",
+    "Rekeningo memakai satu angka bertanda per posting: positif berarti uang masuk ke buku itu, negatif berarti keluar.",
+    "Uang yang keluar dari satu buku sama dengan uang yang masuk ke buku lain, jadi jumlah posting satu jurnal 0. Database lab menolak jurnal yang jumlahnya bukan 0 saat COMMIT dengan SQLSTATE 23514.",
+    "Karena setiap jurnal berjumlah 0, jumlah semua posting di sistem juga 0. Rekaman `tutup-buku.txt` bagian B: 11 jurnal, 0 tidak seimbang, jumlah semua posting 0."
+  ],
+  "stack": {
+    "lihat": "jurnal",
+    "teks": "Dua sisi ditulis sebagai posting di satu jurnal, jadi kode di keenam stack sama dengan kode jurnal."
+  },
+  "jebakan": [
+    "Menulis satu sisi dulu, lalu sisi lainnya di transaction berikutnya. Transaction pertama ditolak saat COMMIT karena jurnalnya belum berjumlah 0 (rekaman `invarian.txt` bagian A).",
+    "Mengira dua sisi berarti dua kolom, debit dan kredit, di setiap baris. Lab menyimpan satu kolom bertanda, jadi aturannya cukup satu: jumlah posting jurnal itu 0.",
+    "Mengira buku sistem tidak boleh negatif. Buku tunjangan −Rp250.000 berarti tunjangan sudah mengeluarkan Rp250.000; aturan saldo tidak negatif hanya untuk buku karyawan."
+  ],
+  "terkait": [
+    "Jurnal",
+    "Debit",
+    "Kredit",
+    "Invarian",
+    "Buku ledger",
+    "Tutup buku"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-38",
+      "judul": "OpenStax, Principles of Accounting Volume 1, bagian 3.5",
+      "url": "https://openstax.org/books/principles-financial-accounting/pages/3-5-use-journal-entries-to-record-transactions-and-post-to-t-accounts",
+      "catatan": "Setiap journal entry punya total debit yang sama dengan total kredit."
+    },
+    {
+      "riset": "R2-06",
+      "judul": "Square Engineering: Books, an immutable double-entry accounting database service",
+      "url": "https://developer.squareup.com/blog/books-an-immutable-double-entry-accounting-database-service/",
+      "catatan": "16 Oktober 2019: satu jumlah bertanda per entri, dan jurnal harus berjumlah 0."
+    },
+    {
+      "riset": "R2-60",
+      "judul": "Rekaman lab b3-ledger: tiga invarian",
+      "rekaman": "labs/b3-ledger/output/invarian.txt",
+      "catatan": "Jurnal tunjangan −250.000 dan Budi +25.000 ditolak saat COMMIT dengan SQLSTATE 23514."
+    },
+    {
+      "judul": "Rekaman lab b3-ledger: tutup buku",
+      "rekaman": "labs/b3-ledger/output/tutup-buku.txt",
+      "catatan": "Bagian B: 11 jurnal, 0 tidak seimbang, jumlah semua posting 0."
+    }
+  ]
+}
