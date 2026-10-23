@@ -91,9 +91,16 @@ def main():
         print(f"masuk sah · {len(files)} file · {len(semua)} keputusan · {sum(map(len, polesan.values()))} polesan")
         return
     if semua:
-        t = open(KEP, encoding="utf-8").read().rstrip("\n") + "\n"
-        t += "\n".join(sorted(semua, key=nomor)) + "\n"
-        open(KEP, "w", encoding="utf-8").write(t)
+        # Baris baru masuk ke tabel dan seluruh baris keputusan diurutkan menurut nomor di tempatnya
+        # (baris lain di file tidak berpindah), supaya PR yang di-merge tidak berurutan tetap terbaca urut.
+        L = open(KEP, encoding="utf-8").read().rstrip("\n").split("\n")
+        idx = [i for i, b in enumerate(L) if BARIS_KEP.match(b) or re.match(r"^\| \d+ \|", b)]
+        L[idx[-1] + 1:idx[-1] + 1] = semua
+        idx = [i for i, b in enumerate(L) if re.match(r"^\| \d+ \|", b)]
+        urut = sorted((L[i] for i in idx), key=lambda b: int(re.match(r"^\| (\d+) \|", b).group(1)))
+        for i, b in zip(idx, urut):
+            L[i] = b
+        open(KEP, "w", encoding="utf-8").write("\n".join(L) + "\n")
     for tahap, xs in sorted(polesan.items()):
         p = f"plan/SETELAH-TAHAP-{tahap}.md"
         if os.path.exists(p):
