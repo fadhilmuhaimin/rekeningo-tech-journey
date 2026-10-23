@@ -55,7 +55,7 @@
     "supabase": {
       "label": "Tidak dijalankan",
       "versi": "supabase-js 2.118.0",
-      "teks": "Fungsi PostgreSQL `saldo_buku` dengan `security invoker` dipanggil `supabase.rpc()`, jadi policy RLS di `posting` tetap berlaku untuk user yang memanggil.",
+      "teks": "Fungsi PostgreSQL `saldo_buku` dengan `security invoker` dipanggil `supabase.rpc()`, jadi policy RLS di `posting`, bila ada, tetap berlaku untuk user yang memanggil.",
       "dokumentasi": "https://supabase.com/docs/guides/database/functions"
     }
   },

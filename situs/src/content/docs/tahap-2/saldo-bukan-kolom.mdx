@@ -73,7 +73,7 @@ Ledger membalik arah penyimpanan: catatan disimpan, saldo dihitung. Setiap akun 
 
 <Snippet file="labs/b3-ledger/output/kejadian.txt" lines="155:177" title="Rekaman lab: labs/b3-ledger/output/kejadian.txt" />
 
-Tiga baris pertama berasal dari migrasi. Saldo kolom Rp180.000 menjadi jurnal pembuka, dan potongan M4 yang tidak punya baris menjadi jurnal `selisih` yang dibalik koreksinya. Saldo Rp110.000 di antaranya hanya urutan baris di dalam transaction migrasi. Riwayat sebelum migrasi tidak ikut jadi posting; di lab api-t2, tabel Tahap 1 disalin ke schema arsip sebelum dihapus (rekaman `migrasi.txt` bagian D).
+Tiga baris pertama berasal dari migrasi. Saldo kolom Rp180.000 menjadi jurnal pembuka, dan potongan M4 yang tidak punya baris menjadi jurnal `selisih` yang dibalik koreksinya. Saldo Rp110.000 di antaranya hanya urutan baris di dalam transaction migrasi. Riwayat sebelum migrasi tidak ikut jadi posting; di lab api-t2, tabel Tahap 1 disalin ke schema arsip sebelum dihapus (rekaman api-t2 `migrasi.txt` bagian D).
 
 **Koreksi adalah baris baru.** Salah bayar Rp15.000 ke Warung Sari (jurnal 10) dibatalkan jurnal 11 dengan posting cermin, alasan, dan rujukan ke jurnal asal. Kedua jurnal tetap ada, dan saldo Budi kembali Rp385.000:
 
@@ -89,7 +89,7 @@ Job malam membandingkan keduanya. Di rekaman lab api-t2, kode yang salah menamba
 
 <Snippet file="labs/api-t2/output/migrasi.txt" lines="206:218" title="Rekaman lab: labs/api-t2/output/migrasi.txt" />
 
-Job keluar dengan status 1 supaya penjadwal memberi tahu, dan tidak memperbaiki cache sendiri. Selisih berarti ada kode yang menulis cache tanpa posting, dan kode itu yang harus dicari. Cache juga punya masalah kedua: dua transfer bersamaan bisa sama-sama membaca saldo lama, dibahas di [[t2-m9]].
+Job keluar dengan status 1 supaya penjadwal memberi tahu, dan tidak memperbaiki cache sendiri. Selisih berarti ada kode yang menulis cache tanpa posting, dan kode itu yang harus dicari. Pemeriksaan saldo punya masalah sendiri: dua transfer bersamaan bisa sama-sama lolos sebelum salah satunya `COMMIT`. Naskah menjawabnya dengan mengunci baris cache saat transfer ([[t2-m9]]).
 
 Kalau di app Flutter kamu menghitung total keranjang dari daftar item, bukan menyimpan total sebagai field kedua, idenya sama. Bedanya, daftar di ledger tidak pernah diedit; item yang salah dibatalkan dengan item baru.
 
@@ -172,7 +172,7 @@ AS $$ SELECT cast(coalesce(sum(jumlah), 0) AS bigint) FROM posting WHERE buku_id
 
 <Snippet lang="js" code={`const { data: saldo, error } = await supabase.rpc('saldo_buku', { buku: 7 })`} />
 
-**Yang berbeda di stack ini:** saldo dihitung di fungsi database, dan app memanggilnya lewat `rpc()`. Dengan `security invoker`, fungsi berjalan dengan hak user yang memanggil, jadi policy RLS di `posting` tetap membatasi buku yang bisa dibaca.
+**Yang berbeda di stack ini:** saldo dihitung di fungsi database, dan app memanggilnya lewat `rpc()`. Dengan `security invoker`, fungsi berjalan dengan hak user yang memanggil, jadi policy RLS di `posting`, bila ada, tetap membatasi buku yang bisa dibaca.
 
 </Fragment>
 </TabSet>
