@@ -1,0 +1,153 @@
+---
+title: "2.1 PRD v2: Rekeningo untuk seluruh kampus"
+description: Dokumen produk kedua Rekeningo. Sinta menulisnya untuk 1.000 karyawan dan 12 warung, Pak Hadi memperketat aturannya, dan Raka membangunnya bersama Nadia selama 8 minggu.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import prdDiagram from "../../../../data/diagram/t2-prd-sebelum-sesudah.json";
+
+<p class="meta">Baca 5 menit · Prasyarat: [[t1-jembatan]] · Jalur inti</p>
+
+Sinta menulis PRD kedua ini untuk seluruh kampus pusat **Grup Lestari** (fiktif). Raka tidak lagi sendirian: Nadia, backend engineer dari tim ERP, ikut membangunnya.
+
+<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v2">
+  <dl><div><dt>Penulis</dt><dd>Sinta, unit Inisiatif Digital</dd></div><div><dt>Syarat audit</dt><dd>Pak Hadi, Kepala Divisi Keuangan</dd></div></dl>
+  <dl><div><dt>Lingkup</dt><dd>Seluruh kampus pusat: 3 gedung, ±1.000 karyawan, 12 warung</dd></div><div><dt>Waktu</dt><dd>8 minggu, 2 engineer</dd></div></dl>
+</div>
+
+<Blok nama="Latar masalah" buka>
+
+Uji coba Gedung A lolos. Dari 100 penguji, 91 aktif, dan rekonsiliasi selesai dalam 4 jam dengan selisih nol sesudah koreksi Rp70.000 yang tercatat ([[t1-m8]]).
+
+Direksi memperluas Rekeningo ke seluruh kampus pusat: tiga gedung, sekitar 1.000 karyawan, dan 12 warung tenant. Tiga hal belum terjawab oleh uji coba. Karyawan masih membayar patungan makan siang dengan tunai, dan warung masih menunggu admin mentransfer pencairan dengan tangan.
+
+Keuangan juga masih butuh 4 jam untuk merekap satu gedung. Untuk 10 kali lipat karyawan, rekap tangan tidak mungkin lagi.
+
+<Rantai data={prdDiagram} />
+
+Angka di dokumen ini adalah angka cerita (Ilustrasi), kecuali yang ditulis Asumsi atau Rekaman lab.
+
+</Blok>
+
+<Blok nama="Tujuan">
+
+1. Semua karyawan kampus pusat memakai Rekeningo untuk makan siang.
+2. Patungan tanpa tunai.
+3. Tutup buku bulanan selesai dalam satu hari dan bisa dibuktikan dari data.
+4. Pencairan warung terjadwal, tanpa kerja admin.
+
+</Blok>
+
+<Blok nama="User dan kebutuhan barunya">
+
+| User | Kebutuhan baru | Yang membuatnya berhenti memakai |
+|---|---|---|
+| Karyawan (Budi) | Kirim uang ke teman untuk patungan; riwayat panjang yang tetap cepat | Tertagih dua kali; riwayat lambat atau berisi data ganda |
+| Warung (Ani dan 11 lainnya) | Pencairan otomatis tiap Jumat; laporan yang cocok dengan buku | Pencairan terlambat atau jumlahnya beda |
+| Keuangan (Pak Hadi) | Laporan bulanan yang bisa ditelusuri sampai transaksi pertama | Ada angka yang tidak bisa dijelaskan dari data |
+| Admin tunjangan | Top-up 1.000 akun tiap Senin dalam satu langkah | Top-up setengah jalan |
+
+</Blok>
+
+<Blok nama="Ruang lingkup">
+
+Lingkupnya seluruh kampus pusat: 1.000 karyawan dan 12 warung, selama 8 minggu.
+
+| Prioritas | Fitur | Keterangan |
+|---|---|---|
+| P0 | Transfer antar karyawan | Kirim ke rekan lewat nomor karyawan; batas Rp500.000 per hari |
+| P0 | Tutup buku bulanan | Laporan per akun dan per warung: saldo awal + mutasi = saldo akhir, untuk seluruh sistem |
+| P0 | Pencairan warung terjadwal | Setiap Jumat 15.00 saldo warung dicairkan; Keuangan menerima satu file transfer untuk diunggah ke bank |
+| P0 | Top-up 1.000 akun | Satu file CSV dari HR, satu operasi |
+| P1 | Riwayat panjang | Gulir tanpa batas, tetap cepat walau sudah ribuan transaksi |
+| P1 | Login yang lebih aman | Password sementara wajib diganti saat login pertama; percobaan salah dibatasi |
+| P2 | Notifikasi saat menerima transfer | Diminta Budi; ditunda ke v3 |
+
+**Bukan lingkup v2:** integrasi bank langsung, user di luar Grup Lestari, cabang di kota lain, dashboard web untuk warung, notifikasi push, dan promo.
+
+Pratinjau di [[t1-jembatan]] menyebut empat fitur. PRD lengkap menambah top-up 1.000 akun, riwayat panjang, dan login yang lebih aman. Ekspor laporan bulanan masuk ke tutup buku sebagai laporan per akun dan per warung.
+
+</Blok>
+
+<Blok nama="Metrik dan batasan">
+
+**Metrik keberhasilan**
+
+- Minimal 700 karyawan aktif setiap minggu.
+- Tutup buku bulan pertama selesai dalam kurang dari satu hari, dengan selisih Rp0.
+- Tidak ada kasus tertagih dua kali yang tidak terdeteksi otomatis.
+
+**Batasan**
+
+- Dua engineer, Raka dan Nadia, selama 8 minggu.
+- Tetap satu server produksi, dan anggaran tidak bertambah.
+- Aturan Pak Hadi diperketat:
+
+| PRD | Aturan Pak Hadi |
+|---|---|
+| v1 | "Tidak ada angka yang berubah tanpa catatan siapa, kapan, kenapa." |
+| v2 | "Setiap rupiah di saldo siapa pun harus bisa ditelusuri ke kejadian yang membuatnya, tanpa tabel koreksi tangan." |
+
+**Beban yang diharapkan (Asumsi)**
+
+| Besaran | Nilai | Cara hitung |
+|---|---|---|
+| User terdaftar | 1.000 | PRD v2 |
+| User aktif harian (DAU) | 300 | 1.000 × 30% (asumsi) |
+| Request per hari | 12.000 | 300 × 40 request (asumsi) |
+| Puncak request per detik | ±1,4 | 12.000 ÷ 86.400 × 10 (asumsi) |
+
+Puncaknya 10 kali puncak uji coba di [[t1-m8]], dan masih di bawah dua request per detik.
+
+</Blok>
+
+<Blok nama="Tim dan risiko">
+
+Tahap 2 punya satu tokoh baru:
+
+| Tokoh baru | Nadia |
+|---|---|
+| Siapa | Backend engineer dari tim ERP, dipindah ke Rekeningo. Lima tahun memakai Java dan PostgreSQL, terbiasa dengan aturan akuntansi ERP |
+| Ingin | Kode yang bisa diaudit dan dites |
+| Kelemahan | Terlalu cepat mengusulkan solusi "seperti di ERP" yang terlalu berat untuk Rekeningo |
+| Yang dibawanya | Pandangan kedua di setiap keputusan, review PR, dan bahasa akuntansi: debit, kredit, jurnal |
+
+Tokoh lama tetap ada. Budi kini sering patungan, dan Ani kini satu dari 12 warung. Syarat audit Pak Hadi makin ketat, dan Dimas tetap orang yang mencoba.
+
+Sinta menulis tiga risiko:
+
+1. Dua engineer bekerja di satu kode untuk pertama kalinya.
+2. Volume naik 10 kali lipat.
+3. Transfer antar karyawan membuka jenis penyalahgunaan baru.
+
+</Blok>
+
+<Blok nama="Pertanyaan terbuka">
+
+Dua pertanyaan ini ada di PRD v2, tapi belum dijawab:
+
+1. Apa yang terjadi kalau dua transfer dari akun yang sama terjadi bersamaan?
+2. Kalau app mengulang permintaan karena sinyal putus, apakah uang terkirim dua kali?
+
+Tidak ada yang menjawabnya sebelum kode ditulis. Keduanya jadi masalah terbesar Tahap 2.
+
+</Blok>
+
+<Blok nama="Yang dibuka lagi dari Tahap 1">
+
+Di [[t1-jembatan]] kamu menebak ADR Tahap 1 mana yang dibuka lagi. Jawabannya ADR 6 dan ADR 5 dari [[t1-adr-transaction]]. PRD lengkap menunjukkan baris mana yang membuka masing-masing.
+
+**ADR 6, tabel koreksi: diganti.** Di Tahap 1, saldo yang salah diperbaiki lewat baris koreksi: siapa, berapa, kenapa, kapan. Aturan Pak Hadi v2 melarang tabel koreksi tangan. Tutup buku juga meminta saldo awal + mutasi = saldo akhir untuk setiap akun.
+
+Rekaman lab koreksi Tahap 1 (`koreksi.txt` bagian D, lab `api-t1`) sudah gagal di syarat itu. Saldo Budi Rp250.000, tapi catatannya menghitung Rp320.000, karena pemotongan Rp70.000 di M4 tidak punya baris di tabel mana pun. Penggantinya mulai di [[t2-saldo-bukan-kolom]].
+
+**ADR 5, transaction di service: tetap, tapi tidak cukup.** Pembayaran yang gagal di tengah tetap di-rollback seluruhnya. Rekaman lab `sengaja-belum.txt` bagian B–E di [[t1-adr-12]] menunjukkan dua hal yang tidak dicegahnya:
+
+- Dua Bayar Rp200.000 bersamaan dari saldo Rp250.000 sama-sama lolos pemeriksaan saldo. Satu berhasil, yang kedua ditahan constraint `saldo_tidak_negatif`, dan Budi melihat 500.
+- Bayar Rp25.000 yang diulang sesudah sinyal putus tercatat dua kali.
+
+Keduanya adalah dua pertanyaan terbuka di atas. Metrik PRD v2 meminta nol kasus tertagih dua kali yang tidak terdeteksi otomatis, dan rekaman kedua adalah kasus seperti itu. Lanjutannya di [[t2-m9]] dan [[t2-m10]].
+
+ADR 12 tidak dibuka lagi. Beban PRD v2 masih di bawah dua request per detik, jadi yang diuji Tahap 2 adalah kebenaran data, bukan kapasitas.
+
+</Blok>
