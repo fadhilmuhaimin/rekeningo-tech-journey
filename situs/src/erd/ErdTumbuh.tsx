@@ -5,10 +5,13 @@
 // - Node adalah tombol: klik atau Enter membuka kolom lengkap dan halaman yang menjelaskannya di bawah diagram.
 // - Diagram tidak bisa digeser atau di-zoom dan tidak menangkap scroll; zoom selalu 1 kecuali tata terlalu lebar.
 // - Versi statis (daftar tabel dan kolom) terlihat sebelum JS dan tanpa JS, dan tetap ada untuk pembaca layar.
-//   Tinggi wadah dipesan sejak SSR (varPesan), jadi hydrate tidak menggeser halaman.
+//   Tinggi wadah dipesan sejak SSR (varPesan), jadi hydrate tidak menggeser halaman. Halaman dengan satu tahap boleh
+//   mengirim versi statisnya sendiri lewat children (ErdHalaman.astro: Erd.astro, keputusan 697).
+// - Bawaan React Flow yang tidak berguna bagi pembaca layar disembunyikan: garis dan lapisan svg-nya aria-hidden,
+//   node tanpa "node", pembungkus application bernama; tombol tabel menerima klik dan tap (keputusan 466, 698, 699).
 // - Berganti tahap atau mode = gerak masuk singkat (gerak/muncul.ts); reduced motion tanpa gerak.
 // Dimuat hanya di halaman yang memakainya, dengan client:visible.
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { BaseEdge, Handle, MarkerType, Position, ReactFlow, type Edge, type EdgeProps, type Node, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/base.css";
 import "./erd-tumbuh.css";
@@ -174,9 +177,20 @@ function Detail({ t, panel, tautan, sebelum, no }: { t: TabelTampil; panel: Pane
   );
 }
 
-type Props = { id: string; judul: string; data: DataErd[]; tautan: TautanTahap; awal: number; uji?: number[] };
+type Props = {
+  id: string;
+  judul: string;
+  data: DataErd[];
+  tautan: TautanTahap;
+  awal: number;
+  uji?: number[];
+  /** Versi statis dari halaman (Erd.astro) menggantikan daftar bawaan; hanya untuk satu tahap, karena tidak mengikuti
+   * tahap atau mode yang dipilih. */
+  children?: ReactNode;
+};
 
-export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [] }: Props) {
+export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [], children }: Props) {
+  if (children && data.length > 1) throw new Error(`ErdTumbuh ${id}: versi statis dari halaman hanya untuk satu tahap`);
   const panggung = useRef<HTMLDivElement>(null);
   const [lebar, setLebar] = useState<number | null>(null); // null = belum di-hydrate: versi statis
   const [no, setNo] = useState(awal);
@@ -195,6 +209,15 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [] }: P
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // React Flow membungkus setiap garis dengan <svg> yang tidak menerima atribut dari luar; sesudah garisnya aria-hidden,
+  // Chromium membacakan svg kosong itu sebagai "image" tanpa nama (temuan #274: 11 dari 12 di /uji/erd/). Seluruh
+  // lapisan garis disembunyikan (pola keputusan 680). Efek tanpa daftar dependensi: React Flow dipasang ulang setiap
+  // kunci panel berganti (tahap, mode, bentuk, lebar), dan atribut yang tidak dikelola React tidak ikut terhapus.
+  // ukur-erd.mjs gagal bila svg garis terbaca lagi (keputusan 698).
+  useLayoutEffect(() => {
+    for (const el of panggung.current?.querySelectorAll(".react-flow__edges") ?? []) el.setAttribute("aria-hidden", "true");
+  });
 
   // Gerak masuk hanya sesudah pembaca memilih tahap atau mode, tidak saat dimuat.
   useLayoutEffect(() => {
@@ -249,20 +272,23 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [] }: P
       <figcaption className="erd-tumbuh__judul">
         <strong>{judul}</strong>
       </figcaption>
-      <div className="erd-tumbuh__kontrol">
-        <div role="group" aria-label="Pilih tahap" className="erd-tumbuh__pilih">
-          {data.map((d) => (
-            <button key={d.tahap} type="button" aria-pressed={no === d.tahap} onClick={() => ganti(d.tahap, banding)}>
-              Tahap {d.tahap}
+      {/* Satu tahap (1.12): tanpa pemilih, karena satu tombol yang selalu tertekan tidak memilih apa pun (keputusan 697). */}
+      {data.length > 1 && (
+        <div className="erd-tumbuh__kontrol">
+          <div role="group" aria-label="Pilih tahap" className="erd-tumbuh__pilih">
+            {data.map((d) => (
+              <button key={d.tahap} type="button" aria-pressed={no === d.tahap} onClick={() => ganti(d.tahap, banding)}>
+                Tahap {d.tahap}
+              </button>
+            ))}
+          </div>
+          {bisaBanding(data, no) && (
+            <button type="button" className="erd-tumbuh__banding" aria-pressed={banding} onClick={() => ganti(no, !banding)}>
+              Bandingkan dengan Tahap {sebelum}
             </button>
-          ))}
+          )}
         </div>
-        {bisaBanding(data, no) && (
-          <button type="button" className="erd-tumbuh__banding" aria-pressed={banding} onClick={() => ganti(no, !banding)}>
-            Bandingkan dengan Tahap {sebelum}
-          </button>
-        )}
-      </div>
+      )}
       {adaStatus && (
         <p className="erd-tumbuh__legenda" aria-hidden="true">
           {(["baru", "berubah", "tetap", "dihapus"] as const).map((s) => (
@@ -274,9 +300,7 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [] }: P
       )}
       <div ref={panggung} className="erd-tumbuh__panggung" style={pesan}>
         <div className={lebar === null ? "erd-tumbuh__statis" : "erd-tumbuh__statis sr-only"}>
-          {panel.map((p) => (
-            <Statis key={p.sisi} panel={p} tautan={tautan} />
-          ))}
+          {children ?? panel.map((p) => <Statis key={p.sisi} panel={p} tautan={tautan} />)}
         </div>
         <div className={`erd-tumbuh__panel${berdampingan ? " is-berdampingan" : ""}`} aria-hidden={lebar === null ? true : undefined}>
           {panel.map((p, i) => {
@@ -339,6 +363,9 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [] }: P
                     <ReactFlow
                       key={`${p.sisi}-${p.tahap}-${h.bentuk}-${lebarPanel}`}
                       id={`${id}-${p.sisi}`}
+                      // React Flow memasang role="application" tanpa nama, padahal WAI-ARIA 1.2 mewajibkan nama untuk
+                      // role itu; role-nya tidak bisa diganti lewat props, namanya bisa (pola keputusan 682, 699).
+                      aria-label={`${panel.length === 2 ? p.judul : judul}, tabel bisa dipilih`}
                       nodes={nodes}
                       edges={edges}
                       nodeTypes={jenisNode}

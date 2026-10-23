@@ -358,7 +358,8 @@ export function ringkasan(tabel: TabelTampil[]): string {
 
 // ── Tautan dari registry ────────────────────────────────────────────────────────────────────────────────────────
 
-export type Tautan = { label: string; href: string | null; catatan: "segera" | "versi lama" | null };
+// "halaman ini": halaman yang sedang dibaca, tanpa tautan ke dirinya sendiri (ErdHalaman.astro, keputusan 697).
+export type Tautan = { label: string; href: string | null; catatan: "segera" | "versi lama" | "halaman ini" | null };
 export type HalamanRegistry = { id: string; judul: string; nomor?: string; ada?: boolean; lama?: boolean; path: string };
 export type TautanTahap = Record<string, Record<string, Tautan[]>>;
 
@@ -385,4 +386,17 @@ export function tautanHalaman(peta: PetaHalaman, semua: DataErd[], halaman: Hala
     }
   }
   return hasil;
+}
+
+/**
+ * Tautan ke halaman yang sedang dibaca diganti teks tanpa tautan, "(halaman ini)": di 1.12 tabel akun dijelaskan di
+ * 1.12 sendiri (keputusan 697). Path dibandingkan apa adanya (registry dan Astro.url sama-sama berakhiran "/").
+ */
+export function tandaiHalamanIni(tautan: TautanTahap, path: string): TautanTahap {
+  return Object.fromEntries(
+    Object.entries(tautan).map(([no, isi]) => [
+      no,
+      Object.fromEntries(Object.entries(isi).map(([tabel, daftar]) => [tabel, daftar.map((t) => (t.href === path ? { ...t, href: null, catatan: "halaman ini" as const } : t))])),
+    ]),
+  );
 }

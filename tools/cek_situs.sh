@@ -120,8 +120,9 @@ jalan_ukur() {
       # Daftar kecil yang mewakili setiap template dan setiap island React, semuanya 0 pelanggaran saat dipasang. Halaman
       # dengan pelanggaran yang belum diperbaiki (tugas A11y-gulir-tabel) tidak dimasukkan; seluruh tahap diperiksa saat
       # evaluasi (W4): node tools/ukur-axe.mjs --url ... --semua --awalan /tahap-N/ (keputusan 693, 694).
-      echo "== axe-core wcag2a, wcag2aa, wcag21aa, wcag22aa: 10 halaman × 375 dan 1366 × gelap dan terang, uji diri fixture (G-axe)"
+      echo "== axe-core wcag2a, wcag2aa, wcag21aa, wcag22aa: 11 halaman × 375 dan 1366 × gelap dan terang, uji diri fixture (G-axe)"
       (cd situs && node tools/ukur-axe.mjs --url "$URL" --path / --path /tahap-1/prd-v1/ --path /tahap-1/fitur-bayar/ \
+        --path /tahap-1/data-modeling/ \
         --path /tahap-1/transaction/ --path /tahap-1/m3-tanda-kutip/ --path /tahap-1/m8-uji-coba-lolos/ \
         --path /tahap-1/sengaja-belum/ --path /tahap-1/tim-infra/ --path /tahap-2/prd-v2/ --path /uji/erd/) ;;
     alur)

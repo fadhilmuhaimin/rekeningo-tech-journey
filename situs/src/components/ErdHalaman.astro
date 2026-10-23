@@ -1,0 +1,45 @@
+---
+/**
+ * ERD bertumbuh (ErdTumbuh, keputusan 460–467) di halaman konten (ERD-1.12, keputusan 697).
+ *   import ErdHalaman from "../../../components/ErdHalaman.astro";
+ *   <ErdHalaman id="erd-t1" tahap={[1]} />
+ * Data dari situs/data/erd/tahap-<n>.json (tools/erd.py, keputusan 375); halaman yang menjelaskan tiap tabel dari
+ * situs/data/erd/halaman.json dan registry. Halaman yang sedang dibaca tampil tanpa tautan, "(halaman ini)".
+ * Satu tahap: versi statis = Erd.astro (kotak HTML dan garis CSS, tanpa JS) di dalam widget. Terlihat tanpa JS dan
+ * sebelum hydrate, lalu tetap dibaca pembaca layar. Lebih dari satu tahap: versi statis bawaan ErdTumbuh, yang
+ * mengikuti tahap dan mode yang dipilih.
+ * React Flow dimuat hanya di halaman yang memakai komponen ini, saat diagram masuk layar (client:visible).
+ */
+import ErdTumbuh from "../erd/ErdTumbuh";
+import Erd from "./Erd.astro";
+import { DataErd, PetaHalaman } from "../erd/skema";
+import { tandaiHalamanIni, tautanHalaman } from "../erd/tumbuh";
+import petaHalaman from "../../data/erd/halaman.json";
+import { muat, url } from "../../tools/registri.mjs";
+
+interface Props {
+  id: string;
+  tahap: number[];
+  awal?: number;
+  judul?: string;
+}
+const { id, tahap } = Astro.props;
+const berkas = import.meta.glob("../../data/erd/tahap-*.json", { eager: true, import: "default" });
+const data = tahap.map((n) => {
+  const isi = berkas[`../../data/erd/tahap-${n}.json`];
+  if (!isi) throw new Error(`ErdHalaman ${id}: situs/data/erd/tahap-${n}.json tidak ada`);
+  return DataErd.parse(isi);
+});
+const awal = Astro.props.awal ?? tahap[tahap.length - 1];
+const judul = Astro.props.judul ?? (tahap.length === 1 ? `Skema akhir Tahap ${tahap[0]}` : "Skema data dari tahap ke tahap");
+const tautan = tandaiHalamanIni(tautanHalaman(PetaHalaman.parse(petaHalaman), data, muat().halaman, url), Astro.url.pathname);
+---
+{
+  tahap.length === 1 ? (
+    <ErdTumbuh client:visible id={id} judul={judul} data={data} tautan={tautan} awal={awal}>
+      <Erd data={data[0]} judul={judul} tanpaJudul />
+    </ErdTumbuh>
+  ) : (
+    <ErdTumbuh client:visible id={id} judul={judul} data={data} tautan={tautan} awal={awal} />
+  )
+}
