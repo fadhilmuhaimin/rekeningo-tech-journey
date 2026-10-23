@@ -1016,11 +1016,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### ERD-1.12 · Widget ERD bertumbuh di 1.12
 
 - jenis: interaksi
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: G-axe, ERD2
 - selesai bila: Blok Paham 1.12 memakai `ErdTumbuh` dengan data `situs/data/erd/tahap-1.json` (versi statis tetap untuk pembaca layar dan tanpa JS); React Flow hanya dimuat di 1.12 dan `/uji/erd/`; ukuran JS 1.12 sebelum/sesudah dicatat di `plan/AUDIT-TAMPILAN.md`; layar pertama 1.12 tidak bergeser; axe 0; lapisan svg garis ErdTumbuh tidak terbaca sebagai `image` tanpa nama di pohon aksesibilitas Chromium (CDP `Accessibility.getFullAXTree`, pola keputusan 680; temuan #274: 11 dari 12 svg garis di `/uji/erd/`); klik dan tap kotak tabel ErdTumbuh sampai ke tombolnya (node React Flow pointer-events none, pola keputusan 681) dan diuji lewat koordinat; `ukur-erd.mjs` lolos dan gagal bila salah satunya kembali.
-- catatan: Langkah 4 Tahap 2 (naskah "Dipasang di: 1.12 … satu PR kecil di Tahap 1"). Pengecualian pembekuan Tahap 1 atas permintaan naskah (keputusan 555). 2.9 memasang mode bandingkan di PR halamannya.
+- catatan: Langkah 4 Tahap 2 (naskah "Dipasang di: 1.12 … satu PR kecil di Tahap 1"). Pengecualian pembekuan Tahap 1 atas permintaan naskah (keputusan 555). 2.9 memasang mode bandingkan di PR halamannya. PR #285, keputusan 697–700: `ErdHalaman.astro` di blok Paham 1.12 (`tahap={[1]}`), versi statis Erd.astro lewat `children` (tanpa JS dan pembaca layar), tanpa pemilih tahap, tautan ke 1.12 sendiri "(halaman ini)"; ErdTumbuh: lapisan svg garis aria-hidden (CDP image tanpa nama 11 → 0 di `/uji/erd/`), `pointer-events: auto` di tombol tabel (klik dan tap), application bernama; `ukur-erd.mjs` memeriksa pohon aksesibilitas, klik/tap, dan 1.12, uji mutasi GAGAL 12/8/12/5; layar pertama 1.12 identik di 4 ukuran, CLS 0, axe 0 (gerbang axe kini 11 halaman); JS 1.12 saat dimuat tetap 56,6 KB gzip, 186,6 KB sesudah semua blok dibuka (React Flow hanya sesudah Paham dibuka). Tiga polesan ke SETELAH-TAHAP-1.
 
 ### G-istilah · Halaman glosarium per istilah
 
