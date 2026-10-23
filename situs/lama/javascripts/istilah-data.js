@@ -452,6 +452,15 @@ window.ISTILAH = {
   "t": "Lease",
   "u": "b-fondasi/b10-1-background-job/"
  },
+ "Ledger": {
+  "b": "t2-saldo-bukan-kolom",
+  "d": "Cara mencatat uang dengan menyimpan setiap perpindahan sebagai baris yang tidak diubah; saldo adalah jumlah baris itu, bukan angka yang ditimpa.",
+  "h": "istilah/ledger/",
+  "n": "2.6 Kenapa saldo bukan kolom",
+  "s": "istilah-ledger",
+  "t": "Ledger",
+  "u": "tahap-2/saldo-bukan-kolom/"
+ },
  "Load balancer": {
   "b": "D2",
   "d": "Komponen yang membagi request ke beberapa instance server yang sama.",
@@ -723,6 +732,15 @@ window.ISTILAH = {
   "s": "istilah-polling",
   "t": "Polling",
   "u": "e-mobile/e4-push-real-time/"
+ },
+ "Posting": {
+  "b": "t2-ledger",
+  "d": "Satu baris uang di dalam jurnal untuk satu buku: negatif bila uang keluar, positif bila masuk; saldo buku adalah jumlah posting-nya.",
+  "h": "istilah/posting/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-posting",
+  "t": "Posting",
+  "u": null
  },
  "Primary": {
   "b": "D3",
@@ -1369,6 +1387,15 @@ window.ISTILAH = {
   "t": "Lease",
   "u": "b-fondasi/b10-1-background-job/"
  },
+ "ledger": {
+  "b": "t2-saldo-bukan-kolom",
+  "d": "Cara mencatat uang dengan menyimpan setiap perpindahan sebagai baris yang tidak diubah; saldo adalah jumlah baris itu, bukan angka yang ditimpa.",
+  "h": "istilah/ledger/",
+  "n": "2.6 Kenapa saldo bukan kolom",
+  "s": "istilah-ledger",
+  "t": "Ledger",
+  "u": "tahap-2/saldo-bukan-kolom/"
+ },
  "load balancer": {
   "b": "D2",
   "d": "Komponen yang membagi request ke beberapa instance server yang sama.",
@@ -1560,6 +1587,15 @@ window.ISTILAH = {
   "s": "istilah-polling",
   "t": "Polling",
   "u": "e-mobile/e4-push-real-time/"
+ },
+ "posting": {
+  "b": "t2-ledger",
+  "d": "Satu baris uang di dalam jurnal untuk satu buku: negatif bila uang keluar, positif bila masuk; saldo buku adalah jumlah posting-nya.",
+  "h": "istilah/posting/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-posting",
+  "t": "Posting",
+  "u": null
  },
  "primary": {
   "b": "D3",

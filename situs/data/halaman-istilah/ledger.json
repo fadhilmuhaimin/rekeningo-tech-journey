@@ -1,0 +1,101 @@
+{
+  "istilah": "Ledger",
+  "sehari_hari": "Ledger menjawab pertanyaan \"kenapa saldo ini sekian\" dengan daftar kejadian, bukan dengan satu angka. Saldo Budi tidak disimpan sebagai angka yang ditimpa; ia dihitung dari semua uang masuk dan keluar yang pernah tercatat untuknya.",
+  "cerita": [
+    {
+      "rujukan": "t1-m4",
+      "teks": "Minggu 3 Tahap 1: pembayaran Rp70.000 gagal di tengah, dan saldo Budi terpotong tanpa satu baris pun yang mencatatnya."
+    },
+    {
+      "rujukan": "t2-saldo-bukan-kolom",
+      "teks": "Pak Hadi meminta kejadian yang membuat saldo Budi Rp180.000; tiga tabel catatan Tahap 1 menjumlahkan Rp250.000."
+    },
+    {
+      "rujukan": "t2-adr-ledger",
+      "teks": "Minggu 0 Tahap 2: kolom saldo diganti ledger sebelum fitur baru ditulis."
+    }
+  ],
+  "mekanisme": [
+    "Setiap kejadian uang menulis satu `jurnal` dan dua posting atau lebih, satu untuk setiap buku yang uangnya berubah.",
+    "Posting tidak pernah di-UPDATE atau DELETE. Kesalahan dibatalkan dengan jurnal pembalik yang merujuk jurnal asal dan menulis alasannya.",
+    "Saldo satu buku adalah `coalesce(sum(jumlah), 0)` dari posting-nya. Di rekaman `kejadian.txt` bagian C, sembilan buku cocok dengan `saldo_cache` dan jumlah semua posting 0.",
+    "`buku.saldo_cache` hanya salinan cepat untuk app. Job malam membandingkannya dengan jumlah posting dan keluar dengan status 1 bila ada yang berbeda (rekaman api-t2 `migrasi.txt` bagian E)."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, pgx v5.11.0 lewat database/sql, PostgreSQL 17.11",
+      "teks": "`Repo.CekCache` menjumlahkan posting setiap buku dalam satu query `GROUP BY`, memindai hasilnya ke `int64`, lalu melaporkan buku yang `saldo_cache`-nya berbeda.",
+      "rekaman": "labs/api-t2/output/migrasi.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-postgres (pg) 8.23.1",
+      "teks": "`pool.query` dengan `cast(coalesce(sum(jumlah), 0) AS bigint)`. Nilai `int8` tiba sebagai string, jadi diubah dengan `Number()` atau parser tipe 20.",
+      "dokumentasi": "https://github.com/brianc/node-pg-types"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "`DB::select` dengan query `sum` yang sama dan binding `?`; hasilnya array `stdClass`, jadi saldo dibaca dari baris pertama lewat alias.",
+      "dokumentasi": "https://laravel.com/docs/13.x/database#running-a-select-query"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2",
+      "teks": "`aggregate(saldo=Sum(\"jumlah\", default=0))`. Tanpa `default`, buku tanpa posting menghasilkan `None`.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/ref/models/querysets/#aggregation-functions"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "`session.db.unsafeQuery` dengan query `sum` dan `QueryParameters.positional`; hasilnya `DatabaseResult`.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/raw-access"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "supabase-js 2.118.0",
+      "teks": "Fungsi PostgreSQL `saldo_buku` dengan `security invoker` dipanggil `supabase.rpc()`, jadi policy RLS di `posting` tetap berlaku untuk user yang memanggil.",
+      "dokumentasi": "https://supabase.com/docs/guides/database/functions"
+    }
+  },
+  "jebakan": [
+    "Menganggap `saldo_cache` sebagai source of truth. Cache yang ditulis tanpa posting baru ketahuan saat dibandingkan dengan jumlah posting.",
+    "Mengira ledger mencegah pembayaran setengah jadi. Tanpa transaction, posting pertama tetap tersimpan; pagar jurnal seimbang di database yang menolaknya saat COMMIT (rekaman `invarian.txt` bagian A).",
+    "Menjumlahkan posting tanpa `coalesce`. Buku tanpa posting menghasilkan NULL, bukan 0, dan `sum` atas `bigint` bertipe `numeric`."
+  ],
+  "terkait": [
+    "Posting",
+    "Jurnal",
+    "Tutup buku",
+    "Cache",
+    "Source of truth",
+    "Invarian"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-06",
+      "judul": "Square Engineering: Books, an immutable double-entry accounting database service",
+      "url": "https://developer.squareup.com/blog/books-an-immutable-double-entry-accounting-database-service/",
+      "catatan": "16 Oktober 2019: entri hanya ditambah, kesalahan dikoreksi dengan entri baru, dan setiap jurnal berjumlah 0."
+    },
+    {
+      "riset": "R2-07",
+      "judul": "Stripe: Ledger, Stripe's system for tracking and validating money movement",
+      "url": "https://stripe.dev/blog/ledger-stripe-system-for-tracking-and-validating-money-movement",
+      "catatan": "16 Februari 2024: transaksi yang sudah masuk tidak dihapus atau diubah; kesalahan diperbaiki dengan membalik lalu memproses ulang."
+    },
+    {
+      "riset": "R2-09",
+      "judul": "Rekaman lab b3-ledger: lima kejadian dan jejak saldo Budi",
+      "rekaman": "labs/b3-ledger/output/kejadian.txt",
+      "catatan": "Saldo setiap buku = jumlah posting dan sama dengan saldo_cache; satu query menampilkan kejadian di balik saldo Budi."
+    },
+    {
+      "riset": "R2-55",
+      "judul": "PostgreSQL 17: Aggregate functions",
+      "url": "https://www.postgresql.org/docs/17/functions-aggregate.html",
+      "catatan": "sum(bigint) menghasilkan numeric, dan sum tanpa baris menghasilkan NULL, bukan 0."
+    }
+  ]
+}
