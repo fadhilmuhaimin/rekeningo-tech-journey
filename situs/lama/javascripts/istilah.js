@@ -10,7 +10,7 @@
     return s ? s.src.replace(/javascripts\/istilah-data\.js.*$/, "") : "/";
   }
 
-  var pop, hideTimer, showTimer, current;
+  var pop, hideTimer, showTimer, current, diam = false;
 
   function ensurePop() {
     if (pop) return pop;
@@ -21,8 +21,46 @@
     pop.hidden = true;
     pop.addEventListener("mouseenter", function () { clearTimeout(hideTimer); });
     pop.addEventListener("mouseleave", scheduleHide);
+    pop.addEventListener("focusin", function () { clearTimeout(hideTimer); });
+    pop.addEventListener("focusout", function (e) {
+      if (!pop.contains(e.relatedTarget) && e.relatedTarget !== current) scheduleHide();
+    });
+    pop.addEventListener("keydown", popKey);
     document.body.appendChild(pop);
     return pop;
+  }
+
+  // Keyboard (keputusan 702): popover ada di akhir body, jadi urutan Tab bawaan tidak pernah sampai ke tautannya.
+  // Tab dari istilah masuk ke tautan pertama; Tab dari tautan terakhir lanjut ke elemen sesudah istilah;
+  // Shift+Tab dari tautan pertama kembali ke istilah; Esc menutup dan mengembalikan fokus ke istilah.
+  function tautanPop() { return pop && !pop.hidden ? Array.prototype.slice.call(pop.querySelectorAll("a[href]")) : []; }
+
+  function fokusDiam(node) { diam = true; node.focus(); diam = false; }
+
+  function sesudah(node) {
+    var semua = document.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]');
+    for (var i = 0; i < semua.length; i++) {
+      var x = semua[i];
+      if (x === node || pop.contains(x) || x.tabIndex < 0 || x.closest("[inert]")) continue;
+      if (!(node.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
+      if (x.checkVisibility ? !x.checkVisibility() : !x.getClientRects().length) continue;
+      return x;
+    }
+    return null;
+  }
+
+  function popKey(e) {
+    var t = tautanPop();
+    if (e.key !== "Tab" || !current || !t.length) return;
+    if (e.shiftKey && document.activeElement === t[0]) {
+      e.preventDefault();
+      fokusDiam(current);
+    } else if (!e.shiftKey && document.activeElement === t[t.length - 1]) {
+      e.preventDefault();
+      var asal = current, lanjut = sesudah(asal);
+      hide();
+      if (lanjut) lanjut.focus(); else asal.blur();
+    }
   }
 
   function el(tag, cls, text) {
@@ -151,15 +189,28 @@
         showTimer = setTimeout(function () { show(ab, root); }, 120);
       });
       ab.addEventListener("mouseleave", scheduleHide);
-      ab.addEventListener("focus", function () { show(ab, root); });
+      ab.addEventListener("focus", function () { if (!diam) show(ab, root); });
       ab.addEventListener("blur", scheduleHide);
+      ab.addEventListener("keydown", function (e) {
+        if (e.key !== "Tab" || e.shiftKey || current !== ab) return;
+        var t = tautanPop();
+        if (!t.length) return;
+        e.preventDefault();
+        clearTimeout(hideTimer);
+        t[0].focus();
+      });
       ab.addEventListener("click", function (e) {
         e.preventDefault();
         if (current === ab && pop && !pop.hidden) hide(); else show(ab, root);
       });
     });
 
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      var asal = current, dalam = pop && pop.contains(document.activeElement);
+      hide();
+      if (dalam && asal) fokusDiam(asal);
+    });
     document.addEventListener("click", function (e) {
       if (pop && !pop.hidden && !pop.contains(e.target) && !e.target.closest("abbr.istilah")) hide();
     });

@@ -633,6 +633,10 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .istilah-pop__links { display: flex; gap: 0.9rem; flex-wrap: wrap; }
 .istilah-pop__links a { color: var(--aksen); font-weight: 600; text-decoration: none; }
 .istilah-pop__links a:hover { text-decoration: underline; }
+/* Fokus keyboard (keputusan 702): tautan popover bisa dicapai Tab; latar isian istilah saja hanya ±1,2:1 terhadap latar
+   halaman, jadi istilah dan tautan mendapat garis aksen (≥ 3:1, WCAG 2.2 SC 1.4.11). */
+.istilah-pop__links a:focus-visible { outline: 2px solid var(--aksen); outline-offset: 2px; border-radius: 2px; text-decoration: underline; }
+.sl-markdown-content abbr.istilah:focus-visible { outline: 2px solid var(--aksen); outline-offset: 1px; }
 .istilah-pop__links a::after { content: " \2197"; }
 .istilah-pop__glos { color: var(--teks-2) !important; font-weight: 500 !important; }
 .sl-markdown-content tr.istilah-target td { background: var(--k-system-fill); }
