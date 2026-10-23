@@ -126,8 +126,8 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 77,
-        "halaman": 9
+        "menit": 90,
+        "halaman": 10
       },
       "versi": "lama",
       "skala": {
@@ -1422,8 +1422,9 @@
       "lab": [
         "b3-ledger"
       ],
-      "ada": false,
-      "nomor": "2.7"
+      "ada": true,
+      "nomor": "2.7",
+      "menit": 13
     },
     {
       "id": "t2-adr-ledger",

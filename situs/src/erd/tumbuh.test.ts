@@ -176,7 +176,9 @@ describe("tautan halaman dari registry", () => {
     expect(hasil["1"].akun[0]).toEqual({ label: "1.12 Data modeling dan relasi", href: "/tahap-1/data-modeling/", catatan: null });
   });
   it("halaman yang belum ditulis tanpa tautan", () => {
-    expect(hasil["2"].buku[0]).toMatchObject({ href: null, catatan: "segera" });
+    // Halaman jadi lebih dulu di daftar; sejak 2.7 ditulis, buku tidak lagi diawali halaman "segera".
+    // 2.26 (t2-job-rekonsiliasi) di daftar batch_pencairan masih jauh dari ditulis.
+    expect(hasil["2"].batch_pencairan.find((x) => x.href === null)).toMatchObject({ href: null, catatan: "segera" });
     expect(hasil["2"].kunci_idempotensi[0].catatan).toBe("versi lama");
   });
   it("ID atau tabel yang tidak dikenal menggagalkan build", () => {
