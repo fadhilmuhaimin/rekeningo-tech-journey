@@ -468,6 +468,15 @@
   "h": null
  },
  {
+  "t": "Ledger",
+  "d": "Cara mencatat uang dengan menyimpan setiap perpindahan sebagai baris yang tidak diubah; saldo adalah jumlah baris itu, bukan angka yang ditimpa.",
+  "b": "t2-saldo-bukan-kolom",
+  "n": "2.6 Kenapa saldo bukan kolom",
+  "u": "/tahap-2/saldo-bukan-kolom/",
+  "s": "istilah-ledger",
+  "h": "/istilah/ledger/"
+ },
+ {
   "t": "Little's Law",
   "d": "Rumus L = λ × W: jumlah yang sedang diproses sama dengan laju kedatangan dikali lama tiap item tinggal.",
   "b": "B2.5",
@@ -718,6 +727,15 @@
   "u": "/e-mobile/e4-push-real-time/",
   "s": "istilah-polling",
   "h": null
+ },
+ {
+  "t": "Posting",
+  "d": "Satu baris uang di dalam jurnal untuk satu buku: negatif bila uang keluar, positif bila masuk; saldo buku adalah jumlah posting-nya.",
+  "b": "t2-ledger",
+  "n": "2.7 Ledger double-entry",
+  "u": null,
+  "s": "istilah-posting",
+  "h": "/istilah/posting/"
  },
  {
   "t": "Primary",
