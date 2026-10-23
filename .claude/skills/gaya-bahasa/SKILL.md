@@ -29,6 +29,13 @@ Narasi membuka, ekspositori menjelaskan. Meta-analisis (Mar 2021; Tobler 2024) m
 - Tanpa nama merek nyata di cerita. Nama produk hanya sebagai stack yang dibandingkan atau sumber rujukan.
 - Angka selalu konkret dan selalu dari lab atau asumsi berlabel. Tidak ada "sangat cepat", "banyak sekali".
 
+## Label, tautan, dan teks alternatif (diperiksa peninjau, belum oleh alat)
+
+- Label tombol menyebut aksinya ("Buka langkah 3", "Tutup diagram"), bukan ikonnya. Label yang terlihat menjadi awal nama aksesibelnya (WCAG 2.2 SC 2.5.3), dan prosa menyebut tombol dengan labelnya persis.
+- Teks tautan bermakna tanpa kalimat di sekitarnya: judul halaman atau frasa deskriptif, bukan "di sini" atau "halaman ini". Dalam satu halaman, teks tautan yang sama tidak menuju dua halaman berbeda.
+- Ilustrasi yang `aria-hidden` tidak membawa informasi sendiri: setiap angka dan siapa melihat apa juga ada di teks DOM di dekatnya. Teks alternatif menyebut pesan gambar dan tidak mengulang judul atau keterangan di sebelahnya.
+- Sumber ketiga aturan ini: plan/RISET-SKILL.md butir 5–7.
+
 ## Cara membuat cerita yang diingat
 
 1. Mulai dari apa yang **dilihat** seseorang: layar HP, buku Ani, laporan Pak Hadi. Bukan dari log server, bukan dari konsep.

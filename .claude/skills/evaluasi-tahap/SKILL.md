@@ -30,6 +30,8 @@ Lima halaman pertama untuk axe (W4), tiga pertama untuk pertanyaan pembaca. Sesu
 | W7 | ERD tahap ini dari skema lab, berdampingan dengan sebelumnya | `python3 tools/erd.py --cek` lolos, `situs/data/erd/tahap-N.json` ada, widget ERD di halaman skema tahap ini memakai mode bandingkan N-1 dan N |
 | W8 | Jalur Berikutnya dari halaman pertama sampai jembatan tahap berikutnya tanpa 404 | Skrip yang mengikuti tautan Berikutnya dari halaman N.1 di `situs/dist` sampai halaman jembatan; daftar langkah dan status tiap tautan; `python3 tools/cek_tautan.py` lolos |
 
+Cara W4: axe dijalankan dengan `runOnly` tag `wcag2a`, `wcag2aa`, `wcag21aa`, `wcag22aa` seperti `ukur-diagram.mjs`; tanpa tag itu rule target-size (SC 2.5.8) tidak berjalan. Sebelum `axe.run`, semua `<details>` dibuka dan halaman digulir sampai island hidup (pola `ukur-luapan.mjs`), di 375×667 dan 1366×657. axe 0 belum membuktikan halaman aksesibel: satu halaman acak juga diuji dengan keyboard saja dari atas sampai Berikutnya terakhir, dan kontrol yang tidak tercapai atau fokusnya tidak terlihat dicatat (plan/RISET-SKILL.md 12–13).
+
 W1–W4 wajib YA. Satu butir = satu baris bukti di kartu; bukti yang tidak bisa diulang (mis. "sudah dilihat") tidak dihitung.
 
 ## Pertanyaan pembaca dan uji baca
