@@ -7,13 +7,17 @@
 //   digulir ke layar; kalimat pindah tabel dihapus tidak terpotong; label Inggris React Flow tidak terbaca;
 // - berganti tahap = gerak masuk; dengan reduced motion 0 animasi dan fungsi tetap;
 // - CLS ≤ 0,1 dan geser 0 px saat island di-hydrate (gulir pelan, modul JS ditunda 300 ms);
-// - halaman tanpa diagram tidak memuat React Flow; ukuran JS /uji/erd/ dicetak (baris "info").
+// - halaman tanpa diagram tidak memuat React Flow; ukuran JS /uji/erd/ dicetak (baris "info");
+// - bawaan React Flow yang tidak berguna bagi pembaca layar tidak terbaca, diperiksa di DOM dan di pohon aksesibilitas
+//   Chromium (CDP Accessibility.getFullAXTree): svg garis sebagai "image" tanpa nama, role="application" tanpa nama
+//   (keputusan 698, 699; pola 680, 682);
+// - klik (1366) dan tap (375) di tengah tabel lewat koordinat sampai ke tombolnya, bukan ke pane (pola 681);
 //   node tools/ukur-erd.mjs --url http://127.0.0.1:4321
 //   node tools/ukur-erd.mjs --url ... --axe   # + axe-core, gelap dan terang
 import { gzipSync } from "node:zlib";
 import { chromium } from "@playwright/test";
 import { awasi } from "./lib/batas.mjs";
-import { pilihAxe } from "./lib/axe.mjs";
+import { TAG_WCAG, pilihAxe } from "./lib/axe.mjs";
 
 const arg = (nama, bawaan) => {
   const i = process.argv.indexOf(nama);
@@ -30,6 +34,88 @@ const lapor = (ok, pesan) => {
   if (!ok) gagal++;
 };
 const FIG = "figure.erd-tumbuh";
+
+// Bawaan React Flow 12.12.0 yang sampai ke pembaca layar, dibaca dari DOM (pola ukur-diagram.mjs, keputusan 466, 680,
+// 682): aria-roledescription ("node", "edge"), label "Edge from X to Y", <svg> lapisan garis di luar aria-hidden, dan
+// role="application" tanpa nama. Elemen di dalam aria-hidden="true" tidak dibacakan, jadi tidak dihitung.
+const bawaanDom = (page) =>
+  page.evaluate((FIG) => {
+    const temuan = [];
+    for (const f of document.querySelectorAll(FIG)) {
+      for (const x of f.querySelectorAll("*")) {
+        if (x.closest('[aria-hidden="true"]')) continue;
+        const label = x.getAttribute("aria-label") ?? "";
+        const alasan = [
+          x.hasAttribute("aria-roledescription") && `roledescription "${x.getAttribute("aria-roledescription")}"`,
+          label.startsWith("Edge from") && `label "${label}"`,
+          x.tagName.toLowerCase() === "svg" && x.closest(".react-flow__edges") && "svg garis terbaca",
+          x.getAttribute("role") === "application" && !label.trim() && !x.hasAttribute("aria-labelledby") && "application tanpa nama",
+        ].filter(Boolean);
+        if (alasan.length) temuan.push(`${x.tagName.toLowerCase()}.${String(x.className.baseVal ?? x.className).split(" ")[0] || "-"} ${alasan.join(", ")}`);
+      }
+    }
+    return temuan;
+  }, FIG);
+
+// Pohon aksesibilitas Chromium (CDP Accessibility.getFullAXTree, cara ukur keputusan 680) di bawah setiap figure ERD:
+// node yang tidak diabaikan dengan role image atau application tanpa nama. Temuan #274: 11 dari 12 svg garis di
+// /uji/erd/ terbaca sebagai image tanpa nama. `akar` 0 berarti figure tidak ditemukan di pohon (alat rusak, gagal).
+async function bawaanAx(page) {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    const { root } = await cdp.send("DOM.getDocument", { depth: 0 });
+    const { nodeIds } = await cdp.send("DOM.querySelectorAll", { nodeId: root.nodeId, selector: FIG });
+    const figur = new Set();
+    for (const nodeId of nodeIds) figur.add((await cdp.send("DOM.describeNode", { nodeId })).node.backendNodeId);
+    const { nodes } = await cdp.send("Accessibility.getFullAXTree");
+    const per = new Map(nodes.map((n) => [n.nodeId, n]));
+    const hasil = { akar: 0, image: 0, application: 0, tanpaNama: [] };
+    const jalan = (n) => {
+      if (!n) return;
+      const role = n.role?.value;
+      if (!n.ignored && (role === "image" || role === "img" || role === "application")) {
+        hasil[role === "application" ? "application" : "image"]++;
+        if (!String(n.name?.value ?? "").trim()) hasil.tanpaNama.push(role);
+      }
+      for (const c of n.childIds ?? []) jalan(per.get(c));
+    };
+    for (const n of nodes) if (figur.has(n.backendDOMNodeId)) (hasil.akar++, jalan(n));
+    return hasil;
+  } finally {
+    await cdp.detach();
+  }
+}
+async function laporBawaan(page, tag) {
+  const dom = await bawaanDom(page);
+  const ax = await bawaanAx(page);
+  const n = (r) => ax.tanpaNama.filter((x) => (r === "application" ? x === r : x !== "application")).length;
+  lapor(
+    dom.length === 0 && ax.akar > 0 && ax.tanpaNama.length === 0 && ax.application > 0,
+    `${tag}: bawaan React Flow terbaca di DOM ${dom.length}${dom.length ? ` (${[...new Set(dom)].slice(0, 3).join("; ")})` : ""}; pohon aksesibilitas: image tanpa nama ${n("image")}, application ${ax.application} (tanpa nama ${n("application")})`,
+  );
+}
+
+// Klik (desktop) atau tap (HP) lewat koordinat di tengah tabel, bukan element.click(), supaya hit test ikut diuji:
+// React Flow memberi node tanpa handler pointer-events none dan tombol mewarisinya (pola keputusan 681, 698).
+async function klikTabel(page, awalan, sentuh) {
+  const node = page.locator(`${FIG} .erd-tumbuh__node[aria-label^="${awalan}"]`).first();
+  await node.scrollIntoViewIfNeeded();
+  const b = await node.boundingBox();
+  const [x, y] = [b.x + b.width / 2, b.y + Math.min(b.height / 2, 60)];
+  const kena = await page.evaluate(([x, y]) => {
+    const el = document.elementFromPoint(x, y);
+    return el?.closest(".erd-tumbuh__node")?.getAttribute("aria-label") ?? `${el?.tagName.toLowerCase()}.${String(el?.className?.baseVal ?? el?.className ?? "").split(" ")[0]}`;
+  }, [x, y]);
+  if (sentuh) await page.touchscreen.tap(x, y);
+  else await page.mouse.click(x, y);
+  await page.waitForTimeout(150);
+  return {
+    kena,
+    ditekan: await node.getAttribute("aria-pressed"),
+    detail: (await page.locator(`${FIG} .erd-tumbuh__detail`).textContent()) ?? "",
+    tautan: await page.locator(`${FIG} .erd-tumbuh__detail a`).evaluateAll((a) => a.map((x) => x.getAttribute("href"))),
+  };
+}
 
 // 1. Tanpa JS.
 {
@@ -77,8 +163,6 @@ const bentuk = (page) =>
       // Teks yang terpotong di node: kalimat pindah tabel dihapus (harus 0, keputusan 466) dan nama (dicetak saja).
       pindahPotong: [...f.querySelectorAll(".erd-tumbuh__pindah")].filter((x) => x.scrollHeight > x.clientHeight + 1).length,
       namaPotong: [...f.querySelectorAll(".erd-tumbuh__node code")].filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.textContent),
-      // Label bawaan React Flow berbahasa Inggris yang terbaca pembaca layar (keputusan 466).
-      inggris: [...f.querySelectorAll('[aria-roledescription], [aria-label^="Edge from"]')].filter((x) => !x.closest('[aria-hidden="true"]')).length,
       berdampingan: !!f.querySelector(".erd-tumbuh__panel.is-berdampingan"),
       lebarDok: document.documentElement.scrollWidth - innerWidth,
     };
@@ -97,7 +181,8 @@ for (const [lebar, tinggi, harus] of [
     // 2. Bentuk dan isi wadah.
     const b = await bentuk(page);
     lapor(b.bentuk === harus && b.node === 11 && b.edge === 11 && b.luar === 0 && b.statisSr && b.lebarDok <= 0, `${tag}: ${b.bentuk}, ${b.node} node, ${b.edge} edge, ${b.luar} di luar wadah, luapan halaman ${b.lebarDok} px`);
-    lapor(b.pindahPotong === 0 && b.inggris === 0, `${tag}: kalimat pindah terpotong ${b.pindahPotong}, label React Flow berbahasa Inggris terbaca ${b.inggris}`);
+    lapor(b.pindahPotong === 0, `${tag}: kalimat pindah terpotong ${b.pindahPotong}`);
+    await laporBawaan(page, tag);
     if (b.namaPotong.length) console.log(`info ${tag}: nama terpotong elipsis di node (lengkap di detail dan versi statis): ${b.namaPotong.join(", ")}`);
 
     // 3. Scroll tidak tertangkap (layar sempit).
@@ -169,6 +254,12 @@ for (const [lebar, tinggi, harus] of [
       `${tag}: Tab ke "${fokus}", Enter → detail ${d.teks.length} karakter, ${terlihat ? "digulir ke layar" : "TIDAK terlihat di layar"}, tautan ${d.tautan.join(" ") || "(segera)"}`,
     );
 
+    // 4b. Klik atau tap di tengah tabel sesi (bukan Tab dan Enter) membuka detailnya.
+    {
+      const k = await klikTabel(page, "Tabel sesi", lebar < 500);
+      lapor(k.kena.startsWith("Tabel sesi") && k.ditekan === "true" && k.detail.includes("sesi · Tahap 2"), `${tag}: ${lebar < 500 ? "tap" : "klik"} di tengah tabel sesi kena ${k.kena.startsWith("Tabel") ? "tombol" : k.kena} → aria-pressed ${k.ditekan}, detail "${k.detail.slice(0, 30)}"`);
+    }
+
     // 5. Berganti tahap: gerak masuk, atau 0 animasi dengan reduced motion; isi berganti ke Tahap 1.
     const anim = await page.evaluate(async (FIG) => {
       const f = document.querySelector(FIG);
@@ -188,6 +279,8 @@ for (const [lebar, tinggi, harus] of [
     await page.waitForTimeout(400);
     const bd = await bentuk(page);
     lapor(bd.berdampingan === lebar > 500 && bd.edge === 18 && bd.luar === 0 && bd.lebarDok <= 0, `${tag}: bandingkan → ${bd.berdampingan ? "berdampingan" : "bertumpuk"}, ${bd.node} node, ${bd.edge} edge, ${bd.luar} di luar wadah`);
+    // Dua React Flow baru dipasang (kunci panel berganti): lapisan garis keduanya tetap tersembunyi, keduanya bernama.
+    await laporBawaan(page, `${tag} bandingkan`);
 
     if (AXE && reducedMotion === "no-preference") {
       // Diukur dalam mode bandingkan dengan detail tabel dihapus terbuka (semua jenis status dan tautan tampil).
@@ -195,10 +288,10 @@ for (const [lebar, tinggi, harus] of [
       for (const tema of ["dark", "light"]) {
         await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), tema);
         await page.addScriptTag({ path: AXE });
-        const v = await page.evaluate(async () => {
-          const x = await window.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] } });
+        const v = await page.evaluate(async (tag) => {
+          const x = await window.axe.run(document, { runOnly: { type: "tag", values: tag } });
           return x.violations.map((p) => `${p.id}(${p.nodes.length}: ${p.nodes[0]?.target?.join(" ")})`);
-        });
+        }, TAG_WCAG);
         lapor(v.length === 0, `axe ${tag} ${tema}: ${v.length ? v.join(", ") : "0 pelanggaran"}`);
       }
     }
@@ -249,8 +342,9 @@ for (const [lebar, tinggi] of [
   await ctx.close();
 }
 
-// 8. React Flow hanya di halaman yang memakainya; ukuran JS /uji/erd/ (tanpa kompresi dan gzip) untuk dicatat.
-async function js(halaman) {
+// 8. React Flow hanya di halaman yang memakainya; ukuran JS (tanpa kompresi dan gzip) untuk dicatat. `buka`: semua
+// <details> dibuka dulu, seperti pembaca yang membuka setiap blok.
+async function js(halaman, buka = false) {
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 657 } });
   const page = await ctx.newPage();
   const isi = [];
@@ -258,6 +352,7 @@ async function js(halaman) {
     if (/\.js(\?.*)?$/.test(r.url()) && r.ok()) isi.push(r.body().then((b) => b).catch(() => Buffer.alloc(0)));
   });
   await page.goto(BASE + halaman, { waitUntil: "networkidle" });
+  if (buka) await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true)));
   // Gulir sampai bawah supaya island client:visible ikut dimuat.
   await page.evaluate(async () => {
     for (let i = 0; i < 200 && scrollY + innerHeight < document.documentElement.scrollHeight - 2; i++) {
@@ -287,5 +382,5 @@ for (const h of ["/tahap-1/data-modeling/", "/cerita/"]) {
 }
 
 await browser.close();
-console.log(gagal ? `ERD bertumbuh GAGAL (${gagal})` : "ERD bertumbuh: statis tanpa JS, scroll tidak tertangkap, keyboard jalan, tanpa animasi saat reduced, React Flow hanya di halamannya");
+console.log(gagal ? `ERD bertumbuh GAGAL (${gagal})` : "ERD bertumbuh: statis tanpa JS, scroll tidak tertangkap, keyboard, klik dan tap jalan, bawaan React Flow tidak terbaca, tanpa animasi saat reduced, React Flow hanya di halamannya");
 process.exit(gagal ? 1 : 0);
