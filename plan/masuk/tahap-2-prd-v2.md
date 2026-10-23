@@ -12,3 +12,4 @@
 - `urutanBaca` di `situs/tools/registri.mjs` melewati halaman `diganti_oleh` yang penggantinya sudah ada, supaya Berikutnya halaman terakhir Tahap 2 tidak menuju "Tahap 2 · Ceritanya" versi lama (sejak keputusan 605 T2 ada di akhir Tahap 2; keputusan 603, jalur teknis).
 - Data `tahap[1]` registry masih versi lama (nama "Saldo salah dan dobel bayar", rekap "tiga kompleks", "menarik saldo dari HP dan tablet") dan tampil di sidebar, Kamu di sini, dan peta beranda; selaraskan ke naskah Tahap 2 sesudah pemilik meninjau kalkulator 1.37/1.38 (keputusan 603).
 - Ilustrasi latar kampus untuk blok Latar masalah 2.1, setara ilustrasi `prd` di 1.1 (keputusan 602, jalur teknis).
+- G-istilah: halaman istilah untuk debit, kredit, jurnal, tutup buku, dan ERP yang muncul pertama di 2.1 tanpa penjelasan (Definisi selesai mode penuh; G-istilah belum ada saat 2.1 di-merge, keputusan 602).
