@@ -5,9 +5,13 @@
 // - kotak bisa dicapai dengan Tab dan dibuka dengan Enter; catatan muncul di bawah diagram;
 // - dengan reduced motion: 0 animasi sesudah memilih kotak; fungsi tetap;
 // - CLS ≤ 0,1 saat island di-hydrate: gulir pelan dengan modul JS ditunda 300 ms (HP dan desktop); tap tiap tab
-//   beranda (Tahap 2–6) sebelum hydrate: geser 0 px dan CLS 0 (keputusan 248, K1xa).
+//   beranda (Tahap 2–6) sebelum hydrate: geser 0 px dan CLS 0 (keputusan 248, K1xa);
+// - label bawaan React Flow berbahasa Inggris tidak terbaca pembaca layar (A11y-diagram, pola keputusan 466): di halaman
+//   uji, beranda, dan setiap halaman lain di dist/ yang memakai DiagramArsitektur.
 //   node tools/ukur-diagram.mjs --url http://127.0.0.1:4321
 //   node tools/ukur-diagram.mjs --url ... --axe /path/axe.min.js   # + axe-core, gelap dan terang
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import path from "node:path";
 import { chromium } from "@playwright/test";
 import { awasi } from "./lib/batas.mjs";
 
@@ -47,6 +51,36 @@ const pasangCls = (ctx) =>
       }
     }).observe({ type: "layout-shift", buffered: true });
   });
+// Bawaan React Flow 12.12 yang sampai ke pembaca layar (A11y-diagram, pola keputusan 466): aria-roledescription
+// ("node", "edge"), aria-label "Edge from k-0-0 to k-0-1" (bahasa Inggris dan ID internal), aria-describedby ke
+// kalimat bawaan "Press enter or space to select ...", atau <svg> pembungkus garis yang terbaca sebagai "image" tanpa
+// nama. Elemen di dalam aria-hidden="true" tidak dibacakan, jadi tidak dihitung. Mengembalikan daftar temuan; kosong = lolos.
+const bawaanTerbaca = (page, sel = "figure.diagram") =>
+  page.evaluate((sel) => {
+    const temuan = [];
+    for (const f of document.querySelectorAll(sel)) {
+      for (const x of f.querySelectorAll("*")) {
+        if (x.closest('[aria-hidden="true"]')) continue;
+        const rd = x.getAttribute("aria-roledescription");
+        const label = x.getAttribute("aria-label") ?? "";
+        const desk = (x.getAttribute("aria-describedby") ?? "")
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((i) => document.getElementById(i)?.textContent ?? "")
+          .join(" ");
+        const alasan = [
+          rd !== null && `roledescription "${rd}"`,
+          /^Edge from |\bk-\d+-\d+\b/.test(label) && `label "${label}"`,
+          /Press enter|select an? (node|edge)/i.test(desk) && `describedby "${desk.slice(0, 40)}"`,
+          x.tagName.toLowerCase() === "svg" && x.closest(".react-flow__edges") && "svg garis terbaca",
+        ].filter(Boolean);
+        if (alasan.length) temuan.push(`${x.tagName.toLowerCase()}.${String(x.className.baseVal ?? x.className).split(" ")[0] || "-"} ${alasan.join(", ")}`);
+      }
+    }
+    return temuan;
+  }, sel);
+const laporBawaan = (t, tag) => lapor(t.length === 0, `${tag}: bawaan React Flow (label Inggris, svg garis) terbaca ${t.length}${t.length ? ` (${[...new Set(t)].slice(0, 3).join("; ")})` : ""}`);
+
 const tundaJs = (page, ms) =>
   page.route(/\/_astro\/.+\.js(\?.*)?$/, async (rute) => {
     await new Promise((s) => setTimeout(s, ms));
@@ -101,6 +135,7 @@ for (const [lebar, tinggi, arahHarus] of [
       bentuk.every((b) => b.arah === arahHarus && b.kotak === 3 && b.luar === 0 && b.statisSr),
       `${tag}: ${bentuk.map((b) => `${b.arah}, ${b.kotak} kotak, ${b.luar} di luar wadah`).join(" | ")}`,
     );
+    laporBawaan(await bawaanTerbaca(page), tag);
 
     // 3. Scroll tidak tertangkap (hanya layar sempit, tempat jari paling sering mendarat di diagram).
     if (lebar < 500) {
@@ -203,6 +238,7 @@ for (const [lebar, tinggi, arahHarus] of [
     await page.waitForSelector("[data-peta-diagram] .react-flow__node .diagram__kotak");
     const satu = await page.evaluate(() => ({ arah: document.querySelector("[data-peta-diagram] figure.diagram")?.dataset.arah, kotak: document.querySelectorAll("[data-peta-diagram] .diagram__kotak").length, anim: document.getAnimations().length }));
     lapor(satu.arah === arahHarus && satu.kotak === 3 && satu.anim === 0, `${tag}: Tahap 1 ${satu.arah}, ${satu.kotak} kotak, ${satu.anim} animasi sebelum memilih`);
+    laporBawaan(await bawaanTerbaca(page, "[data-peta-diagram]"), `${tag} Tahap 1`);
     // Klik, lalu tunggu frame pertama yang sudah berisi Tahap 3 (render React sesudah event tab bisa satu task kemudian).
     const awal = await page.evaluate(async () => {
       document.getElementById("tab-tahap-3").click();
@@ -223,6 +259,7 @@ for (const [lebar, tinggi, arahHarus] of [
     });
     const gerakOk = reducedMotion === "reduce" ? awal.anim === 0 && awal.opacity === 1 : awal.anim > 0 && awal.opacity < 1;
     lapor(gerakOk && tiga.luar === 0 && tiga.opacity === 1 && tiga.label.includes("Tahap 3"), `${tag}: pilih Tahap 3 → frame pertama opacity ${awal.opacity.toFixed(2)}, ${awal.anim} animasi, ${tiga.luar} kotak di luar wadah, akhir opacity ${tiga.opacity}`);
+    laporBawaan(await bawaanTerbaca(page, "[data-peta-diagram]"), `${tag} Tahap 3`);
     if (lebar < 500 && reducedMotion === "no-preference") {
       const pane = page.locator("[data-peta-diagram] .react-flow__pane").first();
       await pane.scrollIntoViewIfNeeded();
@@ -354,6 +391,33 @@ for (const [nama, halaman] of [["/uji/diagram/", url], ["beranda", beranda]]) {
     lapor(c.nilai <= 0.1, `CLS ${nama} ${lebar}×${tinggi} gulir pelan, JS ditunda 300 ms: ${c.nilai.toFixed(4)}${c.contoh ? ` (terbesar ${c.contoh})` : ""}`);
     await ctx.close();
   }
+}
+
+// 8. Halaman konten yang memakai DiagramArsitektur (A11y-diagram), dibaca dari hasil build, bukan daftar tulis tangan:
+// sesudah hydrate di 375×667, label React Flow berbahasa Inggris dan svg garis tidak terbaca.
+function halamanDiagram(dir, akar = dir, hasil = []) {
+  for (const n of readdirSync(dir)) {
+    const p = path.join(dir, n);
+    if (statSync(p).isDirectory()) halamanDiagram(p, akar, hasil);
+    else if (n === "index.html" && readFileSync(p, "utf8").includes('data-diagram="')) {
+      hasil.push("/" + path.relative(akar, path.dirname(p)).split(path.sep).join("/") + (dir === akar ? "" : "/"));
+    }
+  }
+  return hasil.sort();
+}
+const dasar = url.replace(/\/uji\/diagram\/$/, "");
+const lain = halamanDiagram(path.resolve("dist")).filter((h) => h !== "/" && h !== "/uji/diagram/");
+// Daftar kosong berarti pencarian di dist/ rusak (1.36 Tim dan infra memakai diagram), bukan "lolos tanpa diperiksa".
+lapor(lain.length > 0, `halaman konten dengan DiagramArsitektur di dist/: ${lain.join(", ") || "tidak ada"}`);
+for (const h of lain) {
+  const ctx = await browser.newContext({ viewport: { width: 375, height: 667 } });
+  const page = await ctx.newPage();
+  await page.goto(dasar + h, { waitUntil: "networkidle" });
+  for (const f of await page.locator("figure.diagram").all()) await f.scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => [...document.querySelectorAll("figure.diagram")].every((f) => f.querySelector(".react-flow__node .diagram__kotak")), null, { timeout: 15000 });
+  const kotak = await page.locator("figure.diagram .diagram__kotak").count();
+  laporBawaan(await bawaanTerbaca(page), `${h} 375×667 (${kotak} kotak)`);
+  await ctx.close();
 }
 await browser.close();
 console.log(gagal ? `Fondasi diagram GAGAL (${gagal})` : "Diagram: statis tanpa JS, scroll tidak tertangkap, keyboard jalan, tanpa animasi saat reduced");

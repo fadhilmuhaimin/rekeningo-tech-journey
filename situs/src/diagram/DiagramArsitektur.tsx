@@ -6,8 +6,11 @@
 //   tidak menggeser halaman (review PR #161, keputusan 248).
 // - `kunci` berganti (peta tahap di beranda, I5b): React Flow dipasang ulang supaya fitView mengukur data baru
 //   (fitView hanya berlaku untuk node awal), dan kotak yang dipilih dilepas.
+// - Label bawaan React Flow 12.12 berbahasa Inggris tidak sampai ke pembaca layar (A11y-diagram, pola keputusan 466):
+//   node tanpa aria-roledescription "node", garis dan lapisan svg-nya aria-hidden. Kalimat diagram (termasuk "ke" untuk
+//   panah) ada di versi statis; ukur-diagram.mjs gagal bila label Inggris atau svg garis terbaca lagi.
 // Dimuat hanya di halaman yang memakainya, dengan client:visible.
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Handle, MarkerType, Position, ReactFlow, type Edge, type Node, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/base.css";
 import "./diagram.css";
@@ -72,6 +75,16 @@ export default function DiagramArsitektur({ data, judul, id, kunci = "" }: Props
   }, []);
 
   const arah: Arah = lebar !== null && lebar < lebarMendatar(data) ? "tegak" : "mendatar";
+  const terpasang = lebar !== null;
+
+  // React Flow membungkus setiap garis dengan <svg> yang tidak menerima atribut dari luar; sesudah garisnya aria-hidden,
+  // Chromium menaruh svg kosong itu di pohon aksesibilitas sebagai "image" tanpa nama. Seluruh lapisan garis
+  // (.react-flow__edges) disembunyikan dari pembaca layar; aria-hidden per garis (`edges` di bawah) tetap sebagai lapis cadangan.
+  // React tidak mengelola atribut ini, jadi tidak terhapus saat render ulang; dipasang lagi setiap React Flow dipasang
+  // ulang (arah atau kunci berganti). ukur-diagram.mjs gagal bila svg garis terbaca lagi.
+  useLayoutEffect(() => {
+    wadah.current?.querySelector(".react-flow__edges")?.setAttribute("aria-hidden", "true");
+  }, [terpasang, arah, kunci]);
   const hasil = useMemo(() => tata(data, arah), [data, arah]);
   const teks = useMemo(() => deskripsi(data, judul), [data, judul]);
   const pesan = useMemo(() => varPesan(data) as CSSProperties, [data]);
@@ -90,6 +103,8 @@ export default function DiagramArsitektur({ data, judul, id, kunci = "" }: Props
       selectable: false,
       focusable: false,
       zIndex: 0,
+      // React Flow memberi setiap node aria-roledescription "node" (bahasa Inggris); nama zona dibaca dari teksnya.
+      domAttributes: { "aria-roledescription": undefined },
     })),
     ...hasil.kotak.map((t) => ({
       id: t.id,
@@ -101,6 +116,8 @@ export default function DiagramArsitektur({ data, judul, id, kunci = "" }: Props
       selectable: false,
       focusable: false,
       zIndex: 1,
+      // Sama dengan zona: yang dibacakan adalah tombol di dalamnya ("App Flutter baru").
+      domAttributes: { "aria-roledescription": undefined },
     })),
   ];
   const edges: Edge[] = hasil.panah.map((p) => ({
@@ -110,6 +127,10 @@ export default function DiagramArsitektur({ data, judul, id, kunci = "" }: Props
     type: "straight",
     focusable: false,
     selectable: false,
+    // Bawaan React Flow: role="img" + aria-label "Edge from k-0-0 to k-0-1" (bahasa Inggris, berisi ID internal) untuk
+    // setiap garis. Urutan panah sudah dibacakan di versi statis ("App Flutter ke Monolith API"), jadi garis
+    // disembunyikan dari pembaca layar (keputusan 466).
+    domAttributes: { "aria-hidden": true },
     markerEnd: { type: MarkerType.ArrowClosed, color: "currentColor", width: 16, height: 16 },
   }));
   const terpilih = hasil.kotak.find((t) => t.id === pilihan);
