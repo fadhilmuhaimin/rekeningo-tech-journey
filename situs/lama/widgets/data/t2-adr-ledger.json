@@ -1,0 +1,74 @@
+{
+  "id": "t2-adr-ledger",
+  "title": "Salah bayar Rp15.000 dikoreksi di dua model: koreksi ini membalik pembayaran yang mana?",
+  "setup": "CREATE TABLE akun (id INTEGER PRIMARY KEY, nama TEXT NOT NULL, saldo INTEGER NOT NULL CHECK (saldo >= 0));\nCREATE TABLE topup (id INTEGER PRIMARY KEY, akun_id INTEGER NOT NULL REFERENCES akun (id), nominal INTEGER NOT NULL CHECK (nominal > 0));\nCREATE TABLE transaksi (id INTEGER PRIMARY KEY, dari INTEGER NOT NULL REFERENCES akun (id), ke INTEGER NOT NULL REFERENCES akun (id), jumlah INTEGER NOT NULL CHECK (jumlah > 0));\n-- ADR 6 Tahap 1 (labs/api-t1/schema.sql, diringkas): satu baris koreksi = satu akun, jumlah, alasan\nCREATE TABLE koreksi (id INTEGER PRIMARY KEY, akun_id INTEGER NOT NULL REFERENCES akun (id), jumlah INTEGER NOT NULL CHECK (jumlah <> 0), alasan TEXT NOT NULL CHECK (length(trim(alasan)) >= 20));\nINSERT INTO akun VALUES (419, 'Budi', 235000), (502, 'Warung Sari', 15000);\nINSERT INTO topup (akun_id, nominal) VALUES (419, 250000);\n-- Salah bayar sudah terjadi: Budi menekan Bayar ke Warung Sari\nINSERT INTO transaksi (dari, ke, jumlah) VALUES (419, 502, 15000);\nCREATE VIEW catatan_budi AS\n  SELECT 1 AS urut, 'topup' AS catatan, nominal AS jumlah FROM topup WHERE akun_id = 419\n  UNION ALL SELECT 2, 'transaksi ke ' || (SELECT nama FROM akun WHERE id = t.ke), -t.jumlah FROM transaksi t WHERE t.dari = 419\n  UNION ALL SELECT 3, 'koreksi', jumlah FROM koreksi WHERE akun_id = 419;\nCREATE VIEW pertanyaan_pak_hadi AS\n  SELECT 1 AS urut, 'baris catatan Budi' AS pertanyaan, (SELECT group_concat(catatan || ' ' || printf('%+d', jumlah), '; ') FROM (SELECT * FROM catatan_budi ORDER BY urut)) AS jawaban_database\n  UNION ALL SELECT 2, 'pembayaran yang dikoreksi', coalesce((SELECT 'tidak tersimpan; hanya alasan: ' || alasan FROM koreksi WHERE akun_id = 419), 'belum ada koreksi')\n  UNION ALL SELECT 3, 'saldo Budi di app', (SELECT saldo FROM akun WHERE id = 419)\n  UNION ALL SELECT 4, 'selisih seluruh sistem (harus 0)', (SELECT sum(saldo) FROM akun) - (SELECT sum(nominal) FROM topup);",
+  "check": "SELECT pertanyaan, jawaban_database FROM pertanyaan_pak_hadi ORDER BY urut",
+  "predict": {
+    "q": "Di kedua panel admin mengoreksi salah bayar Budi Rp15.000 ke Warung Sari. Pak Hadi bertanya: koreksi Budi membalik pembayaran yang mana? Di panel mana database bisa menjawabnya?",
+    "options": [
+      "Hanya Before (tabel koreksi)",
+      "Hanya After (jurnal pembalik)",
+      "Keduanya",
+      "Tidak keduanya"
+    ],
+    "answer": 1,
+    "explain": "Baris koreksi Tahap 1 hanya menyimpan akun, jumlah, dan alasan. Pembayaran yang dikoreksi hanya bisa ditebak dari teks alasan. Jurnal pembalik menyimpan membalik_jurnal_id = 2, dan database memeriksa bahwa posting-nya cermin jurnal 2."
+  },
+  "panels": {
+    "before": {
+      "label": "Before: kolom saldo + tabel koreksi (ADR 6 Tahap 1)",
+      "onError": "stop",
+      "steps": [
+        {
+          "sql": "UPDATE akun SET saldo = saldo + 15000 WHERE id = 419",
+          "note": "koreksi pertama: kembalikan saldo Budi"
+        },
+        {
+          "sql": "INSERT INTO koreksi (akun_id, jumlah, alasan) VALUES (419, 15000, 'Budi salah memilih warung, uang dikembalikan atas konfirmasi Warung Sari')",
+          "note": "baris koreksi Budi"
+        },
+        {
+          "sql": "UPDATE akun SET saldo = saldo - 15000 WHERE id = 502",
+          "note": "koreksi kedua: tarik dari Warung Sari"
+        },
+        {
+          "sql": "INSERT INTO koreksi (akun_id, jumlah, alasan) VALUES (502, -15000, 'Budi salah memilih warung, uang dikembalikan atas konfirmasi Warung Sari')",
+          "note": "baris koreksi Warung Sari"
+        }
+      ]
+    },
+    "after": {
+      "label": "After: ledger, koreksi = jurnal pembalik (Tahap 2)",
+      "onError": "rollback",
+      "setup": "CREATE TABLE buku (id INTEGER PRIMARY KEY, nama TEXT NOT NULL);\nCREATE TABLE jurnal (id INTEGER PRIMARY KEY, jenis TEXT NOT NULL, keterangan TEXT NOT NULL, membalik_jurnal_id INTEGER UNIQUE REFERENCES jurnal (id),\n  CHECK ((jenis = 'pembalik') = (membalik_jurnal_id IS NOT NULL)),\n  CHECK (jenis <> 'pembalik' OR length(trim(keterangan)) >= 20));\nCREATE TABLE posting (id INTEGER PRIMARY KEY, jurnal_id INTEGER NOT NULL REFERENCES jurnal (id), buku_id INTEGER NOT NULL REFERENCES buku (id), jumlah INTEGER NOT NULL CHECK (jumlah <> 0));\n-- Pagar lab b3-ledger, diringkas: posting pembalik harus cermin jurnal asal.\n-- Di PostgreSQL pemeriksaan ini dan jurnal seimbang berjalan saat COMMIT; SQLite memeriksanya per baris.\nCREATE TRIGGER pembalik_cermin_asal BEFORE INSERT ON posting\n  WHEN (SELECT membalik_jurnal_id FROM jurnal WHERE id = NEW.jurnal_id) IS NOT NULL\n   AND NEW.jumlah IS NOT -(SELECT sum(jumlah) FROM posting WHERE buku_id = NEW.buku_id\n                            AND jurnal_id = (SELECT membalik_jurnal_id FROM jurnal WHERE id = NEW.jurnal_id))\n  BEGIN SELECT RAISE(ABORT, 'pembalik_cermin_asal: posting bukan cermin jurnal asal'); END;\nCREATE TRIGGER posting_tidak_diubah BEFORE UPDATE ON posting BEGIN SELECT RAISE(ABORT, 'posting_tidak_diubah'); END;\nCREATE TRIGGER posting_tidak_dihapus BEFORE DELETE ON posting BEGIN SELECT RAISE(ABORT, 'posting_tidak_diubah'); END;\nINSERT INTO buku VALUES (1, 'tunjangan'), (419, 'Budi'), (502, 'Warung Sari');\nINSERT INTO jurnal (id, jenis, keterangan) VALUES (1, 'topup', 'Tunjangan makan Budi'), (2, 'bayar', 'Bayar makan siang di Warung Sari');\n-- Salah bayar sudah terjadi: jurnal 2\nINSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (1, 1, -250000), (1, 419, 250000), (2, 419, -15000), (2, 502, 15000);\nCREATE VIEW catatan_budi AS\n  SELECT p.id AS urut, 'jurnal ' || j.id || ' ' || j.jenis AS catatan, p.jumlah FROM posting p JOIN jurnal j ON j.id = p.jurnal_id WHERE p.buku_id = 419;\nCREATE VIEW pertanyaan_pak_hadi AS\n  SELECT 1 AS urut, 'baris catatan Budi' AS pertanyaan, (SELECT group_concat(catatan || ' ' || printf('%+d', jumlah), '; ') FROM (SELECT * FROM catatan_budi ORDER BY urut)) AS jawaban_database\n  UNION ALL SELECT 2, 'pembayaran yang dikoreksi', coalesce((SELECT 'jurnal ' || a.id || ': ' || a.keterangan FROM jurnal j JOIN jurnal a ON a.id = j.membalik_jurnal_id WHERE j.jenis = 'pembalik'), 'belum ada koreksi')\n  UNION ALL SELECT 3, 'saldo Budi di app', (SELECT coalesce(sum(jumlah), 0) FROM posting WHERE buku_id = 419)\n  UNION ALL SELECT 4, 'selisih seluruh sistem (harus 0)', (SELECT sum(jumlah) FROM posting);",
+      "steps": [
+        {
+          "sql": "BEGIN",
+          "note": "satu transaction"
+        },
+        {
+          "sql": "INSERT INTO jurnal (id, jenis, keterangan, membalik_jurnal_id) VALUES (3, 'pembalik', 'Budi salah memilih warung, uang dikembalikan atas konfirmasi Warung Sari', 2)",
+          "note": "jurnal pembalik menunjuk jurnal 2"
+        },
+        {
+          "sql": "INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES (3, 419, 15000), (3, 502, -15000)",
+          "note": "posting cermin jurnal 2"
+        },
+        {
+          "sql": "COMMIT",
+          "note": "jurnal lama tidak disentuh"
+        }
+      ]
+    }
+  },
+  "toggles": [
+    {
+      "label": "Admin salah ketik: Rp150.000 untuk Budi, bukan Rp15.000",
+      "pairs": [
+        ["saldo + 15000 WHERE id = 419", "saldo + 150000 WHERE id = 419"],
+        ["(419, 15000, ", "(419, 150000, "],
+        ["(3, 419, 15000)", "(3, 419, 150000)"]
+      ]
+    }
+  ]
+}

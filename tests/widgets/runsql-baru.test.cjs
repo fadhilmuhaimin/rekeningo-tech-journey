@@ -91,3 +91,27 @@ test("2.4 tutup buku: jurnal cocok semua; UPDATE saldo_cache langsung membuat Ci
   assert.deepEqual(baris(core.runPanel(SQL, s, "after", s.toggles)), ["tunjangan|-180000|0|0|-180000|ya", cocok[0], "Citra|0|20000|0|20000|ya", cocok[1]]);
   assert.deepEqual(baris(core.runPanel(SQL, s, "before", s.toggles)), baris(before));
 });
+
+test("2.8 ADR 6 direvisi: koreksi Tahap 1 tidak menunjuk pembayaran asal, jurnal pembalik menunjuk; salah ketik lolos di kolom saldo, ditolak di ledger", () => {
+  const s = load("t2-adr-ledger");
+  const alasan = "Budi salah memilih warung, uang dikembalikan atas konfirmasi Warung Sari";
+  const before = core.runPanel(SQL, s, "before", []);
+  assert.deepEqual(before.log.map((l) => l.ok), [true, true, true, true]);
+  assert.deepEqual(baris(before), ["baris catatan Budi|topup +250000; transaksi ke Warung Sari -15000; koreksi +15000",
+    "pembayaran yang dikoreksi|tidak tersimpan; hanya alasan: " + alasan, "saldo Budi di app|250000", "selisih seluruh sistem (harus 0)|0"]);
+  const after = core.runPanel(SQL, s, "after", []);
+  assert.deepEqual(after.log.map((l) => l.ok), [true, true, true, true]);
+  assert.deepEqual(baris(after), ["baris catatan Budi|jurnal 1 topup +250000; jurnal 2 bayar -15000; jurnal 3 pembalik +15000",
+    "pembayaran yang dikoreksi|jurnal 2: Bayar makan siang di Warung Sari", "saldo Budi di app|250000", "selisih seluruh sistem (harus 0)|0"]);
+  assert.equal(s.predict.options[s.predict.answer], "Hanya After (jurnal pembalik)");
+  // Ubah satu hal: Rp150.000 untuk Budi. Kolom saldo menerima dan uang tercipta Rp135.000; ledger menolak dan ROLLBACK.
+  const beforeT = core.runPanel(SQL, s, "before", s.toggles);
+  assert.deepEqual(beforeT.log.map((l) => l.ok), [true, true, true, true]);
+  assert.deepEqual(baris(beforeT).slice(2), ["saldo Budi di app|385000", "selisih seluruh sistem (harus 0)|135000"]);
+  const afterT = core.runPanel(SQL, s, "after", s.toggles);
+  assert.match(afterT.log[2].result, /pembalik_cermin_asal/);
+  assert.equal(afterT.log[3].sql, "ROLLBACK");
+  assert.equal(afterT.log[4].skipped, true);
+  assert.deepEqual(baris(afterT), ["baris catatan Budi|jurnal 1 topup +250000; jurnal 2 bayar -15000",
+    "pembayaran yang dikoreksi|belum ada koreksi", "saldo Budi di app|235000", "selisih seluruh sistem (harus 0)|0"]);
+});
