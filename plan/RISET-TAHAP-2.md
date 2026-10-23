@@ -1,0 +1,116 @@
+# Riset Tahap 2 · Seluruh kampus
+Dikerjakan 2026-10-24, skill riset-tahap (hierarki bukti dan format klaim dari analisis-kritis). Versi dicek hari itu; semua tautan dibuka 2026-10-24. Rekaman lab (tingkat 1) dirujuk dengan path dan tidak dijalankan ulang untuk riset ini.
+
+## Konsep dan sumber
+| ID | Konsep | Sumber primer (versi, tanggal) | Yang dipakai halaman | Berubah sejak Okt 2026 |
+|---|---|---|---|---|
+| R2-01 | Versi PostgreSQL lab | Image `postgres:17` tanpa pin (`labs/b3-race/docker-compose.yml`), kepala rekaman 17.11; postgresql.org/support/versioning: 17.11 minor terbaru seri 17, didukung sampai 2029-11-08; versi stabil terbaru 18.6 (18.0 rilis 2025-09-25); 19 belum ada di tabel, tapi berita postgresql.org 3409 (2026-10-15): 19 RC 1 dirilis, GA direncanakan 2026-11-19. Dokumentasi yang dirujuk: `/docs/17/` | Kepala "Di stack lain", catatan versi di semua halaman lab | Tidak ada minor 17 baru sejak rekaman; 19 RC 1 (2026-10-15) |
+| R2-02 | PostgreSQL 18 yang menyentuh Tahap 2 | Release notes 18.0: BUFFERS otomatis di `EXPLAIN ANALYZE`, skip scan B-tree multicolumn, `uuidv7()`, `OLD`/`NEW` di `RETURNING`, asynchronous I/O | 2.17 catatan versi (lab di 17 wajib menulis BUFFERS) | Berlaku bila lab naik ke 18 |
+| R2-03 | Go | `labs/api-t2/go.mod` dan `labs/c4-ratelimit/login/go.mod`: `go 1.27.1`; go.dev/doc/devel/release: terbaru go1.27.3 (2026-10-19, perbaikan keamanan `crypto/x509`) | Kolom Go "Di stack lain" | Dua patch sesudah lab |
+| R2-04 | Driver pgx | pkg.go.dev `github.com/jackc/pgx/v5`: v5.11.0 (2026-09-07) terbaru = versi lab; GO-2026-5004 (SQL injection lewat placeholder + dollar-quoted string) hanya di v5.9.0–v5.9.1 | 2.3, 2.11 (kode Go) | Tidak berubah |
+| R2-05 | argon2 di Go | pkg.go.dev `golang.org/x/crypto/argon2`: `IDKey` merujuk RFC 9106 §4 (t=1, 2 GiB, p=4; atau t=3, 64 MiB, p=4); lab v0.57.0, terbaru v0.58.0 (2026-10-09); alert GO-2026-5932 hanya paket `openpgp` | 2.28 | Satu minor sesudah lab |
+| R2-06 | Ledger double-entry append-only | Square Engineering, "Books, an immutable double-entry accounting database service" (Ł. Strzałkowski, 2019-10-16): tabel books, journal_entries, book_entries; entri hanya INSERT; jurnal "must balance to 0"; koreksi = entri baru | 2.6, 2.7, 2.8 | Sumber 2019, isi tetap |
+| R2-07 | Ledger sebagai log immutable dan rekonsiliasi | Stripe, "Ledger: Stripe's system for tracking and validating money movement" (I. Ganelin, 2024-02-16, stripe.dev): transaksi yang sudah masuk tidak bisa dihapus atau diubah; koreksi "revert and reprocess"; clearing account yang tidak nol menandai transaksi hilang, terlambat, atau salah | 2.8, 2.26 | Tidak berubah |
+| R2-08 | Invarian dijaga database | `/docs/17/sql-createtrigger`: constraint trigger hanya `AFTER ROW`, bisa deferred ke akhir transaction, diatur `SET CONSTRAINTS`; rekaman `labs/b3-ledger/output/invarian.txt` (23514 deferred, 23001) | 2.7 | Tidak berubah |
+| R2-09 | Saldo = jumlah posting, cache dicek | `labs/b3-ledger/output/kejadian.txt`, `labs/b2-query/output/ledger/data.txt` bagian E (saldo_cache beda 0, jumlah semua posting 0) | 2.6, 2.9 | – |
+| R2-10 | Race condition | CWE-362 (CWE 4.20): ada "timing window" saat resource bersama bisa diubah kode lain; rekaman `labs/b3-race/output/ledger/ledger-tanpa-lock*.txt` | 2.10, 2.11 | Tidak berubah |
+| R2-11 | `SELECT … FOR UPDATE` | `/docs/17/explicit-locking` 13.3.2: baris terkunci memblokir UPDATE, DELETE, FOR UPDATE lain sampai transaction selesai; di REPEATABLE READ/SERIALIZABLE error bila baris berubah; rekaman `ledger-for-update.txt` | 2.11 (ADR 13) | Tidak berubah |
+| R2-12 | UPDATE atomik bersyarat | `/docs/17/transaction-iso` 13.2.1: di Read Committed, WHERE dievaluasi ulang pada versi baris terbaru; rekaman `ledger-atomik.txt` | 2.11 | Tidak berubah |
+| R2-13 | Optimistic lock `versi` | Rekaman `ledger-optimistic.txt`; penghitung versi per buku di R2-06 | 2.11 | – |
+| R2-14 | SERIALIZABLE + retry | `/docs/17/transaction-iso` 13.2.3: aplikasi harus siap retry, SQLSTATE 40001; Ports & Grittner, PVLDB 5(12), 2012 (arXiv 1208.4179); rekaman `ledger-serializable.txt` | 2.11, 2.12 | Tidak berubah |
+| R2-15 | Deadlock dan urutan lock | `/docs/17/explicit-locking` 13.3.4: pertahanan terbaik = mengunci dengan urutan yang sama; api-t2 `ORDER BY id FOR UPDATE` (keputusan 408–418) | 2.3, 2.11 | Tidak berubah |
+| R2-16 | Isolation level PostgreSQL | `/docs/17/transaction-iso` Tabel 13.1: Read Uncommitted = Read Committed; phantom tidak terjadi di Repeatable Read PG; anomali serialisasi hanya dicegah Serializable; rekaman `labs/b3-isolasi/output/ledger/*.txt` | 2.12 | Tidak berubah |
+| R2-17 | Header Idempotency-Key | Datatracker draft-ietf-httpapi-idempotency-key-header-08 (2026-10-22): Active Internet-Draft, kedaluwarsa 2027-04-25, belum RFC; nilai String Structured Field (RFC 9651); §2.7 SHOULD 400 tanpa key, 422 body beda, 409 masih diproses; UUID (RFC 9562) RECOMMENDED; IANA HTTP Field Name Registry (2026-10-09) belum memuatnya | 2.13, 2.14 | Ya: keputusan 512 menulis -07 kedaluwarsa; -08 aktif lagi, status code sama (keputusan 600) |
+| R2-18 | Simpan respons per key | docs.stripe.com/api/idempotent_requests (API v1): status dan body permintaan pertama disimpan, key boleh dihapus sesudah ≥ 24 jam, parameter beda ditolak, disarankan UUID v4; rekaman `labs/e3-idempotency/output/ledger/key-per-niat.txt`, `diproses.txt` | 2.14 (ADR 14) | Tidak berubah |
+| R2-19 | Metode idempoten dan retry otomatis | RFC 9110 §9.2.2: PUT, DELETE, dan metode safe idempoten; client SHOULD NOT mengulang otomatis metode non-idempoten | 2.13, 2.19 | Tidak berubah |
+| R2-20 | Backoff + jitter | M. Brooker, AWS Architecture Blog "Exponential Backoff And Jitter" (2015-03-04): Full Jitter paling sedikit kerja, Equal Jitter kalah; Amazon Builders' Library "Timeouts, retries, and backoff with jitter" (2019-12-05): batasi jumlah retry, API dengan efek samping hanya aman diulang bila idempoten | 2.14 | Tidak berubah |
+| R2-21 | N+1 query | Laravel 13.x Eloquent: 25 buku = 26 query, `with()` = 2 query; rekaman `labs/b2-query/output/ledger/n1.txt` (21 lawan 1 query; seluruh riwayat Budi 3.893 lawan 1) | 2.15, 2.16 | Tidak berubah |
+| R2-22 | Index komposit | `/docs/17/indexes-multicolumn`: kesetaraan di kolom depan + ketidaksetaraan di kolom pertama tanpa kesetaraan membatasi bagian yang dipindai; `/docs/17/indexes-ordering`: ORDER BY + LIMIT n dengan index yang cocok membaca n baris langsung; rekaman `index.txt` (Index Scan Backward 20 baris) | 2.17 (ADR 15) | Skip scan di 18 (R2-02) |
+| R2-23 | `EXPLAIN (ANALYZE, BUFFERS)` | `/docs/17/sql-explain`: BUFFERS default FALSE; ANALYZE benar-benar menjalankan statement, bungkus `BEGIN; … ROLLBACK;` untuk tulis | 2.17 | 18: BUFFERS otomatis |
+| R2-24 | Pagination kursor (keyset) | `/docs/17/queries-limit`: baris yang dilewati OFFSET tetap dihitung, tanpa ORDER BY unik hasil tidak konsisten; `/docs/17/functions-comparisons` 9.25.5: row constructor dibandingkan kiri ke kanan; M. Winand, use-the-index-luke.com/no-offset (tingkat 4); rekaman `pagination.txt` (OFFSET 204 ganda + 204 hilang, kursor 0) | 2.18, 2.19 (ADR 16) | Tidak berubah |
+| R2-25 | Ukuran payload | RFC 9110 §8.4 dan §8.4.1.3 (Content-Encoding gzip), §12.5.3 (Accept-Encoding); rekaman `labs/e5-payload/output/ukuran.txt` (skema b2q lama: 20 pesanan lengkap 10.620 B, gzip 836 B; ringkas 1.630 B, gzip 262 B) | 2.20 | Rekaman belum di skema ledger |
+| R2-26 | Lock saat ALTER TABLE | `/docs/17/sql-altertable`: ACCESS EXCLUSIVE kecuali disebut lain; ADD COLUMN dengan DEFAULT non-volatile tanpa rewrite; VALIDATE CONSTRAINT hanya SHARE UPDATE EXCLUSIVE; `/docs/17/explicit-locking`: tunggu lock tanpa batas selama tidak deadlock; rekaman `labs/b4-skema/output/ledger/satu-langkah.txt` (bayar antre ≥ 5 detik lalu 42703) | 2.21 | Tidak berubah |
+| R2-27 | `lock_timeout` | `/docs/17/runtime-config-client`: batas per percobaan lock, default 0 (mati), tidak dianjurkan di postgresql.conf, tidak berguna bila ≥ statement_timeout; `idle_in_transaction_session_timeout`; rekaman `lock-timeout.txt` (3 detik, 55P03, ulang berhasil) | 2.22 (ADR 17) | Tidak berubah |
+| R2-28 | Expand/migrate/contract, backfill, index tanpa jeda | Rekaman `labs/api-t2/output/migrasi.txt`, `labs/b4-skema/output/ledger/tiga-rilis.txt` (backfill per 1.000 akun, cek malam 0 beda); `/docs/17/sql-createindex`: CREATE INDEX biasa memblokir tulis (bukan baca); CONCURRENTLY tidak, tapi tidak bisa di transaction block dan bisa meninggalkan index INVALID | 2.17, 2.22 | Tidak berubah |
+| R2-29 | Review, branch protection, CODEOWNERS | GitHub Docs about-protected-branches: jumlah approval wajib, status check wajib, force push mati secara default, rulesets; about-code-owners: pemilik diminta review otomatis, file di `.github/`, root, atau `docs/`, opsi "Require review from Code Owners" | 2.23, 2.24 (ADR 18) | Tidak berubah |
+| R2-30 | Tes integrasi dengan database sungguhan | testcontainers-go `modules/postgres` v0.44.0 (2026-08-07): `postgres.Run(ctx, image)`, Snapshot/Restore antar tes, wait strategy wajib ditulis; rekaman `labs/api-t2/output/testing.txt` (12 tes ke PostgreSQL lab, schema `tahap2_tes`, belum Testcontainers) | 2.24 | Tidak berubah |
+| R2-31 | Job terjadwal idempoten dan rekonsiliasi | Rekaman `labs/t2-pencairan/output/rentan.txt` (file Rp2.465.000 lawan ledger Rp2.450.000), `benar.txt`, `rekonsiliasi.txt` (exit 3 bila beda); `/docs/17/sql-insert`: ON CONFLICT DO NOTHING melewati insert, dipakai `labs/t2-pencairan/cmd/pencairan/main.go:216` untuk `batch_pencairan (periode)`; advisory lock di `/docs/17/explicit-locking` 13.3.5; clearing di R2-07 | 2.5, 2.25, 2.26 (ADR 19) | Tidak berubah |
+| R2-32 | Hash password argon2id | RFC 9106 §4 (dua opsi di R2-05, salt 128 bit); OWASP Password Storage Cheat Sheet: minimum m=19 MiB, t=2, p=1; rekaman `labs/c4-ratelimit/output/login/ratelimit.txt` A (m=64 MiB, t=3, p=4) | 2.28 (ADR 20) | Tidak berubah |
+| R2-33 | Aturan password dan batas gagal | NIST SP 800-63B-4 (Final 2025-07-31): password satu faktor ≥ 15 karakter, dalam MFA ≥ 8, tanpa aturan komposisi, cek blocklist, tanpa ganti berkala, ≤ 100 gagal berturut-turut per akun (§3.2.2); OWASP ASVS 5.0.0 V6: 6.1.1, 6.2.1, 6.2.12, 6.3.1, 6.3.8 | 2.27, 2.28 | Tidak berubah |
+| R2-34 | Credential stuffing, lockout, 429 | OWASP Credential Stuffing Prevention CS (blokir IP bukan pertahanan utama; proxy mengalahkan rate limit per IP); OWASP Authentication CS (threshold, window, durasi, lockout eksponensial, risiko DoS, pesan generik); CWE-307, CWE-645; RFC 6585 §4 (429, MAY Retry-After, cara menghitung tidak ditentukan) | 2.27, 2.28 | Tidak berubah |
+| R2-35 | Little's Law untuk estimasi | J. D. C. Little, Operations Research 9(3):383–387, 1961 (DOI 10.1287/opre.9.3.383, diverifikasi OpenAlex); kalkulator `situs/src/widgets/kalkulator/logika.ts` | 2.30 | – |
+
+## Teknik terbaru
+| Teknik | Masuk / tidak | Alasan dengan angka tahap ini | ID |
+|---|---|---|---|
+| Naik ke PostgreSQL 18 atau 19 | Tidak | 19 baru RC 1 (R2-01); semua rekaman Tahap 2 di 17.11; menaikkan image mengubah kepala dan rencana query semua rekaman (SETELAH-TAHAP-2: pin image dulu); 760.448 posting setahun tidak butuh async I/O | R2-01, R2-02 |
+| `uuidv7()` untuk key atau PK | Tidak | Key dibuat app (UUID v4, RFC 9562 §5.4); lokalitas index v7 (RFC 9562 §6.11) berarti di tulis besar, bukan 1,4 RPS | R2-17, R2-02 |
+| SERIALIZABLE sebagai default | Tidak | ADR 13 memilih lock baris buku; keempat cara di lab berakhir Rp30.000 satu jurnal, SERIALIZABLE menambah retry di semua jalur tulis | R2-14, R2-11 |
+| `CREATE INDEX CONCURRENTLY` | Masuk (catatan 2.17, 2.22) | Index riwayat ditambah ke tabel yang sedang ditulis; lab membuatnya dengan CREATE INDEX biasa di data muat, jadi CONCURRENTLY berlabel Tidak dijalankan | R2-28 |
+| Testcontainers | Masuk (naskah M14, ADR 18) | PROPOSAL "Teknik terbaru" menaruhnya di Tahap 3, CERITA di Tahap 2 (CERITA menang); lab belum memakainya | R2-30 |
+| Redis untuk rate limit | Tidak (ADR 20) | Satu server; bucket di memori cukup; pecah saat server jadi dua (naskah bagian 6) | R2-34 |
+| Cache baca riwayat | Tidak (ADR 15) | JOIN + index: halaman 1 riwayat 1,4 ms (rekaman pembanding); masalahnya query, bukan beban | R2-21, R2-22 |
+| Database ledger khusus | Tidak | ±900 transaksi sehari, 1,4 RPS puncak; PostgreSQL yang ada menjaga tiga invarian (R2-08); klaim produk khusus di PROPOSAL tidak diriset hari ini | R2-08 |
+| Durable execution untuk pencairan | Tidak | Satu job mingguan untuk 12 warung; status batch + kunci periode cukup (R2-31); PROPOSAL Tahap 5 | R2-31 |
+| OpenAPI-first + codegen | Tidak di lab Tahap 2 | PROPOSAL menulis Tahap 2; lab api-t2 hanya lint kontrak (`kontrak.txt`, redocly 2.58.2) | – |
+| Passkey | Tidak | PROPOSAL Tahap 3; Tahap 2 cukup password ≥ 15 karakter + rate limit (R2-33) | R2-33 |
+
+## Kasus industri untuk ADR
+Square, "Books" (blog engineering resmi, 2019-10-16, R2-06). Service settlement lama menghitung saldo merchant dengan agregasi group-by yang mahal, dan skemanya tidak mencegah payout yang tidak konsisten; inkonsistensi data memicu pertanyaan pelanggan dan setoran terlambat.
+Keputusan mereka: database akuntansi double-entry immutable. Tabel books menyimpan saldo per buku, journal_entries satu baris per transaksi akuntansi, book_entries berisi debit (+) atau kredit (−) dengan penghitung versi per buku; entri hanya INSERT, kesalahan dikoreksi dengan entri baru, setiap jurnal berjumlah 0.
+Angka yang mereka tulis: ±20 TB data, dikembangkan tim tiga orang. Batas: satu service (settlement), skema yang ditampilkan "simplified", di atas Cloud Spanner, keadaan 2019.
+Pembanding skala, bukan kasus utama: Stripe Ledger (2024-02-16, R2-07) melaporkan 5 miliar event per hari dan memakai clearing account yang harus nol untuk menemukan transaksi yang hilang; angkanya dilaporkan sendiri dan Ledger adalah proyeksi dari sistem hulu.
+Padanan Rekeningo (Ilustrasi): `buku` = books, `jurnal` = journal_entries, `posting` = book_entries, `buku.saldo_cache` + `versi` = saldo dan versi per buku. Cerita tetap tanpa nama merek; halaman ADR menyebutnya sebagai sumber rujukan.
+
+## Jebakan (bahan "yang Raka kira")
+| Pertanyaan forum (tautan) | Yang dikira | Yang benar (ID sumber) |
+|---|---|---|
+| "Do database transactions prevent race conditions?" stackoverflow.com/questions/6477574 | Membungkus baca-lalu-tulis dalam transaction sudah aman | Transaction tidak mencegah race; butuh lock, UPDATE bersyarat, atau retry (R2-11, R2-12, R2-14) |
+| "Postgres Repeatable Read vs Serializable" dba.stackexchange.com/questions/284744 | Repeatable Read cukup untuk saldo | RR membatalkan dengan "could not serialize access", dan write skew hanya dicegah Serializable (R2-16) |
+| "What is the N+1 selects problem in ORM?" stackoverflow.com/questions/97197 | Riwayat lambat karena datanya banyak atau server lemah | Satu query per baris; JOIN atau eager loading (R2-21) |
+| "Offset pagination vs Cursor pagination" stackoverflow.com/questions/55744926 | Kursor hanya untuk sistem real-time yang rumit | OFFSET bergeser saat baris baru masuk di depan (R2-24) |
+| "Alter Table too slow in postgres" stackoverflow.com/questions/48479616 | Tabel 5.000 baris tidak mungkin membuat ALTER lama | ALTER menunggu ACCESS EXCLUSIVE di belakang transaction terbuka (R2-26) |
+| "Make ALTER TABLE wait for lock without blocking anything else" dba.stackexchange.com/questions/293992 | ADD COLUMN instan, jadi aman di jam ramai | Selama menunggu lock, query lain ikut antre; pakai `lock_timeout` lalu ulang (R2-26, R2-27) |
+| "Avoid duplicate POSTs with REST" stackoverflow.com/questions/15159274 | Duplikat langka, cukup ganti ke PUT | Server menyimpan respons per key dan mengulangnya (R2-17, R2-18) |
+| "How can I prevent duplicate charge using Stripe?" stackoverflow.com/questions/47635067 | Menonaktifkan tombol sesudah tap pertama cukup | Retry jaringan tetap mengirim ulang; key dibuat sekali per niat bayar (R2-18, R2-20) |
+| "Rate limit login attempts: count by IP or username" security.stackexchange.com/questions/116113 | Cukup pilih per IP atau per akun | Dua lapis; per IP saja kalah oleh banyak IP, per akun saja bisa mengunci orang (R2-34) |
+| "Protection against account lockout DoS" security.stackexchange.com/questions/1653 | Kunci akun selalu menambah aman | Kunci yang terlalu ketat jadi alat menolak layanan (CWE-645, R2-34) |
+
+## Angka tahap ini (Asumsi)
+| Besaran | Rumus | Masukan | Hasil | Tahap sebelumnya |
+|---|---|---|---|---|
+| User aktif per hari | user × aktif% | 1.000 × 30% (registry `tahap[1].asumsi`) | 300 | 30 |
+| Request per hari | aktif × request per user | 300 × 40 | 12.000 | 1.200 |
+| RPS rata-rata | request ÷ 86.400 | 12.000 ÷ 86.400 | 0,139 | 0,0139 |
+| RPS puncak | rata-rata × faktor puncak | 0,139 × 10 | 1,39 (naskah: 1,4) | 0,14; naik 10× karena user 10×, asumsi lain tetap |
+| Kepekaan: semua request di satu jam | request ÷ 3.600 | 12.000 ÷ 3.600 | 3,3 RPS | 0,33 |
+| Transaksi per hari | user × aktif × 3 (naskah 3b) | 1.000 × 30% × 3 | 900 | naskah Tahap 1 ±22 ribu setahun cocok dengan × 2, bukan × 3 |
+| Posting per tahun (naskah) | transaksi × 2 × 365 | 900 | 657.000 (naskah ±660 ribu) | Tahap 1 belum ada posting |
+| Posting per tahun (Rekaman lab) | bayar + kiriman, top-up, pencairan | 900 × 364 × 2 + 1.000 × 52 × 2 + 12 × 52 × 2 | 760.448 (`labs/b2-query/output/ledger/data.txt` D) | Selisih dari naskah = top-up dan pencairan |
+| Ukuran per tahun (naskah) | posting × 250 B | 657.000 | ±164 MB (naskah ±170 MB) | < 10 MB |
+| Ukuran terukur (Rekaman lab) | heap `posting` + 3 index | 50 MB + 5,1 MB + 15 MB + 29 MB | ±99 MB, ±137 B per posting (`index.txt`; tanpa `posting_pkey` dan `jurnal`) | – |
+| Data rumus 1.38 (registry) | aktif × 2 × 365 × 300 B | 300 | ±65,7 MB tabel `transaksi` v1 | 6,6 MB; rumus satu baris per transaksi, bukan ledger |
+| Request bersamaan di puncak | L = λ × W (R2-35) | 1,39 × 0,0274 s (JOIN) / 1,39 × 1,94 s (N+1 seluruh riwayat) | 0,04 / 2,7 | W dari rekaman pembanding `n1.txt` E |
+| Memori argon2id | login bersamaan × 64 MiB | 10 login bersamaan | 640 MiB | RAM VPS [perlu verifikasi] |
+| Top-up Senin | 1.000 jurnal × 2 posting, satu transaction | 1.000 akun | 2.000 posting | 100 top-up |
+| RPS puncak Tahap 3 (2.30) | user × aktif% × request ÷ 86.400 × puncak | 10.000 × 25% × 60 (registry `tahap[2].asumsi`) | 17,4 | 1,39; naik 12,5×: user 10×, request per user 1,5× (notifikasi, dashboard), aktif turun ke 25% |
+
+## Keamanan
+| Ancaman | Sumber | Direkam di lab / Ilustrasi |
+|---|---|---|
+| Credential stuffing dari satu IP ke banyak akun | OWASP Credential Stuffing CS, ASVS 6.3.1, CWE-307 (R2-34) | Rekaman `labs/c4-ratelimit/output/login/` (container lokal, beberapa percobaan) |
+| Brute force satu akun | NIST SP 800-63B-4 §3.2.2, CWE-307 (R2-33) | Rekaman c4-ratelimit |
+| Kunci akun dipakai menyerang (Ani terkunci) | CWE-645, OWASP Authentication CS, ASVS 6.1.1 (R2-34) | Rekaman c4-ratelimit (kunci per akun saja) |
+| Password sementara tidak diganti dan hash lemah | RFC 9106, OWASP Password Storage, NIST ≥ 15 karakter (R2-32, R2-33) | Rekaman c4-ratelimit A |
+| Race pada saldo dan bayar ganda | CWE-362; PROPOSAL "Peta ancaman" lapisan logika bisnis dan API (R2-10, R2-17) | Rekaman b3-race, e3-idempotency |
+| Batas harian terlewati | PROPOSAL lapisan logika bisnis "limit bypass" | Rekaman `labs/api-t2/output/transfer.txt` C (422 `batas-harian`) |
+| Enumerasi nomor karyawan dan nama penerima lewat `/kiriman` | ASVS 6.3.8 untuk login (R2-33); MEMORI "Perlu dicek pemilik" | Belum direkam; tugas `lab-api-t2a` |
+
+## Belum bisa dicek
+- Antrean lock di belakang ALTER yang menunggu: dokumentasi PostgreSQL 17 (explicit-locking, sql-altertable) tidak menuliskannya; buktinya rekaman b4-skema dan forum. Sumber tingkat 2 (kode `lock.c`) [perlu verifikasi].
+- Plan GitHub yang dibutuhkan branch protection dan CODEOWNERS di repo privat: halaman docs yang dibuka tidak menyebutnya [perlu verifikasi].
+- Versi oapi-codegen dan status draft IETF header RateLimit tidak dibuka; IANA hanya menunjukkan RateLimit belum terdaftar [perlu verifikasi].
+- Ukuran `posting_pkey` dan tabel `jurnal` tidak diukur lab, jadi ±99 MB adalah batas bawah [perlu verifikasi].
+- RAM VPS Tahap 2 untuk argon2id 64 MiB, dan klaim PROPOSAL tentang database ledger khusus, tidak diriset [perlu verifikasi].
+- Angka naskah M11 "4 detik", M13 "40 detik", M15 Rp15.000 tidak terulang di lab (MEMORI "Usulan perubahan cerita"); halaman memakai angka rekaman atau label Ilustrasi.
+- Rekaman e5-payload memakai skema b2q lama (pesanan), bukan riwayat posting; 2.20 memakainya dengan label atau lab diselaraskan [perlu verifikasi].
