@@ -5,6 +5,7 @@ import react from "@astrojs/react";
 import { sidebar } from "./tools/sidebar.mjs";
 import remarkRujukan from "./src/plugins/remark-rujukan.mjs";
 import remarkAbbr from "./src/plugins/remark-abbr.mjs";
+import remarkGlosarium from "./src/plugins/remark-glosarium.mjs";
 import rehypeDaftarCek from "./src/plugins/rehype-daftar-cek.mjs";
 import { temaShiki } from "./src/lib/shiki-tema.mjs";
 import { unified } from "@astrojs/markdown-remark";
@@ -47,7 +48,7 @@ export default defineConfig({
   ],
   markdown: {
     // Astro 7 memakai Sätteri sebagai pemroses Markdown bawaan; plugin remark butuh pemroses unified.
-    processor: unified({ remarkPlugins: [remarkRujukan, remarkAbbr], rehypePlugins: [rehypeDaftarCek], smartypants: false }), // tanda kutip tetap lurus, sama dengan situs lama
+    processor: unified({ remarkPlugins: [remarkRujukan, remarkGlosarium, remarkAbbr], rehypePlugins: [rehypeDaftarCek], smartypants: false }), // tanda kutip tetap lurus, sama dengan situs lama
     shikiConfig: { theme: temaShiki },
   },
 });

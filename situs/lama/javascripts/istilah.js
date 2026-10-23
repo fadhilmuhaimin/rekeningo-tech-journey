@@ -46,6 +46,14 @@
       a.rel = "noopener";
       links.appendChild(a);
     }
+    if (info.h && !here.endsWith("/" + info.h)) {
+      // Halaman istilah sendiri (G-istilah, keputusan 689): delapan bagian, kalimat pertamanya sama dengan tooltip ini.
+      var hi = el("a", "istilah-pop__detail", "Buka halaman istilah " + info.t);
+      hi.href = root + info.h;
+      hi.target = "_blank";
+      hi.rel = "noopener";
+      links.appendChild(hi);
+    }
     var g = el("a", "istilah-pop__glos", "Glosarium");
     g.href = root + "alat/glosarium/#" + info.s;
     g.target = "_blank";
@@ -114,16 +122,7 @@
     var onGlossary = /\/alat\/glosarium\/?$/.test(location.pathname);
 
     if (onGlossary) {
-      // beri id ke setiap baris glosarium agar tautan #istilah-... bisa dituju
-      var bySlug = {};
-      Object.keys(window.ISTILAH).forEach(function (k) { bySlug[window.ISTILAH[k].t] = window.ISTILAH[k].s; });
-      article.querySelectorAll("table tr").forEach(function (tr) {
-        var strong = tr.querySelector("td strong");
-        if (!strong) return;
-        var td = strong.closest("td");
-        var term = td.textContent.replace(/\s+/g, " ").trim();
-        if (bySlug[term]) tr.id = bySlug[term];
-      });
+      // id baris glosarium (#istilah-...) sudah statis dari plugin remark-glosarium (keputusan 687)
       if (location.hash) {
         var row = document.getElementById(decodeURIComponent(location.hash.slice(1)));
         if (row) { row.classList.add("istilah-target"); row.scrollIntoView({ block: "center" }); }
