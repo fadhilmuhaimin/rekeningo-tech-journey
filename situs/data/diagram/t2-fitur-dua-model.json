@@ -1,0 +1,24 @@
+{
+  "id": "t2-fitur-dua-model",
+  "judul": "Dari mana angka saldo berasal",
+  "sumber": { "jenis": "ilustrasi", "teks": "Model Tahap 1 dan Tahap 2" },
+  "baris": [
+    {
+      "label": "Tahap 1",
+      "sub": "PRD v1",
+      "simpul": [
+        { "teks": "saldo ditimpa", "sub": "bayar dan top-up meng-UPDATE akun.saldo", "nada": "old" },
+        { "teks": "angka terakhir", "sub": "jejaknya tersebar di topup, transaksi, koreksi", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Tahap 2",
+      "sub": "PRD v2",
+      "simpul": [
+        { "teks": "posting ditambah", "sub": "satu jurnal per perpindahan uang; posting tidak pernah diubah", "nada": "system" },
+        { "teks": "jumlah posting", "sub": "tutup buku dan riwayat membaca posting yang sama", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Abu-abu: model Tahap 1. Biru dan hijau: model Tahap 2, diputuskan sebelum kode pertama ditulis."
+}

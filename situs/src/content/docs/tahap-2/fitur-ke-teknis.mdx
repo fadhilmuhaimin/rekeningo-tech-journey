@@ -1,0 +1,92 @@
+---
+title: "2.2 Dari fitur ke pekerjaan teknis v2"
+description: Raka dan Nadia menurunkan PRD v2 jadi pekerjaan di app, backend, dan database, lalu mengambil keputusan terbesar Tahap 2 sebelum menulis kode.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import duaModel from "../../../../data/diagram/t2-fitur-dua-model.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 5 menit · coba 2 menit · Prasyarat: [[t2-prd]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+PRD v2 menambah sedikit layar di app, tapi banyak pekerjaan di backend dan database. Lima dari enam fiturnya menulis atau membaca catatan uang yang sama.
+
+<Rantai data={duaModel} ringkas />
+
+Di app Flutter, yang baru hanya empat: layar pilih penerima, riwayat tanpa batas, layar ganti password pertama, dan notifikasi pencairan sederhana di app warung. Tutup buku dan top-up 1.000 akun tidak punya layar di app.
+
+Di database, setiap perpindahan uang jadi satu jurnal, dan jurnal berisi posting: satu baris per akun yang uangnya berubah. Transfer, top-up, dan pencairan menulis jurnal, begitu juga bayar dari Tahap 1. Tutup buku dan riwayat membaca posting yang sama. Karena itu keputusan terbesar Tahap 2 diambil sebelum kode pertama: saldo bukan lagi kolom yang di-UPDATE.
+
+</Blok>
+
+<Blok nama="Coba dulu: di mana pekerjaannya?" buka aman="Kalau berhenti di sini, kamu sudah tahu: layar ada di app, aturan uang ada di backend, dan database menolak jurnal yang tidak seimbang.">
+
+Sepuluh pekerjaan dari PRD v2. Pilah masing-masing ke tempat yang mengerjakannya, lalu periksa jawabanmu. Angkanya angka cerita PRD v2 (Ilustrasi), kecuali yang ditulis Rekaman lab.
+
+<WidgetLama nama="pilah" src="data/t2-fitur-pilah.json" />
+
+</Blok>
+
+<Blok nama="Dari fitur ke pekerjaan">
+
+Ini tabel yang Raka dan Nadia tulis sebelum satu baris kode Tahap 2 ada.
+
+| Fitur | Di app | Di backend | Di database |
+|---|---|---|---|
+| Transfer antar karyawan | Pilih penerima, nominal, konfirmasi | Cek saldo, cek batas harian, catat perpindahan | Jurnal dan posting |
+| Tutup buku bulanan | Tidak ada; web Keuangan sederhana atau ekspor | Hitung saldo awal, mutasi, dan saldo akhir per akun; cek seluruh jurnal seimbang | Query agregasi pada posting; index |
+| Pencairan terjadwal | Notifikasi sederhana di app warung | Job mingguan: hitung saldo warung, buat jurnal pencairan, buat file transfer | Jurnal pencairan; status batch |
+| Top-up 1.000 akun | Tidak ada | Unggah CSV, validasi, satu transaction | Jurnal top-up per akun |
+| Riwayat panjang | Gulir tanpa batas | Endpoint dengan kursor | Index `posting(akun, waktu, id)` |
+| Login lebih aman | Ganti password pertama | Hash, hitung percobaan gagal | Kolom percobaan dan kunci sementara |
+| Dua engineer | – | Struktur repo, review, tes | Migration bergiliran |
+
+Nama kolom di tabel ini nama konsep. Di file migration lab api-t2, posting menunjuk ke `buku` milik akun, dan waktunya disimpan di kolom `dibuat`. Jadi index riwayatnya `posting (buku_id, dibuat, id)`, dan tabel `buku` dijelaskan di [[t2-skema]].
+
+Baris terakhir bukan fitur, tapi tetap pekerjaan. Dua orang mengubah satu repo untuk pertama kalinya, dan akibatnya muncul di [[t2-m14]].
+
+</Blok>
+
+<Blok nama="Keputusan sebelum kode">
+
+Tabel itu memaksa satu keputusan sebelum editor dibuka: saldo bukan lagi kolom yang di-UPDATE.
+
+Di Tahap 1, setiap jenis kejadian punya tabel sendiri: `topup`, `transaksi`, dan `koreksi`. Angka saldonya ada di kolom `akun.saldo`, yang ditimpa setiap kali uang berpindah. PRD v2 menambah dua jenis kejadian lagi: transfer antar karyawan dan pencairan.
+
+Dua permintaan PRD v2 tidak bisa dipenuhi model itu:
+
+1. Tutup buku meminta saldo awal + mutasi = saldo akhir untuk setiap akun. Mutasi hanya bisa dihitung kalau setiap perubahan saldo punya baris.
+2. Aturan Pak Hadi v2 melarang tabel koreksi tangan. Kesalahan harus diperbaiki dengan catatan baru yang menunjuk catatan asalnya.
+
+Nadia mengusulkan cara dari akuntansi. Setiap perpindahan uang jadi satu jurnal berisi dua posting atau lebih, dan jumlah posting-nya selalu nol. Saldo adalah jumlah posting satu akun, dan posting tidak pernah diubah atau dihapus.
+
+Model ini tidak menjawab dua pertanyaan terbuka PRD v2. Dua transfer bersamaan dari akun Budi tetap bisa sama-sama melihat saldo cukup, dan kejadiannya ada di [[t2-m9]].
+
+Alasannya dibahas di [[t2-saldo-bukan-kolom]], cara kerjanya di [[t2-ledger]], dan keputusannya di [[t2-adr-ledger|ADR dari kolom saldo ke ledger]].
+
+</Blok>
+
+<Blok nama="Konsep yang akan dibutuhkan">
+
+Setiap baris tabel menyebut konsep yang belum pernah dipakai Rekeningo. Tahap 2 membahasnya satu per satu, saat masalahnya muncul.
+
+| Fitur | Konsep |
+|---|---|
+| Transfer antar karyawan | [[t2-ledger]], [[B3.2]], [[E3]] |
+| Tutup buku bulanan | [[t2-ledger]], [[B2.3]] |
+| Pencairan terjadwal | [[t2-job-rekonsiliasi]] |
+| Top-up 1.000 akun | [[B3.1]] dan [[B6]] dari Tahap 1, kini untuk 1.000 akun sekaligus |
+| Riwayat panjang | [[B1.3]], [[B2.4]], [[B2.3]] |
+| Login lebih aman | [[t2-login-aman]] |
+| Dua engineer | [[t2-tim-infra]] |
+
+Tiga halaman berikutnya membahas fitur P0 satu per satu: [[t2-transfer]], [[t2-tutup-buku]], dan [[t2-pencairan]]. Top-up, riwayat, dan login dibahas lewat halaman konsep di tabel ini.
+
+</Blok>
+
+<SkripLama daftar={["pilah"]} />
