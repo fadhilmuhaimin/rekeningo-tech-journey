@@ -1378,8 +1378,9 @@
       "lab": [
         "t2-pencairan"
       ],
-      "ada": false,
-      "nomor": "2.5"
+      "ada": true,
+      "nomor": "2.5",
+      "menit": 8
     },
     {
       "id": "t2-saldo-bukan-kolom",

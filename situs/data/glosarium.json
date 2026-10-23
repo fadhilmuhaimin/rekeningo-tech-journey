@@ -414,6 +414,15 @@
   "h": null
  },
  {
+  "t": "Job terjadwal",
+  "d": "Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.",
+  "b": "t2-pencairan",
+  "n": "2.5 Fitur pencairan",
+  "u": "/tahap-2/fitur-pencairan/",
+  "s": "istilah-job-terjadwal",
+  "h": "/istilah/job-terjadwal/"
+ },
+ {
   "t": "Jurnal",
   "d": "Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol.",
   "b": "t2-ledger",
