@@ -3,12 +3,12 @@
   "judul": "Kenapa saldo Budi sekian? Dua jawaban database",
   "sumber": {
     "jenis": "rekaman",
-    "teks": "Rekaman lab b3-ledger · migrasi.txt B, kejadian.txt D"
+    "teks": "Rekaman lab b3-ledger"
   },
   "baris": [
     {
-      "label": "Kolom saldo",
-      "sub": "Tahap 1, migrasi.txt B",
+      "label": "Tahap 1",
+      "sub": "kolom saldo, migrasi.txt B",
       "simpul": [
         {
           "teks": "kolom Rp180.000",
@@ -23,16 +23,16 @@
       ]
     },
     {
-      "label": "Ledger",
-      "sub": "Tahap 2, kejadian.txt D",
+      "label": "Tahap 2",
+      "sub": "ledger, kejadian.txt D",
       "simpul": [
         {
-          "teks": "posting berjurnal",
+          "teks": "jumlah posting",
           "sub": "8 baris Budi dalam satu query, dengan jenis, lawan, keterangan",
           "nada": "system"
         },
         {
-          "teks": "jumlah Rp385.000",
+          "teks": "Rp385.000, cocok",
           "sub": "sama dengan saldo_cache",
           "nada": "good"
         }
