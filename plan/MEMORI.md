@@ -41,16 +41,13 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Per halaman: branch `tahap-1/<slug>` dari main; lab dulu bila perlu (PR sendiri); halaman (PR sendiri); KEPUTUSAN + STATUS + MEMORI + ANTREAN; merge bila CI hijau; akhiri "Siap dilanjutkan dari <halaman>". Setelah 1.42: `plan/PROMPT-CROSSCHECK.md`, lalu `plan/LAPORAN-TAHAP-1.md`.
 - Mode paralel: konflik PR yang hanya baris tambahan di `plan/KEPUTUSAN.md` digabung pengatur dengan `tmp/gabung_keputusan.sh <branch> <nomor>` (union baris, cek tidak ada baris hilang, `cek_tabel_plan.py`, push biasa); gerbang ulangnya CI di head gabungan. PR yang file-nya terpisah dari perubahan main terbaru boleh di-merge tanpa gabung ulang; CI push ke main diawasi sesudahnya.
 
-## Diputuskan malam ini
+## Diputuskan tanpa pemilik
 
-- X1 dan X2 sudah selesai sebelum malam ini (PR #249), jadi tidak diulang: ERD1 masuk sesudah X2 sebagai pengecualian pembekuan; sesudahnya hanya 1.12 dicek ulang 4 varian dan LAPORAN-TAHAP-1 mendapat satu baris. Alasan: perubahan hanya di satu halaman; mengulang X1 penuh tidak menambah bukti.
-- 1.12 hanya mendapat diagram statis. Widget ERD bertumbuh dibangun dan diuji di `/uji/erd/`, belum dipasang di 1.12 atau 2.9 sampai pemilik meninjau Tahap 1. Alasan: paling mudah dibatalkan; halaman Tahap 1 sedang ditinjau.
-- Nomor keputusan Tahap 2 mengikuti prompt di naskah: jalur lab/konten 400–449, teknis 450–499, pengatur 376–399. Alasan: dua jalur tidak berebut nomor.
-- Judul 2.8 di registry ditulis persis naskah ("ADR 12: dari kolom saldo ke ledger") walau 1.40 sudah ADR 12; lihat Usulan perubahan cerita. Alasan: CERITA paling tinggi; mengganti judul satu baris registry mudah.
-- Lab pencairan bernama `t2-pencairan` (pola lab khusus tahap `t3-bayar`, `t5-replika`). Halaman 2.x bergantung pada tugas gerbang `T2-mulai` yang hanya pemilik tandai selesai, jadi `antrean.py berikut` tidak pernah memilih halaman. Alasan: larangan menulis halaman malam ini dijaga alat, bukan ingatan.
-- Dua jalur lab berjalan bersamaan (api-t2 dan b3-race, lalu lab berikutnya) di PostgreSQL bersama dengan schema, port, dan rentang nomor keputusan sendiri; container tidak boleh di-down. Alasan: tujuh lab sisa tidak muat satu jalur dalam satu malam; isolasi schema sudah berlaku sejak keputusan 80. Rekaman ledger lab lama ditulis ke file baru supaya halaman versi lama tidak berubah.
-- Registry Tahap 2 menggeser nomor rujukan halaman lama di 9 halaman Tahap 1 (2.1/2.3/2.4/2.6 → 2.11/2.14/2.19/2.17; judul dan tujuan sama) dan diterima; `tahap[1]` di registry (user, nama, rekap) belum diubah ke naskah Tahap 2 supaya kalkulator 1.37/1.38 tidak berubah. Nomor keputusan lab sisa malam ini 500–549. Alasan: paling mudah dibatalkan, Tahap 1 sedang ditinjau.
-- Temuan keamanan dan aksesibilitas dari tinjauan jadi tugas `lab-api-t2a` dan `A11y-diagram` sebelum `T2-mulai`; polesan ke `plan/SETELAH-TAHAP-2.md`. Alasan: kategori yang boleh masuk antrean di bawah pembekuan.
+Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditanya. Satu baris per keputusan (opsi paling aman dan paling mudah dibatalkan); bila lebih dari 8 baris, yang lama pindah ke `plan/DIPUTUSKAN-TANPA-PEMILIK.md` (keputusan 551). LAPORAN-AKHIR mengumpulkan keduanya.
+
+- T2-mulai ditandai selesai tanpa tinjauan Tahap 1 (keputusan 552). Mudah dibatalkan: halaman 2.x bisa ditarik per PR.
+- Nomor keputusan per tahap (keputusan 553): T2 konten 600–679, teknis 680–719, pengatur 720–799; T3 800–999; T4 1000–1199; T5 1200–1399; T6 1400–1499; laporan akhir 1500+. Di dalam blok tahap: konten +0–99, teknis +100–149, pengatur +150–199.
+- Crosscheck kecil K4–K9 dan X1-t2/X2-t2 dihapus dari ANTREAN; EVALUASI-TAHAP-N menggantikannya (keputusan 554).
 
 ## Perlu dicek pemilik
 
@@ -69,7 +66,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 ## Sedang dikerjakan
 
-2026-10-14 06.00 WITA · Mode malam selesai ("Selesai untuk malam ini"; laporan `plan/LAPORAN-PAGI.md`). Persiapan Tahap 2 lengkap: naskah, RINGKAS, ANTREAN, registry 33 halaman "segera", ERD Tahap 1 dan 2, widget ERD bertumbuh di `/uji/erd/`, sembilan lab (b3-ledger, api-t2, b3-race, b3-isolasi, t2-pencairan, e3-idempotency, b2-query, b4-skema, c4-ratelimit), semua lewat peninjau. Halaman 2.x belum ditulis (gerbang `T2-mulai`). Worktree `../rjt-*` dihapus. Untuk melanjutkan: pemilik meninjau Tahap 1 dan LAPORAN-PAGI, lalu `python3 tools/antrean.py berikut` (lab-api-t2a, A11y-diagram), lalu `T2-mulai`.
+2026-10-23 · Mode penyelesaian penuh (prompt pemilik, keputusan 551–554): Tahap 2 sampai 6 diselesaikan tanpa pemilik, alur tujuh langkah per tahap (riset, naskah, lab, ERD, widget, halaman, evaluasi), lalu `plan/LAPORAN-AKHIR.md`. Sekarang: persiapan di branch `persiapan/mode-penuh` (T2-mulai, skill `riset-tahap` dan `evaluasi-tahap`, `plan/RISET-SKILL.md`, ANTREAN Tahap 2–6). File: plan/MEMORI.md, plan/ANTREAN.md, plan/KEPUTUSAN.md, plan/STATUS.md, .claude/skills/riset-tahap/, .claude/skills/evaluasi-tahap/. Untuk melanjutkan: `python3 tools/antrean.py berikut`.
 
 ## Pelajaran
 
