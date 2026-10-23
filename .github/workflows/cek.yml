@@ -122,8 +122,49 @@ jobs:
       # Mirror apt Azure ±60 KB/s pada 2026-10-24 membuat paket font dependency melewati 3 menit di tiga run berturut-turut (keputusan 563).
       - name: Pasang dependency
         run: timeout -k 15s 2m bun install --cwd situs --frozen-lockfile
+      # Paket .deb dependency Chromium (±26 MB, kebanyakan font) disimpan di cache Actions, jadi mirror apt yang
+      # lambat tidak lagi menentukan lama langkah pasang (keputusan 683). Kunci: image runner (ImageOS dan
+      # ImageVersion, dipasang image GitHub di /etc/environment) dan versi playwright-core di lockfile, yang
+      # menentukan daftar paketnya. Image baru memulihkan cache image lama lewat restore-keys.
+      - name: Kunci cache apt Chromium
+        id: kunci_apt
+        run: |
+          versi=$(grep -o '"playwright-core@[0-9][0-9.]*"' situs/bun.lock | head -1 | tr -d '"')
+          test -n "$versi" || { echo "::error::playwright-core tidak ada di situs/bun.lock"; exit 1; }
+          echo "awalan=apt-chromium-${ImageOS:?bukan runner GitHub-hosted}-" >> "$GITHUB_OUTPUT"
+          echo "kunci=apt-chromium-${ImageOS}-${ImageVersion:?bukan runner GitHub-hosted}-$versi" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        id: cache_apt
+        with:
+          path: ~/apt-chromium
+          key: ${{ steps.kunci_apt.outputs.kunci }}
+          restore-keys: ${{ steps.kunci_apt.outputs.awalan }}
+      # apt-get memakai .deb di /var/cache/apt/archives yang nama file (paket_versi_arsitektur) dan ukurannya cocok
+      # dengan index, lalu hanya mengunduh sisanya (apt 2.8, acquire-item.cc). Perintah install tetap milik
+      # Playwright, jadi daftar paket yang terpasang, termasuk font fallback, sama dengan tanpa cache.
       - name: Pasang Chromium Playwright
-        run: cd situs && timeout -k 15s 8m bunx playwright install --with-deps chromium
+        run: |
+          shopt -s nullglob
+          deb=(~/apt-chromium/*.deb)
+          if (( ${#deb[@]} )); then sudo cp "${deb[@]}" /var/cache/apt/archives/; fi
+          echo "Dipulihkan dari cache: ${#deb[@]} file .deb"
+          cd situs && timeout -k 15s 8m bunx playwright install --with-deps chromium
+      # Hanya bila kunci persis belum ada. Yang disimpan hanya .deb yang versinya sekarang terpasang, supaya versi
+      # lama dari restore-keys tidak menumpuk. actions/cache mengunggahnya di akhir job, dan hanya bila job lolos.
+      - name: Siapkan cache apt Chromium
+        if: steps.cache_apt.outputs.cache-hit != 'true'
+        run: |
+          shopt -s nullglob
+          rm -rf ~/apt-chromium && mkdir ~/apt-chromium
+          for f in /var/cache/apt/archives/*.deb; do
+            paket=$(dpkg-deb -f "$f" Package)
+            versi=$(dpkg-deb -f "$f" Version)
+            terpasang=$(dpkg-query -W -f='${Version}' "$paket" 2>/dev/null || true)
+            if [ "$terpasang" = "$versi" ]; then cp "$f" ~/apt-chromium/; fi
+          done
+          deb=(~/apt-chromium/*.deb)
+          echo "Disiapkan untuk cache: ${#deb[@]} file .deb, $(du -sh ~/apt-chromium | cut -f1)"
+          (( ${#deb[@]} )) || echo "::warning::Tidak ada .deb terpasang di /var/cache/apt/archives; cache apt kosong"
       # Font sudah ada di dist (get_fonts.sh menyalinnya ke situs/public sebelum build).
       - uses: actions/download-artifact@v8
         with:
