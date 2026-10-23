@@ -986,13 +986,31 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - selesai bila: Pemilik meninjau Tahap 1 dan menyatakan halaman Tahap 2 boleh ditulis (prompt di naskah bagian "Prompt untuk Claude Code").
 - catatan: Ditandai selesai 2026-10-23 atas prompt pemilik "mode penyelesaian penuh": pemilik melewatkan tinjauan Tahap 1 dan meninjau di akhir (keputusan 552).
 
+### G-ci-apt · Cache paket apt Chromium di CI ukur
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: A11y-diagram
+- selesai bila: Job ukur CI tidak lagi mengunduh ulang paket apt dependency Chromium dari mirror setiap run: paket `.deb` di-cache dengan `actions/cache` resmi (kunci dari versi Playwright di lockfile) dan dipulihkan ke cache apt sebelum `playwright install --with-deps chromium`; daftar paket yang terpasang sama dengan sebelumnya (tidak ada font yang hilang, karena font fallback ikut menentukan ukuran CLS dan layar); batas langkah tetap ada; tiga run CI berturut-turut lolos tanpa rerun; waktu langkah sebelum/sesudah dicatat.
+- catatan: Kategori gerbang gagal: langkah pasang Chromium exit 124 di lima run sejak 2026-10-24, juga sesudah batas 8 menit (keputusan 563; run 39994454442). Tanpa action pihak ketiga.
+
+### G-axe · axe-core di alat ukur untuk evaluasi
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: G-ci-apt
+- selesai bila: axe-core dipasang sebagai devDependency dengan ADR (versi dicek ke npm hari itu); `situs/tools/ukur-axe.mjs --path <p> ...` menjalankan axe dengan runOnly wcag2a, wcag2aa, wcag21aa, wcag22aa sesudah semua `<details>` dibuka dan halaman digulir sampai island hidup, di 375×667 dan 1366×657, gelap dan terang, dan keluar 1 bila ada pelanggaran; uji lolos palsu (halaman uji dengan pelanggaran sengaja membuatnya gagal); tidak masuk gerbang per PR kecuali murah, dipakai EVAL-N butir W4.
+- catatan: Kategori aksesibilitas/gerbang. Usul dari tinjauan #274 dan skill evaluasi-tahap (W4).
+
 ### ERD-1.12 · Widget ERD bertumbuh di 1.12
 
 - jenis: interaksi
 - status: antre
 - percobaan: 0
-- bergantung: A11y-diagram, ERD2
-- selesai bila: Blok Paham 1.12 memakai `ErdTumbuh` dengan data `situs/data/erd/tahap-1.json` (versi statis tetap untuk pembaca layar dan tanpa JS); React Flow hanya dimuat di 1.12 dan `/uji/erd/`; ukuran JS 1.12 sebelum/sesudah dicatat di `plan/AUDIT-TAMPILAN.md`; layar pertama 1.12 tidak bergeser; axe 0; `ukur-erd.mjs` lolos.
+- bergantung: G-axe, ERD2
+- selesai bila: Blok Paham 1.12 memakai `ErdTumbuh` dengan data `situs/data/erd/tahap-1.json` (versi statis tetap untuk pembaca layar dan tanpa JS); React Flow hanya dimuat di 1.12 dan `/uji/erd/`; ukuran JS 1.12 sebelum/sesudah dicatat di `plan/AUDIT-TAMPILAN.md`; layar pertama 1.12 tidak bergeser; axe 0; lapisan svg garis ErdTumbuh tidak terbaca sebagai `image` tanpa nama di pohon aksesibilitas Chromium (CDP `Accessibility.getFullAXTree`, pola keputusan 680; temuan #274: 11 dari 12 svg garis di `/uji/erd/`); `ukur-erd.mjs` lolos dan gagal bila itu kembali.
 - catatan: Langkah 4 Tahap 2 (naskah "Dipasang di: 1.12 … satu PR kecil di Tahap 1"). Pengecualian pembekuan Tahap 1 atas permintaan naskah (keputusan 555). 2.9 memasang mode bandingkan di PR halamannya.
 
 ### G-istilah · Halaman glosarium per istilah
@@ -1315,7 +1333,7 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - jenis: crosscheck
 - status: antre
 - percobaan: 0
-- bergantung: 2.33
+- bergantung: 2.33, G-axe
 - selesai bila: `plan/EVALUASI-TAHAP-2.md` sesuai skill evaluasi-tahap oleh subagent yang tidak menulis halaman Tahap 2: kartu W1–W8 dengan satu baris bukti yang bisa diulang, tiga pertanyaan pembaca di tiga halaman acak (seed 2), uji baca oleh subagent segar (5 hal membingungkan). Ada TIDAK: paling banyak 3 tugas perbaikan disisipkan tepat sesudah tugas ini, lalu `EVAL-2-ulang` sekali; sisa TIDAK dan 5 hal membingungkan ke `plan/TINJAUAN-PEMILIK.md`.
 - catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya.
 
