@@ -199,3 +199,8 @@ Pola per halaman: branch `tahap-1/<slug>` dari `main`; lab dulu bila perlu (PR s
 - Cadangan database: naskah Tahap 1 tidak menyebutnya, padahal API dan PostgreSQL ada di satu VPS. 1.36 menulisnya sebagai celah terbuka + latihan lab (keputusan 302). Usul: Raka menjalankan `pg_dump` manual sebelum setiap migration dan menyalinnya keluar VPS, atau risiko diterima sampai cadangan terjadwal Tahap 3.
 - 1.42: naskah bagian 6 menulis jawaban tebak (ADR 6, ADR 5) dibuka di halaman pertama Tahap 2; 1.42 sudah membukanya di widget tebak dan blok "Menuju Tahap 2" (sesuai ANTREAN). Usul: halaman pertama Tahap 2 mengulang dan memperluasnya, naskah cukup menyebut keduanya. Prioritas fitur PRD v2 (P0–P2) dan durasinya belum ada di naskah.
 - Naskah `CERITA-TAHAP-1.md` ±64 menulis "Transfer setengah jadi" (Tahap 2), halaman Cerita memakai "Pembayaran setengah jadi" yang lebih tepat; ±43 menulis "Lima tokoh" padahal tabelnya enam. Usul: naskah diselaraskan (XF2, keputusan 372).
+
+## Pelajaran (dipindah dari MEMORI 2026-10-24)
+
+- PR yang CONFLICTING dengan main tidak memicu CI (`cek.yml` hanya `pull_request`), dan `tmp/tunggu_pr.sh` berakhir "TIDAK ADA RUN": cek `gh pr view <n> --json mergeable` dulu; konflik baris tambahan KEPUTUSAN/README digabung `tmp/gabung_urut.sh <branch> <nomor>` (union, KEPUTUSAN diurutkan). Lab yang menunggu lock dengan ambang waktu tetap gagal palsu saat mesin ramai: tunggu sampai selesai atau `pg_stat_activity` menunjukkan Lock (2026-10-14).
+- Dua lapis menangkap celah yang lolos pelaksana: c4 (`/ganti-password` tanpa rate limit, salt tetap), api-t2 (Bayar v1 dijawab 201 tanpa ledger). Peninjau wajib uji mutasi dan baca kode; cek `mergeable` lagi sesudah CI hijau; scratchpad dipakai bersama agen, tulis ke subfolder unik (2026-10-14).
