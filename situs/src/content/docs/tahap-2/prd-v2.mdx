@@ -139,11 +139,11 @@ Di [[t1-jembatan]] kamu menebak ADR Tahap 1 mana yang dibuka lagi. Jawabannya AD
 
 **ADR 6, tabel koreksi: diganti.** Di Tahap 1, saldo yang salah diperbaiki lewat baris koreksi: siapa, berapa, kenapa, kapan. Aturan Pak Hadi v2 melarang tabel koreksi tangan. Tutup buku juga meminta saldo awal + mutasi = saldo akhir untuk setiap akun.
 
-Rekaman lab koreksi Tahap 1 sudah gagal di syarat itu. Saldo Budi Rp250.000, tapi catatannya menghitung Rp320.000, karena pemotongan Rp70.000 di M4 tidak punya baris di tabel mana pun. Penggantinya mulai di [[t2-saldo-bukan-kolom]].
+Rekaman lab koreksi Tahap 1 (`koreksi.txt` bagian D, lab `api-t1`) sudah gagal di syarat itu. Saldo Budi Rp250.000, tapi catatannya menghitung Rp320.000, karena pemotongan Rp70.000 di M4 tidak punya baris di tabel mana pun. Penggantinya mulai di [[t2-saldo-bukan-kolom]].
 
-**ADR 5, transaction di service: tetap, tapi tidak cukup.** Pembayaran yang gagal di tengah tetap di-rollback seluruhnya. Rekaman lab di [[t1-adr-12]] menunjukkan dua hal yang tidak dicegahnya:
+**ADR 5, transaction di service: tetap, tapi tidak cukup.** Pembayaran yang gagal di tengah tetap di-rollback seluruhnya. Rekaman lab `sengaja-belum.txt` bagian B–E di [[t1-adr-12]] menunjukkan dua hal yang tidak dicegahnya:
 
-- Dua Bayar Rp200.000 bersamaan dari saldo Rp250.000 sama-sama lolos pemeriksaan saldo, dan Budi melihat 500.
+- Dua Bayar Rp200.000 bersamaan dari saldo Rp250.000 sama-sama lolos pemeriksaan saldo. Satu berhasil, yang kedua ditahan constraint `saldo_tidak_negatif`, dan Budi melihat 500.
 - Bayar Rp25.000 yang diulang sesudah sinyal putus tercatat dua kali.
 
 Keduanya adalah dua pertanyaan terbuka di atas. Metrik PRD v2 meminta nol kasus tertagih dua kali yang tidak terdeteksi otomatis, dan rekaman kedua adalah kasus seperti itu. Lanjutannya di [[t2-m9]] dan [[t2-m10]].
