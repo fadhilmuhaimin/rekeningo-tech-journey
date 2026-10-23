@@ -1,0 +1,260 @@
+---
+title: "2.6 Kenapa saldo bukan kolom"
+description: Di Tahap 1 saldo adalah angka terakhir yang ditulis, jadi pertanyaan Pak Hadi tidak bisa dijawab dari data. Di ledger, saldo adalah jumlah posting, dan setiap rupiah menunjuk kejadiannya.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-saldo-bukan-kolom-inti.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t2-tutup-buku]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Saldo yang bisa dijelaskan adalah hasil jumlah semua catatan uang masuk dan keluar, bukan angka yang ditulis lalu ditimpa.
+
+<Rantai data={intiDiagram} ringkas />
+
+Pak Hadi meminta satu hal: tunjukkan kejadian yang membuat saldo Budi Rp180.000. Di Tahap 1, saldo adalah kolom `akun.saldo` yang di-UPDATE setiap kali uang berpindah, jadi database hanya menyimpan angka terakhirnya. Rekaman lab `migrasi.txt` bagian B (lab b3-ledger) menjumlahkan tiga tabel catatan Budi dan mendapat Rp250.000. Rp70.000 yang terpotong saat [[t1-m4]] tidak punya baris di tabel mana pun.
+
+Di ledger Tahap 2, setiap perpindahan uang menulis **posting**: satu baris uang masuk atau keluar untuk satu akun, yang tidak pernah diubah. Saldo adalah jumlah posting, jadi saldo tidak bisa berubah tanpa baris yang menjelaskannya. Di rekaman `kejadian.txt` bagian D, satu query menampilkan 8 posting Budi dengan jenis kejadian, lawan, dan keterangan, sampai saldo Rp385.000.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Kolom saldo Budi dan tiga tabel catatannya menulis dua angka berbeda. Kenapa database Tahap 1 tidak bisa memutuskan mana yang benar?
+2. Di ledger, bagaimana salah bayar dikoreksi tanpa mengubah baris lama?
+3. `saldo_cache` dan jumlah posting satu akun berbeda Rp5.000. Angka mana yang dipercaya?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: kolom saldo bisa berubah tanpa catatan, sedangkan saldo dari posting hanya berubah lewat baris baru.">
+
+Kedua panel menjalankan pembayaran M4 tanpa transaction: Budi membayar Rp70.000 ke Warung Ani, yang saldonya Rp1.450.000 dengan batas Rp1.500.000. Before memakai kolom saldo Tahap 1, After memakai posting. Angkanya dari rekaman [[t1-m4]], skemanya diringkas, dan SQL-nya dijalankan sungguhan di browser dengan SQLite (Ilustrasi).
+
+<WidgetLama nama="runsql" src="data/t2-saldo-bukan-kolom.json" />
+
+Panel Before berhenti di langkah kedua, sama dengan rekaman lab `m4.txt`: saldo Budi Rp180.000, dan tidak ada baris `transaksi` untuk pembayaran itu. Panel After juga berhenti, di langkah ketiga. Bedanya, After tidak punya perintah "potong saldo". Potongan Budi adalah posting −Rp70.000 di jurnal 4, jadi ia muncul di catatan Budi.
+
+Baris terakhir sama di kedua panel: Rp70.000 hilang dari sistem. Ledger sendiri tidak mencegah langkah yang gagal di tengah; transaction dan pagar di database yang mencegahnya. Database lab menolak jurnal yang posting-nya tidak berjumlah nol saat `COMMIT`, dengan SQLSTATE 23514 (rekaman lab `invarian.txt` bagian A, dibahas di [[t2-ledger]]).
+
+Nyalakan **Ubah satu hal**: Budi membayar Rp40.000, di bawah batas warung. Kedua panel kini menulis jawaban yang sama, saldo Rp210.000 dan selisih 0. Kolom saldo baru kehilangan catatan saat satu langkah gagal di tengah, atau saat ada kode yang meng-UPDATE saldo tanpa menulis catatan.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+PRD v2 memperketat aturan Pak Hadi: "Setiap rupiah di saldo siapa pun harus bisa ditelusuri ke kejadian yang membuatnya, tanpa tabel koreksi tangan" ([[t2-prd]]). Di Tahap 1, jawaban untuk saldo Budi tersebar di tiga tabel dengan bentuk berbeda: `topup`, `transaksi`, dan `koreksi` dari ADR 6 ([[t1-adr-transaction]]). Query ini menggabungkan ketiganya dengan tangan:
+
+<Snippet file="labs/b3-ledger/output/migrasi.txt" lines="23:49" title="Rekaman lab: labs/b3-ledger/output/migrasi.txt" />
+
+Kolom saldo itu benar, tapi buktinya ada di luar tabel. Log PostgreSQL di rekaman `m4.txt` mencatat dua `UPDATE` tanpa `INSERT`, dan log itulah yang menjelaskan selisih Rp70.000. Tabel `koreksi` mencatat pengembaliannya, bukan potongannya. Rekaman `koreksi.txt` bagian D (lab api-t1) menunjukkan celah yang sama sesudah koreksi: saldo Rp250.000, sedangkan catatan menghitung Rp320.000.
+
+Selama saldo dan catatannya disimpan di dua tempat, setiap jalur kode harus menulis keduanya dengan benar. Satu jalur yang gagal di tengah, seperti M4, membuat keduanya berbeda, dan tidak ada yang tahu sampai Keuangan bertanya.
+
+### Cara kerjanya
+
+Ledger membalik arah penyimpanan: catatan disimpan, saldo dihitung. Setiap akun punya satu `buku`, tempat posting-nya dicatat, dan uang sistem seperti tunjangan dan kas pencairan juga punya buku sendiri.
+
+**Satu bentuk untuk semua perpindahan uang.** Top-up, bayar, transfer, pencairan, dan koreksi sama-sama satu jurnal berisi dua posting atau lebih. Uang keluar ditulis negatif, uang masuk positif. Aturan persisnya, termasuk jurnal yang harus berjumlah nol, ada di [[t2-ledger]].
+
+**Saldo adalah jumlah posting.** Pertanyaan Pak Hadi jadi satu query atas satu tabel. Kolom `saldo` di hasilnya adalah jumlah berjalan, dan setiap baris membawa jurnal, lawan, dan keterangannya:
+
+<Snippet file="labs/b3-ledger/output/kejadian.txt" lines="155:177" title="Rekaman lab: labs/b3-ledger/output/kejadian.txt" />
+
+Tiga baris pertama berasal dari migrasi. Saldo kolom Rp180.000 menjadi jurnal pembuka, dan potongan M4 yang tidak punya baris menjadi jurnal `selisih` yang dibalik koreksinya. Saldo Rp110.000 di antaranya hanya urutan baris di dalam transaction migrasi. Riwayat sebelum migrasi tidak ikut jadi posting; di lab api-t2, tabel Tahap 1 disalin ke schema arsip sebelum dihapus (rekaman `migrasi.txt` bagian D).
+
+**Koreksi adalah baris baru.** Salah bayar Rp15.000 ke Warung Sari (jurnal 10) dibatalkan jurnal 11 dengan posting cermin, alasan, dan rujukan ke jurnal asal. Kedua jurnal tetap ada, dan saldo Budi kembali Rp385.000:
+
+<Snippet file="labs/b3-ledger/output/kejadian.txt" lines="115:124" title="Rekaman lab: labs/b3-ledger/output/kejadian.txt" />
+
+Square menulis pola yang sama untuk database akuntansi settlement mereka. Entri hanya ditambah, kesalahan dikoreksi dengan entri baru, dan setiap jurnal berjumlah nol ([Square Engineering, 2019](https://developer.squareup.com/blog/books-an-immutable-double-entry-accounting-database-service/)).
+
+### Cache: salinan yang dicek
+
+Menjumlahkan semua posting setiap kali app membuka saldo makin berat saat posting bertambah. Naskah memperkirakan ±660 ribu posting per tahun di Tahap 2 (Asumsi, [[t2-skema]]). Karena itu `buku.saldo_cache` menyimpan salinan jumlahnya, ditulis di transaction yang sama dengan posting, dan app membaca salinan itu. Source of truth tetap jumlah posting.
+
+Job malam membandingkan keduanya. Di rekaman lab api-t2, kode yang salah menambah Rp5.000 ke cache tanpa posting, dan job malam menemukannya:
+
+<Snippet file="labs/api-t2/output/migrasi.txt" lines="206:218" title="Rekaman lab: labs/api-t2/output/migrasi.txt" />
+
+Job keluar dengan status 1 supaya penjadwal memberi tahu, dan tidak memperbaiki cache sendiri. Selisih berarti ada kode yang menulis cache tanpa posting, dan kode itu yang harus dicari. Cache juga punya masalah kedua: dua transfer bersamaan bisa sama-sama membaca saldo lama, dibahas di [[t2-m9]].
+
+Kalau di app Flutter kamu menghitung total keranjang dari daftar item, bukan menyimpan total sebagai field kedua, idenya sama. Bedanya, daftar di ledger tidak pernah diedit; item yang salah dibatalkan dengan item baru.
+
+### Di stack lain
+
+**Skenario:** saldo dihitung dari posting. Tab Go adalah job malam di lab, yang menghitungnya untuk semua buku lalu membandingkannya dengan `saldo_cache`. Tab lain menghitung saldo satu buku, tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-24.
+
+Yang sama di semua stack: saldo adalah satu `sum` di PostgreSQL. `sum` tanpa baris menghasilkan NULL, bukan 0, dan `sum` atas `bigint` bertipe `numeric` ([PostgreSQL 17, 9.21](https://www.postgresql.org/docs/17/functions-aggregate.html)). Karena itu query memakai `coalesce`, dan tab di luar Go mengubah hasilnya kembali ke `bigint`.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: Go 1.27.1, `database/sql` + pgx v5.11.0, PostgreSQL 17.11, lab api-t2.*
+
+<Snippet file="labs/api-t2/internal/repo/ledger.go" region="cek-cache" lang="go" title="labs/api-t2/internal/repo/ledger.go" />
+
+**Yang berbeda di stack ini:** `rows.Scan` membaca hasil `numeric` langsung ke `int64`, dan rekaman bagian E di atas menunjukkan angkanya utuh. Satu query menghitung semua buku sekaligus, karena job malam memeriksa 1.016 buku.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [node-postgres: Queries](https://node-postgres.com/features/queries) dan [pg-types](https://github.com/brianc/node-pg-types), `pg` 8.23.1.*
+
+<Snippet lang="js" code={`const { rows } = await pool.query(
+  "SELECT cast(coalesce(sum(jumlah), 0) AS bigint) AS saldo FROM posting WHERE buku_id = $1",
+  [bukuId],
+);
+const saldo = Number(rows[0].saldo); // int8 tiba sebagai string`} />
+
+**Yang berbeda di stack ini:** node-postgres mengembalikan `int8` sebagai string. Parsing-nya diserahkan ke kode: `Number()` di satu tempat, atau parser untuk semua query lewat `types.setTypeParser(20, ...)`.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Database](https://laravel.com/docs/13.x/database#running-a-select-query).*
+
+<Snippet lang="php" code={`$baris = DB::select(
+    'select cast(coalesce(sum(jumlah), 0) as bigint) as saldo from posting where buku_id = ?',
+    [$bukuId]
+);
+$saldo = $baris[0]->saldo;`} />
+
+**Yang berbeda di stack ini:** `DB::select` selalu mengembalikan array `stdClass`, jadi satu angka pun dibaca dari baris pertama lewat alias `saldo`. Untuk satu nilai tanpa baris, Laravel juga punya `DB::scalar`.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: Aggregation functions](https://docs.djangoproject.com/en/6.1/ref/models/querysets/#aggregation-functions).*
+
+<Snippet lang="python" code={`from django.db.models import Sum
+
+saldo = Posting.objects.filter(buku_id=buku_id).aggregate(
+    saldo=Sum("jumlah", default=0)
+)["saldo"]`} />
+
+**Yang berbeda di stack ini:** ORM menulis `sum` sendiri. Tanpa `default=0`, buku tanpa posting menghasilkan `None`, sama dengan `sum` tanpa baris di PostgreSQL.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod 4.0: Raw access](https://docs.serverpod.dev/concepts/data-and-the-database/database/raw-access).*
+
+<Snippet lang="dart" code={`Future<DatabaseResult> saldoBuku(Session session, int bukuId) {
+  return session.db.unsafeQuery(
+    r'SELECT cast(coalesce(sum(jumlah), 0) AS bigint) AS saldo FROM posting WHERE buku_id = $1',
+    parameters: QueryParameters.positional([bukuId]),
+  );
+}`} />
+
+**Yang berbeda di stack ini:** agregasi ditulis sebagai SQL mentah lewat `unsafeQuery`, karena hasilnya bukan baris model. Hasilnya `DatabaseResult`, dan `toColumnMap()` memberi nilai menurut alias `saldo`.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Database Functions](https://supabase.com/docs/guides/database/functions), `@supabase/supabase-js` 2.118.0.*
+
+<Snippet lang="sql" code={`CREATE FUNCTION saldo_buku(buku bigint) RETURNS bigint
+LANGUAGE sql STABLE SECURITY INVOKER
+AS $$ SELECT cast(coalesce(sum(jumlah), 0) AS bigint) FROM posting WHERE buku_id = buku $$;`} />
+
+<Snippet lang="js" code={`const { data: saldo, error } = await supabase.rpc('saldo_buku', { buku: 7 })`} />
+
+**Yang berbeda di stack ini:** saldo dihitung di fungsi database, dan app memanggilnya lewat `rpc()`. Dengan `security invoker`, fungsi berjalan dengan hak user yang memanggil, jadi policy RLS di `posting` tetap membatasi buku yang bisa dibaca.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Situasi | Pilihan |
+|---|---|
+| Angka yang harus bisa dijelaskan per kejadian, mis. saldo atau poin yang bisa ditukar uang | Catatan yang tidak diubah; angkanya dihitung dari jumlah catatan |
+| Angka yang hanya perlu benar saat ini, mis. jumlah notifikasi belum dibaca | Kolom yang di-UPDATE |
+| Saldo dibaca jauh lebih sering daripada ditulis | Cache dari jumlah posting, ditulis di transaction yang sama dan dicek ulang tiap malam |
+| Data lama tanpa catatan lengkap | Jurnal pembuka per akun; selisih yang tidak bisa dijelaskan jadi jurnal berlabel, bukan angka yang dirapikan |
+
+**Biaya ledger.** Membaca saldo berarti menjumlah, dan jumlah itu tumbuh bersama data. Naskah menjadwalkan snapshot saldo di Tahap 5, saat posting diperkirakan ±440 juta per tahun (Asumsi). Cache mempercepat baca, tapi menambah satu angka yang harus dikunci saat transfer dan dicek tiap malam. Keputusan Rekeningo, opsi yang ditolak, dan kapan keputusan itu salah ada di [[t2-adr-ledger]].
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Snapshot saldo per periode | ±660 ribu posting per tahun di Tahap 2 (Asumsi naskah); lama query belum diukur | Tahap 5 |
+| Riwayat Tahap 1 sebagai posting | Potongan M4 tidak punya baris, jadi riwayat lama tidak bisa dibuat ulang tanpa menebak | Tidak dijadwalkan; tabel Tahap 1 disimpan di schema arsip |
+| Lock saat saldo diperiksa | Ledger tidak menghapus race condition | [[t2-m9]], [[B3.2]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Kolom saldo Budi Rp180.000, tiga tabel catatannya Rp250.000. Mana yang benar, dan dari mana buktinya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Kolom saldo. Buktinya tidak ada di tabel, melainkan di log PostgreSQL M4: dua `UPDATE` tanpa `INSERT` transaksi (rekaman `m4.txt`). Database Tahap 1 sendiri tidak bisa memutuskan, karena potongan Rp70.000 itu tidak punya baris.
+
+</details>
+
+**2.** Admin salah top-up Rp50.000 ke Citra. Di ledger, apa yang ditulis untuk memperbaikinya, dan apa yang tidak boleh dilakukan?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Satu jurnal pembalik: posting cermin (buku Citra −Rp50.000, buku tunjangan +Rp50.000), alasan, dan rujukan ke jurnal asal. Polanya sama dengan jurnal 11 yang membalik jurnal 10 di rekaman `kejadian.txt`. Posting asal tidak di-UPDATE atau DELETE; lab menolak keduanya dengan SQLSTATE 23001 ([[t2-ledger]]).
+
+</details>
+
+**3.** Job malam menulis `saldo_cache 215000, jumlah posting 210000`. Angka mana yang benar, dan kenapa job tidak langsung memperbaiki cache?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Jumlah posting, karena itu source of truth. Selisih berarti ada kode yang menulis cache tanpa posting, dan perbaikan otomatis akan menyembunyikan kode itu. Job keluar dengan status 1 supaya ada yang mencarinya (rekaman api-t2 `migrasi.txt` bagian E).
+
+</details>
+
+**4.** Di riwayat posting Budi, saldo sempat Rp110.000 sesudah jurnal 4. Apakah Budi pernah melihat saldo itu di app?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. Jurnal 3–5 dibuat dalam satu transaction migrasi, dan koneksi lain baru melihat perubahannya sesudah `COMMIT`, saat saldo sudah Rp180.000. Rp110.000 hanya urutan baris di dalam transaction itu.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Tidak ada `UPDATE` yang mengubah saldo atau `saldo_cache` tanpa posting di transaction yang sama.
+- [ ] Koreksi ditulis sebagai jurnal pembalik yang merujuk jurnal asal, bukan `UPDATE` atau `DELETE` posting.
+- [ ] Tes membandingkan saldo dengan `coalesce(sum(jumlah), 0)` dari posting, bukan hanya dengan cache.
+- [ ] Hasil `sum` dibaca sebagai bilangan bulat rupiah; nilai `numeric` atau string dari driver tidak diubah ke `float`.
+
+### Bacaan lanjut
+
+- [Square Engineering: Books, an immutable double-entry accounting database service](https://developer.squareup.com/blog/books-an-immutable-double-entry-accounting-database-service/) (2019)
+- [Stripe: Ledger, Stripe's system for tracking and validating money movement](https://stripe.dev/blog/ledger-stripe-system-for-tracking-and-validating-money-movement) (2024)
+- [PostgreSQL 17: Aggregate functions](https://www.postgresql.org/docs/17/functions-aggregate.html)
+
+</Blok>
+
+<SkripLama daftar={["runsql-core","runsql"]} />
