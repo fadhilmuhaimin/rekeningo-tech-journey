@@ -42,7 +42,7 @@ Berbeda dengan bayar dan transfer, fitur ini bekerja tanpa request. Tidak ada ap
 
 <Blok nama="Coba: job dijalankan dua kali" buka aman="Kalau berhenti di sini, kamu sudah tahu: job menulis jurnal dan baris file dari saldo yang sama, dan jalan kedua membaca saldo saat itu, bukan saldo pukul 15.00.">
 
-Data empat warung ini ilustrasi, dengan saldo yang sama dengan empat warung pertama di rekaman lab. SQL-nya dijalankan sungguhan di browser. Tabel `file_bank` memerankan file CSV; di lab, file itu ditulis ke disk, di luar database.
+Data empat warung ini ilustrasi, dengan saldo yang sama dengan empat warung pertama di rekaman lab. SQL-nya dijalankan sungguhan di browser dengan SQLite, bukan PostgreSQL seperti di lab. Tabel `file_bank` memerankan file CSV; di lab, file itu ditulis ke disk, di luar database.
 
 <WidgetLama nama="runsql" src="data/t2-pencairan.json" />
 
@@ -182,7 +182,7 @@ await pod.futureCalls
 </Fragment>
 <Fragment slot="t5">
 
-*Tidak dijalankan. Dicek ke [Supabase Cron](https://supabase.com/docs/guides/cron), [pg_cron](https://github.com/citusdata/pg_cron), dan [PostgreSQL 17: COPY](https://www.postgresql.org/docs/17/sql-copy.html).*
+*Tidak dijalankan. Dicek ke [Supabase Cron](https://supabase.com/docs/guides/cron), [pg_cron](https://github.com/citusdata/pg_cron), dan [PostgreSQL 17: COPY](https://www.postgresql.org/docs/17/sql-copy.html). Image PostgreSQL 17 Supabase memakai `pg_cron` 1.6.4 ([versions.json](https://github.com/supabase/postgres/blob/develop/nix/ext/versions.json)).*
 
 <Snippet lang="sql" code={`-- pencairan_jumat(): fungsi SQL buatan sendiri yang menulis jurnal per warung
 SELECT cron.schedule('pencairan-jumat', '0 8 * * 5', 'SELECT pencairan_jumat()');`} />

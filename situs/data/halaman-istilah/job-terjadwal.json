@@ -59,7 +59,7 @@
     },
     "supabase": {
       "label": "Tidak dijalankan",
-      "versi": "Supabase Cron (pg_cron)",
+      "versi": "Supabase Cron, pg_cron 1.6.4",
       "teks": "`cron.schedule('pencairan-jumat', '0 8 * * 5', 'SELECT pencairan_jumat()')` menjalankan SQL di database dalam waktu GMT; file untuk Keuangan dibuat proses lain.",
       "dokumentasi": "https://supabase.com/docs/guides/cron"
     }
