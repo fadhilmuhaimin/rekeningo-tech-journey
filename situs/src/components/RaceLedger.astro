@@ -1,0 +1,35 @@
+---
+/**
+ * Widget race ledger (W2-race, keputusan 707–711): memutar ulang rekaman labs/b3-race versi ledger.
+ *   <RaceLedger id="m9" cara={["tanpa-lock", "tanpa-lock-bergantian"]} />
+ *   <RaceLedger id="adr13" cara={["tanpa-lock", "for-update", "atomik", "optimistic", "serializable"]} awal="for-update" />
+ * `cara` = nama file tanpa awalan dan akhiran: labs/b3-race/output/ledger/ledger-<cara>.json. Rekaman dibaca dari repo
+ * saat build (pola Snippet.astro), divalidasi Zod (skema.ts), dan dicocokkan dengan banding.txt dari run yang sama
+ * (siapkan di logika.ts). Rekaman yang tidak ada, tidak sah, atau berbeda dari banding.txt menggagalkan build.
+ * Island di-render saat build (client:visible), jadi tinggi widget sebelum dan sesudah hydrate sama.
+ * Widget race lama (situs/lama/widgets/race.js, halaman versi lama) tidak memakai komponen ini.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import RaceLedgerIsland from "../widgets/race-ledger/RaceLedger";
+import { LabelRace, RekamanLedger } from "../widgets/race-ledger/skema";
+import { bacaBanding, indeksAwal, opsiTebakan, siapkan } from "../widgets/race-ledger/logika";
+import labelMentah from "../../data/widget/race-ledger.json";
+
+interface Props { id: string; cara: string[]; awal?: string }
+const { id, cara, awal } = Astro.props;
+
+const DIR = "labs/b3-race/output/ledger";
+const baca = (f: string) => {
+  const abs = path.join(ROOT, DIR, f);
+  if (!fs.existsSync(abs)) throw new Error(`RaceLedger ${id}: ${DIR}/${f} tidak ada`);
+  return fs.readFileSync(abs, "utf8");
+};
+const banding = bacaBanding(baca("banding.txt"));
+const data = cara.map((c) => siapkan(RekamanLedger.parse(JSON.parse(baca(`ledger-${c}.json`))), banding, DIR));
+indeksAwal(data, awal); // cara ganda atau awal yang tidak ada: gagal saat build
+data.forEach(opsiTebakan); // saldo akhir harus salah satu pilihan tebakan
+const label = LabelRace.parse(labelMentah);
+---
+<RaceLedgerIsland client:visible id={id} data={data} label={label} awal={awal} />
