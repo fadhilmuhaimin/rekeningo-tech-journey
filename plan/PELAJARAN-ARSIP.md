@@ -204,3 +204,20 @@ Pola per halaman: branch `tahap-1/<slug>` dari `main`; lab dulu bila perlu (PR s
 
 - PR yang CONFLICTING dengan main tidak memicu CI (`cek.yml` hanya `pull_request`), dan `tmp/tunggu_pr.sh` berakhir "TIDAK ADA RUN": cek `gh pr view <n> --json mergeable` dulu; konflik baris tambahan KEPUTUSAN/README digabung `tmp/gabung_urut.sh <branch> <nomor>` (union, KEPUTUSAN diurutkan). Lab yang menunggu lock dengan ambang waktu tetap gagal palsu saat mesin ramai: tunggu sampai selesai atau `pg_stat_activity` menunjukkan Lock (2026-10-14).
 - Dua lapis menangkap celah yang lolos pelaksana: c4 (`/ganti-password` tanpa rate limit, salt tetap), api-t2 (Bayar v1 dijawab 201 tanpa ledger). Peninjau wajib uji mutasi dan baca kode; cek `mergeable` lagi sesudah CI hijau; scratchpad dipakai bersama agen, tulis ke subfolder unik (2026-10-14).
+
+## Perlu dicek pemilik (arsip 2026-10-24)
+
+- PROPOSAL tidak konsisten soal deploy: tabel infra (~149) menulis Tahap 2 deploy lewat SSH dari Actions, tabel pipeline (~430–431) menulis Tahap 2 manual dan staging Tahap 3, (~432) blue/green Tahap 4; halaman 1.31, 1.35, 1.36, 1.40 mengikuti tabel pipeline ("deploy tanpa jeda" Tahap 3 dari dua instance ~150). Mohon diputuskan.
+- Dashboard web: CERITA-TAHAP-1:66, registry Tahap 3 `skala.prd`, PROPOSAL:461 dan :688 menaruhnya di Tahap 3; PROPOSAL:77 di Tahap 2. Beranda (keputusan 316) tidak menyebut tahap. Mohon diputuskan.
+- M8 (1.37, keputusan 303): naskah menulis "91/100 penguji aktif", asumsi registry 30% user aktif per hari; halaman memakai 91 sebagai aktif selama uji coba dan menulis kepekaannya terbuka (0,14–0,42 RPS). Mohon konfirmasi tafsiran.
+- Redesain #120: usulan perubahan PROPOSAL "Desain visual final" dan CLAUDE.md `<tampilan>` di `plan/AUDIT-TAMPILAN.md` bagian 6, belum diubah.
+- ADR 7 (keputusan 240): RLS sebagai pagar kedua dipasang di tabel ledger Tahap 2, tidak di tabel v1 `api-t1` (rekaman `b5-rls` bagian 5: policy pemilik membuat bayar ke warung `UPDATE 0`). Kalau RLS harus sudah berjalan di Tahap 1, perlu tugas lab `api-t1` sendiri.
+- Cloudflare Pages (keputusan 115): butuh API token (Account > Cloudflare Pages > Edit) dan Account ID, lalu `gh secret set CLOUDFLARE_API_TOKEN` dan `gh secret set CLOUDFLARE_ACCOUNT_ID`.
+- Serverpod 4 (1.32): apakah exception buatan sendiri sampai ke tes `withServerpod` dengan tipe aslinya [perlu verifikasi].
+- CI Linux (keputusan 361): `ubuntu-latest` pindah ke 26.04 bertahap 19 Okt–19 Nov 2026 (changelog GitHub 2026-09-17); usul pin `ubuntu-24.04` atau run percobaan 26.04 (tugas G2c). `geometricPrecision` membuat teks di Linux/ChromeOS tanpa hinting (sedikit lebih lembut di layar DPI rendah); biaya di Firefox [perlu verifikasi].
+- Renderer Chromium di CI diam total ±0,13% per muat di halaman Tahap 1 (keputusan 364, 367): mekanismenya di pipeline commit/aktivasi/raster Chromium, 28/31 kasus di enam halaman yang banyak kodenya, juga saat muat tanpa gulir; Xvfb headed ikut, macOS 0/10.080. Risiko di Chrome HP pembaca belum diketahui. Kirim draf laporan bug Chromium (PR #231)?
+
+## Pelajaran (dipindah dari MEMORI 2026-10-24, kedua)
+
+- Merge hanya bila `gh pr checks <n>` keluar 0: PR #271 ter-merge dengan job "Pasang Chromium Playwright" gagal (mirror apt lambat, exit 124; main hijau sesudah `gh run rerun --failed`). Worktree baru butuh `bash tools/get_fonts.sh` sebelum gerbang (2026-10-24).
+- Pohon aksesibilitas Chromium (CDP `Accessibility.getFullAXTree`) yang dibuktikan, bukan atribut DOM: svg pembungkus tanpa nama tetap terbaca `image` (#274). `gh pr merge --delete-branch` gagal bila worktree lain memegang main: merge tanpa itu lalu `git push origin --delete <branch>`; subagen tidak checkout main di worktree. Durasi: RISET-2 27 + 62 menit tinjau, A11y-diagram 82 menit (2026-10-24).

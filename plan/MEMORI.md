@@ -20,6 +20,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Tahap 2, lain-lain: M10 "Budi menekan Bayar lagi" direkam sebagai retry app dengan request sama (e3); nomor rekening tujuan warung belum ada di ERD 3b (505); mermaid ERD Tahap 2 berbeda dari lab di beberapa kolom (473: `peran`/`jenis`, `hash_password`, `akun.nama`, PK `baris_pencairan`).
 - Tahap 2 bagian 3b, tabel pertumbuhan: baris Tahap 1 (±22 ribu) memakai 2 transaksi per user aktif, Tahap 2–4 memakai 3; registry dan 1.38 memakai 2 × 300 B; lab b2-query 760.448 posting ±99 MB. Halaman Tahap 2 memakai rumus naskah, 1.38 tidak diubah (keputusan 600).
 - 2.1: CERITA-TAHAP-1 ±13/±81 dan 1.1 menulis kampus ±1.200 karyawan, CERITA-TAHAP-2 ±1.000 (2.1 ikut Tahap 2); CERITA-TAHAP-1 ±65 dan 1.42 menyebut fitur "ekspor laporan bulanan", PRD v2 tidak (2.1 menulisnya bagian tutup buku).
+- 2.2: naskah bagian 2 menulis index `posting(akun, waktu, id)`, lab `posting (buku_id, dibuat, id)`; "notifikasi sederhana di app warung" untuk pencairan ditafsirkan pemberitahuan di dalam app tanpa push (607), mohon ditegaskan.
 
 ## Catatan untuk halaman Tahap 2
 
@@ -46,32 +47,26 @@ Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditan
 - Crosscheck kecil K4–K9 dan X1-t2/X2-t2 dihapus dari ANTREAN; EVALUASI-TAHAP-N menggantikannya (keputusan 554).
 - Halaman 2.1 dan 2.2 ditulis sebelum lab-api-t2a karena Docker tertahan; lab tetap sebelum halaman yang memakainya (keputusan 562).
 - Angka pertumbuhan Tahap 2 memakai rumus naskah 3b; 1.38 tidak diubah (keputusan 600).
+- Halaman istilah di luar registry dan sidebar (688); tooltip istilah baru juga tampil di Tahap 1 (690). axe di gerbang per PR untuk 10 halaman yang 0 pelanggaran (693).
 - Halaman cerita Tahap 2 lama tidak dihapus, dipindah ke akhir Tahap 2 di registry (605). 2.4 ditulis sebelum 2.3; selama Docker tertahan, halaman memakai rekaman yang sudah ada (722).
 
 ## Perlu dicek pemilik
 
-- PROPOSAL tidak konsisten soal deploy: tabel infra (~149) menulis Tahap 2 deploy lewat SSH dari Actions, tabel pipeline (~430–431) menulis Tahap 2 manual dan staging Tahap 3, (~432) blue/green Tahap 4; halaman 1.31, 1.35, 1.36, 1.40 mengikuti tabel pipeline ("deploy tanpa jeda" Tahap 3 dari dua instance ~150). Mohon diputuskan.
-- Dashboard web: CERITA-TAHAP-1:66, registry Tahap 3 `skala.prd`, PROPOSAL:461 dan :688 menaruhnya di Tahap 3; PROPOSAL:77 di Tahap 2. Beranda (keputusan 316) tidak menyebut tahap. Mohon diputuskan.
-- M8 (1.37, keputusan 303): naskah menulis "91/100 penguji aktif", asumsi registry 30% user aktif per hari; halaman memakai 91 sebagai aktif selama uji coba dan menulis kepekaannya terbuka (0,14–0,42 RPS). Mohon konfirmasi tafsiran.
-- Redesain #120: usulan perubahan PROPOSAL "Desain visual final" dan CLAUDE.md `<tampilan>` di `plan/AUDIT-TAMPILAN.md` bagian 6, belum diubah.
-- ADR 7 (keputusan 240): RLS sebagai pagar kedua dipasang di tabel ledger Tahap 2, tidak di tabel v1 `api-t1` (rekaman `b5-rls` bagian 5: policy pemilik membuat bayar ke warung `UPDATE 0`). Kalau RLS harus sudah berjalan di Tahap 1, perlu tugas lab `api-t1` sendiri.
-- Cloudflare Pages (keputusan 115): butuh API token (Account > Cloudflare Pages > Edit) dan Account ID, lalu `gh secret set CLOUDFLARE_API_TOKEN` dan `gh secret set CLOUDFLARE_ACCOUNT_ID`.
-- Serverpod 4 (1.32): apakah exception buatan sendiri sampai ke tes `withServerpod` dengan tipe aslinya [perlu verifikasi].
-- CI Linux (keputusan 361): `ubuntu-latest` pindah ke 26.04 bertahap 19 Okt–19 Nov 2026 (changelog GitHub 2026-09-17); usul pin `ubuntu-24.04` atau run percobaan 26.04 (tugas G2c). `geometricPrecision` membuat teks di Linux/ChromeOS tanpa hinting (sedikit lebih lembut di layar DPI rendah); biaya di Firefox [perlu verifikasi].
-- Renderer Chromium di CI diam total ±0,13% per muat di halaman Tahap 1 (keputusan 364, 367): mekanismenya di pipeline commit/aktivasi/raster Chromium, 28/31 kasus di enam halaman yang banyak kodenya, juga saat muat tanpa gulir; Xvfb headed ikut, macOS 0/10.080. Risiko di Chrome HP pembaca belum diketahui. Kirim draf laporan bug Chromium (PR #231)?
+- Butir lama dari Tahap 1 dan mode paralel (deploy PROPOSAL, dashboard web, M8, redesain #120, ADR 7 RLS, Cloudflare, Serverpod 4, CI Linux 26.04, renderer Chromium) dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik (arsip 2026-10-24)"; LAPORAN-AKHIR mengumpulkannya.
 - Keamanan api-t2 (tinjauan #256): nomor karyawan `K` + nomor akun mudah ditebak, `/kiriman` membedakan nomor terdaftar, dan kiriman Rp1 membuka nama penerima di riwayat, jadi nama 1.000 karyawan bisa dikumpulkan dengan Rp1.000 sehari (api-t1 tidak membuka ini). Usul: masuk M16/2.28 (batas per akun untuk cek penerima) atau tugas perbaikan api-t2 sebelum halaman 2.3.
 - Idempotency-Key: draft-ietf-httpapi-idempotency-key-header kini revisi -08 (2026-10-22), Active, belum RFC dan belum di registry IANA; baris 512 "kedaluwarsa" diganti keputusan 600, status 400/409/422 lab e3 tetap. ADR 14 perlu memutuskan nasib app 1.0/1.1 yang tidak mengirim key (lab menolak 400).
 - Lab Tahap 2: argon2id 64 MiB [perlu verifikasi] terhadap RAM VPS Tahap 2; akun terkunci dijawab 401 generik (550), jadi Ani mengira lupa password: 2.27/2.28 butuh jalur lupa password, mohon konfirmasi; kursor riwayat bisa melewatkan transaksi yang COMMIT belakangan (ADR 16, tinjauan #266).
 - Docker Desktop (2026-10-24 00.10 WITA) tertahan di dialog izin admin untuk helper privileged; daemon tidak jalan, jadi lab (lab-api-t2a, ulang rekaman) menunggu pemilik mengizinkan. Pengatur tidak memasukkan password.
 - RISET-2 "Belum bisa dicek" (7 butir di `plan/RISET-TAHAP-2.md`): antrean di belakang ALTER yang menunggu lock tidak tertulis di dokumentasi PostgreSQL (bukti hanya b4-skema); plan GitHub untuk branch protection/CODEOWNERS repo privat; rekaman e5-payload masih skema lama; Testcontainers dan CREATE INDEX CONCURRENTLY belum direkam; Testcontainers Tahap 2 (naskah) lawan Tahap 3 (PROPOSAL).
 - `role="application"` di pembungkus React Flow tidak bisa diganti lewat props; efeknya di pembaca layar [perlu verifikasi] (tinjauan #274).
+- 2.4 (618): rekaman api-t2 `tutup-buku.txt` C, jurnal yang COMMIT sesudah laporan masuk periode yang sudah dilaporkan (1.122 jadi 1.123); naskah tidak punya halaman penutupan periode. "< 1 hari" belum diukur.
+- Debit/kredit (G-istilah, 691): naskah bagian 3 menulis posting debit dan kredit, lab menyimpan jumlah bertanda (positif masuk); 2.7 harus memilih satu konvensi [perlu verifikasi].
 
 ## Sedang dikerjakan
 
-2026-10-24 · Tahap 2 langkah halaman, pipa dua worktree per jalur (720). Selesai: RISET-2 (#272), A11y-diagram (#274), 2.1 (#277), G-ci-apt (#278). Berjalan: pelaksana 2.2 (`../rjt-konten2`), 2.4 (`../rjt-konten`), G-istilah (`../rjt-teknis2`), G-axe (`../rjt-teknis`). Antre: ERD-1.12 → W2-race (teknis); 2.5, 2.6 … (konten); 2.3 dan lab-api-t2a menunggu Docker. Nomor keputusan per tugas: keputusan 721. Catatan yang belum masuk repo: `tmp/catat-antre.md`. Untuk melanjutkan: `gh pr list --state open`.
+2026-10-24 · Tahap 2 langkah halaman, pipa (720). Selesai: RISET-2, A11y-diagram, G-ci-apt, 2.1 (#277), 2.2 (#279); G-axe (#283) menunggu CI untuk merge. Berjalan: peninjau 2.4 (#282, `../rjt-konten`), pelaksana 2.5 (`../rjt-konten2`), peninjau G-istilah (#281, `../rjt-teknis2`). Antre teknis: A11y-gulir-tabel, ERD-1.12, W2-race; konten 2.6 dst. Docker masih tertahan (2.3, lab-api-t2a). Alokasi nomor per tugas dan catatan belum masuk repo: `tmp/catat-antre.md`. Untuk melanjutkan: `gh pr list --state open`.
 
 ## Pelajaran
 
-- Merge hanya bila `gh pr checks <n>` keluar 0: PR #271 ter-merge dengan job "Pasang Chromium Playwright" gagal (mirror apt lambat, exit 124; main hijau sesudah `gh run rerun --failed`). Worktree baru butuh `bash tools/get_fonts.sh` sebelum gerbang (2026-10-24).
-- Pohon aksesibilitas Chromium (CDP `Accessibility.getFullAXTree`) yang dibuktikan, bukan atribut DOM: svg pembungkus tanpa nama tetap terbaca `image` (#274). `gh pr merge --delete-branch` gagal bila worktree lain memegang main: merge tanpa itu lalu `git push origin --delete <branch>`; subagen tidak checkout main di worktree. Durasi: RISET-2 27 + 62 menit tinjau, A11y-diagram 82 menit (2026-10-24).
 - Peninjau menemukan yang lolos pelaksana di setiap tugas sejauh ini: apt memakai .deb cache hanya menurut ukuran (#278, 684), Berikutnya 2.1 menuju cerita lama (#277, 605), klik kotak diagram tidak sampai tombol (#274, 681). Pipa dua worktree per jalur (720); nomor keputusan per tugas di brief (721).
+- Pipa paralel butuh nomor per tugas untuk keputusan DAN ID riset (R2-36 dipakai dua PR); alat ukur bisa lolos palsu bila persiapannya diam-diam gagal (axe: hasil terpangkas tanpa `incomplete`, path 404 lolos), jadi setiap alat diuji mutasi (#283). Widget runsql memakai SQLite (sql.js), bukan PGlite (2.4).
