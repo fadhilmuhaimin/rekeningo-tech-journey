@@ -410,6 +410,15 @@ window.ISTILAH = {
   "t": "JWT (JSON Web Token)",
   "u": "tahap-1/authentication/"
  },
+ "Job terjadwal": {
+  "b": "t2-pencairan",
+  "d": "Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.",
+  "h": "istilah/job-terjadwal/",
+  "n": "2.5 Fitur pencairan",
+  "s": "istilah-job-terjadwal",
+  "t": "Job terjadwal",
+  "u": "tahap-2/fitur-pencairan/"
+ },
  "Jurnal": {
   "b": "t2-ledger",
   "d": "Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol.",
@@ -1352,6 +1361,15 @@ window.ISTILAH = {
   "s": "istilah-isolation-level",
   "t": "Isolation level",
   "u": "b-fondasi/b3-3-isolation-level/"
+ },
+ "job terjadwal": {
+  "b": "t2-pencairan",
+  "d": "Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.",
+  "h": "istilah/job-terjadwal/",
+  "n": "2.5 Fitur pencairan",
+  "s": "istilah-job-terjadwal",
+  "t": "Job terjadwal",
+  "u": "tahap-2/fitur-pencairan/"
  },
  "jurnal": {
   "b": "t2-ledger",

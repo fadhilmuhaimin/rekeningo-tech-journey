@@ -1079,11 +1079,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.5 · Fitur: pencairan warung terjadwal
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.4, lab-t2-pencairan
 - selesai bila: halaman Fitur→teknis 2.5 sesuai `plan/CERITA-TAHAP-2.md` bagian 2 dan peta halaman Tahap 2 (tanpa ★); rekaman dari `labs/t2-pencairan`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: Keputusan 620–622 (`plan/masuk/tahap-2-pencairan.md`): `tahap-2/fitur-pencairan.mdx`, Inti dengan Rantai ringkas dari `benar.txt` A dan C, PetaFitur, Coba runsql `t2-pencairan` (jalan kedua sesudah jalan pertama selesai; ubah satu hal: bayar Rp25.000 pukul 15.05), rekaman `benar.txt` A dan C, Di stack lain tentang jadwal (enam tab Tidak dijalankan, R2-50–R2-54); M15 dan ADR 19 hanya disiapkan sebagai pertanyaan. Lab tidak diulang: Docker tertahan. Halaman istilah baru: Job terjadwal.
 
 ### 2.6 · Kenapa saldo bukan kolom
 
