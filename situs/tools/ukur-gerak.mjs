@@ -7,17 +7,18 @@
 // JavaScript <details> tetap bisa dibuka. Widget alur (I5c, keputusan 261): paket data bergerak hanya sesudah Berikutnya.
 // Angka (I5d, keputusan 352): total jumlah-total dan saldo HP bergerak sesudah klik, langsung final dengan reduced motion.
 //   node tools/ukur-gerak.mjs --url http://127.0.0.1:4321
-//   node tools/ukur-gerak.mjs --url ... --axe /path/axe.min.js   # + axe-core di halaman uji, gelap dan terang
+//   node tools/ukur-gerak.mjs --url ... --axe   # + axe-core di halaman uji, gelap dan terang
 import { readFileSync, readdirSync } from "node:fs";
 import { chromium } from "@playwright/test";
 import { awasi } from "./lib/batas.mjs";
+import { pilihAxe } from "./lib/axe.mjs";
 
 const arg = (nama, bawaan) => {
   const i = process.argv.indexOf(nama);
   return i > -1 ? process.argv[i + 1] : bawaan;
 };
 const url = arg("--url", "http://127.0.0.1:4321");
-const AXE = arg("--axe", process.env.AXE); // opsional: path axe.min.js, seperti audit-tampilan.mjs
+const AXE = pilihAxe(); // opsional: --axe atau AXE=1 untuk axe-core terpasang (lib/axe.mjs, keputusan 693), atau path file lain
 
 // Klik tombol lalu ambil keadaan catatan di dua frame berikutnya (requestAnimationFrame).
 async function ukur(page) {

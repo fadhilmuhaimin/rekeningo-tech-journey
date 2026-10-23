@@ -998,11 +998,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### G-axe · axe-core di alat ukur untuk evaluasi
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: G-ci-apt
 - selesai bila: axe-core dipasang sebagai devDependency dengan ADR (versi dicek ke npm hari itu); `situs/tools/ukur-axe.mjs --path <p> ...` menjalankan axe dengan runOnly wcag2a, wcag2aa, wcag21aa, wcag22aa sesudah semua `<details>` dibuka dan halaman digulir sampai island hidup, di 375×667 dan 1366×657, gelap dan terang, dan keluar 1 bila ada pelanggaran; uji lolos palsu (halaman uji dengan pelanggaran sengaja membuatnya gagal); tidak masuk gerbang per PR kecuali murah, dipakai EVAL-N butir W4.
-- catatan: Kategori aksesibilitas/gerbang. Usul dari tinjauan #274 dan skill evaluasi-tahap (W4).
+- catatan: Kategori aksesibilitas/gerbang. Usul dari tinjauan #274 dan skill evaluasi-tahap (W4). Selesai 2026-10-24 di PR #283 (keputusan 692–694): `axe-core` 4.14.0 devDependency dipin (ADR 692, dipilih atas `@axe-core/playwright`, file lokal, CDN, pa11y); `situs/tools/lib/axe.mjs` satu sumber untuk semua alat (`--axe` tanpa file di ukur-diagram/erd/gerak, `AXE=1` di audit-tampilan); `situs/tools/ukur-axe.mjs --path ... \| --semua [--awalan]` dengan uji diri `situs/tests/fixture/axe-salah.html` di awal setiap run (mutasi details, gulir, tunggu island, wcag22aa, tema, ukuran semuanya membuatnya gagal); masuk gerbang kelompok pertama dengan 10 halaman (40 run, lokal 6,4 s). Run atas beranda + 42 halaman Tahap 1 + 2.1 (176 run): 4 halaman `scrollable-region-focusable` di 375×667 (1.6, 1.11, 1.18, 1.28: tabel yang digulir ke samping tidak bisa difokus); seluruh `dist/` menambah `definition-list` di widget race lama `/b-fondasi/b3-2-race-condition-lock/`. Tugas baru diusulkan ke pengatur: `A11y-gulir-tabel`, `A11y-race-dl`. Tinjauan: node incomplete dihitung penuh (`resultTypes` violations + incomplete; color-contrast 1.466 node, bukan 176, keputusan 695) dan halaman yang tidak dijawab HTTP 200 membuat alat gagal (sebelumnya path salah lolos palsu, keputusan 696).
 
 ### ERD-1.12 · Widget ERD bertumbuh di 1.12
 

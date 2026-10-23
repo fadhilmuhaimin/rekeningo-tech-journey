@@ -1,15 +1,16 @@
 // Audit tampilan (keputusan 200): ukuran, berat, warna, dan kontras tiap jenis teks, plus axe-core.
-// Pakai: AXE=/path/axe.min.js node tools/audit-tampilan.mjs [--url http://127.0.0.1:4322] [--out hasil.json] [--foto dir]
-// AXE opsional (tanpa itu axe dilewati). --foto menyimpan tangkapan layar pertama tiap halaman × ukuran × tema.
+// Pakai: AXE=1 node tools/audit-tampilan.mjs [--url http://127.0.0.1:4322] [--out hasil.json] [--foto dir]
+// AXE opsional (AXE=1 = axe-core terpasang, AXE=<file> = file lain; tanpa itu axe dilewati). --foto menyimpan tangkapan layar pertama tiap halaman × ukuran × tema.
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
+import { pilihAxe } from "./lib/axe.mjs";
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const BASE = arg("--url", "http://127.0.0.1:4322");
 const OUT = arg("--out", "");
 const FOTO = arg("--foto", "");
-const AXE = process.env.AXE;
+const AXE = pilihAxe(); // AXE=1 atau --axe: axe-core terpasang (lib/axe.mjs, keputusan 693); AXE=<file>: file lain
 const HALAMAN = [["beranda", "/"], ["1.1", "/tahap-1/prd-v1/"], ["1.19", "/tahap-1/m3-tanda-kutip/"]];
 const UKURAN = [["desktop", 1366, 768], ["hp", 375, 667]];
 

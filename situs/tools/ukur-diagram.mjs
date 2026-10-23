@@ -9,18 +9,19 @@
 // - label bawaan React Flow berbahasa Inggris tidak terbaca pembaca layar (A11y-diagram, pola keputusan 466): di halaman
 //   uji, beranda, dan setiap halaman lain di dist/ yang memakai DiagramArsitektur.
 //   node tools/ukur-diagram.mjs --url http://127.0.0.1:4321
-//   node tools/ukur-diagram.mjs --url ... --axe /path/axe.min.js   # + axe-core, gelap dan terang
+//   node tools/ukur-diagram.mjs --url ... --axe   # + axe-core, gelap dan terang
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
 import { awasi } from "./lib/batas.mjs";
+import { pilihAxe } from "./lib/axe.mjs";
 
 const arg = (nama, bawaan) => {
   const i = process.argv.indexOf(nama);
   return i > -1 ? process.argv[i + 1] : bawaan;
 };
 const url = arg("--url", "http://127.0.0.1:4321") + "/uji/diagram/";
-const AXE = arg("--axe", undefined);
+const AXE = pilihAxe(); // --axe: axe-core terpasang (lib/axe.mjs, keputusan 693); --axe <file>: file lain
 
 const browser = awasi(await chromium.launch(), { alat: "diagram" }); // batas waktu per halaman (keputusan 360)
 let gagal = 0;
