@@ -96,7 +96,9 @@ async function siapkan() {
 
 async function jalankanAxe(tag) {
   window.__tahap = "axe.run";
-  const h = await window.axe.run(document, { runOnly: { type: "tag", values: tag }, resultTypes: ["violations"] });
+  // resultTypes memangkas setiap jenis hasil yang tidak disebut jadi paling banyak 1 node per rule (axe-core 4.14.0
+  // processAggregate), jadi incomplete ikut disebut supaya jumlah node yang perlu dicek manusia tidak terpotong (keputusan 695).
+  const h = await window.axe.run(document, { runOnly: { type: "tag", values: tag }, resultTypes: ["violations", "incomplete"] });
   const sel = (t) => t.map((x) => (Array.isArray(x) ? x.join(" >> ") : x)).join(" ");
   return {
     versi: window.axe.version,
