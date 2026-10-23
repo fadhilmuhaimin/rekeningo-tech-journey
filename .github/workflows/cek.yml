@@ -105,8 +105,8 @@ jobs:
     name: situs (Astro) ukur ${{ matrix.kelompok }}
     needs: situs_baru
     runs-on: ubuntu-latest
-    # Kelompok terlama ±5m15 alat + ±1 menit persiapan di PR #195.
-    timeout-minutes: 12
+    # Kelompok terlama ±5m15 alat + ±1 menit persiapan di PR #195; +6 menit cadangan mirror apt lambat (keputusan 563).
+    timeout-minutes: 18
     strategy:
       fail-fast: false   # kelompok lain tetap melapor walau satu gagal
       matrix: ${{ fromJSON(needs.situs_baru.outputs.matriks) }}
@@ -119,10 +119,11 @@ jobs:
         with:
           bun-version: "1.4.2"
       # Dibatasi seperti di job build (keputusan 360); Chromium dengan dependency sistem normalnya 21–41 s.
+      # Mirror apt Azure ±60 KB/s pada 2026-10-24 membuat paket font dependency melewati 3 menit di tiga run berturut-turut (keputusan 563).
       - name: Pasang dependency
         run: timeout -k 15s 2m bun install --cwd situs --frozen-lockfile
       - name: Pasang Chromium Playwright
-        run: cd situs && timeout -k 15s 3m bunx playwright install --with-deps chromium
+        run: cd situs && timeout -k 15s 8m bunx playwright install --with-deps chromium
       # Font sudah ada di dist (get_fonts.sh menyalinnya ke situs/public sebelum build).
       - uses: actions/download-artifact@v8
         with:
