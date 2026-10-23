@@ -1001,7 +1001,7 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - status: antre
 - percobaan: 0
 - bergantung: A11y-diagram
-- selesai bila: Satu rute per istilah (mis. `/istilah/<slug>/`) dengan delapan bagian tetap PROPOSAL "Glosarium jadi halaman mendalam per istilah" (satu kalimat, bahasa sehari-hari, di mana muncul di cerita, mekanisme 3–5 langkah, di tiap stack, jebakan umum, istilah terkait, sumber), data divalidasi Zod, bagian yang belum ditulis tampil "belum ditulis" tanpa tautan 404; tooltip istilah tetap memakai kalimat pertama; halaman Glosarium mendaftar semua istilah dan menautkan yang sudah punya halaman; satu contoh lengkap (*idempotency key*); istilah lama tetap jalan; gerbang lolos.
+- selesai bila: Satu rute per istilah (mis. `/istilah/<slug>/`) dengan delapan bagian tetap PROPOSAL "Glosarium jadi halaman mendalam per istilah" (satu kalimat, bahasa sehari-hari, di mana muncul di cerita, mekanisme 3–5 langkah, di tiap stack, jebakan umum, istilah terkait, sumber), data divalidasi Zod, bagian yang belum ditulis tampil "belum ditulis" tanpa tautan 404; tooltip istilah tetap memakai kalimat pertama; halaman Glosarium mendaftar semua istilah dan menautkan yang sudah punya halaman; satu contoh lengkap (*idempotency key*); istilah baru dari halaman 2.x yang sudah di-merge sebelum tugas ini selesai ikut mendapat halaman; istilah lama tetap jalan; gerbang lolos.
 - catatan: Langkah 5 Tahap 2. Dipakai halaman 2.x dan sesudahnya: istilah baru di halaman mendapat halaman istilahnya di PR halaman itu (keputusan 556).
 
 ### W2-race · Replay ledger di widget race
@@ -1018,7 +1018,7 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: T2-mulai, RISET-2, lab-api-t2a, ERD-1.12, G-istilah, W2-race
+- bergantung: T2-mulai, RISET-2
 - selesai bila: halaman PRD 2.1 sesuai `plan/CERITA-TAHAP-2.md` bagian 1 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Menggantikan halaman cerita Tahap 2 lama.
 
@@ -1036,7 +1036,7 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: 2.2, lab-api-t2
+- bergantung: 2.2, lab-api-t2, lab-api-t2a
 - selesai bila: halaman Fitur→teknis 2.3 sesuai `plan/CERITA-TAHAP-2.md` bagian 2 dan peta halaman Tahap 2 (★); rekaman dari `labs/api-t2`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: -
 
@@ -1063,7 +1063,7 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: 2.5, lab-b3-ledger
+- bergantung: 2.5, lab-b3-ledger, G-istilah
 - selesai bila: halaman Konsep 2.6 sesuai `plan/CERITA-TAHAP-2.md` bagian 3 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: -
 
@@ -1090,7 +1090,7 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: 2.8, ERD2, I6-erd
+- bergantung: 2.8, ERD-1.12
 - selesai bila: halaman Konsep 2.9 sesuai `plan/CERITA-TAHAP-2.md` bagian 3b dan peta halaman Tahap 2 (★); data ERD dari `labs/api-t1` dan `labs/api-t2` (ERD2) dan widget I6-erd; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Memasang widget ERD bertumbuh di 2.9 (bandingkan Tahap 1 dan 2) dan di 1.12 (ERD Tahap 1) sesuai naskah.
 
@@ -1099,7 +1099,7 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: 2.9, lab-b3-race
+- bergantung: 2.9, lab-b3-race, W2-race
 - selesai bila: halaman Masalah 2.10 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-race`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Dari lab b3-race (431, tinjauan #257): −Rp20.000 hanya bisa direkam lewat alat lab `SET CONSTRAINTS ALL IMMEDIATE`; bila dua request tumpang tindih, hasil yang lebih mungkin B 23514 (500); frekuensi di produksi belum diukur.
 
