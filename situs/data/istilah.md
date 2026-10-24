@@ -104,6 +104,8 @@
 *[latency]: Lama waktu satu request dari dikirim sampai response diterima.
 *[Lease]: Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis.
 *[lease]: Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis.
+*[Ledger]: Cara mencatat uang dengan menyimpan setiap perpindahan sebagai baris yang tidak diubah; saldo adalah jumlah baris itu, bukan angka yang ditimpa.
+*[ledger]: Cara mencatat uang dengan menyimpan setiap perpindahan sebagai baris yang tidak diubah; saldo adalah jumlah baris itu, bukan angka yang ditimpa.
 *[Load balancer]: Komponen yang membagi request ke beberapa instance server yang sama.
 *[load balancer]: Komponen yang membagi request ke beberapa instance server yang sama.
 *[Lock]: Tanda di database bahwa satu transaction sedang memakai baris atau tabel, sehingga transaction lain harus menunggu.
@@ -156,6 +158,8 @@
 *[PKCE]: Tambahan pada alur OAuth untuk app mobile yang mencegah authorization code dipakai oleh aplikasi lain.
 *[Polling]: App menanyakan status ke server berulang kali dengan jeda tetap.
 *[polling]: App menanyakan status ke server berulang kali dengan jeda tetap.
+*[Posting]: Satu baris uang di dalam jurnal untuk satu buku: negatif bila uang keluar, positif bila masuk; saldo buku adalah jumlah posting-nya.
+*[posting]: Satu baris uang di dalam jurnal untuk satu buku: negatif bila uang keluar, positif bila masuk; saldo buku adalah jumlah posting-nya.
 *[Primary]: Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.
 *[primary]: Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.
 *[Primary key]: Kolom yang nilainya unik dan dipakai untuk mengenali satu baris.

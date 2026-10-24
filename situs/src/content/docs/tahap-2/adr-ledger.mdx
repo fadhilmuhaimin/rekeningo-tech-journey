@@ -24,6 +24,8 @@ Kedua syarat datang dari PRD v2 untuk 1.000 karyawan dan 12 warung ([[t2-prd]]):
 1. **Aturan Pak Hadi diperketat.** "Setiap rupiah di saldo siapa pun harus bisa ditelusuri ke kejadian yang membuatnya, tanpa tabel koreksi tangan". Di Tahap 1, satu baris koreksi menyimpan akun, jumlah, alasan, admin, dan waktu, tanpa rujukan ke pembayaran yang dikoreksi.
 2. **Tutup buku bulanan (P0).** Saldo awal + mutasi = saldo akhir, untuk setiap akun dan seluruh sistem ([[t2-tutup-buku]]). Rekaman `koreksi.txt` bagian D (lab api-t1) menghitung catatan Budi Rp320.000, padahal saldonya Rp250.000.
 
+Kenapa kolom saldo kehilangan jejak dibahas di [[t2-saldo-bukan-kolom]]; halaman ini memilih penggantinya.
+
 Beban tidak ikut memutuskan. Puncak PRD v2 ±1,4 request per detik, dengan ±900 transaksi sehari (Asumsi naskah). Yang diputuskan di sini adalah kebenaran data.
 
 **Kenapa nomornya tetap 6.** Naskah menulis "ADR 12", tapi nomor itu sudah dipakai [[t1-adr-12]], dan nomor 13–21 sudah milik ADR Tahap 2 lain. Nygard menulis bahwa nomor ADR tidak dipakai ulang, dan keputusan yang dibatalkan tetap disimpan dengan tanda superseded ([Nygard, 2011](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)).

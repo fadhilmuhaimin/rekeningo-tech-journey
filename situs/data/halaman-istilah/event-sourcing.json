@@ -20,6 +20,7 @@
     "Memutar ulang event yang memicu sistem luar, seperti notifikasi atau bank. Fowler menyarankan gateway ke sistem luar dimatikan selama replay."
   ],
   "terkait": [
+    "Ledger",
     "Jurnal",
     "Eventual consistency",
     "Snapshot",

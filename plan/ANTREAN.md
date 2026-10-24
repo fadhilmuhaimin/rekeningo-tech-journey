@@ -1088,11 +1088,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.6 · Kenapa saldo bukan kolom
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.5, lab-b3-ledger, G-istilah
 - selesai bila: halaman Konsep 2.6 sesuai `plan/CERITA-TAHAP-2.md` bagian 3 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: PR #288, keputusan 623–625 (`plan/masuk/tahap-2-saldo-bukan-kolom.md`): `tahap-2/saldo-bukan-kolom.mdx` dengan template konsep 1.23; Inti Rantai ringkas `t2-saldo-bukan-kolom-inti` dari `b3-ledger` `migrasi.txt` B dan `kejadian.txt` D; Coba runsql `t2-saldo-bukan-kolom` (SQLite, Ilustrasi: pembayaran M4 tanpa transaction di kolom saldo lawan posting, ubah satu hal Rp40.000); Paham dari `migrasi.txt` B, api-t1 `koreksi.txt` D, `kejadian.txt` D dan 5b, api-t2 `migrasi.txt` E; rincian jurnal/invarian ke 2.7, keputusan ke 2.8; Di stack lain enam tab (Go dijalankan, `Repo.CekCache`); halaman istilah Ledger dan Posting; R2-55, R2-56. Dikerjakan sebelum 2.5 (PR lain) karena 2.6 tidak memakai isi 2.5. Lab tidak diulang: Docker tertahan.
 
 ### 2.7 · Ledger double-entry: jurnal, posting, invarian
 

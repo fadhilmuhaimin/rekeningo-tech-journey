@@ -674,6 +674,38 @@
   "jawab": "Hitung dulu: 1.000 × 30% × 40 ÷ 86.400 × 10 ≈ 1,4 request per detik di puncak (asumsi naskah Tahap 2). Kapasitas VPS Tahap 1 belum pernah diukur, jadi angka itu dijawab dengan pengukuran, bukan tebakan. Yang diuji lebih dulu adalah kebenaran data: dua Bayar bersamaan dan Bayar yang diulang Budi sesudah app menampilkan gagal."
  },
  {
+  "id": "t2-saldo-bukan-kolom-1",
+  "halaman": "t2-saldo-bukan-kolom",
+  "judul": "2.6 Kenapa saldo bukan kolom",
+  "url": "tahap-2/saldo-bukan-kolom/",
+  "tanya": "Kolom saldo Budi Rp180.000, tiga tabel catatannya Rp250.000. Mana yang benar, dan dari mana buktinya?",
+  "jawab": "Kolom saldo. Buktinya tidak ada di tabel, melainkan di log PostgreSQL M4: dua `UPDATE` tanpa `INSERT` transaksi (rekaman `m4.txt`). Database Tahap 1 sendiri tidak bisa memutuskan, karena potongan Rp70.000 itu tidak punya baris."
+ },
+ {
+  "id": "t2-saldo-bukan-kolom-2",
+  "halaman": "t2-saldo-bukan-kolom",
+  "judul": "2.6 Kenapa saldo bukan kolom",
+  "url": "tahap-2/saldo-bukan-kolom/",
+  "tanya": "Admin salah top-up Rp50.000 ke Citra. Di ledger, apa yang ditulis untuk memperbaikinya, dan apa yang tidak boleh dilakukan?",
+  "jawab": "Satu jurnal pembalik: posting cermin (buku Citra −Rp50.000, buku tunjangan +Rp50.000), alasan, dan rujukan ke jurnal asal. Polanya sama dengan jurnal 11 yang membalik jurnal 10 di rekaman `kejadian.txt`. Posting asal tidak di-UPDATE atau DELETE; lab menolak keduanya dengan SQLSTATE 23001 (2.7 Ledger double-entry)."
+ },
+ {
+  "id": "t2-saldo-bukan-kolom-3",
+  "halaman": "t2-saldo-bukan-kolom",
+  "judul": "2.6 Kenapa saldo bukan kolom",
+  "url": "tahap-2/saldo-bukan-kolom/",
+  "tanya": "Job malam menulis `saldo_cache 215000, jumlah posting 210000`. Angka mana yang benar, dan kenapa job tidak langsung memperbaiki cache?",
+  "jawab": "Jumlah posting, karena itu source of truth. Selisih berarti ada kode yang menulis cache tanpa posting, dan perbaikan otomatis akan menyembunyikan kode itu. Job keluar dengan status 1 supaya ada yang mencarinya (rekaman api-t2 `migrasi.txt` bagian E)."
+ },
+ {
+  "id": "t2-saldo-bukan-kolom-4",
+  "halaman": "t2-saldo-bukan-kolom",
+  "judul": "2.6 Kenapa saldo bukan kolom",
+  "url": "tahap-2/saldo-bukan-kolom/",
+  "tanya": "Di riwayat posting Budi, saldo sempat Rp110.000 sesudah jurnal 4. Apakah Budi pernah melihat saldo itu di app?",
+  "jawab": "Tidak. Jurnal 3–5 dibuat dalam satu transaction migrasi, dan koneksi lain baru melihat perubahannya sesudah `COMMIT`, saat saldo sudah Rp180.000. Rp110.000 hanya urutan baris di dalam transaction itu."
+ },
+ {
   "id": "t2-adr-ledger-1",
   "halaman": "t2-adr-ledger",
   "judul": "2.8 ADR 6 direvisi: dari kolom saldo ke ledger",
