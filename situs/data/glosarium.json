@@ -299,9 +299,9 @@
  {
   "t": "Deadlock",
   "d": "Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya.",
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "n": "2.11 Race condition",
-  "u": "/b-fondasi/b3-2-race-condition-lock/",
+  "u": "/tahap-2/race-lock/",
   "s": "istilah-deadlock",
   "h": null
  },
@@ -533,11 +533,11 @@
  {
   "t": "Lock",
   "d": "Tanda di database bahwa satu transaction sedang memakai baris atau tabel, sehingga transaction lain harus menunggu.",
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "n": "2.11 Race condition",
-  "u": "/b-fondasi/b3-2-race-condition-lock/",
+  "u": "/tahap-2/race-lock/",
   "s": "istilah-lock",
-  "h": null
+  "h": "/istilah/lock/"
  },
  {
   "t": "Log",
@@ -551,9 +551,9 @@
  {
   "t": "Lost update",
   "d": "Perubahan yang hilang karena dua transaction membaca nilai lama yang sama lalu saling menimpa.",
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "n": "2.11 Race condition",
-  "u": "/b-fondasi/b3-2-race-condition-lock/",
+  "u": "/tahap-2/race-lock/",
   "s": "istilah-lost-update",
   "h": null
  },
@@ -686,11 +686,11 @@
  {
   "t": "Optimistic lock",
   "d": "Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca.",
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "n": "2.11 Race condition",
-  "u": "/b-fondasi/b3-2-race-condition-lock/",
+  "u": "/tahap-2/race-lock/",
   "s": "istilah-optimistic-lock",
-  "h": null
+  "h": "/istilah/optimistic-lock/"
  },
  {
   "t": "ORM (Object-Relational Mapping)",
@@ -830,11 +830,11 @@
  {
   "t": "Race condition",
   "d": "Hasil yang bergantung pada urutan dua proses yang berjalan bersamaan.",
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "n": "2.11 Race condition",
-  "u": "/b-fondasi/b3-2-race-condition-lock/",
+  "u": "/tahap-2/race-lock/",
   "s": "istilah-race-condition",
-  "h": null
+  "h": "/istilah/race-condition/"
  },
  {
   "t": "Rate limit",
@@ -970,6 +970,15 @@
   "u": "/tahap-1/idor-token-app/",
   "s": "istilah-secure-storage",
   "h": null
+ },
+ {
+  "t": "SELECT FOR UPDATE",
+  "d": "Perintah SQL yang membaca baris sekaligus menguncinya sampai transaction selesai, sehingga transaction lain yang mau mengubah atau mengunci baris itu menunggu.",
+  "b": "t2-race-lock",
+  "n": "2.11 Race condition",
+  "u": "/tahap-2/race-lock/",
+  "s": "istilah-select-for-update",
+  "h": "/istilah/select-for-update/"
  },
  {
   "t": "Semaphore",

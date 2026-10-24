@@ -78,7 +78,7 @@ Batas kasus ini: satu service, ±20 TB data, di Cloud Spanner, dengan skema yang
 
 1. Ada kode yang menulis `saldo_cache` tanpa posting, dan app menampilkan saldo yang tidak bisa dijelaskan. Role server memang boleh mengubah `saldo_cache`, jadi butir 5 tidak mencegahnya. Yang menangkapnya butir 3: job malam keluar dengan status 1 saat cache berbeda Rp5.000 dari posting (rekaman api-t2 `migrasi.txt` bagian E).
 2. Seseorang membereskan data langsung di database: mematikan trigger, lalu mengubah posting. Pencegahannya butir 5: role server ditolak dengan SQLSTATE 42501 (rekaman api-t2 `migrasi.txt` bagian F). Pemilik schema dan superuser tetap bisa. Persetujuan dua orang untuk perubahan seperti itu direncanakan di Tahap 4 ([[t1-adr-transaction]]).
-3. Ledger dianggap juga menyelesaikan dua transfer bersamaan. Tanpa lock, keduanya COMMIT dan saldo Budi −Rp20.000 (rekaman `batas.txt` bagian 2). Butir 3 membuat transfer kedua menunggu lock baris cache, tapi ia ditolak database, bukan dijawab "saldo kurang" (bagian 3). Cara mengunci yang benar butuh keputusan sendiri, ADR 13 ([[t2-m9]], [[B3.2]]).
+3. Ledger dianggap juga menyelesaikan dua transfer bersamaan. Tanpa lock, keduanya COMMIT dan saldo Budi −Rp20.000 (rekaman `batas.txt` bagian 2). Butir 3 membuat transfer kedua menunggu lock baris cache, tapi ia ditolak database, bukan dijawab "saldo kurang" (bagian 3). Cara mengunci yang benar butuh keputusan sendiri, ADR 13 ([[t2-m9]], [[t2-race-lock]]).
 
 </Blok>
 
@@ -88,7 +88,7 @@ Batas kasus ini: satu service, ±20 TB data, di Cloud Spanner, dengan skema yang
 
 <Snippet file="labs/api-t2/output/pembalik.txt" lines="45:49" title="Rekaman lab: labs/api-t2/output/pembalik.txt" />
 
-**Butir 2.** Admin hanya mengirim nomor jurnal dan alasan. Service membangun posting cermin dari jurnal asal, jadi jumlahnya tidak diketik orang. `KunciBukuID` adalah lock dari ADR 13 ([[B3.2]]):
+**Butir 2.** Admin hanya mengirim nomor jurnal dan alasan. Service membangun posting cermin dari jurnal asal, jadi jumlahnya tidak diketik orang. `KunciBukuID` adalah lock dari ADR 13 ([[t2-race-lock]]):
 
 <Snippet file="labs/api-t2/internal/service/akun.go" lines="70:88" lang="go" title="labs/api-t2/internal/service/akun.go" />
 
@@ -154,7 +154,7 @@ Nomor 12 sudah dipakai 1.40, dan nomor ADR tidak dipakai ulang. Nomor 13–21 ju
 <details class="success">
 <summary>Jawaban</summary>
 
-Salah. Invarian saldo tidak negatif hanya membaca, tanpa lock. Di rekaman `batas.txt` bagian 2, kedua transfer COMMIT dan saldo Budi −Rp20.000. Lock-nya diputuskan di ADR 13 ([[B3.2]]).
+Salah. Invarian saldo tidak negatif hanya membaca, tanpa lock. Di rekaman `batas.txt` bagian 2, kedua transfer COMMIT dan saldo Budi −Rp20.000. Lock-nya diputuskan di ADR 13 ([[t2-race-lock]]).
 
 </details>
 

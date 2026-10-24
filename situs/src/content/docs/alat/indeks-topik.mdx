@@ -56,13 +56,14 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [2.8 ADR 6 direvisi: dari kolom saldo ke ledger](/tahap-2/adr-ledger/) | Tahap 2 | Memilih model uang yang memenuhi aturan Pak Hadi: setiap rupiah tertelusur |
 | [2.9 Skema data: ERD Tahap 1 → Tahap 2 dan pertumbuhannya](/tahap-2/skema-data/) | Tahap 2 | Tabel mana yang lahir, berubah, dan hilang saat saldo pindah ke ledger? |
 | 2.10 M9: Saldo −Rp20.000 · *segera* | Tahap 2 | Dua transfer hampir bersamaan sama-sama lolos dan saldo Budi jadi −Rp20.000 |
-| [2.11 Race condition dan lock + ADR 13](/b-fondasi/b3-2-race-condition-lock/) | Tahap 2 | Saldo salah: dua penarikan bersamaan sama-sama lolos |
+| [2.11 Race condition dan lock + ADR 13](/tahap-2/race-lock/) | Tahap 2 | Dua transfer bersamaan sama-sama membaca saldo cukup sebelum salah satunya COMMIT |
 | [2.12 Isolation level secara praktis](/b-fondasi/b3-3-isolation-level/) | Tahap 2 | Transaction melihat data yang "berubah sendiri" |
 | 2.15 M11: Riwayat 4 detik · *segera* | Tahap 2 | Riwayat Budi butuh 4 detik dibuka dan laporan harian Ani timeout di hari ramai |
 | [2.16 N+1 query](/b-fondasi/b2-4-n-plus-1/) | Tahap 2 | Riwayat penjualan lambat walau datanya sedikit |
 | [2.17 Index dan query plan + ADR 15](/b-fondasi/b2-3-index/) | Tahap 2 | Query lambat setelah data bertambah |
 | 2.21 M13: Migrasi di jam makan siang · *segera* | Tahap 2 | Migrasi ke ledger membuat semua pembayaran menunggu 40 detik saat makan siang |
 | [2.22 Ubah skema tanpa downtime + ADR 17](/b-fondasi/b4-2-ubah-skema-tanpa-downtime/) | Tahap 2 | Rename kolom membuat app lama crash |
+| [Race condition dan lock](/b-fondasi/b3-2-race-condition-lock/) | Tahap 2 | – |
 
 ## Keamanan
 
