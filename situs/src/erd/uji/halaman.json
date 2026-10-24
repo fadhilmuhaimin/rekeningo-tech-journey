@@ -6,7 +6,7 @@
       "sesi": ["B5.1"],
       "buku": ["t2-ledger"],
       "jurnal": ["t2-ledger", "t2-adr-ledger"],
-      "posting": ["t2-ledger", "B2.3"],
+      "posting": ["t2-ledger", "t2-index"],
       "kunci_idempotensi": ["E3"],
       "batch_pencairan": ["t2-pencairan", "t2-job-rekonsiliasi"],
       "baris_pencairan": ["t2-pencairan"]

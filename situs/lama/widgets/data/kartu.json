@@ -923,28 +923,36 @@
   "jawab": "Hitung query per request dan perbaiki N+1. Cache di atas N+1 tetap menjalankan 101 query setiap kali cache kosong atau kedaluwarsa, dan menambah risiko data stale."
  },
  {
-  "id": "B2.3-1",
-  "halaman": "B2.3",
+  "id": "t2-index-1",
+  "halaman": "t2-index",
   "judul": "2.17 Index dan query plan + ADR 15",
-  "url": "b-fondasi/b2-3-index/",
-  "tanya": "Query `WHERE toko_id = 1 ORDER BY dibuat DESC LIMIT 20` lambat. Index mana yang kamu buat: `(dibuat)`, `(toko_id)`, atau `(toko_id, dibuat)`?",
-  "jawab": "`(toko_id, dibuat)`. Kolom di `WHERE` lebih dulu, lalu kolom urutan. Database lompat ke toko 1 dan membaca 20 baris pertama yang sudah terurut. Di widget, index `(dibuat)` saja membuat SQLite memindai index sambil menyaring toko."
+  "url": "tahap-2/index-query-plan/",
+  "tanya": "Index `(buku_id, dibuat, id)` sudah ada. Laporan Keuangan menghitung posting satu hari dari semua buku, tanpa `buku_id`. Apakah index itu dipakai?",
+  "jawab": "Tidak. Kolom depan index tidak ada di `WHERE`, jadi seluruh index harus dipindai dan planner umumnya memilih seq scan. Rekaman bagian I memuat `Seq Scan on posting` yang membuang 758.648 baris untuk menemukan 1.800 (±28 ms, pembanding). Skip scan di PostgreSQL 18 hanya efektif bila kolom depan punya sedikit nilai berbeda."
  },
  {
-  "id": "B2.3-2",
-  "halaman": "B2.3",
+  "id": "t2-index-2",
+  "halaman": "t2-index",
   "judul": "2.17 Index dan query plan + ADR 15",
-  "url": "b-fondasi/b2-3-index/",
-  "tanya": "Jelaskan kenapa menambah index tidak selalu membuat sistem lebih cepat.",
-  "jawab": "Setiap index harus diperbarui saat baris ditulis atau diubah, dan memakan ruang disk serta memori. Index yang tidak dipakai query mana pun hanya menambah biaya penulisan. Index dipilih dari query yang benar-benar dijalankan."
+  "url": "tahap-2/index-query-plan/",
+  "tanya": "Raka membuat index di tabel `posting` berisi 100 baris, dan `EXPLAIN` tetap menulis Seq Scan. Apakah index-nya rusak?",
+  "jawab": "Tidak. Seratus baris muat dalam satu halaman disk, jadi membaca seluruh tabel sama cepatnya dengan memakai index. Dokumentasi PostgreSQL menyebut data uji yang sangat kecil sebagai kesalahan fatal. Uji di data seukuran produksi setelah `ANALYZE`, seperti rekaman yang memakai 760.448 posting."
  },
  {
-  "id": "B2.3-3",
-  "halaman": "B2.3",
+  "id": "t2-index-3",
+  "halaman": "t2-index",
   "judul": "2.17 Index dan query plan + ADR 15",
-  "url": "b-fondasi/b2-3-index/",
-  "tanya": "Kolom `item_pesanan.pesanan_id` punya foreign key. Perlukah index?",
-  "jawab": "Di PostgreSQL, ya, kalau item dicari per pesanan atau kalau pesanan pernah dihapus. Foreign key tidak membuat index sendiri. Rekaman: tanpa index, mencari 3 item memindai 600.000 baris."
+  "url": "tahap-2/index-query-plan/",
+  "tanya": "`posting.buku_id` punya foreign key ke `buku`. Apakah `posting_buku` otomatis ada karena itu?",
+  "jawab": "Tidak. Deklarasi foreign key tidak membuat index di kolom yang merujuk. `posting_buku` ada karena `schema.sql` lab membuatnya sendiri untuk invarian jumlah per buku. Kalau skema Django, Serverpod, atau SQL tulis tangan berbeda perilakunya, cek daftar index-nya."
+ },
+ {
+  "id": "t2-index-4",
+  "halaman": "t2-index",
+  "judul": "2.17 Index dan query plan + ADR 15",
+  "url": "tahap-2/index-query-plan/",
+  "tanya": "Query riwayat sudah memakai JOIN dan index, dan Raka masih ingin memasang cache karena \"takut lambat\". Apa yang kamu minta lebih dulu?",
+  "jawab": "Plan sebelum dan sesudah, di data seukuran satu tahun, serta ukuran beban. Di rekaman satu halaman selesai dalam ±1,4 ms dan beban puncak ±1,4 request per detik (Asumsi). Cache menambah aturan invalidasi dan data stale tanpa menjawab masalah yang terukur."
  },
  {
   "id": "B1.3-1",
@@ -1066,6 +1074,30 @@
   "url": "b-fondasi/b3-3-isolation-level/",
   "tanya": "Ganti seluruh aplikasi ke serializable, lalu semua race selesai. Setuju?",
   "jawab": "Tidak sesederhana itu. Semua transaction penulis harus punya retry yang benar, termasuk efek di luar database yang tidak boleh terulang, mis. notifikasi. Tingkat kegagalan juga naik saat beban tinggi. Untuk satu baris saldo, `UPDATE` atomik lebih sederhana."
+ },
+ {
+  "id": "B2.3-1",
+  "halaman": "B2.3",
+  "judul": "Index dan query plan + ADR 15",
+  "url": "b-fondasi/b2-3-index/",
+  "tanya": "Query `WHERE toko_id = 1 ORDER BY dibuat DESC LIMIT 20` lambat. Index mana yang kamu buat: `(dibuat)`, `(toko_id)`, atau `(toko_id, dibuat)`?",
+  "jawab": "`(toko_id, dibuat)`. Kolom di `WHERE` lebih dulu, lalu kolom urutan. Database lompat ke toko 1 dan membaca 20 baris pertama yang sudah terurut. Di widget, index `(dibuat)` saja membuat SQLite memindai index sambil menyaring toko."
+ },
+ {
+  "id": "B2.3-2",
+  "halaman": "B2.3",
+  "judul": "Index dan query plan + ADR 15",
+  "url": "b-fondasi/b2-3-index/",
+  "tanya": "Jelaskan kenapa menambah index tidak selalu membuat sistem lebih cepat.",
+  "jawab": "Setiap index harus diperbarui saat baris ditulis atau diubah, dan memakan ruang disk serta memori. Index yang tidak dipakai query mana pun hanya menambah biaya penulisan. Index dipilih dari query yang benar-benar dijalankan."
+ },
+ {
+  "id": "B2.3-3",
+  "halaman": "B2.3",
+  "judul": "Index dan query plan + ADR 15",
+  "url": "b-fondasi/b2-3-index/",
+  "tanya": "Kolom `item_pesanan.pesanan_id` punya foreign key. Perlukah index?",
+  "jawab": "Di PostgreSQL, ya, kalau item dicari per pesanan atau kalau pesanan pernah dihapus. Foreign key tidak membuat index sendiri. Rekaman: tanpa index, mencari 3 item memindai 600.000 baris."
  },
  {
   "id": "C2-1",
