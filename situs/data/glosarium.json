@@ -119,9 +119,9 @@
  {
   "t": "Idempotent",
   "d": "Sifat operasi yang hasil akhirnya sama walau dijalankan sekali atau berkali-kali.",
-  "b": "B1.3",
-  "n": "2.19 Pagination dan idempotent method",
-  "u": "/b-fondasi/b1-3-pagination-idempotent/",
+  "b": "t2-kursor",
+  "n": "2.19 Pagination kursor",
+  "u": "/tahap-2/pagination-kursor/",
   "s": "istilah-idempotent",
   "h": null
  },
@@ -276,15 +276,6 @@
   "n": "1.31 Deployment dan rollback",
   "u": "/tahap-1/deployment-rollback/",
   "s": "istilah-container",
-  "h": null
- },
- {
-  "t": "Cursor pagination",
-  "d": "Pagination yang meminta \"data sesudah item X\", bukan \"halaman ke-N\", jadi tetap stabil saat data bertambah.",
-  "b": "B1.3",
-  "n": "2.19 Pagination dan idempotent method",
-  "u": "/b-fondasi/b1-3-pagination-idempotent/",
-  "s": "istilah-cursor-pagination",
   "h": null
  },
  {
@@ -567,6 +558,15 @@
   "h": null
  },
  {
+  "t": "Metode idempoten",
+  "d": "Metode HTTP yang efeknya di server sama untuk satu request atau banyak request identik: PUT, DELETE, dan semua metode safe seperti GET.",
+  "b": "t2-kursor",
+  "n": "2.19 Pagination kursor",
+  "u": "/tahap-2/pagination-kursor/",
+  "s": "istilah-metode-idempoten",
+  "h": "/istilah/metode-idempoten/"
+ },
+ {
   "t": "Metric",
   "d": "Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error.",
   "b": "C2",
@@ -722,11 +722,20 @@
  {
   "t": "Pagination",
   "d": "Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu.",
-  "b": "B1.3",
-  "n": "2.19 Pagination dan idempotent method",
-  "u": "/b-fondasi/b1-3-pagination-idempotent/",
+  "b": "t2-kursor",
+  "n": "2.19 Pagination kursor",
+  "u": "/tahap-2/pagination-kursor/",
   "s": "istilah-pagination",
-  "h": null
+  "h": "/istilah/pagination/"
+ },
+ {
+  "t": "Pagination kursor (keyset)",
+  "d": "Pagination yang meminta baris sesudah nilai urutan baris terakhir yang sudah tampil, bukan halaman ke-N, jadi tetap stabil saat baris baru masuk.",
+  "b": "t2-kursor",
+  "n": "2.19 Pagination kursor",
+  "u": "/tahap-2/pagination-kursor/",
+  "s": "istilah-pagination-kursor",
+  "h": "/istilah/pagination-kursor/"
  },
  {
   "t": "Partitioning",

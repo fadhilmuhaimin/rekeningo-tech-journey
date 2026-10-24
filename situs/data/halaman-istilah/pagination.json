@@ -1,0 +1,54 @@
+{
+  "istilah": "Pagination",
+  "sehari_hari": "Pagination memecah daftar panjang jadi potongan kecil. Riwayat Budi tidak dikirim sekaligus, tetapi dua puluh baris per permintaan, dan app meminta potongan berikutnya saat Budi menggulir.",
+  "cerita": [
+    {
+      "rujukan": "t2-m12",
+      "teks": "Minggu 3: Budi menggulir riwayat dan transaksi yang sama tampil dua kali, karena halaman dihitung dengan OFFSET."
+    },
+    {
+      "rujukan": "t2-kursor",
+      "teks": "ADR 16: riwayat memakai kursor (dibuat, id), dan OFFSET hanya untuk laporan Keuangan."
+    }
+  ],
+  "mekanisme": [
+    "Server menentukan batas per halaman. Di api-t2 batasnya 20 bila app tidak meminta, dan 1 sampai 50 bila meminta; di luar itu 422 (kode lab, belum direkam).",
+    "Halaman berikutnya ditunjuk dengan nomor halaman (OFFSET) atau dengan baris terakhir yang sudah tampil (kursor).",
+    "Urutannya harus unik. Tanpa `ORDER BY` yang unik, `LIMIT` memberi potongan baris yang tidak terduga (PostgreSQL 17, 7.6).",
+    "Di rekaman lab `pagination.txt` bagian C, OFFSET menampilkan 204 baris ganda dan tidak menampilkan 204 kiriman. Kursor mendapat 0 dan 0."
+  ],
+  "stack": {
+    "lihat": "pagination-kursor",
+    "teks": "Kode tiap stack ada di halaman Pagination kursor (keyset). Di sana juga disebut `paginate()` Laravel, yang memakai OFFSET, dan `cursorPaginate()`, yang memakai kursor."
+  },
+  "jebakan": [
+    "Mengira nomor halaman stabil. Nomor halaman menunjuk posisi, dan posisi bergeser saat ada baris baru di atas.",
+    "Memakai `LIMIT` tanpa `ORDER BY` yang unik. PostgreSQL tidak menjamin potongan yang sama di dua permintaan.",
+    "Tanpa batas maksimum per halaman di server, satu request bisa meminta ratusan ribu baris."
+  ],
+  "terkait": [
+    "Pagination kursor (keyset)",
+    "Index",
+    "Metode idempoten"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-24",
+      "judul": "PostgreSQL 17: LIMIT and OFFSET",
+      "url": "https://www.postgresql.org/docs/17/queries-limit.html",
+      "catatan": "Baris yang dilewati OFFSET tetap dihitung server, dan `LIMIT` butuh `ORDER BY` yang membuat urutan unik."
+    },
+    {
+      "riset": "R2-146",
+      "judul": "Slack Engineering: Evolving API Pagination at Slack",
+      "url": "https://slack.engineering/evolving-api-pagination-at-slack/",
+      "catatan": "Michael Hahn, 2017-08-15: OFFSET membaca semua baris yang dilewati, dan halaman bergeser saat data ditulis."
+    },
+    {
+      "riset": "R2-24",
+      "judul": "Rekaman lab b2-query: OFFSET lawan kursor",
+      "rekaman": "labs/b2-query/output/ledger/pagination.txt",
+      "catatan": "Bagian A: 10 baris di layar, 9 berbeda. Bagian C: OFFSET 204 ganda dan 204 kiriman tidak tampil; kursor 0 dan 0."
+    }
+  ]
+}
