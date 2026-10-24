@@ -509,6 +509,7 @@ window.ISTILAH = {
  "Lock": {
   "b": "B3.2",
   "d": "Tanda di database bahwa satu transaction sedang memakai baris atau tabel, sehingga transaction lain harus menunggu.",
+  "h": "istilah/lock/",
   "n": "2.11 Race condition",
   "s": "istilah-lock",
   "t": "Lock",
@@ -1481,6 +1482,7 @@ window.ISTILAH = {
  "lock": {
   "b": "B3.2",
   "d": "Tanda di database bahwa satu transaction sedang memakai baris atau tabel, sehingga transaction lain harus menunggu.",
+  "h": "istilah/lock/",
   "n": "2.11 Race condition",
   "s": "istilah-lock",
   "t": "Lock",
