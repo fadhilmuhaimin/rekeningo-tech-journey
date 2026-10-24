@@ -1,0 +1,336 @@
+---
+title: "2.11 Race condition dan lock + ADR 13"
+description: Ledger tidak menghapus race condition. Dua transfer yang membaca saldo sebelum salah satunya COMMIT sama-sama lolos. Empat cara mengunci direkam di lab, dan ADR 13 memilih lock baris buku di dalam transaction jurnal.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-race-lock-inti.json";
+import RaceLedger from "../../../components/RaceLedger.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 10 menit · coba 3 menit · Prasyarat: [[t2-m9]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Membaca saldo lalu menulis jurnal bukan satu langkah, kecuali kamu mengunci baris yang dibaca sampai transaction selesai.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di [[t2-m9]], Budi mengirim Rp70.000 dari HP dan Rp50.000 dari tablet, dari saldo Rp100.000. Kedua request memakai transaction, dan keduanya membaca jumlah posting Rp100.000 sebelum salah satunya `COMMIT`. Keduanya lolos pemeriksaan saldo, dua jurnal tersimpan, dan saldo Budi −Rp20.000 (rekaman lab `ledger-tanpa-lock.txt`). Kejadian yang hasilnya bergantung pada urutan dua proses seperti ini disebut **race condition**.
+
+**Lock** di baris buku Budi membuat request kedua menunggu sampai yang pertama selesai, lalu membaca saldo terbaru. Dengan `SELECT … FOR UPDATE`, tablet menunggu, membaca Rp30.000, dan ditolak karena saldo kurang (rekaman `ledger-for-update.txt`). ADR 13 di blok Putuskan memilih cara ini dari empat cara yang direkam.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Kode transfer sudah membungkus baca saldo dan tulis jurnal dalam satu transaction. Kenapa saldo Budi masih bisa −Rp20.000?
+2. Lock dipasang lewat `UPDATE saldo_cache` di akhir transaction. Kenapa tablet tetap gagal dengan error database, bukan "saldo kurang"?
+3. Dua transfer berlawanan arah, Budi ke Citra dan Citra ke Budi, sama-sama mengunci dua buku. Apa yang mencegah keduanya saling menunggu selamanya?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: keempat cara mengunci berakhir di saldo Rp30.000 dan satu jurnal, tapi tablet menunggu, mengulang, atau gagal di langkah yang berbeda.">
+
+Widget ini memutar rekaman PostgreSQL 17.11 dari lab b3-race. HP Budi (A) mengirim Rp70.000 ke Citra dan tablet Budi (B) mengirim Rp50.000 ke Dimas, dari saldo Rp100.000. Tebak dulu saldo akhirnya, lalu jalankan langkah demi langkah. Widget mulai dari `FOR UPDATE`, cara yang dipilih ADR 13.
+
+<RaceLedger id="adr13" cara={["tanpa-lock", "for-update", "atomik", "optimistic", "serializable"]} awal="for-update" />
+
+Di `FOR UPDATE`, tablet sudah berhenti di langkah 4, sebelum membaca saldo. Ia baru membaca di langkah 10, sesudah HP `COMMIT`, dan angkanya Rp30.000. Keputusan "saldo cukup?" diambil dari angka terbaru, jadi kode yang menolak, bukan database.
+
+Tekan **Ubah satu hal** untuk memutar cara berikutnya. UPDATE atomik berakhir sama, tapi pemeriksaannya ada di `WHERE`. Optimistic lock tetap menunggu lock saat menulis, lalu mengulang dari membaca. SERIALIZABLE tidak menunggu sama sekali, dan tablet baru gagal saat `COMMIT` dengan SQLSTATE 40001.
+
+<details class="abstract">
+<summary>Rekaman mentah (teks, juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/b3-race/output/ledger/banding.txt" title="Rekaman lab: labs/b3-race/output/ledger/banding.txt" />
+
+<Snippet file="labs/b3-race/output/ledger/ledger-tanpa-lock.txt" title="Rekaman lab: ledger-tanpa-lock.txt" />
+
+<Snippet file="labs/b3-race/output/ledger/ledger-for-update.txt" title="Rekaman lab: ledger-for-update.txt" />
+
+<Snippet file="labs/b3-race/output/ledger/ledger-atomik.txt" title="Rekaman lab: ledger-atomik.txt" />
+
+<Snippet file="labs/b3-race/output/ledger/ledger-optimistic.txt" title="Rekaman lab: ledger-optimistic.txt" />
+
+<Snippet file="labs/b3-race/output/ledger/ledger-serializable.txt" title="Rekaman lab: ledger-serializable.txt" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Raka mengira transaction sudah cukup, karena pembayaran M4 di Tahap 1 selesai dengan transaction ([[B3.1]]). Transaction menjamin satu request tersimpan utuh atau batal utuh. Transaction tidak membuat request lain menunggu sebelum ia membaca.
+
+Ledger juga tidak menutupnya. Invarian ketiga, saldo karyawan tidak negatif, diperiksa database saat `COMMIT` ([[t2-ledger]]). Bila HP `COMMIT` lebih dulu, pemeriksaan tablet melihat jurnal HP dan menolaknya dengan SQLSTATE 23514, yang sampai ke app sebagai error 500 (rekaman `ledger-tanpa-lock-bergantian.txt`). Bila kedua `COMMIT` dikirim bersamaan, keduanya bisa lolos: rekaman b3-ledger `batas.txt` bagian 2b mencatat saldo −Rp20.000 muncul dalam 50 percobaan.
+
+Lock di memori server, seperti `Mutex` di Kotlin, hanya berlaku di satu proses. HP dan tablet Budi memakai dua koneksi database, dan nanti mungkin dua server. Tempat keduanya bertemu adalah baris di PostgreSQL, jadi lock-nya dipasang di sana.
+
+### Cara kerjanya
+
+Pola yang rawan selalu sama: baca, putuskan di kode, tulis. Bentuk kerusakannya bergantung pada cara menyimpan saldo.
+
+<figure class="bb-fig" role="img" aria-label="Kolom saldo Tahap 1: tulisan tablet menimpa tulisan HP, saldo Rp50.000 padahal Rp120.000 keluar. Ledger Tahap 2: kedua jurnal tersimpan, saldo minus Rp20.000.">
+<ol class="bb-flow">
+<li>A baca Rp100.000</li>
+<li>B baca Rp100.000</li>
+<li>A tulis</li>
+<li class="is-warn">B tulis</li>
+</ol>
+<figcaption><strong>Kolom saldo:</strong> B menimpa A, saldo Rp50.000 (rekaman lama <code>tx-tanpa-lock.txt</code>). <strong>Ledger:</strong> tidak ada yang tertimpa, kedua jurnal tersimpan, saldo −Rp20.000.</figcaption>
+</figure>
+
+Di kolom saldo Tahap 1, kerusakannya disebut **lost update**: tulisan pertama hilang. Di ledger, posting hanya ditambah, jadi tidak ada yang hilang. Justru karena kedua jurnal tersimpan, saldo turun di bawah nol.
+
+Keempat cara di widget membuat keputusan "saldo cukup?" diambil dari angka terbaru. Bedanya ada di siapa yang menunggu dan kapan.
+
+**1. `SELECT … FOR UPDATE` pada baris buku.** Baris dikunci saat dibaca, dan transaction lain yang mau mengunci atau mengubahnya menunggu sampai transaction ini selesai. Sesudah menunggu, `FOR UPDATE` mengembalikan versi baris terbaru ([PostgreSQL 17, 13.3.2](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)):
+
+<Snippet file="labs/b3-race/output/ledger/ledger-for-update.txt" lines="12:22" title="Rekaman lab: labs/b3-race/output/ledger/ledger-for-update.txt" />
+
+**2. UPDATE atomik bersyarat.** Pemeriksaan dan potongan jadi satu perintah: `SET saldo_cache = saldo_cache - 50000 WHERE saldo_cache >= 50000`. Di Read Committed, UPDATE kedua menunggu, lalu syarat `WHERE` diperiksa ulang ke versi baris terbaru ([PostgreSQL 17, 13.2.1](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-READ-COMMITTED)). Kode membaca jumlah baris yang berubah:
+
+<Snippet file="labs/b3-race/output/ledger/ledger-atomik.txt" lines="19:21" title="Rekaman lab: labs/b3-race/output/ledger/ledger-atomik.txt" />
+
+**3. Optimistic lock dengan kolom `versi`.** Membaca tanpa lock, lalu menulis dengan syarat `versi` belum berubah. Nol baris berarti ada yang menulis duluan, jadi kode mengulang dari membaca.
+
+Di rekaman, tablet tetap menunggu lock HP di langkah 8, karena UPDATE mengunci baris yang diubahnya. Sesudah HP `COMMIT`, UPDATE tablet mengubah 0 baris:
+
+<Snippet file="labs/b3-race/output/ledger/ledger-optimistic.txt" lines="24:29" title="Rekaman lab: labs/b3-race/output/ledger/ledger-optimistic.txt" />
+
+**4. SERIALIZABLE dengan retry.** Kode tanpa lock yang sama dijalankan di isolation level SERIALIZABLE. PostgreSQL menolak salah satu transaction dengan SQLSTATE 40001, dan app wajib mengulang seluruh transaction ([PostgreSQL 17, 13.2.3](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-SERIALIZABLE)). Isolation level dibahas di [[B3.3]].
+
+<Snippet file="labs/b3-race/output/ledger/ledger-serializable.txt" lines="21:25" title="Rekaman lab: labs/b3-race/output/ledger/ledger-serializable.txt" />
+
+### Lock yang datang terlambat
+
+Mengunci saja tidak cukup; urutannya menentukan. Rekaman b3-ledger `batas.txt` bagian 3 memperbarui `saldo_cache` di akhir transaction. UPDATE itu juga mengunci baris buku, jadi tablet menunggu, tapi ia sudah membaca saldo Rp100.000 sebelumnya:
+
+<Snippet file="labs/b3-ledger/output/batas.txt" lines="126:148" title="Rekaman lab: labs/b3-ledger/output/batas.txt" />
+
+Saldo tidak negatif, tapi tablet gagal dengan 23514, bukan jawaban "saldo kurang". Lock harus dipasang sebelum saldo dibaca, bukan sesudah keputusan diambil.
+
+### Dua buku, satu urutan
+
+Transfer antar karyawan menyentuh dua buku. Bila Budi mengirim ke Citra saat Citra mengirim ke Budi, dan masing-masing mengunci buku pengirim lebih dulu, keduanya saling menunggu. PostgreSQL mendeteksi **deadlock** ini dan membatalkan salah satunya, dan dokumentasinya menulis transaction mana yang dibatalkan sulit ditebak ([PostgreSQL 17, 13.3.4](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-DEADLOCKS)).
+
+Pertahanan yang disarankan dokumentasi yang sama: setiap transaction mengunci dengan urutan yang sama. Lab api-t2 mengunci semua buku dalam satu perintah `ORDER BY id FOR UPDATE`. Menurut dokumentasi `SELECT`, `ORDER BY` diterapkan dulu, baru baris dikunci ([PostgreSQL 17, The Locking Clause](https://www.postgresql.org/docs/17/sql-select.html#SQL-FOR-UPDATE-SHARE)). Deadlock dua arah belum direkam di lab; bagian ini bersumber dokumentasi.
+
+### Di stack lain
+
+**Skenario:** dua request bersamaan memotong saldo dari baris yang sama. Tab Go adalah kode ADR 13 di lab api-t2. Tab Node, Laravel, Django, dan Supabase direkam di lab b3-stack dengan skema Tahap 1: dua penarikan Rp70.000 dan Rp50.000 dari `akun.saldo` Rp100.000. Mekanisme lock-nya sama dengan baris `buku`.
+
+Yang sama di semua stack: lock dipegang sampai `COMMIT` atau `ROLLBACK`, jadi kode yang mengunci harus berjalan di dalam transaction. Di lab b3-stack, skenario ini diulang 10 kali di Go, Node, Laravel, dan Django, dan setiap run tepat satu penarikan sukses (rekaman `ulang-10.txt`).
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: Go 1.27.1, `database/sql` + pgx v5.11.0, PostgreSQL 17.11, lab api-t2.*
+
+<Snippet file="labs/api-t2/internal/repo/ledger.go" region="kunci-buku" lang="go" title="labs/api-t2/internal/repo/ledger.go" />
+
+**Yang berbeda di stack ini:** `Service.Kirim` memanggil `KunciBukuAkun` sebagai perintah pertama di transaction, lalu membaca batas harian dan saldo dari baris yang sudah terkunci. Sepuluh kiriman Rp20.000 bersamaan dari saldo Rp100.000 berakhir lima diterima, lima ditolak, dan cache sama dengan jumlah posting:
+
+<Snippet file="labs/api-t2/output/transfer.txt" lines="106:113" title="Rekaman lab: labs/api-t2/output/transfer.txt" />
+
+</Fragment>
+<Fragment slot="t1">
+
+*Dijalankan: Node 22.17.1, `pg` 8.23.1, dua request bersamaan, PostgreSQL 17.11, lab b3-stack.*
+
+<Snippet file="labs/b3-stack/node/main.js" region="tarik" lang="js" title="labs/b3-stack/node/main.js" />
+
+**Yang berbeda di stack ini:** lab Node memakai UPDATE atomik, opsi B ADR 13, lewat `pool.query` tanpa `BEGIN`. Keputusan ada di `rowCount`. Untuk `FOR UPDATE`, node-postgres meminta satu client dari `pool.connect()` untuk seluruh transaction ([node-postgres: Transactions](https://node-postgres.com/features/transactions)).
+
+<Snippet file="labs/b3-stack/output/node-tarik.txt" title="Rekaman lab: labs/b3-stack/output/node-tarik.txt" />
+
+</Fragment>
+<Fragment slot="t2">
+
+*Dijalankan: PHP 8.5.8, `illuminate/database` 13.34.0, dua proses PHP bersamaan, PostgreSQL 17.11, lab b3-stack.*
+
+<Snippet file="labs/b3-stack/laravel/main.php" region="tarik" lang="php" title="labs/b3-stack/laravel/main.php" />
+
+**Yang berbeda di stack ini:** `lockForUpdate()` menghasilkan `... for update`, dan dipanggil di dalam `$db->transaction(...)`. Penarikan yang ditolak melempar exception, dan Laravel mengirim `ROLLBACK`.
+
+<Snippet file="labs/b3-stack/output/laravel-tarik.txt" title="Rekaman lab: labs/b3-stack/output/laravel-tarik.txt" />
+
+</Fragment>
+<Fragment slot="t3">
+
+*Dijalankan: Django 6.1.1, dua thread, PostgreSQL 17.11, lab b3-stack.*
+
+<Snippet file="labs/b3-stack/django/main.py" region="tarik" lang="python" title="labs/b3-stack/django/main.py" />
+
+**Yang berbeda di stack ini:** `select_for_update()` harus di dalam `transaction.atomic()`. Log mencatat statement saat diterima, bukan saat lock didapat, jadi `SELECT` B bisa tercatat sebelum A selesai walau B yang menunggu.
+
+<Snippet file="labs/b3-stack/output/django-tarik.txt" title="Rekaman lab: labs/b3-stack/output/django-tarik.txt" />
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: Row locking](https://docs.serverpod.dev/concepts/data-and-the-database/database/row-locking), Serverpod 4.0.4.*
+
+<Snippet lang="dart" code={`await session.db.transaction((transaction) async {
+  final buku = await Buku.db.find(
+    session,
+    where: (t) => t.akunId.inSet({pengirimId, penerimaId}),
+    orderBy: (t) => t.id,
+    lockMode: LockMode.forUpdate,
+    transaction: transaction,
+  );
+  // baca saldoCache dan batas dari baris yang terkunci, lalu tulis jurnal dan posting
+});`} />
+
+**Yang berbeda di stack ini:** lock dipasang lewat parameter `lockMode` di `find`, dan Serverpod melempar exception bila tidak ada `transaction`. Bawaannya menunggu lock; `LockBehavior.noWait` langsung gagal dan `LockBehavior.skipLocked` melewati baris yang terkunci.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Fungsi SQL dijalankan di PostgreSQL 17.11 lewat psql, dua panggilan berurutan, lab b3-stack. Panggilan `supabase.rpc()` tidak dijalankan; dicek ke [Supabase: Database Functions](https://supabase.com/docs/guides/database/functions), `@supabase/supabase-js` 2.118.0.*
+
+<Snippet file="labs/b3-stack/supabase/fungsi.sql" region="tarik" lang="sql" title="labs/b3-stack/supabase/fungsi.sql" />
+
+**Yang berbeda di stack ini:** client Supabase tidak bisa memegang transaction di antara dua request, jadi lock atau UPDATE atomik ditulis di fungsi database. App memanggilnya dengan `supabase.rpc('tarik', ...)`, dan `found` bernilai true bila ada baris yang berubah.
+
+<Snippet file="labs/b3-stack/output/supabase-tarik.txt" title="Rekaman lab: labs/b3-stack/output/supabase-tarik.txt" />
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 13: lock baris buku di dalam transaction jurnal
+
+**Kebutuhan.** Di M9, dua transfer Rp70.000 dan Rp50.000 dari saldo Rp100.000 berakhir −Rp20.000 ([[t2-m9]]). PRD v2 mewajibkan saldo karyawan tidak negatif dan membatasi transfer Rp500.000 per hari ([[t2-prd]]). Kedua aturan dibaca dari data yang bisa diubah request lain di saat yang sama. Bebannya kecil: puncak ±1,4 request per detik untuk 1.000 karyawan dan 12 warung (Asumsi naskah).
+
+**Status:** diterima di minggu 1 Tahap 2, sesudah M9. Berlaku untuk setiap jalur uang yang memutuskan dari saldo atau batas: bayar, transfer, jurnal pembalik, dan pencairan Jumat. Top-up tidak membaca saldo untuk memutuskan; baris bukunya terkunci oleh UPDATE `saldo_cache` di transaction yang sama.
+
+| | A. `SELECT … FOR UPDATE` | B. UPDATE atomik bersyarat | C. Optimistic lock `versi` | D. SERIALIZABLE + retry |
+|---|---|---|---|---|
+| Cara kerja | Transaction jurnal dibuka dengan mengunci baris buku yang terlibat. Saldo, batas harian, dan batas warung dibaca sesudah lock, lalu jurnal, posting, dan `saldo_cache` ditulis | Pemeriksaan dan potongan `saldo_cache` jadi satu UPDATE dengan syarat `WHERE`. Nol baris berarti saldo kurang | Baca `saldo_cache` dan `versi` tanpa lock. Tulis dengan syarat `versi` belum berubah; nol baris berarti ulangi dari membaca | Kode tanpa lock dijalankan di isolation level SERIALIZABLE. Salah satu transaction ditolak dengan 40001 dan diulang dari awal |
+| Kelebihan | Satu pola untuk semua aturan yang dibaca. Banyak buku dikunci dalam satu perintah berurutan `ORDER BY id` | Satu perintah, tanpa `SELECT` terpisah. Jelas untuk satu baris dan satu syarat | Tidak ada yang menunggu saat membaca. Cocok bila bentrok jarang | Kode tidak perlu tahu baris mana yang harus dikunci. PostgreSQL hanya meloloskan hasil yang sama dengan menjalankan transaction satu per satu |
+| Kekurangan | Request kedua menunggu sampai yang pertama selesai. Lupa mengunci di satu jalur berarti M9 kembali | Batas harian dan batas warung tidak muat di `WHERE` yang sama. Dua buku butuh dua UPDATE yang urutannya harus dijaga sendiri | Setiap jalur butuh loop retry yang dibatasi. Saat menulis, request kedua tetap menunggu lock | Setiap jalur tulis harus siap mengulang, termasuk yang tidak berebut saldo. Kegagalan baru terlihat saat `COMMIT`, sesudah semua kerja |
+| Biaya operasional | Waktu tunggu lock per buku; satu tes dua request bersamaan per jalur uang | Sama dengan A untuk satu baris; aturan tambahan ditulis ulang sebagai SQL | Jumlah retry per menit perlu dipantau; konflik naik di buku yang sering menerima uang | Jumlah 40001 perlu dipantau. Seq scan memakai predicate lock satu tabel dan menaikkan kegagalan ([13.2.3](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-SERIALIZABLE)) |
+| Bukti | Rekaman `ledger-for-update.txt`; api-t2 `transfer.txt` bagian E | Rekaman `ledger-atomik.txt`; b3-stack `node-tarik.txt` | Rekaman `ledger-optimistic.txt` (menunggu 1, retry 1) | Rekaman `ledger-serializable.txt` (retry 1, `saldo_cache` tidak disentuh) |
+
+Keempatnya berakhir sama di lab: saldo Rp30.000, satu jurnal (`banding.txt`). Yang memutuskan adalah bentuk kode di sekitarnya.
+
+**Keputusan: opsi A.** Lima aturan:
+
+1. Setiap jalur uang yang memutuskan dari saldo atau batas membuka transaction jurnal dan langsung mengunci semua buku yang terlibat dengan satu `SELECT … FROM buku … ORDER BY id FOR UPDATE`.
+2. Saldo, batas harian, dan batas warung dibaca sesudah lock, dari baris dan data yang sama. Penolakan dijawab app sebagai "saldo kurang" atau "batas harian", bukan 500.
+3. Posting dan `saldo_cache` ditulis di transaction yang sama (aturan 3 [[t2-adr-ledger]]). Invarian saldo tidak negatif tetap diperiksa saat `COMMIT` sebagai pagar kedua.
+4. Tidak ada panggilan jaringan atau kerja lambat selama lock dipegang. PostgreSQL menunggu lock tanpa batas selama tidak terjadi deadlock.
+5. Isolation level tetap Read Committed, bawaan PostgreSQL.
+
+**Kenapa A, bukan B.** B sama aman untuk satu syarat di satu baris, dan rekamannya berakhir identik dengan A. Transfer antar karyawan membaca tiga hal: saldo, transfer keluar hari ini, dan buku penerima.
+
+Dengan A, ketiganya dibaca sesudah satu lock di awal, dan urutannya terlihat di kode `Service.Kirim`. Dengan B, UPDATE harus selalu jadi perintah pertama, dan aturan itu tidak terlihat dari kodenya.
+
+- **C ditolak** karena setiap jalur butuh loop retry, padahal di rekaman tablet tetap menunggu lock saat menulis. Modern Treasury memakai syarat `lock_version` di ledger mereka. Untuk akun yang menerima banyak entri sekaligus, mereka menyarankan entri tanpa syarat itu ([Modern Treasury, 2025](https://docs.moderntreasury.com/ledgers/docs/handle-concurrency)).
+- **D ditolak** karena semua jalur tulis harus menangani 40001, termasuk tutup buku dan pencairan. Di rekaman, versi SERIALIZABLE juga tidak memperbarui `saldo_cache`, jadi lock untuk cache tetap dibutuhkan. Pembahasannya di [[B3.3]].
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Jalur uang baru yang membaca saldo, misalnya koreksi massal oleh admin, ditulis tanpa memanggil fungsi kunci buku. Pencegahannya aturan 1 lewat satu fungsi repo, dan tes dua request bersamaan untuk setiap jalur uang. Rekaman api-t2 `transfer.txt` bagian E adalah contoh tesnya.
+2. Kerja lambat masuk ke dalam transaction, misalnya notifikasi di Tahap 3. Semua pembayaran ke buku yang sama ikut menunggu. Pencegahannya aturan 4.
+3. Satu jalur mengunci buku pengirim dan penerima dengan dua perintah terpisah, dan transfer dua arah jadi deadlock. Pencegahannya aturan 1: satu perintah, urutan `id`.
+
+**Kapan keputusan ini salah.** Saat satu buku menerima jurnal lebih cepat daripada transaction sebelumnya selesai. Setiap pembayaran ke buku itu lalu antre di lock yang sama.
+
+Kandidat pertamanya buku warung saat makan siang, sesudah Rekeningo dipakai di banyak kota. Lama tunggu lock belum diukur di lab Tahap 2.
+
+**Yang akan merevisinya.** Saat lama tunggu itu terukur, pola Modern Treasury jadi kandidat. Buku pengirim tetap dikunci, dan posting ke buku warung ditambah tanpa syarat saldo. Naskah belum menjadwalkannya.
+
+Retry yang aman dibahas di [[E3]], dan isolation level di [[B3.3]].
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| `lock_timeout` atau `NOWAIT` di jalur bayar | Lama tunggu lock di puncak ±1,4 request per detik belum diukur | [[B4.2]], untuk migrasi |
+| Retry otomatis saat deadlock | Urutan `id` di aturan 1 mencegahnya; deadlock belum pernah direkam | Belum dijadwalkan |
+| Buku warung tanpa syarat saldo | Batas saldo warung Rp1.500.000 dari [[t1-m4]] dibaca dari buku warung; lama tunggu lock belum diukur | Belum dijadwalkan di naskah |
+| SERIALIZABLE sebagai bawaan | Opsi D ditolak di atas | [[B3.3]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** AI menulis kode transfer ini, lengkap dengan transaction. Aman dari M9?
+
+```go
+tx, _ := db.BeginTx(ctx, nil)
+defer tx.Rollback()
+tx.QueryRowContext(ctx, `SELECT sum(jumlah) FROM posting WHERE buku_id = $1`, budi).Scan(&saldo)
+if saldo < nominal { return ErrSaldoKurang }
+catatJurnal(ctx, tx, budi, citra, nominal)
+return tx.Commit()
+```
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak aman. `sum` atas posting tidak mengunci apa pun, jadi dua request bisa sama-sama membaca Rp100.000, persis rekaman `ledger-tanpa-lock.txt`. Perbaikannya: kunci baris buku Budi dengan `SELECT saldo_cache FROM buku WHERE id = $1 FOR UPDATE` sebelum membaca saldo, lalu perbarui `saldo_cache` di transaction yang sama.
+
+</details>
+
+**2.** Di rekaman UPDATE atomik, tablet mengirim UPDATE saat `saldo_cache` masih Rp100.000. Kenapa hasilnya bukan −Rp20.000?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tablet menunggu lock HP. Sesudah HP `COMMIT`, PostgreSQL memeriksa ulang `WHERE saldo_cache >= 50000` ke versi baris terbaru, yaitu Rp30.000. Syaratnya gagal, jadi `UPDATE 0`, dan kode menolaknya sebagai saldo kurang ([PostgreSQL 17, 13.2.1](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-READ-COMMITTED)).
+
+</details>
+
+**3.** Kode memperbarui `saldo_cache` di akhir transaction, sesudah membaca jumlah posting. Tablet menunggu lock, lalu gagal. Apa yang dilihat Budi, dan apa perbaikannya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Error 500, karena pemeriksaan invarian saat `COMMIT` menolaknya dengan SQLSTATE 23514 (rekaman `batas.txt` bagian 3). Lock datang sesudah keputusan diambil. Perbaikannya: kunci baris buku di awal transaction, lalu baca saldo dari baris itu.
+
+</details>
+
+**4.** Budi mengirim ke Citra saat Citra mengirim ke Budi. Kode mengunci buku pengirim dulu, lalu buku penerima. Apa yang terjadi, dan apa perbaikan ADR 13?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Masing-masing memegang satu buku dan menunggu buku yang lain: deadlock. PostgreSQL membatalkan salah satunya, dan yang mana sulit ditebak ([13.3.4](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-DEADLOCKS)). ADR 13 mengunci kedua buku dalam satu perintah `ORDER BY id FOR UPDATE`, jadi keduanya mengunci buku dengan urutan yang sama.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Cari pola baca, putuskan di kode, tulis. Pastikan ada `FOR UPDATE`, UPDATE atomik bersyarat, atau syarat `versi`.
+- [ ] Lock dipasang sebelum saldo dibaca, bukan di UPDATE terakhir sebelum `COMMIT`.
+- [ ] Beberapa baris dikunci dalam satu perintah dengan `ORDER BY id`, atau selalu dalam urutan yang sama.
+- [ ] Jumlah baris yang berubah (`RowsAffected`, `rowCount`, `found`) diperiksa, bukan diabaikan.
+- [ ] Tidak ada panggilan HTTP, notifikasi, atau `sleep` selama lock dipegang.
+- [ ] Ada tes dua request bersamaan untuk setiap jalur uang.
+
+### Bacaan lanjut
+
+- [PostgreSQL 17: Explicit Locking](https://www.postgresql.org/docs/17/explicit-locking.html) (row lock dan deadlock)
+- [PostgreSQL 17: Transaction Isolation](https://www.postgresql.org/docs/17/transaction-iso.html) (Read Committed dan Serializable)
+- [PostgreSQL 17: SELECT, The Locking Clause](https://www.postgresql.org/docs/17/sql-select.html#SQL-FOR-UPDATE-SHARE)
+- [Modern Treasury: Design a Ledger for Concurrency](https://docs.moderntreasury.com/ledgers/docs/handle-concurrency) (2025)
+- [CWE-362: Concurrent Execution using Shared Resource with Improper Synchronization](https://cwe.mitre.org/data/definitions/362.html)
+
+</Blok>

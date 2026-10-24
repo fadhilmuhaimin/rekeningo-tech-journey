@@ -1,0 +1,43 @@
+{
+  "id": "t2-race-lock-inti",
+  "judul": "Dua transfer dari saldo Rp100.000: tanpa lock dan dengan FOR UPDATE",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b3-race · ledger"
+  },
+  "baris": [
+    {
+      "label": "Tanpa lock",
+      "sub": "ledger-tanpa-lock.txt",
+      "simpul": [
+        {
+          "teks": "A dan B baca Rp100.000",
+          "sub": "jumlah posting, sebelum ada yang COMMIT",
+          "nada": "warn"
+        },
+        {
+          "teks": "saldo −Rp20.000",
+          "sub": "dua jurnal tersimpan",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "FOR UPDATE",
+      "sub": "ledger-for-update.txt",
+      "simpul": [
+        {
+          "teks": "B menunggu lock A",
+          "sub": "baris buku Budi dikunci sebelum dibaca",
+          "nada": "system"
+        },
+        {
+          "teks": "ditolak: saldo kurang",
+          "sub": "B membaca Rp30.000 sesudah A COMMIT",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Baris pertama memakai alat lab SET CONSTRAINTS ALL IMMEDIATE supaya urutannya bisa diulang; tanpa alat itu kejadian yang sama muncul saat kedua COMMIT dikirim bersamaan (labs/b3-ledger/output/batas.txt bagian 2b)."
+}

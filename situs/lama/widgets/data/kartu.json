@@ -738,9 +738,42 @@
   "jawab": "Admin hanya mengirim nomor jurnal dan alasan. Service menyalin setiap posting jurnal asal dengan tanda dibalik, dan database tetap memeriksa bahwa pembalik adalah cermin jurnal asal."
  },
  {
+  "id": "t2-race-lock-1",
+  "halaman": "t2-race-lock",
+  "judul": "2.11 Race condition dan lock + ADR 13",
+  "url": "tahap-2/race-lock/",
+  "tanya": "AI menulis kode transfer ini, lengkap dengan transaction. Aman dari M9?",
+  "jawab": "Tidak aman. `sum` atas posting tidak mengunci apa pun, jadi dua request bisa sama-sama membaca Rp100.000, persis rekaman `ledger-tanpa-lock.txt`. Perbaikannya: kunci baris buku Budi dengan `SELECT saldo_cache FROM buku WHERE id = $1 FOR UPDATE` sebelum membaca saldo, lalu perbarui `saldo_cache` di transaction yang sama.",
+  "kode": "tx, _ := db.BeginTx(ctx, nil)\ndefer tx.Rollback()\ntx.QueryRowContext(ctx, `SELECT sum(jumlah) FROM posting WHERE buku_id = $1`, budi).Scan(&saldo)\nif saldo < nominal { return ErrSaldoKurang }\ncatatJurnal(ctx, tx, budi, citra, nominal)\nreturn tx.Commit()"
+ },
+ {
+  "id": "t2-race-lock-2",
+  "halaman": "t2-race-lock",
+  "judul": "2.11 Race condition dan lock + ADR 13",
+  "url": "tahap-2/race-lock/",
+  "tanya": "Di rekaman UPDATE atomik, tablet mengirim UPDATE saat `saldo_cache` masih Rp100.000. Kenapa hasilnya bukan −Rp20.000?",
+  "jawab": "Tablet menunggu lock HP. Sesudah HP `COMMIT`, PostgreSQL memeriksa ulang `WHERE saldo_cache >= 50000` ke versi baris terbaru, yaitu Rp30.000. Syaratnya gagal, jadi `UPDATE 0`, dan kode menolaknya sebagai saldo kurang (PostgreSQL 17, 13.2.1)."
+ },
+ {
+  "id": "t2-race-lock-3",
+  "halaman": "t2-race-lock",
+  "judul": "2.11 Race condition dan lock + ADR 13",
+  "url": "tahap-2/race-lock/",
+  "tanya": "Kode memperbarui `saldo_cache` di akhir transaction, sesudah membaca jumlah posting. Tablet menunggu lock, lalu gagal. Apa yang dilihat Budi, dan apa perbaikannya?",
+  "jawab": "Error 500, karena pemeriksaan invarian saat `COMMIT` menolaknya dengan SQLSTATE 23514 (rekaman `batas.txt` bagian 3). Lock datang sesudah keputusan diambil. Perbaikannya: kunci baris buku di awal transaction, lalu baca saldo dari baris itu."
+ },
+ {
+  "id": "t2-race-lock-4",
+  "halaman": "t2-race-lock",
+  "judul": "2.11 Race condition dan lock + ADR 13",
+  "url": "tahap-2/race-lock/",
+  "tanya": "Budi mengirim ke Citra saat Citra mengirim ke Budi. Kode mengunci buku pengirim dulu, lalu buku penerima. Apa yang terjadi, dan apa perbaikan ADR 13?",
+  "jawab": "Masing-masing memegang satu buku dan menunggu buku yang lain: deadlock. PostgreSQL membatalkan salah satunya, dan yang mana sulit ditebak (13.3.4). ADR 13 mengunci kedua buku dalam satu perintah `ORDER BY id FOR UPDATE`, jadi keduanya mengunci buku dengan urutan yang sama."
+ },
+ {
   "id": "B3.2-1",
   "halaman": "B3.2",
-  "judul": "2.11 Race condition dan lock + ADR 13",
+  "judul": "Race condition dan lock",
   "url": "b-fondasi/b3-2-race-condition-lock/",
   "tanya": "AI menulis kode ini, lengkap dengan transaction. Aman dari lost update?",
   "jawab": "Tidak aman. Ini persis tab pertama di rekaman: `SELECT` tanpa `FOR UPDATE` tidak mengunci apa pun, jadi dua request bisa membaca Rp100.000 bersamaan. Perbaikan paling kecil: tambahkan `FOR UPDATE` di `SELECT`. Alternatifnya, ganti dengan `UPDATE` atomik dan periksa `RowsAffected()`.",
@@ -749,7 +782,7 @@
  {
   "id": "B3.2-2",
   "halaman": "B3.2",
-  "judul": "2.11 Race condition dan lock + ADR 13",
+  "judul": "Race condition dan lock",
   "url": "b-fondasi/b3-2-race-condition-lock/",
   "tanya": "Di tab \"UPDATE atomik\", `UPDATE` milik B dikirim saat saldo masih Rp100.000. Kenapa hasilnya tidak -Rp20.000?",
   "jawab": "B menunggu lock milik A. Setelah A commit, PostgreSQL mengecek ulang syarat `WHERE saldo >= 50000` ke versi baris terbaru (saldo Rp30.000). Syaratnya gagal, jadi 0 baris berubah (sumber)."
@@ -757,7 +790,7 @@
  {
   "id": "B3.2-3",
   "halaman": "B3.2",
-  "judul": "2.11 Race condition dan lock + ADR 13",
+  "judul": "Race condition dan lock",
   "url": "b-fondasi/b3-2-race-condition-lock/",
   "tanya": "Jelaskan dalam satu kalimat: kenapa `Mutex` atau `synchronized` di kode aplikasi tidak cukup untuk mencegah race ini di production?",
   "jawab": "Lock di memori hanya berlaku di satu proses. Production biasanya punya beberapa instance atau proses worker yang tidak berbagi memori, jadi pengamannya harus ada di database."
@@ -1064,7 +1097,7 @@
   "judul": "3.6 Caching dan invalidation",
   "url": "b-fondasi/b9-caching/",
   "tanya": "Jelaskan kenapa saldo tidak dibaca dari cache, walau sering dibuka.",
-  "jawab": "Saldo dipakai untuk memutuskan transfer dan pembayaran. Saldo stale bisa membuat penarikan lolos padahal uangnya sudah dipakai. Keputusan uang harus dibaca dari database, di dalam transaction, dengan update atomik (2.11 Race condition)."
+  "jawab": "Saldo dipakai untuk memutuskan transfer dan pembayaran. Saldo stale bisa membuat penarikan lolos padahal uangnya sudah dipakai. Keputusan uang harus dibaca dari database, di dalam transaction, dengan update atomik (Race condition (versi lama))."
  },
  {
   "id": "B9-3",
