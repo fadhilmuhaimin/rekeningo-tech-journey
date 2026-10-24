@@ -1,0 +1,344 @@
+---
+title: "2.9 Skema data: ERD Tahap 1 → Tahap 2 dan pertumbuhannya"
+description: Lima tabel Tahap 1 menjadi delapan tabel Tahap 2. Tiga tabel catatan uang diganti jurnal dan posting, tabel baru menjawab M10, M15, dan M16, lalu ukuran database diperkirakan sampai Tahap 6.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-skema-inti.json";
+import ErdHalaman from "../../../components/ErdHalaman.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import dataTebak from "../../../../data/widget/t2-skema-tebak.json";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 10 menit · coba 3 menit · Prasyarat: [[t2-adr-ledger]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Dari Tahap 1 ke Tahap 2, tiga tabel catatan uang diganti satu bentuk, jurnal dengan posting, dan saldo berhenti menjadi kolom.
+
+<Rantai data={intiDiagram} ringkas />
+
+Skema akhir Tahap 1 di lab api-t1 punya 5 tabel: `akun`, `sesi`, `topup`, `transaksi`, dan `koreksi`. Saldo adalah satu kolom, `akun.saldo`. Tiga tabel lainnya mencatat perpindahan uang dengan bentuk berbeda, jadi saldo Budi hanya bisa dijelaskan dengan menggabungkan ketiganya dengan tangan ([[t2-saldo-bukan-kolom]]).
+
+Skema akhir Tahap 2 di lab api-t2 punya 8 tabel. Setiap perpindahan uang adalah satu `jurnal` dengan dua `posting` atau lebih, dan saldo adalah jumlah posting satu `buku`. Kolom `buku.saldo_cache` hanya salinan cepat yang dicek ulang setiap malam. Tabel baru lainnya menjawab masalah lain: `kunci_idempotensi` untuk bayar yang terkirim dua kali, dan dua tabel pencairan untuk file bank Jumat.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Tabel `koreksi` Tahap 1 tidak ada di Tahap 2. Ke mana isinya pindah?
+2. Kenapa batas saldo warung pindah dari `akun` ke `buku`?
+3. Perkiraan ±660 ribu posting per tahun di Tahap 2 datang dari rumus apa, dan kejadian apa yang tidak dihitungnya?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: tiga tabel catatan uang Tahap 1 hilang, dan isinya pindah ke jurnal atau ke schema arsip.">
+
+Tebak dulu, lalu cek jawabanmu di ERD di bawahnya. ERD adalah gambar tabel, kolom, dan foreign key di antaranya. Kedua ERD dibangun dari skema lab: Tahap 1 dari skema akhir api-t1, Tahap 2 dari migration api-t2 000009 sampai 000013.
+
+<Tebak client:visible data={dataTebak} />
+
+Diagram dibuka di Tahap 2. Tabel baru dan kolom yang berubah diberi label, dan tabel Tahap 1 yang dihapus tampil putus-putus dengan keterangan ke mana isinya pindah.
+
+<ErdHalaman id="erd-t2" tahap={[1, 2]} />
+
+**Ubah satu hal:** tekan **Bandingkan dengan Tahap 1**. Di layar lebar kedua skema tampil berdampingan, dan di HP skema Tahap 1 tampil di atas skema Tahap 2. Pilih `akun` di Tahap 2: kolom `saldo` hilang, dan nomor karyawan serta tiga kolom login bertambah. Lalu pilih `posting`: dua foreign key, ke `jurnal` dan ke `buku`, dan index riwayat `(buku_id, dibuat, id)`.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Selama uji coba Gedung A, skema akhir hanya mendapat satu tabel baru, `koreksi` dari ADR 6, dan satu CHECK batas saldo warung ([[t1-adr-transaction]], [[B4.1]]). PRD v2 mengubah lebih banyak: tiga tabel dihapus, enam tabel lahir, dan `akun` kehilangan kolom `saldo` ([[t2-prd]]). Revisi ADR 6 menjelaskan kenapa model uangnya diganti ([[t2-adr-ledger]]). Halaman ini menunjukkan apa akibatnya pada tabel.
+
+Setiap perubahan di bawah punya alasan dan masalah yang memicunya. Tanpa catatan itu, tim berikutnya tidak tahu tabel mana yang boleh dihapus dan kolom mana yang dijaga aturan uang.
+
+### Cara kerjanya
+
+**Apa yang berubah dan kenapa.** Tabel ini mengikuti skema lab. Kolom kiri adalah skema akhir Tahap 1, kolom kedua skema akhir Tahap 2.
+
+| Tahap 1 | Tahap 2 | Alasan | Masalah atau syarat |
+|---|---|---|---|
+| `akun.saldo` | `buku.saldo_cache` + jumlah `posting` | Saldo harus bisa ditelusuri ke kejadian | Aturan Pak Hadi, [[t2-saldo-bukan-kolom]] |
+| `transaksi (dari, ke, jumlah)` | `jurnal` jenis bayar + 2 `posting` | Satu bentuk untuk semua perpindahan uang | Tutup buku, [[t2-tutup-buku]] |
+| `topup` | `jurnal` jenis topup: buku tunjangan −, buku karyawan + | Sumber uang ikut tercatat | Tutup buku |
+| `koreksi` | `jurnal` jenis pembalik dengan `membalik_jurnal_id` | Koreksi tanpa mengubah data lama | Aturan Pak Hadi, [[t2-ledger]] |
+| CHECK `batas_saldo_warung` di `akun` | `buku.batas_saldo`, `buku.batas_harian` | Batas melekat pada buku, bukan pada orang | Transfer antar karyawan, [[t2-transfer]] |
+| (tidak ada) | `akun.nomor_karyawan` | Transfer memakai nomor karyawan | [[t2-transfer]] |
+| (tidak ada) | `kunci_idempotensi` | Mengenali permintaan yang diulang | M10, [[t2-m10]] |
+| (tidak ada) | `batch_pencairan`, `baris_pencairan` | Pencairan aman dijalankan dua kali | M15, [[t2-m15]] |
+| `akun` tanpa pengaman login | `wajib_ganti_password`, `gagal_login`, `terkunci_sampai` | Credential stuffing | M16, [[t2-m16]] |
+| index `transaksi (dari, dibuat DESC)` dan `(ke, dibuat DESC)` | index `posting (buku_id, dibuat, id)` | Riwayat cepat dan kursor stabil | M11, M12, [[t2-m11]] |
+
+**Dari bintang ke lapisan.** Di Tahap 1, ketujuh foreign key menunjuk `akun.id`, jadi setiap tabel catatan menyimpan akunnya sendiri. Di Tahap 2 ada 11 foreign key dalam lapisan: `akun` punya `buku`, `buku` punya `posting`, dan setiap `posting` milik satu `jurnal`. Tabel lain merujuk uang lewat jurnalnya, misalnya `kunci_idempotensi.jurnal_id` dan `baris_pencairan.jurnal_id`, bukan dengan menyimpan rupiah sendiri.
+
+**Buku tanpa pemilik.** Lab mencatat 1.016 buku: 1.012 buku akun dan 4 buku sistem, yaitu tunjangan, kas pencairan, pembuka, dan selisih (rekaman api-t2 `migrasi.txt` bagian C). Karena itu `buku.akun_id` boleh kosong. CHECK `buku_pemilik` mewajibkan pemilik untuk buku karyawan dan warung, dan melarangnya untuk buku sistem.
+
+**Arah uang ada di tanda.** Di Tahap 1, `transaksi.jumlah` wajib positif. Arahnya ditulis di kolom `dari` dan `ke`. `posting.jumlah` di Tahap 2 hanya wajib bukan nol: negatif untuk uang keluar, positif untuk uang masuk. Aturan jurnal yang harus berjumlah nol dijaga trigger saat `COMMIT`, dibahas di [[t2-ledger]].
+
+### Skema berpindah tanpa berhenti
+
+Lab api-t2 menjalankan perubahan ini dalam tiga rilis, dan app versi 1.0 serta 1.1 dicoba di setiap langkah (rekaman `migrasi.txt`):
+
+1. **Expand** (000009–000011): tabel ledger, kolom `akun` baru, dan index riwayat ditambah. Server v1 tetap jalan tanpa restart.
+2. **Migrate** (000012): saldo akun menjadi jurnal pembuka dalam satu transaction: 1.012 buku akun, 102 jurnal pembuka, dan 1 koreksi menjadi 2 jurnal. Saldo kolom, `saldo_cache`, dan jumlah posting sama untuk 1.012 dari 1.012 buku.
+3. **Contract** (000013): kolom `saldo` dan ketiga tabel Tahap 1 dihapus, sesudah isinya disalin ke schema arsip.
+
+<Snippet file="labs/api-t2/output/migrasi.txt" lines="158:184" title="Rekaman lab: labs/api-t2/output/migrasi.txt" />
+
+Migration contract juga memeriksa dirinya sendiri. Ia berhenti bila ada satu buku yang `saldo_cache`-nya berbeda dari jumlah posting, karena sesudah contract server v1 tidak bisa jalan lagi:
+
+<Snippet file="labs/api-t2/migrasi/000013_saldo_contract.up.sql" lines="1:12" lang="sql" title="labs/api-t2/migrasi/000013_saldo_contract.up.sql" />
+
+Pola expand dan contract yang sama dipakai ADR 10 untuk app versi lama ([[E1]]). Mengubah skema tanpa jeda dibahas lebih rinci di [[B4.2]].
+
+### Pertumbuhan skala database, Tahap 1 sampai 6
+
+Semua angka di tabel ini adalah **Asumsi** cerita. Rumusnya ditulis supaya kamu bisa mengganti angkanya:
+
+- transaksi per hari = user × aktif × 3
+- posting per tahun = transaksi per hari × 2 × 365
+- ukuran per tahun = posting per tahun × 250 byte, termasuk index
+
+| Tahap | User | Aktif | Tabel inti | Baris terbesar per tahun | Ukuran per tahun |
+|---|---|---|---|---|---|
+| 1 | 100 | 30% | 5 | `transaksi` ±22 ribu | < 10 MB |
+| 2 | 1.000 | 30% | 8 | `posting` ±660 ribu | ±170 MB |
+| 3 | 10.000 | 25% | ±14 | `posting` ±5,5 juta | ±1,4 GB |
+| 4 | 100.000 | 20% | ±22 | `posting` ±44 juta | ±11 GB |
+| 5 | 1 juta | 20% | ±30 | `posting` ±440 juta | ±110 GB |
+| 6 (proyeksi) | 10 juta | 20% | per negara | `posting` ±4,4 miliar | ±1 TB |
+
+Contoh Tahap 2: 1.000 × 30% × 3 = 900 transaksi per hari. 900 × 2 × 365 = 657.000 posting, dan 657.000 × 250 byte ≈ 164 juta byte, ditulis ±170 MB. Persentase aktif Tahap 1–5 sama dengan asumsi kalkulator [[t1-m8]]; Tahap 6 belum punya asumsi, jadi 20% adalah angka yang menghasilkan ±4,4 miliar.
+
+Baris Tahap 1 berbeda bentuk. Tahap 1 belum punya posting, jadi satu transaksi adalah satu baris. Angka ±22 ribu memakai 2 transaksi per user aktif: 100 × 30% × 2 × 365 = 21.900. Dengan 3 transaksi, hasilnya 32.850 baris, ±8 MB, tetap di bawah 10 MB.
+
+Perubahan skema yang direncanakan cerita, belum dibangun sesudah Tahap 2:
+
+| Tahap | Perubahan skema penting |
+|---|---|
+| 1 | Saldo sebagai kolom; constraint di database |
+| 2 | Ledger double-entry; idempotensi; batch pencairan |
+| 3 | Outbox notifikasi, katalog dan stok, perangkat (token push), queue sinkron offline |
+| 4 | Tabel dibagi per modul (schema); pembayaran gateway, webhook masuk, verifikasi identitas, kartu virtual (token), audit log berantai |
+| 5 | Partisi `posting` per bulan, snapshot saldo, read replica, cicilan, event untuk notifikasi massal |
+| 6 | Multi-mata uang dan kurs, data per negara (residency), database per wilayah |
+
+Polanya: sampai Tahap 3, database tumbuh karena **fitur baru**. Mulai Tahap 4 ia tumbuh karena **volume dan batas tim**, dan baru di Tahap 5 tabel terbesar perlu dipartisi.
+
+### Tiga angka untuk satu tahun data Tahap 2
+
+Rumus di atas bukan satu-satunya angka ukuran Tahap 2 di situs ini. Ketiganya menghitung hal yang berbeda:
+
+| Sumber | Yang dihitung | Hasil | Label |
+|---|---|---|---|
+| Rumus data per tahun [[D1]] | 300 user aktif × 2 transaksi × 365 × 300 byte, satu baris per transaksi seperti tabel `transaksi` Tahap 1 | ±65,7 MB | Asumsi |
+| Rumus halaman ini | 657.000 posting × 250 byte | ±164 MB | Asumsi |
+| Lab b2-query, satu tahun data | 760.448 posting: tabel `posting` 50 MB dan tiga index 5,1 + 15 + 29 MB | ±99 MB, ±137 byte per posting | Rekaman lab |
+
+Lab menulis lebih banyak posting daripada rumus. Bayar dan kiriman antar karyawan menghasilkan 655.200 posting, sedangkan top-up Senin 104.000 dan pencairan Jumat 1.248. Rumus hanya menghitung yang pertama:
+
+<Snippet file="labs/b2-query/output/ledger/data.txt" lines="56:65" title="Rekaman lab: labs/b2-query/output/ledger/data.txt" />
+
+Ukuran lab sebaliknya lebih kecil dari rumus. ±99 MB adalah batas bawah, karena primary key `posting_pkey` dan tabel `jurnal` tidak diukur. Satuan `pg_size_pretty` adalah 1 MB = 1.048.576 byte ([PostgreSQL 17, 9.28.7](https://www.postgresql.org/docs/17/functions-admin.html#FUNCTIONS-ADMIN-DBSIZE)). Kalau data lab sudah ada, `pg_total_relation_size` mengukur tabel bersama semua index-nya.
+
+### Di stack lain
+
+**Skenario:** tabel `posting` dengan dua foreign key, CHECK, dan index riwayat. Tab Go adalah file migration lab yang dijalankan `psql -1 -f`. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-24.
+
+Yang sama di semua stack: hasil akhirnya tabel PostgreSQL dengan foreign key yang sama. ERD di halaman ini dibaca dari katalog database, termasuk `pg_constraint` ([PostgreSQL 17, 51.13](https://www.postgresql.org/docs/17/catalog-pg-constraint.html)), jadi ERD tidak bergantung pada stack yang membuat tabelnya. PostgreSQL tidak membuat index untuk foreign key secara otomatis ([PostgreSQL 17, 5.5.5](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-FK)).
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: file SQL lewat `psql -1 -f`, PostgreSQL 17.11, lab api-t2 (rekaman `migrasi.txt` bagian B).*
+
+<Snippet file="labs/api-t2/migrasi/000010_ledger_tabel.up.sql" region="posting" lang="sql" title="labs/api-t2/migrasi/000010_ledger_tabel.up.sql" />
+
+<Snippet file="labs/api-t2/migrasi/000011_ledger_pendukung.up.sql" lines="6:7" lang="sql" title="labs/api-t2/migrasi/000011_ledger_pendukung.up.sql" />
+
+**Yang berbeda di stack ini:** skema ditulis dengan SQL apa adanya, dan server Go tidak membuat tabel sendiri. Index untuk foreign key, `posting_jurnal` dan `posting_buku`, ditulis tangan.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [node-pg-migrate v9.0.0: Columns](https://github.com/salsita/node-pg-migrate/blob/v9.0.0/docs/src/migrations/columns.md) dan [Indexes](https://github.com/salsita/node-pg-migrate/blob/v9.0.0/docs/src/migrations/indexes.md), `node-pg-migrate` 9.0.0.*
+
+<Snippet lang="js" code={`// migrations/<timestamp>_posting.js, dibuat: node-pg-migrate create posting
+export const up = (pgm) => {
+  pgm.createTable("posting", {
+    id: { type: "bigserial", primaryKey: true },
+    jurnal_id: { type: "bigint", notNull: true, references: "jurnal" },
+    buku_id: { type: "bigint", notNull: true, references: "buku" },
+    jumlah: { type: "bigint", notNull: true, check: "jumlah <> 0" },
+    dibuat: { type: "timestamptz", notNull: true, default: pgm.func("now()") },
+  });
+  pgm.createIndex("posting", ["buku_id", "dibuat", "id"], { name: "posting_riwayat" });
+};`} />
+
+**Yang berbeda di stack ini:** migration ditulis sebagai objek JavaScript, dan nama file diberi timestamp oleh perintah `create`. Kalau fungsi `down` tidak ditulis, node-pg-migrate mencoba menyimpulkan kebalikannya sendiri.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Migrations](https://laravel.com/docs/13.x/migrations#foreign-key-constraints), `laravel/framework` 13.38.0.*
+
+<Snippet lang="php" code={`Schema::create('posting', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('jurnal_id')->constrained('jurnal');
+    $table->foreignId('buku_id')->constrained('buku');
+    $table->bigInteger('jumlah');
+    $table->timestampTz('dibuat', precision: 6)->useCurrent();
+    $table->index(['buku_id', 'dibuat', 'id'], 'posting_riwayat');
+});
+DB::statement('ALTER TABLE posting ADD CONSTRAINT posting_jumlah_check CHECK (jumlah <> 0)');`} />
+
+**Yang berbeda di stack ini:** schema builder tidak punya method untuk CHECK, jadi CHECK ditulis dengan SQL mentah. Presisi bawaan `timestampTz` adalah 0, jadi `precision: 6` dibutuhkan supaya kolomnya sama dengan `timestamptz` di lab. `foreignId` bertanda unsigned, tapi di PostgreSQL kolomnya tetap `bigint`.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: Model field reference](https://docs.djangoproject.com/en/6.1/ref/models/fields/#foreignkey) dan [Constraints](https://docs.djangoproject.com/en/6.1/ref/models/constraints/), Django 6.1.2.*
+
+<Snippet lang="python" code={`from django.db import models
+from django.db.models.functions import Now
+
+class Posting(models.Model):
+    jurnal = models.ForeignKey("Jurnal", on_delete=models.PROTECT)
+    buku = models.ForeignKey("Buku", on_delete=models.PROTECT)
+    jumlah = models.BigIntegerField()
+    dibuat = models.DateTimeField(db_default=Now())
+
+    class Meta:
+        db_table = "posting"
+        constraints = [models.CheckConstraint(condition=~models.Q(jumlah=0), name="posting_jumlah_check")]
+        indexes = [models.Index(fields=["buku", "dibuat", "id"], name="posting_riwayat")]`} />
+
+**Yang berbeda di stack ini:** field `jurnal` menjadi kolom `jurnal_id`, dan Django membuat index untuk setiap ForeignKey sendiri. Kolom `id` dibuat sebagai `bigint` identity, bukan `bigserial`. File migration-nya dibuat `makemigrations` dari model, dan SQL-nya bisa dibaca dengan `sqlmigrate`.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod 4.0: Relations](https://docs.serverpod.dev/concepts/data-and-the-database/database/relations/one-to-many) dan [Indexing](https://docs.serverpod.dev/concepts/data-and-the-database/database/indexing), Serverpod 4.0.4.*
+
+<Snippet lang="yaml" code={`# lib/src/models/posting.spy.yaml
+class: Posting
+table: posting
+fields:
+  jurnalId: int, relation(parent=jurnal)
+  bukuId: int, relation(parent=buku)
+  jumlah: int
+  dibuat: DateTime, default=now
+indexes:
+  posting_riwayat:
+    fields: bukuId, dibuat, id`} />
+
+**Yang berbeda di stack ini:** nama kolom di database sama dengan nama field, misalnya `jurnalId`, dan `DateTime` disimpan sebagai `timestamp without time zone`. Model tidak punya kata kunci CHECK, jadi CHECK ditulis tangan di `migration.sql` sesudah `serverpod create-migration`. `id` di daftar field index belum dicek dengan menjalankan generator [perlu verifikasi].
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase CLI: migration new](https://supabase.com/docs/reference/cli/supabase-migration-new), Supabase CLI 2.122.0.*
+
+<Snippet lang="sql" code={`-- supabase/migrations/<timestamp>_posting.sql, dibuat: supabase migration new posting
+CREATE TABLE posting (
+  id        bigserial   PRIMARY KEY,
+  jurnal_id bigint      NOT NULL REFERENCES jurnal(id),
+  buku_id   bigint      NOT NULL REFERENCES buku(id),
+  jumlah    bigint      NOT NULL CHECK (jumlah <> 0),
+  dibuat    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX posting_riwayat ON posting (buku_id, dibuat, id);`} />
+
+**Yang berbeda di stack ini:** migration tetap file SQL biasa, dan CLI hanya menentukan folder dan nama file bertimestamp. Studio punya [Schema Visualizer](https://supabase.com/features/visual-schema-designer) yang menggambar tabel dan foreign key dari database. Gambarnya ikut berubah saat tabel diubah lewat dashboard tanpa file migration, jadi ERD yang benar belum tentu tercatat di Git.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Situasi | Pilihan |
+|---|---|
+| Perubahan skema yang menghapus tabel atau kolom berisi uang | Expand, migrate, contract; salin isi lama ke arsip dan cek cache sebelum contract |
+| Beberapa jenis kejadian uang dengan bentuk berbeda | Satu bentuk jurnal + posting; jenis kejadian di kolom `jurnal.jenis` |
+| Aturan yang melekat pada tempat uang, mis. batas saldo dan batas harian | Kolom di `buku`, bukan di `akun` |
+| Angka yang dihitung dari tabel lain, mis. saldo | Cache yang ditulis di transaction yang sama dan dicek tiap malam; source of truth tetap tabel asalnya |
+| Perkiraan ukuran sebelum ada data | Rumus dengan angka berlabel; ganti dengan ukuran terukur begitu data lab ada |
+
+**Biaya skema Tahap 2.** Satu bayar kini menulis tiga baris, satu jurnal dan dua posting, ditambah satu UPDATE `saldo_cache` untuk kedua buku. Membaca riwayat butuh JOIN posting ke jurnal dan buku lawan, dan index riwayat menambah 29 MB per tahun data di lab. Bila salah satu biaya ini terasa, masalahnya dibahas di [[t2-m11]] dan [[t2-m9]].
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Partisi `posting` per bulan | ±660 ribu posting per tahun (Asumsi), ±99 MB terukur di lab untuk setahun data | Tahap 5, saat `posting` diperkirakan ±440 juta per tahun |
+| Snapshot saldo per periode | App membaca `saldo_cache`. Jumlah posting satu buku dihitung trigger saat posting keluar dan oleh job malam; Budi, karyawan paling ramai di lab, punya 3.892 posting setahun (rekaman b2-query `data.txt` D) | Tahap 5 |
+| Menghapus schema arsip | Riwayat Tahap 1 tidak bisa dibuat ulang sebagai posting tanpa menebak potongan M4 | Tidak dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Tabel `koreksi` Tahap 1 tidak ada di skema Tahap 2. Ke mana isinya pindah, dan apa yang menggantikannya untuk koreksi baru?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Satu baris koreksi lama menjadi dua jurnal saat migrate: jurnal selisih dan jurnal pembalik (rekaman `migrasi.txt` bagian C). Isi tabelnya juga disalin ke schema arsip sebelum dihapus. Koreksi baru adalah jurnal jenis pembalik dengan `membalik_jurnal_id` ke jurnal asal.
+
+</details>
+
+**2.** Kenapa batas saldo warung pindah dari `akun` ke `buku`?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Batas melekat pada tempat uang, bukan pada orang. Di Tahap 2 karyawan juga menerima transfer. Saldo juga tidak lagi tersimpan di `akun`, jadi CHECK atas `akun.saldo` tidak punya kolom untuk diperiksa. `buku.batas_saldo` dan `buku.batas_harian` dibaca service di dalam transaction yang menulis posting.
+
+</details>
+
+**3.** Dari rumus apa ±660 ribu posting per tahun di Tahap 2, dan kenapa lab mendapat 760.448?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+1.000 user × 30% aktif × 3 transaksi = 900 transaksi per hari, lalu × 2 posting × 365 hari = 657.000. Rumus itu hanya menghitung bayar dan kiriman. Lab b2-query juga menulis top-up Senin (104.000 posting) dan pencairan Jumat (1.248 posting).
+
+</details>
+
+**4.** `transaksi.jumlah` di Tahap 1 wajib positif, sedangkan `posting.jumlah` di Tahap 2 hanya wajib bukan nol. Kenapa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Di Tahap 1 arah uang ada di kolom `dari` dan `ke`. Di Tahap 2 arahnya ada di tanda: posting negatif berarti uang keluar dari buku itu, positif berarti masuk. Jumlah nol tidak memindahkan apa pun, jadi ditolak CHECK.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Migration yang menghapus tabel atau kolom berisi uang berjalan sesudah isinya disalin ke arsip dan cek cache cocok.
+- [ ] Tabel baru yang menyangkut uang merujuk `jurnal_id`, bukan menyimpan saldo atau jumlah yang bisa berbeda dari posting.
+- [ ] Setiap foreign key yang dipakai mencari baris punya index; PostgreSQL tidak membuatnya otomatis.
+- [ ] Kolom waktu sama tipenya di semua stack: `timestamptz` dengan presisi mikrodetik, bukan `timestamp(0)` atau `timestamp` tanpa zona.
+
+### Bacaan lanjut
+
+- [Peter Chen, The entity-relationship model: toward a unified view of data](https://doi.org/10.1145/320434.320440) (ACM Transactions on Database Systems, 1976)
+- [PostgreSQL 17: pg_constraint](https://www.postgresql.org/docs/17/catalog-pg-constraint.html)
+- [PostgreSQL 17: Database object size functions](https://www.postgresql.org/docs/17/functions-admin.html#FUNCTIONS-ADMIN-DBSIZE)
+
+</Blok>
