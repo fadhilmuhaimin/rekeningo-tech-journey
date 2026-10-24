@@ -228,6 +228,7 @@ window.ISTILAH = {
  "Deadlock": {
   "b": "t2-race-lock",
   "d": "Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya.",
+  "h": "istilah/deadlock/",
   "n": "2.11 Race condition",
   "s": "istilah-deadlock",
   "t": "Deadlock",
@@ -1300,6 +1301,7 @@ window.ISTILAH = {
  "deadlock": {
   "b": "t2-race-lock",
   "d": "Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya.",
+  "h": "istilah/deadlock/",
   "n": "2.11 Race condition",
   "s": "istilah-deadlock",
   "t": "Deadlock",
