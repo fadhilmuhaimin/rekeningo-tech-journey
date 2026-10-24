@@ -1,0 +1,30 @@
+-- Lab e5-payload versi ledger · client Dart (HttpClient bawaan) ke server lab
+-- PostgreSQL 17.11 · schema e5_ledger · server Go labs/e5-payload/riwayat · make -C labs/e5-payload run-ledger (keputusan 818)
+-- Hanya byte, jumlah baris, rasio, dan struktur; tanpa waktu. Rekaman dari database bersih.
+-- toolchain: Dart SDK 3.11.4 (stable); server go1.27.1 darwin/arm64; ukuran gzip dapat bergeser bila versi compress/flate berbeda
+
+# --- A. HttpClient bawaan ---
+autoUncompress = true
+Accept-Encoding diterima server: gzip
+GET /akun/419/riwayat?batas=20 -> 200
+Content-Encoding di header response: gzip
+compressionState: decompressed
+byte yang diterima kode app: 2.932 B
+JSON: 20 baris, berikutnya ada
+# --- B. autoUncompress = false ---
+autoUncompress = false
+Accept-Encoding diterima server: gzip
+GET /akun/419/riwayat?batas=20 -> 200
+Content-Encoding di header response: gzip
+compressionState: compressed
+byte yang diterima kode app: 598 B
+sesudah gzip.decode di kode app: 2.932 B
+JSON: 20 baris, berikutnya ada
+# --- C. header Accept-Encoding diganti identity ---
+autoUncompress = true
+Accept-Encoding diterima server: identity
+GET /akun/419/riwayat?batas=20 -> 200
+Content-Encoding di header response: (tidak ada)
+compressionState: notCompressed
+byte yang diterima kode app: 2.932 B
+JSON: 20 baris, berikutnya ada
