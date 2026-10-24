@@ -14,14 +14,21 @@ Bagian:
   D. Rate limit dua lapis di memori (per IP dan per akun): penyerang satu IP dibatasi, Ani tetap masuk.
   E. IP dari header: memercayai X-Forwarded-For dari client sembarang adalah celah.
   F. Dua instance: bucket di memori tidak dibagi, batas per IP menggandakan (ADR 20, Redis ke Tahap 3).
+  G. Kunci atomik: tebakan bersamaan saat penghitung tinggal satu dari ambang hanya satu yang dinilai (659).
+  H. Key per IP memotong IPv6 ke prefix /64 (660).
+  I. /ganti-password menolak password dari daftar bocor fiktif, sesudah kebijakan panjang (661).
+  J. Tes Go di login/pengaman*_test.go (659-661) lolos, tanpa ada yang dilewati.
 """
 import atexit
+import concurrent.futures
 import json
 import os
 import pathlib
+import re
 import secrets
 import socket
 import subprocess
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -126,6 +133,12 @@ def hitung_server(port):
     with urllib.request.urlopen(f"http://127.0.0.1:{port}/lab/hitung") as r:
         b = json.loads(r.read())
     return b["argon2id"], b["query_akun"]
+
+
+def hitung_nilai(port):
+    """Tebakan yang dinilai terhadap hash asli sebuah akun (bukan hashPalsu)."""
+    with urllib.request.urlopen(f"http://127.0.0.1:{port}/lab/hitung") as r:
+        return json.loads(r.read())["dinilai"]
 
 
 def sisa_kunci(email, sekarang_ms):
@@ -398,6 +411,134 @@ def bagian_f():
     tulis("")
 
 
+# ---------------------------------------------------------------- bagian G
+def bagian_g():
+    tulis("== G. Kunci atomik: tebakan bersamaan tidak melewati ambang (keputusan 659)")
+    tulis("Percobaan dicatat SEBELUM argon2id, dengan baris akun dikunci (SELECT ... FOR UPDATE), dan percobaan")
+    tulis("yang sampai ambang langsung memasang kunci. Tebakan lain menunggu lock baris lalu melihat kunci itu.")
+    seed()
+    p = server(18170, mode="dua-lapis", ip_sumber="proxy")
+    jam(18170, T0_MS)
+    E = "karyawan516@lestari.example"
+    psql(f"UPDATE c4_login.akun SET gagal_login = 4 WHERE email = '{E}'")
+    tulis("Karyawan 516 sudah salah 4 kali berturut-turut (ambang 5). Lima tebakan salah datang bersamaan,")
+    tulis("tiap kali dari alamat berbeda supaya lapis memori (per IP 10, per akun 5) tidak ikut menahan.")
+    n_hash0, _ = hitung_server(18170)
+    nilai0 = hitung_nilai(18170)
+    gerbang = threading.Barrier(5)
+
+    def tebak(i):
+        gerbang.wait()
+        return login(18170, E, f"tebakan-salah-{i}", ip=f"2001:db8:{i}::1", lewat_proxy=True)[0]
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+        kode = list(ex.map(tebak, range(5)))
+    n_hash1, _ = hitung_server(18170)
+    dinilai = hitung_nilai(18170) - nilai0
+    tulis(f"  lima tebakan bersamaan → {ringkas(kode)}")
+    tulis(f"  dinilai terhadap hash asli: {dinilai}; argon2id dijalankan {n_hash1 - n_hash0} kali "
+          "(empat lainnya dijawab dengan hash palsu supaya waktu responsnya sama)")
+    sisa = sisa_kunci(E, T0_MS)
+    gagal = db_akun("gagal_login", E)
+    tulis(f"  database: gagal_login {gagal}, terkunci_sampai {sisa} s lagi")
+    harap((hitung(kode), dinilai, n_hash1 - n_hash0, gagal, sisa), ({401: 5}, 1, 5, "5", 60),
+          "G tebakan bersamaan: hanya satu yang dinilai, akun terkunci 60 detik")
+    jam(18170, T0_MS + 30_000)
+    nilai0 = hitung_nilai(18170)
+    st, _ = login(18170, E, "tebakan-keenam", ip="2001:db8:9::1", lewat_proxy=True)
+    gagal = db_akun("gagal_login", E)
+    dinilai = hitung_nilai(18170) - nilai0
+    tulis(f"  tebakan keenam saat terkunci (30 s kemudian) → {st}; dinilai {dinilai}, gagal_login tetap {gagal}")
+    tulis("  (akun yang sedang terkunci tidak menaikkan penghitung dan tidak memberi percobaan)")
+    harap((st, dinilai, gagal), (401, 0, "5"), "G saat terkunci tidak ada percobaan baru")
+    jam(18170, T0_MS + 61_000)
+    st, b = login(18170, E, "kampus-aman-516-ungu", ip="2001:db8:9::1", lewat_proxy=True)
+    gagal = db_akun("gagal_login", E)
+    kunci = db_akun("terkunci_sampai IS NOT NULL", E)
+    tulis(f"  password BENAR sesudah kunci lewat (61 s) → {st} ok={b.get('ok')}; gagal_login {gagal}, "
+          f"terkunci {'ya' if kunci == 't' else 'tidak'}")
+    tulis("  (menurut kode, percobaan itu dicatat lebih dulu: penghitung naik ke 6 dan kunci 120 s dipasang sebelum argon2id;")
+    tulis("  password benar menghapus keduanya)")
+    harap((st, gagal, kunci), (200, "0", "f"), "G password benar menghapus penghitung dan kunci")
+    p.terminate(); p.wait()
+    tulis("")
+
+
+# ---------------------------------------------------------------- bagian H
+def bagian_h():
+    tulis("== H. Key per IP memotong IPv6 ke prefix /64 (keputusan 660)")
+    tulis("RFC 6459 bagian 5.2: jaringan seluler memberi tiap default bearer satu prefix /64 unik, dan HP boleh")
+    tulis("memakai interface identifier apa pun untuk alamat yang ia susun sendiri. IPv4 dan IPv4 yang ditulis")
+    tulis("sebagai IPv6 (::ffff:a.b.c.d) tetap satu key. Alamat lewat X-Lab-IP dari proxy kita (IP_SUMBER=proxy).")
+    seed()
+    p = server(18170, mode="dua-lapis", ip_sumber="proxy")
+    jam(18170, T0_MS)
+    kode = []
+    for i in range(12):
+        ip = f"2001:db8:a:b:{i + 1:x}:{0x10 + i:x}:{0x200 + i:x}:{0xf000 + i:x}"  # 12 alamat berbeda, satu /64
+        kode.append(login(18170, f"karyawan{516 + i}@lestari.example", "qwerty123", ip=ip, lewat_proxy=True)[0])
+    tulis(f"  12 alamat berbeda dalam 2001:db8:a:b::/64, 12 akun berbeda → {ringkas(kode)}")
+    tulis("  (satu bucket per /64: 10 lolos, 2 ditolak 429 lapis per-IP)")
+    harap(hitung(kode), {401: 10, 429: 2}, "H satu /64 berbagi satu bucket")
+    st, _ = login(18170, "karyawan528@lestari.example", "qwerty123", ip="2001:db8:a:c::1", lewat_proxy=True)
+    tulis(f"  alamat dari /64 lain (2001:db8:a:c::/64) → {st} (bucket sendiri)")
+    harap(st, 401, "H /64 lain punya bucket sendiri")
+    kode = []
+    for i in range(12):
+        ip = "203.0.113.9" if i % 2 == 0 else "::ffff:203.0.113.9"
+        kode.append(login(18170, f"karyawan{529 + i}@lestari.example", "qwerty123", ip=ip, lewat_proxy=True)[0])
+    tulis(f"  203.0.113.9 dan ::ffff:203.0.113.9 bergantian, 12 percobaan → {ringkas(kode)} (satu bucket)")
+    harap(hitung(kode), {401: 10, 429: 2}, "H IPv4 dan IPv4-mapped berbagi bucket")
+    tulis("  Batasnya: banyak HP yang berbagi satu /64 (mis. Wi-Fi kantor IPv6) berbagi satu bucket, sama seperti")
+    tulis("  banyak HP di balik satu IPv4 (NAT). Key alamat penuh tidak dijalankan di sini: hasilnya diukur lewat")
+    tulis("  uji mutasi (keputusan 660), alasannya sama dengan bagian E1.")
+    p.terminate(); p.wait()
+    tulis("")
+
+
+# ---------------------------------------------------------------- bagian I
+def bagian_i():
+    tulis("== I. /ganti-password menolak password dari daftar bocor fiktif (keputusan 661)")
+    entri = [b.strip() for b in (LOGIN / "daftar-bocor.txt").read_text().splitlines()
+             if b.strip() and not b.startswith("#")]
+    sesuai = [e for e in entri if len(e) >= 15]
+    tulis(f"Daftar fiktif lab (login/daftar-bocor.txt): {len(entri)} entri, {len(sesuai)} di antaranya ≥ 15 karakter")
+    tulis("(kebijakan panjang NIST SP 800-63B-4 3.1.1.2). Pembandingan seluruh password, tanpa membedakan huruf besar/kecil.")
+    tulis("ASVS 5.0.0 6.2.4 (L1) meminta daftar minimal 3.000 password teratas yang sesuai kebijakan; daftar lab")
+    tulis("hanya menunjukkan mekanismenya. Daftar sungguhan sebesar itu tidak dijalankan di lab ini [perlu verifikasi].")
+    harap(len(sesuai) > 0, True, "I daftar punya entri yang lolos kebijakan panjang")
+    seed()
+    p = server(18170, mode="dua-lapis", ip_sumber="koneksi")
+    jam(18170, T0_MS)
+    E = "karyawan519@lestari.example"
+    lama = "kampus-aman-519-ungu"
+    for baru, mau, tipe, ket in [
+        ("REKENINGOLESTARI", 422, "/problems/password-bocor", "16 kar., huruf besar, entri daftar"),
+        ("123456789012345", 422, "/problems/password-bocor", "tepat 15 kar., entri daftar"),
+        ("rekeningo123", 422, "/problems/password-lemah", "12 kar., entri daftar tapi lebih pendek dari kebijakan"),
+        ("rekeningolestari1", 200, None, "16 kar., bukan entri daftar"),
+    ]:
+        st, b = ganti(18170, E, lama, baru)
+        tulis(f"  ganti ke '{baru}' ({ket}) → {st} {b.get('title', 'ok=' + str(b.get('ok')))}")
+        harap((st, b.get("type")), (mau, tipe), f"I ganti ke {baru}")
+    tulis("  (panjang diperiksa lebih dulu: entri daftar yang lebih pendek dari kebijakan sudah ditolak karena pendek)")
+    p.terminate(); p.wait()
+    tulis("")
+
+
+# ---------------------------------------------------------------- bagian J
+def bagian_j():
+    tulis("== J. Tes Go login/pengaman*_test.go (keputusan 659-661)")
+    r = subprocess.run(["go", "test", "-count=1", "-v", "./..."], cwd=LOGIN, capture_output=True, text=True,
+                       env=dict(os.environ, TEST_DATABASE_URL=DB))
+    hasil = re.findall(r"^--- (PASS|FAIL|SKIP): (\w+)", r.stdout, re.M)
+    if r.returncode != 0 or not hasil or any(h != "PASS" for h, _ in hasil):
+        raise SystemExit("GAGAL lab c4-ratelimit/login — J tes Go gagal atau dilewati:\n" + r.stdout[-3000:] + r.stderr[-1000:])
+    for h, nama in hasil:
+        tulis(f"  {h} {nama}")
+    tulis("")
+
+
 def main():
     build()
     seed()
@@ -408,6 +549,10 @@ def main():
     bagian_d()
     bagian_e()
     bagian_f()
+    bagian_g()
+    bagian_h()
+    bagian_i()
+    bagian_j()
     (OUT / "ratelimit.txt").write_text("\n".join(log) + "\n")
     print("\n".join(log))
 
