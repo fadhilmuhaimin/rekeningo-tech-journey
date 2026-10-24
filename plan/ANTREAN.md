@@ -1196,11 +1196,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.18 · M12: Transaksi muncul dua kali
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.17, lab-b2-query
 - selesai bila: halaman Masalah 2.18 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (tanpa ★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: Branch `tahap-2/m12-dobel-tampil`, keputusan 672 dan 678 (`plan/masuk/tahap-2-m12-dobel-tampil.md`; 671 dan 673 dari brief sudah dipakai baris peninjau di KEPUTUSAN): `tahap-2/m12-muncul-dua-kali.mdx` template Masalah lima blok, ilustrasi `m12` tanpa teks, Rantai `t2-m12-dua-halaman`, widget baru `GeserRiwayat` (baris dan angka dari `pagination.txt` A, B, C saat build; tebak apa yang tampil sesudah halaman 2, lalu ubah satu hal: dua halaman atau seluruh riwayat: 1 ganda dan 1 tidak tampil, 204 dan 204); kursor hanya penunjuk ke 2.19, ADR 16 dan celah kursor tidak dibuka; "hilang" naskah ditulis "tidak ada di daftar"; riset R2-140 sampai R2-143. Lab tidak diulang: 2.15 mengulang `cek-ledger` identik.
 
 ### 2.19 · Pagination kursor + ADR 16
 
