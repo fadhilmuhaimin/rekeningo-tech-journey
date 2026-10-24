@@ -1756,13 +1756,14 @@
       "label": "Masalah 13 · minggu 4",
       "masalah": "Migrasi ke ledger membuat semua pembayaran menunggu 40 detik saat makan siang",
       "prasyarat": [
-        "B1.3"
+        "t2-skema"
       ],
       "lab": [
         "b4-skema"
       ],
-      "ada": false,
-      "nomor": "2.21"
+      "ada": true,
+      "nomor": "2.21",
+      "menit": 10
     },
     {
       "id": "B4.2",

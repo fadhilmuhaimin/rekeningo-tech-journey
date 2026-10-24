@@ -1223,11 +1223,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.21 · M13: Migrasi di jam makan siang
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.20, lab-b4-skema
 - selesai bila: halaman Masalah 2.21 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b4-skema`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Dari b4-skema (536, 537): "40 detik" tidak direkam; lama tunggu = sisa transaction panjang + lama migrasi, bukan ALTER itu sendiri.
+- catatan: Dari b4-skema (536, 537): "40 detik" tidak direkam; lama tunggu = sisa transaction panjang + lama migrasi, bukan ALTER itu sendiri. Branch `tahap-2/m13-migrasi-siang`, keputusan 810–812 (`plan/masuk/tahap-2-m13-migrasi-siang.md`): `tahap-2/m13-migrasi-siang.mdx` template Masalah lima blok, ilustrasi `m13` tanpa teks, Rantai `t2-m13-antre`, widget baru `AntreanLock` (langkah dan keadaan tiap sesi dari `satu-langkah.txt` dan `lock-timeout.txt` saat build, dicocokkan dengan tabel pg_locks; tebak siapa yang ditunggu Bayar, lalu ubah satu hal ke batas tunggu 3 detik); "40 detik" berlabel Ilustrasi, laporan Keuangan yang terbuka ditulis sebagai kondisi rekaman, paragraf "Yang tidak terulang" (tabel 1.013 baris cukup, ukuran tabel bukan penyebab); ADR 17, tiga rilis, backfill, dan halaman istilah `lock_timeout` atau expand-migrate-contract tidak dibuka (milik 2.22); riset R2-155 sampai R2-158 (soft block diperiksa sampai `lock.c` REL_17_STABLE); `make -C labs/b4-skema cek-ledger` diulang dari database bersih: tiga file identik.
 
 ### 2.22 · Ubah skema tanpa downtime + ADR 17
 

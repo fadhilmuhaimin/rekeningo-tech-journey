@@ -865,6 +865,32 @@ body:has(.beranda) .content-panel { padding-block: 0.6rem; border-top: 0; }
 .sl-markdown-content .qr-catatan { margin: 0.2rem 0 0.6rem; font-size: var(--rk-ui-kecil); }
 @media (max-width: 30em) { .sl-markdown-content .qr-angka { grid-template-columns: 1fr; gap: 0.3rem; } .sl-markdown-content .qr-angka div { display: flex; justify-content: space-between; gap: 0.6rem; } }
 
+/* Widget antrean lock (M13, keputusan 810): papan sesi memakai al-*, tebakan memakai kelas tb-*. */
+.sl-markdown-content .al-papan { list-style: none; margin: 0.4rem 0 0.4rem; padding: 0; display: grid; gap: 0.4rem; }
+.sl-markdown-content .al-baris { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.2rem 0.6rem; padding: 0.45rem 0.7rem; border: 1px solid var(--garis-2); border-left-width: 4px; border-radius: 8px; }
+.sl-markdown-content .al-baris.is-terbuka, .sl-markdown-content .al-baris.is-menyerah { border-left-color: var(--k-system-edge); }
+.sl-markdown-content .al-baris.is-menunggu, .sl-markdown-content .al-baris.is-gagal { border-left-color: var(--k-warn-edge); }
+.sl-markdown-content .al-baris.is-selesai { border-left-color: var(--k-good-edge); }
+.sl-markdown-content .al-baris.is-belum { border-left-color: var(--k-old-edge); color: var(--teks-2); }
+.sl-markdown-content .al-nama { font-weight: 600; color: var(--judul); }
+.sl-markdown-content .al-baris.is-belum .al-nama { color: var(--teks-2); }
+.sl-markdown-content .al-status.is-good { border-color: var(--k-good-edge); color: var(--k-good-ink); background: var(--k-good-fill); }
+.sl-markdown-content .al-belakang { color: var(--teks-2); font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .al-langkah, .sl-markdown-content .al-ubah { margin-top: 0.9rem; border-top: 1px solid var(--garis); padding-top: 0.2rem; }
+.sl-markdown-content .al-langkah p { margin: 0.5rem 0 0; }
+.sl-markdown-content .al-kode code, .sl-markdown-content .al-hasil code { display: block; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sl-markdown-content .al-hasil code { color: var(--k-warn-ink); }
+.sl-markdown-content .al-aksi { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.7rem; }
+.sl-markdown-content .al-aksi > button { margin: 0; }
+.sl-markdown-content .al-mode { list-style: none; margin: 0 0 0.5rem; padding: 0; display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.sl-markdown-content .al-mode li { margin: 0; }
+.sl-markdown-content .al-mode__tombol { width: auto; display: inline-block; }
+.sl-markdown-content .al-mode__tombol[aria-pressed="true"] { border-color: var(--k-system-edge); background: var(--k-system-fill); color: var(--k-system-ink); }
+/* Margin atas antar-saudara dari Starlight tidak berlaku di dalam widget ini (pola keputusan 124). */
+.sl-markdown-content .al :is(.tb-pilihan, .al-papan, .al-mode) > * + * { margin-top: 0; }
+.sl-markdown-content .al :is(.tb-pilihan, .al-mode) > li > button { margin-bottom: 0; }
+.sl-markdown-content .al-catatan { margin: 0.2rem 0 0.6rem; font-size: var(--rk-ui-kecil); }
+
 /* === Kepala dokumen PRD (keputusan 122) === */
 /* Redesain (keputusan 205): kepala PRD tiga baris ringan tanpa kotak; label sekunder, nilai teks biasa. */
 .sl-markdown-content .prd-kepala { margin: 1rem 0 1.4rem; font-size: var(--rk-ui); line-height: 1.55; color: var(--teks); }
