@@ -1,0 +1,42 @@
+{
+  "istilah": "Lazy loading",
+  "sehari_hari": "Lazy loading memuat data berelasi baru saat kode pertama kali mengaksesnya. Hemat bila relasi jarang dipakai, tapi di dalam loop setiap akses mengirim satu query.",
+  "cerita": [
+    {
+      "rujukan": "t2-n-plus-1",
+      "teks": "Cara minggu 3 mencari nama lawan setiap transaksi lewat query sendiri, per baris. Di ORM, bentuk yang sama muncul sebagai akses relasi yang dimuat lazy."
+    }
+  ],
+  "mekanisme": [
+    "Query awal hanya mengambil baris induk.",
+    "Saat kode membaca relasi, mis. `posting.jurnal`, ORM mengirim query untuk relasi itu dan menyimpan hasilnya di objek.",
+    "Di loop atas N baris, akses itu terjadi N kali: N query tambahan, dan jumlahnya tidak terlihat dari satu baris kode."
+  ],
+  "stack": {
+    "lihat": "n-1-query",
+    "teks": "Lazy loading di tiap stack dengan ORM ada di halaman N+1 query: Eloquent di Laravel, foreign key di Django (dengan `fetch_mode` sejak 6.1). Go, Node, dan Supabase tidak memuat relasi sendiri."
+  },
+  "jebakan": [
+    "Tes dengan 10 baris data terlihat instan, jadi N+1 tidak muncul sebelum data bertambah.",
+    "Mencegah lazy loading hanya di luar production. Dokumentasi Laravel mencontohkan `preventLazyLoading(! isProduction())` supaya pelanggaran gagal di development; N+1 yang lolos tetap berjalan di production."
+  ],
+  "terkait": [
+    "Eager loading",
+    "N+1 query",
+    "ORM (Object-Relational Mapping)"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-123",
+      "judul": "Laravel 13.x: Preventing Lazy Loading",
+      "url": "https://laravel.com/docs/13.x/eloquent-relationships#preventing-lazy-loading",
+      "catatan": "preventLazyLoading melempar LazyLoadingViolationException saat relasi dimuat lazy; contoh memakainya hanya di luar production."
+    },
+    {
+      "riset": "R2-123",
+      "judul": "Django 6.1: Fetch modes",
+      "url": "https://docs.djangoproject.com/en/6.1/topics/db/fetch-modes/",
+      "catatan": "FETCH_ONE memuat field yang hilang untuk satu instance; di loop atas QuerySet hasilnya N+1."
+    }
+  ]
+}

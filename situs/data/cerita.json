@@ -126,7 +126,7 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 173,
+        "menit": 179,
         "halaman": 17
       },
       "versi": "lama",
@@ -1633,15 +1633,15 @@
       "menit": 9
     },
     {
-      "id": "B2.4",
+      "id": "t2-n-plus-1",
       "judul": "N+1 query",
       "tahap": 2,
       "topik": "Data",
-      "path": "b-fondasi/b2-4-n-plus-1.md",
+      "path": "tahap-2/n-plus-1.md",
       "prasyarat": [
-        "B2.1"
+        "t2-m11"
       ],
-      "masalah": "Riwayat penjualan lambat walau datanya sedikit",
+      "masalah": "Riwayat Budi mengirim 21 query untuk 20 baris, dan 3.893 query untuk seluruh riwayatnya",
       "ada": true,
       "jenis": "konsep",
       "bagian": 4,
@@ -1649,12 +1649,11 @@
       "peran": [
         "backend"
       ],
-      "lama": true,
       "lab": [
         "b2-query"
       ],
       "nomor": "2.16",
-      "menit": 8
+      "menit": 14
     },
     {
       "id": "B2.3",
@@ -1663,7 +1662,7 @@
       "topik": "Data",
       "path": "b-fondasi/b2-3-index.md",
       "prasyarat": [
-        "B2.4"
+        "t2-n-plus-1"
       ],
       "inti": true,
       "masalah": "Query lambat setelah data bertambah",
@@ -2106,6 +2105,25 @@
         "b3-isolasi"
       ],
       "menit": 10
+    },
+    {
+      "id": "B2.4",
+      "judul": "N+1 query",
+      "tahap": 2,
+      "topik": "Data",
+      "path": "b-fondasi/b2-4-n-plus-1.md",
+      "prasyarat": [
+        "B2.1"
+      ],
+      "ada": true,
+      "pendek": "N+1 query (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t2-n-plus-1",
+      "lab": [
+        "b2-query"
+      ],
+      "menit": 8
     },
     {
       "id": "E3",

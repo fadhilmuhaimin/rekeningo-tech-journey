@@ -915,28 +915,36 @@
   "jawab": "Timeout hanya berarti app berhenti menunggu. Di rekaman `key-per-niat.txt`, request pertama sudah `COMMIT` sebelum response-nya hilang. App harus mengulang dengan key yang sama, atau menampilkan \"status belum pasti, cek riwayat\" sesudah percobaan terakhir."
  },
  {
-  "id": "B2.4-1",
-  "halaman": "B2.4",
+  "id": "t2-n-plus-1-1",
+  "halaman": "t2-n-plus-1",
   "judul": "2.16 N+1 query",
-  "url": "b-fondasi/b2-4-n-plus-1/",
-  "tanya": "Endpoint riwayat memakai pagination 20 per halaman. Apakah N+1 masih masalah?",
-  "jawab": "Masih. 21 query per halaman, setiap kali halaman dibuka. Rekaman: 4,5 ms vs 0,5 ms di localhost. Dengan latency jaringan, selisihnya membesar sebanding jumlah query."
+  "url": "tahap-2/n-plus-1/",
+  "tanya": "Endpoint riwayat memakai pagination 20 baris per halaman. Apakah N+1 masih masalah?",
+  "jawab": "Masih. Halaman pertama mengirim 21 query di rekaman, setiap kali halaman dibuka. Pagination membatasi N, tidak menghilangkan N+1. Laporan Ani yang membaca 194 baris sekaligus mengirim 195 query."
  },
  {
-  "id": "B2.4-2",
-  "halaman": "B2.4",
+  "id": "t2-n-plus-1-2",
+  "halaman": "t2-n-plus-1",
   "judul": "2.16 N+1 query",
-  "url": "b-fondasi/b2-4-n-plus-1/",
-  "tanya": "Jelaskan kenapa N+1 tidak terlihat di laptop developer, tapi terasa di production.",
-  "jawab": "Di laptop, datanya sedikit dan database ada di mesin yang sama, jadi setiap perjalanan hampir tanpa latency. Di production, jumlah pesanan lebih banyak dan setiap query menyeberangi jaringan. Biaya per query kecil, tapi dikali N."
+  "url": "tahap-2/n-plus-1/",
+  "tanya": "Di rekaman, halaman pertama tanpa index riwayat memakai 30,5 ms dengan N+1 dan 27,4 ms dengan satu query. Apakah itu berarti N+1 tidak perlu diperbaiki?",
+  "jawab": "Tidak. Query daftarnya sendiri memakai ±31 ms, jadi waktu halaman pendek menyembunyikan jumlah query. Pada 194 baris selisihnya 106,1 lawan 9,3 ms, dan pada 3.892 baris 1.936,4 lawan 30,6 ms. Ukur jumlah query, bukan hanya waktu."
  },
  {
-  "id": "B2.4-3",
-  "halaman": "B2.4",
+  "id": "t2-n-plus-1-3",
+  "halaman": "t2-n-plus-1",
   "judul": "2.16 N+1 query",
-  "url": "b-fondasi/b2-4-n-plus-1/",
-  "tanya": "Raka berencana memasang cache untuk riwayat penjualan. Apa yang sebaiknya dilakukan dulu?",
-  "jawab": "Hitung query per request dan perbaiki N+1. Cache di atas N+1 tetap menjalankan 101 query setiap kali cache kosong atau kedaluwarsa, dan menambah risiko data stale."
+  "url": "tahap-2/n-plus-1/",
+  "tanya": "Raka mengganti `LEFT JOIN akun` menjadi `JOIN akun` supaya query terlihat rapi. Tes jumlah query tetap lulus dengan 1 query. Apa yang rusak?",
+  "jawab": "Baris yang lawannya buku sistem tanpa akun, seperti \"Tunjangan makan\", hilang dari riwayat tanpa error. Aturan `JOIN` biasa membuang baris yang tidak punya pasangan. Tes jumlah query tidak menangkapnya; butuh tes yang membandingkan baris dengan cara lama (Tidak dijalankan di lab)."
+ },
+ {
+  "id": "t2-n-plus-1-4",
+  "halaman": "t2-n-plus-1",
+  "judul": "2.16 N+1 query",
+  "url": "tahap-2/n-plus-1/",
+  "tanya": "Raka ingin memasang cache untuk riwayat sebelum memperbaiki query. Kenapa urutannya salah?",
+  "jawab": "Beban puncak Tahap 2 ±1,4 request per detik, jadi masalahnya bukan beban. Setiap kali cache kosong, seluruh riwayat Budi tetap mengirim 3.893 query. Cache juga menyembunyikan penyebabnya dan menambah risiko data stale, yaitu data yang sudah tidak terbaru."
  },
  {
   "id": "B2.3-1",
@@ -1082,6 +1090,30 @@
   "url": "b-fondasi/b3-3-isolation-level/",
   "tanya": "Ganti seluruh aplikasi ke serializable, lalu semua race selesai. Setuju?",
   "jawab": "Tidak sesederhana itu. Semua transaction penulis harus punya retry yang benar, termasuk efek di luar database yang tidak boleh terulang, mis. notifikasi. Tingkat kegagalan juga naik saat beban tinggi. Untuk satu baris saldo, `UPDATE` atomik lebih sederhana."
+ },
+ {
+  "id": "B2.4-1",
+  "halaman": "B2.4",
+  "judul": "N+1 query",
+  "url": "b-fondasi/b2-4-n-plus-1/",
+  "tanya": "Endpoint riwayat memakai pagination 20 per halaman. Apakah N+1 masih masalah?",
+  "jawab": "Masih. 21 query per halaman, setiap kali halaman dibuka. Rekaman: 4,5 ms vs 0,5 ms di localhost. Dengan latency jaringan, selisihnya membesar sebanding jumlah query."
+ },
+ {
+  "id": "B2.4-2",
+  "halaman": "B2.4",
+  "judul": "N+1 query",
+  "url": "b-fondasi/b2-4-n-plus-1/",
+  "tanya": "Jelaskan kenapa N+1 tidak terlihat di laptop developer, tapi terasa di production.",
+  "jawab": "Di laptop, datanya sedikit dan database ada di mesin yang sama, jadi setiap perjalanan hampir tanpa latency. Di production, jumlah pesanan lebih banyak dan setiap query menyeberangi jaringan. Biaya per query kecil, tapi dikali N."
+ },
+ {
+  "id": "B2.4-3",
+  "halaman": "B2.4",
+  "judul": "N+1 query",
+  "url": "b-fondasi/b2-4-n-plus-1/",
+  "tanya": "Raka berencana memasang cache untuk riwayat penjualan. Apa yang sebaiknya dilakukan dulu?",
+  "jawab": "Hitung query per request dan perbaiki N+1. Cache di atas N+1 tetap menjalankan 101 query setiap kali cache kosong atau kedaluwarsa, dan menambah risiko data stale."
  },
  {
   "id": "E3-1",
