@@ -1,0 +1,42 @@
+{
+  "id": "t2-isolasi-inti",
+  "judul": "Level dinaikkan",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b3-isolasi"
+  },
+  "baris": [
+    {
+      "label": "Laporan dua perintah",
+      "sub": "laporan.txt",
+      "simpul": [
+        {
+          "teks": "Read Committed: selisih Rp25.000",
+          "sub": "di buku Budi dan Warung Ani",
+          "nada": "warn"
+        },
+        {
+          "teks": "Repeatable Read: cocok",
+          "sub": "satu snapshot",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Dua transfer tanpa lock",
+      "sub": "transfer.txt, angka M9",
+      "simpul": [
+        {
+          "teks": "Read Committed: B ditolak",
+          "sub": "23514 saat COMMIT B",
+          "nada": "good"
+        },
+        {
+          "teks": "Repeatable Read: −Rp20.000",
+          "sub": "dua-duanya COMMIT",
+          "nada": "warn"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "versi": 2,
+  "judul": "Laporan dua perintah, bayar masuk di tengah: apa yang dibaca perintah kedua?",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/b3-isolasi/output/ledger/laporan.txt",
+    "fileVarian": "labs/b3-isolasi/output/ledger/laporan.txt",
+    "catatan": "PostgreSQL 17.11 dari database bersih (make -C labs/b3-isolasi run-ledger). A dan B adalah dua koneksi; urutan perintah ditentukan skrip lab, bukan oleh waktu. Jalur utama: laporan.txt bagian READ COMMITTED. Ubah satu hal: bagian REPEATABLE READ."
+  },
+  "pengantar": "Laporan tutup buku dibaca dalam dua perintah: mutasi dari posting, lalu saldo akhir dari saldo_cache. Di antara keduanya, Budi membayar Rp25.000 ke Warung Ani sampai COMMIT. Tebak dulu, lalu jalankan perintahnya satu per satu.",
+  "komponen": [
+    {
+      "id": "laporan",
+      "label": "A: laporan tutup buku"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL",
+      "lapisan": [
+        "tabel posting",
+        "tabel buku"
+      ]
+    },
+    {
+      "id": "bayar",
+      "label": "B: Budi bayar Rp25.000"
+    }
+  ],
+  "layarAwal": {},
+  "predict": {
+    "q": "Perintah 1 dibaca sebelum bayar B COMMIT, perintah 2 sesudahnya. Di Read Committed, bawaan PostgreSQL, apa isi laporan untuk buku Budi?",
+    "options": [
+      "Cocok: bayar B belum terlihat di kedua perintah",
+      "Cocok: bayar B terlihat di kedua perintah",
+      "Tidak cocok: saldo akhir Rp25.000 lebih kecil dari saldo awal + mutasi",
+      "Laporan gagal dengan SQLSTATE 40001"
+    ],
+    "answer": 2,
+    "varian": false,
+    "explain": "Di Read Committed, setiap perintah membaca data yang sudah COMMIT saat perintah itu mulai. Perintah 2 sudah melihat bayar B, perintah 1 belum, jadi buku Budi selisih −25.000 dan Warung Ani +25.000 (rekaman laporan.txt). Level ini tidak pernah menolak dengan 40001."
+  },
+  "langkah": [
+    {
+      "dari": "laporan",
+      "ke": "db",
+      "lapisan": "tabel posting",
+      "judul": "Perintah 1: saldo awal dan mutasi",
+      "kirim": "BEGIN ISOLATION LEVEL\n  READ COMMITTED;\nSELECT buku, saldo_awal, mutasi\n  FROM posting JOIN jurnal ...\n→ buku 3 Budi:  0 | 100000\n→ buku 4 Ani:   285000 | 0",
+      "jelas": "Perintah ini membaca semua jurnal yang sudah COMMIT saat ia mulai: pembuka dan top-up Budi Rp100.000. Bayar Rp25.000 belum ada."
+    },
+    {
+      "dari": "bayar",
+      "ke": "db",
+      "lapisan": "tabel posting",
+      "judul": "B menulis jurnal 3 sampai COMMIT",
+      "kirim": "BEGIN ISOLATION LEVEL\n  READ COMMITTED;\nINSERT INTO jurnal ... → id 3\nINSERT INTO posting VALUES\n  (3, 3, -25000), (3, 4, 25000);\nUPDATE buku SET saldo_cache ...\nCOMMIT;\n→ COMMIT",
+      "jelas": "Jurnal B seimbang: −25.000 dari buku Budi, +25.000 ke buku Warung Ani. saldo_cache keduanya diperbarui di transaction yang sama."
+    },
+    {
+      "dari": "laporan",
+      "ke": "db",
+      "lapisan": "tabel buku",
+      "judul": "Perintah 2: saldo akhir dari saldo_cache",
+      "kirim": "SELECT id, saldo_cache AS saldo_akhir\n  FROM buku ...\n→ buku 3 Budi:  75000\n→ buku 4 Ani:   310000",
+      "jelas": "Perintah kedua di transaction yang sama mendapat snapshot baru, jadi ia sudah melihat jurnal B.",
+      "nada": "warn"
+    },
+    {
+      "dari": "laporan",
+      "judul": "App menggabungkan dua hasil",
+      "kirim": "selisih = saldo_akhir\n  − (saldo_awal + mutasi)\nBudi:  75000 − 100000 = −25000\nAni:   310000 − 285000 = 25000\nBuku lain: 0",
+      "jelas": "Laporan tidak cocok di buku Budi dan Warung Ani, Rp25.000 masing-masing. Tidak ada jurnal yang salah: perintah 1 dan 2 membaca dua keadaan database yang berbeda.",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "transaction laporan di Repeatable Read",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "laporan",
+        "ke": "db",
+        "lapisan": "tabel posting",
+        "judul": "Perintah 1, di Repeatable Read",
+        "kirim": "BEGIN ISOLATION LEVEL\n  REPEATABLE READ;\nSELECT buku, saldo_awal, mutasi\n  FROM posting JOIN jurnal ...\n→ buku 3 Budi:  0 | 100000\n→ buku 4 Ani:   285000 | 0",
+        "jelas": "Hasilnya sama dengan jalur utama. Bedanya, snapshot yang diambil di perintah ini dipakai sampai transaction A selesai."
+      },
+      {
+        "dari": "bayar",
+        "ke": "db",
+        "lapisan": "tabel posting",
+        "judul": "B menulis jurnal 3 sampai COMMIT",
+        "kirim": "BEGIN ISOLATION LEVEL\n  REPEATABLE READ;\nINSERT INTO jurnal ... → id 3\nINSERT INTO posting VALUES\n  (3, 3, -25000), (3, 4, 25000);\nUPDATE buku SET saldo_cache ...\nCOMMIT;\n→ COMMIT",
+        "jelas": "Langkah B sama persis dengan jalur utama, dan B tetap tersimpan."
+      },
+      {
+        "dari": "laporan",
+        "ke": "db",
+        "lapisan": "tabel buku",
+        "judul": "Perintah 2 membaca snapshot yang sama",
+        "kirim": "SELECT id, saldo_cache AS saldo_akhir\n  FROM buku ...\n→ buku 3 Budi:  100000\n→ buku 4 Ani:   285000",
+        "jelas": "Perintah kedua tidak melihat jurnal B, karena B COMMIT sesudah snapshot A diambil.",
+        "nada": "good"
+      },
+      {
+        "dari": "laporan",
+        "judul": "App menggabungkan dua hasil",
+        "kirim": "selisih = saldo_akhir\n  − (saldo_awal + mutasi)\nBudi:  100000 − 100000 = 0\nAni:   285000 − 285000 = 0\nBuku lain: 0",
+        "jelas": "Laporan cocok untuk keadaan sebelum jurnal B. A hanya membaca, jadi tidak ada 40001.",
+        "nada": "good"
+      },
+      {
+        "dari": "laporan",
+        "ke": "db",
+        "lapisan": "tabel posting",
+        "judul": "Laporan berikutnya memuat bayar B",
+        "kirim": "BEGIN ISOLATION LEVEL\n  REPEATABLE READ;\nperintah 1 dan 2 yang sama\nBudi:  0 + 75000 = 75000\nAni:   285000 + 25000 = 310000\nselisih semua buku: 0",
+        "jelas": "Jurnal B tidak hilang. Transaction laporan yang baru mengambil snapshot baru, dan bayar Rp25.000 masuk ke mutasi.",
+        "nada": "good"
+      }
+    ]
+  }
+}

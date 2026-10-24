@@ -1,0 +1,49 @@
+{
+  "istilah": "Snapshot",
+  "sehari_hari": "Snapshot adalah foto isi database pada satu saat. Perintahmu membaca foto itu, bukan isi terbaru, jadi perubahan yang `COMMIT` sesudah foto diambil tidak terlihat.",
+  "cerita": [
+    {
+      "rujukan": "t2-isolation-level",
+      "teks": "Di Read Committed, perintah kedua laporan mendapat snapshot baru yang sudah berisi bayar Budi Rp25.000, dan laporan selisih Rp25.000."
+    },
+    {
+      "rujukan": "t2-tutup-buku",
+      "teks": "Laporan tutup buku api-t2 menghitung angka per buku dalam satu query, jadi angka satu buku berasal dari satu snapshot."
+    }
+  ],
+  "mekanisme": [
+    "Setiap `UPDATE` membuat versi baris baru; versi lama tetap ada sampai tidak ada transaction yang membutuhkannya (MVCC).",
+    "Snapshot mencatat transaction mana yang sudah `COMMIT` saat ia diambil. Perintah hanya membaca versi baris dari transaction itu.",
+    "Karena pembaca memakai versi lama, membaca tidak menunggu menulis dan menulis tidak menunggu membaca.",
+    "Read Committed mengambil snapshot di awal setiap perintah; Repeatable Read dan Serializable sekali, di perintah pertama transaction."
+  ],
+  "stack": {
+    "lihat": "isolation-level",
+    "teks": "Kodenya sama dengan memilih isolation level: level ditetapkan per transaction sebelum query pertama, dan 40001 dikenali dari kode error."
+  },
+  "jebakan": [
+    "Mengira dua perintah dalam satu transaction membaca snapshot yang sama. Di Read Committed, bawaan PostgreSQL, tidak.",
+    "Lupa bahwa trigger dan fungsi juga membaca snapshot. Di Repeatable Read, pemeriksaan saldo saat `COMMIT` tidak melihat transfer yang sudah `COMMIT` sesudah snapshot diambil."
+  ],
+  "terkait": [
+    "Isolation level",
+    "MVCC (Multi-Version Concurrency Control)",
+    "Read Committed",
+    "Repeatable Read",
+    "Transaction"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-90",
+      "judul": "PostgreSQL 17: Introduction (13.1)",
+      "url": "https://www.postgresql.org/docs/17/mvcc-intro.html",
+      "catatan": "Setiap perintah melihat snapshot data seperti beberapa waktu lalu; membaca tidak memblokir menulis dan sebaliknya."
+    },
+    {
+      "riset": "R2-90",
+      "judul": "Rekaman lab b3-isolasi: laporan",
+      "rekaman": "labs/b3-isolasi/output/ledger/laporan.txt",
+      "catatan": "Dua perintah laporan, bayar Rp25.000 COMMIT di antaranya: selisih di Read Committed, cocok di Repeatable Read dan Serializable."
+    }
+  ]
+}

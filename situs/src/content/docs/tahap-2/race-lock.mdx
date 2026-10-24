@@ -109,7 +109,7 @@ Di rekaman, tablet tetap menunggu lock HP di langkah 8, karena UPDATE mengunci b
 
 <Snippet file="labs/b3-race/output/ledger/ledger-optimistic.txt" lines="24:29" title="Rekaman lab: labs/b3-race/output/ledger/ledger-optimistic.txt" />
 
-**4. SERIALIZABLE dengan retry.** Kode tanpa lock yang sama dijalankan di isolation level SERIALIZABLE. PostgreSQL menolak salah satu transaction dengan SQLSTATE 40001, dan app wajib mengulang seluruh transaction ([PostgreSQL 17, 13.2.3](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-SERIALIZABLE)). Isolation level dibahas di [[B3.3]].
+**4. SERIALIZABLE dengan retry.** Kode tanpa lock yang sama dijalankan di isolation level SERIALIZABLE. PostgreSQL menolak salah satu transaction dengan SQLSTATE 40001, dan app wajib mengulang seluruh transaction ([PostgreSQL 17, 13.2.3](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-SERIALIZABLE)). Isolation level dibahas di [[t2-isolation-level]].
 
 <Snippet file="labs/b3-race/output/ledger/ledger-serializable.txt" lines="21:25" title="Rekaman lab: labs/b3-race/output/ledger/ledger-serializable.txt" />
 
@@ -244,7 +244,7 @@ Keempatnya berakhir sama di lab: saldo Rp30.000, satu jurnal (`banding.txt`). Ya
 Dengan A, ketiganya dibaca sesudah satu lock di awal, dan urutannya terlihat di kode `Service.Kirim`. Dengan B, UPDATE harus selalu jadi perintah pertama, dan aturan itu tidak terlihat dari kodenya.
 
 - **C ditolak** karena setiap jalur butuh loop retry, padahal di rekaman tablet tetap menunggu lock saat menulis. Modern Treasury memakai syarat `lock_version` di ledger mereka. Untuk akun yang menerima banyak entri sekaligus, mereka menyarankan entri tanpa syarat itu ([Modern Treasury, 2025](https://docs.moderntreasury.com/ledgers/docs/handle-concurrency)).
-- **D ditolak** karena semua jalur tulis harus menangani 40001, termasuk tutup buku dan pencairan. Rekaman SERIALIZABLE juga tidak memperbarui `saldo_cache` (tetap Rp100.000), jadi perilakunya bersama cache belum direkam. Pembahasannya di [[B3.3]].
+- **D ditolak** karena semua jalur tulis harus menangani 40001, termasuk tutup buku dan pencairan. Rekaman SERIALIZABLE juga tidak memperbarui `saldo_cache` (tetap Rp100.000), jadi perilakunya bersama cache belum direkam. Pembahasannya di [[t2-isolation-level]].
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
@@ -258,7 +258,7 @@ Kandidat pertamanya buku warung saat makan siang, sesudah Rekeningo dipakai di b
 
 **Yang akan merevisinya.** Saat lama tunggu itu terukur, pola Modern Treasury jadi kandidat. Buku pengirim tetap dikunci, dan posting ke buku warung ditambah tanpa syarat saldo. Naskah belum menjadwalkannya.
 
-Retry yang aman dibahas di [[E3]], dan isolation level di [[B3.3]].
+Retry yang aman dibahas di [[E3]], dan isolation level di [[t2-isolation-level]].
 
 ### Sengaja belum dilakukan
 
@@ -267,7 +267,7 @@ Retry yang aman dibahas di [[E3]], dan isolation level di [[B3.3]].
 | `lock_timeout` atau `NOWAIT` di jalur bayar | Lama tunggu lock di puncak ±1,4 request per detik belum diukur | [[B4.2]], untuk migrasi |
 | Retry otomatis saat deadlock | Urutan `id` di aturan 1 mencegahnya di jalur yang memutuskan dari saldo. Top-up CSV belum mengikuti urutan itu, dan deadlock belum pernah direkam | Belum dijadwalkan |
 | Buku warung tanpa syarat saldo | Batas saldo warung Rp1.500.000 dari [[t1-m4]] dibaca dari buku warung; lama tunggu lock belum diukur | Belum dijadwalkan di naskah |
-| SERIALIZABLE sebagai bawaan | Opsi D ditolak di atas | [[B3.3]] |
+| SERIALIZABLE sebagai bawaan | Opsi D ditolak di atas | [[t2-isolation-level]] |
 
 </Blok>
 
