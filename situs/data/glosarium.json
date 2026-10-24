@@ -387,6 +387,15 @@
   "h": null
  },
  {
+  "t": "EXPLAIN",
+  "d": "Perintah PostgreSQL yang menampilkan query plan; dengan ANALYZE ia menjalankan query dan mencatat baris dan waktu tiap node.",
+  "b": "t2-index",
+  "n": "2.17 Index dan query plan",
+  "u": "/tahap-2/index-query-plan/",
+  "s": "istilah-explain",
+  "h": "/istilah/explain/"
+ },
+ {
   "t": "Fan-out",
   "d": "Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut.",
   "b": "D4b",
@@ -434,11 +443,11 @@
  {
   "t": "Index",
   "d": "Struktur data tambahan yang mempercepat pencarian baris, dengan biaya tulis dan ruang disk.",
-  "b": "B2.3",
+  "b": "t2-index",
   "n": "2.17 Index dan query plan",
-  "u": "/b-fondasi/b2-3-index/",
+  "u": "/tahap-2/index-query-plan/",
   "s": "istilah-index",
-  "h": null
+  "h": "/istilah/index/"
  },
  {
   "t": "Invarian",
@@ -830,11 +839,11 @@
  {
   "t": "Query plan",
   "d": "Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.",
-  "b": "B2.3",
+  "b": "t2-index",
   "n": "2.17 Index dan query plan",
-  "u": "/b-fondasi/b2-3-index/",
+  "u": "/tahap-2/index-query-plan/",
   "s": "istilah-query-plan",
-  "h": null
+  "h": "/istilah/query-plan/"
  },
  {
   "t": "Queue",
