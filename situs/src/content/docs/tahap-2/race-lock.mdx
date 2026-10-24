@@ -140,7 +140,7 @@ Yang sama di semua stack: lock dipegang sampai `COMMIT` atau `ROLLBACK`, jadi ko
 
 **Yang berbeda di stack ini:** `Service.Kirim` memanggil `KunciBukuAkun` sebagai perintah pertama di transaction, lalu membaca batas harian dan saldo dari baris yang sudah terkunci. Sepuluh kiriman Rp20.000 bersamaan dari saldo Rp100.000 berakhir lima diterima, lima ditolak, dan cache sama dengan jumlah posting:
 
-<Snippet file="labs/api-t2/output/transfer.txt" lines="106:113" title="Rekaman lab: labs/api-t2/output/transfer.txt" />
+<Snippet file="labs/api-t2/output/transfer.txt" lines="107:114" title="Rekaman lab: labs/api-t2/output/transfer.txt" />
 
 </Fragment>
 <Fragment slot="t1">
