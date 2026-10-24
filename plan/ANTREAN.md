@@ -1142,11 +1142,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.12 · Isolation level secara praktis
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 2
 - bergantung: 2.11, lab-b3-isolasi
 - selesai bila: halaman Konsep 2.12 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (tanpa ★); rekaman dari `labs/b3-isolasi`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Isi lama B3.3 dipakai ulang. Dari b3-isolasi (443): tanpa lock baris buku, REPEATABLE READ lebih lemah dari READ COMMITTED untuk invarian 3; jangan menulis RR sebagai pilihan lebih aman.
+- catatan: PR #298, keputusan 641–643 (`plan/masuk/tahap-2-isolation-level.md`): `tahap-2/isolation-level.mdx` (ID `t2-isolation-level`) dengan template konsep 1.23; Inti Rantai ringkas `t2-isolasi-inti` (laporan dua perintah Read Committed selisih Rp25.000 lawan Repeatable Read cocok; dua transfer M9 tanpa lock Read Committed 23514 lawan Repeatable Read −Rp20.000); Coba widget alur `t2-isolasi` (Rekaman lab `laporan.txt`, tebak, Ubah satu hal = Repeatable Read); Paham tabel empat level, `dirty-read.txt`, Rantai `t2-isolasi-transfer`, trigger `VOLATILE` membaca snapshot transaction, Serializable 40001 + retry, `transfer-cache.txt` ke ADR 13; Di stack lain enam tab (Go `DalamTx` dijalankan, lainnya Tidak dijalankan); Cek diri 4 kartu. Registry pola 2.11: B3.3 lama `lebur_ke`, file lama tetap; `[[B3.3]]` di 2.7 dan glosarium diarahkan ke halaman baru. Istilah Read Committed, Repeatable Read, Serializable (baru), Isolation level dan Snapshot (halaman istilah); R2-90–R2-94. Lab diulang dari database bersih (`make -C labs/b3-isolasi cek-ledger`): lima rekaman identik. Dua percobaan gerbang gagal di layar pertama (Inti 54 px lalu 40 px terpotong); kalimat Inti dan sub diagram dipendekkan. Rujukan `[[B3.2]]` di 2.12 diganti `[[t2-race-lock]]` oleh PR yang di-merge kedua (#295).
 
 ### 2.13 · M10: Nasi goreng dibayar dua kali
 
