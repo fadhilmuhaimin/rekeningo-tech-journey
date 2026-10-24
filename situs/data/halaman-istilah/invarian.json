@@ -1,0 +1,107 @@
+{
+  "istilah": "Invarian",
+  "sehari_hari": "Invarian adalah aturan yang tidak boleh dilanggar sesudah kejadian apa pun, misalnya \"uang yang keluar sama dengan uang yang masuk\". Pertanyaan pentingnya bukan hanya aturannya apa, tapi siapa yang menjaganya: kode, database, atau keduanya.",
+  "cerita": [
+    {
+      "rujukan": "t1-m4",
+      "teks": "Rp70.000 hilang, dan jumlah semua saldo tidak lagi sama dengan jumlah top-up; tidak ada yang menjaga aturan itu."
+    },
+    {
+      "rujukan": "t2-ledger",
+      "teks": "Tiga invarian ledger dijaga database: jurnal seimbang, posting tidak diubah, dan saldo buku karyawan tidak negatif."
+    },
+    {
+      "rujukan": "t2-m9",
+      "teks": "Dua transfer yang diperiksa bersamaan sama-sama lolos, dan saldo Budi jadi −Rp20.000: pemeriksaan tanpa lock tidak cukup."
+    }
+  ],
+  "mekanisme": [
+    "Aturan untuk satu baris ditulis sebagai `CHECK`, yang diperiksa seketika, mis. `jumlah <> 0`.",
+    "Aturan yang menjumlah banyak baris, seperti jurnal seimbang, tidak bisa ditulis sebagai `CHECK`. Lab memakai constraint trigger `DEFERRABLE INITIALLY DEFERRED` yang berjalan saat COMMIT dan menolak dengan SQLSTATE 23514.",
+    "Aturan \"baris tidak pernah berubah\" ditulis sebagai trigger `BEFORE UPDATE OR DELETE`, yang menolak seketika dengan SQLSTATE 23001. App terhubung dengan role yang bukan pemilik tabel, karena pemilik bisa mematikan trigger.",
+    "Error invarian yang ditunda sampai COMMIT dibaca kode dari error COMMIT: SQLSTATE dan nama constraint, lalu dipetakan ke jawaban app."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, pgx v5.11.0 lewat database/sql, PostgreSQL 17.11",
+      "teks": "`DalamTx` di api-t2 mengembalikan error `tx.Commit()` apa adanya; `*pgconn.PgError` membawa `Code` dan `ConstraintName`. Penolakan jurnal saat COMMIT direkam lewat skrip lab b3-ledger.",
+      "rekaman": "labs/b3-ledger/output/invarian.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-postgres (pg) 8.23.1",
+      "teks": "`await client.query('COMMIT')` melempar `DatabaseError` dengan properti `code` dan `constraint`. Nama properti diambil dari kode sumber pg-protocol, karena dokumentasinya tidak mendaftarnya.",
+      "dokumentasi": "https://node-postgres.com/features/transactions"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "Error COMMIT dari `DB::transaction` datang sebagai `PDOException`, bukan `QueryException`; `getCode()` berisi SQLSTATE. Nama constraint hanya ada di teks pesan.",
+      "dokumentasi": "https://laravel.com/docs/13.x/database#database-transactions"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2, psycopg 3.3.6",
+      "teks": "Keluar dari blok `atomic()` terluar menjalankan COMMIT dan melempar `IntegrityError`. Error psycopg aslinya ada di `__cause__`, dengan `sqlstate` dan `diag.constraint_name`.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/ref/exceptions/#database-exceptions"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "`session.db.transaction` melempar `DatabaseQueryException` dengan `code` dan `constraintName`. Hanya pelanggaran UNIQUE dan foreign key yang punya subclass sendiri.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/exceptions"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "supabase-js 2.118.0, PostgREST 16",
+      "teks": "Satu panggilan `supabase.rpc()` adalah satu transaction. Error berisi `code` (SQLSTATE), `message`, `details`, dan `hint`; 23514 dijawab HTTP 400.",
+      "dokumentasi": "https://docs.postgrest.org/en/stable/references/errors.html"
+    }
+  },
+  "jebakan": [
+    "Menjaga invarian hanya di kode. Jalur kode yang berhenti di tengah, seperti pembayaran M4, atau perintah psql dari tangan melewatinya tanpa ada yang menolak.",
+    "Membuang error COMMIT. Invarian yang ditunda baru menolak di COMMIT, jadi kode yang hanya memeriksa error INSERT akan menganggap jurnal yang ditolak sudah tersimpan.",
+    "Mengira pemeriksaan di database kebal transaction bersamaan. Pemeriksaan saldo tanpa lock bisa lolos di dua transaction sekaligus (rekaman `batas.txt` skenario 2)."
+  ],
+  "terkait": [
+    "Constraint",
+    "COMMIT",
+    "Jurnal",
+    "Posting",
+    "Double-entry",
+    "Race condition"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-60",
+      "judul": "PostgreSQL 17: Check Constraints (5.5.1)",
+      "url": "https://www.postgresql.org/docs/17/ddl-constraints.html",
+      "catatan": "CHECK tidak boleh membaca baris lain selain baris yang sedang ditulis. Aturan lintas baris dianjurkan memakai UNIQUE, EXCLUDE, atau foreign key; trigger buatan sendiri disebut untuk pemeriksaan sekali saat baris masuk."
+    },
+    {
+      "riset": "R2-60",
+      "judul": "PostgreSQL 17: SET CONSTRAINTS",
+      "url": "https://www.postgresql.org/docs/17/sql-set-constraints.html",
+      "catatan": "Constraint DEFERRED baru diperiksa saat commit; CHECK dan NOT NULL selalu diperiksa seketika."
+    },
+    {
+      "riset": "R2-60",
+      "judul": "Rekaman lab b3-ledger: tiga invarian",
+      "rekaman": "labs/b3-ledger/output/invarian.txt",
+      "catatan": "23514 saat COMMIT untuk jurnal tidak seimbang dan saldo karyawan negatif; 23001 seketika untuk UPDATE, DELETE, TRUNCATE posting."
+    },
+    {
+      "riset": "R2-60",
+      "judul": "Rekaman lab b3-ledger: batas invarian 3",
+      "rekaman": "labs/b3-ledger/output/batas.txt",
+      "catatan": "Tanpa lock, dua transaction yang diperiksa sebelum salah satunya COMMIT sama-sama tersimpan; saldo Budi −Rp20.000."
+    },
+    {
+      "riset": "R2-63",
+      "judul": "SQLSTATE dan nama constraint di lima stack",
+      "url": "https://docs.serverpod.dev/concepts/data-and-the-database/database/exceptions",
+      "catatan": "pgx, node-postgres, Laravel, Django dan psycopg, Serverpod, PostgREST; tautan per stack ada di bagian Di tiap stack. Dibuka 24 Oktober 2026."
+    }
+  ]
+}
