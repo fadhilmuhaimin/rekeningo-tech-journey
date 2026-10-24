@@ -1,0 +1,170 @@
+# Lab api-t2 · pengaman cek penerima dan login (M16, lab-api-t2a)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap2 · server Go di 127.0.0.1:18093
+# Rekaman dari database bersih: make -C labs/api-t2 run (keputusan 408).
+
+# --- A. Minggu 7 (M16): 104 akun Gedung A wajib mengganti password sementara ---
+# Akun kampus ditandai saat didaftarkan; tiga di antaranya sudah mengganti password di transfer.txt
+=> SELECT CASE WHEN id < 504 THEN 'Gedung A' ELSE 'kampus' END AS kelompok, count(*) AS akun,
+          count(*) FILTER (WHERE wajib_ganti_password) AS wajib_ganti
+   FROM akun WHERE jenis <> 'sistem' GROUP BY 1 ORDER BY 1
+ kelompok | akun | wajib_ganti
+----------+------+-------------
+ Gedung A |  104 |           0
+ kampus   |  909 |         906
+(2 rows)
+$ psql -1 -f migrasi/000014_wajib_ganti_password.up.sql
+COMMIT
+=> SELECT CASE WHEN id < 504 THEN 'Gedung A' ELSE 'kampus' END AS kelompok, count(*) AS akun,
+          count(*) FILTER (WHERE wajib_ganti_password) AS wajib_ganti
+   FROM akun WHERE jenis <> 'sistem' GROUP BY 1 ORDER BY 1
+ kelompok | akun | wajib_ganti
+----------+------+-------------
+ Gedung A |  104 |         104
+ kampus   |  909 |         906
+(2 rows)
+
+# server: ./api-t2 -jam-lab (waktu server dibekukan selama rekaman ini, keputusan 649)
+
+# --- B. Password sementara tidak lagi membuka sesi ---
+# Sesi Budi dari tutup-buku.txt dibuka sebelum migration 000014
+$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+Www-Authenticate: Bearer error="invalid_token"
+
+{"type":"/problems/belum-login","title":"Belum login atau sesi sudah berakhir","status":401}
+$ curl -i -X POST '/login' -d '{"email": "budi@lestari.example", "password": "sementara-419"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/wajib-ganti-password","title":"Password sementara harus diganti dulu","status":403,"detail":"Kirim POST /ganti-password dengan email, password_lama, dan password_baru (minimal 15 karakter)."}
+$ curl -i -X POST '/ganti-password' -d '{"email": "budi@lestari.example", "password_lama": "sementara-419", "password_baru": "budi-pendek"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"password_baru","pesan":"minimal 15 karakter"}]}
+$ curl -i -X POST '/ganti-password' -d '{"email": "budi@lestari.example", "password_lama": "sementara-419", "password_baru": "kalimat panjang milik budi"}'
+HTTP/1.1 204 No Content
+
+
+$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":419,"jenis":"karyawan","nama":"Budi","saldo":411000,"nomor_karyawan":"K00419"}
+
+# Dimas mengganti password sementaranya dengan cara yang sama (tidak ditampilkan)
+
+# --- C. Cek penerima: percobaan yang gagal tidak membedakan nomor terdaftar ---
+# K00504 milik Citra; K09999 tidak terdaftar. Aturan pengirim diperiksa sebelum nomor penerima.
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Dimas>' -d '{"ke_nomor_karyawan": "K00504", "nominal": 600000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/batas-harian","title":"Batas kiriman hari ini terlewati","status":422,"detail":"Kiriman ke rekan paling banyak Rp500.000 per hari, dihitung sejak pukul 00.00 WIB."}
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Dimas>' -d '{"ke_nomor_karyawan": "K09999", "nominal": 600000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/batas-harian","title":"Batas kiriman hari ini terlewati","status":422,"detail":"Kiriman ke rekan paling banyak Rp500.000 per hari, dihitung sejak pukul 00.00 WIB."}
+
+# Nominal Rp280.001 (saldo Dimas + Rp1), tidak melewati batas harian:
+POST /kiriman ke K00504: HTTP 422 /problems/saldo-kurang
+POST /kiriman ke K09999: HTTP 422 /problems/saldo-kurang
+
+# Nomor salah tetap dilaporkan bila kirimannya akan berhasil ke nomor terdaftar:
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Dimas>' -d '{"ke_nomor_karyawan": "K09999", "nominal": 5000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"ke_nomor_karyawan","pesan":"tidak terdaftar"}]}
+
+# Satu-satunya jawaban yang membuka nomor terdaftar adalah kiriman yang berhasil:
+# uangnya berpindah, dan nama pengirim tercatat di jurnal yang juga dilihat penerima.
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Dimas>' -d '{"ke_nomor_karyawan": "K00504", "nominal": 1}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/1134
+
+{"id":1134,"saldo":279999,"sisa_batas_harian":494999}
+=> SELECT jenis, keterangan, dibuat_oleh FROM jurnal WHERE id = 1134
+  jenis   |       keterangan       | dibuat_oleh
+----------+------------------------+-------------
+ transfer | Kiriman Dimas ke Citra |         417
+(1 row)
+
+# server dimulai ulang: bucket di memori kosong lagi
+
+# --- D. Rate limit kiriman: 15 per akun, 30 per IP ---
+# Dimas menelusuri nomor karyawan berikutnya dengan nominal di atas batas (tidak ada uang yang berpindah)
+15 x HTTP 422 /problems/batas-harian   # Dimas, 15 nomor K00520-K00534
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Dimas>' -d '{"ke_nomor_karyawan": "K00535", "nominal": 600000}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 600
+
+{"type":"/problems/rate-limit-akun","title":"Terlalu banyak kiriman dari akun ini","status":429,"detail":"Coba lagi dalam 600 detik."}
+
+# Akun lain dari alamat yang sama: Budi 14 kiriman, lalu Citra
+14 x HTTP 422 /problems/batas-harian   # Budi, 14 nomor K00540-K00553
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Citra>' -d '{"ke_nomor_karyawan": "K00419", "nominal": 600000}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 10
+
+{"type":"/problems/rate-limit-ip","title":"Terlalu banyak kiriman dari alamat ini","status":429,"detail":"Coba lagi dalam 10 detik."}
+
+# X-Forwarded-For dari client tidak dipercaya: Tahap 2 tanpa reverse proxy, IP diambil dari koneksi
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Citra>' -H 'X-Forwarded-For: 203.0.113.7' -d '{"ke_nomor_karyawan": "K00419", "nominal": 600000}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 10
+
+{"type":"/problems/rate-limit-ip","title":"Terlalu banyak kiriman dari alamat ini","status":429,"detail":"Coba lagi dalam 10 detik."}
+
+# server dimulai ulang: bucket di memori kosong lagi
+
+# --- E. Akun terkunci dijawab sama dengan password salah ---
+# Seseorang menebak password Warung Ani (akun 418)
+$ curl -i -X POST '/login' -d '{"email": "warung.ani@lestari.example", "password": "tebakan-1"}'
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+
+{"type":"/problems/login-gagal","title":"Email atau password salah","status":401}
+5 x HTTP 401 /problems/login-gagal   # lima tebakan
+$ curl -i -X POST '/login' -d '{"email": "warung.ani@lestari.example", "password": "tebakan-6"}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 12
+
+{"type":"/problems/rate-limit-akun","title":"Terlalu banyak percobaan untuk akun ini","status":429,"detail":"Coba lagi dalam 12 detik."}
+=> SELECT id, gagal_login, terkunci_sampai IS NOT NULL AS terkunci FROM akun WHERE id = 418
+  id | gagal_login | terkunci
+-----+-------------+----------
+ 418 |           5 | t
+(1 row)
+
+# server dimulai ulang (mis. deploy): bucket di memori kosong, kunci di database tetap
+# Ani login dengan password yang benar selama akunnya terkunci:
+$ curl -i -X POST '/login' -d '{"email": "warung.ani@lestari.example", "password": "sementara-418"}'
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+
+{"type":"/problems/login-gagal","title":"Email atau password salah","status":401}
+# Body sama persis dengan tebakan pertama, jadi penebak tidak tahu akun ini terkunci.
+
+# --- F. Satu alamat mencoba banyak akun (credential stuffing): 10 percobaan per IP ---
+# Percobaan Ani di atas adalah yang pertama dari alamat ini sejak server dimulai ulang
+9 x HTTP 401 /problems/login-gagal   # 9 akun, karyawan430-karyawan438, satu percobaan per akun
+$ curl -i -X POST '/login' -H 'X-Forwarded-For: 203.0.113.8' -d '{"email": "karyawan439@lestari.example", "password": "password-bocor-situs-lain"}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 6
+
+{"type":"/problems/rate-limit-ip","title":"Terlalu banyak percobaan dari alamat ini","status":429,"detail":"Coba lagi dalam 6 detik."}
+=> SELECT count(*) FILTER (WHERE gagal_login > 0) AS akun_dengan_gagal,
+          count(*) FILTER (WHERE terkunci_sampai IS NOT NULL) AS terkunci FROM akun
+ akun_dengan_gagal | terkunci
+-------------------+----------
+                10 |        1
+(1 row)
