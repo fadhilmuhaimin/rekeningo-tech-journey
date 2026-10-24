@@ -1,0 +1,58 @@
+{
+  "istilah": "At-least-once",
+  "sehari_hari": "At-least-once berarti pengirim mengulang sampai ada jawaban, jadi penerima bisa menerima hal yang sama dua kali atau lebih. Tidak ada yang hilang, tetapi ada yang ganda.",
+  "cerita": [
+    {
+      "rujukan": "t2-m10",
+      "teks": "Response hilang dan app mengulang, jadi server menerima dua kali request yang sama dan menulis dua jurnal."
+    },
+    {
+      "rujukan": "t2-idempotency",
+      "teks": "ADR 14: server dirancang untuk ulangan, dengan key dan hasil tersimpan 24 jam, supaya efeknya satu kali."
+    },
+    {
+      "rujukan": "B10.1",
+      "teks": "Di Tahap 3, pesan dikirim lagi bila worker mati sebelum menandainya terkirim, dan penerima harus tahan pesan ganda."
+    }
+  ],
+  "mekanisme": [
+    "Pengirim mengirim pesan dan menunggu konfirmasi. Tanpa konfirmasi, ia tidak tahu apakah pesan sampai.",
+    "Pengirim mengulang sampai konfirmasi datang. Pesan tidak hilang, tetapi bisa sampai lebih dari sekali.",
+    "Penerima mencatat pengenal pesan, di Rekeningo berupa Idempotency key, dan mengirim hasil tersimpan untuk ulangan.",
+    "Efeknya terjadi satu kali di database. Pengirimannya tetap bisa ganda; yang dicegah hanya efek gandanya."
+  ],
+  "stack": {
+    "lihat": "idempotency-key",
+    "teks": "At-least-once adalah sifat pengiriman, dan cara menahannya di sisi penerima sama dengan Idempotency key. Kode enam stack ada di halaman itu."
+  },
+  "jebakan": [
+    "Mengira pesan hanya datang sekali karena jarang terjadi di uji coba. Dokumentasi queue standar Amazon SQS menyebut satu pesan bisa terkirim lebih dari sekali.",
+    "Menandai pesan selesai di transaction terpisah dari kerjanya. Bila server mati di antaranya, pesan tercatat selesai padahal kerjanya tidak ada; Builders' Library mensyaratkan keduanya atomik."
+  ],
+  "terkait": [
+    "Idempotency key",
+    "Retry",
+    "Backoff",
+    "Idempotent"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-100",
+      "judul": "Amazon SQS: standard queues",
+      "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html",
+      "catatan": "Queue standar menjamin pesan terkirim minimal sekali; lebih dari satu salinan bisa terkirim, jadi aplikasi harus menangani pesan ganda."
+    },
+    {
+      "riset": "R2-102",
+      "judul": "Amazon Builders' Library: Making retries safe with idempotent APIs",
+      "url": "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/",
+      "catatan": "Token pemanggil dicatat bersama mutasi dalam satu operasi atomik, dan ulangan dijawab dengan arti yang sama dengan respons pertama."
+    },
+    {
+      "riset": "R2-18",
+      "judul": "Rekaman lab e3-idempotency: server mati sebelum COMMIT",
+      "rekaman": "labs/e3-idempotency/output/ledger/mati-di-tengah.txt",
+      "catatan": "Jurnal, status selesai, dan respons ditulis di satu transaction; saat koneksi database diputus sebelum COMMIT, ketiganya batal dan ulangan mengerjakan dari awal."
+    }
+  ]
+}

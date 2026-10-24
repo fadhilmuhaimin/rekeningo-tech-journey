@@ -69,3 +69,53 @@ mengenai instance 1 dan 2 mendapat dua kali jatah: batas per IP efektif menggand
   24 percobaan satu IP, bergantian ke 2 instance → 401: 20 · 429: 4
   (20 lolos = 10 per instance, bukan 10 total; Redis bersama akan menyatukannya — Tahap 3)
 
+== G. Kunci atomik: tebakan bersamaan tidak melewati ambang (keputusan 659)
+Percobaan dicatat SEBELUM argon2id, dengan baris akun dikunci (SELECT ... FOR UPDATE), dan percobaan
+yang sampai ambang langsung memasang kunci. Tebakan lain menunggu lock baris lalu melihat kunci itu.
+Karyawan 516 sudah salah 4 kali berturut-turut (ambang 5). Lima tebakan salah datang bersamaan,
+tiap kali dari alamat berbeda supaya lapis memori (per IP 10, per akun 5) tidak ikut menahan.
+  lima tebakan bersamaan → 401: 5
+  dinilai terhadap hash asli: 1; argon2id dijalankan 5 kali (empat lainnya dijawab dengan hash palsu supaya waktu responsnya sama)
+  database: gagal_login 5, terkunci_sampai 60 s lagi
+  tebakan keenam saat terkunci (30 s kemudian) → 401; dinilai 0, gagal_login tetap 5
+  (akun yang sedang terkunci tidak menaikkan penghitung dan tidak memberi percobaan)
+  password BENAR sesudah kunci lewat (61 s) → 200 ok=True; gagal_login 0, terkunci tidak
+  (menurut kode, percobaan itu dicatat lebih dulu: penghitung naik ke 6 dan kunci 120 s dipasang sebelum argon2id;
+  password benar menghapus keduanya)
+
+== H. Key per IP memotong IPv6 ke prefix /64 (keputusan 660)
+RFC 6459 bagian 5.2: jaringan seluler memberi tiap default bearer satu prefix /64 unik, dan HP boleh
+memakai interface identifier apa pun untuk alamat yang ia susun sendiri. IPv4 dan IPv4 yang ditulis
+sebagai IPv6 (::ffff:a.b.c.d) tetap satu key. Alamat lewat X-Lab-IP dari proxy kita (IP_SUMBER=proxy).
+  12 alamat berbeda dalam 2001:db8:a:b::/64, 12 akun berbeda → 401: 10 · 429: 2
+  (satu bucket per /64: 10 lolos, 2 ditolak 429 lapis per-IP)
+  alamat dari /64 lain (2001:db8:a:c::/64) → 401 (bucket sendiri)
+  203.0.113.9 dan ::ffff:203.0.113.9 bergantian, 12 percobaan → 401: 10 · 429: 2 (satu bucket)
+  Batasnya: banyak HP yang berbagi satu /64 (mis. Wi-Fi kantor IPv6) berbagi satu bucket, sama seperti
+  banyak HP di balik satu IPv4 (NAT). Key alamat penuh tidak dijalankan di sini: hasilnya diukur lewat
+  uji mutasi (keputusan 660), alasannya sama dengan bagian E1.
+  Batas lain: penyerang yang memegang prefix lebih luas dari /64 mendapat satu bucket per /64 di dalamnya;
+  RFC 6177 menyebut /56 sebagai contoh alokasi untuk rumah, jadi 256 bucket. Untuk credential stuffing (banyak
+  akun, satu tebakan per akun) lapis per IP lalu melemah; lapis per akun dan kunci di database tetap menahan
+  tebakan terfokus ke satu akun karena tidak bergantung pada alamat. Tidak dijalankan di lab ini (keputusan 798).
+
+== I. /ganti-password menolak password dari daftar bocor fiktif (keputusan 661)
+Daftar fiktif lab (login/daftar-bocor.txt): 27 entri, 3 di antaranya ≥ 15 karakter
+(kebijakan panjang NIST SP 800-63B-4 3.1.1.2). Pembandingan seluruh password, tanpa membedakan huruf besar/kecil.
+ASVS 5.0.0 6.2.4 (L1) meminta daftar minimal 3.000 password teratas yang sesuai kebijakan; daftar lab
+hanya menunjukkan mekanismenya. Daftar sungguhan sebesar itu tidak dijalankan di lab ini [perlu verifikasi].
+  ganti ke 'REKENINGOLESTARI' (16 kar., huruf besar, entri daftar) → 422 Password baru ada di daftar password yang pernah bocor; pilih yang lain
+  ganti ke '123456789012345' (tepat 15 kar., entri daftar) → 422 Password baru ada di daftar password yang pernah bocor; pilih yang lain
+  ganti ke 'rekeningo123' (12 kar., entri daftar tapi lebih pendek dari kebijakan) → 422 Password baru minimal 15 karakter
+  ganti ke 'rekeningolestari1' (16 kar., bukan entri daftar) → 200 ok=True
+  (panjang diperiksa lebih dulu: entri daftar yang lebih pendek dari kebijakan sudah ditolak karena pendek)
+
+== J. Tes Go login/pengaman*_test.go (keputusan 659-661)
+  PASS TestKunciAlamatIPv6PerPrefix
+  PASS TestLapisIPMemakaiPrefixIPv6
+  PASS TestGantiPasswordMenolakDaftarBocor
+  PASS TestDaftarBocorMemuatEntriSesuaiKebijakan
+  PASS TestKunciTidakBisaDilewatiBersamaan
+  PASS TestKunciMenungguLockBaris
+  PASS TestPasswordBenarMenghapusPenghitungDanKunci
+

@@ -1,6 +1,6 @@
-# Daftar password bocor FIKTIF untuk lab c4-ratelimit (M16).
-# Semua baris di sini adalah password lemah buatan sendiri, bukan daftar bocor sungguhan
-# dan bukan rahasia. Dipakai dua arah:
+# Daftar password bocor FIKTIF untuk lab c4-ratelimit (M16): fiktif berarti bukan korpus bocor sungguhan.
+# Isinya password lemah yang umum (123456, qwerty, password) dan tiruan buatan lab (rekeningolestari,
+# gedung-a), semuanya bukan rahasia. Dipakai dua arah:
 #   1. sebagai blocklist: password baru yang cocok dengan salah satu baris ini ditolak
 #      saat ganti password (OWASP/NIST: cek password baru lawan daftar yang diketahui bocor).
 #   2. sebagai wordlist penyerang di rekaman credential stuffing (beberapa puluh percobaan,

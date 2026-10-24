@@ -126,7 +126,7 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 172,
+        "menit": 178,
         "halaman": 17
       },
       "versi": "lama",
@@ -1581,20 +1581,14 @@
       "menit": 9
     },
     {
-      "id": "E3",
+      "id": "t2-idempotency",
       "judul": "Retry dan idempotency key + ADR 14",
       "tahap": 2,
+      "path": "tahap-2/retry-idempotency.md",
       "topik": "Khusus app mobile",
-      "path": "e-mobile/e3-retry-idempotency.md",
-      "prasyarat": [
-        "A2"
-      ],
-      "inti": true,
-      "masalah": "Dobel bayar setelah app retry",
-      "ada": true,
-      "pendek": "Retry dan idempotency key",
       "jenis": "konsep",
       "bagian": 4,
+      "inti": true,
       "peran": [
         "mobile",
         "backend"
@@ -1602,12 +1596,17 @@
       "adr": [
         14
       ],
-      "lama": true,
+      "masalah": "Sinyal putus, app mengulang pembayaran, dan server mencatatnya dua kali karena tidak mengenali ulangan",
+      "pendek": "Retry dan idempotency key",
+      "prasyarat": [
+        "t2-m10"
+      ],
       "lab": [
         "e3-idempotency"
       ],
+      "ada": true,
       "nomor": "2.14",
-      "menit": 10
+      "menit": 16
     },
     {
       "id": "t2-m11",
@@ -1624,7 +1623,7 @@
       "label": "Masalah 11 · minggu 3",
       "masalah": "Riwayat Budi butuh 4 detik dibuka dan laporan harian Ani timeout di hari ramai",
       "prasyarat": [
-        "E3"
+        "t2-idempotency"
       ],
       "lab": [
         "b2-query"
@@ -2123,6 +2122,25 @@
       "lebur_ke": "t2-index",
       "lab": [
         "b2-query"
+      ],
+      "menit": 10
+    },
+    {
+      "id": "E3",
+      "judul": "Retry dan idempotency key",
+      "tahap": 2,
+      "topik": "Khusus app mobile",
+      "path": "e-mobile/e3-retry-idempotency.md",
+      "prasyarat": [
+        "A2"
+      ],
+      "ada": true,
+      "pendek": "Retry dan idempotency key (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t2-idempotency",
+      "lab": [
+        "e3-idempotency"
       ],
       "menit": 10
     },
