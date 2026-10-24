@@ -353,6 +353,9 @@ func main() {
 		if v == "" {
 			v = "(tidak ada)"
 		}
+		// Nilai header dipantulkan apa adanya: teks polos tanpa sniffing, supaya tidak pernah dibaca sebagai HTML (gosec G705).
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		fmt.Fprint(w, v)
 	})
 	srv := &http.Server{Addr: *alamat, Handler: mux, ReadHeaderTimeout: 5 * time.Second} // gosec G114
