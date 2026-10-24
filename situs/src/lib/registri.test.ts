@@ -27,8 +27,10 @@ describe("registry cerita.json", () => {
       ADR: "adr", Masalah: "masalah", "Tim dan infra": "tim-infra",
     };
     const LAB: Record<string, string> = { "lab pencairan": "t2-pencairan" };
+    // Judul naskah 2.8 memakai nomor ADR 12 yang sudah dipakai 1.40; registry menulisnya sebagai revisi ADR 6 (keputusan 723).
+    const JUDUL: Record<string, string> = { "ADR 12: dari kolom saldo ke ledger": "ADR 6 direvisi: dari kolom saldo ke ledger" };
     const harap = [...peta.matchAll(/^\| (2\.\d+) \| (\w+) \| (.+?) \| (.+?) \| (★?) *\| (.+?) \|$/gm)].map((m) => ({
-      nomor: m[1], bagian: /^\d+$/.test(m[2]!) ? Number(m[2]) : m[2], judul: m[3], jenis: JENIS[m[4]!], inti: m[5] === "★",
+      nomor: m[1], bagian: /^\d+$/.test(m[2]!) ? Number(m[2]) : m[2], judul: JUDUL[m[3]!] ?? m[3], jenis: JENIS[m[4]!], inti: m[5] === "★",
       lab: m[6] === "–" ? [] : m[6]!.split(", ").map((x) => LAB[x] ?? x),
     }));
     expect(harap).toHaveLength(33);

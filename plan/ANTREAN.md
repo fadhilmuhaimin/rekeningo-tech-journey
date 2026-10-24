@@ -1103,14 +1103,14 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - selesai bila: halaman Konsep 2.7 sesuai `plan/CERITA-TAHAP-2.md` bagian 3 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: -
 
-### 2.8 · ADR 12: dari kolom saldo ke ledger
+### 2.8 · ADR 6 direvisi: dari kolom saldo ke ledger
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.7, lab-b3-ledger
 - selesai bila: halaman ADR 2.8 sesuai `plan/CERITA-TAHAP-2.md` bagian 3 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Nomor ADR bertabrakan dengan 1.40; lihat MEMORI "Usulan perubahan cerita".
+- catatan: PR #290, keputusan 629–631 (`plan/masuk/tahap-2-adr-ledger.md`) dan 723: `tahap-2/adr-ledger.mdx` sebagai revisi ADR 6 tanpa nomor baru (nomor 12 dipakai 1.40, 13–21 milik naskah; Nygard R2-65), registry `adr: [6]` dan judul baru, peta `JUDUL` di `registri.test.ts`, 1.24 satu tautan. Template ADR enam blok: Rantai Kebutuhan `t2-adr-ledger-kebutuhan` (api-t1 `koreksi.txt` C–D, api-t2 `pembalik.txt` B, b3-ledger `tutup-buku.txt`); empat opsi (kolom + koreksi, kolom + tabel audit trigger, ledger, event sourcing; B dan D Tidak dijalankan, R2-66, R2-67); tujuh aturan, Square Books dan Stripe Ledger, pre-mortem dari api-t2 `migrasi.txt` E–F dan b3-ledger `batas.txt`; Coba runsql `t2-adr-ledger` (SQLite, Ilustrasi: koreksi salah bayar Rp15.000, ubah satu hal salah ketik Rp150.000); halaman istilah Event sourcing (`stack: null`). Lab tidak diulang: Docker tertahan.
 
 ### 2.9 · Skema data: ERD Tahap 1 → Tahap 2 dan pertumbuhannya
 
