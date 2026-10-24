@@ -1,0 +1,118 @@
+---
+title: "2.21 M13: Migrasi di jam makan siang"
+description: Minggu 4. Migrasi ke ledger di jam makan siang membuat pembayaran menunggu, lalu app versi lama berhenti membaca riwayat.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import antre from "../../../../data/diagram/t2-m13-antre.json";
+import Snippet from "../../../components/Snippet.astro";
+import AntreanLock from "../../../components/AntreanLock.astro";
+
+<p class="meta">Baca 7 menit · coba 3 menit · Prasyarat: [[t2-skema]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka ilustrasi="m13">
+
+Minggu 4 Tahap 2. Raka menjalankan migrasi dari kolom saldo ke ledger pada jam makan siang. Ia menjalankan semua file migrasi sekaligus dari satu terminal, lalu menunggu hasilnya.
+
+Di kantin, Citra membayar Rp25.000 ke Warung Ani. Layarnya berputar tanpa hasil. Karyawan lain yang membuka saldonya juga menunggu.
+
+Ani menulis ke Raka bahwa kasirnya macet dan pembeli yang mengantre makin banyak. Raka melihat jam: pembayaran pertama sudah menunggu 40 detik.
+
+Migrasi akhirnya selesai, dan pembayaran yang menunggu dijawab gagal. Sesudah itu Raka menerima pesan dari karyawan yang belum memperbarui app: Riwayat tidak mau terbuka, dan app langsung berhenti.
+
+*Angka cerita (Ilustrasi):* 40 detik berasal dari naskah cerita, bukan dari rekaman lab. Rekaman di blok "Yang sebenarnya" menahan permintaan yang menunggu paling sedikit 5 detik, dan blok itu menjelaskan kondisinya.
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka membaca catatan migrasi. Isinya `ALTER TABLE` pada tabel `akun`, tabel yang dipakai setiap pembayaran, di antara lima file yang berjalan sebagai satu transaction. Ia menyimpulkan migrasinya terlalu besar untuk jam makan siang.
+
+Rencananya, migrasi berikutnya ia jalankan malam hari, ketika warung sudah tutup.
+
+<details class="question">
+<summary>Tebak dulu: kalau migrasi yang sama dijalankan pukul 02.00 saat warung tutup, gejala mana yang hilang dan mana yang tetap ada?</summary>
+
+Pembayaran tidak menunggu bila tidak ada yang membayar. App lama tetap berhenti membaca riwayat, karena gejala itu tidak bergantung pada jam. Blok berikutnya menunjukkan kedua gejala di rekaman lab, yang tidak menjalankan skenario malam.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Dua gejala itu punya dua sebab yang terpisah. Rekaman lab mengulang keduanya dari database bersih di PostgreSQL 17.
+
+*Kondisi rekaman:* lab memakai data kampus minggu 4, yaitu 1.013 akun dan 15.000 baris `transaksi`. Migrasinya file `api-t2` 000009 sampai 000013, dijalankan sebagai satu transaction tanpa batas waktu tunggu lock, sementara server pembayaran masih versi 1. Naskah tidak menyebut apa yang sedang berjalan saat migrasi mulai. Lab menambahkan satu laporan Keuangan yang masih terbuka, karena itu cara membuat migrasi menunggu.
+
+**Pembayaran menunggu.** `ALTER TABLE` meminta lock `ACCESS EXCLUSIVE` pada tabelnya, kecuali dokumentasi menyebut lain untuk bentuk tertentu ([PostgreSQL 17, ALTER TABLE](https://www.postgresql.org/docs/17/sql-altertable.html)). Lock itu bertabrakan dengan semua mode lock lain, termasuk akses baca milik `SELECT` ([bagian 13.3](https://www.postgresql.org/docs/17/explicit-locking.html)).
+
+Laporan Keuangan sudah membaca tabel `akun` dan belum selesai, jadi migrasi menunggu di belakangnya. Bayar Citra datang sesudahnya. Ia hanya mengubah dua baris, dan itu tidak bertabrakan dengan laporan yang membaca. Tapi Bayar ikut menunggu, karena ada migrasi yang antre lebih dulu.
+
+<Snippet file="labs/b4-skema/output/ledger/satu-langkah.txt" lines="13:20" title="Rekaman lab: labs/b4-skema/output/ledger/satu-langkah.txt, langkah 1 sampai 4" />
+
+Tabel `pg_locks` di rekaman yang sama menunjukkan urutannya. Migrasi (M) di belakang laporan (R), sedangkan Bayar (P1) dan Buka saldo (P2) di belakang migrasi:
+
+<Snippet file="labs/b4-skema/output/ledger/satu-langkah.txt" lines="22:28" title="Rekaman lab: labs/b4-skema/output/ledger/satu-langkah.txt, tabel pg_locks" />
+
+Dokumentasi PostgreSQL menyebut keadaan ini *soft block*. Proses yang menunggu lock yang akan bertabrakan, dan berada di depan dalam urutan tunggu, ikut menahan proses di belakangnya ([bagian 9.27.1](https://www.postgresql.org/docs/17/functions-info.html)). Aturannya ada di [kode `lock.c`](https://github.com/postgres/postgres/blob/REL_17_STABLE/src/backend/storage/lmgr/lock.c): permintaan lock yang bertabrakan dengan permintaan yang sudah menunggu ikut menunggu (fungsi `LockAcquireExtended`, cabang REL_17_STABLE).
+
+<Rantai data={antre} />
+
+Lama tunggu Bayar sama dengan sisa waktu laporan ditambah lama migrasi. Rekaman tidak menyimpan detik. Lab menahan laporan paling sedikit 5 detik sesudah semua permintaan mulai menunggu. Angka itu parameter lab, bukan 40 detik naskah.
+
+*Yang tidak terulang:* naskah menulis ALTER pada tabel besar. Tabel `akun` di lab hanya 1.013 baris, dan permintaan tetap menunggu. Ukuran tabel menentukan lama `ALTER` hanya bila perintahnya menulis ulang tabel. Pembanding di tabel `transaksi` (15.000 baris) memisahkan keduanya:
+
+<Snippet file="labs/b4-skema/output/ledger/lock-timeout.txt" lines="34:38" title="Rekaman lab: labs/b4-skema/output/ledger/lock-timeout.txt, pembanding menulis ulang tabel" />
+
+**App lama berhenti.** Sesudah migrasi COMMIT, dua hal rusak dengan cara berbeda. Pertama, server versi 1 masih melayani pembayaran dan kodenya mengubah kolom `saldo`, padahal kolom itu sudah dihapus di transaction yang sama. Bayar dan Buka saldo dijawab galat `42703`, lalu server menjawab 500:
+
+<Snippet file="labs/b4-skema/output/ledger/satu-langkah.txt" lines="30:37" title="Rekaman lab: labs/b4-skema/output/ledger/satu-langkah.txt, langkah 5 sampai 8" />
+
+Tahap 1 mengajarkan urutan lain: tambah kolom baru dulu, hapus kolom lama belakangan ([[E1]]). Migrasi Raka menjalankan keduanya sekaligus, jadi server lama tidak punya waktu berhenti memakai kolom itu.
+
+Kedua, Raka memasang server versi 2. Responsnya dibuat untuk app baru: riwayat dari jurnal, dengan field `jurnal` di tempat `id`. App 1.0 dan 1.1 membaca `id`, `arah`, `lawan`, dan `jumlah` atau `nominal`, lalu berhenti bila salah satunya tidak ada:
+
+<Snippet file="labs/b4-skema/app/riwayat_v1.dart" region="model" lang="dart" title="Rekaman lab: labs/b4-skema/app/riwayat_v1.dart, model app 1.0 dan 1.1" />
+
+<Snippet file="labs/b4-skema/output/ledger/satu-langkah.txt" lines="47:51" title="Rekaman lab: labs/b4-skema/output/ledger/satu-langkah.txt, response server v2 dan app lama" />
+
+*Kondisi rekaman:* lab tidak punya app Flutter asli. Model Dart di atas meniru apa yang dibaca app 1.0 dan 1.1, dan yang diperiksa hanya field wajib beserta tipenya.
+
+**Bukan soal jam.** Migrasi mana pun yang meminta lock berat menunggu di belakang transaction panjang yang sedang membaca tabel itu, dan semua permintaan sesudahnya ikut menunggu. App lama gagal membaca response yang berubah, siapa pun yang membuka Riwayat. Menggeser jam hanya mengurangi jumlah pembayaran yang ikut menunggu.
+
+Kedua mekanisme itu tidak menyebut jam makan siang. Lab tidak menjalankan skenario malam, jadi ini kesimpulan dari mekanismenya, bukan dari rekaman.
+
+Tebakan Raka salah di dua tempat. Ukuran tabel bukan penyebab pembayaran menunggu, dan jam makan siang bukan penyebab gejala kedua. Cara memecah migrasi supaya masing-masing langkahnya aman dibahas di [[B4.2]].
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini menjalankan rekaman yang sama langkah demi langkah. Tebak dulu siapa yang ditunggu Bayar, lalu tekan Langkah berikutnya.
+
+<AntreanLock />
+
+Sesudah langkah terakhir, tekan **Batas tunggu 3 detik** di bagian Ubah satu hal. Migrasi menyerah sesudah 3 detik dengan galat `55P03` dan di-ROLLBACK, lalu Bayar selesai sementara laporan masih terbuka. Skemanya tidak berubah, jadi migrasi bisa diulang.
+
+Rekaman pembanding itu menjalankan file 000009 saja, bukan lima file sekaligus. Ia menunjukkan efek batas tunggu pada urutan tunggu yang sama, bukan efek ukuran migrasi. Pengaturan `lock_timeout` bawaannya mati (nilai 0), dan dokumentasi tidak menyarankan memasangnya di `postgresql.conf` ([PostgreSQL 17, Client Connection Defaults](https://www.postgresql.org/docs/17/runtime-config-client.html)).
+
+<details>
+<summary>Rekaman lengkap kedua jalur (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/b4-skema/output/ledger/satu-langkah.txt" title="Rekaman lab: labs/b4-skema/output/ledger/satu-langkah.txt" />
+
+<Snippet file="labs/b4-skema/output/ledger/lock-timeout.txt" lines="1:20" title="Rekaman lab: labs/b4-skema/output/ledger/lock-timeout.txt, langkah 1 sampai 5" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[B4.2]]: ubah skema tanpa downtime. Perubahan besar dipecah jadi rilis kecil yang masing-masing aman. Batas tunggu lock, urutan expand-migrate-contract, backfill bertahap, dan ADR 17 ada di sana.
+- [Halaman istilah lock](/istilah/lock/): lock sebagai tanda "sedang dipakai" di baris atau tabel, dan siapa yang menunggu siapa.
+- [[E1]]: app versi lama di Tahap 1. Urutan tambah dulu, hapus belakangan yang dipakai di sana dijalankan sekaligus oleh migrasi M13.
+- [[t2-skema]]: ERD dari Tahap 1 ke Tahap 2, yaitu tabel yang dipindahkan migrasi ini.
+
+</Blok>
