@@ -265,6 +265,15 @@ window.ISTILAH = {
   "t": "Enumerasi",
   "u": "tahap-1/idor-token-app/"
  },
+ "Event sourcing": {
+  "b": "t2-adr-ledger",
+  "d": "Menyimpan setiap perubahan data sebagai event yang tidak diubah; keadaan sekarang dibangun ulang dari urutan event itu.",
+  "h": "istilah/event-sourcing/",
+  "n": "2.8 ADR 6 direvisi",
+  "s": "istilah-event-sourcing",
+  "t": "Event sourcing",
+  "u": "tahap-2/adr-ledger/"
+ },
  "Eventual consistency": {
   "b": "D3",
   "d": "Data di beberapa tempat boleh berbeda sesaat, tapi akan sama setelah perubahan selesai menyebar.",
@@ -1280,6 +1289,15 @@ window.ISTILAH = {
   "s": "istilah-enumerasi",
   "t": "Enumerasi",
   "u": "tahap-1/idor-token-app/"
+ },
+ "event sourcing": {
+  "b": "t2-adr-ledger",
+  "d": "Menyimpan setiap perubahan data sebagai event yang tidak diubah; keadaan sekarang dibangun ulang dari urutan event itu.",
+  "h": "istilah/event-sourcing/",
+  "n": "2.8 ADR 6 direvisi",
+  "s": "istilah-event-sourcing",
+  "t": "Event sourcing",
+  "u": "tahap-2/adr-ledger/"
  },
  "eventual consistency": {
   "b": "D3",

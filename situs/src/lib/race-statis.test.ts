@@ -25,6 +25,11 @@ describe("htmlRaceStatis", () => {
     expect(html).toContain('<ol class="bb-race-garis__daftar" aria-label="Garis waktu dua client"></ol>');
     expect(html).toContain("Client A</span>");
   });
+  it("setiap dd di kartu client didahului dt (axe definition-list, keputusan 707)", () => {
+    const dl = html.match(/<dl class="bb-vars">.*?<\/dl>/g) ?? [];
+    expect(dl).toHaveLength(2);
+    for (const d of dl) expect(d).toBe('<dl class="bb-vars"><dt class="bb-sr">yang sudah dibaca</dt><dd class="bb-muted">belum membaca apa pun</dd></dl>');
+  });
   it("teks dari rekaman di-escape", () => {
     expect(htmlRaceStatis([{ ...baca("atomic"), title: "a < b & c" }])).toContain("a &lt; b &amp; c");
   });
