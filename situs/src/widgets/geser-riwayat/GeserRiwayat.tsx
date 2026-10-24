@@ -2,7 +2,8 @@
 // bila satu kiriman masuk di sela keduanya, lihat daftar database bergeser, lalu ubah satu hal (berapa halaman yang
 // digulir). Data sudah divalidasi saat build (GeserRiwayat.astro); logika di logika.ts. Jawaban muncul dengan gerak
 // masuk singkat; reduced motion tanpa gerak (muncul.ts).
-import { useLayoutEffect, useRef, useState } from "react";
+// Fokus keyboard dipindah ke kontrol berikutnya saat kontrol yang difokus hilang atau dinonaktifkan (pola antrean-lock).
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { muncul } from "../../gerak/muncul";
 import { angka, type BarisDaftar, type BarisRiwayat, type Skala } from "./logika";
 
@@ -13,6 +14,7 @@ export interface LabelSiap {
   kolom: { halaman: string; kiriman: string; tampil: string; ganda: string; tidakTampil: string };
   ubahJudul: string; nama: Record<string, string>; kalimat: Record<string, string>; catatan: string;
 }
+type Fokus = "lanjut" | "pilihan" | null;
 interface Props {
   halaman1: BarisRiwayat[]; sesudah: BarisDaftar[]; skala: Skala[]; pilihan: PilihanSiap[]; benar: number; label: LabelSiap;
 }
@@ -32,9 +34,26 @@ export default function GeserRiwayat({ halaman1, sesudah, skala, pilihan, benar,
   const [dipilih, setDipilih] = useState<number | null>(null);
   const [aktif, setAktif] = useState(0);
   const hasil = useRef<HTMLDivElement>(null);
+  const akar = useRef<HTMLDivElement>(null);
+  const fokus = useRef<Fokus>(null);
   useLayoutEffect(() => {
     if (dipilih !== null) muncul(hasil.current);
   }, [dipilih]);
+  useEffect(() => {
+    const f = fokus.current;
+    fokus.current = null;
+    if (!f) return;
+    const a = akar.current;
+    const sasaran =
+      f === "pilihan"
+        ? a?.querySelector<HTMLButtonElement>(".tb-pilihan .tb-pilih:not(:disabled)")
+        : (a?.querySelector<HTMLButtonElement>(".tb-tautan button") ?? a?.querySelector<HTMLButtonElement>(".qr-tombol"));
+    sasaran?.focus();
+  });
+  // Fokus hanya dipindah bila fokus pembaca ada di kontrol yang akan dinonaktifkan atau hilang.
+  const difokus = (selektor: string) => typeof document !== "undefined" && !!document.activeElement?.closest(selektor);
+  const pilih = (i: number) => { if (difokus(".tb-pilihan")) fokus.current = "lanjut"; setDipilih(i); };
+  const ulangi = () => { if (difokus(".tb-tautan")) fokus.current = "pilihan"; setDipilih(null); };
   const tepat = dipilih === benar;
   const s = skala[aktif]!;
   const limit = halaman1.length;
@@ -42,7 +61,7 @@ export default function GeserRiwayat({ halaman1, sesudah, skala, pilihan, benar,
   const bawah = sesudah.slice(limit);
 
   return (
-    <div className="bb-widget tb gr qr" role="group" aria-label={L.judul}>
+    <div ref={akar} className="bb-widget tb gr qr" role="group" aria-label={L.judul}>
       <div className="bb-widget__head">
         <p><strong>{L.judul}</strong></p>
         <span className="bb-chip is-system">{L.sumber}</span>
@@ -59,7 +78,7 @@ export default function GeserRiwayat({ halaman1, sesudah, skala, pilihan, benar,
           const kelas = dipilih === null ? "" : i === benar ? " is-benar" : i === dipilih ? " is-salah" : " is-redup";
           return (
             <li key={i}>
-              <button type="button" className={"tb-pilih" + kelas} aria-pressed={dipilih === i} disabled={dipilih !== null} onClick={() => setDipilih(i)}>
+              <button type="button" className={"tb-pilih" + kelas} aria-pressed={dipilih === i} disabled={dipilih !== null} onClick={() => pilih(i)}>
                 <span className="tb-huruf" aria-hidden="true">{String.fromCharCode(65 + i)}</span>{" "}
                 <span>{o.teks}</span>
               </button>
@@ -74,7 +93,7 @@ export default function GeserRiwayat({ halaman1, sesudah, skala, pilihan, benar,
             <p className="tb-hasil__judul"><strong>{tepat ? L.benar : L.belum}</strong></p>
             <p>{pilihan[dipilih]!.alasan}</p>
             {!tepat && <p><strong>{String.fromCharCode(65 + benar)}.</strong> {pilihan[benar]!.alasan}</p>}
-            {!tepat && <p className="tb-tautan"><button type="button" className="bb-btn bb-btn--quiet" onClick={() => setDipilih(null)}>{L.ulang}</button></p>}
+            {!tepat && <p className="tb-tautan"><button type="button" className="bb-btn bb-btn--quiet" onClick={ulangi}>{L.ulang}</button></p>}
           </div>
         )}
       </div>
