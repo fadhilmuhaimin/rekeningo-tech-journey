@@ -1,0 +1,29 @@
+{
+  "judul": "Berapa query untuk satu riwayat?",
+  "sumber": "Rekaman lab · n1.txt bagian D dan E",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "Budi membuka halaman pertama riwayat: {baris} transaksi terakhir, masing-masing dengan nama lawannya. Berapa query yang dikirim server ke database?",
+  "pilihan": [
+    { "query": 1, "alasan": "Satu query hanya cukup bila nama lawan ikut diambil di dalamnya. Kode minggu 3 meminta nama lawan terpisah untuk setiap baris, jadi totalnya {query}, bukan 1." },
+    { "query": 2, "alasan": "Dua query berarti nama lawan semua baris diambil sekaligus. Kode minggu 3 meminta nama lawan satu baris sekali, jadi totalnya {query}." },
+    { "query": 21, "alasan": "Satu query mengambil {baris} transaksi terakhir, lalu server meminta nama lawan satu per baris: {baris} query lagi. Totalnya {query}, sama di hitungan client dan di log database." },
+    { "query": 40, "alasan": "Dua query per baris terdengar masuk akal, tapi tiap baris hanya butuh satu query nama lawan. Hitungannya 1 + {baris} = {query}." }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "ubahJudul": "Ubah satu hal: berapa baris yang diminta",
+  "nama": {
+    "halaman-1": "Halaman pertama riwayat Budi",
+    "laporan-ani": "Laporan harian Ani",
+    "seluruh": "Seluruh riwayat Budi"
+  },
+  "kolom": {
+    "baris": "Baris",
+    "query": "Query ke database",
+    "waktu": "Waktu di mesin lab (pembanding)"
+  },
+  "kalimat": "{baris} baris, {query} query: satu untuk daftarnya, lalu satu untuk setiap baris.",
+  "catatan": "Jumlah query dihitung di client dan di log database, hasilnya sama. Waktu adalah median 5 kali di mesin lab, tanpa jaringan antara server API dan database, dengan data satu tahun dan tanpa index riwayat. Itu pembanding, bukan janji.",
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan angka rekamannya sebagai tabel."
+}

@@ -26,7 +26,29 @@ import re
 import sys
 
 KEP = "plan/KEPUTUSAN.md"
-BARIS_KEP = re.compile(r"^\| (\d+) \| \d{4}-\d{2}-\d{2} \| .+ \| .+ \| .+ \|$")
+_SKEMA = re.compile(r"^\| (\d+) \| \d{4}-\d{2}-\d{2} \| ")
+
+
+class _Cocok:
+    """Cocok bila baris diawali nomor dan tanggal, berakhir '|', dan punya TEPAT 5 kolom (pipe di teks wajib \\|)."""
+
+    def __init__(self, baris):
+        self.baris = baris
+        self.m = _SKEMA.match(baris)
+
+    def group(self, n):
+        return self.m.group(n)
+
+
+class _BarisKep:
+    def match(self, baris):
+        if not _SKEMA.match(baris) or not baris.rstrip().endswith("|"):
+            return None
+        kolom = re.split(r"(?<!\\)\|", baris.rstrip())[1:-1]
+        return _Cocok(baris) if len(kolom) == 5 and all(k.strip() for k in kolom) else None
+
+
+BARIS_KEP = _BarisKep()
 
 
 def baca(path):
@@ -49,7 +71,7 @@ def baca(path):
             continue
         elif bagian == "kep":
             if not BARIS_KEP.match(b):
-                galat.append(f"{path}:{i}: baris keputusan harus '| n | YYYY-MM-DD | apa | kenapa | alternatif |'")
+                galat.append(f"{path}:{i}: baris keputusan harus '| n | YYYY-MM-DD | apa | kenapa | alternatif |' tepat 5 kolom, pipe di teks ditulis \\|")
             else:
                 kep.append(b)
         elif isinstance(bagian, tuple):
@@ -67,7 +89,15 @@ def nomor(baris):
 
 
 def main():
-    cek = "--cek" in sys.argv
+    argumen = sys.argv[1:]
+    if any(a in ("-h", "--help") for a in argumen):
+        print(__doc__)
+        return
+    asing = [a for a in argumen if a != "--cek"]
+    if asing:
+        print(f"argumen tidak dikenal: {' '.join(asing)} (pakai --cek atau tanpa argumen; --help untuk bantuan)")
+        sys.exit(2)
+    cek = "--cek" in argumen
     files = sorted(f for f in glob.glob("plan/masuk/*.md") if not f.endswith("README.md"))
     ada = {int(m.group(1)) for m in re.finditer(r"^\| (\d+) \|", open(KEP, encoding="utf-8").read(), re.M)}
     semua, polesan, galat, dilihat = [], {}, [], {}
