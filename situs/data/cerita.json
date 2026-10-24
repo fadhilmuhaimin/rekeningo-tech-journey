@@ -1812,8 +1812,9 @@
       "lab": [
         "api-t2"
       ],
-      "ada": false,
-      "nomor": "2.23"
+      "ada": true,
+      "nomor": "2.23",
+      "menit": 11
     },
     {
       "id": "t2-tim-infra",

@@ -1,0 +1,118 @@
+---
+title: "2.23 M14: Batas harian yang hilang"
+description: Minggu 5. Raka dan Nadia mengubah kode transfer, kedua cabang digabung tanpa konflik, dan kiriman Rp800.000 berhasil walau batas harian Rp500.000.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import gabung from "../../../../data/diagram/t2-m14-merge.json";
+import Snippet from "../../../components/Snippet.astro";
+import TesMerge from "../../../components/TesMerge.astro";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t2-skema-tanpa-downtime]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka ilustrasi="m14">
+
+Minggu 5 Tahap 2. Raka dan Nadia sama-sama mengubah kode transfer minggu ini, masing-masing di cabangnya sendiri. Cabang Raka masuk ke main hari Senin dan cabang Nadia hari Selasa. Git tidak melaporkan konflik apa pun.
+
+Rabu siang, Citra mengirim Rp800.000 ke Budi. Layarnya menulis "Transfer berhasil", dan saldo Budi naik Rp800.000.
+
+Budi ingat PRD: kiriman ke rekan paling banyak Rp500.000 per hari. Ia menunjukkan layarnya ke Raka. "Batasnya Rp500.000, kan?"
+
+Raka membuka kode transfer. Batas harian ada di PRD, ada di [[t2-transfer]], dan tidak ada lagi di kode.
+
+*Angka cerita (Ilustrasi):* Rp800.000 dan Rp500.000 berasal dari naskah dan PRD. Hari, urutan merge, dan nama penerimanya adalah adegan. Rekaman di blok "Yang sebenarnya" mengulang kiriman itu dengan akun lab Karyawan 800, yang berperan sebagai Citra.
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka membaca riwayat git main minggu ini. Dua cabang menyentuh `kirim.go`, file service untuk kiriman antar karyawan: cabangnya sendiri dan cabang Nadia.
+
+Ia menyimpulkan salah satu dari mereka lupa mempertahankan pemeriksaan batas harian. Jadi ia perlu menemukan cabang mana yang membuangnya.
+
+<details class="question">
+<summary>Tebak dulu: di diff masing-masing cabang, hanya tiga baris yang dihapus. Bagaimana batas harian bisa hilang dari main?</summary>
+
+Masing-masing cabang menghapus salinan yang berbeda dari pemeriksaan yang sama, dan mengira salinan satunya tetap ada. Tidak ada yang lupa. Blok berikutnya menunjukkan kejadiannya di git sungguhan.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Naskah tidak menyebut bagaimana barisnya hilang. Halaman ini memakai satu cara yang bisa terjadi, lalu merekamnya dengan git sungguhan.
+
+*Skenario (Ilustrasi):* siapa menghapus salinan yang mana adalah pilihan halaman ini, bukan kejadian di naskah. Yang direkam adalah apa yang git lakukan pada dua perubahan itu.
+
+*Kondisi rekaman (Asumsi):* kode `api-t2` hanya punya satu pemanggil `periksaBatas`. Bagian pertama rekaman memakai file contoh 30 baris di folder sementara, bukan kode lab. Di file itu `periksaBatas` dipanggil di dua tempat: `Kirim` dan `catatJurnal`.
+
+Dua cabang dibuat dari main yang sama. Raka menghapus pemeriksaan di `Kirim`, karena `catatJurnal` sudah memeriksanya. Nadia menghapus pemeriksaan di `catatJurnal`, karena `Kirim` sudah memeriksanya.
+
+<Rantai data={gabung} />
+
+Tiap diff hanya menghapus tiga baris:
+
+<Snippet file="labs/api-t2/output/m14.txt" lines="14:42" title="Rekaman lab: labs/api-t2/output/m14.txt, bagian A, file contoh (diff kedua cabang)" />
+
+Perubahan yang tidak tumpang tindih diterima git apa adanya. Git hanya meminta bantuan bila kedua sisi mengubah area yang sama ([git-merge](https://git-scm.com/docs/git-merge), bagian "How conflicts are presented"). Perubahan Raka dan perubahan Nadia tidak bersentuhan, jadi gabungannya jalan tanpa konflik:
+
+<Snippet file="labs/api-t2/output/m14.txt" lines="44:58" title="Rekaman lab: labs/api-t2/output/m14.txt, bagian A, file contoh (merge)" />
+
+Hasilnya tinggal definisi `periksaBatas`, tanpa satu pun pemanggil. Git hanya membandingkan baris dan tidak menjalankan kode. Martin Fowler menyebut keadaan ini [semantic conflict](/istilah/semantic-conflict/): perubahan yang aman digabung sebagai teks, tetapi membuat program berperilaku lain ([Fowler, 2011](https://martinfowler.com/bliki/SemanticConflict.html)).
+
+**Di kode api-t2.** Lab menyalin `labs/api-t2` ke folder sementara dan menghapus tiga baris pemanggil `periksaBatas` dari `Kirim`. Hanya itu yang berubah:
+
+<Snippet file="labs/api-t2/output/m14.txt" lines="63:75" title="Rekaman lab: labs/api-t2/output/m14.txt, bagian B (diff kode api-t2)" />
+
+Kode itu masih bisa dibangun. Fungsinya masih ada, dan `go build` serta `go vet` keluar dengan status 0:
+
+<Snippet file="labs/api-t2/output/m14.txt" lines="76:84" title="Rekaman lab: labs/api-t2/output/m14.txt, bagian B (pemanggil dan build)" />
+
+**Tes.** Lab punya tes untuk aturan ini, ditulis untuk akhir Tahap 2. Di minggu 5 tes itu belum ada, dan itulah celahnya. Dengan PostgreSQL sungguhan, kode tanpa pemeriksaan gagal di dua tes yang menjalankan `Kirim` sampai ke database:
+
+<Snippet file="labs/api-t2/output/m14.txt" lines="94:101" title="Rekaman lab: labs/api-t2/output/m14.txt, bagian C (tes dengan PostgreSQL)" />
+
+`TestBatasHarian` tetap lolos. Tes itu memanggil `periksaBatas` langsung dengan angka, jadi ia tidak tahu bahwa `Kirim` berhenti memanggilnya. Tanpa PostgreSQL, tes yang butuh database dilewati dan `go test` keluar dengan status 0. Pada kode asli dan kode tanpa pemeriksaan, hasilnya sama: 8 lolos, 0 gagal, 12 dilewati ([Go, paket testing](https://pkg.go.dev/testing#T.SkipNow): tes yang dilewati bukan tes yang gagal).
+
+**Gejalanya.** Server asli menolak kiriman Rp800.000 dari akun yang belum mengirim apa pun hari itu. Server dari kode tanpa pemeriksaan menjawab `201`:
+
+<Snippet file="labs/api-t2/output/m14.txt" lines="114:127" title="Rekaman lab: labs/api-t2/output/m14.txt, bagian D (dua server, satu kiriman)" />
+
+Jawabannya sendiri membawa tanda: `sisa_batas_harian` bernilai `-300000`. Ledger tetap seimbang, dan tiga invarian database (jurnal berjumlah nol, posting tidak diubah, saldo karyawan tidak negatif) tidak melanggar apa pun:
+
+<Snippet file="labs/api-t2/output/m14.txt" lines="129:134" title="Rekaman lab: labs/api-t2/output/m14.txt, bagian D (database sesudah kiriman)" />
+
+Kolom `batas_harian` di migration lab bertanda "dibaca app, belum dijaga database". Jadi saat baris pemeriksaan hilang dari kode, tidak ada lapisan lain yang menolak kiriman itu.
+
+Tebakan Raka salah dua kali. Tidak ada orang yang lupa, dan tidak ada cabang yang salah bila dilihat sendiri. Yang tidak ada adalah pembaca hasil gabungan, dan tes yang menjalankan aturan itu pada hasil gabungan sampai ke database.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini memakai hasil rekaman yang sama. Tebak dulu apa yang dilaporkan `go test` pada kode tanpa pemeriksaan.
+
+<TesMerge />
+
+Sesudah menebak, ubah satu hal: pilih **Tanpa PostgreSQL**. Tes yang butuh database dilewati, tidak ada yang gagal, dan kode tanpa pemeriksaan tampak sehat. Tes aturan uang hanya menjaga aturannya bila ia benar-benar berjalan, dan berjalan pada hasil gabungan.
+
+<details>
+<summary>Rekaman lengkap (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/api-t2/output/m14.txt" title="Rekaman lab: labs/api-t2/output/m14.txt" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [Halaman istilah semantic conflict](/istilah/semantic-conflict/): dua perubahan yang digabung tanpa konflik teks, tetapi perilakunya berubah. Halaman itu memuat cara tiap stack menjalankan tes pada hasil gabungan.
+- [[t2-tim-infra]]: cara kerja dua orang di satu repo yang menjaga aturan uang, termasuk apa yang membaca hasil gabungan dan tes apa yang wajib berjalan.
+- [[t2-transfer]]: tempat batas harian ditulis di kode dan di PRD, dengan rekaman kiriman yang ditolak.
+- [[C1]]: tes di level mana. Kasus ini memperlihatkan tes unit yang lolos dan tes dengan database yang gagal untuk aturan yang sama.
+
+Aturan uang dijaga tes, bukan ingatan.
+
+</Blok>

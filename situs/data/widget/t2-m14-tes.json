@@ -1,0 +1,68 @@
+{
+  "judul": "Tes mana yang merah saat pemeriksaan batas harian hilang?",
+  "sumber": "Rekaman lab · m14.txt bagian B, C, dan E",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "Tiga baris yang memanggil periksaBatas sudah tidak ada di Kirim. Fungsi periksaBatas dan semua tes tetap ada. go build dan go vet lolos. Lalu go test dijalankan dengan PostgreSQL sungguhan. Apa yang dilaporkan?",
+  "pilihan": [
+    {
+      "teks": "Semua tes lolos, karena kodenya masih bisa dibangun.",
+      "alasan": "Bisa dibangun hanya berarti kodenya sah. Tes dengan PostgreSQL menjalankan Kirim sampai ke database dan mendapat {gagal} kegagalan: {nama}.",
+      "bisaBangun": true,
+      "unitPeriksaGagal": false,
+      "kirimGagal": false
+    },
+    {
+      "teks": "Hanya tes yang memanggil periksaBatas langsung yang gagal, karena fungsinya tidak dipanggil lagi.",
+      "alasan": "Tes itu memanggil fungsinya sendiri, tidak lewat Kirim, jadi ia tidak tahu bahwa Kirim berhenti memanggilnya. TestBatasHarian tetap lolos.",
+      "bisaBangun": true,
+      "unitPeriksaGagal": true,
+      "kirimGagal": false
+    },
+    {
+      "teks": "Tes yang mengirim uang lewat Kirim gagal, dan tes yang memanggil periksaBatas langsung tetap lolos.",
+      "alasan": "Kegagalannya ada di tes yang menjalankan seluruh alur Kirim ke PostgreSQL: {nama}. TestBatasHarian lolos karena ia hanya menguji fungsinya.",
+      "bisaBangun": true,
+      "unitPeriksaGagal": false,
+      "kirimGagal": true
+    },
+    {
+      "teks": "Tidak ada tes yang berjalan, karena kodenya tidak bisa dibangun.",
+      "alasan": "go build dan go vet keluar dengan status 0. Fungsi periksaBatas masih ada, jadi tidak ada yang menolak kodenya.",
+      "bisaBangun": false,
+      "unitPeriksaGagal": false,
+      "kirimGagal": false
+    }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "tabel": {
+    "judul": "Hasil go test pada dua versi kode",
+    "kode": "Kode",
+    "pemanggil": "Pemanggil periksaBatas",
+    "hasil": "Hasil go test"
+  },
+  "nama": {
+    "asli": "api-t2 asli",
+    "tanpa": "Tanpa pemeriksaan"
+  },
+  "status": {
+    "lolos": "Lolos",
+    "gagal": "Gagal"
+  },
+  "hitung": "{lolos} lolos, {gagal} gagal, {dilewati} dilewati",
+  "ubahJudul": "Ubah satu hal: cara go test dijalankan",
+  "mode": {
+    "dengan": "Dengan PostgreSQL",
+    "tanpa": "Tanpa PostgreSQL"
+  },
+  "kesimpulan": {
+    "dengan": "Dengan PostgreSQL, {gagal} tes gagal pada kode tanpa pemeriksaan: {nama}.",
+    "tanpa": "Tanpa PostgreSQL, {dilewati} tes dilewati dan tidak ada yang gagal. Kode tanpa pemeriksaan lolos."
+  },
+  "catatan": {
+    "dengan": "Rekaman bagian C, dengan TEST_DATABASE_URL yang menunjuk ke schema tes.",
+    "tanpa": "Rekaman bagian C, tanpa TEST_DATABASE_URL. Tes yang butuh database memanggil t.Skip, dan go test melaporkannya sebagai dilewati, bukan gagal."
+  },
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan hasil rekamannya sebagai tabel."
+}

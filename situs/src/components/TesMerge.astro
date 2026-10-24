@@ -1,0 +1,47 @@
+---
+/**
+ * Widget tes merge (M14, keputusan 826): tebak tes mana yang merah bila tiga baris pemanggil periksaBatas hilang dari
+ * Kirim, lalu ubah satu hal (go test dengan atau tanpa PostgreSQL sungguhan).
+ *   <TesMerge />
+ * Angka, nama tes yang gagal, dan hasil build dibaca saat build dari labs/api-t2/output/m14.txt lewat logika.ts;
+ * rekaman yang berubah bentuk menggagalkan build. Teks dari data/widget/t2-m14-tes.json (skema.ts).
+ * Island di-render saat build (client:visible); tanpa JavaScript hasil rekaman tampil di <noscript>.
+ * Satu widget per halaman (dipasang di blok Coba 2.23).
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import TesMergeIsland from "../widgets/tes-merge/TesMerge";
+import { LabelTesMerge } from "../widgets/tes-merge/skema";
+import { bacaRekaman, faktaDari, indeksBenar, isi, tabelMode } from "../widgets/tes-merge/logika";
+import labelMentah from "../../data/widget/t2-m14-tes.json";
+
+const FILE = "labs/api-t2/output/m14.txt";
+const abs = path.join(ROOT, FILE);
+if (!fs.existsSync(abs)) throw new Error(`TesMerge: ${FILE} tidak ada`);
+const R = bacaRekaman(fs.readFileSync(abs, "utf8"));
+const L = LabelTesMerge.parse(labelMentah);
+const nilai = { gagal: R.baris.tanpa.denganPostgres.gagal, nama: R.gagalNama.join(" dan "), dilewati: R.baris.tanpa.tanpaPostgres.dilewati };
+const pilihan = L.pilihan.map((p) => ({ ...p, alasan: isi(p.alasan, nilai) }));
+const benar = indeksBenar(pilihan, faktaDari(R));
+const label = {
+  judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, pertanyaan: isi(L.pertanyaan, nilai), benar: L.benar, belum: L.belum,
+  ulang: L.ulang, tabel: L.tabel, nama: L.nama, status: L.status, hitung: L.hitung, ubahJudul: L.ubahJudul, mode: L.mode,
+  kesimpulan: { dengan: isi(L.kesimpulan.dengan, nilai), tanpa: isi(L.kesimpulan.tanpa, nilai) },
+  catatan: L.catatan,
+};
+const tabel = { dengan: tabelMode(R, "dengan"), tanpa: tabelMode(R, "tanpa") };
+const awal = (h: { lolos: number; gagal: number; dilewati: number }) => isi(L.hitung, h);
+---
+<TesMergeIsland client:visible pilihan={pilihan.map((p) => ({ teks: p.teks, alasan: p.alasan }))} benar={benar} tabel={tabel} label={label} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <table>
+    <thead><tr><th>{L.mode.dengan}</th><th>{L.mode.tanpa}</th></tr></thead>
+    <tbody>
+      {tabel.dengan.map((b, i) => (
+        <tr><td>{L.nama[b.kode]}: {awal(b.hasil)}</td><td>{L.nama[tabel.tanpa[i]!.kode]}: {awal(tabel.tanpa[i]!.hasil)}</td></tr>
+      ))}
+    </tbody>
+  </table>
+</noscript>

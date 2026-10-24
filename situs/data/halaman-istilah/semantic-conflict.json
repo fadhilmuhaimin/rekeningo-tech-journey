@@ -1,0 +1,95 @@
+{
+  "istilah": "Semantic conflict",
+  "sehari_hari": "Raka dan Nadia mengubah kode yang sama. Git tidak menemukan baris yang bertabrakan, jadi ia menggabungkannya tanpa bertanya. Gabungannya bisa dibangun, tetapi satu aturan yang tadinya dijaga sudah tidak ada. Bentrokannya ada di arti kode, bukan di baris.",
+  "cerita": [
+    {
+      "rujukan": "t2-m14",
+      "teks": "Cabang Raka menghapus satu salinan pemeriksaan batas harian dan cabang Nadia menghapus salinan lainnya. `git merge` berjalan tanpa konflik, dan hasilnya tidak punya pemeriksaan itu."
+    }
+  ],
+  "mekanisme": [
+    "Dua orang membuat cabang dari main yang sama, lalu masing-masing mengubah kode di tempat yang berbeda.",
+    "Git membandingkan baris dengan versi asal bersama. Perubahan yang tidak tumpang tindih diterima apa adanya, dan git tidak membaca arti kodenya.",
+    "Hasil gabungan memuat kedua perubahan. Tiap perubahan mungkin benar sendiri-sendiri, tetapi gabungannya melanggar asumsi salah satunya.",
+    "Yang menangkapnya adalah tes yang berjalan pada hasil gabungan, bukan pada tiap cabang. Kompiler menangkapnya hanya bila gabungan itu tidak bisa dibangun."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, PostgreSQL 17.11, git 2.50.1",
+      "teks": "`go test ./internal/service` dengan `TEST_DATABASE_URL` menjalankan `Kirim` sampai ke PostgreSQL. Pada kode tanpa pemeriksaan batas harian, dua tes gagal. Tanpa `TEST_DATABASE_URL`, tes itu dilewati dan `go test` keluar 0.",
+      "rekaman": "labs/api-t2/output/m14.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "Node.js v26.12.1",
+      "teks": "`node --test` menjalankan semua file tes proyek. Jalankan pada hasil gabungan, bukan hanya pada cabang, supaya perubahan kedua cabang diuji bersama.",
+      "dokumentasi": "https://nodejs.org/api/test.html"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.x",
+      "teks": "`php artisan test` menjalankan tes Feature dan Unit. Tes di folder Unit tidak menyalakan aplikasi dan tidak bisa mengakses database, jadi aturan uang yang bergantung pada database dites di Feature.",
+      "dokumentasi": "https://laravel.com/docs/13.x/testing"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1",
+      "teks": "`./manage.py test` membuat database tes yang kosong untuk tes yang butuh database, lalu menghapusnya sesudah semua tes selesai. Database produksi tidak disentuh.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/topics/testing/overview/"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4, dokumentasi 4.0.0",
+      "teks": "`dart test` menjalankan test tools `withServerpod`: endpoint dipanggil seperti dari app, dengan server dan database sungguhan di belakangnya. Endpoint, model, dan query ikut teruji bersama.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/testing/get-started"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "Supabase CLI 2.122.0",
+      "teks": "`supabase test db` menjalankan tes pgTAP di database lokal. Aturan yang dijaga di database, seperti policy RLS, fungsi, dan constraint, dites di sana; aturan yang hanya ada di kode client dites lewat client.",
+      "dokumentasi": "https://supabase.com/docs/guides/local-development/testing/overview"
+    }
+  },
+  "jebakan": [
+    "Menjalankan tes hanya pada cabang. Dua cabang yang hijau sendiri-sendiri belum tentu hijau bersama, jadi tes harus berjalan pada hasil gabungan.",
+    "Tes yang melewati dirinya bila database tidak ada. Go melaporkannya sebagai dilewati dan `go test` keluar 0, jadi kode tanpa pemeriksaan tampak hijau (rekaman lab `m14.txt` bagian C).",
+    "Mengandalkan tes yang memanggil fungsi aturan langsung. Fungsinya tetap lolos walau tidak ada lagi yang memanggilnya dari alur sungguhan."
+  ],
+  "terkait": [
+    "Invarian",
+    "Race condition"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-171",
+      "judul": "Martin Fowler, Semantic Conflict (4 Agustus 2011)",
+      "url": "https://martinfowler.com/bliki/SemanticConflict.html",
+      "catatan": "Konflik semantik adalah perubahan yang aman digabung di tingkat teks tetapi membuat program berperilaku lain; peralatan hanya melindungi dari konflik teks. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-170",
+      "judul": "Git, git-merge: How conflicts are presented",
+      "url": "https://git-scm.com/docs/git-merge",
+      "catatan": "Perubahan yang tidak tumpang tindih dimasukkan apa adanya; konflik hanya bila kedua sisi mengubah area yang sama. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-173",
+      "judul": "Go, paket testing",
+      "url": "https://pkg.go.dev/testing#T.SkipNow",
+      "catatan": "Tes yang dilewati dengan SkipNow ditandai dilewati, bukan gagal; exit code Run bukan nol untuk setiap jenis kegagalan. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-174",
+      "judul": "Dokumentasi tes Laravel 13.x, Django 6.1, Node.js v26.12.1, Serverpod 4.0.0, dan Supabase",
+      "url": "https://laravel.com/docs/13.x/testing",
+      "catatan": "Perintah menjalankan tes di lima stack lain dan apa yang mereka sediakan untuk database. Semua dibuka 25 Oktober 2026 dan tidak dijalankan."
+    },
+    {
+      "riset": "R2-172",
+      "judul": "Rekaman lab api-t2, m14.txt",
+      "rekaman": "labs/api-t2/output/m14.txt",
+      "catatan": "Merge dua cabang tanpa konflik pada file contoh, lalu tes dan kiriman Rp800.000 pada kode api-t2 tanpa pemeriksaan."
+    }
+  ]
+}

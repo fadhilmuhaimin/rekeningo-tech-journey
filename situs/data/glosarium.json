@@ -1044,6 +1044,15 @@
   "h": "/istilah/select-for-update/"
  },
  {
+  "t": "Semantic conflict",
+  "d": "Dua perubahan yang digabung tanpa konflik teks, tetapi gabungannya membuat program berperilaku lain dari yang diharapkan masing-masing.",
+  "b": "t2-m14",
+  "n": "2.23 M14",
+  "u": "/tahap-2/m14-batas-harian/",
+  "s": "istilah-semantic-conflict",
+  "h": "/istilah/semantic-conflict/"
+ },
+ {
   "t": "Semaphore",
   "d": "Penghitung yang membatasi berapa pekerjaan boleh berjalan bersamaan; pekerjaan berikutnya menunggu sampai ada yang selesai.",
   "b": "B8",

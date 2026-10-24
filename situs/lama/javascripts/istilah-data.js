@@ -1060,6 +1060,15 @@ window.ISTILAH = {
   "t": "Secure storage",
   "u": "tahap-1/idor-token-app/"
  },
+ "Semantic conflict": {
+  "b": "t2-m14",
+  "d": "Dua perubahan yang digabung tanpa konflik teks, tetapi gabungannya membuat program berperilaku lain dari yang diharapkan masing-masing.",
+  "h": "istilah/semantic-conflict/",
+  "n": "2.23 M14",
+  "s": "istilah-semantic-conflict",
+  "t": "Semantic conflict",
+  "u": "tahap-2/m14-batas-harian/"
+ },
  "Semaphore": {
   "b": "B8",
   "d": "Penghitung yang membatasi berapa pekerjaan boleh berjalan bersamaan; pekerjaan berikutnya menunggu sampai ada yang selesai.",
@@ -1972,6 +1981,15 @@ window.ISTILAH = {
   "s": "istilah-secure-storage",
   "t": "Secure storage",
   "u": "tahap-1/idor-token-app/"
+ },
+ "semantic conflict": {
+  "b": "t2-m14",
+  "d": "Dua perubahan yang digabung tanpa konflik teks, tetapi gabungannya membuat program berperilaku lain dari yang diharapkan masing-masing.",
+  "h": "istilah/semantic-conflict/",
+  "n": "2.23 M14",
+  "s": "istilah-semantic-conflict",
+  "t": "Semantic conflict",
+  "u": "tahap-2/m14-batas-harian/"
  },
  "semaphore": {
   "b": "B8",

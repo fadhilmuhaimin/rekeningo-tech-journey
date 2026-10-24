@@ -1,0 +1,45 @@
+{
+  "id": "t2-m14-merge",
+  "judul": "Dua cabang menghapus salinan yang berbeda, lalu digabung",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t2 · m14.txt bagian A (file contoh)"
+  },
+  "baris": [
+    {
+      "label": "Dua cabang dari main yang sama",
+      "sub": "masing-masing menghapus tiga baris",
+      "simpul": [
+        {
+          "teks": "Cabang Raka",
+          "sub": "hapus pemeriksaan di Kirim"
+        },
+        {
+          "teks": "Cabang Nadia",
+          "sub": "hapus pemeriksaan di catatJurnal"
+        }
+      ]
+    },
+    {
+      "label": "Masuk ke main",
+      "sub": "cabang Raka dulu, lalu Nadia",
+      "simpul": [
+        {
+          "teks": "Raka masuk",
+          "sub": "fast-forward"
+        },
+        {
+          "teks": "Nadia masuk",
+          "sub": "Auto-merging, tanpa konflik",
+          "nada": "system"
+        },
+        {
+          "teks": "Tidak ada pemanggil",
+          "sub": "periksaBatas tinggal definisi",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Setiap cabang benar bila dilihat sendiri. Hasil gabungannya tidak punya pemeriksaan batas harian sama sekali."
+}
