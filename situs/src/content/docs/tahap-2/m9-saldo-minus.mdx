@@ -49,7 +49,7 @@ Rekaman lab ini dibuat dari database bersih di PostgreSQL 17.11. HP (A) dan tabl
 
 Tablet membaca Rp100.000 karena jurnal HP belum COMMIT. PostgreSQL memakai isolation level Read Committed bila tidak diatur lain. Di level itu, satu query hanya melihat data yang sudah COMMIT sebelum query itu mulai.
 
-Database lab punya satu pagar lagi: saldo karyawan tidak boleh negatif sesudah jurnal ([[t2-ledger]]). Pagar ini baru diperiksa saat COMMIT. Akhir ceritanya bergantung pada urutan kedua COMMIT.
+Database lab punya satu pagar lagi, invarian 3: saldo karyawan tidak boleh negatif sesudah jurnal ([[t2-ledger]]). Pagar ini baru diperiksa saat COMMIT. Akhir ceritanya bergantung pada urutan kedua COMMIT.
 
 **HP COMMIT dulu, baru tablet.** Pemeriksaan milik tablet sudah melihat jurnal HP, jadi COMMIT tablet ditolak:
 
