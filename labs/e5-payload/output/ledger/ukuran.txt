@@ -24,6 +24,9 @@ layar · kolom yang dipakai baris layar riwayat (Asumsi: id untuk buka detail, j
         {"id":380033,"jenis":"transfer","arah":"masuk","lawan":"Karyawan 961","nominal":50000,"waktu":"2026-10-04T15:59:42.422428+07:00"}
 penuh · semua kolom posting, jurnal, buku, dan akun yang disentuh query (SELECT *), dikirim utuh.
         Pembanding: bentuk yang keluar bila handler menyerialisasi model apa adanya. ?bentuk=penuh, bukan api-t2.
+        Kolom mengikuti skema lab (labs/b3-ledger): akun hanya id, nama, email, peran. Tabel `akun` di labs/api-t2
+        punya kolom lain (password_hash, nomor_karyawan, gagal_login, dan seterusnya; migrasi 000009 dan 000012),
+        jadi SELECT * di api-t2 lebih besar dan ikut mengirim password_hash. Ukuran penuh di sini batas bawah.
         {"posting":{"id":760066,"jurnal_id":380033,"buku_id":20,"jumlah":50000,"dibuat":"2026-10-04T15:59:42.422428+07:00"},"jurnal":{"id":380033,"jenis":"transfer","keterangan":"Kiriman","membalik_jurnal_id":null,"dibuat_oleh":961,"dibuat":"2026-10-04T15:59:42.422428+07:00"},"lawan":{"posting":{"id":760065,"jurnal_id":380033,"buku_id":551,"jumlah":-50000,"dibuat":"2026-10-04T15:59:42.422428+07:00"},"buku":{"id":551,"akun_id":961,"jenis":"karyawan","saldo_cache":9204000,"batas_saldo":null,"batas_harian":null,"versi":0},"akun":{"id":961,"nama":"Karyawan 961","email":"k961@lestari.example","peran":"karyawan"}}}
 
 # --- C. Ukuran body (byte): mentah lawan gzip ---

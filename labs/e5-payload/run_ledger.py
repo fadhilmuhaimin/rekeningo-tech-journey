@@ -260,6 +260,9 @@ def ukuran(r, versi_pg, jurnal, posting, budi, blok):
        "        " + contoh["layar"],
        "penuh · semua kolom posting, jurnal, buku, dan akun yang disentuh query (SELECT *), dikirim utuh.",
        "        Pembanding: bentuk yang keluar bila handler menyerialisasi model apa adanya. ?bentuk=penuh, bukan api-t2.",
+       "        Kolom mengikuti skema lab (labs/b3-ledger): akun hanya id, nama, email, peran. Tabel `akun` di labs/api-t2",
+       "        punya kolom lain (password_hash, nomor_karyawan, gagal_login, dan seterusnya; migrasi 000009 dan 000012),",
+       "        jadi SELECT * di api-t2 lebih besar dan ikut mengirim password_hash. Ukuran penuh di sini batas bawah.",
        "        " + contoh["penuh"]])
 
     r.bagian("C. Ukuran body (byte): mentah lawan gzip")
