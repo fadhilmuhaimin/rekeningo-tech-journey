@@ -1,0 +1,31 @@
+-- Lab e5-payload versi ledger · Accept-Encoding dan gzip di kabel
+-- PostgreSQL 17.11 · schema e5_ledger · server Go labs/e5-payload/riwayat · make -C labs/e5-payload run-ledger (keputusan 818)
+-- Hanya byte, jumlah baris, rasio, dan struktur; tanpa waktu. Rekaman dari database bersih.
+-- toolchain: go1.27.1 darwin/arm64; ukuran gzip dapat bergeser bila versi compress/flate berbeda
+
+# --- A. Satu permintaan, tujuh nilai Accept-Encoding ---
+GET /akun/419/riwayat?batas=20   (client: Python http.client, tanpa decode otomatis; body dihitung di kabel)
+Server lab: gzip bila gzip tertulis dengan q > 0, atau * dengan q > 0 dan gzip tidak tertulis sendiri
+(RFC 9110 12.5.3). Tanpa field itu RFC mengizinkan coding apa saja; server lab memilih tanpa coding.
+  Accept-Encoding  | status | Content-Encoding |       Vary      | body (B) | 2 byte pertama | isi sesudah dibuka
+-------------------+--------+------------------+-----------------+----------+----------------+--------------------
+ (tidak dikirim)   |    200 | (tidak ada)      | Accept-Encoding | 2.932    | 7b 22          | sama
+ (kosong)          |    200 | (tidak ada)      | Accept-Encoding | 2.932    | 7b 22          | sama
+ gzip              |    200 | gzip             | Accept-Encoding | 598      | 1f 8b          | sama
+ gzip, deflate, br |    200 | gzip             | Accept-Encoding | 598      | 1f 8b          | sama
+ gzip;q=0          |    200 | (tidak ada)      | Accept-Encoding | 2.932    | 7b 22          | sama
+ br                |    200 | (tidak ada)      | Accept-Encoding | 2.932    | 7b 22          | sama
+ *                 |    200 | gzip             | Accept-Encoding | 598      | 1f 8b          | sama
+(7 rows)
+2 byte pertama gzip = 1f 8b (RFC 1952 2.3.1); JSON tanpa gzip dimulai 7b 22, yaitu {".
+
+# --- B. Header response (Date dibuang), batas=20 ---
+Accept-Encoding: (tidak dikirim)
+  Content-Type: application/json
+  Vary: Accept-Encoding
+  Transfer-Encoding: chunked
+Accept-Encoding: gzip
+  Content-Encoding: gzip
+  Content-Type: application/json
+  Vary: Accept-Encoding
+  Content-Length: 598

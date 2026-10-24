@@ -1,0 +1,64 @@
+-- Lab e5-payload versi ledger · ukuran response riwayat Budi
+-- PostgreSQL 17.11 · schema e5_ledger · server Go labs/e5-payload/riwayat · make -C labs/e5-payload run-ledger (keputusan 818)
+-- Hanya byte, jumlah baris, rasio, dan struktur; tanpa waktu. Rekaman dari database bersih.
+-- toolchain: go1.27.1 darwin/arm64; ukuran gzip dapat bergeser bila versi compress/flate berbeda
+
+# --- A. Asal data dan server ---
+Data: labs/b2-query/ledger_data.py dimuat ke schema e5_ledger lewat labs/b3-ledger/schema.sql, ditambah index
+  posting_riwayat (buku_id, dibuat, id) seperti labs/api-t2 (migrasi 000011).
+  jurnal 380.224 · posting 760.448 · Budi (akun 419) 3.892 posting.
+Server: labs/e5-payload/riwayat/main.go (Go net/http). Query riwayat, struct, kursor `berikutnya`, dan tulisJSON
+  sama dengan labs/api-t2: 4 blok kode diperiksa persis sama di setiap run (body diakhiri satu newline).
+  api-t2 sendiri tidak mengompres: 0 baris gzip, Content-Encoding, atau compress di labs/api-t2/cmd dan internal.
+  Kompresi di server lab adalah middleware (Go compress/gzip, level bawaan) yang menilai Accept-Encoding.
+  Waktu di JSON ditulis +07:00 (server memakai Asia/Jakarta; Asumsi). Server UTC menulis Z, 5 byte lebih pendek.
+Akun: Budi, halaman pertama, ?batas=5, 20, 50 (api-t2 menerima 1 sampai 50).
+Ukuran: body response saja, byte, sesudah chunked dilepas. Header HTTP, TLS, dan request tidak dihitung.
+
+# --- B. Tiga bentuk response (baris riwayat pertama, JSON persis seperti di kabel) ---
+api   · response api-t2 apa adanya (tanpa ?bentuk): id, jenis, arah, lawan, jumlah, nominal, waktu.
+        `jumlah` dan `nominal` sama-sama ada: app 1.0 membaca jumlah, app 1.1 dan sesudahnya nominal.
+        {"id":380033,"jenis":"transfer","arah":"masuk","lawan":"Karyawan 961","jumlah":50000,"nominal":50000,"waktu":"2026-10-04T15:59:42.422428+07:00"}
+layar · kolom yang dipakai baris layar riwayat (Asumsi: id untuk buka detail, jenis, arah, lawan, nominal, waktu).
+        Tanpa `jumlah`, jadi app 1.0 tidak bisa membacanya. ?bentuk=layar, bukan api-t2.
+        {"id":380033,"jenis":"transfer","arah":"masuk","lawan":"Karyawan 961","nominal":50000,"waktu":"2026-10-04T15:59:42.422428+07:00"}
+penuh · semua kolom posting, jurnal, buku, dan akun yang disentuh query (SELECT *), dikirim utuh.
+        Pembanding: bentuk yang keluar bila handler menyerialisasi model apa adanya. ?bentuk=penuh, bukan api-t2.
+        {"posting":{"id":760066,"jurnal_id":380033,"buku_id":20,"jumlah":50000,"dibuat":"2026-10-04T15:59:42.422428+07:00"},"jurnal":{"id":380033,"jenis":"transfer","keterangan":"Kiriman","membalik_jurnal_id":null,"dibuat_oleh":961,"dibuat":"2026-10-04T15:59:42.422428+07:00"},"lawan":{"posting":{"id":760065,"jurnal_id":380033,"buku_id":551,"jumlah":-50000,"dibuat":"2026-10-04T15:59:42.422428+07:00"},"buku":{"id":551,"akun_id":961,"jenis":"karyawan","saldo_cache":9204000,"batas_saldo":null,"batas_harian":null,"versi":0},"akun":{"id":961,"nama":"Karyawan 961","email":"k961@lestari.example","peran":"karyawan"}}}
+
+# --- C. Ukuran body (byte): mentah lawan gzip ---
+ baris | bentuk | mentah (B) | gzip (B) | gzip/mentah | mentah per baris (B)
+-------+--------+------------+----------+-------------+----------------------
+     5 | api    | 781        | 300      | 38,4 %      | 156
+     5 | layar  | 707        | 294      | 41,6 %      | 141
+     5 | penuh  | 3.102      | 696      | 22,4 %      | 620
+    20 | api    | 2.932      | 598      | 20,4 %      | 147
+    20 | layar  | 2.635      | 581      | 22,0 %      | 132
+    20 | penuh  | 12.196     | 1.680    | 13,8 %      | 610
+    50 | api    | 7.232      | 1.144    | 15,8 %      | 145
+    50 | layar  | 6.492      | 1.121    | 17,3 %      | 130
+    50 | penuh  | 30.389     | 3.535    | 11,6 %      | 608
+(9 rows)
+Perbandingan dengan bentuk api (layar dalam persen, penuh dalam kelipatan):
+ baris | layar/api mentah | layar/api gzip | penuh/api mentah | penuh/api gzip
+-------+------------------+----------------+------------------+----------------
+     5 | 90,5 %           | 98,0 %         | 3,97x            | 2,32x
+    20 | 89,9 %           | 97,2 %         | 4,16x            | 2,81x
+    50 | 89,8 %           | 98,0 %         | 4,20x            | 3,09x
+(3 rows)
+Isi gzip sesudah dibuka sama persis dengan isi tanpa gzip di setiap pasangan (diperiksa byte demi byte).
+
+# --- D. Kuota (Asumsi): halaman pertama 20 baris dibuka berulang ---
+Asumsi, bukan rekaman pemakaian HP: paket 1 GB (1.000.000.000 B) per bulan, 30 hari; satu buka =
+  satu response 20 baris (body saja); buka per hari 5, 20, dan 100. Header HTTP, TLS, dan request lain
+  app tidak dihitung. Persen = B per buka x buka per hari x 30 / 1 GB.
+ bentuk |  gzip | B per buka | buka/hari untuk 1% kuota |  5/hari | 20/hari | 100/hari
+--------+-------+------------+--------------------------+---------+---------+----------
+ api    | tidak | 2.932      | 114                      | 0,044 % | 0,176 % | 0,880 %
+ api    | ya    | 598        | 557                      | 0,009 % | 0,036 % | 0,179 %
+ layar  | tidak | 2.635      | 127                      | 0,040 % | 0,158 % | 0,791 %
+ layar  | ya    | 581        | 574                      | 0,009 % | 0,035 % | 0,174 %
+ penuh  | tidak | 12.196     | 27                       | 0,183 % | 0,732 % | 3,659 %
+ penuh  | ya    | 1.680      | 198                      | 0,025 % | 0,101 % | 0,504 %
+(6 rows)
+Pada 20 buka per hari: api mentah 0,176 % dari kuota bulanan, penuh mentah 0,732 %, layar gzip 0,035 %.
