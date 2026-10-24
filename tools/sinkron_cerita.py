@@ -5,7 +5,7 @@ dalam Tahap T) dan judul. Rujukan antar halaman ditulis [[ID]] dan dirender plug
 Halaman dibaca dari situs/src/content/docs (MDX); sidebar dibuat situs/tools/sidebar.mjs langsung dari cerita.json.
 
 Yang ditulis:
-  - cerita.json         field turunan: "ada", "nomor", "menit" per halaman; "jalur_inti" per tahap
+  - cerita.json         field turunan: "ada", "nomor", "menit" per halaman ("jalur_inti" per tahap dihitung saat build)
   - setiap halaman      nomor tampilan di title front matter; baris meta <p class="meta"> "Prasyarat: ... · Jalur inti"
                         dibuat dari field "prasyarat", "prasyarat_lain", dan "inti"
   - alat/indeks-topik.mdx  indeks per topik (field "topik")
@@ -251,8 +251,8 @@ def main():
         if menit(baru) is not None:
             h["menit"] = menit(baru)
     for t in d["tahap"]:
-        inti = [h for h in hs if h["tahap"] == t["no"] and h["ada"] and h.get("inti")]
-        t["jalur_inti"] = {"menit": sum(h.get("menit", 0) for h in inti), "halaman": len(inti)}
+        # jalur_inti dihitung situs/tools/siapkan-aset.mjs saat build, tidak disimpan (keputusan 727).
+        t.pop("jalur_inti", None)
 
     tulis[CERITA] = json.dumps(d, ensure_ascii=False, indent=2) + "\n"
     tulis[INDEKS] = indeks(hs, INDEKS.read_text())

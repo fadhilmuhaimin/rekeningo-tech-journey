@@ -1,5 +1,5 @@
 // Skema Zod registry halaman (situs/data/cerita.json), keputusan 117. Dites Vitest: registry yang salah bentuk
-// menggagalkan gerbang. Field turunan (ada, nomor, menit, jalur_inti) ditulis tools/sinkron_cerita.py.
+// menggagalkan gerbang. Field turunan (ada, nomor, menit) ditulis tools/sinkron_cerita.py; jalur_inti dihitung situs/tools/siapkan-aset.mjs saat build.
 import { z } from "zod";
 import { Arsitektur } from "../diagram/skema";
 

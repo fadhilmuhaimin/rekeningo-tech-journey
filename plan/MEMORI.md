@@ -55,9 +55,17 @@ Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditan
 - 2.14: masa peralihan app 1.0/1.1 tidak berakhir bila satu HP lama tetap memakai app 1.0 (butuh tanggal akhir atau versi minimum, ADR 10); pola key belum di `labs/api-t2` (517). 2.16: jumlah query SQL di balik satu embedding PostgREST tidak disebut dokumentasi [perlu verifikasi]; "tunjangan makan hilang bila JOIN biasa" belum direkam.
 - api-t2 `Service.GantiPassword` hanya memeriksa panjang 15–72 byte, tanpa daftar password bocor (ASVS 6.2.4); usul tugas lab sendiri di SETELAH-TAHAP-2.
 
+## Ukur antrean merge (keputusan 727)
+
+Alat: `python3 tools/ukur_pr.py <PR...> --sejak <waktu>` (data dari GitHub). Garis dasar sebelum 727, PR #300, #301, #302, #305 (2026-10-24): dibuka → merge 275, 85, 41, 103 menit (median 94); penggabungan main 4, 5, 2, 7 kali (median 4,5); run main merah 2 dari 21 (28946ce, fd9d649). Pembanding pemilik 160 menit (mungkin dihitung dari awal pengerjaan, bukan dari PR dibuka). Lima halaman berikutnya yang dibuka SESUDAH #313 dan #314 masuk (target: 2.20, 2.22, 2.23, 2.24, 2.25):
+
+| Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
+| --- | --- | --- | --- | --- |
+| - | - | - | - | - |
+
 ## Sedang dikerjakan
 
-2026-10-25 dini hari · Tahap 2 halaman, pipa lima worktree (`../rjt-konten` 4323, `../rjt-konten2` 4325, `../rjt-konten3` 4327, `../rjt-teknis` 4324, `../rjt-teknis2` 4326). Selesai: 2.1–2.15 dan semua lab, widget, tugas teknis Tahap 2 (lab-c4a #304 terakhir). Berjalan: peninjau 2.16 (#305); pelaksana 2.17 (`tahap-2/index-adr15`), 2.18 (`tahap-2/m12-dobel-tampil`), 2.19 (`tahap-2/kursor-adr16`), 2.21 (`tahap-2/m13-migrasi-siang`). Berikutnya: 2.20 (e5-payload: rekaman masih skema lama, mungkin butuh lab), 2.22–2.33, EVAL-2, DIRI-2, lalu Tahap 3. Alokasi nomor keputusan dan ID riset per tugas: `tmp/catat-antre.md` (tidak di repo; bila hilang: konten Tahap 2 674–679 dan 810–899, peninjau 800–809 lalu 900–999, teknis 680–719, ID riset R2-145 ke atas; cek terbesar atas KEPUTUSAN, plan/masuk/, dan PR terbuka). Batas pemakaian tercapai tiga kali; subagen dilanjutkan dengan SendMessage. Untuk melanjutkan: `gh pr list --state open`.
+2026-10-25 00.00 · Permintaan pemilik (keputusan 727): kurangi antrean merge. #313 (concurrency CI) dan #314 (jalur_inti dihitung saat build) lebih dulu; sesudahnya paling banyak 2 PR halaman terbuka, halaman tidak mengubah berkas bersama (catatan di badan PR `## Catatan pengatur`), PR tanpa bentrok di-merge tanpa gabung main, CI main jaring pengaman; brief diperbarui. Empat PR halaman terbuka saat instruksi tiba (#307 2.17, #309 2.21, #311 2.18, #312 2.19) dikeringkan dulu; pelaksana baru dibuka bila PR halaman terbuka ≤ 1. Detail sebelumnya: 2026-10-25 dini hari · Tahap 2 halaman, pipa lima worktree (`../rjt-konten` 4323, `../rjt-konten2` 4325, `../rjt-konten3` 4327, `../rjt-teknis` 4324, `../rjt-teknis2` 4326). Selesai: 2.1–2.15 dan semua lab, widget, tugas teknis Tahap 2 (lab-c4a #304 terakhir). Berjalan: peninjau 2.16 (#305); pelaksana 2.17 (`tahap-2/index-adr15`), 2.18 (`tahap-2/m12-dobel-tampil`), 2.19 (`tahap-2/kursor-adr16`), 2.21 (`tahap-2/m13-migrasi-siang`). Berikutnya: 2.20 (e5-payload: rekaman masih skema lama, mungkin butuh lab), 2.22–2.33, EVAL-2, DIRI-2, lalu Tahap 3. Alokasi nomor keputusan dan ID riset per tugas: `tmp/catat-antre.md` (tidak di repo; bila hilang: konten Tahap 2 674–679 dan 810–899, peninjau 800–809 lalu 900–999, teknis 680–719, ID riset R2-145 ke atas; cek terbesar atas KEPUTUSAN, plan/masuk/, dan PR terbuka). Batas pemakaian tercapai tiga kali; subagen dilanjutkan dengan SendMessage. Untuk melanjutkan: `gh pr list --state open`.
 
 ## Pelajaran
 

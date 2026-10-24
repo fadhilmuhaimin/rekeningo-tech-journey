@@ -12,9 +12,13 @@ on:
     branches: [main, 'percobaan/**']   # branch percobaan ikut dicek tanpa membuka PR
   workflow_dispatch:
 
+# PR: run lama dibatalkan saat commit baru masuk (hemat menit). Main dan percobaan: tiap run punya grup sendiri
+# dan tidak pernah dibatalkan, supaya setiap merge diverifikasi sendiri. Satu grup bersama membuat run yang
+# menunggu digantikan run yang lebih baru walau cancel-in-progress false (dokumen GitHub "Using concurrency",
+# dicek 2026-10-24); karena itu grup push memakai github.run_id (keputusan 727).
 concurrency:
-  group: cek-${{ github.ref }}
-  cancel-in-progress: true
+  group: cek-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
