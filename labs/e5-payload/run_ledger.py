@@ -109,24 +109,34 @@ def muat():
 # ---------- salinan dari api-t2 ----------
 
 def blok_api_t2():
-    """Blok kode api-t2 yang disalin persis ke riwayat/main.go: [(nama, teks)]."""
+    """Blok kode api-t2 yang disalin persis ke riwayat/main.go: [(nama, teks)]. Gagal dengan pesan jelas bila api-t2
+    berubah sampai blok tidak ditemukan lagi."""
     repo = (API / "internal/repo/riwayat.go").read_text()
     svc = (API / "internal/service/riwayat.go").read_text()
     han = (API / "internal/handler/handler.go").read_text()
 
-    def antara(teks, nama):
-        return re.search(r"// --8<-- \[start:%s\]\n(.*?)// --8<-- \[end:%s\]" % (nama, nama), teks, re.S).group(1)
+    def cari(nama, pola, teks):
+        m = re.search(pola, teks, re.S)
+        if not m:
+            gagal(f"blok tidak ditemukan di labs/api-t2 (strukturnya berubah?): {nama}")
+        return m
 
+    def antara(nama, teks, tanda):
+        return cari(nama, r"// --8<-- \[start:%s\]\n(.*?)// --8<-- \[end:%s\]" % (tanda, tanda), teks).group(1)
+
+    n = ["struct Riwayat dan Kursor (repo/riwayat.go)",
+         "repo.Riwayat (repo/riwayat.go, bagian riwayat)",
+         "tulisKursor dan bacaKursor (service/riwayat.go, bagian kursor)",
+         "tulisJSON (handler/handler.go)",
+         "amplop response (handler/handler.go, bagian riwayat)"]
     return [
-        ("struct Riwayat dan Kursor (repo/riwayat.go)",
-         re.search(r"// Riwayat adalah satu posting.*?\n\}\n\n// Kursor menunjuk.*?\n\}\n", repo, re.S).group(0)),
-        ("repo.Riwayat (repo/riwayat.go, bagian riwayat)", antara(repo, "riwayat")),
-        ("tulisKursor dan bacaKursor (service/riwayat.go, bagian kursor)", antara(svc, "kursor").replace("repo.", "")),
-        ("tulisJSON (handler/handler.go)", re.search(r"func tulisJSON.*?\n\}\n", han, re.S).group(0)),
-        # Amplop response: di main.go isinya bernama isi (bisa daftar api atau daftar layar), selebihnya sama.
-        ("amplop response (handler/handler.go, bagian riwayat)",
-         re.search(r'tulisJSON\(w, 200, map\[string\]any\{"riwayat": daftar, "berikutnya": k\}\)', antara(han, "riwayat"))
-         .group(0).replace("daftar", "isi")),
+        (n[0], cari(n[0], r"// Riwayat adalah satu posting.*?\n\}\n\n// Kursor menunjuk.*?\n\}\n", repo).group(0)),
+        (n[1], antara(n[1], repo, "riwayat")),
+        (n[2], antara(n[2], svc, "kursor").replace("repo.", "")),
+        (n[3], cari(n[3], r"func tulisJSON.*?\n\}\n", han).group(0)),
+        # Amplop response: di main.go isinya bernama isi (bisa daftar api, daftar layar, atau penuh), selebihnya sama.
+        (n[4], cari(n[4], r'tulisJSON\(w, 200, map\[string\]any\{"riwayat": daftar, "berikutnya": k\}\)',
+                    antara(n[4], han, "riwayat")).group(0).replace("daftar", "isi")),
     ]
 
 
