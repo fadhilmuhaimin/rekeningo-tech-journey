@@ -125,6 +125,13 @@ def render(entries):
 
 
 if __name__ == "__main__":
+    _arg = sys.argv[1:]
+    if any(a in ("-h", "--help") for a in _arg):
+        print(__doc__ or "python3 tools/build_istilah.py [--check]")
+        sys.exit(0)
+    if [a for a in _arg if a != "--check"]:
+        # Tanpa --check alat ini menulis berkas: argumen asing tidak boleh sampai ke sana.
+        sys.exit(f"argumen tidak dikenal: {' '.join(a for a in _arg if a != '--check')} (pakai --check atau tanpa argumen)")
     md, js, glos = render(parse())
     if "--check" in sys.argv:
         stale = [p for p, c in ((OUT_MD, md), (OUT_JS, js), (OUT_JSON, glos)) if not p.exists() or p.read_text() != c]
