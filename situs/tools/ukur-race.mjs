@@ -2,8 +2,9 @@
 // - tebak dulu: sebelum menebak Berikutnya nonaktif, panah kanan tidak menambah langkah, hasil (role=status) kosong;
 // - keyboard: Tab mencapai semua tombol aktif dalam urutan DOM; fokus terlihat (outline >= 2 px) di tombol cara,
 //   pilihan, dan Berikutnya; Enter memilih tebakan, fokus pindah ke Berikutnya; Spasi dan panah kanan menambah langkah;
-//   di langkah terakhir fokus pindah ke tombol "Ubah satu hal"; Enter di situ memilih cara berikutnya (aria-pressed
-//   pindah) dan fokus ke pilihan tebakan; panah kiri mundur;
+//   di langkah terakhir fokus pindah ke tombol "Ubah satu hal", dan panah kiri di situ memindahkan fokus ke Berikutnya
+//   (tombolnya hilang, keputusan 715); Enter di situ memilih cara berikutnya (aria-pressed pindah) dan fokus ke pilihan
+//   tebakan; panah kiri mundur;
 // - gerak: 0 animasi saat dimuat; tanpa reduced motion setiap baris baru bergerak di frame pertamanya dan baris lama
 //   diam; dengan reduced motion 0 animasi dan fungsi sama; Sebelumnya dan ganti cara tidak bergerak;
 // - angka dari rekaman: untuk keenam cara, saldo akhir = `final` di ledger-<cara>.json, hasil tablet, langkah menunggu,
@@ -126,6 +127,16 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
   const fokusAkhir = await page.evaluate(() => document.activeElement?.closest(".rl-ganti") !== null);
   lapor(s0.includes(isiLabel(L.hasilJudul, { saldo: rp(r0.final) })) && s0.includes(L.benar) && fokusAkhir,
     `race ${nama}: hasil "${s0.split("\n")[0].slice(0, 80)}", fokus pindah ke Ubah satu hal ${fokusAkhir}`);
+
+  // Panah kiri saat fokus di Ubah satu hal: tombol itu hilang, fokus ke Berikutnya, bukan <body> (keputusan 715);
+  // panah kanan kembali ke langkah terakhir dan fokus ke Ubah satu hal lagi.
+  await page.keyboard.press("ArrowLeft");
+  const mundurFokus = { teks: await fokusTeks(page), diWidget: await page.evaluate(() => !!document.activeElement?.closest("[data-race-ledger]")) };
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(reducedMotion === "reduce" ? 0 : 300);
+  const kembaliFokus = await page.evaluate(() => document.activeElement?.closest(".rl-ganti") !== null);
+  lapor(mundurFokus.diWidget && mundurFokus.teks === L.berikutnya && kembaliFokus,
+    `race ${nama}: panah kiri di Ubah satu hal, fokus di "${mundurFokus.teks.slice(0, 40)}" (di widget ${mundurFokus.diWidget}); panah kanan kembali ke Ubah satu hal ${kembaliFokus}`);
 
   // Ubah satu hal lewat Enter: aria-pressed pindah, fokus ke pilihan; Belum tahu lewat Spasi.
   const c1 = CARA[1], r1 = REK[c1];

@@ -6,7 +6,7 @@
 // data yang sudah divalidasi dan tidak memuat Zod. Semua teks dari data/widget/race-ledger.json.
 // Keyboard: Tab ke semua tombol (elemen <button> asli), Enter/Spasi, panah kanan/kiri untuk langkah di mana pun fokus
 // berada di dalam widget. Fokus pindah ke Berikutnya sesudah menebak, dan ke tombol yang masih aktif bila tombol yang
-// sedang difokus menjadi nonaktif. Gerak: hanya baris yang baru ditambah lewat Berikutnya (masukLangkah, src/gerak/race.ts);
+// sedang difokus menjadi nonaktif atau hilang. Gerak: hanya baris yang baru ditambah lewat Berikutnya (masukLangkah, src/gerak/race.ts);
 // dengan prefers-reduced-motion tidak ada gerak, fungsi tetap.
 import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import ChipSumber from "../../widget/ChipSumber";
@@ -134,7 +134,9 @@ export default function RaceLedger({ id, data, label: L, awal }: Props) {
     const baru = mundur(i);
     if (baru === i) return false;
     setPosisi({ ...posisi, [cara]: baru });
-    if (baru === 0 && aktif(mundurRef.current)) fokus.current = "maju";
+    // Sebelumnya nonaktif di langkah 0, dan tombol Ubah satu hal hilang begitu langkah terakhir ditinggalkan (panah kiri
+    // saat fokus di tombol itu): fokus ke Berikutnya, bukan jatuh ke <body> (keputusan 715).
+    if ((baru === 0 && aktif(mundurRef.current)) || aktif(gantiRef.current)) fokus.current = "maju";
     return true;
   };
   const ulang = () => setPosisi({ ...posisi, [cara]: 0 });
