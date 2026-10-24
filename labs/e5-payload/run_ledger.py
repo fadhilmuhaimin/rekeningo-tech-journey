@@ -123,6 +123,10 @@ def blok_api_t2():
         ("repo.Riwayat (repo/riwayat.go, bagian riwayat)", antara(repo, "riwayat")),
         ("tulisKursor dan bacaKursor (service/riwayat.go, bagian kursor)", antara(svc, "kursor").replace("repo.", "")),
         ("tulisJSON (handler/handler.go)", re.search(r"func tulisJSON.*?\n\}\n", han, re.S).group(0)),
+        # Amplop response: di main.go isinya bernama isi (bisa daftar api atau daftar layar), selebihnya sama.
+        ("amplop response (handler/handler.go, bagian riwayat)",
+         re.search(r'tulisJSON\(w, 200, map\[string\]any\{"riwayat": daftar, "berikutnya": k\}\)', antara(han, "riwayat"))
+         .group(0).replace("daftar", "isi")),
     ]
 
 
@@ -225,7 +229,7 @@ def ukuran(r, versi_pg, jurnal, posting, budi, blok):
     r([f"Data: labs/b2-query/ledger_data.py dimuat ke schema {SCHEMA} lewat labs/b3-ledger/schema.sql, ditambah index",
        "  posting_riwayat (buku_id, dibuat, id) seperti labs/api-t2 (migrasi 000011).",
        f"  jurnal {ribuan(jurnal)} · posting {ribuan(posting)} · Budi (akun {BUDI}) {ribuan(budi)} posting.",
-       "Server: labs/e5-payload/riwayat/main.go (Go net/http). Query riwayat, struct, kursor `berikutnya`, dan tulisJSON",
+       "Server: labs/e5-payload/riwayat/main.go (Go net/http). Query riwayat, struct, kursor `berikutnya`, tulisJSON, dan amplop",
        f"  sama dengan labs/api-t2: {blok} blok kode diperiksa persis sama di setiap run (body diakhiri satu newline).",
        "  api-t2 sendiri tidak mengompres: 0 baris gzip, Content-Encoding, atau compress di labs/api-t2/cmd dan internal.",
        "  Kompresi di server lab adalah middleware (Go compress/gzip, level bawaan) yang menilai Accept-Encoding.",

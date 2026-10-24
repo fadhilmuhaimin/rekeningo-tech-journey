@@ -276,6 +276,7 @@ func (r Repo) riwayat(w http.ResponseWriter, req *http.Request) {
 		s := tulisKursor(*akhir)
 		k = &s
 	}
+	// Amplop {riwayat, berikutnya} seperti handler.riwayat di api-t2 (isi = daftar bentuk api, layar, atau penuh); run_ledger.py memeriksanya.
 	tulisJSON(w, 200, map[string]any{"riwayat": isi, "berikutnya": k})
 }
 

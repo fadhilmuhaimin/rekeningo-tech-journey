@@ -7,8 +7,8 @@
 Data: labs/b2-query/ledger_data.py dimuat ke schema e5_ledger lewat labs/b3-ledger/schema.sql, ditambah index
   posting_riwayat (buku_id, dibuat, id) seperti labs/api-t2 (migrasi 000011).
   jurnal 380.224 · posting 760.448 · Budi (akun 419) 3.892 posting.
-Server: labs/e5-payload/riwayat/main.go (Go net/http). Query riwayat, struct, kursor `berikutnya`, dan tulisJSON
-  sama dengan labs/api-t2: 4 blok kode diperiksa persis sama di setiap run (body diakhiri satu newline).
+Server: labs/e5-payload/riwayat/main.go (Go net/http). Query riwayat, struct, kursor `berikutnya`, tulisJSON, dan amplop
+  sama dengan labs/api-t2: 5 blok kode diperiksa persis sama di setiap run (body diakhiri satu newline).
   api-t2 sendiri tidak mengompres: 0 baris gzip, Content-Encoding, atau compress di labs/api-t2/cmd dan internal.
   Kompresi di server lab adalah middleware (Go compress/gzip, level bawaan) yang menilai Accept-Encoding.
   Waktu di JSON ditulis +07:00 (server memakai Asia/Jakarta; Asumsi). Server UTC menulis Z, 5 byte lebih pendek.
