@@ -1061,11 +1061,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.3 · Fitur: transfer antar karyawan
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.2, lab-api-t2, lab-api-t2a
 - selesai bila: halaman Fitur→teknis 2.3 sesuai `plan/CERITA-TAHAP-2.md` bagian 2 dan peta halaman Tahap 2 (★); rekaman dari `labs/api-t2`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: Keputusan 656–658 (`plan/masuk/tahap-2-transfer.md`): `tahap-2/fitur-transfer.mdx`, Inti dengan Rantai ringkas dari `transfer.txt` A dan C (4 garis di 360/375), PetaFitur empat jalur, Coba runsql `t2-transfer` (batas harian lewat view + trigger SQLite; ubah satu hal: bayar ke warung ikut dihitung, After ditolak Rp525.000), rekaman `transfer.txt` A–D, `pengaman.txt` C–D, `testing.txt` 40–43, Di stack lain kunci dua buku urut id (Go dijalankan, lima Tidak dijalankan), R2-105–R2-109. Lab diulang dari database bersih: `make -C labs/api-t2 cek` identik. Rekaman E dan tes batas harian tidak dikutip supaya jawaban M9 dan M14 tetap di 2.10/2.11 dan 2.23 (657). Halaman istilah baru: Lock; skema istilah menerima ID riset tiga digit (658).
 
 ### 2.4 · Fitur: tutup buku bulanan
 
