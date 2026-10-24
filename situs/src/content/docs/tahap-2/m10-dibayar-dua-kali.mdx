@@ -60,13 +60,13 @@ Riwayat Budi di database mencatat dua jurnal bayar untuk satu nasi goreng:
 
 Jeda 230 ms bukan penyebabnya. Jurnal 2 sudah COMMIT sebelum percobaan 2 dikirim, jadi jeda yang lebih panjang tetap berakhir dengan jurnal 3. Kedua request juga tidak tumpang tindih, sehingga lock baris buku dari [[t2-race-lock]] tidak menolong: lock mengurutkan request, tapi tidak mengenali ulangan.
 
-**Bagi server, tap kedua dan retry app sama.** Di rekaman di atas, request kedua dikirim app sendiri. Di cerita, Budi juga menekan Bayar lagi. Rekaman Tahap 1 menjalankan versi itu di server v1: app menampilkan gagal, lalu Budi menekan Bayar lagi.
+**Bagi server, tap kedua dan retry app sama.** Di rekaman di atas, request kedua dikirim app sendiri. Di cerita, Budi juga menekan Bayar lagi. Tap itu tidak punya rekaman di server ledger. Rekaman Tahap 1 menirunya dengan dua `curl` dengan body yang sama, dan catatan di rekaman menyebut response pertama tidak sampai ke HP:
 
 <Snippet file="labs/api-t1/output/sengaja-belum.txt" lines="45:58" title="Rekaman lab: labs/api-t1/output/sengaja-belum.txt" />
 
 Kedua jalur mengirim `POST /transfers` dengan body yang sama dan tanpa penanda apa pun. Server tidak bisa membedakan tap kedua dari retry, dan tidak bisa membedakan keduanya dari pembayaran baru. Itu sebabnya mengunci tombol Bayar tidak cukup.
 
-**Ledger tidak menangkapnya.** Setiap jurnal seimbang, saldo Budi tidak negatif, dan `saldo_cache` sama dengan jumlah posting: Rp50.000 di kedua kolom. Ketiga invarian dari [[t2-ledger]] terpenuhi. Setiap rupiah tertelusur; yang salah adalah jumlah niatnya, karena Budi membayar sekali dan server mencatat dua kali.
+**Ledger tidak menangkapnya.** Kedua jurnal lolos COMMIT, dan saldo Budi Rp50.000 tidak negatif. Ketiga invarian dari [[t2-ledger]] terpenuhi, dan `saldo_cache` sama dengan jumlah posting: Rp50.000 di kedua kolom. Setiap rupiah tertelusur; yang salah adalah jumlah niatnya, karena Budi membayar sekali dan server mencatat dua kali.
 
 **Kenapa app tetap harus mengulang.** Koneksi putus tidak memberi tahu app apa yang terjadi di server. Rekaman `mati-di-tengah.txt` memakai server versi lain, yang bahannya ada di [[berikutnya]]. Di percobaan 1 app melihat koneksi putus yang sama, tapi database membatalkan jurnalnya karena koneksi database diputus sebelum COMMIT:
 
@@ -80,7 +80,7 @@ Client sebaiknya tidak (SHOULD NOT) mengulang method yang tidak idempoten secara
 
 Jadi tebakan Raka setengah benar: app minggu 2 mengulang POST tanpa cara itu. Tapi mematikan retry tidak menyelesaikannya, karena Budi tetap menekan Bayar lagi. Yang kurang adalah cara itu sendiri: penanda di request yang membuat server mengenali ulangan.
 
-*Kondisi rekaman:* lab menjalankan Bayar sebagai `POST /transfers` ke akun Warung Ani (418) di schema ledger Tahap 2 (`labs/b3-ledger/schema.sql`). Di cerita, migrasi saldo lama ke ledger baru terjadi di minggu 4 ([[t2-m13]]), jadi rekaman ini menunjukkan mekanisme M10, bukan salinan server minggu 2. Rekaman Tahap 1 di atas menunjukkan hasil yang sama di tabel `transaksi` lama.
+*Kondisi rekaman:* lab menjalankan Bayar sebagai `POST /transfers` ke akun Warung Ani (418) di schema ledger Tahap 2 (`labs/b3-ledger/schema.sql`). Di cerita, migrasi saldo lama ke ledger baru terjadi di minggu 4 ([[t2-m13]]), jadi rekaman ini menunjukkan mekanisme M10, bukan salinan server minggu 2. Rekaman Tahap 1 di atas menunjukkan hasil yang sama di tabel `transaksi` lama. Saldo awal Budi di lab Rp100.000 dan Warung Ani Rp0; keduanya data lab, bukan angka naskah.
 
 </Blok>
 
@@ -92,7 +92,7 @@ Widget ini mengikuti rekaman `tanpa-key.txt` dari HP Budi sampai PostgreSQL, den
 
 Sesudah langkah terakhir, centang **Ubah satu hal: app mengirim key yang sama di kedua percobaan**. Percobaan 2 membawa penanda yang sama dengan percobaan 1, dan server mengirim ulang jawaban pertama tanpa jurnal baru (rekaman `key-per-niat.txt`). Saldo akhir Budi jadi Rp75.000.
 
-Nama header itu, `Idempotency-Key`, berasal dari Internet-Draft IETF revisi -08. Draft itu masih aktif dan belum menjadi RFC ([datatracker IETF](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/)).
+Nama header itu, `Idempotency-Key`, berasal dari Internet-Draft IETF revisi -08 (22 Oktober 2026). Per 24 Oktober 2026 draft itu masih aktif dan belum menjadi RFC ([datatracker IETF](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/)).
 
 <details>
 <summary>Rekaman lengkap kedua jalur (juga untuk pembaca tanpa JavaScript)</summary>

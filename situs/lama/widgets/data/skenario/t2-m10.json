@@ -5,7 +5,7 @@
     "jenis": "rekaman",
     "file": "labs/e3-idempotency/output/ledger/tanpa-key.txt",
     "fileVarian": "labs/e3-idempotency/output/ledger/key-per-niat.txt",
-    "catatan": "Client Dart, server Go, dan PostgreSQL 17.11 dari database bersih (make -C labs/e3-idempotency run-ledger). Sinyal putus ditiru titik henti server: koneksi app ditutup sesudah COMMIT, sebelum response terkirim. Jalur utama: server minggu 2 tanpa key (tanpa-key.txt). Ubah satu hal: key yang sama di kedua percobaan (key-per-niat.txt)."
+    "catatan": "Client Dart, server Go, dan PostgreSQL 17.11 dari database bersih (make -C labs/e3-idempotency run-ledger). Sinyal putus ditiru titik henti server: koneksi app ditutup sesudah COMMIT, sebelum response terkirim. Jalur utama: server minggu 2 tanpa key (tanpa-key.txt). Ubah satu hal: key yang sama di kedua percobaan (key-per-niat.txt). Baris kirim memotong jejak rekaman; baris tambahan di langkah 3 dan 7 (diawali tanda panah, atau riwayat Budi) diringkas dari tabel PostgreSQL di rekaman yang sama, bukan baris log."
   },
   "pengantar": "Budi membayar nasi goreng Rp25.000 dari lantai dasar. Tebak dulu, lalu ikuti request-nya dari HP Budi sampai PostgreSQL. Sesudah itu centang 'Ubah satu hal'.",
   "komponen": [
@@ -168,9 +168,9 @@
     "langkah": [
       {
         "dari": "app",
-        "judul": "Budi menekan Bayar, app membuat satu key",
+        "judul": "Budi menekan Bayar, request membawa satu key",
         "kirim": "app  Budi menekan Bayar: Rp25.000 ke Warung Ani; key niat ini 0fa0431d…",
-        "jelas": "Satu hal berubah: app membuat satu key untuk tap ini dan mengirimnya di header Idempotency-Key setiap kali request ini dikirim.",
+        "jelas": "Satu hal berubah: request membawa header Idempotency-Key, dan key yang sama dikirim setiap kali request ini diulang.",
         "layar": {
           "budi": {
             "judul": "Bayar",
