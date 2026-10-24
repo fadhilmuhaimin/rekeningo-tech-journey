@@ -1,0 +1,97 @@
+{
+  "istilah": "N+1 query",
+  "sehari_hari": "N+1 query adalah kode yang mengirim satu query untuk daftar, lalu satu query lagi untuk setiap baris di daftar itu. 20 baris berarti 21 query, padahal data berelasinya bisa diminta bersama daftar.",
+  "cerita": [
+    {
+      "rujukan": "t2-m11",
+      "teks": "Riwayat Budi mengirim 21 query untuk satu halaman 20 baris, dan laporan harian Ani mengirim 195 query untuk 194 baris."
+    },
+    {
+      "rujukan": "t2-n-plus-1",
+      "teks": "Rekaman lab membandingkan cara minggu 3 dengan satu query: 3.893 lawan 1 query untuk seluruh riwayat Budi, dengan baris yang sama."
+    }
+  ],
+  "mekanisme": [
+    "Kode mengambil daftar dengan satu query dan memegang N baris.",
+    "Untuk setiap baris, kode meminta data berelasi lewat query sendiri, atau lewat akses relasi yang dimuat lazy oleh ORM.",
+    "Jumlah query menjadi 1 + N, sama di penghitung client dan di log database. Setiap query membayar satu perjalanan ke database.",
+    "Perbaikannya meminta relasi bersama daftar: satu query dengan JOIN, atau dua query dengan relasi untuk semua baris sekaligus."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, pgx v5.11.0 lewat database/sql, PostgreSQL 17.11",
+      "teks": "`Riwayat` di api-t2 meminta daftar dan nama lawan dalam satu `QueryContext` dengan pola `LEFT JOIN LATERAL` yang sama seperti satu query di rekaman b2-query. Tanpa ORM, N+1 terlihat sebagai query di dalam `for`. `database/sql` tidak menghitung query.",
+      "rekaman": "labs/api-t2/internal/repo/riwayat.go"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-postgres (pg) 8.23.1",
+      "teks": "Tanpa ORM, N+1 adalah `await pool.query` di dalam loop, dan `Promise.all` tetap N query. Perbaikannya satu query dengan JOIN, atau `= ANY($1)` dengan array JavaScript yang diubah `prepareValue` jadi array PostgreSQL.",
+      "dokumentasi": "https://node-postgres.com/apis/pool"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "Mengakses relasi di loop memuatnya lazy, satu query per akses. `Posting::with('jurnal')` memuatnya bersama daftar. `Model::preventLazyLoading()` melempar `LazyLoadingViolationException`, dan `automaticallyEagerLoadRelationships()` memuat relasi untuk seluruh koleksi.",
+      "dokumentasi": "https://laravel.com/docs/13.x/eloquent-relationships#eager-loading"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2",
+      "teks": "Akses foreign key di loop mengirim query per objek. `select_related` memakai JOIN untuk relasi ke satu objek, `prefetch_related` memakai query terpisah. Django 6.1 menambah `fetch_mode(models.FETCH_PEERS)` yang membatch akses lazy.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/topics/db/fetch-modes/"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "Hanya relasi di `include` yang dimuat, dan setiap `includeList` menambah satu query, bukan satu per baris. N+1 muncul bila `find` dipanggil per baris di dalam loop.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/relation-queries"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "supabase-js 2.118.0, PostgREST (dokumentasi stable)",
+      "teks": "Loop di app mengirim satu request HTTP per baris. `select('id, jurnal(jenis)')` membawa relasi dalam satu API call dengan semantik left join; `!inner` membuang induk tanpa pasangan.",
+      "dokumentasi": "https://docs.postgrest.org/en/stable/references/api/resource_embedding.html"
+    }
+  },
+  "jebakan": [
+    "Mengukur dengan waktu di data kecil. Halaman pertama di rekaman memakai 30,5 ms dengan N+1 dan 27,4 ms dengan satu query, jadi selisihnya baru terlihat di 194 dan 3.892 baris.",
+    "Memperbaiki dengan JOIN biasa. JOIN biasa membuang baris yang tidak punya pasangan dan menggandakan baris yang punya beberapa pasangan, tanpa error, dan tes jumlah query tidak menangkapnya.",
+    "Memasang cache atau server lebih besar lebih dulu. Cache yang kosong mengirim query yang sama lagi, dan jumlah query tetap 1 + N."
+  ],
+  "terkait": [
+    "Eager loading",
+    "Lazy loading",
+    "ORM (Object-Relational Mapping)",
+    "Round trip",
+    "Index",
+    "Query plan"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-120",
+      "judul": "Rekaman lab b2-query: N+1 lawan satu query",
+      "rekaman": "labs/b2-query/output/ledger/n1.txt",
+      "catatan": "21, 195, dan 3.893 query dengan cara minggu 3 lawan 1 query dengan baris yang sama; waktu per permintaan sebagai pembanding."
+    },
+    {
+      "riset": "R2-121",
+      "judul": "PostgreSQL 17: Joined Tables",
+      "url": "https://www.postgresql.org/docs/17/queries-table-expressions.html",
+      "catatan": "LEFT JOIN menambah baris dengan NULL untuk baris kiri tanpa pasangan; JOIN biasa menghasilkan satu baris per pasangan."
+    },
+    {
+      "riset": "R2-123",
+      "judul": "Django 6.1: Fetch modes",
+      "url": "https://docs.djangoproject.com/en/6.1/topics/db/fetch-modes/",
+      "catatan": "FETCH_ONE, bawaan, memuat satu instance dan menjadi N+1 di loop; FETCH_PEERS memuat untuk semua instance dari QuerySet yang sama."
+    },
+    {
+      "riset": "R2-123",
+      "judul": "Laravel 13.x: Eager Loading",
+      "url": "https://laravel.com/docs/13.x/eloquent-relationships#eager-loading",
+      "catatan": "25 buku dengan relasi lazy mengirim 26 query; with() mengirim dua query."
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "istilah": "ORM (Object-Relational Mapping)",
+  "sehari_hari": "ORM adalah library yang menerjemahkan objek di kode menjadi query SQL. Kamu menulis `posting.jurnal`, dan library memutuskan query apa yang dikirim dan kapan.",
+  "cerita": [
+    {
+      "rujukan": "B2.1",
+      "teks": "Halaman Data modeling dan relasi memberi contoh relasi di Laravel dan Django, dua stack dengan ORM, di samping SQL yang ditulis sendiri di Go."
+    },
+    {
+      "rujukan": "t2-n-plus-1",
+      "teks": "ORM dengan lazy loading menyembunyikan N+1: kode hanya mengakses relasi, dan library mengirim satu query setiap akses. Repo Go Rekeningo menulis SQL sendiri, jadi query terlihat di kode."
+    }
+  ],
+  "mekanisme": [
+    "Kamu mendefinisikan model: kelas yang memetakan satu tabel, dengan relasi ke model lain.",
+    "Saat kode menjalankan query lewat model, ORM menyusun SQL dan mengubah baris hasilnya menjadi objek.",
+    "Saat kode mengakses relasi yang belum dimuat, banyak ORM mengirim query baru (lazy loading), kecuali relasi itu diminta bersama query awal (eager loading).",
+    "Jumlah query ditentukan cara kode mengakses relasi, bukan satu baris yang kelihatan. Karena itu ORM menyediakan pencegah, mode batch, atau cara menghitung query."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, pgx v5.11.0 lewat database/sql",
+      "teks": "api-t2 tidak memakai ORM: repo Go menulis SQL dengan `database/sql`, jadi setiap query terlihat di kode. N+1 hanya muncul bila query ditulis di dalam loop.",
+      "rekaman": "labs/api-t2/internal/repo/riwayat.go"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-postgres (pg) 8.23.1",
+      "teks": "node-postgres adalah driver, bukan ORM: query ditulis sendiri. ORM untuk Node bisa dipasang di atas driver ini, tapi tidak dipakai di Rekeningo dan tidak dicek di halaman ini.",
+      "dokumentasi": "https://node-postgres.com/apis/pool"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "Eloquent adalah ORM bawaan Laravel. Relasi dimuat lazy saat diakses sebagai properti, dan `with()` memuatnya bersama query induk.",
+      "dokumentasi": "https://laravel.com/docs/13.x/eloquent-relationships#eager-loading"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2",
+      "teks": "ORM bawaan Django. `select_related` dan `prefetch_related` meminta relasi bersama query awal, dan sejak 6.1 `fetch_mode()` mengatur cara akses lazy memuat data.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/ref/models/querysets/#select-related"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "Lapisan database Serverpod membuat kelas model dengan metode seperti `db.find`. Relasi hanya ikut dimuat bila ditulis di `include`.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/relation-queries"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "supabase-js 2.118.0, PostgREST (dokumentasi stable)",
+      "teks": "supabase-js bukan ORM: ia mengirim request ke PostgREST. Relasi diminta di `select`, mis. `jurnal(jenis)`, dan datang dalam satu API call.",
+      "dokumentasi": "https://docs.postgrest.org/en/stable/references/api/resource_embedding.html"
+    }
+  },
+  "jebakan": [
+    "Mengira baris `posting.jurnal` tidak mengirim query. Di ORM dengan lazy loading, baris itu mengirim query setiap kali ia dijalankan di dalam loop.",
+    "Mengira ORM selalu membuat SQL yang efisien. Hitung query per request dan baca SQL yang dikirim, karena ORM hanya mengikuti cara kamu mengakses relasi."
+  ],
+  "terkait": [
+    "N+1 query",
+    "Lazy loading",
+    "Eager loading"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-123",
+      "judul": "Laravel 13.x: Eloquent Relationships, Eager Loading",
+      "url": "https://laravel.com/docs/13.x/eloquent-relationships#eager-loading",
+      "catatan": "Relasi diakses sebagai properti dimuat lazy; with() memuatnya bersama query induk."
+    },
+    {
+      "riset": "R2-123",
+      "judul": "Django 6.1: QuerySet API, select_related dan prefetch_related",
+      "url": "https://docs.djangoproject.com/en/6.1/ref/models/querysets/#select-related",
+      "catatan": "select_related memakai JOIN untuk relasi ke satu objek; prefetch_related memakai query terpisah."
+    },
+    {
+      "riset": "R2-124",
+      "judul": "Serverpod 4.0: Relation queries",
+      "url": "https://docs.serverpod.dev/concepts/data-and-the-database/database/relation-queries",
+      "catatan": "Hanya include yang ditulis eksplisit yang dimuat; setiap includeList menambah satu query."
+    }
+  ]
+}
