@@ -263,6 +263,15 @@ window.ISTILAH = {
   "t": "ERP (Enterprise Resource Planning)",
   "u": "tahap-2/prd-v2/"
  },
+ "Eager loading": {
+  "b": "t2-n-plus-1",
+  "d": "Memuat data berelasi bersama query induknya, supaya mengakses relasi di dalam loop tidak mengirim query baru.",
+  "h": "istilah/eager-loading/",
+  "n": "2.16 N+1 query",
+  "s": "istilah-eager-loading",
+  "t": "Eager loading",
+  "u": "tahap-2/n-plus-1/"
+ },
  "Endpoint": {
   "b": "B1.1",
   "d": "Pasangan method dan path yang dilayani server, mis. POST /transfers.",
@@ -486,6 +495,15 @@ window.ISTILAH = {
   "t": "Latency",
   "u": "c-operasional/c2-observability/"
  },
+ "Lazy loading": {
+  "b": "t2-n-plus-1",
+  "d": "Memuat data berelasi baru saat kode pertama kali mengaksesnya, dengan satu query setiap akses.",
+  "h": "istilah/lazy-loading/",
+  "n": "2.16 N+1 query",
+  "s": "istilah-lazy-loading",
+  "t": "Lazy loading",
+  "u": "tahap-2/n-plus-1/"
+ },
  "Lease": {
   "b": "B10.1",
   "d": "Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis.",
@@ -610,20 +628,22 @@ window.ISTILAH = {
   "u": "tahap-1/apa-yang-dikerjakan-backend/"
  },
  "N+1": {
-  "b": "B2.4",
+  "b": "t2-n-plus-1",
   "d": "Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.",
+  "h": "istilah/n-1-query/",
   "n": "2.16 N+1 query",
   "s": "istilah-n-1-query",
   "t": "N+1 query",
-  "u": "b-fondasi/b2-4-n-plus-1/"
+  "u": "tahap-2/n-plus-1/"
  },
  "N+1 query": {
-  "b": "B2.4",
+  "b": "t2-n-plus-1",
   "d": "Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.",
+  "h": "istilah/n-1-query/",
   "n": "2.16 N+1 query",
   "s": "istilah-n-1-query",
   "t": "N+1 query",
-  "u": "b-fondasi/b2-4-n-plus-1/"
+  "u": "tahap-2/n-plus-1/"
  },
  "Nonrepeatable read": {
   "b": "t2-isolation-level",
@@ -650,12 +670,13 @@ window.ISTILAH = {
   "u": "b-fondasi/b5-2-oauth-oidc/"
  },
  "ORM": {
-  "b": "B2.1",
+  "b": "t2-n-plus-1",
   "d": "Library yang memetakan tabel database ke objek di kode, sehingga query ditulis sebagai pemanggilan method, mis. Eloquent di Laravel atau ORM bawaan Django.",
-  "n": "1.12 Data modeling dan relasi",
+  "h": "istilah/orm/",
+  "n": "2.16 N+1 query",
   "s": "istilah-orm",
   "t": "ORM (Object-Relational Mapping)",
-  "u": "tahap-1/data-modeling/"
+  "u": "tahap-2/n-plus-1/"
  },
  "Object storage": {
   "b": "B11.2",
@@ -1380,6 +1401,15 @@ window.ISTILAH = {
   "t": "Double-entry",
   "u": "tahap-2/ledger/"
  },
+ "eager loading": {
+  "b": "t2-n-plus-1",
+  "d": "Memuat data berelasi bersama query induknya, supaya mengakses relasi di dalam loop tidak mengirim query baru.",
+  "h": "istilah/eager-loading/",
+  "n": "2.16 N+1 query",
+  "s": "istilah-eager-loading",
+  "t": "Eager loading",
+  "u": "tahap-2/n-plus-1/"
+ },
  "endpoint": {
   "b": "B1.1",
   "d": "Pasangan method dan path yang dilayani server, mis. POST /transfers.",
@@ -1523,6 +1553,15 @@ window.ISTILAH = {
   "t": "Latency",
   "u": "c-operasional/c2-observability/"
  },
+ "lazy loading": {
+  "b": "t2-n-plus-1",
+  "d": "Memuat data berelasi baru saat kode pertama kali mengaksesnya, dengan satu query setiap akses.",
+  "h": "istilah/lazy-loading/",
+  "n": "2.16 N+1 query",
+  "s": "istilah-lazy-loading",
+  "t": "Lazy loading",
+  "u": "tahap-2/n-plus-1/"
+ },
  "lease": {
   "b": "B10.1",
   "d": "Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis.",
@@ -1631,12 +1670,13 @@ window.ISTILAH = {
   "u": "tahap-1/apa-yang-dikerjakan-backend/"
  },
  "n+1 query": {
-  "b": "B2.4",
+  "b": "t2-n-plus-1",
   "d": "Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.",
+  "h": "istilah/n-1-query/",
   "n": "2.16 N+1 query",
   "s": "istilah-n-1-query",
   "t": "N+1 query",
-  "u": "b-fondasi/b2-4-n-plus-1/"
+  "u": "tahap-2/n-plus-1/"
  },
  "nonrepeatable read": {
   "b": "t2-isolation-level",

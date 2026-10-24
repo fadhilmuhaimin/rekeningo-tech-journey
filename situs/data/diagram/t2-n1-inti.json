@@ -1,0 +1,42 @@
+{
+  "id": "t2-n1-inti",
+  "judul": "Jumlah query untuk riwayat Budi",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b2-query"
+  },
+  "baris": [
+    {
+      "label": "Halaman pertama, 20 baris",
+      "sub": "n1.txt bagian D",
+      "simpul": [
+        {
+          "teks": "N+1: 21 query",
+          "sub": "1 daftar + 20 nama lawan",
+          "nada": "warn"
+        },
+        {
+          "teks": "Satu query: 1 query",
+          "sub": "baris yang sama",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Seluruh riwayat, 3.892 baris",
+      "sub": "n1.txt bagian D",
+      "simpul": [
+        {
+          "teks": "N+1: 3.893 query",
+          "sub": "1 daftar + 3.892 nama lawan",
+          "nada": "warn"
+        },
+        {
+          "teks": "Satu query: 1 query",
+          "sub": "baris yang sama",
+          "nada": "good"
+        }
+      ]
+    }
+  ]
+}
