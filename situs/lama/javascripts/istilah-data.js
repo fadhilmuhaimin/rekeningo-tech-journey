@@ -51,6 +51,7 @@ window.ISTILAH = {
  "At-least-once": {
   "b": "B10.1",
   "d": "Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda.",
+  "h": "istilah/at-least-once/",
   "n": "3.3 Background job, queue, retry",
   "s": "istilah-at-least-once",
   "t": "At-least-once",
@@ -121,12 +122,13 @@ window.ISTILAH = {
   "u": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/"
  },
  "Backoff": {
-  "b": "E3",
-  "d": "Jeda yang makin panjang di antara percobaan ulang, supaya server yang sedang kesulitan tidak dibanjiri.",
+  "b": "t2-idempotency",
+  "d": "Jeda yang makin panjang di antara percobaan ulang, ditambah keacakan (jitter) supaya banyak app tidak mengulang di detik yang sama.",
+  "h": "istilah/backoff/",
   "n": "2.14 Retry dan idempotency key",
   "s": "istilah-backoff",
   "t": "Backoff",
-  "u": "e-mobile/e3-retry-idempotency/"
+  "u": "tahap-2/retry-idempotency/"
  },
  "Buku ledger": {
   "b": "t2-ledger",
@@ -400,13 +402,13 @@ window.ISTILAH = {
   "u": "tahap-1/idor-token-app/"
  },
  "Idempotency key": {
-  "b": "E3",
+  "b": "t2-idempotency",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
   "h": "istilah/idempotency-key/",
   "n": "2.14 Retry dan idempotency key",
   "s": "istilah-idempotency-key",
   "t": "Idempotency key",
-  "u": "e-mobile/e3-retry-idempotency/"
+  "u": "tahap-2/retry-idempotency/"
  },
  "Idempotent": {
   "b": "B1.3",
@@ -945,12 +947,13 @@ window.ISTILAH = {
   "u": "d-system-design/d3-consistency/"
  },
  "Retry": {
-  "b": "E3",
+  "b": "t2-idempotency",
   "d": "Mengirim ulang request yang gagal atau tidak dijawab.",
+  "h": "istilah/retry/",
   "n": "2.14 Retry dan idempotency key",
   "s": "istilah-retry",
   "t": "Retry",
-  "u": "e-mobile/e3-retry-idempotency/"
+  "u": "tahap-2/retry-idempotency/"
  },
  "Reverse proxy": {
   "b": "B11.2",
@@ -1240,6 +1243,7 @@ window.ISTILAH = {
  "at-least-once": {
   "b": "B10.1",
   "d": "Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda.",
+  "h": "istilah/at-least-once/",
   "n": "3.3 Background job, queue, retry",
   "s": "istilah-at-least-once",
   "t": "At-least-once",
@@ -1286,12 +1290,13 @@ window.ISTILAH = {
   "u": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/"
  },
  "backoff": {
-  "b": "E3",
-  "d": "Jeda yang makin panjang di antara percobaan ulang, supaya server yang sedang kesulitan tidak dibanjiri.",
+  "b": "t2-idempotency",
+  "d": "Jeda yang makin panjang di antara percobaan ulang, ditambah keacakan (jitter) supaya banyak app tidak mengulang di detik yang sama.",
+  "h": "istilah/backoff/",
   "n": "2.14 Retry dan idempotency key",
   "s": "istilah-backoff",
   "t": "Backoff",
-  "u": "e-mobile/e3-retry-idempotency/"
+  "u": "tahap-2/retry-idempotency/"
  },
  "buku ledger": {
   "b": "t2-ledger",
@@ -1476,13 +1481,13 @@ window.ISTILAH = {
   "u": "tahap-1/http/"
  },
  "idempotency key": {
-  "b": "E3",
+  "b": "t2-idempotency",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
   "h": "istilah/idempotency-key/",
   "n": "2.14 Retry dan idempotency key",
   "s": "istilah-idempotency-key",
   "t": "Idempotency key",
-  "u": "e-mobile/e3-retry-idempotency/"
+  "u": "tahap-2/retry-idempotency/"
  },
  "idempotent": {
   "b": "B1.3",
@@ -1857,12 +1862,13 @@ window.ISTILAH = {
   "u": "d-system-design/d3-consistency/"
  },
  "retry": {
-  "b": "E3",
+  "b": "t2-idempotency",
   "d": "Mengirim ulang request yang gagal atau tidak dijawab.",
+  "h": "istilah/retry/",
   "n": "2.14 Retry dan idempotency key",
   "s": "istilah-retry",
   "t": "Retry",
-  "u": "e-mobile/e3-retry-idempotency/"
+  "u": "tahap-2/retry-idempotency/"
  },
  "reverse proxy": {
   "b": "B11.2",
