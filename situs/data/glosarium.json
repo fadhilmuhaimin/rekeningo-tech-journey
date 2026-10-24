@@ -168,7 +168,7 @@
   "n": "3.3 Background job, queue, retry",
   "u": "/b-fondasi/b10-1-background-job/",
   "s": "istilah-at-least-once",
-  "h": null
+  "h": "/istilah/at-least-once/"
  },
  {
   "t": "Atomicity",
@@ -199,12 +199,12 @@
  },
  {
   "t": "Backoff",
-  "d": "Jeda yang makin panjang di antara percobaan ulang, supaya server yang sedang kesulitan tidak dibanjiri.",
-  "b": "E3",
+  "d": "Jeda yang makin panjang di antara percobaan ulang, ditambah keacakan (jitter) supaya banyak app tidak mengulang di detik yang sama.",
+  "b": "t2-idempotency",
   "n": "2.14 Retry dan idempotency key",
-  "u": "/e-mobile/e3-retry-idempotency/",
+  "u": "/tahap-2/retry-idempotency/",
   "s": "istilah-backoff",
-  "h": null
+  "h": "/istilah/backoff/"
  },
  {
   "t": "BFF (Backend for Frontend)",
@@ -407,9 +407,9 @@
  {
   "t": "Idempotency key",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
-  "b": "E3",
+  "b": "t2-idempotency",
   "n": "2.14 Retry dan idempotency key",
-  "u": "/e-mobile/e3-retry-idempotency/",
+  "u": "/tahap-2/retry-idempotency/",
   "s": "istilah-idempotency-key",
   "h": "/istilah/idempotency-key/"
  },
@@ -902,11 +902,11 @@
  {
   "t": "Retry",
   "d": "Mengirim ulang request yang gagal atau tidak dijawab.",
-  "b": "E3",
+  "b": "t2-idempotency",
   "n": "2.14 Retry dan idempotency key",
-  "u": "/e-mobile/e3-retry-idempotency/",
+  "u": "/tahap-2/retry-idempotency/",
   "s": "istilah-retry",
-  "h": null
+  "h": "/istilah/retry/"
  },
  {
   "t": "Reverse proxy",

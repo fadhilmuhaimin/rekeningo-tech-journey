@@ -43,7 +43,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Atomicity** | Jaminan bahwa semua perubahan dalam satu transaction terjadi seluruhnya atau tidak sama sekali. | [[B3.1]] |
 | **BaaS** (Backend-as-a-Service) | Layanan yang menyediakan database, auth, dan API siap pakai, mis. Supabase dan Firebase. | [[A4]] |
 | **Backfill** | Script sekali jalan yang mengisi kolom baru untuk baris lama, biasanya bertahap per batch. | [[B4.2]] |
-| **Backoff** | Jeda yang makin panjang di antara percobaan ulang, supaya server yang sedang kesulitan tidak dibanjiri. | [[E3]] |
+| **Backoff** | Jeda yang makin panjang di antara percobaan ulang, ditambah keacakan (jitter) supaya banyak app tidak mengulang di detik yang sama. | [[t2-idempotency]] |
 | **BFF** (Backend for Frontend) | Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile. | [[B11.2]] |
 | **Buku ledger** | Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya. | [[t2-ledger]] |
 | **Cache** | Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli. | [[B9]] |
@@ -66,7 +66,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Fan-out** | Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut. | [[D4b]] |
 | **FCM** (Firebase Cloud Messaging) | Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya. | [[E4]] |
 | **Foreign key** | Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada. | [[B2.1]] |
-| **Idempotency key** | Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali. | [[E3]] |
+| **Idempotency key** | Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali. | [[t2-idempotency]] |
 | **IDOR** (Insecure Direct Object Reference) | Celah saat server memakai ID dari request tanpa bertanya apakah peminta boleh menyentuh data itu. OWASP API Security menyebutnya BOLA. | [[t1-idor]] |
 | **Index** | Struktur data tambahan yang mempercepat pencarian baris, dengan biaya tulis dan ruang disk. | [[B2.3]] |
 | **Invarian** | Aturan yang harus selalu benar apa pun yang terjadi, mis. transfer tidak mengubah total saldo semua akun. | [[C1]] |
@@ -121,7 +121,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Read-your-writes** | Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal. | [[D3]] |
 | **Repeatable Read** | Isolation level yang memakai satu snapshot untuk seluruh transaction, diambil saat perintah pertama; transaction yang menulis bisa ditolak SQLSTATE 40001. | [[t2-isolation-level]] |
 | **Replication lag** | Jeda antara perubahan di database utama dan munculnya perubahan itu di replica. | [[D3]] |
-| **Retry** | Mengirim ulang request yang gagal atau tidak dijawab. | [[E3]] |
+| **Retry** | Mengirim ulang request yang gagal atau tidak dijawab. | [[t2-idempotency]] |
 | **Reverse proxy** | Server di depan aplikasi yang menerima request dari internet lalu meneruskannya, sambil mengurus hal bersama seperti TLS dan kompresi. | [[B11.2]] |
 | **RLS** (Row Level Security) | Fitur PostgreSQL yang menyaring baris berdasarkan aturan per user, dijalankan di dalam database. | [[B5.3]] |
 | **ROLLBACK** | Perintah yang membatalkan semua perubahan sejak `BEGIN`. | [[B3.1]] |
