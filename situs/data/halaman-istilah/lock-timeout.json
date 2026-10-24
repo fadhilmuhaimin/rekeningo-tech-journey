@@ -58,7 +58,7 @@
   "jebakan": [
     "`SET LOCAL` di luar transaction block hanya menghasilkan peringatan dan tidak berpengaruh. Migration yang tidak dibungkus transaction perlu `BEGIN` dan `COMMIT` sendiri.",
     "Memasang `lock_timeout` di `postgresql.conf`. Dokumentasi tidak menyarankannya karena memengaruhi semua sesi, termasuk job laporan yang memang butuh lama.",
-    "Mengira `statement_timeout` sama. `lock_timeout` hanya terjadi saat menunggu lock, dan bila `statement_timeout` tidak nol dan sama atau lebih kecil, `lock_timeout` tidak pernah sempat berlaku."
+    "Mengira `statement_timeout` sama. `lock_timeout` hanya terjadi saat menunggu lock. Bila `statement_timeout` tidak nol dan tidak lebih besar dari `lock_timeout`, statement timeout lebih dulu habis dan `lock_timeout` tidak pernah sempat berlaku."
   ],
   "terkait": [
     "Lock",

@@ -2,7 +2,7 @@
   "judul": "Tiga rilis, dua versi app",
   "sumber": "Rekaman lab · tiga-rilis.txt dan satu-langkah.txt",
   "tebakDulu": "Tebak dulu:",
-  "pertanyaan": "Backfill rilis 2 memindahkan akun per 1.000 baris dan mengunci baris-baris itu dengan SELECT ... FOR UPDATE. Saat batch pertama berjalan, Budi membayar Warung Ani dan Karyawan 420 membuka riwayat. Siapa yang menunggu batch?",
+  "pertanyaan": "Backfill rilis 2 memindahkan akun per 1.000 akun dan mengunci baris akun itu dengan SELECT ... FOR UPDATE. Saat batch pertama berjalan, Budi membayar Warung Ani dan Karyawan 420 membuka riwayat. Siapa yang menunggu batch?",
   "pilihan": [
     {
       "kunci": "keduanya",
@@ -50,7 +50,7 @@
   "ubahJudul": "Ubah satu hal: gabungkan semuanya jadi satu langkah",
   "mode": { "tiga": "Tiga rilis", "satu": "Satu langkah (rekaman M13)" },
   "kesimpulan": {
-    "tiga": "Pembayaran tetap masuk selama 1.000 akun dipindahkan, dan kedua versi app jalan di setiap fase.",
+    "tiga": "Pembayaran tetap masuk selama 1.012 akun dipindahkan, dan kedua versi app jalan di setiap fase.",
     "satu": "Tambah dan hapus dalam satu transaction. Server lama gagal sesudah COMMIT, dan kedua versi app berhenti membaca riwayat."
   },
   "catatan": {
