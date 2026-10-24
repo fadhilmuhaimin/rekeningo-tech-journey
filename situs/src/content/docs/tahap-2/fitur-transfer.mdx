@@ -78,7 +78,7 @@ Kedua buku dikunci dengan satu query, urut `id` buku:
 
 <Snippet file="labs/api-t2/internal/repo/ledger.go" region="kunci-buku" lang="go" title="labs/api-t2/internal/repo/ledger.go" />
 
-Dengan `ORDER BY` dan `FOR UPDATE`, PostgreSQL mengurutkan baris dulu, baru mengunci baris yang dikembalikan ([PostgreSQL 17, The Locking Clause](https://www.postgresql.org/docs/17/sql-select.html#SQL-FOR-UPDATE-SHARE)). Jadi kiriman Budi ke Citra dan kiriman Citra ke Budi meminta kunci dalam urutan yang sama. Mengunci dalam urutan yang konsisten adalah pertahanan terbaik terhadap deadlock menurut [PostgreSQL 17, 13.3.4](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-DEADLOCKS). Dua kiriman berlawanan arah yang bersamaan tidak direkam di lab ini.
+Dengan `ORDER BY` dan `FOR UPDATE`, PostgreSQL mengurutkan baris dulu, baru mengunci baris yang dikembalikan ([PostgreSQL 17, The Locking Clause](https://www.postgresql.org/docs/17/sql-select.html#SQL-FOR-UPDATE-SHARE)). Urutan lock yang sama untuk dua kiriman berlawanan arah adalah kesimpulan dari urutan itu: dokumentasi tidak menulis urutan pengambilan lock secara eksplisit. Mengunci dalam urutan yang konsisten adalah pertahanan terbaik terhadap deadlock menurut [PostgreSQL 17, 13.3.4](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-DEADLOCKS). Dua kiriman berlawanan arah yang bersamaan tidak direkam di lab ini.
 
 Jurnalnya sama bentuknya dengan bayar dan top-up: dua posting yang jumlahnya nol ([[t2-ledger]]). Citra bisa membuka kiriman itu lewat `GET /transfers/{id}`, endpoint yang sama dengan bayar di Tahap 1:
 
