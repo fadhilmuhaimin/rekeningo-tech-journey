@@ -12,13 +12,15 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 PY=${PYTHON:-python3}
 
-# Alat ukur Playwright dalam tiga kelompok. --layar menjalankan semuanya berurutan menurut daftar ini;
+# Alat ukur Playwright dalam empat kelompok. --layar menjalankan semuanya berurutan menurut daftar ini;
 # CI menjalankan satu kelompok per job, paralel, dari daftar yang sama (--matriks-ci), jadi laptop dan CI
 # selalu memeriksa hal yang sama. Durasi alat di CI main 5eb37bd, berurutan: kelompok pertama 257 s, kedua 309 s,
 # ketiga 279 s; seluruh gerbang 14m30 (keputusan 357). Alat baru masuk ke kelompok terpendek. Langkah "Alat ukur" di
 # CI main 3bd9850 (run 40014428595): 290 s, 417 s, 336 s; axe masuk kelompok pertama (keputusan 693).
 # Alat race (W2-race, keputusan 709) ±21 s lokal masuk kelompok pertama, yang terpendek.
-KELOMPOK_UKUR=("layar judul ilustrasi rantai axe race" "gerak erd" "diagram cls kontras luapan alur")
+# 2026-10-25: "gerak erd" kena batas 9 menit di CI main (run 40093802904: gerak ±7m54, erd terpotong); gerak tumbuh
+# tiap halaman berblok baru, jadi dipecah dari erd (empat job, keputusan 726) dan batas langkah naik ke 13 menit.
+KELOMPOK_UKUR=("layar judul ilustrasi rantai axe race" "gerak" "erd" "diagram cls kontras luapan alur")
 
 MODE="${1:-}"
 case "$MODE" in
