@@ -217,12 +217,12 @@ window.ISTILAH = {
   "u": "b-fondasi/b10-1-background-job/"
  },
  "Deadlock": {
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "d": "Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya.",
   "n": "2.11 Race condition",
   "s": "istilah-deadlock",
   "t": "Deadlock",
-  "u": "b-fondasi/b3-2-race-condition-lock/"
+  "u": "tahap-2/race-lock/"
  },
  "Debit": {
   "b": "t2-ledger",
@@ -488,12 +488,13 @@ window.ISTILAH = {
   "u": "d-system-design/d2-scaling/"
  },
  "Lock": {
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "d": "Tanda di database bahwa satu transaction sedang memakai baris atau tabel, sehingga transaction lain harus menunggu.",
+  "h": "istilah/lock/",
   "n": "2.11 Race condition",
   "s": "istilah-lock",
   "t": "Lock",
-  "u": "b-fondasi/b3-2-race-condition-lock/"
+  "u": "tahap-2/race-lock/"
  },
  "Log": {
   "b": "C2",
@@ -512,12 +513,12 @@ window.ISTILAH = {
   "u": "d-system-design/d3-consistency/"
  },
  "Lost update": {
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "d": "Perubahan yang hilang karena dua transaction membaca nilai lama yang sama lalu saling menimpa.",
   "n": "2.11 Race condition",
   "s": "istilah-lost-update",
   "t": "Lost update",
-  "u": "b-fondasi/b3-2-race-condition-lock/"
+  "u": "tahap-2/race-lock/"
  },
  "MVCC": {
   "b": "B3.3",
@@ -656,12 +657,13 @@ window.ISTILAH = {
   "u": "b-fondasi/b5-2-oauth-oidc/"
  },
  "Optimistic lock": {
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "d": "Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca.",
+  "h": "istilah/optimistic-lock/",
   "n": "2.11 Race condition",
   "s": "istilah-optimistic-lock",
   "t": "Optimistic lock",
-  "u": "b-fondasi/b3-2-race-condition-lock/"
+  "u": "tahap-2/race-lock/"
  },
  "Outbox": {
   "b": "B10.2",
@@ -833,12 +835,13 @@ window.ISTILAH = {
   "u": "tahap-1/transaction/"
  },
  "Race condition": {
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "d": "Hasil yang bergantung pada urutan dua proses yang berjalan bersamaan.",
+  "h": "istilah/race-condition/",
   "n": "2.11 Race condition",
   "s": "istilah-race-condition",
   "t": "Race condition",
-  "u": "b-fondasi/b3-2-race-condition-lock/"
+  "u": "tahap-2/race-lock/"
  },
  "Rate limit": {
   "b": "C4",
@@ -919,6 +922,15 @@ window.ISTILAH = {
   "s": "istilah-rls",
   "t": "RLS (Row Level Security)",
   "u": "tahap-1/authorization/"
+ },
+ "SELECT FOR UPDATE": {
+  "b": "t2-race-lock",
+  "d": "Perintah SQL yang membaca baris sekaligus menguncinya sampai transaction selesai, sehingga transaction lain yang mau mengubah atau mengunci baris itu menunggu.",
+  "h": "istilah/select-for-update/",
+  "n": "2.11 Race condition",
+  "s": "istilah-select-for-update",
+  "t": "SELECT FOR UPDATE",
+  "u": "tahap-2/race-lock/"
  },
  "SSE": {
   "b": "E4",
@@ -1258,12 +1270,12 @@ window.ISTILAH = {
   "u": "b-fondasi/b10-1-background-job/"
  },
  "deadlock": {
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "d": "Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya.",
   "n": "2.11 Race condition",
   "s": "istilah-deadlock",
   "t": "Deadlock",
-  "u": "b-fondasi/b3-2-race-condition-lock/"
+  "u": "tahap-2/race-lock/"
  },
  "debit": {
   "b": "t2-ledger",
@@ -1441,12 +1453,13 @@ window.ISTILAH = {
   "u": "d-system-design/d2-scaling/"
  },
  "lock": {
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "d": "Tanda di database bahwa satu transaction sedang memakai baris atau tabel, sehingga transaction lain harus menunggu.",
+  "h": "istilah/lock/",
   "n": "2.11 Race condition",
   "s": "istilah-lock",
   "t": "Lock",
-  "u": "b-fondasi/b3-2-race-condition-lock/"
+  "u": "tahap-2/race-lock/"
  },
  "log": {
   "b": "C2",
@@ -1457,12 +1470,12 @@ window.ISTILAH = {
   "u": "c-operasional/c2-observability/"
  },
  "lost update": {
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "d": "Perubahan yang hilang karena dua transaction membaca nilai lama yang sama lalu saling menimpa.",
   "n": "2.11 Race condition",
   "s": "istilah-lost-update",
   "t": "Lost update",
-  "u": "b-fondasi/b3-2-race-condition-lock/"
+  "u": "tahap-2/race-lock/"
  },
  "metric": {
   "b": "C2",
@@ -1545,12 +1558,13 @@ window.ISTILAH = {
   "u": "e-mobile/e2-offline-first/"
  },
  "optimistic lock": {
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "d": "Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca.",
+  "h": "istilah/optimistic-lock/",
   "n": "2.11 Race condition",
   "s": "istilah-optimistic-lock",
   "t": "Optimistic lock",
-  "u": "b-fondasi/b3-2-race-condition-lock/"
+  "u": "tahap-2/race-lock/"
  },
  "outbox": {
   "b": "B10.2",
@@ -1674,12 +1688,13 @@ window.ISTILAH = {
   "u": "b-fondasi/b10-1-background-job/"
  },
  "race condition": {
-  "b": "B3.2",
+  "b": "t2-race-lock",
   "d": "Hasil yang bergantung pada urutan dua proses yang berjalan bersamaan.",
+  "h": "istilah/race-condition/",
   "n": "2.11 Race condition",
   "s": "istilah-race-condition",
   "t": "Race condition",
-  "u": "b-fondasi/b3-2-race-condition-lock/"
+  "u": "tahap-2/race-lock/"
  },
  "rate limit": {
   "b": "C4",

@@ -200,7 +200,7 @@ AS $$ SELECT cast(coalesce(sum(jumlah), 0) AS bigint) FROM posting WHERE buku_id
 |---|---|---|
 | Snapshot saldo per periode | ±660 ribu posting per tahun di Tahap 2 (Asumsi naskah); lama query belum diukur | Tahap 5 |
 | Riwayat Tahap 1 sebagai posting | Potongan M4 tidak punya baris, jadi riwayat lama tidak bisa dibuat ulang tanpa menebak | Tidak dijadwalkan; tabel Tahap 1 disimpan di schema arsip |
-| Lock saat saldo diperiksa | Ledger tidak menghapus race condition | [[t2-m9]], [[B3.2]] |
+| Lock saat saldo diperiksa | Ledger tidak menghapus race condition | [[t2-m9]], [[t2-race-lock]] |
 
 </Blok>
 

@@ -1,0 +1,43 @@
+{
+  "istilah": "Optimistic lock",
+  "sehari_hari": "Membaca tanpa mengunci, lalu menulis dengan syarat \"angka ini belum diubah orang lain sejak saya baca\". Bila syarat gagal, baca lagi dan coba lagi.",
+  "cerita": [
+    {
+      "rujukan": "t2-race-lock",
+      "teks": "Opsi C ADR 13, direkam di lab dengan kolom `buku.versi`, lalu ditolak karena setiap jalur uang butuh loop retry."
+    }
+  ],
+  "mekanisme": [
+    "Baca `saldo_cache` dan `versi` tanpa lock, misalnya Rp100.000 dan versi 0.",
+    "Hitung saldo baru di kode, lalu tulis dengan `UPDATE ... SET versi = versi + 1 WHERE id = 2 AND versi = 0`.",
+    "Bila transaction lain sudah menulis duluan, UPDATE menunggu lock-nya, lalu mengubah 0 baris karena versinya sudah 1.",
+    "Kode membatalkan dan mengulang dari membaca. Di rekaman `ledger-optimistic.txt`, ulangan pertama membaca Rp30.000 dan menolak transfer Rp50.000."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira tidak ada yang menunggu. Saat menulis, UPDATE tetap mengunci baris; di rekaman, tablet menunggu lock HP sebelum mendapat 0 baris.",
+    "Retry tanpa batas. Di baris yang sering berubah, setiap percobaan bisa kalah lagi; batasi jumlah ulangan dan kembalikan konflik ke app.",
+    "Memberi syarat `versi` pada akun yang menerima banyak entri sekaligus. Konfliknya naik bersama jumlah entri; Modern Treasury menyarankan akun seperti itu tanpa syarat."
+  ],
+  "terkait": [
+    "Lock",
+    "SELECT FOR UPDATE",
+    "Race condition",
+    "Retry",
+    "Lost update"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-13",
+      "judul": "Rekaman lab b3-race: optimistic lock dengan kolom versi",
+      "rekaman": "labs/b3-race/output/ledger/ledger-optimistic.txt",
+      "catatan": "Tablet menunggu lock saat menulis, UPDATE 0, retry 1, lalu ditolak saldo kurang."
+    },
+    {
+      "riset": "R2-87",
+      "judul": "Modern Treasury: Design a Ledger for Concurrency",
+      "url": "https://docs.moderntreasury.com/ledgers/docs/handle-concurrency",
+      "catatan": "Syarat saldo atau lock_version membuat entri sinkron; akun panas sebaiknya menerima entri tanpa syarat itu."
+    }
+  ]
+}

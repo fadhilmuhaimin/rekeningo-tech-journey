@@ -1,0 +1,61 @@
+{
+  "istilah": "Race condition",
+  "sehari_hari": "Dua proses yang berjalan bersamaan sama-sama membaca angka yang sama, lalu masing-masing memutuskan dari angka itu. Hasil akhirnya bergantung pada siapa yang lebih dulu sampai, bukan pada aturan yang ditulis.",
+  "cerita": [
+    {
+      "rujukan": "t1-adr-12",
+      "teks": "Akhir Tahap 1: dua Bayar bersamaan direkam, dan satu di antaranya dijawab 500 oleh constraint, bukan oleh kode."
+    },
+    {
+      "rujukan": "t2-m9",
+      "teks": "Minggu 1 Tahap 2: Budi mengirim Rp70.000 dari HP dan Rp50.000 dari tablet, dari saldo Rp100.000, dan saldonya jadi −Rp20.000."
+    },
+    {
+      "rujukan": "t2-race-lock",
+      "teks": "Empat cara mengunci dibandingkan di lab, dan ADR 13 memilih lock baris buku di dalam transaction jurnal."
+    }
+  ],
+  "mekanisme": [
+    "Request A dan B membuka transaction masing-masing dan membaca saldo Budi: keduanya mendapat Rp100.000, karena belum ada yang `COMMIT`.",
+    "Keduanya memutuskan di kode bahwa saldo cukup, lalu menulis jurnal dan posting.",
+    "Kedua transaction `COMMIT`. Di ledger tidak ada yang tertimpa, jadi kedua potongan tersimpan dan saldo −Rp20.000 (rekaman `ledger-tanpa-lock.txt`).",
+    "Perbaikannya membuat langkah baca dan tulis tidak bisa diselipi: lock baris, UPDATE atomik bersyarat, syarat `versi`, atau isolation level SERIALIZABLE dengan retry."
+  ],
+  "stack": {
+    "lihat": "select-for-update",
+    "teks": "Di setiap stack, race condition ini ditutup dengan cara yang sama di database: contoh kode per stack ada di halaman `SELECT FOR UPDATE`."
+  },
+  "jebakan": [
+    "Mengira transaction mencegahnya. Transaction menjamin satu request utuh atau batal utuh, tapi tidak membuat request lain menunggu sebelum membaca.",
+    "Memakai `Mutex` atau lock di memori server. Lock itu hanya berlaku di satu proses, sedangkan dua request bisa datang lewat dua koneksi atau dua server.",
+    "Mengunci di akhir transaction. Di rekaman `batas.txt` bagian 3, UPDATE `saldo_cache` di akhir membuat request kedua menunggu, tapi ia sudah membaca saldo lama dan gagal dengan 23514."
+  ],
+  "terkait": [
+    "Lock",
+    "SELECT FOR UPDATE",
+    "Optimistic lock",
+    "Lost update",
+    "Transaction",
+    "Isolation level"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-10",
+      "judul": "CWE-362: Concurrent Execution using Shared Resource with Improper Synchronization",
+      "url": "https://cwe.mitre.org/data/definitions/362.html",
+      "catatan": "Ada jendela waktu saat resource bersama bisa diubah kode lain di antara membaca dan memakai."
+    },
+    {
+      "riset": "R2-10",
+      "judul": "Rekaman lab b3-race: dua transfer tanpa lock di ledger",
+      "rekaman": "labs/b3-race/output/ledger/ledger-tanpa-lock.txt",
+      "catatan": "Kedua request membaca Rp100.000, keduanya COMMIT, saldo Budi −Rp20.000."
+    },
+    {
+      "riset": "R2-88",
+      "judul": "PostgreSQL 17: Transaction Isolation",
+      "url": "https://www.postgresql.org/docs/17/transaction-iso.html",
+      "catatan": "Read Committed adalah bawaan; Serializable mencegah anomali dengan membatalkan transaction (SQLSTATE 40001) yang harus diulang app."
+    }
+  ]
+}
