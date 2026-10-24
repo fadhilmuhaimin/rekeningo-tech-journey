@@ -13,7 +13,7 @@
     {
       "teks": "akun, transaksi, dan koreksi: akun diganti buku, dan catatan uang jadi posting.",
       "benar": false,
-      "alasan": "Tabel akun tetap ada dan masih dirujuk sesi, buku, jurnal, dan kunci_idempotensi. Yang hilang dari akun hanya kolom saldo. Setiap akun mendapat satu buku: 1.012 buku akun di rekaman migrasi."
+      "alasan": "Tabel akun tetap ada dan masih dirujuk sesi, buku, jurnal, dan kunci_idempotensi. Yang hilang dari akun hanya kolom saldo. Setiap akun karyawan dan warung mendapat satu buku: 1.012 buku akun di rekaman migrasi."
     },
     {
       "teks": "topup, transaksi, dan koreksi: kejadian baru jadi jurnal, dan isi lamanya disalin ke schema arsip.",
