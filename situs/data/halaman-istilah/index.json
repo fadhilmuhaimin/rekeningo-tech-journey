@@ -67,7 +67,7 @@
     "Foreign key",
     "N+1 query",
     "Posting",
-    "Cursor pagination"
+    "Pagination kursor (keyset)"
   ],
   "sumber": [
     {

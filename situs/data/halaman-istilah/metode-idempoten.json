@@ -1,0 +1,53 @@
+{
+  "istilah": "Metode idempoten",
+  "sehari_hari": "Metode idempoten boleh dikirim ulang tanpa mengubah hasil akhir di server. Menekan hapus dua kali tetap menghasilkan satu data yang hilang, sedangkan menekan Bayar dua kali bisa membayar dua kali.",
+  "cerita": [
+    {
+      "rujukan": "t2-m10",
+      "teks": "Budi menekan Bayar lagi saat spinner lama, dan POST pembayaran dikerjakan dua kali."
+    },
+    {
+      "rujukan": "t2-idempotency",
+      "teks": "ADR 14: POST pembayaran dibuat aman diulang lewat idempotency key dan jawaban tersimpan."
+    },
+    {
+      "rujukan": "t2-kursor",
+      "teks": "GET riwayat boleh diulang kapan saja tanpa key, karena GET adalah metode safe."
+    }
+  ],
+  "mekanisme": [
+    "RFC 9110 mendefinisikan idempoten lewat efek yang dimaksud di server: efek banyak request identik sama dengan efek satu request.",
+    "PUT, DELETE, dan semua metode safe idempoten. Metode safe adalah GET, HEAD, OPTIONS, dan TRACE. POST tidak idempoten.",
+    "Client sebaiknya tidak mengulang otomatis request non-idempoten, kecuali ia tahu request itu idempoten atau belum pernah diterapkan.",
+    "POST yang mengubah uang menjadi aman diulang lewat idempotency key dan jawaban pertama yang disimpan (ADR 14)."
+  ],
+  "stack": {
+    "lihat": "idempotency-key",
+    "teks": "Sifat idempoten ditentukan HTTP, bukan stack. Cara tiap stack membaca `Idempotency-Key` untuk POST ada di halaman Idempotency key."
+  },
+  "jebakan": [
+    "Mengira idempoten berarti respons yang sama. DELETE kedua boleh dijawab 404 atau 204, selama keadaan akhirnya sama.",
+    "Menganggap PUT atau DELETE idempoten otomatis. Sifat itu harus dipenuhi kode: handler PUT yang menambah saldo di setiap panggilan melanggarnya.",
+    "Mengira POST tidak pernah boleh diulang. Dengan idempotency key dan hasil tersimpan, POST pembayaran aman diulang."
+  ],
+  "terkait": [
+    "Idempotency key",
+    "Retry",
+    "At-least-once",
+    "Pagination kursor (keyset)"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-149",
+      "judul": "RFC 9110 bagian 9.2.1 dan 9.2.2: Safe Methods dan Idempotent Methods",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#name-idempotent-methods",
+      "catatan": "GET, HEAD, OPTIONS, dan TRACE safe; PUT, DELETE, dan metode safe idempoten; client SHOULD NOT mengulang otomatis metode non-idempoten kecuali ia tahu request itu idempoten atau belum diterapkan."
+    },
+    {
+      "riset": "R2-18",
+      "judul": "Rekaman lab e3-idempotency: key per niat",
+      "rekaman": "labs/e3-idempotency/output/ledger/key-per-niat.txt",
+      "catatan": "POST yang diulang dengan key yang sama menghasilkan satu jurnal dan respons tersimpan dikirim ulang."
+    }
+  ]
+}

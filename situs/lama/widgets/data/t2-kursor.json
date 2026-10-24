@@ -1,0 +1,67 @@
+{
+  "id": "t2-kursor",
+  "title": "Riwayat Budi, lima posting per halaman, satu kiriman Rp5.000 masuk di tengah",
+  "setup": "-- Satu buku (Budi). id, lawan, dan jumlah dari rekaman pagination.txt bagian A; jam dibuat ditulis ulang sederhana (Ilustrasi).\nCREATE TABLE posting (id INTEGER PRIMARY KEY, lawan TEXT NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL);\nCREATE INDEX posting_riwayat ON posting (dibuat, id);\nINSERT INTO posting VALUES (758878, 'Karyawan 1035', 50000, '13:10:00'), (758974, 'Karyawan 1103', 25000, '13:12:00'), (759027, 'Warung 512', -15000, '13:14:00'), (759127, 'Warung 509', -5000, '13:16:00'), (759460, 'Karyawan 1135', 50000, '13:18:00'), (759615, 'Warung Ani', -8000, '13:20:00'), (759818, 'Karyawan 1233', 50000, '13:22:00'), (760028, 'Karyawan 842', 50000, '13:24:00'), (760066, 'Karyawan 961', 50000, '13:26:00');\n-- layar = posting yang sudah tampil di HP Budi\nCREATE TABLE layar (urut INTEGER PRIMARY KEY AUTOINCREMENT, id INTEGER NOT NULL);",
+  "check": "SELECT count(*) AS baris_di_layar, count(DISTINCT id) AS posting_berbeda, count(*) - count(DISTINCT id) AS ganda, (SELECT count(*) FROM posting WHERE id NOT IN (SELECT id FROM layar)) AS tidak_tampil FROM layar",
+  "predict": {
+    "q": "Budi membuka halaman 1 (lima posting terbaru). Dimas mengirim Rp5.000 ke Budi. Budi menggulir ke halaman 2. Berapa posting yang tampil dua kali di panel OFFSET dan di panel kursor?",
+    "options": [
+      "Tidak ada di keduanya",
+      "Satu di OFFSET, tidak ada di kursor",
+      "Satu di keduanya",
+      "Satu di kursor, tidak ada di OFFSET"
+    ],
+    "answer": 1,
+    "explain": "OFFSET 5 menghitung posisi saat query dijalankan. Kiriman Dimas masuk di atas, jadi posting 759460 yang tadi nomor 5 kini nomor 6 dan tampil lagi di halaman 2. Kursor meminta posting sesudah (13:18:00, 759460), jadi kiriman baru tidak menggeser apa pun. Rekaman PostgreSQL pagination.txt bagian A mencatat hal yang sama: 10 baris di layar, 9 posting berbeda."
+  },
+  "panels": {
+    "before": {
+      "label": "Before: OFFSET (nomor halaman)",
+      "onError": "stop",
+      "steps": [
+        {
+          "sql": "INSERT INTO layar (id) SELECT id FROM posting ORDER BY dibuat DESC, id DESC LIMIT 5 OFFSET 0 RETURNING id",
+          "note": "halaman 1"
+        },
+        {
+          "sql": "INSERT INTO posting VALUES (760451, 'Dimas', 5000, '13:30:00')",
+          "note": "Dimas mengirim Rp5.000 ke Budi"
+        },
+        {
+          "sql": "INSERT INTO layar (id) SELECT id FROM posting ORDER BY dibuat DESC, id DESC LIMIT 5 OFFSET 5 RETURNING id",
+          "note": "halaman 2: lewati lima baris dari atas"
+        }
+      ]
+    },
+    "after": {
+      "label": "After: kursor (dibuat, id)",
+      "onError": "stop",
+      "steps": [
+        {
+          "sql": "INSERT INTO layar (id) SELECT id FROM posting ORDER BY dibuat DESC, id DESC LIMIT 5 RETURNING id",
+          "note": "halaman 1; kursor = baris terakhir, (13:18:00, 759460)"
+        },
+        {
+          "sql": "INSERT INTO posting VALUES (760451, 'Dimas', 5000, '13:30:00')",
+          "note": "Dimas mengirim Rp5.000 ke Budi"
+        },
+        {
+          "sql": "INSERT INTO layar (id) SELECT id FROM posting WHERE (dibuat, id) < ('13:18:00', 759460) ORDER BY dibuat DESC, id DESC LIMIT 5 RETURNING id",
+          "note": "halaman 2: hanya yang sesudah kursor; tabel ini tinggal empat baris"
+        },
+        {
+          "sql": "INSERT INTO layar (id) SELECT id FROM posting WHERE (dibuat, id) > ('13:26:00', 760066) ORDER BY dibuat, id RETURNING id",
+          "note": "tarik ke bawah: lebih baru dari baris pertama halaman 1"
+        }
+      ]
+    }
+  },
+  "toggles": [
+    {
+      "label": "transaksi Dimas mulai pukul 13:23:00 tetapi baru COMMIT sesudah halaman 1 dibaca",
+      "pairs": [
+        ["'13:30:00'", "'13:23:00'"]
+      ]
+    }
+  ]
+}
