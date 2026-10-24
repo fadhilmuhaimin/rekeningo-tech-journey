@@ -240,3 +240,8 @@ Pola per halaman: branch `tahap-1/<slug>` dari `main`; lab dulu bila perlu (PR s
 
 - Pipa paralel butuh nomor per tugas untuk keputusan DAN ID riset (R2-36 dipakai dua PR); alat ukur bisa lolos palsu bila persiapannya diam-diam gagal (axe: hasil terpangkas tanpa `incomplete`, path 404 lolos), jadi setiap alat diuji mutasi (#283). Widget runsql memakai SQLite (sql.js), bukan PGlite (2.4).
 - Subagen yang melapor selesai tetapi masih punya proses latar (watch CI) bisa bangun di worktree yang sudah dipakai tugas lain: hentikan dengan TaskStop; brief meminta proses latar dihentikan sebelum melapor. `client:visible` di details tertutup menunda island; details tertutup disembunyikan content-visibility; simpul Rantai diawali angka sesudah huruf bagian terbaca ID internal (2026-10-24).
+
+## Pelajaran (dipindah dari MEMORI 2026-10-25)
+
+- Saat batas pemakaian tercapai, subagen berhenti di tengah dan dilanjutkan dengan SendMessage dari transkripnya. Pipa paralel butuh koordinasi istilah dan halaman lama (`lebur_ke`): pengatur meneruskan keputusan satu PR ke PR yang berjalan bersamaan. Peninjau terus menemukan cacat nyata (kunci non-atomik, klaim pre-mortem salah, istilah membocorkan jawaban M9).
+- Satu halaman Tahap 2 ±3 jam pelaksana + peninjau; peninjau menemukan cacat nyata di setiap halaman (klaim melebihi rekaman, tooltip dua arti, navigasi membuka versi lama, kunci non-atomik). Cek hasil CI dengan `gh pr checks` TANPA --watch; alat yang mengubah repo menolak argumen asing (725); teks Inti pendek menjaga CLS mode font telat (2.7, 2.14); `cek_id_tampil.py` menyambung node DOM tanpa spasi ("A"+"1 query" = "A1").
