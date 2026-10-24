@@ -1305,3 +1305,10 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .gr .qr-angka { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); }
 .sl-markdown-content .gr :is(.gr-baris, .tb-pilihan, .qr-pilih, .qr-angka) > * + * { margin-top: 0; }
 @media (max-width: 30em) { .sl-markdown-content .gr .qr-angka { grid-template-columns: 1fr; } }
+/* Widget tes merge (M14, keputusan 826): memakai tb-* (tebak), qr-* (ubah satu hal), dan bb-table; tm-* hanya untuk tabel hasil. */
+.sl-markdown-content table.tm-tabel { width: 100%; margin: 0.6rem 0 0.4rem; }
+.sl-markdown-content table.tm-tabel caption { text-align: left; caption-side: top; padding-bottom: 0.3rem; color: var(--teks-2); font-size: var(--rk-ui-kecil); }
+.sl-markdown-content table.tm-tabel th[scope="row"] { background: none; font-weight: 600; }
+.sl-markdown-content table.tm-tabel td { vertical-align: top; }
+.sl-markdown-content table.tm-tabel td .bb-chip { display: block; width: fit-content; margin-bottom: 0.25rem; }
+.sl-markdown-content .tm :is(.tb-pilihan, .qr-pilih) > * + * { margin-top: 0; }
