@@ -1,0 +1,51 @@
+# Lab 2.24 · CI Tahap 2 (keputusan 831). Contoh berkas; tidak dijalankan di GitHub dalam panduan ini.
+# Disalin ke .github/workflows/ci.yml. Nama job "tes" adalah nama status check yang diwajibkan di branch protection.
+# Langkah "Tes aturan uang dengan PostgreSQL sungguhan" dijalankan lab apa adanya (tim.txt bagian E);
+# service container dan "Siapkan skema tes" tidak dijalankan di sana: lab memakai PostgreSQL docker compose dan buat_schema_tes() di run.py.
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  tes:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: lab
+          POSTGRES_PASSWORD: lab
+          POSTGRES_DB: lab
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - name: Siapkan skema tes
+        # Menjalankan migrasi/*.up.sql berurutan pada schema tahap2_tes (di repo Rekeningo: 000001 sampai 000014).
+        run: ./tools/siapkan-skema-tes.sh
+      # ADR 18: tes aturan uang tidak boleh dilewati. TES_DB_WAJIB=1 menggagalkan go test bila database tidak ada,
+      # dan baris --- SKIP di keluaran menggagalkan langkah ini walau go test keluar 0.
+      - name: Tes aturan uang dengan PostgreSQL sungguhan
+        env:
+          TES_DB_WAJIB: "1"
+          TEST_DATABASE_URL: postgres://lab:lab@localhost:5432/lab?search_path=tahap2_tes
+        run: |
+          set +e
+          go test -v -count=1 -p 1 ./... > tes.txt 2>&1
+          status=$?
+          echo "lolos=$(grep -c '^--- PASS' tes.txt) gagal=$(grep -c '^--- FAIL' tes.txt) dilewati=$(grep -c '^--- SKIP' tes.txt)"
+          grep -E '^(--- (FAIL|SKIP)|TES_DB_WAJIB)' tes.txt
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          if grep -q '^--- SKIP' tes.txt; then echo "ada tes yang dilewati"; exit 1; fi

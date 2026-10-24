@@ -1,0 +1,164 @@
+# Lab api-t2 · tim: review, tes wajib, dan main yang dilindungi (ADR 18)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap2 · server Go di 127.0.0.1:18093
+# Rekaman dari database bersih: make -C labs/api-t2 run (keputusan 408).
+# Bagian A sampai D memakai file contoh 30 baris di folder sementara, bukan kode labs/api-t2 (git version 2.50.1).
+# GitHub tidak dijalankan: aturan 'branch harus mutakhir' dimainkan git dan go test di folder sementara.
+
+# --- A. Tanpa proses: dua cabang masuk ke main, tidak ada yang menjalankan tes sebelum merge ---
+# Tes di repo contoh: hanya TestPeriksaBatas, yang memanggil periksaBatas langsung (keadaan minggu 5).
+$ git merge --ff-only raka
+Updating <hash>..<hash>
+Fast-forward
+ kirim.go | 3 ---
+ 1 file changed, 3 deletions(-)
+$ git merge --no-edit nadia
+Auto-merging kirim.go
+Merge made by the 'ort' strategy.
+ kirim.go | 3 ---
+ 1 file changed, 3 deletions(-)
+# pemanggil periksaBatas di Kirim dan catatJurnal: 0
+$ go test -v -count=1 ./...   # main, dijalankan sesudah kedua merge
+# exit status 0: 1 lolos, 0 gagal, 0 dilewati
+
+# --- B. Review manual saja: tiap PR dibaca satu orang, tes yang ada hanya menguji fungsi ---
+$ git diff --shortstat main raka   # yang dibaca pereview untuk PR Raka
+ 1 file changed, 3 deletions(-)
+$ git diff --shortstat main nadia   # yang dibaca pereview untuk PR Nadia
+ 1 file changed, 3 deletions(-)
+$ go test -v -count=1 ./...   # PR Raka
+# exit status 0: 1 lolos, 0 gagal, 0 dilewati
+$ go test -v -count=1 ./...   # PR Nadia
+# exit status 0: 1 lolos, 0 gagal, 0 dilewati
+# Kedua PR disetujui dan CI hijau. Merge:
+$ git merge --ff-only raka
+Updating <hash>..<hash>
+Fast-forward
+ kirim.go | 3 ---
+ 1 file changed, 3 deletions(-)
+$ git merge --no-edit nadia
+Auto-merging kirim.go
+Merge made by the 'ort' strategy.
+ kirim.go | 3 ---
+ 1 file changed, 3 deletions(-)
+$ go test -v -count=1 ./...   # main, sesudah kedua merge
+# exit status 0: 1 lolos, 0 gagal, 0 dilewati
+# pemanggil periksaBatas di Kirim dan catatJurnal: 0
+
+# --- C. Review, tes wajib lewat Kirim, dan aturan 'branch harus mutakhir' sebelum merge ---
+# Tes di repo contoh: TestPeriksaBatas ditambah TestKirimMenolakLewatBatas, yang memanggil Kirim.
+$ go test -v -count=1 ./...   # PR Raka
+# exit status 0: 2 lolos, 0 gagal, 0 dilewati
+$ git merge --ff-only raka
+Updating <hash>..<hash>
+Fast-forward
+ kirim.go | 3 ---
+ 1 file changed, 3 deletions(-)
+$ go test -v -count=1 ./...   # PR Nadia, CI terakhir dari sebelum PR Raka masuk
+# exit status 0: 2 lolos, 0 gagal, 0 dilewati
+$ git log --oneline nadia..main   # commit di main yang belum ada di PR Nadia
+<hash> Hapus pemeriksaan batas di Kirim: catatJurnal sudah memeriksanya
+# Aturan 'harus mutakhir': PR Nadia tidak bisa di-merge sebelum diperbarui dengan main.
+$ git merge --no-edit main   # Nadia memperbarui PR-nya
+Auto-merging kirim.go
+Merge made by the 'ort' strategy.
+ kirim.go | 3 ---
+ 1 file changed, 3 deletions(-)
+$ go test -v -count=1 ./...   # PR Nadia sesudah diperbarui dengan main
+=== RUN   TestKirimMenolakLewatBatas
+    kirim_test.go:19: Kirim lewat batas: ingin ErrBatasHarian, dapat <nil>
+--- FAIL: TestKirimMenolakLewatBatas
+# exit status 1: 1 lolos, 1 gagal, 0 dilewati
+# CI merah: PR Nadia tidak di-merge. Main tetap seperti sesudah merge Raka.
+$ go test -v -count=1 ./...   # main
+# exit status 0: 2 lolos, 0 gagal, 0 dilewati
+# pemanggil periksaBatas di Kirim dan catatJurnal: 1
+
+# --- C2. Aturan yang sama tanpa 'branch harus mutakhir': CI PR Nadia hijau, hasil gabungan tidak diuji sebelum merge ---
+$ go test -v -count=1 ./...   # PR Raka
+# exit status 0: 2 lolos, 0 gagal, 0 dilewati
+$ git merge --ff-only raka
+Updating <hash>..<hash>
+Fast-forward
+ kirim.go | 3 ---
+ 1 file changed, 3 deletions(-)
+$ go test -v -count=1 ./...   # PR Nadia, CI terakhir dari sebelum PR Raka masuk
+# exit status 0: 2 lolos, 0 gagal, 0 dilewati
+$ git merge --no-edit nadia
+Auto-merging kirim.go
+Merge made by the 'ort' strategy.
+ kirim.go | 3 ---
+ 1 file changed, 3 deletions(-)
+$ go test -v -count=1 ./...   # main, sesudah merge
+=== RUN   TestKirimMenolakLewatBatas
+    kirim_test.go:19: Kirim lewat batas: ingin ErrBatasHarian, dapat <nil>
+--- FAIL: TestKirimMenolakLewatBatas
+# exit status 1: 1 lolos, 1 gagal, 0 dilewati
+# pemanggil periksaBatas di Kirim dan catatJurnal: 0
+
+# --- D. Trunk-based: commit langsung ke main, review sesudahnya; tes berjalan di main sesudah tiap commit ---
+$ git merge --ff-only raka   # commit Raka langsung ke main
+Updating <hash>..<hash>
+Fast-forward
+ kirim.go | 3 ---
+ 1 file changed, 3 deletions(-)
+$ go test -v -count=1 ./...   # main, sesudah commit Raka
+# exit status 0: 2 lolos, 0 gagal, 0 dilewati
+$ git merge --no-edit nadia   # commit Nadia langsung ke main
+Auto-merging kirim.go
+Merge made by the 'ort' strategy.
+ kirim.go | 3 ---
+ 1 file changed, 3 deletions(-)
+$ go test -v -count=1 ./...   # main, sesudah commit Nadia
+=== RUN   TestKirimMenolakLewatBatas
+    kirim_test.go:19: Kirim lewat batas: ingin ErrBatasHarian, dapat <nil>
+--- FAIL: TestKirimMenolakLewatBatas
+# exit status 1: 1 lolos, 1 gagal, 0 dilewati
+# Kode tanpa pemeriksaan sudah ada di main saat CI merah; review sesudahnya membaca commit yang sudah masuk.
+# pemanggil periksaBatas di Kirim dan catatJurnal: 0
+
+# --- E. Tes aturan uang di api-t2 dengan PostgreSQL sungguhan: langkah CI dari deploy/ci.yml ---
+# Langkah CI dijalankan apa adanya di salinan labs/api-t2 (folder sementara). TES_DB_WAJIB=1 dibaca wajib_test.go.
+
+# E1. Tanpa TES_DB_WAJIB dan tanpa database: tes dilewati dan go test keluar 0 (kebiasaan lama)
+$ go test -v -count=1 -p 1 ./internal/service
+# exit status 0: 8 lolos, 0 gagal, 12 dilewati
+
+# E2. Langkah CI tanpa database: gagal keras dengan pesan, tidak ada tes yang dilewati diam-diam
+$ <langkah 'Tes aturan uang dengan PostgreSQL sungguhan' dari deploy/ci.yml>   # kode asli, tanpa database
+# TES_DB_WAJIB=1, TEST_DATABASE_URL tidak diisi
+lolos=0 gagal=0 dilewati=0
+TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong: tes yang butuh PostgreSQL tidak boleh dilewati
+# exit status 1
+
+# E3. Langkah CI dengan database, kode asli
+$ <langkah 'Tes aturan uang dengan PostgreSQL sungguhan' dari deploy/ci.yml>   # kode asli, dengan database
+# TES_DB_WAJIB=1 TEST_DATABASE_URL=<schema tahap2_tes>
+lolos=20 gagal=0 dilewati=0
+# exit status 0
+
+# E4. Langkah CI dengan database, kode tanpa pemeriksaan batas harian (keadaan sesudah merge M14)
+$ <langkah 'Tes aturan uang dengan PostgreSQL sungguhan' dari deploy/ci.yml>   # tanpa pemeriksaan, dengan database
+# TES_DB_WAJIB=1 TEST_DATABASE_URL=<schema tahap2_tes>
+lolos=18 gagal=2 dilewati=0
+--- FAIL: TestKirimBatasHarian
+--- FAIL: TestKirimTidakMembedakanNomor
+# exit status 1
+
+# E5. Sama dengan E4, tetapi dua tes yang menjaga aturan diberi t.Skip ("sementara: tes ini sering merah di CI")
+$ TEST_DATABASE_URL=<schema tahap2_tes> go test -v -count=1 -p 1 ./internal/service   # go test biasa, tanpa penjaga
+# exit status 0: 18 lolos, 0 gagal, 2 dilewati
+$ <langkah 'Tes aturan uang dengan PostgreSQL sungguhan' dari deploy/ci.yml>   # tanpa pemeriksaan, dua tes dilewati, dengan database
+# TES_DB_WAJIB=1 TEST_DATABASE_URL=<schema tahap2_tes>
+lolos=18 gagal=0 dilewati=2
+--- SKIP: TestKirimBatasHarian
+--- SKIP: TestKirimTidakMembedakanNomor
+ada tes yang dilewati
+# exit status 1
+
+# --- F. Ringkasan: empat aturan pada kejadian yang sama ---
+# aturan | tes yang ada | CI di PR Raka | CI di PR Nadia | CI pada hasil gabungan | merge PR Nadia | go test di main | pemanggil periksaBatas
+A. Tanpa proses | fungsi | tidak ada | tidak ada | tidak ada | diterima | lolos | 0
+B. Review manual saja | fungsi | lolos | lolos | lolos | diterima | lolos | 0
+C. Review, tes wajib, dan mutakhir | lewat Kirim | lolos | lolos | gagal | ditolak | lolos | 1
+C2. Tes wajib, tanpa mutakhir | lewat Kirim | lolos | lolos | tidak ada | diterima | gagal | 0
+D. Trunk-based, review sesudah | lewat Kirim | tidak ada | tidak ada | gagal | diterima | gagal | 0

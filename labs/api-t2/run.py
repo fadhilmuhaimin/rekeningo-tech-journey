@@ -1146,6 +1146,298 @@ def rekam_m14():
         rekam_batas_hilang(tmp)
 
 
+# ---------- tim.txt ----------
+
+TES_FUNGSI = '''package contoh
+
+import (
+	"errors"
+	"testing"
+)
+
+func TestPeriksaBatas(t *testing.T) {
+	if err := periksaBatas(500_000, 1, 500_000); !errors.Is(err, ErrBatasHarian) {
+		t.Fatalf("periksaBatas lewat batas: ingin ErrBatasHarian, dapat %v", err)
+	}
+	if err := periksaBatas(0, 500_000, 500_000); err != nil {
+		t.Fatalf("periksaBatas tepat batas: %v", err)
+	}
+}
+'''
+TES_KIRIM = '''
+func TestKirimMenolakLewatBatas(t *testing.T) {
+	if err := Kirim(500_000, 1, 500_000); !errors.Is(err, ErrBatasHarian) {
+		t.Fatalf("Kirim lewat batas: ingin ErrBatasHarian, dapat %v", err)
+	}
+}
+'''
+LANGKAH_CI = "Tes aturan uang dengan PostgreSQL sungguhan"
+TES_DILEWATI = ("TestKirimBatasHarian", "TestKirimTidakMembedakanNomor")
+ATURAN_TIM = []   # baris ringkasan bagian F: satu per aturan, diisi berurutan oleh skenario
+
+
+def buat_main_contoh(tmp, nama, dengan_tes_kirim):
+    """Repo contoh bagian A m14.txt ditambah tes: hanya fungsi (keadaan minggu 5), atau fungsi dan lewat Kirim."""
+    d = tmp / nama
+    d.mkdir()
+    (d / "go.mod").write_text("module contoh\n\ngo 1.27.1\n")
+    (d / "kirim.go").write_text(CONTOH_GO)
+    (d / "kirim_test.go").write_text(TES_FUNGSI + (TES_KIRIM if dengan_tes_kirim else ""))
+    git(d, "init", "-q", "-b", "main")
+    git(d, "add", ".")
+    git(d, "commit", "-q", "-m", "Kirim dan catatJurnal sama-sama memeriksa batas harian")
+    return d
+
+
+def buat_cabang_tim(d):
+    """Cabang raka menghapus salinan di Kirim, cabang nadia di catatJurnal; keduanya dari main yang sama."""
+    git(d, "switch", "-q", "-c", "raka")
+    s = (d / "kirim.go").read_text()
+    awal = s.index("func Kirim(")
+    harap(s[awal:].count(PEMANGGIL), 2, "dua pemanggil di Kirim dan catatJurnal")
+    (d / "kirim.go").write_text(s[:awal] + s[awal:].replace(PEMANGGIL, "", 1))
+    git(d, "commit", "-q", "-am", "Hapus pemeriksaan batas di Kirim: catatJurnal sudah memeriksanya")
+    git(d, "switch", "-q", "main")
+    git(d, "switch", "-q", "-c", "nadia")
+    s = (d / "kirim.go").read_text()
+    akhir = s.rindex(PEMANGGIL)
+    (d / "kirim.go").write_text(s[:akhir] + s[akhir + len(PEMANGGIL):])
+    git(d, "commit", "-q", "-am", "Hapus pemeriksaan batas di catatJurnal: Kirim sudah memeriksanya", nama="Nadia")
+    git(d, "switch", "-q", "main")
+
+
+def ci_contoh(d, di):
+    """CI sederhana: go test -v di cabang yang sedang aktif. Mencatat hasilnya; mengembalikan 'lolos' atau 'gagal'."""
+    r = subprocess.run(["go", "test", "-v", "-count=1", "./..."], cwd=d, env=ENV, capture_output=True, text=True)
+    teks = (r.stdout + r.stderr).replace("\t", "  ")
+    teks = re.sub(r" \(\d+\.\d+s\)", "", teks)
+    lolos, gagal_n, lewat, daftar = hitung_tes(teks)
+    catat(f"$ go test -v -count=1 ./...   # {di}")
+    if gagal_n:
+        catat("\n".join(blok_gagal(teks)))
+    catat(f"# exit status {r.returncode}: {lolos} lolos, {gagal_n} gagal, {lewat} dilewati")
+    harap((r.returncode == 0), (gagal_n == 0), "exit status sesuai jumlah gagal")
+    return "lolos" if r.returncode == 0 else "gagal"
+
+
+def pemanggil_batas(d):
+    return (d / "kirim.go").read_text().count("periksaBatas(") - 1   # kurangi definisinya
+
+
+def baris_aturan(aturan, tes, pr_raka, pr_nadia, gabungan, merge, main_go_test, pemanggil):
+    ATURAN_TIM.append(f"{aturan} | {tes} | {pr_raka} | {pr_nadia} | {gabungan} | {merge} | {main_go_test} | {pemanggil}")
+
+
+def rekam_aturan_a(tmp):
+    bagian("A. Tanpa proses: dua cabang masuk ke main, tidak ada yang menjalankan tes sebelum merge")
+    catat("# Tes di repo contoh: hanya TestPeriksaBatas, yang memanggil periksaBatas langsung (keadaan minggu 5).")
+    d = buat_main_contoh(tmp, "a", dengan_tes_kirim=False)
+    buat_cabang_tim(d)
+    catat("$ git merge --ff-only raka")
+    catat(git(d, "merge", "--ff-only", "raka"))
+    catat("$ git merge --no-edit nadia")
+    catat(git(d, "merge", "--no-edit", "nadia", nama="Nadia"))
+    catat(f"# pemanggil periksaBatas di Kirim dan catatJurnal: {pemanggil_batas(d)}")
+    hasil = ci_contoh(d, "main, dijalankan sesudah kedua merge")
+    harap((hasil, pemanggil_batas(d)), ("lolos", 0), "aturan A: main hijau tanpa pemeriksaan")
+    baris_aturan("A. Tanpa proses", "fungsi", "tidak ada", "tidak ada", "tidak ada", "diterima", hasil, pemanggil_batas(d))
+
+
+def rekam_aturan_b(tmp):
+    bagian("B. Review manual saja: tiap PR dibaca satu orang, tes yang ada hanya menguji fungsi")
+    d = buat_main_contoh(tmp, "b", dengan_tes_kirim=False)
+    buat_cabang_tim(d)
+    for nama in ("raka", "nadia"):
+        catat(f"$ git diff --shortstat main {nama}   # yang dibaca pereview untuk PR {nama.capitalize()}")
+        catat(git(d, "diff", "--shortstat", "main", nama))
+    hasil = {}
+    for nama in ("raka", "nadia"):
+        git(d, "switch", "-q", nama)
+        hasil[nama] = ci_contoh(d, f"PR {nama.capitalize()}")
+        git(d, "switch", "-q", "main")
+    catat("# Kedua PR disetujui dan CI hijau. Merge:")
+    catat("$ git merge --ff-only raka")
+    catat(git(d, "merge", "--ff-only", "raka"))
+    catat("$ git merge --no-edit nadia")
+    catat(git(d, "merge", "--no-edit", "nadia", nama="Nadia"))
+    gabungan = ci_contoh(d, "main, sesudah kedua merge")
+    catat(f"# pemanggil periksaBatas di Kirim dan catatJurnal: {pemanggil_batas(d)}")
+    harap((hasil["raka"], hasil["nadia"], gabungan, pemanggil_batas(d)), ("lolos", "lolos", "lolos", 0), "aturan B")
+    baris_aturan("B. Review manual saja", "fungsi", hasil["raka"], hasil["nadia"], gabungan, "diterima", gabungan, pemanggil_batas(d))
+
+
+def rekam_aturan_c(tmp):
+    bagian("C. Review, tes wajib lewat Kirim, dan aturan 'branch harus mutakhir' sebelum merge")
+    catat("# Tes di repo contoh: TestPeriksaBatas ditambah TestKirimMenolakLewatBatas, yang memanggil Kirim.")
+    d = buat_main_contoh(tmp, "c", dengan_tes_kirim=True)
+    buat_cabang_tim(d)
+    git(d, "switch", "-q", "raka")
+    pr_raka = ci_contoh(d, "PR Raka")
+    git(d, "switch", "-q", "main")
+    catat("$ git merge --ff-only raka")
+    catat(git(d, "merge", "--ff-only", "raka"))
+    git(d, "switch", "-q", "nadia")
+    pr_nadia = ci_contoh(d, "PR Nadia, CI terakhir dari sebelum PR Raka masuk")
+    catat("$ git log --oneline nadia..main   # commit di main yang belum ada di PR Nadia")
+    tertinggal = git(d, "log", "--oneline", "nadia..main")
+    catat(re.sub(r"^[0-9a-f]+ ", "<hash> ", tertinggal, flags=re.M))
+    harap(tertinggal.count("\n") + 1, 1, "PR Nadia tertinggal satu commit dari main")
+    catat("# Aturan 'harus mutakhir': PR Nadia tidak bisa di-merge sebelum diperbarui dengan main.")
+    catat("$ git merge --no-edit main   # Nadia memperbarui PR-nya")
+    catat(git(d, "merge", "--no-edit", "main", nama="Nadia"))
+    gabungan = ci_contoh(d, "PR Nadia sesudah diperbarui dengan main")
+    catat("# CI merah: PR Nadia tidak di-merge. Main tetap seperti sesudah merge Raka.")
+    git(d, "switch", "-q", "main")
+    main_tes = ci_contoh(d, "main")
+    catat(f"# pemanggil periksaBatas di Kirim dan catatJurnal: {pemanggil_batas(d)}")
+    harap((pr_raka, pr_nadia, gabungan, main_tes, pemanggil_batas(d)), ("lolos", "lolos", "gagal", "lolos", 1), "aturan C")
+    baris_aturan("C. Review, tes wajib, dan mutakhir", "lewat Kirim", pr_raka, pr_nadia, gabungan, "ditolak", main_tes, pemanggil_batas(d))
+
+    bagian("C2. Aturan yang sama tanpa 'branch harus mutakhir': CI PR Nadia hijau, hasil gabungan tidak diuji sebelum merge")
+    d = buat_main_contoh(tmp, "c2", dengan_tes_kirim=True)
+    buat_cabang_tim(d)
+    git(d, "switch", "-q", "raka")
+    pr_raka = ci_contoh(d, "PR Raka")
+    git(d, "switch", "-q", "main")
+    catat("$ git merge --ff-only raka")
+    catat(git(d, "merge", "--ff-only", "raka"))
+    git(d, "switch", "-q", "nadia")
+    pr_nadia = ci_contoh(d, "PR Nadia, CI terakhir dari sebelum PR Raka masuk")
+    git(d, "switch", "-q", "main")
+    catat("$ git merge --no-edit nadia")
+    catat(git(d, "merge", "--no-edit", "nadia", nama="Nadia"))
+    main_tes = ci_contoh(d, "main, sesudah merge")
+    catat(f"# pemanggil periksaBatas di Kirim dan catatJurnal: {pemanggil_batas(d)}")
+    harap((pr_raka, pr_nadia, main_tes, pemanggil_batas(d)), ("lolos", "lolos", "gagal", 0), "aturan C2")
+    baris_aturan("C2. Tes wajib, tanpa mutakhir", "lewat Kirim", pr_raka, pr_nadia, "tidak ada", "diterima", main_tes, pemanggil_batas(d))
+
+
+def rekam_aturan_d(tmp):
+    bagian("D. Trunk-based: commit langsung ke main, review sesudahnya; tes berjalan di main sesudah tiap commit")
+    d = buat_main_contoh(tmp, "d", dengan_tes_kirim=True)
+    buat_cabang_tim(d)
+    catat("$ git merge --ff-only raka   # commit Raka langsung ke main")
+    catat(git(d, "merge", "--ff-only", "raka"))
+    pertama = ci_contoh(d, "main, sesudah commit Raka")
+    catat("$ git merge --no-edit nadia   # commit Nadia langsung ke main")
+    catat(git(d, "merge", "--no-edit", "nadia", nama="Nadia"))
+    kedua = ci_contoh(d, "main, sesudah commit Nadia")
+    catat("# Kode tanpa pemeriksaan sudah ada di main saat CI merah; review sesudahnya membaca commit yang sudah masuk.")
+    catat(f"# pemanggil periksaBatas di Kirim dan catatJurnal: {pemanggil_batas(d)}")
+    harap((pertama, kedua, pemanggil_batas(d)), ("lolos", "gagal", 0), "aturan D")
+    baris_aturan("D. Trunk-based, review sesudah", "lewat Kirim", "tidak ada", "tidak ada", kedua, "diterima", kedua, pemanggil_batas(d))
+
+
+def langkah_ci():
+    """Isi `run:` langkah CI dari deploy/ci.yml, dibaca persis; lab menjalankannya tanpa mengubah satu baris pun."""
+    baris = (HERE / "deploy/ci.yml").read_text().splitlines()
+    i = next(k for k, l in enumerate(baris) if l.strip() == f"- name: {LANGKAH_CI}")
+    j = next(k for k in range(i, len(baris)) if baris[k].strip() == "run: |")
+    harap(any(l.strip() == 'TES_DB_WAJIB: "1"' for l in baris[i:j]), True, "langkah CI mengisi TES_DB_WAJIB=1")
+    awal = len(baris[j + 1]) - len(baris[j + 1].lstrip())
+    isi = []
+    for l in baris[j + 1:]:
+        if l.strip() and len(l) - len(l.lstrip()) < awal:
+            break
+        isi.append(l[awal:] if l.strip() else "")
+    return "\n".join(isi).rstrip() + "\n"
+
+
+def jalankan_ci(d, db, di):
+    """Langkah CI di salinan api-t2 `d`: dengan database tes atau tanpa TEST_DATABASE_URL. Mengembalikan (exit, lolos, gagal, lewat)."""
+    if db:
+        buat_schema_tes()
+    env = {k: v for k, v in ENV.items() if k != "TEST_DATABASE_URL"}
+    env["TES_DB_WAJIB"] = "1"
+    if db:
+        env["TEST_DATABASE_URL"] = DB_TES
+    r = subprocess.run(["bash", "-e", "-c", langkah_ci()], cwd=d, env=env, capture_output=True, text=True)
+    teks = re.sub(r" \(\d+\.\d+s\)", "", (r.stdout + r.stderr).replace("\t", "  ")).rstrip()
+    m = re.search(r"^lolos=(\d+) gagal=(\d+) dilewati=(\d+)$", teks, flags=re.M)
+    harap(bool(m), True, "langkah CI mencetak ringkasan")
+    catat(f"$ <langkah '{LANGKAH_CI}' dari deploy/ci.yml>   # {di}")
+    catat(f"# TES_DB_WAJIB=1{' TEST_DATABASE_URL=<schema tahap2_tes>' if db else ', TEST_DATABASE_URL tidak diisi'}")
+    catat(teks)
+    catat(f"# exit status {r.returncode}")
+    return (r.returncode, *map(int, m.groups()))
+
+
+def salin_api_t2(tmp, nama, tanpa_batas=False, lewati=()):
+    """Salinan labs/api-t2 di folder sementara; opsional tanpa pemeriksaan batas harian dan dengan t.Skip di tes tertentu."""
+    d = tmp / nama
+    for sub in ("cmd", "internal"):
+        shutil.copytree(HERE / sub, d / sub)
+    for f in ("go.mod", "go.sum"):
+        shutil.copy(HERE / f, d / f)
+    if tanpa_batas:
+        kirim = d / "internal/service/kirim.go"
+        s = kirim.read_text()
+        harap(s.count(PEMERIKSAAN_API), 1, "satu pemeriksaan batas harian di Kirim (api-t2)")
+        kirim.write_text(s.replace(PEMERIKSAAN_API, ""))
+    for tes in lewati:
+        hit = [f for f in (d / "internal/service").glob("*_test.go") if f"func {tes}(t *testing.T) {{\n" in f.read_text()]
+        harap(len(hit), 1, f"satu file untuk {tes}")
+        hit[0].write_text(hit[0].read_text().replace(
+            f"func {tes}(t *testing.T) {{\n", f'func {tes}(t *testing.T) {{\n\tt.Skip("sementara: tes ini sering merah di CI")\n'))
+    return d
+
+
+def rekam_tes_wajib(tmp):
+    bagian("E. Tes aturan uang di api-t2 dengan PostgreSQL sungguhan: langkah CI dari deploy/ci.yml")
+    catat("# Langkah CI dijalankan apa adanya di salinan labs/api-t2 (folder sementara). TES_DB_WAJIB=1 dibaca wajib_test.go.")
+    asli = salin_api_t2(tmp, "asli")
+    catat("\n# E1. Tanpa TES_DB_WAJIB dan tanpa database: tes dilewati dan go test keluar 0 (kebiasaan lama)")
+    env = {k: v for k, v in ENV.items() if k not in ("TEST_DATABASE_URL", "TES_DB_WAJIB")}
+    rc, teks = go_test("-v", "-count=1", "-p", "1", "./internal/service", env=env)
+    lolos, gagal_n, lewat, _ = hitung_tes(teks)
+    catat("$ go test -v -count=1 -p 1 ./internal/service")
+    catat(f"# exit status {rc}: {lolos} lolos, {gagal_n} gagal, {lewat} dilewati")
+    harap((rc, gagal_n, lewat > 0), (0, 0, True), "E1 tanpa database dilewati")
+    catat("\n# E2. Langkah CI tanpa database: gagal keras dengan pesan, tidak ada tes yang dilewati diam-diam")
+    hasil2 = jalankan_ci(asli, False, "kode asli, tanpa database")
+    harap(hasil2[0], 1, "E2 exit status")
+    catat("\n# E3. Langkah CI dengan database, kode asli")
+    hasil3 = jalankan_ci(asli, True, "kode asli, dengan database")
+    harap(hasil3, (0, 20, 0, 0), "E3 kode asli")
+    tanpa = salin_api_t2(tmp, "tanpa-batas", tanpa_batas=True)
+    catat("\n# E4. Langkah CI dengan database, kode tanpa pemeriksaan batas harian (keadaan sesudah merge M14)")
+    hasil4 = jalankan_ci(tanpa, True, "tanpa pemeriksaan, dengan database")
+    harap((hasil4[0], hasil4[2]), (1, 2), "E4 dua tes gagal")
+    lewati = salin_api_t2(tmp, "tanpa-batas-dilewati", tanpa_batas=True, lewati=TES_DILEWATI)
+    catat("\n# E5. Sama dengan E4, tetapi dua tes yang menjaga aturan diberi t.Skip (\"sementara: tes ini sering merah di CI\")")
+    buat_schema_tes()
+    r = subprocess.run(["go", "test", "-v", "-count=1", "-p", "1", "./internal/service"], cwd=lewati,
+                       env=dict(ENV, TEST_DATABASE_URL=DB_TES), capture_output=True, text=True)
+    rc = r.returncode
+    lolos, gagal_n, lewat, _ = hitung_tes((r.stdout + r.stderr).replace("\t", "  "))
+    catat("$ TEST_DATABASE_URL=<schema tahap2_tes> go test -v -count=1 -p 1 ./internal/service   # go test biasa, tanpa penjaga")
+    catat(f"# exit status {rc}: {lolos} lolos, {gagal_n} gagal, {lewat} dilewati")
+    harap((rc, gagal_n, lewat), (0, 0, 2), "E5 go test biasa hijau palsu")
+    hasil5 = jalankan_ci(lewati, True, "tanpa pemeriksaan, dua tes dilewati, dengan database")
+    harap((hasil5[0], hasil5[2], hasil5[3]), (1, 0, 2), "E5 langkah CI menolak tes dilewati")
+
+
+def rekam_tim():
+    """2.24 (keputusan 831): empat aturan kerja tim pada kejadian M14, lalu tes wajib di api-t2 sungguhan."""
+    ATURAN_TIM.clear()
+    with tempfile.TemporaryDirectory() as t:
+        tmp = pathlib.Path(t)
+        versi_git = subprocess.run(["git", "--version"], capture_output=True, text=True).stdout.strip()
+        catat(f"# Bagian A sampai D memakai file contoh {len(CONTOH_GO.splitlines())} baris di folder sementara, bukan kode labs/api-t2 ({versi_git}).")
+        catat("# GitHub tidak dijalankan: aturan 'branch harus mutakhir' dimainkan git dan go test di folder sementara.")
+        rekam_aturan_a(tmp)
+        rekam_aturan_b(tmp)
+        rekam_aturan_c(tmp)
+        rekam_aturan_d(tmp)
+        rekam_tes_wajib(tmp)
+    bagian("F. Ringkasan: empat aturan pada kejadian yang sama")
+    catat("# aturan | tes yang ada | CI di PR Raka | CI di PR Nadia | CI pada hasil gabungan | merge PR Nadia | go test di main | pemanggil periksaBatas")
+    for baris in ATURAN_TIM:
+        catat(baris)
+    harap(len(ATURAN_TIM), 5, "lima baris ringkasan aturan")
+    tulis("tim.txt", "tim: review, tes wajib, dan main yang dilindungi (ADR 18)")
+
+
 # ---------- main ----------
 
 def main():
@@ -1161,6 +1453,7 @@ def main():
         rekam_pengaman()
         rekam_testing()
         rekam_m14()
+        rekam_tim()
     finally:
         for port in list(server):   # error Python di tengah rekaman: server tidak tertinggal memegang port
             stop(port)
