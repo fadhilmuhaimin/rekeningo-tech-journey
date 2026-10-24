@@ -1277,11 +1277,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### lab-c4a · Celah kunci dan IPv6 di c4-ratelimit
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-api-t2a
 - selesai bila: `labs/c4-ratelimit/login`: percobaan login dicatat sebelum hash argon2id dengan lock baris (`SELECT … FOR UPDATE`) dan kunci dipasang begitu ambang tercapai, sehingga N tebakan bersamaan pada penghitung ambang hanya satu yang dinilai (tes bersamaan); key IP IPv6 dipotong ke prefix /64 (RFC 6459 5.2) dengan tes; `/ganti-password` menolak password dari daftar bocor fiktif lokal (OWASP ASVS 5.0.0 6.2.4); rekaman dari database bersih diulang identik; uji mutasi tiap perbaikan; halaman Tahap 2 yang sudah merujuk rekaman c4 tidak bergeser.
-- catatan: Kategori rusak/keamanan dari tinjauan #294 (keputusan 718–719): celah yang sama ada di lab yang dipakai 2.27 dan 2.28.
+- catatan: Kategori rusak/keamanan dari tinjauan #294 (keputusan 718–719): celah yang sama ada di lab yang dipakai 2.27 dan 2.28. Selesai 2026-10-24 di PR lab/c4a (keputusan 659–661, `plan/masuk/lab-c4a.md`): `catatPercobaan` mencatat percobaan sebelum argon2id dengan `SELECT ... FOR UPDATE` dan memasang kunci di ambang (tes bersamaan gagal 3 dari 3 pada kode lama: 5 tebakan dinilai, penghitung akhir 9; lima tebakan bersamaan kini hanya satu yang dinilai), `kunciAlamat` memotong IPv6 ke /64 (rekaman bagian H lewat `X-Lab-IP`, IPv6 terekam di c4), dan daftar password bocor di `/ganti-password` ternyata SUDAH ada di c4 (yang belum punya adalah api-t2): ditambah tes, bagian I rekaman, dan label bahwa daftar 27 entri jauh di bawah 3.000 dari ASVS 6.2.4. Rekaman: `output/login/ratelimit.txt` +46 baris (bagian G–J) sesudah bagian F, 71 baris lama identik, dua kali dari database bersih identik; tidak ada halaman yang merujuk rekaman c4 (grep `situs/`). Uji mutasi: lock baris, prefix /64 (juga /56), cek daftar, reset password benar, kunci di ambang — semuanya menggagalkan tes atau `run-login.py`. Berikutnya: 2.27 dan 2.28 boleh memakai bagian G dan H; api-t2 `/ganti-password` belum punya daftar bocor (SETELAH-TAHAP-2).
 
 ### 2.27 · M16: Akun Ani terkunci
 
