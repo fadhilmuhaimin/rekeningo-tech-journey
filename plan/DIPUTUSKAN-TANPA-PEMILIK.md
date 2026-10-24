@@ -23,3 +23,7 @@ Mode penyelesaian penuh sejak 2026-10-23 (keputusan 551). Butir lama dari MEMORI
 - Adegan M9 dengan penerima dari lab dan label "Rekaman lab, kondisi dibuat" untuk −Rp20.000 (637, 785); M10 memakai alur dua HP, bukan RaceLedger (650).
 - ADR 14: app 1.0/1.1 masa peralihan, Bayar tanpa key diterima, wajib key sesudah satu minggu tanpa Bayar tanpa key (Asumsi, belum direkam) (654).
 - Halaman Tahap 2 yang isinya mandiri dimulai sebelum prasyarat di-merge (722, 724); `lipat_masuk.py` menolak argumen asing dan diuji (725).
+- Halaman lama B2.4, E3 diganti dengan `lebur_ke` dan dipindah ke akhir Tahap 2 (665, 653); "4 detik" M11 berlabel Ilustrasi dengan angka lab terpisah (663); "Di stack lain" 2.5 membahas penjadwalan (622).
+- ADR 14 aturan 5 (masa peralihan app 1.0/1.1) berlabel rancangan belum ada di lab dan belum direkam; mode `-key-opsional` jadi pekerjaan lab berikutnya (793).
+- lab-c4a: latar tugas keliru (api-t2 yang belum memeriksa daftar bocor), api-t2 tidak disentuh; daftar fiktif 27 entri jauh di bawah 3.000 ASVS 6.2.4 (661).
+- Insiden jalur_inti: merge saat main maju membuat CI main merah; aturan baku: cek ancestor, merge main, `sinkron_cerita.py` dan `build_istilah.py`, CI ulang (BRIEF-SUBAGEN).
