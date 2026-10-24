@@ -1187,11 +1187,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.17 · Index dan query plan + ADR 15
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.16, lab-b2-query
 - selesai bila: halaman Konsep+ADR 2.17 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Isi lama B2.3 dipakai ulang.
+- catatan: Keputusan 668–669 (`plan/masuk/tahap-2-index-adr15.md`): `tahap-2/index-query-plan.mdx` (id `t2-index`) dengan template konsep + ADR; Rantai `t2-index-inti` dari `index.txt` B dan F; Coba = runsql SQLite `t2-index.json` (100.000 posting buatan, Ilustrasi, rencana SCAN/SEARCH/TEMP B-TREE, Ubah satu hal `buku_id` kolom terakhir); Paham: enam butir dengan Snippet `index.txt`/`data.txt`, Di stack lain enam tab (Go dari migration api-t2 000011; lima lain Tidak dijalankan); ADR 15 empat opsi (JOIN + index komposit dipilih, cache, nama lawan di posting, materialized view) dengan pre-mortem dan kapan salah; halaman istilah Index, Query plan, EXPLAIN; R2-125 sampai R2-129. Isi lama B2.3 jadi `lebur_ke` (file tetap). Lab tidak diulang di PR ini: 2.15 mengulangnya. Naskah menulis index `posting(akun, waktu)`; lab `posting (buku_id, dibuat, id)`, halaman memakai lab. Rujukan `[[B2.3]]` di 2.15 diganti `[[t2-index]]`; prasyarat 2.17 `B2.4` diganti `t2-n-plus-1` sesudah 2.16 masuk main.
 
 ### 2.18 · M12: Transaksi muncul dua kali
 
