@@ -9,14 +9,14 @@
       "simpul": [
         { "teks": "ke K00504", "sub": "POST /kiriman" },
         { "teks": "jurnal dua posting", "sub": "Budi −20.000, Citra +20.000" },
-        { "teks": "terkirim, sisa batas Rp480.000", "sub": "201, saldo Budi Rp410.000", "nada": "good" }
+        { "teks": "terkirim", "sub": "201, sisa batas Rp480.000", "nada": "good" }
       ]
     },
     {
       "label": "Citra ke Budi",
       "sub": "kiriman pertama hari itu",
       "simpul": [
-        { "teks": "Rp800.000 ke K00419", "sub": "batas Rp500.000 per hari" },
+        { "teks": "Rp800.000", "sub": "ke K00419, batas Rp500.000 per hari" },
         { "teks": "ditolak: batas harian", "sub": "422, tanpa jurnal", "nada": "warn" }
       ]
     }
