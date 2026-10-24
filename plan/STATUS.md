@@ -96,7 +96,7 @@ Prompt pemilik: Tahap 2 sampai 6 diselesaikan tanpa bertanya, pemilik meninjau d
 
 | Tahap | Riset | Naskah | Lab | ERD | Widget | Halaman | Evaluasi |
 |---|---|---|---|---|---|---|---|
-| 2 | selesai (#272) | naskah pemilik | 11/11 (lab-api-t2a #294, lab-c4a #304) | ERD2, ERD-1.12 selesai | semua tugas teknis dan widget Tahap 2 selesai | 18/33 (2.1–2.17, 2.21); 2.18, 2.19 terbuka | antre |
+| 2 | selesai (#272) | naskah pemilik | 12/12 (lab-api-t2a #294, lab-c4a #304, 2.20-lab #317) | ERD2, ERD-1.12 selesai | semua tugas teknis dan widget Tahap 2 selesai | 22/33 (2.1–2.19, 2.21–2.23); 2.20, 2.24 ditulis | antre |
 | 3 | antre | antre | - | antre | antre | - | antre |
 | 4 | antre | antre | - | antre | antre | - | antre |
 | 5 | antre | antre | - | antre | antre | - | antre |
