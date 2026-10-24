@@ -1,0 +1,56 @@
+{
+  "istilah": "Lock",
+  "sehari_hari": "Lock adalah tanda \"sedang dipakai\" di satu baris atau tabel. Selama tanda itu ada, transaction lain yang mau mengubah baris yang sama harus menunggu sampai pemiliknya selesai.",
+  "cerita": [
+    {
+      "rujukan": "t2-m9",
+      "teks": "Dua transfer dari buku Budi lolos bersamaan karena tidak ada yang mengunci baris buku saat saldo dibaca."
+    },
+    {
+      "rujukan": "t2-race-lock",
+      "teks": "ADR 13: setiap jalur uang yang memutuskan dari saldo mengunci buku yang terlibat di awal transaction jurnal."
+    }
+  ],
+  "mekanisme": [
+    "Transaction A mengunci baris buku Budi, lewat `SELECT ... FOR UPDATE` atau lewat UPDATE yang mengubah baris itu.",
+    "Transaction B yang mau mengunci atau mengubah baris yang sama berhenti dan menunggu. Membaca biasa tanpa `FOR UPDATE` tidak ikut menunggu.",
+    "Lock dilepas saat A `COMMIT` atau `ROLLBACK`, bukan saat perintahnya selesai.",
+    "B lanjut dengan versi baris terbaru. Di rekaman `ledger-for-update.txt`, B membaca Rp30.000 dan ditolak karena saldo kurang."
+  ],
+  "stack": {
+    "lihat": "select-for-update",
+    "teks": "Row lock di tiap stack dipasang lewat `SELECT FOR UPDATE` atau UPDATE di dalam transaction; contoh per stack ada di halaman `SELECT FOR UPDATE`."
+  },
+  "jebakan": [
+    "Memegang lock sambil memanggil jaringan, misalnya notifikasi. Semua request ke baris yang sama ikut menunggu, dan PostgreSQL menunggu lock tanpa batas selama tidak deadlock.",
+    "Mengunci dua baris dengan urutan berbeda di dua jalur kode. Dua transfer berlawanan arah bisa deadlock, dan PostgreSQL membatalkan salah satunya tanpa urutan yang bisa ditebak.",
+    "Mengira lock di memori server sama dengan lock di database. Lock di memori hanya berlaku di satu proses."
+  ],
+  "terkait": [
+    "SELECT FOR UPDATE",
+    "Deadlock",
+    "Race condition",
+    "Optimistic lock",
+    "Transaction"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-11",
+      "judul": "PostgreSQL 17: Explicit Locking, Row-Level Locks",
+      "url": "https://www.postgresql.org/docs/17/explicit-locking.html",
+      "catatan": "Baris yang dikunci FOR UPDATE tidak bisa dikunci, diubah, atau dihapus transaction lain sampai transaction pemiliknya selesai."
+    },
+    {
+      "riset": "R2-85",
+      "judul": "PostgreSQL 17: Explicit Locking, Deadlocks",
+      "url": "https://www.postgresql.org/docs/17/explicit-locking.html",
+      "catatan": "Pertahanan terbaik adalah mengunci dengan urutan yang sama; transaction yang dibatalkan saat deadlock sulit ditebak."
+    },
+    {
+      "riset": "R2-11",
+      "judul": "Rekaman lab b3-race: SELECT ... FOR UPDATE di buku Budi",
+      "rekaman": "labs/b3-race/output/ledger/ledger-for-update.txt",
+      "catatan": "B menunggu lock A, lalu membaca saldo_cache Rp30.000 sesudah A COMMIT."
+    }
+  ]
+}

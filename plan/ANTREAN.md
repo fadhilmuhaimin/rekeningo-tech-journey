@@ -1133,11 +1133,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.11 · Race condition dan lock + ADR 13
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.10, lab-b3-race
 - selesai bila: halaman Konsep+ADR 2.11 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-race`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Isi lama B3.2 dipakai ulang. Dari b3-race (432, 433): enam replay `ledger-<cara>.json` siap; footer race.js, mode "Update" langkah 8, dan warna tab "bergantian" perlu dibetulkan (SETELAH-TAHAP-2).
+- catatan: Isi lama B3.2 dipakai ulang. Dari b3-race (432, 433): enam replay `ledger-<cara>.json` siap; footer race.js, mode "Update" langkah 8, dan warna tab "bergantian" perlu dibetulkan (SETELAH-TAHAP-2). PR #295, keputusan 638–640 (`plan/masuk/tahap-2-race-lock.md`): halaman baru `tahap-2/race-lock.mdx` (`t2-race-lock`, template konsep, ADR 13 di Putuskan); B3.2 tetap ada sebagai versi lama dengan `lebur_ke` (bukan `diganti_oleh`: `lengkapi()` akan memberi nomor 2.34). Inti Rantai `t2-race-lock-inti`; Coba `<RaceLedger id="adr13" ... awal="for-update" />` + Snippet `banding.txt` dan lima `ledger-<cara>.txt`; Paham: lost update lawan ledger, empat cara, lock terlambat (b3-ledger `batas.txt` 3), deadlock dan `ORDER BY id` (dokumentasi, belum direkam); Di stack lain enam tab (Go api-t2, Node/Laravel/Django/Supabase b3-stack skema Tahap 1, Serverpod Tidak dijalankan). ADR 13 opsi A lima aturan; lingkup = jalur yang memutuskan dari saldo atau batas (top-up api-t2 tidak mengunci sebelum membaca, 640). Halaman istilah race condition, lock, SELECT FOR UPDATE, optimistic lock (`stack: null`); rujukan [[B3.2]] di 2.2, 2.6, 2.7, 2.8 ke 2.11, Tahap 1 dibiarkan. R2-85–R2-89. Lab tidak dijalankan (2.10 memakai b3-race). Catatan untuk 2.10: `race-condition.json` sudah dibuat di sini.
 
 ### 2.12 · Isolation level secara praktis
 
