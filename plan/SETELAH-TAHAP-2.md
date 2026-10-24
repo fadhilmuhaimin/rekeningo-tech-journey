@@ -146,3 +146,31 @@ Polesan dan pencegahan dari tinjauan lab dan halaman Tahap 2 yang sengaja tidak 
 - 2.4 tab Node.js dan Django: `sum` atas `bigint` menghasilkan `numeric`, yang dibaca `pg` sebagai string dan psycopg sebagai `Decimal`; tulis satu kalimat supaya JSON laporan tidak tiba-tiba berisi string angka (cek ke dokumentasi pg-types dan psycopg dulu; tinjauan PR #282).
 - Lab api-t2 `TutupBuku` (dugaan, belum dibuktikan): query per buku dan query seluruh jurnal adalah dua statement READ COMMITTED terpisah, jadi jurnal yang COMMIT di antara keduanya membuat ringkasan sistem dan baris buku berbeda; jalankan keduanya dalam satu transaction `REPEATABLE READ READ ONLY` dan rekam (tinjauan PR #282).
 - 2.4 tab Supabase: kalimat menyebut hak `EXECUTE` diberikan lagi ke role Keuangan, tapi snippet hanya memuat `REVOKE`; tambahkan baris `GRANT EXECUTE ... TO <role>` (tinjauan PR #282).
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- W2-race: ringkasan rekaman (`summary` di `ledger-<cara>.json`) menyebut "A" dan "B", widget menyebut HP Budi dan Tablet Budi (lencana A/B di lajur menghubungkan keduanya); usul `run_ledger.py` menulis "HP" dan "tablet" saat lab dijalankan lagi.
+- W2-race: baris MENUNGGU lock menampilkan catatan "menunggu lock (transactionid)" di bawah "→ MENUNGGU lock", mengulang di HP; bisa disembunyikan untuk baris itu.
+- W2-race: enam tombol cara memakan lima baris di 375 px; di 2.11 cukup lima cara (tanpa "COMMIT bergantian") bila halaman tidak membahasnya.
+- W2-race: dd di daftar fakta hasil dan `.bb-vars` menjorok ±16 px dari gaya dd Starlight di HP; disamakan dengan dt bila mengganggu.
+- Widget race lama: tab "Cara mengamankan penarikan" memakai role tab tanpa tabpanel dan tanpa panah antar-tab (axe tidak menandainya); halaman versi lama dibiarkan.
+- W2-race (peninjau): `siapkan()` mencocokkan saldo, menunggu, dan retry dengan `banding.txt`, tetapi kode SQLSTATE di kolom B ("40001 saat COMMIT", "ERROR 23514 saat COMMIT") hanya dicocokkan Vitest yang menulis angkanya sendiri; usul `siapkan()` juga mencocokkan kode di kolom A/B dengan `errorDatabase()`.
+- W2-race (peninjau): istilah di label (COMMIT, lock, row lock, client, Retry) belum diberi `translate="no"`; di 1366 px kartu HP dan tablet tidak sejajar atas saat chip status tablet turun ke baris kedua.
+- api-t2 `http.ListenAndServe` tanpa timeout (gosec G114, sudah ada sebelum lab-api-t2a); c4 memakai `http.Server` dengan `ReadHeaderTimeout` dan kawan-kawannya.
+- Batas jumlah penerima berbeda per hari di database sebagai pengaman enumerasi yang lebih tepat dari rate limit, bila PRD berikutnya menyetujuinya (keputusan 645, 646).
+- Mode rentan `-rentan m16` di api-t2 (cek penerima membedakan nomor, tanpa rate limit) bila halaman 2.27 butuh rekaman "sebelum" dari api-t2; sekarang "sebelum" hanya ada di c4.
+- api-t2 pindah ke argon2id dengan rehash saat login berhasil (ADR 20), menghapus batas 72 byte bcrypt (keputusan 648).
+- Waktu respons `/kiriman` untuk nomor terdaftar dan tidak terdaftar belum diukur (keputusan 646).
+- Layar app untuk 403 `wajib-ganti-password` dan 429 belum ada di lab mana pun; app 1.0 dan 1.1 tidak punya layar ganti password (keputusan 648).
+- `labs/c4-ratelimit/login` membaca kunci tanpa lock dan memasangnya sesudah argon2id, dan key per IP memakai alamat IPv6 penuh: dua celah yang ditutup di api-t2 oleh keputusan 718 dan 719.
+- `/ganti-password` api-t2 belum memeriksa daftar password bocor (ASVS 5.0.0 6.2.4 L1: minimal 3.000 password teratas yang sesuai kebijakan panjang); c4 sudah memeriksanya lewat daftar `go:embed`.
+- Keputusan 646 menulis aturan pengirim diperiksa "di transaction yang sama"; nominal diperiksa sebelum transaction dibuka (urutannya tetap sebelum nomor penerima).
+- Halaman istilah *Event sourcing* `stack: null`; isi enam baris "Tidak dijalankan" bila ada dokumentasi resmi per stack, atau biarkan (keputusan 631).
+- Situs belum punya status ADR (diterima, digantikan); 1.24 hanya menautkan 2.8. Usul jalur teknis: field registry `adr_digantikan` yang menampilkan "ADR 6 versi Tahap 1, digantikan 2.8" di kicker 1.24 (keputusan 629).
+- Widget runsql 2.8 memeriksa cermin pembalik per baris di SQLite; di lab PostgreSQL pemeriksaannya constraint trigger saat COMMIT dan jurnal seimbang ikut diperiksa. Saat PGlite dipasang, pindahkan `t2-adr-ledger` ke skema `labs/b3-ledger/schema.sql` (keputusan 630).
+- 2.8 "Kapan salah" baris data pribadi: `jurnal.keterangan` berisi teks bebas dengan nama ("Patungan makan siang ke Citra"), dan jurnal tidak bisa dihapus. Naskah belum menjadwalkan cara menghapus data pribadi; usul Tahap 4 (verifikasi identitas) menaruh data pribadi di luar jurnal (keputusan 629).
+- 2.8 "Kapan salah" baris data pribadi: kolom Rencana bisa menyebut dua pola dari Microsoft Learn Event Sourcing bagian "Personal data and regulatory compliance" (R2-66): data pribadi di luar store yang hanya ditambah dan dirujuk dengan ID, atau crypto-shredding dengan key per orang (keputusan 677).
+- Halaman istilah `saldo_cache` belum ada; buat di 2.9 bersama skemanya, atau putuskan cukup istilah Cache (keputusan 628).
+- Lama pemeriksaan invarian 3 (`sum` semua posting buku karyawan di setiap posting keluar) belum diukur; data `labs/b2-query` (±44 ribu posting) bisa dipakai untuk mengukurnya sebelum 2.17 (keputusan 626).
+- Penolakan invarian saat COMMIT belum direkam lewat HTTP di api-t2; `petaError` menjadikannya 500. Rekam di b3-race untuk 2.10, atau petakan 23514 `saldo_karyawan_tidak_negatif` ke 422 sesudah ADR 13 (keputusan 626).
+- Halaman istilah *invarian*, sumber terakhir (R2-63) berjudul "SQLSTATE dan nama constraint di lima stack" tapi url-nya halaman Serverpod saja; pecah per stack atau tanpa url (keputusan 676).

@@ -96,7 +96,7 @@ Prompt pemilik: Tahap 2 sampai 6 diselesaikan tanpa bertanya, pemilik meninjau d
 
 | Tahap | Riset | Naskah | Lab | ERD | Widget | Halaman | Evaluasi |
 |---|---|---|---|---|---|---|---|
-| 2 | selesai (#272) | naskah pemilik | 9/10 (lab-api-t2a menunggu Docker) | ERD2 selesai; ERD-1.12 selesai (#285) | A11y-diagram, G-ci-apt, G-istilah, G-axe, A11y-gulir-tabel selesai; W2-race berjalan | 5/33 (2.1, 2.2, 2.4, 2.5, 2.6; 2.7 dan 2.8 berjalan) | antre |
+| 2 | selesai (#272) | naskah pemilik | 10/10 (lab-api-t2a #294); lab-c4a antre | ERD2, ERD-1.12 selesai | semua tugas teknis Tahap 2 selesai (A11y-diagram, G-ci-apt, G-istilah, G-axe, A11y-gulir-tabel, W2-race) | 7/33 (2.1, 2.2, 2.4–2.8); 2.3, 2.9–2.12 berjalan | antre |
 | 3 | antre | antre | - | antre | antre | - | antre |
 | 4 | antre | antre | - | antre | antre | - | antre |
 | 5 | antre | antre | - | antre | antre | - | antre |
