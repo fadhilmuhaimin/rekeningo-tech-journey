@@ -1,0 +1,38 @@
+{
+  "id": "t2-skema-tebak",
+  "judul": "Tiga tabel yang hilang",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/api-t2/output/migrasi.txt bagian C dan D; ERD dari situs/data/erd/tahap-2.json"
+  },
+  "adegan": [
+    "Nadia membuka ERD Tahap 1 dan ERD Tahap 2. Tahap 1 punya 5 tabel, Tahap 2 punya 8, dan 3 tabel Tahap 1 tidak ada lagi di Tahap 2."
+  ],
+  "pertanyaan": "Tabel mana yang hilang, dan ke mana isinya pindah?",
+  "pilihan": [
+    {
+      "teks": "akun, transaksi, dan koreksi: akun diganti buku, dan catatan uang jadi posting.",
+      "benar": false,
+      "alasan": "Tabel akun tetap ada dan masih dirujuk sesi, buku, jurnal, dan kunci_idempotensi. Yang hilang dari akun hanya kolom saldo. Setiap akun mendapat satu buku: 1.012 buku akun di rekaman migrasi."
+    },
+    {
+      "teks": "topup, transaksi, dan koreksi: kejadian baru jadi jurnal, dan isi lamanya disalin ke schema arsip.",
+      "benar": true,
+      "alasan": "Top-up jadi jurnal jenis topup dari buku tunjangan, bayar jadi jurnal jenis bayar dengan dua posting, dan koreksi jadi jurnal selisih ditambah jurnal pembalik. Sebelum ketiga tabel dihapus, isinya disalin ke schema arsip: 10 transaksi, 100 top-up, dan 1 koreksi."
+    },
+    {
+      "teks": "sesi, topup, dan koreksi: sesi pindah ke tabel login baru, top-up dan koreksi jadi posting.",
+      "benar": false,
+      "alasan": "Tabel sesi tidak berubah. Pengaman login baru ditambahkan sebagai kolom di tabel akun: wajib_ganti_password, gagal_login, dan terkunci_sampai."
+    }
+  ],
+  "penutup": "Tiga bentuk catatan uang menjadi satu bentuk, jurnal dengan posting. Tabel lain yang bertambah menjawab masalah yang berbeda, misalnya kunci idempotensi untuk M10 dan batch pencairan untuk M15.",
+  "label": {
+    "sumber": "Rekaman lab · migrasi.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}

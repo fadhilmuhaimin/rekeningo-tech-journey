@@ -1,0 +1,43 @@
+{
+  "id": "t2-skema-inti",
+  "judul": "Dari mana saldo dibaca, Tahap 1 dan Tahap 2",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Skema lab api-t1 dan api-t2, migrasi.txt D"
+  },
+  "baris": [
+    {
+      "label": "Tahap 1",
+      "sub": "5 tabel, api-t1",
+      "simpul": [
+        {
+          "teks": "uang di 3 tabel",
+          "sub": "transaksi, topup, koreksi; bentuknya berbeda-beda",
+          "nada": "warn"
+        },
+        {
+          "teks": "saldo: kolom",
+          "sub": "akun.saldo, angka terakhir yang di-UPDATE",
+          "nada": "old"
+        }
+      ]
+    },
+    {
+      "label": "Tahap 2",
+      "sub": "8 tabel, api-t2",
+      "simpul": [
+        {
+          "teks": "posting",
+          "sub": "jurnal dengan dua posting atau lebih: satu bentuk untuk top-up, bayar, transfer, pencairan, koreksi",
+          "nada": "system"
+        },
+        {
+          "teks": "saldo: jumlahnya",
+          "sub": "jumlah posting satu buku; buku.saldo_cache hanya salinan yang dicek tiap malam",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Tabel transaksi, topup, dan koreksi dihapus di langkah contract, sesudah isinya disalin ke schema arsip (rekaman api-t2 migrasi.txt bagian D)."
+}
