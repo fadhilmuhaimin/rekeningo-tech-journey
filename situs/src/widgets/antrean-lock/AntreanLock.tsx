@@ -1,7 +1,8 @@
 // Widget antrean lock (M13, keputusan 810): tebak siapa yang ditunggu Bayar, lalu jalankan rekaman langkah demi langkah dan
 // ubah satu hal (batas tunggu lock di migrasi). Data sudah divalidasi saat build (AntreanLock.astro); logika di logika.ts.
 // Jawaban muncul dengan gerak masuk singkat; reduced motion tanpa gerak (muncul.ts).
-import { useLayoutEffect, useRef, useState } from "react";
+// Fokus keyboard dipindah ke kontrol berikutnya saat kontrol yang difokus hilang atau dinonaktifkan (pola race-ledger).
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { muncul } from "../../gerak/muncul";
 import { isi, papanSesudah, type Langkah, type Sesi, type Status } from "./logika";
 
@@ -13,6 +14,7 @@ export interface LabelSiap {
   kesimpulan: { tanpa: string; dengan: string }; catatan: { tanpa: string; dengan: string };
 }
 type Mode = "tanpa" | "dengan";
+type Fokus = "berikut" | "pilihan" | "mode" | null;
 interface Props { langkah: Record<Mode, Langkah[]>; sesi: Record<Mode, Sesi[]>; pilihan: PilihanSiap[]; benar: number; label: LabelSiap }
 
 const NADA: Record<Status, string> = { belum: "", terbuka: " is-system", menunggu: " is-warn", selesai: " is-good", gagal: " is-warn", menyerah: " is-system" };
@@ -23,9 +25,22 @@ export default function AntreanLock({ langkah, sesi, pilihan, benar, label: L }:
   const [mode, setMode] = useState<Mode>("tanpa");
   const [n, setN] = useState(AWAL);
   const hasil = useRef<HTMLDivElement>(null);
+  const akar = useRef<HTMLDivElement>(null);
+  const fokus = useRef<Fokus>(null);
   useLayoutEffect(() => {
     if (dipilih !== null) muncul(hasil.current);
   }, [dipilih]);
+  useEffect(() => {
+    const f = fokus.current;
+    fokus.current = null;
+    if (!f) return;
+    const a = akar.current;
+    const sasaran =
+      f === "berikut" ? a?.querySelector<HTMLButtonElement>(".al-aksi .bb-btn:not(.bb-btn--quiet)")
+      : f === "pilihan" ? a?.querySelector<HTMLButtonElement>(".tb-pilihan .tb-pilih:not(:disabled)")
+      : a?.querySelector<HTMLButtonElement>('.al-mode__tombol[aria-pressed="false"]');
+    sasaran?.focus();
+  });
 
   const daftar = langkah[mode];
   const papan = papanSesudah(daftar, n);
@@ -34,13 +49,17 @@ export default function AntreanLock({ langkah, sesi, pilihan, benar, label: L }:
   const tepat = dipilih === benar;
   const namaPilihan = (p: PilihanSiap) => (p.menunggu === "-" ? L.tanpaPilihan : L.nama[p.menunggu]);
 
-  const pilih = (i: number) => { setDipilih(i); setN(AWAL + 1); };
-  const ulangi = () => { setDipilih(null); setN(AWAL); };
+  // Fokus hanya dipindah bila fokus pembaca ada di kontrol yang akan hilang atau dinonaktifkan.
+  const difokus = (selektor: string) => typeof document !== "undefined" && !!document.activeElement?.closest(selektor);
+
+  const pilih = (i: number) => { if (difokus(".tb-pilihan")) fokus.current = "berikut"; setDipilih(i); setN(AWAL + 1); };
+  const ulangi = () => { fokus.current = "pilihan"; setDipilih(null); setN(AWAL); };
+  const berikut = () => { if (n + 1 === daftar.length && difokus(".al-aksi")) fokus.current = "mode"; setN(n + 1); };
   const ganti = (m: Mode) => { setMode(m); setN(langkah[m].length); };
-  const awal = () => { setMode("tanpa"); setDipilih(null); setN(AWAL); };
+  const awal = () => { fokus.current = "pilihan"; setMode("tanpa"); setDipilih(null); setN(AWAL); };
 
   return (
-    <div className="bb-widget tb al" role="group" aria-label={L.judul}>
+    <div ref={akar} className="bb-widget tb al" role="group" aria-label={L.judul}>
       <div className="bb-widget__head">
         <p><strong>{L.judul}</strong></p>
         <span className="bb-chip is-system">{L.sumber}</span>
@@ -95,7 +114,7 @@ export default function AntreanLock({ langkah, sesi, pilihan, benar, label: L }:
             {akhir && <p className="al-kesimpulan">{L.kesimpulan[mode]}</p>}
           </div>
           <p className="al-aksi">
-            {!akhir && <button type="button" className="bb-btn" onClick={() => setN(n + 1)}>{L.berikutnya}</button>}
+            {!akhir && <button type="button" className="bb-btn" onClick={berikut}>{L.berikutnya}</button>}
             <button type="button" className="bb-btn bb-btn--quiet" onClick={awal}>{L.mulaiUlang}</button>
           </p>
         </div>
