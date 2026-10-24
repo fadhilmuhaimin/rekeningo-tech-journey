@@ -1500,8 +1500,9 @@
       "lab": [
         "b3-race"
       ],
-      "ada": false,
-      "nomor": "2.10"
+      "ada": true,
+      "nomor": "2.10",
+      "menit": 9
     },
     {
       "id": "t2-race-lock",
