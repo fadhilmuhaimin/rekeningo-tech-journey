@@ -188,12 +188,13 @@ jobs:
         with:
           name: situs-dist
           path: situs/dist
-      # 9 menit di bawah timeout job 12 menit, supaya alat yang macet membuat job gagal, bukan cancelled
+      # 13 menit di bawah timeout job 18 menit, supaya alat yang macet membuat job gagal, bukan cancelled
+      # (naik dari 9 menit pada 2026-10-25, keputusan 726: gerak tumbuh tiap halaman berblok baru)
       # (lihat langkah gerbang di job build).
       - name: Alat ukur
         env:
           KELOMPOK: ${{ matrix.kelompok }}
-        run: timeout -k 30s 9m bash tools/cek_situs.sh --ukur "$KELOMPOK"
+        run: timeout -k 30s 13m bash tools/cek_situs.sh --ukur "$KELOMPOK"
       - uses: actions/upload-artifact@v7
         if: always()
         with:

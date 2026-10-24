@@ -243,3 +243,15 @@ Polesan dan pencegahan dari tinjauan lab dan halaman Tahap 2 yang sengaja tidak 
 - 2.15: tombol widget tebak memakai margin-bawah 20 px dari Starlight di Tebak lama (`li > button`); `QueryRiwayat` menolaknya hanya di dalam `.qr`. Tebak di 2.9, 1.42, dan beranda kemungkinan memakai jarak antar-pilihan 27 px (belum diukur); bila ingin sama dengan 7 px, ubah `.tb-pilihan` dan ukur ulang layar pertama beranda.
 - 2.15: widget `QueryRiwayat` menaruh jawaban benar selalu di pilihan C (21 query), dan alasan pilihan A ("Satu query hanya cukup bila nama lawan ikut diambil di dalamnya") menyebut bentuk perbaikan ADR 15 sebelum 2.16 dan 2.17; acak urutan pilihan dan tulis alasan A tanpa petunjuk perbaikan.
 - 2.15: kalimat "mencatat semua statement yang diterima database" lebih luas dari dokumentasi PostgreSQL 17 (R2-115: galat sintaks sederhana tidak tercatat walau `log_statement = all`); tidak mengubah hitungan 21 query, tapi tulis "semua statement yang lolos parsing dasar" bila 2.16 mengulang kalimat itu.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- Halaman lama `b-fondasi/b2-4-n-plus-1.mdx` (`B2.4`, `lebur_ke`) masih tampil di indeks topik, sidebar, dan Kartu ulang (tiga kartu lama); hapus dengan persetujuan pemilik seperti pola Tahap 1, lalu cek rujukan `[[B2.4]]` yang tersisa (keputusan 665).
+- `situs/src/content/docs/d-system-design/d2-scaling.mdx` baris 57 masih merujuk `[[B2.4]]` (halaman lama); arahkan ke `[[t2-n-plus-1]]` bila D2 ditinjau (keputusan 665).
+- Halaman 1.12 (`B2.1`) tidak memuat kata ORM dan istilah ORM kini menaut ke 2.16 (keputusan 797); bila ORM perlu penjelasan sendiri, tambahkan bagian di halaman Tahap 2 yang membahas ORM, bukan di Tahap 1 (dibekukan, keputusan 369).
+- Rekaman `n1.txt` tidak memuat hasil `JOIN` biasa di data lab, jadi "Tunjangan makan hilang" di halaman adalah kesimpulan dari aturan SQL; tambahkan satu bagian rekaman bila halaman perlu menunjukkan bukti (keputusan 667).
+- Tes jumlah query untuk `Riwayat` api-t2 belum ada dan Go tidak punya penghitung query bawaan (`DB.Stats()` hanya koneksi): bungkus driver atau pakai `log_statement = all` di tes integrasi 2.24 (R2-122, keputusan 667).
+- [perlu verifikasi] Jumlah query SQL di balik satu embedding PostgREST/Supabase tidak disebut dokumentasi; ukur lewat log PostgreSQL bila tab Supabase ingin mengklaim satu query (R2-124, keputusan 667).
+- Tab Node.js memakai `LAWAN_BANYAK_SQL` tanpa menulis query-nya (`DISTINCT ON (q.jurnal_id)` dengan `= ANY($1)`); tulis lengkap dan jalankan di lab bila 2.24 atau Tahap 3 membutuhkannya.
+- Dokumentasi Serverpod "Relation queries" bertanda versi 4.0.0 sedangkan halaman dan halaman istilah menulis 4.0.4 (paket di pub.dev); samakan tulisannya "dokumentasi 4.0.0, paket 4.0.4" bila ada pembaruan dokumentasi (keputusan 796).
+- Rekaman `n1.txt` bagian E dan `index.txt` bagian B memakai metode berbeda (median client lawan EXPLAIN ANALYZE), jadi halaman 2.16 memberi catatan; satukan sumbernya bila lab b2-query direkam ulang (keputusan 796).
