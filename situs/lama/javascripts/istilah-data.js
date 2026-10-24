@@ -667,13 +667,13 @@ window.ISTILAH = {
   "u": "b-fondasi/b5-2-oauth-oidc/"
  },
  "ORM": {
-  "b": "B2.1",
+  "b": "t2-n-plus-1",
   "d": "Library yang memetakan tabel database ke objek di kode, sehingga query ditulis sebagai pemanggilan method, mis. Eloquent di Laravel atau ORM bawaan Django.",
   "h": "istilah/orm/",
-  "n": "1.12 Data modeling dan relasi",
+  "n": "2.16 N+1 query",
   "s": "istilah-orm",
   "t": "ORM (Object-Relational Mapping)",
-  "u": "tahap-1/data-modeling/"
+  "u": "tahap-2/n-plus-1/"
  },
  "Object storage": {
   "b": "B11.2",

@@ -713,9 +713,9 @@
  {
   "t": "ORM (Object-Relational Mapping)",
   "d": "Library yang memetakan tabel database ke objek di kode, sehingga query ditulis sebagai pemanggilan method, mis. Eloquent di Laravel atau ORM bawaan Django.",
-  "b": "B2.1",
-  "n": "1.12 Data modeling dan relasi",
-  "u": "/tahap-1/data-modeling/",
+  "b": "t2-n-plus-1",
+  "n": "2.16 N+1 query",
+  "u": "/tahap-2/n-plus-1/",
   "s": "istilah-orm",
   "h": "/istilah/orm/"
  },
