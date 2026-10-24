@@ -1,0 +1,104 @@
+{
+  "istilah": "Index",
+  "sehari_hari": "Index seperti daftar isi buku: kamu membuka halaman yang ditunjuk, bukan membaca semua halaman. Harganya, daftar isi itu harus diperbarui setiap kali isi buku berubah.",
+  "cerita": [
+    {
+      "rujukan": "t2-m11",
+      "teks": "Riwayat Budi membaca 3.892 posting dan 380.224 jurnal untuk mengembalikan 20 baris, karena tidak ada index yang mengurutkan posting satu buku menurut waktu."
+    },
+    {
+      "rujukan": "t2-index",
+      "teks": "Index posting_riwayat (buku_id, dibuat, id) menurunkan halaman pertama dari ±31,5 ke ±0,12 ms di rekaman lab, dengan satu node Index Scan Backward yang membaca 20 baris."
+    }
+  ],
+  "mekanisme": [
+    "Database menyimpan nilai kolom terurut di struktur B-tree, dengan penunjuk ke baris di tabel.",
+    "Query yang punya kondisi di kolom depan index melompat ke bagian yang cocok, bukan membaca seluruh tabel.",
+    "Bila urutan kolom index cocok dengan ORDER BY, database membaca n entri pertama atau terakhir lalu berhenti.",
+    "Setiap INSERT dan UPDATE ikut memperbarui index, jadi index menambah ruang disk dan biaya tulis.",
+    "Planner memilih index atau seluruh tabel dari statistik; di tabel kecil, membaca seluruh tabel sering lebih cepat."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, migration api-t2, PostgreSQL 17.11",
+      "teks": "Index riwayat adalah satu CREATE INDEX di migration 000011, dijalankan di rilis expand sebelum posting diisi. Tanpa ORM, ORDER BY di kode ditulis tangan dan harus mengikuti urutan kolom index.",
+      "rekaman": "labs/api-t2/migrasi/000011_ledger_pendukung.up.sql"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-pg-migrate 9.0.0",
+      "teks": "pgm.createIndex('posting', ['buku_id', 'dibuat', 'id'], { name: 'posting_riwayat' }). Opsi concurrently membuat index tanpa mengunci tulis.",
+      "dokumentasi": "https://github.com/salsita/node-pg-migrate/blob/v9.0.0/docs/src/migrations/indexes.md"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "$table->index(['buku_id', 'dibuat', 'id'], 'posting_riwayat') di migration. Argumen kedua adalah nama index, dan ->online() menambah CONCURRENTLY di PostgreSQL.",
+      "dokumentasi": "https://laravel.com/docs/13.x/migrations#creating-indexes"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2",
+      "teks": "Meta.indexes = [models.Index(fields=[\"buku\", \"dibuat\", \"id\"], name=\"posting_riwayat\")]. Awalan minus di fields membuat kolom menurun, dan AddIndexConcurrently tidak berjalan di dalam transaction.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/ref/models/indexes/"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "Index dideklarasikan di file model dengan indexes dan fields yang dipisah koma. Tipe btree adalah bawaan, dan migration berikutnya membuatnya. Memasukkan id ke daftar fields belum dijalankan.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/indexing"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "Postgres Supabase, extension index_advisor",
+      "teks": "SQL create index biasa, karena databasenya PostgreSQL. index_advisor hanya merekomendasikan index B-tree satu kolom, jadi ia tidak mengusulkan index tiga kolom ini.",
+      "dokumentasi": "https://supabase.com/docs/guides/database/extensions/index_advisor"
+    }
+  },
+  "jebakan": [
+    "Mengira foreign key otomatis punya index. Di PostgreSQL, deklarasi foreign key tidak membuat index di kolom yang merujuk.",
+    "Memilih urutan kolom tanpa melihat query. Index (buku_id, dibuat, id) tidak membantu query yang hanya memfilter dibuat: rekaman memuat Seq Scan yang membuang 758.648 baris.",
+    "Menguji di tabel 100 baris. Planner benar memilih Seq Scan di sana, jadi index terlihat tidak berguna."
+  ],
+  "terkait": [
+    "Query plan",
+    "EXPLAIN",
+    "Foreign key",
+    "N+1 query",
+    "Posting",
+    "Cursor pagination"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-125",
+      "judul": "Rekaman lab b2-query: index riwayat",
+      "rekaman": "labs/b2-query/output/ledger/index.txt",
+      "catatan": "Plan sebelum dan sesudah posting_riwayat: 3.892 posting dan 380.224 jurnal dibaca untuk 20 baris, lalu satu Index Scan Backward 20 baris; waktu pembanding."
+    },
+    {
+      "riset": "R2-126",
+      "judul": "PostgreSQL 17: Multicolumn Indexes",
+      "url": "https://www.postgresql.org/docs/17/indexes-multicolumn.html",
+      "catatan": "Kesetaraan di kolom depan membatasi bagian index yang dipindai; tanpa batasan di kolom depan, seluruh index dipindai."
+    },
+    {
+      "riset": "R2-126",
+      "judul": "PostgreSQL 17: Indexes and ORDER BY",
+      "url": "https://www.postgresql.org/docs/17/indexes-ordering.html",
+      "catatan": "Hanya B-tree menghasilkan keluaran terurut; ORDER BY dengan LIMIT n dan index yang cocok membaca n baris tanpa memindai sisanya."
+    },
+    {
+      "riset": "R2-126",
+      "judul": "PostgreSQL 17: Introduction to indexes",
+      "url": "https://www.postgresql.org/docs/17/indexes-intro.html",
+      "catatan": "Index harus disinkronkan dengan tabel dan menambah overhead operasi data; index yang jarang dipakai sebaiknya dihapus."
+    },
+    {
+      "riset": "R2-129",
+      "judul": "Supabase: index_advisor",
+      "url": "https://supabase.com/docs/guides/database/extensions/index_advisor",
+      "catatan": "index_advisor hanya merekomendasikan index B-tree satu kolom."
+    }
+  ]
+}

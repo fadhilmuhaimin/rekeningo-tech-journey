@@ -1,0 +1,329 @@
+---
+title: "2.17 Index dan query plan + ADR 15"
+description: Index membuat database melompat ke baris yang dicari, dan query plan menunjukkan apakah ia benar-benar melompat. Tanpa index riwayat, 20 baris butuh 3.892 posting dibaca. ADR 15 memilih satu query JOIN dengan index komposit dan menolak cache.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-index-inti.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 12 menit · coba 3 menit · Prasyarat: [[t2-n-plus-1]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Index adalah daftar terurut yang membuat database melompat ke baris yang dicari, dan query plan menunjukkan apakah ia benar-benar melompat.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di [[t2-m11]], Raka sudah mengganti 21 query dengan satu query JOIN ([[t2-n-plus-1]]). Tanpa index, query daftarnya masih membaca 3.892 posting Budi dan 380.224 jurnal untuk mengembalikan 20 baris (rekaman lab b2-query).
+
+Index `posting_riwayat (buku_id, dibuat, id)` menyimpan posting terurut per buku dan per waktu. Database lalu membaca 20 entri dari ujung index, dan `EXPLAIN (ANALYZE, BUFFERS)` menunjukkannya sebagai satu node dengan 20 baris. ADR 15 di blok Putuskan memilih JOIN dengan index ini dan menolak cache.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Kolom `posting.buku_id` punya foreign key ke `buku`. Apakah PostgreSQL otomatis membuat index di kolom itu?
+2. Index `(buku_id, dibuat, id)` sudah ada. Apakah laporan Keuangan yang memfilter semua posting satu hari, tanpa `buku_id`, ikut cepat?
+3. Kamu membuat index di tabel 100 baris, dan `EXPLAIN` tetap menulis Seq Scan. Apakah index-nya salah?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: index mengubah rencana riwayat dari membaca seluruh tabel lalu mengurutkan menjadi lompat ke satu buku, dan urutan kolom menentukan query mana yang terlayani.">
+
+Widget ini menjalankan SQLite sungguhan di browser, bukan PostgreSQL. Tabel `posting`-nya berisi 100.000 baris buatan di 1.000 buku, dan buku 20 adalah Budi (Ilustrasi). Rencana query dari PostgreSQL ada di rekaman lab di blok berikutnya.
+
+Tebak dulu apa yang berubah di rencana riwayat Budi, lalu jalankan.
+
+<WidgetLama nama="runsql" src="data/t2-index.json" />
+
+Panel Before menulis `SCAN posting` dan `USE TEMP B-TREE FOR ORDER BY`: SQLite memindai seluruh tabel lalu mengurutkannya. Panel After menulis `SEARCH posting USING INDEX posting_riwayat (buku_id=?)` dan tidak menulis langkah mengurutkan, karena index sudah terurut menurut `dibuat` dan `id` ([SQLite: EXPLAIN QUERY PLAN](https://www.sqlite.org/eqp.html)).
+
+Baris kedua tidak berubah di After. Query itu memfilter satu hari di semua buku, dan kolom depan index, `buku_id`, tidak ada di `WHERE`. Index yang sama tidak melayani dua query itu.
+
+Nyalakan **Ubah satu hal**: `buku_id` pindah ke kolom terakhir index. Sekarang query semua buku di satu hari memakai `SEARCH`, dan riwayat Budi turun jadi `SCAN posting USING INDEX`. Urutan kolom memilih query mana yang terlayani.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Di [[t2-m11]], Raka menghitung query dan menemukan 21 untuk satu halaman. Sesudah JOIN, query tunggalnya masih lambat di data setahun: ±27 ms untuk 20 baris (`n1.txt` bagian E, pembanding). Penyebabnya bukan jumlah query, tapi jumlah baris yang dibaca.
+
+Rekaman lab memuat 760.448 posting dan 380.224 jurnal, data satu tahun Tahap 2. Budi punya 3.892 posting dan Warung Ani 59.762 (`data.txt` bagian D). Di minggu 3 cerita, tabel `posting` baru berisi ±44 ribu baris (Asumsi). Di tabel sekecil itu selisihnya lebih kecil, dan lab tidak merekam ukuran itu.
+
+Kalau kamu pernah menambah index di database SQLite app Flutter, konsepnya sama. Bedanya di backend, banyak orang membaca dan menulis tabel yang sama sekaligus, jadi biaya setiap index terasa oleh semuanya.
+
+### Cara kerjanya
+
+**1. Index adalah struktur terurut yang menunjuk ke baris.** Di PostgreSQL, hanya index B-tree yang menghasilkan keluaran terurut ([PostgreSQL 17, 11.4](https://www.postgresql.org/docs/17/indexes-ordering.html)). Tabel `posting` sudah punya tiga index sebelum M11, dan tidak satu pun mengurutkan posting satu buku menurut waktu.
+
+<Snippet file="labs/b2-query/output/ledger/index.txt" lines="7:14" title="Rekaman lab: labs/b2-query/output/ledger/index.txt, bagian A (index sebelum M11)" />
+
+`posting_buku` dan `posting_jurnal` bukan hasil foreign key. Deklarasi foreign key tidak membuat index di kolom yang merujuk ([PostgreSQL 17, 5.5.5](https://www.postgresql.org/docs/17/ddl-constraints.html)). `labs/b3-ledger/schema.sql` membuat `posting_jurnal` dan `posting_buku` sendiri, untuk menjaga dua invarian ledger.
+
+**2. Query plan menunjukkan langkah dan jumlah baris tiap node.** `EXPLAIN (ANALYZE, BUFFERS)` menjalankan query sungguhan lalu menulis rencananya. Setiap node punya `rows` dan `loops`; waktu dan `rows` adalah rata-rata per eksekusi, jadi kalikan dengan `loops` ([PostgreSQL 17, 14.1](https://www.postgresql.org/docs/17/using-explain.html)). Rekaman lab menjumlahkannya di tabel ringkasan.
+
+Tanpa index riwayat, halaman pertama Budi memakai tiga node yang membaca tabel atau index. Satu membaca seluruh 380.224 baris `jurnal`, lalu `Sort` mengurutkan 3.892 baris dan `Limit` mengambil 20:
+
+<Snippet file="labs/b2-query/output/ledger/index.txt" lines="22:46" title="Rekaman lab: labs/b2-query/output/ledger/index.txt, bagian B (query plan tanpa index riwayat; waktu dan buffer pembanding)" />
+
+**3. Satu index melayani `WHERE` dan `ORDER BY` sekaligus.** Index `(buku_id, dibuat, id)` menyimpan posting urut per buku, lalu per waktu, lalu per id. Kondisi `buku_id = 20` membatasi bagian index yang dibaca, dan `ORDER BY ... DESC` dengan `LIMIT 20` dilayani dengan membaca index dari belakang. PostgreSQL membaca n baris pertama tanpa memindai sisanya bila index cocok dengan `ORDER BY` ([11.3](https://www.postgresql.org/docs/17/indexes-multicolumn.html), [11.4](https://www.postgresql.org/docs/17/indexes-ordering.html)).
+
+<Snippet file="labs/b2-query/output/ledger/index.txt" lines="148:150" title="Rekaman lab: bagian E (membuat index; 245 ms pembanding)" />
+
+<Snippet file="labs/b2-query/output/ledger/index.txt" lines="166:179" title="Rekaman lab: bagian F (query plan dengan index riwayat; waktu dan buffer pembanding)" />
+
+Satu node `Index Scan Backward` membaca 20 baris, dan 20 pencarian `jurnal_pkey` mengambil jenis jurnalnya. Eksekusi turun dari ±31,5 ke ±0,12 ms. Query JOIN dari ADR 15 juga turun, dari ±42,2 ke ±0,18 ms (bagian D dan H). Angka itu datang dari `EXPLAIN ANALYZE`, yang menambah overhead pengukuran di setiap node. Waktu client untuk query yang sama lebih kecil (±27,4 ke ±1,4 ms, `n1.txt` bagian E), jadi jangan menyamakan keduanya.
+
+**4. Urutan kolom menentukan query mana yang terlayani.** Laporan harian Ani memfilter `buku_id = 1003` dan satu hari. Dua kolom depan index membatasi bagian yang dibaca, jadi 59.568 posting yang dulu dibuang tidak lagi dibaca:
+
+<Snippet files={["labs/b2-query/output/ledger/index.txt:283:287", "labs/b2-query/output/ledger/index.txt:288:290", "labs/b2-query/output/ledger/index.txt:297:301"]} title="Rekaman lab: Ringkasan (node dan rows; tanpa index untuk Budi dan Ani, lalu dengan index)" />
+
+Laporan Keuangan tidak memfilter `buku_id`. Rekaman bagian I memuat `Seq Scan on posting` yang membuang 758.648 baris untuk menemukan 1.800. Tanpa batasan di kolom depan, seluruh index harus dipindai, dan planner umumnya memilih seq scan ([PostgreSQL 17, 11.3](https://www.postgresql.org/docs/17/indexes-multicolumn.html)).
+
+PostgreSQL 18 menambah skip scan, tapi hanya efektif bila kolom depan punya sedikit nilai berbeda ([PostgreSQL 18, 11.3](https://www.postgresql.org/docs/18/indexes-multicolumn.html)). Tabel `buku` berisi 1.014 baris (`data.txt` bagian B), dan lab berjalan di PostgreSQL 17.11, jadi skip scan tidak direkam.
+
+**5. Index punya biaya tulis dan ruang.** Setiap index harus disinkronkan dengan tabel, dan itu menambah overhead pada operasi data ([PostgreSQL 17, 11.1](https://www.postgresql.org/docs/17/indexes-intro.html)). Ukuran di rekaman:
+
+<Snippet file="labs/b2-query/output/ledger/index.txt" lines="151:158" title="Rekaman lab: bagian E (ukuran; pembanding)" />
+
+`posting_riwayat` (29 MB) ±5,7 kali `posting_buku` (5.240 kB; hitungan sendiri dari angka rekaman). Lab tidak menguraikan penyebabnya, dan waktu tulis per posting tidak diukur. `CREATE INDEX` di lab memakai 245 ms pada tabel yang tidak sedang ditulis.
+
+Di tabel yang sedang ditulis, `CREATE INDEX` biasa mengunci tulis sampai selesai. `CONCURRENTLY` tidak mengunci tulis. Ia tidak bisa dijalankan di dalam transaction, butuh kerja lebih banyak, dan bisa meninggalkan index "invalid" bila gagal ([PostgreSQL 17, CREATE INDEX](https://www.postgresql.org/docs/17/sql-createindex.html)). Lab tidak menjalankannya (Tidak dijalankan); [[B4.2]] membahas migrasi tanpa jeda.
+
+**6. Planner memilih dari statistik dan ukuran data, bukan dari ada tidaknya index.** Di tabel 100 baris, mengambil 1 baris hampir tidak bisa mengalahkan membaca satu halaman disk berurutan, jadi Seq Scan benar. Dokumentasi menyarankan `ANALYZE` lebih dulu dan data uji yang mirip data asli ([PostgreSQL 17, 11.12](https://www.postgresql.org/docs/17/indexes-examine.html)).
+
+Karena itu rekaman memakai data setahun dan statistik penuh. `ANALYZE` membaca semua baris, dan autovacuum dimatikan di tabel lab supaya rencananya sama di setiap rekaman (`data.txt` bagian C). Widget di blok Coba memakai 100.000 baris, tapi planner SQLite berbeda dari PostgreSQL, jadi rencananya tidak bisa dipakai untuk menebak plan PostgreSQL.
+
+### Cara menemukan query yang butuh index
+
+1. Jalankan `EXPLAIN (ANALYZE, BUFFERS)` di data seukuran produksi, bukan di data uji kecil.
+2. Cari node `Seq Scan` atau `Rows Removed by Filter` yang besar, dan `Sort` di atas node yang membaca ribuan baris. Bandingkan baris yang dibaca dengan baris yang keluar.
+3. Untuk `INSERT`, `UPDATE`, dan `DELETE`, bungkus dengan `BEGIN; ... ROLLBACK;`, karena `ANALYZE` benar-benar menjalankan statement ([PostgreSQL 17, EXPLAIN](https://www.postgresql.org/docs/17/sql-explain.html)).
+4. Simpan plan sebelum dan sesudah sebagai bukti di PR, seperti rekaman lab di halaman ini.
+
+### Di stack lain
+
+**Skenario:** index `(buku_id, dibuat, id)` untuk riwayat Budi, dan cara membaca plan-nya. Tab Go memuat migration api-t2 yang dijalankan di lab. Baris lain tidak dijalankan, hanya dicek ke dokumentasi pada 2026-10-24.
+
+Yang sama di semua stack: index adalah satu perintah `CREATE INDEX`, dan `ORDER BY` di query harus mengikuti urutan kolom index. Yang berbeda: tempat index ditulis dan cara meminta plan.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Index dibuat di migration api-t2 (Go 1.27.1, PostgreSQL 17.11) pada rilis expand, sebelum posting diisi. Plan di halaman ini direkam dari client Python (`rencana` di `rekam_ledger.py`), bukan dari Go, jadi pembacaan plan lewat Go tidak dijalankan.*
+
+<Snippet file="labs/api-t2/migrasi/000011_ledger_pendukung.up.sql" lines="4:7" lang="sql" title="labs/api-t2/migrasi/000011_ledger_pendukung.up.sql" />
+
+<Snippet file="labs/api-t2/internal/repo/riwayat.go" lines="51:51" lang="go" title="labs/api-t2/internal/repo/riwayat.go: urutan yang cocok dengan index" />
+
+**Yang berbeda di stack ini:** tidak ada ORM, jadi index adalah SQL di file migration dan `ORDER BY p.dibuat DESC, p.id DESC` ditulis tangan. Kalau urutan di query berbeda dari urutan index, `EXPLAIN` tidak akan menunjukkannya sampai kamu menjalankannya.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [node-pg-migrate: Indexes](https://github.com/salsita/node-pg-migrate/blob/v9.0.0/docs/src/migrations/indexes.md) tag v9.0.0 dan [node-postgres: Queries](https://node-postgres.com/features/queries), `pg` 8.23.1.*
+
+<Snippet lang="js" code={`// migration (node-pg-migrate 9.0.0)
+exports.up = (pgm) => {
+  pgm.createIndex('posting', ['buku_id', 'dibuat', 'id'], { name: 'posting_riwayat' });
+};
+
+// membaca plan: EXPLAIN adalah query biasa, hasilnya satu baris per baris plan
+const res = await pool.query("EXPLAIN (ANALYZE, BUFFERS) SELECT ... WHERE buku_id = 20 ORDER BY dibuat DESC, id DESC LIMIT 20");
+console.log(res.rows.map((r) => r['QUERY PLAN']).join('\\n'));`} />
+
+**Yang berbeda di stack ini:** `createIndex` punya opsi `concurrently`, dan dokumentasi pra-rilis (10.0.0-alpha.7) menyebut `pgm.noTransaction()` untuk itu. Tag v9.0.0 tidak menyebutnya [perlu verifikasi]. Kolom `QUERY PLAN` adalah nama kolom keluaran `EXPLAIN` format teks.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Migrations, Indexes](https://laravel.com/docs/13.x/migrations#creating-indexes), Laravel 13.38.0.*
+
+<Snippet lang="php" code={`Schema::table('posting', function (Blueprint $table) {
+    $table->index(['buku_id', 'dibuat', 'id'], 'posting_riwayat')->online();
+});`} />
+
+**Yang berbeda di stack ini:** argumen kedua `index` adalah nama index, dan `->online()` menambah `CONCURRENTLY` di PostgreSQL. Dokumentasi Query Builder 13.x tidak memuat `explain` (hanya `dd` dan `dump`). Untuk membaca plan, jalankan `EXPLAIN` sebagai query SQL mentah. Dokumentasi tidak menyebut cara menjalankan `online()` di luar transaction migration [perlu verifikasi].
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: Index](https://docs.djangoproject.com/en/6.1/ref/models/indexes/), [QuerySet.explain](https://docs.djangoproject.com/en/6.1/ref/models/querysets/#explain), dan [AddIndexConcurrently](https://docs.djangoproject.com/en/6.1/ref/contrib/postgres/operations/), Django 6.1.2.*
+
+<Snippet lang="python" code={`class Posting(models.Model):
+    class Meta:
+        indexes = [models.Index(fields=["buku", "dibuat", "id"], name="posting_riwayat")]
+
+# membaca plan
+print(Posting.objects.filter(buku=20).order_by("-dibuat", "-id")[:20].explain(analyze=True))`} />
+
+**Yang berbeda di stack ini:** `Meta.indexes` mendeklarasikan index di model. Awalan `-` di `fields` membuat kolom menurun. `name` dibuat otomatis bila kosong. `explain(analyze=True)` bisa mengubah data bila ada trigger, jadi hati-hati di query yang menulis. `AddIndexConcurrently` tidak berjalan di dalam transaction.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod 4.0: Indexing](https://docs.serverpod.dev/concepts/data-and-the-database/database/indexing) dan [Raw access](https://docs.serverpod.dev/concepts/data-and-the-database/database/raw-access), Serverpod 4.0.4. Contoh mengikuti pola di dokumentasinya dengan nama model Rekeningo.*
+
+<Snippet lang="yaml" code={`class: Posting
+table: posting
+fields:
+  bukuId: int
+  dibuat: DateTime
+indexes:
+  posting_riwayat:
+    fields: bukuId, dibuat, id`} />
+
+<Snippet lang="dart" code={`final hasil = await session.db.unsafeQuery(
+  r'EXPLAIN (ANALYZE, BUFFERS) SELECT ... WHERE "bukuId" = 20 ORDER BY dibuat DESC, id DESC LIMIT 20',
+);`} />
+
+**Yang berbeda di stack ini:** index dideklarasikan di file model, dan migration berikutnya membuatnya. Daftar `fields` memakai nama field model, dan nama kolom database mengikutinya. Memasukkan `id` ke daftar itu belum dijalankan [perlu verifikasi]. Tidak ada method plan bawaan, jadi plan dibaca lewat `unsafeQuery`.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: index_advisor](https://supabase.com/docs/guides/database/extensions/index_advisor) dan [JavaScript: explain](https://supabase.com/docs/reference/javascript/explain), `@supabase/supabase-js` 2.118.0.*
+
+<Snippet lang="sql" code={`create index posting_riwayat on posting (buku_id, dibuat, id);
+
+-- usulan index untuk satu query
+select * from index_advisor('select ... from posting where buku_id = 20 order by dibuat desc, id desc limit 20');`} />
+
+**Yang berbeda di stack ini:** database-nya PostgreSQL, jadi SQL-nya sama dengan lab. `index_advisor` hanya merekomendasikan index B-tree satu kolom. Ia tidak akan mengusulkan index tiga kolom ini. `.explain({ analyze: true })` di supabase-js butuh pengaturan `db_plan_enabled`.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 15: satu query JOIN dan index komposit `posting (buku_id, dibuat, id)`
+
+**Kebutuhan.** Di M11, riwayat Budi dan laporan harian Ani lambat ([[t2-m11]]). Rekaman memuat dua penyebab. Satu: 21 query untuk 20 baris ([[t2-n-plus-1]]). Dua: query daftar yang membaca 3.892 posting dan 380.224 jurnal untuk 20 baris (`index.txt` bagian B). Laporan Ani membaca 59.762 posting dan membuang 59.568.
+
+Beban puncak ±1,4 request per detik untuk 1.000 karyawan dan 12 warung (Asumsi naskah).
+
+**Status:** diterima di minggu 3 Tahap 2, sesudah M11. Berlaku untuk semua query per akun di tabel `posting`: riwayat, laporan harian warung, dan kursor ADR 16 di [[t2-kursor]].
+
+**Beda dengan naskah.** Naskah menulis index `posting(akun, waktu)` di M11 dan `posting(akun, waktu, id)` di tabel fitur. Tabel `posting` merujuk `buku`, dan setiap akun punya satu buku, jadi kolomnya `buku_id` dan `dibuat`. Kolom `id` di ujung membuat urutan unik, dan nama index di lab `posting_riwayat`.
+
+| | A. JOIN + index komposit | B. Cache hasil riwayat | C. Nama lawan disimpan di `posting` | D. Materialized view riwayat |
+|---|---|---|---|---|
+| Cara kerja | Satu query mengambil daftar dan nama lawan. Index `(buku_id, dibuat, id)` melayani `WHERE` dan `ORDER BY` | Hasil riwayat per buku disimpan di memori atau cache terpisah, dan dibuang saat ada posting baru | Kolom `lawan` ditulis saat INSERT posting, jadi riwayat tidak perlu mencari posting lawan | Riwayat dihitung dan disimpan sebagai tabel, lalu diperbarui dengan `REFRESH MATERIALIZED VIEW` |
+| Kelebihan | Tanpa komponen baru. Halaman pertama membaca 20 baris, bukan 3.892. Data selalu terbaru | Cepat saat isi cache ada, tanpa mengubah skema | Query riwayat lebih pendek, tanpa `LATERAL` | Pembacaan seperti dari tabel biasa, dan view bisa punya index sendiri |
+| Kekurangan | Index 29 MB dan satu index lagi diperbarui di setiap INSERT posting. Hanya melayani query dengan `buku_id` di `WHERE` | Cache kosong tetap menjalankan query yang lambat. Isinya bisa stale, dan penyebab lambatnya tersembunyi | Posting tidak pernah di-UPDATE. Nama akun yang berubah meninggalkan salinan lama, dan tidak ada jalur koreksinya | Data "tidak selalu terbaru". Riwayat Budi tidak langsung memuat pembayaran yang baru ia lakukan |
+| Biaya operasional | Plan dicek di data besar. Index dibuat `CONCURRENTLY` di tabel yang hidup | Aturan invalidasi per buku, dan satu komponen yang harus dipantau | Pengisian kolom di setiap jalur yang menulis posting | Jadwal refresh. `REFRESH` biasa bisa memblokir pembaca, dan `CONCURRENTLY` butuh index `UNIQUE` |
+| Bukti | Rekaman `index.txt` bagian F dan H: `Index Scan Backward`, 20 baris; `n1.txt` bagian D dan E | Tidak dijalankan. Beban ±1,4 request per detik (Asumsi); `n1.txt` bagian D | `invarian.txt` bagian B: UPDATE posting ditolak 23001. Penalaran sendiri soal salinan stale, tidak dijalankan | Dokumentasi PostgreSQL 17, 39.3 dan REFRESH MATERIALIZED VIEW. Tidak dijalankan |
+
+Kedua perbaikan di opsi A saling melengkapi. Rekaman `n1.txt` bagian E mencatat halaman pertama Budi. N+1 tanpa index ±30,5 ms, JOIN tanpa index ±27,4 ms, N+1 dengan index ±10,4 ms, JOIN dengan index ±1,4 ms. Hanya kombinasi keduanya yang turun ke ±1 ms.
+
+**Keputusan: opsi A.** Lima aturan:
+
+1. Riwayat dan laporan harian memakai satu query JOIN. Lawan transaksi dicari dengan `LATERAL ... LIMIT 1`, dan relasi yang boleh kosong memakai `LEFT JOIN` (dibahas di [[t2-n-plus-1]]).
+2. Index `posting_riwayat (buku_id, dibuat, id)` dibuat, dan `ORDER BY dibuat DESC, id DESC` ditulis persis mengikuti urutan kolomnya. Urutan unik itu dipakai juga oleh kursor ADR 16.
+3. Setiap query daftar baru per akun membawa `EXPLAIN (ANALYZE, BUFFERS)` di data seukuran satu tahun (±760 ribu posting) di PR-nya. Plan tidak boleh memuat `Seq Scan` di `posting` atau `jurnal` untuk permintaan per akun.
+4. Cache riwayat tidak dipasang sebelum ada ukuran beban yang menunjukkan masalahnya.
+5. Index di tabel yang sudah berisi dan sedang ditulis dibuat dengan `CREATE INDEX CONCURRENTLY` di luar transaction. Di lab api-t2, index dibuat `CREATE INDEX` biasa dengan `lock_timeout` 3 detik di rilis expand, sebelum posting diisi.
+
+**Kenapa A, bukan B.** Cache menjawab beban, dan M11 bukan masalah beban. Dengan index, halaman pertama memakai ±1,4 ms (`n1.txt` bagian E). Pada 1,4 request per detik, itu ±2 ms kerja database per detik untuk riwayat (hitungan sendiri dari angka pembanding). Cache di atas query tanpa index tetap menjalankan query ±27,4 ms setiap kali kosong (`n1.txt` bagian E), dan menyembunyikan penyebabnya.
+
+- **C ditolak** karena `posting` tidak pernah di-UPDATE: database menolaknya dengan 23001 dan koreksi lewat jurnal pembalik (`invarian.txt` bagian B). Nama lawan yang berubah tidak bisa diperbaiki di salinan itu.
+- **D ditolak** karena dokumentasi menyebut data materialized view "tidak selalu terbaru" ([39.3](https://www.postgresql.org/docs/17/rules-materializedviews.html)). Riwayat yang baru dibuka sesudah Bayar harus memuat pembayaran itu.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Query riwayat berubah, misalnya `ORDER BY` diganti, dan planner kembali mengurutkan seluruh hasil. Pencegahannya aturan 2 dan 3: urutan ditulis di satu fungsi repo, dan plan dibaca setiap ada perubahan query.
+2. Statistik tabel berubah setelah muat besar atau pertumbuhan data, dan planner memilih plan lain. Pencegahannya `ANALYZE` setelah muat besar dan plan yang dicek di data sebesar produksi ([11.12](https://www.postgresql.org/docs/17/indexes-examine.html)).
+3. Tabel `posting` tumbuh dan setiap INSERT memperbarui empat index. `posting_buku (buku_id)` kini memuat kolom depan yang sama dengan `posting_riwayat`. Pencegahannya menghapus index yang tidak dipakai, dengan ukuran sebelum dan sesudah. Lab belum mengukurnya.
+
+**Kapan keputusan ini salah.** Saat query dominan tidak memfilter `buku_id`: laporan Keuangan lintas buku dan tutup buku bulanan. Rekaman bagian I membaca seluruh `posting` untuk satu hari, ±28 ms di 760 ribu baris (pembanding), dan index ini tidak membantunya. Kapan itu jadi masalah belum diukur.
+
+**Yang akan merevisinya.** Tutup buku ([[t2-tutup-buku]]) memakai query lintas buku, dan naskah belum menjadwalkan index `(dibuat)` untuknya. Bila terukur lambat, index kedua itu masuk sebagai ADR baru, dan perlu diuji dengan beban tulis. Pagination kursor ([[t2-kursor]]) memakai urutan yang sama, jadi perubahan urutan memengaruhi keduanya.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Cache untuk riwayat | Beban puncak ±1,4 request per detik (Asumsi); masalah M11 adalah query, bukan beban | [[t2-adr-21]] |
+| Index kedua `(dibuat)` untuk laporan Keuangan | Waktu laporan lintas buku belum diukur sebagai masalah; satu index lagi menambah biaya tulis | Belum dijadwalkan di naskah |
+| Menghapus `posting_buku` | Kolom depannya sama dengan `posting_riwayat`, tapi ukurannya 5.240 kB lawan 29 MB dan dampak ke invarian saldo belum diukur | Belum dijadwalkan |
+| Index covering (`INCLUDE`) agar riwayat tidak membaca tabel | Halaman pertama sudah ±0,12 ms di rekaman; index jadi lebih besar | Belum dijadwalkan |
+| `CREATE INDEX CONCURRENTLY` di lab | Index lab dibuat di tabel yang tidak ditulis; pembahasan migrasi tanpa jeda ada di halaman lain | [[B4.2]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+Kalimat yang dibawa keluar dari M11 dan halaman ini: lambat di data kecil berarti query yang salah, bukan server yang lemah. Di rekaman, kalimat itu berlaku untuk 21 query dan untuk 3.892 posting yang dibaca demi 20 baris.
+
+**1.** Index `(buku_id, dibuat, id)` sudah ada. Laporan Keuangan menghitung posting satu hari dari semua buku, tanpa `buku_id`. Apakah index itu dipakai?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. Kolom depan index tidak ada di `WHERE`, jadi seluruh index harus dipindai dan planner umumnya memilih seq scan. Rekaman bagian I memuat `Seq Scan on posting` yang membuang 758.648 baris untuk menemukan 1.800 (±28 ms, pembanding). Skip scan di PostgreSQL 18 hanya efektif bila kolom depan punya sedikit nilai berbeda.
+
+</details>
+
+**2.** Raka membuat index di tabel `posting` berisi 100 baris, dan `EXPLAIN` tetap menulis Seq Scan. Apakah index-nya rusak?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. Seratus baris muat dalam satu halaman disk, jadi membaca seluruh tabel sama cepatnya dengan memakai index. Dokumentasi PostgreSQL menyebut data uji yang sangat kecil sebagai kesalahan fatal. Uji di data seukuran produksi setelah `ANALYZE`, seperti rekaman yang memakai 760.448 posting.
+
+</details>
+
+**3.** `posting.buku_id` punya foreign key ke `buku`. Apakah `posting_buku` otomatis ada karena itu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. Deklarasi foreign key tidak membuat index di kolom yang merujuk. `posting_buku` ada karena `schema.sql` lab membuatnya sendiri untuk invarian jumlah per buku. Kalau skema Django, Serverpod, atau SQL tulis tangan berbeda perilakunya, cek daftar index-nya.
+
+</details>
+
+**4.** Query riwayat sudah memakai JOIN dan index, dan Raka masih ingin memasang cache karena "takut lambat". Apa yang kamu minta lebih dulu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Plan sebelum dan sesudah, di data seukuran satu tahun, serta ukuran beban. Di rekaman satu halaman selesai dalam ±1,4 ms dan beban puncak ±1,4 request per detik (Asumsi). Cache menambah aturan invalidasi dan data stale tanpa menjawab masalah yang terukur.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Query daftar per akun punya `EXPLAIN (ANALYZE, BUFFERS)` di data seukuran produksi, dan plan-nya tidak memuat `Seq Scan` di tabel besar.
+- [ ] `ORDER BY` mengikuti urutan kolom index, termasuk kolom pembeda di ujung.
+- [ ] Index baru di tabel yang sedang ditulis dibuat `CONCURRENTLY` di luar transaction.
+- [ ] Setiap index baru punya query yang memakainya, dan index yang tidak dipakai dihapus.
+- [ ] Klaim "sudah dioptimasi" membawa plan sebelum dan sesudah, bukan hanya waktu.
+
+### Bacaan lanjut
+
+- [PostgreSQL 17: Multicolumn Indexes](https://www.postgresql.org/docs/17/indexes-multicolumn.html) · [Indexes and ORDER BY](https://www.postgresql.org/docs/17/indexes-ordering.html) · [Examining Index Usage](https://www.postgresql.org/docs/17/indexes-examine.html)
+- [PostgreSQL 17: Using EXPLAIN](https://www.postgresql.org/docs/17/using-explain.html) · [EXPLAIN](https://www.postgresql.org/docs/17/sql-explain.html) · [CREATE INDEX](https://www.postgresql.org/docs/17/sql-createindex.html)
+- [SQLite: EXPLAIN QUERY PLAN](https://www.sqlite.org/eqp.html)
+- [Laravel 13.x: Migrations, Indexes](https://laravel.com/docs/13.x/migrations#creating-indexes)
+- [Django 6.1: Index](https://docs.djangoproject.com/en/6.1/ref/models/indexes/)
+- [Serverpod 4.0: Indexing](https://docs.serverpod.dev/concepts/data-and-the-database/database/indexing)
+- [Supabase: index_advisor](https://supabase.com/docs/guides/database/extensions/index_advisor)
+
+</Blok>
+
+<SkripLama daftar={["cerita","runsql-core","runsql"]} />

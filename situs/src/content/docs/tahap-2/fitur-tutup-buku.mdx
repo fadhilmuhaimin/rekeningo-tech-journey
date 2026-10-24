@@ -190,14 +190,14 @@ REVOKE EXECUTE ON FUNCTION tutup_buku(date) FROM public, anon, authenticated;`} 
 
 - [[t2-saldo-bukan-kolom]]: kenapa saldo awal dan mutasi tidak bisa dihitung dari kolom saldo Tahap 1.
 - [[t2-ledger]]: jurnal, posting, dan tiga invarian yang dijaga database, termasuk jurnal seimbang.
-- [[B2.3]]: kapan index membantu query seperti ini, dan cara membaca query plan-nya.
+- [[t2-index]]: kapan index membantu query seperti ini, dan cara membaca query plan-nya.
 - [[t2-m9]]: kenapa dua transfer bersamaan bisa lolos walau setiap jurnalnya seimbang.
 
 **Sengaja belum dilakukan** di v2:
 
 | Yang ditunda | Kenapa ditunda | Muncul lagi di |
 |---|---|---|
-| Index atau snapshot untuk tutup buku | Saldo awal adalah jumlah semua posting sebelum periode, jadi query membaca semua posting setiap kali; lamanya belum diukur | [[B2.3]]; snapshot saldo di Tahap 5 |
+| Index atau snapshot untuk tutup buku | Saldo awal adalah jumlah semua posting sebelum periode, jadi query membaca semua posting setiap kali; lamanya belum diukur | [[t2-index]]; snapshot saldo di Tahap 5 |
 | Mencegah dua transfer bersamaan | Tutup buku hanya membaca sesudah kejadian; ia tidak mengunci buku apa pun | [[t2-m9]] |
 | Menutup periode | Jurnal yang terlambat `COMMIT` bisa masuk periode yang sudah dilaporkan (rekaman bagian C) | Belum ada halaman di peta Tahap 2 |
 | Layar Keuangan atau ekspor | Naskah menyebut web sederhana atau ekspor; lab memanggil endpoint dengan curl | Belum dijadwalkan |
