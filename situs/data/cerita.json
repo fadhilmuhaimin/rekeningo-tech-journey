@@ -1424,8 +1424,9 @@
       "lab": [
         "b3-ledger"
       ],
-      "ada": false,
-      "nomor": "2.7"
+      "ada": true,
+      "nomor": "2.7",
+      "menit": 13
     },
     {
       "id": "t2-adr-ledger",

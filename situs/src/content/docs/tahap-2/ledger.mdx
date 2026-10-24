@@ -1,0 +1,333 @@
+---
+title: "2.7 Ledger double-entry: jurnal, posting, invarian"
+description: Setiap perpindahan uang adalah satu jurnal yang posting-nya berjumlah nol. Database menolak jurnal yang tidak seimbang, posting yang diubah, dan saldo karyawan yang jadi negatif.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-ledger-inti.json";
+import batasDiagram from "../../../../data/diagram/t2-ledger-batas.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 10 menit · coba 3 menit · Prasyarat: [[t2-saldo-bukan-kolom]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Dalam ledger double-entry, setiap rupiah yang keluar dari satu buku masuk ke buku lain di kejadian yang sama, jadi jumlah catatannya selalu nol.
+
+<Rantai data={intiDiagram} ringkas />
+
+Satu kejadian adalah satu **jurnal**. Setiap buku ledger yang uangnya berubah mendapat satu **posting**: positif bila uang masuk ke buku itu, negatif bila keluar. Saat Budi membayar Rp25.000, buku Budi mendapat −25.000 dan buku Warung Ani +25.000 (rekaman lab `kejadian.txt` bagian B, jurnal 7).
+
+Tiga aturan dijaga database, bukan hanya kode: jurnal harus seimbang, posting tidak bisa diubah atau dihapus, dan saldo buku karyawan tidak boleh negatif. Jurnal salah ketik di baris kedua diagram ditolak utuh saat `COMMIT` dengan SQLSTATE 23514 (`invarian.txt` bagian A). Aturan ketiga punya batas: dua transfer yang diperiksa bersamaan bisa sama-sama lolos ([[t2-m9]]).
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Jurnal top-up berisi tunjangan −Rp250.000 dan Budi +Rp25.000. Di perintah mana database menolaknya, dan apa yang tersisa sesudahnya?
+2. Salah bayar Rp15.000 sudah `COMMIT`. Kenapa `UPDATE posting` bukan cara memperbaikinya, dan apa gantinya?
+3. Kenapa pemeriksaan "saldo karyawan tidak negatif" di database belum cukup untuk dua transfer bersamaan?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: jurnal seimbang baru bisa diperiksa sesudah semua posting masuk, jadi jurnal yang salah ditolak utuh saat COMMIT.">
+
+Widget ini memutar ulang rekaman lab b3-ledger di PostgreSQL 17.11. Admin membuat top-up tunjangan Rp250.000 untuk Budi, tapi posting Budi tertulis +25.000.
+
+<WidgetLama nama="alur" src="data/skenario/t2-ledger.json" />
+
+Database menerima `INSERT` posting dan `UPDATE` cache, lalu menolak di `COMMIT`. Sesudahnya tidak ada jurnal 12, tidak ada posting-nya, dan cache Budi kembali ke angka sebelum top-up.
+
+Nyalakan **Ubah satu hal**: posting Budi +250.000. Jumlah jurnal jadi 0, dan perintah yang sama berakhir `COMMIT` (rekaman `kejadian.txt` bagian B, jurnal 6). Kode top-up tidak menjalankan pemeriksaan apa pun di kedua jalur; yang memutuskan adalah database.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Di [[t2-saldo-bukan-kolom]], saldo menjadi jumlah posting. Jumlah itu hanya bisa dipercaya kalau setiap posting benar dan tidak pernah berubah. Naskah Tahap 2 menulis usul Nadia dari tim ERP: setiap perpindahan uang adalah satu jurnal berisi dua posting atau lebih yang jumlahnya selalu nol. Kesalahan dikoreksi dengan jurnal pembalik.
+
+Ada tiga cara posting bisa merusak jawaban untuk Pak Hadi. Jurnal satu sisi membuat uang muncul atau hilang tanpa asal. Posting lama yang diubah menghapus catatan kejadiannya. Saldo karyawan yang negatif berarti uang dibelanjakan padahal tidak ada.
+
+Di Tahap 1, `CHECK (saldo >= 0)` menjaga satu baris `akun` ([[B6]]). Aturan ledger menjumlah banyak baris, jadi bentuk pagarnya berbeda. Kalau kamu pernah menulis `assert(total == 0)` di Dart, idenya mirip, tapi assert diabaikan di build release ([Dart: Error handling](https://dart.dev/language/error-handling#assert)). Trigger di database berlaku untuk setiap koneksi yang menulis posting.
+
+### Cara kerjanya
+
+**Empat tabel.** Tabel `akun` berisi orang dan perannya. Tabel `buku` berisi tempat uang dicatat: buku karyawan dan warung punya pemilik, buku sistem seperti tunjangan tidak. Tabel `jurnal` berisi kejadian, dan tabel `posting` berisi angka uangnya:
+
+<Snippet file="labs/b3-ledger/schema.sql" region="posting" lang="sql" title="labs/b3-ledger/schema.sql" />
+
+Kelima kejadian di naskah bagian 3 direkam lab sebagai jurnal berikut (rekaman lab `kejadian.txt` bagian B):
+
+| Kejadian | Jurnal | Posting |
+|---|---|---|
+| Top-up Rp250.000 ke Budi | 6 · topup | tunjangan −250.000; Budi +250.000 |
+| Budi bayar Rp25.000 ke Warung Ani | 7 · bayar | Budi −25.000; Warung Ani +25.000 |
+| Budi transfer Rp20.000 ke Citra | 8 · transfer | Budi −20.000; Citra +20.000 |
+| Pencairan Jumat Rp310.000 | 9 · pencairan | Warung Ani −310.000; kas pencairan +310.000 |
+| Salah bayar, lalu koreksi | 10 · bayar, 11 · pembalik | Budi −15.000; Warung Sari +15.000, lalu cerminnya |
+
+**Satu konvensi tanda.** Buku akuntansi menulis dua kolom, debit dan kredit, dan total keduanya harus sama di setiap jurnal ([OpenStax, bagian 3.5](https://openstax.org/books/principles-financial-accounting/pages/3-5-use-journal-entries-to-record-transactions-and-post-to-t-accounts)). Rekeningo menulis satu angka bertanda dari sisi buku: positif masuk, negatif keluar. Dengan satu kolom, aturan "debit sama dengan kredit" menjadi satu pemeriksaan: jumlah posting jurnal itu 0.
+
+Halaman ini tidak menyamakan positif dengan debit. Dari sisi perusahaan, saldo karyawan bisa dibaca sebagai kewajiban [perlu verifikasi], sehingga pemetaannya tidak sesederhana tanda; rinciannya ada di halaman istilah [Debit](/istilah/debit/).
+
+Buku sistem boleh negatif. Buku tunjangan −Rp250.000 berarti tunjangan sudah mengeluarkan Rp250.000. Karena setiap jurnal berjumlah nol, jumlah semua posting di sistem juga nol:
+
+<Snippet file="labs/b3-ledger/output/tutup-buku.txt" lines="37:58" title="Rekaman lab: labs/b3-ledger/output/tutup-buku.txt" />
+
+### Invarian 1: jurnal seimbang, diperiksa saat COMMIT
+
+`CHECK` tidak bisa dipakai, karena PostgreSQL tidak mendukung `CHECK` yang membaca baris lain selain baris yang sedang ditulis ([PostgreSQL 17, 5.5.1](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-CHECK-CONSTRAINTS)). Pemeriksaan seketika juga salah: posting pertama jurnal mana pun membuat jumlahnya belum nol.
+
+Lab memakai constraint trigger `DEFERRABLE INITIALLY DEFERRED`. Trigger seperti ini dijalankan saat `COMMIT`, sesudah semua posting jurnal masuk ([PostgreSQL 17: SET CONSTRAINTS](https://www.postgresql.org/docs/17/sql-set-constraints.html)). Jurnal tanpa posting juga ditolak, dengan pesan "0 posting, jumlah 0" di rekaman yang sama.
+
+<Snippet file="labs/b3-ledger/schema.sql" region="invarian-1" lang="sql" title="labs/b3-ledger/schema.sql" />
+
+### Invarian 2: posting dan jurnal tidak diubah
+
+Trigger `BEFORE UPDATE OR DELETE` dan `BEFORE TRUNCATE` menolak perubahan seketika, dengan SQLSTATE 23001:
+
+<Snippet file="labs/b3-ledger/output/invarian.txt" lines="43:61" title="Rekaman lab: labs/b3-ledger/output/invarian.txt" />
+
+Pagar ini punya batas yang tertulis di rekaman. Pemilik tabel bisa mematikan triggernya dengan `ALTER TABLE ... DISABLE TRIGGER` ([PostgreSQL 17: ALTER TABLE](https://www.postgresql.org/docs/17/sql-altertable.html)). Superuser juga bisa melewatinya dengan `session_replication_role = replica` ([PostgreSQL 17: Client connection defaults](https://www.postgresql.org/docs/17/runtime-config-client.html)). Karena itu server api-t2 terhubung dengan role `api_t2` yang bukan pemilik tabel ledger.
+
+### Koreksi: jurnal pembalik
+
+Salah bayar diperbaiki dengan jurnal baru yang mencerminkan jurnal asal: buku yang sama, tanda dibalik, alasan minimal 20 karakter, dan `membalik_jurnal_id` ke jurnal asal. Contoh yang diterima ada di [[t2-saldo-bukan-kolom]] (jurnal 11 membalik jurnal 10). Database menolak pembalik yang bukan cermin, dan jurnal yang dibalik untuk kedua kalinya:
+
+<Snippet file="labs/b3-ledger/output/invarian.txt" lines="88:114" title="Rekaman lab: labs/b3-ledger/output/invarian.txt" />
+
+### Invarian 3: saldo karyawan tidak negatif
+
+Trigger ketiga juga ditunda sampai `COMMIT`, dan hanya berjalan untuk posting keluar di buku karyawan. Budi dengan saldo Rp385.000 mencoba mentransfer Rp400.000. `INSERT` dan `UPDATE` diterima, `COMMIT` ditolak, dan saldo serta cache tetap Rp385.000:
+
+<Snippet file="labs/b3-ledger/output/invarian.txt" lines="63:86" title="Rekaman lab: labs/b3-ledger/output/invarian.txt" />
+
+### Batas invarian 3
+
+Pemeriksaan saldo hanya membaca, tanpa lock. Di Read Committed, pemeriksaan satu transaction tidak melihat posting transaction lain yang belum `COMMIT`.
+
+Di Tahap 1, dua Bayar Rp200.000 bersamaan dari saldo Rp250.000 berakhir `201` dan `500`. `UPDATE` kedua menunggu baris akun Budi, lalu ditolak `saldo_tidak_negatif` (rekaman api-t1 `sengaja-belum.txt` bagian B, [[t1-adr-12]]). Di ledger, setiap transfer menulis baris posting baru, jadi tanpa `UPDATE` cache tidak ada baris yang ditunggu bersama.
+
+Lab mengulang angka M9 di naskah: saldo Budi Rp100.000, transfer Rp70.000 dan Rp50.000 dari dua koneksi.
+
+<Rantai data={batasDiagram} />
+
+Skenario 2 memakai `SET CONSTRAINTS ALL IMMEDIATE` supaya urutannya bisa diulang. Kedua transaction tersimpan:
+
+<Snippet file="labs/b3-ledger/output/batas.txt" lines="87:97" title="Rekaman lab: labs/b3-ledger/output/batas.txt" />
+
+Dokumentasi PostgreSQL menulis bahwa aturan integritas yang membaca baris lain sulit dijaga di Read Committed, dan menyarankan Serializable atau lock eksplisit ([PostgreSQL 17, 13.4](https://www.postgresql.org/docs/17/applevel-consistency.html)). Pilihan itu adalah keputusan M9 di [[t2-m9]] dan [[B3.2]]. Di skenario 3, cache yang diperbarui di transaction yang sama sudah menahan saldo negatif, tapi transfer kedua gagal dengan error database, bukan jawaban "saldo kurang".
+
+### Di stack lain
+
+**Skenario:** database menolak jurnal saat `COMMIT`, dan kode membaca SQLSTATE serta nama constraint dari error itu. Tab Go adalah kode lab api-t2. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi atau kode sumber library pada 2026-10-24.
+
+Yang sama di semua stack: error invarian 1 dan 3 datang dari `COMMIT`, bukan dari `INSERT` posting. Kode yang membuang error `COMMIT` akan menganggap jurnal yang ditolak sudah tersimpan.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Kode lab api-t2: Go 1.27.1, `database/sql` + pgx v5.11.0, PostgreSQL 17.11. Penolakan saat `COMMIT` direkam di b3-ledger lewat skrip lab, bukan lewat kode ini.*
+
+<Snippet file="labs/api-t2/internal/repo/tx.go" region="tx" lang="go" title="labs/api-t2/internal/repo/tx.go" />
+
+<Snippet file="labs/api-t2/internal/service/topup.go" lines="137:140" lang="go" title="labs/api-t2/internal/service/topup.go" />
+
+**Yang berbeda di stack ini:** error `tx.Commit()` dikembalikan apa adanya. Driver pgx memberi `*pgconn.PgError` dengan field `Code` dan `ConstraintName` ([pgx v5.11.0](https://pkg.go.dev/github.com/jackc/pgx/v5/pgconn#PgError)). api-t2 baru memetakan 23505 lewat `isUnik`; error lain jadi 500 di handler.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [node-postgres: Transactions](https://node-postgres.com/features/transactions) dan kode sumber [pg-protocol `messages.ts`](https://github.com/brianc/node-postgres/blob/master/packages/pg-protocol/src/messages.ts), `pg` 8.23.1.*
+
+<Snippet lang="js" code={`const client = await pool.connect();
+try {
+  await client.query("BEGIN");
+  // INSERT jurnal, INSERT posting, UPDATE buku
+  await client.query("COMMIT"); // penolakan invarian 1 dan 3 datang di sini
+} catch (err) {
+  await client.query("ROLLBACK");
+  if (err.code === "23514" && err.constraint === "saldo_karyawan_tidak_negatif") {
+    // jawab "saldo kurang", bukan 500
+  }
+  throw err;
+} finally {
+  client.release();
+}`} />
+
+**Yang berbeda di stack ini:** error dari server adalah `DatabaseError` dengan properti `code` dan `constraint`. Dokumentasi node-postgres tidak mendaftar properti itu, jadi namanya diambil dari kode sumber pg-protocol.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Database transactions](https://laravel.com/docs/13.x/database#database-transactions), kode sumber [`ManagesTransactions`](https://github.com/laravel/framework/blob/13.x/src/Illuminate/Database/Concerns/ManagesTransactions.php), dan [PHP: PDOException](https://www.php.net/manual/en/class.pdoexception.php); Laravel 13.38.0.*
+
+<Snippet lang="php" code={`try {
+    DB::transaction(function () use ($posting) {
+        // insert jurnal, insert posting, update buku
+    });
+} catch (\\PDOException $e) {
+    // COMMIT yang ditolak datang sebagai PDOException, bukan QueryException
+    if ($e->getCode() === '23514') {
+        // nama constraint hanya ada di teks $e->getMessage()
+    }
+    throw $e;
+}`} />
+
+**Yang berbeda di stack ini:** `DB::transaction` memanggil `commit()` milik PDO langsung, jadi error `COMMIT` tidak dibungkus `QueryException`. `QueryException` adalah turunan `PDOException`, jadi satu `catch` menangkap keduanya. PDO hanya menyimpan SQLSTATE; nama constraint tidak punya field sendiri.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: Database exceptions](https://docs.djangoproject.com/en/6.1/ref/exceptions/#database-exceptions) dan [psycopg 3: Errors](https://www.psycopg.org/psycopg3/docs/api/errors.html); Django 6.1.2, psycopg 3.3.6.*
+
+<Snippet lang="python" code={`from django.db import IntegrityError, transaction
+
+try:
+    with transaction.atomic():  # blok terluar: COMMIT terjadi saat keluar dari sini
+        ...  # buat jurnal dan posting
+except IntegrityError as e:
+    asal = e.__cause__  # error psycopg aslinya
+    if asal.sqlstate == "23514" and asal.diag.constraint_name == "saldo_karyawan_tidak_negatif":
+        ...  # jawab "saldo kurang"
+    raise`} />
+
+**Yang berbeda di stack ini:** Django membungkus error database, dan error psycopg aslinya ada di `__cause__`. `COMMIT` hanya terjadi saat blok `atomic()` terluar selesai. Blok di dalamnya hanya savepoint, jadi trigger yang ditunda belum berjalan di sana.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod 4.0: Exceptions](https://docs.serverpod.dev/concepts/data-and-the-database/database/exceptions), Serverpod 4.0.4.*
+
+<Snippet lang="dart" code={`try {
+  await session.db.transaction((transaction) async {
+    // insert jurnal dan posting dengan transaction: transaction
+  });
+} on DatabaseQueryException catch (e) {
+  if (e.code == '23514' && e.constraintName == 'saldo_karyawan_tidak_negatif') {
+    // jawab "saldo kurang"
+  }
+  rethrow;
+}`} />
+
+**Yang berbeda di stack ini:** 23514 dan 23001 datang sebagai `DatabaseQueryException` biasa, dengan `code` dan `constraintName`. Hanya pelanggaran UNIQUE dan foreign key yang punya subclass sendiri, misalnya `DatabaseUniqueViolationException` untuk 23505.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [PostgREST 16: Errors](https://docs.postgrest.org/en/stable/references/errors.html) dan [supabase-js: rpc](https://supabase.com/docs/reference/javascript/rpc), `@supabase/supabase-js` 2.118.0.*
+
+<Snippet lang="js" code={`// catat_jurnal: fungsi PostgreSQL yang menulis jurnal dan posting
+const { data, error } = await supabase.rpc('catat_jurnal', { ... })
+if (error?.code === '23514') {
+  // nama constraint hanya ada di teks error.message
+}`} />
+
+**Yang berbeda di stack ini:** satu request PostgREST adalah satu transaction, jadi `COMMIT` terjadi di akhir request. SQLSTATE 23514 dan 23001 tidak ada di tabel status PostgREST, jadi dijawab HTTP 400; 23505 dijawab 409. Error hanya berisi `message`, `details`, `hint`, dan `code`.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Situasi | Pilihan |
+|---|---|
+| Aturan untuk satu baris, mis. jumlah posting bukan 0 atau alasan pembalik minimal 20 karakter | `CHECK`; diperiksa seketika |
+| Aturan yang menjumlah beberapa baris, mis. jurnal seimbang | Constraint trigger yang ditunda sampai `COMMIT` |
+| Baris yang tidak boleh berubah | Trigger `BEFORE UPDATE`, `DELETE`, dan `TRUNCATE`, ditambah role app yang bukan pemilik tabel |
+| Aturan yang harus benar saat dua transaction berjalan bersamaan | Pemeriksaan saja tidak cukup; butuh lock atau Serializable ([[B3.2]], [[B3.3]]) |
+
+**Biaya invarian di database.** Setiap posting keluar di buku karyawan menjalankan `sum` atas semua posting buku itu, jadi pemeriksaannya tumbuh bersama riwayat. Lamanya belum diukur di lab. Kesalahan juga baru terlihat di `COMMIT`, jadi kode harus memetakan SQLSTATE dan nama constraint menjadi jawaban yang dimengerti app.
+
+Kenapa Rekeningo memilih ledger, opsi yang ditolak, dan kapan keputusan itu salah ada di [[t2-adr-ledger]].
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Lock saat saldo diperiksa | Pilihan lock, Serializable, atau UPDATE bersyarat dibandingkan di lab b3-race | [[t2-m9]], [[B3.2]] |
+| Batas saldo warung dan batas harian di database | `buku.batas_saldo` dan `buku.batas_harian` dibaca app, belum dijaga database (`schema.sql`) | [[t2-m14]] |
+| Menolak posting baru di jurnal lama | Posting yang tetap seimbang masih bisa ditambahkan ke jurnal lama; menutupnya butuh `dibuat` yang selalu diisi database | Tidak dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Satu jurnal transfer berisi buku Budi −Rp20.000 dan buku Citra +Rp25.000. Kapan database menolaknya, dengan SQLSTATE apa, dan apa yang tersisa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Saat `COMMIT`, karena jumlahnya +5.000. Trigger `jurnal_seimbang` menolak dengan SQLSTATE 23514, seperti jurnal 12 di rekaman `invarian.txt` bagian A. Seluruh transaction batal: jurnal, kedua posting, dan perubahan `saldo_cache`.
+
+</details>
+
+**2.** Admin ingin memperbaiki salah bayar dengan `UPDATE posting SET jumlah = 0`. Apa jawaban database, dan apa gantinya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Ditolak seketika dengan SQLSTATE 23001 (`posting_tidak_diubah`). Gantinya jurnal pembalik: posting cermin, alasan minimal 20 karakter, dan `membalik_jurnal_id` ke jurnal asal. Pembalik kedua untuk jurnal yang sama ditolak dengan 23505.
+
+</details>
+
+**3.** Kenapa jurnal seimbang tidak ditulis sebagai `CHECK (sum(jumlah) = 0)`?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+`CHECK` di PostgreSQL hanya membaca baris yang sedang ditulis, bukan baris lain di tabel. Pemeriksaan seketika juga akan menolak posting pertama setiap jurnal. Constraint trigger yang ditunda menjumlah posting saat `COMMIT`, sesudah semuanya masuk.
+
+</details>
+
+**4.** Buku tunjangan bersaldo −Rp250.000 di rekaman `tutup-buku.txt`. Apakah invarian 3 dilanggar?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. Invarian 3 hanya berlaku untuk buku karyawan. Buku tunjangan adalah buku sistem, dan saldo negatifnya berarti tunjangan sudah mengeluarkan Rp250.000. Jumlah semua posting di sistem tetap 0.
+
+</details>
+
+**5.** Dua transfer Rp70.000 dan Rp50.000 dari saldo Budi Rp100.000 diperiksa sebelum salah satunya `COMMIT`. Apa hasilnya, dan halaman mana yang menjawabnya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Keduanya tersimpan dan saldo Budi −Rp20.000 (rekaman `batas.txt` skenario 2). Pemeriksaan invarian 3 hanya membaca, tanpa lock. Jawabannya di [[t2-m9]].
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Jurnal dan semua posting-nya ditulis di satu transaction, bersama perubahan `saldo_cache`.
+- [ ] Error dari `COMMIT` dibaca dan dipetakan menurut SQLSTATE dan nama constraint, bukan dibuang atau dijadikan 500 tanpa log.
+- [ ] Tidak ada `UPDATE` atau `DELETE` pada `posting` dan `jurnal`; koreksi lewat jurnal pembalik.
+- [ ] App terhubung ke database dengan role yang bukan pemilik tabel ledger.
+- [ ] Pemeriksaan saldo di kode atau trigger tidak dianggap cukup untuk dua request bersamaan.
+
+### Bacaan lanjut
+
+- [Square Engineering: Books, an immutable double-entry accounting database service](https://developer.squareup.com/blog/books-an-immutable-double-entry-accounting-database-service/) (2019)
+- [OpenStax: Use journal entries to record transactions and post to T-accounts](https://openstax.org/books/principles-financial-accounting/pages/3-5-use-journal-entries-to-record-transactions-and-post-to-t-accounts)
+- [PostgreSQL 17: CREATE TRIGGER](https://www.postgresql.org/docs/17/sql-createtrigger.html) · [SET CONSTRAINTS](https://www.postgresql.org/docs/17/sql-set-constraints.html) · [Data consistency checks at the application level](https://www.postgresql.org/docs/17/applevel-consistency.html)
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />
