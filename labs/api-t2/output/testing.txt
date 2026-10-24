@@ -37,6 +37,22 @@ $ TEST_DATABASE_URL=<schema tahap2_tes> go test -v -count=1 -p 1 ./...
 --- PASS: TestBalikSekali
 === RUN   TestTutupBukuSeimbang
 --- PASS: TestTutupBukuSeimbang
+=== RUN   TestKirimDibatasiPerAkun
+--- PASS: TestKirimDibatasiPerAkun
+=== RUN   TestKirimTidakMembedakanNomor
+--- PASS: TestKirimTidakMembedakanNomor
+=== RUN   TestDurasiKunciBertahap
+--- PASS: TestDurasiKunciBertahap
+=== RUN   TestLoginTerkunciSamaDenganPasswordSalah
+--- PASS: TestLoginTerkunciSamaDenganPasswordSalah
+=== RUN   TestLoginDibatasiPerAkun
+--- PASS: TestLoginDibatasiPerAkun
+=== RUN   TestLoginWajibGantiPassword
+--- PASS: TestLoginWajibGantiPassword
+=== RUN   TestKunciTidakBisaDilewatiBersamaan
+--- PASS: TestKunciTidakBisaDilewatiBersamaan
+=== RUN   TestKunciAlamatIPv6PerPrefix
+--- PASS: TestKunciAlamatIPv6PerPrefix
 PASS
 ok    lab/apit2/internal/service
 # exit status 0
