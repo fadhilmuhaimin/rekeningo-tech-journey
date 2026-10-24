@@ -49,10 +49,6 @@
         "baris": 300,
         "tim": "1 developer"
       },
-      "jalur_inti": {
-        "menit": 345,
-        "halaman": 37
-      },
       "bagian": [
         {
           "no": 1,
@@ -124,10 +120,6 @@
         "trx": 2,
         "baris": 300,
         "tim": "2 developer"
-      },
-      "jalur_inti": {
-        "menit": 194,
-        "halaman": 18
       },
       "versi": "lama",
       "skala": {
@@ -215,10 +207,6 @@
         "baris": 300,
         "tim": "3–4 developer"
       },
-      "jalur_inti": {
-        "menit": 54,
-        "halaman": 6
-      },
       "versi": "lama",
       "skala": {
         "lingkup": "Semua cabang Lestari dan tenant mitra",
@@ -277,10 +265,6 @@
         "fileKB": 500,
         "tim": "6–10 developer, 2 tim"
       },
-      "jalur_inti": {
-        "menit": 15,
-        "halaman": 2
-      },
       "versi": "lama",
       "skala": {
         "lingkup": "Dibuka ke publik sebagai uang elektronik (PT Rekeningo)",
@@ -336,10 +320,6 @@
         "upload": 20000,
         "fileKB": 500,
         "tim": "20+ developer"
-      },
-      "jalur_inti": {
-        "menit": 0,
-        "halaman": 0
       },
       "versi": "lama",
       "skala": {
