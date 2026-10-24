@@ -3,8 +3,11 @@
 // Yang ditunjukkan lab ini, semuanya terhadap server lokal di 127.0.0.1 dengan data fiktif:
 //   - hash password argon2id dengan parameter dari RFC 9106 dan OWASP (lihat PARAMETER_HASH);
 //   - wajib ganti password saat login pertama (kolom akun.wajib_ganti_password dari api-t2 000009);
-//   - kunci per akun di database (akun.gagal_login, akun.terkunci_sampai) dengan kunci bertahap;
-//   - rate limit dua lapis di memori (per IP dan per akun), tanpa Redis (ADR 20);
+//   - kunci per akun di database (akun.gagal_login, akun.terkunci_sampai) dengan kunci bertahap, dicatat
+//     SEBELUM argon2id dengan baris akun dikunci (SELECT ... FOR UPDATE), jadi tebakan bersamaan tidak
+//     bisa melewati ambang (keputusan 659);
+//   - rate limit dua lapis di memori (per IP dan per akun), tanpa Redis (ADR 20); key IP IPv6 dipotong ke
+//     prefix /64 (keputusan 660);
 //   - daftar password bocor fiktif dipakai sebagai blocklist dan sebagai wordlist penyerang.
 //
 // Server ini memakai jam tiruan yang disuntikkan lewat POST /lab/jam (hanya bila LAB_JAM=1),
@@ -36,6 +39,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"strconv"
 	"strings"
@@ -72,6 +76,8 @@ const (
 	ambangAkun       = 5                // gagal berturut sebelum akun dikunci
 	kunciDasar       = 60 * time.Second // durasi kunci pertama
 	kunciMaksTingkat = 5                // kunci maksimum = kunciDasar << 5 = 32 menit
+
+	panjangMinimumPassword = 15 // NIST SP 800-63B-4 3.1.1.2: password faktor tunggal
 )
 
 // --8<-- [end:ambang]
@@ -175,8 +181,9 @@ func saltAcak() []byte {
 // password salah.
 var hashPalsu = enkodeHash("bukan-password-siapa-pun", saltAcak())
 
-// Penghitung untuk rekaman lab (GET /lab/hitung, hanya bila LAB_JAM=1).
-var hitungHash, hitungQuery atomic.Int64
+// Penghitung untuk rekaman lab (GET /lab/hitung, hanya bila LAB_JAM=1). hitungHash menghitung semua argon2id
+// (juga hashPalsu); hitungNilai hanya tebakan yang dinilai terhadap hash asli sebuah akun.
+var hitungHash, hitungQuery, hitungNilai atomic.Int64
 
 // ==== blocklist password bocor ====
 
@@ -269,21 +276,38 @@ func durasiKunci(gagal int) time.Duration {
 	return kunciDasar << uint(tingkat)
 }
 
+// --8<-- [start:kunci-alamat]
+// kunciAlamat membentuk key bucket per IP. IPv4 apa adanya (juga IPv4 yang ditulis sebagai IPv6,
+// ::ffff:a.b.c.d); IPv6 dipotong ke prefix /64. Jaringan seluler memberi tiap default bearer satu prefix /64
+// unik, dan HP boleh memakai interface identifier apa pun untuk alamat yang ia susun sendiri (RFC 6459 bagian
+// 5.2). Dengan alamat penuh sebagai key, satu HP berganti alamat di setiap request dan lapis per IP tidak
+// menahan apa pun (keputusan 660). Teks yang bukan alamat dipakai apa adanya.
+func kunciAlamat(alamat string) string {
+	ip, err := netip.ParseAddr(alamat)
+	if err != nil {
+		return alamat
+	}
+	ip = ip.WithZone("").Unmap()
+	if ip.Is4() {
+		return ip.String()
+	}
+	return netip.PrefixFrom(ip, 64).Masked().String()
+}
+
+// --8<-- [end:kunci-alamat]
+
 type akun struct {
-	id       int64
-	hash     string
-	wajib    bool
-	gagal    int
-	terkunci *time.Time
+	id    int64
+	hash  string
+	wajib bool
 }
 
 func (s *server) akunLewatEmail(ctx context.Context, email string) (*akun, error) {
 	hitungQuery.Add(1)
 	var a akun
 	err := s.db.QueryRow(ctx,
-		`SELECT id, password_hash, wajib_ganti_password, gagal_login, terkunci_sampai
-		   FROM akun WHERE email = $1`, email).
-		Scan(&a.id, &a.hash, &a.wajib, &a.gagal, &a.terkunci)
+		`SELECT id, password_hash, wajib_ganti_password FROM akun WHERE email = $1`, email).
+		Scan(&a.id, &a.hash, &a.wajib)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +325,7 @@ func (s *server) periksaMasuk(w http.ResponseWriter, r *http.Request, email, pas
 	// Lapis memori (hanya mode dua-lapis): dicek sebelum menyentuh database dan sebelum argon2id,
 	// jadi banjir percobaan dari satu IP tidak memakai CPU hashing dan tidak sempat menebak.
 	if s.mode == "dua-lapis" {
-		if ok, tunggu := s.perIP.izinkan("ip:"+ip, now); !ok {
+		if ok, tunggu := s.perIP.izinkan("ip:"+kunciAlamat(ip), now); !ok {
 			tulisProblem(w, problem{Type: "/problems/rate-limit-ip", Title: "Terlalu banyak percobaan dari alamat ini",
 				Status: 429, Tunggu: detik(tunggu)})
 			return nil, false
@@ -324,20 +348,27 @@ func (s *server) periksaMasuk(w http.ResponseWriter, r *http.Request, email, pas
 
 	// Kunci per akun di database. Inilah yang membuat "akun Ani terkunci": bila ini satu-satunya
 	// pertahanan, penyerang bisa mengunci akun orang lain dengan sengaja gagal (denial of service).
+	//
+	// Percobaan dicatat SEBELUM argon2id, dengan baris akun dikunci: penghitung naik, dan percobaan yang
+	// sampai ambang langsung memasang kunci. Tebakan bersamaan menunggu lock baris lalu melihat kunci itu,
+	// jadi dari N tebakan yang datang saat penghitung tinggal satu dari ambang, hanya satu yang dinilai
+	// (keputusan 659). Password yang ternyata benar menghapus penghitung dan kunci itu lagi.
+	terkunci, err := s.catatPercobaan(r.Context(), a.id, now)
+	if err != nil {
+		// Gagal mencatat = tolak (fail closed), jangan diam-diam memberi percobaan gratis.
+		tulisProblem(w, problem{Type: "/problems/internal", Title: "Gagal mencatat percobaan", Status: 500})
+		return nil, false
+	}
 	// Jawabannya sama dengan password salah, termasuk waktu hash: pesan "akun terkunci" akan memberi
 	// tahu penyerang bahwa email itu terdaftar (OWASP Authentication Cheat Sheet, pesan error generik).
-	if a.terkunci != nil && a.terkunci.After(now) {
+	if terkunci {
 		cocokHash(password, hashPalsu)
 		tulisProblem(w, problem{Type: "/problems/login-gagal", Title: "Email atau password salah", Status: 401})
 		return nil, false
 	}
 
+	hitungNilai.Add(1)
 	if !cocokHash(password, a.hash) {
-		if err := s.catatGagal(r.Context(), a.id, now); err != nil {
-			// Gagal mencatat = tolak (fail closed), jangan diam-diam memberi percobaan gratis.
-			tulisProblem(w, problem{Type: "/problems/internal", Title: "Gagal mencatat percobaan", Status: 500})
-			return nil, false
-		}
 		tulisProblem(w, problem{Type: "/problems/login-gagal", Title: "Email atau password salah", Status: 401})
 		return nil, false
 	}
@@ -351,24 +382,41 @@ func (s *server) periksaMasuk(w http.ResponseWriter, r *http.Request, email, pas
 	return a, true
 }
 
-// catatGagal menaikkan penghitung di database dalam satu UPDATE (bukan baca di Go lalu tulis), jadi
-// percobaan yang datang bersamaan tidak saling menimpa dan ambang tidak bisa dilewati dengan paralel.
-func (s *server) catatGagal(ctx context.Context, id int64, now time.Time) error {
+// --8<-- [start:kunci-atomik]
+// catatPercobaan membaca penghitung gagal dan kunci dengan baris akun dikunci (SELECT ... FOR UPDATE), lalu
+// menaikkan penghitung dan, bila sampai ambang, memasang kunci, semuanya dalam satu transaction. Percobaan lain
+// untuk akun yang sama menunggu transaction ini selesai lalu membaca nilai yang baru (PostgreSQL 17 bagian
+// 13.3.2 dan 13.2.1). Bila akun sudah terkunci, tidak ada yang ditulis dan hasilnya terkunci = true.
+func (s *server) catatPercobaan(ctx context.Context, id int64, now time.Time) (terkunci bool, err error) {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback(ctx) // no-op sesudah Commit; menutup transaction bila ada galat di tengah
 	var gagal int
-	if err := s.db.QueryRow(ctx,
-		`UPDATE akun SET gagal_login = gagal_login + 1 WHERE id = $1 RETURNING gagal_login`, id).
-		Scan(&gagal); err != nil {
-		return err
+	var sampai *time.Time
+	if err := tx.QueryRow(ctx,
+		`SELECT gagal_login, terkunci_sampai FROM akun WHERE id = $1 FOR UPDATE`, id).Scan(&gagal, &sampai); err != nil {
+		return false, err
 	}
-	if gagal < ambangAkun {
-		return nil
+	if sampai != nil && sampai.After(now) {
+		return true, tx.Commit(ctx)
 	}
-	// GREATEST: kunci yang lebih panjang dari percobaan bersamaan tidak tertimpa yang lebih pendek.
-	_, err := s.db.Exec(ctx,
-		`UPDATE akun SET terkunci_sampai = GREATEST(terkunci_sampai, $2) WHERE id = $1`,
-		id, now.Add(durasiKunci(gagal)))
-	return err
+	gagal++
+	var kunci *time.Time
+	if gagal >= ambangAkun {
+		k := now.Add(durasiKunci(gagal))
+		kunci = &k
+	}
+	if _, err := tx.Exec(ctx,
+		`UPDATE akun SET gagal_login = $2, terkunci_sampai = coalesce($3, terkunci_sampai) WHERE id = $1`,
+		id, gagal, kunci); err != nil {
+		return false, err
+	}
+	return false, tx.Commit(ctx)
 }
+
+// --8<-- [end:kunci-atomik]
 
 func (s *server) login(w http.ResponseWriter, r *http.Request) {
 	var in struct{ Email, Password string }
@@ -410,7 +458,7 @@ func (s *server) gantiPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// NIST SP 800-63B-4 §3.1.1.2: password faktor tunggal minimal 15 karakter; cek lawan daftar bocor.
-	if len([]rune(in.PasswordBaru)) < 15 {
+	if len([]rune(in.PasswordBaru)) < panjangMinimumPassword {
 		tulisProblem(w, problem{Type: "/problems/password-lemah", Title: "Password baru minimal 15 karakter", Status: 422})
 		return
 	}
@@ -442,7 +490,8 @@ func (s *server) labJam(w http.ResponseWriter, r *http.Request) {
 }
 
 func labHitung(w http.ResponseWriter, _ *http.Request) {
-	tulis(w, 200, map[string]any{"argon2id": hitungHash.Load(), "query_akun": hitungQuery.Load()})
+	tulis(w, 200, map[string]any{"argon2id": hitungHash.Load(), "query_akun": hitungQuery.Load(),
+		"dinilai": hitungNilai.Load()})
 }
 
 func detik(d time.Duration) int {
