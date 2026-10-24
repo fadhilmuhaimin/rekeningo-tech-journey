@@ -1,0 +1,62 @@
+{
+  "istilah": "Serializable",
+  "sehari_hari": "Serializable menjanjikan hasil yang sama seperti bila semua transaction berjalan antre satu per satu. Kalau janji itu tidak bisa ditepati, salah satu transaction ditolak dan harus diulang.",
+  "cerita": [
+    {
+      "rujukan": "t2-isolation-level",
+      "teks": "Dua transfer M9 tanpa lock: `COMMIT` B ditolak 40001, percobaan 2 membaca saldo Rp30.000 dan app menjawab \"saldo kurang\"."
+    },
+    {
+      "rujukan": "t2-race-lock",
+      "teks": "Serializable + retry adalah salah satu dari empat cara M9 yang dibandingkan; ADR 13 memilih lock baris buku."
+    }
+  ],
+  "mekanisme": [
+    "Bekerja seperti Repeatable Read, ditambah catatan tentang apa yang dibaca setiap transaction (predicate lock).",
+    "Catatan itu tidak membuat siapa pun menunggu. PostgreSQL memakainya untuk mencari pola baca-tulis yang tidak bisa dicapai lewat urutan satu per satu.",
+    "Bila pola itu ditemukan, salah satu transaction ditolak dengan SQLSTATE 40001, bisa juga saat `COMMIT`.",
+    "Kode mengulang seluruh transaction dari `BEGIN`, termasuk membaca data dan memutuskan nilai, dengan batas percobaan."
+  ],
+  "stack": {
+    "lihat": "isolation-level",
+    "teks": "Kodenya sama dengan memilih isolation level: level ditetapkan per transaction sebelum query pertama, dan 40001 dikenali dari kode error."
+  },
+  "jebakan": [
+    "Menulis retry hanya di sebagian jalur. Semua transaction yang menulis di level ini bisa ditolak 40001.",
+    "Mengulang efek di luar database. Notifikasi atau panggilan API di dalam fungsi yang diulang ikut terkirim dua kali.",
+    "Mengira laporan baca saja aman. Di Serializable, transaction baca saja pun bisa ditolak, kecuali dibuka `READ ONLY DEFERRABLE`."
+  ],
+  "terkait": [
+    "Isolation level",
+    "Repeatable Read",
+    "Serialization anomaly",
+    "Retry",
+    "Lock"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-92",
+      "judul": "PostgreSQL 17: Serializable Isolation Level (13.2.3)",
+      "url": "https://www.postgresql.org/docs/17/transaction-iso.html#XACT-SERIALIZABLE",
+      "catatan": "Sama dengan Repeatable Read ditambah pemantauan; predicate lock tidak memblokir; SQLSTATE 40001."
+    },
+    {
+      "riset": "R2-92",
+      "judul": "PostgreSQL 17: Serialization Failure Handling (13.5)",
+      "url": "https://www.postgresql.org/docs/17/mvcc-serialization-failure-handling.html",
+      "catatan": "Ulang seluruh transaction, termasuk logika yang memilih SQL dan nilai; PostgreSQL tidak menyediakan retry otomatis."
+    },
+    {
+      "riset": "R2-14",
+      "judul": "Ports dan Grittner: Serializable Snapshot Isolation in PostgreSQL",
+      "url": "https://arxiv.org/abs/1208.4179",
+      "catatan": "PVLDB 5(12), 2012: rancangan Serializable di PostgreSQL."
+    },
+    {
+      "riset": "R2-92",
+      "judul": "Rekaman lab b3-isolasi: transfer",
+      "rekaman": "labs/b3-isolasi/output/ledger/transfer.txt",
+      "catatan": "Bagian 3: COMMIT B 40001, percobaan 2 membaca 30000 dan app menolak."
+    }
+  ]
+}

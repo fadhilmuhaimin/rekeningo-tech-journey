@@ -1,0 +1,61 @@
+{
+  "id": "t2-isolasi-transfer",
+  "judul": "Dua transfer dari saldo Rp100.000, tanpa lock, di tiga level",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b3-isolasi · transfer.txt"
+  },
+  "baris": [
+    {
+      "label": "Read Committed",
+      "sub": "bagian 1, bawaan PostgreSQL",
+      "simpul": [
+        {
+          "teks": "A COMMIT",
+          "sub": "transfer Rp70.000 ke Citra"
+        },
+        {
+          "teks": "B ditolak 23514, saldo Rp30.000",
+          "sub": "pemeriksaan saat COMMIT B memakai snapshot baru dan melihat posting A",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Repeatable Read",
+      "sub": "bagian 2",
+      "simpul": [
+        {
+          "teks": "A COMMIT",
+          "sub": "transfer Rp70.000 ke Citra"
+        },
+        {
+          "teks": "B COMMIT, saldo −Rp20.000",
+          "sub": "pemeriksaan B membaca snapshot B, yang belum berisi posting A",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Serializable",
+      "sub": "bagian 3, kode mengulang 40001",
+      "simpul": [
+        {
+          "teks": "A COMMIT",
+          "sub": "transfer Rp70.000 ke Citra"
+        },
+        {
+          "teks": "COMMIT B 40001",
+          "sub": "dependensi baca-tulis antara A dan B",
+          "nada": "warn"
+        },
+        {
+          "teks": "ulang: saldo kurang, Rp30.000",
+          "sub": "percobaan 2 membaca saldo Rp30.000 dan app menolak",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Di ketiga baris, A dan B sama-sama membaca saldo Rp100.000 sebelum salah satunya menulis, dan keduanya hanya INSERT. Tidak ada baris yang diubah keduanya, jadi tidak ada yang ditunggu."
+}
