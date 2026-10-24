@@ -800,7 +800,7 @@
   "judul": "2.11 Race condition dan lock + ADR 13",
   "url": "tahap-2/race-lock/",
   "tanya": "Kode memperbarui `saldo_cache` di akhir transaction, sesudah membaca jumlah posting. Tablet menunggu lock, lalu gagal. Apa yang dilihat Budi, dan apa perbaikannya?",
-  "jawab": "Error 500, karena pemeriksaan invarian saat `COMMIT` menolaknya dengan SQLSTATE 23514 (rekaman `batas.txt` bagian 3). Lock datang sesudah keputusan diambil. Perbaikannya: kunci baris buku di awal transaction, lalu baca saldo dari baris itu."
+  "jawab": "Error dari database, bukan \"saldo kurang\": pemeriksaan invarian saat `COMMIT` menolaknya dengan SQLSTATE 23514 (rekaman `batas.txt` bagian 3). Handler api-t2 menjawab error seperti ini dengan 500. Lock datang sesudah keputusan diambil. Perbaikannya: kunci baris buku di awal transaction, lalu baca saldo dari baris itu."
  },
  {
   "id": "t2-race-lock-4",

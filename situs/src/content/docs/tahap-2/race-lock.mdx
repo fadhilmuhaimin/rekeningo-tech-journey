@@ -71,7 +71,9 @@ Tekan **Ubah satu hal** untuk memutar cara berikutnya. UPDATE atomik berakhir sa
 
 Raka mengira transaction sudah cukup, karena pembayaran M4 di Tahap 1 selesai dengan transaction ([[B3.1]]). Transaction menjamin satu request tersimpan utuh atau batal utuh. Transaction tidak membuat request lain menunggu sebelum ia membaca.
 
-Ledger juga tidak menutupnya. Invarian ketiga, saldo karyawan tidak negatif, diperiksa database saat `COMMIT` ([[t2-ledger]]). Bila HP `COMMIT` lebih dulu, pemeriksaan tablet melihat jurnal HP dan menolaknya dengan SQLSTATE 23514, yang sampai ke app sebagai error 500 (rekaman `ledger-tanpa-lock-bergantian.txt`). Bila kedua `COMMIT` dikirim bersamaan, keduanya bisa lolos: rekaman b3-ledger `batas.txt` bagian 2b mencatat saldo −Rp20.000 muncul dalam 50 percobaan.
+Ledger juga tidak menutupnya. Invarian ketiga, saldo karyawan tidak negatif, diperiksa database saat `COMMIT` ([[t2-ledger]]). Bila HP `COMMIT` lebih dulu, pemeriksaan tablet melihat jurnal HP dan menolaknya dengan SQLSTATE 23514 (rekaman `ledger-tanpa-lock-bergantian.txt`). Handler api-t2 menjawab error database seperti ini dengan 500 (`petaError`; kasus ini belum direkam lewat HTTP).
+
+Bila kedua `COMMIT` dikirim bersamaan, keduanya bisa lolos: rekaman b3-ledger `batas.txt` bagian 2b mencatat saldo −Rp20.000 muncul dalam 50 percobaan.
 
 Lock di memori server, seperti `Mutex` di Kotlin, hanya berlaku di satu proses. HP dan tablet Budi memakai dua koneksi database, dan nanti mungkin dua server. Tempat keduanya bertemu adalah baris di PostgreSQL, jadi lock-nya dipasang di sana.
 
@@ -217,6 +219,8 @@ Yang sama di semua stack: lock dipegang sampai `COMMIT` atau `ROLLBACK`, jadi ko
 
 **Status:** diterima di minggu 1 Tahap 2, sesudah M9. Berlaku untuk setiap jalur uang yang memutuskan dari saldo atau batas: bayar, transfer, jurnal pembalik, dan pencairan Jumat. Top-up tidak membaca saldo untuk memutuskan; baris bukunya terkunci oleh UPDATE `saldo_cache` di transaction yang sama.
 
+Top-up CSV mengunci buku karyawan satu per satu menurut urutan baris CSV. Bila urutan itu berbeda dari urutan `id`, top-up bisa deadlock dengan transfer ([13.3.4](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-DEADLOCKS)); ini belum direkam.
+
 | | A. `SELECT … FOR UPDATE` | B. UPDATE atomik bersyarat | C. Optimistic lock `versi` | D. SERIALIZABLE + retry |
 |---|---|---|---|---|
 | Cara kerja | Transaction jurnal dibuka dengan mengunci baris buku yang terlibat. Saldo, batas harian, dan batas warung dibaca sesudah lock, lalu jurnal, posting, dan `saldo_cache` ditulis | Pemeriksaan dan potongan `saldo_cache` jadi satu UPDATE dengan syarat `WHERE`. Nol baris berarti saldo kurang | Baca `saldo_cache` dan `versi` tanpa lock. Tulis dengan syarat `versi` belum berubah; nol baris berarti ulangi dari membaca | Kode tanpa lock dijalankan di isolation level SERIALIZABLE. Salah satu transaction ditolak dengan 40001 dan diulang dari awal |
@@ -261,7 +265,7 @@ Retry yang aman dibahas di [[E3]], dan isolation level di [[B3.3]].
 | Yang ditunda | Kenapa ditunda | Muncul lagi di |
 |---|---|---|
 | `lock_timeout` atau `NOWAIT` di jalur bayar | Lama tunggu lock di puncak ±1,4 request per detik belum diukur | [[B4.2]], untuk migrasi |
-| Retry otomatis saat deadlock | Urutan `id` di aturan 1 mencegahnya; deadlock belum pernah direkam | Belum dijadwalkan |
+| Retry otomatis saat deadlock | Urutan `id` di aturan 1 mencegahnya di jalur yang memutuskan dari saldo. Top-up CSV belum mengikuti urutan itu, dan deadlock belum pernah direkam | Belum dijadwalkan |
 | Buku warung tanpa syarat saldo | Batas saldo warung Rp1.500.000 dari [[t1-m4]] dibaca dari buku warung; lama tunggu lock belum diukur | Belum dijadwalkan di naskah |
 | SERIALIZABLE sebagai bawaan | Opsi D ditolak di atas | [[B3.3]] |
 
@@ -303,7 +307,7 @@ Tablet menunggu lock HP. Sesudah HP `COMMIT`, PostgreSQL memeriksa ulang `WHERE 
 <details class="success">
 <summary>Jawaban</summary>
 
-Error 500, karena pemeriksaan invarian saat `COMMIT` menolaknya dengan SQLSTATE 23514 (rekaman `batas.txt` bagian 3). Lock datang sesudah keputusan diambil. Perbaikannya: kunci baris buku di awal transaction, lalu baca saldo dari baris itu.
+Error dari database, bukan "saldo kurang": pemeriksaan invarian saat `COMMIT` menolaknya dengan SQLSTATE 23514 (rekaman `batas.txt` bagian 3). Handler api-t2 menjawab error seperti ini dengan 500. Lock datang sesudah keputusan diambil. Perbaikannya: kunci baris buku di awal transaction, lalu baca saldo dari baris itu.
 
 </details>
 
