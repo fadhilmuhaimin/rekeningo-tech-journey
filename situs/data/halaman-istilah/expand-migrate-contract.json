@@ -1,0 +1,95 @@
+{
+  "istilah": "Expand-migrate-contract",
+  "sehari_hari": "Seperti membangun jembatan baru di samping jembatan lama: lalu lintas dipindah pelan-pelan, dan jembatan lama dibongkar sesudah tidak ada yang lewat. Di database, jembatannya adalah kolom, tabel, dan field di response.",
+  "cerita": [
+    {
+      "rujukan": "t2-m13",
+      "teks": "Migrasi M13 menambah ledger dan menghapus kolom saldo dalam satu transaction. Server lama dan kedua versi app gagal sesudah COMMIT."
+    },
+    {
+      "rujukan": "t2-skema-tanpa-downtime",
+      "teks": "ADR 17: perubahan yang sama dalam tiga rilis. Di rekaman, app 1.0 dan 1.1 membayar dan membuka riwayat di setiap fase."
+    }
+  ],
+  "mekanisme": [
+    "Expand: tambah kolom, tabel, atau field baru berdampingan dengan yang lama. Tidak ada yang dihapus atau diganti nama, jadi kode yang sedang berjalan tidak melihat perbedaan.",
+    "Migrate: server baru menulis ke dua tempat, data lama diisi ke tempat baru (backfill), lalu bacaan dipindah ke tempat baru. Kedua versi server dan app tetap bekerja.",
+    "Contract: hapus yang lama, hanya sesudah tidak ada kode atau app yang memakainya. Di rekaman ini langkah 13: kolom `saldo` dan tabel v1 dihapus.",
+    "Tiap fase adalah deploy sendiri dan berhenti dengan keadaan yang aman. Kalau satu fase gagal, fase sebelumnya masih berlaku."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "PostgreSQL 17.11; file migration labs/api-t2 (Go 1.27.1) dijalankan skrip lab",
+      "teks": "Tiga rilis berupa file SQL bernomor: 000009 sampai 000011 (expand), persiapan dan backfill (migrate), 000013 (contract). Skrip lab menjalankannya dalam BEGIN dan COMMIT; alat migrasi Go tidak dipakai.",
+      "rekaman": "labs/b4-skema/output/ledger/tiga-rilis.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-pg-migrate 9.0.0",
+      "teks": "Satu file migration per rilis, dan setiap migration berjalan dalam transaction secara bawaan. `pgm.noTransaction()` mematikannya untuk perintah yang menolak transaction.",
+      "dokumentasi": "https://github.com/salsita/node-pg-migrate/blob/v9.0.0/docs/src/migrations/index.md"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "Satu class migration per rilis. `renameColumn` dan `dropColumn` ada di schema builder, jadi rename dalam satu migration menggoda; pecah jadi tambah, isi, lalu hapus. `Migration::$withinTransaction` bernilai true bawaan.",
+      "dokumentasi": "https://laravel.com/docs/13.x/migrations"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2",
+      "teks": "Satu migration per rilis. Migration PostgreSQL berjalan dalam transaction bawaan; `atomic = False` dipakai untuk data migration besar. `AddConstraintNotValid` dan `ValidateConstraint` ditaruh di dua migration terpisah.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/howto/writing-migrations/"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4 (halaman dokumentasi bertanda 4.0.0)",
+      "teks": "`create-migration` membuat migration dari selisih model dan database, dan `migration.sql` boleh disunting dengan SQL sendiri. Tiap rilis berarti satu migration dengan perubahan model sekecil itu [perlu verifikasi].",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/migrations"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "Supabase CLI 2.122.0",
+      "teks": "Satu file per rilis lewat `supabase migration new`, diterapkan berurutan menurut timestamp oleh `supabase db push`. Dokumentasi tidak membahas zero-downtime.",
+      "dokumentasi": "https://supabase.com/docs/guides/deployment/database-migrations"
+    }
+  },
+  "jebakan": [
+    "Menggabungkan expand dan contract dalam satu file migration. Di rekaman satu-langkah, kolom `saldo` hilang di transaction yang sama dengan penambahan ledger, dan server v1 gagal dengan 42703.",
+    "Contract terlalu cepat. Sesudah kolom dihapus, server versi lama tidak bisa dijalankan lagi, jadi rollback kode butuh cadangan data.",
+    "Menganggap fase migrate selesai saat data sudah disalin. Cek dulu bahwa nilai lama dan baru sama (rekaman: 0 akun tanpa buku, 0 cache berbeda) sebelum bacaan dipindah."
+  ],
+  "terkait": [
+    "Migration",
+    "Backfill",
+    "lock_timeout",
+    "Lock"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-163",
+      "judul": "Danilo Sato, Parallel Change (martinfowler.com)",
+      "url": "https://martinfowler.com/bliki/ParallelChange.html",
+      "catatan": "Tiga fase expand, migrate, contract; contract setelah tidak ada yang memakai versi lama; berlaku juga untuk database. Terbit 13 Mei 2014."
+    },
+    {
+      "riset": "R2-163",
+      "judul": "Jacqueline Xu, Online migrations at scale (Stripe, 2 Februari 2017)",
+      "url": "https://stripe.com/blog/online-migrations",
+      "catatan": "Empat langkah di skala ratusan juta objek: tulis ke dua tempat, ubah jalur baca, ubah jalur tulis, hapus data lama."
+    },
+    {
+      "riset": "R2-160",
+      "judul": "Rekaman lab b4-skema: tiga rilis",
+      "rekaman": "labs/b4-skema/output/ledger/tiga-rilis.txt",
+      "catatan": "Lima kali app 1.0 dan 1.1 membayar dan membuka riwayat, dari rilis 1 sampai sesudah contract."
+    },
+    {
+      "riset": "R2-160",
+      "judul": "Rekaman lab b4-skema: satu langkah",
+      "rekaman": "labs/b4-skema/output/ledger/satu-langkah.txt",
+      "catatan": "Perubahan yang sama dalam satu transaction: server lama gagal 42703 dan kedua versi app berhenti."
+    }
+  ]
+}

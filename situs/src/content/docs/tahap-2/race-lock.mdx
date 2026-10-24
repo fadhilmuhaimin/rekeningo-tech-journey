@@ -264,7 +264,7 @@ Retry yang aman dibahas di [[t2-idempotency]], dan isolation level di [[t2-isola
 
 | Yang ditunda | Kenapa ditunda | Muncul lagi di |
 |---|---|---|
-| `lock_timeout` atau `NOWAIT` di jalur bayar | Lama tunggu lock di puncak ±1,4 request per detik belum diukur | [[B4.2]], untuk migrasi |
+| `lock_timeout` atau `NOWAIT` di jalur bayar | Lama tunggu lock di puncak ±1,4 request per detik belum diukur | [[t2-skema-tanpa-downtime]], untuk migrasi |
 | Retry otomatis saat deadlock | Urutan `id` di aturan 1 mencegahnya di jalur yang memutuskan dari saldo. Top-up CSV belum mengikuti urutan itu, dan deadlock belum pernah direkam | Belum dijadwalkan |
 | Buku warung tanpa syarat saldo | Batas saldo warung Rp1.500.000 dari [[t1-m4]] dibaca dari buku warung; lama tunggu lock belum diukur | Belum dijadwalkan di naskah |
 | SERIALIZABLE sebagai bawaan | Opsi D ditolak di atas | [[t2-isolation-level]] |
