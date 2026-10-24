@@ -20,6 +20,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Tahap 2, lain-lain: M10 "Budi menekan Bayar lagi" direkam sebagai retry app dengan request sama (e3); nomor rekening tujuan warung belum ada di ERD 3b (505); mermaid ERD Tahap 2 berbeda dari lab di beberapa kolom (473: `peran`/`jenis`, `hash_password`, `akun.nama`, PK `baris_pencairan`).
 - Tahap 2 bagian 3b, tabel pertumbuhan: baris Tahap 1 (±22 ribu) memakai 2 transaksi per user aktif, Tahap 2–4 memakai 3; registry dan 1.38 memakai 2 × 300 B; lab b2-query 760.448 posting ±99 MB. Halaman Tahap 2 memakai rumus naskah, 1.38 tidak diubah (keputusan 600).
 - 2.1: CERITA-TAHAP-1 ±13/±81 dan 1.1 menulis kampus ±1.200 karyawan, CERITA-TAHAP-2 ±1.000 (2.1 ikut Tahap 2); CERITA-TAHAP-1 ±65 dan 1.42 menyebut fitur "ekspor laporan bulanan", PRD v2 tidak (2.1 menulisnya bagian tutup buku).
+- Tahap 2 bagian 2.8: diselesaikan dengan revisi ADR 6 (keputusan 723); mohon naskah menyebut 2.8 sebagai revisi ADR 6, atau memberi nomor baru.
 - 2.2: naskah bagian 2 menulis index `posting(akun, waktu, id)`, lab `posting (buku_id, dibuat, id)`; "notifikasi sederhana di app warung" untuk pencairan ditafsirkan pemberitahuan di dalam app tanpa push (607), mohon ditegaskan.
 
 ## Catatan untuk halaman Tahap 2
@@ -42,13 +43,11 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditanya. Satu baris per keputusan (opsi paling aman dan paling mudah dibatalkan); bila lebih dari 8 baris, yang lama pindah ke `plan/DIPUTUSKAN-TANPA-PEMILIK.md` (keputusan 551). LAPORAN-AKHIR mengumpulkan keduanya.
 
-- T2-mulai ditandai selesai tanpa tinjauan Tahap 1 (keputusan 552). Mudah dibatalkan: halaman 2.x bisa ditarik per PR.
-- Nomor keputusan per tahap (keputusan 553): T2 konten 600–679, teknis 680–719, pengatur 720–799; T3 800–999; T4 1000–1199; T5 1200–1399; T6 1400–1499; laporan akhir 1500+. Di dalam blok tahap: konten +0–99, teknis +100–149, pengatur +150–199.
-- Crosscheck kecil K4–K9 dan X1-t2/X2-t2 dihapus dari ANTREAN; EVALUASI-TAHAP-N menggantikannya (keputusan 554).
-- Halaman 2.1 dan 2.2 ditulis sebelum lab-api-t2a karena Docker tertahan; lab tetap sebelum halaman yang memakainya (keputusan 562).
-- Angka pertumbuhan Tahap 2 memakai rumus naskah 3b; 1.38 tidak diubah (keputusan 600).
-- Halaman istilah di luar registry dan sidebar (688); tooltip istilah baru juga tampil di Tahap 1 (690). axe di gerbang per PR untuk 10 halaman yang 0 pelanggaran (693).
-- Halaman cerita Tahap 2 lama tidak dihapus, dipindah ke akhir Tahap 2 di registry (605). 2.4 ditulis sebelum 2.3; selama Docker tertahan, halaman memakai rekaman yang sudah ada (722).
+- Butir sebelum 2026-10-24 siang di `plan/DIPUTUSKAN-TANPA-PEMILIK.md`.
+- 2.8 ditulis sebagai revisi ADR 6 tanpa nomor baru, karena ADR 12 sudah dipakai 1.40 dan ADR Tahap 2 lain 13–21; jembatan 1.42 dan 2.1 menyebut ADR 6 dan 5 dibuka lagi (723).
+- "Di stack lain" 2.5 membahas penjadwalan, bukan kode job, supaya jawaban M15/ADR 19 tidak terbuka (622); versi pg_cron Supabase 1.6.4 dari image Supabase (671).
+- Versi statis 1.12 tetap Erd.astro di dalam ErdTumbuh (697); wadah tabel gulir diberi role region + nama walau tidak wajib, skrip 425 B gzip di semua halaman berartikel (712).
+- Halaman istilah buku dan saldo_cache ditunda ke 2.7/2.9; trigger batas saldo di widget SQLite 2.6 (lab membacanya di app) diminta diberi label oleh peninjau.
 
 ## Perlu dicek pemilik
 
@@ -61,12 +60,14 @@ Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditan
 - `role="application"` di pembungkus React Flow tidak bisa diganti lewat props; efeknya di pembaca layar [perlu verifikasi] (tinjauan #274).
 - 2.4 (618): rekaman api-t2 `tutup-buku.txt` C, jurnal yang COMMIT sesudah laporan masuk periode yang sudah dilaporkan (1.122 jadi 1.123); naskah tidak punya halaman penutupan periode. "< 1 hari" belum diukur.
 - Debit/kredit (G-istilah, 691): naskah bagian 3 menulis posting debit dan kredit, lab menyimpan jumlah bertanda (positif masuk); 2.7 harus memilih satu konvensi [perlu verifikasi].
+- Tab Laravel 2.6: tipe PHP untuk bigint dari PDO pgsql belum dicek ke dokumentasi PHP (peninjau 2.6 diminta mengecek).
 
 ## Sedang dikerjakan
 
-2026-10-24 · Tahap 2 langkah halaman, pipa (720). Selesai: RISET-2, A11y-diagram, G-ci-apt, 2.1 (#277), 2.2 (#279); G-axe (#283) menunggu CI untuk merge. Berjalan: peninjau 2.4 (#282, `../rjt-konten`), pelaksana 2.5 (`../rjt-konten2`), peninjau G-istilah (#281, `../rjt-teknis2`). Antre teknis: A11y-gulir-tabel, ERD-1.12, W2-race; konten 2.6 dst. Docker masih tertahan (2.3, lab-api-t2a). Alokasi nomor per tugas dan catatan belum masuk repo: `tmp/catat-antre.md`. Untuk melanjutkan: `gh pr list --state open`.
+2026-10-24 · Tahap 2 langkah halaman, pipa tiga worktree konten (`../rjt-konten` 4323, `../rjt-konten2` 4325, `../rjt-konten3` 4327) dan dua teknis (4324, 4326). Selesai: 2.1, 2.2, 2.4, 2.5, 2.6 (#277, #279, #282, #287, #288), teknis RISET-2, A11y-diagram, G-ci-apt, G-istilah, G-axe, ERD-1.12, A11y-gulir-tabel. Berjalan: pelaksana 2.7, 2.8, W2-race. 2.3 dan lab-api-t2a menunggu Docker. Alokasi nomor per tugas: `tmp/catat-antre.md`. Untuk melanjutkan: `gh pr list --state open`.
 
 ## Pelajaran
 
 - Peninjau menemukan yang lolos pelaksana di setiap tugas sejauh ini: apt memakai .deb cache hanya menurut ukuran (#278, 684), Berikutnya 2.1 menuju cerita lama (#277, 605), klik kotak diagram tidak sampai tombol (#274, 681). Pipa dua worktree per jalur (720); nomor keputusan per tugas di brief (721).
 - Pipa paralel butuh nomor per tugas untuk keputusan DAN ID riset (R2-36 dipakai dua PR); alat ukur bisa lolos palsu bila persiapannya diam-diam gagal (axe: hasil terpangkas tanpa `incomplete`, path 404 lolos), jadi setiap alat diuji mutasi (#283). Widget runsql memakai SQLite (sql.js), bukan PGlite (2.4).
+- Subagen yang melapor selesai tetapi masih punya proses latar (watch CI) bisa bangun di worktree yang sudah dipakai tugas lain: hentikan dengan TaskStop; brief meminta proses latar dihentikan sebelum melapor. `client:visible` di details tertutup menunda island; details tertutup disembunyikan content-visibility; simpul Rantai diawali angka sesudah huruf bagian terbaca ID internal (2026-10-24).
