@@ -213,7 +213,7 @@ Yang sama di semua stack: lock dipegang sampai `COMMIT` atau `ROLLBACK`, jadi ko
 
 ### ADR 13: lock baris buku di dalam transaction jurnal
 
-**Kebutuhan.** Di M9, dua transfer Rp70.000 dan Rp50.000 dari saldo Rp100.000 berakhir −Rp20.000 ([[t2-m9]]). PRD v2 mewajibkan saldo karyawan tidak negatif dan membatasi transfer Rp500.000 per hari ([[t2-prd]]). Kedua aturan dibaca dari data yang bisa diubah request lain di saat yang sama. Bebannya kecil: puncak ±1,4 request per detik untuk 1.000 karyawan dan 12 warung (Asumsi naskah).
+**Kebutuhan.** Di M9, dua transfer Rp70.000 dan Rp50.000 dari saldo Rp100.000 berakhir −Rp20.000 ([[t2-m9]]). Saldo karyawan tidak boleh negatif ([[t2-ledger]]), dan PRD v2 membatasi transfer Rp500.000 per hari ([[t2-prd]]). Kedua aturan dibaca dari data yang bisa diubah request lain di saat yang sama. Bebannya kecil: puncak ±1,4 request per detik untuk 1.000 karyawan dan 12 warung (Asumsi naskah).
 
 **Status:** diterima di minggu 1 Tahap 2, sesudah M9. Berlaku untuk setiap jalur uang yang memutuskan dari saldo atau batas: bayar, transfer, jurnal pembalik, dan pencairan Jumat. Top-up tidak membaca saldo untuk memutuskan; baris bukunya terkunci oleh UPDATE `saldo_cache` di transaction yang sama.
 
@@ -230,7 +230,7 @@ Keempatnya berakhir sama di lab: saldo Rp30.000, satu jurnal (`banding.txt`). Ya
 **Keputusan: opsi A.** Lima aturan:
 
 1. Setiap jalur uang yang memutuskan dari saldo atau batas membuka transaction jurnal dan langsung mengunci semua buku yang terlibat dengan satu `SELECT … FROM buku … ORDER BY id FOR UPDATE`.
-2. Saldo, batas harian, dan batas warung dibaca sesudah lock, dari baris dan data yang sama. Penolakan dijawab app sebagai "saldo kurang" atau "batas harian", bukan 500.
+2. Saldo, batas harian, dan batas warung dibaca sesudah lock, dari baris dan data yang sama. Penolakan dijawab server dengan 422 `/problems/saldo-kurang` atau `/problems/batas-harian`, bukan 500 (rekaman api-t2 `transfer.txt` bagian C–E).
 3. Posting dan `saldo_cache` ditulis di transaction yang sama (aturan 3 [[t2-adr-ledger]]). Invarian saldo tidak negatif tetap diperiksa saat `COMMIT` sebagai pagar kedua.
 4. Tidak ada panggilan jaringan atau kerja lambat selama lock dipegang. PostgreSQL menunggu lock tanpa batas selama tidak terjadi deadlock.
 5. Isolation level tetap Read Committed, bawaan PostgreSQL.
@@ -240,7 +240,7 @@ Keempatnya berakhir sama di lab: saldo Rp30.000, satu jurnal (`banding.txt`). Ya
 Dengan A, ketiganya dibaca sesudah satu lock di awal, dan urutannya terlihat di kode `Service.Kirim`. Dengan B, UPDATE harus selalu jadi perintah pertama, dan aturan itu tidak terlihat dari kodenya.
 
 - **C ditolak** karena setiap jalur butuh loop retry, padahal di rekaman tablet tetap menunggu lock saat menulis. Modern Treasury memakai syarat `lock_version` di ledger mereka. Untuk akun yang menerima banyak entri sekaligus, mereka menyarankan entri tanpa syarat itu ([Modern Treasury, 2025](https://docs.moderntreasury.com/ledgers/docs/handle-concurrency)).
-- **D ditolak** karena semua jalur tulis harus menangani 40001, termasuk tutup buku dan pencairan. Di rekaman, versi SERIALIZABLE juga tidak memperbarui `saldo_cache`, jadi lock untuk cache tetap dibutuhkan. Pembahasannya di [[B3.3]].
+- **D ditolak** karena semua jalur tulis harus menangani 40001, termasuk tutup buku dan pencairan. Rekaman SERIALIZABLE juga tidak memperbarui `saldo_cache` (tetap Rp100.000), jadi perilakunya bersama cache belum direkam. Pembahasannya di [[B3.3]].
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
