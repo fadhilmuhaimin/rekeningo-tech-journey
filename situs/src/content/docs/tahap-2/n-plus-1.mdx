@@ -20,7 +20,7 @@ N+1 query terjadi saat kode mengirim satu query untuk daftar, lalu satu query la
 
 <Rantai data={intiDiagram} ringkas />
 
-Riwayat Budi di minggu 3 bekerja begitu. Satu query mengambil 20 transaksi terakhir, lalu 20 query mencari nama lawan setiap transaksi. Laporan harian Ani mengirim 195 query untuk 194 baris, dan seluruh riwayat Budi 3.893 query untuk 3.892 baris (rekaman lab b2-query).
+Riwayat Budi di minggu 3 bekerja begitu. Satu query mengambil 20 transaksi terakhir, lalu 20 query mencari nama lawan setiap transaksi. Rekaman lab b2-query memakai data satu tahun (760.448 posting). Laporan harian Ani mengirim 195 query untuk 194 baris, dan seluruh riwayat Budi 3.893 query untuk 3.892 baris.
 
 Jumlah query mengikuti jumlah baris, bukan ukuran tabel, jadi N+1 sulit terlihat di data kecil. Kalau nama lawan diminta di query yang sama, hasilnya baris yang sama dengan 1 query. Itu memperbaiki N+1 saja: query daftarnya masih membaca terlalu banyak baris, dan itu dibahas di [[B2.3]].
 
@@ -53,7 +53,7 @@ Nyalakan **Ubah satu hal**: nama lawan dicari di query yang sama. Jalurnya jadi 
 
 ### Kenapa ini ada
 
-Di [[t2-m11]], Raka menyalakan log semua statement dan menghitung 21 baris log untuk satu halaman riwayat. Kode yang mencari nama lawan per transaksi mudah ditulis, mudah dibaca, dan hasilnya benar. Di laptop dengan 10 transaksi uji, layarnya terasa instan, jadi tidak ada tanda bahwa jumlah query tumbuh.
+Di [[t2-m11]], Raka menyalakan log semua statement dan menghitung 21 baris log untuk satu halaman riwayat. Kode yang mencari nama lawan per transaksi mudah ditulis, mudah dibaca, dan hasilnya benar. Misalnya di laptop dengan 10 transaksi uji (Ilustrasi, bukan rekaman), layarnya terasa instan, jadi tidak ada tanda bahwa jumlah query tumbuh.
 
 Pola ini muncul dalam dua bentuk. Bentuk pertama adalah query di dalam loop atas hasil query lain. Bentuk kedua adalah ORM dengan lazy loading: kode hanya mengakses `posting.jurnal`, dan library mengirim satu query setiap kali relasi itu pertama dipakai.
 
@@ -71,15 +71,15 @@ Kalau kamu pernah memanggil API detail di dalam `ListView.builder` untuk setiap 
 
 Polanya 1 ditambah jumlah baris untuk N+1, dan 1 untuk satu query. Catatan di rekaman yang sama: index tidak mengubah jumlah query.
 
-**3. Waktu punya dua penyebab, dan masing-masing punya perbaikan.** Kolom kiri tabel ini adalah database di minggu 3, tanpa index riwayat. Kolom kanan memakai index riwayat yang diputuskan di [[B2.3]].
+**3. Waktu punya dua penyebab, dan masing-masing punya perbaikan.** Kolom kiri tabel ini memakai database lab tanpa index riwayat, keadaan sebelum M11. Kolom kanan memakai index riwayat yang diputuskan di [[B2.3]].
 
 <Snippet file="labs/b2-query/output/ledger/n1.txt" lines="54:65" title="Rekaman lab: labs/b2-query/output/ledger/n1.txt, bagian E (waktu pembanding, bukan janji)" />
 
-Untuk 20 baris, satu query (27,4 ms) hampir tidak lebih cepat dari N+1 (30,5 ms). Query daftarnya sendiri membaca 3.892 posting dan 380.224 jurnal, dan memakai ±31 ms (`index.txt` bagian B). Untuk 194 baris selisihnya 106,1 lawan 9,3 ms, dan untuk 3.892 baris 1.936,4 lawan 30,6 ms.
+Untuk 20 baris, satu query (27,4 ms) hampir tidak lebih cepat dari N+1 (30,5 ms). Query daftarnya sendiri membaca 3.892 posting dan 380.224 jurnal. EXPLAIN ANALYZE di `index.txt` bagian B mencatat ±31 ms, dari pengukuran lain dengan metode berbeda, jadi bandingkan besarnya, bukan selisih satu milidetik. Untuk 194 baris selisihnya 106,1 lawan 9,3 ms, dan untuk 3.892 baris 1.936,4 lawan 30,6 ms.
 
 Di kolom kanan, N+1 tetap lebih lambat: 10,4 lawan 1,4 ms untuk halaman pertama. Kedua perbaikan berdiri sendiri: index tidak mengubah jumlah query, dan satu query tidak mengubah baris yang dibaca query daftar. M11 membawa kedua masalah, jadi keduanya harus diperbaiki. Waktu di rekaman datang dari satu mesin lab yang dipakai lab lain bersamaan.
 
-**4. Jaringan menambah biaya per query.** Di lab tidak ada jaringan antara handler dan database. Kalau database ada di mesin lain, setiap query membayar paling sedikit satu round trip: tambahan = jumlah query × RTT. Dengan RTT 1 ms (Asumsi, bukan rekaman), 21 query menambah 21 ms, 3.893 query menambah 3,9 detik, dan 1 query menambah 1 ms.
+**4. Jaringan menambah biaya per query.** Di lab tidak ada jaringan antara handler dan database. Kalau database ada di mesin lain, setiap query membayar paling sedikit satu round trip. Untuk query yang dikirim berurutan seperti di lab, tambahan = jumlah query × RTT. Dengan RTT 1 ms (Asumsi, bukan rekaman), 21 query menambah 21 ms, 3.893 query menambah 3,9 detik, dan 1 query menambah 1 ms.
 
 Naskah Tahap 2 memakai satu server, jadi tambahan ini belum terjadi. Rumusnya berlaku begitu database pindah ke mesin sendiri.
 
@@ -113,7 +113,7 @@ Yang sama di semua stack: relasi yang diakses di dalam loop memicu query baru. Y
 <TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
 <Fragment slot="t0">
 
-*Query di bawah dijalankan di lab api-t2 (Go 1.27.1, `database/sql` + pgx v5.11.0, PostgreSQL 17.11): satu `QueryContext` untuk daftar dan nama lawan, sama dengan `n1.txt` bagian B. Jumlah query-nya tidak direkam di api-t2. Loop N+1 sesudahnya tidak dijalankan.*
+*Query di bawah dijalankan di lab api-t2 (Go 1.27.1, `database/sql` + pgx v5.11.0, PostgreSQL 17.11): satu `QueryContext` untuk daftar dan nama lawan, dengan pola `LEFT JOIN LATERAL` yang sama seperti `n1.txt` bagian B. Jumlah query-nya tidak direkam di api-t2. Loop N+1 sesudahnya tidak dijalankan.*
 
 <Snippet file="labs/api-t2/internal/repo/riwayat.go" lines="32:44" lang="go" title="labs/api-t2/internal/repo/riwayat.go" />
 

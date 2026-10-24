@@ -18,7 +18,7 @@
   },
   "jebakan": [
     "Tes dengan 10 baris data terlihat instan, jadi N+1 tidak muncul sebelum data bertambah.",
-    "Mematikan lazy loading hanya di production. Dokumentasi Laravel memakai `preventLazyLoading` di luar production supaya pelanggaran gagal di development dan production tetap berjalan."
+    "Mencegah lazy loading hanya di luar production. Dokumentasi Laravel mencontohkan `preventLazyLoading(! isProduction())` supaya pelanggaran gagal di development; N+1 yang lolos tetap berjalan di production."
   ],
   "terkait": [
     "Eager loading",

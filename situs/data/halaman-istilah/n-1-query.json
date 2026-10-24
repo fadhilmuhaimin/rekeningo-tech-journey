@@ -21,7 +21,7 @@
     "go": {
       "label": "Rekaman lab",
       "versi": "Go 1.27.1, pgx v5.11.0 lewat database/sql, PostgreSQL 17.11",
-      "teks": "`Riwayat` di api-t2 meminta daftar dan nama lawan dalam satu `QueryContext` dengan `LEFT JOIN LATERAL`, sama dengan cara satu query di rekaman b2-query. Tanpa ORM, N+1 terlihat sebagai query di dalam `for`. `database/sql` tidak menghitung query.",
+      "teks": "`Riwayat` di api-t2 meminta daftar dan nama lawan dalam satu `QueryContext` dengan pola `LEFT JOIN LATERAL` yang sama seperti satu query di rekaman b2-query. Tanpa ORM, N+1 terlihat sebagai query di dalam `for`. `database/sql` tidak menghitung query.",
       "rekaman": "labs/api-t2/internal/repo/riwayat.go"
     },
     "node": {
