@@ -1,0 +1,274 @@
+{
+  "versi": 2,
+  "judul": "Response hilang sesudah COMMIT, lalu request yang sama dikirim lagi",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/e3-idempotency/output/ledger/tanpa-key.txt",
+    "fileVarian": "labs/e3-idempotency/output/ledger/key-per-niat.txt",
+    "catatan": "Client Dart, server Go, dan PostgreSQL 17.11 dari database bersih (make -C labs/e3-idempotency run-ledger). Sinyal putus ditiru titik henti server: koneksi app ditutup sesudah COMMIT, sebelum response terkirim. Jalur utama: server minggu 2 tanpa key (tanpa-key.txt). Ubah satu hal: key yang sama di kedua percobaan (key-per-niat.txt)."
+  },
+  "pengantar": "Budi membayar nasi goreng Rp25.000 dari lantai dasar. Tebak dulu, lalu ikuti request-nya dari HP Budi sampai PostgreSQL. Sesudah itu centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "app", "label": "App Budi" },
+    { "id": "api", "label": "Server Go" },
+    { "id": "db", "label": "PostgreSQL" }
+  ],
+  "perangkat": [
+    { "id": "budi", "label": "HP Budi" },
+    { "id": "ani", "label": "HP Warung Ani" }
+  ],
+  "layarAwal": {
+    "budi": {
+      "judul": "Bayar",
+      "sinyal": 1,
+      "saldo": 100000,
+      "saldoLabel": "Saldo Budi",
+      "isi": [
+        { "jenis": "baris", "kiri": "Nasi goreng · Warung Ani", "kanan": "Rp25.000" },
+        { "jenis": "tombol", "teks": "Bayar" }
+      ]
+    },
+    "ani": {
+      "judul": "Warung Ani",
+      "saldo": 0,
+      "saldoLabel": "Saldo warung",
+      "isi": [{ "jenis": "teks", "teks": "Belum ada pembayaran masuk" }]
+    }
+  },
+  "predict": {
+    "q": "Saldo Budi Rp100.000. Response percobaan 1 hilang, lalu app mengirim request yang sama sekali lagi. Berapa saldo Budi di akhir?",
+    "options": ["Rp75.000", "Rp50.000", "Rp100.000"],
+    "answer": 1,
+    "varian": false,
+    "explain": "Percobaan 1 sudah COMMIT sebelum response-nya hilang. Percobaan 2 dikerjakan sebagai pembayaran baru: Rp100.000 − Rp25.000 − Rp25.000 = Rp50.000 (rekaman tanpa-key.txt)."
+  },
+  "langkah": [
+    {
+      "dari": "app",
+      "judul": "Budi menekan Bayar",
+      "kirim": "app  Budi menekan Bayar: Rp25.000 ke Warung Ani",
+      "jelas": "Sinyal di lantai dasar lemah. App menampilkan spinner selama menunggu jawaban server.",
+      "layar": {
+        "budi": {
+          "judul": "Bayar",
+          "sinyal": 1,
+          "saldo": 100000,
+          "saldoLabel": "Saldo Budi",
+          "isi": [
+            { "jenis": "baris", "kiri": "Nasi goreng · Warung Ani", "kanan": "Rp25.000" },
+            { "jenis": "proses", "teks": "Membayar..." }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "app",
+      "ke": "api",
+      "judul": "Percobaan 1 dikirim",
+      "kirim": "POST /transfers\n{\"ke\":418,\"jumlah\":25000}",
+      "jelas": "Request hanya berisi tujuan dan jumlah. Tidak ada yang menandai bahwa request ini milik satu tap Bayar tertentu."
+    },
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Jurnal 2 ditulis, lalu COMMIT",
+      "kirim": "server  #1  jurnal 2 ditulis, belum COMMIT\nserver  #1  COMMIT\n→ Budi −25000, Warung Ani +25000",
+      "jelas": "Pembayaran pertama selesai di database. Saldo Budi Rp75.000, dan Warung Ani sudah menerima Rp25.000.",
+      "nada": "good",
+      "layar": {
+        "ani": {
+          "judul": "Warung Ani",
+          "saldo": 25000,
+          "saldoLabel": "Saldo warung",
+          "isi": [{ "jenis": "baris", "kiri": "Dari Budi", "kanan": "Rp25.000" }]
+        }
+      }
+    },
+    {
+      "dari": "api",
+      "ke": "app",
+      "judul": "Response tidak sampai",
+      "kirim": "201 {\"id\":2,\"saldo\":75000}\nkoneksi app ditutup sebelum response terkirim",
+      "jelas": "Titik henti lab menutup koneksi app sesudah COMMIT. Di cerita, sinyal di lantai dasar putus. Uangnya sudah pindah, tapi app tidak tahu.",
+      "nada": "warn",
+      "layar": {
+        "budi": {
+          "judul": "Bayar",
+          "sinyal": 0,
+          "saldo": 100000,
+          "saldoLabel": "Saldo Budi",
+          "isi": [
+            { "jenis": "baris", "kiri": "Nasi goreng · Warung Ani", "kanan": "Rp25.000" },
+            { "jenis": "proses", "teks": "Membayar..." }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "app",
+      "judul": "App tidak tahu hasilnya, lalu mengulang",
+      "kirim": "app  percobaan 1 → koneksi putus; ulang sesudah 230 ms",
+      "jelas": "Koneksi putus bisa berarti gagal, bisa juga berhasil. App mengulang request yang sama. Di cerita, Budi juga menekan Bayar lagi, dan server menerima keduanya dengan cara yang sama.",
+      "nada": "warn"
+    },
+    {
+      "dari": "app",
+      "ke": "api",
+      "judul": "Percobaan 2 dikirim",
+      "kirim": "POST /transfers\n{\"ke\":418,\"jumlah\":25000}",
+      "jelas": "Body sama persis dengan percobaan 1. Server minggu 2 tidak menyimpan apa pun tentang request sebelumnya.",
+      "nada": "warn"
+    },
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Jurnal 3 ditulis, lalu COMMIT",
+      "kirim": "server  #2  jurnal 3 ditulis, belum COMMIT\n→ COMMIT: Budi −25000, Warung Ani +25000\nriwayat Budi: jurnal 2 dan jurnal 3",
+      "jelas": "Saldo Budi masih cukup, jadi semua pemeriksaan lolos. Bagi server, ini pembayaran baru.",
+      "nada": "warn",
+      "layar": {
+        "ani": {
+          "judul": "Warung Ani",
+          "saldo": 50000,
+          "saldoLabel": "Saldo warung",
+          "nada": "warn",
+          "isi": [
+            { "jenis": "baris", "kiri": "Dari Budi", "kanan": "Rp25.000", "nada": "warn" },
+            { "jenis": "baris", "kiri": "Dari Budi", "kanan": "Rp25.000", "nada": "warn" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "api",
+      "ke": "app",
+      "judul": "App menulis berhasil",
+      "kirim": "201 {\"id\":3,\"saldo\":50000}\napp  layar Budi: pembayaran berhasil, saldo Rp50.000",
+      "jelas": "Budi membayar satu nasi goreng. Riwayatnya mencatat dua pembayaran Rp25.000 (jurnal 2 dan 3).",
+      "nada": "warn",
+      "layar": {
+        "budi": {
+          "judul": "Riwayat",
+          "sinyal": 2,
+          "saldo": 50000,
+          "saldoLabel": "Saldo Budi",
+          "nada": "warn",
+          "isi": [
+            { "jenis": "toast", "teks": "Pembayaran berhasil", "nada": "good" },
+            { "jenis": "baris", "kiri": "Ke Warung Ani", "kanan": "−Rp25.000", "nada": "warn" },
+            { "jenis": "baris", "kiri": "Ke Warung Ani", "kanan": "−Rp25.000", "nada": "warn" }
+          ]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "app mengirim key yang sama di kedua percobaan",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "app",
+        "judul": "Budi menekan Bayar, app membuat satu key",
+        "kirim": "app  Budi menekan Bayar: Rp25.000 ke Warung Ani; key niat ini 0fa0431d…",
+        "jelas": "Satu hal berubah: app membuat satu key untuk tap ini dan mengirimnya di header Idempotency-Key setiap kali request ini dikirim.",
+        "layar": {
+          "budi": {
+            "judul": "Bayar",
+            "sinyal": 1,
+            "saldo": 100000,
+            "saldoLabel": "Saldo Budi",
+            "isi": [
+              { "jenis": "baris", "kiri": "Nasi goreng · Warung Ani", "kanan": "Rp25.000" },
+              { "jenis": "proses", "teks": "Membayar..." }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "app",
+        "ke": "api",
+        "judul": "Percobaan 1 dikirim dengan key",
+        "kirim": "POST /transfers\nIdempotency-Key: \"0fa0431d…\"\n{\"ke\":418,\"jumlah\":25000}",
+        "jelas": "Body sama dengan jalur utama. Bedanya hanya header ini."
+      },
+      {
+        "dari": "api",
+        "ke": "db",
+        "judul": "Key dicatat, jurnal 2 ditulis, COMMIT",
+        "kirim": "server  #1  key baru: status diproses\nserver  #1  jurnal 2 ditulis, belum COMMIT\nserver  #1  COMMIT",
+        "jelas": "Server mencatat key ini bersama hasil pembayarannya. Saldo Budi Rp75.000.",
+        "nada": "good",
+        "layar": {
+          "ani": {
+            "judul": "Warung Ani",
+            "saldo": 25000,
+            "saldoLabel": "Saldo warung",
+            "isi": [{ "jenis": "baris", "kiri": "Dari Budi", "kanan": "Rp25.000" }]
+          }
+        }
+      },
+      {
+        "dari": "api",
+        "ke": "app",
+        "judul": "Response tidak sampai",
+        "kirim": "201 {\"id\":2,\"saldo\":75000}\nkoneksi app ditutup sebelum response terkirim",
+        "jelas": "Titik henti lab yang sama dengan jalur utama.",
+        "nada": "warn",
+        "layar": {
+          "budi": {
+            "judul": "Bayar",
+            "sinyal": 0,
+            "saldo": 100000,
+            "saldoLabel": "Saldo Budi",
+            "isi": [
+              { "jenis": "baris", "kiri": "Nasi goreng · Warung Ani", "kanan": "Rp25.000" },
+              { "jenis": "proses", "teks": "Membayar..." }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "app",
+        "judul": "App mengulang dengan key yang sama",
+        "kirim": "app  percobaan 1 → koneksi putus; ulang sesudah 230 ms",
+        "jelas": "Retry tetap terjadi. Yang dikirim ulang membawa key yang sama dengan percobaan 1."
+      },
+      {
+        "dari": "app",
+        "ke": "api",
+        "judul": "Percobaan 2 dikirim",
+        "kirim": "POST /transfers\nIdempotency-Key: \"0fa0431d…\"\n{\"ke\":418,\"jumlah\":25000}",
+        "jelas": "Sekarang server punya cara mengenali bahwa request ini ulangan."
+      },
+      {
+        "dari": "api",
+        "ke": "db",
+        "judul": "Key sudah selesai: tanpa jurnal baru",
+        "kirim": "server  #2  key selesai, hash sama: kirim respons tersimpan, tanpa jurnal baru",
+        "jelas": "Server menemukan key dari percobaan 1 dan mengambil jawaban yang dulu tidak sampai.",
+        "nada": "good"
+      },
+      {
+        "dari": "api",
+        "ke": "app",
+        "judul": "App menerima jawaban percobaan 1",
+        "kirim": "201 {\"id\":2,\"saldo\":75000}\napp  layar Budi: pembayaran berhasil, saldo Rp75.000",
+        "jelas": "Riwayat Budi mencatat satu pembayaran (jurnal 2), dan saldo Warung Ani Rp25.000.",
+        "nada": "good",
+        "layar": {
+          "budi": {
+            "judul": "Riwayat",
+            "sinyal": 2,
+            "saldo": 75000,
+            "saldoLabel": "Saldo Budi",
+            "nada": "good",
+            "isi": [
+              { "jenis": "toast", "teks": "Pembayaran berhasil", "nada": "good" },
+              { "jenis": "baris", "kiri": "Ke Warung Ani", "kanan": "−Rp25.000" }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
