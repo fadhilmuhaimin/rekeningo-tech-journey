@@ -1,0 +1,53 @@
+---
+/**
+ * Widget daftar bergeser (M12, keputusan 672): tebak apa yang tampil di layar Budi bila satu kiriman masuk di sela dua
+ * halaman OFFSET, lihat daftar database bergeser, lalu ubah satu hal (berapa halaman yang digulir).
+ *   <GeserRiwayat />
+ * Angka dan baris dibaca saat build dari labs/b2-query/output/ledger/pagination.txt (bagian A, B, C) lewat logika.ts;
+ * rekaman yang berubah bentuk, atau tebakan yang tidak punya tepat satu jawaban cocok, menggagalkan build. Teks dari
+ * data/widget/t2-m12-geser.json (skema.ts). Island di-render saat build (client:visible); tanpa JavaScript tabel
+ * rekaman tampil di <noscript>. Satu widget per halaman (dipasang di blok Coba 2.18).
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import GeserRiwayatIsland from "../widgets/geser-riwayat/GeserRiwayat";
+import { LabelGeser } from "../widgets/geser-riwayat/skema";
+import { angka, bacaGeser, daftarSesudah, hasilLayar, indeksBenar, isi } from "../widgets/geser-riwayat/logika";
+import labelMentah from "../../data/widget/t2-m12-geser.json";
+
+const FILE = "labs/b2-query/output/ledger/pagination.txt";
+const abs = path.join(ROOT, FILE);
+if (!fs.existsSync(abs)) throw new Error(`GeserRiwayat: ${FILE} tidak ada`);
+const g = bacaGeser(fs.readFileSync(abs, "utf8"));
+const L = LabelGeser.parse(labelMentah);
+const nilai = {
+  limit: g.limit, offset: g.limit, awal: g.limit + 1, akhir: 2 * g.limit,
+  lawan: g.kiriman.lawan, jumlah: g.kiriman.jumlah, terlewat: g.terlewat,
+};
+const pilihan = L.pilihan.map((p) => ({ ...p, teks: isi(p.teks, nilai), alasan: isi(p.alasan, nilai) }));
+const benar = indeksBenar(pilihan, hasilLayar(g));
+const label = {
+  judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, pertanyaan: isi(L.pertanyaan, nilai), benar: L.benar,
+  belum: L.belum, ulang: L.ulang, layar: L.layar, database: isi(L.database, nilai), garis: isi(L.garis, nilai),
+  tanda: L.tanda, kolom: L.kolom, ubahJudul: L.ubahJudul,
+  nama: Object.fromEntries(g.skala.map((s) => [s.id, isi(L.nama[s.id], { baris: angka(s.barisPerHalaman) })])),
+  kalimat: Object.fromEntries(g.skala.map((s) => [s.id, isi(L.kalimat, {
+    halaman: angka(s.halaman), kiriman: angka(s.kiriman), tampil: angka(s.tampil), ganda: angka(s.ganda), tidakTampil: angka(s.tidakTampil),
+  })])),
+  catatan: L.catatan,
+};
+const sesudah = daftarSesudah(g);
+---
+<GeserRiwayatIsland client:visible halaman1={g.halaman1} sesudah={sesudah} skala={g.skala} pilihan={pilihan} benar={benar} label={label} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <table>
+    <thead><tr><th>{L.ubahJudul}</th><th>{L.kolom.halaman}</th><th>{L.kolom.kiriman}</th><th>{L.kolom.tampil}</th><th>{L.kolom.ganda}</th><th>{L.kolom.tidakTampil}</th></tr></thead>
+    <tbody>
+      {g.skala.map((s) => (
+        <tr><td>{label.nama[s.id]}</td><td>{angka(s.halaman)}</td><td>{angka(s.kiriman)}</td><td>{angka(s.tampil)}</td><td>{angka(s.ganda)}</td><td>{angka(s.tidakTampil)}</td></tr>
+      ))}
+    </tbody>
+  </table>
+</noscript>
