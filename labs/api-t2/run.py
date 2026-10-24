@@ -7,7 +7,7 @@ Lab gagal keras bila port sudah dipakai, atau bila hasilnya tidak sesuai yang di
 
     make -C labs/api-t2 run      (butuh: Docker, Go; PostgreSQL dijalankan lewat labs/b3-race)
 """
-import base64, importlib.util, json, os, pathlib, re, socket, subprocess, sys, tempfile, threading, time
+import base64, importlib.util, json, os, pathlib, re, shutil, socket, subprocess, sys, tempfile, threading, time
 
 import psycopg
 
@@ -899,6 +899,253 @@ def rekam_testing():
     tulis("testing.txt", "tes Go untuk aturan uang")
 
 
+# ---------- m14.txt ----------
+
+CONTOH_GO = '''package contoh
+
+import "errors"
+
+var ErrBatasHarian = errors.New("batas harian terlewati")
+
+// periksaBatas: kiriman hari ini ditambah nominal ini tidak boleh melewati batas harian.
+func periksaBatas(keluar, nominal, batas int64) error {
+	if keluar+nominal > batas {
+		return ErrBatasHarian
+	}
+	return nil
+}
+
+// Kirim memeriksa batas harian di service, lalu meminta jurnal dicatat.
+func Kirim(keluar, nominal, batas int64) error {
+	if err := periksaBatas(keluar, nominal, batas); err != nil {
+		return err
+	}
+	return catatJurnal(keluar, nominal, batas)
+}
+
+// catatJurnal menulis dua posting; ia juga memeriksa batas harian sebelum menulis.
+func catatJurnal(keluar, nominal, batas int64) error {
+	if err := periksaBatas(keluar, nominal, batas); err != nil {
+		return err
+	}
+	// tulis posting pengirim dan posting penerima
+	return nil
+}
+'''
+PEMANGGIL = "\tif err := periksaBatas(keluar, nominal, batas); err != nil {\n\t\treturn err\n\t}\n"
+# Tiga baris di Kirim (api-t2): pemeriksaan batas harian di dalam transaction, sesudah kedua buku dikunci.
+PEMERIKSAAN_API = ("\t\tif err := periksaBatas(h.keluarTadi, nominal, dari.BatasHarian); err != nil {\n"
+                   "\t\t\treturn err\n\t\t}\n")
+BATAS_HARI_INI = ("SELECT a.nama, b.batas_harian, (SELECT -sum(p.jumlah) FROM posting p JOIN jurnal j ON j.id = p.jurnal_id"
+                  " WHERE p.buku_id = b.id AND p.jumlah < 0 AND j.jenis = 'transfer') AS keluar_hari_ini,"
+                  " b.saldo_cache, (SELECT sum(jumlah) FROM posting p WHERE p.buku_id = b.id) AS jumlah_posting"
+                  " FROM buku b JOIN akun a ON a.id = b.akun_id WHERE b.akun_id = 800")
+
+
+def git(dir, *args, nama="Raka", kode_harus=0):
+    """git sungguhan di folder sementara: identitas dan waktu tetap, tanpa konfigurasi pengguna."""
+    env = dict(ENV, GIT_CONFIG_GLOBAL="/dev/null", GIT_CONFIG_SYSTEM="/dev/null", LC_ALL="C",
+               GIT_AUTHOR_NAME=nama, GIT_AUTHOR_EMAIL=f"{nama.lower()}@lestari.example",
+               GIT_COMMITTER_NAME=nama, GIT_COMMITTER_EMAIL=f"{nama.lower()}@lestari.example",
+               GIT_AUTHOR_DATE="2026-10-19T10:00:00+07:00", GIT_COMMITTER_DATE="2026-10-19T10:00:00+07:00")
+    r = subprocess.run(["git", *args], cwd=dir, env=env, capture_output=True, text=True)
+    harap(r.returncode, kode_harus, "git " + " ".join(args))
+    teks = (r.stdout + r.stderr).rstrip()
+    teks = re.sub(r"^index [0-9a-f]+\.\.[0-9a-f]+.*\n", "", teks, flags=re.M)
+    teks = re.sub(r"^Updating [0-9a-f]+\.\.[0-9a-f]+", "Updating <hash>..<hash>", teks, flags=re.M)
+    return teks
+
+
+def jalankan(dir, perintah, tampil=None):
+    """Perintah non-git di folder sementara; keluarannya dicatat bila `tampil` diberikan."""
+    r = subprocess.run(perintah, cwd=dir, env=ENV, capture_output=True, text=True, shell=isinstance(perintah, str))
+    if tampil:
+        catat(f"$ {tampil}")
+        teks = (r.stdout + r.stderr).rstrip()
+        if teks:
+            catat(teks)
+    return r.returncode, (r.stdout + r.stderr)
+
+
+def rekam_merge_contoh(tmp):
+    """Bagian A: dua cabang menghapus salinan berbeda dari satu pemeriksaan; git menggabungkannya tanpa konflik."""
+    d = tmp / "contoh"
+    d.mkdir()
+    (d / "kirim.go").write_text(CONTOH_GO)
+    versi_git = subprocess.run(["git", "--version"], capture_output=True, text=True).stdout.strip()
+    bagian("A. Dua cabang menghapus salinan yang berbeda, dan git menggabungkannya tanpa konflik")
+    catat(f"# File contoh {len(CONTOH_GO.splitlines())} baris di folder sementara, bukan kode labs/api-t2. {versi_git}.")
+    catat("# periksaBatas dipanggil di dua tempat: Kirim (salinan 1) dan catatJurnal (salinan 2).")
+    git(d, "init", "-q", "-b", "main")
+    git(d, "add", "kirim.go")
+    git(d, "commit", "-q", "-m", "Kirim dan catatJurnal sama-sama memeriksa batas harian")
+    catat("$ grep -n 'periksaBatas(' kirim.go")
+    r = jalankan(d, ["grep", "-n", "periksaBatas(", "kirim.go"])[1].rstrip()
+    catat(r)
+    harap(r.count("\n") + 1, 3, "definisi dan dua pemanggil periksaBatas di contoh")
+    catat("\n# Raka menghapus salinan di Kirim")
+    git(d, "switch", "-q", "-c", "raka")
+    s = (d / "kirim.go").read_text()
+    awal = s.index("func Kirim(")
+    harap(s[awal:].count(PEMANGGIL), 2, "dua pemanggil di Kirim dan catatJurnal")
+    (d / "kirim.go").write_text(s[:awal] + s[awal:].replace(PEMANGGIL, "", 1))
+    git(d, "commit", "-q", "-am", "Hapus pemeriksaan batas di Kirim: catatJurnal sudah memeriksanya")
+    catat("$ git diff main raka")
+    catat(git(d, "diff", "main", "raka"))
+    catat("\n# Nadia, dari main yang sama, menghapus salinan di catatJurnal")
+    git(d, "switch", "-q", "main")
+    git(d, "switch", "-q", "-c", "nadia")
+    s = (d / "kirim.go").read_text()
+    akhir = s.rindex(PEMANGGIL)
+    (d / "kirim.go").write_text(s[:akhir] + s[akhir + len(PEMANGGIL):])
+    git(d, "commit", "-q", "-am", "Hapus pemeriksaan batas di catatJurnal: Kirim sudah memeriksanya", nama="Nadia")
+    catat("$ git diff main nadia")
+    catat(git(d, "diff", "main", "nadia"))
+    catat("\n# Cabang Raka masuk ke main lebih dulu, lalu cabang Nadia")
+    git(d, "switch", "-q", "main")
+    catat("$ git merge --ff-only raka")
+    catat(git(d, "merge", "--ff-only", "raka"))
+    catat("$ git merge --no-edit nadia")
+    catat(git(d, "merge", "--no-edit", "nadia", nama="Nadia"))
+    catat("$ grep -c '<<<<<<<' kirim.go")
+    n, keluar = jalankan(d, ["grep", "-c", "<<<<<<<", "kirim.go"])
+    catat(keluar.strip() + "   # exit status 1: tidak ada baris konflik")
+    harap((n, keluar.strip()), (1, "0"), "tidak ada penanda konflik di contoh")
+    catat("$ grep -n 'periksaBatas(' kirim.go")
+    r = jalankan(d, ["grep", "-n", "periksaBatas(", "kirim.go"])[1].rstrip()
+    catat(r)
+    harap(r.count("\n") + 1, 1, "hanya definisi periksaBatas yang tersisa di contoh")
+
+
+def hitung_tes(teks):
+    """Hasil tingkat atas dari go test -v: (lolos, gagal, dilewati, nama yang gagal)."""
+    baris = re.findall(r"^--- (PASS|FAIL|SKIP): (\w+)", teks, flags=re.M)
+    gagal_nama = [n for h, n in baris if h == "FAIL"]
+    return (sum(h == "PASS" for h, _ in baris), len(gagal_nama), sum(h == "SKIP" for h, _ in baris), gagal_nama)
+
+
+def blok_gagal(teks):
+    """Baris dari === RUN sampai --- FAIL untuk tes yang gagal, tanpa tes yang lolos."""
+    keluar, sekarang = [], []
+    for l in teks.splitlines():
+        if l.startswith("=== RUN") and "/" not in l:
+            sekarang = [l]
+        elif sekarang:
+            sekarang.append(l)
+        if l.startswith("--- FAIL") and sekarang:
+            keluar += sekarang
+            sekarang = []
+        elif l.startswith("--- "):
+            sekarang = []
+    return keluar
+
+
+def rekam_batas_hilang(tmp):
+    """Bagian B sampai E: kode api-t2 tanpa pemeriksaan batas harian, ujinya, dan gejalanya di HTTP."""
+    d = tmp / "api-t2-tanpa-batas"
+    for sub in ("cmd", "internal"):
+        shutil.copytree(HERE / sub, d / sub)
+    for f in ("go.mod", "go.sum"):
+        shutil.copy(HERE / f, d / f)
+    kirim = d / "internal/service/kirim.go"
+    s = kirim.read_text()
+    harap(s.count(PEMERIKSAAN_API), 1, "satu pemeriksaan batas harian di Kirim (api-t2)")
+    kirim.write_text(s.replace(PEMERIKSAAN_API, ""))
+    bagian("B. Keadaan sesudah merge, di kode api-t2: tiga baris pemeriksaan batas harian tidak ada lagi")
+    catat("# Salinan labs/api-t2 di folder sementara. Satu perubahan: pemanggil periksaBatas dihapus dari Kirim.")
+    catat("# Fungsinya, tesnya, dan semua kode lain tetap sama.")
+    catat("$ diff -u labs/api-t2/internal/service/kirim.go <salinan>/internal/service/kirim.go")
+    r = subprocess.run(["diff", "-u", str(HERE / "internal/service/kirim.go"), str(kirim)], capture_output=True, text=True)
+    harap(r.returncode, 1, "diff kirim.go")
+    catat("\n".join(re.sub(r"^(---|\+\+\+) \S+.*$", r"\1 <berkas>", l) for l in r.stdout.rstrip().splitlines()))
+    for nama, dir_ in (("labs/api-t2", HERE), ("<salinan>", d)):
+        catat(f"$ grep -n 'periksaBatas(' {nama}/internal/service/*.go")
+        _, teks = jalankan(dir_, "grep -n 'periksaBatas(' internal/service/*.go")
+        catat(teks.rstrip())
+    catat("$ go build ./... && go vet ./...   # di <salinan>")
+    rc1, t1_ = jalankan(d, ["go", "build", "./..."])
+    rc2, t2_ = jalankan(d, ["go", "vet", "./..."])
+    catat(f"# exit status {rc1 or rc2}")
+    harap((rc1, rc2), (0, 0), "build dan vet kode tanpa pemeriksaan")
+
+    bagian("C. Tes: kode asli lawan kode tanpa pemeriksaan")
+    hasil = {}
+    for nama, dir_ in (("kode asli api-t2", HERE), ("tanpa pemeriksaan", d)):
+        for db in (False, True):
+            if db:
+                buat_schema_tes()
+            env = dict(ENV, TEST_DATABASE_URL=DB_TES) if db else {k: v for k, v in ENV.items() if k != "TEST_DATABASE_URL"}
+            r = subprocess.run(["go", "test", "-v", "-count=1", "-p", "1", "./internal/service"], cwd=dir_, env=env,
+                               capture_output=True, text=True)
+            teks = (r.stdout + r.stderr).replace("\t", "  ")
+            teks = re.sub(r" \(\d+\.\d+s\)", "", teks)
+            teks = re.sub(r"^(ok|FAIL)(\s+\S+)\s+[\d.]+s", r"\1\2", teks, flags=re.M)
+            lolos, gagal_n, lewat, daftar = hitung_tes(teks)
+            hasil[(nama, db)] = (r.returncode, lolos, gagal_n, lewat, daftar)
+            catat(f"$ {'TEST_DATABASE_URL=<schema tahap2_tes> ' if db else ''}go test -v -count=1 -p 1 ./internal/service"
+                  f"   # {nama}")
+            if nama == "tanpa pemeriksaan":
+                if db:
+                    catat("\n".join(blok_gagal(teks)))
+                else:
+                    catat("\n".join(l for l in teks.splitlines() if l.startswith("--- PASS: TestBatasHarian")))
+            catat(f"# exit status {r.returncode}: {lolos} lolos, {gagal_n} gagal, {lewat} dilewati")
+    asli_tanpa, asli_db = hasil[("kode asli api-t2", False)], hasil[("kode asli api-t2", True)]
+    kosong_tanpa, kosong_db = hasil[("tanpa pemeriksaan", False)], hasil[("tanpa pemeriksaan", True)]
+    harap((asli_tanpa[0], asli_db[0], asli_db[2], asli_db[3]), (0, 0, 0, 0), "tes kode asli")
+    harap((kosong_tanpa[0], kosong_tanpa[2]), (0, 0), "tes tanpa PostgreSQL pada kode tanpa pemeriksaan")
+    harap(kosong_tanpa[1:4], asli_tanpa[1:4], "tes tanpa PostgreSQL sama pada kedua kode")
+    harap((kosong_db[0], "TestKirimBatasHarian" in kosong_db[4], "TestBatasHarian" in kosong_db[4]), (1, True, False),
+          "tes dengan PostgreSQL pada kode tanpa pemeriksaan")
+
+    bagian("D. Gejala: kiriman Rp800.000 di server asli dan di server tanpa pemeriksaan")
+    catat("# Akun lab Karyawan 800 berperan sebagai Citra: akun Citra sudah memakai batas hari ini di transfer.txt.")
+    harap(satu("SELECT nama FROM akun WHERE id = 800"), "Karyawan 800", "nama akun 800")
+    sandi_admin = "kalimat panjang milik admin tunjangan"
+    mulai(BIN, tampil="# server asli: ./api-t2 di :%d (kode labs/api-t2)" % PORT)
+    harap(ganti_password("admin.tunjangan@lestari.example", "sementara-400", sandi_admin)[0], 204, "ganti password admin")
+    harap(ganti_password("karyawan800@lestari.example", "sementara-800", password_kampus(800))[0], 204, "ganti password 800")
+    biner = d / "api-t2-tanpa-batas"
+    rc, teks = jalankan(d, ["go", "build", "-o", str(biner), "./cmd/api"])
+    harap(rc, 0, "go build server tanpa pemeriksaan")
+    mulai(biner, port=PORT_LAIN, tampil="# server tanpa pemeriksaan: ./api-t2-tanpa-batas di :%d (kode di folder sementara)" % PORT_LAIN)
+    admin = login("admin.tunjangan@lestari.example", sandi_admin, "admin")
+    catat("# Saldo disiapkan: top-up admin Rp1.000.000 untuk Karyawan 800 (satu baris CSV)")
+    s, isi = curl("POST", "/topup?keterangan=Top-up%20rekaman%20M14", "nomor_karyawan,nominal\nK00800,1000000\n", admin,
+                  "text/csv", tampil_body="nomor_karyawan,nominal\\nK00800,1000000\\n")
+    harap((s, j(isi)), (200, {"akun": 1, "total": 1000000}), "top-up Karyawan 800")
+    citra = login("karyawan800@lestari.example", password_kampus(800), "Karyawan 800 (Citra)")
+    catat("\n# Server asli")
+    s, isi = curl("POST", "/kiriman", {"ke_nomor_karyawan": "K00419", "nominal": 800000}, citra)
+    harap((s, j(isi)["type"]), (422, "/problems/batas-harian"), "server asli menolak Rp800.000")
+    catat("\n# Server tanpa pemeriksaan (:%d)" % PORT_LAIN)
+    s, isi = curl("POST", "/kiriman", {"ke_nomor_karyawan": "K00419", "nominal": 800000}, citra, port=PORT_LAIN)
+    harap((s, j(isi)["saldo"], j(isi)["sisa_batas_harian"]), (201, 450000, -300000), "server tanpa pemeriksaan menerima")
+    catat("\n# Database sesudahnya: jurnal seimbang, saldo cocok, tetapi uang keluar hari ini melewati batas")
+    isi = sql(BATAS_HARI_INI)
+    harap(isi, [("Karyawan 800", 500000, 800000, 450000, 450000)], "keluar hari ini Karyawan 800")
+    bagian("E. Ringkasan: tes mana yang merah")
+    catat("# kode | pemanggil periksaBatas (di luar tes) | go test tanpa PostgreSQL | go test dengan PostgreSQL")
+    for nama in ("kode asli api-t2", "tanpa pemeriksaan"):
+        pemanggil = sum(f.read_text().count("periksaBatas(") for f in (d if nama != "kode asli api-t2" else HERE).glob(
+            "internal/service/*.go") if not f.name.endswith("_test.go")) - 1   # kurangi definisinya
+        sel = []
+        for db in (False, True):
+            rc, lolos, gagal_n, lewat, _ = hasil[(nama, db)]
+            sel.append(f"exit {rc} · {lolos} lolos · {gagal_n} gagal · {lewat} dilewati")
+        catat(f"{nama} | {pemanggil} | {sel[0]} | {sel[1]}")
+    harap(len(hasil), 4, "empat hasil tes")
+    tulis("m14.txt", "M14: batas harian yang hilang")
+
+
+def rekam_m14():
+    """M14 (keputusan 826): dua cabang digabung tanpa konflik; lab merekam keadaan sesudahnya (uji mutasi satu baris)."""
+    with tempfile.TemporaryDirectory() as t:
+        tmp = pathlib.Path(t)
+        rekam_merge_contoh(tmp)
+        rekam_batas_hilang(tmp)
+
+
 # ---------- main ----------
 
 def main():
@@ -913,6 +1160,7 @@ def main():
         rekam_tutup_buku()
         rekam_pengaman()
         rekam_testing()
+        rekam_m14()
     finally:
         for port in list(server):   # error Python di tengah rekaman: server tidak tertinggal memegang port
             stop(port)

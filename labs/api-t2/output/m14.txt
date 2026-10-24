@@ -1,0 +1,139 @@
+# Lab api-t2 · M14: batas harian yang hilang
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap2 · server Go di 127.0.0.1:18093
+# Rekaman dari database bersih: make -C labs/api-t2 run (keputusan 408).
+
+# --- A. Dua cabang menghapus salinan yang berbeda, dan git menggabungkannya tanpa konflik ---
+# File contoh 30 baris di folder sementara, bukan kode labs/api-t2. git version 2.50.1.
+# periksaBatas dipanggil di dua tempat: Kirim (salinan 1) dan catatJurnal (salinan 2).
+$ grep -n 'periksaBatas(' kirim.go
+8:func periksaBatas(keluar, nominal, batas int64) error {
+17:	if err := periksaBatas(keluar, nominal, batas); err != nil {
+25:	if err := periksaBatas(keluar, nominal, batas); err != nil {
+
+# Raka menghapus salinan di Kirim
+$ git diff main raka
+diff --git a/kirim.go b/kirim.go
+--- a/kirim.go
++++ b/kirim.go
+@@ -14,9 +14,6 @@ func periksaBatas(keluar, nominal, batas int64) error {
+
+ // Kirim memeriksa batas harian di service, lalu meminta jurnal dicatat.
+ func Kirim(keluar, nominal, batas int64) error {
+-	if err := periksaBatas(keluar, nominal, batas); err != nil {
+-		return err
+-	}
+ 	return catatJurnal(keluar, nominal, batas)
+ }
+
+# Nadia, dari main yang sama, menghapus salinan di catatJurnal
+$ git diff main nadia
+diff --git a/kirim.go b/kirim.go
+--- a/kirim.go
++++ b/kirim.go
+@@ -22,9 +22,6 @@ func Kirim(keluar, nominal, batas int64) error {
+
+ // catatJurnal menulis dua posting; ia juga memeriksa batas harian sebelum menulis.
+ func catatJurnal(keluar, nominal, batas int64) error {
+-	if err := periksaBatas(keluar, nominal, batas); err != nil {
+-		return err
+-	}
+ 	// tulis posting pengirim dan posting penerima
+ 	return nil
+ }
+
+# Cabang Raka masuk ke main lebih dulu, lalu cabang Nadia
+$ git merge --ff-only raka
+Updating <hash>..<hash>
+Fast-forward
+ kirim.go | 3 ---
+ 1 file changed, 3 deletions(-)
+$ git merge --no-edit nadia
+Auto-merging kirim.go
+Merge made by the 'ort' strategy.
+ kirim.go | 3 ---
+ 1 file changed, 3 deletions(-)
+$ grep -c '<<<<<<<' kirim.go
+0   # exit status 1: tidak ada baris konflik
+$ grep -n 'periksaBatas(' kirim.go
+8:func periksaBatas(keluar, nominal, batas int64) error {
+
+# --- B. Keadaan sesudah merge, di kode api-t2: tiga baris pemeriksaan batas harian tidak ada lagi ---
+# Salinan labs/api-t2 di folder sementara. Satu perubahan: pemanggil periksaBatas dihapus dari Kirim.
+# Fungsinya, tesnya, dan semua kode lain tetap sama.
+$ diff -u labs/api-t2/internal/service/kirim.go <salinan>/internal/service/kirim.go
+--- <berkas>
++++ <berkas>
+@@ -81,9 +81,6 @@
+ 		if h.keluarTadi, err = tx.TransferKeluarHariIni(ctx, dari.ID); err != nil {
+ 			return err
+ 		}
+-		if err := periksaBatas(h.keluarTadi, nominal, dari.BatasHarian); err != nil {
+-			return err
+-		}
+ 		if dari.Saldo < nominal {
+ 			return ErrSaldoKurang
+ 		}
+$ grep -n 'periksaBatas(' labs/api-t2/internal/service/*.go
+internal/service/aturan_test.go:54:		err := periksaBatas(k.keluar, k.nominal, k.batas)
+internal/service/kirim.go:31:func periksaBatas(keluarHariIni, nominal int64, batas *int64) error {
+internal/service/kirim.go:84:		if err := periksaBatas(h.keluarTadi, nominal, dari.BatasHarian); err != nil {
+$ grep -n 'periksaBatas(' <salinan>/internal/service/*.go
+internal/service/aturan_test.go:54:		err := periksaBatas(k.keluar, k.nominal, k.batas)
+internal/service/kirim.go:31:func periksaBatas(keluarHariIni, nominal int64, batas *int64) error {
+$ go build ./... && go vet ./...   # di <salinan>
+# exit status 0
+
+# --- C. Tes: kode asli lawan kode tanpa pemeriksaan ---
+$ go test -v -count=1 -p 1 ./internal/service   # kode asli api-t2
+# exit status 0: 8 lolos, 0 gagal, 12 dilewati
+$ TEST_DATABASE_URL=<schema tahap2_tes> go test -v -count=1 -p 1 ./internal/service   # kode asli api-t2
+# exit status 0: 20 lolos, 0 gagal, 0 dilewati
+$ go test -v -count=1 -p 1 ./internal/service   # tanpa pemeriksaan
+--- PASS: TestBatasHarian
+# exit status 0: 8 lolos, 0 gagal, 12 dilewati
+$ TEST_DATABASE_URL=<schema tahap2_tes> go test -v -count=1 -p 1 ./internal/service   # tanpa pemeriksaan
+=== RUN   TestKirimBatasHarian
+    db_test.go:125: kirim Rp1 sesudah batas: ingin ErrBatasHarian, dapat <nil>
+--- FAIL: TestKirimBatasHarian
+=== RUN   TestKirimTidakMembedakanNomor
+    pengaman_test.go:87: nominal 600000: terdaftar saldo tidak cukup, tidak terdaftar saldo tidak cukup; ingin keduanya batas transfer harian terlewati
+--- FAIL: TestKirimTidakMembedakanNomor
+# exit status 1: 18 lolos, 2 gagal, 0 dilewati
+
+# --- D. Gejala: kiriman Rp800.000 di server asli dan di server tanpa pemeriksaan ---
+# Akun lab Karyawan 800 berperan sebagai Citra: akun Citra sudah memakai batas hari ini di transfer.txt.
+# server asli: ./api-t2 di :18093 (kode labs/api-t2)
+# server tanpa pemeriksaan: ./api-t2-tanpa-batas di :18094 (kode di folder sementara)
+# Saldo disiapkan: top-up admin Rp1.000.000 untuk Karyawan 800 (satu baris CSV)
+$ curl -i -X POST '/topup?keterangan=Top-up%20rekaman%20M14' -H 'Authorization: Bearer <token sesi admin>' -H 'Content-Type: text/csv' -d 'nomor_karyawan,nominal\nK00800,1000000\n'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"akun":1,"total":1000000}
+
+# Server asli
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Karyawan 800 (Citra)>' -d '{"ke_nomor_karyawan": "K00419", "nominal": 800000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/batas-harian","title":"Batas kiriman hari ini terlewati","status":422,"detail":"Kiriman ke rekan paling banyak Rp500.000 per hari, dihitung sejak pukul 00.00 WIB."}
+
+# Server tanpa pemeriksaan (:18094)
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Karyawan 800 (Citra)>' -d '{"ke_nomor_karyawan": "K00419", "nominal": 800000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/1136
+
+{"id":1136,"saldo":450000,"sisa_batas_harian":-300000}
+
+# Database sesudahnya: jurnal seimbang, saldo cocok, tetapi uang keluar hari ini melewati batas
+=> SELECT a.nama, b.batas_harian, (SELECT -sum(p.jumlah) FROM posting p JOIN jurnal j ON j.id = p.jurnal_id WHERE p.buku_id = b.id AND p.jumlah < 0 AND j.jenis = 'transfer') AS keluar_hari_ini, b.saldo_cache, (SELECT sum(jumlah) FROM posting p WHERE p.buku_id = b.id) AS jumlah_posting FROM buku b JOIN akun a ON a.id = b.akun_id WHERE b.akun_id = 800
+     nama     | batas_harian | keluar_hari_ini | saldo_cache | jumlah_posting
+--------------+--------------+-----------------+-------------+----------------
+ Karyawan 800 |       500000 |          800000 |      450000 |         450000
+(1 row)
+
+# --- E. Ringkasan: tes mana yang merah ---
+# kode | pemanggil periksaBatas (di luar tes) | go test tanpa PostgreSQL | go test dengan PostgreSQL
+kode asli api-t2 | 1 | exit 0 · 8 lolos · 0 gagal · 12 dilewati | exit 0 · 20 lolos · 0 gagal · 0 dilewati
+tanpa pemeriksaan | 0 | exit 0 · 8 lolos · 0 gagal · 12 dilewati | exit 1 · 18 lolos · 2 gagal · 0 dilewati
