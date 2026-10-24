@@ -136,6 +136,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Saldo cache** | Salinan jumlah posting satu buku di kolom `buku.saldo_cache`, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting. | [[t2-saldo-bukan-kolom]] |
 | **Secure storage** | Penyimpanan terenkripsi milik sistem operasi HP untuk rahasia kecil seperti token sesi: Keychain di iOS, kunci di Android Keystore. | [[t1-idor]] |
 | **SELECT FOR UPDATE** | Perintah SQL yang membaca baris sekaligus menguncinya sampai transaction selesai, sehingga transaction lain yang mau mengubah atau mengunci baris itu menunggu. | [[t2-race-lock]] |
+| **Semantic conflict** | Dua perubahan yang digabung tanpa konflik teks, tetapi gabungannya membuat program berperilaku lain dari yang diharapkan masing-masing. | [[t2-m14]] |
 | **Semaphore** | Penghitung yang membatasi berapa pekerjaan boleh berjalan bersamaan; pekerjaan berikutnya menunggu sampai ada yang selesai. | [[B8]] |
 | **Serializable** | Isolation level paling ketat: hasil transaction bersamaan harus sama dengan menjalankannya satu per satu; yang melanggar ditolak SQLSTATE 40001. | [[t2-isolation-level]] |
 | **Serialization anomaly** | Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun. | [[t2-isolation-level]] |
