@@ -1,0 +1,60 @@
+{
+  "istilah": "Buku ledger",
+  "sehari_hari": "Buku ledger adalah tempat satu pemilik uang dicatat: Budi punya satu, Warung Ani punya satu, dan uang tunjangan perusahaan juga punya satu. Saldo buku itu adalah jumlah semua posting yang masuk ke sana.",
+  "cerita": [
+    {
+      "rujukan": "t2-ledger",
+      "teks": "Lima kejadian di naskah menyentuh buku tunjangan, Budi, Warung Ani, Citra, kas pencairan, dan Warung Sari; setiap jurnal menulis satu posting per buku."
+    },
+    {
+      "rujukan": "t2-tutup-buku",
+      "teks": "Tutup buku menghitung saldo awal, uang masuk, dan uang keluar per buku, lalu mencocokkan hasilnya dengan `saldo_cache`."
+    },
+    {
+      "rujukan": "t2-m9",
+      "teks": "Dua transfer bersamaan dari buku Budi sama-sama lolos pemeriksaan saldo, dan saldo buku itu jadi −Rp20.000."
+    }
+  ],
+  "mekanisme": [
+    "Tabel `buku` punya satu baris per tempat uang. Buku karyawan dan warung punya `akun_id`; buku sistem (tunjangan, kas pencairan, pembuka, selisih) tidak punya pemilik.",
+    "Setiap posting merujuk satu buku lewat `buku_id`. Saldo buku adalah `coalesce(sum(jumlah), 0)` dari posting-nya.",
+    "Kolom `saldo_cache` menyimpan salinan jumlah itu supaya app tidak menjumlah setiap kali membuka saldo. Kode memperbaruinya di transaction yang sama dengan posting.",
+    "Aturan saldo tidak negatif hanya berlaku untuk buku karyawan. Buku sistem boleh negatif: buku tunjangan −Rp250.000 berarti tunjangan sudah mengeluarkan Rp250.000."
+  ],
+  "stack": {
+    "lihat": "jurnal",
+    "teks": "Kode harian tidak membuat atau mengubah buku; ia menulis posting ke buku di dalam jurnal, jadi kodenya sama dengan kode jurnal."
+  },
+  "jebakan": [
+    "Menyamakan buku dengan akun. Satu akun login bisa punya buku, tapi buku sistem seperti tunjangan tidak punya akun; lab menjaganya dengan CHECK `buku_pemilik`.",
+    "Mempercayai `saldo_cache` lebih dari jumlah posting. Cache hanya salinan; kalau keduanya berbeda, yang benar adalah jumlah posting.",
+    "Mengira buku dengan saldo negatif selalu salah. Itu hanya salah untuk buku karyawan; buku tunjangan dan pembuka memang negatif."
+  ],
+  "terkait": [
+    "Ledger",
+    "Posting",
+    "Jurnal",
+    "Double-entry",
+    "Invarian",
+    "Cache"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-06",
+      "judul": "Square Engineering: Books, an immutable double-entry accounting database service",
+      "url": "https://developer.squareup.com/blog/books-an-immutable-double-entry-accounting-database-service/",
+      "catatan": "16 Oktober 2019: tabel books, journal_entries, dan book_entries; entri hanya ditambah, tidak pernah diubah."
+    },
+    {
+      "riset": "R2-09",
+      "judul": "Rekaman lab b3-ledger: lima kejadian dan saldo per buku",
+      "rekaman": "labs/b3-ledger/output/kejadian.txt",
+      "catatan": "Bagian C: sembilan buku, saldo dari jumlah posting cocok dengan saldo_cache di semua buku."
+    },
+    {
+      "judul": "Rekaman lab b3-ledger: tutup buku",
+      "rekaman": "labs/b3-ledger/output/tutup-buku.txt",
+      "catatan": "Bagian B: saldo per jenis buku; tunjangan −250.000, pembuka −500.000, karyawan 440.000."
+    }
+  ]
+}

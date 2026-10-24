@@ -128,6 +128,15 @@ window.ISTILAH = {
   "t": "Backoff",
   "u": "e-mobile/e3-retry-idempotency/"
  },
+ "Buku ledger": {
+  "b": "t2-ledger",
+  "d": "Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya.",
+  "h": "istilah/buku-ledger/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-buku-ledger",
+  "t": "Buku ledger",
+  "u": "tahap-2/ledger/"
+ },
  "CI": {
   "b": "B1.4",
   "d": "Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung.",
@@ -231,7 +240,16 @@ window.ISTILAH = {
   "n": "2.7 Ledger double-entry",
   "s": "istilah-debit",
   "t": "Debit",
-  "u": null
+  "u": "tahap-2/ledger/"
+ },
+ "Double-entry": {
+  "b": "t2-ledger",
+  "d": "Cara mencatat uang di dua sisi atau lebih: setiap rupiah yang keluar dari satu buku masuk ke buku lain, jadi jumlah catatan satu kejadian selalu nol.",
+  "h": "istilah/double-entry/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-double-entry",
+  "t": "Double-entry",
+  "u": "tahap-2/ledger/"
  },
  "ERP": {
   "b": "t2-prd",
@@ -390,6 +408,7 @@ window.ISTILAH = {
  "Invarian": {
   "b": "C1",
   "d": "Aturan yang harus selalu benar apa pun yang terjadi, mis. transfer tidak mengubah total saldo semua akun.",
+  "h": "istilah/invarian/",
   "n": "1.32 Testing",
   "s": "istilah-invarian",
   "t": "Invarian",
@@ -435,7 +454,7 @@ window.ISTILAH = {
   "n": "2.7 Ledger double-entry",
   "s": "istilah-jurnal",
   "t": "Jurnal",
-  "u": null
+  "u": "tahap-2/ledger/"
  },
  "Kredit": {
   "b": "t2-ledger",
@@ -444,7 +463,7 @@ window.ISTILAH = {
   "n": "2.7 Ledger double-entry",
   "s": "istilah-kredit",
   "t": "Kredit",
-  "u": null
+  "u": "tahap-2/ledger/"
  },
  "LSN": {
   "b": "D3",
@@ -760,7 +779,7 @@ window.ISTILAH = {
   "n": "2.7 Ledger double-entry",
   "s": "istilah-posting",
   "t": "Posting",
-  "u": null
+  "u": "tahap-2/ledger/"
  },
  "Primary": {
   "b": "D3",
@@ -1205,6 +1224,15 @@ window.ISTILAH = {
   "t": "Backoff",
   "u": "e-mobile/e3-retry-idempotency/"
  },
+ "buku ledger": {
+  "b": "t2-ledger",
+  "d": "Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya.",
+  "h": "istilah/buku-ledger/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-buku-ledger",
+  "t": "Buku ledger",
+  "u": "tahap-2/ledger/"
+ },
  "cache": {
   "b": "B9",
   "d": "Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli.",
@@ -1284,7 +1312,16 @@ window.ISTILAH = {
   "n": "2.7 Ledger double-entry",
   "s": "istilah-debit",
   "t": "Debit",
-  "u": null
+  "u": "tahap-2/ledger/"
+ },
+ "double-entry": {
+  "b": "t2-ledger",
+  "d": "Cara mencatat uang di dua sisi atau lebih: setiap rupiah yang keluar dari satu buku masuk ke buku lain, jadi jumlah catatan satu kejadian selalu nol.",
+  "h": "istilah/double-entry/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-double-entry",
+  "t": "Double-entry",
+  "u": "tahap-2/ledger/"
  },
  "endpoint": {
   "b": "B1.1",
@@ -1379,6 +1416,7 @@ window.ISTILAH = {
  "invarian": {
   "b": "C1",
   "d": "Aturan yang harus selalu benar apa pun yang terjadi, mis. transfer tidak mengubah total saldo semua akun.",
+  "h": "istilah/invarian/",
   "n": "1.32 Testing",
   "s": "istilah-invarian",
   "t": "Invarian",
@@ -1408,7 +1446,7 @@ window.ISTILAH = {
   "n": "2.7 Ledger double-entry",
   "s": "istilah-jurnal",
   "t": "Jurnal",
-  "u": null
+  "u": "tahap-2/ledger/"
  },
  "kredit": {
   "b": "t2-ledger",
@@ -1417,7 +1455,7 @@ window.ISTILAH = {
   "n": "2.7 Ledger double-entry",
   "s": "istilah-kredit",
   "t": "Kredit",
-  "u": null
+  "u": "tahap-2/ledger/"
  },
  "latency": {
   "b": "C2",
@@ -1645,7 +1683,7 @@ window.ISTILAH = {
   "n": "2.7 Ledger double-entry",
   "s": "istilah-posting",
   "t": "Posting",
-  "u": null
+  "u": "tahap-2/ledger/"
  },
  "primary": {
   "b": "D3",

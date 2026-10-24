@@ -216,6 +216,15 @@
   "h": null
  },
  {
+  "t": "Buku ledger",
+  "d": "Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya.",
+  "b": "t2-ledger",
+  "n": "2.7 Ledger double-entry",
+  "u": "/tahap-2/ledger/",
+  "s": "istilah-buku-ledger",
+  "h": "/istilah/buku-ledger/"
+ },
+ {
   "t": "Cache",
   "d": "Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli.",
   "b": "B9",
@@ -301,9 +310,18 @@
   "d": "Sisi kiri sebuah jurnal akuntansi; di setiap jurnal total debit sama dengan total kredit, dan akun aset bertambah di sisi debit.",
   "b": "t2-ledger",
   "n": "2.7 Ledger double-entry",
-  "u": null,
+  "u": "/tahap-2/ledger/",
   "s": "istilah-debit",
   "h": "/istilah/debit/"
+ },
+ {
+  "t": "Double-entry",
+  "d": "Cara mencatat uang di dua sisi atau lebih: setiap rupiah yang keluar dari satu buku masuk ke buku lain, jadi jumlah catatan satu kejadian selalu nol.",
+  "b": "t2-ledger",
+  "n": "2.7 Ledger double-entry",
+  "u": "/tahap-2/ledger/",
+  "s": "istilah-double-entry",
+  "h": "/istilah/double-entry/"
  },
  {
   "t": "Enumerasi",
@@ -411,7 +429,7 @@
   "n": "1.32 Testing",
   "u": "/tahap-1/testing/",
   "s": "istilah-invarian",
-  "h": null
+  "h": "/istilah/invarian/"
  },
  {
   "t": "Isolation level",
@@ -436,7 +454,7 @@
   "d": "Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol.",
   "b": "t2-ledger",
   "n": "2.7 Ledger double-entry",
-  "u": null,
+  "u": "/tahap-2/ledger/",
   "s": "istilah-jurnal",
   "h": "/istilah/jurnal/"
  },
@@ -454,7 +472,7 @@
   "d": "Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit.",
   "b": "t2-ledger",
   "n": "2.7 Ledger double-entry",
-  "u": null,
+  "u": "/tahap-2/ledger/",
   "s": "istilah-kredit",
   "h": "/istilah/kredit/"
  },
@@ -742,7 +760,7 @@
   "d": "Satu baris uang di dalam jurnal untuk satu buku: negatif bila uang keluar, positif bila masuk; saldo buku adalah jumlah posting-nya.",
   "b": "t2-ledger",
   "n": "2.7 Ledger double-entry",
-  "u": null,
+  "u": "/tahap-2/ledger/",
   "s": "istilah-posting",
   "h": "/istilah/posting/"
  },
