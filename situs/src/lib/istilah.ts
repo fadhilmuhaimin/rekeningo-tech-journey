@@ -30,8 +30,8 @@ const StackEnam = z.object(Object.fromEntries(STACK.map((s) => [s, BarisStack]))
 const StackLihat = z.object({ lihat: z.string().regex(/^[a-z0-9-]+$/), teks: Teks }).strict();
 
 const Sumber = z.union([
-  z.object({ riset: z.string().regex(/^R\d-\d{2}$/), judul: Teks, url: z.url(), catatan: Teks }).strict(),
-  z.object({ riset: z.string().regex(/^R\d-\d{2}$/).optional(), judul: Teks, rekaman: z.string().regex(/^labs\/[\w./-]+$/), catatan: Teks }).strict(),
+  z.object({ riset: z.string().regex(/^R\d-\d{2,3}$/), judul: Teks, url: z.url(), catatan: Teks }).strict(),
+  z.object({ riset: z.string().regex(/^R\d-\d{2,3}$/).optional(), judul: Teks, rekaman: z.string().regex(/^labs\/[\w./-]+$/), catatan: Teks }).strict(),
 ]);
 
 /** `null` berarti bagian itu belum ditulis: halaman menampilkan "Belum ditulis." Kunci yang hilang menggagalkan build. */

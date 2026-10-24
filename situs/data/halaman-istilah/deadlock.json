@@ -1,0 +1,120 @@
+{
+  "istilah": "Deadlock",
+  "sehari_hari": "Budi mengirim ke Citra tepat saat Citra mengirim ke Budi. Kalau masing-masing sudah memegang satu buku dan menunggu buku yang lain, keduanya tidak akan selesai sendiri.",
+  "cerita": [
+    {
+      "rujukan": "t2-transfer",
+      "teks": "Setiap kiriman mengunci buku pengirim dan penerima dengan satu query, urut id buku, jadi dua kiriman berlawanan arah meminta kunci dalam urutan yang sama."
+    },
+    {
+      "rujukan": "t2-race-lock",
+      "teks": "ADR 13: satu perintah, urutan id. Top-up CSV yang mengunci buku menurut urutan baris file bisa deadlock dengan transfer; ini belum direkam."
+    }
+  ],
+  "mekanisme": [
+    "Transaction A mengunci buku Budi, dan transaction B mengunci buku Citra.",
+    "A meminta buku Citra dan menunggu B. B meminta buku Budi dan menunggu A. Tidak ada yang bisa lanjut.",
+    "PostgreSQL mendeteksi lingkaran tunggu ini dan membatalkan salah satu transaction. Transaction mana yang dibatalkan sulit ditebak.",
+    "Mengunci semua baris yang dibutuhkan dalam urutan yang sama, mis. satu query `ORDER BY id FOR UPDATE`, mencegah lingkaran itu."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, pgx v5.11.0, PostgreSQL 17.11",
+      "teks": "`KunciBukuAkun` mengunci kedua buku dalam satu query `WHERE akun_id = ANY($1) ORDER BY id FOR UPDATE`. Rekaman kiriman ada; dua kiriman berlawanan arah yang bersamaan belum direkam.",
+      "rekaman": "labs/api-t2/output/transfer.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-postgres (pg) 8.23.1",
+      "teks": "Kedua buku dikunci dalam satu query `... WHERE akun_id = ANY($1) ORDER BY id FOR UPDATE`, dengan satu client dari `pool.connect()` di antara `BEGIN` dan `COMMIT`.",
+      "dokumentasi": "https://node-postgres.com/features/transactions"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.x",
+      "teks": "`whereIn('akun_id', [...])->orderBy('id')->lockForUpdate()->get()` dalam satu query. Argumen kedua `DB::transaction` menentukan berapa kali closure diulang bila terjadi deadlock.",
+      "dokumentasi": "https://laravel.com/docs/13.x/queries#pessimistic-locking"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1",
+      "teks": "`Buku.objects.select_for_update().filter(akun_id__in=[...]).order_by(\"id\")` di dalam `transaction.atomic()`; lock diminta saat queryset dievaluasi.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/ref/models/querysets/#select-for-update"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "`Buku.db.find(session, where: (t) => t.akunId.inSet({...}), orderBy: (t) => t.id, lockMode: LockMode.forUpdate, transaction: transaction)`.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/row-locking"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "@supabase/supabase-js 2.118.0",
+      "teks": "Fungsi database mengunci dengan `PERFORM ... ORDER BY id FOR UPDATE`, lalu dipanggil lewat `supabase.rpc(...)`; satu panggilan adalah satu transaction.",
+      "dokumentasi": "https://supabase.com/docs/guides/database/functions"
+    }
+  },
+  "jebakan": [
+    "Mengunci pengirim lalu penerima dengan dua query terpisah. Contoh transfer di dokumentasi Laravel melakukannya, jadi kiriman Budi ke Citra dan Citra ke Budi mengunci dalam urutan berlawanan.",
+    "Mengira deadlock hanya mungkin di transfer. Jalur lain yang mengunci buku yang sama dalam urutan berbeda, mis. top-up CSV menurut urutan baris file, ikut membentuk lingkaran.",
+    "Menguji di SQLite. Django tidak menambahkan `FOR UPDATE` di backend yang tidak mendukungnya, dan tidak memberi error, jadi lock dan deadlock tidak pernah muncul di tes."
+  ],
+  "terkait": [
+    "Lock",
+    "SELECT FOR UPDATE",
+    "Transaction",
+    "Race condition",
+    "Retry"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-85",
+      "judul": "PostgreSQL 17, 13.3.4 Deadlocks",
+      "url": "https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-DEADLOCKS",
+      "catatan": "PostgreSQL membatalkan salah satu transaction yang deadlock; pertahanan terbaik adalah mengunci dalam urutan yang konsisten. Dibuka 24 Oktober 2026."
+    },
+    {
+      "riset": "R2-85",
+      "judul": "PostgreSQL 17, SELECT: The Locking Clause",
+      "url": "https://www.postgresql.org/docs/17/sql-select.html#SQL-FOR-UPDATE-SHARE",
+      "catatan": "ORDER BY diterapkan dulu, lalu baris yang dikembalikan dikunci. Dibuka 24 Oktober 2026."
+    },
+    {
+      "riset": "R2-106",
+      "judul": "Laravel 13.x: Pessimistic Locking",
+      "url": "https://laravel.com/docs/13.x/queries#pessimistic-locking",
+      "catatan": "lockForUpdate() dianjurkan di dalam transaction; contoh transfernya mengunci dua baris dengan dua query. Dibuka 24 Oktober 2026."
+    },
+    {
+      "riset": "R2-36",
+      "judul": "Laravel 13.x: Database Transactions",
+      "url": "https://laravel.com/docs/13.x/database#database-transactions",
+      "catatan": "Argumen kedua DB::transaction adalah jumlah percobaan bila terjadi deadlock."
+    },
+    {
+      "riset": "R2-107",
+      "judul": "Django 6.1: select_for_update()",
+      "url": "https://docs.djangoproject.com/en/6.1/ref/models/querysets/#select-for-update",
+      "catatan": "Lock saat queryset dievaluasi; TransactionManagementError di autocommit; tanpa efek di SQLite. Dibuka 24 Oktober 2026."
+    },
+    {
+      "riset": "R2-86",
+      "judul": "Serverpod 4.0: Row locking",
+      "url": "https://docs.serverpod.dev/concepts/data-and-the-database/database/row-locking",
+      "catatan": "Semua row locking butuh transaction; lockMode di find, LockBehavior.wait bawaan. Dibuka 24 Oktober 2026."
+    },
+    {
+      "riset": "R2-36",
+      "judul": "PostgREST: Transactions",
+      "url": "https://docs.postgrest.org/en/latest/references/transactions.html",
+      "catatan": "Setiap request ke API berjalan di dalam satu transaction; dasar perilaku supabase.rpc(). Dibuka 24 Oktober 2026."
+    },
+    {
+      "riset": "R2-85",
+      "judul": "Rekaman lab api-t2: kiriman antar karyawan",
+      "rekaman": "labs/api-t2/output/transfer.txt",
+      "catatan": "Kiriman Budi ke Citra dengan buku dikunci urut id, batas harian, dan saldo kurang."
+    }
+  ]
+}
