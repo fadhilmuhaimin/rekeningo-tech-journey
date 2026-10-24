@@ -47,7 +47,7 @@ Dua gejala itu punya dua sebab yang terpisah. Rekaman lab mengulang keduanya dar
 
 **Pembayaran menunggu.** `ALTER TABLE` meminta lock `ACCESS EXCLUSIVE` pada tabelnya, kecuali dokumentasi menyebut lain untuk bentuk tertentu ([PostgreSQL 17, ALTER TABLE](https://www.postgresql.org/docs/17/sql-altertable.html)). Lock itu bertabrakan dengan semua mode lock lain, termasuk akses baca milik `SELECT` ([bagian 13.3](https://www.postgresql.org/docs/17/explicit-locking.html)).
 
-Laporan Keuangan sudah membaca tabel `akun` dan belum selesai, jadi migrasi menunggu di belakangnya. Bayar Citra datang sesudahnya. Ia hanya mengubah dua baris, dan itu tidak bertabrakan dengan laporan yang membaca. Tapi Bayar ikut menunggu, karena ada migrasi yang antre lebih dulu.
+Laporan Keuangan sudah membaca tabel `akun` dan belum selesai, jadi migrasi menunggu di belakangnya. Bayar Citra datang sesudahnya. Ia hanya mengubah dua baris `akun`, dan itu tidak bertabrakan dengan laporan yang membaca. Tapi Bayar ikut menunggu, karena ada migrasi yang antre lebih dulu.
 
 <Snippet file="labs/b4-skema/output/ledger/satu-langkah.txt" lines="13:20" title="Rekaman lab: labs/b4-skema/output/ledger/satu-langkah.txt, langkah 1 sampai 4" />
 
@@ -61,7 +61,11 @@ Dokumentasi PostgreSQL menyebut keadaan ini *soft block*. Proses yang menunggu l
 
 Lama tunggu Bayar sama dengan sisa waktu laporan ditambah lama migrasi. Rekaman tidak menyimpan detik. Lab menahan laporan paling sedikit 5 detik sesudah semua permintaan mulai menunggu. Angka itu parameter lab, bukan 40 detik naskah.
 
-*Yang tidak terulang:* naskah menulis ALTER pada tabel besar. Tabel `akun` di lab hanya 1.013 baris, dan permintaan tetap menunggu. Ukuran tabel menentukan lama `ALTER` hanya bila perintahnya menulis ulang tabel. Pembanding di tabel `transaksi` (15.000 baris) memisahkan keduanya:
+*Yang tidak terulang:* naskah menulis ALTER pada tabel besar. Tabel `akun` di lab hanya 1.013 baris, dan permintaan tetap menunggu. Antrean terbentuk dari lock yang diminta, bukan dari lama `ALTER` berjalan.
+
+Ukuran tabel memperpanjang lock dalam dua kasus. Pertama, perintah menulis ulang tabel, misalnya default volatile atau ganti tipe kolom. Kedua, perintah memindai tabel untuk memeriksa constraint baru seperti `CHECK` ([PostgreSQL 17, ALTER TABLE](https://www.postgresql.org/docs/17/sql-altertable.html)). Migrasi ini menambah `CHECK` di `akun`, dan lab tidak mengukur pemindaiannya di tabel yang lebih besar.
+
+Pembanding di tabel `transaksi` (15.000 baris) memisahkan `ADD COLUMN` tanpa dan dengan menulis ulang tabel:
 
 <Snippet file="labs/b4-skema/output/ledger/lock-timeout.txt" lines="34:38" title="Rekaman lab: labs/b4-skema/output/ledger/lock-timeout.txt, pembanding menulis ulang tabel" />
 
@@ -83,13 +87,13 @@ Kedua, Raka memasang server versi 2. Responsnya dibuat untuk app baru: riwayat d
 
 Kedua mekanisme itu tidak menyebut jam makan siang. Lab tidak menjalankan skenario malam, jadi ini kesimpulan dari mekanismenya, bukan dari rekaman.
 
-Tebakan Raka salah di dua tempat. Ukuran tabel bukan penyebab pembayaran menunggu, dan jam makan siang bukan penyebab gejala kedua. Cara memecah migrasi supaya masing-masing langkahnya aman dibahas di [[B4.2]].
+Tebakan Raka salah di dua tempat. Di lab, ukuran tabel bukan penyebab pembayaran menunggu, dan jam makan siang bukan penyebab gejala kedua. Cara memecah migrasi supaya masing-masing langkahnya aman dibahas di [[B4.2]].
 
 </Blok>
 
 <Blok nama="Coba sendiri">
 
-Widget ini menjalankan rekaman yang sama langkah demi langkah. Tebak dulu siapa yang ditunggu Bayar, lalu tekan Langkah berikutnya.
+Widget ini memutar ulang rekaman yang sama langkah demi langkah. Tebak dulu siapa yang ditunggu Bayar, lalu tekan Langkah berikutnya.
 
 <AntreanLock />
 
@@ -112,7 +116,7 @@ Rekaman pembanding itu menjalankan file 000009 saja, bukan lima file sekaligus. 
 
 - [[B4.2]]: ubah skema tanpa downtime. Perubahan besar dipecah jadi rilis kecil yang masing-masing aman. Batas tunggu lock, urutan expand-migrate-contract, backfill bertahap, dan ADR 17 ada di sana.
 - [Halaman istilah lock](/istilah/lock/): lock sebagai tanda "sedang dipakai" di baris atau tabel, dan siapa yang menunggu siapa.
-- [[E1]]: app versi lama di Tahap 1. Urutan tambah dulu, hapus belakangan yang dipakai di sana dijalankan sekaligus oleh migrasi M13.
+- [[E1]]: app versi lama di Tahap 1. Di sana urutannya tambah dulu, hapus belakangan; migrasi M13 menjalankan keduanya sekaligus.
 - [[t2-skema]]: ERD dari Tahap 1 ke Tahap 2, yaitu tabel yang dipindahkan migrasi ini.
 
 </Blok>

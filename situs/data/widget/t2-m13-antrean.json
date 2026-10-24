@@ -3,9 +3,9 @@
   "sumber": "Rekaman lab · satu-langkah.txt dan lock-timeout.txt",
   "papan": "Keadaan empat permintaan ke tabel akun",
   "tebakDulu": "Tebak dulu:",
-  "pertanyaan": "Laporan Keuangan masih terbuka dan hanya membaca tabel akun. Migrasi sudah minta lock dan menunggu. Lalu Citra membayar Rp25.000 ke Warung Ani, yang hanya mengubah dua baris akun. Siapa yang ditunggu permintaan Bayar itu?",
+  "pertanyaan": "Laporan Keuangan masih terbuka dan hanya membaca; tabel akun termasuk yang dibacanya. Migrasi sudah minta lock dan menunggu. Lalu Citra membayar Rp25.000 ke Warung Ani, yang hanya mengubah dua baris akun. Siapa yang ditunggu permintaan Bayar itu?",
   "pilihan": [
-    { "menunggu": "R", "alasan": "Laporan hanya membaca tabel akun. Membaca tidak bertabrakan dengan Bayar yang mengubah dua baris (dokumentasi PostgreSQL 17, bagian 13.3), jadi laporan saja tidak menahan Bayar." },
+    { "menunggu": "R", "alasan": "Laporan hanya membaca. Membaca tidak bertabrakan dengan Bayar yang mengubah dua baris akun (dokumentasi PostgreSQL 17, bagian 13.3), jadi laporan saja tidak menahan Bayar." },
     { "menunggu": "M", "alasan": "Bayar menunggu migrasi. Migrasi menunggu laporan, dan permintaan yang bertabrakan dengan permintaan yang sudah antre ikut antre. Tabel pg_locks di rekaman menulis Bayar di belakang M, bukan di belakang R." },
     { "menunggu": "-", "alasan": "Bayar akan langsung jalan bila tidak ada yang antre di tabel akun. Di rekaman migrasi sudah minta lock lebih dulu, dan Bayar menunggu di belakangnya." }
   ],
