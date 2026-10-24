@@ -417,6 +417,7 @@ window.ISTILAH = {
  "Isolation level": {
   "b": "t2-isolation-level",
   "d": "Seberapa banyak perubahan dari transaction lain yang boleh terlihat oleh satu transaction yang sedang berjalan.",
+  "h": "istilah/isolation-level/",
   "n": "2.12 Isolation level",
   "s": "istilah-isolation-level",
   "t": "Isolation level",
@@ -867,6 +868,15 @@ window.ISTILAH = {
   "t": "Rate limit",
   "u": "c-operasional/c4-security-dasar/"
  },
+ "Read Committed": {
+  "b": "t2-isolation-level",
+  "d": "Isolation level bawaan PostgreSQL: setiap perintah membaca data yang sudah COMMIT saat perintah itu mulai, jadi dua perintah bisa membaca keadaan berbeda.",
+  "h": "istilah/read-committed/",
+  "n": "2.12 Isolation level",
+  "s": "istilah-read-committed",
+  "t": "Read Committed",
+  "u": "tahap-2/isolation-level/"
+ },
  "Read replica": {
   "b": "D2",
   "d": "Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.",
@@ -882,6 +892,15 @@ window.ISTILAH = {
   "s": "istilah-read-your-writes",
   "t": "Read-your-writes",
   "u": "d-system-design/d3-consistency/"
+ },
+ "Repeatable Read": {
+  "b": "t2-isolation-level",
+  "d": "Isolation level yang memakai satu snapshot untuk seluruh transaction, diambil saat perintah pertama; transaction yang menulis bisa ditolak SQLSTATE 40001.",
+  "h": "istilah/repeatable-read/",
+  "n": "2.12 Isolation level",
+  "s": "istilah-repeatable-read",
+  "t": "Repeatable Read",
+  "u": "tahap-2/isolation-level/"
  },
  "Replication lag": {
   "b": "D3",
@@ -971,6 +990,15 @@ window.ISTILAH = {
   "t": "Semaphore",
   "u": "b-fondasi/b8-concurrency/"
  },
+ "Serializable": {
+  "b": "t2-isolation-level",
+  "d": "Isolation level paling ketat: hasil transaction bersamaan harus sama dengan menjalankannya satu per satu; yang melanggar ditolak SQLSTATE 40001.",
+  "h": "istilah/serializable/",
+  "n": "2.12 Isolation level",
+  "s": "istilah-serializable",
+  "t": "Serializable",
+  "u": "tahap-2/isolation-level/"
+ },
  "Serialization anomaly": {
   "b": "t2-isolation-level",
   "d": "Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun.",
@@ -1006,6 +1034,7 @@ window.ISTILAH = {
  "Snapshot": {
   "b": "t2-isolation-level",
   "d": "Gambaran isi database pada satu saat, yang dilihat oleh satu query atau satu transaction.",
+  "h": "istilah/snapshot/",
   "n": "2.12 Isolation level",
   "s": "istilah-snapshot",
   "t": "Snapshot",
@@ -1413,6 +1442,7 @@ window.ISTILAH = {
  "isolation level": {
   "b": "t2-isolation-level",
   "d": "Seberapa banyak perubahan dari transaction lain yang boleh terlihat oleh satu transaction yang sedang berjalan.",
+  "h": "istilah/isolation-level/",
   "n": "2.12 Isolation level",
   "s": "istilah-isolation-level",
   "t": "Isolation level",
@@ -1815,6 +1845,15 @@ window.ISTILAH = {
   "t": "Semaphore",
   "u": "b-fondasi/b8-concurrency/"
  },
+ "serializable": {
+  "b": "t2-isolation-level",
+  "d": "Isolation level paling ketat: hasil transaction bersamaan harus sama dengan menjalankannya satu per satu; yang melanggar ditolak SQLSTATE 40001.",
+  "h": "istilah/serializable/",
+  "n": "2.12 Isolation level",
+  "s": "istilah-serializable",
+  "t": "Serializable",
+  "u": "tahap-2/isolation-level/"
+ },
  "serialization anomaly": {
   "b": "t2-isolation-level",
   "d": "Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun.",
@@ -1842,6 +1881,7 @@ window.ISTILAH = {
  "snapshot": {
   "b": "t2-isolation-level",
   "d": "Gambaran isi database pada satu saat, yang dilihat oleh satu query atau satu transaction.",
+  "h": "istilah/snapshot/",
   "n": "2.12 Isolation level",
   "s": "istilah-snapshot",
   "t": "Snapshot",

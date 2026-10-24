@@ -1,0 +1,102 @@
+{
+  "istilah": "Isolation level",
+  "sehari_hari": "Isolation level menjawab satu pertanyaan: kalau transaction lain sudah `COMMIT` saat transaction-mu masih berjalan, apakah perintahmu berikutnya melihat perubahannya? Jawabannya bisa \"ya, di setiap perintah\", \"tidak, sampai kamu selesai\", atau \"tidak, dan salah satu dari kalian ditolak\".",
+  "cerita": [
+    {
+      "rujukan": "t2-isolation-level",
+      "teks": "Laporan tutup buku dua perintah selisih Rp25.000 di Read Committed dan cocok di Repeatable Read, dengan perintah yang sama."
+    },
+    {
+      "rujukan": "t2-m9",
+      "teks": "Dua transfer M9 tanpa lock: di Repeatable Read keduanya tersimpan dan saldo Budi −Rp20.000, karena pemeriksaan saldo membaca snapshot lama."
+    },
+    {
+      "rujukan": "B3.2",
+      "teks": "ADR 13 memilih lock baris buku, bukan level yang lebih tinggi, untuk menjaga saldo saat dua transfer bersamaan."
+    }
+  ],
+  "mekanisme": [
+    "PostgreSQL menyimpan beberapa versi setiap baris, dan setiap perintah membaca snapshot: isi database pada satu saat tertentu.",
+    "Read Committed, bawaannya, mengambil snapshot baru di awal setiap perintah. Read Uncommitted di PostgreSQL berperilaku sama.",
+    "Repeatable Read mengambil satu snapshot di perintah pertama dan memakainya sampai transaction selesai. Transaction yang mengubah baris yang sudah diubah orang lain ditolak 40001.",
+    "Serializable menambah catatan tentang apa yang dibaca setiap transaction, lalu menolak salah satu transaction dengan 40001 bila hasilnya tidak bisa dicapai lewat urutan satu per satu.",
+    "Level ditetapkan per transaction sebelum query pertama, dan kode yang memakai Repeatable Read atau Serializable mengulang seluruh transaction saat 40001."
+  ],
+  "stack": {
+    "go": {
+      "label": "Tidak dijalankan",
+      "versi": "Go 1.27.1, pgx v5.11.0 lewat database/sql",
+      "teks": "`DalamTx` di api-t2 memanggil `BeginTx(ctx, nil)` tanpa level, jadi transaction memakai bawaan database, Read Committed. Level lain lewat `&sql.TxOptions{Isolation: sql.LevelRepeatableRead}`; pgx menolak level yang tidak dikenalnya (kode sumber `stdlib/sql.go`).",
+      "dokumentasi": "https://pkg.go.dev/github.com/jackc/pgx/v5/stdlib"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-postgres (pg) 8.23.1",
+      "teks": "Tidak ada API level. Level ditulis di perintah `BEGIN ISOLATION LEVEL REPEATABLE READ` lewat satu `client` dari `pool.connect()`, dan 40001 dikenali dari `err.code`.",
+      "dokumentasi": "https://node-postgres.com/features/transactions"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "Config `isolation_level` di koneksi pgsql menjalankan `set session characteristics as transaction isolation level ...`. `DB::transaction($fn, attempts: 3)` mengulang closure saat SQLSTATE 40001 atau deadlock, juga saat COMMIT gagal.",
+      "dokumentasi": "https://github.com/laravel/framework/blob/13.x/src/Illuminate/Database/ConcurrencyErrorDetector.php"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2, psycopg 3.3",
+      "teks": "`OPTIONS[\"isolation_level\"]` dengan `IsolationLevel` dari psycopg, per koneksi. Django tidak mengulang sendiri; 40001 tiba sebagai `OperationalError` dengan `SerializationFailure` di `__cause__`.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/ref/databases/#isolation-level"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "`session.db.transaction(fn, settings: TransactionSettings(isolationLevel: IsolationLevel.repeatableRead))`. Contoh dokumentasinya memeriksa `PgErrorCode.serializationFailure` di `DatabaseQueryException`.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/transactions"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "supabase-js 2.118.0, PostgREST (dokumentasi stable)",
+      "teks": "Satu `rpc()` adalah satu transaction di Read Committed. Level lain ditulis di fungsi atau role: `SET default_transaction_isolation TO 'repeatable read'`.",
+      "dokumentasi": "https://docs.postgrest.org/en/stable/references/transactions.html"
+    }
+  },
+  "jebakan": [
+    "Mengira level yang lebih tinggi selalu lebih aman. Tanpa lock, Repeatable Read meloloskan dua transfer M9 yang ditolak Read Committed (rekaman `transfer.txt`).",
+    "Menaikkan level tanpa menulis retry. Di Repeatable Read dan Serializable, transaction yang menulis bisa ditolak 40001, dan tanpa retry user menerima error.",
+    "Menetapkan level sesudah query pertama. PostgreSQL menolak perubahan level di tengah transaction, jadi `SET TRANSACTION` harus jadi perintah pertama."
+  ],
+  "terkait": [
+    "Snapshot",
+    "Read Committed",
+    "Repeatable Read",
+    "Serializable",
+    "MVCC (Multi-Version Concurrency Control)",
+    "Lock"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-16",
+      "judul": "PostgreSQL 17: Transaction Isolation (13.2, Tabel 13.1)",
+      "url": "https://www.postgresql.org/docs/17/transaction-iso.html",
+      "catatan": "Empat level standar, tiga di PostgreSQL: Read Uncommitted berperilaku seperti Read Committed; phantom read tidak terjadi di Repeatable Read PostgreSQL."
+    },
+    {
+      "riset": "R2-90",
+      "judul": "Rekaman lab b3-isolasi: ringkasan per level",
+      "rekaman": "labs/b3-isolasi/output/ledger/ringkasan.txt",
+      "catatan": "Satu baris per skenario: dirty read, laporan, transfer, dan transfer dengan cache di Read Uncommitted sampai Serializable."
+    },
+    {
+      "riset": "R2-92",
+      "judul": "PostgreSQL 17: SET TRANSACTION",
+      "url": "https://www.postgresql.org/docs/17/sql-set-transaction.html",
+      "catatan": "Level tidak bisa diubah sesudah query atau perintah tulis pertama transaction."
+    },
+    {
+      "riset": "R2-93",
+      "judul": "Isolation level di enam stack",
+      "url": "https://docs.postgrest.org/en/stable/references/transactions.html",
+      "catatan": "pgx stdlib, node-postgres, Laravel, Django dan psycopg, Serverpod, PostgREST; tautan per stack ada di bagian Di tiap stack. Dibuka 24 Oktober 2026."
+    }
+  ]
+}

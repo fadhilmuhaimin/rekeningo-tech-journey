@@ -180,10 +180,12 @@
 *[Rate limit]: Batas jumlah request per waktu dari satu sumber, mis. lima percobaan login per menit.
 *[rate limit]: Batas jumlah request per waktu dari satu sumber, mis. lima percobaan login per menit.
 *[RBAC]: Authorization berdasarkan peran, mis. hanya peran admin yang boleh membekukan akun.
+*[Read Committed]: Isolation level bawaan PostgreSQL: setiap perintah membaca data yang sudah COMMIT saat perintah itu mulai, jadi dua perintah bisa membaca keadaan berbeda.
 *[Read replica]: Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.
 *[read replica]: Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.
 *[Read-your-writes]: Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal.
 *[read-your-writes]: Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal.
+*[Repeatable Read]: Isolation level yang memakai satu snapshot untuk seluruh transaction, diambil saat perintah pertama; transaction yang menulis bisa ditolak SQLSTATE 40001.
 *[Replication lag]: Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.
 *[replication lag]: Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.
 *[Retry]: Mengirim ulang request yang gagal atau tidak dijawab.
@@ -205,6 +207,8 @@
 *[secure storage]: Penyimpanan terenkripsi milik sistem operasi HP untuk rahasia kecil seperti token sesi: Keychain di iOS, kunci di Android Keystore.
 *[Semaphore]: Penghitung yang membatasi berapa pekerjaan boleh berjalan bersamaan; pekerjaan berikutnya menunggu sampai ada yang selesai.
 *[semaphore]: Penghitung yang membatasi berapa pekerjaan boleh berjalan bersamaan; pekerjaan berikutnya menunggu sampai ada yang selesai.
+*[Serializable]: Isolation level paling ketat: hasil transaction bersamaan harus sama dengan menjalankannya satu per satu; yang melanggar ditolak SQLSTATE 40001.
+*[serializable]: Isolation level paling ketat: hasil transaction bersamaan harus sama dengan menjalankannya satu per satu; yang melanggar ditolak SQLSTATE 40001.
 *[Serialization anomaly]: Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun.
 *[serialization anomaly]: Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun.
 *[Sharding]: Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah.

@@ -1,0 +1,55 @@
+{
+  "istilah": "Read Committed",
+  "sehari_hari": "Read Committed berarti setiap perintah melihat semua yang sudah `COMMIT` saat perintah itu mulai. Dua perintah berturut-turut di transaction yang sama bisa melihat dua keadaan database.",
+  "cerita": [
+    {
+      "rujukan": "t2-isolation-level",
+      "teks": "Laporan tutup buku dua perintah selisih Rp25.000 di buku Budi dan Warung Ani, padahal setiap jurnal seimbang."
+    },
+    {
+      "rujukan": "t2-ledger",
+      "teks": "Pemeriksaan saldo saat `COMMIT` mendapat snapshot baru dan menolak transfer kedua bila transfer pertama sudah `COMMIT`."
+    }
+  ],
+  "mekanisme": [
+    "Level bawaan PostgreSQL. Read Uncommitted yang diminta juga dijalankan sebagai Read Committed.",
+    "Setiap perintah mengambil snapshot baru, jadi ia melihat semua yang sudah `COMMIT` sebelum perintah itu mulai.",
+    "`UPDATE` yang menunggu baris yang dikunci transaction lain melanjutkan atas versi baris terbaru dan menilai ulang `WHERE`-nya.",
+    "Level ini tidak pernah menolak dengan 40001, jadi kode tidak butuh retry untuk konflik serialisasi."
+  ],
+  "stack": {
+    "lihat": "isolation-level",
+    "teks": "Kodenya sama dengan memilih isolation level: level ditetapkan per transaction sebelum query pertama, dan 40001 dikenali dari kode error."
+  },
+  "jebakan": [
+    "Memecah laporan jadi beberapa perintah di Read Committed. Angka dari perintah berbeda bisa berasal dari dua keadaan database.",
+    "Mengira pemeriksaan di Read Committed menahan dua transfer bersamaan. Bila dua `COMMIT` dikirim pada saat yang sama, keduanya bisa lolos (rekaman b3-ledger `batas.txt` skenario 2b)."
+  ],
+  "terkait": [
+    "Isolation level",
+    "Snapshot",
+    "Nonrepeatable read",
+    "Repeatable Read",
+    "Lock"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-90",
+      "judul": "PostgreSQL 17: Read Committed Isolation Level (13.2.1)",
+      "url": "https://www.postgresql.org/docs/17/transaction-iso.html#XACT-READ-COMMITTED",
+      "catatan": "Bawaan PostgreSQL; dua SELECT berurutan dalam satu transaction bisa melihat data berbeda; WHERE UPDATE yang menunggu dinilai ulang."
+    },
+    {
+      "riset": "R2-90",
+      "judul": "Rekaman lab b3-isolasi: laporan",
+      "rekaman": "labs/b3-isolasi/output/ledger/laporan.txt",
+      "catatan": "Bagian READ COMMITTED: selisih −25000 buku Budi dan +25000 Warung Ani."
+    },
+    {
+      "riset": "R2-91",
+      "judul": "Rekaman lab b3-isolasi: transfer",
+      "rekaman": "labs/b3-isolasi/output/ledger/transfer.txt",
+      "catatan": "Bagian 1: COMMIT B ditolak 23514 karena pemeriksaan saat COMMIT melihat posting A."
+    }
+  ]
+}

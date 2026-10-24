@@ -438,7 +438,7 @@
   "n": "2.12 Isolation level",
   "u": "/tahap-2/isolation-level/",
   "s": "istilah-isolation-level",
-  "h": null
+  "h": "/istilah/isolation-level/"
  },
  {
   "t": "Job terjadwal",
@@ -846,6 +846,15 @@
   "h": null
  },
  {
+  "t": "Read Committed",
+  "d": "Isolation level bawaan PostgreSQL: setiap perintah membaca data yang sudah COMMIT saat perintah itu mulai, jadi dua perintah bisa membaca keadaan berbeda.",
+  "b": "t2-isolation-level",
+  "n": "2.12 Isolation level",
+  "u": "/tahap-2/isolation-level/",
+  "s": "istilah-read-committed",
+  "h": "/istilah/read-committed/"
+ },
+ {
   "t": "Read replica",
   "d": "Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.",
   "b": "D2",
@@ -862,6 +871,15 @@
   "u": "/d-system-design/d3-consistency/",
   "s": "istilah-read-your-writes",
   "h": null
+ },
+ {
+  "t": "Repeatable Read",
+  "d": "Isolation level yang memakai satu snapshot untuk seluruh transaction, diambil saat perintah pertama; transaction yang menulis bisa ditolak SQLSTATE 40001.",
+  "b": "t2-isolation-level",
+  "n": "2.12 Isolation level",
+  "u": "/tahap-2/isolation-level/",
+  "s": "istilah-repeatable-read",
+  "h": "/istilah/repeatable-read/"
  },
  {
   "t": "Replication lag",
@@ -963,6 +981,15 @@
   "h": null
  },
  {
+  "t": "Serializable",
+  "d": "Isolation level paling ketat: hasil transaction bersamaan harus sama dengan menjalankannya satu per satu; yang melanggar ditolak SQLSTATE 40001.",
+  "b": "t2-isolation-level",
+  "n": "2.12 Isolation level",
+  "u": "/tahap-2/isolation-level/",
+  "s": "istilah-serializable",
+  "h": "/istilah/serializable/"
+ },
+ {
   "t": "Serialization anomaly",
   "d": "Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun.",
   "b": "t2-isolation-level",
@@ -1005,7 +1032,7 @@
   "n": "2.12 Isolation level",
   "u": "/tahap-2/isolation-level/",
   "s": "istilah-snapshot",
-  "h": null
+  "h": "/istilah/snapshot/"
  },
  {
   "t": "Source of truth",
