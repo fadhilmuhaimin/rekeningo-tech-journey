@@ -251,3 +251,20 @@ func TestKunciTidakBisaDilewatiBersamaan(t *testing.T) {
 			ambangGagal-1, ambangGagal)
 	}
 }
+
+// Key bucket per IP: alamat IPv6 dalam satu prefix /64 berbagi bucket, IPv4 (juga yang ditulis sebagai IPv6) tidak
+// berubah (keputusan 719).
+func TestKunciAlamatIPv6PerPrefix(t *testing.T) {
+	for alamat, ingin := range map[string]string{
+		"192.0.2.7":                        "192.0.2.7",
+		"::ffff:192.0.2.7":                 "192.0.2.7",
+		"2001:db8:1:2::a":                  "2001:db8:1:2::/64",
+		"2001:db8:1:2:ffff:ffff:ffff:ffff": "2001:db8:1:2::/64",
+		"2001:db8:1:3::a":                  "2001:db8:1:3::/64",
+		"bukan-alamat":                     "bukan-alamat",
+	} {
+		if k := KunciAlamat(alamat); k != ingin {
+			t.Fatalf("KunciAlamat(%q) = %q, ingin %q", alamat, k, ingin)
+		}
+	}
+}

@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"math"
+	"net"
 	"sync"
 	"time"
 )
@@ -55,6 +56,21 @@ func (p *Pembatas) Izinkan(key string, kini time.Time) (bool, time.Duration) {
 		return true, 0
 	}
 	return false, time.Duration((1 - b.token) / p.perDetik * float64(time.Second))
+}
+
+// KunciAlamat: key bucket per IP. IPv4 apa adanya; IPv6 dipotong ke prefix /64, karena satu HP di jaringan seluler
+// mendapat satu /64 dan boleh memakai alamat apa pun di dalamnya (RFC 6459 bagian 5.2). Tanpa dipotong, penyerang
+// berganti alamat di setiap request dan lapis per IP tidak menahan apa pun (keputusan 719).
+func KunciAlamat(alamat string) string {
+	ip := net.ParseIP(alamat)
+	switch {
+	case ip == nil:
+		return alamat
+	case ip.To4() != nil:
+		return ip.To4().String()
+	default:
+		return ip.Mask(net.CIDRMask(64, 128)).String() + "/64"
+	}
 }
 
 // --8<-- [end:pembatas]

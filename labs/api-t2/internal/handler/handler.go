@@ -143,9 +143,10 @@ func terlaluSering(w http.ResponseWriter, e service.ErrTerlaluSering, judul stri
 		Detail: fmt.Sprintf("Coba lagi dalam %d detik.", e.TungguDetik())})
 }
 
-// izinkanIP mengambil satu token dari bucket IP. Bila kosong, response 429 sudah ditulis.
+// izinkanIP mengambil satu token dari bucket IP (IPv6 per prefix /64, KunciAlamat). Bila kosong, response 429
+// sudah ditulis.
 func (s Server) izinkanIP(w http.ResponseWriter, r *http.Request, p *service.Pembatas, judul string) bool {
-	if ok, tunggu := p.Izinkan(clientIP(r), s.svc.Kini()); !ok {
+	if ok, tunggu := p.Izinkan(service.KunciAlamat(clientIP(r)), s.svc.Kini()); !ok {
 		terlaluSering(w, service.ErrTerlaluSering{Lapis: "ip", Tunggu: tunggu}, judul)
 		return false
 	}
