@@ -1530,32 +1530,13 @@
       "menit": 13
     },
     {
-      "id": "B3.2",
-      "judul": "Race condition dan lock",
-      "tahap": 2,
-      "topik": "Data",
-      "path": "b-fondasi/b3-2-race-condition-lock.md",
-      "prasyarat": [
-        "B3.1"
-      ],
-      "ada": true,
-      "pendek": "Race condition (versi lama)",
-      "bagian": 4,
-      "lama": true,
-      "lebur_ke": "t2-race-lock",
-      "lab": [
-        "b3-race"
-      ],
-      "menit": 10
-    },
-    {
       "id": "B3.3",
       "judul": "Isolation level secara praktis",
       "tahap": 2,
       "topik": "Data",
       "path": "b-fondasi/b3-3-isolation-level.md",
       "prasyarat": [
-        "B3.2"
+        "t2-race-lock"
       ],
       "masalah": "Transaction melihat data yang \"berubah sendiri\"",
       "ada": true,
@@ -1588,7 +1569,7 @@
       "label": "Masalah 10 · minggu 2",
       "masalah": "Sinyal putus, Budi menekan Bayar lagi, dan riwayatnya mencatat dua pembayaran",
       "prasyarat": [
-        "B3.2"
+        "t2-race-lock"
       ],
       "lab": [
         "e3-idempotency"
@@ -2084,6 +2065,25 @@
       "bagian": 1,
       "diganti_oleh": "t2-prd",
       "menit": 4
+    },
+    {
+      "id": "B3.2",
+      "judul": "Race condition dan lock",
+      "tahap": 2,
+      "topik": "Data",
+      "path": "b-fondasi/b3-2-race-condition-lock.md",
+      "prasyarat": [
+        "B3.1"
+      ],
+      "ada": true,
+      "pendek": "Race condition (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t2-race-lock",
+      "lab": [
+        "b3-race"
+      ],
+      "menit": 10
     },
     {
       "id": "T3",
