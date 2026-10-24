@@ -215,7 +215,7 @@ select * from index_advisor('select ... from posting where buku_id = 20 order by
 
 Beban puncak ±1,4 request per detik untuk 1.000 karyawan dan 12 warung (Asumsi naskah).
 
-**Status:** diterima di minggu 3 Tahap 2, sesudah M11. Berlaku untuk semua query per akun di tabel `posting`: riwayat, laporan harian warung, dan kursor ADR 16 di [[B1.3]].
+**Status:** diterima di minggu 3 Tahap 2, sesudah M11. Berlaku untuk semua query per akun di tabel `posting`: riwayat, laporan harian warung, dan kursor ADR 16 di [[t2-kursor]].
 
 **Beda dengan naskah.** Naskah menulis index `posting(akun, waktu)` di M11 dan `posting(akun, waktu, id)` di tabel fitur. Tabel `posting` merujuk `buku`, dan setiap akun punya satu buku, jadi kolomnya `buku_id` dan `dibuat`. Kolom `id` di ujung membuat urutan unik, dan nama index di lab `posting_riwayat`.
 
@@ -250,7 +250,7 @@ Kedua perbaikan di opsi A saling melengkapi. Rekaman `n1.txt` bagian E mencatat 
 
 **Kapan keputusan ini salah.** Saat query dominan tidak memfilter `buku_id`: laporan Keuangan lintas buku dan tutup buku bulanan. Rekaman bagian I membaca seluruh `posting` untuk satu hari, ±28 ms di 760 ribu baris (pembanding), dan index ini tidak membantunya. Kapan itu jadi masalah belum diukur.
 
-**Yang akan merevisinya.** Tutup buku ([[t2-tutup-buku]]) memakai query lintas buku, dan naskah belum menjadwalkan index `(dibuat)` untuknya. Bila terukur lambat, index kedua itu masuk sebagai ADR baru, dan perlu diuji dengan beban tulis. Pagination kursor ([[B1.3]]) memakai urutan yang sama, jadi perubahan urutan memengaruhi keduanya.
+**Yang akan merevisinya.** Tutup buku ([[t2-tutup-buku]]) memakai query lintas buku, dan naskah belum menjadwalkan index `(dibuat)` untuknya. Bila terukur lambat, index kedua itu masuk sebagai ADR baru, dan perlu diuji dengan beban tulis. Pagination kursor ([[t2-kursor]]) memakai urutan yang sama, jadi perubahan urutan memengaruhi keduanya.
 
 ### Sengaja belum dilakukan
 

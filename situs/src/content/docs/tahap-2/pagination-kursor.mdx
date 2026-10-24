@@ -1,0 +1,358 @@
+---
+title: "2.19 Pagination kursor + ADR 16"
+description: Halaman berikutnya ditentukan oleh baris terakhir, bukan nomor halaman. ADR 16 memilih kursor (dibuat, id) untuk riwayat, OFFSET hanya untuk laporan Keuangan, dan menulis terbuka celahnya.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-kursor-inti.json";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 14 menit · coba 3 menit · Prasyarat: [[t2-m12]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Halaman berikutnya ditentukan oleh baris terakhir yang sudah tampil, bukan oleh nomor halaman.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di [[t2-m12]], satu kiriman Rp5.000 masuk saat Budi menggulir, dan OFFSET menggeser semua posisi satu baris. Rekaman lab `pagination.txt` bagian C mencatat 204 baris ganda dan 204 kiriman yang tidak tampil.
+
+**Pagination kursor** (keyset) meminta baris sesudah `(dibuat, id)` baris terakhir. Di rekaman yang sama hasilnya 0 ganda dan 0 tidak tampil. ADR 16 memilihnya untuk riwayat, dengan satu celah yang ditulis terbuka: transaksi yang COMMIT belakangan.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Sesudah satu kiriman masuk, kenapa halaman 2 yang diminta dengan OFFSET mengulang satu baris?
+2. Apa yang dikirim app untuk meminta halaman berikutnya di pagination kursor?
+3. Sebuah transaksi mulai pukul 13:23 dan COMMIT pukul 13:31, padahal kursor app sudah di 13:26. Apakah kursor `(dibuat, id)` akan melihatnya?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: OFFSET menghitung posisi dan kursor mengingat baris. Kursor mencegah baris ganda, tetapi tidak menjamin setiap baris tampil bila ada transaksi yang COMMIT belakangan.">
+
+Kedua panel menjalankan SQL sungguhan di browser dengan SQLite (Ilustrasi). Posting, lawan, dan jumlah Budi dari rekaman `pagination.txt` bagian A. Jam `dibuat` ditulis ulang sederhana, dan tabel `layar` menampung baris yang sudah tampil di HP Budi. Tebak dulu, lalu jalankan.
+
+<WidgetLama nama="runsql" src="data/t2-kursor.json" />
+
+Panel OFFSET mengulang posting 759460 di halaman 2 dan tidak pernah menampilkan kiriman Dimas: 10 baris di layar, 9 yang berbeda. Panel kursor menampilkan 10 baris yang berbeda. Halaman 2 hanya empat baris karena tabel widget cuma punya sembilan posting lama.
+
+Kiriman Dimas di panel kursor datang dari langkah terakhir, yaitu query "lebih baru dari baris pertama" yang di app berarti tarik ke bawah. OFFSET tidak punya langkah itu. Satu-satunya cara melihat kiriman baru adalah memuat ulang daftar dari atas.
+
+Nyalakan **Ubah satu hal**: transaksi Dimas mulai pukul 13:23:00, tetapi baru COMMIT sesudah halaman 1 dibaca. Panel OFFSET tidak berubah. Panel kursor masih tanpa baris ganda, tetapi layar tinggal 9 baris, karena query "lebih baru" mencari waktu sesudah 13:26:00 dan kiriman Dimas bertanda 13:23:00.
+
+Bagian itu bukan hasil rekaman PostgreSQL. Di PostgreSQL, `dibuat` yang diisi `now()` adalah waktu awal transaction, jadi kiriman yang COMMIT belakangan bisa membawa waktu yang lebih awal. Rekaman untuk riwayat Budi belum ada; bagian Putuskan menulis apa yang sudah dan belum direkam.
+
+<details class="abstract">
+<summary>Rekaman PostgreSQL bagian A dan B (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/b2-query/output/ledger/pagination.txt" lines="18:36" title="Rekaman lab: pagination.txt bagian A, OFFSET sesudah kiriman Dimas" />
+
+<Snippet file="labs/b2-query/output/ledger/pagination.txt" lines="57:74" title="Rekaman lab: pagination.txt bagian B, kursor sesudah kiriman Citra" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Riwayat Budi di lab berisi 3.892 posting untuk satu tahun (`data.txt`, data lab). App tidak bisa menarik semuanya sekaligus, jadi server membaginya per halaman. OFFSET adalah cara paling pendek menulis halaman, dan itu yang melahirkan M12 ([[t2-m12]]).
+
+Yang rusak bukan SQL-nya. OFFSET menyimpan *posisi*, dan posisi berubah setiap ada baris baru di atas. Kursor menyimpan *baris*, yaitu `(dibuat, id)` posting terakhir yang sudah tampil, dan baris itu tidak berpindah.
+
+### Cara kerjanya: OFFSET menghitung posisi
+
+`OFFSET 5` berarti lewati lima baris dari atas pada saat query dijalankan. Dokumentasi PostgreSQL menyebut baris yang dilewati tetap dihitung server. Dokumentasi yang sama meminta `ORDER BY` yang memberi urutan unik, karena tanpa itu potongan baris tidak terduga ([PostgreSQL 17, 7.6](https://www.postgresql.org/docs/17/queries-limit.html)).
+
+Di rekaman, posting 759460 tampil di halaman 1 sebagai baris kelima, lalu di halaman 2 sebagai baris pertama. Kiriman Dimas (jurnal 380226) masuk di posisi pertama dan menggeser semuanya satu baris.
+
+Biayanya naik menurut posisi. Di rekaman bagian D, halaman yang mulai di posisi 1.001 membaca 1.020 baris dari index lalu membuang 1.000. Kursor di titik yang sama membaca 20 baris.
+
+| Seluruh riwayat Budi, 20 baris per halaman, 205 halaman | OFFSET | Kursor |
+|---|---|---|
+| Baris yang tampil dua kali | 204 | 0 |
+| Posting lama yang terlewat | 0 | 0 |
+| Kiriman baru yang tidak tampil (dari 204 kiriman) | 204 | 0 |
+| Halaman yang mulai di posisi 1.001: baris dibaca index | 1.020 | 20 |
+
+Sumber tabel: Rekaman lab `pagination.txt` bagian C dan D. Jumlah baris tampil tidak sebanding antar kolom. OFFSET menampilkan 4.098 baris dan kursor 4.302, karena run kursor dimulai sesudah run OFFSET dan 204 kiriman run pertama sudah jadi posting lama. Bandingkan baris yang ganda, terlewat, dan tidak tampil.
+
+### Cara kerjanya: kursor mengingat baris
+
+Kursor adalah nilai urutan baris terakhir. Query berikutnya bertanya baris mana yang berada sesudah nilai itu, dan kiriman yang masuk di atas tidak mengubah jawabannya.
+
+<Snippet file="labs/b2-query/output/ledger/pagination.txt" lines="57:67" title="Rekaman lab: pagination.txt bagian B, halaman 2 dari kursor" />
+
+PostgreSQL membandingkan dua nilai sekaligus lewat row constructor, `(dibuat, id) < ('…', 759615)`. Elemennya dibandingkan dari kiri ke kanan dan berhenti di pasangan pertama yang tidak sama. Bila pasangan itu berisi NULL, hasilnya tidak diketahui ([PostgreSQL 17, 9.25.5](https://www.postgresql.org/docs/17/functions-comparisons.html#ROW-WISE-COMPARISON)).
+
+Kenapa dua kolom? Semua baris yang ditulis satu transaction membawa `dibuat` yang sama, karena `now()` memberi waktu awal transaction ([PostgreSQL 17, 9.9.5](https://www.postgresql.org/docs/17/functions-datetime.html#FUNCTIONS-DATETIME-CURRENT)). Dengan `dibuat` saja, baris kembar di batas halaman bisa terlewat. `id` memutus seri, dan keduanya `NOT NULL` di skema lab.
+
+Index `posting_riwayat (buku_id, dibuat, id)` dari [[t2-index]] melayani query ini. Di rekaman bagian D, plan kursor memuat `Index Cond: ((buku_id = 20) AND (ROW(dibuat, id) < ROW(...)))` dan membaca 20 baris.
+
+<Snippet file="labs/b2-query/output/ledger/pagination.txt" lines="102:110" title="Rekaman lab: pagination.txt bagian D, kursor di posisi 1.001" />
+
+### Cara kerjanya: kursor di API
+
+Server mengirim kursor sebagai teks yang tidak perlu dipahami app: mikrodetik waktu posting dan nomor posting, ditulis base64url. Itu bukan enkripsi. Server membacanya lagi dan menolak yang rusak.
+
+<Snippet file="labs/api-t2/internal/service/riwayat.go" region="kursor" lang="go" title="labs/api-t2/internal/service/riwayat.go" />
+
+Kursor yang bukan dari server dijawab 422 (`riwayat.txt` bagian E). Kursor hanya memuat posisi. Siapa yang boleh membaca ditentukan sebelumnya: peminta yang bukan pemilik akun dijawab 404 sebelum kursor dibaca (kode `service/riwayat.go`; belum direkam).
+
+<Snippet file="labs/api-t2/output/riwayat.txt" lines="47:52" title="Rekaman lab: api-t2 riwayat.txt bagian E" />
+
+Server menentukan batas per halaman. Bila app tidak meminta, batasnya 20. Bila app meminta, boleh 1 sampai 50. Di luar itu server menjawab 422 (kode lab; batas 50 belum direkam). `berikutnya` kosong bila baris yang kembali kurang dari batas.
+
+`api-t2` hanya punya arah ke yang lebih lama, `(dibuat, id) < kursor`. Query "lebih baru dari baris pertama" ada di rekaman `b2-query` bagian B, tetapi tidak di API. Karena itu app memuat ulang dari atas, dan alasannya ada di ADR 16.
+
+### Yang hilang dari kursor
+
+Kursor tidak punya nomor halaman, total halaman, dan lompat ke halaman ke-N. Dokumentasi Laravel menyebut itu sebagai batasan, dokumentasi DRF juga, dan Slack menulisnya saat pindah dari OFFSET ([Laravel 13.x](https://laravel.com/docs/13.x/pagination#cursor-pagination), [DRF](https://www.django-rest-framework.org/api-guide/pagination/#cursorpagination), [Slack Engineering](https://slack.engineering/evolving-api-pagination-at-slack/)).
+
+Riwayat di layar HP tidak butuh ketiganya: Budi menggulir ke bawah. Laporan Keuangan butuh "halaman 7 dari 40", dan itu alasan OFFSET tidak dibuang seluruhnya.
+
+### Metode idempoten dan GET riwayat
+
+Request riwayat boleh diulang kapan saja. RFC 9110 menyebut GET sebagai metode safe, yaitu pada dasarnya hanya membaca ([bagian 9.2.1](https://www.rfc-editor.org/rfc/rfc9110.html#name-safe-methods)). Metode idempoten didefinisikan lewat efek yang dimaksud di server: efek banyak request identik sama dengan efek satu request. PUT, DELETE, dan semua metode safe idempoten ([bagian 9.2.2](https://www.rfc-editor.org/rfc/rfc9110.html#name-idempotent-methods)).
+
+Idempoten bukan berarti respons yang sama. GET riwayat yang diulang bisa membawa baris baru di atas. Di ledger yang hanya bertambah, halaman di belakang kursor tidak berubah saat diulang, kecuali lewat celah COMMIT belakangan di ADR 16.
+
+| Metode | Safe | Idempoten | Diulang otomatis oleh app? |
+|---|---|---|---|
+| GET riwayat | Ya | Ya | Ya, tanpa key |
+| PUT | Tidak | Ya | Ya, bila kode mengikuti artinya |
+| DELETE | Tidak | Ya | Ya; jawaban kedua boleh 404 atau 204, dan app menganggap keduanya "sudah terhapus" |
+| POST `/transfers` | Tidak | Tidak | Hanya dengan idempotency key ([[t2-idempotency]]) |
+
+RFC 9110 meminta client tidak mengulang otomatis request non-idempoten, kecuali ia tahu request itu idempoten atau belum pernah diterapkan. Itu sebabnya pembayaran butuh key, sedangkan riwayat tidak. Tabel ini rangkuman dari RFC, bukan rekaman lab.
+
+### Di stack lain
+
+**Skenario:** riwayat satu akun, terbaru dulu, halaman berikutnya dari baris terakhir yang sudah tampil.
+
+Yang sama di semua stack: kursor adalah nilai urutan baris terakhir, kolom urutannya unik bersama `id`, dan indexnya harus cocok dengan urutan itu. Yang berbeda: apakah framework menyediakannya. Hanya tab Go yang dijalankan di lab. Lima tab lain kerangka dari dokumentasi.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: Go 1.27.1, `database/sql` + pgx v5.11.0, PostgreSQL 17.11, lab api-t2.*
+
+<Snippet file="labs/api-t2/internal/repo/riwayat.go" region="riwayat" lang="go" title="labs/api-t2/internal/repo/riwayat.go" />
+
+**Yang berbeda di stack ini:** tidak ada paginator bawaan. Predikat `(p.dibuat, p.id) < ($2, $3)` ditulis sendiri, dan kursor dibuat dari mikrodetik (`UnixMicro`) supaya presisi `timestamptz` tidak terpotong. Tes `TestKursorBolakBalik` memeriksa pembuatan dan pembacaan kursor bolak-balik.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [node-postgres: Data Types](https://node-postgres.com/features/types) dan [Queries](https://node-postgres.com/features/queries), `pg` 8.23.1.*
+
+<Snippet lang="js" code={`const { rows } = await pool.query(
+  \`SELECT id, jumlah, dibuat FROM posting
+   WHERE buku_id = $1 AND (dibuat, id) < ($2, $3)
+   ORDER BY dibuat DESC, id DESC LIMIT $4\`,
+  [bukuId, kursor.dibuat, kursor.id, batas]);`} />
+
+**Yang berbeda di stack ini:** tidak ada paginator bawaan. `pg` mengubah `timestamptz` menjadi `Date` JavaScript, yang hanya presisi milidetik, dan dokumentasinya menyebut mikrodetik terpotong. Kursor yang dibuat dari `Date` bisa menunjuk sedikit lebih awal dari baris terakhir, jadi baris di antaranya mungkin terlewat. Di lab Go, kursor dibuat server dari mikrodetik.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Pagination](https://laravel.com/docs/13.x/pagination#cursor-pagination), Laravel 13.38.0.*
+
+<Snippet lang="php" code={`$riwayat = Posting::where('buku_id', $bukuId)
+    ->orderByDesc('dibuat')
+    ->orderByDesc('id')
+    ->cursorPaginate(20);
+// $riwayat->nextCursor() menjadi ?cursor=... di URL berikutnya`} />
+
+**Yang berbeda di stack ini:** `cursorPaginate` bawaan. Dokumentasinya menulis syaratnya: ada `order by`, kolom urutan unik atau kombinasi yang unik, dan kolom yang bernilai `null` tidak didukung. Kursornya string terenkode di query string.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [DRF: Pagination](https://www.django-rest-framework.org/api-guide/pagination/#cursorpagination), djangorestframework 3.18.3, dan [Django 6.1: Q objects](https://docs.djangoproject.com/en/6.1/topics/db/queries/#complex-lookups-with-q-objects), Django 6.1.2.*
+
+<Snippet lang="python" code={`from rest_framework.pagination import CursorPagination
+
+class RiwayatPagination(CursorPagination):
+    page_size = 20
+    ordering = "-dibuat"  # satu field urutan; nilai kembar ditangani lewat posisi + offset`} />
+
+**Yang berbeda di stack ini:** `CursorPagination` ada di Django REST framework, bukan di core Django. Dokumentasinya meminta field urutan yang tidak berubah, unik atau hampir unik, dan tidak null, serta menangani nilai kembar dengan posisi dan offset. Itu bukan perbandingan `(dibuat, id)`. Tanpa DRF, kondisi yang sama ditulis `Q(dibuat__lt=d) | Q(dibuat=d, id__lt=i)`.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: Pagination](https://docs.serverpod.dev/concepts/data-and-the-database/database/pagination), Serverpod 4.0.4. Operator `&` dan `|` dari halaman filter versi `next` [perlu verifikasi: versi 4.0.4].*
+
+<Snippet lang="dart" code={`final halaman = await Posting.db.find(
+  session,
+  where: (t) => t.bukuId.equals(bukuId) &
+      ((t.dibuat < d) | (t.dibuat.equals(d) & (t.id < id))),
+  orderByList: (t) => [t.dibuat.desc(), t.id.desc()],
+  limit: 20,
+);`} />
+
+**Yang berbeda di stack ini:** dokumentasinya menjelaskan pagination kursor dengan `where: (t) => t.id > cursor`, `orderBy`, dan `limit`. Kursor dua kolom ditulis dengan `&` dan `|`; Dart mengikat operatornya lebih kuat daripada pembandingan, jadi tiap pembandingan diberi tanda kurung.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: `or()`](https://supabase.com/docs/reference/javascript/or) dan [`order()`](https://supabase.com/docs/reference/javascript/order), `supabase-js` 2.118.0.*
+
+<Snippet lang="js" code={`const { data } = await supabase
+  .from('posting')
+  .select('id, jumlah, dibuat')
+  .eq('buku_id', bukuId)
+  .or(\`dibuat.lt.\${d},and(dibuat.eq.\${d},id.lt.\${id})\`)
+  .order('dibuat', { ascending: false })
+  .order('id', { ascending: false })
+  .limit(20);`} />
+
+**Yang berbeda di stack ini:** tidak ada kursor bawaan, dan PostgREST tidak punya `(a, b) < (x, y)`; kondisinya ditulis `or(... and(...))`. Dokumentasi `or()` menyebut string filternya dipakai apa adanya dan harus kamu bersihkan sendiri, jadi nilai kursor dari app tidak boleh langsung disisipkan.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 16: kursor `(dibuat, id)` untuk riwayat, OFFSET hanya untuk laporan Keuangan
+
+**Kebutuhan.** Di M12, Budi menggulir riwayat dan transaksi yang sama tampil dua kali, sementara satu transaksi baru tidak tampil ([[t2-m12]]). Rekaman `pagination.txt` bagian C: riwayat Budi 20 baris per halaman, 205 halaman, satu kiriman sebelum setiap halaman berikutnya. OFFSET menampilkan 204 baris ganda dan tidak menampilkan 204 kiriman, sedangkan kursor 0 dan 0. Beban kecil: riwayat Budi ±3.892 posting setahun dan puncak ±1,4 request per detik (Asumsi naskah).
+
+**Status:** diterima di minggu 3 Tahap 2, sesudah M12. `labs/api-t2` sudah memakainya (keputusan 415, `riwayat.txt`).
+
+| | A. OFFSET dan nomor halaman | B. Kursor `(dibuat, id)` | C. Kursor dengan batas aman dari snapshot | D. Nomor urut per buku di bawah lock |
+|---|---|---|---|---|
+| Cara kerja | App mengirim nomor halaman. Server menjalankan `LIMIT n OFFSET (halaman−1)×n` dengan `ORDER BY dibuat DESC, id DESC` | Server mengirim `(dibuat, id)` baris terakhir sebagai kursor opaque. Halaman berikutnya memakai `WHERE (dibuat, id) < kursor` | Tiap posting menyimpan `xid8` transaksi penulisnya (`pg_current_xact_id()`). Riwayat hanya membaca baris dengan `xid8` di bawah `pg_snapshot_xmin(pg_current_snapshot())`, diurut `(xid8, id)` | Tiap posting menyimpan `urut`, penghitung per buku yang dinaikkan transaction yang sedang mengunci baris `buku` (ADR 13). Kursornya `(buku_id, urut)` |
+| Kelebihan | Bisa lompat ke halaman ke-N dan menghitung total halaman. Semua framework punya | Rekaman C: 0 ganda, 0 tidak tampil. Halaman jauh membaca 20 baris, bukan 1.020. Memakai index [[t2-index]] tanpa tabel baru | Tidak ada baris yang terlewat di bawah batas: semua transaksi di bawah `xmin` sudah selesai, COMMIT atau ROLLBACK ([PostgreSQL 17, 9.27.8](https://www.postgresql.org/docs/17/functions-info.html#FUNCTIONS-PG-SNAPSHOT)) | Per buku tanpa lubang dan urutannya sama dengan urutan COMMIT, karena lock baris `buku` dipegang sampai COMMIT. Pembaca bisa mendeteksi nomor yang hilang |
+| Kekurangan | Baris ganda dan kiriman baru tidak tampil saat ada tulis di atas. Biaya baca naik menurut posisi | Tanpa nomor halaman dan total. **Transaksi yang COMMIT belakangan dengan `dibuat` lebih awal bisa tidak tampil** di daftar yang sudah dimuat | Kolom dan index baru di tabel append-only terbesar. Urutan tampil menurut `xid8`, bukan `dibuat`. Riwayat terbaru tertunda selama ada transaction penulis yang terbuka | Setiap jalur tulis posting harus mengunci buku dan menaikkan penghitung; satu jalur yang lupa merusak jaminan tanpa tanda. Butuh kolom baru dan backfill. Tidak bisa dipakai untuk daftar lintas buku |
+| Biaya operasional | Tanpa tabel baru. Membaca OFFSET + LIMIT baris per request | Satu predikat dan satu fungsi tulis-baca kursor. Index yang sama dengan ADR 15 | Kolom 8 byte × ±760 ribu posting setahun ≈ ±6 MB sebelum index [hitungan]. Migrasi expand/migrate/contract ([[t2-skema-tanpa-downtime]]) dan satu index lagi | Kolom 4 sampai 8 byte dan backfill ±760 ribu posting. Jalur top-up, pembalik, dan pencairan belum diperiksa apakah mengunci buku |
+| Bukti | Rekaman `pagination.txt` A, C, dan D (OFFSET). PostgreSQL 17, 7.6. Slack Engineering | Rekaman `pagination.txt` B, C, dan D (kursor), serta `riwayat.txt`. Tes api-t2 `TestRiwayatKursorTanpaGandaTanpaTerlewat`. Celah: rekaman `tutup-buku.txt` C | Tidak dijalankan. PostgreSQL 17, 9.27.8, dan tulisan Oskar Dudycz tentang urutan di outbox Postgres (2022, tingkat 4) | Tidak dijalankan. Square Books punya penghitung versi per buku (R2-06), tetapi tulisannya tidak menyebut cara menugaskannya atau kunci baris |
+
+**Keputusan: opsi B**, dengan lima aturan.
+
+1. Riwayat memakai kursor opaque dari `(dibuat, id)` posting terakhir, diurut `dibuat, id` menurun, dengan index `posting_riwayat (buku_id, dibuat, id)`. Batas 20 per halaman bila app tidak meminta, 1 sampai 50 bila meminta. Kursor yang rusak dijawab 422.
+2. App memuat ulang riwayat dengan membuang daftar lalu mulai dari halaman pertama tanpa kursor. App tidak memakai query "lebih baru dari baris pertama" (`>`) untuk tarik ke bawah. Ini rancangan app: sisi Flutter belum dijalankan di lab.
+3. Celah COMMIT belakangan diterima terbuka. Akibatnya hanya di tampilan: transaksi itu tampil di muat ulang berikutnya, dan saldo tetap benar karena saldo adalah jumlah posting ([[t2-ledger]]). Lebarnya celah adalah lama transaction penulis terpanjang.
+4. OFFSET hanya untuk laporan Keuangan atas periode yang sudah ditutup, karena laporan butuh "halaman 7 dari 40". `ORDER BY` tetap harus unik. Periode dianggap tertutup sesudah transaction yang terbuka selesai ([[t2-tutup-buku]]). Endpoint laporan itu belum ada di api-t2.
+5. Pembaca yang menganggap riwayat sebagai aliran tidak boleh memakai kursor ini. Sync offline dan notifikasi butuh opsi C atau D, dan keputusan itu menunggu Tahap 3.
+
+**Celah COMMIT belakangan: yang sudah dan belum direkam.** `dibuat` memakai `now()`, yaitu awal transaction ([PostgreSQL 17, 9.9.5](https://www.postgresql.org/docs/17/functions-datetime.html#FUNCTIONS-DATETIME-CURRENT)), sedangkan `id` diambil dari sequence saat INSERT. Dokumentasi PostgreSQL menyebut nilai sequence tidak dipakai ulang dan tidak bisa dijadikan nomor tanpa lubang ([PostgreSQL 17, 9.17](https://www.postgresql.org/docs/17/functions-sequence.html)). Baris yang belum COMMIT tidak terlihat oleh SELECT di transaction lain ([PostgreSQL 17, 13.2.1](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-READ-COMMITTED)). Jadi dua transaksi yang berjalan bersamaan bisa COMMIT dalam urutan yang berbeda dari urutan `dibuat` dan `id`.
+
+Yang sudah direkam adalah mekanismenya di api-t2, untuk laporan tutup buku. Transaction [A] menulis jurnal top-up tanpa COMMIT, laporan menghitung 1.122 jurnal, lalu [A] COMMIT. Sesudahnya ada 1.123 jurnal dengan `dibuat < waktu laporan`, dan jurnal [A] termasuk di dalamnya (Rekaman lab `tutup-buku.txt` bagian C, keputusan 407).
+
+Pembaca kursor bisa mengalami hal yang sama. Kursor sudah melewati 13:26, lalu baris bertanda 13:23 baru terlihat. Rekaman PostgreSQL untuk riwayat Budi, dengan dua transaction dan satu baca di antaranya, belum ada. Widget di blok Coba memakai SQLite dengan waktu yang ditulis tangan (Ilustrasi).
+
+**Kenapa B, bukan A, C, atau D.**
+
+- **A ditolak untuk riwayat.** Rekaman C menunjukkan 204 baris ganda dan 204 kiriman yang hilang dari layar. Rekaman D menunjukkan 1.020 baris dibaca untuk 20 baris. A tetap dipakai untuk laporan Keuangan di aturan 4.
+- **C ditolak sekarang** karena ia menutup celah yang dampaknya hanya tampilan, dengan kolom dan index baru di tabel append-only terbesar. Riwayat terbaru juga tertunda selama ada transaction penulis terbuka, dan Dudycz menulis hal yang sama untuk outbox. Tidak dijalankan.
+- **D ditolak sekarang** karena menjamin sesuatu hanya bila setiap jalur tulis posting mengunci buku, dan itu belum diperiksa untuk top-up, pembalik, dan pencairan. Tidak dijalankan. D lebih cocok untuk pembaca aliran di Tahap 3.
+
+**Kasus industri.** Slack memindahkan API publiknya dari nomor halaman ke kursor opaque. Alasan yang mereka tulis sama dengan M12: halaman yang bergeser saat data ditulis, dan OFFSET yang membaca semua baris yang dilewati. Kursor mereka dari satu kolom `id` yang unik, berurutan, dan di-encode Base64. Tulisan itu tidak memuat angka kinerja, dan batasnya satu API, bukan seluruh perusahaan ([Slack Engineering, 2017](https://slack.engineering/evolving-api-pagination-at-slack/)).
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Urutan kursor tidak lagi unik atau mulai boleh `NULL`, misalnya seseorang menyederhanakannya jadi `dibuat` saja. Baris kembar di batas halaman terlewat, dan perbandingan dengan NULL tidak diketahui. Pencegahannya `(dibuat, id)` dengan kedua kolom `NOT NULL`. Tes api-t2 `TestRiwayatKursorTanpaGandaTanpaTerlewat` belum menguji `dibuat` kembar, karena tiap posting di tes itu ditulis di transaction sendiri.
+2. Kursor dibuat dari tipe yang memotong presisi, misalnya `Date` JavaScript yang hanya milidetik, di Node atau Flutter web. Baris di antara nilai terpotong dan nilai asli terlewat. Pencegahannya aturan 1: kursor dibuat server dari mikrodetik, dan app tidak membuat atau menguraikannya.
+3. Transaction penulis yang panjang, misalnya top-up CSV 1.000 jurnal dalam satu transaction, melebarkan celah COMMIT belakangan. Durasi transaction itu tidak direkam di lab. Pencegahannya aturan 2, dan mengukur lama top-up sebelum dijalankan di jam ramai.
+
+**Kapan keputusan ini salah.** Saat riwayat dibaca sebagai aliran yang tidak boleh melewatkan baris: sync offline ([[E2]]), notifikasi, dan webhook ([[B10.2]]). Pembaca yang hanya maju tidak pernah kembali ke baris yang COMMIT belakangan.
+
+Keputusan ini juga salah bila produk meminta nomor halaman untuk riwayat karyawan, karena kursor tidak punya nomor halaman. Dan salah bila transaction penulis bisa terbuka jauh lebih lama dari yang masih bisa diterima tampilan.
+
+**Yang akan merevisinya.** Tahap 3 memindahkan riwayat ke pembaca aliran di sync offline ([[E2]]) dan notifikasi ([[B10.2]]). Di sana opsi C atau D, atau outbox, menggantikan kursor ini untuk jalur itu. Riwayat di layar HP tetap memakai B.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Rekaman PostgreSQL untuk celah COMMIT belakangan di riwayat Budi | Belum ada di lab. Mekanisme yang sama sudah direkam di `tutup-buku.txt` C, dan dampaknya hanya tampilan | Belum dijadwalkan |
+| Batas aman dari snapshot (opsi C) dan nomor urut per buku (opsi D) | Kolom dan backfill di tabel append-only terbesar untuk celah yang hanya mengubah tampilan | Tahap 3: [[E2]] dan [[B10.2]] |
+| Endpoint laporan Keuangan dengan OFFSET | Belum ada di api-t2 | Belum dijadwalkan |
+| Sisi app: kursor dan muat ulang di Flutter | Lab hanya menjalankan server Go. Kode Flutter tidak dijalankan | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Dimas mengirim Rp5.000 ke Budi sesudah halaman 1 dibuka. Posting mana yang diulang di halaman 2 dengan OFFSET 5, dan kenapa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Posting 759460, baris kelima halaman 1. Kiriman Dimas masuk di posisi pertama, jadi baris yang tadinya nomor 5 sekarang nomor 6 dan tampil lagi di halaman 2. Rekaman `pagination.txt` bagian A: 10 baris di layar, 9 posting berbeda, dan kiriman Dimas tidak ada.
+
+</details>
+
+**2.** Kenapa kursor memakai `(dibuat, id)`, bukan `dibuat` saja?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Semua baris yang ditulis satu transaction membawa `dibuat` yang sama, karena `now()` adalah waktu awal transaction. Dengan `dibuat` saja, baris kembar di batas halaman bisa terlewat. `id` memutus seri, dan PostgreSQL membandingkan `(dibuat, id)` dari kiri ke kanan.
+
+</details>
+
+**3.** AI menulis kursor Node dari `Date` hasil `pg`, lalu memakainya di `WHERE dibuat < $1`. Apa yang bisa salah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Dua hal. `Date` JavaScript hanya presisi milidetik, jadi mikrodetik terpotong dan baris di antaranya bisa terlewat. Dan `dibuat` saja tidak unik, jadi baris kembar di batas halaman bisa terlewat. Perbaikannya: server membuat kursor dari `(dibuat, id)` dengan presisi penuh.
+
+</details>
+
+**4.** Transaksi mulai pukul 13:23 dan COMMIT pukul 13:31. Halaman 1 sudah dibaca pukul 13:26. Kapan Budi melihat transaksi itu, dan apakah saldonya salah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Query "lebih baru dari baris pertama" tidak akan membawanya, karena waktunya 13:23. Ia tampil saat Budi memuat ulang dari atas. Saldo tidak salah, karena saldo adalah jumlah posting dan posting itu sudah ada sesudah COMMIT. Rekaman PostgreSQL untuk riwayat belum ada; mekanismenya direkam di `tutup-buku.txt` bagian C.
+
+</details>
+
+**5.** App mengulang `GET /akun/419/riwayat?kursor=...` dua kali karena timeout. Perlu idempotency key?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. GET adalah metode safe dan idempoten, jadi mengulangnya tidak mengubah apa pun di server (RFC 9110, bagian 9.2.1 dan 9.2.2). Responsnya bisa berbeda bila ada baris baru di atas, tetapi halaman di belakang kursor sama. Key hanya untuk POST yang mengubah uang ([[t2-idempotency]]).
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Endpoint daftar punya batas maksimum per halaman di server, dan kursor rusak dijawab 422.
+- [ ] Urutan kursor unik dan tidak boleh `NULL`: `(dibuat, id)` dengan kedua kolom `NOT NULL`, bukan `dibuat` saja.
+- [ ] `ORDER BY` sama dengan urutan index, dan plan memuat `Index Cond` dengan `ROW(...)`, bukan `Sort` besar.
+- [ ] Kursor dibuat server dengan presisi penuh dan tidak diurai app. Kursor tidak mengubah siapa yang boleh membaca.
+- [ ] Muat ulang membuang daftar dan mulai dari atas, bukan menyambung dengan `>` dari baris pertama.
+- [ ] OFFSET hanya di laporan atas periode yang sudah ditutup.
+
+### Bacaan lanjut
+
+- [PostgreSQL 17: LIMIT and OFFSET](https://www.postgresql.org/docs/17/queries-limit.html) dan [Row Constructor Comparison](https://www.postgresql.org/docs/17/functions-comparisons.html#ROW-WISE-COMPARISON)
+- [Slack Engineering: Evolving API Pagination at Slack](https://slack.engineering/evolving-api-pagination-at-slack/) (Michael Hahn, 2017)
+- [Oskar Dudycz: Ordering in Postgres Outbox](https://event-driven.io/en/ordering_in_postgres_outbox/) (2022; kenapa urutan sequence bukan urutan COMMIT)
+- [RFC 9110 bagian 9.2: Common Method Properties](https://www.rfc-editor.org/rfc/rfc9110.html#name-common-method-properties)
+- [Use The Index, Luke: Paging through results](https://use-the-index-luke.com/no-offset)
+
+</Blok>
+
+<SkripLama daftar={["runsql-core","runsql"]} />

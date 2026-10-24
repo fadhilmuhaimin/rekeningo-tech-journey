@@ -979,28 +979,44 @@
   "jawab": "Plan sebelum dan sesudah, di data seukuran satu tahun, serta ukuran beban. Di rekaman satu halaman selesai dalam ±1,4 ms dan beban puncak ±1,4 request per detik (Asumsi). Cache menambah aturan invalidasi dan data stale tanpa menjawab masalah yang terukur."
  },
  {
-  "id": "B1.3-1",
-  "halaman": "B1.3",
+  "id": "t2-kursor-1",
+  "halaman": "t2-kursor",
   "judul": "2.19 Pagination kursor + ADR 16",
-  "url": "b-fondasi/b1-3-pagination-idempotent/",
-  "tanya": "Kenapa sort key cursor memakai `(dibuat, id)`, bukan `dibuat` saja?",
-  "jawab": "Dua pesanan bisa punya `dibuat` yang sama persis. Dengan `dibuat` saja, baris dengan waktu sama di batas halaman bisa terlewat atau terulang. `id` membuat sort key-nya unik."
+  "url": "tahap-2/pagination-kursor/",
+  "tanya": "Dimas mengirim Rp5.000 ke Budi sesudah halaman 1 dibuka. Posting mana yang diulang di halaman 2 dengan OFFSET 5, dan kenapa?",
+  "jawab": "Posting 759460, baris kelima halaman 1. Kiriman Dimas masuk di posisi pertama, jadi baris yang tadinya nomor 5 sekarang nomor 6 dan tampil lagi di halaman 2. Rekaman `pagination.txt` bagian A: 10 baris di layar, 9 posting berbeda, dan kiriman Dimas tidak ada."
  },
  {
-  "id": "B1.3-2",
-  "halaman": "B1.3",
+  "id": "t2-kursor-2",
+  "halaman": "t2-kursor",
   "judul": "2.19 Pagination kursor + ADR 16",
-  "url": "b-fondasi/b1-3-pagination-idempotent/",
-  "tanya": "Jelaskan kenapa offset pagination bisa menampilkan item yang sama dua kali.",
-  "jawab": "`OFFSET 20` berarti \"lewati 20 baris teratas saat query ini dijalankan\". Kalau satu pesanan baru masuk di atas, baris yang tadinya posisi 20 kini posisi 21, jadi muncul lagi di halaman berikutnya. Rekaman: 199900 muncul di halaman 1 dan 2."
+  "url": "tahap-2/pagination-kursor/",
+  "tanya": "Kenapa kursor memakai `(dibuat, id)`, bukan `dibuat` saja?",
+  "jawab": "Semua baris yang ditulis satu transaction membawa `dibuat` yang sama, karena `now()` adalah waktu awal transaction. Dengan `dibuat` saja, baris kembar di batas halaman bisa terlewat. `id` memutus seri, dan PostgreSQL membandingkan `(dibuat, id)` dari kiri ke kanan."
  },
  {
-  "id": "B1.3-3",
-  "halaman": "B1.3",
+  "id": "t2-kursor-3",
+  "halaman": "t2-kursor",
   "judul": "2.19 Pagination kursor + ADR 16",
-  "url": "b-fondasi/b1-3-pagination-idempotent/",
-  "tanya": "App memanggil `DELETE /transfers-terjadwal/7` dua kali karena retry. Masalah?",
-  "jawab": "Tidak, kalau diimplementasikan sesuai arti `DELETE`: keadaan akhirnya sama, yaitu jadwal 7 tidak ada. Panggilan kedua boleh dijawab `404` atau `204`, dan app harus memperlakukan keduanya sebagai \"sudah terhapus\"."
+  "url": "tahap-2/pagination-kursor/",
+  "tanya": "AI menulis kursor Node dari `Date` hasil `pg`, lalu memakainya di `WHERE dibuat < $1`. Apa yang bisa salah?",
+  "jawab": "Dua hal. `Date` JavaScript hanya presisi milidetik, jadi mikrodetik terpotong dan baris di antaranya bisa terlewat. Dan `dibuat` saja tidak unik, jadi baris kembar di batas halaman bisa terlewat. Perbaikannya: server membuat kursor dari `(dibuat, id)` dengan presisi penuh."
+ },
+ {
+  "id": "t2-kursor-4",
+  "halaman": "t2-kursor",
+  "judul": "2.19 Pagination kursor + ADR 16",
+  "url": "tahap-2/pagination-kursor/",
+  "tanya": "Transaksi mulai pukul 13:23 dan COMMIT pukul 13:31. Halaman 1 sudah dibaca pukul 13:26. Kapan Budi melihat transaksi itu, dan apakah saldonya salah?",
+  "jawab": "Query \"lebih baru dari baris pertama\" tidak akan membawanya, karena waktunya 13:23. Ia tampil saat Budi memuat ulang dari atas. Saldo tidak salah, karena saldo adalah jumlah posting dan posting itu sudah ada sesudah COMMIT. Rekaman PostgreSQL untuk riwayat belum ada; mekanismenya direkam di `tutup-buku.txt` bagian C."
+ },
+ {
+  "id": "t2-kursor-5",
+  "halaman": "t2-kursor",
+  "judul": "2.19 Pagination kursor + ADR 16",
+  "url": "tahap-2/pagination-kursor/",
+  "tanya": "App mengulang `GET /akun/419/riwayat?kursor=...` dua kali karena timeout. Perlu idempotency key?",
+  "jawab": "Tidak. GET adalah metode safe dan idempoten, jadi mengulangnya tidak mengubah apa pun di server (RFC 9110, bagian 9.2.1 dan 9.2.2). Responsnya bisa berbeda bila ada baris baru di atas, tetapi halaman di belakang kursor sama. Key hanya untuk POST yang mengubah uang (2.14 Retry dan idempotency key)."
  },
  {
   "id": "E5-1",
@@ -1202,6 +1218,30 @@
   "url": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/",
   "tanya": "App v1.4 tidak dipakai lagi menurut metric. Raka langsung menghapus field `telp` dari response dan kolom `telp` di migration yang sama. Apa risikonya kalau deploy itu harus di-rollback?",
   "jawab": "Kode versi sebelumnya masih membaca kolom `telp`, padahal kolomnya sudah hilang. Rollback kode jadi gagal. Karena itu contract di database biasanya dijalankan satu deploy setelah kode berhenti memakai kolom lama."
+ },
+ {
+  "id": "B1.3-1",
+  "halaman": "B1.3",
+  "judul": "Pagination dan idempotent method",
+  "url": "b-fondasi/b1-3-pagination-idempotent/",
+  "tanya": "Kenapa sort key cursor memakai `(dibuat, id)`, bukan `dibuat` saja?",
+  "jawab": "Dua pesanan bisa punya `dibuat` yang sama persis. Dengan `dibuat` saja, baris dengan waktu sama di batas halaman bisa terlewat atau terulang. `id` membuat sort key-nya unik."
+ },
+ {
+  "id": "B1.3-2",
+  "halaman": "B1.3",
+  "judul": "Pagination dan idempotent method",
+  "url": "b-fondasi/b1-3-pagination-idempotent/",
+  "tanya": "Jelaskan kenapa offset pagination bisa menampilkan item yang sama dua kali.",
+  "jawab": "`OFFSET 20` berarti \"lewati 20 baris teratas saat query ini dijalankan\". Kalau satu pesanan baru masuk di atas, baris yang tadinya posisi 20 kini posisi 21, jadi muncul lagi di halaman berikutnya. Rekaman: 199900 muncul di halaman 1 dan 2."
+ },
+ {
+  "id": "B1.3-3",
+  "halaman": "B1.3",
+  "judul": "Pagination dan idempotent method",
+  "url": "b-fondasi/b1-3-pagination-idempotent/",
+  "tanya": "App memanggil `DELETE /transfers-terjadwal/7` dua kali karena retry. Masalah?",
+  "jawab": "Tidak, kalau diimplementasikan sesuai arti `DELETE`: keadaan akhirnya sama, yaitu jadwal 7 tidak ada. Panggilan kedua boleh dijawab `404` atau `204`, dan app harus memperlakukan keduanya sebagai \"sudah terhapus\"."
  },
  {
   "id": "C2-1",

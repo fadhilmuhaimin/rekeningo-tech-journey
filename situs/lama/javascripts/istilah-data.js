@@ -204,14 +204,6 @@ window.ISTILAH = {
   "t": "CI (Continuous Integration)",
   "u": "tahap-1/kontrak-openapi/"
  },
- "Cursor pagination": {
-  "b": "B1.3",
-  "d": "Pagination yang meminta \"data sesudah item X\", bukan \"halaman ke-N\", jadi tetap stabil saat data bertambah.",
-  "n": "2.19 Pagination dan idempotent method",
-  "s": "istilah-cursor-pagination",
-  "t": "Cursor pagination",
-  "u": "b-fondasi/b1-3-pagination-idempotent/"
- },
  "Database": {
   "b": "B2.1",
   "d": "Program yang menyimpan data secara permanen dan menjamin aturan seperti constraint dan transaction.",
@@ -422,12 +414,12 @@ window.ISTILAH = {
   "u": "tahap-2/retry-idempotency/"
  },
  "Idempotent": {
-  "b": "B1.3",
+  "b": "t2-kursor",
   "d": "Sifat operasi yang hasil akhirnya sama walau dijalankan sekali atau berkali-kali.",
-  "n": "2.19 Pagination dan idempotent method",
+  "n": "2.19 Pagination kursor",
   "s": "istilah-idempotent",
   "t": "Idempotent",
-  "u": "b-fondasi/b1-3-pagination-idempotent/"
+  "u": "tahap-2/pagination-kursor/"
  },
  "Insecure Direct Object Reference": {
   "b": "t1-idor",
@@ -588,6 +580,15 @@ window.ISTILAH = {
   "s": "istilah-mvcc",
   "t": "MVCC (Multi-Version Concurrency Control)",
   "u": "tahap-2/isolation-level/"
+ },
+ "Metode idempoten": {
+  "b": "t2-kursor",
+  "d": "Metode HTTP yang efeknya di server sama untuk satu request atau banyak request identik: PUT, DELETE, dan semua metode safe seperti GET.",
+  "h": "istilah/metode-idempoten/",
+  "n": "2.19 Pagination kursor",
+  "s": "istilah-metode-idempoten",
+  "t": "Metode idempoten",
+  "u": "tahap-2/pagination-kursor/"
  },
  "Metric": {
   "b": "C2",
@@ -770,12 +771,22 @@ window.ISTILAH = {
   "u": "tahap-1/http/"
  },
  "Pagination": {
-  "b": "B1.3",
+  "b": "t2-kursor",
   "d": "Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu.",
-  "n": "2.19 Pagination dan idempotent method",
+  "h": "istilah/pagination/",
+  "n": "2.19 Pagination kursor",
   "s": "istilah-pagination",
   "t": "Pagination",
-  "u": "b-fondasi/b1-3-pagination-idempotent/"
+  "u": "tahap-2/pagination-kursor/"
+ },
+ "Pagination kursor": {
+  "b": "t2-kursor",
+  "d": "Pagination yang meminta baris sesudah nilai urutan baris terakhir yang sudah tampil, bukan halaman ke-N, jadi tetap stabil saat baris baru masuk.",
+  "h": "istilah/pagination-kursor/",
+  "n": "2.19 Pagination kursor",
+  "s": "istilah-pagination-kursor",
+  "t": "Pagination kursor (keyset)",
+  "u": "tahap-2/pagination-kursor/"
  },
  "Partisi": {
   "b": "D2",
@@ -1360,14 +1371,6 @@ window.ISTILAH = {
   "t": "Container",
   "u": "tahap-1/deployment-rollback/"
  },
- "cursor pagination": {
-  "b": "B1.3",
-  "d": "Pagination yang meminta \"data sesudah item X\", bukan \"halaman ke-N\", jadi tetap stabil saat data bertambah.",
-  "n": "2.19 Pagination dan idempotent method",
-  "s": "istilah-cursor-pagination",
-  "t": "Cursor pagination",
-  "u": "b-fondasi/b1-3-pagination-idempotent/"
- },
  "database": {
   "b": "B2.1",
   "d": "Program yang menyimpan data secara permanen dan menjamin aturan seperti constraint dan transaction.",
@@ -1504,12 +1507,12 @@ window.ISTILAH = {
   "u": "tahap-2/retry-idempotency/"
  },
  "idempotent": {
-  "b": "B1.3",
+  "b": "t2-kursor",
   "d": "Sifat operasi yang hasil akhirnya sama walau dijalankan sekali atau berkali-kali.",
-  "n": "2.19 Pagination dan idempotent method",
+  "n": "2.19 Pagination kursor",
   "s": "istilah-idempotent",
   "t": "Idempotent",
-  "u": "b-fondasi/b1-3-pagination-idempotent/"
+  "u": "tahap-2/pagination-kursor/"
  },
  "invarian": {
   "b": "C1",
@@ -1632,6 +1635,15 @@ window.ISTILAH = {
   "t": "Lost update",
   "u": "tahap-2/race-lock/"
  },
+ "metode idempoten": {
+  "b": "t2-kursor",
+  "d": "Metode HTTP yang efeknya di server sama untuk satu request atau banyak request identik: PUT, DELETE, dan semua metode safe seperti GET.",
+  "h": "istilah/metode-idempoten/",
+  "n": "2.19 Pagination kursor",
+  "s": "istilah-metode-idempoten",
+  "t": "Metode idempoten",
+  "u": "tahap-2/pagination-kursor/"
+ },
  "metric": {
   "b": "C2",
   "d": "Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error.",
@@ -1747,12 +1759,22 @@ window.ISTILAH = {
   "u": "c-operasional/c2-observability/"
  },
  "pagination": {
-  "b": "B1.3",
+  "b": "t2-kursor",
   "d": "Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu.",
-  "n": "2.19 Pagination dan idempotent method",
+  "h": "istilah/pagination/",
+  "n": "2.19 Pagination kursor",
   "s": "istilah-pagination",
   "t": "Pagination",
-  "u": "b-fondasi/b1-3-pagination-idempotent/"
+  "u": "tahap-2/pagination-kursor/"
+ },
+ "pagination kursor": {
+  "b": "t2-kursor",
+  "d": "Pagination yang meminta baris sesudah nilai urutan baris terakhir yang sudah tampil, bukan halaman ke-N, jadi tetap stabil saat baris baru masuk.",
+  "h": "istilah/pagination-kursor/",
+  "n": "2.19 Pagination kursor",
+  "s": "istilah-pagination-kursor",
+  "t": "Pagination kursor (keyset)",
+  "u": "tahap-2/pagination-kursor/"
  },
  "partisi": {
   "b": "D2",

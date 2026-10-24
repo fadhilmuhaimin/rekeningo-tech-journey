@@ -64,7 +64,7 @@ Puncaknya masih di bawah dua request per detik. Tapi dua request yang menyentuh 
 | Riwayat Budi mengirim 21 query untuk 20 baris, dan 3.893 query untuk seluruh riwayatnya | [2.16 N+1 query](/tahap-2/n-plus-1/) |
 | Riwayat Budi membaca 3.892 posting dan 380.224 jurnal untuk 20 baris, sampai index riwayat dipasang | [2.17 Index dan query plan + ADR 15](/tahap-2/index-query-plan/) |
 | Saat riwayat digulir, transaksi yang sama muncul dua kali dan transaksi baru hilang | [2.18 M12: Transaksi muncul dua kali](/tahap-2/m12-muncul-dua-kali/) |
-| Riwayat panjang, halaman berikutnya berisi data ganda | [2.19 Pagination kursor + ADR 16](/b-fondasi/b1-3-pagination-idempotent/) |
+| Halaman riwayat yang dihitung dari nomor bergeser saat kiriman baru masuk, jadi baris tampil dua kali atau hilang dari layar | [2.19 Pagination kursor + ADR 16](/tahap-2/pagination-kursor/) |
 | Response besar membebani HP dan kuota | [2.20 Ukuran payload dan kuota HP](/e-mobile/e5-ukuran-payload/) |
 | Migrasi ke ledger membuat semua pembayaran menunggu 40 detik saat makan siang | [2.21 M13: Migrasi di jam makan siang](/tahap-2/m13-migrasi-siang/) |
 | Migrasi ke ledger dalam tiga rilis: pembayaran tetap masuk dan app 1.0 dan 1.1 tetap jalan di setiap fase | [2.22 Ubah skema tanpa downtime + ADR 17](/tahap-2/skema-tanpa-downtime/) |
