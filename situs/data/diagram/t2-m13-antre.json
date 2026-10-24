@@ -1,0 +1,52 @@
+{
+  "id": "t2-m13-antre",
+  "judul": "Migrasi satu langkah di jam makan siang",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b4-skema · ledger/satu-langkah.txt"
+  },
+  "baris": [
+    {
+      "label": "Saat laporan terbuka",
+      "sub": "urutan antre di tabel akun",
+      "simpul": [
+        {
+          "teks": "Laporan masih terbuka",
+          "sub": "membaca tabel akun, belum selesai"
+        },
+        {
+          "teks": "Migrasi menunggu laporan",
+          "sub": "minta lock ACCESS EXCLUSIVE",
+          "nada": "warn"
+        },
+        {
+          "teks": "Bayar menunggu migrasi",
+          "sub": "di belakang migrasi, bukan di belakang laporan",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Sesudah migrasi COMMIT",
+      "sub": "kolom saldo sudah hilang",
+      "simpul": [
+        {
+          "teks": "Bayar v1: galat 42703",
+          "sub": "server menjawab 500",
+          "nada": "warn"
+        },
+        {
+          "teks": "Server v2 dipasang",
+          "sub": "response dibuat untuk app baru",
+          "nada": "system"
+        },
+        {
+          "teks": "App 1.0 dan 1.1 berhenti",
+          "sub": "field id tidak ada di response",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Dua gejala, dua sebab: permintaan yang menunggu di belakang migrasi membuat pembayaran tertahan, dan kolom yang hilang serta response yang berubah membuat server dan app lama gagal."
+}

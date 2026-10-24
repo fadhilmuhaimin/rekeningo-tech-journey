@@ -1,0 +1,48 @@
+{
+  "judul": "Siapa yang ditunggu Bayar?",
+  "sumber": "Rekaman lab · satu-langkah.txt dan lock-timeout.txt",
+  "papan": "Keadaan empat permintaan ke tabel akun",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "Laporan Keuangan masih terbuka dan hanya membaca; tabel akun termasuk yang dibacanya. Migrasi sudah minta lock dan menunggu. Lalu Citra membayar Rp25.000 ke Warung Ani, yang hanya mengubah dua baris akun. Siapa yang ditunggu permintaan Bayar itu?",
+  "pilihan": [
+    { "menunggu": "R", "alasan": "Laporan hanya membaca. Membaca tidak bertabrakan dengan Bayar yang mengubah dua baris akun (dokumentasi PostgreSQL 17, bagian 13.3), jadi laporan saja tidak menahan Bayar." },
+    { "menunggu": "M", "alasan": "Bayar menunggu migrasi. Migrasi menunggu laporan, dan permintaan yang bertabrakan dengan permintaan yang sudah antre ikut antre. Tabel pg_locks di rekaman menulis Bayar di belakang M, bukan di belakang R." },
+    { "menunggu": "-", "alasan": "Bayar akan langsung jalan bila tidak ada yang antre di tabel akun. Di rekaman migrasi sudah minta lock lebih dulu, dan Bayar menunggu di belakangnya." }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "nama": {
+    "R": "Laporan Keuangan",
+    "M": "Migrasi",
+    "P1": "Bayar Citra",
+    "P2": "Buka saldo karyawan"
+  },
+  "tanpaPilihan": "Tidak ada, Bayar langsung jalan",
+  "status": {
+    "belum": "Belum jalan",
+    "terbuka": "Terbuka",
+    "menunggu": "Menunggu",
+    "selesai": "Selesai",
+    "gagal": "Gagal",
+    "menyerah": "Menyerah"
+  },
+  "belakang": "di belakang {nama}",
+  "langkah": "Langkah {no} dari {total}",
+  "berikutnya": "Langkah berikutnya",
+  "mulaiUlang": "Mulai dari awal",
+  "ubahJudul": "Ubah satu hal: pasang batas tunggu lock di migrasi",
+  "mode": {
+    "tanpa": "Tanpa batas tunggu",
+    "dengan": "Batas tunggu 3 detik"
+  },
+  "kesimpulan": {
+    "tanpa": "Migrasi menunggu laporan, dan Bayar serta Buka saldo menunggu migrasi. Sesudah migrasi selesai, keduanya gagal.",
+    "dengan": "Migrasi menyerah sesudah 3 detik dan di-ROLLBACK. Bayar selesai sementara laporan masih terbuka."
+  },
+  "catatan": {
+    "tanpa": "Rekaman ini menjalankan lima file migrasi sebagai satu transaction tanpa batas waktu tunggu lock.",
+    "dengan": "Rekaman pembanding ini menjalankan file 000009 saja, yang membawa batas tunggu 3 detik. Ia bukan lima file yang sama; ia menunjukkan apa yang dilakukan batas tunggu pada urutan tunggu yang sama."
+  },
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan langkah rekaman tanpa batas tunggu sebagai daftar."
+}

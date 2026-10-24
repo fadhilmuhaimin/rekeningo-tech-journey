@@ -1,0 +1,41 @@
+---
+/**
+ * Widget antrean lock (M13, keputusan 810): tebak siapa yang ditunggu Bayar saat migrasi menunggu laporan, lalu jalankan
+ * rekaman langkah demi langkah dan ubah satu hal (batas tunggu lock di migrasi).
+ *   <AntreanLock />
+ * Langkah dan keadaan dibaca saat build dari labs/b4-skema/output/ledger/satu-langkah.txt dan lock-timeout.txt lewat
+ * logika.ts; rekaman yang berubah bentuk menggagalkan build. Teks dari data/widget/t2-m13-antrean.json (skema.ts).
+ * Island di-render saat build (client:visible); tanpa JavaScript langkah rekaman tampil di <noscript>.
+ * Satu widget per halaman (dipasang di blok Coba 2.21).
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import AntreanLockIsland from "../widgets/antrean-lock/AntreanLock";
+import { LabelAntrean } from "../widgets/antrean-lock/skema";
+import { bacaRekaman, indeksBenar, sesiDi } from "../widgets/antrean-lock/logika";
+import labelMentah from "../../data/widget/t2-m13-antrean.json";
+
+const baca = (f: string) => {
+  const abs = path.join(ROOT, f);
+  if (!fs.existsSync(abs)) throw new Error(`AntreanLock: ${f} tidak ada`);
+  return fs.readFileSync(abs, "utf8");
+};
+const R = bacaRekaman(
+  baca("labs/b4-skema/output/ledger/satu-langkah.txt"),
+  baca("labs/b4-skema/output/ledger/lock-timeout.txt"),
+);
+const L = LabelAntrean.parse(labelMentah);
+const benar = indeksBenar(L.pilihan, R.tanpa);
+const langkah = { tanpa: R.tanpa, dengan: R.dengan };
+const sesi = { tanpa: sesiDi(R.tanpa), dengan: sesiDi(R.dengan) };
+---
+<AntreanLockIsland client:visible langkah={langkah} sesi={sesi} pilihan={L.pilihan} benar={benar} label={L} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <ol>
+    {R.tanpa.map((l) => (
+      <li>{L.nama[l.sesi]}: <code translate="no">{l.hasil}</code></li>
+    ))}
+  </ol>
+</noscript>
