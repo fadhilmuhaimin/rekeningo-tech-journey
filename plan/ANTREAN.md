@@ -1097,11 +1097,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.7 · Ledger double-entry: jurnal, posting, invarian
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.6, lab-b3-ledger
 - selesai bila: halaman Konsep 2.7 sesuai `plan/CERITA-TAHAP-2.md` bagian 3 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: PR #292, keputusan 626–628 (`plan/masuk/tahap-2-ledger-double-entry.md`): `tahap-2/ledger.mdx` dengan template konsep 1.23; Inti Rantai ringkas `t2-ledger-inti` (`kejadian.txt` B jurnal 7 lawan `invarian.txt` A jurnal 12); Coba widget alur `t2-ledger` (Rekaman lab, tebak "kapan ditolak", Ubah satu hal = jurnal 6 `kejadian.txt` B); Paham empat tabel, lima kejadian naskah, satu konvensi tanda (positif masuk, negatif keluar, tanpa pemetaan debit/kredit), invarian 1–3, pembalik, batas invarian 3 (Rantai `t2-ledger-batas` dari `batas.txt`, ke M9); Di stack lain enam tab penolakan saat COMMIT (Go kode api-t2, lima Tidak dijalankan); keputusan model ke 2.8; halaman istilah Double-entry, Buku ledger, Invarian; R2-60–R2-63. Lab tidak diulang: Docker tertahan.
 
 ### 2.8 · ADR 12: dari kolom saldo ke ledger
 
