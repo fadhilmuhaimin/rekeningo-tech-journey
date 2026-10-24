@@ -13,7 +13,7 @@
   ],
   "mekanisme": [
     "App mengirim request dan menunggu jawaban sampai batas waktu. Di lab, batasnya 10 detik per percobaan.",
-    "Koneksi putus, timeout, 409, 429, atau 5xx berarti hasilnya belum pasti atau sementara. App menunggu jeda backoff, lalu mengirim request yang sama dengan key yang sama.",
+    "Koneksi putus, timeout, 409, 429, 500, 502, 503, atau 504 berarti hasilnya belum pasti atau sementara. App menunggu jeda backoff, lalu mengirim request yang sama dengan key yang sama.",
     "Jawaban final menghentikan retry: 2xx, 400, atau 422. Sesudah percobaan ke-4 app juga berhenti dan menulis \"status belum pasti, cek riwayat\".",
     "Server mengenali ulangan lewat key, jadi efeknya satu jurnal walau request sampai dua kali (rekaman `key-per-niat.txt`)."
   ],
@@ -24,7 +24,7 @@
   "jebakan": [
     "Mengulang POST tanpa key. RFC 9110 bagian 9.2.2 menyarankan client tidak mengulang otomatis method yang tidak idempoten, dan rekaman `tanpa-key.txt` menunjukkan dua jurnal.",
     "Menganggap timeout berarti gagal. `Future.timeout` di Dart hanya berhenti menunggu, dan request yang sudah sampai di server tetap dikerjakan.",
-    "Retry di setiap lapisan sekaligus. Builders' Library menghitung lima lapisan dengan tiga retry per lapisan menjadi 243 kali beban di database yang sedang gagal."
+    "Retry di setiap lapisan sekaligus. Builders' Library menghitung lima lapisan dengan tiga percobaan per lapisan (3⁵) menjadi 243 kali beban di database yang sedang gagal."
   ],
   "terkait": [
     "Idempotency key",

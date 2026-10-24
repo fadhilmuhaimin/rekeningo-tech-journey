@@ -37,7 +37,7 @@
       "riset": "R2-20",
       "judul": "AWS Architecture Blog: Exponential Backoff And Jitter",
       "url": "https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/",
-      "catatan": "M. Brooker, 2015-03-04: Full Jitter memakai kerja lebih sedikit daripada Decorrelated Jitter, Equal Jitter paling buruk, dan backoff tanpa jitter kalah dari semuanya."
+      "catatan": "M. Brooker, 2015-03-04: Full Jitter memakai kerja lebih sedikit daripada Decorrelated Jitter, Equal Jitter paling buruk di antara varian ber-jitter, dan backoff tanpa jitter kalah dari semuanya."
     },
     {
       "riset": "R2-20",
