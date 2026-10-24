@@ -126,7 +126,7 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 173,
+        "menit": 178,
         "halaman": 17
       },
       "versi": "lama",
@@ -1657,16 +1657,16 @@
       "menit": 8
     },
     {
-      "id": "B2.3",
+      "id": "t2-index",
       "judul": "Index dan query plan + ADR 15",
       "tahap": 2,
       "topik": "Data",
-      "path": "b-fondasi/b2-3-index.md",
+      "path": "tahap-2/index-query-plan.md",
       "prasyarat": [
         "B2.4"
       ],
       "inti": true,
-      "masalah": "Query lambat setelah data bertambah",
+      "masalah": "Riwayat Budi membaca 3.892 posting dan 380.224 jurnal untuk 20 baris, sampai index riwayat dipasang",
       "ada": true,
       "jenis": "konsep",
       "bagian": 4,
@@ -1677,12 +1677,11 @@
         15
       ],
       "pendek": "Index dan query plan",
-      "lama": true,
       "lab": [
         "b2-query"
       ],
       "nomor": "2.17",
-      "menit": 10
+      "menit": 15
     },
     {
       "id": "t2-m12",
@@ -1699,7 +1698,7 @@
       "label": "Masalah 12 · minggu 3",
       "masalah": "Saat riwayat digulir, transaksi yang sama muncul dua kali dan transaksi baru hilang",
       "prasyarat": [
-        "B2.3"
+        "t2-index"
       ],
       "lab": [
         "b2-query"
@@ -2104,6 +2103,25 @@
       "lebur_ke": "t2-isolation-level",
       "lab": [
         "b3-isolasi"
+      ],
+      "menit": 10
+    },
+    {
+      "id": "B2.3",
+      "judul": "Index dan query plan + ADR 15",
+      "tahap": 2,
+      "topik": "Data",
+      "path": "b-fondasi/b2-3-index.md",
+      "prasyarat": [
+        "B2.4"
+      ],
+      "ada": true,
+      "pendek": "Index dan query plan (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t2-index",
+      "lab": [
+        "b2-query"
       ],
       "menit": 10
     },

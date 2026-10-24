@@ -271,6 +271,15 @@ window.ISTILAH = {
   "t": "ERP (Enterprise Resource Planning)",
   "u": "tahap-2/prd-v2/"
  },
+ "EXPLAIN": {
+  "b": "t2-index",
+  "d": "Perintah PostgreSQL yang menampilkan query plan; dengan ANALYZE ia menjalankan query dan mencatat baris dan waktu tiap node.",
+  "h": "istilah/explain/",
+  "n": "2.17 Index dan query plan",
+  "s": "istilah-explain",
+  "t": "EXPLAIN",
+  "u": "tahap-2/index-query-plan/"
+ },
  "Endpoint": {
   "b": "B1.1",
   "d": "Pasangan method dan path yang dilayani server, mis. POST /transfers.",
@@ -827,12 +836,13 @@ window.ISTILAH = {
   "u": "b-fondasi/b11-2-proxy-bff/"
  },
  "Query plan": {
-  "b": "B2.3",
+  "b": "t2-index",
   "d": "Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.",
+  "h": "istilah/query-plan/",
   "n": "2.17 Index dan query plan",
   "s": "istilah-query-plan",
   "t": "Query plan",
-  "u": "b-fondasi/b2-3-index/"
+  "u": "tahap-2/index-query-plan/"
  },
  "Queue": {
   "b": "B10.1",
@@ -1765,12 +1775,13 @@ window.ISTILAH = {
   "u": "b-fondasi/b11-2-proxy-bff/"
  },
  "query plan": {
-  "b": "B2.3",
+  "b": "t2-index",
   "d": "Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.",
+  "h": "istilah/query-plan/",
   "n": "2.17 Index dan query plan",
   "s": "istilah-query-plan",
   "t": "Query plan",
-  "u": "b-fondasi/b2-3-index/"
+  "u": "tahap-2/index-query-plan/"
  },
  "queue": {
   "b": "B10.1",

@@ -1,0 +1,48 @@
+{
+  "istilah": "Query plan",
+  "sehari_hari": "Query plan adalah rencana langkah yang dipilih database untuk satu query: tabel mana dibaca, lewat index atau tidak, dan dalam urutan apa. Kamu melihatnya dengan EXPLAIN.",
+  "cerita": [
+    {
+      "rujukan": "t2-m11",
+      "teks": "Plan halaman pertama riwayat Budi tanpa index memuat Seq Scan atas 380.224 jurnal, lalu Sort untuk mengambil 20 baris."
+    },
+    {
+      "rujukan": "t2-index",
+      "teks": "Sesudah index riwayat, plan yang sama hanya memuat Index Scan Backward 20 baris dan 20 pencarian jurnal."
+    }
+  ],
+  "mekanisme": [
+    "Database memperkirakan biaya beberapa cara menjalankan query, dari statistik tabel.",
+    "Ia memilih satu rencana. Tiap langkah disebut node, misalnya Seq Scan, Index Scan, Hash Join, atau Sort.",
+    "EXPLAIN menampilkan rencana tanpa menjalankan query. EXPLAIN ANALYZE menjalankannya dan menambah baris dan waktu nyata di tiap node.",
+    "Node yang dijalankan berulang menampilkan loops. Waktu dan baris adalah rata-rata per eksekusi, jadi kalikan dengan loops."
+  ],
+  "stack": {
+    "lihat": "index",
+    "teks": "Cara meminta plan di tiap stack ada di halaman istilah EXPLAIN. Cara membuat index yang mengubah plan ada di halaman istilah Index."
+  },
+  "jebakan": [
+    "Membaca waktu saja. Plan yang sama bisa cepat di tabel kecil dan lambat di tabel besar, jadi bandingkan baris yang dibaca dengan baris yang keluar.",
+    "Menjalankan EXPLAIN ANALYZE pada UPDATE atau DELETE tanpa BEGIN dan ROLLBACK. Query benar-benar berjalan."
+  ],
+  "terkait": [
+    "Index",
+    "EXPLAIN",
+    "N+1 query",
+    "Round trip"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-125",
+      "judul": "Rekaman lab b2-query: plan sebelum dan sesudah index",
+      "rekaman": "labs/b2-query/output/ledger/index.txt",
+      "catatan": "Node, index, dan jumlah baris tiap permintaan di tabel ringkasan; waktu hanya pembanding."
+    },
+    {
+      "riset": "R2-127",
+      "judul": "PostgreSQL 17: Using EXPLAIN",
+      "url": "https://www.postgresql.org/docs/17/using-explain.html",
+      "catatan": "loops memuat jumlah eksekusi node; waktu dan rows adalah rata-rata per eksekusi, kalikan dengan loops."
+    }
+  ]
+}

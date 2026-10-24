@@ -1,0 +1,60 @@
+{
+ "id": "t2-index",
+ "title": "Riwayat Budi: 20 posting terbaru dari 100.000 (SQLite)",
+ "setup": "CREATE TABLE posting (id INTEGER PRIMARY KEY, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL);\nWITH RECURSIVE g(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM g WHERE x < 100000)\nINSERT INTO posting SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime('2026-01-01', '+' || (x * 300) || ' seconds') FROM g;",
+ "check": "SELECT name AS index_yang_ada, sql FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL",
+ "predict": {
+  "q": "Panel After membuat index (buku_id, dibuat, id) sebelum rencana query riwayat Budi. Apa yang hilang dari rencana After dibanding Before?",
+  "options": [
+   "Hanya SCAN posting",
+   "Hanya USE TEMP B-TREE FOR ORDER BY",
+   "Keduanya"
+  ],
+  "answer": 2,
+  "explain": "Before: SCAN posting memindai seluruh 100.000 baris, lalu USE TEMP B-TREE FOR ORDER BY mengurutkannya. After: SEARCH posting USING INDEX posting_riwayat (buku_id=?) langsung ke buku 20, dan index sudah terurut menurut dibuat dan id, jadi tidak ada langkah mengurutkan. Baris kedua, semua buku di satu hari, tidak berubah: kolom depan index tidak ada di WHERE. Centang 'Ubah satu hal' untuk memindahkan buku_id ke kolom terakhir."
+ },
+ "panels": {
+  "before": {
+   "label": "Before: tanpa index riwayat",
+   "onError": "stop",
+   "steps": [
+    {
+     "sql": "EXPLAIN QUERY PLAN SELECT id, jurnal_id, jumlah, dibuat FROM posting WHERE buku_id = 20 ORDER BY dibuat DESC, id DESC LIMIT 20",
+     "note": "riwayat Budi"
+    },
+    {
+     "sql": "EXPLAIN QUERY PLAN SELECT id, jurnal_id, jumlah, dibuat FROM posting WHERE dibuat >= '2026-04-29 00:00:00' AND dibuat < '2026-04-30 00:00:00' ORDER BY dibuat, id",
+     "note": "semua buku, satu hari"
+    }
+   ]
+  },
+  "after": {
+   "label": "After: dengan index riwayat",
+   "onError": "stop",
+   "steps": [
+    {
+     "sql": "CREATE INDEX posting_riwayat ON posting (buku_id, dibuat, id)"
+    },
+    {
+     "sql": "EXPLAIN QUERY PLAN SELECT id, jurnal_id, jumlah, dibuat FROM posting WHERE buku_id = 20 ORDER BY dibuat DESC, id DESC LIMIT 20",
+     "note": "riwayat Budi"
+    },
+    {
+     "sql": "EXPLAIN QUERY PLAN SELECT id, jurnal_id, jumlah, dibuat FROM posting WHERE dibuat >= '2026-04-29 00:00:00' AND dibuat < '2026-04-30 00:00:00' ORDER BY dibuat, id",
+     "note": "semua buku, satu hari"
+    }
+   ]
+  }
+ },
+ "toggles": [
+  {
+   "label": "buku_id jadi kolom terakhir index",
+   "pairs": [
+    [
+     "ON posting (buku_id, dibuat, id)",
+     "ON posting (dibuat, id, buku_id)"
+    ]
+   ]
+  }
+ ]
+}
