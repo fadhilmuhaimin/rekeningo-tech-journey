@@ -35,12 +35,12 @@
       "simpul": [
         {
           "teks": "Baca saldo: Rp100.000",
-          "sub": "langkah 4, jurnal HP belum terlihat",
+          "sub": "langkah 4, HP belum menulis jurnal",
           "nada": "warn"
         },
         {
           "teks": "Cek di kode: cukup",
-          "sub": "langkah 6, angkanya sudah basi",
+          "sub": "langkah 6, benar untuk Rp100.000",
           "nada": "warn"
         },
         {
@@ -55,5 +55,5 @@
       ]
     }
   ],
-  "catatan": "Setiap pemeriksaan benar untuk angka yang dibacanya. Masalahnya, tablet membaca sebelum jurnal HP COMMIT."
+  "catatan": "Setiap pemeriksaan benar untuk angka yang dibacanya. Masalahnya, keduanya membaca saldo sebelum salah satunya menulis."
 }
