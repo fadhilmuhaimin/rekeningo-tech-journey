@@ -1,0 +1,59 @@
+{
+  "id": "t2-m9-baca-sama",
+  "judul": "Dua transfer membaca saldo yang sama",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b3-race · ledger-tanpa-lock*.txt"
+  },
+  "baris": [
+    {
+      "label": "HP",
+      "sub": "Rp70.000 ke Citra",
+      "simpul": [
+        {
+          "teks": "Baca saldo: Rp100.000",
+          "sub": "langkah 3"
+        },
+        {
+          "teks": "Cek di kode: cukup",
+          "sub": "langkah 5"
+        },
+        {
+          "teks": "Tulis jurnal −Rp70.000",
+          "sub": "langkah 7–8, belum COMMIT"
+        },
+        {
+          "teks": "COMMIT",
+          "sub": "saldo Rp30.000",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Tablet",
+      "sub": "Rp50.000 ke Dimas",
+      "simpul": [
+        {
+          "teks": "Baca saldo: Rp100.000",
+          "sub": "langkah 4, HP belum menulis jurnal",
+          "nada": "warn"
+        },
+        {
+          "teks": "Cek di kode: cukup",
+          "sub": "langkah 6, benar untuk Rp100.000",
+          "nada": "warn"
+        },
+        {
+          "teks": "Tulis jurnal −Rp50.000",
+          "sub": "langkah 9–10"
+        },
+        {
+          "teks": "Hasil bergantung urutan COMMIT",
+          "sub": "−Rp20.000 (rekaman lab, kondisi dibuat) atau error 23514",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Setiap pemeriksaan benar untuk angka yang dibacanya. Masalahnya, keduanya membaca saldo sebelum salah satunya menulis."
+}
