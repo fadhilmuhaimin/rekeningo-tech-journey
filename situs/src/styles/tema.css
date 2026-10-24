@@ -844,6 +844,26 @@ body:has(.beranda) .content-panel { padding-block: 0.6rem; border-top: 0; }
 .sl-markdown-content .tb-tautan a:hover { text-decoration: underline; }
 @media (max-width: 30em) { .sl-markdown-content .tb-adegan--hp { grid-template-columns: 1fr; gap: 0.7rem; } .sl-markdown-content .tb-hp { max-width: 15rem; } }
 
+/* Widget query riwayat (M11, keputusan 662): tebakan memakai kelas tb-*, bagian "ubah satu hal" memakai qr-*. */
+.sl-markdown-content .qr-ubah { margin-top: 1rem; border-top: 1px solid var(--garis); padding-top: 0.2rem; }
+.sl-markdown-content .qr-pilih { list-style: none; margin: 0 0 0.7rem; padding: 0; display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.sl-markdown-content .qr-pilih li { margin: 0; }
+.sl-markdown-content .qr-tombol { width: auto; display: inline-block; }
+.sl-markdown-content .qr-tombol[aria-pressed="true"] { border-color: var(--k-system-edge); background: var(--k-system-fill); color: var(--k-system-ink); }
+.sl-markdown-content .qr-hasil { margin: 0 0 0.5rem; }
+.sl-markdown-content .qr-hasil p { margin: 0.5rem 0 0; }
+.sl-markdown-content .qr-batang { height: 0.7rem; border-radius: 0.35rem; background: var(--bg-3); border: 1px solid var(--garis); overflow: hidden; }
+.sl-markdown-content .qr-batang span { display: block; height: 100%; background: var(--k-warn-edge); }
+.sl-markdown-content .qr-angka { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem 0.8rem; margin: 0.6rem 0 0; }
+.sl-markdown-content .qr-angka div { margin: 0; }
+.sl-markdown-content .qr-angka dt { color: var(--teks-2); font-size: var(--rk-ui-kecil); line-height: 1.35; }
+.sl-markdown-content .qr-angka dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--judul); white-space: nowrap; }
+/* Margin atas antar-saudara dari Starlight tidak berlaku di dalam widget ini (pola keputusan 124). */
+.sl-markdown-content .qr :is(.tb-pilihan, .qr-pilih, .qr-angka) > * + * { margin-top: 0; }
+.sl-markdown-content .qr :is(.tb-pilihan, .qr-pilih) > li > button { margin-bottom: 0; }
+.sl-markdown-content .qr-catatan { margin: 0.2rem 0 0.6rem; font-size: var(--rk-ui-kecil); }
+@media (max-width: 30em) { .sl-markdown-content .qr-angka { grid-template-columns: 1fr; gap: 0.3rem; } .sl-markdown-content .qr-angka div { display: flex; justify-content: space-between; gap: 0.6rem; } }
+
 /* === Kepala dokumen PRD (keputusan 122) === */
 /* Redesain (keputusan 205): kepala PRD tiga baris ringan tanpa kotak; label sekunder, nilai teks biasa. */
 .sl-markdown-content .prd-kepala { margin: 1rem 0 1.4rem; font-size: var(--rk-ui); line-height: 1.55; color: var(--teks); }
