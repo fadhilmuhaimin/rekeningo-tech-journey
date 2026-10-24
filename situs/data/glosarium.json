@@ -434,9 +434,9 @@
  {
   "t": "Isolation level",
   "d": "Seberapa banyak perubahan dari transaction lain yang boleh terlihat oleh satu transaction yang sedang berjalan.",
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "n": "2.12 Isolation level",
-  "u": "/b-fondasi/b3-3-isolation-level/",
+  "u": "/tahap-2/isolation-level/",
   "s": "istilah-isolation-level",
   "h": null
  },
@@ -605,9 +605,9 @@
  {
   "t": "MVCC (Multi-Version Concurrency Control)",
   "d": "Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis.",
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "n": "2.12 Isolation level",
-  "u": "/b-fondasi/b3-3-isolation-level/",
+  "u": "/tahap-2/isolation-level/",
   "s": "istilah-mvcc",
   "h": null
  },
@@ -623,9 +623,9 @@
  {
   "t": "Nonrepeatable read",
   "d": "Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.",
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "n": "2.12 Isolation level",
-  "u": "/b-fondasi/b3-3-isolation-level/",
+  "u": "/tahap-2/isolation-level/",
   "s": "istilah-nonrepeatable-read",
   "h": null
  },
@@ -731,9 +731,9 @@
  {
   "t": "Phantom read",
   "d": "Anomali: query yang sama dalam satu transaction mengembalikan kumpulan baris berbeda, karena transaction lain menambah atau menghapus baris.",
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "n": "2.12 Isolation level",
-  "u": "/b-fondasi/b3-3-isolation-level/",
+  "u": "/tahap-2/isolation-level/",
   "s": "istilah-phantom-read",
   "h": null
  },
@@ -965,9 +965,9 @@
  {
   "t": "Serialization anomaly",
   "d": "Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun.",
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "n": "2.12 Isolation level",
-  "u": "/b-fondasi/b3-3-isolation-level/",
+  "u": "/tahap-2/isolation-level/",
   "s": "istilah-serialization-anomaly",
   "h": null
  },
@@ -1001,9 +1001,9 @@
  {
   "t": "Snapshot",
   "d": "Gambaran isi database pada satu saat, yang dilihat oleh satu query atau satu transaction.",
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "n": "2.12 Isolation level",
-  "u": "/b-fondasi/b3-3-isolation-level/",
+  "u": "/tahap-2/isolation-level/",
   "s": "istilah-snapshot",
   "h": null
  },

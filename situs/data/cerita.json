@@ -1531,6 +1531,29 @@
       "menit": 10
     },
     {
+      "id": "t2-isolation-level",
+      "judul": "Isolation level secara praktis",
+      "tahap": 2,
+      "topik": "Data",
+      "path": "tahap-2/isolation-level.md",
+      "prasyarat": [
+        "B3.2"
+      ],
+      "masalah": "Laporan tutup buku tidak cocok Rp25.000, padahal setiap jurnal seimbang",
+      "ada": true,
+      "pendek": "Isolation level",
+      "jenis": "konsep",
+      "bagian": 4,
+      "peran": [
+        "backend"
+      ],
+      "lab": [
+        "b3-isolasi"
+      ],
+      "nomor": "2.12",
+      "menit": 13
+    },
+    {
       "id": "B3.3",
       "judul": "Isolation level secara praktis",
       "tahap": 2,
@@ -1539,19 +1562,14 @@
       "prasyarat": [
         "B3.2"
       ],
-      "masalah": "Transaction melihat data yang \"berubah sendiri\"",
       "ada": true,
-      "pendek": "Isolation level",
-      "jenis": "konsep",
+      "pendek": "Isolation level (versi lama)",
       "bagian": 4,
-      "peran": [
-        "backend"
-      ],
       "lama": true,
+      "lebur_ke": "t2-isolation-level",
       "lab": [
         "b3-isolasi"
       ],
-      "nomor": "2.12",
       "menit": 10
     },
     {

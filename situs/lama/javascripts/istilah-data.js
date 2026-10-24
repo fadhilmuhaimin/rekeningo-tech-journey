@@ -415,12 +415,12 @@ window.ISTILAH = {
   "u": "tahap-1/testing/"
  },
  "Isolation level": {
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "d": "Seberapa banyak perubahan dari transaction lain yang boleh terlihat oleh satu transaction yang sedang berjalan.",
   "n": "2.12 Isolation level",
   "s": "istilah-isolation-level",
   "t": "Isolation level",
-  "u": "b-fondasi/b3-3-isolation-level/"
+  "u": "tahap-2/isolation-level/"
  },
  "JSON Web Token": {
   "b": "B5.1",
@@ -539,12 +539,12 @@ window.ISTILAH = {
   "u": "b-fondasi/b3-2-race-condition-lock/"
  },
  "MVCC": {
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "d": "Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis.",
   "n": "2.12 Isolation level",
   "s": "istilah-mvcc",
   "t": "MVCC (Multi-Version Concurrency Control)",
-  "u": "b-fondasi/b3-3-isolation-level/"
+  "u": "tahap-2/isolation-level/"
  },
  "Metric": {
   "b": "C2",
@@ -611,12 +611,12 @@ window.ISTILAH = {
   "u": "b-fondasi/b2-4-n-plus-1/"
  },
  "Nonrepeatable read": {
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "d": "Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.",
   "n": "2.12 Isolation level",
   "s": "istilah-nonrepeatable-read",
   "t": "Nonrepeatable read",
-  "u": "b-fondasi/b3-3-isolation-level/"
+  "u": "tahap-2/isolation-level/"
  },
  "OAuth 2.0": {
   "b": "B5.2",
@@ -755,12 +755,12 @@ window.ISTILAH = {
   "u": "e-mobile/e5-ukuran-payload/"
  },
  "Phantom read": {
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "d": "Anomali: query yang sama dalam satu transaction mengembalikan kumpulan baris berbeda, karena transaction lain menambah atau menghapus baris.",
   "n": "2.12 Isolation level",
   "s": "istilah-phantom-read",
   "t": "Phantom read",
-  "u": "b-fondasi/b3-3-isolation-level/"
+  "u": "tahap-2/isolation-level/"
  },
  "Polling": {
   "b": "E4",
@@ -972,12 +972,12 @@ window.ISTILAH = {
   "u": "b-fondasi/b8-concurrency/"
  },
  "Serialization anomaly": {
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "d": "Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun.",
   "n": "2.12 Isolation level",
   "s": "istilah-serialization-anomaly",
   "t": "Serialization anomaly",
-  "u": "b-fondasi/b3-3-isolation-level/"
+  "u": "tahap-2/isolation-level/"
  },
  "Sharding": {
   "b": "D2",
@@ -1004,12 +1004,12 @@ window.ISTILAH = {
   "u": "b-fondasi/b11-2-proxy-bff/"
  },
  "Snapshot": {
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "d": "Gambaran isi database pada satu saat, yang dilihat oleh satu query atau satu transaction.",
   "n": "2.12 Isolation level",
   "s": "istilah-snapshot",
   "t": "Snapshot",
-  "u": "b-fondasi/b3-3-isolation-level/"
+  "u": "tahap-2/isolation-level/"
  },
  "Source of truth": {
   "b": "A1",
@@ -1411,12 +1411,12 @@ window.ISTILAH = {
   "u": "tahap-1/testing/"
  },
  "isolation level": {
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "d": "Seberapa banyak perubahan dari transaction lain yang boleh terlihat oleh satu transaction yang sedang berjalan.",
   "n": "2.12 Isolation level",
   "s": "istilah-isolation-level",
   "t": "Isolation level",
-  "u": "b-fondasi/b3-3-isolation-level/"
+  "u": "tahap-2/isolation-level/"
  },
  "job terjadwal": {
   "b": "t2-pencairan",
@@ -1559,12 +1559,12 @@ window.ISTILAH = {
   "u": "b-fondasi/b2-4-n-plus-1/"
  },
  "nonrepeatable read": {
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "d": "Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.",
   "n": "2.12 Isolation level",
   "s": "istilah-nonrepeatable-read",
   "t": "Nonrepeatable read",
-  "u": "b-fondasi/b3-3-isolation-level/"
+  "u": "tahap-2/isolation-level/"
  },
  "object storage": {
   "b": "B11.2",
@@ -1647,12 +1647,12 @@ window.ISTILAH = {
   "u": "e-mobile/e5-ukuran-payload/"
  },
  "phantom read": {
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "d": "Anomali: query yang sama dalam satu transaction mengembalikan kumpulan baris berbeda, karena transaction lain menambah atau menghapus baris.",
   "n": "2.12 Isolation level",
   "s": "istilah-phantom-read",
   "t": "Phantom read",
-  "u": "b-fondasi/b3-3-isolation-level/"
+  "u": "tahap-2/isolation-level/"
  },
  "polling": {
   "b": "E4",
@@ -1816,12 +1816,12 @@ window.ISTILAH = {
   "u": "b-fondasi/b8-concurrency/"
  },
  "serialization anomaly": {
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "d": "Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun.",
   "n": "2.12 Isolation level",
   "s": "istilah-serialization-anomaly",
   "t": "Serialization anomaly",
-  "u": "b-fondasi/b3-3-isolation-level/"
+  "u": "tahap-2/isolation-level/"
  },
  "sharding": {
   "b": "D2",
@@ -1840,12 +1840,12 @@ window.ISTILAH = {
   "u": "tahap-1/authentication/"
  },
  "snapshot": {
-  "b": "B3.3",
+  "b": "t2-isolation-level",
   "d": "Gambaran isi database pada satu saat, yang dilihat oleh satu query atau satu transaction.",
   "n": "2.12 Isolation level",
   "s": "istilah-snapshot",
   "t": "Snapshot",
-  "u": "b-fondasi/b3-3-isolation-level/"
+  "u": "tahap-2/isolation-level/"
  },
  "source of truth": {
   "b": "A1",

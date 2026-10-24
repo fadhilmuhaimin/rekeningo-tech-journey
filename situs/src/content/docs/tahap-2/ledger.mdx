@@ -249,7 +249,7 @@ if (error?.code === '23514') {
 | Aturan untuk satu baris, mis. jumlah posting bukan 0 atau alasan pembalik minimal 20 karakter | `CHECK`; diperiksa seketika |
 | Aturan yang menjumlah beberapa baris, mis. jurnal seimbang | Constraint trigger yang ditunda sampai `COMMIT` |
 | Baris yang tidak boleh berubah | Trigger `BEFORE UPDATE`, `DELETE`, dan `TRUNCATE`, ditambah role app yang bukan pemilik tabel |
-| Aturan yang harus benar saat dua transaction berjalan bersamaan | Pemeriksaan saja tidak cukup; butuh lock atau Serializable ([[B3.2]], [[B3.3]]) |
+| Aturan yang harus benar saat dua transaction berjalan bersamaan | Pemeriksaan saja tidak cukup; butuh lock atau Serializable ([[B3.2]], [[t2-isolation-level]]) |
 
 **Biaya invarian di database.** Setiap posting keluar di buku karyawan menjalankan `sum` atas semua posting buku itu, jadi pemeriksaannya tumbuh bersama riwayat. Lamanya belum diukur di lab. Kesalahan juga baru terlihat di `COMMIT`, jadi kode harus memetakan SQLSTATE dan nama constraint menjadi jawaban yang dimengerti app.
 
