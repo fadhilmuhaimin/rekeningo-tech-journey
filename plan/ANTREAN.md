@@ -1151,11 +1151,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.13 · M10: Nasi goreng dibayar dua kali
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.12, lab-e3-idempotency
 - selesai bila: halaman Masalah 2.13 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/e3-idempotency`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Dari e3 (512, 518): Idempotency-Key adalah draft IETF -07 yang sudah kedaluwarsa, bukan standar; key di contoh dipendekkan karena gitleaks.
+- catatan: Dari e3 (512, 518): Idempotency-Key adalah draft IETF -07 yang sudah kedaluwarsa, bukan standar; key di contoh dipendekkan karena gitleaks. PR #300, keputusan 650–652 (`plan/masuk/tahap-2-m10-dobel-bayar.md`): `tahap-2/m10-dibayar-dua-kali.mdx` dengan template Masalah; Rantai `t2-m10-dua-request`, potongan `ledger/tanpa-key.txt`, `api-t1/output/sengaja-belum.txt` D (tap kedua Budi), `mati-di-tengah.txt` 29–31, RFC 9110 §9.2.2 (R2-19); widget alur `t2-m10.json` dua HP, ubah satu hal `key-per-niat.txt`; ilustrasi `m10`. Status draft ditulis -08 aktif, belum RFC (R2-17, dicek 2026-10-24). ADR 14 tidak dibuka; tanpa halaman istilah baru. Lab diulang dari database bersih: `cek-ledger` LOLOS, rekaman identik.
 
 ### 2.14 · Retry dan idempotency key + ADR 14
 
