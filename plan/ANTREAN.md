@@ -1160,11 +1160,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.14 · Retry dan idempotency key + ADR 14
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.13, lab-e3-idempotency
 - selesai bila: halaman Konsep+ADR 2.14 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/e3-idempotency`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Isi lama E3 dipakai ulang. Dari e3 (514, tinjauan #263): sesudah jawaban final (termasuk 422 yang disimpan 24 jam) tap baru = niat baru; ADR 14 memutuskan nasib app 1.0/1.1 tanpa key.
+- catatan: Isi lama E3 dipakai ulang. Dari e3 (514, tinjauan #263): sesudah jawaban final (termasuk 422 yang disimpan 24 jam) tap baru = niat baru; ADR 14 memutuskan nasib app 1.0/1.1 tanpa key. Dikerjakan di `tahap-2/idempotency`, keputusan 653–655 (`plan/masuk/tahap-2-idempotency.md`): halaman baru `tahap-2/retry-idempotency.mdx` (`t2-idempotency`, template konsep, ADR 14 di Putuskan), E3 jadi versi lama dengan `lebur_ke`; Rantai `t2-idempotency-inti`; Coba = widget alur `t2-idempotency.json` (key dibuat ulang per percobaan lawan key sekali per niat, dari `key-per-percobaan.txt` dan `key-per-niat.txt`); Paham: sisi app (Dart `NiatBayar`, retry), sisi server (tabel key, `diproses.txt`, `mati-di-tengah.txt`, `aturan.txt`), backoff dan jitter, retry mana yang aman, at-least-once, enam tab stack; ADR 14 empat opsi (A–D), enam aturan, nasib app 1.0 dan 1.1 = masa peralihan (key opsional, wajib sesudah satu minggu tanpa Bayar tanpa key, Asumsi), pre-mortem tiga penyebab. Istilah baru: retry, backoff, at-least-once; riset R2-100–R2-104; skema istilah menerima ID riset tiga digit. Peninjau (PR #301, keputusan 792, 793): tujuh klaim dikoreksi terhadap kode lab dan sumber (satu pengaturan server tidak ada di lab, 5xx = 500/502/503/504, 243 = 3⁵ percobaan, kalimat usang enam jawaban, pre-mortem 3, Stripe menyimpan 500, Equal Jitter); aturan 5 dipertahankan sebagai rancangan berlabel; enam polesan ke SETELAH-TAHAP-2.
 
 ### 2.15 · M11: Riwayat 4 detik
 

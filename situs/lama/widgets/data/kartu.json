@@ -630,7 +630,7 @@
   "judul": "1.40 Sengaja belum dilakukan",
   "url": "tahap-1/sengaja-belum/",
   "tanya": "Benar atau salah: memasang queue di depan endpoint Bayar mencegah dobel bayar saat Budi mengulang Bayar.",
-  "jawab": "Salah. Request ulang tetap masuk sebagai pesan baru, dan queue standar SQS bisa mengirim satu pesan lebih dari sekali. Yang membedakan request ulang dari pembayaran baru adalah tanda dari app, dan itu dibahas di Tahap 2 (2.14 Retry dan idempotency key)."
+  "jawab": "Salah. Request ulang tetap masuk sebagai pesan baru, dan queue standar SQS bisa mengirim satu pesan lebih dari sekali. Yang membedakan request ulang dari pembayaran baru adalah tanda dari app, dan itu dibahas di Tahap 2 (Retry dan idempotency key (versi lama))."
  },
  {
   "id": "t1-rekap-1",
@@ -875,28 +875,44 @@
   "jawab": "Read Committed dan Repeatable Read. Di Repeatable Read, transaction baca saja tidak pernah punya konflik serialisasi (13.2.2). Di Serializable, transaction baca saja bisa ditolak, kecuali dibuka `READ ONLY DEFERRABLE`."
  },
  {
-  "id": "E3-1",
-  "halaman": "E3",
+  "id": "t2-idempotency-1",
+  "halaman": "t2-idempotency",
   "judul": "2.14 Retry dan idempotency key + ADR 14",
-  "url": "e-mobile/e3-retry-idempotency/",
-  "tanya": "App menerima `422 saldo_kurang`. Apakah app boleh retry otomatis?",
-  "jawab": "Tidak. `422` berarti request dipahami tapi aturan bisnisnya dilanggar. Mengulang request yang sama akan ditolak dengan alasan yang sama. Retry otomatis hanya untuk kegagalan sementara: timeout, koneksi putus, `503`, dan `429`."
+  "url": "tahap-2/retry-idempotency/",
+  "tanya": "AI menulis interceptor Dio yang menambahkan `Idempotency-Key` dengan UUID baru di setiap request, termasuk retry. Aman dari M10?",
+  "jawab": "Tidak aman. Retry membawa key yang belum pernah dilihat server, jadi dikerjakan sebagai niat baru: dua jurnal dan saldo Rp50.000 (rekaman `key-per-percobaan.txt`). Perbaikannya: buat key sekali di objek niat saat Budi menekan Bayar, lalu pakai objek itu di setiap percobaan."
  },
  {
-  "id": "E3-2",
-  "halaman": "E3",
+  "id": "t2-idempotency-2",
+  "halaman": "t2-idempotency",
   "judul": "2.14 Retry dan idempotency key + ADR 14",
-  "url": "e-mobile/e3-retry-idempotency/",
-  "tanya": "Jelaskan kenapa response juga harus disimpan di tabel key, bukan hanya key-nya.",
-  "jawab": "Retry harus menerima jawaban yang sama dengan percobaan pertama, mis. `201` dengan id pembayaran dan saldo terbaru. Kalau server hanya tahu \"key ini pernah dipakai\", ia bisa menolak retry, tapi app tidak tahu apakah pembayarannya sukses dan berapa saldonya."
+  "url": "tahap-2/retry-idempotency/",
+  "tanya": "Server menjawab 422 saldo kurang. Budi mengisi saldo, lalu menekan Bayar lagi. Pakai key lama atau key baru?",
+  "jawab": "Key baru. Server menyimpan semua hasil sesudah key dicatat, termasuk penolakan aturan bisnis, jadi key lama akan mengulang jawaban 422 selama 24 jam. Tap baru sesudah jawaban final adalah niat baru. Perilaku ini dari kode lab (`denganKunci`) dan belum direkam."
  },
  {
-  "id": "E3-3",
-  "halaman": "E3",
+  "id": "t2-idempotency-3",
+  "halaman": "t2-idempotency",
   "judul": "2.14 Retry dan idempotency key + ADR 14",
-  "url": "e-mobile/e3-retry-idempotency/",
-  "tanya": "Budi menekan Bayar, app crash, lalu Budi membuka app lagi dan menekan Bayar di pesanan yang sama. Key mana yang harus dipakai?",
-  "jawab": "Key yang sama dengan sebelum crash, karena ini aksi bayar yang sama untuk pesanan yang sama. Karena itu key disimpan bersama pesanan di penyimpanan lokal, bukan hanya di memori."
+  "url": "tahap-2/retry-idempotency/",
+  "tanya": "Request kedua tiba saat request pertama belum `COMMIT`. Apa jawaban server, dan apa yang dilakukan app?",
+  "jawab": "Server menjawab 409, karena baris key sedang dikunci transaction request pertama (SQLSTATE 55P03). App mengulang dengan key yang sama sesudah jeda, dan percobaan berikutnya menerima 201 yang sama. Di rekaman `diproses.txt`, percobaan 2 dikirim 230 ms sesudah percobaan 1 dan dijawab 409. Percobaan 3 dikirim 461 ms kemudian dan dijawab 201."
+ },
+ {
+  "id": "t2-idempotency-4",
+  "halaman": "t2-idempotency",
+  "judul": "2.14 Retry dan idempotency key + ADR 14",
+  "url": "tahap-2/retry-idempotency/",
+  "tanya": "Key yang sama dikirim lagi untuk pembayaran Rp30.000, padahal key itu sudah dipakai untuk Rp25.000. Apa yang terjadi?",
+  "jawab": "Server menjawab 422. Sidik jari isi request berbeda dari yang tersimpan, jadi server tidak mengirim respons milik pembayaran Rp25.000 dan tidak menulis jurnal (rekaman `aturan.txt` butir 2)."
+ },
+ {
+  "id": "t2-idempotency-5",
+  "halaman": "t2-idempotency",
+  "judul": "2.14 Retry dan idempotency key + ADR 14",
+  "url": "tahap-2/retry-idempotency/",
+  "tanya": "App timeout, dan Raka menyimpulkan pembayaran gagal lalu menampilkan \"Gagal, coba lagi\". Apa yang salah?",
+  "jawab": "Timeout hanya berarti app berhenti menunggu. Di rekaman `key-per-niat.txt`, request pertama sudah `COMMIT` sebelum response-nya hilang. App harus mengulang dengan key yang sama, atau menampilkan \"status belum pasti, cek riwayat\" sesudah percobaan terakhir."
  },
  {
   "id": "B2.4-1",
@@ -1066,6 +1082,30 @@
   "url": "b-fondasi/b3-3-isolation-level/",
   "tanya": "Ganti seluruh aplikasi ke serializable, lalu semua race selesai. Setuju?",
   "jawab": "Tidak sesederhana itu. Semua transaction penulis harus punya retry yang benar, termasuk efek di luar database yang tidak boleh terulang, mis. notifikasi. Tingkat kegagalan juga naik saat beban tinggi. Untuk satu baris saldo, `UPDATE` atomik lebih sederhana."
+ },
+ {
+  "id": "E3-1",
+  "halaman": "E3",
+  "judul": "Retry dan idempotency key",
+  "url": "e-mobile/e3-retry-idempotency/",
+  "tanya": "App menerima `422 saldo_kurang`. Apakah app boleh retry otomatis?",
+  "jawab": "Tidak. `422` berarti request dipahami tapi aturan bisnisnya dilanggar. Mengulang request yang sama akan ditolak dengan alasan yang sama. Retry otomatis hanya untuk kegagalan sementara: timeout, koneksi putus, `503`, dan `429`."
+ },
+ {
+  "id": "E3-2",
+  "halaman": "E3",
+  "judul": "Retry dan idempotency key",
+  "url": "e-mobile/e3-retry-idempotency/",
+  "tanya": "Jelaskan kenapa response juga harus disimpan di tabel key, bukan hanya key-nya.",
+  "jawab": "Retry harus menerima jawaban yang sama dengan percobaan pertama, mis. `201` dengan id pembayaran dan saldo terbaru. Kalau server hanya tahu \"key ini pernah dipakai\", ia bisa menolak retry, tapi app tidak tahu apakah pembayarannya sukses dan berapa saldonya."
+ },
+ {
+  "id": "E3-3",
+  "halaman": "E3",
+  "judul": "Retry dan idempotency key",
+  "url": "e-mobile/e3-retry-idempotency/",
+  "tanya": "Budi menekan Bayar, app crash, lalu Budi membuka app lagi dan menekan Bayar di pesanan yang sama. Key mana yang harus dipakai?",
+  "jawab": "Key yang sama dengan sebelum crash, karena ini aksi bayar yang sama untuk pesanan yang sama. Karena itu key disimpan bersama pesanan di penyimpanan lokal, bukan hanya di memori."
  },
  {
   "id": "C2-1",
@@ -1249,7 +1289,7 @@
   "judul": "3.8 Offline-first dan sync",
   "url": "e-mobile/e2-offline-first/",
   "tanya": "Jelaskan kenapa `op_id` dibuat saat Ani mengubah data, bukan saat app mengirim sync.",
-  "jawab": "Kiriman ulang harus membawa id yang sama dengan kiriman pertama. Kalau id dibuat saat mengirim, app yang mati lalu mengirim ulang akan membuat id baru, dan server menerapkan +10 dua kali. Ini masalah yang sama dengan idempotency key yang dibuat ulang setiap retry (2.14 Retry dan idempotency key)."
+  "jawab": "Kiriman ulang harus membawa id yang sama dengan kiriman pertama. Kalau id dibuat saat mengirim, app yang mati lalu mengirim ulang akan membuat id baru, dan server menerapkan +10 dua kali. Ini masalah yang sama dengan idempotency key yang dibuat ulang setiap retry (Retry dan idempotency key (versi lama))."
  },
  {
   "id": "E2-3",

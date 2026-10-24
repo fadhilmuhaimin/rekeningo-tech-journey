@@ -7,8 +7,8 @@
       "teks": "Minggu 2: sinyal di lantai dasar putus saat Budi membayar nasi goreng Rp25.000. Permintaan yang sama sampai dua kali, dan riwayatnya menunjukkan dua pembayaran."
     },
     {
-      "rujukan": "E3",
-      "teks": "ADR 14: app membuat key sekali per niat bayar, dan server menyimpan hasil per key selama 24 jam."
+      "rujukan": "t2-idempotency",
+      "teks": "ADR 14: app membuat key sekali per niat bayar, dan server menyimpan hasil per key selama 24 jam. Bayar dari app 1.0 dan 1.1 tanpa key diterima selama masa peralihan."
     }
   ],
   "mekanisme": [

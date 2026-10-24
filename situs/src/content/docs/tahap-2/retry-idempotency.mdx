@@ -1,0 +1,405 @@
+---
+title: "2.14 Retry dan idempotency key + ADR 14"
+description: Retry itu benar; yang salah adalah server yang tidak mengenali ulangan. App membuat key sekali per niat bayar, server menyimpan hasil 24 jam, dan ADR 14 memutuskan nasib app 1.0 dan 1.1.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-idempotency-inti.json";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 13 menit · coba 3 menit · Prasyarat: [[t2-m10]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Retry itu benar; yang salah adalah server yang tidak mengenali ulangan. App mengenalkannya dengan satu key per niat bayar.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di [[t2-m10]], app mengulang pembayaran Budi yang response-nya hilang, dan server minggu 2 menulis jurnal kedua (rekaman lab `tanpa-key.txt`).
+
+**Idempotency key** adalah penanda dari app di header `Idempotency-Key`. Satu key per niat bayar menghasilkan satu jurnal (`key-per-niat.txt`), sedangkan key baru di setiap retry tetap menghasilkan dua (`key-per-percobaan.txt`). ADR 14 memilih cara pertama.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. App timeout saat membayar. Apakah pembayarannya pasti gagal?
+2. Key dibuat saat Budi menekan Bayar atau saat request dikirim? Apa akibatnya untuk retry?
+3. Server menerima key yang sama dengan jumlah Rp30.000, padahal key itu sudah dipakai untuk Rp25.000. Apa jawabannya?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: header Idempotency-Key saja tidak cukup. Key dibuat sekali per niat bayar, dan setiap retry memakai key yang sama.">
+
+Widget ini memutar rekaman PostgreSQL 17.11 dari lab e3-idempotency. Server sudah menerima header `Idempotency-Key`. Tebak dulu saldo akhir Budi bila app membuat key baru di setiap percobaan, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t2-idempotency.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: app membuat key sekali per niat bayar**. Hanya asal key di percobaan 2 yang berubah. Server menemukan key `0fa0431d…` berstatus selesai dengan sidik jari yang sama, mengirim respons tersimpan, dan saldo Budi jadi Rp75.000.
+
+Di rekaman jalur pertama, tabel key memuat dua baris dengan `hash_permintaan` sama, `708cd1009764…`. Server bisa menghitung bahwa isinya identik. Yang tidak bisa ia ketahui: apakah isi itu satu niat yang diulang atau dua niat yang kebetulan sama.
+
+<details class="abstract">
+<summary>Rekaman lengkap kedua jalur (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/e3-idempotency/output/ledger/key-per-percobaan.txt" title="Rekaman lab: labs/e3-idempotency/output/ledger/key-per-percobaan.txt" />
+
+<Snippet file="labs/e3-idempotency/output/ledger/key-per-niat.txt" title="Rekaman lab: labs/e3-idempotency/output/ledger/key-per-niat.txt" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Retry sendiri tidak salah. Koneksi putus tidak memberi tahu app apa yang terjadi di server, dan RFC 9110 mengizinkan client mengulang bila ia tahu ulangan itu aman. Yang kurang adalah cara menjadikannya aman.
+
+Raka mengira header dan tabel key sudah menutup M10. Ia menambahkan `Idempotency-Key` lewat interceptor di HTTP client, yang memasang UUID baru di setiap pengiriman. Rekaman jalur pertama menunjukkan hasilnya: server mengenali header itu, tetapi key di retry belum pernah ia lihat.
+
+Server tidak bisa menebak bahwa dua key berasal dari satu niat. Pengenal itu hanya ada di app. Karena itu app yang harus membuatnya sekali, lalu memakainya lagi.
+
+### Cara kerjanya: sisi app
+
+Ada tiga aturan di app. Kodenya dijalankan di lab dengan Dart 3.11.4, `dart:io`, tanpa package.
+
+**1. Key dibuat sekali per niat bayar.** Satu niat adalah satu tap Bayar di layar konfirmasi. Objek niat menyimpan key, tujuan, dan jumlah. Retry otomatis dan tap ulang di layar yang sama memakai objek itu lagi.
+
+<Snippet file="labs/e3-idempotency/ledger/bayar.dart" region="niat" lang="dart" title="labs/e3-idempotency/ledger/bayar.dart" />
+
+Key adalah UUID versi 4 (RFC 9562 bagian 5.4): 122 bit acak. Di app sungguhan generatornya `Random.secure()`. Lab memakai seed tetap supaya rekaman bisa diulang byte per byte, jadi jangan salin seed itu ke app.
+
+**2. Retry hanya untuk kegagalan sementara, dengan batas.** Koneksi putus, timeout 10 detik, 409, 429, 500, 502, 503, dan 504 diulang. Jawaban 2xx, 400, dan 422 adalah jawaban final. Paling banyak empat percobaan.
+
+<Snippet file="labs/e3-idempotency/ledger/bayar.dart" region="retry" lang="dart" title="labs/e3-idempotency/ledger/bayar.dart" />
+
+**3. Sesudah percobaan terakhir, app tidak menebak.** Bila percobaan ke-4 juga gagal, app menulis "Status pembayaran belum pasti. Cek riwayat sebelum membayar lagi." Jalur ini ada di kode lab dan belum direkam.
+
+`timeout` di app hanya berhenti menunggu. `Future.timeout` tidak membatalkan future asalnya, yang masih bisa selesai belakangan ([dokumentasi Dart](https://api.dart.dev/dart-async/Future/timeout.html), Dart 3.13.7). Request yang sudah sampai di server tetap dikerjakan, dan itu alasan retry butuh key.
+
+### Cara kerjanya: sisi server
+
+Server menyimpan satu baris per key. Bentuknya sama dengan migrasi `labs/api-t2/migrasi/000011_ledger_pendukung.up.sql`.
+
+<Snippet file="labs/e3-idempotency/ledger/schema.sql" region="kunci" lang="sql" title="labs/e3-idempotency/ledger/schema.sql" />
+
+Server mengerjakan satu request dalam dua langkah. Langkah 1 mencatat key dengan status `diproses` dan kedaluwarsa 24 jam, lalu `COMMIT` sendiri. Langkah 2 membuka transaction, mengunci baris key dengan `FOR UPDATE NOWAIT`, dan menulis jurnal, status `selesai`, serta respons di transaction yang sama. Kolom `jam_tersisa` di rekaman bernilai 24 sesudah request selesai.
+
+Hasilnya, ada enam kejadian yang perlu dikenali server. Semuanya direkam di lab.
+
+| Kejadian | Jawaban server | Rekaman lab |
+|---|---|---|
+| Key baru | Dikerjakan, 201 | `key-per-niat.txt`, server #1 |
+| Key selesai, sidik jari sama | 201 yang sama, tanpa jurnal baru | `key-per-niat.txt`, server #2 |
+| Key sedang dikerjakan request lain | 409, app mengulang sesudah jeda | `diproses.txt` |
+| Key sama, isi berbeda | 422 | `aturan.txt`, butir 2 |
+| Tanpa header, atau nilai bukan UUID | 400 | `aturan.txt`, butir 3 dan 4 |
+| Server mati sebelum `COMMIT` | Jurnal batal; ulangan mengerjakan dari awal | `mati-di-tengah.txt` |
+
+Nilai header adalah String Structured Field, jadi UUID ditulis di antara tanda kutip: `Idempotency-Key: "0fa0431d…"`. Server lab hanya menerima UUID di dalam tanda kutip itu (draft bagian 2.1, RFC 9651 bagian 3.3.3). Key yang berasal dari akun lain dijawab 422 tanpa respons tersimpan, karena server mencocokkan juga `akun_id`.
+
+#### Request kedua datang saat yang pertama belum selesai
+
+Titik henti lab menahan transaction request #1 sebelum `COMMIT`, lalu request #2 tiba dengan key yang sama. Pencatatan key tidak menunggu lock, dan `FOR UPDATE NOWAIT` gagal dengan SQLSTATE 55P03. Server menjawab 409, dan app mengulang sesudah 461 ms.
+
+<Snippet file="labs/e3-idempotency/output/ledger/diproses.txt" lines="22:24" title="Rekaman lab: diproses.txt, sisi app" />
+
+<Snippet file="labs/e3-idempotency/output/ledger/diproses.txt" lines="32:39" title="Rekaman lab: diproses.txt, sisi server" />
+
+Draft IETF bagian 2.7 menyarankan 409 untuk keadaan ini, karena client tidak perlu memperbaiki request ([draft -08](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/)).
+
+#### Server mati sebelum `COMMIT`
+
+Jurnal, status `selesai`, dan respons ditulis di satu transaction, jadi ketiganya batal bersama. Di rekaman ini lab memutus koneksi database dengan `pg_terminate_backend`. Key tertinggal `diproses` tanpa lock, dan request kedua mengerjakannya dari awal.
+
+<Snippet file="labs/e3-idempotency/output/ledger/mati-di-tengah.txt" lines="29:35" title="Rekaman lab: mati-di-tengah.txt, sisi server" />
+
+Bandingkan dengan `key-per-niat.txt`. Dari layar HP, percobaan 1 sama-sama berakhir dengan koneksi putus. Bedanya ada di server: di sana jurnal 2 sudah tersimpan dan ulangan menerima responsnya, di sini jurnal 2 batal dan ulangan menulis jurnal 3. Saldo akhir Budi Rp75.000 di kedua kasus, jadi app tidak bisa membedakan keduanya.
+
+#### Key sama, isi berbeda
+
+<Snippet file="labs/e3-idempotency/output/ledger/aturan.txt" lines="23:28" title="Rekaman lab: aturan.txt, sisi app" />
+
+Server membandingkan sidik jari, yaitu sha256 dari method, path, dan body yang sudah dibaca ulang ke bentuk tetap. Spasi atau urutan field di JSON app tidak membuat ulangan dianggap permintaan lain. Penolakan 422 tidak menyimpan respons milik request lain.
+
+### Backoff dan jitter
+
+**Backoff** adalah jeda yang membesar di antara percobaan. App lab menunggu 200 ms × 2^(n−1) ditambah jitter acak 0–99 ms. Di rekaman `diproses.txt`, jeda sesudah percobaan 1 adalah 230 ms dan sesudah percobaan 2 adalah 461 ms.
+
+**Jitter** adalah keacakan di jeda itu. Tanpa jitter, app yang gagal di detik yang sama mengulang di detik yang sama juga, dan lonjakan pertama terulang ([Amazon Builders' Library](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/), 2019).
+
+Brooker membandingkan beberapa varian di simulasi. Full Jitter, yang mengacak seluruh jeda, memakai kerja paling sedikit di antara varian yang ia ukur. Equal Jitter, yang menyisakan sebagian jeda tetap, paling buruk di antara varian ber-jitter ([AWS Architecture Blog, 2015](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/)).
+
+Jitter di app lab hanya tambahan kecil, bukan Full Jitter, dan pengaruhnya tidak diukur di lab. Di Tahap 2 beban puncak ±1,4 request per detik (Asumsi naskah), jadi kebiasaannya yang ditulis sekarang, bukan beban yang menuntutnya.
+
+Batas jumlah percobaan juga bagian dari desain. Retry di setiap lapisan saling mengalikan. Builders' Library menghitung lima lapisan dengan tiga percobaan per lapisan (3⁵) menjadi 243 kali beban di database yang sedang gagal. Karena itu retry diletakkan di satu titik, yaitu app.
+
+### Retry mana yang aman
+
+RFC 9110 bagian 9.2.2 menyebut client sebaiknya tidak mengulang method yang tidak idempoten secara otomatis, kecuali ia tahu request itu idempoten atau belum pernah diterapkan. Key membuat `POST /transfers` memenuhi syarat pertama.
+
+| Yang diterima app | Diulang? | Alasan |
+|---|---|---|
+| Koneksi putus, timeout | Ya | Server mungkin sudah `COMMIT`; key membuat ulangan aman (rekaman `key-per-niat.txt`) |
+| 409 | Ya, sesudah jeda | Request pertama masih dikerjakan (rekaman `diproses.txt`, draft bagian 2.7) |
+| 429, 502, 503, 504 | Ya | Kegagalan sementara; 429 dan 503 boleh membawa `Retry-After` ([RFC 6585 bagian 4](https://www.rfc-editor.org/rfc/rfc6585.html#section-4), [RFC 9110 bagian 15.6.4](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.6.4)). App lab belum membaca `Retry-After` dan lab tidak merekam keempat status ini |
+| 500 | Ya, hanya karena ada key | Transaction yang gagal batal, dan key kembali bisa dikerjakan (kode lab, belum direkam) |
+| 400, 422 | Tidak | Request ditolak; ulangan ditolak dengan alasan yang sama (rekaman `aturan.txt`) |
+| 201 | Tidak | Jawaban final |
+
+### At-least-once
+
+Retry mengubah pengiriman menjadi **at-least-once**: pengirim mengulang sampai ada jawaban, sehingga penerima bisa menerima request yang sama lebih dari sekali. Dokumentasi queue standar Amazon SQS menjamin hal yang sama untuk pesan, dan menyarankan penerima siap menerima pesan ganda ([Amazon SQS](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html)).
+
+Key dan hasil tersimpan tidak menghentikan pengiriman ganda. Keduanya membuat efek di database terjadi sekali, walau request sampai dua kali. Konsep ini muncul lagi di Tahap 3 untuk notifikasi dan webhook ([[B10.2]]).
+
+### Di stack lain
+
+**Skenario:** response pembayaran hilang, dan app mengulang request yang sama dengan key yang sama.
+
+Yang sama di semua stack: server membaca header `Idempotency-Key`, mencatat key dengan constraint unik, dan menulis kerja serta status `selesai` di satu transaction. Client Dart di atas adalah satu-satunya sisi app yang dijalankan. Lima tab server lain tidak dijalankan, dan kodenya kerangka dari dokumentasi, bukan salinan lab.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: Go 1.27.1, `database/sql` + pgx v5.11.0, PostgreSQL 17.11, lab e3-idempotency.*
+
+<Snippet file="labs/e3-idempotency/server/ledger/main.go" region="dengan-kunci" lang="go" title="labs/e3-idempotency/server/ledger/main.go" />
+
+**Yang berbeda di stack ini:** `denganKunci` mencatat key dengan `INSERT … ON CONFLICT (kunci) DO NOTHING`, lalu mengunci baris key `FOR UPDATE NOWAIT` di transaction kerja. Kode 55P03 diubah jadi 409, dan hasil yang sudah selesai dibaca dari kolom `respons`.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [node-postgres: Transactions](https://node-postgres.com/features/transactions), `pg` 8.23.1, dan [dokumentasi `http` Node.js v22](https://nodejs.org/docs/latest-v22.x/api/http.html).*
+
+<Snippet lang="js" code={`const key = req.headers["idempotency-key"]; // Node menulis nama header dengan huruf kecil
+const client = await pool.connect();         // satu client untuk seluruh transaction
+try {
+  await client.query("BEGIN");
+  await client.query(
+    \`INSERT INTO kunci_idempotensi (kunci, akun_id, hash_permintaan, status, kedaluwarsa)
+     VALUES ($1, $2, $3, 'diproses', now() + interval '24 hours')
+     ON CONFLICT (kunci) DO NOTHING\`,
+    [kunci, akunId, hash]);
+  // baca baris key; kerja dan status selesai ditulis sebelum COMMIT
+  await client.query("COMMIT");
+} catch (e) {
+  await client.query("ROLLBACK");
+  throw e;
+} finally {
+  client.release();
+}`} />
+
+**Yang berbeda di stack ini:** tidak ada fitur idempotency key bawaan. Transaction harus lewat satu client dari `pool.connect()`, bukan `pool.query`.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: HTTP Requests](https://laravel.com/docs/13.x/requests#request-headers) dan [Database Transactions](https://laravel.com/docs/13.x/database#database-transactions), Laravel 13.38.0.*
+
+<Snippet lang="php" code={`$key = $request->header('Idempotency-Key'); // null bila tidak ada
+
+DB::transaction(function () use ($key, $akunId, $hash) {
+    DB::insert(
+        "INSERT INTO kunci_idempotensi (kunci, akun_id, hash_permintaan, status, kedaluwarsa)
+         VALUES (?, ?, ?, 'diproses', now() + interval '24 hours')
+         ON CONFLICT (kunci) DO NOTHING",
+        [$key, $akunId, $hash]);
+    // baca baris key; kerja dan status selesai ditulis di closure ini
+});`} />
+
+**Yang berbeda di stack ini:** core Laravel tidak punya middleware idempotency key. Pelanggaran constraint UNIQUE muncul sebagai `UniqueConstraintViolationException`, kalau kodenya memakai `INSERT` tanpa `ON CONFLICT`.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: HttpRequest.headers](https://docs.djangoproject.com/en/6.1/ref/request-response/#django.http.HttpRequest.headers) dan [Database transactions](https://docs.djangoproject.com/en/6.1/topics/db/transactions/), Django 6.1.2.*
+
+<Snippet lang="python" code={`key = request.headers.get("Idempotency-Key")  # nama header tidak membedakan huruf besar kecil
+
+with transaction.atomic():
+    with connection.cursor() as c:
+        c.execute(
+            "INSERT INTO kunci_idempotensi (kunci, akun_id, hash_permintaan, status, kedaluwarsa) "
+            "VALUES (%s, %s, %s, 'diproses', now() + interval '24 hours') "
+            "ON CONFLICT (kunci) DO NOTHING",
+            [key, akun_id, hash_permintaan])
+    # baca baris key; kerja dan status selesai ditulis di blok ini`} />
+
+**Yang berbeda di stack ini:** core Django tidak punya fitur idempotency key. Kalau key ditulis lewat model dengan `unique=True`, key ganda muncul sebagai `IntegrityError`.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: Transactions](https://docs.serverpod.dev/concepts/data-and-the-database/database/transactions), Serverpod 4.0.4.*
+
+<Snippet lang="dart" code={`// Header dibaca dari session.request?.headers.
+await session.db.transaction((transaction) async {
+  // catat key (status diproses), baca baris key,
+  // lalu tulis jurnal dan status selesai di transaction yang sama
+});
+// Key ganda dari constraint UNIQUE muncul sebagai DatabaseUniqueViolationException.`} />
+
+**Yang berbeda di stack ini:** constraint UNIQUE tetap dijaga PostgreSQL. Serverpod melaporkan pelanggarannya (kode PostgreSQL 23505) sebagai `DatabaseUniqueViolationException`.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: `rpc()`](https://supabase.com/docs/reference/javascript/rpc), `supabase-js` 2.118.0.*
+
+<Snippet lang="js" code={`// Edge Function: req.headers.get('Idempotency-Key')
+const { data, error } = await supabase.rpc('bayar', {
+  p_key: key, p_ke: 418, p_jumlah: 25000,
+});
+// Fungsi SQL \`bayar\` mencatat key dan menulis jurnal dalam satu transaction.`} />
+
+**Yang berbeda di stack ini:** satu panggilan `rpc()` berjalan sebagai satu transaction di PostgreSQL, jadi klaim key dan jurnal ditulis di fungsi database, bukan di client.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 14: key sekali per niat bayar, hasil disimpan 24 jam
+
+**Kebutuhan.** Di M10, Budi membayar nasi goreng Rp25.000 dan riwayatnya mencatat dua jurnal ([[t2-m10]]). Ledger tidak menolak keduanya: tiap jurnal seimbang dan saldo tidak negatif ([[t2-ledger]]). Yang salah adalah jumlah niatnya. Bebannya kecil: ±900 transaksi per hari dan puncak ±1,4 request per detik (Asumsi naskah bagian 3b).
+
+**Status:** diterima di minggu 2 Tahap 2, sesudah M10. Berlaku untuk jalur uang yang dikirim app: bayar ke warung dan transfer antar karyawan. Lab e3 membuktikan pola ini di server sendiri; `labs/api-t2` belum memasangnya (usulan di keputusan 517).
+
+| | A. Tanpa key, app mencegah dobel | B. Key per request | C. Key per niat bayar, hasil disimpan | D. Dedup isi request dalam jendela waktu |
+|---|---|---|---|---|
+| Cara kerja | App mengunci tombol Bayar selama spinner dan tidak mengulang POST otomatis. Server tidak berubah | Interceptor HTTP memasang UUID baru di setiap pengiriman, termasuk retry. Server memakai tabel key | App membuat key sekali di objek niat. Server mencatat key, lalu menulis jurnal, status `selesai`, dan respons di satu transaction | Server menghitung sidik jari (akun, tujuan, jumlah) dan menganggap request identik dalam jendela waktu sebagai ulangan |
+| Kelebihan | Tanpa tabel baru dan tanpa perubahan server. App lama tidak terganggu | Satu tempat di app, tanpa mengubah layar | Ulangan mendapat jawaban asli tanpa jurnal baru. Key sama dengan isi berbeda ditolak. Berlaku untuk tap ulang dan retry otomatis | App 1.0 dan 1.1 ikut terlindungi tanpa update |
+| Kekurangan | Spinner tidak memberi tahu hasil. Sesudah app menyerah, tap berikutnya membawa request yang sama dan dijurnal lagi | Retry tampak seperti niat baru, jadi ulangan tidak dikenali. Terlihat benar di kode dan di log | Butuh tabel key, masa simpan, dan disiplin di app. App 1.0 dan 1.1 tidak mengirim key | Server tidak bisa membedakan ulangan dari niat kedua yang identik. Budi yang membeli dua nasi goreng Rp25.000 dalam satu jendela dirugikan. Panjang jendela adalah tebakan |
+| Biaya operasional | Kode app kecil. Beban pindah ke Budi, yang harus memeriksa riwayat sendiri | Tabel dan job pembersih sama dengan C | Satu baris per request selama 24 jam: ≤ ±900 baris per hari (Asumsi naskah). Job pembersih belum ada di lab | Tabel sidik jari seperti C, ditambah keputusan produk: apa jawaban untuk request yang dianggap ulangan |
+| Bukti | Rekaman `tanpa-key.txt`: jurnal 3. RFC 9110 bagian 9.2.2 | Rekaman `key-per-percobaan.txt`: dua jurnal, saldo Rp50.000 | Rekaman `key-per-niat.txt`, `diproses.txt`, `mati-di-tengah.txt`, `aturan.txt`. Pola dasar sama dengan Builders' Library dan Stripe. Stripe API v1 juga menyimpan jawaban 500, sedangkan ADR 14 tidak, karena transaction-nya batal | Tidak dijalankan. Amazon SQS FIFO memakai interval 5 menit dan hash SHA-256 body ([dokumentasi](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues-exactly-once-processing.html)) |
+
+**Keputusan: opsi C.** Enam aturan:
+
+1. App membuat key (UUID versi 4) sekali per niat bayar, di objek niat dan bukan di fungsi kirim. Retry otomatis dan tap ulang di layar yang sama memakai objek itu. Sesudah jawaban final, tap baru adalah niat baru dengan key baru.
+2. Server mencatat key di langkah sendiri, lalu menulis jurnal, status `selesai`, dan respons di satu transaction. Key yang sama dengan isi atau pemilik berbeda dijawab 422, dan key yang sedang dikerjakan dijawab 409.
+3. Ulangan atas key selesai mendapat respons tersimpan tanpa jurnal baru, termasuk penolakan aturan bisnis seperti saldo kurang. Jawaban 500 tidak disimpan, karena transaction-nya batal dan key bisa dikerjakan lagi.
+4. App mengulang hanya koneksi putus, timeout 10 detik, 409, 429, 500, 502, 503, dan 504. Paling banyak empat percobaan, jeda 200 × 2^(n−1) ms ditambah jitter 0–99 ms. Sesudahnya app menulis "status belum pasti, cek riwayat" dan tidak membayar lagi.
+5. **App 1.0 dan 1.1.** Bayar tanpa header `Idempotency-Key` tetap diterima seperti server minggu 2, selama masa peralihan. Header yang ada tetapi bukan UUID tetap dijawab 400. Server mencatat setiap Bayar tanpa key. Perilaku "wajib key" (400, `aturan.txt` butir 3) dinyalakan sesudah satu minggu penuh tanpa Bayar tanpa key (Asumsi). Mode peralihan ini rancangan: belum ada di lab dan belum direkam.
+6. Baris key yang lewat 24 jam dihapus oleh job pembersih (`DELETE … WHERE kedaluwarsa < now()`). Job itu belum ada di lab.
+
+**Kenapa aturan 5 begini.** Lab menolak Bayar tanpa key dengan 400 (`aturan.txt` butir 3), padahal app 1.0 dan 1.1 tidak mengirim key. Menyalakannya sekarang membuat Bayar gagal di setiap HP yang belum diperbarui. [[E1|ADR 10]] sudah menolak jalan itu: server tidak punya versi minimum atau layar wajib update, dan app 1.0 bahkan tidak mengirim versinya.
+
+Pola [[E1|ADR 10]] dipakai lagi: tambah dulu, wajibkan kemudian. Jumlah Bayar tanpa key adalah hitungan yang ADR 10 belum punya, karena app yang mengirim key pasti app baru.
+
+Risikonya diterima terbuka. Selama peralihan, app 1.0 dan 1.1 bisa menulis dua jurnal seperti M10.
+
+Lab hanya merekam dua ujungnya: server tanpa key (`tanpa-key.txt`) dan server yang mewajibkan key (`aturan.txt` butir 3). Server lab punya dua perilaku itu saja: bendera `-tanpa-idempotensi` mengabaikan header walau ada, dan tanpa bendera key wajib. Mode peralihan butuh satu cabang baru di handler `transfers`: ada key ke `denganKunci`, tanpa key ke `sekali`. Cabang itu belum ditulis dan belum dijalankan, jadi seberapa mudah mode ini dibalik adalah penilaian, bukan rekaman.
+
+**Kenapa C, bukan A, B, atau D.**
+
+- **A ditolak** karena mengunci tombol tidak menjawab pertanyaan Budi. Rekaman `tanpa-key.txt` menunjukkan jurnal kedua, dan tap sesudah app menyerah membawa request yang sama.
+- **B ditolak** karena ia terlihat benar sambil gagal. Header ada di kedua request, tetapi server menulis dua jurnal (`key-per-percobaan.txt`). Opsi C membutuhkan tabel yang sama, jadi B tidak menghemat apa pun.
+- **D ditolak** karena isi yang sama bukan bukti niat yang sama. Dua key di rekaman B punya sidik jari identik, tetapi server tidak bisa tahu apakah itu retry atau pembelian kedua. D hanya dipakai bila tidak ada app yang bisa dimintai key.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Key dibuat per pengiriman lagi, misalnya sesudah library HTTP diganti. Kodenya tampak benar, dan log menunjukkan header terkirim. Pencegahannya aturan 1: key milik objek niat, satu tes app mengirim dua percobaan dan memeriksa header sama, dan checklist review di blok Kunci.
+2. Key hanya ada di memori. App ditutup atau crash sesudah Budi menekan Bayar, dan saat app dibuka ia menekan lagi, dengan key baru. Lab menyimpan key di memori dan tidak merekam kasus ini. Pencegahannya: simpan niat (key, tujuan, jumlah) di penyimpanan lokal sampai jawaban final.
+3. Dua niat memakai key yang sama karena generatornya tidak acak, misalnya seed tetap dari tes terbawa ke app. Bayar kedua dengan tujuan dan jumlah yang sama dijawab dengan respons pembayaran pertama: Budi melihat "berhasil" padahal tidak ada jurnal baru. Pencegahannya `Random.secure()` di app. Pemeriksaan pemilik di server hanya menolak tabrakan antar akun dengan 422, bukan tabrakan di satu akun. Kasus ini belum direkam.
+
+**Kapan keputusan ini salah.** Saat satu niat bisa dikirim ulang lebih dari 24 jam sesudah percobaan pertama. Contohnya queue offline yang baru tersambung keesokan harinya ([[E2]]). Lab tetap menghormati key yang belum dihapus (keputusan 514), jadi job pembersih yang menghapus tepat 24 jam akan membuka celah itu.
+
+Keputusan ini juga salah untuk jalur uang yang tidak dimulai app, seperti pencairan Jumat. Di sana tidak ada client yang membuat key.
+
+**Yang akan merevisinya.** Pencairan warung memakai kunci dari data (periode), bukan key dari client ([[t2-job-rekonsiliasi]]). Notifikasi dan webhook di Tahap 3 memindahkan pola ini ke sisi penerima yang menerima at-least-once ([[B10.2]]).
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Pola ini di `labs/api-t2` (`POST /transfers`, `POST /kiriman`) | Lab e3 membuktikan pola di server sendiri. api-t2 belum memasangnya dan tidak diubah di tugas halaman | Belum dijadwalkan |
+| Mode peralihan (Bayar tanpa key diterima, dengan key diperiksa) direkam di lab | Lab merekam kedua ujungnya. Mode di antaranya butuh satu cabang baru di handler `transfers` dan belum dijalankan | Belum dijadwalkan |
+| Penyimpanan niat di app dan pembacaan `Retry-After` | Client lab menyimpan niat di memori dan tidak membaca `Retry-After` | Belum dijadwalkan |
+| Job pembersih key kedaluwarsa | Tabel ±900 baris per hari (Asumsi). Job harus idempoten sendiri | [[t2-job-rekonsiliasi]], untuk pola job terjadwal |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** AI menulis interceptor Dio yang menambahkan `Idempotency-Key` dengan UUID baru di setiap request, termasuk retry. Aman dari M10?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak aman. Retry membawa key yang belum pernah dilihat server, jadi dikerjakan sebagai niat baru: dua jurnal dan saldo Rp50.000 (rekaman `key-per-percobaan.txt`). Perbaikannya: buat key sekali di objek niat saat Budi menekan Bayar, lalu pakai objek itu di setiap percobaan.
+
+</details>
+
+**2.** Server menjawab 422 saldo kurang. Budi mengisi saldo, lalu menekan Bayar lagi. Pakai key lama atau key baru?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Key baru. Server menyimpan semua hasil sesudah key dicatat, termasuk penolakan aturan bisnis, jadi key lama akan mengulang jawaban 422 selama 24 jam. Tap baru sesudah jawaban final adalah niat baru. Perilaku ini dari kode lab (`denganKunci`) dan belum direkam.
+
+</details>
+
+**3.** Request kedua tiba saat request pertama belum `COMMIT`. Apa jawaban server, dan apa yang dilakukan app?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Server menjawab 409, karena baris key sedang dikunci transaction request pertama (SQLSTATE 55P03). App mengulang dengan key yang sama sesudah jeda, dan percobaan berikutnya menerima 201 yang sama. Di rekaman `diproses.txt`, percobaan 2 dikirim 230 ms sesudah percobaan 1 dan dijawab 409. Percobaan 3 dikirim 461 ms kemudian dan dijawab 201.
+
+</details>
+
+**4.** Key yang sama dikirim lagi untuk pembayaran Rp30.000, padahal key itu sudah dipakai untuk Rp25.000. Apa yang terjadi?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Server menjawab 422. Sidik jari isi request berbeda dari yang tersimpan, jadi server tidak mengirim respons milik pembayaran Rp25.000 dan tidak menulis jurnal (rekaman `aturan.txt` butir 2).
+
+</details>
+
+**5.** App timeout, dan Raka menyimpulkan pembayaran gagal lalu menampilkan "Gagal, coba lagi". Apa yang salah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Timeout hanya berarti app berhenti menunggu. Di rekaman `key-per-niat.txt`, request pertama sudah `COMMIT` sebelum response-nya hilang. App harus mengulang dengan key yang sama, atau menampilkan "status belum pasti, cek riwayat" sesudah percobaan terakhir.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Key dibuat sekali per niat bayar, di luar loop retry dan di luar fungsi kirim atau interceptor.
+- [ ] Generator key acak (`Random.secure()`), bukan seed tetap, waktu, atau nomor urut.
+- [ ] Niat (key, tujuan, jumlah) disimpan di penyimpanan lokal sampai jawaban final.
+- [ ] Retry hanya untuk koneksi putus, timeout, 409, 429, 500, 502, 503, dan 504, dengan batas percobaan dan jeda membesar plus jitter.
+- [ ] Server mencocokkan key, pemilik, dan sidik jari isi. Key, jurnal, status `selesai`, dan respons ditulis dalam transaction yang benar.
+- [ ] Tidak ada panggilan jaringan di dalam transaction yang memegang lock.
+
+### Bacaan lanjut
+
+- [Internet-Draft: The Idempotency-Key HTTP Header Field](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/) (revisi -08, 22 Oktober 2026; masih draft, belum RFC)
+- [RFC 9110 bagian 9.2.2: Idempotent Methods](https://www.rfc-editor.org/rfc/rfc9110.html#name-idempotent-methods)
+- [AWS Architecture Blog: Exponential Backoff And Jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/) (Marc Brooker, 2015)
+- [Amazon Builders' Library: Timeouts, retries, and backoff with jitter](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/) (2019)
+- [Amazon Builders' Library: Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)
+- [Stripe: Idempotent requests](https://docs.stripe.com/api/idempotent_requests) (contoh API pembayaran yang mendokumentasikan polanya)
+- [PostgreSQL 17: INSERT, ON CONFLICT](https://www.postgresql.org/docs/17/sql-insert.html#SQL-ON-CONFLICT) dan [SELECT, The Locking Clause](https://www.postgresql.org/docs/17/sql-select.html#SQL-FOR-UPDATE-SHARE)
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />
