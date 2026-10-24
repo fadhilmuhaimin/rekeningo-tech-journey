@@ -492,6 +492,10 @@ def bagian_h():
     tulis("  Batasnya: banyak HP yang berbagi satu /64 (mis. Wi-Fi kantor IPv6) berbagi satu bucket, sama seperti")
     tulis("  banyak HP di balik satu IPv4 (NAT). Key alamat penuh tidak dijalankan di sini: hasilnya diukur lewat")
     tulis("  uji mutasi (keputusan 660), alasannya sama dengan bagian E1.")
+    tulis("  Batas lain: penyerang yang memegang prefix lebih luas dari /64 mendapat satu bucket per /64 di dalamnya;")
+    tulis("  RFC 6177 menyebut /56 sebagai contoh alokasi untuk rumah, jadi 256 bucket. Untuk credential stuffing (banyak")
+    tulis("  akun, satu tebakan per akun) lapis per IP lalu melemah; lapis per akun dan kunci di database tetap menahan")
+    tulis("  tebakan terfokus ke satu akun karena tidak bergantung pada alamat. Tidak dijalankan di lab ini (keputusan 798).")
     p.terminate(); p.wait()
     tulis("")
 
