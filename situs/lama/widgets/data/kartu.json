@@ -843,28 +843,36 @@
   "jawab": "Masing-masing memegang satu buku dan menunggu buku yang lain: deadlock. PostgreSQL membatalkan salah satunya, dan yang mana sulit ditebak (13.3.4). ADR 13 mengunci kedua buku dalam satu perintah `ORDER BY id FOR UPDATE`, jadi keduanya mengunci buku dengan urutan yang sama."
  },
  {
-  "id": "B3.3-1",
-  "halaman": "B3.3",
+  "id": "t2-isolation-level-1",
+  "halaman": "t2-isolation-level",
   "judul": "2.12 Isolation level secara praktis",
-  "url": "b-fondasi/b3-3-isolation-level/",
-  "tanya": "Rekaman laporan read committed membaca 250.000 lalu 275.000 dalam satu transaction. Apakah ini bug PostgreSQL?",
-  "jawab": "Bukan. Di read committed, setiap query melihat data yang sudah commit saat query itu dimulai. Pembayaran ke Ani commit di antara dua query, jadi query kedua melihatnya. Kalau laporan butuh satu snapshot, pakai repeatable read."
+  "url": "tahap-2/isolation-level/",
+  "tanya": "Rekaman laporan Read Committed membaca mutasi Budi Rp100.000 di perintah 1, lalu saldo akhir Rp75.000 di perintah 2. Apakah ini bug PostgreSQL?",
+  "jawab": "Bukan. Di Read Committed, setiap perintah membaca data yang sudah `COMMIT` saat perintah itu mulai. Bayar Rp25.000 `COMMIT` di antara kedua perintah, jadi hanya perintah 2 yang melihatnya. Laporan yang harus cocok dibuka di satu transaction Repeatable Read."
  },
  {
-  "id": "B3.3-2",
-  "halaman": "B3.3",
+  "id": "t2-isolation-level-2",
+  "halaman": "t2-isolation-level",
   "judul": "2.12 Isolation level secara praktis",
-  "url": "b-fondasi/b3-3-isolation-level/",
-  "tanya": "Jelaskan kenapa repeatable read \"aman\" untuk penarikan di rekaman, tapi tetap menuntut kode tambahan.",
-  "jawab": "PostgreSQL menolak `UPDATE` milik B yang dihitung dari snapshot lama, jadi lost update tidak terjadi. Tapi B menerima error, bukan hasil. Tanpa kode yang mengulang transaction, user menerima `500`. Rekaman menunjukkan ulangan B membaca Rp30.000 dan menolak dengan benar."
+  "url": "tahap-2/isolation-level/",
+  "tanya": "Dua transfer M9 tanpa lock: di Read Committed B ditolak 23514, di Repeatable Read keduanya tersimpan. Kenapa Repeatable Read, level di atas Read Committed, meloloskan saldo −Rp20.000?",
+  "jawab": "Trigger invarian 3 membaca saldo saat `COMMIT` B. Di Read Committed, query trigger mendapat snapshot baru yang berisi posting A. Di Repeatable Read, query itu memakai snapshot B, yang diambil sebelum A `COMMIT`. A dan B hanya `INSERT`, jadi tidak ada baris yang membuat B ditolak (rekaman `transfer.txt`)."
  },
  {
-  "id": "B3.3-3",
-  "halaman": "B3.3",
+  "id": "t2-isolation-level-3",
+  "halaman": "t2-isolation-level",
   "judul": "2.12 Isolation level secara praktis",
-  "url": "b-fondasi/b3-3-isolation-level/",
-  "tanya": "Ganti seluruh aplikasi ke serializable, lalu semua race selesai. Setuju?",
-  "jawab": "Tidak sesederhana itu. Semua transaction penulis harus punya retry yang benar, termasuk efek di luar database yang tidak boleh terulang, mis. notifikasi. Tingkat kegagalan juga naik saat beban tinggi. Untuk satu baris saldo, `UPDATE` atomik lebih sederhana."
+  "url": "tahap-2/isolation-level/",
+  "tanya": "Di Serializable, `COMMIT` B ditolak dengan 40001. Apa yang diulang kode, dan apa yang tidak boleh diulang?",
+  "jawab": "Seluruh transaction dari `BEGIN`, termasuk membaca saldo, dengan batas percobaan. Mengulang `COMMIT` saja tidak cukup, karena keputusan \"saldo cukup\" diambil dari bacaan yang sudah tidak berlaku. Error lain seperti 23514 dikembalikan ke app tanpa ulang, dan efek di luar database tidak boleh ikut terulang."
+ },
+ {
+  "id": "t2-isolation-level-4",
+  "halaman": "t2-isolation-level",
+  "judul": "2.12 Isolation level secara praktis",
+  "url": "tahap-2/isolation-level/",
+  "tanya": "Laporan tutup buku hanya membaca. Di level mana laporan itu dijamin tidak pernah ditolak 40001?",
+  "jawab": "Read Committed dan Repeatable Read. Di Repeatable Read, transaction baca saja tidak pernah punya konflik serialisasi (13.2.2). Di Serializable, transaction baca saja bisa ditolak, kecuali dibuka `READ ONLY DEFERRABLE`."
  },
  {
   "id": "E3-1",
@@ -1034,6 +1042,30 @@
   "url": "b-fondasi/b3-2-race-condition-lock/",
   "tanya": "Jelaskan dalam satu kalimat: kenapa `Mutex` atau `synchronized` di kode aplikasi tidak cukup untuk mencegah race ini di production?",
   "jawab": "Lock di memori hanya berlaku di satu proses. Production biasanya punya beberapa instance atau proses worker yang tidak berbagi memori, jadi pengamannya harus ada di database."
+ },
+ {
+  "id": "B3.3-1",
+  "halaman": "B3.3",
+  "judul": "Isolation level secara praktis",
+  "url": "b-fondasi/b3-3-isolation-level/",
+  "tanya": "Rekaman laporan read committed membaca 250.000 lalu 275.000 dalam satu transaction. Apakah ini bug PostgreSQL?",
+  "jawab": "Bukan. Di read committed, setiap query melihat data yang sudah commit saat query itu dimulai. Pembayaran ke Ani commit di antara dua query, jadi query kedua melihatnya. Kalau laporan butuh satu snapshot, pakai repeatable read."
+ },
+ {
+  "id": "B3.3-2",
+  "halaman": "B3.3",
+  "judul": "Isolation level secara praktis",
+  "url": "b-fondasi/b3-3-isolation-level/",
+  "tanya": "Jelaskan kenapa repeatable read \"aman\" untuk penarikan di rekaman, tapi tetap menuntut kode tambahan.",
+  "jawab": "PostgreSQL menolak `UPDATE` milik B yang dihitung dari snapshot lama, jadi lost update tidak terjadi. Tapi B menerima error, bukan hasil. Tanpa kode yang mengulang transaction, user menerima `500`. Rekaman menunjukkan ulangan B membaca Rp30.000 dan menolak dengan benar."
+ },
+ {
+  "id": "B3.3-3",
+  "halaman": "B3.3",
+  "judul": "Isolation level secara praktis",
+  "url": "b-fondasi/b3-3-isolation-level/",
+  "tanya": "Ganti seluruh aplikasi ke serializable, lalu semua race selesai. Setuju?",
+  "jawab": "Tidak sesederhana itu. Semua transaction penulis harus punya retry yang benar, termasuk efek di luar database yang tidak boleh terulang, mis. notifikasi. Tingkat kegagalan juga naik saat beban tinggi. Untuk satu baris saldo, `UPDATE` atomik lebih sederhana."
  },
  {
   "id": "C2-1",
