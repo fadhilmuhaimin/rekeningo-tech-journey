@@ -853,7 +853,8 @@ body:has(.beranda) .content-panel { padding-block: 0.6rem; border-top: 0; }
 .sl-markdown-content .qr-hasil { margin: 0 0 0.5rem; }
 .sl-markdown-content .qr-hasil p { margin: 0.5rem 0 0; }
 .sl-markdown-content .qr-batang { height: 0.7rem; border-radius: 0.35rem; background: var(--bg-3); border: 1px solid var(--garis); overflow: hidden; }
-.sl-markdown-content .qr-batang span { display: block; height: 100%; background: var(--k-warn-edge); }
+/* Batang digambar dengan border, bukan background: elemen kosong tanpa teks tidak punya pasangan teks/latar untuk contrast.py. */
+.sl-markdown-content .qr-batang span { display: block; height: 0; border-top: 0.7rem solid var(--k-warn-edge); }
 .sl-markdown-content .qr-angka { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem 0.8rem; margin: 0.6rem 0 0; }
 .sl-markdown-content .qr-angka div { margin: 0; }
 .sl-markdown-content .qr-angka dt { color: var(--teks-2); font-size: var(--rk-ui-kecil); line-height: 1.35; }
