@@ -1,0 +1,44 @@
+---
+/**
+ * Widget query riwayat (M11, keputusan 662): tebak jumlah query satu halaman riwayat, lalu ubah jumlah baris yang diminta.
+ *   <QueryRiwayat />
+ * Angka dibaca saat build dari labs/b2-query/output/ledger/n1.txt (bagian D dan E, cara N+1) lewat logika.ts; rekaman yang
+ * berubah bentuk atau jumlah query yang tidak sama dengan baris + 1 menggagalkan build. Teks dari data/widget/t2-m11-query.json
+ * (skema.ts). Island di-render saat build (client:visible); tanpa JavaScript tabel rekaman tampil di <noscript>.
+ * Satu widget per halaman (dipasang di blok Coba 2.15).
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import QueryRiwayatIsland from "../widgets/query-riwayat/QueryRiwayat";
+import { LabelQuery } from "../widgets/query-riwayat/skema";
+import { angka, bacaN1, indeksBenar, isi, waktu } from "../widgets/query-riwayat/logika";
+import labelMentah from "../../data/widget/t2-m11-query.json";
+
+const FILE = "labs/b2-query/output/ledger/n1.txt";
+const abs = path.join(ROOT, FILE);
+if (!fs.existsSync(abs)) throw new Error(`QueryRiwayat: ${FILE} tidak ada`);
+const permintaan = bacaN1(fs.readFileSync(abs, "utf8"));
+const L = LabelQuery.parse(labelMentah);
+const awal = permintaan[0]!;
+const nilai = { baris: awal.baris, query: awal.query };
+const pilihan = L.pilihan.map((p) => ({ query: p.query, alasan: isi(p.alasan, nilai) }));
+const benar = indeksBenar(pilihan, awal.query);
+const label = {
+  judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, pertanyaan: isi(L.pertanyaan, nilai), benar: L.benar,
+  belum: L.belum, ulang: L.ulang, ubahJudul: L.ubahJudul, nama: L.nama, kolom: L.kolom, catatan: L.catatan,
+  kalimat: Object.fromEntries(permintaan.map((p) => [p.id, isi(L.kalimat, { baris: angka(p.baris), query: angka(p.query) })])),
+};
+---
+<QueryRiwayatIsland client:visible permintaan={permintaan} pilihan={pilihan} benar={benar} label={label} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <table>
+    <thead><tr><th>{L.kolom.baris}</th><th>{L.kolom.query}</th><th>{L.kolom.waktu}</th></tr></thead>
+    <tbody>
+      {permintaan.map((p) => (
+        <tr><td>{L.nama[p.id as keyof typeof L.nama]}: {angka(p.baris)}</td><td>{angka(p.query)}</td><td>{waktu(p.ms)}</td></tr>
+      ))}
+    </tbody>
+  </table>
+</noscript>

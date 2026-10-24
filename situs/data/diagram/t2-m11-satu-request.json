@@ -1,0 +1,50 @@
+{
+  "id": "t2-m11-satu-request",
+  "judul": "Satu kali Budi membuka halaman pertama riwayat",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b2-query · n1.txt dan index.txt"
+  },
+  "baris": [
+    {
+      "label": "Server",
+      "sub": "jumlah query",
+      "simpul": [
+        {
+          "teks": "1 query: 20 transaksi terakhir Budi",
+          "sub": "bagian A di n1.txt"
+        },
+        {
+          "teks": "20 query: nama lawan, satu per baris",
+          "sub": "bagian A di n1.txt",
+          "nada": "warn"
+        },
+        {
+          "teks": "21 query untuk satu halaman",
+          "sub": "sama di client dan di log database (n1.txt bagian D)",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Database",
+      "sub": "query daftar, tanpa index riwayat",
+      "simpul": [
+        {
+          "teks": "Membaca 3.892 posting Budi",
+          "sub": "bagian B di index.txt"
+        },
+        {
+          "teks": "Membaca 380.224 baris jurnal",
+          "sub": "bagian B di index.txt",
+          "nada": "warn"
+        },
+        {
+          "teks": "Mengembalikan 20 baris",
+          "sub": "sesudah diurutkan menurut waktu"
+        }
+      ]
+    }
+  ],
+  "catatan": "Dua hal terjadi sebelum Budi melihat satu baris pun: server mengirim 21 query, dan query pertama membaca jauh lebih banyak baris daripada yang ia kembalikan."
+}
