@@ -855,7 +855,7 @@
   "halaman": "t2-isolation-level",
   "judul": "2.12 Isolation level secara praktis",
   "url": "tahap-2/isolation-level/",
-  "tanya": "Dua transfer M9 tanpa lock: di Read Committed B ditolak 23514, di Repeatable Read keduanya tersimpan. Kenapa level yang lebih tinggi justru meloloskan saldo −Rp20.000?",
+  "tanya": "Dua transfer M9 tanpa lock: di Read Committed B ditolak 23514, di Repeatable Read keduanya tersimpan. Kenapa Repeatable Read, level di atas Read Committed, meloloskan saldo −Rp20.000?",
   "jawab": "Trigger invarian 3 membaca saldo saat `COMMIT` B. Di Read Committed, query trigger mendapat snapshot baru yang berisi posting A. Di Repeatable Read, query itu memakai snapshot B, yang diambil sebelum A `COMMIT`. A dan B hanya `INSERT`, jadi tidak ada baris yang membuat B ditolak (rekaman `transfer.txt`)."
  },
  {

@@ -1,6 +1,6 @@
 ---
 title: "2.12 Isolation level secara praktis"
-description: Isolation level menentukan kapan transaction-mu melihat jurnal yang sudah COMMIT di transaction lain. Laporan tutup buku butuh satu snapshot; pemeriksaan saldo butuh lock, bukan level yang lebih tinggi.
+description: Isolation level menentukan kapan transaction-mu melihat jurnal yang sudah COMMIT di transaction lain. Laporan tutup buku butuh satu snapshot; pemeriksaan saldo butuh lock, atau Serializable dengan retry, bukan Repeatable Read.
 ---
 import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
@@ -23,7 +23,7 @@ Isolation level menentukan kapan transaction-mu melihat data yang sudah di-`COMM
 
 Di Read Committed, bawaan PostgreSQL, setiap perintah membaca data yang sudah `COMMIT` saat perintah itu mulai. Laporan tutup buku yang dibaca dalam dua perintah melihat bayar Budi Rp25.000 di perintah kedua saja. Rekaman lab `laporan.txt` (lab b3-isolasi) mendapat selisih Rp25.000 di buku Budi dan Warung Ani, padahal setiap jurnal seimbang.
 
-Di Repeatable Read, semua perintah membaca satu **snapshot**: isi database saat perintah pertama transaction itu, dan laporan yang sama jadi cocok. Pemeriksaan saldo saat `COMMIT` juga membaca snapshot itu. Dua transfer M9 tanpa lock sama-sama tersimpan, dan saldo Budi −Rp20.000 (`transfer.txt`). Level yang lebih tinggi bukan pengganti lock dari [[t2-race-lock]].
+Di Repeatable Read, semua perintah membaca satu **snapshot**: isi database saat perintah pertama transaction itu, dan laporan yang sama jadi cocok. Pemeriksaan saldo saat `COMMIT` juga membaca snapshot itu, jadi dua transfer M9 tanpa lock sama-sama tersimpan dan saldo Budi −Rp20.000 (`transfer.txt`). Repeatable Read bukan pengganti lock dari [[t2-race-lock]]. Serializable menolak salah satu transfer dengan 40001, dan semua jalur tulis harus mengulangnya.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -92,13 +92,13 @@ Empat anomali di tabel itu artinya:
 
 Kalau kamu memakai sqflite, transaction SQLite di HP sudah serializable, dan penulisnya bergiliran satu per satu ([SQLite: Isolation](https://www.sqlite.org/isolation.html)). Di server, PostgreSQL membiarkan transaction tumpang tindih, dan level yang kamu pilih menentukan apa yang terlihat.
 
-### Saat level lebih tinggi meloloskan saldo negatif
+### Saat Repeatable Read meloloskan saldo negatif
 
 Lab memakai kode transfer M9 tanpa lock: baca saldo dari posting, cek di app, `INSERT` jurnal dan posting, `COMMIT`. Invarian 3, saldo karyawan tidak negatif, diperiksa trigger saat `COMMIT` ([[t2-ledger]]). Angkanya dari naskah M9:
 
 <Rantai data={transferDiagram} />
 
-Fungsi trigger lab tidak menulis volatility, jadi bawaannya `VOLATILE`. Fungsi `VOLATILE` mengambil snapshot baru di setiap query yang dijalankannya ([PostgreSQL 17, 38.7](https://www.postgresql.org/docs/17/xfunc-volatility.html)). Di Read Committed, snapshot baru saat `COMMIT` B sudah berisi posting A, jadi B ditolak. Di Repeatable Read, setiap query di transaction B memakai snapshot B, termasuk query di trigger:
+Fungsi trigger lab tidak menulis volatility, jadi bawaannya `VOLATILE`. Dokumentasi menulis bahwa fungsi `VOLATILE` mengambil snapshot baru di setiap query yang dijalankannya, tanpa menyebut level ([PostgreSQL 17, 38.7](https://www.postgresql.org/docs/17/xfunc-volatility.html)). Di Read Committed, snapshot baru saat `COMMIT` B sudah berisi posting A, jadi B ditolak. Di Repeatable Read, semua query di transaction B memakai snapshot B, termasuk query di trigger ([13.2.2](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ)):
 
 <Snippet file="labs/b3-isolasi/output/ledger/transfer.txt" lines="87:93" title="Rekaman lab: labs/b3-isolasi/output/ledger/transfer.txt" />
 
@@ -141,7 +141,7 @@ Yang sama di semua stack: level berlaku untuk satu transaction dan ditetapkan se
 <TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
 <Fragment slot="t0">
 
-*Dijalankan: Go 1.27.1, `database/sql` + pgx v5.11.0, PostgreSQL 17.11, lab api-t2. Baris Repeatable Read di bawahnya tidak dijalankan; dicek ke kode sumber pgx v5.11.0 `stdlib/sql.go`.*
+*Kode `DalamTx` dijalankan di lab api-t2 (Go 1.27.1, `database/sql` + pgx v5.11.0, PostgreSQL 17.11), tapi level transaction-nya tidak direkam. Read Committed di bawah disimpulkan dari kode sumber pgx v5.11.0 `stdlib/sql.go` dan dari bawaan server di rekaman b3-isolasi. Baris Repeatable Read tidak dijalankan.*
 
 <Snippet file="labs/api-t2/internal/repo/tx.go" region="tx" lang="go" title="labs/api-t2/internal/repo/tx.go" />
 
@@ -277,7 +277,7 @@ Bukan. Di Read Committed, setiap perintah membaca data yang sudah `COMMIT` saat 
 
 </details>
 
-**2.** Dua transfer M9 tanpa lock: di Read Committed B ditolak 23514, di Repeatable Read keduanya tersimpan. Kenapa level yang lebih tinggi justru meloloskan saldo −Rp20.000?
+**2.** Dua transfer M9 tanpa lock: di Read Committed B ditolak 23514, di Repeatable Read keduanya tersimpan. Kenapa Repeatable Read, level di atas Read Committed, meloloskan saldo −Rp20.000?
 
 <details class="success">
 <summary>Jawaban</summary>
