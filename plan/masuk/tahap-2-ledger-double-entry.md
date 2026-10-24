@@ -14,4 +14,3 @@
 - Lama pemeriksaan invarian 3 (`sum` semua posting buku karyawan di setiap posting keluar) belum diukur; data `labs/b2-query` (±44 ribu posting) bisa dipakai untuk mengukurnya sebelum 2.17 (keputusan 626).
 - Penolakan invarian saat COMMIT belum direkam lewat HTTP di api-t2; `petaError` menjadikannya 500. Rekam di b3-race untuk 2.10, atau petakan 23514 `saldo_karyawan_tidak_negatif` ke 422 sesudah ADR 13 (keputusan 626).
 - Halaman istilah *invarian*, sumber terakhir (R2-63) berjudul "SQLSTATE dan nama constraint di lima stack" tapi url-nya halaman Serverpod saja; pecah per stack atau tanpa url (keputusan 676).
-- Berikutnya dari 2.7 melompat ke 2.11 (versi lama) selama 2.8–2.10 belum jadi; periksa lagi sesudah 2.8 di-merge (keputusan 676).
