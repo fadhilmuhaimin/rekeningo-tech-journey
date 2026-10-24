@@ -168,3 +168,39 @@ Retry-After: 6
 -------------------+----------
                 10 |        1
 (1 row)
+
+# server dimulai ulang: bucket di memori kosong, kunci Ani di database tetap
+
+# --- G. /ganti-password memakai pengaman yang sama dengan /login ---
+# Ani mengganti password sementaranya dengan password lama yang benar, selama akunnya terkunci:
+$ curl -i -X POST '/ganti-password' -d '{"email": "warung.ani@lestari.example", "password_lama": "sementara-418", "password_baru": "kalimat panjang milik ani"}'
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+
+{"type":"/problems/login-gagal","title":"Email atau password salah","status":401}
+
+# Lima tebakan password lama Karyawan 440 lewat /ganti-password, lalu /login untuk email yang sama
+POST /ganti-password tebakan-1: HTTP 401 /problems/login-gagal
+POST /ganti-password tebakan-2: HTTP 401 /problems/login-gagal
+POST /ganti-password tebakan-3: HTTP 401 /problems/login-gagal
+POST /ganti-password tebakan-4: HTTP 401 /problems/login-gagal
+POST /ganti-password tebakan-5: HTTP 401 /problems/login-gagal
+$ curl -i -X POST '/login' -d '{"email": "karyawan440@lestari.example", "password": "tebakan-6"}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 12
+
+{"type":"/problems/rate-limit-akun","title":"Terlalu banyak percobaan untuk akun ini","status":429,"detail":"Coba lagi dalam 12 detik."}
+=> SELECT id, gagal_login, terkunci_sampai IS NOT NULL AS terkunci FROM akun WHERE id = 440
+  id | gagal_login | terkunci
+-----+-------------+----------
+ 440 |           5 | t
+(1 row)
+
+# Bucket IP juga dipakai bersama: percobaan ke-8 sampai ke-10 dari alamat ini, lalu ke-11
+$ curl -i -X POST '/ganti-password' -d '{"email": "karyawan444@lestari.example", "password_lama": "password-bocor-situs-lain", "password_baru": "kalimat panjang milik penebak"}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 6
+
+{"type":"/problems/rate-limit-ip","title":"Terlalu banyak percobaan dari alamat ini","status":429,"detail":"Coba lagi dalam 6 detik."}

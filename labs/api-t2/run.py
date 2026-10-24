@@ -827,6 +827,34 @@ def rekam_pengaman():
     harap((s, j(isi)["type"]), (429, "/problems/rate-limit-ip"), "percobaan ke-11 dari satu IP")
     sql("SELECT count(*) FILTER (WHERE gagal_login > 0) AS akun_dengan_gagal,\n"
         "       count(*) FILTER (WHERE terkunci_sampai IS NOT NULL) AS terkunci FROM akun")
+
+    # Bagian G (tinjauan PR #294, keputusan 718): tanpa bagian ini, /ganti-password yang memeriksa password lama
+    # tanpa periksaMasuk atau tanpa lapis IP lolos semua tes dan rekaman (uji mutasi peninjau).
+    stop(tampil="\n# server dimulai ulang: bucket di memori kosong, kunci Ani di database tetap")
+    mulai_beku(None)
+    bagian("G. /ganti-password memakai pengaman yang sama dengan /login")
+    catat("# Ani mengganti password sementaranya dengan password lama yang benar, selama akunnya terkunci:")
+    s, isi = curl("POST", "/ganti-password", {"email": "warung.ani@lestari.example", "password_lama": "sementara-418",
+                                              "password_baru": "kalimat panjang milik ani"})
+    harap((s, isi), (401, tebak[0][1]), "ganti password saat terkunci: jawaban sama dengan password salah")
+    catat("\n# Lima tebakan password lama Karyawan 440 lewat /ganti-password, lalu /login untuk email yang sama")
+    hasil = [ganti_password("karyawan440@lestari.example", f"tebakan-{i}", "kalimat panjang milik penebak")
+             for i in range(1, 6)]
+    catat("\n".join(f"POST /ganti-password tebakan-{i}: HTTP {st} {isi.get('type', '')}"
+                     for i, (st, isi) in enumerate(hasil, 1)))
+    harap(sorted({(st, isi["type"]) for st, isi in hasil}), [(401, "/problems/login-gagal")], "lima tebakan ganti")
+    s, isi = curl("POST", "/login", {"email": "karyawan440@lestari.example", "password": "tebakan-6"})
+    harap((s, j(isi)["type"]), (429, "/problems/rate-limit-akun"), "bucket email dipakai bersama")
+    harap(sql("SELECT id, gagal_login, terkunci_sampai IS NOT NULL AS terkunci FROM akun WHERE id = 440"),
+          [(440, 5, True)], "kunci dari tebakan lewat /ganti-password")
+    catat("\n# Bucket IP juga dipakai bersama: percobaan ke-8 sampai ke-10 dari alamat ini, lalu ke-11")
+    hasil = [ganti_password(f"karyawan{n}@lestari.example", "password-bocor-situs-lain", "kalimat panjang milik penebak")
+             for n in range(441, 444)]
+    harap(sorted({st for st, _ in hasil}), [401], "tiga akun lain")
+    s, isi = curl("POST", "/ganti-password", {"email": "karyawan444@lestari.example",
+                                              "password_lama": "password-bocor-situs-lain",
+                                              "password_baru": "kalimat panjang milik penebak"})
+    harap((s, j(isi)["type"]), (429, "/problems/rate-limit-ip"), "ganti password ke-11 dari satu IP")
     tulis("pengaman.txt", "pengaman cek penerima dan login (M16, lab-api-t2a)")
 
 
