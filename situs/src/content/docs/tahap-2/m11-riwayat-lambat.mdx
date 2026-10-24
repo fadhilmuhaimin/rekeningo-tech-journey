@@ -1,0 +1,91 @@
+---
+title: "2.15 M11: Riwayat 4 detik"
+description: Minggu 3. Riwayat Budi butuh 4 detik untuk terbuka, dan laporan harian Ani timeout di hari ramai.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import satuRequest from "../../../../data/diagram/t2-m11-satu-request.json";
+import Snippet from "../../../components/Snippet.astro";
+import QueryRiwayat from "../../../components/QueryRiwayat.astro";
+
+<p class="meta">Baca 6 menit · coba 3 menit · Prasyarat: [[E3]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka ilustrasi="m11">
+
+Di minggu 3 Tahap 2, Budi sudah terbiasa mengirim uang ke rekan kerja. Ia kini sering patungan makan siang, jadi riwayatnya penuh transfer masuk.
+
+Senin siang Budi membuka halaman Riwayat. Lingkaran pemuatan berputar sekitar 4 detik sebelum daftar transaksinya muncul.
+
+Di warung, Ani membuka laporan harian untuk menutup hari yang ramai. Layarnya menampilkan "timeout". Ia mengulangnya, dan hasilnya sama.
+
+Sore itu Budi menulis ke Raka: "Riwayat saya lama sekali kalau dibuka." Ani mengirim tangkapan layar pesan timeout itu.
+
+*Angka cerita (Ilustrasi):* 4 detik dan timeout berasal dari naskah cerita, bukan dari rekaman lab. Rekaman lab di blok "Yang sebenarnya" tidak mengulang keduanya, dan blok itu menjelaskan apa yang terulang.
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka membaca kedua pesan itu. Satu gejala di dua layar: lambat. Ia menyimpulkan server terlalu kecil untuk 1.000 karyawan, lalu membuka daftar paket VPS yang lebih besar.
+
+<details class="question">
+<summary>Tebak dulu: server hanya melayani ±1,4 request per detik di puncak (Asumsi). Apa yang bisa Raka hitung sebelum membeli paket VPS yang lebih besar?</summary>
+
+Berapa query yang dikirim satu request, dan berapa baris yang dibaca database untuk menjawabnya. Server yang tidak kekurangan tenaga tetap lambat bila satu request mengerjakan terlalu banyak. Blok berikutnya menghitung keduanya dari rekaman lab.
+
+Asumsi beban: 1.000 user × 30% aktif × 40 request per hari, dengan jam puncak 10 kali rata-rata harian (registry Tahap 2).
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Raka menyalakan log semua statement di PostgreSQL (`log_statement = all`), membuka riwayat Budi satu kali, lalu menghitung baris lognya. Pengaturan itu mencatat semua statement yang diterima database ([dokumentasi PostgreSQL 17 tentang log_statement](https://www.postgresql.org/docs/17/runtime-config-logging.html)).
+
+Rekaman lab mengulang hitungan itu dari database bersih di PostgreSQL 17.11. Datanya satu tahun: 760.448 posting dalam 380.224 jurnal. Budi di data itu sering bertransaksi, jadi riwayatnya panjang: 3.892 posting.
+
+<Rantai data={satuRequest} />
+
+Jumlah query tumbuh bersama jumlah baris. Satu halaman 20 baris mengirim 21 query. Laporan harian Ani (194 baris) mengirim 195, dan seluruh riwayat Budi (3.892 baris) mengirim 3.893. Hitungan di client sama dengan hitungan di log server.
+
+<Snippet file="labs/b2-query/output/ledger/n1.txt" lines="7:16" title="Rekaman lab: labs/b2-query/output/ledger/n1.txt, bagian A (cara minggu 3)" />
+
+<Snippet file="labs/b2-query/output/ledger/n1.txt" lines="41:44" title="Rekaman lab: labs/b2-query/output/ledger/n1.txt, bagian D (halaman pertama)" />
+
+Query daftarnya sendiri juga membaca terlalu banyak. Tabel `posting` punya index per id, per jurnal, dan per buku, tapi tidak punya index yang mengurutkan posting satu buku menurut waktu. Posting merujuk buku, dan setiap akun karyawan dan warung punya satu buku ([[t2-skema]]).
+
+Untuk 20 baris teratas, database membaca ke-3.892 posting Budi dan seluruh 380.224 baris jurnal, lalu mengurutkan hasilnya:
+
+<Snippet file="labs/b2-query/output/ledger/index.txt" lines="22:36" title="Rekaman lab: labs/b2-query/output/ledger/index.txt, bagian B (query plan, waktu dan buffer hanya pembanding)" />
+
+Laporan Ani membaca 59.762 posting milik warungnya untuk menemukan 194 baris satu hari, dan membuang 59.568 sisanya:
+
+<Snippet file="labs/b2-query/output/ledger/index.txt" lines="60:66" title="Rekaman lab: labs/b2-query/output/ledger/index.txt, bagian C (query plan)" />
+
+Waktunya ada di rekaman yang sama (*Rekaman lab*, pembanding, bukan janji). Halaman pertama Budi memakai ±30 ms, laporan Ani ±106 ms, dan seluruh riwayat Budi ±1,9 detik. Seluruh riwayat Budi diminta lewat satu query selesai dalam ±31 ms, dengan data dan hasil yang sama (`n1.txt` bagian E). Mesin lab itu sanggup; yang berbeda adalah cara meminta datanya.
+
+*Yang tidak terulang:* rekaman ini tidak menghasilkan 4 detik atau timeout. Di minggu 3 cerita, tabel `posting` baru berisi ±44 ribu baris (Asumsi: 760.448 ÷ 52 × 3). Itu jauh di bawah data lab setahun, dan di lab tidak ada jaringan antara server dan database.
+
+Berapa lama riwayat Budi di VPS sungguhan belum diukur. Yang terulang adalah mekanismenya: query tumbuh satu per baris, dan database membaca lebih banyak baris daripada yang dikembalikan.
+
+Cara menulis ulang kedua hal itu dan keputusannya dibahas di [[t2-n-plus-1]] dan [[B2.3]].
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini memakai angka dari rekaman yang sama dengan blok sebelumnya. Tebak dulu jumlah query untuk halaman pertama, lalu pilih permintaan lain.
+
+<QueryRiwayat />
+
+Sesudah menebak, ubah satu hal: pilih Laporan harian Ani, lalu Seluruh riwayat Budi. Jumlah query selalu satu lebih banyak dari jumlah baris. Pola itu disebut N+1, dan [[t2-n-plus-1]] membahasnya.
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t2-n-plus-1]]: N+1 query. Satu query untuk daftar, lalu satu lagi untuk setiap baris, sehingga jumlah query tumbuh bersama jumlah baris.
+- [[B2.3]]: index dan query plan. Kenapa query daftar membaca 3.892 posting untuk mengembalikan 20, dan cara melihatnya di query plan. Keputusan perbaikannya ditulis sebagai ADR 15 di halaman itu.
+
+</Blok>
