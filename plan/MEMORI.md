@@ -36,12 +36,11 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditanya. Satu baris per keputusan (opsi paling aman dan paling mudah dibatalkan); bila lebih dari 8 baris, yang lama pindah ke `plan/DIPUTUSKAN-TANPA-PEMILIK.md` (keputusan 551). LAPORAN-AKHIR mengumpulkan keduanya.
 
-- Butir sebelum 2026-10-24 sore di `plan/DIPUTUSKAN-TANPA-PEMILIK.md`.
-- Serializable menangkap dua transfer M9 dengan 40001, jadi hanya Repeatable Read yang bukan pengganti lock (788); Coba 2.12 memakai laporan tutup buku, bukan replay M9 (642).
-- Halaman lama diganti dengan `lebur_ke`, dipindah ke akhir Tahap 2, tidak dihapus (638, 642, 653, 781); halaman istilah di luar registry (688).
-- Adegan M9 dengan penerima dari lab dan label "Rekaman lab, kondisi dibuat" untuk −Rp20.000 (637, 785); M10 memakai alur dua HP, bukan RaceLedger (650).
-- ADR 14: app 1.0/1.1 masa peralihan, Bayar tanpa key diterima, wajib key sesudah satu minggu tanpa Bayar tanpa key (Asumsi, belum direkam) (654).
-- Halaman Tahap 2 yang isinya mandiri dimulai sebelum prasyarat di-merge (722, 724); `lipat_masuk.py` menolak argumen asing dan diuji (725).
+- Butir sebelum 2026-10-24 malam di `plan/DIPUTUSKAN-TANPA-PEMILIK.md`.
+- Halaman lama B2.4, E3 diganti dengan `lebur_ke` dan dipindah ke akhir Tahap 2 (665, 653); "4 detik" M11 berlabel Ilustrasi dengan angka lab terpisah (663); "Di stack lain" 2.5 membahas penjadwalan (622).
+- ADR 14 aturan 5 (masa peralihan app 1.0/1.1) berlabel rancangan belum ada di lab dan belum direkam; mode `-key-opsional` jadi pekerjaan lab berikutnya (793).
+- lab-c4a: latar tugas keliru (api-t2 yang belum memeriksa daftar bocor), api-t2 tidak disentuh; daftar fiktif 27 entri jauh di bawah 3.000 ASVS 6.2.4 (661).
+- Insiden jalur_inti: merge saat main maju membuat CI main merah; aturan baku: cek ancestor, merge main, `sinkron_cerita.py` dan `build_istilah.py`, CI ulang (BRIEF-SUBAGEN).
 ## Perlu dicek pemilik
 
 - Butir lama dari Tahap 1 dan mode paralel (deploy PROPOSAL, dashboard web, M8, redesain #120, ADR 7 RLS, Cloudflare, Serverpod 4, CI Linux 26.04, renderer Chromium) dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik (arsip 2026-10-24)"; LAPORAN-AKHIR mengumpulkannya.
@@ -53,12 +52,14 @@ Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditan
 - api-t2 sesudah lab-api-t2a (648): password sementara bisa dipakai orang lain mendahului pemiliknya di /ganti-password (usul: password sementara acak per akun lewat saluran di luar app); app 1.0/1.1 tanpa layar ganti password berhenti di 403; bila HP kampus keluar lewat satu IP (NAT), 300 login per 30 menit tepat di batas per IP.
 - 2.8: `jurnal.keterangan` teks bebas berisi nama dan jurnal tidak bisa dihapus; naskah belum menjadwalkan penghapusan data pribadi.
 - 2.11 (780): top-up CSV api-t2 bisa deadlock dengan transfer bila urutan CSV beda dari id buku (dari kode dan dokumentasi, belum direkam). 2.12 (R2-94): tutup buku api-t2 menjalankan dua query lewat pool tanpa transaction (disimpulkan dari kode, belum direkam). 2.3: tanpa endpoint cek nama, layar konfirmasi hanya bisa menampilkan nomor dan nominal.
+- 2.14: masa peralihan app 1.0/1.1 tidak berakhir bila satu HP lama tetap memakai app 1.0 (butuh tanggal akhir atau versi minimum, ADR 10); pola key belum di `labs/api-t2` (517). 2.16: jumlah query SQL di balik satu embedding PostgREST tidak disebut dokumentasi [perlu verifikasi]; "tunjangan makan hilang bila JOIN biasa" belum direkam.
+- api-t2 `Service.GantiPassword` hanya memeriksa panjang 15–72 byte, tanpa daftar password bocor (ASVS 6.2.4); usul tugas lab sendiri di SETELAH-TAHAP-2.
 
 ## Sedang dikerjakan
 
-2026-10-24 malam · Tahap 2 halaman, pipa lima worktree (`../rjt-konten` 4323, `../rjt-konten2` 4325, `../rjt-konten3` 4327, `../rjt-teknis` 4324, `../rjt-teknis2` 4326). Selesai: 2.1–2.12, semua tugas teknis, lab-api-t2a. Berjalan: peninjau 2.13 (#300), 2.14 (#301), 2.15 (#302); pelaksana 2.16, lab-c4a. Berikutnya: 2.17 (ADR 15), 2.18, 2.19, 2.20, 2.21 …; lab-c4a sebelum 2.27. Batas pemakaian tercapai dua kali (09.45–10.20, ±15.00–16.10); subagen dilanjutkan dengan SendMessage. Alokasi nomor per tugas: `tmp/catat-antre.md` (tidak di repo; bila hilang: konten Tahap 2 600–679 dan 780–799, teknis 680–719, cek terbesar atas KEPUTUSAN dan plan/masuk/). Untuk melanjutkan: `gh pr list --state open`.
+2026-10-25 dini hari · Tahap 2 halaman, pipa lima worktree (`../rjt-konten` 4323, `../rjt-konten2` 4325, `../rjt-konten3` 4327, `../rjt-teknis` 4324, `../rjt-teknis2` 4326). Selesai: 2.1–2.15 dan semua lab, widget, tugas teknis Tahap 2 (lab-c4a #304 terakhir). Berjalan: peninjau 2.16 (#305); pelaksana 2.17 (`tahap-2/index-adr15`), 2.18 (`tahap-2/m12-dobel-tampil`), 2.19 (`tahap-2/kursor-adr16`), 2.21 (`tahap-2/m13-migrasi-siang`). Berikutnya: 2.20 (e5-payload: rekaman masih skema lama, mungkin butuh lab), 2.22–2.33, EVAL-2, DIRI-2, lalu Tahap 3. Alokasi nomor keputusan dan ID riset per tugas: `tmp/catat-antre.md` (tidak di repo; bila hilang: konten Tahap 2 674–679 dan 810–899, peninjau 800–809 lalu 900–999, teknis 680–719, ID riset R2-145 ke atas; cek terbesar atas KEPUTUSAN, plan/masuk/, dan PR terbuka). Batas pemakaian tercapai tiga kali; subagen dilanjutkan dengan SendMessage. Untuk melanjutkan: `gh pr list --state open`.
 
 ## Pelajaran
 
-- Saat batas pemakaian tercapai, subagen berhenti di tengah dan dilanjutkan dengan SendMessage dari transkripnya. Pipa paralel butuh koordinasi istilah dan halaman lama (`lebur_ke`): pengatur meneruskan keputusan satu PR ke PR yang berjalan bersamaan. Peninjau terus menemukan cacat nyata (kunci non-atomik, klaim pre-mortem salah, istilah membocorkan jawaban M9).
-- Satu halaman Tahap 2 ±3 jam pelaksana + peninjau; peninjau menemukan cacat nyata di setiap halaman (klaim melebihi rekaman, tooltip dua arti, navigasi membuka versi lama, kunci non-atomik). Cek hasil CI dengan `gh pr checks` TANPA --watch; alat yang mengubah repo menolak argumen asing (725); teks Inti pendek menjaga CLS mode font telat (2.7, 2.14); `cek_id_tampil.py` menyambung node DOM tanpa spasi ("A"+"1 query" = "A1").
+- Pipa lima worktree: peninjau menemukan cacat nyata di setiap halaman dan lab (klaim melebihi rekaman, kunci non-atomik, tooltip dua arti, navigasi ke versi lama). Gerbang cepat tidak cukup: setelah merge main yang menyentuh registry, jalankan `sinkron_cerita.py`, `build_istilah.py`, dan CI ulang. `gh pr checks` tanpa --watch untuk putusan akhir; poll `mergeable` sampai bukan UNKNOWN. ID riset tiga digit perlu pola `\d{2,3}` (sudah). Alat yang mengubah repo menolak argumen asing (725).
+- Tes bersamaan yang biasa tidak menangkap pencabutan `FOR UPDATE`; tahan baris sampai semua antre di `pg_stat_activity` (lab-c4a). Teks Inti pendek menjaga CLS mode font telat. `cek_id_tampil.py` menyambung node DOM tanpa spasi ("A"+"1 query" = "A1").

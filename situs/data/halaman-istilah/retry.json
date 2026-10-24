@@ -1,0 +1,62 @@
+{
+  "istilah": "Retry",
+  "sehari_hari": "Retry adalah mengirim ulang request yang tidak dijawab atau gagal. Budi menekan Bayar satu kali, dan app mengirim ulang sendiri bila jawabannya tidak datang.",
+  "cerita": [
+    {
+      "rujukan": "t2-m10",
+      "teks": "Response pembayaran Budi hilang sesudah COMMIT, app mengulang request yang sama, dan server minggu 2 menulis jurnal kedua."
+    },
+    {
+      "rujukan": "t2-idempotency",
+      "teks": "ADR 14: app mengulang hanya kegagalan sementara, paling banyak empat percobaan, dan selalu dengan key yang sama."
+    }
+  ],
+  "mekanisme": [
+    "App mengirim request dan menunggu jawaban sampai batas waktu. Di lab, batasnya 10 detik per percobaan.",
+    "Koneksi putus, timeout, 409, 429, 500, 502, 503, atau 504 berarti hasilnya belum pasti atau sementara. App menunggu jeda backoff, lalu mengirim request yang sama dengan key yang sama.",
+    "Jawaban final menghentikan retry: 2xx, 400, atau 422. Sesudah percobaan ke-4 app juga berhenti dan menulis \"status belum pasti, cek riwayat\".",
+    "Server mengenali ulangan lewat key, jadi efeknya satu jurnal walau request sampai dua kali (rekaman `key-per-niat.txt`)."
+  ],
+  "stack": {
+    "lihat": "idempotency-key",
+    "teks": "Retry ditulis di app. Client Dart dijalankan di lab e3-idempotency, dan rekamannya ada di bagian Sumber. Yang berbeda di tiap stack server adalah cara mengenali ulangan, dan enam stacknya ada di halaman Idempotency key."
+  },
+  "jebakan": [
+    "Mengulang POST tanpa key. RFC 9110 bagian 9.2.2 menyarankan client tidak mengulang otomatis method yang tidak idempoten, dan rekaman `tanpa-key.txt` menunjukkan dua jurnal.",
+    "Menganggap timeout berarti gagal. `Future.timeout` di Dart hanya berhenti menunggu, dan request yang sudah sampai di server tetap dikerjakan.",
+    "Retry di setiap lapisan sekaligus. Builders' Library menghitung lima lapisan dengan tiga percobaan per lapisan (3⁵) menjadi 243 kali beban di database yang sedang gagal."
+  ],
+  "terkait": [
+    "Idempotency key",
+    "Backoff",
+    "At-least-once",
+    "Timeout",
+    "Idempotent"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-103",
+      "judul": "RFC 9110 bagian 9.2.2: Idempotent Methods",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#name-idempotent-methods",
+      "catatan": "Client sebaiknya tidak mengulang otomatis method non-idempoten kecuali ia tahu request itu idempoten atau belum pernah diterapkan."
+    },
+    {
+      "riset": "R2-20",
+      "judul": "Amazon Builders' Library: Timeouts, retries, and backoff with jitter",
+      "url": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/",
+      "catatan": "API dengan efek samping hanya aman diulang bila idempoten; retry di banyak lapisan saling mengalikan beban (2019-12-05)."
+    },
+    {
+      "riset": "R2-104",
+      "judul": "Dart API: Future.timeout",
+      "url": "https://api.dart.dev/dart-async/Future/timeout.html",
+      "catatan": "Future.timeout tidak membatalkan future asal; dokumentasi Dart 3.13.7, lab memakai Dart 3.11.4."
+    },
+    {
+      "riset": "R2-18",
+      "judul": "Rekaman lab e3-idempotency: tanpa key",
+      "rekaman": "labs/e3-idempotency/output/ledger/tanpa-key.txt",
+      "catatan": "Response hilang sesudah COMMIT, app mengulang tanpa key, dan server menulis dua jurnal."
+    }
+  ]
+}
