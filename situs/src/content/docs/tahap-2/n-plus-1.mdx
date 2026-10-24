@@ -1,0 +1,306 @@
+---
+title: "2.16 N+1 query"
+description: N+1 query terjadi saat kode mengirim satu query untuk daftar dan satu query lagi untuk setiap baris. Jumlah query tumbuh bersama jumlah baris, dan perbaikannya meminta data berelasi sekaligus.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-n1-inti.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 11 menit · coba 3 menit · Prasyarat: [[t2-m11]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+N+1 query terjadi saat kode mengirim satu query untuk daftar, lalu satu query lagi untuk setiap baris di daftar itu.
+
+<Rantai data={intiDiagram} ringkas />
+
+Riwayat Budi di minggu 3 bekerja begitu. Satu query mengambil 20 transaksi terakhir, lalu 20 query mencari nama lawan setiap transaksi. Laporan harian Ani mengirim 195 query untuk 194 baris, dan seluruh riwayat Budi 3.893 query untuk 3.892 baris (rekaman lab b2-query).
+
+Jumlah query mengikuti jumlah baris, bukan ukuran tabel, jadi N+1 sulit terlihat di data kecil. Nama lawan yang diminta di query yang sama menghasilkan baris yang sama dengan 1 query. Itu memperbaiki N+1 saja: query daftarnya masih membaca terlalu banyak baris, dan itu dibahas di [[B2.3]].
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Sebuah layar menampilkan 50 transaksi, dan nama lawan setiap transaksi dicari lewat query sendiri. Berapa query yang dikirim, dan berapa kalau layarnya 500 transaksi?
+2. Kenapa N+1 hampir tidak terlihat saat kamu mencobanya di laptop dengan 10 baris data?
+3. Mengganti N+1 dengan satu query yang memakai JOIN bisa mengubah hasilnya. Baris apa yang bisa hilang atau terduplikasi?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: N+1 mengirim satu query daftar ditambah satu query per baris, dan satu query yang mencari lawan di dalam database mengembalikan baris yang sama.">
+
+Widget ini memutar ulang rekaman lab b2-query di PostgreSQL 17.11: halaman pertama riwayat Budi dengan cara minggu 3, lalu dengan satu query. Tebak dulu jumlah query untuk seluruh riwayat, lalu jalankan langkahnya satu per satu.
+
+<WidgetLama nama="alur" src="data/skenario/t2-n1.json" />
+
+Jalur utama berhenti di 21 query. Query 2 sampai 21 berbeda hanya di nomor jurnal, dan setiap query kecil: rata-rata ±0,5 ms (1.936,4 ms untuk 3.893 query, `n1.txt` bagian E, pembanding). Yang menentukan waktu adalah jumlahnya.
+
+Nyalakan **Ubah satu hal**: nama lawan dicari di query yang sama. Jalurnya jadi dua langkah, dan lima baris pertamanya sama dengan jalur N+1 (`n1.txt` bagian C). Pencarian per baris tidak hilang. Ia pindah ke dalam database, tempat satu baris tidak membutuhkan perjalanan bolak-balik dari handler.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Di [[t2-m11]], Raka menyalakan log semua statement dan menghitung 21 baris log untuk satu halaman riwayat. Kode yang mencari nama lawan per transaksi mudah ditulis, mudah dibaca, dan hasilnya benar. Di laptop dengan 10 transaksi uji, layarnya terasa instan, jadi tidak ada tanda bahwa jumlah query tumbuh.
+
+Pola ini muncul dalam dua bentuk. Bentuk pertama adalah query di dalam loop atas hasil query lain. Bentuk kedua adalah ORM dengan lazy loading: kode hanya mengakses `posting.jurnal`, dan library mengirim satu query setiap kali relasi itu pertama dipakai.
+
+Kalau kamu pernah memanggil API detail di dalam `ListView.builder` untuk setiap baris, polanya sama. Bedanya di backend, setiap query memegang satu koneksi database selama berjalan, dan jumlah koneksinya terbatas ([[B2.5]]).
+
+### Cara kerjanya
+
+**1. Jumlah query yang menentukan waktu, bukan satu query.** Satu query nama lawan kecil dan benar. Seluruh riwayat Budi butuh 3.893 query dan ±1.936 ms, sedangkan satu query yang mengembalikan baris yang sama selesai dalam ±31 ms (`n1.txt` bagian E, pembanding). Kode client lab menulis kedua cara dalam dua fungsi:
+
+<Snippet file="labs/b2-query/run_ledger.py" lines="64:74" lang="python" title="Kode client lab: labs/b2-query/run_ledger.py (Python, psycopg 3)" />
+
+**2. Jumlah query mengikuti jumlah baris.** Lab menghitung query dari dua sisi: penghitung di client, dan log PostgreSQL dengan `log_statement = all` ([PostgreSQL 17, log_statement](https://www.postgresql.org/docs/17/runtime-config-logging.html)). Kedua hitungan sama di setiap permintaan.
+
+<Snippet file="labs/b2-query/output/ledger/n1.txt" lines="41:52" title="Rekaman lab: labs/b2-query/output/ledger/n1.txt, bagian D (jumlah query)" />
+
+Polanya 1 ditambah jumlah baris untuk N+1, dan 1 untuk satu query. Catatan di rekaman yang sama: index tidak mengubah jumlah query.
+
+**3. Waktu punya dua penyebab, dan masing-masing punya perbaikan.** Kolom kiri tabel ini adalah database di minggu 3, tanpa index riwayat. Kolom kanan memakai index riwayat yang diputuskan di [[B2.3]].
+
+<Snippet file="labs/b2-query/output/ledger/n1.txt" lines="54:65" title="Rekaman lab: labs/b2-query/output/ledger/n1.txt, bagian E (waktu pembanding, bukan janji)" />
+
+Untuk 20 baris, satu query (27,4 ms) hampir tidak lebih cepat dari N+1 (30,5 ms). Query daftarnya sendiri membaca 3.892 posting dan 380.224 jurnal, dan memakai ±31 ms (`index.txt` bagian B). Untuk 194 baris selisihnya 106,1 lawan 9,3 ms, dan untuk 3.892 baris 1.936,4 lawan 30,6 ms.
+
+Di kolom kanan, N+1 tetap lebih lambat: 10,4 lawan 1,4 ms untuk halaman pertama. Index tidak mengurangi jumlah query, dan satu query tidak mengurangi baris yang dibaca daftar. M11 membawa kedua masalah, jadi keduanya harus diperbaiki. Waktu di rekaman datang dari satu mesin lab yang dipakai lab lain bersamaan.
+
+**4. Jaringan menambah biaya per query.** Di lab tidak ada jaringan antara handler dan database. Kalau database ada di mesin lain, setiap query membayar paling sedikit satu round trip: tambahan = jumlah query × RTT. Dengan RTT 1 ms (Asumsi, bukan rekaman), 21 query menambah 21 ms, 3.893 query menambah 3,9 detik, dan 1 query menambah 1 ms.
+
+Naskah Tahap 2 memakai satu server, jadi tambahan ini belum terjadi. Rumusnya berlaku begitu database pindah ke mesin sendiri.
+
+### Cara menemukannya
+
+Hitung query per request. Waktu saja menyesatkan: di data kecil, N+1 hampir secepat satu query (30,5 lawan 27,4 ms di atas).
+
+1. Hitung query dari dua sisi seperti lab: penghitung di client dan log PostgreSQL. Kedua hitungan harus sama.
+2. Cari pola di log: query yang sama dengan parameter berbeda, berulang puluhan kali dalam satu request.
+3. Tulis tes yang memanggil endpoint dengan 5 baris data lalu 50 baris, dan mengharapkan jumlah query yang sama. N+1 membuat kedua hitungan berbeda.
+
+### Cara memperbaikinya
+
+| Cara | Query | Catatan |
+|---|---|---|
+| Satu query dengan JOIN | 1 | Dipakai lab (`n1.txt` bagian B): `LEFT JOIN` dan `LATERAL ... LIMIT 1` |
+| Dua query: daftar, lalu relasi untuk semua baris sekaligus | 2 | Tidak dijalankan di lab; `with()` Laravel dan `prefetch_related` Django bekerja begini |
+
+Query lab ditulis hati-hati karena JOIN yang salah mengubah hasil tanpa error. Tiga hal yang dijaga:
+
+1. **Baris tanpa pasangan.** `JOIN` biasa membuang baris dari tabel kiri yang tidak punya pasangan ([PostgreSQL 17, joined tables](https://www.postgresql.org/docs/17/queries-table-expressions.html)). Lawan transaksi tunjangan adalah buku sistem tanpa akun, jadi query lab memakai `LEFT JOIN akun`. Dengan `JOIN` biasa, baris "Tunjangan makan" hilang dari riwayat (Tidak dijalankan di lab).
+2. **Baris yang menggandakan.** `JOIN` ke tabel yang punya beberapa pasangan menghasilkan satu baris per pasangan, dengan aturan dokumentasi yang sama. Satu jurnal punya minimal dua posting, jadi query lab mengambil satu posting lawan lewat `LATERAL (... ORDER BY q.id LIMIT 1)`.
+3. **Hasil yang sama.** Lab membandingkan baris kedua cara: urutan, jenis, lawan, dan jumlah (`n1.txt` bagian C). Tes jumlah query saja tidak menangkap baris yang hilang.
+
+### Di stack lain
+
+**Skenario:** riwayat 20 posting beserta nama lawan atau jurnalnya. Tab Go memuat kode api-t2 yang dijalankan di lab. Baris lain tidak dijalankan, hanya dicek ke dokumentasi atau kode sumber pada 2026-10-24.
+
+Yang sama di semua stack: relasi yang diakses di dalam loop memicu query baru. Yang berbeda: apakah query itu terlihat di kode, dan cara meminta relasi sekaligus.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Query di bawah dijalankan di lab api-t2 (Go 1.27.1, `database/sql` + pgx v5.11.0, PostgreSQL 17.11): satu `QueryContext` untuk daftar dan nama lawan, sama dengan `n1.txt` bagian B. Jumlah query-nya tidak direkam di api-t2. Loop N+1 sesudahnya tidak dijalankan.*
+
+<Snippet file="labs/api-t2/internal/repo/riwayat.go" lines="32:44" lang="go" title="labs/api-t2/internal/repo/riwayat.go" />
+
+<Snippet lang="go" code={`rows, err := db.QueryContext(ctx, daftarSQL, buku) // query 1
+// ...
+for rows.Next() {
+    // ... rows.Scan(&p.ID, &p.JurnalID)
+    err = db.QueryRowContext(ctx, lawanSQL, p.JurnalID, buku).Scan(&p.Lawan) // query 2 sampai 21
+}`} />
+
+**Yang berbeda di stack ini:** tidak ada ORM yang menyembunyikan query. N+1 terlihat sebagai pemanggilan di dalam `for`. `database/sql` tidak menghitung query: `DB.Stats()` hanya melaporkan koneksi ([database/sql: DBStats](https://pkg.go.dev/database/sql#DBStats)). Hitung lewat log PostgreSQL seperti lab, atau bungkus driver.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [node-postgres: Pool](https://node-postgres.com/apis/pool) dan kode sumber [`utils.js`](https://github.com/brianc/node-postgres/blob/pg@8.23.1/packages/pg/lib/utils.js), `pg` 8.23.1.*
+
+<Snippet lang="js" code={`const daftar = await pool.query(DAFTAR_SQL, [buku]);             // query 1
+for (const p of daftar.rows) {
+  const r = await pool.query(LAWAN_SQL, [p.jurnal_id, buku]);      // query 2 sampai 21
+  p.lawan = r.rows[0].nama;
+}
+
+// perbaikan, dua query: nama lawan semua jurnal sekaligus
+const ids = daftar.rows.map((p) => p.jurnal_id);
+const lawan = await pool.query(LAWAN_BANYAK_SQL, [ids, buku]);     // ... WHERE q.jurnal_id = ANY($1)`} />
+
+**Yang berbeda di stack ini:** node-postgres tidak punya ORM atau lazy loading, jadi N+1 selalu ditulis sendiri. `Promise.all(daftar.rows.map(...))` tetap 21 query, hanya bersamaan. Pool bawaan memuat paling banyak 10 koneksi. `prepareValue` mengubah array JavaScript jadi array PostgreSQL, jadi `= ANY($1)` menerimanya.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Eloquent Relationships, Eager Loading](https://laravel.com/docs/13.x/eloquent-relationships#eager-loading), Laravel 13.38.0.*
+
+<Snippet lang="php" code={`// lazy loading: setiap akses relasi mengirim query
+$riwayat = Posting::where('buku_id', $buku)->latest('dibuat')->limit(20)->get();
+foreach ($riwayat as $p) {
+    echo $p->jurnal->jenis;   // query 2 sampai 21
+}
+
+// eager loading: dua query
+$riwayat = Posting::with('jurnal')->where('buku_id', $buku)->latest('dibuat')->limit(20)->get();
+
+// AppServiceProvider::boot()
+Model::preventLazyLoading(! $this->app->isProduction());`} />
+
+**Yang berbeda di stack ini:** Eloquent memuat relasi secara lazy, dan `with()` memuatnya bersama daftar. Dengan `preventLazyLoading`, akses lazy melempar `LazyLoadingViolationException`, jadi N+1 menjadi error di development. Dengan `Model::automaticallyEagerLoadRelationships()`, relasi dimuat untuk semua model dalam koleksi begitu satu model mengaksesnya.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: QuerySet API](https://docs.djangoproject.com/en/6.1/ref/models/querysets/#select-related) dan [Fetch modes](https://docs.djangoproject.com/en/6.1/topics/db/fetch-modes/), Django 6.1.2.*
+
+<Snippet lang="python" code={`# lazy loading: akses FK di loop mengirim query
+for p in Posting.objects.filter(buku=buku)[:20]:
+    p.jurnal.jenis                      # query 2 sampai 21
+
+# JOIN untuk relasi ke satu objek
+Posting.objects.filter(buku=buku).select_related("jurnal")[:20]
+
+# query terpisah untuk relasi ke banyak objek
+Posting.objects.filter(buku=buku).prefetch_related("jurnal__posting_set")[:20]
+
+# Django 6.1: relasi dimuat untuk semua baris saat relasi pertama diakses
+Posting.objects.fetch_mode(models.FETCH_PEERS).filter(buku=buku)[:20]`} />
+
+**Yang berbeda di stack ini:** `select_related` memakai `JOIN` dan hanya untuk relasi ke satu objek. `prefetch_related` memakai query terpisah lalu menggabungkannya di Python. Mode `FETCH_PEERS` (baru di 6.1) membatch akses lazy, dan `FETCH_RAISE` melempar `FieldFetchBlocked`. Tes bisa menjaga jumlah query dengan `assertNumQueries`.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod 4.0: Relation queries](https://docs.serverpod.dev/concepts/data-and-the-database/database/relation-queries), Serverpod 4.0.4. Contoh mengikuti pola di dokumentasinya dengan nama model Rekeningo.*
+
+<Snippet lang="dart" code={`var jurnal = await Jurnal.db.findById(
+  session,
+  jurnalId,
+  include: Jurnal.include(
+    postings: Posting.includeList(),
+  ),
+);`} />
+
+**Yang berbeda di stack ini:** hanya relasi yang ditulis di `include` yang ikut dimuat. Setiap `includeList` menambah satu query ke database, bukan satu per baris. N+1 muncul bila kamu memanggil `find` per baris di dalam loop sendiri.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [PostgREST: Resource Embedding](https://docs.postgrest.org/en/stable/references/api/resource_embedding.html) dan [Supabase: Joins and nesting](https://supabase.com/docs/guides/database/joins-and-nesting), `@supabase/supabase-js` 2.118.0.*
+
+<Snippet lang="js" code={`// N+1: satu request HTTP per baris
+const { data: riwayat } = await supabase.from('posting')
+  .select('id, jurnal_id, jumlah').eq('buku_id', buku)
+  .order('dibuat', { ascending: false }).limit(20)
+for (const p of riwayat) {
+  await supabase.from('jurnal').select('jenis').eq('id', p.jurnal_id).single()   // request 2 sampai 21
+}
+
+// satu request: relasi disisipkan
+const { data } = await supabase.from('posting')
+  .select('id, jumlah, jurnal(jenis)').eq('buku_id', buku)
+  .order('dibuat', { ascending: false }).limit(20)`} />
+
+**Yang berbeda di stack ini:** loop di app mengirim N request HTTP, jadi round trip dari HP ikut dibayar. Embedding membawa induk dan relasinya dalam satu API call, dan secara bawaan memakai semantik left join. `!inner` membuang induk tanpa pasangan. Dokumentasinya tidak menyebut jumlah query SQL di dalamnya, jadi hitung lewat log PostgreSQL.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Pilihan | Kelebihan | Kekurangan |
+|---|---|---|
+| Lazy loading | Kode paling ringkas | Query = 1 + jumlah baris, dan tidak terlihat di kode |
+| Satu query dengan JOIN | 1 query di client dan di log (rekaman) | JOIN biasa membuang baris tanpa pasangan dan bisa menggandakan baris; query lebih panjang |
+| Dua query, relasi untuk semua baris | Tanpa menggandakan baris induk; ORM menyediakannya (Tidak dijalankan) | 2 query, dan daftar ID bisa panjang |
+| Cache hasilnya | Cepat saat isi cache ada | Cache kosong tetap mengirim 3.893 query untuk seluruh riwayat; data bisa stale; penyebabnya tersembunyi |
+| Server lebih besar | Tanpa mengubah kode | Jumlah query tetap 1 + jumlah baris |
+
+Untuk daftar yang membawa relasi, mulai dari satu query. Pakai dua query bila relasinya banyak per baris dan menggandakan baris induk terlalu besar. Keputusan untuk riwayat Rekeningo, termasuk index, ditulis sebagai ADR 15 di [[B2.3]].
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Cache untuk riwayat | Beban puncak ±1,4 request per detik (Asumsi); masalah M11 adalah jumlah query dan baris yang dibaca, bukan beban | [[B2.3]] |
+| Tes yang menjaga jumlah query di api-t2 | Lab menghitung dengan log PostgreSQL; tes otomatis untuk kode api-t2 belum ditulis | [[t2-tim-infra]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Endpoint riwayat memakai pagination 20 baris per halaman. Apakah N+1 masih masalah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Masih. Halaman pertama mengirim 21 query di rekaman, setiap kali halaman dibuka. Pagination membatasi N, tidak menghilangkan N+1. Laporan Ani yang membaca 194 baris sekaligus mengirim 195 query.
+
+</details>
+
+**2.** Di rekaman, halaman pertama tanpa index riwayat memakai 30,5 ms dengan N+1 dan 27,4 ms dengan satu query. Apakah itu berarti N+1 tidak perlu diperbaiki?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. Query daftarnya sendiri memakai ±31 ms, jadi waktu halaman pendek menyembunyikan jumlah query. Pada 194 baris selisihnya 106,1 lawan 9,3 ms, dan pada 3.892 baris 1.936,4 lawan 30,6 ms. Ukur jumlah query, bukan hanya waktu.
+
+</details>
+
+**3.** Raka mengganti `LEFT JOIN akun` menjadi `JOIN akun` supaya query terlihat rapi. Tes jumlah query tetap lulus dengan 1 query. Apa yang rusak?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Baris yang lawannya buku sistem tanpa akun, seperti "Tunjangan makan", hilang dari riwayat tanpa error. Aturan `JOIN` biasa membuang baris yang tidak punya pasangan. Tes jumlah query tidak menangkapnya; butuh tes yang membandingkan baris dengan cara lama (Tidak dijalankan di lab).
+
+</details>
+
+**4.** Raka ingin memasang cache untuk riwayat sebelum memperbaiki query. Kenapa urutannya salah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Beban puncak Tahap 2 ±1,4 request per detik, jadi masalahnya bukan beban. Setiap kali cache kosong, seluruh riwayat Budi tetap mengirim 3.893 query. Cache juga menyembunyikan penyebabnya dan menambah risiko data stale, yaitu data yang sudah tidak terbaru.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Tidak ada query atau akses relasi di dalam loop atas hasil query lain.
+- [ ] Relasi yang dipakai di response diminta bersama query daftar (`JOIN`, `with`, `select_related`, `prefetch_related`, `include`).
+- [ ] Ada tes yang menghitung query untuk 5 dan 50 baris, dan mengharapkan hasil yang sama.
+- [ ] `JOIN` pengganti N+1 memakai `LEFT JOIN` untuk relasi yang boleh kosong, dan tidak menggandakan baris induk.
+- [ ] Daftar punya batas baris (`LIMIT` atau kursor).
+
+### Bacaan lanjut
+
+- [PostgreSQL 17: log_statement](https://www.postgresql.org/docs/17/runtime-config-logging.html)
+- [Laravel 13.x: Eager Loading](https://laravel.com/docs/13.x/eloquent-relationships#eager-loading)
+- [Django 6.1: select_related dan prefetch_related](https://docs.djangoproject.com/en/6.1/ref/models/querysets/#select-related) · [Fetch modes](https://docs.djangoproject.com/en/6.1/topics/db/fetch-modes/)
+- [Serverpod 4.0: Relation queries](https://docs.serverpod.dev/concepts/data-and-the-database/database/relation-queries)
+- [PostgREST: Resource Embedding](https://docs.postgrest.org/en/stable/references/api/resource_embedding.html)
+
+</Blok>
+
+<SkripLama daftar={["cerita","hp","alur-core","alur"]} />
