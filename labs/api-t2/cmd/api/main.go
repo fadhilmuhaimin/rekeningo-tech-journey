@@ -6,12 +6,14 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -28,6 +30,7 @@ func main() {
 	kampus := flag.Bool("seed-kampus", false, "daftarkan akun kampus pusat (data lab) sesudah expand, lalu keluar")
 	cekCache := flag.Bool("cek-cache", false, "bandingkan saldo_cache setiap buku dengan jumlah posting (job malam), lalu keluar")
 	rentan := flag.String("rentan", "", "mode rentan untuk rekaman halaman masalah; Tahap 2 belum punya mode")
+	jamLab := flag.Bool("jam-lab", false, "lab saja: POST /lab/jam {\"ms\": ...} membekukan waktu service dan rate limit (rekaman pengaman.txt)")
 	flag.Parse()
 
 	url := os.Getenv("DATABASE_URL")
@@ -48,12 +51,38 @@ func main() {
 	case *cekCache:
 		os.Exit(jalankanCekCache(r))
 	}
-	srv := handler.Baru(service.Baru(r, *umurSesi))
+	svc := service.Baru(r, *umurSesi)
+	var jamMS atomic.Int64 // 0 = waktu sungguhan
+	if *jamLab {
+		svc = svc.DenganJam(func() time.Time {
+			if ms := jamMS.Load(); ms != 0 {
+				return time.UnixMilli(ms)
+			}
+			return time.Now()
+		})
+	}
+	srv := handler.Baru(svc)
 	if *rentan != "" {
 		log.Fatalf("mode rentan tidak dikenal: %s", *rentan)
 	}
+	rute := srv.Rute()
+	if *jamLab {
+		// Jam tiruan (pola labs/c4-ratelimit, keputusan 549): bucket tidak terisi di tengah rekaman, jadi status
+		// dan Retry-After sama di setiap run. Hanya dengan flag; server biasa tidak punya endpoint ini.
+		rute.HandleFunc("POST /lab/jam", func(w http.ResponseWriter, r *http.Request) {
+			var in struct {
+				Ms int64 `json:"ms"`
+			}
+			if json.NewDecoder(r.Body).Decode(&in) != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			jamMS.Store(in.Ms)
+			w.WriteHeader(http.StatusNoContent)
+		})
+	}
 	log.Printf("api-t2 mendengar di %s", *alamat)
-	log.Fatal(http.ListenAndServe(*alamat, srv.Rute()))
+	log.Fatal(http.ListenAndServe(*alamat, rute))
 }
 
 // --8<-- [start:cek-cache]
@@ -81,7 +110,8 @@ func jalankanCekCache(r repo.Repo) int {
 
 // daftarkanKampus (data lab, keputusan 413): Citra (504), 9 warung baru (505-513), dan 899 karyawan (514-1412).
 // Bersama 100 karyawan dan 3 warung Gedung A: 1.000 karyawan dan 12 warung (naskah Tahap 2, Latar).
-// Password sementara sementara-<nomor akun>, wajib diganti saat login pertama (kolom saja; perilakunya M16).
+// Password sementara sementara-<nomor akun>, wajib diganti saat login pertama: /login menjawab 403 sampai
+// POST /ganti-password berhasil (lab-api-t2a, keputusan 647). Pola password sementara ini hanya data lab.
 func daftarkanKampus(r repo.Repo) error {
 	var akun []repo.AkunBaru
 	tambah := func(id int64, jenis, nama, email string) {

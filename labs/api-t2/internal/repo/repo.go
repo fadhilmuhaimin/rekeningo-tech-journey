@@ -37,12 +37,63 @@ func (r Repo) Akun(ctx context.Context, id int64) (Akun, error) {
 	return a, err
 }
 
-func (r Repo) AkunLewatEmail(ctx context.Context, email string) (id int64, passwordHash string, err error) {
-	err = r.db.QueryRowContext(ctx, `SELECT id, password_hash FROM akun WHERE email = $1`, email).Scan(&id, &passwordHash)
+// AkunMasuk: kolom yang dibaca saat login. Kolom M16 (000009) dipakai sejak lab-api-t2a (keputusan 645).
+// Kunci tidak dibaca di sini: PercobaanLogin membacanya dengan baris dikunci (keputusan 718).
+type AkunMasuk struct {
+	ID           int64
+	PasswordHash string
+	WajibGanti   bool
+}
+
+func (r Repo) AkunLewatEmail(ctx context.Context, email string) (AkunMasuk, error) {
+	var a AkunMasuk
+	err := r.db.QueryRowContext(ctx, `
+		SELECT id, password_hash, wajib_ganti_password FROM akun WHERE email = $1`, email).
+		Scan(&a.ID, &a.PasswordHash, &a.WajibGanti)
 	if errors.Is(err, sql.ErrNoRows) {
-		return 0, "", ErrTidakAda
+		return a, ErrTidakAda
 	}
-	return id, passwordHash, err
+	return a, err
+}
+
+// --8<-- [start:gagal-login]
+// PercobaanLogin membaca penghitung gagal dan kunci dengan baris akun dikunci (FOR UPDATE). Percobaan lain untuk
+// akun yang sama menunggu sampai transaction ini selesai, lalu membaca penghitung dan kunci yang baru, jadi
+// tebakan bersamaan tidak bisa lewat ambang (keputusan 718).
+func (t Tx) PercobaanLogin(ctx context.Context, id int64) (gagal int, terkunciSampai *time.Time, err error) {
+	err = t.tx.QueryRowContext(ctx,
+		`SELECT gagal_login, terkunci_sampai FROM akun WHERE id = $1 FOR UPDATE`, id).Scan(&gagal, &terkunciSampai)
+	return gagal, terkunciSampai, err
+}
+
+// CatatPercobaanLogin menyimpan penghitung baru, dan kunci bila sampai ambang (nil = kunci lama tidak diubah).
+func (t Tx) CatatPercobaanLogin(ctx context.Context, id int64, gagal int, kunciSampai *time.Time) error {
+	_, err := t.tx.ExecContext(ctx,
+		`UPDATE akun SET gagal_login = $2, terkunci_sampai = coalesce($3, terkunci_sampai) WHERE id = $1`,
+		id, gagal, kunciSampai)
+	return err
+}
+
+// ResetGagalLogin sesudah password benar: penghitung dan kunci yang dipasang percobaan ini dihapus.
+func (r Repo) ResetGagalLogin(ctx context.Context, id int64) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE akun SET gagal_login = 0, terkunci_sampai = NULL
+		WHERE id = $1 AND (gagal_login <> 0 OR terkunci_sampai IS NOT NULL)`, id)
+	return err
+}
+
+// --8<-- [end:gagal-login]
+
+// GantiPassword menyimpan hash baru, mencabut wajib ganti, dan menghapus semua sesi akun itu dalam satu
+// transaction: sesi yang dibuka dengan password lama (mungkin oleh orang lain) ikut berakhir.
+func (r Repo) GantiPassword(ctx context.Context, id int64, hash string) error {
+	return r.DalamTx(ctx, func(t Tx) error {
+		if _, err := t.tx.ExecContext(ctx,
+			`UPDATE akun SET password_hash = $2, wajib_ganti_password = false WHERE id = $1`, id, hash); err != nil {
+			return err
+		}
+		_, err := t.tx.ExecContext(ctx, `DELETE FROM sesi WHERE akun_id = $1`, id)
+		return err
+	})
 }
 
 // --8<-- [start:sesi]
@@ -52,11 +103,13 @@ func (r Repo) SimpanSesi(ctx context.Context, tokenHash string, akunID int64, ke
 	return err
 }
 
-// SesiAktif mengembalikan pemilik sesi yang belum kedaluwarsa pada waktu kini.
+// SesiAktif mengembalikan pemilik sesi yang belum kedaluwarsa pada waktu kini. Akun yang wajib mengganti
+// password tidak punya sesi aktif: sesi yang dibuka sebelum akun ditandai (migration 000014) ikut tidak berlaku.
 func (r Repo) SesiAktif(ctx context.Context, tokenHash string, kini time.Time) (int64, error) {
 	var akunID int64
-	err := r.db.QueryRowContext(ctx,
-		`SELECT akun_id FROM sesi WHERE token_hash = $1 AND kedaluwarsa > $2`, tokenHash, kini).Scan(&akunID)
+	err := r.db.QueryRowContext(ctx, `
+		SELECT s.akun_id FROM sesi s JOIN akun a ON a.id = s.akun_id
+		WHERE s.token_hash = $1 AND s.kedaluwarsa > $2 AND NOT a.wajib_ganti_password`, tokenHash, kini).Scan(&akunID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, ErrTidakAda
 	}
