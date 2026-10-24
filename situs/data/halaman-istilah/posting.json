@@ -1,0 +1,56 @@
+{
+  "istilah": "Posting",
+  "sehari_hari": "Posting adalah satu baris di catatan uang sebuah akun: masuk atau keluar sekian rupiah, karena kejadian apa. Saldo akun itu adalah jumlah semua barisnya.",
+  "cerita": [
+    {
+      "rujukan": "t2-saldo-bukan-kolom",
+      "teks": "Satu query menampilkan 8 posting Budi, masing-masing dengan jurnal, lawan, dan keterangan, sampai saldo Rp385.000."
+    },
+    {
+      "rujukan": "t2-ledger",
+      "teks": "Budi bayar Rp25.000 ke Warung Ani: posting buku Budi −25.000 dan posting buku Warung Ani +25.000 dalam satu jurnal."
+    }
+  ],
+  "mekanisme": [
+    "Satu baris `posting` berisi `jurnal_id`, `buku_id`, dan `jumlah` bertanda: negatif untuk uang keluar, positif untuk uang masuk. Jumlah 0 ditolak CHECK.",
+    "Posting selalu ditulis bersama posting lain dari jurnal yang sama, dalam satu transaction. Jumlah semua posting satu jurnal harus 0.",
+    "Posting tidak diubah atau dihapus. Lab menolak UPDATE, DELETE, dan TRUNCATE pada `posting` dengan SQLSTATE 23001 (rekaman `invarian.txt`).",
+    "Saldo satu buku adalah jumlah posting-nya, dan riwayat akun adalah posting buku itu yang diurutkan menurut waktu."
+  ],
+  "stack": {
+    "lihat": "jurnal",
+    "teks": "Posting ditulis di dalam jurnal, jadi kode di keenam stack sama dengan kode jurnal."
+  },
+  "jebakan": [
+    "Menulis posting satu sisi dulu, lalu sisi lainnya nanti. Jurnal yang posting-nya tidak berjumlah 0 ditolak saat COMMIT (rekaman `invarian.txt` bagian A).",
+    "Mengoreksi dengan mengubah tanda atau jumlah posting lama. Koreksi adalah jurnal pembalik baru; posting asal tetap ada dan tetap terbaca.",
+    "Mengira posting di sini sama dengan posting di buku akuntansi. Di sana, posting adalah langkah menyalin journal entry ke T-account setiap akun; lab ini, seperti Square Books, menyimpan barisnya langsung per buku."
+  ],
+  "terkait": [
+    "Jurnal",
+    "Ledger",
+    "Debit",
+    "Kredit",
+    "Invarian"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-06",
+      "judul": "Square Engineering: Books, an immutable double-entry accounting database service",
+      "url": "https://developer.squareup.com/blog/books-an-immutable-double-entry-accounting-database-service/",
+      "catatan": "16 Oktober 2019: book_entries berisi debit positif atau kredit negatif per buku, dan hanya ditambah."
+    },
+    {
+      "riset": "R2-38",
+      "judul": "OpenStax, Principles of Accounting Volume 1, bagian 3.5",
+      "url": "https://openstax.org/books/principles-financial-accounting/pages/3-5-use-journal-entries-to-record-transactions-and-post-to-t-accounts",
+      "catatan": "Journal entry dicatat lebih dulu, lalu di-post ke T-account setiap akun."
+    },
+    {
+      "riset": "R2-08",
+      "judul": "Rekaman lab b3-ledger: tiga invarian",
+      "rekaman": "labs/b3-ledger/output/invarian.txt",
+      "catatan": "Jurnal tidak seimbang ditolak 23514; UPDATE, DELETE, dan TRUNCATE posting ditolak 23001."
+    }
+  ]
+}

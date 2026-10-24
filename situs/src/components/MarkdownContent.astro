@@ -9,3 +9,8 @@ import "@astrojs/starlight/style/markdown.css";
 {/* Tooltip istilah dimuat di setiap halaman berartikel (keputusan 123), bukan lewat SkripLama per halaman. */}
 <script is:inline src="/javascripts/istilah-data.js"></script>
 <script is:inline src="/javascripts/istilah.js"></script>
+<script>
+  // Tabel yang muat tidak menambah tab stop; yang meluap tetap bisa dicapai Tab (A11y-gulir-tabel, keputusan 712).
+  import { pasang } from "../lib/tabel-gulir";
+  pasang();
+</script>

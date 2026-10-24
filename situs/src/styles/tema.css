@@ -153,6 +153,12 @@ body { background: var(--bg); }
 .sl-markdown-content pre { background: var(--bg-2); border: 1px solid var(--garis); border-radius: 8px; padding: 0.9rem 1rem; font-size: 0.82em; line-height: 1.55; max-width: 100%; overflow-x: auto; }
 .sl-markdown-content pre code { font-size: inherit; }
 .sl-markdown-content table { font-size: 0.9em; }
+/* Tabel Markdown dibungkus wadah yang digulir dan bisa difokus (A11y-gulir-tabel, keputusan 712; rehype-tabel-gulir.mjs).
+   Wadah mengambil alih overflow dari <table>; tabelnya kembali display: table, jadi lebar dan tingginya sama dengan
+   kotak anonim di dalam <table display: block> Starlight. Garis fokus di dalam wadah: di HP wadah selebar kolom isi. */
+.sl-markdown-content .tabel-gulir { overflow-x: auto; }
+.sl-markdown-content .tabel-gulir > table { display: table; overflow: visible; }
+.sl-markdown-content .tabel-gulir:focus-visible { outline: 2px solid var(--aksen); outline-offset: -2px; }
 .sl-markdown-content :is(th, td) { border-color: var(--garis); }
 .sl-markdown-content th { background: var(--bg-3); color: var(--judul); font-weight: 600; }
 .sl-markdown-content p.meta { color: var(--teks-2); font-size: 0.8em; margin-top: -0.4em; letter-spacing: 0.01em; }
@@ -1040,7 +1046,7 @@ main > .content-panel:first-of-type > .sl-container { max-width: var(--rk-ukur);
 .sl-markdown-content.sl-markdown-content > :not(.not-content), .sl-markdown-content.sl-markdown-content .blok__isi.blok__isi > *,
 .sl-markdown-content details.blok > summary.blok__kepala, nav.bb-lanjut, p.catatan-fiktif { max-width: var(--rk-ukur); margin-inline: auto; }
 .sl-markdown-content.sl-markdown-content > details.blok { max-width: none; }
-.sl-markdown-content.sl-markdown-content :is(.sl-markdown-content > *, .blok__isi.blok__isi > *):is(div.highlight, table, [data-bb], figure:not(.blok__ilustrasi), astro-island, .tabbed-set, pre, .expressive-code, figure.peta-fitur) {
+.sl-markdown-content.sl-markdown-content :is(.sl-markdown-content > *, .blok__isi.blok__isi > *):is(div.highlight, table, div.tabel-gulir, [data-bb], figure:not(.blok__ilustrasi), astro-island, .tabbed-set, pre, .expressive-code, figure.peta-fitur) {
   width: fit-content; min-width: min(100%, var(--rk-ukur)); max-width: 100%; margin-inline: auto;
 }
 /* Widget alur selebar wadah, bukan selebar isi (keputusan 263): versi statis dari build tidak punya lebar isi (container

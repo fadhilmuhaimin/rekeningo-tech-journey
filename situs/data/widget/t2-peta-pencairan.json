@@ -1,0 +1,46 @@
+{
+  "id": "t2-peta-pencairan",
+  "judul": "Pencairan Jumat: dari jadwal sampai file untuk bank",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t2-pencairan · benar.txt"
+  },
+  "jalur": [
+    { "id": "job", "nama": "Job pencairan", "jenis": "backend" },
+    { "id": "db", "nama": "PostgreSQL", "jenis": "db" },
+    { "id": "keu", "nama": "Keuangan", "jenis": "app" }
+  ],
+  "langkah": [
+    {
+      "jalur": "job",
+      "judul": "Jumat 15.00: job mulai tanpa request",
+      "rinci": ["Tidak ada user yang menekan tombol", "Periode di lab: minggu 2026-W43"]
+    },
+    {
+      "jalur": "db",
+      "judul": "Saldo setiap warung dari jumlah posting",
+      "rinci": ["12 warung, total Rp2.450.000", "Warung Ani Rp310.000"]
+    },
+    {
+      "jalur": "db",
+      "judul": "Satu jurnal pencairan per warung",
+      "kode": ["Warung Ani     -310000", "kas_pencairan   310000"]
+    },
+    {
+      "jalur": "job",
+      "judul": "Satu file CSV, satu baris per warung",
+      "kode": ["akun_warung,nama_penerima,jumlah,berita", "418,Warung Ani,310000,Pencairan ..."]
+    },
+    {
+      "jalur": "keu",
+      "judul": "Keuangan mengunggah file ke bank",
+      "rinci": ["Belum ada integrasi bank di PRD v2"]
+    },
+    {
+      "jalur": "keu",
+      "judul": "Tutup buku: file dicocokkan dengan ledger",
+      "rinci": ["File: 12 baris, Rp2.450.000", "Ledger: 12 jurnal, kas_pencairan +Rp2.450.000"]
+    }
+  ],
+  "catatan": "Langkah 5 terjadi di luar sistem dan tidak ada di lab. App warung belum punya layar pencairan di lab, dan PRD v2 tidak memakai notifikasi push."
+}

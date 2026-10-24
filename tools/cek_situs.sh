@@ -118,16 +118,17 @@ jalan_ukur() {
       echo "== simpul dan panah Rantai di dalam figure 360 dan 375 (P10)"
       (cd situs && node tools/ukur-rantai.mjs --url "$URL") ;;
     axe)
-      # Daftar kecil yang mewakili setiap template dan setiap island React, semuanya 0 pelanggaran saat dipasang. Halaman
-      # dengan pelanggaran yang belum diperbaiki (tugas A11y-gulir-tabel) tidak dimasukkan; seluruh tahap diperiksa saat
-      # evaluasi (W4): node tools/ukur-axe.mjs --url ... --semua --awalan /tahap-N/ (keputusan 693, 694).
+      # Daftar kecil yang mewakili setiap template dan setiap island React, semuanya 0 pelanggaran saat dipasang, ditambah
+      # empat halaman yang tabelnya meluap di HP (wadah tabel gulir, A11y-gulir-tabel, keputusan 712); seluruh tahap
+      # diperiksa saat evaluasi (W4): node tools/ukur-axe.mjs --url ... --semua --awalan /tahap-N/ (keputusan 693, 694).
       # /uji/race/ dan widget race lama B3.2 (definition-list diperbaiki) masuk sesudah W2-race (keputusan 707, 709).
-      echo "== axe-core wcag2a, wcag2aa, wcag21aa, wcag22aa: 13 halaman × 375 dan 1366 × gelap dan terang, uji diri fixture (G-axe)"
+      echo "== axe-core wcag2a, wcag2aa, wcag21aa, wcag22aa: 17 halaman × 375 dan 1366 × gelap dan terang, uji diri fixture (G-axe)"
       (cd situs && node tools/ukur-axe.mjs --url "$URL" --path / --path /tahap-1/prd-v1/ --path /tahap-1/fitur-bayar/ \
         --path /tahap-1/data-modeling/ \
         --path /tahap-1/transaction/ --path /tahap-1/m3-tanda-kutip/ --path /tahap-1/m8-uji-coba-lolos/ \
         --path /tahap-1/sengaja-belum/ --path /tahap-1/tim-infra/ --path /tahap-2/prd-v2/ --path /uji/erd/ \
-        --path /uji/race/ --path /b-fondasi/b3-2-race-condition-lock/) ;;
+        --path /tahap-1/struktur-folder/ --path /tahap-1/pertukaran-saldo/ --path /tahap-1/kontrak-openapi/ \
+        --path /tahap-1/authorization/ --path /uji/race/ --path /b-fondasi/b3-2-race-condition-lock/) ;;
     race)
       echo "== widget race ledger: tebak dulu, keyboard, ARIA, reduced motion, angka dari rekaman, axe akhir, CLS (W2-race)"
       (cd situs && node tools/ukur-race.mjs --url "$URL" | grep -v "^ok ") ;;

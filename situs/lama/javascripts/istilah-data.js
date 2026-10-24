@@ -410,6 +410,15 @@ window.ISTILAH = {
   "t": "JWT (JSON Web Token)",
   "u": "tahap-1/authentication/"
  },
+ "Job terjadwal": {
+  "b": "t2-pencairan",
+  "d": "Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.",
+  "h": "istilah/job-terjadwal/",
+  "n": "2.5 Fitur pencairan",
+  "s": "istilah-job-terjadwal",
+  "t": "Job terjadwal",
+  "u": "tahap-2/fitur-pencairan/"
+ },
  "Jurnal": {
   "b": "t2-ledger",
   "d": "Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol.",
@@ -451,6 +460,15 @@ window.ISTILAH = {
   "s": "istilah-lease",
   "t": "Lease",
   "u": "b-fondasi/b10-1-background-job/"
+ },
+ "Ledger": {
+  "b": "t2-saldo-bukan-kolom",
+  "d": "Cara mencatat uang dengan menyimpan setiap perpindahan sebagai baris yang tidak diubah; saldo adalah jumlah baris itu, bukan angka yang ditimpa.",
+  "h": "istilah/ledger/",
+  "n": "2.6 Kenapa saldo bukan kolom",
+  "s": "istilah-ledger",
+  "t": "Ledger",
+  "u": "tahap-2/saldo-bukan-kolom/"
  },
  "Load balancer": {
   "b": "D2",
@@ -723,6 +741,15 @@ window.ISTILAH = {
   "s": "istilah-polling",
   "t": "Polling",
   "u": "e-mobile/e4-push-real-time/"
+ },
+ "Posting": {
+  "b": "t2-ledger",
+  "d": "Satu baris uang di dalam jurnal untuk satu buku: negatif bila uang keluar, positif bila masuk; saldo buku adalah jumlah posting-nya.",
+  "h": "istilah/posting/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-posting",
+  "t": "Posting",
+  "u": null
  },
  "Primary": {
   "b": "D3",
@@ -1335,6 +1362,15 @@ window.ISTILAH = {
   "t": "Isolation level",
   "u": "b-fondasi/b3-3-isolation-level/"
  },
+ "job terjadwal": {
+  "b": "t2-pencairan",
+  "d": "Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.",
+  "h": "istilah/job-terjadwal/",
+  "n": "2.5 Fitur pencairan",
+  "s": "istilah-job-terjadwal",
+  "t": "Job terjadwal",
+  "u": "tahap-2/fitur-pencairan/"
+ },
  "jurnal": {
   "b": "t2-ledger",
   "d": "Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol.",
@@ -1368,6 +1404,15 @@ window.ISTILAH = {
   "s": "istilah-lease",
   "t": "Lease",
   "u": "b-fondasi/b10-1-background-job/"
+ },
+ "ledger": {
+  "b": "t2-saldo-bukan-kolom",
+  "d": "Cara mencatat uang dengan menyimpan setiap perpindahan sebagai baris yang tidak diubah; saldo adalah jumlah baris itu, bukan angka yang ditimpa.",
+  "h": "istilah/ledger/",
+  "n": "2.6 Kenapa saldo bukan kolom",
+  "s": "istilah-ledger",
+  "t": "Ledger",
+  "u": "tahap-2/saldo-bukan-kolom/"
  },
  "load balancer": {
   "b": "D2",
@@ -1560,6 +1605,15 @@ window.ISTILAH = {
   "s": "istilah-polling",
   "t": "Polling",
   "u": "e-mobile/e4-push-real-time/"
+ },
+ "posting": {
+  "b": "t2-ledger",
+  "d": "Satu baris uang di dalam jurnal untuk satu buku: negatif bila uang keluar, positif bila masuk; saldo buku adalah jumlah posting-nya.",
+  "h": "istilah/posting/",
+  "n": "2.7 Ledger double-entry",
+  "s": "istilah-posting",
+  "t": "Posting",
+  "u": null
  },
  "primary": {
   "b": "D3",

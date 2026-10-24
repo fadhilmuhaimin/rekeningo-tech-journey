@@ -1,0 +1,110 @@
+{
+  "istilah": "Job terjadwal",
+  "sehari_hari": "Pekerjaan yang dijalankan jam, bukan tombol. Setiap Jumat 15.00 server mencairkan saldo 12 warung tanpa ada yang membuka app.",
+  "cerita": [
+    {
+      "rujukan": "t2-prd",
+      "teks": "PRD v2, P0: setiap Jumat 15.00 saldo warung dicairkan, dan Keuangan menerima satu file transfer untuk diunggah ke bank."
+    },
+    {
+      "rujukan": "t2-pencairan",
+      "teks": "Job membaca saldo setiap warung dari posting, menulis satu jurnal pencairan per warung, lalu membuat satu file CSV."
+    },
+    {
+      "rujukan": "t2-m15",
+      "teks": "Minggu 6: total pencairan di file bank Rp15.000 lebih besar dari mutasi ledger."
+    },
+    {
+      "rujukan": "t2-job-rekonsiliasi",
+      "teks": "ADR 19: pencairan per batch dengan kunci periode, dan rekonsiliasi otomatis sebelum file dibuat."
+    }
+  ],
+  "mekanisme": [
+    "Penjadwal di server (timer systemd, cron, atau penjadwal framework) memanggil kode job pada waktunya, tanpa request dari user.",
+    "Zona waktu ditulis bersama jadwalnya: 15.00 WIB sama dengan 08.00 UTC, dan beberapa penjadwal membaca cron dalam UTC atau GMT.",
+    "Job membaca data saat ia jalan, mis. saldo 12 warung Rp2.450.000 di rekaman lab t2-pencairan `benar.txt` bagian A.",
+    "Hasilnya ditulis ke tempat yang dibaca orang lain: jurnal di ledger dan satu file CSV untuk Keuangan.",
+    "Tidak ada layar yang menunggu jawaban, jadi job yang gagal hanya terlihat dari catatan atau dari angka yang tidak cocok."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, pgx v5.11.0, PostgreSQL 17.11",
+      "teks": "Job ditulis sebagai program terpisah `cmd/pencairan` dan dijalankan lab sebagai perintah, tanpa jadwal. Di server, timer systemd bisa memanggilnya dengan `OnCalendar=Fri *-*-* 15:00:00 Asia/Jakarta`.",
+      "rekaman": "labs/t2-pencairan/output/benar.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-postgres (pg) 8.23.1",
+      "teks": "Skrip job dipanggil timer systemd yang sama, dan menutup pool dengan `pool.end()` supaya proses Node berakhir sesudah job selesai.",
+      "dokumentasi": "https://node-postgres.com/apis/pool"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.x",
+      "teks": "`Schedule::command('pencairan:jalankan')->fridays()->at('15:00')->timezone('Asia/Jakarta')` di `routes/console.php`, dengan satu baris cron yang memanggil `schedule:run` setiap menit.",
+      "dokumentasi": "https://laravel.com/docs/13.x/scheduling"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1",
+      "teks": "Job ditulis sebagai management command, lalu dijadwalkan dari luar Django, mis. timer systemd yang menjalankan `python manage.py pencairan <minggu>`.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/howto/custom-management-commands/"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "`pod.futureCalls.callRecurring(identifier: ...).cron('0 8 * * 5')`: future call berulang yang jalan di dalam server, dengan cron dalam UTC.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/scheduling/recurring-tasks"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "Supabase Cron, pg_cron 1.6.4",
+      "teks": "`cron.schedule('pencairan-jumat', '0 8 * * 5', 'SELECT pencairan_jumat()')` menjalankan SQL di database dalam waktu GMT; file untuk Keuangan dibuat proses lain.",
+      "dokumentasi": "https://supabase.com/docs/guides/cron"
+    }
+  },
+  "jebakan": [
+    "Lupa zona waktu. Serverpod membaca cron dalam UTC dan pg_cron bawaan GMT, jadi `0 15 * * 5` di sana berarti 22.00 WIB.",
+    "Mengira job yang jalan lagi selalu aman. Di widget halaman 2.5, jalan kedua pukul 15.10 ikut mencairkan bayar Rp25.000 pukul 15.05, karena job membaca saldo saat itu.",
+    "Mengira job selalu jalan sampai selesai. Server bisa mati di tengah job, di antara menulis ledger dan menulis file."
+  ],
+  "terkait": [
+    "Idempotent",
+    "Jurnal",
+    "Tutup buku",
+    "Dead-letter queue"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-50",
+      "judul": "systemd.timer(5), systemd 262",
+      "url": "https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html",
+      "catatan": "OnCalendar= untuk jadwal waktu dinding; Persistent= menjalankan jadwal yang terlewat saat server mati. Dibuka 24 Oktober 2026."
+    },
+    {
+      "riset": "R2-52",
+      "judul": "Laravel 13.x: Task Scheduling",
+      "url": "https://laravel.com/docs/13.x/scheduling",
+      "catatan": "Jadwal di kode, timezone() per task, satu baris cron untuk schedule:run. Dibuka 24 Oktober 2026."
+    },
+    {
+      "riset": "R2-54",
+      "judul": "Serverpod: Recurring tasks",
+      "url": "https://docs.serverpod.dev/concepts/scheduling/recurring-tasks",
+      "catatan": "Ekspresi cron dibaca dalam UTC; jalan yang terlewat saat server mati dilakukan sekali. Dibuka 24 Oktober 2026."
+    },
+    {
+      "riset": "R2-54",
+      "judul": "pg_cron README",
+      "url": "https://github.com/citusdata/pg_cron",
+      "catatan": "Zona bawaan GMT, diubah lewat cron.timezone; satu instance per job, jalan berikutnya diantre. Dibuka 24 Oktober 2026."
+    },
+    {
+      "riset": "R2-31",
+      "judul": "Rekaman lab t2-pencairan: job pencairan Jumat",
+      "rekaman": "labs/t2-pencairan/output/benar.txt",
+      "catatan": "Saldo 12 warung Rp2.450.000, jurnal pencairan per warung, file CSV, dan perbandingan file lawan ledger."
+    }
+  ]
+}

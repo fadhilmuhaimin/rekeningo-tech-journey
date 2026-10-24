@@ -1,0 +1,26 @@
+{
+  "id": "t2-pencairan-inti",
+  "judul": "Jumat 15.00: ledger dulu, lalu file",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t2-pencairan · benar.txt A dan C" },
+  "baris": [
+    {
+      "label": "Warung Ani",
+      "sub": "satu warung",
+      "simpul": [
+        { "teks": "saldo Rp310.000", "sub": "jumlah posting, Jumat 15.00" },
+        { "teks": "jurnal −Rp310.000", "sub": "kas_pencairan +Rp310.000" },
+        { "teks": "file Rp310.000", "sub": "satu baris CSV", "nada": "good" }
+      ]
+    },
+    {
+      "label": "12 warung",
+      "sub": "seluruh pencairan",
+      "simpul": [
+        { "teks": "saldo Rp2.450.000" },
+        { "teks": "12 jurnal", "sub": "kas_pencairan +Rp2.450.000" },
+        { "teks": "file Rp2.450.000", "sub": "12 baris, sama dengan ledger", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Ledger ada di database, file ada di disk. Keuangan mengunggah file ke bank dengan tangan; lab berhenti di file."
+}
