@@ -333,6 +333,15 @@
   "h": null
  },
  {
+  "t": "Event sourcing",
+  "d": "Menyimpan setiap perubahan data sebagai event yang tidak diubah; keadaan sekarang dibangun ulang dari urutan event itu.",
+  "b": "t2-adr-ledger",
+  "n": "2.8 ADR 6 direvisi",
+  "u": "/tahap-2/adr-ledger/",
+  "s": "istilah-event-sourcing",
+  "h": "/istilah/event-sourcing/"
+ },
+ {
   "t": "Eventual consistency",
   "d": "Data di beberapa tempat boleh berbeda sesaat, tapi akan sama setelah perubahan selesai menyebar.",
   "b": "D3",

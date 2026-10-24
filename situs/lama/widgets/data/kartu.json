@@ -706,6 +706,38 @@
   "jawab": "Tidak. Jurnal 3–5 dibuat dalam satu transaction migrasi, dan koneksi lain baru melihat perubahannya sesudah `COMMIT`, saat saldo sudah Rp180.000. Rp110.000 hanya urutan baris di dalam transaction itu."
  },
  {
+  "id": "t2-adr-ledger-1",
+  "halaman": "t2-adr-ledger",
+  "judul": "2.8 ADR 6 direvisi: dari kolom saldo ke ledger",
+  "url": "tahap-2/adr-ledger/",
+  "tanya": "Seorang engineer mengusulkan opsi B: kolom saldo tetap, ditambah trigger audit. Sebutkan satu syarat PRD v2 yang tetap gagal.",
+  "jawab": "Aturan Pak Hadi. Koreksi masih lewat tabel koreksi tangan, dan baris audit hanya menulis saldo lama dan saldo baru. Dari baris audit, Pak Hadi tahu angka Budi berubah, tapi tidak tahu pembayaran mana atau ke siapa."
+ },
+ {
+  "id": "t2-adr-ledger-2",
+  "halaman": "t2-adr-ledger",
+  "judul": "2.8 ADR 6 direvisi: dari kolom saldo ke ledger",
+  "url": "tahap-2/adr-ledger/",
+  "tanya": "Kenapa ADR ini tidak bernomor 12, dan apa yang terjadi pada ADR 6 di halaman 1.24?",
+  "jawab": "Nomor 12 sudah dipakai 1.40, dan nomor ADR tidak dipakai ulang. Nomor 13–21 juga sudah milik ADR Tahap 2 lain. ADR 6 di 1.24 tetap ada sebagai keputusan Tahap 1, dengan catatan bahwa penggantinya halaman ini."
+ },
+ {
+  "id": "t2-adr-ledger-3",
+  "halaman": "t2-adr-ledger",
+  "judul": "2.8 ADR 6 direvisi: dari kolom saldo ke ledger",
+  "url": "tahap-2/adr-ledger/",
+  "tanya": "Benar atau salah: dengan ledger, dua transfer Budi yang bersamaan tidak bisa membuat saldonya negatif.",
+  "jawab": "Salah. Invarian saldo tidak negatif hanya membaca, tanpa lock. Di rekaman `batas.txt` bagian 2, kedua transfer COMMIT dan saldo Budi −Rp20.000. Lock-nya diputuskan di ADR 13 (2.11 Race condition)."
+ },
+ {
+  "id": "t2-adr-ledger-4",
+  "halaman": "t2-adr-ledger",
+  "judul": "2.8 ADR 6 direvisi: dari kolom saldo ke ledger",
+  "url": "tahap-2/adr-ledger/",
+  "tanya": "Di api-t2, kenapa admin tidak bisa salah ketik jumlah jurnal pembalik?",
+  "jawab": "Admin hanya mengirim nomor jurnal dan alasan. Service menyalin setiap posting jurnal asal dengan tanda dibalik, dan database tetap memeriksa bahwa pembalik adalah cermin jurnal asal."
+ },
+ {
   "id": "t2-skema-1",
   "halaman": "t2-skema",
   "judul": "2.9 Skema data: ERD Tahap 1 → Tahap 2 dan pertumbuhannya",
