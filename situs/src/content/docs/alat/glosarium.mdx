@@ -21,7 +21,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **HTTP method** | Kata kerja request (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) yang menyatakan maksud request terhadap resource. | [[B1.1]] |
 | **Status code** | Angka tiga digit di response yang menyatakan hasil request, mis. `201` berhasil dibuat atau `401` belum login. | [[B1.1]] |
 | **Header** | Pasangan nama-nilai di request atau response yang membawa informasi tambahan, mis. token atau tipe konten. | [[B1.1]] |
-| **Payload** | Isi data yang dikirim di body request atau response, biasanya JSON. | [[E5]] |
+| **Payload** | Isi data yang dikirim di body request atau response, biasanya JSON. | [[t2-payload]] |
 | **Handler** | Fungsi di server yang menerima satu request, memeriksa formatnya, lalu memanggil logika bisnis. | [[A2]] |
 | **Database** | Program yang menyimpan data secara permanen dan menjamin aturan seperti constraint dan transaction. | [[B2.1]] |
 | **Transaction** | Sekelompok perintah database yang berhasil semua atau batal semua. | [[B3.1]] |
@@ -67,6 +67,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Fan-out** | Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut. | [[D4b]] |
 | **FCM** (Firebase Cloud Messaging) | Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya. | [[E4]] |
 | **Foreign key** | Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada. | [[B2.1]] |
+| **gzip** | Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip. | [[t2-payload]] |
 | **Idempotency key** | Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali. | [[t2-idempotency]] |
 | **IDOR** (Insecure Direct Object Reference) | Celah saat server memakai ID dari request tanpa bertanya apakah peminta boleh menyentuh data itu. OWASP API Security menyebutnya BOLA. | [[t1-idor]] |
 | **Index** | Struktur data tambahan yang mempercepat pencarian baris, dengan biaya tulis dan ruang disk. | [[t2-index]] |
@@ -104,6 +105,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Optimistic lock** | Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca. | [[t2-race-lock]] |
 | **ORM** (Object-Relational Mapping) | Library yang memetakan tabel database ke objek di kode, sehingga query ditulis sebagai pemanggilan method, mis. Eloquent di Laravel atau ORM bawaan Django. | [[t2-n-plus-1]] |
 | **Outbox** | Tabel tempat event ditulis dalam transaction yang sama dengan perubahan data, lalu dikirim oleh worker. | [[B10.2]] |
+| **Over-fetching** | Response yang mengirim lebih banyak kolom atau baris daripada yang dipakai layar. | [[t2-payload]] |
 | **p95 / p50** | Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median). | [[C2]] |
 | **Pagination** | Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu. | [[t2-kursor]] |
 | **Pagination kursor** (keyset) | Pagination yang meminta baris sesudah nilai urutan baris terakhir yang sudah tampil, bukan halaman ke-N, jadi tetap stabil saat baris baru masuk. | [[t2-kursor]] |

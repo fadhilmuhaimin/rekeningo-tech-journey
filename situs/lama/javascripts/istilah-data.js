@@ -738,6 +738,15 @@ window.ISTILAH = {
   "t": "Outbox",
   "u": "b-fondasi/b10-2-webhook-outbox/"
  },
+ "Over-fetching": {
+  "b": "t2-payload",
+  "d": "Response yang mengirim lebih banyak kolom atau baris daripada yang dipakai layar.",
+  "h": "istilah/over-fetching/",
+  "n": "2.20 Ukuran payload dan kuota HP",
+  "s": "istilah-over-fetching",
+  "t": "Over-fetching",
+  "u": "tahap-2/ukuran-payload/"
+ },
  "PATCH": {
   "b": "B1.1",
   "d": "Kata kerja request (GET, POST, PUT, PATCH, DELETE) yang menyatakan maksud request terhadap resource.",
@@ -805,12 +814,12 @@ window.ISTILAH = {
   "u": "d-system-design/d2-scaling/"
  },
  "Payload": {
-  "b": "E5",
+  "b": "t2-payload",
   "d": "Isi data yang dikirim di body request atau response, biasanya JSON.",
   "n": "2.20 Ukuran payload dan kuota HP",
   "s": "istilah-payload",
   "t": "Payload",
-  "u": "e-mobile/e5-ukuran-payload/"
+  "u": "tahap-2/ukuran-payload/"
  },
  "Phantom read": {
   "b": "t2-isolation-level",
@@ -1481,6 +1490,15 @@ window.ISTILAH = {
   "t": "Foreign key",
   "u": "tahap-1/data-modeling/"
  },
+ "gzip": {
+  "b": "t2-payload",
+  "d": "Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip.",
+  "h": "istilah/gzip/",
+  "n": "2.20 Ukuran payload dan kuota HP",
+  "s": "istilah-gzip",
+  "t": "gzip",
+  "u": "tahap-2/ukuran-payload/"
+ },
  "handler": {
   "b": "A2",
   "d": "Fungsi di server yang menerima satu request, memeriksa formatnya, lalu memanggil logika bisnis.",
@@ -1742,6 +1760,15 @@ window.ISTILAH = {
   "t": "Outbox",
   "u": "b-fondasi/b10-2-webhook-outbox/"
  },
+ "over-fetching": {
+  "b": "t2-payload",
+  "d": "Response yang mengirim lebih banyak kolom atau baris daripada yang dipakai layar.",
+  "h": "istilah/over-fetching/",
+  "n": "2.20 Ukuran payload dan kuota HP",
+  "s": "istilah-over-fetching",
+  "t": "Over-fetching",
+  "u": "tahap-2/ukuran-payload/"
+ },
  "p50": {
   "b": "C2",
   "d": "Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median).",
@@ -1793,12 +1820,12 @@ window.ISTILAH = {
   "u": "d-system-design/d2-scaling/"
  },
  "payload": {
-  "b": "E5",
+  "b": "t2-payload",
   "d": "Isi data yang dikirim di body request atau response, biasanya JSON.",
   "n": "2.20 Ukuran payload dan kuota HP",
   "s": "istilah-payload",
   "t": "Payload",
-  "u": "e-mobile/e5-ukuran-payload/"
+  "u": "tahap-2/ukuran-payload/"
  },
  "phantom read": {
   "b": "t2-isolation-level",

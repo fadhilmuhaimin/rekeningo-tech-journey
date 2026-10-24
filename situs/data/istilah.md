@@ -90,6 +90,7 @@
 *[Firebase Cloud Messaging]: Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya.
 *[Foreign key]: Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada.
 *[foreign key]: Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada.
+*[gzip]: Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip.
 *[Idempotency key]: Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.
 *[idempotency key]: Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.
 *[IDOR]: Celah saat server memakai ID dari request tanpa bertanya apakah peminta boleh menyentuh data itu. OWASP API Security menyebutnya BOLA.
@@ -156,6 +157,8 @@
 *[ORM]: Library yang memetakan tabel database ke objek di kode, sehingga query ditulis sebagai pemanggilan method, mis. Eloquent di Laravel atau ORM bawaan Django.
 *[Outbox]: Tabel tempat event ditulis dalam transaction yang sama dengan perubahan data, lalu dikirim oleh worker.
 *[outbox]: Tabel tempat event ditulis dalam transaction yang sama dengan perubahan data, lalu dikirim oleh worker.
+*[Over-fetching]: Response yang mengirim lebih banyak kolom atau baris daripada yang dipakai layar.
+*[over-fetching]: Response yang mengirim lebih banyak kolom atau baris daripada yang dipakai layar.
 *[p95]: Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median).
 *[p50]: Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median).
 *[Pagination]: Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu.

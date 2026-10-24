@@ -47,9 +47,9 @@
  {
   "t": "Payload",
   "d": "Isi data yang dikirim di body request atau response, biasanya JSON.",
-  "b": "E5",
+  "b": "t2-payload",
   "n": "2.20 Ukuran payload dan kuota HP",
-  "u": "/e-mobile/e5-ukuran-payload/",
+  "u": "/tahap-2/ukuran-payload/",
   "s": "istilah-payload",
   "h": null
  },
@@ -414,6 +414,15 @@
   "h": null
  },
  {
+  "t": "gzip",
+  "d": "Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip.",
+  "b": "t2-payload",
+  "n": "2.20 Ukuran payload dan kuota HP",
+  "u": "/tahap-2/ukuran-payload/",
+  "s": "istilah-gzip",
+  "h": "/istilah/gzip/"
+ },
+ {
   "t": "Idempotency key",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
   "b": "t2-idempotency",
@@ -745,6 +754,15 @@
   "u": "/b-fondasi/b10-2-webhook-outbox/",
   "s": "istilah-outbox",
   "h": null
+ },
+ {
+  "t": "Over-fetching",
+  "d": "Response yang mengirim lebih banyak kolom atau baris daripada yang dipakai layar.",
+  "b": "t2-payload",
+  "n": "2.20 Ukuran payload dan kuota HP",
+  "u": "/tahap-2/ukuran-payload/",
+  "s": "istilah-over-fetching",
+  "h": "/istilah/over-fetching/"
  },
  {
   "t": "p95 / p50",
