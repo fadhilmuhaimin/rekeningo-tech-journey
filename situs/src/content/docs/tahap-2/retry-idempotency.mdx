@@ -20,11 +20,9 @@ Retry itu benar; yang salah adalah server yang tidak mengenali ulangan. App meng
 
 <Rantai data={intiDiagram} ringkas />
 
-Di [[t2-m10]], response pembayaran Budi hilang sesudah `COMMIT`, dan app mengulang request yang sama. Server minggu 2 menulis jurnal kedua (rekaman lab `tanpa-key.txt`). Retry-nya tidak salah, karena koneksi putus tidak memberi tahu app apa yang terjadi di server.
+Di [[t2-m10]], app mengulang pembayaran Budi yang response-nya hilang, dan server minggu 2 menulis jurnal kedua (rekaman lab `tanpa-key.txt`).
 
-**Idempotency key** adalah penanda yang dibuat app dan dikirim di header `Idempotency-Key`, supaya server mengenali ulangan dari satu niat bayar. Penanda itu hanya berguna bila retry membawa key yang sama.
-
-Key yang dibuat ulang di setiap percobaan tetap menghasilkan dua jurnal dan saldo Rp50.000 (rekaman `key-per-percobaan.txt`). Dengan satu key per niat, percobaan kedua menerima jawaban pertama dan saldo Budi Rp75.000 (rekaman `key-per-niat.txt`). ADR 14 di blok Putuskan memilih cara kedua.
+**Idempotency key** adalah penanda dari app di header `Idempotency-Key`. Satu key per niat bayar menghasilkan satu jurnal (`key-per-niat.txt`), sedangkan key baru di setiap retry tetap menghasilkan dua (`key-per-percobaan.txt`). ADR 14 memilih cara pertama.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -63,6 +61,8 @@ Di rekaman jalur pertama, tabel key memuat dua baris dengan `hash_permintaan` sa
 <Blok nama="Paham">
 
 ### Kenapa ini ada
+
+Retry sendiri tidak salah. Koneksi putus tidak memberi tahu app apa yang terjadi di server, dan RFC 9110 mengizinkan client mengulang bila ia tahu ulangan itu aman. Yang kurang adalah cara menjadikannya aman.
 
 Raka mengira header dan tabel key sudah menutup M10. Ia menambahkan `Idempotency-Key` lewat interceptor di HTTP client, yang memasang UUID baru di setiap pengiriman. Rekaman jalur pertama menunjukkan hasilnya: server mengenali header itu, tetapi key di retry belum pernah ia lihat.
 
@@ -123,7 +123,7 @@ Jurnal, status `selesai`, dan respons ditulis di satu transaction, jadi ketigany
 
 <Snippet file="labs/e3-idempotency/output/ledger/mati-di-tengah.txt" lines="29:35" title="Rekaman lab: mati-di-tengah.txt, sisi server" />
 
-Bandingkan dengan 2.13: di sana server menulis jurnal 2 lalu `COMMIT`, dan ulangan menghasilkan jurnal 3. Di sini jurnal 2 tidak pernah tersimpan, jadi ulangan memang harus mengerjakannya. Saldo Budi Rp75.000 di kedua kasus, dan app tidak bisa membedakan keduanya dari layar HP.
+Bandingkan dengan `key-per-niat.txt`. Dari layar HP, percobaan 1 sama-sama berakhir dengan koneksi putus. Bedanya ada di server: di sana jurnal 2 sudah tersimpan dan ulangan menerima responsnya, di sini jurnal 2 batal dan ulangan menulis jurnal 3. Saldo akhir Budi Rp75.000 di kedua kasus, jadi app tidak bisa membedakan keduanya.
 
 #### Key sama, isi berbeda
 
