@@ -55,7 +55,7 @@ Halaman 2 memakai `OFFSET 5`: lewati lima baris pertama, ambil lima berikutnya. 
 
 <Snippet file="labs/b2-query/output/ledger/pagination.txt" lines="27:36" title="Rekaman lab: labs/b2-query/output/ledger/pagination.txt, bagian A (halaman 2, kolom catatan menandai baris ganda)" />
 
-Urutan daftarnya sudah pasti: `ORDER BY dibuat DESC, id DESC`, dan `id` unik. PostgreSQL meminta urutan yang unik untuk `LIMIT` dan `OFFSET` supaya hasilnya tidak acak ([dokumentasi PostgreSQL 17 tentang LIMIT dan OFFSET](https://www.postgresql.org/docs/17/queries-limit.html)). Di sini urutan unik tidak cukup, karena yang berubah di antara dua query adalah isi tabelnya.
+Urutan daftarnya sudah pasti: `ORDER BY dibuat DESC, id DESC`, dan `id` unik. PostgreSQL menekankan urutan yang unik untuk `LIMIT`, supaya subset yang didapat tidak terduga ([dokumentasi PostgreSQL 17 tentang LIMIT dan OFFSET](https://www.postgresql.org/docs/17/queries-limit.html)). Di sini urutan unik tidak cukup, karena yang berubah di antara dua query adalah isi tabelnya.
 
 Praktisi mengenal pola ini: baris ganda muncul bila baris baru masuk di antara dua permintaan halaman ([Markus Winand, *No Offset*, Use The Index, Luke](https://use-the-index-luke.com/no-offset)).
 
