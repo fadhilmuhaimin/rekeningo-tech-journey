@@ -38,7 +38,14 @@ execFileSync(process.execPath, [path.join(ROOT, "tools/validasi_skenario.mjs")],
 
 fs.rmSync(path.join(PUB, "widgets"), { recursive: true, force: true });
 salinDir(path.join(LAMA, "widgets"), path.join(PUB, "widgets"), (n) => n.endsWith(".js") || n.endsWith(".json"), gantiToken);
-fs.writeFileSync(path.join(PUB, "widgets/data/cerita.json"), gantiToken(fs.readFileSync(CERITA, "utf8")));
+// jalur_inti per tahap tidak disimpan di situs/data/cerita.json (keputusan 727: nilai tunggal yang bentrok di tiap
+// merge halaman); dihitung di sini dari field per halaman (ada, inti, menit) yang sama dengan hitungan lama.
+const cerita = JSON.parse(fs.readFileSync(CERITA, "utf8"));
+for (const t of cerita.tahap) {
+  const inti = cerita.halaman.filter((h) => h.tahap === t.no && h.ada && h.inti);
+  t.jalur_inti = { menit: inti.reduce((s, h) => s + (h.menit || 0), 0), halaman: inti.length };
+}
+fs.writeFileSync(path.join(PUB, "widgets/data/cerita.json"), gantiToken(JSON.stringify(cerita, null, 2) + "\n"));
 fs.rmSync(path.join(PUB, "vendor"), { recursive: true, force: true });
 salinDir(path.join(LAMA, "vendor"), path.join(PUB, "vendor"));
 
