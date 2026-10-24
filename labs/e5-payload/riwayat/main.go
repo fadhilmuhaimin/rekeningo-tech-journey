@@ -355,5 +355,6 @@ func main() {
 		}
 		fmt.Fprint(w, v)
 	})
-	log.Fatal(http.ListenAndServe(*alamat, mux))
+	srv := &http.Server{Addr: *alamat, Handler: mux, ReadHeaderTimeout: 5 * time.Second} // gosec G114
+	log.Fatal(srv.ListenAndServe())
 }
