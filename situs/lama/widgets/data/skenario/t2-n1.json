@@ -1,0 +1,125 @@
+{
+  "versi": 2,
+  "judul": "Halaman pertama riwayat Budi: berapa kali handler bertanya ke database?",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/b2-query/output/ledger/n1.txt",
+    "fileVarian": "labs/b2-query/output/ledger/n1.txt",
+    "catatan": "PostgreSQL 17.11 dari database bersih (make -C labs/b2-query run-ledger). Jalur utama memutar bagian A (cara minggu 3), C, dan D. Ubah satu hal memutar bagian B, C, dan D. Lima nama lawan pertama dari bagian C; query 7 sampai 21 diringkas jadi satu langkah."
+  },
+  "pengantar": "Riwayat Budi ditulis dalam dua tahap: query untuk 20 transaksi terakhir, lalu satu query per transaksi untuk mencari nama lawannya. Tebak dulu, lalu jalankan query-nya satu per satu dan hitung.",
+  "komponen": [
+    {
+      "id": "handler",
+      "label": "Handler riwayat"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL",
+      "lapisan": [
+        "posting dan jurnal",
+        "buku dan akun"
+      ]
+    }
+  ],
+  "layarAwal": {},
+  "predict": {
+    "q": "Halaman pertama mengirim 21 query untuk 20 baris. Kalau seluruh riwayat Budi, 3.892 baris, dibuka dengan cara yang sama, berapa query yang dikirim?",
+    "options": [
+      "1: satu query mengembalikan semua baris",
+      "21: sama dengan halaman pertama",
+      "3.893: satu untuk daftar, satu untuk setiap baris",
+      "±390: satu untuk setiap sepuluh baris"
+    ],
+    "answer": 2,
+    "varian": false,
+    "explain": "Satu query daftar ditambah satu query nama lawan per baris: 3.893 untuk 3.892 baris, sama di hitungan client dan di log server (rekaman n1.txt bagian D). Halaman pertama mengirim 21 karena hanya 20 baris. Jumlah query mengikuti jumlah baris."
+  },
+  "langkah": [
+    {
+      "dari": "handler",
+      "ke": "db",
+      "lapisan": "posting dan jurnal",
+      "judul": "Query 1: 20 transaksi terakhir Budi",
+      "kirim": "SELECT p.id, p.jurnal_id, j.jenis,\n  p.jumlah, p.dibuat\n  FROM posting p JOIN jurnal j ...\n  WHERE p.buku_id = :budi\n  ORDER BY p.dibuat DESC LIMIT 20\n→ 20 baris, belum ada nama lawan",
+      "jelas": "Handler memegang 20 baris dengan nomor jurnal dan jumlah. Nama lawan setiap transaksi belum ada di baris itu, jadi handler bertanya lagi."
+    },
+    {
+      "dari": "handler",
+      "ke": "db",
+      "lapisan": "buku dan akun",
+      "judul": "Query 2: nama lawan jurnal 380033",
+      "kirim": "SELECT coalesce(a.nama, CASE ...)\n  FROM posting q JOIN buku b ...\n  LEFT JOIN akun a ...\n  WHERE q.jurnal_id = 380033\n  AND q.buku_id <> :budi LIMIT 1\n→ Karyawan 961",
+      "jelas": "Satu query per transaksi, ke posting, buku, dan akun. Query ini kecil dan benar. Dari rekaman, rata-rata ±0,5 ms per query (waktu seluruh riwayat dibagi jumlah query; pembanding)."
+    },
+    {
+      "dari": "handler",
+      "ke": "db",
+      "lapisan": "buku dan akun",
+      "judul": "Query 3: nama lawan jurnal 380014",
+      "kirim": "... WHERE q.jurnal_id = 380014 ...\n→ Karyawan 842",
+      "jelas": "Query yang sama dengan parameter berbeda. Pola ini yang dicari saat menghitung query per request."
+    },
+    {
+      "dari": "handler",
+      "ke": "db",
+      "lapisan": "buku dan akun",
+      "judul": "Query 4: nama lawan jurnal 379909",
+      "kirim": "... WHERE q.jurnal_id = 379909 ...\n→ Karyawan 1233",
+      "jelas": "Setiap query membawa satu perjalanan ke database, walau hasilnya hanya satu nama."
+    },
+    {
+      "dari": "handler",
+      "ke": "db",
+      "lapisan": "buku dan akun",
+      "judul": "Query 5: nama lawan jurnal 379808",
+      "kirim": "... WHERE q.jurnal_id = 379808 ...\n→ Warung Ani",
+      "jelas": "Transaksi bayar Rp8.000 ke warung. Hasilnya sama persis dengan cara satu query (rekaman bagian C)."
+    },
+    {
+      "dari": "handler",
+      "ke": "db",
+      "lapisan": "buku dan akun",
+      "judul": "Query 6: nama lawan jurnal 379730",
+      "kirim": "... WHERE q.jurnal_id = 379730 ...\n→ Karyawan 1135",
+      "jelas": "Lima baris pertama riwayat Budi sudah lengkap. Lima belas baris lagi menunggu."
+    },
+    {
+      "dari": "handler",
+      "ke": "db",
+      "lapisan": "buku dan akun",
+      "judul": "Query 7 sampai 21: lima belas pola yang sama",
+      "kirim": "... WHERE q.jurnal_id = <jurnal sisa> ...\n→ 15 nama lawan",
+      "jelas": "Langkah ini meringkas lima belas query dengan pola yang sama. Rekaman mencatat hasil lima baris pertama dan jumlah seluruh query.",
+      "nada": "warn"
+    },
+    {
+      "dari": "handler",
+      "judul": "Halaman terbuka: 21 query",
+      "kirim": "query di client: 21\nquery di log server: 21\n→ 20 baris dengan nama lawan",
+      "jelas": "Hitungan client sama dengan hitungan log server (log_statement = all). Jumlahnya 1 ditambah jumlah baris, bukan ukuran tabel.",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "nama lawan dicari di query yang sama",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "handler",
+        "ke": "db",
+        "lapisan": "posting dan jurnal",
+        "judul": "Query 1: daftar dan nama lawan sekaligus",
+        "kirim": "SELECT p.id, ..., coalesce(la.nama, ...)\n  FROM posting p JOIN jurnal j ...\n  LEFT JOIN LATERAL (SELECT q.buku_id\n    FROM posting q WHERE q.jurnal_id =\n    p.jurnal_id ... LIMIT 1) l ON true\n  LEFT JOIN buku lb ... LEFT JOIN akun la ...\n→ 20 baris, lima pertama: Karyawan 961, 842,\n  1233, Warung Ani, Karyawan 1135",
+        "jelas": "Database mencari lawan setiap baris di dalam query yang sama. Pencarian per baris tetap ada, tapi terjadi di dalam database, tanpa bolak-balik ke handler. Lima baris pertama sama dengan cara N+1."
+      },
+      {
+        "dari": "handler",
+        "judul": "Halaman terbuka: 1 query",
+        "kirim": "query di client: 1\nquery di log server: 1\n→ 20 baris dengan nama lawan",
+        "jelas": "Jumlah query tidak lagi bergantung pada jumlah baris: laporan Ani 1 lawan 195 query, seluruh riwayat Budi 1 lawan 3.893.",
+        "nada": "good"
+      }
+    ]
+  }
+}

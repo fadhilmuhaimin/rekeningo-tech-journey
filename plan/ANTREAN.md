@@ -1178,11 +1178,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.16 · N+1 query
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.15, lab-b2-query
 - selesai bila: halaman Konsep 2.16 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Isi lama B2.4 dipakai ulang.
+- catatan: PR #305, keputusan 665–667 (`plan/masuk/tahap-2-n-plus-1.md`): `tahap-2/n-plus-1.mdx` (ID `t2-n-plus-1`) dengan template konsep 1.23 dan 2.12; Inti Rantai ringkas `t2-n1-inti` (21 lawan 1 query untuk halaman pertama, 3.893 lawan 1 untuk seluruh riwayat Budi); Coba widget alur `t2-n1` (Rekaman lab `n1.txt` bagian A–D, tebak 3.893, Ubah satu hal = nama lawan di query yang sama); Paham: tabel jumlah query (D) dan waktu dua kolom (E: N+1 dan index adalah dua perbaikan yang berdiri sendiri), rumus tambahan jaringan jumlah query × RTT (RTT 1 ms Asumsi), cara menemukan, dua cara memperbaiki dengan tiga jebakan JOIN (baris tanpa pasangan, baris menggandakan, hasil harus sama; berlabel Tidak dijalankan), Di stack lain enam tab (Go dari `riwayat.go` api-t2 yang dijalankan, lainnya Tidak dijalankan dengan versi dan URL: Node pg 8.23.1, Laravel 13.38.0, Django 6.1.2 dengan `fetch_mode`, Serverpod 4.0.4, supabase-js 2.118.0); Cek diri 4 kartu. Registry pola 2.11/2.12: B2.4 lama `lebur_ke`, file lama tetap dan dipindah ke akhir Tahap 2; `[[B2.4]]` di 2.2 dan `b2-3-index.mdx` diarahkan ke halaman baru; B2.3 (2.17) bergantung pada `t2-n-plus-1`. Istilah N+1 query, ORM, Eager loading, Lazy loading (halaman istilah); pola ID riset istilah dilonggarkan ke tiga digit. Riset R2-120–R2-124. Lab tidak diulang di PR ini (2.15 mengulangnya). Untuk 2.17: tabel E kolom kanan dan `index.txt` bagian B sudah dipakai sebagai pembanding di 2.16; keputusan index dan ADR 15 belum disentuh. Polesan di file masuk.
 
 ### 2.17 · Index dan query plan + ADR 15
 

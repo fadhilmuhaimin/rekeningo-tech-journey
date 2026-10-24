@@ -1,0 +1,42 @@
+{
+  "istilah": "Eager loading",
+  "sehari_hari": "Eager loading memuat data berelasi bersama data induknya, sebelum kode membutuhkannya. Kode di dalam loop lalu membaca relasi dari memori, tanpa query baru.",
+  "cerita": [
+    {
+      "rujukan": "t2-n-plus-1",
+      "teks": "Query yang mengambil nama lawan bersama daftar riwayat (`LEFT JOIN LATERAL`) adalah eager loading yang ditulis tangan: 1 query lawan 21 untuk halaman pertama."
+    }
+  ],
+  "mekanisme": [
+    "Kamu menyebut relasi yang dibutuhkan saat membuat query induk: `with('jurnal')` di Laravel, `select_related` di Django, `include` di Serverpod, atau JOIN yang ditulis sendiri.",
+    "Library mengirim satu query tambahan, atau memakai JOIN, untuk relasi semua baris sekaligus.",
+    "Akses relasi di dalam loop membaca hasil yang sudah ada di memori, tanpa query baru."
+  ],
+  "stack": {
+    "lihat": "n-1-query",
+    "teks": "Cara meminta relasi bersama daftar di tiap stack ada di halaman N+1 query: JOIN tertulis di Go dan Node, `with()` di Laravel, `select_related` dan `prefetch_related` di Django, `include` di Serverpod, embedding di Supabase."
+  },
+  "jebakan": [
+    "Memuat relasi yang tidak dipakai layar. Eager loading membaca baris dan kolom lebih banyak dari yang dibutuhkan.",
+    "Menulis eager loading sebagai JOIN biasa. Baris yang tidak punya pasangan hilang dari hasil tanpa error; pakai LEFT JOIN untuk relasi yang boleh kosong."
+  ],
+  "terkait": [
+    "Lazy loading",
+    "N+1 query",
+    "ORM (Object-Relational Mapping)"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-123",
+      "judul": "Laravel 13.x: Eager Loading",
+      "url": "https://laravel.com/docs/13.x/eloquent-relationships#eager-loading",
+      "catatan": "Eager loading mengurangi masalah N + 1: dua query untuk semua buku dan penulisnya."
+    },
+    {
+      "riset": "R2-121",
+      "judul": "PostgreSQL 17: Joined Tables",
+      "url": "https://www.postgresql.org/docs/17/queries-table-expressions.html",
+      "catatan": "JOIN biasa menghasilkan baris hanya untuk pasangan yang cocok; LEFT JOIN mempertahankan baris kiri tanpa pasangan."
+    }
+  ]
+}
