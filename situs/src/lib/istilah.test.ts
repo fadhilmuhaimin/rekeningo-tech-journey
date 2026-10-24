@@ -10,7 +10,7 @@ const baca = (f: string) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"
 const glos = Glosarium.parse(JSON.parse(fs.readFileSync(path.join(ROOT, "situs/data/glosarium.json"), "utf8")));
 const idRegistry = new Set(JSON.parse(fs.readFileSync(path.join(ROOT, "situs/data/cerita.json"), "utf8")).halaman.map((h: { id: string }) => h.id));
 const riset = fs.readdirSync(path.join(ROOT, "plan")).filter((f) => /^RISET-TAHAP-\d\.md$/.test(f))
-  .flatMap((f) => [...fs.readFileSync(path.join(ROOT, "plan", f), "utf8").matchAll(/^\| (R\d-\d{2}) \|/gm)].map((m) => m[1]));
+  .flatMap((f) => [...fs.readFileSync(path.join(ROOT, "plan", f), "utf8").matchAll(/^\| (R\d-\d{2,3}) \|/gm)].map((m) => m[1]));
 
 const contoh = () => baca("idempotency-key.json");
 

@@ -1,0 +1,263 @@
+---
+title: "2.3 Fitur: transfer antar karyawan"
+description: Budi mengirim uang ke rekan lewat nomor karyawan. Backend mengunci dua buku, memeriksa batas Rp500.000 per hari dan saldo, lalu menulis satu jurnal berisi dua posting.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-transfer-inti.json";
+import PetaFitur from "../../../components/PetaFitur.astro";
+import petaTransfer from "../../../../data/widget/t2-peta-transfer.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 9 menit · coba 2 menit · Prasyarat: [[t2-fitur-teknis]] · Jalur inti</p>
+
+<Blok nama="Yang diminta PRD" buka>
+
+## Inti
+
+Transfer memindahkan uang dari buku satu karyawan ke buku rekannya, sebagai satu jurnal berisi dua posting.
+
+<Rantai data={intiDiagram} ringkas />
+
+Budi mengetik nomor karyawan Citra, K00504, dan nominal Rp20.000. Backend mencari pemilik nomor itu, lalu menulis jurnal `transfer`: buku Budi −Rp20.000 dan buku Citra +Rp20.000. Di rekaman lab `transfer.txt` bagian A (lab api-t2), jawabannya `201` dengan saldo Budi Rp410.000 dan sisa batas Rp480.000.
+
+Sebelum menulis jurnal, backend menjumlahkan kiriman keluar pengirim sejak pukul 00.00 WIB. Kalau jumlah itu ditambah nominal melewati Rp500.000, kiriman ditolak dan tidak ada jurnal yang ditulis. Di bagian C rekaman yang sama, kiriman pertama Citra hari itu, Rp800.000, dijawab `422` dengan type `/problems/batas-harian`.
+
+### Baris PRD
+
+| Prioritas | Fitur | Keterangan |
+|---|---|---|
+| P0 | Transfer antar karyawan | Kirim ke rekan lewat nomor karyawan; batas Rp500.000 per hari |
+
+Tujuan PRD v2 untuk fitur ini: patungan makan siang tanpa tunai. Di Tahap 1, uang hanya berpindah dari karyawan ke warung, jadi patungan masih dibayar tunai ([[t2-prd]]). Menurut PRD, Budi berhenti memakai Rekeningo kalau ia tertagih dua kali.
+
+Sinta menulis satu risiko untuk fitur ini: transfer antar karyawan membuka jenis penyalahgunaan baru. Dua pertanyaan terbuka PRD juga tentang transfer. Apa yang terjadi kalau dua kiriman dari akun yang sama berjalan bersamaan, dan apakah uang terkirim dua kali kalau app mengulang permintaan?
+
+<PetaFitur data={petaTransfer} />
+
+Endpoint ini baru, `POST /kiriman`. App 1.0 dan 1.1 tetap membayar warung lewat `POST /transfers` dari Tahap 1, dan request serta jawabannya tidak berubah. Backend tidak punya endpoint untuk mengecek nama pemilik nomor, jadi layar konfirmasi app hanya bisa menampilkan nomor dan nominal yang diketik Budi. Alasannya ada di bagian Pengaman di bawah.
+
+</Blok>
+
+<Blok nama="Coba: uang keluar mana yang dihitung batas?" buka aman="Kalau berhenti di sini, kamu sudah tahu: batas harian hanya menghitung kiriman ke rekan sejak 00.00, bukan bayar ke warung dan bukan uang masuk.">
+
+Hari Budi di widget ini memakai nominal dari rekaman lab `transfer.txt` bagian A dan C; jam dan tanggalnya ilustrasi. SQL-nya dijalankan sungguhan di browser dengan SQLite, bukan PostgreSQL seperti di lab. Di lab, batas harian dijaga kode service Go, dan widget ini memerankannya dengan view dan trigger.
+
+<WidgetLama nama="runsql" src="data/t2-transfer.json" />
+
+Tabel hasil menampilkan saldo dari posting, uang keluar yang dihitung batas, dan sisa batas. Di kedua panel, kiriman Rp80.000 diterima dan sisa batas Budi Rp0, sama dengan akhir rekaman bagian C.
+
+Nyalakan **Ubah satu hal**: batas kini menghitung semua uang keluar Budi, termasuk bayar ke warung. Panel After menolak kiriman Rp80.000, karena Rp20.000 + Rp400.000 + Rp25.000 + Rp80.000 = Rp525.000. Panel Before tetap menerima, karena hari itu Budi tidak membayar warung.
+
+Jadi satu syarat di query menentukan apakah makan siang Budi mengurangi jatah patungannya. PRD menulis batas untuk kiriman ke rekan, dan lab membacanya sebagai jurnal `transfer` saja.
+
+</Blok>
+
+<Blok nama="Endpoint, aturan, dan rekaman">
+
+Handler memeriksa rate limit per alamat IP, membaca body, dan memastikan kedua field dikirim. Semua aturan uang diserahkan ke service:
+
+<Snippet file="labs/api-t2/internal/handler/handler.go" region="kirim" lang="go" title="labs/api-t2/internal/handler/handler.go" />
+
+Endpoint ini lahir di Tahap 2, jadi hanya menerima `nominal`, nama field app 1.1 dan app 2.0. Nama lama `jumlah` dari app 1.0 hanya diterima endpoint Tahap 1 ([[E1]]). Rekaman lab ini dibuat dari database bersih. Nomor yang tidak terdaftar, nomor milik sendiri, dan nominal 0 dijawab `422` dengan nama field-nya, dan body tanpa `nominal` dijawab `400`:
+
+<Snippet file="labs/api-t2/output/transfer.txt" lines="26:46" title="Rekaman lab: labs/api-t2/output/transfer.txt" />
+
+### Satu transaction, dua buku
+
+Service mengambil satu token dari bucket akun pengirim dan memeriksa nominal lebih dulu, lalu mencari pengirim dan pemilik nomor. Batas harian, saldo, dan jurnal terjadi di dalam satu transaction:
+
+<Snippet file="labs/api-t2/internal/service/kirim.go" region="kirim" lang="go" title="labs/api-t2/internal/service/kirim.go" />
+
+Langkah pertama di dalam transaction mengunci buku pengirim dan penerima. Batas harian dan saldo dibaca sesudah kunci didapat, lalu jurnal ditulis. Kenapa kunci ini perlu, dan apa yang terjadi tanpanya, dibuka di [[t2-m9]] dan [[t2-race-lock]].
+
+Kedua buku dikunci dengan satu query, urut `id` buku:
+
+<Snippet file="labs/api-t2/internal/repo/ledger.go" region="kunci-buku" lang="go" title="labs/api-t2/internal/repo/ledger.go" />
+
+Dengan `ORDER BY` dan `FOR UPDATE`, PostgreSQL mengurutkan baris dulu, baru mengunci baris yang dikembalikan ([PostgreSQL 17, The Locking Clause](https://www.postgresql.org/docs/17/sql-select.html#SQL-FOR-UPDATE-SHARE)). Urutan lock yang sama untuk dua kiriman berlawanan arah adalah kesimpulan dari urutan itu: dokumentasi tidak menulis urutan pengambilan lock secara eksplisit. Mengunci dalam urutan yang konsisten adalah pertahanan terbaik terhadap deadlock menurut [PostgreSQL 17, 13.3.4](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-DEADLOCKS). Dua kiriman berlawanan arah yang bersamaan tidak direkam di lab ini.
+
+Jurnalnya sama bentuknya dengan bayar dan top-up: dua posting yang jumlahnya nol ([[t2-ledger]]). Citra bisa membuka kiriman itu lewat `GET /transfers/{id}`, endpoint yang sama dengan bayar di Tahap 1:
+
+<Snippet file="labs/api-t2/output/transfer.txt" lines="7:24" title="Rekaman lab: labs/api-t2/output/transfer.txt" />
+
+### Batas harian dan saldo
+
+Batas dihitung dari ledger, bukan dari kolom penghitung. Query ini menjumlahkan posting keluar buku pengirim di jurnal `transfer`, sejak pukul 00.00 WIB:
+
+<Snippet file="labs/api-t2/internal/repo/ledger.go" region="keluar-hari-ini" lang="go" title="labs/api-t2/internal/repo/ledger.go" />
+
+`now() AT TIME ZONE 'Asia/Jakarta'` mengubah waktu server ke jam dinding WIB, `date_trunc` memotongnya ke pukul 00.00, lalu `AT TIME ZONE` kedua mengembalikannya ke `timestamptz` ([PostgreSQL 17, 9.9.4](https://www.postgresql.org/docs/17/functions-datetime.html#FUNCTIONS-DATETIME-ZONECONVERT)). Tanpa zona, `date_trunc` memotong menurut zona sesi database ([9.9.2](https://www.postgresql.org/docs/17/functions-datetime.html#FUNCTIONS-DATETIME-TRUNC)). Kalau zona sesi database UTC, hari baru dimulai pukul 07.00 WIB.
+
+Rekaman bagian C menjalankan satu hari Budi dan Citra. Bayar Rp25.000 ke Warung Ani tidak mengurangi batas Budi, dan kiriman Rp1 sesudah batas Citra habis tetap ditolak:
+
+<Snippet file="labs/api-t2/output/transfer.txt" lines="48:90" title="Rekaman lab: labs/api-t2/output/transfer.txt" />
+
+Saldo yang kurang dijawab `422` dengan type lain, jadi app bisa menulis pesan yang berbeda:
+
+<Snippet file="labs/api-t2/output/transfer.txt" lines="92:98" title="Rekaman lab: labs/api-t2/output/transfer.txt" />
+
+Batas harian dijaga kode service, bukan database. Di migration lab, kolom `buku.batas_harian` diberi komentar "dibaca app, belum dijaga database". Apa akibatnya kalau baris pemeriksaan itu hilang dari kode dibuka di [[t2-m14]].
+
+### Pengaman cek penerima
+
+Di lab, nomor karyawan adalah `K` diikuti nomor akun lima digit, diisi migration saat api-t1 naik ke ledger. Naskah tidak menyebut asal nomor ini. Akibatnya nomor mudah ditebak: Budi K00419, Citra K00504, dan nomor berikutnya cukup ditambah satu.
+
+Tanpa pengaman, siapa pun bisa mencoba nomor satu per satu dan melihat mana yang terdaftar. Ini enumerasi, celah yang sama dengan angka di URL di [[t1-m5]]. Karena itu service memeriksa aturan pengirim lebih dulu: nominal, batas harian, lalu saldo. Rekaman lab `pengaman.txt` bagian C memakai akun Dimas:
+
+<Snippet file="labs/api-t2/output/pengaman.txt" lines="58:80" title="Rekaman lab: labs/api-t2/output/pengaman.txt" />
+
+Untuk K00504 milik Citra dan K09999 yang tidak terdaftar, body jawabannya sama persis. Jawaban "tidak terdaftar" hanya muncul kalau kiriman ke nomor terdaftar akan berhasil, jadi salah ketik tetap dilaporkan. Satu-satunya cara memastikan nomor terdaftar adalah kiriman yang benar-benar berhasil, dan uangnya ikut pindah.
+
+Kiriman yang berhasil tetap membuka nama penerima. Keterangan jurnalnya menyebut kedua nama, dan riwayat pengirim menulis nama penerima di field `lawan` (rekaman lab `riwayat.txt` bagian A):
+
+<Snippet file="labs/api-t2/output/pengaman.txt" lines="82:94" title="Rekaman lab: labs/api-t2/output/pengaman.txt" />
+
+Jadi jumlah percobaan dibatasi dua lapis. Per akun pengirim: 15 kiriman, lalu isi ulang satu per 10 menit. Per alamat IP: 30 kiriman, lalu isi ulang 6 per menit. Bagian D rekaman yang sama:
+
+<Snippet file="labs/api-t2/output/pengaman.txt" lines="98:123" title="Rekaman lab: labs/api-t2/output/pengaman.txt" />
+
+Batas per akun inilah yang menahan Dimas. Dari ambang itu, satu akun butuh ±7 hari dan Rp1.000 untuk membuka 1.000 nama lewat kiriman Rp1 (hitungan dari ambang lab, bukan rekaman). Batas per IP lebih longgar karena banyak HP di kampus bisa keluar lewat satu alamat. Penalti per alamat ikut mengenai semua orang di belakang alamat itu ([RFC 6269, 13.1](https://www.rfc-editor.org/rfc/rfc6269#section-13.1)).
+
+[OWASP ASVS 5.0.0](https://github.com/OWASP/ASVS/blob/v5.0.0/5.0/en/0x11-V2-Validation-and-Business-Logic.md) butir 2.4.1 meminta kontrol anti-otomasi untuk panggilan berlebihan yang bisa membocorkan data. Dua tes Go menjaga kedua pengaman ini dan lolos:
+
+<Snippet file="labs/api-t2/output/testing.txt" lines="40:43" title="Rekaman lab: labs/api-t2/output/testing.txt" />
+
+Cara kerja bucket dan ambang login dibahas di [[t2-login-aman]].
+
+### Di stack lain
+
+**Skenario:** satu kiriman membuka transaction, mengunci buku pengirim dan penerima urut `id`, lalu memeriksa batas dan saldo sebelum menulis jurnal. Tab Go dijalankan di lab. Tab lain tidak dijalankan, hanya dicek ke dokumentasi pada 2026-10-24.
+
+Yang sama di semua stack: lock hanya berlaku di dalam transaction, dan dilepas saat `COMMIT` atau `ROLLBACK` ([PostgreSQL 17, 13.3.2](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)). Yang berbeda: cara membuka transaction, dan cara meminta `FOR UPDATE`.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: Go 1.27.1, `database/sql` + pgx v5.11.0, PostgreSQL 17.11, lab api-t2.*
+
+<Snippet file="labs/api-t2/internal/repo/tx.go" region="tx" lang="go" title="labs/api-t2/internal/repo/tx.go" />
+
+**Yang berbeda di stack ini:** `DalamTx` memberi service satu `Tx`. Semua query kiriman memakai `Tx` itu, bukan pool. `KunciBukuAkun` di atas mengirim daftar akun sebagai satu array `$1`, jadi dua buku dikunci dalam satu query.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [node-postgres: Transactions](https://node-postgres.com/features/transactions), `pg` 8.23.1.*
+
+<Snippet lang="js" code={`const client = await pool.connect();
+try {
+  await client.query("BEGIN");
+  const { rows: buku } = await client.query(
+    "SELECT id, akun_id, saldo_cache FROM buku WHERE akun_id = ANY($1) ORDER BY id FOR UPDATE",
+    [[pengirimId, penerimaId]]);
+  // periksa batas harian dan saldo, lalu tulis jurnal dan dua posting dengan client yang sama
+  await client.query("COMMIT");
+} catch (e) {
+  await client.query("ROLLBACK");
+  throw e;
+} finally {
+  client.release();
+}`} />
+
+**Yang berbeda di stack ini:** transaction butuh satu client dari `pool.connect()`. `pool.query` bisa memakai koneksi lain di setiap panggilan. Di sana, `BEGIN` dan `FOR UPDATE` tidak menjaga apa pun.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Pessimistic Locking](https://laravel.com/docs/13.x/queries#pessimistic-locking).*
+
+<Snippet lang="php" code={`DB::transaction(function () use ($pengirimId, $penerimaId, $nominal) {
+    $buku = DB::table('buku')
+        ->whereIn('akun_id', [$pengirimId, $penerimaId])
+        ->orderBy('id')
+        ->lockForUpdate()
+        ->get()
+        ->keyBy('akun_id');
+    // periksa batas harian dan saldo, lalu tulis jurnal dan dua posting
+});`} />
+
+**Yang berbeda di stack ini:** contoh transfer di dokumentasi Laravel mengunci pengirim lalu penerima dengan dua `find` terpisah. Dengan urutan itu, kiriman Budi ke Citra dan Citra ke Budi mengunci dalam urutan berlawanan. Satu query dengan `orderBy('id')` mengunci keduanya dalam urutan yang sama.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: select_for_update()](https://docs.djangoproject.com/en/6.1/ref/models/querysets/#select-for-update).*
+
+<Snippet lang="python" code={`from django.db import transaction
+
+with transaction.atomic():
+    buku = list(
+        Buku.objects.select_for_update()
+        .filter(akun_id__in=[pengirim_id, penerima_id])
+        .order_by("id")
+    )
+    # periksa batas harian dan saldo, lalu tulis jurnal dan dua posting`} />
+
+**Yang berbeda di stack ini:** lock diminta saat queryset dievaluasi, di sini oleh `list(...)`, bukan saat ditulis. Di luar `atomic()`, Django menolak dengan `TransactionManagementError`. Di SQLite, `select_for_update()` diam-diam tidak menambah `FOR UPDATE`, jadi tes dengan SQLite tidak membuktikan lock.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod 4.0: Row locking](https://docs.serverpod.dev/concepts/data-and-the-database/database/row-locking).*
+
+<Snippet lang="dart" code={`await session.db.transaction((transaction) async {
+  var buku = await Buku.db.find(
+    session,
+    where: (t) => t.akunId.inSet({pengirimId, penerimaId}),
+    orderBy: (t) => t.id,
+    lockMode: LockMode.forUpdate,
+    transaction: transaction,
+  );
+  // periksa batas harian dan saldo, lalu tulis jurnal dan dua posting
+});`} />
+
+**Yang berbeda di stack ini:** lock diminta lewat parameter `lockMode` di `find`, dan `transaction` wajib dikirim. Tanpa transaction, Serverpod melempar exception. Bawaannya `LockBehavior.wait`: transaction kedua menunggu, sama dengan stack lain.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Database Functions](https://supabase.com/docs/guides/database/functions), `@supabase/supabase-js` 2.118.0.*
+
+<Snippet lang="sql" code={`CREATE FUNCTION kirim(ke_nomor text, nominal bigint) RETURNS bigint LANGUAGE plpgsql AS $$
+BEGIN
+  -- pengirim dari sesi login, penerima dari nomor karyawan
+  PERFORM 1 FROM buku WHERE akun_id IN (...) ORDER BY id FOR UPDATE;
+  -- periksa batas harian dan saldo, lalu tulis jurnal dan dua posting
+  ...
+END $$;
+REVOKE EXECUTE ON FUNCTION kirim(text, bigint) FROM public, anon;`} />
+
+<Snippet lang="js" code={`const { data, error } = await supabase.rpc('kirim', { ke_nomor: 'K00504', nominal: 20000 })`} />
+
+**Yang berbeda di stack ini:** client tidak bisa memegang transaction di antara dua panggilan. Satu panggilan `rpc()` adalah satu transaction, jadi kunci, pemeriksaan, dan jurnal harus ada di satu fungsi database.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Konsep yang akan dibutuhkan">
+
+- [[t2-ledger]]: jurnal, posting, dan invarian yang juga berlaku untuk jurnal transfer.
+- [[t2-m9]]: Budi mengirim dari HP dan tablet hampir bersamaan.
+- [[t2-race-lock]]: race condition, lock, dan ADR 13.
+- [[E3]]: retry dan idempotency key, untuk app yang mengulang kiriman.
+- [[t2-login-aman]]: rate limit dua lapis dan token bucket.
+
+**Pertanyaan yang belum dijawab** di halaman ini:
+
+| Pertanyaan | Kenapa belum dijawab | Dijawab di |
+|---|---|---|
+| Bagaimana kalau Budi mengirim dari HP dan tablet bersamaan? | Halaman ini menunjukkan kunci buku, belum menunjukkan apa yang terjadi tanpanya | [[t2-m9]] |
+| Kalau app mengulang kiriman saat sinyal putus, apakah ada dua jurnal? | `POST /kiriman` di lab belum menerima idempotency key | [[t2-m10]] |
+| Apa yang menjaga batas harian kalau kodenya berubah? | Batas dijaga kode service, bukan database | [[t2-m14]] |
+| Bisakah layar konfirmasi menampilkan nama penerima? | Endpoint cek nama membuat nomor bisa ditelusuri tanpa biaya; nama yang disamarkan masih membedakan nomor | Belum dijadwalkan |
+| Bagaimana Citra tahu ada kiriman masuk? | Notifikasi ditunda ke v3 (PRD v2, P2) | [[t2-jembatan]] |
+
+</Blok>
+
+<SkripLama daftar={["runsql-core","runsql"]} />

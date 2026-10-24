@@ -1,0 +1,53 @@
+{
+  "id": "t2-transfer",
+  "title": "Batas Rp500.000 per hari: uang keluar mana yang dihitung?",
+  "setup": "CREATE TABLE buku (id INTEGER PRIMARY KEY, nama TEXT NOT NULL, jenis TEXT NOT NULL);\nCREATE TABLE jurnal (id INTEGER PRIMARY KEY, jenis TEXT NOT NULL, dibuat TEXT NOT NULL);\nCREATE TABLE posting (jurnal_id INTEGER NOT NULL REFERENCES jurnal (id), buku_id INTEGER NOT NULL REFERENCES buku (id), jumlah INTEGER NOT NULL CHECK (jumlah <> 0));\nINSERT INTO buku VALUES (1, 'tunjangan', 'sistem'), (418, 'Warung Ani', 'warung'), (419, 'Budi', 'karyawan'), (504, 'Citra', 'karyawan');\n-- saldo pagi ini dari top-up Senin; kolom dibuat ditulis dalam WIB\nINSERT INTO jurnal VALUES (1, 'topup', '2026-11-16 07:00');\nINSERT INTO posting VALUES (1, 1, -680000), (1, 419, 430000), (1, 504, 250000);\n-- Di lab, batas harian dijaga kode service Go; di widget ini, view dan trigger memerankannya\nCREATE VIEW keluar_hari_ini AS\n  SELECT p.buku_id, -SUM(p.jumlah) AS keluar\n  FROM posting p JOIN jurnal j ON j.id = p.jurnal_id\n  WHERE p.jumlah < 0 AND j.jenis = 'transfer' AND j.dibuat >= '2026-11-20 00:00'\n  GROUP BY p.buku_id;\nCREATE TRIGGER batas_harian BEFORE INSERT ON posting\n  WHEN NEW.jumlah < 0 AND (SELECT jenis FROM jurnal WHERE id = NEW.jurnal_id) = 'transfer'\n   AND COALESCE((SELECT keluar FROM keluar_hari_ini WHERE buku_id = NEW.buku_id), 0) - NEW.jumlah > 500000\nBEGIN\n  SELECT RAISE(ABORT, '422 batas-harian: kiriman hari ini lebih dari Rp500.000');\nEND;",
+  "check": "SELECT b.nama AS buku,\n  (SELECT COALESCE(SUM(jumlah), 0) FROM posting WHERE buku_id = b.id) AS saldo,\n  COALESCE((SELECT keluar FROM keluar_hari_ini WHERE buku_id = b.id), 0) AS dihitung_batas,\n  500000 - COALESCE((SELECT keluar FROM keluar_hari_ini WHERE buku_id = b.id), 0) AS sisa_batas\nFROM buku b WHERE b.jenis = 'karyawan' ORDER BY b.id",
+  "predict": {
+    "q": "Panel After menambah satu kejadian: Budi membayar Rp25.000 ke Warung Ani sebelum mengirim Rp80.000 ke Citra. Apa jawaban untuk kiriman Rp80.000 itu?",
+    "options": [
+      "Diterima, sisa batas Budi Rp0",
+      "Ditolak: batas harian terlewati",
+      "Ditolak: saldo tidak cukup"
+    ],
+    "answer": 0,
+    "explain": "Batas hanya menghitung posting keluar di jurnal transfer sejak 00.00. Bayar ke warung tercatat sebagai jurnal bayar, dan kiriman masuk dari Citra adalah posting positif. Jadi yang dihitung Rp20.000 + Rp400.000, dan Rp80.000 pas mencapai Rp500.000. Rekaman lab transfer.txt bagian C berakhir sama: 201, sisa batas 0."
+  },
+  "panels": {
+    "before": {
+      "label": "Before: hari Budi tanpa bayar ke warung",
+      "onError": "rollback",
+      "steps": [
+        { "sql": "INSERT INTO jurnal VALUES (2, 'transfer', '2026-11-20 07:40');\nINSERT INTO posting VALUES (2, 419, -20000), (2, 504, 20000);", "note": "Budi kirim Rp20.000 ke Citra" },
+        { "sql": "INSERT INTO jurnal VALUES (3, 'transfer', '2026-11-20 09:10');\nINSERT INTO posting VALUES (3, 419, -400000), (3, 504, 400000);", "note": "Budi kirim Rp400.000 ke Citra" },
+        { "sql": "INSERT INTO jurnal VALUES (4, 'transfer', '2026-11-20 11:00');\nINSERT INTO posting VALUES (4, 504, -500000), (4, 419, 500000);", "note": "Citra kirim Rp500.000 ke Budi" },
+        { "sql": "BEGIN" },
+        { "sql": "INSERT INTO jurnal VALUES (6, 'transfer', '2026-11-20 12:10')" },
+        { "sql": "INSERT INTO posting VALUES (6, 419, -80000), (6, 504, 80000)", "note": "Budi kirim Rp80.000 ke Citra; trigger memeriksa batas" },
+        { "sql": "COMMIT" }
+      ]
+    },
+    "after": {
+      "label": "After: Budi membayar Rp25.000 ke Warung Ani dulu",
+      "onError": "rollback",
+      "steps": [
+        { "sql": "INSERT INTO jurnal VALUES (2, 'transfer', '2026-11-20 07:40');\nINSERT INTO posting VALUES (2, 419, -20000), (2, 504, 20000);", "note": "Budi kirim Rp20.000 ke Citra" },
+        { "sql": "INSERT INTO jurnal VALUES (3, 'transfer', '2026-11-20 09:10');\nINSERT INTO posting VALUES (3, 419, -400000), (3, 504, 400000);", "note": "Budi kirim Rp400.000 ke Citra" },
+        { "sql": "INSERT INTO jurnal VALUES (4, 'transfer', '2026-11-20 11:00');\nINSERT INTO posting VALUES (4, 504, -500000), (4, 419, 500000);", "note": "Citra kirim Rp500.000 ke Budi" },
+        { "sql": "INSERT INTO jurnal VALUES (5, 'bayar', '2026-11-20 12:05');\nINSERT INTO posting VALUES (5, 419, -25000), (5, 418, 25000);", "note": "Budi bayar Rp25.000 ke Warung Ani" },
+        { "sql": "BEGIN" },
+        { "sql": "INSERT INTO jurnal VALUES (6, 'transfer', '2026-11-20 12:10')" },
+        { "sql": "INSERT INTO posting VALUES (6, 419, -80000), (6, 504, 80000)", "note": "Budi kirim Rp80.000 ke Citra; trigger memeriksa batas" },
+        { "sql": "COMMIT" }
+      ]
+    }
+  },
+  "toggles": [
+    {
+      "label": "batas menghitung semua uang keluar Budi, termasuk bayar ke warung",
+      "pairs": [
+        ["j.jenis = 'transfer' AND ", ""]
+      ]
+    }
+  ]
+}
