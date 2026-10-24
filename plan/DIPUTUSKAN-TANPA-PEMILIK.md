@@ -14,3 +14,7 @@ Mode penyelesaian penuh sejak 2026-10-23 (keputusan 551). Butir lama dari MEMORI
 - 2.8 ditulis sebagai revisi ADR 6 tanpa nomor baru, karena ADR 12 sudah dipakai 1.40 dan ADR Tahap 2 lain 13–21; jembatan 1.42 dan 2.1 menyebut ADR 6 dan 5 dibuka lagi (723).
 - "Di stack lain" 2.5 membahas penjadwalan, bukan kode job, supaya jawaban M15/ADR 19 tidak terbuka (622); versi pg_cron Supabase 1.6.4 dari image Supabase (671).
 - Versi statis 1.12 tetap Erd.astro di dalam ErdTumbuh (697); wadah tabel gulir diberi role region + nama walau tidak wajib, skrip 425 B gzip di semua halaman berartikel (712).
+- Halaman istilah buku dan saldo_cache ditunda ke 2.7/2.9; trigger batas saldo di widget SQLite 2.6 (lab membacanya di app) diminta diberi label oleh peninjau.
+- Konvensi tanda ledger: positif = uang masuk ke buku, tanpa pemetaan debit/kredit (627); istilah "Buku ledger" supaya tooltip tidak menandai "buku" di Tahap 1 (628).
+- Replay ledger sebagai widget React baru `RaceLedger`, bukan mode race.js (708); halaman lama B3.2 ditandai `lebur_ke` ke 2.11, tidak dihapus (638).
+- api-t2: tanpa endpoint cek nama penerima, tetap bcrypt, nomor `K`+nomor akun dipertahankan dengan risiko tertulis (646–648).
