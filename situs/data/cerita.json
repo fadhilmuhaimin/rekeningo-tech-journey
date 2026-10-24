@@ -1682,8 +1682,9 @@
       "lab": [
         "b2-query"
       ],
-      "ada": false,
-      "nomor": "2.18"
+      "ada": true,
+      "nomor": "2.18",
+      "menit": 9
     },
     {
       "id": "t2-kursor",

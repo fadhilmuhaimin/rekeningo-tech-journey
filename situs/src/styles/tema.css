@@ -1291,3 +1291,17 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .hal-istilah__terkait > li { margin: 0; }
 .hal-istilah__kembali { margin-top: 2rem; }
 .hal-istilah code { overflow-wrap: anywhere; }
+
+/* Widget daftar bergeser (M12, keputusan 672): memakai tb-* (tebak) dan qr-* (ubah satu hal); gr-* hanya untuk baris daftar. */
+.sl-markdown-content .gr-judul { margin: 0.9rem 0 0.4rem; color: var(--judul); }
+.sl-markdown-content .gr-baris { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.25rem; }
+.sl-markdown-content .gr-baris > li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.6rem; margin: 0; padding: 0.25rem 0.55rem; line-height: 1.35; border: 1px solid var(--garis); border-left-width: 3px; border-radius: 6px; color: var(--teks); }
+.sl-markdown-content .gr-baris > li.is-diminta { border-left-color: var(--k-system-edge); }
+.sl-markdown-content .gr-baris > li.is-baru { border-color: var(--k-system-edge); background: var(--k-system-fill); }
+.sl-markdown-content .gr-baris > li.is-ganda { border-color: var(--k-warn-edge); background: var(--k-warn-fill); }
+.sl-markdown-content .gr-pos { flex: none; min-width: 1.4rem; font-variant-numeric: tabular-nums; font-weight: 600; }
+.sl-markdown-content .gr-no { font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .gr-garis { margin: 0.5rem 0; padding: 0.3rem 0; border-top: 2px dashed var(--garis-2); font-size: var(--rk-ui-kecil); color: var(--teks); }
+.sl-markdown-content .gr .qr-angka { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); }
+.sl-markdown-content .gr :is(.gr-baris, .tb-pilihan, .qr-pilih, .qr-angka) > * + * { margin-top: 0; }
+@media (max-width: 30em) { .sl-markdown-content .gr .qr-angka { grid-template-columns: 1fr; } }

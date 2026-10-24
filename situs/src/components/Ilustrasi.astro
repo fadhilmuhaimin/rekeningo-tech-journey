@@ -19,6 +19,7 @@ const LABEL: Record<string, string> = {
   m9: "HP dan tablet Budi sama-sama menunjukkan transfer berhasil. Di sampingnya saldo Budi: Rp100.000 sebelum, di bawah nol sesudah.",
   m13: "HP Citra: lingkaran pemuatan berputar di atas layar pembayaran. Di tengah, deretan HP lain yang sama-sama menunggu. Di kanan, HP karyawan dengan app versi lama menampilkan kotak kesalahan.",
   m11: "HP Budi: lingkaran pemuatan berputar di atas daftar riwayat yang masih kosong. Di sampingnya layar laporan Ani menampilkan kotak kesalahan, dan sebuah jam menandai lamanya menunggu.",
+  m12: "HP Budi: daftar riwayat yang digulir menampilkan dua baris yang sama berurutan. Di sampingnya kartu kiriman baru dari Dimas, dengan panah yang berhenti sebelum daftar itu.",
 };
 if (!LABEL[nama]) throw new Error(`Ilustrasi "${nama}" tidak dikenal`);
 ---
@@ -182,6 +183,26 @@ if (!LABEL[nama]) throw new Error(`Ilustrasi "${nama}" tidak dikenal`);
       <circle class="il-isi il-garis" cx="166" cy="54" r="22" />
       <path class="il-garis" d="M166 54 L166 40 M166 54 L176 60" />
       <circle class="il-warn" cx="166" cy="54" r="3" />
+    </svg>
+  )}
+  {nama === "m12" && (
+    <svg viewBox="0 0 200 110" width="200" height="110" aria-hidden="true">
+      <rect class="il-isi il-garis" x="4" y="6" width="64" height="98" rx="8" />
+      <rect class="il-orang" x="12" y="16" width="44" height="5" rx="2" />
+      <rect class="il-orang" x="12" y="27" width="36" height="5" rx="2" />
+      <rect class="il-orang" x="12" y="38" width="40" height="5" rx="2" />
+      <rect class="il-warn" x="12" y="49" width="48" height="9" rx="2" />
+      <rect class="il-warn" x="12" y="62" width="48" height="9" rx="2" />
+      <rect class="il-orang" x="12" y="76" width="42" height="5" rx="2" />
+      <rect class="il-orang" x="12" y="87" width="34" height="5" rx="2" />
+      <rect class="il-isi il-garis" x="124" y="26" width="70" height="46" rx="6" />
+      <rect class="il-aksen-isi" x="132" y="34" width="54" height="14" rx="3" />
+      <path class="il-garis" d="M151 41 L156 46 L166 36" />
+      <rect class="il-orang" x="132" y="54" width="40" height="5" rx="2" />
+      <rect class="il-orang" x="132" y="63" width="28" height="5" rx="2" />
+      <line class="il-garis" x1="120" y1="49" x2="84" y2="49" />
+      <path class="il-garis" d="M90 43 L84 49 L90 55" />
+      <rect class="il-warn" x="72" y="40" width="5" height="18" rx="2" />
     </svg>
   )}
   {nama === "m13" && (
