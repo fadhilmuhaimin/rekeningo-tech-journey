@@ -1,0 +1,297 @@
+---
+title: "2.20 Ukuran payload dan kuota HP"
+description: Payload adalah isi data di body response. Pada riwayat Budi, ukurannya ditentukan oleh kolom yang dikirim, jumlah baris, dan kompresi, dan rekaman lab menunjukkan kuota belum jadi masalah pada ukuran ini.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-payload-inti.json";
+import UkuranPayload from "../../../components/UkuranPayload.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 12 menit · coba 3 menit · Prasyarat: [[t2-kursor]]</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Payload adalah isi data yang dikirim di body response, dan ukurannya ditentukan oleh kolom yang dikirim, jumlah barisnya, dan ada tidaknya kompresi.
+
+<Rantai data={intiDiagram} ringkas />
+
+Sesudah riwayat Budi bisa digulir ([[t2-kursor]]), Raka mengukur berapa byte yang sebenarnya dikirim. Halaman pertama 20 baris memakai 2.932 B tanpa kompresi dan 598 B dengan gzip. Bentuk yang mengirim semua kolom tabel memakai 12.196 B, 4,16 kali lebih besar.
+
+Pada ukuran ini kuota bukan masalah: 20 buka per hari memakai 0,176 % dari paket 1 GB per bulan (Asumsi). api-t2 sendiri tidak mengompres, jadi gzip baru ada kalau kamu memasangnya di server atau proxy. Kapan payload betul-betul penting dibahas di bagian Paham.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Response riwayat sudah dikompres gzip. Apakah ukuran JSON-nya masih penting?
+2. HTTP client Dart meminta gzip secara bawaan. Apakah response server Go kamu otomatis terkompres?
+3. Satu kolom yang kembar dihapus dari setiap baris response. Berapa persen byte yang kamu harapkan hilang, dan siapa yang bisa rusak?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: pada riwayat 20 baris, gzip menghemat jauh lebih banyak byte daripada membuang satu kolom, dan kuota bulanan hampir tidak tersentuh.">
+
+Widget ini memakai ukuran dari rekaman lab e5-payload di PostgreSQL 17.11: riwayat Budi, tiga bentuk response, dengan dan tanpa gzip. Tebak dulu mana yang paling banyak memperkecil body, lalu ubah satu hal dan lihat byte serta kuotanya.
+
+<UkuranPayload />
+
+Jalur utama berhenti di gzip: 2.932 B jadi 598 B, hemat 79,6 %. Membuang kolom `jumlah` menghemat 297 B (10,1 %) dan membuat app 1.0 tidak bisa membaca riwayat.
+
+Nyalakan **Ubah satu hal**: pilih Semua kolom (SELECT \*), 50 baris, tanpa gzip. Body naik ke 30.389 B. Pada 100 buka per hari itu 9,117 % dari paket 1 GB, angka terbesar yang bisa kamu hasilkan di widget ini.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Pertanyaannya: apakah response riwayat terlalu besar untuk kuota HP? Sebelum mengubah bentuknya, Raka mengukur dari data lab: 3.892 posting Budi dari data satu tahun, halaman pertama 5, 20, dan 50 baris.
+
+Tiga bentuk dibandingkan. Bentuk pertama adalah response api-t2 apa adanya. Bentuk kedua hanya berisi kolom yang dipakai baris di layar (Asumsi). Bentuk ketiga menyerialisasi semua kolom tabel yang disentuh query, seperti handler yang mengirim baris database apa adanya.
+
+Kalau kamu pernah memanggil `jsonDecode` pada response besar di Flutter, kamu tahu body harus diurai seluruhnya di HP. Itu berlaku di sini juga: client Dart bawaan membuka gzip sebelum kode app menerima body, jadi parsing tetap memakai ukuran mentah.
+
+#### Yang tidak terulang
+
+[[E5]], versi lama halaman ini, menulis bahwa kuota Ani cepat habis karena response riwayat. Rekaman riwayat 20 baris tidak mendukungnya: 20 buka per hari memakai 0,176 % dari paket 1 GB per bulan (Asumsi). Halaman ini memakai angka rekaman dan menyebut di bawah kapan angkanya berubah.
+
+### Cara kerjanya
+
+**1. Nama kolom ikut dikirim di setiap baris.** JSON menulis nama kolom di setiap baris, jadi 20 baris mengirim nama yang sama 20 kali. Satu baris api-t2 rata-rata 147 B, bentuk layar 132 B, dan bentuk penuh 610 B. Dua baris di bawah berbeda hanya di kolom `jumlah`:
+
+<Snippet files={["labs/e5-payload/output/ledger/ukuran.txt:21:21", "labs/e5-payload/output/ledger/ukuran.txt:24:24"]} title="Rekaman lab: labs/e5-payload/output/ledger/ukuran.txt, bagian B (baris riwayat pertama: api-t2, lalu bentuk layar)" />
+
+`jumlah` dan `nominal` sama-sama ada karena app 1.0 membaca `jumlah` dan app 1.1 membaca `nominal` ([[t2-skema-tanpa-downtime]]). Bentuk layar membuang `jumlah`, jadi baru bisa dipakai sesudah app 1.0 tidak ada lagi.
+
+**2. Ukuran tumbuh bersama bentuk dan jumlah baris.** Tabel ini memuat tiga bentuk pada 5, 20, dan 50 baris. Bentuk layar hanya 10 % lebih kecil dari api-t2, sedangkan bentuk penuh 4 kali lebih besar.
+
+<Snippet file="labs/e5-payload/output/ledger/ukuran.txt" lines="33:51" title="Rekaman lab: labs/e5-payload/output/ledger/ukuran.txt, bagian C (body dalam byte, mentah lawan gzip)" />
+
+Body diukur setelah chunked dilepas, tanpa header HTTP dan TLS. Ukuran gzip bisa bergeser bila versi `compress/flate` Go berbeda; rekaman mencatat versi toolchain-nya.
+
+**3. gzip mengecilkan JSON karena nama kolom berulang.** gzip memakai DEFLATE, yang mengganti string berulang dengan penunjuk ke kemunculan sebelumnya (RFC 1951 §2). Body api-t2 20 baris turun ke 20,4 % dari ukuran mentah. Bentuk penuh turun ke 13,8 %, jadi sesudah gzip ia tinggal 2,81 kali api-t2, bukan 4,16 kali. Isi gzip yang dibuka sama persis dengan isi tanpa gzip di setiap pasangan.
+
+**4. Server yang memutuskan gzip, bukan client.** Client menulis di `Accept-Encoding` coding apa yang sanggup ia baca. Server memilih satu dan menjawab dengan `Content-Encoding`. Tanpa field itu RFC 9110 §12.5.3 mengizinkan coding apa saja; server lab memilih tanpa coding. Tabel ini memuat tujuh nilai yang dikirim ke server lab:
+
+<Snippet file="labs/e5-payload/output/ledger/header.txt" lines="10:20" title="Rekaman lab: labs/e5-payload/output/ledger/header.txt, bagian A (satu permintaan, tujuh nilai Accept-Encoding)" />
+
+`gzip;q=0` berarti client tidak mau gzip, dan `br` tidak dikenal server lab, jadi keduanya dijawab tanpa coding. `Vary: Accept-Encoding` ada di setiap response karena isinya bergantung pada field itu (RFC 9110 §12.5.5). Dua byte pertama body gzip selalu `1f 8b` (RFC 1952 §2.3.1), sedangkan JSON tanpa gzip dimulai `7b 22`, yaitu `{"`.
+
+**5. api-t2 tidak mengompres, dan client Dart tidak menutup celah itu.** Di `labs/api-t2/cmd` dan `internal` tidak ada satu baris pun yang menyebut gzip, `Content-Encoding`, atau compress. Kompresi di server lab adalah middleware yang ditambahkan khusus. `HttpClient` Dart 3.11.4 selalu mengirim `Accept-Encoding: gzip`, tetapi header itu hanya menyatakan app sanggup membaca gzip.
+
+<Snippet file="labs/e5-payload/output/ledger/dart-header.txt" lines="6:30" title="Rekaman lab: labs/e5-payload/output/ledger/dart-header.txt (client Dart bawaan ke server lab, tiga pengaturan)" />
+
+Bagian A menunjukkan kode app menerima 2.932 B, karena `autoUncompress` bawaannya true dan gzip dibuka sebelum sampai ke kode. Bagian B mematikannya: kode app menerima 598 B dan membukanya sendiri. Kuota HP terpakai untuk byte di kabel (598 B), sedangkan memori dan parsing memakai 2.932 B.
+
+**6. Kuota: rumusnya sederhana, dan hasilnya kecil.** Rumusnya: persen kuota = byte per buka × buka per hari × 30 hari ÷ paket × 100. Paket 1 GB per bulan dan jumlah buka per hari adalah Asumsi, bukan pemakaian HP yang diukur, dan hanya body riwayat yang dihitung.
+
+<Snippet file="labs/e5-payload/output/ledger/ukuran.txt" lines="58:66" title="Rekaman lab: labs/e5-payload/output/ledger/ukuran.txt, bagian D (kuota, Asumsi)" />
+
+Pada 20 buka per hari, api-t2 tanpa gzip memakai 0,176 %, bentuk penuh 0,732 %, dan bentuk layar dengan gzip 0,035 %. Dengan api-t2 tanpa gzip, kamu butuh 114 buka per hari untuk memakai 1 % kuota. Foto, pembaruan app, dan request lain tidak dihitung.
+
+**7. Kapan payload betul-betul penting.** Tiga keadaan mengubah jawabannya. Angka di bawah dihitung dari rekaman bagian C dan bukan rekaman sendiri.
+
+1. *Jaringan lambat.* Pada 100 kbit/s (Asumsi, tanpa waktu sambung dan TLS), body 12.196 B butuh ±0,98 detik, 2.932 B ±0,23 detik, dan 598 B ±0,05 detik. Di jaringan cepat selisih itu tidak terasa.
+2. *Bentuk penuh dengan banyak baris.* Bentuk penuh 50 baris tanpa gzip memakai 30.389 B per buka. Pada 100 buka per hari itu 9,117 % dari paket 1 GB (Asumsi), jauh di atas 0,176 % untuk api-t2 pada 20 baris dan 20 buka per hari.
+3. *Kolom yang tidak boleh keluar.* Bentuk penuh bukan hanya soal byte. OWASP API3:2023 menulis bahwa API sering mengembalikan semua properti objek, termasuk yang sensitif, dan menyarankan skema response per method serta menghindari serialisasi generik. Tabel `akun` di api-t2 punya kolom `password_hash` (`labs/api-t2/internal/repo/repo.go`, baris 51 dan 91), jadi `SELECT *` di sana ikut mengirimnya. Itu dibaca dari kode, tidak dijalankan.
+
+**8. Jumlah request mempengaruhi baterai lebih dari byte.** Dokumentasi Android menyebut radio nirkabel sebagai salah satu sumber pengurasan baterai terbesar di app. Setiap sesi transfer membuat radio aktif penuh, dan model 3G di dokumen itu memberi paling sedikit 18 detik per sesi. Transfer kecil yang sering menjaga radio tetap aktif, jadi dokumentasi menyarankan menggabungkan transfer. Angka itu contoh model 3G, bergantung pada jaringan dan operator, dan tidak diukur di lab ini. Endpoint gabungan untuk satu layar dibahas di [[B11.2]].
+
+### Di stack lain
+
+**Skenario:** riwayat 20 posting, dengan dua pertanyaan: bagaimana kolom dipilih per layar, dan di mana kompresi dipasang. Tab Go memuat kode lab e5-payload yang dijalankan. Baris lain tidak dijalankan, hanya dicek ke dokumentasi atau kode sumber pada 2026-10-25.
+
+Yang sama di semua stack: kolom ditentukan oleh kode response, bukan oleh database, dan kompresi tidak ikut tertulis di model data. Yang berbeda: tempat memasang kompresi dan apakah kompresi aktif bawaan.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Kode di bawah dijalankan di lab e5-payload (Go 1.27.1, `net/http` dan `compress/gzip` bawaan, PostgreSQL 17.11): struct response sendiri per layar dan middleware gzip. Rekamannya ada di `ukuran.txt` dan `header.txt`.*
+
+<Snippet file="labs/e5-payload/riwayat/main.go" lines="125:140" lang="go" title="labs/e5-payload/riwayat/main.go: struct dan pemetaan bentuk layar" />
+
+<Snippet file="labs/e5-payload/riwayat/main.go" lines="322:334" lang="go" title="labs/e5-payload/riwayat/main.go: middleware gzip" />
+
+**Yang berbeda di stack ini:** `net/http` tidak memuat kode kompresi, jadi middleware ditulis sendiri atau dipasang di proxy. `compress/gzip.NewWriter` memakai level bawaan, setara level 6. `Transport` client Go menambah `Accept-Encoding: gzip` sendiri kecuali `DisableCompression`.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [expressjs.com: compression](https://expressjs.com/en/resources/middleware/compression.html), paket `compression` 1.8.2.*
+
+<Snippet lang="js" code={`import compression from "compression";
+
+app.use(compression());   // gzip, deflate, atau br sesuai Accept-Encoding
+
+app.get("/akun/:id/riwayat", async (req, res) => {
+  const { rows } = await pool.query(RIWAYAT_SQL, [req.params.id, 20]);
+  res.json(rows.map(({ id, jenis, arah, lawan, nominal, waktu }) => ({ id, jenis, arah, lawan, nominal, waktu })));
+});`} />
+
+**Yang berbeda di stack ini:** kompresi satu baris `app.use`. Ambang bawaan `1kb`: response yang lebih kecil tidak dikompres. Middleware tidak mengompres response yang membawa `Cache-Control: no-transform`. Kolom dipilih dengan menyusun objek sendiri.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Eloquent API Resources](https://laravel.com/docs/13.x/eloquent-resources) dan [nginx: ngx_http_gzip_module](https://nginx.org/en/docs/http/ngx_http_gzip_module.html), Laravel 13.38.0.*
+
+<Snippet lang="php" code={`// app/Http/Resources/RiwayatResource.php
+public function toArray(Request $request): array
+{
+    return [
+        'id' => $this->id, 'jenis' => $this->jenis, 'arah' => $this->arah,
+        'lawan' => $this->lawan, 'nominal' => $this->nominal, 'waktu' => $this->waktu,
+    ];
+}`} />
+
+<Snippet lang="nginx" code={`gzip on;
+gzip_types application/json;
+gzip_vary on;`} />
+
+**Yang berbeda di stack ini:** API Resource menentukan kolom per layar lewat `toArray`. Halaman Responses di dokumentasi Laravel 13.x tidak menyebut kompresi. Halaman Deployment menyebutnya hanya sebagai fitur FrankenPHP, dan contoh Nginx di sana tidak memuat `gzip`, jadi kompresi dipasang di web server. Di nginx `gzip` mati bawaan, `gzip_types` bawaannya hanya `text/html` sehingga JSON harus ditulis, dan `gzip_vary` mati bawaan.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: GZipMiddleware](https://docs.djangoproject.com/en/6.1/ref/middleware/#module-django.middleware.gzip) dan [QuerySet.values](https://docs.djangoproject.com/en/6.1/ref/models/querysets/#values), Django 6.1.2.*
+
+<Snippet lang="python" code={`# settings.py
+MIDDLEWARE = ["django.middleware.gzip.GZipMiddleware", ...]
+
+# views.py
+def riwayat(request, buku):
+    baris = Posting.objects.filter(buku=buku).values("id", "jenis", "arah", "lawan", "nominal", "waktu")[:20]
+    return JsonResponse({"riwayat": list(baris)})`} />
+
+**Yang berbeda di stack ini:** `values()` membatasi `SELECT` ke kolom yang disebut. `GZipMiddleware` tidak mengompres body di bawah 200 byte, response yang sudah punya `Content-Encoding`, atau request tanpa `gzip` di `Accept-Encoding`. Dokumentasinya memperingatkan serangan BREACH terhadap situs yang memakai kompresi, dan Django menambah sampai 100 byte acak per response sebagai penangkal.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: Working with models](https://docs.serverpod.dev/concepts/data-and-the-database/models) (halaman bertanda 4.0.0), [dart:io HttpServer.autoCompress](https://api.dart.dev/dart-io/HttpServer/autoCompress.html), dan kode sumber `server.dart` di tag 4.0.4. Contoh mengikuti pola di dokumentasinya dengan nama model Rekeningo.*
+
+<Snippet lang="yaml" code={`class: BarisRiwayat
+fields:
+  id: int
+  jenis: String
+  arah: String
+  lawan: String
+  nominal: int
+  waktu: DateTime`} />
+
+**Yang berbeda di stack ini:** model tanpa kunci `table` hanya menjadi kelas Dart, tidak tabel, jadi satu model per layar mudah dibuat. Field bisa disembunyikan dari client dengan `scope`. `HttpServer.autoCompress` di dart:io mati bawaan dan butuh chunked encoding, dan `server.dart` di tag 4.0.4 tidak menyebut kompresi. Kompresi kemungkinan dipasang di reverse proxy [perlu verifikasi: tidak dijalankan].
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [PostgREST: Tables and Views, vertical filtering](https://docs.postgrest.org/en/stable/references/api/tables_views.html#vertical-filtering-columns), dokumentasi stable.*
+
+<Snippet lang="js" code={`const { data } = await supabase.from('riwayat')
+  .select('id, jenis, arah, lawan, nominal, waktu')
+  .eq('buku_id', buku)
+  .order('waktu', { ascending: false })
+  .limit(20)`} />
+
+**Yang berbeda di stack ini:** client memilih kolom lewat `select`, dan bawaannya `*`. Halaman PostgREST yang dibuka dan pencarian dokumentasi Supabase tidak menemukan penyebutan kompresi. Periksa `Content-Encoding` di response proyekmu sendiri sebelum menganggapnya aktif.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Pilihan | Kelebihan | Kekurangan |
+|---|---|---|
+| Satu bentuk lengkap untuk semua layar (`SELECT *`) | Satu endpoint, mudah dibuat | 4,16 kali api-t2 pada 20 baris di rekaman; mengirim kolom yang tidak dipakai layar, termasuk yang tidak boleh keluar |
+| Bentuk per layar (struct, API Resource, model tanpa tabel) | Kolom ditulis eksplisit, kolom baru di tabel tidak ikut keluar | Satu bentuk per layar yang dirawat; membuang kolom bisa mematahkan app lama |
+| Kolom dipilih client (`?fields=`, `select`) | Fleksibel untuk banyak layar | Kombinasi tak terbatas, sulit di-cache dan dites; server harus memeriksa kolom yang boleh diminta |
+| gzip di server atau proxy | 598 B dari 2.932 B di rekaman, tanpa mengubah bentuk | Butuh dipasang dan diuji; CPU tidak diukur di lab; BREACH perlu dipertimbangkan bila ada secret di body |
+| Tidak melakukan apa-apa | Tanpa kerja | Tetap aman di kuota pada 20 baris (0,176 % per bulan, Asumsi), tetapi 2.932 B per buka tanpa alasan |
+
+### Aturan untuk response daftar di Rekeningo
+
+1. Response daftar memakai struct sendiri, bukan baris tabel. api-t2 sudah begitu.
+2. Daftar punya batas baris dan kursor ([[t2-kursor]]). api-t2 menerima 1 sampai 50 baris.
+3. gzip dipasang di server atau proxy dan diuji dengan `Accept-Encoding`. api-t2 belum memasangnya.
+4. Kolom `jumlah` tetap sampai app 1.0 tidak ada lagi ([[t2-skema-tanpa-downtime]], fase contract). Bentuk layar menunggu itu.
+
+Aturan ini salah bila pembaca membuka riwayat jauh lebih sering dari Asumsi, paketnya jauh lebih kecil dari 1 GB, atau jaringan lambat jadi keluhan nyata. Itu butuh pemakaian data yang diukur, dan angkanya belum ada.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Brotli | Lab hanya mengukur gzip; ukuran dan CPU Brotli tidak direkam | Belum dijadwalkan |
+| Ukur pemakaian data pembaca sungguhan | Paket dan jumlah buka per hari di halaman ini Asumsi | Belum dijadwalkan di naskah |
+| Pilihan kolom oleh app (`?fields=`) | Kombinasi tak terbatas; satu bentuk per layar cukup untuk riwayat | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Response riwayat 20 baris sudah gzip, hanya 598 B di kabel. Apakah bentuk penuh yang 4,16 kali lebih besar masih masalah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Sesudah gzip bentuk penuh 1.680 B, 2,81 kali api-t2, jadi kuota bukan alasan utamanya. Alasan lain tetap berlaku: sesudah gzip dibuka app tetap mengurai 12.196 B (rekaman Dart mengukurnya untuk bentuk api-t2: 2.932 B, bukan 598 B), dan bentuk penuh membuka kolom yang tidak dipakai layar. Di api-t2 kolom itu termasuk `password_hash` (dibaca dari kode, tidak dijalankan).
+
+</details>
+
+**2.** Server Go kamu belum memasang kompresi. App Flutter mengirim `Accept-Encoding: gzip`. Apakah response terkompres?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. Header itu hanya menyatakan app sanggup membaca gzip, dan server yang memilih. api-t2 tidak punya kode kompresi, jadi riwayat 20 baris tetap 2.932 B di kabel.
+
+</details>
+
+**3.** Raka menghapus `jumlah` dari response supaya lebih kecil. Berapa hematnya, dan apa yang rusak?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Hematnya 297 B dari 2.932 B, yaitu 10,1 %, jauh di bawah gzip. App 1.0 membaca `jumlah`, jadi riwayatnya tidak bisa dibaca sampai app 1.0 tidak ada lagi.
+
+</details>
+
+**4.** Rumus kuota di halaman ini memberi 0,176 % per bulan. Apa saja yang bisa membuat angka sebenarnya berbeda?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Paket 1 GB, 30 hari, dan 20 buka per hari adalah Asumsi. Header HTTP, TLS, foto, dan request lain tidak dihitung, dan perilaku pembaca tidak diukur. Bentuk penuh dengan 50 baris pada 100 buka per hari memberi 9,117 % dengan rumus yang sama.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Response daftar mengirim kolom yang tampil di layar, bukan seluruh baris tabel (`SELECT *` atau serialisasi model apa adanya).
+- [ ] Struct atau resource response tidak memuat kolom sensitif seperti `password_hash`.
+- [ ] Daftar punya batas baris maksimum dan kursor ([[t2-kursor]]).
+- [ ] Kompresi aktif dan diuji: `curl -s -D - -o /dev/null -H 'Accept-Encoding: gzip' <URL>` menunjukkan `Content-Encoding: gzip` dan `Vary: Accept-Encoding`.
+- [ ] Menghapus atau mengganti nama kolom di response dicek terhadap versi app yang masih hidup ([[t2-skema-tanpa-downtime]]).
+
+### Bacaan lanjut
+
+- [RFC 9110 §12.5.3: Accept-Encoding](https://www.rfc-editor.org/rfc/rfc9110.html#name-accept-encoding) · [§8.4: Content-Encoding](https://www.rfc-editor.org/rfc/rfc9110.html#name-content-encoding)
+- [RFC 1952: formatnya gzip](https://www.rfc-editor.org/rfc/rfc1952)
+- [Android: Optimize network access](https://developer.android.com/develop/connectivity/network-ops/network-access-optimization)
+- [Dart: HttpClient.autoUncompress](https://api.dart.dev/dart-io/HttpClient/autoUncompress.html)
+- [OWASP API3:2023 Broken Object Property Level Authorization](https://api-security.owasp.org/editions/2023/en/0xa3-broken-object-property-level-authorization)
+- [Django 6.1: GZipMiddleware](https://docs.djangoproject.com/en/6.1/ref/middleware/#module-django.middleware.gzip)
+
+</Blok>
