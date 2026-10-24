@@ -1,0 +1,50 @@
+{
+  "istilah": "EXPLAIN",
+  "sehari_hari": "EXPLAIN bertanya ke database: bagaimana kamu akan menjalankan query ini? Dengan ANALYZE, database menjalankannya sungguhan lalu melaporkan apa yang terjadi.",
+  "cerita": [
+    {
+      "rujukan": "t2-index",
+      "teks": "Rekaman lab menjalankan EXPLAIN (ANALYZE, BUFFERS) sebelum dan sesudah index riwayat, dan membandingkan node, index, dan jumlah baris, bukan waktu."
+    }
+  ],
+  "mekanisme": [
+    "EXPLAIN query menampilkan rencana tanpa menjalankan query.",
+    "EXPLAIN ANALYZE menjalankan query, membuang hasilnya, dan mencatat baris dan waktu nyata tiap node.",
+    "BUFFERS menambah jumlah blok yang ditemukan di cache (hit) dan yang dibaca dari luar cache (read).",
+    "Untuk INSERT, UPDATE, dan DELETE, bungkus dengan BEGIN dan ROLLBACK supaya datanya tidak berubah."
+  ],
+  "stack": {
+    "lihat": "index",
+    "teks": "Di Node.js dan Serverpod, EXPLAIN dijalankan sebagai query SQL biasa. Django punya QuerySet.explain(), Supabase punya explain() di supabase-js, dan dokumentasi Query Builder Laravel 13.x tidak memuat explain. Contohnya ada di blok Di stack lain halaman 2.17."
+  },
+  "jebakan": [
+    "Mengira EXPLAIN ANALYZE aman untuk query yang menulis. Statement benar-benar dijalankan, dan efek sampingnya terjadi.",
+    "Membandingkan waktu antar mesin. Pengukuran EXPLAIN ANALYZE menambah overhead, dan mesin lain punya cache dan beban sendiri."
+  ],
+  "terkait": [
+    "Query plan",
+    "Index",
+    "ROLLBACK",
+    "Transaction"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-127",
+      "judul": "PostgreSQL 17: EXPLAIN",
+      "url": "https://www.postgresql.org/docs/17/sql-explain.html",
+      "catatan": "ANALYZE benar-benar menjalankan statement; BUFFERS bawaan FALSE; bungkus dengan BEGIN dan ROLLBACK untuk INSERT, UPDATE, DELETE."
+    },
+    {
+      "riset": "R2-125",
+      "judul": "Rekaman lab b2-query: EXPLAIN (ANALYZE, BUFFERS)",
+      "rekaman": "labs/b2-query/output/ledger/index.txt",
+      "catatan": "Tujuh plan dari database bersih, dengan waktu dan buffer sebagai pembanding."
+    },
+    {
+      "riset": "R2-129",
+      "judul": "Django 6.1: QuerySet.explain",
+      "url": "https://docs.djangoproject.com/en/6.1/ref/models/querysets/#explain",
+      "catatan": "explain(format=None, **options); flag ANALYZE bisa mengubah data bila ada trigger."
+    }
+  ]
+}

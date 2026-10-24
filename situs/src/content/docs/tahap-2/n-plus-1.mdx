@@ -22,7 +22,7 @@ N+1 query terjadi saat kode mengirim satu query untuk daftar, lalu satu query la
 
 Riwayat Budi di minggu 3 bekerja begitu. Satu query mengambil 20 transaksi terakhir, lalu 20 query mencari nama lawan setiap transaksi. Rekaman lab b2-query memakai data satu tahun (760.448 posting). Laporan harian Ani mengirim 195 query untuk 194 baris, dan seluruh riwayat Budi 3.893 query untuk 3.892 baris.
 
-Jumlah query mengikuti jumlah baris, bukan ukuran tabel, jadi N+1 sulit terlihat di data kecil. Kalau nama lawan diminta di query yang sama, hasilnya baris yang sama dengan 1 query. Itu memperbaiki N+1 saja: query daftarnya masih membaca terlalu banyak baris, dan itu dibahas di [[B2.3]].
+Jumlah query mengikuti jumlah baris, bukan ukuran tabel, jadi N+1 sulit terlihat di data kecil. Kalau nama lawan diminta di query yang sama, hasilnya baris yang sama dengan 1 query. Itu memperbaiki N+1 saja: query daftarnya masih membaca terlalu banyak baris, dan itu dibahas di [[t2-index]].
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -71,7 +71,7 @@ Kalau kamu pernah memanggil API detail di dalam `ListView.builder` untuk setiap 
 
 Polanya 1 ditambah jumlah baris untuk N+1, dan 1 untuk satu query. Catatan di rekaman yang sama: index tidak mengubah jumlah query.
 
-**3. Waktu punya dua penyebab, dan masing-masing punya perbaikan.** Kolom kiri tabel ini memakai database lab tanpa index riwayat, keadaan sebelum M11. Kolom kanan memakai index riwayat yang diputuskan di [[B2.3]].
+**3. Waktu punya dua penyebab, dan masing-masing punya perbaikan.** Kolom kiri tabel ini memakai database lab tanpa index riwayat, keadaan sebelum M11. Kolom kanan memakai index riwayat yang diputuskan di [[t2-index]].
 
 <Snippet file="labs/b2-query/output/ledger/n1.txt" lines="54:65" title="Rekaman lab: labs/b2-query/output/ledger/n1.txt, bagian E (waktu pembanding, bukan janji)" />
 
@@ -234,13 +234,13 @@ const { data } = await supabase.from('posting')
 | Cache hasilnya | Cepat saat isi cache ada | Cache kosong tetap mengirim 3.893 query untuk seluruh riwayat; data bisa stale; penyebabnya tersembunyi |
 | Server lebih besar | Tanpa mengubah kode | Jumlah query tetap 1 + jumlah baris |
 
-Untuk daftar yang membawa relasi, mulai dari satu query. Pakai dua query bila relasinya banyak per baris dan menggandakan baris induk terlalu besar. Keputusan untuk riwayat Rekeningo, termasuk index, ditulis sebagai ADR 15 di [[B2.3]].
+Untuk daftar yang membawa relasi, mulai dari satu query. Pakai dua query bila relasinya banyak per baris dan menggandakan baris induk terlalu besar. Keputusan untuk riwayat Rekeningo, termasuk index, ditulis sebagai ADR 15 di [[t2-index]].
 
 ### Sengaja belum dilakukan
 
 | Yang ditunda | Kenapa ditunda | Muncul lagi di |
 |---|---|---|
-| Cache untuk riwayat | Beban puncak ±1,4 request per detik (Asumsi); masalah M11 adalah jumlah query dan baris yang dibaca, bukan beban | [[B2.3]] |
+| Cache untuk riwayat | Beban puncak ±1,4 request per detik (Asumsi); masalah M11 adalah jumlah query dan baris yang dibaca, bukan beban | [[t2-index]] |
 | Tes yang menjaga jumlah query di api-t2 | Lab menghitung dengan log PostgreSQL; tes otomatis untuk kode api-t2 belum ditulis | [[t2-tim-infra]] |
 
 </Blok>

@@ -1,0 +1,43 @@
+{
+  "id": "t2-index-inti",
+  "judul": "Riwayat Budi, 20 baris: tanpa index riwayat dan dengan index riwayat",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b2-query · ledger"
+  },
+  "baris": [
+    {
+      "label": "Tanpa index riwayat",
+      "sub": "index.txt bagian B",
+      "simpul": [
+        {
+          "teks": "baca 3.892 posting",
+          "sub": "dan 380.224 jurnal",
+          "nada": "warn"
+        },
+        {
+          "teks": "urutkan, ambil 20",
+          "sub": "Sort top-N heapsort",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Dengan index riwayat",
+      "sub": "index.txt bagian F",
+      "simpul": [
+        {
+          "teks": "lompat ke buku Budi",
+          "sub": "Index Scan Backward",
+          "nada": "system"
+        },
+        {
+          "teks": "baca 20 baris",
+          "sub": "bukan 3.892",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Waktu dari rekaman yang sama: ±31,5 ms lawan ±0,12 ms (pembanding dari mesin lab)."
+}

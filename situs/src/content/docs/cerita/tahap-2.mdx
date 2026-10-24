@@ -62,7 +62,7 @@ Puncaknya masih di bawah dua request per detik. Tapi dua request yang menyentuh 
 | Sinyal putus, app mengulang pembayaran, dan server mencatatnya dua kali karena tidak mengenali ulangan | [2.14 Retry dan idempotency key + ADR 14](/tahap-2/retry-idempotency/) |
 | Riwayat Budi butuh 4 detik dibuka dan laporan harian Ani timeout di hari ramai | [2.15 M11: Riwayat 4 detik](/tahap-2/m11-riwayat-lambat/) |
 | Riwayat Budi mengirim 21 query untuk 20 baris, dan 3.893 query untuk seluruh riwayatnya | [2.16 N+1 query](/tahap-2/n-plus-1/) |
-| Query lambat setelah data bertambah | [2.17 Index dan query plan + ADR 15](/b-fondasi/b2-3-index/) |
+| Riwayat Budi membaca 3.892 posting dan 380.224 jurnal untuk 20 baris, sampai index riwayat dipasang | [2.17 Index dan query plan + ADR 15](/tahap-2/index-query-plan/) |
 | Saat riwayat digulir, transaksi yang sama muncul dua kali dan transaksi baru hilang | 2.18 M12: Transaksi muncul dua kali · *segera* |
 | Riwayat panjang, halaman berikutnya berisi data ganda | [2.19 Pagination kursor + ADR 16](/b-fondasi/b1-3-pagination-idempotent/) |
 | Response besar membebani HP dan kuota | [2.20 Ukuran payload dan kuota HP](/e-mobile/e5-ukuran-payload/) |
