@@ -12,11 +12,11 @@
       "simpul": [
         {
           "teks": "1 query: 20 transaksi terakhir Budi",
-          "sub": "n1.txt bagian A"
+          "sub": "bagian A di n1.txt"
         },
         {
           "teks": "20 query: nama lawan, satu per baris",
-          "sub": "n1.txt bagian A",
+          "sub": "bagian A di n1.txt",
           "nada": "warn"
         },
         {
@@ -32,11 +32,11 @@
       "simpul": [
         {
           "teks": "Membaca 3.892 posting Budi",
-          "sub": "index.txt bagian B"
+          "sub": "bagian B di index.txt"
         },
         {
           "teks": "Membaca 380.224 baris jurnal",
-          "sub": "index.txt bagian B",
+          "sub": "bagian B di index.txt",
           "nada": "warn"
         },
         {

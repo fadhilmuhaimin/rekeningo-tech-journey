@@ -38,7 +38,7 @@ export default function QueryRiwayat({ permintaan, pilihan, benar, label: L }: P
           return (
             <li key={i}>
               <button type="button" className={"tb-pilih" + kelas} aria-pressed={dipilih === i} disabled={dipilih !== null} onClick={() => setDipilih(i)}>
-                <span className="tb-huruf" aria-hidden="true">{String.fromCharCode(65 + i)}</span>
+                <span className="tb-huruf" aria-hidden="true">{String.fromCharCode(65 + i)}</span>{" "}
                 <span>{angka(o.query)} query</span>
               </button>
             </li>
