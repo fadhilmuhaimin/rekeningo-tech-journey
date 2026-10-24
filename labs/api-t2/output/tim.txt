@@ -73,7 +73,7 @@ $ go test -v -count=1 ./...   # main
 # exit status 0: 2 lolos, 0 gagal, 0 dilewati
 # pemanggil periksaBatas di Kirim dan catatJurnal: 1
 
-# --- C2. Aturan yang sama tanpa 'branch harus mutakhir': CI PR Nadia hijau, hasil gabungan tidak diuji sebelum merge ---
+# --- C (varian). Aturan yang sama tanpa 'branch harus mutakhir': CI PR Nadia hijau, hasil gabungan tidak diuji sebelum merge ---
 $ go test -v -count=1 ./...   # PR Raka
 # exit status 0: 2 lolos, 0 gagal, 0 dilewati
 $ git merge --ff-only raka
@@ -119,24 +119,24 @@ $ go test -v -count=1 ./...   # main, sesudah commit Nadia
 # --- E. Tes aturan uang di api-t2 dengan PostgreSQL sungguhan: langkah CI dari deploy/ci.yml ---
 # Langkah CI dijalankan apa adanya di salinan labs/api-t2 (folder sementara). TES_DB_WAJIB=1 dibaca wajib_test.go.
 
-# E1. Tanpa TES_DB_WAJIB dan tanpa database: tes dilewati dan go test keluar 0 (kebiasaan lama)
+# Kasus 1. Tanpa TES_DB_WAJIB dan tanpa database: tes dilewati dan go test keluar 0 (kebiasaan lama)
 $ go test -v -count=1 -p 1 ./internal/service
 # exit status 0: 8 lolos, 0 gagal, 12 dilewati
 
-# E2. Langkah CI tanpa database: gagal keras dengan pesan, tidak ada tes yang dilewati diam-diam
+# Kasus 2. Langkah CI tanpa database: gagal keras dengan pesan, tidak ada tes yang dilewati diam-diam
 $ <langkah 'Tes aturan uang dengan PostgreSQL sungguhan' dari deploy/ci.yml>   # kode asli, tanpa database
 # TES_DB_WAJIB=1, TEST_DATABASE_URL tidak diisi
 lolos=0 gagal=0 dilewati=0
 TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong: tes yang butuh PostgreSQL tidak boleh dilewati
 # exit status 1
 
-# E3. Langkah CI dengan database, kode asli
+# Kasus 3. Langkah CI dengan database, kode asli
 $ <langkah 'Tes aturan uang dengan PostgreSQL sungguhan' dari deploy/ci.yml>   # kode asli, dengan database
 # TES_DB_WAJIB=1 TEST_DATABASE_URL=<schema tahap2_tes>
 lolos=20 gagal=0 dilewati=0
 # exit status 0
 
-# E4. Langkah CI dengan database, kode tanpa pemeriksaan batas harian (keadaan sesudah merge M14)
+# Kasus 4. Langkah CI dengan database, kode tanpa pemeriksaan batas harian (keadaan sesudah merge M14)
 $ <langkah 'Tes aturan uang dengan PostgreSQL sungguhan' dari deploy/ci.yml>   # tanpa pemeriksaan, dengan database
 # TES_DB_WAJIB=1 TEST_DATABASE_URL=<schema tahap2_tes>
 lolos=18 gagal=2 dilewati=0
@@ -144,7 +144,7 @@ lolos=18 gagal=2 dilewati=0
 --- FAIL: TestKirimTidakMembedakanNomor
 # exit status 1
 
-# E5. Sama dengan E4, tetapi dua tes yang menjaga aturan diberi t.Skip ("sementara: tes ini sering merah di CI")
+# Kasus 5. Sama dengan kasus 4, tetapi dua tes yang menjaga aturan diberi t.Skip ("sementara: tes ini sering merah di CI")
 $ TEST_DATABASE_URL=<schema tahap2_tes> go test -v -count=1 -p 1 ./internal/service   # go test biasa, tanpa penjaga
 # exit status 0: 18 lolos, 0 gagal, 2 dilewati
 $ <langkah 'Tes aturan uang dengan PostgreSQL sungguhan' dari deploy/ci.yml>   # tanpa pemeriksaan, dua tes dilewati, dengan database
@@ -160,5 +160,5 @@ ada tes yang dilewati
 A. Tanpa proses | fungsi | tidak ada | tidak ada | tidak ada | diterima | lolos | 0
 B. Review manual saja | fungsi | lolos | lolos | lolos | diterima | lolos | 0
 C. Review, tes wajib, dan mutakhir | lewat Kirim | lolos | lolos | gagal | ditolak | lolos | 1
-C2. Tes wajib, tanpa mutakhir | lewat Kirim | lolos | lolos | tidak ada | diterima | gagal | 0
+C (varian). Tes wajib, tanpa mutakhir | lewat Kirim | lolos | lolos | tidak ada | diterima | gagal | 0
 D. Trunk-based, review sesudah | lewat Kirim | tidak ada | tidak ada | gagal | diterima | gagal | 0
