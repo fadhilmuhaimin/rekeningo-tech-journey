@@ -1,0 +1,90 @@
+---
+title: "2.18 M12: Transaksi muncul dua kali"
+description: Minggu 3. Saat Budi menggulir riwayat, satu transaksi muncul dua kali dan transfer baru dari Dimas tidak ada di daftar.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import duaHalaman from "../../../../data/diagram/t2-m12-dua-halaman.json";
+import Snippet from "../../../components/Snippet.astro";
+import GeserRiwayat from "../../../components/GeserRiwayat.astro";
+
+<p class="meta">Baca 6 menit · coba 3 menit · Prasyarat: [[B2.3]]</p>
+
+<Blok nama="Gejala" buka ilustrasi="m12">
+
+Rabu siang di minggu 3 Tahap 2, Budi mengumpulkan patungan makan siang untuk satu meja. Teman-temannya mengirim uang ke Budi satu per satu. Budi membuka Riwayat untuk melihat siapa yang sudah.
+
+Riwayat terbuka cepat sejak perbaikan M11. Budi menggulir ke bawah, dan daftar memuat potongan berikutnya setiap kali ia sampai di ujung.
+
+Di tengah daftar ada dua baris berurutan yang sama persis: Karyawan 1135 mengirim Rp50.000. Budi ingat hanya satu transfer dari Karyawan 1135.
+
+Dimas lewat dan menunjukkan layarnya. "Rp5.000 sudah kukirim barusan," katanya. Budi menggulir sampai ujung daftar. Transfer Dimas tidak ada.
+
+Budi menutup Riwayat dan membukanya lagi. Transfer Dimas ada di paling atas.
+
+Budi menulis ke Raka: "Riwayat saya menampilkan transfer yang sama dua kali. Transfer Dimas tadi tidak ada di daftar, tapi sekarang ada."
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka membuka kode layar Riwayat di app. Setiap kali Budi sampai di ujung daftar, kodenya meminta halaman berikutnya dan menambahkan isinya ke daftar yang sama.
+
+Raka menyimpulkan ada bug tampilan. Menurutnya halaman 2 terpasang dua kali, dan transfer Dimas tertimpa oleh sambungan yang salah. Ia mulai menulis ulang cara daftar menyambung halaman.
+
+<details class="question">
+<summary>Tebak dulu: apa yang bisa Raka lihat di hasil halaman 2 untuk membedakan bug tampilan dari bug data, tanpa mengubah satu baris kode Flutter?</summary>
+
+Baris yang dikirim server untuk halaman 2, sebelum app mengolahnya. Bila baris ganda sudah ada di sana, layar hanya menampilkan apa yang diterimanya, dan perbaikannya bukan di tampilan. Blok berikutnya menunjukkan baris itu dari rekaman lab.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Raka mencatat query yang dijalankan server untuk tiap halaman dan membaca barisnya, bukan layar app. Rekaman lab mengulang kedua query itu langsung di PostgreSQL 17.11 dari database bersih, dengan data setahun dan lima baris per halaman supaya ringkas.
+
+<Rantai data={duaHalaman} />
+
+Halaman 1 memakai `OFFSET 0`. Sesudahnya Dimas mengirim Rp5.000 ke Budi, dan jurnalnya masuk di posisi pertama karena daftar diurutkan dari yang terbaru.
+
+<Snippet file="labs/b2-query/output/ledger/pagination.txt" lines="17:26" title="Rekaman lab: labs/b2-query/output/ledger/pagination.txt, bagian A (halaman 1, lalu kiriman Dimas)" />
+
+Halaman 2 memakai `OFFSET 5`: lewati lima baris pertama, ambil lima berikutnya. Kiriman Dimas mendorong semua baris turun satu posisi, jadi baris kelima halaman 1 kini ada di posisi 6, dan halaman 2 mengambilnya lagi.
+
+<Snippet file="labs/b2-query/output/ledger/pagination.txt" lines="27:36" title="Rekaman lab: labs/b2-query/output/ledger/pagination.txt, bagian A (halaman 2, kolom catatan menandai baris ganda)" />
+
+Urutan daftarnya sudah pasti: `ORDER BY dibuat DESC, id DESC`, dan `id` unik. PostgreSQL meminta urutan yang unik untuk `LIMIT` dan `OFFSET` supaya hasilnya tidak acak ([dokumentasi PostgreSQL 17 tentang LIMIT dan OFFSET](https://www.postgresql.org/docs/17/queries-limit.html)). Di sini urutan unik tidak cukup, karena yang berubah di antara dua query adalah isi tabelnya.
+
+Praktisi mengenal pola ini: baris ganda muncul bila baris baru masuk di antara dua permintaan halaman ([Markus Winand, *No Offset*, Use The Index, Luke](https://use-the-index-luke.com/no-offset)).
+
+Kiriman Dimas tidak hilang dari database. Bagian B rekaman yang sama menampilkannya sebagai baris pertama riwayat Budi. Ia ada di posisi 1, dan tidak ada permintaan halaman yang kembali ke posisi 1 sampai Budi memuat ulang daftar.
+
+Bagian C rekaman memperluas skenario ke seluruh riwayat Budi: 205 halaman berisi 20 baris, dengan satu kiriman masuk sebelum setiap halaman berikutnya. Hasilnya 204 baris ganda dan 204 kiriman yang tidak pernah tampil.
+
+<Snippet file="labs/b2-query/output/ledger/pagination.txt" lines="77:86" title="Rekaman lab: labs/b2-query/output/ledger/pagination.txt, bagian C (seluruh riwayat Budi, baris OFFSET dan baris pembanding)" />
+
+*Yang tidak diukur:* skenario lab sengaja menaruh satu kiriman di sela setiap halaman supaya dampaknya terhitung. Sebagai pembanding, Budi di data lab punya 3.892 posting dalam 364 hari, rata-rata ±11 sehari (hitungan dari rekaman data). Seberapa sering kiriman masuk tepat di sela halaman belum diukur. Yang terulang adalah mekanismenya: satu kiriman di sela dua halaman menghasilkan satu baris ganda dan satu kiriman yang tidak tampil.
+
+Tes dengan data yang diam tidak menemukan masalah ini. Ia baru muncul bila ada kiriman baru di antara dua halaman.
+
+Cara menentukan halaman berikutnya yang tidak bergantung pada posisi dibahas di [[B1.3]]. Baris pembanding di rekaman bagian C menghitungnya juga: 0 baris ganda dan 0 kiriman yang tidak tampil.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini memakai baris dan angka dari rekaman yang sama. Layar Budi sesudah halaman 1 ada di bagian atas widget. Tebak dulu apa yang tampil sesudah halaman 2.
+
+<GeserRiwayat />
+
+Sesudah menebak, ubah satu hal: pilih seluruh riwayat Budi. Setiap kiriman di sela dua halaman menambah satu baris ganda dan satu kiriman yang tidak tampil, jadi angkanya tumbuh bersama jumlah halaman.
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[B1.3]]: pagination kursor (keyset) dan metode idempoten. Halaman berikutnya ditentukan oleh baris terakhir yang sudah tampil, bukan oleh nomor halaman. Keputusannya ditulis sebagai ADR 16 di halaman itu.
+
+</Blok>
