@@ -706,6 +706,38 @@
   "jawab": "Tidak. Jurnal 3–5 dibuat dalam satu transaction migrasi, dan koneksi lain baru melihat perubahannya sesudah `COMMIT`, saat saldo sudah Rp180.000. Rp110.000 hanya urutan baris di dalam transaction itu."
  },
  {
+  "id": "t2-skema-1",
+  "halaman": "t2-skema",
+  "judul": "2.9 Skema data: ERD Tahap 1 → Tahap 2 dan pertumbuhannya",
+  "url": "tahap-2/skema-data/",
+  "tanya": "Tabel `koreksi` Tahap 1 tidak ada di skema Tahap 2. Ke mana isinya pindah, dan apa yang menggantikannya untuk koreksi baru?",
+  "jawab": "Satu baris koreksi lama menjadi dua jurnal saat migrate: jurnal selisih dan jurnal pembalik (rekaman `migrasi.txt` bagian C). Isi tabelnya juga disalin ke schema arsip sebelum dihapus. Koreksi baru adalah jurnal jenis pembalik dengan `membalik_jurnal_id` ke jurnal asal."
+ },
+ {
+  "id": "t2-skema-2",
+  "halaman": "t2-skema",
+  "judul": "2.9 Skema data: ERD Tahap 1 → Tahap 2 dan pertumbuhannya",
+  "url": "tahap-2/skema-data/",
+  "tanya": "Kenapa batas saldo warung pindah dari `akun` ke `buku`?",
+  "jawab": "Batas melekat pada tempat uang, bukan pada orang. Di Tahap 2 karyawan juga menerima transfer. Saldo juga tidak lagi tersimpan di `akun`, jadi CHECK atas `akun.saldo` tidak punya kolom untuk diperiksa. `buku.batas_saldo` dan `buku.batas_harian` dibaca service di dalam transaction yang menulis posting."
+ },
+ {
+  "id": "t2-skema-3",
+  "halaman": "t2-skema",
+  "judul": "2.9 Skema data: ERD Tahap 1 → Tahap 2 dan pertumbuhannya",
+  "url": "tahap-2/skema-data/",
+  "tanya": "Dari rumus apa ±660 ribu posting per tahun di Tahap 2, dan kenapa lab mendapat 760.448?",
+  "jawab": "1.000 user × 30% aktif × 3 transaksi = 900 transaksi per hari, lalu × 2 posting × 365 hari = 657.000. Rumus itu hanya menghitung bayar dan kiriman. Lab b2-query juga menulis top-up Senin (104.000 posting) dan pencairan Jumat (1.248 posting)."
+ },
+ {
+  "id": "t2-skema-4",
+  "halaman": "t2-skema",
+  "judul": "2.9 Skema data: ERD Tahap 1 → Tahap 2 dan pertumbuhannya",
+  "url": "tahap-2/skema-data/",
+  "tanya": "`transaksi.jumlah` di Tahap 1 wajib positif, sedangkan `posting.jumlah` di Tahap 2 hanya wajib bukan nol. Kenapa?",
+  "jawab": "Di Tahap 1 arah uang ada di kolom `dari` dan `ke`. Di Tahap 2 arahnya ada di tanda: posting negatif berarti uang keluar dari buku itu, positif berarti masuk. Jumlah nol tidak memindahkan apa pun, jadi ditolak CHECK."
+ },
+ {
   "id": "B3.2-1",
   "halaman": "B3.2",
   "judul": "2.11 Race condition dan lock + ADR 13",

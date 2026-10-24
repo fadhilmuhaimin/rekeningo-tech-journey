@@ -126,8 +126,8 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 88,
-        "halaman": 10
+        "menit": 101,
+        "halaman": 11
       },
       "versi": "lama",
       "skala": {
@@ -1473,8 +1473,9 @@
         "api-t1",
         "api-t2"
       ],
-      "ada": false,
-      "nomor": "2.9"
+      "ada": true,
+      "nomor": "2.9",
+      "menit": 13
     },
     {
       "id": "t2-m9",
