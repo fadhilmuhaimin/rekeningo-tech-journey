@@ -1,0 +1,43 @@
+{
+  "id": "t2-kursor-inti",
+  "judul": "Satu kiriman masuk saat Budi menggulir: OFFSET menghitung posisi, kursor mengingat baris terakhir",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b2-query · ledger"
+  },
+  "baris": [
+    {
+      "label": "OFFSET",
+      "sub": "pagination.txt bagian C",
+      "simpul": [
+        {
+          "teks": "kiriman masuk",
+          "sub": "semua posisi bergeser satu",
+          "nada": "system"
+        },
+        {
+          "teks": "204 baris ganda",
+          "sub": "204 kiriman tidak tampil",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Kursor",
+      "sub": "pagination.txt bagian C",
+      "simpul": [
+        {
+          "teks": "kiriman masuk",
+          "sub": "baris terakhir tetap sama",
+          "nada": "system"
+        },
+        {
+          "teks": "0 ganda, 0 hilang",
+          "sub": "kiriman diambil satu kali",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Riwayat Budi, 20 baris per halaman, 205 halaman, satu kiriman Rp5.000 sebelum setiap halaman berikutnya. Hasil yang sama di kedua baris untuk baris lama: tidak ada yang terlewat."
+}

@@ -126,7 +126,7 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 173,
+        "menit": 182,
         "halaman": 17
       },
       "versi": "lama",
@@ -1708,19 +1708,14 @@
       "nomor": "2.18"
     },
     {
-      "id": "B1.3",
+      "id": "t2-kursor",
       "judul": "Pagination kursor + ADR 16",
       "tahap": 2,
+      "path": "tahap-2/pagination-kursor.md",
       "topik": "API",
-      "path": "b-fondasi/b1-3-pagination-idempotent.md",
-      "prasyarat": [
-        "B1.1"
-      ],
-      "inti": true,
-      "masalah": "Riwayat panjang, halaman berikutnya berisi data ganda",
-      "ada": true,
       "jenis": "konsep",
       "bagian": 4,
+      "inti": true,
       "peran": [
         "mobile",
         "backend"
@@ -1728,13 +1723,17 @@
       "adr": [
         16
       ],
-      "pendek": "Pagination dan idempotent method",
-      "lama": true,
+      "masalah": "Halaman riwayat yang dihitung dari nomor bergeser saat kiriman baru masuk, jadi baris tampil dua kali atau hilang dari layar",
+      "pendek": "Pagination kursor",
+      "prasyarat": [
+        "t2-m12"
+      ],
       "lab": [
         "b2-query"
       ],
+      "ada": true,
       "nomor": "2.19",
-      "menit": 8
+      "menit": 17
     },
     {
       "id": "E5",
@@ -1743,7 +1742,7 @@
       "topik": "Khusus app mobile",
       "path": "e-mobile/e5-ukuran-payload.md",
       "prasyarat": [
-        "B1.3"
+        "t2-kursor"
       ],
       "masalah": "Response besar membebani HP dan kuota",
       "ada": true,
@@ -1777,7 +1776,7 @@
       "label": "Masalah 13 · minggu 4",
       "masalah": "Migrasi ke ledger membuat semua pembayaran menunggu 40 detik saat makan siang",
       "prasyarat": [
-        "B1.3"
+        "t2-kursor"
       ],
       "lab": [
         "b4-skema"
@@ -2125,6 +2124,25 @@
         "e3-idempotency"
       ],
       "menit": 10
+    },
+    {
+      "id": "B1.3",
+      "judul": "Pagination dan idempotent method",
+      "tahap": 2,
+      "topik": "API",
+      "path": "b-fondasi/b1-3-pagination-idempotent.md",
+      "prasyarat": [
+        "B1.1"
+      ],
+      "ada": true,
+      "pendek": "Pagination dan idempotent method (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t2-kursor",
+      "lab": [
+        "b2-query"
+      ],
+      "menit": 8
     },
     {
       "id": "T3",

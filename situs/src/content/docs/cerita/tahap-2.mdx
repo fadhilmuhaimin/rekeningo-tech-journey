@@ -64,7 +64,7 @@ Puncaknya masih di bawah dua request per detik. Tapi dua request yang menyentuh 
 | Riwayat penjualan lambat walau datanya sedikit | [2.16 N+1 query](/b-fondasi/b2-4-n-plus-1/) |
 | Query lambat setelah data bertambah | [2.17 Index dan query plan + ADR 15](/b-fondasi/b2-3-index/) |
 | Saat riwayat digulir, transaksi yang sama muncul dua kali dan transaksi baru hilang | 2.18 M12: Transaksi muncul dua kali · *segera* |
-| Riwayat panjang, halaman berikutnya berisi data ganda | [2.19 Pagination kursor + ADR 16](/b-fondasi/b1-3-pagination-idempotent/) |
+| Halaman riwayat yang dihitung dari nomor bergeser saat kiriman baru masuk, jadi baris tampil dua kali atau hilang dari layar | [2.19 Pagination kursor + ADR 16](/tahap-2/pagination-kursor/) |
 | Response besar membebani HP dan kuota | [2.20 Ukuran payload dan kuota HP](/e-mobile/e5-ukuran-payload/) |
 | Migrasi ke ledger membuat semua pembayaran menunggu 40 detik saat makan siang | 2.21 M13: Migrasi di jam makan siang · *segera* |
 | Rename kolom membuat app lama crash | [2.22 Ubah skema tanpa downtime + ADR 17](/b-fondasi/b4-2-ubah-skema-tanpa-downtime/) |
