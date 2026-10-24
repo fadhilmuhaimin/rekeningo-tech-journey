@@ -1,0 +1,61 @@
+{
+  "judul": "Apa yang tampil saat kiriman masuk di sela dua halaman?",
+  "sumber": "Rekaman lab · pagination.txt bagian A, B, dan C",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "Budi menggulir riwayatnya. Halaman 1 sudah di layar ({limit} transaksi terbaru, daftar di atas). Sebelum halaman 2 dimuat, {lawan} mengirim {jumlah} ke Budi. Halaman 2 diminta dengan OFFSET {offset}: lewati {offset} baris pertama, ambil {limit} berikutnya. Apa yang Budi lihat di layar sesudah halaman 2?",
+  "pilihan": [
+    {
+      "teks": "Tidak ada baris ganda, dan kiriman {lawan} ada di daftar.",
+      "alasan": "Kiriman {lawan} masuk di posisi 1, sedangkan halaman 2 hanya meminta posisi {awal} sampai {akhir}. Tidak ada halaman yang meminta posisi 1, jadi kiriman itu tidak tampil.",
+      "ganda": 0,
+      "kirimanTampil": true,
+      "terlewat": 0
+    },
+    {
+      "teks": "Satu transaksi muncul dua kali, dan kiriman {lawan} tidak ada di daftar.",
+      "alasan": "Kiriman {lawan} masuk di posisi 1, jadi semua baris lama turun satu posisi. Baris kelima halaman 1 kini ada di posisi {awal}, tepat di awal halaman 2, sehingga tampil dua kali. Posisi 1 tidak diminta halaman mana pun, jadi kiriman {lawan} tidak tampil.",
+      "ganda": 1,
+      "kirimanTampil": false,
+      "terlewat": 0
+    },
+    {
+      "teks": "Satu transaksi lama terlewat, karena semua baris bergeser.",
+      "alasan": "Bergeser ke bawah menghasilkan ulangan, bukan baris yang terlewat: kiriman baru masuk di atas, jadi baris lama turun dan baris kelima diminta lagi. Rekaman bagian C menghitung baris lama yang terlewat di seluruh riwayat Budi, dan hasilnya {terlewat}.",
+      "ganda": 0,
+      "kirimanTampil": false,
+      "terlewat": 1
+    },
+    {
+      "teks": "Satu transaksi muncul dua kali, dan kiriman {lawan} ada di halaman 2.",
+      "alasan": "Ulangannya benar, tetapi kiriman {lawan} ada di posisi 1 dan halaman 2 mulai dari posisi {awal}. Daftar yang digulir Budi tidak pernah memuat posisi 1 lagi.",
+      "ganda": 1,
+      "kirimanTampil": true,
+      "terlewat": 0
+    }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "layar": "Layar Budi sesudah halaman 1",
+  "database": "Database sesudah kiriman {lawan}, terbaru dulu",
+  "garis": "Halaman 2 melewati {offset} baris di atas garis ini (OFFSET {offset}) dan meminta posisi {awal} sampai {akhir}.",
+  "tanda": {
+    "baru": "Baru",
+    "ganda": "Sudah di layar"
+  },
+  "kolom": {
+    "halaman": "Halaman dimuat",
+    "kiriman": "Kiriman di sela halaman",
+    "tampil": "Baris di layar",
+    "ganda": "Baris ganda",
+    "tidakTampil": "Kiriman tidak tampil"
+  },
+  "ubahJudul": "Ubah satu hal: berapa halaman yang Budi gulir",
+  "nama": {
+    "dua-halaman": "Dua halaman ({baris} baris per halaman)",
+    "seluruh": "Seluruh riwayat Budi ({baris} baris per halaman)"
+  },
+  "kalimat": "{halaman} halaman dimuat dan {kiriman} kiriman masuk di sela halaman. Layar Budi menampilkan {tampil} baris: {ganda} baris ganda dan {tidakTampil} kiriman yang tidak tampil.",
+  "catatan": "Rekaman lab menaruh satu kiriman di sela setiap dua halaman. Itu skenario lab yang sengaja dibuat sering untuk menghitung dampaknya, bukan laju kiriman sungguhan di kampus; laju itu belum diukur.",
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan angka rekamannya sebagai tabel."
+}
