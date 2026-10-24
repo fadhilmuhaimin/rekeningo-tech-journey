@@ -53,7 +53,7 @@ export default function AntreanLock({ langkah, sesi, pilihan, benar, label: L }:
   const difokus = (selektor: string) => typeof document !== "undefined" && !!document.activeElement?.closest(selektor);
 
   const pilih = (i: number) => { if (difokus(".tb-pilihan")) fokus.current = "berikut"; setDipilih(i); setN(AWAL + 1); };
-  const ulangi = () => { fokus.current = "pilihan"; setDipilih(null); setN(AWAL); };
+  const ulangi = () => { fokus.current = "pilihan"; setMode("tanpa"); setDipilih(null); setN(AWAL); };
   const berikut = () => { if (n + 1 === daftar.length && difokus(".al-aksi")) fokus.current = "mode"; setN(n + 1); };
   const ganti = (m: Mode) => { setMode(m); setN(langkah[m].length); };
   const awal = () => { fokus.current = "pilihan"; setMode("tanpa"); setDipilih(null); setN(AWAL); };
