@@ -1133,11 +1133,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.11 · Race condition dan lock + ADR 13
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.10, lab-b3-race
 - selesai bila: halaman Konsep+ADR 2.11 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-race`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Isi lama B3.2 dipakai ulang. Dari b3-race (432, 433): enam replay `ledger-<cara>.json` siap; footer race.js, mode "Update" langkah 8, dan warna tab "bergantian" perlu dibetulkan (SETELAH-TAHAP-2).
+- catatan: Isi lama B3.2 dipakai ulang. Dari b3-race (432, 433): enam replay `ledger-<cara>.json` siap; footer race.js, mode "Update" langkah 8, dan warna tab "bergantian" perlu dibetulkan (SETELAH-TAHAP-2). PR #295, keputusan 638–640 (`plan/masuk/tahap-2-race-lock.md`): halaman baru `tahap-2/race-lock.mdx` (`t2-race-lock`, template konsep, ADR 13 di Putuskan); B3.2 tetap ada sebagai versi lama dengan `lebur_ke` (bukan `diganti_oleh`: `lengkapi()` akan memberi nomor 2.34). Inti Rantai `t2-race-lock-inti`; Coba `<RaceLedger id="adr13" ... awal="for-update" />` + Snippet `banding.txt` dan lima `ledger-<cara>.txt`; Paham: lost update lawan ledger, empat cara, lock terlambat (b3-ledger `batas.txt` 3), deadlock dan `ORDER BY id` (dokumentasi, belum direkam); Di stack lain enam tab (Go api-t2, Node/Laravel/Django/Supabase b3-stack skema Tahap 1, Serverpod Tidak dijalankan). ADR 13 opsi A lima aturan; lingkup = jalur yang memutuskan dari saldo atau batas (top-up api-t2 tidak mengunci sebelum membaca, 640). Halaman istilah race condition, lock, SELECT FOR UPDATE, optimistic lock (`stack: null`); rujukan [[B3.2]] di 2.2, 2.6, 2.7, 2.8 ke 2.11, Tahap 1 dibiarkan. R2-85–R2-89. Lab tidak dijalankan (2.10 memakai b3-race). Catatan untuk 2.10: `race-condition.json` sudah dibuat di sini.
 
 ### 2.12 · Isolation level secara praktis
 
@@ -1274,12 +1274,21 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - selesai bila: halaman Konsep+ADR 2.26 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/t2-pencairan`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Dari t2-pencairan (508): Keuangan mengambil file menurut status `dikirim`, bukan menurut ada atau tidaknya file.
 
+### lab-c4a · Celah kunci dan IPv6 di c4-ratelimit
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: lab-api-t2a
+- selesai bila: `labs/c4-ratelimit/login`: percobaan login dicatat sebelum hash argon2id dengan lock baris (`SELECT … FOR UPDATE`) dan kunci dipasang begitu ambang tercapai, sehingga N tebakan bersamaan pada penghitung ambang hanya satu yang dinilai (tes bersamaan); key IP IPv6 dipotong ke prefix /64 (RFC 6459 5.2) dengan tes; `/ganti-password` menolak password dari daftar bocor fiktif lokal (OWASP ASVS 5.0.0 6.2.4); rekaman dari database bersih diulang identik; uji mutasi tiap perbaikan; halaman Tahap 2 yang sudah merujuk rekaman c4 tidak bergeser.
+- catatan: Kategori rusak/keamanan dari tinjauan #294 (keputusan 718–719): celah yang sama ada di lab yang dipakai 2.27 dan 2.28.
+
 ### 2.27 · M16: Akun Ani terkunci
 
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: 2.26, lab-c4-ratelimit
+- bergantung: 2.26, lab-c4-ratelimit, lab-c4a
 - selesai bila: halaman Masalah 2.27 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/c4-ratelimit`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Hanya container lokal; beberapa percobaan, bukan skrip massal. Dari c4-ratelimit (550): akun terkunci dijawab 401 generik, jadi Ani mengira lupa password; halaman menyebut jalur lupa password atau notifikasi lewat jalur lain (mohon konfirmasi pemilik).
 

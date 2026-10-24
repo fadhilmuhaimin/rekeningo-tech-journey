@@ -22,7 +22,7 @@ Konsepnya sama di semua stack. Tabel ini hanya menerjemahkan **nama**. Setiap ba
 | Konsep | Go | Node.js | Laravel | Django | Spring | Supabase / Firebase |
 |---|---|---|---|---|---|---|
 | Transaction ([[B3.1]]) | `db.BeginTx` | `client.query('BEGIN')` (`pg`) | `DB::transaction()` | `transaction.atomic()` | `@Transactional` | fungsi SQL lewat `rpc()` / `runTransaction()` |
-| Row lock ([[B3.2]]) | SQL `FOR UPDATE` | SQL `FOR UPDATE` | `lockForUpdate()` | `select_for_update()` | `@Lock(PESSIMISTIC_WRITE)` | SQL `FOR UPDATE` di fungsi / SDK mobile Firestore: optimistic + retry |
+| Row lock ([[t2-race-lock]]) | SQL `FOR UPDATE` | SQL `FOR UPDATE` | `lockForUpdate()` | `select_for_update()` | `@Lock(PESSIMISTIC_WRITE)` | SQL `FOR UPDATE` di fungsi / SDK mobile Firestore: optimistic + retry |
 | Migration | lib `golang-migrate`, `goose` | lib Prisma Migrate, `knex` | `php artisan migrate` | `manage.py migrate` | lib Flyway, Liquibase | `supabase migration new` / – |
 | Connection pool | bawaan `database/sql`, `pgxpool` | `pg.Pool` | tidak ada pool antar-request di PHP-FPM [perlu verifikasi] | `CONN_MAX_AGE`, opsi `pool` (psycopg) | HikariCP (bawaan Spring Boot) | Supavisor / – |
 
