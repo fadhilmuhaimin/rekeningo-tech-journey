@@ -135,7 +135,12 @@
           c.vars.appendChild(BB.el("dt", { text: VAR_LABEL[k] || k }));
           c.vars.appendChild(BB.el("dd", { text: k === "saldo_dibaca" ? BB.rp(vars[k]) : String(vars[k]) }));
         });
-        if (!Object.keys(vars).length) c.vars.appendChild(BB.el("dd", { class: "bb-muted", text: "belum membaca apa pun" }));
+        // dd tanpa dt melanggar struktur <dl> (axe definition-list, SC 1.3.1; temuan G-axe, keputusan 694). dt hanya
+        // untuk pembaca layar, jadi tampilan sama dengan sebelumnya (keputusan 707).
+        if (!Object.keys(vars).length) {
+          c.vars.appendChild(BB.el("dt", { class: "bb-sr", text: "yang sudah dibaca" }));
+          c.vars.appendChild(BB.el("dd", { class: "bb-muted", text: "belum membaca apa pun" }));
+        }
       }
 
       /* Baris yang sudah ada dipertahankan: Berikutnya menambah satu baris di bawah, Sebelumnya membuang baris terakhir,

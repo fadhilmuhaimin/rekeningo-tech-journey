@@ -1034,11 +1034,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### W2-race · Replay ledger di widget race
 
 - jenis: interaksi
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: A11y-diagram
 - selesai bila: Widget race memutar enam replay `ledger-<cara>.json` dari `labs/b3-race/output/ledger/` (rentan dua urutan, FOR UPDATE, UPDATE atomik, optimistic lock, SERIALIZABLE + retry) dengan saldo dan status dari rekaman, tebak dulu sebelum hasil, pilih satu cara untuk diubah, chip sumber ke file rekaman; keyboard dan reduced motion; versi lama widget untuk halaman versi lama tidak berubah; ukuran JS dicatat; diuji di halaman `/uji/`; axe `definition-list` (SC 1.3.1) di widget race lama `/b-fondasi/b3-2-race-condition-lock/` 0 (temuan G-axe, keputusan 694).
-- catatan: Langkah 5 Tahap 2, dipakai 2.10 dan 2.11 (keputusan 557). Menyerap A11y-race-dl.
+- catatan: Langkah 5 Tahap 2, dipakai 2.10 dan 2.11 (keputusan 557). Menyerap A11y-race-dl. PR #291, keputusan 707–711: komponen React baru `situs/src/widgets/race-ledger/` lewat `situs/src/components/RaceLedger.astro` (`<RaceLedger id="..." cara={["tanpa-lock", ...]} awal="..." />`), race.js tidak dipakai; rekaman dibaca dari `labs/` saat build, Zod, dicocokkan dengan `banding.txt` (berbeda = build gagal); saldo, hasil client, menunggu, retry, SQLSTATE dari rekaman (JSON tanpa kolom retry: dihitung dari "(retry N)" dan dicocokkan); tebak saldo per cara, tombol cara `aria-pressed`, "Ubah satu hal" + kotak beda; `/uji/race/`; `ukur-race.mjs` 50 pemeriksaan (keyboard, ARIA, reduced motion, angka enam cara, axe keadaan akhir, CLS 0 px), uji mutasi GAGAL 9 dan 2; axe B3.2 `definition-list` 8 node → 0, tampilan lama identik; gerbang axe 17 halaman; JS `/uji/race/` 144,3 KB gzip, B3.2 +187 B, 1.11 +160 B. Lima polesan SETELAH-TAHAP-2. Peninjau (715, 716): fokus tidak lagi jatuh ke `<body>` saat panah kiri di "Ubah satu hal" (ukur-race 54 pemeriksaan, mutasi GAGAL 16); cara pasang 2.10/2.11 (Snippet `ledger-<cara>.txt` untuk tanpa JS) di komentar `RaceLedger.astro`; ukuran diukur ulang di atas f57acc6; dua polesan lagi.
 
 ### 2.1 · PRD v2: Rekeningo untuk seluruh kampus
 
