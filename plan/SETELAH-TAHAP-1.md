@@ -114,3 +114,10 @@ Dari crosscheck X1 (keputusan 370). Bukti di `tmp/crosscheck/x1a.md`, `x1b.md`, 
 - 1.12 desktop: figure ERD dan catatannya ±1018 px, lebih lebar dari kolom teks; "Garis menandai 7 foreign key" padahal terlihat 4 garis; subjudul dan figcaption hampir sama, "Diagram ini dibangun dari" muncul dua kali; diagram menulis `bigint` sedangkan snippet menulis `bigserial`.
 - Ligatur JetBrains Mono hanya dimatikan di ERD; snippet lain masih menampilkan `>=` sebagai ligatur.
 - Tanpa `.gitattributes`, checkout CRLF mengubah hash sumber ERD.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- 1.12 di 375×667: petunjuk "Pilih tabel untuk membaca kolom lengkap dan halaman yang menjelaskannya." ada di bawah diagram, ±1.400 px di bawah judulnya, jadi pembaca HP baru tahu tabel bisa diketuk sesudah melewati seluruh diagram (keputusan 697). Usul: petunjuk satu baris di bawah judul figure, tingginya dipesan sejak SSR.
+- 1.12 di 1366×657: dua garis `koreksi` → `akun` (edge `jalur`, keputusan 463) mengitari baris tengah dari kiri dan kanan, sehingga tampak seperti bingkai di sekeliling `sesi`, `topup`, dan `transaksi`.
+- 1.12 sesudah hydrate: kalimat Erd.astro "Garis menandai 7 foreign key, semuanya menunjuk ke akun.id" dan nama file sumbernya hanya untuk pembaca layar; pembaca yang melihat tinggal chip "Rekaman lab · PostgreSQL 17". Usul: kalimat itu di bawah diagram ErdTumbuh juga, bila pemilik ingin mempertahankannya.
+- 1.12 sebelum hydrate (JS aktif, island belum dimuat): Erd.astro (1.577 px di 375, 1.011 px di 1366) dipotong `max-height` setinggi pesanan React Flow (996 dan 700 px), jadi hanya 2–3 dari 5 tabel terlihat sampai chunk ±130 KB gzip selesai; bila chunk gagal dimuat, potongan itu menetap. Tanpa JS tingginya bebas dan utuh (tinjauan #285, `scripting: enabled` di erd-tumbuh.css). Usul: penanda "memuat diagram" di tepi potongan, atau ErdHalaman memesan tinggi Erd.astro bila lebih tinggi dari tata React Flow.
