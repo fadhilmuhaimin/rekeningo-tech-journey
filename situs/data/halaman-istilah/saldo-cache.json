@@ -1,0 +1,48 @@
+{
+  "istilah": "Saldo cache",
+  "sehari_hari": "Saldo cache adalah angka saldo yang disimpan supaya app tidak menjumlah semua catatan uang setiap kali dibuka. Angka yang benar tetap jumlah catatannya; cache hanya salinan.",
+  "cerita": [
+    {
+      "rujukan": "t2-saldo-bukan-kolom",
+      "teks": "Kode yang salah menambah Rp5.000 ke `saldo_cache` Karyawan 420 tanpa posting. Job malam menemukan selisihnya dan keluar dengan status 1."
+    },
+    {
+      "rujukan": "t2-skema",
+      "teks": "Sebelum kolom `akun.saldo` dihapus, saldo kolom, `saldo_cache`, dan jumlah posting sama untuk 1.012 dari 1.012 buku."
+    }
+  ],
+  "mekanisme": [
+    "`buku.saldo_cache` ditulis di transaction yang sama dengan posting: satu UPDATE menambahkan jumlah posting jurnal itu ke setiap buku yang disentuh.",
+    "App membaca saldo dari `saldo_cache`, bukan dari `sum` seluruh posting buku itu.",
+    "Job malam menjumlah posting setiap buku dan membandingkannya dengan cache. Selisih dilaporkan dengan status 1, dan cache tidak diperbaiki otomatis.",
+    "Kalau keduanya berbeda, jumlah posting yang dipercaya, karena posting adalah source of truth."
+  ],
+  "stack": {
+    "lihat": "ledger",
+    "teks": "Cache dicek dengan query `sum` per buku yang sama dengan job malam di halaman Ledger."
+  },
+  "jebakan": [
+    "Meng-UPDATE `saldo_cache` di luar transaction yang menulis posting. Kalau salah satunya gagal, cache dan posting berbeda tanpa ada yang tahu sampai job malam.",
+    "Memperbaiki cache otomatis saat job malam menemukan selisih. Selisih berarti ada kode yang menulis cache tanpa posting, dan perbaikan otomatis menyembunyikan kode itu."
+  ],
+  "terkait": [
+    "Cache",
+    "Source of truth",
+    "Posting",
+    "Ledger"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-09",
+      "judul": "Rekaman lab api-t2: cek cache tiap malam",
+      "rekaman": "labs/api-t2/output/migrasi.txt",
+      "catatan": "Bagian E: selisih Rp5.000 ditemukan dengan exit status 1; sesudah cache dihitung ulang, 0 tidak cocok."
+    },
+    {
+      "riset": "R2-73",
+      "judul": "Rekaman lab api-t2: migrasi ke ledger",
+      "rekaman": "labs/api-t2/output/migrasi.txt",
+      "catatan": "Bagian C: saldo kolom, saldo_cache, dan jumlah posting sama untuk 1.012 buku akun."
+    }
+  ]
+}
