@@ -95,8 +95,8 @@ const apps = (fase: Kejadian[][]) => fase.flat().filter((k): k is HasilApp => k.
 
 function periksaApp(fase: Kejadian[][]) {
   for (const f of fase) {
-    const a = apps(f).filter((k) => k.versi === "1.0").length;
-    const b = apps(f).filter((k) => k.versi === "1.1").length;
+    const a = apps([f]).filter((k) => k.versi === "1.0").length;
+    const b = apps([f]).filter((k) => k.versi === "1.1").length;
     if (a !== b) throw new Error("rekaman: fase yang memuat app harus memuat app 1.0 dan 1.1 dalam jumlah sama");
   }
   for (const a of apps(fase)) {
