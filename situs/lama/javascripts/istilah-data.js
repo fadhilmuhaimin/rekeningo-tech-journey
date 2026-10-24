@@ -854,7 +854,6 @@ window.ISTILAH = {
  "Race condition": {
   "b": "B3.2",
   "d": "Hasil yang bergantung pada urutan dua proses yang berjalan bersamaan.",
-  "h": "istilah/race-condition/",
   "n": "2.11 Race condition",
   "s": "istilah-race-condition",
   "t": "Race condition",
@@ -1715,7 +1714,6 @@ window.ISTILAH = {
  "race condition": {
   "b": "B3.2",
   "d": "Hasil yang bergantung pada urutan dua proses yang berjalan bersamaan.",
-  "h": "istilah/race-condition/",
   "n": "2.11 Race condition",
   "s": "istilah-race-condition",
   "t": "Race condition",
