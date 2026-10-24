@@ -1,0 +1,65 @@
+{
+  "judul": "Tiga rilis, dua versi app",
+  "sumber": "Rekaman lab · tiga-rilis.txt dan satu-langkah.txt",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "Backfill rilis 2 memindahkan akun per 1.000 baris dan mengunci baris-baris itu dengan SELECT ... FOR UPDATE. Saat batch pertama berjalan, Budi membayar Warung Ani dan Karyawan 420 membuka riwayat. Siapa yang menunggu batch?",
+  "pilihan": [
+    {
+      "kunci": "keduanya",
+      "teks": "Bayar dan buka riwayat sama-sama menunggu sampai backfill selesai",
+      "alasan": "Yang menahan adalah lock baris. Lock baris tidak menahan SELECT biasa, jadi buka riwayat tidak ikut menunggu. Rekaman mencatat riwayat terbuka tanpa menunggu."
+    },
+    {
+      "kunci": "bayar",
+      "teks": "Hanya Bayar yang menunggu, paling lama satu batch",
+      "alasan": "Bayar ke akun yang sedang dikunci batch menunggu lock baris itu sampai batch COMMIT. Buka riwayat hanya membaca dan langsung dijawab. Menunggunya satu batch, bukan seluruh backfill."
+    },
+    {
+      "kunci": "tidak",
+      "teks": "Tidak ada yang menunggu",
+      "alasan": "Bayar Budi ke Warung Ani menyentuh baris akun yang sedang dikunci batch. Rekaman mencatat Bayar menunggu di belakang backfill."
+    }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "fase": [
+    { "judul": "Rilis 1 · tambah", "ringkas": "Kolom dan tabel baru sudah ada, kode tidak berubah. App 1.0 dan 1.1 membayar dan membuka riwayat lewat server v1." },
+    { "judul": "Rilis 2 · server menulis ke dua tempat", "ringkas": "Server v2 menulis kolom saldo lama dan ledger sekaligus, tetapi masih membaca dari tabel lama. Akun baru dibuka bukunya saat pertama kali dibayar." },
+    { "judul": "Rilis 2 · backfill per 1.000 akun", "ringkas": "Satu transaction pendek per batch. Bayar yang menyentuh akun di batch menunggu lock baris, riwayat tidak, dan server tidak berhenti." },
+    { "judul": "Rilis 2 · cek, lalu baca dari ledger", "ringkas": "Sebelum membaca dari ledger, setiap akun dicocokkan: saldo lama, cache, dan jumlah posting harus sama." },
+    { "judul": "Rilis 3 · hapus yang lama", "ringkas": "Server hanya memakai ledger. Sesudah itu kolom saldo dan tabel v1 dihapus, dan kedua versi app tetap jalan." }
+  ],
+  "papan": "Hasil terakhir dua versi app di rekaman",
+  "app": { "1.0": "App 1.0 (membaca jumlah)", "1.1": "App 1.1 (membaca nominal)" },
+  "status": { "jalan": "Jalan", "berhenti": "Berhenti", "belum": "Belum dicoba" },
+  "sesi": {
+    "S": "Skema",
+    "BF": "Backfill",
+    "P": "Bayar Budi",
+    "Q": "Buka riwayat",
+    "X": "Bayar akun belum dipindah"
+  },
+  "bayarRiwayat": "bayar COMMIT, saldo {saldo}, riwayat {baris} baris",
+  "cek": "Cek: {akun} akun, {tanpa} tanpa buku, {beda} cache berbeda",
+  "langkah": "Fase {no} dari {total}",
+  "berikutnya": "Fase berikutnya",
+  "mulaiUlang": "Mulai dari awal",
+  "ubahJudul": "Ubah satu hal: gabungkan semuanya jadi satu langkah",
+  "mode": { "tiga": "Tiga rilis", "satu": "Satu langkah (rekaman M13)" },
+  "kesimpulan": {
+    "tiga": "Pembayaran tetap masuk selama 1.000 akun dipindahkan, dan kedua versi app jalan di setiap fase.",
+    "satu": "Tambah dan hapus dalam satu transaction. Server lama gagal sesudah COMMIT, dan kedua versi app berhenti membaca riwayat."
+  },
+  "catatan": {
+    "tiga": "Fase di atas dibaca dari tiga-rilis.txt: lima kali app 1.0 dan 1.1 membayar dan membuka riwayat.",
+    "satu": "Rekaman ini sama dengan blok Yang sebenarnya di halaman M13: lima file migrasi sebagai satu transaction, server v1 masih melayani, lalu server v2 dipasang."
+  },
+  "satu": {
+    "judul": "Satu langkah · hasil di rekaman M13",
+    "ringkas": "Server lama dan kedua versi app gagal sesudah migrasi selesai.",
+    "serverLama": "Server v1 sesudah COMMIT: {hasil}",
+    "appBerhenti": "App {versi} berhenti: {teks}"
+  },
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan lima fase rekaman sebagai daftar."
+}
