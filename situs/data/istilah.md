@@ -62,8 +62,6 @@
 *[connection pool]: Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request.
 *[Container]: Paket aplikasi beserta semua dependensinya yang berjalan dengan cara sama di laptop maupun server.
 *[container]: Paket aplikasi beserta semua dependensinya yang berjalan dengan cara sama di laptop maupun server.
-*[Cursor pagination]: Pagination yang meminta "data sesudah item X", bukan "halaman ke-N", jadi tetap stabil saat data bertambah.
-*[cursor pagination]: Pagination yang meminta "data sesudah item X", bukan "halaman ke-N", jadi tetap stabil saat data bertambah.
 *[Dead-letter queue]: Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.
 *[dead-letter queue]: Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.
 *[Deadlock]: Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya.
@@ -125,6 +123,8 @@
 *[lost update]: Perubahan yang hilang karena dua transaction membaca nilai lama yang sama lalu saling menimpa.
 *[LSN]: Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu.
 *[Log Sequence Number]: Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu.
+*[Metode idempoten]: Metode HTTP yang efeknya di server sama untuk satu request atau banyak request identik: PUT, DELETE, dan semua metode safe seperti GET.
+*[metode idempoten]: Metode HTTP yang efeknya di server sama untuk satu request atau banyak request identik: PUT, DELETE, dan semua metode safe seperti GET.
 *[Metric]: Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error.
 *[metric]: Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error.
 *[Microservice]: Gaya arsitektur yang memecah backend jadi beberapa service kecil yang di-deploy terpisah dan saling memanggil lewat jaringan.
@@ -158,6 +158,8 @@
 *[p50]: Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median).
 *[Pagination]: Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu.
 *[pagination]: Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu.
+*[Pagination kursor]: Pagination yang meminta baris sesudah nilai urutan baris terakhir yang sudah tampil, bukan halaman ke-N, jadi tetap stabil saat baris baru masuk.
+*[pagination kursor]: Pagination yang meminta baris sesudah nilai urutan baris terakhir yang sudah tampil, bukan halaman ke-N, jadi tetap stabil saat baris baru masuk.
 *[Partitioning]: Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.
 *[partitioning]: Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.
 *[partisi]: Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.

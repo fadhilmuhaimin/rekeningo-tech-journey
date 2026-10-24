@@ -1,0 +1,100 @@
+{
+  "istilah": "Pagination kursor (keyset)",
+  "sehari_hari": "Kursor adalah penanda posisi di daftar, seperti pembatas buku. Budi tidak meminta halaman ke-3, tetapi meminta yang sesudah transaksi terakhir yang sudah ia lihat, dan kiriman baru di atas tidak menggeser penandanya.",
+  "cerita": [
+    {
+      "rujukan": "t2-m12",
+      "teks": "Satu kiriman Rp5.000 masuk saat Budi menggulir, dan OFFSET mengulang satu baris serta menyembunyikan kiriman itu."
+    },
+    {
+      "rujukan": "t2-kursor",
+      "teks": "ADR 16: kursor opaque dari `(dibuat, id)` posting terakhir, dengan celah transaksi yang COMMIT belakangan ditulis terbuka."
+    }
+  ],
+  "mekanisme": [
+    "Server mengirim nilai urutan baris terakhir sebagai kursor, yaitu `(dibuat, id)` posting terakhir, ditulis opaque.",
+    "Halaman berikutnya memakai `WHERE (dibuat, id) < kursor ORDER BY dibuat DESC, id DESC LIMIT n`. PostgreSQL membandingkan dua elemen dari kiri ke kanan.",
+    "Index `posting_riwayat (buku_id, dibuat, id)` melayani query itu. Rekaman bagian D membaca 20 baris untuk kursor, sedangkan OFFSET 1000 membaca 1.020 baris.",
+    "Kursor tidak punya nomor halaman dan total. Transaksi yang COMMIT belakangan dengan `dibuat` lebih awal bisa tidak tampil di daftar yang sudah dimuat."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, pgx v5.11.0 lewat database/sql, PostgreSQL 17.11",
+      "teks": "`GET /akun/{id}/riwayat?kursor=...` menjalankan `WHERE (p.dibuat, p.id) < ($2, $3)`. Kursor ditulis base64url dari mikrodetik dan nomor posting, dan kursor rusak dijawab 422.",
+      "rekaman": "labs/api-t2/output/riwayat.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-postgres (pg) 8.23.1",
+      "teks": "Predikat yang sama dikirim lewat `pool.query(text, values)`. `pg` mengubah `timestamptz` menjadi `Date` yang presisinya milidetik, dan dokumentasinya menyarankan type parser sendiri bila mikrodetik dibutuhkan.",
+      "dokumentasi": "https://node-postgres.com/features/types"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "`cursorPaginate(15)` membuat kursor sebagai string terenkode di query string. Kolom urutan harus unik atau kombinasinya unik, dan kolom `null` tidak didukung.",
+      "dokumentasi": "https://laravel.com/docs/13.x/pagination#cursor-pagination"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "djangorestframework 3.18.3, Django 6.1.2",
+      "teks": "`CursorPagination` ada di Django REST framework, dengan field `ordering` yang tidak berubah dan tidak null. Nilai kembar ditangani lewat posisi dan offset.",
+      "dokumentasi": "https://www.django-rest-framework.org/api-guide/pagination/#cursorpagination"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "Dokumentasinya menjelaskan pagination kursor dengan `where: (t) => t.id > cursor`, `orderBy`, dan `limit`.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/pagination"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "supabase-js 2.118.0",
+      "teks": "Tidak ada kursor bawaan. Kondisi dua kolom ditulis `.or('dibuat.lt.X,and(dibuat.eq.X,id.lt.Y)')` bersama `.order()` dua kali, dan string filter harus dibersihkan sendiri.",
+      "dokumentasi": "https://supabase.com/docs/reference/javascript/or"
+    }
+  },
+  "jebakan": [
+    "Urutan tidak unik atau boleh NULL. Baris kembar di batas halaman terlewat, dan perbandingan dengan NULL hasilnya tidak diketahui (PostgreSQL 17, 9.25.5).",
+    "Kursor dari tipe yang memotong presisi, misalnya `Date` JavaScript yang hanya milidetik. Baris di antara nilai terpotong dan nilai asli bisa terlewat.",
+    "Menyambung riwayat dengan query lebih baru dari baris pertama dan mengira daftar pasti lengkap. Transaksi yang COMMIT belakangan tidak ikut (ADR 16)."
+  ],
+  "terkait": [
+    "Pagination",
+    "Index",
+    "Metode idempoten"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-24",
+      "judul": "PostgreSQL 17: Row Constructor Comparison",
+      "url": "https://www.postgresql.org/docs/17/functions-comparisons.html#ROW-WISE-COMPARISON",
+      "catatan": "Elemen dibandingkan dari kiri ke kanan dan berhenti di pasangan pertama yang tidak sama atau NULL."
+    },
+    {
+      "riset": "R2-146",
+      "judul": "Slack Engineering: Evolving API Pagination at Slack",
+      "url": "https://slack.engineering/evolving-api-pagination-at-slack/",
+      "catatan": "Kursor opaque Base64 dari kolom unik dan berurutan. Kelebihan: memakai index dan stabil saat data ditulis. Kekurangan: tanpa total dan tanpa lompat ke halaman."
+    },
+    {
+      "riset": "R2-147",
+      "judul": "Laravel 13.x: Cursor Pagination",
+      "url": "https://laravel.com/docs/13.x/pagination#cursor-pagination",
+      "catatan": "Urutan harus berisi kolom atau kombinasi kolom yang unik; kolom null tidak didukung; tanpa nomor halaman."
+    },
+    {
+      "riset": "R2-145",
+      "judul": "Oskar Dudycz: Ordering in Postgres Outbox",
+      "url": "https://event-driven.io/en/ordering_in_postgres_outbox/",
+      "catatan": "2022-10-28 (tingkat 4): nilai sequence diambil sebelum COMMIT, jadi pembaca yang maju dari posisi terakhir bisa melewatkan baris yang COMMIT belakangan."
+    },
+    {
+      "riset": "R2-24",
+      "judul": "Rekaman lab b2-query: kursor (dibuat, id)",
+      "rekaman": "labs/b2-query/output/ledger/pagination.txt",
+      "catatan": "Bagian C: 205 halaman, kursor 0 ganda dan 0 kiriman tidak tampil. Bagian D: kursor membaca 20 baris di posisi 1.001, OFFSET membaca 1.020."
+    }
+  ]
+}
