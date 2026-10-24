@@ -126,8 +126,8 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 140,
-        "halaman": 14
+        "menit": 149,
+        "halaman": 15
       },
       "versi": "lama",
       "skala": {
@@ -1501,8 +1501,9 @@
       "lab": [
         "b3-race"
       ],
-      "ada": false,
-      "nomor": "2.10"
+      "ada": true,
+      "nomor": "2.10",
+      "menit": 9
     },
     {
       "id": "t2-race-lock",
