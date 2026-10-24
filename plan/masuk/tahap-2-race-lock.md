@@ -23,3 +23,4 @@
 - 2.11 merujuk isolation level ke halaman versi lama [[B3.3]]; ganti ke 2.12 sesudah halaman itu ditulis (keputusan 679).
 - Snippet `lines` di halaman tidak bergeser saat rekaman lab berubah; pertimbangkan pemeriksa gerbang yang mencocokkan isi potongan dengan teks yang dikutip, atau penanda region di rekaman (keputusan 679).
 - `urutanBaca` memasukkan halaman `lebur_ke` ke urutan baca; 2.11 memindah B3.2 ke akhir Tahap 2 sebagai jalan pintas. Halaman yang dilebur berikutnya (mis. B3.3 ke 2.12) butuh pola yang sama atau `urutanBaca` yang melewatinya (keputusan 781).
+- Halaman versi lama B3.2 (dan T2) tidak punya penunjuk ke halaman barunya di isi halaman; pembaca dari tautan Tahap 1 "Race condition (versi lama)" hanya melihat "(versi lama)" di breadcrumb dan catatan sidebar. Usul satu baris "Versi baru: [[t2-race-lock]]" di kepala halaman `lebur_ke`/`diganti_oleh` (keputusan 781).
