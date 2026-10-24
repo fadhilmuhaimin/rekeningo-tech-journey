@@ -38,18 +38,18 @@ func (r Repo) Akun(ctx context.Context, id int64) (Akun, error) {
 }
 
 // AkunMasuk: kolom yang dibaca saat login. Kolom M16 (000009) dipakai sejak lab-api-t2a (keputusan 645).
+// Kunci tidak dibaca di sini: PercobaanLogin membacanya dengan baris dikunci (keputusan 718).
 type AkunMasuk struct {
-	ID             int64
-	PasswordHash   string
-	WajibGanti     bool
-	TerkunciSampai *time.Time
+	ID           int64
+	PasswordHash string
+	WajibGanti   bool
 }
 
 func (r Repo) AkunLewatEmail(ctx context.Context, email string) (AkunMasuk, error) {
 	var a AkunMasuk
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, password_hash, wajib_ganti_password, terkunci_sampai FROM akun WHERE email = $1`, email).
-		Scan(&a.ID, &a.PasswordHash, &a.WajibGanti, &a.TerkunciSampai)
+		SELECT id, password_hash, wajib_ganti_password FROM akun WHERE email = $1`, email).
+		Scan(&a.ID, &a.PasswordHash, &a.WajibGanti)
 	if errors.Is(err, sql.ErrNoRows) {
 		return a, ErrTidakAda
 	}
@@ -57,22 +57,24 @@ func (r Repo) AkunLewatEmail(ctx context.Context, email string) (AkunMasuk, erro
 }
 
 // --8<-- [start:gagal-login]
-// TambahGagalLogin menaikkan penghitung di database dalam satu UPDATE (bukan baca di Go lalu tulis), jadi
-// percobaan yang datang bersamaan tidak saling menimpa dan ambang tidak bisa dilewati dengan paralel.
-func (r Repo) TambahGagalLogin(ctx context.Context, id int64) (gagal int, err error) {
-	err = r.db.QueryRowContext(ctx,
-		`UPDATE akun SET gagal_login = gagal_login + 1 WHERE id = $1 RETURNING gagal_login`, id).Scan(&gagal)
-	return gagal, err
+// PercobaanLogin membaca penghitung gagal dan kunci dengan baris akun dikunci (FOR UPDATE). Percobaan lain untuk
+// akun yang sama menunggu sampai transaction ini selesai, lalu membaca penghitung dan kunci yang baru, jadi
+// tebakan bersamaan tidak bisa lewat ambang (keputusan 718).
+func (t Tx) PercobaanLogin(ctx context.Context, id int64) (gagal int, terkunciSampai *time.Time, err error) {
+	err = t.tx.QueryRowContext(ctx,
+		`SELECT gagal_login, terkunci_sampai FROM akun WHERE id = $1 FOR UPDATE`, id).Scan(&gagal, &terkunciSampai)
+	return gagal, terkunciSampai, err
 }
 
-// KunciLogin: GREATEST, supaya kunci yang lebih panjang dari percobaan bersamaan tidak tertimpa yang lebih pendek.
-func (r Repo) KunciLogin(ctx context.Context, id int64, sampai time.Time) error {
-	_, err := r.db.ExecContext(ctx,
-		`UPDATE akun SET terkunci_sampai = GREATEST(terkunci_sampai, $2) WHERE id = $1`, id, sampai)
+// CatatPercobaanLogin menyimpan penghitung baru, dan kunci bila sampai ambang (nil = kunci lama tidak diubah).
+func (t Tx) CatatPercobaanLogin(ctx context.Context, id int64, gagal int, kunciSampai *time.Time) error {
+	_, err := t.tx.ExecContext(ctx,
+		`UPDATE akun SET gagal_login = $2, terkunci_sampai = coalesce($3, terkunci_sampai) WHERE id = $1`,
+		id, gagal, kunciSampai)
 	return err
 }
 
-// ResetGagalLogin sesudah password benar. Baris yang sudah bersih tidak ditulis ulang.
+// ResetGagalLogin sesudah password benar: penghitung dan kunci yang dipasang percobaan ini dihapus.
 func (r Repo) ResetGagalLogin(ctx context.Context, id int64) error {
 	_, err := r.db.ExecContext(ctx, `UPDATE akun SET gagal_login = 0, terkunci_sampai = NULL
 		WHERE id = $1 AND (gagal_login <> 0 OR terkunci_sampai IS NOT NULL)`, id)

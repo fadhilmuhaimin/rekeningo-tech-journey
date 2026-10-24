@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -213,3 +214,40 @@ func TestLoginWajibGantiPassword(t *testing.T) {
 }
 
 // --8<-- [end:tes-wajib-ganti]
+
+// Lima tebakan bersamaan saat penghitung tinggal satu dari ambang: hanya satu yang sampai ke bcrypt, sisanya
+// melihat kunci yang dipasang tebakan pertama. Penghitung yang naik atomik saja tidak cukup bila kunci baru
+// dipasang sesudah bcrypt: tebakan yang sudah lewat pemeriksaan kunci tetap dinilai (keputusan 718).
+func TestKunciTidakBisaDilewatiBersamaan(t *testing.T) {
+	svc, db := siapkan(t)
+	svc.loginAkun = PembatasBaru(1000, 1) // yang diuji kunci di database, bukan bucket di memori
+	id, email := akunLogin(t, db, "password-benar-milik-tes", false)
+	// Biaya bcrypt produksi (±50 ms), supaya kelima tebakan sedang di bcrypt bersamaan seperti di server sungguhan.
+	hash, err := bcrypt.GenerateFromPassword([]byte("password-benar-milik-tes"), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`UPDATE akun SET gagal_login = $2, password_hash = $3 WHERE id = $1`,
+		id, ambangGagal-1, string(hash)); err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	for range 5 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, _, err := svc.Login(context.Background(), email, "tebakan-salah"); !errors.Is(err, ErrLoginGagal) {
+				t.Errorf("tebakan bersamaan: ingin ErrLoginGagal, dapat %v", err)
+			}
+		}()
+	}
+	wg.Wait()
+	var gagal int
+	if err := db.QueryRow(`SELECT gagal_login FROM akun WHERE id = $1`, id).Scan(&gagal); err != nil {
+		t.Fatal(err)
+	}
+	if gagal != ambangGagal {
+		t.Fatalf("%d tebakan dinilai bcrypt sesudah penghitung %d; ingin 1 (penghitung %d)", gagal-(ambangGagal-1),
+			ambangGagal-1, ambangGagal)
+	}
+}

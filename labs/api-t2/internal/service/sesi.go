@@ -81,22 +81,36 @@ func (s Service) periksaMasuk(ctx context.Context, email, password string) (repo
 	if err != nil {
 		return a, err
 	}
+	// Percobaan dicatat sebelum bcrypt, dengan baris akun dikunci: penghitung naik, dan percobaan yang sampai ambang
+	// langsung memasang kunci. Tebakan bersamaan menunggu lock baris lalu melihat kunci itu, jadi hanya satu yang
+	// dinilai bcrypt (keputusan 718). Password yang ternyata benar menghapus penghitung dan kunci itu lagi.
+	terkunci := false
+	err = s.repo.DalamTx(ctx, func(tx repo.Tx) error {
+		gagal, sampai, err := tx.PercobaanLogin(ctx, a.ID)
+		if err != nil {
+			return err
+		}
+		if sampai != nil && sampai.After(kini) {
+			terkunci = true
+			return nil
+		}
+		var kunci *time.Time
+		if gagal++; gagal >= ambangGagal {
+			k := kini.Add(durasiKunci(gagal))
+			kunci = &k
+		}
+		return tx.CatatPercobaanLogin(ctx, a.ID, gagal, kunci)
+	})
+	if err != nil {
+		return a, err // gagal mencatat = 500, bukan percobaan gratis
+	}
 	// Akun terkunci dijawab sama dengan password salah, termasuk waktu hash: jawaban "terkunci" memberi tahu
 	// penebak bahwa email itu terdaftar (OWASP ASVS 5.0.0 6.3.8).
-	if a.TerkunciSampai != nil && a.TerkunciSampai.After(kini) {
+	if terkunci {
 		_ = bcrypt.CompareHashAndPassword(hashPalsu, []byte(password))
 		return a, ErrLoginGagal
 	}
 	if bcrypt.CompareHashAndPassword([]byte(a.PasswordHash), []byte(password)) != nil {
-		gagal, err := s.repo.TambahGagalLogin(ctx, a.ID)
-		if err != nil {
-			return a, err // gagal mencatat = 500, bukan percobaan gratis
-		}
-		if gagal >= ambangGagal {
-			if err := s.repo.KunciLogin(ctx, a.ID, kini.Add(durasiKunci(gagal))); err != nil {
-				return a, err
-			}
-		}
 		return a, ErrLoginGagal
 	}
 	return a, s.repo.ResetGagalLogin(ctx, a.ID)
