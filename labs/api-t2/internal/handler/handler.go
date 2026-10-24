@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -19,9 +20,16 @@ import (
 type Server struct {
 	svc    service.Service
 	rentan string // mode rentan lab (flag -rentan); kosong = versi benar
+	// Lapis per IP rate limit (lab-api-t2a, keputusan 645). Lapis per akun ada di service.
+	loginIP *service.Pembatas // /login dan /ganti-password: keduanya memeriksa password
+	kirimIP *service.Pembatas // /kiriman
 }
 
-func Baru(svc service.Service) Server { return Server{svc: svc} }
+func Baru(svc service.Service) Server {
+	return Server{svc: svc,
+		loginIP: service.PembatasBaru(service.AmbangLoginIP[0], service.AmbangLoginIP[1]),
+		kirimIP: service.PembatasBaru(service.AmbangKirimIP[0], service.AmbangKirimIP[1])}
+}
 
 // DenganRentan menyalakan satu mode rentan untuk rekaman halaman masalah (keputusan 148). Tahap 2 belum punya
 // mode; lab masalah M9 sampai M16 menambahkannya di sini dan di cmd/api/main.go.
@@ -29,10 +37,11 @@ func (s Server) DenganRentan(mode string) Server { s.rentan = mode; return s }
 
 // --8<-- [start:rute]
 // Rute Tahap 2. Endpoint Tahap 1 tetap dengan kontrak yang sama (app 1.0 dan 1.1); yang baru: /kiriman,
-// kursor di riwayat, /jurnal/{id}/pembalik, /tutup-buku. /koreksi diganti jurnal pembalik (410).
+// kursor di riwayat, /jurnal/{id}/pembalik, /tutup-buku, /ganti-password. /koreksi diganti jurnal pembalik (410).
 func (s Server) Rute() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /login", s.login)
+	mux.HandleFunc("POST /ganti-password", s.gantiPassword)
 	mux.HandleFunc("POST /logout", s.wajibLogin(s.logout))
 	mux.HandleFunc("GET /akun/{id}", s.wajibLogin(s.lihatAkun))
 	mux.HandleFunc("POST /topup", s.wajibLogin(s.topup))
@@ -114,27 +123,106 @@ func (s Server) errorInternal(w http.ResponseWriter, err error) {
 
 // --8<-- [end:problem]
 
+// --8<-- [start:client-ip]
+// clientIP: alamat koneksi TCP. Tahap 2 tidak punya reverse proxy (App, Monolith API, PostgreSQL), jadi
+// X-Forwarded-For selalu datang dari client dan tidak dipercaya: kalau dipercaya, penyerang mengganti IP di
+// setiap request dan lapis per IP tidak berarti (labs/c4-ratelimit rekaman bagian E, keputusan 550).
+// Saat load balancer masuk (Tahap 3), header itu dipercaya hanya dari alamat load balancer.
+func clientIP(r *http.Request) string {
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return ip
+}
+
+// terlaluSering: 429 dengan Retry-After (RFC 6585 bagian 4). Lapis disebut supaya app bisa memberi pesan.
+func terlaluSering(w http.ResponseWriter, e service.ErrTerlaluSering, judul string) {
+	w.Header().Set("Retry-After", strconv.Itoa(e.TungguDetik()))
+	tulisProblem(w, Problem{Type: "/problems/rate-limit-" + e.Lapis, Title: judul, Status: 429,
+		Detail: fmt.Sprintf("Coba lagi dalam %d detik.", e.TungguDetik())})
+}
+
+// izinkanIP mengambil satu token dari bucket IP. Bila kosong, response 429 sudah ditulis.
+func (s Server) izinkanIP(w http.ResponseWriter, r *http.Request, p *service.Pembatas, judul string) bool {
+	if ok, tunggu := p.Izinkan(clientIP(r), s.svc.Kini()); !ok {
+		terlaluSering(w, service.ErrTerlaluSering{Lapis: "ip", Tunggu: tunggu}, judul)
+		return false
+	}
+	return true
+}
+
+// --8<-- [end:client-ip]
+
 // --8<-- [start:login]
+// petaMasuk memetakan hasil pemeriksaan password (Login dan GantiPassword) ke response. False: sudah ditulis.
+func (s Server) petaMasuk(w http.ResponseWriter, err error) bool {
+	var lambat service.ErrTerlaluSering
+	switch {
+	case err == nil:
+		return true
+	case errors.Is(err, service.ErrLoginGagal):
+		// Satu jawaban untuk email tidak terdaftar, password salah, dan akun terkunci: jangan bantu penebak.
+		tulisProblem(w, Problem{Type: "/problems/login-gagal", Title: "Email atau password salah", Status: 401})
+	case errors.As(err, &lambat):
+		terlaluSering(w, lambat, "Terlalu banyak percobaan untuk akun ini")
+	case errors.Is(err, service.ErrWajibGanti):
+		tulisProblem(w, Problem{Type: "/problems/wajib-ganti-password", Title: "Password sementara harus diganti dulu",
+			Status: 403, Detail: "Kirim POST /ganti-password dengan email, password_lama, dan password_baru (minimal 15 karakter)."})
+	default:
+		s.petaError(w, err, "")
+	}
+	return false
+}
+
 func (s Server) login(w http.ResponseWriter, r *http.Request) {
+	if !s.izinkanIP(w, r, s.loginIP, "Terlalu banyak percobaan dari alamat ini") {
+		return
+	}
 	var in struct{ Email, Password string }
+	r.Body = http.MaxBytesReader(w, r.Body, 4096) // password raksasa tidak sampai ke bcrypt
 	if json.NewDecoder(r.Body).Decode(&in) != nil || in.Email == "" || in.Password == "" {
 		tulisProblem(w, Problem{Type: "/problems/json-rusak", Title: "Body harus JSON berisi email dan password", Status: 400})
 		return
 	}
 	token, sampai, err := s.svc.Login(r.Context(), in.Email, in.Password)
-	if errors.Is(err, service.ErrLoginGagal) {
-		// Pesan sama untuk "email tidak terdaftar" dan "password salah": jangan bantu penebak.
-		tulisProblem(w, Problem{Type: "/problems/login-gagal", Title: "Email atau password salah", Status: 401})
-		return
-	}
-	if err != nil {
-		s.errorInternal(w, err)
+	if !s.petaMasuk(w, err) {
 		return
 	}
 	tulisJSON(w, 200, map[string]any{"token": token, "kedaluwarsa_detik": int(time.Until(sampai).Round(time.Second).Seconds())})
 }
 
 // --8<-- [end:login]
+
+// --8<-- [start:ganti-password]
+// POST /ganti-password: tanpa token, karena akun yang wajib ganti belum diberi sesi. Password lama melewati
+// lapis IP, lapis akun, dan kunci yang sama dengan /login (keputusan 550 butir 1). 204: login lagi.
+func (s Server) gantiPassword(w http.ResponseWriter, r *http.Request) {
+	if !s.izinkanIP(w, r, s.loginIP, "Terlalu banyak percobaan dari alamat ini") {
+		return
+	}
+	var in struct {
+		Email        *string `json:"email"`
+		PasswordLama *string `json:"password_lama"`
+		PasswordBaru *string `json:"password_baru"`
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	if p := bacaJSON(r.Body, &in); p != nil {
+		tulisProblem(w, *p)
+		return
+	}
+	if p := wajibAda([]string{"email", "password_lama", "password_baru"},
+		in.Email != nil, in.PasswordLama != nil, in.PasswordBaru != nil); p != nil {
+		tulisProblem(w, *p)
+		return
+	}
+	if !s.petaMasuk(w, s.svc.GantiPassword(r.Context(), *in.Email, *in.PasswordLama, *in.PasswordBaru)) {
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// --8<-- [end:ganti-password]
 
 type kunciPeminta struct{}
 
@@ -196,7 +284,10 @@ func tidakDitemukan(w http.ResponseWriter, apa string) {
 func (s Server) petaError(w http.ResponseWriter, err error, dilarang string) {
 	var errV service.ErrValidasi
 	var errCSV service.ErrCSV
+	var lambat service.ErrTerlaluSering
 	switch {
+	case errors.As(err, &lambat):
+		terlaluSering(w, lambat, "Terlalu banyak kiriman dari akun ini")
 	case errors.As(err, &errV):
 		tulisProblem(w, Problem{Type: "/problems/validasi", Title: "Input tidak memenuhi aturan", Status: 422,
 			Errors: []map[string]string{{"field": errV.Field, "pesan": errV.Pesan}}})
@@ -344,6 +435,9 @@ func (s Server) bayar(w http.ResponseWriter, r *http.Request) {
 // --8<-- [start:kirim]
 // POST /kiriman: kirim uang ke rekan lewat nomor karyawan (Tahap 2). Endpoint baru, jadi hanya nominal.
 func (s Server) kirim(w http.ResponseWriter, r *http.Request) {
+	if !s.izinkanIP(w, r, s.kirimIP, "Terlalu banyak kiriman dari alamat ini") {
+		return
+	}
 	var in struct {
 		Ke      *string `json:"ke_nomor_karyawan"`
 		Nominal *int64  `json:"nominal"`
