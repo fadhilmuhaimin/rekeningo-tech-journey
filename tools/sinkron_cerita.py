@@ -218,7 +218,15 @@ def cek_token(ids):
 
 
 def main():
-    check = "--check" in sys.argv
+    argumen = sys.argv[1:]
+    if any(a in ("-h", "--help") for a in argumen):
+        print(__doc__)
+        return
+    asing = [a for a in argumen if a != "--check"]
+    if asing:
+        # Tanpa --check alat ini menulis berkas: argumen asing (mis. --bantuan) tidak boleh sampai ke sana.
+        sys.exit(f"argumen tidak dikenal: {' '.join(asing)} (pakai --check atau tanpa argumen; --help untuk bantuan)")
+    check = "--check" in argumen
     d = json.loads(CERITA.read_text())
     lengkapi(d)
     DATA.update(d)
