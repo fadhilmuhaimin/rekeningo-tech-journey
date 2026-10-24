@@ -59,9 +59,9 @@ Nyalakan **Ubah satu hal**: `buku_id` pindah ke kolom terakhir index. Sekarang q
 
 Di [[t2-m11]], Raka menghitung query dan menemukan 21 untuk satu halaman. Sesudah JOIN, query tunggalnya masih lambat di data setahun: ±27 ms untuk 20 baris (`n1.txt` bagian E, pembanding). Penyebabnya bukan jumlah query, tapi jumlah baris yang dibaca.
 
-Rekaman lab memuat 760.448 posting dan 380.224 jurnal, data satu tahun Tahap 2. Budi punya 3.892 posting dan Warung Ani 59.762 (`data.txt` bagian D). Di minggu 3 cerita, tabel `posting` baru berisi ±44 ribu baris (Asumsi). Di tabel sekecil itu, perbedaannya jauh lebih sedikit.
+Rekaman lab memuat 760.448 posting dan 380.224 jurnal, data satu tahun Tahap 2. Budi punya 3.892 posting dan Warung Ani 59.762 (`data.txt` bagian D). Di minggu 3 cerita, tabel `posting` baru berisi ±44 ribu baris (Asumsi). Di tabel sekecil itu selisihnya lebih kecil, dan lab tidak merekam ukuran itu.
 
-Kalau kamu pernah menambah index di database SQLite app Flutter, konsepnya sama. Bedanya di backend, tabel dibaca banyak orang sekaligus, dan setiap index ikut dibayar saat menulis.
+Kalau kamu pernah menambah index di database SQLite app Flutter, konsepnya sama. Bedanya di backend, banyak orang membaca dan menulis tabel yang sama sekaligus, jadi biaya setiap index terasa oleh semuanya.
 
 ### Cara kerjanya
 
@@ -83,7 +83,7 @@ Tanpa index riwayat, halaman pertama Budi memakai tiga node yang membaca tabel a
 
 <Snippet file="labs/b2-query/output/ledger/index.txt" lines="166:179" title="Rekaman lab: bagian F (query plan dengan index riwayat; waktu dan buffer pembanding)" />
 
-Satu node `Index Scan Backward` membaca 20 baris, dan 20 pencarian `jurnal_pkey` mengambil jenis jurnalnya. Eksekusi turun dari ±31,5 ke ±0,12 ms. Query JOIN dari ADR 15 juga turun, dari ±42,2 ke ±0,18 ms (bagian D dan H).
+Satu node `Index Scan Backward` membaca 20 baris, dan 20 pencarian `jurnal_pkey` mengambil jenis jurnalnya. Eksekusi turun dari ±31,5 ke ±0,12 ms. Query JOIN dari ADR 15 juga turun, dari ±42,2 ke ±0,18 ms (bagian D dan H). Angka itu datang dari `EXPLAIN ANALYZE`, yang menambah overhead pengukuran di setiap node. Waktu client untuk query yang sama lebih kecil (±27,4 ke ±1,4 ms, `n1.txt` bagian E), jadi jangan menyamakan keduanya.
 
 **4. Urutan kolom menentukan query mana yang terlayani.** Laporan harian Ani memfilter `buku_id = 1003` dan satu hari. Dua kolom depan index membatasi bagian yang dibaca, jadi 59.568 posting yang dulu dibuang tidak lagi dibaca:
 
@@ -217,7 +217,7 @@ Beban puncak ±1,4 request per detik untuk 1.000 karyawan dan 12 warung (Asumsi 
 
 **Status:** diterima di minggu 3 Tahap 2, sesudah M11. Berlaku untuk semua query per akun di tabel `posting`: riwayat, laporan harian warung, dan kursor ADR 16 di [[B1.3]].
 
-**Beda dengan naskah.** Naskah menulis index `posting(akun, waktu)`. Tabel `posting` merujuk `buku`, dan setiap akun punya satu buku, jadi kolomnya `buku_id` dan `dibuat`. Kolom `id` di ujung membuat urutan unik, dan nama index di lab `posting_riwayat`.
+**Beda dengan naskah.** Naskah menulis index `posting(akun, waktu)` di M11 dan `posting(akun, waktu, id)` di tabel fitur. Tabel `posting` merujuk `buku`, dan setiap akun punya satu buku, jadi kolomnya `buku_id` dan `dibuat`. Kolom `id` di ujung membuat urutan unik, dan nama index di lab `posting_riwayat`.
 
 | | A. JOIN + index komposit | B. Cache hasil riwayat | C. Nama lawan disimpan di `posting` | D. Materialized view riwayat |
 |---|---|---|---|---|
@@ -237,7 +237,7 @@ Kedua perbaikan di opsi A saling melengkapi. Rekaman `n1.txt` bagian E mencatat 
 4. Cache riwayat tidak dipasang sebelum ada ukuran beban yang menunjukkan masalahnya.
 5. Index di tabel yang sudah berisi dan sedang ditulis dibuat dengan `CREATE INDEX CONCURRENTLY` di luar transaction. Di lab api-t2, index dibuat `CREATE INDEX` biasa dengan `lock_timeout` 3 detik di rilis expand, sebelum posting diisi.
 
-**Kenapa A, bukan B.** Cache menjawab beban, dan M11 bukan masalah beban. Dengan index, halaman pertama memakai ±1,4 ms (`n1.txt` bagian E). Pada 1,4 request per detik, itu ±2 ms kerja database per detik untuk riwayat (hitungan sendiri dari angka pembanding). Cache di atas query tanpa index tetap menjalankan query ±31,5 ms setiap kali kosong (bagian B), dan menyembunyikan penyebabnya.
+**Kenapa A, bukan B.** Cache menjawab beban, dan M11 bukan masalah beban. Dengan index, halaman pertama memakai ±1,4 ms (`n1.txt` bagian E). Pada 1,4 request per detik, itu ±2 ms kerja database per detik untuk riwayat (hitungan sendiri dari angka pembanding). Cache di atas query tanpa index tetap menjalankan query ±27,4 ms setiap kali kosong (`n1.txt` bagian E), dan menyembunyikan penyebabnya.
 
 - **C ditolak** karena `posting` tidak pernah di-UPDATE: database menolaknya dengan 23001 dan koreksi lewat jurnal pembalik (`invarian.txt` bagian B). Nama lawan yang berubah tidak bisa diperbaiki di salinan itu.
 - **D ditolak** karena dokumentasi menyebut data materialized view "tidak selalu terbaru" ([39.3](https://www.postgresql.org/docs/17/rules-materializedviews.html)). Riwayat yang baru dibuka sesudah Bayar harus memuat pembayaran itu.
