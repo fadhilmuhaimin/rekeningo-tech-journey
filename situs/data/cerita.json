@@ -126,8 +126,8 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 90,
-        "halaman": 10
+        "menit": 101,
+        "halaman": 11
       },
       "versi": "lama",
       "skala": {
@@ -1378,8 +1378,9 @@
       "lab": [
         "t2-pencairan"
       ],
-      "ada": false,
-      "nomor": "2.5"
+      "ada": true,
+      "nomor": "2.5",
+      "menit": 8
     },
     {
       "id": "t2-saldo-bukan-kolom",
@@ -1400,8 +1401,9 @@
       "lab": [
         "b3-ledger"
       ],
-      "ada": false,
-      "nomor": "2.6"
+      "ada": true,
+      "nomor": "2.6",
+      "menit": 11
     },
     {
       "id": "t2-ledger",

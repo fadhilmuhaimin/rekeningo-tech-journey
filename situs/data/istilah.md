@@ -94,6 +94,8 @@
 *[invarian]: Aturan yang harus selalu benar apa pun yang terjadi, mis. transfer tidak mengubah total saldo semua akun.
 *[Isolation level]: Seberapa banyak perubahan dari transaction lain yang boleh terlihat oleh satu transaction yang sedang berjalan.
 *[isolation level]: Seberapa banyak perubahan dari transaction lain yang boleh terlihat oleh satu transaction yang sedang berjalan.
+*[Job terjadwal]: Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.
+*[job terjadwal]: Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.
 *[Jurnal]: Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol.
 *[jurnal]: Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol.
 *[JWT]: Token berisi data JSON plus signature, sehingga server bisa memeriksa keasliannya tanpa query ke database.
@@ -104,6 +106,8 @@
 *[latency]: Lama waktu satu request dari dikirim sampai response diterima.
 *[Lease]: Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis.
 *[lease]: Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis.
+*[Ledger]: Cara mencatat uang dengan menyimpan setiap perpindahan sebagai baris yang tidak diubah; saldo adalah jumlah baris itu, bukan angka yang ditimpa.
+*[ledger]: Cara mencatat uang dengan menyimpan setiap perpindahan sebagai baris yang tidak diubah; saldo adalah jumlah baris itu, bukan angka yang ditimpa.
 *[Load balancer]: Komponen yang membagi request ke beberapa instance server yang sama.
 *[load balancer]: Komponen yang membagi request ke beberapa instance server yang sama.
 *[Lock]: Tanda di database bahwa satu transaction sedang memakai baris atau tabel, sehingga transaction lain harus menunggu.
@@ -156,6 +160,8 @@
 *[PKCE]: Tambahan pada alur OAuth untuk app mobile yang mencegah authorization code dipakai oleh aplikasi lain.
 *[Polling]: App menanyakan status ke server berulang kali dengan jeda tetap.
 *[polling]: App menanyakan status ke server berulang kali dengan jeda tetap.
+*[Posting]: Satu baris uang di dalam jurnal untuk satu buku: negatif bila uang keluar, positif bila masuk; saldo buku adalah jumlah posting-nya.
+*[posting]: Satu baris uang di dalam jurnal untuk satu buku: negatif bila uang keluar, positif bila masuk; saldo buku adalah jumlah posting-nya.
 *[Primary]: Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.
 *[primary]: Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.
 *[Primary key]: Kolom yang nilainya unik dan dipakai untuk mengenali satu baris.

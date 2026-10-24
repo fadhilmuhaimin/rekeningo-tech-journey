@@ -1007,11 +1007,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### A11y-gulir-tabel · Wadah tabel yang digulir bisa difokus
 
 - jenis: perbaikan
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: G-axe
 - selesai bila: axe `scrollable-region-focusable` (SC 2.1.1) 0 di 375×667 dan 1366×657 dua tema pada 1.6, 1.11, 1.18, 1.28 dan seluruh `situs/dist` (`situs/tools/ukur-axe.mjs`): wadah tabel atau kode yang digulir ke samping bisa dicapai Tab, punya nama aksesibel, dan fokusnya terlihat; layar pertama dan CLS tidak berubah; perbaikan di komponen atau CSS bersama, bukan per halaman; teks halaman tidak berubah.
-- catatan: Kategori aksesibilitas dari G-axe (#283, keputusan 694).
+- catatan: Kategori aksesibilitas dari G-axe (#283, keputusan 694). Selesai 2026-10-24 di PR #286 (keputusan 712–714): plugin `situs/src/plugins/rehype-tabel-gulir.mjs` membungkus setiap tabel GFM dengan `div.tabel-gulir` `role="region"`, `aria-label` dari judul kolom (urutan "Tabel k dari n" bila kembar), `tabindex="0"`; skrip inline `situs/src/lib/tabel-gulir.ts` (ResizeObserver) mencabut ketiganya dari wadah yang tidak meluap, tanpa JavaScript semua wadah tetap berfokus; fokus 2 px `--aksen` di dalam wadah. axe 4 halaman 16 run 0, `--semua` 93 halaman 372 run `scrollable-region-focusable` 0 (sisa `definition-list` race lama, A11y-race-dl); geometri 804 pasangan tabel identik dengan main; tab stop 375 54 dari 201 wadah, 1366 2; mutasi cabut tabindex dan `meluap` false membuat `ukur-axe` gagal; gerbang `axe` 10 → 14 halaman.
 
 ### ERD-1.12 · Widget ERD bertumbuh di 1.12
 
@@ -1079,20 +1079,20 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.5 · Fitur: pencairan warung terjadwal
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.4, lab-t2-pencairan
 - selesai bila: halaman Fitur→teknis 2.5 sesuai `plan/CERITA-TAHAP-2.md` bagian 2 dan peta halaman Tahap 2 (tanpa ★); rekaman dari `labs/t2-pencairan`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: Keputusan 620–622 (`plan/masuk/tahap-2-pencairan.md`): `tahap-2/fitur-pencairan.mdx`, Inti dengan Rantai ringkas dari `benar.txt` A dan C, PetaFitur, Coba runsql `t2-pencairan` (jalan kedua sesudah jalan pertama selesai; ubah satu hal: bayar Rp25.000 pukul 15.05), rekaman `benar.txt` A dan C, Di stack lain tentang jadwal (enam tab Tidak dijalankan, R2-50–R2-54); M15 dan ADR 19 hanya disiapkan sebagai pertanyaan. Lab tidak diulang: Docker tertahan. Halaman istilah baru: Job terjadwal.
 
 ### 2.6 · Kenapa saldo bukan kolom
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.5, lab-b3-ledger, G-istilah
 - selesai bila: halaman Konsep 2.6 sesuai `plan/CERITA-TAHAP-2.md` bagian 3 dan peta halaman Tahap 2 (★); rekaman dari `labs/b3-ledger`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: PR #288, keputusan 623–625 (`plan/masuk/tahap-2-saldo-bukan-kolom.md`): `tahap-2/saldo-bukan-kolom.mdx` dengan template konsep 1.23; Inti Rantai ringkas `t2-saldo-bukan-kolom-inti` dari `b3-ledger` `migrasi.txt` B dan `kejadian.txt` D; Coba runsql `t2-saldo-bukan-kolom` (SQLite, Ilustrasi: pembayaran M4 tanpa transaction di kolom saldo lawan posting, ubah satu hal Rp40.000); Paham dari `migrasi.txt` B, api-t1 `koreksi.txt` D, `kejadian.txt` D dan 5b, api-t2 `migrasi.txt` E; rincian jurnal/invarian ke 2.7, keputusan ke 2.8; Di stack lain enam tab (Go dijalankan, `Repo.CekCache`); halaman istilah Ledger dan Posting; R2-55, R2-56. Dikerjakan sebelum 2.5 (PR lain) karena 2.6 tidak memakai isi 2.5. Lab tidak diulang: Docker tertahan.
 
 ### 2.7 · Ledger double-entry: jurnal, posting, invarian
 
