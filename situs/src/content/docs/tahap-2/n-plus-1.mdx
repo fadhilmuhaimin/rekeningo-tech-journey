@@ -22,7 +22,7 @@ N+1 query terjadi saat kode mengirim satu query untuk daftar, lalu satu query la
 
 Riwayat Budi di minggu 3 bekerja begitu. Satu query mengambil 20 transaksi terakhir, lalu 20 query mencari nama lawan setiap transaksi. Laporan harian Ani mengirim 195 query untuk 194 baris, dan seluruh riwayat Budi 3.893 query untuk 3.892 baris (rekaman lab b2-query).
 
-Jumlah query mengikuti jumlah baris, bukan ukuran tabel, jadi N+1 sulit terlihat di data kecil. Nama lawan yang diminta di query yang sama menghasilkan baris yang sama dengan 1 query. Itu memperbaiki N+1 saja: query daftarnya masih membaca terlalu banyak baris, dan itu dibahas di [[B2.3]].
+Jumlah query mengikuti jumlah baris, bukan ukuran tabel, jadi N+1 sulit terlihat di data kecil. Kalau nama lawan diminta di query yang sama, hasilnya baris yang sama dengan 1 query. Itu memperbaiki N+1 saja: query daftarnya masih membaca terlalu banyak baris, dan itu dibahas di [[B2.3]].
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -63,7 +63,7 @@ Kalau kamu pernah memanggil API detail di dalam `ListView.builder` untuk setiap 
 
 **1. Jumlah query yang menentukan waktu, bukan satu query.** Satu query nama lawan kecil dan benar. Seluruh riwayat Budi butuh 3.893 query dan ±1.936 ms, sedangkan satu query yang mengembalikan baris yang sama selesai dalam ±31 ms (`n1.txt` bagian E, pembanding). Kode client lab menulis kedua cara dalam dua fungsi:
 
-<Snippet file="labs/b2-query/run_ledger.py" lines="64:74" lang="python" title="Kode client lab: labs/b2-query/run_ledger.py (Python, psycopg 3)" />
+<Snippet file="labs/b2-query/run_ledger.py" lines="64:73" lang="python" title="Kode client lab: labs/b2-query/run_ledger.py (Python, psycopg 3)" />
 
 **2. Jumlah query mengikuti jumlah baris.** Lab menghitung query dari dua sisi: penghitung di client, dan log PostgreSQL dengan `log_statement = all` ([PostgreSQL 17, log_statement](https://www.postgresql.org/docs/17/runtime-config-logging.html)). Kedua hitungan sama di setiap permintaan.
 
@@ -77,7 +77,7 @@ Polanya 1 ditambah jumlah baris untuk N+1, dan 1 untuk satu query. Catatan di re
 
 Untuk 20 baris, satu query (27,4 ms) hampir tidak lebih cepat dari N+1 (30,5 ms). Query daftarnya sendiri membaca 3.892 posting dan 380.224 jurnal, dan memakai ±31 ms (`index.txt` bagian B). Untuk 194 baris selisihnya 106,1 lawan 9,3 ms, dan untuk 3.892 baris 1.936,4 lawan 30,6 ms.
 
-Di kolom kanan, N+1 tetap lebih lambat: 10,4 lawan 1,4 ms untuk halaman pertama. Index tidak mengurangi jumlah query, dan satu query tidak mengurangi baris yang dibaca daftar. M11 membawa kedua masalah, jadi keduanya harus diperbaiki. Waktu di rekaman datang dari satu mesin lab yang dipakai lab lain bersamaan.
+Di kolom kanan, N+1 tetap lebih lambat: 10,4 lawan 1,4 ms untuk halaman pertama. Kedua perbaikan berdiri sendiri: index tidak mengubah jumlah query, dan satu query tidak mengubah baris yang dibaca query daftar. M11 membawa kedua masalah, jadi keduanya harus diperbaiki. Waktu di rekaman datang dari satu mesin lab yang dipakai lab lain bersamaan.
 
 **4. Jaringan menambah biaya per query.** Di lab tidak ada jaringan antara handler dan database. Kalau database ada di mesin lain, setiap query membayar paling sedikit satu round trip: tambahan = jumlah query × RTT. Dengan RTT 1 ms (Asumsi, bukan rekaman), 21 query menambah 21 ms, 3.893 query menambah 3,9 detik, dan 1 query menambah 1 ms.
 
@@ -101,7 +101,7 @@ Hitung query per request. Waktu saja menyesatkan: di data kecil, N+1 hampir sece
 Query lab ditulis hati-hati karena JOIN yang salah mengubah hasil tanpa error. Tiga hal yang dijaga:
 
 1. **Baris tanpa pasangan.** `JOIN` biasa membuang baris dari tabel kiri yang tidak punya pasangan ([PostgreSQL 17, joined tables](https://www.postgresql.org/docs/17/queries-table-expressions.html)). Lawan transaksi tunjangan adalah buku sistem tanpa akun, jadi query lab memakai `LEFT JOIN akun`. Dengan `JOIN` biasa, baris "Tunjangan makan" hilang dari riwayat (Tidak dijalankan di lab).
-2. **Baris yang menggandakan.** `JOIN` ke tabel yang punya beberapa pasangan menghasilkan satu baris per pasangan, dengan aturan dokumentasi yang sama. Satu jurnal punya minimal dua posting, jadi query lab mengambil satu posting lawan lewat `LATERAL (... ORDER BY q.id LIMIT 1)`.
+2. **Baris yang menggandakan.** `JOIN` ke tabel yang punya beberapa pasangan menghasilkan satu baris per pasangan, sesuai dokumentasi yang sama. Satu jurnal punya minimal dua posting, jadi query lab mengambil satu posting lawan lewat `LATERAL (... ORDER BY q.id LIMIT 1)`.
 3. **Hasil yang sama.** Lab membandingkan baris kedua cara: urutan, jenis, lawan, dan jumlah (`n1.txt` bagian C). Tes jumlah query saja tidak menangkap baris yang hilang.
 
 ### Di stack lain
