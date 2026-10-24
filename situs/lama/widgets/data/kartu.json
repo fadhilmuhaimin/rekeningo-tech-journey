@@ -1027,28 +1027,36 @@
   "jawab": "Tidak. Header itu hanya menyatakan app sanggup menerima gzip. Server yang memutuskan, dan `net/http` tidak mengompres sendiri. Pasang middleware atau aktifkan di reverse proxy."
  },
  {
-  "id": "B4.2-1",
-  "halaman": "B4.2",
+  "id": "t2-skema-tanpa-downtime-1",
+  "halaman": "t2-skema-tanpa-downtime",
   "judul": "2.22 Ubah skema tanpa downtime + ADR 17",
-  "url": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/",
-  "tanya": "Susun urutannya: (a) hapus kolom `telp`, (b) backfill `no_hp`, (c) tambah kolom `no_hp`, (d) API membaca `no_hp`, (e) API menulis ke dua kolom.",
-  "jawab": "c → e → b → d → a. Tulis ganda (e) harus sebelum backfill (b). Kalau terbalik, baris yang berubah setelah backfill dan sebelum tulis ganda akan punya `no_hp` yang salah."
+  "url": "tahap-2/skema-tanpa-downtime/",
+  "tanya": "Raka menambah kolom `dicek timestamptz DEFAULT clock_timestamp()` ke tabel `transaksi` yang berisi 15.000 baris, di jam makan siang. Amankah?",
+  "jawab": "Tidak. `clock_timestamp()` volatile, jadi PostgreSQL menulis ulang seluruh tabel selama memegang `ACCESS EXCLUSIVE`. Rekaman `lock-timeout.txt` langkah 12 mencatat filenode berubah. Default konstan tidak menulis ulang tabel, seperti langkah 11. Bentuk aman: tambah kolom kosong, lalu isi per batch."
  },
  {
-  "id": "B4.2-2",
-  "halaman": "B4.2",
+  "id": "t2-skema-tanpa-downtime-2",
+  "halaman": "t2-skema-tanpa-downtime",
   "judul": "2.22 Ubah skema tanpa downtime + ADR 17",
-  "url": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/",
-  "tanya": "Jelaskan kenapa `ALTER TABLE akun ADD COLUMN no_hp text`, yang selesai dalam 0,8 ms di lab, tetap bisa membuat app terasa macet.",
-  "jawab": "Perintah itu butuh lock `ACCESS EXCLUSIVE` pada tabel. Kalau ada transaction panjang yang sedang membaca tabel itu, ALTER harus menunggu. Selama menunggu, query baru di tabel yang sama ikut antre di belakang ALTER. Dengan `lock_timeout`, ALTER menyerah dan bisa dicoba ulang, bukan menahan semua request."
+  "url": "tahap-2/skema-tanpa-downtime/",
+  "tanya": "Sebuah migration menyerah dengan 55P03 sesudah 3 detik. Apa yang kamu cek, dan apa yang kamu lakukan berikutnya?",
+  "jawab": "Cek bahwa skemanya tidak berubah setengah jalan. Di rekaman, statement pertama yang menunggu dibatalkan dan seluruh transaction di-ROLLBACK. Lalu ulangi migrasinya sesudah transaction yang menahannya selesai. Menaikkan batas tunggu hanya membuat permintaan lain kembali menunggu di belakang migrasi."
  },
  {
-  "id": "B4.2-3",
-  "halaman": "B4.2",
+  "id": "t2-skema-tanpa-downtime-3",
+  "halaman": "t2-skema-tanpa-downtime",
   "judul": "2.22 Ubah skema tanpa downtime + ADR 17",
-  "url": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/",
-  "tanya": "App v1.4 tidak dipakai lagi menurut metric. Raka langsung menghapus field `telp` dari response dan kolom `telp` di migration yang sama. Apa risikonya kalau deploy itu harus di-rollback?",
-  "jawab": "Kode versi sebelumnya masih membaca kolom `telp`, padahal kolomnya sudah hilang. Rollback kode jadi gagal. Karena itu contract di database biasanya dijalankan satu deploy setelah kode berhenti memakai kolom lama."
+  "url": "tahap-2/skema-tanpa-downtime/",
+  "tanya": "Karyawan 420 membuka riwayat saat batch backfill mengunci akunnya. Apakah ia menunggu?",
+  "jawab": "Tidak. Lock baris tidak menahan `SELECT` biasa, jadi riwayat langsung mendapat 17 baris. Yang menunggu adalah Bayar ke akun yang dikunci, paling lama satu batch. Di M13, `ACCESS EXCLUSIVE` pada tabel menahan keduanya."
+ },
+ {
+  "id": "t2-skema-tanpa-downtime-4",
+  "halaman": "t2-skema-tanpa-downtime",
+  "judul": "2.22 Ubah skema tanpa downtime + ADR 17",
+  "url": "tahap-2/skema-tanpa-downtime/",
+  "tanya": "Raka ingin menghapus kolom `saldo` di file migration yang sama dengan penambahan ledger, supaya satu deploy saja. Apa yang terjadi di rekaman?",
+  "jawab": "Server v1 masih memakai kolom itu. Sesudah COMMIT, Bayar dan Buka saldo gagal dengan 42703 dan server menjawab 500. Server v2 yang dibuat untuk app baru membuat app 1.0 dan 1.1 berhenti. Contract punya rilis sendiri, sesudah cek lulus dan server hanya memakai ledger."
  },
  {
   "id": "B3.2-1",
@@ -1170,6 +1178,30 @@
   "url": "e-mobile/e3-retry-idempotency/",
   "tanya": "Budi menekan Bayar, app crash, lalu Budi membuka app lagi dan menekan Bayar di pesanan yang sama. Key mana yang harus dipakai?",
   "jawab": "Key yang sama dengan sebelum crash, karena ini aksi bayar yang sama untuk pesanan yang sama. Karena itu key disimpan bersama pesanan di penyimpanan lokal, bukan hanya di memori."
+ },
+ {
+  "id": "B4.2-1",
+  "halaman": "B4.2",
+  "judul": "Ubah skema tanpa downtime + ADR 17",
+  "url": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/",
+  "tanya": "Susun urutannya: (a) hapus kolom `telp`, (b) backfill `no_hp`, (c) tambah kolom `no_hp`, (d) API membaca `no_hp`, (e) API menulis ke dua kolom.",
+  "jawab": "c → e → b → d → a. Tulis ganda (e) harus sebelum backfill (b). Kalau terbalik, baris yang berubah setelah backfill dan sebelum tulis ganda akan punya `no_hp` yang salah."
+ },
+ {
+  "id": "B4.2-2",
+  "halaman": "B4.2",
+  "judul": "Ubah skema tanpa downtime + ADR 17",
+  "url": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/",
+  "tanya": "Jelaskan kenapa `ALTER TABLE akun ADD COLUMN no_hp text`, yang selesai dalam 0,8 ms di lab, tetap bisa membuat app terasa macet.",
+  "jawab": "Perintah itu butuh lock `ACCESS EXCLUSIVE` pada tabel. Kalau ada transaction panjang yang sedang membaca tabel itu, ALTER harus menunggu. Selama menunggu, query baru di tabel yang sama ikut antre di belakang ALTER. Dengan `lock_timeout`, ALTER menyerah dan bisa dicoba ulang, bukan menahan semua request."
+ },
+ {
+  "id": "B4.2-3",
+  "halaman": "B4.2",
+  "judul": "Ubah skema tanpa downtime + ADR 17",
+  "url": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/",
+  "tanya": "App v1.4 tidak dipakai lagi menurut metric. Raka langsung menghapus field `telp` dari response dan kolom `telp` di migration yang sama. Apa risikonya kalau deploy itu harus di-rollback?",
+  "jawab": "Kode versi sebelumnya masih membaca kolom `telp`, padahal kolomnya sudah hilang. Rollback kode jadi gagal. Karena itu contract di database biasanya dijalankan satu deploy setelah kode berhenti memakai kolom lama."
  },
  {
   "id": "C2-1",
