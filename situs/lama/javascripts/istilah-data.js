@@ -251,6 +251,15 @@ window.ISTILAH = {
   "t": "Double-entry",
   "u": "tahap-2/ledger/"
  },
+ "ERD": {
+  "b": "t2-skema",
+  "d": "Gambar skema database: tabel dengan kolom pentingnya, dan garis untuk setiap foreign key di antara tabel.",
+  "h": "istilah/erd/",
+  "n": "2.9 Skema data Tahap 2",
+  "s": "istilah-erd",
+  "t": "ERD (Entity-Relationship Diagram)",
+  "u": "tahap-2/skema-data/"
+ },
  "ERP": {
   "b": "t2-prd",
   "d": "Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari.",
@@ -986,6 +995,15 @@ window.ISTILAH = {
   "t": "Saga",
   "u": "d-system-design/d3-consistency/"
  },
+ "Saldo cache": {
+  "b": "t2-saldo-bukan-kolom",
+  "d": "Salinan jumlah posting satu buku di kolom buku.saldo_cache, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting.",
+  "h": "istilah/saldo-cache/",
+  "n": "2.6 Kenapa saldo bukan kolom",
+  "s": "istilah-saldo-cache",
+  "t": "Saldo cache",
+  "u": "tahap-2/saldo-bukan-kolom/"
+ },
  "Secure storage": {
   "b": "t1-idor",
   "d": "Penyimpanan terenkripsi milik sistem operasi HP untuk rahasia kecil seperti token sesi: Keychain di iOS, kunci di Android Keystore.",
@@ -1045,7 +1063,7 @@ window.ISTILAH = {
  },
  "Snapshot": {
   "b": "t2-isolation-level",
-  "d": "Gambaran isi database pada satu saat, yang dilihat oleh satu query atau satu transaction.",
+  "d": "Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang.",
   "h": "istilah/snapshot/",
   "n": "2.12 Isolation level",
   "s": "istilah-snapshot",
@@ -1844,6 +1862,15 @@ window.ISTILAH = {
   "t": "Saga",
   "u": "d-system-design/d3-consistency/"
  },
+ "saldo cache": {
+  "b": "t2-saldo-bukan-kolom",
+  "d": "Salinan jumlah posting satu buku di kolom buku.saldo_cache, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting.",
+  "h": "istilah/saldo-cache/",
+  "n": "2.6 Kenapa saldo bukan kolom",
+  "s": "istilah-saldo-cache",
+  "t": "Saldo cache",
+  "u": "tahap-2/saldo-bukan-kolom/"
+ },
  "secure storage": {
   "b": "t1-idor",
   "d": "Penyimpanan terenkripsi milik sistem operasi HP untuk rahasia kecil seperti token sesi: Keychain di iOS, kunci di Android Keystore.",
@@ -1895,7 +1922,7 @@ window.ISTILAH = {
  },
  "snapshot": {
   "b": "t2-isolation-level",
-  "d": "Gambaran isi database pada satu saat, yang dilihat oleh satu query atau satu transaction.",
+  "d": "Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang.",
   "h": "istilah/snapshot/",
   "n": "2.12 Isolation level",
   "s": "istilah-snapshot",

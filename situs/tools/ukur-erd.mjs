@@ -15,6 +15,9 @@
 // - 1.12 Data modeling (ERD-1.12, keputusan 697): ErdTumbuh Tahap 1 di blok Paham, versi statis Erd.astro tanpa JS
 //   dan untuk pembaca layar, klik/tap, scroll, CLS saat blok dibuka; React Flow baru dimuat sesudah blok dibuka;
 //   setiap halaman di dist/ yang memakai ErdTumbuh diperiksa bawaannya.
+// - 2.9 Skema data (keputusan 632): ErdTumbuh Tahap 1 dan 2 di blok Coba yang terbuka, mulai di Tahap 2; versi
+//   statis bawaan tanpa JS; Bandingkan dengan Tahap 1 = 13 node dan 18 edge tanpa luapan; CLS saat di-hydrate;
+//   ukuran JS saat dimuat dan sesudah semua blok dibuka dicetak.
 //   node tools/ukur-erd.mjs --url http://127.0.0.1:4321
 //   node tools/ukur-erd.mjs --url ... --axe   # + axe-core, gelap dan terang
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -39,7 +42,8 @@ const lapor = (ok, pesan) => {
   if (!ok) gagal++;
 };
 const FIG = "figure.erd-tumbuh";
-const HAL = "/tahap-1/data-modeling/"; // 1.12, satu-satunya halaman konten dengan ErdTumbuh sekarang (2.9 menyusul)
+const HAL = "/tahap-1/data-modeling/"; // 1.12: ErdTumbuh Tahap 1 di blok Paham
+const HAL2 = "/tahap-2/skema-data/"; // 2.9: ErdTumbuh Tahap 1 dan 2 di blok Coba (keputusan 632)
 
 // Bawaan React Flow 12.12.0 yang sampai ke pembaca layar, dibaca dari DOM (pola ukur-diagram.mjs, keputusan 466, 680,
 // 682): aria-roledescription ("node", "edge"), label "Edge from X to Y", <svg> lapisan garis di luar aria-hidden, dan
@@ -306,7 +310,12 @@ for (const [lebar, tinggi, harus] of [
 }
 
 // 7. Layout shift saat island di-hydrate: tinggi wadah dipesan sejak SSR (varPesan). Gulir pelan 80 px tiap 120 ms
-// sampai bawah, modul JS ditunda 300 ms. Syarat CLS ≤ 0,1, dan elemen sesudah figure tidak bergeser.
+// sampai bawah, modul JS ditunda 300 ms. Syarat CLS ≤ 0,1, dan elemen sesudah figure tidak bergeser. Di /uji/erd/ dan
+// di 2.9, tempat diagram ada di blok yang terbuka sejak dimuat.
+for (const [namaHal, alamat] of [
+  ["/uji/erd/", url],
+  [HAL2, BASE + HAL2],
+])
 for (const [lebar, tinggi] of [
   [375, 667],
   [1366, 657],
@@ -331,7 +340,7 @@ for (const [lebar, tinggi] of [
     await new Promise((s) => setTimeout(s, 300));
     await rute.continue().catch(() => {});
   });
-  await page.goto(url, { waitUntil: "domcontentloaded" });
+  await page.goto(alamat, { waitUntil: "domcontentloaded" });
   const sebelum = await page.evaluate((FIG) => (document.querySelector(FIG).closest("astro-island") ?? document.querySelector(FIG)).nextElementSibling.getBoundingClientRect().top + scrollY, FIG);
   await page.evaluate(async () => {
     const jeda = (ms) => new Promise((s) => setTimeout(s, ms));
@@ -344,7 +353,7 @@ for (const [lebar, tinggi] of [
   await page.waitForTimeout(600);
   const r = await page.evaluate((FIG) => ({ c: window.__cls, sesudah: (document.querySelector(FIG).closest("astro-island") ?? document.querySelector(FIG)).nextElementSibling.getBoundingClientRect().top + scrollY }), FIG);
   const geser = Math.abs(r.sesudah - sebelum);
-  lapor(r.c.nilai <= 0.1 && geser <= 1, `CLS /uji/erd/ ${lebar}×${tinggi} gulir pelan, JS ditunda 300 ms: ${r.c.nilai.toFixed(4)}${r.c.contoh ? ` (${r.c.contoh})` : ""}, isi sesudah diagram geser ${geser.toFixed(1)} px`);
+  lapor(r.c.nilai <= 0.1 && geser <= 1, `CLS ${namaHal} ${lebar}×${tinggi} gulir pelan, JS ditunda 300 ms: ${r.c.nilai.toFixed(4)}${r.c.contoh ? ` (${r.c.contoh})` : ""}, isi sesudah diagram geser ${geser.toFixed(1)} px`);
   await ctx.close();
 }
 
@@ -561,7 +570,7 @@ function halamanErd(dir, akar = dir, hasil = []) {
 }
 const daftarErd = halamanErd(path.resolve("dist"));
 // Daftar tanpa 1.12 berarti pencarian di dist/ rusak atau widget lepas dari 1.12, bukan "lolos tanpa diperiksa".
-lapor(daftarErd.includes(HAL) && daftarErd.includes("/uji/erd/"), `halaman dengan ErdTumbuh di dist/: ${daftarErd.join(", ") || "tidak ada"}`);
+lapor(daftarErd.includes(HAL) && daftarErd.includes(HAL2) && daftarErd.includes("/uji/erd/"), `halaman dengan ErdTumbuh di dist/: ${daftarErd.join(", ") || "tidak ada"}`);
 for (const h of daftarErd.filter((x) => x !== HAL && x !== "/uji/erd/")) {
   const ctx = await browser.newContext({ viewport: { width: 375, height: 667 } });
   const page = await ctx.newPage();
@@ -571,6 +580,56 @@ for (const h of daftarErd.filter((x) => x !== HAL && x !== "/uji/erd/")) {
   await page.waitForFunction((FIG) => [...document.querySelectorAll(FIG)].every((f) => f.querySelector(".react-flow__node .erd-tumbuh__node")), FIG, { timeout: 15000 });
   await laporBawaan(page, `${h} 375×667`);
   await ctx.close();
+}
+
+// 11. 2.9 Skema data (keputusan 632). Tanpa JS: versi statis bawaan Tahap 2 (8 tabel + 3 yang dihapus) utuh.
+{
+  const ctx = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 375, height: 667 } });
+  const page = await ctx.newPage();
+  await page.goto(BASE + HAL2);
+  const r = await page.evaluate((FIG) => {
+    const f = document.querySelector(FIG);
+    const s = f?.querySelector(".erd-tumbuh__statis");
+    const tabel = [...(s?.querySelectorAll(".erd-tumbuh__statis-panel > ul > li") ?? [])];
+    return {
+      tabel: tabel.length,
+      dihapus: tabel.filter((li) => li.textContent.includes("isinya pindah ke")).length,
+      tinggi: s?.getBoundingClientRect().height ?? 0,
+      terpotong: s ? s.scrollHeight > s.clientHeight + 1 : true,
+      flow: !!f?.querySelector(".react-flow"),
+    };
+  }, FIG);
+  lapor(r.tabel === 11 && r.dihapus === 3 && r.tinggi > 200 && !r.terpotong && !r.flow, `${HAL2} tanpa JS: ${r.tabel} tabel (${r.dihapus} dihapus), tinggi ${Math.round(r.tinggi)} px, ${r.terpotong ? "TERPOTONG" : "utuh"}, React Flow ${r.flow ? "ADA" : "tidak ada"}`);
+  await ctx.close();
+}
+// Dengan JS: mulai di Tahap 2 (11 node), lalu "Bandingkan dengan Tahap 1" = ubah satu hal di blok Coba: 13 node,
+// 18 edge, semua node di dalam wadah, tanpa luapan halaman; tombolnya aria-pressed.
+for (const [lebar, tinggi] of [
+  [375, 667],
+  [1366, 657],
+]) {
+  const ctx = await browser.newContext({ viewport: { width: lebar, height: tinggi }, hasTouch: lebar < 500 });
+  const page = await ctx.newPage();
+  await page.goto(BASE + HAL2, { waitUntil: "networkidle" });
+  await page.locator(FIG).scrollIntoViewIfNeeded();
+  await page.waitForFunction((FIG) => document.querySelectorAll(`${FIG} .react-flow__node .erd-tumbuh__node`).length > 0, FIG, { timeout: 15000 });
+  const awal = await bentuk(page);
+  const tekan = page.locator(`${FIG} .erd-tumbuh__banding`);
+  const sebelum = await tekan.getAttribute("aria-pressed");
+  await tekan.click();
+  await page.waitForFunction((FIG) => document.querySelectorAll(`${FIG} .react-flow__node`).length === 13, FIG, { timeout: 15000 });
+  await page.waitForTimeout(400);
+  const bd = await bentuk(page);
+  const sesudah = await tekan.getAttribute("aria-pressed");
+  lapor(awal.node === 11 && awal.luar === 0 && sebelum === "false" && sesudah === "true" && bd.edge === 18 && bd.luar === 0 && bd.lebarDok <= 0, `${HAL2} ${lebar}×${tinggi}: awal ${awal.node} node; Bandingkan aria-pressed ${sebelum}→${sesudah}, ${bd.berdampingan ? "berdampingan" : "bertumpuk"}, ${bd.node} node, ${bd.edge} edge, ${bd.luar} di luar wadah, luapan ${bd.lebarDok} px`);
+  await laporBawaan(page, `${HAL2} ${lebar}×${tinggi} bandingkan`);
+  await ctx.close();
+}
+{
+  const tutup = await js(HAL2);
+  const buka = await js(HAL2, true);
+  lapor(tutup.flow && buka.flow, `${HAL2} React Flow ${tutup.flow ? "dimuat" : "TIDAK dimuat"} saat dimuat (blok Coba terbuka), ${buka.flow ? "dimuat" : "TIDAK dimuat"} sesudah semua blok dibuka`);
+  console.log(`info JS ${HAL2}: saat dimuat ${tutup.file} file, ${kb(tutup.mentah)} tanpa kompresi, ${kb(tutup.gzip)} gzip; semua blok dibuka ${buka.file} file, ${kb(buka.mentah)}, ${kb(buka.gzip)} gzip`);
 }
 
 await browser.close();
