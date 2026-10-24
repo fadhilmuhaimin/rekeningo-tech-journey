@@ -1,0 +1,55 @@
+{
+  "id": "t2-m12-dua-halaman",
+  "judul": "Dua halaman riwayat Budi, satu kiriman di sela keduanya",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b2-query · pagination.txt bagian A"
+  },
+  "baris": [
+    {
+      "label": "Database",
+      "sub": "daftar urut terbaru dulu",
+      "simpul": [
+        {
+          "teks": "Halaman 1: posisi 1 sampai 5",
+          "sub": "OFFSET 0, lima baris"
+        },
+        {
+          "teks": "Kiriman Dimas masuk di posisi 1",
+          "sub": "Rp5.000, jurnal 380226",
+          "nada": "system"
+        },
+        {
+          "teks": "Baris lama turun satu posisi",
+          "sub": "baris kelima halaman 1 kini di posisi 6",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Halaman 2",
+      "sub": "OFFSET 5",
+      "simpul": [
+        {
+          "teks": "Lewati posisi 1 sampai 5",
+          "sub": "lima baris teratas"
+        },
+        {
+          "teks": "Ambil posisi 6 sampai 10",
+          "sub": "lima baris berikutnya"
+        },
+        {
+          "teks": "Satu baris tampil dua kali",
+          "sub": "posisi 6 sudah ada di layar sejak halaman 1",
+          "nada": "warn"
+        },
+        {
+          "teks": "Kiriman Dimas tidak tampil",
+          "sub": "posisi 1 tidak diminta halaman mana pun",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kedua query punya urutan yang sama dan pasti. Yang berubah di antara keduanya adalah isi tabel, dan OFFSET hanya mengenal posisi."
+}
