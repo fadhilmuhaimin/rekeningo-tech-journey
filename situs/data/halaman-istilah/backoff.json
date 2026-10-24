@@ -1,0 +1,55 @@
+{
+  "istilah": "Backoff",
+  "sehari_hari": "Backoff adalah jeda yang makin panjang di antara percobaan ulang. Jitter menambahkan keacakan pada jeda itu, supaya banyak app yang gagal di detik yang sama tidak mengulang di detik yang sama.",
+  "cerita": [
+    {
+      "rujukan": "t2-m10",
+      "teks": "App Budi menunggu 230 ms sebelum percobaan 2 (rekaman `key-per-niat.txt`). Di rekaman `diproses.txt`, jeda berikutnya 461 ms."
+    },
+    {
+      "rujukan": "t2-idempotency",
+      "teks": "ADR 14: jeda 200 × 2^(n−1) ms ditambah jitter 0–99 ms, paling banyak empat percobaan."
+    }
+  ],
+  "mekanisme": [
+    "Jeda dasar 200 ms, dikali dua di setiap percobaan: 200, 400, 800 ms.",
+    "App menambahkan angka acak 0–99 ms ke jeda itu. Hasilnya 230 ms dan 461 ms di rekaman `diproses.txt`.",
+    "Jumlah percobaan dibatasi empat. Sesudahnya app berhenti dan menulis \"status belum pasti, cek riwayat\".",
+    "Brooker membandingkan varian jitter di simulasi: Full Jitter mengacak seluruh jeda, Equal Jitter menyisakan sebagian jeda tetap. App lab memakai tambahan kecil, bukan salah satu dari keduanya."
+  ],
+  "stack": {
+    "lihat": "idempotency-key",
+    "teks": "Backoff ditulis di app (kode Dart di lab) dan tidak bergantung pada stack server. Perbedaan tiap stack server ada di halaman Idempotency key."
+  },
+  "jebakan": [
+    "Tanpa jitter, app yang gagal di detik yang sama mengulang di detik yang sama, dan lonjakan pertama terulang.",
+    "Tanpa batas jumlah percobaan atau jeda maksimum, app menunggu tanpa akhir. Lab membatasi empat percobaan.",
+    "Menyamakan jitter kecil dengan Full Jitter. Pengaruh jitter di lab tidak diukur, jadi tidak ada klaim hasil dari angka 0–99 ms."
+  ],
+  "terkait": [
+    "Retry",
+    "Idempotency key",
+    "At-least-once",
+    "Timeout"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-20",
+      "judul": "AWS Architecture Blog: Exponential Backoff And Jitter",
+      "url": "https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/",
+      "catatan": "M. Brooker, 2015-03-04: Full Jitter memakai kerja lebih sedikit daripada Decorrelated Jitter, Equal Jitter paling buruk, dan backoff tanpa jitter kalah dari semuanya."
+    },
+    {
+      "riset": "R2-20",
+      "judul": "Amazon Builders' Library: Timeouts, retries, and backoff with jitter",
+      "url": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/",
+      "catatan": "Tanpa jitter, client yang gagal sering mengulang bersamaan; batasi jumlah retry dan lakukan retry di satu titik (2019-12-05)."
+    },
+    {
+      "riset": "R2-18",
+      "judul": "Rekaman lab e3-idempotency: key selesai sesudah 409",
+      "rekaman": "labs/e3-idempotency/output/ledger/diproses.txt",
+      "catatan": "Jeda 230 ms dan 461 ms di antara tiga percobaan; percobaan 2 dijawab 409 dan percobaan 3 dijawab 201."
+    }
+  ]
+}
