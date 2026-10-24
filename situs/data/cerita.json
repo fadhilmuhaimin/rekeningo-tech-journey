@@ -126,8 +126,8 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 100,
-        "halaman": 11
+        "menit": 109,
+        "halaman": 12
       },
       "versi": "lama",
       "skala": {
@@ -1498,8 +1498,9 @@
       "lab": [
         "b3-race"
       ],
-      "ada": false,
-      "nomor": "2.10"
+      "ada": true,
+      "nomor": "2.10",
+      "menit": 9
     },
     {
       "id": "B3.2",

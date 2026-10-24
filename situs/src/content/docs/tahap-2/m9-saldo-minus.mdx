@@ -1,0 +1,103 @@
+---
+title: "2.10 M9: Saldo −Rp20.000"
+description: Minggu 1. Budi mengirim Rp70.000 dari HP dan Rp50.000 dari tablet hampir bersamaan, dari saldo Rp100.000. Keduanya berhasil, dan saldonya jadi −Rp20.000.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import bacaSama from "../../../../data/diagram/t2-m9-baca-sama.json";
+import Snippet from "../../../components/Snippet.astro";
+import RaceLedger from "../../../components/RaceLedger.astro";
+
+<p class="meta">Baca 6 menit · coba 3 menit · Prasyarat: [[t2-skema]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka ilustrasi="m9">
+
+Di minggu 1 Tahap 2, transfer antar karyawan baru dibuka untuk seluruh kampus. Saldo Budi Rp100.000.
+
+Budi membuka Rekeningo di HP dan di tablet. Dari HP ia mengirim Rp70.000 ke Citra. Hampir bersamaan, dari tablet ia mengirim Rp50.000 ke Dimas.
+
+Kedua layar menulis "Transfer berhasil". Citra menerima Rp70.000, dan Dimas menerima Rp50.000.
+
+Lalu Budi melihat saldonya: −Rp20.000. Ia mengirim Rp120.000 dari saldo Rp100.000, dan Rekeningo menerima keduanya.
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka membuka kode transfer. Pemeriksaan saldonya ada: server menjumlahkan posting Budi, membandingkannya dengan nominal, lalu menolak transfer kalau saldonya kurang.
+
+Jurnal dan posting-nya juga ditulis dalam satu transaction. Raka menyimpulkan ada bug di validasi saldo: perbandingannya salah tulis, atau ada jalur transfer yang tidak melewatinya.
+
+<details class="question">
+<summary>Tebak dulu: pemeriksaannya benar dan ada di setiap jalur. Bagaimana dua transfer bisa sama-sama lolos?</summary>
+
+Keduanya membaca saldo sebelum salah satunya menulis. HP dan tablet sama-sama membaca Rp100.000, dan untuk angka itu kedua pemeriksaan benar. Blok berikutnya menunjukkan urutannya di rekaman lab.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Transfer di minggu 1 punya tiga langkah: menjumlahkan posting Budi, membandingkan hasilnya dengan nominal di kode, lalu menulis jurnal. Ketiganya ada di satu transaction. Transaction membuat jurnal ditulis utuh atau tidak sama sekali, tapi tidak menahan request lain membaca saldo yang sama.
+
+<Rantai data={bacaSama} />
+
+Rekaman lab ini dibuat dari database bersih di PostgreSQL 17.11. HP (A) dan tablet (B) adalah dua koneksi. Keduanya membaca Rp100.000, dan kedua pemeriksaan lolos:
+
+<Snippet file="labs/b3-race/output/ledger/ledger-tanpa-lock.txt" lines="17:20" title="Rekaman lab: labs/b3-race/output/ledger/ledger-tanpa-lock.txt" />
+
+Tablet membaca Rp100.000 karena jurnal HP belum COMMIT. PostgreSQL memakai isolation level Read Committed bila tidak diatur lain. Di level itu, satu query hanya melihat data yang sudah COMMIT sebelum query itu mulai.
+
+Database lab punya satu pagar lagi: saldo karyawan tidak boleh negatif sesudah jurnal ([[t2-ledger]]). Pagar ini baru diperiksa saat COMMIT. Akhir ceritanya bergantung pada urutan kedua COMMIT.
+
+**HP COMMIT dulu, baru tablet.** Pemeriksaan milik tablet sudah melihat jurnal HP, jadi COMMIT tablet ditolak:
+
+<Snippet file="labs/b3-race/output/ledger/ledger-tanpa-lock-bergantian.txt" lines="20:25" title="Rekaman lab: labs/b3-race/output/ledger/ledger-tanpa-lock-bergantian.txt" />
+
+Saldo Budi Rp30.000, hasil transfer HP saja. Transfer ke Dimas gagal dengan error database 23514, padahal kode punya jawaban yang lebih jelas untuk kasus ini: saldo kurang.
+
+**Kedua COMMIT hampir bersamaan.** Di dalam COMMIT, PostgreSQL menjalankan pemeriksaan yang ditunda lebih dulu, baru membuat transaction itu terlihat oleh koneksi lain. Pemeriksaan milik tablet bisa berjalan di celah itu, dan tidak melihat jurnal HP.
+
+*Rekaman lab, kondisi dibuat:* celah itu terlalu sempit untuk diulang dengan urutan yang sama setiap kali. Lab memakai `SET CONSTRAINTS ALL IMMEDIATE` supaya pemeriksaan kedua koneksi berjalan sebelum COMMIT, lalu COMMIT keduanya:
+
+<Snippet file="labs/b3-race/output/ledger/ledger-tanpa-lock.txt" lines="25:33" title="Rekaman lab: labs/b3-race/output/ledger/ledger-tanpa-lock.txt" />
+
+Hasilnya sama dengan yang dilihat Budi: dua jurnal, saldo −Rp20.000. Tanpa alat lab itu, rekaman `labs/b3-ledger/output/batas.txt` bagian 2b melepas kedua COMMIT bersamaan 50 kali, dan saldo −Rp20.000 muncul. Berapa kali persisnya bergantung pada mesin, dan frekuensinya di server sungguhan belum diukur.
+
+`saldo_cache` tetap Rp100.000 di kedua rekaman, karena kode minggu 1 tidak menyentuhnya. Cache itu dicek ulang terhadap jumlah posting setiap malam ([[t2-saldo-bukan-kolom]]).
+
+Kedua ujungnya salah. Yang satu membuat saldo negatif, yang lain menolak transfer dengan error database. Ledger dan transaction saja tidak cukup, selama membaca saldo dan menulis jurnal masih dua langkah yang bisa disela request lain.
+
+Celah ini bukan hanya soal dua perangkat milik satu orang. CWE-362 mencatatnya sebagai kelemahan keamanan: orang yang sengaja mengirim beberapa request bersamaan bisa memakai celah waktu yang sama.
+
+*Kondisi rekaman:* lab menjalankan transfer di schema ledger Tahap 2 (`labs/b3-ledger/schema.sql`). Di cerita, migrasi saldo lama ke ledger baru terjadi di minggu 4 ([[t2-m13]]), jadi rekaman ini menunjukkan mekanisme M9, bukan salinan server minggu 1.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini memutar ulang kedua rekaman langkah demi langkah, dari file yang sama dengan potongan di atas. Tebak dulu saldo akhir Budi, lalu tekan Berikutnya atau panah kanan.
+
+<RaceLedger id="m9" cara={["tanpa-lock", "tanpa-lock-bergantian"]} />
+
+Sesudah langkah terakhir, tekan **Ubah satu hal: putar Tanpa lock, COMMIT bergantian**. Urutan yang sama diputar tanpa alat lab. Perhatikan langkah 3 dan 4: tablet tetap membaca Rp100.000. Yang berubah hanya siapa yang menolak transfer kedua, dan caranya.
+
+<details>
+<summary>Rekaman lengkap kedua urutan (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/b3-race/output/ledger/ledger-tanpa-lock.txt" title="Rekaman lab: labs/b3-race/output/ledger/ledger-tanpa-lock.txt" />
+
+<Snippet file="labs/b3-race/output/ledger/ledger-tanpa-lock-bergantian.txt" title="Rekaman lab: labs/b3-race/output/ledger/ledger-tanpa-lock-bergantian.txt" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[B3.2]]: race condition dan lock. Membaca lalu menulis bukan satu langkah, kecuali kamu menguncinya. Empat cara mengunci dibandingkan di sana.
+- [[B3.3]]: isolation level. Kenapa tablet membaca Rp100.000 di Read Committed, dan apa yang berubah di level lain.
+- [[t2-ledger]]: invarian 3 dijaga database saat COMMIT. Pagar terakhir itu tetap perlu, tapi ia tidak menggantikan lock.
+
+</Blok>
