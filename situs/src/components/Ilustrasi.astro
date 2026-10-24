@@ -17,6 +17,7 @@ const LABEL: Record<string, string> = {
   m5: "Layar HP Dimas: satu angka di alamat diganti, lalu saldo akun lain tampil. Di sampingnya spreadsheet berisi baris saldo semua akun.",
   m6: "Layar HP Budi saat makan siang: riwayat tidak bisa dimuat. Di sampingnya 11 HP yang belum diperbarui, semuanya masih error.",
   m9: "HP dan tablet Budi sama-sama menunjukkan transfer berhasil. Di sampingnya saldo Budi: Rp100.000 sebelum, di bawah nol sesudah.",
+  m13: "HP Citra: lingkaran pemuatan berputar di atas layar pembayaran. Di tengah, deretan HP lain yang sama-sama menunggu. Di kanan, HP karyawan dengan app versi lama menampilkan kotak kesalahan.",
   m11: "HP Budi: lingkaran pemuatan berputar di atas daftar riwayat yang masih kosong. Di sampingnya layar laporan Ani menampilkan kotak kesalahan, dan sebuah jam menandai lamanya menunggu.",
   m12: "HP Budi: daftar riwayat yang digulir menampilkan dua baris yang sama berurutan. Di sampingnya kartu kiriman baru dari Dimas, dengan panah yang berhenti sebelum daftar itu.",
 };
@@ -202,6 +203,28 @@ if (!LABEL[nama]) throw new Error(`Ilustrasi "${nama}" tidak dikenal`);
       <line class="il-garis" x1="120" y1="49" x2="84" y2="49" />
       <path class="il-garis" d="M90 43 L84 49 L90 55" />
       <rect class="il-warn" x="72" y="40" width="5" height="18" rx="2" />
+    </svg>
+  )}
+  {nama === "m13" && (
+    <svg viewBox="0 0 200 110" width="200" height="110" aria-hidden="true">
+      <rect class="il-isi il-garis" x="4" y="6" width="46" height="98" rx="8" />
+      <path class="il-garis" d="M17 32 A10 10 0 1 1 27 42" />
+      <circle class="il-aksen-isi" cx="17" cy="32" r="3" />
+      <rect class="il-orang" x="10" y="56" width="34" height="5" rx="2" />
+      <rect class="il-aksen-isi" x="10" y="80" width="34" height="14" rx="4" />
+      {[0, 1, 2, 3].map((i) => (
+        <g transform={`translate(${60 + i * 18} 0)`}>
+          <rect class="il-isi il-garis" x="0" y="42" width="14" height="26" rx="3" />
+          <rect class="il-warn" x="3" y="47" width="8" height="10" rx="1" />
+        </g>
+      ))}
+      <line class="il-garis" x1="60" y1="78" x2="124" y2="78" />
+      <path class="il-garis" d="M130 55 L144 55 M139 50 L144 55 L139 60" />
+      <rect class="il-isi il-garis" x="152" y="6" width="44" height="98" rx="8" />
+      <rect class="il-warn" x="158" y="30" width="32" height="30" rx="4" />
+      <path class="il-garis" d="M168 38 L180 52 M180 38 L168 52" />
+      <rect class="il-orang" x="158" y="72" width="28" height="5" rx="2" />
+      <rect class="il-orang" x="158" y="84" width="20" height="5" rx="2" />
     </svg>
   )}
 </figure>
