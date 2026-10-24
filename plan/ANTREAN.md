@@ -962,11 +962,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### lab-api-t2a · Pengaman cek penerima dan login di api-t2
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: RISET-2, lab-api-t2, lab-c4-ratelimit
 - selesai bila: `labs/api-t2`: `/kiriman` dan cek penerima dibatasi per akun dan per IP dengan pola `labs/c4-ratelimit/login` (keputusan 545, 550), sehingga nama 1.000 karyawan tidak bisa dikumpulkan lewat kiriman Rp1; akun terkunci dijawab 401 generik; 104 akun Gedung A `wajib_ganti_password` sesuai cerita M16; bila nomor karyawan yang mudah ditebak dipertahankan, risikonya tertulis di keputusan; rekaman dari database bersih, `go test` dan `make cek` lolos.
-- catatan: Kategori keamanan, dari tinjauan #256 dan #268 (MEMORI "Perlu dicek pemilik"). Sebelum halaman 2.3 dan 2.27.
+- catatan: Kategori keamanan, dari tinjauan #256 dan #268 (MEMORI "Perlu dicek pemilik"). Sebelum halaman 2.3 dan 2.27. Selesai 2026-10-24 di PR #294 (keputusan 645–649, `plan/masuk/lab-api-t2a.md`): rate limit dua lapis di memori (login IP 10 + 10/menit, email 5 + 5/menit; kiriman IP 30 + 6/menit, akun 15 + 1 per 10 menit), aturan pengirim diperiksa sebelum nomor penerima sehingga percobaan gagal tidak membedakan nomor terdaftar, nomor `K` + nomor akun dipertahankan dengan risiko tertulis (646), akun terkunci 401 generik, migration 000014 menandai 104 akun Gedung A, 403 tanpa token sampai `POST /ganti-password`; rekaman baru `labs/api-t2/output/pengaman.txt`, `transfer.txt` +1 baris, `testing.txt` +12 baris sesudah baris 39, rujukan halaman 2.4/2.6/2.8 tidak bergeser; enam uji mutasi tertangkap. Untuk pemilik (648): password sementara yang diketahui orang lain bisa dipakai mendahului pemiliknya; app 1.0/1.1 tanpa layar ganti password. Tinjauan: percobaan login dicatat sebelum bcrypt dengan lock baris akun, karena lima tebakan bersamaan sebelumnya semuanya dinilai (718); `pengaman.txt` G merekam `/ganti-password` berbagi kunci dan bucket dengan `/login` (718); bucket IP per prefix IPv6 /64 (719); `testing.txt` jadi +16 baris sesudah baris 39.
 
 ### A11y-diagram · Label pembaca layar DiagramArsitektur berbahasa Indonesia
 
@@ -1274,12 +1274,21 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - selesai bila: halaman Konsep+ADR 2.26 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/t2-pencairan`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Dari t2-pencairan (508): Keuangan mengambil file menurut status `dikirim`, bukan menurut ada atau tidaknya file.
 
+### lab-c4a · Celah kunci dan IPv6 di c4-ratelimit
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: lab-api-t2a
+- selesai bila: `labs/c4-ratelimit/login`: percobaan login dicatat sebelum hash argon2id dengan lock baris (`SELECT … FOR UPDATE`) dan kunci dipasang begitu ambang tercapai, sehingga N tebakan bersamaan pada penghitung ambang hanya satu yang dinilai (tes bersamaan); key IP IPv6 dipotong ke prefix /64 (RFC 6459 5.2) dengan tes; `/ganti-password` menolak password dari daftar bocor fiktif lokal (OWASP ASVS 5.0.0 6.2.4); rekaman dari database bersih diulang identik; uji mutasi tiap perbaikan; halaman Tahap 2 yang sudah merujuk rekaman c4 tidak bergeser.
+- catatan: Kategori rusak/keamanan dari tinjauan #294 (keputusan 718–719): celah yang sama ada di lab yang dipakai 2.27 dan 2.28.
+
 ### 2.27 · M16: Akun Ani terkunci
 
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: 2.26, lab-c4-ratelimit
+- bergantung: 2.26, lab-c4-ratelimit, lab-c4a
 - selesai bila: halaman Masalah 2.27 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/c4-ratelimit`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: Hanya container lokal; beberapa percobaan, bukan skrip massal. Dari c4-ratelimit (550): akun terkunci dijawab 401 generik, jadi Ani mengira lupa password; halaman menyebut jalur lupa password atau notifikasi lewat jalur lain (mohon konfirmasi pemilik).
 

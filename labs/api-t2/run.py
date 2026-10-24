@@ -196,12 +196,12 @@ def buat_schema():
 
 # ---------- server dan HTTP ----------
 
-def mulai(bin, port=PORT, db=DB_APP, tampil=None):
+def mulai(bin, port=PORT, db=DB_APP, tampil=None, args=()):
     with socket.socket() as s:
         if s.connect_ex(("127.0.0.1", port)) == 0:
             gagal(f"port {port} sudah dipakai proses lain")
     f = tempfile.TemporaryFile(mode="w+")
-    p = subprocess.Popen([str(bin), "-addr", f"127.0.0.1:{port}"], env=dict(ENV, DATABASE_URL=db),
+    p = subprocess.Popen([str(bin), "-addr", f"127.0.0.1:{port}", *args], env=dict(ENV, DATABASE_URL=db),
                          stdout=f, stderr=f, text=True)
     for _ in range(200):
         with socket.socket() as s:
@@ -227,12 +227,16 @@ def stop(port=PORT, tampil=None):
     return [re.sub(r"^\d{4}/\d\d/\d\d \d\d:\d\d:\d\d ", "", l) for l in f.read().splitlines() if "mendengar di" not in l]
 
 
-def curl(method, path, body=None, token=None, jenis="application/json", tampil=True, tampil_body=None, port=PORT):
+def curl(method, path, body=None, token=None, jenis="application/json", tampil=True, tampil_body=None, port=PORT,
+         kepala=()):
     cmd = ["curl", "-s", "-i", "-X", method, f"http://127.0.0.1:{port}{path}"]
     tampil_cmd = f"$ curl -i -X {method} '{path}'"
     if token:
         cmd += ["-H", f"Authorization: Bearer {token}"]
         tampil_cmd += f" -H 'Authorization: Bearer {token}'"
+    for k in kepala:   # header tambahan, mis. X-Forwarded-For palsu di pengaman.txt
+        cmd += ["-H", k]
+        tampil_cmd += f" -H '{k}'"
     if body is not None:
         data = body if isinstance(body, str) else json.dumps(body)
         cmd += ["-H", f"Content-Type: {jenis}", "--data-binary", "@-"]
@@ -254,12 +258,27 @@ def j(isi):
     return json.loads(isi) if isi.strip() else {}
 
 
+TOKEN = {}   # label -> token sesi terakhir (pengaman.txt memakai sesi lama Budi)
+
+
 def login(email, password, label):
     s, isi = curl("POST", "/login", {"email": email, "password": password}, tampil=False)
     harap(s, 200, f"login {email}")
     token = j(isi)["token"]
     samaran[token] = f"<token sesi {label}>"
+    TOKEN[label] = token
     return token
+
+
+def password_kampus(akun):
+    """Password akun kampus sesudah diganti di login pertama (data lab, bukan secret)."""
+    return f"kampus-{akun}-sudah-diganti"
+
+
+def ganti_password(email, lama, baru, tampil=False):
+    s, isi = curl("POST", "/ganti-password", {"email": email, "password_lama": lama, "password_baru": baru},
+                  tampil=tampil)
+    return s, j(isi)
 
 
 # ---------- app versi lama ----------
@@ -484,8 +503,13 @@ def kirim(token, nomor, nominal, tampil=True):
 
 def rekam_transfer():
     mulai(BIN, tampil="# server: ./api-t2")
+    # Akun kampus wajib mengganti password sementara sebelum mendapat token (keputusan 647).
+    for akun, email in ((504, "citra"), (600, "karyawan600"), (700, "karyawan700")):
+        harap(ganti_password(f"{email}@lestari.example", f"sementara-{akun}", password_kampus(akun))[0], 204,
+              f"ganti password {email}")
+    catat("# Citra, Karyawan 600, dan Karyawan 700 (akun kampus) sudah mengganti password sementara (POST /ganti-password)")
     budi = login("budi@lestari.example", "sementara-419", "Budi")
-    citra = login("citra@lestari.example", "sementara-504", "Citra")
+    citra = login("citra@lestari.example", password_kampus(504), "Citra")
     bagian("A. Budi mengirim Rp20.000 ke Citra lewat nomor karyawan (app 2.0)")
     s, h = kirim(budi, "K00504", 20000)
     harap((s, h["saldo"], h["sisa_batas_harian"]), (201, 410000, 480000), "kiriman Budi ke Citra")
@@ -514,11 +538,11 @@ def rekam_transfer():
     harap((s, j(isi)["sisa_batas_harian"]), (201, 0), "Budi sisa batas sesudah bayar")
     bagian("D. Saldo tidak cukup")
     catat("# Karyawan 600 (akun kampus baru) hanya punya top-up minggu 1 Tahap 2: Rp250.000")
-    k600 = login("karyawan600@lestari.example", "sementara-600", "Karyawan 600")
+    k600 = login("karyawan600@lestari.example", password_kampus(600), "Karyawan 600")
     s, isi = curl("POST", "/kiriman", {"ke_nomor_karyawan": "K00504", "nominal": 300000}, k600)
     harap((s, j(isi)["type"]), (422, "/problems/saldo-kurang"), "saldo kurang")
     bagian("E. Sepuluh kiriman Rp20.000 bersamaan dari saldo Rp100.000: buku dikunci, tidak ada saldo negatif")
-    k700 = login("karyawan700@lestari.example", "sementara-700", "Karyawan 700")
+    k700 = login("karyawan700@lestari.example", password_kampus(700), "Karyawan 700")
     harap(kirim(k700, "K00701", 150000)[0], 201, "Karyawan 700 menyisakan Rp100.000")
     hasil = []
     def satu_kirim():
@@ -681,6 +705,159 @@ def rekam_tutup_buku():
     tulis("tutup-buku.txt", "tutup buku bulanan dan jurnal yang terlambat COMMIT")
 
 
+# ---------- pengaman.txt ----------
+
+JAM = {}   # waktu beku untuk server -jam-lab: diset sekali per run, dipakai lagi sesudah server dimulai ulang
+
+
+def mulai_beku(tampil):
+    """Server dengan jam beku (flag -jam-lab, keputusan 649): bucket tidak terisi di tengah rekaman."""
+    mulai(BIN, args=("-jam-lab",), tampil=tampil)
+    JAM.setdefault("ms", int(time.time() * 1000))
+    harap(curl("POST", "/lab/jam", {"ms": JAM["ms"]}, tampil=False)[0], 204, "jam lab")
+
+
+def ringkas(hasil, apa):
+    """Baris ringkas untuk percobaan berulang: '<n> x HTTP <status> <type>   # <apa>'."""
+    jenis = [(st, j(isi).get("type", "")) for st, isi in hasil]
+    for st, t in sorted(set(jenis)):
+        catat(f"{jenis.count((st, t))} x HTTP {st} {t}   # {apa}")
+
+
+def rekam_pengaman():
+    """lab-api-t2a (keputusan 645-649): pengaman cek penerima dan login, M16 minggu 7."""
+    gedung_a = ("SELECT CASE WHEN id < 504 THEN 'Gedung A' ELSE 'kampus' END AS kelompok, count(*) AS akun,\n"
+                "       count(*) FILTER (WHERE wajib_ganti_password) AS wajib_ganti\n"
+                "FROM akun WHERE jenis <> 'sistem' GROUP BY 1 ORDER BY 1")
+    bagian("A. Minggu 7 (M16): 104 akun Gedung A wajib mengganti password sementara")
+    catat("# Akun kampus ditandai saat didaftarkan; tiga di antaranya sudah mengganti password di transfer.txt")
+    harap(sql(gedung_a), [("Gedung A", 104, 0), ("kampus", 909, 906)], "akun wajib ganti sebelum 000014")
+    migrasi("000014_wajib_ganti_password.up.sql")
+    harap(sql(gedung_a), [("Gedung A", 104, 104), ("kampus", 909, 906)], "akun wajib ganti sesudah 000014")
+
+    mulai_beku("\n# server: ./api-t2 -jam-lab (waktu server dibekukan selama rekaman ini, keputusan 649)")
+    bagian("B. Password sementara tidak lagi membuka sesi")
+    catat("# Sesi Budi dari tutup-buku.txt dibuka sebelum migration 000014")
+    harap(curl("GET", "/akun/419", token=TOKEN["Budi"])[0], 401, "sesi lama Budi")
+    s, isi = curl("POST", "/login", {"email": "budi@lestari.example", "password": "sementara-419"})
+    harap((s, j(isi)["type"]), (403, "/problems/wajib-ganti-password"), "login password sementara")
+    s, isi = ganti_password("budi@lestari.example", "sementara-419", "budi-pendek", tampil=True)
+    harap((s, isi.get("type")), (422, "/problems/validasi"), "password baru 11 karakter")
+    harap(ganti_password("budi@lestari.example", "sementara-419", "kalimat panjang milik budi", tampil=True)[0],
+          204, "ganti password Budi")
+    budi = login("budi@lestari.example", "kalimat panjang milik budi", "Budi")
+    harap(curl("GET", "/akun/419", token=budi)[0], 200, "sesi baru Budi")
+    catat("\n# Dimas mengganti password sementaranya dengan cara yang sama (tidak ditampilkan)")
+    harap(ganti_password("dimas@lestari.example", "sementara-417", "kalimat panjang milik dimas")[0], 204, "Dimas")
+    dimas = login("dimas@lestari.example", "kalimat panjang milik dimas", "Dimas")
+    citra = login("citra@lestari.example", password_kampus(504), "Citra")
+
+    bagian("C. Cek penerima: percobaan yang gagal tidak membedakan nomor terdaftar")
+    catat("# K00504 milik Citra; K09999 tidak terdaftar. Aturan pengirim diperiksa sebelum nomor penerima.")
+    s1, isi1 = curl("POST", "/kiriman", {"ke_nomor_karyawan": "K00504", "nominal": 600000}, dimas)
+    s2, isi2 = curl("POST", "/kiriman", {"ke_nomor_karyawan": "K09999", "nominal": 600000}, dimas)
+    harap((s1, j(isi1)["type"], isi1 == isi2), (422, "/problems/batas-harian", True), "batas: jawaban sama")
+    lewat = satu("SELECT saldo_cache FROM buku WHERE akun_id = 417") + 1
+    harap(lewat <= 400000, True, "nominal saldo kurang masih di bawah sisa batas")
+    rupiah = f"{lewat:,}".replace(",", ".")
+    catat(f"\n# Nominal Rp{rupiah} (saldo Dimas + Rp1), tidak melewati batas harian:")
+    hasil = [curl("POST", "/kiriman", {"ke_nomor_karyawan": n, "nominal": lewat}, dimas, tampil=False)
+             for n in ("K00504", "K09999")]
+    for n, (st, isi) in zip(("K00504", "K09999"), hasil):
+        catat(f"POST /kiriman ke {n}: HTTP {st} {j(isi)['type']}")
+    harap((hasil[0][0], j(hasil[0][1])["type"], hasil[0][1] == hasil[1][1]), (422, "/problems/saldo-kurang", True),
+          "saldo kurang: jawaban sama")
+    catat("\n# Nomor salah tetap dilaporkan bila kirimannya akan berhasil ke nomor terdaftar:")
+    s, isi = curl("POST", "/kiriman", {"ke_nomor_karyawan": "K09999", "nominal": 5000}, dimas)
+    harap((s, j(isi)["errors"][0]["pesan"]), (422, "tidak terdaftar"), "salah ketik nomor")
+    catat("\n# Satu-satunya jawaban yang membuka nomor terdaftar adalah kiriman yang berhasil:")
+    catat("# uangnya berpindah, dan nama pengirim tercatat di jurnal yang juga dilihat penerima.")
+    s, isi = curl("POST", "/kiriman", {"ke_nomor_karyawan": "K00504", "nominal": 1}, dimas)
+    harap(s, 201, "kiriman Rp1")
+    sql(f"SELECT jenis, keterangan, dibuat_oleh FROM jurnal WHERE id = {j(isi)['id']}")
+
+    stop(tampil="\n# server dimulai ulang: bucket di memori kosong lagi")
+    mulai_beku(None)
+    bagian("D. Rate limit kiriman: 15 per akun, 30 per IP")
+    catat("# Dimas menelusuri nomor karyawan berikutnya dengan nominal di atas batas (tidak ada uang yang berpindah)")
+    hasil = [curl("POST", "/kiriman", {"ke_nomor_karyawan": f"K{n:05d}", "nominal": 600000}, dimas, tampil=False)
+             for n in range(520, 535)]
+    ringkas(hasil, "Dimas, 15 nomor K00520-K00534")
+    harap(sorted({(st, j(isi)["type"]) for st, isi in hasil}), [(422, "/problems/batas-harian")], "15 pertama")
+    s, isi = curl("POST", "/kiriman", {"ke_nomor_karyawan": "K00535", "nominal": 600000}, dimas)
+    harap((s, j(isi)["type"]), (429, "/problems/rate-limit-akun"), "kiriman ke-16 Dimas")
+    catat("\n# Akun lain dari alamat yang sama: Budi 14 kiriman, lalu Citra")
+    hasil = [curl("POST", "/kiriman", {"ke_nomor_karyawan": f"K{n:05d}", "nominal": 600000}, budi, tampil=False)
+             for n in range(540, 554)]
+    ringkas(hasil, "Budi, 14 nomor K00540-K00553")
+    harap(sorted({st for st, _ in hasil}), [422], "14 kiriman Budi")
+    s, isi = curl("POST", "/kiriman", {"ke_nomor_karyawan": "K00419", "nominal": 600000}, citra)
+    harap((s, j(isi)["type"]), (429, "/problems/rate-limit-ip"), "kiriman ke-31 dari satu IP")
+    catat("\n# X-Forwarded-For dari client tidak dipercaya: Tahap 2 tanpa reverse proxy, IP diambil dari koneksi")
+    s, isi = curl("POST", "/kiriman", {"ke_nomor_karyawan": "K00419", "nominal": 600000}, citra,
+                  kepala=("X-Forwarded-For: 203.0.113.7",))
+    harap((s, j(isi)["type"]), (429, "/problems/rate-limit-ip"), "X-Forwarded-For palsu")
+
+    stop(tampil="\n# server dimulai ulang: bucket di memori kosong lagi")
+    mulai_beku(None)
+    bagian("E. Akun terkunci dijawab sama dengan password salah")
+    catat("# Seseorang menebak password Warung Ani (akun 418)")
+    tebak = [curl("POST", "/login", {"email": "warung.ani@lestari.example", "password": f"tebakan-{i}"},
+                  tampil=(i == 1)) for i in range(1, 6)]
+    ringkas(tebak, "lima tebakan")
+    harap(sorted({st for st, _ in tebak}), [401], "lima tebakan")
+    s, isi = curl("POST", "/login", {"email": "warung.ani@lestari.example", "password": "tebakan-6"})
+    harap((s, j(isi)["type"]), (429, "/problems/rate-limit-akun"), "tebakan keenam")
+    sql("SELECT id, gagal_login, terkunci_sampai IS NOT NULL AS terkunci FROM akun WHERE id = 418")
+    stop(tampil="\n# server dimulai ulang (mis. deploy): bucket di memori kosong, kunci di database tetap")
+    mulai_beku(None)
+    catat("# Ani login dengan password yang benar selama akunnya terkunci:")
+    s, isi = curl("POST", "/login", {"email": "warung.ani@lestari.example", "password": "sementara-418"})
+    harap((s, isi), (401, tebak[0][1]), "terkunci: jawaban sama dengan password salah")
+    catat("# Body sama persis dengan tebakan pertama, jadi penebak tidak tahu akun ini terkunci.")
+
+    bagian("F. Satu alamat mencoba banyak akun (credential stuffing): 10 percobaan per IP")
+    catat("# Percobaan Ani di atas adalah yang pertama dari alamat ini sejak server dimulai ulang")
+    hasil = [curl("POST", "/login", {"email": f"karyawan{n}@lestari.example", "password": "password-bocor-situs-lain"},
+                  tampil=False) for n in range(430, 439)]
+    ringkas(hasil, "9 akun, karyawan430-karyawan438, satu percobaan per akun")
+    harap(sorted({st for st, _ in hasil}), [401], "9 akun")
+    s, isi = curl("POST", "/login", {"email": "karyawan439@lestari.example", "password": "password-bocor-situs-lain"},
+                  kepala=("X-Forwarded-For: 203.0.113.8",))
+    harap((s, j(isi)["type"]), (429, "/problems/rate-limit-ip"), "percobaan ke-11 dari satu IP")
+    sql("SELECT count(*) FILTER (WHERE gagal_login > 0) AS akun_dengan_gagal,\n"
+        "       count(*) FILTER (WHERE terkunci_sampai IS NOT NULL) AS terkunci FROM akun")
+
+    # Bagian G (tinjauan PR #294, keputusan 718): tanpa bagian ini, /ganti-password yang memeriksa password lama
+    # tanpa periksaMasuk atau tanpa lapis IP lolos semua tes dan rekaman (uji mutasi peninjau).
+    stop(tampil="\n# server dimulai ulang: bucket di memori kosong, kunci Ani di database tetap")
+    mulai_beku(None)
+    bagian("G. /ganti-password memakai pengaman yang sama dengan /login")
+    catat("# Ani mengganti password sementaranya dengan password lama yang benar, selama akunnya terkunci:")
+    s, isi = curl("POST", "/ganti-password", {"email": "warung.ani@lestari.example", "password_lama": "sementara-418",
+                                              "password_baru": "kalimat panjang milik ani"})
+    harap((s, isi), (401, tebak[0][1]), "ganti password saat terkunci: jawaban sama dengan password salah")
+    catat("\n# Lima tebakan password lama Karyawan 440 lewat /ganti-password, lalu /login untuk email yang sama")
+    hasil = [ganti_password("karyawan440@lestari.example", f"tebakan-{i}", "kalimat panjang milik penebak")
+             for i in range(1, 6)]
+    catat("\n".join(f"POST /ganti-password tebakan-{i}: HTTP {st} {isi.get('type', '')}"
+                     for i, (st, isi) in enumerate(hasil, 1)))
+    harap(sorted({(st, isi["type"]) for st, isi in hasil}), [(401, "/problems/login-gagal")], "lima tebakan ganti")
+    s, isi = curl("POST", "/login", {"email": "karyawan440@lestari.example", "password": "tebakan-6"})
+    harap((s, j(isi)["type"]), (429, "/problems/rate-limit-akun"), "bucket email dipakai bersama")
+    harap(sql("SELECT id, gagal_login, terkunci_sampai IS NOT NULL AS terkunci FROM akun WHERE id = 440"),
+          [(440, 5, True)], "kunci dari tebakan lewat /ganti-password")
+    catat("\n# Bucket IP juga dipakai bersama: percobaan ke-8 sampai ke-10 dari alamat ini, lalu ke-11")
+    hasil = [ganti_password(f"karyawan{n}@lestari.example", "password-bocor-situs-lain", "kalimat panjang milik penebak")
+             for n in range(441, 444)]
+    harap(sorted({st for st, _ in hasil}), [401], "tiga akun lain")
+    s, isi = curl("POST", "/ganti-password", {"email": "karyawan444@lestari.example",
+                                              "password_lama": "password-bocor-situs-lain",
+                                              "password_baru": "kalimat panjang milik penebak"})
+    harap((s, j(isi)["type"]), (429, "/problems/rate-limit-ip"), "ganti password ke-11 dari satu IP")
+    tulis("pengaman.txt", "pengaman cek penerima dan login (M16, lab-api-t2a)")
+
+
 # ---------- testing.txt ----------
 
 def go_test(*args, env):
@@ -734,6 +911,7 @@ def main():
         rekam_pembalik()
         rekam_riwayat()
         rekam_tutup_buku()
+        rekam_pengaman()
         rekam_testing()
     finally:
         for port in list(server):   # error Python di tengah rekaman: server tidak tertinggal memegang port
