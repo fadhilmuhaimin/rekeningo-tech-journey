@@ -1,0 +1,90 @@
+{
+  "istilah": "ERD (Entity-Relationship Diagram)",
+  "sehari_hari": "ERD adalah gambar skema database. Setiap tabel jadi satu kotak berisi kolomnya, dan setiap foreign key jadi garis dari tabel yang merujuk ke tabel yang dirujuk.",
+  "cerita": [
+    {
+      "rujukan": "B2.1",
+      "teks": "ERD Tahap 1 berbentuk bintang: 5 tabel, dan ketujuh foreign key menunjuk `akun.id`."
+    },
+    {
+      "rujukan": "t2-skema",
+      "teks": "ERD Tahap 2 punya 8 tabel dan 11 foreign key. `transaksi`, `topup`, dan `koreksi` hilang, dan isinya pindah ke jurnal atau ke schema arsip."
+    }
+  ],
+  "mekanisme": [
+    "Satu tabel adalah satu kotak: nama tabel, lalu kolom dengan tipe dan label kunci seperti PK, FK, UNIQUE, dan CHECK.",
+    "Satu foreign key adalah satu garis dari kolom perujuk ke primary key tabel yang dirujuk, mis. `posting.buku_id` ke `buku.id`.",
+    "ERD di situs ini dibangun `tools/erd.py` dari katalog PostgreSQL skema lab, termasuk `pg_constraint`, bukan digambar tangan.",
+    "Dua ERD yang dibandingkan menunjukkan perubahan skema: tabel baru, kolom yang berubah, dan tabel yang dihapus beserta tujuan isinya."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "PostgreSQL 17.11, file SQL lewat psql -1 -f, lab api-t2",
+      "teks": "Skema ditulis sebagai file SQL migration, dan server Go tidak membuat tabel sendiri. Foreign key ditulis dengan `REFERENCES`, index kolom perujuknya ditulis terpisah.",
+      "rekaman": "labs/api-t2/output/migrasi.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-pg-migrate 9.0.0",
+      "teks": "`pgm.createTable` dengan `references: \"jurnal\"` membuat foreign key. Index untuk kolom itu ditulis sendiri dengan `pgm.createIndex`.",
+      "dokumentasi": "https://github.com/salsita/node-pg-migrate/blob/v9.0.0/docs/src/migrations/columns.md"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "`foreignId('jurnal_id')->constrained('jurnal')` membuat kolom dan foreign key. Schema builder tidak punya method CHECK, jadi CHECK ditulis dengan `DB::statement`.",
+      "dokumentasi": "https://laravel.com/docs/13.x/migrations#foreign-key-constraints"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2",
+      "teks": "`models.ForeignKey` menjadi kolom `<nama>_id` dengan foreign key dan index. `sqlmigrate` menampilkan SQL yang akan membuat tabelnya.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/ref/models/fields/#foreignkey"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "Relasi ditulis di model `.spy.yaml` dengan `relation(parent=jurnal)`. Nama kolom di database sama dengan nama field, mis. `jurnalId`.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/relations/one-to-many"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "Supabase CLI 2.122.0",
+      "teks": "Migration tetap file SQL biasa. Schema Visualizer di Studio menggambar tabel dan foreign key dari database yang sedang berjalan.",
+      "dokumentasi": "https://supabase.com/features/visual-schema-designer"
+    }
+  },
+  "jebakan": [
+    "Menggambar ERD dari rencana atau ingatan. Diagram seperti itu cepat berbeda dari skema yang berjalan; ERD yang bisa dipercaya dibaca dari katalog database.",
+    "Mengira setiap garis di ERD punya index. PostgreSQL tidak membuat index untuk foreign key secara otomatis, jadi index di kolom perujuk ditulis sendiri.",
+    "Membaca ERD tanpa aturannya. Trigger yang menjaga jurnal berjumlah nol tidak tampil sebagai garis, padahal aturan itulah yang menjaga uang."
+  ],
+  "terkait": [
+    "Foreign key",
+    "Migration",
+    "Constraint",
+    "Index",
+    "Expand-migrate-contract"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-70",
+      "judul": "Peter Chen, The entity-relationship model: toward a unified view of data",
+      "url": "https://doi.org/10.1145/320434.320440",
+      "catatan": "ACM Transactions on Database Systems 1(1), 1976: model data yang memandang dunia nyata sebagai entity dan relationship."
+    },
+    {
+      "riset": "R2-70",
+      "judul": "PostgreSQL 17: pg_constraint",
+      "url": "https://www.postgresql.org/docs/17/catalog-pg-constraint.html",
+      "catatan": "Katalog yang menyimpan primary key, foreign key, unique, dan check; sumber garis dan label kunci ERD."
+    },
+    {
+      "riset": "R2-73",
+      "judul": "Rekaman lab api-t2: expand, migrate, contract",
+      "rekaman": "labs/api-t2/output/migrasi.txt",
+      "catatan": "Bagian D: delapan tabel tersisa sesudah contract, dan tabel Tahap 1 disalin ke schema arsip lebih dulu."
+    }
+  ]
+}

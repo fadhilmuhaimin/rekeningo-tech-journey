@@ -233,6 +233,15 @@ window.ISTILAH = {
   "t": "Debit",
   "u": null
  },
+ "ERD": {
+  "b": "t2-skema",
+  "d": "Gambar skema database: tabel dengan kolom pentingnya, dan garis untuk setiap foreign key di antara tabel.",
+  "h": "istilah/erd/",
+  "n": "2.9 Skema data Tahap 2",
+  "s": "istilah-erd",
+  "t": "ERD (Entity-Relationship Diagram)",
+  "u": "tahap-2/skema-data/"
+ },
  "ERP": {
   "b": "t2-prd",
   "d": "Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari.",
@@ -926,6 +935,15 @@ window.ISTILAH = {
   "s": "istilah-saga",
   "t": "Saga",
   "u": "d-system-design/d3-consistency/"
+ },
+ "Saldo cache": {
+  "b": "t2-saldo-bukan-kolom",
+  "d": "Salinan jumlah posting satu buku di kolom buku.saldo_cache, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting.",
+  "h": "istilah/saldo-cache/",
+  "n": "2.6 Kenapa saldo bukan kolom",
+  "s": "istilah-saldo-cache",
+  "t": "Saldo cache",
+  "u": "tahap-2/saldo-bukan-kolom/"
  },
  "Secure storage": {
   "b": "t1-idor",
@@ -1742,6 +1760,15 @@ window.ISTILAH = {
   "s": "istilah-saga",
   "t": "Saga",
   "u": "d-system-design/d3-consistency/"
+ },
+ "saldo cache": {
+  "b": "t2-saldo-bukan-kolom",
+  "d": "Salinan jumlah posting satu buku di kolom buku.saldo_cache, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting.",
+  "h": "istilah/saldo-cache/",
+  "n": "2.6 Kenapa saldo bukan kolom",
+  "s": "istilah-saldo-cache",
+  "t": "Saldo cache",
+  "u": "tahap-2/saldo-bukan-kolom/"
  },
  "secure storage": {
   "b": "t1-idor",
