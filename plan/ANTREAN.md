@@ -1151,11 +1151,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.13 · M10: Nasi goreng dibayar dua kali
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.12, lab-e3-idempotency
 - selesai bila: halaman Masalah 2.13 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/e3-idempotency`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Dari e3 (512, 518): Idempotency-Key adalah draft IETF -07 yang sudah kedaluwarsa, bukan standar; key di contoh dipendekkan karena gitleaks.
+- catatan: Dari e3 (512, 518): Idempotency-Key adalah draft IETF -07 yang sudah kedaluwarsa, bukan standar; key di contoh dipendekkan karena gitleaks. PR #300, keputusan 650–652 (`plan/masuk/tahap-2-m10-dobel-bayar.md`): `tahap-2/m10-dibayar-dua-kali.mdx` dengan template Masalah; Rantai `t2-m10-dua-request`, potongan `ledger/tanpa-key.txt`, `api-t1/output/sengaja-belum.txt` D (tap kedua Budi), `mati-di-tengah.txt` 29–31, RFC 9110 §9.2.2 (R2-19); widget alur `t2-m10.json` dua HP, ubah satu hal `key-per-niat.txt`; ilustrasi `m10`. Status draft ditulis -08 aktif, belum RFC (R2-17, dicek 2026-10-24). ADR 14 tidak dibuka; tanpa halaman istilah baru. Lab diulang dari database bersih: `cek-ledger` LOLOS, rekaman identik.
 
 ### 2.14 · Retry dan idempotency key + ADR 14
 
@@ -1169,11 +1169,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.15 · M11: Riwayat 4 detik
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.14, lab-b2-query
 - selesai bila: halaman Masalah 2.15 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Dari b2-query (521, 526): "4 detik" naskah tidak terulang di lab (halaman ±30 ms, seluruh riwayat Budi ±1,9 detik dengan 3.893 query); data satu tahun, bukan minggu 3.
+- catatan: Dari b2-query (521, 526): "4 detik" naskah tidak terulang di lab (halaman ±30 ms, seluruh riwayat Budi ±1,9 detik dengan 3.893 query); data satu tahun, bukan minggu 3. Branch `tahap-2/m11-riwayat`, keputusan 662–664 (`plan/masuk/tahap-2-m11-riwayat.md`): `tahap-2/m11-riwayat-lambat.mdx` template Masalah lima blok, ilustrasi `m11` tanpa teks, Rantai `t2-m11-satu-request`, widget baru `QueryRiwayat` (angka dari `n1.txt` D dan E saat build, tebak lalu ubah jumlah baris); "4 detik" dan timeout berlabel Ilustrasi, paragraf "Yang tidak terulang" memuat angka lab dan ±44 ribu posting minggu 3 (Asumsi, R2-116); ADR 15, index baru, dan query JOIN tidak dibuka (milik 2.16 dan 2.17); riset R2-115 sampai R2-119; `make -C labs/b2-query cek-ledger` diulang dari database bersih: 4 file sama.
 
 ### 2.16 · N+1 query
 

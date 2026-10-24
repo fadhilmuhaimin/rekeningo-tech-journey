@@ -1,0 +1,117 @@
+---
+title: "2.13 M10: Nasi goreng dibayar dua kali"
+description: Minggu 2. Sinyal di lantai dasar putus saat Budi membayar nasi goreng Rp25.000. Spinner berputar lama, Budi menekan Bayar lagi, dan riwayatnya mencatat dua pembayaran.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import duaRequest from "../../../../data/diagram/t2-m10-dua-request.json";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 6 menit · coba 3 menit · Prasyarat: [[t2-race-lock]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka ilustrasi="m10">
+
+Minggu 2 Tahap 2. Budi membeli nasi goreng Rp25.000 di warung lantai dasar. Di lantai itu sinyal HP sering putus.
+
+Budi menekan Bayar. Spinner di layarnya berputar lama, tanpa tulisan berhasil atau gagal.
+
+Budi menekan Bayar lagi. Tidak lama kemudian layarnya menulis "Pembayaran berhasil".
+
+Sore harinya Budi membuka riwayat. Di sana ada dua pembayaran Rp25.000 ke warung yang sama, padahal ia hanya membeli satu nasi goreng.
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka membuka log server. Ada dua request Bayar dari akun Budi dengan isi yang sama persis, dan keduanya menulis jurnal.
+
+App Rekeningo mengulang request sendiri bila koneksi putus. Raka menyimpulkan app terlalu cepat retry: request kedua berangkat sebelum request pertama selesai.
+
+Rencananya, jeda sebelum retry diperpanjang, dan tombol Bayar dikunci selama spinner berputar.
+
+<details class="question">
+<summary>Tebak dulu: kalau jeda retry diperpanjang dan tombol Bayar dikunci, apakah riwayat Budi mencatat satu pembayaran?</summary>
+
+Tidak. Request pertama sudah COMMIT sebelum jawabannya hilang, jadi kedua request tidak pernah berjalan bersamaan. Jeda yang lebih panjang hanya menunda request kedua, dan server tetap mencatatnya sebagai pembayaran baru. Blok berikutnya menunjukkan rekamannya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Request pertama tidak gagal. Jurnalnya sudah COMMIT, lalu response-nya hilang sebelum sampai ke HP. Request kedua datang sesudahnya dengan body yang sama, dan server minggu 2 tidak punya cara mengenalinya sebagai ulangan.
+
+<Rantai data={duaRequest} />
+
+Rekaman lab ini dibuat dari database bersih di PostgreSQL 17.11. Lab meniru sinyal putus dengan titik henti di server: koneksi app ditutup sesudah COMMIT, sebelum response terkirim.
+
+<Snippet file="labs/e3-idempotency/output/ledger/tanpa-key.txt" lines="27:32" title="Rekaman lab: labs/e3-idempotency/output/ledger/tanpa-key.txt" />
+
+Dari sisi app, percobaan 1 hanya berakhir dengan koneksi putus. App mengulang sesudah 230 ms dengan body yang sama, dan percobaan 2 dijawab 201:
+
+<Snippet file="labs/e3-idempotency/output/ledger/tanpa-key.txt" lines="21:24" title="Rekaman lab: labs/e3-idempotency/output/ledger/tanpa-key.txt" />
+
+Riwayat Budi di database mencatat dua jurnal bayar untuk satu nasi goreng:
+
+<Snippet file="labs/e3-idempotency/output/ledger/tanpa-key.txt" lines="44:52" title="Rekaman lab: labs/e3-idempotency/output/ledger/tanpa-key.txt" />
+
+Jeda 230 ms bukan penyebabnya. Jurnal 2 sudah COMMIT sebelum percobaan 2 dikirim, jadi jeda yang lebih panjang tetap berakhir dengan jurnal 3. Kedua request juga tidak tumpang tindih, sehingga lock baris buku dari [[t2-race-lock]] tidak menolong: lock mengurutkan request, tapi tidak mengenali ulangan.
+
+**Bagi server, tap kedua dan retry app sama.** Di rekaman di atas, request kedua dikirim app sendiri. Di cerita, Budi juga menekan Bayar lagi. Tap itu tidak punya rekaman di server ledger. Rekaman Tahap 1 menirunya dengan dua `curl` dengan body yang sama, dan catatan di rekaman menyebut response pertama tidak sampai ke HP:
+
+<Snippet file="labs/api-t1/output/sengaja-belum.txt" lines="45:58" title="Rekaman lab: labs/api-t1/output/sengaja-belum.txt" />
+
+Kedua jalur mengirim `POST /transfers` dengan body yang sama dan tanpa penanda apa pun. Server tidak bisa membedakan tap kedua dari retry, dan tidak bisa membedakan keduanya dari pembayaran baru. Itu sebabnya mengunci tombol Bayar tidak cukup.
+
+**Ledger tidak menangkapnya.** Kedua jurnal lolos COMMIT, dan saldo Budi Rp50.000 tidak negatif. Ketiga invarian dari [[t2-ledger]] terpenuhi, dan `saldo_cache` sama dengan jumlah posting: Rp50.000 di kedua kolom. Setiap rupiah tertelusur; yang salah adalah jumlah niatnya, karena Budi membayar sekali dan server mencatat dua kali.
+
+**Kenapa app tetap harus mengulang.** Koneksi putus tidak memberi tahu app apa yang terjadi di server. Rekaman `mati-di-tengah.txt` memakai server versi lain, yang bahannya ada di [[berikutnya]]. Di percobaan 1 app melihat koneksi putus yang sama, tapi database membatalkan jurnalnya karena koneksi database diputus sebelum COMMIT:
+
+<Snippet file="labs/e3-idempotency/output/ledger/mati-di-tengah.txt" lines="29:31" title="Rekaman lab: labs/e3-idempotency/output/ledger/mati-di-tengah.txt" />
+
+Di rekaman pertama, mengulang membuat Budi membayar dua kali. Di rekaman kedua, tanpa retry pembayaran Budi tidak pernah tercatat, dan Budi harus menekan Bayar lagi sendiri. Dari layar HP, app tidak bisa memilih di antara keduanya.
+
+RFC 9110 bagian 9.2.2 mengatur keadaan ini. Method disebut idempoten bila efek beberapa request identik sama dengan efek satu request. PUT, DELETE, dan method safe seperti GET termasuk; POST tidak.
+
+Client sebaiknya tidak (SHOULD NOT) mengulang method yang tidak idempoten secara otomatis ([RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2)). Pengecualiannya, client punya cara mengetahui bahwa ulangan itu aman, atau bahwa request pertama tidak pernah dijalankan.
+
+Jadi tebakan Raka setengah benar: app minggu 2 mengulang POST tanpa cara itu. Tapi mematikan retry tidak menyelesaikannya, karena Budi tetap menekan Bayar lagi. Yang kurang adalah cara itu sendiri: penanda di request yang membuat server mengenali ulangan.
+
+*Kondisi rekaman:* lab menjalankan Bayar sebagai `POST /transfers` ke akun Warung Ani (418) di schema ledger Tahap 2 (`labs/b3-ledger/schema.sql`). Di cerita, migrasi saldo lama ke ledger baru terjadi di minggu 4 ([[t2-m13]]), jadi rekaman ini menunjukkan mekanisme M10, bukan salinan server minggu 2. Rekaman Tahap 1 di atas menunjukkan hasil yang sama di tabel `transaksi` lama. Saldo awal Budi di lab Rp100.000 dan Warung Ani Rp0; keduanya data lab, bukan angka naskah.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `tanpa-key.txt` dari HP Budi sampai PostgreSQL, dengan HP Warung Ani di sampingnya. Tebak dulu saldo akhir Budi, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t2-m10.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: app mengirim key yang sama di kedua percobaan**. Percobaan 2 membawa penanda yang sama dengan percobaan 1, dan server mengirim ulang jawaban pertama tanpa jurnal baru (rekaman `key-per-niat.txt`). Saldo akhir Budi jadi Rp75.000.
+
+Nama header itu, `Idempotency-Key`, berasal dari Internet-Draft IETF revisi -08 (22 Oktober 2026). Per 24 Oktober 2026 draft itu masih aktif dan belum menjadi RFC ([datatracker IETF](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/)).
+
+<details>
+<summary>Rekaman lengkap kedua jalur (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/e3-idempotency/output/ledger/tanpa-key.txt" title="Rekaman lab: labs/e3-idempotency/output/ledger/tanpa-key.txt" />
+
+<Snippet file="labs/e3-idempotency/output/ledger/key-per-niat.txt" title="Rekaman lab: labs/e3-idempotency/output/ledger/key-per-niat.txt" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[berikutnya]]: retry dan idempotency key. Retry itu benar; yang salah adalah server yang tidak mengenali ulangan. Di mana key dibuat, berapa lama hasilnya disimpan, dan ADR 14 ada di sana.
+- [Halaman istilah idempotency key](/istilah/idempotency-key/): mekanismenya langkah demi langkah dan padanannya di enam stack.
+- [[t2-ledger]]: invarian ledger menjaga setiap jurnal seimbang. Invarian itu tidak tahu berapa kali Budi berniat membayar.
+- [[t1-adr-12]]: di Tahap 1, Bayar yang diulang sudah direkam tercatat dua kali, dan penanganannya sengaja ditunda ke Tahap 2.
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />

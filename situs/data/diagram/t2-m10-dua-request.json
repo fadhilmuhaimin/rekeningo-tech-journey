@@ -1,0 +1,51 @@
+{
+  "id": "t2-m10-dua-request",
+  "judul": "Dua request yang sama, dua jurnal",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab e3-idempotency · ledger/tanpa-key.txt"
+  },
+  "baris": [
+    {
+      "label": "Percobaan 1",
+      "sub": "tanpa penanda",
+      "simpul": [
+        {
+          "teks": "POST /transfers",
+          "kode": true
+        },
+        {
+          "teks": "Jurnal 2, COMMIT",
+          "sub": "saldo Budi Rp75.000",
+          "nada": "good"
+        },
+        {
+          "teks": "Response 201 hilang",
+          "sub": "koneksi app ditutup",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Percobaan 2",
+      "sub": "body sama persis",
+      "simpul": [
+        {
+          "teks": "POST /transfers",
+          "kode": true
+        },
+        {
+          "teks": "Dikira pembayaran baru",
+          "sub": "server tidak ingat percobaan 1",
+          "nada": "warn"
+        },
+        {
+          "teks": "Jurnal 3: dibayar dua kali",
+          "sub": "saldo Budi Rp50.000",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Bagi app, percobaan 1 gagal. Bagi database, percobaan 1 sudah selesai sebelum percobaan 2 dikirim."
+}
