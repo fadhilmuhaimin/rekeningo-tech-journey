@@ -7,16 +7,12 @@
   },
   "baris": [
     {
-      "label": "Bayar",
+      "label": "Budi bayar Ani",
       "sub": "kejadian.txt bagian B, jurnal 7",
       "simpul": [
         {
-          "teks": "Budi −Rp25.000",
-          "sub": "posting buku Budi: uang keluar"
-        },
-        {
-          "teks": "Ani +Rp25.000",
-          "sub": "posting buku Warung Ani: uang masuk"
+          "teks": "−25.000 dan +25.000",
+          "sub": "posting buku Budi dan buku Warung Ani"
         },
         {
           "teks": "jumlah 0: tersimpan",
@@ -26,19 +22,15 @@
       ]
     },
     {
-      "label": "Salah ketik",
+      "label": "Top-up salah ketik",
       "sub": "invarian.txt bagian A, jurnal 12",
       "simpul": [
         {
-          "teks": "tunjangan −Rp250.000",
-          "sub": "posting buku tunjangan"
+          "teks": "−250.000 dan +25.000",
+          "sub": "posting buku tunjangan dan buku Budi"
         },
         {
-          "teks": "Budi +Rp25.000",
-          "sub": "seharusnya +Rp250.000"
-        },
-        {
-          "teks": "jumlah −Rp225.000: ditolak",
+          "teks": "jumlah −225.000: ditolak",
           "sub": "SQLSTATE 23514 saat COMMIT; tidak ada baris yang tersisa",
           "nada": "warn"
         }
