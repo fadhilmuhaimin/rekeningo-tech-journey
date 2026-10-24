@@ -10,7 +10,7 @@ import SkripLama from "../../../components/SkripLama.astro";
 import Snippet from "../../../components/Snippet.astro";
 import TabSet from "../../../components/TabSet.astro";
 
-<p class="meta">Baca 12 menit · coba 3 menit · Prasyarat: [[B2.4]] · Jalur inti</p>
+<p class="meta">Baca 12 menit · coba 3 menit · Prasyarat: [[t2-n-plus-1]] · Jalur inti</p>
 
 <Blok nama="Mulai" buka>
 
@@ -20,7 +20,7 @@ Index adalah daftar terurut yang membuat database melompat ke baris yang dicari,
 
 <Rantai data={intiDiagram} ringkas />
 
-Di [[t2-m11]], Raka sudah mengganti 21 query dengan satu query JOIN ([[B2.4]]). Tanpa index, query daftarnya masih membaca 3.892 posting Budi dan 380.224 jurnal untuk mengembalikan 20 baris (rekaman lab b2-query).
+Di [[t2-m11]], Raka sudah mengganti 21 query dengan satu query JOIN ([[t2-n-plus-1]]). Tanpa index, query daftarnya masih membaca 3.892 posting Budi dan 380.224 jurnal untuk mengembalikan 20 baris (rekaman lab b2-query).
 
 Index `posting_riwayat (buku_id, dibuat, id)` menyimpan posting terurut per buku dan per waktu. Database lalu membaca 20 entri dari ujung index, dan `EXPLAIN (ANALYZE, BUFFERS)` menunjukkannya sebagai satu node dengan 20 baris. ADR 15 di blok Putuskan memilih JOIN dengan index ini dan menolak cache.
 
@@ -211,7 +211,7 @@ select * from index_advisor('select ... from posting where buku_id = 20 order by
 
 ### ADR 15: satu query JOIN dan index komposit `posting (buku_id, dibuat, id)`
 
-**Kebutuhan.** Di M11, riwayat Budi dan laporan harian Ani lambat ([[t2-m11]]). Rekaman memuat dua penyebab. Satu: 21 query untuk 20 baris ([[B2.4]]). Dua: query daftar yang membaca 3.892 posting dan 380.224 jurnal untuk 20 baris (`index.txt` bagian B). Laporan Ani membaca 59.762 posting dan membuang 59.568.
+**Kebutuhan.** Di M11, riwayat Budi dan laporan harian Ani lambat ([[t2-m11]]). Rekaman memuat dua penyebab. Satu: 21 query untuk 20 baris ([[t2-n-plus-1]]). Dua: query daftar yang membaca 3.892 posting dan 380.224 jurnal untuk 20 baris (`index.txt` bagian B). Laporan Ani membaca 59.762 posting dan membuang 59.568.
 
 Beban puncak ±1,4 request per detik untuk 1.000 karyawan dan 12 warung (Asumsi naskah).
 
@@ -231,7 +231,7 @@ Kedua perbaikan di opsi A saling melengkapi. Rekaman `n1.txt` bagian E mencatat 
 
 **Keputusan: opsi A.** Lima aturan:
 
-1. Riwayat dan laporan harian memakai satu query JOIN. Lawan transaksi dicari dengan `LATERAL ... LIMIT 1`, dan relasi yang boleh kosong memakai `LEFT JOIN` (dibahas di [[B2.4]]).
+1. Riwayat dan laporan harian memakai satu query JOIN. Lawan transaksi dicari dengan `LATERAL ... LIMIT 1`, dan relasi yang boleh kosong memakai `LEFT JOIN` (dibahas di [[t2-n-plus-1]]).
 2. Index `posting_riwayat (buku_id, dibuat, id)` dibuat, dan `ORDER BY dibuat DESC, id DESC` ditulis persis mengikuti urutan kolomnya. Urutan unik itu dipakai juga oleh kursor ADR 16.
 3. Setiap query daftar baru per akun membawa `EXPLAIN (ANALYZE, BUFFERS)` di data seukuran satu tahun (±760 ribu posting) di PR-nya. Plan tidak boleh memuat `Seq Scan` di `posting` atau `jurnal` untuk permintaan per akun.
 4. Cache riwayat tidak dipasang sebelum ada ukuran beban yang menunjukkan masalahnya.

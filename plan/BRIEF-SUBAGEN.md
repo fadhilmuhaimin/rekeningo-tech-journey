@@ -18,6 +18,7 @@ Baris pembuka setiap brief: "Baca CLAUDE.md, PROTOKOL-OTOMATIS.md, dan skill yan
 - Worktree baru: `bun install --cwd situs` dan font (`bash tools/get_fonts.sh`) sebelum gerbang. Gerbang: `bash tools/cek_situs.sh --layar > tmp/cek.txt 2>&1 && echo LOLOS || echo GAGAL` lalu `tail -30 tmp/cek.txt`, dengan `PORT_PREVIEW` dari brief. PR yang hanya mengubah `plan/` atau skill boleh memakai gerbang tanpa `--layar`; CI tetap menjalankan semuanya.
 - CI: merge hanya bila `gh pr checks <n>` keluar 0. Job gagal di langkah "Pasang Chromium Playwright" dengan exit 124 berarti mirror apt lambat: `gh run rerun <run-id> --failed`, bukan perbaikan kode.
 - Sebelum melapor: hentikan semua proses latar milikmu (watch CI, preview), dan sesudah melapor jangan menyentuh worktree lagi; worktree itu segera dipakai tugas lain.
+- ATURAN MERGE peninjau (insiden jalur_inti, PR #306): sebelum `gh pr merge`, `git fetch`; bila `git merge-base --is-ancestor origin/main HEAD` gagal, JANGAN merge: `git merge origin/main`, `python3 tools/sinkron_cerita.py` dan `python3 tools/build_istilah.py` (commit bila berubah), `python3 tools/sinkron_cerita.py --check`, `python3 tools/cek_tautan.py`, `node --test`, cek rentang Snippet, push, tunggu CI hijau lagi (`gh pr checks <n>` tanpa --watch keluar 0, dan `mergeable` bukan UNKNOWN), ulangi cek ancestor. ID riset memakai pola `\d{2,3}`.
 - Batas waktu: halaman, lab, widget 120 menit; lainnya 75 menit. Lewat batas: commit yang aman, push, laporkan "lanjutkan nanti" dengan langkah berikutnya.
 
 ## Pelaksana

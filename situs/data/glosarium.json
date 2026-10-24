@@ -324,6 +324,15 @@
   "h": "/istilah/double-entry/"
  },
  {
+  "t": "Eager loading",
+  "d": "Memuat data berelasi bersama query induknya, supaya mengakses relasi di dalam loop tidak mengirim query baru.",
+  "b": "t2-n-plus-1",
+  "n": "2.16 N+1 query",
+  "u": "/tahap-2/n-plus-1/",
+  "s": "istilah-eager-loading",
+  "h": "/istilah/eager-loading/"
+ },
+ {
   "t": "Enumerasi",
   "d": "Mencoba nilai satu per satu, mis. ID akun 401 sampai 503 atau daftar email, untuk mengetahui data mana yang ada.",
   "b": "t1-idor",
@@ -504,6 +513,15 @@
   "h": null
  },
  {
+  "t": "Lazy loading",
+  "d": "Memuat data berelasi baru saat kode pertama kali mengaksesnya, dengan satu query setiap akses.",
+  "b": "t2-n-plus-1",
+  "n": "2.16 N+1 query",
+  "u": "/tahap-2/n-plus-1/",
+  "s": "istilah-lazy-loading",
+  "h": "/istilah/lazy-loading/"
+ },
+ {
   "t": "Lease",
   "d": "Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis.",
   "b": "B10.1",
@@ -632,11 +650,11 @@
  {
   "t": "N+1 query",
   "d": "Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.",
-  "b": "B2.4",
+  "b": "t2-n-plus-1",
   "n": "2.16 N+1 query",
-  "u": "/b-fondasi/b2-4-n-plus-1/",
+  "u": "/tahap-2/n-plus-1/",
   "s": "istilah-n-1-query",
-  "h": null
+  "h": "/istilah/n-1-query/"
  },
  {
   "t": "Nonrepeatable read",
@@ -704,11 +722,11 @@
  {
   "t": "ORM (Object-Relational Mapping)",
   "d": "Library yang memetakan tabel database ke objek di kode, sehingga query ditulis sebagai pemanggilan method, mis. Eloquent di Laravel atau ORM bawaan Django.",
-  "b": "B2.1",
-  "n": "1.12 Data modeling dan relasi",
-  "u": "/tahap-1/data-modeling/",
+  "b": "t2-n-plus-1",
+  "n": "2.16 N+1 query",
+  "u": "/tahap-2/n-plus-1/",
   "s": "istilah-orm",
-  "h": null
+  "h": "/istilah/orm/"
  },
  {
   "t": "Outbox",

@@ -72,6 +72,8 @@
 *[debit]: Sisi kiri sebuah jurnal akuntansi; di setiap jurnal total debit sama dengan total kredit, dan akun aset bertambah di sisi debit.
 *[Double-entry]: Cara mencatat uang di dua sisi atau lebih: setiap rupiah yang keluar dari satu buku masuk ke buku lain, jadi jumlah catatan satu kejadian selalu nol.
 *[double-entry]: Cara mencatat uang di dua sisi atau lebih: setiap rupiah yang keluar dari satu buku masuk ke buku lain, jadi jumlah catatan satu kejadian selalu nol.
+*[Eager loading]: Memuat data berelasi bersama query induknya, supaya mengakses relasi di dalam loop tidak mengirim query baru.
+*[eager loading]: Memuat data berelasi bersama query induknya, supaya mengakses relasi di dalam loop tidak mengirim query baru.
 *[Enumerasi]: Mencoba nilai satu per satu, mis. ID akun 401 sampai 503 atau daftar email, untuk mengetahui data mana yang ada.
 *[enumerasi]: Mencoba nilai satu per satu, mis. ID akun 401 sampai 503 atau daftar email, untuk mengetahui data mana yang ada.
 *[ERD]: Gambar skema database: tabel dengan kolom pentingnya, dan garis untuk setiap foreign key di antara tabel.
@@ -108,6 +110,8 @@
 *[kredit]: Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit.
 *[Latency]: Lama waktu satu request dari dikirim sampai response diterima.
 *[latency]: Lama waktu satu request dari dikirim sampai response diterima.
+*[Lazy loading]: Memuat data berelasi baru saat kode pertama kali mengaksesnya, dengan satu query setiap akses.
+*[lazy loading]: Memuat data berelasi baru saat kode pertama kali mengaksesnya, dengan satu query setiap akses.
 *[Lease]: Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis.
 *[lease]: Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis.
 *[Ledger]: Cara mencatat uang dengan menyimpan setiap perpindahan sebagai baris yang tidak diubah; saldo adalah jumlah baris itu, bukan angka yang ditimpa.

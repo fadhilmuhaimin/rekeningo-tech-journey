@@ -69,7 +69,7 @@ Waktunya ada di rekaman yang sama (*Rekaman lab*, pembanding, bukan janji). Hala
 
 Berapa lama riwayat Budi di VPS sungguhan belum diukur. Yang terulang adalah mekanismenya: query tumbuh satu per baris, dan database membaca lebih banyak baris daripada yang dikembalikan.
 
-Cara menulis ulang kedua hal itu dan keputusannya dibahas di [[B2.4]] dan [[t2-index]].
+Cara menulis ulang kedua hal itu dan keputusannya dibahas di [[t2-n-plus-1]] dan [[t2-index]].
 
 </Blok>
 
@@ -79,13 +79,13 @@ Widget ini memakai angka dari rekaman yang sama dengan blok sebelumnya. Tebak du
 
 <QueryRiwayat />
 
-Sesudah menebak, ubah satu hal: pilih Laporan harian Ani, lalu Seluruh riwayat Budi. Jumlah query selalu satu lebih banyak dari jumlah baris. Pola itu disebut N+1, dan [[B2.4]] membahasnya.
+Sesudah menebak, ubah satu hal: pilih Laporan harian Ani, lalu Seluruh riwayat Budi. Jumlah query selalu satu lebih banyak dari jumlah baris. Pola itu disebut N+1, dan [[t2-n-plus-1]] membahasnya.
 
 </Blok>
 
 <Blok nama="Konsep yang lahir">
 
-- [[B2.4]]: N+1 query. Satu query untuk daftar, lalu satu lagi untuk setiap baris, sehingga jumlah query tumbuh bersama jumlah baris.
+- [[t2-n-plus-1]]: N+1 query. Satu query untuk daftar, lalu satu lagi untuk setiap baris, sehingga jumlah query tumbuh bersama jumlah baris.
 - [[t2-index]]: index dan query plan. Kenapa query daftar membaca 3.892 posting untuk mengembalikan 20, dan cara melihatnya di query plan. Keputusan perbaikannya ditulis sebagai ADR 15 di halaman itu.
 
 </Blok>
