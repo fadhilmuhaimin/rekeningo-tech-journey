@@ -126,8 +126,8 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 155,
-        "halaman": 15
+        "menit": 164,
+        "halaman": 16
       },
       "versi": "lama",
       "skala": {
@@ -1576,8 +1576,9 @@
       "lab": [
         "e3-idempotency"
       ],
-      "ada": false,
-      "nomor": "2.13"
+      "ada": true,
+      "nomor": "2.13",
+      "menit": 9
     },
     {
       "id": "E3",
