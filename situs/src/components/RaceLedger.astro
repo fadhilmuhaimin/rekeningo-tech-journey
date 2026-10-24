@@ -7,6 +7,11 @@
  * saat build (pola Snippet.astro), divalidasi Zod (skema.ts), dan dicocokkan dengan banding.txt dari run yang sama
  * (siapkan di logika.ts). Rekaman yang tidak ada, tidak sah, atau berbeda dari banding.txt menggagalkan build.
  * Island di-render saat build (client:visible), jadi tinggi widget sebelum dan sesudah hydrate sama.
+ * Cara pasang di halaman (2.10 baris m9 di atas, 2.11 baris adr13; keputusan 711, 716): satu widget di blok Coba, `id`
+ * unik per halaman. Tanpa JavaScript render build hanya menampilkan keadaan awal dan tombolnya tidak berfungsi, jadi
+ * halaman yang memasangnya juga memuat <Snippet file="labs/b3-race/output/ledger/ledger-<cara>.txt" /> untuk cara yang
+ * dibahas. Semua replay ikut masuk HTML sebagai props (enam replay di /uji/race/: HTML 16.639 B gzip), jadi pasang
+ * hanya cara yang dibahas halaman itu.
  * Widget race lama (situs/lama/widgets/race.js, halaman versi lama) tidak memakai komponen ini.
  */
 import fs from "node:fs";
