@@ -1,0 +1,52 @@
+{
+  "id": "t2-peta-transfer",
+  "judul": "Budi mengirim Rp20.000 ke Citra: dari layar Budi sampai layar Citra",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t2 · transfer.txt A"
+  },
+  "jalur": [
+    { "id": "budi", "nama": "App Budi", "jenis": "app" },
+    { "id": "api", "nama": "Backend", "jenis": "backend" },
+    { "id": "db", "nama": "PostgreSQL", "jenis": "db" },
+    { "id": "citra", "nama": "App Citra", "jenis": "app" }
+  ],
+  "langkah": [
+    {
+      "jalur": "budi",
+      "judul": "Budi mengisi nomor karyawan Citra dan nominal",
+      "kode": ["POST /kiriman", "ke_nomor_karyawan: K00504", "nominal: 20000"]
+    },
+    {
+      "jalur": "api",
+      "judul": "Rate limit per alamat IP dan per akun, lalu nominal lebih dari 0",
+      "rinci": ["Batas lab: 30 per IP, 15 per akun pengirim"]
+    },
+    {
+      "jalur": "db",
+      "judul": "Buku Budi dan Citra dikunci, urut id",
+      "kode": ["SELECT ... ORDER BY id FOR UPDATE"]
+    },
+    {
+      "jalur": "db",
+      "judul": "Kiriman keluar Budi sejak 00.00 WIB",
+      "rinci": ["Rp0 + Rp20.000 tidak melewati Rp500.000", "Saldo Rp430.000 cukup"]
+    },
+    {
+      "jalur": "db",
+      "judul": "Satu jurnal transfer, dua posting",
+      "kode": ["jurnal 1119", "Budi −20000, Citra +20000"]
+    },
+    {
+      "jalur": "budi",
+      "judul": "201: saldo Rp410.000, sisa batas Rp480.000",
+      "kode": ["Location: /transfers/1119"]
+    },
+    {
+      "jalur": "citra",
+      "judul": "Citra membuka kiriman itu",
+      "kode": ["GET /transfers/1119", "jumlah 20000"]
+    }
+  ],
+  "catatan": "Notifikasi saat menerima transfer ditunda ke v3 (PRD v2, P2). Citra melihat kiriman saat membuka riwayat atau detailnya."
+}

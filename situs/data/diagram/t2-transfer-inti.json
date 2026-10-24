@@ -1,0 +1,25 @@
+{
+  "id": "t2-transfer-inti",
+  "judul": "Kiriman ke rekan: satu jurnal, dijaga batas harian",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab api-t2 · transfer.txt A dan C" },
+  "baris": [
+    {
+      "label": "Budi ke Citra",
+      "sub": "Rp20.000",
+      "simpul": [
+        { "teks": "ke K00504", "sub": "POST /kiriman" },
+        { "teks": "jurnal dua posting", "sub": "Budi −20.000, Citra +20.000" },
+        { "teks": "terkirim", "sub": "201, sisa batas Rp480.000", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Citra ke Budi",
+      "sub": "kiriman pertama hari itu",
+      "simpul": [
+        { "teks": "Rp800.000", "sub": "ke K00419, batas Rp500.000 per hari" },
+        { "teks": "ditolak: batas harian", "sub": "422, tanpa jurnal", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Batas menghitung kiriman keluar sejak 00.00 WIB. Bayar ke warung dan uang masuk tidak ikut dihitung."
+}
