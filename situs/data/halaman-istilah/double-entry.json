@@ -31,12 +31,12 @@
     "Mengira buku sistem tidak boleh negatif. Buku tunjangan −Rp250.000 berarti tunjangan sudah mengeluarkan Rp250.000; aturan saldo tidak negatif hanya untuk buku karyawan."
   ],
   "terkait": [
+    "Ledger",
     "Jurnal",
+    "Posting",
     "Debit",
     "Kredit",
-    "Invarian",
-    "Buku ledger",
-    "Tutup buku"
+    "Buku ledger"
   ],
   "sumber": [
     {

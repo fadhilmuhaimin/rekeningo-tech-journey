@@ -31,11 +31,12 @@
     "Mengira buku dengan saldo negatif selalu salah. Itu hanya salah untuk buku karyawan; buku tunjangan dan pembuka memang negatif."
   ],
   "terkait": [
+    "Ledger",
+    "Posting",
     "Jurnal",
     "Double-entry",
     "Invarian",
-    "Cache",
-    "Tutup buku"
+    "Cache"
   ],
   "sumber": [
     {

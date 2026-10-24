@@ -66,9 +66,9 @@
   ],
   "terkait": [
     "Constraint",
-    "Transaction",
     "COMMIT",
     "Jurnal",
+    "Posting",
     "Double-entry",
     "Race condition"
   ],
