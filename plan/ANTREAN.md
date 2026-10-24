@@ -1205,11 +1205,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.19 · Pagination kursor + ADR 16
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.18, lab-b2-query
 - selesai bila: halaman Konsep+ADR 2.19 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b2-query`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Isi lama B1.3 dipakai ulang. Dari tinjauan #266: kursor `(dibuat, id)` bisa melewatkan transaksi yang mulai lebih dulu dan COMMIT sesudah halaman dibaca (`dibuat` = awal transaction); ADR 16 wajib membahasnya; rekaman belum memuatnya.
+- catatan: Isi lama B1.3 dipakai ulang. Dari tinjauan #266: kursor `(dibuat, id)` bisa melewatkan transaksi yang mulai lebih dulu dan COMMIT sesudah halaman dibaca (`dibuat` = awal transaction); ADR 16 wajib membahasnya; rekaman belum memuatnya. Dikerjakan di `tahap-2/kursor-adr16`, keputusan 726–728 (`plan/masuk/tahap-2-kursor-adr16.md`; rentang 674–676 di brief sudah terpakai): halaman baru `tahap-2/pagination-kursor.mdx` (`t2-kursor`, template konsep, ADR 16 di Putuskan), B1.3 jadi versi lama dengan `lebur_ke`; Rantai `t2-kursor-inti`; Coba = widget runsql SQLite berlabel Ilustrasi `t2-kursor.json` (id, lawan, jumlah dari `pagination.txt` A; ubah satu hal = transaksi yang COMMIT belakangan, bukan rekaman) dan tes `tests/widgets/runsql-t2-kursor.test.cjs`; Paham: OFFSET menghitung posisi, kursor mengingat baris, kursor di API (`labs/api-t2`), metode idempoten dan GET riwayat, enam tab stack; ADR 16 empat opsi (OFFSET, kursor `(dibuat, id)`, kursor dengan batas aman `xid8`, nomor urut per buku), lima aturan, pre-mortem tiga penyebab, celah COMMIT belakangan ditulis sebagai sudah direkam mekanismenya (`tutup-buku.txt` C) dan belum direkam di riwayat (usul tugas lab `lab-b2-kursor-commit` di SETELAH-TAHAP-2). Lab b2-query tidak diulang di PR ini: 2.15 mengulangnya identik. Istilah baru: Pagination, Pagination kursor (keyset), Metode idempoten; riset R2-145–R2-149.
 
 ### 2.20 · Ukuran payload dan kuota HP
 
