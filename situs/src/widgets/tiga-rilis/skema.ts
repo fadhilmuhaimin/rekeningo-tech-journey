@@ -18,7 +18,7 @@ export const LabelTigaRilis = z
     papan: Teks, // nama daftar app untuk pembaca layar
     app: z.object({ "1.0": Teks, "1.1": Teks }).strict(),
     status: z.object({ jalan: Teks, berhenti: Teks, belum: Teks }).strict(),
-    sesi: z.object({ S: Teks, BF: Teks, P: Teks, Q: Teks, X: Teks }).strict(),
+    sesi: z.object({ S: Teks, BF: Teks, P: Teks, Q: Teks, X: Teks, P1: Teks, P2: Teks }).strict(),
     bayarRiwayat: Teks, // {saldo}, {baris}
     cek: Teks, // {akun}, {tanpa}, {beda}
     langkah: Teks, // {no}, {total}

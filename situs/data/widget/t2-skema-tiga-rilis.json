@@ -38,7 +38,9 @@
     "BF": "Backfill",
     "P": "Bayar Budi",
     "Q": "Buka riwayat",
-    "X": "Bayar akun belum dipindah"
+    "X": "Bayar akun belum dipindah",
+    "P1": "Bayar Citra",
+    "P2": "Buka saldo Karyawan 420"
   },
   "bayarRiwayat": "bayar COMMIT, saldo {saldo}, riwayat {baris} baris",
   "cek": "Cek: {akun} akun, {tanpa} tanpa buku, {beda} cache berbeda",
@@ -58,8 +60,8 @@
   "satu": {
     "judul": "Satu langkah · hasil di rekaman M13",
     "ringkas": "Server lama dan kedua versi app gagal sesudah migrasi selesai.",
-    "serverLama": "Server v1 sesudah COMMIT: {hasil}",
-    "appBerhenti": "App {versi} berhenti: {teks}"
+    "serverLama": "{sesi} di server v1: {hasil}",
+    "appBerhenti": "Dart berhenti: {teks}"
   },
   "tanpaJs": "Tanpa JavaScript, widget ini menampilkan lima fase rekaman sebagai daftar."
 }

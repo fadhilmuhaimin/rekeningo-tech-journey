@@ -129,7 +129,7 @@ export default function TigaRilis({ fase, satu, pilihan, benar, label: L }: Prop
                 <p>{L.satu.ringkas}</p>
                 <ul className="tr-rekaman">
                   {satu.galat.map((g) => (
-                    <li key={g.no}><code translate="no">{isi(L.satu.serverLama, { hasil: g.hasil })}</code></li>
+                    <li key={g.no}><code translate="no">{isi(L.satu.serverLama, { sesi: L.sesi[g.sesi] ?? g.sesi, hasil: g.hasil })}</code></li>
                   ))}
                 </ul>
               </>
