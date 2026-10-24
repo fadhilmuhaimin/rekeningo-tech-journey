@@ -126,7 +126,7 @@ Skenario 2 memakai `SET CONSTRAINTS ALL IMMEDIATE` supaya urutannya bisa diulang
 
 <Snippet file="labs/b3-ledger/output/batas.txt" lines="87:97" title="Rekaman lab: labs/b3-ledger/output/batas.txt" />
 
-Dokumentasi PostgreSQL menulis bahwa aturan integritas yang membaca baris lain sulit dijaga di Read Committed, dan menyarankan Serializable atau lock eksplisit ([PostgreSQL 17, 13.4](https://www.postgresql.org/docs/17/applevel-consistency.html)). Pilihan itu adalah keputusan M9 di [[t2-m9]] dan [[B3.2]]. Di skenario 3, cache yang diperbarui di transaction yang sama sudah menahan saldo negatif, tapi transfer kedua gagal dengan error database, bukan jawaban "saldo kurang".
+Dokumentasi PostgreSQL menulis bahwa aturan integritas yang membaca baris lain sulit dijaga di Read Committed, dan menyarankan Serializable atau lock eksplisit ([PostgreSQL 17, 13.4](https://www.postgresql.org/docs/17/applevel-consistency.html)). Pilihan itu adalah keputusan M9 di [[t2-m9]] dan [[t2-race-lock]]. Di skenario 3, cache yang diperbarui di transaction yang sama sudah menahan saldo negatif, tapi transfer kedua gagal dengan error database, bukan jawaban "saldo kurang".
 
 ### Di stack lain
 
@@ -249,7 +249,7 @@ if (error?.code === '23514') {
 | Aturan untuk satu baris, mis. jumlah posting bukan 0 atau alasan pembalik minimal 20 karakter | `CHECK`; diperiksa seketika |
 | Aturan yang menjumlah beberapa baris, mis. jurnal seimbang | Constraint trigger yang ditunda sampai `COMMIT` |
 | Baris yang tidak boleh berubah | Trigger `BEFORE UPDATE`, `DELETE`, dan `TRUNCATE`, ditambah role app yang bukan pemilik tabel |
-| Aturan yang harus benar saat dua transaction berjalan bersamaan | Pemeriksaan saja tidak cukup; butuh lock atau Serializable ([[B3.2]], [[B3.3]]) |
+| Aturan yang harus benar saat dua transaction berjalan bersamaan | Pemeriksaan saja tidak cukup; butuh lock atau Serializable ([[t2-race-lock]], [[B3.3]]) |
 
 **Biaya invarian di database.** Setiap posting keluar di buku karyawan menjalankan `sum` atas semua posting buku itu, jadi pemeriksaannya tumbuh bersama riwayat. Lamanya belum diukur di lab. Kesalahan juga baru terlihat di `COMMIT`, jadi kode harus memetakan SQLSTATE dan nama constraint menjadi jawaban yang dimengerti app.
 
@@ -259,7 +259,7 @@ Kenapa Rekeningo memilih ledger, opsi yang ditolak, dan kapan keputusan itu sala
 
 | Yang ditunda | Kenapa ditunda | Muncul lagi di |
 |---|---|---|
-| Lock saat saldo diperiksa | Pilihan lock, Serializable, atau UPDATE bersyarat dibandingkan di lab b3-race | [[t2-m9]], [[B3.2]] |
+| Lock saat saldo diperiksa | Pilihan lock, Serializable, atau UPDATE bersyarat dibandingkan di lab b3-race | [[t2-m9]], [[t2-race-lock]] |
 | Batas saldo warung dan batas harian di database | `buku.batas_saldo` dan `buku.batas_harian` dibaca app, belum dijaga database (`schema.sql`) | [[t2-m14]] |
 | Menolak posting baru di jurnal lama | Posting yang tetap seimbang masih bisa ditambahkan ke jurnal lama; menutupnya butuh `dibuat` yang selalu diisi database | Tidak dijadwalkan |
 
