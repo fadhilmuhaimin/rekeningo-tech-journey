@@ -1,0 +1,322 @@
+---
+title: "2.12 Isolation level secara praktis"
+description: Isolation level menentukan kapan transaction-mu melihat jurnal yang sudah COMMIT di transaction lain. Laporan tutup buku butuh satu snapshot; pemeriksaan saldo butuh lock, atau Serializable dengan retry, bukan Repeatable Read.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-isolasi-inti.json";
+import transferDiagram from "../../../../data/diagram/t2-isolasi-transfer.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 10 menit · coba 3 menit · Prasyarat: [[t2-race-lock]]</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Isolation level menentukan kapan transaction-mu melihat data yang sudah di-`COMMIT` transaction lain.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di Read Committed, bawaan PostgreSQL, setiap perintah membaca data yang sudah `COMMIT` saat perintah itu mulai. Laporan tutup buku yang dibaca dalam dua perintah melihat bayar Budi Rp25.000 di perintah kedua saja. Rekaman lab `laporan.txt` (lab b3-isolasi) mendapat selisih Rp25.000 di buku Budi dan Warung Ani, padahal setiap jurnal seimbang.
+
+Di Repeatable Read, semua perintah membaca satu **snapshot**: isi database saat perintah pertama transaction itu, dan laporan yang sama jadi cocok. Pemeriksaan saldo saat `COMMIT` juga membaca snapshot itu, jadi dua transfer M9 tanpa lock sama-sama tersimpan dan saldo Budi −Rp20.000 (`transfer.txt`). Repeatable Read bukan pengganti lock dari [[t2-race-lock]]. Serializable menolak salah satu transfer dengan 40001, dan semua jalur tulis harus mengulangnya.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Laporan membaca mutasi dari posting, lalu saldo akhir dari `saldo_cache`, di satu transaction. Di level mana hasilnya bisa tidak cocok, dan kenapa?
+2. Kenapa menaikkan level ke Repeatable Read membuat dua transfer M9 tanpa lock sama-sama tersimpan?
+3. Kode menerima SQLSTATE 40001 saat `COMMIT`. Apa yang harus diulang?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: di Read Committed dua perintah dalam satu transaction bisa membaca dua keadaan database, sedangkan di Repeatable Read keduanya membaca snapshot yang sama.">
+
+Widget ini memutar ulang rekaman lab b3-isolasi di PostgreSQL 17.11. Laporan memecah tutup buku jadi dua perintah, seperti dua fungsi repo, dan bayar Budi masuk di antaranya.
+
+<WidgetLama nama="alur" src="data/skenario/t2-isolasi.json" />
+
+Di jalur utama, perintah 2 sudah melihat bayar B, sedangkan perintah 1 belum. Setiap angka benar untuk saat ia dibaca, tapi laporan menggabungkan dua saat yang berbeda.
+
+Nyalakan **Ubah satu hal**: transaction laporan dibuka dengan `REPEATABLE READ`. Perintah 2 kini membaca snapshot yang sama dengan perintah 1, dan selisih semua buku 0. Bayar B tidak hilang, karena laporan berikutnya memuatnya (rekaman `laporan.txt` bagian REPEATABLE READ).
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Di Tahap 2, ada dua tempat transaction berjalan bersamaan dan hasilnya harus benar. Tutup buku dibaca saat pembayaran tetap berjalan ([[t2-tutup-buku]]), dan dua transfer Budi bisa tiba hampir bersamaan ([[t2-m9]]). Raka mengira transaction sudah membuat semua perintah di dalamnya melihat data yang sama, karena huruf I di ACID adalah isolation.
+
+Isolation punya beberapa tingkat, dan bawaan PostgreSQL adalah Read Committed ([PostgreSQL 17, 13.2.1](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-READ-COMMITTED)). Di level ini, dua `SELECT` dalam satu transaction bisa melihat data berbeda bila transaction lain `COMMIT` di antaranya.
+
+Laporan api-t2 di [[t2-tutup-buku]] menghitung angka per buku dalam satu query, jadi angka-angka satu buku selalu berasal dari satu snapshot. Ringkasan jurnalnya dihitung query kedua lewat pool, di luar transaction (`labs/api-t2/internal/repo/tutupbuku.go`). Jadi ringkasan itu bisa memuat jurnal yang `COMMIT` sesudah query pertama. Kemungkinan ini Tidak dijalankan di lab; ia disimpulkan dari kode dan 13.2.1.
+
+### Cara kerjanya
+
+**Snapshot.** PostgreSQL menyimpan beberapa versi setiap baris (MVCC). Setiap perintah membaca snapshot: isi database seperti pada satu saat tertentu, terlepas dari isi terbarunya. Karena itu membaca tidak menunggu menulis, dan menulis tidak menunggu membaca ([PostgreSQL 17, 13.1](https://www.postgresql.org/docs/17/mvcc-intro.html)). Isolation level menentukan kapan snapshot itu diambil.
+
+Empat level standar SQL, dengan perilaku PostgreSQL 17 ([Tabel 13.1](https://www.postgresql.org/docs/17/transaction-iso.html)) dan rekaman lab b3-isolasi:
+
+| Level | Snapshot diambil | Yang masih bisa terjadi di PostgreSQL | Rekaman lab |
+|---|---|---|---|
+| Read Uncommitted | Sama dengan Read Committed | Sama dengan Read Committed | `dirty-read.txt`: posting yang belum `COMMIT` tidak terlihat |
+| Read Committed (bawaan) | Di awal setiap perintah | Nonrepeatable read, phantom read, serialization anomaly | `laporan.txt`: selisih Rp25.000 |
+| Repeatable Read | Di perintah pertama, dipakai sampai transaction selesai | Serialization anomaly | `laporan.txt`: cocok; `transfer.txt`: saldo −Rp20.000 |
+| Serializable | Sama dengan Repeatable Read, ditambah pemantauan baca-tulis | Tidak ada; salah satu transaction ditolak 40001 | `transfer.txt`: B ditolak 40001, diulang, saldo kurang |
+
+Empat anomali di tabel itu artinya:
+
+- **Dirty read**: membaca perubahan yang belum `COMMIT`. Tidak terjadi di level mana pun di PostgreSQL.
+- **Nonrepeatable read**: baris yang sama dibaca dua kali dalam satu transaction, dan nilainya berbeda.
+- **Phantom read**: query yang sama mengembalikan kumpulan baris berbeda, karena transaction lain menambah atau menghapus baris.
+- **Serialization anomaly**: hasil beberapa transaction tidak sama dengan menjalankannya satu per satu dalam urutan mana pun.
+
+**Read Uncommitted tidak membuka data yang belum COMMIT.** PostgreSQL menerima level itu, tapi menjalankannya sebagai Read Committed. Di rekaman, A meminta Read Uncommitted dan tetap membaca saldo Budi Rp100.000 selama bayar B belum `COMMIT`:
+
+<Snippet file="labs/b3-isolasi/output/ledger/dirty-read.txt" lines="24:44" title="Rekaman lab: labs/b3-isolasi/output/ledger/dirty-read.txt" />
+
+**Read Committed: snapshot baru di setiap perintah.** Inilah yang terjadi di jalur utama widget. App menggabungkan hasil dua perintah di memori, dan dua buku tidak cocok:
+
+<Snippet file="labs/b3-isolasi/output/ledger/laporan.txt" lines="58:68" title="Rekaman lab: labs/b3-isolasi/output/ledger/laporan.txt" />
+
+**Repeatable Read: satu snapshot sampai transaction selesai.** Snapshot diambil saat perintah pertama yang bukan `BEGIN` ([13.2.2](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ)). Transaction yang hanya membaca tidak pernah gagal karena konflik di level ini, jadi laporan tidak butuh retry.
+
+Kalau kamu memakai sqflite, transaction SQLite di HP sudah serializable, dan penulisnya bergiliran satu per satu ([SQLite: Isolation](https://www.sqlite.org/isolation.html)). Di server, PostgreSQL membiarkan transaction tumpang tindih, dan level yang kamu pilih menentukan apa yang terlihat.
+
+### Saat Repeatable Read meloloskan saldo negatif
+
+Lab memakai kode transfer M9 tanpa lock: baca saldo dari posting, cek di app, `INSERT` jurnal dan posting, `COMMIT`. Invarian 3, saldo karyawan tidak negatif, diperiksa trigger saat `COMMIT` ([[t2-ledger]]). Angkanya dari naskah M9:
+
+<Rantai data={transferDiagram} />
+
+Fungsi trigger lab tidak menulis volatility, jadi bawaannya `VOLATILE`. Dokumentasi menulis bahwa fungsi `VOLATILE` mengambil snapshot baru di setiap query yang dijalankannya, tanpa menyebut level ([PostgreSQL 17, 38.7](https://www.postgresql.org/docs/17/xfunc-volatility.html)). Di Read Committed, snapshot baru saat `COMMIT` B sudah berisi posting A, jadi B ditolak. Di Repeatable Read, semua query di transaction B memakai snapshot B, termasuk query di trigger ([13.2.2](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ)):
+
+<Snippet file="labs/b3-isolasi/output/ledger/transfer.txt" lines="87:93" title="Rekaman lab: labs/b3-isolasi/output/ledger/transfer.txt" />
+
+Repeatable Read menolak transaction yang mengubah atau mengunci baris yang sudah diubah transaction lain sesudah snapshot-nya. A dan B hanya `INSERT`, jadi tidak ada yang ditolak. Dokumentasi PostgreSQL mengingatkan bahwa aturan bisnis yang dijaga transaction di level ini kemungkinan besar tidak bekerja benar tanpa lock eksplisit ([13.2.2](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ)).
+
+Read Committed juga bukan jawabannya. B ditolak karena `COMMIT` A sudah selesai sebelum pemeriksaan B jalan. Bila dua `COMMIT` dikirim bersamaan, keduanya bisa lolos (rekaman b3-ledger `batas.txt` skenario 2b, [[t2-ledger]]). Dan B menerima error database 23514, bukan jawaban "saldo kurang".
+
+### Serializable dan SQLSTATE 40001
+
+Serializable bekerja seperti Repeatable Read, ditambah catatan tentang apa yang dibaca setiap transaction. Catatan itu tidak membuat siapa pun menunggu ([13.2.3](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-SERIALIZABLE)). Posting A mengubah hasil `sum` yang dibaca B, dan posting B mengubah hasil yang dibaca A. Tidak ada urutan satu per satu yang memberi hasil itu, jadi `COMMIT` B ditolak dengan 40001:
+
+<Snippet file="labs/b3-isolasi/output/ledger/transfer.txt" lines="127:149" title="Rekaman lab: labs/b3-isolasi/output/ledger/transfer.txt" />
+
+Kode lab hanya mengulang 40001, seluruh transaction dari `BEGIN`, paling banyak tiga percobaan. Percobaan 2 membaca saldo lagi, mendapat Rp30.000, dan app menjawab "saldo kurang". Dokumentasi PostgreSQL meminta seluruh transaction diulang, termasuk logika yang memilih SQL dan nilainya, sehingga PostgreSQL tidak mengulang sendiri ([13.5](https://www.postgresql.org/docs/17/mvcc-serialization-failure-handling.html)). Error 23514 tidak diulang, karena saldo yang kurang tetap kurang saat dicoba lagi.
+
+Di Serializable, transaction yang hanya membaca pun bisa ditolak 40001, kecuali dibuka `READ ONLY DEFERRABLE` ([PostgreSQL 17: SET TRANSACTION](https://www.postgresql.org/docs/17/sql-set-transaction.html)). Rekaman laporan di level ini berakhir dua-duanya `COMMIT`, karena laporan A hanya membaca (`laporan.txt` bagian SERIALIZABLE).
+
+### Cache di transaction: lock yang sudah ada
+
+Kode api-t2 memperbarui `saldo_cache` di transaction jurnal. `UPDATE` itu mengunci baris buku Budi sampai `COMMIT`, jadi B menunggu A di ketiga level (rekaman `transfer-cache.txt`):
+
+| Level | Sesudah A `COMMIT` | Saldo Budi |
+|---|---|---|
+| Read Committed | `UPDATE` B diterapkan ke versi baris buatan A, lalu `COMMIT` B ditolak 23514 | Rp30.000 |
+| Repeatable Read | `UPDATE` B gagal 40001; percobaan 2 menjawab "saldo kurang" | Rp30.000 |
+| Serializable | Sama dengan Repeatable Read | Rp30.000 |
+
+Di Read Committed, `UPDATE` yang menunggu menilai ulang `WHERE` pada versi baris terbaru ([13.2.1](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-READ-COMMITTED)). Di Repeatable Read, transaction yang menunggu dibatalkan bila transaction pertama `COMMIT` dan benar-benar mengubah baris itu:
+
+<Snippet file="labs/b3-isolasi/output/ledger/transfer-cache.txt" lines="98:123" title="Rekaman lab: labs/b3-isolasi/output/ledger/transfer-cache.txt" />
+
+Lock baris yang menahan saldo negatif di tabel ini, bukan level-nya. Mengunci baris buku sebelum saldo diperiksa adalah ADR 13, dibahas di [[t2-race-lock]].
+
+### Di stack lain
+
+**Skenario:** membuka transaction Repeatable Read untuk laporan, lalu mengenali 40001 yang harus diulang. Tab Go memuat kode api-t2 yang dijalankan di lab. Baris lain tidak dijalankan, hanya dicek ke dokumentasi atau kode sumber pada 2026-10-24.
+
+Yang sama di semua stack: level berlaku untuk satu transaction dan ditetapkan sebelum query pertamanya ([SET TRANSACTION](https://www.postgresql.org/docs/17/sql-set-transaction.html)). Setting per koneksi hanya mengubah level bawaan transaction berikutnya. Tidak ada driver yang mengulang transaction-mu tanpa diminta. Yang berbeda: tempat level ditulis, dan siapa yang mengulang.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Kode `DalamTx` dijalankan di lab api-t2 (Go 1.27.1, `database/sql` + pgx v5.11.0, PostgreSQL 17.11), tapi level transaction-nya tidak direkam. Read Committed di bawah disimpulkan dari kode sumber pgx v5.11.0 `stdlib/sql.go` dan dari bawaan server di rekaman b3-isolasi. Baris Repeatable Read tidak dijalankan.*
+
+<Snippet file="labs/api-t2/internal/repo/tx.go" region="tx" lang="go" title="labs/api-t2/internal/repo/tx.go" />
+
+<Snippet lang="go" code={`tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+
+var pgErr *pgconn.PgError
+if errors.As(err, &pgErr) && pgErr.Code == "40001" {
+    // ulang seluruh fungsi, dari BeginTx
+}`} />
+
+**Yang berbeda di stack ini:** `BeginTx(ctx, nil)` di api-t2 tidak menulis level, jadi semua transaction Tahap 2 berjalan di Read Committed. Driver pgx menerjemahkan `sql.LevelRepeatableRead` ke `begin isolation level repeatable read`, dan menolak level yang tidak dikenalnya. Retry ditulis sendiri.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [node-postgres: Transactions](https://node-postgres.com/features/transactions), `pg` 8.23.1.*
+
+<Snippet lang="js" code={`const client = await pool.connect();
+try {
+  await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
+  // ... query laporan
+  await client.query("COMMIT");
+} catch (e) {
+  await client.query("ROLLBACK");
+  if (e.code === "40001") { /* ulang dari BEGIN */ }
+  throw e;
+} finally {
+  client.release();
+}`} />
+
+**Yang berbeda di stack ini:** node-postgres tidak punya API isolation level. Level ditulis di perintah `BEGIN`, dan semua query transaction harus lewat satu `client`, bukan `pool.query`.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke kode sumber Laravel 13.x: [PostgresConnector](https://github.com/laravel/framework/blob/13.x/src/Illuminate/Database/Connectors/PostgresConnector.php), [ConcurrencyErrorDetector](https://github.com/laravel/framework/blob/13.x/src/Illuminate/Database/ConcurrencyErrorDetector.php), Laravel 13.38.0.*
+
+<Snippet lang="php" code={`// config/database.php, koneksi pgsql: level bawaan setiap transaction di koneksi ini
+'isolation_level' => 'repeatable read',
+
+// atau per transaction, sebagai perintah pertama di dalam closure
+DB::transaction(function () {
+    DB::statement('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+    // ... query laporan
+}, attempts: 3);`} />
+
+**Yang berbeda di stack ini:** `isolation_level` di config menjalankan `set session characteristics as transaction isolation level ...` saat koneksi dibuka. Argumen `attempts` mengulang closure bila error-nya SQLSTATE 40001 atau "deadlock detected", juga saat `COMMIT` yang gagal.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: PostgreSQL notes, Isolation level](https://docs.djangoproject.com/en/6.1/ref/databases/#isolation-level) dan [psycopg 3.3: errors](https://www.psycopg.org/psycopg3/docs/api/errors.html).*
+
+<Snippet lang="python" code={`from django.db.backends.postgresql.psycopg_any import IsolationLevel
+
+DATABASES = {"default": {
+    # ...
+    "OPTIONS": {"isolation_level": IsolationLevel.REPEATABLE_READ},
+}}`} />
+
+**Yang berbeda di stack ini:** level diatur per koneksi di settings, bukan per `atomic()`. Django tidak mengulang sendiri. psycopg memberi 40001 sebagai `SerializationFailure`, turunan `OperationalError`, dan Django menyimpan error aslinya di `__cause__`.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod 4.0: Transactions](https://docs.serverpod.dev/concepts/data-and-the-database/database/transactions), Serverpod 4.0.4.*
+
+<Snippet lang="dart" code={`await session.db.transaction(
+  (transaction) async {
+    // ... query laporan, setiap panggilan memakai transaction: transaction
+  },
+  settings: TransactionSettings(isolationLevel: IsolationLevel.repeatableRead),
+);`} />
+
+**Yang berbeda di stack ini:** level ditulis di `TransactionSettings` per transaction. Contoh di dokumentasinya menangkap `DatabaseQueryException` dan memeriksa `PgErrorCode.serializationFailure`, lalu mengulang atau melapor ke pemanggil.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [PostgREST: Transactions](https://docs.postgrest.org/en/stable/references/transactions.html), `@supabase/supabase-js` 2.118.0.*
+
+<Snippet lang="sql" code={`CREATE FUNCTION laporan_tutup_buku(periode date) RETURNS SETOF baris_laporan
+LANGUAGE sql STABLE SECURITY INVOKER
+SET default_transaction_isolation TO 'repeatable read'
+AS $$ ... $$;`} />
+
+<Snippet lang="js" code={`const { data, error } = await supabase.rpc('laporan_tutup_buku', { periode: '2026-10-01' })
+if (error?.code === '40001') { /* panggil lagi */ }`} />
+
+**Yang berbeda di stack ini:** satu panggilan `rpc()` adalah satu transaction, dan bawaannya Read Committed. Level ditulis di fungsi atau di role lewat `default_transaction_isolation`. Retry ditulis di app, dengan memanggil `rpc()` lagi.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Situasi | Pilihan |
+|---|---|
+| Laporan yang membaca lebih dari satu perintah dan harus cocok, mis. tutup buku | Satu transaction `REPEATABLE READ READ ONLY`. Ia hanya membaca, jadi tidak pernah gagal 40001 |
+| Transfer, bayar, atau pencairan yang memeriksa saldo | Read Committed + lock baris buku di transaction jurnal (ADR 13, [[t2-race-lock]]). Repeatable Read tanpa lock meloloskan −Rp20.000 |
+| Aturan atas banyak baris tanpa satu baris yang bisa dikunci | Serializable + retry 40001 di semua jalur tulis, atau lock eksplisit ([13.2.2](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ), [13.4](https://www.postgresql.org/docs/17/applevel-consistency.html)) |
+| Satu `SELECT` | Level apa pun. Satu perintah selalu membaca satu snapshot |
+
+| Level | Kelebihan | Kekurangan |
+|---|---|---|
+| Read Committed | Tidak pernah 40001; `UPDATE` yang menunggu melanjutkan atas versi baris terbaru | Dua perintah bisa membaca dua keadaan database |
+| Repeatable Read | Satu snapshot untuk seluruh transaction; laporan baca saja tanpa retry | Pemeriksaan yang membaca baris lain tidak melihat transaction yang `COMMIT` sesudah snapshot; penulisan bisa gagal 40001 |
+| Serializable | Hasilnya sama dengan transaction yang dijalankan satu per satu | Semua jalur tulis wajib mengulang 40001; laporan baca saja pun bisa gagal, kecuali `DEFERRABLE` |
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Serializable sebagai level bawaan | ADR 13 memilih lock baris buku; di lab b3-race keempat cara berakhir saldo Rp30.000, dan Serializable menambah retry di semua jalur tulis | [[t2-race-lock]] |
+| Tutup buku api-t2 dalam satu transaction Repeatable Read | Dua query laporan sekarang lewat pool; perbaikannya belum direkam di lab | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Rekaman laporan Read Committed membaca mutasi Budi Rp100.000 di perintah 1, lalu saldo akhir Rp75.000 di perintah 2. Apakah ini bug PostgreSQL?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Bukan. Di Read Committed, setiap perintah membaca data yang sudah `COMMIT` saat perintah itu mulai. Bayar Rp25.000 `COMMIT` di antara kedua perintah, jadi hanya perintah 2 yang melihatnya. Laporan yang harus cocok dibuka di satu transaction Repeatable Read.
+
+</details>
+
+**2.** Dua transfer M9 tanpa lock: di Read Committed B ditolak 23514, di Repeatable Read keduanya tersimpan. Kenapa Repeatable Read, level di atas Read Committed, meloloskan saldo −Rp20.000?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Trigger invarian 3 membaca saldo saat `COMMIT` B. Di Read Committed, query trigger mendapat snapshot baru yang berisi posting A. Di Repeatable Read, query itu memakai snapshot B, yang diambil sebelum A `COMMIT`. A dan B hanya `INSERT`, jadi tidak ada baris yang membuat B ditolak (rekaman `transfer.txt`).
+
+</details>
+
+**3.** Di Serializable, `COMMIT` B ditolak dengan 40001. Apa yang diulang kode, dan apa yang tidak boleh diulang?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Seluruh transaction dari `BEGIN`, termasuk membaca saldo, dengan batas percobaan. Mengulang `COMMIT` saja tidak cukup, karena keputusan "saldo cukup" diambil dari bacaan yang sudah tidak berlaku. Error lain seperti 23514 dikembalikan ke app tanpa ulang, dan efek di luar database tidak boleh ikut terulang.
+
+</details>
+
+**4.** Laporan tutup buku hanya membaca. Di level mana laporan itu dijamin tidak pernah ditolak 40001?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Read Committed dan Repeatable Read. Di Repeatable Read, transaction baca saja tidak pernah punya konflik serialisasi ([13.2.2](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ)). Di Serializable, transaction baca saja bisa ditolak, kecuali dibuka `READ ONLY DEFERRABLE`.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Tidak ada anggapan "naik ke Repeatable Read lebih aman" untuk aturan yang membaca baris lain, seperti saldo atau batas harian, tanpa lock.
+- [ ] Laporan yang membaca lebih dari satu perintah berjalan di satu transaction Repeatable Read, bukan query lepas lewat pool.
+- [ ] Kode di Repeatable Read atau Serializable mengulang seluruh transaction saat 40001, dengan batas percobaan, dan membaca error dari `COMMIT` juga.
+- [ ] Retry tidak mengulang efek di luar database, mis. notifikasi atau panggilan API.
+
+### Bacaan lanjut
+
+- [PostgreSQL 17: Transaction Isolation](https://www.postgresql.org/docs/17/transaction-iso.html)
+- [PostgreSQL 17: Serialization Failure Handling](https://www.postgresql.org/docs/17/mvcc-serialization-failure-handling.html)
+- Ports dan Grittner, [Serializable Snapshot Isolation in PostgreSQL](https://arxiv.org/abs/1208.4179), PVLDB 5(12), 2012
+
+</Blok>
+
+<SkripLama daftar={["cerita","hp","alur-core","alur"]} />

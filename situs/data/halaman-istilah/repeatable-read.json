@@ -1,0 +1,55 @@
+{
+  "istilah": "Repeatable Read",
+  "sehari_hari": "Repeatable Read memberi transaction satu foto isi database, diambil di perintah pertama. Selama transaction berjalan, perubahan orang lain tidak terlihat, termasuk oleh pemeriksaan yang seharusnya melihatnya.",
+  "cerita": [
+    {
+      "rujukan": "t2-isolation-level",
+      "teks": "Laporan tutup buku yang sama jadi cocok, dan bayar Rp25.000 masuk laporan berikutnya."
+    },
+    {
+      "rujukan": "t2-m9",
+      "teks": "Dua transfer M9 tanpa lock sama-sama `COMMIT`, dan saldo Budi −Rp20.000."
+    }
+  ],
+  "mekanisme": [
+    "Snapshot diambil saat perintah pertama yang bukan `BEGIN`, lalu dipakai semua perintah sampai transaction selesai.",
+    "Transaction yang mengubah atau mengunci baris yang sudah diubah transaction lain sesudah snapshot-nya menunggu, lalu ditolak 40001 bila yang lain `COMMIT`.",
+    "Transaction yang hanya membaca tidak pernah ditolak karena konflik serialisasi.",
+    "Dua transaction yang hanya `INSERT` tidak pernah bentrok di baris yang sama, jadi aturan yang menjumlah banyak baris bisa dilanggar tanpa error."
+  ],
+  "stack": {
+    "lihat": "isolation-level",
+    "teks": "Kodenya sama dengan memilih isolation level: level ditetapkan per transaction sebelum query pertama, dan 40001 dikenali dari kode error."
+  },
+  "jebakan": [
+    "Memakainya sebagai pengganti lock. Pemeriksaan saldo di trigger membaca snapshot lama, sehingga Repeatable Read meloloskan saldo negatif yang ditolak Read Committed (rekaman `transfer.txt`).",
+    "Lupa retry untuk transaction yang menulis. `UPDATE` atas baris yang sudah diubah orang lain gagal 40001 (rekaman `transfer-cache.txt`)."
+  ],
+  "terkait": [
+    "Isolation level",
+    "Snapshot",
+    "Serializable",
+    "Serialization anomaly",
+    "Lock"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-90",
+      "judul": "PostgreSQL 17: Repeatable Read Isolation Level (13.2.2)",
+      "url": "https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ",
+      "catatan": "Snapshot dari perintah pertama; transaction baca saja tidak pernah konflik serialisasi; aturan bisnis di level ini butuh lock eksplisit."
+    },
+    {
+      "riset": "R2-91",
+      "judul": "PostgreSQL 17: Function Volatility Categories (38.7)",
+      "url": "https://www.postgresql.org/docs/17/xfunc-volatility.html",
+      "catatan": "Fungsi VOLATILE, bawaan bila tidak ditulis, mengambil snapshot baru di setiap query; di Repeatable Read snapshot itu tetap snapshot transaction."
+    },
+    {
+      "riset": "R2-91",
+      "judul": "Rekaman lab b3-isolasi: transfer",
+      "rekaman": "labs/b3-isolasi/output/ledger/transfer.txt",
+      "catatan": "Bagian 2: dua-duanya COMMIT, saldo Budi dari posting −20000."
+    }
+  ]
+}
