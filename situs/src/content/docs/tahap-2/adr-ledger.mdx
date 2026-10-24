@@ -76,7 +76,7 @@ Batas kasus ini: satu service, ±20 TB data, di Cloud Spanner, dengan skema yang
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
-1. Ada kode yang menulis `saldo_cache` tanpa posting, dan app menampilkan saldo yang tidak bisa dijelaskan. Pencegahannya masuk butir 3 dan 5: job malam keluar dengan status 1 saat cache berbeda Rp5.000 dari posting (rekaman api-t2 `migrasi.txt` bagian E).
+1. Ada kode yang menulis `saldo_cache` tanpa posting, dan app menampilkan saldo yang tidak bisa dijelaskan. Role server memang boleh mengubah `saldo_cache`, jadi butir 5 tidak mencegahnya. Yang menangkapnya butir 3: job malam keluar dengan status 1 saat cache berbeda Rp5.000 dari posting (rekaman api-t2 `migrasi.txt` bagian E).
 2. Seseorang membereskan data langsung di database: mematikan trigger, lalu mengubah posting. Pencegahannya butir 5: role server ditolak dengan SQLSTATE 42501 (rekaman api-t2 `migrasi.txt` bagian F). Pemilik schema dan superuser tetap bisa. Persetujuan dua orang untuk perubahan seperti itu direncanakan di Tahap 4 ([[t1-adr-transaction]]).
 3. Ledger dianggap juga menyelesaikan dua transfer bersamaan. Tanpa lock, keduanya COMMIT dan saldo Budi −Rp20.000 (rekaman `batas.txt` bagian 2). Butir 3 membuat transfer kedua menunggu lock baris cache, tapi ia ditolak database, bukan dijawab "saldo kurang" (bagian 3). Cara mengunci yang benar butuh keputusan sendiri, ADR 13 ([[t2-m9]], [[B3.2]]).
 
