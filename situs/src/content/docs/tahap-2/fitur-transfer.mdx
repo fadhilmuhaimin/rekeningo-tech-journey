@@ -72,7 +72,7 @@ Service mengambil satu token dari bucket akun pengirim dan memeriksa nominal leb
 
 <Snippet file="labs/api-t2/internal/service/kirim.go" region="kirim" lang="go" title="labs/api-t2/internal/service/kirim.go" />
 
-Langkah pertama di dalam transaction mengunci buku pengirim dan penerima. Batas harian dan saldo dibaca sesudah kunci didapat, lalu jurnal ditulis. Kenapa kunci ini perlu, dan apa yang terjadi tanpanya, dibuka di [[t2-m9]] dan [[B3.2]].
+Langkah pertama di dalam transaction mengunci buku pengirim dan penerima. Batas harian dan saldo dibaca sesudah kunci didapat, lalu jurnal ditulis. Kenapa kunci ini perlu, dan apa yang terjadi tanpanya, dibuka di [[t2-m9]] dan [[t2-race-lock]].
 
 Kedua buku dikunci dengan satu query, urut `id` buku:
 
@@ -244,7 +244,7 @@ REVOKE EXECUTE ON FUNCTION kirim(text, bigint) FROM public, anon;`} />
 
 - [[t2-ledger]]: jurnal, posting, dan invarian yang juga berlaku untuk jurnal transfer.
 - [[t2-m9]]: Budi mengirim dari HP dan tablet hampir bersamaan.
-- [[B3.2]]: race condition, lock, dan ADR 13.
+- [[t2-race-lock]]: race condition, lock, dan ADR 13.
 - [[E3]]: retry dan idempotency key, untuk app yang mengulang kiriman.
 - [[t2-login-aman]]: rate limit dua lapis dan token bucket.
 
