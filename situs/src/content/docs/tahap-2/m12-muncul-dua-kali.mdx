@@ -63,7 +63,9 @@ Kiriman Dimas tidak hilang dari database. Bagian B rekaman yang sama menampilkan
 
 Bagian C rekaman memperluas skenario ke seluruh riwayat Budi: 205 halaman berisi 20 baris, dengan satu kiriman masuk sebelum setiap halaman berikutnya. Hasilnya 204 baris ganda dan 204 kiriman yang tidak pernah tampil.
 
-<Snippet file="labs/b2-query/output/ledger/pagination.txt" lines="77:86" title="Rekaman lab: labs/b2-query/output/ledger/pagination.txt, bagian C (seluruh riwayat Budi, baris OFFSET dan baris pembanding)" />
+<Snippet file="labs/b2-query/output/ledger/pagination.txt" lines="77:84" title="Rekaman lab: labs/b2-query/output/ledger/pagination.txt, bagian C (seluruh riwayat Budi, baris OFFSET dan baris pembanding)" />
+
+Jumlah baris tampil pada dua baris tabel itu tidak sebanding. Putaran kedua berjalan sesudah putaran OFFSET, sehingga 204 kiriman dari putaran pertama sudah ada di tabel. Hitungannya dari rekaman: 4.098 posting sebelum putaran kedua, ditambah 204 kiriman baru, menjadi 4.302.
 
 *Yang tidak diukur:* skenario lab sengaja menaruh satu kiriman di sela setiap halaman supaya dampaknya terhitung. Sebagai pembanding, Budi di data lab punya 3.892 posting dalam 364 hari, rata-rata ±11 sehari (hitungan dari rekaman data). Seberapa sering kiriman masuk tepat di sela halaman belum diukur. Yang terulang adalah mekanismenya: satu kiriman di sela dua halaman menghasilkan satu baris ganda dan satu kiriman yang tidak tampil.
 
