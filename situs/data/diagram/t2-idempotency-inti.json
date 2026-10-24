@@ -1,0 +1,43 @@
+{
+  "id": "t2-idempotency-inti",
+  "judul": "Retry sesudah response hilang: key dibuat ulang per retry dan key dibuat sekali per niat bayar",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab e3-idempotency · ledger"
+  },
+  "baris": [
+    {
+      "label": "Key per retry",
+      "sub": "key-per-percobaan.txt",
+      "simpul": [
+        {
+          "teks": "retry: key baru",
+          "sub": "0fa0431d… lalu a5aacff5…",
+          "nada": "warn"
+        },
+        {
+          "teks": "2 jurnal, Rp50.000",
+          "sub": "server melihat dua niat",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Key per niat",
+      "sub": "key-per-niat.txt",
+      "simpul": [
+        {
+          "teks": "retry: key sama",
+          "sub": "0fa0431d… di kedua percobaan",
+          "nada": "system"
+        },
+        {
+          "teks": "1 jurnal, Rp75.000",
+          "sub": "respons tersimpan dikirim ulang",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Di kedua baris, response request pertama hilang sesudah COMMIT (titik henti lab). Selisihnya hanya asal key di percobaan 2."
+}

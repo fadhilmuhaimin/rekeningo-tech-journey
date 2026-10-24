@@ -201,7 +201,7 @@
   "t": "Backoff",
   "d": "Jeda yang makin panjang di antara percobaan ulang, supaya server yang sedang kesulitan tidak dibanjiri.",
   "b": "E3",
-  "n": "2.14 Retry dan idempotency key",
+  "n": "Retry dan idempotency key (versi lama)",
   "u": "/e-mobile/e3-retry-idempotency/",
   "s": "istilah-backoff",
   "h": null
@@ -408,7 +408,7 @@
   "t": "Idempotency key",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
   "b": "E3",
-  "n": "2.14 Retry dan idempotency key",
+  "n": "Retry dan idempotency key (versi lama)",
   "u": "/e-mobile/e3-retry-idempotency/",
   "s": "istilah-idempotency-key",
   "h": "/istilah/idempotency-key/"
@@ -885,7 +885,7 @@
   "t": "Retry",
   "d": "Mengirim ulang request yang gagal atau tidak dijawab.",
   "b": "E3",
-  "n": "2.14 Retry dan idempotency key",
+  "n": "Retry dan idempotency key (versi lama)",
   "u": "/e-mobile/e3-retry-idempotency/",
   "s": "istilah-retry",
   "h": null

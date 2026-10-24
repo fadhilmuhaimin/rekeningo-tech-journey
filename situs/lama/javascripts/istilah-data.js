@@ -123,7 +123,7 @@ window.ISTILAH = {
  "Backoff": {
   "b": "E3",
   "d": "Jeda yang makin panjang di antara percobaan ulang, supaya server yang sedang kesulitan tidak dibanjiri.",
-  "n": "2.14 Retry dan idempotency key",
+  "n": "Retry dan idempotency key (versi lama)",
   "s": "istilah-backoff",
   "t": "Backoff",
   "u": "e-mobile/e3-retry-idempotency/"
@@ -393,7 +393,7 @@ window.ISTILAH = {
   "b": "E3",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
   "h": "istilah/idempotency-key/",
-  "n": "2.14 Retry dan idempotency key",
+  "n": "Retry dan idempotency key (versi lama)",
   "s": "istilah-idempotency-key",
   "t": "Idempotency key",
   "u": "e-mobile/e3-retry-idempotency/"
@@ -906,7 +906,7 @@ window.ISTILAH = {
  "Retry": {
   "b": "E3",
   "d": "Mengirim ulang request yang gagal atau tidak dijawab.",
-  "n": "2.14 Retry dan idempotency key",
+  "n": "Retry dan idempotency key (versi lama)",
   "s": "istilah-retry",
   "t": "Retry",
   "u": "e-mobile/e3-retry-idempotency/"
@@ -1237,7 +1237,7 @@ window.ISTILAH = {
  "backoff": {
   "b": "E3",
   "d": "Jeda yang makin panjang di antara percobaan ulang, supaya server yang sedang kesulitan tidak dibanjiri.",
-  "n": "2.14 Retry dan idempotency key",
+  "n": "Retry dan idempotency key (versi lama)",
   "s": "istilah-backoff",
   "t": "Backoff",
   "u": "e-mobile/e3-retry-idempotency/"
@@ -1418,7 +1418,7 @@ window.ISTILAH = {
   "b": "E3",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
   "h": "istilah/idempotency-key/",
-  "n": "2.14 Retry dan idempotency key",
+  "n": "Retry dan idempotency key (versi lama)",
   "s": "istilah-idempotency-key",
   "t": "Idempotency key",
   "u": "e-mobile/e3-retry-idempotency/"
@@ -1787,7 +1787,7 @@ window.ISTILAH = {
  "retry": {
   "b": "E3",
   "d": "Mengirim ulang request yang gagal atau tidak dijawab.",
-  "n": "2.14 Retry dan idempotency key",
+  "n": "Retry dan idempotency key (versi lama)",
   "s": "istilah-retry",
   "t": "Retry",
   "u": "e-mobile/e3-retry-idempotency/"
