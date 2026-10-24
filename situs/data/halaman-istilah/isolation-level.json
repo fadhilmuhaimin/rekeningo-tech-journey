@@ -11,7 +11,7 @@
       "teks": "Dua transfer M9 tanpa lock: di Repeatable Read keduanya tersimpan dan saldo Budi −Rp20.000, karena pemeriksaan saldo membaca snapshot lama."
     },
     {
-      "rujukan": "B3.2",
+      "rujukan": "t2-race-lock",
       "teks": "ADR 13 memilih lock baris buku, bukan level yang lebih tinggi, untuk menjaga saldo saat dua transfer bersamaan."
     }
   ],

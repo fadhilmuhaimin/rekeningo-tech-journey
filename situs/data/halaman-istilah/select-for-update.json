@@ -1,0 +1,105 @@
+{
+  "istilah": "SELECT FOR UPDATE",
+  "sehari_hari": "Membaca satu baris sambil memasang tanda \"jangan diubah dulu\". Request lain yang mau memakai baris itu menunggu, lalu membaca angka yang sudah diperbarui.",
+  "cerita": [
+    {
+      "rujukan": "t2-race-lock",
+      "teks": "ADR 13 memilih `SELECT ... FROM buku ... ORDER BY id FOR UPDATE` sebagai perintah pertama setiap transaction jurnal yang memutuskan dari saldo."
+    }
+  ],
+  "mekanisme": [
+    "Transaction dibuka, lalu `SELECT saldo_cache FROM buku WHERE id = 2 FOR UPDATE` mengunci baris buku Budi dan mengembalikan Rp100.000.",
+    "Transaction kedua mengirim `SELECT` yang sama dan menunggu, karena baris itu terkunci.",
+    "Transaction pertama menulis jurnal, posting, dan `saldo_cache`, lalu `COMMIT`.",
+    "Di Read Committed, `SELECT` kedua lanjut dan mengembalikan versi baris terbaru: Rp30.000. Kode menolak transfer Rp50.000 sebagai saldo kurang.",
+    "Bila beberapa baris dikunci, pakai satu perintah dengan `ORDER BY id`. Dokumentasi menulis `ORDER BY` diterapkan sebelum baris dikunci, jadi urutannya sama di setiap transaction."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, pgx v5.11.0 lewat database/sql, PostgreSQL 17.11",
+      "teks": "`KunciBukuAkun` menjalankan `SELECT ... FROM buku WHERE akun_id = ANY($1) ORDER BY id FOR UPDATE` sebagai perintah pertama `Service.Kirim`. Sepuluh kiriman Rp20.000 bersamaan dari Rp100.000: lima diterima, lima ditolak saldo kurang.",
+      "rekaman": "labs/api-t2/output/transfer.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-postgres (pg) 8.23.1",
+      "teks": "Ambil satu client dengan `pool.connect()`, lalu `BEGIN`, `SELECT ... FOR UPDATE`, tulis, `COMMIT` di client yang sama. `pool.query` bisa memakai koneksi berbeda di tiap panggilan, jadi lock-nya tidak ikut. Lab b3-stack Node memakai UPDATE atomik.",
+      "dokumentasi": "https://node-postgres.com/features/transactions"
+    },
+    "laravel": {
+      "label": "Rekaman lab",
+      "versi": "illuminate/database 13.34.0, PHP 8.5.8, PostgreSQL 17.11",
+      "teks": "`->lockForUpdate()->first()` di dalam `transaction(...)` menghasilkan `... for update`. Dua proses PHP bersamaan: satu penarikan sukses, satu ditolak dan di-ROLLBACK.",
+      "rekaman": "labs/b3-stack/output/laravel-tarik.txt"
+    },
+    "django": {
+      "label": "Rekaman lab",
+      "versi": "Django 6.1.1, PostgreSQL 17.11",
+      "teks": "`Akun.objects.select_for_update().get(...)` di dalam `transaction.atomic()`. Dua thread bersamaan: satu penarikan sukses, satu ditolak.",
+      "rekaman": "labs/b3-stack/output/django-tarik.txt"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "`Buku.db.find(session, where: ..., lockMode: LockMode.forUpdate, transaction: transaction)` di dalam `session.db.transaction`. Tanpa `transaction`, Serverpod melempar exception; `LockBehavior.noWait` dan `skipLocked` mengganti perilaku menunggu.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/row-locking"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "supabase-js 2.118.0",
+      "teks": "Client tidak memegang transaction di antara dua request, jadi `SELECT ... FOR UPDATE` ditulis di fungsi PostgreSQL dan dipanggil lewat `supabase.rpc()`. Satu panggilan rpc adalah satu transaction.",
+      "dokumentasi": "https://supabase.com/docs/guides/database/functions"
+    }
+  },
+  "jebakan": [
+    "Memakai `FOR UPDATE` di luar transaction. Di PostgreSQL lock langsung dilepas saat perintah selesai; Django dan Serverpod menolaknya dengan exception.",
+    "Mengunci sesudah membaca saldo. `FOR UPDATE` harus jadi perintah yang membaca angka untuk keputusan, bukan perintah terpisah di akhir.",
+    "Mengunci beberapa baris dengan perintah terpisah dalam urutan yang berbeda di tiap jalur kode. Pakai satu perintah dengan `ORDER BY id`."
+  ],
+  "terkait": [
+    "Lock",
+    "Race condition",
+    "Deadlock",
+    "Optimistic lock",
+    "Transaction"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-11",
+      "judul": "PostgreSQL 17: Explicit Locking, Row-Level Locks",
+      "url": "https://www.postgresql.org/docs/17/explicit-locking.html",
+      "catatan": "FOR UPDATE menahan UPDATE, DELETE, dan lock lain di baris yang sama sampai transaction selesai, lalu mengembalikan baris yang sudah diperbarui."
+    },
+    {
+      "riset": "R2-12",
+      "judul": "PostgreSQL 17: Transaction Isolation, Read Committed",
+      "url": "https://www.postgresql.org/docs/17/transaction-iso.html",
+      "catatan": "Untuk SELECT FOR UPDATE, versi baris terbaru yang dikunci dan dikembalikan ke client."
+    },
+    {
+      "riset": "R2-85",
+      "judul": "PostgreSQL 17: SELECT, The Locking Clause",
+      "url": "https://www.postgresql.org/docs/17/sql-select.html",
+      "catatan": "ORDER BY diterapkan lebih dulu, lalu perintah bisa tertahan saat mengunci baris."
+    },
+    {
+      "riset": "R2-86",
+      "judul": "Serverpod: Row locking",
+      "url": "https://docs.serverpod.dev/concepts/data-and-the-database/database/row-locking",
+      "catatan": "lockMode di find, transaction wajib, LockBehavior wait sebagai bawaan."
+    },
+    {
+      "riset": "R2-36",
+      "judul": "node-postgres: Transactions; PostgREST: Transactions",
+      "url": "https://node-postgres.com/features/transactions",
+      "catatan": "Transaction di node-postgres memakai satu client dari pool.connect(), bukan pool.query; di Supabase, satu request PostgREST adalah satu transaction."
+    },
+    {
+      "riset": "R2-89",
+      "judul": "Rekaman lab b3-stack: penarikan bersamaan di lima stack",
+      "rekaman": "labs/b3-stack/output/ulang-10.txt",
+      "catatan": "Sepuluh run per stack di Go, Node, Laravel, dan Django: setiap run tepat satu penarikan sukses."
+    }
+  ]
+}

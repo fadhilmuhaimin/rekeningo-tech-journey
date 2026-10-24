@@ -7,7 +7,7 @@
       "teks": "Dua transfer M9 tanpa lock: `COMMIT` B ditolak 40001, percobaan 2 membaca saldo Rp30.000 dan app menjawab \"saldo kurang\"."
     },
     {
-      "rujukan": "B3.2",
+      "rujukan": "t2-race-lock",
       "teks": "Serializable + retry adalah salah satu dari empat cara M9 yang dibandingkan; ADR 13 memilih lock baris buku."
     }
   ],

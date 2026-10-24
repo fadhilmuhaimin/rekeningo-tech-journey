@@ -11,7 +11,7 @@ import SkripLama from "../../../components/SkripLama.astro";
 import Snippet from "../../../components/Snippet.astro";
 import TabSet from "../../../components/TabSet.astro";
 
-<p class="meta">Baca 10 menit · coba 3 menit · Prasyarat: [[B3.2]]</p>
+<p class="meta">Baca 10 menit · coba 3 menit · Prasyarat: [[t2-race-lock]]</p>
 
 <Blok nama="Mulai" buka>
 
@@ -23,7 +23,7 @@ Isolation level menentukan kapan transaction-mu melihat data yang sudah di-`COMM
 
 Di Read Committed, bawaan PostgreSQL, setiap perintah membaca data yang sudah `COMMIT` saat perintah itu mulai. Laporan tutup buku yang dibaca dalam dua perintah melihat bayar Budi Rp25.000 di perintah kedua saja. Rekaman lab `laporan.txt` (lab b3-isolasi) mendapat selisih Rp25.000 di buku Budi dan Warung Ani, padahal setiap jurnal seimbang.
 
-Di Repeatable Read, semua perintah membaca satu **snapshot**: isi database saat perintah pertama transaction itu, dan laporan yang sama jadi cocok. Pemeriksaan saldo saat `COMMIT` juga membaca snapshot itu. Dua transfer M9 tanpa lock sama-sama tersimpan, dan saldo Budi −Rp20.000 (`transfer.txt`). Level yang lebih tinggi bukan pengganti lock dari [[B3.2]].
+Di Repeatable Read, semua perintah membaca satu **snapshot**: isi database saat perintah pertama transaction itu, dan laporan yang sama jadi cocok. Pemeriksaan saldo saat `COMMIT` juga membaca snapshot itu. Dua transfer M9 tanpa lock sama-sama tersimpan, dan saldo Budi −Rp20.000 (`transfer.txt`). Level yang lebih tinggi bukan pengganti lock dari [[t2-race-lock]].
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -130,7 +130,7 @@ Di Read Committed, `UPDATE` yang menunggu menilai ulang `WHERE` pada versi baris
 
 <Snippet file="labs/b3-isolasi/output/ledger/transfer-cache.txt" lines="98:123" title="Rekaman lab: labs/b3-isolasi/output/ledger/transfer-cache.txt" />
 
-Lock baris yang menahan saldo negatif di tabel ini, bukan level-nya. Mengunci baris buku sebelum saldo diperiksa adalah ADR 13, dibahas di [[B3.2]].
+Lock baris yang menahan saldo negatif di tabel ini, bukan level-nya. Mengunci baris buku sebelum saldo diperiksa adalah ADR 13, dibahas di [[t2-race-lock]].
 
 ### Di stack lain
 
@@ -245,7 +245,7 @@ if (error?.code === '40001') { /* panggil lagi */ }`} />
 | Situasi | Pilihan |
 |---|---|
 | Laporan yang membaca lebih dari satu perintah dan harus cocok, mis. tutup buku | Satu transaction `REPEATABLE READ READ ONLY`. Ia hanya membaca, jadi tidak pernah gagal 40001 |
-| Transfer, bayar, atau pencairan yang memeriksa saldo | Read Committed + lock baris buku di transaction jurnal (ADR 13, [[B3.2]]). Repeatable Read tanpa lock meloloskan −Rp20.000 |
+| Transfer, bayar, atau pencairan yang memeriksa saldo | Read Committed + lock baris buku di transaction jurnal (ADR 13, [[t2-race-lock]]). Repeatable Read tanpa lock meloloskan −Rp20.000 |
 | Aturan atas banyak baris tanpa satu baris yang bisa dikunci | Serializable + retry 40001 di semua jalur tulis, atau lock eksplisit ([13.2.2](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ), [13.4](https://www.postgresql.org/docs/17/applevel-consistency.html)) |
 | Satu `SELECT` | Level apa pun. Satu perintah selalu membaca satu snapshot |
 
@@ -259,7 +259,7 @@ if (error?.code === '40001') { /* panggil lagi */ }`} />
 
 | Yang ditunda | Kenapa ditunda | Muncul lagi di |
 |---|---|---|
-| Serializable sebagai level bawaan | ADR 13 memilih lock baris buku; di lab b3-race keempat cara berakhir saldo Rp30.000, dan Serializable menambah retry di semua jalur tulis | [[B3.2]] |
+| Serializable sebagai level bawaan | ADR 13 memilih lock baris buku; di lab b3-race keempat cara berakhir saldo Rp30.000, dan Serializable menambah retry di semua jalur tulis | [[t2-race-lock]] |
 | Tutup buku api-t2 dalam satu transaction Repeatable Read | Dua query laporan sekarang lewat pool; perbaikannya belum direkam di lab | Belum dijadwalkan |
 
 </Blok>

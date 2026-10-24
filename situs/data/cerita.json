@@ -126,7 +126,7 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 113,
+        "menit": 116,
         "halaman": 12
       },
       "versi": "lama",
@@ -1503,32 +1503,31 @@
       "nomor": "2.10"
     },
     {
-      "id": "B3.2",
+      "id": "t2-race-lock",
       "judul": "Race condition dan lock + ADR 13",
       "tahap": 2,
+      "path": "tahap-2/race-lock.md",
       "topik": "Data",
-      "path": "b-fondasi/b3-2-race-condition-lock.md",
-      "prasyarat": [
-        "B3.1"
-      ],
-      "inti": true,
-      "masalah": "Saldo salah: dua penarikan bersamaan sama-sama lolos",
-      "ada": true,
-      "pendek": "Race condition",
       "jenis": "konsep",
       "bagian": 4,
+      "inti": true,
       "peran": [
         "backend"
       ],
       "adr": [
         13
       ],
-      "lama": true,
+      "masalah": "Dua transfer bersamaan sama-sama membaca saldo cukup sebelum salah satunya COMMIT",
+      "pendek": "Race condition",
+      "prasyarat": [
+        "t2-m9"
+      ],
       "lab": [
         "b3-race"
       ],
+      "ada": true,
       "nomor": "2.11",
-      "menit": 10
+      "menit": 13
     },
     {
       "id": "t2-isolation-level",
@@ -1537,7 +1536,7 @@
       "topik": "Data",
       "path": "tahap-2/isolation-level.md",
       "prasyarat": [
-        "B3.2"
+        "t2-race-lock"
       ],
       "masalah": "Laporan tutup buku tidak cocok Rp25.000, padahal setiap jurnal seimbang",
       "ada": true,
@@ -1552,25 +1551,6 @@
       ],
       "nomor": "2.12",
       "menit": 13
-    },
-    {
-      "id": "B3.3",
-      "judul": "Isolation level secara praktis",
-      "tahap": 2,
-      "topik": "Data",
-      "path": "b-fondasi/b3-3-isolation-level.md",
-      "prasyarat": [
-        "B3.2"
-      ],
-      "ada": true,
-      "pendek": "Isolation level (versi lama)",
-      "bagian": 4,
-      "lama": true,
-      "lebur_ke": "t2-isolation-level",
-      "lab": [
-        "b3-isolasi"
-      ],
-      "menit": 10
     },
     {
       "id": "t2-m10",
@@ -1588,7 +1568,7 @@
       "label": "Masalah 10 · minggu 2",
       "masalah": "Sinyal putus, Budi menekan Bayar lagi, dan riwayatnya mencatat dua pembayaran",
       "prasyarat": [
-        "B3.2"
+        "t2-race-lock"
       ],
       "lab": [
         "e3-idempotency"
@@ -2084,6 +2064,44 @@
       "bagian": 1,
       "diganti_oleh": "t2-prd",
       "menit": 4
+    },
+    {
+      "id": "B3.2",
+      "judul": "Race condition dan lock",
+      "tahap": 2,
+      "topik": "Data",
+      "path": "b-fondasi/b3-2-race-condition-lock.md",
+      "prasyarat": [
+        "B3.1"
+      ],
+      "ada": true,
+      "pendek": "Race condition (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t2-race-lock",
+      "lab": [
+        "b3-race"
+      ],
+      "menit": 10
+    },
+    {
+      "id": "B3.3",
+      "judul": "Isolation level secara praktis",
+      "tahap": 2,
+      "topik": "Data",
+      "path": "b-fondasi/b3-3-isolation-level.md",
+      "prasyarat": [
+        "t2-race-lock"
+      ],
+      "ada": true,
+      "pendek": "Isolation level (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t2-isolation-level",
+      "lab": [
+        "b3-isolasi"
+      ],
+      "menit": 10
     },
     {
       "id": "T3",
