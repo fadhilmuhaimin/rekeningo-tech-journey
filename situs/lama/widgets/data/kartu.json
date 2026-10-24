@@ -706,6 +706,46 @@
   "jawab": "Tidak. Jurnal 3–5 dibuat dalam satu transaction migrasi, dan koneksi lain baru melihat perubahannya sesudah `COMMIT`, saat saldo sudah Rp180.000. Rp110.000 hanya urutan baris di dalam transaction itu."
  },
  {
+  "id": "t2-ledger-1",
+  "halaman": "t2-ledger",
+  "judul": "2.7 Ledger double-entry: jurnal, posting, invarian",
+  "url": "tahap-2/ledger/",
+  "tanya": "Satu jurnal transfer berisi buku Budi −Rp20.000 dan buku Citra +Rp25.000. Kapan database menolaknya, dengan SQLSTATE apa, dan apa yang tersisa?",
+  "jawab": "Saat `COMMIT`, karena jumlahnya +5.000. Trigger `jurnal_seimbang` menolak dengan SQLSTATE 23514, seperti jurnal 12 di rekaman `invarian.txt` bagian A. Seluruh transaction batal: jurnal, kedua posting, dan perubahan `saldo_cache`."
+ },
+ {
+  "id": "t2-ledger-2",
+  "halaman": "t2-ledger",
+  "judul": "2.7 Ledger double-entry: jurnal, posting, invarian",
+  "url": "tahap-2/ledger/",
+  "tanya": "Admin ingin memperbaiki salah bayar dengan `UPDATE posting SET jumlah = 0`. Apa jawaban database, dan apa gantinya?",
+  "jawab": "Ditolak seketika dengan SQLSTATE 23001 (`posting_tidak_diubah`). Gantinya jurnal pembalik: posting cermin, alasan minimal 20 karakter, dan `membalik_jurnal_id` ke jurnal asal. Pembalik kedua untuk jurnal yang sama ditolak dengan 23505."
+ },
+ {
+  "id": "t2-ledger-3",
+  "halaman": "t2-ledger",
+  "judul": "2.7 Ledger double-entry: jurnal, posting, invarian",
+  "url": "tahap-2/ledger/",
+  "tanya": "Kenapa jurnal seimbang tidak ditulis sebagai `CHECK (sum(jumlah) = 0)`?",
+  "jawab": "`CHECK` di PostgreSQL hanya membaca baris yang sedang ditulis, bukan baris lain di tabel. Pemeriksaan seketika juga akan menolak posting pertama setiap jurnal. Constraint trigger yang ditunda menjumlah posting saat `COMMIT`, sesudah semuanya masuk."
+ },
+ {
+  "id": "t2-ledger-4",
+  "halaman": "t2-ledger",
+  "judul": "2.7 Ledger double-entry: jurnal, posting, invarian",
+  "url": "tahap-2/ledger/",
+  "tanya": "Buku tunjangan bersaldo −Rp250.000 di rekaman `tutup-buku.txt`. Apakah invarian 3 dilanggar?",
+  "jawab": "Tidak. Invarian 3 hanya berlaku untuk buku karyawan. Buku tunjangan adalah buku sistem, dan saldo negatifnya berarti tunjangan sudah mengeluarkan Rp250.000. Jumlah semua posting di sistem tetap 0."
+ },
+ {
+  "id": "t2-ledger-5",
+  "halaman": "t2-ledger",
+  "judul": "2.7 Ledger double-entry: jurnal, posting, invarian",
+  "url": "tahap-2/ledger/",
+  "tanya": "Dua transfer Rp70.000 dan Rp50.000 dari saldo Budi Rp100.000 diperiksa sebelum salah satunya `COMMIT`. Apa hasilnya, dan halaman mana yang menjawabnya?",
+  "jawab": "Keduanya tersimpan dan saldo Budi −Rp20.000 (rekaman `batas.txt` skenario 2). Pemeriksaan invarian 3 hanya membaca, tanpa lock. Jawabannya di 2.10 M9."
+ },
+ {
   "id": "t2-adr-ledger-1",
   "halaman": "t2-adr-ledger",
   "judul": "2.8 ADR 6 direvisi: dari kolom saldo ke ledger",
