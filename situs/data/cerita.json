@@ -126,8 +126,8 @@
         "tim": "2 developer"
       },
       "jalur_inti": {
-        "menit": 113,
-        "halaman": 12
+        "menit": 124,
+        "halaman": 13
       },
       "versi": "lama",
       "skala": {
@@ -1332,8 +1332,9 @@
       "lab": [
         "api-t2"
       ],
-      "ada": false,
-      "nomor": "2.3"
+      "ada": true,
+      "nomor": "2.3",
+      "menit": 11
     },
     {
       "id": "t2-tutup-buku",
