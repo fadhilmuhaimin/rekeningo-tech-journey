@@ -1,0 +1,38 @@
+---
+/**
+ * Widget tiga rilis (2.22, keputusan 813-815): tebak siapa yang menunggu batch backfill, lalu jalankan lima fase rekaman
+ * (app 1.0 dan 1.1 jalan di setiap fase) dan ubah satu hal: gabungkan semuanya jadi satu langkah (rekaman M13).
+ *   <TigaRilis />
+ * Fase dan keadaan app dibaca saat build dari labs/b4-skema/output/ledger/tiga-rilis.txt dan satu-langkah.txt lewat
+ * logika.ts; rekaman yang berubah bentuk menggagalkan build. Teks dari data/widget/t2-skema-tiga-rilis.json (skema.ts).
+ * Island di-render saat build (client:visible); tanpa JavaScript fase rekaman tampil di <noscript>.
+ * Satu widget per halaman (dipasang di blok Coba 2.22).
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import TigaRilisIsland from "../widgets/tiga-rilis/TigaRilis";
+import { LabelTigaRilis } from "../widgets/tiga-rilis/skema";
+import { bacaRekaman, bacaSatuLangkah, indeksBenar } from "../widgets/tiga-rilis/logika";
+import labelMentah from "../../data/widget/t2-skema-tiga-rilis.json";
+
+const baca = (f: string) => {
+  const abs = path.join(ROOT, f);
+  if (!fs.existsSync(abs)) throw new Error(`TigaRilis: ${f} tidak ada`);
+  return fs.readFileSync(abs, "utf8");
+};
+const R = bacaRekaman(baca("labs/b4-skema/output/ledger/tiga-rilis.txt"));
+const S = bacaSatuLangkah(baca("labs/b4-skema/output/ledger/satu-langkah.txt"));
+const L = LabelTigaRilis.parse(labelMentah);
+const benar = indeksBenar(L.pilihan, R.fase);
+const pilihan = L.pilihan.map((p) => ({ teks: p.teks, alasan: p.alasan }));
+---
+<TigaRilisIsland client:visible fase={R.fase} satu={S} pilihan={pilihan} benar={benar} label={L} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <ol>
+    {L.fase.map((f) => (
+      <li><strong>{f.judul}</strong>: {f.ringkas}</li>
+    ))}
+  </ol>
+</noscript>

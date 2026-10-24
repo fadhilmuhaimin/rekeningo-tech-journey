@@ -885,6 +885,9 @@ body:has(.beranda) .content-panel { padding-block: 0.6rem; border-top: 0; }
 .sl-markdown-content .al-mode { list-style: none; margin: 0 0 0.5rem; padding: 0; display: flex; flex-wrap: wrap; gap: 0.45rem; }
 .sl-markdown-content .al-mode li { margin: 0; }
 .sl-markdown-content .al-mode__tombol { width: auto; display: inline-block; }
+.sl-markdown-content .tr-rekaman { margin: 0.5rem 0 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; }
+.sl-markdown-content .tr-rekaman li { margin: 0; }
+.sl-markdown-content .tr-rekaman code { white-space: pre-wrap; overflow-wrap: anywhere; }
 .sl-markdown-content .al-mode__tombol[aria-pressed="true"] { border-color: var(--k-system-edge); background: var(--k-system-fill); color: var(--k-system-ink); }
 /* Margin atas antar-saudara dari Starlight tidak berlaku di dalam widget ini (pola keputusan 124). */
 .sl-markdown-content .al :is(.tb-pilihan, .al-papan, .al-mode) > * + * { margin-top: 0; }
