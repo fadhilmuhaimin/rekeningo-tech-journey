@@ -87,7 +87,7 @@ Kedua, Raka memasang server versi 2. Responsnya dibuat untuk app baru: riwayat d
 
 Kedua mekanisme itu tidak menyebut jam makan siang. Lab tidak menjalankan skenario malam, jadi ini kesimpulan dari mekanismenya, bukan dari rekaman.
 
-Tebakan Raka salah di dua tempat. Di lab, ukuran tabel bukan penyebab pembayaran menunggu, dan jam makan siang bukan penyebab gejala kedua. Cara memecah migrasi supaya masing-masing langkahnya aman dibahas di [[B4.2]].
+Tebakan Raka salah di dua tempat. Di lab, ukuran tabel bukan penyebab pembayaran menunggu, dan jam makan siang bukan penyebab gejala kedua. Cara memecah migrasi supaya masing-masing langkahnya aman dibahas di [[t2-skema-tanpa-downtime]].
 
 </Blok>
 
@@ -114,7 +114,7 @@ Rekaman pembanding itu menjalankan file 000009 saja, bukan lima file sekaligus. 
 
 <Blok nama="Konsep yang lahir">
 
-- [[B4.2]]: ubah skema tanpa downtime. Perubahan besar dipecah jadi rilis kecil yang masing-masing aman. Batas tunggu lock, urutan expand-migrate-contract, backfill bertahap, dan ADR 17 ada di sana.
+- [[t2-skema-tanpa-downtime]]: ubah skema tanpa downtime. Perubahan besar dipecah jadi rilis kecil yang masing-masing aman. Batas tunggu lock, urutan expand-migrate-contract, backfill bertahap, dan ADR 17 ada di sana.
 - [Halaman istilah lock](/istilah/lock/): lock sebagai tanda "sedang dipakai" di baris atau tabel, dan siapa yang menunggu siapa.
 - [[E1]]: app versi lama di Tahap 1. Di sana urutannya tambah dulu, hapus belakangan; migrasi M13 menjalankan keduanya sekaligus.
 - [[t2-skema]]: ERD dari Tahap 1 ke Tahap 2, yaitu tabel yang dipindahkan migrasi ini.

@@ -1,0 +1,43 @@
+{
+  "id": "t2-skema-tanpa-downtime-inti",
+  "judul": "Migrasi ke ledger: satu langkah lawan tiga rilis",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab b4-skema · ledger"
+  },
+  "baris": [
+    {
+      "label": "Satu langkah",
+      "sub": "satu-langkah.txt",
+      "simpul": [
+        {
+          "teks": "tambah dan hapus sekaligus",
+          "sub": "satu transaction",
+          "nada": "warn"
+        },
+        {
+          "teks": "server lama gagal",
+          "sub": "app lama berhenti",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Tiga rilis",
+      "sub": "tiga-rilis.txt",
+      "simpul": [
+        {
+          "teks": "tambah, pindah, hapus",
+          "sub": "tiga deploy",
+          "nada": "system"
+        },
+        {
+          "teks": "kedua app jalan",
+          "sub": "di setiap fase",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Data lab yang sama: 1.013 akun dan 15.000 baris transaksi."
+}

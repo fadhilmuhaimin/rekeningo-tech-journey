@@ -1765,16 +1765,16 @@
       "menit": 10
     },
     {
-      "id": "B4.2",
+      "id": "t2-skema-tanpa-downtime",
       "judul": "Ubah skema tanpa downtime + ADR 17",
       "tahap": 2,
       "topik": "Data",
-      "path": "b-fondasi/b4-2-ubah-skema-tanpa-downtime.md",
+      "path": "tahap-2/skema-tanpa-downtime.md",
       "prasyarat": [
-        "B3.1"
+        "t2-m13"
       ],
       "inti": true,
-      "masalah": "Rename kolom membuat app lama crash",
+      "masalah": "Migrasi ke ledger dalam tiga rilis: pembayaran tetap masuk dan app 1.0 dan 1.1 tetap jalan di setiap fase",
       "ada": true,
       "jenis": "konsep",
       "bagian": 4,
@@ -1786,12 +1786,11 @@
         17
       ],
       "pendek": "Ubah skema tanpa downtime",
-      "lama": true,
       "lab": [
         "b4-skema"
       ],
       "nomor": "2.22",
-      "menit": 10
+      "menit": 17
     },
     {
       "id": "t2-m14",
@@ -1808,7 +1807,7 @@
       "label": "Masalah 14 · minggu 5",
       "masalah": "Dua perubahan di handler transfer digabung dan batas harian hilang tanpa ada yang sadar",
       "prasyarat": [
-        "B4.2"
+        "t2-skema-tanpa-downtime"
       ],
       "lab": [
         "api-t2"
@@ -2140,6 +2139,25 @@
       "lebur_ke": "t2-idempotency",
       "lab": [
         "e3-idempotency"
+      ],
+      "menit": 10
+    },
+    {
+      "id": "B4.2",
+      "judul": "Ubah skema tanpa downtime + ADR 17",
+      "tahap": 2,
+      "topik": "Data",
+      "path": "b-fondasi/b4-2-ubah-skema-tanpa-downtime.md",
+      "prasyarat": [
+        "B3.1"
+      ],
+      "ada": true,
+      "pendek": "Ubah skema tanpa downtime (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t2-skema-tanpa-downtime",
+      "lab": [
+        "b4-skema"
       ],
       "menit": 10
     },

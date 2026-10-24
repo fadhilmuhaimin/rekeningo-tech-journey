@@ -118,6 +118,7 @@
 *[load balancer]: Komponen yang membagi request ke beberapa instance server yang sama.
 *[Lock]: Tanda di database bahwa satu transaction sedang memakai baris atau tabel, sehingga transaction lain harus menunggu.
 *[lock]: Tanda di database bahwa satu transaction sedang memakai baris atau tabel, sehingga transaction lain harus menunggu.
+*[lock_timeout]: Batas waktu menunggu lock di PostgreSQL; bila lewat, perintah menyerah dengan galat 55P03, bukan antre tanpa batas.
 *[Log]: Catatan kejadian per request atau per peristiwa, ditulis aplikasi untuk dibaca saat menyelidiki masalah.
 *[log]: Catatan kejadian per request atau per peristiwa, ditulis aplikasi untuk dibaca saat menyelidiki masalah.
 *[Lost update]: Perubahan yang hilang karena dua transaction membaca nilai lama yang sama lalu saling menimpa.

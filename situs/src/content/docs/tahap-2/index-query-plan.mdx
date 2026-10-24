@@ -99,7 +99,7 @@ PostgreSQL 18 menambah skip scan, tapi hanya efektif bila kolom depan punya sedi
 
 `posting_riwayat` (29 MB) ±5,7 kali `posting_buku` (5.240 kB; hitungan sendiri dari angka rekaman). Lab tidak menguraikan penyebabnya, dan waktu tulis per posting tidak diukur. `CREATE INDEX` di lab memakai 245 ms pada tabel yang tidak sedang ditulis.
 
-Di tabel yang sedang ditulis, `CREATE INDEX` biasa mengunci tulis sampai selesai. `CONCURRENTLY` tidak mengunci tulis. Ia tidak bisa dijalankan di dalam transaction, butuh kerja lebih banyak, dan bisa meninggalkan index "invalid" bila gagal ([PostgreSQL 17, CREATE INDEX](https://www.postgresql.org/docs/17/sql-createindex.html)). Lab tidak menjalankannya (Tidak dijalankan); [[B4.2]] membahas migrasi tanpa jeda.
+Di tabel yang sedang ditulis, `CREATE INDEX` biasa mengunci tulis sampai selesai. `CONCURRENTLY` tidak mengunci tulis. Ia tidak bisa dijalankan di dalam transaction, butuh kerja lebih banyak, dan bisa meninggalkan index "invalid" bila gagal ([PostgreSQL 17, CREATE INDEX](https://www.postgresql.org/docs/17/sql-createindex.html)). Lab tidak menjalankannya (Tidak dijalankan); [[t2-skema-tanpa-downtime]] membahas migrasi tanpa jeda.
 
 **6. Planner memilih dari statistik dan ukuran data, bukan dari ada tidaknya index.** Di tabel 100 baris, mengambil 1 baris hampir tidak bisa mengalahkan membaca satu halaman disk berurutan, jadi Seq Scan benar. Dokumentasi menyarankan `ANALYZE` lebih dulu dan data uji yang mirip data asli ([PostgreSQL 17, 11.12](https://www.postgresql.org/docs/17/indexes-examine.html)).
 
@@ -260,7 +260,7 @@ Kedua perbaikan di opsi A saling melengkapi. Rekaman `n1.txt` bagian E mencatat 
 | Index kedua `(dibuat)` untuk laporan Keuangan | Waktu laporan lintas buku belum diukur sebagai masalah; satu index lagi menambah biaya tulis | Belum dijadwalkan di naskah |
 | Menghapus `posting_buku` | Kolom depannya sama dengan `posting_riwayat`, tapi ukurannya 5.240 kB lawan 29 MB dan dampak ke invarian saldo belum diukur | Belum dijadwalkan |
 | Index covering (`INCLUDE`) agar riwayat tidak membaca tabel | Halaman pertama sudah ±0,12 ms di rekaman; index jadi lebih besar | Belum dijadwalkan |
-| `CREATE INDEX CONCURRENTLY` di lab | Index lab dibuat di tabel yang tidak ditulis; pembahasan migrasi tanpa jeda ada di halaman lain | [[B4.2]] |
+| `CREATE INDEX CONCURRENTLY` di lab | Index lab dibuat di tabel yang tidak ditulis; pembahasan migrasi tanpa jeda ada di halaman lain | [[t2-skema-tanpa-downtime]] |
 
 </Blok>
 

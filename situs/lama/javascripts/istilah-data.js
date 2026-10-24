@@ -114,12 +114,13 @@ window.ISTILAH = {
   "u": "b-fondasi/b11-2-proxy-bff/"
  },
  "Backfill": {
-  "b": "B4.2",
+  "b": "t2-skema-tanpa-downtime",
   "d": "Script sekali jalan yang mengisi kolom baru untuk baris lama, biasanya bertahap per batch.",
+  "h": "istilah/backfill/",
   "n": "2.22 Ubah skema tanpa downtime",
   "s": "istilah-backfill",
   "t": "Backfill",
-  "u": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/"
+  "u": "tahap-2/skema-tanpa-downtime/"
  },
  "Backoff": {
   "b": "t2-idempotency",
@@ -325,6 +326,7 @@ window.ISTILAH = {
  "Expand-migrate-contract": {
   "b": "E1",
   "d": "Urutan mengubah skema tanpa downtime: tambah yang baru, pindahkan data dan kode, baru hapus yang lama.",
+  "h": "istilah/expand-migrate-contract/",
   "n": "1.33 App versi lama",
   "s": "istilah-expand-migrate-contract",
   "t": "Expand-migrate-contract",
@@ -1303,12 +1305,13 @@ window.ISTILAH = {
   "u": "tahap-1/authorization/"
  },
  "backfill": {
-  "b": "B4.2",
+  "b": "t2-skema-tanpa-downtime",
   "d": "Script sekali jalan yang mengisi kolom baru untuk baris lama, biasanya bertahap per batch.",
+  "h": "istilah/backfill/",
   "n": "2.22 Ubah skema tanpa downtime",
   "s": "istilah-backfill",
   "t": "Backfill",
-  "u": "b-fondasi/b4-2-ubah-skema-tanpa-downtime/"
+  "u": "tahap-2/skema-tanpa-downtime/"
  },
  "backoff": {
   "b": "t2-idempotency",
@@ -1456,6 +1459,7 @@ window.ISTILAH = {
  "expand-migrate-contract": {
   "b": "E1",
   "d": "Urutan mengubah skema tanpa downtime: tambah yang baru, pindahkan data dan kode, baru hapus yang lama.",
+  "h": "istilah/expand-migrate-contract/",
   "n": "1.33 App versi lama",
   "s": "istilah-expand-migrate-contract",
   "t": "Expand-migrate-contract",
@@ -1605,6 +1609,15 @@ window.ISTILAH = {
   "s": "istilah-lock",
   "t": "Lock",
   "u": "tahap-2/race-lock/"
+ },
+ "lock_timeout": {
+  "b": "t2-skema-tanpa-downtime",
+  "d": "Batas waktu menunggu lock di PostgreSQL; bila lewat, perintah menyerah dengan galat 55P03, bukan antre tanpa batas.",
+  "h": "istilah/lock-timeout/",
+  "n": "2.22 Ubah skema tanpa downtime",
+  "s": "istilah-lock-timeout",
+  "t": "lock_timeout",
+  "u": "tahap-2/skema-tanpa-downtime/"
  },
  "log": {
   "b": "C2",

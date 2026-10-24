@@ -1,0 +1,96 @@
+{
+  "istilah": "lock_timeout",
+  "sehari_hari": "lock_timeout adalah batas sabar untuk menunggu lock. Kalau lock tidak didapat dalam waktunya, perintah menyerah dengan galat, bukan antre tanpa batas sambil menahan semua yang datang di belakangnya.",
+  "cerita": [
+    {
+      "rujukan": "t2-m13",
+      "teks": "Migrasi tanpa batas tunggu menunggu laporan Keuangan, dan Bayar serta Buka saldo menunggu migrasi. Dengan batas 3 detik, migrasi menyerah dan Bayar lanjut."
+    },
+    {
+      "rujukan": "t2-skema-tanpa-downtime",
+      "teks": "ADR 17: setiap file migration membuka dengan `SET LOCAL lock_timeout = '3s'`, dan migrasi yang menyerah diulang sesudah laporan selesai."
+    }
+  ],
+  "mekanisme": [
+    "Migration memasang `SET LOCAL lock_timeout = '3s'` di awal transaction. `SET LOCAL` hanya berlaku sampai COMMIT atau ROLLBACK.",
+    "Setiap perintah yang harus menunggu lock, termasuk `ALTER TABLE` yang butuh `ACCESS EXCLUSIVE`, menghitung waktunya sendiri-sendiri.",
+    "Bila lock belum didapat dalam 3 detik, PostgreSQL membatalkan perintah itu dengan SQLSTATE 55P03 dan transaction di-ROLLBACK.",
+    "Permintaan lain yang antre di belakang migrasi lanjut, dan migrasi diulang sesudah transaction panjang yang menahannya selesai."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "PostgreSQL 17.11; file migration labs/api-t2 dijalankan skrip lab",
+      "teks": "Setiap file migration api-t2 membuka dengan `SET LOCAL lock_timeout = '3s'` dan dijalankan dalam BEGIN dan COMMIT. Percobaan pertama menyerah dengan 55P03, percobaan kedua COMMIT.",
+      "rekaman": "labs/b4-skema/output/ledger/lock-timeout.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-pg-migrate 9.0.0",
+      "teks": "Migration berjalan dalam transaction bawaan, jadi `pgm.sql(\"SET LOCAL lock_timeout = '3s'\")` di awal `up` berlaku untuk migration itu [perlu verifikasi]. Dengan `pgm.noTransaction()`, `SET LOCAL` tidak berpengaruh.",
+      "dokumentasi": "https://github.com/salsita/node-pg-migrate/blob/v9.0.0/docs/src/migrations/index.md"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "Dokumentasi tidak menyebut lock_timeout. `DB::statement(\"SET LOCAL lock_timeout = '3s'\")` di awal `up` berlaku selama migration berjalan dalam transaction (`$withinTransaction` true bawaan) [perlu verifikasi].",
+      "dokumentasi": "https://laravel.com/docs/13.x/migrations"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2",
+      "teks": "Dokumentasi tidak menyebut lock_timeout. `migrations.RunSQL(\"SET LOCAL lock_timeout = '3s'\")` sebagai operasi pertama berlaku di migration atomic, dan tidak berpengaruh di migration `atomic = False` [perlu verifikasi].",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/howto/writing-migrations/"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4 (halaman dokumentasi bertanda 4.0.0)",
+      "teks": "`migration.sql` boleh disunting. Dokumentasi tidak menyebut apakah migration berjalan dalam transaction, jadi `SET LOCAL` di sana belum bisa dipastikan berpengaruh [perlu verifikasi].",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/migrations"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "Supabase CLI 2.122.0",
+      "teks": "Dokumentasi menyebut lock_timeout sekali: bila terjadi galat lock timeout di file migration, naikkan nilainya. Itu kebalikan dari pendekatan ADR 17, yang mempertahankan batas pendek dan mengulang migrasi.",
+      "dokumentasi": "https://supabase.com/docs/guides/deployment/database-migrations"
+    }
+  },
+  "jebakan": [
+    "`SET LOCAL` di luar transaction block hanya menghasilkan peringatan dan tidak berpengaruh. Migration yang tidak dibungkus transaction perlu `BEGIN` dan `COMMIT` sendiri.",
+    "Memasang `lock_timeout` di `postgresql.conf`. Dokumentasi tidak menyarankannya karena memengaruhi semua sesi, termasuk job laporan yang memang butuh lama.",
+    "Mengira `statement_timeout` sama. `lock_timeout` hanya terjadi saat menunggu lock. Bila `statement_timeout` tidak nol dan tidak lebih besar dari `lock_timeout`, statement timeout lebih dulu habis dan `lock_timeout` tidak pernah sempat berlaku."
+  ],
+  "terkait": [
+    "Lock",
+    "Expand-migrate-contract",
+    "Backfill",
+    "Migration",
+    "Deadlock"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-162",
+      "judul": "PostgreSQL 17: Client Connection Defaults (lock_timeout, statement_timeout)",
+      "url": "https://www.postgresql.org/docs/17/runtime-config-client.html",
+      "catatan": "Membatalkan perintah yang menunggu lock lebih lama dari batas; berlaku terpisah untuk tiap upaya mendapat lock; tidak disarankan di postgresql.conf; bawaan 0 (mati)."
+    },
+    {
+      "riset": "R2-162",
+      "judul": "PostgreSQL 17: SET (SET LOCAL)",
+      "url": "https://www.postgresql.org/docs/17/sql-set.html",
+      "catatan": "SET LOCAL berlaku sampai akhir transaction; di luar transaction block hanya memberi peringatan dan tidak berpengaruh."
+    },
+    {
+      "riset": "R2-160",
+      "judul": "Rekaman lab b4-skema: rilis 1 dengan lock_timeout",
+      "rekaman": "labs/b4-skema/output/ledger/lock-timeout.txt",
+      "catatan": "Migrasi menyerah 55P03 sesudah 3 detik, Bayar lanjut, skema tidak berubah setengah jalan; percobaan kedua COMMIT."
+    },
+    {
+      "riset": "R2-164",
+      "judul": "Supabase: Database migrations",
+      "url": "https://supabase.com/docs/guides/deployment/database-migrations",
+      "catatan": "Menyarankan menaikkan lock_timeout bila galat lock timeout muncul di file migration."
+    }
+  ]
+}

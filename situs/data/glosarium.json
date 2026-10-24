@@ -191,11 +191,11 @@
  {
   "t": "Backfill",
   "d": "Script sekali jalan yang mengisi kolom baru untuk baris lama, biasanya bertahap per batch.",
-  "b": "B4.2",
+  "b": "t2-skema-tanpa-downtime",
   "n": "2.22 Ubah skema tanpa downtime",
-  "u": "/b-fondasi/b4-2-ubah-skema-tanpa-downtime/",
+  "u": "/tahap-2/skema-tanpa-downtime/",
   "s": "istilah-backfill",
-  "h": null
+  "h": "/istilah/backfill/"
  },
  {
   "t": "Backoff",
@@ -375,7 +375,7 @@
   "n": "1.33 App versi lama",
   "u": "/tahap-1/app-versi-lama/",
   "s": "istilah-expand-migrate-contract",
-  "h": null
+  "h": "/istilah/expand-migrate-contract/"
  },
  {
   "t": "EXPLAIN",
@@ -556,6 +556,15 @@
   "u": "/tahap-2/race-lock/",
   "s": "istilah-lock",
   "h": "/istilah/lock/"
+ },
+ {
+  "t": "lock_timeout",
+  "d": "Batas waktu menunggu lock di PostgreSQL; bila lewat, perintah menyerah dengan galat 55P03, bukan antre tanpa batas.",
+  "b": "t2-skema-tanpa-downtime",
+  "n": "2.22 Ubah skema tanpa downtime",
+  "u": "/tahap-2/skema-tanpa-downtime/",
+  "s": "istilah-lock-timeout",
+  "h": "/istilah/lock-timeout/"
  },
  {
   "t": "Log",
