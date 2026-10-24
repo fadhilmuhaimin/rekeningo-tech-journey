@@ -1018,7 +1018,7 @@
  },
  {
   "t": "Snapshot",
-  "d": "Gambaran isi database pada satu saat, yang dilihat oleh satu query atau satu transaction.",
+  "d": "Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang.",
   "b": "B3.3",
   "n": "2.12 Isolation level",
   "u": "/b-fondasi/b3-3-isolation-level/",

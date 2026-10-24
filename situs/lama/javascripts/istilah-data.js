@@ -1023,7 +1023,7 @@ window.ISTILAH = {
  },
  "Snapshot": {
   "b": "B3.3",
-  "d": "Gambaran isi database pada satu saat, yang dilihat oleh satu query atau satu transaction.",
+  "d": "Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang.",
   "n": "2.12 Isolation level",
   "s": "istilah-snapshot",
   "t": "Snapshot",
@@ -1868,7 +1868,7 @@ window.ISTILAH = {
  },
  "snapshot": {
   "b": "B3.3",
-  "d": "Gambaran isi database pada satu saat, yang dilihat oleh satu query atau satu transaction.",
+  "d": "Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang.",
   "n": "2.12 Isolation level",
   "s": "istilah-snapshot",
   "t": "Snapshot",
