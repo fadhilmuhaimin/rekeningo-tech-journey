@@ -11,7 +11,7 @@
       "sub": "kejadian.txt bagian B, jurnal 7",
       "simpul": [
         {
-          "teks": "−25.000 dan +25.000",
+          "teks": "−25.000, +25.000",
           "sub": "posting buku Budi dan buku Warung Ani"
         },
         {
@@ -22,11 +22,11 @@
       ]
     },
     {
-      "label": "Top-up salah ketik",
-      "sub": "invarian.txt bagian A, jurnal 12",
+      "label": "Salah ketik",
+      "sub": "top-up, invarian.txt bagian A, jurnal 12",
       "simpul": [
         {
-          "teks": "−250.000 dan +25.000",
+          "teks": "−250.000, +25.000",
           "sub": "posting buku tunjangan dan buku Budi"
         },
         {
