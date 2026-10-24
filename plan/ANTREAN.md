@@ -1115,11 +1115,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.9 · Skema data: ERD Tahap 1 → Tahap 2 dan pertumbuhannya
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 2.8, ERD-1.12
 - selesai bila: halaman Konsep 2.9 sesuai `plan/CERITA-TAHAP-2.md` bagian 3b dan peta halaman Tahap 2 (★); data ERD dari `labs/api-t1` dan `labs/api-t2` (ERD2) dan widget I6-erd; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Memasang widget ERD bertumbuh di 2.9 (bandingkan Tahap 1 dan 2) dan di 1.12 (ERD Tahap 1) sesuai naskah.
+- catatan: Memasang widget ERD bertumbuh di 2.9 (bandingkan Tahap 1 dan 2) dan di 1.12 (ERD Tahap 1) sesuai naskah. PR #293, keputusan 632–634 (`plan/masuk/tahap-2-skema-data.md`): `tahap-2/skema-data.mdx` dengan template konsep; Inti Rantai ringkas `t2-skema-inti` (2 garis di 360 dan 375); Coba = Tebak `t2-skema-tebak` (tabel yang hilang dan ke mana isinya, dari `migrasi.txt` C–D) lalu `ErdHalaman` `tahap={[1, 2]}` mulai di Tahap 2, ubah satu hal = Bandingkan dengan Tahap 1 (berdampingan di 1366, bertumpuk di 375; ErdTumbuh tidak diubah, prop bandingkan awal ke SETELAH-TAHAP-2); Paham: tabel Apa yang berubah mengikuti skema lab (keputusan 633), expand/migrate/contract dari api-t2 `migrasi.txt` B–D, pertumbuhan Tahap 1–6 dengan rumus naskah berlabel Asumsi, tiga angka ukuran Tahap 2 (1.38 ±65,7 MB, rumus ±164 MB, lab ±99 MB); Di stack lain enam tab (tabel `posting` dengan foreign key; Go dari migration lab, lima Tidak dijalankan); halaman istilah ERD dan Saldo cache (Buku ledger di PR 2.7); riset R2-70 sampai R2-73; `ukur-erd.mjs` mencakup 2.9 (tanpa JS, CLS 0, Bandingkan 13 node 18 edge, bawaan React Flow); JS 49,8 KB gzip tanpa gulir, 205,7 KB sesudah ERD terlihat (AUDIT-TAMPILAN). Lab tidak diulang: Docker tertahan.
 
 ### 2.10 · M9: Saldo −Rp20.000
 
