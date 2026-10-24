@@ -2,6 +2,7 @@
 # PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap2 · server Go di 127.0.0.1:18093
 # Rekaman dari database bersih: make -C labs/api-t2 run (keputusan 408).
 # server: ./api-t2
+# Citra, Karyawan 600, dan Karyawan 700 (akun kampus) sudah mengganti password sementara (POST /ganti-password)
 
 # --- A. Budi mengirim Rp20.000 ke Citra lewat nomor karyawan (app 2.0) ---
 $ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke_nomor_karyawan": "K00504", "nominal": 20000}'
