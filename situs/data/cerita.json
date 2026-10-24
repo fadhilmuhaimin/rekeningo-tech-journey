@@ -1441,7 +1441,6 @@
       "adr": [
         6
       ],
-      "label": "Revisi",
       "masalah": "Memilih model uang yang memenuhi aturan Pak Hadi: setiap rupiah tertelusur",
       "prasyarat": [
         "t2-ledger"
