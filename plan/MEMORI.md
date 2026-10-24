@@ -15,6 +15,7 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 - Usulan Tahap 2 sampai 2.2 (ADR 12 vs 2.8, ERD 3b, M9, urutan minggu, angka naskah, tabel pertumbuhan, kampus ±1.200 vs ±1.000, index `posting(akun, waktu)`, notifikasi pencairan) di `plan/PELAJARAN-ARSIP.md` bagian "Usulan perubahan cerita Tahap 2 (arsip 2026-10-24)"; 2.8 diselesaikan dengan revisi ADR 6 (723).
 - M10 (2.13, 651): naskah mengandaikan app punya retry otomatis; tap kedua Budi dan retry app sama bagi server (direkam: request sama); ADR 14 (2.14, 654): naskah belum menyebut app 1.0/1.1 tanpa key, usul satu kalimat masa peralihan.
 - M11 (2.15, 663/664): "4 detik" tidak bisa diturunkan dari lab: riwayat Budi minggu 3 ≈ 225 posting ≈ 226 query ≈ 0,1 detik; halaman pertama hanya 20 baris padahal M12 memakai pagination. Usul: naskah menyebut mekanismenya (21 query untuk 20 baris, tanpa index per buku dan waktu) atau memakai data setahun.
+- 2.17: naskah menulis index `posting(akun, waktu)` (M11) dan `posting(akun, waktu, id)` (tabel fitur); lab dan halaman memakai `posting (buku_id, dibuat, id)` bernama `posting_riwayat`. M12 (2.18, 678): naskah menulis transaksi baru "hilang", rekaman hanya tidak ada di daftar yang digulir; api-t2 sudah kursor sedangkan M12 menceritakan OFFSET. M13 (2.21, 811): "ALTER pada tabel besar mengambil lock lama" benar hanya untuk ALTER yang memindai/menulis ulang tabel; di lab yang menahan pembayaran adalah laporan terbuka di depan migrasi dan pembayaran akhirnya gagal 42703; usul naskah menyebut mekanismenya.
 
 ## Catatan untuk halaman Tahap 2
 
@@ -36,11 +37,10 @@ Catatan kerja lintas sesi dan lintas model. Maksimal 80 baris (gerbang menolak l
 
 Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditanya. Satu baris per keputusan (opsi paling aman dan paling mudah dibatalkan); bila lebih dari 8 baris, yang lama pindah ke `plan/DIPUTUSKAN-TANPA-PEMILIK.md` (keputusan 551). LAPORAN-AKHIR mengumpulkan keduanya.
 
-- Butir sebelum 2026-10-24 malam di `plan/DIPUTUSKAN-TANPA-PEMILIK.md`.
-- Halaman lama B2.4, E3 diganti dengan `lebur_ke` dan dipindah ke akhir Tahap 2 (665, 653); "4 detik" M11 berlabel Ilustrasi dengan angka lab terpisah (663); "Di stack lain" 2.5 membahas penjadwalan (622).
-- ADR 14 aturan 5 (masa peralihan app 1.0/1.1) berlabel rancangan belum ada di lab dan belum direkam; mode `-key-opsional` jadi pekerjaan lab berikutnya (793).
-- lab-c4a: latar tugas keliru (api-t2 yang belum memeriksa daftar bocor), api-t2 tidak disentuh; daftar fiktif 27 entri jauh di bawah 3.000 ASVS 6.2.4 (661).
-- Insiden jalur_inti: merge saat main maju membuat CI main merah; aturan baku: cek ancestor, merge main, `sinkron_cerita.py` dan `build_istilah.py`, CI ulang (BRIEF-SUBAGEN).
+- Butir sebelum 2026-10-25 di `plan/DIPUTUSKAN-TANPA-PEMILIK.md`.
+- Antrean merge dikurangi sesuai permintaan pemilik (727): CI main per run tanpa pembatalan, `jalur_inti` dihitung saat build, berkas bersama hanya diubah pengatur, merge tanpa gabung main bila tidak bentrok, paling banyak 2 PR halaman terbuka. Kelompok CI gerak dan erd dipecah, batas langkah 13 menit (726).
+- 2.17: widget SQLite berlabel Ilustrasi, ADR 15 memakai index lab dan menulis bedanya dengan naskah, opsi B/C/D Tidak dijalankan (669); tes widget masuk gerbang (800). 2.21: klaim ukuran tabel diganti dua kasus ALTER (menulis ulang atau memindai untuk CHECK) (808); fokus keyboard widget dipindah ke kontrol berikutnya (809).
+- 2.18: adegan menambah Dimas (patungan) dengan dialog satu kalimat; "hilang" ditulis "tidak ada di daftar"; skenario satu kiriman per halaman berlabel Yang tidak diukur (678).
 ## Perlu dicek pemilik
 
 - Butir lama dari Tahap 1 dan mode paralel (deploy PROPOSAL, dashboard web, M8, redesain #120, ADR 7 RLS, Cloudflare, Serverpod 4, CI Linux 26.04, renderer Chromium) dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik (arsip 2026-10-24)"; LAPORAN-AKHIR mengumpulkannya.
@@ -54,6 +54,7 @@ Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditan
 - 2.11 (780): top-up CSV api-t2 bisa deadlock dengan transfer bila urutan CSV beda dari id buku (dari kode dan dokumentasi, belum direkam). 2.12 (R2-94): tutup buku api-t2 menjalankan dua query lewat pool tanpa transaction (disimpulkan dari kode, belum direkam). 2.3: tanpa endpoint cek nama, layar konfirmasi hanya bisa menampilkan nomor dan nominal.
 - 2.14: masa peralihan app 1.0/1.1 tidak berakhir bila satu HP lama tetap memakai app 1.0 (butuh tanggal akhir atau versi minimum, ADR 10); pola key belum di `labs/api-t2` (517). 2.16: jumlah query SQL di balik satu embedding PostgREST tidak disebut dokumentasi [perlu verifikasi]; "tunjangan makan hilang bila JOIN biasa" belum direkam.
 - api-t2 `Service.GantiPassword` hanya memeriksa panjang 15–72 byte, tanpa daftar password bocor (ASVS 6.2.4); usul tugas lab sendiri di SETELAH-TAHAP-2.
+- 2.17: node-pg-migrate 9.0.0 (`concurrently` tanpa `pgm.noTransaction()` di dokumentasi v9), Laravel `->online()` di luar transaction migration, Serverpod `id` di daftar `fields` index masih [perlu verifikasi]. 2.21: lama lock CHECK pada tabel besar versus NOT VALID lalu VALIDATE CONSTRAINT belum diukur (usul lab untuk 2.22).
 
 ## Ukur antrean merge (keputusan 727)
 
@@ -65,7 +66,7 @@ Alat: `python3 tools/ukur_pr.py <PR...> --sejak <waktu>` (data dari GitHub). Gar
 
 ## Sedang dikerjakan
 
-2026-10-25 00.00 · Permintaan pemilik (keputusan 727): kurangi antrean merge. #313 (concurrency CI) dan #314 (jalur_inti dihitung saat build) lebih dulu; sesudahnya paling banyak 2 PR halaman terbuka, halaman tidak mengubah berkas bersama (catatan di badan PR `## Catatan pengatur`), PR tanpa bentrok di-merge tanpa gabung main, CI main jaring pengaman; brief diperbarui. Empat PR halaman terbuka saat instruksi tiba (#307 2.17, #309 2.21, #311 2.18, #312 2.19) dikeringkan dulu; pelaksana baru dibuka bila PR halaman terbuka ≤ 1. Detail sebelumnya: 2026-10-25 dini hari · Tahap 2 halaman, pipa lima worktree (`../rjt-konten` 4323, `../rjt-konten2` 4325, `../rjt-konten3` 4327, `../rjt-teknis` 4324, `../rjt-teknis2` 4326). Selesai: 2.1–2.15 dan semua lab, widget, tugas teknis Tahap 2 (lab-c4a #304 terakhir). Berjalan: peninjau 2.16 (#305); pelaksana 2.17 (`tahap-2/index-adr15`), 2.18 (`tahap-2/m12-dobel-tampil`), 2.19 (`tahap-2/kursor-adr16`), 2.21 (`tahap-2/m13-migrasi-siang`). Berikutnya: 2.20 (e5-payload: rekaman masih skema lama, mungkin butuh lab), 2.22–2.33, EVAL-2, DIRI-2, lalu Tahap 3. Alokasi nomor keputusan dan ID riset per tugas: `tmp/catat-antre.md` (tidak di repo; bila hilang: konten Tahap 2 674–679 dan 810–899, peninjau 800–809 lalu 900–999, teknis 680–719, ID riset R2-145 ke atas; cek terbesar atas KEPUTUSAN, plan/masuk/, dan PR terbuka). Batas pemakaian tercapai tiga kali; subagen dilanjutkan dengan SendMessage. Untuk melanjutkan: `gh pr list --state open`.
+2026-10-25 00.30 · Tahap 2 halaman. Aturan antrean merge baru (727) berlaku: paling banyak 2 PR halaman terbuka, pelaksana baru dibuka sesudah satu merge, halaman tidak mengubah berkas bersama (catatan di badan PR `## Catatan pengatur`), merge tanpa gabung main bila tidak bentrok. Selesai: 2.1–2.17 dan 2.21 (18 dari 33), semua lab dan widget Tahap 2, #313/#314/#315. Terbuka: #311 (2.18, ditinjau), #312 (2.19, pelaksana menyelesaikan). Berikutnya satu per satu: 2.20 (e5-payload: rekaman skema lama, mungkin butuh lab), 2.22, 2.23, 2.24 … 2.33, EVAL-2, DIRI-2, lalu Tahap 3. Alokasi nomor keputusan/riset per tugas: `tmp/catat-antre.md` (tidak di repo; bila hilang: konten 677–679 dan 813+, ID riset R2-150 ke atas, peninjau 800–809 lalu 900+; cek terbesar atas KEPUTUSAN dan PR terbuka). Ukur 5 halaman berikutnya di bagian Ukur antrean merge. Untuk melanjutkan: `gh pr list --state open`.
 
 ## Pelajaran
 
