@@ -26,7 +26,7 @@ Raka membuka kode transfer. Batas harian ada di PRD, ada di [[t2-transfer]], dan
 
 <Blok nama="Yang Raka kira" buka>
 
-Raka membaca riwayat git main minggu ini. Dua cabang menyentuh `Kirim`, fungsi service untuk kiriman antar karyawan: cabangnya sendiri dan cabang Nadia.
+Raka membaca riwayat git main minggu ini. Dua cabang menyentuh `kirim.go`, file service untuk kiriman antar karyawan: cabangnya sendiri dan cabang Nadia.
 
 Ia menyimpulkan salah satu dari mereka lupa mempertahankan pemeriksaan batas harian. Jadi ia perlu menemukan cabang mana yang membuangnya.
 
@@ -43,6 +43,8 @@ Masing-masing cabang menghapus salinan yang berbeda dari pemeriksaan yang sama, 
 
 Naskah tidak menyebut bagaimana barisnya hilang. Halaman ini memakai satu cara yang bisa terjadi, lalu merekamnya dengan git sungguhan.
 
+*Skenario (Ilustrasi):* siapa menghapus salinan yang mana adalah pilihan halaman ini, bukan kejadian di naskah. Yang direkam adalah apa yang git lakukan pada dua perubahan itu.
+
 *Kondisi rekaman (Asumsi):* kode `api-t2` hanya punya satu pemanggil `periksaBatas`. Bagian pertama rekaman memakai file contoh 30 baris di folder sementara, bukan kode lab. Di file itu `periksaBatas` dipanggil di dua tempat: `Kirim` dan `catatJurnal`.
 
 Dua cabang dibuat dari main yang sama. Raka menghapus pemeriksaan di `Kirim`, karena `catatJurnal` sudah memeriksanya. Nadia menghapus pemeriksaan di `catatJurnal`, karena `Kirim` sudah memeriksanya.
@@ -51,11 +53,11 @@ Dua cabang dibuat dari main yang sama. Raka menghapus pemeriksaan di `Kirim`, ka
 
 Tiap diff hanya menghapus tiga baris:
 
-<Snippet file="labs/api-t2/output/m14.txt" lines="14:42" title="Rekaman lab: labs/api-t2/output/m14.txt, bagian A (diff kedua cabang)" />
+<Snippet file="labs/api-t2/output/m14.txt" lines="14:42" title="Rekaman lab: labs/api-t2/output/m14.txt, bagian A, file contoh (diff kedua cabang)" />
 
 Perubahan yang tidak tumpang tindih diterima git apa adanya. Git hanya meminta bantuan bila kedua sisi mengubah area yang sama ([git-merge](https://git-scm.com/docs/git-merge), bagian "How conflicts are presented"). Perubahan Raka dan perubahan Nadia tidak bersentuhan, jadi gabungannya jalan tanpa konflik:
 
-<Snippet file="labs/api-t2/output/m14.txt" lines="44:58" title="Rekaman lab: labs/api-t2/output/m14.txt, bagian A (merge)" />
+<Snippet file="labs/api-t2/output/m14.txt" lines="44:58" title="Rekaman lab: labs/api-t2/output/m14.txt, bagian A, file contoh (merge)" />
 
 Hasilnya tinggal definisi `periksaBatas`, tanpa satu pun pemanggil. Git hanya membandingkan baris dan tidak menjalankan kode. Martin Fowler menyebut keadaan ini [semantic conflict](/istilah/semantic-conflict/): perubahan yang aman digabung sebagai teks, tetapi membuat program berperilaku lain ([Fowler, 2011](https://martinfowler.com/bliki/SemanticConflict.html)).
 
