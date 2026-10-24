@@ -1,0 +1,96 @@
+{
+  "istilah": "Backfill",
+  "sehari_hari": "Backfill adalah mengisi kolom atau tabel baru untuk baris yang sudah ada, sedikit demi sedikit. Baris baru sudah terisi oleh kode yang menulis ke dua tempat, jadi yang diisi hanya yang lama.",
+  "cerita": [
+    {
+      "rujukan": "t2-skema-tanpa-downtime",
+      "teks": "Rilis 2 memindahkan 1.012 akun ke ledger dalam batch 1.000, 12, lalu 0 baris. Bayar yang menyentuh akun di batch menunggu, tanpa lock tabel."
+    },
+    {
+      "rujukan": "t2-m13",
+      "teks": "Versi satu langkah mengunci tabel akun dan membuat semua pembayaran menunggu. Backfill bertahap menggantinya dengan lock baris per batch."
+    }
+  ],
+  "mekanisme": [
+    "Server sudah menulis ke dua tempat, jadi baris yang berubah sesudah ini tidak tertinggal.",
+    "Satu batch: `BEGIN`, `SET LOCAL lock_timeout`, lalu `SELECT id ... WHERE id > terakhir ORDER BY id LIMIT 1000 FOR UPDATE`. Baris yang dikunci tidak berubah selama batch berjalan.",
+    "Isi tempat baru untuk baris di batch itu, lalu `COMMIT`. Lock dilepas, dan Bayar yang menunggu lanjut.",
+    "Ulangi dari id terakhir sampai query mengembalikan 0 baris. Cek hasilnya: tidak ada akun tanpa buku dan tidak ada cache yang berbeda dari jumlah posting."
+  ],
+  "stack": {
+    "go": {
+      "label": "Tidak dijalankan",
+      "versi": "pgx v5.11.0 (R2-04)",
+      "teks": "SQL batch yang sama dijalankan di dalam `pgx.Tx` per batch. Lab menjalankannya lewat Python (psycopg), dan rekamannya ada di `tiga-rilis.txt`; kode Go untuk backfill tidak dijalankan.",
+      "dokumentasi": "https://pkg.go.dev/github.com/jackc/pgx/v5"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-postgres (pg) 8.23.1",
+      "teks": "Satu client dari `pool.connect()` per batch, dengan `BEGIN` dan `COMMIT` sendiri; transaction tidak bisa lewat `pool.query`. Batch ditulis dalam loop sampai 0 baris.",
+      "dokumentasi": "https://node-postgres.com/features/transactions"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "`DB::table(...)->chunkById(1000, fn)` membagi per kunci primer, dan dokumentasi menyarankannya saat baris diubah di dalam chunk. Setiap callback perlu `DB::transaction` sendiri bila batch harus atomik.",
+      "dokumentasi": "https://laravel.com/docs/13.x/queries#chunking-results"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2",
+      "teks": "Contoh di dokumentasi: migration `atomic = False` dengan `RunPython` yang mengisi 1.000 baris per `transaction.atomic()`, diulang sampai tidak ada baris tersisa. Dokumentasi memperingatkan race condition bila objek dibuat selama migration berjalan.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/howto/writing-migrations/"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4 (halaman dokumentasi bertanda 4.0.0)",
+      "teks": "Dokumentasi menyebut data yang berubah bentuk ditangani dengan SQL sendiri di migration. Batch per 1.000 baris ditulis sebagai job atau endpoint terpisah dengan `session.db.transaction` [perlu verifikasi].",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/migrations"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "Supabase CLI 2.122.0",
+      "teks": "Backfill ditulis sebagai fungsi PostgreSQL yang dipanggil berulang lewat `supabase.rpc`, atau sebagai file migration SQL. Dokumentasi migrasinya tidak membahas batch.",
+      "dokumentasi": "https://supabase.com/docs/guides/deployment/database-migrations"
+    }
+  },
+  "jebakan": [
+    "Satu UPDATE atau INSERT untuk semua baris. Lock baris dipegang sampai COMMIT, jadi semua yang menyentuh baris itu menunggu selama pekerjaannya. Di 1.013 akun rekaman tidak mengukur selisihnya.",
+    "Backfill sebelum server menulis ke dua tempat. Baris yang berubah sesudah salinan dibuat tertinggal, dan nilainya salah tanpa ada yang tahu.",
+    "Batch tanpa batas tunggu lock. Batch yang tertahan transaction panjang membuat Bayar di belakangnya ikut menunggu; `lock_timeout` memotongnya, dan batch diulang dari id yang sama."
+  ],
+  "terkait": [
+    "Expand-migrate-contract",
+    "lock_timeout",
+    "Lock",
+    "SELECT FOR UPDATE",
+    "Migration"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-160",
+      "judul": "Rekaman lab b4-skema: backfill per 1.000 akun",
+      "rekaman": "labs/b4-skema/output/ledger/tiga-rilis.txt",
+      "catatan": "Batch 1 mengunci 1.000 akun, Bayar menunggu di belakangnya, riwayat tidak; batch 2 membuka 11 akun, batch 3 mengembalikan 0 baris."
+    },
+    {
+      "riset": "R2-164",
+      "judul": "Django 6.1: Writing database migrations",
+      "url": "https://docs.djangoproject.com/en/6.1/howto/writing-migrations/",
+      "catatan": "Contoh data migration non-atomic dengan batch 1.000 baris dan peringatan race condition."
+    },
+    {
+      "riset": "R2-164",
+      "judul": "Laravel 13.x: Query Builder, Chunking Results",
+      "url": "https://laravel.com/docs/13.x/queries#chunking-results",
+      "catatan": "chunkById dianjurkan saat baris diubah selama chunking."
+    },
+    {
+      "riset": "R2-163",
+      "judul": "Jacqueline Xu, Online migrations at scale (Stripe, 2017)",
+      "url": "https://stripe.com/blog/online-migrations",
+      "catatan": "Backfill data lama sesudah penulisan ganda dan sebelum jalur baca dipindah."
+    }
+  ]
+}
