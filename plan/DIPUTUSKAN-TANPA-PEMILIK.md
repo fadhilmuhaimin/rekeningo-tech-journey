@@ -18,3 +18,8 @@ Mode penyelesaian penuh sejak 2026-10-23 (keputusan 551). Butir lama dari MEMORI
 - Konvensi tanda ledger: positif = uang masuk ke buku, tanpa pemetaan debit/kredit (627); istilah "Buku ledger" supaya tooltip tidak menandai "buku" di Tahap 1 (628).
 - Replay ledger sebagai widget React baru `RaceLedger`, bukan mode race.js (708); halaman lama B3.2 ditandai `lebur_ke` ke 2.11, tidak dihapus (638).
 - api-t2: tanpa endpoint cek nama penerima, tetap bcrypt, nomor `K`+nomor akun dipertahankan dengan risiko tertulis (646–648).
+- Serializable menangkap dua transfer M9 dengan 40001, jadi hanya Repeatable Read yang bukan pengganti lock (788); Coba 2.12 memakai laporan tutup buku, bukan replay M9 (642).
+- Halaman lama diganti dengan `lebur_ke`, dipindah ke akhir Tahap 2, tidak dihapus (638, 642, 653, 781); halaman istilah di luar registry (688).
+- Adegan M9 dengan penerima dari lab dan label "Rekaman lab, kondisi dibuat" untuk −Rp20.000 (637, 785); M10 memakai alur dua HP, bukan RaceLedger (650).
+- ADR 14: app 1.0/1.1 masa peralihan, Bayar tanpa key diterima, wajib key sesudah satu minggu tanpa Bayar tanpa key (Asumsi, belum direkam) (654).
+- Halaman Tahap 2 yang isinya mandiri dimulai sebelum prasyarat di-merge (722, 724); `lipat_masuk.py` menolak argumen asing dan diuji (725).
