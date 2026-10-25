@@ -229,7 +229,7 @@ window.ISTILAH = {
   "n": "2.27 M16",
   "s": "istilah-credential-stuffing",
   "t": "Credential stuffing",
-  "u": null
+  "u": "tahap-2/m16-akun-terkunci/"
  },
  "Database": {
   "b": "B2.1",
@@ -524,7 +524,7 @@ window.ISTILAH = {
   "n": "2.27 M16",
   "s": "istilah-kunci-akun",
   "t": "Kunci akun",
-  "u": null
+  "u": "tahap-2/m16-akun-terkunci/"
  },
  "LSN": {
   "b": "D3",
@@ -1468,7 +1468,7 @@ window.ISTILAH = {
   "n": "2.27 M16",
   "s": "istilah-credential-stuffing",
   "t": "Credential stuffing",
-  "u": null
+  "u": "tahap-2/m16-akun-terkunci/"
  },
  "database": {
   "b": "B2.1",
@@ -1674,7 +1674,7 @@ window.ISTILAH = {
   "n": "2.27 M16",
   "s": "istilah-kunci-akun",
   "t": "Kunci akun",
-  "u": null
+  "u": "tahap-2/m16-akun-terkunci/"
  },
  "latency": {
   "b": "C2",

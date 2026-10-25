@@ -1,0 +1,109 @@
+---
+title: "2.27 M16: Akun Ani terkunci"
+description: Minggu 7. Akun Warung Ani menolak password yang benar berkali-kali pagi hari, sementara log login memuat banyak percobaan dari satu alamat IP ke banyak akun.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import kunci from "../../../../data/diagram/t2-m16-kunci.json";
+import Snippet from "../../../components/Snippet.astro";
+import KunciAkun from "../../../components/KunciAkun.astro";
+
+<p class="meta">Baca 9 menit · coba 3 menit · Prasyarat: [[t2-job-rekonsiliasi]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka ilustrasi="m16">
+
+Minggu 7 Tahap 2. Selasa pagi, Ani membuka Rekeningo di warungnya untuk melihat penjualan kemarin. Layarnya menulis "Email atau password salah".
+
+Ani mengetik ulang passwordnya pelan-pelan. Jawabannya sama. Beberapa menit kemudian passwordnya diterima, lalu pagi itu ditolak lagi dua kali. Ia menulis ke Raka: "Saya lupa password, tolong dibuatkan yang baru."
+
+Rabu dan Kamis pagi hal yang sama terulang. Passwordnya tidak berubah, dan Ani yakin ia tidak salah mengetik.
+
+Raka membuka log login. Satu alamat IP muncul ribuan kali sejak dini hari, ke banyak alamat email karyawan dan warung. Hampir semua percobaan itu ditolak.
+
+*Angka cerita (Ilustrasi):* "ribuan" dan urutan harinya berasal dari naskah. Rekaman di blok "Yang sebenarnya" mengulang pola itu dalam skala kecil di server lokal: 29 akun dan lima tebakan, bukan ribuan.
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka membaca pesan Ani sebagai urusan password. Di [[t1-fitur-login]] ia sudah menulis jalurnya: admin membuat ulang password secara manual, karena lupa password sengaja ditunda. Ia menyiapkan password sementara baru untuk Ani.
+
+Log yang ramai itu ia catat sebagai urusan lain. Seseorang mencoba-coba, tetapi hampir semua tebakannya gagal. Menurut Raka, itu tidak berhubungan dengan akun Ani.
+
+<details class="question">
+<summary>Tebak dulu: Raka mengganti password Ani, dan Jumat pagi Ani ditolak lagi dengan password baru yang benar. Penyebab mana yang paling mungkin?</summary>
+
+Bukan passwordnya. Penolakan Ani dan baris-baris di log adalah satu kejadian, bukan dua. Blok berikutnya menunjukkan bagaimana keduanya tersambung.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Naskah tidak menyebut siapa pemilik alamat IP di log, dan tidak menyebut berapa password yang dicoba untuk tiap alamat email. Halaman ini memakai dua pilihan.
+
+*Skenario (Ilustrasi):* alamat itu milik laptop Dimas, staf TI Gedung C. Ia penasaran apakah rekan kerja memakai ulang password dari situs lain, jadi ia mencoba daftar password bocor ke akun kampus. Daftarnya memuat beberapa password untuk sebagian alamat, termasuk alamat Ani. Dimas tidak bermaksud mengunci siapa pun, dan ia tidak memikirkan akibat tebakan berulang pada akun yang sama.
+
+*Kondisi rekaman (Asumsi):* server lab di container lokal hanya punya kunci per akun, yang diminta PRD v2 sebagai "percobaan salah dibatasi". Lima gagal berturut-turut memasang kunci 60 detik, dan tiap kegagalan berikutnya menggandakannya. Alamat penyerang 203.0.113.9 dan alamat Ani 198.51.100.7 adalah alamat dokumentasi ([RFC 5737](https://www.rfc-editor.org/rfc/rfc5737.html)), dan password yang dicoba tertulis di skrip rekaman.
+
+**Pola pertama: satu tebakan per akun.** Dimas mencoba satu password untuk tiap alamat, dan rekaman melakukannya ke 29 akun. Server tidak mengunci satu akun pun, karena tiap akun hanya melihat satu kegagalan. Satu akun, Karyawan 514, memakai ulang password yang ada di daftar itu, dan server menjawab 200 seperti login biasa:
+
+<Snippet file="labs/c4-ratelimit/output/login/ratelimit.txt" lines="27:32" title="Rekaman lab: labs/c4-ratelimit/output/login/ratelimit.txt, bagian C (satu tebakan per akun)" />
+
+**Pola kedua: banyak tebakan ke satu akun.** Bila lima tebakan salah berturut-turut sampai ke satu akun, server memasang kunci 60 detik. Siapa pun yang mengetik, termasuk Ani dengan passwordnya yang benar, mendapat jawaban yang sama dengan password salah. Sesudah kunci lewat, satu tebakan lagi memasang kunci 120 detik, lalu 240 detik:
+
+<Snippet file="labs/c4-ratelimit/output/login/ratelimit.txt" lines="35:41" title="Rekaman lab: labs/c4-ratelimit/output/login/ratelimit.txt, bagian C (lima tebakan ke akun Ani)" />
+
+<Rantai data={kunci} />
+
+**Kodenya bekerja persis seperti dirancang.** Tidak ada bug di sini. Kode itu mencatat tiap percobaan lebih dulu, dalam transaction yang mengunci baris akun, lalu menjawab akun yang sedang terkunci seperti password salah. Komentar di kode lab menulis akibatnya: bila ini satu-satunya pertahanan, penyerang bisa mengunci akun orang lain dengan sengaja gagal.
+
+<Snippet file="labs/c4-ratelimit/login/main.go" lines="349:368" lang="go" title="Kode lab: labs/c4-ratelimit/login/main.go baris 349 sampai 368 (kunci per akun dan jawaban untuk akun terkunci)" />
+
+**Kenapa Ani dan Raka tidak bisa membedakannya.** Jawaban untuk akun terkunci sama persis dengan jawaban untuk password salah: status 401, judul "Email atau password salah", dan waktu hash yang sama. Itu disengaja. [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html) meminta jawaban generik untuk login yang gagal, termasuk akun yang terkunci, supaya penyerang tidak bisa memilah akun yang terdaftar.
+
+Harganya jatuh ke Ani, yang dari layarnya melihat passwordnya salah. Cheat sheet yang sama mencatat bahwa kunci akun bisa dipakai untuk mengunci user lain. Ia menyarankan jalur lupa password tetap bisa dipakai masuk walau akun terkunci. [CWE-645](https://cwe.mitre.org/data/definitions/645.html) menamai kelemahan ini: kunci yang terlalu mudah dipicu, sehingga penyerang menolak layanan user yang sah.
+
+Di Rekeningo minggu 7, jalur itu tidak ada. PRD v2 tidak memuat lupa password. Satu-satunya jalan Ani adalah admin yang membuat ulang password secara manual, seperti yang ditulis [[t1-fitur-login]].
+
+**Dua kebiasaan yang membuka akun.** Karyawan 514 terbuka karena memakai ulang password dari situs lain, dan seed rekaman menandai Karyawan 515 yang masih memakai password sementara dari admin. Di Tahap 1, [[t1-fitur-login]] menunda kewajiban mengganti password sementara, dengan risiko "password sementara berpola sama untuk semua orang di lab". Rekaman tidak menyemprot akun 515, jadi halaman ini tidak mengklaim hasilnya.
+
+<Snippet file="labs/c4-ratelimit/output/login/ratelimit.txt" lines="12:17" title="Rekaman lab: labs/c4-ratelimit/output/login/ratelimit.txt, bagian A (akun seed)" />
+
+**Yang belum dijawab rekaman ini.** Lapis batas laju di memori, yang dibahas [[t2-login-aman]], menahan banjir dari satu alamat. Kunci akun di database memakai penghitung yang sama.
+
+Bagian D rekaman menunjukkan bahwa dari delapan tebakan ke satu akun, lima tetap sampai ke pemeriksaan password. Dari kode `periksaMasuk`, kelima tebakan itu memasang kunci. Itu hasil membaca kode, bukan rekaman (Tidak dijalankan).
+
+Tebakan Raka salah dua kali. Ani tidak lupa password, dan log itu bukan urusan lain: log itu penyebabnya. Kunci per akun melewatkan penyemprotan dan menahan akun yang dibidik, termasuk pemiliknya.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini memutar ulang bagian C dan G rekaman. Tebak dulu berapa tebakan salah yang cukup untuk mengunci Ani lagi sesudah kunci pertama lewat.
+
+<KunciAkun />
+
+Sesudah menebak, ubah satu hal: siapa yang mengirim percobaan pertama sesudah kunci lewat. Bila penyerang, kunci kembali dengan lama dua kali lipat. Bila Ani dengan passwordnya yang benar, penghitung kembali ke nol. Kunci menahan Ani hanya selama penyerang yang mengetik lebih dulu, dan satu request per kunci sudah cukup baginya.
+
+<details>
+<summary>Rekaman bagian A sampai G (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/c4-ratelimit/output/login/ratelimit.txt" lines="1:84" title="Rekaman lab: labs/c4-ratelimit/output/login/ratelimit.txt, bagian A sampai G" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [Halaman istilah credential stuffing](/istilah/credential-stuffing/): memakai pasangan email dan password dari kebocoran situs lain. Halaman itu memuat cara enam stack membatasi login.
+- [Halaman istilah kunci akun](/istilah/kunci-akun/): kunci yang melekat pada akun, dengan jawaban generik, lama bertahap, dan risiko mengunci pemiliknya.
+- [[t2-login-aman]]: brute force, credential stuffing, hash password, batas laju dua lapis, dan kewajiban ganti password pertama.
+- [[t1-fitur-login]]: batas percobaan login, ganti password sementara, dan lupa password yang ditunda di minggu pertama.
+- [[t2-transfer]]: dua batas, per akun dan per IP, di endpoint kiriman antar karyawan, dengan rekaman yang menahan Dimas.
+
+Kunci yang hanya melihat satu akun menghukum korbannya, bukan penyerangnya.
+
+</Blok>
