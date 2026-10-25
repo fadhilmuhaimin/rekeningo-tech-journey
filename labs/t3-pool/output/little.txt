@@ -1,0 +1,53 @@
+# Lab t3-pool · L = λ × W: koneksi yang tertahan menurut lama panggilan push
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-pool run (keputusan 957).
+
+# --- t = 0,3 detik: layanan push menjawab sesudah 300 ms, pool 10, 0,87 pembayaran per detik ---
+$ ./api-t3 -rentan push-dalam-tx -lab   # pool 10, push timeout 0, idle-tx 0
+server log: PERINGATAN: mode rentan push-dalam-tx menyala
+server log: api-t3 siap: pool 10, push timeout 0s, idle-tx 0s
+$ curl -X POST '/lab/mode' -d '{"mode": "lambat", "ms": 300}'   # layanan push tiruan menjawab sesudah 300 ms
+# Hanya pembayaran (0,87 per detik, satu setiap 1,149 detik). L untuk semua request ada di adr22.txt F.
+hitungan: L = λ × W = 0,87 × (0,02 + 0,3) = 0,278 koneksi
+jendela: 10 pembayaran berturut-turut, detik 2,3 sampai 13,8 jadwal; koneksi dengan transaction terbuka dicuplik tiap 20 ms dari pg_stat_activity
+10 dari 10 pembayaran: 201 x10
+koneksi dengan transaction terbuka: paling sedikit 0, paling banyak 1 dari 10
+W dari data (rata-rata satu pembayaran): t ditambah kurang dari 50 ms untuk PostgreSQL dan HTTP (batas lab; Asumsi naskah 20 ms): ya
+rata-rata koneksi dalam 15% dari λ × W (λ dari jadwal, W rata-rata dari data): ya
+rata-rata koneksi dalam 15% dari hitungan 0,278: ya
+
+# --- t = 2,0 detik: layanan push menjawab sesudah 2000 ms, pool 10, 0,87 pembayaran per detik ---
+$ ./api-t3 -rentan push-dalam-tx -lab   # pool 10, push timeout 0, idle-tx 0
+server log: PERINGATAN: mode rentan push-dalam-tx menyala
+server log: api-t3 siap: pool 10, push timeout 0s, idle-tx 0s
+$ curl -X POST '/lab/mode' -d '{"mode": "lambat", "ms": 2000}'   # layanan push tiruan menjawab sesudah 2000 ms
+# Hanya pembayaran (0,87 per detik, satu setiap 1,149 detik). L untuk semua request ada di adr22.txt F.
+hitungan: L = λ × W = 0,87 × (0,02 + 2,0) = 1,757 koneksi
+jendela: 10 pembayaran berturut-turut, detik 3,4 sampai 14,9 jadwal; koneksi dengan transaction terbuka dicuplik tiap 20 ms dari pg_stat_activity
+10 dari 10 pembayaran: 201 x10
+koneksi dengan transaction terbuka: paling sedikit 1, paling banyak 2 dari 10
+W dari data (rata-rata satu pembayaran): t ditambah kurang dari 50 ms untuk PostgreSQL dan HTTP (batas lab; Asumsi naskah 20 ms): ya
+rata-rata koneksi dalam 15% dari λ × W (λ dari jadwal, W rata-rata dari data): ya
+rata-rata koneksi dalam 15% dari hitungan 1,757: ya
+
+# --- t = 10,0 detik: layanan push menjawab sesudah 10000 ms, pool 10, 0,87 pembayaran per detik ---
+$ ./api-t3 -rentan push-dalam-tx -lab   # pool 10, push timeout 0, idle-tx 0
+server log: PERINGATAN: mode rentan push-dalam-tx menyala
+server log: api-t3 siap: pool 10, push timeout 0s, idle-tx 0s
+$ curl -X POST '/lab/mode' -d '{"mode": "lambat", "ms": 10000}'   # layanan push tiruan menjawab sesudah 10000 ms
+# Hanya pembayaran (0,87 per detik, satu setiap 1,149 detik). L untuk semua request ada di adr22.txt F.
+hitungan: L = λ × W = 0,87 × (0,02 + 10,0) = 8,717 koneksi
+jendela: 10 pembayaran berturut-turut, detik 11,5 sampai 23,0 jadwal; koneksi dengan transaction terbuka dicuplik tiap 20 ms dari pg_stat_activity
+10 dari 10 pembayaran: 201 x10
+koneksi dengan transaction terbuka: paling sedikit 8, paling banyak 9 dari 10
+W dari data (rata-rata satu pembayaran): t ditambah kurang dari 50 ms untuk PostgreSQL dan HTTP (batas lab; Asumsi naskah 20 ms): ya
+rata-rata koneksi dalam 15% dari λ × W (λ dari jadwal, W rata-rata dari data): ya
+rata-rata koneksi dalam 15% dari hitungan 8,717: ya
+
+# --- Ringkasan: L = λ × W dengan λ = 0,87 pembayaran per detik dan pool 10 ---
+# t (detik) | hitungan L = 0,87 × (0,02 + t) | koneksi paling banyak (diukur) | pool 10
+0,3       | 0,278                          | 1                              | muat
+2,0       | 1,757                          | 2                              | muat
+10,0      | 8,717                          | 9                              | muat (sisa 1)
+30        | 26,117                         | 10 (pool penuh)                | tidak muat: 26 pembayaran dalam proses, 10 memegang koneksi (m18.txt A)
+# Pool 10 penuh bila L mencapai 10: t = 10 ÷ 0,87 - 0,02 = 11,47 detik.
