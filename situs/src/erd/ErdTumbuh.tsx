@@ -248,8 +248,10 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [], chi
     [data, no, banding, sebelum],
   );
   const pesan = useMemo(() => varPesan(tampilTahap(data, awal)) as CSSProperties, [data, awal]);
-  // Bandingkan berdampingan bila setiap sisi muat tata dua kolom pada zoom ≥ 0,85 (desktop); selain itu bertumpuk
-  // dengan zoom 1. Di 1366 px sisi selebar ±497 px, tata dua kolom 572 px: zoom ±0,87.
+  // Bandingkan berdampingan bila setiap sisi muat tata dua kolom (ambangKolom(2), 572 px) pada zoom ≥ 0,85 (desktop);
+  // selain itu bertumpuk dengan zoom 1. Di 1366 px sisi selebar ±497 px: Tahap 1 dan 2 zoom ±0,87. Pengecualian yang
+  // diterima (keputusan 964): tata Tahap 3 dua kolom 620 px karena 20 foreign key, jadi sisi kanan zoom ±0,80 (teks
+  // kunci ±9,6 px); bertumpuk di desktop menolak syarat naskah 3b (Tahap 2 di kiri, Tahap 3 di kanan). Tahap 3 tunggal zoom 1.
   const sisiLebar = lebar === null ? 0 : Math.floor((lebar - 24) / 2);
   const berdampingan = panel.length === 2 && sisiLebar >= Math.round(ambangKolom(2) * 0.85);
   const lebarPanel = lebar === null ? 0 : berdampingan ? sisiLebar : lebar;

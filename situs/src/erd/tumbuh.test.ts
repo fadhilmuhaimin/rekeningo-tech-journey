@@ -8,7 +8,7 @@ import t2 from "./uji/tahap-2.json";
 import t2Lab from "../../data/erd/tahap-2.json";
 import t3Lab from "../../data/erd/tahap-3.json";
 import petaT2 from "./uji/halaman.json";
-import { DataErd, PetaHalaman } from "./skema";
+import { DataErd, PetaHalaman, type Tabel } from "./skema";
 import {
   UKURAN, ambangKolom, bagiLajur, bisaBanding, daftarFk, jumlahKolom, namaTombol, peringkat, ringkasan, tampilSebelum, tampilTahap, tata,
   tandaiHalamanIni, tautanHalaman, teksAturan, teksKolom, teksPindah, barisPindah, tinggiNode, urutan, varPesan, type HalamanRegistry, type TabelTampil,
@@ -296,6 +296,9 @@ describe("ERD Tahap 3 dari lab api-t3 (ERD3)", () => {
     }
   });
   it("HP: garis berbagi lajur hanya bila rentang tegaknya terpisah; Tahap 1 dan 2 yang muat tetap satu lajur per garis", () => {
+    // Celah dikunci ke angka tulis tangan: kalau hanya memakai UKURAN.celahLajur, mengubahnya jadi 0 tetap lolos. 10 px = dua
+    // garis di lajur yang sama masih terbaca terputus, bukan satu garis panjang (borderRadius 6 di ErdTumbuh.tsx membulatkan ujungnya).
+    expect(UKURAN.celahLajur).toBeGreaterThanOrEqual(10);
     for (const lebar of [288, 343]) {
       const t = tata(x, lebar);
       const y = new Map(t.node.map((n) => [n.nama, n.y]));
@@ -312,6 +315,43 @@ describe("ERD Tahap 3 dari lab api-t3 (ERD3)", () => {
     }
     // Tahap 2 tidak muat di wadah 288 px (layar 320) bila satu garis satu lajur (310 px); dengan lajur dibagi muat.
     expect(tata(tampilTahap(lab3, 2), 288).lebar).toBeLessThanOrEqual(288);
+  });
+  it("penjaga skema: kolom, tipe, boleh kosong, kunci, dan nama aturan tiap tabel sama dengan schema tahap3 lab api-t3", () => {
+    // Diperiksa peninjau PR 344 terhadap schema yang dibangun buat_schema() lab api-t3 (query katalog sendiri, bukan erd.py).
+    // Alasannya: `erd.py --cek` tidak punya database, jadi kolom, UNIQUE, CHECK, atau index yang dihapus tangan dari JSON
+    // dengan format sah lolos gerbang (mutasi: 31 dari 166 lolos sebelum tes ini). Tes ini gagal bila JSON berubah dari lab;
+    // bila lab berubah, bangun ulang JSON (tools/erd.py --tahap 3) lalu perbarui baris yang berbeda. Tidak memeriksa nilai
+    // bawaan dan isi ekspresi CHECK; "?" = boleh kosong.
+    const tanda = (t: Tabel) => {
+      const tipe = (v: string) => v.replace("timestamp with time zone", "timestamptz").replace(/^integer$/, "int");
+      const daftar = (xs: string[]) => (xs.length ? xs.join("; ") : "-");
+      return [
+        "kolom " + t.kolom.map((k) => `${k.nama} ${tipe(k.tipe)}${k.wajib ? "" : "?"}`).join(", "),
+        "pk " + t.pk.join(","),
+        "fk " + daftar(t.fk.map((f) => `${f.nama} (${f.kolom.join(",")})>${f.ke_tabel}(${f.ke_kolom.join(",")}) ${f.saat_hapus}`)),
+        "unik " + daftar(t.unik.map((u) => `${u.nama} (${u.kolom.join(",")})`)),
+        "cek " + (t.cek.length ? t.cek.map((c) => c.nama).join(", ") : "-"),
+        "index " + (t.index.length ? t.index.map((i) => `${i.nama}${i.unik ? " UNIQUE" : ""}`).join(", ") : "-"),
+      ].join(" | ");
+    };
+    const harap: Record<string, string> = {
+    akun: "kolom id bigint, jenis text, nama text, email text, password_hash text, nomor_karyawan text?, wajib_ganti_password boolean, gagal_login int, terkunci_sampai timestamptz?, kota_id bigint? | pk id | fk akun_kota_id_fkey (kota_id)>kota(id) NO ACTION | unik akun_email_key (email); akun_nomor_karyawan_key (nomor_karyawan) | cek akun_gagal_login_check, akun_jenis_check, karyawan_bernomor | index akun_kota",
+    sesi: "kolom token_hash text, akun_id bigint, kedaluwarsa timestamptz, jenis text, csrf_hash text? | pk token_hash | fk sesi_akun_id_fkey (akun_id)>akun(id) NO ACTION | unik - | cek sesi_csrf_hanya_web, sesi_jenis_check | index -",
+    buku: "kolom id bigint, akun_id bigint?, jenis text, saldo_cache bigint, batas_saldo bigint?, batas_harian bigint?, versi int | pk id | fk buku_akun_id_fkey (akun_id)>akun(id) NO ACTION | unik buku_akun_id_jenis_key (akun_id,jenis) | cek buku_batas_harian_check, buku_batas_saldo_check, buku_jenis_check, buku_pemilik | index buku_sistem_satu_per_jenis UNIQUE",
+    jurnal: "kolom id bigint, jenis text, keterangan text, membalik_jurnal_id bigint?, dibuat_oleh bigint, dibuat timestamptz | pk id | fk jurnal_dibuat_oleh_fkey (dibuat_oleh)>akun(id) NO ACTION; jurnal_membalik_jurnal_id_fkey (membalik_jurnal_id)>jurnal(id) NO ACTION | unik jurnal_membalik_jurnal_id_key (membalik_jurnal_id) | cek jurnal_jenis_check, pembalik_beralasan, pembalik_merujuk_asal | index -",
+    posting: "kolom id bigint, jurnal_id bigint, buku_id bigint, jumlah bigint, dibuat timestamptz | pk id | fk posting_buku_id_fkey (buku_id)>buku(id) NO ACTION; posting_jurnal_id_fkey (jurnal_id)>jurnal(id) NO ACTION | unik - | cek posting_jumlah_check | index posting_buku, posting_jurnal, posting_riwayat",
+    kunci_idempotensi: "kolom kunci text, akun_id bigint, hash_permintaan text, status text, respons jsonb?, jurnal_id bigint?, kedaluwarsa timestamptz | pk kunci | fk kunci_idempotensi_akun_id_fkey (akun_id)>akun(id) NO ACTION; kunci_idempotensi_jurnal_id_fkey (jurnal_id)>jurnal(id) NO ACTION | unik kunci_idempotensi_jurnal_id_key (jurnal_id) | cek kunci_idempotensi_status_check | index -",
+    batch_pencairan: "kolom id bigint, periode text, status text, total bigint | pk id | fk - | unik batch_pencairan_periode_key (periode) | cek batch_pencairan_status_check, batch_pencairan_total_check | index -",
+    baris_pencairan: "kolom batch_id bigint, buku_id bigint, jumlah bigint, jurnal_id bigint? | pk batch_id,buku_id | fk baris_pencairan_batch_id_fkey (batch_id)>batch_pencairan(id) NO ACTION; baris_pencairan_buku_id_fkey (buku_id)>buku(id) NO ACTION; baris_pencairan_jurnal_id_fkey (jurnal_id)>jurnal(id) NO ACTION | unik baris_pencairan_jurnal_id_key (jurnal_id) | cek baris_pencairan_jumlah_check | index -",
+    kota: "kolom id bigint, nama text | pk id | fk - | unik kota_nama_key (nama) | cek - | index -",
+    perangkat: "kolom id bigint, akun_id bigint, platform text, token_push text, aktif boolean, terakhir_terlihat timestamptz | pk id | fk perangkat_akun_id_fkey (akun_id)>akun(id) NO ACTION | unik perangkat_token_push_key (token_push) | cek perangkat_platform_check | index perangkat_akun",
+    outbox: "kolom id bigint, notifikasi_id uuid, jurnal_id bigint?, akun_id bigint, kelas smallint, jenis text, payload jsonb, status text, percobaan int, coba_lagi timestamptz, klaim_sampai timestamptz?, dibuat timestamptz | pk id | fk outbox_akun_id_fkey (akun_id)>akun(id) NO ACTION; outbox_jurnal_id_fkey (jurnal_id)>jurnal(id) NO ACTION | unik outbox_notifikasi_id_key (notifikasi_id) | cek outbox_jenis_check, outbox_jurnal_atau_promo, outbox_kelas_check, outbox_percobaan_check, outbox_status_check | index outbox_antre, outbox_satu_per_jurnal UNIQUE",
+    produk: "kolom id bigint, akun_id bigint, nama text, harga bigint, stok int, aktif boolean, versi int, diubah timestamptz | pk id | fk produk_akun_id_fkey (akun_id)>akun(id) NO ACTION | unik produk_akun_id_nama_key (akun_id,nama) | cek produk_harga_check, produk_nama_check, produk_stok_check | index -",
+    promo: "kolom id bigint, kota_id bigint, dibuat_oleh bigint, judul text, potongan_persen int, mulai timestamptz, selesai timestamptz | pk id | fk promo_dibuat_oleh_fkey (dibuat_oleh)>akun(id) NO ACTION; promo_kota_id_fkey (kota_id)>kota(id) NO ACTION | unik - | cek promo_judul_check, promo_potongan_persen_check, promo_selesai_sesudah_mulai | index promo_kota_waktu",
+    operasi_sinkron: "kolom kunci text, perangkat_id bigint, produk_id bigint, jenis text, nilai bigint, versi_dasar int, status text, dibuat_di_hp timestamptz, diterapkan timestamptz? | pk kunci | fk operasi_sinkron_perangkat_id_fkey (perangkat_id)>perangkat(id) NO ACTION; operasi_sinkron_produk_id_fkey (produk_id)>produk(id) NO ACTION | unik - | cek operasi_sinkron_jenis_check, operasi_sinkron_nilai_check, operasi_sinkron_status_check, operasi_sinkron_versi_dasar_check | index operasi_produk",
+    };
+    expect(lab3[2].tabel.map((t) => t.nama)).toEqual(Object.keys(harap));
+    for (const t of lab3[2].tabel) expect(tanda(t), t.nama).toBe(harap[t.nama]);
   });
   it("bagiLajur: rentang terpisah satu lajur, yang tumpang-tindih atau terlalu dekat berpindah lajur", () => {
     const r = bagiLajur([{ id: "a", dari: 0, ke: 10 }, { id: "b", dari: 30, ke: 20 }, { id: "c", dari: 5, ke: 25 }, { id: "d", dari: 11, ke: 15 }], 2);
@@ -343,7 +383,10 @@ describe("ERD Tahap 3 dari lab api-t3 (ERD3)", () => {
     for (const n of BARU) expect(belum[n].some((h) => h.label.startsWith("3.")), n).toBe(true);
     expect(belum.outbox.filter((h) => h.catatan === "segera").map((h) => h.label.split(" ")[0])).toEqual(["3.4", "3.9", "3.11", "3.13"]);
     expect(belum.outbox.every((h) => h.href === null)).toBe(true);
-    expect(sudah.outbox.map((h) => h.href)).toEqual(["/tahap-3/dua-tempat/", "/tahap-3/outbox/", "/tahap-3/klaim-baris/", "/tahap-3/at-least-once/"].map((h, i) => sudah.outbox[i].href).map((h) => h));
+    // Urutan dan alamat dari registry (url()), bukan dari daftar tulis tangan yang bisa ketinggalan saat nama berkas halaman berubah.
+    const reg3 = reg.map((h) => (h.id.startsWith("t3-") ? { ...h, ada: true, lama: false } : h));
+    expect(sudah.outbox.map((h) => h.href)).toEqual(["t3-dua-tempat", "t3-outbox", "t3-klaim-baris", "t3-at-least-once"].map((id) => url(reg3.find((h) => h.id === id)!)));
+    expect(sudah.outbox.map((h) => h.href).every((h) => /^\/tahap-3\/[a-z0-9-]+\/$/.test(h ?? ""))).toBe(true);
     expect(sudah.outbox.every((h) => h.href && h.catatan === null)).toBe(true);
   });
 });
