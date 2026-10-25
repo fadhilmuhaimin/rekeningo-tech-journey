@@ -8,6 +8,7 @@ import { describe, expect, test } from "vitest";
 import { bacaRekaman, hashDuaLapis } from "./logika";
 import inti from "../../../data/diagram/t2-login-inti.json";
 import urutan from "../../../data/diagram/t2-login-urutan.json";
+import widget from "../../../data/widget/t2-login-pertahanan.json";
 
 const akar = path.resolve(__dirname, "../../../..");
 const baca = (p: string): string => fs.readFileSync(path.join(akar, p), "utf8");
@@ -131,5 +132,40 @@ describe("diagram urutan", () => {
     expect(teks).toContain(`ambang ${ambang} tercapai`);
     expect(teks).toContain("kunci 60 detik");
     expect(konstanta("ambangAkun")).toBe(5);
+  });
+});
+
+// Tinjauan 2.28 (keputusan 858): uji mutasi menunjukkan angka di sub-teks diagram Inti, di JSON widget, dan di bagian G
+// halaman tidak dijaga oleh tes di atas. Tes ini menurunkannya dari rekaman dan konstanta kode lab.
+describe("angka yang tadinya tidak dijaga", () => {
+  test("sub-teks diagram Inti: memori hash, ambang kunci, jatah per akun", () => {
+    const sub = inti.baris.flatMap((b) => b.simpul.map((s) => s.sub));
+    expect(sub).toContain(`hash ${memoriMiB} MiB`);
+    expect(sub).toContain(`database, ambang ${ambang} gagal`);
+    expect(sub).toContain(`memori, ${perAkun.kapasitas} sekaligus`);
+  });
+
+  test("JSON widget: jatah per alamat, dua server, dan jumlah alamat IPv6", () => {
+    expect(widget.pertanyaan).toContain(`(${perIP.kapasitas} sekaligus, isi ulang ${perIP.perMenit} per menit)`);
+    expect(widget.kondisi["dua-instance"].kesimpulan).toContain(`batas ${perIP.kapasitas} per alamat berlaku di setiap server`);
+    const kata: Record<number, string> = { 12: "dua belas" };
+    expect(kata[R.ipv6.percobaan], "kata bilangan alamat IPv6 untuk jumlah percobaan di rekaman").toBeDefined();
+    expect(widget.kondisi.ipv6.kesimpulan).toContain(`${kata[R.ipv6.percobaan]} alamat berbeda`);
+  });
+
+  test("bagian G: satu tebakan dinilai terhadap hash asli dari lima yang bersamaan", () => {
+    const g = rekaman.match(/lima tebakan bersamaan → 401: (\d+)\n\s+dinilai terhadap hash asli: (\d+); argon2id dijalankan (\d+) kali/);
+    expect(g, "baris bagian G").not.toBeNull();
+    expect(Number(g![1])).toBe(5);
+    expect(Number(g![2])).toBe(1);
+    ada("hanya satu yang dinilai terhadap hash asli", "satu dinilai");
+    ada("dari lima tebakan bersamaan", "lima bersamaan");
+  });
+
+  test("lama kunci maksimum disebut sama di semua tempat di halaman", () => {
+    const maks = (60 * 2 ** konstanta("kunciMaksTingkat")) / 60;
+    const semua = [...halaman.matchAll(/menggandakan sampai (\d+) menit/g)].map((m) => Number(m[1]));
+    expect(semua.length).toBeGreaterThanOrEqual(2);
+    for (const n of semua) expect(n).toBe(maks);
   });
 });
