@@ -1,0 +1,46 @@
+---
+/**
+ * Widget tutup buku diulang (M17, keputusan 760): tebak apa yang berubah pada laporan tutup buku sesudah satu
+ * transaction yang tadi belum COMMIT akhirnya COMMIT, lalu ubah satu hal (kapan laporan dibuat).
+ *   <TutupUlang />
+ * Angka dibaca saat build dari labs/api-t2/output/tutup-buku.txt bagian C lewat logika.ts; rekaman yang berubah
+ * bentuk menggagalkan build. Teks dari data/widget/t2-m17-tutup-ulang.json (skema.ts).
+ * Island di-render saat build (client:visible); tanpa JavaScript hasil rekaman tampil di <noscript>.
+ * Satu widget per halaman (dipasang di blok Coba 2.29).
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import TutupUlangIsland from "../widgets/tutup-ulang/TutupUlang";
+import { LabelTutupUlang } from "../widgets/tutup-ulang/skema";
+import { arahDari, bacaRekaman, indeksBenar, isi, nilaiTeks, tabelWaktu } from "../widgets/tutup-ulang/logika";
+import labelMentah from "../../data/widget/t2-m17-tutup-ulang.json";
+
+const FILE = "labs/api-t2/output/tutup-buku.txt";
+const abs = path.join(ROOT, FILE);
+if (!fs.existsSync(abs)) throw new Error(`TutupUlang: ${FILE} tidak ada`);
+const R = bacaRekaman(fs.readFileSync(abs, "utf8"));
+const L = LabelTutupUlang.parse(labelMentah);
+const nilai = nilaiTeks(R);
+const pilihan = L.pilihan.map((p) => ({ ...p, alasan: isi(p.alasan, nilai) }));
+const benar = indeksBenar(pilihan, arahDari(R));
+const perWaktu = (peta: Record<"sebelum" | "sesudah", string>) => ({ sebelum: isi(peta.sebelum, nilai), sesudah: isi(peta.sesudah, nilai) });
+const label = {
+  judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, pertanyaan: isi(L.pertanyaan, nilai), benar: L.benar, belum: L.belum, ulang: L.ulang,
+  tabel: L.tabel, baris: L.baris, ubahJudul: L.ubahJudul, ubahChip: L.ubahChip, tetapChip: L.tetapChip,
+  waktu: L.waktu, kesimpulan: perWaktu(L.kesimpulan), catatan: perWaktu(L.catatan),
+};
+const tabel = { sebelum: tabelWaktu(R, "sebelum"), sesudah: tabelWaktu(R, "sesudah") };
+---
+<TutupUlangIsland client:visible pilihan={pilihan.map((p) => ({ teks: isi(p.teks, nilai), alasan: p.alasan }))} benar={benar} tabel={tabel} label={label} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <table>
+    <thead><tr><th>{L.tabel.periksa}</th><th>{L.waktu.sebelum}</th><th>{L.waktu.sesudah}</th></tr></thead>
+    <tbody>
+      {tabel.sebelum.map((b, i) => (
+        <tr><th scope="row">{L.baris[b.kode]}</th><td>{b.nilai}</td><td>{tabel.sesudah[i]!.nilai}</td></tr>
+      ))}
+    </tbody>
+  </table>
+</noscript>
