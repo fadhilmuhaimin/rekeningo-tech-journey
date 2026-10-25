@@ -1,0 +1,123 @@
+# Lab t3-offline · Idempotency-Key 24 jam di bayar, kiriman, dan pesanan; ulangan 62 jam kemudian
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_offline · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-offline run (keputusan 971).
+# server: ./api-t3 -lab -jam-lab
+# Jalur Idempotency-Key opsional di POST /transfers, /kiriman, dan /pesanan (ADR 14). Tanpa header, perilaku lama.
+
+# --- A. Tanpa Idempotency-Key (app 1.0 dan 1.1 tidak mengirimnya): permintaan yang sama dua kali menjadi dua pembayaran ---
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "jumlah": 28000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10001
+
+{"id":10001,"saldo":222000}
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "jumlah": 28000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10002
+
+{"id":10002,"saldo":194000}
+=> SELECT j.id AS jurnal, j.jenis, j.keterangan, p.jumlah FROM posting p JOIN jurnal j ON j.id = p.jurnal_id JOIN buku b ON b.id = p.buku_id WHERE b.akun_id = 419 AND j.jenis IN ('bayar', 'transfer') ORDER BY j.id
+ jurnal | jenis | keterangan               | jumlah
+--------+-------+--------------------------+--------
+ 10001  | bayar | Bayar Budi ke Warung Ani | -28000
+ 10002  | bayar | Bayar Budi ke Warung Ani | -28000
+(2 rows)
+
+# --- B. Jumat 16.50, dengan key: pembayaran masuk, jawabannya hilang di jalan ---
+# HP Budi tidak menerima jawaban di bawah ini (sinyal putus); HP mengingat key-nya
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01"' -d '{"ke": 418, "jumlah": 28000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10003
+
+{"id":10003,"saldo":166000}
+=> SELECT kunci, status, (respons->>'status')::int AS status_tersimpan FROM kunci_idempotensi
+ kunci                                | status  | status_tersimpan
+--------------------------------------+---------+------------------
+ 1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01 | selesai | 201
+(1 row)
+
+# --- C. Sabtu 09.50 (17 jam): HP mengirim ulang dengan key dan isi yang sama; key lain di kiriman dan pesanan ---
+# Jam lab: Sabtu 09.50 (17 jam sesudah Jumat 16.50). Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu 17 jam
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01"' -d '{"ke": 418, "jumlah": 28000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10003
+
+{"id":10003,"saldo":166000}
+=> SELECT j.id AS jurnal, j.jenis, j.keterangan, p.jumlah FROM posting p JOIN jurnal j ON j.id = p.jurnal_id JOIN buku b ON b.id = p.buku_id WHERE b.akun_id = 419 AND j.jenis IN ('bayar', 'transfer') ORDER BY j.id
+ jurnal | jenis | keterangan               | jumlah
+--------+-------+--------------------------+--------
+ 10001  | bayar | Bayar Budi ke Warung Ani | -28000
+ 10002  | bayar | Bayar Budi ke Warung Ani | -28000
+ 10003  | bayar | Bayar Budi ke Warung Ani | -28000
+(3 rows)
+# Header Location dan isi sama dengan jawaban Jumat; tidak ada jurnal baru. Dua jalur lain dengan key sendiri:
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b02"' -d '{"ke_nomor_karyawan": "K00504", "nominal": 10000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10004
+
+{"id":10004,"saldo":156000,"sisa_batas_harian":490000}
+$ curl -i -X POST '/pesanan' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b03"' -d '{"produk_id": 1, "porsi": 1}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10005
+
+{"id":10005,"saldo":131000,"nominal":25000,"harga_satuan":25000,"potongan_persen":0,"stok_sisa":49}
+# Kiriman dan pesanan diulang dengan key yang sama (jawaban tidak dicetak ulang): jawaban persis sama, saldo dan stok tidak berubah
+
+# --- D. Key yang sama dengan isi lain, akun lain, atau bentuk rusak ditolak; tidak ada jurnal baru ---
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01"' -d '{"ke": 418, "jumlah": 30000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/idempotency-key-dipakai-ulang","title":"Idempotency-Key sudah dipakai untuk permintaan lain","status":422}
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Dimas>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01"' -d '{"ke": 418, "jumlah": 28000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/idempotency-key-dipakai-ulang","title":"Idempotency-Key sudah dipakai untuk permintaan lain","status":422}
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: 12345' -d '{"ke": 418, "jumlah": 28000}'
+HTTP/1.1 400 Bad Request
+Content-Type: application/problem+json
+
+{"type":"/problems/idempotency-key","title":"Idempotency-Key harus satu String berisi UUID","status":400}
+# Jawaban milik permintaan lain tidak pernah dikirim ke akun atau isi yang berbeda
+
+# --- E. Senin 06.50 (62 jam): HP kembali online dan mengirim ulang tiga permintaan lama dengan key yang sama ---
+# Jam lab: Senin 06.50 (62 jam sesudah Jumat 16.50). Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu 62 jam
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01"' -d '{"ke": 418, "jumlah": 28000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10006
+
+{"id":10006,"saldo":103000}
+# Key sudah lewat 24 jam: server memperlakukan permintaan ini baru. Jurnal kedua, saldo turun lagi
+# Kiriman dan pesanan dengan key lama juga dikerjakan lagi (jawaban tidak dicetak ulang)
+=> SELECT j.id AS jurnal, j.jenis, j.keterangan, p.jumlah FROM posting p JOIN jurnal j ON j.id = p.jurnal_id JOIN buku b ON b.id = p.buku_id WHERE b.akun_id = 419 AND j.jenis IN ('bayar', 'transfer') ORDER BY j.id
+ jurnal | jenis    | keterangan                          | jumlah
+--------+----------+-------------------------------------+--------
+ 10001  | bayar    | Bayar Budi ke Warung Ani            | -28000
+ 10002  | bayar    | Bayar Budi ke Warung Ani            | -28000
+ 10003  | bayar    | Bayar Budi ke Warung Ani            | -28000
+ 10004  | transfer | Kiriman Budi ke Citra               | -10000
+ 10005  | bayar    | Bayar Budi ke warung: 1 Nasi goreng | -25000
+ 10006  | bayar    | Bayar Budi ke Warung Ani            | -28000
+ 10007  | transfer | Kiriman Budi ke Citra               | -10000
+ 10008  | bayar    | Bayar Budi ke warung: 1 Nasi goreng | -25000
+(8 rows)
+=> SELECT id, nama, stok, versi FROM produk WHERE id = 1
+ id | nama        | stok | versi
+----+-------------+------+-------
+ 1  | Nasi goreng | 48   | 3
+(1 row)
+=> SELECT kunci, status, (respons->>'status')::int AS status_tersimpan FROM kunci_idempotensi ORDER BY kunci
+ kunci                                | status  | status_tersimpan
+--------------------------------------+---------+------------------
+ 1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01 | selesai | 201
+ 1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b02 | selesai | 201
+ 1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b03 | selesai | 201
+(3 rows)
+# Pembayaran yang menunggu di HP selama offline 62 jam akan dikerjakan dua kali bila jawaban pertamanya hilang. Sebab itu pembayaran tidak pernah offline (ADR 29); hanya stok dan harga bersyarat versi, dengan kunci sinkron 14 hari (versi.txt)

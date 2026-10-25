@@ -1,0 +1,76 @@
+# Lab t3-offline · M24: stok yang kembali ke angka lama (key 24 jam, offline 62 jam, tanpa versi)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_offline · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-offline run (keputusan 971).
+# server: ./api-t3 -lab -jam-lab -rentan stok-timpa
+# Versi sebelum ADR 29 (mode rentan stok-timpa): PUT /produk/{id}/stok menimpa stok tanpa memeriksa versi.
+# Satu-satunya pengaman pengiriman ulang adalah Idempotency-Key, dikenali 24 jam (ADR 14).
+
+# --- A. Jumat 16.50: Ani mencatat 'habis' di HP; operasi sampai ke server, jawabannya hilang di jalan ---
+=> SELECT id, nama, harga, stok, versi FROM produk WHERE id IN (61, 1) ORDER BY id
+ id | nama        | harga | stok | versi
+----+-------------+-------+------+-------
+ 1  | Nasi goreng | 25000 | 50   | 1
+ 61 | Ayam geprek | 28000 | 30   | 1
+(2 rows)
+$ curl -i -X PUT '/produk/61/stok' -H 'Authorization: Bearer <token sesi Warung Ani>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3ba1"' -d '{"stok": 0}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":61,"harga":28000,"stok":0,"versi":2}
+# HP tidak menerima jawaban di atas (sinyal putus); HP mengingat operasi dan key-nya, lalu offline
+$ curl -i -X PUT '/produk/1/stok' -H 'Authorization: Bearer <token sesi Warung Ani>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3ba2"' -d '{"stok": 0}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1,"harga":25000,"stok":0,"versi":2}
+# Nasi goreng dicatat habis dengan cara yang sama: pembanding untuk lama ulangan (bagian C)
+
+# --- B. Sabtu 07.50: Ani mengisi 30 porsi ayam dan 50 porsi nasi lewat dasbor (jalur bersyarat versi) ---
+# Jam lab: Sabtu 07.50 (15 jam sesudah Jumat 16.50). Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu 15 jam
+$ curl -i -X PATCH '/produk/61' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"stok": 30, "versi": 2}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":61,"harga":28000,"stok":30,"versi":3}
+$ curl -i -X PATCH '/produk/1' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"stok": 50, "versi": 2}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1,"harga":25000,"stok":50,"versi":3}
+
+# --- C. Pembanding, Sabtu 09.50 (17 jam sejak Jumat): HP sempat dapat sinyal dan mengirim ulang operasi nasi ---
+# Jam lab: Sabtu 09.50 (17 jam sesudah Jumat 16.50). Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu 17 jam
+$ curl -i -X PUT '/produk/1/stok' -H 'Authorization: Bearer <token sesi Warung Ani>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3ba2"' -d '{"stok": 0}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1,"harga":25000,"stok":0,"versi":2}
+=> SELECT id, nama, stok, versi FROM produk WHERE id = 1
+ id | nama        | stok | versi
+----+-------------+------+-------
+ 1  | Nasi goreng | 50   | 3
+(1 row)
+# Key masih dikenali (17 jam < 24 jam): server menjawab dengan respons yang tersimpan (keadaan saat Jumat), stok 50 dan versi 3 tidak berubah
+
+# --- D. Senin 06.50 (62 jam sejak Jumat): HP kembali online dan mengirim ulang operasi ayam dengan key yang sama ---
+# Jam lab: Senin 06.50 (62 jam sesudah Jumat 16.50). Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu 62 jam
+=> SELECT id, nama, stok, versi FROM produk WHERE id = 61
+ id | nama        | stok | versi
+----+-------------+------+-------
+ 61 | Ayam geprek | 30   | 3
+(1 row)
+$ curl -i -X PUT '/produk/61/stok' -H 'Authorization: Bearer <token sesi Warung Ani>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3ba1"' -d '{"stok": 0}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":61,"harga":28000,"stok":0,"versi":4}
+# 62 jam > 24 jam: baris key sudah lewat masa berlaku, server memperlakukannya belum pernah ada. 'stok = 0' diterapkan lagi, TANPA memeriksa versi, di atas stok 30 dari Sabtu
+=> SELECT id, nama, stok, versi FROM produk WHERE id = 61
+ id | nama        | stok | versi
+----+-------------+------+-------
+ 61 | Ayam geprek | 0    | 4
+(1 row)
+$ curl -i 'GET /katalog?warung=418' -H 'Authorization: Bearer <token sesi Budi>'   # Senin 06.50, app Budi
+Ayam geprek: {"id":61,"harga":28000,"stok":0,"versi":4}
+# Budi melihat 'habis'. Ani mengisi 30 porsi hari Sabtu dan tidak pernah mencatat 'habis' lagi
+# Tidak ada error di sisi mana pun: server menjawab 200 dan stok 30 dari Sabtu hilang. Pembanding bersyarat versi: versi.txt
