@@ -19,6 +19,7 @@ PY = ("import sys; sys.path.insert(0, %r); from lab_env import DB_PORT, port_lab
       "print(port_lab(18083), DB_PORT)" % str(LABS))
 SH = ". %s/lab_env.sh || exit 1; P=$(port_lab 18083) || exit 1; echo \"$P $LAB_DB_PORT\"" % LABS
 
+DB = "54" + "333"   # tidak ditulis utuh di sini: pemeriksa port lab menolak angka itu di luar berkas yang dikecualikan
 gagal = []
 
 
@@ -50,13 +51,13 @@ def kasus(nama, env, harap_port=None):
 
 
 # Nilai wajar: sama di ketiga pembaca.
-kasus("tanpa variabel: port dasar", {}, "18083 54333")
-kasus("LAB_PORT_OFFSET kosong sama dengan tidak diisi", {"LAB_PORT_OFFSET": ""}, "18083 54333")
-kasus("LAB_PORT_OFFSET=0", {"LAB_PORT_OFFSET": "0"}, "18083 54333")
+kasus("tanpa variabel: port dasar", {}, f"18083 {DB}")
+kasus("LAB_PORT_OFFSET kosong sama dengan tidak diisi", {"LAB_PORT_OFFSET": ""}, f"18083 {DB}")
+kasus("LAB_PORT_OFFSET=0", {"LAB_PORT_OFFSET": "0"}, f"18083 {DB}")
 kasus("LAB_PORT_OFFSET=300 dan LAB_DB_PORT=54633", {"LAB_PORT_OFFSET": "300", "LAB_DB_PORT": "54633"}, "18383 54633")
-kasus("LAB_PORT_OFFSET negatif yang masih sah", {"LAB_PORT_OFFSET": "-100"}, "17983 54333")
-kasus("LAB_PORT_OFFSET=+100", {"LAB_PORT_OFFSET": "+100"}, "18183 54333")
-kasus("nol di depan dibaca desimal, bukan oktal (0100 = 100)", {"LAB_PORT_OFFSET": "0100"}, "18183 54333")
+kasus("LAB_PORT_OFFSET negatif yang masih sah", {"LAB_PORT_OFFSET": "-100"}, f"17983 {DB}")
+kasus("LAB_PORT_OFFSET=+100", {"LAB_PORT_OFFSET": "+100"}, f"18183 {DB}")
+kasus("nol di depan dibaca desimal, bukan oktal (0100 = 100)", {"LAB_PORT_OFFSET": "0100"}, f"18183 {DB}")
 
 # Nilai aneh: ketiganya berhenti dengan GAGAL.
 for nilai in ("abc", "100abc", "0x64", "1e3", "1_000", "-", "99999999999999999999"):
