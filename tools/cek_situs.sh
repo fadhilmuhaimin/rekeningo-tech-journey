@@ -23,6 +23,7 @@ PY=${PYTHON:-python3}
 # CI main 3bd9850 (run 40014428595): 290 s, 417 s, 336 s; axe masuk kelompok pertama (keputusan 693).
 # Alat race (W2-race, keputusan 709) ±21 s lokal masuk kelompok pertama, yang terpendek.
 # Alat pool (W3-pool, keputusan 980) ±35 s lokal masuk "diagram luapan", kelompok yang kini terpendek (87 s di semua halaman).
+# Alat cache (W3-cache, keputusan 986) ±17 s lokal masuk kelompok yang sama (ukur-pool ±35 s, ukur-outbox ±17 s).
 # 2026-10-25: "gerak erd" kena batas 9 menit di CI main (run 40093802904: gerak ±7m54, erd terpotong); gerak tumbuh
 # tiap halaman berblok baru, jadi dipecah dari erd (empat job, keputusan 726) dan batas langkah naik ke 13 menit.
 # 2026-10-25 (keputusan 865): dua alat terbesar dibagi per ukuran layar, supaya waktu dinding job terpanjang turun dari 9m24
@@ -40,7 +41,7 @@ KELOMPOK_UKUR=(
   "galur@lanskap-hp tangkap kontras"
   "cls gerak"
   "alur erd"
-  "diagram luapan pool"
+  "diagram luapan pool cache"
 )
 ukuran_bagian() {
   case "$1" in
@@ -170,17 +171,20 @@ jalan_ukur() {
       # empat halaman yang tabelnya meluap di HP (wadah tabel gulir, A11y-gulir-tabel, keputusan 712); seluruh tahap
       # diperiksa saat evaluasi (W4): node tools/ukur-axe.mjs --url ... --semua --awalan /tahap-N/ (keputusan 693, 694).
       # /uji/race/ dan widget race lama B3.2 (definition-list diperbaiki) masuk sesudah W2-race (keputusan 707, 709);
-      # /uji/pool/ masuk sesudah W3-pool (keputusan 980).
-      echo "== axe-core wcag2a, wcag2aa, wcag21aa, wcag22aa: 18 halaman × 375 dan 1366 × gelap dan terang, uji diri fixture (G-axe)"
+      # /uji/pool/ masuk sesudah W3-pool (keputusan 980); /uji/cache/ sesudah W3-cache (keputusan 986).
+      echo "== axe-core wcag2a, wcag2aa, wcag21aa, wcag22aa: 19 halaman × 375 dan 1366 × gelap dan terang, uji diri fixture (G-axe)"
       (cd situs && node tools/ukur-axe.mjs --url "$URL" --path / --path /tahap-1/prd-v1/ --path /tahap-1/fitur-bayar/ \
         --path /tahap-1/data-modeling/ \
         --path /tahap-1/transaction/ --path /tahap-1/m3-tanda-kutip/ --path /tahap-1/m8-uji-coba-lolos/ \
         --path /tahap-1/sengaja-belum/ --path /tahap-1/tim-infra/ --path /tahap-2/prd-v2/ --path /uji/erd/ \
         --path /tahap-1/struktur-folder/ --path /tahap-1/pertukaran-saldo/ --path /tahap-1/kontrak-openapi/ \
-        --path /tahap-1/authorization/ --path /uji/race/ --path /uji/pool/ --path /b-fondasi/b3-2-race-condition-lock/) ;;
+        --path /tahap-1/authorization/ --path /uji/race/ --path /uji/pool/ --path /uji/cache/ --path /b-fondasi/b3-2-race-condition-lock/) ;;
     pool)
       echo "== widget pool dan Little's Law: tebak dulu, keyboard, angka dari rekaman, kontras, axe, luapan, CLS (W3-pool)"
       (cd situs && node tools/ukur-pool.mjs --url "$URL" | grep -v "^ok ") ;;
+    cache)
+      echo "== widget cache dan invalidation: tebak dulu, keyboard, angka dari rekaman, kontras, axe, luapan, CLS (W3-cache)"
+      (cd situs && node tools/ukur-cache.mjs --url "$URL" | grep -v "^ok ") ;;
     race)
       echo "== widget race ledger: tebak dulu, keyboard, ARIA, reduced motion, angka dari rekaman, axe akhir, CLS (W2-race)"
       (cd situs && node tools/ukur-race.mjs --url "$URL" | grep -v "^ok ") ;;

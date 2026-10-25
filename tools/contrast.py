@@ -148,6 +148,9 @@ GRAFIS = {  # selector -> isinya: elemen tanpa teks yang hanya menulis latar; la
     ".sl-markdown-content .pl-batang": "batang koneksi terpakai per detik di widget pool (aria-hidden); nilainya ada di teks keadaan",
     ".sl-markdown-content .pl-batang.is-penuh": "batang pool penuh di widget pool; waktu penuh tertulis sebagai teks",
     ".sl-markdown-content .pl-kursor": "penanda jam simulasi di grafik widget pool; jamnya tertulis di label slider",
+    ".sl-markdown-content .ch-seg.is-benar": "bagian garis waktu widget cache saat instance melihat isi yang benar (aria-hidden); lama dan jamnya tertulis sebagai teks",
+    ".sl-markdown-content .ch-seg.is-stale": "bagian garis waktu widget cache saat instance melihat isi yang stale (aria-hidden); lamanya tertulis sebagai teks di hitungan",
+    ".sl-markdown-content .ch-kursor": "penanda jam simulasi di garis waktu widget cache; jamnya tertulis di label slider",
 }
 INDUK_DOM = {  # blok BEM -> elemen BEM yang membungkus semua elemen lain blok itu di DOM (BEM tidak menyimpan kedalaman)
     "bb-hp": "bb-hp__screen",  # situs/src/lib/alur-statis.ts dan situs/lama/widgets/hp.js: .bb-hp > .bb-hp__screen > isi layar
