@@ -6,6 +6,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+// Port dasar 18080 + LAB_PORT_OFFSET (labs/README.md); run.py menjalankan server di port yang sama.
+final port = 18080 + int.parse(Platform.environment['LAB_PORT_OFFSET'] ?? '0');
+
 final rng = Random(42); // seed tetap supaya rekaman bisa diulang
 
 String kunciBaru() =>
@@ -34,7 +37,7 @@ Future<Map<String, dynamic>> bayar(String mode) async {
 
 Future<({int status, String body})> kirim(String key) async {
   final http = HttpClient();
-  final req = await http.post('127.0.0.1', 18080, '/pembayaran');
+  final req = await http.post('127.0.0.1', port, '/pembayaran');
   req.headers.set('Idempotency-Key', key);
   req.headers.contentType = ContentType.json;
   req.write(jsonEncode({'toko': 'warung_ani', 'jumlah': 25000}));

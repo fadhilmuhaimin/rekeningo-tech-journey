@@ -8,8 +8,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-const online = 'http://127.0.0.1:18096';
-const offline = 'http://127.0.0.1:18097'; // tidak ada yang mendengarkan: SocketException sungguhan
+// Port dasar + LAB_PORT_OFFSET (labs/README.md); run.py menjalankan server di port yang sama.
+final offset = int.parse(Platform.environment['LAB_PORT_OFFSET'] ?? '0');
+final online = 'http://127.0.0.1:${18096 + offset}';
+final offline = 'http://127.0.0.1:${18097 + offset}'; // tidak ada yang mendengarkan: SocketException sungguhan
 final fileQueue = File('queue.json');
 
 Future<(int, dynamic)> kirim(String base, String method, String path, Object? body) async {

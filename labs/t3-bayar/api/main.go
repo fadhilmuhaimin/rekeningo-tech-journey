@@ -28,7 +28,7 @@ var (
 	notif  = &http.Client{Timeout: 5 * time.Second}
 )
 
-const urlNotif = "http://127.0.0.1:18090/kirim"
+var urlNotif = "http://127.0.0.1:" + portLab(18090) + "/kirim"
 
 // Rincian waktu satu request, ditulis ke log. Versi sederhana dari span di tracing (C2).
 type Rincian struct{ TungguKoneksi, Query, Notifikasi time.Duration }
@@ -153,7 +153,7 @@ func main() {
 			"jumlah_menunggu": s.WaitCount, "total_waktu_menunggu_ms": s.WaitDuration.Milliseconds()})
 	})
 	logger.Info("api siap", "mode", *mode, "pool_maks", 10)
-	if err := http.ListenAndServe("127.0.0.1:18083", nil); err != nil {
+	if err := http.ListenAndServe("127.0.0.1:"+portLab(18083), nil); err != nil {
 		panic(err)
 	}
 }

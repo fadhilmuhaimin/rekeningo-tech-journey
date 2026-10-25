@@ -27,7 +27,7 @@ var (
 	b64    = base64.RawURLEncoding
 	kunci  *rsa.PrivateKey
 	out    strings.Builder
-	idp    = "http://127.0.0.1:18130"
+	idp    = "http://127.0.0.1:" + portLab(18130)
 	wajib  = true // server identitas mewajibkan PKCE
 	mu     sync.Mutex
 	kodeDB = map[string]struct{ client, redirect, challenge string }{}
@@ -74,7 +74,7 @@ func serverIdentitas() {
 		json.NewEncoder(w).Encode(map[string]any{"keys": []map[string]string{{"kty": "RSA", "kid": "lab-1",
 			"n": b64.EncodeToString(kunci.N.Bytes()), "e": b64.EncodeToString(big.NewInt(int64(kunci.E)).Bytes())}}})
 	})
-	jalan("127.0.0.1:18130", m)
+	jalan("127.0.0.1:"+portLab(18130), m)
 }
 
 func idToken(aud string, berlaku time.Duration) string {
@@ -152,7 +152,7 @@ func apiRekeningo() {
 		}
 		tulis("api      POST /auth/sosial → 200, akun Rekeningo terhubung ke sub=%s, token Rekeningo diterbitkan", sub)
 	})
-	jalan("127.0.0.1:18131", m)
+	jalan("127.0.0.1:"+portLab(18131), m)
 }
 
 // ---- pembantu dan skenario ----------------------------------------------------------------------
@@ -202,7 +202,7 @@ func tukar(siapa, code, verifier string) string {
 func kirimKeAPI(label, tok string) {
 	b, _ := json.Marshal(map[string]string{"id_token": tok})
 	tulis("app      %s", label)
-	http.Post("http://127.0.0.1:18131/auth/sosial", "application/json", strings.NewReader(string(b)))
+	http.Post("http://127.0.0.1:"+portLab(18131)+"/auth/sosial", "application/json", strings.NewReader(string(b)))
 }
 
 func main() {

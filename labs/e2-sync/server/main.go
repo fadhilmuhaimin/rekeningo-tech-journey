@@ -146,5 +146,5 @@ func main() {
 		}
 		kirim(w, 200, hasil)
 	})
-	log.Fatal(http.ListenAndServe("127.0.0.1:18096", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:"+portLab(18096), nil))
 }

@@ -61,7 +61,7 @@ func layanan() {
 		log.Printf("layanan  diterima dengan kredensial → 200 (setelah %d detik)", lambat)
 		tulis(w, 200, map[string]any{"match": true, "score": 0.97, "ref": "vx-88213"})
 	})
-	log.Fatal(http.ListenAndServe("127.0.0.1:18111", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:"+portLab(18111), nil))
 }
 
 // ---- proxy verifikasi -------------------------------------------------------------------------
@@ -81,7 +81,7 @@ func proxy() {
 			return
 		}
 		body, _ := json.Marshal(map[string]string{"national_id": in.NIK, "full_name": in.Nama})
-		req, _ := http.NewRequest("POST", "http://127.0.0.1:18111/v2/identity/match", strings.NewReader(string(body)))
+		req, _ := http.NewRequest("POST", "http://127.0.0.1:"+portLab(18111)+"/v2/identity/match", strings.NewReader(string(body)))
 		req.Header.Set("X-Kredensial", kredensial) // credential ditambahkan di sini, bukan di app
 		mulai := time.Now()
 		res, err := client.Do(req)
@@ -97,7 +97,7 @@ func proxy() {
 		status := map[bool]string{true: "terverifikasi", false: "tidak_cocok"}[out.Match]
 		tulis(w, 200, map[string]string{"status": status}) // format eksternal tidak bocor ke app
 	})
-	log.Fatal(http.ListenAndServe("127.0.0.1:18112", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:"+portLab(18112), nil))
 }
 
 // --8<-- [end:proxy]
@@ -128,7 +128,7 @@ func storage() {
 		log.Printf("storage  GET %s → 200 %d byte", k, len(isi[k]))
 		w.Write(isi[k])
 	})
-	log.Fatal(http.ListenAndServe("127.0.0.1:18113", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:"+portLab(18113), nil))
 }
 
 // ---- Monolith API: file dan BFF ---------------------------------------------------------------
@@ -137,7 +137,7 @@ func urlBertanda(kunci string, berlaku time.Duration) string {
 	// exp dalam milidetik: dengan detik penuh (Unix()), masa berlaku efektif jadi 3–4 detik
 	// tergantung pecahan detik saat URL dibuat, dan rekaman 3,5 detik kadang 200, kadang 403.
 	exp := time.Now().Add(berlaku).UnixMilli()
-	return fmt.Sprintf("http://127.0.0.1:18113/obj/%s?exp=%d&sig=%s", kunci, exp, tandaTangan(kunci, exp))
+	return fmt.Sprintf("http://127.0.0.1:%s/obj/%s?exp=%d&sig=%s", portLab(18113), kunci, exp, tandaTangan(kunci, exp))
 }
 
 func api() {
@@ -203,5 +203,5 @@ func api() {
 		tulis(w, 200, hasil)
 	})
 	// --8<-- [end:bff]
-	log.Fatal(http.ListenAndServe("127.0.0.1:18114", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:"+portLab(18114), nil))
 }

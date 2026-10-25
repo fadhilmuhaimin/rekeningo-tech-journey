@@ -9,7 +9,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-const server = 'http://127.0.0.1:18160';
+// Port dasar 18160 + LAB_PORT_OFFSET (labs/README.md); run.py menjalankan server di port yang sama.
+final server = 'http://127.0.0.1:${18160 + int.parse(Platform.environment['LAB_PORT_OFFSET'] ?? '0')}';
 
 // --8<-- [start:niat]
 /// Satu niat bayar = satu tap "Bayar" di layar konfirmasi. Key dibuat sekali di sini.
