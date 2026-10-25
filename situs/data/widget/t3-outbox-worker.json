@@ -1,0 +1,237 @@
+{
+  "judul": "Garis waktu notifikasi: outbox dan worker",
+  "sumberChip": "Rekaman lab t3-outbox, Hitungan, Asumsi, Ilustrasi",
+  "jenisChip": { "rekaman": "Rekaman lab", "hitungan": "Hitungan", "ilustrasi": "Ilustrasi", "asumsi": "Asumsi" },
+  "tebakDulu": "Tebak dulu:",
+  "benar": "Tepat.",
+  "belum": "Belum tepat.",
+  "ulang": "Coba pilihan lain",
+  "ubahJudul": "Ubah satu hal",
+  "skenarioJudul": "Skenario",
+  "garisJudul": "Garis waktu",
+  "angkaJudul": "Hasil",
+  "waktu": { "urut": "{n}", "detik": "{n} detik", "paling": "paling lama {n} detik", "klaim": "klaim {n}" },
+  "lajur": { "uang": "Uang", "outbox": "Outbox", "worker": "Worker", "push": "Layanan push", "hp": "HP" },
+  "tanda": { "baik": "Aman", "buruk": "Masalah" },
+  "kata": { "ya": "ya", "tidak": "tidak" },
+  "satuan": { "jumlah": "{n}", "detik": "{n} detik", "persen": "{n}%", "perdetik": "{n} per detik", "rupiah": "{n}" },
+  "acuan": {
+    "rekaman": "Cocok dengan rekaman labs/t3-outbox, {sumber}. Baris bertanda (dihitung) diturunkan dari angka rekaman dengan rumus, bukan diukur.",
+    "hitungan": "Dihitung dari angka rekaman. Pengaturan ini tidak dijalankan sebagai satu bagian rekaman.",
+    "ilustrasi": "Mekanisme dari {sumber}. Tidak dijalankan di lab t3-outbox, jadi hasilnya Ilustrasi.",
+    "asumsi": "Panjang klaim di pengaturan ini adalah Asumsi: dua kali klaim bawaan lab ({sumber}), tidak dijalankan. Hasilnya dihitung dari batas waktu push yang direkam."
+  },
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan hasil tiap pengaturan sebagai tabel.",
+  "kolomTabel": { "pengaturan": "Pengaturan", "hasil": "Hasil", "sumber": "Sumber" },
+  "skenario": {
+    "cara": {
+      "nama": "Cara kirim",
+      "tebak": {
+        "pertanyaan": "Budi membayar warung Ani {nominal}. Proses API mati di antara dua langkah yang menyentuh dua tempat: database dan layanan push. Pada cara mana notifikasi tetap sampai ke HP Ani dan uangnya memang ada?",
+        "pilihan": [
+          { "nilai": "langsung", "teks": "Push dikirim di dalam transaction", "alasan": "Push sudah terkirim sebelum COMMIT. Proses mati, database membatalkan transaction, dan Ani diberi tahu tentang uang yang tidak ada." },
+          { "nilai": "sesudah-commit", "teks": "Push dikirim sesudah COMMIT, di permintaan yang sama", "alasan": "Uang sudah tercatat, tetapi push belum dikirim. Tidak ada catatan yang menunggu dikirim, jadi tidak ada yang tahu notifikasinya hilang." },
+          { "nilai": "outbox", "teks": "Baris outbox di transaction yang sama", "alasan": "Jurnal dan baris outbox tersimpan bersama. Proses API boleh mati: worker mengirim baris itu sesudahnya (rekaman transaksi.txt bagian F)." }
+        ]
+      },
+      "knob": [
+        { "id": "cara", "label": "Cara kirim", "opsi": { "langsung": "Push di dalam transaction", "sesudah-commit": "Push sesudah COMMIT di permintaan yang sama", "outbox": "Outbox dan worker" } },
+        { "id": "kejadian", "label": "Kejadian", "opsi": { "lancar": "Semua lancar", "commit-ditolak": "COMMIT ditolak", "push-503": "Push menjawab 503", "push-menggantung": "Push menggantung", "proses-mati": "Proses API mati" } }
+      ],
+      "angka": [
+        { "kunci": "jurnal", "label": "Jurnal tersimpan", "jenis": "yatidak" },
+        { "kunci": "outboxBaris", "label": "Baris outbox tersimpan", "jenis": "yatidak" },
+        { "kunci": "notif", "label": "Notifikasi sampai ke HP Ani", "jenis": "jumlah" },
+        { "kunci": "p1", "label": "Notifikasi tidak mendahului uang", "jenis": "yatidak" },
+        { "kunci": "p2", "label": "Tidak hilang tanpa ada yang tahu", "jenis": "yatidak" },
+        { "kunci": "p3", "label": "Pembayaran tidak menunggu push", "jenis": "yatidak" }
+      ],
+      "ringkas": {
+        "ringkas-semua": "{konfig}: ketiga hal terpenuhi.",
+        "ringkas-sebagian": "{konfig}: {lolos} dari tiga hal terpenuhi."
+      },
+      "peristiwa": {
+        "mulai": "BEGIN: transaction pembayaran Budi dimulai.",
+        "jurnal": "Jurnal dan dua posting ditulis: uang keluar dari Budi, masuk ke warung Ani.",
+        "outbox-tulis": "Satu baris outbox ditulis di transaction yang sama dengan jurnal.",
+        "push-terima": "Layanan push tiruan menerima pemberitahuan.",
+        "push-503": "Layanan push menjawab 503.",
+        "push-dicatat": "Kode hanya mencatat error di log dan melanjutkan.",
+        "push-menggantung-tx": "Layanan push menerima koneksi tetapi tidak menjawab. Transaction tetap terbuka dan satu koneksi database ikut tertahan.",
+        "push-menggantung-api": "Layanan push menerima koneksi tetapi tidak menjawab. Permintaan pembayaran Budi ikut menunggu.",
+        "push-menjawab": "Layanan push akhirnya menjawab.",
+        "hp-terima": "HP Ani menerima notifikasi.",
+        "hp-terima-terlambat": "HP Ani menerima notifikasi, sesudah uangnya tercatat.",
+        "hp-kosong": "HP Ani tidak menerima apa pun, dan tidak ada baris yang menunggu dikirim.",
+        "commit": "COMMIT: uang tercatat.",
+        "commit-ditolak": "COMMIT ditolak database: jurnal tidak seimbang.",
+        "rollback": "ROLLBACK: jurnal dibuang.",
+        "rollback-bersama": "ROLLBACK: jurnal dan baris outbox dibuang bersama.",
+        "selesai": "Pembayaran dijawab berhasil ke app Budi.",
+        "mati-langsung": "Proses API mati sesudah push, sebelum COMMIT.",
+        "mati-sesudah-commit": "Proses API mati sesudah COMMIT, sebelum push.",
+        "mati-outbox": "Proses API mati sesudah COMMIT. Baris outbox sudah tersimpan.",
+        "rollback-mati": "Koneksi putus: database membatalkan transaction yang terbuka.",
+        "klaim": "Worker mengklaim baris outbox yang sudah COMMIT.",
+        "push-503-berulang": "Push menjawab 503 pada {n} percobaan berturut-turut, dengan backoff di antaranya.",
+        "dead-letter": "Percobaan ke-{n} gagal: baris masuk dead-letter dan menunggu dibaca manusia.",
+        "tunggu-batas": "Push menggantung: worker menunggu paling lama {detik} detik, lalu berhenti menunggu.",
+        "tunda": "Worker menunda baris untuk dicoba lagi. Baris tetap di database.",
+        "tandai": "Worker menandai baris terkirim."
+      }
+    },
+    "kursor": {
+      "nama": "Kursor atau klaim",
+      "tebak": {
+        "pertanyaan": "Budi dan Dimas masing-masing mengirim {nominal} ke Citra. Budi mulai lebih dulu, tetapi menunggu baris bukunya sendiri. Dimas mulai kemudian dan COMMIT lebih dulu. Dengan poller kursor (dibuat, id), berapa notifikasi sampai ke HP Citra?",
+        "pilihanTeks": "{n} notifikasi",
+        "pilihan": [
+          { "nilai": 0, "alasan": "Poller membaca baris Dimas begitu COMMIT. Nol notifikasi hanya terjadi bila kedua baris terlewat, dan baris Dimas tidak terlewat." },
+          { "nilai": 1, "alasan": "{pesan} notifikasi: baris Dimas dikirim dan kursor maju. Baris Budi bernomor lebih besar, tetapi dibuat lebih awal, jadi ada di belakang kursor dan tidak pernah dibaca. Saldo Citra naik {saldo}." },
+          { "nilai": 2, "alasan": "Dua notifikasi benar bila yang COMMIT lebih dulu juga dibuat lebih dulu. Di sini urutan itu terbalik, dan kursor hanya melihat ke depan." }
+        ]
+      },
+      "knob": [
+        { "id": "poller", "label": "Cara worker mengambil", "opsi": { "kursor": "Kursor (dibuat, id)", "klaim": "Klaim per baris" } },
+        { "id": "urutan", "label": "Urutan COMMIT", "opsi": { "berurutan": "Yang mulai lebih dulu COMMIT lebih dulu", "terbalik": "Yang mulai lebih dulu COMMIT belakangan" } }
+      ],
+      "angka": [
+        { "kunci": "pesan", "label": "Notifikasi sampai ke HP Citra", "jenis": "jumlah" },
+        { "kunci": "tertinggal", "label": "Baris tertinggal", "jenis": "jumlah" },
+        { "kunci": "saldoNaik", "label": "Saldo Citra naik", "jenis": "rupiah" }
+      ],
+      "ringkas": {
+        "ringkas-dua": "{konfig}: kedua transfer diberi tahu, saldo Citra naik {saldo}.",
+        "ringkas-hilang": "{konfig}: HP Citra menerima {pesan} notifikasi, padahal saldonya naik {saldo}."
+      },
+      "peristiwa": {
+        "mulai-berurutan": "Budi dan Dimas mengirim ke Citra. Keduanya antre di baris buku Citra, dan Budi tiba lebih dulu.",
+        "mulai-terbalik": "Budi mulai lebih dulu, tetapi menunggu baris bukunya sendiri yang dipegang permintaan lain. Dimas mulai kemudian dan tidak terhalang.",
+        "commit-pertama": "COMMIT {siapa}: baris outbox bernomor {nomor}.",
+        "commit-kedua": "COMMIT {siapa}: baris outbox bernomor {nomor}.",
+        "kursor-kirim": "Poller kursor mengirim baris {siapa} (nomor {nomor}) dan memajukan kursor.",
+        "kursor-lewat": "Poller kursor tidak membaca baris {siapa} (nomor {nomor}): waktu dibuatnya lebih awal dari kursor.",
+        "klaim-kirim": "Worker mengklaim baris {siapa} (nomor {nomor}) dan mengirimnya.",
+        "hp-terima": "HP Citra menerima notifikasi dari {siapa}."
+      }
+    },
+    "ulang": {
+      "nama": "Retry dan dead-letter",
+      "tebak": {
+        "pertanyaan": "Satu baris outbox membuat worker mati setiap kali, sesudah push berhasil dan sebelum baris ditandai. Batas percobaan {batas}. Berapa pesan sampai ke layanan push sebelum baris masuk dead-letter?",
+        "pilihanTeks": "{n} pesan",
+        "pilihan": [
+          { "nilai": 4, "alasan": "Batas {batas} berarti {batas} klaim yang mengirim, jadi empat pesan kurang satu." },
+          { "nilai": 5, "alasan": "{pesan} pesan: tiap klaim mengirim sekali. Percobaan dihitung saat klaim, jadi klaim ke-{klaimMati} melewati batas {batas} dan baris langsung masuk dead-letter tanpa dikirim." },
+          { "nilai": 6, "alasan": "Klaim ke-{klaimMati} memang terjadi, tetapi ia tidak mengirim: percobaannya melewati batas {batas}, jadi baris langsung masuk dead-letter." }
+        ]
+      },
+      "knob": [
+        { "id": "penyebab", "label": "Apa yang gagal", "opsi": { "push-503": "Push menjawab 503 terus", "pulih-sesudah-2": "Push gagal {gagal} kali, lalu pulih", "worker-mati": "Worker mati sesudah kirim" } },
+        { "id": "batas", "label": "Batas percobaan", "opsi": { "2": "Batas {n}", "5": "Batas {n}", "8": "Batas {n}" } }
+      ],
+      "angka": [
+        { "kunci": "permintaan", "label": "Pesan sampai ke layanan push", "jenis": "jumlah" },
+        { "kunci": "percobaan", "label": "Percobaan di baris", "jenis": "jumlah" },
+        { "kunci": "terkirim", "label": "Terkirim", "jenis": "yatidak" },
+        { "kunci": "mati", "label": "Masuk dead-letter", "jenis": "yatidak" },
+        { "kunci": "selang", "label": "Paling lama sampai percobaan terakhir", "jenis": "detik" }
+      ],
+      "ringkas": {
+        "ringkas-terkirim": "{konfig}: terkirim pada percobaan {percobaan} dari batas {batas}.",
+        "ringkas-mati": "{konfig}: {permintaan} permintaan gagal, lalu baris masuk dead-letter.",
+        "ringkas-mati-worker": "{konfig}: {permintaan} pesan terkirim, lalu baris masuk dead-letter pada percobaan {percobaan}."
+      },
+      "peristiwa": {
+        "mati-kirim": "Klaim {n}: worker mengirim push, lalu mati sebelum menandai terkirim. Percobaan di baris menjadi {n}.",
+        "mati-batas": "Klaim {n}: percobaan melewati batas {batas}. Baris masuk dead-letter tanpa dikirim.",
+        "gagal-ulang": "Percobaan {n}: push menjawab 503. Coba lagi paling lama {tunggu} detik lagi, acak antara nol dan {tunggu}.",
+        "gagal-mati": "Percobaan {n} dari batas {batas}: push menjawab 503. Baris masuk dead-letter.",
+        "kirim-berhasil": "Percobaan {n}: push menerima pemberitahuan. Baris ditandai terkirim."
+      }
+    },
+    "ganda": {
+      "nama": "Pengiriman ganda",
+      "tebak": {
+        "pertanyaan": "Worker 1 mengirim notifikasi ke HP Ani, lalu mati sebelum menandai baris terkirim. Klaim berlaku {klaim} detik. Berapa pesan akhirnya sampai ke layanan push?",
+        "pilihanTeks": "{n} pesan",
+        "pilihan": [
+          { "nilai": 1, "alasan": "Satu pesan benar bila baris langsung ditandai. Worker mati sebelum menandai, jadi baris tetap menunggu dan klaimnya habis sesudah {klaim} detik." },
+          { "nilai": 2, "alasan": "{pesan} pesan dengan notifikasi_id yang sama: pengiriman pertama, lalu pengiriman ulang worker 2 sesudah klaim habis. Mengirim ulang itu benar; yang perlu dijaga adalah penerimanya." },
+          { "nilai": 3, "alasan": "Hanya ada satu baris dan satu worker pengganti, jadi {pesan} pengiriman. Tiga pesan butuh dua perangkat atau worker ketiga." }
+        ]
+      },
+      "knob": [
+        { "id": "varian", "label": "Apa yang terjadi", "opsi": { "mati-klaim-5": "Worker mati, klaim bawaan", "klaim-pendek": "Klaim pendek, push lambat", "dua-hp-klaim-5": "Dua HP menggantung, klaim bawaan", "dua-hp-klaim-10": "Dua HP menggantung, klaim panjang" } },
+        { "id": "penyaring", "label": "Penyaring di app", "opsi": { "mati": "Tanpa penyaring", "hidup": "Saring notifikasi_id" } }
+      ],
+      "angka": [
+        { "kunci": "pesan", "label": "Pesan sampai ke layanan push", "jenis": "jumlah" },
+        { "kunci": "id", "label": "notifikasi_id berbeda", "jenis": "jumlah" },
+        { "kunci": "bersamaan", "label": "Dua worker mengirim", "jenis": "yatidak" },
+        { "kunci": "tampil", "label": "Ditampilkan di app", "jenis": "jumlah" }
+      ],
+      "ringkas": {
+        "ringkas-ganda": "{konfig}: {pesan} pesan sampai ke layanan push untuk satu notifikasi_id, dan app menampilkan {tampil}.",
+        "ringkas-satu": "{konfig}: worker 2 tidak ikut mengirim selama klaim berlaku, dan {pesan} pesan sampai ke layanan push."
+      },
+      "peristiwa": {
+        "klaim-a": "Worker 1 mengklaim baris. Klaim berlaku {klaim} detik.",
+        "kirim-a-cepat": "Worker 1 mengirim ke HP {hp}: push menjawab cepat.",
+        "kirim-a-lambat": "Worker 1 mengirim ke HP {hp}: push menjawab lambat.",
+        "kirim-a-menggantung": "Worker 1 mengirim ke HP {hp}: push menggantung sampai batas waktu.",
+        "a-mati": "Worker 1 mati sebelum menandai terkirim, misalnya karena deploy.",
+        "klaim-habis": "Klaim {klaim} detik habis. Baris masih berstatus menunggu.",
+        "klaim-b": "Worker 2 mengklaim baris yang sama.",
+        "kirim-b": "Worker 2 mengirim ke HP {hp} dengan notifikasi_id yang sama.",
+        "tandai-b": "Worker 2 menandai baris terkirim.",
+        "a-ditunda": "Worker 1 selesai pada detik {selesai}. Ada pengiriman yang melewati batas waktu, jadi baris ditunda untuk dicoba lagi.",
+        "a-tandai": "Worker 1 selesai pada detik {selesai} dan menandai baris terkirim.",
+        "hp-saring": "App menerima {diterima} pesan dan menampilkan {tampil}: pesan dengan notifikasi_id yang sudah tampil dilewati.",
+        "hp-semua": "App menerima {diterima} pesan dan menampilkan {tampil}."
+      }
+    },
+    "antrean": {
+      "nama": "Queue promo",
+      "tebak": {
+        "pertanyaan": "HR mengirim promo ke {n} HP. Satu worker punya {c} pengirim serentak, tiap pengiriman {t} detik, dan queue diurutkan menurut waktu tanpa kelas. Berapa persen promo terkirim dalam {jendela} detik?",
+        "pilihanTeks": "{n}% dari promo",
+        "pilihan": [
+          { "nilai": 4, "alasan": "{persen}%: kapasitas {kap} per detik, dikali {jendela} detik, memberi {promo30} promo dari {n}. Seluruh promo butuh {habis} detik." },
+          { "nilai": 40, "alasan": "Kapasitas {kap} per detik hanya mengirim {promo30} promo dalam {jendela} detik, jauh di bawah empat puluh persen." },
+          { "nilai": 95, "alasan": "{target}% dalam {jendela} detik butuh ±{perlu} per detik, atau {butuh95} pengirim serentak. Worker ini hanya punya {c}." }
+        ]
+      },
+      "knob": [
+        { "id": "kelas", "label": "Queue", "opsi": { "tanpa": "Satu urutan waktu", "dengan": "Dengan kelas" } },
+        { "id": "laju", "label": "Laju promo", "opsi": { "bebas": "Semua sekaligus", "5": "Dibatasi {n} per detik" } },
+        { "id": "c", "label": "Pengirim serentak", "opsi": { "1": "{n} pengirim", "4": "{n} pengirim", "8": "{n} pengirim", "20": "{n} pengirim" } }
+      ],
+      "angka": [
+        { "kunci": "kapasitas", "label": "Kapasitas worker (c ÷ t)", "jenis": "perdetik" },
+        { "kunci": "promo30", "label": "Promo terkirim dalam jendela (dihitung)", "jenis": "jumlah" },
+        { "kunci": "persen30", "label": "Bagian promo dalam jendela (dihitung)", "jenis": "persen" },
+        { "kunci": "habis", "label": "Seluruh promo habis sesudah (dihitung)", "jenis": "detik" },
+        { "kunci": "tunggu", "label": "Notifikasi uang menunggu (dihitung)", "jenis": "detik" },
+        { "kunci": "umurSemua", "label": "Umur tertua semua kelas di akhir jendela", "jenis": "detik" },
+        { "kunci": "umurUang", "label": "Umur tertua kelas uang di akhir jendela", "jenis": "detik" },
+        { "kunci": "sisa", "label": "Sisa kapasitas di luar promo (dihitung)", "jenis": "perdetik" },
+        { "kunci": "butuh95", "label": "Pengirim serentak yang dibutuhkan untuk target (dihitung)", "jenis": "jumlah" }
+      ],
+      "ringkas": {
+        "ringkas-cepat": "{konfig}: notifikasi uang menunggu {w} detik dan tidak tertahan promo.",
+        "ringkas-lambat": "{konfig}: notifikasi uang menunggu {w} detik di belakang promo."
+      },
+      "peristiwa": {
+        "promo-masuk": "{n} baris promo masuk queue.",
+        "worker-mulai": "Satu worker dengan {c} pengirim serentak, {t} detik per pengiriman: kapasitas {kap} per detik.",
+        "laju-promo": "Promo dijadwalkan paling banyak {laju} per detik lewat kolom coba_lagi.",
+        "uang-masuk": "Notifikasi uang masuk queue yang diurutkan menurut waktu: ia menunggu promo yang lebih dulu.",
+        "uang-masuk-kelas": "Notifikasi uang masuk queue dengan kelas: ia didahulukan dari promo.",
+        "uang-terkirim": "Notifikasi uang terkirim sesudah menunggu {w} detik.",
+        "promo-30": "Dalam {jendela} detik terkirim {kirim} promo ({persen}%).",
+        "promo-habis": "Seluruh promo terkirim sesudah {detik} detik ({menit} menit)."
+      }
+    }
+  }
+}
