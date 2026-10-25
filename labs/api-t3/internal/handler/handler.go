@@ -144,7 +144,9 @@ func (s Server) errorInternal(w http.ResponseWriter, err error) {
 // clientIP: alamat koneksi TCP. Tahap 2 tidak punya reverse proxy (App, Monolith API, PostgreSQL), jadi
 // X-Forwarded-For selalu datang dari client dan tidak dipercaya: kalau dipercaya, penyerang mengganti IP di
 // setiap request dan lapis per IP tidak berarti (labs/c4-ratelimit rekaman bagian E, keputusan 550).
-// Saat load balancer masuk (Tahap 3), header itu dipercaya hanya dari alamat load balancer.
+// Tahap 3 punya proxy (labs/t3-instance), tetapi api-t3 belum membaca header itu dari alamat proxy yang tepercaya:
+// di belakang proxy, RemoteAddr adalah alamat proxy untuk semua client, jadi semuanya berbagi satu key per IP
+// (labs/t3-instance/output/batas.txt bagian E). Membacanya hanya dari proxy tepercaya masih pekerjaan berikutnya.
 func clientIP(r *http.Request) string {
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {

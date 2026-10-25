@@ -29,7 +29,7 @@ Setiap bagian membuat ulang schema dan data awal dari nol. Yang dicatat adalah s
 
 Health check aktif saja masih menyisakan selang: dengan selang bawaan 30 detik, 5 dari 10 request sesudah kematian gagal. Health check dan retry bersama menutup selang itu. 
 
-Dengan selang 1 detik, instance mati dikeluarkan dari pilihan dan masuk lagi sesudah lolos pemeriksaan.
+Health check saja, tanpa retry, dengan selang 1 detik: instance mati dikeluarkan dari pilihan dan masuk lagi sesudah lolos pemeriksaan. Tanpa retry, instance yang masih dipilih menjawab 502 pada setiap request kedua, jadi rekaman ini hanya lolos bila health check benar-benar jalan (dengan retry, retry menutup 502 itu dan health check yang mati tidak terlihat).
 
 **Panic (`panic.txt`).** Panic di goroutine handler dipulihkan `net/http`: proses hidup, koneksi request itu putus. Panic di goroutine yang dibuka handler tidak dipulihkan siapa pun: proses keluar dengan kode 2 dan tidak ada yang memulainya lagi. Pemicunya di lab adalah ringkasan audit ekspor laporan yang mengira laporan tidak pernah kosong (mode rentan `ekspor-panic`); CSV sudah terkirim sebelum proses mati. 
 
@@ -52,7 +52,7 @@ Kunci akun di database tidak berlipat: `gagal_login` berhenti di 5 pada semua ka
 
 Hitungan bersama memakai skrip Lua dalam satu perintah: `INCR`, lalu `PEXPIRE` bila key baru. Dua perintah terpisah meninggalkan key tanpa masa berlaku bila proses mati di antaranya (bagian H).
 
-Redis mati: batas jatuh ke bucket lokal, login tetap dijawab, dan angkanya sama dengan bucket di memori. Redis menggantung: dengan batas 50 ms satu login selesai kurang dari 1 detik. Dengan bawaan go-redis (5 detik dan 3 retry), satu login menunggu lebih dari 5 detik. Waktu pastinya tidak direkam; di mesin pengembang ±10 detik untuk dua pemeriksaan.
+Redis mati: batas jatuh ke bucket lokal, login tetap dijawab, dan angkanya sama dengan bucket di memori. Redis menggantung: dengan batas 50 ms satu login selesai kurang dari 1 detik. Dengan bawaan go-redis (5 detik dan 3 retry), satu login menunggu lebih dari 5 detik. Waktu pastinya bergantung pada mesin dan tidak direkam. Asumsi dari satu kali lihat di mesin pengembang: ±10 detik untuk dua pemeriksaan.
 
 ## Yang ditambah di api-t3
 
@@ -78,5 +78,6 @@ Tes Go ada di `labs/api-t3` (`make -C labs/api-t3 run BAGIAN=testing`): `batas_b
 - **Pengawas proses.** Yang memulai ulang instance sesudah panic (systemd `Restart=`, restart policy Docker). Caddy tidak memulai proses. Tidak dijalankan.
 - **Pemeriksaan pertama Caddy.** Request yang datang tepat saat proxy baru dinyalakan dengan health check aktif (caddy#6410). Tidak dijalankan.
 - **POST yang terputus.** POST yang sudah diterima kernel instance lama tetapi belum dibaca saat listener ditutup tidak diulang proxy (`lb_retry_match` bawaan hanya GET). Tidak dijalankan; app mengulang dengan idempotency key (ADR 14).
+- **Linux.** Lab hanya dijalankan di Docker Desktop. Instance mendengar di `127.0.0.1`; di Docker Engine Linux, alamat `host-gateway` biasanya tidak menjangkau proses yang hanya mendengar di loopback, jadi proxy mungkin tidak sampai ke instance. Tidak dijalankan [perlu verifikasi].
 - **Redis tanpa autentikasi.** Lab hanya memasangnya di `127.0.0.1`. Valkey sebagai pembanding lisensi hanya dicatat, tidak dijalankan.
 - **Versi baru.** Deploy bergulir mengganti proses dengan binary yang sama dan nama instance lain (`a2`, `b2`). Migrasi skema selama deploy bergulir adalah lab `b4-skema`.

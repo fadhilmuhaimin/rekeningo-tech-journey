@@ -8,13 +8,13 @@ Yang baru: pemberitahuan lewat outbox, worker di proses sendiri, katalog dan sto
 
 ```bash
 make lab-up                                   # dari akar repo: PostgreSQL 17 lab di LAB_DB_PORT
-make -C labs/api-t3 run                       # semua bagian, ±40 detik, menulis labs/api-t3/output/*.txt
+make -C labs/api-t3 run                       # semua bagian, ±40 detik, menulis labs/api-t3/output/*.txt; menyalakan juga Redis lab (b9-cache) untuk tes internal/redisbatas
 make -C labs/api-t3 run BAGIAN=outbox         # satu bagian: skema outbox push rentan katalog sinkron web testing
 make -C labs/api-t3 cek                       # rekam ulang; gagal bila output/ berbeda dari yang di-commit
 make -C labs/api-t3 kontrak                   # lint dan oasdiff terhadap api-t2 (butuh jaringan dan Docker)
 ```
 
-Lajur kerja lain memakai `COMPOSE_PROJECT_NAME`, `LAB_DB_PORT`, dan `LAB_PORT_OFFSET` (`labs/README.md`). Port dasar: API 18180, layanan push tiruan 18181, instance kedua 18182 (dipakai `t3-instance`, jadi dua lab itu tidak jalan bersamaan dalam satu lajur). Rekaman selalu memakai port dasar.
+Lajur kerja lain memakai `COMPOSE_PROJECT_NAME`, `LAB_DB_PORT`, `LAB_REDIS_PORT`, dan `LAB_PORT_OFFSET` (`labs/README.md`). Port dasar: API 18180, layanan push tiruan 18181, instance kedua 18182 (dipakai `t3-instance`, jadi dua lab itu tidak jalan bersamaan dalam satu lajur). Rekaman selalu memakai port dasar.
 
 Setiap bagian membuat ulang schema `tahap3` dan data awalnya dari nol, jadi `output/*.txt` tidak bergantung pada urutan bagian. Token, waktu, tanggal, dan `notifikasi_id` disamarkan, sehingga rekaman ulang identik per byte. Lab gagal keras bila port dipakai proses lain atau hasilnya meleset dari yang diharapkan.
 
