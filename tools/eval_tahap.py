@@ -2,6 +2,7 @@
 
     python3 tools/eval_tahap.py peta  2   # W1: peta halaman naskah lawan registry (nomor, judul, bintang, lab, ada)
     python3 tools/eval_tahap.py coba  2   # W5: blok Coba tiap halaman, komponennya, ada tebakan, ada "ubah satu hal"
+    python3 tools/eval_tahap.py bocor 2   # W5: jawaban tebakan widget lama (predict) yang sudah tertulis di teks sebelum blok Coba
     python3 tools/eval_tahap.py adr   2   # W6: opsi, pre-mortem, kapan salah, tautan sumber tiap halaman ADR
     python3 tools/eval_tahap.py rantai 2  # W8: ikuti tautan Berikutnya di situs/dist dari N.1 sampai halaman terakhir tahap
 
@@ -86,6 +87,31 @@ def coba(n):
     return 0
 
 
+def bocor(n):
+    """Angka di jawaban `predict` widget runsql dan alur yang juga tertulis di teks halaman sebelum blok Coba."""
+    reg, _ = registry(n)
+    dist = AKAR / "situs" / "dist"
+    ditemukan = 0
+    for no in sorted(reg, key=urut):
+        t = berkas(reg[no]).read_text(encoding="utf-8")
+        m = re.search(r'<WidgetLama nama="(?:alur|runsql)" src="([^"]+)"', t)
+        if not m:
+            continue
+        data = json.load(open(AKAR / "situs" / "public" / "widgets" / m.group(1), encoding="utf-8"))
+        p = data.get("predict") or {}
+        opsi, jawab = p.get("options") or [], p.get("answer")
+        teks_jawab = opsi[jawab] if isinstance(jawab, int) and 0 <= jawab < len(opsi) else str(jawab)
+        angka = sorted(set(re.findall(r"Rp[\d.]+|\d[\d.]{2,}", teks_jawab)))
+        html = (dist / reg[no]["path"].replace(".md", "").strip("/") / "index.html").read_text(encoding="utf-8")
+        cut = re.search(r'id="blok-coba[^"]*"', html)
+        sebelum = re.sub(r"<[^>]+>", " ", html[: cut.start()]) if cut else ""
+        ada = [a for a in angka if a in sebelum]
+        ditemukan += 1 if ada else 0
+        print(f"{no} | {reg[no]['judul'][:40]} | jawaban {teks_jawab[:60]!r} | angka jawaban: {angka} | tertulis sebelum blok Coba: {ada}")
+    print(f"halaman dengan angka jawaban di teks sebelum blok Coba: {ditemukan} (halaman masalah menampilkan hasil di blok sebelum Coba menurut rancangannya)")
+    return 0
+
+
 def adr(n):
     reg, _ = registry(n)
     salah = 0
@@ -149,7 +175,7 @@ def rantai(n):
     return 1 if masalah else 0
 
 
-PERINTAH = {"peta": peta, "coba": coba, "adr": adr, "rantai": rantai}
+PERINTAH = {"peta": peta, "coba": coba, "bocor": bocor, "adr": adr, "rantai": rantai}
 
 if __name__ == "__main__":
     if len(sys.argv) != 3 or sys.argv[1] not in PERINTAH or not sys.argv[2].isdigit():
