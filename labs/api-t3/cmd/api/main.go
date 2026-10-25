@@ -24,6 +24,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 
+	"lab/apit3/internal/cache"
 	"lab/apit3/internal/handler"
 	"lab/apit3/internal/push"
 	"lab/apit3/internal/repo"
@@ -53,6 +54,12 @@ func main() {
 	henti := flag.Bool("lab-henti-sebelum-tandai", false, "lab saja: worker berhenti mendadak sesudah push berhasil, sebelum ditandai terkirim (M20)")
 	lab := flag.Bool("lab", false, "lab saja: GET /lab/pool dan GET /lab/outbox")
 	jamLab := flag.Bool("jam-lab", false, "lab saja: POST /lab/jam {\"ms\": ...} membekukan waktu service dan rate limit")
+	katalogCache := flag.String("katalog-cache", "", "cache katalog: kosong (tanpa cache), memori, atau redis (lab t3-cache, ADR 28)")
+	katalogTTL := flag.Duration("katalog-ttl", 0, "TTL entri katalog; 0 = bawaan mode (memori 5 menit, redis 60 detik)")
+	katalogHapus := flag.String("katalog-hapus", cache.HapusSesudah, "urutan hapus kunci: sesudah (benar), sebelum COMMIT, atau selalu (juga saat tulis gagal); dua yang terakhir rentan")
+	redisAddr := flag.String("redis-addr", "", "alamat Redis untuk -katalog-cache redis (tiruan lokal di container)")
+	redisBatas := flag.Duration("redis-timeout", 50*time.Millisecond, "batas waktu satu perintah Redis (dial, tulis, baca)")
+	labGerbang := flag.String("lab-gerbang", "", "lab saja: gerbang yang menahan goroutine sampai POST /lab/gerbang/lepas, dipisah koma: commit, isi")
 	flag.Parse()
 
 	// Mode rentan push-dalam-tx adalah versi pertama minggu 1: client tanpa batas waktu dan tanpa pengaman
@@ -112,17 +119,27 @@ func main() {
 	}
 
 	svc := service.Baru(r, *umurSesi)
+	var jamMS atomic.Int64 // 0 = waktu sungguhan
+	jam := func() time.Time {
+		if ms := jamMS.Load(); ms != 0 {
+			return time.UnixMilli(ms)
+		}
+		return time.Now()
+	}
+	var kc *cache.Katalog
+	if *katalogCache != "" {
+		var err error
+		if kc, err = bukaCacheKatalog(*katalogCache, *katalogTTL, *katalogHapus, *redisAddr, *redisBatas, *labGerbang, jam); err != nil {
+			log.Fatal(err)
+		}
+		svc = svc.DenganCache(kc)
+		log.Printf("cache katalog: %s, TTL %s, hapus kunci %s", kc.Nama, kc.TTL, kc.Urut)
+	}
 	if *rentan == service.RentanPushDalamTx {
 		svc = svc.DenganRentan(*rentan, push.Baru(*pushURL, *pushBatas))
 	}
-	var jamMS atomic.Int64 // 0 = waktu sungguhan
 	if *jamLab {
-		svc = svc.DenganJam(func() time.Time {
-			if ms := jamMS.Load(); ms != 0 {
-				return time.UnixMilli(ms)
-			}
-			return time.Now()
-		})
+		svc = svc.DenganJam(jam)
 	}
 	rute := handler.Baru(svc).DenganRentan(*rentan).Rute()
 	if *jamLab {
@@ -142,6 +159,7 @@ func main() {
 	}
 	if *lab {
 		pasangEndpointLab(rute, db, r)
+		pasangEndpointCache(rute, kc)
 	}
 	log.Printf("api-t3 mendengar di %s", *alamat)
 	log.Printf("api-t3 siap: pool %d, push timeout %s, idle-tx %s", *pool, *pushBatas, *idleTx)
