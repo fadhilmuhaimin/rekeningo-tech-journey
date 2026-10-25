@@ -1,0 +1,97 @@
+# Lab api-t3 · layanan push tiruan: lambat, 503, token mati, menggantung; retry dan dead-letter
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/api-t3 run (keputusan 951).
+# server: ./api-t3 -lab; layanan push tiruan dengan empat mode (jawab, lambat, gantung, 503)
+
+# --- A. Layanan push lambat tetapi menjawab (300 ms): pembayaran selesai cepat, worker menunggu sendiri ---
+# POST /transfers selesai, push baru menerima 0 pesan (pengiriman bukan bagian dari pembayaran)
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+=> SELECT status, percobaan FROM outbox
+ status   | percobaan
+----------+-----------
+ terkirim | 1
+(1 row)
+
+# --- B. Layanan push menjawab 503 dua kali: ditunda dengan backoff dan jitter, berhasil di percobaan ke-3 ---
+putaran 1: outbox.status = menunggu, percobaan = 1
+putaran 2: outbox.status = menunggu, percobaan = 2
+putaran 3: outbox.status = terkirim, percobaan = 3
+push tiruan menerima: 3 permintaan untuk 1 notifikasi_id
+# Backoff = acak antara 0 dan min(60 detik, 2 detik x 2^(percobaan-1)) (full jitter); di sini -backoff 10ms supaya cepat
+
+# --- C. 503 terus-menerus: sesudah 5 percobaan baris masuk dead-letter (status mati), tidak dikirim lagi ---
+putaran 1: outbox.status = menunggu, percobaan = 1
+putaran 2: outbox.status = menunggu, percobaan = 2
+putaran 3: outbox.status = menunggu, percobaan = 3
+putaran 4: outbox.status = mati, percobaan = 5
+putaran 5: outbox.status = mati, percobaan = 5
+putaran 6: outbox.status = mati, percobaan = 5
+push tiruan menerima: 5 permintaan (putaran ke-6 tidak mengirim apa pun)
+=> SELECT status, count(*) FROM outbox GROUP BY status ORDER BY status
+ status   | count
+----------+-------
+ mati     | 1
+ terkirim | 2
+(2 rows)
+
+# --- D. Token tidak terdaftar (404): perangkat dinonaktifkan, baris dilewati, tidak diulang ---
+=> UPDATE perangkat SET token_push = 'mati-418' WHERE akun_id = 418
+UPDATE 1
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 1, terkirim 0, dilewati 1, ditunda 0, mati 0
+=> SELECT status, percobaan FROM outbox ORDER BY id DESC LIMIT 1
+ status   | percobaan
+----------+-----------
+ dilewati | 1
+(1 row)
+=> SELECT akun_id, aktif FROM perangkat WHERE akun_id = 418
+ akun_id | aktif
+---------+-------
+ 418     | f
+(1 row)
+push tiruan menerima: 1 permintaan (yang dijawab 404)
+
+# Pembayaran berikutnya ke Ani: tidak ada perangkat aktif, baris dilewati tanpa memanggil layanan push
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 1, terkirim 0, dilewati 1, ditunda 0, mati 0
+=> SELECT status, percobaan FROM outbox ORDER BY id DESC LIMIT 1
+ status   | percobaan
+----------+-----------
+ dilewati | 1
+(1 row)
+push tiruan menerima: tetap 1 permintaan
+
+# --- E. Layanan push menggantung (menerima, tidak menjawab): client berhenti di batas 3 detik, pesan sama dikirim ulang ---
+$ ./api-t3 -peran worker -sekali -backoff 100ms
+worker: diklaim 1, terkirim 0, dilewati 0, ditunda 1, mati 0
+log: outbox 6 percobaan 1: push gagal sementara: Post "http://127.0.0.1:<port>/v1/pesan": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+# panggilan ke push berhenti sesudah 3 detik (batas waktu client, ADR 22); sebelum itu worker menunggu
+=> SELECT status, percobaan FROM outbox ORDER BY id DESC LIMIT 1
+ status   | percobaan
+----------+-----------
+ menunggu | 1
+(1 row)
+$ ./api-t3 -peran worker -sekali -backoff 100ms
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+=> SELECT status, percobaan FROM outbox ORDER BY id DESC LIMIT 1
+ status   | percobaan
+----------+-----------
+ terkirim | 2
+(1 row)
+push tiruan menerima: 2 permintaan, 1 notifikasi_id, 1 notifikasi_id ganda (permintaan pertama tidak pernah dijawab)
+# At-least-once: pengiriman ulang itu benar; penerima (app) yang menyaring notifikasi_id yang sudah tampil (ADR 25)
+
+# --- F. Versi benar (ADR 22): push menggantung, pembayaran tetap selesai cepat dan tidak ada koneksi yang tertahan ---
+# POST /transfers selesai dalam kurang dari 1 detik, padahal layanan push menggantung
+=> SELECT coalesce(state, '(tanpa state)') AS state, count(*) FROM pg_stat_activity WHERE application_name = 'api-t3' AND state = 'idle in transaction' GROUP BY 1
+ state | count
+-------+-------
+(0 rows)
+# (0 baris di atas: tidak ada koneksi api-t3 yang diam di dalam transaction)
+# GET /akun/419 tetap 200 selama push menggantung; barisnya menunggu di outbox
+=> SELECT status, count(*) FROM outbox WHERE status = 'menunggu' GROUP BY status
+ status   | count
+----------+-------
+ menunggu | 1
+(1 row)

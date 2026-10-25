@@ -1,0 +1,83 @@
+# Lab api-t3 · sesi dasbor: cookie __Host-, token CSRF, jalur app dan web terpisah
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/api-t3 run (keputusan 952).
+# server: ./api-t3 -lab
+
+# --- A. Login dasbor: cookie sesi tidak terbaca JavaScript, token CSRF dikirim di body ---
+$ curl -i -X POST '/web/login' -d '{"email": "warung.ani@lestari.example", "password": "sementara-tahap-3"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+Set-Cookie: __Host-sesi=<token sesi web Ani>; Path=/; Max-Age=28800; HttpOnly; Secure; SameSite=Lax
+
+{"csrf":"<token CSRF Ani>","kedaluwarsa_detik":28800}
+=> SELECT jenis, csrf_hash IS NOT NULL AS punya_hash_csrf, count(*) FROM sesi GROUP BY jenis, csrf_hash IS NOT NULL ORDER BY jenis
+ jenis | punya_hash_csrf | count
+-------+-----------------+-------
+ web   | t               | 1
+(1 row)
+# Database menyimpan hash token sesi dan hash token CSRF, bukan tokennya
+
+# --- B. Membaca dengan cookie saja jalan; mengubah data butuh token CSRF ---
+$ curl -i -X GET '/warung/418/penerimaan?batas=1' -H 'Cookie: __Host-sesi=<token sesi web Ani>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"penerimaan":[],"warung":418}
+$ curl -i -X PATCH '/produk/1' -H 'Cookie: __Host-sesi=<token sesi web Ani>' -d '{"stok": 5, "versi": 1}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/csrf","title":"Permintaan ubah dari dasbor ditolak","status":403,"detail":"Kirim token CSRF dari POST /web/login di header X-CSRF-Token, dari halaman yang sama asalnya."}
+$ curl -i -X PATCH '/produk/1' -H 'Cookie: __Host-sesi=<token sesi web Ani>' -H 'X-CSRF-Token: salah' -d '{"stok": 5, "versi": 1}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/csrf","title":"Permintaan ubah dari dasbor ditolak","status":403,"detail":"Kirim token CSRF dari POST /web/login di header X-CSRF-Token, dari halaman yang sama asalnya."}
+$ curl -i -X PATCH '/produk/1' -H 'Cookie: __Host-sesi=<token sesi web Ani>' -H 'X-CSRF-Token: <token CSRF Ani>' -H 'Sec-Fetch-Site: cross-site' -d '{"stok": 5, "versi": 1}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/csrf","title":"Permintaan ubah dari dasbor ditolak","status":403,"detail":"Kirim token CSRF dari POST /web/login di header X-CSRF-Token, dari halaman yang sama asalnya."}
+$ curl -i -X PATCH '/produk/1' -H 'Cookie: __Host-sesi=<token sesi web Ani>' -H 'X-CSRF-Token: <token CSRF Ani>' -H 'Origin: http://situs-lain.example' -d '{"stok": 5, "versi": 1}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/csrf","title":"Permintaan ubah dari dasbor ditolak","status":403,"detail":"Kirim token CSRF dari POST /web/login di header X-CSRF-Token, dari halaman yang sama asalnya."}
+$ curl -i -X PATCH '/produk/1' -H 'Cookie: __Host-sesi=<token sesi web Ani>' -H 'X-CSRF-Token: <token CSRF Ani>' -H 'Sec-Fetch-Site: same-origin' -d '{"stok":5,"versi":1}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1,"harga":25000,"stok":5,"versi":2}
+# Cookie SameSite=Lax saja tidak cukup: server memeriksa Sec-Fetch-Site, Origin, dan token (OWASP CSRF Prevention, R3-19)
+
+# --- C. Token dari satu jalur tidak berlaku di jalur lain; karyawan tidak punya dasbor ---
+$ curl -i -X GET '/warung/418/penerimaan?batas=1' -H 'Cookie: __Host-sesi=<token sesi Warung Ani (app)>'
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+Www-Authenticate: Bearer error="invalid_token"
+
+{"type":"/problems/belum-login","title":"Belum login atau sesi sudah berakhir","status":401}
+$ curl -i -X GET '/warung/418/penerimaan?batas=1' -H 'Authorization: Bearer <token sesi web Ani>'
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+Www-Authenticate: Bearer error="invalid_token"
+
+{"type":"/problems/belum-login","title":"Belum login atau sesi sudah berakhir","status":401}
+$ curl -i -X POST '/web/login' -d '{"email": "budi@lestari.example", "password": "sementara-tahap-3"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/dilarang","title":"Hanya warung, hr, dan admin yang memakai dasbor; karyawan memakai app","status":403}
+
+# --- D. Logout dari dasbor menghapus sesi dan cookie; cookie lama tidak berlaku lagi ---
+$ curl -i -X POST '/logout' -H 'Cookie: __Host-sesi=<token sesi web Ani>' -H 'X-CSRF-Token: <token CSRF Ani>'
+HTTP/1.1 204 No Content
+Set-Cookie: __Host-sesi=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax
+
+
+$ curl -i -X GET '/warung/418/penerimaan?batas=1' -H 'Cookie: __Host-sesi=<token sesi web Ani>'
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+Www-Authenticate: Bearer error="invalid_token"
+
+{"type":"/problems/belum-login","title":"Belum login atau sesi sudah berakhir","status":401}
