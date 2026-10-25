@@ -119,6 +119,8 @@ paths:
     post:
       operationId: bayar
       summary: Bayar dari akun karyawan yang login ke akun warung
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -138,6 +140,7 @@ paths:
                 $ref: '#/components/schemas/HasilBayar'
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
         '422': { $ref: '#/components/responses/Problem' }
   # --8<-- [end:transfer]
   /transfers/{id}:
@@ -158,6 +161,8 @@ paths:
     post:
       operationId: kirim
       summary: Kirim uang ke rekan lewat nomor karyawan; paling banyak Rp500.000 per hari sejak 00.00 WIB (PRD v2)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -176,6 +181,7 @@ paths:
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
         '422':
           description: Aturan pengirim (nominal, batas harian, saldo) diperiksa sebelum nomor penerima, jadi "tidak terdaftar" hanya muncul bila kiriman ke nomor terdaftar akan berhasil
           content:
@@ -388,6 +394,8 @@ paths:
     post:
       operationId: pesan
       summary: Bayar satu produk. Nominal dihitung server dari database (harga dasar dikurangi promo yang berlaku); app tidak mengirimnya
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -601,6 +609,19 @@ components:
       in: path
       required: true
       schema: { type: integer, format: int64 }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >-
+        Opsional (app 1.0 dan 1.1 tidak mengirimnya; tanpa header perilaku sama dengan sebelumnya). String berisi
+        UUID, bentuk String Structured Field (draft-ietf-httpapi-idempotency-key-header-08). Key yang sama dengan
+        isi yang sama dalam 24 jam dijawab dengan respons pertama tanpa mengerjakan ulang; sesudah 24 jam key
+        dianggap belum pernah ada. Key yang sama dengan isi atau akun lain dijawab 422, key yang masih diproses 409,
+        bentuk salah 400. Jawaban 5xx dan 429 tidak disimpan.
+      schema:
+        type: string
+        pattern: '^"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"$'
   responses:
     Problem:
       description: Error RFC 9457

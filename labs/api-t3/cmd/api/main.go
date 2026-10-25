@@ -48,7 +48,7 @@ func main() {
 	pushURL := flag.String("push-url", "http://127.0.0.1:"+portLab(18181), "alamat layanan push (tiruan lokal)")
 	pushBatas := flag.Duration("push-timeout", push.BatasBawaan, "batas waktu satu panggilan push (ADR 22); 0 = tanpa batas")
 	idleTx := flag.Duration("idle-tx", 5*time.Second, "idle_in_transaction_session_timeout (ADR 22); 0 = mati")
-	rentan := flag.String("rentan", "", "mode rentan: push-dalam-tx (M18), kursor (M19), ekspor-panic dan tanpa-shutdown (M21), urut-waktu (M27)")
+	rentan := flag.String("rentan", "", "mode rentan: push-dalam-tx (M18), kursor (M19), ekspor-panic dan tanpa-shutdown (M21), stok-timpa (M24), urut-waktu (M27)")
 	instance := flag.String("instance", "", "nama instance; dikirim di header X-Instance supaya lab bisa melihat instance mana yang menjawab")
 	redisAlamat := flag.String("redis", "", "alamat Redis untuk batas login bersama antar instance (ADR 27); kosong = token bucket di memori proses (ADR 20)")
 	redisBatas := flag.Duration("redis-timeout", 50*time.Millisecond, "batas waktu satu pemeriksaan ke Redis (ADR 27); 0 = bawaan go-redis (5 detik, 3 retry), hanya untuk rekaman perbandingan")
@@ -76,7 +76,7 @@ func main() {
 		}
 	}
 	switch *rentan {
-	case "", service.RentanPushDalamTx, service.RentanEksporPanic, rentanTanpaShutdown, "kursor", "urut-waktu":
+	case "", service.RentanPushDalamTx, service.RentanEksporPanic, service.RentanStokTimpa, rentanTanpaShutdown, "kursor", "urut-waktu":
 	default:
 		log.Fatalf("mode rentan tidak dikenal: %s", *rentan)
 	}
