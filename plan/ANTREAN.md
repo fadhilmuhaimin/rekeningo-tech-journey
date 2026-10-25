@@ -1365,24 +1365,24 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### LAB-PARALEL · Lab bisa jalan di beberapa lajur sekaligus
 
 - jenis: perbaikan
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: -
 - selesai bila: port database lab dan port server lab dibaca dari variabel (`LAB_DB_PORT` bawaan 54333, `LAB_PORT_OFFSET` bawaan 0) di semua lab (`labs/*/run*.py`, `Makefile`, skrip rekam, tes Go yang menyebut port), `labs/b3-race/docker-compose.yml` memakai `${LAB_DB_PORT:-54333}` dan Makefile root `lab-up`/`lab-down` memakai `COMPOSE_PROJECT_NAME`; tanpa variabel semua lab berperilaku sama seperti sebelumnya (rekaman identik); dua lajur dengan `COMPOSE_PROJECT_NAME`, `LAB_DB_PORT`, dan `LAB_PORT_OFFSET` berbeda menjalankan satu lab masing-masing bersamaan dan rekaman keduanya sama dengan rekaman di repo; satu alat pemeriksa di gerbang menolak `54333` yang tertulis tetap di luar nilai bawaan; `labs/README.md` atau bagian lab di `plan/BRIEF-SUBAGEN.md` menulis cara memakainya; satu PR kecil.
-- catatan: Keputusan 728 butir 2. Pelaksana mengusulkan nilai per lajur (`rjt-konten` offset 0 bawaan, `rjt-konten2` 100, dst.) di badan PR; pengatur memasukkannya ke brief.
+- catatan: Keputusan 728 butir 2. Pelaksana mengusulkan nilai per lajur (`rjt-konten` offset 0 bawaan, `rjt-konten2` 100, dst.) di badan PR; pengatur memasukkannya ke brief. Selesai 2026-10-25 di PR #326. Nilai per lajur dan pemeriksa port ada di `labs/README.md` dan `tools/cek_port_lab.py` (keputusan 860–864).
 
 ### CI-CEPAT · CI lebih cepat tanpa mengurangi cakupan
 
 - jenis: perbaikan
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: -
 - selesai bila: `.github/workflows/cek.yml` menyimpan cache bun dan browser Playwright (kunci dari `bun.lock` dan versi Playwright, dengan verifikasi yang ada untuk .deb tetap); job ukur paralel per ukuran layar atau kelompok sehingga waktu dinding turun; di PR alat ukur halaman hanya memeriksa halaman yang berubah (dibandingkan dengan dist main) kecuali bila tema, CSS, komponen, plugin, atau alat ukur berubah, maka semua halaman; di main dan di workflow terjadwal malam (`schedule`) 100% halaman tetap diperiksa; menit CI sebelum dan sesudah (rata-rata tiga run PR terakhir dan tiga run sesudahnya, dari `gh run list`) dicatat di badan PR; satu alat uji membuktikan PR dengan perubahan CSS memilih semua halaman dan PR dengan satu halaman memilih halaman itu saja.
-- catatan: Keputusan 728 butir 4. Bila main lebih sering merah sesudahnya, pengatur mengembalikan pemeriksaan per halaman (butir 4 dan 5).
+- catatan: Keputusan 728 butir 4. Bila main lebih sering merah sesudahnya, pengatur mengembalikan pemeriksaan per halaman (butir 4 dan 5). Selesai 2026-10-25 di PR #328.
 
 ## Tahap 3
 
-Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan oleh `T3-siap` dari peta halaman naskah: lab sebelum `ERD3`, halaman sesudah widget. Nomor keputusan: 800–999 (konten +0–99, teknis +100–149, pengatur +150–199).
+Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan oleh `T3-siap` dari peta halaman naskah: lab sebelum `ERD3`, halaman sesudah widget. Nomor keputusan Tahap 3: konten 900–949, teknis 950–979, pengatur 980–999 (keputusan 900: rentang 800–899 sudah dipakai Tahap 2; Tahap 4 tetap 1000–1199). Lab, `ERD3`, dan `W3-*` tidak menunggu `EVAL-2`; setiap halaman Tahap 3 menunggu `KONSISTENSI-3` dan `DIRI-2` (keputusan 728).
 
 ### RISET-3 · Riset Tahap 3
 
@@ -1396,11 +1396,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### NASKAH-3 · Naskah Tahap 3 (draft otomatis)
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: RISET-3
 - selesai bila: `plan/CERITA-TAHAP-3.md` dengan struktur persis CERITA-TAHAP-2 (Kenapa dokumen ini ada, Latar, Tokoh baru, 1 PRD v3, 2 Dari fitur ke pekerjaan teknis, 3 Inti teknis, 3b Skema data, 4 Masalah, 5 Yang dibawa keluar, 6 Jembatan, Peta halaman, Jalur per peran), baris pertama "Draft otomatis, belum ditinjau pemilik", memakai RISET-TAHAP-3; nomor M dan ADR melanjutkan tahap sebelumnya; peta halaman 24–32 halaman dengan kolom lab, setiap halaman masalah dipicu fitur PRD, pihak ketiga selalu tiruan lokal; peninjau konsistensi (subagent kedua) membaca naskah terhadap semua naskah sebelumnya (tokoh, nama perusahaan, angka saldo dan user, istilah glosarium, nomor ADR dan M, rantai PRD → fitur → teknis → masalah → konsep) dan semua temuannya ditutup.
-- catatan: Satu-satunya naskah yang ditulis Claude; Tahap 1–2 milik pemilik dan tidak disentuh. Ditulis sebelum Tahap 2 selesai (keputusan 728): memakai RINGKAS dan CERITA-TAHAP-2 sebagai jembatan; `KONSISTENSI-3` mencocokkannya dengan keputusan Tahap 2 yang sebenarnya.
+- catatan: Satu-satunya naskah yang ditulis Claude; Tahap 1–2 milik pemilik dan tidak disentuh. Ditulis sebelum Tahap 2 selesai (keputusan 728): memakai RINGKAS dan CERITA-TAHAP-2 sebagai jembatan; `KONSISTENSI-3` mencocokkannya dengan keputusan Tahap 2 yang sebenarnya. Selesai 2026-10-25 di PR #331. Tinjauan konsistensi di badan PR (keputusan 873–879).
 
 ### KONSISTENSI-3 · NASKAH-3 dicocokkan dengan keputusan Tahap 2 yang sebenarnya
 
@@ -1414,54 +1414,414 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### T3-siap · RINGKAS, registry, dan antrean Tahap 3
 
 - jenis: interaksi
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: NASKAH-3
 - selesai bila: `plan/RINGKAS.md` (≤ 60 baris) memuat peta halaman Tahap 3 satu baris per halaman dan tahap sebelumnya diringkas; registry `situs/data/cerita.json` memuat semua halaman Tahap 3 sesuai naskah (judul, jenis, bagian, ★, peran, prasyarat, lab), yang belum ditulis tampil "segera", halaman lama tahap ini menjadi `lama` bila diganti; ANTREAN mendapat tugas lab (sebelum `ERD3`) dan tugas halaman berurutan (sesudah tugas widget) dengan `selesai bila` merujuk bagian naskah; `sinkron_cerita.py`, `cek_tautan.py`, dan gerbang lolos.
-- catatan: Keputusan 728: lab, `ERD3`, dan `W3-*` Tahap 3 dimulai segera sesudah tugas ini di lajur teknis, tidak menunggu EVAL-2; setiap halaman Tahap 3 bergantung tambahan pada `KONSISTENSI-3` dan `DIRI-2`. Sekaligus mengganti `bergantung` `EVAL-3` ke halaman terakhir Tahap 3 dan `ERD3` ke lab utama Tahap 3; halaman yang memakai widget bergantung pada tugas widgetnya.
+- catatan: Keputusan 728: lab, `ERD3`, dan `W3-*` Tahap 3 dimulai segera sesudah tugas ini di lajur teknis, tidak menunggu EVAL-2; setiap halaman Tahap 3 bergantung tambahan pada `KONSISTENSI-3` dan `DIRI-2`. Sekaligus mengganti `bergantung` `EVAL-3` ke halaman terakhir Tahap 3 dan `ERD3` ke lab utama Tahap 3; halaman yang memakai widget bergantung pada tugas widgetnya. Selesai 2026-10-25 di PR #336 (keputusan 900–905): RINGKAS 58 dari 60 baris; registry memuat 3.1–3.32 "segera", delapan halaman lama dilebur, `asumsi.trx` Tahap 3 jadi 3; delapan tugas lab, 32 tugas halaman. Satu baris tabel di 1.38 dan `cerita/tahap-3.mdx` mengikuti `trx` 3 (±550 jadi ±820 MB).
+
+### lab-api-t3 · Lab api-t3: api-t2 naik ke enam kota
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: T3-siap
+- selesai bila: Lab baru `labs/api-t3` (Go, schema sendiri di PostgreSQL bersama, `make -C labs/api-t3 run`, gagal keras bila hasil berbeda dari harapan) berangkat dari `labs/api-t2` dan menambah semua tabel naskah bagian 3b lewat migrasi baru di atas 000013: `kota`, `perangkat`, `outbox`, `produk`, `promo`, `operasi_sinkron`, `sesi` + `jenis` dan `csrf_hash`, `akun` + `kota_id` (boleh kosong untuk admin dan sistem) dan jenis `hr`; kolom persis mengikuti skema lab, selisih dengan blok mermaid naskah dicatat (lab yang benar). Jalur uang menulis jurnal, posting, dan baris `outbox` dalam satu transaction (ADR 23) dan tidak memanggil jaringan di dalam transaction (ADR 22: timeout 3 detik di setiap client, `idle_in_transaction_session_timeout` 5 detik). Batas pool 10 ditetapkan eksplisit (`SetMaxOpenConns(10)` atau pgxpool `MaxConns` 10) dan direkam, karena api-t2 memakai `database/sql` tanpa batas bawaan. Ada: daftar perangkat dan token push; katalog dan ubah produk bersyarat versi; promo per kota; laporan harian dan ekspor CSV untuk dasbor; endpoint sinkron bersyarat versi; catatan pembayaran maksimal 100 karakter di `jurnal.keterangan`; layanan push tiruan lokal di container (menjawab, lambat, menggantung, 503). Mode rentan seperti `api-t1` (push di dalam transaction dan client tanpa batas waktu untuk M18; kursor `(dibuat, id)` untuk M19) supaya `t3-pool` dan `t3-outbox` berbagi lab ini, bukan salinan. Tes Go untuk aturan uang dan outbox dari PostgreSQL; rekaman `output/*.txt` dari database bersih, diulang identik (status, saldo, urutan; bukan waktu); port dan nama kontainer lewat `labs/lab_env.*` (keputusan 860–864), tanpa 54333 tertulis tetap di luar nilai bawaan (`tools/cek_port_lab.py`); kontrak OpenAPI v3 bila endpoint berubah.
+- catatan: Jalur lab. Sumber `ERD3` dan lab utama halaman 3.3, 3.5, 3.7, 3.27. Versi dasar dari R3-01 (PostgreSQL 17.11, Go 1.27.3, pgx v5.11.0, dicek 2026-10-25) dicek ulang saat lab ditulis. Lab lama `t3-bayar` hanya bahan, bukan dasar angka (17 pembayaran per detik, 20 kali terlalu tinggi). Versi app Tahap 3 (3.0 notifikasi, 3.1 rilis M26) belum ada di naskah: kontrak mencatat versi app per endpoint.
+
+### lab-t3-pool · Lab t3-pool: layanan push yang menggantung dan connection pool
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-api-t3
+- selesai bila: Lab `labs/t3-pool` (mode rentan `api-t3` atau server kecil sendiri bila lebih sederhana) merekam M18: layanan push tiruan menerima koneksi lalu tidak menjawab; beban 17,4 request per detik dengan 5% pembayaran (bukan 17 pembayaran per detik seperti `t3-bayar`), pembayaran memanggil push di dalam transaction dengan client tanpa batas waktu (timeout nol berarti tanpa batas, R3-08) dan pool 10; direkam: koneksi terpakai naik, pool 10 penuh dalam kira-kira 11,5 detik (hitungan 10 ÷ 0,87, bandingkan dengan ukuran), request lain ikut mengantre. Dibandingkan: pool 50 (hanya menunda), timeout 3 detik tetapi tetap di dalam transaction, dan panggilan keluar di luar transaction dengan timeout 3 detik dan `idle_in_transaction_session_timeout` 5 detik (ADR 22). L = λ × W dihitung dari data untuk t = 0,3 / 2 / 10 / 30 detik dan dibandingkan dengan 0,28 / 1,75 / 8,7 / 26,1; W 20 ms dan jumlah koneksi diukur lewat `pg_stat_activity`. Satu permintaan dilacak dari app ke API (log, metric, trace untuk 3.7; OpenTelemetry bila terpasang, kalau tidak berlabel Tidak dijalankan). Rekaman dari database bersih, diulang identik.
+- catatan: Jalur lab. Angka beban naskah bagian 3 (Asumsi) diganti rekaman di halaman; `t3-bayar` hanya bahan. Sumber W3-pool dan halaman 3.6, 3.7, 3.8.
+
+### lab-t3-outbox · Lab t3-outbox: outbox, klaim per baris, retry, dan queue promo
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-api-t3
+- selesai bila: Lab `labs/t3-outbox` di atas `api-t3`: (a) jurnal dan baris outbox dalam satu transaction, ROLLBACK membuang keduanya; (b) kursor `(dibuat, id)` melewatkan baris yang COMMIT belakangan (M19), termasuk dua transfer ke penerima yang sama yang saling menunggu di baris `buku` penerima (dari kode `CatatJurnal`, belum direkam: rekam atau beri label Tidak dijalankan); (c) klaim per baris `FOR UPDATE SKIP LOCKED` dengan batas klaim: tiga worker tanpa baris ganda dan tanpa baris terlewat, urutan antar pesan tidak dijaga (direkam); (d) worker dihentikan di antara kirim dan tandai terkirim: klaim habis, pengiriman ulang, penerima menyaring `notifikasi_id` (M20), dengan panjang klaim sekitar 5 detik; (e) retry dengan backoff dan jitter, maksimal 5 percobaan lalu dead-letter; (f) 10.000 baris promo di depan notifikasi uang, tanpa kelas (urut waktu) lawan dengan kolom `kelas` (bayar dan transfer, top-up massal, promo), umur notifikasi tertua, kapasitas worker c ÷ t (c = 4, t = 0,3 detik; diukur) dibandingkan 13,3 per detik, laju promo paling banyak 5 per detik (M27); (g) `LISTEN`/`NOTIFY` hanya sebagai pembangun worker: nasib listener yang putus (R3-05; rekam atau Tidak dijalankan); retensi 7 hari. Rekaman dari database bersih, diulang identik.
+- catatan: Jalur lab. Sumber W3-outbox dan halaman 3.4, 3.9–3.13, 3.26, 3.27. Pembanding tulisan di stack lain (Laravel, Django) dari dokumentasi (R3-22), berlabel Tidak dijalankan bila tidak dijalankan di lab.
+
+### lab-t3-instance · Lab t3-instance: proxy, dua instance, dan rate limit lintas instance
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-api-t3
+- selesai bila: Lab `labs/t3-instance`: proxy (Caddy; versi dicek ulang saat lab ditulis, R3-01) di depan dua instance `api-t3`. Direkam: (a) bawaan tanpa health check dan tanpa retry: instance mati tetap dipilih acak (R3-13) lawan health check aktif dan retry, tanpa error terlihat user; (b) panic di goroutine latar (ekspor laporan) mematikan seluruh proses Go dan tidak ada yang memulainya lagi (M21, [perlu verifikasi di lab]); (c) deploy bergulir dengan `Shutdown` saat SIGTERM: request yang sedang jalan selesai, lawan tanpa itu; (d) rate limit lintas instance: token bucket di memori dua instance memberi batas efektif per IP antara 10 dan 20 dan per akun antara 5 dan 10, sedangkan kunci akun di database tetap lima (keputusan 545, 550; rekaman `c4-ratelimit` bagian C dan F sebagai pembanding), lawan skrip atomik di Redis (`INCR` dan `EXPIRE`, R3-12) dengan timeout 50 ms dan Redis mati berarti batas lokal. Rekaman dari database bersih, diulang identik.
+- catatan: Jalur lab. Sumber halaman 3.14–3.17. Redis 8.10.2 atau yang lebih baru; lisensi dan Valkey sebagai pembanding hanya dicatat (PERLU-DICEK-PEMILIK).
+
+### lab-t3-cache · Lab t3-cache: katalog di memori proses lawan Redis
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-api-t3
+- selesai bila: Lab `labs/t3-cache`: katalog 60 warung × 40 item (720 KB, R3-37). Direkam: cache di memori proses dua instance dengan TTL 5 menit, hanya instance yang menerima perubahan yang membuang entri, instance lain basi sampai TTL habis (M23); cache-aside di Redis dengan TTL 60 detik dan hapus kunci sesudah tulis database (urutan terbalik meninggalkan data basi, R3-09); promo yang mulai pada jam tertentu tidak punya tulis saat mulai, jadi hapus kunci tidak menutupnya dan TTL membatasi; harga yang ditagih selalu dari database; error backend tidak membuang entri (R3-25); beban tanpa cache (5,2 baca per detik, L = 0,026) diukur lawan dengan cache, supaya "tanpa cache" tetap opsi sah. Stampede hanya disebut. Rekaman dari database bersih, diulang identik.
+- catatan: Jalur lab. Sumber W3-cache dan halaman 3.18, 3.19. `b9-cache` hanya bahan; Redis lab bersama `t3-instance`.
+
+### lab-t3-offline · Lab t3-offline: sinkron stok dan harga, key 24 jam lawan 62 jam
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-api-t3
+- selesai bila: Lab `labs/t3-offline`: (a) key idempotensi 24 jam (ADR 14) lawan offline Jumat 17.00 sampai Senin 07.00 (62 jam, Asumsi): key sudah dibuang dan operasi "stok = 0" diterapkan sebagai timpa tanpa pemeriksaan versi (M24); jam diperankan (baris diberi waktu mundur), bukan menunggu 62 jam; (b) operasi bersyarat versi `UPDATE … WHERE versi = …`: 409 saat versi berubah dan pilihan user; (c) `operasi_sinkron` dengan key 14 hari dan queue paling lama 7 hari: pengiriman ulang dengan key sama tidak menerapkan dua kali; (d) pembayaran dari queue offline ditolak server. Rekaman dari database bersih, diulang identik. `e2-sync` hanya bahan.
+- catatan: Jalur lab. Sumber halaman 3.20, 3.21.
+
+### lab-t3-dasbor · Lab t3-dasbor: dasbor kecil dengan mode rentan
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-api-t3
+- selesai bila: Lab `labs/t3-dasbor`: dasbor kecil HTML dan Go dengan mode rentan. Direkam: (a) XSS tersimpan, `<img src=x onerror=…>` di `jurnal.keterangan` ditampilkan lewat `innerHTML` (M25) lawan teks tanpa HTML dan CSP dengan nonce; (b) CSRF: form lintas situs ke endpoint ubah menu tanpa token, dengan `SameSite=Lax`, dengan token dan pemeriksaan `Sec-Fetch-Site` dan `Origin`; XSS mengalahkan token CSRF (R3-19); (c) cookie `__Host-` dengan `HttpOnly`, `Secure`, dan `SameSite=Lax`, dengan batasan `Secure` di `localhost` dicatat; (d) passkey dengan authenticator virtual bila terbukti (R3-20), kalau tidak berlabel Tidak dijalankan. Bukti perilaku browser dari Playwright, bukan dari ingatan. Rekaman dari database bersih, diulang identik.
+- catatan: Jalur lab. Sumber halaman 3.22, 3.23.
+
+### lab-t3-mitm · Lab t3-mitm: proxy tiruan, pinning, dan rotasi pin
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: lab-api-t3
+- selesai bila: Lab `labs/t3-mitm`: mitmproxy (versi dicek ulang saat lab ditulis, R3-01) di container, tanpa target di luar container. Direkam: (a) client Dart dengan validasi sertifikat menolak sertifikat tiruan, sedangkan flag "terima sertifikat apa pun" (M26: ada di build staging, tidak dicabut dari build rilis) membiarkan proxy membaca header `Authorization`; (b) pin SPKI dengan satu cadangan (ADR 31): pin lolos, rotasi kunci server tanpa cadangan mematikan client dan dengan cadangan jalan terus; masa berlaku sertifikat daun paling lama 200 hari dihitung, tidak ditunggu (R3-18); (c) klaim dio#2418 (callback jalan sesudah body terkirim) diuji lebih dulu dan hasilnya memilih mekanisme di Dart; (d) HSTS di dasbor (RFC 6797); (e) token sesi 15 menit dan redaksi log: token tidak muncul di log. Rekaman dari database bersih, diulang identik; versi Dart disebut.
+- catatan: Jalur lab. Sumber halaman 3.24, 3.25. Bila (c) tidak terbukti di lab, halaman menulis Tidak dijalankan dan sumbernya.
 
 ### ERD3 · ERD Tahap 3 dari skema lab
 
 - jenis: interaksi
 - status: antre
 - percobaan: 0
-- bergantung: T3-siap
+- bergantung: lab-api-t3
 - selesai bila: `tools/erd.py` membaca skema akhir lab utama Tahap 3 dan menulis `situs/data/erd/tahap-3.json` beserta selisih terhadap Tahap 2; `--cek` di gerbang mencakup Tahap 3; widget ERD bertumbuh menampilkan Tahap 3 berdampingan dengan Tahap 2 di `/uji/erd/`; selisih dengan mermaid naskah 3b tercatat (lab yang benar).
-- catatan: `T3-siap` menambahkan lab utama Tahap 3 ke `bergantung` tugas ini.
+- catatan: `T3-siap` mengganti `bergantung` dari T3-siap ke lab utama Tahap 3 (`lab-api-t3`, yang bergantung pada T3-siap). Diagram naskah 3b dibanding skema lab; yang benar skema lab.
 
 ### W3-pool · Simulasi connection pool dan Little's Law
 
 - jenis: interaksi
 - status: antre
 - percobaan: 0
-- bergantung: ERD3
+- bergantung: ERD3, lab-t3-pool
 - selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: slider beban (request per detik) dan lama query; L = λ × W dihitung dan ditampilkan; antrean menunggu koneksi terlihat saat L melewati ukuran pool; angka contoh dari rekaman lab pool Tahap 3 atau berlabel Simulasi/Ilustrasi. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
-- catatan: -
+- catatan: Dipakai 3.8. Masukan awal dari naskah bagian 3 (Asumsi): 0,87 pembayaran per detik dan pool 10; angka halaman dari rekaman `t3-pool`.
 
 ### W3-cache · Simulasi cache dan invalidation
 
 - jenis: interaksi
 - status: antre
 - percobaan: 0
-- bergantung: ERD3
+- bergantung: ERD3, lab-t3-cache
 - selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: baca dengan dan tanpa cache, hit/miss, TTL dan invalidasi saat saldo berubah, kasus data basi yang terlihat orang; skenario dari lab cache Tahap 3. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
-- catatan: -
+- catatan: Dipakai 3.19. Tampilkan juga kasus "tanpa cache" (5,2 baca per detik, L = 0,026) sebagai opsi sah.
 
 ### W3-outbox · Timeline outbox dan worker
 
 - jenis: interaksi
 - status: antre
 - percobaan: 0
-- bergantung: ERD3
+- bergantung: ERD3, lab-t3-outbox
 - selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: garis waktu jurnal + baris outbox dalam satu transaction, worker mengambil, gagal, retry, notifikasi sekali; dari rekaman lab outbox Tahap 3. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
+- catatan: Dipakai 3.9, 3.13, dan 3.26. Butuh mode queue dengan dan tanpa kolom `kelas` untuk 3.26 (naskah, catatan widget).
+
+### 3.1 · PRD v3: Rekeningo untuk enam kota
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: W3-outbox, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman PRD 3.1 sesuai `plan/CERITA-TAHAP-3.md` bagian 1 dan peta halaman Tahap 3; tanpa lab baru; jawaban atas tebakan pembaca di 2.33 (dibuka dari naskah bagian 1: user, ruang lingkup P0 sampai P2, metrik, risiko Sinta, tiga pertanyaan terbuka); janji 95% dalam 30 detik hanya untuk bayar dan transfer; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Template PRD seperti 2.1. Tugas halaman pertama: menunggu semua widget Tahap 3 supaya halaman berikutnya tidak menunggu widget.
+
+### 3.2 · Dari fitur ke pekerjaan teknis v3
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.1, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Fitur → teknis 3.2 sesuai `plan/CERITA-TAHAP-3.md` bagian 2 dan peta halaman Tahap 3; tanpa lab baru; tabel delapan baris naskah (fitur, app, backend, database, konsep) dengan tautan ke halaman konsep; pertanyaan pertama Tahap 3 dirumuskan sebelum kode; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Katalog, dasbor, promo, dan offline tidak punya halaman fitur sendiri (peta 32 halaman); cukup di tabel ini.
+
+### 3.3 · Fitur: notifikasi push dan promo HR
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.2, lab-api-t3, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Fitur → teknis 3.3 sesuai `plan/CERITA-TAHAP-3.md` bagian 2 dan 3 dan peta halaman Tahap 3; rekaman dari `labs/api-t3`; widget alur; menyerap bagian relevan E4 (Push dan real-time, halaman lama); layanan push tiruan lokal dengan FCM v1 hanya sebagai rujukan (R3-16); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Tulis versi app Tahap 3 di halaman ini (3.0 notifikasi, 3.1 rilis M26): naskah belum mendefinisikannya (SETELAH-TAHAP-3).
+
+### 3.4 · Dua tempat yang tidak bisa commit bersama
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.3, lab-t3-outbox, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Konsep 3.4 sesuai `plan/CERITA-TAHAP-3.md` bagian 3 dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget cari-bug (tandai baris handler versi pertama yang melanggar satu dari tiga hal, lalu tabel empat kejadian terisi); tiga hal yang harus selalu benar dan versi pertama minggu 1 dari naskah; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Cek diri minimal tiga kartu. Pola dua tempat dijanjikan muncul lagi di M22, M23, M24, dan M27.
+
+### 3.5 · Skema data: ERD Tahap 2 → Tahap 3 dan pertumbuhannya
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.4, ERD3, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Konsep 3.5 sesuai `plan/CERITA-TAHAP-3.md` bagian 3b dan peta halaman Tahap 3; widget ERD bertumbuh dengan Tahap 2 dan Tahap 3 berdampingan dari `situs/data/erd/tahap-3.json` (ERD3); tabel "Apa yang berubah dan kenapa" dan pertumbuhan skala Tahap 2 sampai 4; selisih dengan mermaid naskah ditulis (lab yang benar); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Dua besaran dengan label, tidak disamakan diam-diam: "data transaksi per tahun" registry ±820 MB (3 × 300 B) dan ukuran posting naskah 3b ±1,4 GB (2 posting × 250 B, R3-38). Outbox 0,82 GB tanpa pembersihan lawan 15,8 MB dengan retensi 7 hari.
+
+### 3.6 · M18: Seluruh app membeku jam 12.20
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.5, lab-t3-pool, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Masalah 3.6 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M18) dan peta halaman Tahap 3; rekaman dari `labs/t3-pool`; widget alur; gejala berlabel Ilustrasi sampai ada rekaman; yang dikira (pool dinaikkan dari 10 ke 50) sebelum yang sebenarnya; konsep tidak di dalam adegan; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
 - catatan: -
+
+### 3.7 · Observability: log, metric, trace
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.6, lab-api-t3, lab-t3-pool, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Konsep 3.7 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan peta (menyerap C2 lama) dan peta halaman Tahap 3; rekaman dari `labs/api-t3` dan `labs/t3-pool`; widget pilah; empat golden signals dan `traceparent` (R3-14); log Go masih Release Candidate di OpenTelemetry (R3-14); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Halaman lama C2 dilebur ke sini.
+
+### 3.8 · Connection pool, Little's Law, dan timeout + ADR 22
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.7, W3-pool, lab-t3-pool, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Konsep + ADR 3.8 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 22 (menyerap B2.5 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-pool`; widget W3-pool; ADR 22 dengan tiga opsi atau lebih (pool 50, timeout tetap di dalam transaction, circuit breaker), pre-mortem, kapan salah; kasus pgx#1974 hanya sebagai jebakan forum; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Halaman lama B2.5 dilebur ke sini.
+
+### 3.9 · Outbox transaksional dan worker + ADR 23
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.8, W3-outbox, lab-t3-outbox, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Konsep + ADR 3.9 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 23 (menyerap B10.1 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget W3-outbox; ADR 23 dengan opsi queue di Redis, log-based CDC, kirim sesudah COMMIT tanpa outbox; kasus industri Solid Queue (R3-24); di stack lain (Laravel, Django) dari dokumentasi berlabel Tidak dijalankan; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Halaman lama B10.1 dilebur ke sini (juga ke 3.11 dan 3.13).
+
+### 3.10 · M19: Ani tidak diberi tahu
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.9, lab-t3-outbox, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Masalah 3.10 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M19) dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget race; kursor `(dibuat, id)` melewatkan baris yang COMMIT belakangan; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Dua transfer ke penerima yang sama saling menunggu di baris buku penerima: rekaman atau Tidak dijalankan (lab-t3-outbox).
+
+### 3.11 · Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.10, lab-t3-outbox, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Konsep + ADR 3.11 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 24 (menyerap B8 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget race; ADR 24 dengan opsi kursor `(dibuat, id)`, nomor urut tanpa celah, `LISTEN`/`NOTIFY` hanya sebagai pembangun; worker di berbagai stack; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Halaman lama B8 (Concurrency dan async) dilebur ke sini. `SKIP LOCKED` tidak menjaga urutan antar pesan: tulis di "kapan salah".
+
+### 3.12 · M20: Notifikasi masuk dua kali
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.11, lab-t3-outbox, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Masalah 3.12 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M20) dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget alur; hanya satu jurnal, worker dihentikan saat deploy di antara kirim dan tandai terkirim; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Dua pengiriman berselang sekitar enam detik menuntut klaim paling lama sekitar 5 detik (SETELAH-TAHAP-3): sebut panjang klaim.
+
+### 3.13 · At-least-once: retry, dead-letter, penyaring di app + ADR 25
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.12, W3-outbox, lab-t3-outbox, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Konsep + ADR 3.13 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 25 (menyerap E4 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget W3-outbox; ADR 25 dengan opsi at-most-once, retry tanpa batas, exactly-once; penyaring `notifikasi_id` di app (Dart); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Halaman lama E4 (Push dan real-time) dilebur ke sini dan ke 3.3.
+
+### 3.14 · M21: Satu proses mati, semua mati
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.13, lab-t3-instance, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Masalah 3.14 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M21) dan peta halaman Tahap 3; rekaman dari `labs/t3-instance`; widget alur; panic di goroutine latar berlabel [perlu verifikasi di lab] bila tidak terekam; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 3.15 · Dua instance di belakang proxy + ADR 26
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.14, lab-t3-instance, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Konsep + ADR 3.15 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 26 dan peta halaman Tahap 3; rekaman dari `labs/t3-instance`; widget banding; ADR 26 dengan opsi proxy bawaan, satu instance dengan restart otomatis, dua VPS, Kubernetes; satu VPS tetap titik gagal tunggal; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 3.16 · M22: Batas login jadi dua kali lipat
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.15, lab-t3-instance, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Masalah 3.16 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M22) dan peta halaman Tahap 3; rekaman dari `labs/t3-instance`; widget ember; yang berlipat adalah penahan per IP di memori, bukan kunci akun di database (keputusan 877, 550); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 3.17 · Rate limit lintas instance dan Redis + ADR 27
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.16, lab-t3-instance, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Konsep + ADR 3.17 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 27 (menyerap C4 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-instance`; widget ember; ADR 27 dengan opsi counter di PostgreSQL, sticky session, batas dibagi N; bagian brute force tidak diulang (sudah di 2.28); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Halaman lama C4 dilebur ke sini. Lisensi Redis 8 dan Valkey hanya dicatat di PERLU-DICEK-PEMILIK (R3-10).
+
+### 3.18 · M23: Dua harga di satu meja
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.17, lab-t3-cache, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Masalah 3.18 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M23) dan peta halaman Tahap 3; rekaman dari `labs/t3-cache`; widget alur; cache memori proses dua instance tetap basi sampai TTL habis; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 3.19 · Cache dan invalidation + ADR 28
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.18, W3-cache, lab-t3-cache, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Konsep + ADR 3.19 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 28 (menyerap B9 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-cache`; widget W3-cache; ADR 28 jujur bahwa beban tidak memaksa cache dan "tanpa cache" tetap opsi sah; kasus Facebook 2010 (R3-25); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Halaman lama B9 dilebur ke sini. Promo yang mulai di jam tertentu tidak punya tulis saat mulai: tulis di ADR (SETELAH-TAHAP-3).
+
+### 3.20 · M24: Stok yang kembali ke angka lama
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.19, lab-t3-offline, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Masalah 3.20 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M24) dan peta halaman Tahap 3; rekaman dari `labs/t3-offline`; widget alur; offline akhir pekan 62 jam lawan key 24 jam (Asumsi, jam diperankan); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 3.21 · Offline-first dan sinkron + ADR 29
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.20, lab-t3-offline, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Konsep + ADR 3.21 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 29 (menyerap E2 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-offline`; widget tebak; ADR 29 dengan opsi key 7 hari semua endpoint, last-write-wins, CRDT, queue pembayaran offline; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Halaman lama E2 dilebur ke sini. Bukan ★ di naskah.
+
+### 3.22 · M25: Kotak peringatan di riwayat Ani
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.21, lab-t3-dasbor, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Masalah 3.22 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M25) dan peta halaman Tahap 3; rekaman dari `labs/t3-dasbor`; widget cari-bug; Dimas hanya mencoba, catatan di `jurnal.keterangan` tinggal selamanya (append-only), perbaikannya di output; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 3.23 · Keamanan 5: XSS, CSRF, cookie sesi, passkey + ADR 30
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.22, lab-t3-dasbor, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Keamanan + ADR 3.23 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 30 dan peta halaman Tahap 3; rekaman dari `labs/t3-dasbor`; widget banding; ADR 30 dengan opsi escape manual saja, CSP saja, token di `localStorage`; passkey berlabel Tidak dijalankan bila authenticator virtual tidak terbukti (R3-20); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 3.24 · M26: Transfer yang tidak dibuat Budi
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.23, lab-t3-mitm, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Masalah 3.24 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M26) dan peta halaman Tahap 3; rekaman dari `labs/t3-mitm`; widget alur; flag "terima sertifikat apa pun" di build staging yang ikut ke rilis; uji lapangan dengan akun uji; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 3.25 · Keamanan 6: TLS, HSTS, pinning + ADR 31
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.24, lab-t3-mitm, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Keamanan + ADR 3.25 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 31 dan peta halaman Tahap 3; rekaman dari `labs/t3-mitm`; widget tebak; ADR 31 dengan opsi tanpa pinning, pin sertifikat daun (200 hari), pin CA; hasil dio#2418 dari lab menentukan mekanisme di Dart; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 3.26 · M27: Hari promo, notifikasi uang terlambat
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.25, W3-outbox, lab-t3-outbox, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Masalah 3.26 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M27) dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget W3-outbox dalam mode queue dengan dan tanpa kelas; kapasitas worker c ÷ t dan umur notifikasi tertua; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: ADR 32 memperbarui ADR 23: halaman menautkan 3.9.
+
+### 3.27 · Tim dan infra Tahap 3: staging, pipeline, alert, on-call + ADR 32
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.26, lab-api-t3, lab-t3-outbox, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Tim dan infra 3.27 sesuai `plan/CERITA-TAHAP-3.md` bagian 4, tabel ADR 32, dan daftar isi halaman 3.27 di bawah tabel ADR dan peta halaman Tahap 3; rekaman dari `labs/api-t3` dan `labs/t3-outbox`; widget pilah; isi mengikuti PROPOSAL "Pipeline backend per tahap" dan "Pipeline app Flutter per tahap"; required reviewers dan plan pemilik berlabel [perlu verifikasi] (R3-15); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Pecah menjadi dua halaman bila lebih dari 10 menit baca (SETELAH-TAHAP-3); ambang alert adalah Asumsi sampai ada rekaman.
+
+### 3.28 · M28: Uji coba enam kota lolos, PRD v4 datang
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.27, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Masalah 3.28 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M28) dan peta halaman Tahap 3; tanpa lab; widget kalkulator; puncak 17,4 request per detik berlabel Asumsi, PRD v4 sebagai pemicu seperti M17; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 3.29 · Estimasi Tahap 3 → 4
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.28, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Konsep 3.29 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan 5 dan peta halaman Tahap 3; tanpa lab; widget kalkulator dengan asumsi Tahap 3 dan 4 dari registry; hitungan ditulis rumusnya; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Registry `tahap[3].asumsi` (Tahap 4) masih versi lama; `T4-siap` memperbaruinya, halaman ini memakai angka naskah Tahap 4 bila sudah ada.
+
+### 3.30 · ADR 33: Sengaja belum dilakukan
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.29, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman ADR 3.30 sesuai `plan/CERITA-TAHAP-3.md` tabel ADR 33 dan peta halaman Tahap 3; tanpa lab; tanpa microservices, Kubernetes dan canary, read replica, PgBouncer, CDC, VPS kedua, cache saldo dan riwayat, pembayaran offline; masing-masing dengan angka tahap ini dan pemicunya; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 3.31 · Yang dibawa keluar dari Tahap 3
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.30, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman Konsep 3.31 sesuai `plan/CERITA-TAHAP-3.md` bagian 5 dan peta halaman Tahap 3; tanpa lab; widget kartu; tiga belas konsep dengan satu kalimat dan kejadiannya dari tabel naskah bagian 5; Cek diri gabungan; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: -
+
+### 3.32 · Jembatan: pratinjau PRD v4
+
+- jenis: konten
+- status: antre
+- percobaan: 0
+- bergantung: 3.31, KONSISTENSI-3, DIRI-2
+- selesai bila: halaman PRD 3.32 sesuai `plan/CERITA-TAHAP-3.md` bagian 6 dan peta halaman Tahap 3; tanpa lab; widget tebak (dari ADR Tahap 3, mana yang pecah lebih dulu?); PRD v4 enam butir; "uang elektronik publik" tanpa klaim izin atau regulasi; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
+- catatan: Jawaban tebakan dibuka di halaman pertama Tahap 4.
 
 ### EVAL-3 · Evaluasi Tahap 3
 
 - jenis: crosscheck
 - status: antre
 - percobaan: 0
-- bergantung: W3-outbox
+- bergantung: 3.32
 - selesai bila: `plan/EVALUASI-TAHAP-3.md` sesuai skill evaluasi-tahap oleh subagent yang tidak menulis halaman Tahap 3: kartu W1–W8 dengan satu baris bukti yang bisa diulang, tiga pertanyaan pembaca di tiga halaman acak (seed 3), uji baca oleh subagent segar (5 hal membingungkan). Ada TIDAK: paling banyak 3 tugas perbaikan disisipkan tepat sesudah tugas ini, lalu `EVAL-3-ulang` sekali; sisa TIDAK dan 5 hal membingungkan ke `plan/TINJAUAN-PEMILIK.md`.
 - catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya.
 
@@ -1481,11 +1841,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan ole
 ### RISET-4 · Riset Tahap 4
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: RISET-3
 - selesai bila: `plan/RISET-TAHAP-4.md` (≤ 120 baris) sesuai skill riset-tahap untuk Tahap 4 (integrasi pihak ketiga dan tiga tim, PROPOSAL "Enam tahap dalam satu tabel"): konsep dengan 1–3 sumber primer bertanggal dan ID `R4-nn`, yang berubah sejak PROPOSAL, teknik terbaru masuk/tidak, satu kasus industri nyata untuk ADR dari sumber primer, jebakan forum, angka beban dan ukuran data dihitung ulang dengan rumus PROPOSAL sebagai Asumsi; pengatur membuka tiga ID acak.
-- catatan: Kerja di depan (keputusan 728): jalan di lajur riset sebelum DIRI-3; `plan/RISET-TAHAP-4.md` memakai angka tahap sebelumnya dari RINGKAS dan naskahnya.
+- catatan: Kerja di depan (keputusan 728): jalan di lajur riset sebelum DIRI-3; `plan/RISET-TAHAP-4.md` memakai angka tahap sebelumnya dari RINGKAS dan naskahnya. Selesai 2026-10-25 di PR #329.
 
 ### NASKAH-4 · Naskah Tahap 4 (draft otomatis)
 
@@ -1566,11 +1926,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 5 disisipkan ole
 ### RISET-5 · Riset Tahap 5
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: RISET-4
 - selesai bila: `plan/RISET-TAHAP-5.md` (≤ 120 baris) sesuai skill riset-tahap untuk Tahap 5 (skala nasional, PROPOSAL "Enam tahap dalam satu tabel"): konsep dengan 1–3 sumber primer bertanggal dan ID `R5-nn`, yang berubah sejak PROPOSAL, teknik terbaru masuk/tidak, satu kasus industri nyata untuk ADR dari sumber primer, jebakan forum, angka beban dan ukuran data dihitung ulang dengan rumus PROPOSAL sebagai Asumsi; pengatur membuka tiga ID acak.
-- catatan: Kerja di depan (keputusan 728): jalan di lajur riset sebelum DIRI-4; `plan/RISET-TAHAP-5.md` memakai angka tahap sebelumnya dari RINGKAS dan naskahnya.
+- catatan: Kerja di depan (keputusan 728): jalan di lajur riset sebelum DIRI-4; `plan/RISET-TAHAP-5.md` memakai angka tahap sebelumnya dari RINGKAS dan naskahnya. Selesai 2026-10-25 di PR #330.
 
 ### NASKAH-5 · Naskah Tahap 5 (draft otomatis)
 
@@ -1651,11 +2011,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 6 disisipkan ole
 ### RISET-6 · Riset Tahap 6
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: RISET-5
 - selesai bila: `plan/RISET-TAHAP-6.md` (≤ 120 baris) sesuai skill riset-tahap untuk Tahap 6 (regional (proyeksi), PROPOSAL "Enam tahap dalam satu tabel"): konsep dengan 1–3 sumber primer bertanggal dan ID `R6-nn`, yang berubah sejak PROPOSAL, teknik terbaru masuk/tidak, satu kasus industri nyata untuk ADR dari sumber primer, jebakan forum, angka beban dan ukuran data dihitung ulang dengan rumus PROPOSAL sebagai Asumsi; pengatur membuka tiga ID acak.
-- catatan: Kerja di depan (keputusan 728): jalan di lajur riset sebelum DIRI-5; `plan/RISET-TAHAP-6.md` memakai angka tahap sebelumnya dari RINGKAS dan naskahnya.
+- catatan: Kerja di depan (keputusan 728): jalan di lajur riset sebelum DIRI-5; `plan/RISET-TAHAP-6.md` memakai angka tahap sebelumnya dari RINGKAS dan naskahnya. Selesai 2026-10-25 di PR #332.
 
 ### NASKAH-6 · Naskah Tahap 6 (draft otomatis)
 
