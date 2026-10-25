@@ -196,7 +196,7 @@ describe("nomor ADR, nomor halaman, dan tautan", () => {
   test("tiap [[ID]] di halaman ada di registry; yang Tahap 2 menunjuk nomor yang benar", () => {
     const id = [...new Set([...badan.matchAll(/\[\[([A-Za-z0-9.-]+)\]\]/g)].map((m) => m[1]!))].sort();
     expect(id).toEqual(
-      ["t2-adr-21", "t2-adr-ledger", "t2-estimasi", "t2-idempotency", "t2-job-rekonsiliasi", "t2-kursor", "t2-login-aman", "t2-m17", "t2-prd", "t2-race-lock", "t2-rekap", "t2-saldo-bukan-kolom", "t2-transfer"].sort(),
+      ["t2-adr-21", "t2-adr-ledger", "t2-estimasi", "t2-idempotency", "t2-job-rekonsiliasi", "t2-kursor", "t2-login-aman", "t2-m17", "t2-prd", "t2-race-lock", "t2-rekap", "t2-saldo-bukan-kolom", "t2-transfer", "t3-prd"].sort(),
     );
     for (const x of id) expect(hal.some((h) => h.id === x), `[[${x}]] tidak ada di registry`).toBe(true);
     expect(Object.fromEntries(["t2-prd", "t2-transfer", "t2-saldo-bukan-kolom", "t2-adr-ledger", "t2-race-lock", "t2-kursor", "t2-idempotency", "t2-job-rekonsiliasi", "t2-login-aman", "t2-m17", "t2-estimasi", "t2-adr-21"].map((x) => [x, dari(x).nomor]))).toEqual({
@@ -441,6 +441,11 @@ describe("tinjauan PR 353 (keputusan 746 dan 747): mutasi yang lolos di tes pela
     harus("| Fitur | Prioritas | Asalnya di Tahap 2 |");
     harus("Rincian tiap fitur ada di PRD v3 lengkap, di awal Tahap 3.");
     expect(badan).not.toContain("Prioritas dan rincian");
+  });
+  test("kalimat penutup menunjuk PRD v3 lengkap lewat registry, bukan 'cerita Tahap 3' (Berikutnya di bawah halaman menuju halaman lain)", () => {
+    harus("Tahap 2 selesai di sini. PRD v3 lengkap ada di [[t3-prd]].");
+    expect(badan).not.toContain("cerita Tahap 3");
+    expect(dari("t3-prd").judul).toBe("PRD v3: Rekeningo untuk enam kota");
   });
   test("menit baca di registry sama dengan baca ditambah coba di baris meta", () => {
     const m = badan.match(/Baca (\d+) menit · coba (\d+) menit/);
