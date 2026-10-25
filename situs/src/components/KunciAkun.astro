@@ -1,0 +1,60 @@
+---
+/**
+ * Widget kunci akun (M16, keputusan 850): tebak berapa tebakan salah yang cukup untuk mengunci Ani lagi sesudah kunci
+ * pertama lewat, lalu ubah satu hal (penyerang atau Ani yang mengirim percobaan pertama).
+ *   <KunciAkun />
+ * Angka, status, dan lama kunci dibaca saat build dari labs/c4-ratelimit/output/login/ratelimit.txt lewat logika.ts;
+ * rekaman yang berubah bentuk menggagalkan build. Teks dari data/widget/t2-m16-kunci.json (skema.ts).
+ * Island di-render saat build (client:visible); tanpa JavaScript hasil rekaman tampil di <noscript>.
+ * Satu widget per halaman (dipasang di blok Coba 2.27).
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import KunciAkunIsland from "../widgets/kunci-akun/KunciAkun";
+import { LabelKunciAkun } from "../widgets/kunci-akun/skema";
+import { bacaRekaman, indeksBenar, isi, tabelGiliran } from "../widgets/kunci-akun/logika";
+import labelMentah from "../../data/widget/t2-m16-kunci.json";
+
+const FILE = "labs/c4-ratelimit/output/login/ratelimit.txt";
+const abs = path.join(ROOT, FILE);
+if (!fs.existsSync(abs)) throw new Error(`KunciAkun: ${FILE} tidak ada`);
+const R = bacaRekaman(fs.readFileSync(abs, "utf8"));
+const L = LabelKunciAkun.parse(labelMentah);
+const nilai = {
+  awal: R.putaran[0]!.tebakan,
+  lebih: R.putaran[0]!.tebakan + 1,
+  ambang: R.ambang,
+  kunci1: R.putaran[0]!.terkunciDetik,
+  ke2: R.putaran[1]!.tebakan,
+  detik2: R.putaran[1]!.terkunciDetik,
+  detik3: R.putaran[2]!.terkunciDetik,
+  maks: R.maksMenit,
+  sesudah: R.aniBenar.sesudahDetik,
+};
+const pilihan = L.pilihan.map((p) => ({ ...p, alasan: isi(p.alasan, nilai) }));
+const benar = indeksBenar(pilihan, R);
+const teksTabel = {
+  judul: { penyerang: L.tabel.penyerang.judul, ani: L.tabel.ani.judul },
+  kolom: { penyerang: [...L.tabel.penyerang.kolom], ani: [...L.tabel.ani.kolom] },
+  sel: L.sel,
+};
+const tabel = { penyerang: tabelGiliran(R, "penyerang", teksTabel), ani: tabelGiliran(R, "ani", teksTabel) };
+const label = {
+  judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, pertanyaan: isi(L.pertanyaan, nilai), benar: L.benar, belum: L.belum,
+  ulang: L.ulang, ubahJudul: L.ubahJudul, giliran: L.giliran,
+  kesimpulan: { penyerang: isi(L.kesimpulan.penyerang, nilai), ani: isi(L.kesimpulan.ani, nilai) },
+  catatan: { penyerang: isi(L.catatan.penyerang, nilai), ani: isi(L.catatan.ani, nilai) },
+};
+---
+<KunciAkunIsland client:visible pilihan={pilihan.map((p) => ({ teks: p.teks, alasan: p.alasan }))} benar={benar} tabel={tabel} label={label} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  {(["penyerang", "ani"] as const).map((g) => (
+    <table>
+      <caption>{tabel[g].judul}</caption>
+      <thead><tr>{tabel[g].kolom.map((k) => <th>{k}</th>)}</tr></thead>
+      <tbody>{tabel[g].baris.map((b) => <tr>{b.map((s) => <td>{s}</td>)}</tr>)}</tbody>
+    </table>
+  ))}
+</noscript>

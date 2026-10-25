@@ -1313,5 +1313,7 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content table.tm-tabel caption { text-align: left; caption-side: top; padding-bottom: 0.3rem; color: var(--teks-2); font-size: var(--rk-ui-kecil); }
 .sl-markdown-content table.tm-tabel th[scope="row"] { background: none; font-weight: 600; }
 .sl-markdown-content table.tm-tabel td { vertical-align: top; }
+/* Tabel empat kolom widget kunci akun (tinjauan #335, keputusan 856): tanpa ini lebar minimum isi sel 294 px menimpa wadah di 320 px dan halaman bergulir ke samping 7 px (WCAG 1.4.10). */
+.sl-markdown-content table.tm-tabel :is(th, td) { overflow-wrap: anywhere; }
 .sl-markdown-content table.tm-tabel td .bb-chip { display: block; width: fit-content; margin-bottom: 0.25rem; }
 .sl-markdown-content .tm :is(.tb-pilihan, .qr-pilih) > * + * { margin-top: 0; }

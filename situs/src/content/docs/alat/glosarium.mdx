@@ -54,6 +54,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **COMMIT** | Perintah yang membuat semua perubahan dalam transaction menjadi permanen dan terlihat oleh koneksi lain. | [[B3.1]] |
 | **Connection pool** | Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request. | [[B2.5]] |
 | **Container** | Paket aplikasi beserta semua dependensinya yang berjalan dengan cara sama di laptop maupun server. | [[C3]] |
+| **Credential stuffing** | Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama. | [[t2-m16]] |
 | **Dead-letter queue** | Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya. | [[B10.1]] |
 | **Deadlock** | Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya. | [[t2-race-lock]] |
 | **Debit** | Sisi kiri sebuah jurnal akuntansi; di setiap jurnal total debit sama dengan total kredit, dan akun aset bertambah di sisi debit. | [[t2-ledger]] |
@@ -79,6 +80,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Jurnal** | Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol. | [[t2-ledger]] |
 | **JWT** (JSON Web Token) | Token berisi data JSON plus signature, sehingga server bisa memeriksa keasliannya tanpa query ke database. | [[B5.1]] |
 | **Kredit** | Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit. | [[t2-ledger]] |
+| **Kunci akun** | Penolakan login sementara pada satu akun sesudah beberapa kali gagal berturut-turut, yang menahan penebak tetapi juga pemilik akun yang sebenarnya. | [[t2-m16]] |
 | **Latency** | Lama waktu satu request dari dikirim sampai response diterima. | [[C2]] |
 | **Lazy loading** | Memuat data berelasi baru saat kode pertama kali mengaksesnya, dengan satu query setiap akses. | [[t2-n-plus-1]] |
 | **Lease** | Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis. | [[B10.1]] |

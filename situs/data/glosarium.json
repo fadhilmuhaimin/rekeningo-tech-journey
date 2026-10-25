@@ -297,6 +297,15 @@
   "h": null
  },
  {
+  "t": "Credential stuffing",
+  "d": "Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama.",
+  "b": "t2-m16",
+  "n": "2.27 M16",
+  "u": "/tahap-2/m16-akun-terkunci/",
+  "s": "istilah-credential-stuffing",
+  "h": "/istilah/credential-stuffing/"
+ },
+ {
   "t": "Dead-letter queue",
   "d": "Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.",
   "b": "B10.1",
@@ -520,6 +529,15 @@
   "u": "/tahap-2/ledger/",
   "s": "istilah-kredit",
   "h": "/istilah/kredit/"
+ },
+ {
+  "t": "Kunci akun",
+  "d": "Penolakan login sementara pada satu akun sesudah beberapa kali gagal berturut-turut, yang menahan penebak tetapi juga pemilik akun yang sebenarnya.",
+  "b": "t2-m16",
+  "n": "2.27 M16",
+  "u": "/tahap-2/m16-akun-terkunci/",
+  "s": "istilah-kunci-akun",
+  "h": "/istilah/kunci-akun/"
  },
  {
   "t": "Latency",

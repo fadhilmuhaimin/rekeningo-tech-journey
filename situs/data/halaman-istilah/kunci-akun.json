@@ -1,0 +1,97 @@
+{
+  "istilah": "Kunci akun",
+  "sehari_hari": "Akun ditutup sementara sesudah beberapa kali salah password, supaya penebak tidak bisa mencoba terus. Kunci itu melekat pada akun, bukan pada orang yang menebak. Orang yang sengaja menebak dan orang yang salah mengetik sama-sama menutup akun itu. Pemilik akun yang benar ikut tertolak.",
+  "cerita": [
+    {
+      "rujukan": "t2-m16",
+      "teks": "Lima tebakan salah ke akun Ani memasang kunci 60 detik. Sesudah kunci lewat, satu tebakan lagi memasang kunci 120 detik, lalu 240 detik. Ani, dengan password yang benar, menerima jawaban yang sama dengan password salah."
+    }
+  ],
+  "mekanisme": [
+    "Server menyimpan penghitung gagal berturut-turut dan waktu berakhirnya kunci di baris akun, bukan di memori satu proses.",
+    "Setiap login yang gagal menaikkan penghitung. Di ambang (lima di lab), server memasang kunci.",
+    "Selama kunci aktif, server menolak login tanpa menilai password dan menjawab sama dengan password salah.",
+    "Kunci bertahap menggandakan lamanya tiap kegagalan berikutnya, dari 60 detik sampai 32 menit di lab. Login yang berhasil menghapus penghitung dan kunci."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, pgx v5.11.0 (go.mod lab)",
+      "teks": "`catatPercobaan` membaca penghitung dengan `SELECT ... FOR UPDATE`, menaikkannya, dan memasang kunci di ambang dalam satu transaction. Lima tebakan bersamaan hanya satu yang dinilai terhadap hash asli. Password yang benar sesudah kunci lewat menghapus penghitung dan kunci.",
+      "rekaman": "labs/c4-ratelimit/output/login/ratelimit.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "Node.js v26.12.1; express-rate-limit (nomor versi paket tidak tertulis di README yang dibuka)",
+      "teks": "Dengan `keyGenerator` yang memakai email dan `skipSuccessfulRequests`, hanya respons gagal yang terhitung per akun. README yang dibuka menjelaskan batas laju per jendela waktu, dan tidak menyebut durasi kunci yang bertambah atau penghitung di database.",
+      "dokumentasi": "https://github.com/express-rate-limit/express-rate-limit"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.x",
+      "teks": "`RateLimiter::increment` menaikkan penghitung per kunci dan bersifat atomik di cache `redis`, `memcached`, atau `database`. `availableIn` memberi sisa detik, dan `clear` mereset percobaan, misalnya sesudah login berhasil.",
+      "dokumentasi": "https://laravel.com/docs/13.x/rate-limiting"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1; django-axes (dokumentasi versi latest)",
+      "teks": "Django tidak membawa kunci akun. django-axes memantau alamat IP saja bila tidak diatur; `AXES_ONLY_USER_FAILURES` memantau username, dan `AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP` memantau pasangan keduanya. `AXES_COOLOFF_TIME` berisi lama kunci, dan `None` membuat kunci yang hanya bisa dibuka manual.",
+      "dokumentasi": "https://django-axes.readthedocs.io/en/latest/4_configuration.html"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4, dokumentasi tanpa nomor versi",
+      "teks": "Yang tersedia adalah batas percobaan login gagal, `failedLoginRateLimit`, bawaan 5 per 5 menit. Dokumentasi menyebutnya batas laju dan tidak menyebut kunci akun bertahap.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/authentication/providers/email/configuration"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "Supabase Auth, dokumentasi rate limits tanpa nomor versi",
+      "teks": "Halaman rate limits memuat batas per alamat IP dan jeda 60 detik per user untuk meminta OTP, magic link, atau reset password. Halaman itu tidak menyebut kunci akun sesudah login gagal.",
+      "dokumentasi": "https://supabase.com/docs/guides/auth/rate-limits"
+    }
+  },
+  "jebakan": [
+    "Kunci tanpa jalan masuk bagi pemilik. OWASP menyarankan jalur lupa password tetap bisa dipakai masuk walau akun terkunci. CWE-645 menyebut kunci yang mudah dipicu sebagai celah, karena penyerang bisa menolak layanan user yang sah.",
+    "Pesan yang membedakan akun terkunci. Pesan itu memberi tahu penyerang bahwa alamat itu terdaftar. Jawaban generik menjaga hal itu, tetapi pemilik akun tidak tahu bahwa ia terkunci (rekaman lab bagian C).",
+    "Penghitung yang tidak dikunci saat dibaca. Tebakan bersamaan lolos ambang sebelum ada yang melihat kunci. Lab memakai `SELECT ... FOR UPDATE` supaya tebakan menunggu giliran (rekaman lab bagian G)."
+  ],
+  "terkait": [
+    "Credential stuffing",
+    "Rate limit",
+    "Token bucket",
+    "SELECT FOR UPDATE"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-190",
+      "judul": "OWASP Authentication Cheat Sheet: Account Lockout dan Authentication Responses",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html",
+      "catatan": "Penghitung melekat pada akun, durasi boleh menggandakan, kunci bisa disalahgunakan untuk mengunci user lain, jalur lupa password tetap dipakai walau terkunci, dan jawaban generik juga untuk akun terkunci. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-193",
+      "judul": "CWE-645: Overly Restrictive Account Lockout Mechanism",
+      "url": "https://cwe.mitre.org/data/definitions/645.html",
+      "catatan": "Mekanisme kunci yang terlalu mudah dipicu memungkinkan penyerang menolak layanan user yang sah dengan mengunci akun mereka. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-192",
+      "judul": "Dokumentasi pembatasan dan kunci login di lima stack lain",
+      "url": "https://laravel.com/docs/13.x/rate-limiting",
+      "catatan": "Laravel 13.x rate limiting, express-rate-limit README, django-axes konfigurasi, Serverpod konfigurasi email, dan Supabase Auth rate limits. Semua dibuka 25 Oktober 2026 dan tidak dijalankan."
+    },
+    {
+      "riset": "R2-112",
+      "judul": "PostgreSQL 17, bagian 13.3.2: baris yang dikunci FOR UPDATE",
+      "url": "https://www.postgresql.org/docs/17/explicit-locking.html",
+      "catatan": "Perintah yang menunggu kunci baris membaca versi baris yang sudah di-commit. Sudah dicatat di riset Tahap 2."
+    },
+    {
+      "riset": "R2-194",
+      "judul": "Rekaman lab c4-ratelimit, login/ratelimit.txt",
+      "rekaman": "labs/c4-ratelimit/output/login/ratelimit.txt",
+      "catatan": "Bagian C: kunci 60, 120, dan 240 detik pada akun Ani, dengan jawaban 401 yang sama dengan password salah. Bagian G: lima tebakan bersamaan hanya satu yang dinilai."
+    }
+  ]
+}
