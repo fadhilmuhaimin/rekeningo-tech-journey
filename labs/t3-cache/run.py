@@ -75,7 +75,7 @@ def mulai_instance(port, args=(), cache="redis", ttl=None, hapus=None, gerbang=N
     if cache == "memori":
         a += ["-jam-lab"]
     if cache == "redis":
-        a += ["-redis-addr", f"127.0.0.1:{REDIS_PORT}", "-redis-timeout", redis_timeout]
+        a += ["-katalog-redis", f"127.0.0.1:{REDIS_PORT}", "-katalog-redis-timeout", redis_timeout]
     if ttl:
         a += ["-katalog-ttl", ttl]
     if hapus:
@@ -407,7 +407,7 @@ def rekam_gagal():
     siapkan()
     nasi = id_produk(ANI, "Nasi goreng")
     redis_kosongkan()
-    catat(f"# Redis {redis_versi()}; ./api-t3 -katalog-cache redis -redis-timeout 100ms di instance A (127.0.0.1:{d.DASAR})")
+    catat(f"# Redis {redis_versi()}; ./api-t3 -katalog-cache redis -katalog-redis-timeout 100ms di instance A (127.0.0.1:{d.DASAR})")
     catat("# jalur baca: Redis galat atau lambat -> dibaca dari database, tanpa menyimpan; jalur tulis: hapus kunci yang gagal dihitung")
     mulai_instance(PORT, ttl=TTL_REDIS)
     budi = login("budi@lestari.example", label="Budi")
@@ -430,7 +430,7 @@ def rekam_gagal():
     s, _ = curl("GET", f"/katalog?warung={ANI}", token=budi, port=PORT_KEDUA, tampil=False)
     lama = time.time() - t0
     harap((s, lama > 1.5), (200, True), "instance B dengan batas 5 detik menunggu PAUSE")
-    catat("Budi lewat instance B (-redis-timeout 5s, sama dengan bawaan go-redis): satu GET /katalog?warung=418 -> 200,")
+    catat("Budi lewat instance B (-katalog-redis-timeout 5s, sama dengan waktu bawaan go-redis): satu GET /katalog?warung=418 -> 200,")
     catat("# tetapi menunggu lebih dari 1,5 detik sampai PAUSE selesai; batas waktu itulah yang membuat jatuh ke database cepat")
     d.stop(PORT_KEDUA)
     d.tunggu(lambda: _ping(), "PAUSE selesai", batas=30)

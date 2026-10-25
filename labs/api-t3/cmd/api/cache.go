@@ -27,10 +27,10 @@ func bukaCacheKatalog(mode string, ttl time.Duration, hapus, redisAddr string, r
 		k.P, k.TTL = cache.Tanpa{}, time.Second
 	case "redis":
 		if redisAddr == "" {
-			return nil, fmt.Errorf("-katalog-cache redis butuh -redis-addr")
+			return nil, fmt.Errorf("-katalog-cache redis butuh -katalog-redis")
 		}
 		if redisBatas <= 0 {
-			return nil, fmt.Errorf("-redis-timeout harus lebih dari 0: go-redis memakai 5 detik, tanpa batas berarti menggantung")
+			return nil, fmt.Errorf("-katalog-redis-timeout harus lebih dari 0: go-redis memakai 5 detik, tanpa batas berarti menggantung")
 		}
 		k.P, k.TTL = cache.Redis{Alamat: redisAddr, Batas: redisBatas}, 60*time.Second
 	default:

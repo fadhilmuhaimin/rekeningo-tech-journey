@@ -24,7 +24,7 @@ Setiap bagian membuat ulang schema dan data awal dari nol, jadi rekaman tidak be
 | Flag | Arti |
 |---|---|
 | `-katalog-cache memori` | Peta di dalam proses, TTL 5 menit. Jam cache sama dengan jam service, jadi `-jam-lab` dan `POST /lab/jam` menggeser TTL tanpa menunggu |
-| `-katalog-cache redis` | Cache-aside di Redis, TTL 60 detik, `-redis-addr`, `-redis-timeout` (bawaan 50 ms; lab memakai 100 ms) |
+| `-katalog-cache redis` | Cache-aside di Redis, TTL 60 detik, `-katalog-redis` (alamat), `-katalog-redis-timeout` (bawaan 50 ms; lab memakai 100 ms). Terpisah dari `-redis` dan `-redis-timeout` milik batas login lintas instance (`t3-instance`) |
 | `-katalog-cache tanpa` | Tidak menyimpan apa pun; alat ukur "tanpa cache" dengan pencacah yang sama |
 | `-katalog-hapus sesudah` | Benar: UPDATE, COMMIT, lalu hapus kunci; tulis yang ditolak tidak menghapus apa pun |
 | `-katalog-hapus sebelum` | Rentan: kunci dihapus sebelum COMMIT |
@@ -33,7 +33,7 @@ Setiap bagian membuat ulang schema dan data awal dari nol, jadi rekaman tidak be
 
 Satu kunci per kota dan per warung: `katalog:<kota>:<warung>` dan `katalog:<kota>:semua`. `PATCH /produk/{id}` menghapus dua kunci, yaitu kota dan warung itu. `POST /promo` menghapus semua kunci kota itu (`SCAN katalog:<kota>:*` di Redis). `POST /pesanan` tidak menyentuh cache dan tidak menghapus kunci. `GET /lab/cache` memperlihatkan pencacah: hit, miss, baca database, kunci yang benar-benar terhapus, galat cache.
 
-Client Redis adalah RESP2 sendiri (GET, SET PX, DEL, SCAN; satu koneksi per perintah, batas waktu untuk dial, tulis, dan baca sekaligus). Sengaja bukan go-redis: lab tidak menambah dependency tanpa ADR. Untuk produksi yang dirujuk adalah go-redis (R3-12).
+Client Redis adalah RESP2 sendiri (GET, SET PX, DEL, SCAN; satu koneksi per perintah, tanpa retry, batas waktu untuk dial, tulis, dan baca sekaligus). go-redis sudah ada di `go.mod` sejak `t3-instance` (keputusan 967), tetapi lab ini tidak memakainya: batas waktu per perintah dan jumlah koneksi terlihat langsung di kode lab. Akibatnya waktu tunggu di rekaman tidak berlaku untuk go-redis, yang memakai 3 retry dan batas 5 detik bawaan (R3-12). Yang berlaku untuk keduanya hanya bentuknya: batas waktu pendek lalu jatuh ke database.
 
 ## Rekaman
 
@@ -114,6 +114,7 @@ Delapan belas perubahan, semuanya gagal di lab; tidak ada yang lolos. Tes Go di 
 
 - Stampede dan perlindungannya (lease, kedaluwarsa dini XFetch): hanya disebut di halaman. Di rekaman beban, 13 kunci dan TTL 60 detik berarti paling banyak 13 baca database per menit. Perlombaan antar-pembaca pada satu kunci dingin tidak direkam karena jumlahnya bergantung penjadwalan.
 - Memendekkan TTL entri sampai waktu mulai promo berikutnya (cara menutup `redis.txt` G).
+- go-redis sebagai client cache (retry dan pool bawaannya mengubah waktu tunggu saat Redis menggantung).
 - Valkey sebagai pengganti Redis (lisensi Redis 8, R3-10): lab memakai Redis 8; tidak ada perbandingan jalan.
 - Redis dengan AUTH dan TLS, batas memori (`maxmemory`) dan kebijakan eviction (R3-10), Redis Cluster atau replika.
 - ETag dan cache lokal di app Flutter (opsi ditolak di ADR 28): tidak ada client Dart di lab ini.

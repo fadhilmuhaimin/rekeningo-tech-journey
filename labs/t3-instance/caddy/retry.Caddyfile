@@ -1,0 +1,11 @@
+# round_robin + retry saja: bila koneksi ke instance gagal, pilih instance berikutnya (lb_retries, bawaan 0).
+{
+	auto_https off
+	admin localhost:2019
+}
+:8080 {
+	reverse_proxy {$UPSTREAM_A} {$UPSTREAM_B} {
+		lb_policy round_robin
+		lb_retries 2
+	}
+}

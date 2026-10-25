@@ -1,0 +1,15 @@
+# round_robin + health check aktif saja: GET /healthz tiap HEALTH_INTERVAL; instance yang gagal dikeluarkan dari
+# pilihan sampai pemeriksaan berikutnya lolos. Tanpa retry.
+{
+	auto_https off
+	admin localhost:2019
+}
+:8080 {
+	reverse_proxy {$UPSTREAM_A} {$UPSTREAM_B} {
+		lb_policy round_robin
+		health_uri /healthz
+		health_interval {$HEALTH_INTERVAL}
+		health_timeout 1s
+		health_status 200
+	}
+}

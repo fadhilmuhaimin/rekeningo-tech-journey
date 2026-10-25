@@ -6,7 +6,7 @@
 $ go vet ./...
 (tanpa temuan)
 # exit status 0
-$ TEST_DATABASE_URL=<schema tahap3_tes> go test -v -count=1 -p 1 ./...
+$ TEST_DATABASE_URL=<schema tahap3_tes> TEST_REDIS_ADDR=<Redis lab> go test -v -count=1 -p 1 ./...
 --- PASS: TestMemoriTTL
 --- PASS: TestMemoriHapusAwalan
 --- PASS: TestBacaGalatDatabaseTidakMenyimpanDanTidakMenghapus
@@ -16,6 +16,12 @@ $ TEST_DATABASE_URL=<schema tahap3_tes> go test -v -count=1 -p 1 ./...
 --- PASS: TestRedisMenggantungBerhentiDiBatas
 PASS
 ok    lab/apit3/internal/cache
+--- PASS: TestNaikAtomikDanBermasaBerlaku
+--- PASS: TestNaikMemperbaikiKeyTanpaMasaBerlaku
+--- PASS: TestJendelaTidakDiperpanjang
+--- PASS: TestAlamatMatiGagalCepat
+PASS
+ok    lab/apit3/internal/redisbatas
 --- PASS: TestBayarMenolakJumlahDiLuarBatas
     --- PASS: TestBayarMenolakJumlahDiLuarBatas/-70000
     --- PASS: TestBayarMenolakJumlahDiLuarBatas/0
@@ -24,6 +30,11 @@ ok    lab/apit3/internal/cache
 --- PASS: TestBatasHarian
 --- PASS: TestBacaCSV
 --- PASS: TestKursorBolakBalik
+--- PASS: TestDuaInstanceBerbagiSatuHitungan
+--- PASS: TestBatasBersamaMenolakDenganSisaJendela
+--- PASS: TestRedisGagalJatuhKeBucketLokal
+--- PASS: TestRedisMenggantungBerhentiDiBatasWaktu
+--- PASS: TestKunciRedisTidakMemuatEmailAtauAlamat
 --- PASS: TestKirimBatasHarian
 --- PASS: TestKirimBersamaanTidakNegatif
 --- PASS: TestTopupSatuBarisSalahSemuaDitolak
@@ -31,10 +42,15 @@ ok    lab/apit3/internal/cache
 --- PASS: TestRiwayatKursorTanpaGandaTanpaTerlewat
 --- PASS: TestBalikSekali
 --- PASS: TestTutupBukuSeimbang
+--- PASS: TestDuaInstanceBatasAkunDanKunciDatabase
 --- PASS: TestKatalogCacheHitLaluHapusSesudahUbah
 --- PASS: TestKatalogCacheTulisDitolakTidakMenghapus
 --- PASS: TestKatalogCachePromoMenghapusSatuKota
 --- PASS: TestPesanTidakMembacaCache
+--- PASS: TestLatarMenangkapPanic
+--- PASS: TestLatarRentanMematikanProses
+--- PASS: TestRingkasanEksporLaporanKosong
+--- PASS: TestRingkasanEksporRentanPanikDiLaporanKosong
 --- PASS: TestKirimDibatasiPerAkun
 --- PASS: TestKirimTidakMembedakanNomor
 --- PASS: TestDurasiKunciBertahap
@@ -71,16 +87,19 @@ PASS
 ok    lab/apit3/internal/worker
 # exit status 0
 
-# --- B. Tanpa TEST_DATABASE_URL: tes database dilewati, tes tanpa database tetap jalan ---
+# --- B. Tanpa TEST_DATABASE_URL dan TEST_REDIS_ADDR: tes yang butuh keduanya dilewati, tes tanpa itu tetap jalan ---
 $ go test -count=1 ./...
 ok    lab/apit3/internal/cache
+ok    lab/apit3/internal/redisbatas
 ok    lab/apit3/internal/service
 ok    lab/apit3/internal/worker
 # exit status 0
 
-# --- C. TES_DB_WAJIB=1 tanpa database: gagal keras, bukan hijau karena tes dilewati (pola 2.24) ---
-$ TES_DB_WAJIB=1 go test -count=1 ./...
+# --- C. TES_DB_WAJIB=1 dan TES_REDIS_WAJIB=1 tanpa database dan Redis: gagal keras, bukan hijau karena tes dilewati (pola 2.24) ---
+$ TES_DB_WAJIB=1 TES_REDIS_WAJIB=1 go test -count=1 ./...
 ok    lab/apit3/internal/cache
+TES_REDIS_WAJIB=1 tetapi TEST_REDIS_ADDR kosong: tes yang butuh Redis tidak boleh dilewati
+FAIL  lab/apit3/internal/redisbatas
 TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong: tes yang butuh PostgreSQL tidak boleh dilewati
 FAIL  lab/apit3/internal/service
 TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong: tes yang butuh PostgreSQL tidak boleh dilewati

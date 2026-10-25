@@ -27,10 +27,14 @@ import (
 	"lab/apit3/internal/cache"
 	"lab/apit3/internal/handler"
 	"lab/apit3/internal/push"
+	"lab/apit3/internal/redisbatas"
 	"lab/apit3/internal/repo"
 	"lab/apit3/internal/service"
 	"lab/apit3/internal/worker"
 )
+
+// rentanTanpaShutdown: deploy bergulir tanpa graceful shutdown (M21, deploy mematikan app).
+const rentanTanpaShutdown = "tanpa-shutdown"
 
 func main() {
 	alamat := flag.String("addr", "127.0.0.1:"+portLab(18180), "alamat server")
@@ -45,7 +49,10 @@ func main() {
 	pushURL := flag.String("push-url", "http://127.0.0.1:"+portLab(18181), "alamat layanan push (tiruan lokal)")
 	pushBatas := flag.Duration("push-timeout", push.BatasBawaan, "batas waktu satu panggilan push (ADR 22); 0 = tanpa batas")
 	idleTx := flag.Duration("idle-tx", 5*time.Second, "idle_in_transaction_session_timeout (ADR 22); 0 = mati")
-	rentan := flag.String("rentan", "", "mode rentan: push-dalam-tx (M18), kursor (M19), urut-waktu (M27)")
+	rentan := flag.String("rentan", "", "mode rentan: push-dalam-tx (M18), kursor (M19), ekspor-panic dan tanpa-shutdown (M21), urut-waktu (M27)")
+	instance := flag.String("instance", "", "nama instance; dikirim di header X-Instance supaya lab bisa melihat instance mana yang menjawab")
+	redisAlamat := flag.String("redis", "", "alamat Redis untuk batas login bersama antar instance (ADR 27); kosong = token bucket di memori proses (ADR 20)")
+	redisBatas := flag.Duration("redis-timeout", 50*time.Millisecond, "batas waktu satu pemeriksaan ke Redis (ADR 27); 0 = bawaan go-redis (5 detik, 3 retry), hanya untuk rekaman perbandingan")
 	klaim := flag.Duration("klaim", worker.Bawaan().Klaim, "worker: lama satu baris dipegang (ADR 24)")
 	serentak := flag.Int("serentak", worker.Bawaan().Serentak, "worker: pengirim serentak (c)")
 	selang := flag.Duration("selang", worker.Bawaan().Selang, "worker: jeda polling bila antrean kosong")
@@ -57,8 +64,8 @@ func main() {
 	katalogCache := flag.String("katalog-cache", "", "cache katalog: kosong (tanpa cache), memori, atau redis (lab t3-cache, ADR 28)")
 	katalogTTL := flag.Duration("katalog-ttl", 0, "TTL entri katalog; 0 = bawaan mode (memori 5 menit, redis 60 detik)")
 	katalogHapus := flag.String("katalog-hapus", cache.HapusSesudah, "urutan hapus kunci: sesudah (benar), sebelum COMMIT, atau selalu (juga saat tulis gagal); dua yang terakhir rentan")
-	redisAddr := flag.String("redis-addr", "", "alamat Redis untuk -katalog-cache redis (tiruan lokal di container)")
-	redisBatas := flag.Duration("redis-timeout", 50*time.Millisecond, "batas waktu satu perintah Redis (dial, tulis, baca)")
+	katalogRedis := flag.String("katalog-redis", "", "alamat Redis untuk -katalog-cache redis (tiruan lokal di container); terpisah dari -redis milik batas login")
+	katalogRedisBatas := flag.Duration("katalog-redis-timeout", 50*time.Millisecond, "batas waktu satu perintah Redis untuk cache katalog (dial, tulis, baca)")
 	labGerbang := flag.String("lab-gerbang", "", "lab saja: gerbang yang menahan goroutine sampai POST /lab/gerbang/lepas, dipisah koma: commit, isi")
 	flag.Parse()
 
@@ -76,7 +83,7 @@ func main() {
 		}
 	}
 	switch *rentan {
-	case "", service.RentanPushDalamTx, "kursor", "urut-waktu":
+	case "", service.RentanPushDalamTx, service.RentanEksporPanic, rentanTanpaShutdown, "kursor", "urut-waktu":
 	default:
 		log.Fatalf("mode rentan tidak dikenal: %s", *rentan)
 	}
@@ -129,19 +136,49 @@ func main() {
 	var kc *cache.Katalog
 	if *katalogCache != "" {
 		var err error
-		if kc, err = bukaCacheKatalog(*katalogCache, *katalogTTL, *katalogHapus, *redisAddr, *redisBatas, *labGerbang, jam); err != nil {
+		if kc, err = bukaCacheKatalog(*katalogCache, *katalogTTL, *katalogHapus, *katalogRedis, *katalogRedisBatas, *labGerbang, jam); err != nil {
 			log.Fatal(err)
 		}
 		svc = svc.DenganCache(kc)
 		log.Printf("cache katalog: %s, TTL %s, hapus kunci %s", kc.Nama, kc.TTL, kc.Urut)
 	}
-	if *rentan == service.RentanPushDalamTx {
+	switch *rentan {
+	case service.RentanPushDalamTx:
 		svc = svc.DenganRentan(*rentan, push.Baru(*pushURL, *pushBatas))
+	case service.RentanEksporPanic:
+		svc = svc.DenganMode(*rentan)
+	}
+	// Batas login bersama (ADR 27): hitungan di Redis, jatuh ke bucket lokal bila Redis gagal atau lewat batas waktu.
+	var batasIP, batasAkun *service.PembatasBersama
+	if *redisAlamat != "" {
+		k := redisbatas.Baru(*redisAlamat, *redisBatas)
+		defer k.Tutup()
+		batasIP = service.PembatasBersamaBaru(k, "rekeningo:rl:login:ip:", int(service.AmbangLoginIP[0]), service.JendelaLogin,
+			*redisBatas, service.PembatasBaru(service.AmbangLoginIP[0], service.AmbangLoginIP[1]))
+		batasAkun = service.PembatasBersamaBaru(k, "rekeningo:rl:login:akun:", int(service.AmbangLoginAkun[0]), service.JendelaLogin,
+			*redisBatas, service.PembatasBaru(service.AmbangLoginAkun[0], service.AmbangLoginAkun[1]))
+		svc = svc.DenganBatasLoginAkun(batasAkun)
 	}
 	if *jamLab {
 		svc = svc.DenganJam(jam)
 	}
-	rute := handler.Baru(svc).DenganRentan(*rentan).Rute()
+	srvHandler := handler.Baru(svc).DenganRentan(*rentan)
+	if batasIP != nil {
+		srvHandler = srvHandler.DenganBatasLoginIP(batasIP)
+	}
+	rute := srvHandler.Rute()
+	// Health check untuk proxy (ADR 26): 200 hanya bila database menjawab dalam 1 detik. Proses yang hidup tetapi
+	// tidak bisa memakai database tidak boleh menerima request.
+	rute.HandleFunc("GET /healthz", func(w http.ResponseWriter, req *http.Request) {
+		ctx, batal := context.WithTimeout(req.Context(), time.Second)
+		defer batal()
+		if err := db.PingContext(ctx); err != nil {
+			http.Error(w, "database tidak menjawab", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"status":"ok"}`)
+	})
 	if *jamLab {
 		// Jam tiruan (pola labs/c4-ratelimit, keputusan 549): bucket tidak terisi di tengah rekaman, jadi status
 		// dan Retry-After sama di setiap run. Hanya dengan flag; server biasa tidak punya endpoint ini.
@@ -160,23 +197,45 @@ func main() {
 	if *lab {
 		pasangEndpointLab(rute, db, r)
 		pasangEndpointCache(rute, kc)
+		pasangEndpointLabInstance(rute, db, svc, batasIP, batasAkun)
 	}
 	log.Printf("api-t3 mendengar di %s", *alamat)
 	log.Printf("api-t3 siap: pool %d, push timeout %s, idle-tx %s", *pool, *pushBatas, *idleTx)
-	srv := &http.Server{Addr: *alamat, Handler: rute}
-	// Graceful shutdown (ADR 26): SIGTERM menutup listener dan menunggu request yang sedang jalan selesai.
-	henti2 := make(chan os.Signal, 1)
-	signal.Notify(henti2, syscall.SIGTERM, syscall.SIGINT)
-	go func() {
-		<-henti2
-		ctx, batal := context.WithTimeout(context.Background(), 10*time.Second)
-		defer batal()
-		if err := srv.Shutdown(ctx); err != nil {
-			log.Printf("shutdown: %v", err)
-		}
-	}()
+	var h http.Handler = rute
+	if *instance != "" {
+		nama := *instance
+		h = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.Header().Set("X-Instance", nama)
+			rute.ServeHTTP(w, req)
+		})
+	}
+	srv := &http.Server{Addr: *alamat, Handler: h}
+	// Graceful shutdown (ADR 26): SIGTERM menutup listener dan menunggu request yang sedang jalan selesai. Mode
+	// tanpa-shutdown (rekaman deploy bergulir) tidak memasangnya: tanpa signal.Notify, SIGTERM mengakhiri proses
+	// seketika dan request yang sedang jalan putus.
+	var shutdownSelesai chan struct{}
+	if *rentan != rentanTanpaShutdown {
+		shutdownSelesai = make(chan struct{})
+		henti2 := make(chan os.Signal, 1)
+		signal.Notify(henti2, syscall.SIGTERM, syscall.SIGINT)
+		go func() {
+			defer close(shutdownSelesai)
+			<-henti2
+			ctx, batal := context.WithTimeout(context.Background(), 10*time.Second)
+			defer batal()
+			if err := srv.Shutdown(ctx); err != nil {
+				log.Printf("shutdown: %v", err)
+			}
+		}()
+	}
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
+	}
+	// ListenAndServe kembali SEGERA setelah Shutdown dimulai, bukan setelah selesai. Keluar dari main di sini akan
+	// memutus request yang sedang jalan; dokumentasi http.Server.Shutdown: "Make sure the program doesn't exit and
+	// waits instead for Shutdown to return."
+	if shutdownSelesai != nil {
+		<-shutdownSelesai
 	}
 	log.Print("api-t3 berhenti")
 }
@@ -253,6 +312,52 @@ func pasangEndpointLab(rute *http.ServeMux, db *sql.DB, r repo.Repo) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{"per_status": per, "tertua_detik": int(tertua)})
+	})
+}
+
+// pasangEndpointLabInstance: endpoint lab untuk rekaman t3-instance. /lab/lambat menahan satu koneksi database selama
+// ms milidetik (satu request yang sedang jalan saat deploy); /lab/panik memicu panic di goroutine handler atau di
+// goroutine latar (M21); /lab/batas menunjukkan berapa pemeriksaan rate limit dijawab Redis dan berapa jatuh ke
+// bucket lokal.
+func pasangEndpointLabInstance(rute *http.ServeMux, db *sql.DB, svc service.Service, ip, akun *service.PembatasBersama) {
+	rute.HandleFunc("GET /lab/lambat", func(w http.ResponseWriter, req *http.Request) {
+		ms, err := strconv.Atoi(req.URL.Query().Get("ms"))
+		if err != nil || ms < 0 || ms > 10_000 {
+			http.Error(w, "ms harus 0 sampai 10000", http.StatusBadRequest)
+			return
+		}
+		if _, err := db.ExecContext(req.Context(), "SELECT pg_sleep($1)", float64(ms)/1000); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"selesai":true}`)
+	})
+	rute.HandleFunc("GET /lab/panik", func(w http.ResponseWriter, req *http.Request) {
+		switch req.URL.Query().Get("di") {
+		case "handler":
+			panic("uji panic di goroutine handler")
+		case "latar":
+			svc.Latar("uji", func() {
+				time.Sleep(100 * time.Millisecond) // jawaban 202 sampai ke client sebelum proses mati
+				panic("uji panic di goroutine latar")
+			})
+			w.WriteHeader(http.StatusAccepted)
+		default:
+			http.Error(w, "di harus handler atau latar", http.StatusBadRequest)
+		}
+	})
+	rute.HandleFunc("GET /lab/batas", func(w http.ResponseWriter, req *http.Request) {
+		out := map[string]any{"mode": "memori"}
+		if ip != nil && akun != nil {
+			b1, j1 := ip.Statistik()
+			b2, j2 := akun.Statistik()
+			out = map[string]any{"mode": "redis",
+				"ip":   map[string]int64{"bersama": b1, "lokal": j1},
+				"akun": map[string]int64{"bersama": b2, "lokal": j2}}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(out)
 	})
 }
 
