@@ -30,6 +30,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -71,6 +72,9 @@ func hashToken(t string) string {
 	h := sha256.Sum256([]byte(t))
 	return hex.EncodeToString(h[:])
 }
+
+// formatTokenCsrf adalah bentuk token dari tokenAcak(): 32 byte hex.
+var formatTokenCsrf = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
 const namaCookieAman = "__Host-sesi"
 const namaCookieRentan = "sesi"
@@ -159,8 +163,9 @@ func (s *server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 	s.sesi[token] = sesi{AkunID: id, Nama: nama, CsrfHash: hashToken(csrf)}
 	s.mu.Unlock()
 	s.aturCookie(w, token, sampai)
-	// Token CSRF dikirim lewat query singkat sekali pakai di redirect, lalu disimpan halaman di variabel JS
-	// (bukan localStorage): mirip pola api-t3 LoginWeb yang mengirim csrf di body JSON (internal/service/sesi.go).
+	// Token CSRF dikirim lewat query di redirect, lalu disimpan halaman di variabel JS (bukan localStorage) dan
+	// dihapus dari URL oleh halaman. api-t3 LoginWeb mengirimnya di body JSON; query di sini penyederhanaan lab dan
+	// bocor ke riwayat browser dan log akses sebelum dihapus (README "Keterbatasan uji").
 	http.Redirect(w, r, "/dasbor?csrf="+csrf, http.StatusSeeOther)
 }
 
@@ -244,6 +249,7 @@ input{margin:0 8px 0 0}</style></head>
 <p><a href="/logout">Keluar</a></p>
 <script%[1]s>
 var csrf = %[3]s;
+if (history.replaceState) { history.replaceState(null, '', '/dasbor'); }
 fetch('/api/riwayat', {credentials: 'same-origin'}).then(function(r){ return r.json(); }).then(function(rows){
   var c = document.getElementById('daftar');
   c.innerHTML = '';
@@ -278,7 +284,10 @@ func (s *server) dasborPage(w http.ResponseWriter, r *http.Request) {
 		render = renderRentan
 	}
 	nonceAttr, csrfJS := "", "null"
-	if q := r.URL.Query().Get("csrf"); q != "" {
+	// Nilai query disisipkan ke dalam <script>. Hanya format token yang kita buat sendiri (32 byte hex) yang
+	// diterima: strconv.Quote tidak meng-escape "<" dan "/", jadi "</script><script>..." di query akan lolos dan
+	// menjadi reflected XSS di dasbor "benar" saat -csp mati (ditemukan peninjau, keputusan 976).
+	if q := r.URL.Query().Get("csrf"); formatTokenCsrf.MatchString(q) {
 		csrfJS = strconv.Quote(q)
 	}
 	// Token tidak dikirim ulang lewat query sesudah /dasbor pertama; halaman nyata menyimpannya di sessionStorage

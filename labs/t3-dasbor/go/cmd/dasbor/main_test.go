@@ -3,6 +3,8 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 )
@@ -110,5 +112,31 @@ func TestCsrfSahMenerimaSameOriginDenganTokenBenar(t *testing.T) {
 	r.Header.Set("Origin", "http://localhost:19194")
 	if !s.csrfSah(r, x) {
 		t.Fatal("same-origin dengan token benar harus lolos")
+	}
+}
+
+// Nilai ?csrf= disisipkan ke <script>. Tanpa pemeriksaan format, "</script><script>..." di query menjadi reflected
+// XSS di dasbor yang -escape-nya benar tetapi -csp mati (CSP aktif menahannya lewat nonce, jadi hanya terlihat saat mati).
+func dasborDenganQuery(t *testing.T, csrf string) string {
+	t.Helper()
+	s := &server{csp: "mati", sesi: map[string]sesi{"t": {AkunID: 1, Nama: "Ani"}}}
+	r := httptest.NewRequest("GET", "/dasbor?csrf="+url.QueryEscape(csrf), nil)
+	r.AddCookie(&http.Cookie{Name: namaCookieAman, Value: "t"})
+	w := httptest.NewRecorder()
+	s.dasborPage(w, r)
+	return w.Body.String()
+}
+
+func TestDasborQueryCsrfTidakBisaMenyisipSkrip(t *testing.T) {
+	jahat := `"</script><script>alert(document.domain)</script>`
+	if strings.Contains(dasborDenganQuery(t, jahat), "alert(document.domain)") {
+		t.Fatal("nilai ?csrf= yang bukan token harus dibuang, bukan disisipkan ke <script>")
+	}
+}
+
+func TestDasborQueryCsrfMemakaiTokenSah(t *testing.T) {
+	tok := strings.Repeat("ab", 32)
+	if !strings.Contains(dasborDenganQuery(t, tok), `var csrf = "`+tok+`";`) {
+		t.Fatal("token 32 byte hex dari login harus tetap sampai ke halaman")
 	}
 }
