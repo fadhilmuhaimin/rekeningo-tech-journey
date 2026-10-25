@@ -1,0 +1,11 @@
+# Satu-satunya perubahan dari bawaan: kebijakan round_robin, supaya urutan instance yang menjawab tetap
+# dan rekaman bisa diulang identik. Tanpa health check, tanpa retry.
+{
+	auto_https off
+	admin localhost:2019
+}
+:8080 {
+	reverse_proxy {$UPSTREAM_A} {$UPSTREAM_B} {
+		lb_policy round_robin
+	}
+}
