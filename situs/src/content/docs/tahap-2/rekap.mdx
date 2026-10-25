@@ -1,0 +1,218 @@
+---
+title: "2.32 Yang dibawa keluar dari Tahap 2"
+description: Sepuluh kalimat dari Tahap 2, masing-masing terikat ke kejadian dan rekaman lab. Ada kartu untuk menebaknya, ringkasan ADR 6 dan 13 sampai 21, dan Cek diri gabungan.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import kejadian from "../../../../data/diagram/t2-rekap-kejadian.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 10 menit · coba 4 menit · Prasyarat: [[t2-adr-21]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Tahap 2 meninggalkan sepuluh kalimat, satu per kejadian.
+
+<Rantai data={kejadian} ringkas />
+
+Satu kalimat lahir dari PRD v2 dan sembilan dari masalah M9 sampai M17. Setiap kalimat terikat ke rekaman lab. Tiga dari sepuluh kalimat naskah lebih luas daripada yang direkam lab, jadi blok Paham menulis juga versi yang didukung rekaman, berlabel Dipersempit.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Dua transfer Budi memakai transaction dan keduanya lolos pemeriksaan saldo. Apa yang kurang?
+2. App mengulang Bayar yang response-nya hilang, dan riwayat mencatat dua jurnal. Siapa yang salah, app atau server?
+3. Tutup buku kedua selisih Rp0 dan Sinta bertanya apakah satu server cukup. Apa yang dibuktikan Rp0?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah punya sepuluh kalimat Tahap 2, masing-masing dengan kejadiannya.">
+
+Setiap kartu menunjukkan satu kejadian. Tebak kalimat yang lahir darinya, lalu buka jawabannya. Tautan di kartu membawa ke halaman kejadian itu.
+
+<WidgetLama nama="kartu" src="data/t2-rekap-kartu.json" />
+
+Kartu yang kamu tandai **Ingat** baru muncul lagi sesuai jadwal kotaknya, seperti di [[Kartu]]. Daftar lengkap sepuluh kalimat selalu ada di blok Paham.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Konsep Tahap 2 tersebar di tiga puluh satu halaman, dari [[t2-prd]] sampai [[t2-adr-21]]. Untuk ingatan beberapa hari kemudian, mengingat kembali jawaban lebih menguatkan daripada belajar ulang ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/)).
+
+Karena itu setiap konsep diringkas jadi satu kalimat, dan setiap kalimat diikat ke satu kejadian. Halaman ini tidak menjelaskan ulang konsepnya. Setiap kalimat menunjuk halaman tempat konsep dan keputusannya dijelaskan.
+
+Sepuluh kalimat itu berasal dari naskah Tahap 2. Bila rekaman lab hanya mendukung sebagian dari kalimat, halaman ini menulis dua hal: kalimat naskahnya, dan batasnya atau versi yang didukung rekaman.
+
+### Sepuluh kalimat
+
+1. **Saldo adalah hasil jumlah, bukan angka yang ditulis.** PRD v2 memperketat aturan Pak Hadi: setiap rupiah tertelusur ke kejadiannya, tanpa tabel koreksi tangan ([[t2-prd]]). Menjumlahkan tiga tabel catatan Budi memberi Rp250.000, sedangkan kolom saldonya menulis Rp180.000 (rekaman `migrasi.txt` bagian B, lab b3-ledger). Konsep: [[t2-saldo-bukan-kolom]] dan [[t2-ledger]], dengan ADR 6 yang direvisi di [[t2-adr-ledger]].
+
+   *Dipersempit:* `buku.saldo_cache` tetap angka yang ditulis. Rekaman `migrasi.txt` bagian E (lab api-t2) memerankan kode yang menulis cache tanpa posting, dan job malam menemukan selisih Rp5.000. Versi yang didukung rekaman: saldo adalah jumlah posting, dan angka yang disimpan hanyalah salinan yang diperiksa.
+
+2. **Membaca lalu menulis bukan satu langkah, kecuali kamu menguncinya.** Di [[t2-m9]], Budi mengirim Rp70.000 dari HP dan Rp50.000 dari tablet, dari saldo Rp100.000. Keduanya lolos pemeriksaan saldo, dan saldonya −Rp20.000 (`ledger-tanpa-lock.txt`, lab b3-race). Dengan `SELECT … FOR UPDATE`, tablet menunggu, membaca Rp30.000, dan ditolak karena saldo kurang (`ledger-for-update.txt`). Konsep dan ADR 13: [[t2-race-lock]].
+
+   *Batas:* di rekaman itu, −Rp20.000 muncul karena kondisi dibuat dengan `SET CONSTRAINTS ALL IMMEDIATE`. Tanpa alat itu, kejadian yang sama muncul saat dua COMMIT dilepas bersamaan dalam 50 percobaan (`batas.txt` bagian 2b, lab b3-ledger). Seberapa sering ia terjadi di server sungguhan belum diukur.
+
+3. **Retry itu benar; yang salah adalah server yang tidak mengenali ulangan.** Di [[t2-m10]], response Bayar Rp25.000 hilang, app mengulang, dan server menulis jurnal kedua: saldo Budi Rp50.000 (`tanpa-key.txt`, lab e3-idempotency). Dengan satu key per niat bayar, percobaan kedua dijawab dari hasil pertama dan saldonya Rp75.000 (`key-per-niat.txt`). Key baru di setiap retry tetap menulis dua jurnal (`key-per-percobaan.txt`). Konsep dan ADR 14: [[t2-idempotency]].
+
+   *Batas:* `labs/api-t2` belum membaca header `Idempotency-Key`, dan masa peralihan untuk app 1.0 dan 1.1 belum direkam.
+
+4. **Lambat di data kecil berarti query yang salah, bukan server yang lemah.** Di [[t2-m11]], Raka membuka daftar paket VPS yang lebih besar. Rekaman `n1.txt` bagian D (lab b2-query) menghitung 21 query untuk 20 baris, dan 3.893 query untuk seluruh riwayat Budi yang berisi 3.892 baris. Di bagian E, halaman pertama turun dari 30,5 ms (N+1, tanpa index) ke 1,4 ms (satu query JOIN dengan index). Konsep dan ADR 15: [[t2-n-plus-1]] dan [[t2-index]].
+
+   *Dipersempit:* data lab satu tahun, 760.448 posting, bukan data kecil, dan rekamannya tanpa jaringan. Angka 4 detik dari naskah tidak terulang, dan waktu di VPS sungguhan belum diukur. Versi yang didukung rekaman: sebelum membeli server lebih besar, hitung berapa query dan berapa baris yang dibaca satu request.
+
+5. **Halaman berikutnya ditentukan oleh baris terakhir, bukan nomor halaman.** Di [[t2-m12]], satu kiriman Rp5.000 masuk saat Budi menggulir, dan halaman 2 mengulang satu baris. Dengan OFFSET, 205 halaman menghasilkan 204 baris ganda dan 204 kiriman yang tidak tampil. Dengan kursor, keduanya 0 (`pagination.txt` bagian C, lab b2-query). Konsep dan ADR 16: [[t2-kursor]].
+
+   *Batas:* kursor `(dibuat, id)` bisa melewatkan transaksi yang COMMIT belakangan, karena `dibuat` berisi waktu awal transaction. ADR 16 menerima celah itu secara terbuka, dan celah itu belum direkam.
+
+6. **Perubahan besar dipecah jadi rilis kecil yang masing-masing aman.** Di [[t2-m13]], satu migrasi menahan Bayar di belakang laporan yang masih terbuka, lalu server lama menjawab 500 dengan galat 42703 (`satu-langkah.txt`, lab b4-skema). Dalam tiga rilis, 1.012 akun pindah ke ledger, dan Bayar dari app 1.0 dan app 1.1 tetap masuk di kelima titik uji (`tiga-rilis.txt`). Migration yang menunggu lock lebih dari 3 detik menyerah dengan galat 55P03 dan di-ROLLBACK (`lock-timeout.txt`). Konsep dan ADR 17: [[t2-skema-tanpa-downtime]].
+
+   *Batas:* rilis kedua punya harga. Riwayat app 1.0 untuk Karyawan 420 turun dari 17 baris menjadi 3 baris, karena transaksi v1 tidak ikut dipindah. Angka 40 detik dari naskah tidak terulang, karena lab menahan laporan paling sedikit 5 detik. Skenario migrasi malam hari tidak dijalankan.
+
+7. **Aturan uang dijaga tes, bukan ingatan.** Di [[t2-m14]], dua cabang yang masing-masing menghapus tiga baris digabung tanpa konflik, dan pemanggil `periksaBatas` hilang. Server dari kode itu menjawab 201 untuk kiriman Rp800.000 dengan `sisa_batas_harian` −300000 (`m14.txt` bagian D, lab api-t2). Dengan PostgreSQL, dua tes gagal. Tanpa PostgreSQL, tes yang butuh database dilewati dan kode yang rusak tampak sehat: 8 lolos, 0 gagal, 12 dilewati (bagian C). Konsep dan ADR 18: [[t2-tim-infra]].
+
+   *Batas:* cara kedua cabang menghapus salinan yang berbeda adalah skenario berlabel Ilustrasi, dan bagian pertama rekaman memakai file contoh 30 baris. Pengaturan branch protection di GitHub dan workflow CI tidak dijalankan di lab.
+
+8. **Pekerjaan terjadwal harus aman dijalankan dua kali, dan hasilnya dicocokkan dengan dunia luar.** Di [[t2-m15]], server mati sesudah baris Warung 508 ditulis ke file, lalu job dijalankan lagi. File berisi 13 baris Rp2.465.000 dan ledger 12 jurnal Rp2.450.000, selisih Rp15.000 (`rentan.txt` bagian D, lab t2-pencairan). Dengan status batch dan rekonsiliasi, selisihnya Rp0 di titik mati yang sama (`benar.txt` bagian C). Konsep dan ADR 19: [[t2-job-rekonsiliasi]].
+
+   *Batas:* restart diperankan dengan SIGKILL, dan titik matinya dipilih lab di warung ketujuh. PRD v2 belum punya integrasi bank, jadi halaman itu tidak tahu apakah bank menolak baris kembar.
+
+9. **Batasi per akun dan per IP; password pertama wajib diganti.** Di [[t2-m16]], rekaman meniru satu alamat yang mencoba satu password ke masing-masing dari 29 akun. Kunci per akun saja tidak menahan satu pun: 29 tebakan sampai ke pemeriksaan password, satu akun terbuka, nol akun terkunci (`ratelimit.txt` bagian C, lab c4-ratelimit). Dengan batas per alamat di depannya, 10 tebakan diperiksa dan 19 ditolak 429 (bagian D). Di api-t2, login dengan password sementara dijawab 403 sampai password diganti (`pengaman.txt` bagian B). Konsep dan ADR 20: [[t2-login-aman]].
+
+   *Batas:* penyemprotan oleh Dimas adalah skenario berlabel Ilustrasi, dan rekamannya 29 akun, bukan ribuan percobaan. `labs/api-t2` masih memakai bcrypt, bukan argon2id seperti lab c4. Password sementara di api-t2 berpola `sementara-<id>`, dan jalur lupa password belum ada. Orang yang mengenal pola itu bisa mengganti password akun lain mendahului pemiliknya (dari rekaman dan kode, tidak dijalankan).
+
+10. **Masalah Tahap 2 adalah kebenaran data, bukan kapasitas.** Di [[t2-m17]], tutup buku kedua lolos dan Sinta bertanya apakah server cukup untuk PRD v3. Laporan atas 1.016 buku semuanya cocok. Laporan yang diulang sesudah satu transaction COMMIT menghitung 1.123 jurnal, bukan 1.122, dengan selisih tetap Rp0 (`tutup-buku.txt`, lab api-t2). Puncak ±1,4 request per detik adalah Asumsi. Konsep dan angka: [[t2-estimasi]]; ADR 21: [[t2-adr-21]].
+
+    *Dipersempit:* kapasitas satu server belum pernah diukur, dan api-t2 belum pernah dijalankan dengan dua server. Kesimpulan bahwa tidak satu pun dari delapan masalah disebabkan server kehabisan tenaga adalah bacaan atas naskah, bukan hasil mengukur server lain. M11 soal waktu query, M13 soal lock, dan M16 soal keamanan login, jadi tidak semuanya soal kebenaran data. Versi yang didukung rekaman: kapasitas belum diukur, dan belum ada angka yang menyuruh membeli server hari ini.
+
+### Tiga halaman konsep tanpa kalimat sendiri
+
+Tiga halaman konsep Tahap 2 mendukung kalimat di atas, tetapi tidak melahirkan kalimat sendiri di naskah.
+
+- [[t2-skema]]: lima tabel Tahap 1 menjadi delapan tabel Tahap 2, dengan ukuran database diperkirakan sampai Tahap 6.
+- [[t2-isolation-level]]: laporan tutup buku butuh satu snapshot, dan pemeriksaan saldo butuh lock, atau Serializable dengan retry, bukan Repeatable Read.
+- [[t2-payload]]: pada paket 1 GB dan 20 buka per hari (Asumsi), kuota belum jadi masalah.
+
+### Yang belum diuji
+
+Sepuluh kalimat itu diuji lewat rekaman lab di mesin lokal, bukan di server sungguhan. Enam hal yang ditulis terbuka di halamannya belum diuji.
+
+- Kapasitas satu server, dan api-t2 dengan dua server: [[t2-m17]].
+- Pola `Idempotency-Key` di api-t2 dan masa peralihan app 1.0 dan 1.1: [[t2-idempotency]].
+- Transaksi yang COMMIT belakangan di kursor riwayat: [[t2-kursor]].
+- Lama tunggu lock di jalur bayar, dan deadlock top-up CSV: [[t2-race-lock]].
+- argon2id, password sementara berpola, dan lupa password di api-t2: [[t2-login-aman]].
+- Branch protection dan workflow CI di GitHub: [[t2-tim-infra]].
+
+Empat komponen yang sengaja belum dipasang punya halaman sendiri di [[t2-adr-21]], dan halaman ini tidak mengulangnya.
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Sepuluh keputusan Tahap 2
+
+Keputusan di balik sepuluh kalimat itu tertulis di revisi ADR 6 dan ADR 13 sampai 21. Tabel ini merangkum keputusannya dan kejadian yang memicunya. Alasan dan kapan keputusan itu salah ada di halaman masing-masing.
+
+| ADR | Keputusan | Lahir dari |
+|---|---|---|
+| 6, revisi | Ledger double-entry yang hanya ditambah menggantikan kolom saldo dan tabel koreksi | PRD v2, [[t2-adr-ledger]] |
+| 13 | Lock baris buku di dalam transaction jurnal, dengan `ORDER BY id FOR UPDATE` | M9, [[t2-race-lock]] |
+| 14 | Satu key per niat bayar, dan hasilnya disimpan 24 jam | M10, [[t2-idempotency]] |
+| 15 | Satu query JOIN dan index `posting (buku_id, dibuat, id)` | M11, [[t2-index]] |
+| 16 | Kursor `(dibuat, id)` untuk riwayat, dan OFFSET hanya untuk laporan Keuangan | M12, [[t2-kursor]] |
+| 17 | Migrasi ledger dalam tiga rilis, backfill per 1.000 akun, dan `lock_timeout` 3 detik | M13, [[t2-skema-tanpa-downtime]] |
+| 18 | Review satu orang lain, tes aturan uang yang wajib berjalan, dan `main` yang dilindungi | M14, [[t2-tim-infra]] |
+| 19 | Batch per periode, status batch, dan rekonsiliasi sebelum file diberi nama akhir | M15, [[t2-job-rekonsiliasi]] |
+| 20 | Dua lapis batas di memori, kunci bertahap di database, argon2id, dan password pertama wajib diganti | M16, [[t2-login-aman]] |
+| 21 | Cache, queue, Redis, dan server kedua belum dipasang, dengan pemicu yang bisa diukur | M17, [[t2-adr-21]] |
+
+ADR 6 tetap bernomor 6 karena nomor 12 sudah dipakai [[t1-adr-12]], padahal naskah menulis ADR 12 untuk revisi ini.
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Raka menambah jalur koreksi massal untuk admin. Kodenya menjumlahkan posting satu buku, memeriksa hasilnya, lalu menulis jurnal pembalik, semuanya di satu transaction. Dua admin menjalankannya untuk buku yang sama. Apa yang bisa terjadi, dan apa yang ditambahkan?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Keduanya bisa membaca jumlah posting yang sama sebelum salah satunya COMMIT, seperti HP dan tablet di M9. Transaction membuat jurnal ditulis utuh, tetapi tidak menahan request lain membaca. Buku yang terlibat dikunci lebih dulu dengan `SELECT … ORDER BY id FOR UPDATE`, sebelum saldo dibaca (ADR 13, yang berlaku juga untuk jurnal pembalik). Tes dengan dua request bersamaan menjaganya.
+
+</details>
+
+**2.** Pencairan Jumat berjalan sebagai job di server, tidak dimulai app. Kenapa `Idempotency-Key` dari client tidak dipakai di sana, dan apa yang membuat job aman dijalankan lagi?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak ada client yang membuat key untuk jalur yang tidak dimulai app (ADR 14). Job memakai kunci dari data: satu batch per periode minggu ISO, dengan `periode` unik di database (ADR 19). Status batch dibaca sebelum setiap langkah dan maju dari `dibuat` ke `dijurnal` ke `dikirim`. Jurnal pencairan dan `jurnal_id` ditulis bersama dalam satu transaction per baris, jadi baris yang sudah dijurnal tidak dicairkan lagi.
+
+</details>
+
+**3.** Raka memperbaiki riwayat Budi dengan satu query JOIN. Query itu masih membaca terlalu banyak baris, dan saat Budi menggulir, satu baris muncul dua kali. Perbaikan apa yang menjawab masing-masing, dan celah apa yang ditulis terbuka?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Query JOIN hanya memperbaiki N+1. Tanpa index, daftar masih membaca 3.892 posting Budi untuk mengembalikan 20 baris, dan index `posting_riwayat (buku_id, dibuat, id)` menjawabnya (ADR 15). Baris ganda berasal dari OFFSET yang bergeser saat ada kiriman baru, dan kursor dari `(dibuat, id)` baris terakhir menjawabnya (ADR 16). Celah yang diterima terbuka: transaksi yang COMMIT belakangan bisa tidak tampil sampai riwayat dimuat ulang.
+
+</details>
+
+**4.** Migrasi ledger dijalankan dalam tiga rilis. Apa yang membuat app 1.0 dan 1.1 tetap bisa membayar di setiap rilis, dan harga apa yang ditulis terbuka?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Rilis pertama hanya menambah, dan rilis kedua membuat server menulis ke dua tempat sebelum data lama dipindah per 1.000 akun. Rilis ketiga baru menghapus kolom lama, dan field `jumlah` dan `nominal` di response tetap ada selama app 1.0 dan 1.1 beredar (ADR 17). Migration menunggu lock paling lama 3 detik.
+
+Harganya ditulis terbuka: riwayat Karyawan 420 turun dari 17 baris menjadi 3 baris, karena transaksi v1 tidak ikut dipindah.
+
+</details>
+
+**5.** Tutup buku kedua lolos dengan selisih Rp0, dan Sinta bertanya apakah satu server cukup untuk PRD v3. Apa yang dibuktikan Rp0, apa yang tidak, dan apa yang kamu kerjakan sebelum menjawab?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Rp0 membuktikan bahwa buku dan jurnal yang terlihat saat laporan berjalan cocok. Rp0 bukan bukti laporan final. Di rekaman, laporan yang diulang sesudah satu transaction COMMIT menghitung 1.123 jurnal, bukan 1.122, dan buku yang tidak cocok tetap 0.
+
+Rp0 juga tidak mengukur beban, dan kapasitas satu server belum pernah diukur. Kerjakan dua hal lebih dulu. Hitung beban dari angka Tahap 2, puncak ±1,4 request per detik (Asumsi), lalu jadwalkan satu load test sebelum fitur PRD v3 pertama (ADR 21).
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Tidak ada `UPDATE` atau `DELETE` pada `jurnal` dan `posting`, termasuk di migration dan skrip perbaikan data ([[t2-adr-ledger]]).
+- [ ] Lock dipasang sebelum saldo dibaca, bukan di UPDATE terakhir sebelum `COMMIT` ([[t2-race-lock]]).
+- [ ] Key dibuat sekali per niat bayar, di luar loop retry dan di luar fungsi kirim atau interceptor ([[t2-idempotency]]).
+- [ ] Klaim "sudah dioptimasi" membawa plan sebelum dan sesudah, bukan hanya waktu ([[t2-index]]).
+- [ ] Urutan kursor unik dan tidak boleh `NULL`: `(dibuat, id)` dengan kedua kolom `NOT NULL`, bukan `dibuat` saja ([[t2-kursor]]).
+- [ ] Contract berada di rilis sendiri, sesudah cek lulus dan salinan data lama dibuat ([[t2-skema-tanpa-downtime]]).
+- [ ] PR yang menghapus atau memindahkan kode aturan uang menyertakan tes yang gagal bila pemanggilnya dihapus ([[t2-tim-infra]]).
+- [ ] Job punya kunci per periode yang unik di database, bukan pemeriksaan "file sudah ada" atau pemeriksaan jam ([[t2-job-rekonsiliasi]]).
+- [ ] Endpoint yang memeriksa password, termasuk ganti password, memakai pagar yang sama dengan login ([[t2-login-aman]]).
+- [ ] Kapasitas server tidak disebut tanpa load test ([[t2-estimasi]]).
+
+### Bacaan lanjut
+
+- [Roediger & Karpicke 2006, Psychological Science 17(3)](https://pubmed.ncbi.nlm.nih.gov/16507066/)
+- [Cepeda dkk. 2006, Psychological Bulletin 132(3)](https://pubmed.ncbi.nlm.nih.gov/16719566/)
+- [[Kartu]]: soal Cek diri dari semua halaman yang sudah kamu baca
+
+</Blok>
+
+<SkripLama daftar={["cerita","kartu"]} />
