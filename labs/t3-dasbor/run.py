@@ -130,6 +130,9 @@ def node(mode, *arg, batas=30):
     env = dict(os.environ, NODE_PATH=str(SITUS_NODE_MODULES))
     r = subprocess.run(cmd, cwd=JS, env=env, capture_output=True, text=True, timeout=batas)
     if r.returncode != 0:
+        if "Executable doesn't exist" in r.stderr:
+            gagal("Chromium Playwright belum terpasang: jalankan `cd situs && bunx playwright install chromium` "
+                  "(lab ini memakai Playwright situs, tanpa dependency baru)")
         gagal(f"driver.js {mode} gagal: {r.stderr[-600:]}")
     baris = [l for l in r.stdout.splitlines() if l.strip()]
     if not baris:
