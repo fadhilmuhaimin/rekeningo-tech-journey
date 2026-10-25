@@ -1,0 +1,79 @@
+# Lab t3-offline · operasi bersyarat versi: 409 membawa keadaan terkini, kunci 14 hari mengenali pengiriman ulang
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_offline · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-offline run (keputusan 972).
+# server: ./api-t3 -lab -jam-lab
+# Versi benar (ADR 29): POST /sinkron bersyarat versi, kunci 14 hari di operasi_sinkron. Tanpa mode rentan.
+
+# --- A. Jumat 16.50: HP Ani mendaftar dan mengirim 'soto habis' (kunci sinkron, versi dasar 1); jawabannya hilang ---
+$ curl -i -X POST '/perangkat' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"platform": "android", "token_push": "hp-ani-1"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"id":10061}
+=> SELECT id, nama, stok, versi FROM produk WHERE id IN (181, 361) ORDER BY id
+ id  | nama      | stok | versi
+-----+-----------+------+-------
+ 181 | Soto ayam | 50   | 1
+ 361 | Bakso     | 50   | 1
+(2 rows)
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0301", "perangkat_id": 10061, "produk_id": 181, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"sekarang":{"id":181,"harga":22000,"stok":0,"versi":2},"status":"diterapkan","ulang":false}
+# HP tidak menerima jawaban di atas. Bakso: HP sudah offline, operasinya tidak pernah sampai (bagian C)
+
+# --- B. Sabtu 07.50: Ani mengisi soto 30 porsi lewat dasbor (versi 2 menjadi 3); tab dasbor yang basi ditolak ---
+# Jam lab: Sabtu 07.50 (15 jam sesudah Jumat 16.50). Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu 15 jam
+$ curl -i -X PATCH '/produk/181' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"stok": 30, "versi": 2}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":181,"harga":22000,"stok":30,"versi":3}
+# Bakso juga diisi 30 porsi lewat dasbor (PATCH /produk/361, versi 1 menjadi 2)
+# Tab dasbor di laptop yang masih menampilkan soto versi 2 mengubah stok ke 10: ditolak, bukan menimpa
+$ curl -i -X PATCH '/produk/181' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"stok": 10, "versi": 2}'
+HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{"type":"/problems/versi-berbeda","title":"Produk sudah diubah pihak lain; tidak ada yang berubah","status":409,"detail":"Ambil keadaan terkini di sekarang, lalu pilih: ubah lagi dengan versi itu, atau batalkan.","sekarang":{"id":181,"harga":22000,"stok":30,"versi":3}}
+
+# --- C. Senin 06.50 (62 jam): HP online. Soto: kunci sama dikenali. Bakso: operasi lama tiba pertama kali ---
+# Jam lab: Senin 06.50 (62 jam sesudah Jumat 16.50). Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu 62 jam
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0301", "perangkat_id": 10061, "produk_id": 181, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"sekarang":{"id":181,"harga":22000,"stok":30,"versi":3},"status":"diterapkan","ulang":true}
+# ulang = true: kunci dikenali (kunci hidup 14 hari, bukan 24 jam); 'stok = 0' TIDAK diterapkan lagi, stok 30 dari Sabtu utuh
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0302", "perangkat_id": 10061, "produk_id": 361, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"sekarang":{"id":361,"harga":18000,"stok":30,"versi":2},"status":"konflik","ulang":false}
+# 409 membawa 'sekarang' (stok 30, versi 2): kunci tidak dikenal, tetapi versi dasar 1 sudah lewat. Tidak ada yang ditimpa
+=> SELECT kunci, jenis, nilai, versi_dasar, status, diterapkan IS NOT NULL AS diterapkan FROM operasi_sinkron ORDER BY kunci
+ kunci        | jenis | nilai | versi_dasar | status     | diterapkan
+--------------+-------+-------+-------------+------------+------------
+ ani-hp1-0301 | stok  | 0     | 1           | diterapkan | t
+ ani-hp1-0302 | stok  | 0     | 1           | konflik    | f
+(2 rows)
+=> SELECT id, nama, stok, versi FROM produk WHERE id IN (181, 361) ORDER BY id
+ id  | nama      | stok | versi
+-----+-----------+------+-------
+ 181 | Soto ayam | 30   | 3
+ 361 | Bakso     | 30   | 2
+(2 rows)
+
+# --- D. Layar konflik di HP: Ani memilih; memilih berarti operasi baru dengan kunci baru dan versi dasar dari 'sekarang' ---
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0303", "perangkat_id": 10061, "produk_id": 361, "jenis": "stok", "nilai": 0, "versi_dasar": 2, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"sekarang":{"id":361,"harga":18000,"stok":0,"versi":3},"status":"diterapkan","ulang":false}
+# Pilihan lain, 'pakai 30', tidak mengirim apa-apa: operasi lama dibuang dari queue HP
+=> SELECT id, nama, stok, versi FROM produk WHERE id = 361
+ id  | nama  | stok | versi
+-----+-------+------+-------
+ 361 | Bakso | 0    | 3
+(1 row)

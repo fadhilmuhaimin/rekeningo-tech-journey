@@ -48,7 +48,7 @@ func (s Server) Rute() *http.ServeMux {
 	mux.HandleFunc("POST /web/login", s.loginWeb)
 	mux.HandleFunc("POST /perangkat", s.wajibLogin(s.perangkat))
 	mux.HandleFunc("GET /katalog", s.wajibLogin(s.katalog))
-	mux.HandleFunc("POST /pesanan", s.wajibLogin(s.pesanan))
+	mux.HandleFunc("POST /pesanan", s.wajibLogin(s.idempoten(s.pesanan)))
 	mux.HandleFunc("PATCH /produk/{id}", s.wajibLogin(s.ubahProduk))
 	mux.HandleFunc("GET /promo", s.wajibLogin(s.daftarPromo))
 	mux.HandleFunc("POST /promo", s.wajibLogin(s.buatPromo))
@@ -60,14 +60,17 @@ func (s Server) Rute() *http.ServeMux {
 	mux.HandleFunc("GET /akun/{id}", s.wajibLogin(s.lihatAkun))
 	mux.HandleFunc("POST /topup", s.wajibLogin(s.topup))
 	mux.HandleFunc("POST /koreksi", s.wajibLogin(s.koreksi))
-	mux.HandleFunc("POST /transfers", s.wajibLogin(s.bayar))
+	mux.HandleFunc("POST /transfers", s.wajibLogin(s.idempoten(s.bayar)))
 	mux.HandleFunc("GET /transfers/{id}", s.wajibLogin(s.lihatTransaksi))
-	mux.HandleFunc("POST /kiriman", s.wajibLogin(s.kirim))
+	mux.HandleFunc("POST /kiriman", s.wajibLogin(s.idempoten(s.kirim)))
 	mux.HandleFunc("GET /akun/{id}/riwayat", s.wajibLogin(s.riwayat))
 	mux.HandleFunc("GET /warung", s.wajibLogin(s.cariWarung))
 	mux.HandleFunc("GET /warung/{id}/laporan", s.wajibLogin(s.laporan))
 	mux.HandleFunc("POST /jurnal/{id}/pembalik", s.wajibLogin(s.pembalik))
 	mux.HandleFunc("GET /tutup-buku", s.wajibLogin(s.tutupBuku))
+	if s.rentan == service.RentanStokTimpa { // M24: endpoint stok sebelum ADR 29
+		mux.HandleFunc("PUT /produk/{id}/stok", s.wajibLogin(s.idempoten(s.timpaStok)))
+	}
 	return mux
 }
 
