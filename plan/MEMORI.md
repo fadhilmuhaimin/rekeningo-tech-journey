@@ -56,19 +56,20 @@ Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditan
 - 2.17: node-pg-migrate 9.0.0 (`concurrently` tanpa `pgm.noTransaction()` di dokumentasi v9), Laravel `->online()` di luar transaction migration, Serverpod `id` di daftar `fields` index masih [perlu verifikasi]. 2.21: lama lock CHECK pada tabel besar versus NOT VALID lalu VALIDATE CONSTRAINT belum diukur (usul lab untuk 2.22).
 - Riwayat app sesudah ledger turun 17 → 3 baris (tiga-rilis.txt 69–72, transaksi v1 tidak jadi jurnal): diterima atau migrasi menyalin transaksi v1 (2.22). Akun lab Karyawan 800 berperan Citra di M14 (2.23). Paket 1 GB dan 20 buka/hari untuk kuota adalah Asumsi (2.20-lab). api-t2 tidak mengompres respons dan Dart selalu mengirim Accept-Encoding gzip.
 
-## Ukur antrean merge (keputusan 727)
+## Ukur antrean merge (keputusan 727, 728)
 
-Alat: `python3 tools/ukur_pr.py <PR...> --sejak <waktu>` (data dari GitHub). Garis dasar sebelum 727, PR #300, #301, #302, #305 (2026-10-24): dibuka → merge 275, 85, 41, 103 menit (median 94); penggabungan main 4, 5, 2, 7 kali (median 4,5); run main merah 2 dari 21 (28946ce, fd9d649). Pembanding pemilik 160 menit (mungkin dihitung dari awal pengerjaan, bukan dari PR dibuka). Lima halaman berikutnya yang dibuka SESUDAH #313 dan #314 masuk (2.22, 2.23, 2.20, 2.24, 2.25; dua data pertama median 66 menit, gabung main median 2, lawan 94 menit dan 4,5 di garis dasar; belum cukup lima, jangan menyimpulkan):
+Alat: `python3 tools/ukur_pr.py <PR...> --sejak <waktu>` (data dari GitHub). Garis dasar sebelum 727, PR #300, #301, #302, #305 (2026-10-24): dibuka → merge 275, 85, 41, 103 menit (median 94); penggabungan main 4, 5, 2, 7 kali (median 4,5); run main merah 2 dari 21 (28946ce, fd9d649). Pembanding pemilik 160 menit (mungkin dihitung dari awal pengerjaan, bukan dari PR dibuka). Keputusan 728 (2026-10-25): tiga lajur halaman; ukur lima halaman berikutnya yang dibuka sesudahnya (2.25 dan seterusnya) dengan menit mulai → merge, menit CI, jumlah jeda limit lawan median 160 menit; main makin sering merah → kembalikan butir 4 dan 5 (pemeriksaan per halaman, peninjau tanpa gerbang penuh). Lima halaman berikutnya yang dibuka SESUDAH #313 dan #314 masuk (2.22, 2.23, 2.20, 2.24, 2.25; dua data pertama median 66 menit, gabung main median 2, lawan 94 menit dan 4,5 di garis dasar; belum cukup lima, jangan menyimpulkan):
 
 | Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
 | --- | --- | --- | --- | --- |
 | 2.22 | #319 | 53 | 2 | 0 |
 | 2.23 | #318 | 78 | 2 | 0 |
-| 2.20 | menyusul | - | - | - |
+| 2.20 | #322 | menyusul | 0 | 0 |
+| 2.24 | #323 | menyusul | 0 | 0 |
 
 ## Sedang dikerjakan
 
-2026-10-25 04.00 · Tahap 2 halaman, aturan antrean merge 727 berlaku (paling banyak 2 PR halaman terbuka; catatan di badan PR `## Catatan pengatur`, diambil dengan `python3 tools/ambil_catatan_pr.py <PR...>` lalu `lipat_masuk.py`). Selesai: 2.1–2.19, 2.21–2.23 (22 dari 33), lab 2.20-lab (#317), semua lab/widget/teknis Tahap 2. Berjalan: pelaksana 2.20 (`tahap-2/ukuran-payload`) dan 2.24 (`tahap-2/tim-infra-adr18`). Berikutnya satu per satu: 2.25 (M15, t2-pencairan), 2.26 (ADR 19), 2.27 (M16, c4), 2.28 (Keamanan 4 + ADR 20), 2.29–2.33, EVAL-2, DIRI-2, lalu Tahap 3. Alokasi nomor keputusan/riset per tugas: `tmp/catat-antre.md` (tidak di repo; bila hilang: nomor 836+ dan ID riset R2-180 ke atas, cek terbesar atas KEPUTUSAN dan PR terbuka). Untuk melanjutkan: `gh pr list --state open`.
+2026-10-25 · Tahap 2 halaman, aturan 727 dan 728 (sampai tiga PR halaman terbuka; catatan di badan PR `## Catatan pengatur`, diambil dengan `python3 tools/ambil_catatan_pr.py <PR...>` lalu `lipat_masuk.py`). Selesai: 2.1–2.19, 2.21–2.23 (22 dari 33), semua lab/widget/teknis Tahap 2. Dalam tinjauan: #322 (2.20), #323 (2.24). Berjalan sesudah 728: LAB-PARALEL dan CI-CEPAT (lajur teknis), RISET-3 lalu NASKAH-3 (lajur riset), pelaksana 2.25. Berikutnya: 2.26–2.33, EVAL-2, DIRI-2, KONSISTENSI-3, lalu Tahap 3 (T3-siap sesudah NASKAH-3, halaman 3.x sesudah KONSISTENSI-3 dan DIRI-2). Alokasi nomor keputusan/riset per tugas: `tmp/catat-antre.md` (tidak di repo; bila hilang: nomor 840+ dan ID riset R2-180 ke atas, cek terbesar atas KEPUTUSAN dan PR terbuka). Untuk melanjutkan: `gh pr list --state open`.
 
 ## Pelajaran
 
