@@ -1,0 +1,37 @@
+{
+  "judul": "Seberapa jauh riwayat Budi dari pemicu cache?",
+  "sumber": "Rekaman lab · n1.txt bagian E; puncak Asumsi",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "Halaman pertama riwayat Budi memakai satu query dan index riwayat: {w} per permintaan. Anggap semua request di puncak Tahap 2 ({puncak} per detik) berbentuk ini. Berapa kali lipat beban itu sampai rata-rata 5 koneksi tertahan?",
+  "pilihan": [
+    { "kali": 2, "alasan": "Kelipatan ±2 adalah jarak untuk seluruh riwayat Budi dengan N+1: {kali_seluruh_n1} kali. Halaman pertama dengan index jauh lebih pendek, jadi jaraknya jauh lebih besar." },
+    { "kali": 130, "alasan": "Kelipatan ±130 adalah jarak untuk satu query tanpa index: {kali_hal1_join} kali untuk halaman pertama. Index riwayat menurunkan W dari {w_hal1_join} ke {w}." },
+    { "kali": 2600, "alasan": "W {w} menahan 5 koneksi di ±{lambda} permintaan per detik, atau {kali} kali puncak {puncak}. Angka ini batas bawah untuk jarak: W di rekaman tanpa jaringan, dan semua request dianggap berbentuk ini." }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "ubahJudul": "Ubah satu hal: cara query dan data yang dibaca",
+  "nama": {
+    "hal1-n1": "Halaman pertama · N+1",
+    "hal1-join": "Halaman pertama · JOIN",
+    "hal1-join-index": "Halaman pertama · JOIN + index",
+    "seluruh-n1": "Seluruh riwayat · N+1",
+    "seluruh-join": "Seluruh riwayat · JOIN"
+  },
+  "kolom": {
+    "w": "Waktu satu permintaan (W)",
+    "l": "Koneksi tertahan sekarang (L)",
+    "lambda": "Per detik sampai 5 koneksi (λ)",
+    "kali": "Kali puncak Tahap 2"
+  },
+  "kalimat": {
+    "hal1-n1": "Halaman pertama dengan N+1, tanpa index: {w}. Pemicu 5 koneksi ada di ±{lambda} permintaan per detik, atau {kali} kali puncak sekarang.",
+    "hal1-join": "Halaman pertama dengan satu query, tanpa index: {w}. Pemicu ada di ±{lambda} per detik, atau {kali} kali puncak sekarang.",
+    "hal1-join-index": "Halaman pertama dengan satu query dan index riwayat: {w}. Pemicu ada di ±{lambda} per detik, atau {kali} kali puncak sekarang.",
+    "seluruh-n1": "Seluruh riwayat dengan N+1, tanpa index: {w}. Pemicu ada di ±{lambda} per detik, atau {kali} kali puncak sekarang.",
+    "seluruh-join": "Seluruh riwayat dengan satu query, tanpa index: {w}. Pemicu ada di ±{lambda} per detik, atau {kali} kali puncak sekarang."
+  },
+  "catatan": "W adalah median 5 kali di mesin lab, tanpa jaringan antara server API dan database, jadi batas bawah. Puncak {puncak} per detik adalah Asumsi naskah, dan semua request di puncak dianggap berbentuk permintaan yang dipilih: batas atas. Pool {pool} koneksi dan pemicu {ambang} koneksi, separuh pool, adalah Asumsi dari halaman 2.30.",
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan angka rekamannya sebagai tabel."
+}
