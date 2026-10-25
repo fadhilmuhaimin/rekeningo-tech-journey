@@ -30,12 +30,12 @@
         "pertanyaan": "Budi membayar warung Ani {nominal}. Proses API mati di antara dua langkah yang menyentuh dua tempat: database dan layanan push. Pada cara mana notifikasi tetap sampai ke HP Ani dan uangnya memang ada?",
         "pilihan": [
           { "nilai": "langsung", "teks": "Push dikirim di dalam transaction", "alasan": "Push sudah terkirim sebelum COMMIT. Proses mati, database membatalkan transaction, dan Ani diberi tahu tentang uang yang tidak ada." },
-          { "nilai": "sesudah-commit", "teks": "Push dikirim sesudah COMMIT", "alasan": "Uang sudah tercatat, tetapi push belum dikirim. Tidak ada catatan yang menunggu dikirim, jadi tidak ada yang tahu notifikasinya hilang." },
+          { "nilai": "sesudah-commit", "teks": "Push dikirim sesudah COMMIT, di permintaan yang sama", "alasan": "Uang sudah tercatat, tetapi push belum dikirim. Tidak ada catatan yang menunggu dikirim, jadi tidak ada yang tahu notifikasinya hilang." },
           { "nilai": "outbox", "teks": "Baris outbox di transaction yang sama", "alasan": "Jurnal dan baris outbox tersimpan bersama. Proses API boleh mati: worker mengirim baris itu sesudahnya (rekaman transaksi.txt bagian F)." }
         ]
       },
       "knob": [
-        { "id": "cara", "label": "Cara kirim", "opsi": { "langsung": "Push di dalam transaction", "sesudah-commit": "Push sesudah COMMIT", "outbox": "Outbox dan worker" } },
+        { "id": "cara", "label": "Cara kirim", "opsi": { "langsung": "Push di dalam transaction", "sesudah-commit": "Push sesudah COMMIT di permintaan yang sama", "outbox": "Outbox dan worker" } },
         { "id": "kejadian", "label": "Kejadian", "opsi": { "lancar": "Semua lancar", "commit-ditolak": "COMMIT ditolak", "push-503": "Push menjawab 503", "push-menggantung": "Push menggantung", "proses-mati": "Proses API mati" } }
       ],
       "angka": [

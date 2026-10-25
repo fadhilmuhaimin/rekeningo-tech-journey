@@ -7,7 +7,7 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 import labelMentah from "../../../data/widget/t3-outbox-worker.json";
 import { bacaAcuan } from "./rekaman";
-import { AWAL, KNOB, kunciKonfig, konstanta, semuaKonfig, type NamaSkenario } from "./logika";
+import { AWAL, KNOB, jalankanCara, kunciKonfig, konstanta, semuaKonfig, type NamaSkenario } from "./logika";
 import { LabelOutbox } from "./skema";
 import { NAMA, bangun, periksaLabel } from "./siap";
 
@@ -141,6 +141,15 @@ describe("label sumber jujur (tinjauan, keputusan 985)", () => {
       }
     }
     expect(L.acuan.rekaman).toMatch(/\(dihitung\)/);
+  });
+  test("push sesudah COMMIT tanpa outbox ditulis sebagai bagian permintaan yang sama, dan mesin memanggilnya sebelum jawaban", () => {
+    const s = bangun("cara", L, k);
+    expect(s.tebak.pilihan[1]!.teks).toMatch(/permintaan yang sama/);
+    expect(s.knob[0]!.opsi.find((o) => o.id === "sesudah-commit")!.teks).toMatch(/permintaan yang sama/);
+    const kunci = jalankanCara("sesudah-commit", "lancar", k).garis.map((e) => e.kunci);
+    expect(kunci.indexOf("push-terima")).toBeGreaterThan(kunci.indexOf("commit"));
+    expect(kunci.indexOf("push-terima")).toBeLessThan(kunci.indexOf("selesai"));
+    expect(jalankanCara("sesudah-commit", "lancar", k).angka.p3).toBe(false);
   });
 });
 
