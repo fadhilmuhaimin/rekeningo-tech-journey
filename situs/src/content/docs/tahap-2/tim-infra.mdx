@@ -143,7 +143,7 @@ Dua penjaga menutupnya. Penjaga pertama ada di kode tes:
 
 `TestMain` berjalan sebelum semua tes di paket itu, dan nilai exit dari `m.Run` menentukan hasil ([Go: paket testing, bagian Main](https://pkg.go.dev/testing#hdr-Main)). Dengan `TES_DB_WAJIB=1` dan tanpa database, paket gagal dengan pesan, bukan dilewati.
 
-Penjaga kedua ada di langkah CI. Langkah ini menghitung baris `--- SKIP` dan menggagalkan dirinya walau `go test` keluar 0:
+Penjaga kedua ada di langkah CI. Langkah ini menghitung baris `--- SKIP` dan menggagalkan dirinya walau `go test` keluar 0. Polanya menerima spasi di depan, karena `go test -v` menjorokkan baris `--- SKIP` milik subtest:
 
 <Snippet file="labs/api-t2/deploy/ci.yml" lines="38:51" lang="yaml" title="labs/api-t2/deploy/ci.yml, langkah tes" />
 
@@ -193,7 +193,7 @@ Pengaturan `main` yang dipilih ADR 18 ditulis sebagai isi permintaan REST. Ini c
 | `enforce_admins` | "Enforce all configured restrictions for administrators" | Aturan berlaku juga untuk Raka sebagai pemilik repo |
 | `allow_force_pushes` | Force push ke branch ini | Mati; GitHub memblokirnya di branch terlindungi secara bawaan |
 
-*Ketersediaan di repo privat [perlu verifikasi]:* halaman REST menulis bahwa branch protection tersedia di repo publik dengan GitHub Free. Di repo publik dan privat, ia tersedia dengan Pro, Team, Enterprise Cloud, dan Enterprise Server. Halaman plan GitHub menaruh "Protected branches", "Required pull request reviewers", dan "Code owners" di fitur repo privat untuk Pro dan Team, bukan untuk Free. Apakah repo Rekeningo publik atau privat, dan plan apa yang dipakai, tidak ada di naskah.
+*Ketersediaan di repo privat [perlu verifikasi]:* halaman REST menulis bahwa branch protection tersedia di repo publik dengan GitHub Free. Di repo publik dan privat, ia tersedia dengan Pro, Team, Enterprise Cloud, dan Enterprise Server. Halaman plan GitHub menaruh "Protected branches", "Required pull request reviewers", dan "Code owners" di fitur repo privat untuk Pro dan Team, dan tidak mendaftarkannya untuk Free. Apakah repo Rekeningo publik atau privat, dan plan apa yang dipakai, tidak ada di naskah.
 
 ### Di stack lain
 
@@ -239,7 +239,9 @@ test("kiriman melewati batas harian ditolak", { skip: !url && "butuh PostgreSQL"
 
 **Yang berbeda di stack ini:** trait `RefreshDatabase` tidak memigrasi database bila skemanya sudah mutakhir, dan menjalankan tiap tes di dalam satu transaction database. Trait `DatabaseMigrations` dan `DatabaseTruncation` mengosongkan database dan lebih lambat menurut dokumentasi.
 
-Akibatnya, tes dua request bersamaan seperti [[t2-m9]] tidak bisa memperlihatkan dua transaction yang saling menunggu di dalam satu tes `RefreshDatabase`. Ini penalaran sendiri dari dokumentasi, tidak dijalankan. Tes semacam itu butuh koneksi yang masing-masing melakukan commit. Kontrol "tes tidak boleh dilewati" ditulis di konfigurasi CI, bukan di Laravel.
+Akibatnya, tes dua request bersamaan seperti [[t2-m9]] tidak bisa memperlihatkan dua transaction yang saling menunggu di dalam satu tes `RefreshDatabase`. Ini penalaran sendiri dari dokumentasi, tidak dijalankan. Tes semacam itu butuh koneksi yang masing-masing melakukan commit.
+
+Dokumentasi Laravel tidak menyebut tes yang dilewati. Runner PHPUnit punya atribut `failOnSkipped` di `phpunit.xml`, dan defaultnya `false` menurut dokumentasi PHPUnit 12.0. Jadi kontrol "tes tidak boleh dilewati" harus dinyalakan sendiri. Versi PHPUnit yang dipakai Laravel 13 [perlu verifikasi].
 
 </Fragment>
 <Fragment slot="t3">
@@ -291,7 +293,7 @@ PROPOSAL menaruhnya di Tahap 3. Naskah yang menang, jadi halaman ini menjelaskan
 |---|---|---|---|---|
 | Cara kerja | Dua orang mengubah `main` sesuai ingatan masing-masing | Tiap PR dibaca satu orang lain. CI menjalankan tes yang ada, dan tes aturan uang tidak diwajibkan | PR wajib di-review. Tes lewat `Kirim` ke PostgreSQL wajib berjalan dan tidak boleh dilewati. Branch harus mutakhir. CODEOWNERS meminta pemilik | Commit kecil langsung ke `main`, aturan baru di balik flag, review dibaca sesudahnya |
 | Kelebihan | Tanpa proses, tanpa menunggu | Pengetahuan menyebar, dan salah ketik tertangkap | Hasil gabungan diuji sebelum masuk. Aturan tidak bergantung pada ingatan, dan penjaganya berjalan sendiri | Perubahan masuk cepat. Flag bisa dimatikan tanpa deploy |
-| Kekurangan | M14 itu sendiri | Kedua diff tampak wajar, dan tes fungsi tetap hijau | PR menunggu CI dan orang lain. Tes DB menambah waktu CI | Kode yang salah sudah di `main` saat CI merah. Flag tidak melindungi pagar yang dihapus |
+| Kekurangan | M14 itu sendiri | Kedua diff tampak wajar, dan tes fungsi tetap hijau | PR menunggu CI dan orang lain. Saat satu engineer tidak ada, yang lain tidak bisa me-merge PR-nya sendiri. Tes DB menambah waktu CI | Kode yang salah sudah di `main` saat CI merah. Flag tidak melindungi pagar yang dihapus |
 | Biaya operasional | Nol | Waktu satu orang per PR | Waktu review, menit CI per PR, dan pengaturan GitHub yang harus dijaga. Menit CI belum diukur lab | Sistem flag, plus kebiasaan membaca commit sesudahnya |
 | Bukti | M14 dan `m14.txt` | `tim.txt` bagian B: 1 file, 3 baris dihapus di kedua PR, CI hijau, 0 pemanggil | `tim.txt` bagian C, variannya, dan E | `tim.txt` bagian D: `main` merah sesudah merge |
 
@@ -327,7 +329,7 @@ PROPOSAL menaruhnya di Tahap 3. Naskah yang menang, jadi halaman ini menjelaskan
 
 | Yang ditunda | Kenapa ditunda | Muncul lagi di |
 |---|---|---|
-| Dua approval per PR | Dua engineer berarti tidak ada yang bisa merge saat satu cuti, dan satu approval cukup untuk dua orang | Bila tim tiga orang atau lebih |
+| Dua approval per PR | Penulis tidak bisa menyetujui PR-nya sendiri, jadi dengan dua engineer hanya ada satu pereview dan dua approval tidak pernah terpenuhi | Bila tim tiga orang atau lebih |
 | Merge queue | Dua orang jarang punya lebih dari satu PR terbuka sekaligus; syarat mutakhir sudah menguji hasil gabungan | Bila PR terbuka sering tertinggal dari `main` |
 | Testcontainers | Satu service container PostgreSQL cukup untuk satu schema tes; naskah menyebutnya, dan lab tidak membutuhkannya | Bila tes butuh database per tes, Redis, atau container lain |
 | Staging otomatis | Deploy Tahap 2 tetap satu perintah di VPS, sama seperti ADR 9 | Tahap 3 |
