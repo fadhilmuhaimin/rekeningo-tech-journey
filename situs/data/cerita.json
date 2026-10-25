@@ -2063,8 +2063,9 @@
       "prasyarat": [
         "t2-adr-21"
       ],
-      "ada": false,
-      "nomor": "2.32"
+      "ada": true,
+      "nomor": "2.32",
+      "menit": 14
     },
     {
       "id": "t2-jembatan",
@@ -2075,13 +2076,14 @@
       "jenis": "prd",
       "bagian": 6,
       "inti": true,
-      "masalah": "Keputusan Tahap 2 mana yang akan dibuka lagi?",
+      "masalah": "Dari ADR Tahap 2, mana yang pecah lebih dulu?",
       "pendek": "Pratinjau PRD v3",
       "prasyarat": [
         "t2-rekap"
       ],
-      "ada": false,
-      "nomor": "2.33"
+      "ada": true,
+      "nomor": "2.33",
+      "menit": 6
     },
     {
       "id": "T2",

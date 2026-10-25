@@ -1,0 +1,76 @@
+---
+/**
+ * Widget pool koneksi dan Little's Law (W3-pool, keputusan 980): tebak kapan pool 10 koneksi penuh saat layanan push tidak
+ * menjawab, lalu ubah satu hal (ukuran pool, lama push, client yang menyerah, pengaman di server) dan lihat L = λ × W.
+ *   <PoolLittle />
+ * Angka acuan dibaca saat build dari labs/t3-pool/output/{m18,little,adr22}.txt lewat rekaman.ts; rekaman yang berubah
+ * bentuk menggagalkan build. Teks dari data/widget/t3-pool-little.json (skema.ts). Island di-render saat build
+ * (client:visible); tanpa JavaScript titik acuan rekaman tampil di <noscript> sebagai tabel.
+ * Satu widget per halaman. Dipasang di halaman 3.6 (M18), 3.8 (Connection pool, Little's Law, dan timeout, ADR 22) oleh
+ * PR halamannya; sampai itu hanya /uji/pool/ yang memuatnya.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import PoolLittleIsland from "../widgets/pool-little/PoolLittle";
+import { LabelPool } from "../widgets/pool-little/skema";
+import { aturanDari, awalDari, bacaRekaman, daftarAcuan } from "../widgets/pool-little/rekaman";
+import { periksaTombol, siapkanTeks } from "../widgets/pool-little/teks";
+import { isi, koma, lTeks, littleL, ringkas, simulasi } from "../widgets/pool-little/logika";
+import labelMentah from "../../data/widget/t3-pool-little.json";
+
+const baca = (f: string) => {
+  const abs = path.join(ROOT, f);
+  if (!fs.existsSync(abs)) throw new Error(`PoolLittle: ${f} tidak ada`);
+  return fs.readFileSync(abs, "utf8");
+};
+const R = bacaRekaman(
+  baca("labs/t3-pool/output/m18.txt"),
+  baca("labs/t3-pool/output/little.txt"),
+  baca("labs/t3-pool/output/adr22.txt"),
+);
+const A = aturanDari(R);
+const awal = awalDari(R);
+const acuan = daftarAcuan(R);
+const L = LabelPool.parse(labelMentah);
+
+periksaTombol(L, R);
+const { pertanyaan, pilihan, benar, acuanTeks, catatan, asal } = siapkanTeks(L, R, acuan);
+
+const label = {
+  judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, benar: L.benar, belum: L.belum, ulang: L.ulang, ubahJudul: L.ubahJudul,
+  kelompok: L.kelompok, awal: L.awal, jam: L.jam, papan: L.papan, keadaan: L.keadaan, hitungan: L.hitungan, vonis: L.vonis,
+  ringkasVonis: L.ringkasVonis, banding: L.banding, cocok: L.cocok, tanpaAcuan: L.tanpaAcuan,
+};
+
+// Tabel untuk tanpa JavaScript: titik acuan, L dari rumus, dan detik pool penuh dari simulasi yang sama dengan island.
+const baris = acuan.map((d) => {
+  const r = ringkas(simulasi(d.param, A), d.param, A);
+  return [acuanTeks[d.kunci]!, lTeks(littleL(d.param, A)), r.waktuPenuh === null ? L.tabel.tidakPernah : isi(L.tabel.penuh, { x: koma(r.waktuPenuh, 1) })];
+});
+---
+<PoolLittleIsland
+  client:visible
+  aturan={A}
+  awal={awal}
+  rps={R.beban.rpsTotal}
+  tiap={R.beban.tiap}
+  jamAwal={R.a.detik}
+  pertanyaan={pertanyaan}
+  pilihan={pilihan}
+  benar={benar}
+  opsi={L.pilihNilai}
+  acuan={acuan}
+  acuanTeks={acuanTeks}
+  catatan={catatan}
+  asal={asal}
+  label={label}
+/>
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <table class="bb-table tm-tabel">
+    <caption>{L.tabel.judul}</caption>
+    <thead><tr>{L.tabel.kolom.map((k) => <th scope="col">{k}</th>)}</tr></thead>
+    <tbody>{baris.map((b) => <tr>{b.map((s, j) => (j === 0 ? <th scope="row">{s}</th> : <td>{s}</td>))}</tr>)}</tbody>
+  </table>
+</noscript>

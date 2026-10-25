@@ -1236,6 +1236,46 @@
   "jawab": "Karena kapasitas satu server belum pernah diukur. Sepuluh lab Tahap 2 tidak punya perkakas load test. \"Belum\" bertumpu pada hitungan Asumsi dan pada tidak adanya bukti sebaliknya, bukan pada kapasitas yang terbukti."
  },
  {
+  "id": "t2-rekap-1",
+  "halaman": "t2-rekap",
+  "judul": "2.32 Yang dibawa keluar dari Tahap 2",
+  "url": "tahap-2/rekap/",
+  "tanya": "Raka menambah jalur koreksi massal untuk admin. Kodenya menjumlahkan posting satu buku, memeriksa hasilnya, lalu menulis jurnal pembalik, semuanya di satu transaction. Dua admin menjalankannya untuk buku yang sama. Apa yang bisa terjadi, dan apa yang ditambahkan?",
+  "jawab": "Keduanya bisa membaca jumlah posting yang sama sebelum salah satunya COMMIT, seperti HP dan tablet di M9. Transaction membuat jurnal ditulis utuh, tetapi tidak menahan request lain membaca. Buku yang terlibat dikunci lebih dulu dengan `SELECT … ORDER BY id FOR UPDATE`, sebelum saldo dibaca (ADR 13, yang berlaku juga untuk jurnal pembalik). Tes dengan dua request bersamaan menjaganya."
+ },
+ {
+  "id": "t2-rekap-2",
+  "halaman": "t2-rekap",
+  "judul": "2.32 Yang dibawa keluar dari Tahap 2",
+  "url": "tahap-2/rekap/",
+  "tanya": "Pencairan Jumat berjalan sebagai job di server, tidak dimulai app. Kenapa `Idempotency-Key` dari client tidak dipakai di sana, dan apa yang membuat job aman dijalankan lagi?",
+  "jawab": "Tidak ada client yang membuat key untuk jalur yang tidak dimulai app (ADR 14). Job memakai kunci dari data: satu batch per periode minggu ISO, dengan `periode` unik di database (ADR 19). Status batch dibaca sebelum setiap langkah dan maju dari `dibuat` ke `dijurnal` ke `dikirim`. Jurnal pencairan dan `jurnal_id` ditulis bersama dalam satu transaction per baris, jadi baris yang sudah dijurnal tidak dicairkan lagi."
+ },
+ {
+  "id": "t2-rekap-3",
+  "halaman": "t2-rekap",
+  "judul": "2.32 Yang dibawa keluar dari Tahap 2",
+  "url": "tahap-2/rekap/",
+  "tanya": "Raka memperbaiki riwayat Budi dengan satu query JOIN. Query itu masih membaca terlalu banyak baris, dan saat Budi menggulir, satu baris muncul dua kali. Perbaikan apa yang menjawab masing-masing, dan celah apa yang ditulis terbuka?",
+  "jawab": "Query JOIN hanya memperbaiki N+1. Tanpa index, daftar masih membaca 3.892 posting Budi untuk mengembalikan 20 baris, dan index `posting_riwayat (buku_id, dibuat, id)` menjawabnya (ADR 15). Baris ganda berasal dari OFFSET yang bergeser saat ada kiriman baru, dan kursor dari `(dibuat, id)` baris terakhir menjawabnya (ADR 16). Celah yang diterima terbuka: transaksi yang COMMIT belakangan bisa tidak tampil sampai riwayat dimuat ulang."
+ },
+ {
+  "id": "t2-rekap-4",
+  "halaman": "t2-rekap",
+  "judul": "2.32 Yang dibawa keluar dari Tahap 2",
+  "url": "tahap-2/rekap/",
+  "tanya": "Migrasi ledger dijalankan dalam tiga rilis. Apa yang membuat app 1.0 dan 1.1 tetap bisa membayar di setiap rilis, dan harga apa yang ditulis terbuka?",
+  "jawab": "Rilis pertama hanya menambah, dan rilis kedua membuat server menulis ke dua tempat sebelum data lama dipindah per 1.000 akun. Rilis ketiga baru menghapus kolom lama, dan field `jumlah` dan `nominal` di response tetap ada selama app 1.0 dan 1.1 beredar (ADR 17). Migration menunggu lock paling lama 3 detik. Harganya ditulis terbuka: riwayat Karyawan 420 turun dari 17 baris menjadi 3 baris, karena transaksi v1 tidak ikut dipindah."
+ },
+ {
+  "id": "t2-rekap-5",
+  "halaman": "t2-rekap",
+  "judul": "2.32 Yang dibawa keluar dari Tahap 2",
+  "url": "tahap-2/rekap/",
+  "tanya": "Tutup buku kedua lolos dengan selisih Rp0, dan Sinta bertanya apakah satu server cukup untuk PRD v3. Apa yang dibuktikan Rp0, apa yang tidak, dan apa yang kamu kerjakan sebelum menjawab?",
+  "jawab": "Rp0 membuktikan bahwa buku dan jurnal yang terlihat saat laporan berjalan cocok. Rp0 bukan bukti laporan final. Di rekaman, laporan yang diulang sesudah satu transaction COMMIT menghitung 1.123 jurnal, bukan 1.122, dan buku yang tidak cocok tetap 0. Rp0 juga tidak mengukur beban, dan kapasitas satu server belum pernah diukur. Kerjakan dua hal lebih dulu. Hitung beban dari angka Tahap 2, puncak ±1,4 request per detik (Asumsi), lalu jadwalkan satu load test sebelum fitur PRD v3 pertama (ADR 21)."
+ },
+ {
   "id": "B3.2-1",
   "halaman": "B3.2",
   "judul": "Race condition dan lock",

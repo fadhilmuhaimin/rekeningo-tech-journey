@@ -1,0 +1,30 @@
+{
+  "id": "t2-rekap-kejadian",
+  "judul": "Sepuluh kejadian Tahap 2 dalam urutan minggu",
+  "sumber": { "jenis": "ilustrasi", "teks": "Naskah Tahap 2 · urutan kejadian" },
+  "baris": [
+    {
+      "label": "Minggu 0–3",
+      "sub": "uang, ulangan, query",
+      "simpul": [
+        { "teks": "PRD v2", "sub": "aturan Pak Hadi", "nada": "system" },
+        { "teks": "M9 saldo minus", "sub": "race condition", "nada": "warn" },
+        { "teks": "M10 dobel bayar", "sub": "idempotency key" },
+        { "teks": "M11 riwayat lambat", "sub": "N+1 dan index" },
+        { "teks": "M12 baris ganda", "sub": "pagination kursor" }
+      ]
+    },
+    {
+      "label": "Minggu 4–8",
+      "sub": "skema, tim, job, login, beban",
+      "simpul": [
+        { "teks": "M13 migrasi", "sub": "skema tanpa downtime" },
+        { "teks": "M14 batas harian", "sub": "review dan tes" },
+        { "teks": "M15 Rp15.000", "sub": "job idempoten" },
+        { "teks": "M16 akun Ani", "sub": "brute force" },
+        { "teks": "M17 PRD v3", "sub": "estimasi", "nada": "system" }
+      ]
+    }
+  ],
+  "catatan": "Kalimat pertama lahir dari PRD v2; sembilan lainnya lahir dari kejadian M9 sampai M17."
+}
