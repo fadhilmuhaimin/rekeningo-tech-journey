@@ -29,11 +29,13 @@ Setiap bagian membuat ulang schema dan data awal dari nol, jadi rekaman tidak be
 | `-katalog-hapus sesudah` | Benar: UPDATE, COMMIT, lalu hapus kunci; tulis yang ditolak tidak menghapus apa pun |
 | `-katalog-hapus sebelum` | Rentan: kunci dihapus sebelum COMMIT |
 | `-katalog-hapus selalu` | Rentan: kunci juga dihapus saat tulis ditolak atau gagal |
-| `-lab-gerbang commit,isi` | Lab saja: menahan penulis sebelum COMMIT dan pembaca sebelum simpan, sampai `POST /lab/gerbang/lepas` |
+| `-lab-gerbang commit,isi` | Lab saja: menahan penulis sebelum COMMIT dan pembaca sebelum simpan, sampai `POST /lab/gerbang/lepas`. Mati secara bawaan; hanya diterima bersama `-lab` dan `-katalog-cache`, dan rute pelepasnya hanya terdaftar bila gerbang menyala |
 
 Satu kunci per kota dan per warung: `katalog:<kota>:<warung>` dan `katalog:<kota>:semua`. `PATCH /produk/{id}` menghapus dua kunci, yaitu kota dan warung itu. `POST /promo` menghapus semua kunci kota itu (`SCAN katalog:<kota>:*` di Redis). `POST /pesanan` tidak menyentuh cache dan tidak menghapus kunci. `GET /lab/cache` memperlihatkan pencacah: hit, miss, baca database, kunci yang benar-benar terhapus, galat cache.
 
-Client Redis adalah RESP2 sendiri (GET, SET PX, DEL, SCAN; satu koneksi per perintah, tanpa retry, batas waktu untuk dial, tulis, dan baca sekaligus). go-redis sudah ada di `go.mod` sejak `t3-instance` (keputusan 967), tetapi lab ini tidak memakainya: batas waktu per perintah dan jumlah koneksi terlihat langsung di kode lab. Akibatnya waktu tunggu di rekaman tidak berlaku untuk go-redis, yang memakai 3 retry dan batas 5 detik bawaan (R3-12). Yang berlaku untuk keduanya hanya bentuknya: batas waktu pendek lalu jatuh ke database.
+Client Redis adalah go-redis v9.23.0 (GET, SET dengan TTL, DEL, SCAN), dependency yang sudah ada sejak `t3-instance` (keputusan 967). Opsinya sama dengan `internal/redisbatas`. Batas waktu dial, tulis, baca, dan antre di pool diisi `-katalog-redis-timeout`. Retry dimatikan (`MaxRetries: -1`; nol berarti bawaan 3 kali) dan dial dicoba sekali. Satu perintah paling lama beberapa kali batas itu, bukan satu kali, karena dial, tulis, dan baca masing-masing sampai batas.
+
+Versi pertama lab ini memakai client RESP2 sendiri supaya batas waktu terlihat di kode. Tinjauan menggantinya (keputusan 970): go-redis bisa dibatasi persis begitu, dan rekaman `memori.txt`, `gagal.txt`, `beban.txt` tetap identik; di `redis.txt` hanya baris kepala yang menyebut client yang berubah. Bawaan go-redis (5 detik dan 3 retry) tidak direkam untuk katalog. Perbandingannya ada untuk batas login di `t3-instance` (`batas.txt` J). `TestRedisMenggantungBerhentiDiBatasTanpaRetry` memakai Redis tiruan yang menjawab handshake tetapi tidak menjawab GET: tanpa retry diterima 1 GET, dengan retry bawaan 4.
 
 ## Rekaman
 
@@ -91,13 +93,13 @@ Satu hal diubah di `labs/api-t3` (kode server atau client cache), bagian yang be
 |---|---|---|
 | Hapus kunci sesudah `PATCH` yang berhasil dibuang | `redis` B | Gagal: kunci masih ada sesudah ubah harga |
 | Cache memori tanpa TTL (umur 100 hari) | `memori` D | Gagal: detik ke-300 masih Rp25.000, harus Rp22.500 |
-| Redis `SET` tanpa `PX` | `redis` A | Gagal: sisa TTL -1 ms (tanpa kedaluwarsa), harus 1 sampai 60.000 |
+| `Set` di client dengan TTL 0 (tanpa kedaluwarsa; semula `SET` tanpa `PX`) | `redis` A | Gagal: sisa TTL -1 ms (tanpa kedaluwarsa), harus 1 sampai 60.000 |
 | Mode benar menghapus kunci sebelum COMMIT | `redis` E | Gagal: kunci sudah hilang di celah sebelum COMMIT |
 | Promo tidak menghapus entri kota | `memori` B | Gagal: kunci terhapus (0, 0), harus (1, 0) |
 | Galat baca database disimpan sebagai daftar kosong | `gagal` E | Gagal: kunci galat ada di Redis |
 | Tulis yang gagal menghapus kunci di mode benar | `gagal` D | Gagal: 6 baca database, harus 1 |
 | Mode `selalu` tidak menghapus saat tulis gagal | `gagal` D | Gagal: 1 baca database, harus 6 |
-| Client Redis tanpa batas waktu | `gagal` A | Gagal: lima bacaan menunggu Redis dan menjadi hit, bukan lima galat cache |
+| Client tanpa batas baca (`ReadTimeout: -1`; semula client RESP2 tanpa batas waktu) | `gagal` A | Gagal: lima bacaan menunggu Redis dan menjadi hit, bukan lima galat cache |
 | `SCAN` memakai awalan salah | `redis` C | Gagal: entri kota tidak dibuang oleh promo |
 | Cache memori `HapusAwalan` tidak menghapus | `memori` B | Gagal: Budi masih melihat Rp25.000 |
 | `Pesan` menagih tanpa promo (harga seperti cache yang stale) | `memori` C | Gagal: tagihan Rp25.000, harus Rp22.500 |
@@ -110,11 +112,39 @@ Satu hal diubah di `labs/api-t3` (kode server atau client cache), bagian yang be
 
 Delapan belas perubahan, semuanya gagal di lab; tidak ada yang lolos. Tes Go di `labs/api-t3` (`TestKatalogCache*`, `TestPesanTidakMembacaCache`, `internal/cache`) tidak diuji mutasi satu per satu: yang dijaga bersama lab adalah perilaku yang sama. Perubahan yang tidak dicoba: jawaban `SCAN` bercabang lebih dari satu halaman (kursor tidak 0), karena katalog satu kota tidak cukup banyak kunci.
 
+### Tinjauan, 2026-10-25
+
+Peninjau mengulang sebagian mutasi di atas pada kode sesudah client diganti ke go-redis, dan menambah perubahan sendiri. Tiap perubahan dijalankan dari database bersih di lajur sendiri, lalu dikembalikan.
+
+| Perubahan | Penjaga | Hasil |
+|---|---|---|
+| Hapus kunci sesudah `PATCH` yang berhasil dibuang | `redis` B | Gagal: kunci dihapus, dapat True, harus False |
+| Promo tidak memanggil hapus awalan | `memori` B | Gagal: yang membuang entri (0, 0), harus (1, 0) |
+| Cache memori hidup 100 hari | `memori` D | Gagal: Citra melihat Rp25.000, harus Rp22.500 |
+| Urutan `sesudah` dipaksa jadi `sebelum` | `redis` E | Gagal: kunci belum dihapus, dapat False, harus True |
+| Jam cache memakai jam sungguhan | `memori` D | Gagal: Rp25.000, harus Rp22.500 |
+| Tulis yang ditolak menghapus kunci di mode benar | `gagal` D | Gagal: 6 baca database, harus 1 |
+| Hit dianggap miss | `memori` A | Gagal: (2, 2, 0, 0), harus (1, 1, 1, 1) |
+| `Pesan` membaca harga dari katalog (cache) | `memori` C | Gagal: tagihan Rp25.000, harus Rp22.500 |
+| `Pesan` menagih tanpa promo | `memori` C dan `go test` | Gagal di lab; `make -C labs/api-t3 run BAGIAN=testing` exit 1 |
+| Tanpa jatuh ke database saat Redis galat | `gagal` A | Gagal: 500, harus 200 |
+| Hasil database disimpan juga saat baca cache galat | `gagal` A | Gagal: galat cache 10, harus 5 |
+| `Set` dengan TTL 0 | `redis` A | Gagal: PTTL -1 ms |
+| `SCAN` memakai awalan salah | `redis` C | Gagal: entri kota tidak dibuang |
+| `Del` tidak menghapus | `redis` B | Gagal: kunci dihapus, dapat True, harus False |
+| `ReadTimeout: -1` | `gagal` A | Gagal: (5, 1, 1, 0), harus (0, 1, 6, 5) |
+| go-redis dengan retry bawaan (`MaxRetries: 0`) | `TestRedisMenggantungBerhentiDiBatasTanpaRetry` | Rekaman tidak menangkapnya (hasilnya sama, hanya lebih lama); tes Go gagal: 4 GET diterima, harus 1 |
+| Gerbang `commit,isi` menyala secara bawaan | `TestBukaCacheKatalogTanpaGerbangBawaan` | Rekaman hanya menggantung (curl lab tanpa batas waktu), tidak gagal keras; tes Go gagal |
+| `-lab-gerbang` diterima tanpa `-lab` | `TestBukaCacheKatalogMenolakFlagSalah` | Gagal: "gerbang tanpa -lab: harus ditolak" |
+| Rute `POST /lab/gerbang/lepas` terdaftar tanpa gerbang | `TestEndpointLepasGerbangHanyaBilaGerbangAda` | Gagal: status 409, harus 404 |
+
+Dua perubahan lolos dari rekaman sebelum tinjauan: retry bawaan dan gerbang yang menyala sendiri. Keduanya kini dijaga tes Go. Lima belas perubahan lain membuat rekaman gagal dengan pesan yang menyebut nilai yang salah. Dua yang terakhir (`-lab-gerbang` tanpa `-lab`, rute pelepas) adalah pemeriksaan baru yang hanya dijaga tes Go.
+
 ## Tidak dijalankan
 
 - Stampede dan perlindungannya (lease, kedaluwarsa dini XFetch): hanya disebut di halaman. Di rekaman beban, 13 kunci dan TTL 60 detik berarti paling banyak 13 baca database per menit. Perlombaan antar-pembaca pada satu kunci dingin tidak direkam karena jumlahnya bergantung penjadwalan.
 - Memendekkan TTL entri sampai waktu mulai promo berikutnya (cara menutup `redis.txt` G).
-- go-redis sebagai client cache (retry dan pool bawaannya mengubah waktu tunggu saat Redis menggantung).
+- go-redis dengan opsi bawaan (5 detik, 3 retry) sebagai client katalog: perbandingan itu direkam untuk batas login di `t3-instance` (`batas.txt` J), bukan untuk katalog.
 - Valkey sebagai pengganti Redis (lisensi Redis 8, R3-10): lab memakai Redis 8; tidak ada perbandingan jalan.
 - Redis dengan AUTH dan TLS, batas memori (`maxmemory`) dan kebijakan eviction (R3-10), Redis Cluster atau replika.
 - ETag dan cache lokal di app Flutter (opsi ditolak di ADR 28): tidak ada client Dart di lab ini.
