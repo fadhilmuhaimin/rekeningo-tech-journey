@@ -15,6 +15,9 @@ const apiBaris = baca("labs/api-t2/output/tutup-buku.txt").split("\n");
 const ledgerBaris = baca("labs/b3-ledger/output/tutup-buku.txt").split("\n");
 const halaman = baca("situs/src/content/docs/tahap-2/m17-prd-v3.mdx");
 const R = bacaRekaman(apiBaris.join("\n"));
+// Sepuluh lab Tahap 2 (RISET R2-202): daftar yang dipindai klaim "tidak ada" dan yang disebut halaman ("sepuluh lab").
+const LAB = ["api-t2", "b3-ledger", "b3-race", "b3-isolasi", "t2-pencairan", "e3-idempotency", "b2-query", "b4-skema", "c4-ratelimit", "e5-payload"];
+const KATA = ["nol", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas", "dua belas"];
 
 // Bagian A api-t2: baris ringkasan buku dan sistem (baris 10 dan 11).
 const A = (() => {
@@ -88,6 +91,26 @@ describe("halaman m17-prd-v3.mdx: tiap angka turunan dari rekaman", () => {
     harus(`Puncak sekarang ±${koma(puncak)} request per detik`);
   });
 
+  test("setiap bilangan bertitik ribuan di halaman berasal dari rekaman, asumsi, atau naskah M15", () => {
+    // `toContain` di atas lolos bila satu kemunculan benar; tes ini menolak kemunculan lain yang salah ketik (1.017 buku).
+    const boleh = new Set([
+      bil(A.buku), bil(A.jurnal), bil(R.sesudah.jurnal), bil(R.tambahan), bil(R.sebelum.budi.masuk), bil(R.sesudah.budi.masuk),
+      bil(asumsi.user), bil(perHari), "86.400", "3.600",
+      "15.000", // Rp15.000: selisih M15 dari naskah, dirujuk di blok Gejala; angkanya milik halaman 2.25
+    ]);
+    const dipakai = [...halaman.matchAll(/(?<![\d.])\d{1,3}(?:\.\d{3})+(?![\d.])/g)].map((m) => m[0]);
+    expect(dipakai.length).toBeGreaterThan(10);
+    expect(dipakai.filter((n) => !boleh.has(n))).toEqual([]);
+  });
+
+  test("jumlah yang ditulis dengan kata: lab yang dipindai dan masalah di tabel", () => {
+    const masalah = [...halaman.matchAll(/^\| \[\[(t2-m\d+)\]\] \|/gm)].length;
+    harus(`di ${KATA[LAB.length]} lab pada 2026-10-25`);
+    harus(`Tahap 2 sudah punya ${KATA[masalah]} masalah`);
+    harus(`**Delapan masalah, bukan satu kapasitas.**`);
+    expect(masalah).toBe(8);
+  });
+
   test("Snippet menunjuk baris yang dimaksud di rekaman", () => {
     const rentang = [...halaman.matchAll(/<Snippet file="labs\/api-t2\/output\/tutup-buku\.txt" lines="(\d+):(\d+)"/g)].map((m) => [Number(m[1]), Number(m[2])] as const);
     expect(rentang).toEqual([[8, 11], [42, 47], [64, 72], [41, 88]]);
@@ -132,8 +155,8 @@ describe("diagram t2-m17-diuji.json: tiap angka turunan dari rekaman dan asumsi"
 });
 
 describe("klaim 'tidak ada' yang dipakai halaman", () => {
-  const LAB = ["api-t2", "b3-ledger", "b3-race", "b3-isolasi", "t2-pencairan", "e3-idempotency", "b2-query", "b4-skema", "c4-ratelimit", "e5-payload"];
-  const EKSTENSI = /\.(go|py|sh|js|mjs|ts|yml|yaml)$|(^|\/)Makefile$/;
+  // Semua berkas teks lab, bukan hanya kode: perkakas beban bisa ada di .sql, .json, .md, atau Dockerfile (peninjau 339).
+  const EKSTENSI = /\.(go|py|sh|js|mjs|ts|yml|yaml|sql|json|md|toml|mod|html|conf|cfg|ini)$|(^|\/)(Makefile|Dockerfile[^/]*)$/;
   const LEWATI = new Set(["node_modules", ".venv", ".git", "output", "vendor"]);
   const jalan = (dir: string): string[] =>
     fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
@@ -153,7 +176,7 @@ describe("klaim 'tidak ada' yang dipakai halaman", () => {
   test("kode server api-t2 tidak memanggil layanan lain selain database", () => {
     const go = berkas.filter((f) => f.includes(`${path.sep}api-t2${path.sep}`) && f.endsWith(".go") && !f.endsWith("_test.go"));
     expect(go.length).toBeGreaterThan(5);
-    const kena = go.filter((f) => /http\.(Get|Post|PostForm|Head|NewRequest(WithContext)?)\(/.test(fs.readFileSync(f, "utf8"))).map((f) => path.relative(akar, f));
+    const kena = go.filter((f) => /\bhttp\.(Get|Post|PostForm|Head|NewRequest(WithContext)?|Client|DefaultClient)\b|\bnet\.Dial|\bsmtp\.|\bexec\.Command/.test(fs.readFileSync(f, "utf8"))).map((f) => path.relative(akar, f));
     expect(kena).toEqual([]);
   });
 
@@ -161,9 +184,14 @@ describe("klaim 'tidak ada' yang dipakai halaman", () => {
     expect(apiBaris[3]).toBe("# server: ./api-t2");
     const c4 = baca("labs/c4-ratelimit/output/login/ratelimit.txt");
     expect(c4).toMatch(/== F\. Dua instance/);
+    const txt = (dir: string): string[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+        const q = path.join(dir, e.name);
+        return e.isDirectory() ? txt(q) : e.name.endsWith(".txt") ? [q] : [];
+      });
     const lain = LAB.filter((l) => l !== "c4-ratelimit").flatMap((l) => {
       const out = path.join(akar, "labs", l, "output");
-      return fs.existsSync(out) ? fs.readdirSync(out).filter((f) => f.endsWith(".txt")).map((f) => path.join(out, f)) : [];
+      return fs.existsSync(out) ? txt(out) : [];
     });
     expect(lain.length).toBeGreaterThan(10);
     const kena = lain.filter((f) => /dua (instance|server|proses server)/i.test(fs.readFileSync(f, "utf8"))).map((f) => path.relative(akar, f));

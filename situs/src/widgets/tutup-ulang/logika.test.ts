@@ -70,6 +70,13 @@ describe("teks widget (t2-m17-tutup-ulang.json)", () => {
     expect(indeksBenar(L.pilihan, arahDari(r))).toBe(1);
   });
 
+  test("angka yang ditulis langsung di teks widget (bukan {templat}) cocok dengan rekaman", () => {
+    // Satu-satunya angka literal di JSON adalah "tetap 0" (buku yang tidak cocok); mengubahnya menggagalkan tes ini.
+    const literal = [...JSON.stringify(labelMentah).replace(/\{\w+\}/g, "").matchAll(/\d+/g)].map((m) => Number(m[0]));
+    expect(literal).toEqual([r.sesudah.tidakCocok, r.sesudah.tidakCocok]);
+    expect(r.sebelum.tidakCocok).toBe(r.sesudah.tidakCocok);
+  });
+
   test("dua pilihan dengan arah yang sama menggagalkan build", () => {
     const dobel = [L.pilihan[1]!, { ...L.pilihan[1]! }, L.pilihan[0]!];
     expect(() => indeksBenar(dobel, arahDari(r))).toThrow(/2 pilihan cocok/);
