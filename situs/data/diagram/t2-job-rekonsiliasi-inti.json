@@ -1,0 +1,43 @@
+{
+  "id": "t2-job-rekonsiliasi-inti",
+  "judul": "Job pencairan mati di warung ketujuh lalu dijalankan lagi: job lama dan job batch",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t2-pencairan · rentan.txt dan benar.txt"
+  },
+  "baris": [
+    {
+      "label": "Job lama",
+      "sub": "rentan.txt",
+      "simpul": [
+        {
+          "teks": "warung 7 mati",
+          "sub": "lalu perintah yang sama",
+          "nada": "warn"
+        },
+        {
+          "teks": "selisih Rp15.000",
+          "sub": "file 13 baris, ledger 12 jurnal",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Job batch",
+      "sub": "benar.txt",
+      "simpul": [
+        {
+          "teks": "warung 7 mati",
+          "sub": "lalu perintah yang sama",
+          "nada": "system"
+        },
+        {
+          "teks": "selisih Rp0",
+          "sub": "enam warung dilewati, file 12 baris",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Titik henti dan data sama di kedua baris: 12 warung, Rp2.450.000, proses dimatikan sesudah warung ketujuh (Warung 508) diproses. Bedanya hanya apa yang dibaca job saat dijalankan lagi."
+}

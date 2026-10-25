@@ -34,9 +34,9 @@
     },
     "django": {
       "label": "Tidak dijalankan",
-      "versi": "Django 6.1; django-axes (dokumentasi versi latest)",
-      "teks": "Django tidak membawa kunci akun. django-axes memantau alamat IP saja bila tidak diatur; `AXES_ONLY_USER_FAILURES` memantau username, dan `AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP` memantau pasangan keduanya. `AXES_COOLOFF_TIME` berisi lama kunci, dan `None` membuat kunci yang hanya bisa dibuka manual.",
-      "dokumentasi": "https://django-axes.readthedocs.io/en/latest/4_configuration.html"
+      "versi": "Django 6.1; django-axes 8.3.1 (PyPI), dokumentasi konfigurasi di repositori",
+      "teks": "Django tidak membawa kunci akun. django-axes memantau alamat IP saja bila tidak diatur; `AXES_LOCKOUT_PARAMETERS` memilih yang dipantau: username saja, atau pasangan username dan alamat. Flag lama seperti `AXES_ONLY_USER_FAILURES` dan `AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP` deprecated sejak 6.0.0. `AXES_COOLOFF_TIME` berisi lama kunci, dan `None` membuat kunci yang hanya bisa dibuka manual.",
+      "dokumentasi": "https://github.com/jazzband/django-axes/blob/master/docs/4_configuration.rst"
     },
     "serverpod": {
       "label": "Tidak dijalankan",

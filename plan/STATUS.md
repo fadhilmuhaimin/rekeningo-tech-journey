@@ -96,11 +96,11 @@ Prompt pemilik: Tahap 2 sampai 6 diselesaikan tanpa bertanya, pemilik meninjau d
 
 | Tahap | Riset | Naskah | Lab | ERD | Widget | Halaman | Evaluasi |
 |---|---|---|---|---|---|---|---|
-| 2 | selesai (#272) | naskah pemilik | 12/12 (lab-api-t2a #294, lab-c4a #304, 2.20-lab #317) | ERD2, ERD-1.12 selesai | semua tugas teknis dan widget Tahap 2 selesai | 25/33 (2.1–2.25) | antre |
-| 3 | selesai (#325) | draf di #331 | - | antre | antre | - | antre |
-| 4 | antre | antre | - | antre | antre | - | antre |
-| 5 | antre | antre | - | antre | antre | - | antre |
-| 6 | antre | antre | tanpa lab | tanpa ERD | tanpa widget | - | antre |
+| 2 | selesai (#272) | naskah pemilik | 12/12 (lab-api-t2a #294, lab-c4a #304, 2.20-lab #317) | ERD2, ERD-1.12 selesai | semua tugas teknis dan widget Tahap 2 selesai | 28/33 (2.1–2.28) | antre |
+| 3 | selesai (#325) | selesai (#331, ditinjau konsistensi) | - | antre | antre | - | antre |
+| 4 | selesai (#329) | antre | - | antre | antre | - | antre |
+| 5 | selesai (#330) | antre | - | antre | antre | - | antre |
+| 6 | selesai (#332) | antre | tanpa lab | tanpa ERD | tanpa widget | - | antre |
 
 ## Sistem kerja otomatis (keputusan 216)
 

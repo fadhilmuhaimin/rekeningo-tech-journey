@@ -1929,8 +1929,9 @@
       "lab": [
         "t2-pencairan"
       ],
-      "ada": false,
-      "nomor": "2.26"
+      "ada": true,
+      "nomor": "2.26",
+      "menit": 18
     },
     {
       "id": "t2-m16",
@@ -1981,8 +1982,9 @@
       "lab": [
         "c4-ratelimit"
       ],
-      "ada": false,
-      "nomor": "2.28"
+      "ada": true,
+      "nomor": "2.28",
+      "menit": 19
     },
     {
       "id": "t2-m17",
