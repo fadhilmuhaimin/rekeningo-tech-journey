@@ -42,8 +42,10 @@ func daftarMenu() []menuLab {
 
 // --8<-- [start:seed]
 // isiAwal mengisi schema yang sudah dimigrasi sampai 000019 dengan data lab Tahap 3, sebagai pemilik schema, dalam
-// satu transaction. Seluruhnya set-based (generate_series): 10.068 akun, 10.060 buku, 10.000 jurnal tunjangan awal,
-// 10.060 perangkat, 2.400 produk. Tidak lewat service, jadi tidak ada baris outbox: antrean awal kosong.
+// satu transaction: 10.068 akun, 10.064 buku (10.060 milik akun, 4 buku sistem), 10.000 jurnal tunjangan awal, 10.060
+// perangkat, 2.400 produk. Set-based (generate_series) kecuali jurnal tunjangan: satu loop PL/pgSQL 10.000 putaran di
+// dalam database (±1,5 detik seluruh seed), karena tiap jurnal butuh nomornya untuk posting. Tidak lewat service, jadi
+// tidak ada baris outbox: antrean awal kosong.
 func isiAwal(ctx context.Context, db *sql.DB) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(PasswordLab), bcrypt.DefaultCost)
 	if err != nil {

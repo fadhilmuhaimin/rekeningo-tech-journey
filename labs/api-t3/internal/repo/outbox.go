@@ -63,8 +63,11 @@ func (t Tx) UmumkanPromo(ctx context.Context, kota int64, payload []byte) (int64
 
 // --8<-- [start:klaim]
 // KlaimOutbox mengambil sampai n baris yang siap dikirim dan memegangnya sampai `lama` dari sekarang (ADR 24).
-// FOR UPDATE SKIP LOCKED: worker lain melewati baris yang sedang dipegang, bukan menunggunya, jadi tiga worker
-// tidak mengirim baris yang sama dan tidak ada baris yang terlewat. Tidak ada kursor: baris yang COMMIT belakangan
+// Dua hal bekerja bersama. FOR UPDATE mengunci baris selama pernyataan klaim, dan klaim_sampai menahannya sesudahnya.
+// Tanpa klausa kunci sama sekali, dua klaim bersamaan sama-sama meng-UPDATE satu baris dan baris itu dikirim dua kali
+// (mutasi tinjauan PR 340). SKIP LOCKED membuat worker lain melewati baris yang sedang dikunci klaim yang berjalan,
+// bukan menunggunya (R3-03: mengurangi lock contention pada tabel mirip antrean). Tanpa SKIP LOCKED tidak ada baris
+// ganda, tetapi klaim ikut menunggu (TestKlaimMelewatBarisYangDikunci). Tidak ada kursor: baris yang COMMIT belakangan
 // dengan `dibuat` lebih awal tetap terlihat. Klaim yang habis (worker mati di tengah kirim) membuat baris itu
 // dipegang worker lain; pengiriman ulang itu benar, dan penerima menyaring notifikasi_id (ADR 25).
 // urutKelas=false mengurutkan menurut nomor saja (mode rentan urut-waktu, M27).

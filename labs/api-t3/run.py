@@ -652,7 +652,7 @@ def rekam_sinkron():
 
     bagian("C. Jawaban hilang, HP mengirim ulang 62 jam kemudian dengan kunci yang sama: dikenali, tidak diterapkan dua kali")
     sql("UPDATE operasi_sinkron SET dibuat_di_hp = dibuat_di_hp - interval '62 hours'", tampil=False)
-    catat("# Kunci idempotensi tabel kunci_idempotensi dibuang sesudah 24 jam (ADR 14); operasi_sinkron menyimpan kuncinya 14 hari")
+    catat("# ADR 14: kunci_idempotensi dikenali 24 jam (api-t3 belum memakainya untuk bayar, keputusan 517); operasi_sinkron menyimpan kuncinya 14 hari")
     op2 = dict(op, dibuat_di_hp=waktu_lalu(62))
     s, isi = curl("POST", "/sinkron", op2, ani)
     harap((s, j(isi)["status"], j(isi)["ulang"], j(isi)["sekarang"]["versi"]), (200, "diterapkan", True, 2), "kirim ulang kunci sama")

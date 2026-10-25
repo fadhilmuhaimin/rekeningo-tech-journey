@@ -214,7 +214,11 @@ func TestWorkerPushMenggantungBerhentiDiBatasWaktu(t *testing.T) {
 	akun := akunDenganPerangkat(t, db, "gantung")
 	w := Baru(r, push.Baru(srv.URL, 200*time.Millisecond), konfigTes())
 	mulai := time.Now()
-	if _, err := w.Putaran(context.Background()); err != nil {
+	// Konteks berbatas 5 detik hanya jaring pengaman: bila client kehilangan batas waktunya sendiri, tes gagal di
+	// pemeriksaan lama putaran di bawah, bukan menggantung sampai batas waktu go test (10 menit).
+	ctx, batal := context.WithTimeout(context.Background(), 5*time.Second)
+	defer batal()
+	if _, err := w.Putaran(ctx); err != nil {
 		t.Fatal(err)
 	}
 	if lama := time.Since(mulai); lama < 200*time.Millisecond || lama > 2*time.Second {
@@ -222,5 +226,42 @@ func TestWorkerPushMenggantungBerhentiDiBatasWaktu(t *testing.T) {
 	}
 	if status, p := statusOutbox(t, db, akun); status != "menunggu" || p != 1 {
 		t.Fatalf("status %s percobaan %d: ingin menunggu (ditunda), percobaan 1", status, p)
+	}
+}
+
+// Backoff dihormati (ADR 25): baris yang ditunda tidak diklaim lagi sebelum coba_lagi, seberapa sering pun worker
+// berputar. Tes backoff lain hanya menghitung angkanya (Backoff) atau memakai jeda 1 ms yang tidak membedakan
+// "dihormati" dari "diabaikan"; mutasi peninjau PR 340 (coba_lagi dibuang dari klaim) lolos semuanya.
+func TestWorkerBackoffDihormati(t *testing.T) {
+	r, db := siapkan(t)
+	var kode, n atomic.Int32
+	kode.Store(503)
+	srv := layananPalsu(&kode, &n)
+	defer srv.Close()
+	akun := akunDenganPerangkat(t, db, "hidup")
+	k := konfigTes()
+	k.DasarBackoff, k.MaksBackoff = time.Hour, time.Hour
+	w := Baru(r, push.Baru(srv.URL, time.Second), k)
+	w.acak = func() float64 { return 1 } // tanpa jitter: tunggu penuh, satu jam
+	if hasil, err := w.Putaran(context.Background()); err != nil || hasil.Diklaim != 1 || hasil.Ditunda != 1 {
+		t.Fatalf("percobaan pertama: %+v, %v", hasil, err)
+	}
+	for i := 0; i < 3; i++ {
+		if hasil, err := w.Putaran(context.Background()); err != nil || hasil.Diklaim != 0 {
+			t.Fatalf("putaran %d sebelum coba_lagi: %+v, %v (baris yang ditunda tidak boleh diklaim)", i+2, hasil, err)
+		}
+	}
+	if status, p := statusOutbox(t, db, akun); status != "menunggu" || p != 1 || n.Load() != 1 {
+		t.Fatalf("status %s, percobaan %d, permintaan %d: ingin menunggu, 1, 1", status, p, n.Load())
+	}
+	if _, err := db.Exec(`UPDATE outbox SET coba_lagi = now() - interval '1 second' WHERE akun_id = $1`, akun); err != nil {
+		t.Fatal(err)
+	}
+	kode.Store(200)
+	if hasil, err := w.Putaran(context.Background()); err != nil || hasil.Terkirim != 1 {
+		t.Fatalf("sesudah coba_lagi: %+v, %v", hasil, err)
+	}
+	if status, p := statusOutbox(t, db, akun); status != "terkirim" || p != 2 {
+		t.Fatalf("status %s, percobaan %d: ingin terkirim di percobaan 2", status, p)
 	}
 }

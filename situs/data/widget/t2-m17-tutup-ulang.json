@@ -1,0 +1,56 @@
+{
+  "judul": "Tutup buku diulang: apa yang berubah?",
+  "sumber": "Rekaman lab · tutup-buku.txt bagian C",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "Tutup buku sudah lolos tanpa buku yang tidak cocok. Tepat sebelum laporan dibuat, transaction [A] menulis jurnal top-up susulan {tambahan} untuk Budi dan belum COMMIT. Sesudah [A] COMMIT, laporan yang sama dijalankan lagi. Apa yang berubah?",
+  "pilihan": [
+    {
+      "teks": "Tidak ada: laporannya sama, jurnal tetap {jurnal1}.",
+      "alasan": "Rekaman menunjukkan {jurnal2} jurnal dan uang masuk Budi {masuk2}. Laporan hanya melihat data yang sudah COMMIT saat querynya berjalan, dan jurnal [A] sudah COMMIT.",
+      "arah": "sama"
+    },
+    {
+      "teks": "Jurnal dan uang masuk Budi bertambah, dan semua buku tetap cocok.",
+      "alasan": "Jurnal naik dari {jurnal1} ke {jurnal2}, uang masuk Budi dari {masuk1} ke {masuk2}. Buku yang tidak cocok tetap 0, karena jurnal [A] menulis posting dan saldo_cache dalam satu transaction.",
+      "arah": "naik-cocok"
+    },
+    {
+      "teks": "Buku Budi tidak cocok: posting sudah bertambah, saldo_cache belum.",
+      "alasan": "Keduanya ditulis di transaction yang sama, jadi terlihat bersamaan sesudah COMMIT. Rekaman mencatat buku Budi cocok di kedua laporan, dengan saldo akhir {akhir1} lalu {akhir2}.",
+      "arah": "tidak-cocok"
+    }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "tabel": {
+    "judul": "Laporan tutup buku",
+    "periksa": "Yang diperiksa laporan",
+    "nilai": "Hasil"
+  },
+  "baris": {
+    "jurnal": "Jurnal yang dihitung",
+    "cocok": "Buku yang cocok",
+    "tidakCocok": "Buku yang tidak cocok",
+    "tidakSeimbang": "Jurnal yang tidak seimbang",
+    "masuk": "Uang masuk Budi",
+    "akhir": "Saldo akhir Budi",
+    "cache": "saldo_cache Budi"
+  },
+  "ubahJudul": "Ubah satu hal: kapan laporan dibuat",
+  "ubahChip": "bertambah",
+  "tetapChip": "tetap",
+  "waktu": {
+    "sebelum": "Sebelum [A] COMMIT",
+    "sesudah": "Sesudah [A] COMMIT"
+  },
+  "kesimpulan": {
+    "sebelum": "Laporan dibuat saat [A] belum COMMIT. Jurnal top-up susulan tidak terlihat: {jurnal1} jurnal, uang masuk Budi {masuk1}, dan tidak ada buku yang tidak cocok.",
+    "sesudah": "Laporan yang sama sesudah [A] COMMIT menghitung {jurnal2} jurnal dan uang masuk Budi {masuk2}. Buku yang tidak cocok tetap 0, jadi angka itu tidak bisa membedakan laporan pertama dari yang kedua."
+  },
+  "catatan": {
+    "sebelum": "Rekaman bagian C, laporan pertama: [A] sudah menulis jurnal dan memperbarui saldo_cache, tetapi belum COMMIT.",
+    "sesudah": "Rekaman bagian C, laporan sesudah [A] COMMIT: jurnal [A] dibuat sebelum laporan pertama, karena kolom dibuat berisi waktu awal transaction."
+  },
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan kedua laporan dari rekamannya sebagai tabel."
+}

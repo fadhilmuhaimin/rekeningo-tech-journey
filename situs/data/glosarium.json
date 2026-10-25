@@ -162,6 +162,15 @@
   "h": null
  },
  {
+  "t": "Argon2id",
+  "d": "Fungsi hash password yang sengaja lambat dan memakai banyak memori, supaya menebak password dari tabel yang bocor butuh waktu dan RAM besar.",
+  "b": "t2-login-aman",
+  "n": "2.28 Keamanan 4",
+  "u": "/tahap-2/brute-force/",
+  "s": "istilah-argon2id",
+  "h": "/istilah/argon2id/"
+ },
+ {
   "t": "At-least-once",
   "d": "Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda.",
   "b": "B10.1",
@@ -223,6 +232,15 @@
   "u": "/tahap-2/tim-infra/",
   "s": "istilah-branch-protection",
   "h": "/istilah/branch-protection/"
+ },
+ {
+  "t": "Brute force",
+  "d": "Menebak banyak password untuk satu akun sampai ada yang cocok, biasanya otomatis.",
+  "b": "t2-login-aman",
+  "n": "2.28 Keamanan 4",
+  "u": "/tahap-2/brute-force/",
+  "s": "istilah-brute-force",
+  "h": "/istilah/brute-force/"
  },
  {
   "t": "Buku ledger",

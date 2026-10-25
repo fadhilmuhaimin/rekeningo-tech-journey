@@ -49,7 +49,7 @@ Content-Type: application/json
 (1 row)
 
 # --- C. Jawaban hilang, HP mengirim ulang 62 jam kemudian dengan kunci yang sama: dikenali, tidak diterapkan dua kali ---
-# Kunci idempotensi tabel kunci_idempotensi dibuang sesudah 24 jam (ADR 14); operasi_sinkron menyimpan kuncinya 14 hari
+# ADR 14: kunci_idempotensi dikenali 24 jam (api-t3 belum memakainya untuk bayar, keputusan 517); operasi_sinkron menyimpan kuncinya 14 hari
 $ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0001", "perangkat_id": 10061, "produk_id": 61, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
 HTTP/1.1 200 OK
 Content-Type: application/json

@@ -1266,11 +1266,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.26 · Job terjadwal yang idempoten dan rekonsiliasi + ADR 19
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.25, lab-t2-pencairan
 - selesai bila: halaman Konsep+ADR 2.26 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/t2-pencairan`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Dari t2-pencairan (508): Keuangan mengambil file menurut status `dikirim`, bukan menurut ada atau tidaknya file.
+- catatan: Dari t2-pencairan (508): Keuangan mengambil file menurut status `dikirim`, bukan menurut ada atau tidaknya file. Selesai 2026-10-25 di PR #334 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### lab-c4a · Celah kunci dan IPv6 di c4-ratelimit
 
@@ -1284,21 +1284,20 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.27 · M16: Akun Ani terkunci
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.26, lab-c4-ratelimit, lab-c4a
 - selesai bila: halaman Masalah 2.27 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/c4-ratelimit`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Hanya container lokal; beberapa percobaan, bukan skrip massal. Dari c4-ratelimit (550): akun terkunci dijawab 401 generik, jadi Ani mengira lupa password; halaman menyebut jalur lupa password atau notifikasi lewat jalur lain (mohon konfirmasi pemilik).
+- catatan: Hanya container lokal; beberapa percobaan, bukan skrip massal. Dari c4-ratelimit (550): akun terkunci dijawab 401 generik, jadi Ani mengira lupa password; halaman menyebut jalur lupa password atau notifikasi lewat jalur lain (mohon konfirmasi pemilik). Selesai 2026-10-25 di PR #335 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### 2.28 · Keamanan 4: brute force, credential stuffing, hash password + ADR 20
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.27, lab-c4-ratelimit
 - selesai bila: halaman Keamanan+ADR 2.28 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/c4-ratelimit`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
-
+- catatan: Selesai 2026-10-25 di PR #337 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 ### 2.29 · M17: Tutup buku kedua lolos, PRD v3 datang
 
 - jenis: konten
