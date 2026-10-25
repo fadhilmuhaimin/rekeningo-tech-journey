@@ -1,0 +1,99 @@
+{
+  "istilah": "Brute force",
+  "sehari_hari": "Mencoba satu per satu semua kemungkinan sampai pintunya terbuka. Untuk login, itu berarti banyak password untuk satu akun, biasanya otomatis. Pagarnya membatasi berapa kali satu akun boleh dicoba dan seberapa cepat.",
+  "cerita": [
+    {
+      "rujukan": "t2-m16",
+      "teks": "Lima tebakan salah ke akun Ani memasang kunci 60 detik, lalu 120 dan 240 detik. Kunci menahan penebak, tetapi juga Ani dengan password yang benar."
+    },
+    {
+      "rujukan": "t2-login-aman",
+      "teks": "ADR 20 memakai kunci bertahap di database dan batas per akun di memori. Delapan tebakan ke satu akun dari satu alamat: lima sampai ke pemeriksaan password, tiga ditolak 429."
+    }
+  ],
+  "mekanisme": [
+    "Penyerang memilih satu akun dan mengirim banyak password, dari daftar password umum atau dari kebocoran situs lain.",
+    "Server menghitung kegagalan berturut-turut pada baris akun, bukan pada alamat penyerang, karena penyerang bisa berganti alamat.",
+    "Di ambang yang ditentukan, server menolak login ke akun itu untuk sementara dan menggandakan lamanya tiap kegagalan berikutnya.",
+    "Batas laju per akun di depan database menahan tebakan yang datang lebih cepat dari jatahnya. Login yang berhasil menghapus penghitung."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, pgx v5.11.0 (go.mod lab c4-ratelimit)",
+      "teks": "Bucket per akun 5 sekaligus dengan isi ulang 5 per menit di memori, dan kunci bertahap di database. Delapan tebakan ke satu akun dari satu alamat dijawab 401 lima kali dan 429 tiga kali, dan tebakan lewat `/ganti-password` ikut ditolak.",
+      "rekaman": "labs/c4-ratelimit/output/login/ratelimit.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "express-rate-limit 8.7.1",
+      "teks": "`keyGenerator` bawaan memakai alamat IP. Untuk batas per akun, `keyGenerator` diganti agar mengembalikan email. Store bawaan ada di memori dan direset saat proses dimulai ulang, dan tidak ada kunci akun bawaan.",
+      "dokumentasi": "https://express-rate-limit.mintlify.app/reference/configuration"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.x (dokumentasi)",
+      "teks": "Contoh limiter `login` di dokumentasi berisi `Limit::perMinute(500)` dan `Limit::perMinute(3)->by($request->input('email'))`. Laravel membalas 429 otomatis bila batas terlewati.",
+      "dokumentasi": "https://laravel.com/docs/13.x/routing#rate-limiting"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "django-axes, dokumentasi konfigurasi versi latest",
+      "teks": "Django tidak membatasi login. django-axes memantau alamat IP secara bawaan. `AXES_ONLY_USER_FAILURES` memantau username saja, dan `AXES_COOLOFF_TIME` bernilai `None` membuat kunci yang hanya bisa dibuka manual.",
+      "dokumentasi": "https://django-axes.readthedocs.io/en/latest/4_configuration.html"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod dokumentasi email 4.0.0",
+      "teks": "`failedLoginRateLimit` bawaan membatasi 5 percobaan login gagal per 5 menit. Halaman konfigurasinya tidak menyebut kunci akun.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/authentication/providers/email/configuration"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "Supabase Auth, dokumentasi rate limits tanpa nomor versi",
+      "teks": "Endpoint token, termasuk login dengan password, dibatasi per alamat IP: 150 request per 5 menit dengan burst 30. Batas per user hanya untuk OTP, konfirmasi, dan reset password.",
+      "dokumentasi": "https://supabase.com/docs/guides/auth/rate-limits"
+    }
+  },
+  "jebakan": [
+    "Menghitung kegagalan per alamat saja. Penyerang berganti alamat dan penghitungnya mulai dari nol. GitHub melaporkan hampir 40 ribu alamat pada insiden 2013.",
+    "Kunci yang bisa dipicu siapa saja. Lima tebakan ke akun orang lain mengunci pemiliknya, jadi kunci akun melindungi sekaligus menjadi alat menolak layanan.",
+    "Penghitung yang dibaca dulu, ditulis kemudian. Tebakan bersamaan lolos ambang sebelum ada yang melihat kunci. Lab mencatat percobaan lebih dulu dengan lock baris."
+  ],
+  "terkait": [
+    "Rate limit",
+    "Token bucket",
+    "Authentication"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-34",
+      "judul": "OWASP Authentication Cheat Sheet: login throttling dan account lockout",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html",
+      "catatan": "Penghitung melekat pada akun, durasi kunci boleh menggandakan, dan kunci bisa disalahgunakan untuk menolak layanan. Sudah dicatat di riset Tahap 2."
+    },
+    {
+      "riset": "R2-33",
+      "judul": "NIST SP 800-63B-4 bagian 3.2.2",
+      "url": "https://pages.nist.gov/800-63-4/sp800-63b.html",
+      "catatan": "Batas atas 100 percobaan gagal berturut-turut per akun. Lab memakai ambang 5, jauh lebih ketat."
+    },
+    {
+      "riset": "R2-196",
+      "judul": "GitHub, Weak passwords brute forced (2013)",
+      "url": "https://github.blog/news-insights/company-news/weak-passwords-brute-forced/",
+      "catatan": "Hampir 40 ribu alamat IP dipakai untuk menebak pelan-pelan password lemah. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-199",
+      "judul": "Pembatasan login di lima stack lain",
+      "url": "https://laravel.com/docs/13.x/routing#rate-limiting",
+      "catatan": "express-rate-limit, Laravel 13.x, django-axes, Serverpod dan Supabase Auth. Semua dibuka 25 Oktober 2026 dan tidak dijalankan."
+    },
+    {
+      "judul": "Rekaman lab c4-ratelimit, login/ratelimit.txt",
+      "rekaman": "labs/c4-ratelimit/output/login/ratelimit.txt",
+      "catatan": "Bagian D: delapan tebakan ke satu akun. Bagian G: lima tebakan bersamaan, satu yang dinilai."
+    }
+  ]
+}

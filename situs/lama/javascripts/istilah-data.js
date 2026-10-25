@@ -48,6 +48,15 @@ window.ISTILAH = {
   "t": "ADR (Architecture Decision Record)",
   "u": "d-system-design/d5-adr/"
  },
+ "Argon2id": {
+  "b": "t2-login-aman",
+  "d": "Fungsi hash password yang sengaja lambat dan memakai banyak memori, supaya menebak password dari tabel yang bocor butuh waktu dan RAM besar.",
+  "h": "istilah/argon2id/",
+  "n": "2.28 Keamanan 4",
+  "s": "istilah-argon2id",
+  "t": "Argon2id",
+  "u": "tahap-2/brute-force/"
+ },
  "At-least-once": {
   "b": "B10.1",
   "d": "Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda.",
@@ -139,6 +148,15 @@ window.ISTILAH = {
   "s": "istilah-branch-protection",
   "t": "Branch protection",
   "u": "tahap-2/tim-infra/"
+ },
+ "Brute force": {
+  "b": "t2-login-aman",
+  "d": "Menebak banyak password untuk satu akun sampai ada yang cocok, biasanya otomatis.",
+  "h": "istilah/brute-force/",
+  "n": "2.28 Keamanan 4",
+  "s": "istilah-brute-force",
+  "t": "Brute force",
+  "u": "tahap-2/brute-force/"
  },
  "Buku ledger": {
   "b": "t2-ledger",
@@ -1326,6 +1344,15 @@ window.ISTILAH = {
   "t": "Worker",
   "u": "b-fondasi/b10-1-background-job/"
  },
+ "argon2id": {
+  "b": "t2-login-aman",
+  "d": "Fungsi hash password yang sengaja lambat dan memakai banyak memori, supaya menebak password dari tabel yang bocor butuh waktu dan RAM besar.",
+  "h": "istilah/argon2id/",
+  "n": "2.28 Keamanan 4",
+  "s": "istilah-argon2id",
+  "t": "Argon2id",
+  "u": "tahap-2/brute-force/"
+ },
  "at-least-once": {
   "b": "B10.1",
   "d": "Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda.",
@@ -1393,6 +1420,15 @@ window.ISTILAH = {
   "s": "istilah-branch-protection",
   "t": "Branch protection",
   "u": "tahap-2/tim-infra/"
+ },
+ "brute force": {
+  "b": "t2-login-aman",
+  "d": "Menebak banyak password untuk satu akun sampai ada yang cocok, biasanya otomatis.",
+  "h": "istilah/brute-force/",
+  "n": "2.28 Keamanan 4",
+  "s": "istilah-brute-force",
+  "t": "Brute force",
+  "u": "tahap-2/brute-force/"
  },
  "buku ledger": {
   "b": "t2-ledger",
