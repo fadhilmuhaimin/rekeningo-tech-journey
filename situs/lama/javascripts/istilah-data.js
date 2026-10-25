@@ -240,6 +240,15 @@ window.ISTILAH = {
   "t": "CI (Continuous Integration)",
   "u": "tahap-1/kontrak-openapi/"
  },
+ "Credential stuffing": {
+  "b": "t2-m16",
+  "d": "Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama.",
+  "h": "istilah/credential-stuffing/",
+  "n": "2.27 M16",
+  "s": "istilah-credential-stuffing",
+  "t": "Credential stuffing",
+  "u": "tahap-2/m16-akun-terkunci/"
+ },
  "Database": {
   "b": "B2.1",
   "d": "Program yang menyimpan data secara permanen dan menjamin aturan seperti constraint dan transaction.",
@@ -525,6 +534,15 @@ window.ISTILAH = {
   "s": "istilah-kredit",
   "t": "Kredit",
   "u": "tahap-2/ledger/"
+ },
+ "Kunci akun": {
+  "b": "t2-m16",
+  "d": "Penolakan login sementara pada satu akun sesudah beberapa kali gagal berturut-turut, yang menahan penebak tetapi juga pemilik akun yang sebenarnya.",
+  "h": "istilah/kunci-akun/",
+  "n": "2.27 M16",
+  "s": "istilah-kunci-akun",
+  "t": "Kunci akun",
+  "u": "tahap-2/m16-akun-terkunci/"
  },
  "LSN": {
   "b": "D3",
@@ -1479,6 +1497,15 @@ window.ISTILAH = {
   "t": "Container",
   "u": "tahap-1/deployment-rollback/"
  },
+ "credential stuffing": {
+  "b": "t2-m16",
+  "d": "Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama.",
+  "h": "istilah/credential-stuffing/",
+  "n": "2.27 M16",
+  "s": "istilah-credential-stuffing",
+  "t": "Credential stuffing",
+  "u": "tahap-2/m16-akun-terkunci/"
+ },
  "database": {
   "b": "B2.1",
   "d": "Program yang menyimpan data secara permanen dan menjamin aturan seperti constraint dan transaction.",
@@ -1675,6 +1702,15 @@ window.ISTILAH = {
   "s": "istilah-kredit",
   "t": "Kredit",
   "u": "tahap-2/ledger/"
+ },
+ "kunci akun": {
+  "b": "t2-m16",
+  "d": "Penolakan login sementara pada satu akun sesudah beberapa kali gagal berturut-turut, yang menahan penebak tetapi juga pemilik akun yang sebenarnya.",
+  "h": "istilah/kunci-akun/",
+  "n": "2.27 M16",
+  "s": "istilah-kunci-akun",
+  "t": "Kunci akun",
+  "u": "tahap-2/m16-akun-terkunci/"
  },
  "latency": {
   "b": "C2",

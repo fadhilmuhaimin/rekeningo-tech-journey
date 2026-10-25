@@ -61,6 +61,7 @@
     "Mengira hash yang berat menggantikan batas laju. Hash hanya melindungi tabel yang bocor, sedangkan tebakan lewat pintu login butuh batas laju dan kunci akun."
   ],
   "terkait": [
+    "Brute force",
     "Rate limit",
     "Token bucket",
     "Authentication"

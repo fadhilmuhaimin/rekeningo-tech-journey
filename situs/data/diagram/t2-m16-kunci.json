@@ -1,0 +1,48 @@
+{
+  "id": "t2-m16-kunci",
+  "judul": "Dua pola tebakan, satu kunci per akun",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab c4-ratelimit · ratelimit.txt bagian C"
+  },
+  "baris": [
+    {
+      "label": "Satu tebakan per akun",
+      "sub": "29 akun dari satu alamat",
+      "simpul": [
+        {
+          "teks": "Tiap akun gagal satu kali"
+        },
+        {
+          "teks": "Kunci tidak pernah aktif",
+          "sub": "nol akun terkunci",
+          "nada": "warn"
+        },
+        {
+          "teks": "Satu akun terbuka",
+          "sub": "Karyawan 514, jawaban 200",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Lima tebakan ke akun Ani",
+      "sub": "dari alamat yang sama",
+      "simpul": [
+        {
+          "teks": "Lima gagal berturut-turut"
+        },
+        {
+          "teks": "Kunci 60 detik",
+          "nada": "system"
+        },
+        {
+          "teks": "Ani ditolak walau password benar",
+          "sub": "401, sama dengan password salah",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kunci per akun membiarkan penyemprotan lewat dan menghukum akun yang dibidik."
+}

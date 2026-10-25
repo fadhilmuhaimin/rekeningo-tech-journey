@@ -61,6 +61,8 @@
     "Penghitung yang dibaca dulu, ditulis kemudian. Tebakan bersamaan lolos ambang sebelum ada yang melihat kunci. Lab mencatat percobaan lebih dulu dengan lock baris."
   ],
   "terkait": [
+    "Credential stuffing",
+    "Kunci akun",
     "Rate limit",
     "Token bucket",
     "Authentication"

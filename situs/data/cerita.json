@@ -1916,8 +1916,9 @@
       "lab": [
         "c4-ratelimit"
       ],
-      "ada": false,
-      "nomor": "2.27"
+      "ada": true,
+      "nomor": "2.27",
+      "menit": 12
     },
     {
       "id": "t2-login-aman",
