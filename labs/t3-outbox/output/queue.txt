@@ -41,8 +41,8 @@ terkirim dalam 30 detik: antara 3,4% dan 4,2% dari 10.000 (naskah: 400 = 4%, dar
  0     | bayar | menunggu
  1     | topup | menunggu
 (2 rows)
-umur notifikasi uang yang menunggu: lebih dari 30 detik (sama dengan lamanya worker berjalan: ia baru dikerjakan sesudah semua promo)
-promo yang masih di depannya: lebih dari 9.600; seluruh 10.000 promo butuh 10.000 ÷ 13,33 = 750 detik (12,5 menit), dihitung
+umur notifikasi uang yang menunggu: paling sedikit 30 detik (selama worker berjalan ia belum disentuh: promo lebih dulu)
+promo yang masih di depannya: paling sedikit 9.580 (10.000 dikurangi batas atas 4,2%); seluruh 10.000 promo butuh 10.000 ÷ 13,33 = 750 detik (12,5 menit), dihitung
 # Supaya 95% (9.500) terkirim dalam 30 detik dibutuhkan 9.500 ÷ 30 = ±317 per detik, sekitar 24 kali kapasitas ini: dihitung (Asumsi), tidak dijalankan
 
 # --- D. Dengan kelas (bawaan): pembayaran uang lebih dulu, lalu top-up, lalu promo, dari antrean yang sama ---

@@ -23,7 +23,7 @@ worker: diklaim 0, terkirim 0, dilewati 0, ditunda 0, mati 0
 # klaim habis: worker berikutnya mengklaim baris yang sama
 $ ./api-t3 -peran worker -sekali
 worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
-selang antara pengiriman pertama dan kedua: sedikit di atas 5 detik, yaitu klaim 5 detik ditambah jeda polling dan waktu start worker
+selang dari start worker pertama sampai worker kedua selesai: sedikit di atas 5 detik, yaitu klaim 5 detik ditambah jeda polling dan waktu start worker
 push tiruan menerima: 2 pesan, 1 notifikasi_id
 => SELECT status, percobaan FROM outbox
  status   | percobaan

@@ -55,3 +55,15 @@ worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
  2         | 419      | terkirim | 1
 (2 rows)
 push tiruan menerima: 2 pesan; HP Citra berbunyi dua kali untuk dua transfer
+
+# --- D. Tanpa penghambat buatan: dua transfer ke Citra yang dilepas bersamaan bisa menghasilkan urutan dibuat yang terbalik dari nomor outbox ---
+# Sampai 10 pasang (Budi dan Dimas, Rp1.000 ke Citra); tiap pasang dilepas serentak dari dua thread; berhenti pada pasang pertama yang terbalik
+pasang terbalik ditemukan dalam paling banyak 10 pasang (jumlah pasang yang dipakai tidak direkam: bergantung waktu)
+=> SELECT id AS outbox_id, row_number() OVER (ORDER BY dibuat, id) AS urutan_dibuat FROM outbox ORDER BY id
+ outbox_id | urutan_dibuat
+-----------+---------------
+ 1         | 2
+ 2         | 1
+(2 rows)
+# Nomor 1 tiba di baris buku Citra lebih dulu, tetapi transaction-nya mulai lebih akhir (`dibuat` lebih akhir). Poller kursor yang sudah membaca nomor 1 berhenti di (dibuat nomor 1, 1) dan tidak akan membaca nomor 2 bila COMMIT-nya datang sesudah putaran itu (B).
+# Pemicu tidak harus dibuat: dua transfer yang berdekatan cukup untuk membalik urutan. Apakah baris benar-benar tertinggal bergantung pada putaran poller jatuh di antara dua COMMIT; B membuat celah itu panjang supaya terekam.

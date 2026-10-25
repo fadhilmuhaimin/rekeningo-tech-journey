@@ -94,3 +94,18 @@ worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
  10003     | bayar | terkirim | 1
 (1 row)
 # Tanpa outbox (kirim sesudah COMMIT di proses API, opsi ADR 23): proses yang mati di antara COMMIT dan kirim tidak meninggalkan jejak. Opsi itu Tidak dijalankan di lab ini.
+
+# --- G. Penulisan outbox gagal di kode Go: pembayaran ikut batal (B sampai D memakai sesi tangan, ini kode API) ---
+$ ./api-t3 -lab   # API dijalankan lagi sesudah F
+# Sesi tangan memasang trigger di tabel outbox yang menolak setiap INSERT; hanya untuk bagian ini
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "nominal": 5000}'
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/problem+json
+
+{"type":"/problems/internal","title":"Terjadi kesalahan di server","status":500}
+=> SELECT (SELECT count(*) FROM jurnal) AS jurnal, (SELECT count(*) FROM posting) AS posting, (SELECT saldo_cache FROM buku WHERE akun_id = 419) AS saldo_budi
+ jurnal | posting | saldo_budi
+--------+---------+------------
+ 10004  | 20008   | 195000
+(1 row)
+# Pembayaran ditolak dan tidak meninggalkan jurnal, posting, atau perubahan saldo: INSERT outbox ada di transaction jurnal. Kode yang menulis outbox sesudah COMMIT akan meninggalkan jurnal tanpa pemberitahuan (syarat Sinta).

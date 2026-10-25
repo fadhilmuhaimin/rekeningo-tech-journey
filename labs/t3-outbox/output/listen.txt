@@ -32,7 +32,7 @@ worker: diklaim 2, terkirim 2, dilewati 0, ditunda 0, mati 0
 ----+----------
  3  | terkirim
 (1 row)
-# Pelajaran R3-05: dokumentasi PostgreSQL 17 tidak menyebut nasib listener yang putus; lab ini merekamnya: notifikasi hilang, baris tidak
+# R3-05, R3-61: dokumentasi PostgreSQL 17 menyebut hanya sesi yang sedang mendengar yang diberi tahu dan registrasi hilang saat sesi berakhir; nasib notifikasi yang dikirim selagi listener putus tidak ditulis tegas. Rekaman ini: notifikasi tidak sampai, baris tetap di tabel
 
 # --- C. Retensi 7 hari: baris selesai yang lebih tua dibuang, baris yang menunggu dan yang mati tidak disentuh ---
 # Lima baris: terkirim 8 hari, terkirim 6 hari, dilewati 8 hari, menunggu 8 hari, mati 8 hari

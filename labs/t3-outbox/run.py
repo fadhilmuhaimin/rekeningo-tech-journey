@@ -82,9 +82,13 @@ def ringkas(teks):
     return dict(zip(("diklaim", "terkirim", "dilewati", "ditunda", "mati"), map(int, m.groups())))
 
 
-def worker(args=(), tampil=True, kode=0, label=None):
-    """`./api-t3 -peran worker -sekali`. Mengembalikan ringkasan sebagai dict; exit status harus `kode`."""
-    r = subprocess.run(perintah_worker(args), env=dict(d.ENV, DATABASE_URL=DB), capture_output=True, text=True)
+def worker(args=(), tampil=True, kode=0, label=None, batas=None):
+    """`./api-t3 -peran worker -sekali`. Mengembalikan ringkasan sebagai dict; exit status harus `kode`.
+    `batas` (detik): worker yang belum selesai sampai batas itu menggagalkan lab (mis. menunggu baris yang dikunci)."""
+    try:
+        r = subprocess.run(perintah_worker(args), env=dict(d.ENV, DATABASE_URL=DB), capture_output=True, text=True, timeout=batas)
+    except subprocess.TimeoutExpired:
+        gagal(f"worker belum selesai dalam {batas} detik")
     harap(r.returncode, kode, "exit worker")
     if tampil:
         catat((label or "$ ./api-t3 -peran worker -sekali" + "".join(f" {a}" for a in args)))
@@ -252,6 +256,23 @@ def rekam_transaksi():
     sql("SELECT jurnal_id, jenis, status, percobaan FROM outbox ORDER BY id DESC LIMIT 1")
     catat("# Tanpa outbox (kirim sesudah COMMIT di proses API, opsi ADR 23): proses yang mati di antara COMMIT dan kirim tidak "
           "meninggalkan jejak. Opsi itu Tidak dijalankan di lab ini.")
+
+    bagian("G. Penulisan outbox gagal di kode Go: pembayaran ikut batal (B sampai D memakai sesi tangan, ini kode API)")
+    d.mulai_api(db=DB, tampil="$ ./api-t3 -lab   # API dijalankan lagi sesudah F")
+    catat("# Sesi tangan memasang trigger di tabel outbox yang menolak setiap INSERT; hanya untuk bagian ini")
+    sql("CREATE FUNCTION tolak_outbox() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'outbox ditolak (lab)'; END $$", tampil=False)
+    sql("CREATE TRIGGER outbox_tolak BEFORE INSERT ON outbox FOR EACH ROW EXECUTE FUNCTION tolak_outbox()", tampil=False)
+    keadaan = ("SELECT (SELECT count(*) FROM jurnal) AS jurnal, (SELECT count(*) FROM posting) AS posting,"
+               " (SELECT saldo_cache FROM buku WHERE akun_id = 419) AS saldo_budi")
+    sebelum = sql(keadaan, tampil=False)[0]
+    s, isi = curl("POST", "/transfers", {"ke": 418, "nominal": 5000}, budi)
+    harap(s, 500, "INSERT outbox ditolak: pembayaran gagal")
+    harap(sql(keadaan, tampil=False)[0], sebelum, "jurnal, posting, dan saldo tidak berubah")
+    sql(keadaan)
+    catat("# Pembayaran ditolak dan tidak meninggalkan jurnal, posting, atau perubahan saldo: INSERT outbox ada di transaction jurnal. "
+          "Kode yang menulis outbox sesudah COMMIT akan meninggalkan jurnal tanpa pemberitahuan (syarat Sinta).")
+    sql("DROP TRIGGER outbox_tolak ON outbox", tampil=False)
+    sql("DROP FUNCTION tolak_outbox()", tampil=False)
     tulis("transaksi.txt", "jurnal dan baris outbox dalam satu transaction (ADR 23)")
 
 
@@ -334,6 +355,32 @@ def rekam_kursor():
     sql("SELECT o.id AS outbox_id, j.dibuat_oleh AS pengirim, o.status, o.percobaan FROM outbox o JOIN jurnal j ON j.id = o.jurnal_id ORDER BY o.id")
     harap(d.push_diterima()["jumlah"], 2, "dua pesan sampai")
     catat("push tiruan menerima: 2 pesan; HP Citra berbunyi dua kali untuk dua transfer")
+
+    bagian("D. Tanpa penghambat buatan: dua transfer ke Citra yang dilepas bersamaan bisa menghasilkan urutan dibuat yang terbalik dari nomor outbox")
+    catat("# Sampai 10 pasang (Budi dan Dimas, Rp1.000 ke Citra); tiap pasang dilepas serentak dari dua thread; berhenti pada pasang pertama yang terbalik")
+    terbalik = False
+    for _ in range(10):
+        sql("TRUNCATE outbox RESTART IDENTITY", tampil=False)
+        gerbang = threading.Barrier(2)
+
+        def lepas(token):
+            gerbang.wait()
+            return curl("POST", "/kiriman", {"ke_nomor_karyawan": "K00504", "nominal": 1000, "catatan": "serentak"}, token, tampil=False)
+
+        hasil_p, th_p = serentak([lambda: lepas(budi), lambda: lepas(dimas)])
+        tunggu_semua(th_p)
+        harap((hasil_p[0][0], hasil_p[1][0]), (201, 201), "pasang transfer serentak")
+        urut = satu("SELECT string_agg(urutan::text, ',' ORDER BY id) FROM (SELECT id, row_number() OVER (ORDER BY dibuat, id) AS urutan FROM outbox) x")
+        if urut == "2,1":
+            terbalik = True
+            break
+    harap(terbalik, True, "dalam 10 pasang ada yang urutan dibuat-nya terbalik dari nomor outbox")
+    catat("pasang terbalik ditemukan dalam paling banyak 10 pasang (jumlah pasang yang dipakai tidak direkam: bergantung waktu)")
+    sql("SELECT id AS outbox_id, row_number() OVER (ORDER BY dibuat, id) AS urutan_dibuat FROM outbox ORDER BY id")
+    catat("# Nomor 1 tiba di baris buku Citra lebih dulu, tetapi transaction-nya mulai lebih akhir (`dibuat` lebih akhir). "
+          "Poller kursor yang sudah membaca nomor 1 berhenti di (dibuat nomor 1, 1) dan tidak akan membaca nomor 2 bila COMMIT-nya datang sesudah putaran itu (B).")
+    catat("# Pemicu tidak harus dibuat: dua transfer yang berdekatan cukup untuk membalik urutan. Apakah baris benar-benar tertinggal "
+          "bergantung pada putaran poller jatuh di antara dua COMMIT; B membuat celah itu panjang supaya terekam.")
     tulis("kursor.txt", "kursor (dibuat, id) melewatkan baris yang COMMIT belakangan (M19), klaim tidak")
 
 
@@ -344,7 +391,7 @@ def rekam_klaim():
     mulai_semua(tampil="$ ./api-t3 -lab")
     budi = login("budi@lestari.example", label="Budi")
 
-    bagian("A. SQL klaim: tanpa SKIP LOCKED worker kedua antre di belakang worker pertama; dengan SKIP LOCKED ia langsung mendapat baris lain")
+    bagian("A. SQL klaim: tanpa klausa kunci dua sesi memilih baris yang sama; FOR UPDATE membuat sesi kedua antre; SKIP LOCKED membuatnya langsung mendapat baris lain")
     for n in range(8):
         bayar(budi, nominal=1000)
     sql("SELECT status, count(*) AS baris FROM outbox GROUP BY status")
@@ -360,6 +407,10 @@ def rekam_klaim():
           "   # worker 1 mengklaim empat baris, belum COMMIT")
     a = klaim_tangan()
     b = sambung(autocommit=False)
+    catat(f"=> [sesi 2] SELECT id FROM outbox WHERE {layak};   # tanpa klausa kunci sama sekali")
+    ids0 = [r[0] for r in b.execute(f"SELECT id FROM outbox WHERE {layak}").fetchall()]
+    harap(ids0, [1, 2, 3, 4], "tanpa klausa kunci sesi 2 memilih baris yang sama dengan sesi 1")
+    catat(f" sesi 2 memilih nomor {', '.join(map(str, ids0))}: baris yang sama dengan sesi 1, karena klaim sesi 1 belum COMMIT; keduanya akan mengklaimnya")
     catat(f"=> [sesi 2] SELECT id FROM outbox WHERE {layak} FOR UPDATE;   # tanpa SKIP LOCKED")
     hasil, th = serentak([lambda: [r[0] for r in b.execute(f"SELECT id FROM outbox WHERE {layak} FOR UPDATE").fetchall()]])
     d.tunggu(lambda: satu("SELECT count(*) FROM pg_stat_activity WHERE application_name = 'api-t3-pemilik' AND wait_event_type = 'Lock'") == 1,
@@ -390,7 +441,8 @@ def rekam_klaim():
         x.rollback()
         x.close()
     catat("# Dua sesi tidak pernah memegang baris yang sama, dan tidak ada baris yang layak tetapi tidak dipegang siapa pun.")
-    catat("# SKIP LOCKED tidak membuat klaim lebih benar; ia membuat worker tidak antre di belakang worker lain (R3-03).")
+    catat("# Yang mencegah baris ganda adalah klausa kunci (FOR UPDATE) bersama syarat klaim_sampai yang diperiksa ulang sesudah lock.")
+    catat("# SKIP LOCKED tidak membuat klaim lebih benar; ia membuat worker tidak antre di belakang worker lain (R3-03, R3-60).")
     catat("# Yang dipegang worker adalah baris outbox, bukan baris buku: pembayaran tidak ikut menunggu.")
 
     bagian("B. Tiga worker serentak atas 60 baris: tiap baris dikirim sekali, tidak ada yang terlewat")
@@ -437,7 +489,31 @@ def rekam_klaim():
     harap(u2, [2, 3, 4, 5, 1], "baris 1 paling akhir")
     catat("urutan di layanan push (nomor outbox): " + " -> ".join(map(str, u2)))
     sql("SELECT id, status, percobaan FROM outbox ORDER BY id")
-    catat("# Pesan tertua (nomor 1) tiba paling akhir. SKIP LOCKED menjaga agar tidak ada baris ganda atau terlewat, bukan urutan (R3-03, R3-04).")
+    catat("# Pesan tertua (nomor 1) tiba paling akhir. Klaim per baris menjaga agar tidak ada baris ganda atau terlewat, bukan urutan (R3-03, R3-04).")
+
+    bagian("D. Kode klaim di worker melewati baris yang dikunci sesi lain dan tidak menunggunya")
+    kosongkan_outbox()
+    for n in range(8):
+        bayar(budi, nominal=1000)
+    catat("# A memakai SQL tangan. Di sini worker sungguhan (KlaimOutbox) berjalan sementara sesi tangan memegang baris 1 sampai 4.")
+    catat("=> [sesi tangan] BEGIN; SELECT id FROM outbox WHERE id IN (1, 2, 3, 4) FOR UPDATE;   # belum COMMIT")
+    h = sambung(autocommit=False)
+    h.execute("SELECT id FROM outbox WHERE id IN (1, 2, 3, 4) FOR UPDATE")
+    h1 = worker(["-serentak", "4"], batas=10)
+    harap((h1["diklaim"], h1["terkirim"]), (4, 4), "worker melewati baris yang dikunci sesi lain")
+    k1 = sorted(urutan_terima())
+    harap(k1, [5, 6, 7, 8], "yang dikirim nomor 5 sampai 8")
+    catat("nomor outbox yang dikirim: " + ", ".join(map(str, k1)) + "   # worker selesai tanpa menunggu sesi tangan")
+    sql("SELECT id, status, percobaan FROM outbox ORDER BY id")
+    h.rollback()
+    h.close()
+    catat("=> [sesi tangan] ROLLBACK   # baris 1 sampai 4 dilepas")
+    h2 = worker(["-serentak", "4"], batas=10)
+    harap((h2["diklaim"], h2["terkirim"]), (4, 4), "baris yang tadi dikunci diambil sesudah dilepas")
+    k2 = sorted(urutan_terima()[4:])
+    harap(k2, [1, 2, 3, 4], "baris 1 sampai 4 menyusul")
+    catat("nomor outbox yang dikirim sesudahnya: " + ", ".join(map(str, k2)))
+    catat("# Worker tidak berhenti di baris yang dikunci sesi lain. Tanpa SKIP LOCKED di KlaimOutbox, worker pertama menunggu baris 1 sampai batas 10 detik habis.")
     tulis("klaim.txt", "klaim per baris FOR UPDATE SKIP LOCKED: tanpa baris ganda, tanpa baris terlewat, tanpa urutan (ADR 24)")
 
 
@@ -467,7 +543,7 @@ def rekam_ganda():
     selang = time.monotonic() - t0
     harap((h["diklaim"], h["terkirim"]), (1, 1), "pengiriman ulang")
     harap(4.9 <= selang <= 7.0, True, f"selang dua pengiriman {selang:.2f} detik harus sedikit di atas klaim 5 detik")
-    catat("selang antara pengiriman pertama dan kedua: sedikit di atas 5 detik, yaitu klaim 5 detik ditambah jeda polling dan waktu start worker")
+    catat("selang dari start worker pertama sampai worker kedua selesai: sedikit di atas 5 detik, yaitu klaim 5 detik ditambah jeda polling dan waktu start worker")
     p = d.push_diterima()
     harap((p["jumlah"], p["notifikasi_berbeda"], p["notifikasi_ganda"]), (2, 1, 1), "dua pengiriman, satu notifikasi_id")
     catat("push tiruan menerima: 2 pesan, 1 notifikasi_id")
@@ -679,10 +755,10 @@ def rekam_queue():
           [(0, "menunggu", True), (1, "menunggu", True)], "uang dan top-up masih menunggu")
     sql("SELECT kelas, jenis, status FROM outbox WHERE kelas < 2 GROUP BY kelas, jenis, status ORDER BY kelas")
     harap(satu("SELECT extract(epoch FROM now() - dibuat) >= 30 FROM outbox WHERE kelas = 0"), True, "umur notifikasi uang")
-    catat("umur notifikasi uang yang menunggu: lebih dari 30 detik (sama dengan lamanya worker berjalan: ia baru dikerjakan sesudah semua promo)")
+    catat("umur notifikasi uang yang menunggu: paling sedikit 30 detik (selama worker berjalan ia belum disentuh: promo lebih dulu)")
     sisa = satu("SELECT count(*) FROM outbox WHERE kelas = 2 AND status = 'menunggu'")
-    harap(sisa >= 9600, True, "sisa promo")
-    catat("promo yang masih di depannya: lebih dari 9.600; seluruh 10.000 promo butuh 10.000 ÷ 13,33 = 750 detik (12,5 menit), dihitung")
+    harap(sisa >= 10000 - 420, True, "sisa promo")
+    catat("promo yang masih di depannya: paling sedikit 9.580 (10.000 dikurangi batas atas 4,2%); seluruh 10.000 promo butuh 10.000 ÷ 13,33 = 750 detik (12,5 menit), dihitung")
     catat("# Supaya 95% (9.500) terkirim dalam 30 detik dibutuhkan 9.500 ÷ 30 = ±317 per detik, sekitar 24 kali kapasitas ini: dihitung (Asumsi), tidak dijalankan")
 
     bagian("D. Dengan kelas (bawaan): pembayaran uang lebih dulu, lalu top-up, lalu promo, dari antrean yang sama")
@@ -810,7 +886,8 @@ def rekam_listen():
     sql("SELECT id, status FROM outbox WHERE id = %d" % nomor3)
     listener2.close()
     w.close()
-    catat("# Pelajaran R3-05: dokumentasi PostgreSQL 17 tidak menyebut nasib listener yang putus; lab ini merekamnya: notifikasi hilang, baris tidak")
+    catat("# R3-05, R3-61: dokumentasi PostgreSQL 17 menyebut hanya sesi yang sedang mendengar yang diberi tahu dan registrasi hilang saat sesi berakhir; "
+          "nasib notifikasi yang dikirim selagi listener putus tidak ditulis tegas. Rekaman ini: notifikasi tidak sampai, baris tetap di tabel")
 
     bagian("C. Retensi 7 hari: baris selesai yang lebih tua dibuang, baris yang menunggu dan yang mati tidak disentuh")
     sql("TRUNCATE outbox RESTART IDENTITY", tampil=False)
