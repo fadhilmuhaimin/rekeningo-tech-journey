@@ -109,24 +109,24 @@ Tidak ada dependency baru. Go memakai `github.com/jackc/pgx/v5` dan `golang.org/
 | `csrf-secfetchsite-dihapus` | pemeriksaan Sec-Fetch-Site dihapus | tes Go | Dibunuh: `TestCsrfSahMenolakSecFetchSiteLintasSitus` |
 | `csrf-secfetchsite-dihapus@rekaman` | sama | `csrf` | **Lolos** (lihat di bawah) |
 | `csrf-token-diabaikan` | pemeriksaan token dihapus | tes Go | Dibunuh: `TestCsrfSahMenolakTokenSalahAtauKosong` |
-| `csrf-token-diabaikan@rekaman` | sama | `csrf` | **Lolos** (lihat di bawah) |
+| `csrf-token-diabaikan@rekaman` | sama | `csrf` | Dibunuh: skenario F, token Ani diterima di sesi Sari |
 | `csrf-token-sama-semua-sesi` | token CSRF sama untuk semua sesi | `csrf` | Dibunuh: skenario F, token Ani diterima di sesi Sari |
-| `samesite-selalu-none` | atribut `SameSite` dipaksa `None` walau `-samesite` bawaan | `csrf` | Dibunuh: harga berubah di skenario C (cookie kini sungguh terkirim) |
-| `samesite-tidak-ditulis` | atribut `SameSite` tidak ditulis | `csrf` | Dibunuh: serangan lewat di skenario B (Lax bawaan browser) |
+| `samesite-selalu-none` | atribut `SameSite` dipaksa `None` walau `-samesite` bawaan | `csrf` | Dibunuh: di skenario B cookie kini terkirim, harus tidak |
+| `samesite-tidak-ditulis` | atribut `SameSite` tidak ditulis | `csrf` | Dibunuh: di skenario B cookie kini terkirim (Lax bawaan browser), harus tidak |
 | `csp-unsafe-inline-ditambah` | `'unsafe-inline'` ditambah di samping nonce | `xss` | **Lolos** (lihat di bawah) |
 | `csrf-query-tanpa-format` | `?csrf=` disisipkan ke `<script>` tanpa memeriksa format | tes Go | Dibunuh: `TestDasborQueryCsrfTidakBisaMenyisipSkrip` |
 | `pagar-menerima-semua-alamat` | `pagar.Loopback` menerima alamat apa saja | tes Go | Dibunuh: `TestLoopbackHanyaMenerimaAlamatLokal` |
 | `pagar-akhiran-localhost-longgar` | akhiran `localhost` tanpa titik diterima | tes Go | Dibunuh: `TestLoopbackHanyaMenerimaAlamatLokal` |
 
-Empat baris lolos, dan tiap satu punya sebab yang sah.
+Tiga baris lolos, dan tiap satu punya sebab yang sah.
 
-**Tiga pemeriksaan gerbang CSRF di rekaman browser.** Form HTML polos Dimas gagal di ketiga pemeriksaan sekaligus. Chromium mengirim `Sec-Fetch-Site: cross-site` dan `Origin` lintas situs untuk navigasi form, dan form tidak bisa memasang header `X-CSRF-Token` sama sekali. Menghapus satu pemeriksaan saja masih menyisakan dua yang lain; baru saat ketiganya hilang (`csrf-gerbang-dimatikan`) serangan ini lewat. Ini bukti redundansi yang diukur, dan rekaman browser memang tidak bisa memisahkannya. Tes Go bisa: ia memanggil `csrfSah` dengan satu pelanggaran per tes, jadi ketiga mutasi itu mati di sana.
+**Origin dan Sec-Fetch-Site di rekaman browser.** Form HTML polos Dimas gagal di ketiga pemeriksaan sekaligus. Chromium mengirim `Sec-Fetch-Site: cross-site` dan `Origin` lintas situs untuk navigasi form, dan form tidak bisa memasang header `X-CSRF-Token` sama sekali. Menghapus Origin atau Sec-Fetch-Site saja masih menyisakan dua yang lain; baru saat ketiganya hilang (`csrf-gerbang-dimatikan`) serangan ini lewat. Ini bukti redundansi yang diukur, dan rekaman browser memang tidak bisa memisahkan keduanya. Tes Go bisa: ia memanggil `csrfSah` dengan satu pelanggaran per tes, jadi kedua mutasi itu mati di sana. Pemeriksaan token bisa dipisahkan di browser dengan dua sesi, yaitu skenario F.
 
 **`'unsafe-inline'` di samping nonce.** Browser mengabaikan `'unsafe-inline'` bila direktif memuat nonce atau hash (MDN, panduan CSP), jadi event handler `onerror` tetap diblokir dan skenario C tetap lolos. Ini mutan setara di Chromium versi lab, bukan celah rekaman. Kesimpulan untuk halaman: nonce menutup event handler inline walau `'unsafe-inline'` ikut tertulis, tetapi jangan mengandalkannya; client tanpa dukungan nonce tidak diuji.
 
 ## Keterbatasan uji
 
-- Hasil Origin dan Sec-Fetch-Site bergantung pada perilaku Chromium versi Playwright `situs/` hari ini. Client lama yang tidak mengirim kedua header itu tidak diuji di sini.
+- Rekaman terakhir memakai Chromium 156.0.8078.4 lewat Playwright 1.64.0 (2026-10-26). Hasil Origin, Sec-Fetch-Site, `SameSite`, dan CSP bergantung pada perilaku versi itu; versi lain bisa berbeda dan membuat `make cek` gagal. Client lama yang tidak mengirim kedua header itu tidak diuji di sini.
 - `csrf.txt` skenario D sengaja memakai `SameSite=None` untuk membuktikan token sendirian; ini bukan konfigurasi yang disarankan ADR 30 (yang memakai `SameSite=Lax` sebagai lapis tambahan, bukan pengganti token).
 - Dasbor lab mengirim token CSRF lewat query di redirect login, lalu halaman menghapusnya dari URL. `labs/api-t3` mengirimnya di body JSON. Query bocor ke riwayat browser dan log akses sebelum dihapus; jangan menyalin pola ini ke produksi. Nilai `?csrf=` yang bukan token 32 byte hex dibuang (tanpa itu query menjadi reflected XSS saat `-csp` mati; `TestDasborQueryCsrfTidakBisaMenyisipSkrip`).
 - Skenario E tidak menunggu dua menit, jadi batas masa tenggang `Lax` bawaan tidak diukur.
