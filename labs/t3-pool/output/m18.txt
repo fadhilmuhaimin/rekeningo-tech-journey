@@ -1,0 +1,66 @@
+# Lab t3-pool · M18: layanan push menggantung dan pool 10 koneksi
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-pool run (keputusan 957).
+
+# --- A. Pool 10: push menggantung, client tanpa batas waktu, beban nyata 17,4 request per detik ---
+$ ./api-t3 -rentan push-dalam-tx -lab   # pool 10, push timeout 0 (tanpa batas), idle-tx 0 (mati)
+server log: PERINGATAN: mode rentan push-dalam-tx menyala
+server log: api-t3 siap: pool 10, push timeout 0s, idle-tx 0s
+$ curl -X POST '/lab/mode' -d '{"mode": "gantung"}'   # layanan push tiruan: menerima permintaan, tidak pernah menjawab
+# Beban dengan jadwal tetap, bukan acak: 17,4 request per detik (Asumsi naskah bagian 3). Request ke-20, ke-40, dan seterusnya adalah pembayaran (0,87 per detik, 5%, Asumsi).
+# Sisanya (16,5 per detik) adalah karyawan yang membuka saldonya (GET /akun/{id}). Pembayar, warung, dan pembaca selalu berbeda: tidak ada rebutan lock buku.
+# Client pembacaan menyerah sesudah 3 detik. Client pembayaran tidak menyerah selama rekaman (batasnya 300 detik).
+=> SELECT count(*) AS idle_in_transaction FROM pg_stat_activity WHERE application_name = 'api-t3' AND state = 'idle in transaction'
+pembayaran ke-1 sampai di layanan push: idle in transaction 1
+pembayaran ke-5 sampai di layanan push: idle in transaction 5
+pembayaran ke-9 sampai di layanan push: idle in transaction 9
+pembayaran ke-10 sampai di layanan push: idle in transaction 10
+# Pembayaran ke-10 tiba pada detik 11,5 jadwal (10 ÷ 0,87). Cuplikan pg_stat_activity tiap 50 ms menandai saat koneksi ke-10 terlihat.
+pool 10 penuh antara detik ke-11 dan ke-12 sejak beban mulai (hitungan 10 ÷ 0,87 = 11,5)
+$ curl -i -X GET '/lab/pool'   # kolom menunggu tidak dicetak: hitungan kumulatif yang bergantung pada waktu
+{"dipakai":10,"maks":10,"terbuka":10}
+# Pembacaan sebelum pool penuh (request 1 sampai 199): 190 pembacaan: 200 x190
+# Pembacaan sesudah pool penuh (request 201 sampai 400): 190 pembacaan: tanpa jawaban x190
+# Sesudah 30 detik: 26 pembayaran dikirim, 26 belum dijawab. Di layanan push 10 permintaan menggantung, jadi 16 pembayaran menunggu koneksi di API.
+# Hitungan untuk t = 30 detik: L = 0,87 × (0,02 + 30) = 26,1 koneksi yang dibutuhkan. Diukur: 26 pembayaran dalam proses, tetapi tidak ada yang selesai, jadi angka itu hanya jadwal × waktu (0,87 × 30,4 = 26,4), bukan ujian L = λ × W (ujiannya di little.txt). Pool hanya muat 10; sisanya mengantre.
+
+# --- B. Pool 50 (usul Raka): pool lebih besar hanya menunda ---
+$ ./api-t3 -rentan push-dalam-tx -pool 50 -lab   # pool 50, push timeout 0, idle-tx 0
+server log: PERINGATAN: mode rentan push-dalam-tx menyala
+server log: api-t3 siap: pool 50, push timeout 0s, idle-tx 0s
+$ curl -X POST '/lab/mode' -d '{"mode": "gantung"}'   # layanan push tiruan: menerima permintaan, tidak pernah menjawab
+# Beban dengan jadwal tetap, bukan acak: 17,4 request per detik (Asumsi naskah bagian 3). Request ke-20, ke-40, dan seterusnya adalah pembayaran (0,87 per detik, 5%, Asumsi).
+# Sisanya (16,5 per detik) adalah karyawan yang membuka saldonya (GET /akun/{id}). Pembayar, warung, dan pembaca selalu berbeda: tidak ada rebutan lock buku.
+# Client pembacaan menyerah sesudah 3 detik. Client pembayaran tidak menyerah selama rekaman (batasnya 300 detik).
+=> SELECT count(*) AS idle_in_transaction FROM pg_stat_activity WHERE application_name = 'api-t3' AND state = 'idle in transaction'
+pembayaran ke-1 sampai di layanan push: idle in transaction 1
+pembayaran ke-25 sampai di layanan push: idle in transaction 25
+pembayaran ke-49 sampai di layanan push: idle in transaction 49
+pembayaran ke-50 sampai di layanan push: idle in transaction 50
+# Pembayaran ke-50 tiba pada detik 57,5 jadwal (50 ÷ 0,87).
+pool 50 penuh antara detik ke-57 dan ke-58 sejak beban mulai (hitungan 50 ÷ 0,87 = 57,5)
+$ curl -i -X GET '/lab/pool'   # kolom menunggu tidak dicetak: hitungan kumulatif yang bergantung pada waktu
+{"dipakai":50,"maks":50,"terbuka":50}
+# Sebelum pool penuh tidak ada request yang gagal. Pembacaan request 1 sampai 999: 950 pembacaan: 200 x950
+# Sesudah pool penuh (request 1001 sampai 1018): 18 pembacaan: tanpa jawaban x18
+# Sesudah 61,6 detik: 53 pembayaran dikirim, 53 belum dijawab, 50 menggantung di layanan push, 3 menunggu koneksi.
+# Pool 50 menunda pembekuan dari 11,5 ke 57,5 detik. Penyebabnya, layanan push tanpa batas waktu di dalam transaction, tidak berubah.
+
+# --- C. Client menyerah sesudah 5 detik: koneksi kembali dan pool tidak penuh ---
+$ ./api-t3 -rentan push-dalam-tx -lab   # sama seperti A
+server log: PERINGATAN: mode rentan push-dalam-tx menyala
+server log: api-t3 siap: pool 10, push timeout 0s, idle-tx 0s
+$ curl -X POST '/lab/mode' -d '{"mode": "gantung"}'   # layanan push tiruan: menerima permintaan, tidak pernah menjawab
+# Beban dengan jadwal tetap, bukan acak: 17,4 request per detik (Asumsi naskah bagian 3). Request ke-20, ke-40, dan seterusnya adalah pembayaran (0,87 per detik, 5%, Asumsi).
+# Sisanya (16,5 per detik) adalah karyawan yang membuka saldonya (GET /akun/{id}). Pembayar, warung, dan pembaca selalu berbeda: tidak ada rebutan lock buku.
+# Client pembacaan menyerah sesudah 3 detik. Client pembayaran menyerah sesudah 5 detik (HP yang menampilkan "timeout").
+koneksi idle in transaction: puncak 5 dari 10 (0,87 × 5 detik = 4,35, jadi paling banyak 5)
+pembayaran request 1 sampai 400: 20 pembayaran: tanpa jawaban x20
+pembacaan request 1 sampai 400: 380 pembacaan: 200 x380
+=> SELECT count(*) AS jurnal_bayar FROM jurnal WHERE jenis = 'bayar'
+ jurnal_bayar
+--------------
+ 0
+(1 row)
+# Sesudah 30 detik layanan push masih menahan 26 permintaan: handler tidak berhenti walau client pergi (push memakai konteks yang dilepas dari request).
+# Transaction pembayaran dibatalkan saat konteks request batal, jadi koneksi kembali ke pool dan tidak ada jurnal. Pool 10 baru penuh bila client menunggu lebih dari 10 ÷ 0,87 = 11,5 detik.

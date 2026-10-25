@@ -1,0 +1,72 @@
+# Lab t3-pool · ADR 22: timeout di dalam transaction, idle-tx saja, dan push di luar transaction
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-pool run (keputusan 958).
+
+# --- D. Timeout push 3 detik, tetapi tetap di dalam transaction: pool selamat, lock buku warung tertahan ---
+$ ./api-t3 -rentan push-dalam-tx -push-timeout 3s -lab   # pool 10, push timeout 3 detik, idle-tx 0
+server log: PERINGATAN: mode rentan push-dalam-tx menyala
+server log: api-t3 siap: pool 10, push timeout 3s, idle-tx 0s
+$ curl -X POST '/lab/mode' -d '{"mode": "gantung"}'   # layanan push tiruan: menerima permintaan, tidak pernah menjawab
+# Beban dengan jadwal tetap, bukan acak: 17,4 request per detik (Asumsi naskah bagian 3). Request ke-20, ke-40, dan seterusnya adalah pembayaran (0,87 per detik, 5%, Asumsi).
+# Sisanya (16,5 per detik) adalah karyawan yang membuka saldonya (GET /akun/{id}). Pembayar, warung, dan pembaca selalu berbeda: tidak ada rebutan lock buku.
+pembayaran request 1 sampai 200: 10 pembayaran: 201 x10; tiap pembayaran memakan lebih dari 2,9 detik: ya
+pembacaan request 1 sampai 250: 238 pembacaan: 200 x238
+koneksi idle in transaction: puncak 3 dari 10 (0,87 × 3 detik = 2,61, jadi paling banyak 3): pool tidak penuh
+server log: 10 baris 'push gagal, hanya dicatat: ... Client.Timeout exceeded ...' (satu per pembayaran)
+# Timeout menyelamatkan pool, tetapi pembayaran tetap menahan lock buku warung selama push menunggu. Dua pembayaran ke warung yang sama, selisih 0,5 detik:
+=> SELECT count(*) AS menunggu_lock FROM pg_stat_activity WHERE application_name = 'api-t3' AND wait_event_type = 'Lock'
+menunggu_lock: 1 (transaction kedua menunggu lock buku warung)
+pembayaran pertama: 201 sesudah sekitar 3 detik (lebih dari 2,9 dan kurang dari 3,5): ya
+pembayaran kedua: 201 sesudah lebih dari 5 detik (menunggu yang pertama selesai di detik ke-3, lalu push-nya sendiri 3 detik; tanpa rebutan lock 3 detik): ya
+# Satu warung hanya menerima satu pembayaran per 3 detik selama push menggantung, walau pool kosong.
+
+# --- E. idle_in_transaction_session_timeout 5 detik saja, push tanpa batas waktu: PostgreSQL bebas, pool di Go tidak ---
+$ ./api-t3 -rentan push-dalam-tx -idle-tx 5s -lab   # pool 10, push timeout 0, idle-tx 5 detik
+server log: PERINGATAN: mode rentan push-dalam-tx menyala
+server log: api-t3 siap: pool 10, push timeout 0s, idle-tx 5s
+$ curl -X POST '/lab/mode' -d '{"mode": "gantung"}'   # layanan push tiruan: menerima permintaan, tidak pernah menjawab
+# Beban dengan jadwal tetap, bukan acak: 17,4 request per detik (Asumsi naskah bagian 3). Request ke-20, ke-40, dan seterusnya adalah pembayaran (0,87 per detik, 5%, Asumsi).
+# Sisanya (16,5 per detik) adalah karyawan yang membuka saldonya (GET /akun/{id}). Pembayar, warung, dan pembaca selalu berbeda: tidak ada rebutan lock buku.
+=> SELECT sessions_fatal FROM pg_stat_database WHERE datname = 'lab'   # selisih sejak beban mulai
+sesi yang dihentikan PostgreSQL dengan kesalahan fatal (idle-in-transaction timeout): paling sedikit 8: ya
+di PostgreSQL: idle in transaction puncak 5 (0,87 × 5 detik = 4,35); sesi yang lebih tua dari 5 detik dihentikan PostgreSQL
+di PostgreSQL sekarang: idle in transaction tidak lebih dari 2 (pembayaran ke-1 sampai ke-8 sudah diputus)
+=> SELECT id FROM buku WHERE akun_id = 418 FOR UPDATE NOWAIT   # warung pembayaran ke-1 (putus pada detik ke-6)
+lock buku warung pembayaran ke-1: didapat (PostgreSQL sudah melepasnya)
+=> SELECT id FROM buku WHERE akun_id = 511 FOR UPDATE NOWAIT   # warung pembayaran ke-10 (putus pada detik ke-16)
+lock buku warung pembayaran ke-10: ditolak 55P03 (masih dipegang; baru lepas sesudah 5 detik)
+$ curl -i -X GET '/lab/pool'   # kolom menunggu tidak dicetak: hitungan kumulatif yang bergantung pada waktu
+{"dipakai":10,"maks":10,"terbuka":10}
+di Go: pool tetap penuh walau PostgreSQL sudah memutus sesinya. Pembacaan request 201 sampai 212: 12 pembacaan: tanpa jawaban x12
+=> SELECT count(*) AS jurnal_bayar FROM jurnal WHERE jenis = 'bayar'
+ jurnal_bayar
+--------------
+ 0
+(1 row)
+# idle_in_transaction_session_timeout melindungi PostgreSQL (lock dan transaction terbuka). Slot pool ada di proses Go dan tetap terpakai selama handler menunggu push.
+
+# --- F. Versi benar (ADR 22 dan 23): push di luar transaction, timeout 3 detik, pemberitahuan lewat outbox ---
+$ ./api-t3 -lab   # pool 10, push timeout 3 detik, idle-tx 5 detik; pembayaran menulis outbox, tanpa panggilan jaringan
+server log: api-t3 siap: pool 10, push timeout 3s, idle-tx 5s
+$ curl -X POST '/lab/mode' -d '{"mode": "gantung"}'   # layanan push tiruan: menerima permintaan, tidak pernah menjawab
+$ ./api-t3 -peran worker -maks-percobaan 20 &   # mengirim isi outbox; push timeout 3 detik
+# Batas percobaan dinaikkan dari 5 (ADR 25) ke 20 hanya di rekaman ini: dengan batas bawaan, baris tertua bisa masuk dead-letter sebelum detik ke-30 karena jitter backoff acak, dan hitungan baris di bawah tidak sama di setiap run.
+# Beban dengan jadwal tetap, bukan acak: 17,4 request per detik (Asumsi naskah bagian 3). Request ke-20, ke-40, dan seterusnya adalah pembayaran (0,87 per detik, 5%, Asumsi).
+# Sisanya (16,5 per detik) adalah karyawan yang membuka saldonya (GET /akun/{id}). Pembayar, warung, dan pembaca selalu berbeda: tidak ada rebutan lock buku.
+pembayaran request 1 sampai 520: 26 pembayaran: 201 x26
+pembacaan request 1 sampai 520: 494 pembacaan: 200 x494
+W rata-rata satu pembayaran dan satu pembacaan kurang dari 50 ms (batas lab; Asumsi naskah 20 ms): ya
+L semua request = 17,4 × W rata-rata dari data kurang dari 0,87 koneksi (batas lab 17,4 × 50 ms; hitungan naskah R3-32 dengan 20 ms: 0,35): ya
+transaction terbuka paling banyak 1 pada satu waktu (satu pembayaran setiap 1,149 detik, tiap transaction hanya milidetik): ya
+layanan push sedang menahan permintaan dari worker: ya; pembayaran tetap selesai dalam milidetik
+=> SELECT status, count(*) AS baris FROM outbox GROUP BY status
+ status   | baris
+----------+-------
+ menunggu | 26
+(1 row)
+# Pemberitahuan tidak hilang: 26 baris menunggu untuk dicoba lagi (backoff). Layanan push pulih:
+=> UPDATE outbox SET coba_lagi = now(), klaim_sampai = NULL WHERE status = 'menunggu'
+UPDATE 26
+$ ./api-t3 -peran worker -sekali -serentak 4 -maks-percobaan 20
+worker: diklaim 26, terkirim 26, dilewati 0, ditunda 0, mati 0
+push tiruan menerima: 26 pesan, 26 notifikasi berbeda, 0 ganda
