@@ -31,7 +31,7 @@ type Service struct {
 	umurSesi time.Duration
 	kini     func() time.Time
 	// Lapis per akun rate limit (lab-api-t2a, keputusan 645). Lapis per IP ada di handler, karena IP urusan HTTP.
-	loginAkun *Pembatas // key: email
+	loginAkun Batas     // key: email; memori satu proses (ADR 20) atau penghitung bersama (ADR 27)
 	kirimAkun *Pembatas // key: akun pengirim
 	// Hanya untuk mode rentan push-dalam-tx (M18): client push dan nama mode. Versi benar tidak memanggil
 	// jaringan di dalam transaction (ADR 22), jadi kedua field ini kosong.
@@ -50,6 +50,9 @@ func (s Service) DenganRentan(mode string, k push.Klien) Service {
 	s.rentan, s.push = mode, k
 	return s
 }
+
+// DenganBatasLoginAkun mengganti pembatas per akun di jalur login (flag -redis memasang PembatasBersama, ADR 27).
+func (s Service) DenganBatasLoginAkun(b Batas) Service { s.loginAkun = b; return s }
 
 // DenganJam mengganti sumber waktu (flag -jam-lab: waktu dibekukan supaya rekaman bucket bisa diulang identik).
 func (s Service) DenganJam(kini func() time.Time) Service { s.kini = kini; return s }

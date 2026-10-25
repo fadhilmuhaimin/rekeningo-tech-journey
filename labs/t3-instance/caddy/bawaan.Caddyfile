@@ -1,0 +1,8 @@
+# Bawaan Caddy 2.11.7: kebijakan random, tanpa health check, tanpa retry (R3-13).
+{
+	auto_https off
+	admin localhost:2019
+}
+:8080 {
+	reverse_proxy {$UPSTREAM_A} {$UPSTREAM_B}
+}

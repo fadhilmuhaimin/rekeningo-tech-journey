@@ -5,6 +5,7 @@ include ../lab_env.mk
 # Satu bagian: make run BAGIAN=outbox   (skema outbox push rentan katalog sinkron web testing)
 run:
 	$(MAKE) -C ../b3-race up
+	docker compose -f ../b9-cache/docker-compose.yml up -d --wait   # Redis lab: tes internal/redisbatas (BAGIAN=testing)
 	../.venv/bin/python run.py $(BAGIAN)
 
 # Rekam ulang lalu pastikan output/ identik dengan yang di-commit, termasuk file baru yang belum di-track.

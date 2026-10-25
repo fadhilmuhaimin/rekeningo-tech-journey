@@ -1,0 +1,1442 @@
+{
+  "format": 1,
+  "tahap": 3,
+  "postgres": 17,
+  "sumber": {
+    "file": [
+      "labs/api-t1/schema.sql",
+      "labs/b4-migration/baru/000005_batas_saldo_warung.up.sql",
+      "labs/api-t2/migrasi/000009_akun_tahap2.up.sql",
+      "labs/api-t2/migrasi/000010_ledger_tabel.up.sql",
+      "labs/api-t2/migrasi/000011_ledger_pendukung.up.sql",
+      "labs/api-t2/migrasi/000012_ledger_migrasi.up.sql",
+      "labs/api-t2/migrasi/000013_saldo_contract.up.sql",
+      "labs/api-t2/migrasi/000014_wajib_ganti_password.up.sql",
+      "labs/api-t3/migrasi/000015_kota_peran_hr.up.sql",
+      "labs/api-t3/migrasi/000016_sesi_web.up.sql",
+      "labs/api-t3/migrasi/000017_perangkat_outbox.up.sql",
+      "labs/api-t3/migrasi/000018_katalog_promo.up.sql",
+      "labs/api-t3/migrasi/000019_operasi_sinkron.up.sql"
+    ],
+    "pembanding": [
+      "labs/b4-migration/migrations/000001_akun_sesi.up.sql",
+      "labs/b4-migration/migrations/000002_topup.up.sql",
+      "labs/b4-migration/migrations/000003_transaksi.up.sql",
+      "labs/b4-migration/baru/000004_koreksi.up.sql",
+      "labs/b4-migration/baru/000005_batas_saldo_warung.up.sql",
+      "labs/api-t2/migrasi/000009_akun_tahap2.up.sql",
+      "labs/api-t2/migrasi/000010_ledger_tabel.up.sql",
+      "labs/api-t2/migrasi/000011_ledger_pendukung.up.sql",
+      "labs/api-t2/migrasi/000012_ledger_migrasi.up.sql",
+      "labs/api-t2/migrasi/000013_saldo_contract.up.sql",
+      "labs/api-t2/migrasi/000014_wajib_ganti_password.up.sql",
+      "labs/api-t3/migrasi/000015_kota_peran_hr.up.sql",
+      "labs/api-t3/migrasi/000016_sesi_web.up.sql",
+      "labs/api-t3/migrasi/000017_perangkat_outbox.up.sql",
+      "labs/api-t3/migrasi/000018_katalog_promo.up.sql",
+      "labs/api-t3/migrasi/000019_operasi_sinkron.up.sql"
+    ],
+    "sha256": "af1cb937710c078686167670120d78cd159cf39a1f2f5edbaa0c3474b7a64f61"
+  },
+  "tabel": [
+    {
+      "nama": "akun",
+      "kolom": [
+        {
+          "nama": "id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "jenis",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "nama",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "email",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "password_hash",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "nomor_karyawan",
+          "tipe": "text",
+          "wajib": false,
+          "bawaan": null
+        },
+        {
+          "nama": "wajib_ganti_password",
+          "tipe": "boolean",
+          "wajib": true,
+          "bawaan": "false"
+        },
+        {
+          "nama": "gagal_login",
+          "tipe": "integer",
+          "wajib": true,
+          "bawaan": "0"
+        },
+        {
+          "nama": "terkunci_sampai",
+          "tipe": "timestamp with time zone",
+          "wajib": false,
+          "bawaan": null
+        },
+        {
+          "nama": "kota_id",
+          "tipe": "bigint",
+          "wajib": false,
+          "bawaan": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fk": [
+        {
+          "nama": "akun_kota_id_fkey",
+          "kolom": [
+            "kota_id"
+          ],
+          "ke_tabel": "kota",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        }
+      ],
+      "unik": [
+        {
+          "nama": "akun_email_key",
+          "kolom": [
+            "email"
+          ]
+        },
+        {
+          "nama": "akun_nomor_karyawan_key",
+          "kolom": [
+            "nomor_karyawan"
+          ]
+        }
+      ],
+      "cek": [
+        {
+          "nama": "akun_gagal_login_check",
+          "kolom": [
+            "gagal_login"
+          ],
+          "ekspresi": "gagal_login >= 0"
+        },
+        {
+          "nama": "akun_jenis_check",
+          "kolom": [
+            "jenis"
+          ],
+          "ekspresi": "jenis = ANY (ARRAY['karyawan'::text, 'warung'::text, 'admin'::text, 'sistem'::text, 'hr'::text])"
+        },
+        {
+          "nama": "karyawan_bernomor",
+          "kolom": [
+            "jenis",
+            "nomor_karyawan"
+          ],
+          "ekspresi": "jenis <> 'karyawan'::text OR nomor_karyawan IS NOT NULL"
+        }
+      ],
+      "index": [
+        {
+          "nama": "akun_kota",
+          "unik": false,
+          "definisi": "btree (kota_id) WHERE (kota_id IS NOT NULL)"
+        }
+      ]
+    },
+    {
+      "nama": "sesi",
+      "kolom": [
+        {
+          "nama": "token_hash",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "akun_id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "kedaluwarsa",
+          "tipe": "timestamp with time zone",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "jenis",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": "'app'::text"
+        },
+        {
+          "nama": "csrf_hash",
+          "tipe": "text",
+          "wajib": false,
+          "bawaan": null
+        }
+      ],
+      "pk": [
+        "token_hash"
+      ],
+      "fk": [
+        {
+          "nama": "sesi_akun_id_fkey",
+          "kolom": [
+            "akun_id"
+          ],
+          "ke_tabel": "akun",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        }
+      ],
+      "unik": [],
+      "cek": [
+        {
+          "nama": "sesi_csrf_hanya_web",
+          "kolom": [
+            "jenis",
+            "csrf_hash"
+          ],
+          "ekspresi": "(jenis = 'web'::text) = (csrf_hash IS NOT NULL)"
+        },
+        {
+          "nama": "sesi_jenis_check",
+          "kolom": [
+            "jenis"
+          ],
+          "ekspresi": "jenis = ANY (ARRAY['app'::text, 'web'::text])"
+        }
+      ],
+      "index": []
+    },
+    {
+      "nama": "buku",
+      "kolom": [
+        {
+          "nama": "id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": "nextval('buku_id_seq'::regclass)"
+        },
+        {
+          "nama": "akun_id",
+          "tipe": "bigint",
+          "wajib": false,
+          "bawaan": null
+        },
+        {
+          "nama": "jenis",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "saldo_cache",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": "0"
+        },
+        {
+          "nama": "batas_saldo",
+          "tipe": "bigint",
+          "wajib": false,
+          "bawaan": null
+        },
+        {
+          "nama": "batas_harian",
+          "tipe": "bigint",
+          "wajib": false,
+          "bawaan": null
+        },
+        {
+          "nama": "versi",
+          "tipe": "integer",
+          "wajib": true,
+          "bawaan": "0"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fk": [
+        {
+          "nama": "buku_akun_id_fkey",
+          "kolom": [
+            "akun_id"
+          ],
+          "ke_tabel": "akun",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        }
+      ],
+      "unik": [
+        {
+          "nama": "buku_akun_id_jenis_key",
+          "kolom": [
+            "akun_id",
+            "jenis"
+          ]
+        }
+      ],
+      "cek": [
+        {
+          "nama": "buku_batas_harian_check",
+          "kolom": [
+            "batas_harian"
+          ],
+          "ekspresi": "batas_harian > 0"
+        },
+        {
+          "nama": "buku_batas_saldo_check",
+          "kolom": [
+            "batas_saldo"
+          ],
+          "ekspresi": "batas_saldo > 0"
+        },
+        {
+          "nama": "buku_jenis_check",
+          "kolom": [
+            "jenis"
+          ],
+          "ekspresi": "jenis = ANY (ARRAY['karyawan'::text, 'warung'::text, 'tunjangan'::text, 'kas_pencairan'::text, 'pembuka'::text, 'selisih'::text])"
+        },
+        {
+          "nama": "buku_pemilik",
+          "kolom": [
+            "akun_id",
+            "jenis"
+          ],
+          "ekspresi": "(akun_id IS NOT NULL) = (jenis = ANY (ARRAY['karyawan'::text, 'warung'::text]))"
+        }
+      ],
+      "index": [
+        {
+          "nama": "buku_sistem_satu_per_jenis",
+          "unik": true,
+          "definisi": "btree (jenis) WHERE (akun_id IS NULL)"
+        }
+      ]
+    },
+    {
+      "nama": "jurnal",
+      "kolom": [
+        {
+          "nama": "id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": "nextval('jurnal_id_seq'::regclass)"
+        },
+        {
+          "nama": "jenis",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "keterangan",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "membalik_jurnal_id",
+          "tipe": "bigint",
+          "wajib": false,
+          "bawaan": null
+        },
+        {
+          "nama": "dibuat_oleh",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "dibuat",
+          "tipe": "timestamp with time zone",
+          "wajib": true,
+          "bawaan": "now()"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fk": [
+        {
+          "nama": "jurnal_dibuat_oleh_fkey",
+          "kolom": [
+            "dibuat_oleh"
+          ],
+          "ke_tabel": "akun",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        },
+        {
+          "nama": "jurnal_membalik_jurnal_id_fkey",
+          "kolom": [
+            "membalik_jurnal_id"
+          ],
+          "ke_tabel": "jurnal",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        }
+      ],
+      "unik": [
+        {
+          "nama": "jurnal_membalik_jurnal_id_key",
+          "kolom": [
+            "membalik_jurnal_id"
+          ]
+        }
+      ],
+      "cek": [
+        {
+          "nama": "jurnal_jenis_check",
+          "kolom": [
+            "jenis"
+          ],
+          "ekspresi": "jenis = ANY (ARRAY['pembuka'::text, 'selisih'::text, 'topup'::text, 'bayar'::text, 'transfer'::text, 'pencairan'::text, 'pembalik'::text])"
+        },
+        {
+          "nama": "pembalik_beralasan",
+          "kolom": [
+            "jenis",
+            "keterangan"
+          ],
+          "ekspresi": "jenis <> 'pembalik'::text OR length(TRIM(BOTH FROM keterangan)) >= 20"
+        },
+        {
+          "nama": "pembalik_merujuk_asal",
+          "kolom": [
+            "jenis",
+            "membalik_jurnal_id"
+          ],
+          "ekspresi": "(jenis = 'pembalik'::text) = (membalik_jurnal_id IS NOT NULL)"
+        }
+      ],
+      "index": []
+    },
+    {
+      "nama": "posting",
+      "kolom": [
+        {
+          "nama": "id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": "nextval('posting_id_seq'::regclass)"
+        },
+        {
+          "nama": "jurnal_id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "buku_id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "jumlah",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "dibuat",
+          "tipe": "timestamp with time zone",
+          "wajib": true,
+          "bawaan": "now()"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fk": [
+        {
+          "nama": "posting_buku_id_fkey",
+          "kolom": [
+            "buku_id"
+          ],
+          "ke_tabel": "buku",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        },
+        {
+          "nama": "posting_jurnal_id_fkey",
+          "kolom": [
+            "jurnal_id"
+          ],
+          "ke_tabel": "jurnal",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        }
+      ],
+      "unik": [],
+      "cek": [
+        {
+          "nama": "posting_jumlah_check",
+          "kolom": [
+            "jumlah"
+          ],
+          "ekspresi": "jumlah <> 0"
+        }
+      ],
+      "index": [
+        {
+          "nama": "posting_buku",
+          "unik": false,
+          "definisi": "btree (buku_id)"
+        },
+        {
+          "nama": "posting_jurnal",
+          "unik": false,
+          "definisi": "btree (jurnal_id)"
+        },
+        {
+          "nama": "posting_riwayat",
+          "unik": false,
+          "definisi": "btree (buku_id, dibuat, id)"
+        }
+      ]
+    },
+    {
+      "nama": "kunci_idempotensi",
+      "kolom": [
+        {
+          "nama": "kunci",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "akun_id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "hash_permintaan",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "status",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "respons",
+          "tipe": "jsonb",
+          "wajib": false,
+          "bawaan": null
+        },
+        {
+          "nama": "jurnal_id",
+          "tipe": "bigint",
+          "wajib": false,
+          "bawaan": null
+        },
+        {
+          "nama": "kedaluwarsa",
+          "tipe": "timestamp with time zone",
+          "wajib": true,
+          "bawaan": null
+        }
+      ],
+      "pk": [
+        "kunci"
+      ],
+      "fk": [
+        {
+          "nama": "kunci_idempotensi_akun_id_fkey",
+          "kolom": [
+            "akun_id"
+          ],
+          "ke_tabel": "akun",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        },
+        {
+          "nama": "kunci_idempotensi_jurnal_id_fkey",
+          "kolom": [
+            "jurnal_id"
+          ],
+          "ke_tabel": "jurnal",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        }
+      ],
+      "unik": [
+        {
+          "nama": "kunci_idempotensi_jurnal_id_key",
+          "kolom": [
+            "jurnal_id"
+          ]
+        }
+      ],
+      "cek": [
+        {
+          "nama": "kunci_idempotensi_status_check",
+          "kolom": [
+            "status"
+          ],
+          "ekspresi": "status = ANY (ARRAY['diproses'::text, 'selesai'::text])"
+        }
+      ],
+      "index": []
+    },
+    {
+      "nama": "batch_pencairan",
+      "kolom": [
+        {
+          "nama": "id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": "nextval('batch_pencairan_id_seq'::regclass)"
+        },
+        {
+          "nama": "periode",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "status",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "total",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": "0"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fk": [],
+      "unik": [
+        {
+          "nama": "batch_pencairan_periode_key",
+          "kolom": [
+            "periode"
+          ]
+        }
+      ],
+      "cek": [
+        {
+          "nama": "batch_pencairan_status_check",
+          "kolom": [
+            "status"
+          ],
+          "ekspresi": "status = ANY (ARRAY['dibuat'::text, 'dijurnal'::text, 'dikirim'::text])"
+        },
+        {
+          "nama": "batch_pencairan_total_check",
+          "kolom": [
+            "total"
+          ],
+          "ekspresi": "total >= 0"
+        }
+      ],
+      "index": []
+    },
+    {
+      "nama": "baris_pencairan",
+      "kolom": [
+        {
+          "nama": "batch_id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "buku_id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "jumlah",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "jurnal_id",
+          "tipe": "bigint",
+          "wajib": false,
+          "bawaan": null
+        }
+      ],
+      "pk": [
+        "batch_id",
+        "buku_id"
+      ],
+      "fk": [
+        {
+          "nama": "baris_pencairan_batch_id_fkey",
+          "kolom": [
+            "batch_id"
+          ],
+          "ke_tabel": "batch_pencairan",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        },
+        {
+          "nama": "baris_pencairan_buku_id_fkey",
+          "kolom": [
+            "buku_id"
+          ],
+          "ke_tabel": "buku",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        },
+        {
+          "nama": "baris_pencairan_jurnal_id_fkey",
+          "kolom": [
+            "jurnal_id"
+          ],
+          "ke_tabel": "jurnal",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        }
+      ],
+      "unik": [
+        {
+          "nama": "baris_pencairan_jurnal_id_key",
+          "kolom": [
+            "jurnal_id"
+          ]
+        }
+      ],
+      "cek": [
+        {
+          "nama": "baris_pencairan_jumlah_check",
+          "kolom": [
+            "jumlah"
+          ],
+          "ekspresi": "jumlah > 0"
+        }
+      ],
+      "index": []
+    },
+    {
+      "nama": "kota",
+      "kolom": [
+        {
+          "nama": "id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": "nextval('kota_id_seq'::regclass)"
+        },
+        {
+          "nama": "nama",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fk": [],
+      "unik": [
+        {
+          "nama": "kota_nama_key",
+          "kolom": [
+            "nama"
+          ]
+        }
+      ],
+      "cek": [],
+      "index": []
+    },
+    {
+      "nama": "perangkat",
+      "kolom": [
+        {
+          "nama": "id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": "nextval('perangkat_id_seq'::regclass)"
+        },
+        {
+          "nama": "akun_id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "platform",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "token_push",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "aktif",
+          "tipe": "boolean",
+          "wajib": true,
+          "bawaan": "true"
+        },
+        {
+          "nama": "terakhir_terlihat",
+          "tipe": "timestamp with time zone",
+          "wajib": true,
+          "bawaan": "now()"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fk": [
+        {
+          "nama": "perangkat_akun_id_fkey",
+          "kolom": [
+            "akun_id"
+          ],
+          "ke_tabel": "akun",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        }
+      ],
+      "unik": [
+        {
+          "nama": "perangkat_token_push_key",
+          "kolom": [
+            "token_push"
+          ]
+        }
+      ],
+      "cek": [
+        {
+          "nama": "perangkat_platform_check",
+          "kolom": [
+            "platform"
+          ],
+          "ekspresi": "platform = ANY (ARRAY['android'::text, 'ios'::text])"
+        }
+      ],
+      "index": [
+        {
+          "nama": "perangkat_akun",
+          "unik": false,
+          "definisi": "btree (akun_id) WHERE aktif"
+        }
+      ]
+    },
+    {
+      "nama": "outbox",
+      "kolom": [
+        {
+          "nama": "id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": "nextval('outbox_id_seq'::regclass)"
+        },
+        {
+          "nama": "notifikasi_id",
+          "tipe": "uuid",
+          "wajib": true,
+          "bawaan": "gen_random_uuid()"
+        },
+        {
+          "nama": "jurnal_id",
+          "tipe": "bigint",
+          "wajib": false,
+          "bawaan": null
+        },
+        {
+          "nama": "akun_id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "kelas",
+          "tipe": "smallint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "jenis",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "payload",
+          "tipe": "jsonb",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "status",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": "'menunggu'::text"
+        },
+        {
+          "nama": "percobaan",
+          "tipe": "integer",
+          "wajib": true,
+          "bawaan": "0"
+        },
+        {
+          "nama": "coba_lagi",
+          "tipe": "timestamp with time zone",
+          "wajib": true,
+          "bawaan": "now()"
+        },
+        {
+          "nama": "klaim_sampai",
+          "tipe": "timestamp with time zone",
+          "wajib": false,
+          "bawaan": null
+        },
+        {
+          "nama": "dibuat",
+          "tipe": "timestamp with time zone",
+          "wajib": true,
+          "bawaan": "now()"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fk": [
+        {
+          "nama": "outbox_akun_id_fkey",
+          "kolom": [
+            "akun_id"
+          ],
+          "ke_tabel": "akun",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        },
+        {
+          "nama": "outbox_jurnal_id_fkey",
+          "kolom": [
+            "jurnal_id"
+          ],
+          "ke_tabel": "jurnal",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        }
+      ],
+      "unik": [
+        {
+          "nama": "outbox_notifikasi_id_key",
+          "kolom": [
+            "notifikasi_id"
+          ]
+        }
+      ],
+      "cek": [
+        {
+          "nama": "outbox_jenis_check",
+          "kolom": [
+            "jenis"
+          ],
+          "ekspresi": "jenis = ANY (ARRAY['bayar'::text, 'transfer'::text, 'topup'::text, 'promo'::text])"
+        },
+        {
+          "nama": "outbox_jurnal_atau_promo",
+          "kolom": [
+            "jurnal_id",
+            "jenis"
+          ],
+          "ekspresi": "(jurnal_id IS NULL) = (jenis = 'promo'::text)"
+        },
+        {
+          "nama": "outbox_kelas_check",
+          "kolom": [
+            "kelas"
+          ],
+          "ekspresi": "kelas >= 0 AND kelas <= 2"
+        },
+        {
+          "nama": "outbox_percobaan_check",
+          "kolom": [
+            "percobaan"
+          ],
+          "ekspresi": "percobaan >= 0"
+        },
+        {
+          "nama": "outbox_status_check",
+          "kolom": [
+            "status"
+          ],
+          "ekspresi": "status = ANY (ARRAY['menunggu'::text, 'terkirim'::text, 'dilewati'::text, 'mati'::text])"
+        }
+      ],
+      "index": [
+        {
+          "nama": "outbox_antre",
+          "unik": false,
+          "definisi": "btree (kelas, id) WHERE (status = 'menunggu'::text)"
+        },
+        {
+          "nama": "outbox_satu_per_jurnal",
+          "unik": true,
+          "definisi": "btree (jurnal_id, akun_id) WHERE (jurnal_id IS NOT NULL)"
+        }
+      ]
+    },
+    {
+      "nama": "produk",
+      "kolom": [
+        {
+          "nama": "id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": "nextval('produk_id_seq'::regclass)"
+        },
+        {
+          "nama": "akun_id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "nama",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "harga",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "stok",
+          "tipe": "integer",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "aktif",
+          "tipe": "boolean",
+          "wajib": true,
+          "bawaan": "true"
+        },
+        {
+          "nama": "versi",
+          "tipe": "integer",
+          "wajib": true,
+          "bawaan": "1"
+        },
+        {
+          "nama": "diubah",
+          "tipe": "timestamp with time zone",
+          "wajib": true,
+          "bawaan": "now()"
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fk": [
+        {
+          "nama": "produk_akun_id_fkey",
+          "kolom": [
+            "akun_id"
+          ],
+          "ke_tabel": "akun",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        }
+      ],
+      "unik": [
+        {
+          "nama": "produk_akun_id_nama_key",
+          "kolom": [
+            "akun_id",
+            "nama"
+          ]
+        }
+      ],
+      "cek": [
+        {
+          "nama": "produk_harga_check",
+          "kolom": [
+            "harga"
+          ],
+          "ekspresi": "harga > 0"
+        },
+        {
+          "nama": "produk_nama_check",
+          "kolom": [
+            "nama"
+          ],
+          "ekspresi": "length(TRIM(BOTH FROM nama)) > 0"
+        },
+        {
+          "nama": "produk_stok_check",
+          "kolom": [
+            "stok"
+          ],
+          "ekspresi": "stok >= 0"
+        }
+      ],
+      "index": []
+    },
+    {
+      "nama": "promo",
+      "kolom": [
+        {
+          "nama": "id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": "nextval('promo_id_seq'::regclass)"
+        },
+        {
+          "nama": "kota_id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "dibuat_oleh",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "judul",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "potongan_persen",
+          "tipe": "integer",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "mulai",
+          "tipe": "timestamp with time zone",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "selesai",
+          "tipe": "timestamp with time zone",
+          "wajib": true,
+          "bawaan": null
+        }
+      ],
+      "pk": [
+        "id"
+      ],
+      "fk": [
+        {
+          "nama": "promo_dibuat_oleh_fkey",
+          "kolom": [
+            "dibuat_oleh"
+          ],
+          "ke_tabel": "akun",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        },
+        {
+          "nama": "promo_kota_id_fkey",
+          "kolom": [
+            "kota_id"
+          ],
+          "ke_tabel": "kota",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        }
+      ],
+      "unik": [],
+      "cek": [
+        {
+          "nama": "promo_judul_check",
+          "kolom": [
+            "judul"
+          ],
+          "ekspresi": "length(TRIM(BOTH FROM judul)) > 0"
+        },
+        {
+          "nama": "promo_potongan_persen_check",
+          "kolom": [
+            "potongan_persen"
+          ],
+          "ekspresi": "potongan_persen >= 1 AND potongan_persen <= 90"
+        },
+        {
+          "nama": "promo_selesai_sesudah_mulai",
+          "kolom": [
+            "selesai",
+            "mulai"
+          ],
+          "ekspresi": "selesai > mulai"
+        }
+      ],
+      "index": [
+        {
+          "nama": "promo_kota_waktu",
+          "unik": false,
+          "definisi": "btree (kota_id, mulai, selesai)"
+        }
+      ]
+    },
+    {
+      "nama": "operasi_sinkron",
+      "kolom": [
+        {
+          "nama": "kunci",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "perangkat_id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "produk_id",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "jenis",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "nilai",
+          "tipe": "bigint",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "versi_dasar",
+          "tipe": "integer",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "status",
+          "tipe": "text",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "dibuat_di_hp",
+          "tipe": "timestamp with time zone",
+          "wajib": true,
+          "bawaan": null
+        },
+        {
+          "nama": "diterapkan",
+          "tipe": "timestamp with time zone",
+          "wajib": false,
+          "bawaan": null
+        }
+      ],
+      "pk": [
+        "kunci"
+      ],
+      "fk": [
+        {
+          "nama": "operasi_sinkron_perangkat_id_fkey",
+          "kolom": [
+            "perangkat_id"
+          ],
+          "ke_tabel": "perangkat",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        },
+        {
+          "nama": "operasi_sinkron_produk_id_fkey",
+          "kolom": [
+            "produk_id"
+          ],
+          "ke_tabel": "produk",
+          "ke_kolom": [
+            "id"
+          ],
+          "saat_hapus": "NO ACTION"
+        }
+      ],
+      "unik": [],
+      "cek": [
+        {
+          "nama": "operasi_sinkron_jenis_check",
+          "kolom": [
+            "jenis"
+          ],
+          "ekspresi": "jenis = ANY (ARRAY['stok'::text, 'harga'::text])"
+        },
+        {
+          "nama": "operasi_sinkron_nilai_check",
+          "kolom": [
+            "nilai"
+          ],
+          "ekspresi": "nilai >= 0"
+        },
+        {
+          "nama": "operasi_sinkron_status_check",
+          "kolom": [
+            "status"
+          ],
+          "ekspresi": "status = ANY (ARRAY['diterapkan'::text, 'konflik'::text])"
+        },
+        {
+          "nama": "operasi_sinkron_versi_dasar_check",
+          "kolom": [
+            "versi_dasar"
+          ],
+          "ekspresi": "versi_dasar >= 1"
+        }
+      ],
+      "index": [
+        {
+          "nama": "operasi_produk",
+          "unik": false,
+          "definisi": "btree (produk_id)"
+        }
+      ]
+    }
+  ],
+  "selisih": {
+    "terhadap": 2,
+    "tabel_baru": [
+      "kota",
+      "perangkat",
+      "outbox",
+      "produk",
+      "promo",
+      "operasi_sinkron"
+    ],
+    "tabel_dihapus": [],
+    "kolom_baru": [
+      {
+        "tabel": "akun",
+        "kolom": "kota_id"
+      },
+      {
+        "tabel": "sesi",
+        "kolom": "jenis"
+      },
+      {
+        "tabel": "sesi",
+        "kolom": "csrf_hash"
+      }
+    ],
+    "kolom_dihapus": [],
+    "kolom_berubah": [],
+    "aturan_berubah": [
+      {
+        "tabel": "akun",
+        "jenis": "fk",
+        "nama": "akun_kota_id_fkey",
+        "ubah": "baru"
+      },
+      {
+        "tabel": "akun",
+        "jenis": "cek",
+        "nama": "akun_jenis_check",
+        "ubah": "berubah"
+      },
+      {
+        "tabel": "akun",
+        "jenis": "index",
+        "nama": "akun_kota",
+        "ubah": "baru"
+      },
+      {
+        "tabel": "sesi",
+        "jenis": "cek",
+        "nama": "sesi_csrf_hanya_web",
+        "ubah": "baru"
+      },
+      {
+        "tabel": "sesi",
+        "jenis": "cek",
+        "nama": "sesi_jenis_check",
+        "ubah": "baru"
+      }
+    ]
+  }
+}

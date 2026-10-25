@@ -11,7 +11,7 @@ import json, os, pathlib, re, socket, subprocess, sys, tempfile, threading, time
 
 import psycopg
 import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
-from lab_env import DB_PORT, port_lab  # noqa: E402
+from lab_env import DB_PORT, REDIS_PORT, port_lab  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 LABS = HERE.parent

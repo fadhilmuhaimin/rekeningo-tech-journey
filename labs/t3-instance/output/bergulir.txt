@@ -1,0 +1,29 @@
+# Lab t3-instance · deploy bergulir: graceful shutdown, health check, dan retry
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema t3_instance · Caddy 2.11.7 · Redis 8.10.2 · instance a di 127.0.0.1:18180, instance b di 127.0.0.1:18182, proxy di 127.0.0.1:18183
+# Rekaman dari database bersih: make -C labs/t3-instance run (keputusan 965). Label: Rekaman lab.
+
+# --- A. Dengan Shutdown saat SIGTERM: request yang sedang jalan selesai, koneksi baru ditolak ---
+SIGTERM dikirim saat GET /lab/lambat?ms=2000 sedang menahan satu koneksi database:
+  koneksi baru ke instance ditolak selagi request lambat masih jalan: ya
+  request lambat → 200 {"selesai":true}
+  kode keluar proses: 0
+  log: api-t3 berhenti
+
+# --- B. Mode rentan tanpa-shutdown (tanpa signal.Notify): SIGTERM mengakhiri proses seketika, request yang sedang jalan putus ---
+SIGTERM dikirim saat GET /lab/lambat?ms=2000 sedang menahan satu koneksi database:
+  request lambat → tidak ada jawaban
+  kode keluar proses: -15 (dihentikan sinyal 15)
+  log berhenti rapi ada: TIDAK
+
+# --- C. Deploy bergulir lewat proxy dengan health check aktif dan retry: a lalu b diganti saat beban berjalan ---
+Beban selama deploy: GET /healthz berulang dan GET /lab/lambat?ms=300 berulang (request lambat sedang jalan saat instance dihentikan).
+  semua jawaban GET /healthz 200: ya
+  semua request lambat 200: ya
+  instance yang menjawab: a, a2, b, b2
+
+# --- D. Deploy bergulir lewat proxy tanpa health check dan tanpa retry (Shutdown tetap rapi): pengganti perlu 0,5 detik untuk naik ---
+Selama a dan b berganti, GET /healthz berulang lewat proxy:
+  ada 502: ya · status yang muncul: [200, 502]
+
+Tidak dijalankan: POST yang sudah diterima kernel instance lama tetapi belum dibaca saat listener ditutup. Caddy hanya mengulang
+GET untuk kegagalan sesudah koneksi tersambung (lb_retry_match bawaan); app mengulang POST dengan idempotency key (ADR 14).

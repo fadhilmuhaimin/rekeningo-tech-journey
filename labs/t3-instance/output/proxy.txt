@@ -1,0 +1,40 @@
+# Lab t3-instance · dua instance di belakang proxy: instance mati, health check, dan retry
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema t3_instance · Caddy 2.11.7 · Redis 8.10.2 · instance a di 127.0.0.1:18180, instance b di 127.0.0.1:18182, proxy di 127.0.0.1:18183
+# Rekaman dari database bersih: make -C labs/t3-instance run (keputusan 965). Label: Rekaman lab.
+Dua instance api-t3 (a dan b) di belakang Caddy; GET /healthz menjawab 200 bila database menjawab. Instance b mati mendadak (SIGKILL).
+Kebijakan bawaan Caddy random menghasilkan angka berbeda tiap run; rekaman dengan angka tetap memakai round_robin, satu-satunya perubahan.
+
+# --- A. Dua instance hidup, round_robin: 20 request bergantian ---
+urutan (status:instance): 200:a 200:b 200:a 200:b 200:a 200:b 200:a 200:b 200:a 200:b 200:a 200:b 200:a 200:b 200:a 200:b 200:a 200:b 200:a 200:b
+jumlah: 200: 20 · 200 per instance: a 10, b 10
+
+# --- B. Bawaan Caddy (random, tanpa health check, tanpa retry): instance b mati, proxy masih memilihnya ---
+60 request ke proxy, instance b sudah mati:
+  ada jawaban 200: ya · ada 502: ya · hanya 200 dan 502: ya
+  semua 200 berasal dari instance a: ya
+  jumlah 502 berbeda tiap run (kebijakan random), jadi angkanya tidak dicatat.
+
+# --- C. round_robin tanpa health check dan tanpa retry: setiap request kedua ke instance mati ---
+urutan (status:instance): 200:a 502 200:a 502 200:a 502 200:a 502 200:a 502 200:a 502 200:a 502 200:a 502 200:a 502 200:a 502
+jumlah: 200: 10 · 502: 10
+
+# --- D. Retry saja (lb_retries 2, tanpa health check): koneksi ke instance mati gagal, request dicoba ulang ke instance lain ---
+20 GET /healthz: 200: 20 · 200 per instance: a 20
+6 POST /logout tanpa token: 401: 6 dari instance a 6
+(401 dari instance a: POST juga dicoba ulang, karena koneksi ke instance mati gagal sebelum ada byte terkirim)
+
+# --- E. Health check aktif saja, selang 30 detik (bawaan): instance mati sesudah pemeriksaan terakhir tetap dipilih ---
+instance b mati; 10 request langsung sesudahnya, sebelum pemeriksaan berikutnya:
+  jumlah: 200: 5 · 502: 5
+
+# --- F. Health check aktif DAN retry, selang 30 detik: selang itu tertutup retry ---
+instance b mati; 10 request langsung sesudahnya, sebelum pemeriksaan berikutnya:
+  jumlah: 200: 10 · 200 per instance: a 10
+
+# --- G. Health check aktif saja (tanpa retry), selang 1 detik: instance mati dikeluarkan, instance yang hidup lagi masuk kembali ---
+b mati dan sudah dikeluarkan (tanpa retry): 20 request: 200: 20 · 200 per instance: a 20
+b hidup lagi dan lolos health check: 20 request: 200: 20 · 200 per instance: a 10, b 10
+
+Tidak dijalankan: pengawas proses yang memulai ulang instance (systemd Restart=, restart policy Docker). Caddy tidak
+memulai proses; ia hanya berhenti memilih instance yang gagal. Dokumentasi Caddy: lb_retries bawaan 0, health check aktif
+hanya bila health_uri atau health_port diisi, selang bawaan 30 detik (R3-13).

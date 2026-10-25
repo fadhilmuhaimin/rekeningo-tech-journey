@@ -1,0 +1,17 @@
+# Lab t3-instance: proxy Caddy di depan dua instance api-t3 (ADR 26, keputusan 965). PostgreSQL dari labs/b3-race
+# dan Redis dari labs/b9-cache; instance api-t3 berjalan di host, bukan di kontainer, supaya bisa dihentikan dan
+# dimulai ulang dengan sinyal (SIGTERM, SIGKILL) tanpa Docker di antaranya.
+# run.py mengisi PORT_PROXY, PORT_A, PORT_B, CADDYFILE, dan HEALTH_INTERVAL; port dasar dan offset lajur dari labs/lab_env.py.
+services:
+  proxy:
+    image: caddy:2.11.7-alpine
+    ports:
+      - "127.0.0.1:${PORT_PROXY}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # Docker Desktop sudah punya nama ini. Linux: baris ini belum cukup bila instance hanya mendengar di 127.0.0.1 (belum dijalankan)
+    environment:
+      UPSTREAM_A: "host.docker.internal:${PORT_A}"
+      UPSTREAM_B: "host.docker.internal:${PORT_B}"
+      HEALTH_INTERVAL: "${HEALTH_INTERVAL:-30s}"
+    volumes:
+      - "./caddy/${CADDYFILE}.Caddyfile:/etc/caddy/Caddyfile:ro"

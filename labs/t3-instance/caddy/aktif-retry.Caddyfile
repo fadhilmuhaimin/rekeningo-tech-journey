@@ -1,0 +1,16 @@
+# Pilihan ADR 26: health check aktif DAN retry. Health check mengeluarkan instance yang mati; retry menutup
+# selang antara instance mati dan pemeriksaan berikutnya.
+{
+	auto_https off
+	admin localhost:2019
+}
+:8080 {
+	reverse_proxy {$UPSTREAM_A} {$UPSTREAM_B} {
+		lb_policy round_robin
+		lb_retries 2
+		health_uri /healthz
+		health_interval {$HEALTH_INTERVAL}
+		health_timeout 1s
+		health_status 200
+	}
+}

@@ -8,13 +8,13 @@ Yang baru: pemberitahuan lewat outbox, worker di proses sendiri, katalog dan sto
 
 ```bash
 make lab-up                                   # dari akar repo: PostgreSQL 17 lab di LAB_DB_PORT
-make -C labs/api-t3 run                       # semua bagian, ±40 detik, menulis labs/api-t3/output/*.txt
+make -C labs/api-t3 run                       # semua bagian, ±40 detik, menulis labs/api-t3/output/*.txt; menyalakan juga Redis lab (b9-cache) untuk tes internal/redisbatas
 make -C labs/api-t3 run BAGIAN=outbox         # satu bagian: skema outbox push rentan katalog sinkron web testing
 make -C labs/api-t3 cek                       # rekam ulang; gagal bila output/ berbeda dari yang di-commit
 make -C labs/api-t3 kontrak                   # lint dan oasdiff terhadap api-t2 (butuh jaringan dan Docker)
 ```
 
-Lajur kerja lain memakai `COMPOSE_PROJECT_NAME`, `LAB_DB_PORT`, dan `LAB_PORT_OFFSET` (`labs/README.md`). Port dasar: API 18180, layanan push tiruan 18181, instance kedua 18182 (dicadangkan untuk `t3-instance`). Rekaman selalu memakai port dasar.
+Lajur kerja lain memakai `COMPOSE_PROJECT_NAME`, `LAB_DB_PORT`, `LAB_REDIS_PORT`, dan `LAB_PORT_OFFSET` (`labs/README.md`). Port dasar: API 18180, layanan push tiruan 18181, instance kedua 18182 (dipakai `t3-instance`, jadi dua lab itu tidak jalan bersamaan dalam satu lajur). Rekaman selalu memakai port dasar.
 
 Setiap bagian membuat ulang schema `tahap3` dan data awalnya dari nol, jadi `output/*.txt` tidak bergantung pada urutan bagian. Token, waktu, tanggal, dan `notifikasi_id` disamarkan, sehingga rekaman ulang identik per byte. Lab gagal keras bila port dipakai proses lain atau hasilnya meleset dari yang diharapkan.
 
@@ -48,6 +48,10 @@ Seperti `api-t1`: satu flag `-rentan` menyalakan versi yang salah untuk rekaman 
 | `push-dalam-tx` | M18 | Push dipanggil di dalam transaction dengan client tanpa batas waktu; tanpa baris outbox. Bila `-push-timeout` atau `-idle-tx` diisi eksplisit, nilai itu tetap dipakai (varian "timeout tetapi tetap di dalam transaction") |
 | `kursor` | M19 | Worker membaca dengan kursor `(dibuat, id)` tanpa klaim, meniru ADR 16 |
 | `urut-waktu` | M27 | Worker mengklaim menurut nomor saja, tanpa kelas |
+| `ekspor-panic` | M21 | Goroutine latar (`service.Latar`) tanpa pelindung `recover`, dan ringkasan audit ekspor mengira laporan tidak pernah kosong: laporan kosong mematikan seluruh proses |
+| `tanpa-shutdown` | M21 | Tanpa `signal.Notify`: SIGTERM mengakhiri proses seketika, request yang sedang jalan putus |
+
+Flag untuk `t3-instance`: `-instance <nama>` (header `X-Instance`), `-redis <alamat>` dan `-redis-timeout` (batas login per IP dan per akun dihitung di Redis, bukan di memori proses; ADR 27). `GET /healthz` menjawab 200 bila database menjawab dalam 1 detik; itu endpoint operasi untuk proxy dan tidak ada di OpenAPI app. Dengan `-lab` ada juga `GET /lab/lambat?ms=`, `GET /lab/panik?di=handler|latar`, dan `GET /lab/batas`.
 
 Flag lab lain: `-lab` (`GET /lab/pool`, `GET /lab/outbox`), `-jam-lab` (jam dibekukan untuk rate limit), `-klaim`, `-serentak`, `-backoff`, `-maks-percobaan`, dan `-selang`. Dua flag untuk rekaman M20: `-lab-henti-sebelum-tandai` (worker berhenti sesudah push berhasil) dan `-satu-putaran` (dengan `-sekali`: satu putaran saja, supaya jumlah percobaan per panggilan tetap).
 
@@ -69,7 +73,7 @@ Tokoh dan nomor akun sama dengan Tahap 2: Dimas 417, Warung Ani 418, Budi 419, W
 
 ## Yang belum ada di lab ini
 
-- Redis dan rate limit lintas instance: `t3-instance`. Rate limit di api-t3 masih token bucket di memori, sama dengan api-t2.
+- Rate limit lintas instance: tanpa `-redis`, batas login masih token bucket di memori proses, sama dengan api-t2. Dengan `-redis`, hanya login yang berpindah ke Redis; penahan `/kiriman` tetap di memori. Rekamannya di `labs/t3-instance`.
 - Trace, metric, dan OpenTelemetry: `t3-pool`. Log berupa baris teks.
 - `LISTEN` dan `NOTIFY` sebagai pembangun worker, laju promo paling banyak 5 per detik, retensi outbox di luar job `-bersih`: `t3-outbox`.
 - Passkey, CSP, dan halaman HTML dasbor: `t3-dasbor`. Lab ini hanya menyediakan sesi web dan CSRF di sisi API.
