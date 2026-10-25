@@ -35,7 +35,7 @@ func (s Service) Katalog(ctx context.Context, peminta int64, kota *int64, warung
 		}
 		kota = a.KotaID
 	}
-	m, err := s.repo.Katalog(ctx, *kota, warung)
+	m, err := s.katalogDariCacheAtauDB(ctx, *kota, warung)
 	return *kota, m, err
 }
 
@@ -145,7 +145,13 @@ func (s Service) UbahProduk(ctx context.Context, peminta, id int64, harga *int64
 	case versi < 1:
 		return repo.StokProduk{}, ErrValidasi{"versi", "versi baris yang kamu lihat, minimal 1"}
 	}
-	hasil, ok, err := s.repo.UbahProduk(ctx, id, peminta, harga, stok, versi)
+	var hasil repo.StokProduk
+	var ok bool
+	if s.kc != nil {
+		hasil, ok, err = s.ubahProdukDenganCache(ctx, peminta, a.KotaID, id, harga, stok, versi)
+	} else {
+		hasil, ok, err = s.repo.UbahProduk(ctx, id, peminta, harga, stok, versi)
+	}
 	if errors.Is(err, repo.ErrTidakAda) {
 		return hasil, ErrTidakDitemukan
 	}
@@ -189,6 +195,9 @@ func (s Service) BuatPromo(ctx context.Context, peminta int64, judul string, per
 		diumumkan, err = tx.UmumkanPromo(ctx, *a.KotaID, isi)
 		return err
 	})
+	if err == nil {
+		s.hapusKatalogKota(ctx, *a.KotaID) // sesudah COMMIT; promo yang mulai nanti tidak punya tulis saat mulai (ADR 28)
+	}
 	return id, diumumkan, err
 }
 

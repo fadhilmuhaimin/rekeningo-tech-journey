@@ -2063,8 +2063,9 @@
       "prasyarat": [
         "t2-adr-21"
       ],
-      "ada": false,
-      "nomor": "2.32"
+      "ada": true,
+      "nomor": "2.32",
+      "menit": 14
     },
     {
       "id": "t2-jembatan",
