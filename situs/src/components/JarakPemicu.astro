@@ -14,7 +14,7 @@ import { ROOT } from "../../tools/registri.mjs";
 import JarakPemicuIsland from "../widgets/jarak-pemicu/JarakPemicu";
 import { LabelJarak } from "../widgets/jarak-pemicu/skema";
 import {
-  AMBANG, POOL, bacaCara, besar, desimal1, indeksBenar, isi, kaliPuncak, koneksi, koneksiTeks, lambdaPemicu, lebarLog,
+  AMBANG, POOL, bacaCara, besar, desimal2, indeksBenar, isi, kaliPuncak, koneksi, koneksiTeks, lambdaPemicu, lebarLog,
   puncakPerDetik, waktu, angka,
 } from "../widgets/jarak-pemicu/logika";
 import labelMentah from "../../data/widget/t2-adr21-jarak.json";
@@ -41,7 +41,7 @@ const baris = cara.map((c) => {
 });
 const tebak = dari("hal1-join-index");
 const nilaiTebak = {
-  w: waktu(tebak.ms), puncak: desimal1(puncak), lambda: besar(lambdaPemicu(tebak.ms)), kali: besar(kaliPuncak(tebak.ms, puncak)),
+  w: waktu(tebak.ms), puncak: desimal2(puncak), lambda: besar(lambdaPemicu(tebak.ms)), kali: besar(kaliPuncak(tebak.ms, puncak)),
   kali_seluruh_n1: besar(kaliPuncak(dari("seluruh-n1").ms, puncak)),
   kali_hal1_join: besar(kaliPuncak(dari("hal1-join").ms, puncak)),
   w_hal1_join: waktu(dari("hal1-join").ms),
@@ -51,7 +51,7 @@ const benar = indeksBenar(L.pilihan, kaliPuncak(tebak.ms, puncak));
 const label = {
   judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, pertanyaan: isi(L.pertanyaan, nilaiTebak), benar: L.benar,
   belum: L.belum, ulang: L.ulang, ubahJudul: L.ubahJudul, kolom: L.kolom,
-  catatan: isi(L.catatan, { puncak: desimal1(puncak), pool: POOL, ambang: AMBANG }),
+  catatan: isi(L.catatan, { puncak: desimal2(puncak), pool: POOL, ambang: AMBANG }),
 };
 ---
 <JarakPemicuIsland client:visible baris={baris} pilihan={pilihan} benar={benar} label={label} />

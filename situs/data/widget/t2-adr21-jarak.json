@@ -6,7 +6,7 @@
   "pilihan": [
     { "kali": 2, "alasan": "Kelipatan ±2 adalah jarak untuk seluruh riwayat Budi dengan N+1: {kali_seluruh_n1} kali. Halaman pertama dengan index jauh lebih pendek, jadi jaraknya jauh lebih besar." },
     { "kali": 130, "alasan": "Kelipatan ±130 adalah jarak untuk satu query tanpa index: {kali_hal1_join} kali untuk halaman pertama. Index riwayat menurunkan W dari {w_hal1_join} ke {w}." },
-    { "kali": 2600, "alasan": "W {w} menahan 5 koneksi di ±{lambda} permintaan per detik, atau {kali} kali puncak {puncak}. Angka ini batas bawah untuk jarak: W di rekaman tanpa jaringan, dan semua request dianggap berbentuk ini." }
+    { "kali": 2600, "alasan": "W {w} menahan 5 koneksi di ±{lambda} permintaan per detik, atau {kali} kali puncak {puncak}. Angka ini punya dua kesalahan berlawanan arah: W di rekaman tanpa jaringan terlalu kecil, jadi jarak sebenarnya lebih dekat; tidak semua request di puncak berbentuk ini, jadi jarak sebenarnya lebih jauh." }
   ],
   "benar": "Tepat",
   "belum": "Belum tepat",
@@ -32,6 +32,6 @@
     "seluruh-n1": "Seluruh riwayat dengan N+1, tanpa index: {w}. Pemicu ada di ±{lambda} per detik, atau {kali} kali puncak sekarang.",
     "seluruh-join": "Seluruh riwayat dengan satu query, tanpa index: {w}. Pemicu ada di ±{lambda} per detik, atau {kali} kali puncak sekarang."
   },
-  "catatan": "W adalah median 5 kali di mesin lab, tanpa jaringan antara server API dan database, jadi batas bawah. Puncak {puncak} per detik adalah Asumsi naskah, dan semua request di puncak dianggap berbentuk permintaan yang dipilih: batas atas. Pool {pool} koneksi dan pemicu {ambang} koneksi, separuh pool, adalah Asumsi dari halaman 2.30.",
+  "catatan": "W adalah median 5 kali di mesin lab, tanpa jaringan antara server API dan database, jadi lebih kecil dari W sebenarnya dan jarak sebenarnya lebih dekat. Puncak {puncak} per detik adalah Asumsi naskah, dan semua request di puncak dianggap berbentuk permintaan yang dipilih, jadi jarak sebenarnya lebih jauh. Pool {pool} koneksi dan pemicu {ambang} koneksi, separuh pool, adalah Asumsi dari halaman 2.30.",
   "tanpaJs": "Tanpa JavaScript, widget ini menampilkan angka rekamannya sebagai tabel."
 }

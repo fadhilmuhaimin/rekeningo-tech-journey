@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import {
-  AMBANG, POOL, angka, bacaCara, besar, desimal1, duaAngkaPenting, indeksBenar, isi, kaliPuncak, koneksi, koneksiTeks,
+  AMBANG, POOL, angka, bacaCara, besar, desimal1, desimal2, duaAngkaPenting, indeksBenar, isi, kaliPuncak, koneksi, koneksiTeks,
   lambdaPemicu, lebarLog, puncakPerDetik, waktu,
 } from "./logika";
 import { LabelJarak } from "./skema";
@@ -145,5 +145,29 @@ describe("teks widget t2-adr21-jarak.json", () => {
     const sedia = { w: 1, puncak: 1, lambda: 1, kali: 1, kali_seluruh_n1: 1, kali_hal1_join: 1, w_hal1_join: 1, pool: 1, ambang: 1 };
     const semua = [L.pertanyaan, L.catatan, ...L.pilihan.map((p) => p.alasan), ...Object.values(L.kalimat)];
     for (const t of semua) expect(() => isi(t, sedia)).not.toThrow();
+  });
+});
+
+describe("arah galat dan pembacaan layar (peninjau PR 346)", () => {
+  const L = LabelJarak.parse(labelMentah);
+
+  test("teks pilihan tebakan menyebut dua kesalahan berlawanan arah, bukan 'batas bawah' satu arah", () => {
+    expect(L.pilihan[2]!.alasan).toContain("dua kesalahan berlawanan arah");
+    expect(L.pilihan[2]!.alasan).toContain("jarak sebenarnya lebih dekat");
+    expect(L.pilihan[2]!.alasan).toContain("jarak sebenarnya lebih jauh");
+    expect(L.pilihan[2]!.alasan).not.toContain("batas bawah untuk jarak");
+    expect(L.catatan).toContain("jarak sebenarnya lebih dekat");
+  });
+
+  test("puncak di teks widget ditulis dua desimal (1,39) supaya kelipatan bisa dihitung ulang", () => {
+    expect(desimal2(puncak)).toBe("1,39");
+    expect(Math.round(lambdaPemicu(1.4) / Number(desimal2(puncak).replace(",", ".")))).toBe(2569); // pembaca dengan 1,39: 2.569, selisih 0,1% dari 2.571
+  });
+
+  test("live region hanya satu kalimat ringkasan, bukan empat angka sekaligus", () => {
+    const src = fs.readFileSync(path.resolve(__dirname, "JarakPemicu.tsx"), "utf8");
+    expect(src.match(/role="status"/g)).toHaveLength(2); // hasil tebakan dan kalimat jarak
+    expect(src).toMatch(/<p role="status" aria-live="polite">\{b\.kalimat\}<\/p>/);
+    expect(src).not.toMatch(/<div role="status"[^>]*className="qr-hasil"/);
   });
 });

@@ -67,7 +67,7 @@ export default function JarakPemicu({ baris, pilihan, benar, label: L }: Props) 
               </li>
             ))}
           </ul>
-          <div role="status" aria-live="polite" className="qr-hasil">
+          <div className="qr-hasil">
             <div className="qr-batang" aria-hidden="true"><span style={{ width: `${b.lebar}%` }} /></div>
             <dl className="qr-angka">
               <div><dt>{L.kolom.w}</dt><dd>{b.w}</dd></div>
@@ -75,7 +75,7 @@ export default function JarakPemicu({ baris, pilihan, benar, label: L }: Props) 
               <div><dt>{L.kolom.lambda}</dt><dd>{b.lambda}</dd></div>
               <div><dt>{L.kolom.kali}</dt><dd>{b.kali}</dd></div>
             </dl>
-            <p>{b.kalimat}</p>
+            <p role="status" aria-live="polite">{b.kalimat}</p>
           </div>
           <p className="bb-muted qr-catatan">{L.catatan}</p>
         </div>
