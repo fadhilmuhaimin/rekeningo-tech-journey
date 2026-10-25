@@ -22,6 +22,10 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [2.2 Dari fitur ke pekerjaan teknis v2](/tahap-2/fitur-ke-teknis/) | Tahap 2 | Dari PRD v2, apa yang berubah di app, backend, dan database? |
 | 2.32 Yang dibawa keluar dari Tahap 2 · *segera* | Tahap 2 | Mengingat sepuluh konsep Tahap 2 dalam satu kalimat masing-masing |
 | 2.33 Jembatan: pratinjau PRD v3 · *segera* | Tahap 2 | Keputusan Tahap 2 mana yang akan dibuka lagi? |
+| 3.1 PRD v3: Rekeningo untuk enam kota · *segera* | Tahap 3 | Karyawan tidak tahu kapan uang masuk, warung meminta admin mengubah menu, dan satu proses mati mematikan semuanya |
+| 3.2 Dari fitur ke pekerjaan teknis v3 · *segera* | Tahap 3 | Dari PRD v3, apa yang berubah di app, backend, dan database? |
+| 3.31 Yang dibawa keluar dari Tahap 3 · *segera* | Tahap 3 | Mengingat tiga belas konsep Tahap 3 dalam satu kalimat masing-masing |
+| 3.32 Jembatan: pratinjau PRD v4 · *segera* | Tahap 3 | Keputusan Tahap 3 mana yang pecah lebih dulu saat PRD v4 datang? |
 
 ## API
 
@@ -69,6 +73,7 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [N+1 query](/b-fondasi/b2-4-n-plus-1/) | Tahap 2 | – |
 | [Index dan query plan + ADR 15](/b-fondasi/b2-3-index/) | Tahap 2 | – |
 | [Ubah skema tanpa downtime + ADR 17](/b-fondasi/b4-2-ubah-skema-tanpa-downtime/) | Tahap 2 | – |
+| 3.5 Skema data: ERD Tahap 2 → Tahap 3 dan pertumbuhannya · *segera* | Tahap 3 | Tabel mana yang lahir, berubah, dan hilang saat notifikasi, katalog, dan sinkron masuk? |
 
 ## Keamanan
 
@@ -85,7 +90,13 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [1.35 Secret di repo dan di server](/tahap-1/secret/) | Tahap 1 | Menghapus file tidak menghapus secret dari riwayat git |
 | [2.27 M16: Akun Ani terkunci](/tahap-2/m16-akun-terkunci/) | Tahap 2 | Akun Ani terkunci berkali-kali oleh ribuan percobaan login dari satu IP |
 | [2.28 Keamanan 4: brute force, credential stuffing, hash password + ADR 20](/tahap-2/brute-force/) | Tahap 2 | Password yang bocor dari situs lain dipakai untuk mencoba masuk ke banyak akun |
-| [3.7 Security dasar dan rate limit](/c-operasional/c4-security-dasar/) | Tahap 3 | Login dicoba ribuan kali dari satu IP |
+| 3.16 M22: Batas login jadi dua kali lipat · *segera* | Tahap 3 | Setelah instance kedua dipasang, batas percobaan login per IP longgar menjadi dua kali lipat |
+| 3.17 Rate limit lintas instance dan Redis + ADR 27 · *segera* | Tahap 3 | Yang disimpan di memori satu proses berlipat saat prosesnya dua |
+| 3.22 M25: Kotak peringatan di riwayat Ani · *segera* | Tahap 3 | Dasbor warung menampilkan kotak peringatan setiap kali Ani membuka riwayat penerimaan |
+| 3.23 Keamanan 5: XSS, CSRF, cookie sesi, passkey + ADR 30 · *segera* | Tahap 3 | Data dari sistem sendiri tetap input: catatan pembayaran bisa menjalankan skrip di dasbor |
+| 3.24 M26: Transfer yang tidak dibuat Budi · *segera* | Tahap 3 | Budi melihat transfer di riwayatnya yang tidak ia buat, sesudah memakai Wi-Fi kantin tenant mitra |
+| 3.25 Keamanan 6: TLS, HSTS, pinning + ADR 31 · *segera* | Tahap 3 | Sertifikat selalu divalidasi, dan pin selalu datang dengan cadangan |
+| [Security dasar dan rate limit](/c-operasional/c4-security-dasar/) | Tahap 3 | Login dicoba ribuan kali dari satu IP |
 | [4.4 OAuth dan login sosial](/b-fondasi/b5-2-oauth-oidc/) | Tahap 4 | Ingin login dengan akun lain milik user (login sosial) |
 
 ## Struktur kode
@@ -109,16 +120,30 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [2.24 Tim dan infra Tahap 2: review, branch protection, tes integrasi + ADR 18](/tahap-2/tim-infra/) | Tahap 2 | Dua engineer di satu repo tanpa review dan tanpa tes yang menjaga aturan uang |
 | [2.25 M15: Rp15.000 di file bank](/tahap-2/m15-file-bank/) | Tahap 2 | Total pencairan di file bank Rp15.000 lebih besar dari mutasi ledger |
 | 2.26 Job terjadwal yang idempoten dan rekonsiliasi + ADR 19 · *segera* | Tahap 2 | Job pencairan jalan dua kali sesudah server restart di tengah |
-| [3.1 Observability: log, metric, trace](/c-operasional/c2-observability/) | Tahap 3 | Tidak tahu bagian mana yang lambat |
+| 3.7 Observability: log, metric, trace · *segera* | Tahap 3 | Tanpa log, metric, dan trace, "lambat" tidak punya alamat |
+| 3.14 M21: Satu proses mati, semua mati · *segera* | Tahap 3 | Satu proses API keluar, tidak ada yang memulainya lagi, dan deploy mematikan app sesaat |
+| 3.15 Dua instance di belakang proxy + ADR 26 · *segera* | Tahap 3 | Dua proses butuh proxy yang tahu mana yang hidup, dan deploy yang tidak memutus koneksi |
+| 3.27 Tim dan infra Tahap 3: staging, pipeline, alert, on-call + ADR 32 · *segera* | Tahap 3 | Empat engineer, tiga peran, dan satu VPS: staging, pipeline, alert, dan giliran jaga belum ada |
+| [Observability: log, metric, trace](/c-operasional/c2-observability/) | Tahap 3 | Tidak tahu bagian mana yang lambat |
 
 ## Skala dan kinerja
 
 | Halaman | Tahap | Masalah yang dijawab |
 |---|---|---|
-| [3.2 Connection pool](/b-fondasi/b2-5-connection-pool/) | Tahap 3 | Request menunggu koneksi database di jam sibuk |
-| [3.3 Background job, queue, retry](/b-fondasi/b10-1-background-job/) | Tahap 3 | Notifikasi dan email memperlambat request bayar |
-| [3.4 Concurrency dan async](/b-fondasi/b8-concurrency/) | Tahap 3 | Bingung: thread, event loop, goroutine, worker |
-| [3.6 Caching dan invalidation](/b-fondasi/b9-caching/) | Tahap 3 | Katalog dibaca ribuan kali dengan isi sama; harga lama muncul |
+| 3.4 Dua tempat yang tidak bisa commit bersama · *segera* | Tahap 3 | PostgreSQL bisa COMMIT atau ROLLBACK sebagai satu unit, tetapi layanan push tidak ikut unit itu |
+| 3.6 M18: Seluruh app membeku jam 12.20 · *segera* | Tahap 3 | Seluruh layar app berhenti menjawab saat layanan push menerima koneksi tetapi tidak menjawab |
+| 3.8 Connection pool, Little's Law, dan timeout + ADR 22 · *segera* | Tahap 3 | Pool koneksi habis karena panggilan keluar menggantung di dalam transaction, bukan karena beban banyak |
+| 3.9 Outbox transaksional dan worker + ADR 23 · *segera* | Tahap 3 | Uang dan pemberitahuan ditulis di satu tempat dulu, lalu dikirim worker dari tempat lain |
+| 3.10 M19: Ani tidak diberi tahu · *segera* | Tahap 3 | Saldo Citra naik, tetapi satu notifikasi tidak pernah sampai ke Ani |
+| 3.11 Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24 · *segera* | Tahap 3 | Kursor atas waktu dan id melewatkan baris yang COMMIT belakangan, jadi notifikasinya hilang |
+| 3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25 · *segera* | Tahap 3 | Mengirim ulang itu benar; yang kurang adalah penerima yang mengenali ulangan |
+| 3.18 M23: Dua harga di satu meja · *segera* | Tahap 3 | Dua HP di meja yang sama menampilkan dua harga untuk menu yang sama |
+| 3.19 Cache dan invalidation + ADR 28 · *segera* | Tahap 3 | Cache boleh basi untuk tampilan, tidak untuk uang, dan beban katalog sebenarnya tidak memaksa cache |
+| 3.26 M27: Hari promo, notifikasi uang terlambat · *segera* | Tahap 3 | Promo ke semua HP menahan notifikasi pembayaran Ani di belakang antrean yang sama |
+| [Connection pool](/b-fondasi/b2-5-connection-pool/) | Tahap 3 | Request menunggu koneksi database di jam sibuk |
+| [Background job, queue, retry](/b-fondasi/b10-1-background-job/) | Tahap 3 | Notifikasi dan email memperlambat request bayar |
+| [Concurrency dan async](/b-fondasi/b8-concurrency/) | Tahap 3 | Bingung: thread, event loop, goroutine, worker |
+| [Caching dan invalidation](/b-fondasi/b9-caching/) | Tahap 3 | Katalog dibaca ribuan kali dengan isi sama; harga lama muncul |
 | [5.1 Scaling](/d-system-design/d2-scaling/) | Tahap 5 | Database utama penuh oleh query baca |
 | [5.2 Replica dan consistency](/d-system-design/d3-consistency/) | Tahap 5 | User tidak melihat transaksinya sendiri sesaat |
 
@@ -140,8 +165,12 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [2.20 Ukuran payload dan kuota HP](/tahap-2/ukuran-payload/) | Tahap 2 | Berapa byte riwayat Budi di kabel, apa yang menghematnya, dan kapan kuota HP ikut berarti |
 | [Retry dan idempotency key](/e-mobile/e3-retry-idempotency/) | Tahap 2 | – |
 | [Ukuran payload dan kuota HP](/e-mobile/e5-ukuran-payload/) | Tahap 2 | – |
-| [3.5 Push dan real-time](/e-mobile/e4-push-real-time/) | Tahap 3 | App polling status pesanan tiap 5 detik |
-| [3.8 Offline-first dan sync](/e-mobile/e2-offline-first/) | Tahap 3 | Perubahan stok saat offline hilang |
+| 3.3 Fitur: notifikasi push dan promo HR · *segera* | Tahap 3 | Budi dan Ani ingin tahu saat uang masuk tanpa membuka app, dan notifikasi tidak boleh mendahului uangnya |
+| 3.12 M20: Notifikasi masuk dua kali · *segera* | Tahap 3 | Ani menerima notifikasi yang sama dua kali dan mengira Budi membayar dua kali |
+| 3.20 M24: Stok yang kembali ke angka lama · *segera* | Tahap 3 | Stok yang diisi warung hari Sabtu kembali ke angka lama saat app warung tersambung lagi hari Senin |
+| 3.21 Offline-first dan sinkron + ADR 29 · *segera* | Tahap 3 | Operasi yang menunggu lama harus bisa ditolak dengan benar, bukan menimpa data yang lebih baru |
+| [Push dan real-time](/e-mobile/e4-push-real-time/) | Tahap 3 | App polling status pesanan tiap 5 detik |
+| [Offline-first dan sync](/e-mobile/e2-offline-first/) | Tahap 3 | Perubahan stok saat offline hilang |
 
 ## Desain sistem
 
@@ -153,6 +182,9 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | 2.29 M17: Tutup buku kedua lolos, PRD v3 datang · *segera* | Tahap 2 | Tutup buku kedua lolos dengan selisih Rp0, lalu lingkupnya naik ke enam kota |
 | 2.30 Estimasi Tahap 2 → 3 · *segera* | Tahap 2 | Menghitung beban Tahap 3 dari angka Tahap 2 sebelum memilih komponen |
 | 2.31 ADR 21: Sengaja belum dilakukan · *segera* | Tahap 2 | Tergoda menambah cache, queue, Redis, dan server kedua sebelum perlu |
+| 3.28 M28: Uji coba enam kota lolos, PRD v4 datang · *segera* | Tahap 3 | Uji coba enam kota lolos, lalu PRD v4 datang dengan pihak ketiga yang menggerakkan uang |
+| 3.29 Estimasi Tahap 3 → 4 · *segera* | Tahap 3 | Menghitung beban Tahap 4 dari angka Tahap 3 sebelum memilih komponen |
+| 3.30 ADR 33: Sengaja belum dilakukan · *segera* | Tahap 3 | Tergoda menambah microservices, Kubernetes, replica, dan server kedua sebelum angkanya meminta |
 | [4.6 Template ADR](/d-system-design/d5-adr/) | Tahap 4 | Keputusan desain lupa alasannya |
 | [5.3 Feed dan notifikasi](/d-system-design/d4b-feed-notifikasi/) | Tahap 5 | Notifikasi ke ratusan ribu user sekaligus |
 | [Studi desain: laporan lapangan offline](/d-system-design/d4c-laporan-lapangan-offline/) | Studi sampingan | Aplikasi lapangan harus jalan tanpa sinyal |

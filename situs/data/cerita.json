@@ -163,10 +163,10 @@
     },
     {
       "no": 3,
-      "nama": "Lambat di jam sibuk",
-      "user": "1.000–10.000 user",
-      "rekap": "Rekeningo (fiktif) dipakai di satu kota, dan app lambat di jam makan siang.",
-      "sebelumnya": "Tahap 2: saldo dan pembayaran sudah aman dari race condition dan request ganda.",
+      "nama": "Enam kota",
+      "user": "10.000",
+      "rekap": "Grup Lestari (fiktif) membuka Rekeningo di enam kota: ±10.000 karyawan, ±60 warung, 10 minggu.",
+      "sebelumnya": "Tahap 2: ledger double-entry benar, tutup buku kedua lolos dalam 3 jam dengan selisih Rp0, dan puncak beban hanya 1,4 request per detik.",
       "arsitektur": {
         "baris": [
           [
@@ -174,47 +174,84 @@
               "label": "App Flutter"
             },
             {
-              "label": "Monolith API ×2",
-              "baru": true
+              "label": "Reverse proxy",
+              "baru": true,
+              "catatan": "Health check aktif dan retry; tanpa itu instance mati tetap dipilih"
             },
             {
-              "label": "PostgreSQL"
+              "label": "API ×2",
+              "baru": true,
+              "catatan": "Dua instance di satu VPS; deploy bergulir"
             }
           ],
           [
             {
               "label": "Redis",
-              "baru": true
+              "baru": true,
+              "lepas": true,
+              "catatan": "Rate limit lintas instance dan cache katalog; bukan queue, bukan source of truth"
+            },
+            {
+              "label": "PostgreSQL",
+              "berubah": true,
+              "catatan": "+ outbox, perangkat, katalog, operasi sinkron"
             },
             {
               "label": "Worker",
-              "baru": true
-            },
-            {
-              "label": "FCM / email",
-              "baru": true
+              "baru": true,
+              "catatan": "Mengklaim baris outbox dan memanggil layanan push (tiruan lokal di lab); at-least-once"
             }
           ]
         ],
-        "caption": "Tahap 3: pekerjaan lambat pindah ke worker lewat queue."
+        "caption": "Tahap 3: satu VPS menjalankan proxy, dua API, worker, Redis, dan PostgreSQL. Biru = baru; staging terpisah."
       },
       "asumsi": {
         "user": 10000,
         "aktif": 25,
         "req": 60,
         "puncak": 10,
-        "trx": 2,
+        "trx": 3,
         "baris": 300,
-        "tim": "3–4 developer"
+        "tim": "4 developer"
       },
-      "versi": "lama",
       "skala": {
-        "lingkup": "Semua cabang Lestari dan tenant mitra",
-        "user": "10.000 karyawan di 6 kota",
+        "lingkup": "Semua cabang Lestari di enam kota dan warung tenant mitra",
+        "user": "10.000 karyawan di 6 kota, ±60 warung",
         "pembuat": "4 orang: mobile, web, 2 backend",
-        "prd": "PRD v3: notifikasi push, katalog warung, dashboard web merchant",
+        "prd": "PRD v3: notifikasi uang, katalog dan stok, dasbor web, promo HR, mode offline, tidak berhenti saat deploy",
         "pendek": "Enam kota"
-      }
+      },
+      "bagian": [
+        {
+          "no": 1,
+          "nama": "PRD"
+        },
+        {
+          "no": 2,
+          "nama": "Dari fitur ke pekerjaan teknis"
+        },
+        {
+          "no": 3,
+          "nama": "Uang dan pemberitahuan"
+        },
+        {
+          "no": "3b",
+          "nama": "Skema data"
+        },
+        {
+          "no": 4,
+          "nama": "Masalah yang muncul"
+        },
+        {
+          "no": 5,
+          "nama": "Yang dibawa keluar"
+        },
+        {
+          "no": 6,
+          "nama": "Jembatan ke Tahap 4"
+        }
+      ],
+      "naskah": "plan/CERITA-TAHAP-3.md"
     },
     {
       "no": 4,
@@ -2205,12 +2242,767 @@
       "menit": 8
     },
     {
+      "id": "t3-prd",
+      "judul": "PRD v3: Rekeningo untuk enam kota",
+      "tahap": 3,
+      "path": "tahap-3/prd-v3.md",
+      "topik": "Gambaran besar",
+      "jenis": "prd",
+      "bagian": 1,
+      "inti": true,
+      "masalah": "Karyawan tidak tahu kapan uang masuk, warung meminta admin mengubah menu, dan satu proses mati mematikan semuanya",
+      "prasyarat": [
+        "t2-jembatan"
+      ],
+      "ada": false,
+      "nomor": "3.1"
+    },
+    {
+      "id": "t3-fitur-teknis",
+      "judul": "Dari fitur ke pekerjaan teknis v3",
+      "tahap": 3,
+      "path": "tahap-3/fitur-ke-teknis.md",
+      "topik": "Gambaran besar",
+      "jenis": "fitur",
+      "bagian": 2,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Dari PRD v3, apa yang berubah di app, backend, dan database?",
+      "prasyarat": [
+        "t3-prd"
+      ],
+      "ada": false,
+      "nomor": "3.2"
+    },
+    {
+      "id": "t3-notifikasi",
+      "judul": "Fitur: notifikasi push dan promo HR",
+      "tahap": 3,
+      "path": "tahap-3/fitur-notifikasi.md",
+      "topik": "Khusus app mobile",
+      "jenis": "fitur",
+      "bagian": 2,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "masalah": "Budi dan Ani ingin tahu saat uang masuk tanpa membuka app, dan notifikasi tidak boleh mendahului uangnya",
+      "pendek": "Fitur notifikasi push",
+      "prasyarat": [
+        "t3-fitur-teknis"
+      ],
+      "lab": [
+        "api-t3"
+      ],
+      "ada": false,
+      "nomor": "3.3"
+    },
+    {
+      "id": "t3-dua-tempat",
+      "judul": "Dua tempat yang tidak bisa commit bersama",
+      "tahap": 3,
+      "path": "tahap-3/dua-tempat-commit.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "konsep",
+      "bagian": 3,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "PostgreSQL bisa COMMIT atau ROLLBACK sebagai satu unit, tetapi layanan push tidak ikut unit itu",
+      "prasyarat": [
+        "t3-notifikasi"
+      ],
+      "lab": [
+        "t3-outbox"
+      ],
+      "ada": false,
+      "nomor": "3.4"
+    },
+    {
+      "id": "t3-skema",
+      "judul": "Skema data: ERD Tahap 2 → Tahap 3 dan pertumbuhannya",
+      "tahap": 3,
+      "path": "tahap-3/skema-data.md",
+      "topik": "Data",
+      "jenis": "konsep",
+      "bagian": "3b",
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Tabel mana yang lahir, berubah, dan hilang saat notifikasi, katalog, dan sinkron masuk?",
+      "pendek": "Skema data Tahap 3",
+      "prasyarat": [
+        "t3-dua-tempat"
+      ],
+      "lab": [
+        "api-t2",
+        "api-t3"
+      ],
+      "ada": false,
+      "nomor": "3.5"
+    },
+    {
+      "id": "t3-m18",
+      "judul": "M18: Seluruh app membeku jam 12.20",
+      "tahap": 3,
+      "path": "tahap-3/m18-app-membeku.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 18 · minggu 3",
+      "masalah": "Seluruh layar app berhenti menjawab saat layanan push menerima koneksi tetapi tidak menjawab",
+      "prasyarat": [
+        "t3-skema"
+      ],
+      "lab": [
+        "t3-pool"
+      ],
+      "ada": false,
+      "nomor": "3.6"
+    },
+    {
+      "id": "t3-observability",
+      "judul": "Observability: log, metric, trace",
+      "tahap": 3,
+      "path": "tahap-3/observability.md",
+      "topik": "Operasional",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Tanpa log, metric, dan trace, \"lambat\" tidak punya alamat",
+      "prasyarat": [
+        "t3-m18"
+      ],
+      "lab": [
+        "api-t3",
+        "t3-pool"
+      ],
+      "ada": false,
+      "nomor": "3.7"
+    },
+    {
+      "id": "t3-pool",
+      "judul": "Connection pool, Little's Law, dan timeout + ADR 22",
+      "tahap": 3,
+      "path": "tahap-3/connection-pool.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        22
+      ],
+      "masalah": "Pool koneksi habis karena panggilan keluar menggantung di dalam transaction, bukan karena beban banyak",
+      "pendek": "Connection pool dan Little's Law",
+      "prasyarat": [
+        "t3-observability"
+      ],
+      "lab": [
+        "t3-pool"
+      ],
+      "ada": false,
+      "nomor": "3.8"
+    },
+    {
+      "id": "t3-outbox",
+      "judul": "Outbox transaksional dan worker + ADR 23",
+      "tahap": 3,
+      "path": "tahap-3/outbox-worker.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        23
+      ],
+      "masalah": "Uang dan pemberitahuan ditulis di satu tempat dulu, lalu dikirim worker dari tempat lain",
+      "pendek": "Outbox transaksional dan worker",
+      "prasyarat": [
+        "t3-pool"
+      ],
+      "lab": [
+        "t3-outbox"
+      ],
+      "ada": false,
+      "nomor": "3.9"
+    },
+    {
+      "id": "t3-m19",
+      "judul": "M19: Ani tidak diberi tahu",
+      "tahap": 3,
+      "path": "tahap-3/m19-tidak-diberi-tahu.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 19 · minggu 4",
+      "masalah": "Saldo Citra naik, tetapi satu notifikasi tidak pernah sampai ke Ani",
+      "prasyarat": [
+        "t3-outbox"
+      ],
+      "lab": [
+        "t3-outbox"
+      ],
+      "ada": false,
+      "nomor": "3.10"
+    },
+    {
+      "id": "t3-klaim-baris",
+      "judul": "Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24",
+      "tahap": 3,
+      "path": "tahap-3/klaim-per-baris.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        24
+      ],
+      "masalah": "Kursor atas waktu dan id melewatkan baris yang COMMIT belakangan, jadi notifikasinya hilang",
+      "pendek": "Klaim per baris",
+      "prasyarat": [
+        "t3-m19"
+      ],
+      "lab": [
+        "t3-outbox"
+      ],
+      "ada": false,
+      "nomor": "3.11"
+    },
+    {
+      "id": "t3-m20",
+      "judul": "M20: Notifikasi masuk dua kali",
+      "tahap": 3,
+      "path": "tahap-3/m20-notifikasi-dua-kali.md",
+      "topik": "Khusus app mobile",
+      "jenis": "masalah",
+      "bagian": 4,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "label": "Masalah 20 · minggu 4",
+      "masalah": "Ani menerima notifikasi yang sama dua kali dan mengira Budi membayar dua kali",
+      "prasyarat": [
+        "t3-klaim-baris"
+      ],
+      "lab": [
+        "t3-outbox"
+      ],
+      "ada": false,
+      "nomor": "3.12"
+    },
+    {
+      "id": "t3-at-least-once",
+      "judul": "At-least-once: retry, dead-letter, penyaring di app + ADR 25",
+      "tahap": 3,
+      "path": "tahap-3/at-least-once.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "adr": [
+        25
+      ],
+      "masalah": "Mengirim ulang itu benar; yang kurang adalah penerima yang mengenali ulangan",
+      "pendek": "At-least-once dan penyaring di app",
+      "prasyarat": [
+        "t3-m20"
+      ],
+      "lab": [
+        "t3-outbox"
+      ],
+      "ada": false,
+      "nomor": "3.13"
+    },
+    {
+      "id": "t3-m21",
+      "judul": "M21: Satu proses mati, semua mati",
+      "tahap": 3,
+      "path": "tahap-3/m21-satu-proses-mati.md",
+      "topik": "Operasional",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "label": "Masalah 21 · minggu 5",
+      "masalah": "Satu proses API keluar, tidak ada yang memulainya lagi, dan deploy mematikan app sesaat",
+      "prasyarat": [
+        "t3-at-least-once"
+      ],
+      "lab": [
+        "t3-instance"
+      ],
+      "ada": false,
+      "nomor": "3.14"
+    },
+    {
+      "id": "t3-dua-instance",
+      "judul": "Dua instance di belakang proxy + ADR 26",
+      "tahap": 3,
+      "path": "tahap-3/dua-instance.md",
+      "topik": "Operasional",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        26
+      ],
+      "masalah": "Dua proses butuh proxy yang tahu mana yang hidup, dan deploy yang tidak memutus koneksi",
+      "pendek": "Dua instance di belakang proxy",
+      "prasyarat": [
+        "t3-m21"
+      ],
+      "lab": [
+        "t3-instance"
+      ],
+      "ada": false,
+      "nomor": "3.15"
+    },
+    {
+      "id": "t3-m22",
+      "judul": "M22: Batas login jadi dua kali lipat",
+      "tahap": 3,
+      "path": "tahap-3/m22-batas-login-dua-kali.md",
+      "topik": "Keamanan",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "label": "Masalah 22 · minggu 6",
+      "masalah": "Setelah instance kedua dipasang, batas percobaan login per IP longgar menjadi dua kali lipat",
+      "prasyarat": [
+        "t3-dua-instance"
+      ],
+      "lab": [
+        "t3-instance"
+      ],
+      "ada": false,
+      "nomor": "3.16"
+    },
+    {
+      "id": "t3-rate-limit-redis",
+      "judul": "Rate limit lintas instance dan Redis + ADR 27",
+      "tahap": 3,
+      "path": "tahap-3/rate-limit-redis.md",
+      "topik": "Keamanan",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "security",
+        "backend"
+      ],
+      "adr": [
+        27
+      ],
+      "masalah": "Yang disimpan di memori satu proses berlipat saat prosesnya dua",
+      "pendek": "Rate limit lintas instance dan Redis",
+      "prasyarat": [
+        "t3-m22"
+      ],
+      "lab": [
+        "t3-instance"
+      ],
+      "ada": false,
+      "nomor": "3.17"
+    },
+    {
+      "id": "t3-m23",
+      "judul": "M23: Dua harga di satu meja",
+      "tahap": 3,
+      "path": "tahap-3/m23-dua-harga.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "masalah",
+      "bagian": 4,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 23 · minggu 6",
+      "masalah": "Dua HP di meja yang sama menampilkan dua harga untuk menu yang sama",
+      "prasyarat": [
+        "t3-rate-limit-redis"
+      ],
+      "lab": [
+        "t3-cache"
+      ],
+      "ada": false,
+      "nomor": "3.18"
+    },
+    {
+      "id": "t3-cache",
+      "judul": "Cache dan invalidation + ADR 28",
+      "tahap": 3,
+      "path": "tahap-3/cache-invalidation.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        28
+      ],
+      "masalah": "Cache boleh basi untuk tampilan, tidak untuk uang, dan beban katalog sebenarnya tidak memaksa cache",
+      "pendek": "Cache dan invalidation",
+      "prasyarat": [
+        "t3-m23"
+      ],
+      "lab": [
+        "t3-cache"
+      ],
+      "ada": false,
+      "nomor": "3.19"
+    },
+    {
+      "id": "t3-m24",
+      "judul": "M24: Stok yang kembali ke angka lama",
+      "tahap": 3,
+      "path": "tahap-3/m24-stok-kembali.md",
+      "topik": "Khusus app mobile",
+      "jenis": "masalah",
+      "bagian": 4,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "label": "Masalah 24 · minggu 7",
+      "masalah": "Stok yang diisi warung hari Sabtu kembali ke angka lama saat app warung tersambung lagi hari Senin",
+      "prasyarat": [
+        "t2-idempotency"
+      ],
+      "lab": [
+        "t3-offline"
+      ],
+      "ada": false,
+      "nomor": "3.20"
+    },
+    {
+      "id": "t3-offline",
+      "judul": "Offline-first dan sinkron + ADR 29",
+      "tahap": 3,
+      "path": "tahap-3/offline-first.md",
+      "topik": "Khusus app mobile",
+      "jenis": "konsep",
+      "bagian": 4,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "adr": [
+        29
+      ],
+      "masalah": "Operasi yang menunggu lama harus bisa ditolak dengan benar, bukan menimpa data yang lebih baru",
+      "pendek": "Offline-first dan sinkron",
+      "prasyarat": [
+        "t3-m24"
+      ],
+      "lab": [
+        "t3-offline"
+      ],
+      "ada": false,
+      "nomor": "3.21"
+    },
+    {
+      "id": "t3-m25",
+      "judul": "M25: Kotak peringatan di riwayat Ani",
+      "tahap": 3,
+      "path": "tahap-3/m25-kotak-peringatan.md",
+      "topik": "Keamanan",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "label": "Masalah 25 · minggu 8",
+      "masalah": "Dasbor warung menampilkan kotak peringatan setiap kali Ani membuka riwayat penerimaan",
+      "prasyarat": [
+        "t3-offline"
+      ],
+      "lab": [
+        "t3-dasbor"
+      ],
+      "ada": false,
+      "nomor": "3.22"
+    },
+    {
+      "id": "t3-xss-csrf",
+      "judul": "Keamanan 5: XSS, CSRF, cookie sesi, passkey + ADR 30",
+      "tahap": 3,
+      "path": "tahap-3/xss-csrf-cookie.md",
+      "topik": "Keamanan",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "adr": [
+        30
+      ],
+      "label": "Keamanan 5",
+      "masalah": "Data dari sistem sendiri tetap input: catatan pembayaran bisa menjalankan skrip di dasbor",
+      "pendek": "XSS, CSRF, cookie sesi, passkey",
+      "prasyarat": [
+        "t3-m25"
+      ],
+      "lab": [
+        "t3-dasbor"
+      ],
+      "ada": false,
+      "nomor": "3.23"
+    },
+    {
+      "id": "t3-m26",
+      "judul": "M26: Transfer yang tidak dibuat Budi",
+      "tahap": 3,
+      "path": "tahap-3/m26-transfer-bukan-budi.md",
+      "topik": "Keamanan",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "security",
+        "backend"
+      ],
+      "label": "Masalah 26 · minggu 9",
+      "masalah": "Budi melihat transfer di riwayatnya yang tidak ia buat, sesudah memakai Wi-Fi kantin tenant mitra",
+      "prasyarat": [
+        "t3-xss-csrf"
+      ],
+      "lab": [
+        "t3-mitm"
+      ],
+      "ada": false,
+      "nomor": "3.24"
+    },
+    {
+      "id": "t3-tls-pinning",
+      "judul": "Keamanan 6: TLS, HSTS, pinning + ADR 31",
+      "tahap": 3,
+      "path": "tahap-3/tls-pinning.md",
+      "topik": "Keamanan",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "security",
+        "backend"
+      ],
+      "adr": [
+        31
+      ],
+      "label": "Keamanan 6",
+      "masalah": "Sertifikat selalu divalidasi, dan pin selalu datang dengan cadangan",
+      "pendek": "TLS, HSTS, pinning",
+      "prasyarat": [
+        "t3-m26"
+      ],
+      "lab": [
+        "t3-mitm"
+      ],
+      "ada": false,
+      "nomor": "3.25"
+    },
+    {
+      "id": "t3-m27",
+      "judul": "M27: Hari promo, notifikasi uang terlambat",
+      "tahap": 3,
+      "path": "tahap-3/m27-hari-promo.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "label": "Masalah 27 · minggu 9",
+      "masalah": "Promo ke semua HP menahan notifikasi pembayaran Ani di belakang antrean yang sama",
+      "prasyarat": [
+        "t3-at-least-once"
+      ],
+      "lab": [
+        "t3-outbox"
+      ],
+      "ada": false,
+      "nomor": "3.26"
+    },
+    {
+      "id": "t3-tim-infra",
+      "judul": "Tim dan infra Tahap 3: staging, pipeline, alert, on-call + ADR 32",
+      "tahap": 3,
+      "path": "tahap-3/tim-infra.md",
+      "topik": "Operasional",
+      "jenis": "tim-infra",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        32
+      ],
+      "masalah": "Empat engineer, tiga peran, dan satu VPS: staging, pipeline, alert, dan giliran jaga belum ada",
+      "pendek": "Tim dan infra Tahap 3",
+      "prasyarat": [
+        "t3-m27"
+      ],
+      "lab": [
+        "api-t3",
+        "t3-outbox"
+      ],
+      "ada": false,
+      "nomor": "3.27"
+    },
+    {
+      "id": "t3-m28",
+      "judul": "M28: Uji coba enam kota lolos, PRD v4 datang",
+      "tahap": 3,
+      "path": "tahap-3/m28-prd-v4.md",
+      "topik": "Desain sistem",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 28 · minggu 10",
+      "masalah": "Uji coba enam kota lolos, lalu PRD v4 datang dengan pihak ketiga yang menggerakkan uang",
+      "prasyarat": [
+        "t3-tim-infra"
+      ],
+      "ada": false,
+      "nomor": "3.28"
+    },
+    {
+      "id": "t3-estimasi",
+      "judul": "Estimasi Tahap 3 → 4",
+      "tahap": 3,
+      "path": "tahap-3/estimasi.md",
+      "topik": "Desain sistem",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Menghitung beban Tahap 4 dari angka Tahap 3 sebelum memilih komponen",
+      "prasyarat": [
+        "t3-m28"
+      ],
+      "ada": false,
+      "nomor": "3.29"
+    },
+    {
+      "id": "t3-adr-33",
+      "judul": "ADR 33: Sengaja belum dilakukan",
+      "tahap": 3,
+      "path": "tahap-3/sengaja-belum.md",
+      "topik": "Desain sistem",
+      "jenis": "adr",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        33
+      ],
+      "masalah": "Tergoda menambah microservices, Kubernetes, replica, dan server kedua sebelum angkanya meminta",
+      "prasyarat": [
+        "t3-estimasi"
+      ],
+      "ada": false,
+      "nomor": "3.30"
+    },
+    {
+      "id": "t3-rekap",
+      "judul": "Yang dibawa keluar dari Tahap 3",
+      "tahap": 3,
+      "path": "tahap-3/rekap.md",
+      "topik": "Gambaran besar",
+      "jenis": "konsep",
+      "bagian": 5,
+      "inti": true,
+      "masalah": "Mengingat tiga belas konsep Tahap 3 dalam satu kalimat masing-masing",
+      "prasyarat": [
+        "t3-adr-33"
+      ],
+      "ada": false,
+      "nomor": "3.31"
+    },
+    {
+      "id": "t3-jembatan",
+      "judul": "Jembatan: pratinjau PRD v4",
+      "tahap": 3,
+      "path": "tahap-3/jembatan-prd-v4.md",
+      "topik": "Gambaran besar",
+      "jenis": "prd",
+      "bagian": 6,
+      "inti": true,
+      "masalah": "Keputusan Tahap 3 mana yang pecah lebih dulu saat PRD v4 datang?",
+      "pendek": "Pratinjau PRD v4",
+      "prasyarat": [
+        "t3-rekap"
+      ],
+      "ada": false,
+      "nomor": "3.32"
+    },
+    {
       "id": "T3",
       "judul": "Tahap 3 · Ceritanya",
       "tahap": 3,
       "path": "cerita/tahap-3.md",
-      "inti": true,
       "ada": true,
+      "bagian": 1,
+      "diganti_oleh": "t3-prd",
       "menit": 5
     },
     {
@@ -2222,10 +3014,16 @@
       "prasyarat": [
         "C1"
       ],
-      "inti": true,
       "masalah": "Tidak tahu bagian mana yang lambat",
       "ada": true,
-      "nomor": "3.1",
+      "pendek": "Observability: log, metric, trace (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t3-observability",
+      "lab": [
+        "api-t3",
+        "t3-pool"
+      ],
       "menit": 9
     },
     {
@@ -2237,10 +3035,15 @@
       "prasyarat": [
         "B3.1"
       ],
-      "inti": true,
       "masalah": "Request menunggu koneksi database di jam sibuk",
       "ada": true,
-      "nomor": "3.2",
+      "pendek": "Connection pool (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t3-pool",
+      "lab": [
+        "t3-pool"
+      ],
       "menit": 10
     },
     {
@@ -2252,10 +3055,15 @@
       "prasyarat": [
         "B2.5"
       ],
-      "inti": true,
       "masalah": "Notifikasi dan email memperlambat request bayar",
       "ada": true,
-      "nomor": "3.3",
+      "pendek": "Background job, queue, retry (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t3-outbox",
+      "lab": [
+        "t3-outbox"
+      ],
       "menit": 10
     },
     {
@@ -2269,7 +3077,13 @@
       ],
       "masalah": "Bingung: thread, event loop, goroutine, worker",
       "ada": true,
-      "nomor": "3.4",
+      "pendek": "Concurrency dan async (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t3-klaim-baris",
+      "lab": [
+        "t3-outbox"
+      ],
       "menit": 9
     },
     {
@@ -2283,7 +3097,13 @@
       ],
       "masalah": "App polling status pesanan tiap 5 detik",
       "ada": true,
-      "nomor": "3.5",
+      "pendek": "Push dan real-time (versi lama)",
+      "bagian": 2,
+      "lama": true,
+      "lebur_ke": "t3-notifikasi",
+      "lab": [
+        "api-t3"
+      ],
       "menit": 8
     },
     {
@@ -2295,10 +3115,15 @@
       "prasyarat": [
         "B2.3"
       ],
-      "inti": true,
       "masalah": "Katalog dibaca ribuan kali dengan isi sama; harga lama muncul",
       "ada": true,
-      "nomor": "3.6",
+      "pendek": "Caching dan invalidation (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t3-cache",
+      "lab": [
+        "t3-cache"
+      ],
       "menit": 10
     },
     {
@@ -2310,10 +3135,15 @@
       "prasyarat": [
         "B5.1"
       ],
-      "inti": true,
       "masalah": "Login dicoba ribuan kali dari satu IP",
       "ada": true,
-      "nomor": "3.7",
+      "pendek": "Security dasar dan rate limit (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t3-rate-limit-redis",
+      "lab": [
+        "t3-instance"
+      ],
       "menit": 10
     },
     {
@@ -2328,7 +3158,13 @@
       ],
       "masalah": "Perubahan stok saat offline hilang",
       "ada": true,
-      "nomor": "3.8",
+      "pendek": "Offline-first dan sync (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t3-offline",
+      "lab": [
+        "t3-offline"
+      ],
       "menit": 10
     },
     {
