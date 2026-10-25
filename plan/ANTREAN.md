@@ -1343,18 +1343,36 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### EVAL-2 · Evaluasi Tahap 2
 
 - jenis: crosscheck
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.33, G-axe
 - selesai bila: `plan/EVALUASI-TAHAP-2.md` sesuai skill evaluasi-tahap oleh subagent yang tidak menulis halaman Tahap 2: kartu W1–W8 dengan satu baris bukti yang bisa diulang, tiga pertanyaan pembaca di tiga halaman acak (seed 2), uji baca oleh subagent segar (5 hal membingungkan). Ada TIDAK: paling banyak 3 tugas perbaikan disisipkan tepat sesudah tugas ini, lalu `EVAL-2-ulang` sekali; sisa TIDAK dan 5 hal membingungkan ke `plan/TINJAUAN-PEMILIK.md`.
-- catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya.
+- catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya. Selesai 2026-10-26 di PR evaluasi Tahap 2 (nomor di badan PR; keputusan 750–753): W1–W4 dan W6–W8 YA, W5 TIDAK (2.32 dan 2.2 tanpa "ubah satu hal"; jawaban tebakan sudah di Inti pada 2.12, 2.14, 2.16). Satu perbaikan teks 2.28 (750), alat bukti `tools/eval_tahap.py` dan `situs/tools/eval-keyboard.mjs` (753), satu tugas perbaikan (`EVAL2-F1`) dan `EVAL-2-ulang` (752); sisanya di `plan/TINJAUAN-PEMILIK.md` bagian Tahap 2.
+
+### EVAL2-F1 · Berikutnya sesudah jembatan Tahap 2 tidak masuk halaman lama
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: EVAL-2
+- selesai bila: `urutanBaca` di `situs/tools/registri.mjs` (dipakai `Lanjut.astro`, `Blok.astro`, `Beranda.astro`, `remark-rujukan.mjs`) melewati halaman yang punya `lebur_ke` atau `diganti_oleh` yang menunjuk halaman `ada: true`; halaman itu tidak dihapus dan tetap ada di sidebar, di URL-nya, dan sebagai rujukan `[[ID]]`; halaman lama yang penggantinya masih "segera" tetap ada di urutan baca. Sesudah perbaikan `python3 tools/eval_tahap.py rantai 2` tetap mencetak 33 langkah dari 2.1 ke 2.33 tanpa 404, dan baris "sesudah halaman terakhir" menunjuk halaman tahap berikutnya yang bukan halaman lama (sekarang `T3`, "Tahap 3 · Ceritanya", selama 3.1 masih "segera"; 3.1 bila sudah ada); Sebelumnya dari halaman itu menunjuk 2.33; Berikutnya dari 1.42 tetap 2.1. Satu tes (Vitest di `situs/src/lib/` atau `node --test` di `situs/tests/`) membuktikan urutan: halaman lama yang penggantinya `ada` tidak muncul, halaman lama tanpa pengganti `ada` tetap muncul, dan satu mutasi (syarat dihapus) membuatnya gagal. `jalur_inti` dan menit baca Tahap 2 dihitung ulang bila berubah (`sinkron_cerita.py`); gerbang lolos.
+- catatan: Dari EVAL-2 (keputusan 752), kategori rusak. Bukti: `python3 tools/eval_tahap.py rantai 2` mencetak Berikutnya dari 2.33 menuju `/cerita/tahap-2/` (`T2`, `diganti_oleh` t2-prd), disusul B3.2, B3.3, B2.4, B2.3, E3, B4.2, B1.3, E5 (semuanya `lama` dengan `lebur_ke` ke halaman 2.x yang sudah ada), baru Tahap 3 (keputusan 605, 638, 642, 653, 665, 781 memindahkan halaman lama ke akhir Tahap 2). Tugas ini hanya mengubah urutan baca. Menghapus atau menulis ulang halaman lama menunggu keputusan pemilik (`plan/TINJAUAN-PEMILIK.md` Tahap 2 butir 2). File yang disentuh: `situs/tools/registri.mjs` dan tesnya.
+
+### EVAL-2-ulang · Evaluasi ulang Tahap 2
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: EVAL2-F1
+- selesai bila: satu subagent yang bukan penulis halaman Tahap 2 dan bukan pelaksana `EVAL2-F1` menambah bagian "Putaran 2" ke `plan/EVALUASI-TAHAP-2.md` dengan seed 2 yang sama dan bagian "Cara mengulang" file itu: gerbang penuh sekali; W8 (rantai Berikutnya 2.1 sampai 2.33 dan langkah sesudah jembatan yang tidak lagi masuk halaman bertanda lama); W4 (`ukur-axe --semua --awalan /tahap-2/` dan `eval-keyboard.mjs` di 2.4 dan 2.11); W5 dinilai ulang dengan definisi skill yang berlaku saat itu (DIRI-2 mungkin sudah mengubahnya; tidak ada halaman yang diubah di putaran ini); W1 sampai W3, W6, dan W7 diulang dengan perintah yang sama. Tidak ada putaran perbaikan kedua. Sesudahnya tahap dinyatakan selesai apa pun hasilnya, dan butir yang tetap TIDAK dipastikan ada di `plan/TINJAUAN-PEMILIK.md`.
+- catatan: Skill evaluasi-tahap: evaluasi ulang SEKALI. Boleh lebih ringan dari EVAL-2. `DIRI-2` dan `KONSISTENSI-3` menunggu tugas ini (keputusan 752); perbaikan `EVAL2-F1` tidak mengubah bukti yang mereka pakai, jadi bila pengatur ingin Tahap 3 jalan lebih awal, `bergantung` keduanya boleh dikembalikan ke `EVAL-2`.
 
 ### DIRI-2 · Perbaikan diri sesudah Tahap 2
 
 - jenis: perbaikan
 - status: antre
 - percobaan: 0
-- bergantung: EVAL-2
+- bergantung: EVAL-2-ulang
 - selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-2.md` dan pelajaran MEMORI Tahap 2, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 2, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 2 selesai".
 - catatan: Langkah penutup alur tahap.
 
@@ -1403,7 +1421,7 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 - jenis: crosscheck
 - status: antre
 - percobaan: 0
-- bergantung: NASKAH-3, EVAL-2
+- bergantung: NASKAH-3, EVAL-2-ulang
 - selesai bila: satu subagent membaca `plan/CERITA-TAHAP-3.md`, `plan/EVALUASI-TAHAP-2.md`, halaman Tahap 2 yang ditulis, ADR 13–21 dan keputusan Tahap 2 di KEPUTUSAN, lalu menambal naskah seperlunya (nama tabel dan kolom, nomor M dan ADR, angka beban, apa yang sudah ada di akhir Tahap 2, peta halaman dan prasyarat) tanpa menulis ulang struktur; setiap tambalan dicatat satu baris di bagian atas naskah ("Disesuaikan dengan Tahap 2 pada <tanggal>: ...") dan di KEPUTUSAN; bila peta halaman berubah, registry dan `plan/RINGKAS.md` Tahap 3 diselaraskan di PR yang sama; gerbang lolos.
 - catatan: Keputusan 728 butir 3. Halaman 3.1 baru boleh mulai sesudah tugas ini dan DIRI-2.
 
