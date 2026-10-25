@@ -1382,15 +1382,6 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - selesai bila: `.github/workflows/cek.yml` menyimpan cache bun dan browser Playwright (kunci dari `bun.lock` dan versi Playwright, dengan verifikasi yang ada untuk .deb tetap); job ukur paralel per ukuran layar atau kelompok sehingga waktu dinding turun; di PR alat ukur halaman hanya memeriksa halaman yang berubah (dibandingkan dengan dist main) kecuali bila tema, CSS, komponen, plugin, atau alat ukur berubah, maka semua halaman; di main dan di workflow terjadwal malam (`schedule`) 100% halaman tetap diperiksa; menit CI sebelum dan sesudah (rata-rata tiga run PR terakhir dan tiga run sesudahnya, dari `gh run list`) dicatat di badan PR; satu alat uji membuktikan PR dengan perubahan CSS memilih semua halaman dan PR dengan satu halaman memilih halaman itu saja.
 - catatan: Keputusan 728 butir 4. Bila main lebih sering merah sesudahnya, pengatur mengembalikan pemeriksaan per halaman (butir 4 dan 5).
 
-### KONSISTENSI-3 · NASKAH-3 dicocokkan dengan keputusan Tahap 2 yang sebenarnya
-
-- jenis: crosscheck
-- status: antre
-- percobaan: 0
-- bergantung: NASKAH-3, EVAL-2
-- selesai bila: satu subagent membaca `plan/CERITA-TAHAP-3.md`, `plan/EVALUASI-TAHAP-2.md`, halaman Tahap 2 yang ditulis, ADR 13–21 dan keputusan Tahap 2 di KEPUTUSAN, lalu menambal naskah seperlunya (nama tabel dan kolom, nomor M dan ADR, angka beban, apa yang sudah ada di akhir Tahap 2, peta halaman dan prasyarat) tanpa menulis ulang struktur; setiap tambalan dicatat satu baris di bagian atas naskah ("Disesuaikan dengan Tahap 2 pada <tanggal>: ...") dan di KEPUTUSAN; bila peta halaman berubah, registry dan `plan/RINGKAS.md` Tahap 3 diselaraskan di PR yang sama; gerbang lolos.
-- catatan: Keputusan 728 butir 3. Halaman 3.1 baru boleh mulai sesudah tugas ini dan DIRI-2.
-
 ## Tahap 3
 
 Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan oleh `T3-siap` dari peta halaman naskah: lab sebelum `ERD3`, halaman sesudah widget. Nomor keputusan: 800–999 (konten +0–99, teknis +100–149, pengatur +150–199).
@@ -1412,6 +1403,15 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 - bergantung: RISET-3
 - selesai bila: `plan/CERITA-TAHAP-3.md` dengan struktur persis CERITA-TAHAP-2 (Kenapa dokumen ini ada, Latar, Tokoh baru, 1 PRD v3, 2 Dari fitur ke pekerjaan teknis, 3 Inti teknis, 3b Skema data, 4 Masalah, 5 Yang dibawa keluar, 6 Jembatan, Peta halaman, Jalur per peran), baris pertama "Draft otomatis, belum ditinjau pemilik", memakai RISET-TAHAP-3; nomor M dan ADR melanjutkan tahap sebelumnya; peta halaman 24–32 halaman dengan kolom lab, setiap halaman masalah dipicu fitur PRD, pihak ketiga selalu tiruan lokal; peninjau konsistensi (subagent kedua) membaca naskah terhadap semua naskah sebelumnya (tokoh, nama perusahaan, angka saldo dan user, istilah glosarium, nomor ADR dan M, rantai PRD → fitur → teknis → masalah → konsep) dan semua temuannya ditutup.
 - catatan: Satu-satunya naskah yang ditulis Claude; Tahap 1–2 milik pemilik dan tidak disentuh. Ditulis sebelum Tahap 2 selesai (keputusan 728): memakai RINGKAS dan CERITA-TAHAP-2 sebagai jembatan; `KONSISTENSI-3` mencocokkannya dengan keputusan Tahap 2 yang sebenarnya.
+
+### KONSISTENSI-3 · NASKAH-3 dicocokkan dengan keputusan Tahap 2 yang sebenarnya
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: NASKAH-3, EVAL-2
+- selesai bila: satu subagent membaca `plan/CERITA-TAHAP-3.md`, `plan/EVALUASI-TAHAP-2.md`, halaman Tahap 2 yang ditulis, ADR 13–21 dan keputusan Tahap 2 di KEPUTUSAN, lalu menambal naskah seperlunya (nama tabel dan kolom, nomor M dan ADR, angka beban, apa yang sudah ada di akhir Tahap 2, peta halaman dan prasyarat) tanpa menulis ulang struktur; setiap tambalan dicatat satu baris di bagian atas naskah ("Disesuaikan dengan Tahap 2 pada <tanggal>: ...") dan di KEPUTUSAN; bila peta halaman berubah, registry dan `plan/RINGKAS.md` Tahap 3 diselaraskan di PR yang sama; gerbang lolos.
+- catatan: Keputusan 728 butir 3. Halaman 3.1 baru boleh mulai sesudah tugas ini dan DIRI-2.
 
 ### T3-siap · RINGKAS, registry, dan antrean Tahap 3
 
