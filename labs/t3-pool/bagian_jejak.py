@@ -23,7 +23,7 @@ def rekam_jejak():
     d.tunggu(lambda: menggantung() >= 1, "pembayaran sampai di layanan push")
     time.sleep(4.0)
     catat("(belum ada jawaban sesudah 4 detik; client masih menunggu)")
-    catat("# 1. Log: request yang menggantung tidak menulis apa-apa. Baris ditulis saat request selesai.")
+    catat("# 1. Log: api-t3 tidak mencatat request, hanya kejadian server dan kesalahan internal. Request yang menggantung tidak meninggalkan baris.")
     baru = d.log_server()[baris_awal:]
     harap(baru, [], "log tidak menulis baris baru")
     catat(f"baris log baru sesudah 4 detik: {len(baru)}")
@@ -43,6 +43,12 @@ def rekam_jejak():
     baris = sql(q, tampil=False)
     harap([(r[0], r[1], r[2], r[3]) for r in baris], [("idle in transaction", "Client", "ClientRead", True)], "keadaan koneksi")
     catat("# Dari luar proses, petunjuk itu satu-satunya: yang lambat bukan PostgreSQL. Bagian mana di API yang menunggu, tidak terlihat.")
-    catat("# 4. Trace: Tidak dijalankan. OpenTelemetry tidak dipasang di api-t3 (butuh ADR untuk dependency; log Go masih Release Candidate, R3-14).")
+    catat("# Pembanding untuk butir 1, dijalankan sesudah butir 2 dan 3 karena pembacaan membuka koneksi kedua: satu pembacaan saldo yang selesai.")
+    s, _ = curl("GET", f"/akun/{sesi[1][1]}", None, sesi[1][0], tampil=False)
+    harap(s, 200, "pembacaan saldo pembanding")
+    harap(d.log_server()[baris_awal:], [], "pembacaan yang selesai juga tidak menulis baris log")
+    catat("pembacaan saldo yang selesai (200): baris log baru sejak awal: 0. Log kosong bukan tanda request menggantung: server ini tidak punya log akses.")
+    catat("# 4. Trace: Tidak dijalankan. OpenTelemetry tidak dipasang di api-t3: dependency baru butuh ADR (paket otelhttp [perlu verifikasi], R3-14). "
+          "Traces dan Metrics di OpenTelemetry Go berstatus Stable, hanya Logs yang masih Release Candidate (R3-14).")
     hentikan(PORT, PORT_PUSH)
     tulis("jejak.txt", "satu pembayaran selama M18: log, metric, dan database dari luar", lab="t3-pool", keputusan="959")

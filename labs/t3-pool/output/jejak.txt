@@ -10,7 +10,7 @@ $ curl -X POST '/lab/mode' -d '{"mode": "gantung"}'   # layanan push tiruan: men
 # App mengirim header traceparent (contoh dari spesifikasi W3C Trace Context). Satu pembayaran, tanpa beban lain.
 $ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Karyawan>' -H 'traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01' -d '{"ke": 418, "nominal": 10000}'
 (belum ada jawaban sesudah 4 detik; client masih menunggu)
-# 1. Log: request yang menggantung tidak menulis apa-apa. Baris ditulis saat request selesai.
+# 1. Log: api-t3 tidak mencatat request, hanya kejadian server dan kesalahan internal. Request yang menggantung tidak meninggalkan baris.
 baris log baru sesudah 4 detik: 0
 baris log yang memuat trace-id dari app: 0
 $ grep -rli traceparent cmd internal   # di labs/api-t3
@@ -25,4 +25,6 @@ $ curl -i -X GET '/lab/pool'   # kolom menunggu tidak dicetak: hitungan kumulati
  idle in transaction | Client          | ClientRead | t
 (1 row)
 # Dari luar proses, petunjuk itu satu-satunya: yang lambat bukan PostgreSQL. Bagian mana di API yang menunggu, tidak terlihat.
-# 4. Trace: Tidak dijalankan. OpenTelemetry tidak dipasang di api-t3 (butuh ADR untuk dependency; log Go masih Release Candidate, R3-14).
+# Pembanding untuk butir 1, dijalankan sesudah butir 2 dan 3 karena pembacaan membuka koneksi kedua: satu pembacaan saldo yang selesai.
+pembacaan saldo yang selesai (200): baris log baru sejak awal: 0. Log kosong bukan tanda request menggantung: server ini tidak punya log akses.
+# 4. Trace: Tidak dijalankan. OpenTelemetry tidak dipasang di api-t3: dependency baru butuh ADR (paket otelhttp [perlu verifikasi], R3-14). Traces dan Metrics di OpenTelemetry Go berstatus Stable, hanya Logs yang masih Release Candidate (R3-14).

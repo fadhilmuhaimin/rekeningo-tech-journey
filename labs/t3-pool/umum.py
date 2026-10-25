@@ -19,9 +19,10 @@ d.OUT = HERE / "output"   # dasar_t3 menulis ke folder lab api-t3 bila tidak dig
 RPS, TIAP = 17.4, 20
 LAMBDA = RPS / TIAP                 # 0,87 pembayaran per detik
 PERIODE = 1 / LAMBDA                # 1,149 detik antar pembayaran
-W_DB = 0.02                         # Asumsi naskah: 20 ms waktu satu request memegang koneksi (R3-33)
+W_DB = 0.02                         # Asumsi naskah: 20 ms waktu satu request memegang koneksi (R3-33), dipakai di hitungan
+BATAS_W = 0.05                      # batas lab untuk W di luar push: 2,5 kali Asumsi. Satu run di mesin sibuk (load 7,8) terukur 24 ms dan batas 20 ms menolaknya
 KOMENTAR_BEBAN = [
-    "# Beban dengan jadwal tetap, bukan acak: 17,4 request per detik. Request ke-20, ke-40, dan seterusnya adalah pembayaran (0,87 per detik, 5%).",
+    "# Beban dengan jadwal tetap, bukan acak: 17,4 request per detik (Asumsi naskah bagian 3). Request ke-20, ke-40, dan seterusnya adalah pembayaran (0,87 per detik, 5%, Asumsi).",
     "# Sisanya (16,5 per detik) adalah karyawan yang membuka saldonya (GET /akun/{id}). Pembayar, warung, dan pembaca selalu berbeda: tidak ada rebutan lock buku.",
 ]
 

@@ -25,7 +25,8 @@ def rekam_m18():
     belum, gantung = be.dalam_proses(), menggantung()
     harap((n_bayar, belum, gantung), (26, 26, 10), "keadaan sesudah 30 detik")
     catat(f"# Sesudah 30 detik: {n_bayar} pembayaran dikirim, {belum} belum dijawab. Di layanan push {gantung} permintaan menggantung, jadi {belum - gantung} pembayaran menunggu koneksi di API.")
-    catat(f"# L = λ × W untuk t = 30 detik: 0,87 × (0,02 + 30) = {kom(LAMBDA * (W_DB + 30))}. Diukur: {belum} pembayaran dalam proses. Pool hanya muat 10; sisanya mengantre.")
+    catat(f"# Hitungan untuk t = 30 detik: L = 0,87 × (0,02 + 30) = {kom(LAMBDA * (W_DB + 30))} koneksi yang dibutuhkan. Diukur: {belum} pembayaran dalam proses, tetapi tidak ada yang selesai, "
+          f"jadi angka itu hanya jadwal × waktu (0,87 × 30,4 = {kom(LAMBDA * 30.4)}), bukan ujian L = λ × W (ujiannya di little.txt). Pool hanya muat 10; sisanya mengantre.")
     pg.henti()
     hentikan(PORT, PORT_PUSH)
 

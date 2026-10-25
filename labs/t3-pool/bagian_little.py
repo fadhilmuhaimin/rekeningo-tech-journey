@@ -43,9 +43,9 @@ def rekam_little():
         catat(f"10 dari 10 pembayaran: {ringkas(status)}")
         catat(f"koneksi dengan transaction terbuka: paling sedikit {rendah}, paling banyak {tinggi} dari 10")
         harap((rendah, tinggi), (math.floor(l_naskah), math.ceil(l_naskah)), f"t = {t}: paling sedikit dan paling banyak")
-        catat(f"W dari data (rata-rata satu pembayaran): t ditambah kurang dari 20 ms untuk PostgreSQL dan HTTP (Asumsi naskah 20 ms): "
-              + ya(t < w_data < t + W_DB, f"W dari data {w_data:.4f}"))
-        catat("rata-rata koneksi dalam 15% dari λ × W (λ dan W dari data): "
+        catat(f"W dari data (rata-rata satu pembayaran): t ditambah kurang dari 50 ms untuk PostgreSQL dan HTTP (batas lab; Asumsi naskah 20 ms): "
+              + ya(t < w_data < t + BATAS_W, f"W dari data {w_data:.4f}"))
+        catat("rata-rata koneksi dalam 15% dari λ × W (λ dari jadwal, W rata-rata dari data): "
               + ya(abs(l_ukur - l_data) <= 0.15 * l_data, f"L ukur {l_ukur:.3f} lawan λ×W {l_data:.3f}"))
         catat(f"rata-rata koneksi dalam 15% dari hitungan {kom(l_naskah, 3)}: "
               + ya(abs(l_ukur - l_naskah) <= 0.15 * l_naskah, f"L ukur {l_ukur:.3f} lawan naskah {l_naskah:.3f}"))
