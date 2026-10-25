@@ -1,0 +1,137 @@
+---
+title: "2.29 M17: Tutup buku kedua lolos, PRD v3 datang"
+description: Minggu 8. Tutup buku kedua lolos dengan selisih Rp0, lalu Sinta datang dengan PRD v3 untuk enam kota. Rp0 menjawab apakah data yang terlihat cocok, bukan apakah laporannya final atau servernya cukup.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import diuji from "../../../../data/diagram/t2-m17-diuji.json";
+import Snippet from "../../../components/Snippet.astro";
+import TutupUlang from "../../../components/TutupUlang.astro";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t2-login-aman]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka ilustrasi="m17">
+
+Minggu 8 Tahap 2. Pak Hadi, Raka, dan Nadia menjalankan uji coba tutup buku yang kedua. Laporan selesai dalam tiga jam, dan selisihnya Rp0.
+
+Pak Hadi memeriksa laporan itu. Kali ini ia tidak menemukan baris seperti Rp15.000 di [[t2-m15]].
+
+Sinta masuk membawa PRD v3. Lingkupnya semua cabang Grup Lestari di enam kota, dengan notifikasi dan dashboard web untuk warung.
+
+"Server yang sekarang cukup untuk itu?" tanya Sinta.
+
+*Angka cerita (Ilustrasi):* tiga jam, minggu 8, selisih Rp0, dan enam kota berasal dari naskah. Pemeriksaan Pak Hadi ditambahkan halaman ini. Rekaman di blok "Yang sebenarnya" menjalankan tutup buku atas 1.016 buku dan tidak mengukur lamanya. Isi PRD v3 selengkapnya ada di [[t2-jembatan]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Nadia menjawab lebih dulu. "Belum. Enam kota, notifikasi, dan dashboard: satu server tidak akan cukup." Di tim ERP, ia terbiasa melihat sistem sebesar itu berjalan di beberapa server.
+
+Raka setuju dengan arahnya. Tutup buku lolos, jadi menurutnya data sudah beres dan sisanya urusan kapasitas. Di catatannya ia menulis dua rencana: VPS yang lebih besar, lalu server kedua.
+
+<details class="question">
+<summary>Tebak dulu: tutup buku kedua lolos dengan selisih Rp0. Apa yang pasti dibuktikan angka itu untuk PRD v3?</summary>
+
+Hanya bahwa buku dan jurnal yang terlihat saat laporan berjalan cocok. Rp0 tidak mengukur beban, dan tidak membuktikan laporannya final. Blok berikutnya memisahkan keduanya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Pertanyaan Sinta berisi tiga pertanyaan, dan masing-masing butuh bukti yang berbeda.
+
+**Apakah data cocok?** Tutup buku menjawabnya. Di lab api-t2, laporan membaca 1.016 buku dan semuanya cocok:
+
+<Snippet file="labs/api-t2/output/tutup-buku.txt" lines="8:11" title="Rekaman lab: labs/api-t2/output/tutup-buku.txt, bagian A (tutup buku atas 1.016 buku)" />
+
+Raka dan Nadia benar bahwa ini lolos. Versi kecilnya di lab b3-ledger membaca 9 buku dan 11 jurnal dengan hasil yang sama (rekaman lab `tutup-buku.txt` bagian A dan B, lab b3-ledger).
+
+**Apakah laporannya final?** Rp0 tidak menjawabnya. Rekaman bagian C membuat laporan saat transaction [A] belum COMMIT. [A] sudah menulis jurnal top-up susulan Rp1.000 untuk Budi:
+
+<Snippet file="labs/api-t2/output/tutup-buku.txt" lines="42:47" title="Rekaman lab: labs/api-t2/output/tutup-buku.txt, bagian C (laporan saat [A] belum COMMIT)" />
+
+Lalu [A] COMMIT, dan laporan yang sama dijalankan lagi:
+
+<Snippet file="labs/api-t2/output/tutup-buku.txt" lines="64:72" title="Rekaman lab: labs/api-t2/output/tutup-buku.txt, bagian C (laporan sesudah [A] COMMIT)" />
+
+Laporan kedua menghitung 1.123 jurnal, bukan 1.122. Uang masuk Budi naik dari Rp1.020.000 ke Rp1.021.000. Buku yang tidak cocok tetap 0, jadi dua laporan yang berbeda lolos dengan angka yang sama.
+
+Dua hal menjelaskan hasil ini. Pertama, laporan hanya melihat data yang sudah COMMIT saat querynya dimulai ([PostgreSQL 17, 13.2.1](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-READ-COMMITTED)), jadi jurnal [A] belum terlihat di laporan pertama. Kedua, kolom `dibuat` berisi `now()`, waktu awal transaction ([PostgreSQL 17, 9.9.5](https://www.postgresql.org/docs/17/functions-datetime.html#FUNCTIONS-DATETIME-CURRENT)), sehingga jurnal [A] tetap bertanggal sebelum laporan pertama.
+
+Jurnal itu menulis posting dan `saldo_cache` dalam satu transaction, jadi buku Budi cocok di kedua laporan. Rp0 mengukur kecocokan data yang terlihat, bukan kelengkapannya. Di pembukuan manual pun, neraca saldo yang seimbang tidak menjamin bebas salah ([OpenStax, Principles of Accounting, bagian 3.6](https://openstax.org/books/principles-financial-accounting/pages/3-6-prepare-a-trial-balance)).
+
+Naskah tidak menyebut apakah ada transaction terbuka saat uji coba kedua berjalan. Rp0 tidak bisa membedakan "tidak ada" dari "ada, tetapi belum terlihat". Menutup periode dengan benar butuh menunggu transaction yang masih terbuka atau tabel penutupan periode, dan keduanya belum dibuat ([[t2-tutup-buku]]).
+
+**Apakah server cukup?** Tutup buku juga tidak menjawabnya, karena rekaman tidak mengukur beban. Hitungannya Asumsi dari `cerita.json`, bukan pengukuran:
+
+| Besaran | Nilai | Cara hitung (semua asumsi) |
+|---|---|---|
+| User terdaftar (Tahap 2) | 1.000 | Seluruh kampus pusat |
+| Request per hari (Tahap 2) | 12.000 | 1.000 × 30% × 40 request |
+| Puncak request per detik (Tahap 2) | ±1,4 | 12.000 ÷ 86.400 × 10 |
+| Kepekaan: semua request dalam satu jam | ±3,3 | 12.000 ÷ 3.600 |
+
+Rumusnya sama dengan [[t1-m8]]. Puncak sekarang ±1,4 request per detik, atau satu request kira-kira tiap 0,7 detik. Beban PRD v3 dihitung dengan rumus yang sama di [[t2-estimasi]].
+
+Angka itu tidak membuktikan server cukup. Lab Tahap 2 tidak punya perkakas load test (dicari k6, wrk, locust, dan perkakas serupa di sepuluh lab pada 2026-10-25, tanpa hasil). Berapa request per detik yang sanggup dilayani VPS belum pernah diukur (Tidak dijalankan). Yang bisa dikatakan hanya ini: belum ada angka yang menyuruh membeli server hari ini.
+
+**Dua hal yang belum pernah diuji.** Naskah menyebutnya: pekerjaan lambat di dalam request, dan banyak server sekaligus. Notifikasi berarti request Budi menunggu layanan lain. PRD v2 menundanya ke v3 ([[t2-prd]]), dan kode server api-t2 tidak memanggil layanan lain selain database.
+
+Untuk banyak server, rekaman api-t2 memakai satu proses (`server: ./api-t2`). Dua instance hanya direkam di lab c4-ratelimit, untuk batas laju ([[t2-login-aman]]). Seluruh app dengan dua server belum pernah dijalankan (Tidak dijalankan). [[t2-jembatan]] meminta kamu menebak mana yang pecah lebih dulu.
+
+**Delapan masalah, bukan satu kapasitas.** Sebelum PRD v3, Tahap 2 sudah punya delapan masalah. Tabel ini merangkum penyebabnya dari halaman masing-masing:
+
+| Masalah | Yang rusak |
+|---|---|
+| [[t2-m9]] | Dua transaction membaca saldo yang sama sebelum salah satunya menulis |
+| [[t2-m10]] | Server tidak mengenali permintaan yang diulang |
+| [[t2-m11]] | Query riwayat yang salah: N+1 dan tanpa index |
+| [[t2-m12]] | Pagination offset bergeser saat ada transaksi baru |
+| [[t2-m13]] | Lock dari ALTER dan perubahan skema yang merusak app lama |
+| [[t2-m14]] | Batas harian hilang saat merge, tanpa review dan tes yang menjaganya |
+| [[t2-m15]] | Job berjalan dua kali, sehingga ledger dan file bank tidak sama |
+| [[t2-m16]] | Kunci per akun mengunci pemiliknya, dan password sementara tidak diganti |
+
+Tidak satu pun penyebabnya adalah server yang kehabisan tenaga.
+
+<Rantai data={diuji} />
+
+Tebakan Raka dan Nadia salah dengan dua cara. Pertanyaannya sudah bergeser dari data ke kapasitas, padahal Rp0 hanya menjawab yang pertama untuk jurnal yang sudah terlihat. Angka 1,4 menunjukkan beban yang kecil, bukan kapasitas yang terbukti, dan dua hal belum diuji.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini memutar ulang bagian C rekaman. Tebak dulu apa yang berubah pada laporan sesudah [A] COMMIT.
+
+<TutupUlang />
+
+Sesudah menebak, ubah satu hal: kapan laporan dibuat. Kedua laporan punya nol buku yang tidak cocok, tetapi jumlah jurnal dan uang masuk Budi berbeda. Karena itu Rp0 tidak bisa menandai laporan sebagai final.
+
+Yang bisa menandainya adalah menunggu semua transaction yang masih terbuka sebelum laporan dibuat, atau mencatat penutupan periode. Keduanya belum dibuat di lab ([[t2-tutup-buku]]).
+
+<details>
+<summary>Rekaman bagian C (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/api-t2/output/tutup-buku.txt" lines="41:88" title="Rekaman lab: labs/api-t2/output/tutup-buku.txt, bagian C" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t2-estimasi]]: estimasi Tahap 2 → 3. Beban PRD v3 dihitung dari angka Tahap 2 sebelum memilih komponen.
+- [[t2-adr-21]]: ADR 21, "Sengaja belum dilakukan". Cache, queue, Redis, dan server kedua ditunda, masing-masing dengan alasan dari angka.
+- [[t2-tutup-buku]]: tempat jurnal yang terlambat COMMIT pertama kali muncul, dengan penutupan periode yang belum dibuat.
+- [Halaman istilah tutup buku](/istilah/tutup-buku/): saldo awal, mutasi, dan saldo akhir per buku, dengan kesalahan yang sering terjadi.
+- [[t1-m8]]: pertanyaan yang sama di Tahap 1, dengan puncak 0,14 request per detik.
+- [[t2-tim-infra]]: review, branch protection, dan tes yang dipakai Raka dan Nadia sejak minggu 5.
+- [[t2-jembatan]]: PRD v3 selengkapnya, dengan tebakan mana yang pecah lebih dulu.
+
+Masalah Tahap 2 adalah kebenaran data, bukan kapasitas.
+
+</Blok>

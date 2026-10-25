@@ -1,0 +1,50 @@
+{
+  "id": "t2-m17-diuji",
+  "judul": "Yang dijawab tutup buku, dan yang ditanyakan PRD v3",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t2 · tutup-buku.txt bagian A dan C; baris kedua Asumsi"
+  },
+  "baris": [
+    {
+      "label": "Tutup buku kedua",
+      "sub": "yang dijawab rekaman",
+      "simpul": [
+        {
+          "teks": "1.016 buku cocok",
+          "sub": "1.122 jurnal seimbang",
+          "nada": "good"
+        },
+        {
+          "teks": "Satu jurnal COMMIT sesudahnya",
+          "sub": "1.123 jurnal, uang masuk Budi Rp1.021.000"
+        },
+        {
+          "teks": "Buku tidak cocok tetap 0",
+          "sub": "angka sama, isi laporan berbeda",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "PRD v3",
+      "sub": "yang ditanyakan Sinta",
+      "simpul": [
+        {
+          "teks": "Server cukup untuk enam kota?"
+        },
+        {
+          "teks": "Puncak sekarang ±1,4 per detik",
+          "sub": "Asumsi; satu jam penuh 3,3",
+          "nada": "system"
+        },
+        {
+          "teks": "Kapasitas VPS belum diukur",
+          "sub": "dan dua hal belum diuji",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Rp0 menjawab apakah data yang terlihat cocok. Ia tidak mengukur beban, dan tidak menandai laporan sebagai final."
+}

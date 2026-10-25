@@ -2001,8 +2001,9 @@
       "prasyarat": [
         "t2-login-aman"
       ],
-      "ada": false,
-      "nomor": "2.29"
+      "ada": true,
+      "nomor": "2.29",
+      "menit": 11
     },
     {
       "id": "t2-estimasi",
