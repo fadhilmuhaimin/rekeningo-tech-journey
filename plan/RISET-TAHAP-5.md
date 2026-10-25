@@ -1,0 +1,113 @@
+# Riset Tahap 5 · Satu database tidak cukup
+Dikerjakan 2026-10-25, skill riset-tahap (hierarki bukti dari analisis-kritis). Semua tautan dibuka 2026-10-25; versi paket dari GitHub Releases (`gh api`), kubernetes.io, dan kafka.apache.org hari itu. Cakupan dari PROPOSAL "Enam tahap dalam satu tabel" (Tahap 5: 4 sampai 6 service, replica, event streaming, k3s di lab, GitOps, progressive delivery, OpenTelemetry penuh, KMS dan HSM tiruan, DDoS dan WAF, on-prem lawan cloud; sengaja belum: service mesh penuh, multi-region), registry `tahap[4]` (PRD v5: laporan merchant real-time, notifikasi massal, cicilan) dan RISET-TAHAP-3 dan 4. Naskah Tahap 3 sampai 5 belum ada; angka Tahap 4 dari RISET-TAHAP-4. Merek nyata hanya sebagai sumber; cerita memakai padanan fiktif. PDF dibaca dengan pdftotext. Stack Overflow ditolak alat pencarian; jebakan dari GitHub issues yang dibuka satu per satu. Dokumentasi PostgreSQL dibuka di `/docs/current` (18); lab memakai 17 dan belum dicocokkan.
+
+## Konsep dan sumber
+| ID | Konsep | Sumber primer (versi, tanggal) | Yang dipakai halaman | Berubah sejak Okt 2026 |
+|---|---|---|---|---|
+| R5-01 | Versi dasar | PostgreSQL 18.6, 17.11 (lab), 19 RC 1 belum GA (R3-01). Go 1.27.3. Kubernetes 1.37.1 (2026-09-15); k3s v1.37.1+k3s1 (2026-09-30), k3d v5.9.0, kind v0.33.0. Argo CD v3.5.6 (2026-10-20), Argo Rollouts v1.10.1 (2026-10-12), Flux v2.9.6. Kafka: halaman unduhan memuat 4.2.2 (2026-09-29) dan 4.3.1 (2026-06-25), dokumentasi 4.3; Redpanda v26.2.2; NATS server v2.15.1, nats.go v1.55.0; franz-go v1.22.2. DBOS Go v1.7.0 (MIT), Temporal v1.32.1 (MIT), TigerBeetle 0.17.9 (Apache-2.0). Coraza v3.8.1, OWASP CRS v4.30.0, OpenBao v2.7.1 (R4-01), SoftHSM 2.7.0, SPIRE v1.15.5, cert-manager v1.21.3. PgBouncer 1.26.1, pgBackRest 2.60.0, Patroni v4.1.5, CloudNativePG v1.30.1, pg_partman v5.5.0, Debezium v3.7.0.Final. Shorebird v1.6.131. OTel Go v1.47.0, Collector v0.163.0, Prometheus v3.15.1, Tempo v3.1.1 (R3-01) | Catatan versi semua halaman lab | Semua baru kecuali PostgreSQL, Go, OTel |
+| R5-02 | Read replica dan streaming replication | PostgreSQL 18 hot-standby (§26.4): koneksi ke standby read-only, DML, DDL, dan perintah 2PC ditolak. §26.2: replikasi streaming asinkron secara bawaan, ada jeda kecil antara commit di primary dan terlihat di standby. `max_standby_streaming_delay` bawaan 30 detik: standby menunggu selama itu sebelum membatalkan query yang bentrok dengan WAL; bukan batas lama query. `hot_standby_feedback` bawaan off: mencegah pembatalan, tetapi bisa menggembungkan primary. Lab lama `labs/t5-replika` memakai `recovery_min_apply_delay=2s` buatan dan skema saldo lama | Replica dan consistency | Tidak berubah |
+| R5-03 | Baca sesudah tulis | Vogels, "Eventually Consistent" (2008-12-23): read-your-writes dan session consistency didefinisikan sebagai varian konsistensi akhir. PostgreSQL 18 `synchronous_commit = remote_apply`: commit menunggu standby memutar ulang WAL, jeda commit "much larger". Lab lama `replika.txt` B: baca dari primary sampai replica mencapai LSN tulis | Replica dan consistency | Tidak berubah |
+| R5-04 | Partisi tabel ledger | PostgreSQL 18 §5.12: PRIMARY KEY dan UNIQUE harus memuat semua kolom kunci partisi (tanpa ekspresi); pruning berasal dari batas partisi, bukan indeks; partisi inheritance lama baik sampai ±100 anak; ukuran relasi maksimum 32 TB, baris dibatasi 4.294.967.295 halaman. Lab lama `partisi.txt`: DETACH + DROP 101.090 baris 3 ms lawan DELETE 97.830 baris 65 ms (satu mesin). pg_partman v5.5.0 | Partisi tabel | Tidak berubah |
+| R5-05 | Laporan merchant real-time | PostgreSQL 18 REFRESH MATERIALIZED VIEW: `CONCURRENTLY` tidak mengunci SELECT, butuh minimal satu UNIQUE index atas kolom biasa tanpa WHERE. Azure Architecture Center, CQRS: model baca dan tulis dipisah dan dioptimalkan sendiri, dengan biaya sinkronisasi dan konsistensi | Laporan real-time | Tidak berubah |
+| R5-06 | Pool koneksi di skala | PgBouncer features: transaction pooling "breaks a few session-based features". pgx (pkg.go.dev): PgBouncer 1.21.0 ke atas dengan `max_prepared_statements` lebih dari 0 boleh memakai mode cache statement bawaan; versi lama atau fitur mati pakai `QueryExecModeExec`; `PREPARE` tingkat SQL tidak didukung; jangan `QueryExecModeDescribeExec` | Pool, replica | Tidak berubah |
+| R5-07 | Event streaming untuk fan-out | Kafka 4.3 docs: event dengan key sama masuk partisi sama; tiap partisi dibaca satu consumer per consumer group; replication factor 3 lazim; docs menyuruh membaca tulisan kecil klaim "exactly-once". Halaman "KRaft vs ZooKeeper" mendaftar fitur ZooKeeper yang dihapus. NATS docs: core NATS paling banyak sekali, JetStream at-least-once. Redpanda: lisensi [perlu verifikasi] | Fan-out notifikasi | Kafka 4.x dengan KRaft |
+| R5-08 | Notifikasi massal | FCM, Throttling and Quotas: HTTP v1 kuota bawaan 600 ribu pesan per menit per proyek, diukur per pesan bukan per permintaan, error 4xx dihitung kecuali 429, menit tidak selaras jam; kelebihan = 429 RESOURCE_EXHAUSTED. Scale FCM: contoh ramp-up 1%, 5%, 10%, 25%, 50%, 75%, 100% (= 500 ribu RPS), tiap langkah dihaluskan sedikitnya satu jam; backoff eksponensial + jitter. R3-16 | Notifikasi massal | Tidak berubah |
+| R5-09 | Outbox ke streaming (CDC) | Debezium v3.7.0.Final, PostgreSQL pgoutput. PostgreSQL 18: slot replikasi menahan WAL sampai diterima semua standby; `max_slot_wal_keep_size` bawaan -1 = tanpa batas. Debezium "WAL disk space consumption": pantau `confirmed_flush_lsn` dan `restart_lsn`. R3-02, R3-04 | Outbox lawan streaming | Tidak berubah |
+| R5-10 | Cicilan, proses panjang tahan crash | DBOS Go v1.7.0 (MIT): butuh Postgres, workflow terdiri dari langkah, state di-checkpoint, pulih dari langkah terakhir yang selesai. Temporal v1.32.1: docs tidak dibuka. R2-31 | Cicilan | Tidak berubah |
+| R5-11 | Saga lintas service | microservices.io Saga: urutan transaksi lokal, kompensasi bila langkah gagal, choreography atau orchestration. Garcia-Molina dan Salem, "Sagas" (ACM 1987, PDF): transaksi panjang dipecah jadi transaksi pendek + kompensasi | Cicilan, lintas service | Tidak berubah |
+| R5-12 | Ledger di skala | TigerBeetle docs (0.17.9): akun immutable, `debits_posted` dan `credits_posted`, jumlah semua debits_posted = jumlah semua credits_posted, pending = dua fase. PROPOSAL: snapshot saldo tetap di PostgreSQL. R2-06, R2-09 | Running balance | Tidak berubah |
+| R5-13 | Kubernetes, k3s, autoscaling | kubernetes.io/releases: dirawat 1.37, 1.36, 1.35; patch ±1 tahun; 1.37 EOL 2027-10-28. k3s docs: satu binary, sqlite3 bawaan, etcd, MySQL, Postgres opsional. HPA docs: desired = ceil(current × currentMetric ÷ desiredMetric), toleransi 0,1, interval 15 detik | k3s di lab, HPA | Tidak berubah |
+| R5-14 | Ingress dan Gateway API | Kubernetes blog (2025-11-11): Ingress NGINX best-effort, pada Maret 2026 maintenance dihentikan, tanpa rilis, bugfix, atau perbaikan keamanan, repositori read-only. Blog Kubernetes juga memuat Gateway API v1.6 (TCPRoute dan UDPRoute graduate ke Standard) | Deploy, canary | Ingress NGINX pensiun (baru) |
+| R5-15 | GitOps | Argo CD v3.5.6 docs: "declarative, GitOps continuous delivery tool", definisi aplikasi dan environment di version control, sync otomatis. Flux v2.9.6. PROPOSAL: repo kode dan repo konfigurasi terpisah | GitOps | Tidak berubah |
+| R5-16 | Progressive delivery | Argo Rollouts v1.10.1: tanpa traffic management, `setWeight` hanya upaya terbaik lewat rasio replika (10 replika, 10% = 1 pod; 41% = 4 pod); AnalysisTemplate dengan Prometheus, `failureLimit` | Canary 5% | Tidak berubah |
+| R5-17 | OpenTelemetry penuh, sampling, SLO | R3-14 (dibuka 2026-10-25 di RISET-3, tidak dibuka ulang): Traces dan Metrics stable, Logs release candidate. OTel sampling docs: tail sampling memutuskan dari semua atau sebagian besar span trace (mis. selalu ambil trace ber-error), butuh Collector. SRE Workbook "Alerting on SLOs": 2% budget per 1 jam = burn rate 14,4 (page), 5% per 6 jam = 6 (page), 10% per 3 hari = 1 (tiket); SLO 99,9% dengan burn 1.000 habis dalam 43 menit | Observability Tahap 5 | Tidak berubah |
+| R5-18 | Envelope encryption, KMS | NIST SP 800-57 Part 1 Rev. 5 (2020-05, PDF): manajemen kunci dan cryptoperiod. Go crypto/cipher (1.27.3): `NewGCMWithRandomNonce`, nonce acak 96 bit di depan ciphertext, satu kunci tidak boleh dipakai untuk lebih dari 2^32 pesan. OpenBao v2.7.1 transit: "encryption as a service", datakey, versi kunci dengan `min_decryption_version` | KMS tiruan | Tidak berubah |
+| R5-19 | HSM tiruan | SoftHSM 2.7.0 (2026-01-20). PKCS#11 dan klien Go: [perlu verifikasi] | HSM tiruan | - |
+| R5-20 | mTLS dan identitas antar service | Go crypto/tls: `ClientAuthType` (verifikasi sertifikat klien). SPIFFE/SPIRE v1.15.5: identitas workload (SVID X.509 atau JWT). cert-manager v1.21.3. RFC 9700 §4.10.1 (token terikat pengirim) dan RFC 9449 DPoP (2023-09) | mTLS dua service | Tidak berubah |
+| R5-21 | DDoS lapisan 7 dan WAF | Coraza v3.8.1: WAF Go, SecLang, "100% compatible" dengan OWASP CRS v4.30.0; plugin Caddy "stable, needs a maintainer". golang/go#63417 (CVE-2023-39325, ditutup 2023-10-10): reset stream HTTP/2 beruntun memaksa kerja berlebih; perbaikan membatasi goroutine handler setara batas stream. OWASP API Top 10:2023 API4 (konsumsi sumber daya tanpa batas), API6 (alur bisnis sensitif) | DDoS dan WAF | Tidak berubah |
+| R5-22 | Minimisasi dan tokenisasi | NIST SP 800-63A-4 (R4-16): prinsip data minimization. Pedoman tokenisasi PCI dan teks GDPR: tidak terbaca atau tidak dibuka [perlu verifikasi] | Data yang tidak disimpan | Tidak berubah |
+| R5-23 | Code push di app | Shorebird docs: patch hanya kode Dart, tanpa kode native dan (saat ini) aset; kepatuhan kebijakan toko tanggung jawab developer. Apple App Review Guidelines 2.5.2: app tidak boleh mengunduh, memasang, atau menjalankan kode yang memperkenalkan atau mengubah fitur app. Kebijakan Google Play: [perlu verifikasi] | Pipeline app Tahap 5 | Tidak berubah |
+| R5-24 | Backup, PITR, failover | PostgreSQL 18 §25.3: base backup + arsip WAL, pulih ke titik mana pun, hanya seluruh cluster, butuh banyak penyimpanan. §26.3: PostgreSQL tidak punya perangkat deteksi kegagalan; STONITH; `pg_ctl promote` atau `pg_promote()`; `pg_rewind`; keadaan degenerate. pgBackRest, Patroni, CloudNativePG: hanya versi | Backup dan failover | Tidak berubah |
+
+## Teknik terbaru
+| Teknik | Masuk / tidak | Alasan dengan angka tahap ini | ID |
+|---|---|---|---|
+| Read replica untuk laporan | masuk | Polling 20.000 merchant = 667 RPS ekstra (R5-34); jeda 1 detik × 46 transaksi per detik = 46 transaksi RPO (R5-39) | R5-02, R5-34 |
+| Partisi deklaratif (pg_partman disebut) | masuk | 146 sampai 438 juta baris per tahun; ukuran bukan alasannya (batas 32 TB), retensi dan vacuum yang jadi alasan | R5-04, R5-32 |
+| Materialized view, read model | masuk | Laporan harian per merchant sebagai model baca terpisah | R5-05 |
+| PgBouncer | masuk | 150 koneksi terpasang lawan butuh ±28 (R5-37) | R5-06 |
+| Kafka (KRaft, satu broker di lab) | masuk | Fan-out 500 ribu; NATS JetStream dan Redpanda disebut | R5-07, R5-35 |
+| CDC (Debezium) | hanya disebut | Outbox dengan worker cukup untuk 46 transaksi per detik; slot menahan WAL | R5-09 |
+| DBOS lawan outbox + tabel langkah buatan | masuk, dibandingkan | Cicilan harian tahan crash tanpa server workflow terpisah | R5-10 |
+| Temporal, TigerBeetle | tidak masuk | Server terpisah; ledger tetap PostgreSQL | R5-10, R5-12 |
+| k3s (via k3d) + HPA | masuk | sqlite k3s bukan HA (k3s#14593); lab satu server | R5-13 |
+| Gateway API, bukan Ingress NGINX | masuk | Ingress NGINX pensiun Maret 2026; canary 5% butuh traffic router | R5-14, R5-40 |
+| Argo CD + Argo Rollouts (Flux disebut) | masuk | Tanpa router, 5% butuh 20 replika | R5-15, R5-16, R5-40 |
+| OpenTelemetry tail sampling | masuk | 48 GB per hari trace mentah (R5-38) | R5-17 |
+| Envelope + OpenBao transit; SoftHSM | masuk | Satu KEK habis di 2^32 pesan: 9,8 tahun (R5-41) | R5-18, R5-19 |
+| mTLS di Go tanpa service mesh | masuk | Istio dan Linkerd disebut (Tahap 6) | R5-20 |
+| Coraza + CRS | masuk | Beban serangan 10× di atas puncak | R5-21 |
+| Shorebird | masuk dengan peringatan | Hanya perbaikan bug; Apple 2.5.2 | R5-23 |
+| Multi-region, event sourcing penuh | tidak masuk | Tahap 6, konseptual | - |
+
+## Kasus industri untuk ADR
+- R5-25 Menggabungkan kembali: Prime Video Tech, "Scaling up the Prime Video audio/video monitoring service and reducing costs by 90%" (arsip Wayback snapshot 2023-05-04; tanggal terbit tidak tertera di teks). Tim Video Quality Analysis memindahkan komponen (media converter, detector) dari Step Functions dan Lambda ke satu proses di ECS. Batas skala keras di ±5% beban target karena transisi state per detik stream; frame antar komponen lewat S3 mahal. Hasil: biaya infrastruktur turun lebih dari 90%, kapasitas naik; detector kini scale vertikal. Batas: satu service pemantau, bukan seluruh Prime Video; mereka menulis keputusan dibuat kasus per kasus.
+- R5-26 On-prem lawan cloud: 37signals, D. Heinemeier Hansson, "Why we're leaving the cloud" (2022-10-19): lebih dari US$500 ribu per tahun untuk database (RDS) dan pencarian (ES); cloud unggul di dua ujung (sangat sederhana atau beban sangat tidak teratur). "We have left the cloud" (2023-06-23): pindah dalam enam bulan, KVM + Docker + Kamal tanpa Kubernetes, hemat "at least" US$1,5 juta per tahun, ukuran tim operasi tetap. Batas: aplikasi stabil perusahaan menengah; perhitungan "napkin" tulisan pendirinya, tanpa audit independen.
+
+## Jebakan (bahan "yang Raka kira")
+| Pertanyaan forum (tautan) | Yang dikira | Yang benar (ID sumber) |
+|---|---|---|
+| [jackc/pgx#1687 "Connection Pool Stacking and query_wait_timeout Error with pgx v5.4.1 and PgBouncer"](https://github.com/jackc/pgx/issues/1687) (open, 2023-07) | Tambah PgBouncer menyelesaikan pool habis | Mode statement cache pgx harus cocok dengan versi dan setelan PgBouncer (R5-06) |
+| [argoproj/argo-rollouts#1820 "dynamicStableScale and ingress-nginx bug/limitation"](https://github.com/argoproj/argo-rollouts/issues/1820) (open, 2022-01) | Canary 100% selalu aman | ingress-nginx mengembalikan 503 bila stable tanpa endpoint (R5-14, R5-16) |
+| [k3s-io/k3s#14593 "kine WAL checkpoint stall causes apiserver lease timeouts"](https://github.com/k3s-io/k3s/issues/14593) (closed, 2026-09) | k3s satu server dengan sqlite cukup untuk produksi | Stall checkpoint ±30 detik menjatuhkan lease apiserver di 1.36.3, tidak di 1.35.8 (R5-13) |
+| [firebase/firebase-admin-go#719 "IsQuotaExceeded does not return true even if the FCM Rate limit is exceeded"](https://github.com/firebase/firebase-admin-go/issues/719) (open, 2025-09) dan [#603 "No way to respect RetryAfter"](https://github.com/firebase/firebase-admin-go/issues/603) (open, 2024-02) | SDK menandai kuota lewat dan menyampaikan Retry-After | 429 RESOURCE_EXHAUSTED bisa lolos dari `IsQuotaExceeded`; nilai Retry-After tidak dibuka ke pemanggil (R5-08) |
+| [twmb/franz-go#1484 "Idempotent producer acks a record that is not in the log"](https://github.com/twmb/franz-go/issues/1484) (closed, 2026-10-12) | Producer idempoten = tidak pernah hilang atau ganda | v1.22.1 bisa mengakui rekaman yang tidak ada di log; docs Kafka sendiri menyuruh membaca tulisan kecil "exactly-once" (R5-07) |
+| [golang/go#63417 "rapid stream resets can cause excessive work"](https://github.com/golang/go/issues/63417) (closed, 2023-10) | Batas concurrent stream cukup melawan DDoS HTTP/2 | Reset membuat stream baru saat handler lama masih jalan; batas harus pada handler yang berjalan (R5-21) |
+| [shorebirdtech/shorebird#3945 "iOS App Store build crashes on launch"](https://github.com/shorebirdtech/shorebird/issues/3945) (open, 2026-09) | Build lolos TestFlight berarti lolos App Store | Laporan: IPA sama jalan di TestFlight, crash di build App Store; belum dikonfirmasi [perlu verifikasi] (R5-23) |
+| [cloudnative-pg/cloudnative-pg#10419 "Replica permanently stuck in wal-restore loop after failover"](https://github.com/cloudnative-pg/cloudnative-pg/issues/10419) (open, 2026-04) | Operator yang melapor sehat berarti replica sehat | Laporan: operator sehat sementara replica berputar di restore (R5-24) |
+| Dokumen PostgreSQL dan Argo (R5-02, R5-09, R5-16), bukan forum | Replica menghilangkan beban primary; slot aman; canary 5% cukup satu baris YAML | `hot_standby_feedback` menggembungkan primary; slot tanpa batas bisa memenuhi disk; 5% butuh 20 replika tanpa traffic router |
+
+## Angka tahap ini (Asumsi)
+Masukan registry `tahap[4].asumsi`: 1.000.000 user, aktif 20%, 60 request, puncak 10, trx 2, baris 300 B, upload 20.000 per hari, 500 KB. Naskah Tahap 2 memakai 3 transaksi per aktif dan 2 posting 250 B; dua-duanya ditulis.
+| Besaran | Rumus | Masukan | Hasil | Tahap sebelumnya |
+|---|---|---|---|---|
+| R5-30 Request puncak | aktif × request ÷ 86.400 × puncak | 200.000 × 60 = 12 juta per hari | 138,9 rata-rata, 1.388,9 RPS puncak | R4-30: 138,9; naik 10× (user 10×) |
+| R5-31 Transaksi uang | aktif × trx ÷ 86.400 × puncak | trx 2 atau 3; 80% dalam 90 menit | 400.000 per hari: 4,63 rata-rata, 46,3 puncak, 59,3 makan siang; 600.000: 6,94 / 69,4 / 88,9 | R4-31: 4,63 / 6,94; naik 10× |
+| R5-32 Data posting | aktif × trx × posting × 365 × byte | 2 × 1 × 300 B lawan 3 × 2 × 250 B | 146 juta baris 43,8 GB lawan 438 juta baris 109,5 GB per tahun | R4-34: 4,38 dan 10,95 GB; 10× |
+| R5-33 File | upload × KB × 365 | 20.000 × 500 KB | 10 GB per hari, 3,65 TB per tahun | R4-35: 365 GB; 10× |
+| R5-34 Polling laporan | merchant online ÷ interval | Asumsi: 200.000 merchant ("ratusan ribu"), 10% online, polling 30 detik, query 20 ms, 8 vCPU | 667 RPS; 13,3 query berjalan; CPU 667 × 0,02 ÷ 8 = 167% | - |
+| R5-35 Fan-out notifikasi | N ÷ (c ÷ t) | N 500.000 (Asumsi); worker Tahap 3 c 4, t 0,3 detik (R3-36); FCM 600 ribu per menit | 13,3 per detik = 10,4 jam; kuota 10.000 per detik = 50 detik; saturasi kuota butuh 1.000 permintaan berjalan (t 0,1 detik, Asumsi); 500 ribu = 83% kuota semenit | R3-36: 1.563 backlog |
+| R5-36 Merchant per akun | trx per hari ÷ merchant | 400.000 ÷ 200.000 | 2 transaksi per merchant per hari (3 dengan trx 3); laporan harian ringan | - |
+| R5-37 Koneksi database | L = λ × W; instance × pool | 1.388,9 × 20 ms (R3-32); 5 service × 3 instance × pool 10 | butuh ±28 koneksi; terpasang 150 lawan 97 tersedia (100 − 3 reserved) | R4-36: 37 dari 100 |
+| R5-38 Volume trace | RPS × span × byte | 8 span, 500 B (Asumsi); tail sampling: 1% error + 5% sisanya ≈ 6% | 5,6 MB per detik puncak; rata-rata 48 GB per hari, 7 hari 336 GB; terkurasi ±2,9 GB per hari | - |
+| R5-39 RPO replica asinkron | lag × TPS puncak | lag 1 detik (Asumsi) × 46,3 (trx 3: 69,4) | 46 sampai 69 transaksi bisa hilang saat failover; `remote_apply` menghilangkannya dengan jeda commit | - |
+| R5-40 Canary tanpa router | 100% ÷ replika | langkah terkecil = 1 ÷ replika | 5% butuh 20 replika; 3 replika: 33% | - |
+| R5-41 Umur KEK | 2^32 ÷ baris per tahun | satu data key per baris, wrap AES-GCM acak (R5-18) | 438 juta per tahun: 9,8 tahun; 146 juta: 29,4 tahun | - |
+| R5-42 Ukuran tim | tiga sumber | PROPOSAL 20 sampai 40 (5 sampai 7 tim + platform, SRE, security); registry `asumsi.tim` 20+; `skala.pembuat` sama | konsisten | R4-38: tiga angka beda |
+
+## Keamanan
+| Ancaman | Sumber | Direkam di lab / Ilustrasi |
+|---|---|---|
+| DDoS lapisan 7 dan konsumsi sumber daya | R5-21, OWASP API4:2023 | Lab baru: Coraza + CRS di depan API, k6 10× puncak; Rekaman. Volumetrik L3 dan L4 tidak bisa direkam: Ilustrasi |
+| Enumerasi akun massal | OWASP API6:2023, R3-12 | Rekaman rate limit per akun dan per IP (Redis) pada skala |
+| Replay transaksi antar service | R5-20, R2-17 | Lab baru: dua service dengan mTLS dan idempotency key lintas service; Rekaman |
+| Backup bocor | R5-18, R5-24 | Lab baru: envelope encryption Go + OpenBao transit; backup dibuka tanpa KMS tidak terbaca; Rekaman |
+| Rotasi kunci | R5-18, R5-41 | `rotate` lalu rewrap data key; Rekaman bila OpenBao mendukungnya [perlu verifikasi] |
+| Kunci utama di HSM | R5-19 | SoftHSM: antarmuka PKCS#11, bukan perangkat; Ilustrasi |
+| Audit diedit | R4-24 | Hash chain Tahap 4 diperluas ke ledger; Rekaman |
+| Rujukan regulasi untuk label (tidak masuk cerita) | R4-40 (UU 27/2022, PBI 23/6/PBI/2021) | [perlu verifikasi]; cerita tanpa klaim kepatuhan |
+
+## Untuk NASKAH-5 (temuan yang belum ada di naskah Tahap 1 dan 2)
+1. Angka registry (R5-30, R5-31): 1.389 RPS puncak dan 46 sampai 89 transaksi per detik belum terbukti memenuhi satu primary (belum diukur); pemicunya harus polling dashboard (667 RPS, R5-34), laporan besar, atau merchant panas, dan lab `t5-skala` harus mengukurnya.
+2. Merchant (R5-36): "ratusan ribu merchant" untuk 1 juta user = 2 sampai 3 transaksi per merchant per hari; satu angka dipilih.
+3. Notifikasi 500 ribu (R5-35): worker Tahap 3 butuh 10,4 jam; kuota FCM 600 ribu per menit; ramp-up wajib.
+4. Replica (R5-02, R5-39): lab lama menunda 2 detik buatan; jeda alami harus diukur; RPO 46 sampai 69 transaksi per detik jeda.
+5. Canary 5% (R5-40): butuh traffic router atau 20 replika; Ingress NGINX pensiun (R5-14).
+6. Shorebird (R5-23): hanya perbaikan bug, bukan fitur baru (Apple 2.5.2).
+7. "Kapan menggabungkan kembali" (R5-25): komponen yang bertukar data besar dan sering; padanan skor risiko dengan Ilustrasi.
+
+## Belum bisa dicek
+- Kebijakan Google Play untuk code push, pedoman tokenisasi PCI, teks GDPR (EUR-Lex terbaca 0 byte), lisensi Redpanda, dokumentasi Temporal, PKCS#11 dan klien Go untuk SoftHSM, `rotate` dan rewrap OpenBao (R5-18, R5-19).
+- Jeda replica alami di bawah beban, notifikasi NOTIFY, FK yang menunjuk tabel partisi (kunci harus memuat kolom partisi), HPA bentrok dengan Argo CD (replicas): butuh lab [perlu verifikasi].
+- Urutan tanggal halaman unduhan Kafka (4.3.1 lebih lama dari 4.2.2); nilai bawaan k3s (Traefik) tidak dibuka; plan GitHub pemilik (R2).
+- 200.000 merchant, 10% online, polling 30 detik, query 20 ms, 8 vCPU, 8 span × 500 B per request, t FCM 0,1 detik, lag 1 detik adalah Asumsi sampai ada rekaman lab.
