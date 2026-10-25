@@ -20,6 +20,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"lab/t3mitm/internal/pagar"
 )
 
 type penulisLog struct {
@@ -80,6 +82,17 @@ func main() {
 	}
 	u, err := url.Parse(*hulu)
 	if err != nil {
+		log.Fatal("GAGAL: -hulu: ", err)
+	}
+	for _, a := range []string{*alamatTLS, *alamatHTTP} {
+		if a == "" {
+			continue // -http boleh kosong
+		}
+		if err := pagar.Loopback(a); err != nil {
+			log.Fatal("GAGAL: ", err)
+		}
+	}
+	if err := pagar.Loopback(u.Host); err != nil {
 		log.Fatal("GAGAL: -hulu: ", err)
 	}
 	pl := &penulisLog{}

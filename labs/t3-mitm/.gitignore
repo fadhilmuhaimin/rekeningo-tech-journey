@@ -1,3 +1,8 @@
 __pycache__/
 /bin/
 /dart/.dart_tool/
+# Sertifikat dan kunci lab dibuat di folder sementara di luar repo; ini lapis kedua bila ada yang tersalin ke sini.
+*.pem
+*.key
+*.crt
+*.p12

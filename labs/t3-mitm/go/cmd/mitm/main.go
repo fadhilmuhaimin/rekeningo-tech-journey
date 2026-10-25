@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"lab/t3mitm/internal/pagar"
 	"lab/t3mitm/internal/pki"
 )
 
@@ -105,6 +106,11 @@ func main() {
 	flag.Parse()
 	if *alamat == "" || *hulu == "" {
 		log.Fatal("GAGAL: -listen dan -hulu wajib")
+	}
+	for _, a := range []string{*alamat, *hulu} {
+		if err := pagar.Loopback(a); err != nil {
+			log.Fatal("GAGAL: ", err)
+		}
 	}
 	rk := &rekam{}
 	if *berkas != "" {
