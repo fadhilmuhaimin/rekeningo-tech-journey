@@ -101,7 +101,7 @@ Hampir semua lab memakai satu PostgreSQL bersama di port `54333` (bawaan; `LAB_D
 | Schema | Lab |
 |---|---|
 | `tahap1` | `api-t1` (versi naskah Tahap 1, keputusan 132) |
-| `tahap3`, `tahap3_tes` | `api-t3` (skema akhir Tahap 2 lalu migrasi `labs/api-t3/migrasi`; `tahap3_tes` untuk tes Go, keputusan 950), `t3-pool` (memakai schema `tahap3` lewat `dasar_t3.py`, keputusan 957), `t3-mitm` (juga schema `tahap3` lewat `dasar_t3.py`, keputusan 977) |
+| `tahap3`, `tahap3_tes` | `api-t3` (skema akhir Tahap 2 lalu migrasi `labs/api-t3/migrasi`; `tahap3_tes` untuk tes Go, keputusan 950), `t3-pool` (memakai schema `tahap3` lewat `dasar_t3.py`, keputusan 957), `t3-mitm` (juga schema `tahap3` lewat `dasar_t3.py`, keputusan 977), `t3-dasbor` (juga schema `tahap3` lewat `dasar_t3.py`, tanpa migrasi sendiri, keputusan 974) |
 | `tahap3_cache` | `t3-cache` (di atas server dan skema `api-t3`; schema sendiri, keputusan 968) |
 | `tahap3_outbox` | `t3-outbox` (di atas server dan skema `api-t3`; schema sendiri, keputusan 960) |
 | `t3_instance` | `t3-instance` (data awal `api-t3` dibuat ulang di schema sendiri, keputusan 965) |
@@ -163,6 +163,7 @@ Lab yang punya `Makefile` dijalankan dengan `make -C labs/<nama> run`. Sisanya d
 | `t3-outbox` | Belum dirujuk halaman (rencana 3.9–3.13, 3.26) | `make -C labs/t3-outbox run` (satu bagian: `make -C labs/t3-outbox run BAGIAN=kursor`); `make -C labs/t3-outbox cek` merekam ulang dan gagal bila rekaman berbeda dari yang di-commit; memakai server api-t3 di port yang sama, jadi tidak bersamaan dengan `api-t3` |
 | `t3-instance` | Belum dirujuk halaman (rencana 3.14–3.17) | `make -C labs/t3-instance run` (satu bagian: `make -C labs/t3-instance run BAGIAN=batas`); `make -C labs/t3-instance cek` merekam ulang dan gagal bila rekaman berbeda dari yang di-commit; butuh Docker untuk Caddy 2.11.7 |
 | `t3-mitm` | Belum dirujuk halaman (rencana 3.24, 3.25) | `make -C labs/t3-mitm run` (±1 menit; satu bagian: `make -C labs/t3-mitm run BAGIAN=pin`); `make -C labs/t3-mitm cek` merekam ulang dan gagal bila rekaman berbeda dari yang di-commit; `make -C labs/t3-mitm mutasi` uji mutasi; butuh Go dan Dart; memakai server api-t3 di port yang sama, jadi tidak bersamaan dengan `api-t3`; sertifikat dan kunci dibuat acak di folder sementara dan tidak di-commit |
+| `t3-dasbor` | Belum dirujuk halaman (rencana 3.22, 3.23) | `make -C labs/t3-dasbor run` (±1 menit; satu bagian: `make -C labs/t3-dasbor run BAGIAN=csrf`); `make -C labs/t3-dasbor cek` merekam ulang dan gagal bila rekaman berbeda dari yang di-commit; `make -C labs/t3-dasbor mutasi` uji mutasi; butuh Go dan Node (Playwright dari `situs/node_modules`, tidak dipasang ulang); dua binary Go sendiri (`dasbor`, `serangan`), membaca schema `api-t3` langsung, bukan lewat server api-t3 |
 | `b1-openapi` | 1.18, 1.33 | `make -C labs/b1-openapi run` |
 | `b2-model` | Belum dirujuk halaman | `make -C labs/b2-model run` |
 | `b4-migration` | 1.25 | `make -C labs/b4-migration run` |
