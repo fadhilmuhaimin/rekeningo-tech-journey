@@ -290,7 +290,7 @@ for (const ukuran of [[320, 640], [375, 667], [1366, 657]]) {
 }
 
 // 6. Tanpa JS dan CLS: render build lawan sesudah hydrate; <noscript> memuat semua pengaturan.
-for (const ukuran of [[375, 667], [1366, 657]]) {
+for (const ukuran of [[320, 640], [375, 667], [1366, 657]]) {
   const ukur = (page) => page.evaluate(() => {
     const wd = document.querySelector("[data-outbox-worker]");
     return { tinggi: wd.getBoundingClientRect().height, sesudah: wd.getBoundingClientRect().top + scrollY };
@@ -299,6 +299,9 @@ for (const ukuran of [[375, 667], [1366, 657]]) {
   const statis = await ukur(a.page);
   const baris = await a.page.locator("noscript table tbody tr").count();
   const tabel = await a.page.locator("noscript table").count();
+  // Tabel di <noscript> juga tidak boleh membuat halaman bergulir ke samping (WCAG 1.4.10).
+  const gulirTanpaJs = await a.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  lapor(gulirTanpaJs <= 0, `outbox tanpa JS ${ukuran.join("x")}: gulir ke samping ${gulirTanpaJs} px (harap 0)`);
   await a.ctx.close();
   const b = await buka(ukuran);
   await siap(b.page);
