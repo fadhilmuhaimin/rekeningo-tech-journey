@@ -131,6 +131,15 @@ window.ISTILAH = {
   "t": "Backoff",
   "u": "tahap-2/retry-idempotency/"
  },
+ "Branch protection": {
+  "b": "t2-tim-infra",
+  "d": "Aturan di GitHub tentang apa yang boleh masuk ke satu branch: persetujuan wajib, status check wajib, dan larangan force push.",
+  "h": "istilah/branch-protection/",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "s": "istilah-branch-protection",
+  "t": "Branch protection",
+  "u": "tahap-2/tim-infra/"
+ },
  "Buku ledger": {
   "b": "t2-ledger",
   "d": "Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya.",
@@ -147,6 +156,15 @@ window.ISTILAH = {
   "s": "istilah-ci",
   "t": "CI (Continuous Integration)",
   "u": "tahap-1/kontrak-openapi/"
+ },
+ "CODEOWNERS": {
+  "b": "t2-tim-infra",
+  "d": "File yang menunjuk pemilik tiap bagian repo, supaya GitHub meminta mereka me-review PR yang menyentuhnya.",
+  "h": "istilah/codeowners/",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "s": "istilah-codeowners",
+  "t": "CODEOWNERS",
+  "u": "tahap-2/tim-infra/"
  },
  "COMMIT": {
   "b": "B3.1",
@@ -869,6 +887,15 @@ window.ISTILAH = {
   "t": "Proxy",
   "u": "b-fondasi/b11-2-proxy-bff/"
  },
+ "Pull request review": {
+  "b": "t2-tim-infra",
+  "d": "Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung.",
+  "h": "istilah/pull-request-review/",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "s": "istilah-pull-request-review",
+  "t": "Pull request review",
+  "u": "tahap-2/tim-infra/"
+ },
  "Query plan": {
   "b": "t2-index",
   "d": "Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.",
@@ -1167,6 +1194,24 @@ window.ISTILAH = {
   "t": "TTL (Time To Live)",
   "u": "b-fondasi/b9-caching/"
  },
+ "Tes integrasi": {
+  "b": "t2-tim-infra",
+  "d": "Tes yang menjalankan kode bersama komponen sungguhan di sekitarnya, misalnya database, bukan tiruannya.",
+  "h": "istilah/tes-integrasi/",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "s": "istilah-tes-integrasi",
+  "t": "Tes integrasi",
+  "u": "tahap-2/tim-infra/"
+ },
+ "Testcontainers": {
+  "b": "t2-tim-infra",
+  "d": "Pustaka yang menyalakan container, misalnya PostgreSQL, dari dalam kode tes dan menunggu sampai siap dipakai.",
+  "h": "istilah/testcontainers/",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "s": "istilah-testcontainers",
+  "t": "Testcontainers",
+  "u": "tahap-2/tim-infra/"
+ },
  "Throughput": {
   "b": "C2",
   "d": "Jumlah pekerjaan yang selesai per satuan waktu, mis. request per detik.",
@@ -1330,6 +1375,15 @@ window.ISTILAH = {
   "s": "istilah-backoff",
   "t": "Backoff",
   "u": "tahap-2/retry-idempotency/"
+ },
+ "branch protection": {
+  "b": "t2-tim-infra",
+  "d": "Aturan di GitHub tentang apa yang boleh masuk ke satu branch: persetujuan wajib, status check wajib, dan larangan force push.",
+  "h": "istilah/branch-protection/",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "s": "istilah-branch-protection",
+  "t": "Branch protection",
+  "u": "tahap-2/tim-infra/"
  },
  "buku ledger": {
   "b": "t2-ledger",
@@ -1858,6 +1912,15 @@ window.ISTILAH = {
   "t": "Proxy",
   "u": "b-fondasi/b11-2-proxy-bff/"
  },
+ "pull request review": {
+  "b": "t2-tim-infra",
+  "d": "Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung.",
+  "h": "istilah/pull-request-review/",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "s": "istilah-pull-request-review",
+  "t": "Pull request review",
+  "u": "tahap-2/tim-infra/"
+ },
  "query plan": {
   "b": "t2-index",
   "d": "Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.",
@@ -2072,6 +2135,24 @@ window.ISTILAH = {
   "s": "istilah-status-code",
   "t": "Status code",
   "u": "tahap-1/http/"
+ },
+ "tes integrasi": {
+  "b": "t2-tim-infra",
+  "d": "Tes yang menjalankan kode bersama komponen sungguhan di sekitarnya, misalnya database, bukan tiruannya.",
+  "h": "istilah/tes-integrasi/",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "s": "istilah-tes-integrasi",
+  "t": "Tes integrasi",
+  "u": "tahap-2/tim-infra/"
+ },
+ "testcontainers": {
+  "b": "t2-tim-infra",
+  "d": "Pustaka yang menyalakan container, misalnya PostgreSQL, dari dalam kode tes dan menunggu sampai siap dipakai.",
+  "h": "istilah/testcontainers/",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "s": "istilah-testcontainers",
+  "t": "Testcontainers",
+  "u": "tahap-2/tim-infra/"
  },
  "throughput": {
   "b": "C2",

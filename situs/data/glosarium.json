@@ -216,6 +216,15 @@
   "h": null
  },
  {
+  "t": "Branch protection",
+  "d": "Aturan di GitHub tentang apa yang boleh masuk ke satu branch: persetujuan wajib, status check wajib, dan larangan force push.",
+  "b": "t2-tim-infra",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "u": "/tahap-2/tim-infra/",
+  "s": "istilah-branch-protection",
+  "h": "/istilah/branch-protection/"
+ },
+ {
   "t": "Buku ledger",
   "d": "Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya.",
   "b": "t2-ledger",
@@ -250,6 +259,15 @@
   "u": "/b-fondasi/b11-integrasi-pihak-ketiga/",
   "s": "istilah-circuit-breaker",
   "h": null
+ },
+ {
+  "t": "CODEOWNERS",
+  "d": "File yang menunjuk pemilik tiap bagian repo, supaya GitHub meminta mereka me-review PR yang menyentuhnya.",
+  "b": "t2-tim-infra",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "u": "/tahap-2/tim-infra/",
+  "s": "istilah-codeowners",
+  "h": "/istilah/codeowners/"
  },
  {
   "t": "COMMIT",
@@ -855,6 +873,15 @@
   "h": null
  },
  {
+  "t": "Pull request review",
+  "d": "Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung.",
+  "b": "t2-tim-infra",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "u": "/tahap-2/tim-infra/",
+  "s": "istilah-pull-request-review",
+  "h": "/istilah/pull-request-review/"
+ },
+ {
   "t": "Query plan",
   "d": "Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.",
   "b": "t2-index",
@@ -1150,6 +1177,24 @@
   "u": "/d-system-design/d2-scaling/",
   "s": "istilah-stateless",
   "h": null
+ },
+ {
+  "t": "Tes integrasi",
+  "d": "Tes yang menjalankan kode bersama komponen sungguhan di sekitarnya, misalnya database, bukan tiruannya.",
+  "b": "t2-tim-infra",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "u": "/tahap-2/tim-infra/",
+  "s": "istilah-tes-integrasi",
+  "h": "/istilah/tes-integrasi/"
+ },
+ {
+  "t": "Testcontainers",
+  "d": "Pustaka yang menyalakan container, misalnya PostgreSQL, dari dalam kode tes dan menunggu sampai siap dipakai.",
+  "b": "t2-tim-infra",
+  "n": "2.24 Tim dan infra Tahap 2",
+  "u": "/tahap-2/tim-infra/",
+  "s": "istilah-testcontainers",
+  "h": "/istilah/testcontainers/"
  },
  {
   "t": "Throughput",
