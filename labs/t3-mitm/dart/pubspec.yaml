@@ -1,0 +1,10 @@
+name: lab_t3_mitm
+description: Client Dart lab t3-mitm Tahap 3 - validasi sertifikat, flag terima-semua, pin SPKI, dan dio. Hanya untuk lab.
+publish_to: none
+environment:
+  sdk: ^3.11.0
+# Versi persis, dicek 2026-10-25: dio 5.11.0 ada di pub cache; 5.11.1 (2026-09-04) changelog-nya tidak menyebut
+# validateCertificate. crypto hanya untuk SHA-256.
+dependencies:
+  dio: 5.11.0
+  crypto: 3.0.7
