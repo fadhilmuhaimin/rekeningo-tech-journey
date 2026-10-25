@@ -12,6 +12,9 @@
 //   Chromium (CDP Accessibility.getFullAXTree): svg garis sebagai "image" tanpa nama, role="application" tanpa nama
 //   (keputusan 698, 699; pola 680, 682);
 // - klik (1366) dan tap (375) di tengah tabel lewat koordinat sampai ke tombolnya, bukan ke pane (pola 681);
+// - Tahap 3 (ERD3, keputusan 963, 964): /uji/erd/ membuka Tahap 2; memilih Tahap 3 dalam mode bandingkan = Tahap 2 di
+//   kiri (8 tabel) dan Tahap 3 di kanan (14 tabel, 6 baru, 2 berubah), 22 node dan 31 edge tanpa luapan dan tanpa teks
+//   diperkecil di bawah 0,79; detail outbox membuka halaman penjelasnya; mode tunggal Tahap 3 = 14 node dan 20 edge.
 // - 1.12 Data modeling (ERD-1.12, keputusan 697): ErdTumbuh Tahap 1 di blok Paham, versi statis Erd.astro tanpa JS
 //   dan untuk pembaca layar, klik/tap, scroll, CLS saat blok dibuka; React Flow baru dimuat sesudah blok dibuka;
 //   setiap halaman di dist/ yang memakai ErdTumbuh diperiksa bawaannya.
@@ -305,8 +308,78 @@ for (const [lebar, tinggi, harus] of [
         lapor(v.length === 0, `axe ${tag} ${tema}: ${v.length ? v.join(", ") : "0 pelanggaran"}`);
       }
     }
+
+    // 6b. Tahap 3 (ERD3, keputusan 963, 964): memilih Tahap 3 dari mode bandingkan Tahap 2 mempertahankan mode bandingkan.
+    // Kiri Tahap 2 (8 tabel, tidak ada yang dihapus), kanan Tahap 3 (14 tabel: 6 baru, 2 berubah, 6 tetap).
+    await page.evaluate((FIG) => [...document.querySelectorAll(`${FIG} .erd-tumbuh__pilih button`)].find((x) => x.textContent.includes("Tahap 3")).click(), FIG);
+    await page.waitForFunction((FIG) => document.querySelectorAll(`${FIG} .react-flow__node`).length === 22, FIG, { timeout: 15000 });
+    await page.waitForTimeout(400);
+    const t3 = await bentuk(page);
+    const st3 = await page.evaluate((FIG) => {
+      const f = document.querySelector(FIG);
+      const n = (k) => f.querySelectorAll(`.erd-tumbuh__node.is-${k}`).length;
+      const zoom = [...f.querySelectorAll(".react-flow__viewport")].map((v) => Number(/scale\(([\d.]+)\)/.exec(v.style.transform)?.[1] ?? 1));
+      return {
+        baru: n("baru"), berubah: n("berubah"), dihapus: n("dihapus"), zoom,
+        judul: [...f.querySelectorAll(".erd-tumbuh__sisi-judul strong")].map((x) => x.textContent),
+        pressed: f.querySelector(".erd-tumbuh__banding")?.getAttribute("aria-pressed"),
+        teks: f.querySelector(".erd-tumbuh__banding")?.textContent,
+      };
+    }, FIG);
+    lapor(
+      t3.node === 22 && t3.edge === 31 && t3.luar === 0 && t3.lebarDok <= 0 && t3.berdampingan === lebar > 500 && st3.baru === 6 && st3.berubah === 2 && st3.dihapus === 0 &&
+        st3.judul.join("|") === "Tahap 2, sebelum|Tahap 3, sesudah" && st3.pressed === "true" && st3.teks.includes("Tahap 2") && Math.min(...st3.zoom) >= 0.79,
+      `${tag}: Tahap 3 bandingkan → ${t3.berdampingan ? "berdampingan" : "bertumpuk"}, ${t3.node} node, ${t3.edge} edge, ${st3.baru} baru, ${st3.berubah} berubah, ${st3.dihapus} dihapus, zoom ${st3.zoom.map((z) => z.toFixed(2)).join("/")}, ${t3.luar} di luar wadah, luapan ${t3.lebarDok} px, "${st3.teks}"`,
+    );
+    lapor(t3.pindahPotong === 0, `${tag}: Tahap 3 bandingkan, kalimat pindah terpotong ${t3.pindahPotong}`);
+    await laporBawaan(page, `${tag} Tahap 3 bandingkan`);
+    // Klik atau tap di tengah tabel outbox (tabel baru): detail memuat status, kolom, index, dan halaman penjelasnya.
+    {
+      const k = await klikTabel(page, "Tabel outbox", lebar < 500);
+      lapor(
+        k.kena.startsWith("Tabel outbox") && k.ditekan === "true" && k.detail.includes("outbox · Tahap 3 · baru") && k.detail.includes("notifikasi_id") && k.detail.includes("UNIQUE INDEX") &&
+          k.detail.includes("Dijelaskan di") && k.detail.includes("3.9"),
+        `${tag}: ${lebar < 500 ? "tap" : "klik"} di tengah tabel outbox kena ${k.kena.startsWith("Tabel") ? "tombol" : k.kena} → aria-pressed ${k.ditekan}, detail ${k.detail.length} karakter, tautan ${k.tautan.join(" ") || "(segera)"}`,
+      );
+    }
+    if (AXE && reducedMotion === "no-preference") {
+      for (const tema of ["dark", "light"]) {
+        await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), tema);
+        await page.addScriptTag({ path: AXE });
+        const v = await page.evaluate(async (tag) => {
+          const x = await window.axe.run(document, { runOnly: { type: "tag", values: tag } });
+          return x.violations.map((p) => `${p.id}(${p.nodes.length}: ${p.nodes[0]?.target?.join(" ")})`);
+        }, TAG_WCAG);
+        lapor(v.length === 0, `axe ${tag} Tahap 3 bandingkan ${tema}: ${v.length ? v.join(", ") : "0 pelanggaran"}`);
+      }
+    }
+    // Mode tunggal Tahap 3: matikan Bandingkan, 14 tabel dan 20 edge.
+    await page.click(`${FIG} .erd-tumbuh__banding`);
+    await page.waitForFunction((FIG) => document.querySelectorAll(`${FIG} .react-flow__node`).length === 14, FIG, { timeout: 15000 });
+    await page.waitForTimeout(300);
+    const t3s = await bentuk(page);
+    const zoomT3 = await page.evaluate((FIG) => Number(/scale\(([\d.]+)\)/.exec(document.querySelector(`${FIG} .react-flow__viewport`).style.transform)?.[1] ?? 1), FIG);
+    lapor(t3s.node === 14 && t3s.edge === 20 && t3s.luar === 0 && t3s.lebarDok <= 0 && zoomT3 >= (lebar < 500 ? 0.99 : 0.79), `${tag}: Tahap 3 tunggal → ${t3s.bentuk}, ${t3s.node} node, ${t3s.edge} edge, zoom ${zoomT3.toFixed(2)}, ${t3s.luar} di luar wadah, luapan ${t3s.lebarDok} px`);
+    await laporBawaan(page, `${tag} Tahap 3`);
     await ctx.close();
   }
+}
+
+// 6c. Layar 320 px (WCAG 1.4.10 reflow): Tahap 2 dan 3 tanpa luapan halaman, teks tidak diperkecil di bawah 0,85.
+{
+  const ctx = await browser.newContext({ viewport: { width: 320, height: 568 }, hasTouch: true });
+  const page = await ctx.newPage();
+  await siap(page);
+  for (const [no, node, edge] of [[2, 11, 11], [3, 14, 20]]) {
+    await page.evaluate(([FIG, no]) => [...document.querySelectorAll(`${FIG} .erd-tumbuh__pilih button`)].find((x) => x.textContent.includes(`Tahap ${no}`)).click(), [FIG, no]);
+    await page.waitForFunction(([FIG, n]) => document.querySelectorAll(`${FIG} .react-flow__node`).length === n, [FIG, node], { timeout: 15000 });
+    await page.waitForTimeout(300);
+    const b = await bentuk(page);
+    const zoom = await page.evaluate((FIG) => Number(/scale\(([\d.]+)\)/.exec(document.querySelector(`${FIG} .react-flow__viewport`).style.transform)?.[1] ?? 1), FIG);
+    lapor(b.bentuk === "sempit" && b.node === node && b.edge === edge && b.luar === 0 && b.lebarDok <= 0 && zoom >= 0.85, `320×568 Tahap ${no}: ${b.bentuk}, ${b.node} node, ${b.edge} edge, zoom ${zoom.toFixed(2)}, ${b.luar} di luar wadah, luapan ${b.lebarDok} px`);
+  }
+  await laporBawaan(page, "320×568");
+  await ctx.close();
 }
 
 // 7. Layout shift saat island di-hydrate: tinggi wadah dipesan sejak SSR (varPesan). Gulir pelan 80 px tiap 120 ms

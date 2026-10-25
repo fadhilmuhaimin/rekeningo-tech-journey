@@ -116,6 +116,9 @@ export const UKURAN = {
   sisi: 30, // tata lebar: ruang di kiri dan kanan grid untuk edge yang melompati baris
   belok: 12, // tata lebar: jarak belokan edge yang melompati baris dari tepi baris
   maksKolom: 4,
+  keluarY: 16, // tinggi handle "kiri-keluar" dari atas node (ErdTumbuh.tsx memakai angka yang sama)
+  masukY: 30, // tinggi handle "kiri-masuk"
+  celahLajur: 10, // jarak vertikal minimum antara dua garis yang memakai lajur yang sama
 } as const;
 
 export type Bentuk = "lebar" | "sempit";
@@ -205,11 +208,35 @@ export function urutan(tabel: TabelTampil[]): TabelTampil[][] {
 }
 
 /**
+ * Lajur untuk garis yang berjalan di sisi yang sama (ERD3, keputusan 964). `butir` sudah diurutkan menurut prioritas
+ * (terpendek dulu, jadi di lajur terdalam). Tiap garis mendapat lajur terkecil yang tidak dipakai garis lain yang
+ * rentang tegaknya tumpang-tindih (jarak < `celah`); garis yang rentangnya terpisah memakai lajur yang sama. Tanpa ini
+ * satu garis = satu lajur, dan skema dengan 20 foreign key (Tahap 3) melebarkan tata di HP sampai 382 px: teks
+ * diperkecil jadi 0,75 di layar 320 px.
+ */
+export function bagiLajur(butir: { id: string; dari: number; ke: number }[], celah: number): Map<string, number> {
+  const lajur: [number, number][][] = [];
+  const hasil = new Map<string, number>();
+  for (const b of butir) {
+    const [a, z] = b.dari <= b.ke ? [b.dari, b.ke] : [b.ke, b.dari];
+    let i = lajur.findIndex((l) => l.every(([a2, z2]) => z + celah < a2 || z2 + celah < a));
+    if (i < 0) {
+      i = lajur.length;
+      lajur.push([]);
+    }
+    lajur[i].push([a, z]);
+    hasil.set(b.id, i);
+  }
+  return hasil;
+}
+
+/**
  * Tata letak untuk wadah selebar `lebar` px, pada zoom 1 (teks tidak pernah diperkecil).
  * - lebar (≥ 2 kolom): satu baris per peringkat (dipecah bila lebih dari jumlah kolom), edge dari atas tabel yang
  *   merujuk ke bawah tabel yang dirujuk; foreign key ke diri sendiri melingkar di kanan.
  * - sempit (1 kolom, HP): tabel bertumpuk dalam urutan baca, setiap edge berbelok di lajurnya sendiri di kiri; edge
- *   terpendek di lajur terdalam supaya garis tidak saling memotong di dekat node.
+ *   terpendek di lajur terdalam supaya garis tidak saling memotong di dekat node. Bila satu lajur per edge membuat
+ *   tata lebih lebar dari wadah, edge yang rentang tegaknya terpisah berbagi lajur (bagiLajur); yang muat tidak berubah.
  */
 export function tata(tabel: TabelTampil[], lebar: number): Tata {
   const U = UKURAN;
@@ -218,19 +245,25 @@ export function tata(tabel: TabelTampil[], lebar: number): Tata {
   const fk = daftarFk(tabel);
   const node: TataNode[] = [];
   if (k === 1) {
-    const lajurLebar = U.lajurAwal + Math.max(0, fk.length - 1) * U.lajur + U.bantalan;
-    const w = Math.max(U.lebarMin, Math.min(U.lebar, lebar - lajurLebar - U.bantalan));
+    // Tinggi tidak bergantung pada lebar lajur, jadi posisi tegak dihitung dulu, lalu lajur, lalu lebar node.
+    const atas = new Map<string, number>();
     let y = U.bantalan;
     for (const t of grup.flat()) {
-      const h = tinggiNode(t);
-      node.push({ nama: t.nama, x: lajurLebar, y, lebar: w, tinggi: h });
-      y += h + U.jarakY / 2;
+      atas.set(t.nama, y);
+      y += tinggiNode(t) + U.jarakY / 2;
     }
-    const posisi = new Map(node.map((n) => [n.nama, n]));
-    const bentang = (f: { dari: string; ke: string }) => Math.abs(posisi.get(f.dari)!.y - posisi.get(f.ke)!.y);
-    const edge = [...fk]
-      .sort((a, b) => bentang(a) - bentang(b) || a.id.localeCompare(b.id))
-      .map((f, i) => ({ ...f, sumber: "kiri-keluar", tujuan: "kiri-masuk", jenis: "smoothstep" as const, offset: U.lajurAwal + i * U.lajur, titik: [] }));
+    const bentang = (f: { dari: string; ke: string }) => Math.abs(atas.get(f.dari)! - atas.get(f.ke)!);
+    const urut = [...fk].sort((a, b) => bentang(a) - bentang(b) || a.id.localeCompare(b.id));
+    const lajurSatu = U.lajurAwal + Math.max(0, fk.length - 1) * U.lajur + U.bantalan;
+    const muat = lajurSatu + U.lebarMin + U.bantalan <= lebar;
+    const lajurKe = muat
+      ? new Map(urut.map((f, i) => [f.id, i]))
+      : bagiLajur(urut.map((f) => ({ id: f.id, dari: atas.get(f.dari)! + U.keluarY, ke: atas.get(f.ke)! + U.masukY })), U.celahLajur);
+    const nLajur = muat ? fk.length : Math.max(-1, ...lajurKe.values()) + 1;
+    const lajurLebar = U.lajurAwal + Math.max(0, nLajur - 1) * U.lajur + U.bantalan;
+    const w = Math.max(U.lebarMin, Math.min(U.lebar, lebar - lajurLebar - U.bantalan));
+    for (const t of grup.flat()) node.push({ nama: t.nama, x: lajurLebar, y: atas.get(t.nama)!, lebar: w, tinggi: tinggiNode(t) });
+    const edge = urut.map((f) => ({ ...f, sumber: "kiri-keluar", tujuan: "kiri-masuk", jenis: "smoothstep" as const, offset: U.lajurAwal + lajurKe.get(f.id)! * U.lajur, titik: [] }));
     return { bentuk: "sempit", kolom: 1, node, edge, lebar: lajurLebar + w + U.bantalan, tinggi: y - U.jarakY / 2 + U.bantalan };
   }
   const baris = grup.flatMap((g) => Array.from({ length: Math.ceil(g.length / k) }, (_, i) => g.slice(i * k, i * k + k)));
@@ -268,16 +301,27 @@ export function tata(tabel: TabelTampil[], lebar: number): Tata {
     const pindah = di(besar).sort((a, b) => Math.abs(jarak(a)) - Math.abs(jarak(b)) || a.id.localeCompare(b.id))[0];
     sisiEdge.set(pindah.id, kecil);
   }
-  const lajurSisi = new Map<string, { sisi: "kiri" | "kanan"; i: number }>();
-  for (const sisi of ["kiri", "kanan"] as const) {
+  // `o` = urutan di sisinya (jitter tegak per edge); `i` = lajur. Satu edge satu lajur bila muat di ruang sisi bawaan;
+  // bila tidak, edge yang rentang tegaknya terpisah berbagi lajur (bagiLajur, keputusan 964).
+  const lajurSisi = new Map<string, { sisi: "kiri" | "kanan"; i: number; o: number }>();
+  const perlu = (m: number) => (m ? U.lajurAwal + (m - 1) * U.lajur + 4 : 0);
+  const urutSisi = (sisi: "kiri" | "kanan") =>
     lompat
       .filter((f) => sisiEdge.get(f.id) === sisi)
-      .sort((a, b) => barisKe.get(a.dari)! - barisKe.get(a.ke)! - (barisKe.get(b.dari)! - barisKe.get(b.ke)!) || a.id.localeCompare(b.id))
-      .forEach((f, i) => lajurSisi.set(f.id, { sisi, i }));
+      .sort((a, b) => barisKe.get(a.dari)! - barisKe.get(a.ke)! - (barisKe.get(b.dari)! - barisKe.get(b.ke)!) || a.id.localeCompare(b.id));
+  const muatSisi = (["kiri", "kanan"] as const).every((sisi) => perlu(urutSisi(sisi).length) <= U.bantalan + U.sisi);
+  for (const sisi of ["kiri", "kanan"] as const) {
+    const urut = urutSisi(sisi);
+    const rentang = urut.map((f, o) => ({
+      id: f.id,
+      dari: tepi[barisKe.get(f.ke)!].bawah + U.belok + (o % 4) * 6, // yMasuk
+      ke: tepi[barisKe.get(f.dari)!].atas - U.belok - (o % 4) * 6, // yNaik
+    }));
+    const lajur = muatSisi ? new Map(urut.map((f, o) => [f.id, o])) : bagiLajur(rentang, U.celahLajur);
+    urut.forEach((f, o) => lajurSisi.set(f.id, { sisi, i: lajur.get(f.id)!, o }));
   }
   // Lajur yang tidak muat di ruang sisi bawaan menggeser grid (lebar tata bertambah; zoom < 1 bila wadah sempit).
-  const n = (sisi: "kiri" | "kanan") => [...lajurSisi.values()].filter((l) => l.sisi === sisi).length;
-  const perlu = (m: number) => (m ? U.lajurAwal + (m - 1) * U.lajur + 4 : 0);
+  const n = (sisi: "kiri" | "kanan") => Math.max(-1, ...[...lajurSisi.values()].filter((l) => l.sisi === sisi).map((l) => l.i)) + 1;
   const tambahKiri = Math.max(0, perlu(n("kiri")) - (U.bantalan + U.sisi));
   const tambahKanan = Math.max(0, perlu(n("kanan")) - (U.bantalan + U.sisi));
   if (tambahKiri) for (const x of node) x.x += tambahKiri;
@@ -290,8 +334,8 @@ export function tata(tabel: TabelTampil[], lebar: number): Tata {
     const b = posisi.get(f.ke)!;
     const xa = a.x + a.lebar / 2;
     const xb = b.x + b.lebar / 2;
-    const yNaik = tepi[barisKe.get(f.dari)!].atas - U.belok - (l.i % 4) * 6;
-    const yMasuk = tepi[barisKe.get(f.ke)!].bawah + U.belok + (l.i % 4) * 6;
+    const yNaik = tepi[barisKe.get(f.dari)!].atas - U.belok - (l.o % 4) * 6;
+    const yMasuk = tepi[barisKe.get(f.ke)!].bawah + U.belok + (l.o % 4) * 6;
     const xLajur = l.sisi === "kiri" ? kiri - U.lajurAwal - l.i * U.lajur : kiri + lebarTata + U.lajurAwal + l.i * U.lajur;
     return {
       ...f,

@@ -19,7 +19,7 @@ import type { DataErd } from "./skema";
 import { ringkasCek, ringkasIndex } from "./erd";
 import { muncul } from "../gerak/muncul";
 import {
-  LABEL_STATUS, ambangKolom, barisPindah, bisaBanding, namaTombol, ringkasan, tampilSebelum, tampilTahap, tata, teksAturan, teksKolom,
+  LABEL_STATUS, UKURAN, ambangKolom, barisPindah, bisaBanding, namaTombol, ringkasan, tampilSebelum, tampilTahap, tata, teksAturan, teksKolom,
   teksPindah, varPesan,
   type TabelTampil, type Tata, type TautanTahap,
 } from "./tumbuh";
@@ -31,10 +31,10 @@ type DataNode = { t: TabelTampil; dipilih: boolean; pilih: () => void; idDetail:
 const HANDLE: [string, "source" | "target", Position, CSSProperties?][] = [
   ["atas", "source", Position.Top],
   ["bawah", "target", Position.Bottom],
-  ["kiri-keluar", "source", Position.Left, { top: 16 }],
-  ["kiri-masuk", "target", Position.Left, { top: 30 }],
-  ["kanan-keluar", "source", Position.Right, { top: 16 }],
-  ["kanan-masuk", "target", Position.Right, { top: 30 }],
+  ["kiri-keluar", "source", Position.Left, { top: UKURAN.keluarY }],
+  ["kiri-masuk", "target", Position.Left, { top: UKURAN.masukY }],
+  ["kanan-keluar", "source", Position.Right, { top: UKURAN.keluarY }],
+  ["kanan-masuk", "target", Position.Right, { top: UKURAN.masukY }],
 ];
 
 function NodeTabel({ data }: NodeProps<Node<DataNode>>) {

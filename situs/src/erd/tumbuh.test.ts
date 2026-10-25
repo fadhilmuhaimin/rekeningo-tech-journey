@@ -1,15 +1,16 @@
 // Tes logika widget ERD bertumbuh (I6-erd, keputusan 460–465) dengan ERD Tahap 1 sungguhan dan data uji Tahap 2.
 // Data uji tetap dipakai sesudah ERD2 karena punya kasus yang tidak ada di lab (kolom berganti nama = dihapus + baru);
-// bagian akhir menguji ERD Tahap 2 sungguhan dari api-t2 (keputusan 470–472).
+// bagian ERD2 menguji Tahap 2 sungguhan dari api-t2 (keputusan 470–472), bagian ERD3 Tahap 3 dari api-t3 (keputusan 963–964).
 import { describe, expect, it } from "vitest";
 import t1 from "../../data/erd/tahap-1.json";
 import petaT1 from "../../data/erd/halaman.json";
 import t2 from "./uji/tahap-2.json";
 import t2Lab from "../../data/erd/tahap-2.json";
+import t3Lab from "../../data/erd/tahap-3.json";
 import petaT2 from "./uji/halaman.json";
 import { DataErd, PetaHalaman } from "./skema";
 import {
-  UKURAN, ambangKolom, bisaBanding, daftarFk, jumlahKolom, namaTombol, peringkat, ringkasan, tampilSebelum, tampilTahap, tata,
+  UKURAN, ambangKolom, bagiLajur, bisaBanding, daftarFk, jumlahKolom, namaTombol, peringkat, ringkasan, tampilSebelum, tampilTahap, tata,
   tandaiHalamanIni, tautanHalaman, teksAturan, teksKolom, teksPindah, barisPindah, tinggiNode, urutan, varPesan, type HalamanRegistry, type TabelTampil,
 } from "./tumbuh";
 import { muat, url } from "../../tools/registri.mjs";
@@ -209,6 +210,141 @@ describe("ERD Tahap 2 dari lab api-t2 (ERD2)", () => {
   it("setiap tabel Tahap 2 punya halaman penjelas di peta (situs/data/erd/halaman.json)", () => {
     const hasil = tautanHalaman(PetaHalaman.parse(petaT1), lab, muat().halaman, url);
     for (const t of lab[1].tabel) expect(hasil["2"][t.nama]?.length, t.nama).toBeGreaterThan(0);
+  });
+});
+
+describe("ERD Tahap 3 dari lab api-t3 (ERD3)", () => {
+  const lab3 = [DataErd.parse(t1), DataErd.parse(t2Lab), DataErd.parse(t3Lab)];
+  const x = tampilTahap(lab3, 3);
+  const BARU = ["kota", "perangkat", "outbox", "produk", "promo", "operasi_sinkron"];
+  it("status: enam tabel baru, akun dan sesi berubah, enam tabel Tahap 2 tetap, tidak ada yang dihapus", () => {
+    expect(nama(x)).toEqual([
+      "akun:berubah", "sesi:berubah", "buku:tetap", "jurnal:tetap", "posting:tetap", "kunci_idempotensi:tetap", "batch_pencairan:tetap",
+      "baris_pencairan:tetap", "kota:baru", "perangkat:baru", "outbox:baru", "produk:baru", "promo:baru", "operasi_sinkron:baru",
+    ]);
+    expect(x.filter((t) => t.status === "baru").map((t) => t.nama)).toEqual(BARU);
+    expect(x.some((t) => t.bayangan)).toBe(false);
+    expect(ringkasan(x)).toBe("14 tabel, 20 foreign key (6 baru, 2 berubah, 6 tetap).");
+  });
+  it("akun mendapat kota_id dan jenis hr; sesi mendapat jenis dan csrf_hash (kolom baru di akhir, aturan berubah)", () => {
+    const akun = x.find((t) => t.nama === "akun")!;
+    expect(akun.kolom.filter((k) => k.status !== "tetap").map((k) => `${k.kolom.nama}:${k.status}`)).toEqual(["kota_id:baru"]);
+    expect(akun.aturan.map(teksAturan)).toEqual(["FK akun_kota_id_fkey baru", "CHECK akun_jenis_check berubah", "INDEX akun_kota baru"]);
+    expect(akun.tabel.cek.find((c) => c.nama === "akun_jenis_check")!.ekspresi).toContain("'hr'");
+    const sesi = x.find((t) => t.nama === "sesi")!;
+    expect(sesi.kolom.filter((k) => k.status !== "tetap").map((k) => `${k.kolom.nama}:${k.status}`)).toEqual(["jenis:baru", "csrf_hash:baru"]);
+    expect(sesi.aturan.map(teksAturan)).toEqual(["CHECK sesi_csrf_hanya_web baru", "CHECK sesi_jenis_check baru"]);
+  });
+  it("kolom outbox menurut lab: uuid stabil, kelas 0 sampai 2, klaim_sampai boleh kosong, satu per jurnal per penerima", () => {
+    const outbox = x.find((t) => t.nama === "outbox")!;
+    expect(teksKolom(outbox.kolom.find((k) => k.kolom.nama === "notifikasi_id")!)).toBe("uuid, UNIQUE, baru");
+    expect(teksKolom(outbox.kolom.find((k) => k.kolom.nama === "klaim_sampai")!)).toBe("timestamptz, boleh kosong, baru");
+    expect(teksKolom(outbox.kolom.find((k) => k.kolom.nama === "jurnal_id")!)).toBe("bigint, FK → jurnal.id, CHECK, boleh kosong, baru");
+    expect(outbox.tabel.index.map((i) => `${i.nama}:${i.unik}`)).toEqual(["outbox_antre:false", "outbox_satu_per_jurnal:true"]);
+  });
+  it("sisi kiri bandingkan: Tahap 2 utuh, tanpa tabel atau kolom yang dihapus", () => {
+    const kiri = tampilSebelum(lab3, 3);
+    expect(nama(kiri)).toEqual(tampilTahap(lab3, 2).filter((t) => !t.bayangan).map((t) => `${t.nama}:null`));
+    expect(kiri.every((t) => t.kolom.every((k) => k.status === null))).toBe(true);
+    expect([bisaBanding(lab3, 2), bisaBanding(lab3, 3), bisaBanding([lab3[0], lab3[2]], 3)]).toEqual([true, true, false]);
+    expect(() => tampilTahap([lab3[0], lab3[2]], 3)).toThrow(/Tahap 2 tidak ada/);
+  });
+  it("penjaga selisih: menghapus satu tabel baru dari selisih mengubah statusnya, dan kolom baru tanpa tabelnya tidak lolos", () => {
+    const d3 = structuredClone(lab3[2]);
+    d3.selisih!.tabel_baru = d3.selisih!.tabel_baru.filter((n) => n !== "outbox");
+    expect(nama(tampilTahap([lab3[0], lab3[1], d3], 3))).toContain("outbox:tetap");
+    expect(ringkasan(tampilTahap([lab3[0], lab3[1], d3], 3))).toBe("14 tabel, 20 foreign key (5 baru, 2 berubah, 7 tetap).");
+    const d4 = structuredClone(lab3[2]);
+    d4.selisih!.kolom_dihapus = [{ tabel: "sesi", kolom: "tidak_ada" }];
+    expect(() => tampilTahap([lab3[0], lab3[1], d4], 3)).toThrow(/tidak ada di Tahap 2/);
+  });
+  it("peringkat: outbox di bawah jurnal dan akun, kota di atas promo dan akun", () => {
+    const r = Object.fromEntries(peringkat(x));
+    expect(r.kota).toBe(0);
+    expect(r.akun).toBe(1); // akun.kota_id -> kota
+    expect(r.promo).toBeGreaterThan(r.akun);
+    expect(r.outbox).toBeGreaterThan(r.jurnal);
+    expect(r.operasi_sinkron).toBeGreaterThan(Math.max(r.perangkat, r.produk));
+    expect(daftarFk(x)).toHaveLength(20);
+  });
+  it("tata di 343, 2, 3 dan 4 kolom: node tidak bertumpuk, edge yang melompati baris tidak memotong node, tabel yang dirujuk di atas", () => {
+    for (const lebar of [343, ambangKolom(2), ambangKolom(3), ambangKolom(4)]) {
+      const t = tata(x, lebar);
+      expect(t.bentuk).toBe(lebar === 343 ? "sempit" : "lebar");
+      // 20 foreign key tidak muat di ruang sisi bawaan: tata lebar boleh lebih lebar dari wadah (zoom < 1), tetapi di
+      // layar 375 px (wadah 343) tata satu kolom muat tanpa diperkecil, dan di dua kolom (sisi 497 px di 1366) zoom ≥ 0,79.
+      if (lebar === 343) expect(t.lebar).toBeLessThanOrEqual(343);
+      if (lebar === ambangKolom(2)) expect(497 / t.lebar).toBeGreaterThanOrEqual(0.79);
+      expect(t.node).toHaveLength(14);
+      for (const a of t.node)
+        for (const b of t.node)
+          if (a !== b) expect(a.x + a.lebar <= b.x || b.x + b.lebar <= a.x || a.y + a.tinggi <= b.y || b.y + b.tinggi <= a.y, `${a.nama}/${b.nama} @${lebar}`).toBe(true);
+      expect(new Set(t.edge.map((e) => e.id)).size).toBe(20);
+      const p = new Map(t.node.map((n) => [n.nama, n]));
+      for (const e of t.edge) {
+        if (e.dari !== e.ke) expect(p.get(e.ke)!.y, e.id).toBeLessThan(p.get(e.dari)!.y);
+        for (let i = 1; i < e.titik.length; i++) {
+          const [[x0, y0], [x1, y1]] = [e.titik[i - 1], e.titik[i]];
+          for (const [px, py] of [e.titik[i]]) expect(px >= 0 && px <= t.lebar && py >= 0 && py <= t.tinggi, `${e.id} di luar tata`).toBe(true);
+          for (const n of t.node) {
+            if (n.nama === e.dari || n.nama === e.ke) continue;
+            const potong = Math.max(x0, x1) > n.x && Math.min(x0, x1) < n.x + n.lebar && Math.max(y0, y1) > n.y && Math.min(y0, y1) < n.y + n.tinggi;
+            expect(potong, `${e.id} memotong ${n.nama} @${lebar}`).toBe(false);
+          }
+        }
+      }
+    }
+  });
+  it("HP: garis berbagi lajur hanya bila rentang tegaknya terpisah; Tahap 1 dan 2 yang muat tetap satu lajur per garis", () => {
+    for (const lebar of [288, 343]) {
+      const t = tata(x, lebar);
+      const y = new Map(t.node.map((n) => [n.nama, n.y]));
+      const rentang = t.edge.map((e) => [Math.min(y.get(e.dari)! + UKURAN.keluarY, y.get(e.ke)! + UKURAN.masukY), Math.max(y.get(e.dari)! + UKURAN.keluarY, y.get(e.ke)! + UKURAN.masukY)]);
+      expect(new Set(t.edge.map((e) => e.offset)).size, `lajur @${lebar}`).toBeLessThan(20);
+      for (let i = 0; i < t.edge.length; i++)
+        for (let j = i + 1; j < t.edge.length; j++)
+          if (t.edge[i].offset === t.edge[j].offset)
+            expect(rentang[i][1] + UKURAN.celahLajur < rentang[j][0] || rentang[j][1] + UKURAN.celahLajur < rentang[i][0], `${t.edge[i].id} dan ${t.edge[j].id} berbagi lajur ${t.edge[i].offset} tetapi tumpang-tindih`).toBe(true);
+    }
+    for (const d of [lab3[0], lab3[1]]) {
+      const t = tata(tampilTahap(lab3, d.tahap), 343);
+      expect(new Set(t.edge.map((e) => e.offset)).size).toBe(t.edge.length);
+    }
+    // Tahap 2 tidak muat di wadah 288 px (layar 320) bila satu garis satu lajur (310 px); dengan lajur dibagi muat.
+    expect(tata(tampilTahap(lab3, 2), 288).lebar).toBeLessThanOrEqual(288);
+  });
+  it("bagiLajur: rentang terpisah satu lajur, yang tumpang-tindih atau terlalu dekat berpindah lajur", () => {
+    const r = bagiLajur([{ id: "a", dari: 0, ke: 10 }, { id: "b", dari: 30, ke: 20 }, { id: "c", dari: 5, ke: 25 }, { id: "d", dari: 11, ke: 15 }], 2);
+    // a dan b terpisah (lajur 0); c menimpa keduanya (lajur 1); d (11 sampai 15) terlalu dekat ke a (12 bukan < 11) dan di dalam c.
+    expect(Object.fromEntries(r)).toEqual({ a: 0, b: 0, c: 1, d: 2 });
+    expect(bagiLajur([{ id: "a", dari: 0, ke: 10 }, { id: "b", dari: 12, ke: 20 }], 2).get("b")).toBe(1); // jarak 2, bukan lebih dari 2
+    expect(bagiLajur([{ id: "a", dari: 0, ke: 10 }, { id: "b", dari: 13, ke: 20 }], 2).get("b")).toBe(0);
+    expect(bagiLajur([], 2).size).toBe(0);
+  });
+  it("tinggi pesanan SSR Tahap 3 sama dengan tinggi tata di setiap jumlah kolom", () => {
+    const v = varPesan(x);
+    let h = parseFloat(v["--erd-t1"]);
+    expect(h).toBe(tata(x, 343).tinggi);
+    for (let k = 2; k <= UKURAN.maksKolom; k++) {
+      h += Number(v[`--erd-d${k}`]);
+      expect(h).toBe(tata(x, ambangKolom(k) + 10).tinggi);
+    }
+  });
+  it("setiap tabel Tahap 3 punya halaman penjelas di peta (situs/data/erd/halaman.json), tautan sesuai keadaan registry", () => {
+    const peta = PetaHalaman.parse(petaT1);
+    const reg = muat().halaman as HalamanRegistry[];
+    // Salinan registry yang memaksa keadaan halaman Tahap 3, supaya uji tidak berubah saat halaman 3.x ditulis.
+    const belum = tautanHalaman(peta, lab3, reg.map((h) => (h.id.startsWith("t3-") ? { ...h, ada: false } : h)), url)["3"];
+    const sudah = tautanHalaman(peta, lab3, reg.map((h) => (h.id.startsWith("t3-") ? { ...h, ada: true, lama: false } : h)), url)["3"];
+    for (const t of lab3[2].tabel) {
+      expect(belum[t.nama]?.length, t.nama).toBeGreaterThan(0);
+      expect(sudah[t.nama].length).toBe(belum[t.nama].length);
+    }
+    for (const n of BARU) expect(belum[n].some((h) => h.label.startsWith("3.")), n).toBe(true);
+    expect(belum.outbox.filter((h) => h.catatan === "segera").map((h) => h.label.split(" ")[0])).toEqual(["3.4", "3.9", "3.11", "3.13"]);
+    expect(belum.outbox.every((h) => h.href === null)).toBe(true);
+    expect(sudah.outbox.map((h) => h.href)).toEqual(["/tahap-3/dua-tempat/", "/tahap-3/outbox/", "/tahap-3/klaim-baris/", "/tahap-3/at-least-once/"].map((h, i) => sudah.outbox[i].href).map((h) => h));
+    expect(sudah.outbox.every((h) => h.href && h.catatan === null)).toBe(true);
   });
 });
 
