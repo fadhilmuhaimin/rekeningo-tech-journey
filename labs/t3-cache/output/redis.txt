@@ -1,9 +1,9 @@
 # Lab t3-cache · cache-aside di Redis: urutan hapus kunci, celah yang tersisa, promo yang mulai nanti
 # PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_cache · server Go di 127.0.0.1:18180
 # Rekaman dari database bersih: make -C labs/t3-cache run (keputusan 968).
-# Redis 8.10.2 (container lokal, 127.0.0.1:56379); instance A (127.0.0.1:18180) dan B (127.0.0.1:18182)
+# Redis 8.10.2 (container lokal); instance A (127.0.0.1:18180) dan B (127.0.0.1:18182)
 # ./api-t3 -katalog-cache redis -katalog-ttl 60s: cache-aside, entri disimpan sebagai JSON, kunci katalog:<kota>:<warung|semua>
-# klien Redis lab: RESP2 sendiri (GET, SET PX, DEL, SCAN), satu koneksi per perintah, batas 100 ms per perintah
+# client Redis lab: RESP2 sendiri (GET, SET PX, DEL, SCAN), satu koneksi per perintah, batas 100 ms per perintah
 
 # --- A. Satu Redis untuk dua instance: isi sekali, dibaca dua instance ---
 Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # miss, dari database

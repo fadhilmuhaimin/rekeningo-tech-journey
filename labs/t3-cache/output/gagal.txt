@@ -51,7 +51,7 @@ Ani: 5 kali PATCH -> 500; sesudah tiap PATCH Budi membaca katalog -> 200
 instance A: hit 0, miss 6, baca database 6, kunci dihapus 5, galat cache 0
 => GRANT UPDATE ON produk TO api_t3
 # Dengan hapus kunci selalu, tiap galat tulis mengubah bacaan berikutnya menjadi baca database. Pada beban nyata,
-# klien yang mengulang tulis yang gagal membuat database yang sedang bermasalah menerima semua bacaan juga.
+# client yang mengulang tulis yang gagal membuat database yang sedang bermasalah menerima semua bacaan juga.
 
 # --- E. Galat baca database: entri yang hidup tetap melayani, kunci yang kosong tidak diisi galat ---
 Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # miss, entri Warung Ani diisi

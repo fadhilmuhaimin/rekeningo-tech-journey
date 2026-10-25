@@ -40,11 +40,11 @@ Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga"
 --------+-------+------------------+------+-------
  1      | 25000 | 22500            | 49   | 2
 (1 row)
-# Pesanan tidak membaca cache: Rp22.500 ditagih. Stok di cache B (50) juga basi; Pesan memeriksa stok di database.
+# Pesanan tidak membaca cache: Rp22.500 ditagih. Stok di cache B (50) juga stale; Pesan memeriksa stok di database.
 
 # --- D. TTL 300 detik membatasi, tidak menyembuhkan: B baru memperbarui sesudah entrinya habis ---
 Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # detik ke-299: masih entri lama
 Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":22500,"stok":49,"versi":2}   # detik ke-300: entri habis, dibaca dari database
 instance B: hit 4, miss 2, baca database 2, kunci dihapus 0, galat cache 0
-# Entri basi paling lama sebesar TTL, dihitung sejak entri diisi. Entri yang diisi sesaat sebelum promo dibuat
+# Entri stale paling lama sebesar TTL, dihitung sejak entri diisi. Entri yang diisi sesaat sebelum promo dibuat
 # bertahan hampir 300 detik sesudahnya di instance yang tidak menerima perubahan.

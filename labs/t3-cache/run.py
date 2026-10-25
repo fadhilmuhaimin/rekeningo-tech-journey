@@ -23,7 +23,6 @@ from lab_env import REDIS_PORT  # noqa: E402
 LAB = "t3-cache"
 SCH = "tahap3_cache"
 DB = d.db_app(SCH)
-DASAR_REDIS = 56379              # port dasar yang ditulis di rekaman; yang dipakai REDIS_PORT (lajur kerja)
 COMPOSE_REDIS = d.LABS / "b9-cache" / "docker-compose.yml"
 ANI, SARI = 418, 502             # akun warung di Jakarta (kota 1)
 TTL_REDIS = "60s"                # ADR 28
@@ -58,16 +57,16 @@ def pulihkan_produk(produk, harga=25000):
     sql(f"DELETE FROM promo", tampil=False)
 
 
-def r_klien(batas=15):
+def r_redis(batas=15):
     return redis.Redis(port=REDIS_PORT, socket_timeout=batas, socket_connect_timeout=batas)
 
 
 def redis_versi():
-    return r_klien().info("server")["redis_version"]
+    return r_redis().info("server")["redis_version"]
 
 
 def redis_kosongkan():
-    r_klien().flushall()
+    r_redis().flushall()
 
 
 def mulai_instance(port, args=(), cache="redis", ttl=None, hapus=None, gerbang=None, redis_timeout="100ms"):
@@ -172,11 +171,11 @@ def lepas(port, nama):
 
 
 def kunci_ada(kunci):
-    return bool(r_klien().exists(kunci))
+    return bool(r_redis().exists(kunci))
 
 
 def sisa_ttl_ms(kunci):
-    return r_klien().pttl(kunci)
+    return r_redis().pttl(kunci)
 
 
 def tidak_lebih_dari_ttl(kunci, batas_ms, ket):
@@ -203,7 +202,7 @@ def redis_nyala():
 
 def _ping():
     try:
-        return r_klien(2).ping()
+        return r_redis(2).ping()
     except redis.RedisError:
         return False
 
@@ -214,7 +213,7 @@ def rekam_memori():
     siapkan()
     nasi = id_produk(ANI, "Nasi goreng")
     base = int(time.time() * 1000)
-    catat("# instance A (127.0.0.1:18180) dan instance B (127.0.0.1:18182): dua proses api-t3 yang sama, satu PostgreSQL,")
+    catat(f"# instance A (127.0.0.1:{d.DASAR}) dan instance B (127.0.0.1:{d.DASAR_KEDUA}): dua proses api-t3 yang sama, satu PostgreSQL,")
     catat("# masing-masing dengan cache katalog di memori prosesnya: ./api-t3 -katalog-cache memori -jam-lab (TTL 300 detik)")
     catat("# jam cache digerakkan lewat POST /lab/jam, bukan menunggu 5 menit sungguhan")
     for port in (PORT, PORT_KEDUA):
@@ -248,7 +247,7 @@ def rekam_memori():
     harap((s, j(isi)["harga_satuan"], j(isi)["nominal"], j(isi)["potongan_persen"], j(isi)["stok_sisa"]), (201, 22500, 22500, 10, 49), "pesanan")
     baca("Citra", citra, PORT_KEDUA, ANI, nasi, 25000, "masih hit: harga dan stok 50 sudah lama")
     efektif_db(nasi)
-    catat("# Pesanan tidak membaca cache: Rp22.500 ditagih. Stok di cache B (50) juga basi; Pesan memeriksa stok di database.")
+    catat("# Pesanan tidak membaca cache: Rp22.500 ditagih. Stok di cache B (50) juga stale; Pesan memeriksa stok di database.")
 
     bagian("D. TTL 300 detik membatasi, tidak menyembuhkan: B baru memperbarui sesudah entrinya habis")
     jam(PORT_KEDUA, base + 299_000)
@@ -256,7 +255,7 @@ def rekam_memori():
     jam(PORT_KEDUA, base + 300_000)
     baca("Citra", citra, PORT_KEDUA, ANI, nasi, 22500, "detik ke-300: entri habis, dibaca dari database")
     cetak_stat(PORT_KEDUA)
-    catat("# Entri basi paling lama sebesar TTL, dihitung sejak entri diisi. Entri yang diisi sesaat sebelum promo dibuat")
+    catat("# Entri stale paling lama sebesar TTL, dihitung sejak entri diisi. Entri yang diisi sesaat sebelum promo dibuat")
     catat("# bertahan hampir 300 detik sesudahnya di instance yang tidak menerima perubahan.")
     tulis("memori.txt", "M23: cache katalog di memori proses dua instance")
 
@@ -267,9 +266,9 @@ def rekam_redis():
     siapkan()
     nasi = id_produk(ANI, "Nasi goreng")
     redis_kosongkan()
-    catat(f"# Redis {redis_versi()} (container lokal, 127.0.0.1:{DASAR_REDIS}); instance A (127.0.0.1:18180) dan B (127.0.0.1:18182)")
+    catat(f"# Redis {redis_versi()} (container lokal); instance A (127.0.0.1:{d.DASAR}) dan B (127.0.0.1:{d.DASAR_KEDUA})")
     catat(f"# ./api-t3 -katalog-cache redis -katalog-ttl {TTL_REDIS}: cache-aside, entri disimpan sebagai JSON, kunci katalog:<kota>:<warung|semua>")
-    catat("# klien Redis lab: RESP2 sendiri (GET, SET PX, DEL, SCAN), satu koneksi per perintah, batas 100 ms per perintah")
+    catat("# client Redis lab: RESP2 sendiri (GET, SET PX, DEL, SCAN), satu koneksi per perintah, batas 100 ms per perintah")
     mulai_instance(PORT, ttl=TTL_REDIS)      # hanya untuk login; sesi ada di database, jadi token berlaku di semua instance
     budi = login("budi@lestari.example", label="Budi")
     citra = login("citra@lestari.example", label="Citra")
@@ -289,7 +288,7 @@ def rekam_redis():
     a, b = cetak_stat(PORT), cetak_stat(PORT_KEDUA)
     harap((a["db_baca"], b["db_baca"], b["hit"], a["galat_cache"], b["galat_cache"]), (1, 0, 1, 0, 0), "satu baca database untuk dua instance")
     tidak_lebih_dari_ttl(kunci, 60_000, "TTL 60 detik terpasang")
-    isi_cache = json.loads(r_klien().get(kunci))
+    isi_cache = json.loads(r_redis().get(kunci))
     harap((len(isi_cache), len(isi_cache[0]["menu"])), (1, 40), "isi entri Redis")
     catat(f"redis GET {kunci}: JSON, {len(isi_cache)} warung, {len(isi_cache[0]['menu'])} item")
 
@@ -408,7 +407,7 @@ def rekam_gagal():
     siapkan()
     nasi = id_produk(ANI, "Nasi goreng")
     redis_kosongkan()
-    catat(f"# Redis {redis_versi()}; ./api-t3 -katalog-cache redis -redis-timeout 100ms di instance A (127.0.0.1:18180)")
+    catat(f"# Redis {redis_versi()}; ./api-t3 -katalog-cache redis -redis-timeout 100ms di instance A (127.0.0.1:{d.DASAR})")
     catat("# jalur baca: Redis galat atau lambat -> dibaca dari database, tanpa menyimpan; jalur tulis: hapus kunci yang gagal dihitung")
     mulai_instance(PORT, ttl=TTL_REDIS)
     budi = login("budi@lestari.example", label="Budi")
@@ -419,7 +418,7 @@ def rekam_gagal():
     baca("Budi", budi, PORT, ANI, nasi, 25000, "miss, entri diisi")
     cetak_stat(PORT)
     mulai_instance(PORT_KEDUA, ttl=TTL_REDIS, redis_timeout="5s")
-    r_klien().execute_command("CLIENT", "PAUSE", 3000, "ALL")
+    r_redis().execute_command("CLIENT", "PAUSE", 3000, "ALL")
     catat("redis CLIENT PAUSE 3000 ALL: Redis menerima koneksi tetapi tidak menjawab")
     for i in range(5):
         s, _ = curl("GET", f"/katalog?warung={ANI}", token=budi, port=PORT, tampil=False)
@@ -474,7 +473,7 @@ def rekam_gagal():
     d.stop(PORT)
     mulai_instance(PORT, ttl=TTL_REDIS)
     baca("Budi", budi, PORT, ANI, nasi, 25000, "miss, entri diisi")
-    harap(r_klien().save(), True, "SAVE manual: entri tertulis ke disk Redis")
+    harap(r_redis().save(), True, "SAVE manual: entri tertulis ke disk Redis")
     catat("redis SAVE: snapshot ditulis ke dump.rdb di container (R3-68)")
     redis_stop()
     catat("docker compose stop redis: Redis mati")
@@ -514,7 +513,7 @@ def rekam_gagal():
     sql("GRANT UPDATE ON produk TO api_t3", tampil=False)
     catat("=> GRANT UPDATE ON produk TO api_t3")
     catat("# Dengan hapus kunci selalu, tiap galat tulis mengubah bacaan berikutnya menjadi baca database. Pada beban nyata,")
-    catat("# klien yang mengulang tulis yang gagal membuat database yang sedang bermasalah menerima semua bacaan juga.")
+    catat("# client yang mengulang tulis yang gagal membuat database yang sedang bermasalah menerima semua bacaan juga.")
     d.stop(PORT)
 
     bagian("E. Galat baca database: entri yang hidup tetap melayani, kunci yang kosong tidak diisi galat")
@@ -631,7 +630,7 @@ def main():
         for port in list(d.server):   # error Python di tengah rekaman: server tidak tertinggal memegang port
             d.stop(port)
         try:                          # bagian gagal bisa berhenti saat Redis mati: hidupkan lagi
-            r_klien(2).ping()
+            r_redis(2).ping()
         except redis.RedisError:
             subprocess.run(["docker", "compose", "-f", str(COMPOSE_REDIS), "up", "-d", "--wait", "redis"], env=d.ENV)
 
