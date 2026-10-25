@@ -48,6 +48,8 @@ Aturannya:
 - `make lab-down` dan `docker compose down` hanya menghentikan proyek yang dipilih `COMPOSE_PROJECT_NAME`. Tanpa variabel, yang dihentikan adalah proyek bawaan milik semua lajur lain. Pastikan variabel terisi sebelum `down`.
 - Rekaman tidak berubah: teks yang masuk `output/` selalu memakai port dasar, bukan port dengan offset.
 - Dua lajur tidak boleh menjalankan lab yang sama di folder yang sama. Tiap lajur punya worktree dan folder `output/` sendiri.
+- Di dalam satu lajur, lab yang punya port dasar sama tidak boleh jalan bersamaan: `api-t1` dan `t3-bayar` (18083), `t3-bayar` dan `b8-concurrency` (notif 18090), `api-t2` dan `e4-realtime` (18093), `api-t2` dan `c4-ratelimit` (18094). Jalankan secara berurutan; lab yang bentrok berhenti dengan `GAGAL: port ... sudah dipakai`.
+- `b9-cache` membaca schema `b2q` dari `b2-query`, jadi database lajur yang baru dibuat butuh `make -C labs/b2-query run` dulu.
 - Redis dan port replika tidak ikut offset; mereka punya variabel sendiri (tabel di atas).
 
 ### Cara kerjanya
