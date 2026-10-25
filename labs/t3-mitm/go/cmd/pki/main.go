@@ -80,7 +80,7 @@ func hitungUmur(now time.Time) {
 		hasil := "lolos"
 		if err != nil {
 			hasil = "ditolak: " + err.Error()
-			if _, ok := err.(x509.CertificateInvalidError); ok {
+			if e, ok := err.(x509.CertificateInvalidError); ok && e.Reason == x509.Expired {
 				hasil = "ditolak: sertifikat kedaluwarsa"
 			}
 		}

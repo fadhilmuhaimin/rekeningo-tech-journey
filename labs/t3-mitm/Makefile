@@ -1,7 +1,7 @@
 # Lab t3-mitm (Tahap 3): proxy tiruan, pinning SPKI, dan rotasi pin. Port dan nama kontainer dari lingkungan (labs/README.md).
 include ../lab_env.mk
 .PHONY: run cek test mutasi
-# Rekam semua bagian berurutan (±3 menit); setiap bagian membuat ulang schema dan data awal dari nol.
+# Rekam semua bagian berurutan (±1 menit); setiap bagian membuat ulang schema dan data awal dari nol.
 # Satu bagian: make run BAGIAN=pin   (m26 pin dio hsts token)
 run:
 	$(MAKE) -C ../b3-race up

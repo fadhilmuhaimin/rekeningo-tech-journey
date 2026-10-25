@@ -7,7 +7,7 @@ Nilai acak (pin, serial, hash sertifikat) tidak masuk rekaman: rekaman memakai n
 (lolos atau ditolak). Setiap bagian membuat ulang schema dan data awal dari nol; lab gagal keras bila hasilnya meleset
 dari yang diharapkan (keputusan 79, 95).
 
-    make -C labs/t3-mitm run                    (butuh Docker, Go, dan Dart; ±3 menit)
+    make -C labs/t3-mitm run                    (butuh Docker, Go, dan Dart; ±1 menit)
     make -C labs/t3-mitm run BAGIAN=pin         (satu bagian: m26 pin dio hsts token)
 """
 import sys
@@ -27,6 +27,7 @@ def main():
     for p in pilih:
         if p not in BAGIAN:
             U.gagal(f"bagian tidak dikenal: {p} (pilihan: {' '.join(BAGIAN)})")
+    U.periksa_alat()
     U.d.bangun()
     U.bangun_go()
     U.siapkan_dart()

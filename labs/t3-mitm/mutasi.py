@@ -1,7 +1,9 @@
 """Uji mutasi lab t3-mitm (keputusan 977): ubah satu hal di kode, jalankan bagian rekaman yang menjaganya, dan pastikan lab
 GAGAL. Mutasi yang lolos berarti rekaman tidak menjaga hal itu; daftar yang lolos ada di README (bagian "Uji mutasi").
+Sebuah mutasi baru dihitung "dibunuh" bila lab gagal lewat assertion-nya (baris `GAGAL`) atau tes Go gagal (`--- FAIL`); kompilasi rusak
+atau traceback ditandai TANPA-SEBAB dan dihitung menyimpang.
 
-    make -C labs/t3-mitm mutasi                 (±8 menit; setiap mutasi menjalankan satu bagian)
+    make -C labs/t3-mitm mutasi                 (±2 menit untuk 18 mutasi; setiap mutasi menjalankan satu bagian)
     make -C labs/t3-mitm mutasi MUTASI=pin-hash (satu mutasi)
 
 File sumber dikembalikan sesudah setiap mutasi, juga bila skrip dihentikan; output/ dipulihkan dari salinan.
@@ -39,11 +41,17 @@ MUTASI = [
     ("cookie-tidak-disamarkan", "go/cmd/tepi/main.go", '\tcase "authorization", "cookie", "proxy-authorization":', '\tcase "authorization", "proxy-authorization":', "token", "bunuh"),
     ("cookie-tidak-disamarkan-tes-go", "go/cmd/tepi/main.go", '\tcase "authorization", "cookie", "proxy-authorization":', '\tcase "authorization", "proxy-authorization":', "go-test", "bunuh"),
     ("daftar-akar-sistem-ikut", "dart/bin/client.dart", "SecurityContext(withTrustedRoots: false)", "SecurityContext(withTrustedRoots: true)", "m26", "lolos"),
+    ("proxy-bind-semua-antarmuka", "umum.py", '"-listen", f"127.0.0.1:{port}", "-hulu", f"127.0.0.1:{P[\'tepi\']}"',
+     '"-listen", f"0.0.0.0:{port}", "-hulu", f"127.0.0.1:{P[\'tepi\']}"', "m26", "bunuh"),
+    ("pagar-menerima-semua-alamat", "go/internal/pagar/pagar.go", "if ip == nil || !ip.IsLoopback() {", "if ip == nil && !ip.IsLoopback() {", "go-test", "bunuh"),
     ("proxy-tidak-mencatat-handshake", "go/cmd/mitm/main.go", '\t\trk.tulis(map[string]any{"jenis": "handshake", "nama": h.ServerName})\n', "", "pin", "bunuh"),
 ]
 
 
 def main():
+    for alat in ("go", "dart"):
+        if shutil.which(alat) is None:
+            raise SystemExit(f"GAGAL: {alat} tidak ada di PATH; uji mutasi butuh Go, Dart, dan Docker")
     pilih = sys.argv[1:]
     daftar = [m for m in MUTASI if not pilih or m[0] in pilih]
     if pilih and len(daftar) != len(pilih):
@@ -66,8 +74,11 @@ def main():
             finally:
                 p.write_text(asli)
             baris = [l for l in (r.stdout + r.stderr).splitlines() if l.strip()]
-            gagal = [l for l in baris if l.startswith("GAGAL")] or baris[-1:]   # galat yang bukan GAGAL (mis. kompilasi) tetap membunuh
-            status = "DIBUNUH" if r.returncode != 0 else "LOLOS"
+            # Pembunuh yang sah = assertion lab ("GAGAL: ...") atau tes Go yang gagal ("--- FAIL"). Kompilasi yang rusak atau
+            # traceback membuat exit tidak nol juga, tetapi bukan bukti bahwa rekaman atau tes menjaga hal itu (alasan salah).
+            sebab = [l for l in baris if ("--- FAIL" in l if bagian == "go-test" else l.startswith("GAGAL"))]
+            gagal = sebab or baris[-1:]
+            status = ("DIBUNUH" if sebab else "TANPA-SEBAB") if r.returncode != 0 else "LOLOS"
             if status != ("DIBUNUH" if harapan == "bunuh" else "LOLOS"):
                 lolos.append(nama)   # hasil berbeda dari yang tertulis di daftar
             print(f"{status:8} {nama:32} bagian {bagian:6} {gagal[0][:150] if gagal else '(lab tidak gagal)'}", flush=True)

@@ -61,6 +61,13 @@ class Pki:
 PKI = None
 
 
+def periksa_alat():
+    """Go dan Dart wajib ada di PATH; tanpa itu lab berhenti dengan pesan yang menyebut alatnya, bukan traceback."""
+    hilang = [a for a in ("go", "dart") if shutil.which(a) is None]
+    if hilang:
+        gagal(f"{' dan '.join(hilang)} tidak ada di PATH: lab t3-mitm butuh Go, Dart, dan Docker (README, bagian Menjalankan)")
+
+
 def bangun_go():
     BIN.mkdir(exist_ok=True)
     for nama in ("pki", "tepi", "mitm"):
@@ -262,7 +269,8 @@ def lihat_mitm(rekam, token=None, tunggu=0.4, handshake=None):
             catat(samarkan(f"# body dari app:      {x['body']}"))
         if "body_diteruskan" in x:
             catat(samarkan(f"# body diteruskan:    {x['body_diteruskan']}"))
-    if token and rq:
+    if token:
+        harap(len(rq) >= 1, True, "proxy membaca request yang membawa token")
         harap(all(x["authorization"] == f"Bearer {token}" for x in rq), True, "Authorization yang dibaca proxy sama dengan token Budi")
         catat("# Authorization yang dibaca proxy sama dengan token sesi Budi: ya")
     return rq
