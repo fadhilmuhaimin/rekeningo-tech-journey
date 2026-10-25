@@ -194,7 +194,7 @@ jobs:
           path: ~/apt-chromium
           key: ${{ steps.kunci_apt.outputs.kunci }}
           restore-keys: ${{ steps.kunci_apt.outputs.awalan }}
-      # Browser Playwright (±170 MB; unduhan ±15-20 s per job, diukur di run 40148968969) di ~/.cache/ms-playwright (keputusan 865).
+      # Browser Playwright (293 MB di cache Actions, diukur `gh api .../actions/caches` 2026-10-25; unduhan ±15-20 s per job, run 40148968969) di ~/.cache/ms-playwright (keputusan 865).
       # Kunci: image runner dan versi playwright-core; tanpa restore-keys, karena direktori browser versi lain tidak terpakai.
       # `playwright install` melewati unduhan bila direktori browser versi ini sudah lengkap, dan tetap memasang dependency sistem
       # lewat apt di langkah di bawah. Isi cache tidak diverifikasi hash (Playwright tidak menerbitkan hash browser); cache yang
