@@ -21,7 +21,7 @@ type Server struct {
 	svc    service.Service
 	rentan string // mode rentan lab (flag -rentan); kosong = versi benar
 	// Lapis per IP rate limit (lab-api-t2a, keputusan 645). Lapis per akun ada di service.
-	loginIP *service.Pembatas // /login dan /ganti-password: keduanya memeriksa password
+	loginIP service.Batas     // /login dan /ganti-password: keduanya memeriksa password
 	kirimIP *service.Pembatas // /kiriman
 }
 
@@ -34,6 +34,9 @@ func Baru(svc service.Service) Server {
 // DenganRentan menyalakan satu mode rentan untuk rekaman halaman masalah (keputusan 148). Tahap 2 belum punya
 // mode; lab masalah M9 sampai M16 menambahkannya di sini dan di cmd/api/main.go.
 func (s Server) DenganRentan(mode string) Server { s.rentan = mode; return s }
+
+// DenganBatasLoginIP mengganti pembatas per IP di jalur login (flag -redis memasang PembatasBersama, ADR 27).
+func (s Server) DenganBatasLoginIP(b service.Batas) Server { s.loginIP = b; return s }
 
 // --8<-- [start:rute]
 // Rute Tahap 3. Semua endpoint Tahap 2 tetap dengan kontrak yang sama; yang baru: /perangkat, /katalog, /pesanan,
@@ -159,7 +162,7 @@ func terlaluSering(w http.ResponseWriter, e service.ErrTerlaluSering, judul stri
 
 // izinkanIP mengambil satu token dari bucket IP (IPv6 per prefix /64, KunciAlamat). Bila kosong, response 429
 // sudah ditulis.
-func (s Server) izinkanIP(w http.ResponseWriter, r *http.Request, p *service.Pembatas, judul string) bool {
+func (s Server) izinkanIP(w http.ResponseWriter, r *http.Request, p service.Batas, judul string) bool {
 	if ok, tunggu := p.Izinkan(service.KunciAlamat(clientIP(r)), s.svc.Kini()); !ok {
 		terlaluSering(w, service.ErrTerlaluSering{Lapis: "ip", Tunggu: tunggu}, judul)
 		return false
