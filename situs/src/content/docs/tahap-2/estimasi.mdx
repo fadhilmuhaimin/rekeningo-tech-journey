@@ -20,7 +20,7 @@ Estimasi antar tahap menghitung ulang rumus tahap lama dengan masukan baru, lalu
 
 <Rantai data={intiDiagram} ringkas />
 
-Dari Tahap 2 ke Tahap 3, user naik 10 kali dan puncak request naik 12,5 kali, dari ±1,4 ke ±17 per detik (Asumsi). Angka itu kecil, tetapi jumlah request bukan satu-satunya yang membebani database. Notifikasi di PRD v3 ([[t2-m17]]) menambah panggilan lambat di dalam request, dan lamanya ikut dihitung. Baris kedua di atas mengandaikan panggilan 2 detik (Asumsi).
+Dari Tahap 2 ke Tahap 3, user naik 10 kali dan puncak request naik 12,5 kali, dari ±1,4 ke ±17 per detik (Asumsi). Angka itu kecil, tetapi jumlah request bukan satu-satunya yang membebani database. Notifikasi di PRD v3 ([[t2-m17]]) menambah panggilan lambat di dalam request, dan lamanya ikut dihitung. Baris kedua di atas mengandaikan panggilan luar 2 detik ditambah 20 ms untuk query database (Asumsi), jadi 2,02 detik.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -74,7 +74,7 @@ Kamu mungkin pernah menghitung request yang dikirim ribuan HP saat membuka layar
 
 Naskah tidak menyebut alasan 25% dan 60 request, jadi keduanya Asumsi yang boleh kamu ganti di widget. Batas atasnya jelas. Kalau semua request sehari masuk di satu jam, faktor puncaknya 86.400 ÷ 3.600 = 24 dan puncak Tahap 3 jadi ±42 request per detik. Seperti di [[D1]], estimasi mencari besaran, bukan angka tepat.
 
-**3. Hitung per kelas request.** Tidak semua request menahan koneksi selama itu, karena hanya yang menggerakkan uang yang memunculkan notifikasi. Halaman ini menghitung bayar dan transfer, sedangkan top-up massal tiap Senin punya λ sendiri di Tahap 3. Tiga transaksi per user aktif per hari adalah Asumsi naskah ([[t2-skema]]).
+**3. Hitung per kelas request.** Tidak semua request menahan koneksi selama itu, karena hanya yang menggerakkan uang yang memunculkan notifikasi. Halaman ini menghitung bayar dan transfer, sedangkan top-up massal tiap Senin punya λ sendiri di Tahap 3. Tiga transaksi per user aktif per hari adalah Asumsi naskah ([[t2-skema]]), juga untuk Tahap 2 walau registry menulis 2; selisihnya ada di langkah 6.
 
 Mulai tabel ini puncak Tahap 3 ditulis 17,4 (17,36 dibulatkan), karena ±17 terlalu kasar untuk dikali dengan lama request.
 
@@ -101,7 +101,7 @@ Di sini L dibaca sebagai koneksi database yang tertahan, dengan anggapan setiap 
 | Tahap 3, bayar dan transfer, panggilan luar 30 detik (Asumsi) | 0,87 | 30,02 detik | 26,1 |
 | Salah: semua request ikut menunggu 2 detik (Asumsi) | 17,4 | 2 detik | 34,7 |
 
-Dua baris pertama punya λ yang sama dan W yang beda 63 kali, jadi L-nya juga 63 kali. Itu "lama, bukan banyak" dalam angka. λ ±1,39 di sana adalah batas atas: anggapannya semua request di puncak berbentuk permintaan itu. W di rekaman hanya waktu query yang diukur client Python tanpa jaringan ke database, jadi W request sebenarnya lebih besar.
+Dua baris pertama punya λ yang sama dan W yang beda 63 kali, jadi L-nya juga 63 kali. Itu "lama, bukan banyak" dalam angka. Di sana λ ±1,39 adalah Asumsi sekaligus batas atas: anggapannya semua request di puncak berbentuk permintaan itu, sedangkan W-nya Rekaman lab. W di rekaman hanya waktu query yang diukur client Python tanpa jaringan ke database, jadi W request sebenarnya lebih besar.
 
 Baris Tahap 3 tanpa panggilan luar memakai W 20 ms, Asumsi yang belum diukur; riwayat halaman pertama di lab 1,4 ms dengan index. Dua baris panggilan luar mengandaikan koneksi dipegang sampai panggilan selesai, sehingga W = 0,02 + t detik. Baris terakhir menghitung kelas yang salah: 17,4 × 2 = 34,7 koneksi, padahal hanya 0,87 request per detik yang memanggil layanan luar. Salahnya hampir 20 kali.
 
@@ -121,7 +121,7 @@ Misalkan kamu membatasi pool di aplikasi sampai 10 koneksi (Asumsi). Rata-rata L
 | Rumus ledger [[t2-skema]] | 5.475.000 posting × 250 byte | ±1,4 GB | Asumsi |
 | Ekstrapolasi rekaman lab | 5.475.000 posting × 137 byte per posting (batas bawah) | ±750 MB | Asumsi dari Rekaman lab |
 
-Ketiganya paling jauh berbeda 1,8 kali dan satu orde. Keputusan yang bergantung pada ukuran ini adalah partisi `posting`, yang dijadwalkan saat ±440 juta posting per tahun di Tahap 5 ([[t2-skema]]). Rumus [[D1]] naik 12,5 kali dari Tahap 2, sedangkan rumus ledger naik 8,3 kali. Sebabnya registry menulis 2 transaksi per user di Tahap 2 dan 3 di Tahap 3, dan rumus ledger memakai 3 di keduanya.
+Ketiganya paling jauh berbeda 1,8 kali, jadi masih satu orde besaran. Keputusan yang bergantung pada ukuran ini adalah partisi `posting`, yang dijadwalkan saat ±440 juta posting per tahun di Tahap 5 ([[t2-skema]]). Rumus [[D1]] naik 12,5 kali dari Tahap 2, sedangkan rumus ledger naik 8,3 kali. Sebabnya registry menulis 2 transaksi per user di Tahap 2 dan 3 di Tahap 3, dan rumus ledger memakai 3 di keduanya.
 
 **7. Yang tidak dijawab estimasi.** Tiga pertanyaan tetap terbuka sesudah semua hitungan di atas.
 

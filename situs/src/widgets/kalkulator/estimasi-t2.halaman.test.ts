@@ -170,7 +170,7 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
   test("judul, Inti, dan Cek 3 pertanyaan", () => {
     harus(`user naik 10 kali dan puncak request naik ${desimal(h3.puncak / h2.puncak, 1)} kali, dari ±${duaAngka(h2.puncak)} ke ±${duaAngka(h3.puncak)} per detik (Asumsi)`);
     harus(`Satu dari dua puluh request memanggil layanan luar selama 2 detik`);
-    harus(`Baris kedua di atas mengandaikan panggilan 2 detik (Asumsi)`);
+    harus(`Baris kedua di atas mengandaikan panggilan luar 2 detik ditambah ${W_DB * 1000} ms untuk query database (Asumsi), jadi ${desimal(W_DB + 2, 2)} detik`);
     harus(`Pool dibatasi ${POOL} koneksi`);
     expect(trx3Hari / h3.reqHari).toBeCloseTo(1 / 20, 10);
   });
@@ -201,6 +201,7 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     harus(`| Bayar dan transfer (Tahap 3) | ${titik(trx3Hari)} | ${duaAngka(bayar3Puncak)} | ${titik(h3.dau)} × ${TRX} transaksi; 5% dari semua request |`);
     harus(`| Bayar dan transfer (Tahap 2) | ${titik(trx2Hari)} | ${duaAngka(bayar2Puncak)} | ${h2.dau} × ${TRX} transaksi; 7,5% dari semua request |`);
     harus(`Semua request naik ${desimal(h3.puncak / h2.puncak, 1)} kali, bayar dan transfer hanya ${desimal(bayar3Puncak / bayar2Puncak, 1)} kali`);
+    harus(`Tiga transaksi per user aktif per hari adalah Asumsi naskah ([[t2-skema]]), juga untuk Tahap 2 walau registry menulis ${trxRegistry2}; selisihnya ada di langkah 6`);
   });
   test("Paham 4: tabel Little, rekaman, dan kesalahan kelas", () => {
     harus(`seluruh riwayat Budi, ${titik(postingBudi)} posting`);
@@ -211,7 +212,8 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     harus(`| Tahap 3, bayar dan transfer, panggilan luar 30 detik (Asumsi) | ${duaAngka(bayar3Puncak)} | ${desimal(W_DB + 30, 2)} detik | ${desimal(lL(bayar3Puncak, W_DB + 30), 1)} |`);
     harus(`| Salah: semua request ikut menunggu 2 detik (Asumsi) | ${desimal(h3.puncak, 1)} | 2 detik | ${desimal(lL(h3.puncak, 2), 1)} |`);
     harus(`W yang beda ${Math.round(wN1 / wJoin)} kali, jadi L-nya juga ${Math.round(wN1 / wJoin)} kali`);
-    harus(`λ ±${desimal(h2.puncak, 2)} di sana adalah batas atas`);
+    harus(`Di sana λ ±${desimal(h2.puncak, 2)} adalah Asumsi sekaligus batas atas`);
+    harus(`sedangkan W-nya Rekaman lab`);
     harus(`W 20 ms, Asumsi yang belum diukur; riwayat halaman pertama di lab ${desimal(wHalaman1Index, 1)} ms dengan index`);
     harus(`W = ${W_DB.toString().replace(".", ",")} + t detik`);
     harus(`${desimal(h3.puncak, 1)} × 2 = ${desimal(lL(h3.puncak, 2), 1)} koneksi, padahal hanya ${duaAngka(bayar3Puncak)} request per detik`);
@@ -224,7 +226,7 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     harus(`${titik(h3.dau)} user aktif × ${TRX} transaksi × 365 × ${barisRegistry3} byte, satu baris per transaksi | ±${duaAngka(mbRumusD1Tahap3)} MB`);
     harus(`${titik(posting3)} posting × 250 byte | ±${duaAngka(gbLedger3)} GB`);
     harus(`${titik(posting3)} posting × 137 byte per posting (batas bawah) | ±${duaAngka(mbLab3)} MB`);
-    harus(`berbeda ${desimal((gbLedger3 * 1000) / mbLab3, 1)} kali`);
+    harus(`berbeda ${desimal((gbLedger3 * 1000) / mbLab3, 1)} kali, jadi masih satu orde besaran`);
     harus(`Rumus [[D1]] naik ${desimal(mbRumusD1Tahap3 / mbRumusD1Tahap2, 1)} kali dari Tahap 2, sedangkan rumus ledger naik ${desimal(posting3 / posting2, 1)} kali`);
     harus(`registry menulis ${trxRegistry2} transaksi per user di Tahap 2 dan ${trxRegistry3} di Tahap 3, dan rumus ledger memakai ${TRX} di keduanya`);
   });
@@ -235,6 +237,38 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     harus(`jadi puncak naik dari ±${duaAngka(h2.puncak)} ke ±${duaAngka(h3.puncak)} request per detik`);
     harus(`${duaAngka(bayar3Puncak)} × (0,02 + t) = ${POOL}, jadi t ≈ ${desimal(POOL / bayar3Puncak - W_DB, 1)} detik`);
     harus(`Hitungan di halaman ini memberi ${desimal(lL(bayar3Puncak, W_DB + 2), 2)} koneksi untuk panggilan 2 detik`);
+  });
+  test("frontmatter description memuat puncak yang sama dengan isi", () => {
+    const desc = halaman.match(/^description: (.+)$/m)![1]!;
+    expect(desc).toContain(`Puncak naik dari ±${duaAngka(h2.puncak)} ke ±${duaAngka(h3.puncak)} request per detik (Asumsi)`);
+  });
+  test("'hampir N kali' di setiap kemunculan = pembulatan ke atas rasio kelas yang salah", () => {
+    const rasio = lL(h3.puncak, 2) / lL(bayar3Puncak, W_DB + 2); // 19,8
+    const semua = [...halaman.matchAll(/hampir (\d+) kali/g)].map((m) => Number(m[1]));
+    expect(semua.length).toBeGreaterThanOrEqual(3);
+    for (const n of semua) expect(n).toBe(Math.ceil(rasio));
+  });
+  test("partisi posting: ±440 juta per tahun di Tahap 5 sama dengan naskah (44 juta × 10)", () => {
+    harus("dijadwalkan saat ±440 juta posting per tahun di Tahap 5");
+    expect(skemaHalaman).toContain("±440 juta");
+  });
+  test("klaim sumber: versi dan nilai di halaman sama dengan baris RISET-nya", () => {
+    const baris = (id: string) => riset.split("\n").find((b) => b.startsWith(`| ${id} |`))!;
+    const klaim: [string, string, string][] = [
+      ["Little (1961) membuktikan", "R2-205", "Operations Research 9(3):383–387, 1961"],
+      ["Dokumentasi Go 1.27.3 menyebut bawaannya tanpa batas", "R2-206", "go1.27.3"],
+      ["`max_connections` biasanya 100, dan tiga di antaranya disimpan untuk superuser (dokumentasi PostgreSQL 18.6)", "R2-207", "PostgreSQL 18.6"],
+      ["`max_connections` biasanya 100, dan tiga di antaranya disimpan untuk superuser (dokumentasi PostgreSQL 18.6)", "R2-207", "bawaan tiga"],
+      ["`max` bawaan 10", "R2-207", "`max` bawaan 10"],
+      ["Panduan SRE Google menyebut request per detik ukuran kapasitas yang lemah", "R2-208", "QPS ukuran kapasitas yang lemah"],
+    ];
+    for (const [kalimat, id, bukti] of klaim) {
+      harus(kalimat);
+      expect(baris(id), `${id} tidak memuat: ${bukti}`).toContain(bukti);
+    }
+    // bawaan PostgreSQL 17 (versi lab) dibuka dan dicatat; label [perlu verifikasi] sudah tidak ada
+    expect(baris("R2-207")).toContain("PostgreSQL 17");
+    expect(baris("R2-207")).not.toContain("[perlu verifikasi]");
   });
   test("RISET-TAHAP-2.md memuat ID dan angka halaman ini", () => {
     for (const id of ["R2-205", "R2-206", "R2-207", "R2-208", "R2-209"]) expect(riset).toContain(`| ${id} |`);
