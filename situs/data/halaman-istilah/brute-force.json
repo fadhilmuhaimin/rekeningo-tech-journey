@@ -38,9 +38,9 @@
     },
     "django": {
       "label": "Tidak dijalankan",
-      "versi": "django-axes, dokumentasi konfigurasi versi latest",
-      "teks": "Django tidak membatasi login. django-axes memantau alamat IP secara bawaan. `AXES_ONLY_USER_FAILURES` memantau username saja, dan `AXES_COOLOFF_TIME` bernilai `None` membuat kunci yang hanya bisa dibuka manual.",
-      "dokumentasi": "https://django-axes.readthedocs.io/en/latest/4_configuration.html"
+      "versi": "django-axes 8.3.1 (PyPI), dokumentasi konfigurasi di repositori",
+      "teks": "Django tidak membatasi login. django-axes memantau alamat IP secara bawaan. `AXES_LOCKOUT_PARAMETERS` memilih yang dipantau, misalnya username saja atau pasangan username dan alamat, dan `AXES_COOLOFF_TIME` bernilai `None` membuat kunci yang hanya bisa dibuka manual. Flag lama seperti `AXES_ONLY_USER_FAILURES` deprecated sejak 6.0.0.",
+      "dokumentasi": "https://github.com/jazzband/django-axes/blob/master/docs/4_configuration.rst"
     },
     "serverpod": {
       "label": "Tidak dijalankan",

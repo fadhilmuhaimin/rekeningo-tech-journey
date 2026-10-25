@@ -1,6 +1,6 @@
 ---
 title: "2.28 Keamanan 4: brute force, credential stuffing, hash password + ADR 20"
-description: "Tebakan password ditahan di tiga tempat: batas per alamat, kunci per akun, dan hash yang lambat. ADR 20 memilih dua lapis di memori untuk satu server dan menulis terbuka apa yang masih lolos."
+description: "Tebakan password ditahan di tiga tempat: batas di memori, kunci akun di database, dan hash yang lambat. ADR 20 memilih dua lapis di memori untuk satu server dan menulis terbuka apa yang masih lolos."
 ---
 import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
@@ -16,7 +16,7 @@ import PertahananLogin from "../../../components/PertahananLogin.astro";
 
 ## Inti
 
-Menahan tebakan password butuh tiga pagar yang bekerja di tiga tempat: batas per alamat, kunci per akun, dan hash yang lambat.
+Menahan tebakan password butuh pagar di tiga tempat: batas di memori, kunci akun di database, dan hash yang lambat.
 
 <Rantai data={inti} ringkas />
 
@@ -77,7 +77,7 @@ Dua batas pertama ada di kode ini. Bila bucket habis, handler langsung menjawab 
 
 <Snippet file="labs/c4-ratelimit/login/main.go" lines="325:338" lang="go" title="Kode lab: labs/c4-ratelimit/login/main.go baris 325 sampai 338 (dua batas di memori)" />
 
-Pagar ketiga dan keempat mencatat percobaan sebelum hash dihitung. Tanpa urutan itu, lima tebakan yang datang bersamaan semuanya dinilai sebelum ada yang melihat kunci. Rekaman bagian G: dari lima tebakan bersamaan hanya satu yang dinilai terhadap hash asli, dan kunci 60 detik terpasang.
+Kunci akun di database mencatat percobaan sebelum hash dihitung. Tanpa urutan itu, lima tebakan yang datang bersamaan semuanya dinilai sebelum ada yang melihat kunci. Versi lab yang menghitung hash lebih dulu gagal di tes ini: kelima tebakan dinilai (tes lab sebelum perbaikan, tidak ada di rekaman). Rekaman bagian G: dari lima tebakan bersamaan hanya satu yang dinilai terhadap hash asli, dan kunci 60 detik terpasang.
 
 <Snippet file="labs/c4-ratelimit/output/login/ratelimit.txt" lines="77:82" title="Rekaman lab: labs/c4-ratelimit/output/login/ratelimit.txt, bagian G (tebakan bersamaan)" />
 
@@ -178,7 +178,7 @@ argon2(
   (err, tag) => { /* simpan tag */ },
 );`} />
 
-**Yang berbeda di stack ini:** `keyGenerator` bawaan memakai alamat IP, dan store bawaan ada di memori. Dokumentasinya menulis semua batas di store itu direset saat proses Node.js dimulai ulang, dan store kustom bisa membagi hitungan antar node. Alamat IPv6 dipotong ke /56 secara bawaan, bukan /64. `crypto.argon2` ada di Node.js sejak v24.7.0, tanpa paket pihak ketiga. Tidak ada kunci akun bawaan.
+**Yang berbeda di stack ini:** `keyGenerator` bawaan memakai alamat IP, dan store bawaan ada di memori. Dokumentasinya menulis semua batas di store itu direset saat proses Node.js dimulai ulang, dan store kustom bisa membagi hitungan antar node. Hitungannya jendela tetap per key: kembali ke nol sesudah `windowMs`, bukan token bucket seperti di lab. Alamat IPv6 dipotong ke /56 secara bawaan, bukan /64. `crypto.argon2` ada di Node.js sejak v24.7.0, tanpa paket pihak ketiga. Tidak ada kunci akun bawaan.
 
 </Fragment>
 <Fragment slot="t2">
@@ -201,7 +201,7 @@ if (Hash::needsRehash($hash)) { /* hitung ulang saat login berhasil */ }`} />
 </Fragment>
 <Fragment slot="t3">
 
-*Tidak dijalankan. Dicek ke [Django 6.1: Password management](https://docs.djangoproject.com/en/6.1/topics/auth/passwords/) dan [django-axes: konfigurasi](https://django-axes.readthedocs.io/en/latest/4_configuration.html).*
+*Tidak dijalankan. Dicek ke [Django 6.1: Password management](https://docs.djangoproject.com/en/6.1/topics/auth/passwords/) dan [django-axes: konfigurasi](https://github.com/jazzband/django-axes/blob/master/docs/4_configuration.rst) (rilis 8.3.1 di PyPI, dokumentasi di repositori dibuka 25 Oktober 2026).*
 
 <Snippet lang="python" code={`PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.Argon2PasswordHasher",
@@ -210,9 +210,9 @@ if (Hash::needsRehash($hash)) { /* hitung ulang saat login berhasil */ }`} />
 
 AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = timedelta(minutes=30)
-AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = True`} />
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]`} />
 
-**Yang berbeda di stack ini:** hasher bawaan Django adalah PBKDF2. Argon2 butuh paket `argon2-cffi` dan harus ditaruh pertama di daftar, dengan varian bawaan Argon2id. Hash lama diperbarui otomatis saat login, selama hasher lamanya tetap ada di daftar. Pembatasan login bukan bagian Django: django-axes memantau alamat IP secara bawaan, dan bisa memantau username atau pasangan username dan alamat.
+**Yang berbeda di stack ini:** hasher bawaan Django adalah PBKDF2. Argon2 butuh paket `argon2-cffi` dan harus ditaruh pertama di daftar, dengan varian bawaan Argon2id. Hash lama diperbarui otomatis saat login, selama hasher lamanya tetap ada di daftar. Pembatasan login bukan bagian Django: django-axes memantau alamat IP secara bawaan (`AXES_LOCKOUT_PARAMETERS` bernilai `["ip_address"]`), dan bisa memantau username atau pasangan username dan alamat. Flag lama seperti `AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP` masih terbaca tetapi ditandai deprecated sejak 6.0.0, dengan `AXES_LOCKOUT_PARAMETERS` sebagai penggantinya.
 
 </Fragment>
 <Fragment slot="t4">
@@ -263,7 +263,7 @@ Daftar password bocor lewat HaveIBeenPwned butuh paket Pro.
 
 **Keputusan: opsi C**, dengan tujuh aturan.
 
-1. Password sementara dibagikan admin dan wajib diganti saat login pertama. Sebelum diganti ia tidak membuka sesi: login dijawab 403 dan hanya `/ganti-password` yang jalan (api-t2 `pengaman.txt` A dan B).
+1. Password sementara dibagikan admin dan wajib diganti saat login pertama. Sebelum diganti ia tidak membuka sesi: login dijawab 403 dan hanya `/ganti-password` yang jalan (api-t2 `pengaman.txt` A dan B). Aturan ini hanya melindungi bila orang lain tidak bisa menebak password sementara itu; celahnya ada di tabel "Sengaja belum dilakukan".
 2. Password baru minimal 15 karakter, tanpa aturan komposisi, dan tidak boleh ada di daftar password bocor. Panjang diperiksa lebih dulu, lalu daftar (c4 bagian B dan I).
 3. Hash password baru memakai argon2id: t=3, p=4, m=64 MiB, salt 128-bit, tag 256-bit, format PHC. Hash bcrypt dari Tahap 1 dikenali dari awalannya dan dihitung ulang saat login berhasil. Hitung ulang itu belum ada di lab (Tidak dijalankan).
 4. Kunci per akun di database: ambang 5 gagal berturut-turut, lama 60 detik yang menggandakan sampai 32 menit. Percobaan dicatat sebelum hash dengan lock baris, dan jawabannya selalu 401 generik (c4 bagian C dan G).
@@ -296,7 +296,7 @@ Kunci per pasangan akun dan alamat menutup celah ini, dan django-axes menyediaka
 
 Argon2id 64 MiB dipilih karena lab sudah menjalankannya dan nilainya ada di RFC. Biayanya sungguh ada, jadi pre-mortem di bawah memuat memori.
 
-**Kasus industri.** GitHub menulis pada November 2013 bahwa penyerang memakai hampir 40 ribu alamat IP untuk menebak pelan-pelan password yang lemah atau dipakai ulang di banyak situs. GitHub mereset password akun terdampak dan mencabut token, otorisasi OAuth, serta kunci SSH. Mereka juga menulis sedang menambah rate limiting dan akan mencegah user masuk dengan password lemah yang umum ([GitHub](https://github.blog/news-insights/company-news/weak-passwords-brute-forced/)). Tulisan itu tidak memuat jumlah tebakan per akun, dan batasnya satu insiden di satu perusahaan.
+**Kasus industri.** GitHub menulis pada November 2013 bahwa penyerang memakai hampir 40 ribu alamat IP untuk menebak pelan-pelan password yang lemah atau dipakai ulang di banyak situs. GitHub mereset password akun terdampak dan mencabut token, otorisasi OAuth, serta kunci SSH. Mereka menulis sudah membatasi laju login dengan ketat, sedang menambah pembatasan lain, dan akan mencegah user masuk dengan password lemah yang umum ([GitHub](https://github.blog/news-insights/company-news/weak-passwords-brute-forced/)). Tulisan itu tidak memuat jumlah tebakan per akun, dan batasnya satu insiden di satu perusahaan.
 
 Untuk hash, Dropbox menulis pada September 2016 bahwa mereka memakai SHA-512, bcrypt dengan work factor 10, lalu AES256 dengan pepper. Work factor 10 sekitar 100 ms di server mereka ([Dropbox](https://dropbox.tech/security/how-dropbox-securely-stores-your-passwords)). Itu bcrypt, bukan Argon2id, dan keadaan 2016.
 
@@ -320,10 +320,11 @@ Untuk hash, Dropbox menulis pada September 2016 bahwa mereka memakai SHA-512, bc
 | Yang ditunda | Kenapa ditunda | Muncul lagi di |
 |---|---|---|
 | Redis untuk batas laju | Satu server. Rekaman F menunjukkan masalahnya, dan belum terjadi | Tahap 3, saat server kedua datang |
-| Faktor kedua (passkey atau TOTP) | Password 15 karakter, batas, dan kunci cukup untuk 1.000 karyawan di satu kampus | Tahap 3 |
+| Faktor kedua (passkey atau TOTP) | PRD v2 tidak memuatnya, dan PROPOSAL menjadwalkan passkey di Tahap 3. Pre-mortem 2 menulis apa yang masih lolos tanpa faktor kedua | Tahap 3 |
 | Lupa password mandiri dan kabar ke pemilik saat ada percobaan | PRD v2 tidak memuatnya. OWASP menyarankan jalur lupa password tetap bisa dipakai walau akun terkunci | Belum dijadwalkan |
 | Kunci per pasangan akun dan alamat | Penyerang dengan banyak alamat mendapat lima tebakan baru per alamat | Tahap 3 |
 | Batas hash argon2id bersamaan dan pembersihan bucket yang kedaluwarsa | Tidak ada di lab, dan beban 1,4 request per detik belum menunjukkan masalahnya | Belum dijadwalkan |
+| Password sementara acak per akun, dibagikan lewat saluran di luar app | Di rekaman api-t2 polanya `sementara-<id>` (bagian B), dan `/ganti-password` hanya meminta email dan password lama. Orang yang mengenal pola bisa mengganti password akun lain mendahului pemiliknya. Diambil dari rekaman dan kode, pengambilalihannya tidak dijalankan | Belum dijadwalkan |
 | api-t2 pindah dari bcrypt ke argon2id, dengan hitung ulang saat login | Lab c4 membuktikan argon2id, api-t2 belum memakainya | Belum dijadwalkan |
 
 </Blok>
