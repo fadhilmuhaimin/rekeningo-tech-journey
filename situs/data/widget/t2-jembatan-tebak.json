@@ -14,12 +14,12 @@
     {
       "teks": "ADR 20 dan ADR 13: batas laju yang dihitung di memori satu server, dan lock buku yang dipegang selama transaction jurnal.",
       "benar": true,
-      "alasan": "Batas laju ADR 20 dihitung di memori tiap server. Dua server yang bergantian menerima 24 percobaan dari satu alamat meloloskan 20, yaitu 10 per server (Rekaman lab, bagian F). Lock buku ADR 13 dipegang sampai COMMIT, dan request kedua menunggu selama itu (Rekaman lab). Notifikasi yang dipanggil di dalam transaction jurnal memperpanjang lock itu sepanjang panggilannya."
+      "alasan": "Batas laju ADR 20 dihitung di memori tiap server. Dua server yang bergantian menerima 24 percobaan dari satu alamat meloloskan 20, yaitu 10 per server (Rekaman lab, bagian F). Lock buku ADR 13 dipegang sampai COMMIT, dan request kedua menunggu selama itu (Rekaman lab). Notifikasi yang dipanggil di dalam transaction jurnal memperpanjang lock itu sepanjang panggilannya (penalaran dari rekaman lock, Tidak dijalankan)."
     },
     {
       "teks": "ADR 6: ledger menjumlah terlalu banyak posting, karena 10.000 karyawan berarti jauh lebih banyak baris.",
       "benar": false,
-      "alasan": "Satu tahun data Tahap 3 kira-kira 5.475.000 posting, sedangkan ADR 6 baru menjadwalkan partisi di ±440 juta posting per tahun (Asumsi). Riwayat Budi halaman pertama dibaca dari ledger dalam 1,4 ms dengan index (Rekaman lab). Ukuran data bukan yang pecah lebih dulu."
+      "alasan": "Satu tahun data Tahap 3 kira-kira 5.475.000 posting, sedangkan ADR 6 baru menjadwalkan partisi di ±440 juta posting per tahun (Asumsi). Query riwayat Budi halaman pertama memakan 1,4 ms dengan index, diukur tanpa jaringan ke API (Rekaman lab). Ukuran data bukan yang pecah lebih dulu."
     },
     {
       "teks": "ADR 21: satu server kehabisan kapasitas, karena request naik 12,5 kali.",

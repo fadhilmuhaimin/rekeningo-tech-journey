@@ -98,7 +98,8 @@ describe("rekaman: angka turunan yang dipakai halaman dan widget", () => {
   });
   test("b2-query: halaman pertama riwayat Budi 1,4 ms dengan index", () => {
     expect(joinIndex).toBe(1.4);
-    dalamWidget(`Riwayat Budi halaman pertama dibaca dari ledger dalam ${koma(joinIndex)} ms dengan index (Rekaman lab)`);
+    dalamWidget(`Query riwayat Budi halaman pertama memakan ${koma(joinIndex)} ms dengan index, diukur tanpa jaringan ke API (Rekaman lab)`);
+    expect(baca("labs/b2-query/output/ledger/n1.txt")).toContain("diukur di client Python (psycopg 3) ke PostgreSQL di Docker di mesin yang");
   });
   test("api-t2 migrasi bagian E: selisih Rp5.000 dan job keluar dengan status 1", () => {
     expect(jobMalam).toEqual({ selisih: 5000, statusAda: true });
@@ -144,7 +145,9 @@ describe("registry dan beban: angka turunan dari cerita.json dan halaman 2.30", 
     const l2 = lambdaBayar * (0.02 + 2);
     const l30 = lambdaBayar * (0.02 + 30);
     expect([koma(l2, 2), koma(l30)]).toEqual(["1,75", "26,1"]);
-    harus(`${koma(lambdaBayar, 2)} per detik × (0,02 + 2 detik) = ${koma(l2, 2)} koneksi tertahan, dan ${koma(l30)} bila panggilannya 30 detik (Asumsi)`);
+    // Peninjau (keputusan 746): 0,87 yang dibulatkan dikali 2,02 memberi 1,76, jadi halaman memakai angka tepat 0,868.
+    expect(koma(0.87 * (0.02 + 2), 2)).toBe("1,76");
+    harus(`${koma(lambdaBayar, 3)} per detik × (0,02 + 2 detik) = ${koma(l2, 2)} koneksi tertahan, dan ${koma(l30)} bila panggilannya 30 detik (Asumsi)`);
     ada("estimasi.mdx", `| Tahap 3, bayar dan transfer, panggilan luar 2 detik (Asumsi) | ${koma(lambdaBayar, 2)} | 2,02 detik | ${koma(l2, 2)} |`);
     ada("estimasi.mdx", `| Tahap 3, bayar dan transfer, panggilan luar 30 detik (Asumsi) | ${koma(lambdaBayar, 2)} | 30,02 detik | ${koma(l30)} |`);
   });
@@ -369,5 +372,7 @@ describe("tidak membuka isi Tahap 3 lebih dari yang diizinkan naskah Tahap 2 bag
     const benar = data.pilihan.find((p) => p.benar)!;
     expect(benar.alasan).toContain("Batas laju ADR 20 dihitung di memori tiap server");
     expect(benar.alasan).toContain("Notifikasi yang dipanggil di dalam transaction jurnal memperpanjang lock itu");
+    // Peninjau (746): kalimat penalaran tidak boleh terbaca sebagai rekaman; api-t2 tidak memanggil layanan lain.
+    expect(benar.alasan).toContain("sepanjang panggilannya (penalaran dari rekaman lock, Tidak dijalankan).");
   });
 });

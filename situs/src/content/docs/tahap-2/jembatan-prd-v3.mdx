@@ -76,7 +76,7 @@ PRD v3 punya tiga pertanyaan yang belum dijawab. Tebak dulu jawabannya, lalu buk
 
 Tahap 2 mencatat syaratnya, bukan jawabannya. Lock buku ADR 13 dipegang sampai COMMIT, dan request kedua menunggu selama itu ([[t2-race-lock]]). Aturan 4 melarang panggilan jaringan selama lock dipegang.
 
-Hitungan [[t2-estimasi]] untuk bayar dan transfer: 0,87 per detik × (0,02 + 2 detik) = 1,75 koneksi tertahan, dan 26,1 bila panggilannya 30 detik (Asumsi). Yang belum ada: lama panggilan push sebenarnya, dan kapasitas satu server (Tidak dijalankan).
+Hitungan [[t2-estimasi]] untuk bayar dan transfer: 0,868 per detik × (0,02 + 2 detik) = 1,75 koneksi tertahan, dan 26,1 bila panggilannya 30 detik (Asumsi). Yang belum ada: lama panggilan push sebenarnya, dan kapasitas satu server (Tidak dijalankan).
 
 </details>
 
@@ -103,6 +103,8 @@ Yang belum ada: api-t2 belum pernah dijalankan dengan dua server (Tidak dijalank
 <Blok nama="Menuju Tahap 3">
 
 Tahap 3 dimulai dari PRD v3 lengkap dan dua ADR yang pecah lebih dulu: ADR 20 dan ADR 13. Hitungan di [[t2-estimasi]] memberi puncak ±17,4 request per detik untuk PRD v3 (Asumsi), jadi yang pecah lebih dulu adalah syarat di dalam ADR, bukan kapasitas.
+
+ADR 21 meminta dibaca ulang setiap PRD baru datang. PRD v3 memenuhi satu pemicunya: baris "Tidak berhenti saat deploy" meminta deploy tanpa jeda ([[t2-adr-21]]). Pemicu kapasitas belum bisa dibaca karena kapasitas belum diukur.
 
 Empat hal dari Tahap 2 belum selesai dan ikut masuk ke PRD v3:
 
