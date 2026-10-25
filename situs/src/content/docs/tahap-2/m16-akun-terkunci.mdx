@@ -71,9 +71,9 @@ Di Rekeningo minggu 7, jalur itu tidak ada. PRD v2 tidak memuat lupa password. S
 
 <Snippet file="labs/c4-ratelimit/output/login/ratelimit.txt" lines="12:17" title="Rekaman lab: labs/c4-ratelimit/output/login/ratelimit.txt, bagian A (akun seed)" />
 
-**Yang belum dijawab rekaman ini.** Lapis batas laju di memori, yang dibahas [[t2-login-aman]], menahan banjir dari satu alamat. Kunci akun di database memakai penghitung yang sama.
+**Yang belum dijawab rekaman ini.** Lapis batas laju di memori, yang dibahas [[t2-login-aman]], menahan banjir dari satu alamat. Kunci akun di database tetap ada di sampingnya, dengan penghitung sendiri.
 
-Bagian D rekaman menunjukkan bahwa dari delapan tebakan ke satu akun, lima tetap sampai ke pemeriksaan password. Dari kode `periksaMasuk`, kelima tebakan itu memasang kunci. Itu hasil membaca kode, bukan rekaman (Tidak dijalankan).
+Bagian D rekaman menunjukkan bahwa dari delapan tebakan ke satu akun, lima tetap sampai ke pemeriksaan password. Dari kode `periksaMasuk`, tebakan kelima menaikkan penghitung ke ambang dan memasang kunci 60 detik. Itu hasil membaca kode, bukan rekaman (Tidak dijalankan).
 
 Tebakan Raka salah dua kali. Ani tidak lupa password, dan log itu bukan urusan lain: log itu penyebabnya. Kunci per akun melewatkan penyemprotan dan menahan akun yang dibidik, termasuk pemiliknya.
 
