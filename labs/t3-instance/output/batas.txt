@@ -1,0 +1,70 @@
+# Lab t3-instance · M22: rate limit login di memori dua instance lawan hitungan bersama di Redis
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema t3_instance · Caddy 2.11.7 · Redis 8.10.2 · instance a di 127.0.0.1:18180, instance b di 127.0.0.1:18182, proxy di 127.0.0.1:18183
+# Rekaman dari database bersih: make -C labs/t3-instance run (keputusan 965). Label: Rekaman lab.
+Satu klien menebak password dari satu alamat. Lewat proxy, setiap instance melihat alamat proxy sebagai alamat klien (RemoteAddr),
+jadi seluruh klien di belakang proxy berbagi satu key per IP; X-Forwarded-For belum dibaca (lihat README). Batas login per IP 10,
+per akun 5 (ADR 20). Jam bucket di memori dibekukan supaya tidak terisi ulang di tengah rekaman.
+
+# --- A. Bucket di memori, dua instance, round_robin: 24 percobaan ke 24 akun berbeda dari satu alamat ---
+24 percobaan → 401: 20 · 429: 4 (401 sampai ke pemeriksaan password, 429 ditolak penahan per IP)
+  per instance: 401 a 10, b 10 · 429 a 2, b 2
+
+# --- B. Bucket di memori, satu instance (langsung ke a): batas per IP sama dengan 10 ---
+24 percobaan langsung ke instance a → 401: 10 · 429: 14
+
+# --- C. Bucket di memori, kebijakan random bawaan Caddy: batas efektif antara 10 dan 20 ---
+24 percobaan: yang sampai ke pemeriksaan password antara 10 dan 20: ya
+  angka pastinya bergantung pada urutan acak, jadi tidak dicatat; 10 = semuanya ke satu instance, 20 = pembagian merata (bagian A dan B).
+
+# --- D. Bucket per akun di memori: 12 tebakan ke satu akun; kunci akun di database tidak berlipat ---
+dua instance (round_robin), 12 tebakan ke satu akun dari satu alamat → 401: 10 · 429: 2
+  tebakan 1-5 per instance lolos bucket, tebakan 11 dan 12 ditolak 429: 401 sepuluh kali, bukan lima
+database sesudahnya (kunci akun: gagal_login berhenti di 5, tebakan 6-10 bertemu akun terkunci):
+=> SELECT gagal_login, terkunci_sampai IS NOT NULL AS terkunci FROM akun WHERE email = 'karyawan10101@lestari.example'
+ gagal_login | terkunci
+-------------+----------
+ 5           | t
+(1 row)
+satu instance, 12 tebakan ke satu akun → 401: 5 · 429: 7
+=> SELECT gagal_login, terkunci_sampai IS NOT NULL AS terkunci FROM akun WHERE email = 'karyawan10102@lestari.example'
+ gagal_login | terkunci
+-------------+----------
+ 5           | t
+(1 row)
+
+# --- E. Hitungan bersama di Redis (skrip INCR + PEXPIRE atomik), round_robin: 24 percobaan ke 24 akun ---
+24 percobaan → 401: 10 · 429: 14
+  per instance: 401 a 5, b 5 · 429 a 7, b 7
+Redis: key per IP 1, hitungannya 24 (naik juga untuk yang ditolak), sisa jendela antara 1 dan 60 detik: ya
+Redis: key per akun 10 (hanya 10 percobaan yang lolos penahan per IP sampai ke pemeriksaan akun)
+  key berisi hash alamat dan email, bukan teksnya: ya
+GET /lab/batas instance a → {"akun": {"bersama": 5, "lokal": 0}, "ip": {"bersama": 12, "lokal": 0}, "mode": "redis"}
+GET /lab/batas instance b → {"akun": {"bersama": 5, "lokal": 0}, "ip": {"bersama": 12, "lokal": 0}, "mode": "redis"}
+
+# --- F. Hitungan bersama, kebijakan random bawaan Caddy: hasilnya tetap 10, tidak bergantung pada siapa yang menjawab ---
+24 percobaan → 401: 10 · 429: 14
+
+# --- G. Hitungan bersama per akun: 12 tebakan ke satu akun dari satu alamat, round_robin ---
+12 tebakan ke satu akun → 401: 5 · 429: 7
+=> SELECT gagal_login, terkunci_sampai IS NOT NULL AS terkunci FROM akun WHERE email = 'karyawan10103@lestari.example'
+ gagal_login | terkunci
+-------------+----------
+ 5           | t
+(1 row)
+
+# --- H. INCR lalu EXPIRE sebagai dua perintah: key yang tidak pernah kedaluwarsa (R3-12) ---
+INCR rekeningo:rl:demo → 1; PTTL → -1 (-1: tanpa masa berlaku; bila proses mati sebelum EXPIRE, key ini menghitung selamanya)
+Skrip Lua di internal/redisbatas menaikkan hitungan dan memasang masa berlaku dalam satu perintah (bagian E: sisa jendela antara 1 dan 60 detik).
+
+# --- I. Redis mati (kontainer dihentikan): batas jatuh ke bucket lokal, login tidak ikut mati ---
+24 percobaan → 401: 20 · 429: 4 (sama dengan bucket di memori, bagian A)
+GET /lab/batas instance a → {"akun": {"bersama": 0, "lokal": 10}, "ip": {"bersama": 0, "lokal": 12}, "mode": "redis"}
+log instance a: batas bersama rekeningo:rl:login:ip: gagal: memakai bucket lokal | batas bersama rekeningo:rl:login:akun: gagal: memakai bucket lokal
+GET /lab/batas instance b → {"akun": {"bersama": 0, "lokal": 10}, "ip": {"bersama": 0, "lokal": 12}, "mode": "redis"}
+log instance b: batas bersama rekeningo:rl:login:ip: gagal: memakai bucket lokal | batas bersama rekeningo:rl:login:akun: gagal: memakai bucket lokal
+Redis hidup lagi, 6 percobaan baru → 401: 6; instance a menjawab bersama lagi: ya
+log instance a: batas bersama rekeningo:rl:login:ip: gagal: memakai bucket lokal | batas bersama rekeningo:rl:login:akun: gagal: memakai bucket lokal | batas bersama rekeningo:rl:login:ip: pulih | batas bersama rekeningo:rl:login:akun: pulih
+
+# --- J. Redis menggantung (kontainer dibekukan): batas waktu 50 ms lawan bawaan go-redis ---
+-redis-timeout 50ms (bawaan lab): satu login → 401, selesai dalam kurang dari 1 detik: ya
+-redis-timeout 0 (bawaan go-redis: 5 detik dan 3 retry): satu login → 401, butuh lebih dari 5 detik: ya

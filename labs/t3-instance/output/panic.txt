@@ -1,0 +1,42 @@
+# Lab t3-instance · M21: panic di goroutine latar mematikan seluruh proses; dua instance menahan satu kematian
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema t3_instance · Caddy 2.11.7 · Redis 8.10.2 · instance a di 127.0.0.1:18180, instance b di 127.0.0.1:18182, proxy di 127.0.0.1:18183
+# Rekaman dari database bersih: make -C labs/t3-instance run (keputusan 965). Label: Rekaman lab.
+
+# --- A. Versi benar: panic di goroutine handler dan di goroutine latar tidak mematikan proses ---
+GET /lab/panik?di=handler → tidak ada jawaban (net/http memutus koneksi request itu)
+GET /healthz sesudahnya → 200
+log: http: panic serving 127.0.0.1:<port>: uji panic di goroutine handler
+GET /lab/panik?di=latar → 202 (panic terjadi 100 ms sesudah jawaban)
+log: latar uji panik: uji panic di goroutine latar (proses tetap hidup)
+GET /healthz sesudahnya → 200
+
+# --- B. Mode rentan ekspor-panic, satu instance: panic di goroutine handler tertangkap, panic di goroutine latar mematikan proses ---
+GET /lab/panik?di=handler → tidak ada jawaban; GET /healthz sesudahnya → 200
+GET /lab/panik?di=latar → 202
+proses berhenti sendiri: kode keluar 2
+log: http: panic serving 127.0.0.1:<port>: uji panic di goroutine handler
+log: panic: uji panic di goroutine latar
+log: goroutine <n> [running]:
+GET /healthz → tidak ada jawaban
+
+# --- C. Ekspor laporan dari dasbor, mode rentan: satu laporan kosong mematikan instance ---
+Warung Ani (ada 1 pembayaran hari ini) GET /warung/418/laporan.csv → 200, isi: tanggal,transaksi,total + 1 baris
+log: ekspor warung 418: 1 hari, tersibuk <tanggal> dengan 1 transaksi
+Warung Sari (belum ada pembayaran) GET /warung/502/laporan.csv → 200, isi: tanggal,transaksi,total (hanya judul kolom)
+proses berhenti sendiri: kode keluar 2
+log: panic: runtime error: index out of range [0] with length 0
+log: goroutine <n> [running]:
+3 detik kemudian GET /healthz → tidak ada jawaban: tidak ada yang memulainya lagi
+
+# --- D. Dua instance dengan health check dan retry, keduanya mode rentan: satu kematian tertahan, dua kematian tidak ---
+Sari menekan Ekspor: laporan kosong sampai di instance a; a berhenti sendiri (kode keluar 2)
+20 request sesudahnya lewat proxy: 200: 20 · 200 per instance: b 20
+Sari menekan Ekspor lagi: sampai di instance b; b berhenti sendiri (kode keluar 2)
+10 request sesudahnya lewat proxy: 503: 10 (503: tidak ada instance yang sehat)
+
+# --- E. Versi benar dengan proxy: laporan kosong dijawab CSV berisi judul kolom, tidak ada instance yang mati ---
+Warung Sari GET /warung/502/laporan.csv lewat proxy → 200, isi: tanggal,transaksi,total
+log: ekspor warung 502: laporan kosong
+20 request sesudahnya: 200: 20 · 200 per instance: a 10, b 10
+
+Tidak dijalankan: pengawas proses yang memulai ulang instance sesudah panic (systemd Restart=, restart policy Docker).
