@@ -29,7 +29,7 @@ export const LabelOutbox = z
   .object({
     judul: Teks,
     sumberChip: Teks,
-    jenisChip: z.object({ rekaman: Teks, hitungan: Teks, ilustrasi: Teks }).strict(),
+    jenisChip: z.object({ rekaman: Teks, hitungan: Teks, ilustrasi: Teks, asumsi: Teks }).strict(),
     tebakDulu: Teks,
     benar: Teks,
     belum: Teks,
@@ -43,7 +43,7 @@ export const LabelOutbox = z
     tanda: z.object({ baik: Teks, buruk: Teks }).strict(),
     kata: z.object({ ya: Teks, tidak: Teks }).strict(),
     satuan: z.object({ jumlah: Teks, detik: Teks, persen: Teks, perdetik: Teks, rupiah: Teks }).strict(),
-    acuan: z.object({ rekaman: Teks, hitungan: Teks, ilustrasi: Teks }).strict(),
+    acuan: z.object({ rekaman: Teks, hitungan: Teks, ilustrasi: Teks, asumsi: Teks }).strict(),
     tanpaJs: Teks,
     kolomTabel: z.object({ pengaturan: Teks, hasil: Teks, sumber: Teks }).strict(),
     skenario: z

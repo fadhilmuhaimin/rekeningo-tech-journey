@@ -233,6 +233,10 @@ describe("acuan per konfigurasi", () => {
     expect(acuanDari("ulang", { penyebab: "push-503", batas: "8" }).jenis).toBe("hitungan");
     expect(acuanDari("antrean", { kelas: "tanpa", laju: "5", c: "20" }).jenis).toBe("hitungan");
     expect(acuanDari("kursor", { poller: "klaim", urutan: "berurutan" }).jenis).toBe("hitungan");
+    // Klaim 10 detik tidak direkam: Asumsi. Satu push menggantung bukan bagian rekaman: ganda.txt D merekam dua HP dan dua worker.
+    expect(acuanDari("ganda", { varian: "dua-hp-klaim-10", penyaring: "mati" })).toEqual({ jenis: "asumsi", sumber: "ganda.txt A" });
+    expect(acuanDari("ganda", { varian: "dua-hp-klaim-10", penyaring: "hidup" }).jenis).toBe("asumsi");
+    expect(acuanDari("cara", { cara: "outbox", kejadian: "push-menggantung" }).jenis).toBe("hitungan");
   });
   test("semua knob terdaftar", () => {
     expect(Object.keys(KNOB).sort()).toEqual([...SEMUA].sort());

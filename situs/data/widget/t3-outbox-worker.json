@@ -1,7 +1,7 @@
 {
   "judul": "Garis waktu notifikasi: outbox dan worker",
-  "sumberChip": "Rekaman lab t3-outbox, Hitungan, Ilustrasi",
-  "jenisChip": { "rekaman": "Rekaman lab", "hitungan": "Hitungan", "ilustrasi": "Ilustrasi" },
+  "sumberChip": "Rekaman lab t3-outbox, Hitungan, Asumsi, Ilustrasi",
+  "jenisChip": { "rekaman": "Rekaman lab", "hitungan": "Hitungan", "ilustrasi": "Ilustrasi", "asumsi": "Asumsi" },
   "tebakDulu": "Tebak dulu:",
   "benar": "Tepat.",
   "belum": "Belum tepat.",
@@ -16,9 +16,10 @@
   "kata": { "ya": "ya", "tidak": "tidak" },
   "satuan": { "jumlah": "{n}", "detik": "{n} detik", "persen": "{n}%", "perdetik": "{n} per detik", "rupiah": "{n}" },
   "acuan": {
-    "rekaman": "Cocok dengan rekaman labs/t3-outbox, {sumber}.",
+    "rekaman": "Cocok dengan rekaman labs/t3-outbox, {sumber}. Baris bertanda (dihitung) diturunkan dari angka rekaman dengan rumus, bukan diukur.",
     "hitungan": "Dihitung dari angka rekaman. Pengaturan ini tidak dijalankan sebagai satu bagian rekaman.",
-    "ilustrasi": "Mekanisme dari {sumber}. Tidak dijalankan di lab t3-outbox, jadi hasilnya Ilustrasi."
+    "ilustrasi": "Mekanisme dari {sumber}. Tidak dijalankan di lab t3-outbox, jadi hasilnya Ilustrasi.",
+    "asumsi": "Panjang klaim di pengaturan ini adalah Asumsi: dua kali klaim bawaan lab ({sumber}), tidak dijalankan. Hasilnya dihitung dari batas waktu push yang direkam."
   },
   "tanpaJs": "Tanpa JavaScript, widget ini menampilkan hasil tiap pengaturan sebagai tabel.",
   "kolomTabel": { "pengaturan": "Pengaturan", "hasil": "Hasil", "sumber": "Sumber" },
@@ -120,7 +121,7 @@
         "pertanyaan": "Satu baris outbox membuat worker mati setiap kali, sesudah push berhasil dan sebelum baris ditandai. Batas percobaan {batas}. Berapa pesan sampai ke layanan push sebelum baris masuk dead-letter?",
         "pilihanTeks": "{n} pesan",
         "pilihan": [
-          { "nilai": 4, "alasan": "Batas {batas} berarti {batas} klaim yang mengirim. Empat pesan menghitung satu klaim terlalu sedikit." },
+          { "nilai": 4, "alasan": "Batas {batas} berarti {batas} klaim yang mengirim, jadi empat pesan kurang satu." },
           { "nilai": 5, "alasan": "{pesan} pesan: tiap klaim mengirim sekali. Percobaan dihitung saat klaim, jadi klaim ke-{klaimMati} melewati batas {batas} dan baris langsung masuk dead-letter tanpa dikirim." },
           { "nilai": 6, "alasan": "Klaim ke-{klaimMati} memang terjadi, tetapi ia tidak mengirim: percobaannya melewati batas {batas}, jadi baris langsung masuk dead-letter." }
         ]
@@ -208,14 +209,14 @@
       ],
       "angka": [
         { "kunci": "kapasitas", "label": "Kapasitas worker (c ÷ t)", "jenis": "perdetik" },
-        { "kunci": "promo30", "label": "Promo terkirim dalam jendela", "jenis": "jumlah" },
-        { "kunci": "persen30", "label": "Bagian promo dalam jendela", "jenis": "persen" },
-        { "kunci": "habis", "label": "Seluruh promo habis sesudah", "jenis": "detik" },
-        { "kunci": "tunggu", "label": "Notifikasi uang menunggu", "jenis": "detik" },
+        { "kunci": "promo30", "label": "Promo terkirim dalam jendela (dihitung)", "jenis": "jumlah" },
+        { "kunci": "persen30", "label": "Bagian promo dalam jendela (dihitung)", "jenis": "persen" },
+        { "kunci": "habis", "label": "Seluruh promo habis sesudah (dihitung)", "jenis": "detik" },
+        { "kunci": "tunggu", "label": "Notifikasi uang menunggu (dihitung)", "jenis": "detik" },
         { "kunci": "umurSemua", "label": "Umur tertua semua kelas di akhir jendela", "jenis": "detik" },
         { "kunci": "umurUang", "label": "Umur tertua kelas uang di akhir jendela", "jenis": "detik" },
-        { "kunci": "sisa", "label": "Sisa kapasitas di luar promo", "jenis": "perdetik" },
-        { "kunci": "butuh95", "label": "Pengirim serentak yang dibutuhkan untuk target", "jenis": "jumlah" }
+        { "kunci": "sisa", "label": "Sisa kapasitas di luar promo (dihitung)", "jenis": "perdetik" },
+        { "kunci": "butuh95", "label": "Pengirim serentak yang dibutuhkan untuk target (dihitung)", "jenis": "jumlah" }
       ],
       "ringkas": {
         "ringkas-cepat": "{konfig}: notifikasi uang menunggu {w} detik dan tidak tertahan promo.",

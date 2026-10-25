@@ -12,7 +12,7 @@ import type { Acuan } from "./rekaman";
 export type Lajur = "uang" | "outbox" | "worker" | "push" | "hp";
 export type Tanda = "baik" | "buruk" | "netral";
 export type Nilai = Record<string, string | number | boolean>;
-export type Jenis = "rekaman" | "hitungan" | "ilustrasi";
+export type Jenis = "rekaman" | "hitungan" | "ilustrasi" | "asumsi";
 export type Konfig = Record<string, string>;
 export type NamaSkenario = "cara" | "kursor" | "ulang" | "ganda" | "antrean";
 
@@ -476,7 +476,6 @@ export const TITIK: Titik[] = [
   { skenario: "cara", konfig: { cara: "outbox", kejadian: "commit-ditolak" }, sumber: "transaksi.txt C dan D" },
   { skenario: "cara", konfig: { cara: "outbox", kejadian: "proses-mati" }, sumber: "transaksi.txt F" },
   { skenario: "cara", konfig: { cara: "outbox", kejadian: "push-503" }, sumber: "retry.txt A" },
-  { skenario: "cara", konfig: { cara: "outbox", kejadian: "push-menggantung" }, sumber: "ganda.txt D" },
   { skenario: "kursor", konfig: { poller: "kursor", urutan: "berurutan" }, sumber: "kursor.txt A" },
   { skenario: "kursor", konfig: { poller: "kursor", urutan: "terbalik" }, sumber: "kursor.txt B" },
   { skenario: "kursor", konfig: { poller: "klaim", urutan: "terbalik" }, sumber: "kursor.txt C" },
@@ -495,6 +494,9 @@ export function acuanDari(s: NamaSkenario, kf: Konfig): { jenis: Jenis; sumber: 
   const kunci = kunciKonfig(s, kf);
   const t = TITIK.find((x) => x.skenario === s && kunciKonfig(s, x.konfig) === kunci);
   if (t) return { jenis: "rekaman", sumber: t.sumber };
+  // Satu push yang menggantung di worker bukan satu bagian rekaman: ganda.txt D merekam dua HP dan dua worker (4 pesan).
+  // Panjang klaim 10 detik (klaimPanjang) tidak direkam di lab: Asumsi, dua kali klaim bawaan (ganda.txt A).
+  if (s === "ganda" && kf.varian === "dua-hp-klaim-10") return { jenis: "asumsi", sumber: "ganda.txt A" };
   // Mekanisme yang tidak dijalankan di lab: push di dalam transaction dan kirim sesudah COMMIT tanpa outbox.
   if (s === "cara" && kf.cara !== "outbox") return { jenis: "ilustrasi", sumber: "naskah bagian 3" };
   return { jenis: "hitungan", sumber: s };

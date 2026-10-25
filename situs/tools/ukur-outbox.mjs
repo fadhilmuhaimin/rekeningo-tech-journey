@@ -4,7 +4,7 @@
 //   ke tombol pertama "Ubah satu hal"; panah memindahkan fokus dalam kelompok; Spasi mengubah pengaturan (aria-pressed
 //   pindah, fokus tetap, status berganti); jawaban salah menampilkan "Coba pilihan lain" dan fokus kembali ke pilihan;
 // - angka dari rekaman: jawaban benar tiap skenario dan angka tiap titik rekaman (dibaca ulang di sini dengan cara sendiri
-//   dari labs/t3-outbox/output) sama dengan yang tampil; chip Rekaman lab, Hitungan, atau Ilustrasi sesuai;
+//   dari labs/t3-outbox/output) sama dengan yang tampil; chip Rekaman lab, Hitungan, Asumsi, atau Ilustrasi sesuai;
 // - gerak: 0 animasi saat dimuat; dengan reduced motion 0 animasi dan fungsi sama; ganti pengaturan tidak bergerak;
 // - tata letak: 320, 375, 1366 px tanpa gulir ke samping, penanda lajur dan waktu satu baris, target >= 24 px;
 // - kontras teks >= 4,5:1 gelap dan terang; axe-core (WCAG A/AA sampai 2.2) di keadaan dengan baris bermasalah;
@@ -209,7 +209,8 @@ for (const reducedMotion of ["no-preference", "reduce"]) {
   await cek("ulang", { penyebab: "pulih-sesudah-2", batas: "5" }, { permintaan: "3", terkirim: L.kata.ya }, "hitungan");
   await cek("ganda", { varian: "dua-hp-klaim-5", penyaring: "mati" }, { pesan: String(REK.gandaD), id: "1" }, "rekaman");
   await cek("ganda", { varian: "mati-klaim-5", penyaring: "hidup" }, { pesan: String(REK.gandaA), tampil: "1" }, "rekaman");
-  await cek("ganda", { varian: "dua-hp-klaim-10", penyaring: "mati" }, { pesan: "2", bersamaan: L.kata.tidak }, "hitungan");
+  await cek("ganda", { varian: "dua-hp-klaim-10", penyaring: "mati" }, { pesan: "2", bersamaan: L.kata.tidak }, "asumsi");
+  await cek("cara", { cara: "outbox", kejadian: "push-menggantung" }, { jurnal: L.kata.ya, notif: "1", p3: L.kata.ya }, "hitungan");
   await cek("kursor", { poller: "kursor", urutan: "terbalik" }, { pesan: String(REK.kursorB), tertinggal: "1" }, "rekaman");
   await cek("kursor", { poller: "klaim", urutan: "terbalik" }, { pesan: String(REK.kursorC), tertinggal: "0" }, "rekaman");
   await cek("antrean", { kelas: "tanpa", laju: "bebas", c: "4" }, { kapasitas: unit(REK.kapasitas, " per detik"), promo30: fid.format(REK.promo30), persen30: `${REK.persen30}%`, habis: unit(REK.habis, " detik") }, "rekaman");

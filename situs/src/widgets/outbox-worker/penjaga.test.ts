@@ -115,6 +115,35 @@ describe("angka di teks turun dari rekaman", () => {
   });
 });
 
+describe("label sumber jujur (tinjauan, keputusan 985)", () => {
+  const hasil = (s: NamaSkenario, kf: Record<string, string>) => bangun(s, L, k).hasil[kunciKonfig(s, kf)]!;
+  test("klaim panjang berlabel Asumsi, bukan Hitungan atau Rekaman lab", () => {
+    for (const penyaring of ["mati", "hidup"]) {
+      const h = hasil("ganda", { varian: "dua-hp-klaim-10", penyaring });
+      expect(h.acuan.jenis).toBe("asumsi");
+      expect(h.acuan.label).toBe(L.jenisChip.asumsi);
+      expect(h.acuan.teks).toMatch(/Asumsi/);
+    }
+    expect(L.sumberChip).toMatch(/Asumsi/);
+  });
+  test("satu push menggantung di worker bukan Rekaman lab: ganda.txt D merekam dua HP dan dua worker", () => {
+    const h = hasil("cara", { cara: "outbox", kejadian: "push-menggantung" });
+    expect(h.acuan.jenis).toBe("hitungan");
+    expect(h.acuan.teks).not.toMatch(/Cocok dengan rekaman/);
+  });
+  test("angka queue yang diturunkan dengan rumus bertanda (dihitung), angka batas rekaman tidak", () => {
+    const turunan = [/^Promo terkirim/, /^Bagian promo/, /^Seluruh promo/, /^Notifikasi uang menunggu/, /^Sisa kapasitas/, /^Pengirim serentak/];
+    for (const kf of semuaKonfig("antrean")) {
+      const angka = hasil("antrean", kf).angka;
+      for (const x of angka) {
+        const dihitung = turunan.some((p) => p.test(x.label));
+        expect(x.label.includes("(dihitung)"), `${JSON.stringify(kf)}: ${x.label}`).toBe(dihitung);
+      }
+    }
+    expect(L.acuan.rekaman).toMatch(/\(dihitung\)/);
+  });
+});
+
 describe("uji mutasi: satu perubahan menggagalkan penjaga", () => {
   const salin = asli;
   test("label: peristiwa yang dipakai mesin dihapus", () => {
