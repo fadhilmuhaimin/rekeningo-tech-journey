@@ -15,6 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
 import { awasi } from "./lib/batas.mjs";
+import { saring, terpilih } from "./lib/pilih.mjs";
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const BASE = arg("--url", "http://127.0.0.1:4321");
@@ -107,7 +108,8 @@ async function ukur(toleransi) {
 }
 
 const t0 = Date.now();
-const daftar = satu ? [satu] : halaman();
+const disaring = terpilih() !== null;
+const daftar = satu ? [satu] : saring(halaman(), (x) => x, { alat: "rantai" });
 const browser = awasi(await chromium.launch(), { alat: "rantai" }); // batas waktu per halaman (keputusan 360)
 let gagal = 0, panah = 0, rantai = 0;
 const baris = [], inti = new Map(), lebihDua = {};
@@ -130,7 +132,7 @@ for (const u of UKURAN) {
   await page.close();
 }
 await browser.close();
-if (panah === 0) { gagal++; baris.push("GAGAL tidak ada panah Rantai yang terukur (pemeriksaan kosong)"); }
+if (!disaring && panah === 0) { gagal++; baris.push("GAGAL tidak ada panah Rantai yang terukur (pemeriksaan kosong)"); }
 if (baris.length) console.log(baris.sort().join("\n"));
 for (const [k, v] of [...inti].sort()) console.log(`info garis Rantai ringkas di Inti ${k}: ${v.join(", ")}`);
 const lebih = UKURAN.map((u) => `${lebihDua[u.nama] || 0} di ${u.nama}`).join(", ");

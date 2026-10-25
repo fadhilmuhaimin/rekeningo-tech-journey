@@ -13,6 +13,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
 import { denganBatas } from "./lib/batas.mjs";
+import { saring, terpilih } from "./lib/pilih.mjs";
 
 const arg = (nama, bawaan) => {
   const i = process.argv.indexOf(nama);
@@ -34,7 +35,8 @@ function halamanRunsql(dir, akar = dir, hasil = []) {
   }
   return hasil.sort();
 }
-const halaman = satu ? [satu] : halamanRunsql(path.resolve("dist"));
+const disaring = terpilih() !== null;
+const halaman = satu ? [satu] : saring(halamanRunsql(path.resolve("dist")), (x) => x, { alat: "kontras" });
 
 // Dijalankan di halaman: ukur semua teks langkah di satu host runsql.
 function ukurHost(host) {
@@ -166,7 +168,7 @@ async function periksa(uk, tema) {
       else if (rinci) log.push(`ok ${h} ${uk.width} ${tema}: ${kunci} ${u.rasio.toFixed(2)}:1`);
     }
   }
-  if (!dilewati) { gagal++; log.push(`GAGAL ${uk.width} ${tema}: tidak ada langkah dilewati yang terukur`); }
+  if (!disaring && !dilewati) { gagal++; log.push(`GAGAL ${uk.width} ${tema}: tidak ada langkah dilewati yang terukur`); }
   if (galatKonsol.length) { gagal++; log.push(`GAGAL ${uk.width} ${tema}: error halaman ${galatKonsol.join(" | ")}`); }
   const ringkas = Object.entries(min).sort().map(([k, v]) => `${k} ${v.toFixed(2)}`).join(" · ");
   log.push(`${uk.width}x${uk.height} ${tema}: ${halaman.length} halaman, ${dilewati} SQL dilewati; minimum: ${ringkas}`);

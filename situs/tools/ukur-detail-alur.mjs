@@ -21,6 +21,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { chromium } from "@playwright/test";
 import { awasi } from "./lib/batas.mjs";
+import { saring, terpilih } from "./lib/pilih.mjs";
 
 const arg = (nama, bawaan) => {
   const i = process.argv.indexOf(nama);
@@ -32,10 +33,14 @@ const PAGAR = !process.argv.includes("--tanpa-pagar");
 const JARAK_MAKS = 60, UTUH_MIN = 0.87;
 
 const DOCS = new URL("../src/content/docs/", import.meta.url);
-const halAlur = readdirSync(DOCS, { recursive: true })
+const halAlurSemua = readdirSync(DOCS, { recursive: true })
   .filter((f) => f.endsWith(".mdx") && readFileSync(new URL(f, DOCS), "utf8").includes('<WidgetLama nama="alur"'))
   .map((f) => ("/" + f.replace(/\\/g, "/").replace(/\.mdx$/, "").replace(/(^|\/)index$/, "") + "/").replace(/\/+/g, "/"))
   .sort();
+// Subset PR (UKUR_HALAMAN, keputusan 866): halaman yang dipindai disaring; uji mutasi di bawah tetap memakai daftar penuh,
+// karena yang diuji adalah pemeriksanya, bukan halamannya, dan ia berhenti di temuan pertama.
+const disaring = terpilih() !== null;
+const halAlur = saring(halAlurSemua, (x) => x, { alat: "detail-alur" });
 
 const browser = awasi(await chromium.launch(), { alat: "detail-alur" }); // batas waktu per halaman (keputusan 360)
 let gagal = 0;
@@ -96,7 +101,7 @@ for (const [w, h] of UKURAN) {
   const pagar = PAGAR && w === 1366;
   const lebih = semua.filter((x) => x.jarak > JARAK_MAKS).length;
   const geserLebih = geserVarian.filter((g) => g > 1).length;
-  const ok = !pagar || (halAlur.length > 0 && perHal.every((p) => p.n > 0) && !lebih && utuh / n >= UTUH_MIN && !geserLebih);
+  const ok = !pagar || ((disaring || halAlur.length > 0) && perHal.every((p) => p.n > 0) && !lebih && (disaring && !n || utuh / n >= UTUH_MIN) && !geserLebih);
   console.log(`${ok ? "ok" : "GAGAL"} detail alur ${w}x${h}: ${halAlur.length} halaman, ${n} langkah; jarak paket ke judul detail ${jarak[0]}..${jarak[n - 1]} px (median ${jarak[n >> 1]}, ${lebih} di atas ${JARAK_MAKS}); penjelasan utuh tanpa gulir ${utuh}/${n} (${Math.round((100 * utuh) / n)}%)${pagar ? ` (pagar: jarak <= ${JARAK_MAKS} px, utuh >= ${UTUH_MIN * 100}%)` : " (dicetak saja)"}`);
   console.log(`  varian ${w}x${h}: kotak centang bergeser > 1 px saat dicentang di ${geserLebih}/${geserVarian.length} widget (maks ${Math.max(0, ...geserVarian)} px${pagar ? "; pagar: 0" : "; dicetak saja"})`);
   for (const p of perHal.filter((p) => !p.n || p.jm > JARAK_MAKS || p.utuh < p.n).sort((a, b) => b.jm - a.jm))
@@ -107,7 +112,7 @@ for (const [w, h] of UKURAN) {
 async function cekFokus(w, h, mutasi) {
   const hasil = [];
   let terganti = 0;
-  for (const pth of halAlur) {
+  for (const pth of mutasi ? halAlurSemua : halAlur) {
     const page = await browser.newPage({ viewport: { width: w, height: h } });
     if (mutasi) await page.route("**/widgets/alur.js", async (r) => {
       const res = await r.fetch(), asli = await res.text();
@@ -150,7 +155,7 @@ if (!process.argv.includes("--tanpa-fokus")) {
   const { hasil } = await cekFokus(w, h, false);
   const per = {};
   for (const x of hasil) per[x.status] = (per[x.status] || 0) + 1;
-  const ok = hasil.length > 0 && hasil.every((x) => x.status === "utuh");
+  const ok = (disaring || hasil.length > 0) && hasil.every((x) => x.status === "utuh");
   console.log(`${ok ? "ok" : "GAGAL"} fokus sesudah tebakan lewat keyboard ${w}x${h}: ${hasil.length} tebakan; ${Object.entries(per).map(([k, v]) => `${k} ${v}`).join(", ")}`);
   if (!ok) gagal++;
   if (!process.argv.includes("--tanpa-mutasi")) {
