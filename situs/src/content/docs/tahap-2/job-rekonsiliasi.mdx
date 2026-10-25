@@ -128,7 +128,7 @@ Jadwal menjawab kapan job dipanggil. Jadwal tidak tahu apakah pekerjaannya sudah
 - Serverpod menjalankan jadwal yang terlewat sekali saat server hidup lagi ([Serverpod: Recurring tasks](https://docs.serverpod.dev/concepts/scheduling/recurring-tasks)).
 - Orang menjalankan perintah itu lagi dengan tangan, seperti di [[t2-m15]]. Naskah tidak menyebut siapa yang melakukannya.
 
-Serverpod juga menulis bahwa jalan yang gagal dicatat dan dilewati, tidak diulang. Jadi satu job bisa berjalan dua kali, dan satu job bisa tidak berjalan sama sekali. Pengiriman yang diulang sampai ada hasil disebut [at-least-once](/istilah/at-least-once/).
+Serverpod juga menulis bahwa jalan yang gagal dicatat dan dilewati, lalu jadwal berlanjut. Jadi satu job bisa berjalan dua kali, dan satu job bisa tidak berjalan sama sekali. Pengiriman yang diulang sampai ada hasil disebut [at-least-once](/istilah/at-least-once/).
 
 Job yang idempoten menutup kemungkinan pertama. Kemungkinan kedua terlihat dari status batch: kalau periode itu tidak punya baris di `batch_pencairan`, job belum pernah berjalan. Pertanyaan di [[t2-pencairan]], "bagaimana job tahu minggu ini sudah dicairkan", dijawab baris itu.
 
@@ -222,14 +222,14 @@ Yang sama di semua stack: kunci periode ada di database lewat `UNIQUE (periode)`
 
 *Dijalankan: Go 1.27.1, pgx v5.11.0, PostgreSQL 17.11, lab t2-pencairan.*
 
-<Snippet file="labs/t2-pencairan/cmd/pencairan/main.go" lines="216:224" lang="go" title="labs/t2-pencairan/cmd/pencairan/main.go" />
+<Snippet file="labs/t2-pencairan/cmd/pencairan/main.go" lines="216:225" lang="go" title="labs/t2-pencairan/cmd/pencairan/main.go" />
 
 **Yang berbeda di stack ini:** Go tidak punya penjadwal bawaan, jadi dua salinan dicegah di database, bukan di jadwal. `RowsAffected() == 1` menandai jalan yang membuat batch.
 
 </Fragment>
 <Fragment slot="t1">
 
-*Tidak dijalankan. Dicek ke [node-postgres: Client](https://node-postgres.com/apis/client), `pg` 8.23.1, dan [PostgreSQL 17: INSERT](https://www.postgresql.org/docs/17/sql-insert.html).*
+*Tidak dijalankan. Dicek ke [node-postgres: Client](https://node-postgres.com/apis/client), [node-postgres: Transactions](https://node-postgres.com/features/transactions), `pg` 8.23.1, dan [PostgreSQL 17: INSERT](https://www.postgresql.org/docs/17/sql-insert.html).*
 
 <Snippet lang="js" code={`const { rows } = await client.query(
   \`INSERT INTO batch_pencairan (periode, status) VALUES ($1, 'dibuat')
@@ -278,15 +278,16 @@ $batchBaru = count($baris) === 1;`} />
 
 *Tidak dijalankan. Dicek ke [Serverpod: CRUD](https://docs.serverpod.dev/concepts/data-and-the-database/database/crud) dan [Recurring tasks](https://docs.serverpod.dev/concepts/scheduling/recurring-tasks), `serverpod` 4.0.4.*
 
-<Snippet lang="dart" code={`try {
-  await BatchPencairan.db.insertRow(
-      session, BatchPencairan(periode: periode, status: 'dibuat'));
-  // batch baru
-} on DatabaseUniqueViolationException {
-  // batch periode ini sudah ada
-}`} />
+<Snippet lang="dart" code={`final dimasukkan = await BatchPencairan.db.insert(
+  session,
+  [BatchPencairan(periode: periode, status: 'dibuat')],
+  ignoreConflicts: true,
+);
+final batchBaru = dimasukkan.length == 1; // kosong bila batch periode ini sudah ada`} />
 
-**Yang berbeda di stack ini:** jadwal berjalan di dalam server. Jalan yang terlewat dilakukan sekali saat server hidup lagi, dan jalan yang gagal dilewati. Dokumentasi tidak membahas dua instance server atau jalan yang tumpang tindih [perlu verifikasi]. `insert` massal punya opsi `ignoreConflicts: true`, tetapi halaman itu tidak menjelaskan apa yang dikembalikannya.
+**Yang berbeda di stack ini:** jadwal berjalan di dalam server. Jalan yang terlewat dilakukan sekali saat server hidup lagi, dan jalan yang gagal dilewati. Dokumentasi tidak membahas dua instance server atau jalan yang tumpang tindih [perlu verifikasi].
+
+Kode di atas memakai `insert` dengan `ignoreConflicts: true`. Opsi itu melewati baris yang melanggar constraint unik dan hanya mengembalikan baris yang berhasil dimasukkan. Daftar satu baris berarti batch baru, seperti `RowsAffected() == 1` di Go.
 
 </Fragment>
 <Fragment slot="t5">
@@ -315,10 +316,10 @@ INSERT INTO batch_pencairan (periode, status) VALUES (p_periode, 'dibuat')
 
 | | A. Job tanpa status | B. Satu proses saja | C. Batch, status, rekonsiliasi | D. Queue atau workflow engine |
 |---|---|---|---|---|
-| Cara kerja | Job membaca saldo, lalu menulis jurnal dan baris file di satu transaction per warung. Rekonsiliasi hanya saat tutup buku | Sama seperti A, ditambah lock supaya hanya satu salinan job berjalan: advisory lock PostgreSQL, `withoutOverlapping` di Laravel, atau jalan kedua yang masuk queue pg_cron | Batch per periode (`UNIQUE`), baris pencairan beku, jurnal dan penanda di satu transaction, file dibuat dari database dan direkonsiliasi sebelum diberi nama akhir | Setiap warung jadi satu pekerjaan di queue atau workflow engine yang mengulang pekerjaan gagal |
+| Cara kerja | Job membaca saldo, lalu menulis jurnal dan baris file di satu transaction per warung. Rekonsiliasi hanya saat tutup buku | Sama seperti A, ditambah lock supaya hanya satu salinan job berjalan: advisory lock PostgreSQL, `withoutOverlapping` di Laravel, atau jalan kedua yang masuk queue pg_cron | Batch per periode (`UNIQUE`), baris pencairan beku, jurnal dan penanda di satu transaction, file dibuat dari database dan direkonsiliasi sebelum diberi nama akhir | Setiap warung jadi satu pekerjaan di queue atau workflow engine yang mengulang pekerjaan gagal. Queue bisa berupa broker terpisah atau tabel PostgreSQL yang dibaca dengan `FOR UPDATE SKIP LOCKED` |
 | Kelebihan | Paling sedikit kode | Mencegah dua salinan yang berjalan bersamaan | Aman dijalankan ulang di titik mana pun yang direkam. Cacat file ditolak sebelum diunggah | Pengulangan dan queue disediakan alatnya |
-| Kekurangan | Mati di tengah lalu jalan lagi menghasilkan M15. Selisih baru ketahuan saat tutup buku, sesudah file diunggah | Lock tidak mengingat apa yang sudah dikerjakan. M15 terjadi berurutan, bukan bersamaan | Tiga langkah dan dua tabel yang harus dijaga. Job berhenti dan menunggu orang saat rekonsiliasi menolak | Komponen baru untuk 12 pekerjaan per minggu. Queue standar bersifat at-least-once, jadi setiap pekerjaan tetap harus tahan dijalankan dua kali |
-| Biaya operasional | Pemeriksaan tutup buku oleh orang | Lock yang macet harus dibersihkan (Laravel: `schedule:clear-cache`) | Satu query status batch tiap Jumat. Alert otomatis belum ada | Satu komponen yang harus dipasang, dipantau, dan diperbarui |
+| Kekurangan | Mati di tengah lalu jalan lagi menghasilkan M15. Selisih baru ketahuan saat tutup buku, sesudah file diunggah | Lock tidak mengingat apa yang sudah dikerjakan. M15 terjadi berurutan, bukan bersamaan | Tiga langkah dan dua tabel yang harus dijaga. Job berhenti dan menunggu orang saat rekonsiliasi menolak | Broker atau engine adalah komponen baru untuk 12 pekerjaan per minggu. Tabel queue tanpa komponen baru, tetapi rekonsiliasi file tetap harus ditulis sendiri. Queue bersifat at-least-once, jadi setiap pekerjaan tetap harus tahan dijalankan dua kali |
+| Biaya operasional | Pemeriksaan tutup buku oleh orang | Lock yang macet harus dibersihkan (Laravel: `schedule:clear-cache`) | Satu query status batch tiap Jumat. Alert otomatis belum ada | Broker atau engine: satu komponen yang dipasang, dipantau, dan diperbarui. Tabel queue: logika pengambilan pekerjaan ditulis dan dijaga sendiri |
 | Bukti | `rentan.txt`: file 13 baris lawan ledger 12 jurnal | Tidak dijalankan. Dasar: dokumentasi advisory lock (lock sesi berakhir bersama sesi) | `benar.txt` bagian B–E, `rekonsiliasi.txt` bagian A–C | Tidak dijalankan. Alasannya hitungan beban di atas, bukan rekaman |
 
 Pada kejadian yang sama, A berakhir dengan selisih Rp15.000 dan C berakhir dengan selisih Rp0. B dan D tidak dijalankan, dan alasan menolaknya di bawah berasal dari dokumentasi, bukan rekaman.
@@ -336,7 +337,7 @@ Pada kejadian yang sama, A berakhir dengan selisih Rp15.000 dan C berakhir denga
 Menurut dokumentasi PostgreSQL, advisory lock tingkat sesi dilepas saat sesi berakhir ([PostgreSQL 17, 13.3.5](https://www.postgresql.org/docs/17/explicit-locking.html#ADVISORY-LOCKS)), jadi job yang mati tidak meninggalkan catatan apa pun. Job berikutnya tetap tidak tahu enam warung sudah dicairkan.
 
 - **A ditolak** karena `rentan.txt` merekam M15 persis, dan selisihnya baru terlihat sesudah file diunggah.
-- **D ditolak** karena beban 12 pekerjaan per minggu tidak membutuhkan komponen baru. C memakai pola yang dijelaskan Brandur Leach: tahap pekerjaan yang masing-masing atomik, dengan titik pemulihan yang tersimpan di database ([2017](https://brandur.org/idempotency-keys)). Tulisan praktisi itu membahas idempotency key untuk request API, bukan pencairan. Queue dibahas di [[B10.1]] untuk pekerjaan yang butuh.
+- **D ditolak** karena beban 12 pekerjaan per minggu tidak membutuhkan broker atau engine baru. Queue berupa tabel PostgreSQL menghindari komponen baru, tetapi bentuknya sudah ada di C: `baris_pencairan` adalah tabel pekerjaan, dan `FOR UPDATE` dengan `jurnal_id IS NULL` menggantikan `SKIP LOCKED`. Dokumentasi PostgreSQL menyebut `SKIP LOCKED` untuk tabel mirip queue, bukan untuk pekerjaan umum ([PostgreSQL 17: SELECT](https://www.postgresql.org/docs/17/sql-select.html#SQL-FOR-UPDATE-SHARE)). Rekonsiliasi file lawan ledger bukan fitur queue, jadi harus ditulis di opsi mana pun. C memakai pola yang dijelaskan Brandur Leach: tahap pekerjaan yang masing-masing atomik, dengan titik pemulihan yang tersimpan di database ([2017](https://brandur.org/idempotency-keys)). Tulisan praktisi itu membahas idempotency key untuk request API, bukan pencairan. Queue dibahas di [[B10.1]] untuk pekerjaan yang butuh.
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
