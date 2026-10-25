@@ -50,20 +50,21 @@ Aturannya:
 - Dua lajur tidak boleh menjalankan lab yang sama di folder yang sama. Tiap lajur punya worktree dan folder `output/` sendiri.
 - Di dalam satu lajur, lab yang punya port dasar sama tidak boleh jalan bersamaan: `api-t1` dan `t3-bayar` (18083), `t3-bayar` dan `b8-concurrency` (notif 18090), `api-t2` dan `e4-realtime` (18093), `api-t2` dan `c4-ratelimit` (18094). Jalankan secara berurutan; lab yang bentrok berhenti dengan `GAGAL: port ... sudah dipakai`.
 - `b9-cache` membaca schema `b2q` dari `b2-query`, jadi database lajur yang baru dibuat butuh `make -C labs/b2-query run` dulu.
-- Redis dan port replika tidak ikut offset; mereka punya variabel sendiri (tabel di atas).
+- Redis dan port replika tidak ikut offset; mereka punya variabel sendiri (tabel di atas). Lajur selain bawaan yang menjalankan `t5-replika` mengisi `LAB_REPLIKA_PRIMARY_PORT` dan `LAB_REPLIKA_REPLICA_PORT` sendiri, misalnya `54640` dan `54641` untuk offset 300; tanpa itu dua lajur berebut `54340` dan `54341`.
+- Lab deploy `api-t1` (halaman 1.31) memindahkan port host lewat `compose.lab-port.yaml`, berkas khusus lab yang memakai tag `!override` dari Docker Compose; `compose.yaml` yang dibaca halaman tidak berubah.
 
 ### Cara kerjanya
 
 | Bahasa | Cara membaca variabel |
 |---|---|
 | Python | `from lab_env import DB_PORT, port_lab` (`labs/lab_env.py`): `f"port={DB_PORT}"` untuk database, `port_lab(18083)` untuk server |
-| Shell | `. ../lab_env.sh` (`labs/lab_env.sh`): `$LAB_DB_PORT`, `$(port_lab 18090)` |
+| Shell | `. ../lab_env.sh || exit 1` (`labs/lab_env.sh`): `$LAB_DB_PORT`, `P=$(port_lab 18090) || exit 1` |
 | Makefile | `include ../lab_env.mk` (`labs/lab_env.mk`): `$(LAB_DB_PORT)` |
 | Compose | `${LAB_DB_PORT:-54333}` di `docker-compose.yml` |
 | Go | `portLab(18101)` di `portlab.go` tiap modul: membaca `LAB_PORT_OFFSET` |
 | Dart, Node | `LAB_PORT_OFFSET` dari lingkungan, ditambahkan ke port dasar |
 
-Nilai yang bukan bilangan bulat atau di luar 1 sampai 65535 menghentikan lab dengan `GAGAL`. Server Go yang menerima alamat lewat flag (`api-t1`, `api-t2`, `e5-payload`, `e3-idempotency/ledger`) dijalankan `run.py` dengan `-addr` atau `-alamat`; bawaan flag itu tidak diubah karena kodenya ikut dibangun ke image atau salinan yang hash-nya ditulis halaman.
+Nilai yang bukan bilangan bulat desimal atau di luar 1 sampai 65535 menghentikan runner Python, skrip shell, dan server Go dengan `GAGAL`; Dart dan Node berhenti dengan galat bawaannya, dan Makefile hanya meneruskan nilai ke proses itu. Nilai kosong sama dengan tidak diisi. Server Go yang menerima alamat lewat flag (`api-t1`, `api-t2`, `e5-payload`, `e3-idempotency/ledger`) dijalankan `run.py` dengan `-addr` atau `-alamat`; bawaan flag itu tidak diubah karena kodenya ikut dibangun ke image atau salinan yang hash-nya ditulis halaman.
 
 ### Gerbang
 
