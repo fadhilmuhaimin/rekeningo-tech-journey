@@ -12,7 +12,7 @@ services:
     volumes:
       - ./init-primary.sh:/docker-entrypoint-initdb.d/init-primary.sh:ro
     ports:
-      - "127.0.0.1:54340:5432"
+      - "127.0.0.1:${LAB_REPLIKA_PRIMARY_PORT:-54340}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U lab -d lab"]
       interval: 1s
@@ -35,4 +35,4 @@ services:
         chmod 700 /var/lib/postgresql/data
         exec postgres -c hot_standby=on -c recovery_min_apply_delay=2s
     ports:
-      - "127.0.0.1:54341:5432"
+      - "127.0.0.1:${LAB_REPLIKA_REPLICA_PORT:-54341}:5432"

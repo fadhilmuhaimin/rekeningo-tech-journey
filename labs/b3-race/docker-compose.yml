@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: lab   # kredensial lab lokal, bukan rahasia
       POSTGRES_DB: lab
     ports:
-      - "127.0.0.1:54333:5432"
+      - "127.0.0.1:${LAB_DB_PORT:-54333}:5432"   # lajur lain: LAB_DB_PORT (labs/README.md)
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U lab -d lab"]
       interval: 1s

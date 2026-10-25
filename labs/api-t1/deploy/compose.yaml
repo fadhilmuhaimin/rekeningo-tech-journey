@@ -10,5 +10,5 @@ services:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL belum diisi}
       TZ: Asia/Jakarta
     ports:
-      - "127.0.0.1:18083:8080"
+      - "127.0.0.1:${LAB_API_PORT:-18083}:8080"
     restart: unless-stopped
