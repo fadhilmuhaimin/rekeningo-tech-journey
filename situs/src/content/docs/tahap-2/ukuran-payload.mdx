@@ -1,6 +1,6 @@
 ---
 title: "2.20 Ukuran payload dan kuota HP"
-description: Payload adalah isi data di body response. Pada riwayat Budi, ukurannya ditentukan oleh kolom yang dikirim, jumlah baris, dan kompresi, dan rekaman lab menunjukkan kuota belum jadi masalah pada ukuran ini.
+description: Payload adalah isi data di body response. Pada riwayat Budi, ukurannya ditentukan oleh kolom yang dikirim, jumlah baris, dan kompresi. Pada paket 1 GB dan 20 buka per hari (Asumsi), kuota belum jadi masalah.
 ---
 import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
@@ -36,7 +36,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 </Blok>
 
-<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: pada riwayat 20 baris, gzip menghemat jauh lebih banyak byte daripada membuang satu kolom, dan kuota bulanan hampir tidak tersentuh.">
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: pada riwayat 20 baris, gzip menghemat jauh lebih banyak byte daripada membuang satu kolom. Pada paket 1 GB dan 20 buka per hari (Asumsi), kuota bulanan hampir tidak tersentuh.">
 
 Widget ini memakai ukuran dari rekaman lab e5-payload di PostgreSQL 17.11: riwayat Budi, tiga bentuk response, dengan dan tanpa gzip. Tebak dulu mana yang paling banyak memperkecil body, lalu ubah satu hal dan lihat byte serta kuotanya.
 
@@ -74,7 +74,7 @@ Kalau kamu pernah memanggil `jsonDecode` pada response besar di Flutter, kamu ta
 
 <Snippet file="labs/e5-payload/output/ledger/ukuran.txt" lines="33:51" title="Rekaman lab: labs/e5-payload/output/ledger/ukuran.txt, bagian C (body dalam byte, mentah lawan gzip)" />
 
-Body diukur setelah chunked dilepas, tanpa header HTTP dan TLS. Ukuran gzip bisa bergeser bila versi `compress/flate` Go berbeda; rekaman mencatat versi toolchain-nya.
+Body diukur setelah chunked dilepas, tanpa header HTTP dan TLS. Ukuran gzip bisa bergeser bila versi `compress/flate` Go berbeda; rekaman mencatat versi toolchain-nya. Bentuk penuh disusun lab dari skema `b3-ledger`, bukan keluaran api-t2. Tabel `akun` di api-t2 punya kolom lebih banyak, jadi 12.196 B itu batas bawah.
 
 **3. gzip mengecilkan JSON karena nama kolom berulang.** gzip memakai DEFLATE, yang mengganti string berulang dengan penunjuk ke kemunculan sebelumnya (RFC 1951 §2). Body api-t2 20 baris turun ke 20,4 % dari ukuran mentah. Bentuk penuh turun ke 13,8 %, jadi sesudah gzip ia tinggal 2,81 kali api-t2, bukan 4,16 kali. Isi gzip yang dibuka sama persis dengan isi tanpa gzip di setiap pasangan.
 
@@ -84,11 +84,11 @@ Body diukur setelah chunked dilepas, tanpa header HTTP dan TLS. Ukuran gzip bisa
 
 `gzip;q=0` berarti client tidak mau gzip, dan `br` tidak dikenal server lab, jadi keduanya dijawab tanpa coding. `Vary: Accept-Encoding` ada di setiap response karena isinya bergantung pada field itu (RFC 9110 §12.5.5). Dua byte pertama body gzip selalu `1f 8b` (RFC 1952 §2.3.1), sedangkan JSON tanpa gzip dimulai `7b 22`, yaitu `{"`.
 
-**5. api-t2 tidak mengompres, dan client Dart tidak menutup celah itu.** Di `labs/api-t2/cmd` dan `internal` tidak ada satu baris pun yang menyebut gzip, `Content-Encoding`, atau compress. Kompresi di server lab adalah middleware yang ditambahkan khusus. `HttpClient` Dart 3.11.4 selalu mengirim `Accept-Encoding: gzip`, tetapi header itu hanya menyatakan app sanggup membaca gzip.
+**5. api-t2 tidak mengompres, dan client Dart tidak menutup celah itu.** Di `labs/api-t2/cmd` dan `internal` tidak ada satu baris pun yang menyebut gzip, `Content-Encoding`, atau compress. Kompresi di server lab adalah middleware yang ditambahkan khusus. `HttpClient` Dart 3.11.4 menambahkan `Accept-Encoding: gzip` ke setiap request secara bawaan, dan kode app bisa menggantinya. Header itu hanya menyatakan app sanggup membaca gzip.
 
 <Snippet file="labs/e5-payload/output/ledger/dart-header.txt" lines="6:30" title="Rekaman lab: labs/e5-payload/output/ledger/dart-header.txt (client Dart bawaan ke server lab, tiga pengaturan)" />
 
-Bagian A menunjukkan kode app menerima 2.932 B, karena `autoUncompress` bawaannya true dan gzip dibuka sebelum sampai ke kode. Bagian B mematikannya: kode app menerima 598 B dan membukanya sendiri. Kuota HP terpakai untuk byte di kabel (598 B), sedangkan memori dan parsing memakai 2.932 B.
+Bagian A menunjukkan kode app menerima 2.932 B, karena `autoUncompress` bawaannya true dan gzip dibuka sebelum sampai ke kode. Bagian B mematikannya: kode app menerima 598 B dan membukanya sendiri. Bagian C mengganti header menjadi `identity`, dan server menjawab tanpa gzip. Kuota HP terpakai untuk byte di kabel (598 B), sedangkan memori dan parsing memakai 2.932 B.
 
 **6. Kuota: rumusnya sederhana, dan hasilnya kecil.** Rumusnya: persen kuota = byte per buka × buka per hari × 30 hari ÷ paket × 100. Paket 1 GB per bulan dan jumlah buka per hari adalah Asumsi, bukan pemakaian HP yang diukur, dan hanya body riwayat yang dihitung.
 
@@ -135,7 +135,7 @@ app.get("/akun/:id/riwayat", async (req, res) => {
   res.json(rows.map(({ id, jenis, arah, lawan, nominal, waktu }) => ({ id, jenis, arah, lawan, nominal, waktu })));
 });`} />
 
-**Yang berbeda di stack ini:** kompresi satu baris `app.use`. Ambang bawaan `1kb`: response yang lebih kecil tidak dikompres. Middleware tidak mengompres response yang membawa `Cache-Control: no-transform`. Kolom dipilih dengan menyusun objek sendiri.
+**Yang berbeda di stack ini:** kompresi satu baris `app.use`. Ambang bawaan `1kb` bersifat saran: response yang ukurannya diketahui dan lebih kecil tidak dikompres. Middleware tidak mengompres response yang membawa `Cache-Control: no-transform`. Kolom dipilih dengan menyusun objek sendiri.
 
 </Fragment>
 <Fragment slot="t2">

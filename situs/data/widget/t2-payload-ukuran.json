@@ -51,6 +51,6 @@
     "satuPersen": "Buka per hari untuk 1 % kuota"
   },
   "kalimat": "{bentuk}, {kompresi}, {baris} baris: {byte} B per buka, {banding} kali api-t2 apa adanya tanpa gzip. {buka} buka per hari memakai {kuota} % dari paket {paket} per bulan, dan 1 % kuota habis pada {satuPersen} buka per hari.",
-  "catatan": "Yang dihitung hanya body response riwayat, tanpa header, TLS, gambar, dan request lain. Paket, jumlah buka per hari, dan kolom yang dipakai layar adalah Asumsi. Parameter bentuk hanya ada di server lab, tidak di api-t2.",
+  "catatan": "Yang dihitung hanya body response riwayat, tanpa header, TLS, gambar, dan request lain. Paket, jumlah buka per hari, dan kolom yang dipakai layar adalah Asumsi. Parameter bentuk hanya ada di server lab, tidak di api-t2. Bentuk penuh disusun lab dari skema b3-ledger; akun di api-t2 punya kolom lebih banyak, jadi ukurannya batas bawah.",
   "tanpaJs": "Tanpa JavaScript, widget ini menampilkan tabel kuota rekamannya."
 }
