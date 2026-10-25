@@ -19,12 +19,13 @@ putaran 2: outbox.status = menunggu, percobaan = 2
 putaran 3: outbox.status = terkirim, percobaan = 3
 push tiruan menerima: 3 permintaan untuk 1 notifikasi_id
 # Backoff = acak antara 0 dan min(60 detik, 2 detik x 2^(percobaan-1)) (full jitter); di sini -backoff 10ms supaya cepat
+# -satu-putaran (lab): satu panggilan worker = satu putaran, jadi jumlah percobaan per panggilan tetap
 
 # --- C. 503 terus-menerus: sesudah 5 percobaan baris masuk dead-letter (status mati), tidak dikirim lagi ---
 putaran 1: outbox.status = menunggu, percobaan = 1
 putaran 2: outbox.status = menunggu, percobaan = 2
 putaran 3: outbox.status = menunggu, percobaan = 3
-putaran 4: outbox.status = mati, percobaan = 5
+putaran 4: outbox.status = menunggu, percobaan = 4
 putaran 5: outbox.status = mati, percobaan = 5
 putaran 6: outbox.status = mati, percobaan = 5
 push tiruan menerima: 5 permintaan (putaran ke-6 tidak mengirim apa pun)
@@ -63,7 +64,7 @@ worker: diklaim 1, terkirim 0, dilewati 1, ditunda 0, mati 0
 push tiruan menerima: tetap 1 permintaan
 
 # --- E. Layanan push menggantung (menerima, tidak menjawab): client berhenti di batas 3 detik, pesan sama dikirim ulang ---
-$ ./api-t3 -peran worker -sekali -backoff 100ms
+$ ./api-t3 -peran worker -sekali -backoff 100ms -satu-putaran
 worker: diklaim 1, terkirim 0, dilewati 0, ditunda 1, mati 0
 log: outbox 6 percobaan 1: push gagal sementara: Post "http://127.0.0.1:<port>/v1/pesan": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 # panggilan ke push berhenti sesudah 3 detik (batas waktu client, ADR 22); sebelum itu worker menunggu
@@ -72,7 +73,7 @@ log: outbox 6 percobaan 1: push gagal sementara: Post "http://127.0.0.1:<port>/v
 ----------+-----------
  menunggu | 1
 (1 row)
-$ ./api-t3 -peran worker -sekali -backoff 100ms
+$ ./api-t3 -peran worker -sekali -backoff 100ms -satu-putaran
 worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
 => SELECT status, percobaan FROM outbox ORDER BY id DESC LIMIT 1
  status   | percobaan

@@ -39,6 +39,7 @@ func main() {
 	bersih := flag.Bool("bersih", false, "buang outbox selesai lebih dari 7 hari dan operasi sinkron lebih dari 14 hari, lalu keluar")
 	peran := flag.String("peran", "api", "api atau worker")
 	sekali := flag.Bool("sekali", false, "worker: kirim semua yang siap, lalu keluar")
+	satuPutaran := flag.Bool("satu-putaran", false, "lab saja, dengan -sekali: hanya satu putaran (paling banyak -serentak baris), supaya jumlah percobaan per panggilan tetap")
 	pool := flag.Int("pool", 10, "batas koneksi database per proses (database/sql tanpa batas bila tidak diatur; ADR 22)")
 	pushURL := flag.String("push-url", "http://127.0.0.1:"+portLab(18181), "alamat layanan push (tiruan lokal)")
 	pushBatas := flag.Duration("push-timeout", push.BatasBawaan, "batas waktu satu panggilan push (ADR 22); 0 = tanpa batas")
@@ -103,7 +104,7 @@ func main() {
 		log.Printf("PERINGATAN: mode rentan %s menyala", *rentan)
 	}
 	if *peran == "worker" {
-		jalankanWorker(r, db, *pushURL, *pushBatas, *sekali, *rentan, worker.Konfigurasi{
+		jalankanWorker(r, db, *pushURL, *pushBatas, *sekali, *satuPutaran, *rentan, worker.Konfigurasi{
 			Serentak: *serentak, Klaim: *klaim, Selang: *selang, MaksPercobaan: *maksPercobaan, DasarBackoff: *dasarBackoff,
 			MaksBackoff: worker.Bawaan().MaksBackoff, UrutKelas: *rentan != "urut-waktu", Kursor: *rentan == "kursor",
 			HentiSebelumTandai: *henti})
@@ -190,14 +191,18 @@ func bukaDB(url string, pool int, idleTx time.Duration, peran string) (*sql.DB, 
 
 // --8<-- [end:buka-db]
 
-func jalankanWorker(r repo.Repo, db *sql.DB, pushURL string, batas time.Duration, sekali bool, rentan string, cfg worker.Konfigurasi) {
+func jalankanWorker(r repo.Repo, db *sql.DB, pushURL string, batas time.Duration, sekali, satuPutaran bool, rentan string, cfg worker.Konfigurasi) {
 	w := worker.Baru(r, push.Baru(pushURL, batas), cfg)
 	log.Printf("worker mulai (serentak %d, klaim %s, push timeout %s, kelas %t, kursor %t)", cfg.Serentak, cfg.Klaim, batas,
 		cfg.UrutKelas, cfg.Kursor)
 	ctx, batal := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer batal()
 	if sekali {
-		hasil, err := w.Kuras(ctx)
+		kerja := w.Kuras
+		if satuPutaran {
+			kerja = w.Putaran
+		}
+		hasil, err := kerja(ctx)
 		if err != nil {
 			log.Fatal(err)
 		}

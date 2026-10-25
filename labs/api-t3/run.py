@@ -318,7 +318,7 @@ def rekam_push():
     kirim_satu(budi)
     for putaran in (1, 2, 3):
         time.sleep(0.1)
-        d.worker(["-backoff", "10ms"], tampil=False)
+        d.worker(["-backoff", "10ms", "-satu-putaran"], tampil=False)
         st = sql("SELECT status, percobaan FROM outbox ORDER BY id DESC LIMIT 1", tampil=False)[0]
         catat(f"putaran {putaran}: outbox.status = {st[0]}, percobaan = {st[1]}")
     harap(sql("SELECT status, percobaan FROM outbox ORDER BY id DESC LIMIT 1", tampil=False)[0], ("terkirim", 3), "terkirim di percobaan 3")
@@ -326,6 +326,7 @@ def rekam_push():
     catat(f"push tiruan menerima: {diterima['jumlah']} permintaan untuk {diterima['notifikasi_berbeda']} notifikasi_id")
     harap((diterima["jumlah"], diterima["notifikasi_berbeda"]), (3, 1), "tiga permintaan, satu notifikasi_id")
     catat("# Backoff = acak antara 0 dan min(60 detik, 2 detik x 2^(percobaan-1)) (full jitter); di sini -backoff 10ms supaya cepat")
+    catat("# -satu-putaran (lab): satu panggilan worker = satu putaran, jadi jumlah percobaan per panggilan tetap")
 
     bagian("C. 503 terus-menerus: sesudah 5 percobaan baris masuk dead-letter (status mati), tidak dikirim lagi")
     d.push_reset()
@@ -333,7 +334,7 @@ def rekam_push():
     kirim_satu(budi)
     for putaran in range(1, 7):
         time.sleep(0.8)   # lebih lama dari batas backoff 10 ms x 2^4 = 160 ms, ditambah bufer
-        d.worker(["-backoff", "10ms"], tampil=False)
+        d.worker(["-backoff", "10ms", "-satu-putaran"], tampil=False)
         st = sql("SELECT status, percobaan FROM outbox ORDER BY id DESC LIMIT 1", tampil=False)[0]
         catat(f"putaran {putaran}: outbox.status = {st[0]}, percobaan = {st[1]}")
     harap(sql("SELECT status, percobaan FROM outbox ORDER BY id DESC LIMIT 1", tampil=False)[0], ("mati", 5), "dead-letter di percobaan 5")
@@ -365,13 +366,13 @@ def rekam_push():
     d.push_mode("gantung", kali=1)
     kirim_satu(budi)
     t0 = time.time()
-    d.worker(["-backoff", "100ms"])
+    d.worker(["-backoff", "100ms", "-satu-putaran"])
     lama = time.time() - t0
     harap(2.9 < lama < 4.5, True, "client push berhenti di batas 3 detik")
     catat(f"# panggilan ke push berhenti sesudah {round(lama)} detik (batas waktu client, ADR 22); sebelum itu worker menunggu")
     sql("SELECT status, percobaan FROM outbox ORDER BY id DESC LIMIT 1")
     time.sleep(0.3)
-    d.worker(["-backoff", "100ms"])
+    d.worker(["-backoff", "100ms", "-satu-putaran"])
     sql("SELECT status, percobaan FROM outbox ORDER BY id DESC LIMIT 1")
     diterima = d.push_diterima()
     harap((diterima["jumlah"], diterima["notifikasi_berbeda"], diterima["notifikasi_ganda"]), (2, 1, 1), "notifikasi sama diterima dua kali")
