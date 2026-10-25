@@ -1,4 +1,4 @@
-"""Uji pembaca port lab (keputusan 863): labs/lab_env.py dan labs/lab_env.sh harus sepakat pada nilai yang wajar dan
+"""Uji pembaca port lab (keputusan 864): labs/lab_env.py dan labs/lab_env.sh harus sepakat pada nilai yang wajar dan
 menolak nilai yang aneh dengan GAGAL, bukan diam-diam memakai nilai lain.
 
 Aritmetika shell membaca "abc" sebagai 0 dan "0100" sebagai oktal 64; lab_env.sh memeriksa nilainya dulu. Tes ini
