@@ -1,0 +1,61 @@
+{
+  "id": "t2-tim-infra-gabungan",
+  "judul": "Kenapa CI hijau di PR Nadia belum berarti main aman",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t2 · tim.txt bagian C, varian (file contoh)"
+  },
+  "baris": [
+    {
+      "label": "Main lama",
+      "sub": "pemeriksaan di dua tempat",
+      "simpul": [
+        {
+          "teks": "PR Raka",
+          "sub": "hapus salinan di Kirim"
+        },
+        {
+          "teks": "PR Nadia",
+          "sub": "hapus salinan di catatJurnal"
+        }
+      ]
+    },
+    {
+      "label": "CI tiap PR",
+      "sub": "PR digabung dengan main yang lama",
+      "simpul": [
+        {
+          "teks": "PR Raka hijau",
+          "sub": "2 lolos",
+          "nada": "good"
+        },
+        {
+          "teks": "PR Nadia hijau",
+          "sub": "2 lolos",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Merge",
+      "sub": "Raka dulu, lalu Nadia",
+      "simpul": [
+        {
+          "teks": "Main berubah",
+          "sub": "CI PR Nadia tidak berulang"
+        },
+        {
+          "teks": "Hasil gabungan",
+          "sub": "0 pemanggil",
+          "nada": "warn"
+        },
+        {
+          "teks": "CI di main merah",
+          "sub": "1 gagal",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Tidak ada CI yang pernah menguji gabungan kedua perubahan sebelum merge."
+}

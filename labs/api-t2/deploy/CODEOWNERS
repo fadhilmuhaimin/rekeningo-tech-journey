@@ -1,0 +1,7 @@
+# Lab 2.24 · CODEOWNERS Tahap 2 (keputusan 831). Contoh berkas; tidak dijalankan di GitHub dalam panduan ini.
+# Disalin ke .github/CODEOWNERS. Pola mengikuti aturan gitignore, dan pola terakhir yang cocok menang.
+# Beberapa pemilik di satu baris: persetujuan salah satunya cukup. Penulis PR tidak bisa menyetujui PR-nya sendiri,
+# jadi PR Raka butuh Nadia dan PR Nadia butuh Raka.
+*                   @raka @nadia
+/internal/service/  @raka @nadia
+/migrasi/           @raka @nadia

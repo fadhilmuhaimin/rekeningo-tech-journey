@@ -1,0 +1,96 @@
+{
+  "istilah": "Tes integrasi",
+  "sehari_hari": "Tes unit memeriksa satu fungsi dengan angka yang kamu tulis sendiri. Tes integrasi memanggil pintu masuk yang sama seperti app, lewat kode, sampai ke database sungguhan, lalu memeriksa akibatnya. Ia menangkap aturan yang masih benar sebagai fungsi tetapi tidak lagi dipanggil dari alur uang.",
+  "cerita": [
+    {
+      "rujukan": "t2-m14",
+      "teks": "`TestBatasHarian` memanggil `periksaBatas` dan tetap lolos saat pemanggilnya hilang. Hanya dua tes yang memanggil `Kirim` sampai PostgreSQL yang gagal."
+    },
+    {
+      "rujukan": "t2-tim-infra",
+      "teks": "ADR 18 mewajibkan tes seperti itu berjalan di CI dengan PostgreSQL sungguhan. Langkah CI gagal bila ada tes yang dilewati."
+    }
+  ],
+  "mekanisme": [
+    "Tes membuka koneksi ke database yang dibuat khusus untuk tes, bukan database produksi. Tes berhenti bila nama database atau schema bukan milik tes.",
+    "Tes memanggil pintu masuk aturan, misalnya `Kirim` di service atau endpoint HTTP, bukan fungsi aturannya langsung.",
+    "Tes memeriksa akibatnya di database: saldo, jumlah posting, dan penolakan. Tiap tes menyiapkan datanya sendiri dan tidak bergantung pada tes lain.",
+    "CI menyalakan database sebelum tes dan mewajibkan tes berjalan. Tes yang dilewati diperlakukan sebagai kegagalan."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, PostgreSQL 17.11",
+      "teks": "`go test` dengan `TEST_DATABASE_URL` menjalankan 20 tes ke schema `tahap2_tes`. Dengan `TES_DB_WAJIB=1`, paket gagal bila database tidak ada, dan langkah CI gagal bila ada tes yang dilewati.",
+      "rekaman": "labs/api-t2/output/tim.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "Node.js v26.12.1",
+      "teks": "`node --test` menjalankan tes proyek. Opsi `skip` menandai tes dilewati, dan proses keluar 1 bila ada tes yang gagal. Tes yang butuh database perlu penjaga sendiri supaya tidak dilewati diam-diam.",
+      "dokumentasi": "https://nodejs.org/api/test.html"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.x",
+      "teks": "Trait `RefreshDatabase` menjalankan tiap tes di dalam satu transaction database dan tidak memigrasi bila skemanya sudah mutakhir. Tes dua request bersamaan butuh koneksi yang masing-masing melakukan commit.",
+      "dokumentasi": "https://laravel.com/docs/13.x/database-testing"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1",
+      "teks": "Tes yang butuh database memakai database kosong terpisah berawalan `test_`, yang dihapus sesudah semua tes selesai. Di PostgreSQL, `USER` butuh hak membuat database.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/topics/testing/overview/"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4, dokumentasi 4.0.0",
+      "teks": "`withServerpod` memanggil endpoint dengan server dan database sungguhan. Tiap grup memakai database sementara, dan penulisan tiap tes di-rollback saat tes selesai. Perintahnya `dart test`.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/testing/get-started"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "Supabase CLI 2.122.0",
+      "teks": "`supabase test db` menjalankan tes pgTAP untuk aturan yang hidup di database. Contoh CI di dokumentasi menjalankan `supabase start` lebih dulu, pada setiap push dan pull request ke `main`.",
+      "dokumentasi": "https://supabase.com/docs/guides/local-development/testing/overview"
+    }
+  },
+  "jebakan": [
+    "Tes yang melewati dirinya bila database tidak ada. `go test` keluar 0 dan CI tampak hijau (rekaman `m14.txt` bagian C dan `tim.txt` bagian E, kasus 5).",
+    "Mengganti database dengan tiruan yang berperilaku lain. Lock, constraint, dan isolation level hanya terbukti di mesin yang sama dengan produksi.",
+    "Tes yang bergantung pada urutan atau data tes lain. Satu tes membuat akun dan bukunya sendiri supaya urutan tidak mengubah hasil."
+  ],
+  "terkait": [
+    "Semantic conflict",
+    "Invarian",
+    "Pull request review",
+    "Branch protection",
+    "Testcontainers"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-177",
+      "judul": "GitHub Docs, Creating PostgreSQL service containers",
+      "url": "https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers",
+      "catatan": "Service container PostgreSQL di workflow: health check pg_isready, port 5432 dipetakan, dan runner Linux. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-179",
+      "judul": "Dokumentasi tes Node.js v26.12.1, Laravel 13.x, Django 6.1, Serverpod 4.0.0, dan Supabase",
+      "url": "https://nodejs.org/api/test.html",
+      "catatan": "Cara tiap stack menyediakan database untuk tes dan menjalankannya di CI. Semua dibuka 25 Oktober 2026 dan tidak dijalankan."
+    },
+    {
+      "riset": "R2-173",
+      "judul": "Go, paket testing",
+      "url": "https://pkg.go.dev/testing#T.SkipNow",
+      "catatan": "Tes yang dilewati bukan tes yang gagal, dan M.Run mengembalikan exit code nol bila semua tes lolos. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-178",
+      "judul": "Rekaman lab api-t2, tim.txt",
+      "rekaman": "labs/api-t2/output/tim.txt",
+      "catatan": "Langkah CI dijalankan pada kode asli, kode tanpa pemeriksaan batas harian, dan kode dengan dua tes yang dilewati."
+    }
+  ]
+}

@@ -49,6 +49,8 @@
 *[backoff]: Jeda yang makin panjang di antara percobaan ulang, ditambah keacakan (jitter) supaya banyak app tidak mengulang di detik yang sama.
 *[BFF]: Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile.
 *[Backend for Frontend]: Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile.
+*[Branch protection]: Aturan di GitHub tentang apa yang boleh masuk ke satu branch: persetujuan wajib, status check wajib, dan larangan force push.
+*[branch protection]: Aturan di GitHub tentang apa yang boleh masuk ke satu branch: persetujuan wajib, status check wajib, dan larangan force push.
 *[Buku ledger]: Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya.
 *[buku ledger]: Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya.
 *[Cache]: Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli.
@@ -57,6 +59,7 @@
 *[Continuous Integration]: Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung.
 *[Circuit breaker]: Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda.
 *[circuit breaker]: Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda.
+*[CODEOWNERS]: File yang menunjuk pemilik tiap bagian repo, supaya GitHub meminta mereka me-review PR yang menyentuhnya.
 *[COMMIT]: Perintah yang membuat semua perubahan dalam transaction menjadi permanen dan terlihat oleh koneksi lain.
 *[Connection pool]: Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request.
 *[connection pool]: Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request.
@@ -183,6 +186,8 @@
 *[Problem Details]: Format error JSON standar dari RFC 9457, dengan field seperti type, title, status, dan detail.
 *[Proxy]: Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.
 *[proxy]: Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.
+*[Pull request review]: Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung.
+*[pull request review]: Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung.
 *[Query plan]: Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.
 *[query plan]: Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.
 *[Queue]: Daftar pekerjaan yang menunggu diproses oleh worker, satu per satu atau paralel.
@@ -242,6 +247,10 @@
 *[stale]: Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache.
 *[Stateless]: Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun.
 *[stateless]: Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun.
+*[Tes integrasi]: Tes yang menjalankan kode bersama komponen sungguhan di sekitarnya, misalnya database, bukan tiruannya.
+*[tes integrasi]: Tes yang menjalankan kode bersama komponen sungguhan di sekitarnya, misalnya database, bukan tiruannya.
+*[Testcontainers]: Pustaka yang menyalakan container, misalnya PostgreSQL, dari dalam kode tes dan menunggu sampai siap dipakai.
+*[testcontainers]: Pustaka yang menyalakan container, misalnya PostgreSQL, dari dalam kode tes dan menunggu sampai siap dipakai.
 *[Throughput]: Jumlah pekerjaan yang selesai per satuan waktu, mis. request per detik.
 *[throughput]: Jumlah pekerjaan yang selesai per satuan waktu, mis. request per detik.
 *[Timeout]: Batas waktu menunggu sebelum sebuah panggilan dianggap gagal.

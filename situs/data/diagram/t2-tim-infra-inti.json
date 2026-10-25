@@ -1,0 +1,43 @@
+{
+  "id": "t2-tim-infra-inti",
+  "judul": "Dua PR dari M14: tanpa dan dengan aturan tim",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab · tim.txt bagian C"
+  },
+  "baris": [
+    {
+      "label": "Varian C",
+      "sub": "tanpa mutakhir",
+      "simpul": [
+        {
+          "teks": "PR hijau",
+          "sub": "diuji sendiri-sendiri",
+          "nada": "system"
+        },
+        {
+          "teks": "main merah",
+          "sub": "sesudah merge",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "ADR 18",
+      "sub": "C",
+      "simpul": [
+        {
+          "teks": "diuji ulang",
+          "sub": "bersama main, sebelum merge",
+          "nada": "system"
+        },
+        {
+          "teks": "merge ditolak",
+          "sub": "main tetap hijau",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Hasil dua PR yang digabung baru diuji bila branch harus mutakhir sebelum merge."
+}

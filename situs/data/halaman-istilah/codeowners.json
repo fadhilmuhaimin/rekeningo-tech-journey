@@ -1,0 +1,42 @@
+{
+  "istilah": "CODEOWNERS",
+  "sehari_hari": "CODEOWNERS adalah file teks yang menunjuk pemilik tiap bagian repo. Saat sebuah PR menyentuh bagian itu, GitHub meminta pemiliknya me-review. Bila branch protection mewajibkan review pemilik, PR menunggu persetujuan mereka.",
+  "cerita": [
+    {
+      "rujukan": "t2-tim-infra",
+      "teks": "File contoh Rekeningo menulis `@raka @nadia` untuk folder service dan migrasi, jadi PR Raka menunggu Nadia dan sebaliknya."
+    }
+  ],
+  "mekanisme": [
+    "File diletakkan di `.github/`, di root, atau di `docs/`, dan GitHub memakai yang pertama ditemukan.",
+    "Tiap baris berisi pola file dan satu pemilik atau lebih. Polanya seperti `.gitignore`, dan pola terakhir yang cocok menang.",
+    "Beberapa pemilik harus ada di baris yang sama. Persetujuan salah satunya cukup.",
+    "PR yang mengubah file yang cocok meminta pemiliknya me-review. Dengan `require_code_owner_reviews`, merge diblokir sampai mereka me-review."
+  ],
+  "stack": {
+    "lihat": "tes-integrasi",
+    "teks": "CODEOWNERS adalah fitur platform Git, bukan fitur stack, jadi sama untuk keenam stack. Yang berbeda hanya jalur folder yang ditunjuk."
+  },
+  "jebakan": [
+    "Menulis pemilik di baris terpisah untuk pola yang sama. Dokumentasi menulis bahwa pola itu hanya cocok dengan pemilik yang disebut terakhir.",
+    "Menunjuk satu orang sebagai pemilik folder yang paling sering ia ubah sendiri. Penulis tidak bisa menyetujui PR-nya sendiri, jadi PR itu tidak punya pemeriksa (penalaran dari dokumentasi, tidak dijalankan)."
+  ],
+  "terkait": [
+    "Pull request review",
+    "Branch protection"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-176",
+      "judul": "GitHub Docs, About code owners",
+      "url": "https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners",
+      "catatan": "Lokasi file, aturan pola terakhir menang, beberapa pemilik di satu baris, persetujuan salah satunya cukup, dan batas ukuran 3 MB. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-178",
+      "judul": "File contoh labs/api-t2/deploy/CODEOWNERS",
+      "rekaman": "labs/api-t2/deploy/CODEOWNERS",
+      "catatan": "File contoh untuk Rekeningo. Tidak dijalankan di GitHub."
+    }
+  ]
+}
