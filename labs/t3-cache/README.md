@@ -64,7 +64,7 @@ Angka yang bergantung pada kecepatan mesin tidak ditulis sebagai angka tunggal. 
 | Redis mati saat tulis: hapus kunci gagal, entri lama kembali bersama dump.rdb sesudah Redis hidup | `gagal.txt` C | Rekaman lab |
 | Lima PATCH gagal dan lima bacaan: 1 baca database (benar) lawan 6 (hapus kunci selalu) | `gagal.txt` D | Rekaman lab |
 | Galat baca database: entri yang hidup tetap melayani, kunci yang kosong tidak diisi galat | `gagal.txt` E | Rekaman lab |
-| 86 byte per item, 41.279 byte untuk 480 item; 2.400 item = 206 KB | `beban.txt` A (satu bacaan; 206 KB dihitung) | Rekaman lab dan hitungan |
+| 86 byte per item (41.279 byte untuk 480 item di Jakarta); enam kota, 2.400 item = 206.551 byte (207 KB) | `beban.txt` A, enam jawaban `GET /katalog?kota=N` | Rekaman lab |
 | R3-37 menulis 720 KB (300 byte per item) | Tebakan riset, bukan ukuran | Asumsi; selisih dicatat |
 | 52 bacaan tanpa cache: 52 baca database; dengan Redis: 13 baca database dan 39 hit | `beban.txt` B dan C | Rekaman lab |
 | W per baca database di bawah 20 ms dan L rata-rata di bawah 0,1 koneksi | `beban.txt` B, batas | Rekaman lab (batas) |
@@ -80,7 +80,7 @@ Angka yang bergantung pada kecepatan mesin tidak ditulis sebagai angka tunggal. 
 6. Client cache wajib punya batas waktu per perintah. Dengan batas 100 ms, Redis yang menggantung mengubah lima bacaan menjadi lima baca database yang tetap 200 (`gagal.txt` A). Dengan batas 5 detik satu bacaan menunggu sampai Redis menjawab. `CLIENT PAUSE ALL` menahan semua perintah tetapi menerima koneksi. Ia meniru Redis yang menggantung, bukan jaringan yang putus (R3-66). Dari kode (tidak diukur): tanpa circuit breaker, tiap bacaan tetap membayar satu batas waktu selama Redis menggantung.
 7. Galat backend bukan alasan menghapus entri atau menyimpan hasil. Mode benar tidak menghapus kunci saat PATCH ditolak database dan tidak menyimpan galat baca (`gagal.txt` D dan E). Mode `selalu` menjadikan tiap galat tulis satu baca database tambahan (6 lawan 1). Ini versi kecil dari kasus Facebook 2010 (R3-25). Client Facebook menghapus kunci saat galat; di lab penghapusan terjadi di jalur tulis, bukan di jalur baca.
 8. `SCAN katalog:<kota>:*` untuk hapus awalan bukan operasi atomik. Dokumentasi Redis menulis elemen yang tidak ada terus selama iterasi bisa muncul atau tidak (R3-67). Entri yang diisi pembaca di tengah iterasi bisa terlewat. Lab tidak merekam perlombaan itu.
-9. Ukuran katalog lebih kecil dari tebakan riset. Satu item 86 byte di JSON lab; 2.400 item sekitar 206 KB, bukan 720 KB (R3-37 memakai 300 byte per item, R3-69). Kesimpulan "tidak perlu cache" tidak berubah.
+9. Ukuran katalog lebih kecil dari tebakan riset. Satu item 86 byte di JSON lab; 2.400 item di enam kota 206.551 byte (207 KB, diukur), bukan 720 KB (R3-37 memakai 300 byte per item, R3-69). Kesimpulan "tidak perlu cache" tidak berubah.
 10. Nilai kunci: lab menyimpan JSON `[]WarungMenu` per kunci. Satu kota punya 13 kunci di rekaman beban (satu kota dan dua belas warung). R3-37 menulis 60 kunci untuk enam kota; lab hanya mengukur Jakarta.
 
 ## Uji mutasi

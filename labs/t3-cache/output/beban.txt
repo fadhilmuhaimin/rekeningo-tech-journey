@@ -7,8 +7,8 @@
 # --- A. Ukuran katalog dari rekaman ---
 GET /katalog (Jakarta): 12 warung, 480 item, 41279 byte = 86 byte per item
 GET /katalog?warung=418: 40 item, 3459 byte
-2.400 item enam kota (dihitung, 2.400 x 86 byte): 206.395 byte = 206 KB; R3-37 menulis 720 KB (300 byte per item, Asumsi)
-# Selisih: R3-37 memakai 300 byte per item sebagai tebakan; JSON katalog lab hanya 6 field pendek. Angka lab dipakai.
+GET /katalog?kota=1 sampai 6: 2.400 item, 206.551 byte = 207 KB (diukur dari enam jawaban); R3-37 menulis 720 KB (300 byte per item, Asumsi)
+# Selisih: R3-37 memakai 300 byte per item sebagai tebakan; JSON katalog lab hanya enam field pendek. Angka lab dipakai.
 
 # --- B. Tanpa cache: tiap bacaan membaca database ---
 52 bacaan -> baca database 52, hit 0

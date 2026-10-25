@@ -579,10 +579,17 @@ def rekam_beban():
     catat(f"GET /katalog (Jakarta): {len(kat['warung'])} warung, {item} item, {len(isi)} byte = {per_item} byte per item")
     s, isi1 = curl("GET", f"/katalog?warung={ANI}", token=budi, port=PORT, tampil=False)
     catat(f"GET /katalog?warung={ANI}: 40 item, {len(isi1)} byte")
-    total = round(2400 * len(isi) / item)
-    catat("2.400 item enam kota (dihitung, 2.400 x %d byte): %s byte = %d KB; R3-37 menulis 720 KB (300 byte per item, Asumsi)"
-          % (per_item, f"{total:,}".replace(",", "."), round(total / 1000)))
-    catat("# Selisih: R3-37 memakai 300 byte per item sebagai tebakan; JSON katalog lab hanya 6 field pendek. Angka lab dipakai.")
+    ukuran_kota, item_kota = [], 0
+    for kota in range(1, 7):
+        s, isi_k = curl("GET", f"/katalog?kota={kota}", token=budi, port=PORT, tampil=False)
+        harap(s, 200, f"katalog kota {kota}")
+        ukuran_kota.append(len(isi_k))
+        item_kota += sum(len(w["menu"]) for w in j(isi_k)["warung"])
+    harap((len(ukuran_kota), item_kota), (6, 2400), "enam kota, 2.400 item")
+    total = sum(ukuran_kota)
+    catat("GET /katalog?kota=1 sampai 6: 2.400 item, %s byte = %d KB (diukur dari enam jawaban); R3-37 menulis 720 KB (300 byte per item, Asumsi)"
+          % (f"{total:,}".replace(",", "."), round(total / 1000)))
+    catat("# Selisih: R3-37 memakai 300 byte per item sebagai tebakan; JSON katalog lab hanya enam field pendek. Angka lab dipakai.")
     d.stop(PORT)
 
     bagian("B. Tanpa cache: tiap bacaan membaca database")
