@@ -6,6 +6,8 @@ Server, data awal, dan akun adalah milik `labs/api-t3` lewat `dasar_t3.py`, tanp
 
 Sertifikat dan kunci dibuat acak setiap kali lab jalan di folder sementara di luar repo, lalu dihapus. Tidak ada sertifikat atau kunci yang di-commit.
 
+Proxy dan server tepi hanya mau mendengar dan meneruskan ke loopback: `go/internal/pagar` menolak alamat lain (termasuk `0.0.0.0` dan alamat tanpa host) dengan `GAGAL:` sebelum membuka port. Lab memberi `127.0.0.1` ke semua program, jadi pagar ini hanya bekerja bila ada yang menjalankan program Go-nya sendiri dengan alamat lain.
+
 ## Menjalankan
 
 ```bash
@@ -17,7 +19,7 @@ make -C labs/t3-mitm test                     # tes Go (pki, tepi, mitm) dan dar
 make -C labs/t3-mitm mutasi                   # uji mutasi, ±2 menit (bagian "Uji mutasi")
 ```
 
-Butuh Docker, Go, dan Dart (`dart pub get` memakai dio 5.11.0 dan crypto 3.0.7 dari `dart/pubspec.lock`). Lajur kerja lain memakai `COMPOSE_PROJECT_NAME`, `LAB_DB_PORT`, dan `LAB_PORT_OFFSET` (`labs/README.md`). Lab ini memakai port dasar `api-t3` (18180) ditambah 18190 sampai 18193, jadi tidak boleh jalan bersamaan dengan `api-t3`, `t3-pool`, atau `t3-outbox` di lajur yang sama. 
+Butuh Docker, Go, dan Dart. Bila Go atau Dart tidak ada di PATH, lab berhenti dengan `GAGAL:` yang menyebut alatnya. `dart pub get` memakai dio 5.11.0 dan crypto 3.0.7 dari `dart/pubspec.lock`. Lajur kerja lain memakai `COMPOSE_PROJECT_NAME`, `LAB_DB_PORT`, dan `LAB_PORT_OFFSET` (`labs/README.md`). Lab ini memakai port dasar `api-t3` (18180) ditambah 18190 sampai 18193, jadi tidak boleh jalan bersamaan dengan `api-t3`, `t3-pool`, atau `t3-outbox` di lajur yang sama. 
 
 Setiap bagian membuat ulang schema `tahap3` dan data awalnya dari nol. Lab gagal keras bila port dipakai proses lain atau hasilnya meleset dari yang diharapkan.
 
@@ -77,11 +79,22 @@ Pin, serial, dan hash sertifikat acak di setiap run, jadi rekaman memakai nama (
 7. HSTS tidak melindungi permintaan pertama (RFC 6797 §14.6) dan tidak berlaku untuk alamat IP (§8.1.1); ia melindungi dasbor, bukan app Flutter.
 8. Log yang menyalin header membuat token terbaca oleh siapa pun yang membaca log. Redaksi harus mencakup Authorization dan Cookie.
 
+## Dependency lab
+
+Hanya client Dart yang punya dependency di luar SDK, dan hanya untuk lab ini (`dart/pubspec.yaml`, versi persis, `pubspec.lock` di-commit):
+
+| Paket | Versi | Lisensi | Alasan |
+|---|---|---|---|
+| dio | 5.11.0 | MIT | Yang diuji adalah perilaku dio (klaim cfug/dio#2418), jadi dio tidak bisa diganti `dart:io`. 5.11.1 (2026-09-04) memuat baris yang sama di `io_adapter.dart` dan tidak menyebut `validateCertificate`; 5.11.0 dipakai karena itu yang dibaca dan dijalankan |
+| crypto | 3.0.7 | BSD-3-Clause | SHA-256 untuk pin; `dart:io` tidak punya fungsi hash |
+
+Program Go memakai stdlib saja (`go/go.mod` tanpa `require`). Keputusan 979.
+
 ## Yang tidak ada di lab ini
 
 - **mitmproxy v12.3.0: Tidak dijalankan.** Brief tugas menyebut mitmproxy di container. Lab memakai proxy tiruan ±150 baris Go (stdlib) supaya CA, nama sertifikat, dan perilakunya terkendali dan tanpa image baru. Yang direkam (menerbitkan sertifikat palsu per nama, membaca dan mengubah request) sama dengan yang dilakukan alat seperti mitmproxy. Lab tidak diuji dengan mitmproxy (keputusan 977).
 - **Flutter di Android atau iOS: Tidak dijalankan.** Client adalah Dart CLI di macOS. `HttpClient` dari dart:io adalah dasar dio dan client Flutter. Perilaku di Android dan iOS (daftar akar sistem, Network Security Config) tidak direkam [perlu verifikasi].
-- **dio 5.11.1 dan PR cfug/dio#2512: Tidak dijalankan.** Changelog 5.11.1 (2026-09-04) tidak menyebut `validateCertificate`. PR #2512 terbuka saat lab ditulis dan menambah `connectionFactory` di dalam dio (R3-74).
+- **dio 5.11.1 dan PR cfug/dio#2512: Tidak dijalankan.** Changelog 5.11.1 (2026-09-04) tidak menyebut `validateCertificate`, dan kode `io_adapter.dart` di tag `dio_v5.11.1` memuat `request.close()` di baris 161 dan `validateCertificate!(` di baris 195, sama dengan 5.11.0 (dibaca, tidak dijalankan). PR #2512 terbuka saat lab ditulis dan menambah `connectionFactory` di dalam dio (R3-74).
 - **flutterfire#17602: Tidak dijalankan.** Isu itu tentang token FCM, bukan TLS; milik lab `t3-outbox` dan halaman 3.13.
 - **HSTS di browser dan preload list: Tidak dijalankan.** Client HSTS yang diuji hanya `curl --hsts` (curl 8.7.1 di macOS; versi tidak direkam).
 - **Pin Dart di Flutter Web: Tidak dijalankan.**
@@ -92,7 +105,7 @@ Pin, serial, dan hash sertifikat acak di setiap run, jadi rekaman memakai nama (
 
 ## Uji mutasi
 
-`make -C labs/t3-mitm mutasi` mengubah satu hal di kode, menjalankan bagian rekaman yang menjaganya, lalu mengembalikan file-nya. Rekaman harus gagal. Hasil terakhir (2026-10-25):
+`make -C labs/t3-mitm mutasi` mengubah satu hal di kode, menjalankan bagian rekaman yang menjaganya, lalu mengembalikan file-nya. Rekaman harus gagal lewat assertion lab (`GAGAL: ...`) atau tes Go yang gagal (`--- FAIL`). Kompilasi rusak atau traceback juga membuat exit tidak nol, tetapi `mutasi.py` menandainya `TANPA-SEBAB` dan menghitungnya menyimpang. Hasil terakhir (2026-10-25):
 
 | Mutasi | Perubahan | Bagian | Hasil |
 |---|---|---|---|
@@ -111,9 +124,11 @@ Pin, serial, dan hash sertifikat acak di setiap run, jadi rekaman memakai nama (
 | `tanpa-hsts` | server tepi tanpa header HSTS | `hsts` | Dibunuh: header HSTS tidak ada di jawaban TLS |
 | `hsts-di-port-http` | port HTTP ikut mengirim HSTS | `hsts` | Dibunuh: port HTTP mengirim HSTS |
 | `proxy-tidak-mencatat-handshake` | proxy tidak mencatat handshake yang masuk | `pin` | Dibunuh: pemeriksaan handshake gagal |
+| `proxy-bind-semua-antarmuka` | proxy diminta mendengar di `0.0.0.0` | `m26` | Dibunuh: proxy berhenti dengan `GAGAL:` bukan loopback |
+| `pagar-menerima-semua-alamat` | `pagar.Loopback` menerima alamat apa saja | `go-test` | Dibunuh oleh tes Go `internal/pagar` |
 | `daftar-akar-sistem-ikut` | client memakai akar sistem selain CA yang disebut | `m26` | **Lolos** (lihat di bawah) |
 
-Lima belas dari enam belas mutasi dibunuh. Satu lolos dan memang tidak bisa dibunuh oleh rekaman: `SecurityContext(withTrustedRoots: true)` menambah akar sistem, dan CA Dimas tidak ada di trust store mesin ini, jadi hasilnya sama. Karena itu `withTrustedRoots: false` hanya menjaga lab tidak bergantung pada trust store, dan tidak terbukti oleh rekaman.
+Tujuh belas dari delapan belas mutasi dibunuh. Satu lolos dan memang tidak bisa dibunuh oleh rekaman: `SecurityContext(withTrustedRoots: true)` menambah akar sistem, dan CA Dimas tidak ada di trust store mesin ini, jadi hasilnya sama. Karena itu `withTrustedRoots: false` hanya menjaga lab tidak bergantung pada trust store, dan tidak terbukti oleh rekaman.
 
 ## Keterbatasan uji
 
