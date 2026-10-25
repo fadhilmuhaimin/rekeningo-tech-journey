@@ -1,0 +1,14 @@
+# Lab t3-dasbor · Percobaan WebAuthn dengan authenticator virtual (R3-20)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18200
+# Rekaman dari database bersih: make -C labs/t3-dasbor run (keputusan 974).
+
+# --- Percobaan WebAuthn dengan authenticator virtual lewat Chrome DevTools Protocol (R3-20) ---
+$ node driver.js webauthn localhost:<port dasbor> localhost (CDP WebAuthn, authenticator virtual)
+{"authenticatorId": "<id authenticator virtual>", "id": "ada", "langkah": "navigator.credentials.create", "ok": true}
+# Rekaman lab: ceremony pembuatan passkey sisi browser (navigator.credentials.create) selesai tanpa
+# interaksi manusia lewat authenticator virtual CDP. R3-20 menulis halaman CDP WebAuthn sebagai
+# "pengalihan" [perlu verifikasi]: di Playwright/Chromium versi lab ini, domain WebAuthn CDP
+# menjalankan ceremony sungguhan (bukan hanya pengalihan ke halaman lain).
+# Tidak dijalankan: login passkey penuh (registrasi tersimpan di server, verifikasi signature oleh
+# relying party, assertion login) — itu butuh pustaka WebAuthn sisi server (mis. go-webauthn) sebagai
+# dependency baru di luar lingkup dasbor kecil ini; perlu ADR tersendiri (README "Yang belum ada").

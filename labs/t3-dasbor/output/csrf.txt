@@ -1,0 +1,34 @@
+# Lab t3-dasbor · CSRF: tanpa token, SameSite=Lax saja, token saat SameSite tidak menahan, dan keduanya (R3-19)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18200
+# Rekaman dari database bersih: make -C labs/t3-dasbor run (keputusan 974).
+
+# --- A. tanpa token CSRF, tanpa pemeriksaan Origin/Sec-Fetch-Site, cookie SameSite=None;Secure ---
+# harga produk 1 (Nasi goreng, Warung Ani) sebelum: Rp25000 (versi 1)
+# http://penyerang.localhost:18301/ (penyerang.localhost, situs lain) memuat form yang langsung submit POST
+# ke /api/menu/harga produk_id=1 harga=1, dalam browser yang sama dengan sesi Ani
+# harga produk 1 sesudah: Rp1 (versi 2)
+
+# --- B. masih tanpa token dan tanpa pemeriksaan Origin/Sec-Fetch-Site, cookie SameSite=Lax saja ---
+# harga produk 1 (Nasi goreng, Warung Ani) sebelum: Rp25000 (versi 3)
+# http://penyerang.localhost:18301/ (penyerang.localhost, situs lain) memuat form yang langsung submit POST
+# ke /api/menu/harga produk_id=1 harga=1, dalam browser yang sama dengan sesi Ani
+# harga produk 1 sesudah: Rp25000 (versi 3)
+
+# --- C. token X-CSRF-Token, Origin dan Sec-Fetch-Site diperiksa, cookie SameSite=Lax (R3-19) ---
+# harga produk 1 (Nasi goreng, Warung Ani) sebelum: Rp25000 (versi 4)
+# http://penyerang.localhost:18301/ (penyerang.localhost, situs lain) memuat form yang langsung submit POST
+# ke /api/menu/harga produk_id=1 harga=1, dalam browser yang sama dengan sesi Ani
+# harga produk 1 sesudah: Rp25000 (versi 4)
+
+# --- D. token X-CSRF-Token, Origin dan Sec-Fetch-Site diperiksa, TAPI cookie SameSite=None (token sendirian menahan) ---
+# harga produk 1 (Nasi goreng, Warung Ani) sebelum: Rp25000 (versi 5)
+# http://penyerang.localhost:18301/ (penyerang.localhost, situs lain) memuat form yang langsung submit POST
+# ke /api/menu/harga produk_id=1 harga=1, dalam browser yang sama dengan sesi Ani
+# harga produk 1 sesudah: Rp25000 (versi 5)
+# B menunjukkan: SameSite=Lax saja (tanpa token) sudah menahan form POST lintas situs yang sederhana ini
+# di Chromium versi lab ini, karena cookie itu sendiri tidak pernah terkirim lintas situs: request masuk
+# sebagai belum login, gerbang token (csrfSah) tidak pernah tercapai. Itu sebabnya mutasi yang menghapus
+# token/Origin/Sec-Fetch-Site tidak terlihat di B atau C. D memaksa cookie tetap terkirim (SameSite=None)
+# supaya gerbang token BENAR teruji: permintaan sampai ke server berstatus login, dan token/Origin/
+# Sec-Fetch-Site sendirian yang menahan. OWASP tetap mewajibkan token (R3-19) karena SameSite tidak
+# menutup semua jalur (endpoint yang juga menerima GET, subdomain yang berbagi cookie, klien lama).

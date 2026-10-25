@@ -1,0 +1,27 @@
+# Lab t3-dasbor · M25: XSS tersimpan lewat catatan pembayaran, cookie sesi, CSP, dan XSS yang mengalahkan CSRF
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18200
+# Rekaman dari database bersih: make -C labs/t3-dasbor run (keputusan 974).
+# Dimas membayar Warung Ani lewat api-t3 dengan catatan "<img src=x onerror=alert(1)>" (M25); api-t3 lalu dihentikan
+# dasbor membaca jurnal dan posting langsung dari schema yang sama (sql: lihat labs/api-t3/internal/repo/katalog.go RiwayatPenerimaan)
+
+# --- A. Mode rentan: keterangan lewat innerHTML tanpa escape, tanpa CSP, cookie tanpa HttpOnly ---
+$ node driver.js xss ... (Playwright, Chromium nyata)
+{"cookieHttpOnly": false, "cookieJSBisaDibaca": true, "cookieJSMemuatNamaSesi": true, "cookieName": "sesi", "cookieSameSite": "None", "cookieSecure": true, "dialogs": [{"message": "1", "type": "alert"}], "elemImgDiDaftar": 1, "errors": [], "teksDaftar": "bayar: Rp5000 — Bayar Dimas ke Warung Ani: "}
+
+# --- B. Mode benar: textContent, CSP dengan nonce, cookie __Host- + HttpOnly ---
+$ node driver.js xss ... (Playwright, Chromium nyata)
+{"cookieHttpOnly": true, "cookieJSBisaDibaca": false, "cookieJSMemuatNamaSesi": false, "cookieName": "__Host-sesi", "cookieSameSite": "Lax", "cookieSecure": true, "dialogs": [], "elemImgDiDaftar": 0, "errors": [], "teksDaftar": "bayar: Rp5000 — Bayar Dimas ke Warung Ani: <img src=x onerror=alert(1)>"}
+
+# --- C. innerHTML tetap dipakai (escape rentan) tapi CSP tetap aktif: lapis kedua yang menahan sendiri ---
+$ node driver.js xss ... (Playwright, Chromium nyata)
+{"cookieHttpOnly": true, "cookieJSBisaDibaca": false, "cookieJSMemuatNamaSesi": false, "cookieName": "__Host-sesi", "cookieSameSite": "Lax", "cookieSecure": true, "dialogs": [], "elemImgDiDaftar": 1, "errors": [], "teksDaftar": "bayar: Rp5000 — Bayar Dimas ke Warung Ani: "}
+# Kesimpulan: escape (B) dan CSP (C) masing-masing cukup sendirian menahan onerror; hanya saat
+# keduanya mati sekaligus (A) onerror berjalan. Defense-in-depth, bukan satu lapis saja (ADR 30).
+
+# --- D. XSS mengalahkan CSRF: escape dan CSP rentan, tapi cookie dan token CSRF tetap benar (R3-19) ---
+$ node driver.js xss-lawan-csrf ... (Playwright, Chromium nyata)
+{"dialogs": [{"message": "1", "type": "alert"}], "statusFetch": 200}
+# harga produk 1 sebelum: Rp25000, sesudah skrip yang sama memanggil /api/menu/harga: Rp2
+# Skrip tidak menembus token/Origin/Sec-Fetch-Site: ia berjalan sebagai halaman itu sendiri (same-origin,
+# membaca variabel global csrf di halaman), jadi semua pemeriksaan itu lolos secara sah. XSS mengalahkan
+# CSRF bukan dengan memalsukan permintaan lintas situs, tapi dengan tidak perlu melakukannya sama sekali.
