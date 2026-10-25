@@ -6,12 +6,15 @@ tidak boleh menghilangkan atau menggandakan pemeriksaan. Yang dijaga:
   - alat yang dibagi per ukuran (layar, galur) muncul hanya sebagai bagian "@", dan ukuran semua bagiannya, digabung, sama
     persis dengan ukuran alat itu (tiap ukuran tepat sekali);
   - tiap ukuran benar-benar dikenal alatnya (tercantum di sumber .mjs) dan alat menolak ukuran yang tidak dikenal;
+  - alat tidak punya ukuran LEBIH dari yang dibagikan: ukuran baru di sumber .mjs yang belum masuk `ukuran_bagian` tidak
+    boleh tertinggal diam-diam (sebelum pembagian, ukuran baru otomatis ikut; sekarang harus didaftarkan, keputusan 868);
   - tidak ada nama alat dobel antarkelompok, tidak ada kelompok kosong.
 
     python3 tools/test_kelompok_ukur.py
 """
 import json
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -58,6 +61,13 @@ for alat, penuh in UKURAN_PENUH.items():
     teks = (AKAR / SUMBER[alat]).read_text(encoding="utf8")
     cek(all(u in teks or u.replace("x", ", ") in teks for u in penuh), f"{SUMBER[alat]} mengenal semua ukuran")
     cek("--ukuran tidak dikenal" in teks, f"{SUMBER[alat]} menolak ukuran yang tidak dikenal")
+    # Daftar ukuran lengkap alat itu di sumbernya: layar.mjs `name: "WxH"`, ukur-gerak-alur.mjs `[[W, H], ...]` di SEMUA_UKURAN.
+    if alat == "layar":
+        di_sumber = set(re.findall(r'name:\s*"(\d+x\d+)"', teks.split("SEMUA_VIEWPORTS", 1)[1].split("];", 1)[0]))
+    else:
+        baris = next(l for l in teks.splitlines() if l.startswith("const SEMUA_UKURAN"))
+        di_sumber = {f"{w}x{h}" for w, h in re.findall(r"\[(\d+),\s*(\d+)\]", baris)}
+    cek(di_sumber == penuh, f"{SUMBER[alat]} tidak punya ukuran di luar yang dibagikan (sumber {sorted(di_sumber)}, dibagikan {sorted(penuh)})")
 
 cek(bash("--bagian", "layar@tak-ada").returncode != 0, "bagian yang tidak dikenal ditolak")
 cek(bash("--ukur", "layar").returncode != 0, "nama alat tanpa bagian ('layar') tidak dikenal lagi, jadi ditolak")
