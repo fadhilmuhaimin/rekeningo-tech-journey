@@ -5,7 +5,7 @@
 # (Node 22, bun, Chromium Playwright, font). MkDocs dihapus (keputusan 112).
 # Versi action dicek ke halaman rilis masing-masing pada 2026-10-08 (keputusan 99).
 # Keputusan 865 (CI lebih cepat tanpa mengurangi cakupan): (1) kelompok alat ukur dibagi per ukuran layar menjadi tujuh job
-# (lihat KELOMPOK_UKUR); (2) cache bun dan browser Playwright (keputusan 865); (3) di PR, alat ukur yang memeriksa semua halaman
+# (lihat KELOMPOK_UKUR); (2) cache browser Playwright (keputusan 865; cache bun dicoba dan dibuang: lebih lambat dari pemasangan); (3) di PR, alat ukur yang memeriksa semua halaman
 # hanya memeriksa halaman yang berubah terhadap dist main yang lolos (tools/pilih_halaman.py; bawaan semua halaman, ragu = semua,
 # keputusan 866); (4) push ke main, jadwal malam, dan workflow_dispatch memeriksa 100% halaman (keputusan 867).
 name: cek
@@ -96,13 +96,8 @@ jobs:
       # bukan `cancelled` oleh timeout job (keputusan 360). Normalnya beberapa detik.
       - name: Unduh font
         run: timeout -k 15s 2m bash tools/get_fonts.sh
-      # Cache unduhan paket bun (keputusan 865). Isinya hanya tarball yang diverifikasi bun terhadap hash di bun.lock saat
-      # dipasang, dan pemasangan tetap --frozen-lockfile, jadi cache yang salah atau usang tidak mengubah hasil.
-      - uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-1.4.2-${{ hashFiles('situs/bun.lock') }}
-          restore-keys: bun-${{ runner.os }}-1.4.2-
+      # Cache unduhan bun sengaja tidak dipakai (keputusan 865): dicoba di PR #328 run 40153595166, memulihkan 131 MB memakan 4 s
+      # per job, sedangkan `bun install --frozen-lockfile` tanpa cache 1-3 s (run 40148968969), jadi cache itu memperlambat.
       - name: Pasang dependency
         run: timeout -k 15s 2m bun install --cwd situs --frozen-lockfile
       # Batas waktu langkah di bawah timeout job. Job yang kena timeout-minutes berakhir `cancelled`, dan
@@ -177,11 +172,6 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: "1.4.2"
-      - uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-1.4.2-${{ hashFiles('situs/bun.lock') }}
-          restore-keys: bun-${{ runner.os }}-1.4.2-
       # Dibatasi seperti di job build (keputusan 360); Chromium dengan dependency sistem normalnya 21–41 s.
       # Mirror apt Azure ±60 KB/s pada 2026-10-24 membuat paket font dependency melewati 3 menit di tiga run berturut-turut (keputusan 563).
       - name: Pasang dependency
