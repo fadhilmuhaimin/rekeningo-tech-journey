@@ -1,0 +1,69 @@
+{
+  "id": "t2-login-urutan",
+  "judul": "Satu tebakan login, urutan pemeriksaan di server",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Urutan dari kode labs/c4-ratelimit/login/main.go, periksaMasuk"
+  },
+  "baris": [
+    {
+      "label": "Di memori",
+      "sub": "tanpa query, tanpa hash",
+      "simpul": [
+        {
+          "teks": "batas per alamat",
+          "sub": "habis: 429 Retry-After",
+          "nada": "system"
+        },
+        {
+          "teks": "batas per akun",
+          "sub": "habis: 429 Retry-After",
+          "nada": "system"
+        }
+      ]
+    },
+    {
+      "label": "Di database",
+      "sub": "satu transaction, baris akun dikunci",
+      "simpul": [
+        {
+          "teks": "catat percobaan",
+          "sub": "SELECT FOR UPDATE, penghitung naik",
+          "kode": false,
+          "nada": "system"
+        },
+        {
+          "teks": "ambang 5 tercapai",
+          "sub": "kunci 60 detik, lalu menggandakan",
+          "nada": "warn"
+        },
+        {
+          "teks": "akun terkunci",
+          "sub": "401 generik, hash palsu",
+          "nada": "old"
+        }
+      ]
+    },
+    {
+      "label": "Di CPU dan RAM",
+      "sub": "hanya yang lolos dua langkah di atas",
+      "simpul": [
+        {
+          "teks": "argon2id",
+          "sub": "terhadap hash asli akun",
+          "nada": "good"
+        },
+        {
+          "teks": "salah: 401 generik",
+          "sub": "penghitung tetap naik"
+        },
+        {
+          "teks": "benar: penghitung dan kunci dihapus",
+          "sub": "login berhasil",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Email yang tidak terdaftar menjalankan argon2id terhadap hash palsu dan dijawab 401 yang sama, supaya waktu responsnya tidak membedakan."
+}

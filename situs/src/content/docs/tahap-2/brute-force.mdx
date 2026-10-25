@@ -1,0 +1,389 @@
+---
+title: "2.28 Keamanan 4: brute force, credential stuffing, hash password + ADR 20"
+description: "Tebakan password ditahan di tiga tempat: batas per alamat, kunci per akun, dan hash yang lambat. ADR 20 memilih dua lapis di memori untuk satu server dan menulis terbuka apa yang masih lolos."
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import inti from "../../../../data/diagram/t2-login-inti.json";
+import urutan from "../../../../data/diagram/t2-login-urutan.json";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import PertahananLogin from "../../../components/PertahananLogin.astro";
+
+<p class="meta">Baca 16 menit · coba 3 menit · Prasyarat: [[t2-m16]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Menahan tebakan password butuh tiga pagar yang bekerja di tiga tempat: batas per alamat, kunci per akun, dan hash yang lambat.
+
+<Rantai data={inti} ringkas />
+
+Di [[t2-m16]], satu alamat menyemprot 29 akun dan kunci per akun tidak menahan satu pun. Dengan batas per alamat di depannya, rekaman bagian D mencatat 10 tebakan yang sampai ke pemeriksaan password dan 19 yang ditolak 429.
+
+**Brute force** menebak banyak password untuk satu akun. **Credential stuffing** mencoba pasangan email dan password dari kebocoran situs lain ke banyak akun. ADR 20 memilih pagar yang menahan keduanya di satu server, dan menulis terbuka apa yang masih lolos.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Satu alamat mengirim satu tebakan ke tiap dari 29 akun, dan server hanya punya kunci per akun. Berapa akun yang terkunci?
+2. Kenapa batas per alamat dicek sebelum database dan sebelum argon2id?
+3. Penyerang mengganti alamat di header `X-Forwarded-For` pada tiap tebakan, dan server memercayai header itu. Berapa dari 20 tebakan yang ditolak 429?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: batas per alamat menahan penyemprotan dari satu alamat, tetapi hanya bila server tahu alamat yang sebenarnya. Header yang diisi client, banyak alamat, dan server kedua melemahkannya.">
+
+Skenarionya sama dengan [[t2-m16]] (Ilustrasi): satu laptop menyemprot 29 akun, satu tebakan per akun. Bedanya, server sekarang punya batas per alamat dan batas per akun di memori. Tebak dulu, lalu ubah kondisinya satu per satu.
+
+<PertahananLogin />
+
+Rekaman bagian D menyimpan satu hal yang mudah terlewat. Karyawan 514, satu-satunya akun yang password-nya ada di daftar, berada di urutan terakhir dan tidak sempat dicoba. Server ini membatasi laju penyemprotan, bukan menolaknya. Dengan urutan lain, 514 bisa termasuk sepuluh tebakan pertama, dan rekaman tidak menguji urutan itu.
+
+<details class="abstract">
+<summary>Rekaman bagian D sampai F dan H (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet files={["labs/c4-ratelimit/output/login/ratelimit.txt:43:49","labs/c4-ratelimit/output/login/ratelimit.txt:57:64","labs/c4-ratelimit/output/login/ratelimit.txt:66:70","labs/c4-ratelimit/output/login/ratelimit.txt:86:93"]} title="Rekaman lab: labs/c4-ratelimit/output/login/ratelimit.txt, bagian D, E, F, dan H" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Dua pola tebakan, dua pagar
+
+Rekaman bagian C dan D menjalankan dua pola yang berbeda. Polanya menentukan pagar mana yang berguna.
+
+| Pola | Bentuknya | Pagar yang menahan | Yang masih lolos |
+|---|---|---|---|
+| Brute force | Banyak password ke satu akun | Kunci per akun di database, dan batas per akun di memori | Pemilik akun ikut ditolak ([[t2-m16]]) |
+| Credential stuffing | Satu tebakan per akun ke banyak akun | Batas per alamat di memori | Banyak alamat, atau alamat yang dipalsukan |
+
+[OWASP Credential Stuffing Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html) menulis bahwa memblokir alamat IP tidak boleh menjadi pertahanan tunggal atau utama. Jaringan proxy mengalahkan batas per alamat, jadi batas per alamat hanya satu lapis dari beberapa.
+
+### Urutan pemeriksaan di server
+
+Satu tebakan login melewati pagar dari yang termurah ke yang termahal. Yang ditolak di memori tidak menyentuh database dan tidak menjalankan argon2id (rekaman bagian D: 10 query akun dan 10 hash untuk 29 tebakan).
+
+<Rantai data={urutan} />
+
+Dua batas pertama ada di kode ini. Bila bucket habis, handler langsung menjawab 429 dan mengirim `Retry-After`:
+
+<Snippet file="labs/c4-ratelimit/login/main.go" lines="325:338" lang="go" title="Kode lab: labs/c4-ratelimit/login/main.go baris 325 sampai 338 (dua batas di memori)" />
+
+Pagar ketiga dan keempat mencatat percobaan sebelum hash dihitung. Tanpa urutan itu, lima tebakan yang datang bersamaan semuanya dinilai sebelum ada yang melihat kunci. Rekaman bagian G: dari lima tebakan bersamaan hanya satu yang dinilai terhadap hash asli, dan kunci 60 detik terpasang.
+
+<Snippet file="labs/c4-ratelimit/output/login/ratelimit.txt" lines="77:82" title="Rekaman lab: labs/c4-ratelimit/output/login/ratelimit.txt, bagian G (tebakan bersamaan)" />
+
+Setiap jawaban gagal sama: status 401, judul "Email atau password salah", dan waktu hash yang sama. Itu berlaku juga untuk email yang tidak terdaftar dan akun yang terkunci. Alasannya ada di [[t2-m16]].
+
+### Token bucket: batas laju di memori
+
+Bucket berisi token. Setiap tebakan mengambil satu token, dan token terisi ulang dengan laju tetap. Bucket kosong berarti 429.
+
+Lab memakai dua bucket. Per alamat: 10 token sekaligus, isi ulang 10 per menit. Per akun: 5 token sekaligus, isi ulang 5 per menit.
+
+<Snippet file="labs/c4-ratelimit/login/main.go" region="bucket" lang="go" title="Kode lab: labs/c4-ratelimit/login/main.go (token bucket)" />
+
+*Hitungan dari konstanta lab (Asumsi, tidak direkam):* ambang kunci akun adalah 5 gagal, dan satu alamat mendapat 10 token per menit. Sesudah 10 token pertama habis, satu alamat rata-rata membawa dua akun ke ambang kunci per menit, karena 10 ÷ 5 = 2. Tanpa batas per alamat, jumlahnya hanya dibatasi kecepatan kirim penyerang.
+
+Bucket itu hidup di memori satu proses, dengan dua akibat yang direkam. Dua server menghitung sendiri-sendiri: rekaman bagian F mencatat 20 dari 24 tebakan lolos, yaitu 10 per server. Server yang dimulai ulang mulai dengan bucket kosong, sedangkan kunci akun di database tetap (rekaman api-t2 di blok Putuskan).
+
+### Dari mana server tahu alamat penyerang
+
+Batas per alamat hanya sebaik alamat yang dipakainya. Header `X-Forwarded-For` diisi client, jadi penyerang bisa menulis alamat apa saja. [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For) menulis bahwa pemakaian untuk rate limiting harus memakai alamat yang ditambahkan proxy tepercaya, dan nilai yang tidak tepercaya bisa menghindarkan rate limiter.
+
+Rekaman bagian E menunjukkan akibatnya. Saat server memercayai header dari siapa pun, 20 tebakan dengan 20 alamat palsu lolos semua. Saat server hanya memercayai header dari request yang membawa rahasia proxy sendiri, 10 lolos dan 10 ditolak.
+
+Dua batas lain tercatat di bagian H. Alamat IPv6 dipotong ke prefix /64. Jaringan seluler memberi tiap HP satu /64, dan HP boleh memakai alamat apa pun di dalamnya ([RFC 6459](https://www.rfc-editor.org/rfc/rfc6459.html) bagian 5.2).
+
+Penyerang yang memegang prefix lebih luas, misalnya /56 dari [RFC 6177](https://www.rfc-editor.org/rfc/rfc6177.html), mendapat 256 bucket. Banyak HP di satu Wi-Fi berbagi satu bucket, sama seperti banyak HP di balik satu IPv4 (NAT).
+
+<Snippet file="labs/c4-ratelimit/output/login/ratelimit.txt" lines="97:100" title="Rekaman lab: labs/c4-ratelimit/output/login/ratelimit.txt, bagian H (prefix lebih luas dari /64)" />
+
+### Hash password: kenapa lambat dan kenapa memakai memori
+
+Kalau tabel `akun` bocor, penyerang menebak password di mesinnya sendiri tanpa batas laju apa pun. Satu-satunya pagar yang tersisa adalah biaya satu tebakan. Hash password sengaja lambat, dan Argon2id sengaja memakai memori. [RFC 9106](https://www.rfc-editor.org/rfc/rfc9106.html) menyebutnya fungsi hash yang memory-hard, dan OWASP menulis bahwa Argon2id memberi pendekatan seimbang terhadap serangan side-channel dan serangan berbasis GPU.
+
+| Algoritma | Konfigurasi minimum menurut OWASP | Catatan |
+|---|---|---|
+| Argon2id | m=19 MiB, t=2, p=1 (ada empat kombinasi lain yang setara) | Pilihan pertama |
+| scrypt | N=2^17 (128 MiB), r=8, p=1 | Bila Argon2id tidak tersedia |
+| bcrypt | Work factor minimal 10 | Untuk sistem lama; input maksimal 72 byte di sebagian besar implementasi |
+| PBKDF2 | HMAC-SHA-256, 600.000 iterasi | Bila butuh FIPS-140 |
+
+Sumber tabel: [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html), dibuka 25 Oktober 2026. Lab memakai RFC 9106 pilihan kedua: t=3, p=4, m=64 MiB. Pilihan pertama RFC memakai 2 GiB per hash, dan satu VPS berbagi memori dengan PostgreSQL.
+
+<Snippet file="labs/c4-ratelimit/output/login/ratelimit.txt" lines="1:5" title="Rekaman lab: labs/c4-ratelimit/output/login/ratelimit.txt, bagian A (parameter argon2id)" />
+
+Hash tersimpan sebagai satu string yang memuat parameternya, dalam format PHC. Karena parameternya ikut tersimpan, kamu bisa menaikkan biaya nanti dan membiarkan hash lama dan baru hidup berdampingan. OWASP menyarankan menghitung ulang hash saat user berikutnya login.
+
+<Snippet file="labs/c4-ratelimit/login/main.go" region="hash" lang="go" title="Kode lab: labs/c4-ratelimit/login/main.go (hash dan pencocokan argon2id)" />
+
+*Hitungan dari konstanta lab (Asumsi):* satu hash memakai 64 MiB. Batas per alamat membolehkan 10 tebakan sekaligus, jadi satu alamat bisa menjalankan 10 hash bersamaan: 10 × 64 MiB = 640 MiB. Banyak alamat melipatgandakannya.
+
+Hash yang berat bagi penyerang juga berat bagi servermu. OWASP mengingatkan bahwa work factor yang terlalu tinggi bisa dipakai menghabiskan CPU server. RAM VPS Tahap 2 tidak ada di naskah [perlu verifikasi].
+
+### Password pertama dan daftar password bocor
+
+Password sementara dari [[t1-fitur-login]] adalah celah yang kedua di [[t2-m16]]. Di api-t2, migration menandai 104 akun Gedung A wajib mengganti password (bagian A rekaman). Login dengan password sementara dijawab 403 dan tidak membuka sesi, dan hanya `/ganti-password` yang jalan:
+
+<Snippet file="labs/api-t2/output/pengaman.txt" lines="28:56" title="Rekaman lab: labs/api-t2/output/pengaman.txt, bagian B (password sementara tidak membuka sesi)" />
+
+Aturan password barunya mengikuti [NIST SP 800-63B-4](https://pages.nist.gov/800-63-4/sp800-63b.html) bagian 3.1.1.2. Password faktor tunggal minimal 15 karakter, tanpa aturan komposisi, dan dibandingkan dengan daftar password umum atau bocor. Lab c4 menolak password yang ada di daftar:
+
+<Snippet file="labs/c4-ratelimit/output/login/ratelimit.txt" lines="107:111" title="Rekaman lab: labs/c4-ratelimit/output/login/ratelimit.txt, bagian I (daftar password bocor)" />
+
+Daftar lab hanya 27 entri. [OWASP ASVS 5.0.0](https://github.com/OWASP/ASVS/blob/v5.0.0/5.0/en/0x15-V6-Authentication.md) 6.2.4 meminta paling sedikit 3.000 password teratas yang sesuai kebijakan, jadi daftar itu hanya menunjukkan mekanismenya. Daftar sungguhan sebesar itu tidak dijalankan di lab [perlu verifikasi].
+
+### Di stack lain
+
+**Skenario:** login dengan email dan password, batas tebakan per alamat dan per akun, dan hash password argon2id.
+
+Yang sama di semua stack: batas laju butuh key (alamat atau akun), hitungannya hidup di memori atau di store bersama, dan hash harus membawa parameternya. Yang berbeda: apa yang sudah tersedia. Hanya tab Go yang dijalankan di lab. Lima tab lain kerangka dari dokumentasi.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: Go 1.27.1, pgx v5.11.0, golang.org/x/crypto v0.57.0 (go.mod lab c4-ratelimit).*
+
+<Snippet file="labs/c4-ratelimit/login/main.go" lines="525:526" lang="go" title="labs/c4-ratelimit/login/main.go baris 525 dan 526" />
+
+**Yang berbeda di stack ini:** tidak ada pembatas atau kunci akun bawaan. Pembatas ditulis sendiri (blok Paham), dan hash memakai `argon2.IDKey` dengan parameter RFC 9106 pilihan kedua. Kunci akun ada di database dengan `SELECT ... FOR UPDATE`.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [express-rate-limit](https://github.com/express-rate-limit/express-rate-limit) 8.7.1 dan [Node.js v26.12.1: crypto.argon2](https://nodejs.org/api/crypto.html).*
+
+<Snippet lang="js" code={`import rateLimit from "express-rate-limit";
+import { argon2, randomBytes } from "node:crypto";
+
+const batasAlamat = rateLimit({ windowMs: 60_000, limit: 10 });
+const batasAkun = rateLimit({
+  windowMs: 60_000,
+  limit: 5,
+  keyGenerator: (req) => req.body.email,
+});
+
+argon2(
+  "argon2id",
+  { message: password, nonce: randomBytes(16), parallelism: 4, tagLength: 32, memory: 65536, passes: 3 },
+  (err, tag) => { /* simpan tag */ },
+);`} />
+
+**Yang berbeda di stack ini:** `keyGenerator` bawaan memakai alamat IP, dan store bawaan ada di memori. Dokumentasinya menulis semua batas di store itu direset saat proses Node.js dimulai ulang, dan store kustom bisa membagi hitungan antar node. Alamat IPv6 dipotong ke /56 secara bawaan, bukan /64. `crypto.argon2` ada di Node.js sejak v24.7.0, tanpa paket pihak ketiga. Tidak ada kunci akun bawaan.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Rate Limiting](https://laravel.com/docs/13.x/routing#rate-limiting) dan [Hashing](https://laravel.com/docs/13.x/hashing).*
+
+<Snippet lang="php" code={`RateLimiter::for('login', function (Request $request) {
+    return [
+        Limit::perMinute(500),
+        Limit::perMinute(3)->by($request->input('email')),
+    ];
+});
+
+// .env: HASH_DRIVER=argon2id
+$hash = Hash::make($password, ['memory' => 65536, 'time' => 3, 'threads' => 4]);
+if (Hash::needsRehash($hash)) { /* hitung ulang saat login berhasil */ }`} />
+
+**Yang berbeda di stack ini:** contoh `login` di dokumentasi sudah dua lapis: satu batas umum dan satu batas per email. Jawaban 429 dibuat otomatis. Driver bawaan adalah bcrypt, dan Argon2id dipilih lewat `HASH_DRIVER`. `Hash::check` menolak hash dari algoritma lain, kecuali `HASH_VERIFY=false` dipasang saat migrasi.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: Password management](https://docs.djangoproject.com/en/6.1/topics/auth/passwords/) dan [django-axes: konfigurasi](https://django-axes.readthedocs.io/en/latest/4_configuration.html).*
+
+<Snippet lang="python" code={`PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+]
+
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=30)
+AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = True`} />
+
+**Yang berbeda di stack ini:** hasher bawaan Django adalah PBKDF2. Argon2 butuh paket `argon2-cffi` dan harus ditaruh pertama di daftar, dengan varian bawaan Argon2id. Hash lama diperbarui otomatis saat login, selama hasher lamanya tetap ada di daftar. Pembatasan login bukan bagian Django: django-axes memantau alamat IP secara bawaan, dan bisa memantau username atau pasangan username dan alamat.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: konfigurasi email](https://docs.serverpod.dev/concepts/authentication/providers/email/configuration), dokumentasi 4.0.0, dan paket serverpod_auth_core_server 4.0.4 di pub.dev.*
+
+<Snippet lang="dart" code={`final emailIdpConfig = EmailIdpConfigFromPasswords(
+  failedLoginRateLimit: RateLimit(
+    maxAttempts: 5,
+    timeframe: Duration(minutes: 5),
+  ),
+);`} />
+
+**Yang berbeda di stack ini:** batas login gagal sudah bawaan, 5 percobaan per 5 menit, dan halaman konfigurasinya tidak menyebut kunci akun. Paket autentikasinya punya `Argon2HashUtil`, utilitas hash berbasis Argon2id, dan advisory GHSA-r75m-26cq-mjxc menulis modul email lama pindah ke Argon2id sejak 1.2.6. Halaman konfigurasi email 4.0.0 hanya menyebut pepper `secretHashPepper` dan tidak menyebut algoritmanya, jadi algoritma password di modul baru belum terkonfirmasi [perlu verifikasi].
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Rate Limits](https://supabase.com/docs/guides/auth/rate-limits) dan [Password Security](https://supabase.com/docs/guides/auth/password-security).*
+
+<Snippet lang="js" code={`const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+// batas per alamat IP diatur di dashboard Auth; hash password dikelola Supabase`} />
+
+**Yang berbeda di stack ini:** hash dan batas dikelola layanannya. Password disimpan dengan bcrypt, dan app tidak memilih algoritma atau parameternya. Endpoint token, termasuk login dengan password, dibatasi per alamat IP: 150 request per 5 menit dengan burst 30. Batas per user hanya ada untuk OTP, konfirmasi, dan reset password, dengan jeda 60 detik.
+
+Daftar password bocor lewat HaveIBeenPwned butuh paket Pro.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 20: dua lapis di memori, kunci bertahap di database, argon2id, dan password pertama wajib diganti
+
+**Kebutuhan.** Di [[t2-m16]], satu alamat menyemprot 29 akun dan kunci per akun menahan Ani, bukan penyerang. Rekaman bagian C: 29 dari 29 tebakan sampai ke pemeriksaan password, satu akun terbuka, nol akun terkunci. [[B5.1]] menunda dua hal ke sini: batas percobaan login dan pindah dari bcrypt ke Argon2id. Beban kecil: puncak ±1,4 request per detik dan satu server (Asumsi naskah), jadi yang menentukan bukan kapasitas, melainkan kebenaran jawaban dan siapa yang bisa dihukum.
+
+**Status:** diterima di minggu 7 Tahap 2, sesudah M16. `labs/c4-ratelimit/login` menjalankan aturan 2 sampai 6 di bawah. `labs/api-t2` menjalankan aturan 1, 4, dan 5 serta memotong IPv6 ke /64. Ia masih memakai bcrypt, dan belum punya daftar password bocor.
+
+| | A. Kunci per akun saja | B. Batas per alamat saja | C. Dua lapis di memori dan kunci di database | D. Dua lapis di Redis |
+|---|---|---|---|---|
+| Cara kerja | Penghitung gagal berturut-turut di baris akun. Lima gagal memasang kunci 60 detik, lalu menggandakan sampai 32 menit | Token bucket per alamat IP di memori: 10 sekaligus, isi ulang 10 per menit. Tanpa penghitung per akun | Bucket per alamat (10 sekaligus) dan per akun (5 sekaligus) dicek sebelum database, lalu kunci bertahap di database dengan lock baris. Alamat dari koneksi atau proxy tepercaya | Bucket yang sama, tetapi hitungannya di Redis yang dipakai semua server, bukan di memori satu proses |
+| Kelebihan | Tanpa komponen baru. Penghitung ada di database, jadi dibagi semua server dan bertahan saat restart | Satu key yang sederhana. Banjir dari satu alamat ditolak sebelum database dan argon2id | Rekaman D: 19 dari 29 tebakan ditolak sebelum database dan hash dijalankan 10 kali, bukan 29. Ani dari alamatnya sendiri tetap masuk | Satu hitungan untuk semua server dan bertahan saat restart. Laravel menaikkan hitungan atomik di Redis, express-rate-limit menerima store kustom untuk banyak node |
+| Kekurangan | Rekaman C: penyemprotan lolos 29 dari 29 dan membuka Karyawan 514. Lima tebakan ke Ani mengunci Ani | Penyerang dengan banyak alamat tidak terasa: rekaman E, 20 dari 20 lolos dengan alamat palsu. Satu alamat bersama menolak karyawan sah | Bucket tidak dibagi antar server dan kosong saat restart. Akun yang dibidik tetap terkunci. Alamat bersama berbagi satu bucket | Komponen baru, satu panggilan jaringan di setiap login, dan keputusan baru: buka atau tutup saat Redis mati |
+| Biaya operasional | Tanpa tambahan, tetapi tiap tebakan menjalankan argon2id | ±40 baris kode dan satu peta di memori | Sama dengan B, ditambah transaction pendek per tebakan. Peta di memori tidak pernah membuang key (dibaca dari kode, tidak diukur) | Layanan Redis untuk dipasang, dipantau, dan dicadangkan |
+| Bukti | Rekaman c4 bagian C | Tidak dijalankan sebagai mode sendiri. Lapis alamatnya di bagian D, kelemahannya di E dan H | Rekaman c4 bagian D sampai H, dan api-t2 `pengaman.txt` bagian E sampai G | Tidak dijalankan. Rekaman F menunjukkan masalah yang diselesaikannya. Dokumentasi Laravel dan express-rate-limit |
+
+**Keputusan: opsi C**, dengan tujuh aturan.
+
+1. Password sementara dibagikan admin dan wajib diganti saat login pertama. Sebelum diganti ia tidak membuka sesi: login dijawab 403 dan hanya `/ganti-password` yang jalan (api-t2 `pengaman.txt` A dan B).
+2. Password baru minimal 15 karakter, tanpa aturan komposisi, dan tidak boleh ada di daftar password bocor. Panjang diperiksa lebih dulu, lalu daftar (c4 bagian B dan I).
+3. Hash password baru memakai argon2id: t=3, p=4, m=64 MiB, salt 128-bit, tag 256-bit, format PHC. Hash bcrypt dari Tahap 1 dikenali dari awalannya dan dihitung ulang saat login berhasil. Hitung ulang itu belum ada di lab (Tidak dijalankan).
+4. Kunci per akun di database: ambang 5 gagal berturut-turut, lama 60 detik yang menggandakan sampai 32 menit. Percobaan dicatat sebelum hash dengan lock baris, dan jawabannya selalu 401 generik (c4 bagian C dan G).
+5. Batas di memori: per alamat 10 sekaligus dengan isi ulang 10 per menit, per akun 5 sekaligus dengan isi ulang 5 per menit. Jawabannya 429 dengan `Retry-After`. `/ganti-password` memakai pagar yang sama dengan `/login` (c4 bagian D).
+6. Alamat client dari koneksi, atau dari header hanya bila request membawa rahasia proxy sendiri. IPv6 dipotong ke /64 (c4 bagian E dan H).
+7. Bucket bersama dan Redis ditunda ke Tahap 3, saat server kedua datang.
+
+**Yang direkam di api-t2 untuk akun yang dibidik.** Lima tebakan ke Warung Ani menghasilkan lima jawaban 401, lalu 429 dari batas per akun. Kolom `gagal_login` bernilai 5 dan akun terkunci di database. Sesudah server dimulai ulang, bucket di memori kosong tetapi kunci tetap, dan password yang benar dijawab 401:
+
+<Snippet file="labs/api-t2/output/pengaman.txt" lines="127:154" title="Rekaman lab: labs/api-t2/output/pengaman.txt, bagian E (akun yang dibidik tetap terkunci)" />
+
+Jadi ADR ini tidak menjanjikan bahwa akun tidak bisa dikunci orang lain. Janjinya lebih kecil. Satu alamat hanya bisa membidik beberapa akun per menit (hitungan 10 ÷ 5 di blok Paham). Penyemprotan satu tebakan per akun tidak lagi lolos 29 dari 29.
+
+Kunci per pasangan akun dan alamat menutup celah ini, dan django-axes menyediakannya. Tetapi dari definisinya, penyerang dengan banyak alamat mendapat lima tebakan baru per alamat per akun. Opsi itu ditunda dan dibahas lagi di Tahap 3 (hitungan dari definisi, Tidak dijalankan).
+
+**Kenapa C, bukan A, B, atau D.**
+
+- **A ditolak** karena rekaman C: penyemprotan lolos seluruhnya, dan satu-satunya yang terkunci adalah akun yang dibidik.
+- **B ditolak** karena satu akun bisa ditebak 10 kali per menit dari tiap alamat, tanpa penghitung akun yang menumpuk kegagalan. Tidak dijalankan sebagai mode sendiri.
+- **D ditolak sekarang** karena Rekeningo satu server. Rekaman F menunjukkan masalah yang baru muncul saat server kedua datang. Komponen baru untuk masalah yang belum ada ditolak, dan pemicunya ditulis di bawah.
+
+**Pilihan hash.** Keputusan 3 adalah keputusan terpisah dengan opsinya sendiri:
+
+| | bcrypt cost 10 (api-t2 sekarang) | scrypt | Argon2id 19 MiB (minimum OWASP) | Argon2id 64 MiB (RFC 9106, pilihan kedua) |
+|---|---|---|---|---|
+| Kelebihan | Sudah jalan di api-t2. Memenuhi minimum OWASP (work factor 10). Tidak ada migrasi | Memory-hard. OWASP menyebutnya bila Argon2id tidak ada | Memory-hard dengan memori kecil: 10 hash bersamaan = 190 MiB [hitungan: 10 × 19 MiB] | Memory-hard dan parameternya dari RFC. Rekaman A memuat parameternya |
+| Kekurangan | OWASP menyebut bcrypt hanya untuk sistem lama. Input maksimal 72 byte: api-t2 menolak password baru lebih panjang dari itu | 128 MiB per hash di minimum OWASP, lebih besar dari Argon2id | Per tebakan, memori × iterasi hanya 38 MiB, lawan 192 MiB di pilihan 64 MiB [hitungan: 19 × 2 dan 64 × 3] | 10 hash bersamaan = 640 MiB [hitungan: 10 × 64 MiB]. RAM VPS belum diketahui |
+| Biaya operasional | Tanpa tambahan | Parameter baru untuk dipelajari tim berdua | Satu pustaka (`golang.org/x/crypto/argon2`) | Sama, dengan batas hash bersamaan yang belum ada |
+| Bukti | `labs/api-t2/internal/service/sesi.go`, OWASP Password Storage | Tidak dijalankan. OWASP | Tidak dijalankan sebagai konfigurasi sendiri. OWASP | Rekaman c4 bagian A. RFC 9106 bagian 4 |
+
+Argon2id 64 MiB dipilih karena lab sudah menjalankannya dan nilainya ada di RFC. Biayanya sungguh ada, jadi pre-mortem di bawah memuat memori.
+
+**Kasus industri.** GitHub menulis pada November 2013 bahwa penyerang memakai hampir 40 ribu alamat IP untuk menebak pelan-pelan password yang lemah atau dipakai ulang di banyak situs. GitHub mereset password akun terdampak dan mencabut token, otorisasi OAuth, serta kunci SSH. Mereka juga menulis sedang menambah rate limiting dan akan mencegah user masuk dengan password lemah yang umum ([GitHub](https://github.blog/news-insights/company-news/weak-passwords-brute-forced/)). Tulisan itu tidak memuat jumlah tebakan per akun, dan batasnya satu insiden di satu perusahaan.
+
+Untuk hash, Dropbox menulis pada September 2016 bahwa mereka memakai SHA-512, bcrypt dengan work factor 10, lalu AES256 dengan pepper. Work factor 10 sekitar 100 ms di server mereka ([Dropbox](https://dropbox.tech/security/how-dropbox-securely-stores-your-passwords)). Itu bcrypt, bukan Argon2id, dan keadaan 2016.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Satu alamat dipakai banyak karyawan. Wi-Fi gedung membuat semua HP muncul sebagai satu alamat, dan bucket per alamat habis di jam masuk. *Hitungan (Asumsi):* 100 karyawan membuka app dalam satu menit. Bucket 10 sekaligus ditambah isi ulang 10 per menit meloloskan sekitar 20 dan menolak 80 dengan 429. Login yang berhasil juga memakai token, karena batas dicek sebelum password. Pencegahannya: hitung 429 per alamat di log minggu pertama, naikkan jatah untuk alamat gedung yang dikenal, dan pastikan app membaca `Retry-After`. Mendeteksinya: jumlah 429 per alamat per jam.
+2. Penyerang memakai banyak alamat, atau alamat yang bisa dipalsukan. Batas per alamat lalu tidak menahan apa pun (rekaman E, H, dan kasus GitHub). Pencegahannya: batas per akun, kunci akun, password 15 karakter, dan alamat dari koneksi atau proxy tepercaya. Mendeteksinya: jumlah akun dengan `gagal_login > 0` per jam, query yang sama dengan api-t2 `pengaman.txt` bagian F.
+3. Akun yang dibidik terkunci lagi, dan Ani kembali tidak tahu kenapa. Jawaban generik menjaga penyerang, tetapi pemilik juga tidak diberi tahu. Pencegahannya: lama kunci pertama pendek (60 detik) dan jalur admin dari [[t1-fitur-login]]. Mendeteksinya: jumlah akun dengan `terkunci_sampai` di masa depan tiap pagi.
+
+**Kapan keputusan ini salah.**
+
+- Saat server kedua dipasang. Bucket tidak dibagi (rekaman F) dan restart mengosongkannya (api-t2 bagian E), jadi batas efektif berlipat.
+- Saat penyerang memakai ratusan alamat. Batas per alamat lalu hanya menunda, dan yang menahan tinggal batas per akun dan faktor kedua.
+- Saat karyawan sah lebih dari satu kali per minggu menerima 429 atau terkunci oleh orang lain (ambang usulan, Asumsi). Lapis ini lalu menghukum korban lebih sering daripada penyerang.
+- Saat RAM VPS lebih kecil dari 640 MiB ditambah kebutuhan PostgreSQL dan API [perlu verifikasi]. Hash bersamaan lalu bisa menghabiskan memori.
+
+**Yang akan merevisinya.** Tahap 3 memindahkan hitungan batas ke Redis bersama saat server kedua datang, dan menambah faktor kedua (passkey atau TOTP) menurut PROPOSAL. Jembatan ke Tahap 3 di naskah menyebut batas di memori sebagai salah satu yang pecah lebih dulu saat server jadi dua.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Redis untuk batas laju | Satu server. Rekaman F menunjukkan masalahnya, dan belum terjadi | Tahap 3, saat server kedua datang |
+| Faktor kedua (passkey atau TOTP) | Password 15 karakter, batas, dan kunci cukup untuk 1.000 karyawan di satu kampus | Tahap 3 |
+| Lupa password mandiri dan kabar ke pemilik saat ada percobaan | PRD v2 tidak memuatnya. OWASP menyarankan jalur lupa password tetap bisa dipakai walau akun terkunci | Belum dijadwalkan |
+| Kunci per pasangan akun dan alamat | Penyerang dengan banyak alamat mendapat lima tebakan baru per alamat | Tahap 3 |
+| Batas hash argon2id bersamaan dan pembersihan bucket yang kedaluwarsa | Tidak ada di lab, dan beban 1,4 request per detik belum menunjukkan masalahnya | Belum dijadwalkan |
+| api-t2 pindah dari bcrypt ke argon2id, dengan hitung ulang saat login | Lab c4 membuktikan argon2id, api-t2 belum memakainya | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Satu alamat mengirim satu tebakan ke tiap dari 29 akun, dan server hanya punya kunci per akun. Berapa akun yang terkunci?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Nol. Tiap akun hanya melihat satu kegagalan, jadi ambang 5 tidak pernah tercapai, dan satu akun terbuka karena memakai ulang password dari daftar (rekaman bagian C).
+
+</details>
+
+**2.** Penyerang mengganti alamat di header `X-Forwarded-For` pada tiap tebakan, dan server memercayai header itu. Apa yang terjadi pada batas per alamat?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak ada yang ditolak: 20 dari 20 tebakan lolos (rekaman bagian E). Server harus memakai alamat koneksi, atau header hanya dari proxy yang bisa dibuktikan miliknya sendiri.
+
+</details>
+
+**3.** Raka menaikkan memori argon2id dari 64 MiB ke 256 MiB supaya hash lebih kuat. Apa yang ikut naik di server?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Memori yang dipakai tiap login yang sedang berjalan. Dengan 10 hash bersamaan, 640 MiB menjadi 2.560 MiB (hitungan 10 × 256 MiB, Asumsi). Hash yang lebih berat bagi penyerang juga lebih berat bagi server.
+
+</details>
+
+**4.** Ani memasukkan password yang benar, tetapi akunnya terkunci oleh lima tebakan orang lain. Apa jawabannya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+401 dengan isi yang sama persis dengan password salah (api-t2 `pengaman.txt` bagian E). Penyerang tidak tahu akun itu terkunci, dan Ani juga tidak.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- Batas laju yang membaca `X-Forwarded-For` atau `req.ip` tanpa pengaturan proxy tepercaya.
+- Login yang memeriksa password lebih dulu dan mencatat kegagalan sesudahnya, sehingga tebakan bersamaan lolos ambang.
+- Jawaban yang berbeda untuk email tidak terdaftar, akun terkunci, dan password salah: status, pesan, atau waktu.
+- Endpoint lain yang memeriksa password, seperti ganti password atau hapus akun, tanpa pagar yang sama dengan login.
+- Password baru yang di-hash dengan bcrypt tanpa batas 72 byte, atau argon2id dengan memori dari contoh dokumentasi yang tidak dihitung terhadap RAM server.
+- Peta bucket atau penghitung di memori yang tidak pernah membuang key.
+
+### Bacaan lanjut
+
+- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+- [OWASP Credential Stuffing Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html)
+- [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
+- [RFC 9106: Argon2](https://www.rfc-editor.org/rfc/rfc9106.html)
+- [NIST SP 800-63B-4: Authentication and Authenticator Management](https://pages.nist.gov/800-63-4/sp800-63b.html)
+- [MDN: X-Forwarded-For](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For)
+
+</Blok>
