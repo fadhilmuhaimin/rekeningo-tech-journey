@@ -1,7 +1,7 @@
 # Lab t3-cache · kegagalan: Redis menggantung, Redis mati, hapus kunci yang gagal, galat database
 # PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_cache · server Go di 127.0.0.1:18180
 # Rekaman dari database bersih: make -C labs/t3-cache run (keputusan 968).
-# Redis 8.10.2; ./api-t3 -katalog-cache redis -redis-timeout 100ms di instance A (127.0.0.1:18180)
+# Redis 8.10.2; ./api-t3 -katalog-cache redis -katalog-redis-timeout 100ms di instance A (127.0.0.1:18180)
 # jalur baca: Redis galat atau lambat -> dibaca dari database, tanpa menyimpan; jalur tulis: hapus kunci yang gagal dihitung
 
 # --- A. Redis menggantung (CLIENT PAUSE 3 detik): tiap bacaan menunggu batas 100 ms lalu jatuh ke database ---
@@ -10,7 +10,7 @@ instance A: hit 0, miss 1, baca database 1, kunci dihapus 0, galat cache 0
 redis CLIENT PAUSE 3000 ALL: Redis menerima koneksi tetapi tidak menjawab
 Budi lewat instance A: 5 kali GET /katalog?warung=418 -> 200 semuanya
 instance A: hit 0, miss 1, baca database 6, kunci dihapus 0, galat cache 5   # lima bacaan: lima baca database, lima galat cache, tidak ada hit
-Budi lewat instance B (-redis-timeout 5s, sama dengan bawaan go-redis): satu GET /katalog?warung=418 -> 200,
+Budi lewat instance B (-katalog-redis-timeout 5s, sama dengan waktu bawaan go-redis): satu GET /katalog?warung=418 -> 200,
 # tetapi menunggu lebih dari 1,5 detik sampai PAUSE selesai; batas waktu itulah yang membuat jatuh ke database cepat
 Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # Redis menjawab lagi, entri lama masih ada: hit
 instance A: hit 1, miss 1, baca database 6, kunci dihapus 0, galat cache 5
