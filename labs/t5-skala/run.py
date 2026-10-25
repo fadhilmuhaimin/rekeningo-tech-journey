@@ -7,13 +7,15 @@ Keluaran: output/lb.txt, output/partisi.txt.  Jalankan: make -C labs/b3-race up 
 """
 import os, pathlib, socket, subprocess, threading, time, urllib.error, urllib.request
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT, port_lab  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 subprocess.run(["go", "build", "-o", str(HERE / "t5"), "."], cwd=HERE, check=True)
 
 
 def http(method, path, token=None):
-    req = urllib.request.Request("http://127.0.0.1:18140" + path, method=method,
+    req = urllib.request.Request(f"http://127.0.0.1:{port_lab(18140)}" + path, method=method,
                                  headers={"Authorization": "Bearer " + token} if token else {})
     try:
         with urllib.request.urlopen(req) as r:
@@ -24,8 +26,8 @@ def http(method, path, token=None):
 
 def bagian(judul, sesi):
     log, ps = [f"== {judul}"], []
-    for args in (["api", "18141"], ["api", "18142"], ["lb"]):
-        port = 18140 if args == ["lb"] else int(args[1])
+    for args in (["api", str(port_lab(18141))], ["api", str(port_lab(18142))], ["lb"]):
+        port = port_lab(18140) if args == ["lb"] else int(args[1])
         try:
             socket.create_connection(("127.0.0.1", port), 0.1).close()
             raise SystemExit(f"port {port} sudah dipakai proses lain; hentikan dulu")
@@ -48,7 +50,10 @@ def bagian(judul, sesi):
         log.append(f"app      GET /riwayat ke-{i + 1} → {st}")
     for p in ps:
         p.terminate(); p.wait()
-    return "\n".join(log) + "\n"
+    teks = "\n".join(log) + "\n"
+    for dasar in (18140, 18141, 18142):   # rekaman memakai port dasar, apa pun LAB_PORT_OFFSET
+        teks = teks.replace(str(port_lab(dasar)), str(dasar))
+    return teks
 
 
 teks = bagian("A. Sesi disimpan di memori instance (SESI=memori)", "memori") + "\n" + bagian("B. Token bertanda tangan (SESI=token)", "token")
@@ -56,7 +61,7 @@ teks = bagian("A. Sesi disimpan di memori instance (SESI=memori)", "memori") + "
 print(teks)
 
 # ---- partisi -------------------------------------------------------------------------------------
-db = psycopg.connect("postgresql://lab:lab@127.0.0.1:54333/lab", autocommit=True)
+db = psycopg.connect(f"postgresql://lab:lab@127.0.0.1:{DB_PORT}/lab", autocommit=True)
 db.execute("""DROP SCHEMA IF EXISTS t5p CASCADE; CREATE SCHEMA t5p; SET search_path = t5p;
 CREATE TABLE transaksi (id bigint GENERATED ALWAYS AS IDENTITY, dibuat date NOT NULL, jumlah bigint NOT NULL)
   PARTITION BY RANGE (dibuat);

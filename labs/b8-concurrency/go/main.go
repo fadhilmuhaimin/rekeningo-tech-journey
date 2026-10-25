@@ -12,7 +12,7 @@ import (
 )
 
 func kirim() {
-	res, err := http.Post("http://127.0.0.1:18090/kirim", "application/json", nil)
+	res, err := http.Post("http://127.0.0.1:"+portLab(18090)+"/kirim", "application/json", nil)
 	if err == nil {
 		io.Copy(io.Discard, res.Body)
 		res.Body.Close()
@@ -96,7 +96,7 @@ func init() {
 			}
 		})
 		http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {})
-		if err := http.ListenAndServe("127.0.0.1:18091", nil); err != nil {
+		if err := http.ListenAndServe("127.0.0.1:"+portLab(18091), nil); err != nil {
 			fmt.Fprintln(os.Stderr, "GAGAL:", err)
 			os.Exit(1)
 		}

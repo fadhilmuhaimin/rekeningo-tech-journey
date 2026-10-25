@@ -8,9 +8,11 @@ Setiap langkah disimpan dengan kunci yang sama dengan rekaman lama output/*.json
 import threading, time
 from decimal import Decimal
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT  # noqa: E402
 
 SCHEMA = "b3_race"
-DSN = "host=127.0.0.1 port=54333 user=lab password=lab dbname=lab application_name=b3-race-ledger"
+DSN = f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab application_name=b3-race-ledger"
 NAMA_SQLSTATE = {"23514": "check_violation", "40001": "serialization_failure"}
 SALDO_AWAL = 100000
 B_BUDI = 2

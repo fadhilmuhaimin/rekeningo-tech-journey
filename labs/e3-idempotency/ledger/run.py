@@ -11,13 +11,15 @@ Rekaman lama (output/kunci-*.txt, dipakai halaman E3 versi lama) tidak disentuh.
 import pathlib, re, shutil, socket, subprocess, time
 from decimal import Decimal
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT, port_lab  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent.parent          # labs/e3-idempotency
 OUT = HERE / "output" / "ledger"
-SCHEMA, PORT = "e3_idem", 18160
-DSN = "host=127.0.0.1 port=54333 user=lab password=lab dbname=lab"
+SCHEMA, PORT = "e3_idem", port_lab(18160)   # + LAB_PORT_OFFSET (labs/README.md); server dan app Dart membacanya
+DSN = f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab"
 BIN = HERE / "ledger" / "e3-ledger-server"
-DB_URL = (f"postgres://lab:lab@127.0.0.1:54333/lab?options=-c%20search_path%3D{SCHEMA}"
+DB_URL = (f"postgres://lab:lab@127.0.0.1:{DB_PORT}/lab?options=-c%20search_path%3D{SCHEMA}"
           "&application_name=e3-idem-server")
 
 
@@ -139,7 +141,7 @@ def jalankan(berkas, judul, ket, arg_server, mode, h, versi_pg):
     buat_schema()
     if port_dipakai():
         gagal(f"port {PORT} sudah dipakai proses lain; rekaman tidak boleh diambil dari server lama")
-    srv = subprocess.Popen([str(BIN), *arg_server], env={"DATABASE_URL": DB_URL, "PATH": "/usr/bin:/bin"},
+    srv = subprocess.Popen([str(BIN), *arg_server, "-alamat", f"127.0.0.1:{PORT}"], env={"DATABASE_URL": DB_URL, "PATH": "/usr/bin:/bin"},
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     try:
         for _ in range(100):

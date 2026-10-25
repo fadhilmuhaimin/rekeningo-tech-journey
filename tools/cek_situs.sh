@@ -6,13 +6,17 @@
 #   bash tools/cek_situs.sh --layar          # + semua alat ukur Playwright, berurutan (laptop)
 #   bash tools/cek_situs.sh --ukur "gerak"   # hanya alat ukur yang disebut, atas situs/dist yang sudah dibangun (CI)
 #   bash tools/cek_situs.sh --matriks-ci     # kelompok alat ukur sebagai JSON untuk strategy.matrix di cek.yml
+#   bash tools/cek_situs.sh --bagian "layar@hp"  # ukuran yang dikerjakan satu bagian alat (untuk tools/test_kelompok_ukur.py)
+#
+# UKUR_HALAMAN=<berkas> mempersempit alat yang memeriksa semua halaman ke daftar di berkas itu (situs/tools/lib/pilih.mjs,
+# keputusan 866); CI mengisinya hanya untuk PR yang cuma mengubah halaman (tools/pilih_halaman.py). Tanpa variabel: semua halaman.
 #
 # Python yang dipakai hanya pustaka standar, jadi tidak butuh .venv.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY=${PYTHON:-python3}
 
-# Alat ukur Playwright dalam empat kelompok. --layar menjalankan semuanya berurutan menurut daftar ini;
+# Alat ukur Playwright dalam tujuh kelompok. --layar menjalankan semuanya berurutan menurut daftar ini;
 # CI menjalankan satu kelompok per job, paralel, dari daftar yang sama (--matriks-ci), jadi laptop dan CI
 # selalu memeriksa hal yang sama. Durasi alat di CI main 5eb37bd, berurutan: kelompok pertama 257 s, kedua 309 s,
 # ketiga 279 s; seluruh gerbang 14m30 (keputusan 357). Alat baru masuk ke kelompok terpendek. Langkah "Alat ukur" di
@@ -20,11 +24,37 @@ PY=${PYTHON:-python3}
 # Alat race (W2-race, keputusan 709) ±21 s lokal masuk kelompok pertama, yang terpendek.
 # 2026-10-25: "gerak erd" kena batas 9 menit di CI main (run 40093802904: gerak ±7m54, erd terpotong); gerak tumbuh
 # tiap halaman berblok baru, jadi dipecah dari erd (empat job, keputusan 726) dan batas langkah naik ke 13 menit.
-KELOMPOK_UKUR=("layar judul ilustrasi rantai axe race" "gerak" "erd" "diagram cls kontras luapan alur")
+# 2026-10-25 (keputusan 865): dua alat terbesar dibagi per ukuran layar, supaya waktu dinding job terpanjang turun dari 9m24
+# (layar + tangkap, 413 s; gerak 456 s; run 40148968969) ke ±4 menit tanpa menghilangkan satu pemeriksaan pun. Nama dengan "@"
+# adalah satu bagian ukuran dari alat yang sama (ukuran_bagian di bawah); gabungan bagiannya = semua ukuran alat itu, diuji
+# tools/test_kelompok_ukur.py. "layar" (ukuran) ≈ 360 s, "tangkap" ≈ 30 s dari 413 s kelompok lama; "galur" = loop halaman alur
+# yang dulu di dalam "gerak" (ukur-gerak-alur.mjs, ±90 s per ukuran), "gerak" tinggal bagian tetapnya (±100 s).
+# Alat yang memeriksa semua halaman (layar, galur, rantai, kontras, cls, luapan, alur) menyusut di PR (keputusan 866); yang tetap
+# (gerak ±100 s, erd ±67 s, diagram ±57 s, axe, tangkap, race, ilustrasi, judul) disebar supaya tak satu kelompok pun jadi
+# penentu waktu PR: perkiraan detik di CI semua halaman / PR satu halaman = 209/40, 219/35, 218/48, 227/50, 215/110, 224/100, 87/70.
+KELOMPOK_UKUR=(
+  "layar@desktop judul ilustrasi"
+  "layar@hp rantai race"
+  "galur@potret-desktop axe"
+  "galur@lanskap-hp tangkap kontras"
+  "cls gerak"
+  "alur erd"
+  "diagram luapan"
+)
+ukuran_bagian() {
+  case "$1" in
+    layar@desktop) echo "1366x768,1366x657" ;;
+    layar@hp) echo "375x812,375x667" ;;
+    galur@potret-desktop) echo "375x667,1366x657" ;;
+    galur@lanskap-hp) echo "667x375,844x390" ;;
+    *) return 1 ;;
+  esac
+}
 
 MODE="${1:-}"
 case "$MODE" in
   ""|--layar) ;;
+  --bagian) ukuran_bagian "${2:-}" || { echo "GAGAL: bagian ukuran tidak dikenal: ${2:-}"; exit 1; }; exit 0 ;;
   --matriks-ci)
     printf '{"kelompok":['; pisah=""
     for k in "${KELOMPOK_UKUR[@]}"; do printf '%s"%s"' "$pisah" "$k"; pisah=","; done
@@ -53,6 +83,11 @@ if [ "$MODE" != "--ukur" ]; then
   echo "== catatan masuk dari PR subagen (keputusan 564)"; $PY tools/lipat_masuk.py --cek
   echo "== uji lipat_masuk (argumen asing tidak melipat, keputusan 725)"; $PY tools/test_lipat_masuk.py | tail -1
   echo "== uji alat penulis berkas menolak argumen asing (keputusan 727)"; $PY tools/test_alat_argumen.py | tail -1
+  echo "== uji pemilih halaman PR: semua bila ragu, sebagian hanya bila yakin (keputusan 866)"; $PY tools/test_pilih_halaman.py | tail -1
+  echo "== uji kelompok alat ukur: tiap alat dan tiap ukuran tepat sekali (keputusan 865)"; $PY tools/test_kelompok_ukur.py | tail -1
+  echo "== port lab dibaca dari variabel, bukan tertulis tetap (keputusan 860)"; $PY tools/cek_port_lab.py
+  echo "== uji pemeriksa port lab (lolos palsu, keputusan 860)"; $PY tools/test_cek_port_lab.py | tail -1
+  echo "== uji pembaca port lab: nilai aneh ditolak, bukan dibaca 0 (keputusan 864)"; $PY tools/test_lab_env.py | tail -1
   echo "== ERD dari skema lab: hash sumber dan bentuk JSON (keputusan 375)"; $PY tools/erd.py --cek
   echo "== uji pemeriksa ERD (lolos palsu, keputusan 375)"; $PY tools/test_erd.py | tail -1
   echo "== batas baris file yang diimpor CLAUDE.md (keputusan 235)"
@@ -90,9 +125,17 @@ fi
 jalan_ukur() {
   local URL="http://127.0.0.1:$PORT"
   case "$1" in
-    layar)
-      echo "== layar pertama 4 ukuran + tangkapan"
-      (cd situs && node tools/layar.mjs --url "$URL" && node tools/tangkap.mjs --url "$URL") ;;
+    layar@desktop|layar@hp)
+      local U; U=$(ukuran_bagian "$1")
+      echo "== layar pertama ${1#layar@} ($U)"
+      (cd situs && node tools/layar.mjs --url "$URL" --ukuran "$U") ;;
+    tangkap)
+      echo "== tangkapan layar halaman contoh, desktop dan HP, gelap dan terang"
+      (cd situs && node tools/tangkap.mjs --url "$URL") ;;
+    galur@potret-desktop|galur@lanskap-hp)
+      local U; U=$(ukuran_bagian "$1")
+      echo "== gerak widget alur: paket dan tombol Berikutnya terlihat bersamaan, ${1#galur@} ($U)"
+      (cd situs && node tools/ukur-gerak-alur.mjs --url "$URL" --ukuran "$U") ;;
     judul)
       echo "== jarak judul ke meta (K0d)"
       (cd situs && node tools/ukur-judul.mjs --url "$URL" | grep -v "^ok ") ;;
@@ -100,7 +143,7 @@ jalan_ukur() {
       echo "== teks ilustrasi di dalam bingkai (K0c, K0e)"
       (cd situs && node tools/ukur-ilustrasi.mjs --url "$URL") ;;
     gerak)
-      echo "== reduced motion mematikan gerak (I3)"
+      echo "== reduced motion mematikan gerak (I3), bagian tetap; loop halaman alur ada di galur"
       (cd situs && node tools/ukur-gerak.mjs --url "$URL") ;;
     diagram)
       echo "== diagram: versi statis, scroll, keyboard (I4)"

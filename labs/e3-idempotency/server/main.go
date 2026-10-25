@@ -114,5 +114,5 @@ func main() {
 		w.WriteHeader(code)
 		w.Write(body)
 	})
-	log.Fatal(http.ListenAndServe("127.0.0.1:18080", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:"+portLab(18080), nil))
 }

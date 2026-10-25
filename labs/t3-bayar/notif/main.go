@@ -22,5 +22,5 @@ func main() {
 		}
 		w.WriteHeader(http.StatusOK)
 	})
-	log.Fatal(http.ListenAndServe("127.0.0.1:18090", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:"+portLab(18090), nil))
 }

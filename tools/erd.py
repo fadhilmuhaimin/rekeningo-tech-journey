@@ -1,6 +1,6 @@
 """ERD per tahap, dibangun dari skema lab di PostgreSQL sungguhan, bukan ditulis tangan (keputusan 375).
 
-    labs/.venv/bin/python tools/erd.py             # bangun ulang semua tahap (butuh PostgreSQL lab 127.0.0.1:54333)
+    labs/.venv/bin/python tools/erd.py             # bangun ulang semua tahap (butuh PostgreSQL lab di port LAB_DB_PORT)
     labs/.venv/bin/python tools/erd.py --tahap 1   # satu tahap
     python3 tools/erd.py --cek                     # gerbang, tanpa database: hash sumber, bentuk JSON, selisih
     python3 tools/erd.py --cek --root <salinan>    # dipakai tools/test_erd.py (uji mutasi pada salinan)
@@ -31,10 +31,12 @@ import os
 import pathlib
 import re
 import sys
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "labs"))  # lab_env: labs/README.md
+from lab_env import DB_PORT  # noqa: E402
 
 AKAR = pathlib.Path(__file__).resolve().parent.parent
 FORMAT = 1
-DSN = os.environ.get("ERD_DATABASE_URL", "postgres://lab:lab@127.0.0.1:54333/lab?application_name=erd")  # lab lokal
+DSN = os.environ.get("ERD_DATABASE_URL", f"postgres://lab:lab@127.0.0.1:{DB_PORT}/lab?application_name=erd")  # lab lokal
 
 TAHAP = {
     1: {

@@ -7,10 +7,12 @@ D. Bukti bayar: lewat proxy API (cek pemilik di setiap unduhan) vs signed URL (b
 E. Beranda: 5 request terpisah vs 1 request BFF.
 """
 import json, os, pathlib, socket, subprocess, threading, time, urllib.error, urllib.request
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import port_lab  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 subprocess.run(["go", "build", "-o", str(HERE / "b112"), "."], cwd=HERE, check=True)
-PORT = {"layanan": 18111, "proxy": 18112, "storage": 18113, "api": 18114}
+PORT = {"layanan": port_lab(18111), "proxy": port_lab(18112), "storage": port_lab(18113), "api": port_lab(18114)}   # + LAB_PORT_OFFSET (labs/README.md)
 
 
 def baca_log(p, log, t0):
@@ -78,28 +80,28 @@ DATA = {"nik": "3201010101900001", "nama": "Budi Santoso"}  # data fiktif
 
 
 def a(log, t0):
-    st, b = http("POST", "http://127.0.0.1:18111/v2/identity/match", DATA)
+    st, b = http("POST", f"http://127.0.0.1:{PORT['layanan']}/v2/identity/match", DATA)
     catat(log, t0, f"app      langsung ke layanan (tanpa kredensial) → {st} {b.decode().strip()}")
-    st, b = http("POST", "http://127.0.0.1:18112/verifikasi", DATA)
+    st, b = http("POST", f"http://127.0.0.1:{PORT['proxy']}/verifikasi", DATA)
     catat(log, t0, f"app      ke proxy tanpa token user → {st} {b.decode().strip()}")
-    st, b = http("POST", "http://127.0.0.1:18112/verifikasi", DATA, token="token-budi")
+    st, b = http("POST", f"http://127.0.0.1:{PORT['proxy']}/verifikasi", DATA, token="token-budi")
     catat(log, t0, f"app      ke proxy dengan token Budi → {st} {b.decode().strip()}")
 
 
 def b(log, t0):
     m = time.monotonic()
-    st, body = http("POST", "http://127.0.0.1:18112/verifikasi", DATA, token="token-budi")
+    st, body = http("POST", f"http://127.0.0.1:{PORT['proxy']}/verifikasi", DATA, token="token-budi")
     catat(log, t0, f"app      ke proxy dengan token Budi → {st} {body.decode().strip()} (menunggu {time.monotonic() - m:.1f} detik)")
 
 
 def c(log, t0):
-    st, body = http("GET", "http://127.0.0.1:18114/bukti/123", token="token-budi")
+    st, body = http("GET", f"http://127.0.0.1:{PORT['api']}/bukti/123", token="token-budi")
     catat(log, t0, f"app Budi GET /bukti/123 lewat API → {st}, {len(body)} byte")
-    st, body = http("GET", "http://127.0.0.1:18114/bukti/123", token="token-ani")
+    st, body = http("GET", f"http://127.0.0.1:{PORT['api']}/bukti/123", token="token-ani")
     catat(log, t0, f"app Ani  GET /bukti/123 lewat API → {st} {body.decode().strip()}")
-    st, body = http("GET", "http://127.0.0.1:18114/bukti/123/url", token="token-budi")
+    st, body = http("GET", f"http://127.0.0.1:{PORT['api']}/bukti/123/url", token="token-budi")
     url = json.loads(body)["url"]
-    catat(log, t0, f"app Budi minta signed URL → {st} {url[:url.index('sig=') + 12]}…")
+    catat(log, t0, f"app Budi minta signed URL → {st} {url[:url.index('sig=') + 12].replace(str(PORT['storage']), '18113')}…")   # rekaman memakai port dasar
     st, body = http("GET", url)
     catat(log, t0, f"app Budi unduh langsung dari storage → {st}, {len(body)} byte")
     st, body = http("GET", url)
@@ -116,11 +118,11 @@ def c(log, t0):
 def d(log, t0):
     m, total = time.monotonic(), 0
     for nama in ("saldo", "pesanan", "promo", "notifikasi", "profil"):
-        st, body = http("GET", f"http://127.0.0.1:18114/{nama}", token="token-budi")
+        st, body = http("GET", f"http://127.0.0.1:{PORT['api']}/{nama}", token="token-budi")
         total += len(body)
     catat(log, t0, f"app      5 request terpisah, berurutan → {total} byte body, {(time.monotonic() - m) * 1000:.0f} ms")
     m = time.monotonic()
-    st, body = http("GET", "http://127.0.0.1:18114/beranda", token="token-budi")
+    st, body = http("GET", f"http://127.0.0.1:{PORT['api']}/beranda", token="token-budi")
     catat(log, t0, f"app      1 request GET /beranda (BFF)  → {len(body)} byte body, {(time.monotonic() - m) * 1000:.0f} ms")
 
 

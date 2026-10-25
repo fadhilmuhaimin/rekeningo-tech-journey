@@ -4,6 +4,10 @@
 # sama dengan yang disebut README dan Makefile tiap lab (keputusan 100).
 .PHONY: jalan jalan-hp siapkan-situs lab lab-up lab-down cek
 
+# LAB_DB_PORT, LAB_REDIS_PORT, LAB_PORT_OFFSET, dan COMPOSE_PROJECT_NAME memisahkan lab satu lajur kerja dari lajur lain
+# (keputusan 860, labs/README.md "Beberapa lajur sekaligus"). Tanpa variabel, nilainya sama dengan sebelumnya.
+include labs/lab_env.mk
+
 # bun versi CI lewat npx, jadi tidak perlu bun terpasang global (cukup Node 22+).
 BUN := npx --yes bun@1.4.2
 
@@ -26,15 +30,15 @@ lab:
 	$(MAKE) -C labs/b3-race setup
 	$(MAKE) lab-up
 	@echo
-	@echo "Lab siap. PostgreSQL 17 di 127.0.0.1:54333, Redis 8 di 127.0.0.1:56379."
+	@echo "Lab siap. PostgreSQL 17 di 127.0.0.1:$(LAB_DB_PORT), Redis 8 di 127.0.0.1:$(LAB_REDIS_PORT)."
 	@echo "Coba: make -C labs/b3-race run    (daftar lab lain: README.md)"
 
-# PostgreSQL 17 bersama (schema per lab) + Redis 8.
+# PostgreSQL 17 bersama (schema per lab) + Redis 8. Nama proyek dari COMPOSE_PROJECT_NAME (bawaan: nama folder compose).
 lab-up:
 	docker compose -f labs/b3-race/docker-compose.yml up -d --wait
 	docker compose -f labs/b9-cache/docker-compose.yml up -d --wait
 
-# Mematikan dan menghapus volume (semua schema lab ikut terhapus).
+# Mematikan dan menghapus volume (semua schema lab ikut terhapus) milik proyek yang dipilih COMPOSE_PROJECT_NAME.
 lab-down:
 	docker compose -f labs/b9-cache/docker-compose.yml down -v
 	docker compose -f labs/b3-race/docker-compose.yml down -v

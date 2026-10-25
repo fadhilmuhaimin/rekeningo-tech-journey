@@ -96,7 +96,7 @@ make lab
 `make lab-down` mematikan keduanya dan menghapus volumenya. Repo juga punya `.devcontainer/` untuk VS Code Dev Containers atau GitHub Codespaces: Go, Node, Python, Docker, dan Dart terpasang tanpa instalasi di mesin kamu. Langkah manualnya ada di bawah.
 
 
-Hampir semua lab memakai satu PostgreSQL bersama di port `54333`. Setiap lab punya schema sendiri dan membuatnya ulang setiap kali dijalankan, jadi lab bisa dijalankan dalam urutan apa pun. Tidak ada lab yang menulis ke schema `public`.
+Hampir semua lab memakai satu PostgreSQL bersama di port `54333` (bawaan; `LAB_DB_PORT` menggantinya). Setiap lab punya schema sendiri dan membuatnya ulang setiap kali dijalankan, jadi lab bisa dijalankan dalam urutan apa pun. Tidak ada lab yang menulis ke schema `public`.
 
 | Schema | Lab |
 |---|---|
@@ -132,7 +132,7 @@ make -C labs/b3-race up
 | Redis 8 | `56379` | `make -C labs/b9-cache run` | `b9-cache` |
 | PostgreSQL primary + replica | `54340`–`54341` | `make -C labs/t5-replika run` | `t5-replika` |
 
-Nama project Docker Compose diambil dari nama folder lab (`b3-race`, `b9-cache`, `t5-replika`). Kalau kamu punya lebih dari satu clone repo ini, semua clone memakai kontainer yang sama, dan `down` di satu clone mematikan kontainer untuk clone lain.
+Nama project Docker Compose diambil dari nama folder lab (`b3-race`, `b9-cache`, `t5-replika`). Kalau kamu punya lebih dari satu clone repo ini, semua clone memakai kontainer yang sama, dan `down` di satu clone mematikan kontainer untuk clone lain. Untuk menjalankan lab di beberapa clone atau worktree sekaligus, isi `COMPOSE_PROJECT_NAME`, `LAB_DB_PORT`, dan `LAB_PORT_OFFSET` per clone: caranya di [`labs/README.md`](labs/README.md), bagian "Beberapa lajur sekaligus".
 
 Urutan reset sebelum merekam ulang untuk dikirim:
 

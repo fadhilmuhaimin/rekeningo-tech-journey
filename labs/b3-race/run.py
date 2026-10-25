@@ -16,11 +16,13 @@ Jalankan lewat `make run` (lihat Makefile).
 """
 import json, pathlib, threading, time
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT  # noqa: E402
 
 # Schema b3r, terpisah dari lab lain di database bersama. search_path lewat parameter koneksi,
 # jadi SQL yang direkam tetap tanpa nama schema. public dibutuhkan untuk fungsi pgrowlocks.
 SCHEMA = "b3r"
-DSN = f"host=127.0.0.1 port=54333 user=lab password=lab dbname=lab options=-csearch_path={SCHEMA},public"
+DSN = f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab options=-csearch_path={SCHEMA},public"
 OUT = pathlib.Path(__file__).parent / "output"
 SALDO_AWAL, TARIK_A, TARIK_B = 100000, 70000, 50000  # rupiah
 

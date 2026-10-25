@@ -1,0 +1,65 @@
+{
+  "judul": "Berapa tebakan yang cukup untuk mengunci Ani lagi?",
+  "sumber": "Rekaman lab · ratelimit.txt bagian C dan G",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "{awal} tebakan salah dari alamat penyerang sudah masuk ke akun Ani, dan kunci {kunci1} detik terpasang. Kunci itu lalu lewat. Berapa tebakan salah lagi yang cukup untuk memasangnya kembali?",
+  "pilihan": [
+    {
+      "teks": "Lima lagi, sama seperti tebakan pertama.",
+      "tebakan": 5,
+      "alasan": "Penghitung gagal tidak kembali ke nol saat waktu kunci habis. Ia hanya dihapus oleh login yang berhasil, jadi penyerang tidak mulai dari awal."
+    },
+    {
+      "teks": "Tiga lagi.",
+      "tebakan": 3,
+      "alasan": "Penghitung masih di {awal} sesudah kunci pertama, jadi satu tebakan salah sudah menaikkannya di atas ambang {ambang}. Tiga tebakan lebih banyak dari yang dibutuhkan."
+    },
+    {
+      "teks": "Satu lagi.",
+      "tebakan": 1,
+      "alasan": "Penghitung masih di {awal} sesudah kunci pertama. Satu tebakan salah menaikkannya ke {lebih}, di atas ambang {ambang}, dan kunci dipasang lagi selama {detik2} detik, dua kali lipat."
+    },
+    {
+      "teks": "Nol: kunci kedua dipasang oleh waktu, bukan oleh tebakan.",
+      "tebakan": 0,
+      "alasan": "Waktu hanya melepas kunci. Kunci kedua di rekaman baru ada sesudah satu tebakan salah, dan lamanya {detik2} detik."
+    }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "ubahJudul": "Ubah satu hal: siapa yang mengirim percobaan pertama sesudah kunci lewat",
+  "giliran": {
+    "penyerang": "Penyerang mengirim satu tebakan salah",
+    "ani": "Ani mengirim passwordnya yang benar"
+  },
+  "tabel": {
+    "penyerang": {
+      "judul": "Tiga putaran kunci pada akun Ani",
+      "kolom": ["Putaran", "Tebakan salah yang dikirim", "Jawaban untuk Ani, password benar", "Terkunci"]
+    },
+    "ani": {
+      "judul": "Password benar sesudah kunci lewat",
+      "kolom": ["Yang dikirim", "Jawaban", "Kunci", "Penghitung gagal"]
+    }
+  },
+  "sel": {
+    "putaran": "Kunci ke-{ke}",
+    "tebakan": "{n} tebakan salah",
+    "jawaban": "{status}: {judul}",
+    "jawabanAni": "{status}, login berhasil",
+    "kunci": "{detik} detik",
+    "tanpaKunci": "Tidak terkunci",
+    "aniKirim": "Password benar",
+    "penghitung": "{n}"
+  },
+  "kesimpulan": {
+    "penyerang": "Sesudah kunci pertama, satu tebakan salah per kunci sudah cukup. Lamanya menggandakan tiap putaran ({detik2}, lalu {detik3} detik, sampai {maks} menit di lab), dan penyerang hanya mengirim satu request.",
+    "ani": "Login yang benar sesudah kunci lewat membuka akun dan menghapus penghitung. Kunci menahan Ani hanya bila penyerang yang mengirim percobaan pertama sesudah kunci lewat."
+  },
+  "catatan": {
+    "penyerang": "Bagian C rekaman. Jawaban untuk Ani sama persis dengan jawaban untuk password salah.",
+    "ani": "Bagian G rekaman: akun Karyawan 516 dengan kode yang sama, {sesudah} detik sesudah kunci. Itu bukan akun Ani."
+  },
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan hasil rekamannya sebagai tabel."
+}

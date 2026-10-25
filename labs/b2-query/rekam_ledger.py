@@ -18,12 +18,14 @@ import time
 import uuid
 
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 ROOT = HERE.parent.parent
 SCHEMA = "b2_ledger"
 APP = "b2-query-ledger"
-DSN = "host=127.0.0.1 port=54333 user=lab password=lab dbname=lab"
+DSN = f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab"
 # Bentuk rencana tidak boleh bergantung pada worker paralel yang sedang dipakai agen lain di server bersama, dan JIT
 # menambah baris waktu. Keduanya dimatikan per koneksi lab, bukan di server (keputusan 523).
 OPSI = f"-csearch_path={SCHEMA} -cmax_parallel_workers_per_gather=0 -cjit=off -cTimeZone=Asia/Jakarta"

@@ -10,19 +10,22 @@ Lab gagal keras bila port sudah dipakai, atau bila hasilnya tidak sesuai yang di
 import base64, importlib.util, json, os, pathlib, re, shutil, socket, subprocess, sys, tempfile, threading, time
 
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT, port_lab  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 OUT = HERE / "output"
 B3 = HERE.parent / "b3-ledger"
 T1 = HERE.parent / "api-t1"
 SCHEMA, ARSIP, TES = "tahap2", "tahap2_arsip", "tahap2_tes"
-PORT, PORT_LAIN = 18093, 18094   # api-t1 memakai 18083
+DASAR, DASAR_LAIN = 18093, 18094   # api-t1 memakai 18083; yang masuk rekaman selalu port dasar
+PORT, PORT_LAIN = port_lab(DASAR), port_lab(DASAR_LAIN)   # + LAB_PORT_OFFSET (labs/README.md)
 URL = f"http://127.0.0.1:{PORT}"
-PEMILIK = "host=127.0.0.1 port=54333 user=lab password=lab dbname=lab application_name=api-t2-pemilik"
+PEMILIK = f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab application_name=api-t2-pemilik"
 # Server memakai role api_t2 yang bukan pemilik tabel: tidak bisa mematikan trigger invarian (keputusan 401, 414).
-DB_APP = f"postgres://api_t2:api_t2@127.0.0.1:54333/lab?search_path={SCHEMA}&application_name=api-t2"
-DB_PEMILIK = f"postgres://lab:lab@127.0.0.1:54333/lab?search_path={SCHEMA}&application_name=api-t2-pemilik"
-DB_TES = f"postgres://lab:lab@127.0.0.1:54333/lab?search_path={TES}&application_name=api-t2-tes"
+DB_APP = f"postgres://api_t2:api_t2@127.0.0.1:{DB_PORT}/lab?search_path={SCHEMA}&application_name=api-t2"
+DB_PEMILIK = f"postgres://lab:lab@127.0.0.1:{DB_PORT}/lab?search_path={SCHEMA}&application_name=api-t2-pemilik"
+DB_TES = f"postgres://lab:lab@127.0.0.1:{DB_PORT}/lab?search_path={TES}&application_name=api-t2-tes"
 ENV = dict(os.environ, TZ="Asia/Jakarta")
 BIN = HERE / "api-t2"
 
@@ -64,7 +67,7 @@ def tulis(nama, judul):
         stop(port)
     versi = satu("SHOW server_version")
     kepala = [f"# Lab api-t2 · {judul}",
-              f"# PostgreSQL {versi} · schema {SCHEMA} · server Go di 127.0.0.1:{PORT}",
+              f"# PostgreSQL {versi} · schema {SCHEMA} · server Go di 127.0.0.1:{DASAR}",
               "# Rekaman dari database bersih: make -C labs/api-t2 run (keputusan 408)."]
     OUT.mkdir(exist_ok=True)
     (OUT / nama).write_text("\n".join(l.rstrip() for l in "\n".join(kepala + log).split("\n")) + "\n")
@@ -382,7 +385,7 @@ FROM akun a JOIN buku b ON b.akun_id = a.id WHERE a.id IN (417, 418, 419, 420, 4
     catat("\n# Tautan lama /transfers/6 (bayar ulang Budi di v1): nomor itu tidak pernah dipakai jurnal")
     harap(curl("GET", "/transfers/6", token=budi)[0], 404, "nomor transaksi v1")
     catat("\n# Rollback ke server v1 sesudah migrate: database menolak, bukan saldo yang diam-diam berbeda")
-    mulai(v1, PORT_LAIN, tampil=f"$ ./api-t1-expand -addr 127.0.0.1:{PORT_LAIN} &")
+    mulai(v1, PORT_LAIN, tampil=f"$ ./api-t1-expand -addr 127.0.0.1:{DASAR_LAIN} &")
     versi, label, token, akun = APP[0]
     harap(curl("POST", "/transfers", {"ke": 502, "jumlah": 10000}, token, port=PORT_LAIN)[0], 500, "v1 bayar")
     harap(curl("GET", f"/akun/{akun}", token=token, port=PORT_LAIN)[0], 500, "v1 saldo")
@@ -1102,13 +1105,13 @@ def rekam_batas_hilang(tmp):
     catat("# Akun lab Karyawan 800 berperan sebagai Citra: akun Citra sudah memakai batas hari ini di transfer.txt.")
     harap(satu("SELECT nama FROM akun WHERE id = 800"), "Karyawan 800", "nama akun 800")
     sandi_admin = "kalimat panjang milik admin tunjangan"
-    mulai(BIN, tampil="# server asli: ./api-t2 di :%d (kode labs/api-t2)" % PORT)
+    mulai(BIN, tampil="# server asli: ./api-t2 di :%d (kode labs/api-t2)" % DASAR)
     harap(ganti_password("admin.tunjangan@lestari.example", "sementara-400", sandi_admin)[0], 204, "ganti password admin")
     harap(ganti_password("karyawan800@lestari.example", "sementara-800", password_kampus(800))[0], 204, "ganti password 800")
     biner = d / "api-t2-tanpa-batas"
     rc, teks = jalankan(d, ["go", "build", "-o", str(biner), "./cmd/api"])
     harap(rc, 0, "go build server tanpa pemeriksaan")
-    mulai(biner, port=PORT_LAIN, tampil="# server tanpa pemeriksaan: ./api-t2-tanpa-batas di :%d (kode di folder sementara)" % PORT_LAIN)
+    mulai(biner, port=PORT_LAIN, tampil="# server tanpa pemeriksaan: ./api-t2-tanpa-batas di :%d (kode di folder sementara)" % DASAR_LAIN)
     admin = login("admin.tunjangan@lestari.example", sandi_admin, "admin")
     catat("# Saldo disiapkan: top-up admin Rp1.000.000 untuk Karyawan 800 (satu baris CSV)")
     s, isi = curl("POST", "/topup?keterangan=Top-up%20rekaman%20M14", "nomor_karyawan,nominal\nK00800,1000000\n", admin,
@@ -1118,7 +1121,7 @@ def rekam_batas_hilang(tmp):
     catat("\n# Server asli")
     s, isi = curl("POST", "/kiriman", {"ke_nomor_karyawan": "K00419", "nominal": 800000}, citra)
     harap((s, j(isi)["type"]), (422, "/problems/batas-harian"), "server asli menolak Rp800.000")
-    catat("\n# Server tanpa pemeriksaan (:%d)" % PORT_LAIN)
+    catat("\n# Server tanpa pemeriksaan (:%d)" % DASAR_LAIN)
     s, isi = curl("POST", "/kiriman", {"ke_nomor_karyawan": "K00419", "nominal": 800000}, citra, port=PORT_LAIN)
     harap((s, j(isi)["saldo"], j(isi)["sisa_batas_harian"]), (201, 450000, -300000), "server tanpa pemeriksaan menerima")
     catat("\n# Database sesudahnya: jurnal seimbang, saldo cocok, tetapi uang keluar hari ini melewati batas")

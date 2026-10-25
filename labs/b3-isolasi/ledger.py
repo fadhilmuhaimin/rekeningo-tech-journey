@@ -16,11 +16,13 @@ Rekaman lama (run.py, output/*.txt) dipakai halaman b3-3 versi lama dan tidak di
 import pathlib, threading, time
 from decimal import Decimal
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 OUT = HERE / "output" / "ledger"
 SCHEMA = "b3_isolasi"
-DSN = "host=127.0.0.1 port=54333 user=lab password=lab dbname=lab"
+DSN = f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab"
 NAMA_SQLSTATE = {"40001": "serialization_failure", "23514": "check_violation", "25P02": "in_failed_sql_transaction"}
 SISTEM, ADMIN, DIMAS, ANI, BUDI, CITRA = 1, 400, 417, 418, 419, 504
 B_TUNJANGAN, B_PEMBUKA, B_BUDI, B_ANI, B_CITRA, B_DIMAS = 1, 2, 3, 4, 5, 6

@@ -52,5 +52,5 @@ func main() {
 		}
 	})
 	// --8<-- [end:sse]
-	log.Fatal(http.ListenAndServe("127.0.0.1:18093", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:"+portLab(18093), nil))
 }

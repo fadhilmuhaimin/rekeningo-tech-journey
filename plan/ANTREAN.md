@@ -1214,11 +1214,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.20 · Ukuran payload dan kuota HP
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.19
 - selesai bila: halaman Konsep 2.20 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (tanpa ★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Lab `e5-payload` yang ada; bila rekamannya perlu diselaraskan ke cerita, sisipkan `2.20-lab`. Isi lama E5 dipakai ulang.
+- catatan: Lab `e5-payload` yang ada; bila rekamannya perlu diselaraskan ke cerita, sisipkan `2.20-lab`. Isi lama E5 dipakai ulang. Selesai 2026-10-25 di PR #322 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### 2.21 · M13: Migrasi di jam makan siang
 
@@ -1232,39 +1232,37 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.22 · Ubah skema tanpa downtime + ADR 17
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.21, lab-b4-skema
 - selesai bila: halaman Konsep+ADR 2.22 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/b4-skema`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Isi lama B4.2 dipakai ulang.
+- catatan: Isi lama B4.2 dipakai ulang. Selesai 2026-10-25 di PR #319 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### 2.23 · M14: Batas harian yang hilang
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.22, lab-api-t2
 - selesai bila: halaman Masalah 2.23 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/api-t2`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Rekaman merge yang menghapus batas harian dan tes yang menangkapnya kemungkinan butuh `2.23-lab`.
+- catatan: Rekaman merge yang menghapus batas harian dan tes yang menangkapnya kemungkinan butuh `2.23-lab`. Selesai 2026-10-25 di PR #318 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### 2.24 · Tim dan infra Tahap 2: review, branch protection, tes integrasi + ADR 18
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.23, lab-api-t2
 - selesai bila: halaman Tim-infra 2.24 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/api-t2`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
-
+- catatan: Selesai 2026-10-25 di PR #323 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 ### 2.25 · M15: Rp15.000 di file bank
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.24, lab-t2-pencairan
 - selesai bila: halaman Masalah 2.25 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); rekaman dari `labs/t2-pencairan`; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
-
+- catatan: Selesai 2026-10-25 di PR #327 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 ### 2.26 · Job terjadwal yang idempoten dan rekonsiliasi + ADR 19
 
 - jenis: konten
@@ -1389,11 +1387,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### RISET-3 · Riset Tahap 3
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: RISET-2
 - selesai bila: `plan/RISET-TAHAP-3.md` (≤ 120 baris) sesuai skill riset-tahap untuk Tahap 3 (seluruh cabang di enam kota, PROPOSAL "Enam tahap dalam satu tabel"): konsep dengan 1–3 sumber primer bertanggal dan ID `R3-nn`, yang berubah sejak PROPOSAL, teknik terbaru masuk/tidak, satu kasus industri nyata untuk ADR dari sumber primer, jebakan forum, angka beban dan ukuran data dihitung ulang dengan rumus PROPOSAL sebagai Asumsi; pengatur membuka tiga ID acak.
-- catatan: Kerja di depan (keputusan 728): jalan sebelum EVAL-2 dan DIRI-2 di lajur riset; bila DIRI-2 mengubah skill riset-tahap, RISET-3 tidak diulang, `KONSISTENSI-3` yang memeriksa.
+- catatan: Kerja di depan (keputusan 728): jalan sebelum EVAL-2 dan DIRI-2 di lajur riset; bila DIRI-2 mengubah skill riset-tahap, RISET-3 tidak diulang, `KONSISTENSI-3` yang memeriksa. Selesai 2026-10-25 di PR #325 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### NASKAH-3 · Naskah Tahap 3 (draft otomatis)
 

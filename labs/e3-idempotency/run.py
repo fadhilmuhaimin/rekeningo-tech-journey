@@ -4,13 +4,15 @@ Keluaran: output/kunci-sama.txt, output/kunci-baru.txt
 Jalankan: make -C labs/e3-idempotency run   (butuh: make -C labs/b3-race up, Go, Dart)
 """
 import pathlib, socket, subprocess, time, os
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT, port_lab  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 OUT = HERE / "output"
 # Schema e3 lewat parameter koneksi; ON_ERROR_STOP supaya skema yang gagal dibuat tidak lolos diam-diam.
 PSQL = ["docker", "compose", "-f", str(HERE / "../b3-race/docker-compose.yml"), "exec", "-T",
         "-e", "PGOPTIONS=-csearch_path=e3", "db", "psql", "-U", "lab", "-d", "lab", "-q", "-v", "ON_ERROR_STOP=1"]
-ENV = dict(os.environ, DATABASE_URL="postgres://lab:lab@127.0.0.1:54333/lab?options=-c%20search_path%3De3"
+ENV = dict(os.environ, DATABASE_URL=f"postgres://lab:lab@127.0.0.1:{DB_PORT}/lab?options=-c%20search_path%3De3"
                                     "&application_name=e3")
 
 
@@ -30,7 +32,7 @@ def pastikan_bebas(port):
 def tunggu_port():
     for _ in range(100):
         try:
-            socket.create_connection(("127.0.0.1", 18080), 0.2).close()
+            socket.create_connection(("127.0.0.1", port_lab(18080)), 0.2).close()
             return
         except OSError:
             time.sleep(0.1)
@@ -41,7 +43,7 @@ subprocess.run(["go", "build", "-o", str(HERE / "server/e3-server"), "."], cwd=H
 OUT.mkdir(exist_ok=True)
 for mode in ("kunci-sama", "kunci-baru"):
     subprocess.run(PSQL, input=(HERE / "schema.sql").read_text(), text=True, check=True, capture_output=True)
-    pastikan_bebas(18080)
+    pastikan_bebas(port_lab(18080))
     srv = subprocess.Popen([str(HERE / "server/e3-server"), "-lambat-pertama"], env=ENV,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     tunggu_port()

@@ -8,7 +8,7 @@
 // Angka (I5d, keputusan 352): total jumlah-total dan saldo HP bergerak sesudah klik, langsung final dengan reduced motion.
 //   node tools/ukur-gerak.mjs --url http://127.0.0.1:4321
 //   node tools/ukur-gerak.mjs --url ... --axe   # + axe-core di halaman uji, gelap dan terang
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { chromium } from "@playwright/test";
 import { awasi } from "./lib/batas.mjs";
 import { pilihAxe } from "./lib/axe.mjs";
@@ -267,66 +267,9 @@ for (const [w, [a, b]] of Object.entries(diamAlur)) {
   if (!ok) gagal++;
 }
 
-// Widget alur di HP (perbaikan PR #175, keputusan 261): di 375x667, di semua halaman alur, paket dan tombol Berikutnya
-// terlihat bersamaan sesudah setiap klik. Sebelum klik, tombol digulir ke tepi bawah layar (posisi terburuk sesudah
-// pembaca menggulir sampai tombol tampak). Paket diukur di frame pertama (masih di komponen asal) dan saat diam:
-// jarak atas paket ke atas tombol <= tinggi layar dikurangi header tetap dan tinggi tombol, dan paket berada di antara
-// bawah header tetap dan bawah viewport. HP lanskap 667x375 dan 844x390 ikut (I5c-c, keputusan 350): sebelumnya lebar
-// widget di 667x375 >= 600 px, jadi tata letak lebar menaruh detail dan HP di antara paket dan tombol (±190 dari 199 klik
-// paket di luar layar). Desktop 1366x657 ikut (I5c-e, keputusan 358): tata letak lebar dulu menaruh tebakan, varian, lalu
-// detail dan HP di antara paket dan tombol, jadi detail yang memanjang mendorong Berikutnya ke bawah layar; sekarang
-// urutannya sama dengan mode sempit. Baris ringkasan juga menghitung klik yang membuat tombol sendiri keluar layar.
-const DOCS = new URL("../src/content/docs/", import.meta.url);
-const halAlur = readdirSync(DOCS, { recursive: true })
-  .filter((f) => f.endsWith(".mdx") && readFileSync(new URL(f, DOCS), "utf8").includes('<WidgetLama nama="alur"'))
-  .map((f) => ("/" + f.replace(/\\/g, "/").replace(/\.mdx$/, "").replace(/(^|\/)index$/, "") + "/").replace(/\/+/g, "/"))
-  .sort();
-for (const [lw, lh] of [[375, 667], [667, 375], [844, 390], [1366, 657]]) {
-let klikAlur = 0, jarakMaks = 0, tombolLuar = 0;
-const alurGagal = [];
-for (const pth of halAlur) {
-  const page = await browser.newPage({ viewport: { width: lw, height: lh } });
-  await page.goto(url + pth, { waitUntil: "networkidle" });
-  const ada = await page.waitForSelector(".bb-alur .bb-row button", { state: "attached", timeout: 10000 }).catch(() => null);
-  const r = ada ? await page.evaluate(async () => {
-    const frame = () => new Promise((ok) => requestAnimationFrame(() => ok()));
-    document.querySelectorAll("details").forEach((d) => (d.open = true));
-    const vh = innerHeight, hasil = [];
-    const hd = document.querySelector("header.header");
-    const hdr = hd && getComputedStyle(hd).position === "fixed" ? hd.getBoundingClientRect().bottom : 0;
-    for (const alur of document.querySelectorAll(".bb-alur")) {
-      alur.querySelector(".bb-predict button")?.click();
-      const maju = [...alur.querySelectorAll(".bb-row button")].find((b) => b.textContent.startsWith("Berikutnya"));
-      const pk = alur.querySelector(".bb-alur__packet");
-      for (let k = 1; maju && !maju.disabled && k <= 40; k++) {
-        scrollBy({ top: maju.getBoundingClientRect().bottom - (vh - 8), behavior: "instant" });
-        maju.click();
-        const f0 = pk.getBoundingClientRect();
-        await Promise.all(pk.getAnimations().map((a) => a.finished.catch(() => null)));
-        await frame();
-        const diam = pk.getBoundingClientRect(), bt = maju.getBoundingClientRect();
-        const atas = Math.min(f0.top, diam.top), bawah = Math.max(f0.bottom, diam.bottom);
-        hasil.push({ k, jarak: Math.round(bt.top - atas), batas: Math.floor(vh - hdr - bt.height),
-          tombol: bt.top >= hdr && bt.bottom <= vh,
-          terlihat: !pk.hidden && atas >= hdr && bawah <= vh && bt.top >= hdr && bt.bottom <= vh,
-          ukuran: `paket ${Math.round(atas)}..${Math.round(bawah)} tombol ${Math.round(bt.top)}..${Math.round(bt.bottom)}` });
-      }
-    }
-    return hasil;
-  }) : [];
-  const buruk = r.filter((x) => x.jarak > x.batas || !x.terlihat);
-  klikAlur += r.length;
-  tombolLuar += r.filter((x) => !x.tombol).length;
-  jarakMaks = Math.max(jarakMaks, ...r.map((x) => x.jarak));
-  if (!r.length || buruk.length) alurGagal.push(`${pth} ${buruk.length}/${r.length} (jarak maks ${Math.max(0, ...r.map((x) => x.jarak))} px; ${buruk.slice(0, 3).map((x) => `langkah ${x.k}: ${x.ukuran}`).join("; ")})`);
-  await page.close();
-}
-const okAlur = halAlur.length > 0 && !alurGagal.length;
-const klikLuar = alurGagal.reduce((t, x) => t + Number(x.split(" ")[1].split("/")[0]), 0);
-console.log(`${okAlur ? "ok" : "GAGAL"} alur ${lw}x${lh}: paket dan tombol Berikutnya terlihat bersamaan di ${halAlur.length} halaman, ${klikAlur} klik, ${klikLuar} di luar layar (tombol Berikutnya sendiri ${tombolLuar}); jarak paket ke tombol maks ${jarakMaks} px (batas ${lh} dikurangi header dan tinggi tombol)`);
-for (const x of alurGagal.slice(0, 8)) console.log(`  GAGAL ${x}`);
-if (!okAlur) gagal++;
-}
+// Pemeriksaan paket dan tombol Berikutnya di semua halaman alur (I5c, keputusan 261, 350, 358) dipindah ke
+// ukur-gerak-alur.mjs, supaya CI bisa membaginya per ukuran layar dan menyaring halaman (keputusan 865). Perintah dan
+// teks hasilnya sama; cek_situs.sh menjalankannya sebagai alat "galur" (bagian dari --layar di laptop).
 
 // Fokus bertahan saat lebar melewati batas mode sempit (perbaikan PR #175 putaran 2, keputusan 261): dulu urutSempit
 // memindah tombol dengan insertBefore, dan Chrome membuang fokus elemen yang dipindah; sejak keputusan 358 urutan DOM

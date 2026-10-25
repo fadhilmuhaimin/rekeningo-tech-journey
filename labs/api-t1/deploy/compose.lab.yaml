@@ -2,5 +2,5 @@
 # run.py memakai COMPOSE_FILE=compose.yaml:compose.lab.yaml. Di VPS berkas ini tidak ada.
 networks:
   default:
-    name: b3-race_default
+    name: ${LAB_DB_NETWORK:-b3-race_default}
     external: true
