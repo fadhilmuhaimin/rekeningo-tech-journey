@@ -18,6 +18,6 @@ cek: run
 test:
 	cd go && go vet ./... && go test -count=1 ./...
 
-# Uji mutasi: ubah satu hal di kode dan pastikan lab GAGAL (mutasi.py; satu mutasi: make mutasi MUTASI=escape-dihapus).
+# Uji mutasi: ubah satu hal di kode dan pastikan lab GAGAL (mutasi.py; satu mutasi: make mutasi MUTASI=escape-selalu-rentan).
 mutasi:
 	../.venv/bin/python mutasi.py $(MUTASI)

@@ -3,7 +3,7 @@ pastikan lab GAGAL. Mutasi yang lolos berarti rekaman tidak menjaga hal itu; daf
 (bagian "Uji mutasi"), dengan alasan kenapa (pola yang sama dengan labs/t3-mitm/mutasi.py).
 
     make -C labs/t3-dasbor mutasi                 (semua mutasi; setiap mutasi menjalankan satu bagian)
-    make -C labs/t3-dasbor mutasi MUTASI=csp-mati (satu mutasi)
+    make -C labs/t3-dasbor mutasi MUTASI=csp-tidak-pernah-aktif (satu mutasi)
 """
 import pathlib
 import shutil
@@ -26,25 +26,49 @@ MUTASI = [
      "func (s *server) namaCookie() string {\n\treturn namaCookieAman\n}", "xss", "bunuh"),
     ("csrf-gerbang-dimatikan", "go/cmd/dasbor/main.go",
      'if s.token != "tidak" && !s.csrfSah(r, x) {', "if false {", "csrf", "bunuh"),
-    # Ketiga mutasi di bawah LOLOS (survivor jujur, diukur, bukan ditebak): form HTML polos Dimas gagal di
-    # KETIGA pemeriksaan sekaligus (Chromium mengirim Sec-Fetch-Site: cross-site dan Origin lintas situs untuk
-    # navigasi form, dan form tidak bisa memasang header X-CSRF-Token sama sekali), jadi menghapus satu
-    # pemeriksaan saja masih menyisakan dua yang lain menolak serangan yang sama persis. Baru saat ketiganya
-    # hilang sekaligus (mutasi csrf-gerbang-dimatikan) serangan ini lewat. README "Uji mutasi" mencatat ini
-    # sebagai bukti redundansi, bukan sebagai pemeriksaan yang percuma.
+    # Tiga pemeriksaan gerbang CSRF (Origin, Sec-Fetch-Site, token). Form HTML polos Dimas gagal di KETIGANYA
+    # sekaligus (Chromium mengirim Sec-Fetch-Site: cross-site dan Origin lintas situs untuk navigasi form, dan form
+    # tidak bisa memasang header X-CSRF-Token), jadi rekaman browser tidak bisa membedakan satu pemeriksaan dari
+    # yang lain: tiap mutasi LOLOS di bagian csrf (survivor jujur, diukur, bukan ditebak). Tes Go membunuh
+    # ketiganya, karena memanggil csrfSah dengan satu pelanggaran per tes (peninjau, keputusan 976): pembunuh yang
+    # sah ada, hanya bukan di rekaman browser. Keduanya dijalankan: nama biasa = tes Go, "@rekaman" = browser.
     ("csrf-origin-dihapus", "go/cmd/dasbor/main.go",
+     'if o := r.Header.Get("Origin"); o != "" && o != "http://"+r.Host {\n\t\treturn false\n\t}\n\ttok := r.Header.Get("X-CSRF-Token")',
+     'tok := r.Header.Get("X-CSRF-Token")', "go-test", "bunuh"),
+    ("csrf-origin-dihapus@rekaman", "go/cmd/dasbor/main.go",
      'if o := r.Header.Get("Origin"); o != "" && o != "http://"+r.Host {\n\t\treturn false\n\t}\n\ttok := r.Header.Get("X-CSRF-Token")',
      'tok := r.Header.Get("X-CSRF-Token")', "csrf", "lolos"),
     ("csrf-secfetchsite-dihapus", "go/cmd/dasbor/main.go",
      'if site := r.Header.Get("Sec-Fetch-Site"); site != "" && site != "same-origin" && site != "none" {\n\t\treturn false\n\t}\n\tif o :=',
+     "if o :=", "go-test", "bunuh"),
+    ("csrf-secfetchsite-dihapus@rekaman", "go/cmd/dasbor/main.go",
+     'if site := r.Header.Get("Sec-Fetch-Site"); site != "" && site != "same-origin" && site != "none" {\n\t\treturn false\n\t}\n\tif o :=',
      "if o :=", "csrf", "lolos"),
     ("csrf-token-diabaikan", "go/cmd/dasbor/main.go",
      'tok := r.Header.Get("X-CSRF-Token")\n\treturn tok != "" && subtle.ConstantTimeCompare([]byte(hashToken(tok)), []byte(x.CsrfHash)) == 1',
+     'tok := r.Header.Get("X-CSRF-Token")\n\t_, _ = tok, subtle.ConstantTimeCompare\n\treturn true', "go-test", "bunuh"),
+    ("csrf-token-diabaikan@rekaman", "go/cmd/dasbor/main.go",
+     'tok := r.Header.Get("X-CSRF-Token")\n\treturn tok != "" && subtle.ConstantTimeCompare([]byte(hashToken(tok)), []byte(x.CsrfHash)) == 1',
      'tok := r.Header.Get("X-CSRF-Token")\n\t_, _ = tok, subtle.ConstantTimeCompare\n\treturn true', "csrf", "lolos"),
+    # Token yang sama untuk semua sesi (bukan rahasia per sesi): hanya skenario F (token Ani di sesi Sari) yang melihatnya.
+    ("csrf-token-sama-semua-sesi", "go/cmd/dasbor/main.go",
+     "token, csrf := tokenAcak(), tokenAcak()", 'token, csrf := tokenAcak(), strings.Repeat("ab", 32)', "csrf", "bunuh"),
+    # Atribut SameSite tidak ditulis: browser memakai Lax bawaan (masa tenggang POST dua menit), skenario E.
+    ("samesite-tidak-ditulis", "go/cmd/dasbor/main.go",
+     'sameSite, secure := http.SameSiteLaxMode, s.cookie != "rentan"', 'sameSite, secure := http.SameSite(0), s.cookie != "rentan"', "csrf", "bunuh"),
+    # 'unsafe-inline' di samping nonce: browser mengabaikannya bila ada nonce atau hash (MDN CSP guide), jadi event
+    # handler tetap diblokir dan xss C tetap lolos. Mutan setara di Chromium ini, bukan celah rekaman.
+    ("csp-unsafe-inline-ditambah", "go/cmd/dasbor/main.go",
+     "script-src 'nonce-\"+nonce+\"';", "script-src 'nonce-\"+nonce+\"' 'unsafe-inline';", "xss", "lolos"),
+    # Nilai ?csrf= disisipkan ke <script> tanpa memeriksa format: reflected XSS saat -csp mati.
+    ("csrf-query-tanpa-format", "go/cmd/dasbor/main.go",
+     "formatTokenCsrf.MatchString(q)", 'q != ""', "go-test", "bunuh"),
     ("samesite-selalu-none", "go/cmd/dasbor/main.go",
      'if s.samesite == "none" {', "if true {", "csrf", "bunuh"),
     ("pagar-menerima-semua-alamat", "go/internal/pagar/pagar.go",
      "if ip == nil || !ip.IsLoopback() {", "if ip == nil && !ip.IsLoopback() {", "go-test", "bunuh"),
+    ("pagar-akhiran-localhost-longgar", "go/internal/pagar/pagar.go",
+     'strings.HasSuffix(low, ".localhost")', 'strings.HasSuffix(low, "localhost")', "go-test", "bunuh"),
 ]
 
 
