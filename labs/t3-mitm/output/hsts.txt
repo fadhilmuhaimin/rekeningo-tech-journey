@@ -1,0 +1,58 @@
+# Lab t3-mitm · HSTS di dasbor (RFC 6797): server tepi dan client yang menyimpannya
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-mitm run (keputusan 977).
+
+# --- A. Server tepi: HSTS hanya di jawaban TLS, port HTTP hanya mengalihkan ---
+$ curl -i http://localhost:18191/warung
+HTTP/1.1 301 Moved Permanently
+Content-Type: text/html; charset=utf-8
+Location: https://localhost:18190/warung
+
+<a href="https://localhost:18190/warung">Moved Permanently</a>.
+# Port HTTP: 301 ke https, tanpa Strict-Transport-Security. RFC 6797 bagian 7.2: host tidak boleh mengirim header itu lewat transport yang tidak aman.
+$ curl -i --cacert ca-publik.pem https://localhost:18190/warung
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Www-Authenticate: Bearer
+
+{"type":"/problems/belum-login","title":"Belum login atau sesi sudah berakhir","status":401}
+# Jawaban TLS, juga jawaban error 401: Strict-Transport-Security dengan max-age 31536000 detik (365 hari) dan includeSubDomains (RFC 6797 bagian 6.1.1 dan 6.1.2).
+
+# --- B. Client yang menyimpan HSTS (curl --hsts, bukan browser): permintaan http sesudah jawaban TLS pertama dinaikkan ke https ---
+$ curl -i --cacert ca-publik.pem --hsts hsts.txt http://localhost:18190/warung   # cache HSTS masih kosong
+HTTP/1.0 400 Bad Request
+
+Client sent an HTTP request to an HTTPS server.
+# Cache kosong: curl mengirim teks biasa, dan port TLS menolaknya. Permintaan pertama ke http:// tidak terlindungi (RFC 6797 bagian 14.6).
+$ curl -i --cacert ca-publik.pem --hsts hsts.txt https://localhost:18190/warung
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Www-Authenticate: Bearer
+
+{"type":"/problems/belum-login","title":"Belum login atau sesi sudah berakhir","status":401}
+# Sesudah jawaban TLS, cache hsts.txt memuat localhost: ya
+$ curl -i --cacert ca-publik.pem --hsts hsts.txt http://localhost:18190/warung   # cache HSTS terisi
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Www-Authenticate: Bearer
+
+{"type":"/problems/belum-login","title":"Belum login atau sesi sudah berakhir","status":401}
+# Dengan cache: permintaan yang sama dinaikkan ke https sebelum meninggalkan klien; yang sampai ke server adalah TLS (401, bukan 400).
+
+# --- C. Alamat IP: HSTS tidak disimpan (RFC 6797 bagian 8.1.1) ---
+$ curl -i --cacert ca-publik.pem --hsts hsts-ip.txt https://127.0.0.1:18190/warung
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Www-Authenticate: Bearer
+
+{"type":"/problems/belum-login","title":"Belum login atau sesi sudah berakhir","status":401}
+$ curl -i --cacert ca-publik.pem --hsts hsts-ip.txt http://127.0.0.1:18190/warung
+HTTP/1.0 400 Bad Request
+
+Client sent an HTTP request to an HTTPS server.
+# Dasbor yang dibuka lewat alamat IP tidak mendapat perlindungan HSTS: cache tidak memuat alamat itu, dan http tidak dinaikkan.
+# Tidak dijalankan: HSTS preload list di browser, dan penyimpanan HSTS di browser (hanya curl yang diuji).

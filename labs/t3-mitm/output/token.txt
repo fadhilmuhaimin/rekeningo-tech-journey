@@ -1,0 +1,76 @@
+# Lab t3-mitm · Umur token 15 menit dan redaksi log
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-mitm run (keputusan 977).
+# Client: Dart 3.11.4 (dart:io) dan dio 5.11.0. Server tepi dan proxy tiruan: Go (crypto/tls, tanpa dependency).
+
+# --- A. Umur token 15 menit: token yang dibaca proxy berguna paling lama sisa umurnya ---
+# Server dijalankan dengan -umur-sesi 15m (ADR 31; bawaan lab 8 jam). Login di jaringan aman:
+$ curl -i -X POST '/login' -d '{"email": "budi@lestari.example", "password": "sementara-tahap-3"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"kedaluwarsa_detik":900,"token":"<token sesi Budi>"}
+# kedaluwarsa_detik 900 = 15 menit.
+# App dengan flag terima-semua membuka saldo lewat hotspot Dimas; proxy membaca token.
+$ client --mode=terima-semua --percaya=ca-publik --url=https://localhost:18192/akun/419 --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1},"callback_dipanggil":1}
+# proxy Dimas melihat: handshake ya, request terbaca 1
+# proxy membaca: GET /akun/419 Authorization: Bearer <token sesi Budi>
+# Authorization yang dibaca proxy sama dengan token sesi Budi: ya
+# Dimas memakai token curian dari laptopnya, langsung ke server. Jam server dimajukan lewat POST /lab/jam (waktu tidak ditunggu).
+# 1 menit sesudah login:
+$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}
+# 14 menit 30 detik sesudah login:
+$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}
+# 15 menit 30 detik sesudah login:
+$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+Www-Authenticate: Bearer error="invalid_token"
+
+{"type":"/problems/belum-login","title":"Belum login atau sesi sudah berakhir","status":401}
+# Token curian hanya berguna paling lama 15 menit sesudah login (sisa umur tokennya); app login lagi untuk token baru. Umur pendek tidak menghentikan pencurian: ia membatasi lamanya.
+# Tidak dijalankan: refresh token dan pencabutan token di app; api-t3 hanya punya sesi dengan umur tetap.
+
+# --- B. Redaksi log: token tidak muncul di log server tepi dan log api-t3; varian rentan menyalin header ---
+# B1. Server tepi dengan log akses yang menyamarkan Authorization dan Cookie. Dua request, satu sukses dan satu ditolak (401).
+$ client --mode=validasi --percaya=ca-publik --url=https://localhost:18190/akun/419 --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}}
+$ client --mode=validasi --percaya=ca-publik --url=https://localhost:18190/akun/419 --token=<token sesi salah>
+{"hasil":"terhubung","status":401,"isi":{"type":"/problems/belum-login","title":"Belum login atau sesi sudah berakhir","status":401}}
+# Dasbor mengirim token lewat cookie, bukan header Authorization: satu request dengan cookie juga lewat tepi.
+$ curl -i --cacert ca-publik.pem https://localhost:18190/akun/419 -H 'Cookie: __Host-sesi=<token sesi Budi>'
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Www-Authenticate: Bearer error="invalid_token"
+
+{"type":"/problems/belum-login","title":"Belum login atau sesi sudah berakhir","status":401}
+# Isi log akses tepi (token disamarkan oleh server tepi sendiri):
+  GET /akun/419 200 Authorization: [disamarkan]
+  GET /akun/419 401 Authorization: [disamarkan]
+  GET /akun/419 401 Cookie: [disamarkan]
+# Token Budi muncul di log tepi: 0 kali
+# Token Budi muncul di log api-t3: 0 kali (api-t3 tidak punya log akses; yang dicatat hanya kejadian di server).
+# B2. Varian rentan: server tepi yang log aksesnya menyalin header (-log-mentah). Request yang sama.
+$ client --mode=validasi --percaya=ca-publik --url=https://localhost:18190/akun/419 --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}}
+$ curl -i --cacert ca-publik.pem https://localhost:18190/akun/419 -H 'Cookie: __Host-sesi=<token sesi Budi>'
+HTTP/1.1 401 Unauthorized
+Content-Type: application/problem+json
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Www-Authenticate: Bearer error="invalid_token"
+
+{"type":"/problems/belum-login","title":"Belum login atau sesi sudah berakhir","status":401}
+# Isi log akses tepi:
+  GET /akun/419 200 Authorization: Bearer <token sesi Budi>
+  GET /akun/419 401 Cookie: __Host-sesi=<token sesi Budi>
+# Token Budi muncul di log tepi: 2 kali (satu dari Authorization, satu dari Cookie). Siapa pun yang boleh membaca log (atau layanan pengumpul log) boleh memakai token itu selama 15 menit.

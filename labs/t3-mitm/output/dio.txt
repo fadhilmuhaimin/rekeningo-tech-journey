@@ -1,0 +1,42 @@
+# Lab t3-mitm · Klaim dio#2418 diuji, dan mekanisme pin yang dipilih di Dart
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-mitm run (keputusan 977).
+# Client: Dart 3.11.4 (dart:io) dan dio 5.11.0. Server tepi dan proxy tiruan: Go (crypto/tls, tanpa dependency).
+
+# --- A. Klaim dio#2418: validateCertificate jalan sesudah request terkirim ---
+# Kode sumber dio-5.11.0, lib/src/adapters/io_adapter.dart: request.close() di baris 161, validateCertificate!(...) di baris 195.
+# Pemeriksaan pin lewat validateCertificate hanya terjadi sesudah request dikirim dan jawaban tiba. Lab di bawah mengukurnya.
+# Daftar akar app berisi CA Lab Publik dan CA Dimas, jadi handshake lolos; pin A dan B hanya diperiksa oleh callback dio.
+# Kontrol: dio dengan validateCertificate langsung ke server asli (kunci A): callback dipanggil dan menerima.
+$ client --mode=dio-validate --percaya=ca-publik+ca-dimas --url=https://localhost:18190/akun/419 --pin=spki_server-a,spki_server-b --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1},"callback_dipanggil":1}
+# Lewat hotspot Dimas: callback menolak sertifikat tiruan, tetapi proxy sudah membaca request, dan server asli sudah memprosesnya.
+$ client --mode=dio-validate --percaya=ca-publik+ca-dimas --url=https://localhost:18192/kiriman --metode=POST --pin=spki_server-a,spki_server-b --token=<token sesi Budi> --body='{"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}'
+{"hasil":"ditolak","jenis":"dio-badCertificate","callback_dipanggil":1}
+# proxy Dimas melihat: handshake ya, request terbaca 1
+# proxy membaca: POST /kiriman Authorization: Bearer <token sesi Budi>
+# body dari app:      {"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}
+# body diteruskan:    {"catatan":"patungan","ke_nomor_karyawan":"K00417","nominal":150000}
+# Authorization yang dibaca proxy sama dengan token sesi Budi: ya
+# App menampilkan galat sertifikat, tetapi database server mencatat transfer:
+=> SELECT j.id AS jurnal, a.nomor_karyawan, p.jumlah
+   FROM jurnal j JOIN posting p ON p.jurnal_id = j.id JOIN buku b ON b.id = p.buku_id JOIN akun a ON a.id = b.akun_id
+   WHERE j.jenis = 'transfer' ORDER BY j.id, p.jumlah
+ jurnal | nomor_karyawan | jumlah
+--------+----------------+---------
+ 10001  | K00419         | -150000
+ 10001  | K00417         | 150000
+(2 rows)
+# Klaim dio#2418 terbukti untuk dio 5.11.0 dengan IOHttpClientAdapter bawaan: Authorization dan body sudah terbaca proxy sebelum callback menolak.
+
+# --- B. Mekanisme yang dipilih: pin diperiksa di connectionFactory, sebelum byte HTTP pertama ---
+# Database baru. dio yang sama, tetapi HttpClient-nya memakai connectionFactory yang memeriksa pin sesudah handshake.
+$ client --mode=dio-pin-factory --percaya=ca-publik+ca-dimas --url=https://localhost:18192/kiriman --metode=POST --pin=spki_server-a,spki_server-b --token=<token sesi Budi> --body='{"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}'
+{"hasil":"ditolak","jenis":"pin-tidak-cocok"}
+# proxy Dimas melihat: handshake ya, request terbaca 0
+# Database: tidak ada transfer. Proxy menerima handshake, tidak menerima satu request pun.
+# Kontrol: dio dengan connectionFactory pin langsung ke server asli (kunci A) berjalan normal.
+$ client --mode=dio-pin-factory --percaya=ca-publik+ca-dimas --url=https://localhost:18190/akun/419 --pin=spki_server-a,spki_server-b --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}}
+# Hasil: pin dipasang di HttpClient lewat connectionFactory (dart:io), bukan di validateCertificate. Berlaku untuk dio lewat createHttpClient.
+# Yang tidak diukur: PR cfug/dio#2512 (perbaikan di dio sendiri, terbuka saat lab ditulis): Tidak dijalankan; dio 5.11.1 tidak diuji.

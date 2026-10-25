@@ -2046,8 +2046,9 @@
       "prasyarat": [
         "t2-estimasi"
       ],
-      "ada": false,
-      "nomor": "2.31"
+      "ada": true,
+      "nomor": "2.31",
+      "menit": 14
     },
     {
       "id": "t2-rekap",
