@@ -7,7 +7,7 @@ $ ./api-t3 -lab
 # c = 4 pengirim serentak (bawaan), t = 0,3 detik (layanan push tiruan), 80 baris uang di antrean
 $ ./api-t3 -peran worker -sekali -serentak 4
 worker: diklaim 80, terkirim 80, dilewati 0, ditunda 0, mati 0
-kapasitas diukur: antara 12 dan 13,3 per detik (batas atas c ÷ t = 4 ÷ 0,3 = 13,3; selisihnya waktu klaim dan tandai per putaran)
+kapasitas diukur: antara 12 dan 13,33 per detik (batas atas c ÷ t = 4 ÷ 0,3 = 13,33; selisihnya waktu klaim dan tandai per putaran)
 
 # --- B. Pengumuman promo ke semua 10.000 karyawan (enam HR, enam kota), lalu satu top-up dan satu pembayaran sesudahnya ---
 => TRUNCATE outbox RESTART IDENTITY   # lab: antrean kosong lagi, nomor mulai dari 1
@@ -34,7 +34,7 @@ jumlah pemberitahuan promo yang ditulis: 10000
 
 # --- C. M27 tanpa kelas (mode rentan urut-waktu): satu worker selama 30 detik, notifikasi uang menunggu di belakang semua promo ---
 $ ./api-t3 -peran worker -rentan urut-waktu   # berputar terus; dihentikan sesudah 30 detik
-terkirim dalam 30 detik: antara 3,4% dan 4,2% dari 10.000 (naskah: 400 = 4%, dari 13,3 × 30)
+terkirim dalam 30 detik: antara 3,4% dan 4,2% dari 10.000 (naskah: 400 = 4%, dari 13,33 × 30)
 => SELECT kelas, jenis, status FROM outbox WHERE kelas < 2 GROUP BY kelas, jenis, status ORDER BY kelas
  kelas | jenis | status
 -------+-------+----------
@@ -42,7 +42,8 @@ terkirim dalam 30 detik: antara 3,4% dan 4,2% dari 10.000 (naskah: 400 = 4%, dar
  1     | topup | menunggu
 (2 rows)
 umur notifikasi uang yang menunggu: lebih dari 30 detik (sama dengan lamanya worker berjalan: ia baru dikerjakan sesudah semua promo)
-promo yang masih di depannya: lebih dari 9.600; pada laju yang sama sisa antrean butuh 10.000 ÷ 13,3 = 750 detik (12,5 menit), dihitung
+promo yang masih di depannya: lebih dari 9.600; seluruh 10.000 promo butuh 10.000 ÷ 13,33 = 750 detik (12,5 menit), dihitung
+# Supaya 95% (9.500) terkirim dalam 30 detik dibutuhkan 9.500 ÷ 30 = ±317 per detik, sekitar 24 kali kapasitas ini: dihitung (Asumsi), tidak dijalankan
 
 # --- D. Dengan kelas (bawaan): pembayaran uang lebih dulu, lalu top-up, lalu promo, dari antrean yang sama ---
 $ ./api-t3 -peran worker -sekali -serentak 1 -satu-putaran   # lima kali, satu pesan tiap panggilan
@@ -61,6 +62,6 @@ umur tertua kelas uang: 0 (tidak ada yang menunggu)
 # --- F. Laju promo paling banyak 5 per detik (ADR 32): promo dijadwalkan lewat coba_lagi, 5 baris per detik ---
 # Lab menjadwalkan sisa promo dengan UPDATE (api-t3 UmumkanPromo menulis semua baris sekaligus; penjadwalan ini ditulis lab)
 => UPDATE outbox SET coba_lagi = now() + (n / 5.0) * interval '1 second' ...   # baris ke-n yang masih menunggu, n mulai 0
-laju promo terukur dalam 8 detik: antara 4 dan 5,6 per detik (batas 5), tanpa menghabiskan kapasitas 13,3
+laju promo terukur dalam 8 detik: antara 4 dan 5,6 per detik (batas 5), tanpa menghabiskan kapasitas 13,33
 notifikasi uang yang tiba pada detik ke-3: terkirim dalam kurang dari 1,5 detik
-# 10.000 promo pada 5 per detik butuh 2.000 detik (33 menit), dihitung; sisa kapasitas 13,3 − 5 = 8,3 per detik, 9,5 kali puncak 0,87 (Asumsi naskah)
+# 10.000 promo pada 5 per detik butuh 2.000 detik (33 menit), dihitung; sisa kapasitas 13,33 − 5 = 8,33 per detik, 9,6 kali puncak 0,87 (Asumsi naskah)
