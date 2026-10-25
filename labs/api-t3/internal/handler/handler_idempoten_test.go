@@ -153,3 +153,20 @@ func TestIdempotenPanikMelepasKey(t *testing.T) {
 		t.Fatalf("sesudah panic: status %d, handler %d kali; harus 201 dan 2 (key dilepas)", r.Code, kerja)
 	}
 }
+
+// Key yang sama dengan isi yang sama tetapi untuk endpoint lain adalah permintaan lain: 422, tidak ada respons yang bocor.
+func TestIdempotenKeySamaEndpointBeda(t *testing.T) {
+	s, _, akun := siapkanDB(t)
+	kerja := 0
+	h := s.idempoten(func(w http.ResponseWriter, r *http.Request) { kerja++; tulisJSON(w, 201, map[string]int{"id": kerja}) })
+	k := fmt.Sprintf(`"%s"`, fmt.Sprintf("%08x-0002-4000-8000-%012x", time.Now().UnixNano()&0xffffffff, time.Now().UnixNano()&0xffffffffffff))
+	panggil(h, akun, k, `{"ke":418,"jumlah":25000}`)
+	rec := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/pesanan", strings.NewReader(`{"ke":418,"jumlah":25000}`))
+	r.Header.Set("Idempotency-Key", k)
+	r = r.WithContext(context.WithValue(r.Context(), kunciPeminta{}, akun))
+	h(rec, r)
+	if rec.Code != 422 || kerja != 1 {
+		t.Fatalf("key sama, endpoint beda: status %d, handler %d kali; harus 422 dan 1", rec.Code, kerja)
+	}
+}
