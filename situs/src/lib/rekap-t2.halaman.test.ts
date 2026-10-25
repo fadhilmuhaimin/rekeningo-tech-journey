@@ -614,3 +614,84 @@ describe("klaim 'belum ada' dipindai dari isi lab (lingkup: api-t2 dan sepuluh l
     harus(mdx, "Skenario migrasi malam hari tidak dijalankan");
   });
 });
+
+// Penjaga tambahan peninjau (keputusan 778): lima mutasi yang lolos penjaga pelaksana (satu kata bilangan di Inti, satu angka di
+// tiga halaman konsep tanpa kalimat, satu ID sumber ingatan, nomor ADR 6) dan kesepakatan kartu dengan halaman.
+describe("hitungan, halaman konsep tanpa kalimat, sumber ingatan, dan nomor ADR 6", () => {
+  const KATA: Record<number, string> = { 5: "lima", 8: "delapan", 9: "sembilan", 10: "sepuluh" };
+  const risetT2 = baca("plan/RISET-TAHAP-2.md");
+
+  test("hitungan masalah: sembilan dari M9 sampai M17 di Inti, delapan sebelum PRD v3 (M9 sampai M16) di kalimat 10 dan di 2.29", () => {
+    const m = [...adrPerM.keys()].sort((a, b) => a - b);
+    expect([m[0], m[m.length - 1], m.length]).toEqual([9, 17, 9]);
+    harus(blok("Mulai"), `${KATA[m.length]!} dari masalah M${m[0]} sampai M${m[m.length - 1]}`);
+    const sebelum = m.filter((n) => n <= 16);
+    harus(sepuluh[9]!.teks, `${KATA[sebelum.length]!} masalah sebelum PRD v3 (M${sebelum[0]} sampai M${sebelum[sebelum.length - 1]})`);
+    const m17 = fileHalaman(per("t2-m17"));
+    harus(m17, `Sebelum PRD v3, Tahap 2 sudah punya ${KATA[sebelum.length]!} masalah`);
+    const tabel = m17.slice(m17.indexOf("**Delapan masalah, bukan satu kapasitas.**"), m17.indexOf("Tidak satu pun penyebabnya"));
+    expect(idDalam(tabel).filter((id) => /^t2-m\d+$/.test(id))).toEqual(sebelum.map(idM));
+  });
+
+  test("tiga halaman konsep tanpa kalimat: kata dan angka cocok dengan deskripsi halamannya dan rekaman", () => {
+    const bagian3 = mdx.slice(mdx.indexOf("### Tiga halaman konsep"), mdx.indexOf("### Yang belum diuji"));
+    expect(idDalam(bagian3)).toEqual(["t2-skema", "t2-isolation-level", "t2-payload"]);
+    // skema: lima tabel Tahap 1, delapan tabel Tahap 2 (daftar tabel di akhir tiga-rilis.txt)
+    harus(fileHalaman(per("t2-skema")), "Lima tabel Tahap 1 menjadi delapan tabel Tahap 2");
+    harus(bagian3, "lima tabel Tahap 1 menjadi delapan tabel Tahap 2, dengan ukuran database diperkirakan sampai Tahap 6");
+    const akhir = cari(rekaman("b4-skema/output/ledger/tiga-rilis.txt").split("\n"), /Skema akhir sama dengan api-t2 \((\d+) tabel\): (.+)$/, "daftar tabel");
+    expect(Number(akhir[1])).toBe(8);
+    expect(akhir[2]!.split(", ")).toHaveLength(8);
+    // payload: paket 1 GB, 20 buka per hari, Asumsi
+    harus(fileHalaman(per("t2-payload")), "Pada paket 1 GB dan 20 buka per hari (Asumsi), kuota belum jadi masalah.");
+    harus(bagian3, "pada paket 1 GB dan 20 buka per hari (Asumsi), kuota belum jadi masalah");
+    // isolation level: setiap unsur ada di deskripsi 2.12 dan di rekap
+    const deskripsi = fileHalaman(per("t2-isolation-level"));
+    for (const unsur of ["satu snapshot", "lock", "Serializable dengan retry", "bukan Repeatable Read"]) {
+      harus(deskripsi, unsur);
+      harus(bagian3, unsur);
+    }
+  });
+
+  test("sumber ingatan: tautan PubMed di halaman dan R2-215 memakai PMID yang sama (Roediger & Karpicke 16507066, Cepeda dkk. 16719566)", () => {
+    expect(mdx.match(/pubmed\.ncbi\.nlm\.nih\.gov\/(\d+)\//g)).toEqual([
+      "pubmed.ncbi.nlm.nih.gov/16507066/", "pubmed.ncbi.nlm.nih.gov/16507066/", "pubmed.ncbi.nlm.nih.gov/16719566/",
+    ]);
+    const baris = risetT2.split("\n").find((b) => b.startsWith("| R2-215 |"));
+    expect(baris, "R2-215 harus ada").toBeDefined();
+    harus(baris!, "PMID 16507066");
+    harus(baris!, "PMID 16719566");
+    harus(mdx, "Roediger & Karpicke 2006, Psychological Science 17(3)");
+    harus(mdx, "Cepeda dkk. 2006, Psychological Bulletin 132(3)");
+    expect(baris!.split("|").length - 2, "R2-215 harus tepat 5 kolom").toBe(5);
+  });
+
+  test("ADR 6 tetap bernomor 6: revisi di 2.8, nomor 12 milik 1.40, naskah menulis ADR 12", () => {
+    harus(blok("Putuskan"), "ADR 6 tetap bernomor 6 karena nomor 12 sudah dipakai [[t1-adr-12]], padahal naskah menulis ADR 12 untuk revisi ini.");
+    expect(per("t1-adr-12").adr).toEqual([12]);
+    expect(per("t2-adr-ledger").adr).toEqual([6]);
+    harus(fileHalaman(per("t2-adr-ledger")), 'Naskah menulis "ADR 12"');
+    harus(blok("Putuskan"), "| 6, revisi |");
+    expect(blok("Putuskan")).not.toMatch(/ADR 6[^|\n]{0,40}(diganti|digantikan|dibatalkan)/);
+  });
+
+  test("kartu Dipersempit (1, 4, 10): versi yang didukung rekaman di kartu sama dengan yang ditulis halaman, tanpa klaim naskah yang bukan rekaman", () => {
+    const versi = (teks: string): string => teks.match(/Versi yang didukung rekaman: ([^]+?)(?: \(ADR \d+[^)]*\))?\.?(?:\s|$)/)![1]!.replace(/\.$/, "");
+    for (const no of [1, 4, 10]) {
+      const dariKartu = versi(kartu[no - 1]!.jawab);
+      const dariHalaman = versi(sepuluh[no - 1]!.teks);
+      // kartu boleh menambah penjelasan di ujung (kartu 1: "job malam"), tetapi unsur utamanya harus sama
+      expect(dariKartu.split(",")[0], `kartu ${no}`).toBe(dariHalaman.split(",")[0]);
+    }
+    expect(kartu[9]!.jawab).not.toMatch(/Versi yang didukung rekaman:[^]*(disebabkan|kehabisan)/);
+    harus(kartu[9]!.jawab, "belum ada angka yang menyuruh membeli server hari ini");
+  });
+
+  test("kartu 6 dan 9 membawa batas yang mengubah apa yang dilakukan pembaca: harga rilis kedua dan password sementara berpola", () => {
+    harus(kartu[5]!.jawab, "Batas: rilis kedua punya harga, riwayat app 1.0 untuk Karyawan 420 turun dari 17 baris menjadi 3 baris.");
+    harus(sepuluh[5]!.teks, "turun dari 17 baris menjadi 3 baris");
+    harus(kartu[8]!.jawab, "Batas: password sementara api-t2 berpola sementara-<id>, jadi orang yang mengenal pola itu bisa mengganti password akun lain mendahului pemiliknya");
+    harus(sepuluh[8]!.teks, "berpola `sementara-<id>`");
+    harus(blok("Coba"), "beserta batas masing-masing");
+  });
+});
