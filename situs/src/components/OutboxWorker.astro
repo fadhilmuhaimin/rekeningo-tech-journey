@@ -1,0 +1,65 @@
+---
+/**
+ * Widget garis waktu notifikasi: outbox dan worker (W3-outbox, keputusan 983). Pembaca menebak dulu, lalu mengubah satu
+ * hal dan membaca hasil dan garis waktunya.
+ *   <OutboxWorker skenario={["cara"]} />                       // 3.9: cara kirim (push di transaction, sesudah COMMIT, outbox)
+ *   <OutboxWorker skenario={["ulang", "ganda"]} />             // 3.13: retry, dead-letter, pengiriman ganda, penyaring
+ *   <OutboxWorker skenario={["antrean"]} />                    // 3.26: antrean dengan dan tanpa kelas, laju promo, pengirim
+ *   <OutboxWorker skenario={["kursor"]} />                     // 3.10 dan 3.11: kursor (dibuat, id) lawan klaim per baris
+ * Skenario yang dipilih saja yang dihitung dan dikirim ke browser. Angka dibaca saat build dari labs/t3-outbox/output
+ * lewat rekaman.ts, dicocokkan dengan mesin (periksaAcuan), dan diisi ke teks dari data/widget/t3-outbox-worker.json
+ * (skema.ts, siap.ts). Rekaman atau label yang berubah bentuk menggagalkan build. Island di-render saat build
+ * (client:visible); tanpa JavaScript hasil tiap pengaturan tampil di <noscript>. Satu widget per blok Coba.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import OutboxWorkerIsland from "../widgets/outbox-worker/OutboxWorker";
+import { bacaAcuan } from "../widgets/outbox-worker/rekaman";
+import { konstanta, periksaAcuan, kunciKonfig, semuaKonfig, type NamaSkenario } from "../widgets/outbox-worker/logika";
+import { LabelOutbox } from "../widgets/outbox-worker/skema";
+import { bangun, periksaLabel } from "../widgets/outbox-worker/siap";
+import labelMentah from "../../data/widget/t3-outbox-worker.json";
+
+interface Props { skenario: NamaSkenario[] }
+const { skenario: daftar } = Astro.props;
+if (!daftar?.length) throw new Error("OutboxWorker: skenario kosong");
+
+const baca = (f: string): string => {
+  const abs = path.join(ROOT, "labs/t3-outbox/output", f);
+  if (!fs.existsSync(abs)) throw new Error(`OutboxWorker: labs/t3-outbox/output/${f} tidak ada`);
+  return fs.readFileSync(abs, "utf8");
+};
+const acuan = bacaAcuan({ transaksi: baca("transaksi.txt"), kursor: baca("kursor.txt"), ganda: baca("ganda.txt"), retry: baca("retry.txt"), queue: baca("queue.txt") });
+periksaAcuan(acuan);
+const k = konstanta(acuan);
+const L = LabelOutbox.parse(labelMentah);
+periksaLabel(L, k);
+const siap = daftar.map((id) => bangun(id, L, k));
+const label = {
+  judul: L.judul, sumberChip: L.sumberChip, tebakDulu: L.tebakDulu, benar: L.benar, belum: L.belum, ulang: L.ulang, ubahJudul: L.ubahJudul,
+  skenarioJudul: L.skenarioJudul, garisJudul: L.garisJudul, angkaJudul: L.angkaJudul, tanda: L.tanda,
+};
+---
+<OutboxWorkerIsland client:visible skenario={siap} label={label} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  {siap.map((s) => (
+    <table class="tm-tabel">
+      <caption>{s.nama}</caption>
+      <thead><tr><th>{L.kolomTabel.pengaturan}</th><th>{L.kolomTabel.hasil}</th><th>{L.kolomTabel.sumber}</th></tr></thead>
+      <tbody>
+        {semuaKonfig(s.id).map((kf) => {
+          const h = s.hasil[kunciKonfig(s.id, kf)]!;
+          return (
+            <tr>
+              <th scope="row">{s.knob.map((b) => b.opsi.find((o) => o.id === kf[b.id])!.teks).join(", ")}</th>
+              <td>{h.ringkas}</td>
+              <td><span class="bb-chip">{h.acuan.label}</span> {h.acuan.teks}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  ))}
+</noscript>
