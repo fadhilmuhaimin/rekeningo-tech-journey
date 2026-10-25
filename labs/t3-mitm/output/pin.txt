@@ -1,0 +1,82 @@
+# Lab t3-mitm · Pin SPKI dengan cadangan, rotasi kunci server, dan masa berlaku sertifikat daun
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-mitm run (keputusan 977).
+# Client: Dart 3.11.4 (dart:io) dan dio 5.11.0. Server tepi dan proxy tiruan: Go (crypto/tls, tanpa dependency).
+
+# --- A. Pin SPKI A dan B: server asli lolos, sertifikat tiruan ditolak walau CA Dimas dipercaya ---
+# Pin: A = kunci server yang dipakai sekarang, B = kunci cadangan yang belum dipakai. Nilainya acak di setiap run, jadi dicetak sebagai nama.
+# Daftar akar app berisi CA Lab Publik dan CA Dimas (keadaan D di m26.txt): validasi saja tidak menahan proxy.
+$ client --mode=pin-spki --percaya=ca-publik+ca-dimas --url=https://localhost:18190/akun/419 --pin=spki_server-a,spki_server-b --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}}
+$ client --mode=pin-spki --percaya=ca-publik+ca-dimas --url=https://localhost:18192/kiriman --metode=POST --pin=spki_server-a,spki_server-b --token=<token sesi Budi> --body='{"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}'
+{"hasil":"ditolak","jenis":"pin-tidak-cocok"}
+# proxy Dimas melihat: handshake ya, request terbaca 0
+# Database: tidak ada transfer. Pin ditolak sesudah handshake dan sebelum byte HTTP pertama (connectionFactory).
+
+# --- B. Pin di badCertificateCallback: tidak dipanggil bila CA dipercaya ---
+# badCertificateCallback hanya dipanggil bila validasi bawaan gagal. Dengan CA Dimas di daftar akar, validasi lolos dan pin tidak pernah diperiksa.
+$ client --mode=pin-badcallback --percaya=ca-publik+ca-dimas --url=https://localhost:18192/kiriman --metode=POST --pin=spki_server-a,spki_server-b --token=<token sesi Budi> --body='{"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}'
+{"hasil":"terhubung","status":201,"isi":{"id":10001,"saldo":100000,"sisa_batas_harian":350000},"callback_dipanggil":0}
+# proxy Dimas melihat: handshake ya, request terbaca 1
+# proxy membaca: POST /kiriman Authorization: Bearer <token sesi Budi>
+# body dari app:      {"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}
+# body diteruskan:    {"catatan":"patungan","ke_nomor_karyawan":"K00417","nominal":150000}
+# Authorization yang dibaca proxy sama dengan token sesi Budi: ya
+=> SELECT j.id AS jurnal, a.nomor_karyawan, p.jumlah
+   FROM jurnal j JOIN posting p ON p.jurnal_id = j.id JOIN buku b ON b.id = p.buku_id JOIN akun a ON a.id = b.akun_id
+   WHERE j.jenis = 'transfer' ORDER BY j.id, p.jumlah
+ jurnal | nomor_karyawan | jumlah
+--------+----------------+---------
+ 10001  | K00419         | -150000
+ 10001  | K00417         | 150000
+(2 rows)
+# Bila CA Dimas tidak dipercaya, callback dipanggil dan menolak (sama dengan validasi biasa):
+$ client --mode=pin-badcallback --percaya=ca-publik --url=https://localhost:18192/kiriman --metode=POST --pin=spki_server-a,spki_server-b --token=<token sesi Budi> --body='{"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}'
+{"hasil":"ditolak","jenis":"handshake","alasan":"application verification failure","callback_dipanggil":1}
+
+# --- C. Rotasi kunci server: tanpa pin cadangan app mati, dengan cadangan app jalan terus ---
+# Server memakai kunci A. Perpanjangan sertifikat dengan kunci baru (B) adalah kejadian biasa; sertifikat B sah, rantainya benar.
+# C1. App 1.0 hanya mem-pin A (tanpa cadangan).
+$ client --mode=pin-spki --percaya=ca-publik --url=https://localhost:18190/akun/419 --pin=spki_server-a --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}}
+# Rotasi: server memakai kunci B.
+$ client --mode=validasi --percaya=ca-publik --url=https://localhost:18190/akun/419 --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}}
+$ client --mode=pin-spki --percaya=ca-publik --url=https://localhost:18190/akun/419 --pin=spki_server-a --token=<token sesi Budi>
+{"hasil":"ditolak","jenis":"pin-tidak-cocok"}
+# App 1.0 terkunci di luar: server sehat, sertifikat sah, request tidak pernah dikirim. Hanya rilis baru yang memperbaikinya.
+# C2. App 1.1 mem-pin A dan B (B = cadangan yang dibuat sebelum rilis).
+$ client --mode=pin-spki --percaya=ca-publik --url=https://localhost:18190/akun/419 --pin=spki_server-a,spki_server-b --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}}
+# Rotasi ke B: app 1.1 jalan terus tanpa rilis baru.
+$ client --mode=pin-spki --percaya=ca-publik --url=https://localhost:18190/akun/419 --pin=spki_server-a,spki_server-b --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}}
+# Rotasi kedua ke C, kunci yang belum ada di pin: cadangan hanya menahan satu rotasi. Rilis berikutnya harus mem-pin B dan C sebelum rotasi itu.
+$ client --mode=pin-spki --percaya=ca-publik --url=https://localhost:18190/akun/419 --pin=spki_server-a,spki_server-b --token=<token sesi Budi>
+{"hasil":"ditolak","jenis":"pin-tidak-cocok"}
+$ client --mode=pin-spki --percaya=ca-publik --url=https://localhost:18190/akun/419 --pin=spki_server-b,spki_server-c --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}}
+# Server tepi tidak pernah menerima request dari client yang menolak pin: baris log akses hanya dari request yang lolos.
+# Dari 7 request client di bagian C, 5 sampai ke tepi (lolos pin atau tanpa pin); 2 yang ditolak pin tidak ada di log akses tepi.
+
+# --- D. Pin SPKI lawan pin sertifikat daun: penerbitan ulang dengan kunci yang sama ---
+# Perpanjangan sertifikat dengan kunci yang sama (A2): nomor seri dan masa berlaku baru, SPKI sama.
+# pin SPKI A sama dengan SPKI A2: ya; hash sertifikat A sama dengan A2: tidak
+$ client --mode=pin-spki --percaya=ca-publik --url=https://localhost:18190/akun/419 --pin=spki_server-a --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}}
+$ client --mode=pin-cert --percaya=ca-publik --url=https://localhost:18190/akun/419 --pin=cert_server-a --token=<token sesi Budi>
+{"hasil":"ditolak","jenis":"pin-tidak-cocok"}
+$ client --mode=pin-cert --percaya=ca-publik --url=https://localhost:18190/akun/419 --pin=cert_server-a2 --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}}
+# Pin daun mati di setiap penerbitan ulang, walau kuncinya sama. Pin SPKI mati hanya bila kuncinya diganti (bagian C).
+
+# --- E. Masa berlaku sertifikat daun: dihitung dengan jam tiruan, tidak ditunggu ---
+$ pki -umur   # Go, x509.Verify dengan CurrentTime = terbit + n hari; bukan client Dart (Dart tidak punya jam tiruan)
+masa_berlaku_hari=200
+hari_ke_199=lolos
+hari_ke_201=ditolak: sertifikat kedaluwarsa
+# Berapa kali sertifikat daun terbit ulang per tahun (365 ÷ masa berlaku). Hitungan, bukan rekaman; batas masa berlaku dari CA/B Forum SC-081v3 (R3-18):
+  sejak 2026-03-15: masa berlaku paling lama 200 hari, 365 ÷ 200 = 1,83 kali per tahun
+  sejak 2027-03-15: masa berlaku paling lama 100 hari, 365 ÷ 100 = 3,65 kali per tahun
+  sejak 2029-03-15: masa berlaku paling lama 47 hari, 365 ÷ 47 = 7,77 kali per tahun
+# Bila setiap penerbitan ulang memakai kunci baru, pin SPKI harus diganti sebanyak itu. Dengan kunci yang dipakai ulang, pin SPKI tidak berubah (bagian D).

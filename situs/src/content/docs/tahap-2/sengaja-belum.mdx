@@ -1,0 +1,217 @@
+---
+title: "2.31 ADR 21: Sengaja belum dilakukan"
+description: ADR 21. Cache, queue, Redis, dan server kedua tidak dipasang di Tahap 2, masing-masing dengan alasan dari angka dan pemicu yang bisa diukur. Kapasitas satu server belum pernah diukur.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import kebutuhan from "../../../../data/diagram/t2-adr21-kebutuhan.json";
+import Snippet from "../../../components/Snippet.astro";
+import JarakPemicu from "../../../components/JarakPemicu.astro";
+
+<p class="meta">Baca 11 menit · coba 3 menit · Prasyarat: [[t2-estimasi]] · Jalur inti</p>
+
+<Blok nama="Kebutuhan" buka>
+
+Minggu 8, Sinta membawa PRD v3: enam kota, notifikasi, dan dashboard web untuk warung ([[t2-m17]]). Empat komponen ikut dibicarakan: cache, queue, Redis, dan server kedua. Hitungan di [[t2-estimasi]] memberi puncak ±17 request per detik untuk Tahap 3, dari ±1,4 di Tahap 2 (Asumsi). Kapasitas satu server belum pernah diukur.
+
+Raka dan Nadia menulis ADR untuk komponen yang tidak mereka bangun. Engineer berikutnya akan membuka repo tanpa cache, queue, Redis, atau proxy, dan tidak tahu apakah itu keputusan atau kelupaan.
+
+*Skenario (Ilustrasi):* Raka dan Nadia sebagai penulis ADR ditambahkan halaman ini. Naskah hanya menyebut ADR 21, daftar komponennya, dan minggu 8.
+
+<Rantai data={kebutuhan} ringkas />
+
+Pertanyaannya sama untuk setiap komponen: **masalah apa yang dijawabnya hari ini, dengan angka Tahap 2, dan kejadian apa yang membuat jawabannya berubah?**
+
+**Status:** diterima di minggu 8 Tahap 2, sebelum PRD v3 dikerjakan. ADR 12 Tahap 1 ([[t1-adr-12]]) menunda cache, queue, service kedua, dan Kubernetes dengan angka Tahap 1. ADR ini mengulang cache dan queue dengan angka Tahap 2, lalu menambah Redis dan server kedua.
+
+"Server kedua" di sini adalah salinan kedua API yang sama. Service kedua dengan database sendiri dan Kubernetes tetap ditunda seperti di ADR 12.
+
+Halaman ini memutuskan empat komponen itu saja. Celah lain yang sudah diketahui tidak tercakup, dan daftarnya ada di akhir halaman.
+
+</Blok>
+
+<Blok nama="Opsi" buka>
+
+Ada tiga cara menjawab empat usulan itu.
+
+| | A. Pasang keempatnya sekarang | B. VPS lebih besar dulu | C. Tunda, dengan pemicu yang bisa diukur |
+|---|---|---|---|
+| Cara kerja | Cache baca, queue dengan worker, Redis, dan server kedua dengan proxy dipasang sebelum PRD v3 dikerjakan | Spesifikasi VPS dinaikkan. Tidak ada komponen baru | Tidak ada komponen yang dipasang. ADR ini mencatat per komponen: masalah yang dijawabnya, angka Tahap 2, dan pemicu yang bisa diperiksa |
+| Kelebihan | Bila beban naik, semuanya sudah ada | Tanpa kode baru. Satu proses tetap satu proses | Setiap komponen yang ada menjawab masalah yang terlihat. Yang tidak ada punya alasan tertulis |
+| Kekurangan | Empat komponen menjawab masalah yang belum punya angka. Cache dan Redis menambah tempat data bisa berbeda | Menjawab kapasitas, padahal kapasitas belum diukur. Tetap satu proses, jadi satu titik berhenti | Pemicu harus terlihat. Tanpa alat ukur, pemicu datang tanpa ada yang melihat (pre-mortem 1) |
+| Biaya operasional | Dua engineer memelihara empat komponen tambahan: update, pemantauan, pemulihan, dan keputusan persistence Redis | Harga VPS tidak ada di naskah, jadi tidak dihitung | Membaca ulang ADR ini setiap PRD baru datang, dan satu load test sebelum fitur PRD v3 pertama |
+| Bukti | Tidak dijalankan. Alasannya hitungan dan rekaman di bawah | Tidak dijalankan. Sepuluh lab Tahap 2 tidak punya perkakas load test | Rekaman api-t2, b2-query, c4-ratelimit, dan hitungan [[t2-estimasi]] |
+
+Opsi keempat, antarmuka cache dan queue yang kosong, sudah ditolak di [[t1-adr-12]]. Bentuk antarmuka bergantung pada masalah yang belum terlihat, dan alasannya tetap berlaku.
+
+### Empat yang ditunda
+
+| Komponen | Masalah yang dijawabnya | Keadaan Tahap 2 | Biaya kalau dipasang sekarang |
+|---|---|---|---|
+| Cache | Data yang sama dibaca berulang, dan memori lebih cepat daripada query | M11 selesai di query. Halaman pertama riwayat Budi 30,5 ms dengan N+1, 1,4 ms dengan satu query dan index (Rekaman lab, `n1.txt` bagian E). Puncak ±1,4 request per detik (Asumsi). Satu cache sudah ada: `buku.saldo_cache` | Salinan di luar database tidak ikut COMMIT dan ROLLBACK. Facebook memakai lease supaya cache tidak menyimpan nilai lama. `saldo_cache` yang sekarang pun butuh job malam: rekaman menemukan selisih Rp5.000 |
+| Queue | Pekerjaan lambat yang tidak perlu ditunggu user, misalnya notifikasi | Kode server api-t2 hanya memanggil database, dan PRD v2 menunda notifikasi ke v3. Satu pekerjaan besar, top-up 1.000 akun, adalah satu transaction database. Pencairan 12 warung per minggu memakai batch dan status, bukan queue ([[t2-job-rekonsiliasi]]) | Queue seperti SQS standar mengirim at-least-once, jadi pemrosesnya harus aman dijalankan dua kali. Worker adalah proses kedua yang dipantau |
+| Redis | Tidak ada yang dijawabnya sendiri. Ia alat untuk cache, queue, atau data bersama antar proses | Tidak satu pun kebutuhan di atas ada. Batas laju per IP di memori satu proses menolak 19 dari 29 percobaan tanpa menyentuh database, dan kunci per akun ada di PostgreSQL (`login/ratelimit.txt` bagian D dan G, lab c4) | Komponen yang menyimpan data. Tanpa persistence ia kosong setiap restart, snapshot RDB bisa kehilangan data beberapa menit, dan replikasi asinkron bisa kehilangan write yang sudah dijawab saat failover. Login butuh aturan untuk saat Redis tidak menjawab |
+| Server kedua | Kapasitas di atas satu server, dan layanan yang tetap hidup saat satu proses berhenti | Puncak ±1,4 request per detik (Asumsi). Kapasitas satu server belum pernah diukur: sepuluh lab Tahap 2 tidak memuat perkakas load test | Butuh proxy di depan, komponen yang dipasang, dipantau, dan diperbarui. Menurut Twelve-Factor (heuristik praktisi), proses tidak menyimpan di memorinya apa pun yang dibutuhkan request berikutnya |
+
+Sumber: [Redis: persistence](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/), [Redis: replication](https://redis.io/docs/latest/operate/oss_and_stack/management/replication/), [Nishtala dkk., Scaling Memcache at Facebook, NSDI 2013](https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf), [Amazon SQS: at-least-once delivery](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues-at-least-once-delivery.html), [The Twelve-Factor App: Processes](https://12factor.net/processes).
+
+Catatan sumber: dokumentasi Redis adalah halaman `latest` yang dibuka 2026-10-25, tanpa nomor versi, dan Redis tidak dijalankan. Twelve-Factor adalah panduan praktisi 2011 yang dipakai sebagai heuristik, bukan standar.
+
+### Yang terjadi selama belum dipasang
+
+Menunda punya biaya, dan tabel ini menulisnya per komponen.
+
+| Komponen | Selama belum dipasang |
+|---|---|
+| Cache | Tidak ada biaya yang terukur. Halaman pertama riwayat 1,4 ms, batas bawah karena rekaman tanpa jaringan |
+| Queue | Tidak ada pekerjaan lambat di dalam request, jadi tidak ada yang menunggu |
+| Redis | Bucket batas laju hidup di memori satu proses, dan restart mengosongkannya. Ini dibaca dari komentar `pembatas.go` dan tidak direkam |
+| Server kedua | Satu proses: setiap deploy dan restart menghentikan layanan sampai proses baru menyala. Deploy manual Tahap 1 membuat 3 dari 8 putaran prober, satu per detik, tanpa jawaban (`m6.txt` bagian C, lab api-t1). Jeda deploy dengan Compose tidak diukur (`deploy.txt`) |
+
+</Blok>
+
+<Blok nama="Yang dipilih dan kenapa">
+
+**Keputusan: opsi C.** Lima aturan:
+
+1. Cache, queue, Redis, dan server kedua tidak dipasang di Tahap 2. Setiap komponen punya pemicu di tabel "Kapan keputusan ini salah".
+2. Angka uang yang harus terbaru tidak dibaca dari cache di luar database. Satu-satunya salinan saldo adalah `buku.saldo_cache`: ditulis di transaction yang sama dengan posting, dikunci ([[t2-race-lock]]), dan dicek job malam ([[t2-adr-ledger]]).
+3. Pemicu diukur sebagai L = λ × W per kelas request, dengan λ dari log akses dan W dari `pg_stat_statements` atau log akses. Pemicunya 5 koneksi tertahan, separuh dari pool 10 (Asumsi, pool yang sama dengan [[t2-estimasi]]).
+4. Satu komponen per masalah, mengikuti urutan PROPOSAL: perbaiki query dan index (selesai di [[t2-index]]), keluarkan kerja lambat, cache baca, lalu tambah instance.
+5. Sebelum fitur PRD v3 pertama yang menambah λ atau W ditulis, satu load test mengukur kapasitas api-t2 yang sekarang. Load test notifikasi menunggu layanan push ([[t3-pool]]).
+
+**Kenapa C.** Tidak satu pun dari empat komponen punya masalah yang terukur di Tahap 2. Hitungannya ada di tabel "Kapan keputusan ini salah" dan di blok Coba.
+
+- **A ditolak** karena keempatnya menjawab masalah yang belum punya angka. Dua engineer akan memelihara empat komponen yang tidak satu pun dipicu kejadian.
+- **B ditolak** karena menjawab kapasitas, padahal kapasitas belum diukur. Delapan masalah Tahap 2 bukan soal kapasitas ([[t2-m17]]). Itu bacaan atas naskah, bukan hasil menguji server lain (Tidak dijalankan). B juga tidak menghilangkan titik satu proses.
+
+**Kasus industri.** Facebook menulis tentang cache baca di skala yang sangat berbeda ([Nishtala dkk., 2013](https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf)). Di jaringan sosial itu, konten dibaca satu orde besaran lebih banyak daripada dibuat (bagian 2). Sistemnya menangani lebih dari satu miliar request per detik (bagian 1).
+
+Mereka butuh lease, satu mekanisme tambahan, karena dua masalah. Stale set terjadi saat update yang bersamaan sampai di cache dengan urutan tertukar, dan cache menyimpan nilai lama. Thundering herd terjadi saat satu key sering ditulis dan dibaca. Untuk key yang rentan, puncak query ke database turun dari 17 ribu menjadi 1,3 ribu per detik dalam seminggu pengamatan (bagian 3.2.1).
+
+Batas kasus ini: data sosial yang boleh tidak terbaru sesaat, bukan uang, dan beban miliaran request. Rekeningo tidak meminjam arsitekturnya. Yang dipinjam adalah pertanyaannya: cache membutuhkan mesin untuk menjaga nilainya benar, dan mesin itu dibangun karena beban baca tidak lagi muat di database.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Pemicunya datang, tapi tidak ada yang melihat. Tahap 2 tidak punya load test, dan kode api-t2 tidak membaca jumlah koneksi tertahan (`db.Stats()`) atau memakai `pg_stat_statements`. Pencegahannya aturan 3 dan 5: alat ukurnya `pg_stat_statements` dan log akses, dan load test pertama dijadwalkan sebelum fitur PRD v3 pertama.
+2. ADR ini memberi rasa aman palsu: "kapasitas sudah dipikirkan", padahal hitungannya Asumsi dan kapasitas belum diukur. Pencegahannya setiap angka berlabel Rekaman lab, Asumsi, atau Tidak dijalankan, dan tabel di bawah menulis angka yang belum ada sebagai belum ada.
+3. Saat pemicu datang, semua komponen dipasang sekaligus. Pencegahannya aturan 4: satu komponen per masalah, dengan urutan yang sudah ditulis.
+
+</Blok>
+
+<Blok nama="Wujud di kode">
+
+Keputusan ini terlihat dari yang tidak ada. Server api-t2 membuka koneksi ke database, dan hanya itu. Tes di repo ini memindai kodenya untuk panggilan HTTP keluar, `net.Dial`, `smtp`, dan `exec.Command`, dan tidak menemukan satu pun.
+
+<Snippet file="labs/api-t2/cmd/api/main.go" lines="40:43" lang="go" title="labs/api-t2/cmd/api/main.go: satu-satunya yang dihubungi server (dibaca, tidak dijalankan)" />
+
+Satu pekerjaan besar di dalam request adalah top-up 1.000 akun. Seluruhnya satu transaction database, tanpa panggilan keluar.
+
+<Snippet file="labs/api-t2/internal/service/topup.go" lines="105:118" lang="go" title="labs/api-t2/internal/service/topup.go: 1.000 jurnal dalam satu transaction" />
+
+Satu cache saldo sudah ada, yaitu `buku.saldo_cache`. Rekaman ini memerankan kode yang menulis cache tanpa posting, dan job malam menemukannya:
+
+<Snippet file="labs/api-t2/output/migrasi.txt" lines="206:218" title="Rekaman lab: labs/api-t2/output/migrasi.txt, bagian E" />
+
+Cache yang ada di database saja sudah butuh pemeriksa. Salinan di luar database menambah tempat yang harus diperiksa dan tidak ikut COMMIT.
+
+</Blok>
+
+<Blok nama="Coba keduanya">
+
+Cache terdengar perlu saat riwayat Budi lambat ([[t2-m11]]). Widget ini membandingkan lima cara membaca riwayat di rekaman, dan jarak masing-masing ke pemicu cache. Tebak dulu, lalu ganti cara membacanya.
+
+<JarakPemicu />
+
+Pilih **Seluruh riwayat · N+1**: pemicu ada di ±2,6 permintaan per detik, hanya 1,9 kali puncak Tahap 2. Dengan kode seperti itu, "kita butuh cache" terdengar masuk akal ([[t2-n-plus-1]]).
+
+Pilih **Halaman pertama · JOIN + index**: pemicu ada di ±3.571 per detik, atau 2.571 kali puncak. Satu query dan satu index menggeser jarak halaman pertama ±22 kali, dari 30,5 ms ke 1,4 ms, tanpa komponen baru ([[t2-index]]).
+
+Angka di widget memuat dua penyederhanaan yang berlawanan arah. W dari rekaman tanpa jaringan terlalu kecil, jadi jarak sebenarnya lebih dekat. Anggapan semua request berbentuk satu permintaan terlalu besar untuk kelas itu, jadi jarak sebenarnya lebih jauh.
+
+Bila W sebenarnya 10 kali lebih besar (14 ms), jaraknya masih ±257 kali puncak (hitungan, bukan rekaman). Kapasitas CPU server tidak ikut dihitung, karena belum diukur.
+
+</Blok>
+
+<Blok nama="Kapan keputusan ini salah">
+
+Setiap baris di bawah adalah pemicu untuk membuka ADR ini lagi. Pemicunya kejadian atau angka yang bisa dibaca dari alat, bukan tanggal. Pool 10 adalah Asumsi dari [[t2-estimasi]], dan ambang 5 koneksi, separuh pool, adalah Asumsi halaman ini. Separuh dipilih karena L adalah rata-rata, jadi batas tidak dipasang tepat di pool.
+
+| Komponen | Salah saat | Yang diperiksa | Angka Tahap 2 sekarang | Dibaca dari | Direvisi di |
+|---|---|---|---|---|---|
+| Cache | Satu query baca yang sama menahan koneksi, walau `EXPLAIN (ANALYZE, BUFFERS)` sudah memakai index | L = λ × W untuk kelas itu mencapai 5 koneksi | Halaman pertama riwayat: L = 0,0019 pada puncak 1,39. Pemicu di ±3.571 per detik, 2.571 kali puncak (W tanpa jaringan: jarak sebenarnya lebih dekat) | `pg_stat_statements` (`calls`, `mean_exec_time`) dan log akses | [[t3-cache]] |
+| Queue | Satu kelas request menahan koneksi selama panggilan ke layanan luar | L = λ kelas × (0,02 + W luar) mencapai 5 koneksi | λ bayar dan transfer 0,104 per detik: W luar ±48 detik baru mencapai 5 | Log akses dan `db.Stats()` | [[t3-outbox]] |
+| Redis | Satu kebutuhan data bersama antar proses muncul, dan tabel PostgreSQL untuk kebutuhan itu sudah diukur dan tidak cukup | Kejadian: kebutuhan itu ada. Angka: W operasinya di PostgreSQL | Belum ada kebutuhan semacam itu. Redis untuk batas laju ditunda di ADR 20 ([[t2-login-aman]]) | `pg_stat_statements` untuk W operasi di PostgreSQL | [[t3-rate-limit-redis]] |
+| Server kedua | Puncak yang diperkirakan mencapai separuh kapasitas satu server hasil load test, atau PRD meminta deploy tanpa jeda | Puncak ÷ kapasitas terukur ≥ 0,5 (Asumsi: separuh kapasitas, sisanya untuk lonjakan di atas perkiraan) | Kapasitas belum diukur. Puncak ±1,4 per detik | Load test dan log akses | [[t3-dua-instance]] |
+
+Jarak untuk queue menyempit di Tahap 3. λ kelas bayar dan transfer naik 8,3 kali, dari 0,104 ke 0,868 per detik. Lima koneksi tercapai pada W luar ±5,7 detik (Asumsi, hitungan [[t2-estimasi]]).
+
+**Yang belum diukur.** Dua angka di tabel itu belum ada: kapasitas satu server dan W operasi bersama di PostgreSQL. Selama keduanya kosong, pemicu server kedua dan Redis hanya bisa dipicu kejadian. Membaca ulang ADR ini setiap PRD baru datang adalah satu-satunya pagar sampai alat ukurnya ada.
+
+**Yang akan merevisinya.** Tahap 3 membuka ADR ini lagi per komponen, di halaman yang tertulis di kolom terakhir. ADR 12 tetap berlaku untuk service kedua dan Kubernetes.
+
+Daftar empat komponen ini bukan daftar semua yang belum dilakukan di Tahap 2. Celah lain yang sudah diketahui dicatat di halamannya masing-masing:
+
+- Password sementara berpola dan jalur lupa password: [[t2-login-aman]].
+- Idempotency-Key di api-t2: [[t2-idempotency]].
+- Deadlock top-up CSV: [[t2-race-lock]].
+- Penghapusan data pribadi: [[t2-adr-ledger]].
+- Penutupan periode tutup buku: [[t2-m17]].
+
+### Cek diri
+
+**1.** Engineer baru bertanya kenapa riwayat Budi tidak di-cache. Jawab dengan angka Tahap 2.
+
+<details class="success">
+<summary>Jawaban</summary>
+
+M11 selesai di query. Halaman pertama riwayat turun dari 30,5 ms (N+1) ke 1,4 ms (satu query dan index). Untuk menahan 5 koneksi, permintaan itu harus datang ±3.571 kali per detik, atau 2.571 kali puncak 1,39 (W tanpa jaringan, jadi jarak sebenarnya lebih dekat). Cache dibuka lagi bila query sudah benar dan L kelas itu mencapai 5.
+
+</details>
+
+**2.** Raka mengusulkan queue untuk pencairan Jumat. Kenapa [[t2-job-rekonsiliasi]] menolaknya, dan apa yang tetap harus ditulis kalau queue dipakai?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Beban 12 pekerjaan per minggu tidak butuh broker atau engine baru. Queue standar mengirim at-least-once, jadi setiap pekerjaan tetap harus tahan dijalankan dua kali. Rekonsiliasi file lawan ledger juga harus ditulis sendiri, karena itu bukan fitur queue.
+
+</details>
+
+**3.** Bayar dan transfer Tahap 2 datang 0,104 per detik di puncak (Asumsi). Berapa detik panggilan layanan luar supaya rata-rata 5 koneksi tertahan, dengan 0,02 detik untuk query database?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+0,104 × (0,02 + t) = 5, jadi t ≈ 48 detik. Dengan λ Tahap 3 (0,868 per detik), t turun ke ±5,7 detik. Kedua λ adalah 900 dan 7.500 transaksi per hari ÷ 86.400 × 10, yang dibulatkan [[t2-estimasi]] ke 0,10 dan 0,87. Keduanya Asumsi, dan L adalah rata-rata, jadi satu detik tertentu bisa lebih tinggi.
+
+</details>
+
+**4.** Kenapa ADR ini tidak boleh dibaca sebagai bukti satu server cukup?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Karena kapasitas satu server belum pernah diukur. Sepuluh lab Tahap 2 tidak punya perkakas load test. "Belum" bertumpu pada hitungan Asumsi dan pada tidak adanya bukti sebaliknya, bukan pada kapasitas yang terbukti.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Setiap komponen baru (cache, queue, Redis, proxy) disertai masalah tahap ini yang dijawabnya, dengan angka dan pemicu.
+- [ ] Angka uang yang harus terbaru tidak dibaca dari cache di luar database.
+- [ ] Pemroses pesan dari queue tetap benar bila pesan yang sama datang dua kali.
+- [ ] Redis yang dipakai punya keputusan persistence dan aturan untuk saat ia tidak menjawab.
+- [ ] Kapasitas tidak disebut tanpa load test, dan asumsi "hanya satu proses" ditulis, bukan diam-diam dipakai.
+
+### Bacaan lanjut
+
+- [Redis: persistence](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/)
+- [Redis: replication](https://redis.io/docs/latest/operate/oss_and_stack/management/replication/)
+- [Nishtala dkk.: Scaling Memcache at Facebook (NSDI 2013)](https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf)
+- [Amazon SQS: at-least-once delivery](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues-at-least-once-delivery.html)
+- [The Twelve-Factor App: Processes](https://12factor.net/processes)
+- [PostgreSQL 18: pg_stat_statements](https://www.postgresql.org/docs/18/pgstatstatements.html)
+- [Michael Nygard: Documenting Architecture Decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)
+
+</Blok>

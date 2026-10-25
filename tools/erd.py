@@ -96,6 +96,50 @@ TAHAP = {
             "koreksi": "jurnal selisih dan jurnal pembalik yang menunjuk asalnya",
         },
     },
+    3: {
+        # Akhir Tahap 3 di lab api-t3 (keputusan 950-952, 963): akhir Tahap 2 lalu api-t3 000015-000019 (expand lima
+        # rilis; tidak ada contract, jadi tidak ada tabel yang dihapus). Daftar file = urutan `buat_schema()` di
+        # labs/api-t3/dasar_t3.py: api-t1/schema.sql, batas saldo warung, SEMUA migration api-t2 (000009-000014), lalu
+        # api-t3. 000014 (wajib ganti password) hanya UPDATE data, tanpa struktur, dan lahir sesudah ERD2 dibangun,
+        # jadi tidak ada di Tahap 2; di sini ikut supaya daftarnya sama dengan yang dijalankan lab.
+        "sumber": [
+            "labs/api-t1/schema.sql",
+            "labs/b4-migration/baru/000005_batas_saldo_warung.up.sql",
+            "labs/api-t2/migrasi/000009_akun_tahap2.up.sql",
+            "labs/api-t2/migrasi/000010_ledger_tabel.up.sql",
+            "labs/api-t2/migrasi/000011_ledger_pendukung.up.sql",
+            "labs/api-t2/migrasi/000012_ledger_migrasi.up.sql",
+            "labs/api-t2/migrasi/000013_saldo_contract.up.sql",
+            "labs/api-t2/migrasi/000014_wajib_ganti_password.up.sql",
+            "labs/api-t3/migrasi/000015_kota_peran_hr.up.sql",
+            "labs/api-t3/migrasi/000016_sesi_web.up.sql",
+            "labs/api-t3/migrasi/000017_perangkat_outbox.up.sql",
+            "labs/api-t3/migrasi/000018_katalog_promo.up.sql",
+            "labs/api-t3/migrasi/000019_operasi_sinkron.up.sql",
+        ],
+        # Jalur kedua seperti Tahap 2: database dari migration Tahap 1 (b4-migration), lalu migration Tahap 2 dan 3 yang
+        # sama. 000015 menghapus constraint akun_jenis_check menurut namanya, jadi kedua jalur harus memberi nama sama.
+        "pembanding": [
+            "labs/b4-migration/migrations/000001_akun_sesi.up.sql",
+            "labs/b4-migration/migrations/000002_topup.up.sql",
+            "labs/b4-migration/migrations/000003_transaksi.up.sql",
+            "labs/b4-migration/baru/000004_koreksi.up.sql",
+            "labs/b4-migration/baru/000005_batas_saldo_warung.up.sql",
+            "labs/api-t2/migrasi/000009_akun_tahap2.up.sql",
+            "labs/api-t2/migrasi/000010_ledger_tabel.up.sql",
+            "labs/api-t2/migrasi/000011_ledger_pendukung.up.sql",
+            "labs/api-t2/migrasi/000012_ledger_migrasi.up.sql",
+            "labs/api-t2/migrasi/000013_saldo_contract.up.sql",
+            "labs/api-t2/migrasi/000014_wajib_ganti_password.up.sql",
+            "labs/api-t3/migrasi/000015_kota_peran_hr.up.sql",
+            "labs/api-t3/migrasi/000016_sesi_web.up.sql",
+            "labs/api-t3/migrasi/000017_perangkat_outbox.up.sql",
+            "labs/api-t3/migrasi/000018_katalog_promo.up.sql",
+            "labs/api-t3/migrasi/000019_operasi_sinkron.up.sql",
+        ],
+        "sebelumnya": 2,
+        "pindah": {},  # Tahap 3 hanya menambah (expand): tidak ada tabel yang dihapus
+    },
 }
 
 AKSI_FK = {"a": "NO ACTION", "r": "RESTRICT", "c": "CASCADE", "n": "SET NULL", "d": "SET DEFAULT"}

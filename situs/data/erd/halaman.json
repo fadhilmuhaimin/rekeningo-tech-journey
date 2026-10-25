@@ -17,6 +17,22 @@
       "kunci_idempotensi": ["E3"],
       "batch_pencairan": ["t2-pencairan", "t2-job-rekonsiliasi"],
       "baris_pencairan": ["t2-pencairan"]
+    },
+    "3": {
+      "akun": ["t3-notifikasi", "t3-skema"],
+      "sesi": ["t3-m25", "t3-xss-csrf"],
+      "buku": ["t2-saldo-bukan-kolom", "t2-ledger"],
+      "jurnal": ["t2-ledger", "t2-adr-ledger", "t3-outbox"],
+      "posting": ["t2-ledger", "t2-index"],
+      "kunci_idempotensi": ["E3", "t3-offline"],
+      "batch_pencairan": ["t2-pencairan", "t2-job-rekonsiliasi"],
+      "baris_pencairan": ["t2-pencairan"],
+      "kota": ["t3-notifikasi", "t3-cache"],
+      "perangkat": ["t3-notifikasi", "t3-at-least-once"],
+      "outbox": ["t3-dua-tempat", "t3-outbox", "t3-klaim-baris", "t3-at-least-once"],
+      "produk": ["t3-cache", "t3-m23", "t3-offline"],
+      "promo": ["t3-notifikasi", "t3-m27"],
+      "operasi_sinkron": ["t3-m24", "t3-offline"]
     }
   }
 }
