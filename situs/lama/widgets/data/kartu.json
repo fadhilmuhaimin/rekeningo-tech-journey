@@ -1019,28 +1019,36 @@
   "jawab": "Tidak. GET adalah metode safe dan idempoten, jadi mengulangnya tidak mengubah apa pun di server (RFC 9110, bagian 9.2.1 dan 9.2.2). Responsnya bisa berbeda bila ada baris baru di atas, tetapi halaman di belakang kursor sama. Key hanya untuk POST yang mengubah uang (2.14 Retry dan idempotency key)."
  },
  {
-  "id": "E5-1",
-  "halaman": "E5",
+  "id": "t2-payload-1",
+  "halaman": "t2-payload",
   "judul": "2.20 Ukuran payload dan kuota HP",
-  "url": "e-mobile/e5-ukuran-payload/",
-  "tanya": "Response 100 pesanan sudah gzip, hanya 2.486 B di jaringan. Kenapa bentuk ringkas tetap lebih baik?",
-  "jawab": "Setelah dibuka, HP tetap mengurai 52.931 B JSON dan membuat ratusan objek di memori. Di HP lama, parsing ini yang terasa sebagai layar lambat. Bentuk ringkas hanya 8.110 B mentah."
+  "url": "tahap-2/ukuran-payload/",
+  "tanya": "Response riwayat 20 baris sudah gzip, hanya 598 B di kabel. Apakah bentuk penuh yang 4,16 kali lebih besar masih masalah?",
+  "jawab": "Sesudah gzip bentuk penuh 1.680 B, 2,81 kali api-t2, jadi kuota bukan alasan utamanya. Alasan lain tetap berlaku: sesudah gzip dibuka app tetap mengurai 12.196 B (rekaman Dart mengukurnya untuk bentuk api-t2: 2.932 B, bukan 598 B), dan bentuk penuh membuka kolom yang tidak dipakai layar. Di api-t2 kolom itu termasuk `password_hash` (dibaca dari kode, tidak dijalankan)."
  },
  {
-  "id": "E5-2",
-  "halaman": "E5",
+  "id": "t2-payload-2",
+  "halaman": "t2-payload",
   "judul": "2.20 Ukuran payload dan kuota HP",
-  "url": "e-mobile/e5-ukuran-payload/",
-  "tanya": "Jelaskan kenapa lima request kecil saat membuka beranda bisa lebih boros baterai daripada satu request.",
-  "jawab": "Radio HP pindah ke mode daya tinggi untuk setiap transfer dan tetap aktif beberapa saat sesudahnya. Request yang tersebar membuat radio lebih lama di mode itu. Satu request gabungan memakai satu periode aktif."
+  "url": "tahap-2/ukuran-payload/",
+  "tanya": "Server Go kamu belum memasang kompresi. App Flutter mengirim `Accept-Encoding: gzip`. Apakah response terkompres?",
+  "jawab": "Tidak. Header itu hanya menyatakan app sanggup membaca gzip, dan server yang memilih. api-t2 tidak punya kode kompresi, jadi riwayat 20 baris tetap 2.932 B di kabel."
  },
  {
-  "id": "E5-3",
-  "halaman": "E5",
+  "id": "t2-payload-3",
+  "halaman": "t2-payload",
   "judul": "2.20 Ukuran payload dan kuota HP",
-  "url": "e-mobile/e5-ukuran-payload/",
-  "tanya": "Server Go kamu belum memasang kompresi. App Flutter mengirim `Accept-Encoding: gzip`. Apakah response tetap terkompres?",
-  "jawab": "Tidak. Header itu hanya menyatakan app sanggup menerima gzip. Server yang memutuskan, dan `net/http` tidak mengompres sendiri. Pasang middleware atau aktifkan di reverse proxy."
+  "url": "tahap-2/ukuran-payload/",
+  "tanya": "Raka menghapus `jumlah` dari response supaya lebih kecil. Berapa hematnya, dan apa yang rusak?",
+  "jawab": "Hematnya 297 B dari 2.932 B, yaitu 10,1 %, jauh di bawah gzip. App 1.0 membaca `jumlah`, jadi riwayatnya tidak bisa dibaca sampai app 1.0 tidak ada lagi."
+ },
+ {
+  "id": "t2-payload-4",
+  "halaman": "t2-payload",
+  "judul": "2.20 Ukuran payload dan kuota HP",
+  "url": "tahap-2/ukuran-payload/",
+  "tanya": "Rumus kuota di halaman ini memberi 0,176 % per bulan. Apa saja yang bisa membuat angka sebenarnya berbeda?",
+  "jawab": "Paket 1 GB, 30 hari, dan 20 buka per hari adalah Asumsi. Header HTTP, TLS, foto, dan request lain tidak dihitung, dan perilaku pembaca tidak diukur. Bentuk penuh dengan 50 baris pada 100 buka per hari memberi 9,117 % dengan rumus yang sama."
  },
  {
   "id": "t2-skema-tanpa-downtime-1",
@@ -1242,6 +1250,30 @@
   "url": "b-fondasi/b1-3-pagination-idempotent/",
   "tanya": "App memanggil `DELETE /transfers-terjadwal/7` dua kali karena retry. Masalah?",
   "jawab": "Tidak, kalau diimplementasikan sesuai arti `DELETE`: keadaan akhirnya sama, yaitu jadwal 7 tidak ada. Panggilan kedua boleh dijawab `404` atau `204`, dan app harus memperlakukan keduanya sebagai \"sudah terhapus\"."
+ },
+ {
+  "id": "E5-1",
+  "halaman": "E5",
+  "judul": "Ukuran payload dan kuota HP",
+  "url": "e-mobile/e5-ukuran-payload/",
+  "tanya": "Response 100 pesanan sudah gzip, hanya 2.486 B di jaringan. Kenapa bentuk ringkas tetap lebih baik?",
+  "jawab": "Setelah dibuka, HP tetap mengurai 52.931 B JSON dan membuat ratusan objek di memori. Di HP lama, parsing ini yang terasa sebagai layar lambat. Bentuk ringkas hanya 8.110 B mentah."
+ },
+ {
+  "id": "E5-2",
+  "halaman": "E5",
+  "judul": "Ukuran payload dan kuota HP",
+  "url": "e-mobile/e5-ukuran-payload/",
+  "tanya": "Jelaskan kenapa lima request kecil saat membuka beranda bisa lebih boros baterai daripada satu request.",
+  "jawab": "Radio HP pindah ke mode daya tinggi untuk setiap transfer dan tetap aktif beberapa saat sesudahnya. Request yang tersebar membuat radio lebih lama di mode itu. Satu request gabungan memakai satu periode aktif."
+ },
+ {
+  "id": "E5-3",
+  "halaman": "E5",
+  "judul": "Ukuran payload dan kuota HP",
+  "url": "e-mobile/e5-ukuran-payload/",
+  "tanya": "Server Go kamu belum memasang kompresi. App Flutter mengirim `Accept-Encoding: gzip`. Apakah response tetap terkompres?",
+  "jawab": "Tidak. Header itu hanya menyatakan app sanggup menerima gzip. Server yang memutuskan, dan `net/http` tidak mengompres sendiri. Pasang middleware atau aktifkan di reverse proxy."
  },
  {
   "id": "C2-1",

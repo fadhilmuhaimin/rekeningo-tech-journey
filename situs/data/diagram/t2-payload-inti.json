@@ -1,0 +1,42 @@
+{
+  "id": "t2-payload-inti",
+  "judul": "Body riwayat Budi, 20 baris",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab e5-payload"
+  },
+  "baris": [
+    {
+      "label": "Tanpa gzip",
+      "sub": "ukuran.txt bagian C",
+      "simpul": [
+        {
+          "teks": "api-t2: 2.932 B",
+          "sub": "rata-rata 147 B per baris",
+          "nada": "system"
+        },
+        {
+          "teks": "semua kolom: 12.196 B",
+          "sub": "kelipatan 4,16 dari api-t2",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Dengan gzip",
+      "sub": "ukuran.txt bagian C",
+      "simpul": [
+        {
+          "teks": "api-t2: 598 B",
+          "sub": "tinggal 20,4 % dari mentah",
+          "nada": "good"
+        },
+        {
+          "teks": "semua kolom: 1.680 B",
+          "sub": "kelipatan 2,81 dari api-t2",
+          "nada": "system"
+        }
+      ]
+    }
+  ]
+}

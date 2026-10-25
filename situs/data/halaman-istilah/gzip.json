@@ -1,0 +1,91 @@
+{
+  "istilah": "gzip",
+  "sehari_hari": "gzip mengecilkan isi response sebelum dikirim, lalu client membukanya lagi. Client menyebut format yang sanggup ia baca, dan server yang memutuskan memakainya atau tidak.",
+  "cerita": [
+    {
+      "rujukan": "t2-payload",
+      "teks": "Riwayat Budi 20 baris turun dari 2.932 B ke 598 B dengan gzip. api-t2 tidak punya kode kompresi, jadi 598 B hanya terjadi di server lab yang memasangnya."
+    }
+  ],
+  "mekanisme": [
+    "Client mengirim `Accept-Encoding: gzip` bersama request. Itu hanya pernyataan bahwa client sanggup membaca gzip.",
+    "Server memilih coding. Bila memilih gzip, body dikompres, dan response membawa `Content-Encoding: gzip` serta `Vary: Accept-Encoding`.",
+    "Client membuka body sebelum kode app membacanya. `HttpClient` Dart melakukannya otomatis selama `autoUncompress` bernilai true.",
+    "Body gzip selalu dimulai dua byte `1f 8b`, sedangkan JSON tanpa gzip dimulai `{`."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, compress/gzip bawaan, PostgreSQL 17.11",
+      "teks": "Middleware `gzipJika` di server lab menilai `Accept-Encoding` (gzip dengan q lebih dari 0, atau `*`), menambah `Vary`, lalu membungkus `ResponseWriter` dengan `gzip.NewWriter` level bawaan. Riwayat 20 baris: 2.932 B jadi 598 B. `net/http` dan api-t2 sendiri tidak memuat kode kompresi.",
+      "rekaman": "labs/e5-payload/output/ledger/header.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "compression 1.8.2 (versi pada halaman dokumentasi)",
+      "teks": "`app.use(compression())` memilih gzip, deflate, atau br sesuai `Accept-Encoding`. Ambang bawaannya `1kb`, dan response dengan `Cache-Control: no-transform` tidak dikompres.",
+      "dokumentasi": "https://expressjs.com/en/resources/middleware/compression.html"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.x, nginx",
+      "teks": "Halaman Responses di dokumentasi Laravel 13.x tidak menyebut kompresi, jadi kompresi dipasang di web server. Di nginx `gzip` mati bawaan dan `gzip_types` bawaannya hanya `text/html`, jadi `gzip on;` dan `gzip_types application/json;` perlu ditulis.",
+      "dokumentasi": "https://nginx.org/en/docs/http/ngx_http_gzip_module.html"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1",
+      "teks": "`GZipMiddleware` mengompres bila request menyebut gzip di `Accept-Encoding`, body paling sedikit 200 byte, dan response belum punya `Content-Encoding`. Dokumentasinya memperingatkan serangan BREACH dan menambah sampai 100 byte acak per response.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/ref/middleware/#module-django.middleware.gzip"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4, dokumentasi dart:io bertanda Dart 3.13.7",
+      "teks": "`HttpServer.autoCompress` di dart:io mati bawaan dan hanya bekerja pada chunked encoding. `server.dart` di tag 4.0.4 tidak menyebut kompresi, jadi kompresi kemungkinan dipasang di reverse proxy [perlu verifikasi: tidak dijalankan].",
+      "dokumentasi": "https://api.dart.dev/dart-io/HttpServer/autoCompress.html"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "PostgREST stable",
+      "teks": "Halaman PostgREST yang dibuka dan pencarian dokumentasi Supabase tidak menemukan penyebutan kompresi response. Periksa `Content-Encoding` di response proyekmu sendiri sebelum menganggapnya aktif.",
+      "dokumentasi": "https://docs.postgrest.org/en/stable/references/api/tables_views.html"
+    }
+  },
+  "jebakan": [
+    "Mengira client yang meminta gzip membuat response terkompres. Server yang memutuskan, dan api-t2 tidak punya kode kompresi, jadi riwayat 20 baris tetap 2.932 B.",
+    "Lupa mendaftarkan `application/json` di web server. nginx hanya mengompres `text/html` bila `gzip_types` tidak diubah.",
+    "Mengompres response yang memuat secret bersama teks dari penyerang. Django menambah byte acak untuk melawan serangan BREACH."
+  ],
+  "terkait": [
+    "Payload",
+    "Over-fetching",
+    "Header",
+    "Reverse proxy"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-165",
+      "judul": "RFC 9110 §12.5.3: Accept-Encoding",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#name-accept-encoding",
+      "catatan": "Tanpa field itu coding apa saja dianggap acceptable; qvalue 0 berarti tidak mau; field kosong berarti client tidak mau coding."
+    },
+    {
+      "riset": "R2-166",
+      "judul": "RFC 1952 §2.3.1: format gzip",
+      "url": "https://www.rfc-editor.org/rfc/rfc1952",
+      "catatan": "Dua byte pertama ID1 = 31 (0x1f) dan ID2 = 139 (0x8b)."
+    },
+    {
+      "riset": "R2-167",
+      "judul": "Dart: HttpClient.autoUncompress",
+      "url": "https://api.dart.dev/dart-io/HttpClient/autoUncompress.html",
+      "catatan": "Bawaannya true; header response tidak diubah. Rekaman lab membuktikan header Accept-Encoding terkirim juga saat nilainya false."
+    },
+    {
+      "riset": "R2-152",
+      "judul": "Django 6.1: GZipMiddleware",
+      "url": "https://docs.djangoproject.com/en/6.1/ref/middleware/#module-django.middleware.gzip",
+      "catatan": "Syarat kompresi, peringatan BREACH, dan Heal The Breach sampai 100 byte acak."
+    }
+  ]
+}

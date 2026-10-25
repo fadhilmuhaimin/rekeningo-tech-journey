@@ -1,0 +1,74 @@
+---
+/**
+ * Widget ukuran payload (2.20, keputusan 821): tebak apa yang paling banyak memperkecil body riwayat Budi, lalu ubah
+ * satu hal (bentuk response, gzip, jumlah baris, buka per hari) dan lihat byte dan kuota.
+ *   <UkuranPayload />
+ * Ukuran dan tabel kuota dibaca saat build dari labs/e5-payload/output/ledger/ukuran.txt (bagian C dan D) lewat
+ * logika.ts; rekaman yang berubah bentuk, atau yang hitungannya tidak sama dengan hitungan dari barisnya, menggagalkan
+ * build, begitu juga tebakan yang tidak punya tepat satu jawaban cocok. Teks dari data/widget/t2-payload-ukuran.json
+ * (skema.ts). Island di-render saat build (client:visible); tanpa JavaScript tabel kuota tampil di <noscript>.
+ * Satu widget per halaman (dipasang di blok Coba 2.20).
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import UkuranPayloadIsland from "../widgets/ukuran-payload/UkuranPayload";
+import { LabelUkuran } from "../widgets/ukuran-payload/skema";
+import {
+  angka, bacaRekaman, BENTUK, byteBuka, bukaSatuPersen, cari, hemat, indeksBenar, isi, labelPaket, pemenang, persen,
+  persenDari, persenKuota,
+} from "../widgets/ukuran-payload/logika";
+import labelMentah from "../../data/widget/t2-payload-ukuran.json";
+
+const FILE = "labs/e5-payload/output/ledger/ukuran.txt";
+const abs = path.join(ROOT, FILE);
+if (!fs.existsSync(abs)) throw new Error(`UkuranPayload: ${FILE} tidak ada`);
+const r = bacaRekaman(fs.readFileSync(abs, "utf8"));
+const L = LabelUkuran.parse(labelMentah);
+const baris = r.asumsi.barisKuota;
+const h = hemat(r, baris);
+const nilai = {
+  baris: angka(baris),
+  api: angka(cari(r, "api", baris).mentah),
+  layar: angka(cari(r, "layar", baris).mentah),
+  gzip: angka(cari(r, "api", baris).gzip),
+  layarGzip: angka(cari(r, "layar", baris).gzip),
+  hematLayar: persenDari(h.layar),
+  hematGzip: persenDari(h.gzip),
+  hematLayarGzip: persenDari(h.layarGzip),
+  selisih: persen(Math.abs(h.gzip - h.layar) * 100, 1),
+};
+const pilihanData = L.pilihan.map((p) => ({ ...p, teks: isi(p.teks, nilai), alasan: isi(p.alasan, nilai) }));
+const benar = indeksBenar(pilihanData, pemenang(h));
+const pilihan = pilihanData.map((p) => ({ teks: p.teks, alasan: p.alasan }));
+const label = {
+  judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, pertanyaan: isi(L.pertanyaan, nilai), benar: L.benar,
+  belum: L.belum, ulang: L.ulang, ubahJudul: L.ubahJudul, grup: L.grup, bentuk: L.bentuk, kompresi: L.kompresi,
+  kolom: L.kolom, kalimat: L.kalimat, catatan: L.catatan,
+};
+const bukaPilihan = r.asumsi.bukaPerHari;
+const tabel = BENTUK.flatMap((b) => [false, true].map((g) => {
+  const byte = byteBuka(cari(r, b, baris), g);
+  return { b, g, byte, satu: bukaSatuPersen(byte, r.asumsi), kuota: bukaPilihan.map((n) => persenKuota(byte, n, r.asumsi)) };
+}));
+---
+<UkuranPayloadIsland client:visible ukuran={r.ukuran} asumsi={r.asumsi} pilihan={pilihan} benar={benar} label={label} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <table>
+    <thead>
+      <tr>
+        <th>{L.grup.bentuk}</th><th>{L.grup.kompresi}</th><th>{L.kolom.byte}</th><th>{L.kolom.satuPersen}</th>
+        {bukaPilihan.map((n) => <th>{angka(n)} {L.grup.buka.toLowerCase()}</th>)}
+      </tr>
+    </thead>
+    <tbody>
+      {tabel.map((t) => (
+        <tr>
+          <td>{L.bentuk[t.b]}</td><td>{t.g ? L.kompresi.ya : L.kompresi.tidak}</td><td>{angka(t.byte)} byte</td><td>{angka(t.satu)}</td>
+          {t.kuota.map((k) => <td>{persen(k, 3)} % ({labelPaket(r.asumsi)})</td>)}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</noscript>

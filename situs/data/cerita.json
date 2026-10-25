@@ -1715,15 +1715,15 @@
       "menit": 17
     },
     {
-      "id": "E5",
+      "id": "t2-payload",
       "judul": "Ukuran payload dan kuota HP",
       "tahap": 2,
       "topik": "Khusus app mobile",
-      "path": "e-mobile/e5-ukuran-payload.md",
+      "path": "tahap-2/ukuran-payload.md",
       "prasyarat": [
         "t2-kursor"
       ],
-      "masalah": "Response besar membebani HP dan kuota",
+      "masalah": "Berapa byte riwayat Budi di kabel, apa yang menghematnya, dan kapan kuota HP ikut berarti",
       "ada": true,
       "jenis": "konsep",
       "bagian": 4,
@@ -1731,12 +1731,12 @@
         "mobile",
         "backend"
       ],
-      "lama": true,
+      "pendek": "Ukuran payload dan kuota HP",
       "lab": [
         "e5-payload"
       ],
       "nomor": "2.20",
-      "menit": 8
+      "menit": 15
     },
     {
       "id": "t2-m13",
@@ -2178,6 +2178,25 @@
       "lebur_ke": "t2-kursor",
       "lab": [
         "b2-query"
+      ],
+      "menit": 8
+    },
+    {
+      "id": "E5",
+      "judul": "Ukuran payload dan kuota HP",
+      "tahap": 2,
+      "topik": "Khusus app mobile",
+      "path": "e-mobile/e5-ukuran-payload.md",
+      "prasyarat": [
+        "t2-kursor"
+      ],
+      "ada": true,
+      "pendek": "Ukuran payload dan kuota (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t2-payload",
+      "lab": [
+        "e5-payload"
       ],
       "menit": 8
     },

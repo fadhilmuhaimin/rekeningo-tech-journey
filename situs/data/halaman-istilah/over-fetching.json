@@ -1,0 +1,94 @@
+{
+  "istilah": "Over-fetching",
+  "sehari_hari": "Over-fetching adalah mengirim lebih banyak kolom atau baris daripada yang dipakai layar. Ongkosnya byte di kabel, kerja parsing di HP, dan kolom yang seharusnya tidak keluar.",
+  "cerita": [
+    {
+      "rujukan": "t2-payload",
+      "teks": "Bentuk yang mengirim semua kolom tabel memakai 12.196 B untuk 20 baris riwayat, 4,16 kali api-t2. Di api-t2 tabel `akun` punya kolom `password_hash`, jadi `SELECT *` di sana ikut mengirimnya (dibaca dari kode, tidak dijalankan)."
+    }
+  ],
+  "mekanisme": [
+    "Handler membaca baris dari database, lalu menyerialisasi baris itu ke JSON.",
+    "Bila serialisasi memakai model tabel apa adanya, setiap kolom ikut keluar, termasuk kolom yang ditambahkan nanti.",
+    "Perbaikannya struct, resource, atau serializer sendiri per layar yang menulis kolomnya satu per satu."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, encoding/json bawaan",
+      "teks": "Struct `BarisLayar` memuat enam field dan fungsi `layar` memetakan baris api-t2 ke struct itu. Bentuk penuh, yang menyerialisasi semua kolom tabel, 12.196 B untuk 20 baris, lawan 2.635 B untuk bentuk layar.",
+      "rekaman": "labs/e5-payload/output/ledger/ukuran.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-postgres, halaman pg.Result",
+      "teks": "`rows` berisi satu objek per baris dengan semua kolom yang di-SELECT, jadi `res.json(rows)` mengirim semuanya. Susun objek response sendiri dengan `rows.map`.",
+      "dokumentasi": "https://node-postgres.com/apis/result"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.x",
+      "teks": "API Resource menentukan atribut yang keluar lewat metode `toArray`, jadi kolom baru di tabel tidak ikut keluar sebelum kamu menuliskannya.",
+      "dokumentasi": "https://laravel.com/docs/13.x/eloquent-resources"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1",
+      "teks": "`QuerySet.values(*fields)` membatasi `SELECT` ke kolom yang disebut. Tanpa argumen, semua kolom tabel dipilih.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/ref/models/querysets/#values"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4, dokumentasi bertanda 4.0.0",
+      "teks": "Model tanpa kunci `table` hanya menjadi kelas Dart, jadi satu model per layar mudah dibuat. Field bisa disembunyikan dari client dengan `scope`, dan kelas bisa dibatasi ke server dengan `serverOnly`.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/models"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "PostgREST stable",
+      "teks": "Client memilih kolom lewat parameter `select`, misalnya `select=first_name,age`, dan bawaannya `*`, yaitu semua kolom.",
+      "dokumentasi": "https://docs.postgrest.org/en/stable/references/api/tables_views.html#vertical-filtering-columns"
+    }
+  },
+  "jebakan": [
+    "Menyerialisasi model tabel apa adanya. Kolom yang ditambahkan ke tabel besok ikut keluar tanpa ada yang memutuskannya.",
+    "Membuang kolom dari response supaya lebih kecil tanpa memeriksa app lama. Di rekaman, bentuk layar membuang `jumlah`, yang masih dibaca app 1.0."
+  ],
+  "terkait": [
+    "Payload",
+    "gzip",
+    "Pagination"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-153",
+      "judul": "OWASP API3:2023 Broken Object Property Level Authorization",
+      "url": "https://api-security.owasp.org/editions/2023/en/0xa3-broken-object-property-level-authorization",
+      "catatan": "API sering mengembalikan semua properti objek, termasuk yang sensitif; saran: skema response per method dan hindari serialisasi generik seperti to_json."
+    },
+    {
+      "riset": "R2-151",
+      "judul": "Laravel 13.x: Eloquent API Resources",
+      "url": "https://laravel.com/docs/13.x/eloquent-resources",
+      "catatan": "Setiap resource mendefinisikan toArray, atribut yang diubah jadi JSON."
+    },
+    {
+      "riset": "R2-151",
+      "judul": "Django 6.1: QuerySet.values",
+      "url": "https://docs.djangoproject.com/en/6.1/ref/models/querysets/#values",
+      "catatan": "Argumen fields membatasi SELECT; tanpa argumen semua kolom."
+    },
+    {
+      "riset": "R2-151",
+      "judul": "PostgREST: vertical filtering",
+      "url": "https://docs.postgrest.org/en/stable/references/api/tables_views.html#vertical-filtering-columns",
+      "catatan": "Parameter select memilih kolom; bawaannya * (semua kolom)."
+    },
+    {
+      "riset": "R2-169",
+      "judul": "Rekaman lab e5-payload: ukuran response riwayat",
+      "rekaman": "labs/e5-payload/output/ledger/ukuran.txt",
+      "catatan": "Tiga bentuk pada 5, 20, dan 50 baris; bentuk penuh 4,16 kali api-t2 pada 20 baris."
+    }
+  ]
+}

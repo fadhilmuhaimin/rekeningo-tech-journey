@@ -82,7 +82,7 @@ Yang sama di semua stack: cursor adalah nilai sort key dari baris terakhir. Yang
 |---|---|---|
 | Offset | Bisa lompat ke halaman ke-N, mudah ditulis | Item ganda atau terlewat saat data berubah; halaman jauh makin lambat |
 | Cursor | Stabil saat data berubah, cepat di halaman mana pun | Tidak bisa lompat ke halaman ke-N; butuh sort key unik + index |
-| Tanpa pagination | Paling sederhana | Response membesar tanpa batas ([[E5]]) |
+| Tanpa pagination | Paling sederhana | Response membesar tanpa batas ([[t2-payload]]) |
 
 Rule of thumb: infinite scroll di app mobile memakai cursor. Tabel admin yang butuh "halaman 7 dari 40" boleh memakai offset.
 

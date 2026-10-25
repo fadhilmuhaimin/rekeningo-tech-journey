@@ -1,0 +1,56 @@
+{
+  "judul": "Berapa byte riwayat Budi di kabel, dan berapa kuotanya?",
+  "sumber": "Rekaman lab · ukuran.txt bagian C dan D",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "Riwayat Budi, halaman pertama {baris} baris, dikirim api-t2 apa adanya: body {api} B tanpa kompresi. Mana yang paling banyak memperkecil body itu?",
+  "pilihan": [
+    {
+      "teks": "Membuang kolom jumlah yang kembar dengan nominal (bentuk layar).",
+      "alasan": "Bentuk layar mengecilkan body dari {api} B ke {layar} B, hemat {hematLayar} %. Itu penghematan terkecil di antara dua cara, dan app 1.0 tidak bisa membaca response tanpa kolom jumlah.",
+      "pemenang": "layar"
+    },
+    {
+      "teks": "Menyalakan gzip di server.",
+      "alasan": "gzip mengecilkan body dari {api} B ke {gzip} B, hemat {hematGzip} %. Nama kolom yang berulang di setiap baris membuat JSON mudah dikompres.",
+      "pemenang": "gzip"
+    },
+    {
+      "teks": "Keduanya menghemat hampir sama banyak.",
+      "alasan": "Bentuk layar hemat {hematLayar} %, gzip hemat {hematGzip} %. Selisihnya {selisih} poin persen, jauh dari sama.",
+      "pemenang": "sama"
+    },
+    {
+      "teks": "Tidak ada yang berarti: {baris} baris sudah kecil.",
+      "alasan": "{api} B memang kecil, tetapi gzip tetap menghemat {hematGzip} %. Apakah penghematan itu penting untuk kuota adalah pertanyaan berikutnya, dan jawabannya ada di bawah.",
+      "pemenang": "tidak"
+    }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "ubahJudul": "Ubah satu hal: bentuk, gzip, jumlah baris, atau seberapa sering Budi membuka riwayat",
+  "grup": {
+    "bentuk": "Bentuk response",
+    "kompresi": "Kompresi",
+    "baris": "Baris per halaman",
+    "buka": "Buka riwayat per hari (Asumsi)"
+  },
+  "bentuk": {
+    "api": "api-t2 apa adanya",
+    "layar": "Bentuk layar",
+    "penuh": "Semua kolom (SELECT *)"
+  },
+  "kompresi": {
+    "tidak": "Tanpa gzip",
+    "ya": "Dengan gzip"
+  },
+  "kolom": {
+    "byte": "Body per buka",
+    "banding": "Dibanding api-t2 apa adanya tanpa gzip",
+    "kuota": "Kuota per bulan",
+    "satuPersen": "Buka per hari untuk 1 % kuota"
+  },
+  "kalimat": "{bentuk}, {kompresi}, {baris} baris: {byte} B per buka, {banding} kali api-t2 apa adanya tanpa gzip. {buka} buka per hari memakai {kuota} % dari paket {paket} per bulan, dan 1 % kuota habis pada {satuPersen} buka per hari.",
+  "catatan": "Yang dihitung hanya body response riwayat, tanpa header, TLS, gambar, dan request lain. Paket, jumlah buka per hari, dan kolom yang dipakai layar adalah Asumsi. Parameter bentuk hanya ada di server lab, tidak di api-t2. Bentuk penuh disusun lab dari skema b3-ledger; akun di api-t2 punya kolom lebih banyak, jadi ukurannya batas bawah.",
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan tabel kuota rekamannya."
+}
