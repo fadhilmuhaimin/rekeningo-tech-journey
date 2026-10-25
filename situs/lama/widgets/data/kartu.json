@@ -1107,6 +1107,39 @@
   "jawab": "Nadia. Penulis PR tidak bisa menyetujui PR-nya sendiri, dan persetujuan salah satu pemilik di baris yang sama sudah cukup."
  },
  {
+  "id": "t2-job-rekonsiliasi-1",
+  "halaman": "t2-job-rekonsiliasi",
+  "judul": "2.26 Job terjadwal yang idempoten dan rekonsiliasi + ADR 19",
+  "url": "tahap-2/job-rekonsiliasi/",
+  "tanya": "AI menulis job pencairan ini. Aman bila server mati di tengah?",
+  "jawab": "Tidak aman. Ini bentuk versi pertama di `rentan.txt`. Bila proses mati antara menulis baris dan `Commit`, baris sudah di file dan jurnalnya batal. Job yang dijalankan lagi membaca saldo yang masih ada dan menulis baris itu sekali lagi. Perbaikannya: batch per periode, status yang dibaca sebelum tiap langkah, dan file dibuat dari database sesudah semua jurnal tercatat.",
+  "kode": "func Cairkan(ctx context.Context, db *sql.DB, dir string) error {\n    f, _ := os.OpenFile(dir+\"/pencairan.csv\", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)\n    for _, w := range warungBersaldo(ctx, db) {\n        tx, _ := db.BeginTx(ctx, nil)\n        catatJurnalPencairan(ctx, tx, w)\n        fmt.Fprintf(f, \"%d,%s,%d\\n\", w.Akun, w.Nama, w.Saldo)\n        tx.Commit()\n    }\n    return nil\n}"
+ },
+ {
+  "id": "t2-job-rekonsiliasi-2",
+  "halaman": "t2-job-rekonsiliasi",
+  "judul": "2.26 Job terjadwal yang idempoten dan rekonsiliasi + ADR 19",
+  "url": "tahap-2/job-rekonsiliasi/",
+  "tanya": "Job mati sesudah file diberi nama akhir, sebelum status `dikirim`. Apa yang dilakukan Keuangan, dan apa yang terjadi bila job dijalankan lagi?",
+  "jawab": "Keuangan tidak mengunggah file itu, karena batch masih `dijurnal`. Job yang dijalankan lagi membuat file dari database dengan isi yang sama per byte, menggantikan yang lama lewat `rename`, dan baru menulis `dikirim` (`benar.txt` bagian E)."
+ },
+ {
+  "id": "t2-job-rekonsiliasi-3",
+  "halaman": "t2-job-rekonsiliasi",
+  "judul": "2.26 Job terjadwal yang idempoten dan rekonsiliasi + ADR 19",
+  "url": "tahap-2/job-rekonsiliasi/",
+  "tanya": "Rekonsiliasi menolak dengan kode 3. Haruskah job menghapus baris kembar dari file lalu melanjutkan?",
+  "jawab": "Tidak. Job tidak tahu mana yang benar: file, ledger, atau keputusan admin. Di `rekonsiliasi.txt` bagian C, ledger sudah mengembalikan Rp15.000 ke Warung 508 dan file masih memuatnya. Job berhenti dan membiarkan status, supaya orang memutuskan. Koreksi di ledger berupa jurnal pembalik."
+ },
+ {
+  "id": "t2-job-rekonsiliasi-4",
+  "halaman": "t2-job-rekonsiliasi",
+  "judul": "2.26 Job terjadwal yang idempoten dan rekonsiliasi + ADR 19",
+  "url": "tahap-2/job-rekonsiliasi/",
+  "tanya": "Batch sudah `dikirim`. Budi membayar Rp25.000 ke Warung Ani. Job dijalankan lagi untuk periode yang sama. Apa yang dilakukan job?",
+  "jawab": "Tidak ada. Job membaca status `dikirim` dan keluar dengan kode 0, tanpa menulis jurnal dan tanpa menyentuh file (hash sama). Rp25.000 menunggu periode berikutnya (`benar.txt` bagian D)."
+ },
+ {
   "id": "B3.2-1",
   "halaman": "B3.2",
   "judul": "Race condition dan lock",
