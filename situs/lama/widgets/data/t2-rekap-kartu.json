@@ -1,0 +1,82 @@
+[
+ {
+  "id": "t2-rekap-k1",
+  "halaman": "t2-saldo-bukan-kolom",
+  "judul": "2.6 Kenapa saldo bukan kolom",
+  "url": "tahap-2/saldo-bukan-kolom/",
+  "tanya": "PRD v2: Pak Hadi meminta setiap rupiah tertelusur ke kejadiannya, tanpa tabel koreksi tangan. Di Tahap 1, tiga tabel catatan Budi berjumlah Rp250.000, sedangkan kolom saldonya Rp180.000. Kalimat apa yang lahir?",
+  "jawab": "Saldo adalah hasil jumlah, bukan angka yang ditulis (ADR 6 direvisi: ledger yang hanya ditambah). Dipersempit: buku.saldo_cache tetap angka yang ditulis. Versi yang didukung rekaman: saldo adalah jumlah posting, dan angka yang disimpan hanyalah salinan yang diperiksa job malam."
+ },
+ {
+  "id": "t2-rekap-k2",
+  "halaman": "t2-m9",
+  "judul": "2.10 M9: Saldo −Rp20.000",
+  "url": "tahap-2/m9-saldo-minus/",
+  "tanya": "M9: saldo Budi Rp100.000. Dari HP ia mengirim Rp70.000 dan dari tablet Rp50.000, hampir bersamaan, masing-masing dalam transaction. Keduanya lolos pemeriksaan saldo, dan saldonya −Rp20.000. Kalimat apa yang lahir?",
+  "jawab": "Membaca lalu menulis bukan satu langkah, kecuali kamu menguncinya (ADR 13: buku yang terlibat dikunci dengan SELECT … ORDER BY id FOR UPDATE sebelum saldo dibaca)."
+ },
+ {
+  "id": "t2-rekap-k3",
+  "halaman": "t2-m10",
+  "judul": "2.13 M10: Nasi goreng dibayar dua kali",
+  "url": "tahap-2/m10-dibayar-dua-kali/",
+  "tanya": "M10: response Bayar Rp25.000 hilang karena sinyal putus, app mengulang, dan riwayat Budi mencatat dua jurnal. Ledger tetap seimbang. Kalimat apa yang lahir?",
+  "jawab": "Retry itu benar; yang salah adalah server yang tidak mengenali ulangan (ADR 14: satu key per niat bayar, hasilnya disimpan 24 jam)."
+ },
+ {
+  "id": "t2-rekap-k4",
+  "halaman": "t2-m11",
+  "judul": "2.15 M11: Riwayat 4 detik",
+  "url": "tahap-2/m11-riwayat-lambat/",
+  "tanya": "M11: riwayat Budi lama terbuka, dan Raka membuka daftar paket VPS yang lebih besar. Rekaman lab: 21 query untuk 20 baris. Kalimat apa yang lahir?",
+  "jawab": "Naskah: \"Lambat di data kecil berarti query yang salah, bukan server yang lemah.\" Dipersempit: data lab satu tahun bukan data kecil, dan 4 detik tidak terulang. Versi yang didukung rekaman: sebelum membeli server lebih besar, hitung berapa query dan berapa baris yang dibaca satu request (ADR 15: satu query JOIN dan index)."
+ },
+ {
+  "id": "t2-rekap-k5",
+  "halaman": "t2-m12",
+  "judul": "2.18 M12: Transaksi muncul dua kali",
+  "url": "tahap-2/m12-muncul-dua-kali/",
+  "tanya": "M12: Budi menggulir riwayat. Satu baris muncul dua kali, dan kiriman Dimas Rp5.000 belum tampil. Raka menduga bug tampilan di Flutter. Kalimat apa yang lahir?",
+  "jawab": "Halaman berikutnya ditentukan oleh baris terakhir, bukan nomor halaman (ADR 16: kursor dari (dibuat, id); celah transaksi yang COMMIT belakangan ditulis terbuka)."
+ },
+ {
+  "id": "t2-rekap-k6",
+  "halaman": "t2-m13",
+  "judul": "2.21 M13: Migrasi di jam makan siang",
+  "url": "tahap-2/m13-migrasi-siang/",
+  "tanya": "M13: satu migrasi ke ledger membuat Bayar menunggu, lalu app 1.0 dan 1.1 berhenti membaca riwayat. Raka berencana menjalankan migrasi berikutnya malam hari. Kalimat apa yang lahir?",
+  "jawab": "Perubahan besar dipecah jadi rilis kecil yang masing-masing aman (ADR 17: tiga rilis, lock_timeout 3 detik, backfill per 1.000 akun)."
+ },
+ {
+  "id": "t2-rekap-k7",
+  "halaman": "t2-m14",
+  "judul": "2.23 M14: Batas harian yang hilang",
+  "url": "tahap-2/m14-batas-harian/",
+  "tanya": "M14: dua cabang yang masing-masing menghapus tiga baris digabung tanpa konflik. Kiriman Rp800.000 lolos walau batasnya Rp500.000, dan go test tanpa PostgreSQL keluar 0. Kalimat apa yang lahir?",
+  "jawab": "Aturan uang dijaga tes, bukan ingatan (ADR 18: review satu orang lain, tes aturan uang lewat pintu masuk di PostgreSQL sungguhan, dan main dilindungi)."
+ },
+ {
+  "id": "t2-rekap-k8",
+  "halaman": "t2-m15",
+  "judul": "2.25 M15: Rp15.000 di file bank",
+  "url": "tahap-2/m15-file-bank/",
+  "tanya": "M15: file bank berisi 13 baris Rp2.465.000, ledger berisi 12 jurnal Rp2.450.000. Job pencairan dijalankan lagi sesudah server mati di warung ketujuh. Kalimat apa yang lahir?",
+  "jawab": "Pekerjaan terjadwal harus aman dijalankan dua kali, dan hasilnya dicocokkan dengan dunia luar (ADR 19: batch per periode, status batch, dan rekonsiliasi sebelum file diberi nama akhir)."
+ },
+ {
+  "id": "t2-rekap-k9",
+  "halaman": "t2-m16",
+  "judul": "2.27 M16: Akun Ani terkunci",
+  "url": "tahap-2/m16-akun-terkunci/",
+  "tanya": "M16: Ani ditolak login berkali-kali tiap pagi, dan log menunjukkan satu alamat mencoba banyak akun. Di rekaman, kunci per akun saja tidak mengunci satu pun dari 29 akun yang disemprot. Kalimat apa yang lahir?",
+  "jawab": "Batasi per akun dan per IP; password pertama wajib diganti (ADR 20: dengan batas per alamat di depannya, 19 dari 29 tebakan ditolak 429)."
+ },
+ {
+  "id": "t2-rekap-k10",
+  "halaman": "t2-m17",
+  "judul": "2.29 M17: Tutup buku kedua lolos, PRD v3 datang",
+  "url": "tahap-2/m17-prd-v3/",
+  "tanya": "M17: tutup buku kedua selisih Rp0, lalu Sinta membawa PRD v3 dan bertanya apakah server cukup. Puncak Tahap 2 ±1,4 request per detik (Asumsi). Kalimat apa yang lahir?",
+  "jawab": "Naskah: \"Masalah Tahap 2 adalah kebenaran data, bukan kapasitas.\" Dipersempit: kapasitas satu server belum pernah diukur. Versi yang didukung rekaman: tidak satu pun dari delapan masalah disebabkan server kehabisan tenaga, dan belum ada angka yang menyuruh membeli server hari ini (ADR 21)."
+ }
+]
