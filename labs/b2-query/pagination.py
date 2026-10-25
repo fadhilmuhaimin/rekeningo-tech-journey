@@ -1,8 +1,10 @@
 """Lab B1.3: offset vs cursor (keyset) pagination di PostgreSQL 17, data b2q. Keluaran: output/pagination.txt"""
 import pathlib
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT  # noqa: E402
 
-DSN = "host=127.0.0.1 port=54333 user=lab password=lab dbname=lab options=-csearch_path=b2q"
+DSN = f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab options=-csearch_path=b2q"
 c = psycopg.connect(DSN, autocommit=True)
 log = ["-- PostgreSQL 17.11 · riwayat Warung Ani (toko 1), 3 per halaman supaya ringkas"]
 BASE = "SELECT id, dibuat::date FROM pesanan WHERE toko_id = 1"

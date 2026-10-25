@@ -1,3 +1,4 @@
+include ../lab_env.mk
 .PHONY: run run-login cek-login test-login
 
 # Lab lama C4 (Tahap 3): rate limit token bucket tanpa database. Target dan output/ratelimit.txt tidak berubah.
@@ -21,4 +22,4 @@ cek-login: run-login
 # bersamaan dengan run-login.
 test-login:
 	$(MAKE) -C ../b3-race up
-	cd login && TEST_DATABASE_URL='postgres://lab:lab@127.0.0.1:54333/lab?search_path=c4_login&application_name=c4-ratelimit' go test -count=1 -race ./...
+	cd login && TEST_DATABASE_URL='postgres://lab:lab@127.0.0.1:$(LAB_DB_PORT)/lab?search_path=c4_login&application_name=c4-ratelimit' go test -count=1 -race ./...

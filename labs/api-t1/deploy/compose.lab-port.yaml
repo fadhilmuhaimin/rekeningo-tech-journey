@@ -1,0 +1,9 @@
+# Hanya untuk lab: memindahkan port host container API sesuai lajur kerja (LAB_API_PORT, labs/README.md).
+# run.py menambahkannya ke COMPOSE_FILE sesudah compose.lab.yaml. Di VPS berkas ini tidak ada, dan compose.yaml
+# yang dibaca halaman tetap berisi port 18083.
+# `!override` mengganti daftar ports dari compose.yaml; tanpa itu Compose menambahkan entri kedua dan port 18083
+# tetap terpakai. Dicoba di Docker Compose 2.38.2; versi minimum tag ini [perlu verifikasi].
+services:
+  api:
+    ports: !override
+      - "127.0.0.1:${LAB_API_PORT:-18083}:8080"

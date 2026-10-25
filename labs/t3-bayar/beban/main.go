@@ -35,7 +35,7 @@ loop:
 			go func() {
 				defer wg.Done()
 				t := time.Now()
-				res, err := client.Post("http://127.0.0.1:18083/bayar", "application/json",
+				res, err := client.Post("http://127.0.0.1:"+portLab(18083)+"/bayar", "application/json",
 					bytes.NewBufferString(fmt.Sprintf(`{"akun_id":%d,"jumlah":25000}`, akun)))
 				d := time.Since(t)
 				mu.Lock()

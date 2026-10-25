@@ -4,9 +4,10 @@
 # Keluaran: output/migrate.txt. Gagal keras bila hasilnya tidak sesuai harapan (keputusan 79, 95).
 set -u
 cd "$(dirname "$0")"
+. ../lab_env.sh || exit 1   # LAB_DB_PORT (labs/README.md)
 DC="docker compose -f ../b3-race/docker-compose.yml exec -T db"
 M="go run -tags postgres github.com/golang-migrate/migrate/v4/cmd/migrate@v4.20.1"
-url() { echo "postgres://lab:lab@127.0.0.1:54333/lab?sslmode=disable&search_path=b4m_$1&x-migrations-table=schema_migrations"; }
+url() { echo "postgres://lab:lab@127.0.0.1:${LAB_DB_PORT}/lab?sslmode=disable&search_path=b4m_$1&x-migrations-table=schema_migrations"; }
 $DC psql -U lab -d lab -q -v ON_ERROR_STOP=1 \
   -c "DROP SCHEMA IF EXISTS b4m_laptop CASCADE; DROP SCHEMA IF EXISTS b4m_server CASCADE; DROP SCHEMA IF EXISTS b4m CASCADE; CREATE SCHEMA b4m_laptop; CREATE SCHEMA b4m_server;" >/dev/null \
   || { echo "GAGAL: schema lab tidak bisa dibuat ulang" >&2; exit 1; }

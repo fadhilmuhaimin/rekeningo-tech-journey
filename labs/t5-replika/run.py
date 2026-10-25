@@ -7,9 +7,11 @@ Keluaran: output/replika.txt.  Jalankan: make -C labs/t5-replika run
 """
 import pathlib, time
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import REPLIKA_PRIMARY_PORT, REPLIKA_REPLICA_PORT  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
-P = psycopg.connect("postgresql://lab:lab@127.0.0.1:54340/lab", autocommit=True)
+P = psycopg.connect(f"postgresql://lab:lab@127.0.0.1:{REPLIKA_PRIMARY_PORT}/lab", autocommit=True)
 
 
 def sambung_replica(batas=60):
@@ -17,7 +19,7 @@ def sambung_replica(batas=60):
     akhir = time.monotonic() + batas
     while True:
         try:
-            return psycopg.connect("postgresql://lab:lab@127.0.0.1:54341/lab", autocommit=True)
+            return psycopg.connect(f"postgresql://lab:lab@127.0.0.1:{REPLIKA_REPLICA_PORT}/lab", autocommit=True)
         except psycopg.OperationalError:
             if time.monotonic() > akhir:
                 raise SystemExit(f"GAGAL: replica tidak siap dalam {batas} detik")

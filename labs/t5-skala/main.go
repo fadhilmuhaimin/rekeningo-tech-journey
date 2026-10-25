@@ -34,13 +34,13 @@ func main() {
 
 func lb() {
 	var n atomic.Int64
-	tujuan := []string{"http://127.0.0.1:18141", "http://127.0.0.1:18142"}
+	tujuan := []string{"http://127.0.0.1:" + portLab(18141), "http://127.0.0.1:" + portLab(18142)}
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		u, _ := url.Parse(tujuan[n.Add(1)%2]) // round robin: bergantian
 		log.Printf("lb       %s %s → %s", r.Method, r.URL.Path, u.Host)
 		httputil.NewSingleHostReverseProxy(u).ServeHTTP(w, r)
 	})
-	log.Fatal(http.ListenAndServe("127.0.0.1:18140", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:"+portLab(18140), nil))
 }
 
 func tanda(user string) string {

@@ -12,11 +12,13 @@ Lab gagal keras bila hasil berbeda dari harapan: saldo, SQLSTATE, constraint, at
 import pathlib, re, threading, time
 from decimal import Decimal
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 OUT = HERE / "output"
 SCHEMA, SCHEMA_V1 = "b3_ledger", "b3_ledger_v1"
-DSN = "host=127.0.0.1 port=54333 user=lab password=lab dbname=lab application_name=b3-ledger"
+DSN = f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab application_name=b3-ledger"
 NAMA_SQLSTATE = {"23514": "check_violation", "23001": "restrict_violation", "23505": "unique_violation"}
 SISTEM, ADMIN, DIMAS, ANI, BUDI, SARI, CITRA = 1, 400, 417, 418, 419, 502, 504
 

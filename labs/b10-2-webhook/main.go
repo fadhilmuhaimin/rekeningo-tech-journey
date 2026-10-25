@@ -86,7 +86,7 @@ func api() {
 		}
 		log.Printf("api      %s → 200 %s", id, hasil)
 	})
-	log.Fatal(http.ListenAndServe("127.0.0.1:18120", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:"+portLab(18120), nil))
 }
 
 // --8<-- [start:proses]

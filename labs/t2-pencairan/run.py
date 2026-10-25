@@ -16,15 +16,17 @@ Rekaman di output/ tanpa waktu, jadi rekaman ulang identik per byte. Lab gagal k
 import hashlib, os, pathlib, shutil, subprocess, time
 from decimal import Decimal
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 OUT = HERE / "output"
 KERJA = HERE / "kerja"            # folder file transfer; dibuat ulang tiap skenario, tidak di-commit
 BIN = HERE / "bin" / "pencairan"
 SCHEMA = "t2_pencairan"
-DSN = "host=127.0.0.1 port=54333 user=lab password=lab dbname=lab application_name=t2-pencairan"
+DSN = f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab application_name=t2-pencairan"
 APP_JOB = "t2-pencairan-job"
-DSN_JOB = f"postgres://lab:lab@127.0.0.1:54333/lab?application_name={APP_JOB}&search_path={SCHEMA}"
+DSN_JOB = f"postgres://lab:lab@127.0.0.1:{DB_PORT}/lab?application_name={APP_JOB}&search_path={SCHEMA}"
 PERIODE = "2026-W43"
 FILE = f"pencairan-{PERIODE}.csv"
 SISTEM, ADMIN, BUDI = 1, 400, 419
