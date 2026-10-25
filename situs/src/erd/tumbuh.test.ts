@@ -10,7 +10,7 @@ import petaT2 from "./uji/halaman.json";
 import { DataErd, PetaHalaman } from "./skema";
 import {
   UKURAN, ambangKolom, bisaBanding, daftarFk, jumlahKolom, namaTombol, peringkat, ringkasan, tampilSebelum, tampilTahap, tata,
-  tandaiHalamanIni, tautanHalaman, teksAturan, teksKolom, teksPindah, barisPindah, tinggiNode, urutan, varPesan, type TabelTampil,
+  tandaiHalamanIni, tautanHalaman, teksAturan, teksKolom, teksPindah, barisPindah, tinggiNode, urutan, varPesan, type HalamanRegistry, type TabelTampil,
 } from "./tumbuh";
 import { muat, url } from "../../tools/registri.mjs";
 
@@ -176,9 +176,10 @@ describe("tautan halaman dari registry", () => {
     expect(hasil["1"].akun[0]).toEqual({ label: "1.12 Data modeling dan relasi", href: "/tahap-1/data-modeling/", catatan: null });
   });
   it("halaman yang belum ditulis tanpa tautan", () => {
-    // Urutan daftar mengikuti uji/halaman.json; sejak 2.7 ditulis, daftar buku tidak lagi berisi halaman "segera".
-    // 2.26 (t2-job-rekonsiliasi) di daftar batch_pencairan masih jauh dari ditulis.
-    expect(hasil["2"].batch_pencairan.find((x) => x.href === null)).toMatchObject({ href: null, catatan: "segera" });
+    // Sejak 2.26 (t2-job-rekonsiliasi) ditulis, tidak ada lagi halaman "segera" di peta. Uji ini memakai salinan
+    // registry yang menandai halaman itu belum ada, supaya tidak bergantung pada urutan penulisan halaman.
+    const belumAda = tautanHalaman(peta, semua, reg.halaman.map((h: HalamanRegistry) => (h.id === "t2-job-rekonsiliasi" ? { ...h, ada: false } : h)), url);
+    expect(belumAda["2"].batch_pencairan.find((x) => x.href === null)).toMatchObject({ href: null, catatan: "segera" });
     expect(hasil["2"].kunci_idempotensi[0].catatan).toBe("versi lama");
   });
   it("ID atau tabel yang tidak dikenal menggagalkan build", () => {
