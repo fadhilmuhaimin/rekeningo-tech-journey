@@ -45,7 +45,7 @@ jobs:
           set +e
           go test -v -count=1 -p 1 ./... > tes.txt 2>&1
           status=$?
-          echo "lolos=$(grep -c '^--- PASS' tes.txt) gagal=$(grep -c '^--- FAIL' tes.txt) dilewati=$(grep -c '^--- SKIP' tes.txt)"
-          grep -E '^(--- (FAIL|SKIP)|TES_DB_WAJIB)' tes.txt
+          echo "lolos=$(grep -c '^--- PASS' tes.txt) gagal=$(grep -c '^--- FAIL' tes.txt) dilewati=$(grep -c '^[[:space:]]*--- SKIP' tes.txt)"
+          grep -E '^(--- FAIL|[[:space:]]*--- SKIP|TES_DB_WAJIB)' tes.txt
           if [ "$status" -ne 0 ]; then exit "$status"; fi
-          if grep -q '^--- SKIP' tes.txt; then echo "ada tes yang dilewati"; exit 1; fi
+          if grep -q '^[[:space:]]*--- SKIP' tes.txt; then echo "ada tes yang dilewati"; exit 1; fi
