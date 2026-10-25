@@ -1,0 +1,221 @@
+{
+  "judul": "Siapa masih melihat harga lama?",
+  "sumber": "Ilustrasi · acuan Rekaman lab t3-cache",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "Katalog di-cache di memori tiap instance dengan TTL {ttl} detik, dan entri baru saja diisi. HR menyalakan promo lewat instance A, dan nasi goreng turun dari {hargaAwal} ke {hargaBaru}. Budi memakai instance A, Citra memakai instance B, di meja yang sama. Kapan Citra pertama kali melihat {hargaBaru}?",
+  "pilihan": [
+    {
+      "teks": "Sekitar detik ke-{detik}, saat bacaan berikutnya.",
+      "detik": 1,
+      "alasan": "Promo hanya membuang entri di instance A: kunci terhapus {dihapusA} di A dan {dihapusB} di B (memori.txt B). Instance B tidak diberi tahu."
+    },
+    {
+      "teks": "Sekitar detik ke-{detik}.",
+      "detik": 60,
+      "alasan": "{ttlRedis} detik adalah TTL cache Redis di rekaman redis.txt. Cache memori ini memakai TTL {ttl} detik."
+    },
+    {
+      "teks": "Sekitar detik ke-{detik}.",
+      "detik": 300,
+      "alasan": "Entri di instance B habis sendiri. Pada detik ke-{lamaTerakhir} Citra masih melihat {hargaAwal}, pada detik ke-{baruMulai} sudah {hargaBaru} (memori.txt D)."
+    },
+    {
+      "teks": "Tidak pernah.",
+      "detik": null,
+      "alasan": "TTL membuang entri yang tidak dihapus siapa pun, jadi harga baru terbaca pada detik ke-{baruMulai}. Tanpa TTL entri itu memang tidak akan habis."
+    }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "ubahJudul": "Ubah satu hal, lalu lihat akibatnya",
+  "kelompok": {
+    "cache": "Jenis cache",
+    "instance": "Jumlah instance API",
+    "ttl": "TTL (detik)",
+    "kejadian": "Yang berubah",
+    "urutan": "Urutan hapus kunci"
+  },
+  "pilihNilai": {
+    "cache": [
+      {
+        "nilai": "memori",
+        "label": "Memori tiap instance"
+      },
+      {
+        "nilai": "redis",
+        "label": "Redis bersama"
+      },
+      {
+        "nilai": "redis-mati",
+        "label": "Redis bersama, mati saat harga berubah"
+      },
+      {
+        "nilai": "tanpa",
+        "label": "Tanpa cache"
+      }
+    ],
+    "instance": [
+      {
+        "nilai": 1,
+        "label": "1"
+      },
+      {
+        "nilai": 2,
+        "label": "2"
+      },
+      {
+        "nilai": 3,
+        "label": "3"
+      }
+    ],
+    "ttl": [
+      {
+        "nilai": 6,
+        "label": "6"
+      },
+      {
+        "nilai": 60,
+        "label": "60"
+      },
+      {
+        "nilai": 300,
+        "label": "300"
+      }
+    ],
+    "kejadian": [
+      {
+        "nilai": "promo",
+        "label": "Promo mulai sekarang"
+      },
+      {
+        "nilai": "harga",
+        "label": "Ani mengubah harga"
+      },
+      {
+        "nilai": "promo-nanti",
+        "label": "Promo mulai {mulai} detik lagi"
+      },
+      {
+        "nilai": "pesanan",
+        "label": "Pesanan mengurangi stok"
+      }
+    ],
+    "urutan": [
+      {
+        "nilai": "sesudah",
+        "label": "Sesudah COMMIT"
+      },
+      {
+        "nilai": "sebelum",
+        "label": "Sebelum COMMIT"
+      },
+      {
+        "nilai": "lambat",
+        "label": "Sesudah COMMIT, pembaca lambat"
+      }
+    ]
+  },
+  "instance": [
+    "Instance A: HP Budi, menerima perubahan",
+    "Instance B: HP Citra",
+    "Instance C: HP lain di meja yang sama"
+  ],
+  "awal": "Kembali ke pengaturan awal",
+  "jam": {
+    "label": "Jam simulasi, detik sesudah perubahan",
+    "keluar": "detik ke-{x}",
+    "nilai": "Detik ke-{x}: {stale} dari {n} instance melihat {apa} lama",
+    "lompatSebelum": "Lompat ke detik ke-{x}, satu detik sebelum TTL habis",
+    "lompatSaat": "Lompat ke detik ke-{x}, saat TTL habis"
+  },
+  "papan": {
+    "judul": "Yang dilihat tiap instance pada detik ke-{x}",
+    "database": "Database: {isi}",
+    "isi": "{harga}, stok {stok}",
+    "stale": "Stale",
+    "benar": "Sama dengan database",
+    "istilah": "Stale berarti data yang sudah tidak terbaru.",
+    "garis": "Garis waktu instance {nama}, 0 sampai {horizon} detik. Bagian berwarna menandai {apa} lama yang masih terlihat. Garis tegak menandai jam simulasi. TTL habis pada detik ke-{ttl}."
+  },
+  "vonis": {
+    "tanpa-cache": "Tanpa cache setiap bacaan membaca database, jadi tidak ada instance yang melihat {apa} lama.",
+    "dihapus-sendiri": "Satu instance membuang entrinya sendiri sesudah COMMIT, jadi tidak ada yang melihat {apa} lama.",
+    "dihapus-bersama": "Kunci di Redis bersama dihapus sesudah COMMIT, jadi semua instance langsung membaca {apa} baru.",
+    "entri-habis-dulu": "Entri habis sebelum perubahan terjadi, jadi tidak ada instance yang melihat {apa} lama.",
+    "tidak-diberi-tahu": "Instance {x} tidak diberi tahu dan melihat {apa} lama selama {lama} detik, sampai entrinya habis oleh TTL.",
+    "diisi-ulang": "{Apa} lama disimpan lagi sesudah kunci dihapus, jadi instance {x} melihat {apa} lama selama {lama} detik, sampai TTL habis.",
+    "hapus-gagal": "Hapus kunci gagal karena Redis mati dan entri lama kembali bersama Redis, jadi instance {x} melihat {apa} lama selama {lama} detik.",
+    "tanpa-tulis": "Perubahan ini tidak menghapus kunci apa pun, jadi instance {x} melihat {apa} lama selama {lama} detik, sampai TTL habis."
+  },
+  "ringkas": {
+    "ada": "melihat {apa} lama selama {lama} detik",
+    "tidak": "tidak melihat {apa} lama"
+  },
+  "banding": {
+    "sama": "Belum ada yang diubah dari pengaturan awal.",
+    "beda": "Awal: instance {awalX} {awal}. Sekarang: instance {kiniX} {kini}."
+  },
+  "cocok": "Cocok dengan Rekaman lab",
+  "tanpaAcuan": "Tidak ada rekaman untuk kombinasi ini. Hasilnya Ilustrasi dari aturan simulasi di bagian asal angka.",
+  "acuan": {
+    "memori-promo": "memori.txt B dan D: promo lewat instance A membuang {dihapusA} kunci di A dan {dihapusB} di B. Budi melihat {hargaBaru}, Citra melihat {hargaAwal}. Citra baru melihat {hargaBaru} pada detik ke-{baruMulai}; pada detik ke-{lamaTerakhir} masih {hargaAwal}.",
+    "memori-stok": "memori.txt C: sesudah pesanan, stok di database {stokBaru} dan di cache instance B masih {citraStok}. Pesanan ditagih {tagih}.",
+    "redis-harga": "redis.txt B dan E: kunci dihapus sesudah COMMIT, dan instance B langsung melihat {hargaUbah}. Sebelum COMMIT harga lama masih benar.",
+    "redis-promo": "redis.txt C: promo lewat instance A, dan instance B langsung melihat {hargaBaru}.",
+    "redis-sebelum": "redis.txt D: kunci dihapus sebelum COMMIT, lalu pembaca di celah menyimpan {hargaAwal} lagi. Database {hargaUbah}; harga lama bertahan sampai TTL, sisanya paling banyak {pttl} ms.",
+    "redis-lambat": "redis.txt F: pembaca lambat menyimpan {hargaAwal} sesudah COMMIT dan hapus kunci. Database {hargaUbah}; harga lama bertahan sampai TTL.",
+    "redis-nanti": "redis.txt G: promo mulai {mulai} detik sesudah dibuat dan tidak ada kunci terhapus. Entri lama dipakai sampai TTL {ttlLab} detik di rekaman.",
+    "redis-mati": "gagal.txt C: Redis mati saat tulis dan {galatCache} hapus kunci gagal. Entri lama kembali bersama Redis: {hargaAwal} padahal database {hargaUbah}.",
+    "tanpa": "beban.txt B dan C: tanpa cache {bacaan} bacaan menjadi {tanpaDb} baca database; dengan Redis {redisDb} baca database dan {redisHit} hit."
+  },
+  "hitungan": {
+    "judul": "Hitungan",
+    "diisi": "Entri diisi",
+    "diisiNilai": "detik ke-0, tepat sebelum perubahan. Asumsi: kasus terburuk.",
+    "lama": "Lama data lama bertahan di instance {x}",
+    "lamaNilai": "TTL − detik stale mulai = {cara} detik.",
+    "lamaNol": "0 detik.",
+    "instanceBasi": "Instance yang pernah melihat data lama",
+    "instanceBasiNilai": "{k} dari {n}.",
+    "bacaKunci": "Baca database untuk mengisi satu kunci yang sama",
+    "bacaKunciNilai": {
+      "memori": "{k}, satu per instance (memori.txt A: {bacaDb} untuk dua instance).",
+      "redis": "{k}, karena satu Redis dipakai bersama (redis.txt A: {bacaDbA} di instance A, {bacaDbB} di instance B).",
+      "tanpa": "setiap bacaan membaca database."
+    },
+    "beban": "Beban katalog tanpa cache",
+    "bebanNilai": "L = λ × W = {lambda} × {w} = {l} koneksi dari pool {pool}. Asumsi: {lambda} bacaan per detik dan W = {wMs} ms."
+  },
+  "catatan": {
+    "uang": "Pesanan tidak membaca cache: Citra ditagih {tagih} walau layarnya menunjukkan {hargaAwal} (memori.txt C).",
+    "ttlLab": "TTL {ttlLab} detik hanya dipakai di rekaman redis.txt G, supaya habisnya entri bisa direkam tanpa menunggu semenit.",
+    "sebelum": "Celah antara hapus kunci dan COMMIT sempit. Rekaman memaksa satu pembaca masuk ke celah itu dengan gerbang lab (redis.txt D). Tanpa pembaca di celah, hasilnya sama dengan sesudah COMMIT.",
+    "lambat": "Pembaca membaca database sebelum tulis, lalu menyimpan hasilnya sesudah kunci dihapus. Lab tidak memakai lease, jadi hanya TTL yang membatasi (redis.txt F).",
+    "mati": "Selama Redis mati semua bacaan memakai database: {serentak} bacaan serentak menjadi {serentak} baca database, dengan koneksi PostgreSQL paling banyak {koneksi} (gagal.txt B). Entri lama kembali karena snapshot ditulis dengan SAVE sebelum Redis berhenti (gagal.txt C). Tanpa SAVE manual, apakah entri kembali tidak diuji.",
+    "nanti": "Promo yang mulai di jam tertentu tidak punya tulis saat mulai, jadi tidak ada yang menghapus kunci. Hanya TTL yang membatasi (redis.txt G).",
+    "pesanan": "Pesanan tidak menghapus kunci katalog (memori.txt C). Layar bisa menunjukkan stok yang tertinggal, tetapi pesanan memeriksa stok di database."
+  },
+  "asal": {
+    "judul": "Dari mana angka ini?",
+    "butir": [
+      "Kasus: nasi goreng di warung Ani, kota Jakarta, harga awal {hargaAwal} dan stok {stokAwal}. Data lab, bukan data nyata.",
+      "Entri diisi tepat sebelum perubahan, pada detik ke-0. Entri yang lebih tua habis lebih cepat, jadi lama harga lama di sini adalah batas atas. Ini Asumsi.",
+      "Jam simulasi digeser, bukan ditunggu. Rekaman memori.txt D menggeser jam cache lewat POST /lab/jam, jadi {ttl} detik sungguhan tidak ditunggu.",
+      "Aturan simulasi (Ilustrasi): hanya instance yang tidak ikut menghapus entrinya, atau yang mengisi ulang sesudah hapus, yang melihat harga lama sampai TTL habis.",
+      "Titik yang cocok dengan rekaman memakai pengaturan persis rekaman: dua instance, TTL rekaman, satu pembaca per kunci. Pengaturan lain adalah Ilustrasi.",
+      "Beban {lambda} bacaan per detik dan W = {wMs} ms adalah Asumsi naskah. Rekaman beban.txt hanya memeriksa W di bawah {batasWMs} ms dan L di bawah {batasL} koneksi."
+    ]
+  },
+  "tanpaJs": "Tanpa JavaScript widget tidak bisa dijalankan. Tabel ini memuat pengaturan yang punya rekaman.",
+  "tabel": {
+    "judul": "Titik acuan Rekaman lab t3-cache",
+    "kolom": [
+      "Pengaturan",
+      "Data lama di instance B",
+      "Rekaman"
+    ],
+    "tidakAda": "tidak ada",
+    "ada": "{lama} detik"
+  }
+}
