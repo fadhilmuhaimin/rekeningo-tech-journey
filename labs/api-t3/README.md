@@ -36,6 +36,7 @@ Setiap bagian membuat ulang schema `tahap3` dan data awalnya dari nol, jadi `out
 - **Jalur uang** (`Bayar`, `Kirim`, `Topup`, `Pesan`) menulis jurnal, posting, dan satu baris outbox di transaction yang sama (ADR 23). Tidak ada panggilan jaringan di dalam transaction (ADR 22).
 - **Worker** (`-peran worker`): mengklaim baris dengan `FOR UPDATE SKIP LOCKED` dan batas klaim (ADR 24), lalu mengirim `c` pesan serentak. Retry memakai backoff dan jitter, lima percobaan lalu dead-letter (ADR 25). `-sekali` mengirim semua yang siap lalu keluar.
 - **Pool 10** ditulis di `cmd/api/main.go` (`SetMaxOpenConns(10)` dan `SetMaxIdleConns(10)`, flag `-pool`). Dokumentasi `database/sql` (Go 1.27.3, dibuka 2026-10-25) menulis batas koneksi terbuka bawaannya 0, tanpa batas, dan koneksi menganggur bawaannya 2. api-t2 memakai bawaan itu. `idle_in_transaction_session_timeout` 5 detik (bawaan PostgreSQL 0, mati; dokumentasi 17, dibuka 2026-10-25) dikirim sebagai parameter koneksi (`-idle-tx`), client push berbatas 3 detik (`-push-timeout`).
+- **Idempotency-Key opsional** di `POST /transfers`, `/kiriman`, dan `/pesanan` (ADR 14, keputusan 971): middleware `idempoten` di `internal/handler/handler_idempoten.go`, klaim di `internal/repo/idempoten.go`. Tanpa header, perilaku sama dengan sebelumnya. Rekamannya di `labs/t3-offline`.
 - **Catatan** pada pembayaran dan transfer: paling banyak 100 karakter, tanpa karakter kontrol, disimpan apa adanya di `jurnal.keterangan`.
 - **Endpoint baru** (contract di `openapi.yaml`): `POST /perangkat`, `GET /katalog`, `POST /pesanan`, `PATCH /produk/{id}`, `GET` dan `POST /promo`, `POST /sinkron`, `POST /web/login`, `GET /warung/{id}/laporan.csv`, `GET /warung/{id}/penerimaan`.
 
@@ -50,6 +51,7 @@ Seperti `api-t1`: satu flag `-rentan` menyalakan versi yang salah untuk rekaman 
 | `urut-waktu` | M27 | Worker mengklaim menurut nomor saja, tanpa kelas |
 | `ekspor-panic` | M21 | Goroutine latar (`service.Latar`) tanpa pelindung `recover`, dan ringkasan audit ekspor mengira laporan tidak pernah kosong: laporan kosong mematikan seluruh proses |
 | `tanpa-shutdown` | M21 | Tanpa `signal.Notify`: SIGTERM mengakhiri proses seketika, request yang sedang jalan putus |
+| `stok-timpa` | M24 | Menambah `PUT /produk/{id}/stok`: stok ditimpa tanpa syarat versi, hanya `Idempotency-Key` 24 jam yang melindungi pengiriman ulang (`labs/t3-offline`) |
 
 Flag untuk `t3-instance`: `-instance <nama>` (header `X-Instance`), `-redis <alamat>` dan `-redis-timeout` (batas login per IP dan per akun dihitung di Redis, bukan di memori proses; ADR 27). `GET /healthz` menjawab 200 bila database menjawab dalam 1 detik; itu endpoint operasi untuk proxy dan tidak ada di OpenAPI app. Dengan `-lab` ada juga `GET /lab/lambat?ms=`, `GET /lab/panik?di=handler|latar`, dan `GET /lab/batas`.
 
