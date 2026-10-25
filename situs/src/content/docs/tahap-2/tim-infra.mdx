@@ -1,0 +1,384 @@
+---
+title: "2.24 Tim dan infra Tahap 2: review, branch protection, tes integrasi + ADR 18"
+description: Dua engineer di satu repo. Empat cara kerja tim diuji pada kejadian M14, dan hanya satu menahan PR yang menghapus batas harian. ADR 18 memilih review satu orang lain, tes aturan uang yang wajib berjalan di PostgreSQL sungguhan, dan main yang dilindungi.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-tim-infra-inti.json";
+import gabunganDiagram from "../../../../data/diagram/t2-tim-infra-gabungan.json";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 15 menit · coba 3 menit · Prasyarat: [[t2-m14]] · Jalur inti</p>
+
+<Blok nama="Siapa memegang apa" buka>
+
+## Inti
+
+Dua engineer butuh tiga penjaga aturan uang: review, tes wajib, dan `main` yang terlindungi.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di [[t2-m14]], dua cabang yang masing-masing wajar digabung tanpa konflik. Kiriman Rp800.000 lolos walau batas harian Rp500.000.
+
+Halaman ini menjalankan kejadian itu lewat empat cara kerja tim. Hanya satu yang menahan PR kedua, dan ADR 18 di blok Putuskan memilihnya.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Dua PR hijau sendiri-sendiri, lalu keduanya di-merge. Kenapa `main` bisa merah?
+2. `go test` di CI keluar 0. Kenapa itu belum berarti tes aturan uang berjalan?
+3. CODEOWNERS menulis `@raka @nadia` untuk folder service. Siapa yang menyetujui PR Raka?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+### Siapa menjalankan setiap pekerjaan
+
+Tahap 1 dikerjakan Raka sendirian ([[t1-tim-infra]]). Tahap 2 punya Nadia, backend engineer dari tim ERP yang terbiasa dengan aturan akuntansi dan review kode. Tabel ini memetakan pekerjaan Tahap 2 ke orang atau mesin yang menjalankannya.
+
+| Pekerjaan | Siapa | Tertulis di |
+|---|---|---|
+| PRD v2, prioritas, dan batas Rp500.000 per hari | Sinta | [[t2-prd]] |
+| Aturan "setiap rupiah tertelusur" | Pak Hadi | [[t2-prd]] |
+| Handler, service, dan migration | Raka dan Nadia, masing-masing di cabangnya | Repo Rekeningo |
+| Review setiap PR | Orang lain selain penulisnya | ADR 18 |
+| `go vet` dan tes dengan PostgreSQL sungguhan | CI, di setiap PR dan setiap push ke `main` | `ci.yml` |
+| Deploy dan rollback | Satu orang menjalankan perintah di VPS | ADR 9 di [[C3]] |
+
+CI Tahap 2 tetap berhenti sebelum VPS, sama seperti [[t1-tim-infra]]. Yang bertambah adalah pintu sebelum `main`: review, status check, dan syarat bahwa tes berjalan di database sungguhan.
+
+Kalau kamu pernah bekerja berdua di satu repo app, polanya sudah kamu kenal. Dua orang menyentuh file yang sama, dan Git menggabungkannya tanpa bertanya.
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: review dan CI hijau belum cukup bila tes hanya memanggil fungsi aturan, dan hasil gabungan dua PR baru teruji bila branch harus mutakhir sebelum merge.">
+
+Empat aturan tim dijalankan pada dua PR yang sama dari M14. Rekaman memakai file contoh dari [[t2-m14]]: Raka menghapus pemeriksaan batas di `Kirim`, Nadia menghapus salinannya di `catatJurnal`.
+
+*Kondisi rekaman (Asumsi):* GitHub tidak dijalankan. Git dan `go test` di folder sementara memainkan perannya, jadi yang direkam adalah urutan kejadian dan hasil tesnya.
+
+<details class="question">
+<summary>Tebak dulu: pada aturan mana PR Nadia ditolak sebelum masuk ke main?</summary>
+
+Hanya pada aturan C, yaitu review ditambah tes yang melewati `Kirim` dan syarat bahwa branch harus mutakhir. Tanpa salah satunya, PR Nadia diterima dan `main` kehilangan pemeriksaan. Tab di bawah menunjukkan hasilnya satu per satu.
+
+</details>
+
+Sekarang ubah satu hal: pilih aturannya, lalu baca apa yang terjadi pada PR Nadia.
+
+<TabSet id="aturan" labels={["A. Tanpa proses", "B. Review saja", "C. Review, tes wajib, mutakhir", "D. Trunk-based"]}>
+<Fragment slot="t0">
+
+Tidak ada PR dan tidak ada CI. Kedua cabang masuk ke `main`, dan tes hanya berjalan bila ada yang ingat menjalankannya. Tes yang ada hanya memanggil `periksaBatas`, jadi `main` tampak hijau walau tidak ada pemanggilnya.
+
+<Snippet file="labs/api-t2/output/tim.txt" lines="8:21" title="Rekaman lab: labs/api-t2/output/tim.txt, bagian A (file contoh)" />
+
+</Fragment>
+<Fragment slot="t1">
+
+Tiap PR dibaca satu orang. Yang dibaca pereview adalah diff PR itu: satu file, tiga baris dihapus, dan alasannya wajar. CI hijau di kedua PR dan di `main`, karena tes yang ada hanya menguji fungsinya.
+
+<Snippet file="labs/api-t2/output/tim.txt" lines="24:45" title="Rekaman lab: labs/api-t2/output/tim.txt, bagian B (file contoh)" />
+
+</Fragment>
+<Fragment slot="t2">
+
+Ada tiga syarat sekaligus: satu orang lain me-review, tes melewati `Kirim`, dan PR harus mutakhir dengan `main` sebelum di-merge. PR Raka masuk lebih dulu. PR Nadia tertinggal satu commit, diperbarui dengan `main`, dan CI di hasil gabungan merah.
+
+<Snippet file="labs/api-t2/output/tim.txt" lines="48:74" title="Rekaman lab: labs/api-t2/output/tim.txt, bagian C (file contoh)" />
+
+Ubah satu hal lagi: matikan syarat mutakhir. CI PR Nadia tetap hijau karena ia menguji cabangnya dengan `main` yang lama. PR itu di-merge, dan `main` merah sesudahnya.
+
+<Snippet file="labs/api-t2/output/tim.txt" lines="77:96" title="Rekaman lab: labs/api-t2/output/tim.txt, bagian C (varian) (file contoh)" />
+
+</Fragment>
+<Fragment slot="t3">
+
+Commit langsung ke `main`, review sesudahnya. Tes lewat `Kirim` ada dan berjalan di `main` sesudah tiap commit. Commit Nadia membuat CI merah, tetapi kodenya sudah ada di `main`.
+
+<Snippet file="labs/api-t2/output/tim.txt" lines="99:117" title="Rekaman lab: labs/api-t2/output/tim.txt, bagian D (file contoh)" />
+
+</Fragment>
+</TabSet>
+
+Ringkasannya, dari rekaman yang sama. Kolom terakhir menghitung pemanggil `periksaBatas` yang tersisa di `Kirim` dan `catatJurnal`:
+
+| Aturan | Tes yang ada | CI PR Raka | CI PR Nadia | CI pada hasil gabungan | Merge PR Nadia | `go test` di main | Pemanggil |
+|---|---|---|---|---|---|---|---|
+| A. Tanpa proses | fungsi | tidak ada | tidak ada | tidak ada | diterima | lolos | 0 |
+| B. Review manual saja | fungsi | lolos | lolos | lolos | diterima | lolos | 0 |
+| C. Review, tes wajib, mutakhir | lewat Kirim | lolos | lolos | gagal | ditolak | lolos | 1 |
+| C (varian). Tes wajib, tanpa mutakhir | lewat Kirim | lolos | lolos | tidak ada | diterima | gagal | 0 |
+| D. Trunk-based, review sesudah | lewat Kirim | tidak ada | tidak ada | gagal | diterima | gagal | 0 |
+
+<Snippet file="labs/api-t2/output/tim.txt" lines="159:164" title="Rekaman lab: labs/api-t2/output/tim.txt, bagian F (ringkasan)" />
+
+Baris B adalah yang paling mudah dilewatkan: review ada, CI hijau di mana-mana, dan `main` tetap tanpa pemeriksaan. Tes yang hanya memanggil fungsi aturan tidak tahu bahwa tidak ada lagi yang memanggilnya.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa dua PR hijau membuat `main` merah
+
+CI di pull request tidak menguji cabang sendirian. Dokumentasi GitHub menulis bahwa untuk event `pull_request`, `GITHUB_SHA` adalah merge commit terakhir di `refs/pull/<nomor>/merge`, yaitu gabungan PR dengan branch tujuannya ([GitHub Docs: Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)).
+
+Gabungan itu dibuat dengan `main` yang ada saat CI berjalan. Workflow hanya berjalan lagi bila PR-nya `opened`, `synchronize`, atau `reopened` (daftar bawaan di dokumentasi yang sama). Dari daftar itu disimpulkan bahwa merge PR lain ke `main` tidak mengulang CI PR Nadia; ini penalaran dari dokumentasi, bukan hasil rekaman GitHub.
+
+<Rantai data={gabunganDiagram} />
+
+Aturan "Require branches to be up to date before merging" menutup celah itu. Dokumentasi branch protection menulis bahwa cabang harus mutakhir dengan branch tujuan sebelum merge bila opsi ini menyala ([GitHub Docs: About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)). Pembaruan itu mendorong commit baru, CI berjalan lagi, dan kali ini ia menguji gabungan kedua perubahan.
+
+Hasilnya ada di rekaman bagian C. PR Nadia tertinggal satu commit, diperbarui, dan CI menolaknya. Tanpa syarat itu (varian bagian C), gabungan pertama kali diuji di `main`.
+
+### Tes yang wajib, bukan tes yang boleh dilewati
+
+Rekaman [[t2-m14]] menunjukkan satu celah: tes yang butuh PostgreSQL memanggil `t.Skip` bila `TEST_DATABASE_URL` kosong. Sesudah itu `go test` keluar 0. Tanpa database, 8 tes lolos dan 12 dilewati, sama dengan kode yang masih punya pemeriksaan.
+
+Dua penjaga menutupnya. Penjaga pertama ada di kode tes:
+
+<Snippet file="labs/api-t2/internal/service/wajib_test.go" region="wajib" lang="go" title="labs/api-t2/internal/service/wajib_test.go" />
+
+`TestMain` berjalan sebelum semua tes di paket itu, dan nilai exit dari `m.Run` menentukan hasil ([Go: paket testing, bagian Main](https://pkg.go.dev/testing#hdr-Main)). Dengan `TES_DB_WAJIB=1` dan tanpa database, paket gagal dengan pesan, bukan dilewati.
+
+Penjaga kedua ada di langkah CI. Langkah ini menghitung baris `--- SKIP` dan menggagalkan dirinya walau `go test` keluar 0:
+
+<Snippet file="labs/api-t2/deploy/ci.yml" lines="38:51" lang="yaml" title="labs/api-t2/deploy/ci.yml, langkah tes" />
+
+Lab menjalankan isi langkah itu persis, tanpa mengubah satu baris pun. *Yang tidak dijalankan (Tidak dijalankan):* service container PostgreSQL, langkah "Siapkan skema tes", dan seluruh workflow di GitHub. Lab memakai PostgreSQL dari docker compose dan `buat_schema_tes()` di `run.py`.
+
+Tanpa database, langkah CI gagal keras dan menyebut sebabnya:
+
+<Snippet file="labs/api-t2/output/tim.txt" lines="127:131" title="Rekaman lab: labs/api-t2/output/tim.txt, bagian E, kasus 2 (tanpa database)" />
+
+Dengan database, kode asli lolos 20 tes dari 20, tanpa yang dilewati. Kode tanpa pemeriksaan batas harian gagal di dua tes yang memanggil `Kirim` sampai ke PostgreSQL:
+
+<Snippet file="labs/api-t2/output/tim.txt" lines="140:145" title="Rekaman lab: labs/api-t2/output/tim.txt, bagian E, kasus 4 (tanpa pemeriksaan, dengan database)" />
+
+Penjaga kedua dibutuhkan karena tes bisa dimatikan dengan niat baik. Kasus 5 di bagian E memberi `t.Skip` ke dua tes itu. Alasannya "sementara: tes ini sering merah di CI". `go test` biasa keluar 0 dengan 18 lolos dan 2 dilewati. Langkah CI tetap merah:
+
+<Snippet file="labs/api-t2/output/tim.txt" lines="148:156" title="Rekaman lab: labs/api-t2/output/tim.txt, bagian E, kasus 5 (dua tes dilewati)" />
+
+### Branch protection dan CODEOWNERS
+
+Branch protection memaksa aturan tim di sisi GitHub, jadi tidak bergantung pada niat orang. CODEOWNERS memberi tahu GitHub siapa yang diminta me-review PR yang menyentuh bagian tertentu.
+
+File CODEOWNERS contoh untuk Rekeningo memakai dua orang di setiap baris:
+
+<Snippet file="labs/api-t2/deploy/CODEOWNERS" title="labs/api-t2/deploy/CODEOWNERS" />
+
+Dokumentasi GitHub menaruh file ini di `.github/`, di root repo, atau di `docs/`, dan memakai aturan seperti `.gitignore` dengan pola terakhir yang cocok menang. Beberapa pemilik harus ada di baris yang sama, dan persetujuan salah satunya cukup ([GitHub Docs: About code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)). Penulis PR tidak bisa menyetujui PR-nya sendiri ([GitHub Docs: Approving a pull request with required reviews](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/approving-a-pull-request-with-required-reviews)). Jadi PR Raka menunggu Nadia, dan sebaliknya.
+
+Pengaturan `main` yang dipilih ADR 18 ditulis sebagai isi permintaan REST. Ini contoh, tidak dijalankan: mengubah branch protection butuh izin admin repo, dan halaman ini tidak mengubah pengaturan repo mana pun ([GitHub Docs: REST, branch protection](https://docs.github.com/en/rest/branches/branch-protection#update-branch-protection)).
+
+<Snippet lang="json" title="PUT /repos/{owner}/{repo}/branches/main/protection (Tidak dijalankan)" code={`{
+  "required_status_checks": { "strict": true, "checks": [{ "context": "tes" }] },
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 1,
+    "require_code_owner_reviews": true
+  },
+  "enforce_admins": true,
+  "restrictions": null,
+  "allow_force_pushes": false
+}`} />
+
+| Pengaturan | Arti menurut dokumentasi | Untuk apa di Rekeningo |
+|---|---|---|
+| `required_status_checks.strict` | "Require branches to be up to date before merging" | Hasil gabungan dua PR diuji sebelum merge |
+| `required_status_checks.checks` | Status check yang harus berhasil sebelum merge | Job `tes` di `ci.yml` |
+| `required_approving_review_count` | Jumlah approval yang dibutuhkan | Satu orang selain penulis |
+| `require_code_owner_reviews` | "Blocks merging pull requests until code owners review them" | PR yang menyentuh `internal/service/` menunggu pemilik |
+| `enforce_admins` | "Enforce all configured restrictions for administrators" | Aturan berlaku juga untuk Raka sebagai pemilik repo |
+| `allow_force_pushes` | Force push ke branch ini | Mati; GitHub memblokirnya di branch terlindungi secara bawaan |
+
+*Ketersediaan di repo privat [perlu verifikasi]:* halaman REST menulis bahwa branch protection tersedia di repo publik dengan GitHub Free. Di repo publik dan privat, ia tersedia dengan Pro, Team, Enterprise Cloud, dan Enterprise Server. Halaman plan GitHub menaruh "Protected branches", "Required pull request reviewers", dan "Code owners" di fitur repo privat untuk Pro dan Team, bukan untuk Free. Apakah repo Rekeningo publik atau privat, dan plan apa yang dipakai, tidak ada di naskah.
+
+### Di stack lain
+
+**Skenario:** satu aturan uang, batas harian kiriman, dites lewat jalur yang sampai ke database sungguhan, dan CI menolak PR bila tes itu tidak berjalan. Tab Go memuat rekaman lab. Tab lain tidak dijalankan dan hanya dicek ke dokumentasi pada 2026-10-25.
+
+Yang sama di semua stack: database untuk tes dibuat atau disediakan di luar kode produksi, dan CI menyalakannya sebelum tes. Yang berbeda: apakah tes yang dilewati membuat proses gagal, dan siapa yang menyiapkan database.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Rekaman lab (Go 1.27.1, PostgreSQL 17.11): lihat bagian E di atas. Testcontainers tidak dijalankan.*
+
+**Yang berbeda di stack ini:** `go test` keluar 0 untuk tes yang dilewati, jadi penjaganya ditulis sendiri: `TestMain` dan baris `--- SKIP` di CI. Lab memakai PostgreSQL dari docker compose. Testcontainers untuk Go (`modules/postgres` v0.44.0, terbit 7 Agustus 2026) menyalakan PostgreSQL dari kode tes. Wait strategy harus ditulis sendiri, karena dokumentasinya menulis "No default is supplied" ([Testcontainers for Go: Postgres](https://golang.testcontainers.org/modules/postgres/)).
+
+<Snippet lang="go" title="Adaptasi contoh dokumentasi Testcontainers (Tidak dijalankan)" code={`ctr, err := postgres.Run(ctx, "postgres:17",
+    postgres.WithDatabase("lab"),
+    postgres.WithUsername("lab"),
+    postgres.WithPassword("lab"),
+    postgres.BasicWaitStrategies(),
+)`} />
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [Node.js v26.12.1: Test runner](https://nodejs.org/api/test.html).*
+
+<Snippet lang="js" code={`import { test } from "node:test";
+
+const url = process.env.TEST_DATABASE_URL;
+if (!url && process.env.TES_DB_WAJIB === "1") {
+  throw new Error("TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong");
+}
+test("kiriman melewati batas harian ditolak", { skip: !url && "butuh PostgreSQL" }, async () => {
+  // panggil endpoint kiriman, lalu periksa jawabannya
+});`} />
+
+**Yang berbeda di stack ini:** `node --test` menandai tes dengan opsi `skip` sebagai dilewati, dan dokumentasi menulis bahwa proses keluar 1 bila ada tes yang gagal. Dokumentasi tidak menyebut exit code untuk tes yang dilewati secara eksplisit [perlu verifikasi]. Sebuah file tes yang keluar dengan kode selain 0 dihitung gagal, jadi `throw` di atas menggagalkan file itu. Penjaga ini penalaran sendiri dari dokumentasi, tidak dijalankan.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Database Testing](https://laravel.com/docs/13.x/database-testing).*
+
+**Yang berbeda di stack ini:** trait `RefreshDatabase` tidak memigrasi database bila skemanya sudah mutakhir, dan menjalankan tiap tes di dalam satu transaction database. Trait `DatabaseMigrations` dan `DatabaseTruncation` mengosongkan database dan lebih lambat menurut dokumentasi.
+
+Akibatnya, tes dua request bersamaan seperti [[t2-m9]] tidak bisa memperlihatkan dua transaction yang saling menunggu di dalam satu tes `RefreshDatabase`. Ini penalaran sendiri dari dokumentasi, tidak dijalankan. Tes semacam itu butuh koneksi yang masing-masing melakukan commit. Kontrol "tes tidak boleh dilewati" ditulis di konfigurasi CI, bukan di Laravel.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: Testing overview](https://docs.djangoproject.com/en/6.1/topics/testing/overview/).*
+
+**Yang berbeda di stack ini:** tes yang butuh database memakai database kosong terpisah. Namanya diawali `test_` pada nilai `NAME`, dan database itu dihapus sesudah semua tes selesai, lulus atau gagal. Di PostgreSQL, `USER` butuh hak membuat database dan akses baca ke database `postgres`. Opsi `--keepdb` menyimpan database tes antar-run.
+
+Database produksi tidak disentuh, jadi service container PostgreSQL di CI cukup berisi satu role dengan hak itu. Dokumentasi tidak membahas tes yang dilewati.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: Testing, get started](https://docs.serverpod.dev/concepts/testing/get-started), Serverpod 4.0.4 dengan dokumentasi 4.0.0.*
+
+**Yang berbeda di stack ini:** `withServerpod` memanggil endpoint seperti dari app, dengan server dan database sungguhan. Tiap grup berjalan di database sementara yang dihapus sesudah grup selesai, dan penulisan di tiap tes di-rollback saat tes selesai. Di proyek baru, `dataPath` di `config/test.yaml` membuat server tes menyalakan PostgreSQL-nya sendiri.
+
+Perintahnya `dart test`. Dokumentasi tidak menyebut CI, jadi cara menyalakan PostgreSQL di pipeline [perlu verifikasi].
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Testing overview](https://supabase.com/docs/guides/local-development/testing/overview). CLI 2.122.0 menurut catatan riset 2026-10-24.*
+
+**Yang berbeda di stack ini:** aturan yang hidup di database, seperti constraint dan policy, dites dengan pgTAP lewat `supabase test db`. Contoh CI di dokumentasi menjalankan `supabase start` lebih dulu, lalu `supabase test db`, pada setiap push dan pull request ke `main`.
+
+Aturan uang di kode client dites lewat client, bukan lewat pgTAP. Batas harian yang hanya ada di app tidak tertangkap oleh tes database.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 18: review satu orang lain, tes aturan uang yang wajib berjalan, dan main yang dilindungi
+
+**Kebutuhan.** Di M14, dua cabang digabung tanpa konflik dan batas harian hilang dari `Kirim` ([[t2-m14]]). Server dari kode tanpa pemeriksaan menjawab `201` untuk kiriman Rp800.000 dengan `sisa_batas_harian` bernilai `-300000`. Ledger tetap seimbang, jadi tidak ada lapisan lain yang menolaknya.
+
+Tes yang memanggil `periksaBatas` langsung tetap lolos. Dari 20 tes dengan PostgreSQL, hanya dua yang gagal (rekaman `m14.txt` bagian C). Tanpa PostgreSQL, 8 tes lolos dan 12 dilewati, dan `go test` keluar 0.
+
+**Status:** diterima di minggu 5 Tahap 2, sesudah M14. Berlaku untuk setiap perubahan di `internal/service/`, `migrasi/`, dan `deploy/`.
+
+**Beda dengan naskah.** Naskah menulis tes integrasi dengan Testcontainers. Lab memakai PostgreSQL dari docker compose, dan CI contoh memakai service container. Testcontainers tidak dijalankan.
+
+PROPOSAL menaruhnya di Tahap 3. Naskah yang menang, jadi halaman ini menjelaskan keduanya.
+
+| | A. Tanpa proses | B. Review manual saja | C. Review, tes wajib, branch mutakhir, CODEOWNERS | D. Trunk-based dengan feature flag, review sesudah |
+|---|---|---|---|---|
+| Cara kerja | Dua orang mengubah `main` sesuai ingatan masing-masing | Tiap PR dibaca satu orang lain. CI menjalankan tes yang ada, dan tes aturan uang tidak diwajibkan | PR wajib di-review. Tes lewat `Kirim` ke PostgreSQL wajib berjalan dan tidak boleh dilewati. Branch harus mutakhir. CODEOWNERS meminta pemilik | Commit kecil langsung ke `main`, aturan baru di balik flag, review dibaca sesudahnya |
+| Kelebihan | Tanpa proses, tanpa menunggu | Pengetahuan menyebar, dan salah ketik tertangkap | Hasil gabungan diuji sebelum masuk. Aturan tidak bergantung pada ingatan, dan penjaganya berjalan sendiri | Perubahan masuk cepat. Flag bisa dimatikan tanpa deploy |
+| Kekurangan | M14 itu sendiri | Kedua diff tampak wajar, dan tes fungsi tetap hijau | PR menunggu CI dan orang lain. Tes DB menambah waktu CI | Kode yang salah sudah di `main` saat CI merah. Flag tidak melindungi pagar yang dihapus |
+| Biaya operasional | Nol | Waktu satu orang per PR | Waktu review, menit CI per PR, dan pengaturan GitHub yang harus dijaga. Menit CI belum diukur lab | Sistem flag, plus kebiasaan membaca commit sesudahnya |
+| Bukti | M14 dan `m14.txt` | `tim.txt` bagian B: 1 file, 3 baris dihapus di kedua PR, CI hijau, 0 pemanggil | `tim.txt` bagian C, variannya, dan E | `tim.txt` bagian D: `main` merah sesudah merge |
+
+**Keputusan: opsi C.** Enam aturan:
+
+1. Tidak ada commit langsung ke `main`. Perubahan masuk lewat pull request.
+2. Setiap PR di-review satu orang selain penulisnya. CODEOWNERS meminta review otomatis untuk `internal/service/` dan `migrasi/`.
+3. Tes aturan uang melewati pintu masuk (`Kirim`, bukan hanya `periksaBatas`) dan berjalan di PostgreSQL sungguhan. CI mengisi `TES_DB_WAJIB=1`, dan langkah CI gagal bila ada tes dilewati.
+4. Status check `tes` harus berhasil, dan cabang harus mutakhir dengan `main` sebelum merge. Hasil gabungan diuji ulang oleh CI.
+5. Setiap aturan uang baru masuk bersama tes yang gagal bila pemanggilnya dihapus. Tes fungsi aturan boleh menyertainya, tetapi tidak menggantikannya.
+6. Force push mati di `main`, dan aturan berlaku juga untuk admin.
+
+**Kenapa C, bukan B.** Review manual membaca diff PR itu sendiri. Rekaman B mencatat bahwa diff kedua PR sama: satu file, tiga baris dihapus, dan CI hijau. Pereview tidak melihat hasil gabungannya, dan tes fungsi tidak melihat bahwa pemanggilnya hilang.
+
+- **A ditolak** karena itulah M14: dua orang, satu repo, dan ingatan sebagai satu-satunya penjaga.
+- **D ditolak** karena rekaman D menunjukkan `main` sudah merah saat kesalahan terdeteksi. Feature flag mematikan fitur baru, bukan pagar yang hilang; ini penalaran sendiri dari rekaman, bukan tes flag.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Review menjadi formalitas. Dua orang saling percaya dan menyetujui diff tiga baris dalam hitungan menit. Pencegahannya aturan 5: pagar uang dijaga tes, bukan pembacaan. Pereview diminta bertanya apakah ada tes yang gagal bila baris itu dihapus, dan bagian E, kasus 4, menunjukkan jawabannya bisa dibuktikan. Kebiasaan reviewnya sendiri tidak direkam.
+2. Tes dimatikan dengan niat baik karena sering merah. Pencegahannya langkah CI yang menggagalkan `--- SKIP`; bagian E, kasus 5, merekamnya. Tes yang flaky diperbaiki, bukan dilewati.
+3. Aturan hanya ada di pengaturan GitHub, tidak di repo. Pengaturan bisa berubah, atau hilang saat repo dipindah. Pencegahannya isi permintaan di atas disimpan di repo sebagai dokumen, dan pengaturan dicocokkan dengannya tiap kuartal. Pengaturan GitHub tidak direkam di lab.
+
+**Kapan keputusan ini salah.** Tiga tanda:
+
+1. Review menjadi formalitas: PR disetujui tanpa komentar dan tanpa pernah menemukan masalah.
+2. Tim tumbuh ke tiga orang atau lebih. Persetujuan salah satu pemilik di CODEOWNERS tetap sah, tetapi tidak lagi berarti dibaca orang yang paham.
+3. Tes DB melambat sampai orang mencari jalan memutar. Ambang 10 menit per PR adalah Asumsi, dan lama tes belum diukur lab.
+
+**Yang akan merevisinya.** Tahap 3 menambah staging dan dua instance server. PROPOSAL menaruh integration test dengan Testcontainers, migration dry-run, dan deploy staging otomatis di tahap itu. Tes saja tidak melihat kebenaran uang di lingkungan nyata, jadi rekonsiliasi di [[t2-job-rekonsiliasi]] menjaga hal yang tidak bisa dijaga PR.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Dua approval per PR | Dua engineer berarti tidak ada yang bisa merge saat satu cuti, dan satu approval cukup untuk dua orang | Bila tim tiga orang atau lebih |
+| Merge queue | Dua orang jarang punya lebih dari satu PR terbuka sekaligus; syarat mutakhir sudah menguji hasil gabungan | Bila PR terbuka sering tertinggal dari `main` |
+| Testcontainers | Satu service container PostgreSQL cukup untuk satu schema tes; naskah menyebutnya, dan lab tidak membutuhkannya | Bila tes butuh database per tes, Redis, atau container lain |
+| Staging otomatis | Deploy Tahap 2 tetap satu perintah di VPS, sama seperti ADR 9 | Tahap 3 |
+| Uji mutasi otomatis di CI | Mutasi satu baris dilakukan manual di lab (M14); alat uji mutasi menambah komponen untuk satu aturan | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Dua PR hijau sendiri-sendiri, lalu keduanya di-merge. Kenapa `main` bisa merah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+CI tiap PR menguji cabangnya dengan `main` yang ada saat itu. Gabungan kedua perubahan tidak pernah diuji sebelum merge. Rekaman bagian C (varian): kedua PR hijau, lalu `main` gagal di `TestKirimMenolakLewatBatas`.
+
+</details>
+
+**2.** `go test` di CI keluar 0. Kenapa itu belum berarti tes aturan uang berjalan?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tes yang butuh database memanggil `t.Skip` bila `TEST_DATABASE_URL` kosong, dan tes yang dilewati bukan tes yang gagal. Rekaman bagian E, kasus 5: 18 lolos, 2 dilewati, exit 0, sementara langkah CI dengan penjaga `--- SKIP` keluar 1.
+
+</details>
+
+**3.** CODEOWNERS menulis `@raka @nadia` untuk folder service. Siapa yang menyetujui PR Raka?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Nadia. Penulis PR tidak bisa menyetujui PR-nya sendiri, dan persetujuan salah satu pemilik di baris yang sama sudah cukup.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] PR yang menghapus atau memindahkan kode aturan uang menyertakan tes yang gagal bila pemanggilnya dihapus.
+- [ ] Tidak ada `t.Skip`, `skip`, atau tes yang dimatikan di folder tes aturan uang tanpa alasan tertulis dan tanggal perbaikan.
+- [ ] Workflow CI mempertahankan `TES_DB_WAJIB`, database PostgreSQL sungguhan, dan syarat bahwa status check `tes` berhasil.
+- [ ] Perubahan pengaturan `main` (status check, mutakhir, force push) tercatat di repo dan diperiksa pemilik.
+
+### Bacaan lanjut
+
+- [GitHub Docs: About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
+- [GitHub Docs: About code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)
+- [GitHub Docs: Creating PostgreSQL service containers](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers)
+- [Testcontainers for Go: Postgres module](https://golang.testcontainers.org/modules/postgres/)
+- [Halaman istilah tes integrasi](/istilah/tes-integrasi/) · [pull request review](/istilah/pull-request-review/) · [branch protection](/istilah/branch-protection/) · [CODEOWNERS](/istilah/codeowners/) · [Testcontainers](/istilah/testcontainers/)
+
+</Blok>
