@@ -259,6 +259,8 @@ $batchBaru = count($baris) === 1;`} />
 
 `DB::select` didokumentasikan untuk query SELECT dan selalu mengembalikan array. Memakainya untuk INSERT ... RETURNING tidak tertulis di dokumentasi [perlu verifikasi].
 
+Menurut kode sumber Laravel 13.38.0, `Connection::select` memakai koneksi baca secara bawaan (`$useReadPdo = true`). Bila koneksi baca dan tulis dipisah, INSERT ini bisa terkirim ke koneksi yang salah.
+
 </Fragment>
 <Fragment slot="t3">
 
