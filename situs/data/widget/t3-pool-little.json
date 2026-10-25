@@ -1,0 +1,204 @@
+{
+  "judul": "Kapan pool koneksi penuh?",
+  "sumber": "Ilustrasi · acuan Rekaman lab t3-pool",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "Layanan push berhenti menjawab. Tiap pembayaran memanggilnya di dalam transaction dan menunggu tanpa batas waktu, sambil memegang satu koneksi. Pembayaran masuk {lambda} per detik dan pool punya {n} koneksi. Kapan semua koneksi terpakai?",
+  "pilihan": [
+    {
+      "teks": "Tidak pernah: {lambda} pembayaran per detik jauh di bawah {n} koneksi.",
+      "detik": null,
+      "alasan": "Beban kecil tidak menjamin pool aman. Pembayaran yang menunggu push tidak melepas koneksinya, jadi {n} pembayaran saja sudah cukup untuk menghabiskan pool."
+    },
+    {
+      "teks": "Sekitar detik ke-3.",
+      "detik": 3,
+      "alasan": "Pada detik ke-3 baru {bayar3} pembayaran yang masuk. Pool {n} butuh {n} pembayaran, dan itu baru terjadi pada detik ke-{hitungan}."
+    },
+    {
+      "teks": "Sekitar detik ke-12.",
+      "detik": 12,
+      "alasan": "Pembayaran ke-{n} datang pada {n} ÷ {lambda} = {hitungan} detik dan mengambil koneksi terakhir. Rekaman lab m18.txt A: pool {n} penuh antara detik ke-{dari} dan ke-{sampai}."
+    },
+    {
+      "teks": "Sekitar detik ke-58.",
+      "detik": 58,
+      "alasan": "Itu waktu untuk pool {ukuranB}: {ukuranB} ÷ {lambda} = {penuhB} detik (Rekaman lab m18.txt B). Pool {n} penuh jauh lebih awal."
+    }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "ubahJudul": "Ubah satu hal, lalu lihat akibatnya",
+  "kelompok": {
+    "n": "Ukuran pool (koneksi)",
+    "t": "Layanan push menjawab sesudah (detik)",
+    "tClient": "Client app menyerah sesudah (detik)",
+    "pengaman": "Pengaman di server"
+  },
+  "pilihNilai": {
+    "n": [
+      {
+        "nilai": 4,
+        "label": "4"
+      },
+      {
+        "nilai": 10,
+        "label": "10"
+      },
+      {
+        "nilai": 50,
+        "label": "50"
+      }
+    ],
+    "t": [
+      {
+        "nilai": 0.3,
+        "label": "0,3"
+      },
+      {
+        "nilai": 2,
+        "label": "2"
+      },
+      {
+        "nilai": 10,
+        "label": "10"
+      },
+      {
+        "nilai": 30,
+        "label": "30"
+      },
+      {
+        "nilai": null,
+        "label": "Tidak menjawab"
+      }
+    ],
+    "tClient": [
+      {
+        "nilai": null,
+        "label": "Tanpa batas"
+      },
+      {
+        "nilai": 30,
+        "label": "30"
+      },
+      {
+        "nilai": 10,
+        "label": "10"
+      },
+      {
+        "nilai": 5,
+        "label": "5"
+      }
+    ],
+    "pengaman": [
+      {
+        "nilai": "tidak",
+        "label": "Tidak ada"
+      },
+      {
+        "nilai": "timeout-push",
+        "label": "Timeout push 3 detik"
+      },
+      {
+        "nilai": "idle-tx",
+        "label": "idle_in_transaction_session_timeout 5 detik"
+      },
+      {
+        "nilai": "di-luar",
+        "label": "Push di luar transaction"
+      }
+    ]
+  },
+  "awal": "Kembali ke pengaturan awal",
+  "jam": {
+    "label": "Jam simulasi",
+    "keluar": "detik ke-{x}",
+    "nilai": "Detik ke-{x}: {terpakai} dari {n} koneksi terpakai, {menunggu} pembayaran menunggu"
+  },
+  "papan": {
+    "pool": "Koneksi di pool ({n})",
+    "antre": "Pembayaran yang menunggu koneksi",
+    "kosongAntre": "Tidak ada yang menunggu.",
+    "grafik": "Koneksi terpakai tiap detik, 0 sampai 62 detik. Batang penuh = semua koneksi terpakai.",
+    "garisL": "Garis putus: L = λ × W, rata-rata koneksi yang dipegang."
+  },
+  "keadaan": {
+    "judul": "Keadaan pada detik ke-{x}",
+    "dikirim": "Pembayaran yang sudah masuk",
+    "terpakai": "Memegang koneksi",
+    "menunggu": "Menunggu koneksi",
+    "menyerah": "Client yang sudah menyerah",
+    "pg": "Sesi idle in transaction di PostgreSQL",
+    "baca": "Pembacaan saldo",
+    "bacaDijawab": "dijawab",
+    "bacaMenunggu": "menunggu koneksi"
+  },
+  "hitungan": {
+    "judul": "Hitungan Little's Law",
+    "lambda": "λ",
+    "lambdaNilai": "{lambda} pembayaran per detik. Asumsi: {rps} request per detik ÷ {tiap}.",
+    "w": "W",
+    "wNilai": "{cara} = {w}. Lama satu pembayaran memegang koneksi.",
+    "l": "L",
+    "lNilai": "λ × W = {lambda} × {w} = {l}.",
+    "penuh": "Pool penuh pada",
+    "penuhNilai": "n ÷ λ = {n} ÷ {lambda} = {x} detik.",
+    "tidakPenuh": "tidak pernah, karena L kurang dari n.",
+    "detik": "detik",
+    "koneksi": "koneksi"
+  },
+  "vonis": {
+    "muat": "Pool {n} tidak pernah penuh: paling banyak {puncak} koneksi terpakai, L = {l}.",
+    "sempat": "Pool {n} sempat penuh pada detik ke-{x}, tetapi tidak ada pembayaran yang menunggu, L = {l}.",
+    "penuh": "Pool {n} penuh pada detik ke-{x}, lalu pembayaran dan pembacaan saldo menunggu koneksi."
+  },
+  "ringkasVonis": {
+    "muat": "tidak pernah penuh, paling banyak {puncak} koneksi",
+    "sempat": "sempat penuh pada detik ke-{x}, tanpa pembayaran yang menunggu",
+    "penuh": "penuh pada detik ke-{x}"
+  },
+  "banding": {
+    "sama": "Belum ada yang diubah dari pengaturan awal.",
+    "beda": "Awal: pool {awal}. Sekarang: pool {kini}."
+  },
+  "cocok": "Cocok dengan Rekaman lab",
+  "tanpaAcuan": "Tidak ada rekaman untuk kombinasi ini. Angkanya Hitungan dari rumus dan simulasi Ilustrasi.",
+  "acuan": {
+    "A": "m18.txt A: pool {ukuran} penuh antara detik ke-{dari} dan ke-{sampai} (hitungan {ukuran} ÷ {lambda} = {hitungan}). Sesudah {detik} detik: {dikirim} pembayaran masuk, {menggantung} menggantung di layanan push, {menunggu} menunggu koneksi.",
+    "B": "m18.txt B: pool {ukuran} penuh antara detik ke-{dari} dan ke-{sampai} (hitungan {hitungan}). Sesudah {detik} detik: {dikirim} pembayaran masuk, {menggantung} menggantung, {menunggu} menunggu koneksi.",
+    "C": "m18.txt C: client menyerah sesudah {menyerah} detik, koneksi terpakai paling banyak {puncak} dari {ukuran}, pool tidak penuh.",
+    "D": "adr22.txt D: timeout push {timeout} detik di dalam transaction, koneksi terpakai paling banyak {puncak} dari {ukuran}.",
+    "E": "adr22.txt E: PostgreSQL paling banyak {puncakPg} sesi idle in transaction, tetapi pool di Go terpakai {dipakai} dari {maks}.",
+    "F": "adr22.txt F: push di luar transaction, transaction terbuka paling banyak {terbuka}.",
+    "L03": "little.txt, t = {t} detik: L = {l} dihitung, koneksi terbuka paling banyak {paling} dari {ukuran} diukur.",
+    "L2": "little.txt, t = {t} detik: L = {l} dihitung, koneksi terbuka paling banyak {paling} dari {ukuran} diukur.",
+    "L10": "little.txt, t = {t} detik: L = {l} dihitung, koneksi terbuka paling banyak {paling} dari {ukuran} diukur."
+  },
+  "catatan": {
+    "timeout-push": "Rekaman lab adr22.txt D: pool selamat, tetapi pembayaran tetap memegang lock buku warung selama push menunggu. Dua pembayaran ke warung yang sama: yang kedua selesai sesudah lebih dari {kedua} detik, bukan {timeout}.",
+    "idle-tx": "Rekaman lab adr22.txt E: PostgreSQL memutus sesi yang diam lebih dari {idle} detik dan melepas lock buku. Slot pool di proses Go tetap terpakai {dipakai} dari {maks}, jadi pengaman ini melindungi PostgreSQL, bukan pool.",
+    "di-luar": "Rekaman lab adr22.txt F: {bayar} pembayaran dijawab 201 dan transaction terbuka paling banyak {terbuka}. Pemberitahuan dikirim worker dari outbox, jadi push yang menggantung hanya menahan worker.",
+    "tClient": "Rekaman lab m18.txt C: client yang menyerah sesudah {menyerah} detik membuat koneksi terpakai paling banyak {puncak}. Itu hanya terjadi bila client menutup koneksi. Future.timeout di Dart tidak membatalkan permintaannya (api.dart.dev, Dart 3.13.7, dibuka 2026-10-25) [perlu verifikasi: package http dan dio, tidak dijalankan]."
+  },
+  "asal": {
+    "judul": "Asal angka dan label",
+    "butir": [
+      "λ = {lambda} pembayaran per detik: Asumsi naskah ({rps} request per detik, setiap request ke-{tiap} adalah pembayaran). Jadwalnya tetap, seperti di lab. Hitungan tanpa pembulatan memberi 0,868, selisih 0,2%.",
+      "W di luar push = {w0} detik: Asumsi naskah. Rekaman lab hanya membuktikan nilainya di bawah {batasW} ms.",
+      "Pool {ukuranA} dan {ukuranB}, push tidak menjawab, client menyerah sesudah {menyerah} detik, ketiga pengaman, dan t = 0,3, 2, dan 10 detik: Rekaman lab t3-pool.",
+      "Pool 4 (bawaan pgxpool pada mesin dengan 4 core atau kurang, dokumentasi pgx v5.11.0) dan t = 30 detik: Hitungan dari rumus L = λ × W, belum direkam. Client menyerah sesudah 30 dan 10 detik: Asumsi, karena naskah belum menyebut timeout app.",
+      "Simulasi yang menggerakkan batang dan kolom koneksi adalah Ilustrasi mekanisme. Tes mencocokkannya dengan rekaman lab."
+    ]
+  },
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan titik acuan rekaman dan hitungannya sebagai tabel.",
+  "tabel": {
+    "judul": "Titik acuan dari rekaman lab t3-pool",
+    "kolom": [
+      "Rekaman",
+      "L = λ × W",
+      "Pool penuh"
+    ],
+    "tidakPernah": "tidak pernah",
+    "penuh": "detik ke-{x}"
+  }
+}

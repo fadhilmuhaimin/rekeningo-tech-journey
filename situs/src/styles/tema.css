@@ -1317,3 +1317,50 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content table.tm-tabel :is(th, td) { overflow-wrap: anywhere; }
 .sl-markdown-content table.tm-tabel td .bb-chip { display: block; width: fit-content; margin-bottom: 0.25rem; }
 .sl-markdown-content .tm :is(.tb-pilihan, .qr-pilih) > * + * { margin-top: 0; }
+
+/* Widget pool koneksi dan Little's Law (W3-pool, keputusan 980): memakai tb-* (tebak) dan qr-angka; pl-* untuk pool, batang, dan hitungan. Token saja, tanpa animasi. */
+.sl-markdown-content .pl-kelompok { margin: 0 0 0.7rem; }
+.sl-markdown-content .pl-label { margin: 0 0 0.3rem; color: var(--teks-2); font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .pl-pilih { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.sl-markdown-content .pl-pilih li { margin: 0; max-width: 100%; }
+.sl-markdown-content .pl-tombol { width: auto; max-width: 100%; display: inline-block; overflow-wrap: anywhere; min-height: 2.25rem; padding: 0.3rem 0.65rem; }
+.sl-markdown-content .pl-tombol[aria-pressed="true"] { border-color: var(--k-system-edge); background: var(--k-system-fill); color: var(--k-system-ink); }
+.sl-markdown-content .pl-pilih--daftar { display: grid; }
+.sl-markdown-content .pl-pilih--daftar .pl-tombol { display: block; width: 100%; }
+.sl-markdown-content .pl :is(.tb-pilihan, .pl-pilih, .pl-angka) > * + * { margin-top: 0; }
+.sl-markdown-content .pl :is(.tb-pilihan, .pl-pilih) > li > button { margin-bottom: 0; }
+.sl-markdown-content .pl-kembali { margin: 0.2rem 0 0; }
+.sl-markdown-content .pl-vonis:not(:empty) { margin: 0.8rem 0 0; padding: 0.6rem 0.9rem; border-left: 3px solid var(--k-system-edge); background: var(--bg-2); border-radius: 0 8px 8px 0; }
+.sl-markdown-content .pl-vonis.is-muat { border-left-color: var(--k-good-edge); }
+.sl-markdown-content .pl-vonis.is-penuh { border-left-color: var(--k-warn-edge); }
+.sl-markdown-content .pl-vonis p { margin: 0; }
+.sl-markdown-content .pl-banding, .sl-markdown-content .pl-acuan, .sl-markdown-content .pl-catatan { margin: 0.6rem 0 0; }
+.sl-markdown-content .pl-judul { margin: 0.9rem 0 0.3rem; color: var(--judul); }
+.sl-markdown-content .pl-pool { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0.3rem 0 0.4rem; }
+.sl-markdown-content .pl-sel { width: 1.1rem; height: 1.1rem; border-radius: 3px; border: 1px solid var(--k-old-edge); }
+.sl-markdown-content .pl-sel.is-pakai { background: var(--k-warn-edge); border-color: var(--k-warn-edge); }
+.sl-markdown-content .pl-antre { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0.2rem; height: 2.6rem; margin: 0.3rem 0; overflow: hidden; }
+.sl-markdown-content .pl-blokan { display: flex; flex-wrap: wrap; gap: 0.2rem; }
+.sl-markdown-content .pl-blok { width: 0.6rem; height: 1.1rem; border-radius: 2px; background: var(--k-system-edge); }
+.sl-markdown-content .pl-grafik { position: relative; display: flex; align-items: flex-end; gap: 1px; height: 5rem; margin: 0.8rem 0 0.3rem; border-top: 1px dashed var(--garis-2); border-bottom: 1px solid var(--garis-2); }
+.sl-markdown-content .pl-batang { flex: 1 1 0; min-width: 0; background: var(--k-system-edge); }
+.sl-markdown-content .pl-batang.is-penuh { background: var(--k-warn-edge); }
+.sl-markdown-content .pl-garis { position: absolute; left: 0; right: 0; height: 0; border-top: 2px dashed var(--judul); }
+.sl-markdown-content .pl-kursor { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--k-good-edge); }
+.sl-markdown-content .pl-legenda { margin: 0 0 0.5rem; }
+.sl-markdown-content .pl-jam { margin: 0.6rem 0 0.4rem; }
+.sl-markdown-content .pl-jam label { display: block; margin-bottom: 0.3rem; }
+.sl-markdown-content .pl-jam input[type="range"] { display: block; width: 100%; min-height: 1.75rem; margin: 0; accent-color: var(--aksen); }
+.sl-markdown-content .pl-jam input[type="range"]:focus-visible { outline: 2px solid var(--aksen); outline-offset: 2px; }
+.sl-markdown-content .pl-hitung ul { list-style: none; margin: 0; padding: 0; }
+.sl-markdown-content .pl-hitung li { margin: 0; padding: 0.35rem 0; border-top: 1px solid var(--garis); overflow-wrap: anywhere; }
+.sl-markdown-content .pl-angka { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem 0.8rem; margin: 0.3rem 0 0; }
+.sl-markdown-content .pl-angka > div { margin: 0; }
+.sl-markdown-content .pl-angka dt { color: var(--teks-2); font-size: var(--rk-ui-kecil); line-height: 1.35; }
+.sl-markdown-content .pl-angka dd { margin: 0; margin-inline-start: 0; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--judul); overflow-wrap: anywhere; }
+.sl-markdown-content .pl-asal { margin: 0.8rem 0 0.4rem; }
+.sl-markdown-content .pl-asal ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
+.sl-markdown-content .pl-asal li { margin: 0.3rem 0; }
+.sl-markdown-content .pl .tb-pilih:focus-visible { outline: 2px solid var(--aksen); outline-offset: 2px; }
+.sl-markdown-content .pl code { overflow-wrap: anywhere; }
+.sl-markdown-content .pl-tombol code { background: none; padding: 0; font-size: inherit; color: inherit; }
