@@ -30,6 +30,10 @@ func (p *penghitungPalsu) Naik(ctx context.Context, key string, jendela time.Dur
 		case <-p.tahan:
 		case <-ctx.Done():
 			return 0, 0, ctx.Err()
+		case <-time.After(3 * time.Second):
+			// Pengaman tes: tanpa batas waktu dari PembatasBersama, tes gagal setelah 3 detik, bukan menggantung
+			// sampai batas waktu `go test` (10 menit).
+			return 0, 0, errors.New("penghitung palsu menggantung lebih dari 3 detik")
 		}
 	}
 	p.mu.Lock()

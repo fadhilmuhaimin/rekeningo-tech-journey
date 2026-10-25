@@ -31,8 +31,8 @@ instance b mati; 10 request langsung sesudahnya, sebelum pemeriksaan berikutnya:
 instance b mati; 10 request langsung sesudahnya, sebelum pemeriksaan berikutnya:
   jumlah: 200: 10 · 200 per instance: a 10
 
-# --- G. Health check aktif, selang 1 detik: instance mati dikeluarkan, instance yang hidup lagi masuk kembali ---
-b mati dan sudah dikeluarkan: 20 request: 200: 20 · 200 per instance: a 20
+# --- G. Health check aktif saja (tanpa retry), selang 1 detik: instance mati dikeluarkan, instance yang hidup lagi masuk kembali ---
+b mati dan sudah dikeluarkan (tanpa retry): 20 request: 200: 20 · 200 per instance: a 20
 b hidup lagi dan lolos health check: 20 request: 200: 20 · 200 per instance: a 10, b 10
 
 Tidak dijalankan: pengawas proses yang memulai ulang instance (systemd Restart=, restart policy Docker). Caddy tidak

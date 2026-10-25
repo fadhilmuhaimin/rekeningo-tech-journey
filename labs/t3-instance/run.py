@@ -305,15 +305,17 @@ def rekam_proxy():
     catat(f"  jumlah: {jumlah(hs)} · 200 per instance: {per_instance(hs, 200)}")
     harap((jumlah(hs), per_instance(hs, 200)), ("200: 10", "a 10"), "health check dan retry")
 
-    bagian("G. Health check aktif, selang 1 detik: instance mati dikeluarkan, instance yang hidup lagi masuk kembali")
+    bagian("G. Health check aktif saja (tanpa retry), selang 1 detik: instance mati dikeluarkan, instance yang hidup lagi masuk kembali")
+    # Tanpa retry: selama b masih dipilih, setiap request kedua menjawab 502 dan tunggu_bersih tidak pernah mencapai
+    # enam 200 berturut-turut. Dengan retry, retry menutup 502 itu dan health check yang mati tidak terlihat (tinjauan, keputusan 967).
     ulang_instans()
-    proxy_mulai("aktif-retry", "1s")
+    proxy_mulai("aktif", "1s")
     tunggu_terlihat("a")
     tunggu_terlihat("b")
     berhenti("b", "kill")
     tunggu_bersih()
     hs = lewat_proxy(20)
-    catat(f"b mati dan sudah dikeluarkan: 20 request: {jumlah(hs)} · 200 per instance: {per_instance(hs, 200)}")
+    catat(f"b mati dan sudah dikeluarkan (tanpa retry): 20 request: {jumlah(hs)} · 200 per instance: {per_instance(hs, 200)}")
     harap((jumlah(hs), per_instance(hs, 200)), ("200: 20", "a 20"), "b dikeluarkan")
     mulai_instans("b")
     tunggu_terlihat("b")
