@@ -29,9 +29,10 @@ MUTASI = [
     # Tiga pemeriksaan gerbang CSRF (Origin, Sec-Fetch-Site, token). Form HTML polos Dimas gagal di KETIGANYA
     # sekaligus (Chromium mengirim Sec-Fetch-Site: cross-site dan Origin lintas situs untuk navigasi form, dan form
     # tidak bisa memasang header X-CSRF-Token), jadi rekaman browser tidak bisa membedakan satu pemeriksaan dari
-    # yang lain: tiap mutasi LOLOS di bagian csrf (survivor jujur, diukur, bukan ditebak). Tes Go membunuh
-    # ketiganya, karena memanggil csrfSah dengan satu pelanggaran per tes (peninjau, keputusan 976): pembunuh yang
-    # sah ada, hanya bukan di rekaman browser. Keduanya dijalankan: nama biasa = tes Go, "@rekaman" = browser.
+    # yang lain: Origin dan Sec-Fetch-Site LOLOS di bagian csrf (survivor jujur, diukur, bukan ditebak). Token mati
+    # di skenario F (token Ani di sesi Sari). Tes Go membunuh ketiganya, karena memanggil csrfSah dengan satu
+    # pelanggaran per tes (peninjau, keputusan 976): pembunuh yang sah ada, hanya bukan di rekaman browser untuk
+    # Origin dan Sec-Fetch-Site. Keduanya dijalankan: nama biasa = tes Go, "@rekaman" = browser.
     ("csrf-origin-dihapus", "go/cmd/dasbor/main.go",
      'if o := r.Header.Get("Origin"); o != "" && o != "http://"+r.Host {\n\t\treturn false\n\t}\n\ttok := r.Header.Get("X-CSRF-Token")',
      'tok := r.Header.Get("X-CSRF-Token")', "go-test", "bunuh"),
@@ -49,7 +50,7 @@ MUTASI = [
      'tok := r.Header.Get("X-CSRF-Token")\n\t_, _ = tok, subtle.ConstantTimeCompare\n\treturn true', "go-test", "bunuh"),
     ("csrf-token-diabaikan@rekaman", "go/cmd/dasbor/main.go",
      'tok := r.Header.Get("X-CSRF-Token")\n\treturn tok != "" && subtle.ConstantTimeCompare([]byte(hashToken(tok)), []byte(x.CsrfHash)) == 1',
-     'tok := r.Header.Get("X-CSRF-Token")\n\t_, _ = tok, subtle.ConstantTimeCompare\n\treturn true', "csrf", "lolos"),
+     'tok := r.Header.Get("X-CSRF-Token")\n\t_, _ = tok, subtle.ConstantTimeCompare\n\treturn true', "csrf", "bunuh"),
     # Token yang sama untuk semua sesi (bukan rahasia per sesi): hanya skenario F (token Ani di sesi Sari) yang melihatnya.
     ("csrf-token-sama-semua-sesi", "go/cmd/dasbor/main.go",
      "token, csrf := tokenAcak(), tokenAcak()", 'token, csrf := tokenAcak(), strings.Repeat("ab", 32)', "csrf", "bunuh"),
@@ -64,7 +65,7 @@ MUTASI = [
     ("csrf-query-tanpa-format", "go/cmd/dasbor/main.go",
      "formatTokenCsrf.MatchString(q)", 'q != ""', "go-test", "bunuh"),
     ("samesite-selalu-none", "go/cmd/dasbor/main.go",
-     'if s.samesite == "none" {', "if true {", "csrf", "bunuh"),
+     'switch s.samesite {\n\tcase "none":', 'switch "none" {\n\tcase "none":', "csrf", "bunuh"),
     ("pagar-menerima-semua-alamat", "go/internal/pagar/pagar.go",
      "if ip == nil || !ip.IsLoopback() {", "if ip == nil && !ip.IsLoopback() {", "go-test", "bunuh"),
     ("pagar-akhiran-localhost-longgar", "go/internal/pagar/pagar.go",
@@ -79,6 +80,9 @@ def main():
     daftar = [m for m in MUTASI if not pilih or m[0] in pilih]
     if pilih and len(daftar) != len(pilih):
         raise SystemExit("GAGAL: mutasi tidak dikenal; pilihan: " + " ".join(m[0] for m in MUTASI))
+    for nama, berkas, lama, _, _, _ in daftar:   # gagal di muka, bukan di tengah jalan
+        if lama not in (HERE / berkas).read_text():
+            raise SystemExit(f"GAGAL: teks mutasi {nama} tidak ada di {berkas}")
     cadangan = pathlib.Path(tempfile.mkdtemp(prefix="t3dasbor-mutasi-"))
     shutil.copytree(HERE / "output", cadangan / "output")
     lolos = []
