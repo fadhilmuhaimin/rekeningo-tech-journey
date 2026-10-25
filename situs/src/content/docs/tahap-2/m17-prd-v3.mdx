@@ -20,7 +20,7 @@ Sinta masuk membawa PRD v3. Lingkupnya semua cabang Grup Lestari di enam kota, d
 
 "Server yang sekarang cukup untuk itu?" tanya Sinta.
 
-*Angka cerita (Ilustrasi):* tiga jam, minggu 8, selisih Rp0, dan enam kota berasal dari naskah. Pemeriksaan Pak Hadi ditambahkan halaman ini. Rekaman di blok "Yang sebenarnya" menjalankan tutup buku atas 1.016 buku dan tidak mengukur lamanya. Isi PRD v3 selengkapnya ada di [[t2-jembatan]].
+*Angka cerita (Ilustrasi):* tiga jam, minggu 8, selisih Rp0, dan enam kota berasal dari naskah. Pemeriksaan Pak Hadi dan pertanyaan Sinta ditambahkan halaman ini. Rekaman di blok "Yang sebenarnya" menjalankan tutup buku atas 1.016 buku dan tidak mengukur lamanya. Isi PRD v3 selengkapnya ada di [[t2-jembatan]].
 
 </Blok>
 
@@ -29,6 +29,8 @@ Sinta masuk membawa PRD v3. Lingkupnya semua cabang Grup Lestari di enam kota, d
 Nadia menjawab lebih dulu. "Belum. Enam kota, notifikasi, dan dashboard: satu server tidak akan cukup." Di tim ERP, ia terbiasa melihat sistem sebesar itu berjalan di beberapa server.
 
 Raka setuju dengan arahnya. Tutup buku lolos, jadi menurutnya data sudah beres dan sisanya urusan kapasitas. Di catatannya ia menulis dua rencana: VPS yang lebih besar, lalu server kedua.
+
+*Skenario (Ilustrasi):* jawaban Nadia, kebiasaannya di tim ERP, dan catatan Raka ditulis halaman ini. Naskah hanya menyebut dugaan bahwa server perlu lebih besar.
 
 <details class="question">
 <summary>Tebak dulu: tutup buku kedua lolos dengan selisih Rp0. Apa yang pasti dibuktikan angka itu untuk PRD v3?</summary>
@@ -78,9 +80,9 @@ Rumusnya sama dengan [[t1-m8]]. Puncak sekarang ±1,4 request per detik, atau sa
 
 Angka itu tidak membuktikan server cukup. Lab Tahap 2 tidak punya perkakas load test (dicari k6, wrk, locust, dan perkakas serupa di sepuluh lab pada 2026-10-25, tanpa hasil). Berapa request per detik yang sanggup dilayani VPS belum pernah diukur (Tidak dijalankan). Yang bisa dikatakan hanya ini: belum ada angka yang menyuruh membeli server hari ini.
 
-**Dua hal yang belum pernah diuji.** Naskah menyebutnya: pekerjaan lambat di dalam request, dan banyak server sekaligus. Notifikasi berarti request Budi menunggu layanan lain. PRD v2 menundanya ke v3 ([[t2-prd]]), dan kode server api-t2 tidak memanggil layanan lain selain database.
+**Dua hal yang belum pernah diuji.** Naskah menyebutnya: pekerjaan lambat di dalam request, dan banyak server sekaligus. Notifikasi yang dikirim di dalam request berarti request Budi menunggu layanan lain. PRD v2 menundanya ke v3 ([[t2-prd]]), dan kode server api-t2 tidak memanggil layanan lain selain database.
 
-Untuk banyak server, rekaman api-t2 memakai satu proses (`server: ./api-t2`). Dua instance hanya direkam di lab c4-ratelimit, untuk batas laju ([[t2-login-aman]]). Seluruh app dengan dua server belum pernah dijalankan (Tidak dijalankan). [[t2-jembatan]] meminta kamu menebak mana yang pecah lebih dulu.
+Untuk banyak server, rekaman api-t2 memakai satu proses (`server: ./api-t2`). Di antara lab Tahap 2, dua instance hanya direkam di c4-ratelimit, untuk batas laju ([[t2-login-aman]]). api-t2 sendiri belum pernah dijalankan dengan dua server (Tidak dijalankan). [[t2-jembatan]] meminta kamu menebak mana yang pecah lebih dulu.
 
 **Delapan masalah, bukan satu kapasitas.** Sebelum PRD v3, Tahap 2 sudah punya delapan masalah. Tabel ini merangkum penyebabnya dari halaman masing-masing:
 
