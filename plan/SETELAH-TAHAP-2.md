@@ -343,3 +343,37 @@ Polesan dan pencegahan dari tinjauan lab dan halaman Tahap 2 yang sengaja tidak 
 - 2.25 (tinjauan): kalimat "Keduanya tidak bisa berhenti, atau dilanjutkan, sebagai satu kesatuan." (blok Yang sebenarnya dan `catatan` di `t2-m15-dua-jalan.json`) kurang tegas; usul "Keduanya tidak ikut di-COMMIT atau di-rollback bersama" dan ubah di dua tempat sekaligus.
 - 2.25 (tinjauan): `ukur-axe.mjs` mengukur widget dalam keadaan awal saja, jadi tabel, chip, dan hasil tebakan SelisihBank (juga TesMerge) tidak pernah diukur di CI; usul langkah klik tebakan lalu urutan dengan menunggu gerak muncul selesai, seperti axe akhir di `ukur-race`.
 - 2.25 (tinjauan): region `role="status"` kedua di SelisihBank (`.qr-hasil`) dipasang bersama isinya, jadi pembaca layar mungkin tidak mengumumkan kesimpulan pertama sebelum pembaca mengganti urutan [perlu verifikasi dengan pembaca layar]; pola sama di TesMerge.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- Lab dengan port dasar sama (`api-t1`/`t3-bayar` 18083, `t3-bayar`/`b8-concurrency` 18090, `api-t2`/`e4-realtime` 18093, `api-t2`/`c4-ratelimit` 18094) tidak bisa jalan bersamaan dalam satu lajur; bila perlu, beri tiap lab rentang port sendiri.
+- `b9-cache` membaca schema `b2q` dari `b2-query` dan gagal di database baru; cukup satu baris `make -C ../b2-query run` di Makefile-nya.
+- Rekaman lab lama `t3-bayar`, `b2-query` (EXPLAIN ANALYZE), dan `b8-concurrency` mengandung angka waktu atau hasil beban yang berubah tiap jalan; belum ada mode `--cek` yang menyamarkannya seperti `b2-query` ledger.
+- Potongan kode yang dibaca halaman lama kini memuat bantu port lab: `labs/b11-2-proxy/main.go` region `proxy` (`portLab(18111)`, `portLab(18112)`) dan `labs/b8-concurrency/node/server.js` region `blok` (`PORT` didefinisikan di luar potongan); tulis ulang saat halaman b-fondasi itu dikerjakan.
+- `make lab-down` tanpa variabel mematikan proyek bawaan milik lajur lain; usul: tolak bila `LAB_DB_PORT` atau `LAB_PORT_OFFSET` bukan bawaan tetapi `COMPOSE_PROJECT_NAME` kosong.
+- `tools/cek_port_lab.py` tidak menangkap `127.0.0.1:{18096}` atau `${18096}` (angka tidak langsung sesudah titik dua) dan konstanta tanpa host; Dart dan Python f-string bisa lolos.
+- `t5-skala/run.py` mengganti port berimbuhan di teks rekaman dengan `str.replace`; offset kecil (1, -1) bisa menimpa nomor lain. Offset kelipatan 100 aman.
+- `situs/tools/ukur-gerak.mjs` (bagian tetap) masih ±100 s dan `erd` ±67 s: bila perlu dipecah lagi per bagian, kelompok `cls gerak` jadi penentu waktu PR.
+- `layar.mjs` bisa memakai konteks paralel (`--paralel`) bila `awasi()` diganti `denganBatas` per halaman; menghemat ±150 s per kelompok layar.
+- Komentar kepala `situs/tools/ukur-gerak.mjs` masih menyebut widget alur; bagiannya pindah ke `ukur-gerak-alur.mjs`. Rapikan saat berkas itu disentuh lagi.
+- `tools/test_kelompok_ukur.py` memuat `ALAT_SEBELUM` tertulis tetap: alat ukur baru harus masuk ke daftar itu dan ke `KELOMPOK_UKUR` bersamaan (disengaja, supaya alat tidak hilang diam-diam).
+- Rekam di lab `t2-pencairan` (PR lab sendiri): empat proses job bersamaan, file bernama akhir yang tertinggal sesudah rekonsiliasi menolak, `2026-w43` huruf kecil, dan saldo warung turun sesudah batch dibuat (keputusan 507 dan 508); 2.26 menulis semuanya "Tidak direkam".
+- Usul perilaku: hapus file bernama akhir saat rekonsiliasi menolak, supaya tidak ada file yang bisa terunggah tanpa status `dikirim`; mengubah teks `benar.txt` bagian E.
+- Alert otomatis bila job pencairan keluar dengan kode bukan nol (belum ada di naskah Tahap 2).
+- Rantai Inti 2.26 membungkus jadi 3 garis di 360 dan 375 px (info `ukur-rantai.mjs`, bukan kegagalan); perpendek bila R6 mengetatkan batasnya.
+- 2.26: `polaPeriode` menerima `2027-W53` padahal 2027 hanya punya 52 minggu ISO, dan periode salah minggu (mis. `2026-W44` pada Jumat W43) lolos; halaman tidak menyebut alternatif "periode dihitung job dari tanggal Jumat" (keputusan 507). Usul: hitung periode di job.
+- `tools/pilih_halaman.py`: berkas `*.test.ts` di `situs/src/` dihitung "bukan berkas halaman atau data" dan memaksa mode semua (PR #334: `tumbuh.test.ts` dan tes penjaga baru); usul: tes yang tidak memengaruhi `dist` tidak membuat ragu.
+- Rekam di c4 lima tebakan terfokus ke satu akun saat `MODE=dua-lapis`: dari kode dan bagian D, kunci tetap terpasang walau lapis memori ada, dan akun yang dibidik tetap tertolak; 2.28 perlu rekaman ini bila ADR 20 menjanjikan akun tidak bisa dikunci orang lain.
+- c4 dan api-t2 menjawab akun terkunci dengan 401 generik tanpa jalur masuk lewat lupa password; usul tugas lab untuk jalur reset mandiri atau pengecualian terukur (OWASP Authentication CS, R2-190).
+- Kunci per akun bisa digabung dengan alamat (pasangan akun dan IP), seperti `AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP` di django-axes (R2-192), supaya satu alamat tidak mengunci akun orang lain; belum ada di c4.
+- 2.27: judul "Dua kebiasaan yang membuka akun" menyebut Karyawan 515 padahal rekaman tidak menyemprotnya; ganti ke "yang bisa membuka akun".
+- 2.27 dan istilah Credential stuffing menulis "satu password per akun dari daftar"; OWASP mendefinisikan credential stuffing sebagai pasangan username dan password dari situs lain. 2.28 perlu membedakan password spraying (satu password ke banyak akun) dan credential stuffing.
+- R2-194 menulis alamat dokumentasi "tidak boleh muncul di Internet publik"; RFC 5737 menulis SHOULD NOT.
+- Batas jumlah hash argon2id yang berjalan bersamaan (semaphore) dan pembersihan entri `pembatas.bucket` yang kedaluwarsa di c4 dan api-t2: peta bucket hanya menambah key (dibaca dari kode `izinkan`, tidak diukur), dan 10 hash bersamaan dengan m=64 MiB memegang 640 MiB (Asumsi); usul tugas lab dengan rekaman memori.
+- api-t2 pindah dari bcrypt `DefaultCost` ke argon2id dengan hitung ulang hash saat login (awalan `$2a$` lawan `$argon2id$`), dan daftar password bocor di `GantiPassword`; c4 sudah punya argon2id dan daftar tetapi tanpa hitung ulang dari bcrypt.
+- Rekam dampak satu alamat dipakai banyak karyawan (NAT, Wi-Fi gedung) pada batas per alamat 10 sekaligus dan 10 per menit: hitungan di halaman (sekitar 20 lolos dari 100 dalam satu menit, Asumsi) belum direkam; tambah log 429 per alamat.
+- Butir SETELAH-TAHAP-2 dari #335 "rekam di c4 lima tebakan terfokus saat dua lapis" sudah terjawab oleh api-t2 `pengaman.txt` bagian E (lima tebakan, 429 per akun, `gagal_login` 5, terkunci, password benar dijawab 401); 2.28 memakai rekaman itu.
+- Tab Serverpod di 2.28: proyek baru memakai `ServerpodCloudEmailIdpConfig` yang tidak menerima `failedLoginRateLimit`; contoh `EmailIdpConfigFromPasswords` perlu catatan itu (dokumentasi email 4.0.0).
+- 2.28 tidak membahas CAPTCHA atau deteksi bot sebagai opsi (OWASP Credential Stuffing menyebut banyak lapis): tambah baris di "Sengaja belum dilakukan" setelah isi bagian itu dibuka dan dikutip.
+- Widget "Satu penyemprotan, enam kondisi" berjudul satu penyemprotan tetapi jumlah tebakan berbeda per kondisi (29, 20, 24, 12); tabel menampilkannya, judul bisa diganti "Enam penyemprotan dari rekaman c4".
+- Inti 2.28 menulis 10 diperiksa dan 19 ditolak 429 sebelum widget "tebak dulu" dengan jawaban yang sama; urutkan ulang atau sembunyikan angka di Inti bila ingin tebakan sungguhan.

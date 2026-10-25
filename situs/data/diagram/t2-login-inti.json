@@ -1,0 +1,52 @@
+{
+  "id": "t2-login-inti",
+  "judul": "Satu penyemprotan: 29 tebakan dari satu alamat",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab c4-ratelimit · ratelimit.txt bagian D"
+  },
+  "baris": [
+    {
+      "label": "Urutan pagar",
+      "sub": "dari yang termurah",
+      "simpul": [
+        {
+          "teks": "batas per alamat",
+          "sub": "memori, sebelum database",
+          "nada": "system"
+        },
+        {
+          "teks": "batas per akun",
+          "sub": "memori, 5 sekaligus",
+          "nada": "system"
+        },
+        {
+          "teks": "kunci akun",
+          "sub": "database, ambang 5 gagal",
+          "nada": "system"
+        },
+        {
+          "teks": "argon2id",
+          "sub": "hash 64 MiB",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "29 tebakan",
+      "sub": "satu alamat, satu tebakan per akun",
+      "simpul": [
+        {
+          "teks": "10 diperiksa",
+          "sub": "sampai argon2id",
+          "nada": "warn"
+        },
+        {
+          "teks": "19 ditolak 429",
+          "sub": "tanpa query, tanpa hash",
+          "nada": "good"
+        }
+      ]
+    }
+  ]
+}

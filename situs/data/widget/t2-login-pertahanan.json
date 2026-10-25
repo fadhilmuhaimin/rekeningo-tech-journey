@@ -1,0 +1,76 @@
+{
+  "judul": "Satu penyemprotan, enam kondisi",
+  "sumber": "Rekaman lab · c4-ratelimit, bagian C sampai F dan H",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "Satu alamat menyemprot 29 akun, satu tebakan per akun. Server punya batas per alamat (10 sekaligus, isi ulang 10 per menit) dan batas per akun, keduanya dicek sebelum database. Berapa dari 29 tebakan sampai ke pemeriksaan password?",
+  "pilihan": [
+    {
+      "teks": "Semua 29: tiap akun hanya menerima satu tebakan, jadi batas per akun tidak pernah aktif.",
+      "angka": 29,
+      "alasan": "Rekaman menunjukkan {sampai}, bukan 29. Batas per akun memang tidak aktif untuk satu tebakan per akun, tetapi batas per alamat menolak {ditolak} tebakan sisanya."
+    },
+    {
+      "teks": "Sepuluh: jatah per alamat habis, sisanya ditolak.",
+      "angka": 10,
+      "alasan": "{sampai} tebakan sampai ke pemeriksaan password dan {ditolak} ditolak 429 sebelum menyentuh database. Server menjalankan argon2id {hash} kali, bukan {percobaan} kali."
+    },
+    {
+      "teks": "Lima: jatah per akun yang menentukan.",
+      "angka": 5,
+      "alasan": "Rekaman menunjukkan {sampai}. Lima adalah jatah per akun. Di sini tiap akun hanya menerima satu tebakan, jadi yang membatasi adalah jatah per alamat, yaitu sepuluh."
+    },
+    {
+      "teks": "Nol: server menolak seluruh banjir dari satu alamat.",
+      "angka": 0,
+      "alasan": "Rekaman menunjukkan {sampai}. Batas per alamat memberi tiap alamat sepuluh tebakan sekaligus sebelum mulai menolak."
+    }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "tabel": {
+    "judul": "Hasil rekaman",
+    "perbandingan": "Yang dihitung",
+    "nilai": "Jumlah"
+  },
+  "baris": {
+    "percobaan": "Tebakan yang dikirim",
+    "sampai": "Sampai ke pemeriksaan password",
+    "ditolak": "Ditolak 429",
+    "terbuka": "Akun yang terbuka (200)"
+  },
+  "ubahJudul": "Ubah satu hal: kondisi penyemprotan",
+  "kondisi": {
+    "dua-lapis": {
+      "label": "Batas per alamat dan per akun",
+      "kesimpulan": "{sampai} dari {percobaan} tebakan sampai ke pemeriksaan password. {ditolak} ditolak 429 lebih dulu, tanpa query akun dan tanpa argon2id.",
+      "catatan": "Rekaman bagian D. Karyawan 514 ada di urutan terakhir dan tidak sempat dicoba. Rekaman tidak menguji urutan lain."
+    },
+    "kunci-saja": {
+      "label": "Hanya kunci per akun",
+      "kesimpulan": "Semua {percobaan} tebakan sampai ke pemeriksaan password dan {terbuka} mengenai sebuah akun. Akun yang terkunci: {terkunci}, karena tiap akun hanya melihat satu kegagalan.",
+      "catatan": "Rekaman bagian C. Akun yang terbuka adalah Karyawan 514, yang memakai ulang password dari daftar bocor."
+    },
+    "xff-mentah": {
+      "label": "Alamat dibaca dari header yang diisi client",
+      "kesimpulan": "Penyerang mengganti alamat di header pada tiap tebakan. Semua {percobaan} tebakan sampai dan tidak ada yang ditolak: batas per alamat tidak menahan apa pun.",
+      "catatan": "Rekaman bagian E. Server memercayai header X-Forwarded-For dari client mana pun, dan tiap tebakan menyasar akun berbeda."
+    },
+    "proxy-palsu": {
+      "label": "Header hanya dipercaya dari proxy sendiri",
+      "kesimpulan": "Server mengabaikan header tanpa rahasia proxy dan memakai alamat koneksi. {sampai} dari {percobaan} tebakan sampai, {ditolak} ditolak 429: penukaran alamat gagal.",
+      "catatan": "Rekaman bagian E, mode proxy. Request yang benar-benar lewat proxy sendiri dipercaya, dan Ani masuk dengan 200."
+    },
+    "dua-instance": {
+      "label": "Dua server, satu alamat",
+      "kesimpulan": "{sampai} dari {percobaan} tebakan sampai. Tiap server menghitung di memorinya sendiri, jadi batas 10 per alamat berlaku di setiap server, bukan 10 total.",
+      "catatan": "Rekaman bagian F. Tebakan bergantian ke dua server. Yang terbagi hanya bucket di memori; kunci akun ada di database."
+    },
+    "ipv6": {
+      "label": "Alamat IPv6 berganti dalam satu /64",
+      "kesimpulan": "{sampai} dari {percobaan} tebakan sampai dan {ditolak} ditolak. Server memotong alamat IPv6 ke /64, jadi dua belas alamat berbeda memakai satu bucket.",
+      "catatan": "Rekaman bagian H. Dengan alamat penuh sebagai key, tiap alamat punya bucket sendiri; itu tidak dijalankan di lab."
+    }
+  },
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan hasil keenam kondisi dari rekamannya sebagai tabel."
+}

@@ -1,0 +1,54 @@
+---
+/**
+ * Widget "Satu penyemprotan, enam kondisi" (2.28, keputusan 853): tebak berapa dari 29 tebakan sampai ke pemeriksaan
+ * password di server dua lapis, lalu ubah satu hal (kondisi penyemprotan: hanya kunci per akun, header yang diisi
+ * client, header palsu, dua server, IPv6 satu /64).
+ *   <PertahananLogin />
+ * Angka dibaca saat build dari labs/c4-ratelimit/output/login/ratelimit.txt (bagian C sampai F dan H) lewat logika.ts;
+ * rekaman yang berubah bentuk menggagalkan build. Teks dari data/widget/t2-login-pertahanan.json (skema.ts).
+ * Island di-render saat build (client:visible); tanpa JavaScript hasil rekaman tampil di <noscript>.
+ * Satu widget per halaman (dipasang di blok Coba 2.28).
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import PertahananLoginIsland from "../widgets/pertahanan-login/PertahananLogin";
+import { LabelPertahananLogin } from "../widgets/pertahanan-login/skema";
+import { KONDISI, bacaRekaman, hashDuaLapis, indeksBenar, isi, nilaiTeks, tabelKondisi, terkunciKunciSaja } from "../widgets/pertahanan-login/logika";
+import labelMentah from "../../data/widget/t2-login-pertahanan.json";
+
+const FILE = "labs/c4-ratelimit/output/login/ratelimit.txt";
+const abs = path.join(ROOT, FILE);
+if (!fs.existsSync(abs)) throw new Error(`PertahananLogin: ${FILE} tidak ada`);
+const teks = fs.readFileSync(abs, "utf8");
+const R = bacaRekaman(teks);
+const hash = hashDuaLapis(teks);
+const terkunci = terkunciKunciSaja(teks);
+const L = LabelPertahananLogin.parse(labelMentah);
+const nilai = nilaiTeks(R["dua-lapis"], hash, terkunci);
+const pilihan = L.pilihan.map((p) => ({ ...p, alasan: isi(p.alasan, nilai) }));
+const benar = indeksBenar(pilihan, R["dua-lapis"].sampai);
+const kondisi = KONDISI.map((kode) => {
+  const v = nilaiTeks(R[kode], hash, terkunci);
+  return { kode, label: L.kondisi[kode].label, kesimpulan: isi(L.kondisi[kode].kesimpulan, v), catatan: L.kondisi[kode].catatan };
+});
+const tabel = Object.fromEntries(KONDISI.map((k) => [k, tabelKondisi(R[k])])) as Record<(typeof KONDISI)[number], ReturnType<typeof tabelKondisi>>;
+const label = {
+  judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, pertanyaan: L.pertanyaan, benar: L.benar, belum: L.belum, ulang: L.ulang,
+  tabel: L.tabel, baris: L.baris, ubahJudul: L.ubahJudul,
+};
+---
+<PertahananLoginIsland client:visible pilihan={pilihan.map((p) => ({ teks: p.teks, alasan: p.alasan }))} benar={benar} kondisi={kondisi} tabel={tabel} label={label} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <table>
+    <thead>
+      <tr><th>{L.tabel.perbandingan}</th>{KONDISI.map((k) => <th>{L.kondisi[k].label}</th>)}</tr>
+    </thead>
+    <tbody>
+      {(["percobaan", "sampai", "ditolak", "terbuka"] as const).map((b, i) => (
+        <tr><th scope="row">{L.baris[b]}</th>{KONDISI.map((k) => <td>{tabel[k][i]!.nilai}</td>)}</tr>
+      ))}
+    </tbody>
+  </table>
+</noscript>
