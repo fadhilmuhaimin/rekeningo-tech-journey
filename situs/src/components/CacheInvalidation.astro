@@ -1,0 +1,85 @@
+---
+/**
+ * Widget cache dan invalidation (W3-cache, keputusan 986): tebak kapan Citra di instance B pertama kali melihat harga promo
+ * saat katalog di-cache di memori tiap instance, lalu ubah satu hal (jenis cache, jumlah instance, TTL, yang berubah, urutan
+ * hapus kunci) dan lihat siapa yang masih melihat data lama dan berapa lama.
+ *   <CacheInvalidation />
+ * Angka acuan dibaca saat build dari labs/t3-cache/output/{memori,redis,gagal,beban}.txt lewat rekaman.ts; rekaman yang
+ * berubah bentuk menggagalkan build. Teks dari data/widget/t3-cache-invalidation.json (skema.ts). Island di-render saat build
+ * (client:visible); tanpa JavaScript titik acuan rekaman tampil di <noscript> sebagai tabel.
+ * Satu widget per halaman. Dipasang di halaman 3.19 (Cache dan invalidation, ADR 28) oleh PR halamannya; 3.18 (M23) memakai
+ * widget alur. Sampai itu hanya /uji/cache/ yang memuatnya.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import CacheInvalidationIsland from "../widgets/cache-invalidation/CacheInvalidation";
+import { LabelCache } from "../widgets/cache-invalidation/skema";
+import { aturanDari, awalDari, bacaRekaman, daftarAcuan } from "../widgets/cache-invalidation/rekaman";
+import { periksaTombol, siapkanTeks } from "../widgets/cache-invalidation/teks";
+import { isi, lamaBasi, pengamat } from "../widgets/cache-invalidation/logika";
+import labelMentah from "../../data/widget/t3-cache-invalidation.json";
+
+const baca = (f: string) => {
+  const abs = path.join(ROOT, f);
+  if (!fs.existsSync(abs)) throw new Error(`CacheInvalidation: ${f} tidak ada`);
+  return fs.readFileSync(abs, "utf8");
+};
+const R = bacaRekaman(
+  baca("labs/t3-cache/output/memori.txt"),
+  baca("labs/t3-cache/output/redis.txt"),
+  baca("labs/t3-cache/output/gagal.txt"),
+  baca("labs/t3-cache/output/beban.txt"),
+);
+const A = aturanDari(R);
+const awal = awalDari(R);
+const acuan = daftarAcuan(R);
+const L = LabelCache.parse(labelMentah);
+
+periksaTombol(L, R);
+const T = siapkanTeks(L, R, acuan);
+
+const label = {
+  judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, benar: L.benar, belum: L.belum, ulang: L.ulang, ubahJudul: L.ubahJudul,
+  kelompok: L.kelompok, awal: L.awal, jam: L.jam, papan: L.papan, vonis: L.vonis, ringkas: L.ringkas, banding: L.banding,
+  cocok: L.cocok, tanpaAcuan: L.tanpaAcuan,
+  hitungan: { lama: L.hitungan.lama, lamaNilai: L.hitungan.lamaNilai, lamaNol: L.hitungan.lamaNol, instanceBasi: L.hitungan.instanceBasi, instanceBasiNilai: L.hitungan.instanceBasiNilai, bacaKunci: L.hitungan.bacaKunci },
+};
+
+// Tabel untuk tanpa JavaScript: titik acuan dan lama data lama di instance yang diamati, dari model yang sama dengan island.
+const baris = acuan.map((d) => {
+  const lama = lamaBasi(d.param, A, pengamat(d.param));
+  const opsi = (k: keyof typeof T.opsi, nilai: unknown) => T.opsi[k].find((o) => o.nilai === nilai)!.label;
+  const urutan = d.param.kejadian === "promo" || d.param.kejadian === "harga" ? `, ${opsi("urutan", d.param.urutan)}` : "";
+  const nama = d.param.cache === "tanpa"
+    ? opsi("cache", d.param.cache)
+    : `${opsi("cache", d.param.cache)}, ${d.param.instance} instance, TTL ${d.param.ttl}, ${opsi("kejadian", d.param.kejadian).toLowerCase()}${urutan}`;
+  return [nama, lama > 0 ? isi(L.tabel.ada, { lama }) : L.tabel.tidakAda, T.acuanTeks[d.kunci]!];
+});
+---
+<CacheInvalidationIsland
+  client:visible
+  aturan={A}
+  awal={awal}
+  jamAwal={R.memori.lamaTerakhir}
+  pertanyaan={T.pertanyaan}
+  pilihan={T.pilihan}
+  benar={T.benar}
+  opsi={T.opsi}
+  instance={L.instance}
+  acuan={acuan}
+  acuanTeks={T.acuanTeks}
+  catatan={T.catatan}
+  hitungan={T.hitungan}
+  ttlLab={T.ttlLab}
+  asal={T.asal}
+  label={label}
+/>
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <table class="bb-table tm-tabel">
+    <caption>{L.tabel.judul}</caption>
+    <thead><tr>{L.tabel.kolom.map((k) => <th scope="col">{k}</th>)}</tr></thead>
+    <tbody>{baris.map((b) => <tr>{b.map((s, j) => (j === 0 ? <th scope="row">{s}</th> : <td>{s}</td>))}</tr>)}</tbody>
+  </table>
+</noscript>
