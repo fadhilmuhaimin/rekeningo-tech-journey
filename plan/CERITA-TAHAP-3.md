@@ -4,6 +4,8 @@ Draft otomatis, belum ditinjau pemilik
 
 Ditulis 2026-10-25 · draf sebelum Tahap 2 selesai (keputusan 728 butir 3)
 
+Ditinjau konsistensi pada 2026-10-25 (PR #331, keputusan 877 sampai 879): pool 50 menunda ±58 detik, bukan ±57. M22 berlipat di penahan per IP yang ada di memori, kunci akun tetap di database. Top-up massal dan promo tidak masuk janji 95% dalam 30 detik. Akun mendapat peran `hr`, pemicu M26 menyebut staging, dan nama alat di Latar dan PRD diganti kata umum.
+
 ## Kenapa dokumen ini ada
 
 Naskah ini adalah source of truth Tahap 3, disimpan di repo sebagai `plan/CERITA-TAHAP-3.md`. Strukturnya sama dengan Tahap 2: **PRD → fitur → pekerjaan teknis → inti teknis → masalah yang muncul pelan-pelan → konsep**. Halaman situs ditulis dari naskah ini. Penomoran melanjutkan Tahap 2: masalah M18 dan seterusnya (Tahap 2 berakhir di M17), ADR 22 dan seterusnya (Tahap 2 berakhir di ADR 21).
@@ -29,7 +31,7 @@ Tutup buku kedua Tahap 2 lolos dalam 3 jam dengan selisih Rp0, dan puncak beban 
 
 Tiga hal berubah sekaligus. Pertama, Rekeningo harus **memberi tahu**: Budi tidak tahu kapan uang masuk, dan Ani menunggu layar HP pelanggan untuk yakin sudah dibayar. Kedua, warung ingin mengatur menu, harga, dan stok sendiri dari laptop, tanpa meminta admin. Ketiga, Direksi tidak mau app berhenti saat deploy atau saat satu proses mati.
 
-Tim jadi empat orang dalam 10 minggu (Asumsi cerita): Raka memegang app, Nadia dan Bayu memegang backend, Wulan memegang dasbor web. Yang tidak berubah: satu codebase Go, satu database PostgreSQL, ledger dari Tahap 2. Di akhir tahap ada dua instance API, satu worker, satu Redis, dan satu lingkungan staging. Semua komponen produksi berada di satu VPS.
+Tim jadi empat orang dalam 10 minggu (Asumsi cerita): Raka memegang app, Nadia dan Bayu memegang backend, Wulan memegang dasbor web. Yang tidak berubah: satu codebase Go, satu database PostgreSQL, ledger dari Tahap 2. Di akhir tahap ada dua instance API, satu worker, satu penyimpanan sementara untuk state bersama, dan satu lingkungan staging. Semua komponen produksi berada di satu VPS.
 
 ### Tokoh baru
 
@@ -87,7 +89,7 @@ Tokoh lama tetap:
 - Deploy tanpa error yang terlihat user.
 - Tutup buku bulanan tetap selesai dalam kurang dari 1 hari, selisih Rp0.
 
-**Batasan.** Empat engineer selama 10 minggu. Satu VPS produksi dan satu staging. Semua layanan luar berupa tiruan lokal di lab. Anggaran naik sedikit untuk satu Redis kecil dan satu staging.
+**Batasan.** Empat engineer selama 10 minggu. Satu VPS produksi dan satu staging. Semua layanan luar berupa tiruan lokal di lab. Anggaran naik sedikit untuk satu penyimpanan sementara kecil dan satu staging.
 
 Aturan Pak Hadi dipertahankan dan ditambah: *"Ani tidak boleh diberi tahu uang masuk sebelum uang itu benar-benar tercatat."*
 
@@ -118,7 +120,7 @@ Dari tabel ini lahir pertanyaan pertama Tahap 3, sebelum satu baris kode: notifi
 
 ## 3. Inti teknis Tahap 3 · Uang dan pemberitahuan, dua tempat yang tidak bisa commit bersama
 
-Ini jantung Tahap 3. Pertanyaannya dirumuskan di minggu 0, sebelum masalah apa pun muncul. "Budi transfer Rp50.000 ke Citra" kini menyentuh dua tempat: jurnal dan dua posting di PostgreSQL, ditambah satu pemberitahuan ke HP Citra. PostgreSQL bisa COMMIT atau ROLLBACK sebagai satu unit. Layanan push tidak ikut unit itu.
+Ini jantung Tahap 3. Pertanyaannya dirumuskan di minggu 0, sebelum masalah apa pun muncul. "Budi transfer Rp50.000 ke Citra" kini menyentuh dua tempat: jurnal dan dua posting di PostgreSQL, ditambah satu pemberitahuan ke HP Citra. PostgreSQL bisa COMMIT atau ROLLBACK sebagai satu unit, tetapi layanan push tidak ikut unit itu.
 
 Tiga hal harus selalu benar:
 
@@ -176,7 +178,7 @@ Diagram di bawah disusun dari skema Tahap 2 di lab (`labs/api-t2`), bukan dari b
 | (tidak ada) | `produk`, `kota`, `promo` | Katalog, stok, dan harga per kota; promo HR | Katalog, promo |
 | (tidak ada) | `operasi_sinkron` (kunci, perangkat, produk, jenis, nilai, versi_dasar, status) | Operasi dari queue offline dikenali sampai 14 hari | M24 |
 | `sesi` (token_hash, akun_id, kedaluwarsa) | `sesi` + `jenis` (app, web) dan `csrf_hash` | Sesi dasbor memakai cookie dan token CSRF | M25 |
-| `akun` | `akun` + `kota_id` | Warung dan karyawan punya kota; katalog dan promo per kota | Enam kota |
+| `akun` (`jenis`: karyawan, warung, admin, sistem) | `akun` + `kota_id` (boleh kosong untuk admin dan sistem); `jenis` + `hr` | Warung dan karyawan punya kota; katalog dan promo per kota; HR membuat promo | Enam kota; promo |
 | `jurnal.keterangan` teks bebas | Tetap; kini juga diisi dari catatan user dan wajib di-encode saat ditampilkan | Catatan tampil di notifikasi dan dasbor | M25 |
 | `kunci_idempotensi` berumur 24 jam | Tetap untuk bayar dan transfer (ADR 14) | Offline tidak memperpanjangnya; versi baris yang menjaga (ADR 29) | M24 |
 
@@ -200,7 +202,7 @@ Blok di bawah dibaca mesin. Diagram di situs dibuat dari skema lab yang sesunggu
 
 ```mermaid
 erDiagram
-  KOTA ||--o{ AKUN : berlokasi_di
+  KOTA |o--o{ AKUN : berlokasi_di
   KOTA ||--o{ PROMO : berlaku_di
   AKUN ||--o{ SESI : punya
   AKUN |o--o{ BUKU : memiliki
@@ -293,9 +295,9 @@ Pola sama dengan Tahap 1 dan 2. Gejala yang dilihat orang, lalu yang Raka, Nadia
 | M19 | 4 | Budi dan seorang rekan mengirim patungan ke Citra hampir bersamaan. Saldo Citra naik Rp50.000, tetapi HP-nya berbunyi sekali, bukan dua kali. Dua hari kemudian Ani menemukan tiga pembayaran hari Jumat yang tidak pernah diberitahukan (Ilustrasi). | Token perangkat Citra salah; Nadia: poller perlu nomor urut tanpa celah | Poller outbox membaca dengan kursor `(dibuat, id)`, meniru ADR 16. `dibuat` adalah awal transaction, bukan COMMIT. Transaction yang menunggu lock buku selesai belakangan dengan `dibuat` lebih awal, lalu tertinggal di belakang kursor. Nomor urut `id` pun bukan urutan commit (R3-04) | Urutan commit tidak sama dengan urutan id; **klaim per baris** (`FOR UPDATE SKIP LOCKED`); lease (R3-03, R3-04) | ADR 24: worker mengklaim baris, tanpa kursor; klaim punya batas waktu |
 | M20 | 4 | Ani menerima "Rp25.000 dari Budi" dua kali dalam enam detik dan mengira Budi membayar dua kali, seperti M10. Ia hampir menyerahkan dua porsi. | Jurnal ganda atau retry app (M10 terulang) | Hanya ada satu jurnal. Bayu menghentikan worker saat deploy di antara "kirim" dan "tandai terkirim"; klaim habis, worker baru mengklaim ulang baris itu. Mengirim ulang itu benar; yang kurang adalah penerima yang mengenali ulangan | **At-least-once**; retry dengan backoff dan jitter; dead-letter; consumer idempoten (`notifikasi_id`) (R3-02, R3-06) | ADR 25: pengiriman at-least-once, maksimal 5 percobaan lalu dead-letter; app menyaring `notifikasi_id` yang sudah tampil |
 | M21 | 5 | Rabu 12.05 Rekeningo tidak bisa dibuka ±9 menit sampai Bayu memulai ulang prosesnya. Kamis malam, deploy mematikan app ±40 detik (Ilustrasi). Sinta: "Satu proses mati, semua mati." | Server kurang kuat; Raka mengusulkan VPS yang lebih besar | Proses API satu-satunya keluar karena panic di goroutine latar yang membuat ekspor laporan [perlu verifikasi di lab], dan tidak ada yang memulainya lagi. Deploy mengganti satu-satunya proses. Ukuran VPS tidak berperan | **Ketersediaan**; dua instance di belakang reverse proxy; health check aktif dan retry (bawaan proxy tidak memilikinya); graceful shutdown; deploy bergulir (R3-13) | ADR 26: dua instance di satu VPS; proxy dengan health check aktif dan retry; `Shutdown` saat SIGTERM; satu VPS tetap titik gagal tunggal |
-| M22 | 6 | Dimas menguji staging atas permintaan Bayu. Sesudah instance kedua dipasang, ia mengirim 24 percobaan login dari satu IP ke akun uji yang berbeda dengan password bocor. Dua puluh lolos ke pemeriksaan password sebelum ada yang ditolak 429, padahal batas per IP 10 (Ilustrasi; rekaman c4-ratelimit bagian F memberi 20 dari 24). | Penghitung gagal login salah di kode | Token bucket ADR 20 ada di memori tiap instance. Proxy memilih instance acak, jadi batas efektif per IP antara 10 dan 20, per akun antara 5 dan 10, dan per IP sampai 600 per 30 menit (R3-34, keputusan 545 dan 648). Kunci akun tidak ikut berlipat: `gagal_login` dan `terkunci_sampai` ada di database (keputusan 550), jadi lima salah berturut-turut ke satu akun tetap mengunci. Yang bocor adalah penahan banjir per IP: satu tebakan per akun tidak pernah menyentuh kunci akun (rekaman c4-ratelimit bagian C). Dengan N instance, batas bisa N kali lipat | **State bersama lawan state per proses**; rate limit lintas instance; `INCR` dan `EXPIRE` yang atomik (R3-10, R3-12) | ADR 27: Redis untuk state bersama; skrip atomik; timeout 50 ms; Redis mati berarti batas lokal; Redis bukan queue dan bukan source of truth |
-| M23 | 6 | Promo HR mulai 11.30. HP Budi menunjukkan nasi goreng Rp22.500, HP Citra di meja yang sama Rp25.000. Orang yang mengantre di warung Ani berdebat soal harga (Ilustrasi). | Bug Flutter menyimpan harga lama | Di minggu 2 Nadia menambah cache katalog di memori proses (TTL 5 menit) karena "katalog dibaca terus". Dengan dua instance, hanya instance yang menerima perubahan yang membuang entri; instance lain tetap stale (data yang sudah tidak terbaru) sampai TTL habis. Beban katalog sebenarnya 5,2 baca per detik, 0,03 koneksi: cache tidak diperlukan oleh beban (R3-37) | **Cache**; cache-aside; TTL dan invalidation (tulis database dulu, baru hapus kunci); stampede hanya disebut (R3-09, R3-11, R3-25) | ADR 28: cache katalog di Redis, TTL 60 detik, hapus kunci sesudah tulis; harga yang ditagih selalu dari database; "tanpa cache" tetap opsi sah |
-| M24 | 7 | Senin 07.05 app Budi menunjukkan ayam geprek "habis", padahal Ani mengisi 30 porsi lewat dasbor hari Sabtu. Ani: "Jumat sore saya catat habis, itu sudah lewat dua hari." | Dasbor atau jam HP yang salah | Jumat 16.50 operasi "stok = 0" sampai ke server, tetapi jawabannya hilang; HP Ani lalu offline sampai Senin 07.00 (62 jam, Asumsi). App mengirim ulang dengan key yang sama; server sudah membuang key sesudah 24 jam (ADR 14) dan menerapkannya sebagai timpa tanpa pemeriksaan versi (R3-40) | **Offline-first**; queue sinkron; operasi bersyarat versi (optimistic lock); umur key lawan umur queue; konflik ditampilkan, bukan ditimpa (R3-17) | ADR 29: offline hanya stok dan harga; `UPDATE … WHERE versi = …`, 409 memunculkan pilihan; key sinkron 14 hari di `operasi_sinkron`; pembayaran tidak pernah offline |
+| M22 | 6 | Dimas menguji staging atas permintaan Bayu. Sesudah instance kedua dipasang, ia mengirim 24 percobaan login dari satu IP ke akun uji yang berbeda dengan password bocor. Dua puluh lolos ke pemeriksaan password sebelum ada yang ditolak 429, padahal batas per IP 10 (Ilustrasi; rekaman c4-ratelimit bagian F memberi 20 dari 24). | Penghitung gagal login salah di kode | Token bucket ADR 20 ada di memori tiap instance. Proxy memilih instance acak, jadi batas efektif per IP antara 10 dan 20, per akun antara 5 dan 10, dan per IP sampai 600 per 30 menit (R3-34, keputusan 545 dan 648). Kunci akun tidak ikut berlipat: `gagal_login` dan `terkunci_sampai` ada di database (keputusan 550), jadi lima salah berturut-turut ke satu akun tetap mengunci. Yang longgar adalah penahan banjir per IP: satu tebakan per akun tidak pernah menyentuh kunci akun (rekaman c4-ratelimit bagian C). Dengan N instance, batas bisa N kali lipat | **State bersama lawan state per proses**; rate limit lintas instance; `INCR` dan `EXPIRE` yang atomik (R3-10, R3-12) | ADR 27: Redis untuk state bersama; skrip atomik; timeout 50 ms; Redis mati berarti batas lokal; Redis bukan queue dan bukan source of truth |
+| M23 | 6 | HR menyalakan promo pukul 11.30. HP Budi menunjukkan nasi goreng Rp22.500, HP Citra di meja yang sama Rp25.000. Orang yang mengantre di warung Ani berdebat soal harga (Ilustrasi). | Bug Flutter menyimpan harga lama | Di minggu 2 Nadia menambah cache katalog di memori proses (TTL 5 menit) karena "katalog dibaca terus". Dengan dua instance, hanya instance yang menerima perubahan yang membuang entri; instance lain tetap stale (data yang sudah tidak terbaru) sampai TTL habis. Beban katalog sebenarnya 5,2 baca per detik, 0,03 koneksi: cache tidak diperlukan oleh beban (R3-37) | **Cache**; cache-aside; TTL dan invalidation (tulis database dulu, baru hapus kunci); stampede hanya disebut (R3-09, R3-11, R3-25) | ADR 28: cache katalog di Redis, TTL 60 detik, hapus kunci sesudah tulis; harga yang ditagih selalu dari database; "tanpa cache" tetap opsi sah |
+| M24 | 7 | Senin 07.05 app Budi menunjukkan ayam geprek "habis", padahal Ani mengisi 30 porsi lewat dasbor hari Sabtu. Ani: "Jumat sore saya catat habis, itu sudah lewat dua hari." | Dasbor atau jam HP yang salah | Jumat 16.50 operasi "stok = 0" sampai ke server, tetapi jawabannya hilang; HP Ani lalu offline sampai Senin 07.00 (62 jam, Asumsi). App mengirim ulang dengan key yang sama; server sudah membuang key sesudah 24 jam (ADR 14; endpoint stok memakai tabel kunci yang sama) dan menerapkannya sebagai timpa tanpa pemeriksaan versi (R3-40) | **Offline-first**; queue sinkron; operasi bersyarat versi (optimistic lock); umur key lawan umur queue; konflik ditampilkan, bukan ditimpa (R3-17) | ADR 29: offline hanya stok dan harga; `UPDATE … WHERE versi = …`, 409 memunculkan pilihan; key sinkron 14 hari di `operasi_sinkron`; pembayaran tidak pernah offline |
 | M25 | 8 | Setiap Ani membuka "Riwayat penerimaan" di dasbor, muncul kotak peringatan berisi angka 1. Wulan: "Mungkin ekstensi browser Ani." | Ekstensi browser atau bug library tabel | Dimas menaruh `<img src=x onerror=alert(1)>` di catatan pembayaran ke warung Ani, untuk mencoba. Dasbor menampilkan catatan lewat `innerHTML`, jadi skripnya berjalan dengan sesi Ani. Jurnal tidak bisa dihapus (append-only), jadi catatan itu tinggal selamanya; perbaikannya di output | **XSS** (stored); output encoding; CSP; CSRF dan cookie sesi; XSS mengalahkan semua mitigasi CSRF (R3-19) | ADR 30: tanpa `innerHTML`; CSP dengan nonce; token CSRF; cookie `__Host-` dengan `HttpOnly`, `Secure`, `SameSite=Lax`; passkey sebagai pilihan |
 | M26 | 9 | Budi sedang makan di kantin tenant mitra di kota kelima. Ia membuka app dan melihat saldonya turun Rp150.000, dengan satu "Transfer ke Dimas" di riwayat yang tidak ia buat. (Uji lapangan atas permintaan Pak Hadi, dengan akun uji.) | Password Budi bocor | Dimas memasang hotspot tiruan bernama sama dengan Wi-Fi kantin. App 3.1 memuat flag "terima sertifikat apa pun" dari staging: Bayu meminta, Raka memasang, tidak dicabut dari build rilis. Proxy tiruan membaca header Authorization dan memakainya | **TLS dan validasi sertifikat**; HSTS; **certificate pinning** (SPKI dan cadangan); token pendek dan refresh; redaksi log (R3-18) | ADR 31: validasi selalu aktif; pin SPKI dengan satu cadangan; token sesi 15 menit (Asumsi) |
 | M27 | 9 | Jumat 11.30 HR mengirim promo ke semua 10.000 HP. Sampai 11.42 notifikasi pembayaran Ani belum datang; orang menumpuk di warung; Ani mengabari Sinta pukul 11.44 (Ilustrasi). | Layanan push lambat | Satu queue urut waktu: 10.000 baris promo berada di depan notifikasi uang. Kapasitas worker 4 ÷ 0,3 detik = 13,3 per detik, jadi 10.000 ÷ 13,3 = ±750 detik (12,5 menit). Top-up massal tiap Senin memakai queue yang sama dan punya akibat yang sama. Tidak ada alert untuk umur notifikasi tertua | **Kapasitas worker** (c ÷ t); fan-out; **kelas prioritas**; laju promo; alert umur tertua; empat golden signals (R3-14, R3-36) | ADR 32 (merevisi ADR 23): kolom `kelas`, bayar dan transfer lebih dulu, top-up massal dan promo sesudahnya; promo paling banyak 5 per detik; alert umur tertua; staging; on-call |
@@ -308,7 +310,7 @@ Fitur PRD v3 yang memicu tiap masalah:
 - M23: katalog dan stok (P0) dan promo dari HR (P1).
 - M24: mode offline di app warung (P1).
 - M25: dasbor web warung (P0) dan catatan pada pembayaran (P1).
-- M26: warung tenant mitra dengan Wi-Fi sendiri (ruang lingkup PRD) dan notifikasi (P0).
+- M26: tidak berhenti saat deploy (P0), karena staging memakai sertifikat tiruan yang memicu flag terima-semua, dan warung tenant mitra dengan Wi-Fi sendiri (ruang lingkup PRD).
 - M27: promo dari HR (P1) dan notifikasi (P0).
 - M28: PRD v4, bukan fitur v3.
 
@@ -431,7 +433,11 @@ Jenis halaman sama dengan Tahap 1 dan 2. Halaman lama Tahap 3 dipakai ulang isin
 | 3.31 | 5 | Yang dibawa keluar dari Tahap 3 | Konsep | ★ | – | kartu |
 | 3.32 | 6 | Jembatan: pratinjau PRD v4 | PRD | ★ | – | tebak |
 
-Widget bertanda W3 adalah widget baru (tugas `W3-pool`, `W3-outbox`, `W3-cache`). Widget lain sudah ada atau diturunkan dari yang ada. `W3-pool` memakai 0,87 pembayaran per detik dan pool 10 dari tabel angka beban. `W3-outbox` juga butuh mode queue dengan dan tanpa kelas untuk 3.26. Halaman 3.5 memakai widget **ERD bertumbuh** yang sama dengan 1.12 dan 2.9, dengan Tahap 2 dan 3 berdampingan.
+Widget bertanda W3 adalah widget baru (tugas `W3-pool`, `W3-outbox`, `W3-cache`); widget lain sudah ada atau diturunkan dari yang ada.
+
+- `W3-pool` memakai 0,87 pembayaran per detik dan pool 10 dari tabel angka beban.
+- `W3-outbox` juga butuh mode queue dengan dan tanpa kelas untuk 3.26.
+- Halaman 3.5 memakai widget **ERD bertumbuh** yang sama dengan 1.12 dan 2.9, dengan Tahap 2 dan 3 berdampingan.
 
 Jalur per peran:
 
