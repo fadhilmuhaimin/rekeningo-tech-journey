@@ -1,0 +1,50 @@
+# Lab t3-cache · M23: cache katalog di memori proses dua instance
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_cache · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-cache run (keputusan 968).
+# instance A (127.0.0.1:18180) dan instance B (127.0.0.1:18182): dua proses api-t3 yang sama, satu PostgreSQL,
+# masing-masing dengan cache katalog di memori prosesnya: ./api-t3 -katalog-cache memori -jam-lab (TTL 300 detik)
+# jam cache digerakkan lewat POST /lab/jam, bukan menunggu 5 menit sungguhan
+
+# --- A. Dua meja di warung yang sama, dua instance: tiap proses mengisi cache-nya sendiri ---
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # hit
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # hit
+instance A: hit 1, miss 1, baca database 1, kunci dihapus 0, galat cache 0
+instance B: hit 1, miss 1, baca database 1, kunci dihapus 0, galat cache 0
+# empat bacaan, dua baca database: isi yang sama dibaca dua kali karena cache tidak dipakai bersama
+
+# --- B. HR menyalakan promo lewat instance A: hanya A yang membuang entrinya ---
+HR Jakarta lewat instance A: POST /promo potongan 10%, mulai 1 menit lalu (sudah berlaku) -> 201
+instance A: hit 1, miss 1, baca database 1, kunci dihapus 1, galat cache 0   # entri katalog:1:418 dibuang
+instance B: hit 1, miss 1, baca database 1, kunci dihapus 0, galat cache 0   # tidak ada yang memberi tahu B
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":22500,"stok":50,"versi":1}   # miss, dari database
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # hit: harga lama, di meja yang sama
+=> SELECT p.id AS produk, p.harga, p.harga * (100 - coalesce((SELECT max(potongan_persen) FROM promo WHERE kota_id = 1 AND mulai <= now() AND selesai > now()), 0)) / 100 AS harga_efektif_db, p.stok, p.versi FROM produk p WHERE p.id = 1
+ produk | harga | harga_efektif_db | stok | versi
+--------+-------+------------------+------+-------
+ 1      | 25000 | 22500            | 50   | 1
+(1 row)
+# Dua harga di satu meja: Budi Rp22.500, Citra Rp25.000. Database menyebut Rp22.500.
+
+# --- C. Harga yang ditagih tetap dari database: Citra memesan sambil melihat Rp25.000 ---
+$ curl -i -X POST '/pesanan' -H 'Authorization: Bearer <token sesi Citra>' -d '{"produk_id": 1, "porsi": 1}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10001
+
+{"id":10001,"saldo":227500,"nominal":22500,"harga_satuan":22500,"potongan_persen":10,"stok_sisa":49}
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # masih hit: harga dan stok 50 sudah lama
+=> SELECT p.id AS produk, p.harga, p.harga * (100 - coalesce((SELECT max(potongan_persen) FROM promo WHERE kota_id = 1 AND mulai <= now() AND selesai > now()), 0)) / 100 AS harga_efektif_db, p.stok, p.versi FROM produk p WHERE p.id = 1
+ produk | harga | harga_efektif_db | stok | versi
+--------+-------+------------------+------+-------
+ 1      | 25000 | 22500            | 49   | 2
+(1 row)
+# Pesanan tidak membaca cache: Rp22.500 ditagih. Stok di cache B (50) juga basi; Pesan memeriksa stok di database.
+
+# --- D. TTL 300 detik membatasi, tidak menyembuhkan: B baru memperbarui sesudah entrinya habis ---
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # detik ke-299: masih entri lama
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":22500,"stok":49,"versi":2}   # detik ke-300: entri habis, dibaca dari database
+instance B: hit 4, miss 2, baca database 2, kunci dihapus 0, galat cache 0
+# Entri basi paling lama sebesar TTL, dihitung sejak entri diisi. Entri yang diisi sesaat sebelum promo dibuat
+# bertahan hampir 300 detik sesudahnya di instance yang tidak menerima perubahan.

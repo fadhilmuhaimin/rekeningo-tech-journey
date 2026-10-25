@@ -1,0 +1,95 @@
+# Lab t3-cache · cache-aside di Redis: urutan hapus kunci, celah yang tersisa, promo yang mulai nanti
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_cache · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-cache run (keputusan 968).
+# Redis 8.10.2 (container lokal, 127.0.0.1:56379); instance A (127.0.0.1:18180) dan B (127.0.0.1:18182)
+# ./api-t3 -katalog-cache redis -katalog-ttl 60s: cache-aside, entri disimpan sebagai JSON, kunci katalog:<kota>:<warung|semua>
+# klien Redis lab: RESP2 sendiri (GET, SET PX, DEL, SCAN), satu koneksi per perintah, batas 100 ms per perintah
+
+# --- A. Satu Redis untuk dua instance: isi sekali, dibaca dua instance ---
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # miss, dari database
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # hit: entri yang diisi A
+instance A: hit 0, miss 1, baca database 1, kunci dihapus 0, galat cache 0
+instance B: hit 1, miss 0, baca database 0, kunci dihapus 0, galat cache 0
+redis PTTL katalog:1:418: paling banyak 60.000 ms (TTL 60 detik terpasang)
+redis GET katalog:1:418: JSON, 1 warung, 40 item
+
+# --- B. Ubah harga: tulis database, COMMIT, baru hapus kunci; kedua instance langsung melihat harga baru ---
+Ani lewat instance A: PATCH /produk/<Nasi goreng> harga 28000, versi 1 -> 200
+redis EXISTS katalog:1:418: 0 (dihapus sesudah COMMIT)
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":28000,"harga_efektif":28000,"stok":50,"versi":2}   # instance lain, harga baru langsung
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":28000,"harga_efektif":28000,"stok":50,"versi":2}   # hit
+=> SELECT p.id AS produk, p.harga, p.harga * (100 - coalesce((SELECT max(potongan_persen) FROM promo WHERE kota_id = 1 AND mulai <= now() AND selesai > now()), 0)) / 100 AS harga_efektif_db, p.stok, p.versi FROM produk p WHERE p.id = 1
+ produk | harga | harga_efektif_db | stok | versi
+--------+-------+------------------+------+-------
+ 1      | 28000 | 28000            | 50   | 2
+(1 row)
+
+# --- C. Promo lewat instance A: semua entri kota dibuang, M23 tidak terjadi ---
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # hit
+HR Jakarta lewat instance A: POST /promo potongan 10%, mulai 1 menit lalu (sudah berlaku) -> 201
+redis EXISTS katalog:1:418: 0 (SCAN katalog:1:* lalu DEL)
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":22500,"stok":50,"versi":1}   # instance B melihat harga promo sekarang juga
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":22500,"stok":50,"versi":1}   # hit
+=> SELECT p.id AS produk, p.harga, p.harga * (100 - coalesce((SELECT max(potongan_persen) FROM promo WHERE kota_id = 1 AND mulai <= now() AND selesai > now()), 0)) / 100 AS harga_efektif_db, p.stok, p.versi FROM produk p WHERE p.id = 1
+ produk | harga | harga_efektif_db | stok | versi
+--------+-------+------------------+------+-------
+ 1      | 25000 | 22500            | 50   | 1
+(1 row)
+
+# --- D. Urutan salah: hapus kunci SEBELUM COMMIT meninggalkan harga lama sampai TTL ---
+# instance A: -katalog-hapus sebelum -lab-gerbang commit (penulis tertahan sesudah UPDATE, sebelum COMMIT)
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # miss, entri diisi
+Ani lewat instance A: PATCH harga 28000, versi 1 -> UPDATE jalan, kunci sudah dihapus, COMMIT belum
+redis EXISTS katalog:1:418: 0
+Budi  lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # miss: database belum melihat 28000, entri lama diisi lagi
+instance A: COMMIT selesai, PATCH -> 200 harga 28000
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # hit: harga lama, tidak ada yang menghapusnya lagi
+=> SELECT p.id AS produk, p.harga, p.harga * (100 - coalesce((SELECT max(potongan_persen) FROM promo WHERE kota_id = 1 AND mulai <= now() AND selesai > now()), 0)) / 100 AS harga_efektif_db, p.stok, p.versi FROM produk p WHERE p.id = 1
+ produk | harga | harga_efektif_db | stok | versi
+--------+-------+------------------+------+-------
+ 1      | 28000 | 28000            | 50   | 2
+(1 row)
+redis PTTL katalog:1:418: paling banyak 60.000 ms (yang menutupnya hanya TTL)
+
+# --- E. Urutan benar: hapus kunci SESUDAH COMMIT; di celah sebelum COMMIT harga lama memang masih benar ---
+# instance A: -katalog-hapus sesudah -lab-gerbang commit
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # miss, entri diisi
+Ani lewat instance A: PATCH harga 28000, versi 1 -> UPDATE jalan, COMMIT belum, kunci belum dihapus
+Budi  lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # hit: sebelum COMMIT, 25000 masih harga yang berlaku
+instance A: COMMIT selesai, lalu kunci dihapus; redis EXISTS katalog:1:418: 0
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":28000,"harga_efektif":28000,"stok":50,"versi":2}   # miss: harga baru
+=> SELECT p.id AS produk, p.harga, p.harga * (100 - coalesce((SELECT max(potongan_persen) FROM promo WHERE kota_id = 1 AND mulai <= now() AND selesai > now()), 0)) / 100 AS harga_efektif_db, p.stok, p.versi FROM produk p WHERE p.id = 1
+ produk | harga | harga_efektif_db | stok | versi
+--------+-------+------------------+------+-------
+ 1      | 28000 | 28000            | 50   | 2
+(1 row)
+
+# --- F. Celah yang tersisa: pembaca lambat mengisi cache SESUDAH tulis dan hapus kunci selesai ---
+# instance B: -lab-gerbang isi (pembaca tertahan sesudah baca database, sebelum simpan ke Redis)
+Citra lewat instance B: GET /katalog?warung=418 -> miss, database dibaca (Rp25.000), belum disimpan ke Redis
+Ani lewat instance A: PATCH harga 28000, versi 1 -> 200, COMMIT selesai, DEL kunci (belum ada isinya)
+instance B: pembaca melanjutkan dan menyimpan hasil bacaannya (Rp25.000) ke Redis
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # hit: harga lama padahal tulis sudah selesai dan kunci sudah dihapus
+=> SELECT p.id AS produk, p.harga, p.harga * (100 - coalesce((SELECT max(potongan_persen) FROM promo WHERE kota_id = 1 AND mulai <= now() AND selesai > now()), 0)) / 100 AS harga_efektif_db, p.stok, p.versi FROM produk p WHERE p.id = 1
+ produk | harga | harga_efektif_db | stok | versi
+--------+-------+------------------+------+-------
+ 1      | 28000 | 28000            | 50   | 2
+(1 row)
+redis PTTL katalog:1:418: paling banyak 60.000 ms (hapus sesudah COMMIT tidak menutup celah ini; TTL membatasinya)
+
+# --- G. Promo yang mulai nanti: tidak ada tulis saat mulai, jadi tidak ada yang menghapus kunci ---
+# TTL 6 detik di bagian ini (ADR 28: 60 detik), supaya habisnya entri bisa direkam tanpa menunggu semenit
+HR Jakarta lewat instance A: POST /promo potongan 10%, mulai 3 detik lagi -> 201
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # miss: promo belum mulai, entri diisi tanpa potongan
+# jam database lewat waktu mulai promo
+instance A: hit 0, miss 0, baca database 0, kunci dihapus 0, galat cache 0   # tidak ada kunci dihapus: tidak ada tulis saat promo mulai
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # hit: promo sudah berlaku di database, entri lama masih dipakai
+=> SELECT p.id AS produk, p.harga, p.harga * (100 - coalesce((SELECT max(potongan_persen) FROM promo WHERE kota_id = 1 AND mulai <= now() AND selesai > now()), 0)) / 100 AS harga_efektif_db, p.stok, p.versi FROM produk p WHERE p.id = 1
+ produk | harga | harga_efektif_db | stok | versi
+--------+-------+------------------+------+-------
+ 1      | 25000 | 22500            | 50   | 1
+(1 row)
+Budi lewat instance A: POST /pesanan -> 201, harga_satuan 22500 (promo 10% dari database)
+Citra lewat instance B: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":22500,"stok":49,"versi":2}   # miss: entri habis, harga promo terbaca
+# Yang membatasi hanya TTL. Tidak dijalankan: memendekkan TTL entri sampai waktu mulai promo berikutnya.

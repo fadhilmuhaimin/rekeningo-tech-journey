@@ -1,0 +1,22 @@
+# Lab t3-cache · beban katalog 5,21 baca per detik: tanpa cache lawan cache, ukuran katalog
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_cache · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-cache run (keputusan 968).
+# Redis 8.10.2; beban: 52 bacaan katalog Jakarta, 5,21 per detik (R3-37, Asumsi), bergilir atas 13 kunci
+# (satu kunci untuk seluruh kota, dua belas untuk tiap warung); satu pengguna, satu instance
+
+# --- A. Ukuran katalog dari rekaman ---
+GET /katalog (Jakarta): 12 warung, 480 item, 41279 byte = 86 byte per item
+GET /katalog?warung=418: 40 item, 3459 byte
+2.400 item enam kota (dihitung, 2.400 x 86 byte): 206.395 byte = 206 KB; R3-37 menulis 720 KB (300 byte per item, Asumsi)
+# Selisih: R3-37 memakai 300 byte per item sebagai tebakan; JSON katalog lab hanya 6 field pendek. Angka lab dipakai.
+
+# --- B. Tanpa cache: tiap bacaan membaca database ---
+52 bacaan -> baca database 52, hit 0
+W (waktu satu baca katalog di database, termasuk JSON) terukur di bawah 20 ms
+L rata-rata (jumlah waktu baca database dibagi lama beban) terukur di bawah 0,1 koneksi dari pool 10
+# Naskah dan R3-37: W = 5 ms (Asumsi), L = 5,21 x 0,005 = 0,026. Rekaman memeriksa batas, bukan angkanya: angka bergantung mesin.
+
+# --- C. Cache di Redis, TTL 60 detik: sama beban, 13 baca database ---
+52 bacaan -> baca database 13, hit 39, galat cache 0
+# 39 dari 52 baca database dihemat. Tanpa cache, beban ini juga tidak menekan database (B).
+# Cache katalog tidak diperlukan oleh beban; alasannya M23 dan kesempatan memakai Redis yang sudah ada untuk rate limit.
