@@ -7,6 +7,19 @@ $ go vet ./...
 (tanpa temuan)
 # exit status 0
 $ TEST_DATABASE_URL=<schema tahap3_tes> TEST_REDIS_ADDR=<Redis lab> go test -v -count=1 -p 1 ./...
+--- PASS: TestBukaCacheKatalogTanpaGerbangBawaan
+--- PASS: TestBukaCacheKatalogMenolakFlagSalah
+--- PASS: TestEndpointLepasGerbangHanyaBilaGerbangAda
+PASS
+ok    lab/apit3/cmd/api
+--- PASS: TestMemoriTTL
+--- PASS: TestMemoriHapusAwalan
+--- PASS: TestBacaGalatDatabaseTidakMenyimpanDanTidakMenghapus
+--- PASS: TestBacaPenyimpanRusakJatuhKeDatabase
+--- PASS: TestGerbangMenahanSampaiDilepas
+--- PASS: TestRedisMenggantungBerhentiDiBatasTanpaRetry
+PASS
+ok    lab/apit3/internal/cache
 --- PASS: TestNaikAtomikDanBermasaBerlaku
 --- PASS: TestNaikMemperbaikiKeyTanpaMasaBerlaku
 --- PASS: TestJendelaTidakDiperpanjang
@@ -34,6 +47,10 @@ ok    lab/apit3/internal/redisbatas
 --- PASS: TestBalikSekali
 --- PASS: TestTutupBukuSeimbang
 --- PASS: TestDuaInstanceBatasAkunDanKunciDatabase
+--- PASS: TestKatalogCacheHitLaluHapusSesudahUbah
+--- PASS: TestKatalogCacheTulisDitolakTidakMenghapus
+--- PASS: TestKatalogCachePromoMenghapusSatuKota
+--- PASS: TestPesanTidakMembacaCache
 --- PASS: TestLatarMenangkapPanic
 --- PASS: TestLatarRentanMematikanProses
 --- PASS: TestRingkasanEksporLaporanKosong
@@ -76,6 +93,8 @@ ok    lab/apit3/internal/worker
 
 # --- B. Tanpa TEST_DATABASE_URL dan TEST_REDIS_ADDR: tes yang butuh keduanya dilewati, tes tanpa itu tetap jalan ---
 $ go test -count=1 ./...
+ok    lab/apit3/cmd/api
+ok    lab/apit3/internal/cache
 ok    lab/apit3/internal/redisbatas
 ok    lab/apit3/internal/service
 ok    lab/apit3/internal/worker
@@ -83,6 +102,8 @@ ok    lab/apit3/internal/worker
 
 # --- C. TES_DB_WAJIB=1 dan TES_REDIS_WAJIB=1 tanpa database dan Redis: gagal keras, bukan hijau karena tes dilewati (pola 2.24) ---
 $ TES_DB_WAJIB=1 TES_REDIS_WAJIB=1 go test -count=1 ./...
+ok    lab/apit3/cmd/api
+ok    lab/apit3/internal/cache
 TES_REDIS_WAJIB=1 tetapi TEST_REDIS_ADDR kosong: tes yang butuh Redis tidak boleh dilewati
 FAIL  lab/apit3/internal/redisbatas
 TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong: tes yang butuh PostgreSQL tidak boleh dilewati

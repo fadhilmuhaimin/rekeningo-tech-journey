@@ -14,6 +14,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"lab/apit3/internal/cache"
 	"lab/apit3/internal/push"
 	"lab/apit3/internal/repo"
 )
@@ -37,6 +38,8 @@ type Service struct {
 	// jaringan di dalam transaction (ADR 22), jadi kedua field ini kosong.
 	push   push.Klien
 	rentan string
+	// Cache katalog (lab t3-cache, keputusan 968). Nil berarti tanpa cache: perilaku api-t3 tidak berubah.
+	kc *cache.Katalog
 }
 
 func Baru(r repo.Repo, umurSesi time.Duration) Service {
@@ -50,6 +53,9 @@ func (s Service) DenganRentan(mode string, k push.Klien) Service {
 	s.rentan, s.push = mode, k
 	return s
 }
+
+// DenganCache memasang cache katalog (flag -katalog-cache, lab t3-cache). Tanpa ini katalog selalu dari database.
+func (s Service) DenganCache(k *cache.Katalog) Service { s.kc = k; return s }
 
 // DenganBatasLoginAkun mengganti pembatas per akun di jalur login (flag -redis memasang PembatasBersama, ADR 27).
 func (s Service) DenganBatasLoginAkun(b Batas) Service { s.loginAkun = b; return s }
