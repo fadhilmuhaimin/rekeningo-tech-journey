@@ -21,7 +21,7 @@ const LABEL: Record<string, string> = {
   m11: "HP Budi: lingkaran pemuatan berputar di atas daftar riwayat yang masih kosong. Di sampingnya layar laporan Ani menampilkan kotak kesalahan, dan sebuah jam menandai lamanya menunggu.",
   m12: "HP Budi: daftar riwayat yang digulir menampilkan dua baris yang sama berurutan. Di sampingnya kartu kiriman baru dari Dimas, dengan panah yang berhenti sebelum daftar itu.",
   m14: "HP Citra: kartu kiriman berhasil dengan tanda centang. Di sampingnya batang kiriman Rp800.000 yang melewati garis batas harian Rp500.000, dan di bawahnya dua cabang kode yang digabung menjadi satu.",
-  m16: "HP Ani: layar menampilkan gembok. Di sampingnya satu laptop menarik garis ke empat kartu akun, dan satu kartu bertanda gembok berwarna peringatan."
+  m16: "HP Ani: layar menampilkan gembok. Di sampingnya satu laptop menarik garis ke empat kartu akun, dan satu kartu bertanda gembok berwarna peringatan.",
   m15: "Dua lembar berdampingan di meja Pak Hadi dengan tanda tidak sama di antaranya: daftar file transfer dengan dua baris kembar berwarna peringatan, dan daftar ledger yang satu baris lebih pendek.",
 };
 if (!LABEL[nama]) throw new Error(`Ilustrasi "${nama}" tidak dikenal`);
@@ -245,6 +245,8 @@ if (!LABEL[nama]) throw new Error(`Ilustrasi "${nama}" tidak dikenal`);
       <rect class="il-orang" x="140" y="34" width="54" height="18" rx="4" />
       <rect class="il-warn" x="140" y="58" width="54" height="18" rx="4" />
       <rect class="il-orang" x="140" y="82" width="54" height="18" rx="4" />
+    </svg>
+  )}
   {nama === "m15" && (
     <svg viewBox="0 0 200 110" width="200" height="110" aria-hidden="true">
       <rect class="il-isi il-garis" x="4" y="6" width="84" height="98" rx="6" />
