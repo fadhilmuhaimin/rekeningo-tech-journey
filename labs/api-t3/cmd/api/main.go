@@ -65,7 +65,7 @@ func main() {
 	katalogTTL := flag.Duration("katalog-ttl", 0, "TTL entri katalog; 0 = bawaan mode (memori 5 menit, redis 60 detik)")
 	katalogHapus := flag.String("katalog-hapus", cache.HapusSesudah, "urutan hapus kunci: sesudah (benar), sebelum COMMIT, atau selalu (juga saat tulis gagal); dua yang terakhir rentan")
 	katalogRedis := flag.String("katalog-redis", "", "alamat Redis untuk -katalog-cache redis (tiruan lokal di container); terpisah dari -redis milik batas login")
-	katalogRedisBatas := flag.Duration("katalog-redis-timeout", 50*time.Millisecond, "batas waktu satu perintah Redis untuk cache katalog (dial, tulis, baca)")
+	katalogRedisBatas := flag.Duration("katalog-redis-timeout", 50*time.Millisecond, "batas waktu Redis untuk cache katalog: dial, tulis, baca, dan antre di pool, masing-masing; go-redis tanpa retry")
 	labGerbang := flag.String("lab-gerbang", "", "lab saja: gerbang yang menahan goroutine sampai POST /lab/gerbang/lepas, dipisah koma: commit, isi")
 	flag.Parse()
 
@@ -133,10 +133,13 @@ func main() {
 		}
 		return time.Now()
 	}
+	if *labGerbang != "" && *katalogCache == "" {
+		log.Fatal("-lab-gerbang butuh -katalog-cache")
+	}
 	var kc *cache.Katalog
 	if *katalogCache != "" {
 		var err error
-		if kc, err = bukaCacheKatalog(*katalogCache, *katalogTTL, *katalogHapus, *katalogRedis, *katalogRedisBatas, *labGerbang, jam); err != nil {
+		if kc, err = bukaCacheKatalog(*katalogCache, *katalogTTL, *katalogHapus, *katalogRedis, *katalogRedisBatas, *labGerbang, *lab, jam); err != nil {
 			log.Fatal(err)
 		}
 		svc = svc.DenganCache(kc)

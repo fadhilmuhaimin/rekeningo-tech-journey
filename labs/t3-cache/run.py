@@ -268,7 +268,7 @@ def rekam_redis():
     redis_kosongkan()
     catat(f"# Redis {redis_versi()} (container lokal); instance A (127.0.0.1:{d.DASAR}) dan B (127.0.0.1:{d.DASAR_KEDUA})")
     catat(f"# ./api-t3 -katalog-cache redis -katalog-ttl {TTL_REDIS}: cache-aside, entri disimpan sebagai JSON, kunci katalog:<kota>:<warung|semua>")
-    catat("# client Redis lab: RESP2 sendiri (GET, SET PX, DEL, SCAN), satu koneksi per perintah, batas 100 ms per perintah")
+    catat("# client Redis: go-redis v9.23.0 tanpa retry (GET, SET dengan TTL, DEL, SCAN); batas 100 ms untuk dial, tulis, dan baca")
     mulai_instance(PORT, ttl=TTL_REDIS)      # hanya untuk login; sesi ada di database, jadi token berlaku di semua instance
     budi = login("budi@lestari.example", label="Budi")
     citra = login("citra@lestari.example", label="Citra")

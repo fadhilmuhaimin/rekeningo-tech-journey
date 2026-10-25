@@ -5,8 +5,10 @@ import (
 	"context"
 	"errors"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -112,68 +114,72 @@ func TestGerbangMenahanSampaiDilepas(t *testing.T) {
 	g.Tahan(context.Background(), GerbangIsi) // gerbang tidak aktif: langsung lewat
 }
 
-func TestBacaRESP(t *testing.T) {
-	cek := func(masuk string, ingin any) {
-		t.Helper()
-		v, err := bacaRESP(bufio.NewReader(strings.NewReader(masuk)))
+// perintahBerikut membaca satu perintah RESP (array bulk string) dari koneksi tiruan.
+func perintahBerikut(br *bufio.Reader) ([]string, error) {
+	baris, err := br.ReadString('\n')
+	if err != nil {
+		return nil, err
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(baris[1:]))
+	if err != nil {
+		return nil, err
+	}
+	arg := make([]string, n)
+	for i := range arg {
+		if _, err := br.ReadString('\n'); err != nil { // $panjang
+			return nil, err
+		}
+		a, err := br.ReadString('\n')
 		if err != nil {
-			t.Fatalf("%q: %v", masuk, err)
+			return nil, err
 		}
-		switch w := ingin.(type) {
-		case string:
-			if s, ok := v.(string); !ok || s != w {
-				t.Fatalf("%q: %v", masuk, v)
-			}
-		case []byte:
-			if s, ok := v.([]byte); !ok || string(s) != string(w) {
-				t.Fatalf("%q: %v", masuk, v)
-			}
-		case int64:
-			if s, ok := v.(int64); !ok || s != w {
-				t.Fatalf("%q: %v", masuk, v)
-			}
-		case nil:
-			if v != nil {
-				t.Fatalf("%q: %v", masuk, v)
-			}
-		}
+		arg[i] = strings.TrimRight(a, "\r\n")
 	}
-	cek("+OK\r\n", "OK")
-	cek(":42\r\n", int64(42))
-	cek("$5\r\nhalo\n\r\n", []byte("halo\n"))
-	cek("$-1\r\n", nil)
-	v, err := bacaRESP(bufio.NewReader(strings.NewReader("*2\r\n$1\r\n0\r\n*2\r\n$3\r\nk:1\r\n$3\r\nk:2\r\n")))
-	a, _ := v.([]any)
-	if err != nil || len(a) != 2 || len(a[1].([]any)) != 2 {
-		t.Fatalf("array bersarang: %v, %v", v, err)
-	}
-	if _, err := bacaRESP(bufio.NewReader(strings.NewReader("-ERR salah\r\n"))); err != ErrRedis("ERR salah") {
-		t.Fatalf("galat Redis: %v", err)
-	}
+	return arg, nil
 }
 
-// Redis yang menerima koneksi tetapi tidak menjawab: satu operasi paling lama Batas, lalu galat.
-func TestRedisMenggantungBerhentiDiBatas(t *testing.T) {
+// Redis yang menerima koneksi dan menjawab perintah lain, tetapi tidak menjawab GET (menggantung): GET berhenti di
+// batas dan tidak diulang. Retry bawaan go-redis (3 kali) mengirim GET yang sama lagi, jadi jumlah GET yang diterima
+// menunjukkan retry tanpa bergantung pada kecepatan mesin.
+func TestRedisMenggantungBerhentiDiBatasTanpaRetry(t *testing.T) {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer l.Close()
+	var get atomic.Int64
 	go func() {
 		for {
 			c, err := l.Accept()
 			if err != nil {
 				return
 			}
-			defer c.Close()
+			go func() {
+				defer c.Close()
+				br := bufio.NewReader(c)
+				for {
+					arg, err := perintahBerikut(br)
+					if err != nil {
+						return
+					}
+					if strings.EqualFold(arg[0], "GET") {
+						get.Add(1) // tidak dijawab
+						continue
+					}
+					c.Write([]byte("-ERR tiruan\r\n")) // HELLO dan CLIENT SETINFO: galat Redis, go-redis jatuh ke RESP2
+				}
+			}()
 		}
 	}()
-	r := Redis{Alamat: l.Addr().String(), Batas: 100 * time.Millisecond}
+	r := BaruRedis(l.Addr().String(), 100*time.Millisecond)
 	mulai := time.Now()
 	if _, _, err := r.Ambil(context.Background(), "k"); err == nil {
 		t.Fatal("harus galat")
 	}
 	if d := time.Since(mulai); d > 2*time.Second {
 		t.Fatalf("menunggu %s: batas 100 ms tidak dipakai", d)
+	}
+	if n := get.Load(); n != 1 {
+		t.Fatalf("%d GET diterima, ingin 1: perintah yang kena batas waktu tidak boleh diulang", n)
 	}
 }

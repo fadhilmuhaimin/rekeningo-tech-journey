@@ -13,7 +13,7 @@ import (
 // bukaCacheKatalog menyusun cache katalog dari flag. Memori memakai jam yang sama dengan service: bila -jam-lab
 // menyala, TTL 5 menit bisa dilewati lewat POST /lab/jam tanpa menunggu.
 func bukaCacheKatalog(mode string, ttl time.Duration, hapus, redisAddr string, redisBatas time.Duration, gerbang string,
-	jam func() time.Time) (*cache.Katalog, error) {
+	lab bool, jam func() time.Time) (*cache.Katalog, error) {
 	k := &cache.Katalog{Nama: mode, Urut: hapus}
 	switch hapus {
 	case cache.HapusSesudah, cache.HapusSebelum, cache.HapusSelalu:
@@ -30,9 +30,9 @@ func bukaCacheKatalog(mode string, ttl time.Duration, hapus, redisAddr string, r
 			return nil, fmt.Errorf("-katalog-cache redis butuh -katalog-redis")
 		}
 		if redisBatas <= 0 {
-			return nil, fmt.Errorf("-katalog-redis-timeout harus lebih dari 0: go-redis memakai 5 detik, tanpa batas berarti menggantung")
+			return nil, fmt.Errorf("-katalog-redis-timeout harus lebih dari 0 (nol di go-redis berarti bawaan 5 detik)")
 		}
-		k.P, k.TTL = cache.Redis{Alamat: redisAddr, Batas: redisBatas}, 60*time.Second
+		k.P, k.TTL = cache.BaruRedis(redisAddr, redisBatas), 60*time.Second
 	default:
 		return nil, fmt.Errorf("-katalog-cache tidak dikenal: %q (tanpa, memori, atau redis)", mode)
 	}
@@ -40,6 +40,10 @@ func bukaCacheKatalog(mode string, ttl time.Duration, hapus, redisAddr string, r
 		k.TTL = ttl
 	}
 	if gerbang != "" {
+		if !lab {
+			// Pelepasnya (POST /lab/gerbang/lepas) hanya ada bersama -lab: tanpa itu goroutine yang tertahan tidak pernah dilepas.
+			return nil, fmt.Errorf("-lab-gerbang butuh -lab")
+		}
 		nama := strings.Split(gerbang, ",")
 		for _, n := range nama {
 			if n != cache.GerbangCommit && n != cache.GerbangIsi {
@@ -52,7 +56,8 @@ func bukaCacheKatalog(mode string, ttl time.Duration, hapus, redisAddr string, r
 }
 
 // pasangEndpointCache: pencacah dan gerbang untuk rekaman lab (hanya dengan -lab). GET /lab/cache memperlihatkan hit,
-// miss, baca database, galat cache, dan kunci yang dihapus; POST /lab/cache/reset menolkannya.
+// miss, baca database, galat cache, dan kunci yang dihapus; POST /lab/cache/reset menolkannya. POST /lab/gerbang/lepas
+// hanya terdaftar bila -lab-gerbang menyalakan gerbang.
 func pasangEndpointCache(rute *http.ServeMux, k *cache.Katalog) {
 	rute.HandleFunc("GET /lab/cache", func(w http.ResponseWriter, req *http.Request) {
 		isi := map[string]any{"aktif": k != nil}
@@ -72,11 +77,14 @@ func pasangEndpointCache(rute *http.ServeMux, k *cache.Katalog) {
 		}
 		w.WriteHeader(http.StatusNoContent)
 	})
+	if k == nil || k.Gerbang == nil { // tanpa -lab-gerbang rute pelepas tidak ada
+		return
+	}
 	rute.HandleFunc("POST /lab/gerbang/lepas", func(w http.ResponseWriter, req *http.Request) {
 		var in struct {
 			Nama string `json:"nama"`
 		}
-		if k == nil || json.NewDecoder(req.Body).Decode(&in) != nil {
+		if json.NewDecoder(req.Body).Decode(&in) != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
