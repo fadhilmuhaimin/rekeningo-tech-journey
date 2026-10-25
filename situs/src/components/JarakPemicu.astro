@@ -1,0 +1,68 @@
+---
+/**
+ * Widget jarak ke pemicu cache (ADR 21, keputusan 772): tebak berapa kali lipat puncak Tahap 2 sampai satu query riwayat
+ * menahan 5 koneksi, lalu ganti cara query dan lihat jaraknya berubah.
+ *   <JarakPemicu />
+ * W dibaca saat build dari labs/b2-query/output/ledger/n1.txt bagian E lewat logika.ts; rekaman yang berubah bentuk
+ * menggagalkan build. Puncak dihitung dari registry (cerita.json tahap[1].asumsi). Teks dari data/widget/t2-adr21-jarak.json
+ * (skema.ts). Island di-render saat build (client:visible); tanpa JavaScript tabel rekaman tampil di <noscript>.
+ * Satu widget per halaman (dipasang di blok "Coba keduanya" 2.31).
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import JarakPemicuIsland from "../widgets/jarak-pemicu/JarakPemicu";
+import { LabelJarak } from "../widgets/jarak-pemicu/skema";
+import {
+  AMBANG, POOL, bacaCara, besar, desimal1, indeksBenar, isi, kaliPuncak, koneksi, koneksiTeks, lambdaPemicu, lebarLog,
+  puncakPerDetik, waktu, angka,
+} from "../widgets/jarak-pemicu/logika";
+import labelMentah from "../../data/widget/t2-adr21-jarak.json";
+import cerita from "../../data/cerita.json";
+
+const FILE = "labs/b2-query/output/ledger/n1.txt";
+const abs = path.join(ROOT, FILE);
+if (!fs.existsSync(abs)) throw new Error(`JarakPemicu: ${FILE} tidak ada`);
+const cara = bacaCara(fs.readFileSync(abs, "utf8"));
+const L = LabelJarak.parse(labelMentah);
+const a2 = cerita.tahap[1]!.asumsi;
+const puncak = puncakPerDetik(a2);
+const per = new Map(cara.map((c) => [c.id, c]));
+const dari = (id: string) => per.get(id)!;
+const maks = Math.max(...cara.map((c) => kaliPuncak(c.ms, puncak)));
+const baris = cara.map((c) => {
+  const kali = kaliPuncak(c.ms, puncak);
+  const nilai = { w: waktu(c.ms), lambda: besar(lambdaPemicu(c.ms)), kali: besar(kali) };
+  return {
+    id: c.id, nama: L.nama[c.id as keyof typeof L.nama], w: nilai.w, l: koneksiTeks(koneksi(puncak, c.ms)),
+    lambda: nilai.lambda, kali: nilai.kali, lebar: lebarLog(kali, maks),
+    kalimat: isi(L.kalimat[c.id as keyof typeof L.kalimat], nilai),
+  };
+});
+const tebak = dari("hal1-join-index");
+const nilaiTebak = {
+  w: waktu(tebak.ms), puncak: desimal1(puncak), lambda: besar(lambdaPemicu(tebak.ms)), kali: besar(kaliPuncak(tebak.ms, puncak)),
+  kali_seluruh_n1: besar(kaliPuncak(dari("seluruh-n1").ms, puncak)),
+  kali_hal1_join: besar(kaliPuncak(dari("hal1-join").ms, puncak)),
+  w_hal1_join: waktu(dari("hal1-join").ms),
+};
+const pilihan = L.pilihan.map((p) => ({ teks: `±${angka(p.kali)} kali`, alasan: isi(p.alasan, nilaiTebak) }));
+const benar = indeksBenar(L.pilihan, kaliPuncak(tebak.ms, puncak));
+const label = {
+  judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, pertanyaan: isi(L.pertanyaan, nilaiTebak), benar: L.benar,
+  belum: L.belum, ulang: L.ulang, ubahJudul: L.ubahJudul, kolom: L.kolom,
+  catatan: isi(L.catatan, { puncak: desimal1(puncak), pool: POOL, ambang: AMBANG }),
+};
+---
+<JarakPemicuIsland client:visible baris={baris} pilihan={pilihan} benar={benar} label={label} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <table>
+    <thead><tr><th>{L.ubahJudul}</th><th>{L.kolom.w}</th><th>{L.kolom.l}</th><th>{L.kolom.lambda}</th><th>{L.kolom.kali}</th></tr></thead>
+    <tbody>
+      {baris.map((b) => (
+        <tr><td>{b.nama}</td><td>{b.w}</td><td>{b.l}</td><td>{b.lambda}</td><td>{b.kali}</td></tr>
+      ))}
+    </tbody>
+  </table>
+</noscript>
