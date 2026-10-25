@@ -1,0 +1,94 @@
+{
+  "istilah": "Argon2id",
+  "sehari_hari": "Password tidak disimpan, yang disimpan hanya sidik jarinya. Argon2id membuat sidik jari itu sengaja lambat dibuat dan menuntut banyak memori. Bagi user yang login sekali sehari, lambatnya tidak terasa. Bagi penyerang yang menebak jutaan password dari tabel yang bocor, tiap tebakan jadi berat.",
+  "cerita": [
+    {
+      "rujukan": "t2-m16",
+      "teks": "Server lab menghitung argon2id untuk tiap tebakan yang lolos batas laju: 10 kali untuk 29 tebakan dari satu alamat, karena 19 tebakan lain ditolak 429 sebelum hash dijalankan."
+    },
+    {
+      "rujukan": "t2-login-aman",
+      "teks": "ADR 20 memilih argon2id dengan t=3, p=4, dan m=64 MiB untuk hash password baru, dan menghitung ulang hash bcrypt dari Tahap 1 saat login berhasil."
+    }
+  ],
+  "mekanisme": [
+    "Server membuat salt acak 128-bit untuk tiap password, lalu menjalankan argon2id dengan tiga parameter: iterasi (t), memori (m), dan jumlah lane paralel (p).",
+    "Hasilnya tag 256-bit. Server menyimpan satu string berformat PHC yang memuat algoritma, parameter, salt, dan tag, sehingga hash lama dan baru bisa hidup berdampingan.",
+    "Saat login, server membaca parameter dari string itu, menghitung ulang dengan password yang dikirim, dan membandingkan tag dalam waktu konstan.",
+    "Biaya yang sama jatuh ke server: tiap hash yang sedang berjalan memegang memori sebesar m. Batas laju di depan hash menjaga agar penyerang tidak mengisi memori dengan tebakan."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, golang.org/x/crypto v0.57.0 (go.mod lab c4-ratelimit)",
+      "teks": "`argon2.IDKey(password, salt, 3, 65536, 4, 32)`, yaitu RFC 9106 pilihan kedua, dan hasilnya ditulis sebagai string PHC. Rekaman bagian A mencatat parameternya, dan bagian D mencatat hash hanya dijalankan 10 kali untuk 29 tebakan.",
+      "rekaman": "labs/c4-ratelimit/output/login/ratelimit.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "Node.js v26.12.1 (dokumentasi)",
+      "teks": "`crypto.argon2('argon2id', { message, nonce, parallelism, tagLength, memory, passes }, callback)` ada sejak v24.7.0 tanpa paket pihak ketiga. `memory` dalam blok 1 KiB, dan `nonce` minimal 8 byte, disarankan acak dan minimal 16 byte.",
+      "dokumentasi": "https://nodejs.org/api/crypto.html"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.x (dokumentasi)",
+      "teks": "Driver bawaan adalah bcrypt. `HASH_DRIVER=argon2id` memilih Argon2id, dan `Hash::make` menerima opsi `memory`, `time`, dan `threads`. `Hash::needsRehash` memberi tahu bahwa hash perlu dihitung ulang, dan `Hash::check` menolak hash dari algoritma lain kecuali `HASH_VERIFY=false`.",
+      "dokumentasi": "https://laravel.com/docs/13.x/hashing"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1 (dokumentasi)",
+      "teks": "Hasher bawaan adalah PBKDF2. `Argon2PasswordHasher` butuh paket `argon2-cffi`, harus ditaruh pertama di `PASSWORD_HASHERS`, dan memakai varian Argon2id secara bawaan. Hash dengan algoritma lain diperbarui otomatis saat user login.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/topics/auth/passwords/"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "serverpod_auth_core_server 4.0.4 (pub.dev), dokumentasi email 4.0.0",
+      "teks": "Paket autentikasinya punya `Argon2HashUtil`, utilitas hash secret berbasis Argon2id. Halaman konfigurasi email hanya menyebut pepper `secretHashPepper` dan tidak menyebut algoritmanya, jadi algoritma password di modul baru belum terkonfirmasi.",
+      "dokumentasi": "https://pub.dev/documentation/serverpod_auth_core_server/latest/serverpod_auth_core_server/Argon2HashUtil-class.html"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "Supabase Auth, dokumentasi tanpa nomor versi",
+      "teks": "Password disimpan dengan bcrypt di kolom `encrypted_password`. App tidak memilih algoritma atau parameternya.",
+      "dokumentasi": "https://supabase.com/docs/guides/auth/password-security"
+    }
+  },
+  "jebakan": [
+    "Parameter diambil dari contoh dokumentasi tanpa dihitung terhadap RAM server. Sepuluh hash bersamaan dengan m=64 MiB memegang 640 MiB, dan banyak alamat melipatgandakannya (hitungan dari konstanta lab, Asumsi).",
+    "Menaikkan parameter tanpa jalan memperbarui hash lama. Karena parameter ikut tersimpan, server bisa menghitung ulang saat user berikutnya login, dan hash user yang tidak pernah login tetap lama.",
+    "Mengira hash yang berat menggantikan batas laju. Hash hanya melindungi tabel yang bocor, sedangkan tebakan lewat pintu login butuh batas laju dan kunci akun."
+  ],
+  "terkait": [
+    "Brute force",
+    "Rate limit",
+    "Token bucket",
+    "Authentication"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-195",
+      "judul": "OWASP Password Storage Cheat Sheet dan RFC 9106",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html",
+      "catatan": "Urutan algoritma, minimum Argon2id (19 MiB, t=2, p=1), format PHC, hitung ulang saat login, dan peringatan work factor terlalu tinggi. RFC 9106 bagian 4 memberi dua pilihan parameter. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-32",
+      "judul": "RFC 9106 bagian 4 dan parameter lab",
+      "url": "https://www.rfc-editor.org/rfc/rfc9106.html",
+      "catatan": "Pilihan kedua: t=3, p=4, m=64 MiB, salt 128 bit, tag 256 bit. Lab c4 memakainya karena satu VPS berbagi memori dengan PostgreSQL."
+    },
+    {
+      "riset": "R2-199",
+      "judul": "Hash password di lima stack lain",
+      "url": "https://nodejs.org/api/crypto.html",
+      "catatan": "Node.js v26.12.1, Laravel 13.x, Django 6.1, Serverpod 4.0.4 dan Supabase Auth. Semua dibuka 25 Oktober 2026 dan tidak dijalankan."
+    },
+    {
+      "judul": "Rekaman lab c4-ratelimit, login/ratelimit.txt",
+      "rekaman": "labs/c4-ratelimit/output/login/ratelimit.txt",
+      "catatan": "Bagian A: parameter argon2id. Bagian D: hash dijalankan 10 kali untuk 29 tebakan."
+    }
+  ]
+}

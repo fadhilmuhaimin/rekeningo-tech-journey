@@ -1140,6 +1140,38 @@
   "jawab": "Tidak ada. Job membaca status `dikirim` dan keluar dengan kode 0, tanpa menulis jurnal dan tanpa menyentuh file (hash sama). Rp25.000 menunggu periode berikutnya (`benar.txt` bagian D)."
  },
  {
+  "id": "t2-login-aman-1",
+  "halaman": "t2-login-aman",
+  "judul": "2.28 Keamanan 4: brute force, credential stuffing, hash password + ADR 20",
+  "url": "tahap-2/brute-force/",
+  "tanya": "Satu alamat mengirim satu tebakan ke tiap dari 29 akun, dan server hanya punya kunci per akun. Berapa akun yang terkunci?",
+  "jawab": "Nol. Tiap akun hanya melihat satu kegagalan, jadi ambang 5 tidak pernah tercapai, dan satu akun terbuka karena memakai ulang password dari daftar (rekaman bagian C)."
+ },
+ {
+  "id": "t2-login-aman-2",
+  "halaman": "t2-login-aman",
+  "judul": "2.28 Keamanan 4: brute force, credential stuffing, hash password + ADR 20",
+  "url": "tahap-2/brute-force/",
+  "tanya": "Penyerang mengganti alamat di header `X-Forwarded-For` pada tiap tebakan, dan server memercayai header itu. Apa yang terjadi pada batas per alamat?",
+  "jawab": "Tidak ada yang ditolak: 20 dari 20 tebakan lolos (rekaman bagian E). Server harus memakai alamat koneksi, atau header hanya dari proxy yang bisa dibuktikan miliknya sendiri."
+ },
+ {
+  "id": "t2-login-aman-3",
+  "halaman": "t2-login-aman",
+  "judul": "2.28 Keamanan 4: brute force, credential stuffing, hash password + ADR 20",
+  "url": "tahap-2/brute-force/",
+  "tanya": "Raka menaikkan memori argon2id dari 64 MiB ke 256 MiB supaya hash lebih kuat. Apa yang ikut naik di server?",
+  "jawab": "Memori yang dipakai tiap login yang sedang berjalan. Dengan 10 hash bersamaan, 640 MiB menjadi 2.560 MiB (hitungan 10 × 256 MiB, Asumsi). Hash yang lebih berat bagi penyerang juga lebih berat bagi server."
+ },
+ {
+  "id": "t2-login-aman-4",
+  "halaman": "t2-login-aman",
+  "judul": "2.28 Keamanan 4: brute force, credential stuffing, hash password + ADR 20",
+  "url": "tahap-2/brute-force/",
+  "tanya": "Ani memasukkan password yang benar, tetapi akunnya terkunci oleh lima tebakan orang lain. Apa jawabannya?",
+  "jawab": "401 dengan isi yang sama persis dengan password salah (api-t2 `pengaman.txt` bagian E). Penyerang tidak tahu akun itu terkunci, dan Ani juga tidak."
+ },
+ {
   "id": "B3.2-1",
   "halaman": "B3.2",
   "judul": "Race condition dan lock",
