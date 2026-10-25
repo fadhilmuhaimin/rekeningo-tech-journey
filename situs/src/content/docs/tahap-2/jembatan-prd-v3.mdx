@@ -1,0 +1,116 @@
+---
+title: "2.33 Jembatan: pratinjau PRD v3"
+description: Minggu 8. Sinta membagikan PRD v3 untuk enam kota, dengan notifikasi saat menerima uang dan dasbor web untuk warung. Dari ADR Tahap 2, tebak mana yang pecah lebih dulu.
+---
+import Blok from "../../../components/Blok.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import dataTebak from "../../../../data/widget/t2-jembatan-tebak.json";
+import { muat, label, url as urlHalaman } from "../../../../tools/registri.mjs";
+
+export const hs = muat().halaman;
+export const tautanTebak = ["t2-login-aman", "t2-race-lock", "t3-prd"]
+  .map((id) => hs.find((h) => h.id === id && h.ada))
+  .filter(Boolean)
+  .map((h) => ({ label: label(h), href: urlHalaman(h) }));
+
+<p class="meta">Baca 5 menit · coba 1 menit · Prasyarat: [[t2-rekap]] · Jalur inti</p>
+
+Ini pratinjau PRD v3, dokumen ketiga yang Sinta tulis untuk Rekeningo. Halaman ini hanya menampilkan apa yang diminta; membangunnya adalah isi Tahap 3.
+
+<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v3">
+  <dl><div><dt>Penulis</dt><dd>Sinta, unit Inisiatif Digital</dd></div><div><dt>Syarat baru</dt><dd>Pak Hadi, Kepala Divisi Keuangan</dd></div></dl>
+  <dl><div><dt>Lingkup</dt><dd>Enam kota: ±10.000 karyawan, ±60 warung</dd></div><div><dt>Tim</dt><dd>4 engineer, 10 minggu</dd></div></dl>
+</div>
+
+<Blok nama="Pratinjau PRD v3" buka>
+
+Minggu 8 Tahap 2. Uji coba tutup buku kedua selesai dalam tiga jam dengan selisih Rp0 ([[t2-m17]]). Direksi lalu memperluas Rekeningo ke semua cabang Grup Lestari di enam kota.
+
+PRD v3 mengubah lima hal dari PRD v2:
+
+| | PRD v2 | PRD v3 |
+|---|---|---|
+| Lingkup | Seluruh kampus pusat: 1.000 karyawan, 12 warung | Enam kota: ±10.000 karyawan, ±60 warung |
+| Yang diberi tahu | Tidak ada notifikasi: ditunda ke v3 | Penerima uang diberi tahu tanpa membuka app |
+| Warung | Pencairan terjadwal tiap Jumat; dasbor web di luar lingkup | Dasbor web, dan mode offline untuk stok dan harga |
+| Beban puncak (Asumsi) | ±1,4 request per detik | ±17,4 request per detik, naik 12,5 kali |
+| Tim | 2 engineer, 8 minggu | 4 engineer, 10 minggu (Asumsi cerita) |
+
+Pak Hadi menambah satu syarat: "Ani tidak boleh diberi tahu uang masuk sebelum uang itu benar-benar tercatat."
+
+Angka di dokumen ini adalah angka cerita (Ilustrasi), kecuali yang ditulis Asumsi atau Rekaman lab.
+
+Selama Tahap 2, Raka dan Nadia menulis ADR 13 sampai 21 dan merevisi ADR 6 ([[t2-adr-ledger]]). Sebagian dari keputusan itu akan pecah lebih dulu daripada yang lain.
+
+<Tebak client:visible data={dataTebak} tautan={tautanTebak} />
+
+</Blok>
+
+<Blok nama="Ruang lingkup">
+
+Delapan fitur diminta di PRD v3. Beberapa sudah muncul di Tahap 2 sebagai sesuatu yang ditunda atau di luar lingkup.
+
+| Fitur | Prioritas | Asalnya di Tahap 2 |
+|---|---|---|
+| Notifikasi saat menerima uang | P0 | PRD v2 prioritas P2: diminta Budi, ditunda ke v3 ([[t2-prd]]). Ini jawaban untuk "bagaimana Citra tahu ada kiriman masuk?" di [[t2-transfer]] |
+| Katalog dan stok warung | P0 | Tidak ada di PRD v2 |
+| Dasbor web warung | P0 | Di luar lingkup PRD v2 ([[t2-prd]]) |
+| Tidak berhenti saat deploy atau saat satu proses mati | P0 | Satu proses: tiap deploy menghentikan layanan sampai proses baru menyala ([[t2-adr-21]]) |
+| Promo dari HR | P1 | Di luar lingkup PRD v2 ([[t2-prd]]) |
+| Catatan pada pembayaran dan transfer | P1 | `jurnal.keterangan` berisi teks bebas, dan jurnal tidak bisa dihapus ([[t2-adr-ledger]]) |
+| Mode offline di app warung | P1 | Tidak ada di PRD v2. Halaman kursor menulis bahwa sync offline menunggu Tahap 3 ([[t2-kursor]]) |
+| Masuk dasbor lebih aman: kata sandi tetap ada, passkey boleh dipilih | P1 | Faktor kedua dijadwalkan ke Tahap 3 ([[t2-login-aman]]) |
+
+Ditunda ke v4 (P2): top-up dari rekening bank, kartu virtual, dan verifikasi identitas.
+
+Prioritas dan rincian tiap fitur ada di PRD v3 lengkap, di awal Tahap 3.
+
+</Blok>
+
+<Blok nama="Pertanyaan terbuka">
+
+PRD v3 punya tiga pertanyaan yang belum dijawab. Tebak dulu jawabannya, lalu buka apa yang sudah tercatat di Tahap 2 dan apa yang belum.
+
+<details class="question">
+<summary>Tebak dulu: kalau layanan push lambat, apakah pembayaran ikut lambat?</summary>
+
+Tahap 2 mencatat syaratnya, bukan jawabannya. Lock buku ADR 13 dipegang sampai COMMIT, dan request kedua menunggu selama itu ([[t2-race-lock]]). Aturan 4 melarang panggilan jaringan selama lock dipegang.
+
+Hitungan [[t2-estimasi]] untuk bayar dan transfer: 0,87 per detik × (0,02 + 2 detik) = 1,75 koneksi tertahan, dan 26,1 bila panggilannya 30 detik (Asumsi). Yang belum ada: lama panggilan push sebenarnya, dan kapasitas satu server (Tidak dijalankan).
+
+</details>
+
+<details class="question">
+<summary>Tebak dulu: kalau pemberitahuan gagal terkirim, siapa yang tahu?</summary>
+
+Pemeriksa otomatis di Tahap 2 memeriksa uang, bukan pemberitahuan. Di rekaman yang diperankan, job malam menemukan selisih cache saldo Rp5.000 dan keluar dengan status 1 (`migrasi.txt` bagian E, [[t2-saldo-bukan-kolom]]). Rekonsiliasi mencocokkan file untuk bank dengan ledger sebelum file diberi nama akhir ([[t2-job-rekonsiliasi]]).
+
+Belum ada pemberitahuan, jadi belum ada yang memeriksanya. Riwayat dengan kursor bisa melewatkan baris yang COMMIT belakangan, dan halamannya menulis bahwa notifikasi butuh pembaca yang lain ([[t2-kursor]]).
+
+</details>
+
+<details class="question">
+<summary>Tebak dulu: kalau server jadi dua, apa yang tadinya disimpan di memori satu server?</summary>
+
+Tahap 2 merekam satu jawaban: batas laju ADR 20 ([[t2-login-aman]], rekaman bagian F). Jumlah server tidak ada di rumus mana pun di [[t2-estimasi]], jadi jawabannya dicari dari desain.
+
+Yang belum ada: api-t2 belum pernah dijalankan dengan dua server (Tidak dijalankan). Di antara lab Tahap 2, hanya c4-ratelimit yang merekam dua instance.
+
+</details>
+
+</Blok>
+
+<Blok nama="Menuju Tahap 3">
+
+Tahap 3 dimulai dari PRD v3 lengkap dan dua ADR yang pecah lebih dulu: ADR 20 dan ADR 13. Hitungan di [[t2-estimasi]] memberi puncak ±17,4 request per detik untuk PRD v3 (Asumsi), jadi yang pecah lebih dulu adalah syarat di dalam ADR, bukan kapasitas.
+
+Empat hal dari Tahap 2 belum selesai dan ikut masuk ke PRD v3:
+
+- Kapasitas satu server belum diukur. Satu load test dijadwalkan sebelum fitur PRD v3 pertama ([[t2-adr-21]]).
+- Lupa password mandiri belum ada, dan password sementara berpola. Dasbor web memakai akun yang sama ([[t2-login-aman]]).
+- Penutupan periode tutup buku belum dibuat. PRD v3 mempertahankan tutup buku selesai dalam kurang dari satu hari dengan selisih Rp0 ([[t2-m17]]).
+- Idempotency-Key belum dipasang di api-t2 ([[t2-idempotency]]).
+
+Tahap 2 selesai di sini. Halaman berikutnya adalah cerita Tahap 3.
+
+</Blok>
