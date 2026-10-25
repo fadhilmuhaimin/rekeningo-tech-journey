@@ -1,0 +1,75 @@
+# Lab t3-outbox · pengiriman ganda: worker mati di tengah, klaim terlalu pendek, penyaring di penerima (M20)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_outbox · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-outbox run (keputusan 960).
+$ ./api-t3 -lab
+
+# --- A. Worker mati di antara kirim dan tandai terkirim: klaim 5 detik (bawaan), lalu pengiriman ulang dengan notifikasi_id yang sama ---
+$ ./api-t3 -peran worker -sekali -lab-henti-sebelum-tandai   # lab: berhenti sesudah push berhasil; klaim bawaan 5 detik
+# exit status 3: mati sesudah layanan push menjawab, sebelum UPDATE status
+=> SELECT status, percobaan, klaim_sampai > now() AS masih_dipegang FROM outbox
+ status   | percobaan | masih_dipegang
+----------+-----------+----------------
+ menunggu | 1         | t
+(1 row)
+push tiruan menerima: 1 pesan
+# Deploy memulai worker baru saat itu juga: klaim belum habis, jadi baris itu dilewati
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 0, terkirim 0, dilewati 0, ditunda 0, mati 0
+=> SELECT status, percobaan, klaim_sampai > now() AS masih_dipegang FROM outbox
+ status   | percobaan | masih_dipegang
+----------+-----------+----------------
+ menunggu | 1         | t
+(1 row)
+# klaim habis: worker berikutnya mengklaim baris yang sama
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+selang dari start worker pertama sampai worker kedua selesai: sedikit di atas 5 detik, yaitu klaim 5 detik ditambah jeda polling dan waktu start worker
+push tiruan menerima: 2 pesan, 1 notifikasi_id
+=> SELECT status, percobaan FROM outbox
+ status   | percobaan
+----------+-----------
+ terkirim | 2
+(1 row)
+=> SELECT count(*) AS jurnal_bayar_baru FROM jurnal WHERE jenis = 'bayar' AND id > 10000
+ jurnal_bayar_baru
+-------------------
+ 1
+(1 row)
+# Hanya satu jurnal, dua pengiriman. Mengirim ulang itu benar (at-least-once); yang kurang adalah penerima yang mengenali ulangan (ADR 25).
+
+# --- B. Klaim yang lebih pendek dari waktu kirim menghasilkan ganda tanpa ada yang mati ---
+=> TRUNCATE outbox RESTART IDENTITY   # lab: antrean kosong lagi, nomor mulai dari 1
+# Klaim 300 ms, layanan push menjawab permintaan pertama sesudah 1,5 detik (lambat), permintaan berikutnya langsung
+# worker A masih menunggu jawaban push; klaimnya habis. Worker B mengklaim baris yang sama dan mengirimnya.
+$ ./api-t3 -peran worker -sekali -klaim 300ms   # worker A dan worker B, A mulai lebih dulu
+worker A: diklaim 1, terkirim 1
+worker B: diklaim 1, terkirim 1   # keduanya mengira ia yang mengirim
+push tiruan menerima: 2 pesan, 1 notifikasi_id
+=> SELECT status, percobaan FROM outbox
+ status   | percobaan
+----------+-----------
+ terkirim | 2
+(1 row)
+# Klaim harus lebih panjang dari waktu kirim terburuk satu baris (ADR 24, ADR 22).
+
+# --- C. Penyaring di penerima: pesan ganda diterima, satu ditampilkan ---
+# Penyaring tiruan lima baris di run.py (kode app Dart: halaman 3.13, Tidak dijalankan di lab ini)
+diterima: 2 pesan; ditampilkan: 1 (notifikasi_id yang sudah tampil dilewati)
+
+# --- D. Klaim 5 detik pun terlalu pendek bila penerima punya dua perangkat yang menggantung: 2 x 3 detik ---
+# Kode worker mengirim ke perangkat penerima satu per satu, tiap panggilan berbatas 3 detik. Warung Ani punya dua HP.
+=> INSERT INTO perangkat (akun_id, platform, token_push) VALUES (418, 'ios', 'tiruan-418-b')
+INSERT 0 1
+=> TRUNCATE outbox RESTART IDENTITY   # lab: antrean kosong lagi, nomor mulai dari 1
+# Layanan push menggantung untuk dua permintaan pertama (satu per HP), lalu normal. Worker A memakai klaim bawaan 5 detik.
+# Klaim A habis (5 detik) selagi A masih mengirim ke HP kedua (detik 3 sampai 6). Worker B mengklaim baris yang sama.
+$ ./api-t3 -peran worker -sekali   # worker A dan worker B, A mulai lebih dulu, klaim bawaan 5 detik
+worker A: diklaim 1, ditunda 1   # HP kedua melewati batas 3 detik; ia baru selesai di detik ke-6
+worker B: diklaim 1, terkirim 1
+push tiruan menerima: 4 pesan (dua HP, dua worker), 1 notifikasi_id
+=> SELECT status, percobaan FROM outbox
+ status   | percobaan
+----------+-----------
+ terkirim | 2
+(1 row)
+# Klaim yang aman sekurang-kurangnya jumlah perangkat x batas waktu push, ditambah sisa; atau kirim ke perangkat serentak. Di lab ini 5 detik muat satu HP, bukan dua yang menggantung.
