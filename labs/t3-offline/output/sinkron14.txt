@@ -1,0 +1,94 @@
+# Lab t3-offline · kunci sinkron 14 hari, queue 7 hari, dan pembayaran yang tidak lewat sinkron
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_offline · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-offline run (keputusan 972).
+# server: ./api-t3 -lab -jam-lab
+# Kunci sinkron hidup 14 hari (operasi_sinkron), queue HP paling lama 7 hari (ADR 29). Server tanpa mode rentan.
+
+# --- A. Jumat 16.50: 'mie habis' diterapkan; Senin 06.50 (62 jam) kunci masih ada, job -bersih tidak menyentuhnya ---
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0201", "perangkat_id": 10061, "produk_id": 121, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"sekarang":{"id":121,"harga":20000,"stok":0,"versi":2},"status":"diterapkan","ulang":false}
+# Jam lab: Senin 06.50 (62 jam sesudah Jumat 16.50). Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu 62 jam
+# Stempel baris digeser 62 jam ke belakang (jam database tidak ikut diperankan); jam HP dan jam service sudah di Senin
+$ ./api-t3 -bersih
+bersih: 0 baris outbox selesai (lebih dari 7 hari), 0 operasi sinkron (lebih dari 14 hari)
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0201", "perangkat_id": 10061, "produk_id": 121, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"sekarang":{"id":121,"harga":20000,"stok":0,"versi":2},"status":"diterapkan","ulang":true}
+=> SELECT count(*) AS baris_operasi FROM operasi_sinkron
+ baris_operasi
+---------------
+ 1
+(1 row)
+
+# --- B. Queue paling lama 7 hari: 6 hari 23 jam diterima, 7 hari 1 jam ditolak ---
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0202", "perangkat_id": 10061, "produk_id": 301, "jenis": "stok", "nilai": 10, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"sekarang":{"id":301,"harga":20000,"stok":10,"versi":2},"status":"diterapkan","ulang":false}
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0203", "perangkat_id": 10061, "produk_id": 301, "jenis": "stok", "nilai": 5, "versi_dasar": 2, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"dibuat_di_hp","pesan":"lebih dari 7 hari di queue: ditolak, ambil keadaan terbaru lalu ubah lagi"}]}
+=> SELECT kunci, nilai, versi_dasar, status FROM operasi_sinkron ORDER BY kunci
+ kunci        | nilai | versi_dasar | status
+--------------+-------+-------------+------------
+ ani-hp1-0201 | 0     | 1           | diterapkan
+ ani-hp1-0202 | 10    | 1           | diterapkan
+(2 rows)
+# Operasi yang ditolak tidak meninggalkan baris: HP mengambil keadaan terbaru lalu mengubah lagi
+
+# --- C. Kunci yang sama dengan isi lain ditolak; kunci milik akun lain tidak bisa dipakai, tetapi ditolak dengan alasan yang sama ---
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0201", "perangkat_id": 10061, "produk_id": 121, "jenis": "stok", "nilai": 7, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"kunci","pesan":"sudah dipakai untuk operasi lain; satu operasi satu kunci"}]}
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Sari>' -d '{"kunci": "ani-hp1-0201", "perangkat_id": 10062, "produk_id": 122, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"kunci","pesan":"sudah dipakai untuk operasi lain; satu operasi satu kunci"}]}
+# Kunci operasi_sinkron adalah kunci utama global: Sari mendapat 422 yang sama dengan Ani, jadi jawabannya membuka bahwa kunci itu sudah dipakai akun lain. Kunci per perangkat lebih rapi (catatan polesan, SETELAH-TAHAP-3)
+
+# --- D. 15 hari sesudah Jumat: kunci dibuang job -bersih; operasi lama tidak bisa dikirim sebagai operasi baru ---
+# Jam lab: Sabtu 16.50, 15 hari kemudian (360 jam sesudah Jumat 16.50). Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu 360 jam
+# Stempel baris digeser 15 hari ke belakang (jam database tidak ikut diperankan)
+=> SELECT count(*) AS baris_operasi FROM operasi_sinkron
+ baris_operasi
+---------------
+ 2
+(1 row)
+$ ./api-t3 -bersih
+bersih: 0 baris outbox selesai (lebih dari 7 hari), 2 operasi sinkron (lebih dari 14 hari)
+=> SELECT count(*) AS baris_operasi FROM operasi_sinkron
+ baris_operasi
+---------------
+ 0
+(1 row)
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0201", "perangkat_id": 10061, "produk_id": 121, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"dibuat_di_hp","pesan":"lebih dari 7 hari di queue: ditolak, ambil keadaan terbaru lalu ubah lagi"}]}
+# Kunci sudah dibuang, tetapi operasinya lebih tua dari 7 hari: ditolak, tidak diterapkan sebagai operasi baru. Queue 7 hari lebih pendek dari kunci 14 hari, jadi kunci selalu hidup selama operasinya masih bisa dikirim
+
+# --- E. Pembayaran tidak pernah lewat sinkron offline: ditolak apa pun isinya ---
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-bayar", "perangkat_id": 10061, "produk_id": 121, "jenis": "bayar", "nilai": 28000, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"jenis","pesan":"pembayaran tidak pernah lewat sinkron offline; hanya stok dan harga"}]}
+# transfer dan topup ditolak dengan jawaban yang sama (tidak dicetak ulang)
+=> SELECT count(*) AS baris_operasi FROM operasi_sinkron
+ baris_operasi
+---------------
+ 0
+(1 row)
+# Pembayaran dari queue offline akan memakai Idempotency-Key 24 jam; kunci24.txt E merekam apa yang terjadi bila ulangannya datang sesudah 62 jam

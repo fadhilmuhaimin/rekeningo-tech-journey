@@ -143,6 +143,11 @@ GRAFIS = {  # selector -> isinya: elemen tanpa teks yang hanya menulis latar; la
     ".sl-markdown-content .bb-ember__token i.is-isi": "bulatan token 0,8rem yang terisi",
     ".sl-markdown-content .bb-peta__bar i": "isi bilah progres peta",
     ".baca-progres span": "bilah progres baca 3 px",
+    ".sl-markdown-content .pl-sel.is-pakai": "kolom koneksi pool yang terpakai di widget pool (W3-pool); angkanya juga tertulis sebagai teks",
+    ".sl-markdown-content .pl-blok": "blok pembayaran yang menunggu koneksi di widget pool; jumlahnya juga tertulis sebagai teks",
+    ".sl-markdown-content .pl-batang": "batang koneksi terpakai per detik di widget pool (aria-hidden); nilainya ada di teks keadaan",
+    ".sl-markdown-content .pl-batang.is-penuh": "batang pool penuh di widget pool; waktu penuh tertulis sebagai teks",
+    ".sl-markdown-content .pl-kursor": "penanda jam simulasi di grafik widget pool; jamnya tertulis di label slider",
 }
 INDUK_DOM = {  # blok BEM -> elemen BEM yang membungkus semua elemen lain blok itu di DOM (BEM tidak menyimpan kedalaman)
     "bb-hp": "bb-hp__screen",  # situs/src/lib/alur-statis.ts dan situs/lama/widgets/hp.js: .bb-hp > .bb-hp__screen > isi layar

@@ -1,0 +1,39 @@
+{
+  "id": "t2-jembatan-tebak",
+  "judul": "ADR Tahap 2 yang pecah lebih dulu",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/c4-ratelimit/output/login/ratelimit.txt bagian F; labs/b3-race/output/ledger/ledger-for-update.txt; angka beban Asumsi dari halaman 2.30"
+  },
+  "adegan": [
+    "Sinta membagikan PRD v3. Raka membuka ADR yang ia dan Nadia tulis di Tahap 2: ADR 13 sampai 21, dan ADR 6 yang direvisi.",
+    "Puncak PRD v3 ±17,4 request per detik (Asumsi), naik 12,5 kali dari ±1,4 di Tahap 2."
+  ],
+  "pertanyaan": "Dari ADR Tahap 2, mana yang pecah lebih dulu?",
+  "pilihan": [
+    {
+      "teks": "ADR 20 dan ADR 13: batas laju yang dihitung di memori satu server, dan lock buku yang dipegang selama transaction jurnal.",
+      "benar": true,
+      "alasan": "Batas laju ADR 20 dihitung di memori tiap server. Dua server yang bergantian menerima 24 percobaan dari satu alamat meloloskan 20, yaitu 10 per server (Rekaman lab, bagian F). Lock buku ADR 13 dipegang sampai COMMIT, dan request kedua menunggu selama itu (Rekaman lab). Notifikasi yang dipanggil di dalam transaction jurnal memperpanjang lock itu sepanjang panggilannya (penalaran dari rekaman lock, Tidak dijalankan)."
+    },
+    {
+      "teks": "ADR 6: ledger menjumlah terlalu banyak posting, karena 10.000 karyawan berarti jauh lebih banyak baris.",
+      "benar": false,
+      "alasan": "Satu tahun data Tahap 3 kira-kira 5.475.000 posting, sedangkan ADR 6 baru menjadwalkan partisi di ±440 juta posting per tahun (Asumsi). Query riwayat Budi halaman pertama memakan 1,4 ms dengan index, diukur tanpa jaringan ke API (Rekaman lab). Ukuran data bukan yang pecah lebih dulu."
+    },
+    {
+      "teks": "ADR 21: satu server kehabisan kapasitas, karena request naik 12,5 kali.",
+      "benar": false,
+      "alasan": "Puncak ±17,4 request per detik adalah Asumsi, dan kapasitas satu server belum pernah diukur (Tidak dijalankan). Pemicu kapasitas di ADR 21 belum bisa dibaca, jadi kehabisan belum punya angka. Little's Law di halaman 2.30 menunjuk lama request, bukan jumlahnya."
+    }
+  ],
+  "penutup": "Keduanya bukan soal banyaknya request: batas laju pecah karena jumlah server, dan lock pecah karena lama transaction. api-t2 belum pernah dijalankan dengan dua server, dan kodenya tidak memanggil layanan lain selain database (Tidak dijalankan). Tahap 3 dimulai dari PRD v3 lengkap dan kedua ADR ini.",
+  "label": {
+    "sumber": "Rekaman lab · ratelimit.txt bagian F, ledger-for-update.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}

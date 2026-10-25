@@ -2,6 +2,13 @@
 [extend]
 useDefault = true
 
+# Sintaks `[allowlist]` (tunggal) sengaja dipakai: CI memakai gitleaks-action v3 dengan gitleaks 8.24.3, yang belum
+# membaca `[[allowlists]]` di tingkat atas (kondisi AND, commits per berkas); `[allowlist]` jalan di 8.24.3 dan 8.30.1.
 [allowlist]
-description = "folder lokal yang di-.gitignore"
+description = "folder lokal yang di-.gitignore, dan lima key idempotensi tiruan di riwayat commit ec8703e (keputusan 972)"
 paths = ['''^\.venv/''', '''^site/''']
+# Lima key tiruan yang sempat direkam di labs/t3-offline/output/{m24,kunci24}.txt (commit ec8703e). Bukan rahasia;
+# riwayat tidak boleh ditulis ulang (tanpa force-push). Dicocokkan terhadap rahasia yang ditemukan dan berjangkar
+# `^...$`, jadi rahasia sungguhan yang hanya memuat potongan UUID ini tetap tertangkap. Rekaman sekarang memakai
+# key 00000000-0000-4000-8000-... (entropi rendah). Jangan menambah nilai ke daftar ini tanpa keputusan baru.
+regexes = ['''^1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b(01|02|03|a1|a2)$''']
