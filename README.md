@@ -101,7 +101,7 @@ Hampir semua lab memakai satu PostgreSQL bersama di port `54333` (bawaan; `LAB_D
 | Schema | Lab |
 |---|---|
 | `tahap1` | `api-t1` (versi naskah Tahap 1, keputusan 132) |
-| `tahap3`, `tahap3_tes` | `api-t3` (skema akhir Tahap 2 lalu migrasi `labs/api-t3/migrasi`; `tahap3_tes` untuk tes Go, keputusan 950) |
+| `tahap3`, `tahap3_tes` | `api-t3` (skema akhir Tahap 2 lalu migrasi `labs/api-t3/migrasi`; `tahap3_tes` untuk tes Go, keputusan 950), `t3-pool` (memakai schema `tahap3` lewat `dasar_t3.py`, keputusan 957) |
 | `b2`, `b2q` | `b2-model`, `b2-query` (`e5-payload` membaca `b2q`, jadi jalankan `b2-query` dulu) |
 | `b3r`, `b3s`, `b33` | `b3-race`, `b3-stack`, `b3-isolasi` |
 | `b3_ledger`, `b3_ledger_v1` | `b3-ledger` (ledger Tahap 2; `b3_ledger_v1` dibuat dari `labs/api-t1/schema.sql` sebagai sumber migrasi) |
@@ -155,6 +155,7 @@ Lab yang punya `Makefile` dijalankan dengan `make -C labs/<nama> run`. Sisanya d
 |---|---|---|
 | `api-t1` | 1.4, 1.6–1.12, 1.14–1.24, 1.26–1.33 | `make -C labs/api-t1 run` (satu bagian: `make -C labs/api-t1 run BAGIAN=login`) |
 | `api-t3` | Belum dirujuk halaman (rencana 3.3, 3.5, 3.7, 3.27; dasar lab Tahap 3 lain) | `make -C labs/api-t3 run` (satu bagian: `make -C labs/api-t3 run BAGIAN=outbox`); `make -C labs/api-t3 cek` merekam ulang dan gagal bila rekaman berbeda dari yang di-commit |
+| `t3-pool` | Belum dirujuk halaman (rencana 3.6, 3.7, 3.8) | `make -C labs/t3-pool run` (±5 menit; satu bagian: `make -C labs/t3-pool run BAGIAN=little`); `make -C labs/t3-pool cek` merekam ulang dan gagal bila rekaman berbeda dari yang di-commit |
 | `b1-openapi` | 1.18, 1.33 | `make -C labs/b1-openapi run` |
 | `b2-model` | Belum dirujuk halaman | `make -C labs/b2-model run` |
 | `b4-migration` | 1.25 | `make -C labs/b4-migration run` |
