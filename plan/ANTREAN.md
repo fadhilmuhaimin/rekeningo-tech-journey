@@ -1347,7 +1347,7 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - percobaan: 1
 - bergantung: 2.33, G-axe
 - selesai bila: `plan/EVALUASI-TAHAP-2.md` sesuai skill evaluasi-tahap oleh subagent yang tidak menulis halaman Tahap 2: kartu W1–W8 dengan satu baris bukti yang bisa diulang, tiga pertanyaan pembaca di tiga halaman acak (seed 2), uji baca oleh subagent segar (5 hal membingungkan). Ada TIDAK: paling banyak 3 tugas perbaikan disisipkan tepat sesudah tugas ini, lalu `EVAL-2-ulang` sekali; sisa TIDAK dan 5 hal membingungkan ke `plan/TINJAUAN-PEMILIK.md`.
-- catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya. Selesai 2026-10-26 di PR evaluasi Tahap 2 (nomor di badan PR; keputusan 750–753): W1–W4 dan W6–W8 YA, W5 TIDAK (2.32 dan 2.2 tanpa "ubah satu hal"; jawaban tebakan sudah di Inti pada 2.12, 2.14, 2.16). Satu perbaikan teks 2.28 (750), alat bukti `tools/eval_tahap.py` dan `situs/tools/eval-keyboard.mjs` (753), satu tugas perbaikan (`EVAL2-F1`) dan `EVAL-2-ulang` (752); sisanya di `plan/TINJAUAN-PEMILIK.md` bagian Tahap 2.
+- catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya. Selesai 2026-10-26 di PR #356 (keputusan 750–753): W1–W4 dan W6–W8 YA, W5 TIDAK (2.32 dan 2.2 tanpa "ubah satu hal"; jawaban tebakan sudah di Inti pada 2.12, 2.14, 2.16). Satu perbaikan teks 2.28 (750), alat bukti `tools/eval_tahap.py` dan `situs/tools/eval-keyboard.mjs` (753), satu tugas perbaikan (`EVAL2-F1`) dan `EVAL-2-ulang` (752); sisanya di `plan/TINJAUAN-PEMILIK.md` bagian Tahap 2.
 
 ### EVAL2-F1 · Berikutnya sesudah jembatan Tahap 2 tidak masuk halaman lama
 
