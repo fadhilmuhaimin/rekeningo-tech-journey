@@ -14,7 +14,9 @@ make -C labs/t3-offline cek                   # rekam ulang; gagal bila output/ 
 
 Lajur kerja lain memakai `COMPOSE_PROJECT_NAME`, `LAB_DB_PORT`, `LAB_REDIS_PORT`, dan `LAB_PORT_OFFSET` (`labs/README.md`). Port dasar API 18180, sama dengan `api-t3`, `t3-pool`, `t3-outbox`, dan `t3-instance`, jadi lab-lab itu tidak jalan bersamaan dalam satu lajur. Rekaman selalu memakai port dasar.
 
-Setiap bagian membuat ulang schema dan data awal dari nol. Yang dicatat adalah status, isi jawaban, dan urutan, bukan waktu. Key idempotensi di rekaman adalah UUID tetap berentropi rendah (`00000000-0000-4000-8000-...`): rekaman identik per byte dan pemindai secret tidak menandainya. App sungguhan memakai UUID acak. Lab gagal keras bila hasilnya meleset.
+Setiap bagian membuat ulang schema dan data awal dari nol. Yang dicatat adalah status, isi jawaban, dan urutan, bukan waktu. Key idempotensi di rekaman adalah UUID tetap berentropi rendah (`00000000-0000-4000-8000-...`), jadi rekaman identik per byte dan pemindai secret tidak menandainya. App sungguhan memakai UUID acak.
+
+Lab gagal keras bila hasilnya meleset.
 
 | Rekaman | Isi | Halaman |
 |---|---|---|
@@ -117,6 +119,7 @@ Yang tidak dimutasi dan tidak dijalankan: server yang mati di antara COMMIT dan 
 
 - **Klaim dan penyimpanan respons dalam satu transaction.** Tidak dijalankan. Rancangan e3-idempotency menulis status selesai di transaction jurnal; di api-t3 itu menyentuh `Bayar`, `Kirim`, dan `Pesan`, jadi tidak diubah di lab ini.
 - **Pembersihan baris key.** Tidak ada job: baris yang kedaluwarsa tetap di `kunci_idempotensi` sampai key yang sama dipakai lagi. Bila semua pembayaran memakai key, tabel tumbuh 7.500 baris per hari (R3-31, Asumsi), ±2,7 juta per tahun. Ukuran baris tidak diukur.
+- **Cache katalog (t3-cache).** `TimpaStok` dan `POST /sinkron` mengubah stok tanpa menghapus entri cache katalog; hanya `PATCH /produk/{id}` yang menghapus (`internal/service/katalog_cache.go`). Dibaca dari kode, tidak dijalankan: lab ini memakai server tanpa cache.
 - **Klaim key sebelum penahan laju.** Di `/kiriman`, key diklaim sebelum penahan per IP dan per akun memeriksa. Permintaan yang kena 429 melepas key, tetapi tiap key baru tetap menulis satu baris dulu. Tidak diukur.
 - **Kunci `operasi_sinkron` global.** Kunci utama tabel itu satu untuk semua akun: akun lain mendapat 422 untuk kunci yang sudah ada (direkam di `sinkron14.txt` C). Dua POST bersamaan dengan kunci sama untuk produk berbeda mencapai unique violation dan berakhir 500 (dibaca dari kode, tidak dijalankan karena hasilnya bergantung pada urutan). Perbaikan (kunci per perangkat) mengubah rekaman `api-t3/output/sinkron.txt`, jadi tidak dikerjakan di sini.
 - **Last-write-wins dengan cap waktu HP, CRDT, key 7 hari untuk semua endpoint, queue pembayaran offline.** Opsi yang ditolak ADR 29. Tidak dijalankan; alasannya ada di halaman ADR, bukan di rekaman.

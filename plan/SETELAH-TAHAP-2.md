@@ -377,3 +377,28 @@ Polesan dan pencegahan dari tinjauan lab dan halaman Tahap 2 yang sengaja tidak 
 - 2.28 tidak membahas CAPTCHA atau deteksi bot sebagai opsi (OWASP Credential Stuffing menyebut banyak lapis): tambah baris di "Sengaja belum dilakukan" setelah isi bagian itu dibuka dan dikutip.
 - Widget "Satu penyemprotan, enam kondisi" berjudul satu penyemprotan tetapi jumlah tebakan berbeda per kondisi (29, 20, 24, 12); tabel menampilkannya, judul bisa diganti "Enam penyemprotan dari rekaman c4".
 - Inti 2.28 menulis 10 diperiksa dan 19 ditolak 429 sebelum widget "tebak dulu" dengan jawaban yang sama; urutkan ulang atau sembunyikan angka di Inti bila ingin tebakan sungguhan.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- Penutupan periode tutup buku (menunggu transaction yang masih terbuka, atau tabel penutupan periode) belum ada di lab maupun peta halaman; 2.4 dan 2.29 menulisnya "belum dibuat". Usul: butir "Sengaja belum dilakukan" di 2.31 atau tugas lab sendiri sebelum Tahap 3.
+- Load test api-t2 (mis. `/bayar` dan `/tutup-buku`) yang mengganti "kapasitas VPS belum diukur" dengan angka rekaman (R2-202); bukan syarat 2.30.
+- Laporan tutup buku api-t2 menjalankan dua query tanpa transaction (R2-94); satu snapshot (`REPEATABLE READ READ ONLY`) membuat jumlah jurnal dan baris buku konsisten satu sama lain. Belum direkam.
+- Ilustrasi `m17`: hanya tiga dari enam titik kota yang bergaris ke kotak server, padahal teks alternatif menyebut enam berhubungan. Tambah tiga garis dari kolom kiri atau ubah teks alternatif.
+- Penjaga "dua instance" di `halaman.test.ts` hanya memindai rekaman `output/**/*.txt` lab lain, bukan kode yang menjalankan dua proses; lab Tahap 2 baru yang menjalankan dua server tidak akan terdeteksi.
+- 3.8 (`t3-pool`): angka 11,5 detik di naskah Tahap 3 punya dua tafsir dengan hasil sama (rata-rata L menyentuh pool 10 pada t = 10 ÷ 0,868 − 0,02, dan 10 panggilan yang tidak pernah selesai menumpuk dalam 10 ÷ 0,868 detik); 2.30 memakai tafsir rata-rata Little, halaman 3.8 sebaiknya menyebut mana yang dipakai.
+- Widget kalkulator: kesimpulan tidak menampilkan rasio terhadap skenario sebelumnya ("naik 12,5 kali"); 2.30 dan 3.29 menjelaskannya di teks. Usul variabel templat `{kali}` bila jalur teknis sempat.
+- 3.8 membuat widget pool; 2.30 memakai tabel statis untuk L = λ × W supaya tidak menduplikasi.
+- Widget kalkulator: kalimat `role="status"` hanya memuat jarak antar request ("tiap 58 ms"), bukan puncak; pembaca layar tidak mendengar angka yang berubah (preseden di 1.37 dan 1.38). Usul: templat `{puncak}` di `label.kesimpulan` untuk semua data kalkulator.
+- 2.30 dan 1.37 menyebut `cerita.json` dan `tahap[].asumsi` kepada pembaca (sama di 1.37, 1.38); usul satu kalimat netral di semua halaman estimasi.
+- Rantai ringkas 2.30: "× 2,02 detik" memerlukan sub ("2 detik panggilan luar + 20 ms") yang disembunyikan di HP; kalimat di bawah Rantai menutupnya, tetapi `Rantai` ringkas bisa menampilkan sub satu baris pendek bila muat.
+- Load test api-t2: satu lab kecil (k6 atau skrip Go) untuk kapasitas satu server sebelum PRD v3; aturan 5 ADR 21 menyebutnya, dan tidak ada perkakas load test di sepuluh lab Tahap 2.
+- api-t2 tanpa `SetMaxOpenConns` dan tanpa pembacaan `db.Stats()`: pemicu ADR 21 butuh L terbaca. Tambahkan log atau endpoint `db.Stats()` (cocok dengan lab 3.8 `t3-pool`).
+- Penutupan periode: peta Tahap 2 tidak punya halaman untuknya, padahal `tutup-buku.txt` bagian C menunjukkan celahnya (2.4, 2.29); ADR 21 tidak mengambilnya karena di luar empat komponen naskah.
+- Celah yang sudah punya tabel "Sengaja belum dilakukan" di halamannya (password sementara berpola dan argon2id di 2.28, Idempotency-Key di api-t2 di 2.14, deadlock top-up CSV di 2.11, penghapusan data pribadi di 2.8) tidak diulang di ADR 21; usul 2.32 mengindeksnya di satu tempat.
+- Widget `jarak-pemicu` hanya mencakup cache; pemicu queue dan server kedua tampil sebagai tabel. Usul simulator pool di 3.8 (sudah di daftar dari 2.30) mencakup queue.
+- Kolom "Direvisi di" menaut empat halaman Tahap 3 berstatus segera (t3-cache, t3-outbox, t3-rate-limit-redis, t3-dua-instance); bila naskah Tahap 3 mengubah pembagiannya, kalimat "Tahap 3 membuka ADR ini lagi per komponen" perlu dicek.
+- Widget tebak, kalkulator, dan jarak-pemicu memakai `disabled` pada pilihan sesudah dijawab: fokus pindah ke body (diuji di Chromium; Tab berikutnya tetap lanjut dari posisi tombol). Pertimbangkan `aria-disabled` supaya fokus tetap di tombol yang ditekan.
+- Jawaban benar di widget jarak-pemicu selalu pilihan C, yang terbesar: acak urutan atau tambah satu pilihan di atas jawaban benar.
+- Naskah Tahap 3 memasukkan Redis untuk rate limit lintas instance (ADR 27, 3.17); pemicu Redis ADR 21 meminta kebutuhan itu sudah diukur di PostgreSQL dan tidak cukup. 3.17 perlu mengukur counter di PostgreSQL lebih dulu atau mengubah pemicunya.
+- Pemicu server kedua di ADR 21 hanya kapasitas dan permintaan PRD, sedangkan M21 Tahap 3 dipicu kejadian (satu proses berhenti dan user melihatnya). Tambahkan pemicu kejadian itu di KONSISTENSI-3 atau saat 2.33 ditulis.
+- 2.30 dan 2.31 memakai 3 transaksi per user aktif untuk Tahap 2 walau registry `trx` = 2: λ bayar dan transfer 0,104 lawan 0,069 per detik, W luar untuk 5 koneksi ±48 lawan ±72 detik. Selaraskan registry atau tulis satu kalimat di 2.31.

@@ -1,0 +1,63 @@
+# Lab t3-cache · kegagalan: Redis menggantung, Redis mati, hapus kunci yang gagal, galat database
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_cache · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-cache run (keputusan 968).
+# Redis 8.10.2; ./api-t3 -katalog-cache redis -katalog-redis-timeout 100ms di instance A (127.0.0.1:18180)
+# jalur baca: Redis galat atau lambat -> dibaca dari database, tanpa menyimpan; jalur tulis: hapus kunci yang gagal dihitung
+
+# --- A. Redis menggantung (CLIENT PAUSE 3 detik): tiap bacaan menunggu batas 100 ms lalu jatuh ke database ---
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # miss, entri diisi
+instance A: hit 0, miss 1, baca database 1, kunci dihapus 0, galat cache 0
+redis CLIENT PAUSE 3000 ALL: Redis menerima koneksi tetapi tidak menjawab
+Budi lewat instance A: 5 kali GET /katalog?warung=418 -> 200 semuanya
+instance A: hit 0, miss 1, baca database 6, kunci dihapus 0, galat cache 5   # lima bacaan: lima baca database, lima galat cache, tidak ada hit
+Budi lewat instance B (-katalog-redis-timeout 5s, sama dengan waktu bawaan go-redis): satu GET /katalog?warung=418 -> 200,
+# tetapi menunggu lebih dari 1,5 detik sampai PAUSE selesai; batas waktu itulah yang membuat jatuh ke database cepat
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # Redis menjawab lagi, entri lama masih ada: hit
+instance A: hit 1, miss 1, baca database 6, kunci dihapus 0, galat cache 5
+
+# --- B. Redis mati: semua bacaan ke database; 50 bacaan serentak, pool tetap 10 ---
+docker compose stop redis: Redis mati
+Budi lewat instance A: 50 GET /katalog?warung=418 serentak -> 200 semuanya
+instance A: hit 1, miss 1, baca database 56, kunci dihapus 0, galat cache 55
+/lab/pool: maks 10, koneksi terbuka paling banyak 10 (dijaga SetMaxOpenConns)
+pg_stat_activity, application_name api-t3, dicuplik tiap 5 ms selama 50 bacaan: paling banyak 10 koneksi
+# 50 bacaan, 50 baca database: dengan cache hidup hanya 1. Lab tidak mengukur apakah ada bacaan yang mengantre di pool.
+
+# --- C. Redis mati saat Ani mengubah harga: hapus kunci gagal, entri lama selamat ---
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # miss, entri diisi
+redis SAVE: snapshot ditulis ke dump.rdb di container (R3-68)
+docker compose stop redis: Redis mati
+Ani lewat instance A: PATCH harga 28000, versi 1 -> 200 (database COMMIT; Redis tidak menjawab)
+instance A: hit 0, miss 1, baca database 1, kunci dihapus 0, galat cache 2   # dua DEL (kunci kota dan warung) gagal
+docker compose up redis: Redis hidup lagi
+redis EXISTS katalog:1:418: 1 (Redis memuat dump.rdb saat start; entri dari SAVE kembali)
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # hit: entri lama kembali, harga lama padahal database 28000
+=> SELECT p.id AS produk, p.harga, p.harga * (100 - coalesce((SELECT max(potongan_persen) FROM promo WHERE kota_id = 1 AND mulai <= now() AND selesai > now()), 0)) / 100 AS harga_efektif_db, p.stok, p.versi FROM produk p WHERE p.id = 1
+ produk | harga | harga_efektif_db | stok | versi
+--------+-------+------------------+------+-------
+ 1      | 28000 | 28000            | 50   | 2
+(1 row)
+redis PTTL katalog:1:418: paling banyak 60.000 ms (hapus kunci tidak diulang oleh siapa pun; TTL yang menutupnya)
+
+# --- D. Galat tulis jangan jadi alasan menghapus cache (versi kecil dari kasus Facebook 2010, R3-25): 5 PATCH gagal ---
+=> REVOKE UPDATE ON produk FROM api_t3   -- UPDATE ditolak database: galat backend yang pasti terjadi (permission denied)
+# -katalog-hapus sesudah (benar: hapus kunci hanya bila tulis berhasil)
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # miss, entri diisi
+Ani: 5 kali PATCH -> 500; sesudah tiap PATCH Budi membaca katalog -> 200
+instance A: hit 5, miss 1, baca database 1, kunci dihapus 0, galat cache 0
+# -katalog-hapus selalu (rentan: hapus kunci juga saat tulis gagal)
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # miss, entri diisi
+Ani: 5 kali PATCH -> 500; sesudah tiap PATCH Budi membaca katalog -> 200
+instance A: hit 0, miss 6, baca database 6, kunci dihapus 5, galat cache 0
+=> GRANT UPDATE ON produk TO api_t3
+# Dengan hapus kunci selalu, tiap galat tulis mengubah bacaan berikutnya menjadi baca database. Pada beban nyata,
+# client yang mengulang tulis yang gagal membuat database yang sedang bermasalah menerima semua bacaan juga.
+
+# --- E. Galat baca database: entri yang hidup tetap melayani, kunci yang kosong tidak diisi galat ---
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # miss, entri Warung Ani diisi
+=> REVOKE SELECT ON produk FROM api_t3   -- database tidak bisa dibaca
+Budi  lewat instance A: GET /katalog?warung=418 -> {"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}   # hit: katalog warung ini dilayani cache walau produk tidak bisa dibaca
+Budi lewat instance A: GET /katalog?warung=502 -> 500 (miss, database menolak)
+redis EXISTS katalog:1:502: 0 (galat tidak disimpan), EXISTS katalog:1:418: 1 (entri lama tidak dibuang)
+=> GRANT SELECT ON produk TO api_t3
+Budi lewat instance A: GET /katalog?warung=502 -> 200 (tidak ada galat yang tertinggal di cache)
