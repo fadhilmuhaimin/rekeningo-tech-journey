@@ -2,8 +2,10 @@
 Data dari PostgreSQL 17 (skema b2q, lab B2.3). Keluaran: output/ukuran.txt"""
 import gzip, json, pathlib
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT  # noqa: E402
 
-DSN = "host=127.0.0.1 port=54333 user=lab password=lab dbname=lab options=-csearch_path=b2q"
+DSN = f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab options=-csearch_path=b2q"
 c = psycopg.connect(DSN, autocommit=True)
 TOKO = {"id": 1, "nama": "Warung Ani", "alamat": "Kantin Gedung B lantai 1",
         "deskripsi": "Nasi goreng, mie ayam, es teh, kopi. Buka 07.00-15.00.", "jam_buka": "07:00", "jam_tutup": "15:00"}

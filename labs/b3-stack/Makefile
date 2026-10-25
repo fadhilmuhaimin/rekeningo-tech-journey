@@ -1,7 +1,8 @@
 # Lab B3 · contoh transaction & lock di beberapa stack, ke Postgres yang sama.
 # Butuh: lab db jalan (make -C ../b3-race up), Go, Node, PHP + Composer, Python venv labs/.venv.
 # Schema b3s lewat parameter koneksi (Go pgx, node-postgres); Django dan Laravel memasangnya di konfigurasi.
-export DATABASE_URL := postgres://lab:lab@127.0.0.1:54333/lab?options=-c%20search_path%3Db3s
+include ../lab_env.mk
+export DATABASE_URL := postgres://lab:lab@127.0.0.1:$(LAB_DB_PORT)/lab?options=-c%20search_path%3Db3s
 # Gagal keras: error di tengah pipeline atau di psql tidak boleh tertelan.
 SHELL := /bin/bash
 .SHELLFLAGS := -eo pipefail -c

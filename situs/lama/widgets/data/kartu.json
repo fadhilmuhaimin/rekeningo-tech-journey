@@ -1083,6 +1083,30 @@
   "jawab": "Server v1 masih memakai kolom itu. Sesudah COMMIT, Bayar dan Buka saldo gagal dengan 42703 dan server menjawab 500. Server v2 yang dibuat untuk app baru membuat app 1.0 dan 1.1 berhenti. Contract punya rilis sendiri, sesudah cek lulus dan server hanya memakai ledger."
  },
  {
+  "id": "t2-tim-infra-1",
+  "halaman": "t2-tim-infra",
+  "judul": "2.24 Tim dan infra Tahap 2: review, branch protection, tes integrasi + ADR 18",
+  "url": "tahap-2/tim-infra/",
+  "tanya": "Dua PR hijau sendiri-sendiri, lalu keduanya di-merge. Kenapa `main` bisa merah?",
+  "jawab": "CI tiap PR menguji cabangnya dengan `main` yang ada saat itu. Gabungan kedua perubahan tidak pernah diuji sebelum merge. Rekaman bagian C (varian): kedua PR hijau, lalu `main` gagal di `TestKirimMenolakLewatBatas`."
+ },
+ {
+  "id": "t2-tim-infra-2",
+  "halaman": "t2-tim-infra",
+  "judul": "2.24 Tim dan infra Tahap 2: review, branch protection, tes integrasi + ADR 18",
+  "url": "tahap-2/tim-infra/",
+  "tanya": "`go test` di CI keluar 0. Kenapa itu belum berarti tes aturan uang berjalan?",
+  "jawab": "Tes yang butuh database memanggil `t.Skip` bila `TEST_DATABASE_URL` kosong, dan tes yang dilewati bukan tes yang gagal. Rekaman bagian E, kasus 5: 18 lolos, 2 dilewati, exit 0, sementara langkah CI dengan penjaga `--- SKIP` keluar 1."
+ },
+ {
+  "id": "t2-tim-infra-3",
+  "halaman": "t2-tim-infra",
+  "judul": "2.24 Tim dan infra Tahap 2: review, branch protection, tes integrasi + ADR 18",
+  "url": "tahap-2/tim-infra/",
+  "tanya": "CODEOWNERS menulis `@raka @nadia` untuk folder service. Siapa yang menyetujui PR Raka?",
+  "jawab": "Nadia. Penulis PR tidak bisa menyetujui PR-nya sendiri, dan persetujuan salah satu pemilik di baris yang sama sudah cukup."
+ },
+ {
   "id": "B3.2-1",
   "halaman": "B3.2",
   "judul": "Race condition dan lock",

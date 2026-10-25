@@ -27,6 +27,8 @@ import tempfile
 import time
 
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT, port_lab  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 ROOT = HERE.parent.parent
@@ -37,9 +39,9 @@ from rekam_ledger import gagal, harap, tabel              # noqa: E402
 OUT = HERE / "output" / "ledger"
 API = ROOT / "labs/api-t2"
 SCHEMA = "e5_ledger"
-HOST, PORT = "127.0.0.1", 18150
-DSN = "host=127.0.0.1 port=54333 user=lab password=lab dbname=lab application_name=e5-payload"
-URL = f"postgres://lab:lab@127.0.0.1:54333/lab?search_path={SCHEMA}&application_name=e5-payload"
+HOST, PORT = "127.0.0.1", port_lab(18150)   # + LAB_PORT_OFFSET (labs/README.md)
+DSN = f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab application_name=e5-payload"
+URL = f"postgres://lab:lab@127.0.0.1:{DB_PORT}/lab?search_path={SCHEMA}&application_name=e5-payload"
 BUDI = L.BUDI
 BARIS = (5, 20, 50)
 BENTUK = ("api", "layar", "penuh")

@@ -1,0 +1,54 @@
+{
+  "judul": "File lawan ledger: berapa selisihnya?",
+  "sumber": "Rekaman lab · rentan.txt bagian D dan E",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "Server mati tepat sesudah baris Warung 508 ditulis ke file, sebelum jurnalnya di-COMMIT. Server hidup lagi, dan job dijalankan lagi dengan perintah yang sama sampai selesai. Total file dibanding mutasi ledger, apa hasilnya?",
+  "pilihan": [
+    {
+      "teks": "Sama, Rp0: jalan kedua hanya melengkapi yang belum selesai.",
+      "alasan": "Rekaman menunjukkan selisih {selisih}, bukan Rp0. Jalan kedua membaca saldo di database, bukan isi file, dan saldo {warung} masih terisi karena jurnalnya batal.",
+      "arah": "nol"
+    },
+    {
+      "teks": "File lebih besar: Warung 508 ada dua kali di file.",
+      "alasan": "File berisi {baris} baris senilai {total}. Ledger punya {jurnal} jurnal pencairan dengan mutasi {mutasi}. Selisihnya {selisih}: {warung} muncul {warungFile} kali di file dan {warungLedger} kali di ledger.",
+      "arah": "file-lebih-besar"
+    },
+    {
+      "teks": "File lebih kecil: Warung 508 tidak ada di file.",
+      "alasan": "Baris {warung} sudah tertulis di file sebelum server mati, jadi file tidak kehilangan apa pun pada urutan ini. File lebih kecil terjadi bila urutannya dibalik; coba di bawah.",
+      "arah": "file-lebih-kecil"
+    }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "tabel": {
+    "judul": "File lawan ledger",
+    "perbandingan": "Yang dibandingkan",
+    "nilai": "Nilai"
+  },
+  "baris": {
+    "baris": "Baris di file",
+    "total": "Total file",
+    "jurnal": "Jurnal pencairan di ledger",
+    "mutasi": "Mutasi kas_pencairan",
+    "selisih": "Total file dikurangi mutasi ledger",
+    "warungFile": "{warung}: baris di file",
+    "warungLedger": "{warung}: jurnal di ledger"
+  },
+  "ubahJudul": "Ubah satu hal: urutan menulis",
+  "urutan": {
+    "file-dulu": "File dulu, jurnal sesudahnya",
+    "jurnal-dulu": "Jurnal dulu, file sesudahnya"
+  },
+  "kesimpulan": {
+    "file-dulu": "Server mati sebelum COMMIT. Jurnal {warung} batal, tetapi barisnya di file sudah ada, lalu jalan kedua menulisnya lagi. File lebih besar {selisih}.",
+    "jurnal-dulu": "Server mati sesudah COMMIT, sebelum baris file ditulis. Saldo {warung} sudah 0, jadi jalan kedua tidak mengerjakannya lagi. File lebih kecil {selisih}."
+  },
+  "catatan": {
+    "file-dulu": "Rekaman bagian D: baris file ditulis di dalam transaction, sebelum COMMIT.",
+    "jurnal-dulu": "Rekaman bagian E: COMMIT lebih dulu, baris file sesudahnya. Proses dimatikan sesudah COMMIT {warung}."
+  },
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan hasil kedua urutan dari rekamannya sebagai tabel."
+}

@@ -8,11 +8,13 @@ pid lab ini. Lock yang dipegang koneksi di luar lab dianggap gagal, bukan dilewa
 """
 import json, pathlib, subprocess, threading, time
 import psycopg
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 SCHEMA = "b4_ledger"
 # statement_timeout 60 detik hanya jaring pengaman lab; yang diuji adalah lock_timeout di file migration.
-DSN = ("host=127.0.0.1 port=54333 user=lab password=lab dbname=lab application_name=b4-skema-ledger "
+DSN = (f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab application_name=b4-skema-ledger "
        f"options='-csearch_path={SCHEMA} -cstatement_timeout=60s'")
 NAMA_SQLSTATE = {"55P03": "lock_not_available", "42703": "undefined_column", "42P01": "undefined_table"}
 

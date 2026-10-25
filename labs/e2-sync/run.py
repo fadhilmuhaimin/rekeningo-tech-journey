@@ -5,11 +5,13 @@ sementara 3 porsi terjual lewat pesanan online. Stok yang benar sesudahnya: 25 +
 Keluaran: output/<mode>.txt.  Jalankan: make -C labs/e2-sync run   (butuh: make -C labs/b3-race up, Go, Dart)
 """
 import json, os, pathlib, socket, subprocess, threading, time, urllib.request
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT, port_lab  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 PSQL = ["docker", "compose", "-f", str(HERE / "../b3-race/docker-compose.yml"), "exec", "-T", "db",
         "psql", "-U", "lab", "-d", "lab", "-q"]
-ENV = dict(os.environ, DATABASE_URL="postgres://lab:lab@127.0.0.1:54333/lab?search_path=e2&application_name=e2")
+ENV = dict(os.environ, DATABASE_URL=f"postgres://lab:lab@127.0.0.1:{DB_PORT}/lab?search_path=e2&application_name=e2")
 JUDUL = {
     "tanpa-queue": "A. Tanpa queue: request gagal saat offline, perubahan dibuang",
     "nilai-akhir": "B. Queue berisi nilai akhir (stok=35), dikirim dengan PUT",
@@ -19,7 +21,7 @@ JUDUL = {
 
 
 def http(method, path, body=None):
-    req = urllib.request.Request("http://127.0.0.1:18096" + path, method=method,
+    req = urllib.request.Request(f"http://127.0.0.1:{port_lab(18096)}" + path, method=method,
                                  data=json.dumps(body).encode() if body is not None else None,
                                  headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req) as r:
@@ -29,8 +31,8 @@ def http(method, path, body=None):
 subprocess.run(["go", "build", "-o", str(HERE / "server/e2-server"), "."], cwd=HERE / "server", check=True)
 for mode, judul in JUDUL.items():
     try:
-        socket.create_connection(("127.0.0.1", 18096), 0.1).close()
-        raise SystemExit("port 18096 sudah dipakai proses lain; hentikan dulu")
+        socket.create_connection(("127.0.0.1", port_lab(18096)), 0.1).close()
+        raise SystemExit(f"port {port_lab(18096)} sudah dipakai proses lain; hentikan dulu")
     except OSError:
         pass
     subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1"], input=(HERE / "schema.sql").read_text(), text=True, check=True, capture_output=True)
@@ -40,7 +42,7 @@ for mode, judul in JUDUL.items():
     threading.Thread(target=lambda: [log.append((time.monotonic(), l.rstrip())) for l in srv.stderr], daemon=True).start()
     for _ in range(100):
         try:
-            socket.create_connection(("127.0.0.1", 18096), 0.1).close(); break
+            socket.create_connection(("127.0.0.1", port_lab(18096)), 0.1).close(); break
         except OSError:
             time.sleep(0.05)
 

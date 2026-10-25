@@ -1,0 +1,54 @@
+{
+  "istilah": "Branch protection",
+  "sehari_hari": "Branch `main` berisi kode yang akan di-deploy. Branch protection adalah aturan di GitHub tentang apa yang boleh masuk ke sana: persetujuan wajib, status check wajib, dan larangan force push. GitHub yang menjalankan aturannya, jadi aturan itu tidak bergantung pada niat orang.",
+  "cerita": [
+    {
+      "rujukan": "t2-tim-infra",
+      "teks": "ADR 18 memilih status check `tes` wajib, cabang yang harus mutakhir, satu persetujuan, dan force push mati di `main`."
+    },
+    {
+      "rujukan": "t2-m14",
+      "teks": "Tanpa aturan seperti itu, dua PR yang hijau sendiri-sendiri masuk dan `main` kehilangan batas harian."
+    }
+  ],
+  "mekanisme": [
+    "Pemilik repo menyalakan aturan untuk `main` lewat pengaturan repo atau lewat API.",
+    "Merge menunggu status check yang diwajibkan berhasil.",
+    "Bila opsi \"Require branches to be up to date before merging\" menyala, PR yang tertinggal harus diperbarui dengan `main`, dan CI berjalan lagi sebelum merge.",
+    "Force push ke branch terlindungi diblokir secara bawaan. Opsi `enforce_admins` membuat aturan berlaku juga untuk administrator."
+  ],
+  "stack": {
+    "lihat": "tes-integrasi",
+    "teks": "Branch protection adalah fitur platform Git, bukan fitur stack, jadi sama untuk keenam stack. Yang berbeda adalah perintah tes yang menjadi status check wajib: lihat tes integrasi."
+  },
+  "jebakan": [
+    "Aturan hanya hidup di pengaturan GitHub dan tidak tertulis di repo, jadi hilang saat repo dipindah atau pengaturan diubah.",
+    "Mematikan syarat mutakhir supaya PR lebih cepat masuk. Hasil gabungan tidak lagi diuji sebelum merge (rekaman `tim.txt` bagian C (varian)).",
+    "Mengira semua plan punya fitur ini di repo privat. Halaman plan GitHub tidak mendaftarkannya untuk Free di repo privat [perlu verifikasi]."
+  ],
+  "terkait": [
+    "Pull request review",
+    "CODEOWNERS",
+    "Tes integrasi"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-175",
+      "judul": "GitHub Docs, About protected branches",
+      "url": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches",
+      "catatan": "Status check wajib, opsi cabang harus mutakhir, dan force push diblokir secara bawaan. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-175",
+      "judul": "GitHub Docs, REST API untuk branch protection",
+      "url": "https://docs.github.com/en/rest/branches/branch-protection#update-branch-protection",
+      "catatan": "Isi permintaan: strict, checks, required_approving_review_count, enforce_admins, allow_force_pushes. Butuh izin admin; plan untuk repo privat dibaca dari halaman REST dan halaman plan. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-178",
+      "judul": "Rekaman lab api-t2, tim.txt",
+      "rekaman": "labs/api-t2/output/tim.txt",
+      "catatan": "Bagian C dan variannya: dengan dan tanpa syarat mutakhir, pada file contoh. GitHub sendiri tidak dijalankan."
+    }
+  ]
+}

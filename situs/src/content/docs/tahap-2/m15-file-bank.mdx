@@ -1,0 +1,123 @@
+---
+title: "2.25 M15: Rp15.000 di file bank"
+description: Minggu 6. Tutup buku bulan pertama menemukan file transfer pencairan Rp15.000 lebih besar dari ledger, karena satu warung tertulis dua kali di file dan sekali di ledger.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import duaJalan from "../../../../data/diagram/t2-m15-dua-jalan.json";
+import Snippet from "../../../components/Snippet.astro";
+import SelisihBank from "../../../components/SelisihBank.astro";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t2-tim-infra]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka ilustrasi="m15">
+
+Minggu 6 Tahap 2. Pak Hadi menutup buku bulan pertama Rekeningo untuk seluruh kampus. Ia menaruh dua angka berdampingan: total file transfer yang tiap Jumat diunggah Keuangan ke bank, dan mutasi pencairan di ledger.
+
+Angka file lebih besar Rp15.000. Pak Hadi memeriksanya dua kali, lalu menolak menandatangani laporan.
+
+"Setiap rupiah harus bisa ditelusuri ke kejadian yang membuatnya," katanya kepada Raka. "Rp15.000 ini kejadian yang mana?"
+
+Raka tidak punya jawaban.
+
+*Angka cerita (Ilustrasi):* Rp15.000, minggu 6, dan penolakan Pak Hadi berasal dari naskah. Rekaman di blok "Yang sebenarnya" mengulang satu Jumat saja, periode 2026-W43, dengan 12 warung. Saldo Warung 508 dibuat Rp15.000 supaya selisihnya sama dengan naskah. Pada kejadian ini, selisihnya sama dengan saldo warung yang sedang dikerjakan saat server mati.
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka dan Nadia membuka query laporan tutup buku. Nadia terbiasa dengan laporan akuntansi, jadi ia mencurigai laporan itu lebih dulu: mungkin join-nya menggandakan satu baris.
+
+Raka mencocokkan angka ledger dengan saldo warung pada Jumat 15.00. Saldo 12 warung berjumlah Rp2.450.000, dan mutasi `kas_pencairan` juga Rp2.450.000 (rekaman bagian A dan D). Laporannya tidak salah hitung. Yang berbeda adalah file.
+
+<details class="question">
+<summary>Tebak dulu: ledger cocok dengan saldo Jumat, tetapi file punya Rp15.000 lebih. Bagaimana satu baris bisa masuk file tanpa masuk ledger?</summary>
+
+Job menulis ke dua tempat: ledger di database dan file di disk. Keduanya tidak bisa di-COMMIT bersama. Kalau server mati di antara keduanya dan job dijalankan lagi, satu warung bisa tertulis dua kali di satu tempat dan sekali di tempat lain. Blok berikutnya merekamnya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Naskah tidak menyebut kapan persisnya server mati, dan siapa yang menjalankan job lagi. Halaman ini memakai satu kejadian yang mungkin, lalu merekamnya.
+
+*Skenario (Ilustrasi):* server restart tepat sesudah baris warung ketujuh ditulis ke file, sebelum jurnalnya di-COMMIT. Sesudah itu job dijalankan lagi dengan perintah yang sama. Siapa yang menjalankannya, Raka atau pengawas proses, tidak direkam. Restart diperankan dengan SIGKILL, sinyal yang tidak bisa ditangkap program ([Go, paket os/signal](https://pkg.go.dev/os/signal)).
+
+*Kondisi rekaman (Asumsi):* data lab dibuat, bukan salinan data kampus. Ada 12 warung dengan saldo Rp2.450.000, dan titik henti di warung ketujuh. Job di sini versi pertama, sebelum ada perbaikan apa pun.
+
+**Job versi pertama.** Job memakai satu transaction per warung. Di dalamnya ia menulis jurnal pencairan, menulis satu baris ke file, lalu COMMIT. Baris file ditulis sebelum COMMIT dengan alasan yang masuk akal: kalau file gagal ditulis, jurnal ikut batal.
+
+<Snippet file="labs/t2-pencairan/cmd/pencairan/main.go" lines="124:145" lang="go" title="Kode lab: labs/t2-pencairan/cmd/pencairan/main.go, satu transaction per warung (urutan file dulu)" />
+
+Panggilan `berhenti` di kode itu hanya ada di lab: ia mematikan proses di titik yang dipilih. Diagram berikut merangkum seluruh kejadian:
+
+<Rantai data={duaJalan} />
+
+**Jalan pertama.** Server mati sesudah baris Warung 508 ditulis:
+
+<Snippet file="labs/t2-pencairan/output/rentan.txt" lines="45:50" title="Rekaman lab: labs/t2-pencairan/output/rentan.txt, bagian B (job mati)" />
+
+Jurnal Warung 508 ada di transaction yang belum di-COMMIT. PostgreSQL membatalkan transaction yang terbuka saat koneksinya berakhir ([PostgreSQL 17, protocol-flow bagian 53.2.9](https://www.postgresql.org/docs/17/protocol-flow.html)). Ledger hanya punya enam jurnal:
+
+<Snippet file="labs/t2-pencairan/output/rentan.txt" lines="55:68" title="Rekaman lab: labs/t2-pencairan/output/rentan.txt, bagian B (ledger sesudah job mati)" />
+
+Nomor jurnal 20 terpakai oleh transaction yang batal. PostgreSQL tidak mengembalikan nomor sequence saat transaction dibatalkan ([PostgreSQL 17, functions-sequence](https://www.postgresql.org/docs/17/functions-sequence.html)). File lain ceritanya. Baris ketujuh sudah ditulis ke file sebelum proses mati, jadi file tetap memuatnya:
+
+<Snippet file="labs/t2-pencairan/output/rentan.txt" lines="70:81" title="Rekaman lab: labs/t2-pencairan/output/rentan.txt, bagian B (file sesudah job mati)" />
+
+**Jalan kedua.** Server hidup lagi, dan job dijalankan dengan perintah yang sama. Job tidak tahu apa yang sudah ia kerjakan. Ia membaca saldo dan memproses setiap warung yang saldonya lebih dari 0.
+
+Enam warung pertama sudah bersaldo 0. Saldo Warung 508 masih Rp15.000, karena jurnalnya batal. Jadi job memprosesnya lagi, dan menulis barisnya sekali lagi ke file yang sudah memuatnya:
+
+<Snippet file="labs/t2-pencairan/output/rentan.txt" lines="85:100" title="Rekaman lab: labs/t2-pencairan/output/rentan.txt, bagian C (job dijalankan lagi)" />
+
+Jalan kedua selesai dengan status 0. Tidak ada galat yang membuat siapa pun memeriksa file itu.
+
+**Tutup buku.** File dimuat ke tabel sementara, lalu dibandingkan dengan ledger:
+
+<Snippet file="labs/t2-pencairan/output/rentan.txt" lines="150:154" title="Rekaman lab: labs/t2-pencairan/output/rentan.txt, bagian D (total file lawan ledger)" />
+
+Query kedua mencari warung yang baris di file dan jurnal di ledger-nya tidak sama. Hanya satu yang muncul:
+
+<Snippet file="labs/t2-pencairan/output/rentan.txt" lines="166:173" title="Rekaman lab: labs/t2-pencairan/output/rentan.txt, bagian D (per warung)" />
+
+Warung 508 punya dua baris di file dan satu jurnal di ledger. Selisih Rp15.000 adalah baris kedua itu. Baris itu tidak punya jurnal, jadi tidak bisa ditelusuri ke kejadian di ledger. Itulah yang Pak Hadi tolak tandatangani.
+
+*Asumsi:* Keuangan mengunggah file apa adanya, dan bank memproses setiap baris. Maka Warung 508 menerima Rp30.000 untuk saldo Rp15.000. PRD v2 belum punya integrasi bank, jadi halaman ini tidak tahu apakah bank menolak baris kembar.
+
+Tebakan Raka salah. Laporan tidak salah hitung. Yang rusak adalah hubungan antara dua tempat yang ditulis job: ledger dan file. Keduanya tidak bisa berhenti, atau dilanjutkan, sebagai satu kesatuan.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini memakai hasil rekaman yang sama. Tebak dulu apa yang terjadi pada selisihnya.
+
+<SelisihBank />
+
+Sesudah menebak, ubah satu hal: pilih **Jurnal dulu, file sesudahnya**. Server mati lagi di warung ketujuh, tetapi kini sesudah COMMIT dan sebelum baris file ditulis. Selisihnya berbalik. File lebih kecil Rp15.000, dan Warung 508 tidak ada di file. Bila bank hanya memproses isi file, warung itu tidak menerima uangnya, padahal ledger sudah mencatat pencairannya.
+
+Menukar urutan memindahkan celahnya, tidak menutupnya. COMMIT PostgreSQL hanya mencakup data di dalam PostgreSQL, sedangkan file ada di luarnya. Urutan apa pun punya celah di antara dua penulisan itu. Masalah yang sama dikenal pada layanan yang menulis ke database lalu mengirim pesan ke broker ([Richardson, Transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html), tulisan praktisi, bukan standar).
+
+<details>
+<summary>Rekaman lengkap (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/t2-pencairan/output/rentan.txt" title="Rekaman lab: labs/t2-pencairan/output/rentan.txt" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t2-job-rekonsiliasi]]: job terjadwal yang aman dijalankan dua kali, status batch, dan rekonsiliasi: mencocokkan ledger dengan file sebelum file dibuat.
+- [[t2-pencairan]]: fitur pencairan dan bentuk file transfernya, tempat job ini pertama kali dijelaskan.
+- [[t2-tutup-buku]]: laporan bulanan tempat selisih ini baru ketahuan.
+- [[B3.1]]: transaction membungkus perubahan di dalam database. Ia tidak membungkus file di disk.
+- [Halaman istilah at-least-once](/istilah/at-least-once/): menjalankan ulang sampai berhasil membuat satu pekerjaan bisa terjadi lebih dari sekali.
+
+Job yang bisa mati di tengah harus aman dijalankan lagi. Hasilnya juga harus dicocokkan dengan dunia luar sebelum ada yang mengunggahnya.
+
+</Blok>

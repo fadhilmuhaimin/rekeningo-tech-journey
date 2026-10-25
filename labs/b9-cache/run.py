@@ -1,12 +1,14 @@
 """Lab B9: cache-aside dengan Redis + PostgreSQL 17. Keluaran: output/cache.txt"""
 import pathlib, statistics, time
 import psycopg, redis
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT, REDIS_PORT  # noqa: E402
 
-pg = psycopg.connect("host=127.0.0.1 port=54333 user=lab password=lab dbname=lab", autocommit=True)
+pg = psycopg.connect(f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab", autocommit=True)
 pg.execute("DROP SCHEMA IF EXISTS b9 CASCADE; CREATE SCHEMA b9; SET search_path = b9")
 pg.execute("CREATE TABLE produk (id int PRIMARY KEY, nama text, harga bigint)")
 pg.execute("INSERT INTO produk VALUES (1, 'Nasi goreng', 25000)")
-r = redis.Redis(port=56379)
+r = redis.Redis(port=REDIS_PORT)
 r.flushall()
 log = [f"-- Redis {r.info()['redis_version']} · PostgreSQL 17.11 · TTL cache 300 detik"]
 catat = log.append

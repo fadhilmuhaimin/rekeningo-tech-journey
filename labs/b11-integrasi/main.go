@@ -63,7 +63,7 @@ func gateway() {
 		}
 		json.NewEncoder(w).Encode(map[string]string{"id": id, "status": "menunggu_bayar"})
 	})
-	log.Fatal(http.ListenAndServe("127.0.0.1:18101", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:"+portLab(18101), nil))
 }
 
 // ---- Monolith API -----------------------------------------------------------------------------
@@ -117,7 +117,7 @@ func api() {
 	var jalan atomic.Int32 // request top-up yang sedang menunggu gateway
 
 	buatTagihan := func(key string) (string, error) {
-		req, _ := http.NewRequest("POST", "http://127.0.0.1:18101/charges", nil)
+		req, _ := http.NewRequest("POST", "http://127.0.0.1:"+portLab(18101)+"/charges", nil)
 		req.Header.Set("Idempotency-Key", key)
 		res, err := client.Do(req)
 		if err != nil {
@@ -169,7 +169,7 @@ func api() {
 		w.WriteHeader(202)
 		json.NewEncoder(w).Encode(map[string]string{"status": "pending", "tagihan": id})
 	})
-	log.Fatal(http.ListenAndServe("127.0.0.1:18102", nil))
+	log.Fatal(http.ListenAndServe("127.0.0.1:"+portLab(18102), nil))
 }
 
 func errSingkat(err error) string {

@@ -5,10 +5,12 @@
 Jalankan: make -C labs/t3-bayar run   (butuh: make -C labs/b3-race up, Go)
 """
 import json, os, pathlib, re, socket, subprocess, time, urllib.request
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT, port_lab  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 OUT = HERE / "output"
-ENV = dict(os.environ, DATABASE_URL="postgres://lab:lab@127.0.0.1:54333/lab?search_path=t3&application_name=t3")
+ENV = dict(os.environ, DATABASE_URL=f"postgres://lab:lab@127.0.0.1:{DB_PORT}/lab?search_path=t3&application_name=t3")
 PSQL = ["docker", "compose", "-f", str(HERE / "../b3-race/docker-compose.yml"), "exec", "-T", "db", "psql", "-U", "lab", "-d", "lab", "-q"]
 proses = []
 
@@ -54,7 +56,7 @@ def reset():
 
 
 def pool():
-    return urllib.request.urlopen("http://127.0.0.1:18083/debug/pool").read().decode().strip()
+    return urllib.request.urlopen(f"http://127.0.0.1:{port_lab(18083)}/debug/pool").read().decode().strip()
 
 
 def contoh_log(teks, kata, n=1):
@@ -66,9 +68,9 @@ build(); OUT.mkdir(exist_ok=True)
 
 for mode in ("dalam-tx", "outbox"):
     reset()
-    pastikan_bebas(18090); pastikan_bebas(18083)
-    nt = jalan("notif", "-jeda", "2s"); tunggu(18090)
-    api = jalan("api", "-mode", mode); tunggu(18083)
+    pastikan_bebas(port_lab(18090)); pastikan_bebas(port_lab(18083))
+    nt = jalan("notif", "-jeda", "2s"); tunggu(port_lab(18090))
+    api = jalan("api", "-mode", mode); tunggu(port_lab(18083))
     wk = jalan("api", "-worker") if mode == "outbox" else None
     t0 = time.monotonic()
     beban = subprocess.run([str(HERE / "bin/beban"), "-rps", "17", "-durasi", "10s"], capture_output=True, text=True).stdout
@@ -97,8 +99,8 @@ for mode in ("dalam-tx", "outbox"):
 
 # Worker: retry, backoff, dead-letter
 reset()
-pastikan_bebas(18090)
-nt = jalan("notif", "-jeda", "200ms", "-gagal-dulu", "7"); tunggu(18090)
+pastikan_bebas(port_lab(18090))
+nt = jalan("notif", "-jeda", "200ms", "-gagal-dulu", "7"); tunggu(port_lab(18090))
 sql("""INSERT INTO outbox (jenis, data) SELECT 'pembayaran_berhasil', jsonb_build_object('pembayaran_id', g) FROM generate_series(1, 3) g""")
 wk = jalan("api", "-worker")
 for _ in range(80):

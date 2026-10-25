@@ -1,0 +1,53 @@
+{
+  "istilah": "Pull request review",
+  "sehari_hari": "Sebelum perubahan masuk ke `main`, satu orang selain penulisnya membaca perubahan itu di pull request. Ia menyetujui atau meminta perbaikan. Review menangkap salah baca dan asumsi yang tidak tertulis, tetapi ia tidak menjalankan kode dan tidak membaca hasil gabungan dengan PR lain.",
+  "cerita": [
+    {
+      "rujukan": "t2-m14",
+      "teks": "Dua PR masing-masing terbaca sebagai diff tiga baris yang dihapus, dan keduanya wajar. Tidak ada yang membaca hasil gabungannya."
+    },
+    {
+      "rujukan": "t2-tim-infra",
+      "teks": "ADR 18 mewajibkan satu orang lain me-review setiap PR, dan memasangkannya dengan tes wajib."
+    }
+  ],
+  "mekanisme": [
+    "Penulis membuka pull request dari cabangnya ke `main`.",
+    "GitHub meminta pereview, misalnya lewat CODEOWNERS untuk folder yang disentuh PR.",
+    "Pereview memilih Comment, Approve, atau Request changes.",
+    "Bila branch protection mewajibkan persetujuan, PR tidak bisa di-merge sebelum jumlah approval terpenuhi. Penulis tidak bisa menyetujui PR-nya sendiri."
+  ],
+  "stack": {
+    "lihat": "tes-integrasi",
+    "teks": "Review di pull request adalah fitur platform Git, bukan fitur stack, jadi sama untuk keenam stack. Yang berbeda adalah perintah tes yang menjadi status check wajib: lihat tes integrasi."
+  },
+  "jebakan": [
+    "Review menjadi formalitas. Diff tiga baris tampak wajar dan disetujui tanpa bertanya apakah ada tes yang gagal bila baris itu dihapus (rekaman `tim.txt` bagian B).",
+    "Mengandalkan review untuk menangkap interaksi antar PR. Pereview melihat satu diff, sedangkan hasil gabungan hanya teruji oleh CI pada hasil gabungan."
+  ],
+  "terkait": [
+    "Branch protection",
+    "CODEOWNERS",
+    "Semantic conflict"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-176",
+      "judul": "GitHub Docs, Approving a pull request with required reviews",
+      "url": "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/approving-a-pull-request-with-required-reviews",
+      "catatan": "Penulis PR tidak bisa menyetujui PR-nya sendiri, dan approval dari orang dengan izin write atau admin dihitung. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-29",
+      "judul": "GitHub Docs, About protected branches",
+      "url": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches",
+      "catatan": "Administrator repo dapat mewajibkan jumlah approval tertentu sebelum merge. Dibuka 25 Oktober 2026."
+    },
+    {
+      "riset": "R2-178",
+      "judul": "Rekaman lab api-t2, tim.txt",
+      "rekaman": "labs/api-t2/output/tim.txt",
+      "catatan": "Bagian B: dua PR dengan diff yang sama (satu file, tiga baris dihapus), CI hijau, dan main tanpa pemeriksaan."
+    }
+  ]
+}

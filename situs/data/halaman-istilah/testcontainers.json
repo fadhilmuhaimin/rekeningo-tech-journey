@@ -1,0 +1,34 @@
+{
+  "istilah": "Testcontainers",
+  "sehari_hari": "Tes integrasi butuh database yang bisa dinyalakan dan dibuang oleh tes itu sendiri. Testcontainers menyalakan container, misalnya PostgreSQL, dari dalam kode tes dan menunggu sampai siap. Kamu tidak perlu menyalakan database sendiri sebelum menjalankan tes.",
+  "cerita": [
+    {
+      "rujukan": "t2-tim-infra",
+      "teks": "Naskah M14 menulis tes integrasi dengan Testcontainers. Lab dan CI contoh memakai PostgreSQL dari docker compose dan service container, jadi Testcontainers tidak dijalankan."
+    }
+  ],
+  "mekanisme": [
+    "Kode tes memanggil pustaka untuk menyalakan container dari image yang disebut, misalnya `postgres.Run(ctx, \"postgres:17\", ...)` di Go.",
+    "Pustaka menunggu sampai container siap lewat wait strategy. Di modul PostgreSQL untuk Go, strategi ini harus ditulis sendiri karena dokumentasi menulis tidak ada default.",
+    "Tes memakai database itu, dan boleh menyimpan keadaan awalnya dengan `Snapshot` lalu mengembalikannya dengan `Restore` antar tes."
+  ],
+  "stack": {
+    "lihat": "tes-integrasi",
+    "teks": "Testcontainers adalah pustaka, bukan stack. Contoh Go-nya ada di 2.24 dan tidak dijalankan; stack lain memakai cara masing-masing, lihat halaman tes integrasi."
+  },
+  "jebakan": [
+    "Mengira wait strategy ada bawaannya. Di modul PostgreSQL untuk Go, dokumentasi menulis tidak ada default, jadi tes bisa mulai sebelum database siap.",
+    "Memakai database sistem `postgres` sebagai nama database bersama Snapshot. Dokumentasi melarangnya."
+  ],
+  "terkait": [
+    "Tes integrasi"
+  ],
+  "sumber": [
+    {
+      "riset": "R2-30",
+      "judul": "Testcontainers for Go, Postgres module",
+      "url": "https://golang.testcontainers.org/modules/postgres/",
+      "catatan": "Fungsi Run, wait strategy yang harus ditulis, serta Snapshot dan Restore. Modul v0.44.0 terbit 7 Agustus 2026 menurut pkg.go.dev. Dibuka 25 Oktober 2026."
+    }
+  ]
+}

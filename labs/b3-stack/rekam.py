@@ -9,11 +9,13 @@ Keluaran: output/<stack>-<skenario>.txt   (skenario: transfer, tarik)
 Jalankan: make rekam   (butuh: make -C ../b3-race up)
 """
 import os, pathlib, re, subprocess, time
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 OUT = HERE / "output"
 COMPOSE = ["docker", "compose", "-f", str(HERE / "../b3-race/docker-compose.yml")]
-BASE = "postgres://lab:lab@127.0.0.1:54333/lab?options=-c%20search_path%3Db3s"  # schema b3s
+BASE = f"postgres://lab:lab@127.0.0.1:{DB_PORT}/lab?options=-c%20search_path%3Db3s"  # schema b3s
 PSQL = COMPOSE + ["exec", "-T", "-e", "PGOPTIONS=-csearch_path=b3s"]
 
 

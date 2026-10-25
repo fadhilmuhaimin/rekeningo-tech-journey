@@ -1840,8 +1840,9 @@
       "lab": [
         "api-t2"
       ],
-      "ada": false,
-      "nomor": "2.24"
+      "ada": true,
+      "nomor": "2.24",
+      "menit": 18
     },
     {
       "id": "t2-m15",
@@ -1863,8 +1864,9 @@
       "lab": [
         "t2-pencairan"
       ],
-      "ada": false,
-      "nomor": "2.25"
+      "ada": true,
+      "nomor": "2.25",
+      "menit": 11
     },
     {
       "id": "t2-job-rekonsiliasi",
