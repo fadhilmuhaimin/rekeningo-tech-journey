@@ -1302,7 +1302,7 @@
  {
   "id": "C2-1",
   "halaman": "C2",
-  "judul": "3.1 Observability: log, metric, trace",
+  "judul": "Observability: log, metric, trace",
   "url": "c-operasional/c2-observability/",
   "tanya": "Log hanya menulis `bayar lambat 4902ms`. Apa yang kurang?",
   "jawab": "Rincian per langkah dan id request. Tanpa rincian, tidak jelas apakah waktunya habis di query, menunggu koneksi, atau panggilan luar. Tanpa id, log ini tidak bisa dihubungkan dengan log lain dari request yang sama."
@@ -1310,7 +1310,7 @@
  {
   "id": "C2-2",
   "halaman": "C2",
-  "judul": "3.1 Observability: log, metric, trace",
+  "judul": "Observability: log, metric, trace",
   "url": "c-operasional/c2-observability/",
   "tanya": "Jelaskan kenapa \"tambah server\" bisa jadi keputusan yang salah di Tahap 3, menurut rekaman.",
   "jawab": "Rekaman menunjukkan waktu habis untuk menunggu koneksi database dan notifikasi, bukan untuk CPU server. Server tambahan dengan pool masing-masing hanya memindahkan penantian ke PostgreSQL. Tanpa pengukuran, keputusan itu menambah biaya tanpa menyelesaikan masalah."
@@ -1318,7 +1318,7 @@
  {
   "id": "C2-3",
   "halaman": "C2",
-  "judul": "3.1 Observability: log, metric, trace",
+  "judul": "Observability: log, metric, trace",
   "url": "c-operasional/c2-observability/",
   "tanya": "Metric mana yang akan memberi tanda paling awal sebelum timeout jam 12.00 terjadi?",
   "jawab": "Saturation: jumlah koneksi pool yang dipakai dan jumlah yang menunggu. Pool penuh muncul sebelum latency naik tajam dan sebelum timeout. Alert pada pool yang hampir penuh memberi waktu bertindak."
@@ -1326,7 +1326,7 @@
  {
   "id": "B2.5-1",
   "halaman": "B2.5",
-  "judul": "3.2 Connection pool",
+  "judul": "Connection pool",
   "url": "b-fondasi/b2-5-connection-pool/",
   "tanya": "Pool 20 koneksi, setiap request memegang koneksi 50 ms. Kira-kira berapa request per detik maksimal sebelum mulai mengantre?",
   "jawab": "λ = L ÷ W = 20 ÷ 0,05 = ±400 request per detik. Ini batas teoretis dari pool saja. Batas sebenarnya bisa lebih rendah karena CPU, database, atau jaringan, dan harus diukur dengan load test."
@@ -1334,7 +1334,7 @@
  {
   "id": "B2.5-2",
   "halaman": "B2.5",
-  "judul": "3.2 Connection pool",
+  "judul": "Connection pool",
   "url": "b-fondasi/b2-5-connection-pool/",
   "tanya": "Jelaskan kenapa log `tunggu_koneksi_ms: 2899` lebih berguna daripada `durasi_ms: 4902` saja.",
   "jawab": "`durasi_ms` hanya bilang request lambat. Rincian menunjukkan di mana waktunya habis: hampir 3 detik menunggu koneksi, 2 detik notifikasi, 1 ms query. Dari situ jelas query bukan masalahnya, dan memperbesar server tidak menolong."
@@ -1342,7 +1342,7 @@
  {
   "id": "B2.5-3",
   "halaman": "B2.5",
-  "judul": "3.2 Connection pool",
+  "judul": "Connection pool",
   "url": "b-fondasi/b2-5-connection-pool/",
   "tanya": "Aplikasi Go memakai `database/sql` tanpa `SetMaxOpenConns`, dengan 4 instance. Di jam sibuk, PostgreSQL menolak koneksi baru. Kenapa?",
   "jawab": "Pool tanpa batas membuka koneksi baru setiap kali semua koneksi sedang dipakai. Dengan W yang besar, setiap instance bisa membuka puluhan koneksi. Empat instance bersama-sama menghabiskan `max_connections`, dan request baru di instance mana pun ditolak."
@@ -1350,7 +1350,7 @@
  {
   "id": "B10.1-1",
   "halaman": "B10.1",
-  "judul": "3.3 Background job, queue, retry",
+  "judul": "Background job, queue, retry",
   "url": "b-fondasi/b10-1-background-job/",
   "tanya": "Kenapa notifikasi pembayaran tidak dikirim lewat goroutine setelah `COMMIT`?",
   "jawab": "Goroutine hanya ada di memori proses. Kalau server di-restart atau crash setelah `COMMIT`, notifikasinya hilang tanpa catatan dan tanpa retry. Baris outbox tersimpan di database dan akan dikirim oleh worker kapan pun ia berjalan."
@@ -1358,15 +1358,15 @@
  {
   "id": "B10.1-2",
   "halaman": "B10.1",
-  "judul": "3.3 Background job, queue, retry",
+  "judul": "Background job, queue, retry",
   "url": "b-fondasi/b10-1-background-job/",
   "tanya": "Jelaskan kenapa worker di lab tidak memegang transaction selama mengirim notifikasi.",
-  "jawab": "Itu mengulang masalah 3.2 Connection pool di worker: koneksi tertahan 2 detik per pesan. Worker memakai lease. Ia mengambil pesan dengan satu `UPDATE` singkat yang menggeser `coba_lagi` 30 detik, lalu mengirim tanpa transaction. Kalau worker mati, lease habis dan pesan diambil lagi."
+  "jawab": "Itu mengulang masalah Connection pool (versi lama) di worker: koneksi tertahan 2 detik per pesan. Worker memakai lease. Ia mengambil pesan dengan satu `UPDATE` singkat yang menggeser `coba_lagi` 30 detik, lalu mengirim tanpa transaction. Kalau worker mati, lease habis dan pesan diambil lagi."
  },
  {
   "id": "B10.1-3",
   "halaman": "B10.1",
-  "judul": "3.3 Background job, queue, retry",
+  "judul": "Background job, queue, retry",
   "url": "b-fondasi/b10-1-background-job/",
   "tanya": "Rekaman menunjukkan satu pesan outbox (di rekaman ini id 2) berstatus `gagal`. Apa yang harus terjadi selanjutnya?",
   "jawab": "Alert ke tim, karena dead-letter berarti ada pesan yang tidak sampai. Setelah penyebabnya diperbaiki (mis. layanan notifikasi pulih), pesan dikirim ulang secara manual, mis. dengan mengembalikan status ke `menunggu`. Tanpa alert, dead-letter hanya jadi tempat pesan hilang secara diam-diam."
@@ -1374,7 +1374,7 @@
  {
   "id": "B8-1",
   "halaman": "B8",
-  "judul": "3.4 Concurrency dan async",
+  "judul": "Concurrency dan async",
   "url": "b-fondasi/b8-concurrency/",
   "tanya": "Kode Node.js menulis `for (const id of ids) await kirim(id)` untuk 10 notifikasi. Berapa lama, dan bagaimana mempercepatnya?",
   "jawab": "Sekitar 10 × lama satu kiriman, karena setiap `await` menunggu sebelum yang berikutnya dimulai. Rekaman: 5,03 detik untuk 500 ms per kiriman. `Promise.all` memulai semuanya dulu lalu menunggu bersama: 0,51 detik. Kalau layanannya punya kuota, batasi jumlah yang berjalan bersamaan."
@@ -1382,7 +1382,7 @@
  {
   "id": "B8-2",
   "halaman": "B8",
-  "judul": "3.4 Concurrency dan async",
+  "judul": "Concurrency dan async",
   "url": "b-fondasi/b8-concurrency/",
   "tanya": "Jelaskan kenapa kerja CPU 1 detik di handler Node.js menahan `/ping`, padahal Node.js disebut asinkron.",
   "jawab": "Asinkron di Node.js berarti tidak menunggu I/O. Kode JavaScript sendiri tetap dijalankan satu per satu di event loop. Loop yang menghitung 1 detik tidak pernah memberi giliran ke callback lain, jadi `/ping` menunggu sampai loop selesai. Kerja seperti itu dipindah ke worker thread atau proses lain."
@@ -1390,7 +1390,7 @@
  {
   "id": "B8-3",
   "halaman": "B8",
-  "judul": "3.4 Concurrency dan async",
+  "judul": "Concurrency dan async",
   "url": "b-fondasi/b8-concurrency/",
   "tanya": "Metric jumlah goroutine naik terus sepanjang hari, walau traffic stabil. Apa dugaan pertamamu?",
   "jawab": "Goroutine leak: ada goroutine yang menunggu sesuatu yang tidak pernah terjadi, mis. kirim ke channel yang tidak dibaca, atau panggilan tanpa timeout. Rekaman lab: 1.000 goroutine tertinggal karena channel tanpa buffer."
@@ -1398,7 +1398,7 @@
  {
   "id": "E4-1",
   "halaman": "E4",
-  "judul": "3.5 Push dan real-time",
+  "judul": "Push dan real-time",
   "url": "e-mobile/e4-push-real-time/",
   "tanya": "Rekaman: status berubah di detik ke-7. Kenapa polling baru tahu di detik ke-10, dan bukan ke-7?",
   "jawab": "App bertanya di detik 0, 5, dan 10. Perubahan di detik ke-7 baru terlihat saat pertanyaan berikutnya, di detik ke-10. Polling selalu terlambat antara 0 sampai satu interval penuh."
@@ -1406,7 +1406,7 @@
  {
   "id": "E4-2",
   "halaman": "E4",
-  "judul": "3.5 Push dan real-time",
+  "judul": "Push dan real-time",
   "url": "e-mobile/e4-push-real-time/",
   "tanya": "Jelaskan kenapa SSE saja tidak cukup untuk \"pesanan siap\".",
   "jawab": "SSE hanya bekerja selama app terbuka dan koneksinya hidup. Budi biasanya menutup app sambil menunggu. Push notification lewat FCM sampai ke HP walau app tertutup."
@@ -1414,15 +1414,15 @@
  {
   "id": "E4-3",
   "halaman": "E4",
-  "judul": "3.5 Push dan real-time",
+  "judul": "Push dan real-time",
   "url": "e-mobile/e4-push-real-time/",
   "tanya": "Koneksi SSE dibuka di handler yang juga membuka transaction database, lalu menunggu perubahan status. Apa masalahnya?",
-  "jawab": "Setiap layar pesanan yang terbuka memegang satu koneksi database selama koneksi SSE hidup. Dengan ratusan user, pool habis seperti di 3.2 Connection pool. Handler SSE harus membaca data singkat lalu melepas koneksi, dan menunggu perubahan dengan cara lain, mis. channel atau notifikasi dari database."
+  "jawab": "Setiap layar pesanan yang terbuka memegang satu koneksi database selama koneksi SSE hidup. Dengan ratusan user, pool habis seperti di Connection pool (versi lama). Handler SSE harus membaca data singkat lalu melepas koneksi, dan menunggu perubahan dengan cara lain, mis. channel atau notifikasi dari database."
  },
  {
   "id": "B9-1",
   "halaman": "B9",
-  "judul": "3.6 Caching dan invalidation",
+  "judul": "Caching dan invalidation",
   "url": "b-fondasi/b9-caching/",
   "tanya": "Rekaman menunjukkan Redis tidak lebih cepat dari PostgreSQL untuk satu baris. Kenapa cache tetap berguna di Tahap 3?",
   "jawab": "Manfaat cache ada pada query yang berat dan sering, mis. ringkasan 200.000 pesanan (±9 ms menjadi ±0,2 ms). Cache juga mengurangi beban database saat ribuan request membaca hasil yang sama. Untuk satu baris dengan index, cache sering tidak sepadan dengan risiko stale."
@@ -1430,7 +1430,7 @@
  {
   "id": "B9-2",
   "halaman": "B9",
-  "judul": "3.6 Caching dan invalidation",
+  "judul": "Caching dan invalidation",
   "url": "b-fondasi/b9-caching/",
   "tanya": "Jelaskan kenapa saldo tidak dibaca dari cache, walau sering dibuka.",
   "jawab": "Saldo dipakai untuk memutuskan transfer dan pembayaran. Saldo stale bisa membuat penarikan lolos padahal uangnya sudah dipakai. Keputusan uang harus dibaca dari database, di dalam transaction, dengan update atomik (Race condition (versi lama))."
@@ -1438,7 +1438,7 @@
  {
   "id": "B9-3",
   "halaman": "B9",
-  "judul": "3.6 Caching dan invalidation",
+  "judul": "Caching dan invalidation",
   "url": "b-fondasi/b9-caching/",
   "tanya": "Ada tiga endpoint yang bisa mengubah harga produk, dan hanya dua yang menghapus cache. Apa akibatnya, dan apa pengamannya?",
   "jawab": "Perubahan lewat endpoint ketiga tidak terlihat sampai TTL habis. Pengamannya: TTL yang tetap dipasang, dan menaruh logika \"ubah harga\" di satu fungsi di logika bisnis (1.21 Lapisan dasar) yang selalu menghapus cache."
@@ -1446,7 +1446,7 @@
  {
   "id": "C4-1",
   "halaman": "C4",
-  "judul": "3.7 Security dasar dan rate limit",
+  "judul": "Security dasar dan rate limit",
   "url": "c-operasional/c4-security-dasar/",
   "tanya": "Bucket 5 token, terisi 1 token per 12 detik. Penyerang mengirim 8 tebakan, lalu menunggu 30 detik dan mengirim 3 lagi. Berapa dari 3 tebakan terakhir yang sampai ke pemeriksaan PIN?",
   "jawab": "Dua. Setelah 8 tebakan, bucket kosong. Dalam 30 detik terisi 30 ÷ 12 = 2,5 token. Dua tebakan mengambil dua token penuh, yang ketiga ditolak `429`."
@@ -1454,7 +1454,7 @@
  {
   "id": "C4-2",
   "halaman": "C4",
-  "judul": "3.7 Security dasar dan rate limit",
+  "judul": "Security dasar dan rate limit",
   "url": "c-operasional/c4-security-dasar/",
   "tanya": "Jelaskan kenapa rate limit di memori proses tidak cukup untuk Rekeningo Tahap 3.",
   "jawab": "Tahap 3 menjalankan dua instance API. Setiap instance menyimpan bucket-nya sendiri, jadi batas 5 per akun menjadi 10 (rekaman bagian D). Hitungan harus disimpan di tempat bersama, mis. Redis, atau dikerjakan API gateway di depan kedua instance."
@@ -1462,7 +1462,7 @@
  {
   "id": "C4-3",
   "halaman": "C4",
-  "judul": "3.7 Security dasar dan rate limit",
+  "judul": "Security dasar dan rate limit",
   "url": "c-operasional/c4-security-dasar/",
   "tanya": "App menerima `429` dengan `Retry-After: 12`. Apa yang sebaiknya dilakukan app?",
   "jawab": "Tampilkan pesan dengan waktu tunggu, mis. \"Coba lagi dalam 12 detik\", dan nonaktifkan tombol sampai waktunya habis. Jangan retry otomatis. Retry langsung hanya menghabiskan token berikutnya."
@@ -1470,7 +1470,7 @@
  {
   "id": "E2-1",
   "halaman": "E2",
-  "judul": "3.8 Offline-first dan sync",
+  "judul": "Offline-first dan sync",
   "url": "e-mobile/e2-offline-first/",
   "tanya": "Ani offline. Ia menambah 10 porsi, lalu mengurangi 2 karena tumpah. Queue berisi dua operasi selisih. Selama itu, 3 porsi terjual online dari stok 25. Berapa stok setelah sync?",
   "jawab": "30. Server menerapkan +10 dan −2 ke stok yang sudah berkurang karena penjualan: 25 − 3 + 10 − 2 = 30. Urutan operasi tidak mengubah hasil, itulah kelebihan selisih."
@@ -1478,7 +1478,7 @@
  {
   "id": "E2-2",
   "halaman": "E2",
-  "judul": "3.8 Offline-first dan sync",
+  "judul": "Offline-first dan sync",
   "url": "e-mobile/e2-offline-first/",
   "tanya": "Jelaskan kenapa `op_id` dibuat saat Ani mengubah data, bukan saat app mengirim sync.",
   "jawab": "Kiriman ulang harus membawa id yang sama dengan kiriman pertama. Kalau id dibuat saat mengirim, app yang mati lalu mengirim ulang akan membuat id baru, dan server menerapkan +10 dua kali. Ini masalah yang sama dengan idempotency key yang dibuat ulang setiap retry (Retry dan idempotency key (versi lama))."
@@ -1486,7 +1486,7 @@
  {
   "id": "E2-3",
   "halaman": "E2",
-  "judul": "3.8 Offline-first dan sync",
+  "judul": "Offline-first dan sync",
   "url": "e-mobile/e2-offline-first/",
   "tanya": "Dua HP mengubah harga dari versi 1. Apa yang terjadi pada kiriman kedua, dan siapa yang memutuskan harga akhirnya?",
   "jawab": "Kiriman pertama diterapkan dan versi naik jadi 2. Kiriman kedua masih membawa versi 1, jadi `UPDATE ... WHERE versi = 1` tidak mengubah baris apa pun dan server menjawab konflik. Yang memutuskan adalah user di HP kedua, setelah app menampilkan kedua harga."
@@ -1649,7 +1649,7 @@
   "judul": "5.1 Scaling",
   "url": "d-system-design/d2-scaling/",
   "tanya": "Jelaskan kenapa angka \"±1.400 request per detik\" saja tidak cukup untuk memutuskan jumlah server.",
-  "jawab": "Kebutuhan sumber daya bergantung pada lama kerja tiap request, bukan hanya jumlahnya. Dengan Little's Law, 1.400 request per detik yang masing-masing memegang koneksi 20 ms butuh ±28 koneksi; dengan 200 ms, ±280. Angka ini juga asumsi. Keputusan diambil dari metric sistem sungguhan (3.1 Observability)."
+  "jawab": "Kebutuhan sumber daya bergantung pada lama kerja tiap request, bukan hanya jumlahnya. Dengan Little's Law, 1.400 request per detik yang masing-masing memegang koneksi 20 ms butuh ±28 koneksi; dengan 200 ms, ±280. Angka ini juga asumsi. Keputusan diambil dari metric sistem sungguhan (Observability: log, metric, trace (versi lama))."
  },
  {
   "id": "D2-3",
