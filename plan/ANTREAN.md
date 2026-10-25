@@ -1364,6 +1364,33 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-2.md` dan pelajaran MEMORI Tahap 2, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 2, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 2 selesai".
 - catatan: Langkah penutup alur tahap.
 
+### LAB-PARALEL · Lab bisa jalan di beberapa lajur sekaligus
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: -
+- selesai bila: port database lab dan port server lab dibaca dari variabel (`LAB_DB_PORT` bawaan 54333, `LAB_PORT_OFFSET` bawaan 0) di semua lab (`labs/*/run*.py`, `Makefile`, skrip rekam, tes Go yang menyebut port), `labs/b3-race/docker-compose.yml` memakai `${LAB_DB_PORT:-54333}` dan Makefile root `lab-up`/`lab-down` memakai `COMPOSE_PROJECT_NAME`; tanpa variabel semua lab berperilaku sama seperti sebelumnya (rekaman identik); dua lajur dengan `COMPOSE_PROJECT_NAME`, `LAB_DB_PORT`, dan `LAB_PORT_OFFSET` berbeda menjalankan satu lab masing-masing bersamaan dan rekaman keduanya sama dengan rekaman di repo; satu alat pemeriksa di gerbang menolak `54333` yang tertulis tetap di luar nilai bawaan; `labs/README.md` atau bagian lab di `plan/BRIEF-SUBAGEN.md` menulis cara memakainya; satu PR kecil.
+- catatan: Keputusan 728 butir 2. Pelaksana mengusulkan nilai per lajur (`rjt-konten` offset 0 bawaan, `rjt-konten2` 100, dst.) di badan PR; pengatur memasukkannya ke brief.
+
+### CI-CEPAT · CI lebih cepat tanpa mengurangi cakupan
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: -
+- selesai bila: `.github/workflows/cek.yml` menyimpan cache bun dan browser Playwright (kunci dari `bun.lock` dan versi Playwright, dengan verifikasi yang ada untuk .deb tetap); job ukur paralel per ukuran layar atau kelompok sehingga waktu dinding turun; di PR alat ukur halaman hanya memeriksa halaman yang berubah (dibandingkan dengan dist main) kecuali bila tema, CSS, komponen, plugin, atau alat ukur berubah, maka semua halaman; di main dan di workflow terjadwal malam (`schedule`) 100% halaman tetap diperiksa; menit CI sebelum dan sesudah (rata-rata tiga run PR terakhir dan tiga run sesudahnya, dari `gh run list`) dicatat di badan PR; satu alat uji membuktikan PR dengan perubahan CSS memilih semua halaman dan PR dengan satu halaman memilih halaman itu saja.
+- catatan: Keputusan 728 butir 4. Bila main lebih sering merah sesudahnya, pengatur mengembalikan pemeriksaan per halaman (butir 4 dan 5).
+
+### KONSISTENSI-3 · NASKAH-3 dicocokkan dengan keputusan Tahap 2 yang sebenarnya
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: NASKAH-3, EVAL-2
+- selesai bila: satu subagent membaca `plan/CERITA-TAHAP-3.md`, `plan/EVALUASI-TAHAP-2.md`, halaman Tahap 2 yang ditulis, ADR 13–21 dan keputusan Tahap 2 di KEPUTUSAN, lalu menambal naskah seperlunya (nama tabel dan kolom, nomor M dan ADR, angka beban, apa yang sudah ada di akhir Tahap 2, peta halaman dan prasyarat) tanpa menulis ulang struktur; setiap tambalan dicatat satu baris di bagian atas naskah ("Disesuaikan dengan Tahap 2 pada <tanggal>: ...") dan di KEPUTUSAN; bila peta halaman berubah, registry dan `plan/RINGKAS.md` Tahap 3 diselaraskan di PR yang sama; gerbang lolos.
+- catatan: Keputusan 728 butir 3. Halaman 3.1 baru boleh mulai sesudah tugas ini dan DIRI-2.
+
 ## Tahap 3
 
 Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan oleh `T3-siap` dari peta halaman naskah: lab sebelum `ERD3`, halaman sesudah widget. Nomor keputusan: 800–999 (konten +0–99, teknis +100–149, pengatur +150–199).
@@ -1373,9 +1400,9 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: DIRI-2
+- bergantung: RISET-2
 - selesai bila: `plan/RISET-TAHAP-3.md` (≤ 120 baris) sesuai skill riset-tahap untuk Tahap 3 (seluruh cabang di enam kota, PROPOSAL "Enam tahap dalam satu tabel"): konsep dengan 1–3 sumber primer bertanggal dan ID `R3-nn`, yang berubah sejak PROPOSAL, teknik terbaru masuk/tidak, satu kasus industri nyata untuk ADR dari sumber primer, jebakan forum, angka beban dan ukuran data dihitung ulang dengan rumus PROPOSAL sebagai Asumsi; pengatur membuka tiga ID acak.
-- catatan: -
+- catatan: Kerja di depan (keputusan 728): jalan sebelum EVAL-2 dan DIRI-2 di lajur riset; bila DIRI-2 mengubah skill riset-tahap, RISET-3 tidak diulang, `KONSISTENSI-3` yang memeriksa.
 
 ### NASKAH-3 · Naskah Tahap 3 (draft otomatis)
 
@@ -1384,7 +1411,7 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 - percobaan: 0
 - bergantung: RISET-3
 - selesai bila: `plan/CERITA-TAHAP-3.md` dengan struktur persis CERITA-TAHAP-2 (Kenapa dokumen ini ada, Latar, Tokoh baru, 1 PRD v3, 2 Dari fitur ke pekerjaan teknis, 3 Inti teknis, 3b Skema data, 4 Masalah, 5 Yang dibawa keluar, 6 Jembatan, Peta halaman, Jalur per peran), baris pertama "Draft otomatis, belum ditinjau pemilik", memakai RISET-TAHAP-3; nomor M dan ADR melanjutkan tahap sebelumnya; peta halaman 24–32 halaman dengan kolom lab, setiap halaman masalah dipicu fitur PRD, pihak ketiga selalu tiruan lokal; peninjau konsistensi (subagent kedua) membaca naskah terhadap semua naskah sebelumnya (tokoh, nama perusahaan, angka saldo dan user, istilah glosarium, nomor ADR dan M, rantai PRD → fitur → teknis → masalah → konsep) dan semua temuannya ditutup.
-- catatan: Satu-satunya naskah yang ditulis Claude; Tahap 1–2 milik pemilik dan tidak disentuh.
+- catatan: Satu-satunya naskah yang ditulis Claude; Tahap 1–2 milik pemilik dan tidak disentuh. Ditulis sebelum Tahap 2 selesai (keputusan 728): memakai RINGKAS dan CERITA-TAHAP-2 sebagai jembatan; `KONSISTENSI-3` mencocokkannya dengan keputusan Tahap 2 yang sebenarnya.
 
 ### T3-siap · RINGKAS, registry, dan antrean Tahap 3
 
@@ -1393,7 +1420,7 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 - percobaan: 0
 - bergantung: NASKAH-3
 - selesai bila: `plan/RINGKAS.md` (≤ 60 baris) memuat peta halaman Tahap 3 satu baris per halaman dan tahap sebelumnya diringkas; registry `situs/data/cerita.json` memuat semua halaman Tahap 3 sesuai naskah (judul, jenis, bagian, ★, peran, prasyarat, lab), yang belum ditulis tampil "segera", halaman lama tahap ini menjadi `lama` bila diganti; ANTREAN mendapat tugas lab (sebelum `ERD3`) dan tugas halaman berurutan (sesudah tugas widget) dengan `selesai bila` merujuk bagian naskah; `sinkron_cerita.py`, `cek_tautan.py`, dan gerbang lolos.
-- catatan: Sekaligus mengganti `bergantung` `EVAL-3` ke halaman terakhir Tahap 3 dan `ERD3` ke lab utama Tahap 3; halaman yang memakai widget bergantung pada tugas widgetnya.
+- catatan: Keputusan 728: lab, `ERD3`, dan `W3-*` Tahap 3 dimulai segera sesudah tugas ini di lajur teknis, tidak menunggu EVAL-2; setiap halaman Tahap 3 bergantung tambahan pada `KONSISTENSI-3` dan `DIRI-2`. Sekaligus mengganti `bergantung` `EVAL-3` ke halaman terakhir Tahap 3 dan `ERD3` ke lab utama Tahap 3; halaman yang memakai widget bergantung pada tugas widgetnya.
 
 ### ERD3 · ERD Tahap 3 dari skema lab
 
@@ -1458,16 +1485,16 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan ole
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: DIRI-3
+- bergantung: RISET-3
 - selesai bila: `plan/RISET-TAHAP-4.md` (≤ 120 baris) sesuai skill riset-tahap untuk Tahap 4 (integrasi pihak ketiga dan tiga tim, PROPOSAL "Enam tahap dalam satu tabel"): konsep dengan 1–3 sumber primer bertanggal dan ID `R4-nn`, yang berubah sejak PROPOSAL, teknik terbaru masuk/tidak, satu kasus industri nyata untuk ADR dari sumber primer, jebakan forum, angka beban dan ukuran data dihitung ulang dengan rumus PROPOSAL sebagai Asumsi; pengatur membuka tiga ID acak.
-- catatan: -
+- catatan: Kerja di depan (keputusan 728): jalan di lajur riset sebelum DIRI-3; `plan/RISET-TAHAP-4.md` memakai angka tahap sebelumnya dari RINGKAS dan naskahnya.
 
 ### NASKAH-4 · Naskah Tahap 4 (draft otomatis)
 
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: RISET-4
+- bergantung: RISET-4, DIRI-3
 - selesai bila: `plan/CERITA-TAHAP-4.md` dengan struktur persis CERITA-TAHAP-2 (Kenapa dokumen ini ada, Latar, Tokoh baru, 1 PRD v4, 2 Dari fitur ke pekerjaan teknis, 3 Inti teknis, 3b Skema data, 4 Masalah, 5 Yang dibawa keluar, 6 Jembatan, Peta halaman, Jalur per peran), baris pertama "Draft otomatis, belum ditinjau pemilik", memakai RISET-TAHAP-4; nomor M dan ADR melanjutkan tahap sebelumnya; peta halaman 24–32 halaman dengan kolom lab, setiap halaman masalah dipicu fitur PRD, pihak ketiga selalu tiruan lokal; peninjau konsistensi (subagent kedua) membaca naskah terhadap semua naskah sebelumnya (tokoh, nama perusahaan, angka saldo dan user, istilah glosarium, nomor ADR dan M, rantai PRD → fitur → teknis → masalah → konsep) dan semua temuannya ditutup.
 - catatan: Satu-satunya naskah yang ditulis Claude; Tahap 1–2 milik pemilik dan tidak disentuh.
 
@@ -1543,16 +1570,16 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 5 disisipkan ole
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: DIRI-4
+- bergantung: RISET-4
 - selesai bila: `plan/RISET-TAHAP-5.md` (≤ 120 baris) sesuai skill riset-tahap untuk Tahap 5 (skala nasional, PROPOSAL "Enam tahap dalam satu tabel"): konsep dengan 1–3 sumber primer bertanggal dan ID `R5-nn`, yang berubah sejak PROPOSAL, teknik terbaru masuk/tidak, satu kasus industri nyata untuk ADR dari sumber primer, jebakan forum, angka beban dan ukuran data dihitung ulang dengan rumus PROPOSAL sebagai Asumsi; pengatur membuka tiga ID acak.
-- catatan: -
+- catatan: Kerja di depan (keputusan 728): jalan di lajur riset sebelum DIRI-4; `plan/RISET-TAHAP-5.md` memakai angka tahap sebelumnya dari RINGKAS dan naskahnya.
 
 ### NASKAH-5 · Naskah Tahap 5 (draft otomatis)
 
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: RISET-5
+- bergantung: RISET-5, DIRI-4
 - selesai bila: `plan/CERITA-TAHAP-5.md` dengan struktur persis CERITA-TAHAP-2 (Kenapa dokumen ini ada, Latar, Tokoh baru, 1 PRD v5, 2 Dari fitur ke pekerjaan teknis, 3 Inti teknis, 3b Skema data, 4 Masalah, 5 Yang dibawa keluar, 6 Jembatan, Peta halaman, Jalur per peran), baris pertama "Draft otomatis, belum ditinjau pemilik", memakai RISET-TAHAP-5; nomor M dan ADR melanjutkan tahap sebelumnya; peta halaman 24–32 halaman dengan kolom lab, setiap halaman masalah dipicu fitur PRD, pihak ketiga selalu tiruan lokal; peninjau konsistensi (subagent kedua) membaca naskah terhadap semua naskah sebelumnya (tokoh, nama perusahaan, angka saldo dan user, istilah glosarium, nomor ADR dan M, rantai PRD → fitur → teknis → masalah → konsep) dan semua temuannya ditutup.
 - catatan: Satu-satunya naskah yang ditulis Claude; Tahap 1–2 milik pemilik dan tidak disentuh.
 
@@ -1628,16 +1655,16 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 6 disisipkan ole
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: DIRI-5
+- bergantung: RISET-5
 - selesai bila: `plan/RISET-TAHAP-6.md` (≤ 120 baris) sesuai skill riset-tahap untuk Tahap 6 (regional (proyeksi), PROPOSAL "Enam tahap dalam satu tabel"): konsep dengan 1–3 sumber primer bertanggal dan ID `R6-nn`, yang berubah sejak PROPOSAL, teknik terbaru masuk/tidak, satu kasus industri nyata untuk ADR dari sumber primer, jebakan forum, angka beban dan ukuran data dihitung ulang dengan rumus PROPOSAL sebagai Asumsi; pengatur membuka tiga ID acak.
-- catatan: -
+- catatan: Kerja di depan (keputusan 728): jalan di lajur riset sebelum DIRI-5; `plan/RISET-TAHAP-6.md` memakai angka tahap sebelumnya dari RINGKAS dan naskahnya.
 
 ### NASKAH-6 · Naskah Tahap 6 (draft otomatis)
 
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: RISET-6
+- bergantung: RISET-6, DIRI-5
 - selesai bila: `plan/CERITA-TAHAP-6.md` dengan struktur persis CERITA-TAHAP-2 (Kenapa dokumen ini ada, Latar, Tokoh baru, 1 PRD v6, 2 Dari fitur ke pekerjaan teknis, 3 Inti teknis, 3b Skema data, 4 Masalah, 5 Yang dibawa keluar, 6 Jembatan, Peta halaman, Jalur per peran), baris pertama "Draft otomatis, belum ditinjau pemilik", memakai RISET-TAHAP-6; nomor M dan ADR melanjutkan tahap sebelumnya; 10–12 halaman konseptual tanpa lab; peninjau konsistensi (subagent kedua) membaca naskah terhadap semua naskah sebelumnya (tokoh, nama perusahaan, angka saldo dan user, istilah glosarium, nomor ADR dan M, rantai PRD → fitur → teknis → masalah → konsep) dan semua temuannya ditutup.
 - catatan: Satu-satunya naskah yang ditulis Claude; Tahap 1–2 milik pemilik dan tidak disentuh.
 
