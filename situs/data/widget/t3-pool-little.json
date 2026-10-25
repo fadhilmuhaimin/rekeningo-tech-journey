@@ -183,10 +183,10 @@
   "asal": {
     "judul": "Asal angka dan label",
     "butir": [
-      "λ = {lambda} pembayaran per detik: Asumsi naskah ({rps} request per detik, setiap request ke-{tiap} adalah pembayaran). Jadwalnya tetap, seperti di lab. Hitungan R3-31 tanpa pembulatan memberi 0,868, selisih 0,2%.",
+      "λ = {lambda} pembayaran per detik: Asumsi naskah ({rps} request per detik, setiap request ke-{tiap} adalah pembayaran). Jadwalnya tetap, seperti di lab. Hitungan tanpa pembulatan memberi 0,868, selisih 0,2%.",
       "W di luar push = {w0} detik: Asumsi naskah. Rekaman lab hanya membuktikan nilainya di bawah {batasW} ms.",
       "Pool {ukuranA} dan {ukuranB}, push tidak menjawab, client menyerah sesudah {menyerah} detik, ketiga pengaman, dan t = 0,3, 2, dan 10 detik: Rekaman lab t3-pool.",
-      "Pool 4 (bawaan pgxpool pada mesin dengan 4 core atau kurang, R3-07) dan t = 30 detik: Hitungan R3-33, belum direkam. Client menyerah sesudah 30 dan 10 detik: Asumsi, karena naskah belum menyebut timeout app.",
+      "Pool 4 (bawaan pgxpool pada mesin dengan 4 core atau kurang, dokumentasi pgx v5.11.0) dan t = 30 detik: Hitungan dari rumus L = λ × W, belum direkam. Client menyerah sesudah 30 dan 10 detik: Asumsi, karena naskah belum menyebut timeout app.",
       "Simulasi yang menggerakkan batang dan kolom koneksi adalah Ilustrasi mekanisme. Tes mencocokkannya dengan rekaman lab."
     ]
   },

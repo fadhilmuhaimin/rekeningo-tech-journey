@@ -53,8 +53,8 @@ describe("label tombol lawan nilai dan rekaman", () => {
     expect(ada(L.pilihNilai.t.map((o) => o.nilai), [null, ...R.little.map((l) => l.t)])).toEqual([30]);
     expect(ada(L.pilihNilai.tClient.map((o) => o.nilai), [null, R.c.menyerah])).toEqual([30, 10]);
     const asal = T.asal.butir.join(" ");
-    expect(asal).toContain("Pool 4 (bawaan pgxpool pada mesin dengan 4 core atau kurang, R3-07)");
-    expect(asal).toContain("t = 30 detik: Hitungan R3-33, belum direkam");
+    expect(asal).toContain("Pool 4 (bawaan pgxpool pada mesin dengan 4 core atau kurang, dokumentasi pgx v5.11.0)");
+    expect(asal).toContain("t = 30 detik: Hitungan dari rumus L = λ × W, belum direkam");
     expect(asal).toContain("Client menyerah sesudah 30 dan 10 detik: Asumsi");
   });
 });
@@ -134,12 +134,13 @@ describe("catatan, asal angka, dan label sumber", () => {
   });
   test("asal angka: λ dan W di luar push berlabel Asumsi, titik lab berlabel Rekaman lab, simulasi berlabel Ilustrasi", () => {
     const [lam, w, lab, hitung, sim] = T.asal.butir;
-    expect(lam).toBe(`λ = ${lambda} pembayaran per detik: Asumsi naskah (${koma(R.beban.rpsTotal, 1)} request per detik, setiap request ke-${R.beban.tiap} adalah pembayaran). Jadwalnya tetap, seperti di lab. Hitungan R3-31 tanpa pembulatan memberi ${koma((7500 / 86400) * 10, 3)}, selisih ${koma((Math.abs(A.lambda - (7500 / 86400) * 10) / ((7500 / 86400) * 10)) * 100, 1)}%.`);
+    expect(lam).toBe(`λ = ${lambda} pembayaran per detik: Asumsi naskah (${koma(R.beban.rpsTotal, 1)} request per detik, setiap request ke-${R.beban.tiap} adalah pembayaran). Jadwalnya tetap, seperti di lab. Hitungan tanpa pembulatan memberi ${koma((7500 / 86400) * 10, 3)}, selisih ${koma((Math.abs(A.lambda - (7500 / 86400) * 10) / ((7500 / 86400) * 10)) * 100, 1)}%.`);
     expect(w).toBe(`W di luar push = ${koma(R.beban.w0, 2)} detik: Asumsi naskah. Rekaman lab hanya membuktikan nilainya di bawah ${R.beban.batasWMs} ms.`);
     expect(lab).toContain("Rekaman lab t3-pool");
     expect(lab).toContain(`Pool ${R.a.ukuran} dan ${R.b.ukuran}`);
     expect(lab).toContain(`client menyerah sesudah ${R.c.menyerah} detik`);
-    expect(hitung).toContain("Hitungan R3-33");
+    expect(hitung).toContain("Hitungan dari rumus");
+    expect(T.asal.butir.join(" ")).not.toMatch(/R\d-\d+/); // ID riset internal tidak tampil ke pembaca
     expect(sim).toBe("Simulasi yang menggerakkan batang dan kolom koneksi adalah Ilustrasi mekanisme. Tes mencocokkannya dengan rekaman lab.");
   });
   test("chip sumber dan label cocok", () => {
