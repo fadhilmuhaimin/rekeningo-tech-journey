@@ -4,6 +4,10 @@
 # Playwright berjalan paralel atas dist itu (keputusan 357). Yang disiapkan di sini hanya lingkungannya
 # (Node 22, bun, Chromium Playwright, font). MkDocs dihapus (keputusan 112).
 # Versi action dicek ke halaman rilis masing-masing pada 2026-10-08 (keputusan 99).
+# Keputusan 865 (CI lebih cepat tanpa mengurangi cakupan): (1) kelompok alat ukur dibagi per ukuran layar menjadi tujuh job
+# (lihat KELOMPOK_UKUR); (2) cache bun dan browser Playwright (keputusan 865); (3) di PR, alat ukur yang memeriksa semua halaman
+# hanya memeriksa halaman yang berubah terhadap dist main yang lolos (tools/pilih_halaman.py; bawaan semua halaman, ragu = semua,
+# keputusan 866); (4) push ke main, jadwal malam, dan workflow_dispatch memeriksa 100% halaman (keputusan 867).
 name: cek
 
 on:
@@ -11,6 +15,9 @@ on:
   push:
     branches: [main, 'percobaan/**']   # branch percobaan ikut dicek tanpa membuka PR
   workflow_dispatch:
+  # Pemeriksaan 100% halaman tiap malam (02:17 WITA), jaring pengaman untuk pemilihan halaman di PR (keputusan 867). Cron memakai UTC.
+  schedule:
+    - cron: "17 18 * * *"
 
 # PR: run lama dibatalkan saat commit baru masuk (hemat menit). Main dan percobaan: tiap run punya grup sendiri
 # dan tidak pernah dibatalkan, supaya setiap merge diverifikasi sendiri. Satu grup bersama membuat run yang
@@ -70,6 +77,9 @@ jobs:
     runs-on: ubuntu-latest
     # Sebelum keputusan 357 satu job menjalankan semuanya: 14m47-15m36 di PR #189/#195.
     timeout-minutes: 8
+    permissions:
+      contents: read
+      actions: read   # unduh situs-dist dari run main terakhir yang lolos (pemilihan halaman PR, keputusan 866)
     outputs:
       matriks: ${{ steps.matriks.outputs.matriks }}
     steps:
@@ -86,6 +96,13 @@ jobs:
       # bukan `cancelled` oleh timeout job (keputusan 360). Normalnya beberapa detik.
       - name: Unduh font
         run: timeout -k 15s 2m bash tools/get_fonts.sh
+      # Cache unduhan paket bun (keputusan 865). Isinya hanya tarball yang diverifikasi bun terhadap hash di bun.lock saat
+      # dipasang, dan pemasangan tetap --frozen-lockfile, jadi cache yang salah atau usang tidak mengubah hasil.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-1.4.2-${{ hashFiles('situs/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-1.4.2-
       - name: Pasang dependency
         run: timeout -k 15s 2m bun install --cwd situs --frozen-lockfile
       # Batas waktu langkah di bawah timeout job. Job yang kena timeout-minutes berakhir `cancelled`, dan
@@ -93,6 +110,44 @@ jobs:
       # timeout (GNU coreutils) keluar 124, atau 137 bila perlu KILL, jadi langkahnya `failure` (keputusan 357).
       - name: Gerbang kualitas situs tanpa browser
         run: timeout -k 30s 5m bash tools/cek_situs.sh
+      # Pemilihan halaman untuk alat ukur (keputusan 866). Dasar = dist dari run push main terbaru yang seluruh jobnya hijau:
+      # run itu memeriksa 100% halaman, jadi halaman yang HTML-nya sama dengan dasar sudah terbukti lolos. Basis perbandingan
+      # berkas sumber adalah commit dasar itu (bukan base PR), jadi perubahan alat ukur di main sesudah dasar juga terhitung.
+      # Gagal mengunduh (tidak ada run, artefak kedaluwarsa 3 hari, commit tidak terambil) = semua halaman.
+      - name: Unduh dist main yang lolos sebagai dasar
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          baris=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow cek.yml --branch main --event push --status success --limit 1 \
+            --json databaseId,headSha --jq '.[0] | select(. != null) | "\(.databaseId) \(.headSha)"' || true)
+          read -r id sha <<<"$baris" || true
+          if [ -z "${id:-}" ] || [ -z "${sha:-}" ]; then echo "::notice::Tidak ada run main yang lolos; semua halaman diperiksa."; exit 0; fi
+          mkdir -p tmp/dasar
+          if ! timeout -k 15s 2m gh run download "$id" --repo "$GITHUB_REPOSITORY" -n situs-dist -D tmp/dasar; then
+            echo "::notice::Artefak situs-dist run $id tidak bisa diunduh (kedaluwarsa?); semua halaman diperiksa."; rm -rf tmp/dasar; exit 0
+          fi
+          if ! timeout -k 15s 2m git fetch --no-tags --depth=1 origin "$sha"; then
+            echo "::notice::Commit dasar $sha tidak bisa diambil; semua halaman diperiksa."; rm -rf tmp/dasar; exit 0
+          fi
+          echo "$sha" > tmp/dasar-sha.txt
+          echo "Dasar: run $id, commit $sha"
+      - name: Pilih halaman yang diperiksa alat ukur
+        env:
+          PERISTIWA: ${{ github.event_name }}
+        run: |
+          set -o pipefail
+          mkdir -p tmp/pilihan
+          basis=""; if [ -f tmp/dasar-sha.txt ]; then basis=$(cat tmp/dasar-sha.txt); fi
+          python3 tools/pilih_halaman.py --peristiwa "$PERISTIWA" --dist situs/dist --dasar tmp/dasar --basis "$basis" \
+            --keluar tmp/pilihan/halaman-diperiksa.txt | tee tmp/pilihan/ringkasan.txt
+          if [ -f tmp/pilihan/halaman-diperiksa.txt ]; then echo sebagian > tmp/pilihan/mode.txt; else echo semua > tmp/pilihan/mode.txt; fi
+          { echo "### Halaman yang diperiksa alat ukur"; echo '```'; cat tmp/pilihan/ringkasan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pilihan-halaman
+          path: tmp/pilihan
+          retention-days: 3
       # Daftar kelompok diambil dari skrip yang sama dengan laptop, jadi CI tidak bisa melewatkan alat ukur.
       - name: Kelompok alat ukur
         id: matriks
@@ -122,6 +177,11 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: "1.4.2"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-1.4.2-${{ hashFiles('situs/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-1.4.2-
       # Dibatasi seperti di job build (keputusan 360); Chromium dengan dependency sistem normalnya 21–41 s.
       # Mirror apt Azure ±60 KB/s pada 2026-10-24 membuat paket font dependency melewati 3 menit di tiga run berturut-turut (keputusan 563).
       - name: Pasang dependency
@@ -135,6 +195,7 @@ jobs:
         run: |
           versi=$(grep -o '"playwright-core@[0-9][0-9.]*"' situs/bun.lock | head -1 | tr -d '"')
           test -n "$versi" || { echo "::error::playwright-core tidak ada di situs/bun.lock"; exit 1; }
+          echo "kunci_browser=playwright-browser-${ImageOS:?bukan runner GitHub-hosted}-$versi" >> "$GITHUB_OUTPUT"
           echo "awalan=apt-chromium-${ImageOS:?bukan runner GitHub-hosted}-" >> "$GITHUB_OUTPUT"
           echo "kunci=apt-chromium-${ImageOS}-${ImageVersion:?bukan runner GitHub-hosted}-$versi" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v6
@@ -143,6 +204,15 @@ jobs:
           path: ~/apt-chromium
           key: ${{ steps.kunci_apt.outputs.kunci }}
           restore-keys: ${{ steps.kunci_apt.outputs.awalan }}
+      # Browser Playwright (±170 MB; unduhan ±15-20 s per job, diukur di run 40148968969) di ~/.cache/ms-playwright (keputusan 865).
+      # Kunci: image runner dan versi playwright-core; tanpa restore-keys, karena direktori browser versi lain tidak terpakai.
+      # `playwright install` melewati unduhan bila direktori browser versi ini sudah lengkap, dan tetap memasang dependency sistem
+      # lewat apt di langkah di bawah. Isi cache tidak diverifikasi hash (Playwright tidak menerbitkan hash browser); cache yang
+      # dibuat PR hanya terbaca PR itu, jadi cache yang dipakai PR lain berasal dari run main.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.kunci_apt.outputs.kunci_browser }}
       # apt-get memakai .deb di /var/cache/apt/archives yang nama file (paket_versi_arsitektur) dan ukurannya cocok
       # dengan index tanpa memeriksa hash (apt 2.8.3, konstruktor pkgAcqArchive di acquire-item.cc), lalu hanya
       # mengunduh sisanya. Isi cache Actions tidak ditandatangani, jadi setiap .deb dicocokkan dulu dengan SHA256
@@ -192,6 +262,20 @@ jobs:
         with:
           name: situs-dist
           path: situs/dist
+      # Halaman yang diperiksa (keputusan 866): bila mode "sebagian", UKUR_HALAMAN menunjuk berkas daftar halaman dan alat ukur
+      # yang memeriksa semua halaman hanya memeriksa daftar itu; bila "semua", variabelnya tidak ada. Berkas yang hilang saat
+      # mode sebagian menggagalkan job, bukan diam-diam memeriksa semua atau tidak sama sekali.
+      - uses: actions/download-artifact@v8
+        with:
+          name: pilihan-halaman
+          path: pilihan
+      - name: Halaman yang diperiksa
+        run: |
+          cat pilihan/ringkasan.txt
+          if [ "$(cat pilihan/mode.txt)" = sebagian ]; then
+            test -f pilihan/halaman-diperiksa.txt
+            echo "UKUR_HALAMAN=$GITHUB_WORKSPACE/pilihan/halaman-diperiksa.txt" >> "$GITHUB_ENV"
+          fi
       # 13 menit di bawah timeout job 18 menit, supaya alat yang macet membuat job gagal, bukan cancelled
       # (naik dari 9 menit pada 2026-10-25, keputusan 726: gerak tumbuh tiap halaman berblok baru)
       # (lihat langkah gerbang di job build).
@@ -214,7 +298,7 @@ jobs:
   deploy:
     name: deploy Cloudflare Pages
     needs: [situs_baru, situs_ukur]
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'workflow_dispatch' && github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
