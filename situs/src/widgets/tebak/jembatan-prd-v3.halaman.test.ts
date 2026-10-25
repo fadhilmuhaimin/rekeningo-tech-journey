@@ -376,3 +376,70 @@ describe("tidak membuka isi Tahap 3 lebih dari yang diizinkan naskah Tahap 2 bag
     expect(benar.alasan).toContain("sepanjang panggilannya (penalaran dari rekaman lock, Tidak dijalankan).");
   });
 });
+
+describe("tinjauan PR 353 (keputusan 746 dan 747): mutasi yang lolos di tes pelaksana", () => {
+  const naskah1 = baca("plan/CERITA-TAHAP-1.md");
+  const t1 = baca("situs/src/content/docs/tahap-1/jembatan-prd-v2.mdx");
+  const barisFitur = (nama: string) => {
+    const row = mdx.split("\n").find((b) => b.startsWith(`| ${nama} |`));
+    expect(row, `baris "${nama}" tidak ada`).toBeDefined();
+    return row!.split("|").map((c) => c.trim());
+  };
+
+  test("keputusan 744: tabel dan widget tidak menyebut solusi 'dua instance API' dari keterangan naskah", () => {
+    expect(naskah3).toContain("Dua instance API, staging, backup terjadwal; satu proses mati tidak terlihat oleh user");
+    expect(badan).not.toMatch(/instance API/i);
+    expect(teksWidget).not.toMatch(/instance API/i);
+    expect(barisFitur("Tidak berhenti saat deploy atau saat satu proses mati")[3]).toBe("Satu proses: tiap deploy menghentikan layanan sampai proses baru menyala ([[t2-adr-21]])");
+  });
+  test("ADR 21 dibaca ulang: PRD v3 meminta deploy tanpa jeda, pemicu kapasitas belum bisa dibaca", () => {
+    ada("sengaja-belum.mdx", "Membaca ulang ADR ini setiap PRD baru datang adalah satu-satunya pagar sampai alat ukurnya ada.");
+    ada("sengaja-belum.mdx", "| Server kedua | Puncak yang diperkirakan mencapai separuh kapasitas satu server hasil load test, atau PRD meminta deploy tanpa jeda |");
+    expect(naskah3).toContain("Direksi tidak mau app berhenti saat deploy atau saat satu proses mati");
+    harus('ADR 21 meminta dibaca ulang setiap PRD baru datang. PRD v3 memenuhi satu pemicunya: baris "Tidak berhenti saat deploy" meminta deploy tanpa jeda ([[t2-adr-21]]). Pemicu kapasitas belum bisa dibaca karena kapasitas belum diukur.');
+  });
+  test("kolom 'Asalnya di Tahap 2' tiap fitur cocok dengan halaman yang ditaut", () => {
+    const asal = Object.fromEntries(["Notifikasi saat menerima uang", "Katalog dan stok warung", "Dasbor web warung", "Promo dari HR", "Catatan pada pembayaran dan transfer", "Mode offline di app warung"].map((n) => [n, barisFitur(n)[3]]));
+    expect(asal["Notifikasi saat menerima uang"]).toBe('PRD v2 prioritas P2: diminta Budi, ditunda ke v3 ([[t2-prd]]). Ini jawaban untuk "bagaimana Citra tahu ada kiriman masuk?" di [[t2-transfer]]');
+    expect(asal["Katalog dan stok warung"]).toBe("Tidak ada di PRD v2");
+    expect(asal["Dasbor web warung"]).toBe("Di luar lingkup PRD v2 ([[t2-prd]])");
+    expect(asal["Promo dari HR"]).toBe("Di luar lingkup PRD v2 ([[t2-prd]])");
+    expect(asal["Mode offline di app warung"]).toBe("Tidak ada di PRD v2. Halaman kursor menulis bahwa sync offline menunggu Tahap 3 ([[t2-kursor]])");
+    ada("prd-v2.mdx", "| P2 | Notifikasi saat menerima transfer | Diminta Budi; ditunda ke v3 |");
+    ada("prd-v2.mdx", "dashboard web untuk warung, notifikasi push, dan promo.");
+    ada("pagination-kursor.mdx", "Sync offline dan notifikasi butuh opsi C atau D, dan keputusan itu menunggu Tahap 3.");
+  });
+  test("kepala dokumen: penulis dan syarat baru sama dengan naskah Tahap 1 dan halaman 1.42", () => {
+    expect(naskah1).toContain("**Sinta** adalah product manager di unit Inisiatif Digital");
+    expect(naskah1).toContain("| **Pak Hadi** | Kepala Divisi Keuangan. |");
+    expect(t1).toContain("<dt>Penulis</dt><dd>Sinta, unit Inisiatif Digital</dd>");
+    expect(t1).toContain("<dt>Syarat baru</dt><dd>Pak Hadi, Kepala Divisi Keuangan</dd>");
+    harus("<dt>Penulis</dt><dd>Sinta, unit Inisiatif Digital</dd>");
+    harus("<dt>Syarat baru</dt><dd>Pak Hadi, Kepala Divisi Keuangan</dd>");
+  });
+  test("enam kota dan label kejujuran di kalimat pembuka dan penutup widget", () => {
+    expect(naskah3).toContain("Direksi Grup Lestari memperluas Rekeningo ke semua cabang di enam kota");
+    harus("Direksi lalu memperluas Rekeningo ke semua cabang Grup Lestari di enam kota.");
+    harus("Angka di dokumen ini adalah angka cerita (Ilustrasi), kecuali yang ditulis Asumsi atau Rekaman lab.");
+    dalamWidget("kodenya tidak memanggil layanan lain selain database (Tidak dijalankan).");
+    dalamWidget("Tahap 3 dimulai dari PRD v3 lengkap dan kedua ADR ini.");
+  });
+  test("aturan 4 dan rekaman bagian F disebut dengan nomor yang benar di halaman", () => {
+    harus("Aturan 4 melarang panggilan jaringan selama lock dipegang.");
+    ada("race-lock.mdx", "4. Tidak ada panggilan jaringan atau kerja lambat selama lock dipegang.");
+    harus("batas laju ADR 20 ([[t2-login-aman]], rekaman bagian F)");
+    ada("brute-force.mdx", "rekaman bagian F mencatat 20 dari 24 tebakan lolos");
+  });
+  test("sumber widget: jenis rekaman, dua berkas, bagian F; berkas itu ada", () => {
+    expect(data.sumber.jenis).toBe("rekaman");
+    expect(data.sumber.teks).toContain("labs/c4-ratelimit/output/login/ratelimit.txt bagian F");
+    expect(data.sumber.teks).toContain("labs/b3-race/output/ledger/ledger-for-update.txt");
+    expect(data.label.sumber).toBe("Rekaman lab · ratelimit.txt bagian F, ledger-for-update.txt");
+    for (const p of ["labs/c4-ratelimit/output/login/ratelimit.txt", "labs/b3-race/output/ledger/ledger-for-update.txt"]) expect(fs.existsSync(path.join(akar, p)), p).toBe(true);
+  });
+  test("menit baca di registry sama dengan baca ditambah coba di baris meta", () => {
+    const m = badan.match(/Baca (\d+) menit · coba (\d+) menit/);
+    expect(m).not.toBeNull();
+    expect((dari("t2-jembatan") as Hal & { menit?: number }).menit).toBe(Number(m![1]) + Number(m![2]));
+  });
+});
