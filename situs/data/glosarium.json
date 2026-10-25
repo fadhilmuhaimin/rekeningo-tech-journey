@@ -156,7 +156,7 @@
   "t": "API gateway",
   "d": "Server di depan beberapa instance atau service yang mengurus hal bersama sebelum request diteruskan, mis. rate limit, authentication, dan routing.",
   "b": "C4",
-  "n": "3.7 Security dasar dan rate limit",
+  "n": "Security dasar dan rate limit (versi lama)",
   "u": "/c-operasional/c4-security-dasar/",
   "s": "istilah-api-gateway",
   "h": null
@@ -165,7 +165,7 @@
   "t": "At-least-once",
   "d": "Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda.",
   "b": "B10.1",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "u": "/b-fondasi/b10-1-background-job/",
   "s": "istilah-at-least-once",
   "h": "/istilah/at-least-once/"
@@ -237,7 +237,7 @@
   "t": "Cache",
   "d": "Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli.",
   "b": "B9",
-  "n": "3.6 Caching dan invalidation",
+  "n": "Caching dan invalidation (versi lama)",
   "u": "/b-fondasi/b9-caching/",
   "s": "istilah-cache",
   "h": null
@@ -282,7 +282,7 @@
   "t": "Connection pool",
   "d": "Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request.",
   "b": "B2.5",
-  "n": "3.2 Connection pool",
+  "n": "Connection pool (versi lama)",
   "u": "/b-fondasi/b2-5-connection-pool/",
   "s": "istilah-connection-pool",
   "h": null
@@ -300,7 +300,7 @@
   "t": "Dead-letter queue",
   "d": "Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.",
   "b": "B10.1",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "u": "/b-fondasi/b10-1-background-job/",
   "s": "istilah-dead-letter-queue",
   "h": null
@@ -417,7 +417,7 @@
   "t": "FCM (Firebase Cloud Messaging)",
   "d": "Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya.",
   "b": "E4",
-  "n": "3.5 Push dan real-time",
+  "n": "Push dan real-time (versi lama)",
   "u": "/e-mobile/e4-push-real-time/",
   "s": "istilah-fcm",
   "h": null
@@ -525,7 +525,7 @@
   "t": "Latency",
   "d": "Lama waktu satu request dari dikirim sampai response diterima.",
   "b": "C2",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "u": "/c-operasional/c2-observability/",
   "s": "istilah-latency",
   "h": null
@@ -543,7 +543,7 @@
   "t": "Lease",
   "d": "Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis.",
   "b": "B10.1",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "u": "/b-fondasi/b10-1-background-job/",
   "s": "istilah-lease",
   "h": null
@@ -561,7 +561,7 @@
   "t": "Little's Law",
   "d": "Rumus L = λ × W: jumlah yang sedang diproses sama dengan laju kedatangan dikali lama tiap item tinggal.",
   "b": "B2.5",
-  "n": "3.2 Connection pool",
+  "n": "Connection pool (versi lama)",
   "u": "/b-fondasi/b2-5-connection-pool/",
   "s": "istilah-little-s-law",
   "h": null
@@ -597,7 +597,7 @@
   "t": "Log",
   "d": "Catatan kejadian per request atau per peristiwa, ditulis aplikasi untuk dibaca saat menyelidiki masalah.",
   "b": "C2",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "u": "/c-operasional/c2-observability/",
   "s": "istilah-log",
   "h": null
@@ -633,7 +633,7 @@
   "t": "Metric",
   "d": "Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error.",
   "b": "C2",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "u": "/c-operasional/c2-observability/",
   "s": "istilah-metric",
   "h": null
@@ -723,7 +723,7 @@
   "t": "Offline-first",
   "d": "Desain app yang menyimpan perubahan di HP dulu, lalu menyinkronkannya ke server saat sinyal ada.",
   "b": "E2",
-  "n": "3.8 Offline-first dan sync",
+  "n": "Offline-first dan sync (versi lama)",
   "u": "/e-mobile/e2-offline-first/",
   "s": "istilah-offline-first",
   "h": null
@@ -786,7 +786,7 @@
   "t": "p95 / p50",
   "d": "Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median).",
   "b": "C2",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "u": "/c-operasional/c2-observability/",
   "s": "istilah-p95-p50",
   "h": null
@@ -840,7 +840,7 @@
   "t": "Polling",
   "d": "App menanyakan status ke server berulang kali dengan jeda tetap.",
   "b": "E4",
-  "n": "3.5 Push dan real-time",
+  "n": "Push dan real-time (versi lama)",
   "u": "/e-mobile/e4-push-real-time/",
   "s": "istilah-polling",
   "h": null
@@ -912,7 +912,7 @@
   "t": "Queue",
   "d": "Daftar pekerjaan yang menunggu diproses oleh worker, satu per satu atau paralel.",
   "b": "B10.1",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "u": "/b-fondasi/b10-1-background-job/",
   "s": "istilah-queue",
   "h": null
@@ -930,7 +930,7 @@
   "t": "Rate limit",
   "d": "Batas jumlah request per waktu dari satu sumber, mis. lima percobaan login per menit.",
   "b": "C4",
-  "n": "3.7 Security dasar dan rate limit",
+  "n": "Security dasar dan rate limit (versi lama)",
   "u": "/c-operasional/c4-security-dasar/",
   "s": "istilah-rate-limit",
   "h": null
@@ -1101,7 +1101,7 @@
   "t": "Semaphore",
   "d": "Penghitung yang membatasi berapa pekerjaan boleh berjalan bersamaan; pekerjaan berikutnya menunggu sampai ada yang selesai.",
   "b": "B8",
-  "n": "3.4 Concurrency dan async",
+  "n": "Concurrency dan async (versi lama)",
   "u": "/b-fondasi/b8-concurrency/",
   "s": "istilah-semaphore",
   "h": null
@@ -1173,7 +1173,7 @@
   "t": "SSE (Server-Sent Events)",
   "d": "Koneksi HTTP yang dibiarkan terbuka sehingga server bisa mengirim pesan satu arah ke client.",
   "b": "E4",
-  "n": "3.5 Push dan real-time",
+  "n": "Push dan real-time (versi lama)",
   "u": "/e-mobile/e4-push-real-time/",
   "s": "istilah-sse",
   "h": null
@@ -1182,7 +1182,7 @@
   "t": "Stale",
   "d": "Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache.",
   "b": "B9",
-  "n": "3.6 Caching dan invalidation",
+  "n": "Caching dan invalidation (versi lama)",
   "u": "/b-fondasi/b9-caching/",
   "s": "istilah-stale",
   "h": null
@@ -1218,7 +1218,7 @@
   "t": "Throughput",
   "d": "Jumlah pekerjaan yang selesai per satuan waktu, mis. request per detik.",
   "b": "C2",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "u": "/c-operasional/c2-observability/",
   "s": "istilah-throughput",
   "h": null
@@ -1245,7 +1245,7 @@
   "t": "Token bucket",
   "d": "Algoritma rate limit: setiap key (IP atau akun) punya bucket berisi token yang terisi ulang dengan laju tetap, dan setiap request memakai satu token.",
   "b": "C4",
-  "n": "3.7 Security dasar dan rate limit",
+  "n": "Security dasar dan rate limit (versi lama)",
   "u": "/c-operasional/c4-security-dasar/",
   "s": "istilah-token-bucket",
   "h": null
@@ -1254,7 +1254,7 @@
   "t": "Trace",
   "d": "Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.",
   "b": "C2",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "u": "/c-operasional/c2-observability/",
   "s": "istilah-trace",
   "h": null
@@ -1263,7 +1263,7 @@
   "t": "TTL (Time To Live)",
   "d": "Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa.",
   "b": "B9",
-  "n": "3.6 Caching dan invalidation",
+  "n": "Caching dan invalidation (versi lama)",
   "u": "/b-fondasi/b9-caching/",
   "s": "istilah-ttl",
   "h": null
@@ -1299,7 +1299,7 @@
   "t": "WebSocket",
   "d": "Koneksi dua arah yang tetap terbuka antara app dan server.",
   "b": "E4",
-  "n": "3.5 Push dan real-time",
+  "n": "Push dan real-time (versi lama)",
   "u": "/e-mobile/e4-push-real-time/",
   "s": "istilah-websocket",
   "h": null
@@ -1308,7 +1308,7 @@
   "t": "Worker",
   "d": "Proses terpisah yang mengambil pekerjaan dari queue dan mengerjakannya di luar jalur request. Di server web seperti WSGI, worker juga berarti satu proses yang melayani request.",
   "b": "B10.1",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "u": "/b-fondasi/b10-1-background-job/",
   "s": "istilah-worker",
   "h": null

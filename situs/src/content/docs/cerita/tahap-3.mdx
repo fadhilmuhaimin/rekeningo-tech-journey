@@ -4,7 +4,7 @@ title: "Tahap 3 · Lambat di jam sibuk"
 import WidgetLama from "../../../components/WidgetLama.astro";
 import SkripLama from "../../../components/SkripLama.astro";
 
-<p class="meta">Baca 5 menit · Halaman tahap · Jalur inti</p>
+<p class="meta">Baca 5 menit · Halaman tahap</p>
 
 ## Inti
 
@@ -32,7 +32,7 @@ Semua angka adalah asumsi cerita.
 | User aktif harian (DAU) | 2.500 | 10.000 × 25% (asumsi) |
 | Request per hari | 150.000 | 2.500 × 60 request (polling status pesanan menambah request, asumsi) |
 | Puncak request per detik | ±17 | 150.000 ÷ 86.400 × 10 (asumsi) |
-| Data transaksi per tahun | ±550 MB | 2.500 × 2 transaksi × 365 × 300 B (asumsi) |
+| Data transaksi per tahun | ±820 MB | 2.500 × 3 transaksi × 365 × 300 B (asumsi) |
 
 Kenapa 17 request per detik bisa membuat app lambat? **Little's Law**: jumlah koneksi yang sedang dipegang (L) sama dengan laju request (λ) dikali lama koneksi dipegang (W).
 
@@ -50,14 +50,46 @@ Urutan di tabel ini adalah urutan baca yang disarankan.
 {/* daftar-tahap */}
 | Masalah | Halaman |
 |---|---|
-| Tidak tahu bagian mana yang lambat | [3.1 Observability: log, metric, trace](/c-operasional/c2-observability/) |
-| Request menunggu koneksi database di jam sibuk | [3.2 Connection pool](/b-fondasi/b2-5-connection-pool/) |
-| Notifikasi dan email memperlambat request bayar | [3.3 Background job, queue, retry](/b-fondasi/b10-1-background-job/) |
-| Bingung: thread, event loop, goroutine, worker | [3.4 Concurrency dan async](/b-fondasi/b8-concurrency/) |
-| App polling status pesanan tiap 5 detik | [3.5 Push dan real-time](/e-mobile/e4-push-real-time/) |
-| Katalog dibaca ribuan kali dengan isi sama; harga lama muncul | [3.6 Caching dan invalidation](/b-fondasi/b9-caching/) |
-| Login dicoba ribuan kali dari satu IP | [3.7 Security dasar dan rate limit](/c-operasional/c4-security-dasar/) |
-| Perubahan stok saat offline hilang | [3.8 Offline-first dan sync](/e-mobile/e2-offline-first/) |
+| Karyawan tidak tahu kapan uang masuk, warung meminta admin mengubah menu, dan satu proses mati mematikan semuanya | 3.1 PRD v3: Rekeningo untuk enam kota · *segera* |
+| Dari PRD v3, apa yang berubah di app, backend, dan database? | 3.2 Dari fitur ke pekerjaan teknis v3 · *segera* |
+| Budi dan Ani ingin tahu saat uang masuk tanpa membuka app, dan notifikasi tidak boleh mendahului uangnya | 3.3 Fitur: notifikasi push dan promo HR · *segera* |
+| PostgreSQL bisa COMMIT atau ROLLBACK sebagai satu unit, tetapi layanan push tidak ikut unit itu | 3.4 Dua tempat yang tidak bisa commit bersama · *segera* |
+| Tabel mana yang lahir, berubah, dan hilang saat notifikasi, katalog, dan sinkron masuk? | 3.5 Skema data: ERD Tahap 2 → Tahap 3 dan pertumbuhannya · *segera* |
+| Seluruh layar app berhenti menjawab saat layanan push menerima koneksi tetapi tidak menjawab | 3.6 M18: Seluruh app membeku jam 12.20 · *segera* |
+| Tanpa log, metric, dan trace, "lambat" tidak punya alamat | 3.7 Observability: log, metric, trace · *segera* |
+| Pool koneksi habis karena panggilan keluar menggantung di dalam transaction, bukan karena beban banyak | 3.8 Connection pool, Little's Law, dan timeout + ADR 22 · *segera* |
+| Uang dan pemberitahuan ditulis di satu tempat dulu, lalu dikirim worker dari tempat lain | 3.9 Outbox transaksional dan worker + ADR 23 · *segera* |
+| Saldo Citra naik, tetapi satu notifikasi tidak pernah sampai ke Ani | 3.10 M19: Ani tidak diberi tahu · *segera* |
+| Kursor atas waktu dan id melewatkan baris yang COMMIT belakangan, jadi notifikasinya hilang | 3.11 Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24 · *segera* |
+| Ani menerima notifikasi yang sama dua kali dan mengira Budi membayar dua kali | 3.12 M20: Notifikasi masuk dua kali · *segera* |
+| Mengirim ulang itu benar; yang kurang adalah penerima yang mengenali ulangan | 3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25 · *segera* |
+| Satu proses API keluar, tidak ada yang memulainya lagi, dan deploy mematikan app sesaat | 3.14 M21: Satu proses mati, semua mati · *segera* |
+| Dua proses butuh proxy yang tahu mana yang hidup, dan deploy yang tidak memutus koneksi | 3.15 Dua instance di belakang proxy + ADR 26 · *segera* |
+| Setelah instance kedua dipasang, batas percobaan login per IP longgar menjadi dua kali lipat | 3.16 M22: Batas login jadi dua kali lipat · *segera* |
+| Yang disimpan di memori satu proses berlipat saat prosesnya dua | 3.17 Rate limit lintas instance dan Redis + ADR 27 · *segera* |
+| Dua HP di meja yang sama menampilkan dua harga untuk menu yang sama | 3.18 M23: Dua harga di satu meja · *segera* |
+| Cache boleh basi untuk tampilan, tidak untuk uang, dan beban katalog sebenarnya tidak memaksa cache | 3.19 Cache dan invalidation + ADR 28 · *segera* |
+| Stok yang diisi warung hari Sabtu kembali ke angka lama saat app warung tersambung lagi hari Senin | 3.20 M24: Stok yang kembali ke angka lama · *segera* |
+| Operasi yang menunggu lama harus bisa ditolak dengan benar, bukan menimpa data yang lebih baru | 3.21 Offline-first dan sinkron + ADR 29 · *segera* |
+| Dasbor warung menampilkan kotak peringatan setiap kali Ani membuka riwayat penerimaan | 3.22 M25: Kotak peringatan di riwayat Ani · *segera* |
+| Data dari sistem sendiri tetap input: catatan pembayaran bisa menjalankan skrip di dasbor | 3.23 Keamanan 5: XSS, CSRF, cookie sesi, passkey + ADR 30 · *segera* |
+| Budi melihat transfer di riwayatnya yang tidak ia buat, sesudah memakai Wi-Fi kantin tenant mitra | 3.24 M26: Transfer yang tidak dibuat Budi · *segera* |
+| Sertifikat selalu divalidasi, dan pin selalu datang dengan cadangan | 3.25 Keamanan 6: TLS, HSTS, pinning + ADR 31 · *segera* |
+| Promo ke semua HP menahan notifikasi pembayaran Ani di belakang antrean yang sama | 3.26 M27: Hari promo, notifikasi uang terlambat · *segera* |
+| Empat engineer, tiga peran, dan satu VPS: staging, pipeline, alert, dan giliran jaga belum ada | 3.27 Tim dan infra Tahap 3: staging, pipeline, alert, on-call + ADR 32 · *segera* |
+| Uji coba enam kota lolos, lalu PRD v4 datang dengan pihak ketiga yang menggerakkan uang | 3.28 M28: Uji coba enam kota lolos, PRD v4 datang · *segera* |
+| Menghitung beban Tahap 4 dari angka Tahap 3 sebelum memilih komponen | 3.29 Estimasi Tahap 3 → 4 · *segera* |
+| Tergoda menambah microservices, Kubernetes, replica, dan server kedua sebelum angkanya meminta | 3.30 ADR 33: Sengaja belum dilakukan · *segera* |
+| Mengingat tiga belas konsep Tahap 3 dalam satu kalimat masing-masing | 3.31 Yang dibawa keluar dari Tahap 3 · *segera* |
+| Keputusan Tahap 3 mana yang pecah lebih dulu saat PRD v4 datang? | 3.32 Jembatan: pratinjau PRD v4 · *segera* |
+| Tidak tahu bagian mana yang lambat | [Observability: log, metric, trace](/c-operasional/c2-observability/) |
+| Request menunggu koneksi database di jam sibuk | [Connection pool](/b-fondasi/b2-5-connection-pool/) |
+| Notifikasi dan email memperlambat request bayar | [Background job, queue, retry](/b-fondasi/b10-1-background-job/) |
+| Bingung: thread, event loop, goroutine, worker | [Concurrency dan async](/b-fondasi/b8-concurrency/) |
+| App polling status pesanan tiap 5 detik | [Push dan real-time](/e-mobile/e4-push-real-time/) |
+| Katalog dibaca ribuan kali dengan isi sama; harga lama muncul | [Caching dan invalidation](/b-fondasi/b9-caching/) |
+| Login dicoba ribuan kali dari satu IP | [Security dasar dan rate limit](/c-operasional/c4-security-dasar/) |
+| Perubahan stok saat offline hilang | [Offline-first dan sync](/e-mobile/e2-offline-first/) |
 {/* /daftar-tahap */}
 
 ## Sengaja belum dilakukan

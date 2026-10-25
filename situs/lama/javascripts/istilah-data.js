@@ -27,7 +27,7 @@ window.ISTILAH = {
  "API gateway": {
   "b": "C4",
   "d": "Server di depan beberapa instance atau service yang mengurus hal bersama sebelum request diteruskan, mis. rate limit, authentication, dan routing.",
-  "n": "3.7 Security dasar dan rate limit",
+  "n": "Security dasar dan rate limit (versi lama)",
   "s": "istilah-api-gateway",
   "t": "API gateway",
   "u": "c-operasional/c4-security-dasar/"
@@ -52,7 +52,7 @@ window.ISTILAH = {
   "b": "B10.1",
   "d": "Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda.",
   "h": "istilah/at-least-once/",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "s": "istilah-at-least-once",
   "t": "At-least-once",
   "u": "b-fondasi/b10-1-background-job/"
@@ -177,7 +177,7 @@ window.ISTILAH = {
  "Cache": {
   "b": "B9",
   "d": "Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli.",
-  "n": "3.6 Caching dan invalidation",
+  "n": "Caching dan invalidation (versi lama)",
   "s": "istilah-cache",
   "t": "Cache",
   "u": "b-fondasi/b9-caching/"
@@ -193,7 +193,7 @@ window.ISTILAH = {
  "Connection pool": {
   "b": "B2.5",
   "d": "Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request.",
-  "n": "3.2 Connection pool",
+  "n": "Connection pool (versi lama)",
   "s": "istilah-connection-pool",
   "t": "Connection pool",
   "u": "b-fondasi/b2-5-connection-pool/"
@@ -233,7 +233,7 @@ window.ISTILAH = {
  "Dead-letter queue": {
   "b": "B10.1",
   "d": "Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "s": "istilah-dead-letter-queue",
   "t": "Dead-letter queue",
   "u": "b-fondasi/b10-1-background-job/"
@@ -353,7 +353,7 @@ window.ISTILAH = {
  "FCM": {
   "b": "E4",
   "d": "Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya.",
-  "n": "3.5 Push dan real-time",
+  "n": "Push dan real-time (versi lama)",
   "s": "istilah-fcm",
   "t": "FCM (Firebase Cloud Messaging)",
   "u": "e-mobile/e4-push-real-time/"
@@ -369,7 +369,7 @@ window.ISTILAH = {
  "Firebase Cloud Messaging": {
   "b": "E4",
   "d": "Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya.",
-  "n": "3.5 Push dan real-time",
+  "n": "Push dan real-time (versi lama)",
   "s": "istilah-fcm",
   "t": "FCM (Firebase Cloud Messaging)",
   "u": "e-mobile/e4-push-real-time/"
@@ -519,7 +519,7 @@ window.ISTILAH = {
  "Latency": {
   "b": "C2",
   "d": "Lama waktu satu request dari dikirim sampai response diterima.",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "s": "istilah-latency",
   "t": "Latency",
   "u": "c-operasional/c2-observability/"
@@ -536,7 +536,7 @@ window.ISTILAH = {
  "Lease": {
   "b": "B10.1",
   "d": "Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis.",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "s": "istilah-lease",
   "t": "Lease",
   "u": "b-fondasi/b10-1-background-job/"
@@ -570,7 +570,7 @@ window.ISTILAH = {
  "Log": {
   "b": "C2",
   "d": "Catatan kejadian per request atau per peristiwa, ditulis aplikasi untuk dibaca saat menyelidiki masalah.",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "s": "istilah-log",
   "t": "Log",
   "u": "c-operasional/c2-observability/"
@@ -611,7 +611,7 @@ window.ISTILAH = {
  "Metric": {
   "b": "C2",
   "d": "Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error.",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "s": "istilah-metric",
   "t": "Metric",
   "u": "c-operasional/c2-observability/"
@@ -718,7 +718,7 @@ window.ISTILAH = {
  "Offline-first": {
   "b": "E2",
   "d": "Desain app yang menyimpan perubahan di HP dulu, lalu menyinkronkannya ke server saat sinyal ada.",
-  "n": "3.8 Offline-first dan sync",
+  "n": "Offline-first dan sync (versi lama)",
   "s": "istilah-offline-first",
   "t": "Offline-first",
   "u": "e-mobile/e2-offline-first/"
@@ -850,7 +850,7 @@ window.ISTILAH = {
  "Polling": {
   "b": "E4",
   "d": "App menanyakan status ke server berulang kali dengan jeda tetap.",
-  "n": "3.5 Push dan real-time",
+  "n": "Push dan real-time (versi lama)",
   "s": "istilah-polling",
   "t": "Polling",
   "u": "e-mobile/e4-push-real-time/"
@@ -917,7 +917,7 @@ window.ISTILAH = {
  "Queue": {
   "b": "B10.1",
   "d": "Daftar pekerjaan yang menunggu diproses oleh worker, satu per satu atau paralel.",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "s": "istilah-queue",
   "t": "Queue",
   "u": "b-fondasi/b10-1-background-job/"
@@ -958,7 +958,7 @@ window.ISTILAH = {
  "Rate limit": {
   "b": "C4",
   "d": "Batas jumlah request per waktu dari satu sumber, mis. lima percobaan login per menit.",
-  "n": "3.7 Security dasar dan rate limit",
+  "n": "Security dasar dan rate limit (versi lama)",
   "s": "istilah-rate-limit",
   "t": "Rate limit",
   "u": "c-operasional/c4-security-dasar/"
@@ -1066,7 +1066,7 @@ window.ISTILAH = {
  "SSE": {
   "b": "E4",
   "d": "Koneksi HTTP yang dibiarkan terbuka sehingga server bisa mengirim pesan satu arah ke client.",
-  "n": "3.5 Push dan real-time",
+  "n": "Push dan real-time (versi lama)",
   "s": "istilah-sse",
   "t": "SSE (Server-Sent Events)",
   "u": "e-mobile/e4-push-real-time/"
@@ -1108,7 +1108,7 @@ window.ISTILAH = {
  "Semaphore": {
   "b": "B8",
   "d": "Penghitung yang membatasi berapa pekerjaan boleh berjalan bersamaan; pekerjaan berikutnya menunggu sampai ada yang selesai.",
-  "n": "3.4 Concurrency dan async",
+  "n": "Concurrency dan async (versi lama)",
   "s": "istilah-semaphore",
   "t": "Semaphore",
   "u": "b-fondasi/b8-concurrency/"
@@ -1174,7 +1174,7 @@ window.ISTILAH = {
  "Stale": {
   "b": "B9",
   "d": "Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache.",
-  "n": "3.6 Caching dan invalidation",
+  "n": "Caching dan invalidation (versi lama)",
   "s": "istilah-stale",
   "t": "Stale",
   "u": "b-fondasi/b9-caching/"
@@ -1198,7 +1198,7 @@ window.ISTILAH = {
  "TTL": {
   "b": "B9",
   "d": "Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa.",
-  "n": "3.6 Caching dan invalidation",
+  "n": "Caching dan invalidation (versi lama)",
   "s": "istilah-ttl",
   "t": "TTL (Time To Live)",
   "u": "b-fondasi/b9-caching/"
@@ -1224,7 +1224,7 @@ window.ISTILAH = {
  "Throughput": {
   "b": "C2",
   "d": "Jumlah pekerjaan yang selesai per satuan waktu, mis. request per detik.",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "s": "istilah-throughput",
   "t": "Throughput",
   "u": "c-operasional/c2-observability/"
@@ -1232,7 +1232,7 @@ window.ISTILAH = {
  "Time To Live": {
   "b": "B9",
   "d": "Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa.",
-  "n": "3.6 Caching dan invalidation",
+  "n": "Caching dan invalidation (versi lama)",
   "s": "istilah-ttl",
   "t": "TTL (Time To Live)",
   "u": "b-fondasi/b9-caching/"
@@ -1256,7 +1256,7 @@ window.ISTILAH = {
  "Token bucket": {
   "b": "C4",
   "d": "Algoritma rate limit: setiap key (IP atau akun) punya bucket berisi token yang terisi ulang dengan laju tetap, dan setiap request memakai satu token.",
-  "n": "3.7 Security dasar dan rate limit",
+  "n": "Security dasar dan rate limit (versi lama)",
   "s": "istilah-token-bucket",
   "t": "Token bucket",
   "u": "c-operasional/c4-security-dasar/"
@@ -1264,7 +1264,7 @@ window.ISTILAH = {
  "Trace": {
   "b": "C2",
   "d": "Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "s": "istilah-trace",
   "t": "Trace",
   "u": "c-operasional/c2-observability/"
@@ -1305,7 +1305,7 @@ window.ISTILAH = {
  "WebSocket": {
   "b": "E4",
   "d": "Koneksi dua arah yang tetap terbuka antara app dan server.",
-  "n": "3.5 Push dan real-time",
+  "n": "Push dan real-time (versi lama)",
   "s": "istilah-websocket",
   "t": "WebSocket",
   "u": "e-mobile/e4-push-real-time/"
@@ -1321,7 +1321,7 @@ window.ISTILAH = {
  "Worker": {
   "b": "B10.1",
   "d": "Proses terpisah yang mengambil pekerjaan dari queue dan mengerjakannya di luar jalur request. Di server web seperti WSGI, worker juga berarti satu proses yang melayani request.",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "s": "istilah-worker",
   "t": "Worker",
   "u": "b-fondasi/b10-1-background-job/"
@@ -1330,7 +1330,7 @@ window.ISTILAH = {
   "b": "B10.1",
   "d": "Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda.",
   "h": "istilah/at-least-once/",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "s": "istilah-at-least-once",
   "t": "At-least-once",
   "u": "b-fondasi/b10-1-background-job/"
@@ -1406,7 +1406,7 @@ window.ISTILAH = {
  "cache": {
   "b": "B9",
   "d": "Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli.",
-  "n": "3.6 Caching dan invalidation",
+  "n": "Caching dan invalidation (versi lama)",
   "s": "istilah-cache",
   "t": "Cache",
   "u": "b-fondasi/b9-caching/"
@@ -1422,7 +1422,7 @@ window.ISTILAH = {
  "connection pool": {
   "b": "B2.5",
   "d": "Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request.",
-  "n": "3.2 Connection pool",
+  "n": "Connection pool (versi lama)",
   "s": "istilah-connection-pool",
   "t": "Connection pool",
   "u": "b-fondasi/b2-5-connection-pool/"
@@ -1454,7 +1454,7 @@ window.ISTILAH = {
  "dead-letter queue": {
   "b": "B10.1",
   "d": "Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "s": "istilah-dead-letter-queue",
   "t": "Dead-letter queue",
   "u": "b-fondasi/b10-1-background-job/"
@@ -1643,7 +1643,7 @@ window.ISTILAH = {
  "latency": {
   "b": "C2",
   "d": "Lama waktu satu request dari dikirim sampai response diterima.",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "s": "istilah-latency",
   "t": "Latency",
   "u": "c-operasional/c2-observability/"
@@ -1660,7 +1660,7 @@ window.ISTILAH = {
  "lease": {
   "b": "B10.1",
   "d": "Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis.",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "s": "istilah-lease",
   "t": "Lease",
   "u": "b-fondasi/b10-1-background-job/"
@@ -1703,7 +1703,7 @@ window.ISTILAH = {
  "log": {
   "b": "C2",
   "d": "Catatan kejadian per request atau per peristiwa, ditulis aplikasi untuk dibaca saat menyelidiki masalah.",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "s": "istilah-log",
   "t": "Log",
   "u": "c-operasional/c2-observability/"
@@ -1728,7 +1728,7 @@ window.ISTILAH = {
  "metric": {
   "b": "C2",
   "d": "Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error.",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "s": "istilah-metric",
   "t": "Metric",
   "u": "c-operasional/c2-observability/"
@@ -1801,7 +1801,7 @@ window.ISTILAH = {
  "offline-first": {
   "b": "E2",
   "d": "Desain app yang menyimpan perubahan di HP dulu, lalu menyinkronkannya ke server saat sinyal ada.",
-  "n": "3.8 Offline-first dan sync",
+  "n": "Offline-first dan sync (versi lama)",
   "s": "istilah-offline-first",
   "t": "Offline-first",
   "u": "e-mobile/e2-offline-first/"
@@ -1835,7 +1835,7 @@ window.ISTILAH = {
  "p50": {
   "b": "C2",
   "d": "Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median).",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "s": "istilah-p95-p50",
   "t": "p95 / p50",
   "u": "c-operasional/c2-observability/"
@@ -1843,7 +1843,7 @@ window.ISTILAH = {
  "p95": {
   "b": "C2",
   "d": "Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median).",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "s": "istilah-p95-p50",
   "t": "p95 / p50",
   "u": "c-operasional/c2-observability/"
@@ -1901,7 +1901,7 @@ window.ISTILAH = {
  "polling": {
   "b": "E4",
   "d": "App menanyakan status ke server berulang kali dengan jeda tetap.",
-  "n": "3.5 Push dan real-time",
+  "n": "Push dan real-time (versi lama)",
   "s": "istilah-polling",
   "t": "Polling",
   "u": "e-mobile/e4-push-real-time/"
@@ -1960,7 +1960,7 @@ window.ISTILAH = {
  "queue": {
   "b": "B10.1",
   "d": "Daftar pekerjaan yang menunggu diproses oleh worker, satu per satu atau paralel.",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "s": "istilah-queue",
   "t": "Queue",
   "u": "b-fondasi/b10-1-background-job/"
@@ -1977,7 +1977,7 @@ window.ISTILAH = {
  "rate limit": {
   "b": "C4",
   "d": "Batas jumlah request per waktu dari satu sumber, mis. lima percobaan login per menit.",
-  "n": "3.7 Security dasar dan rate limit",
+  "n": "Security dasar dan rate limit (versi lama)",
   "s": "istilah-rate-limit",
   "t": "Rate limit",
   "u": "c-operasional/c4-security-dasar/"
@@ -2084,7 +2084,7 @@ window.ISTILAH = {
  "semaphore": {
   "b": "B8",
   "d": "Penghitung yang membatasi berapa pekerjaan boleh berjalan bersamaan; pekerjaan berikutnya menunggu sampai ada yang selesai.",
-  "n": "3.4 Concurrency dan async",
+  "n": "Concurrency dan async (versi lama)",
   "s": "istilah-semaphore",
   "t": "Semaphore",
   "u": "b-fondasi/b8-concurrency/"
@@ -2142,7 +2142,7 @@ window.ISTILAH = {
  "stale": {
   "b": "B9",
   "d": "Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache.",
-  "n": "3.6 Caching dan invalidation",
+  "n": "Caching dan invalidation (versi lama)",
   "s": "istilah-stale",
   "t": "Stale",
   "u": "b-fondasi/b9-caching/"
@@ -2184,7 +2184,7 @@ window.ISTILAH = {
  "throughput": {
   "b": "C2",
   "d": "Jumlah pekerjaan yang selesai per satuan waktu, mis. request per detik.",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "s": "istilah-throughput",
   "t": "Throughput",
   "u": "c-operasional/c2-observability/"
@@ -2208,7 +2208,7 @@ window.ISTILAH = {
  "token bucket": {
   "b": "C4",
   "d": "Algoritma rate limit: setiap key (IP atau akun) punya bucket berisi token yang terisi ulang dengan laju tetap, dan setiap request memakai satu token.",
-  "n": "3.7 Security dasar dan rate limit",
+  "n": "Security dasar dan rate limit (versi lama)",
   "s": "istilah-token-bucket",
   "t": "Token bucket",
   "u": "c-operasional/c4-security-dasar/"
@@ -2216,7 +2216,7 @@ window.ISTILAH = {
  "trace": {
   "b": "C2",
   "d": "Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.",
-  "n": "3.1 Observability",
+  "n": "Observability: log, metric, trace (versi lama)",
   "s": "istilah-trace",
   "t": "Trace",
   "u": "c-operasional/c2-observability/"
@@ -2257,7 +2257,7 @@ window.ISTILAH = {
  "worker": {
   "b": "B10.1",
   "d": "Proses terpisah yang mengambil pekerjaan dari queue dan mengerjakannya di luar jalur request. Di server web seperti WSGI, worker juga berarti satu proses yang melayani request.",
-  "n": "3.3 Background job, queue, retry",
+  "n": "Background job, queue, retry (versi lama)",
   "s": "istilah-worker",
   "t": "Worker",
   "u": "b-fondasi/b10-1-background-job/"
