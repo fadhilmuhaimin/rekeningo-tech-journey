@@ -1,0 +1,28 @@
+# Lab t3-pool · satu pembayaran selama M18: log, metric, dan database dari luar
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-pool run (keputusan 959).
+
+# --- J. Satu pembayaran dari app ke database selama M18: apa yang terlihat dari luar ---
+$ ./api-t3 -rentan push-dalam-tx -lab   # pool 10, push timeout 0, idle-tx 0
+server log: PERINGATAN: mode rentan push-dalam-tx menyala
+server log: api-t3 siap: pool 10, push timeout 0s, idle-tx 0s
+$ curl -X POST '/lab/mode' -d '{"mode": "gantung"}'   # layanan push tiruan: menerima permintaan, tidak pernah menjawab
+# App mengirim header traceparent (contoh dari spesifikasi W3C Trace Context). Satu pembayaran, tanpa beban lain.
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Karyawan>' -H 'traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01' -d '{"ke": 418, "nominal": 10000}'
+(belum ada jawaban sesudah 4 detik; client masih menunggu)
+# 1. Log: request yang menggantung tidak menulis apa-apa. Baris ditulis saat request selesai.
+baris log baru sesudah 4 detik: 0
+baris log yang memuat trace-id dari app: 0
+$ grep -rli traceparent cmd internal   # di labs/api-t3
+(tidak ada berkas): kode api-t3 tidak membaca traceparent, jadi trace-id dari app berhenti di perbatasan API
+# 2. Metric: kolom dipakai dan terbuka dari database/sql DBStats lewat GET /lab/pool.
+$ curl -i -X GET '/lab/pool'   # kolom menunggu tidak dicetak: hitungan kumulatif yang bergantung pada waktu
+{"dipakai":1,"maks":10,"terbuka":1}
+# 3. Database: transaction itu terbuka lebih dari 3 detik dan PostgreSQL sedang menunggu client, bukan menjalankan query.
+=> SELECT state, wait_event_type, wait_event, now() - xact_start > interval '3 seconds' AS lebih_dari_3_detik FROM pg_stat_activity WHERE application_name = 'api-t3'
+ state               | wait_event_type | wait_event | lebih_dari_3_detik
+---------------------+-----------------+------------+--------------------
+ idle in transaction | Client          | ClientRead | t
+(1 row)
+# Dari luar proses, petunjuk itu satu-satunya: yang lambat bukan PostgreSQL. Bagian mana di API yang menunggu, tidak terlihat.
+# 4. Trace: Tidak dijalankan. OpenTelemetry tidak dipasang di api-t3 (butuh ADR untuk dependency; log Go masih Release Candidate, R3-14).
