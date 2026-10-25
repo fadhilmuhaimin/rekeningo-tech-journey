@@ -1,0 +1,112 @@
+# Lab t3-mitm · M26: transfer yang tidak dibuat Budi (proxy tiruan di hotspot Dimas)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-mitm run (keputusan 977).
+# Client: Dart 3.11.4 (dart:io) dan dio 5.11.0. Server tepi dan proxy tiruan: Go (crypto/tls, tanpa dependency).
+
+# --- A. Tanpa TLS: hotspot Dimas membaca dan mengubah request, server melihat request yang sah ---
+# Saldo Budi sebelum: Rp250.000
+# App Budi mengirim Rp10.000 ke Citra lewat HTTP biasa (port 18193: proxy hotspot Dimas, bukan server). Proxy mengganti nominal dan tujuan.
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10001
+
+{"id":10001,"saldo":100000,"sisa_batas_harian":350000}
+# proxy Dimas melihat: handshake tidak, request terbaca 1
+# proxy membaca: POST /kiriman Authorization: Bearer <token sesi Budi>
+# body dari app:      {"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}
+# body diteruskan:    {"catatan":"patungan","ke_nomor_karyawan":"K00417","nominal":150000}
+# Authorization yang dibaca proxy sama dengan token sesi Budi: ya
+# Yang tercatat di database server (satu transfer, dua posting yang berjumlah nol):
+=> SELECT j.id AS jurnal, a.nomor_karyawan, p.jumlah
+   FROM jurnal j JOIN posting p ON p.jurnal_id = j.id JOIN buku b ON b.id = p.buku_id JOIN akun a ON a.id = b.akun_id
+   WHERE j.jenis = 'transfer' ORDER BY j.id, p.jumlah
+ jurnal | nomor_karyawan | jumlah
+--------+----------------+---------
+ 10001  | K00419         | -150000
+ 10001  | K00417         | 150000
+(2 rows)
+# Saldo Budi sesudah: Rp100.000. Token Budi sah, jurnal seimbang, batas harian terpenuhi: server tidak punya yang bisa ditolak.
+
+# --- B. TLS dengan validasi sertifikat: proxy tiruan ditolak sebelum satu byte request keluar ---
+# Kontrol: app Budi (hanya percaya CA Lab Publik) langsung ke server tepi: sertifikat sah, request jalan.
+$ client --mode=validasi --percaya=ca-publik --url=https://localhost:18190/akun/419 --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1}}
+# Sama, tetapi lewat hotspot Dimas: proxy memalsukan sertifikat dengan CA Dimas, yang tidak ada di daftar akar app.
+$ client --mode=validasi --percaya=ca-publik --url=https://localhost:18192/kiriman --metode=POST --token=<token sesi Budi> --body='{"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}'
+{"hasil":"ditolak","jenis":"handshake","alasan":"application verification failure"}
+# proxy Dimas melihat: handshake ya, request terbaca 0
+# Database: tidak ada transfer (0 baris di jurnal.jenis = 'transfer').
+
+# --- C. Flag "terima sertifikat apa pun": dari staging, tidak dicabut dari build rilis ---
+# C1. Kenapa flag ada: server staging memakai sertifikat dari CA buatan sendiri (CA Staging), yang tidak ada di daftar akar app.
+$ client --mode=validasi --percaya=ca-publik --url=https://localhost:18190/akun/419 --token=<token sesi Budi>
+{"hasil":"ditolak","jenis":"handshake","alasan":"application verification failure"}
+# Dengan flag, staging jalan. Bayu meminta, Raka memasangnya, dan flag ikut ke build rilis.
+$ client --mode=terima-semua --percaya=ca-publik --url=https://localhost:18190/akun/419 --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1},"callback_dipanggil":1}
+# C2. Build rilis dengan flag yang sama, lewat hotspot Dimas dan server produksi (sertifikat dari CA Lab Publik).
+$ client --mode=terima-semua --percaya=ca-publik --url=https://localhost:18192/kiriman --metode=POST --token=<token sesi Budi> --body='{"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}'
+{"hasil":"terhubung","status":201,"isi":{"id":10001,"saldo":100000,"sisa_batas_harian":350000},"callback_dipanggil":1}
+# proxy Dimas melihat: handshake ya, request terbaca 1
+# proxy membaca: POST /kiriman Authorization: Bearer <token sesi Budi>
+# body dari app:      {"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}
+# body diteruskan:    {"catatan":"patungan","ke_nomor_karyawan":"K00417","nominal":150000}
+# Authorization yang dibaca proxy sama dengan token sesi Budi: ya
+# Yang tercatat di database server:
+=> SELECT j.id AS jurnal, a.nomor_karyawan, p.jumlah
+   FROM jurnal j JOIN posting p ON p.jurnal_id = j.id JOIN buku b ON b.id = p.buku_id JOIN akun a ON a.id = b.akun_id
+   WHERE j.jenis = 'transfer' ORDER BY j.id, p.jumlah
+ jurnal | nomor_karyawan | jumlah
+--------+----------------+---------
+ 10001  | K00419         | -150000
+ 10001  | K00417         | 150000
+(2 rows)
+
+# --- D. Tanpa flag, tetapi CA Dimas ada di daftar akar app: validasi lolos, proxy tetap membaca dan mengubah ---
+# Lab menaruh CA Dimas di daftar akar app. Bagaimana CA itu sampai di sana (profil dipasang di HP, CA yang salah menerbitkan): Tidak dijalankan.
+$ client --mode=validasi --percaya=ca-publik+ca-dimas --url=https://localhost:18192/kiriman --metode=POST --token=<token sesi Budi> --body='{"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}'
+{"hasil":"terhubung","status":201,"isi":{"id":10001,"saldo":100000,"sisa_batas_harian":350000}}
+# proxy Dimas melihat: handshake ya, request terbaca 1
+# proxy membaca: POST /kiriman Authorization: Bearer <token sesi Budi>
+# body dari app:      {"ke_nomor_karyawan":"K00504","nominal":10000,"catatan":"patungan"}
+# body diteruskan:    {"catatan":"patungan","ke_nomor_karyawan":"K00417","nominal":150000}
+# Authorization yang dibaca proxy sama dengan token sesi Budi: ya
+=> SELECT j.id AS jurnal, a.nomor_karyawan, p.jumlah
+   FROM jurnal j JOIN posting p ON p.jurnal_id = j.id JOIN buku b ON b.id = p.buku_id JOIN akun a ON a.id = b.akun_id
+   WHERE j.jenis = 'transfer' ORDER BY j.id, p.jumlah
+ jurnal | nomor_karyawan | jumlah
+--------+----------------+---------
+ 10001  | K00419         | -150000
+ 10001  | K00417         | 150000
+(2 rows)
+# Validasi sertifikat yang benar tidak cukup bila daftar akar berisi CA yang salah: lanjut ke pin.txt.
+
+# --- E. Dimas memakai token yang dibacanya, tanpa app Budi ---
+# App Budi dengan flag terima-semua membuka saldo lewat hotspot Dimas. Proxy hanya membaca.
+$ client --mode=terima-semua --percaya=ca-publik --url=https://localhost:18192/akun/419 --token=<token sesi Budi>
+{"hasil":"terhubung","status":200,"isi":{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1},"callback_dipanggil":1}
+# proxy Dimas melihat: handshake ya, request terbaca 1
+# proxy membaca: GET /akun/419 Authorization: Bearer <token sesi Budi>
+# Authorization yang dibaca proxy sama dengan token sesi Budi: ya
+# Dimas memakai token itu sendiri, dari laptopnya, langsung ke server: transfer Rp150.000 ke dirinya.
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke_nomor_karyawan":"K00417","nominal":150000,"catatan":"uji lapangan"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10001
+
+{"id":10001,"saldo":100000,"sisa_batas_harian":350000}
+=> SELECT j.id AS jurnal, a.nomor_karyawan, p.jumlah
+   FROM jurnal j JOIN posting p ON p.jurnal_id = j.id JOIN buku b ON b.id = p.buku_id JOIN akun a ON a.id = b.akun_id
+   WHERE j.jenis = 'transfer' ORDER BY j.id, p.jumlah
+ jurnal | nomor_karyawan | jumlah
+--------+----------------+---------
+ 10001  | K00419         | -150000
+ 10001  | K00417         | 150000
+(2 rows)
+# Budi membuka riwayatnya: satu kiriman keluar ke Dimas yang tidak ia buat.
+$ curl -i -X GET '/akun/419/riwayat?batas=1' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"berikutnya":"<kursor>","riwayat":[{"id":10001,"jenis":"transfer","arah":"keluar","lawan":"Dimas","jumlah":150000,"nominal":150000,"waktu":"<waktu>"}]}
