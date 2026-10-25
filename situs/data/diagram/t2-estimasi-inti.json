@@ -1,0 +1,45 @@
+{
+  "id": "t2-estimasi-inti",
+  "judul": "Dua hitungan dari Tahap 2 ke Tahap 3",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Asumsi naskah, bukan pengukuran"
+  },
+  "baris": [
+    {
+      "label": "Hitung ulang",
+      "sub": "puncak per detik",
+      "simpul": [
+        {
+          "teks": "Tahap 2: ±1,4",
+          "sub": "request per detik",
+          "nada": "old"
+        },
+        {
+          "teks": "Tahap 3: ±17",
+          "sub": "naik 12,5 kali",
+          "nada": "system"
+        }
+      ]
+    },
+    {
+      "label": "Kali lama",
+      "sub": "L = λ × W",
+      "simpul": [
+        {
+          "teks": "0,87 bayar per detik",
+          "sub": "5% dari semua request"
+        },
+        {
+          "teks": "× 2,02 detik",
+          "sub": "panggilan luar 2 detik, Asumsi"
+        },
+        {
+          "teks": "= 1,75 koneksi",
+          "sub": "tertahan rata-rata",
+          "nada": "system"
+        }
+      ]
+    }
+  ]
+}

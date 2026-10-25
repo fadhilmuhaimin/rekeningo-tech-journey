@@ -1172,6 +1172,38 @@
   "jawab": "401 dengan isi yang sama persis dengan password salah (api-t2 `pengaman.txt` bagian E). Penyerang tidak tahu akun itu terkunci, dan Ani juga tidak."
  },
  {
+  "id": "t2-estimasi-1",
+  "halaman": "t2-estimasi",
+  "judul": "2.30 Estimasi Tahap 2 → 3",
+  "url": "tahap-2/estimasi/",
+  "tanya": "Raka mengira puncak naik 10 kali karena user naik 10 kali. Bagian mana dari hitungan yang membuatnya 12,5 kali?",
+  "jawab": "Tiga pengali. User naik 10 kali dan user aktif turun dari 30% ke 25% (× 25 ÷ 30). Request per user naik dari 40 ke 60 (× 60 ÷ 40). Hasil kalinya 10 × (25 ÷ 30) × (60 ÷ 40) = 12,5, jadi puncak naik dari ±1,4 ke ±17 request per detik."
+ },
+ {
+  "id": "t2-estimasi-2",
+  "halaman": "t2-estimasi",
+  "judul": "2.30 Estimasi Tahap 2 → 3",
+  "url": "tahap-2/estimasi/",
+  "tanya": "Satu dari dua puluh request memanggil layanan luar selama 2 detik, dan koneksi dipegang sampai panggilan selesai. Puncak semua request 17,4 per detik. Berapa koneksi tertahan, dan kenapa bukan 34,7?",
+  "jawab": "Pakai λ kelas yang memanggil layanan luar: 0,87 bayar dan transfer per detik. L = 0,87 × (0,02 + 2) = 1,75 koneksi. Angka 34,7 memakai 17,4 × 2 detik, jadi menghitung semua request seolah ikut menunggu, hampir 20 kali terlalu besar."
+ },
+ {
+  "id": "t2-estimasi-3",
+  "halaman": "t2-estimasi",
+  "judul": "2.30 Estimasi Tahap 2 → 3",
+  "url": "tahap-2/estimasi/",
+  "tanya": "Pool dibatasi 10 koneksi. Berapa detik panggilan luar yang membuat rata-rata koneksi tertahan menyentuh 10?",
+  "jawab": "0,87 × (0,02 + t) = 10, jadi t ≈ 11,5 detik. Karena L adalah rata-rata, jumlah yang dibutuhkan pada satu detik tertentu kadang lebih besar, jadi batas pool jangan dipasang tepat di L."
+ },
+ {
+  "id": "t2-estimasi-4",
+  "halaman": "t2-estimasi",
+  "judul": "2.30 Estimasi Tahap 2 → 3",
+  "url": "tahap-2/estimasi/",
+  "tanya": "Hitungan di halaman ini memberi 1,75 koneksi untuk panggilan 2 detik. Dari mana angka 2 detik, dan bagaimana menggantinya dengan angka nyata?",
+  "jawab": "Angka 2 detik adalah Asumsi: layanan push belum ada, jadi lama panggilannya belum pernah diukur. Sesudah fitur dibangun, W dibaca dari log akses atau `pg_stat_statements`, lalu L dihitung ulang dengan λ kelas bayar dan transfer."
+ },
+ {
   "id": "B3.2-1",
   "halaman": "B3.2",
   "judul": "Race condition dan lock",

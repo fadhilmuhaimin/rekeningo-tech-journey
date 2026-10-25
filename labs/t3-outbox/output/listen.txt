@@ -1,0 +1,57 @@
+# Lab t3-outbox · LISTEN/NOTIFY hanya sebagai pembangun worker, dan retensi 7 hari
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_outbox · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-outbox run (keputusan 960).
+$ ./api-t3 -lab
+
+# --- A. LISTEN/NOTIFY: pesan baru hanya terkirim sesudah COMMIT, dan tidak terkirim bila ROLLBACK ---
+=> [listener] LISTEN outbox_baru
+=> [penulis] BEGIN; INSERT INTO outbox ...; SELECT pg_notify('outbox_baru', <nomor>);   # belum COMMIT
+listener menerima: tidak ada (notifikasi menunggu COMMIT)
+=> [penulis] COMMIT
+listener menerima: nomor baris yang baru (1 notifikasi)
+=> [penulis] BEGIN; INSERT INTO outbox ...; pg_notify(...); ROLLBACK
+listener menerima: tidak ada (ROLLBACK membuang notifikasi bersama barisnya)
+# Nomor 2 sudah terpakai oleh baris yang di-ROLLBACK: nomor berikutnya 3, ada celah (R3-04: nomor urut bukan nomor tanpa celah)
+
+# --- B. Listener putus: notifikasi yang dikirim selagi ia tidak terhubung tidak pernah sampai, barisnya tetap di tabel ---
+=> SELECT pg_terminate_backend(<pid listener>)   # koneksi listener diputus (jaringan putus, database restart, atau pool membuangnya)
+listener: terputus
+=> [penulis] BEGIN; INSERT INTO outbox ...; pg_notify(...); COMMIT   # listener sedang putus
+=> [listener, sambungan baru] LISTEN outbox_baru
+listener menerima: tidak ada (notifikasi yang dikirim selagi putus tidak diulang)
+=> SELECT id, status FROM outbox WHERE id = 3
+ id | status
+----+----------
+ 3  | menunggu
+(1 row)
+# NOTIFY hanya membangunkan; sumbernya tetap tabel. Worker yang polling menemukan baris itu:
+$ ./api-t3 -peran worker -sekali -serentak 10
+worker: diklaim 2, terkirim 2, dilewati 0, ditunda 0, mati 0
+=> SELECT id, status FROM outbox WHERE id = 3
+ id | status
+----+----------
+ 3  | terkirim
+(1 row)
+# R3-05, R3-61: dokumentasi PostgreSQL 17 menyebut hanya sesi yang sedang mendengar yang diberi tahu dan registrasi hilang saat sesi berakhir; nasib notifikasi yang dikirim selagi listener putus tidak ditulis tegas. Rekaman ini: notifikasi tidak sampai, baris tetap di tabel
+
+# --- C. Retensi 7 hari: baris selesai yang lebih tua dibuang, baris yang menunggu dan yang mati tidak disentuh ---
+# Lima baris: terkirim 8 hari, terkirim 6 hari, dilewati 8 hari, menunggu 8 hari, mati 8 hari
+=> SELECT id, status, extract(day FROM now() - dibuat)::int AS umur_hari FROM outbox ORDER BY id
+ id | status   | umur_hari
+----+----------+-----------
+ 1  | terkirim | 8
+ 2  | terkirim | 6
+ 3  | dilewati | 8
+ 4  | menunggu | 8
+ 5  | mati     | 8
+(5 rows)
+$ ./api-t3 -bersih
+bersih: 2 baris outbox selesai (lebih dari 7 hari), 0 operasi sinkron (lebih dari 14 hari)
+=> SELECT id, status, extract(day FROM now() - dibuat)::int AS umur_hari FROM outbox ORDER BY id
+ id | status   | umur_hari
+----+----------+-----------
+ 2  | terkirim | 6
+ 4  | menunggu | 8
+ 5  | mati     | 8
+(3 rows)
+# Yang dibuang: yang selesai (terkirim atau dilewati) dan lebih tua dari 7 hari. Dead-letter dibaca manusia dulu; yang menunggu masih harus dikirim.

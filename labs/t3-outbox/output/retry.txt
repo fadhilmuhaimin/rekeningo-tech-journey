@@ -1,0 +1,57 @@
+# Lab t3-outbox · retry dengan backoff dan jitter, maksimal 5 percobaan, dead-letter (ADR 25)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_outbox · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-outbox run (keputusan 960).
+$ ./api-t3 -lab
+
+# --- A. Layanan push menjawab 503 terus: backoff dengan jitter, lima percobaan, lalu dead-letter ---
+# worker -satu-putaran: satu panggilan = satu putaran; backoff bawaan 2 detik, dua kali lipat tiap percobaan, maksimum 60 detik
+# Antara dua putaran lab memajukan coba_lagi (UPDATE tangan) supaya tidak menunggu backoff sungguhan
+putaran 1: outbox.status = menunggu, percobaan = 1; coba lagi paling lama 2 detik lagi (acak antara 0 dan 2): ya
+putaran 2: outbox.status = menunggu, percobaan = 2; coba lagi paling lama 4 detik lagi (acak antara 0 dan 4): ya
+putaran 3: outbox.status = menunggu, percobaan = 3; coba lagi paling lama 8 detik lagi (acak antara 0 dan 8): ya
+putaran 4: outbox.status = menunggu, percobaan = 4; coba lagi paling lama 16 detik lagi (acak antara 0 dan 16): ya
+putaran 5: outbox.status = mati, percobaan = 5
+putaran 6: diklaim 0 (baris mati tidak diklaim lagi)
+push tiruan menerima: 5 permintaan untuk 1 notifikasi_id
+=> SELECT status, percobaan, count(*) AS baris FROM outbox GROUP BY status, percobaan ORDER BY status, percobaan
+ status | percobaan | baris
+--------+-----------+-------
+ mati   | 5         | 1
+(1 row)
+
+# --- B. Jitter: 20 baris gagal pada putaran yang sama tidak mencoba lagi pada detik yang sama ---
+=> TRUNCATE outbox RESTART IDENTITY   # lab: antrean kosong lagi, nomor mulai dari 1
+$ ./api-t3 -peran worker -sekali -satu-putaran -serentak 20   # 20 baris, semuanya dijawab 503
+worker: diklaim 20, terkirim 0, dilewati 0, ditunda 20, mati 0
+# Batas backoff pertama 2 detik: 20 baris mendapat 20 waktu coba berbeda, tersebar lebih dari 0,5 detik, semuanya paling lama 2 detik lagi: ya
+
+# --- C. Baris yang membuat worker mati terus: dead-letter di klaim ke-6, tanpa dikirim ---
+=> TRUNCATE outbox RESTART IDENTITY   # lab: antrean kosong lagi, nomor mulai dari 1
+# -lab-henti-sebelum-tandai membuat setiap worker mati sesudah push berhasil; klaim 1 detik. Percobaan naik saat klaim, bukan saat gagal.
+klaim 1: worker mati sesudah push berhasil; outbox.status = menunggu, percobaan = 1
+klaim 2: worker mati sesudah push berhasil; outbox.status = menunggu, percobaan = 2
+klaim 3: worker mati sesudah push berhasil; outbox.status = menunggu, percobaan = 3
+klaim 4: worker mati sesudah push berhasil; outbox.status = menunggu, percobaan = 4
+klaim 5: worker mati sesudah push berhasil; outbox.status = menunggu, percobaan = 5
+$ ./api-t3 -peran worker -sekali -klaim 1s
+worker: diklaim 1, terkirim 0, dilewati 0, ditunda 0, mati 1
+log: outbox 1: 5 kali diklaim tanpa pernah selesai, masuk dead-letter
+klaim 6: diklaim 1, mati 1, tanpa kirim; outbox.status = mati, percobaan = 6
+push tiruan menerima: 5 pesan untuk 1 notifikasi_id (klaim ke-6 tidak mengirim)
+# Batas 5 dihitung saat klaim: baris yang mematikan worker tidak diulang tanpa akhir
+
+# --- D. Dead-letter dibaca manusia dulu; sesudah penyebabnya beres, diputar ulang dengan tangan ---
+=> SELECT id, jenis, status, percobaan FROM outbox WHERE status = 'mati'
+ id | jenis | status | percobaan
+----+-------+--------+-----------
+ 1  | bayar | mati   | 6
+(1 row)
+=> UPDATE outbox SET status = 'menunggu', percobaan = 0, coba_lagi = now() WHERE status = 'mati'   # putar ulang
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+=> SELECT id, jenis, status, percobaan FROM outbox
+ id | jenis | status   | percobaan
+----+-------+----------+-----------
+ 1  | bayar | terkirim | 1
+(1 row)
+# Putar ulang tetap membawa notifikasi_id yang sama: penerima yang sudah menampilkannya menyaringnya
