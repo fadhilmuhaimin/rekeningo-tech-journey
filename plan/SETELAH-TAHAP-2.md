@@ -319,3 +319,27 @@ Polesan dan pencegahan dari tinjauan lab dan halaman Tahap 2 yang sengaja tidak 
 - 2.15 `QueryRiwayat` tidak memindahkan fokus: tombol pilihan dinonaktifkan dan "Coba pilihan lain" hilang, jadi fokus jatuh ke body (diukur di `GeserRiwayat` sebelum keputusan 802, kodenya sama). Terapkan pola `AntreanLock`; tidak ada alat ukur otomatis untuk fokus widget tebak selain `ukur-race.mjs`.
 - 2.18: angka di prosa MDX (204, 205, 3.892, 4.098, 4.302) ditulis tangan; hanya widget yang dibaca dari rekaman dan menggagalkan build bila rekaman berubah. Rekaman berubah bentuk lalu angka prosa basi tidak tertangkap gerbang.
 - 2.18/2.19: bagian C `pagination.txt` menjalankan putaran pembanding di atas tabel yang sudah berisi 204 kiriman putaran OFFSET, jadi kolom "baris tampil" tidak sebanding; bila lab diulang, mulai putaran pembanding dari keadaan yang sama (mis. di dalam transaction yang di-rollback) supaya 3.894 + 204 = 4.098 muncul di kedua baris.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- api-t2 belum punya middleware gzip: tambahkan (atau tetapkan di reverse proxy) dengan tes `Accept-Encoding`, lalu rekam di lab api-t2.
+- Jalankan bentuk penuh terhadap skema `akun` api-t2 (kolom `password_hash`, `nomor_karyawan`, `gagal_login`; migrasi 000009 dan 000012). Rekaman e5-payload memakai skema b3-ledger yang lebih sempit, jadi 12.196 B batas bawah.
+- Ukur CPU dan latency gzip level bawaan pada riwayat 20 dan 50 baris; halaman hanya mengukur byte.
+- Baris R2-25 dan dua catatan di RISET ("Rekaman belum di skema ledger", "rekaman e5-payload memakai skema b2q lama") sudah kedaluwarsa karena R2-169; perbarui saat RISET dirapikan.
+- Widget UkuranPayload belum punya pilihan ukuran paket data (mis. 100 MB); tambahkan bila pemilik ingin menunjukkan kuota kecil.
+- Build widget UkuranPayload hanya mencocokkan bentuk 20 baris dengan tabel kuota bagian D; angka 50 baris di prosa (30.389 B, 9,117 %) dijaga tes Vitest saja. Mutasi satu byte di baris 50 baris bentuk penuh lolos `bun run build` dan gagal di Vitest. Pertimbangkan membaca angka prosa itu dari rekaman.
+- `role="status"` di hasil widget membungkus batang, empat angka, dan kalimat, jadi pembaca layar membacakan semuanya pada tiap klik; pertimbangkan hanya kalimat ringkasan.
+- Ambang `1kb` Express: riwayat 5 baris (781 B di rekaman) lebih kecil dari ambang, jadi tidak dikompres bila ukuran response diketahui. Tambahkan ke tab Node bila 2.20 dirapikan.
+- 2.24: `deploy/ci.yml` merujuk `tools/siapkan-skema-tes.sh` yang tidak ada di lab (lab memakai `buat_schema_tes()` di `run.py`); tulis skripnya di repo Rekeningo nyata dan jalankan workflow sekali di GitHub sungguhan.
+- 2.24: ukur menit CI per PR dengan tes database (lab belum mengukur); ambang 10 menit di ADR 18 berlabel Asumsi.
+- 2.24: uji mutasi otomatis di CI (satu baris pemanggil dihapus lalu tes harus gagal) ditunda; mutasi sekarang dilakukan manual di lab M14 dan tim.
+- 2.24: cek berkala bahwa pengaturan branch protection di GitHub cocok dengan isi permintaan REST yang disimpan di repo (pre-mortem 3).
+- 2.24: tambah "kasus 6" di bagian E `tim.txt` (t.Skip di subtest, harapan exit 1, `dilewati=3`) supaya pola `[[:space:]]*` di `ci.yml` terjaga rekaman; sekarang hanya dibuktikan mutasi manual peninjau (keputusan 834).
+- 2.24: `harap` di `run.py` kasus 2 tidak membedakan pesan penjaga `TestMain` dari penjaga `--- SKIP`; mencabut `wajib_test.go` hanya mengubah isi `tim.txt` (tertangkap `make cek` lewat `git diff`), bukan `harap`. Tambah `harap` pada pesan `TES_DB_WAJIB=1 tetapi`.
+- 2.24: `TestMain` hanya bereaksi pada `TES_DB_WAJIB=1` persis; `true` atau `yes` diabaikan diam-diam (penjaga `--- SKIP` di CI tetap menangkap). Terima nilai lain atau tolak nilai tak dikenal.
+- 2.24: jalur darurat bila satu engineer tidak ada (penulis tidak bisa menyetujui PR sendiri, `enforce_admins: true` menutup bypass): tulis di runbook Tahap 3 siapa pereview cadangan, atau prosedur mematikan `enforce_admins` sementara dengan catatan.
+- Tabel widget SelisihBank memakai `.bb-chip` dengan `style={{ whiteSpace: "nowrap" }}` karena `.bb-chip` punya `overflow-wrap: anywhere` yang memecah "−Rp15.000" di 375 px; usul kelas `sb-sorot` di `tema.css` dan hapus inline style.
+- Halaman 2.25 memakai `Snippet` berrentang baris 124:145 di `labs/t2-pencairan/cmd/pencairan/main.go`; rentang bisa bergeser diam-diam bila file berubah. Usul penanda `--8<-- [start:rentan-loop]` supaya Snippet memakai `region` (pola keputusan 409).
+- 2.25 (tinjauan): kalimat "Keduanya tidak bisa berhenti, atau dilanjutkan, sebagai satu kesatuan." (blok Yang sebenarnya dan `catatan` di `t2-m15-dua-jalan.json`) kurang tegas; usul "Keduanya tidak ikut di-COMMIT atau di-rollback bersama" dan ubah di dua tempat sekaligus.
+- 2.25 (tinjauan): `ukur-axe.mjs` mengukur widget dalam keadaan awal saja, jadi tabel, chip, dan hasil tebakan SelisihBank (juga TesMerge) tidak pernah diukur di CI; usul langkah klik tebakan lalu urutan dengan menunggu gerak muncul selesai, seperti axe akhir di `ukur-race`.
+- 2.25 (tinjauan): region `role="status"` kedua di SelisihBank (`.qr-hasil`) dipasang bersama isinya, jadi pembaca layar mungkin tidak mengumumkan kesimpulan pertama sebelum pembaca mengganti urutan [perlu verifikasi dengan pembaca layar]; pola sama di TesMerge.
