@@ -43,7 +43,7 @@ Dikerjakan 2026-10-25, skill riset-tahap (hierarki bukti dari analisis-kritis). 
 
 ## Kasus industri untuk ADR
 - R6-20 Platform sebagai produk: Spotify Engineering, "How We Use Golden Paths to Solve Fragmentation in Our Software Ecosystem" (2020-08-17). Golden Path backend lahir dari Hack Week (delapan engineer menulis tutorial); kini ada jalur untuk klien, data engineering, data science, machine learning, web, audio. Tulisan menyebut konsep itu tetap relevan setelah enam tahun. Batas: satu perusahaan, tanpa angka adopsi di teks yang dibaca; padanan Rekeningo berlabel Ilustrasi.
-- R6-21 Multi-region sinkron: Corbett dkk., "Spanner: Google's Globally-Distributed Database" (OSDI 2012). Replikasi sinkron dengan TrueTime (epsilon ±4 ms); F1 lima replika di Amerika Serikat; mereka menyebut kebanyakan aplikasi cukup 3 sampai 5 datacenter di satu wilayah geografis demi latensi tulis. Batas: infrastruktur jam dan jaringan Google; bukan resep untuk sistem tanpa jam atomik.
+- R6-21 Multi-region sinkron: Corbett dkk., "Spanner: Google's Globally-Distributed Database" (OSDI 2012). Replikasi sinkron dengan TrueTime (epsilon 1 sampai 7 ms, biasanya ±4 ms); F1 lima replika di Amerika Serikat; mereka menyebut kebanyakan aplikasi cukup 3 sampai 5 datacenter di satu wilayah geografis demi latensi tulis. Batas: infrastruktur jam dan jaringan Google; bukan resep untuk sistem tanpa jam atomik.
 
 ## Jebakan (bahan "yang Raka kira")
 | Pertanyaan forum (tautan) | Yang dikira | Yang benar (ID sumber) |
