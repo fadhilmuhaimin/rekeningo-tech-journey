@@ -81,7 +81,9 @@ Kunci akun di database mencatat percobaan sebelum hash dihitung. Tanpa urutan it
 
 <Snippet file="labs/c4-ratelimit/output/login/ratelimit.txt" lines="77:82" title="Rekaman lab: labs/c4-ratelimit/output/login/ratelimit.txt, bagian G (tebakan bersamaan)" />
 
-Setiap jawaban gagal sama: status 401, judul "Email atau password salah", dan waktu hash yang sama. Itu berlaku juga untuk email yang tidak terdaftar dan akun yang terkunci. Alasannya ada di [[t2-m16]].
+Setiap tebakan yang lolos kedua batas di memori dijawab sama: status 401, judul "Email atau password salah", dan waktu hash yang sama. Itu berlaku juga untuk email yang tidak terdaftar dan akun yang terkunci. Alasannya ada di [[t2-m16]].
+
+Tebakan yang ditolak batas di memori dijawab 429 dengan `Retry-After`. Batas per akun memakai teks email yang dikirim, sebelum akunnya dicari (potongan kode di atas), jadi email yang tidak terdaftar pun mendapat 429 yang sama, dan jawaban itu bukan tanda bahwa akunnya ada. Ini dibaca dari kode lab, belum direkam.
 
 ### Token bucket: batas laju di memori
 

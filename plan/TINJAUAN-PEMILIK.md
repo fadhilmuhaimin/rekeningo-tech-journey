@@ -1,0 +1,63 @@
+# Tinjauan pemilik
+
+Daftar hal yang butuh keputusan atau konfirmasi pemilik, dikumpulkan dari evaluasi tiap tahap (skill evaluasi-tahap). Pemilik meninjau di akhir; tidak ada yang menunggu jawaban. Untuk setiap butir ada keadaan sekarang (yang sudah dipakai supaya pekerjaan jalan) dan cara membatalkannya. LAPORAN-AKHIR mengumpulkan file ini.
+
+Tahap 1: lihat `plan/LAPORAN-TAHAP-1.md` bagian "10 hal untuk dilihat pemilik" dan `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik (arsip 2026-10-24)". File ini mulai dari Tahap 2.
+
+## Tahap 2
+
+Sumber: `plan/EVALUASI-TAHAP-2.md` (2026-10-26), catatan PR #317 sampai #353 (bagian Perlu dicek pemilik, Usulan cerita, Diputuskan tanpa pemilik), `plan/PELAJARAN-ARSIP.md` bagian Tahap 2, `plan/RISET-TAHAP-2.md` "Belum bisa dicek", dan `plan/DIPUTUSKAN-TANPA-PEMILIK.md`. Diurutkan dari yang paling berpengaruh pada isi tahap berikutnya.
+
+1. **Registry dan naskah berbeda soal transaksi per user aktif.** `tahap[1].asumsi.trx` di registry bernilai 2, sedangkan naskah Tahap 2 bagian 3b memakai 3. Akibatnya, rumus data per tahun di 2.9 menulis ±65,7 MB dan akan menjadi ±98,6 MB bila registry mengikuti naskah; 2.30 menuliskan selisihnya (data rumus 1.38 naik 12,5 kali, rumus ledger 8,3 kali). Keadaan sekarang: λ memakai 3 sesuai naskah, rumus data 1.38 memakai 2 sesuai registry, dan selisihnya tertulis di 2.30 langkah 3 dan 6 (PR #341, keputusan 768). Yang diminta: samakan registry ke 3 atau biarkan. Membatalkan: ubah satu angka di `situs/data/cerita.json`, jalankan `sinkron_cerita.py`, lalu periksa ulang 2.9, 2.30, dan baris tabel 1.38.
+
+2. **Sembilan halaman lama menumpuk di akhir Tahap 2.** Halaman `T2` ("Tahap 2 · Ceritanya") dan B3.2, B3.3, B2.4, B2.3, E3, B4.2, B1.3, E5 sudah digantikan halaman 2.x (`lebur_ke` atau `diganti_oleh`), tetapi masih berada di grup Tahap 2 dan masuk urutan baca; Berikutnya dari 2.33 menuju `/cerita/tahap-2/` (bukti: `python3 tools/eval_tahap.py rantai 2`). Keadaan sekarang: halaman tidak dihapus karena menghapus halaman butuh persetujuan pemilik (keputusan 605, 638, 642, 653, 665, 781); tugas `EVAL2-F1` hanya mengeluarkan mereka dari urutan baca. Yang diminta: izin menghapus atau mengarsipkan sembilan halaman itu, atau keputusan menyimpannya sebagai "versi lama" yang bisa dicari. Membatalkan: tidak ada yang berubah selain urutan baca.
+
+3. **W5 tetap TIDAK, dan Inti membocorkan tebakan.** Bukti di `plan/EVALUASI-TAHAP-2.md` (kartu W5, Lampiran W5). Tiga hal: (a) 2.32 (rekap) memakai kartu "tebak lalu buka" tanpa masukan yang bisa diubah, dan 2.2 memakai pilah; (b) di 2.12, 2.14, dan 2.16 jawaban tebakan sudah tertulis di Rantai Inti sebelum blok Coba (`python3 tools/eval_tahap.py bocor 2`), padahal Inti (kalimat lalu Rantai dari rekaman) ditambahkan di R1 sampai R6; (c) di 2.24 dan 2.26 tebakan berupa lipatan yang tidak menyembunyikan hasil. Yang diminta: pilih antara Inti hasil-dulu (pembaca cepat tahu, tebakan kurang bermakna) dan Inti pertanyaan-dulu (tebakan bermakna, Inti kurang berguna bila dibaca sendirian); dan putuskan apakah halaman rekap dikecualikan dari "ubah satu hal". Keadaan sekarang: tidak ada halaman diubah. Membatalkan: tidak ada yang perlu dibatalkan.
+
+4. **Usulan perubahan naskah Tahap 2 (CERITA-TAHAP-2 milik pemilik, tidak diubah).** Semua halaman mengikuti rekaman dan melabeli selisihnya. Daftar ringkas, rincian di PR dan arsip yang disebut:
+   - 2.8: naskah menulis "ADR 12"; ADR 12 sudah dipakai 1.40, jadi 2.8 ditulis sebagai revisi ADR 6 (keputusan 723). Usul: naskah menyebut revisi ADR 6, atau memberi nomor baru.
+   - M9: −Rp20.000 hanya muncul lewat alat lab (`SET CONSTRAINTS ALL IMMEDIATE`) atau bila kedua COMMIT bersamaan; bila kode memperbarui `saldo_cache`, transfer kedua menunggu lock. Usul: naskah menyebut mekanismenya.
+   - M11 "4 detik", M13 "40 detik", M15 Rp15.000: tidak terulang di lab; halaman berlabel Ilustrasi dan memakai angka rekaman. Usul: naskah menyebut mekanismenya, angkanya tetap ilustrasi.
+   - M16: "ribuan percobaan ke banyak akun" direkam sebagai 29 akun; naskah tidak menyebut pemilik alamat IP (halaman memakai Dimas, Ilustrasi) dan akun Ani sudah mengganti password, jadi sebab "password sementara tidak pernah diganti" tidak ikut direkam.
+   - M17: "banyak server sekaligus belum pernah diuji" perlu lingkup, karena c4-ratelimit sudah merekam dua instance untuk batas laju (R2-203).
+   - ADR 17: "backfill per 1.000 baris" jadi "per 1.000 akun"; "kolom saldo jadi cache" adalah `buku.saldo_cache`; riwayat app sesudah ledger turun dari 17 ke 3 baris dan naskah belum membahasnya.
+   - ADR 18: naskah menulis Testcontainers, lab memakai service container; PROPOSAL menaruh Testcontainers di Tahap 3. "Tes wajib" butuh dua penjaga.
+   - ADR 19: "rekonsiliasi sebelum file dibuat" berarti sebelum file bernama akhir; nama status `dikirim` terbaca "sudah di bank" padahal berarti file dibuat (usul `siap`).
+   - ADR 20: dua lapis di memori tidak menjamin akun yang dibidik tidak terkunci; argon2id menjadi keputusan ketiga ADR 20.
+   - ADR 21: halaman menambah pemicu L = λ × W dan load test pertama; usul naskah membedakan "server kedua" (salinan API) dari "service kedua" (ADR 12 Tahap 1).
+   - 2.32: tiga kalimat bagian 5 (Ledger, N+1 dan index, Estimasi) lebih luas daripada rekaman dan ditulis berlabel Dipersempit; kalimat brute force perlu "password sementara acak per akun".
+   - 2.33 dan Tahap 3: naskah bagian 6 menulis jawaban jembatan "dibuka di halaman pertama Tahap 3", 2.33 membukanya sendiri (keputusan 743); naskah bagian 6 menyebut "mode offline untuk warung", naskah Tahap 3 membatasinya ke stok dan harga (2.33 mengikuti Tahap 3). Pemicu server kedua ADR 21 ("PRD meminta deploy tanpa jeda") sudah terpenuhi PRD v3, sedangkan M21 naskah Tahap 3 menulis server kedua sebagai kejutan di minggu 5. Pilihan: M21 menjadi "pemicu yang dibaca terlambat", atau pemicu ADR 21 dibatasi pada kapasitas dan kejadian (mengubah 2.31 dan 2.33).
+   Keadaan sekarang: halaman mengikuti rekaman. Membatalkan: ubah naskah lalu minta halaman terkait disesuaikan.
+
+5. **Keputusan operasional yang naskah belum jawab.**
+   - ADR 19 menambah aturan proses: Keuangan memeriksa status batch tiap Jumat sesudah 15.00 dan hanya mengunggah file milik batch `dikirim`. Mohon konfirmasi Keuangan bersedia (PR #334).
+   - M15: cara menyelesaikan Rp15.000 yang sudah keluar ke bank belum dijawab (diminta kembali, dipotong dari pencairan berikut, atau dicatat di ledger tanpa koreksi tangan seperti aturan Pak Hadi). Halaman tidak membahasnya.
+   - Jalur lupa password Ani: 2.27 memakai jalur admin manual dari 1.7 dan ADR 20 menulisnya "Sengaja belum dilakukan"; konfirmasi bila lupa password mandiri harus masuk PRD v2 atau Tahap 3.
+   - Password sementara berpola `sementara-<id>` di api-t2 bisa dipakai orang lain mendahului pemiliknya (usul: acak per akun lewat saluran di luar app); api-t2 masih bcrypt cost 10 tanpa daftar password bocor, sedangkan ADR 20 memilih argon2id. Usul tugas lab sendiri (SETELAH-TAHAP-2).
+   - 2.8: `jurnal.keterangan` berisi teks bebas dengan nama, dan jurnal tidak bisa dihapus; naskah belum menjadwalkan penghapusan data pribadi.
+   - Peta Tahap 2 tidak punya halaman penutupan periode, padahal `tutup-buku.txt` bagian C menunjukkan jurnal yang COMMIT sesudah laporan masuk periode yang sudah dilaporkan (1.122 jadi 1.123); "kurang dari satu hari" belum diukur. Kursor riwayat (ADR 16) juga bisa melewatkan transaksi yang COMMIT belakangan.
+   - Riwayat app sesudah migrasi turun dari 17 ke 3 baris: terima, atau migrasi menyalin transaksi v1 menjadi jurnal (2.22).
+   Keadaan sekarang: semuanya ditulis terang di halaman; tidak ada fitur baru.
+
+6. **Angka dan fakta yang butuh konfirmasi (Asumsi atau [perlu verifikasi]).**
+   - Paket data 1 GB per bulan dan 5, 20, 100 buka per hari (2.20): Asumsi pelaksana; pada 20 buka per hari riwayat 20 baris memakai 0,176 persen paket, jadi cerita lama "kuota Ani cepat habis" tidak didukung angka.
+   - RAM VPS Tahap 2: argon2id 64 MiB berarti 640 MiB untuk 10 hash bersamaan (2.28), RAM server tidak ada di naskah.
+   - Plan GitHub dan visibilitas repo Rekeningo untuk branch protection dan CODEOWNERS (2.24): halaman REST menulis fitur itu tersedia di repo publik dengan Free, sedangkan halaman plan menaruh protected branches, required reviewers, dan code owners di repo privat Pro dan Team, tidak di Free. Reverse proxy yang mengompres belum diketahui (2.20).
+   - Kapasitas satu server api-t2 belum pernah diukur; ADR 21 bertumpu pada hitungan Asumsi (R2-202).
+   - Akun lab Karyawan 800 berperan Citra di M14 (2.23); konfirmasi atau usul menamai satu akun kampus "Citra".
+   - Idempotency-Key: draft IETF revisi -08 (22 Oktober 2026, Active, belum RFC) dicek ulang di evaluasi ini; masa peralihan app 1.0 dan 1.1 (ADR 14 aturan 5) belum ada di lab dan tidak berakhir bila satu HP lama tetap memakai app 1.0.
+   Keadaan sekarang: tiap angka berlabel di halamannya. Membatalkan: ganti angka di satu paragraf per halaman.
+
+7. **Hal yang belum bisa dicek ke sumber primer** (`plan/RISET-TAHAP-2.md` "Belum bisa dicek", delapan butir): antrean lock di belakang ALTER (hanya bukti lab b4-skema), plan GitHub, versi oapi-codegen dan draft header RateLimit, ukuran `posting_pkey`, RAM VPS dan klaim database ledger khusus, angka naskah yang tidak terulang, operator Serverpod 4.0.4, dan rekaman COMMIT belakangan untuk riwayat. Tambahan dari halaman: Serverpod 4.0.x algoritma hash email, `express-rate-limit` tanpa nomor versi, node-pg-migrate 9.0.0, Laravel `->online()`, dan tab Laravel dan Serverpod di 2.26. Keadaan sekarang: berlabel [perlu verifikasi].
+
+8. **Lima hal membingungkan dari pembaca segar** (satu subagent tanpa konteks proyek membaca 2.10, 2.14, 2.28; rincian dan kutipan di `plan/EVALUASI-TAHAP-2.md`). Urut dari yang paling membingungkan:
+   - 2.10: kejadian −Rp20.000 hanya lewat alat lab, dan "invarian 3" serta "pemeriksaan yang ditunda" tidak dijelaskan di halaman itu (dijelaskan di 2.7).
+   - 2.28: batas per akun di memori dan kunci akun di database sama-sama berambang 5 dan sulit dibedakan; kalimat "setiap jawaban gagal sama: 401" bertentangan dengan 429 (kalimat sudah diperbaiki di PR evaluasi, keputusan 750; pembedaan dua lapis tetap membingungkan).
+   - 2.14: "niat" dan "sidik jari" dipakai di Inti sebelum didefinisikan, dan hasil Rp50.000 sudah terbaca di Inti sebelum "Tebak dulu".
+   - 2.14: ADR 14 berstatus diterima tetapi mode peralihan belum ada di lab; pembaca Flutter tidak tahu apa yang harus dibuat sekarang, dan aturan 5 merujuk ADR 10 yang tidak dijelaskan di halaman itu.
+   - 2.28: argon2id 64 MiB dipilih dengan RAM server yang tidak diketahui, dan label Asumsi serta [perlu verifikasi] tidak dijelaskan di halaman.
+   Keadaan sekarang: butir 1, 3, 4, dan 5 ditulis sebagai polesan di badan PR evaluasi (bagian SETELAH-TAHAP-2) supaya pengatur melipatnya; tidak jadi tugas karena lingkup Tahap 2 dibekukan.
+
+9. **Polesan.** `plan/SETELAH-TAHAP-2.md` memuat 324 butir polesan dan pencegahan dari tinjauan lab dan halaman (mis. alat keyboard umum sebagai alat gerbang, `incomplete` color-contrast 1.912 node yang belum dilihat satu per satu, `AntreanLock` tanpa alat ukur, `role="application"` di React Flow). Tidak ada yang dikerjakan karena lingkup dibekukan; pemilik memilih mana yang naik jadi tugas.
+
+10. **Keadaan catatan kerja.** MEMORI "Sedang dikerjakan" dan STATUS masih menulis "22 dari 33" halaman Tahap 2, dan KEPUTUSAN belum memuat nomor 743 sampai 759, 775 sampai 779, 806, 807, 825, 830, 838, 839, dan 844 (catatannya ada di badan PR #317 sampai #353). Pengatur yang melipatnya (keputusan 727); evaluasi ini tidak mengubah file itu.
