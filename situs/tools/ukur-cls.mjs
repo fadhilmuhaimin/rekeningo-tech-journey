@@ -28,6 +28,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
 import { denganBatas, Macet } from "./lib/batas.mjs";
+import { saring, terpilih } from "./lib/pilih.mjs";
 import { pasangJejak, diagnosaJejak, sesiBrowser } from "./lib/jejak.mjs";
 
 const arg = (nama, bawaan) => {
@@ -78,7 +79,8 @@ function halamanAlur(dir, akar = dir, hasil = []) {
   return hasil.sort();
 }
 const semua = halamanAlur(path.resolve("dist"));
-const daftar = satu ? [satu] : semua;
+const disaring = terpilih() !== null; // subset PR (keputusan 866): nol halaman alur sah, bawaan semua
+const daftar = satu ? [satu] : saring(semua, (x) => x, { alat: "cls" });
 
 const browser = await chromium.launch();
 const cdpBrowser = await sesiBrowser(browser);
@@ -269,7 +271,7 @@ console.log(
     (FONT_TELAT || FALLBACK ? `, tiruan CI: font telat ${FONT_TELAT} ms, fallback ${FALLBACK ?? "-"}` : "") +
     `; ukuran terlama ${(terlama.ms / 1000).toFixed(1)} s (${terlama.k}), batas ${BATAS_CLS / 1000} s`,
 );
-if (!nilai.length) {
+if (!disaring && !nilai.length) {
   console.error("Tidak ada halaman alur di dist/.");
   process.exit(1);
 }

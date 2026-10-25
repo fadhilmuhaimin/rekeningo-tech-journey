@@ -1,19 +1,28 @@
 // Aturan layar pertama untuk situs baru (padanan tools/cek_layar_pertama.mjs): visual pertama sesudah "## Inti"
 // harus terlihat utuh tanpa scroll di 4 viewport, dan halaman tidak boleh punya scroll horizontal.
-// Pakai: node tools/layar.mjs [--url http://127.0.0.1:4321] [--min-margin 20]
+// Pakai: node tools/layar.mjs [--url http://127.0.0.1:4321] [--min-margin 20] [--ukuran 1366x768,1366x657,375x812,375x667]
+// --ukuran memilih sebagian ukuran (CI membagi ukuran ke dua job, keputusan 865); bawaan keempatnya. Daftar halaman bisa
+// dipersempit lewat UKUR_HALAMAN (lib/pilih.mjs, keputusan 866); bawaan semua halaman.
 // Halaman yang diperiksa: semua halaman konten di dist/ (selain beranda dan 404). Exit 1 bila ada yang gagal.
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
 import { awasi } from "./lib/batas.mjs";
+import { saring } from "./lib/pilih.mjs";
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const BASE = arg("--url", "http://127.0.0.1:4321");
 const MIN = Number(arg("--min-margin", 20));
-const VIEWPORTS = [
+const SEMUA_VIEWPORTS = [
   { name: "1366x768", width: 1366, height: 768 }, { name: "1366x657", width: 1366, height: 657 },
   { name: "375x812", width: 375, height: 812, mobile: true }, { name: "375x667", width: 375, height: 667, mobile: true },
 ];
+const PILIH_UKURAN = arg("--ukuran", null)?.split(",");
+const VIEWPORTS = PILIH_UKURAN ? SEMUA_VIEWPORTS.filter((v) => PILIH_UKURAN.includes(v.name)) : SEMUA_VIEWPORTS;
+if (!VIEWPORTS.length || (PILIH_UKURAN && VIEWPORTS.length !== PILIH_UKURAN.length)) {
+  console.error(`--ukuran tidak dikenal: ${PILIH_UKURAN} (dikenal: ${SEMUA_VIEWPORTS.map((v) => v.name)})`);
+  process.exit(1);
+}
 function halaman() {
   const out = [];
   (function walk(d, rel) {
@@ -44,7 +53,7 @@ const UKUR = `(async () => {
 })()`;
 const browser = awasi(await chromium.launch(), { alat: "layar" }); // batas waktu per halaman (keputusan 360)
 let gagal = 0, tipis = 0;
-for (const p of halaman()) {
+for (const p of saring(halaman(), (x) => x, { alat: "layar" })) {
   const baris = [];
   for (const v of VIEWPORTS) {
     const ctx = await browser.newContext({ viewport: { width: v.width, height: v.height }, isMobile: !!v.mobile, hasTouch: !!v.mobile, reducedMotion: "reduce" });

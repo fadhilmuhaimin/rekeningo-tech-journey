@@ -20,6 +20,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
 import { denganBatas, Macet } from "./lib/batas.mjs";
+import { saring, terpilih } from "./lib/pilih.mjs";
 import { pasangJejak, diagnosaJejak, sesiBrowser, tertundaXhr } from "./lib/jejak.mjs";
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
@@ -121,7 +122,8 @@ async function diagnosa() {
 }
 
 const t0 = Date.now();
-const daftar = satu ? [satu] : halaman();
+const disaring = terpilih() !== null;
+const daftar = satu ? [satu] : saring(halaman(), (x) => x, { alat: "luapan" });
 const browser = await chromium.launch();
 const cdpBrowser = await sesiBrowser(browser);
 let gagal = 0, jumlahChip = 0;
@@ -205,7 +207,7 @@ await Promise.all(UKURAN.map(async (u) => {
   await denganBatas(() => ctx.close(), "tutup konteks", { ms: 10_000 }).catch(() => {});
 }));
 await denganBatas(() => browser.close(), "tutup browser", { ms: 10_000 }).catch(() => {});
-if (jumlahChip === 0) { gagal++; baris.push("GAGAL tidak ada chip .bb-chip yang terukur (pemeriksaan kosong)"); }
+if (!disaring && jumlahChip === 0) { gagal++; baris.push("GAGAL tidak ada chip .bb-chip yang terukur (pemeriksaan kosong)"); }
 if (baris.length) console.log(baris.sort().join("\n"));
 const ringkas = UKURAN.map((u) => maks[u.nama] ? `${u.nama} chip Rantai maks ${maks[u.nama].lebar}/${maks[u.nama].wadah} px (${maks[u.nama].p})` : `${u.nama} tanpa chip Rantai`).join("; ");
 console.log(`luapan: ${daftar.length} halaman × ${UKURAN.length} ukuran, ${jumlahChip} chip, ${gagal} gagal; ${ringkas}; jeda thread utama terlama ${jedaMaks.ms} ms (${jedaMaks.p}); ${diulang.length} diulang sesudah renderer diam${diulang.length ? ` (${diulang.join(", ")})` : ""}; ${((Date.now() - t0) / 1000).toFixed(1)} s`);
