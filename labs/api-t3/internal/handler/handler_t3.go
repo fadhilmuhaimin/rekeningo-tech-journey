@@ -247,11 +247,12 @@ func (s Server) sinkron(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /warung/{id}/laporan.csv?dari=YYYY-MM-DD&sampai=YYYY-MM-DD: ekspor laporan harian untuk dasbor. Hanya angka
-// dan tanggal, jadi tidak ada isi buatan user di dalam file (tidak ada CSV injection dari catatan).
+// dan tanggal, jadi tidak ada isi buatan user di dalam file (tidak ada CSV injection dari catatan). Pencatatan
+// ringkasan ekspor jalan di latar (service.LaporanEkspor, M21).
 func (s Server) laporanCSV(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	q := r.URL.Query()
-	baris, err := s.svc.Laporan(r.Context(), peminta(r), id, q.Get("dari"), q.Get("sampai"))
+	baris, err := s.svc.LaporanEkspor(r.Context(), peminta(r), id, q.Get("dari"), q.Get("sampai"))
 	if errors.Is(err, service.ErrTidakDitemukan) {
 		tidakDitemukan(w, "Warung")
 		return
