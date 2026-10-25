@@ -4,7 +4,7 @@ Setiap folder di sini adalah satu lab dengan `run.py` atau `Makefile` sendiri, d
 
 ## Beberapa lajur sekaligus
 
-Semua lab berbagi satu PostgreSQL di `127.0.0.1:54333`, dan tiap lab membuat ulang schema-nya setiap kali jalan. Server lab (Go, Node, Dart) mendengarkan port tetap di rentang 18080 sampai 18171. Dua lajur kerja (dua worktree) yang menjalankan lab bersamaan akan saling mereset database dan bentrok di port.
+Semua lab berbagi satu PostgreSQL di `127.0.0.1:54333`, dan tiap lab membuat ulang schema-nya setiap kali jalan. Server lab (Go, Node, Dart) mendengarkan port tetap di rentang 18080 sampai 18182. Dua lajur kerja (dua worktree) yang menjalankan lab bersamaan akan saling mereset database dan bentrok di port.
 
 Empat variabel lingkungan memisahkan satu lajur dari lajur lain. Tanpa variabel, semuanya sama persis dengan sebelumnya.
 
