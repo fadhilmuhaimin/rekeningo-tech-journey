@@ -125,11 +125,6 @@ class Beban:
             self.hasil[k] = {"jenis": jenis, "status": status, "mulai": mulai - self.t0, "selesai": time.monotonic() - self.t0}
 
     # --- ringkasan ---
-    def antara(self, k_awal, k_akhir, jenis):
-        """Hasil request berjenis `jenis` dengan nomor k_awal <= k <= k_akhir."""
-        with self._kunci:
-            return {k: v for k, v in self.hasil.items() if k_awal <= k <= k_akhir and v["jenis"] == jenis}
-
     def nomor(self, k_awal, k_akhir, jenis):
         """Nomor request berjenis `jenis` di rentang itu menurut jadwal (bukan menurut yang sudah selesai)."""
         return [k for k in range(k_awal, k_akhir + 1) if (k % self.tiap_bayar == 0) == (jenis == "bayar")
@@ -187,9 +182,6 @@ class Pengamat:
             sisa = self.selang - (time.monotonic() - mulai)
             if sisa > 0:
                 self._henti.wait(sisa)
-
-    def semua_selesai(self):
-        return all(not th.is_alive() for th in self._thread)
 
     def henti(self):
         self._henti.set()
