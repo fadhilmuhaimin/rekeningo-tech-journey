@@ -1379,7 +1379,8 @@ def git(repo, *arg):
 
 
 def compose(tag, *arg, boleh_gagal=False):
-    env = dict(os.environ, COMPOSE_FILE="compose.yaml:compose.lab.yaml", DATABASE_URL=DB_CONTAINER,
+    # Berkas ketiga hanya memindahkan port host sesuai lajur (LAB_API_PORT); rekaman tetap menyebut dua berkas, port bawaan 18083.
+    env = dict(os.environ, COMPOSE_FILE="compose.yaml:compose.lab.yaml:compose.lab-port.yaml", DATABASE_URL=DB_CONTAINER,
                COMPOSE_PROJECT_NAME=PROYEK_API, LAB_API_PORT=str(PORT), LAB_DB_NETWORK=f"{PROYEK or 'b3-race'}_default")
     env.pop("TAG", None)
     if tag:

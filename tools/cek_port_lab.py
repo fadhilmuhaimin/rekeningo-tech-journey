@@ -47,13 +47,15 @@ BOLEH_PORT_TETAP = {
 DILEWATI_SENDIRI = {"tools/cek_port_lab.py", "tools/test_cek_port_lab.py"}
 
 # Port server lab yang tertulis tetap dan sengaja dibiarkan: bawaan flag server yang dijalankan run.py dengan
-# -addr/-alamat (kode di dalam image atau repo contoh yang hash-nya ditulis halaman, jadi tidak diubah), dan
-# kontrak OpenAPI sebagai dokumen.
+# -addr/-alamat (kode di dalam image atau repo contoh yang hash-nya ditulis halaman, jadi tidak diubah), kontrak
+# OpenAPI sebagai dokumen, dan compose.yaml api-t1 yang dibaca pembaca di halaman 1.31, 1.35, dan 1.40 (port lab
+# lajur lain dipindah compose.lab-port.yaml, berkas khusus lab).
 BOLEH_PORT_SERVER = {
     "labs/api-t1/cmd/api/main.go",
     "labs/api-t2/cmd/api/main.go",
     "labs/e5-payload/riwayat/main.go",
     "labs/e3-idempotency/server/ledger/lab.go",
+    "labs/api-t1/deploy/compose.yaml",
     "labs/api-t2/openapi.yaml",
     "labs/b1-openapi/openapi.yaml",
     "labs/b1-openapi/openapi-expand.yaml",

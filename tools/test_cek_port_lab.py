@@ -100,6 +100,10 @@ kasus("bawaan flag server yang dikecualikan lolos",
       {"labs/api-t2/cmd/api/main.go": 'alamat := flag.String("addr", "127.0.0.1:18093", "alamat server")\n'}, 0)
 kasus("bawaan flag di berkas lain gagal",
       {"labs/api-t3/cmd/api/main.go": 'alamat := flag.String("addr", "127.0.0.1:18093", "alamat server")\n'}, 1, ["labs/api-t3/cmd/api/main.go:1"])
+kasus("compose.yaml api-t1 yang dibaca halaman boleh memuat port bawaan",
+      {"labs/api-t1/deploy/compose.yaml": '    ports:\n      - "127.0.0.1:18083:8080"\n'}, 0)
+kasus("compose.lab-port.yaml dengan port tetap gagal",
+      {"labs/api-t1/deploy/compose.lab-port.yaml": '    ports: !override\n      - "127.0.0.1:18083:8080"\n'}, 1, ["compose.lab-port.yaml:2"])
 kasus("port di luar 18xxx dan tanpa host tidak dihitung",
       {"labs/x/main.go": 'a := "127.0.0.1:50000"\n// lb :18140 → :18141\n'}, 0)
 
