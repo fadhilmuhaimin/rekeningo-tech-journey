@@ -4,7 +4,7 @@
 # Keluaran: output/migrate.txt. Gagal keras bila hasilnya tidak sesuai harapan (keputusan 79, 95).
 set -u
 cd "$(dirname "$0")"
-. ../lab_env.sh   # LAB_DB_PORT, LAB_PORT_OFFSET (labs/README.md)
+. ../lab_env.sh || exit 1   # LAB_DB_PORT (labs/README.md)
 DC="docker compose -f ../b3-race/docker-compose.yml exec -T db"
 M="go run -tags postgres github.com/golang-migrate/migrate/v4/cmd/migrate@v4.20.1"
 url() { echo "postgres://lab:lab@127.0.0.1:${LAB_DB_PORT}/lab?sslmode=disable&search_path=b4m_$1&x-migrations-table=schema_migrations"; }

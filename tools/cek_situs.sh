@@ -55,6 +55,7 @@ if [ "$MODE" != "--ukur" ]; then
   echo "== uji alat penulis berkas menolak argumen asing (keputusan 727)"; $PY tools/test_alat_argumen.py | tail -1
   echo "== port lab dibaca dari variabel, bukan tertulis tetap (keputusan 860)"; $PY tools/cek_port_lab.py
   echo "== uji pemeriksa port lab (lolos palsu, keputusan 860)"; $PY tools/test_cek_port_lab.py | tail -1
+  echo "== uji pembaca port lab: nilai aneh ditolak, bukan dibaca 0 (keputusan 863)"; $PY tools/test_lab_env.py | tail -1
   echo "== ERD dari skema lab: hash sumber dan bentuk JSON (keputusan 375)"; $PY tools/erd.py --cek
   echo "== uji pemeriksa ERD (lolos palsu, keputusan 375)"; $PY tools/test_erd.py | tail -1
   echo "== batas baris file yang diimpor CLAUDE.md (keputusan 235)"

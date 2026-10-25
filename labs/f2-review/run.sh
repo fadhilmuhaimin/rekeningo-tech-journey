@@ -3,7 +3,7 @@
 # Database: container lab b3-race (PostgreSQL 17), schema f2review. Keluaran: output/review.txt
 set -u
 cd "$(dirname "$0")"
-. ../lab_env.sh   # LAB_DB_PORT, LAB_PORT_OFFSET (labs/README.md)
+. ../lab_env.sh || exit 1   # LAB_DB_PORT (labs/README.md)
 DB="postgres://lab:lab@127.0.0.1:${LAB_DB_PORT}/lab?search_path=f2review&application_name=f2-review"
 GOSEC_VERSI=v2.29.0
 go install "github.com/securego/gosec/v2/cmd/gosec@$GOSEC_VERSI" 2>/dev/null

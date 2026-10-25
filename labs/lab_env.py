@@ -11,23 +11,23 @@ atau di luar 1-65535 menghentikan lab dengan GAGAL, bukan diam-diam memakai nila
   COMPOSE_PROJECT_NAME        nama proyek compose, dibaca docker compose sendiri
 
 Cara pakai di lab: dari labs/<lab>/run.py,
-    import os, sys; sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))
     from lab_env import DB_PORT, port_lab
 lalu f"port={DB_PORT}" untuk database dan port_lab(18083) untuk server lab. Teks yang masuk rekaman memakai port dasar,
 bukan hasil port_lab(), supaya rekaman sama di semua lajur.
 """
 import os
+import re
 
 
 def _bulat(nama, bawaan):
     mentah = os.environ.get(nama, "").strip()
     if mentah == "":
         return bawaan
-    try:
-        nilai = int(mentah)
-    except ValueError:
+    # Hanya angka 0-9 dengan tanda opsional, sama dengan lab_env.sh dan strconv.Atoi di Go: int() menerima "1_000" dan angka non-ASCII.
+    if not re.fullmatch(r"[+-]?[0-9]+", mentah):
         raise SystemExit(f"GAGAL: {nama}={mentah!r} bukan bilangan bulat")
-    return nilai
+    return int(mentah)
 
 
 def _port_sah(nama, nilai):

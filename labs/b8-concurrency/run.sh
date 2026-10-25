@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Lab B8 · Go vs Node.js. Butuh binary notif dari lab t3-bayar (dibangun otomatis di bawah).
 cd "$(dirname "$0")"
-. ../lab_env.sh   # LAB_PORT_OFFSET (labs/README.md); kode Go dan Node membacanya sendiri
-for p in $(port_lab 18090) $(port_lab 18091) $(port_lab 18092); do   # gagal keras bila port sudah dipakai: rekaman tidak boleh dari server lama
+. ../lab_env.sh || exit 1   # LAB_PORT_OFFSET (labs/README.md); kode Go dan Node membacanya sendiri
+P_NOTIF=$(port_lab 18090) && P_GO=$(port_lab 18091) && P_NODE=$(port_lab 18092) || exit 1
+for p in $P_NOTIF $P_GO $P_NODE; do   # gagal keras bila port sudah dipakai: rekaman tidak boleh dari server lama
   if (exec 3<>/dev/tcp/127.0.0.1/$p) 2>/dev/null; then echo "GAGAL: port $p sudah dipakai proses lain; hentikan dulu" >&2; exit 1; fi
 done
 ( cd ../t3-bayar && go build -o bin/notif ./notif )
@@ -21,9 +22,9 @@ uji_cpu() {   # $1 = nama, $2 = port: /cpu di latar, 50 ms kemudian /ping, diuku
 }
 ( cd go && go build -o ../bin-go . )
 ./bin-go server & GO=$!
-uji_cpu "Go $(go env GOVERSION)" "$(port_lab 18091)" > output/cpu.txt
+uji_cpu "Go $(go env GOVERSION)" "$P_GO" > output/cpu.txt
 kill $GO; rm -f bin-go
 node node/server.js & NODE=$!
-uji_cpu "Node.js $(node --version)" "$(port_lab 18092)" >> output/cpu.txt
+uji_cpu "Node.js $(node --version)" "$P_NODE" >> output/cpu.txt
 kill $NODE
 cat output/go.txt output/node.txt output/cpu.txt
