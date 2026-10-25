@@ -66,7 +66,7 @@ Semuanya di file baru atau di belakang flag. Tanpa flag dan tanpa header, `api-t
 | `Idempotency-Key` di `POST /transfers`, `/kiriman`, `/pesanan` | Opsional. Middleware `idempoten` di `internal/handler/handler_idempoten.go`, klaim di `internal/repo/idempoten.go`, tabel `kunci_idempotensi` yang sudah ada sejak api-t2 |
 | `-rentan stok-timpa` | M24: menambah `PUT /produk/{id}/stok` yang menimpa stok tanpa versi; hanya dengan flag |
 | `openapi.yaml` | Header `Idempotency-Key` opsional dan jawaban 409 di bayar dan kiriman; tidak ada yang merusak client lama |
-| Tes Go | `idempoten_test.go` (service dan handler) dan `offline_test.go`: klaim, kedaluwarsa tepat 24 jam, 20 klaim bersamaan satu pemenang, 20 perubahan dari versi yang sama satu pemenang, batas queue 7 hari |
+| Tes Go | `idempoten_test.go` (service dan handler) dan `offline_test.go`: klaim, kedaluwarsa tepat 24 jam, 20 klaim bersamaan satu pemenang, 20 permintaan serentak ber-key sama di handler (satu mengerjakan, sembilan belas 409), 20 perubahan dari versi yang sama satu pemenang, batas queue 7 hari, rute `PUT /produk/{id}/stok` hanya di mode rentan |
 
 Aturan jalur key (keputusan 971):
 
@@ -74,7 +74,8 @@ Aturan jalur key (keputusan 971):
 - Klaim dilakukan dalam satu `INSERT ... ON CONFLICT DO UPDATE ... WHERE kedaluwarsa <= jam service`. Key yang kedaluwarsa diklaim ulang oleh permintaan baru; tidak ada job pembersih dan tidak ada tidur.
 - Ulangan dengan key, akun, dan isi yang sama sesudah selesai: respons tersimpan dikirim ulang. Isi atau akun lain: 422. Key yang belum selesai: 409.
 - Respons 5xx dan 429 tidak disimpan dan key dilepas; handler yang panik juga melepasnya. Respons 4xx lain ikut disimpan: niat baru memakai key baru.
-- Kerja dan penyimpanan respons bukan satu transaction. Server yang mati di antara COMMIT dan penyimpanan meninggalkan key berstatus diproses sampai kedaluwarsa, dan ulangan mendapat 409 tanpa mengerjakan ulang: paling banyak sekali. Tidak dijalankan: rekaman mati di tengah ada di `labs/e3-idempotency`.
+- Kerja dan penyimpanan respons bukan satu transaction. Server yang mati sesudah COMMIT dan sebelum respons tersimpan meninggalkan key berstatus diproses; server yang mati sebelum COMMIT meninggalkannya juga, padahal tidak ada yang tercatat. Di kedua kasus ulangan mendapat 409 tanpa mengerjakan ulang, sampai key kedaluwarsa. Sesudah 24 jam key itu dikerjakan sebagai permintaan baru, sama seperti key selesai yang kedaluwarsa, jadi "paling banyak sekali" hanya berlaku selama key berlaku. Tidak dijalankan: tidak ada rekaman server mati di lab ini (rancangan yang tidak punya celah itu ada di `labs/e3-idempotency/output/ledger/mati-di-tengah.txt`).
+- Respons 5xx melepas key, termasuk 5xx dari `COMMIT` yang hasilnya tidak diketahui (koneksi putus saat `COMMIT`). Bila database ternyata sudah mencatat, ulangan dengan key yang sama mengerjakannya lagi. Dibaca dari kode (`DalamTx` mengembalikan galat `Commit`, `petaError` menjawab 500), tidak dijalankan.
 
 ## Uji mutasi
 
@@ -101,10 +102,16 @@ Satu perubahan, jalankan, pulihkan; `git diff` kosong sesudahnya. Hasil dari tes
 | M17 sidik jari mengabaikan path | gagal: `TestIdempotenKeySamaEndpointBeda` | tidak direkam |
 | M18 sidik jari memakai body mentah | gagal: `TestIdempotenUlanganTanpaEfekGanda` | tidak direkam |
 | M19 batas kedaluwarsa `<=` jadi `<` | gagal: `TestKunciKedaluwarsaSesudah24Jam` | tidak direkam |
+| P1 cabang `KlaimBerjalan` di middleware dibuang (permintaan serentak ikut mengerjakan) | gagal: `TestIdempotenBersamaanSatuMenang` (tes baru; sebelumnya lolos) | tidak direkam |
+| P2 rute `PUT /produk/{id}/stok` selalu terdaftar | gagal: `TestStokTimpaHanyaDiModeRentan` (tes baru; sebelumnya lolos) | tidak direkam |
+| P3 `UmurKunci` 24 jam jadi 48 jam | gagal: `TestKunciKedaluwarsaSesudah24Jam` | lolos: rekaman melompat 17 dan 62 jam, tidak ada titik di antara 24 dan 48 |
+| P4 key ditandai selesai sebelum handler jalan | gagal: `TestIdempotenBersamaanSatuMenang`, `TestIdempotenUlanganTanpaEfekGanda` | tidak direkam |
+| P5 `/transfers`, `/kiriman`, atau `/pesanan` tanpa middleware (tiga mutan) | tidak ada tes Go untuk rutenya | gagal `kunci24`: ulangan 17 jam dikerjakan lagi |
+| P6 cek versi di `Sinkron` dan batas queue 7 hari dibuang (dua mutan) | gagal: `TestSinkronBersamaanSatuPemenang`, `TestSinkronBatasUmurQueue` | gagal `versi` B dan `sinkron14` B |
 
 ## Jujur tentang hasilnya
 
-Semua 19 mutasi tertangkap oleh tes Go, rekaman lab, atau keduanya. Empat lolos pada percobaan pertama dan ditutup sebelum PR dibuka.
+Semua 19 mutasi pertama tertangkap oleh tes Go, rekaman lab, atau keduanya. Empat lolos pada percobaan pertama dan ditutup sebelum PR dibuka.
 
 - M12 lolos di lab: dasbor di rekaman selalu mengirim versi terbaru. Rekaman `versi` sekarang punya tab dasbor stale yang harus dijawab 409.
 - M13 lolos di tes Go: penolakan umum ("stok atau harga") tetap `ErrValidasi`. Tes sekarang memeriksa field dan pesannya.
@@ -113,11 +120,26 @@ Semua 19 mutasi tertangkap oleh tes Go, rekaman lab, atau keduanya. Empat lolos 
 
 Mutasi sinkron M9 versi pertama (membuang satu field dari perbandingan) bukan mutan yang efektif: field lain tetap berbeda. Diganti dengan mematikan penolakan seluruhnya.
 
-Yang tidak dimutasi dan tidak dijalankan: server yang mati di antara COMMIT dan penyimpanan respons, serta jam database yang berbeda dari jam service. Lab memakai satu jam service untuk semua umur key.
+Baris P1 sampai P6 ditambah peninjau PR #349. P1 dan P2 lolos pada tes yang ada, jadi dua tes handler baru menutupnya. Tidak ada tes yang memeriksa 409 untuk permintaan serentak di tingkat handler. Tidak ada juga yang memeriksa bahwa `PUT /produk/{id}/stok` hilang tanpa mode rentan.
+
+P3 menunjukkan batas rekaman. Lompatan jam hanya 15, 17, 62, dan 360 jam, jadi rekaman membuktikan jendela key ada di antara 17 dan 62 jam. Angka 24 jam persis dijaga tes Go, bukan rekaman.
+
+Dua mutan lain tanpa efek terukur:
+
+- Sidik jari tanpa method: satu path tidak punya dua method di api-t3.
+- `SelesaiKunci` tanpa syarat status diproses: tidak ada jalur yang memanggilnya dua kali.
+
+Tanpa flag `-jam-lab` tidak ada `POST /lab/jam`, dan tanpa `-rentan stok-timpa` tidak ada `PUT /produk/{id}/stok`. Keduanya dijawab 404 (dicoba pada server tanpa flag).
+
+Tidak dimutasi dan tidak dijalankan:
+
+- Server mati di antara COMMIT dan penyimpanan respons.
+- 5xx dari `COMMIT` yang hasilnya tidak diketahui.
+- Jam database yang berbeda dari jam service. Lab memakai satu jam service.
 
 ## Yang belum ada di lab ini
 
-- **Klaim dan penyimpanan respons dalam satu transaction.** Tidak dijalankan. Rancangan e3-idempotency menulis status selesai di transaction jurnal; di api-t3 itu menyentuh `Bayar`, `Kirim`, dan `Pesan`, jadi tidak diubah di lab ini.
+- **Klaim dan penyimpanan respons dalam satu transaction.** Tidak dijalankan. Rancangan e3-idempotency menulis status selesai di transaction jurnal dan menutup dua celah di atas (server mati di tengah, 5xx dari `COMMIT`). Di api-t3 itu menyentuh `Bayar`, `Kirim`, dan `Pesan`, jadi tidak diubah di lab ini.
 - **Pembersihan baris key.** Tidak ada job: baris yang kedaluwarsa tetap di `kunci_idempotensi` sampai key yang sama dipakai lagi. Bila semua pembayaran memakai key, tabel tumbuh 7.500 baris per hari (R3-31, Asumsi), ±2,7 juta per tahun. Ukuran baris tidak diukur.
 - **Cache katalog (t3-cache).** `TimpaStok` dan `POST /sinkron` mengubah stok tanpa menghapus entri cache katalog; hanya `PATCH /produk/{id}` yang menghapus (`internal/service/katalog_cache.go`). Dibaca dari kode, tidak dijalankan: lab ini memakai server tanpa cache.
 - **Klaim key sebelum penahan laju.** Di `/kiriman`, key diklaim sebelum penahan per IP dan per akun memeriksa. Permintaan yang kena 429 melepas key, tetapi tiap key baru tetap menulis satu baris dulu. Tidak diukur.

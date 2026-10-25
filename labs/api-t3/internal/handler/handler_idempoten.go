@@ -93,7 +93,9 @@ func ctxTutup(r *http.Request) (context.Context, context.CancelFunc) {
 //
 // Kerja dan penyimpanan respons BUKAN satu transaction: server mati di antara COMMIT dan SelesaiKunci
 // meninggalkan key berstatus diproses sampai kedaluwarsa, dan ulangan mendapat 409, tidak mengerjakan ulang
-// (paling banyak sekali). Rancangan yang menutup celah itu ada di labs/e3-idempotency (mati-di-tengah.txt).
+// (paling banyak sekali, tetapi hanya selama key berlaku: sesudah 24 jam key itu dikerjakan sebagai permintaan baru).
+// 5xx melepas key, juga 5xx dari COMMIT yang hasilnya tidak diketahui. Rancangan yang menutup kedua celah itu ada di
+// labs/e3-idempotency (output/ledger/mati-di-tengah.txt).
 func (s Server) idempoten(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if len(r.Header.Values("Idempotency-Key")) == 0 {
