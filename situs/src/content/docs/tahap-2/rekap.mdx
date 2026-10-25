@@ -39,7 +39,7 @@ Setiap kartu menunjukkan satu kejadian. Tebak kalimat yang lahir darinya, lalu b
 
 <WidgetLama nama="kartu" src="data/t2-rekap-kartu.json" />
 
-Kartu yang kamu tandai **Ingat** baru muncul lagi sesuai jadwal kotaknya, seperti di [[Kartu]]. Daftar lengkap sepuluh kalimat selalu ada di blok Paham.
+Kartu yang kamu tandai **Ingat** baru muncul lagi sesuai jadwal kotaknya, seperti di [[Kartu]]. Daftar lengkap sepuluh kalimat, beserta batas masing-masing, selalu ada di blok Paham.
 
 </Blok>
 
@@ -93,7 +93,7 @@ Sepuluh kalimat itu berasal dari naskah Tahap 2. Bila rekaman lab hanya mendukun
 
 10. **Masalah Tahap 2 adalah kebenaran data, bukan kapasitas.** Di [[t2-m17]], tutup buku kedua lolos dan Sinta bertanya apakah server cukup untuk PRD v3. Laporan atas 1.016 buku semuanya cocok. Laporan yang diulang sesudah satu transaction COMMIT menghitung 1.123 jurnal, bukan 1.122, dengan selisih tetap Rp0 (`tutup-buku.txt`, lab api-t2). Puncak ±1,4 request per detik adalah Asumsi. Konsep dan angka: [[t2-estimasi]]; ADR 21: [[t2-adr-21]].
 
-    *Dipersempit:* kapasitas satu server belum pernah diukur, dan api-t2 belum pernah dijalankan dengan dua server. Kesimpulan bahwa tidak satu pun dari delapan masalah disebabkan server kehabisan tenaga adalah bacaan atas naskah, bukan hasil mengukur server lain. M11 soal waktu query, M13 soal lock, dan M16 soal keamanan login, jadi tidak semuanya soal kebenaran data. Versi yang didukung rekaman: kapasitas belum diukur, dan belum ada angka yang menyuruh membeli server hari ini.
+    *Dipersempit:* kapasitas satu server belum pernah diukur, dan api-t2 belum pernah dijalankan dengan dua server. Kesimpulan bahwa tidak satu pun dari delapan masalah sebelum PRD v3 (M9 sampai M16) disebabkan server kehabisan tenaga hanyalah bacaan atas naskah. Kesimpulan itu bukan hasil mengukur server lain. M11 soal waktu query, M13 soal lock, dan M16 soal keamanan login, jadi tidak semuanya soal kebenaran data. Versi yang didukung rekaman: kapasitas belum diukur, dan belum ada angka yang menyuruh membeli server hari ini.
 
 ### Tiga halaman konsep tanpa kalimat sendiri
 

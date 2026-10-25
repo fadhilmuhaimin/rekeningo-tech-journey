@@ -45,7 +45,7 @@
   "judul": "2.21 M13: Migrasi di jam makan siang",
   "url": "tahap-2/m13-migrasi-siang/",
   "tanya": "M13: satu migrasi ke ledger membuat Bayar menunggu, lalu app 1.0 dan 1.1 berhenti membaca riwayat. Raka berencana menjalankan migrasi berikutnya malam hari. Kalimat apa yang lahir?",
-  "jawab": "Perubahan besar dipecah jadi rilis kecil yang masing-masing aman (ADR 17: tiga rilis, lock_timeout 3 detik, backfill per 1.000 akun)."
+  "jawab": "Perubahan besar dipecah jadi rilis kecil yang masing-masing aman (ADR 17: tiga rilis, lock_timeout 3 detik, backfill per 1.000 akun). Batas: rilis kedua punya harga, riwayat app 1.0 untuk Karyawan 420 turun dari 17 baris menjadi 3 baris."
  },
  {
   "id": "t2-rekap-k7",
@@ -69,7 +69,7 @@
   "judul": "2.27 M16: Akun Ani terkunci",
   "url": "tahap-2/m16-akun-terkunci/",
   "tanya": "M16: Ani ditolak login berkali-kali tiap pagi, dan log menunjukkan satu alamat mencoba banyak akun. Di rekaman, kunci per akun saja tidak mengunci satu pun dari 29 akun yang disemprot. Kalimat apa yang lahir?",
-  "jawab": "Batasi per akun dan per IP; password pertama wajib diganti (ADR 20: dengan batas per alamat di depannya, 19 dari 29 tebakan ditolak 429)."
+  "jawab": "Batasi per akun dan per IP; password pertama wajib diganti (ADR 20: dengan batas per alamat di depannya, 19 dari 29 tebakan ditolak 429). Batas: password sementara api-t2 berpola sementara-<id>, jadi orang yang mengenal pola itu bisa mengganti password akun lain mendahului pemiliknya (dari rekaman dan kode, tidak dijalankan)."
  },
  {
   "id": "t2-rekap-k10",
@@ -77,6 +77,6 @@
   "judul": "2.29 M17: Tutup buku kedua lolos, PRD v3 datang",
   "url": "tahap-2/m17-prd-v3/",
   "tanya": "M17: tutup buku kedua selisih Rp0, lalu Sinta membawa PRD v3 dan bertanya apakah server cukup. Puncak Tahap 2 ±1,4 request per detik (Asumsi). Kalimat apa yang lahir?",
-  "jawab": "Naskah: \"Masalah Tahap 2 adalah kebenaran data, bukan kapasitas.\" Dipersempit: kapasitas satu server belum pernah diukur. Versi yang didukung rekaman: tidak satu pun dari delapan masalah disebabkan server kehabisan tenaga, dan belum ada angka yang menyuruh membeli server hari ini (ADR 21)."
+  "jawab": "Naskah: \"Masalah Tahap 2 adalah kebenaran data, bukan kapasitas.\" Dipersempit: kapasitas satu server belum pernah diukur. Versi yang didukung rekaman: kapasitas belum diukur, dan belum ada angka yang menyuruh membeli server hari ini (ADR 21)."
  }
 ]
