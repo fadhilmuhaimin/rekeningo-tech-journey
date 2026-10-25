@@ -1,0 +1,147 @@
+# Lab api-t3 · katalog per kota, promo HR, harga dari database, ubah bersyarat versi, catatan, laporan
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/api-t3 run (keputusan 952).
+# server: ./api-t3 -lab
+
+# --- A. Katalog per kota: Budi melihat menu di kotanya (Jakarta) ---
+$ curl -i 'GET /katalog' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK   # kota 1: 12 warung, 480 item, jawaban 41279 byte
+Warung Ani: {"id":1,"nama":"Nasi goreng","harga":25000,"harga_efektif":25000,"stok":50,"versi":1}
+Warung Ani: {"id":61,"nama":"Ayam geprek","harga":28000,"harga_efektif":28000,"stok":30,"versi":1}
+Warung Ani: {"id":121,"nama":"Mie ayam","harga":20000,"harga_efektif":20000,"stok":50,"versi":1}
+=> SELECT a.nama AS warung, k.nama AS kota, count(p.id) AS item, min(p.harga) AS termurah, max(p.harga) AS termahal FROM akun a JOIN kota k ON k.id = a.kota_id JOIN produk p ON p.akun_id = a.id WHERE a.jenis = 'warung' GROUP BY a.id, a.nama, k.nama, k.id ORDER BY k.id, a.id LIMIT 3
+ warung              | kota    | item | termurah | termahal
+---------------------+---------+------+----------+----------
+ Warung Ani          | Jakarta | 40   | 5000     | 28000
+ Warung Sari         | Jakarta | 40   | 5000     | 28000
+ Warung Mie Pak Joko | Jakarta | 40   | 5000     | 28000
+(3 rows)
+# Diukur: 41279 byte untuk 480 item = 86 byte per item (JSON); 2.400 item enam kota = 206 KB
+# R3-37 menulis 720 KB di 300 byte per item (Asumsi): ukuran satu item di jawaban ini lebih kecil dari asumsi itu
+# harga_efektif = harga dikurangi promo kota yang sedang berlaku; tanpa promo sama dengan harga
+
+# --- B. HR Jakarta membuat promo 10% (tanpa pengumuman): harga efektif di katalog berubah, harga dasar tidak ---
+$ curl -i -X POST '/promo' -H 'Authorization: Bearer <token sesi HR Jakarta>' -d '{"judul": "Promo makan siang", "potongan_persen": 10, "mulai": "<waktu>", "selesai": "<waktu>"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"diumumkan":0,"id":1}
+katalog Warung Ani, item Nasi goreng: {"id":1,"nama":"Nasi goreng","harga":25000,"harga_efektif":22500,"stok":50,"versi":1}
+$ curl -i -X POST '/promo' -H 'Authorization: Bearer <token sesi Budi>' -d '{"judul": "Promo", "potongan_persen": 10, "mulai": "<waktu>", "selesai": "<waktu>"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/dilarang","title":"Hanya akun hr yang boleh membuat promo","status":403}
+
+# --- C. Harga yang ditagih dari database, bukan dari layar: HP Budi masih menampilkan Rp25.000 (katalog lama) ---
+$ curl -i -X POST '/pesanan' -H 'Authorization: Bearer <token sesi Budi>' -d '{"produk_id": 1, "porsi": 1}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10001
+
+{"id":10001,"saldo":227500,"nominal":22500,"harga_satuan":22500,"potongan_persen":10,"stok_sisa":49}
+=> SELECT id AS produk, stok, versi FROM produk WHERE id = 1
+ produk | stok | versi
+--------+------+-------
+ 1      | 49   | 2
+(1 row)
+=> SELECT j.id, j.keterangan, p.jumlah FROM jurnal j JOIN posting p ON p.jurnal_id = j.id WHERE j.id = 10001 ORDER BY p.id
+ id    | keterangan                          | jumlah
+-------+-------------------------------------+--------
+ 10001 | Bayar Budi ke warung: 1 Nasi goreng | -22500
+ 10001 | Bayar Budi ke warung: 1 Nasi goreng | 22500
+(2 rows)
+$ curl -i -X POST '/pesanan' -H 'Authorization: Bearer <token sesi Budi>' -d '{"produk_id": 1, "porsi": 11}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"porsi","pesan":"angka 1 sampai 10"}]}
+$ curl -i -X POST '/pesanan' -H 'Authorization: Bearer <token sesi Budi>' -d '{"produk_id": 61, "porsi": 2}'
+HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{"type":"/problems/stok-habis","title":"Stok tidak cukup","status":409}
+# Stok 1, pesan 2: 409 stok-habis, tidak ada jurnal baru
+
+# --- D. Ubah harga dan stok bersyarat versi (optimistic lock): yang basi ditolak dengan keadaan terkini ---
+$ curl -i -X PATCH '/produk/1' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"harga": 26000, "versi": 2}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1,"harga":26000,"stok":49,"versi":3}
+$ curl -i -X PATCH '/produk/1' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"stok": 0, "versi": 2}'
+HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{"type":"/problems/versi-berbeda","title":"Produk sudah diubah pihak lain; tidak ada yang berubah","status":409,"detail":"Ambil keadaan terkini di sekarang, lalu pilih: ubah lagi dengan versi itu, atau batalkan.","sekarang":{"id":1,"harga":26000,"stok":49,"versi":3}}
+$ curl -i -X PATCH '/produk/1' -H 'Authorization: Bearer <token sesi Budi>' -d '{"stok": 0, "versi": 3}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/dilarang","title":"Hanya warung pemilik yang boleh mengubah produk","status":403}
+$ curl -i -X PATCH '/produk/1' -H 'Authorization: Bearer <token sesi Warung Sari>' -d '{"stok": 0, "versi": 3}'
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{"type":"/problems/tidak-ditemukan","title":"Produk tidak ditemukan","status":404}
+$ curl -i -X PATCH '/produk/1' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"stok": 0}'
+HTTP/1.1 400 Bad Request
+Content-Type: application/problem+json
+
+{"type":"/problems/field-wajib","title":"Field wajib tidak dikirim","status":400,"errors":[{"field":"versi","pesan":"wajib diisi"}]}
+
+# --- E. Catatan pada pembayaran: paling banyak 100 karakter, HTML disimpan apa adanya ---
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke":418,"nominal":10000,"catatan":"<101 huruf x>"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"catatan","pesan":"paling banyak 100 karakter"}]}
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "nominal": 10000, "catatan": "baris satu\nbaris dua"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"catatan","pesan":"tidak boleh berisi baris baru atau karakter kontrol"}]}
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "nominal": 10000, "catatan": "<img src=x onerror=alert(1)>"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10002
+
+{"id":10002,"saldo":217500}
+$ curl -i -X GET '/warung/418/penerimaan?batas=1' -H 'Authorization: Bearer <token sesi Warung Ani>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"penerimaan":[{"id":10002,"jenis":"bayar","nominal":10000,"keterangan":"Bayar Budi ke Warung Ani: \u003cimg src=x onerror=alert(1)\u003e","waktu":"<waktu>"}],"warung":418}
+# Server menyimpan teks; mengamankannya saat ditampilkan adalah urusan dasbor (ADR 30). Jurnal tidak bisa dihapus (append-only).
+
+# --- F. Pengumuman promo: satu baris outbox kelas 2 per karyawan di kota itu ---
+$ curl -i -X POST '/promo' -H 'Authorization: Bearer <token sesi HR Jakarta>' -d '{"judul": "Promo sore", "potongan_persen": 5, "mulai": "<waktu>", "selesai": "<waktu>", "umumkan": true}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"diumumkan":1000,"id":2}
+=> SELECT kelas, jenis, status, count(*) AS baris FROM outbox GROUP BY kelas, jenis, status ORDER BY kelas, jenis
+ kelas | jenis | status   | baris
+-------+-------+----------+-------
+ 0     | bayar | menunggu | 2
+ 2     | promo | menunggu | 1000
+(2 rows)
+=> SELECT count(*) AS karyawan_jakarta FROM akun WHERE jenis = 'karyawan' AND kota_id = 1
+ karyawan_jakarta
+------------------
+ 1000
+(1 row)
+
+# --- G. Laporan harian dan ekspor CSV untuk dasbor (hanya pemilik warung) ---
+$ curl -i -X GET '/warung/418/laporan.csv?dari=<tanggal>&sampai=<tanggal>' -H 'Authorization: Bearer <token sesi Warung Ani>'
+HTTP/1.1 200 OK
+Content-Disposition: attachment; filename="laporan.csv"
+Content-Type: text/csv; charset=utf-8
+
+tanggal,transaksi,total
+<tanggal>,2,32500
+$ curl -i -X GET '/warung/418/laporan.csv?dari=<tanggal>&sampai=<tanggal>' -H 'Authorization: Bearer <token sesi Warung Sari>'
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{"type":"/problems/tidak-ditemukan","title":"Warung tidak ditemukan","status":404}

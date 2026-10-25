@@ -1,0 +1,132 @@
+# Lab api-t3 · pemberitahuan lewat outbox, satu transaction dengan jurnal
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/api-t3 run (keputusan 951).
+# server: ./api-t3 -lab (pool 10, push timeout 3s, idle-tx 5s); layanan push tiruan: ./pushpalsu
+server log: api-t3 siap: pool 10, push timeout 3s, idle-tx 5s
+
+# Batas pool 10 ditulis di kode (cmd/api/main.go, SetMaxOpenConns), bukan bawaan database/sql; dipakai ADR 22
+$ curl -i -X GET '/lab/pool'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"dipakai":0,"maks":10,"menganggur":0,"menunggu":0,"terbuka":0}
+
+# --- A. Budi bayar Rp25.000 ke Warung Ani: jurnal, posting, dan baris outbox ditulis di transaction yang sama ---
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "nominal": 25000, "catatan": "nasi goreng dua porsi"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10001
+
+{"id":10001,"saldo":225000}
+=> SELECT p.jurnal_id, j.jenis, b.jenis AS buku, p.jumlah FROM posting p JOIN jurnal j ON j.id = p.jurnal_id JOIN buku b ON b.id = p.buku_id WHERE p.jurnal_id = 10001 ORDER BY p.id
+ jurnal_id | jenis | buku     | jumlah
+-----------+-------+----------+--------
+ 10001     | bayar | karyawan | -25000
+ 10001     | bayar | warung   | 25000
+(2 rows)
+=> SELECT id, jurnal_id, akun_id, kelas, jenis, status, percobaan, payload->>'judul' AS judul, payload->>'catatan' AS catatan, klaim_sampai FROM outbox
+ id | jurnal_id | akun_id | kelas | jenis | status   | percobaan | judul              | catatan               | klaim_sampai
+----+-----------+---------+-------+-------+----------+-----------+--------------------+-----------------------+--------------
+ 1  | 10001     | 418     | 0     | bayar | menunggu | 0         | Rp25.000 dari Budi | nasi goreng dua porsi |
+(1 row)
+# Pembayaran sudah selesai (201), pemberitahuan belum dikirim: layanan push belum menerima apa pun
+push tiruan menerima: 0
+
+# --- B. Worker (proses sendiri) mengklaim baris, mengirim ke push tiruan, menandai terkirim ---
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+=> SELECT id, status, percobaan, klaim_sampai FROM outbox
+ id | status   | percobaan | klaim_sampai
+----+----------+-----------+--------------
+ 1  | terkirim | 1         |
+(1 row)
+push tiruan menerima: 1 pesan untuk token tiruan-418, notifikasi_id = outbox.notifikasi_id (<notifikasi_id 1>)
+
+# --- C. Pembayaran yang ditolak tidak meninggalkan jurnal atau baris outbox ---
+# sebelum: jurnal 10002, outbox 2 (saldo Dimas tinggal Rp50.000 sesudah pembayaran pertama)
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Dimas>' -d '{"ke": 418, "nominal": 200000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/saldo-kurang","title":"Saldo tidak cukup","status":422}
+=> SELECT (SELECT count(*) FROM jurnal) AS jurnal, (SELECT count(*) FROM outbox) AS outbox
+ jurnal | outbox
+--------+--------
+ 10002  | 2
+(1 row)
+
+# --- D. COMMIT ditolak database: jurnal dan baris outbox sama-sama batal ---
+# Transaction ditulis tangan sebagai pemilik schema: jurnal tidak seimbang (-1000 dan +900) dan satu baris outbox
+=> INSERT INTO jurnal (id, jenis, keterangan, dibuat_oleh) VALUES (99999, 'bayar', 'tidak seimbang', 419)
+INSERT 0 1
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) SELECT 99999, id, -1000 FROM buku WHERE akun_id = 419
+INSERT 0 1
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) SELECT 99999, id, 900 FROM buku WHERE akun_id = 418
+INSERT 0 1
+=> INSERT INTO outbox (jurnal_id, akun_id, kelas, jenis, payload) VALUES (99999, 418, 0, 'bayar', '{}')
+INSERT 0 1
+=> COMMIT
+ERROR:  jurnal 99999 tidak seimbang: 2 posting, jumlah -100
+   -- SQLSTATE 23514 · constraint jurnal_seimbang
+=> SELECT (SELECT count(*) FROM jurnal WHERE id = 99999) AS jurnal_99999, (SELECT count(*) FROM outbox WHERE jurnal_id = 99999) AS outbox_99999
+ jurnal_99999 | outbox_99999
+--------------+--------------
+ 0            | 0
+(1 row)
+
+# --- E. Transfer antar karyawan dan top-up CSV juga menulis outbox, dengan kelas berbeda ---
+$ curl -i -X POST '/topup?keterangan=Tunjangan%20makan%20minggu%202' -H 'Authorization: Bearer <token sesi admin>' -H 'Content-Type: text/csv' -d 'nomor_karyawan,nominal\nK10001,250000\nK10002,250000\nK10003,250000\n'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"akun":3,"total":750000}
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke_nomor_karyawan": "K00417", "nominal": 20000, "catatan": "patungan"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10006
+
+{"id":10006,"saldo":205000,"sisa_batas_harian":480000}
+=> SELECT kelas, jenis, status, count(*) AS baris FROM outbox WHERE status = 'menunggu' GROUP BY kelas, jenis, status ORDER BY kelas
+ kelas | jenis    | status   | baris
+-------+----------+----------+-------
+ 0     | bayar    | menunggu | 1
+ 0     | transfer | menunggu | 1
+ 1     | topup    | menunggu | 3
+(3 rows)
+$ curl -i -X GET '/lab/outbox'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"per_status":{"menunggu":5,"terkirim":1},"tertua_detik":<detik>}
+
+# --- F. Kelas menentukan urutan: uang (kelas 0) dikirim sebelum top-up (kelas 1) walau nomornya lebih besar ---
+# worker dengan -serentak 1 supaya urutan kirim bisa dibaca dari urutan di layanan push
+$ ./api-t3 -peran worker -sekali -serentak 1
+worker: diklaim 5, terkirim 5, dilewati 0, ditunda 0, mati 0
+urutan di layanan push: tiruan-418 -> tiruan-417 -> tiruan-10001 -> tiruan-10002 -> tiruan-10003
+# Dua baris kelas 0 lebih dulu menurut nomor (bayar Dimas dari bagian C ke Warung Ani 418, lalu transfer ke Dimas 417),
+# lalu tiga top-up (kelas 1), walau nomor top-up lebih kecil dari nomor transfer
+=> SELECT status, count(*) FROM outbox GROUP BY status ORDER BY status
+ status   | count
+----------+-------
+ terkirim | 6
+(1 row)
+
+# --- G. Worker berhenti mendadak di antara kirim dan tandai terkirim: klaim habis, baris dikirim ulang, notifikasi_id sama ---
+$ ./api-t3 -peran worker -sekali -klaim 1s -lab-henti-sebelum-tandai   # lab: berhenti sesudah push berhasil
+# exit status 3
+=> SELECT status, percobaan, klaim_sampai IS NOT NULL AS masih_dipegang FROM outbox WHERE status = 'menunggu'
+ status   | percobaan | masih_dipegang
+----------+-----------+----------------
+ menunggu | 1         | t
+(1 row)
+push tiruan menerima: 1 pesan; barisnya tetap menunggu karena tidak sempat ditandai terkirim
+# klaim habis (1 detik): baris boleh dipegang worker lain
+$ ./api-t3 -peran worker -sekali -klaim 1s
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+push tiruan menerima: 2 pesan, 1 notifikasi_id (pengiriman ulang itu benar; app menyaring notifikasi_id, ADR 25)
+=> SELECT status, percobaan FROM outbox ORDER BY id DESC LIMIT 1
+ status   | percobaan
+----------+-----------
+ terkirim | 2
+(1 row)

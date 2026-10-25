@@ -1,0 +1,192 @@
+# Lab api-t3 · migrasi 000015-000019, data awal enam kota, aturan database
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/api-t3 run (keputusan 950).
+
+# --- A. Skema akhir Tahap 2, lalu migrasi api-t3 000015 sampai 000019 (satu transaction, schema kosong) ---
+# api-t1/schema.sql + b4-migration/baru/000005 + api-t2/migrasi/000009..000014 = akhir Tahap 2; yang ditulis lab ini:
+$ psql -1 -f migrasi/000015_kota_peran_hr.up.sql
+$ psql -1 -f migrasi/000016_sesi_web.up.sql
+$ psql -1 -f migrasi/000017_perangkat_outbox.up.sql
+$ psql -1 -f migrasi/000018_katalog_promo.up.sql
+$ psql -1 -f migrasi/000019_operasi_sinkron.up.sql
+# Naskah 3b menulis 'di atas 000013'; 000014 (wajib ganti password) ada sejak lab-api-t2a, jadi mulai 000015.
+=> SELECT count(*) AS tabel FROM information_schema.tables WHERE table_schema = current_schema()
+ tabel
+-------
+ 14
+(1 row)
+=> SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema() ORDER BY table_name
+ table_name
+-------------------
+ akun
+ baris_pencairan
+ batch_pencairan
+ buku
+ jurnal
+ kota
+ kunci_idempotensi
+ operasi_sinkron
+ outbox
+ perangkat
+ posting
+ produk
+ promo
+ sesi
+(14 rows)
+
+# --- B. Kolom tabel Tahap 3 dibandingkan dengan blok mermaid naskah 3b (skema lab yang benar) ---
+# tabel | kolom di lab | sama dengan naskah
+kota | id, nama | ya
+perangkat | id, akun_id, platform, token_push, aktif, terakhir_terlihat | ya
+outbox | id, notifikasi_id, jurnal_id, akun_id, kelas, jenis, payload, status, percobaan, coba_lagi, klaim_sampai, dibuat | ya
+produk | id, akun_id, nama, harga, stok, aktif, versi, diubah | ya
+promo | id, kota_id, dibuat_oleh, judul, potongan_persen, mulai, selesai | ya
+operasi_sinkron | kunci, perangkat_id, produk_id, jenis, nilai, versi_dasar, status, dibuat_di_hp, diterapkan | ya
+sesi | token_hash, akun_id, kedaluwarsa, jenis, csrf_hash | ya
+akun | id, jenis, nama, email, password_hash, nomor_karyawan, wajib_ganti_password, gagal_login, terkunci_sampai, kota_id | ya (kota_id baru)
+=> SELECT pg_get_constraintdef(oid) AS aturan_jenis_akun FROM pg_constraint WHERE conname = 'akun_jenis_check' AND connamespace = current_schema()::regnamespace
+ aturan_jenis_akun
+------------------------------------------------------------------------------------------------------------
+ CHECK ((jenis = ANY (ARRAY['karyawan'::text, 'warung'::text, 'admin'::text, 'sistem'::text, 'hr'::text])))
+(1 row)
+# Selisih dengan blok mermaid: tidak ada tabel atau kolom. Yang lab tambah dan mermaid tidak menulis: aturan (CHECK, UNIQUE,
+# index sebagian) dan nilai status 'dilewati' di outbox (penerima tanpa perangkat aktif).
+=> SELECT conrelid::regclass AS tabel, conname AS aturan, pg_get_constraintdef(oid) AS isi
+   FROM pg_constraint WHERE connamespace = current_schema()::regnamespace AND contype IN ('c', 'u')
+     AND conrelid::regclass::text IN ('kota', 'perangkat', 'outbox', 'produk', 'promo', 'operasi_sinkron', 'sesi')
+   ORDER BY 1::text, 2
+ tabel           | aturan                            | isi
+-----------------+-----------------------------------+----------------------------------------------------------------------------------------------------
+ kota            | kota_nama_key                     | UNIQUE (nama)
+ operasi_sinkron | operasi_sinkron_jenis_check       | CHECK ((jenis = ANY (ARRAY['stok'::text, 'harga'::text])))
+ operasi_sinkron | operasi_sinkron_nilai_check       | CHECK ((nilai >= 0))
+ operasi_sinkron | operasi_sinkron_status_check      | CHECK ((status = ANY (ARRAY['diterapkan'::text, 'konflik'::text])))
+ operasi_sinkron | operasi_sinkron_versi_dasar_check | CHECK ((versi_dasar >= 1))
+ outbox          | outbox_jenis_check                | CHECK ((jenis = ANY (ARRAY['bayar'::text, 'transfer'::text, 'topup'::text, 'promo'::text])))
+ outbox          | outbox_jurnal_atau_promo          | CHECK (((jurnal_id IS NULL) = (jenis = 'promo'::text)))
+ outbox          | outbox_kelas_check                | CHECK (((kelas >= 0) AND (kelas <= 2)))
+ outbox          | outbox_notifikasi_id_key          | UNIQUE (notifikasi_id)
+ outbox          | outbox_percobaan_check            | CHECK ((percobaan >= 0))
+ outbox          | outbox_status_check               | CHECK ((status = ANY (ARRAY['menunggu'::text, 'terkirim'::text, 'dilewati'::text, 'mati'::text])))
+ perangkat       | perangkat_platform_check          | CHECK ((platform = ANY (ARRAY['android'::text, 'ios'::text])))
+ perangkat       | perangkat_token_push_key          | UNIQUE (token_push)
+ produk          | produk_akun_id_nama_key           | UNIQUE (akun_id, nama)
+ produk          | produk_harga_check                | CHECK ((harga > 0))
+ produk          | produk_nama_check                 | CHECK ((length(TRIM(BOTH FROM nama)) > 0))
+ produk          | produk_stok_check                 | CHECK ((stok >= 0))
+ promo           | promo_judul_check                 | CHECK ((length(TRIM(BOTH FROM judul)) > 0))
+ promo           | promo_potongan_persen_check       | CHECK (((potongan_persen >= 1) AND (potongan_persen <= 90)))
+ promo           | promo_selesai_sesudah_mulai       | CHECK ((selesai > mulai))
+ sesi            | sesi_csrf_hanya_web               | CHECK (((jenis = 'web'::text) = (csrf_hash IS NOT NULL)))
+ sesi            | sesi_jenis_check                  | CHECK ((jenis = ANY (ARRAY['app'::text, 'web'::text])))
+(22 rows)
+=> SELECT tablename AS tabel, indexname AS index, indexdef FROM pg_indexes WHERE schemaname = current_schema() AND tablename IN ('outbox', 'perangkat', 'promo', 'akun') AND indexname NOT LIKE '%_pkey' AND indexname NOT LIKE '%_key' ORDER BY 1, 2
+ tabel     | index                  | indexdef
+-----------+------------------------+----------------------------------------------------------------------------------------------------------------------------
+ akun      | akun_kota              | CREATE INDEX akun_kota ON tahap3.akun USING btree (kota_id) WHERE (kota_id IS NOT NULL)
+ outbox    | outbox_antre           | CREATE INDEX outbox_antre ON tahap3.outbox USING btree (kelas, id) WHERE (status = 'menunggu'::text)
+ outbox    | outbox_satu_per_jurnal | CREATE UNIQUE INDEX outbox_satu_per_jurnal ON tahap3.outbox USING btree (jurnal_id, akun_id) WHERE (jurnal_id IS NOT NULL)
+ perangkat | perangkat_akun         | CREATE INDEX perangkat_akun ON tahap3.perangkat USING btree (akun_id) WHERE aktif
+ promo     | promo_kota_waktu       | CREATE INDEX promo_kota_waktu ON tahap3.promo USING btree (kota_id, mulai, selesai)
+(5 rows)
+
+# --- C. Data awal: ./api-t3 -seed (data lab, sebagai pemilik schema, tanpa lewat service) ---
+$ DATABASE_URL=<pemilik schema> ./api-t3 -seed   # password semua akun lab: lihat cmd/api/seed.go
+=> SELECT id, nama FROM kota ORDER BY id
+ id | nama
+----+----------
+ 1  | Jakarta
+ 2  | Bandung
+ 3  | Surabaya
+ 4  | Medan
+ 5  | Semarang
+ 6  | Makassar
+(6 rows)
+=> SELECT jenis, count(*) AS akun, count(kota_id) AS punya_kota FROM akun GROUP BY jenis ORDER BY jenis
+ jenis    | akun  | punya_kota
+----------+-------+------------
+ admin    | 1     | 0
+ hr       | 6     | 6
+ karyawan | 10000 | 10000
+ sistem   | 1     | 0
+ warung   | 60    | 60
+(5 rows)
+=> SELECT k.nama AS kota, count(*) FILTER (WHERE a.jenis = 'karyawan') AS karyawan, count(*) FILTER (WHERE a.jenis = 'warung') AS warung, count(*) FILTER (WHERE a.jenis = 'hr') AS hr FROM kota k JOIN akun a ON a.kota_id = k.id GROUP BY k.id, k.nama ORDER BY k.id
+ kota     | karyawan | warung | hr
+----------+----------+--------+----
+ Jakarta  | 1000     | 12     | 1
+ Bandung  | 1800     | 10     | 1
+ Surabaya | 1800     | 10     | 1
+ Medan    | 1800     | 10     | 1
+ Semarang | 1800     | 10     | 1
+ Makassar | 1800     | 8      | 1
+(6 rows)
+=> SELECT (SELECT count(*) FROM buku) AS buku, (SELECT count(*) FROM jurnal) AS jurnal, (SELECT sum(saldo_cache) FROM buku WHERE jenis = 'karyawan') AS saldo_karyawan, (SELECT saldo_cache FROM buku WHERE jenis = 'tunjangan') AS buku_tunjangan, (SELECT sum(saldo_cache) FROM buku) AS jumlah_semua
+ buku  | jurnal | saldo_karyawan | buku_tunjangan | jumlah_semua
+-------+--------+----------------+----------------+--------------
+ 10064 | 10000  | 2500000000     | -2500000000    | 0
+(1 row)
+=> SELECT (SELECT count(*) FROM produk) AS produk, (SELECT count(DISTINCT akun_id) FROM produk) AS warung, (SELECT count(*) FROM perangkat) AS perangkat, (SELECT count(*) FROM outbox) AS outbox, (SELECT count(*) FROM promo) AS promo
+ produk | warung | perangkat | outbox | promo
+--------+--------+-----------+--------+-------
+ 2400   | 60     | 10060     | 0      | 0
+(1 row)
+=> SELECT a.id, a.nama, a.jenis, k.nama AS kota, a.nomor_karyawan FROM akun a JOIN kota k ON k.id = a.kota_id WHERE a.id IN (417, 418, 419, 502, 503, 504) ORDER BY a.id
+ id  | nama                | jenis    | kota    | nomor_karyawan
+-----+---------------------+----------+---------+----------------
+ 417 | Dimas               | karyawan | Jakarta | K00417
+ 418 | Warung Ani          | warung   | Jakarta |
+ 419 | Budi                | karyawan | Jakarta | K00419
+ 502 | Warung Sari         | warung   | Jakarta |
+ 503 | Warung Mie Pak Joko | warung   | Jakarta |
+ 504 | Citra               | karyawan | Jakarta | K00504
+(6 rows)
+
+# --- D. Role app (api_t3) bukan pemilik tabel: invarian dan kolom tertentu tidak bisa diubah dari server ---
+api_t3=> ALTER TABLE outbox DISABLE TRIGGER ALL;
+ERROR:  must be owner of table outbox
+   -- SQLSTATE 42501
+api_t3=> UPDATE posting SET jumlah = 1 WHERE id = 1;
+ERROR:  permission denied for table posting
+   -- SQLSTATE 42501
+api_t3=> UPDATE akun SET kota_id = 2 WHERE id = 419;
+ERROR:  permission denied for table akun
+   -- SQLSTATE 42501
+api_t3=> DELETE FROM jurnal WHERE id = 1;
+ERROR:  permission denied for table jurnal
+   -- SQLSTATE 42501
+api_t3=> DELETE FROM produk WHERE id = 1;
+ERROR:  permission denied for table produk
+   -- SQLSTATE 42501
+# DELETE outbox dan operasi_sinkron diizinkan: hanya untuk job retensi (-bersih); jurnal dan posting tidak pernah.
+
+# --- E. Aturan tabel baru ditolak database, bukan hanya service (gagal keras bila tidak ditolak) ---
+=> INSERT INTO outbox (akun_id, kelas, jenis, payload) VALUES (419, 0, 'bayar', '{}')
+ERROR:  new row for relation "outbox" violates check constraint "outbox_jurnal_atau_promo"
+   -- SQLSTATE 23514 · constraint outbox_jurnal_atau_promo
+=> INSERT INTO outbox (akun_id, kelas, jenis, payload) VALUES (419, 3, 'promo', '{}')
+ERROR:  new row for relation "outbox" violates check constraint "outbox_kelas_check"
+   -- SQLSTATE 23514 · constraint outbox_kelas_check
+=> INSERT INTO outbox (jurnal_id, akun_id, kelas, jenis, payload) VALUES (1, 419, 1, 'topup', '{}')
+INSERT 0 1
+=> INSERT INTO outbox (jurnal_id, akun_id, kelas, jenis, payload) VALUES (1, 419, 1, 'topup', '{}')
+ERROR:  duplicate key value violates unique constraint "outbox_satu_per_jurnal"
+   -- SQLSTATE 23505 · constraint outbox_satu_per_jurnal
+=> INSERT INTO sesi (token_hash, akun_id, kedaluwarsa, jenis) VALUES ('x', 418, now(), 'web')
+ERROR:  new row for relation "sesi" violates check constraint "sesi_csrf_hanya_web"
+   -- SQLSTATE 23514 · constraint sesi_csrf_hanya_web
+=> INSERT INTO promo (kota_id, dibuat_oleh, judul, potongan_persen, mulai, selesai) VALUES (1, 411, 'x', 10, now(), now())
+ERROR:  new row for relation "promo" violates check constraint "promo_selesai_sesudah_mulai"
+   -- SQLSTATE 23514 · constraint promo_selesai_sesudah_mulai
+=> INSERT INTO promo (kota_id, dibuat_oleh, judul, potongan_persen, mulai, selesai) VALUES (1, 411, 'x', 95, now(), now() + interval '1 hour')
+ERROR:  new row for relation "promo" violates check constraint "promo_potongan_persen_check"
+   -- SQLSTATE 23514 · constraint promo_potongan_persen_check
+=> INSERT INTO produk (akun_id, nama, harga, stok) VALUES (418, 'Tes', 1000, -1)
+ERROR:  new row for relation "produk" violates check constraint "produk_stok_check"
+   -- SQLSTATE 23514 · constraint produk_stok_check
+=> INSERT INTO produk (akun_id, nama, harga, stok) VALUES (418, 'Nasi goreng', 1000, 1)
+ERROR:  duplicate key value violates unique constraint "produk_akun_id_nama_key"
+   -- SQLSTATE 23505 · constraint produk_akun_id_nama_key
+=> INSERT INTO operasi_sinkron (kunci, perangkat_id, produk_id, jenis, nilai, versi_dasar, status, dibuat_di_hp) VALUES ('k', 1, 1, 'bayar', 0, 1, 'diterapkan', now())
+ERROR:  new row for relation "operasi_sinkron" violates check constraint "operasi_sinkron_jenis_check"
+   -- SQLSTATE 23514 · constraint operasi_sinkron_jenis_check

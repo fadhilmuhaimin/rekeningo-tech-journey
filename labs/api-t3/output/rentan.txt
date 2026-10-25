@@ -1,0 +1,91 @@
+# Lab api-t3 · mode rentan push-dalam-tx (M18), kursor (M19), urut-waktu (M27)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/api-t3 run (keputusan 953).
+
+# --- A. M18 · mode rentan push-dalam-tx: push di dalam transaction, client tanpa batas waktu, push menggantung ---
+$ ./api-t3 -rentan push-dalam-tx -lab   # push timeout 0 (tanpa batas), idle-tx 0 (mati), pool 10
+server log: PERINGATAN: mode rentan push-dalam-tx menyala
+server log: api-t3 siap: pool 10, push timeout 0s, idle-tx 0s
+# Budi dan sembilan karyawan lain membayar sepuluh warung berbeda (tanpa rebutan lock buku), semuanya bersamaan
+$ curl -i -X GET '/lab/pool'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"dipakai":10,"maks":10,"menganggur":0,"menunggu":0,"terbuka":10}
+=> SELECT state, count(*) FROM pg_stat_activity WHERE application_name = 'api-t3' GROUP BY state ORDER BY state
+ state               | count
+---------------------+-------
+ idle in transaction | 10
+(1 row)
+
+# Request ke-11: Budi hanya membuka saldonya (GET /akun/419). Server butuh satu koneksi bebas bahkan untuk memeriksa sesinya.
+$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'
+(tidak ada jawaban)
+# curl berhenti menunggu sesudah 2 detik. Semua layar ikut membeku, bukan hanya pembayaran (M18).
+$ curl -i -X GET '/lab/pool'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"dipakai":10,"maks":10,"menganggur":0,"menunggu":1,"terbuka":10}
+
+# --- B. Layanan push dimatikan: sepuluh pembayaran selesai, tanpa baris outbox, kegagalan push hanya ada di log ---
+$ kill -TERM <pid push tiruan>
+10 pembayaran: 201 x10
+=> SELECT (SELECT count(*) FROM jurnal WHERE jenis = 'bayar') AS jurnal_bayar, (SELECT count(*) FROM outbox) AS outbox
+ jurnal_bayar | outbox
+--------------+--------
+ 10           | 0
+(1 row)
+server log: 10 baris 'push gagal, hanya dicatat: ...' (satu per pembayaran)
+# Sepuluh pemberitahuan hilang tanpa ada yang tahu, kecuali yang membaca log (M18, syarat 2 Sinta)
+$ kill -TERM <pid api-t3>   # mode rentan dimatikan
+
+# --- C. M19 · poller kursor (dibuat, id): baris yang COMMIT belakangan tertinggal di belakang kursor ---
+$ ./api-t3 -lab   # versi benar untuk pembayaran
+$ ./api-t3 -peran worker -rentan kursor -selang 20ms &   # poller versi pertama, berputar terus
+# 1. Transaction A (tangan) memegang lock buku Citra
+=> BEGIN; SELECT id FROM buku WHERE akun_id = 504 FOR UPDATE;
+# 2. Budi mengirim Rp20.000 ke Citra (transaction B): mulai lebih dulu, lalu menunggu lock yang dipegang A
+# 3. Dimas membayar Warung Ani (transaction C): mulai sesudah B, tidak butuh lock yang dipegang, COMMIT lebih dulu
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Dimas>' -d '{"ke": 418, "nominal": 25000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10011
+
+{"id":10011,"saldo":225000}
+# 4. Poller sudah mengirim C dan kursornya maju ke (dibuat C, id C). Sekarang A melepas lock dan B selesai.
+=> COMMIT   # transaction A
+=> SELECT o.id AS outbox_id, o.jurnal_id, o.jenis, o.status, o.dibuat < (SELECT dibuat FROM outbox WHERE status = 'terkirim') AS dibuat_sebelum_c FROM outbox o ORDER BY o.id
+ outbox_id | jurnal_id | jenis    | status   | dibuat_sebelum_c
+-----------+-----------+----------+----------+------------------
+ 1         | 10011     | bayar    | terkirim | f
+ 2         | 10012     | transfer | menunggu | t
+(2 rows)
+# B punya nomor outbox lebih besar tetapi `dibuat` (awal transaction) lebih awal dari C: ia ada di belakang kursor poller.
+push tiruan menerima: 1 pesan (hanya C); dalam 1,5 detik pengamatan (puluhan putaran poller) B tidak terkirim
+$ kill -TERM <pid poller kursor>
+
+# Perbaikan (ADR 24): worker mengklaim baris (FOR UPDATE SKIP LOCKED), tanpa kursor
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+=> SELECT id, jurnal_id, jenis, status FROM outbox ORDER BY id
+ id | jurnal_id | jenis    | status
+----+-----------+----------+----------
+ 1  | 10011     | bayar    | terkirim
+ 2  | 10012     | transfer | terkirim
+(2 rows)
+
+# --- D. M27 · tanpa kelas (urut nomor) lawan dengan kelas: top-up massal di depan pembayaran uang ---
+$ ./api-t3 -lab
+
+# Antrean: tiga top-up (kelas 1), lalu satu transfer ke Dimas (kelas 0, nomor terbesar). Worker dengan kelas (bawaan)
+$ ./api-t3 -peran worker -sekali -serentak 1
+worker: diklaim 4, terkirim 4, dilewati 0, ditunda 0, mati 0
+urutan di layanan push: tiruan-417 -> tiruan-10011 -> tiruan-10012 -> tiruan-10013
+
+# Antrean: tiga top-up (kelas 1), lalu satu transfer ke Dimas (kelas 0, nomor terbesar). Worker tanpa kelas, mode rentan urut-waktu
+$ ./api-t3 -peran worker -sekali -serentak 1 -rentan urut-waktu
+worker: diklaim 4, terkirim 4, dilewati 0, ditunda 0, mati 0
+log: PERINGATAN: mode rentan urut-waktu menyala
+urutan di layanan push: tiruan-10021 -> tiruan-10022 -> tiruan-10023 -> tiruan-417
+# Tanpa kelas, pembayaran uang menunggu di belakang semua top-up; dengan kelas, di depan (ADR 32, M27)

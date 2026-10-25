@@ -1,0 +1,74 @@
+# Lab api-t3 · tes Go untuk aturan uang, outbox, klaim, versi, sinkron, dan sesi web
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/api-t3 run (keputusan 950).
+
+# --- A. go vet, lalu tes aturan uang dan outbox dengan PostgreSQL sungguhan (schema tahap3_tes, skema akhir Tahap 3) ---
+$ go vet ./...
+(tanpa temuan)
+# exit status 0
+$ TEST_DATABASE_URL=<schema tahap3_tes> go test -v -count=1 -p 1 ./...
+--- PASS: TestBayarMenolakJumlahDiLuarBatas
+    --- PASS: TestBayarMenolakJumlahDiLuarBatas/-70000
+    --- PASS: TestBayarMenolakJumlahDiLuarBatas/0
+    --- PASS: TestBayarMenolakJumlahDiLuarBatas/200001
+--- PASS: TestKirimMenolakNominalBukanPositif
+--- PASS: TestBatasHarian
+--- PASS: TestBacaCSV
+--- PASS: TestKursorBolakBalik
+--- PASS: TestKirimBatasHarian
+--- PASS: TestKirimBersamaanTidakNegatif
+--- PASS: TestTopupSatuBarisSalahSemuaDitolak
+--- PASS: TestTopupSeribuAkunSatuTransaction
+--- PASS: TestRiwayatKursorTanpaGandaTanpaTerlewat
+--- PASS: TestBalikSekali
+--- PASS: TestTutupBukuSeimbang
+--- PASS: TestKirimDibatasiPerAkun
+--- PASS: TestKirimTidakMembedakanNomor
+--- PASS: TestDurasiKunciBertahap
+--- PASS: TestLoginTerkunciSamaDenganPasswordSalah
+--- PASS: TestLoginDibatasiPerAkun
+--- PASS: TestLoginWajibGantiPassword
+--- PASS: TestKunciTidakBisaDilewatiBersamaan
+--- PASS: TestKunciAlamatIPv6PerPrefix
+--- PASS: TestCatatanPanjangDanKarakter
+--- PASS: TestRupiah
+--- PASS: TestBayarMenulisOutboxSatuTransaction
+--- PASS: TestBayarGagalTidakMenulisOutbox
+--- PASS: TestCommitDitolakMembuangJurnalDanOutbox
+--- PASS: TestKirimDanTopupMenulisOutbox
+--- PASS: TestKlaimTigaWorkerTanpaGandaTanpaTerlewat
+--- PASS: TestKlaimHabisDiklaimLagi
+--- PASS: TestKelasMendahuluiNomor
+--- PASS: TestPesanHargaDariDatabase
+--- PASS: TestUbahProdukBersyaratVersi
+--- PASS: TestSinkronSekaliPerKunci
+--- PASS: TestPromoHanyaHrDanPengumuman
+--- PASS: TestSesiWebDanCsrf
+--- PASS: TestKlaimMelewatBarisYangDikunci
+--- PASS: TestOutboxGagalMembatalkanUang
+PASS
+ok    lab/apit3/internal/service
+--- PASS: TestBackoffBatas
+--- PASS: TestWorkerRetryLaluDeadLetter
+--- PASS: TestWorkerTokenTidakTerdaftarDilewati
+--- PASS: TestWorkerBarisBeracunMasukDeadLetter
+--- PASS: TestWorkerPushMenggantungBerhentiDiBatasWaktu
+--- PASS: TestWorkerBackoffDihormati
+PASS
+ok    lab/apit3/internal/worker
+# exit status 0
+
+# --- B. Tanpa TEST_DATABASE_URL: tes database dilewati, tes tanpa database tetap jalan ---
+$ go test -count=1 ./...
+ok    lab/apit3/internal/service
+ok    lab/apit3/internal/worker
+# exit status 0
+
+# --- C. TES_DB_WAJIB=1 tanpa database: gagal keras, bukan hijau karena tes dilewati (pola 2.24) ---
+$ TES_DB_WAJIB=1 go test -count=1 ./...
+TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong: tes yang butuh PostgreSQL tidak boleh dilewati
+FAIL  lab/apit3/internal/service
+TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong: tes yang butuh PostgreSQL tidak boleh dilewati
+FAIL  lab/apit3/internal/worker
+FAIL
+# exit status 1

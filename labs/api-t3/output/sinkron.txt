@@ -1,0 +1,142 @@
+# Lab api-t3 · perangkat dan sinkron offline bersyarat versi, kunci 14 hari
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3 · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/api-t3 run (keputusan 952).
+# server: ./api-t3 -lab
+
+# --- A. HP warung mendaftarkan token push; token yang sama di akun lain dipindahkan (HP berpindah tangan) ---
+$ curl -i -X POST '/perangkat' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"platform": "android", "token_push": "hp-ani-1"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"id":10061}
+$ curl -i -X POST '/perangkat' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"platform": "android", "token_push": "hp-ani-1"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"id":10061}
+$ curl -i -X POST '/perangkat' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"platform": "ios", "token_push": "hp-ani-2"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"id":10063}
+# Nomor 10062 terpakai INSERT yang bentrok pada token yang sama: nextval tidak dikembalikan (PostgreSQL, fungsi sequence)
+$ curl -i -X POST '/perangkat' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"platform": "symbian", "token_push": "x"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"platform","pesan":"android atau ios"}]}
+# HP berpindah tangan: Budi memakai token itu lebih dulu, lalu Dimas mendaftarkan token yang sama
+=> SELECT id, akun_id, platform, aktif FROM perangkat WHERE id > 10060 ORDER BY id
+ id    | akun_id | platform | aktif
+-------+---------+----------+-------
+ 10061 | 418     | android  | t
+ 10063 | 418     | ios      | t
+ 10064 | 417     | ios      | t
+(3 rows)
+# Satu token hanya punya satu akun: perangkat bekas Budi sekarang atas nama Dimas (417)
+
+# --- B. Jumat 16.50: Ani mencatat 'Ayam geprek habis' di HP (stok 0). Operasi masuk antrean HP dengan kunci sendiri ---
+# Produk Ayam geprek: stok 30, versi 1. dibuat_di_hp diperankan 62 jam sebelum 'Senin 07.00' (tidak menunggu 62 jam).
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0001", "perangkat_id": 10061, "produk_id": 61, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"sekarang":{"id":61,"harga":28000,"stok":0,"versi":2},"status":"diterapkan","ulang":false}
+=> SELECT kunci, jenis, nilai, versi_dasar, status FROM operasi_sinkron
+ kunci        | jenis | nilai | versi_dasar | status
+--------------+-------+-------+-------------+------------
+ ani-hp1-0001 | stok  | 0     | 1           | diterapkan
+(1 row)
+
+# --- C. Jawaban hilang, HP mengirim ulang 62 jam kemudian dengan kunci yang sama: dikenali, tidak diterapkan dua kali ---
+# ADR 14: kunci_idempotensi dikenali 24 jam (api-t3 belum memakainya untuk bayar, keputusan 517); operasi_sinkron menyimpan kuncinya 14 hari
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0001", "perangkat_id": 10061, "produk_id": 61, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"sekarang":{"id":61,"harga":28000,"stok":0,"versi":2},"status":"diterapkan","ulang":true}
+=> SELECT id AS produk, stok, versi FROM produk WHERE id = 61
+ produk | stok | versi
+--------+------+-------
+ 61     | 0    | 2
+(1 row)
+=> SELECT count(*) AS baris_operasi FROM operasi_sinkron
+ baris_operasi
+---------------
+ 1
+(1 row)
+
+# --- D. HP kedua Ani, masih melihat versi 1, mengubah stok ke 20: konflik, tidak ditimpa ---
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp2-0001", "perangkat_id": 10063, "produk_id": 61, "jenis": "stok", "nilai": 20, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"sekarang":{"id":61,"harga":28000,"stok":0,"versi":2},"status":"konflik","ulang":false}
+=> SELECT kunci, status, diterapkan IS NOT NULL AS diterapkan FROM operasi_sinkron ORDER BY dibuat_di_hp
+ kunci        | status     | diterapkan
+--------------+------------+------------
+ ani-hp1-0001 | diterapkan | t
+ ani-hp2-0001 | konflik    | f
+(2 rows)
+# Konfliknya ditampilkan di HP (stok sekarang 0, versi 2); Ani memilih. Memilih 20 berarti kunci baru dengan versi_dasar 2:
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp2-0002", "perangkat_id": 10063, "produk_id": 61, "jenis": "stok", "nilai": 20, "versi_dasar": 2, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"sekarang":{"id":61,"harga":28000,"stok":20,"versi":3},"status":"diterapkan","ulang":false}
+
+# --- E. Yang tidak boleh lewat sinkron: pembayaran, perangkat orang lain, queue lebih dari 7 hari, bukan warung ---
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-bayar", "perangkat_id": 10061, "produk_id": 61, "jenis": "bayar", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"jenis","pesan":"pembayaran tidak pernah lewat sinkron offline; hanya stok dan harga"}]}
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-lain", "perangkat_id": 1, "produk_id": 61, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"perangkat_id","pesan":"bukan perangkat akun ini"}]}
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-lama", "perangkat_id": 10061, "produk_id": 61, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"dibuat_di_hp","pesan":"lebih dari 7 hari di queue: ditolak, ambil keadaan terbaru lalu ubah lagi"}]}
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-masa-depan", "perangkat_id": 10061, "produk_id": 61, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"dibuat_di_hp","pesan":"lebih dari 1 hari di masa depan: jam HP salah"}]}
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "ani-hp1-0001", "perangkat_id": 10061, "produk_id": 61, "jenis": "stok", "nilai": 7, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"kunci","pesan":"sudah dipakai untuk operasi lain; satu operasi satu kunci"}]}
+# Kunci ani-hp1-0001 sudah dipakai untuk stok = 0; stok = 7 dengan kunci yang sama bukan pengiriman ulang
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Sari>' -d '{"kunci": "sari-ani", "perangkat_id": 10061, "produk_id": 61, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"perangkat_id","pesan":"bukan perangkat akun ini"}]}
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Budi>' -d '{"kunci": "budi", "perangkat_id": 10061, "produk_id": 61, "jenis": "stok", "nilai": 0, "versi_dasar": 1, "dibuat_di_hp": "<waktu>"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/dilarang","title":"Hanya warung yang boleh mengirim operasi sinkron","status":403}
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Warung Ani>' -d '{"kunci": "k"}'
+HTTP/1.1 400 Bad Request
+Content-Type: application/problem+json
+
+{"type":"/problems/field-wajib","title":"Field wajib tidak dikirim","status":400,"errors":[{"field":"perangkat_id","pesan":"wajib diisi"},{"field":"produk_id","pesan":"wajib diisi"},{"field":"jenis","pesan":"wajib diisi"},{"field":"nilai","pesan":"wajib diisi"},{"field":"versi_dasar","pesan":"wajib diisi"},{"field":"dibuat_di_hp","pesan":"wajib diisi"}]}
+=> SELECT id AS produk, stok, versi FROM produk WHERE id = 61
+ produk | stok | versi
+--------+------+-------
+ 61     | 20   | 3
+(1 row)
+
+# --- F. Retensi: job -bersih membuang operasi sinkron yang lebih tua dari 14 hari (62 jam tidak tersentuh) ---
+$ ./api-t3 -bersih
+bersih: 0 baris outbox selesai (lebih dari 7 hari), 0 operasi sinkron (lebih dari 14 hari)
+=> UPDATE operasi_sinkron SET dibuat_di_hp = dibuat_di_hp - interval '15 days' WHERE kunci = 'ani-hp1-0001'
+UPDATE 1
+$ ./api-t3 -bersih
+bersih: 0 baris outbox selesai (lebih dari 7 hari), 1 operasi sinkron (lebih dari 14 hari)
