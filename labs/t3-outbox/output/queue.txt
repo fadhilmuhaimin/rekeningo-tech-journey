@@ -7,7 +7,7 @@ $ ./api-t3 -lab
 # c = 4 pengirim serentak (bawaan), t = 0,3 detik (layanan push tiruan), 80 baris uang di antrean
 $ ./api-t3 -peran worker -sekali -serentak 4
 worker: diklaim 80, terkirim 80, dilewati 0, ditunda 0, mati 0
-kapasitas diukur: antara 12 dan 13,33 per detik (batas atas c ÷ t = 4 ÷ 0,3 = 13,33; selisihnya waktu klaim dan tandai per putaran)
+kapasitas diukur: antara 12 dan 13,33 per detik (batas atas c ÷ t = 4 ÷ 0,3 = 13,33)
 
 # --- B. Pengumuman promo ke semua 10.000 karyawan (enam HR, enam kota), lalu satu top-up dan satu pembayaran sesudahnya ---
 => TRUNCATE outbox RESTART IDENTITY   # lab: antrean kosong lagi, nomor mulai dari 1
@@ -52,7 +52,7 @@ urutan di layanan push: tiruan-418 -> tiruan-10001 -> tiruan-10002 -> tiruan-100
 
 # --- E. Promo membanjiri antrean: notifikasi uang yang tiba di tengah banjir menunggu paling lama satu putaran ---
 # Worker dengan kelas berjalan terus; 1,5 detik kemudian Budi membayar warung Ani
-notifikasi uang tiba di tengah banjir promo: terkirim dalam kurang dari 1,5 detik (menunggu putaran yang sedang jalan, 0,3 detik, ditambah satu putaran sendiri)
+notifikasi uang tiba di tengah banjir promo: terkirim dalam kurang dari 1,5 detik (dihitung: paling lama dua putaran, 2 × 0,3 detik; yang diperiksa: kurang dari 1,5 detik)
 => SELECT max(umur) FROM outbox WHERE status = 'menunggu'   # semua kelas
 umur tertua semua kelas: lebih dari 30 detik (promo menumpuk): alert umur tertua dari semua kelas akan berbunyi
 => SELECT max(umur) FROM outbox WHERE status = 'menunggu' AND kelas = 0   # hanya uang

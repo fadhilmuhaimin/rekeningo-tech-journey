@@ -635,7 +635,7 @@ def rekam_queue():
     harap((h["diklaim"], h["terkirim"]), (80, 80), "80 baris terkirim")
     laju = 80 / dt
     harap(12.0 <= laju <= 13.4, True, f"kapasitas diukur {laju:.2f} per detik, harus antara 12 dan 13,4")
-    catat("kapasitas diukur: antara 12 dan 13,33 per detik (batas atas c ÷ t = 4 ÷ 0,3 = 13,33; selisihnya waktu klaim dan tandai per putaran)")
+    catat("kapasitas diukur: antara 12 dan 13,33 per detik (batas atas c ÷ t = 4 ÷ 0,3 = 13,33)")
 
     bagian("B. Pengumuman promo ke semua 10.000 karyawan (enam HR, enam kota), lalu satu top-up dan satu pembayaran sesudahnya")
     kosongkan_outbox()
@@ -710,7 +710,7 @@ def rekam_queue():
     d.tunggu(lambda: satu(f"SELECT status FROM outbox WHERE jurnal_id = {jurnal}") == "terkirim", "notifikasi uang terkirim", batas=5)
     tunda = time.monotonic() - t1
     harap(tunda < 1.5, True, f"notifikasi uang tertunda {tunda:.2f} detik di tengah banjir promo")
-    catat("notifikasi uang tiba di tengah banjir promo: terkirim dalam kurang dari 1,5 detik (menunggu putaran yang sedang jalan, 0,3 detik, ditambah satu putaran sendiri)")
+    catat("notifikasi uang tiba di tengah banjir promo: terkirim dalam kurang dari 1,5 detik (dihitung: paling lama dua putaran, 2 × 0,3 detik; yang diperiksa: kurang dari 1,5 detik)")
     time.sleep(2.0)
     d.stop("kelas")
     umur_semua = satu("SELECT extract(epoch FROM now() - min(dibuat)) FROM outbox WHERE status = 'menunggu'")
