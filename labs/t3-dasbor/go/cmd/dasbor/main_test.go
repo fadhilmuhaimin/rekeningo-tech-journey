@@ -58,6 +58,16 @@ func TestAturCookieSamesiteNoneMemaksaSecure(t *testing.T) {
 	}
 }
 
+func TestAturCookieSamesiteDefaultTidakMenulisAtribut(t *testing.T) {
+	s := &server{samesite: "default"}
+	w := httptest.NewRecorder()
+	s.aturCookie(w, "token-contoh", fixedFuture)
+	c := cookieDariRespons(t, w, "__Host-sesi")
+	if c.SameSite != 0 || strings.Contains(strings.Join(w.Header()["Set-Cookie"], ";"), "SameSite") {
+		t.Fatalf("-samesite default tidak boleh menulis atribut SameSite, dapat %v", w.Header()["Set-Cookie"])
+	}
+}
+
 func TestAturCookieBawaanMemberiLax(t *testing.T) {
 	s := &server{}
 	w := httptest.NewRecorder()

@@ -43,6 +43,7 @@ P = {k: port_lab(v) for k, v in DASAR.items()}
 
 DIMAS = "dimas@lestari.example"       # akun 417 (labs/api-t3/cmd/api/seed.go)
 ANI = "warung.ani@lestari.example"    # akun 418, Warung Ani
+SARI = "warung.sari@lestari.example"  # akun 502, Warung Sari (sesi kedua untuk skenario token sesi lain)
 PASSWORD = "sementara-tahap-3"        # password data lab semua akun, bukan secret (labs/api-t3/README.md)
 PAYLOAD = "<img src=x onerror=alert(1)>"   # catatan M25, 29 karakter, lolos batas 100 karakter (MaksCatatan)
 
@@ -85,18 +86,23 @@ def jalankan(port, cmd, env_lain=None):
     d.server[port] = (p, f)
 
 
+# Kedua server mengikat 127.0.0.1 secara harfiah (bukan nama): tidak bergantung pada resolver, dan pagar.Loopback
+# menolak yang lain. Browser tetap membuka http://localhost:<port> (dasbor) dan http://penyerang.localhost:<port>
+# (halaman Dimas); Chromium me-resolve keduanya ke loopback sendiri (RFC 6761 §6.3), jadi keduanya tetap beda situs.
+
+
 def mulai_dasbor(escape="", csp="", cookie="", samesite="", token=""):
     if P["dasbor"] in d.server:
         d.stop(P["dasbor"])
     jalankan(P["dasbor"],
-             [BIN / "dasbor", "-addr", f"localhost:{P['dasbor']}",
+             [BIN / "dasbor", "-addr", f"127.0.0.1:{P['dasbor']}",
               "-escape", escape, "-csp", csp, "-cookie", cookie, "-samesite", samesite, "-token", token],
              env_lain={"DATABASE_URL": d.db_app(nama="t3-dasbor")})
 
 
 def mulai_serangan():
     jalankan(P["serangan"],
-             [BIN / "serangan", "-addr", f"penyerang.localhost:{P['serangan']}",
+             [BIN / "serangan", "-addr", f"127.0.0.1:{P['serangan']}",
               "-sasaran", f"http://localhost:{P['dasbor']}"])
 
 
@@ -162,6 +168,7 @@ def rekam_xss():
     harap(hasil["cookieJSMemuatNamaSesi"], True, "cookie sesi memang yang terbaca, bukan cookie lain")
     harap(hasil["cookieHttpOnly"], False, "cookie rentan: HttpOnly tidak dipasang")
     harap(hasil["cookieName"], "sesi", "cookie rentan: tanpa awalan __Host-")
+    harap(hasil["cspPelanggaran"], [], "tanpa CSP tidak ada yang diblokir")
     d.stop(P["dasbor"])
 
     bagian("B. Mode benar: textContent, CSP dengan nonce, cookie __Host- + HttpOnly")
@@ -182,8 +189,8 @@ def rekam_xss():
     catat_json("node driver.js xss ... (Playwright, Chromium nyata)", hasil)
     harap(len(hasil["dialogs"]), 0, "CSP sendiri menahan onerror walau HTML sempat masuk DOM lewat innerHTML")
     harap(hasil["elemImgDiDaftar"], 1, "elemen <img> tetap terbentuk (escape memang rentan di skenario ini)")
-    catat("# Kesimpulan: escape (B) dan CSP (C) masing-masing cukup sendirian menahan onerror; hanya saat")
-    catat("# keduanya mati sekaligus (A) onerror berjalan. Defense-in-depth, bukan satu lapis saja (ADR 30).")
+    harap(hasil["cspPelanggaran"], [{"diblokir": "inline", "efektif": "script-src-attr"}],
+          "browser sendiri melaporkan pemblokiran: event handler inline (script-src-attr), bukan sebab lain")
     d.stop(P["dasbor"])
 
     bagian("D. XSS mengalahkan CSRF: escape dan CSP rentan, tapi cookie dan token CSRF tetap benar (R3-19)")
@@ -201,20 +208,46 @@ def rekam_xss():
     catat("# CSRF bukan dengan memalsukan permintaan lintas situs, tapi dengan tidak perlu melakukannya sama sekali.")
     d.stop(P["dasbor"])
 
+    bagian("E. escape benar (textContent) tapi CSP mati: lapis pertama menahan sendirian")
+    mulai_dasbor(csp="mati")
+    hasil = node("xss", url_login, ANI, PASSWORD, url_dasbor)
+    catat_json("node driver.js xss ... (Playwright, Chromium nyata)", hasil)
+    harap(len(hasil["dialogs"]), 0, "tanpa CSP, textContent sendiri menahan: onerror tidak pernah berjalan")
+    harap(hasil["elemImgDiDaftar"], 0, "tidak ada elemen <img>: HTML tidak pernah terbentuk")
+    harap(PAYLOAD in hasil["teksDaftar"], True, "payload tetap terlihat sebagai teks biasa")
+    harap(hasil["cspPelanggaran"], [], "tidak ada CSP yang bekerja di skenario ini (dimatikan)")
+    catat("# Kesimpulan: escape (E) dan CSP (C) masing-masing cukup sendirian menahan onerror untuk payload ini;")
+    catat("# hanya saat keduanya mati sekaligus (A, D) onerror berjalan. Defense-in-depth, bukan satu lapis saja (ADR 30).")
+    catat("# HttpOnly (B, C, D, E) menyembunyikan cookie dari skrip, tetapi D menunjukkan skrip yang berjalan tetap bisa")
+    catat("# bertindak atas nama Ani: HttpOnly mengurangi akibat XSS, tidak menggantikan escape dan CSP.")
+    d.stop(P["dasbor"])
+
     tulis_lokal("xss.txt", "M25: XSS tersimpan lewat catatan pembayaran, cookie sesi, CSP, dan XSS yang mengalahkan CSRF")
 
 
 # ---------- bagian CSRF ----------
 
+# (label, flag, deskripsi, harus_berhasil, yang diharapkan sampai ke dasbor: (cookie terkirim, status, isi jawaban)).
+# Harga yang tidak berubah belum membuktikan SEBAB penolakan: permintaan yang tidak pernah sampai, atau sampai tanpa
+# cookie (401), atau sampai dengan cookie lalu ditolak gerbang CSRF (403 csrf) semuanya meninggalkan harga yang sama.
+# Karena itu driver menangkap permintaan POST lintas situs itu di sisi browser (status, isi, ada tidaknya header
+# Cookie) dan run.py menuntut jenis penolakannya.
 SKENARIO_CSRF = [
     ("A", dict(token="tidak", samesite="none", cookie="rentan"),
-     "tanpa token CSRF, tanpa pemeriksaan Origin/Sec-Fetch-Site, cookie SameSite=None;Secure", True),
+     "tanpa token CSRF, tanpa pemeriksaan Origin/Sec-Fetch-Site, cookie SameSite=None;Secure", True,
+     (True, 200, '{"ok":true}')),
     ("B", dict(token="tidak"),
-     "masih tanpa token dan tanpa pemeriksaan Origin/Sec-Fetch-Site, cookie SameSite=Lax saja", False),
+     "masih tanpa token dan tanpa pemeriksaan Origin/Sec-Fetch-Site, cookie SameSite=Lax saja", False,
+     (False, 401, '{"error":"belum login"}')),
     ("C", dict(),
-     "token X-CSRF-Token, Origin dan Sec-Fetch-Site diperiksa, cookie SameSite=Lax (R3-19)", False),
+     "token X-CSRF-Token, Origin dan Sec-Fetch-Site diperiksa, cookie SameSite=Lax (R3-19)", False,
+     (False, 401, '{"error":"belum login"}')),
     ("D", dict(samesite="none"),
-     "token X-CSRF-Token, Origin dan Sec-Fetch-Site diperiksa, TAPI cookie SameSite=None (token sendirian menahan)", False),
+     "token X-CSRF-Token, Origin dan Sec-Fetch-Site diperiksa, TAPI cookie SameSite=None (token sendirian menahan)", False,
+     (True, 403, '{"error":"csrf"}')),
+    ("E", dict(token="tidak", samesite="default"),
+     "tanpa token, atribut SameSite TIDAK ditulis (bawaan browser): serangan sesaat sesudah login lewat (R3-81)", True,
+     (True, 200, '{"ok":true}')),
 ]
 
 
@@ -224,14 +257,23 @@ def rekam_csrf():
     url_login = f"http://localhost:{P['dasbor']}/login"
     url_dasbor = f"http://localhost:{P['dasbor']}/dasbor"
     url_serangan = f"http://penyerang.localhost:{P['serangan']}/"
-    for label, flags, deskripsi, harus_berhasil in SKENARIO_CSRF:
+    url_serangan_rekaman = f"http://penyerang.localhost:{DASAR['serangan']}/"   # rekaman memakai port dasar, sama di semua lajur
+    for label, flags, deskripsi, harus_berhasil, (cookie, status, isi) in SKENARIO_CSRF:
         bagian(f"{label}. {deskripsi}")
         mulai_dasbor(**flags)
         harga_sebelum, versi_sebelum = harga_produk1()
         catat(f"# harga produk 1 (Nasi goreng, Warung Ani) sebelum: Rp{harga_sebelum} (versi {versi_sebelum})")
-        node("csrf", url_login, ANI, PASSWORD, url_dasbor, url_serangan)
-        catat(f"# {url_serangan} (penyerang.localhost, situs lain) memuat form yang langsung submit POST")
+        hasil = node("csrf", url_login, ANI, PASSWORD, url_dasbor, url_serangan)
+        catat(f"# {url_serangan_rekaman} (penyerang.localhost, situs lain) memuat form yang langsung submit POST")
         catat("# ke /api/menu/harga produk_id=1 harga=1, dalam browser yang sama dengan sesi Ani")
+        catat_json("permintaan POST lintas situs yang dicatat browser (node driver.js csrf ...)", hasil["permintaan"])
+        harap(len(hasil["permintaan"]), 1, "tepat satu POST lintas situs sampai ke /api/menu/harga")
+        req = hasil["permintaan"][0]
+        harap(req["secFetchSite"], "cross-site", "browser menandai permintaan ini lintas situs (Sec-Fetch-Site)")
+        harap(req["originAsing"], True, "header Origin permintaan itu asal halaman Dimas, bukan dasbor")
+        harap(req["cookieTerkirim"], cookie, "cookie sesi " + ("terkirim" if cookie else "TIDAK terkirim") + " bersama permintaan lintas situs itu")
+        harap(req["status"], status, "status jawaban dasbor")
+        harap(req["isi"], isi, "isi jawaban dasbor menyebut jenis penolakannya")
         harga_sesudah, versi_sesudah = harga_produk1()
         catat(f"# harga produk 1 sesudah: Rp{harga_sesudah} (versi {versi_sesudah})")
         if harus_berhasil:
@@ -243,6 +285,7 @@ def rekam_csrf():
         d.stop(P["dasbor"])
         sql("UPDATE produk SET harga = 25000, versi = versi + 1 WHERE id = 1", tampil=False)
     d.stop(P["serangan"])
+    rekam_token_sesi_lain(url_login)
     catat("# B menunjukkan: SameSite=Lax saja (tanpa token) sudah menahan form POST lintas situs yang sederhana ini")
     catat("# di Chromium versi lab ini, karena cookie itu sendiri tidak pernah terkirim lintas situs: request masuk")
     catat("# sebagai belum login, gerbang token (csrfSah) tidak pernah tercapai. Itu sebabnya mutasi yang menghapus")
@@ -250,7 +293,28 @@ def rekam_csrf():
     catat("# supaya gerbang token BENAR teruji: permintaan sampai ke server berstatus login, dan token/Origin/")
     catat("# Sec-Fetch-Site sendirian yang menahan. OWASP tetap mewajibkan token (R3-19) karena SameSite tidak")
     catat("# menutup semua jalur (endpoint yang juga menerima GET, subdomain yang berbagi cookie, klien lama).")
+    catat("# E menunjukkan sebaliknya: bila atribut SameSite tidak ditulis, POST lintas situs sesaat sesudah login tetap")
+    catat("# membawa cookie dan lewat. Itu cocok dengan masa tenggang dua menit untuk Lax bawaan (MDN Set-Cookie, R3-81);")
+    catat("# lab tidak menunggu dua menit, jadi batas waktu itu sendiri tidak diukur. Yang menahan di B adalah Lax yang")
+    catat("# ditulis eksplisit, bukan Lax yang dibiarkan bawaan browser.")
     tulis_lokal("csrf.txt", "CSRF: tanpa token, SameSite=Lax saja, token saat SameSite tidak menahan, dan keduanya (R3-19)")
+
+
+def rekam_token_sesi_lain(url_login):
+    """Token CSRF terikat ke sesi: token milik sesi Ani tidak berlaku di sesi Sari. Tanpa skenario ini, token yang
+    sama untuk semua sesi (bukan rahasia per sesi) tidak terlihat oleh rekaman mana pun."""
+    bagian("F. token CSRF milik sesi lain (token terikat ke sesi), SameSite=Lax dan gerbang lengkap")
+    mulai_dasbor()
+    harga_sebelum, versi_sebelum = harga_produk1()
+    hasil = node("csrf-sesi-lain", url_login, ANI, PASSWORD, SARI, PASSWORD)
+    catat_json("node driver.js csrf-sesi-lain ... (dua konteks browser: Ani dan Sari)", hasil)
+    harap(hasil["denganTokenSesiLain"], {"isi": '{"error":"csrf"}', "status": 403},
+          "token Ani di sesi Sari ditolak gerbang CSRF, bukan oleh pemeriksaan lain")
+    harap(hasil["denganTokenSendiri"], {"isi": '{"error":"produk bukan milik akun ini"}', "status": 403},
+          "token Sari di sesi Sari lolos gerbang CSRF (kontrol): yang menolak kini kepemilikan produk")
+    harga_sesudah, versi_sesudah = harga_produk1()
+    harap((harga_sesudah, versi_sesudah), (harga_sebelum, versi_sebelum), "harga dan versi produk Ani tidak berubah")
+    d.stop(P["dasbor"])
 
 
 # ---------- bagian WebAuthn (R3-20) ----------

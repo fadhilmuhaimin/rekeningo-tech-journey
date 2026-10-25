@@ -6,6 +6,8 @@
 //	-csp mati          tanpa header Content-Security-Policy (bawaan: nonce per respons, R3-19)
 //	-cookie rentan     cookie sesi bernama "sesi" tanpa HttpOnly dan tanpa awalan __Host- (bawaan: __Host-sesi + HttpOnly)
 //	-samesite none     cookie SameSite=None;Secure, bisa dikirim lintas situs (bawaan: SameSite=Lax)
+//	-samesite default  atribut SameSite tidak ditulis: browser memakai Lax bawaannya, yang untuk POST lintas situs
+//	                   punya masa tenggang dua menit sesudah cookie dipasang (MDN Set-Cookie, R3-81)
 //	-token tidak       endpoint ubah menu tidak memeriksa token CSRF, Origin, atau Sec-Fetch-Site (bawaan: ketiganya diperiksa, R3-19)
 //
 // -samesite dan -token sengaja dipisah (bukan satu nilai "csrf" berjenjang): SameSite=Lax saja sudah menahan
@@ -53,7 +55,7 @@ type server struct {
 	escape   string // "" aman | "rentan"
 	csp      string // "" aktif | "mati"
 	cookie   string // "" aman | "rentan"
-	samesite string // "" Lax | "none" None;Secure
+	samesite string // "" Lax | "none" None;Secure | "default" tanpa atribut SameSite
 	token    string // "" wajib (Origin+Sec-Fetch-Site+token) | "tidak"
 
 	mu   sync.Mutex
@@ -91,8 +93,11 @@ func (s *server) namaCookie() string {
 // ditentukan sumbu -cookie, independen dari -samesite dan -token.
 func (s *server) aturCookie(w http.ResponseWriter, token string, sampai time.Time) {
 	sameSite, secure := http.SameSiteLaxMode, s.cookie != "rentan"
-	if s.samesite == "none" {
+	switch s.samesite {
+	case "none":
 		sameSite, secure = http.SameSiteNoneMode, true
+	case "default":
+		sameSite = 0 // net/http tidak menulis atribut SameSite sama sekali
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name: s.namaCookie(), Value: token, Path: "/", Expires: sampai,
@@ -374,7 +379,7 @@ func main() {
 	escape := flag.String("escape", "", "tampilan keterangan: \"\" (aman, textContent) | rentan (innerHTML, M25)")
 	csp := flag.String("csp", "", "Content-Security-Policy: \"\" (aktif, nonce per respons) | mati")
 	cookie := flag.String("cookie", "", "cookie sesi: \"\" (__Host-sesi, HttpOnly) | rentan (sesi, tanpa HttpOnly)")
-	samesite := flag.String("samesite", "", "atribut SameSite cookie: \"\" (Lax) | none (None;Secure, bisa lintas situs)")
+	samesite := flag.String("samesite", "", "atribut SameSite cookie: \"\" (Lax) | none (None;Secure, bisa lintas situs) | default (tidak ditulis)")
 	token := flag.String("token", "", "token CSRF dan Origin/Sec-Fetch-Site di /api/menu/harga: \"\" (wajib) | tidak")
 	flag.Parse()
 	for _, v := range []string{*escape, *cookie} {
@@ -385,8 +390,8 @@ func main() {
 	if *csp != "" && *csp != "mati" {
 		log.Fatalf("GAGAL: -csp %q tidak dikenal (pilihan: \"\" atau mati)", *csp)
 	}
-	if *samesite != "" && *samesite != "none" {
-		log.Fatalf("GAGAL: -samesite %q tidak dikenal (pilihan: \"\" atau none)", *samesite)
+	if *samesite != "" && *samesite != "none" && *samesite != "default" {
+		log.Fatalf("GAGAL: -samesite %q tidak dikenal (pilihan: \"\", none, atau default)", *samesite)
 	}
 	if *token != "" && *token != "tidak" {
 		log.Fatalf("GAGAL: -token %q tidak dikenal (pilihan: \"\" atau tidak)", *token)

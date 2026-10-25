@@ -6,6 +6,7 @@
 //   node driver.js xss <loginUrl> <email> <password> <dasborUrl>
 //   node driver.js xss-lawan-csrf <loginUrl> <email> <password> <dasborUrl>
 //   node driver.js csrf <loginUrl> <email> <password> <dasborUrl> <serenganUrl>
+//   node driver.js csrf-sesi-lain <loginUrl> <emailA> <passwordA> <emailB> <passwordB>
 //   node driver.js webauthn <pageOrigin host:port> <rpId tanpa port>
 'use strict';
 const { chromium } = require('playwright');
@@ -28,6 +29,13 @@ async function xss(loginUrl, email, password, dasborUrl) {
   });
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
+  // Bukti bahwa CSP-lah yang menahan (bukan sebab lain): browser melaporkan setiap pemblokiran lewat event
+  // securitypolicyviolation. effectiveDirective "script-src-attr" = event handler inline; blockedURI "inline".
+  await page.addInitScript(() => {
+    window.__csp = [];
+    document.addEventListener('securitypolicyviolation', (e) =>
+      window.__csp.push({ efektif: e.effectiveDirective, diblokir: e.blockedURI }));
+  });
   await login(page, loginUrl, email, password);
   // login sudah mengarahkan ke /dasbor?csrf=...; tunggu fetch dan render selesai.
   await page.waitForLoadState('networkidle');
@@ -42,13 +50,14 @@ async function xss(loginUrl, email, password, dasborUrl) {
   // dan teks yang benar-benar terlihat pembaca (keduanya harus memuat payload sebagai teks, hanya beda sebagai tag).
   const elemImgDiDaftar = await page.evaluate(() => document.querySelectorAll('#daftar img').length);
   const teksDaftar = await page.evaluate(() => document.getElementById('daftar').textContent);
+  const cspPelanggaran = await page.evaluate(() => window.__csp || []);
   const cookies = await context.cookies();
   const sesiCookie = cookies.find((c) => c.name === '__Host-sesi' || c.name === 'sesi') || null;
   await browser.close();
   return { dialogs, errors, cookieJSBisaDibaca, cookieJSMemuatNamaSesi,
     cookieHttpOnly: sesiCookie ? sesiCookie.httpOnly : null,
     cookieSecure: sesiCookie ? sesiCookie.secure : null, cookieSameSite: sesiCookie ? sesiCookie.sameSite : null,
-    cookieName: sesiCookie ? sesiCookie.name : null, elemImgDiDaftar, teksDaftar };
+    cookieName: sesiCookie ? sesiCookie.name : null, elemImgDiDaftar, teksDaftar, cspPelanggaran };
 }
 
 // xssLawanCsrf: bukti "XSS mengalahkan token CSRF" (R3-19). Dasbor di sini punya CSRF LENGKAP (-token wajib,
@@ -85,11 +94,51 @@ async function csrf(loginUrl, email, password, dasborUrl, serenganUrl) {
   const page = await context.newPage();
   await login(page, loginUrl, email, password);
   await page.waitForLoadState('networkidle');
+  // Yang dicatat dari sisi browser untuk POST lintas situs ke dasbor: apakah header Cookie ikut terkirim, header
+  // Sec-Fetch-Site dan Origin yang dikirim browser sendiri, serta status dan isi jawaban dasbor. Harga yang
+  // tidak berubah saja tidak membedakan "cookie tidak terkirim (401)" dari "ditolak gerbang CSRF (403)".
+  const asalDasbor = new URL(dasborUrl).origin;
+  const permintaan = [];
+  page.on('response', async (res) => {
+    const req = res.request();
+    if (req.method() !== 'POST' || req.url() !== asalDasbor + '/api/menu/harga') return;
+    const h = await req.allHeaders();
+    let isi = '(tidak terbaca)';
+    try { isi = (await res.text()).trim(); } catch (e) { /* jawaban tanpa isi */ }
+    permintaan.push({ cookieTerkirim: 'cookie' in h, secFetchSite: h['sec-fetch-site'] || null,
+      originAsing: Boolean(h['origin']) && h['origin'] !== asalDasbor, status: res.status(), isi });
+  });
   // Form di halaman serangan mengirim diri sendiri (lintas situs) ke dasborUrl begitu dimuat.
   await page.goto(serenganUrl, { waitUntil: 'networkidle' });
   await page.waitForTimeout(300);
   await browser.close();
-  return { navigasiSelesai: true };
+  return { navigasiSelesai: true, permintaan };
+}
+
+// csrfSesiLain: token CSRF terikat ke SESI, bukan hanya "ada token". Dua konteks browser (dua sesi): token milik
+// sesi A dipakai di sesi B. Kontrolnya token B sendiri di sesi B: lolos gerbang CSRF dan baru ditolak karena
+// produk 1 milik akun A. Nilai token tidak pernah dikembalikan.
+async function csrfSesiLain(loginUrl, emailA, passwordA, emailB, passwordB) {
+  const browser = await chromium.launch();
+  const halaman = async (email, password) => {
+    const page = await (await browser.newContext()).newPage();
+    await login(page, loginUrl, email, password);
+    await page.waitForLoadState('networkidle');
+    return page;
+  };
+  const a = await halaman(emailA, passwordA);
+  const b = await halaman(emailB, passwordB);
+  const tokenA = await a.evaluate(() => window.csrf);
+  const kirim = (page, token) => page.evaluate(async (t) => {
+    const r = await fetch('/api/menu/harga', { method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': t },
+      body: JSON.stringify({ produk_id: 1, harga: 3 }) });
+    return { status: r.status, isi: (await r.text()).trim() };
+  }, token);
+  const denganTokenSesiLain = await kirim(b, tokenA);
+  const denganTokenSendiri = await kirim(b, await b.evaluate(() => window.csrf));
+  await browser.close();
+  return { denganTokenSesiLain, denganTokenSendiri };
 }
 
 // webauthn: percobaan terbatas (brief, R3-20) memakai domain CDP WebAuthn Playwright. Hanya ceremony sisi
@@ -144,6 +193,7 @@ async function main() {
   if (mode === 'xss') hasil = await xss(...arg);
   else if (mode === 'xss-lawan-csrf') hasil = await xssLawanCsrf(...arg);
   else if (mode === 'csrf') hasil = await csrf(...arg);
+  else if (mode === 'csrf-sesi-lain') hasil = await csrfSesiLain(...arg);
   else if (mode === 'webauthn') hasil = await webauthn(...arg);
   else throw new Error('mode tidak dikenal: ' + mode);
   process.stdout.write(JSON.stringify(hasil) + '\n');
