@@ -1,7 +1,4 @@
 """Bagian hsts (keputusan 977): HSTS di dasbor (RFC 6797) dilihat dari server tepi dan dari client curl --hsts."""
-import pathlib
-import tempfile
-
 import umum as U
 from umum import catat, d, harap, tulis
 
@@ -23,7 +20,7 @@ def rekam_hsts():
     catat("# Jawaban TLS, juga jawaban error 401: Strict-Transport-Security dengan max-age 31536000 detik (365 hari) dan includeSubDomains (RFC 6797 bagian 6.1.1 dan 6.1.2).")
 
     d.bagian("B. Client yang menyimpan HSTS (curl --hsts, bukan browser): permintaan http sesudah jawaban TLS pertama dinaikkan ke https")
-    tmp = pathlib.Path(tempfile.mkdtemp(prefix="t3mitm-hsts-"))
+    tmp = U.folder_sementara("t3mitm-hsts-")
     cache = tmp / "hsts.txt"
     plain_ke_tls = f"http://localhost:{U.P['tepi']}/warung"   # http di port TLS: server menolak 400 bila yang sampai teks biasa
     tampil_plain = f"http://localhost:{tls}/warung"

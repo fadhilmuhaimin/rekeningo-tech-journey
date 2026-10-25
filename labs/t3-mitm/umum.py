@@ -136,8 +136,23 @@ def henti_mitm():
     d.stop(P["mitm_polos"])
 
 
+SEMENTARA = []   # folder sementara yang dibuat lab ini (rekaman proxy, log tepi, cache curl); dihapus di akhir run.py
+
+
+def folder_sementara(awalan):
+    f = pathlib.Path(tempfile.mkdtemp(prefix=awalan))
+    SEMENTARA.append(f)
+    return f
+
+
+def bersih_sementara():
+    for f in SEMENTARA:
+        shutil.rmtree(f, ignore_errors=True)
+    SEMENTARA.clear()
+
+
 def baru_berkas(nama):
-    f = pathlib.Path(tempfile.mkdtemp(prefix="t3mitm-rek-")) / nama
+    f = folder_sementara("t3mitm-rek-") / nama
     f.touch()
     return f
 

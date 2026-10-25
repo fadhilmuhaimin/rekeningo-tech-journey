@@ -38,6 +38,7 @@ def main():
         for port in list(U.d.server):   # error Python di tengah rekaman: proses tidak tertinggal memegang port
             U.d.stop(port, sinyal="kill")
         U.PKI.bersih()
+        U.bersih_sementara()
 
 
 if __name__ == "__main__":

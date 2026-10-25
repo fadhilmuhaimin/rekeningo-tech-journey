@@ -38,6 +38,7 @@ MUTASI = [
      '\t\t\t\tw.Header().Set("Strict-Transport-Security", "max-age=1")\n\t\t\t\thost, _, e := net.SplitHostPort(r.Host)', "hsts", "bunuh"),
     ("cookie-tidak-disamarkan", "go/cmd/tepi/main.go", '\tcase "authorization", "cookie", "proxy-authorization":', '\tcase "authorization", "proxy-authorization":', "token", "bunuh"),
     ("cookie-tidak-disamarkan-tes-go", "go/cmd/tepi/main.go", '\tcase "authorization", "cookie", "proxy-authorization":', '\tcase "authorization", "proxy-authorization":', "go-test", "bunuh"),
+    ("daftar-akar-sistem-ikut", "dart/bin/client.dart", "SecurityContext(withTrustedRoots: false)", "SecurityContext(withTrustedRoots: true)", "m26", "lolos"),
     ("proxy-tidak-mencatat-handshake", "go/cmd/mitm/main.go", '\t\trk.tulis(map[string]any{"jenis": "handshake", "nama": h.ServerName})\n', "", "pin", "bunuh"),
 ]
 
