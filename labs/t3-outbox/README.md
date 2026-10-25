@@ -33,12 +33,12 @@ Angka yang bergantung pada kecepatan mesin tidak ditulis sebagai angka tunggal. 
 
 | Angka | Asal | Label |
 |---|---|---|
-| Kapasitas worker c = 4, t = 0,3 detik: antara 12 dan 13,3 per detik | Diukur dari 80 baris (`queue.txt` A); batas atas c ÷ t = 13,3 | Rekaman lab |
-| 10.000 promo ÷ 13,3 = 750 detik | Dihitung dari c ÷ t; tidak dijalankan 12,5 menit | Asumsi |
-| Dalam 30 detik terkirim 3,4% sampai 4,2% dari 10.000 (naskah: 400 = 4%) | Satu worker tanpa kelas, 30 detik sungguhan (`queue.txt` C) | Rekaman lab |
+| Kapasitas worker c = 4, t = 0,3 detik: antara 12 dan 13,33 per detik | Diukur dari 80 baris (`queue.txt` A); batas atas c ÷ t = 13,33 | Rekaman lab |
+| 10.000 promo ÷ 13,33 = 750 detik; 95% dalam 30 detik butuh 9.500 ÷ 30 = ±317 per detik | Dihitung dari c ÷ t; tidak dijalankan 12,5 menit | Asumsi |
+| Dalam 30 detik terkirim 3,4% sampai 4,2% dari 10.000 (naskah: 400 = 4%, dari 13,33 × 30) | Satu worker tanpa kelas, 30 detik sungguhan (`queue.txt` C) | Rekaman lab |
 | Notifikasi uang di belakang 10.000 promo menunggu lebih dari 30 detik tanpa kelas; dengan kelas dikirim pertama | `queue.txt` C dan D | Rekaman lab |
 | Notifikasi uang yang tiba di tengah banjir promo: terkirim dalam kurang dari 1,5 detik | `queue.txt` E | Rekaman lab |
-| Laju promo antara 4 dan 5,6 per detik; 10.000 ÷ 5 = 2.000 detik; sisa kapasitas 8,3 per detik | Terukur 8 detik (`queue.txt` F); sisanya dihitung | Rekaman lab dan Asumsi |
+| Laju promo antara 4 dan 5,6 per detik; 10.000 ÷ 5 = 2.000 detik; sisa kapasitas 8,33 per detik | Terukur 8 detik (`queue.txt` F); sisanya dihitung | Rekaman lab dan Asumsi |
 | Batas 5 percobaan dihitung saat klaim: lima pengiriman, klaim ke-6 masuk dead-letter tanpa kirim | `retry.txt` C | Rekaman lab |
 | Selang dua pengiriman sesudah worker mati: sedikit di atas klaim 5 detik (batas 4,9 sampai 7,0 detik) | `ganda.txt` A; naskah menulis "enam detik" | Rekaman lab; "enam detik" Ilustrasi |
 | Penjadwalan promo 5 per detik ditulis lab sebagai `UPDATE`, bukan kode api-t3 | `queue.txt` F; `UmumkanPromo` menulis semua baris sekaligus | Rekaman lab |
@@ -71,5 +71,6 @@ Opsi ADR 23 yang tidak ada di lab ini, supaya halaman tidak menulis angkanya:
 - Kirim sesudah COMMIT di proses API tanpa outbox. Yang direkam hanya sisi outbox (`transaksi.txt` F: API mati sesudah COMMIT, baris tetap ada).
 - Queue di Redis (BullMQ, Streams) dan log-based CDC (Debezium dengan Kafka): dari dokumentasi (R3-02, R3-22), bukan dijalankan.
 - Pembanding di stack lain: Laravel (`after_commit`), Django (`on_commit`), BullMQ, dan future call Serverpod hanya dari dokumentasi (R3-22).
+- Top-up CSV 10.000 akun (kelas 1): yang direkam tiga akun lewat CSV dan banjir 10.000 promo (kelas 2); hitungannya sama karena antreannya sama.
 - Penyaring `notifikasi_id` di app Dart: `ganda.txt` C memakai penyaring lima baris di `run.py`.
 - OpenTelemetry dan alert sungguhan: `t3-pool`.

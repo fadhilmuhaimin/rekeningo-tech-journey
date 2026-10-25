@@ -635,7 +635,7 @@ def rekam_queue():
     harap((h["diklaim"], h["terkirim"]), (80, 80), "80 baris terkirim")
     laju = 80 / dt
     harap(12.0 <= laju <= 13.4, True, f"kapasitas diukur {laju:.2f} per detik, harus antara 12 dan 13,4")
-    catat("kapasitas diukur: antara 12 dan 13,3 per detik (batas atas c ÷ t = 4 ÷ 0,3 = 13,3; selisihnya waktu klaim dan tandai per putaran)")
+    catat("kapasitas diukur: antara 12 dan 13,33 per detik (batas atas c ÷ t = 4 ÷ 0,3 = 13,33; selisihnya waktu klaim dan tandai per putaran)")
 
     bagian("B. Pengumuman promo ke semua 10.000 karyawan (enam HR, enam kota), lalu satu top-up dan satu pembayaran sesudahnya")
     kosongkan_outbox()
@@ -674,7 +674,7 @@ def rekam_queue():
     harap(d.push_diterima()["jumlah"], n, "jumlah terkirim sama dengan permintaan di push")
     harap(340 <= n <= 420, True, f"terkirim dalam 30 detik: {n}, harus antara 3,4% dan 4,2% dari 10.000")
     harap(12.0 <= n / dt <= 13.4, True, f"laju {n / dt:.2f} per detik")
-    catat("terkirim dalam 30 detik: antara 3,4% dan 4,2% dari 10.000 (naskah: 400 = 4%, dari 13,3 × 30)")
+    catat("terkirim dalam 30 detik: antara 3,4% dan 4,2% dari 10.000 (naskah: 400 = 4%, dari 13,33 × 30)")
     harap(sql("SELECT kelas, status, count(*) > 0 FROM outbox WHERE kelas < 2 GROUP BY kelas, status ORDER BY kelas", tampil=False),
           [(0, "menunggu", True), (1, "menunggu", True)], "uang dan top-up masih menunggu")
     sql("SELECT kelas, jenis, status FROM outbox WHERE kelas < 2 GROUP BY kelas, jenis, status ORDER BY kelas")
@@ -682,7 +682,8 @@ def rekam_queue():
     catat("umur notifikasi uang yang menunggu: lebih dari 30 detik (sama dengan lamanya worker berjalan: ia baru dikerjakan sesudah semua promo)")
     sisa = satu("SELECT count(*) FROM outbox WHERE kelas = 2 AND status = 'menunggu'")
     harap(sisa >= 9600, True, "sisa promo")
-    catat("promo yang masih di depannya: lebih dari 9.600; pada laju yang sama sisa antrean butuh 10.000 ÷ 13,3 = 750 detik (12,5 menit), dihitung")
+    catat("promo yang masih di depannya: lebih dari 9.600; seluruh 10.000 promo butuh 10.000 ÷ 13,33 = 750 detik (12,5 menit), dihitung")
+    catat("# Supaya 95% (9.500) terkirim dalam 30 detik dibutuhkan 9.500 ÷ 30 = ±317 per detik, sekitar 24 kali kapasitas ini: dihitung (Asumsi), tidak dijalankan")
 
     bagian("D. Dengan kelas (bawaan): pembayaran uang lebih dulu, lalu top-up, lalu promo, dari antrean yang sama")
     d.push_reset()
@@ -744,9 +745,9 @@ def rekam_queue():
     terkirim = satu("SELECT count(*) FROM outbox WHERE kelas = 2 AND status = 'terkirim'") - sebelum
     laju = terkirim / dt
     harap(4.0 <= laju <= 5.6, True, f"laju promo {laju:.2f} per detik")
-    catat("laju promo terukur dalam 8 detik: antara 4 dan 5,6 per detik (batas 5), tanpa menghabiskan kapasitas 13,3")
+    catat("laju promo terukur dalam 8 detik: antara 4 dan 5,6 per detik (batas 5), tanpa menghabiskan kapasitas 13,33")
     catat("notifikasi uang yang tiba pada detik ke-3: terkirim dalam kurang dari 1,5 detik")
-    catat("# 10.000 promo pada 5 per detik butuh 2.000 detik (33 menit), dihitung; sisa kapasitas 13,3 − 5 = 8,3 per detik, 9,5 kali puncak 0,87 (Asumsi naskah)")
+    catat("# 10.000 promo pada 5 per detik butuh 2.000 detik (33 menit), dihitung; sisa kapasitas 13,33 − 5 = 8,33 per detik, 9,6 kali puncak 0,87 (Asumsi naskah)")
     tulis("queue.txt", "queue promo: kapasitas worker, tanpa kelas lawan dengan kelas, laju promo (M27, ADR 32)")
 
 
