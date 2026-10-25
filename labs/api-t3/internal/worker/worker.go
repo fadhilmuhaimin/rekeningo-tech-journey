@@ -18,7 +18,9 @@ import (
 	"lab/apit3/internal/repo"
 )
 
-// Konfigurasi worker. Angka bawaan adalah asumsi naskah (c = 4 pengirim serentak, klaim 5 detik, 5 percobaan).
+// Konfigurasi worker. Dari naskah: c = 4 pengirim serentak dan 5 percobaan. Asumsi lab, belum di naskah: klaim 5 detik
+// dan backoff dasar 2 detik. Perangkat satu akun dikirimi bergiliran, jadi dua perangkat yang sama-sama menggantung
+// memakan 2 x 3 detik (batas push), lebih lama dari klaim 5 detik: worker lain boleh mengklaim baris itu lagi.
 type Konfigurasi struct {
 	Serentak      int           // pengirim serentak (c); kapasitas = c ÷ t
 	Klaim         time.Duration // lama satu baris dipegang (ADR 24)
