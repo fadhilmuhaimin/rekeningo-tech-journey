@@ -1,0 +1,441 @@
+---
+title: "2.26 Job terjadwal yang idempoten dan rekonsiliasi + ADR 19"
+description: Job pencairan yang mati di tengah harus aman dijalankan lagi, dan filenya dicocokkan dengan ledger sebelum Keuangan menerimanya. ADR 19 memilih batch per periode, status batch, dan rekonsiliasi sebelum file diberi nama akhir.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-job-rekonsiliasi-inti.json";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 15 menit · coba 3 menit · Prasyarat: [[t2-m15]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Job yang bisa mati di tengah harus aman dijalankan lagi dengan perintah yang sama, dan filenya harus dicocokkan dengan ledger sebelum ada yang mengunggahnya.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di [[t2-m15]], server mati sesudah baris Warung 508 ditulis ke file. Job dijalankan lagi dan menulis baris itu sekali lagi. File berisi 13 baris Rp2.465.000, sedangkan ledger berisi 12 jurnal Rp2.450.000 (rekaman lab `rentan.txt`).
+
+Job yang **idempoten** menghasilkan keadaan akhir yang sama, dijalankan sekali atau berkali-kali dengan input yang sama. Job pencairan versi ADR 19 mencapainya lewat **status batch**: satu baris per periode, yang dibaca job sebelum setiap langkah. Dimatikan di titik yang sama, job ini berakhir dengan selisih Rp0 (rekaman `benar.txt` bagian C).
+
+**Rekonsiliasi** mencocokkan dua catatan yang dibuat dari sumber berbeda. Di sini, file untuk bank dicocokkan dengan ledger sebelum file diberi nama akhir. ADR 19 di blok Putuskan memilih kedua mekanisme itu dari empat cara.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Job mati sesudah mencatat enam jurnal pencairan. Kenapa menjalankannya lagi dengan perintah yang sama tidak mencairkan enam warung itu dua kali?
+2. Batch sudah berstatus `dikirim`. Budi lalu membayar Rp25.000 ke Warung Ani, dan job dijalankan lagi untuk periode yang sama. Apakah Rp25.000 itu ikut dicairkan?
+3. Rekonsiliasi menolak file karena Warung 508 muncul dua kali. Apakah job memperbaiki file itu sendiri?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: job batch yang dimatikan di tengah, lalu dijalankan lagi, berakhir dengan ledger dan file yang sama, dan file yang tidak cocok dengan ledger ditolak sebelum diberi nama akhir.">
+
+Job batch dijalankan di lab t2-pencairan dengan data M15: 12 warung, Rp2.450.000, periode 2026-W43. Proses dimatikan atau file dirusak di titik yang berbeda, lalu perintah yang sama dijalankan lagi.
+
+*Kondisi rekaman (Asumsi):* data lab dibuat, bukan data kampus. Restart diperankan dengan SIGKILL pada proses job. Cacat file dan jurnal pembalik adalah data lab yang disuntik, bukan kejadian dari naskah.
+
+<details class="question">
+<summary>Tebak dulu: job batch mati di warung ketujuh sebelum COMMIT, seperti di M15, lalu dijalankan lagi. Berapa baris Warung 508 di file, dan berapa jurnalnya?</summary>
+
+Satu baris dan satu jurnal. Enam warung pertama sudah punya jurnal, jadi job melewatinya dan hanya mencatat enam warung sisanya. File baru dibuat sesudah semua baris punya jurnal. Tab A menunjukkan hasilnya.
+
+</details>
+
+Sekarang ubah satu hal: pilih kejadiannya, lalu baca apa yang dilakukan job.
+
+<TabSet id="kejadian" labels={["A. Mati di warung ketujuh", "B. Mati sesudah file diberi nama", "C. File cacat", "D. Jurnal dibalik"]}>
+<Fragment slot="t0">
+
+Job dimatikan saat jurnal Warung 508 belum di-COMMIT. Status batch masih `dibuat`: enam baris punya jurnal, enam belum, dan belum ada file.
+
+<Snippet file="labs/t2-pencairan/output/benar.txt" lines="34:49" title="Rekaman lab: labs/t2-pencairan/output/benar.txt, bagian B (job mati)" />
+
+Jalan kedua membaca status, melewati enam baris, dan mencatat enam sisanya. Nomor jurnal Warung 508 adalah 21. Nomor 20 tidak muncul di ledger, karena dipakai transaction yang batal. Rekonsiliasi cocok: file 12 baris Rp2.450.000 lawan ledger 12 jurnal.
+
+<Snippet file="labs/t2-pencairan/output/benar.txt" lines="75:94" title="Rekaman lab: labs/t2-pencairan/output/benar.txt, bagian C (job dijalankan lagi)" />
+
+</Fragment>
+<Fragment slot="t1">
+
+Semua jurnal sudah tercatat, file sudah lolos rekonsiliasi dan diberi nama akhir, lalu proses mati sebelum status `dikirim` ditulis. Status masih `dijurnal`, tetapi file sudah ada di folder.
+
+<Snippet file="labs/t2-pencairan/output/benar.txt" lines="228:239" title="Rekaman lab: labs/t2-pencairan/output/benar.txt, bagian E (job mati sesudah file)" />
+
+Job dijalankan lagi. Ia membaca status `dijurnal` dan membuat file dari database. Hash `sha256sum` file baru sama dengan file sebelumnya. File baru menggantikan yang lama lewat `rename`, lalu status menjadi `dikirim`.
+
+<Snippet files={["labs/t2-pencairan/output/benar.txt:259:271", "labs/t2-pencairan/output/benar.txt:296:298"]} title="Rekaman lab: labs/t2-pencairan/output/benar.txt, bagian E (job dijalankan lagi)" />
+
+</Fragment>
+<Fragment slot="t2">
+
+Pembuat file menulis baris Warung 508 dua kali, bentuk yang sama dengan M15. Cacat ini disuntik lab lewat flag yang hanya ada di lab. Rekonsiliasi membaca ulang file sementara dan menolaknya: job keluar dengan kode 3, dan folder kerja kosong.
+
+<Snippet files={["labs/t2-pencairan/output/rekonsiliasi.txt:12:12", "labs/t2-pencairan/output/rekonsiliasi.txt:26:31", "labs/t2-pencairan/output/rekonsiliasi.txt:56:58"]} title="Rekaman lab: labs/t2-pencairan/output/rekonsiliasi.txt, bagian A (cacat disuntik)" />
+
+Pembuat file lalu diperbaiki. Batch masih `dijurnal`, jadi job langsung ke langkah file, rekonsiliasi cocok, dan statusnya `dikirim`.
+
+<Snippet file="labs/t2-pencairan/output/rekonsiliasi.txt" lines="62:68" title="Rekaman lab: labs/t2-pencairan/output/rekonsiliasi.txt, bagian B (pembuat file diperbaiki)" />
+
+</Fragment>
+<Fragment slot="t3">
+
+Job berhenti sesudah semua jurnal. Sebelum file dibuat, admin membalik jurnal pencairan Warung 508 dengan jurnal pembalik. Baris pencairan masih membekukan Rp15.000, tetapi ledger sudah mengembalikannya ke Warung 508. Tanpa rekonsiliasi, file akan mencairkan uang yang di ledger tidak lagi dicairkan.
+
+<Snippet files={["labs/t2-pencairan/output/rekonsiliasi.txt:107:107", "labs/t2-pencairan/output/rekonsiliasi.txt:127:133", "labs/t2-pencairan/output/rekonsiliasi.txt:158:162"]} title="Rekaman lab: labs/t2-pencairan/output/rekonsiliasi.txt, bagian C (jurnal dibalik)" />
+
+</Fragment>
+</TabSet>
+
+Ringkasannya, dari rekaman yang sama:
+
+| Kejadian | Status batch sesudahnya | File di folder | Hasil jalan lagi |
+|---|---|---|---|
+| A. Mati di warung ketujuh, sebelum COMMIT | `dibuat` | belum ada | Enam baris dilewati, enam dicatat; file 12 baris Rp2.450.000; `dikirim` |
+| B. Mati sesudah file diberi nama | `dijurnal` | ada | File dibuat ulang, hash sama; `dikirim` |
+| C. Pembuat file menulis satu baris dua kali | `dijurnal` | tidak dibuat | Ditolak, kode 3; sesudah diperbaiki, `dikirim` |
+| D. Jurnal dibalik sebelum file | `dijurnal` | tidak dibuat | Ditolak, kode 3; menunggu keputusan orang |
+
+Tidak ada kejadian yang membuat file lebih besar dari ledger. Pada kejadian C dan D, job juga tidak mencoba memperbaiki apa pun. Ia berhenti, dan orang yang memutuskan langkah berikutnya.
+
+<details class="abstract">
+<summary>Rekaman lengkap (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/t2-pencairan/output/benar.txt" title="Rekaman lab: labs/t2-pencairan/output/benar.txt" />
+
+<Snippet file="labs/t2-pencairan/output/rekonsiliasi.txt" title="Rekaman lab: labs/t2-pencairan/output/rekonsiliasi.txt" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa job berjalan lebih dari sekali
+
+Jadwal menjawab kapan job dipanggil. Jadwal tidak tahu apakah pekerjaannya sudah selesai. Beberapa cara job terpanggil lagi, dari dokumentasi yang sudah dibuka di [[t2-pencairan]]:
+
+- Timer systemd dengan `Persistent=true` menjalankan jadwal yang terlewat segera setelah timer aktif lagi, dan job itu membaca keadaan saat itu ([systemd.timer(5)](https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html)).
+- Penjadwal Laravel menjalankan tugas walau instance sebelumnya belum selesai, kecuali kamu memasang `withoutOverlapping` ([Laravel 13.x: Task Scheduling](https://laravel.com/docs/13.x/scheduling#preventing-task-overlaps)).
+- Serverpod menjalankan jadwal yang terlewat sekali saat server hidup lagi ([Serverpod: Recurring tasks](https://docs.serverpod.dev/concepts/scheduling/recurring-tasks)).
+- Orang menjalankan perintah itu lagi dengan tangan, seperti di [[t2-m15]]. Naskah tidak menyebut siapa yang melakukannya.
+
+Serverpod juga menulis bahwa jalan yang gagal dicatat dan dilewati, tidak diulang. Jadi satu job bisa berjalan dua kali, dan satu job bisa tidak berjalan sama sekali. Pengiriman yang diulang sampai ada hasil disebut [at-least-once](/istilah/at-least-once/).
+
+Job yang idempoten menutup kemungkinan pertama. Kemungkinan kedua terlihat dari status batch: kalau periode itu tidak punya baris di `batch_pencairan`, job belum pernah berjalan. Pertanyaan di [[t2-pencairan]], "bagaimana job tahu minggu ini sudah dicairkan", dijawab baris itu.
+
+### Cara kerjanya: tiga langkah, empat keadaan
+
+Job versi ADR 19 membagi kerjanya jadi tiga langkah. Setiap langkah membaca status batch dulu, lalu hanya mengerjakan bagiannya.
+
+| Status batch | Yang sudah tertulis | Job yang dijalankan lagi |
+|---|---|---|
+| belum ada baris | tidak ada | Langkah 1: buat batch dan bekukan 12 baris pencairan |
+| `dibuat` | batch dan baris pencairan; sebagian baris punya jurnal | Langkah 2: lewati baris yang punya jurnal, catat sisanya |
+| `dijurnal` | semua baris punya jurnal; file belum ada atau belum bernama akhir | Langkah 3: buat file dari database, rekonsiliasi, beri nama akhir |
+| `dikirim` | file bernama akhir dan status tertulis | tidak mengerjakan apa pun |
+
+**Langkah 1: batch per periode, jumlah dibekukan.** Dua tabel baru dari ADR 19 menyimpan batch dan barisnya. `periode` unik, dan kunci utama `(batch_id, buku_id)` membuat satu warung masuk batch paling banyak satu kali:
+
+<Snippet file="labs/t2-pencairan/schema.sql" region="batch-pencairan" lang="sql" title="labs/t2-pencairan/schema.sql" />
+
+Job memasukkan batch dengan `ON CONFLICT (periode) DO NOTHING`. Menurut dokumentasi PostgreSQL, baris yang dilewati tidak dihitung dan tidak dikembalikan ([PostgreSQL 17: INSERT](https://www.postgresql.org/docs/17/sql-insert.html)). Karena itu `RowsAffected() == 1` berarti jalan ini yang membuat batch. Hanya jalan itu yang menyalin saldo setiap warung ke `baris_pencairan.jumlah`.
+
+<Snippet file="labs/t2-pencairan/cmd/pencairan/main.go" lines="216:246" lang="go" title="Kode lab: labs/t2-pencairan/cmd/pencairan/main.go, langkah 1" />
+
+Jalan pertama menulis "dibuat: 12 baris", jalan kedua "sudah ada, status dibuat" (`benar.txt` baris 35 dan 76).
+
+**Langkah 2: satu transaction per baris.** Job membaca daftar baris, lalu memprosesnya satu per satu. Baris yang sudah punya jurnal dilewati. Untuk baris lain, job membuka transaction dan mengunci baris pencairan itu dengan `jurnal_id IS NULL FOR UPDATE`:
+
+<Snippet file="labs/t2-pencairan/cmd/pencairan/main.go" lines="286:308" lang="go" title="Kode lab: labs/t2-pencairan/cmd/pencairan/main.go, langkah 2 (melewati dan mengunci baris)" />
+
+Lalu job mengunci buku warung, memastikan saldo masih cukup untuk jumlah yang dibekukan, dan menulis jurnal pencairan. Penanda `jurnal_id` di baris pencairan ditulis di transaction yang sama:
+
+<Snippet file="labs/t2-pencairan/cmd/pencairan/main.go" lines="309:331" lang="go" title="Kode lab: labs/t2-pencairan/cmd/pencairan/main.go, langkah 2 (jurnal dan penanda bersama)" />
+
+Panggilan `berhenti` hanya ada di lab. Jurnal dan penanda "baris ini sudah dicatat" tersimpan bersama atau batal bersama, jadi tidak ada baris yang punya jurnal tanpa penanda. Karena itu penanda bisa dipercaya: enam warung pertama dilewati di tab A tanpa memeriksa ledger.
+
+Bila saldo warung sudah turun di bawah jumlah beku, job berhenti dengan galat. Cabang itu ada di kode dan belum direkam.
+
+**Langkah 3: file dari database, dicocokkan, baru diberi nama.** File ditulis ke nama sementara dari baris batch di database, lalu dibaca ulang dan direkonsiliasi. Baru sesudah cocok file di-`rename` ke nama akhir:
+
+<Snippet file="labs/t2-pencairan/cmd/pencairan/main.go" lines="394:415" lang="go" title="Kode lab: labs/t2-pencairan/cmd/pencairan/main.go, langkah 3" />
+
+Menurut man-pages Linux 6.19, `rename` mengganti file tujuan secara atomik: tidak ada saat file tujuan terlihat hilang oleh proses lain ([rename(2)](https://man7.org/linux/man-pages/man2/rename.2.html)). Man-pages yang sama menulis bahwa `fsync()` pada file tidak menjamin entri di folder sampai ke disk ([fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html)). Karena itu job menyinkronkan folder juga. Mati listrik tidak direkam di lab.
+
+Baris batch dikunci dengan `FOR UPDATE` sebelum file dibuat, jadi proses kedua menunggu lalu melihat status `dikirim`. Kunci itu dipegang selama file ditulis. File ada di disk lokal, bukan panggilan jaringan, dan hanya job untuk batch yang sama yang menunggu.
+
+### Periode adalah kunci, jam bukan
+
+Kunci batch harus punya satu bentuk saja. Job menolak periode yang bukan minggu ISO seperti `2026-W43` sebelum menyambung ke database:
+
+<Snippet file="labs/t2-pencairan/cmd/pencairan/main.go" lines="38:40" lang="go" title="Kode lab: labs/t2-pencairan/cmd/pencairan/main.go, bentuk periode" />
+
+Tanpa pemeriksaan itu, `2026-w43` dengan huruf kecil membuat batch kedua untuk Jumat yang sama. Peninjau lab mencobanya di schema uji sebelum perbaikan. Kejadian itu tidak direkam di `output/`.
+
+Kunci periode menjawab pertanyaan lain di [[t2-pencairan]]: pembayaran pukul 15.05 milik Jumat yang mana? Jumlah dibekukan saat batch dibuat.
+
+Di rekaman, Budi membayar Rp25.000 ke Warung Ani sesudah batch `dikirim`. Job dijalankan lagi untuk periode yang sama, tidak mengerjakan apa pun, dan file tidak berubah. Rp25.000 menunggu periode berikutnya.
+
+<Snippet file="labs/t2-pencairan/output/benar.txt" lines="195:209" title="Rekaman lab: labs/t2-pencairan/output/benar.txt, bagian D (Rp25.000 sesudah batch dikirim)" />
+
+Batch dibuat saat job pertama kali berjalan, bukan tepat pukul 15.00. Bila jalan pertama terlambat satu jam, pembayaran di jam itu ikut dibekukan. Ini dibaca dari kode dan tidak direkam.
+
+### Rekonsiliasi: yang dibaca adalah file yang akan diunggah
+
+Rekonsiliasi di job tidak membandingkan daftar di memori. Ia membaca ulang byte file sementara, lalu mencocokkannya dengan jurnal pencairan batch itu di ledger. Tiga hal dibandingkan: banyak baris dan jumlah per warung, total file, dan mutasi buku `kas_pencairan`.
+
+Jurnal pembalik yang membalik jurnal pencairan batch itu ikut dijumlah. Itu sebabnya kejadian D ditolak. Keputusan penolakan ada di satu `if`:
+
+<Snippet file="labs/t2-pencairan/cmd/pencairan/main.go" lines="524:530" lang="go" title="Kode lab: labs/t2-pencairan/cmd/pencairan/main.go, putusan rekonsiliasi" />
+
+Bila beda, job menghapus file sementara, keluar dengan kode 3, dan membiarkan status `dijurnal`. Job tidak memperbaiki sendiri, karena ia tidak tahu mana yang benar: file, ledger, atau keputusan admin. Aturan Pak Hadi juga menutup perbaikan dengan tangan. Koreksi di ledger berupa jurnal pembalik ([[t2-ledger]]), dan keputusannya ada pada orang.
+
+Idenya sama dengan clearing account di Stripe Ledger. Saldo clearing account semestinya nol, dan saldo bukan nol menandai transaksi yang hilang, terlambat, atau salah ([Stripe, 2024](https://stripe.dev/blog/ledger-stripe-system-for-tracking-and-validating-money-movement)). Tulisan itu membahas sistem besar, jadi halaman ini hanya meminjam idenya.
+
+### Yang tidak dijamin job ini
+
+| Batas | Akibatnya | Pagar atau status rekaman |
+|---|---|---|
+| `dikirim` berarti file dibuat, bukan bank menerimanya | Keuangan tetap mengunggah file dengan tangan. Bank di luar sistem | Asumsi: PRD v2 tanpa integrasi bank. Tidak direkam |
+| File bernama akhir dari jalan sebelumnya tertinggal, padahal jalan berikutnya ditolak | File itu masih memuat baris yang di ledger sudah dibalik | Keuangan hanya mengambil file milik batch `dikirim` (aturan 5). Dicoba peninjau lab, tidak direkam |
+| Dua proses job bersamaan | Baris dikunci `FOR UPDATE`, jadi proses lain melewati baris yang sudah dicatat | Dicoba empat proses, 40 kali, oleh peninjau lab. Tidak direkam karena urutannya berbeda tiap jalan |
+| Jurnal pencairan dibuat di luar batch | Rekonsiliasi job tidak melihatnya | Query tutup buku membandingkan file lawan semua jurnal pencairan (`benar.txt` bagian C) |
+| Mati listrik sesudah rename | Nama baru bisa belum sampai ke disk | `Sync` folder (fsync(2)). Tidak direkam |
+
+### Di stack lain
+
+**Skenario:** job bisa terpanggil dua kali, dan batch periode 2026-W43 harus dibuat sekali. Tab Go adalah kode lab. Lima tab lain tidak dijalankan.
+
+Yang sama di semua stack: kunci periode ada di database lewat `UNIQUE (periode)`, bukan di jadwal. Penjadwal hanya mencegah dua salinan berjalan bersamaan, dan itu tidak cukup bila job mati lalu dijalankan lagi.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: Go 1.27.1, pgx v5.11.0, PostgreSQL 17.11, lab t2-pencairan.*
+
+<Snippet file="labs/t2-pencairan/cmd/pencairan/main.go" lines="216:224" lang="go" title="labs/t2-pencairan/cmd/pencairan/main.go" />
+
+**Yang berbeda di stack ini:** Go tidak punya penjadwal bawaan, jadi dua salinan dicegah di database, bukan di jadwal. `RowsAffected() == 1` menandai jalan yang membuat batch.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [node-postgres: Client](https://node-postgres.com/apis/client), `pg` 8.23.1, dan [PostgreSQL 17: INSERT](https://www.postgresql.org/docs/17/sql-insert.html).*
+
+<Snippet lang="js" code={`const { rows } = await client.query(
+  \`INSERT INTO batch_pencairan (periode, status) VALUES ($1, 'dibuat')
+   ON CONFLICT (periode) DO NOTHING RETURNING id\`,
+  [periode]);
+const batchBaru = rows.length === 1; // RETURNING hanya mengembalikan baris yang dimasukkan`} />
+
+**Yang berbeda di stack ini:** tidak ada penjadwal bawaan, jadi jadwal dipegang timer systemd ([[t2-pencairan]]). Bila INSERT ini satu transaction dengan langkah lain, `client` harus dari `pool.connect()`.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Task Scheduling](https://laravel.com/docs/13.x/scheduling), Laravel 13.38.0.*
+
+<Snippet lang="php" code={`Schedule::command('pencairan:jalankan')
+    ->fridays()->at('15:00')->timezone('Asia/Jakarta')
+    ->withoutOverlapping()  // lock di cache, kedaluwarsa 24 jam bawaan
+    ->onOneServer();        // cache: database, memcached, dynamodb, atau redis
+
+// di dalam command:
+$baris = DB::select(
+    "INSERT INTO batch_pencairan (periode, status) VALUES (?, 'dibuat')
+     ON CONFLICT (periode) DO NOTHING RETURNING id", [$periode]);
+$batchBaru = count($baris) === 1;`} />
+
+**Yang berbeda di stack ini:** penjadwalnya sendiri punya dua pencegah salinan ganda, `withoutOverlapping` dan `onOneServer`, keduanya memakai lock di cache. Keduanya mencegah dua salinan berjalan bersamaan, bukan menjalankan ulang sesudah job mati. Dokumentasi menyebut lock yang macet karena server bermasalah dibersihkan dengan `schedule:clear-cache`.
+
+`DB::select` didokumentasikan untuk query SELECT dan selalu mengembalikan array. Memakainya untuk INSERT ... RETURNING tidak tertulis di dokumentasi [perlu verifikasi].
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: Performing raw SQL queries](https://docs.djangoproject.com/en/6.1/topics/db/sql/), Django 6.1.2, dan [PEP 249](https://peps.python.org/pep-0249/).*
+
+<Snippet lang="python" code={`with transaction.atomic():
+    with connection.cursor() as c:
+        c.execute(
+            "INSERT INTO batch_pencairan (periode, status) VALUES (%s, 'dibuat') "
+            "ON CONFLICT (periode) DO NOTHING RETURNING id", [periode])
+        batch_baru = c.fetchone() is not None  # None bila batch sudah ada`} />
+
+**Yang berbeda di stack ini:** Django tidak punya penjadwal berkala bawaan, jadi job ditulis sebagai management command dan dijadwalkan dari luar ([[t2-pencairan]]). Dokumentasi raw SQL menunjukkan `fetchone()` dan tidak menyebut `cursor.rowcount`. Menurut PEP 249, `fetchone()` mengembalikan `None` bila tidak ada data lagi.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: CRUD](https://docs.serverpod.dev/concepts/data-and-the-database/database/crud) dan [Recurring tasks](https://docs.serverpod.dev/concepts/scheduling/recurring-tasks), `serverpod` 4.0.4.*
+
+<Snippet lang="dart" code={`try {
+  await BatchPencairan.db.insertRow(
+      session, BatchPencairan(periode: periode, status: 'dibuat'));
+  // batch baru
+} on DatabaseUniqueViolationException {
+  // batch periode ini sudah ada
+}`} />
+
+**Yang berbeda di stack ini:** jadwal berjalan di dalam server. Jalan yang terlewat dilakukan sekali saat server hidup lagi, dan jalan yang gagal dilewati. Dokumentasi tidak membahas dua instance server atau jalan yang tumpang tindih [perlu verifikasi]. `insert` massal punya opsi `ignoreConflicts: true`, tetapi halaman itu tidak menjelaskan apa yang dikembalikannya.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase Cron](https://supabase.com/docs/guides/cron), [pg_cron](https://github.com/citusdata/pg_cron), dan [PostgreSQL 17: PL/pgSQL](https://www.postgresql.org/docs/17/plpgsql-statements.html).*
+
+<Snippet lang="sql" code={`-- di dalam fungsi pencairan_jumat(p_periode text)
+INSERT INTO batch_pencairan (periode, status) VALUES (p_periode, 'dibuat')
+  ON CONFLICT (periode) DO NOTHING RETURNING id INTO v_id;
+-- v_id NULL dan FOUND false bila batch sudah ada`} />
+
+**Yang berbeda di stack ini:** pg_cron tidak pernah menjalankan dua instance job yang sama sekaligus. Instance kedua masuk queue sampai yang pertama selesai. Jalan yang gagal tercatat di `cron.job_run_details`, dan tabel itu tidak dibersihkan otomatis.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 19: batch per periode, status batch, dan rekonsiliasi sebelum file diberi nama akhir
+
+**Kebutuhan.** Di M15, job Jumat mati di tengah dan dijalankan lagi. Satu warung tertulis dua kali di file dan sekali di ledger, selisihnya Rp15.000 ([[t2-m15]]). Aturan Pak Hadi: setiap rupiah tertelusur ke kejadian ([[t2-prd]]). Bebannya kecil: 12 warung dan satu file per minggu, atau 12 × 52 = 624 jurnal pencairan per tahun (Asumsi, dari naskah).
+
+**Status:** diterima di minggu 6 Tahap 2, sesudah M15. Berlaku untuk job pencairan Jumat. Job terjadwal lain yang menulis ke ledger dan ke tempat di luar database memakai pola yang sama: kunci per periode, status, lalu rekonsiliasi.
+
+| | A. Job tanpa status | B. Satu proses saja | C. Batch, status, rekonsiliasi | D. Queue atau workflow engine |
+|---|---|---|---|---|
+| Cara kerja | Job membaca saldo, lalu menulis jurnal dan baris file di satu transaction per warung. Rekonsiliasi hanya saat tutup buku | Sama seperti A, ditambah lock supaya hanya satu salinan job berjalan: advisory lock PostgreSQL, `withoutOverlapping` di Laravel, atau jalan kedua yang masuk queue pg_cron | Batch per periode (`UNIQUE`), baris pencairan beku, jurnal dan penanda di satu transaction, file dibuat dari database dan direkonsiliasi sebelum diberi nama akhir | Setiap warung jadi satu pekerjaan di queue atau workflow engine yang mengulang pekerjaan gagal |
+| Kelebihan | Paling sedikit kode | Mencegah dua salinan yang berjalan bersamaan | Aman dijalankan ulang di titik mana pun yang direkam. Cacat file ditolak sebelum diunggah | Pengulangan dan queue disediakan alatnya |
+| Kekurangan | Mati di tengah lalu jalan lagi menghasilkan M15. Selisih baru ketahuan saat tutup buku, sesudah file diunggah | Lock tidak mengingat apa yang sudah dikerjakan. M15 terjadi berurutan, bukan bersamaan | Tiga langkah dan dua tabel yang harus dijaga. Job berhenti dan menunggu orang saat rekonsiliasi menolak | Komponen baru untuk 12 pekerjaan per minggu. Queue standar bersifat at-least-once, jadi setiap pekerjaan tetap harus tahan dijalankan dua kali |
+| Biaya operasional | Pemeriksaan tutup buku oleh orang | Lock yang macet harus dibersihkan (Laravel: `schedule:clear-cache`) | Satu query status batch tiap Jumat. Alert otomatis belum ada | Satu komponen yang harus dipasang, dipantau, dan diperbarui |
+| Bukti | `rentan.txt`: file 13 baris lawan ledger 12 jurnal | Tidak dijalankan. Dasar: dokumentasi advisory lock (lock sesi berakhir bersama sesi) | `benar.txt` bagian B–E, `rekonsiliasi.txt` bagian A–C | Tidak dijalankan. Alasannya hitungan beban di atas, bukan rekaman |
+
+Pada kejadian yang sama, A berakhir dengan selisih Rp15.000 dan C berakhir dengan selisih Rp0. B dan D tidak dijalankan, dan alasan menolaknya di bawah berasal dari dokumentasi, bukan rekaman.
+
+**Keputusan: opsi C.** Lima aturan:
+
+1. Satu batch per periode minggu ISO. `periode` unik di database, dan bentuknya diperiksa sebelum job menyambung ke database.
+2. Setiap langkah membaca status dulu. Status maju dari `dibuat` ke `dijurnal` ke `dikirim`, dan tidak mundur. Jumlah per warung dibekukan saat batch dibuat.
+3. Satu transaction per baris: jurnal pencairan dan `jurnal_id` di baris pencairan ditulis bersama. Baris dikunci dengan `jurnal_id IS NULL FOR UPDATE`.
+4. File dibuat dari database ke nama sementara, dibaca ulang, dan direkonsiliasi: per warung, total, dan mutasi `kas_pencairan`. Bila cocok, file diberi nama akhir. Bila beda, job keluar dengan kode 3, menghapus file sementara, membiarkan status, dan tidak memperbaiki sendiri.
+5. Keuangan hanya mengambil file milik batch berstatus `dikirim`. File di folder tanpa status itu tidak diunggah.
+
+**Kenapa C, bukan B.** Kegagalan M15 berurutan: job mati, lalu dijalankan lagi. B hanya mencegah dua salinan berjalan bersamaan.
+
+Menurut dokumentasi PostgreSQL, advisory lock tingkat sesi dilepas saat sesi berakhir ([PostgreSQL 17, 13.3.5](https://www.postgresql.org/docs/17/explicit-locking.html#ADVISORY-LOCKS)), jadi job yang mati tidak meninggalkan catatan apa pun. Job berikutnya tetap tidak tahu enam warung sudah dicairkan.
+
+- **A ditolak** karena `rentan.txt` merekam M15 persis, dan selisihnya baru terlihat sesudah file diunggah.
+- **D ditolak** karena beban 12 pekerjaan per minggu tidak membutuhkan komponen baru. C memakai pola yang dijelaskan Brandur Leach: tahap pekerjaan yang masing-masing atomik, dengan titik pemulihan yang tersimpan di database ([2017](https://brandur.org/idempotency-keys)). Tulisan praktisi itu membahas idempotency key untuk request API, bukan pencairan. Queue dibahas di [[B10.1]] untuk pekerjaan yang butuh.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Keuangan mengunggah file bernama akhir yang tertinggal dari jalan sebelumnya, padahal batchnya belum `dikirim`. Pencegahannya aturan 5. Usul lanjutan: hapus file bernama akhir saat rekonsiliasi menolak. Itu mengubah perilaku lab, jadi belum dilakukan.
+2. Job gagal diam-diam. Kode 1 atau 3 keluar pukul 15.00, dan warung menunggu tanpa ada yang melihat. Pencegahannya: Keuangan menjalankan satu query status batch tiap Jumat sesudah 15.00. Alert otomatis belum ada.
+3. Jurnal pencairan dibuat di luar batch, misalnya admin mencairkan satu warung dengan tangan. Rekonsiliasi job tidak melihatnya. Pencegahannya query tutup buku, yang membandingkan file lawan semua jurnal pencairan ([[t2-tutup-buku]]).
+
+**Kapan keputusan ini salah.** Saat pencairan berubah dari file yang diunggah Keuangan menjadi panggilan API bank per warung.
+
+File bisa dibaca ulang dan dicocokkan sebelum diserahkan. Panggilan API yang mati sesudah warung ketiga tidak bisa dibaca ulang, kecuali bank menyediakan idempotency key. Ujinya: matikan job sesudah panggilan ketiga, lalu cek apakah job tahu panggilan itu diterima.
+
+Waktu satu jalan job juga belum diukur, karena rekaman lab tanpa waktu. Bila 12 warung tumbuh jauh, lock baris batch di langkah 3 dipegang lebih lama.
+
+**Yang akan merevisinya.** PRD yang memasukkan integrasi bank, kini ada di daftar bukan lingkup v2 ([[t2-prd]]). Naskah belum menjadwalkannya. Kandidatnya key per baris dan outbox ([[B10.2]]).
+
+Idempotency untuk request dibahas di [[t2-idempotency]], dan lock baris untuk saldo di [[t2-race-lock]].
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Alert otomatis bila job gagal | Satu job per minggu, dan Keuangan memeriksa status batch. Alert butuh tempat memantau | Belum dijadwalkan di naskah |
+| Menghapus file bernama akhir saat rekonsiliasi menolak | Mengubah perilaku lab dan rekaman `benar.txt` bagian E | Belum dijadwalkan |
+| Queue atau workflow engine | Opsi D ditolak di atas | [[B10.1]] |
+| Integrasi bank dan nomor rekening warung | Skema Tahap 2 belum punya kolom rekening, dan PRD v2 tanpa integrasi bank | Belum dijadwalkan di naskah |
+| Mengganti nama status `dikirim` | Namanya terbaca "sudah di bank", padahal artinya file dibuat | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** AI menulis job pencairan ini. Aman bila server mati di tengah?
+
+```go
+func Cairkan(ctx context.Context, db *sql.DB, dir string) error {
+    f, _ := os.OpenFile(dir+"/pencairan.csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+    for _, w := range warungBersaldo(ctx, db) {
+        tx, _ := db.BeginTx(ctx, nil)
+        catatJurnalPencairan(ctx, tx, w)
+        fmt.Fprintf(f, "%d,%s,%d\n", w.Akun, w.Nama, w.Saldo)
+        tx.Commit()
+    }
+    return nil
+}
+```
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak aman. Ini bentuk versi pertama di `rentan.txt`. Bila proses mati antara menulis baris dan `Commit`, baris sudah di file dan jurnalnya batal. Job yang dijalankan lagi membaca saldo yang masih ada dan menulis baris itu sekali lagi. Perbaikannya: batch per periode, status yang dibaca sebelum tiap langkah, dan file dibuat dari database sesudah semua jurnal tercatat.
+
+</details>
+
+**2.** Job mati sesudah file diberi nama akhir, sebelum status `dikirim`. Apa yang dilakukan Keuangan, dan apa yang terjadi bila job dijalankan lagi?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Keuangan tidak mengunggah file itu, karena batch masih `dijurnal`. Job yang dijalankan lagi membuat file dari database dengan isi yang sama per byte, menggantikan yang lama lewat `rename`, dan baru menulis `dikirim` (`benar.txt` bagian E).
+
+</details>
+
+**3.** Rekonsiliasi menolak dengan kode 3. Haruskah job menghapus baris kembar dari file lalu melanjutkan?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. Job tidak tahu mana yang benar: file, ledger, atau keputusan admin. Di `rekonsiliasi.txt` bagian C, ledger sudah mengembalikan Rp15.000 ke Warung 508 dan file masih memuatnya. Job berhenti dan membiarkan status, supaya orang memutuskan. Koreksi di ledger berupa jurnal pembalik.
+
+</details>
+
+**4.** Batch sudah `dikirim`. Budi membayar Rp25.000 ke Warung Ani. Job dijalankan lagi untuk periode yang sama. Apa yang dilakukan job?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak ada. Job membaca status `dikirim` dan keluar dengan kode 0, tanpa menulis jurnal dan tanpa menyentuh file (hash sama). Rp25.000 menunggu periode berikutnya (`benar.txt` bagian D).
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Job punya kunci per periode yang unik di database, bukan pemeriksaan "file sudah ada" atau pemeriksaan jam.
+- [ ] Status dibaca sebelum setiap langkah, dan status maju hanya sesudah langkahnya di-COMMIT.
+- [ ] Jurnal dan penanda "baris ini sudah dicatat" ditulis di transaction yang sama.
+- [ ] Tidak ada penulisan file atau panggilan luar di antara jurnal dan COMMIT-nya.
+- [ ] File ditulis ke nama sementara, dibaca ulang, direkonsiliasi, baru di-`rename`, lalu file dan foldernya disinkronkan.
+- [ ] Rekonsiliasi yang gagal membuat job keluar dengan kode bukan nol, bukan memperbaiki diam-diam.
+- [ ] Ada tes yang mematikan proses di tiap titik dan menjalankan job lagi.
+
+### Bacaan lanjut
+
+- [PostgreSQL 17: INSERT](https://www.postgresql.org/docs/17/sql-insert.html) (`ON CONFLICT DO NOTHING`)
+- [PostgreSQL 17: Explicit Locking](https://www.postgresql.org/docs/17/explicit-locking.html#ADVISORY-LOCKS) (advisory lock)
+- [Brandur Leach: Implementing Stripe-like Idempotency Keys in Postgres](https://brandur.org/idempotency-keys) (2017)
+- [Stripe: Ledger, system for tracking and validating money movement](https://stripe.dev/blog/ledger-stripe-system-for-tracking-and-validating-money-movement) (2024)
+- [Linux man-pages: rename(2)](https://man7.org/linux/man-pages/man2/rename.2.html) dan [fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html)
+- [Laravel 13.x: Task Scheduling](https://laravel.com/docs/13.x/scheduling)
+
+</Blok>
