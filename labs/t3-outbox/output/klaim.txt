@@ -1,0 +1,62 @@
+# Lab t3-outbox · klaim per baris FOR UPDATE SKIP LOCKED: tanpa baris ganda, tanpa baris terlewat, tanpa urutan (ADR 24)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_outbox · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-outbox run (keputusan 960).
+$ ./api-t3 -lab
+
+# --- A. SQL klaim: tanpa SKIP LOCKED worker kedua antre di belakang worker pertama; dengan SKIP LOCKED ia langsung mendapat baris lain ---
+=> SELECT status, count(*) AS baris FROM outbox GROUP BY status
+ status   | baris
+----------+-------
+ menunggu | 8
+(1 row)
+# Bentuk query sama dengan KlaimOutbox (internal/repo/outbox.go): baris yang layak, urut kelas lalu nomor, LIMIT 4
+=> [sesi 1] BEGIN; UPDATE outbox SET klaim_sampai = now() + interval '5 seconds', percobaan = percobaan + 1 WHERE id IN (1, 2, 3, 4);   # worker 1 mengklaim empat baris, belum COMMIT
+=> [sesi 2] SELECT id FROM outbox WHERE status = 'menunggu' AND (klaim_sampai IS NULL OR klaim_sampai < now()) ORDER BY kelas, id LIMIT 4 FOR UPDATE;   # tanpa SKIP LOCKED
+# sesi 2 menunggu baris 1 sampai 4 yang dipegang sesi 1; belum ada jawaban
+=> [sesi 1] COMMIT
+ sesi 2 baru dijawab sesudah COMMIT sesi 1: nomor 5, 6, 7, 8 (baris 1 sampai 4 tidak lagi layak, jadi dilewati)
+# Tanpa SKIP LOCKED hasilnya tetap benar, tanpa baris ganda; harganya sesi 2 menunggu selama sesi 1 memegang baris itu.
+=> UPDATE outbox SET klaim_sampai = NULL, percobaan = 0   # lab: klaim dilepas, antrean seperti semula
+=> [sesi 1] BEGIN; UPDATE ... WHERE id IN (1, 2, 3, 4);   # klaim lagi, belum COMMIT
+=> [sesi 2] SELECT id FROM outbox WHERE status = 'menunggu' AND (klaim_sampai IS NULL OR klaim_sampai < now()) ORDER BY kelas, id LIMIT 4 FOR UPDATE SKIP LOCKED;
+ sesi 2 langsung mendapat nomor 5, 6, 7, 8, tanpa menunggu
+=> [sesi 3] SELECT id FROM outbox WHERE status = 'menunggu' AND (klaim_sampai IS NULL OR klaim_sampai < now()) ORDER BY kelas, id LIMIT 4 FOR UPDATE SKIP LOCKED;
+ sesi 3 mendapat 0 baris: semua baris yang layak sedang dipegang, dan ia tidak menunggu
+# Dua sesi tidak pernah memegang baris yang sama, dan tidak ada baris yang layak tetapi tidak dipegang siapa pun.
+# SKIP LOCKED tidak membuat klaim lebih benar; ia membuat worker tidak antre di belakang worker lain (R3-03).
+# Yang dipegang worker adalah baris outbox, bukan baris buku: pembayaran tidak ikut menunggu.
+
+# --- B. Tiga worker serentak atas 60 baris: tiap baris dikirim sekali, tidak ada yang terlewat ---
+=> TRUNCATE outbox RESTART IDENTITY   # lab: antrean kosong lagi, nomor mulai dari 1
+# layanan push tiruan menjawab sesudah 200 ms; tiga proses worker dengan -serentak 4, berjalan bersamaan sampai antrean habis
+$ ./api-t3 -peran worker -sekali -serentak 4   # tiga proses bersamaan
+jumlah diklaim ketiga worker: 60; jumlah terkirim: 60; tiap worker mengklaim paling sedikit satu baris (pembagiannya tidak direkam: bergantung waktu)
+=> SELECT status, percobaan, count(*) AS baris FROM outbox GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | baris
+----------+-----------+-------
+ terkirim | 1         | 60
+(1 row)
+push tiruan menerima: 60 permintaan, 60 notifikasi_id berbeda, 0 ganda
+
+# --- C. Urutan antar pesan tidak dijaga: baris yang dipegang worker lain dilewati, dikirim paling akhir ---
+=> TRUNCATE outbox RESTART IDENTITY   # lab: antrean kosong lagi, nomor mulai dari 1
+# Worker A mengklaim baris 1 lalu macet (klaim 1 detik, tidak mengirim apa pun). Ditulis sebagai UPDATE yang sama dengan klaim.
+=> UPDATE outbox SET klaim_sampai = now() + interval '1 second', percobaan = percobaan + 1 WHERE id = 1
+UPDATE 1
+$ ./api-t3 -peran worker -sekali -serentak 1 -klaim 1s
+worker: diklaim 4, terkirim 4, dilewati 0, ditunda 0, mati 0
+urutan di layanan push (nomor outbox): 2 -> 3 -> 4 -> 5
+# klaim A habis: baris 1 boleh dipegang worker lain
+$ ./api-t3 -peran worker -sekali -serentak 1 -klaim 1s
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+urutan di layanan push (nomor outbox): 2 -> 3 -> 4 -> 5 -> 1
+=> SELECT id, status, percobaan FROM outbox ORDER BY id
+ id | status   | percobaan
+----+----------+-----------
+ 1  | terkirim | 2
+ 2  | terkirim | 1
+ 3  | terkirim | 1
+ 4  | terkirim | 1
+ 5  | terkirim | 1
+(5 rows)
+# Pesan tertua (nomor 1) tiba paling akhir. SKIP LOCKED menjaga agar tidak ada baris ganda atau terlewat, bukan urutan (R3-03, R3-04).

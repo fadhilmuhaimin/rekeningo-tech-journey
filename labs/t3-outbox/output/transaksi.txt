@@ -1,0 +1,96 @@
+# Lab t3-outbox · jurnal dan baris outbox dalam satu transaction (ADR 23)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_outbox · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-outbox run (keputusan 960).
+# server: ./api-t3 -lab (pool 10, push timeout 3s, idle-tx 5s); layanan push tiruan: ./pushpalsu
+
+# --- A. Pembayaran lewat API: jurnal, dua posting, dan satu baris outbox lahir di transaction yang sama ---
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "nominal": 25000, "catatan": "nasi goreng dua porsi"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10001
+
+{"id":10001,"saldo":225000}
+=> SELECT p.jurnal_id, j.jenis, b.jenis AS buku, p.jumlah FROM posting p JOIN jurnal j ON j.id = p.jurnal_id JOIN buku b ON b.id = p.buku_id WHERE p.jurnal_id = 10001 ORDER BY p.id
+ jurnal_id | jenis | buku     | jumlah
+-----------+-------+----------+--------
+ 10001     | bayar | karyawan | -25000
+ 10001     | bayar | warung   | 25000
+(2 rows)
+=> SELECT id, jurnal_id, akun_id, kelas, jenis, status, percobaan, payload->>'judul' AS judul FROM outbox
+ id | jurnal_id | akun_id | kelas | jenis | status   | percobaan | judul
+----+-----------+---------+-------+-------+----------+-----------+--------------------
+ 1  | 10001     | 418     | 0     | bayar | menunggu | 0         | Rp25.000 dari Budi
+(1 row)
+push tiruan menerima: 0 (pembayaran selesai, pemberitahuan belum dikirim: pengirimannya urusan worker)
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+push tiruan menerima: 1
+
+# --- B. Sebelum COMMIT worker tidak melihat baris outbox; sesudah COMMIT terlihat dan terkirim ---
+# Sesi tangan (pemilik schema): jurnal 90001 seimbang (-1000 dan +1000) dan satu baris outbox, belum COMMIT
+=> BEGIN
+=> INSERT INTO jurnal (id, jenis, keterangan, dibuat_oleh) VALUES (90001, 'bayar', 'sesi tangan', 419)
+INSERT 0 1
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) SELECT 90001, id, -1000 FROM buku WHERE akun_id = 419
+INSERT 0 1
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah) SELECT 90001, id, 1000 FROM buku WHERE akun_id = 418
+INSERT 0 1
+=> INSERT INTO outbox (jurnal_id, akun_id, kelas, jenis, payload) VALUES (90001, 418, 0, 'bayar', '{"judul": "sesi tangan"}')
+INSERT 0 1
+=> SELECT count(*) FROM outbox WHERE jurnal_id = 90001   # sesi tangan sendiri: 1; sesi lain (worker termasuk): 0
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 0, terkirim 0, dilewati 0, ditunda 0, mati 0
+# Worker berjalan sementara transaction terbuka: diklaim 0. Pemberitahuan tidak bisa mendahului uangnya.
+=> COMMIT
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+
+# --- C. ROLLBACK membuang jurnal dan baris outbox bersama-sama ---
+=> BEGIN; jurnal 90002 seimbang, posting, dan satu baris outbox seperti di B
+=> ROLLBACK
+=> SELECT (SELECT count(*) FROM jurnal WHERE id = 90002) AS jurnal_90002, (SELECT count(*) FROM outbox WHERE jurnal_id = 90002) AS outbox_90002
+ jurnal_90002 | outbox_90002
+--------------+--------------
+ 0            | 0
+(1 row)
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 0, terkirim 0, dilewati 0, ditunda 0, mati 0
+push tiruan menerima: tetap 2 pesan (A dan B); yang dibatalkan tidak pernah diberitahukan
+
+# --- D. Pembayaran ditolak (saldo kurang) dan COMMIT ditolak database: tidak ada jurnal, tidak ada baris outbox ---
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Dimas>' -d '{"ke": 418, "nominal": 200000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/saldo-kurang","title":"Saldo tidak cukup","status":422}
+# sebelum dan sesudah 422 sama: tabel jurnal 10003 baris, tabel outbox 3 baris
+# Sesi tangan: jurnal 90003 tidak seimbang (-1000 dan +900) dan satu baris outbox
+=> COMMIT
+ERROR:  jurnal 90003 tidak seimbang: 2 posting, jumlah -100
+   -- SQLSTATE 23514 · constraint jurnal_seimbang
+=> SELECT (SELECT count(*) FROM jurnal WHERE id = 90003) AS jurnal_90003, (SELECT count(*) FROM outbox WHERE jurnal_id = 90003) AS outbox_90003
+ jurnal_90003 | outbox_90003
+--------------+--------------
+ 0            | 0
+(1 row)
+
+# --- E. Satu pemberitahuan per jurnal per penerima: database menolak baris kedua ---
+=> INSERT INTO outbox (jurnal_id, akun_id, kelas, jenis, payload) VALUES (10001, 418, 0, 'bayar', '{}')   # jurnal 10001 sudah punya satu untuk akun 418
+ERROR:  duplicate key value violates unique constraint "outbox_satu_per_jurnal"
+   -- SQLSTATE 23505 · index outbox_satu_per_jurnal
+
+# --- F. Proses API mati sesudah COMMIT: pemberitahuannya tetap ada di database dan dikirim worker ---
+$ kill -KILL <pid api-t3>   # proses API mati sekarang, sesudah 201
+=> SELECT jurnal_id, jenis, status, percobaan FROM outbox ORDER BY id DESC LIMIT 1
+ jurnal_id | jenis | status   | percobaan
+-----------+-------+----------+-----------
+ 10003     | bayar | menunggu | 0
+(1 row)
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+=> SELECT jurnal_id, jenis, status, percobaan FROM outbox ORDER BY id DESC LIMIT 1
+ jurnal_id | jenis | status   | percobaan
+-----------+-------+----------+-----------
+ 10003     | bayar | terkirim | 1
+(1 row)
+# Tanpa outbox (kirim sesudah COMMIT di proses API, opsi ADR 23): proses yang mati di antara COMMIT dan kirim tidak meninggalkan jejak. Opsi itu Tidak dijalankan di lab ini.

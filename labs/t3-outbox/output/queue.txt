@@ -1,0 +1,66 @@
+# Lab t3-outbox · queue promo: kapasitas worker, tanpa kelas lawan dengan kelas, laju promo (M27, ADR 32)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_outbox · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-outbox run (keputusan 960).
+$ ./api-t3 -lab
+
+# --- A. Kapasitas worker: c pengirim dikali 1 ÷ t, diukur dengan layanan push yang menjawab sesudah 300 ms ---
+# c = 4 pengirim serentak (bawaan), t = 0,3 detik (layanan push tiruan), 80 baris uang di antrean
+$ ./api-t3 -peran worker -sekali -serentak 4
+worker: diklaim 80, terkirim 80, dilewati 0, ditunda 0, mati 0
+kapasitas diukur: antara 12 dan 13,3 per detik (batas atas c ÷ t = 4 ÷ 0,3 = 13,3; selisihnya waktu klaim dan tandai per putaran)
+
+# --- B. Pengumuman promo ke semua 10.000 karyawan (enam HR, enam kota), lalu satu top-up dan satu pembayaran sesudahnya ---
+=> TRUNCATE outbox RESTART IDENTITY   # lab: antrean kosong lagi, nomor mulai dari 1
+$ curl -X POST '/promo' -d '{"judul": "Promo makan siang", "potongan_persen": 10, ..., "umumkan": true}'   # satu kali per HR, enam kota
+jumlah pemberitahuan promo yang ditulis: 10000
+=> SELECT k.nama AS kota, count(*) AS promo FROM outbox o JOIN akun a ON a.id = o.akun_id JOIN kota k ON k.id = a.kota_id WHERE o.kelas = 2 GROUP BY k.id, k.nama ORDER BY k.id
+ kota     | promo
+----------+-------
+ Jakarta  | 1000
+ Bandung  | 1800
+ Surabaya | 1800
+ Medan    | 1800
+ Semarang | 1800
+ Makassar | 1800
+(6 rows)
+=> SELECT kelas, jenis, status, count(*) AS baris FROM outbox GROUP BY kelas, jenis, status ORDER BY kelas
+ kelas | jenis | status   | baris
+-------+-------+----------+-------
+ 0     | bayar | menunggu | 1
+ 1     | topup | menunggu | 3
+ 2     | promo | menunggu | 10000
+(3 rows)
+# Nomor outbox: 10.000 promo lebih dulu (1 sampai 10000), tiga top-up (10001 sampai 10003), satu pembayaran uang (10004)
+
+# --- C. M27 tanpa kelas (mode rentan urut-waktu): satu worker selama 30 detik, notifikasi uang menunggu di belakang semua promo ---
+$ ./api-t3 -peran worker -rentan urut-waktu   # berputar terus; dihentikan sesudah 30 detik
+terkirim dalam 30 detik: antara 3,4% dan 4,2% dari 10.000 (naskah: 400 = 4%, dari 13,3 × 30)
+=> SELECT kelas, jenis, status FROM outbox WHERE kelas < 2 GROUP BY kelas, jenis, status ORDER BY kelas
+ kelas | jenis | status
+-------+-------+----------
+ 0     | bayar | menunggu
+ 1     | topup | menunggu
+(2 rows)
+umur notifikasi uang yang menunggu: lebih dari 30 detik (sama dengan lamanya worker berjalan: ia baru dikerjakan sesudah semua promo)
+promo yang masih di depannya: lebih dari 9.600; pada laju yang sama sisa antrean butuh 10.000 ÷ 13,3 = 750 detik (12,5 menit), dihitung
+
+# --- D. Dengan kelas (bawaan): pembayaran uang lebih dulu, lalu top-up, lalu promo, dari antrean yang sama ---
+$ ./api-t3 -peran worker -sekali -serentak 1 -satu-putaran   # lima kali, satu pesan tiap panggilan
+urutan di layanan push: tiruan-418 -> tiruan-10001 -> tiruan-10002 -> tiruan-10003 -> (promo, kelas 2)
+# Pembayaran uang (kelas 0, nomor 10004) dikirim pertama walau 10.000 promo punya nomor lebih kecil
+
+# --- E. Promo membanjiri antrean: notifikasi uang yang tiba di tengah banjir menunggu paling lama satu putaran ---
+# Worker dengan kelas berjalan terus; 1,5 detik kemudian Budi membayar warung Ani
+notifikasi uang tiba di tengah banjir promo: terkirim dalam kurang dari 1,5 detik (menunggu putaran yang sedang jalan, 0,3 detik, ditambah satu putaran sendiri)
+=> SELECT max(umur) FROM outbox WHERE status = 'menunggu'   # semua kelas
+umur tertua semua kelas: lebih dari 30 detik (promo menumpuk): alert umur tertua dari semua kelas akan berbunyi
+=> SELECT max(umur) FROM outbox WHERE status = 'menunggu' AND kelas = 0   # hanya uang
+umur tertua kelas uang: 0 (tidak ada yang menunggu)
+# Alert umur tertua yang dihitung dari semua kelas berbunyi walau uang tepat waktu: alert uang dihitung per kelas (GET /lab/outbox api-t3 melaporkan semua kelas)
+
+# --- F. Laju promo paling banyak 5 per detik (ADR 32): promo dijadwalkan lewat coba_lagi, 5 baris per detik ---
+# Lab menjadwalkan sisa promo dengan UPDATE (api-t3 UmumkanPromo menulis semua baris sekaligus; penjadwalan ini ditulis lab)
+=> UPDATE outbox SET coba_lagi = now() + (n / 5.0) * interval '1 second' ...   # baris ke-n yang masih menunggu, n mulai 0
+laju promo terukur dalam 8 detik: antara 4 dan 5,6 per detik (batas 5), tanpa menghabiskan kapasitas 13,3
+notifikasi uang yang tiba pada detik ke-3: terkirim dalam kurang dari 1,5 detik
+# 10.000 promo pada 5 per detik butuh 2.000 detik (33 menit), dihitung; sisa kapasitas 13,3 − 5 = 8,3 per detik, 9,5 kali puncak 0,87 (Asumsi naskah)

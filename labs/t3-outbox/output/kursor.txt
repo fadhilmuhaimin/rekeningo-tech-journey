@@ -1,0 +1,57 @@
+# Lab t3-outbox · kursor (dibuat, id) melewatkan baris yang COMMIT belakangan (M19), klaim tidak
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_outbox · server Go di 127.0.0.1:18180
+# Rekaman dari database bersih: make -C labs/t3-outbox run (keputusan 960).
+$ ./api-t3 -lab   # versi benar untuk jalur uang
+$ ./api-t3 -peran worker -rentan kursor -selang 20ms &   # poller versi pertama (ADR 16 ditiru), berputar terus
+
+# --- A. Dua transfer ke Citra antre di baris buku Citra: yang tiba lebih dulu selesai lebih dulu, kursor aman ---
+=> BEGIN; SELECT id FROM buku WHERE akun_id = 504 FOR UPDATE;   # sesi tangan memegang baris buku Citra (akun 504)
+=> SELECT count(*) AS transaction_menunggu_lock FROM pg_stat_activity WHERE application_name = 'api-t3' AND wait_event_type = 'Lock'
+ transaction_menunggu_lock
+---------------------------
+ 2
+(1 row)
+# Dua transaction menunggu baris yang sama. Budi tiba lebih dulu (di antrean lock lebih depan), Dimas sesudahnya.
+=> COMMIT   # sesi tangan melepas baris buku Citra
+=> SELECT o.id AS outbox_id, o.jurnal_id, j.dibuat_oleh AS pengirim, row_number() OVER (ORDER BY o.dibuat, o.id) AS urutan_dibuat, o.status FROM outbox o JOIN jurnal j ON j.id = o.jurnal_id ORDER BY o.id
+ outbox_id | jurnal_id | pengirim | urutan_dibuat | status
+-----------+-----------+----------+---------------+----------
+ 1         | 10001     | 419      | 1             | terkirim
+ 2         | 10002     | 417      | 2             | terkirim
+(2 rows)
+# Nomor outbox dan urutan `dibuat` sama (1, 2): kursor (dibuat, id) tidak melewatkan apa pun. Dua pesan terkirim.
+
+# --- B. Pengirim yang mulai lebih dulu terhambat sebelum sampai ke Citra: ia selesai belakangan dan tertinggal di belakang kursor ---
+=> TRUNCATE outbox RESTART IDENTITY   # lab: antrean kosong lagi, nomor mulai dari 1
+# 1. Permintaan lain dari Budi masih berjalan: sesi tangan memegang baris buku Budi (akun 419)
+=> BEGIN; SELECT id FROM buku WHERE akun_id = 419 FOR UPDATE;
+# 2. Budi mengirim Rp25.000 ke Citra: mulai lebih dulu, lalu menunggu baris bukunya sendiri
+# 3. Dimas mengirim Rp25.000 ke Citra: mulai sesudah Budi, tidak ada yang menghalangi, COMMIT lebih dulu
+# 4. Poller sudah mengirim baris Dimas dan kursornya maju ke (dibuat Dimas, nomor Dimas). Sekarang permintaan lain Budi selesai.
+=> COMMIT   # sesi tangan melepas baris buku Budi
+=> SELECT o.id AS outbox_id, j.dibuat_oleh AS pengirim, o.status, row_number() OVER (ORDER BY o.dibuat, o.id) AS urutan_dibuat FROM outbox o JOIN jurnal j ON j.id = o.jurnal_id ORDER BY o.id
+ outbox_id | pengirim | status   | urutan_dibuat
+-----------+----------+----------+---------------
+ 1         | 417      | terkirim | 2
+ 2         | 419      | menunggu | 1
+(2 rows)
+# Baris Budi bernomor lebih besar tetapi `dibuat` (awal transaction) lebih awal: ia ada di belakang kursor poller.
+=> SELECT saldo_cache - 300000 AS saldo_citra_naik FROM buku WHERE akun_id = 504
+ saldo_citra_naik
+------------------
+ 50000
+(1 row)
+# Saldo Citra naik Rp50.000 (dua transfer), tetapi HP-nya (token tiruan-504) menerima satu pesan saja
+push tiruan menerima: 1 pesan (hanya Dimas); dalam 1,5 detik pengamatan (puluhan putaran poller) baris Budi tidak terkirim
+$ kill -TERM <pid poller kursor>
+
+# --- C. Perbaikan (ADR 24): worker mengklaim baris, tanpa kursor; baris yang tertinggal ikut terkirim ---
+$ ./api-t3 -peran worker -sekali
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+=> SELECT o.id AS outbox_id, j.dibuat_oleh AS pengirim, o.status, o.percobaan FROM outbox o JOIN jurnal j ON j.id = o.jurnal_id ORDER BY o.id
+ outbox_id | pengirim | status   | percobaan
+-----------+----------+----------+-----------
+ 1         | 417      | terkirim | 0
+ 2         | 419      | terkirim | 1
+(2 rows)
+push tiruan menerima: 2 pesan; HP Citra berbunyi dua kali untuk dua transfer
