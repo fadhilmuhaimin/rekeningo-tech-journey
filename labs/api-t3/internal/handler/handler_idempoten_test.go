@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -168,5 +169,61 @@ func TestIdempotenKeySamaEndpointBeda(t *testing.T) {
 	h(rec, r)
 	if rec.Code != 422 || kerja != 1 {
 		t.Fatalf("key sama, endpoint beda: status %d, handler %d kali; harus 422 dan 1", rec.Code, kerja)
+	}
+}
+
+// Dua puluh permintaan serentak dengan key yang sama (ulangan HP yang tidak sabar): satu mengerjakan, sembilan belas
+// mendapat 409 selama yang pertama belum selesai dan tidak mengerjakan apa pun. Sesudah selesai, ulangan mendapat
+// respons yang sama. Tanpa cabang KlaimBerjalan, permintaan kedua ikut mengerjakan dan uang berpindah dua kali.
+func TestIdempotenBersamaanSatuMenang(t *testing.T) {
+	s, _, akun := siapkanDB(t)
+	var kerja atomic.Int32
+	lepas := make(chan struct{}) // pemenang menahan handler di sini sampai semua yang kalah sudah dijawab
+	h := s.idempoten(func(w http.ResponseWriter, r *http.Request) {
+		kerja.Add(1)
+		<-lepas
+		w.Header().Set("Location", "/transfers/1")
+		tulisJSON(w, 201, map[string]int{"id": 1})
+	})
+	k := fmt.Sprintf(`"%s"`, fmt.Sprintf("%08x-0003-4000-8000-%012x", time.Now().UnixNano()&0xffffffff, time.Now().UnixNano()&0xffffffffffff))
+	const n = 20
+	hasil := make(chan int, n)
+	for i := 0; i < n; i++ {
+		go func() { hasil <- panggil(h, akun, k, `{"ke":418,"jumlah":25000}`).Code }()
+	}
+	batas := time.After(10 * time.Second)
+	for kalah := 0; kalah < n-1; kalah++ {
+		select {
+		case kode := <-hasil:
+			if kode != 409 {
+				close(lepas)
+				t.Fatalf("jawaban ke-%d selagi pemenang menahan handler: status %d, handler dipanggil %d kali; harus 409 dan 1", kalah+1, kode, kerja.Load())
+			}
+		case <-batas:
+			close(lepas)
+			t.Fatalf("hanya %d dari %d jawaban 409 datang selagi pemenang menahan handler; handler dipanggil %d kali, harus 1", kalah, n-1, kerja.Load())
+		}
+	}
+	close(lepas)
+	if kode := <-hasil; kode != 201 || kerja.Load() != 1 {
+		t.Fatalf("pemenang: status %d, handler dipanggil %d kali; harus 201 dan 1", kode, kerja.Load())
+	}
+	if r := panggil(h, akun, k, `{"ke":418,"jumlah":25000}`); r.Code != 201 || r.Header().Get("Location") != "/transfers/1" || kerja.Load() != 1 {
+		t.Fatalf("ulangan sesudah selesai: status %d, Location %q, handler dipanggil %d kali; harus 201, /transfers/1, 1",
+			r.Code, r.Header().Get("Location"), kerja.Load())
+	}
+}
+
+// PUT /produk/{id}/stok menimpa stok tanpa syarat versi (M24): hanya ada di mode rentan stok-timpa. Server dengan mode lain
+// atau tanpa mode tidak boleh punya rutenya, kalau tidak setiap server api-t3 membawa kerentanan M24.
+func TestStokTimpaHanyaDiModeRentan(t *testing.T) {
+	req := httptest.NewRequest("PUT", "/produk/61/stok", strings.NewReader(`{"stok":0}`))
+	for _, mode := range []string{"", "push-dalam-tx", "kursor", "ekspor-panic", "tanpa-shutdown", "urut-waktu"} {
+		if _, pola := (Server{}).DenganRentan(mode).Rute().Handler(req); pola != "" {
+			t.Errorf("mode %q: PUT /produk/{id}/stok terdaftar sebagai %q; hanya mode stok-timpa yang boleh", mode, pola)
+		}
+	}
+	if _, pola := (Server{}).DenganRentan(service.RentanStokTimpa).Rute().Handler(req); pola != "PUT /produk/{id}/stok" {
+		t.Errorf("mode stok-timpa: rute %q; harus PUT /produk/{id}/stok", pola)
 	}
 }
