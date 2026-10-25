@@ -6,7 +6,7 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 import {
   HORIZON, cariAcuan, caraW, deret, detikTeks, indeksBenar, isi, keadaanPada, koma, lTeks, lamaTahan, littleL, puncakRumus,
-  ringkas, samaParam, simulasi, terpakaiPada, vonis, waktuPenuhRumus, wTeks, type Param,
+  periksaMasukan, ringkas, samaParam, simulasi, terpakaiPada, vonis, waktuPenuhRumus, wTeks, type Param,
 } from "./logika";
 import { aturanDari, awalDari, bacaRekaman, daftarAcuan } from "./rekaman";
 
@@ -227,5 +227,49 @@ describe("teks dan acuan", () => {
     expect(indeksBenar(pilihan, R.a.dari, R.a.sampai)).toBe(2);
     expect(() => indeksBenar([pilihan[0]!, pilihan[1]!], R.a.dari, R.a.sampai)).toThrow(/0 pilihan/);
     expect(() => indeksBenar([...pilihan, { teks: "e", detik: 11 }], R.a.dari, R.a.sampai)).toThrow(/2 pilihan/);
+  });
+});
+
+describe("batas penuh: W lawan (n − 1) ÷ λ (tinjauan, keputusan 982)", () => {
+  // Pembayaran ke-n datang (n − 1) ÷ λ sesudah yang pertama. Pool penuh pada n ÷ λ bila koneksi pertama masih dipegang saat itu,
+  // yaitu bila W > (n − 1) ÷ λ = 10,34 detik untuk pool 10, bukan bila W > n ÷ λ = 11,49 detik. Tombol widget tidak punya nilai di
+  // antara keduanya, jadi tanpa tes ini ambang yang salah (L > n) tidak terdeteksi.
+  const batas = (10 - 1) / A.lambda;
+  test("client menyerah tepat di bawah batas: pool 10 tidak pernah penuh; tepat di atasnya penuh pada 10 ÷ λ tanpa antrean", () => {
+    const bawah = jalan({ ...awal, tClient: Math.floor(batas * 10) / 10 }); // 10,3
+    expect(bawah.r.waktuPenuh).toBeNull();
+    expect(vonis(bawah.r)).toBe("muat");
+    expect(waktuPenuhRumus({ ...awal, tClient: 10.3 }, A)).toBeNull();
+    const atas = jalan({ ...awal, tClient: Math.ceil(batas * 10) / 10 }); // 10,4: kurang dari 11,49 detik, tetapi pool sempat penuh
+    expect(atas.r.waktuPenuh).toBeCloseTo(10 / A.lambda, 9);
+    expect(waktuPenuhRumus({ ...awal, tClient: 10.4 }, A)).toBeCloseTo(10 / A.lambda, 9);
+    expect(vonis(atas.r)).toBe("sempat");
+    expect(atas.r.antreMulai).toBeNull();
+    expect(littleL({ ...awal, tClient: 10.4 }, A)).toBeLessThan(10); // L di antara n − 1 dan n
+  });
+  test("di atas n ÷ λ pool penuh dan pembayaran menunggu", () => {
+    const { r } = jalan({ ...awal, tClient: 12 });
+    expect(vonis(r)).toBe("penuh");
+    expect(r.waktuPenuh).toBeCloseTo(10 / A.lambda, 9);
+  });
+});
+
+describe("masukan yang tidak masuk akal gagal keras", () => {
+  test("pool 0, λ nol atau negatif atau NaN, W0 negatif, lama push negatif, client 0, horizon negatif", () => {
+    expect(() => simulasi({ ...awal, n: 0 }, A)).toThrow(/ukuran pool/);
+    expect(() => simulasi({ ...awal, n: 2.5 }, A)).toThrow(/ukuran pool/);
+    expect(() => simulasi(awal, { ...A, lambda: 0 })).toThrow(/λ/);
+    expect(() => simulasi(awal, { ...A, lambda: -1 })).toThrow(/λ/); // dulu loop tanpa akhir
+    expect(() => simulasi(awal, { ...A, lambda: NaN })).toThrow(/λ/);
+    expect(() => simulasi(awal, { ...A, w0: -1 })).toThrow(/W di luar push/);
+    expect(() => simulasi({ ...awal, t: -1 }, A)).toThrow(/lama push/);
+    expect(() => simulasi({ ...awal, tClient: 0 }, A)).toThrow(/client menyerah/);
+    expect(() => simulasi(awal, A, -1)).toThrow(/horizon/);
+    expect(() => periksaMasukan(awal, A, HORIZON)).not.toThrow();
+  });
+  test("W sangat besar tidak menggantung: pool tetap n koneksi dan antrean tumbuh", () => {
+    const j = simulasi({ ...awal, t: 1e12 }, A);
+    expect(keadaanPada(j, HORIZON, A).terpakai).toBe(10);
+    expect(j.length).toBe(Math.floor(HORIZON * A.lambda + 1e-9));
   });
 });

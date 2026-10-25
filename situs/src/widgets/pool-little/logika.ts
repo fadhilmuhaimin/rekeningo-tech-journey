@@ -57,8 +57,22 @@ export interface Bayar {
   menyerah: boolean; // client benar-benar menyerah sebelum pembayaran selesai
 }
 
+/** Masukan yang tidak masuk akal gagal keras: λ negatif membuat jadwal datang tidak pernah melewati horizon (loop tanpa akhir), pool 0 menghasilkan NaN. */
+export function periksaMasukan(p: Param, a: Aturan, horizon: number): void {
+  const salah: string[] = [];
+  if (!Number.isInteger(p.n) || p.n < 1) salah.push(`ukuran pool ${p.n} harus bilangan bulat ≥ 1`);
+  if (!(Number.isFinite(a.lambda) && a.lambda > 0)) salah.push(`λ ${a.lambda} harus bilangan terhingga > 0`);
+  if (!(Number.isFinite(a.w0) && a.w0 >= 0)) salah.push(`W di luar push ${a.w0} harus ≥ 0`);
+  if (!(a.timeoutPush > 0 && a.idleTx > 0)) salah.push("timeout push dan idle-tx harus > 0");
+  if (p.t !== null && !(p.t >= 0)) salah.push(`lama push ${p.t} harus ≥ 0 atau null`);
+  if (p.tClient !== null && !(p.tClient > 0)) salah.push(`client menyerah ${p.tClient} harus > 0 atau null`);
+  if (!(Number.isFinite(horizon) && horizon >= 0)) salah.push(`horizon ${horizon} harus ≥ 0`);
+  if (salah.length) throw new Error(`simulasi pool: ${salah.join("; ")}`);
+}
+
 /** Simulasi deterministik antrean FIFO n koneksi sampai `horizon` detik. */
 export function simulasi(p: Param, a: Aturan, horizon: number = HORIZON): Bayar[] {
+  periksaMasukan(p, a, horizon);
   const S = a.w0 + lamaPush(p, a);
   const bebas: number[] = Array.from({ length: p.n }, () => 0);
   const hasil: Bayar[] = [];
