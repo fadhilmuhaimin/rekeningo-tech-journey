@@ -9,8 +9,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-// Port dasar 18160 + LAB_PORT_OFFSET (labs/README.md); run.py menjalankan server di port yang sama.
-final server = 'http://127.0.0.1:${18160 + int.parse(Platform.environment['LAB_PORT_OFFSET'] ?? '0')}';
+// Port dasar 18160 + LAB_PORT_OFFSET (labs/README.md); run.py menjalankan server di port yang sama. Kosong dibaca 0.
+final _mentahOffset = (Platform.environment['LAB_PORT_OFFSET'] ?? '').trim();
+final server = 'http://127.0.0.1:${18160 + int.parse(_mentahOffset.isEmpty ? '0' : _mentahOffset)}';
 
 // --8<-- [start:niat]
 /// Satu niat bayar = satu tap "Bayar" di layar konfirmasi. Key dibuat sekali di sini.

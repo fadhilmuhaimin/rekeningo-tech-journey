@@ -8,8 +8,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-// Port dasar + LAB_PORT_OFFSET (labs/README.md); run.py menjalankan server di port yang sama.
-final offset = int.parse(Platform.environment['LAB_PORT_OFFSET'] ?? '0');
+// Port dasar + LAB_PORT_OFFSET (labs/README.md); run.py menjalankan server di port yang sama. Kosong dibaca 0.
+final _mentahOffset = (Platform.environment['LAB_PORT_OFFSET'] ?? '').trim();
+final offset = int.parse(_mentahOffset.isEmpty ? '0' : _mentahOffset);
 final online = 'http://127.0.0.1:${18096 + offset}';
 final offline = 'http://127.0.0.1:${18097 + offset}'; // tidak ada yang mendengarkan: SocketException sungguhan
 final fileQueue = File('queue.json');
