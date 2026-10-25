@@ -117,6 +117,9 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
   const w = page.locator(W);
   const status = () => w.locator('[role="status"]').first().innerText();
 
+  const status2 = { total: await w.locator('[role="status"]').count(), vonis: await w.locator('.pl-vonis[role="status"]').count() };
+  lapor(status2.total === 2 && status2.vonis === 1, `pool ${nama}: ${status2.total} daerah role=status (hasil tebakan dan kalimat penuh), kalimat penuh ${status2.vonis === 1 ? "membawa" : "tanpa"} role=status`);
+
   const sebelum = { ubah: await w.locator(".pl-ubah").count(), status: (await status()).trim(), tebak: await w.locator(".tb-pilihan button:not(:disabled)").count(), vonis: (await w.locator(".pl-vonis").innerText()).trim() };
   lapor(sebelum.ubah === 0 && sebelum.status === "" && sebelum.tebak === 4 && sebelum.vonis === "",
     `pool ${nama}: sebelum menebak panel Ubah ${sebelum.ubah}, hasil "${sebelum.status}", ${sebelum.tebak} pilihan aktif, kalimat penuh "${sebelum.vonis}"`);
@@ -227,7 +230,32 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
     if (k.kunci === "E") ok &&= Number(dl[L.keadaan.pg]) <= Number(puncakE) && sel.pakai === 10;
     if (k.kunci === "A") ok &&= sel.pakai === Number(kA[3]) && hitung.includes(`10 ÷ ${koma(LAMBDA, 2)} = ${pA[3]} detik`) && hitung.includes("tak terhingga");
     if (k.kunci === "B") ok &&= sel.pakai === Number(kB[3]);
-    lapor(ok, `pool angka ${k.kunci}: "${vonis.slice(0, 85)}"; acuan ${acuan === "" ? "-" : acuan.slice(0, 70)}; batang penuh ${bars.penuh}/${k.penuh}; keadaan ${JSON.stringify(dl).slice(0, 110)}`);
+    // Geometri (tinjauan, keputusan 982): tinggi batang tertinggi = puncak ÷ n, garis putus di L ÷ n (hanya bila L < n), penanda jam
+    // di tengah batang detik yang dipilih. Tanpa ini batang, garis, dan penanda bisa salah ukuran tanpa ada yang gagal.
+    const geo = await w.evaluate((e) => {
+      const g = e.querySelector(".pl-grafik");
+      const r = g.getBoundingClientRect();
+      const cs = getComputedStyle(g);
+      const bawah = r.bottom - parseFloat(cs.borderBottomWidth);
+      const tinggi = g.clientHeight;
+      const bars = [...e.querySelectorAll(".pl-batang")].map((b) => { const x = b.getBoundingClientRect(); return { h: x.height / tinggi, tengah: x.left + x.width / 2 }; });
+      const garis = e.querySelector(".pl-garis")?.getBoundingClientRect();
+      const kursor = e.querySelector(".pl-kursor").getBoundingClientRect();
+      return { bars, garis: garis ? (bawah - garis.bottom) / tinggi : null, kursor: kursor.left + kursor.width / 2 };
+    });
+    const puncak = Number((vonis.match(/paling banyak (\d+) koneksi/) ?? [])[1] ?? n);
+    const tinggiMaks = Math.max(...geo.bars.map((b) => b.h));
+    const lTeks = (hitung.match(/λ × W = [\d,]+ × [\d,]+ = (\d+,\d+) koneksi/) ?? [])[1];
+    const lHit = lTeks === undefined ? null : dec(lTeks);
+    const garisAda = lHit !== null && lHit < n;
+    const jamPilih = k.jam ?? 30;
+    const geoOk = Math.abs(tinggiMaks - puncak / n) <= 0.02
+      && geo.bars.filter((b) => b.h >= 0.98).length === (puncak === n ? k.penuh : 0)
+      && (garisAda ? geo.garis !== null && Math.abs(geo.garis - lHit / n) <= 0.04 : geo.garis === null)
+      && Math.abs(geo.kursor - geo.bars[jamPilih].tengah) <= 2;
+    if (!geoOk) console.log(`   geometri ${k.kunci}: tinggi maks ${tinggiMaks.toFixed(3)} (harap ${(puncak / n).toFixed(3)}), garis ${geo.garis === null ? "-" : geo.garis.toFixed(3)} (harap ${garisAda ? (lHit / n).toFixed(3) : "-"}), penanda ${geo.kursor.toFixed(1)} px, batang jam ${geo.bars[jamPilih].tengah.toFixed(1)} px`);
+    ok &&= geoOk;
+    lapor(ok, `pool angka ${k.kunci}: "${vonis.slice(0, 85)}"; acuan ${acuan === "" ? "-" : acuan.slice(0, 70)}; batang penuh ${bars.penuh}/${k.penuh}; geometri tinggi ${tinggiMaks.toFixed(2)} garis ${geo.garis === null ? "-" : geo.garis.toFixed(2)}; keadaan ${JSON.stringify(dl).slice(0, 110)}`);
   }
 
   // Rumus Little di layar untuk t = 2: L = λ × W tercetak persis.
