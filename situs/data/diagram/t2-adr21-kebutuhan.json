@@ -1,0 +1,50 @@
+{
+  "id": "t2-adr21-kebutuhan",
+  "judul": "Dari hitungan 2.30 ke empat usulan komponen",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Hitungan halaman 2.30 (Asumsi naskah); kapasitas satu server belum diukur"
+  },
+  "baris": [
+    {
+      "label": "Hitungan",
+      "sub": "halaman 2.30",
+      "simpul": [
+        {
+          "teks": "Puncak ±17 per detik",
+          "sub": "dari ±1,4 di Tahap 2; Asumsi",
+          "nada": "system"
+        },
+        {
+          "teks": "1,75 koneksi tertahan",
+          "sub": "panggilan luar 2 detik; Asumsi"
+        },
+        {
+          "teks": "Kapasitas belum diukur",
+          "sub": "tanpa load test",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Usulan",
+      "sub": "yang belum dipasang",
+      "simpul": [
+        {
+          "teks": "Cache"
+        },
+        {
+          "teks": "Queue"
+        },
+        {
+          "teks": "Redis"
+        },
+        {
+          "teks": "Server kedua",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Biru: hitungan dari angka naskah. Kuning: yang belum punya angka terukur. Keempat usulan diputuskan satu per satu di halaman ini."
+}
