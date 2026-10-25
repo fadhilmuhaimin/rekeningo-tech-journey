@@ -200,7 +200,7 @@ func TestKlaimTigaWorkerTanpaGandaTanpaTerlewat(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for {
+			for ronde := 0; ronde < 40; ronde++ { // 60 baris dibagi 5 per klaim: 12 ronde cukup; batas supaya tes tidak menggantung
 				baris, err := r.KlaimOutbox(ctx, 5, time.Minute, true)
 				if err != nil {
 					t.Error(err)
@@ -474,5 +474,113 @@ func TestSesiWebDanCsrf(t *testing.T) {
 }
 
 // --8<-- [end:tes-web]
+
+// Klaim tidak menunggu baris yang sedang dikunci transaction lain: FOR UPDATE SKIP LOCKED melewatinya (ADR 24,
+// R3-03). Tanpa SKIP LOCKED tidak ada baris ganda (klaim_sampai menahannya), tetapi klaim ikut menunggu kunci itu:
+// tes gagal dengan batas waktu. Mutasi yang dicoba peninjau PR 340: FOR UPDATE tanpa SKIP LOCKED lolos tes lain.
+func TestKlaimMelewatBarisYangDikunci(t *testing.T) {
+	_, db := siapkan(t)
+	kosongkanAntrean(t, db)
+	a, _ := akunBaru(t, db, "karyawan", 0)
+	var id [2]int64
+	for i := range id {
+		if err := db.QueryRow(`INSERT INTO outbox (akun_id, kelas, jenis, payload) VALUES ($1, 2, 'promo', '{}') RETURNING id`, a).
+			Scan(&id[i]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tahan, err := db.BeginTx(context.Background(), nil) // transaction lain mengunci baris pertama
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tahan.Rollback()
+	var dikunci int64
+	if err := tahan.QueryRow(`SELECT id FROM outbox WHERE id = $1 FOR UPDATE`, id[0]).Scan(&dikunci); err != nil {
+		t.Fatal(err)
+	}
+	r := repo.Baru(db)
+	ctx, batal := context.WithTimeout(context.Background(), 3*time.Second)
+	defer batal()
+	baris, err := r.KlaimOutbox(ctx, 5, time.Minute, true)
+	if err != nil || len(baris) != 1 || baris[0].ID != id[1] {
+		t.Fatalf("baris pertama dikunci: ingin hanya baris %d tanpa menunggu, dapat %v, %v", id[1], baris, err)
+	}
+	if err := tahan.Rollback(); err != nil {
+		t.Fatal(err)
+	}
+	baris, err = r.KlaimOutbox(context.Background(), 5, time.Minute, true)
+	if err != nil || len(baris) != 1 || baris[0].ID != id[0] {
+		t.Fatalf("kunci dilepas: ingin baris %d, dapat %v, %v", id[0], baris, err)
+	}
+}
+
+// ADR 23: pemberitahuan ditulis di transaction yang sama dengan uangnya. Bila penulisan outbox gagal, jurnal, posting,
+// saldo, dan stok ikut batal di keempat jalur uang. Tes lain hanya membuktikan baris outbox ADA sesudah berhasil;
+// mutasi peninjau PR 340 (outbox ditulis di transaction terpisah sesudah COMMIT) lolos semuanya. Pemicu penolak
+// hanya berlaku untuk akun milik tes ini, jadi tes lain di schema yang sama tidak terganggu.
+func TestOutboxGagalMembatalkanUang(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	kosongkanAntrean(t, db)
+	a, _ := akunBaru(t, db, "karyawan", 100_000)
+	b, nomorB := akunBaru(t, db, "karyawan", 0)
+	w, _ := akunBaru(t, db, "warung", 0)
+	admin, _ := akunBaru(t, db, "admin", 0)
+	kotaBaru(t, db, a, w)
+	p := produkBaru(t, db, w, 25_000, 5)
+	for _, q := range []string{
+		`CREATE OR REPLACE FUNCTION tolak_outbox_tes() RETURNS trigger LANGUAGE plpgsql AS
+		   $$ BEGIN RAISE EXCEPTION 'outbox ditolak untuk tes'; END $$`,
+		fmt.Sprintf(`CREATE TRIGGER tolak_outbox_tes BEFORE INSERT ON outbox FOR EACH ROW
+		   WHEN (NEW.akun_id IN (%d, %d)) EXECUTE FUNCTION tolak_outbox_tes()`, b, w),
+	} {
+		if _, err := db.Exec(q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Cleanup(func() {
+		db.Exec(`DROP TRIGGER IF EXISTS tolak_outbox_tes ON outbox`)
+		db.Exec(`DROP FUNCTION IF EXISTS tolak_outbox_tes()`)
+	})
+	hitung := func(q string) (n int) {
+		t.Helper()
+		if err := db.QueryRow(q).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	jurnal := hitung(`SELECT count(*) FROM jurnal`)
+	kasus := []struct {
+		nama  string
+		jalan func() error
+	}{
+		{"Bayar", func() error { _, _, err := svc.Bayar(ctx, a, w, 15_000, ""); return err }},
+		{"Kirim", func() error { _, err := svc.Kirim(ctx, a, nomorB, 20_000, ""); return err }},
+		{"Topup", func() error {
+			_, _, err := svc.Topup(ctx, admin, "tes", "nomor_karyawan,nominal\n"+nomorB+",250000\n")
+			return err
+		}},
+		{"Pesan", func() error { _, err := svc.Pesan(ctx, a, p, 1, ""); return err }},
+	}
+	for _, k := range kasus {
+		if err := k.jalan(); err == nil || !strings.Contains(err.Error(), "outbox ditolak untuk tes") {
+			t.Fatalf("%s: ingin gagal karena outbox ditolak, dapat %v", k.nama, err)
+		}
+		if n := hitung(`SELECT count(*) FROM jurnal`); n != jurnal {
+			t.Fatalf("%s: jurnal %d menjadi %d; uang tercatat tanpa pemberitahuannya", k.nama, jurnal, n)
+		}
+		if s := saldo(t, db, a); s != 100_000 {
+			t.Fatalf("%s: saldo pengirim %d, ingin 100000", k.nama, s)
+		}
+		if s := saldo(t, db, b) + saldo(t, db, w); s != 0 {
+			t.Fatalf("%s: saldo penerima %d, ingin 0", k.nama, s)
+		}
+	}
+	var stok, versi int
+	db.QueryRow(`SELECT stok, versi FROM produk WHERE id = $1`, p).Scan(&stok, &versi)
+	if stok != 5 || versi != 1 {
+		t.Fatalf("stok %d versi %d: Pesan yang batal tidak boleh mengurangi stok", stok, versi)
+	}
+}
 
 var _ = bcrypt.MinCost

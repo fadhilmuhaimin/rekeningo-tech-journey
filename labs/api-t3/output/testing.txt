@@ -44,6 +44,8 @@ $ TEST_DATABASE_URL=<schema tahap3_tes> go test -v -count=1 -p 1 ./...
 --- PASS: TestSinkronSekaliPerKunci
 --- PASS: TestPromoHanyaHrDanPengumuman
 --- PASS: TestSesiWebDanCsrf
+--- PASS: TestKlaimMelewatBarisYangDikunci
+--- PASS: TestOutboxGagalMembatalkanUang
 PASS
 ok    lab/apit3/internal/service
 --- PASS: TestBackoffBatas
@@ -51,6 +53,7 @@ ok    lab/apit3/internal/service
 --- PASS: TestWorkerTokenTidakTerdaftarDilewati
 --- PASS: TestWorkerBarisBeracunMasukDeadLetter
 --- PASS: TestWorkerPushMenggantungBerhentiDiBatasWaktu
+--- PASS: TestWorkerBackoffDihormati
 PASS
 ok    lab/apit3/internal/worker
 # exit status 0
