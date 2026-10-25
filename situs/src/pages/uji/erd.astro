@@ -1,7 +1,9 @@
 ---
 // Halaman uji widget ERD bertumbuh (I6-erd, keputusan 460–465). Bukan halaman cerita: tidak di registry, tidak di
 // sidebar, tidak diindeks. Kedua tahap = ERD sungguhan yang dibangun tools/erd.py dari skema lab: Tahap 1 dari api-t1
-// (situs/data/erd/tahap-1.json), Tahap 2 dari migration api-t2 (situs/data/erd/tahap-2.json, ERD2, keputusan 470–472).
+// (situs/data/erd/tahap-1.json), Tahap 2 dari migration api-t2 (situs/data/erd/tahap-2.json, ERD2, keputusan 470–472),
+// Tahap 3 dari migration api-t3 (situs/data/erd/tahap-3.json, ERD3, keputusan 963–964). Dibuka di Tahap 2 supaya
+// pemeriksaan yang ada tetap berlaku; Tahap 3 dan "Bandingkan dengan Tahap 2" dipilih pembaca (ukur-erd.mjs, bagian 6b).
 // Data uji src/erd/uji/tahap-2.json tinggal dipakai tes logika widget (tumbuh.test.ts).
 // Dipakai situs/tools/ukur-erd.mjs (statis tanpa JS, scroll, keyboard, reduced motion, axe gelap dan terang, CLS).
 import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
@@ -10,10 +12,11 @@ import { DataErd, PetaHalaman } from "../../erd/skema";
 import { tautanHalaman } from "../../erd/tumbuh";
 import t1 from "../../../data/erd/tahap-1.json";
 import t2 from "../../../data/erd/tahap-2.json";
+import t3 from "../../../data/erd/tahap-3.json";
 import petaHalaman from "../../../data/erd/halaman.json";
 import { muat, url } from "../../../tools/registri.mjs";
 
-const data = [DataErd.parse(t1), DataErd.parse(t2)];
+const data = [DataErd.parse(t1), DataErd.parse(t2), DataErd.parse(t3)];
 const tautan = tautanHalaman(PetaHalaman.parse(petaHalaman), data, muat().halaman, url);
 ---
 
@@ -27,8 +30,8 @@ const tautan = tautanHalaman(PetaHalaman.parse(petaHalaman), data, muat().halama
   }}
 >
   <p>
-    Halaman uji widget ERD bertumbuh. Kedua tahap dibangun dari skema lab: Tahap 1 dari api-t1, Tahap 2 dari migration
-    api-t2.
+    Halaman uji widget ERD bertumbuh. Ketiga tahap dibangun dari skema lab: Tahap 1 dari api-t1, Tahap 2 dari migration
+    api-t2, Tahap 3 dari migration api-t3.
   </p>
   <ErdTumbuh client:visible id="erd-uji" judul="Skema data dari tahap ke tahap" data={data} tautan={tautan} awal={2} />
   <p>Teks sesudah diagram, supaya halaman cukup panjang untuk diuji scroll-nya.</p>

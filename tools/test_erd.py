@@ -20,9 +20,11 @@ spec.loader.exec_module(erd)
 
 JSON1 = "situs/data/erd/tahap-1.json"
 JSON2 = "situs/data/erd/tahap-2.json"
+JSON3 = "situs/data/erd/tahap-3.json"
 SUMBER = erd.TAHAP[1]["sumber"][0]
 PEMBANDING = erd.TAHAP[1]["pembanding"][0]
 MIGRASI_T2 = [f for f in erd.TAHAP[2]["sumber"] if f.startswith("labs/api-t2/")]
+MIGRASI_T3 = [f for f in erd.TAHAP[3]["sumber"] if f.startswith("labs/api-t3/")]
 
 
 def ubah_json(fungsi, rel=JSON1):
@@ -73,13 +75,25 @@ KASUS = [  # nama, ubah salinan, exit harapan, teks yang harus ada di keluaran
      ubah_json(lambda d: d["selisih"]["kolom_baru"].pop(), JSON2), 1, "selisih tidak sama"),
     ("tahap-1.json diubah tangan dengan format sah: selisih Tahap 2 menangkapnya",
      ubah_json(lambda d: akun(d)["kolom"][2].update(tipe="character varying")), 1, "tahap-2.json: selisih tidak sama"),
+    # Tahap 3 (keputusan 963): migration api-t3 ikut hash; selisih dihitung ulang dari tahap-2.json dan tahap-3.json.
+    ("migration api-t3 berubah tanpa JSON Tahap 3 dibangun ulang", tambah_baris(MIGRASI_T3[-1]), 1, "tahap-3.json: file sumber berubah"),
+    ("migration api-t2 000014 berubah: Tahap 3 ikut menangkapnya", tambah_baris("labs/api-t2/migrasi/000014_wajib_ganti_password.up.sql"), 1, "tahap-3.json: file sumber berubah"),
+    ("JSON Tahap 3 hilang", lambda r: (r / JSON3).unlink(), 1, "tahap-3.json: belum ada"),
+    ("tabel baru dihapus dari selisih Tahap 3",
+     ubah_json(lambda d: d["selisih"]["tabel_baru"].remove("outbox"), JSON3), 1, "tahap-3.json: selisih tidak sama"),
+    ("kolom baru sesi dihapus dari selisih Tahap 3",
+     ubah_json(lambda d: d["selisih"]["kolom_baru"].pop(), JSON3), 1, "tahap-3.json: selisih tidak sama"),
+    ("tabel dihapus diisi tangan di Tahap 3 yang hanya menambah",
+     ubah_json(lambda d: d["selisih"]["tabel_dihapus"].append({"nama": "posting", "pindah_ke": "outbox"}), JSON3), 1, "tahap-3.json: selisih tidak sama"),
+    ("tahap-2.json diubah tangan dengan format sah: selisih Tahap 3 menangkapnya",
+     ubah_json(lambda d: next(t for t in d["tabel"] if t["nama"] == "sesi")["kolom"][1].update(tipe="integer"), JSON2), 1, "tahap-3.json: selisih tidak sama"),
 ]
 
 gagal = 0
 for nama, ubah, harap, wajib in KASUS:
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
-        for rel in sorted({f for c in erd.TAHAP.values() for f in erd.semua_file(c)}) + [JSON1, JSON2]:
+        for rel in sorted({f for c in erd.TAHAP.values() for f in erd.semua_file(c)}) + [JSON1, JSON2, JSON3]:
             (root / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(AKAR / rel, root / rel)
         ubah(root)
