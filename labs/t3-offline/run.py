@@ -3,7 +3,7 @@
 Server, skema, dan data awal adalah milik `labs/api-t3` (`dasar_t3.py`), bukan salinan; lab ini menambah skenario di
 atasnya, di schema sendiri (`tahap3_offline`). Setiap bagian membuat ulang schema dan data awal dari nol, jadi
 output/*.txt tidak bergantung pada urutan bagian dan rekaman ulang identik per byte (make cek). Token, waktu, dan
-tanggal disamarkan; key idempotensi di sini UUID tetap supaya rekaman bisa dibaca apa adanya.
+tanggal disamarkan; key idempotensi di sini UUID tetap berentropi rendah supaya rekaman bisa dibaca apa adanya.
 
 Waktu DIPERANKAN, tidak ditunggu. Server jalan dengan `-jam-lab`: jam service dibekukan lalu dimajukan lewat
 `POST /lab/jam` (umur key idempotensi, umur sesi, dan umur operasi di queue dihitung dari jam itu). Retensi job
@@ -30,11 +30,13 @@ sql = functools.partial(d.sql, schema=SCH)
 BUDI, ANI, DIMAS = 419, 418, 417
 
 # Key idempotensi tetap (String berisi UUID, draft-ietf-httpapi-idempotency-key-header-08): rekaman identik per byte.
-K_BAYAR = "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01"
-K_KIRIM = "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b02"
-K_PESAN = "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b03"
-K_AYAM = "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3ba1"
-K_NASI = "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3ba2"
+# Entropinya sengaja rendah supaya pemindai secret (gitleaks, aturan generic-api-key) tidak menandai rekaman sebagai
+# rahasia; app sungguhan memakai UUID acak.
+K_BAYAR = "00000000-0000-4000-8000-000000000001"
+K_KIRIM = "00000000-0000-4000-8000-000000000002"
+K_PESAN = "00000000-0000-4000-8000-000000000003"
+K_AYAM = "00000000-0000-4000-8000-000000000011"
+K_NASI = "00000000-0000-4000-8000-000000000012"
 for _k in (K_BAYAR, K_KIRIM, K_PESAN, K_AYAM, K_NASI):
     d.daftar_samaran(_k, _k)     # tanpa ini samarkan() menamai setiap UUID "notifikasi_id"
 

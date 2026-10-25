@@ -14,7 +14,7 @@ make -C labs/t3-offline cek                   # rekam ulang; gagal bila output/ 
 
 Lajur kerja lain memakai `COMPOSE_PROJECT_NAME`, `LAB_DB_PORT`, `LAB_REDIS_PORT`, dan `LAB_PORT_OFFSET` (`labs/README.md`). Port dasar API 18180, sama dengan `api-t3`, `t3-pool`, `t3-outbox`, dan `t3-instance`, jadi lab-lab itu tidak jalan bersamaan dalam satu lajur. Rekaman selalu memakai port dasar.
 
-Setiap bagian membuat ulang schema dan data awal dari nol. Yang dicatat adalah status, isi jawaban, dan urutan, bukan waktu. Key idempotensi di rekaman adalah UUID tetap supaya rekaman identik per byte. Lab gagal keras bila hasilnya meleset.
+Setiap bagian membuat ulang schema dan data awal dari nol. Yang dicatat adalah status, isi jawaban, dan urutan, bukan waktu. Key idempotensi di rekaman adalah UUID tetap berentropi rendah (`00000000-0000-4000-8000-...`): rekaman identik per byte dan pemindai secret tidak menandainya. App sungguhan memakai UUID acak. Lab gagal keras bila hasilnya meleset.
 
 | Rekaman | Isi | Halaman |
 |---|---|---|

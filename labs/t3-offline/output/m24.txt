@@ -12,13 +12,13 @@
  1  | Nasi goreng | 25000 | 50   | 1
  61 | Ayam geprek | 28000 | 30   | 1
 (2 rows)
-$ curl -i -X PUT '/produk/61/stok' -H 'Authorization: Bearer <token sesi Warung Ani>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3ba1"' -d '{"stok": 0}'
+$ curl -i -X PUT '/produk/61/stok' -H 'Authorization: Bearer <token sesi Warung Ani>' -H 'Idempotency-Key: "00000000-0000-4000-8000-000000000011"' -d '{"stok": 0}'
 HTTP/1.1 200 OK
 Content-Type: application/json
 
 {"id":61,"harga":28000,"stok":0,"versi":2}
 # HP tidak menerima jawaban di atas (sinyal putus); HP mengingat operasi dan key-nya, lalu offline
-$ curl -i -X PUT '/produk/1/stok' -H 'Authorization: Bearer <token sesi Warung Ani>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3ba2"' -d '{"stok": 0}'
+$ curl -i -X PUT '/produk/1/stok' -H 'Authorization: Bearer <token sesi Warung Ani>' -H 'Idempotency-Key: "00000000-0000-4000-8000-000000000012"' -d '{"stok": 0}'
 HTTP/1.1 200 OK
 Content-Type: application/json
 
@@ -40,7 +40,7 @@ Content-Type: application/json
 
 # --- C. Pembanding, Sabtu 09.50 (17 jam sejak Jumat): HP sempat dapat sinyal dan mengirim ulang operasi nasi ---
 # Jam lab: Sabtu 09.50 (17 jam sesudah Jumat 16.50). Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu 17 jam
-$ curl -i -X PUT '/produk/1/stok' -H 'Authorization: Bearer <token sesi Warung Ani>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3ba2"' -d '{"stok": 0}'
+$ curl -i -X PUT '/produk/1/stok' -H 'Authorization: Bearer <token sesi Warung Ani>' -H 'Idempotency-Key: "00000000-0000-4000-8000-000000000012"' -d '{"stok": 0}'
 HTTP/1.1 200 OK
 Content-Type: application/json
 
@@ -59,7 +59,7 @@ Content-Type: application/json
 ----+-------------+------+-------
  61 | Ayam geprek | 30   | 3
 (1 row)
-$ curl -i -X PUT '/produk/61/stok' -H 'Authorization: Bearer <token sesi Warung Ani>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3ba1"' -d '{"stok": 0}'
+$ curl -i -X PUT '/produk/61/stok' -H 'Authorization: Bearer <token sesi Warung Ani>' -H 'Idempotency-Key: "00000000-0000-4000-8000-000000000011"' -d '{"stok": 0}'
 HTTP/1.1 200 OK
 Content-Type: application/json
 

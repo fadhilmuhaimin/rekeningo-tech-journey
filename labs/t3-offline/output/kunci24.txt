@@ -26,7 +26,7 @@ Location: /transfers/10002
 
 # --- B. Jumat 16.50, dengan key: pembayaran masuk, jawabannya hilang di jalan ---
 # HP Budi tidak menerima jawaban di bawah ini (sinyal putus); HP mengingat key-nya
-$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01"' -d '{"ke": 418, "jumlah": 28000}'
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "00000000-0000-4000-8000-000000000001"' -d '{"ke": 418, "jumlah": 28000}'
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /transfers/10003
@@ -35,12 +35,12 @@ Location: /transfers/10003
 => SELECT kunci, status, (respons->>'status')::int AS status_tersimpan FROM kunci_idempotensi
  kunci                                | status  | status_tersimpan
 --------------------------------------+---------+------------------
- 1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01 | selesai | 201
+ 00000000-0000-4000-8000-000000000001 | selesai | 201
 (1 row)
 
 # --- C. Sabtu 09.50 (17 jam): HP mengirim ulang dengan key dan isi yang sama; key lain di kiriman dan pesanan ---
 # Jam lab: Sabtu 09.50 (17 jam sesudah Jumat 16.50). Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu 17 jam
-$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01"' -d '{"ke": 418, "jumlah": 28000}'
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "00000000-0000-4000-8000-000000000001"' -d '{"ke": 418, "jumlah": 28000}'
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /transfers/10003
@@ -54,13 +54,13 @@ Location: /transfers/10003
  10003  | bayar | Bayar Budi ke Warung Ani | -28000
 (3 rows)
 # Header Location dan isi sama dengan jawaban Jumat; tidak ada jurnal baru. Dua jalur lain dengan key sendiri:
-$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b02"' -d '{"ke_nomor_karyawan": "K00504", "nominal": 10000}'
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "00000000-0000-4000-8000-000000000002"' -d '{"ke_nomor_karyawan": "K00504", "nominal": 10000}'
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /transfers/10004
 
 {"id":10004,"saldo":156000,"sisa_batas_harian":490000}
-$ curl -i -X POST '/pesanan' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b03"' -d '{"produk_id": 1, "porsi": 1}'
+$ curl -i -X POST '/pesanan' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "00000000-0000-4000-8000-000000000003"' -d '{"produk_id": 1, "porsi": 1}'
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /transfers/10005
@@ -69,12 +69,12 @@ Location: /transfers/10005
 # Kiriman dan pesanan diulang dengan key yang sama (jawaban tidak dicetak ulang): jawaban persis sama, saldo dan stok tidak berubah
 
 # --- D. Key yang sama dengan isi lain, akun lain, atau bentuk rusak ditolak; tidak ada jurnal baru ---
-$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01"' -d '{"ke": 418, "jumlah": 30000}'
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "00000000-0000-4000-8000-000000000001"' -d '{"ke": 418, "jumlah": 30000}'
 HTTP/1.1 422 Unprocessable Entity
 Content-Type: application/problem+json
 
 {"type":"/problems/idempotency-key-dipakai-ulang","title":"Idempotency-Key sudah dipakai untuk permintaan lain","status":422}
-$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Dimas>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01"' -d '{"ke": 418, "jumlah": 28000}'
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Dimas>' -H 'Idempotency-Key: "00000000-0000-4000-8000-000000000001"' -d '{"ke": 418, "jumlah": 28000}'
 HTTP/1.1 422 Unprocessable Entity
 Content-Type: application/problem+json
 
@@ -88,7 +88,7 @@ Content-Type: application/problem+json
 
 # --- E. Senin 06.50 (62 jam): HP kembali online dan mengirim ulang tiga permintaan lama dengan key yang sama ---
 # Jam lab: Senin 06.50 (62 jam sesudah Jumat 16.50). Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu 62 jam
-$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01"' -d '{"ke": 418, "jumlah": 28000}'
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -H 'Idempotency-Key: "00000000-0000-4000-8000-000000000001"' -d '{"ke": 418, "jumlah": 28000}'
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /transfers/10006
@@ -116,8 +116,8 @@ Location: /transfers/10006
 => SELECT kunci, status, (respons->>'status')::int AS status_tersimpan FROM kunci_idempotensi ORDER BY kunci
  kunci                                | status  | status_tersimpan
 --------------------------------------+---------+------------------
- 1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b01 | selesai | 201
- 1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b02 | selesai | 201
- 1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b03 | selesai | 201
+ 00000000-0000-4000-8000-000000000001 | selesai | 201
+ 00000000-0000-4000-8000-000000000002 | selesai | 201
+ 00000000-0000-4000-8000-000000000003 | selesai | 201
 (3 rows)
 # Pembayaran yang menunggu di HP selama offline 62 jam akan dikerjakan dua kali bila jawaban pertamanya hilang. Sebab itu pembayaran tidak pernah offline (ADR 29); hanya stok dan harga bersyarat versi, dengan kunci sinkron 14 hari (versi.txt)

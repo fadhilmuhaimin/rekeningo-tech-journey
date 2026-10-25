@@ -3,5 +3,6 @@
 useDefault = true
 
 [allowlist]
-description = "folder lokal yang di-.gitignore"
+description = "folder lokal yang di-.gitignore, dan key idempotensi tiruan di rekaman lab t3-offline (UUID tetap, bukan rahasia; keputusan 972)"
 paths = ['''^\.venv/''', '''^site/''']
+regexes = ['''1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b[0-9a-f]{2}''']
