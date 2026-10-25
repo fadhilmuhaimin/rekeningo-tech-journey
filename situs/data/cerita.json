@@ -1891,8 +1891,9 @@
       "lab": [
         "t2-pencairan"
       ],
-      "ada": false,
-      "nomor": "2.26"
+      "ada": true,
+      "nomor": "2.26",
+      "menit": 18
     },
     {
       "id": "t2-m16",
