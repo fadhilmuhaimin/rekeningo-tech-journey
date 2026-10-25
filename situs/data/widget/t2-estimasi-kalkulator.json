@@ -1,0 +1,55 @@
+{
+  "id": "t2-estimasi-kalkulator",
+  "judul": "Puncak beban Tahap 2 dan Tahap 3",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Asumsi naskah dari cerita.json, bukan pengukuran."
+  },
+  "skenario": [
+    { "label": "Tahap 2", "tahap": 2 },
+    { "label": "Tahap 3", "tahap": 3 },
+    {
+      "label": "40 request",
+      "tahap": 3,
+      "ubah": {
+        "req": 40
+      }
+    },
+    {
+      "label": "Satu jam",
+      "tahap": 3,
+      "ubah": {
+        "puncak": 24
+      }
+    }
+  ],
+  "awal": 0,
+  "tebak": {
+    "q": "Tahap 3 punya 10.000 user, sepuluh kali Tahap 2. Berapa kali lipat puncak request per detiknya?",
+    "pilihan": [
+      "10 kali",
+      "12,5 kali",
+      "100 kali"
+    ],
+    "jawaban": 1,
+    "skenario": 1,
+    "alasan": "User naik 10 kali, request per user naik 1,5 kali (40 ke 60), dan user aktif turun dari 30% ke 25% (0,83 kali). Hasil kalinya 12,5, jadi puncak naik dari ±1,4 ke ±17 request per detik."
+  },
+  "label": {
+    "sumber": "Asumsi",
+    "tebakDulu": "Tebak dulu:",
+    "lanjut": "Sekarang pilih “Tahap 3” di atas tabel.",
+    "ubah": "Skenario",
+    "asumsi": "asumsi",
+    "detik": "detik",
+    "ms": "ms",
+    "baris": {
+      "user": "User terdaftar",
+      "dau": "User aktif per hari",
+      "reqHari": "Request per hari",
+      "rata": "Rata-rata, request per detik",
+      "puncak": "Puncak, request per detik"
+    },
+    "kesimpulan": "Di jam paling ramai, satu request datang kira-kira tiap {jarak}."
+  }
+}

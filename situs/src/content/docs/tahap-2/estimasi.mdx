@@ -1,0 +1,231 @@
+---
+title: "2.30 Estimasi Tahap 2 → 3"
+description: Estimasi antar tahap menghitung ulang rumus tahap sebelumnya dengan masukan baru. Puncak naik dari ±1,4 ke ±17 request per detik (Asumsi), dan yang dihitung berikutnya adalah berapa lama satu request menahan koneksi database.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t2-estimasi-inti.json";
+import Kalkulator from "../../../widgets/kalkulator/Kalkulator.tsx";
+import dataKalkulator from "../../../../data/widget/t2-estimasi-kalkulator.json";
+import cerita from "../../../../data/cerita.json";
+import Snippet from "../../../components/Snippet.astro";
+
+<p class="meta">Baca 12 menit · coba 3 menit · Prasyarat: [[t2-m17]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Estimasi antar tahap menghitung ulang rumus tahap lama dengan masukan baru, lalu menambah satu ukuran: berapa lama satu request menahan koneksi database.
+
+<Rantai data={intiDiagram} ringkas />
+
+Dari Tahap 2 ke Tahap 3, user naik 10 kali dan puncak request naik 12,5 kali, dari ±1,4 ke ±17 per detik (Asumsi). Angka itu kecil, tetapi jumlah request bukan satu-satunya yang membebani database. Notifikasi di PRD v3 ([[t2-m17]]) menambah panggilan lambat di dalam request, dan lamanya ikut dihitung. Baris kedua di atas mengandaikan panggilan 2 detik (Asumsi).
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. User naik 10 kali dari Tahap 2 ke Tahap 3. Apakah puncak request per detik juga naik 10 kali?
+2. Satu dari dua puluh request memanggil layanan luar selama 2 detik. Request per detik mana yang kamu pakai untuk menghitung koneksi yang tertahan?
+3. Pool dibatasi 10 koneksi. Berapa detik panggilan luar yang membuat rata-rata koneksi tertahan menyentuh 10?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: puncak Tahap 3 datang dari tiga pengali, bukan dari jumlah user saja, dan tetap di bawah 42 request per detik walau semua request sehari masuk di satu jam (Asumsi).">
+
+Rumusnya sama dengan [[D1]], sekarang untuk Tahap 2 dan Tahap 3. Tebak dulu berapa kali lipat puncaknya naik, lalu pilih Tahap 3 dan baca baris mana yang berubah.
+
+<Kalkulator client:visible data={dataKalkulator} asumsi={cerita.tahap.map((t) => t.asumsi)} />
+
+Pilih **40 request**: request per user kembali ke angka Tahap 2, dan puncak turun ke ±12. Selisih ±17 ke ±12 datang dari satu pengali, yaitu 1,5. Pilih **Satu jam**: semua request sehari masuk di satu jam, faktor puncaknya 24, dan puncak naik ke ±42, atau 2,4 kali dari Tahap 3 biasa.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t1-m8]] menghitung PRD v2 dan mendapat ±1,4 request per detik. Masalah Tahap 2 sesudah itu soal kebenaran data, bukan kapasitas: saldo yang salah, bayar dua kali, dan query yang salah. Hitungan itu dipakai sekali.
+
+PRD v3 ([[t2-m17]]) mengubah masukannya: enam kota, 10.000 user, dan notifikasi. Estimasi Tahap 3 dihitung ulang sebelum ada komponen yang dipilih, supaya keputusannya mengikuti angka dan bukan artikel yang terakhir dibaca.
+
+Kamu mungkin pernah menghitung request yang dikirim ribuan HP saat membuka layar yang sama. Itu rumus ini dari sisi app: jumlah HP × request per buka.
+
+### Cara kerjanya
+
+**1. Hitung ulang dengan rumus yang sama.** Rumusnya dari [[D1]], masukannya `tahap[1].asumsi` dan `tahap[2].asumsi` di `cerita.json`. Semua angka di tabel ini adalah Asumsi naskah, bukan pengukuran.
+
+| Besaran | Nilai | Cara hitung (semua Asumsi) |
+|---|---|---|
+| User terdaftar (Tahap 2) | 1.000 | PRD v2, seluruh kampus |
+| User aktif harian (Tahap 2) | 300 | 1.000 × 30% |
+| Request per hari (Tahap 2) | 12.000 | 300 × 40 request |
+| Puncak request per detik (Tahap 2) | ±1,4 | 12.000 ÷ 86.400 × 10 |
+| User terdaftar (Tahap 3) | 10.000 | PRD v3, enam kota |
+| User aktif harian (Tahap 3) | 2.500 | 10.000 × 25% |
+| Request per hari (Tahap 3) | 150.000 | 2.500 × 60 request |
+| Puncak request per detik (Tahap 3) | ±17 | 150.000 ÷ 86.400 × 10 |
+
+**2. Satu angka, tiga pengali.** Puncak naik 12,5 kali, bukan 10 kali. User naik 10 kali, user aktif turun dari 30% ke 25%, dan request per user aktif naik dari 40 ke 60. Hasilnya 10 × (25 ÷ 30) × (60 ÷ 40) = 12,5.
+
+Naskah tidak menyebut alasan 25% dan 60 request, jadi keduanya Asumsi yang boleh kamu ganti di widget. Batas atasnya jelas. Kalau semua request sehari masuk di satu jam, faktor puncaknya 86.400 ÷ 3.600 = 24 dan puncak Tahap 3 jadi ±42 request per detik. Seperti di [[D1]], estimasi mencari besaran, bukan angka tepat.
+
+**3. Hitung per kelas request.** Tidak semua request menahan koneksi selama itu, karena hanya yang menggerakkan uang yang memunculkan notifikasi. Halaman ini menghitung bayar dan transfer, sedangkan top-up massal tiap Senin punya λ sendiri di Tahap 3. Tiga transaksi per user aktif per hari adalah Asumsi naskah ([[t2-skema]]).
+
+Mulai tabel ini puncak Tahap 3 ditulis 17,4 (17,36 dibulatkan), karena ±17 terlalu kasar untuk dikali dengan lama request.
+
+| Kelas request | Per hari | Puncak per detik | Cara hitung (semua Asumsi) |
+|---|---|---|---|
+| Semua request (Tahap 3) | 150.000 | 17,4 | tabel di atas |
+| Bayar dan transfer (Tahap 3) | 7.500 | 0,87 | 2.500 × 3 transaksi; 5% dari semua request |
+| Bayar dan transfer (Tahap 2) | 900 | 0,10 | 300 × 3 transaksi; 7,5% dari semua request |
+
+Setiap kelas tumbuh dengan pengalinya sendiri. Semua request naik 12,5 kali, bayar dan transfer hanya 8,3 kali, karena transaksi per user tetap 3 sementara request per user naik. Menghitung koneksi dengan kelas yang salah menggeser hasilnya hampir 20 kali, seperti di tabel berikutnya.
+
+**4. Lama request menentukan koneksi tertahan: L = λ × W.** Little (1961) membuktikan bahwa jumlah rata-rata request di dalam sistem (L) sama dengan laju kedatangan (λ) dikali lama rata-rata satu request di dalam sistem (W). Syaratnya antara lain rata-ratanya terhingga dan prosesnya stasioner. Hubungan ini berlaku untuk rata-rata, jadi pada satu detik tertentu jumlah yang tertahan bisa lebih besar dari L.
+
+Di sini L dibaca sebagai koneksi database yang tertahan, dengan anggapan setiap request memegang satu koneksi selama W. Dua baris pertama memakai satu permintaan yang sama di lab, tanpa index riwayat: seluruh riwayat Budi, 3.892 posting.
+
+<Snippet file="labs/b2-query/output/ledger/n1.txt" lines="54:65" title="Rekaman lab: labs/b2-query/output/ledger/n1.txt, bagian E (waktu per permintaan, pembanding)" />
+
+| Kasus | λ per detik | W | L (koneksi tertahan) |
+|---|---|---|---|
+| Tahap 2, seluruh riwayat Budi dengan N+1 (W: Rekaman lab) | 1,39 | 1.936,4 ms | 2,69 |
+| Tahap 2, seluruh riwayat Budi dengan satu query (W: Rekaman lab) | 1,39 | 30,6 ms | 0,0425 |
+| Tahap 3, semua request (W: Asumsi) | 17,4 | 20 ms | 0,35 |
+| Tahap 3, bayar dan transfer, panggilan luar 2 detik (Asumsi) | 0,87 | 2,02 detik | 1,75 |
+| Tahap 3, bayar dan transfer, panggilan luar 30 detik (Asumsi) | 0,87 | 30,02 detik | 26,1 |
+| Salah: semua request ikut menunggu 2 detik (Asumsi) | 17,4 | 2 detik | 34,7 |
+
+Dua baris pertama punya λ yang sama dan W yang beda 63 kali, jadi L-nya juga 63 kali. Itu "lama, bukan banyak" dalam angka. λ ±1,39 di sana adalah batas atas: anggapannya semua request di puncak berbentuk permintaan itu. W di rekaman hanya waktu query yang diukur client Python tanpa jaringan ke database, jadi W request sebenarnya lebih besar.
+
+Baris Tahap 3 tanpa panggilan luar memakai W 20 ms, Asumsi yang belum diukur; riwayat halaman pertama di lab 1,4 ms dengan index. Dua baris panggilan luar mengandaikan koneksi dipegang sampai panggilan selesai, sehingga W = 0,02 + t detik. Baris terakhir menghitung kelas yang salah: 17,4 × 2 = 34,7 koneksi, padahal hanya 0,87 request per detik yang memanggil layanan luar. Salahnya hampir 20 kali.
+
+**5. Bandingkan L dengan batas yang ada.** api-t2 membuka database dengan `sql.Open` tanpa `SetMaxOpenConns`.
+
+<Snippet file="labs/api-t2/cmd/api/main.go" lines="40:43" lang="go" title="labs/api-t2/cmd/api/main.go: koneksi database dibuka tanpa batas jumlah (dibaca, tidak dijalankan)" />
+
+Dokumentasi Go 1.27.3 menyebut bawaannya tanpa batas, jadi jumlah koneksi mengikuti L. Yang membatasi akhirnya PostgreSQL: `max_connections` biasanya 100, dan tiga di antaranya disimpan untuk superuser (dokumentasi PostgreSQL 18.6).
+
+Misalkan kamu membatasi pool di aplikasi sampai 10 koneksi (Asumsi). Rata-rata L menyentuh 10 saat 0,87 × (0,02 + t) = 10, yaitu t ≈ 11,5 detik. Karena L rata-rata, batas tidak dipasang tepat di L.
+
+**6. Ukuran data ikut dihitung ulang.** Tiga angka untuk satu tahun data Tahap 3, dengan cara yang sama seperti tiga angka Tahap 2 di [[t2-skema]]:
+
+| Sumber | Yang dihitung | Hasil | Label |
+|---|---|---|---|
+| Rumus data per tahun [[D1]] | 2.500 user aktif × 3 transaksi × 365 × 300 byte, satu baris per transaksi | ±820 MB | Asumsi |
+| Rumus ledger [[t2-skema]] | 5.475.000 posting × 250 byte | ±1,4 GB | Asumsi |
+| Ekstrapolasi rekaman lab | 5.475.000 posting × 137 byte per posting (batas bawah) | ±750 MB | Asumsi dari Rekaman lab |
+
+Ketiganya paling jauh berbeda 1,8 kali dan satu orde. Keputusan yang bergantung pada ukuran ini adalah partisi `posting`, yang dijadwalkan saat ±440 juta posting per tahun di Tahap 5 ([[t2-skema]]). Rumus [[D1]] naik 12,5 kali dari Tahap 2, sedangkan rumus ledger naik 8,3 kali. Sebabnya registry menulis 2 transaksi per user di Tahap 2 dan 3 di Tahap 3, dan rumus ledger memakai 3 di keduanya.
+
+**7. Yang tidak dijawab estimasi.** Tiga pertanyaan tetap terbuka sesudah semua hitungan di atas.
+
+1. *Berapa request per detik yang sanggup dilayani satu server?* Estimasi tidak menyebutnya. Panduan SRE Google menyebut request per detik ukuran kapasitas yang lemah, karena biaya tiap request berbeda dan berubah. Hanya load test di sistem sendiri yang menjawab.
+2. *Berapa lama panggilan notifikasi?* Layanan push belum ada, jadi 2 dan 30 detik adalah Asumsi. Angka itu diganti rekaman sesudah fitur dibangun.
+3. *Apa yang berubah kalau server jadi dua?* Jumlah server tidak ada di rumus mana pun di halaman ini. Apa yang tadinya hanya ada di satu proses dicari dari desain, bukan dari λ.
+
+### Di stack lain
+
+Rumus λ dan W sama di semua stack. Yang berbeda hanya tempat membacanya. Baris di bawah dicek ke dokumentasi pada 2026-10-25 dan tidak dijalankan.
+
+| Stack atau alat | Yang dibaca | Dicek ke |
+|---|---|---|
+| Semua stack | Log akses: jumlah request per detik dan lama tiap request | Tidak ada, ini cara umum |
+| PostgreSQL | `pg_stat_statements`: `calls` dan `mean_exec_time` per statement | PostgreSQL 18.6, pgstatstatements |
+| Go | `db.Stats()`: `InUse`, `WaitCount`, `WaitDuration` | Go 1.27.3, `database/sql` `DBStats` |
+| Node.js `pg` | `pool.totalCount`, `idleCount`, `waitingCount`; `max` bawaan 10 | node-postgres, halaman Pool |
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Cara memperkirakan tahap berikut | Kelebihan | Kekurangan |
+|---|---|---|
+| Hanya request per detik (rumus [[D1]]) | Satu hitungan, selesai dalam beberapa menit | 17,4 request per detik terlihat aman, padahal koneksi tertahan bisa 26,1 bila panggilan luar 30 detik |
+| Request per detik per kelas, lalu L = λ × W | Menemukan kelas request yang menahan koneksi | W fitur yang belum ada adalah tebakan dan harus berlabel Asumsi |
+| Load test sebelum fitur dibangun | Memberi angka nyata untuk kode yang ada | Tidak ada kode notifikasi untuk diuji; yang diuji tiruan dengan W yang juga tebakan |
+
+### Aturan estimasi antar tahap di Rekeningo
+
+1. Hitung ulang dari registry dan tulis rumus serta masukannya. Angka tahap lama tidak dikali sendiri.
+2. Pisahkan request per kelas. Kelas yang menahan koneksi atau sumber daya lain dihitung dengan λ-nya sendiri.
+3. Tulis W sebagai Asumsi bila fitur belum ada, dan ganti dengan rekaman begitu ada.
+4. Bandingkan L dengan batas yang ada (pool, `max_connections`), bukan dengan rasa.
+5. Catat apa yang tidak dijawab estimasi. Keputusan atas angka ini ditulis di [[t2-adr-21]].
+
+Aturan ini salah bila beban datang bergelombang, misalnya top-up massal untuk semua karyawan sekaligus ([[t3-m27]]): λ rata-rata di jam puncak tidak menggambarkan itu. Dugaan, belum direkam: ia juga salah bila W naik saat sistem sibuk, karena L ikut naik lebih jauh dari hitungan W yang tetap.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Load test notifikasi | Layanan push belum ada, jadi W-nya Asumsi | [[t3-pool]] |
+| Batas pool dan timeout di api-t2 | Angka batasnya bergantung pada W yang belum terukur | [[t3-pool]] |
+| Mengukur λ per kelas dari log pemakaian sungguhan | Belum ada pemakaian sungguhan; semua λ adalah Asumsi naskah | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Raka mengira puncak naik 10 kali karena user naik 10 kali. Bagian mana dari hitungan yang membuatnya 12,5 kali?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tiga pengali. User naik 10 kali dan user aktif turun dari 30% ke 25% (× 25 ÷ 30). Request per user naik dari 40 ke 60 (× 60 ÷ 40). Hasil kalinya 10 × (25 ÷ 30) × (60 ÷ 40) = 12,5, jadi puncak naik dari ±1,4 ke ±17 request per detik.
+
+</details>
+
+**2.** Satu dari dua puluh request memanggil layanan luar selama 2 detik, dan koneksi dipegang sampai panggilan selesai. Puncak semua request 17,4 per detik. Berapa koneksi tertahan, dan kenapa bukan 34,7?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Pakai λ kelas yang memanggil layanan luar: 0,87 bayar dan transfer per detik. L = 0,87 × (0,02 + 2) = 1,75 koneksi. Angka 34,7 memakai 17,4 × 2 detik, jadi menghitung semua request seolah ikut menunggu, hampir 20 kali terlalu besar.
+
+</details>
+
+**3.** Pool dibatasi 10 koneksi. Berapa detik panggilan luar yang membuat rata-rata koneksi tertahan menyentuh 10?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+0,87 × (0,02 + t) = 10, jadi t ≈ 11,5 detik. Karena L adalah rata-rata, jumlah yang dibutuhkan pada satu detik tertentu kadang lebih besar, jadi batas pool jangan dipasang tepat di L.
+
+</details>
+
+**4.** Hitungan di halaman ini memberi 1,75 koneksi untuk panggilan 2 detik. Dari mana angka 2 detik, dan bagaimana menggantinya dengan angka nyata?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Angka 2 detik adalah Asumsi: layanan push belum ada, jadi lama panggilannya belum pernah diukur. Sesudah fitur dibangun, W dibaca dari log akses atau `pg_stat_statements`, lalu L dihitung ulang dengan λ kelas bayar dan transfer.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Estimasi menyebut rumus, masukan, dan label Asumsi atau Rekaman lab untuk setiap angka.
+- [ ] L = λ × W dihitung per kelas request, dengan λ kelas yang memegang koneksi itu.
+- [ ] W panggilan luar yang belum ada ditulis sebagai Asumsi, bukan "pengalaman umum".
+- [ ] Batas pool atau `max_connections` dibandingkan dengan L, bukan dengan request per detik.
+- [ ] Kapasitas server tidak disebut tanpa load test.
+
+### Bacaan lanjut
+
+- [Little 1961, Operations Research 9(3): A Proof for the Queuing Formula L = λW](https://doi.org/10.1287/opre.9.3.383)
+- [Google SRE book: Handling Overload](https://sre.google/sre-book/handling-overload/), bagian "The Pitfalls of Queries per Second"
+- [PostgreSQL 18: Connection Settings](https://www.postgresql.org/docs/18/runtime-config-connection.html)
+- [Go: database/sql, DB.SetMaxOpenConns](https://pkg.go.dev/database/sql#DB.SetMaxOpenConns)
+- [PostgreSQL 18: pg_stat_statements](https://www.postgresql.org/docs/18/pgstatstatements.html)
+
+</Blok>

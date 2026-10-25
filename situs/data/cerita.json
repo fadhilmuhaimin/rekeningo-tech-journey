@@ -2022,8 +2022,9 @@
       "prasyarat": [
         "t2-m17"
       ],
-      "ada": false,
-      "nomor": "2.30"
+      "ada": true,
+      "nomor": "2.30",
+      "menit": 15
     },
     {
       "id": "t2-adr-21",
