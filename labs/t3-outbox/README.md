@@ -62,6 +62,7 @@ Satu hal diubah di `labs/api-t3`, satu bagian dijalankan, bagian itu harus gagal
 | `Backoff` mengembalikan batas tanpa jitter | `retry` | Gagal: sebaran `coba_lagi` 0,005 detik, harus lebih dari 0,5 |
 | Klaim bawaan 5 detik jadi 2 detik | `ganda` | Gagal: selang dua pengiriman 2,2 detik, harus sedikit di atas 5 |
 | `KlaimOutbox` tanpa `ORDER BY kelas` | `queue` | Gagal: urutan kirim bukan uang, top-up, promo |
+| Semua klausa kunci dihapus dari `KlaimOutbox` (tanpa `FOR UPDATE`) | `klaim` | Gagal: tiga worker mengklaim 104 baris untuk 60 baris (ganda) |
 | `FOR UPDATE SKIP LOCKED` dihapus dari `KlaimOutbox` | `klaim`, `queue` | Lolos, dan kedua rekaman identik per byte: klaim tetap benar, hanya menunggu (temuan 1). Tidak terdeteksi, dan ditulis di sini supaya halaman tidak mengaku sebaliknya |
 
 ## Tidak dijalankan
