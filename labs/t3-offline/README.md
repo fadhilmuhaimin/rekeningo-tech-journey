@@ -76,13 +76,42 @@ Aturan jalur key (keputusan 971):
 
 ## Uji mutasi
 
-Satu perubahan, jalankan, pulihkan; `git diff` kosong sesudahnya. Hasil dari run lab dan tes Go (bagian "Jujur tentang hasilnya" di bawah).
+Satu perubahan, jalankan, pulihkan; `git diff` kosong sesudahnya. Hasil dari tes Go dan run lab, dengan mutan yang sempat lolos di bagian berikutnya.
 
-MUTASI_TABEL
+| Mutasi | Tes Go | Rekaman lab |
+|---|---|---|
+| M1 cek versi di `TerapkanOperasi` dibuang | gagal: `TestSinkronBersamaanSatuPemenang`, `TestSinkronSekaliPerKunci` | gagal `versi`: bakso dijawab 200, harus 409 |
+| M2 `UmurKunci` 24 jam jadi 7 hari | gagal: `TestKunciKedaluwarsaSesudah24Jam` | gagal `kunci24` E (saldo 166.000, harus 103.000) dan `m24` D |
+| M3 `UmurKunci` jadi 1 jam | gagal: `TestKunciKedaluwarsaSesudah24Jam` | gagal `kunci24` C: ulangan 17 jam bukan jawaban pertama |
+| M4 klaim ulang key kedaluwarsa dimatikan | gagal: `TestKunciKedaluwarsaSesudah24Jam` | gagal `kunci24` E |
+| M5 pemeriksaan isi beda dibuang | gagal: `TestKlaimKunciBaruBerjalanUlangBeda`, `TestIdempotenUlanganTanpaEfekGanda` | gagal `kunci24` D: isi beda dijawab 201, harus 422 |
+| M6 pemeriksaan akun lain dibuang | gagal: `TestKlaimKunciBaruBerjalanUlangBeda` | gagal `kunci24` D |
+| M7 retensi `-bersih` 14 hari jadi 1 hari | tidak ada tes Go (kode di `cmd/api`) | gagal `sinkron14` A: 1 baris terbuang, harus 0 |
+| M8 batas queue 7 hari dibuang | gagal: `TestSinkronBatasUmurQueue`, `TestSinkronSekaliPerKunci` | gagal `sinkron14` B: 7 hari 1 jam dijawab 200 |
+| M9 kunci sinkron dengan isi lain diterima | gagal: `TestSinkronSekaliPerKunci` | gagal `sinkron14` C |
+| M10 `PUT /produk/{id}/stok` tanpa middleware key | tidak ada tes Go | gagal `m24` C: ulangan 17 jam menerapkan stok lagi |
+| M11 respons 5xx dan 429 ikut disimpan | gagal: `TestIdempotenUlanganTanpaEfekGanda` | tidak direkam |
+| M12 `PATCH /produk/{id}` tanpa syarat versi | gagal: `TestUbahProdukBersamaanSatuPemenang`, `TestUbahProdukBersyaratVersi` | gagal `versi` B: tab dasbor stale dijawab 200 |
+| M13 penolakan khusus pembayaran di sinkron dibuang | gagal: `TestSinkronMenolakPembayaran` | gagal `sinkron14` E: pesan penolakan berubah |
+| M14 handler yang panik tidak melepas key | gagal: `TestIdempotenPanikMelepasKey` | tidak direkam |
+| M15 respons tidak disimpan | gagal: `TestIdempotenUlanganTanpaEfekGanda` | gagal `kunci24` C: ulangan dijawab 409 sedang diproses |
+| M16 tanpa header tidak diteruskan | gagal: `TestIdempotenTanpaHeaderMeneruskan` | gagal `kunci24` A: dijawab 400, harus 201 |
+| M17 sidik jari mengabaikan path | gagal: `TestIdempotenKeySamaEndpointBeda` | tidak direkam |
+| M18 sidik jari memakai body mentah | gagal: `TestIdempotenUlanganTanpaEfekGanda` | tidak direkam |
+| M19 batas kedaluwarsa `<=` jadi `<` | gagal: `TestKunciKedaluwarsaSesudah24Jam` | tidak direkam |
 
 ## Jujur tentang hasilnya
 
-HASIL_JUJUR
+Semua 19 mutasi tertangkap oleh tes Go, rekaman lab, atau keduanya. Empat lolos pada percobaan pertama dan ditutup sebelum PR dibuka.
+
+- M12 lolos di lab: dasbor di rekaman selalu mengirim versi terbaru. Rekaman `versi` sekarang punya tab dasbor stale yang harus dijawab 409.
+- M13 lolos di tes Go: penolakan umum ("stok atau harga") tetap `ErrValidasi`. Tes sekarang memeriksa field dan pesannya.
+- M2 akan lolos di tes Go karena tes memakai konstanta `UmurKunci` sendiri sebagai batas. Tes sekarang memakai angka 24 jam tertulis.
+- M5 dan M6 pada percobaan pertama gagal di lab karena `KeyError` di skrip, bukan karena rekaman memeriksa isinya. Skrip sekarang gagal dengan pesan.
+
+Mutasi sinkron M9 versi pertama (membuang satu field dari perbandingan) bukan mutan yang efektif: field lain tetap berbeda. Diganti dengan mematikan penolakan seluruhnya.
+
+Yang tidak dimutasi dan tidak dijalankan: server yang mati di antara COMMIT dan penyimpanan respons, serta jam database yang berbeda dari jam service. Lab memakai satu jam service untuk semua umur key.
 
 ## Yang belum ada di lab ini
 
