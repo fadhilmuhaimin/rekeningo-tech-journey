@@ -26,6 +26,8 @@ Pertanyaannya sama untuk setiap komponen: **masalah apa yang dijawabnya hari ini
 
 "Server kedua" di sini adalah salinan kedua API yang sama. Service kedua dengan database sendiri dan Kubernetes tetap ditunda seperti di ADR 12.
 
+Halaman ini memutuskan empat komponen itu saja. Celah lain yang sudah diketahui tidak tercakup, dan daftarnya ada di akhir halaman.
+
 </Blok>
 
 <Blok nama="Opsi" buka>
@@ -48,10 +50,12 @@ Opsi keempat, antarmuka cache dan queue yang kosong, sudah ditolak di [[t1-adr-1
 |---|---|---|---|
 | Cache | Data yang sama dibaca berulang, dan memori lebih cepat daripada query | M11 selesai di query. Halaman pertama riwayat Budi 30,5 ms dengan N+1, 1,4 ms dengan satu query dan index (Rekaman lab, `n1.txt` bagian E). Puncak ±1,4 request per detik (Asumsi). Satu cache sudah ada: `buku.saldo_cache` | Salinan di luar database tidak ikut COMMIT dan ROLLBACK. Facebook memakai lease supaya cache tidak menyimpan nilai lama. `saldo_cache` yang sekarang pun butuh job malam: rekaman menemukan selisih Rp5.000 |
 | Queue | Pekerjaan lambat yang tidak perlu ditunggu user, misalnya notifikasi | Kode server api-t2 hanya memanggil database, dan PRD v2 menunda notifikasi ke v3. Satu pekerjaan besar, top-up 1.000 akun, adalah satu transaction database. Pencairan 12 warung per minggu memakai batch dan status, bukan queue ([[t2-job-rekonsiliasi]]) | Queue seperti SQS standar mengirim at-least-once, jadi pemrosesnya harus aman dijalankan dua kali. Worker adalah proses kedua yang dipantau |
-| Redis | Tidak ada yang dijawabnya sendiri. Ia alat untuk cache, queue, atau data bersama antar proses | Tidak satu pun kebutuhan di atas ada. Batas laju per IP di memori satu proses menolak 19 dari 29 percobaan tanpa menyentuh database, dan kunci per akun ada di PostgreSQL (`ratelimit.txt` bagian D dan G, lab c4) | Komponen yang menyimpan data. Tanpa persistence ia kosong setiap restart, snapshot RDB bisa kehilangan data beberapa menit, dan replikasi asinkron bisa kehilangan write yang sudah dijawab saat failover. Login butuh aturan untuk saat Redis tidak menjawab |
-| Server kedua | Kapasitas di atas satu server, dan layanan yang tetap hidup saat satu proses berhenti | Puncak ±1,4 request per detik (Asumsi). Kapasitas satu server belum pernah diukur: sepuluh lab Tahap 2 tidak memuat perkakas load test | Butuh proxy di depan, komponen yang dipasang, dipantau, dan diperbarui. Proses tidak boleh menyimpan di memorinya apa pun yang dibutuhkan request berikutnya |
+| Redis | Tidak ada yang dijawabnya sendiri. Ia alat untuk cache, queue, atau data bersama antar proses | Tidak satu pun kebutuhan di atas ada. Batas laju per IP di memori satu proses menolak 19 dari 29 percobaan tanpa menyentuh database, dan kunci per akun ada di PostgreSQL (`login/ratelimit.txt` bagian D dan G, lab c4) | Komponen yang menyimpan data. Tanpa persistence ia kosong setiap restart, snapshot RDB bisa kehilangan data beberapa menit, dan replikasi asinkron bisa kehilangan write yang sudah dijawab saat failover. Login butuh aturan untuk saat Redis tidak menjawab |
+| Server kedua | Kapasitas di atas satu server, dan layanan yang tetap hidup saat satu proses berhenti | Puncak ±1,4 request per detik (Asumsi). Kapasitas satu server belum pernah diukur: sepuluh lab Tahap 2 tidak memuat perkakas load test | Butuh proxy di depan, komponen yang dipasang, dipantau, dan diperbarui. Menurut Twelve-Factor (heuristik praktisi), proses tidak menyimpan di memorinya apa pun yang dibutuhkan request berikutnya |
 
 Sumber: [Redis: persistence](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/), [Redis: replication](https://redis.io/docs/latest/operate/oss_and_stack/management/replication/), [Nishtala dkk., Scaling Memcache at Facebook, NSDI 2013](https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf), [Amazon SQS: at-least-once delivery](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues-at-least-once-delivery.html), [The Twelve-Factor App: Processes](https://12factor.net/processes).
+
+Catatan sumber: dokumentasi Redis adalah halaman `latest` yang dibuka 2026-10-25, tanpa nomor versi, dan Redis tidak dijalankan. Twelve-Factor adalah panduan praktisi 2011 yang dipakai sebagai heuristik, bukan standar.
 
 ### Yang terjadi selama belum dipasang
 
@@ -83,7 +87,7 @@ Menunda punya biaya, dan tabel ini menulisnya per komponen.
 
 **Kasus industri.** Facebook menulis tentang cache baca di skala yang sangat berbeda ([Nishtala dkk., 2013](https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf)). Di jaringan sosial itu, konten dibaca satu orde besaran lebih banyak daripada dibuat (bagian 2). Sistemnya menangani lebih dari satu miliar request per detik (bagian 1).
 
-Mereka butuh lease, satu mekanisme tambahan, karena dua masalah. Stale set terjadi saat update yang berurutan sampai di cache dengan urutan terbalik dan cache menyimpan nilai lama. Thundering herd terjadi saat satu key sering ditulis dan dibaca. Untuk key yang rentan, puncak query ke database turun dari 17 ribu menjadi 1,3 ribu per detik dalam seminggu pengamatan (bagian 3.2.1).
+Mereka butuh lease, satu mekanisme tambahan, karena dua masalah. Stale set terjadi saat update yang bersamaan sampai di cache dengan urutan tertukar, dan cache menyimpan nilai lama. Thundering herd terjadi saat satu key sering ditulis dan dibaca. Untuk key yang rentan, puncak query ke database turun dari 17 ribu menjadi 1,3 ribu per detik dalam seminggu pengamatan (bagian 3.2.1).
 
 Batas kasus ini: data sosial yang boleh tidak terbaru sesaat, bukan uang, dan beban miliaran request. Rekeningo tidak meminjam arsitekturnya. Yang dipinjam adalah pertanyaannya: cache membutuhkan mesin untuk menjaga nilainya benar, dan mesin itu dibangun karena beban baca tidak lagi muat di database.
 
@@ -123,28 +127,36 @@ Pilih **Seluruh riwayat · N+1**: pemicu ada di ±2,6 permintaan per detik, hany
 
 Pilih **Halaman pertama · JOIN + index**: pemicu ada di ±3.571 per detik, atau 2.571 kali puncak. Satu query dan satu index menggeser jarak halaman pertama ±22 kali, dari 30,5 ms ke 1,4 ms, tanpa komponen baru ([[t2-index]]).
 
-Angka di widget adalah batas. W dari rekaman tanpa jaringan adalah batas bawah, dan anggapan semua request berbentuk satu permintaan adalah batas atas. Kapasitas CPU server tidak ikut dihitung, karena belum diukur.
+Angka di widget memuat dua penyederhanaan yang berlawanan arah. W dari rekaman tanpa jaringan terlalu kecil, jadi jarak sebenarnya lebih dekat. Anggapan semua request berbentuk satu permintaan terlalu besar untuk kelas itu, jadi jarak sebenarnya lebih jauh.
+
+Bila W sebenarnya 10 kali lebih besar (14 ms), jaraknya masih ±257 kali puncak (hitungan, bukan rekaman). Kapasitas CPU server tidak ikut dihitung, karena belum diukur.
 
 </Blok>
 
 <Blok nama="Kapan keputusan ini salah">
 
-Setiap baris di bawah adalah pemicu untuk membuka ADR ini lagi. Pemicunya kejadian atau angka yang bisa dibaca dari alat, bukan tanggal. Pool 10 adalah Asumsi dari [[t2-estimasi]], dan ambang 5 koneksi, separuh pool, adalah Asumsi halaman ini.
+Setiap baris di bawah adalah pemicu untuk membuka ADR ini lagi. Pemicunya kejadian atau angka yang bisa dibaca dari alat, bukan tanggal. Pool 10 adalah Asumsi dari [[t2-estimasi]], dan ambang 5 koneksi, separuh pool, adalah Asumsi halaman ini. Separuh dipilih karena L adalah rata-rata, jadi batas tidak dipasang tepat di pool.
 
 | Komponen | Salah saat | Yang diperiksa | Angka Tahap 2 sekarang | Dibaca dari | Direvisi di |
 |---|---|---|---|---|---|
-| Cache | Satu query baca yang sama menahan koneksi, walau `EXPLAIN (ANALYZE, BUFFERS)` sudah memakai index | L = λ × W untuk kelas itu mencapai 5 koneksi | Halaman pertama riwayat: L = 0,0019 pada puncak ±1,4. Pemicu di ±3.571 per detik, 2.571 kali puncak (batas) | `pg_stat_statements` (`calls`, `mean_exec_time`) dan log akses | [[t3-cache]] |
-| Queue | Satu kelas request menahan koneksi selama panggilan ke layanan luar | L = λ kelas × (0,02 + W luar) mencapai 5 koneksi | λ bayar dan transfer 0,10 per detik: W luar ±48 detik baru mencapai 5 | Log akses dan `db.Stats()` | [[t3-outbox]] |
+| Cache | Satu query baca yang sama menahan koneksi, walau `EXPLAIN (ANALYZE, BUFFERS)` sudah memakai index | L = λ × W untuk kelas itu mencapai 5 koneksi | Halaman pertama riwayat: L = 0,0019 pada puncak 1,39. Pemicu di ±3.571 per detik, 2.571 kali puncak (W tanpa jaringan: jarak sebenarnya lebih dekat) | `pg_stat_statements` (`calls`, `mean_exec_time`) dan log akses | [[t3-cache]] |
+| Queue | Satu kelas request menahan koneksi selama panggilan ke layanan luar | L = λ kelas × (0,02 + W luar) mencapai 5 koneksi | λ bayar dan transfer 0,104 per detik: W luar ±48 detik baru mencapai 5 | Log akses dan `db.Stats()` | [[t3-outbox]] |
 | Redis | Satu kebutuhan data bersama antar proses muncul, dan tabel PostgreSQL untuk kebutuhan itu sudah diukur dan tidak cukup | Kejadian: kebutuhan itu ada. Angka: W operasinya di PostgreSQL | Belum ada kebutuhan semacam itu. Redis untuk batas laju ditunda di ADR 20 ([[t2-login-aman]]) | `pg_stat_statements` untuk W operasi di PostgreSQL | [[t3-rate-limit-redis]] |
 | Server kedua | Puncak yang diperkirakan mencapai separuh kapasitas satu server hasil load test, atau PRD meminta deploy tanpa jeda | Puncak ÷ kapasitas terukur ≥ 0,5 (Asumsi: separuh kapasitas, sisanya untuk lonjakan di atas perkiraan) | Kapasitas belum diukur. Puncak ±1,4 per detik | Load test dan log akses | [[t3-dua-instance]] |
 
-Jarak untuk queue menyempit di Tahap 3. λ kelas bayar dan transfer naik 8,3 kali, dari 0,10 ke 0,87 per detik. Lima koneksi tercapai pada W luar ±5,7 detik (Asumsi, hitungan [[t2-estimasi]]).
+Jarak untuk queue menyempit di Tahap 3. λ kelas bayar dan transfer naik 8,3 kali, dari 0,104 ke 0,868 per detik. Lima koneksi tercapai pada W luar ±5,7 detik (Asumsi, hitungan [[t2-estimasi]]).
 
 **Yang belum diukur.** Dua angka di tabel itu belum ada: kapasitas satu server dan W operasi bersama di PostgreSQL. Selama keduanya kosong, pemicu server kedua dan Redis hanya bisa dipicu kejadian. Membaca ulang ADR ini setiap PRD baru datang adalah satu-satunya pagar sampai alat ukurnya ada.
 
 **Yang akan merevisinya.** Tahap 3 membuka ADR ini lagi per komponen, di halaman yang tertulis di kolom terakhir. ADR 12 tetap berlaku untuk service kedua dan Kubernetes.
 
-Celah yang lebih kecil dicatat di tabel "Sengaja belum dilakukan" di halamannya masing-masing, misalnya [[t2-login-aman]] dan [[t2-job-rekonsiliasi]].
+Daftar empat komponen ini bukan daftar semua yang belum dilakukan di Tahap 2. Celah lain yang sudah diketahui dicatat di halamannya masing-masing:
+
+- Password sementara berpola dan jalur lupa password: [[t2-login-aman]].
+- Idempotency-Key di api-t2: [[t2-idempotency]].
+- Deadlock top-up CSV: [[t2-race-lock]].
+- Penghapusan data pribadi: [[t2-adr-ledger]].
+- Penutupan periode tutup buku: [[t2-m17]].
 
 ### Cek diri
 
@@ -153,7 +165,7 @@ Celah yang lebih kecil dicatat di tabel "Sengaja belum dilakukan" di halamannya 
 <details class="success">
 <summary>Jawaban</summary>
 
-M11 selesai di query. Halaman pertama riwayat turun dari 30,5 ms (N+1) ke 1,4 ms (satu query dan index). Untuk menahan 5 koneksi, permintaan itu harus datang ±3.571 kali per detik, atau 2.571 kali puncak ±1,4 (batas, W tanpa jaringan). Cache dibuka lagi bila query sudah benar dan L kelas itu mencapai 5.
+M11 selesai di query. Halaman pertama riwayat turun dari 30,5 ms (N+1) ke 1,4 ms (satu query dan index). Untuk menahan 5 koneksi, permintaan itu harus datang ±3.571 kali per detik, atau 2.571 kali puncak 1,39 (W tanpa jaringan, jadi jarak sebenarnya lebih dekat). Cache dibuka lagi bila query sudah benar dan L kelas itu mencapai 5.
 
 </details>
 
@@ -166,12 +178,12 @@ Beban 12 pekerjaan per minggu tidak butuh broker atau engine baru. Queue standar
 
 </details>
 
-**3.** Bayar dan transfer Tahap 2 datang 0,10 per detik di puncak (Asumsi). Berapa detik panggilan layanan luar supaya rata-rata 5 koneksi tertahan, dengan 0,02 detik untuk query database?
+**3.** Bayar dan transfer Tahap 2 datang 0,104 per detik di puncak (Asumsi). Berapa detik panggilan layanan luar supaya rata-rata 5 koneksi tertahan, dengan 0,02 detik untuk query database?
 
 <details class="success">
 <summary>Jawaban</summary>
 
-0,10 × (0,02 + t) = 5, jadi t ≈ 48 detik. Dengan λ Tahap 3 (0,87 per detik), t turun ke ±5,7 detik. Keduanya Asumsi, dan L adalah rata-rata, jadi satu detik tertentu bisa lebih tinggi.
+0,104 × (0,02 + t) = 5, jadi t ≈ 48 detik. Dengan λ Tahap 3 (0,868 per detik), t turun ke ±5,7 detik. Kedua λ adalah 900 dan 7.500 transaksi per hari ÷ 86.400 × 10, yang dibulatkan [[t2-estimasi]] ke 0,10 dan 0,87. Keduanya Asumsi, dan L adalah rata-rata, jadi satu detik tertentu bisa lebih tinggi.
 
 </details>
 

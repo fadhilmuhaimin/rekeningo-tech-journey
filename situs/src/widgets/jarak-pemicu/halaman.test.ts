@@ -49,6 +49,7 @@ describe("registry dan rekaman: angka turunan yang dipakai halaman", () => {
     expect([a3.user, a3.aktif, a3.req, a3.puncak]).toEqual([10000, 25, 60, 10]);
     expect(a2.tim).toBe("2 developer");
     expect(desimal1(puncak2)).toBe("1,4");
+    expect(desimal(puncak2, 2)).toBe("1,39"); // halaman menulis 1,39 di tempat 2.571 diturunkan; 3.571 ÷ 1,4 memberi 2.551, bukan 2.571
     expect(Math.round(puncak3)).toBe(17);
     expect(POOL).toBe(10);
     expect(AMBANG).toBe(5);
@@ -65,11 +66,24 @@ describe("registry dan rekaman: angka turunan yang dipakai halaman", () => {
     expect(besar(kaliPuncak(wSelurN1, puncak2))).toBe("1,9");
   });
 
+  test("kepekaan: W sepuluh kali lebih besar (14 ms) menggeser jarak ke ±257 kali, lebih dekat dari 2.571", () => {
+    expect(wHal1Index * 10).toBe(14);
+    expect(Math.round(kaliPuncak(wHal1Index * 10, puncak2))).toBe(257);
+    expect(kaliPuncak(wHal1Index * 10, puncak2)).toBeLessThan(kaliPuncak(wHal1Index, puncak2));
+  });
+
   test("queue: λ bayar dan transfer 0,10 (Tahap 2) dan 0,87 (Tahap 3), naik 8,3 kali; W luar untuk 5 koneksi", () => {
     expect(desimal(bayar2, 2)).toBe("0,10");
     expect(desimal(bayar3, 2)).toBe("0,87");
     expect(desimal(bayar3 / bayar2, 1)).toBe("8,3");
+    expect(desimal(bayar2, 3)).toBe("0,104");
+    expect(desimal(bayar3, 3)).toBe("0,868");
     expect(Math.round(AMBANG / bayar2 - W_DB)).toBe(48);
+    // Hitung ulang pembaca dengan angka yang tertulis: 0,104 memberi 48, 0,10 memberi 50 (sebab halaman menulis 0,104).
+    expect(Math.round(AMBANG / 0.104 - W_DB)).toBe(48);
+    expect(Math.round(AMBANG / 0.1 - W_DB)).toBe(50);
+    expect(desimal(AMBANG / 0.868 - W_DB, 1)).toBe("5,7");
+    expect(desimal(0.868 / 0.104, 1)).toBe("8,3");
     expect(desimal(AMBANG / bayar3 - W_DB, 1)).toBe("5,7");
     // L di tabel 2.30 untuk panggilan 2 detik tetap 1,75 (diagram Rantai).
     expect(desimal(bayar3 * (W_DB + 2), 2)).toBe("1,75");
@@ -128,6 +142,29 @@ describe("halaman sengaja-belum.mdx: tiap angka turunan dari rekaman, registry, 
     harus("sepuluh lab Tahap 2 tidak memuat perkakas load test");
   });
 
+  test("sumber berlabel dan berkas rekaman yang benar", () => {
+    harus("(`login/ratelimit.txt` bagian D dan G, lab c4)");
+    // labs/c4-ratelimit/output/ratelimit.txt (tanpa login/) adalah rekaman lain: bagian D-nya "dua instance", bukan "dua lapis".
+    expect(baca("labs/c4-ratelimit/output/ratelimit.txt")).toContain("== D. BATAS=akun+ip · dua instance API");
+    harus("dokumentasi Redis adalah halaman `latest` yang dibuka 2026-10-25, tanpa nomor versi, dan Redis tidak dijalankan");
+    harus("Twelve-Factor adalah panduan praktisi 2011 yang dipakai sebagai heuristik, bukan standar");
+    harus("Menurut Twelve-Factor (heuristik praktisi), proses tidak menyimpan di memorinya");
+    harus("update yang bersamaan sampai di cache dengan urutan tertukar");
+  });
+
+  test("daftar bukan daftar lengkap: celah lain disebut dan benar ada di halaman yang ditaut", () => {
+    harus("Halaman ini memutuskan empat komponen itu saja.");
+    harus("Daftar empat komponen ini bukan daftar semua yang belum dilakukan di Tahap 2.");
+    const di = (berkas: string, kalimat: string) => expect(baca(`situs/src/content/docs/tahap-2/${berkas}`), `${berkas}: ${kalimat}`).toContain(kalimat);
+    di("brute-force.mdx", "Di rekaman api-t2 polanya `sementara-<id>`");
+    di("brute-force.mdx", "| Lupa password mandiri dan kabar ke pemilik saat ada percobaan |");
+    di("retry-idempotency.mdx", "| Pola ini di `labs/api-t2` (`POST /transfers`, `POST /kiriman`) |");
+    di("race-lock.mdx", "Top-up CSV mengunci buku karyawan satu per satu menurut urutan baris CSV");
+    di("adr-ledger.mdx", "| Data pribadi harus bisa dihapus |");
+    di("m17-prd-v3.mdx", "mencatat penutupan periode. Keduanya belum dibuat di lab");
+    for (const id of ["t2-login-aman", "t2-idempotency", "t2-race-lock", "t2-adr-ledger", "t2-m17"]) harus(`[[${id}]]`);
+  });
+
   test("Yang terjadi selama belum dipasang", () => {
     harus("Halaman pertama riwayat 1,4 ms, batas bawah karena rekaman tanpa jaringan");
     harus("3 dari 8 putaran prober, satu per detik, tanpa jawaban (`m6.txt` bagian C, lab api-t1)");
@@ -147,17 +184,21 @@ describe("halaman sengaja-belum.mdx: tiap angka turunan dari rekaman, registry, 
     harus("pemicu ada di ±2,6 permintaan per detik, hanya 1,9 kali puncak Tahap 2");
     harus("pemicu ada di ±3.571 per detik, atau 2.571 kali puncak");
     harus("menggeser jarak halaman pertama ±22 kali, dari 30,5 ms ke 1,4 ms");
-    harus("L = 0,0019 pada puncak ±1,4. Pemicu di ±3.571 per detik, 2.571 kali puncak (batas)");
-    harus("λ bayar dan transfer 0,10 per detik: W luar ±48 detik baru mencapai 5");
-    harus("λ kelas bayar dan transfer naik 8,3 kali, dari 0,10 ke 0,87 per detik");
+    harus("L = 0,0019 pada puncak 1,39. Pemicu di ±3.571 per detik, 2.571 kali puncak (W tanpa jaringan: jarak sebenarnya lebih dekat)");
+    harus("Bila W sebenarnya 10 kali lebih besar (14 ms), jaraknya masih ±257 kali puncak (hitungan, bukan rekaman)");
+    harus("terlalu kecil, jadi jarak sebenarnya lebih dekat");
+    harus("terlalu besar untuk kelas itu, jadi jarak sebenarnya lebih jauh");
+    harus("λ bayar dan transfer 0,104 per detik: W luar ±48 detik baru mencapai 5");
+    harus("λ kelas bayar dan transfer naik 8,3 kali, dari 0,104 ke 0,868 per detik");
     harus("Lima koneksi tercapai pada W luar ±5,7 detik");
     harus("Puncak ÷ kapasitas terukur ≥ 0,5");
   });
 
   test("Cek diri memakai angka yang sama", () => {
     harus("Halaman pertama riwayat turun dari 30,5 ms (N+1) ke 1,4 ms (satu query dan index)");
-    harus("0,10 × (0,02 + t) = 5, jadi t ≈ 48 detik");
-    harus("Dengan λ Tahap 3 (0,87 per detik), t turun ke ±5,7 detik");
+    harus("0,104 × (0,02 + t) = 5, jadi t ≈ 48 detik");
+    harus("Dengan λ Tahap 3 (0,868 per detik), t turun ke ±5,7 detik");
+    harus("atau 2.571 kali puncak 1,39 (W tanpa jaringan, jadi jarak sebenarnya lebih dekat)");
   });
 
   test("setiap bilangan bertitik ribuan di halaman berasal dari hitungan atau rekaman", () => {
@@ -166,6 +207,8 @@ describe("halaman sengaja-belum.mdx: tiap angka turunan dari rekaman, registry, 
       besar(kaliPuncak(wHal1Index, puncak2)), // 2.571
       angka(1000), // top-up 1.000 akun
       angka(selisihCache), // Rp5.000: selisih cache di rekaman migrasi bagian E
+      angka(Math.round(((a3.user * a3.aktif) / 100) * TRX)), // 7.500 transaksi per hari di Tahap 3 (Cek diri 3), seperti 2.30
+      angka(86_400), // detik per hari
     ]);
     const dipakai = [...halaman.replace(/\]\([^)]*\)/g, "]()").matchAll(/(?<![\d.])\d{1,3}(?:\.\d{3})+(?![\d.])/g)].map((m) => m[0]);
     expect(dipakai.length).toBeGreaterThan(5);
@@ -180,7 +223,9 @@ describe("halaman sengaja-belum.mdx: tiap angka turunan dari rekaman, registry, 
       "1,9", // kali puncak seluruh riwayat N+1
       "2,6", // λ pemicu seluruh riwayat N+1
       "0,0019", // L halaman pertama
-      "0,10", "0,87", // λ bayar dan transfer
+      "0,10", "0,87", // λ bayar dan transfer, dibulatkan seperti tabel 2.30 (disebut di jawaban Cek diri 3)
+      "0,104", "0,868", // λ bayar dan transfer tiga desimal: 900 dan 7.500 per hari ÷ 86.400 × 10
+      "1,39", // puncak Tahap 2 dua desimal seperti tabel 2.30
       "5,7", // W luar Tahap 3
       "8,3", // naik 8,3 kali
       "0,02", // W database 20 ms (Asumsi 2.30)
@@ -250,6 +295,17 @@ describe("rujukan ke halaman lain", () => {
       expect(t1, k).toContain(k);
     }
   });
+  test("nomor ADR di prosa cocok dengan judul halaman yang ditaut dan dengan sumber (mutasi peninjau PR 346)", () => {
+    const sebut = [...new Set([...halaman.matchAll(/ADR (\d+)/g)].map((m) => m[1]!))].sort();
+    expect(sebut).toEqual(["12", "20", "21"]);
+    const judul = (id: string) => cerita.halaman.find((h) => h.id === id)!.judul as string;
+    harus("Redis untuk batas laju ditunda di ADR 20 ([[t2-login-aman]])");
+    expect(judul("t2-login-aman")).toContain("ADR 20");
+    harus("ADR 12 Tahap 1 ([[t1-adr-12]])");
+    expect(baca("situs/src/content/docs/tahap-1/sengaja-belum.mdx")).toMatch(/^title: .*ADR 12/m);
+    expect(baca("plan/RISET-TAHAP-2.md")).toContain("NSDI 2013");
+    harus("[Nishtala dkk., Scaling Memcache at Facebook, NSDI 2013](https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf)");
+  });
   test("urutan PROPOSAL: query dan index, kerja lambat, cache, instance", () => {
     const p = baca("plan/PROPOSAL.md");
     const i = ["| Perbaiki query dan index |", "| Keluarkan kerja lambat dari request", "| Cache hasil baca yang sama |", "| Tambah instance API (stateless) |"].map((k) => p.indexOf(k));
@@ -284,6 +340,12 @@ describe("klaim 'tidak ada' yang dipakai halaman", () => {
     expect(LAB).toHaveLength(10);
     harus("sepuluh lab Tahap 2");
     expect(berkas.length).toBeGreaterThan(50);
+  });
+
+  test("kata kunci 'tidak' tidak hilang dari klaim perkakas load test di halaman", () => {
+    expect(halaman).not.toMatch(/(?<!tidak )(punya|memuat) perkakas load test/);
+    harus("Sepuluh lab Tahap 2 tidak punya perkakas load test.");
+    expect(halaman.match(/tidak (punya|memuat) perkakas load test/g)!.length).toBeGreaterThanOrEqual(3);
   });
 
   test("sepuluh lab Tahap 2 tidak memuat perkakas load test", () => {

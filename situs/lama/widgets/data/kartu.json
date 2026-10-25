@@ -1209,7 +1209,7 @@
   "judul": "2.31 ADR 21: Sengaja belum dilakukan",
   "url": "tahap-2/sengaja-belum/",
   "tanya": "Engineer baru bertanya kenapa riwayat Budi tidak di-cache. Jawab dengan angka Tahap 2.",
-  "jawab": "M11 selesai di query. Halaman pertama riwayat turun dari 30,5 ms (N+1) ke 1,4 ms (satu query dan index). Untuk menahan 5 koneksi, permintaan itu harus datang ±3.571 kali per detik, atau 2.571 kali puncak ±1,4 (batas, W tanpa jaringan). Cache dibuka lagi bila query sudah benar dan L kelas itu mencapai 5."
+  "jawab": "M11 selesai di query. Halaman pertama riwayat turun dari 30,5 ms (N+1) ke 1,4 ms (satu query dan index). Untuk menahan 5 koneksi, permintaan itu harus datang ±3.571 kali per detik, atau 2.571 kali puncak 1,39 (W tanpa jaringan, jadi jarak sebenarnya lebih dekat). Cache dibuka lagi bila query sudah benar dan L kelas itu mencapai 5."
  },
  {
   "id": "t2-adr-21-2",
@@ -1224,8 +1224,8 @@
   "halaman": "t2-adr-21",
   "judul": "2.31 ADR 21: Sengaja belum dilakukan",
   "url": "tahap-2/sengaja-belum/",
-  "tanya": "Bayar dan transfer Tahap 2 datang 0,10 per detik di puncak (Asumsi). Berapa detik panggilan layanan luar supaya rata-rata 5 koneksi tertahan, dengan 0,02 detik untuk query database?",
-  "jawab": "0,10 × (0,02 + t) = 5, jadi t ≈ 48 detik. Dengan λ Tahap 3 (0,87 per detik), t turun ke ±5,7 detik. Keduanya Asumsi, dan L adalah rata-rata, jadi satu detik tertentu bisa lebih tinggi."
+  "tanya": "Bayar dan transfer Tahap 2 datang 0,104 per detik di puncak (Asumsi). Berapa detik panggilan layanan luar supaya rata-rata 5 koneksi tertahan, dengan 0,02 detik untuk query database?",
+  "jawab": "0,104 × (0,02 + t) = 5, jadi t ≈ 48 detik. Dengan λ Tahap 3 (0,868 per detik), t turun ke ±5,7 detik. Kedua λ adalah 900 dan 7.500 transaksi per hari ÷ 86.400 × 10, yang dibulatkan 2.30 Estimasi Tahap 2 → 3 ke 0,10 dan 0,87. Keduanya Asumsi, dan L adalah rata-rata, jadi satu detik tertentu bisa lebih tinggi."
  },
  {
   "id": "t2-adr-21-4",
