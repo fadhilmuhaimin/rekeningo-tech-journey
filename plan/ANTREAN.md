@@ -1301,30 +1301,27 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.29 · M17: Tutup buku kedua lolos, PRD v3 datang
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.28
 - selesai bila: halaman Masalah 2.29 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
-
+- catatan: Selesai 2026-10-25 di PR #339 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 ### 2.30 · Estimasi Tahap 2 → 3
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.29
 - selesai bila: halaman Konsep 2.30 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
-
+- catatan: Selesai 2026-10-25 di PR #341 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 ### 2.31 · ADR 21: Sengaja belum dilakukan
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.30
 - selesai bila: halaman ADR 2.31 sesuai `plan/CERITA-TAHAP-2.md` bagian 4 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
-
+- catatan: Selesai 2026-10-25 di PR #346 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 ### 2.32 · Yang dibawa keluar dari Tahap 2
 
 - jenis: konten
@@ -1422,38 +1419,38 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### lab-api-t3 · Lab api-t3: api-t2 naik ke enam kota
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: T3-siap
 - selesai bila: Lab baru `labs/api-t3` (Go, schema sendiri di PostgreSQL bersama, `make -C labs/api-t3 run`, gagal keras bila hasil berbeda dari harapan) berangkat dari `labs/api-t2` dan menambah semua tabel naskah bagian 3b lewat migrasi baru di atas 000013: `kota`, `perangkat`, `outbox`, `produk`, `promo`, `operasi_sinkron`, `sesi` + `jenis` dan `csrf_hash`, `akun` + `kota_id` (boleh kosong untuk admin dan sistem) dan jenis `hr`; kolom persis mengikuti skema lab, selisih dengan blok mermaid naskah dicatat (lab yang benar). Jalur uang menulis jurnal, posting, dan baris `outbox` dalam satu transaction (ADR 23) dan tidak memanggil jaringan di dalam transaction (ADR 22: timeout 3 detik di setiap client, `idle_in_transaction_session_timeout` 5 detik). Batas pool 10 ditetapkan eksplisit (`SetMaxOpenConns(10)` atau pgxpool `MaxConns` 10) dan direkam, karena api-t2 memakai `database/sql` tanpa batas bawaan. Ada: daftar perangkat dan token push; katalog dan ubah produk bersyarat versi; promo per kota; laporan harian dan ekspor CSV untuk dasbor; endpoint sinkron bersyarat versi; catatan pembayaran maksimal 100 karakter di `jurnal.keterangan`; layanan push tiruan lokal di container (menjawab, lambat, menggantung, 503). Mode rentan seperti `api-t1` (push di dalam transaction dan client tanpa batas waktu untuk M18; kursor `(dibuat, id)` untuk M19) supaya `t3-pool` dan `t3-outbox` berbagi lab ini, bukan salinan. Tes Go untuk aturan uang dan outbox dari PostgreSQL; rekaman `output/*.txt` dari database bersih, diulang identik (status, saldo, urutan; bukan waktu); port dan nama kontainer lewat `labs/lab_env.*` (keputusan 860–864), tanpa 54333 tertulis tetap di luar nilai bawaan (`tools/cek_port_lab.py`); kontrak OpenAPI v3 bila endpoint berubah.
-- catatan: Jalur lab. Sumber `ERD3` dan lab utama halaman 3.3, 3.5, 3.7, 3.27. Versi dasar dari R3-01 (PostgreSQL 17.11, Go 1.27.3, pgx v5.11.0, dicek 2026-10-25) dicek ulang saat lab ditulis. Lab lama `t3-bayar` hanya bahan, bukan dasar angka (17 pembayaran per detik, 20 kali terlalu tinggi). Versi app Tahap 3 (3.0 notifikasi, 3.1 rilis M26) belum ada di naskah: kontrak mencatat versi app per endpoint.
+- catatan: Jalur lab. Sumber `ERD3` dan lab utama halaman 3.3, 3.5, 3.7, 3.27. Versi dasar dari R3-01 (PostgreSQL 17.11, Go 1.27.3, pgx v5.11.0, dicek 2026-10-25) dicek ulang saat lab ditulis. Lab lama `t3-bayar` hanya bahan, bukan dasar angka (17 pembayaran per detik, 20 kali terlalu tinggi). Versi app Tahap 3 (3.0 notifikasi, 3.1 rilis M26) belum ada di naskah: kontrak mencatat versi app per endpoint. Selesai 2026-10-25 di PR #340 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### lab-t3-pool · Lab t3-pool: layanan push yang menggantung dan connection pool
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: lab-api-t3
 - selesai bila: Lab `labs/t3-pool` (mode rentan `api-t3` atau server kecil sendiri bila lebih sederhana) merekam M18: layanan push tiruan menerima koneksi lalu tidak menjawab; beban 17,4 request per detik dengan 5% pembayaran (bukan 17 pembayaran per detik seperti `t3-bayar`), pembayaran memanggil push di dalam transaction dengan client tanpa batas waktu (timeout nol berarti tanpa batas, R3-08) dan pool 10; direkam: koneksi terpakai naik, pool 10 penuh dalam kira-kira 11,5 detik (hitungan 10 ÷ 0,87, bandingkan dengan ukuran), request lain ikut mengantre. Dibandingkan: pool 50 (hanya menunda), timeout 3 detik tetapi tetap di dalam transaction, dan panggilan keluar di luar transaction dengan timeout 3 detik dan `idle_in_transaction_session_timeout` 5 detik (ADR 22). L = λ × W dihitung dari data untuk t = 0,3 / 2 / 10 / 30 detik dan dibandingkan dengan 0,28 / 1,75 / 8,7 / 26,1; W 20 ms dan jumlah koneksi diukur lewat `pg_stat_activity`. Satu permintaan dilacak dari app ke API (log, metric, trace untuk 3.7; OpenTelemetry bila terpasang, kalau tidak berlabel Tidak dijalankan). Rekaman dari database bersih, diulang identik.
-- catatan: Jalur lab. Angka beban naskah bagian 3 (Asumsi) diganti rekaman di halaman; `t3-bayar` hanya bahan. Sumber W3-pool dan halaman 3.6, 3.7, 3.8.
+- catatan: Jalur lab. Angka beban naskah bagian 3 (Asumsi) diganti rekaman di halaman; `t3-bayar` hanya bahan. Sumber W3-pool dan halaman 3.6, 3.7, 3.8. Selesai 2026-10-25 di PR #343 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### lab-t3-outbox · Lab t3-outbox: outbox, klaim per baris, retry, dan queue promo
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: lab-api-t3
 - selesai bila: Lab `labs/t3-outbox` di atas `api-t3`: (a) jurnal dan baris outbox dalam satu transaction, ROLLBACK membuang keduanya; (b) kursor `(dibuat, id)` melewatkan baris yang COMMIT belakangan (M19), termasuk dua transfer ke penerima yang sama yang saling menunggu di baris `buku` penerima (dari kode `CatatJurnal`, belum direkam: rekam atau beri label Tidak dijalankan); (c) klaim per baris `FOR UPDATE SKIP LOCKED` dengan batas klaim: tiga worker tanpa baris ganda dan tanpa baris terlewat, urutan antar pesan tidak dijaga (direkam); (d) worker dihentikan di antara kirim dan tandai terkirim: klaim habis, pengiriman ulang, penerima menyaring `notifikasi_id` (M20), dengan panjang klaim sekitar 5 detik; (e) retry dengan backoff dan jitter, maksimal 5 percobaan lalu dead-letter; (f) 10.000 baris promo di depan notifikasi uang, tanpa kelas (urut waktu) lawan dengan kolom `kelas` (bayar dan transfer, top-up massal, promo), umur notifikasi tertua, kapasitas worker c ÷ t (c = 4, t = 0,3 detik; diukur) dibandingkan 13,3 per detik, laju promo paling banyak 5 per detik (M27); (g) `LISTEN`/`NOTIFY` hanya sebagai pembangun worker: nasib listener yang putus (R3-05; rekam atau Tidak dijalankan); retensi 7 hari. Rekaman dari database bersih, diulang identik.
-- catatan: Jalur lab. Sumber W3-outbox dan halaman 3.4, 3.9–3.13, 3.26, 3.27. Pembanding tulisan di stack lain (Laravel, Django) dari dokumentasi (R3-22), berlabel Tidak dijalankan bila tidak dijalankan di lab.
+- catatan: Jalur lab. Sumber W3-outbox dan halaman 3.4, 3.9–3.13, 3.26, 3.27. Pembanding tulisan di stack lain (Laravel, Django) dari dokumentasi (R3-22), berlabel Tidak dijalankan bila tidak dijalankan di lab. Selesai 2026-10-25 di PR #342 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### lab-t3-instance · Lab t3-instance: proxy, dua instance, dan rate limit lintas instance
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: lab-api-t3
 - selesai bila: Lab `labs/t3-instance`: proxy (Caddy; versi dicek ulang saat lab ditulis, R3-01) di depan dua instance `api-t3`. Direkam: (a) bawaan tanpa health check dan tanpa retry: instance mati tetap dipilih acak (R3-13) lawan health check aktif dan retry, tanpa error terlihat user; (b) panic di goroutine latar (ekspor laporan) mematikan seluruh proses Go dan tidak ada yang memulainya lagi (M21, [perlu verifikasi di lab]); (c) deploy bergulir dengan `Shutdown` saat SIGTERM: request yang sedang jalan selesai, lawan tanpa itu; (d) rate limit lintas instance: token bucket di memori dua instance memberi batas efektif per IP antara 10 dan 20 dan per akun antara 5 dan 10, sedangkan kunci akun di database tetap lima (keputusan 545, 550; rekaman `c4-ratelimit` bagian C dan F sebagai pembanding), lawan skrip atomik di Redis (`INCR` dan `EXPIRE`, R3-12) dengan timeout 50 ms dan Redis mati berarti batas lokal. Rekaman dari database bersih, diulang identik.
-- catatan: Jalur lab. Sumber halaman 3.14–3.17. Redis 8.10.2 atau yang lebih baru; lisensi dan Valkey sebagai pembanding hanya dicatat (PERLU-DICEK-PEMILIK).
+- catatan: Jalur lab. Sumber halaman 3.14–3.17. Redis 8.10.2 atau yang lebih baru; lisensi dan Valkey sebagai pembanding hanya dicatat (PERLU-DICEK-PEMILIK). Selesai 2026-10-25 di PR #345 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### lab-t3-cache · Lab t3-cache: katalog di memori proses lawan Redis
 
@@ -1485,20 +1482,20 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### lab-t3-mitm · Lab t3-mitm: proxy tiruan, pinning, dan rotasi pin
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: lab-api-t3
 - selesai bila: Lab `labs/t3-mitm`: mitmproxy (versi dicek ulang saat lab ditulis, R3-01) di container, tanpa target di luar container. Direkam: (a) client Dart dengan validasi sertifikat menolak sertifikat tiruan, sedangkan flag "terima sertifikat apa pun" (M26: ada di build staging, tidak dicabut dari build rilis) membiarkan proxy membaca header `Authorization`; (b) pin SPKI dengan satu cadangan (ADR 31): pin lolos, rotasi kunci server tanpa cadangan mematikan client dan dengan cadangan jalan terus; masa berlaku sertifikat daun paling lama 200 hari dihitung, tidak ditunggu (R3-18); (c) klaim dio#2418 (callback jalan sesudah body terkirim) diuji lebih dulu dan hasilnya memilih mekanisme di Dart; (d) HSTS di dasbor (RFC 6797); (e) token sesi 15 menit dan redaksi log: token tidak muncul di log. Rekaman dari database bersih, diulang identik; versi Dart disebut.
-- catatan: Jalur lab. Sumber halaman 3.24, 3.25. Bila (c) tidak terbukti di lab, halaman menulis Tidak dijalankan dan sumbernya.
+- catatan: Jalur lab. Sumber halaman 3.24, 3.25. Bila (c) tidak terbukti di lab, halaman menulis Tidak dijalankan dan sumbernya. Selesai 2026-10-25 di PR #348 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### ERD3 · ERD Tahap 3 dari skema lab
 
 - jenis: interaksi
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: lab-api-t3
 - selesai bila: `tools/erd.py` membaca skema akhir lab utama Tahap 3 dan menulis `situs/data/erd/tahap-3.json` beserta selisih terhadap Tahap 2; `--cek` di gerbang mencakup Tahap 3; widget ERD bertumbuh menampilkan Tahap 3 berdampingan dengan Tahap 2 di `/uji/erd/`; selisih dengan mermaid naskah 3b tercatat (lab yang benar).
-- catatan: `T3-siap` mengganti `bergantung` dari T3-siap ke lab utama Tahap 3 (`lab-api-t3`, yang bergantung pada T3-siap). Diagram naskah 3b dibanding skema lab; yang benar skema lab.
+- catatan: `T3-siap` mengganti `bergantung` dari T3-siap ke lab utama Tahap 3 (`lab-api-t3`, yang bergantung pada T3-siap). Diagram naskah 3b dibanding skema lab; yang benar skema lab. Selesai 2026-10-25 di PR #344 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### W3-pool · Simulasi connection pool dan Little's Law
 
