@@ -7,16 +7,18 @@ Lab gagal keras bila port sudah dipakai, atau bila hasilnya tidak sesuai yang di
     make -C labs/api-t1 run      (butuh: Docker, Go; PostgreSQL dijalankan lewat labs/b3-race)
 """
 import filecmp, hashlib, json, os, pathlib, re, shutil, socket, subprocess, sys, tempfile, time
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT, PROYEK, port_lab  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 OUT = HERE / "output"
-PORT = 18083
+PORT = port_lab(18083)   # LAB_PORT_OFFSET (labs/README.md); rekaman tidak menulis nomor port
 URL = f"http://127.0.0.1:{PORT}"
-DB = "postgres://lab:lab@127.0.0.1:54333/lab?search_path=tahap1&application_name=api-t1"
+DB = f"postgres://lab:lab@127.0.0.1:{DB_PORT}/lab?search_path=tahap1&application_name=api-t1"
 ENV = dict(os.environ, DATABASE_URL=DB, TZ="Asia/Jakarta")   # waktu di response sama di mesin mana pun
 # Tes Go membaca TEST_DATABASE_URL, tidak pernah DATABASE_URL milik server (1.32); DATABASE_URL dibuang dari env tes.
 ENV_TES = dict({k: v for k, v in ENV.items() if k != "DATABASE_URL"}, TEST_DATABASE_URL=DB)
-DB_LAIN = "postgres://lab:lab@127.0.0.1:54333/postgres?application_name=api-t1"   # database lain di server yang sama
+DB_LAIN = f"postgres://lab:lab@127.0.0.1:{DB_PORT}/postgres?application_name=api-t1"   # database lain di server yang sama
 PSQL = ["docker", "compose", "-f", str(HERE / "../b3-race/docker-compose.yml"), "exec", "-T", "db",
         "psql", "-U", "lab", "-d", "lab", "-q"]
 BIN = HERE / "api-t1"
@@ -86,7 +88,7 @@ def mulai(*flag, bin=BIN, tampil=None):
     global srv
     stop()
     pastikan_bebas(PORT)
-    srv = subprocess.Popen([str(bin), *flag], env=ENV, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    srv = subprocess.Popen([str(bin), *flag, "-addr", f"127.0.0.1:{PORT}"], env=ENV, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     for _ in range(100):
         try:
             socket.create_connection(("127.0.0.1", PORT), 0.2).close()
@@ -1360,11 +1362,12 @@ def _rekam_versi(tmp):
 
 # 1.31 Deployment dan rollback (keputusan 247): image per commit, rollback = tag lama, satu container lewat Compose.
 DEPLOY = HERE / "deploy"
-DB_CONTAINER = DB.replace("127.0.0.1:54333", "db:5432")
+DB_CONTAINER = DB.replace(f"127.0.0.1:{DB_PORT}", "db:5432")
 GIT_ENV = dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1",
                GIT_AUTHOR_NAME="Raka", GIT_AUTHOR_EMAIL="raka@lestari.example",
                GIT_COMMITTER_NAME="Raka", GIT_COMMITTER_EMAIL="raka@lestari.example",
                GIT_AUTHOR_DATE="2026-02-09T09:00:00+07:00", GIT_COMMITTER_DATE="2026-02-09T09:00:00+07:00")
+PROYEK_API = f"{PROYEK}-rekeningo" if PROYEK else "rekeningo"   # satu proyek compose per lajur; rekaman menulis rekeningo-api-1
 IMAGE = "ghcr.io/grup-lestari/rekeningo-api"   # nama fiktif; di lab image hanya dibangun lokal, tidak di-push
 KODE_V1 = "f128167"   # main sesudah 1.30 dan K1c; kode api-t1 di commit ini = kode v1 rekaman deploy.txt
 HASH_V1, HASH_V2 = "390ff47", "f5ea0b4"   # ditulis di halaman 1.31, t1-deploy.json, t1-deploy-tag.json (keputusan 247)
@@ -1376,7 +1379,8 @@ def git(repo, *arg):
 
 
 def compose(tag, *arg, boleh_gagal=False):
-    env = dict(os.environ, COMPOSE_FILE="compose.yaml:compose.lab.yaml", DATABASE_URL=DB_CONTAINER)
+    env = dict(os.environ, COMPOSE_FILE="compose.yaml:compose.lab.yaml", DATABASE_URL=DB_CONTAINER,
+               COMPOSE_PROJECT_NAME=PROYEK_API, LAB_API_PORT=str(PORT), LAB_DB_NETWORK=f"{PROYEK or 'b3-race'}_default")
     env.pop("TAG", None)
     if tag:
         env["TAG"] = tag
@@ -1423,7 +1427,7 @@ def image_ls():
 
 
 def image_container(label):
-    i = subprocess.run(["docker", "inspect", "--format", "{{.Image}}", "rekeningo-api-1"],
+    i = subprocess.run(["docker", "inspect", "--format", "{{.Image}}", f"{PROYEK_API}-api-1"],
                        capture_output=True, text=True, check=True).stdout.strip()
     log.append(f"$ docker inspect --format '{{{{.Image}}}}' rekeningo-api-1\n{label}\n")
     return i
@@ -1690,7 +1694,7 @@ def _rekam_m7(tmp):
     def masuk(pw):
         import psycopg
         try:
-            with psycopg.connect(host="127.0.0.1", port=54333, dbname="lab", user=ROLE_M7, password=pw,
+            with psycopg.connect(host="127.0.0.1", port=DB_PORT, dbname="lab", user=ROLE_M7, password=pw,
                                  connect_timeout=5) as c:
                 return "masuk sebagai " + c.execute("SELECT current_user").fetchone()[0]
         except psycopg.OperationalError as e:
@@ -1819,7 +1823,7 @@ def _rekam_m7(tmp):
         return subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-At", "-c", q], check=True, capture_output=True,
                               text=True).stdout.strip()
 
-    sesi = psycopg.connect(host="127.0.0.1", port=54333, dbname="lab", user=ROLE_M7, password=baru,
+    sesi = psycopg.connect(host="127.0.0.1", port=DB_PORT, dbname="lab", user=ROLE_M7, password=baru,
                            connect_timeout=5, autocommit=True)
     try:
         a_awal = sesi.execute("SELECT current_user").fetchone()[0]

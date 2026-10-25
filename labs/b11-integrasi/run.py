@@ -7,6 +7,8 @@ D. Gateway membuat tagihan tapi response pertamanya terlambat 3 detik. API retry
 E. Sama seperti D, tapi API membuat key baru setiap retry.
 """
 import os, pathlib, socket, subprocess, threading, time, urllib.error, urllib.request
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import port_lab  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 subprocess.run(["go", "build", "-o", str(HERE / "b11"), "."], cwd=HERE, check=True)
@@ -43,7 +45,7 @@ def jalan(peran, port, env, log, t0):
 
 
 def topup(key):
-    req = urllib.request.Request("http://127.0.0.1:18102/topup", method="POST", headers={"X-Topup-Id": key})
+    req = urllib.request.Request(f"http://127.0.0.1:{port_lab(18102)}/topup", method="POST", headers={"X-Topup-Id": key})
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
             return r.status
@@ -53,8 +55,8 @@ def topup(key):
 
 def bagian(nama, judul, gw_mode, kebijakan, aksi):
     log, t0 = [], [time.time()]  # waktu dinding, sama dengan stempel log proses Go
-    gw = jalan("gateway", 18101, {"GW_MODE": gw_mode}, log, t0)
-    api = jalan("api", 18102, {"KEBIJAKAN": kebijakan}, log, t0)
+    gw = jalan("gateway", port_lab(18101), {"GW_MODE": gw_mode}, log, t0)
+    api = jalan("api", port_lab(18102), {"KEBIJAKAN": kebijakan}, log, t0)
     t0[0] = time.time()
     aksi(log, t0)
     time.sleep(0.3)

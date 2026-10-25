@@ -1,19 +1,21 @@
 """Lab E4: dua client mengamati status pesanan 812. Status berubah di detik ke-7.
 Client polling bertanya setiap 5 detik; client SSE membuka satu koneksi. Keluaran: output/realtime.txt"""
 import pathlib, socket, subprocess, threading, time, urllib.request
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import port_lab  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 subprocess.run(["go", "build", "-o", str(HERE / "e4"), "."], cwd=HERE, check=True)
 try:
-    socket.create_connection(("127.0.0.1", 18093), 0.2).close()
-    raise SystemExit("GAGAL: port 18093 sudah dipakai proses lain; hentikan dulu")
+    socket.create_connection(("127.0.0.1", port_lab(18093)), 0.2).close()
+    raise SystemExit(f"GAGAL: port {port_lab(18093)} sudah dipakai proses lain; hentikan dulu")
 except OSError:
     pass
 srv = subprocess.Popen([str(HERE / "e4")])
 t0 = time.monotonic()
 for _ in range(100):
     try:
-        socket.create_connection(("127.0.0.1", 18093), 0.1).close(); break
+        socket.create_connection(("127.0.0.1", port_lab(18093)), 0.1).close(); break
     except OSError:
         time.sleep(0.02)
 log = []
@@ -24,7 +26,7 @@ def polling():
     n = 0
     while True:
         n += 1
-        body = urllib.request.urlopen("http://127.0.0.1:18093/pesanan/812").read().decode().strip()
+        body = urllib.request.urlopen(f"http://127.0.0.1:{port_lab(18093)}/pesanan/812").read().decode().strip()
         catat(f"polling  request #{n}: {body}")
         if "siap diambil" in body:
             catat(f"polling  tahu pesanan siap setelah {n} request")
@@ -33,7 +35,7 @@ def polling():
 
 
 def sse():
-    with urllib.request.urlopen("http://127.0.0.1:18093/pesanan/812/stream") as r:
+    with urllib.request.urlopen(f"http://127.0.0.1:{port_lab(18093)}/pesanan/812/stream") as r:
         pertama = True
         for line in r:
             if pertama:

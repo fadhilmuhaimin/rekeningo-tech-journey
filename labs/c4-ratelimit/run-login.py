@@ -32,13 +32,17 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT, port_lab  # noqa: E402
+
+PORT_A, PORT_B = port_lab(18170), port_lab(18171)   # + LAB_PORT_OFFSET (labs/README.md)
 
 HERE = pathlib.Path(__file__).parent
 LOGIN = HERE / "login"
 OUT = HERE / "output" / "login"
 BIN = LOGIN / "c4login"
 
-DB = "postgres://lab:lab@127.0.0.1:54333/lab?search_path=c4_login&application_name=c4-ratelimit"
+DB = f"postgres://lab:lab@127.0.0.1:{DB_PORT}/lab?search_path=c4_login&application_name=c4-ratelimit"
 
 # Rahasia bersama antara server dan "proxy" lab (mode IP_SUMBER=proxy). Acak tiap run, hanya di
 # memori proses ini, tidak pernah dicetak ke rekaman atau ditulis ke repo.
@@ -171,7 +175,7 @@ def _pg_container():
     global _container
     if _container:
         return _container
-    out = subprocess.run(["docker", "ps", "--filter", "publish=54333", "--format", "{{.Names}}"],
+    out = subprocess.run(["docker", "ps", "--filter", f"publish={DB_PORT}", "--format", "{{.Names}}"],
                          capture_output=True, text=True)
     _container = out.stdout.strip().splitlines()[0]
     return _container
@@ -217,26 +221,26 @@ def bagian_a():
 # ---------------------------------------------------------------- bagian B
 def bagian_b():
     tulis("== B. Wajib ganti password pertama; password baru lemah atau bocor ditolak")
-    p = server(18170)
-    jam(18170, T0_MS)
+    p = server(PORT_A)
+    jam(PORT_A, T0_MS)
     E = "karyawan515@lestari.example"
-    st, b = login(18170, E, "sementara-515", lewat_proxy=True)
+    st, b = login(PORT_A, E, "sementara-515", lewat_proxy=True)
     tulis(f"login password sementara benar          {st}  wajib_ganti_password={b.get('wajib_ganti_password')}")
     harap((st, b.get("wajib_ganti_password")), (200, True), "B login sementara wajib ganti")
-    st, b = ganti(18170, E, "sementara-515", "pendek-123")
+    st, b = ganti(PORT_A, E, "sementara-515", "pendek-123")
     tulis(f"ganti ke 'pendek-123' (10 karakter)     {st}  {b.get('title','')}")
     harap(st, 422, "B tolak password pendek")
-    st, b = ganti(18170, E, "sementara-515", "rekeningolestari")
+    st, b = ganti(PORT_A, E, "sementara-515", "rekeningolestari")
     tulis(f"ganti ke 'rekeningolestari' (16 kar, bocor) {st}  {b.get('title','')}")
     harap(st, 422, "B tolak password bocor")
-    st, b = ganti(18170, E, "sementara-515", "kelas-pagi-hijau-515")
+    st, b = ganti(PORT_A, E, "sementara-515", "kelas-pagi-hijau-515")
     tulis(f"ganti ke password kuat baru             {st}  ok={b.get('ok')}")
     harap((st, b.get("ok")), (200, True), "B terima password kuat")
-    st, b = login(18170, E, "kelas-pagi-hijau-515", lewat_proxy=True)
+    st, b = login(PORT_A, E, "kelas-pagi-hijau-515", lewat_proxy=True)
     tulis(f"login password baru                     {st}  wajib_ganti_password={b.get('wajib_ganti_password')}")
     harap((st, b.get("wajib_ganti_password")), (200, False), "B login password baru")
-    jam(18170, T0_MS + 60_000)  # semenit kemudian: /ganti-password ikut memakai jatah per akun
-    st, b = login(18170, E, "sementara-515", lewat_proxy=True)
+    jam(PORT_A, T0_MS + 60_000)  # semenit kemudian: /ganti-password ikut memakai jatah per akun
+    st, b = login(PORT_A, E, "sementara-515", lewat_proxy=True)
     tulis(f"login password lama (sementara)         {st}  {b.get('title','')}")
     harap(st, 401, "B password lama ditolak")
     p.terminate(); p.wait()
@@ -249,8 +253,8 @@ def bagian_c():
     tulis("Credential stuffing: satu penyerang (IP 203.0.113.9) menyemprot password bocor ke banyak akun,")
     tulis("satu tebakan per akun. Kunci per akun (ambang 5) tidak pernah aktif: tiap akun cuma 1 percobaan.")
     seed()
-    p = server(18170, mode="per-akun", ip_sumber="proxy")
-    jam(18170, T0_MS)
+    p = server(PORT_A, mode="per-akun", ip_sumber="proxy")
+    jam(PORT_A, T0_MS)
     IP_SERANG = "203.0.113.9"
     bocor_umum = ["123456", "password1", "qwerty123", "rekeningo123", "indonesia", "bismillah"]
     kode = []
@@ -261,7 +265,7 @@ def bagian_c():
         pw = bocor_umum[i % len(bocor_umum)]
         if idn == 514:
             pw = "rekeningo123"  # password yang dipakai ulang Karyawan 514
-        st, b = login(18170, email, pw, ip=IP_SERANG, lewat_proxy=True)
+        st, b = login(PORT_A, email, pw, ip=IP_SERANG, lewat_proxy=True)
         kode.append(st)
         if st == 200:
             tembus.append(idn)
@@ -276,10 +280,10 @@ def bagian_c():
     ANI = "warung.ani@lestari.example"
     ANI_IP = "198.51.100.7"
     # Kunci ke-1: 5 gagal berturut di T0 → kunci 60 detik.
-    jam(18170, T0_MS)
-    kode = [login(18170, ANI, f"tebakan-{i}", ip=IP_SERANG, lewat_proxy=True)[0] for i in range(5)]
+    jam(PORT_A, T0_MS)
+    kode = [login(PORT_A, ANI, f"tebakan-{i}", ip=IP_SERANG, lewat_proxy=True)[0] for i in range(5)]
     tulis(f"  5 tebakan salah ke akun Ani            → {ringkas(kode)}")
-    st, b = login(18170, ANI, "payung-biru-ani-2026", ip=ANI_IP, lewat_proxy=True)
+    st, b = login(PORT_A, ANI, "payung-biru-ani-2026", ip=ANI_IP, lewat_proxy=True)
     sisa = sisa_kunci(ANI, T0_MS)
     tulis(f"  kunci ke-1: Ani (IP sendiri, password BENAR) ditolak {st} {b['title']}")
     tulis(f"    database: terkunci_sampai {sisa} s lagi. Jawabannya sama dengan password salah,")
@@ -287,17 +291,17 @@ def bagian_c():
     harap((st, b["type"], sisa), (401, "/problems/login-gagal", 60), "C kunci ke-1 = 60 detik, jawaban generik")
     # Kunci ke-2: lewati kunci pertama, 1 gagal → gagal_login 6 → kunci 120 detik.
     t = T0_MS + 61_000
-    jam(18170, t)
-    login(18170, ANI, "lagi-salah", ip=IP_SERANG, lewat_proxy=True)
-    st, _ = login(18170, ANI, "payung-biru-ani-2026", ip=ANI_IP, lewat_proxy=True)
+    jam(PORT_A, t)
+    login(PORT_A, ANI, "lagi-salah", ip=IP_SERANG, lewat_proxy=True)
+    st, _ = login(PORT_A, ANI, "payung-biru-ani-2026", ip=ANI_IP, lewat_proxy=True)
     sisa = sisa_kunci(ANI, t)
     tulis(f"  kunci ke-2: kunci pertama lewat, 1 gagal lagi → Ani ditolak {st}, terkunci {sisa} s lagi (dua kali lipat)")
     harap((st, sisa), (401, 120), "C kunci ke-2 = 120 detik")
     # Kunci ke-3: lewati kunci kedua, 1 gagal → gagal_login 7 → kunci 240 detik.
     t = t + 121_000
-    jam(18170, t)
-    login(18170, ANI, "lagi-salah", ip=IP_SERANG, lewat_proxy=True)
-    st, _ = login(18170, ANI, "payung-biru-ani-2026", ip=ANI_IP, lewat_proxy=True)
+    jam(PORT_A, t)
+    login(PORT_A, ANI, "lagi-salah", ip=IP_SERANG, lewat_proxy=True)
+    st, _ = login(PORT_A, ANI, "payung-biru-ani-2026", ip=ANI_IP, lewat_proxy=True)
     sisa = sisa_kunci(ANI, t)
     tulis(f"  kunci ke-3: 1 gagal lagi → Ani ditolak {st}, terkunci {sisa} s lagi (dua kali lipat lagi)")
     harap((st, sisa), (401, 240), "C kunci ke-3 = 240 detik")
@@ -311,8 +315,8 @@ def bagian_d():
     tulis("== D. Rate limit DUA LAPIS di memori (MODE=dua-lapis): per IP dan per akun")
     tulis("Serangan sama seperti C, tapi lapis per-IP menolak banjir dari satu IP sebelum menyentuh database.")
     seed()
-    p = server(18170, mode="dua-lapis", ip_sumber="proxy")
-    jam(18170, T0_MS)
+    p = server(PORT_A, mode="dua-lapis", ip_sumber="proxy")
+    jam(PORT_A, T0_MS)
     IP_SERANG = "203.0.113.9"
     bocor_umum = ["123456", "password1", "qwerty123", "indonesia", "bismillah", "qwerty"]
     kode = []
@@ -320,16 +324,16 @@ def bagian_d():
     for i, idn in enumerate(akun_coba):
         email = f"karyawan{idn}@lestari.example"
         pw = "rekeningo123" if idn == 514 else bocor_umum[i % len(bocor_umum)]
-        st, _ = login(18170, email, pw, ip=IP_SERANG, lewat_proxy=True)
+        st, _ = login(PORT_A, email, pw, ip=IP_SERANG, lewat_proxy=True)
         kode.append(st)
     tulis(f"  {len(akun_coba)} akun disemprot dari {IP_SERANG} → {ringkas(kode)}")
     tulis("  (429 = ditolak lapis per-IP; Karyawan 514 di urutan akhir tidak sempat dicoba)")
     harap(hitung(kode), {401: 10, 429: 19}, "D per-IP membatasi serangan satu IP")
-    n_hash, n_query = hitung_server(18170)
+    n_hash, n_query = hitung_server(PORT_A)
     tulis(f"  argon2id dijalankan {n_hash} kali, query akun {n_query} kali untuk {len(akun_coba)} percobaan")
     tulis("  (yang ditolak 429 tidak menyentuh database dan tidak menjalankan argon2id)")
     harap((n_hash, n_query), (10, 10), "D rate limit dicek sebelum database dan argon2id")
-    st, b = login(18170, "warung.ani@lestari.example", "payung-biru-ani-2026",
+    st, b = login(PORT_A, "warung.ani@lestari.example", "payung-biru-ani-2026",
                   ip="198.51.100.7", lewat_proxy=True)
     tulis(f"  Ani (IP sendiri, password BENAR)       → {st}  ok={b.get('ok')} (tidak kena limit penyerang)")
     harap((st, b.get("ok")), (200, True), "D Ani tetap bisa masuk")
@@ -337,12 +341,12 @@ def bagian_d():
     tulis("Lapis per-akun: tebakan terfokus ke satu akun dari satu IP dibatasi walau IP belum penuh.")
     kode = []
     for i in range(8):
-        st, _ = login(18170, "budi@lestari.example", f"tebak-budi-{i}", ip="203.0.113.50", lewat_proxy=True)
+        st, _ = login(PORT_A, "budi@lestari.example", f"tebak-budi-{i}", ip="203.0.113.50", lewat_proxy=True)
         kode.append(st)
     tulis(f"  8 tebakan ke akun Budi dari satu IP     → {ringkas(kode)}")
     tulis("  (5 sampai ke pemeriksaan password, sisanya 429 dari lapis per-akun)")
     harap(hitung(kode), {401: 5, 429: 3}, "D per-akun membatasi tebakan terfokus")
-    st, b = ganti(18170, "budi@lestari.example", "tebak-budi-8", "tebakan-panjang-sekali-8")
+    st, b = ganti(PORT_A, "budi@lestari.example", "tebak-budi-8", "tebakan-panjang-sekali-8")
     tulis(f"  tebakan ke-9 lewat /ganti-password (password lama) → {st} {b.get('title','')}")
     tulis("  (endpoint yang memeriksa password lama memakai pengaman yang sama, bukan pintu samping)")
     harap((st, b.get("type")), (429, "/problems/rate-limit-akun"), "D /ganti-password ikut dibatasi")
@@ -356,12 +360,12 @@ def bagian_e():
     tulis("Penyerang mengirim tiap percobaan dengan X-Forwarded-For berbeda (menukar IP), tanpa lewat proxy kita.")
     # E1: server percaya header dari siapa pun
     seed()
-    p = server(18170, mode="dua-lapis", ip_sumber="xff-mentah")
-    jam(18170, T0_MS)
+    p = server(PORT_A, mode="dua-lapis", ip_sumber="xff-mentah")
+    jam(PORT_A, T0_MS)
     kode = []
     for i in range(20):
         email = f"karyawan{516 + i}@lestari.example"
-        st, _ = login(18170, email, "qwerty123", ip=f"203.0.113.{100 + i}", lewat_proxy=False)
+        st, _ = login(PORT_A, email, "qwerty123", ip=f"203.0.113.{100 + i}", lewat_proxy=False)
         kode.append(st)
     tulis(f"  IP_SUMBER=xff-mentah: 20 percobaan, tiap kali IP palsu baru → {ringkas(kode)}")
     tulis("  (tidak ada 429: lapis per-IP tak berguna karena penyerang menukar IP tiap request)")
@@ -369,18 +373,18 @@ def bagian_e():
     p.terminate(); p.wait()
     # E2: server hanya percaya header dari proxy tepercaya; penyerang menebak isi penanda
     seed()
-    p = server(18170, mode="dua-lapis", ip_sumber="proxy")
-    jam(18170, T0_MS)
+    p = server(PORT_A, mode="dua-lapis", ip_sumber="proxy")
+    jam(PORT_A, T0_MS)
     kode = []
     for i in range(20):
         email = f"karyawan{516 + i}@lestari.example"
-        st, _ = login(18170, email, "qwerty123", ip=f"203.0.113.{100 + i}", penanda="tepercaya")
+        st, _ = login(PORT_A, email, "qwerty123", ip=f"203.0.113.{100 + i}", penanda="tepercaya")
         kode.append(st)
     tulis(f"  IP_SUMBER=proxy, penyerang menebak penanda proxy → {ringkas(kode)}")
     tulis("  (penanda tanpa rahasia yang benar diabaikan, IP diambil dari koneksi 127.0.0.1;")
     tulis("  10 lolos lalu 429: penukaran IP gagal)")
     harap(hitung(kode), {401: 10, 429: 10}, "E2 proxy: header tak tepercaya diabaikan, IP koneksi dipakai")
-    st, b = login(18170, "warung.ani@lestari.example", "payung-biru-ani-2026",
+    st, b = login(PORT_A, "warung.ani@lestari.example", "payung-biru-ani-2026",
                   ip="198.51.100.7", lewat_proxy=True)
     tulis(f"  Request LEWAT proxy kita (penanda berisi rahasia bersama), IP dari header dipercaya → {st} ok={b.get('ok')}")
     harap((st, b.get("ok")), (200, True), "E2 request lewat proxy tepercaya diterima")
@@ -394,13 +398,13 @@ def bagian_f():
     tulis("Rate limit hidup di memori tiap proses. Dengan dua server, penyerang satu IP yang bergantian")
     tulis("mengenai instance 1 dan 2 mendapat dua kali jatah: batas per IP efektif menggandakan.")
     seed()
-    p1 = server(18170, mode="dua-lapis", ip_sumber="proxy")
-    p2 = server(18171, mode="dua-lapis", ip_sumber="proxy")
-    jam(18170, T0_MS); jam(18171, T0_MS)
+    p1 = server(PORT_A, mode="dua-lapis", ip_sumber="proxy")
+    p2 = server(PORT_B, mode="dua-lapis", ip_sumber="proxy")
+    jam(PORT_A, T0_MS); jam(PORT_B, T0_MS)
     IP_SERANG = "203.0.113.9"
     kode = []
     for i in range(24):
-        port = 18170 if i % 2 == 0 else 18171
+        port = PORT_A if i % 2 == 0 else PORT_B
         email = f"karyawan{516 + (i % 28)}@lestari.example"
         st, _ = login(port, email, "qwerty123", ip=IP_SERANG, lewat_proxy=True)
         kode.append(st)
@@ -417,24 +421,24 @@ def bagian_g():
     tulis("Percobaan dicatat SEBELUM argon2id, dengan baris akun dikunci (SELECT ... FOR UPDATE), dan percobaan")
     tulis("yang sampai ambang langsung memasang kunci. Tebakan lain menunggu lock baris lalu melihat kunci itu.")
     seed()
-    p = server(18170, mode="dua-lapis", ip_sumber="proxy")
-    jam(18170, T0_MS)
+    p = server(PORT_A, mode="dua-lapis", ip_sumber="proxy")
+    jam(PORT_A, T0_MS)
     E = "karyawan516@lestari.example"
     psql(f"UPDATE c4_login.akun SET gagal_login = 4 WHERE email = '{E}'")
     tulis("Karyawan 516 sudah salah 4 kali berturut-turut (ambang 5). Lima tebakan salah datang bersamaan,")
     tulis("tiap kali dari alamat berbeda supaya lapis memori (per IP 10, per akun 5) tidak ikut menahan.")
-    n_hash0, _ = hitung_server(18170)
-    nilai0 = hitung_nilai(18170)
+    n_hash0, _ = hitung_server(PORT_A)
+    nilai0 = hitung_nilai(PORT_A)
     gerbang = threading.Barrier(5)
 
     def tebak(i):
         gerbang.wait()
-        return login(18170, E, f"tebakan-salah-{i}", ip=f"2001:db8:{i}::1", lewat_proxy=True)[0]
+        return login(PORT_A, E, f"tebakan-salah-{i}", ip=f"2001:db8:{i}::1", lewat_proxy=True)[0]
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
         kode = list(ex.map(tebak, range(5)))
-    n_hash1, _ = hitung_server(18170)
-    dinilai = hitung_nilai(18170) - nilai0
+    n_hash1, _ = hitung_server(PORT_A)
+    dinilai = hitung_nilai(PORT_A) - nilai0
     tulis(f"  lima tebakan bersamaan → {ringkas(kode)}")
     tulis(f"  dinilai terhadap hash asli: {dinilai}; argon2id dijalankan {n_hash1 - n_hash0} kali "
           "(empat lainnya dijawab dengan hash palsu supaya waktu responsnya sama)")
@@ -443,16 +447,16 @@ def bagian_g():
     tulis(f"  database: gagal_login {gagal}, terkunci_sampai {sisa} s lagi")
     harap((hitung(kode), dinilai, n_hash1 - n_hash0, gagal, sisa), ({401: 5}, 1, 5, "5", 60),
           "G tebakan bersamaan: hanya satu yang dinilai, akun terkunci 60 detik")
-    jam(18170, T0_MS + 30_000)
-    nilai0 = hitung_nilai(18170)
-    st, _ = login(18170, E, "tebakan-keenam", ip="2001:db8:9::1", lewat_proxy=True)
+    jam(PORT_A, T0_MS + 30_000)
+    nilai0 = hitung_nilai(PORT_A)
+    st, _ = login(PORT_A, E, "tebakan-keenam", ip="2001:db8:9::1", lewat_proxy=True)
     gagal = db_akun("gagal_login", E)
-    dinilai = hitung_nilai(18170) - nilai0
+    dinilai = hitung_nilai(PORT_A) - nilai0
     tulis(f"  tebakan keenam saat terkunci (30 s kemudian) → {st}; dinilai {dinilai}, gagal_login tetap {gagal}")
     tulis("  (akun yang sedang terkunci tidak menaikkan penghitung dan tidak memberi percobaan)")
     harap((st, dinilai, gagal), (401, 0, "5"), "G saat terkunci tidak ada percobaan baru")
-    jam(18170, T0_MS + 61_000)
-    st, b = login(18170, E, "kampus-aman-516-ungu", ip="2001:db8:9::1", lewat_proxy=True)
+    jam(PORT_A, T0_MS + 61_000)
+    st, b = login(PORT_A, E, "kampus-aman-516-ungu", ip="2001:db8:9::1", lewat_proxy=True)
     gagal = db_akun("gagal_login", E)
     kunci = db_akun("terkunci_sampai IS NOT NULL", E)
     tulis(f"  password BENAR sesudah kunci lewat (61 s) → {st} ok={b.get('ok')}; gagal_login {gagal}, "
@@ -471,22 +475,22 @@ def bagian_h():
     tulis("memakai interface identifier apa pun untuk alamat yang ia susun sendiri. IPv4 dan IPv4 yang ditulis")
     tulis("sebagai IPv6 (::ffff:a.b.c.d) tetap satu key. Alamat lewat X-Lab-IP dari proxy kita (IP_SUMBER=proxy).")
     seed()
-    p = server(18170, mode="dua-lapis", ip_sumber="proxy")
-    jam(18170, T0_MS)
+    p = server(PORT_A, mode="dua-lapis", ip_sumber="proxy")
+    jam(PORT_A, T0_MS)
     kode = []
     for i in range(12):
         ip = f"2001:db8:a:b:{i + 1:x}:{0x10 + i:x}:{0x200 + i:x}:{0xf000 + i:x}"  # 12 alamat berbeda, satu /64
-        kode.append(login(18170, f"karyawan{516 + i}@lestari.example", "qwerty123", ip=ip, lewat_proxy=True)[0])
+        kode.append(login(PORT_A, f"karyawan{516 + i}@lestari.example", "qwerty123", ip=ip, lewat_proxy=True)[0])
     tulis(f"  12 alamat berbeda dalam 2001:db8:a:b::/64, 12 akun berbeda → {ringkas(kode)}")
     tulis("  (satu bucket per /64: 10 lolos, 2 ditolak 429 lapis per-IP)")
     harap(hitung(kode), {401: 10, 429: 2}, "H satu /64 berbagi satu bucket")
-    st, _ = login(18170, "karyawan528@lestari.example", "qwerty123", ip="2001:db8:a:c::1", lewat_proxy=True)
+    st, _ = login(PORT_A, "karyawan528@lestari.example", "qwerty123", ip="2001:db8:a:c::1", lewat_proxy=True)
     tulis(f"  alamat dari /64 lain (2001:db8:a:c::/64) → {st} (bucket sendiri)")
     harap(st, 401, "H /64 lain punya bucket sendiri")
     kode = []
     for i in range(12):
         ip = "203.0.113.9" if i % 2 == 0 else "::ffff:203.0.113.9"
-        kode.append(login(18170, f"karyawan{529 + i}@lestari.example", "qwerty123", ip=ip, lewat_proxy=True)[0])
+        kode.append(login(PORT_A, f"karyawan{529 + i}@lestari.example", "qwerty123", ip=ip, lewat_proxy=True)[0])
     tulis(f"  203.0.113.9 dan ::ffff:203.0.113.9 bergantian, 12 percobaan → {ringkas(kode)} (satu bucket)")
     harap(hitung(kode), {401: 10, 429: 2}, "H IPv4 dan IPv4-mapped berbagi bucket")
     tulis("  Batasnya: banyak HP yang berbagi satu /64 (mis. Wi-Fi kantor IPv6) berbagi satu bucket, sama seperti")
@@ -512,8 +516,8 @@ def bagian_i():
     tulis("hanya menunjukkan mekanismenya. Daftar sungguhan sebesar itu tidak dijalankan di lab ini [perlu verifikasi].")
     harap(len(sesuai) > 0, True, "I daftar punya entri yang lolos kebijakan panjang")
     seed()
-    p = server(18170, mode="dua-lapis", ip_sumber="koneksi")
-    jam(18170, T0_MS)
+    p = server(PORT_A, mode="dua-lapis", ip_sumber="koneksi")
+    jam(PORT_A, T0_MS)
     E = "karyawan519@lestari.example"
     lama = "kampus-aman-519-ungu"
     for baru, mau, tipe, ket in [
@@ -522,7 +526,7 @@ def bagian_i():
         ("rekeningo123", 422, "/problems/password-lemah", "12 kar., entri daftar tapi lebih pendek dari kebijakan"),
         ("rekeningolestari1", 200, None, "16 kar., bukan entri daftar"),
     ]:
-        st, b = ganti(18170, E, lama, baru)
+        st, b = ganti(PORT_A, E, lama, baru)
         tulis(f"  ganti ke '{baru}' ({ket}) → {st} {b.get('title', 'ok=' + str(b.get('ok')))}")
         harap((st, b.get("type")), (mau, tipe), f"I ganti ke {baru}")
     tulis("  (panjang diperiksa lebih dulu: entri daftar yang lebih pendek dari kebijakan sudah ditolak karena pendek)")

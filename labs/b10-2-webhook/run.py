@@ -8,10 +8,12 @@ D. Webhook palsu: body diubah (signature lama), dan kiriman ulang dengan timesta
 Keluaran: output/<bagian>.txt.  Jalankan: make -C labs/b10-2-webhook run   (butuh: make -C labs/b3-race up, Go)
 """
 import base64, hashlib, hmac, json, os, pathlib, socket, subprocess, threading, time, urllib.error, urllib.request
+import os as _os, sys as _sys; _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))  # lab_env: labs/README.md
+from lab_env import DB_PORT, port_lab  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 PSQL = ["docker", "compose", "-f", str(HERE / "../b3-race/docker-compose.yml"), "exec", "-T", "db", "psql", "-U", "lab", "-d", "lab", "-q"]
-ENV = dict(os.environ, DATABASE_URL="postgres://lab:lab@127.0.0.1:54333/lab?search_path=t4w&application_name=b102")
+ENV = dict(os.environ, DATABASE_URL=f"postgres://lab:lab@127.0.0.1:{DB_PORT}/lab?search_path=t4w&application_name=b102")
 RAHASIA = b"rahasia-webhook-lab"
 subprocess.run(["go", "build", "-o", str(HERE / "b102"), "."], cwd=HERE, check=True)
 
@@ -20,7 +22,7 @@ def kirim(log, event_id, body, ts=None, rahasia=RAHASIA, sig_body=None):
     ts = str(int(ts or time.time()))
     isi = json.dumps(body, separators=(",", ":"))
     tanda = base64.b64encode(hmac.new(rahasia, f"{event_id}.{ts}.{sig_body or isi}".encode(), hashlib.sha256).digest()).decode()
-    req = urllib.request.Request("http://127.0.0.1:18120/webhooks/pembayaran", method="POST", data=isi.encode(),
+    req = urllib.request.Request(f"http://127.0.0.1:{port_lab(18120)}/webhooks/pembayaran", method="POST", data=isi.encode(),
                                  headers={"content-type": "application/json", "webhook-id": event_id,
                                           "webhook-timestamp": ts, "webhook-signature": "v1," + tanda})
     try:
@@ -35,8 +37,8 @@ def kirim(log, event_id, body, ts=None, rahasia=RAHASIA, sig_body=None):
 def bagian(nama, judul, aksi, mode=""):
     subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1"], input=(HERE / "schema.sql").read_text(), text=True, check=True, capture_output=True)
     try:
-        socket.create_connection(("127.0.0.1", 18120), 0.1).close()
-        raise SystemExit("port 18120 sudah dipakai proses lain; hentikan dulu")
+        socket.create_connection(("127.0.0.1", port_lab(18120)), 0.1).close()
+        raise SystemExit(f"port {port_lab(18120)} sudah dipakai proses lain; hentikan dulu")
     except OSError:
         pass
     log = []
@@ -44,7 +46,7 @@ def bagian(nama, judul, aksi, mode=""):
     threading.Thread(target=lambda: [log.append(l.rstrip()) for l in api.stderr], daemon=True).start()
     for _ in range(100):
         try:
-            socket.create_connection(("127.0.0.1", 18120), 0.1).close(); break
+            socket.create_connection(("127.0.0.1", port_lab(18120)), 0.1).close(); break
         except OSError:
             time.sleep(0.05)
     aksi(log)
