@@ -437,6 +437,11 @@ describe("tinjauan PR 353 (keputusan 746 dan 747): mutasi yang lolos di tes pela
     expect(data.label.sumber).toBe("Rekaman lab · ratelimit.txt bagian F, ledger-for-update.txt");
     for (const p of ["labs/c4-ratelimit/output/login/ratelimit.txt", "labs/b3-race/output/ledger/ledger-for-update.txt"]) expect(fs.existsSync(path.join(akar, p)), p).toBe(true);
   });
+  test("tabel ruang lingkup sudah memuat prioritas, jadi kalimat penutupnya hanya menunjuk rincian", () => {
+    harus("| Fitur | Prioritas | Asalnya di Tahap 2 |");
+    harus("Rincian tiap fitur ada di PRD v3 lengkap, di awal Tahap 3.");
+    expect(badan).not.toContain("Prioritas dan rincian");
+  });
   test("menit baca di registry sama dengan baca ditambah coba di baris meta", () => {
     const m = badan.match(/Baca (\d+) menit · coba (\d+) menit/);
     expect(m).not.toBeNull();
