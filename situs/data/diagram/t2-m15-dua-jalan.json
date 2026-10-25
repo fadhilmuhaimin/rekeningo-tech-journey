@@ -1,0 +1,68 @@
+{
+  "id": "t2-m15-dua-jalan",
+  "judul": "Job mati di baris ketujuh, lalu dijalankan lagi",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t2-pencairan · rentan.txt bagian B sampai D"
+  },
+  "baris": [
+    {
+      "label": "Jalan pertama",
+      "sub": "mati sebelum COMMIT warung ketujuh",
+      "simpul": [
+        {
+          "teks": "6 jurnal di ledger",
+          "sub": "Warung Ani sampai Warung 507"
+        },
+        {
+          "teks": "7 baris di file",
+          "sub": "baris Warung 508 sudah tertulis"
+        },
+        {
+          "teks": "Jurnal Warung 508 batal",
+          "sub": "nomor jurnal 20 kosong",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Jalan kedua",
+      "sub": "perintah yang sama",
+      "simpul": [
+        {
+          "teks": "Saldo dibaca ulang",
+          "sub": "6 warung masih bersaldo"
+        },
+        {
+          "teks": "Warung 508 dijurnal",
+          "sub": "jurnal 21, Rp15.000"
+        },
+        {
+          "teks": "Baris Warung 508 ditulis lagi",
+          "sub": "file sudah memuatnya",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Tutup buku",
+      "sub": "file lawan ledger",
+      "simpul": [
+        {
+          "teks": "File: 13 baris",
+          "sub": "Rp2.465.000"
+        },
+        {
+          "teks": "Ledger: 12 jurnal",
+          "sub": "Rp2.450.000"
+        },
+        {
+          "teks": "Selisih Rp15.000",
+          "sub": "sama dengan saldo Warung 508",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Laporan tidak salah hitung. Ledger dan file tidak bisa berhenti, atau dilanjutkan, sebagai satu kesatuan."
+}

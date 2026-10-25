@@ -1,0 +1,52 @@
+---
+/**
+ * Widget file lawan ledger (M15, keputusan 840): tebak selisih total file transfer lawan mutasi ledger sesudah server mati
+ * di tengah job pencairan, lalu ubah satu hal (urutan menulis: file dulu atau jurnal dulu).
+ *   <SelisihBank />
+ * Angka dibaca saat build dari labs/t2-pencairan/output/rentan.txt (bagian D dan E) lewat logika.ts; rekaman yang berubah
+ * bentuk menggagalkan build. Teks dari data/widget/t2-m15-selisih.json (skema.ts).
+ * Island di-render saat build (client:visible); tanpa JavaScript hasil rekaman tampil di <noscript>.
+ * Satu widget per halaman (dipasang di blok Coba 2.25).
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import SelisihBankIsland from "../widgets/selisih-bank/SelisihBank";
+import { LabelSelisihBank } from "../widgets/selisih-bank/skema";
+import { arahDari, bacaRekaman, indeksBenar, isi, nilaiTeks, tabelUrutan } from "../widgets/selisih-bank/logika";
+import labelMentah from "../../data/widget/t2-m15-selisih.json";
+
+const FILE = "labs/t2-pencairan/output/rentan.txt";
+const abs = path.join(ROOT, FILE);
+if (!fs.existsSync(abs)) throw new Error(`SelisihBank: ${FILE} tidak ada`);
+const R = bacaRekaman(fs.readFileSync(abs, "utf8"));
+const L = LabelSelisihBank.parse(labelMentah);
+const URUTAN = ["file-dulu", "jurnal-dulu"] as const;
+const nilai = { "file-dulu": nilaiTeks(R["file-dulu"]), "jurnal-dulu": nilaiTeks(R["jurnal-dulu"]) };
+const pilihan = L.pilihan.map((p) => ({ ...p, alasan: isi(p.alasan, nilai["file-dulu"]) }));
+const benar = indeksBenar(pilihan, arahDari(R["file-dulu"]));
+const turunUrutan = (peta: Record<(typeof URUTAN)[number], string>) =>
+  ({ "file-dulu": isi(peta["file-dulu"], nilai["file-dulu"]), "jurnal-dulu": isi(peta["jurnal-dulu"], nilai["jurnal-dulu"]) });
+const label = {
+  judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, pertanyaan: L.pertanyaan, benar: L.benar, belum: L.belum, ulang: L.ulang,
+  tabel: L.tabel,
+  baris: {
+    baris: L.baris.baris, total: L.baris.total, jurnal: L.baris.jurnal, mutasi: L.baris.mutasi, selisih: L.baris.selisih,
+    warungFile: isi(L.baris.warungFile, nilai["file-dulu"]), warungLedger: isi(L.baris.warungLedger, nilai["file-dulu"]),
+  },
+  ubahJudul: L.ubahJudul, urutan: L.urutan, kesimpulan: turunUrutan(L.kesimpulan), catatan: turunUrutan(L.catatan),
+};
+const tabel = { "file-dulu": tabelUrutan(R["file-dulu"]), "jurnal-dulu": tabelUrutan(R["jurnal-dulu"]) };
+---
+<SelisihBankIsland client:visible pilihan={pilihan.map((p) => ({ teks: p.teks, alasan: p.alasan }))} benar={benar} tabel={tabel} label={label} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <table>
+    <thead><tr><th>{L.tabel.perbandingan}</th><th>{L.urutan["file-dulu"]}</th><th>{L.urutan["jurnal-dulu"]}</th></tr></thead>
+    <tbody>
+      {tabel["file-dulu"].map((b, i) => (
+        <tr><th scope="row">{L.baris[b.kode].replace("{warung}", R["file-dulu"].warung.nama)}</th><td>{b.nilai}</td><td>{tabel["jurnal-dulu"][i]!.nilai}</td></tr>
+      ))}
+    </tbody>
+  </table>
+</noscript>
