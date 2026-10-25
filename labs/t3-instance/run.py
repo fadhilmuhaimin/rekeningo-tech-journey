@@ -143,7 +143,15 @@ def proxy_mulai(caddyfile, interval="30s"):
                HEALTH_INTERVAL=interval)
     r = subprocess.run(COMPOSE + ["up", "-d", "--wait", "--force-recreate", "proxy"], env=env, capture_output=True, text=True)
     d.harap(r.returncode, 0, f"docker compose up proxy: {r.stderr[-300:]}")
+    # Kontainer menjawab sebelum jalur ke instance di host siap: dua request pertama bisa 502 walau kedua instance hidup
+    # (ditemukan di rekaman ulang: 502 pada percobaan pertama ke tiap instance). Tunggu sampai tiap instance yang hidup
+    # menjawab lewat proxy, lalu atur putaran round_robin supaya request berikutnya ke a.
+    hidup = [n for n in ("a", "b") if port_instans(n) in d.server]
     tunggu(lambda: minta("GET", "/healthz", PORT_PROXY, maks=2).status != 0, "proxy menjawab")
+    for n in hidup:
+        tunggu_terlihat(n, 30)
+    if hidup == ["a"] and caddyfile in ("bergilir", "bawaan"):
+        minta("GET", "/healthz", PORT_PROXY, maks=2)   # giliran b yang mati (502); request berikutnya ke a
 
 
 def lewat_proxy(n, path="/healthz", method="GET", **kw):
@@ -576,7 +584,10 @@ def rekam_bergulir():
 # ---------- batas.txt ----------
 
 def tebak(port, emails, password=SALAH):
-    return [minta("POST", "/login", port, {"email": e, "password": password}) for e in emails]
+    hs = [minta("POST", "/login", port, {"email": e, "password": password}) for e in emails]
+    if any(h.status not in (401, 429) for h in hs):   # bantuan membaca kegagalan; tidak masuk rekaman
+        print("tebak: urutan", urutan(hs), flush=True)
+    return hs
 
 
 def tampil_akun(email):

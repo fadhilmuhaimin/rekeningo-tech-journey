@@ -1,8 +1,8 @@
 # Lab t3-instance · M22: rate limit login di memori dua instance lawan hitungan bersama di Redis
 # PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema t3_instance · Caddy 2.11.7 · Redis 8.10.2 · instance a di 127.0.0.1:18180, instance b di 127.0.0.1:18182, proxy di 127.0.0.1:18183
 # Rekaman dari database bersih: make -C labs/t3-instance run (keputusan 965). Label: Rekaman lab.
-Satu klien menebak password dari satu alamat. Lewat proxy, setiap instance melihat alamat proxy sebagai alamat klien (RemoteAddr),
-jadi seluruh klien di belakang proxy berbagi satu key per IP; X-Forwarded-For belum dibaca (lihat README). Batas login per IP 10,
+Satu client menebak password dari satu alamat. Lewat proxy, setiap instance melihat alamat proxy sebagai alamat client (RemoteAddr),
+jadi seluruh client di belakang proxy berbagi satu key per IP; X-Forwarded-For belum dibaca (lihat README). Batas login per IP 10,
 per akun 5 (ADR 20). Jam bucket di memori dibekukan supaya tidak terisi ulang di tengah rekaman.
 
 # --- A. Bucket di memori, dua instance, round_robin: 24 percobaan ke 24 akun berbeda dari satu alamat ---
