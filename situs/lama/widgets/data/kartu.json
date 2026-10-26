@@ -1546,7 +1546,7 @@
   "judul": "3.8 Connection pool, Little's Law, dan timeout + ADR 22",
   "url": "tahap-3/connection-pool/",
   "tanya": "AI menulis handler ini. Apa yang rusak, dan apa dua perbaikannya?",
-  "jawab": "`http.Post` memakai `http.DefaultClient`, yang `Timeout`-nya nol, jadi panggilannya tanpa batas waktu. Selama push menunggu, transaction memegang satu koneksi dan lock buku. Perbaikan pertama: pindahkan push keluar dari transaction dengan menulis baris `outbox`. Perbaikan kedua: beri client `Timeout` eksplisit, mis. 3 detik.",
+  "jawab": "`http.Post` memakai `http.DefaultClient`, yang `Timeout`-nya nol, jadi panggilannya tanpa batas waktu. Selama push menunggu, transaction memegang satu koneksi. Perbaikan pertama: pindahkan push keluar dari transaction dengan menulis baris `outbox`. Perbaikan kedua: beri client `Timeout` eksplisit, mis. 3 detik.",
   "kode": "tx, _ := db.BeginTx(ctx, nil)\ndefer tx.Rollback()\ncatatJurnal(ctx, tx, budi, citra, nominal)\nhttp.Post(pushURL, \"application/json\", body)\nreturn tx.Commit()"
  },
  {
