@@ -733,6 +733,167 @@ describe("tinjauan 3.15 (keputusan 1059): lingkup klaim, label widget, dan perin
   });
 });
 
+describe("penjaga tambahan tinjauan 3.15 (keputusan 1059): kunci yang tidak bergantung pada snapshot", () => {
+  const risetBaris = (id: string): string => riset.split("\n").find((l) => l.startsWith(`| ${id} |`))!;
+  test("bawaan Caddy diturunkan dari baris riset dan compose, bukan ditulis ulang", () => {
+    const r170 = risetBaris("R3-170");
+    const sel = r170.match(/health_interval bawaan (\d+)s; health_timeout bawaan (\d+)s/);
+    expect(sel, "R3-170 memuat selang dan timeout bawaan").not.toBeNull();
+    harus(`Bawaan selangnya ${sel![1]} detik dan timeout-nya ${sel![2]} detik.`);
+    expect(compose).toContain(`HEALTH_INTERVAL: "\${HEALTH_INTERVAL:-${sel![1]}s}"`);
+    const pol = r170.match(/lb_policy bawaan `(\w+)`/);
+    expect(pol, "R3-170 memuat kebijakan bawaan").not.toBeNull();
+    harus(`yang bawaannya \`${pol![1]}\``);
+    expect(caddyBawaan).toContain("kebijakan random");
+    harus("Instance yang gagal dikeluarkan dari pilihan sampai pemeriksaan berikutnya lolos.");
+    harus("menganggapnya sehat bila status 200.");
+    expect(r170).toContain("health_status bawaan 200");
+  });
+  test("hitungan koneksi dan slot superuser diturunkan dari baris naskah dan rekaman, bukan dari konstanta di tes", () => {
+    const m = naskah.match(/\| Koneksi database \| instance × pool \+ worker \+ admin \+ reserved \| (\d+) × (\d+) \+ (\d+) \+ (\d+) \+ (\d+) \|/);
+    expect(m, "baris naskah koneksi database").not.toBeNull();
+    const [, inst, pool, worker, admin, reserved] = m!.map(Number) as [number, number, number, number, number, number];
+    harus(`menyisihkan ${reserved} slot untuk superuser`);
+    harus(`Worker memakai ${worker} koneksi dan koneksi admin ${admin}`);
+    harus(`Untuk dua instance dengan pool ${pool}, hasilnya ${inst} × ${pool} + ${worker} + ${admin} + ${reserved}`);
+    expect(inst).toBe(2);
+    const sinyal = ambil(bgB, /\(dihentikan sinyal (\d+)\)/)[1];
+    harus(`karena sinyal ${sinyal} (\`bergulir.txt\` bagian B)`);
+    expect(ambil(bgB, /^ {2}kode keluar proses: (-?\d+)/)[1]).toBe(`-${sinyal}`);
+  });
+  test("negasi dan kata pembatas dihitung: satu 'tidak' atau 'bukan' yang ditambah atau dibuang mengubah arti kalimat", () => {
+    const hitung = (kata: string): number => (badan.match(new RegExp(`\\b${kata}\\b`, "gi")) ?? []).length;
+    expect({ tidak: hitung("tidak"), bukan: hitung("bukan"), belum: hitung("belum"), hanya: hitung("hanya"), semua: hitung("semua"), setiap: hitung("setiap"), selalu: hitung("selalu"), tanpa: hitung("tanpa"), kecuali: hitung("kecuali"), sebagian: hitung("sebagian") })
+      .toEqual({ tidak: 82, bukan: 18, belum: 7, hanya: 13, semua: 8, setiap: 6, selalu: 2, tanpa: 26, kecuali: 4, sebagian: 2 });
+  });
+  test("heading, summary, dan jumlah pertanyaan Cek 3; tidak ada komentar HTML yang menyembunyikan noscript", () => {
+    expect([...badan.matchAll(/^(#{2,6}) (.+)$/gm)].map((x) => `${x[1]!.length} ${x[2]}`)).toEqual([
+      "2 Inti", "3 Kenapa ini ada", "3 Cara kerjanya", "3 Di stack lain", "3 ADR 26: dua instance di satu VPS, health check aktif, dan retry", "3 Sengaja belum dilakukan", "3 Cek diri", "3 Saat me-review kode AI, cek ini", "3 Bacaan lanjut",
+    ]);
+    expect([...badan.matchAll(/<summary>(.+?)<\/summary>/g)].map((x) => x[1])).toEqual(["Sudah tahu? Cek 3 pertanyaan", "Jawaban", "Jawaban", "Jawaban", "Jawaban"]);
+    const cek = badan.slice(badan.indexOf('<details class="question">'), badan.indexOf("</details>"));
+    const jumlahTanya = (cek.match(/^\d+\. /gm) ?? []).length;
+    expect(`Cek ${jumlahTanya} pertanyaan`).toBe(badan.match(/Cek (\d+) pertanyaan/)![0]);
+    expect(badan).not.toContain("<!--");
+    expect((badan.match(/<noscript>/g) ?? []).length).toBe(2);
+    expect((badan.match(/<\/noscript>/g) ?? []).length).toBe(2);
+  });
+  test("judul Snippet dan tanggal akses: judul sama dengan berkas (rekaman diawali 'Rekaman lab: '), semua tanggal 'dibuka' sama dengan tanggal akses riset", () => {
+    for (const m of mdx.matchAll(/<Snippet\s+([^>]*?)\/>/g)) {
+      const a = m[1]!;
+      const file = a.match(/file="([^"]+)"/)?.[1] ?? a.match(/files=\{\["([^":]+)/)![1]!;
+      const judul = a.match(/title="([^"]+)"/)![1]!;
+      expect(judul, a).toBe(file.includes("/output/") ? `Rekaman lab: ${file}` : file);
+    }
+    const tanggal = [...badan.matchAll(/dibuka (\d{4}-\d{2}-\d{2})/g)].map((x) => x[1]);
+    expect(tanggal).toHaveLength(13);
+    expect([...new Set(tanggal)]).toEqual(["2026-10-26"]);
+    for (const id of ["R3-170", "R3-171", "R3-172", "R3-173", "R3-174"]) expect(risetBaris(id)).toMatch(/(dibuka|dibaca mentah) 2026-10-26/);
+    expect(risetBaris("R3-173")).toContain("Published Dec 5, 2019");
+    harus("terbit 2019-12-05, dibuka 2026-10-26");
+    harus("2024-12-31, dibuka 2026-10-26");
+  });
+  test("tautan [[id]] per kalimat: jumlah pemakaian tiap id, kalimat janji ke 3.16, 3.18, dan 3.27", () => {
+    const hitung: Record<string, number> = {};
+    for (const x of badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)) hitung[x[1]!] = (hitung[x[1]!] ?? 0) + 1;
+    expect(hitung).toEqual({ berikutnya: 1, "t2-adr-21": 2, "t2-idempotency": 1, "t2-skema-tanpa-downtime": 1, "t3-adr-33": 7, "t3-jembatan": 1, "t3-m18": 3, "t3-m21": 4, "t3-m22": 2, "t3-m23": 2, "t3-pool": 1, "t3-rate-limit-redis": 1, "t3-tim-infra": 3, "t3-prd": 1 });
+    harus("dan dibahas di [[t3-m22]] dan [[t3-m23]].");
+    harus("ADR 27 memindahkan batas login ke Redis ([[t3-rate-limit-redis]])");
+    harus("jadi pool tidak dinaikkan untuk menambal masalah lain ([[t3-pool]])");
+    harus("Pool 50 per instance, yang diusulkan Raka di [[t3-m18]]");
+    harus("Satu VPS tetap titik gagal tunggal. Ini diterima sengaja dan dijawab di [[t3-jembatan]] dan [[t3-adr-33]].");
+  });
+  test("URL di halaman: daftar tertutup (33 tautan, urutan tetap), tiap host ada di RISET kecuali dua yang disebutkan", () => {
+    const urls = [...badan.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)].map((x) => x[1]!);
+    expect(urls).toEqual([
+      "https://caddyserver.com/docs/caddyfile/directives/reverse_proxy",
+      "https://blog.val.town/blog/post-mortem-exhausted-host-connection-pool/",
+      "https://builder.aws.com/content/3Ev53O39izHCtWLzp4XU6t8PC1O/implementing-health-checks",
+      "https://nginx.org/en/docs/http/ngx_http_upstream_module.html",
+      "https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_next_upstream",
+      "https://nginx.org/en/docs/http/ngx_http_upstream_hc_module.html",
+      "https://doc.traefik.io/traefik/reference/routing-configuration/http/load-balancing/service/",
+      "https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/retry/",
+      "https://docs.docker.com/engine/containers/start-containers-automatically/",
+      "https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html",
+      "https://www.freedesktop.org/software/systemd/man/latest/systemd-system.conf.html",
+      "https://github.com/golang/go/blob/go1.27.3/src/net/http/server.go",
+      "https://www.postgresql.org/docs/17/runtime-config-connection.html",
+      "https://nodejs.org/docs/latest/api/cluster.html",
+      "https://laravel.com/docs/13.x/deployment",
+      "https://gunicorn.org/design/",
+      "https://gunicorn.org/signals/",
+      "https://gunicorn.org/reference/settings/",
+      "https://docs.djangoproject.com/en/6.1/howto/deployment/",
+      "https://docs.serverpod.dev/concepts/operations/health-checks",
+      "https://github.com/supabase/supabase/blob/master/docker/docker-compose.yml",
+      "https://github.com/basecamp/kamal-proxy",
+      "https://github.com/basecamp/kamal-proxy/blob/main/internal/server/service.go",
+      "https://caddyserver.com/docs/caddyfile/directives/reverse_proxy",
+      "https://pkg.go.dev/net/http#Server.Shutdown",
+      "https://www.postgresql.org/docs/17/runtime-config-connection.html",
+      "https://github.com/basecamp/kamal-proxy",
+      "https://kamal-deploy.org/",
+      "https://builder.aws.com/content/3Ev53O39izHCtWLzp4XU6t8PC1O/implementing-health-checks",
+      "https://nginx.org/en/docs/http/ngx_http_upstream_module.html",
+      "https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/retry/",
+      "https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html",
+      "https://docs.docker.com/engine/containers/start-containers-automatically/",
+    ]);
+    const tanpaRiset = new Set(["kamal-deploy.org"]);
+    for (const u of urls) {
+      const host = new URL(u).hostname.replace(/^www\./, "");
+      if (tanpaRiset.has(host)) continue;
+      expect(riset, host).toContain(host);
+    }
+  });
+  test("tabel ADR per sel: frasa kunci tiap kolom dan baris; bukti B, D, E Tidak dijalankan; Sengaja belum per sel", () => {
+    const tabelAdr = badan.slice(badan.indexOf("| | A. Dua instance, proxy bawaan"), badan.indexOf("Opsi B, D, dan E Tidak dijalankan")).split("\n").filter((l) => l.startsWith("|")).map((l) => l.split("|").slice(1, -1).map((c) => c.trim()));
+    const kunci: Record<string, string[]> = {
+      "Cara kerja": ["Caddy hanya `reverse_proxy` ke a dan b", "Satu proses. Pengawas proses", "Proxy memanggil `/healthz` tiap selang", "Dua mesin dengan satu instance per mesin", "Orkestrator menjalankan, memeriksa"],
+      Kelebihan: ["Tanpa konfigurasi tambahan", "rate limit dan cache di memori tetap benar", "Satu kematian tertahan: 0 dari 10 request gagal", "Menahan kematian satu mesin", "Health check, rolling update, dan restart sudah ada"],
+      Kekurangan: ["Instance mati tetap dipilih: 10 dari 20 request gagal", "tidak ada instance yang menjawab (penalaran)", "Satu VPS mati berarti kedua instance mati", "Biaya mesin kedua", "Biaya operasional besar untuk tim empat orang"],
+      "Biaya operasional": ["Satu baris `reverse_proxy`", "Satu unit pengawas proses", "Empat opsi tambahan di Caddyfile", "Dua mesin, jaringan, dan deploy ke dua tempat", "Cluster, manifest, dan upgrade cluster"],
+      Bukti: ["Rekaman `proxy.txt` B dan C, `bergulir.txt` D", "Tidak dijalankan: dokumentasi Docker dan systemd", "Rekaman `proxy.txt` D sampai G, `bergulir.txt` A sampai C, `panic.txt` D", "Tidak dijalankan: [[t3-adr-33]]", "Tidak dijalankan: [[t3-adr-33]]"],
+    };
+    for (const r of tabelAdr.slice(2)) {
+      const frasa = kunci[r[0]!];
+      expect(frasa, r[0]).toBeDefined();
+      frasa!.forEach((f, i) => expect(r[i + 1], `${r[0]} kolom ${i + 1}`).toContain(f));
+    }
+    const sb = badan.slice(badan.indexOf("### Sengaja belum dilakukan"), badan.indexOf('<Blok nama="Kunci">')).split("\n").filter((l) => l.startsWith("|")).map((l) => l.split("|").slice(1, -1).map((c) => c.trim()));
+    expect(sb.slice(2).map((r) => r[0])).toEqual(["VPS kedua dan load balancer", "Kubernetes dan canary", "Health check liveness dan readiness terpisah"]);
+    expect(sb.slice(2).map((r) => r[2])).toEqual(["[[t3-adr-33]]", "[[t3-adr-33]]", "Belum dijadwalkan di naskah"]);
+    expect(sb[2]![1]).toContain("17,36 request per detik tidak menuntut kapasitas");
+    expect(sb[3]![1]).toContain("empat engineer");
+    expect(sb[4]![1]).toContain("database yang lambat mengeluarkan kedua instance");
+    expect(naskah).toContain("| 33 | Sengaja belum: microservices, Kubernetes dan canary, read replica, PgBouncer, CDC, VPS kedua,");
+    expect(naskah).not.toMatch(/liveness|readiness/i);
+  });
+  test("widget banding: simpul yang tersorot per kejadian dikunci; kejadian 'Kedua instance mati' menyorot kedua instance, 'Satu instance mati' menyorot retry", () => {
+    expect(banding.fitur.map((f) => f.sorot)).toEqual([
+      { polos: ["a-proxy", "a-ib"], adr26: ["b-proxy", "b-retry", "b-ia"] },
+      { polos: ["a-proxy", "a-ia"], adr26: ["b-proxy", "b-cek", "b-ia"] },
+      { polos: ["a-proxy", "a-ia", "a-ib"], adr26: ["b-proxy", "b-cek", "b-ia", "b-ib"] },
+      { polos: ["a-proxy", "a-ia", "a-ib"], adr26: ["b-proxy", "b-ia", "b-ib"] },
+    ]);
+    expect(banding.fitur.map((f) => f.nada)).toEqual([{ polos: "warn" }, { polos: "warn" }, { adr26: "warn" }, { polos: "warn", adr26: "warn" }]);
+  });
+  test("halaman istilah: url sumber dikunci dan host-nya ada di riset; tab Go memuat nomor versi lab", () => {
+    expect(istilah.sumber!.map((x) => ("url" in x ? x.url : null))).toEqual([
+      "https://caddyserver.com/docs/caddyfile/directives/reverse_proxy",
+      null,
+      "https://builder.aws.com/content/3Ev53O39izHCtWLzp4XU6t8PC1O/implementing-health-checks",
+      "https://blog.val.town/blog/post-mortem-exhausted-host-connection-pool/",
+      "https://docs.serverpod.dev/concepts/operations/health-checks",
+    ]);
+    for (const x of istilah.sumber!) if ("url" in x) expect(riset).toContain(new URL(x.url as string).hostname);
+    expect((istilah.stack as Record<string, { versi?: string }>).go!.versi).toBe("Caddy 2.11.7, PostgreSQL 17.11, go.mod Go 1.27.1");
+    expect(mainGo.length).toBeGreaterThan(0);
+    expect(baca("labs/api-t3/go.mod")).toMatch(/^go 1\.27\.1$/m);
+  });
+});
+
 describe("kunci teks: seluruh halaman dan seluruh data widget dikunci utuh lewat snapshot", () => {
   test("badan halaman, data widget, halaman istilah, dan baris RISET milik 3.15", async () => {
     await expect(mdx).toMatchFileSnapshot("./__teks__/dua-instance.mdx.txt");
