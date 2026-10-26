@@ -16,6 +16,7 @@ import (
 
 	"lab/apit4/internal/push"
 	"lab/apit4/internal/repo"
+	"lab/apit4/internal/verifikasi"
 )
 
 // Konfigurasi worker. Dari naskah: c = 4 pengirim serentak dan 5 percobaan. Asumsi lab, belum di naskah: klaim 5 detik
@@ -28,8 +29,9 @@ type Konfigurasi struct {
 	MaksPercobaan int           // sesudah ini baris masuk dead-letter (ADR 25)
 	DasarBackoff  time.Duration // tunggu sesudah percobaan pertama, lalu dua kali lipat
 	MaksBackoff   time.Duration
-	UrutKelas     bool // false = menurut nomor saja (mode rentan urut-waktu, M27)
-	Kursor        bool // true = poller kursor (dibuat, id) tanpa klaim (mode rentan kursor, M19)
+	UrutKelas     bool     // false = menurut nomor saja (mode rentan urut-waktu, M27)
+	Tujuan        []string // lajur yang diklaim worker ini (push, verifikasi); kosong = semua lajur (ADR 36)
+	Kursor        bool     // true = poller kursor (dibuat, id) tanpa klaim (mode rentan kursor, M19)
 	// HentiSebelumTandai: lab saja. Proses berhenti mendadak sesudah push berhasil dan sebelum baris ditandai
 	// terkirim, supaya klaim habis dan pengiriman ulang (M20) bisa direkam tanpa mengandalkan waktu mematikan proses.
 	HentiSebelumTandai bool
@@ -42,18 +44,23 @@ func Bawaan() Konfigurasi {
 }
 
 type Worker struct {
-	repo repo.Repo
-	push push.Klien
-	cfg  Konfigurasi
-	acak func() float64 // [0,1); diganti di tes
+	repo  repo.Repo
+	push  push.Klien
+	cfg   Konfigurasi
+	acak  func() float64    // [0,1); diganti di tes
+	verif *verifikasi.Klien // layanan verifikasi tiruan; nil = pekerjaan verifikasi ditunda lagi
+	kini  func() time.Time
 
 	kursorDibuat time.Time
 	kursorID     int64
 }
 
 func Baru(r repo.Repo, p push.Klien, cfg Konfigurasi) *Worker {
-	return &Worker{repo: r, push: p, cfg: cfg, acak: rand.Float64}
+	return &Worker{repo: r, push: p, cfg: cfg, acak: rand.Float64, kini: time.Now}
 }
+
+// DenganVerifikasi memasang client layanan verifikasi untuk pekerjaan bertujuan verifikasi.
+func (w *Worker) DenganVerifikasi(k *verifikasi.Klien) *Worker { w.verif = k; return w }
 
 // --8<-- [start:backoff]
 // Backoff: tunggu sebelum percobaan berikutnya = acak antara 0 dan min(maks, dasar × 2^(percobaan-1))
@@ -91,7 +98,7 @@ func (w *Worker) Putaran(ctx context.Context) (Ringkasan, error) {
 			w.kursorDibuat, w.kursorID = akhir.Dibuat, akhir.ID
 		}
 	} else {
-		baris, err = w.repo.KlaimOutbox(ctx, w.cfg.Serentak, w.cfg.Klaim, w.cfg.UrutKelas)
+		baris, err = w.repo.KlaimOutboxTujuan(ctx, w.cfg.Serentak, w.cfg.Klaim, w.cfg.UrutKelas, w.cfg.Tujuan)
 		sort.Slice(baris, func(i, j int) bool {
 			if w.cfg.UrutKelas && baris[i].Kelas != baris[j].Kelas {
 				return baris[i].Kelas < baris[j].Kelas
@@ -133,6 +140,9 @@ func (w *Worker) Putaran(ctx context.Context) (Ringkasan, error) {
 // terkirim (semua jalan), dilewati (tidak ada perangkat aktif), ditunda dengan backoff (gagal sementara), atau
 // mati (percobaan habis). Token yang ditolak layanan push dinonaktifkan dan tidak membuat baris diulang.
 func (w *Worker) kirimSatu(ctx context.Context, n repo.Notifikasi) string {
+	if n.Tujuan == "verifikasi" {
+		return w.kirimVerifikasi(ctx, n)
+	}
 	// Klaim menaikkan percobaan sebelum mengirim. Worker yang mati di tengah kirim membuat baris diklaim lagi dengan
 	// percobaan lebih besar; sesudah batas, baris itu masuk dead-letter tanpa dikirim, bukan diulang tanpa akhir.
 	if n.Percobaan > w.cfg.MaksPercobaan {

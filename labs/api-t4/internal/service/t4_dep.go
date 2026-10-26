@@ -26,6 +26,11 @@ type Dep struct {
 	// cek-lalu-tulis terekam tanpa mengandalkan nasib.
 	JedaCekTulis time.Duration
 
+	// Lab saja: lapisan pengaman handler webhook ADR 34 yang sengaja dimatikan, supaya lapisan lain bisa direkam
+	// sendirian. Kunci yang dikenal: "status" (status top-up hanya maju) dan "kunci" (Idempotency-Key ke ledger).
+	// Kunci utama webhook_event.event_id tidak bisa dimatikan.
+	TanpaLapis map[string]bool
+
 	// Rahasia bersama penerbit kartu tiruan: header X-Penerbit-Kunci pada /penerbit/*. Kosong = ditolak semua.
 	KunciPenerbit string
 	// Kill switch kartu (ADR 42): false menolak otorisasi baru tanpa deploy. Nil dianggap menyala.

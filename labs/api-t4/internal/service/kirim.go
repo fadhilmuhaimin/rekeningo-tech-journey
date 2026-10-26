@@ -64,6 +64,12 @@ func (s Service) Kirim(ctx context.Context, peminta int64, nomor string, nominal
 	if pengirim.Jenis != "karyawan" {
 		return h, ErrDilarang
 	}
+	if pengirim.Status == "dibekukan" {
+		return h, ErrDibekukan
+	}
+	if pengirim.Tingkat != "terverifikasi" { // PRD v4: transfer hanya untuk akun terverifikasi
+		return h, ErrButuhVerifikasi
+	}
 	if pengirim.NomorKaryawan != nil && *pengirim.NomorKaryawan == strings.TrimSpace(nomor) {
 		return h, ErrValidasi{"ke_nomor_karyawan", "nomor milik pengirim sendiri"}
 	}

@@ -23,6 +23,7 @@ type Notifikasi struct {
 	AkunID       int64
 	Kelas        int
 	Jenis        string
+	Tujuan       string // push atau verifikasi (migrasi 000020): lajur pekerjaan
 	Payload      []byte
 	Percobaan    int
 	Dibuat       time.Time
@@ -72,6 +73,15 @@ func (t Tx) UmumkanPromo(ctx context.Context, kota int64, payload []byte) (int64
 // dipegang worker lain; pengiriman ulang itu benar, dan penerima menyaring notifikasi_id (ADR 25).
 // urutKelas=false mengurutkan menurut nomor saja (mode rentan urut-waktu, M27).
 func (r Repo) KlaimOutbox(ctx context.Context, n int, lama time.Duration, urutKelas bool) ([]Notifikasi, error) {
+	return r.KlaimOutboxTujuan(ctx, n, lama, urutKelas, nil)
+}
+
+// KlaimOutboxTujuan: klaim yang sama, dibatasi ke satu atau beberapa lajur (`tujuan`). Daftar kosong = semua lajur.
+// Satu proses worker per lajur membuat lajur yang macet tidak menahan lajur lain.
+func (r Repo) KlaimOutboxTujuan(ctx context.Context, n int, lama time.Duration, urutKelas bool, tujuan []string) ([]Notifikasi, error) {
+	if tujuan == nil {
+		tujuan = []string{}
+	}
 	urut := "id"
 	if urutKelas {
 		urut = "kelas, id"
@@ -80,13 +90,14 @@ func (r Repo) KlaimOutbox(ctx context.Context, n int, lama time.Duration, urutKe
 		WITH pilih AS (
 		  SELECT id FROM outbox
 		  WHERE status = 'menunggu' AND coba_lagi <= now() AND (klaim_sampai IS NULL OR klaim_sampai < now())
+		    AND (cardinality($3::text[]) = 0 OR tujuan = ANY($3))
 		  ORDER BY `+urut+`
 		  LIMIT $1
 		  FOR UPDATE SKIP LOCKED)
 		UPDATE outbox o SET klaim_sampai = now() + make_interval(secs => $2::double precision), percobaan = o.percobaan + 1
 		FROM pilih WHERE o.id = pilih.id
-		RETURNING o.id, o.notifikasi_id, o.jurnal_id, o.akun_id, o.kelas, o.jenis, o.payload, o.percobaan, o.dibuat`,
-		n, lama.Seconds())
+		RETURNING o.id, o.notifikasi_id, o.jurnal_id, o.akun_id, o.kelas, o.jenis, o.tujuan, o.payload, o.percobaan, o.dibuat`,
+		n, lama.Seconds(), tujuan)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +112,7 @@ func (r Repo) KlaimOutbox(ctx context.Context, n int, lama time.Duration, urutKe
 // menunggu lock buku selesai belakangan dengan `dibuat` lebih awal, lalu tertinggal di belakang kursor.
 func (r Repo) BacaKursor(ctx context.Context, dibuat time.Time, id int64, n int) ([]Notifikasi, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, notifikasi_id, jurnal_id, akun_id, kelas, jenis, payload, percobaan, dibuat
+		SELECT id, notifikasi_id, jurnal_id, akun_id, kelas, jenis, tujuan, payload, percobaan, dibuat
 		FROM outbox WHERE status = 'menunggu' AND (dibuat, id) > ($1, $2)
 		ORDER BY dibuat, id LIMIT $3`, dibuat, id, n)
 	if err != nil {
@@ -117,7 +128,7 @@ func bacaNotifikasi(rows *sql.Rows) ([]Notifikasi, error) {
 	var out []Notifikasi
 	for rows.Next() {
 		var n Notifikasi
-		if err := rows.Scan(&n.ID, &n.NotifikasiID, &n.JurnalID, &n.AkunID, &n.Kelas, &n.Jenis, &n.Payload,
+		if err := rows.Scan(&n.ID, &n.NotifikasiID, &n.JurnalID, &n.AkunID, &n.Kelas, &n.Jenis, &n.Tujuan, &n.Payload,
 			&n.Percobaan, &n.Dibuat); err != nil {
 			return nil, err
 		}

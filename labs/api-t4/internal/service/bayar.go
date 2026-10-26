@@ -49,6 +49,9 @@ func (s Service) Bayar(ctx context.Context, peminta, ke, jumlah int64, catatan s
 	if pembayar.Jenis != "karyawan" {
 		return 0, 0, ErrDilarang
 	}
+	if pembayar.Status == "dibekukan" {
+		return 0, 0, ErrDibekukan
+	}
 	perangkat := s.perangkatRentan(ctx, ke)
 	err = s.repo.DalamTx(ctx, func(tx repo.Tx) error {
 		buku, err := tx.KunciBukuAkun(ctx, peminta, ke)

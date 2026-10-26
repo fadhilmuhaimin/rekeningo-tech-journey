@@ -80,6 +80,9 @@ func (s Service) Pesan(ctx context.Context, peminta, produk int64, porsi int, ca
 	if pembayar.Jenis != "karyawan" {
 		return h, ErrDilarang
 	}
+	if pembayar.Status == "dibekukan" {
+		return h, ErrDibekukan
+	}
 	perangkat := s.perangkatRentan(ctx, warung)
 	err = s.repo.DalamTx(ctx, func(tx repo.Tx) error {
 		buku, err := tx.KunciBukuAkun(ctx, peminta, warung)

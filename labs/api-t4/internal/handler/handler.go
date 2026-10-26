@@ -46,13 +46,13 @@ func (s Server) Rute() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /login", s.login)
 	mux.HandleFunc("POST /web/login", s.loginWeb)
-	mux.HandleFunc("POST /perangkat", s.wajibLogin(s.perangkat))
+	mux.HandleFunc("POST /perangkat", s.wajibLogin(s.batasAkun("perangkat", s.perangkat)))
 	mux.HandleFunc("GET /katalog", s.wajibLogin(s.katalog))
-	mux.HandleFunc("POST /pesanan", s.wajibLogin(s.idempoten(s.pesanan)))
+	mux.HandleFunc("POST /pesanan", s.wajibLogin(s.batasAkun("pesanan", s.idempoten(s.pesanan))))
 	mux.HandleFunc("PATCH /produk/{id}", s.wajibLogin(s.ubahProduk))
 	mux.HandleFunc("GET /promo", s.wajibLogin(s.daftarPromo))
-	mux.HandleFunc("POST /promo", s.wajibLogin(s.buatPromo))
-	mux.HandleFunc("POST /sinkron", s.wajibLogin(s.sinkron))
+	mux.HandleFunc("POST /promo", s.wajibLogin(s.batasAkun("promo", s.buatPromo)))
+	mux.HandleFunc("POST /sinkron", s.wajibLogin(s.batasAkun("sinkron", s.sinkron)))
 	mux.HandleFunc("GET /warung/{id}/laporan.csv", s.wajibLogin(s.laporanCSV))
 	mux.HandleFunc("GET /warung/{id}/penerimaan", s.wajibLogin(s.penerimaan))
 	mux.HandleFunc("POST /ganti-password", s.gantiPassword)
@@ -365,6 +365,8 @@ func (s Server) petaError(w http.ResponseWriter, err error, dilarang string) {
 		tulisProblem(w, Problem{Type: "/problems/batas-warung", Title: "Saldo warung melewati batas", Status: 422})
 	case errors.Is(err, service.ErrSudahDibalik):
 		tulisProblem(w, Problem{Type: "/problems/sudah-dibalik", Title: "Jurnal ini sudah pernah dibalik", Status: 409})
+	case errors.Is(err, service.ErrDibekukan), errors.Is(err, service.ErrButuhVerifikasi), errors.Is(err, service.ErrBatasTingkat):
+		s.petaPembayaran(w, err)
 	case errors.Is(err, service.ErrDilarang):
 		tulisProblem(w, Problem{Type: "/problems/dilarang", Title: dilarang, Status: 403})
 	case errors.Is(err, service.ErrTidakDitemukan):

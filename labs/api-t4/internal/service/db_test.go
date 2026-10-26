@@ -62,8 +62,9 @@ func akunBaru(t *testing.T, db *sql.DB, jenis string, saldo int64) (id int64, no
 		nomor = fmt.Sprintf("T%d", id)
 		nomorPtr = &nomor
 	}
-	if _, err := db.Exec(`INSERT INTO akun (id, jenis, nama, email, password_hash, nomor_karyawan)
-		VALUES ($1, $2, $3, $4, '!', $5)`, id, jenis, fmt.Sprintf("Tes %d", id), fmt.Sprintf("tes%d@lestari.example", id),
+	// Akun Lestari ditandai terverifikasi lewat HR (PRD v4): hanya akun terverifikasi yang boleh mengirim ke rekan.
+	if _, err := db.Exec(`INSERT INTO akun (id, jenis, nama, email, password_hash, nomor_karyawan, tingkat)
+		VALUES ($1, $2, $3, $4, '!', $5, 'terverifikasi')`, id, jenis, fmt.Sprintf("Tes %d", id), fmt.Sprintf("tes%d@lestari.example", id),
 		nomorPtr); err != nil {
 		t.Fatal(err)
 	}
