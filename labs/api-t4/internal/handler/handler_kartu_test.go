@@ -193,7 +193,7 @@ func panggilSebagai(f http.HandlerFunc, akun int64, method, path, id string) *ht
 func TestRuteKartuApp(t *testing.T) {
 	penerbitTiruan := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(201)
-		fmt.Fprint(w, `{"token":"tok_rahasia_penerbit","empat_digit":"0042"}`)
+		fmt.Fprintf(w, `{"token":"tok_rahasia_%s","empat_digit":"0042"}`, r.Header.Get("Idempotency-Key"))
 	}))
 	s, db := serverKartu(t, service.Dep{Penerbit: penerbit.Baru(penerbitTiruan.URL, 3*time.Second)}, "")
 	belum, _ := akunKartu(t, db, "belum", 0)
@@ -202,7 +202,7 @@ func TestRuteKartuApp(t *testing.T) {
 	}
 	ok, _ := akunKartu(t, db, "terverifikasi", 0)
 	rec := panggilSebagai(s.terbitkanKartu, ok, "POST", "/kartu", "")
-	if rec.Code != 201 || !strings.Contains(rec.Body.String(), `"empat_digit":"0042"`) || strings.Contains(rec.Body.String(), "tok_rahasia_penerbit") {
+	if rec.Code != 201 || !strings.Contains(rec.Body.String(), `"empat_digit":"0042"`) || strings.Contains(rec.Body.String(), "tok_rahasia_") {
 		t.Fatalf("terbitkan: %d %s; harus 201 tanpa token penerbit di jawaban", rec.Code, rec.Body.String())
 	}
 	var k struct{ ID int64 }
