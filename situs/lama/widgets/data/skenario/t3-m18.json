@@ -20,6 +20,7 @@
   "layarAwal": {
     "budi": {
       "judul": "Beranda",
+      "waktu": "12.20",
       "sinyal": 3,
       "isi": [
         { "jenis": "teks", "teks": "Saldo dan riwayat" },
@@ -85,6 +86,7 @@
       "layar": {
         "budi": {
           "judul": "Saldo",
+          "waktu": "12.20",
           "sinyal": 3,
           "isi": [{ "jenis": "proses", "teks": "Memuat saldo..." }]
         }
@@ -108,6 +110,7 @@
       "layar": {
         "budi": {
           "judul": "Saldo",
+          "waktu": "12.20",
           "sinyal": 3,
           "nada": "warn",
           "isi": [
@@ -156,6 +159,7 @@
         "layar": {
           "budi": {
             "judul": "Saldo",
+            "waktu": "12.20",
             "sinyal": 3,
             "nada": "good",
             "isi": [{ "jenis": "toast", "teks": "Saldo dimuat", "nada": "good" }]

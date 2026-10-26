@@ -707,6 +707,10 @@ describe("skenario alur t3-m18.json: tiap langkah dari rekaman, kode, dan hitung
   test("layar HP: hanya teks dari rekaman atau kalimat umum, tanpa saldo yang tidak direkam", () => {
     const semuaLayar = [skenario.layarAwal, ...skenario.langkah.map((l) => l.layar ?? {}), ...skenario.varian.langkah.map((l) => l.layar ?? {})];
     expect(JSON.stringify(semuaLayar)).not.toContain('"saldo"');
+    // Jam di bilah status HP mengikuti cerita (Jumat 12.20); bawaan komponen hp adalah 12.05, yang bertentangan dengan judul halaman.
+    const semuaBudi = semuaLayar.flatMap((x) => Object.values(x));
+    expect(semuaBudi).toHaveLength(4);
+    for (const s of semuaBudi) expect((s as { waktu?: string }).waktu, "jam di layar HP").toBe(naskah.match(/\| M18 \| 3 \| Jumat (\d+\.\d+),/)![1]);
     const teks = semuaLayar.flatMap((x) => Object.values(x).flatMap((s) => (s.isi ?? []).map((i) => i.teks).filter(Boolean)));
     expect(teks).toEqual(["Saldo dan riwayat", "Lihat saldo", "Memuat saldo...", "Memuat saldo...", "Belum ada jawaban dari server", "Saldo dimuat"]);
     expect(skenario.langkah[7]!.layar!.budi!.nada).toBe("warn");
