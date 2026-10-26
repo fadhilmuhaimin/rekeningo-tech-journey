@@ -1,0 +1,109 @@
+{
+  "istilah": "SKIP LOCKED",
+  "sehari_hari": "Saat beberapa pekerja mengambil tugas dari satu daftar, pekerja yang tiba belakangan tidak antre di belakang yang sedang memegang tugas. Ia melewati tugas itu dan mengambil yang berikutnya.",
+  "cerita": [
+    {
+      "rujukan": "t3-klaim-baris",
+      "teks": "Worker outbox mengklaim baris dengan `FOR UPDATE SKIP LOCKED`. Sesi kedua langsung mendapat baris 5 sampai 8 saat sesi pertama memegang baris 1 sampai 4, dan sesi ketiga mendapat 0 baris walau queue belum kosong."
+    }
+  ],
+  "mekanisme": [
+    "`SELECT ... FOR UPDATE SKIP LOCKED` memilih baris sesuai `WHERE` dan `ORDER BY`, lalu mencoba mengunci tiap baris yang terpilih.",
+    "Baris yang sudah dikunci transaction lain dilewati, bukan ditunggu. Tanpa `SKIP LOCKED`, pernyataan menunggu transaction itu selesai.",
+    "Kunci yang didapat dipegang sampai transaction selesai. Worker yang mengklaim baris dalam satu pernyataan melepasnya saat pernyataan itu selesai, dan kolom seperti `klaim_sampai` menahan baris sesudahnya.",
+    "Karena baris yang dilewati tidak ikut hasil, dua pernyataan bersamaan bisa mendapat himpunan baris yang berbeda. Urutan antar baris juga tidak dijaga."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Go 1.27.1, pgx v5.11.0 lewat database/sql, PostgreSQL 17.11",
+      "teks": "`KlaimOutbox` menjalankan `WITH pilih AS (SELECT id FROM outbox WHERE ... LIMIT $1 FOR UPDATE SKIP LOCKED) UPDATE ...` dalam satu pernyataan. Tiga worker serentak atas 60 baris: 60 terkirim, 0 ganda.",
+      "rekaman": "labs/t3-outbox/output/klaim.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "pg-boss 12.38.0",
+      "teks": "README pg-boss menulis bahwa library ini bertumpu pada `SKIP LOCKED` dan worker bersamaan mengklaim job tanpa saling memblokir. Kamu tidak menulis SQL-nya.",
+      "dokumentasi": "https://github.com/timgit/pg-boss"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "laravel/framework 13.38.0",
+      "teks": "Kode `DatabaseQueue` memilih `FOR UPDATE SKIP LOCKED` untuk PostgreSQL 9.5 ke atas, MySQL 8.0.1 ke atas, dan MariaDB 10.6.0 ke atas. Halaman Queues di dokumentasi tidak menyebutnya.",
+      "dokumentasi": "https://github.com/laravel/framework/blob/v13.38.0/src/Illuminate/Queue/DatabaseQueue.php"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2",
+      "teks": "`select_for_update(skip_locked=True)` di dalam `transaction.atomic()`. `nowait` dan `skip_locked` tidak bisa dipakai bersamaan, dan di autocommit pemanggilannya menimbulkan `TransactionManagementError`.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/ref/models/querysets/#select-for-update"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4",
+      "teks": "Row locking mendukung `LockBehavior.skipLocked` di `find` dengan `lockMode` dan `transaction`. Future call memakai klaim antar instance yang caranya tidak dijelaskan di halaman Scheduling.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/row-locking"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "pgmq v1.13.1",
+      "teks": "Supabase Queues memakai pgmq. `pgmq.read` menerima `vt`, lama pesan tak terlihat oleh consumer lain sesudah dibaca. Dokumentasi yang dibuka tidak menyebut `SKIP LOCKED`.",
+      "dokumentasi": "https://github.com/pgmq/pgmq/blob/main/docs/api/sql/functions.md"
+    }
+  },
+  "jebakan": [
+    "Mengira `SKIP LOCKED` yang mencegah baris dikirim dua kali. Yang mencegahnya klausa kunci `FOR UPDATE` bersama batas klaim; `SKIP LOCKED` hanya mengganti menunggu dengan melewati.",
+    "Mengira `SKIP LOCKED` menjaga urutan. Baris yang dilewati dikirim belakangan, dan dokumentasi PostgreSQL menyebut hasilnya tampilan data yang tidak konsisten.",
+    "Memakainya untuk pekerjaan umum seperti laporan. Dokumentasi menulis bahwa itu tidak cocok, dan gunanya menghindari lock contention banyak consumer pada tabel yang mirip queue."
+  ],
+  "terkait": [
+    "SELECT FOR UPDATE",
+    "Lease",
+    "Outbox",
+    "Lock"
+  ],
+  "sumber": [
+    {
+      "riset": "R3-60",
+      "judul": "PostgreSQL 17: SELECT, The Locking Clause",
+      "url": "https://www.postgresql.org/docs/17/sql-select.html#SQL-FOR-UPDATE-SHARE",
+      "catatan": "SKIP LOCKED melewati baris yang tidak bisa langsung dikunci, memberi tampilan data yang tidak konsisten, dan bisa menghindari lock contention untuk banyak consumer pada tabel mirip queue."
+    },
+    {
+      "riset": "R3-60",
+      "judul": "Rekaman lab t3-outbox: klaim per baris",
+      "rekaman": "labs/t3-outbox/output/klaim.txt",
+      "catatan": "Bagian A: tanpa klausa kunci dua sesi memilih baris yang sama; FOR UPDATE membuat sesi kedua menunggu; SKIP LOCKED membuatnya langsung mendapat baris lain. Bagian D: worker sungguhan melewati baris yang dikunci sesi lain."
+    },
+    {
+      "riset": "R3-154",
+      "judul": "37signals: Introducing Solid Queue",
+      "url": "https://dev.37signals.com/introducing-solid-queue/",
+      "catatan": "Menyebut SELECT ... FOR UPDATE SKIP LOCKED penting bagi implementasi, karena worker mengambil dan mengunci job tanpa mengunci worker lain."
+    },
+    {
+      "riset": "R3-150",
+      "judul": "pg-boss (README)",
+      "url": "https://github.com/timgit/pg-boss",
+      "catatan": "Bertumpu pada SKIP LOCKED; worker bersamaan mengklaim job tanpa saling memblokir; polling dengan dukungan LISTEN/NOTIFY."
+    },
+    {
+      "riset": "R3-151",
+      "judul": "laravel/framework 13.38.0: Illuminate\\Queue\\DatabaseQueue",
+      "url": "https://github.com/laravel/framework/blob/v13.38.0/src/Illuminate/Queue/DatabaseQueue.php",
+      "catatan": "getLockForPopping mengembalikan FOR UPDATE SKIP LOCKED untuk PostgreSQL 9.5 ke atas; reserved_at dan retryAfter menjadi batas klaim."
+    },
+    {
+      "riset": "R3-152",
+      "judul": "Django 6.1: QuerySet API, select_for_update",
+      "url": "https://docs.djangoproject.com/en/6.1/ref/models/querysets/#select-for-update",
+      "catatan": "select_for_update(skip_locked=True) mengabaikan baris yang terkunci; nowait dan skip_locked tidak bisa dipakai bersamaan."
+    },
+    {
+      "riset": "R3-153",
+      "judul": "pgmq: functions (pgmq.read)",
+      "url": "https://github.com/pgmq/pgmq/blob/main/docs/api/sql/functions.md",
+      "catatan": "vt adalah waktu dalam detik sebuah pesan tak terlihat oleh consumer lain sesudah dibaca; halaman tidak menyebut SKIP LOCKED."
+    }
+  ]
+}
