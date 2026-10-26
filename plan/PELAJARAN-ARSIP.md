@@ -312,3 +312,18 @@ Pola per halaman: branch `tahap-1/<slug>` dari `main`; lab dulu bila perlu (PR s
 | 2.28 | #337 | 28 (15.12 → 15.40) | 3 | 0 |
 | 2.29 | #339 | 32 | 1 | 0 |
 | 2.30 | #341 | 184 (jeda limit #2; peninjau 25) | 1 | 0 |
+
+## Ukur antrean merge, baris 2.31–3.3 (arsip 2026-10-26 malam)
+
+| Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
+| --- | --- | --- | --- | --- |
+| 2.31 | #346 | 57 | 0 | 0 |
+| 2.32 | #351 | 31 | 1 | 0 |
+| 2.33 | #353 | 42 | 1 | 0 |
+| 3.1 | #364 | 24 (pelaksana terputus restart sesi) | 0 | 0 |
+| 3.2 | #365 | 36 | 1 | 0 |
+| 3.3 | #366 | 39 | 1 | 0 |
+
+## Perlu dicek pemilik, halaman 3.1–3.3 (arsip 2026-10-26 malam)
+
+- Halaman 3.1–3.3 (#364–#366): top-up massal "beberapa menit" (naskah) lawan ±12,5 menit M27, usul "belasan menit"; pemicu ADR 21 sudah dipenuhi sejak PRD tetapi M21 menceritakannya kejutan (3.14 pilih opsi a atau b); versi app 3.0/3.1 Asumsi penulis; dokumentasi FCM menyarankan FID, field FID di request HTTP v1 [perlu verifikasi] (bila bukan `token`, `perangkat.token_push` di ERD3 berubah); penyaring `notifikasi_id` butuh kode app padahal pesan notification ditampilkan SDK (3.13 pilih data message); widget peta 3.2 "–" padahal pilah.
