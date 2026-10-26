@@ -149,7 +149,7 @@ Lima ADR sebelumnya menulis Tahap 4 sebagai batasnya, jadi syaratnya dibaca ulan
 
 PRD v4 memenuhi kelimanya sejak dibagikan. Tiga tim memenuhi ADR 12 dan 32. Kartu virtual memenuhi ADR 22, webhook yang menggerakkan uang memenuhi ADR 25, dan uang publik di satu VPS memenuhi ADR 26. Halaman 4.1 menulisnya sebagai syarat yang sudah terpenuhi, bukan sebagai kejutan.
 
-Kartu virtual membalik arah ADR 22: penerbit yang memanggil Rekeningo, jadi tidak ada panggilan keluar di dalam transaction, dan ADR 42 menulis akibatnya. Peringatan ADR 12 tentang dua service menjadi bagian ADR 37. Sesudah service pembayaran terpisah, jurnal dibuat lewat API ledger dengan Idempotency-Key, bukan di transaction yang sama, dan itu mengubah cara ADR 34 dan ADR 42 dibaca.
+Kartu virtual membalik arah ADR 22: penerbit yang memanggil Rekeningo, jadi tidak ada panggilan keluar di dalam transaction, dan ADR 42 menulis akibatnya. Peringatan ADR 12 tentang dua service menjadi bagian ADR 37. Sesudah service pembayaran terpisah, jurnal dibuat lewat API ledger dengan Idempotency-Key. Itu mengubah cara ADR 34 dan ADR 42 dibaca, karena jurnal tidak lagi di transaction yang sama.
 
 ## 2. Dari fitur ke pekerjaan teknis
 
@@ -200,7 +200,7 @@ Jawabannya ada di M29 sampai M31.
 
 **Yang pembaca lakukan.** Widget cari-bug: tandai baris di handler versi pertama yang melanggar satu dari tiga hal itu, lalu lihat tabel di atas terisi.
 
-**Yang dipelajari Raka dengan susah payah.** Pola ini muncul lagi di layanan verifikasi (M31), file identitas (M33), dan penerbit kartu yang memanggil Rekeningo dengan tenggat 2 detik (M37). Aturannya sama untuk semuanya: PostgreSQL tetap satu-satunya source of truth, dan pihak ketiga hanya memberi klaim. Klaim itu dicek, lalu dicatat sekali. Selama satu proses, pencatatan ada dalam transaction yang sama dengan efeknya. Sesudah service pembayaran terpisah, Idempotency-Key yang sama menjaga semua ulangan (ADR 37).
+**Yang dipelajari Raka dengan susah payah.** Pola ini muncul lagi di layanan verifikasi (M31), file identitas (M33), dan penerbit kartu yang memanggil Rekeningo dengan tenggat 2 detik (M37). Aturannya sama untuk semuanya: PostgreSQL tetap satu-satunya source of truth, dan pihak ketiga hanya memberi klaim. Klaim itu dicek, lalu dicatat sekali: dalam transaction yang sama dengan efeknya selama satu proses, atau lewat Idempotency-Key sesudah service pembayaran terpisah (ADR 37).
 
 ### Angka beban Tahap 4 (Asumsi, rumus ditulis)
 
