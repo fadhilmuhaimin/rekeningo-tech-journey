@@ -403,7 +403,7 @@ describe("widget cari-bug: skema, periksa, ringkas, dan teks", () => {
   });
   test("diagram Rantai: ilustrasi atau rekaman sesuai sumbernya, teks dikunci utuh", () => {
     expect(rantai.sumber).toEqual({ jenis: "rekaman", teks: "Rekaman lab api-t3, rentan.txt bagian A dan B" });
-    expect(rantai.baris.map((b) => [b.label, b.sub])).toEqual([["Push mati", "rentan.txt B"], ["Push menggantung", "rentan.txt A"]]);
+    expect(rantai.baris.map((b) => [b.label, b.sub])).toEqual([["Push mati", "bagian B dari rentan.txt"], ["Push menggantung", "bagian A dari rentan.txt"]]);
     expect(rantai.baris.map((b) => b.simpul.map((s) => s.nada))).toEqual([["biasa", "warn", "warn"], ["biasa", "warn", "warn"]]);
     expect(rantai.baris[0]!.simpul.map((s) => s.sub)).toEqual(["semuanya selesai", "10 baris log", "tabel outbox kosong"]);
     expect(rantai.judul).toBe("Versi pertama, dua kegagalan push");

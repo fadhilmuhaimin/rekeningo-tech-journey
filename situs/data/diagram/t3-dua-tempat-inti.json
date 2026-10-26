@@ -8,7 +8,7 @@
   "baris": [
     {
       "label": "Push mati",
-      "sub": "rentan.txt B",
+      "sub": "bagian B dari rentan.txt",
       "simpul": [
         { "teks": "10 pembayaran: 201", "sub": "semuanya selesai" },
         { "teks": "push gagal: hanya log", "sub": "10 baris log", "nada": "warn" },
@@ -17,7 +17,7 @@
     },
     {
       "label": "Push menggantung",
-      "sub": "rentan.txt A",
+      "sub": "bagian A dari rentan.txt",
       "simpul": [
         { "teks": "10 pembayaran serentak", "sub": "push tidak menjawab" },
         { "teks": "10 koneksi tertahan", "sub": "idle in transaction", "nada": "warn" },
