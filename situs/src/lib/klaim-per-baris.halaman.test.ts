@@ -124,6 +124,7 @@ describe("registry, meta, blok, dan tautan", () => {
     expect(dari("t3-klaim-baris")).toMatchObject({ ada: true, nomor: "3.11", jenis: "konsep", inti: true, adr: [24], prasyarat: ["t3-m19"], lab: ["t3-outbox"], tahap: 3 });
     expect(dari("t3-klaim-baris").judul).toBe("Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24");
     expect(mdx).toContain(`title: "3.11 ${dari("t3-klaim-baris").judul}"`);
+    expect(mdx.match(/^description: (.+)$/m)![1]).toBe("ADR 24 menggantikan kursor dengan klaim per baris. Selama klaim berlaku, kunci baris dan batas waktu klaim mencegah baris dikirim dua kali; SKIP LOCKED hanya mengganti menunggu dengan melewati.");
     expect(naskah).toContain("| 3.11 | 4 | Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24 | Konsep + ADR | ★ | t3-outbox | race |");
     expect(dari("t3-m19").nomor).toBe("3.10");
     const m = badan.match(/<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: \[\[t3-m19\]\] · Jalur inti<\/p>/);
@@ -536,7 +537,9 @@ describe("versi dan sumber dokumentasi", () => {
   test("Solid Queue: 20 juta ÷ 7.500 = ±2.667; 7.500 pemberitahuan per hari dari naskah; tulisan 2023-12-18 dan 2024-09-26", () => {
     expect(naskah).toContain("7.500 per hari, 5% dari request");
     expect(fmt(20_000_000 / 7500)).toBe("2.667");
-    harus("20 juta lawan 7.500 pemberitahuan per hari (Asumsi naskah) adalah ±2.667 kali.");
+    harus("Batasnya satu produk Rails, dengan Solid Queue di database terpisah dari aplikasi utama. Jadi kasus ini mendukung klaim lewat database, bukan klaim yang ikut COMMIT uang. Bebannya 20 juta lawan 7.500 pemberitahuan per hari (Asumsi naskah), yaitu ±2.667 kali.");
+    expect(riset).toMatch(/\| R3-154 \|[^\n]*We're running Solid Queue in a separate database from the main app/);
+    expect(riset).toMatch(/\| R3-140 \|[^\n]*Solid Queue berjalan di database sendiri, terpisah dari database aplikasi/);
     harus("Dalam tulisan 2023-12-18, 37signals menyebut `SELECT ... FOR UPDATE SKIP LOCKED` penting bagi implementasi mereka, karena worker bisa mengambil dan mengunci job tanpa mengunci worker lain.");
     harus("Fitur itu mereka tulis baru hadir di MySQL 8.");
     harus("Tulisan 2024-09-26 melaporkan HEY memproses ±20 juta job per hari dengan 800 worker di 74 VM dan dua datacenter");
@@ -839,7 +842,8 @@ const KALIMAT_PENULIS: string[] = [
   "**Kenapa C, bukan D.** Pesan yang dikirim selagi listener putus hilang, jadi D tidak bisa jadi satu-satunya sumber. Tabel dan polling harus tetap ada, dan di titik itu D hanya menurunkan jeda.",
   "**Kasus industri: Solid Queue (37signals, 2023 dan 2024).** Dalam tulisan 2023-12-18, 37signals menyebut `SELECT ... FOR UPDATE SKIP LOCKED` penting bagi implementasi mereka, karena worker bisa mengambil dan mengunci job tanpa mengunci worker lain. Fitur itu mereka tulis baru hadir di MySQL 8.",
   "Di antara alasan pindah dari Resque, mereka menulis tujuh gem untuk menjalankan job dan tantangan mengoperasikan Redis di skala mereka. Debugging juga lebih mudah di database relasional ([Introducing Solid Queue](https://dev.37signals.com/introducing-solid-queue/), dibuka 2026-10-26).",
-  "Tulisan 2024-09-26 melaporkan HEY memproses ±20 juta job per hari dengan 800 worker di 74 VM dan dua datacenter ([Solid Queue 1.0 released](https://dev.37signals.com/solid-queue-v1-0/), dibuka 2026-10-26). README Solid Queue menulis bahwa ia memakai `FOR UPDATE SKIP LOCKED`, bila tersedia, untuk menghindari menunggu lock saat polling ([rails/solid_queue](https://github.com/rails/solid_queue), dibuka 2026-10-26). Itu sejalan dengan rekaman di atas: `SKIP LOCKED` mengganti menunggu. Batasnya satu produk Rails dengan beban jauh di atas Rekeningo: 20 juta lawan 7.500 pemberitahuan per hari (Asumsi naskah) adalah ±2.667 kali.",
+  "Tulisan 2024-09-26 melaporkan HEY memproses ±20 juta job per hari dengan 800 worker di 74 VM dan dua datacenter ([Solid Queue 1.0 released](https://dev.37signals.com/solid-queue-v1-0/), dibuka 2026-10-26). README Solid Queue menulis bahwa ia memakai `FOR UPDATE SKIP LOCKED`, bila tersedia, untuk menghindari menunggu lock saat polling ([rails/solid_queue](https://github.com/rails/solid_queue), dibuka 2026-10-26). Itu sejalan dengan rekaman di atas: `SKIP LOCKED` mengganti menunggu.",
+  "Batasnya satu produk Rails, dengan Solid Queue di database terpisah dari aplikasi utama. Jadi kasus ini mendukung klaim lewat database, bukan klaim yang ikut COMMIT uang. Bebannya 20 juta lawan 7.500 pemberitahuan per hari (Asumsi naskah), yaitu ±2.667 kali.",
   "**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:",
   "Klaim lebih pendek dari waktu kirim, sehingga baris terkirim dua kali tanpa ada yang mati. Dengan klaim 300 ms dan push yang menjawab sesudah 1,5 detik, dua worker mengirim baris yang sama (`ganda.txt` bagian B). Dengan klaim 5 detik pun, dua perangkat yang menggantung memakan 2 × 3 detik (bagian D). Pencegahannya aturan 3: hitung ulang klaim bila batas push atau jumlah perangkat per akun berubah, dan tulis penyaring di app ([[t3-at-least-once]]).",
   "Seseorang \"menyederhanakan\" `KlaimOutbox`. Menghapus klausa kunci membuat ganda, dan menghapus `SKIP LOCKED` membuat worker menunggu pemegang lock lain. Pencegahannya tes Go `TestKlaimTigaWorkerTanpaGandaTanpaTerlewat` dan `TestKlaimMelewatBarisYangDikunci` di api-t3, serta lab `klaim` yang gagal bila klausanya berubah.",

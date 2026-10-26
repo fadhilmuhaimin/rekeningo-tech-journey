@@ -1,6 +1,6 @@
 ---
 title: "3.11 Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24"
-description: ADR 24 menggantikan kursor dengan klaim per baris. Yang mencegah baris dikirim dua kali adalah kunci baris dan batas waktu klaim, sedangkan SKIP LOCKED hanya mengganti menunggu dengan melewati.
+description: ADR 24 menggantikan kursor dengan klaim per baris. Selama klaim berlaku, kunci baris dan batas waktu klaim mencegah baris dikirim dua kali; SKIP LOCKED hanya mengganti menunggu dengan melewati.
 ---
 import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
@@ -241,7 +241,9 @@ Opsi B Tidak dijalankan di lab: yang direkam hanya celah pada nomor sequence, ya
 
 Di antara alasan pindah dari Resque, mereka menulis tujuh gem untuk menjalankan job dan tantangan mengoperasikan Redis di skala mereka. Debugging juga lebih mudah di database relasional ([Introducing Solid Queue](https://dev.37signals.com/introducing-solid-queue/), dibuka 2026-10-26).
 
-Tulisan 2024-09-26 melaporkan HEY memproses ±20 juta job per hari dengan 800 worker di 74 VM dan dua datacenter ([Solid Queue 1.0 released](https://dev.37signals.com/solid-queue-v1-0/), dibuka 2026-10-26). README Solid Queue menulis bahwa ia memakai `FOR UPDATE SKIP LOCKED`, bila tersedia, untuk menghindari menunggu lock saat polling ([rails/solid_queue](https://github.com/rails/solid_queue), dibuka 2026-10-26). Itu sejalan dengan rekaman di atas: `SKIP LOCKED` mengganti menunggu. Batasnya satu produk Rails dengan beban jauh di atas Rekeningo: 20 juta lawan 7.500 pemberitahuan per hari (Asumsi naskah) adalah ±2.667 kali.
+Tulisan 2024-09-26 melaporkan HEY memproses ±20 juta job per hari dengan 800 worker di 74 VM dan dua datacenter ([Solid Queue 1.0 released](https://dev.37signals.com/solid-queue-v1-0/), dibuka 2026-10-26). README Solid Queue menulis bahwa ia memakai `FOR UPDATE SKIP LOCKED`, bila tersedia, untuk menghindari menunggu lock saat polling ([rails/solid_queue](https://github.com/rails/solid_queue), dibuka 2026-10-26). Itu sejalan dengan rekaman di atas: `SKIP LOCKED` mengganti menunggu.
+
+Batasnya satu produk Rails, dengan Solid Queue di database terpisah dari aplikasi utama. Jadi kasus ini mendukung klaim lewat database, bukan klaim yang ikut COMMIT uang. Bebannya 20 juta lawan 7.500 pemberitahuan per hari (Asumsi naskah), yaitu ±2.667 kali.
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
