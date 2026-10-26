@@ -1543,29 +1543,29 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### 3.1 · PRD v3: Rekeningo untuk enam kota
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: W3-outbox, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman PRD 3.1 sesuai `plan/CERITA-TAHAP-3.md` bagian 1 dan peta halaman Tahap 3; tanpa lab baru; jawaban atas tebakan pembaca di 2.33 (dibuka dari naskah bagian 1: user, ruang lingkup P0 sampai P2, metrik, risiko Sinta, tiga pertanyaan terbuka); janji 95% dalam 30 detik hanya untuk bayar dan transfer; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Template PRD seperti 2.1. Tugas halaman pertama: menunggu semua widget Tahap 3 supaya halaman berikutnya tidak menunggu widget.
+- catatan: Template PRD seperti 2.1. Tugas halaman pertama: menunggu semua widget Tahap 3 supaya halaman berikutnya tidak menunggu widget. Selesai 2026-10-26 di PR #364 (keputusan 1000–1003): prd-v3.mdx 8 blok, penjaga 48 tes, 66 mutasi tertangkap; peninjau memperbaiki hitungan 12,5 kali, label lock, dan janji 95%.
 
 ### 3.2 · Dari fitur ke pekerjaan teknis v3
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.1, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Fitur → teknis 3.2 sesuai `plan/CERITA-TAHAP-3.md` bagian 2 dan peta halaman Tahap 3; tanpa lab baru; tabel delapan baris naskah (fitur, app, backend, database, konsep) dengan tautan ke halaman konsep; pertanyaan pertama Tahap 3 dirumuskan sebelum kode; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Katalog, dasbor, promo, dan offline tidak punya halaman fitur sendiri (peta 32 halaman); cukup di tabel ini.
+- catatan: Katalog, dasbor, promo, dan offline tidak punya halaman fitur sendiri (peta 32 halaman); cukup di tabel ini. Selesai 2026-10-26 di PR #365 (keputusan 1004–1007): fitur-ke-teknis.mdx dua tabel, pilah lama dengan data baru, penjaga 40 tes; peninjau memperbaiki dua label lebih kuat dari sumber.
 
 ### 3.3 · Fitur: notifikasi push dan promo HR
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.2, lab-api-t3, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Fitur → teknis 3.3 sesuai `plan/CERITA-TAHAP-3.md` bagian 2 dan 3 dan peta halaman Tahap 3; rekaman dari `labs/api-t3`; widget alur; menyerap bagian relevan E4 (Push dan real-time, halaman lama); layanan push tiruan lokal dengan FCM v1 hanya sebagai rujukan (R3-16); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Tulis versi app Tahap 3 di halaman ini (3.0 notifikasi, 3.1 rilis M26): naskah belum mendefinisikannya (SETELAH-TAHAP-3).
+- catatan: Tulis versi app Tahap 3 di halaman ini (3.0 notifikasi, 3.1 rilis M26): naskah belum mendefinisikannya (SETELAH-TAHAP-3). Selesai 2026-10-26 di PR #366 (keputusan 1008–1011): fitur-notifikasi.mdx, Rantai, PetaFitur, alur, istilah Token perangkat, penjaga 47 tes; peninjau memperbaiki dua klaim FCM dan hitungan 13,33.
 
 ### 3.4 · Dua tempat yang tidak bisa commit bersama
 

@@ -1,0 +1,48 @@
+{
+  "istilah": "Token perangkat",
+  "sehari_hari": "Token perangkat seperti alamat satu HP di mata layanan push. Server tidak tahu HP Ani ada di mana. Ia hanya tahu alamat yang diberikan app, dan layanan push yang mengantar pesan ke HP itu.",
+  "cerita": [
+    {
+      "rujukan": "t3-notifikasi",
+      "teks": "App Ani mengirim token perangkat ke POST /perangkat. Worker memakainya saat mengirim pemberitahuan Rp25.000 dari Budi."
+    }
+  ],
+  "mekanisme": [
+    "App meminta izin notifikasi. Di Android 13 ke atas, notifikasi app yang baru terpasang mati sampai user setuju.",
+    "SDK layanan push memberi app satu pengenal untuk HP itu, dan app mengirimnya ke server.",
+    "Server menyimpannya bersama timestamp, satu baris per HP, dan memakainya sebagai alamat pesan.",
+    "Layanan push menolak pengenal yang tidak berlaku, mis. dengan 404. Server berhenti memakainya.",
+    "App mengirim pengenal baru bila SDK menggantinya, dan baris lama tinggal sebagai baris stale."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menganggap token tidak pernah berubah. Dokumentasi FCM menyebut registrasi yang tidak terhubung lebih dari sebulan dianggap stale, dan di Android dihapus sesudah 270 hari.",
+    "Menghapus token pada setiap jawaban 400. Dokumentasi FCM membolehkannya hanya bila payload pesan valid, karena 400 juga bisa berarti payload yang salah."
+  ],
+  "terkait": ["FCM (Firebase Cloud Messaging)", "Outbox", "Worker"],
+  "sumber": [
+    {
+      "riset": "R3-111",
+      "judul": "FCM: best practices for registration management",
+      "url": "https://firebase.google.com/docs/cloud-messaging/manage-tokens",
+      "catatan": "Registrasi yang tidak terhubung lebih dari sebulan dianggap stale, dan di Android dihapus sesudah 270 hari. Hapus catatan registrasi bila jawabannya UNREGISTERED (404), atau INVALID_ARGUMENT (400) dengan payload yang valid."
+    },
+    {
+      "riset": "R3-113",
+      "judul": "Android: notification runtime permission",
+      "url": "https://developer.android.com/develop/ui/views/notifications/notification-permission",
+      "catatan": "Android 13 (API 33) ke atas punya izin runtime POST_NOTIFICATIONS, dan notifikasi app yang baru terpasang mati sampai user setuju."
+    },
+    {
+      "riset": "R3-16",
+      "judul": "FCM: send messages with the HTTP v1 API",
+      "url": "https://firebase.google.com/docs/cloud-messaging/send/v1-api",
+      "catatan": "Contoh request HTTP v1 menaruh alamat HP di field token, dengan access token OAuth 2.0 dari service account."
+    },
+    {
+      "judul": "Rekaman lab api-t3: perangkat dan token yang berpindah tangan",
+      "rekaman": "labs/api-t3/output/sinkron.txt",
+      "catatan": "Token yang sama dikirim dua kali tetap satu baris, dan token yang didaftarkan akun lain pindah ke akun itu."
+    }
+  ]
+}

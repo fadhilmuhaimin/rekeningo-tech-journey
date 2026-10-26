@@ -1,0 +1,189 @@
+{
+  "versi": 2,
+  "judul": "Budi membayar Rp25.000, Ani diberi tahu sesudahnya",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/api-t3/output/outbox.txt",
+    "catatan": "Server Go, worker, dan layanan push tiruan lokal dengan PostgreSQL 17.11 dari database bersih (make -C labs/api-t3 run). Jalur utama: outbox.txt bagian A dan B; worker hanya melihat baris yang sudah COMMIT: labs/t3-outbox/output/transaksi.txt bagian B. Ubah satu hal: push.txt bagian E dan F. Baris diawali tanda panah diringkas dari tabel PostgreSQL di rekaman yang sama, bukan baris log, dan baris kirim memotong jejak rekaman. Layar HP digambar dari isi rekaman; lab api-t3 tidak punya app Flutter dan bunyi di HP tidak direkam."
+  },
+  "pengantar": "Budi membayar Rp25.000 ke Warung Ani dengan catatan. Tebak dulu, lalu ikuti satu pembayaran dari HP Budi sampai HP Ani. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "app", "label": "App Budi" },
+    { "id": "api", "label": "Server Go" },
+    { "id": "db", "label": "PostgreSQL" },
+    { "id": "worker", "label": "Worker" },
+    { "id": "push", "label": "Layanan push (tiruan)" }
+  ],
+  "perangkat": [
+    { "id": "budi", "label": "HP Budi" },
+    { "id": "ani", "label": "HP Warung Ani" }
+  ],
+  "layarAwal": {
+    "budi": {
+      "judul": "Bayar",
+      "sinyal": 3,
+      "saldo": 250000,
+      "saldoLabel": "Saldo Budi",
+      "isi": [
+        { "jenis": "baris", "kiri": "Nasi goreng · Warung Ani", "kanan": "Rp25.000" },
+        { "jenis": "input", "label": "Catatan", "nilai": "nasi goreng dua porsi" },
+        { "jenis": "tombol", "teks": "Bayar" }
+      ]
+    },
+    "ani": {
+      "judul": "Warung Ani",
+      "sinyal": 3,
+      "isi": [{ "jenis": "teks", "teks": "Belum ada notifikasi" }]
+    }
+  },
+  "predict": {
+    "q": "Budi menekan Bayar dan mendapat 201. Pada saat jawaban itu sampai, berapa pesan yang sudah diterima layanan push?",
+    "options": [
+      "Satu: API mengirimnya sebelum menjawab Budi",
+      "Satu: worker mengirimnya bersamaan dengan 201",
+      "Dua: satu untuk HP Budi dan satu untuk HP Ani",
+      "Nol: baru ada satu baris yang menunggu di outbox"
+    ],
+    "answer": 3,
+    "varian": false,
+    "explain": "Pembayaran selesai di langkah 4, dan pesan baru dikirim worker di langkah 6. Rekaman outbox.txt bagian A: push tiruan menerima 0, dan satu baris outbox berstatus menunggu."
+  },
+  "langkah": [
+    {
+      "dari": "app",
+      "judul": "Budi menekan Bayar",
+      "kirim": "app  Budi menekan Bayar: Rp25.000 ke Warung Ani\napp  catatan: nasi goreng dua porsi",
+      "jelas": "App mengirim satu request. HP Ani belum tahu apa pun.",
+      "layar": {
+        "budi": {
+          "judul": "Bayar",
+          "sinyal": 3,
+          "saldo": 250000,
+          "saldoLabel": "Saldo Budi",
+          "isi": [
+            { "jenis": "baris", "kiri": "Nasi goreng · Warung Ani", "kanan": "Rp25.000" },
+            { "jenis": "proses", "teks": "Membayar..." }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "app",
+      "ke": "api",
+      "judul": "Request bayar dikirim",
+      "kirim": "POST /transfers\n{\"ke\":418,\"nominal\":25000,\"catatan\":\"nasi goreng dua porsi\"}",
+      "jelas": "Bentuk request sama dengan Tahap 2. Catatan hanya dikirim app yang baru. Yang baru ada di server: satu baris pemberitahuan."
+    },
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Jurnal, posting, dan baris outbox: satu transaction",
+      "kirim": "→ jurnal 10001: Budi −25000, Warung Ani +25000\n→ outbox 1: akun 418, kelas 0, bayar, menunggu, percobaan 0",
+      "jelas": "Tiga hal ditulis sebelum COMMIT. Kalau transaction batal, tidak ada jurnal dan tidak ada baris pemberitahuan.",
+      "nada": "good"
+    },
+    {
+      "dari": "api",
+      "ke": "app",
+      "judul": "Budi mendapat 201",
+      "kirim": "201 {\"id\":10001,\"saldo\":225000}\n→ layanan push menerima: 0 pesan",
+      "jelas": "Pembayaran selesai. Pemberitahuan belum dikirim: pengirimannya urusan worker.",
+      "nada": "good",
+      "layar": {
+        "budi": {
+          "judul": "Riwayat",
+          "sinyal": 3,
+          "saldo": 225000,
+          "saldoLabel": "Saldo Budi",
+          "nada": "good",
+          "isi": [
+            { "jenis": "toast", "teks": "Pembayaran berhasil", "nada": "good" },
+            { "jenis": "baris", "kiri": "Ke Warung Ani", "kanan": "−Rp25.000" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "worker",
+      "ke": "db",
+      "judul": "Worker mengklaim baris",
+      "kirim": "$ ./api-t3 -peran worker -sekali\nworker  diklaim 1 baris",
+      "jelas": "Worker adalah proses terpisah dari server. Ia hanya melihat baris yang sudah di-COMMIT."
+    },
+    {
+      "dari": "worker",
+      "ke": "push",
+      "judul": "Worker mengirim ke layanan push",
+      "kirim": "POST /v1/pesan\n→ token tiruan-418, notifikasi_id sama dengan kolom outbox.notifikasi_id",
+      "jelas": "Layanan push di lab adalah tiruan lokal. Client worker punya batas waktu 3 detik."
+    },
+    {
+      "dari": "worker",
+      "ke": "db",
+      "judul": "Baris ditandai terkirim",
+      "kirim": "worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0\n→ outbox 1: terkirim, percobaan 1",
+      "jelas": "Status baris berubah dari menunggu menjadi terkirim, dan klaim dilepas.",
+      "nada": "good"
+    },
+    {
+      "dari": "push",
+      "judul": "HP Ani menampilkan pemberitahuan",
+      "kirim": "push  menerima 1 pesan untuk token tiruan-418\npush  judul: Rp25.000 dari Budi",
+      "jelas": "Layar HP Ani digambar dari judul dan catatan di baris outbox. Layanan push tiruan hanya mencatat pesan yang diterima.",
+      "nada": "good",
+      "layar": {
+        "ani": {
+          "judul": "Warung Ani",
+          "sinyal": 3,
+          "isi": [
+            { "jenis": "toast", "teks": "Rp25.000 dari Budi", "nada": "good" },
+            { "jenis": "baris", "kiri": "Catatan", "kanan": "nasi goreng dua porsi" }
+          ]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "layanan push menggantung: menerima koneksi, tidak menjawab",
+    "mulai": 5,
+    "langkah": [
+      {
+        "dari": "worker",
+        "ke": "push",
+        "judul": "Layanan push tidak menjawab",
+        "kirim": "POST /v1/pesan\nlayanan push menggantung: koneksi diterima, tanpa jawaban",
+        "jelas": "Yang menunggu hanya worker, dengan batas waktu 3 detik. Server dan pembayaran tidak ikut menunggu.",
+        "nada": "warn"
+      },
+      {
+        "dari": "worker",
+        "judul": "Client berhenti di batas 3 detik",
+        "kirim": "log  push gagal sementara: context deadline exceeded (Client.Timeout exceeded while awaiting headers)\nworker: diklaim 1, terkirim 0, dilewati 0, ditunda 1, mati 0",
+        "jelas": "Timeout dihitung kegagalan sementara, jadi barisnya dikembalikan ke antrean, bukan dibuang.",
+        "nada": "warn"
+      },
+      {
+        "dari": "worker",
+        "ke": "db",
+        "judul": "Baris kembali menunggu",
+        "kirim": "→ outbox: menunggu, percobaan 1",
+        "jelas": "Kegagalan ini tercatat di tabel, bukan hanya di log. Baris yang belum terkirim bisa dihitung dan dicari, dan percobaan berikutnya mengirimnya lagi.",
+        "layar": {
+          "ani": {
+            "judul": "Warung Ani",
+            "sinyal": 3,
+            "isi": [{ "jenis": "teks", "teks": "Belum ada notifikasi; barisnya menunggu di outbox" }]
+          }
+        }
+      },
+      {
+        "dari": "app",
+        "ke": "api",
+        "judul": "Sementara itu Budi membuka saldonya",
+        "kirim": "GET /akun/419 → 200\n→ koneksi api-t3 yang diam di dalam transaction: 0",
+        "jelas": "Push tidak dipanggil di dalam transaction, jadi layanan push yang menggantung tidak menahan koneksi database. Pembayaran di rekaman selesai dalam kurang dari 1 detik.",
+        "nada": "good"
+      }
+    ]
+  }
+}

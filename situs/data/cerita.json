@@ -2305,8 +2305,9 @@
       "lab": [
         "api-t3"
       ],
-      "ada": false,
-      "nomor": "3.3"
+      "ada": true,
+      "nomor": "3.3",
+      "menit": 11
     },
     {
       "id": "t3-dua-tempat",

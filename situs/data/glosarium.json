@@ -1296,6 +1296,15 @@
   "h": null
  },
  {
+  "t": "Token perangkat",
+  "d": "Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu.",
+  "b": "t3-notifikasi",
+  "n": "3.3 Fitur notifikasi push",
+  "u": "/tahap-3/fitur-notifikasi/",
+  "s": "istilah-token-perangkat",
+  "h": "/istilah/token-perangkat/"
+ },
+ {
   "t": "Trace",
   "d": "Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.",
   "b": "C2",
