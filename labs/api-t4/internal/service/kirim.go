@@ -61,7 +61,7 @@ func (s Service) Kirim(ctx context.Context, peminta int64, nomor string, nominal
 	if err != nil {
 		return h, err
 	}
-	if pengirim.Jenis != "karyawan" {
+	if pengirim.Jenis != "karyawan" && pengirim.Jenis != "pemakai" { // penerima tetap karyawan (nomor karyawan)
 		return h, ErrDilarang
 	}
 	if pengirim.Status == "dibekukan" {

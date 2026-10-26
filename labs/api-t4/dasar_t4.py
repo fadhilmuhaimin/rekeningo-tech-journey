@@ -45,6 +45,12 @@ def db_pemilik(schema=SCHEMA, nama="api-t4-pemilik"):
 ENV = dict(os.environ, TZ="Asia/Jakarta")
 BIN = HERE / "api-t4"
 BIN_PUSH = HERE / "pushpalsu"
+BIN_TIRUAN = HERE / "tiruan"        # gateway pembayaran dan layanan verifikasi tiruan (cmd/tiruan)
+BIN_PENERBIT = HERE / "penerbit"    # penerbit kartu tiruan (cmd/penerbit)
+# Data lab, bukan secret: rahasia webhook gateway tiruan dan kunci penerbit tiruan.
+RAHASIA_WEBHOOK, RAHASIA_WEBHOOK_LAMA = "rahasia-gateway-lab-1", "rahasia-gateway-lab-0"
+KUNCI_PENERBIT = "kunci-penerbit-lab"
+OBJEK_DIR = pathlib.Path(tempfile.gettempdir()) / f"api-t4-objek-{DB_PORT}"
 PASSWORD = "sementara-tahap-4"   # password semua akun data lab (cmd/api/seed.go); bukan secret
 
 log = []
@@ -74,13 +80,23 @@ def bagian(judul):
     catat(f"\n# --- {judul} ---")
 
 
-def tulis(nama, judul, lab="api-t4", schema=SCHEMA, dasar=DASAR, keputusan="950"):
+def versi_alat():
+    go = subprocess.run(["go", "version"], capture_output=True, text=True).stdout.split()
+    return go[2] if len(go) > 2 else "go?"
+
+
+PGX = re.search(r"jackc/pgx/v5 (v[\d.]+)", (HERE / "go.mod").read_text()).group(1)
+
+
+def tulis(nama, judul, lab="api-t4", schema=SCHEMA, dasar=DASAR, keputusan=None):
+    """Tulis rekaman. Kepala memuat versi alat, bahasa, dan basis data; tidak memuat nomor keputusan atau ID riset
+    (rekaman dikutip halaman lewat Snippet, dan nomor internal tidak boleh tampil ke pembaca)."""
     for port in list(server):
         stop(port)
     versi = satu("SHOW server_version", schema)
     kepala = [f"# Lab {lab} · {judul}",
-              f"# PostgreSQL {versi} · schema {schema} · server Go di 127.0.0.1:{dasar}",
-              f"# Rekaman dari database bersih: make -C labs/{lab} run (keputusan {keputusan})."]
+              f"# PostgreSQL {versi} · {versi_alat()} · pgx {PGX} · schema {schema} · server Go di 127.0.0.1:{dasar}",
+              f"# Rekaman dari database bersih: make -C labs/{lab} run."]
     OUT.mkdir(exist_ok=True)
     (OUT / nama).write_text("\n".join(l.rstrip() for l in "\n".join(kepala + log).split("\n")) + "\n")
     print("ditulis:", f"labs/{lab}/output/{nama}")
@@ -91,6 +107,9 @@ WAKTU = re.compile(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)
 WAKTU_SQL = re.compile(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d(?:\.\d+)?(?:[+-]\d\d(?::\d\d)?)?")
 TANGGAL = re.compile(r"(?<![\d-])\d{4}-\d\d-\d\d(?![\d-])")
 UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+ORDER = re.compile(r"TB-[0-9a-f]{16}")          # order_id top-up bank: acak per run, diberi nomor menurut kemunculan pertama
+TUJUAN = re.compile(r"\b88\d{14}\b")             # nomor tujuan bayar dari gateway tiruan (turunan order_id)
+_urut_order = [0]
 
 
 def daftar_samaran(asli, label):
@@ -106,6 +125,11 @@ def samarkan(teks):
         if u not in samaran:
             _urut_uuid[0] += 1
             samaran[u] = f"<notifikasi_id {_urut_uuid[0]}>"
+    for o in ORDER.findall(teks):
+        if o not in samaran:
+            _urut_order[0] += 1
+            samaran[o] = f"<order {_urut_order[0]}>"
+    teks = TUJUAN.sub("<tujuan bayar>", teks)
     for asli, label in sorted(samaran.items(), key=lambda x: -len(x[0])):
         teks = teks.replace(asli, label)
     return teks
@@ -205,7 +229,8 @@ def buat_schema(schema=SCHEMA, hak=True):
 
 
 def bangun():
-    for biner, paket in ((BIN, "./cmd/api"), (BIN_PUSH, "./cmd/pushpalsu")):
+    for biner, paket in ((BIN, "./cmd/api"), (BIN_PUSH, "./cmd/pushpalsu"), (BIN_TIRUAN, "./cmd/tiruan"),
+                         (BIN_PENERBIT, "./cmd/penerbit")):
         subprocess.run(["go", "build", "-o", str(biner), paket], cwd=HERE, check=True)
 
 
@@ -239,12 +264,39 @@ def mulai(biner, port, args=(), db=None, tampil=None, env_lain=None):
         catat(tampil)
 
 
+def args_t4():
+    """Alamat pihak ketiga tiruan dan setelan Tahap 4 yang dipakai semua proses api-t4 (server dan worker)."""
+    return ["-gateway-url", f"http://127.0.0.1:{PORT_GATEWAY}", "-verifikasi-url", f"http://127.0.0.1:{PORT_VERIFIKASI}",
+            "-penerbit-url", f"http://127.0.0.1:{PORT_PENERBIT}", "-penerbit-kunci", KUNCI_PENERBIT,
+            "-rahasia-webhook", RAHASIA_WEBHOOK, "-objek-dir", str(OBJEK_DIR)]
+
+
 def mulai_api(args=(), tampil=None, port=PORT, db=None):
-    mulai(BIN, port, ["-lab", "-push-url", f"http://127.0.0.1:{PORT_PUSH}", *args], db=db, tampil=tampil)
+    mulai(BIN, port, ["-lab", "-push-url", f"http://127.0.0.1:{PORT_PUSH}", *args_t4(), *args], db=db, tampil=tampil)
 
 
 def mulai_push(tampil=None):
     mulai(BIN_PUSH, PORT_PUSH, tampil=tampil)
+
+
+def mulai_gateway(tampil=None):
+    """Gateway pembayaran tiruan; webhook dikirim ke server api-t4 di port dasar + offset."""
+    mulai(BIN_TIRUAN, PORT_GATEWAY, ["-peran", "gateway", "-webhook-url", f"http://127.0.0.1:{PORT}/webhooks/pembayaran",
+                                      "-rahasia", RAHASIA_WEBHOOK], tampil=tampil)
+
+
+def mulai_verifikasi(tampil=None):
+    mulai(BIN_TIRUAN, PORT_VERIFIKASI, ["-peran", "verifikasi"], tampil=tampil)
+
+
+def tiruan_mode(port, mode, ms=0):
+    """Pasang perilaku gateway atau layanan verifikasi tiruan (normal, mati, lambat, menggantung, ...)."""
+    s, _ = curl("POST", "/lab/mode", {"mode": mode, "ms": ms}, port=port, tampil=False)
+    harap(s, 204, f"mode tiruan {mode}")
+
+
+def tiruan_reset(port):
+    harap(curl("POST", "/lab/reset", port=port, tampil=False)[0], 204, "reset tiruan")
 
 
 def bersih_log(teks):
@@ -328,7 +380,7 @@ def login(email, password=PASSWORD, label=None):
 def mulai_worker(nama, args=()):
     """Worker terus berjalan (tanpa -sekali); dihentikan dengan stop(nama). Mengembalikan setelah proses hidup."""
     f = tempfile.TemporaryFile(mode="a+")  # a+: tulisan proses selalu ke ujung, aman dibaca sambil jalan
-    p = subprocess.Popen([str(BIN), "-peran", "worker", "-push-url", f"http://127.0.0.1:{PORT_PUSH}", *args],
+    p = subprocess.Popen([str(BIN), "-peran", "worker", "-push-url", f"http://127.0.0.1:{PORT_PUSH}", *args_t4(), *args],
                          env=dict(ENV, DATABASE_URL=db_app()), stdout=f, stderr=f, text=True)
     server[nama] = (p, f)
     time.sleep(0.3)
@@ -363,7 +415,7 @@ def push_diterima(daftar=False):
 
 def worker(args=(), tampil=True, db=None):
     """`./api-t4 -peran worker -sekali`: kirim semua yang siap, lalu keluar. Mengembalikan baris ringkasan."""
-    cmd = [str(BIN), "-peran", "worker", "-sekali", "-push-url", f"http://127.0.0.1:{PORT_PUSH}", *args]
+    cmd = [str(BIN), "-peran", "worker", "-sekali", "-push-url", f"http://127.0.0.1:{PORT_PUSH}", *args_t4(), *args]
     r = subprocess.run(cmd, env=dict(ENV, DATABASE_URL=db or db_app()), capture_output=True, text=True)
     if tampil:
         catat("$ ./api-t4 -peran worker -sekali" + "".join(f" {a}" for a in args))

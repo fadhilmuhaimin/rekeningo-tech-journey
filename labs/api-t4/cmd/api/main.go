@@ -1,5 +1,5 @@
-// Lab API Tahap 3 · Rekeningo (fiktif), mengikuti plan/CERITA-TAHAP-3.md (keputusan 950).
-// api-t2 yang naik ke enam kota: monolith yang sama, tiga lapisan (internal/handler, internal/service,
+// Lab API Tahap 4 · Rekeningo (fiktif), mengikuti plan/CERITA-TAHAP-4.md (lab-api-t4).
+// api-t3 yang naik ke publik (top-up dari bank, verifikasi identitas, QR, kartu, back office). Di bawahnya api-t3: api-t2 yang naik ke enam kota: monolith yang sama, tiga lapisan (internal/handler, internal/service,
 // internal/repo), satu PostgreSQL. Yang baru: pemberitahuan lewat outbox (ADR 23) dan worker di proses sendiri,
 // katalog dan stok per kota, promo dari HR, sinkron offline, dasbor web. Satu binary, dua peran: `-peran api`
 // melayani HTTP, `-peran worker` mengirim isi outbox ke layanan push (di lab: tiruan lokal cmd/pushpalsu).
@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -25,11 +26,16 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 
 	"lab/apit4/internal/cache"
+	"lab/apit4/internal/gateway"
 	"lab/apit4/internal/handler"
+	"lab/apit4/internal/klien"
+	"lab/apit4/internal/objek"
+	"lab/apit4/internal/penerbit"
 	"lab/apit4/internal/push"
 	"lab/apit4/internal/redisbatas"
 	"lab/apit4/internal/repo"
 	"lab/apit4/internal/service"
+	"lab/apit4/internal/verifikasi"
 	"lab/apit4/internal/worker"
 )
 
@@ -67,6 +73,23 @@ func main() {
 	katalogRedis := flag.String("katalog-redis", "", "alamat Redis untuk -katalog-cache redis (tiruan lokal di container); terpisah dari -redis milik batas login")
 	katalogRedisBatas := flag.Duration("katalog-redis-timeout", 50*time.Millisecond, "batas waktu Redis untuk cache katalog: dial, tulis, baca, dan antre di pool, masing-masing; go-redis tanpa retry")
 	labGerbang := flag.String("lab-gerbang", "", "lab saja: gerbang yang menahan goroutine sampai POST /lab/gerbang/lepas, dipisah koma: commit, isi")
+	// Tahap 4 (lab-api-t4): pihak ketiga tiruan, setelan lab, dan job sekali jalan.
+	gatewayURL := flag.String("gateway-url", "http://127.0.0.1:"+portLab(18283), "alamat gateway pembayaran (tiruan lokal)")
+	gatewayBatas := flag.Duration("gateway-timeout", klien.BatasBawaan, "batas waktu satu panggilan ke gateway (ADR 22, ADR 36)")
+	verifikasiURL := flag.String("verifikasi-url", "http://127.0.0.1:"+portLab(18284), "alamat layanan verifikasi identitas (tiruan lokal)")
+	verifikasiBatas := flag.Duration("verifikasi-timeout", klien.BatasBawaan, "batas waktu satu panggilan ke layanan verifikasi (ADR 36)")
+	penerbitURL := flag.String("penerbit-url", "http://127.0.0.1:"+portLab(18285), "alamat penerbit kartu (tiruan lokal)")
+	penerbitKunci := flag.String("penerbit-kunci", "", "rahasia bersama penerbit di header X-Penerbit-Kunci; kosong = /penerbit/* ditolak")
+	kartuLockTimeout := flag.Duration("kartu-lock-timeout", 0, "lock_timeout otorisasi kartu di ledger (ADR 42); 0 = 1 detik")
+	objekDir := flag.String("objek-dir", "", "direktori penyimpanan objek tiruan untuk file identitas; kosong = folder sementara api-t4-objek")
+	rahasiaWebhook := flag.String("rahasia-webhook", "", "rahasia penanda tangan webhook gateway, dipisah koma: yang pertama dipakai sekarang, berikutnya masa tumpang tindih rotasi (ADR 35); kosong = semua webhook ditolak")
+	jedaCekTulis := flag.Duration("lab-jeda-cek-tulis", 0, "lab saja: jeda di antara cek dan tulis pada webhook-cek-tulis dan kartu-tanpa-hold")
+	tanpaLapis := flag.String("lab-tanpa-lapis", "", "lab saja: lapisan webhook ADR 34 yang dimatikan, dipisah koma: status, kunci")
+	cekTopup := flag.Bool("cek-topup", false, "job: tanyakan ke gateway semua top-up yang menunggu lebih dari -cek-umur, lalu keluar (ADR 35)")
+	cekUmur := flag.Duration("cek-umur", service.UmurCekStatus, "job -cek-topup: umur minimal top-up yang ditanyakan")
+	rekon := flag.String("rekon", "", "job: rekonsiliasi laporan settlement gateway tanggal YYYY-MM-DD dengan ledger, catat insiden, lalu keluar (ADR 35)")
+	kedaluwarsaHold := flag.Bool("kedaluwarsa-hold", false, "job: balik dana kartu yang tertahan lewat tahan_sampai, lalu keluar (ADR 42)")
+	tujuan := flag.String("tujuan", "", "worker: lajur yang diklaim, dipisah koma (push, verifikasi); kosong = semua lajur")
 	flag.Parse()
 
 	// Mode rentan push-dalam-tx adalah versi pertama minggu 1: client tanpa batas waktu dan tanpa pengaman
@@ -83,7 +106,8 @@ func main() {
 		}
 	}
 	switch *rentan {
-	case "", service.RentanPushDalamTx, service.RentanEksporPanic, service.RentanStokTimpa, rentanTanpaShutdown, "kursor", "urut-waktu":
+	case "", service.RentanPushDalamTx, service.RentanEksporPanic, service.RentanStokTimpa, rentanTanpaShutdown, "kursor", "urut-waktu",
+		service.RentanWebhookV1, service.RentanWebhookCekTulis, service.RentanKartuTanpaHold, service.RentanUnduhRentan, service.RentanTanpaAudit:
 	default:
 		log.Fatalf("mode rentan tidak dikenal: %s", *rentan)
 	}
@@ -114,18 +138,48 @@ func main() {
 	case *bersih:
 		os.Exit(jalankanBersih(r))
 	}
+	dep := service.Dep{Gateway: gateway.Baru(*gatewayURL, *gatewayBatas), Vendor: verifikasi.Baru(*verifikasiURL, *verifikasiBatas),
+		Penerbit: penerbit.Baru(*penerbitURL, klien.BatasBawaan), KunciPenerbit: *penerbitKunci, JedaCekTulis: *jedaCekTulis,
+		LockTimeoutKartu: *kartuLockTimeout, KartuAktif: &atomic.Bool{}, TanpaLapis: map[string]bool{}}
+	dep.KartuAktif.Store(true)
+	if *objekDir == "" {
+		*objekDir = os.TempDir() + "/api-t4-objek"
+	}
+	dep.Objek = objek.Dir{Akar: *objekDir}
+	for _, s := range strings.Split(*rahasiaWebhook, ",") {
+		if s = strings.TrimSpace(s); s != "" {
+			dep.RahasiaWebhook = append(dep.RahasiaWebhook, s)
+		}
+	}
+	for _, s := range strings.Split(*tanpaLapis, ",") {
+		if s = strings.TrimSpace(s); s != "" {
+			if s != "status" && s != "kunci" {
+				log.Fatalf("-lab-tanpa-lapis: %q tidak dikenal (status, kunci)", s)
+			}
+			dep.TanpaLapis[s] = true
+		}
+	}
+	if *cekTopup || *rekon != "" || *kedaluwarsaHold {
+		os.Exit(jalankanJobT4(r, *umurSesi, dep, *rentan, *cekTopup, *cekUmur, *rekon, *kedaluwarsaHold))
+	}
 	if *rentan != "" {
 		log.Printf("PERINGATAN: mode rentan %s menyala", *rentan)
 	}
 	if *peran == "worker" {
-		jalankanWorker(r, db, *pushURL, *pushBatas, *sekali, *satuPutaran, *rentan, worker.Konfigurasi{
+		var lajur []string
+		for _, s := range strings.Split(*tujuan, ",") {
+			if s = strings.TrimSpace(s); s != "" {
+				lajur = append(lajur, s)
+			}
+		}
+		jalankanWorker(r, db, *pushURL, *pushBatas, *sekali, *satuPutaran, *rentan, dep.Vendor, worker.Konfigurasi{
 			Serentak: *serentak, Klaim: *klaim, Selang: *selang, MaksPercobaan: *maksPercobaan, DasarBackoff: *dasarBackoff,
 			MaksBackoff: worker.Bawaan().MaksBackoff, UrutKelas: *rentan != "urut-waktu", Kursor: *rentan == "kursor",
-			HentiSebelumTandai: *henti})
+			HentiSebelumTandai: *henti, Tujuan: lajur})
 		return
 	}
 
-	svc := service.Baru(r, *umurSesi)
+	svc := service.Baru(r, *umurSesi).DenganT4(dep)
 	var jamMS atomic.Int64 // 0 = waktu sungguhan
 	jam := func() time.Time {
 		if ms := jamMS.Load(); ms != 0 {
@@ -148,7 +202,8 @@ func main() {
 	switch *rentan {
 	case service.RentanPushDalamTx:
 		svc = svc.DenganRentan(*rentan, push.Baru(*pushURL, *pushBatas))
-	case service.RentanEksporPanic:
+	case service.RentanEksporPanic, service.RentanWebhookV1, service.RentanWebhookCekTulis, service.RentanKartuTanpaHold,
+		service.RentanUnduhRentan, service.RentanTanpaAudit:
 		svc = svc.DenganMode(*rentan)
 	}
 	// Batas login bersama (ADR 27): hitungan di Redis, jatuh ke bucket lokal bila Redis gagal atau lewat batas waktu.
@@ -271,8 +326,8 @@ func bukaDB(url string, pool int, idleTx time.Duration, peran string) (*sql.DB, 
 
 // --8<-- [end:buka-db]
 
-func jalankanWorker(r repo.Repo, db *sql.DB, pushURL string, batas time.Duration, sekali, satuPutaran bool, rentan string, cfg worker.Konfigurasi) {
-	w := worker.Baru(r, push.Baru(pushURL, batas), cfg)
+func jalankanWorker(r repo.Repo, db *sql.DB, pushURL string, batas time.Duration, sekali, satuPutaran bool, rentan string, vendor *verifikasi.Klien, cfg worker.Konfigurasi) {
+	w := worker.Baru(r, push.Baru(pushURL, batas), cfg).DenganVerifikasi(vendor)
 	log.Printf("worker mulai (serentak %d, klaim %s, push timeout %s, kelas %t, kursor %t)", cfg.Serentak, cfg.Klaim, batas,
 		cfg.UrutKelas, cfg.Kursor)
 	ctx, batal := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
@@ -362,6 +417,39 @@ func pasangEndpointLabInstance(rute *http.ServeMux, db *sql.DB, svc service.Serv
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(out)
 	})
+}
+
+// jalankanJobT4: job sekali jalan Tahap 4. Exit 0 bila selesai (insiden yang ditemukan bukan kegagalan job), 2 bila
+// error. Satu proses, satu job.
+func jalankanJobT4(r repo.Repo, umurSesi time.Duration, dep service.Dep, rentan string, cekTopup bool, cekUmur time.Duration, rekon string, kedaluwarsaHold bool) int {
+	svc := service.Baru(r, umurSesi).DenganT4(dep).DenganMode(rentan)
+	ctx := context.Background()
+	switch {
+	case cekTopup:
+		h, err := svc.CekTopupBelumSelesai(ctx, cekUmur)
+		if err != nil {
+			log.Print(err)
+			return 2
+		}
+		fmt.Printf("cek top-up: diperiksa %d, dikredit %d, selesai tanpa kredit %d, masih menunggu %d, galat %d\n",
+			h.Diperiksa, h.Dikredit, h.Selesai, h.Tertunda, h.Galat)
+	case rekon != "":
+		h, err := svc.RekonHarian(ctx, rekon)
+		if err != nil {
+			log.Print(err)
+			return 2
+		}
+		fmt.Printf("rekon %s: %d baris di laporan gateway; insiden baru: tidak_di_ledger %d, tidak_di_gateway %d, jumlah_beda %d\n",
+			rekon, h.BarisGateway, h.TidakDiLedger, h.TidakDiGateway, h.JumlahBeda)
+	case kedaluwarsaHold:
+		diperiksa, dilepas, err := svc.KedaluwarsaHold(ctx)
+		if err != nil {
+			log.Print(err)
+			return 2
+		}
+		fmt.Printf("hold kartu: diperiksa %d, dilepas %d\n", diperiksa, dilepas)
+	}
+	return 0
 }
 
 func jalankanBersih(r repo.Repo) int {

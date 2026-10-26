@@ -1,4 +1,4 @@
-// Layanan push tiruan untuk lab api-t4 (Tahap 3). Hanya di localhost, tanpa kredensial: pihak ketiga di lab selalu
+// Layanan push tiruan untuk lab api-t4 (warisan api-t3, Tahap 3). Hanya di localhost, tanpa kredensial: pihak ketiga di lab selalu
 // tiruan lokal. Bentuknya sengaja mirip FCM v1 (R3-16): satu POST per pesan ke satu token, 404 untuk token yang
 // tidak terdaftar. Perilakunya diatur lewat POST /lab/mode, supaya lab bisa menjalankan keadaan yang sama berulang:
 //
