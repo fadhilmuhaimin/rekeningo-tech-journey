@@ -453,6 +453,37 @@ describe("versi dan sumber dokumentasi", () => {
     expect(riset).toMatch(/\| R3-94 \|[^\n]*Dart 3\.13\.7/);
     harus("([Dart 3.13.7: Future.timeout](https://api.dart.dev/dart-async/Future/timeout.html), dibuka 2026-10-26)");
   });
+  // Tinjauan 1031: menukar label tab atau nomor slot (Django dan Laravel) lolos penjaga lama karena kode dan kalimat tiap tab dikunci terpisah dari labelnya.
+  test("TabSet: enam label berurutan, slot t0 sampai t5 muncul sekali, dan isi tiap slot menyebut stack pada labelnya", () => {
+    const labels = [...badan.match(/<TabSet id="stack" labels=\{\[([^\]]+)\]\}>/)![1]!.matchAll(/"([^"]+)"/g)].map((m) => m[1]!);
+    expect(labels).toEqual(["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]);
+    const slot = [...badan.matchAll(/<Fragment slot="t(\d)">([\s\S]*?)<\/Fragment>/g)].map((m) => ({ n: Number(m[1]), isi: m[2]! }));
+    expect(slot.map((s) => s.n)).toEqual([0, 1, 2, 3, 4, 5]);
+    const kunci = ["`database/sql` dan driver pgx", "node-postgres", "Laravel 13.x", "Django 6.1", "Serverpod 4.0", "Supabase"];
+    labels.forEach((_, i) => expect(slot[i]!.isi, `slot t${i} (${labels[i]}) tidak memuat ${kunci[i]}`).toContain(kunci[i]!));
+    // Isi yang hanya sah untuk satu stack tidak muncul di slot lain.
+    const hanya: [number, string][] = [[1, "FIFO"], [2, "PgBouncer"], [3, "CONN_MAX_AGE"], [4, "maxConnectionCount"], [5, "prepared statement"]];
+    for (const [i, kata] of hanya) {
+      slot.forEach((s, j) => { if (j !== i) expect(s.isi, `kata ${kata} milik slot t${i} muncul di t${j}`).not.toContain(kata); });
+      expect(slot[i]!.isi).toContain(kata);
+    }
+  });
+  // Tinjauan 1031: mutasi angka di tanggal akses atau di kolom halaman pemakai baris riset lolos penjaga lama.
+  test("baris riset R3-135 sampai R3-139: tiap tanggal dikenal (akses 2026-10-26 atau tanggal terbit sumber) dan halaman pemakai 3.8 dari registry", () => {
+    const sah = new Set(["2026-10-26", "2024-12-31", "2014-03-06", "2026-09-30", "2026-10-20", "2026-10-06", "2024-03-28"]);
+    const nomorHalaman = dari("t3-pool").nomor!;
+    for (let n = 135; n <= 139; n++) {
+      const b = riset.split("\n").find((x) => new RegExp(`^(\\| |- )R3-${n}\\b`).test(x));
+      expect(b, `R3-${n} tidak ada`).toBeDefined();
+      const tanggal = b!.match(/\b2\d{3}-\d\d-\d\d\b/g) ?? [];
+      expect(tanggal.length, `R3-${n} tanpa tanggal`).toBeGreaterThan(0);
+      for (const tg of tanggal) expect(sah.has(tg), `R3-${n} memuat tanggal tak dikenal ${tg}`).toBe(true);
+      if (n !== 137) expect(b, `R3-${n} tidak menyebut halaman pemakai`).toContain(`| ${nomorHalaman} `);
+    }
+    // Tanggal akses tertulis sebagai "dibuka 2026-10-26" tepat sekali per sumber yang dibuka di baris R3-135 (database/sql, net/http, pgxpool).
+    const r135 = riset.split("\n").find((x) => /^\| R3-135 \|/.test(x))!;
+    expect((r135.match(/dibuka 2026-10-26/g) ?? []).length).toBe(3);
+  });
   test("pgx#1974 hanya jebakan forum: judul, tanggal, status, dan saran pengelola sama dengan baris riset; bukan bukti", () => {
     expect(riset).toContain('[jackc/pgx#1974 "my pool keeps running out of connections"](https://github.com/jackc/pgx/issues/1974) (open, 2024-03-28)');
     expect(riset).toMatch(/jackc\/pgx#1974[^\n]*komentar di isu menyarankan menutup rows, penyebab pastinya tidak dikonfirmasi/);
