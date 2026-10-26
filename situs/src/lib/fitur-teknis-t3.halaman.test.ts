@@ -21,7 +21,8 @@ const pilah = JSON.parse(baca("situs/lama/widgets/data/t3-fitur-pilah.json")) as
   kelompok: string[]; item: { teks: string; jawab: number; kenapa: string }[]; penutup: string;
 };
 const erd = (t: number) => JSON.parse(baca(`situs/data/erd/tahap-${t}.json`)) as {
-  tabel: { nama: string; kolom: { nama: string }[]; cek: { nama: string; ekspresi: string }[]; unik: { nama: string }[] }[];
+  tahap: number;
+  tabel: { nama: string; kolom: { nama: string }[]; cek: { nama: string; ekspresi: string }[]; unik: { nama: string }[]; fk: { ke_tabel: string }[] }[];
   selisih: { tabel_baru: string[]; kolom_baru: { tabel: string; kolom: string }[] };
 };
 const erd2 = erd(2);
@@ -211,7 +212,7 @@ describe("Inti dan diagram Rantai: jumlah tabel dari ERD dan rekaman", () => {
     const [db, luar] = rantai.baris;
     expect(db!.simpul.map((s) => s.teks)).toEqual([`${erd2.tabel.length} tabel`, `+ ${erd3.selisih.tabel_baru.length} tabel`, `${erd3.tabel.length} tabel`]);
     expect(db!.simpul[1]!.sub).toBe(erd3.selisih.tabel_baru.join(", "));
-    expect(rantai.sumber.teks).toBe("Baris 1: rekaman lab api-t3. Baris 2: Ilustrasi");
+    expect(rantai.sumber.teks).toBe("Baris 1: rekaman lab api-t2 dan api-t3. Baris 2: Ilustrasi");
     expect(rantai.sumber.jenis).toBe("ilustrasi");
     expect(rantai.baris.map((b) => b.label)).toEqual(["Database", "Di luar database"]);
     expect(luar!.simpul.map((s) => s.teks)).toEqual(["Jurnal COMMIT", "HP Citra berbunyi"]);
@@ -417,6 +418,102 @@ describe("kartu pilah: jawaban dari kolom naskah dan klaim dari rekaman", () => 
   test("berkas rekaman yang disebut kartu dan halaman ada", () => {
     for (const f of ["skema.txt", "web.txt", "katalog.txt"]) expect(fs.existsSync(path.join(akar, "labs/api-t3/output", f)), f).toBe(true);
     expect(fs.existsSync(path.join(akar, "labs/api-t3/openapi.yaml"))).toBe(true);
+  });
+});
+
+// ---- penjaga tambahan peninjau (keputusan 1007) -----------------------------------------------------------------------------
+// Mutasi peninjau yang lolos dari tes di atas: label "tiruan lokal", kalimat inti (dua posting, layanan push, source of truth),
+// nomor tahap dan versi PRD, tanggal akses sumber, warna dan sub diagram, bagian rekaman yang dirujuk kartu, asal angka 8
+// tabel, dan SkripLama yang menghidupkan widget pilah (tanpa SkripLama blok Coba kosong dan tidak ada gerbang yang gagal).
+describe("penjaga tambahan: label sumber, versi, kata kunci, dan rujukan rekaman", () => {
+  const h = per("t3-fitur-teknis");
+  test("pilah hidup: setiap WidgetLama punya namanya di SkripLama dan komponennya diimpor", () => {
+    const nama = [...mdx.matchAll(/<WidgetLama nama="([a-z-]+)"/g)].map((m) => m[1]!);
+    const skrip = mdx.match(/<SkripLama daftar=\{\[([^\]]*)\]\} \/>/);
+    expect(skrip, "SkripLama tidak dipasang").not.toBeNull();
+    const daftar = [...skrip![1]!.matchAll(/"([a-z-]+)"/g)].map((m) => m[1]!);
+    expect(nama.length).toBeGreaterThan(0);
+    expect(new Set(daftar)).toEqual(new Set(nama));
+    expect(mdx).toContain('import SkripLama from "../../../components/SkripLama.astro";');
+    expect(mdx).toContain('import WidgetLama from "../../../components/WidgetLama.astro";');
+  });
+  test("label tiruan lokal: sama dengan naskah baris 1, ada di tabel dan kalimat, dan lab pushpalsu ada", () => {
+    expect(tabelNaskah[0]![2]).toContain("tiruan lokal");
+    expect(baris1[0]![2]).toContain("tiruan lokal");
+    expect(blokTabel).toContain("Layanan push di lab adalah tiruan lokal.");
+    expect(fs.existsSync(path.join(akar, "labs/api-t3/pushpalsu"))).toBe(true);
+  });
+  test("tanggal akses sumber FCM: tidak sebelum riset Tahap 3 dan tidak di masa depan", () => {
+    const m = mdx.match(/dokumentasi dibuka (\d{4}-\d{2}-\d{2})/);
+    expect(m, "tanggal akses tidak ditulis").not.toBeNull();
+    const tglRiset = riset.match(/Semua tautan dibuka (\d{4}-\d{2}-\d{2})/)![1]!;
+    expect(m![1]! >= tglRiset).toBe(true);
+    expect(m![1]! <= new Date().toISOString().slice(0, 10)).toBe(true);
+  });
+  test("kalimat inti halaman ada di naskah dan di halaman: dua posting, layanan push, source of truth, nomor tahap", () => {
+    expect(naskahTeks).toContain("jurnal dan dua posting di PostgreSQL, ditambah satu pemberitahuan ke HP Citra");
+    expect(blokTanya).toContain("jurnal dan dua posting di PostgreSQL, ditambah satu pemberitahuan ke HP Citra");
+    expect(naskahTeks).toContain("tetapi layanan push tidak ikut unit itu");
+    expect(blokTanya).toContain("Layanan push tidak ikut unit itu.");
+    expect(naskahTeks).toContain("PostgreSQL tetap satu-satunya source of truth; yang lain hanya salinan atau perantara yang boleh stale, tetapi tidak boleh menggerakkan uang");
+    const pola = blokKonsep.split("\n").find((b) => b.startsWith("Pola dua tempat muncul lagi"))!;
+    expect(pola).toContain("PostgreSQL tetap source of truth. Yang lain hanya salinan atau perantara yang boleh stale, tetapi tidak boleh menggerakkan uang.");
+    expect(blokKonsep).toContain(`Tahap ${h.tahap} membahas yang baru satu per satu`);
+    expect(pilah.penutup).toContain(`masih berlaku di Tahap ${h.tahap}`);
+    for (const nama of ["Raka", "Nadia", "Bayu", "Wulan"]) expect(mdx.split("---")[1]!, `deskripsi tanpa ${nama}`).toContain(nama);
+  });
+  test("versi PRD: setiap 'PRD vN' di halaman, diagram, dan kartu sama dengan judul bagian 1 naskah", () => {
+    const v = naskahBaris.find((b) => /^## 1\. PRD v\d+/.test(b))!.match(/PRD v(\d+)/)![1]!;
+    for (const x of [mdx, JSON.stringify(rantai), JSON.stringify(pilah)]) {
+      const semua = [...x.matchAll(/PRD v(\d+)/g)].map((m) => m[1]);
+      expect(semua.length).toBeGreaterThan(0);
+      for (const y of semua) expect(y).toBe(v);
+    }
+  });
+  test("diagram: warna simpul, sub, dan catatan diturunkan dari ERD, rekaman, dan naskah; angka 8 tabel dari rekaman api-t2", () => {
+    const [db, luar] = rantai.baris;
+    const WARNA: Record<string, string> = { old: "Abu-abu", system: "Biru", good: "Hijau", warn: "Kuning" };
+    expect(db!.simpul.map((s) => s.nada)).toEqual(["old", "system", "good"]);
+    expect(luar!.simpul.map((s) => s.nada)).toEqual(["system", "warn"]);
+    expect(db!.simpul[0]!.sub).toBe(`akhir Tahap ${erd2.tahap}`);
+    const lab = skema.find((b) => b.startsWith("# Lab "))!.match(/^# Lab (\S+)/)![1]!;
+    expect(db!.simpul[2]!.sub).toBe(`skema lab ${lab}`);
+    expect(luar!.simpul[1]!.sub).toBe("layanan push tidak ikut unit itu");
+    expect(luar!.simpul[0]!.sub).toContain("berhasil atau batal sebagai satu unit");
+    expect(naskahTeks).toContain("COMMIT atau ROLLBACK sebagai satu unit");
+    expect(rantai.catatan).toBe(`${WARNA.old}: akhir Tahap ${erd2.tahap}. ${WARNA.system}: yang ditambahkan. ${WARNA.good}: hasilnya. ${WARNA.warn}: pekerjaan yang tidak ikut COMMIT.`);
+    // angka 8 tabel: rekaman api-t2 (bukan api-t3), maka label sumber menyebut kedua lab
+    const t2 = baca("labs/api-t2/output/migrasi.txt");
+    expect(t2).toContain(`(${erd2.tabel.length} rows)`);
+    expect(rantai.sumber.teks).toContain("api-t2");
+    expect(rantai.sumber.teks).toContain(lab);
+  });
+  test("kartu: bagian rekaman yang dirujuk ada dan memuat aturan atau penolakan yang dikutip", () => {
+    const bagianDari = (i: number, berkas: string, baris: string[]): string => {
+      const m = pilah.item[i]!.kenapa.match(new RegExp(`${berkas}\\.txt bagian ([A-Z])`));
+      expect(m, `kartu ${i + 1} tanpa rujukan ${berkas}.txt`).not.toBeNull();
+      return bagianRekaman(baris, m![1]!).join("\n");
+    };
+    const b3 = bagianDari(2, "skema", skema);
+    expect(b3).toContain("perangkat_token_push_key");
+    expect(b3).toContain("UNIQUE (token_push)");
+    const b10 = bagianDari(9, "skema", skema);
+    expect(b10).toContain("produk_stok_check");
+    expect(b10).toContain("CHECK ((stok >= 0))");
+    const e = bagianRekaman(skema, "E").join("\n");
+    expect(pilah.item[9]!.kenapa).toContain("INSERT dengan stok −1 ditolak dengan SQLSTATE 23514 di bagian E");
+    expect(e).toContain("VALUES (418, 'Tes', 1000, -1)");
+    expect(e).toContain('violates check constraint "produk_stok_check"');
+    expect(e).toContain("SQLSTATE 23514");
+    expect(bagianDari(5, "web", web)).toContain("HTTP/1.1 401 Unauthorized");
+  });
+  test("kartu outbox dan graceful shutdown: foreign key ke jurnal di ERD dan bagian A bergulir.txt", () => {
+    const outbox = erd3.tabel.find((t) => t.nama === "outbox")!;
+    expect(outbox.fk.map((f) => f.ke_tabel)).toContain("jurnal");
+    expect(pilah.item[6]!.kenapa).toContain("ada di database yang sama dengan jurnal");
+    const bergulir = baca("labs/t3-instance/output/bergulir.txt").split("\n");
+    expect(bagianRekaman(bergulir, "A")[0]).toContain("koneksi baru ditolak");
+    expect(pilah.item[8]!.kenapa).toContain("berhenti menerima koneksi baru, lalu menunggu request yang berjalan selesai");
   });
 });
 

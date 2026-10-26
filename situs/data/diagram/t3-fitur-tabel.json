@@ -1,7 +1,7 @@
 {
   "id": "t3-fitur-tabel",
   "judul": "Dari PRD v3: tabel dan pemberitahuan",
-  "sumber": { "jenis": "ilustrasi", "teks": "Baris 1: rekaman lab api-t3. Baris 2: Ilustrasi" },
+  "sumber": { "jenis": "ilustrasi", "teks": "Baris 1: rekaman lab api-t2 dan api-t3. Baris 2: Ilustrasi" },
   "baris": [
     {
       "label": "Database",
