@@ -21,3 +21,9 @@ export function periksa(data: DataCariBug, ditandai: ReadonlySet<number>): Hasil
   const adaSalah = [...ditandai].some((i) => !bug.has(i));
   return { nilai, tepat: jumlahBenar === data.bug.length && !adaSalah, jumlahBenar, jumlahBug: data.bug.length };
 }
+
+/** Kalimat ringkas untuk wilayah status: {benar} bug yang ditandai, {bug} jumlah bug, {salah} baris biasa yang ikut ditandai. */
+export function ringkas(templat: string, h: Hasil): string {
+  const salah = Object.values(h.nilai).filter((n) => n === "salah").length;
+  return templat.replace("{benar}", String(h.jumlahBenar)).replace("{bug}", String(h.jumlahBug)).replace("{salah}", String(salah));
+}

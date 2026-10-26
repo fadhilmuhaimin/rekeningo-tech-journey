@@ -1,10 +1,11 @@
 // Widget cari-bug (keputusan 158): pembaca menandai baris kode sumber bug, lalu memeriksanya.
 // Semua teks dari data JSON; logika di logika.ts.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DataCariBug } from "./skema";
-import { periksa, type Nilai } from "./logika";
+import { periksa, ringkas, type Nilai } from "./logika";
 
 const kelasNilai: Record<Nilai, string> = { benar: "is-benar", lewat: "is-lewat", salah: "is-salah" };
+const kelasStatus = { ya: " is-good", tidak: " is-warn", na: "" } as const;
 
 export default function CariBug({ data: mentah }: { data: unknown }) {
   const data = DataCariBug.parse(mentah);
@@ -13,6 +14,16 @@ export default function CariBug({ data: mentah }: { data: unknown }) {
   const [diperiksa, setDiperiksa] = useState(false);
   const [lihatBenar, setLihatBenar] = useState(false);
   const hasil = periksa(data, ditandai);
+  const K = data.kejadian;
+  // Sesudah Ulang, tombol di posisi itu menjadi Periksa yang disabled. Fokus dipindah ke baris kode pertama supaya
+  // tidak tertahan di tombol mati atau jatuh ke body (Periksa menjadi Ulang memakai elemen yang sama, fokus tetap).
+  const fokusSesudahUlang = useRef(false);
+  const kodeRef = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    if (!fokusSesudahUlang.current || diperiksa) return;
+    fokusSesudahUlang.current = false;
+    kodeRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+  }, [diperiksa]);
 
   const toggle = (i: number) => {
     if (diperiksa) return;
@@ -21,6 +32,7 @@ export default function CariBug({ data: mentah }: { data: unknown }) {
     setDitandai(next);
   };
   const ulang = () => {
+    fokusSesudahUlang.current = true;
     setDitandai(new Set());
     setDiperiksa(false);
     setLihatBenar(false);
@@ -40,7 +52,7 @@ export default function CariBug({ data: mentah }: { data: unknown }) {
 
       <p className="bb-muted cb-perintah">{L.perintah}</p>
 
-      <ol className="cb-kode" translate="no">
+      <ol className="cb-kode" translate="no" ref={kodeRef}>
         {data.baris.map((baris, i) => {
           const nilai = diperiksa ? hasil.nilai[i] : undefined;
           const aktif = ditandai.has(i);
@@ -65,8 +77,10 @@ export default function CariBug({ data: mentah }: { data: unknown }) {
         )}
       </div>
 
+      {L.ringkas !== undefined && <p role="status" aria-live="polite" className="cb-ringkas">{diperiksa ? ringkas(L.ringkas, hasil) : ""}</p>}
+
       {diperiksa && (
-        <div role="status" aria-live="polite" className="cb-hasil">
+        <div className="cb-hasil" {...(L.ringkas === undefined ? { role: "status", "aria-live": "polite" } : {})}>
           <ul className="cb-alasan">
             {data.bug.map((i) => (
               <li key={i}>
@@ -83,6 +97,28 @@ export default function CariBug({ data: mentah }: { data: unknown }) {
               </li>
             ))}
           </ul>
+
+          {K && (
+            <div className="cb-kejadian" role="group" aria-label={K.judul}>
+              <p className="cb-kejadian__judul"><strong>{K.judul}</strong></p>
+              <ol className="cb-kejadian__daftar">
+                {K.baris.map((b, i) => (
+                  <li key={i} className="cb-kejadian__item">
+                    <p className="cb-kejadian__nama"><strong>{b.nama}</strong></p>
+                    <ul className="cb-kejadian__sel">
+                      {b.sel.map((c, j) => (
+                        <li key={j}>
+                          <span className={"bb-chip" + kelasStatus[c.status]}>{K.status[c.status]}</span>
+                          <span className="cb-kejadian__hal">{K.hal[j]}</span>
+                          {c.detail && <span className="cb-kejadian__detail">{c.detail}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
 
           <button type="button" className="bb-btn bb-btn--quiet" aria-pressed={lihatBenar} onClick={() => setLihatBenar(!lihatBenar)}>
             {L.perbaikanTombol}
