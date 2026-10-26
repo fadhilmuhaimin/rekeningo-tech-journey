@@ -5,7 +5,7 @@
     "jenis": "rekaman",
     "file": "labs/e3-idempotency/output/ledger/key-per-percobaan.txt",
     "fileVarian": "labs/e3-idempotency/output/ledger/key-per-niat.txt",
-    "catatan": "Client Dart, server Go, dan PostgreSQL 17.11 dari database bersih (make -C labs/e3-idempotency run-ledger). Titik henti server menutup koneksi app sesudah COMMIT, sebelum response terkirim. Jalur utama: key dibuat ulang di setiap percobaan (key-per-percobaan.txt). Ubah satu hal: key dibuat sekali per niat bayar (key-per-niat.txt). Key dipotong 8 karakter di rekaman karena gitleaks (keputusan 518)."
+    "catatan": "Client Dart, server Go, dan PostgreSQL 17.11 dari database bersih (make -C labs/e3-idempotency run-ledger). Titik henti server menutup koneksi app sesudah COMMIT, sebelum response terkirim. Jalur utama: key dibuat ulang di setiap percobaan (key-per-percobaan.txt). Ubah satu hal: key dibuat sekali per niat bayar (key-per-niat.txt). Key dipotong 8 karakter di rekaman karena gitleaks menandai nilai panjang di baris header sebagai secret, padahal idempotency key bukan credential."
   },
   "pengantar": "Server minggu 2 sudah mengenali header Idempotency-Key. Tebak dulu apa yang terjadi bila app membuat key baru di setiap percobaan, lalu ikuti request-nya. Sesudah itu centang 'Ubah satu hal'.",
   "komponen": [
