@@ -54,7 +54,7 @@ Tujuh pertanyaan muncul di sekitar pembayaran yang menggantung. Pilah tiap perta
 
 **Ubah satu hal:** pasang timeout 3 detik di client push, seperti di ADR 22 ([[t3-pool]]). Di `adr22.txt` bagian D, sepuluh pembayaran pertama menunggu push sampai batas itu, dan masing-masing menulis satu baris log `push gagal, hanya dicatat` yang memuat `Client.Timeout exceeded`. Tanpa timeout, `jejak.txt` bagian J mencatat nol baris. Baris itu ada karena panggilan push berakhir; selama ia menggantung, tidak ada baris.
 
-Bebannya berbeda: bagian D memakai beban terjadwal 17,4 request per detik, bagian J satu pembayaran. Perbandingan ini menunjukkan arah, bukan satu percobaan yang diulang.
+Bebannya berbeda: bagian D memakai beban terjadwal 17,4 request per detik (Asumsi, yaitu angka beban dari cerita), bagian J satu pembayaran. Perbandingan ini menunjukkan arah, bukan satu percobaan yang diulang.
 
 </Blok>
 
@@ -76,13 +76,13 @@ Tiga sinyal menjawab pertanyaan yang berbeda:
 | Metric | Angka agregat dalam rentang waktu, mis. error rate atau pemakaian sumber daya | Seberapa sering atau seberapa penuh? | Rekaman lab: pembacaan pool dan outbox, hanya dengan flag `-lab` |
 | Trace | Perjalanan satu request, terdiri dari span: satu unit kerja dengan durasinya | Di bagian mana waktu satu request habis? | Tidak dijalankan |
 
-Arti ketiga sinyal mengikuti dokumentasi OpenTelemetry yang sama. Rekaman di bawah menunjukkan apa yang bisa dibaca dari luar proses api-t3 saat satu pembayaran menggantung. Bagian pertama memuat log dan trace, bagian kedua metric dan database:
+Arti ketiga sinyal mengikuti dokumentasi OpenTelemetry ([primer](https://opentelemetry.io/docs/concepts/observability-primer/) dan [traces](https://opentelemetry.io/docs/concepts/signals/traces/), dibuka 2026-10-26). Rekaman di bawah menunjukkan apa yang bisa dibaca dari luar proses api-t3 saat satu pembayaran menggantung. Bagian pertama memuat log dan trace, bagian kedua metric dan database:
 
 <Snippet file="labs/t3-pool/output/jejak.txt" lines="13:17" title="Rekaman lab: labs/t3-pool/output/jejak.txt" />
 
 <Snippet file="labs/t3-pool/output/jejak.txt" lines="18:27" title="Rekaman lab: labs/t3-pool/output/jejak.txt" />
 
-**Log.** Log ditulis di akhir sesuatu: sebuah galat atau akhir sebuah panggilan. api-t3 tidak punya log akses. Request yang masuk tidak meninggalkan baris, baik yang menggantung maupun yang selesai dengan 200. Server ini juga memakai paket `log` biasa, yang menulis teks bebas, bukan JSON.
+**Log.** Di api-t3, baris log ditulis saat sesuatu berakhir: sebuah galat atau akhir sebuah panggilan. Server ini tidak punya log akses: ia hanya menulis kejadian server dan kesalahan internal. Request yang menggantung tidak meninggalkan baris, dan pembacaan saldo yang selesai dengan 200 pun tidak. Server ini juga memakai paket `log` biasa, yang menulis teks bebas, bukan JSON.
 
 Log terstruktur menulis tiap kejadian sebagai JSON dengan field tetap, supaya mesin bisa menyaring dan menghitungnya. Go punya `log/slog` di pustaka standar untuk itu ([Go 1.27.3: log/slog](https://pkg.go.dev/log/slog), dibuka 2026-10-26). Baris di bawah adalah Ilustrasi, bukan keluaran api-t3: bentuk satu baris yang tersambung ke trace lewat `trace_id`.
 
@@ -90,7 +90,7 @@ Log terstruktur menulis tiap kejadian sebagai JSON dengan field tetap, supaya me
 {"level":"ERROR","msg":"push gagal","durasi_ms":3000,"trace_id":"4bf92f3577b34da6a3ce929d0e0e4736"}
 ```
 
-Di OpenTelemetry untuk Go, Traces dan Metrics berstatus Stable, sedangkan Logs masih Release Candidate ([OpenTelemetry: Go](https://opentelemetry.io/docs/languages/go/), dibuka 2026-10-26). Karena itu log lebih aman ditulis sendiri sebagai JSON dengan `trace_id`, dan jangan menunggu SDK log menjadi Stable. Request pada rekaman membawa header `Authorization: Bearer`. Panduan OWASP menyebut access token, password, dan session identification values sebagai data yang biasanya dikecualikan dari log ([OWASP: Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html), dibuka 2026-10-26).
+Di OpenTelemetry untuk Go, Traces dan Metrics berstatus Stable, sedangkan Logs masih Release Candidate ([OpenTelemetry: Go](https://opentelemetry.io/docs/languages/go/), dibuka 2026-10-26). Karena SDK log belum Stable, pilihan yang tidak bergantung padanya adalah menulis log sendiri sebagai JSON dengan `trace_id`. Request pada rekaman membawa header `Authorization: Bearer`. Panduan OWASP menyebut access token, password, dan session identification values sebagai data yang biasanya dikecualikan dari log ([OWASP: Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html), dibuka 2026-10-26).
 
 **Metric.** `GET /lab/pool` membaca `DBStats` dari `database/sql`: koneksi yang terbuka, yang dipakai, dan batas pool ([Go 1.27.3: DBStats](https://pkg.go.dev/database/sql#DBStats), dibuka 2026-10-26). Saat pool penuh di M18, pembacaan yang sama menjawab dipakai 10 dari maks 10:
 
@@ -98,7 +98,7 @@ Di OpenTelemetry untuk Go, Traces dan Metrics berstatus Stable, sedangkan Logs m
 
 Semua pembacaan angka di api-t3 ada di bawah `/lab/` dan hanya hidup dengan flag `-lab`, dan tidak ada endpoint `/metrics`. Yang relevan untuk M18 ada dua: `GET /lab/pool` dan `GET /lab/outbox` (jumlah baris per status dan umur baris tertua). Kolom `menunggu` adalah hitungan kumulatif sejak server hidup, jadi rekaman tidak mencetaknya.
 
-**Trace.** Satu trace adalah perjalanan satu request. Ia terdiri dari span, dan setiap span mencatat satu unit kerja dengan durasinya. Antar komponen, trace disambung lewat header `traceparent` dari W3C Trace Context Level 1, yang berstatus Recommendation sejak 23 November 2021 ([W3C: Trace Context](https://www.w3.org/TR/trace-context/), dibuka 2026-10-26). Header itu terdiri dari empat field yang dipisah tanda minus:
+**Trace.** Satu trace adalah perjalanan satu request. Ia terdiri dari span, dan setiap span mencatat satu unit kerja dengan durasinya. Antar komponen, trace disambung lewat header `traceparent` dari W3C Trace Context Level 1, edisi Recommendation 23 November 2021 ([W3C: Trace Context](https://www.w3.org/TR/trace-context/), dibuka 2026-10-26). Header itu terdiri dari empat field yang dipisah tanda minus:
 
 ```text
 traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
@@ -107,7 +107,7 @@ traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
 
 Trace-id mengenali seluruh perjalanan. Parent-id adalah id request ini menurut pemanggilnya. Bit paling kanan trace-flags, sampled, menyala: pemanggil mungkin sudah merekam trace. Alat tracing yang sesuai spesifikasi minimal meneruskan header itu supaya trace tidak putus (bagian 2.3).
 
-Header di atas adalah contoh dari spesifikasi, dan itu yang dikirim rekaman `jejak.txt` bagian J. Kode api-t3 tidak menyebut `traceparent` di mana pun, dan client push-nya hanya menulis header `Content-Type`. Trace-id berhenti di perbatasan API. Paket instrumentasi `otelhttp` membungkus `http.Handler` untuk menambah tracing ([pkg.go.dev: otelhttp](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp), dibuka 2026-10-26), tetapi paket itu tidak dipasang di api-t3 dan tidak dijalankan di lab.
+Header di atas adalah contoh dari spesifikasi, dan itu yang dikirim rekaman `jejak.txt` bagian J. Kode api-t3 (`cmd` dan `internal`) tidak menyebut `traceparent`, dan client push-nya hanya menulis header `Content-Type`. Trace-id berhenti di perbatasan API. Paket instrumentasi `otelhttp` membungkus `http.Handler` untuk menambah tracing ([pkg.go.dev: otelhttp](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp), dibuka 2026-10-26), tetapi paket itu tidak dipasang di api-t3 dan tidak dijalankan di lab.
 
 **Empat golden signals.** Buku SRE Google menyebut empat sinyal: latency, traffic, errors, dan saturation. Bila kamu hanya bisa mengukur empat hal pada sistem yang dipakai orang, ukurlah keempatnya ([SRE book, bab 6, edisi 2017](https://sre.google/sre-book/monitoring-distributed-systems/), dibuka 2026-10-26). Tabel ini memasangkan tiap sinyal dengan M18 dan menyebut siapa yang menghitungnya di rekaman:
 
@@ -128,7 +128,7 @@ Di rekaman t3-pool, hanya saturation yang dibaca dari api-t3, dan hanya dengan `
 
 | Pilihan | Yang bisa dijawab | Ongkosnya | Keadaan di lab |
 |---|---|---|---|
-| Log teks bebas saja | Kejadian yang sudah selesai dan dicatat | Tanpa usaha tambahan, tetapi mesin tidak bisa menyaring atau menghitungnya, dan request yang menggantung tidak muncul | Rekaman lab: keadaan api-t3, nol baris selama 4 detik |
+| Log teks bebas saja | Kejadian yang sudah selesai dan dicatat | Tanpa usaha tambahan, tetapi tiap pesan berbentuk bebas sehingga sulit disaring atau dihitung mesin, dan request yang menggantung tidak muncul | Rekaman lab: keadaan api-t3, nol baris selama 4 detik |
 | Log terstruktur dan metric empat sinyal | Apa yang terjadi per kejadian, dan seberapa penuh sumber daya | Kode log dan endpoint metric di server, ruang simpan, dan ambang untuk alert | Rekaman lab: metric saturation ada; log terstruktur hanya Ilustrasi |
 | Ditambah trace | Di bagian mana waktu satu request habis, lintas komponen | Dependency baru dengan ADR sendiri, instrumentasi, dan penyimpanan trace; Logs Go masih Release Candidate | Tidak dijalankan |
 
