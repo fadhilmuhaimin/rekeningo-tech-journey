@@ -113,7 +113,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **OpenAPI** | Format standar untuk menulis kontrak API (endpoint, request, response) yang bisa dibaca manusia dan mesin. | [[B1.4]] |
 | **Optimistic lock** | Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca. | [[t2-race-lock]] |
 | **ORM** (Object-Relational Mapping) | Library yang memetakan tabel database ke objek di kode, sehingga query ditulis sebagai pemanggilan method, mis. Eloquent di Laravel atau ORM bawaan Django. | [[t2-n-plus-1]] |
-| **Outbox** | Tabel tempat event ditulis dalam transaction yang sama dengan perubahan data, lalu dikirim oleh worker. | [[B10.2]] |
+| **Outbox** | Tabel tempat event ditulis dalam transaction yang sama dengan perubahan data, lalu dikirim oleh worker. | [[t3-outbox]] |
 | **Over-fetching** | Response yang mengirim lebih banyak kolom atau baris daripada yang dipakai layar. | [[t2-payload]] |
 | **p95 / p50** | Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median). | [[t3-observability]] |
 | **Pagination** | Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu. | [[t2-kursor]] |
@@ -129,7 +129,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Proxy** | Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request. | [[B11.2]] |
 | **Pull request review** | Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung. | [[t2-tim-infra]] |
 | **Query plan** | Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan `EXPLAIN`. | [[t2-index]] |
-| **Queue** | Daftar pekerjaan yang menunggu diproses oleh worker, satu per satu atau paralel. | [[B10.1]] |
+| **Queue** | Daftar pekerjaan yang menunggu diproses oleh worker, satu per satu atau paralel. | [[t3-outbox]] |
 | **Race condition** | Hasil yang bergantung pada urutan dua proses yang berjalan bersamaan. | [[t2-race-lock]] |
 | **Rate limit** | Batas jumlah request per waktu dari satu sumber, mis. lima percobaan login per menit. | [[C4]] |
 | **RBAC** (Role-Based Access Control) | Authorization berdasarkan peran, mis. hanya peran admin yang boleh membekukan akun. | [[B5.3]] |
@@ -175,7 +175,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **WAL** (Write-Ahead Log) | Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary. | [[D3]] |
 | **Webhook** | HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil. | [[B10.2]] |
 | **WebSocket** | Koneksi dua arah yang tetap terbuka antara app dan server. | [[E4]] |
-| **Worker** | Proses terpisah yang mengambil pekerjaan dari queue dan mengerjakannya di luar jalur request. Di server web seperti WSGI, worker juga berarti satu proses yang melayani request. | [[B10.1]] |
+| **Worker** | Proses terpisah yang mengambil pekerjaan dari queue dan mengerjakannya di luar jalur request. Di server web seperti WSGI, worker juga berarti satu proses yang melayani request. | [[t3-outbox]] |
 
 <WidgetLama nama="umpan-balik" />
 

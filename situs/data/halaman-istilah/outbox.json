@@ -1,0 +1,45 @@
+{
+  "istilah": "Outbox",
+  "sehari_hari": "Outbox adalah tabel tempat pemberitahuan menunggu giliran dikirim. Barisnya ditulis bersama perubahan datanya, jadi keduanya tersimpan atau batal sebagai satu paket.",
+  "cerita": [
+    {
+      "rujukan": "t3-dua-tempat",
+      "teks": "Versi pertama mengirim push di dalam transaction. Layanan push tidak ikut COMMIT, jadi pemberitahuan bisa mendahului uang, hilang tanpa catatan, atau menahan koneksi database."
+    },
+    {
+      "rujukan": "t3-outbox",
+      "teks": "Pembayaran Budi menulis jurnal 10001 dan satu baris outbox berstatus menunggu dalam satu COMMIT. Layanan push tiruan baru menerima pesannya sesudah worker berjalan."
+    }
+  ],
+  "mekanisme": [
+    "Service menulis perubahan data dan satu baris outbox di transaction yang sama, tanpa panggilan jaringan.",
+    "COMMIT menyimpan keduanya, dan ROLLBACK membuang keduanya.",
+    "Worker, yaitu proses lain, mengklaim baris yang sudah COMMIT dan mengirimnya ke pihak luar.",
+    "Worker menandai baris terkirim. Bila ia mati sebelum menandai, baris dikirim lagi, jadi penerima harus tahan pesan ganda."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menulis baris outbox sesudah COMMIT. Proses yang mati di antaranya meninggalkan jurnal tanpa pemberitahuan, dan tes biasa tidak melihatnya. Lab t3-outbox menangkapnya dengan INSERT yang sengaja gagal.",
+    "Mengira outbox menjaga urutan pesan. Klaim per baris tidak menjaganya, dan nomor urut bukan urutan commit. Yang mengeluarkan event dalam urutan commit adalah log-based CDC."
+  ],
+  "terkait": ["Worker", "At-least-once", "Queue", "Dead-letter queue", "Idempotency key"],
+  "sumber": [
+    {
+      "riset": "R3-141",
+      "judul": "microservices.io: Transactional outbox",
+      "url": "https://microservices.io/patterns/data/transactional-outbox.html",
+      "catatan": "Pesan disimpan di outbox dalam transaction yang sama dengan perubahan data, lalu relay mengirimnya. Relay bisa mengirim lebih dari sekali, jadi consumer harus idempoten."
+    },
+    {
+      "riset": "R3-141",
+      "judul": "Morling: Revisiting the Outbox Pattern (2024-10-31)",
+      "url": "https://www.morling.dev/blog/revisiting-the-outbox-pattern/",
+      "catatan": "Urutan pesan di tabel outbox tidak dijamin sama dengan urutan commit. Log-based CDC mengeluarkan event dalam urutan commit."
+    },
+    {
+      "judul": "Rekaman lab t3-outbox: jurnal dan baris outbox dalam satu transaction",
+      "rekaman": "labs/t3-outbox/output/transaksi.txt",
+      "catatan": "Bagian B: sebelum COMMIT worker mengklaim 0 baris. Bagian C: ROLLBACK membuang jurnal dan baris outbox bersama. Bagian G: INSERT outbox yang gagal di kode API membatalkan pembayaran."
+    }
+  ]
+}
