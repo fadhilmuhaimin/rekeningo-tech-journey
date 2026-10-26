@@ -40,7 +40,7 @@ describe("teks tampil dikunci", () => {
       { nilai: "sebelum", label: "Sebelum COMMIT" },
       { nilai: "lambat", label: "Sesudah COMMIT, pembaca lambat" },
     ]);
-    expect(L.instance).toEqual(["Instance A: HP Budi, menerima perubahan", "Instance B: HP Citra", "Instance C: HP lain di meja yang sama"]);
+    expect(L.instance).toEqual(["Instance A: melayani Budi, menerima perubahan", "Instance B: melayani Citra", "Instance C: melayani HP lain di meja yang sama"]);
   });
   it("jam, papan, dan perbandingan", () => {
     expect(L.jam).toEqual({
@@ -90,6 +90,60 @@ describe("teks tampil dikunci", () => {
     });
     expect(L.tabel).toEqual({ judul: "Titik acuan Rekaman lab t3-cache", kolom: ["Pengaturan", "Data lama di instance B", "Rekaman"], tidakAda: "tidak ada", ada: "{lama} detik" });
     expect(L.tanpaJs).toBe("Tanpa JavaScript widget tidak bisa dijalankan. Tabel ini memuat pengaturan yang punya rekaman.");
+  });
+  it("pertanyaan tebakan dan alasan tiap pilihan (angka berasal dari rekaman, di sini hanya templat)", () => {
+    expect(L.pertanyaan).toBe("Katalog di-cache di memori tiap instance dengan TTL {ttl} detik, dan entri baru saja diisi. HR menyalakan promo lewat instance A, dan nasi goreng turun dari {hargaAwal} ke {hargaBaru}. Budi memakai instance A, Citra memakai instance B, di meja yang sama. Kapan Citra pertama kali melihat {hargaBaru}?");
+    expect(L.pilihan.map((p) => p.alasan)).toEqual([
+        "Promo hanya membuang entri di instance A: kunci terhapus {dihapusA} di A dan {dihapusB} di B (memori.txt B). Instance B tidak diberi tahu.",
+        "{ttlRedis} detik adalah TTL cache Redis di rekaman redis.txt. Cache memori ini memakai TTL {ttl} detik.",
+        "Entri di instance B habis sendiri. Pada detik ke-{lamaTerakhir} Citra masih melihat {hargaAwal}, pada detik ke-{baruMulai} sudah {hargaBaru} (memori.txt D).",
+        "TTL membuang entri yang tidak dihapus siapa pun, jadi harga baru terbaca pada detik ke-{baruMulai}. Tanpa TTL entri itu memang tidak akan habis."
+      ]);
+  });
+  it("templat titik acuan: kata sumber (Rekaman lab) hanya untuk yang direkam", () => {
+    expect(L.acuan).toEqual({
+        "memori-promo": "memori.txt B dan D: promo lewat instance A membuang {dihapusA} kunci di A dan {dihapusB} di B. Budi melihat {hargaBaru}, Citra melihat {hargaAwal}. Citra baru melihat {hargaBaru} pada detik ke-{baruMulai}; pada detik ke-{lamaTerakhir} masih {hargaAwal}.",
+        "memori-stok": "memori.txt C: sesudah pesanan, stok di database {stokBaru} dan di cache instance B masih {citraStok}. Pesanan ditagih {tagih}.",
+        "redis-harga": "redis.txt B dan E: kunci dihapus sesudah COMMIT, dan instance B langsung melihat {hargaUbah}. Sebelum COMMIT harga lama masih benar.",
+        "redis-promo": "redis.txt C: promo lewat instance A, dan instance B langsung melihat {hargaBaru}.",
+        "redis-sebelum": "redis.txt D: kunci dihapus sebelum COMMIT, lalu pembaca di celah menyimpan {hargaAwal} lagi. Database {hargaUbah}; harga lama bertahan sampai TTL, sisanya paling banyak {pttl} ms.",
+        "redis-lambat": "redis.txt F: pembaca lambat menyimpan {hargaAwal} sesudah COMMIT dan hapus kunci. Database {hargaUbah}; harga lama bertahan sampai TTL.",
+        "redis-nanti": "redis.txt G: promo mulai {mulai} detik sesudah dibuat dan tidak ada kunci terhapus. Entri lama dipakai sampai TTL {ttlLab} detik di rekaman.",
+        "redis-mati": "gagal.txt C: Redis mati saat tulis dan {galatCache} hapus kunci gagal. Entri lama kembali bersama Redis: {hargaAwal} padahal database {hargaUbah}.",
+        "tanpa": "beban.txt B dan C: tanpa cache {bacaan} bacaan menjadi {tanpaDb} baca database; dengan Redis {redisDb} baca database dan {redisHit} hit."
+      });
+  });
+  it("catatan dan butir asal angka: label Asumsi, Ilustrasi, dan yang tidak diuji tertulis", () => {
+    expect(L.catatan).toEqual({
+        "uang": "Pesanan selalu membaca harga dari database, bukan dari cache. Di rekaman memori.txt C, Citra ditagih {tagih} walau layarnya menunjukkan {hargaAwal}.",
+        "ttlLab": "TTL {ttlLab} detik hanya dipakai di rekaman redis.txt G, supaya habisnya entri bisa direkam tanpa menunggu semenit.",
+        "sebelum": "Celah antara hapus kunci dan COMMIT sempit. Rekaman memaksa satu pembaca masuk ke celah itu dengan gerbang lab (redis.txt D). Tanpa pembaca di celah, hasilnya sama dengan sesudah COMMIT.",
+        "lambat": "Pembaca membaca database sebelum tulis, lalu menyimpan hasilnya sesudah kunci dihapus. Lab tidak memakai lease, jadi hanya TTL yang membatasi (redis.txt F).",
+        "mati": "Selama Redis mati semua bacaan memakai database: {serentak} bacaan serentak menjadi {serentak} baca database, dengan koneksi PostgreSQL paling banyak {koneksi} (gagal.txt B). Entri lama kembali karena snapshot ditulis dengan SAVE sebelum Redis berhenti (gagal.txt C). Tanpa SAVE manual, apakah entri kembali tidak diuji.",
+        "nanti": "Promo yang mulai di jam tertentu tidak punya tulis saat mulai, jadi tidak ada yang menghapus kunci. Hanya TTL yang membatasi (redis.txt G).",
+        "pesanan": "Pesanan tidak menghapus kunci katalog (memori.txt C). Layar bisa menunjukkan stok yang tertinggal, tetapi pesanan memeriksa stok di database."
+      });
+    expect(L.asal).toEqual({
+        "judul": "Dari mana angka ini?",
+        "butir": [
+          "Kasus: nasi goreng di warung Ani, kota Jakarta, harga awal {hargaAwal} dan stok {stokAwal}. Data lab, bukan data nyata.",
+          "Entri diisi tepat sebelum perubahan, pada detik ke-0. Entri yang lebih tua habis lebih cepat, jadi lama harga lama di sini adalah batas atas. Ini Asumsi.",
+          "Jam simulasi digeser, bukan ditunggu. Rekaman memori.txt D menggeser jam cache lewat POST /lab/jam, jadi {ttl} detik sungguhan tidak ditunggu.",
+          "Aturan simulasi (Ilustrasi): hanya instance yang tidak ikut menghapus entrinya, atau yang mengisi ulang sesudah hapus, yang melihat harga lama sampai TTL habis.",
+          "Titik yang cocok dengan rekaman memakai pengaturan persis rekaman: dua instance, TTL rekaman, satu pembaca per kunci. Pengaturan lain adalah Ilustrasi.",
+          "Beban {lambda} bacaan per detik dan W = {wMs} ms adalah Asumsi naskah. Rekaman beban.txt hanya memeriksa W di bawah {batasWMs} ms dan L di bawah {batasL} koneksi."
+        ]
+      });
+  });
+  it("templat hitungan: beban dan baca database memakai kata Asumsi dan nama rekaman", () => {
+    expect([L.hitungan.bebanNilai, L.hitungan.bacaKunciNilai]).toEqual([
+        "L = λ × W = {lambda} × {w} = {l} koneksi dari pool {pool}. Asumsi: {lambda} bacaan per detik dan W = {wMs} ms.",
+        {
+          "memori": "{k}, satu per instance (memori.txt A: {bacaDb} untuk dua instance).",
+          "redis": "{k}, karena satu Redis dipakai bersama (redis.txt A: {bacaDbA} di instance A, {bacaDbB} di instance B).",
+          "tanpa": "setiap bacaan membaca database."
+        }
+      ]);
   });
   it("pilihan tebakan: teks dan detik", () => {
     expect(L.pilihan.map((p) => [p.teks, p.detik])).toEqual([

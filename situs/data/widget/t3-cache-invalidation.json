@@ -117,9 +117,9 @@
     ]
   },
   "instance": [
-    "Instance A: HP Budi, menerima perubahan",
-    "Instance B: HP Citra",
-    "Instance C: HP lain di meja yang sama"
+    "Instance A: melayani Budi, menerima perubahan",
+    "Instance B: melayani Citra",
+    "Instance C: melayani HP lain di meja yang sama"
   ],
   "awal": "Kembali ke pengaturan awal",
   "jam": {
@@ -188,7 +188,7 @@
     "bebanNilai": "L = λ × W = {lambda} × {w} = {l} koneksi dari pool {pool}. Asumsi: {lambda} bacaan per detik dan W = {wMs} ms."
   },
   "catatan": {
-    "uang": "Pesanan tidak membaca cache: Citra ditagih {tagih} walau layarnya menunjukkan {hargaAwal} (memori.txt C).",
+    "uang": "Pesanan selalu membaca harga dari database, bukan dari cache. Di rekaman memori.txt C, Citra ditagih {tagih} walau layarnya menunjukkan {hargaAwal}.",
     "ttlLab": "TTL {ttlLab} detik hanya dipakai di rekaman redis.txt G, supaya habisnya entri bisa direkam tanpa menunggu semenit.",
     "sebelum": "Celah antara hapus kunci dan COMMIT sempit. Rekaman memaksa satu pembaca masuk ke celah itu dengan gerbang lab (redis.txt D). Tanpa pembaca di celah, hasilnya sama dengan sesudah COMMIT.",
     "lambat": "Pembaca membaca database sebelum tulis, lalu menyimpan hasilnya sesudah kunci dihapus. Lab tidak memakai lease, jadi hanya TTL yang membatasi (redis.txt F).",
