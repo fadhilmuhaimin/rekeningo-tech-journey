@@ -1,5 +1,5 @@
-# Ringkas: CERITA-TAHAP-1, 2, 3 dan PROPOSAL (keputusan 235, 900)
-Diimpor CLAUDE.md menggantikan file penuh. Bagian lengkap dibaca hanya saat tugas membutuhkannya: `grep -n '^##' plan/CERITA-TAHAP-N.md` (atau PROPOSAL), lalu Read dengan offset/limit atau subagent yang mengembalikan ringkasan. Bila ringkasan ini bertentangan dengan file penuh, file penuh yang benar. Format lipat (batas 60 baris, gerbang): peta tahap yang selesai dilipat jadi satu baris per kelompok halaman; peta tahap yang sedang ditulis satu baris per halaman (nomor · judul · jenis · ★ · lab); judul dan jenis lengkap tiap halaman ada di registry `situs/data/cerita.json`.
+# Ringkas: CERITA-TAHAP-1 sampai 4 dan PROPOSAL (keputusan 235, 900, 1208)
+Diimpor CLAUDE.md menggantikan file penuh. Bagian lengkap dibaca hanya saat tugas membutuhkannya: `grep -n '^##' plan/CERITA-TAHAP-N.md` (atau PROPOSAL), lalu Read dengan offset/limit atau subagent yang mengembalikan ringkasan. Bila ringkasan ini bertentangan dengan file penuh, file penuh yang benar. Format lipat (batas 60 baris, gerbang): peta tahap yang selesai dilipat jadi satu baris per kelompok halaman; peta tahap yang akan ditulis berikutnya satu baris per halaman (nomor · judul · jenis · ★ · lab), dan Tahap 3 yang masih berjalan dilipat per kelompok sampai 3.32 merge; judul dan jenis lengkap tiap halaman ada di registry `situs/data/cerita.json`.
 ## Keputusan final dan tampilan (PROPOSAL "Keputusan final" dan "Desain visual final", CLAUDE.md `<tampilan>`)
 - Situs Astro + Starlight; widget React 19 + TypeScript (logika murni di `.ts`, JSON divalidasi Zod); SQL di browser PGlite (race dua koneksi replay rekaman). Hosting Cloudflare Pages lewat GitHub Actions; progres pembaca di localStorage + ekspor/impor, tanpa akun. Hands-on jalur A (browser) + B (`make lab`, Dev Container). Stack pembanding keenam Dart server (Serverpod); Flutter feature-first + MVVM, Riverpod 3, go_router. Uang: Tahap 1 kolom `saldo` di-UPDATE, mulai Tahap 2 ledger double-entry append-only. Keamanan direkam sampai Tahap 4, Tahap 5–6 konseptual [perlu verifikasi]; penyerang "yang mencoba" (Dimas, penasaran, bukan jahat).
 - Enam tahap (6 = proyeksi), konten dulu satu tahap sampai tuntas (109); semua fiktif, tanpa merek nyata atau klaim regulasi; tiap tahap mulai dari PRD; masalah terlihat orang, bukan log.
@@ -11,40 +11,48 @@ Diimpor CLAUDE.md menggantikan file penuh. Bagian lengkap dibaca hanya saat tuga
 - 3 gedung, ±1.000 karyawan, 12 warung, 8 minggu, satu server; dua engineer: Raka dan Nadia (backend dari tim ERP, bahasa akuntansi, cenderung mengusulkan solusi terlalu berat). Puncak 1,4 RPS. Masalah M9–M17, ADR 13–21 (ADR 6 direvisi di 2.8; naskah 2.8 menulis "ADR 12", lihat MEMORI). PRD v2 P0: transfer antar karyawan (nomor karyawan, batas Rp500.000/hari), tutup buku bulanan, pencairan warung Jumat 15.00 (satu file bank, tanpa integrasi bank), top-up 1.000 akun dari CSV; P1 riwayat panjang, login lebih aman; P2 notifikasi ditunda ke v3.
 - Inti: ledger double-entry. Jurnal berisi ≥ 2 posting berjumlah nol; posting tidak pernah di-UPDATE/DELETE, koreksi = jurnal pembalik; saldo karyawan tidak negatif; ketiganya dijaga database. Saldo = jumlah posting; `buku.saldo_cache` dikunci saat transfer (M9). Aturan Pak Hadi: setiap rupiah tertelusur ke kejadian, tanpa koreksi tangan. Skema v2: `akun`, `sesi`, `buku`, `jurnal`, `posting`, `kunci_idempotensi`, `batch_pencairan`, `baris_pencairan`. Lab: `b3-ledger`, `api-t2`, `b3-race`, `b3-isolasi`, `t2-pencairan`, `e3-idempotency`, `b2-query`, `b4-skema`, `c4-ratelimit`, `e5-payload`.
 - 2.1–2.33: PRD 2.1, fitur→teknis 2.2–2.5 (api-t2, b3-ledger, t2-pencairan), ledger 2.6–2.9, M9 2.10 + ADR 13 2.11 (b3-race), isolasi 2.12, M10 2.13 + ADR 14 2.14 (e3-idempotency), M11 2.15, N+1 2.16, ADR 15 2.17, M12 2.18, ADR 16 2.19 (b2-query), payload 2.20 (e5-payload), M13 2.21 + ADR 17 2.22 (b4-skema), M14 2.23 (api-t2), ADR 18 2.24 (tim-infra), M15 2.25 + job idempoten dan rekonsiliasi ADR 19 2.26 (t2-pencairan), M16 2.27 + Keamanan 4 dan ADR 20 2.28 (c4-ratelimit), M17 2.29, estimasi 2.30, ADR 21 "Sengaja belum dilakukan" 2.31, rekap 2.32, jembatan PRD v3 2.33.
-## Tahap 3 · Enam kota (CERITA-TAHAP-3, draf otomatis; 32 halaman 3.1–3.32, M18–M28, ADR 22–33)
+## Tahap 3 · Enam kota (CERITA-TAHAP-3, draf otomatis; 32 halaman 3.1–3.32, M18–M28, ADR 22–33; 3.1–3.12 selesai, 3.13–3.32 berjalan)
 - 6 kota, ±10.000 karyawan, ±60 warung (12 pusat + ±48; tenant mitra), 10 minggu, tim 4: Raka (app), Nadia dan Bayu (backend; Bayu dari infrastruktur, menganggap bawaan komponen aman), Wulan (dasbor web). Beban (Asumsi, rumus di naskah): puncak 17,4 RPS, 0,868 (dibulatkan 0,87) pembayaran per detik (3 transaksi per user aktif per hari; registry `trx` 3 hanya Tahap 3), pool 10 koneksi penuh dalam ±11,5 detik bila push tidak menjawab dan client terus menunggu (client yang menyerah sesudah T detik: penuh hanya bila T > ±10,4 detik; pool 50 hanya menunda ±58 detik), worker 13,3 per detik (promo 10.000 HP ±750 detik), katalog 5,2 baca per detik, posting ±5,5 juta (1,37 GB) per tahun (registry: data transaksi ±820 MB). Masalah Tahap 3 adalah ketergantungan, bukan kapasitas.
 - PRD v3 P0: notifikasi saat menerima uang (95% bayar dan transfer di bawah 30 detik; top-up massal dan promo boleh menyusul), katalog dan stok warung, dasbor web warung, tidak berhenti saat deploy; P1 promo HR (peran `hr`), catatan pembayaran (maks 100 karakter), offline stok dan harga (pembayaran tidak pernah offline), passkey pilihan; P2 bank, kartu, verifikasi ke v4. Pak Hadi: pemberitahuan tidak mendahului uang. Inti: PostgreSQL satu-satunya source of truth, push bukan bagian transaction, jadi outbox (satu transaction dengan jurnal), worker klaim per baris (`FOR UPDATE` + `klaim_sampai`; `SKIP LOCKED` hanya melewati baris terkunci), at-least-once, penerima idempoten (`notifikasi_id`).
 - M18 3.6 pool habis (ADR 22 di 3.8) · M19 3.10 kursor melewatkan (ADR 23 outbox 3.9, ADR 24 3.11) · M20 3.12 ganda (ADR 25 3.13) · M21 3.14 satu proses, pemicu ADR 21 tercatat tetapi terlambat dikerjakan (ADR 26 3.15) · M22 3.16 rate limit memori (ADR 27 3.17, Redis) · M23 3.18 dua harga (ADR 28 3.19) · M24 3.20 offline (ADR 29 3.21) · M25 3.22 XSS (ADR 30 3.23) · M26 3.24 MITM (ADR 31 3.25) · M27 3.26 promo menahan uang (ADR 32 3.27) · M28 3.28 PRD v4 (ADR 33 3.30). Skema v3 (±14 tabel): + `perangkat`, `outbox`, `produk`, `kota`, `promo`, `operasi_sinkron`; `sesi` + `jenis`, `csrf_hash`; `akun` + `kota_id`, jenis `hr`. Lab: `api-t3` (utama, sumber ERD3), `t3-pool`, `t3-outbox`, `t3-instance`, `t3-cache`, `t3-offline`, `t3-dasbor`, `t3-mitm`; pihak ketiga selalu tiruan lokal.
-### Peta halaman Tahap 3 (nomor · judul · jenis · ★ · lab; peran: mobile 3.3, 3.12, 3.13, 3.20, 3.21, 3.24, 3.25; devops 3.14, 3.15, 3.17, 3.26, 3.27; security 3.16, 3.17, 3.22–3.25)
-3.1 PRD v3: Rekeningo untuk enam kota · PRD · ★ · –
-3.2 Dari fitur ke pekerjaan teknis v3 · Fitur→teknis · ★ · –
-3.3 Fitur: notifikasi push dan promo HR · Fitur→teknis · ★ · api-t3
-3.4 Dua tempat yang tidak bisa commit bersama · Konsep · ★ · t3-outbox
-3.5 Skema data: ERD Tahap 2 → Tahap 3 dan pertumbuhannya · Konsep · ★ · api-t2, api-t3
-3.6 M18: Seluruh app membeku jam 12.20 · Masalah · ★ · t3-pool
-3.7 Observability: log, metric, trace · Konsep · ★ · api-t3, t3-pool
-3.8 Connection pool, Little's Law, dan timeout + ADR 22 · Konsep+ADR · ★ · t3-pool
-3.9 Outbox transaksional dan worker + ADR 23 · Konsep+ADR · ★ · t3-outbox
-3.10 M19: Ani tidak diberi tahu · Masalah · ★ · t3-outbox
-3.11 Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24 · Konsep+ADR · ★ · t3-outbox
-3.12 M20: Notifikasi masuk dua kali · Masalah · – · t3-outbox
-3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25 · Konsep+ADR · ★ · t3-outbox
-3.14 M21: Satu proses mati, semua mati · Masalah · ★ · t3-instance
-3.15 Dua instance di belakang proxy + ADR 26 · Konsep+ADR · ★ · t3-instance
-3.16 M22: Batas login jadi dua kali lipat · Masalah · ★ · t3-instance
-3.17 Rate limit lintas instance dan Redis + ADR 27 · Konsep+ADR · ★ · t3-instance
-3.18 M23: Dua harga di satu meja · Masalah · – · t3-cache
-3.19 Cache dan invalidation + ADR 28 · Konsep+ADR · ★ · t3-cache
-3.20 M24: Stok yang kembali ke angka lama · Masalah · – · t3-offline
-3.21 Offline-first dan sinkron + ADR 29 · Konsep+ADR · – · t3-offline
-3.22 M25: Kotak peringatan di riwayat Ani · Masalah · ★ · t3-dasbor
-3.23 Keamanan 5: XSS, CSRF, cookie sesi, passkey + ADR 30 · Keamanan+ADR · ★ · t3-dasbor
-3.24 M26: Transfer yang tidak dibuat Budi · Masalah · ★ · t3-mitm
-3.25 Keamanan 6: TLS, HSTS, pinning + ADR 31 · Keamanan+ADR · ★ · t3-mitm
-3.26 M27: Hari promo, notifikasi uang terlambat · Masalah · ★ · t3-outbox
-3.27 Tim dan infra Tahap 3: staging, pipeline, alert, on-call + ADR 32 · Tim-infra · ★ · api-t3, t3-outbox
-3.28 M28: Uji coba enam kota lolos, PRD v4 datang · Masalah · ★ · –
-3.29 Estimasi Tahap 3 → 4 · Konsep · ★ · –
-3.30 ADR 33: Sengaja belum dilakukan · ADR · ★ · –
-3.31 Yang dibawa keluar dari Tahap 3 · Konsep · ★ · –
-3.32 Jembatan: pratinjau PRD v4 · PRD · ★ · –
+3.1–3.5 selesai: PRD v3 3.1, fitur→teknis 3.2–3.3 (api-t3), dua tempat yang tidak bisa commit bersama 3.4 (t3-outbox), skema ERD Tahap 2→3 3.5 (api-t3; peran mobile 3.3).
+3.6–3.12 selesai: M18 3.6 + observability 3.7 + pool dan Little's Law ADR 22 3.8 (t3-pool); outbox ADR 23 3.9, M19 3.10, klaim per baris ADR 24 3.11, M20 3.12 (t3-outbox).
+3.13–3.17: at-least-once, retry, dead-letter, penyaring di app ADR 25 3.13 (mobile; t3-outbox) · M21 3.14 · dua instance ADR 26 3.15 · M22 3.16 · rate limit lintas instance dan Redis ADR 27 3.17 (devops dan security; t3-instance).
+3.18–3.25: M23 3.18 + cache ADR 28 3.19 (t3-cache) · M24 3.20 + offline ADR 29 3.21 (mobile; t3-offline) · M25 3.22 + Keamanan 5 ADR 30 3.23 (t3-dasbor) · M26 3.24 + Keamanan 6 ADR 31 3.25 (t3-mitm; mobile dan security).
+3.26–3.32: M27 3.26 (t3-outbox) · tim dan infra ADR 32 3.27 (api-t3, t3-outbox) · M28 3.28 · estimasi 3→4 3.29 · ADR 33 sengaja belum 3.30 · rekap 3.31 · jembatan PRD v4 3.32 (tanpa lab).
+## Tahap 4 · Dibuka ke publik (CERITA-TAHAP-4, draf otomatis; 31 halaman 4.1–4.31, M29–M39, ADR 34–45)
+- PT Rekeningo (fiktif) dibuka untuk publik: 100.000 user terdaftar (20% aktif), ±400 merchant luar ditambah ±60 warung Lestari (Asumsi), 12 minggu, 13 orang dalam tiga tim: Pembayaran 5 (Nadia), Merchant 4 (Wulan), Platform 4 (Bayu; Raka memegang paket inti app). Tokoh baru: Laras (security, menandai hampir semua temuan kritis), Ratih (analis risiko, tim risk, back office), Bu Marni (merchant luar pertama); pihak tak dikenal menggantikan Dimas. Beban (Asumsi, rumus di naskah): 138,9 RPS puncak (naik ±8 kali dari 17,4), 6,94 transaksi uang per detik (3 per user aktif per hari; registry `trx` 3), top-up 0,579 per detik, worker notifikasi 56% (6,5% di Tahap 3), 100.000 HP butuh 125 menit, koneksi database 40 dari 100, file 365 GB per tahun lawan posting 10,95 GB. Masalah Tahap 4 adalah kepercayaan pada pihak lain dan koordinasi tim, bukan kapasitas.
+- PRD v4 P0: PT berdiri sendiri (infrastruktur, kredensial, akses data; setiap akses staf ke data identitas tercatat), top-up dari rekening bank lewat gateway (99% tercatat dalam 5 menit, 0 top-up ganda), verifikasi identitas (saldo ≤ Rp1.000.000 lalu ≤ Rp10.000.000, Asumsi produk), QR merchant luar; P1 kartu virtual, back office tim risk; P2 ke v5. Aturan Pak Hadi: setiap rupiah dari luar cocok dengan catatan pengirimnya, selisih = insiden bernomor. Inti: kabar dari luar adalah klaim, bukan fakta (dicatat satu kali, dipercaya sesudah dicek, pihak yang lambat tidak menahan pembayaran antar akun). M29 4.6 webhook ganda (ADR 34 4.7) · M30 4.8 secret berotasi (ADR 35 4.9) · M31 4.10 vendor mati (ADR 36 4.11) · M32 4.12 rilis lintas tim (ADR 37 4.13) · M33 4.14 file di bytea (ADR 38 4.15) · M34 4.16 alamat keluar berubah (ADR 39 4.17) · M35 4.18 QR palsu (ADR 40 4.19) · M36 4.20 SSRF (ADR 41 4.21) · M37 4.22 kartu (ADR 42 4.23) · M38 4.24 audit (ADR 43 4.25) · ADR 44 4.26 · M39 4.27 PRD v5 (ADR 45 4.29). Skema v4: 22 tabel (14 + `topup_bank`, `webhook_event`, `insiden_rekon`, `verifikasi`, `qr`, `kartu`, `otorisasi_kartu`, `audit_log`) dalam enam schema; service pembayaran terpisah memanggil API ledger dengan Idempotency-Key (`order_id`, `id_penerbit`).
+- 11 lab (keputusan 1207): `api-t4` (utama, sumber ERD4, `make beban`), `t4-webhook`, `t4-integrasi`, `t4-modul`, `t4-storage`, `t4-infra` (OpenTofu provider random dan local), `t4-qr`, `t4-ssrf`, `t4-kartu`, `t4-audit`, `t4-pipeline`; widget baru W4-webhook (4.7) dan W4-breaker (4.11), 4.13 memakai banding. Pihak ketiga selalu tiruan lokal; hosting terkelola, failover, SLSA hanya dijelaskan (Tidak dijalankan). PROPOSAL menulis BFF di Tahap 4, naskah menundanya ke ADR 45: pemilik memutuskan.
+### Peta halaman Tahap 4 (nomor · judul · jenis · ★ · lab; peran: mobile 4.3, 4.8, 4.18, 4.19, 4.22, 4.23, 4.26; devops 4.10, 4.11, 4.13, 4.16, 4.17, 4.26; security 4.7, 4.14, 4.15, 4.18–4.21, 4.24, 4.25)
+4.1 PRD v4: Rekeningo dibuka ke publik · PRD · ★ · –
+4.2 Dari fitur ke pekerjaan teknis v4 · Fitur→teknis · ★ · –
+4.3 Fitur: top-up dari bank dan verifikasi identitas · Fitur→teknis · ★ · api-t4
+4.4 Dua arah ke pihak ketiga: dipanggil masuk, memanggil keluar · Konsep · ★ · t4-webhook
+4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya · Konsep · ★ · api-t3, api-t4
+4.6 M29: Top-up Budi masuk dua kali · Masalah · ★ · t4-webhook
+4.7 Webhook masuk: tanda tangan, event ganda, urutan + ADR 34 · Konsep+ADR · ★ · t4-webhook
+4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong · Masalah · ★ · t4-webhook
+4.9 Rekonsiliasi dengan gateway + ADR 35 · Konsep+ADR · ★ · t4-webhook
+4.10 M31: 146 pendaftar tertahan "Sedang diverifikasi" · Masalah · ★ · t4-integrasi
+4.11 Timeout, retry berkunci, circuit breaker, lajur per vendor + ADR 36 · Konsep+ADR · ★ · t4-integrasi
+4.12 M32: Rilis Kamis memecahkan top-up · Masalah · ★ · t4-modul
+4.13 Modular monolith, CODEOWNERS, ADR wajib + ADR 37 · Konsep+ADR · ★ · t4-modul
+4.14 M33: Uji pulih mingguan makin lama · Masalah · ★ · t4-storage
+4.15 Keamanan 7: File identitas: object storage, presigned URL + ADR 38 · Keamanan+ADR · ★ · t4-storage
+4.16 M34: Semua verifikasi ditolak sesudah pindah hosting · Masalah · ★ · t4-infra
+4.17 Secret manager, IaC, alamat keluar tetap + ADR 39 · Konsep+ADR · ★ · t4-infra
+4.18 M35: QR di kasir Bu Marni · Masalah · ★ · t4-qr
+4.19 QR pembayaran: statis, dinamis, konfirmasi + ADR 40 · Konsep+ADR · ★ · t4-qr
+4.20 M36: Pratinjau gambar yang berisi JSON · Masalah · ★ · t4-ssrf
+4.21 Keamanan 8: SSRF + ADR 41 · Keamanan+ADR · ★ · t4-ssrf
+4.22 M37: Kartu virtual disetujui dua kali dengan satu saldo · Masalah · ★ · t4-kartu
+4.23 Kartu virtual: otorisasi, dana tertahan, kill switch + ADR 42 · Konsep+ADR · ★ · t4-kartu
+4.24 M38: Siapa yang membuka data Budi? · Masalah · ★ · t4-audit
+4.25 Keamanan 9: Back office, audit log berantai, agen baca-saja + ADR 43 · Keamanan+ADR · ★ · t4-audit
+4.26 Tim dan infra Tahap 4: pipeline per modul, supply chain, rilis bertahap + ADR 44 · Tim-infra · ★ · api-t4, t4-pipeline
+4.27 M39: Uji coba publik lolos, PRD v5 datang · Masalah · ★ · –
+4.28 Estimasi Tahap 4 → 5 · Konsep · ★ · –
+4.29 ADR 45: Sengaja belum dilakukan · ADR · ★ · –
+4.30 Yang dibawa keluar dari Tahap 4 · Konsep · ★ · –
+4.31 Jembatan: pratinjau PRD v5 · PRD · ★ · –

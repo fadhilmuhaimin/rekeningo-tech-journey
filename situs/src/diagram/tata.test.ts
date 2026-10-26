@@ -38,7 +38,7 @@ describe("tata", () => {
   });
 
   it("panah hanya di dalam baris dan tidak keluar dari kotak lepas", () => {
-    const t4 = semua[3]; // Tahap 4: Object storage lepas di baris kedua
+    const t4 = semua[3]; // Tahap 4: Penyimpanan objek lepas di baris kedua
     const h = tata(t4, "mendatar");
     expect(h.panah.map((p) => p.id)).toEqual(["p-0-0", "p-0-1", "p-1-1"]);
   });
@@ -83,7 +83,7 @@ describe("deskripsi", () => {
     );
   });
   it("kotak lepas tidak diberi kata 'ke'", () => {
-    expect(deskripsi(semua[3], "T4")).toContain("Object storage (baru); Layanan pembayaran");
+    expect(deskripsi(semua[3], "T4")).toContain("Penyimpanan objek (baru); Service pembayaran");
   });
 });
 

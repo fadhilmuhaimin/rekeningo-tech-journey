@@ -255,10 +255,10 @@
     },
     {
       "no": 4,
-      "nama": "Integrasi pihak ketiga",
-      "user": "10.000–100.000 user",
-      "rekap": "Rekeningo (fiktif) bekerja sama dengan payment gateway dan layanan verifikasi identitas, dan tim jadi delapan orang.",
-      "sebelumnya": "Tahap 3: jam sibuk sudah lancar setelah pekerjaan lambat dipindah ke worker.",
+      "nama": "Dibuka ke publik",
+      "user": "100.000",
+      "rekap": "PT Rekeningo (fiktif) dibuka untuk publik: ±100.000 user, merchant di luar Lestari, 13 engineer dalam tiga tim, 12 minggu.",
+      "sebelumnya": "Tahap 3: notifikasi uang lewat outbox, katalog, dasbor warung, dan deploy tanpa jeda berjalan untuk 10.000 karyawan; satu VPS menjalankan semuanya.",
       "arsitektur": {
         "baris": [
           [
@@ -266,50 +266,86 @@
               "label": "App Flutter"
             },
             {
-              "label": "Monolith modular",
-              "baru": true
+              "label": "API modular",
+              "berubah": true,
+              "catatan": "Modul ledger, akun, identitas, merchant, platform; satu proses, satu schema dan role per modul"
             },
             {
-              "label": "PostgreSQL"
+              "label": "PostgreSQL terkelola",
+              "berubah": true,
+              "catatan": "Layanan terkelola milik PT, dengan penyimpanan objek dan secret manager (lab: tiruan di Compose); source of truth tetap satu"
             }
           ],
           [
             {
-              "label": "Object storage",
+              "label": "Penyimpanan objek",
               "baru": true,
-              "lepas": true
+              "lepas": true,
+              "catatan": "File identitas; database hanya menyimpan kunci objek dan checksum"
             },
             {
-              "label": "Layanan pembayaran",
-              "baru": true
+              "label": "Service pembayaran",
+              "baru": true,
+              "catatan": "Gateway, kartu, dan webhook; meminta jurnal lewat API ledger dengan Idempotency-Key"
             },
             {
-              "label": "Payment gateway",
-              "baru": true
+              "label": "Pihak ketiga",
+              "baru": true,
+              "catatan": "Gateway pembayaran, layanan verifikasi, dan penerbit kartu: tiruan lokal di lab, merek tidak dipakai"
             }
           ]
         ],
-        "caption": "Tahap 4: pembayaran jadi service sendiri."
+        "caption": "Tahap 4: pembayaran jadi service sendiri dan file pindah ke penyimpanan objek. Biru = baru atau berubah; proxy, worker, dan Redis dari Tahap 3 tidak digambar."
       },
       "asumsi": {
         "user": 100000,
         "aktif": 20,
         "req": 60,
         "puncak": 10,
-        "trx": 2,
+        "trx": 3,
         "baris": 300,
         "upload": 2000,
         "fileKB": 500,
-        "tim": "6–10 developer, 2 tim"
+        "tim": "13 developer, 3 tim"
       },
-      "versi": "lama",
       "skala": {
-        "lingkup": "Dibuka ke publik sebagai uang elektronik (PT Rekeningo)",
-        "user": "100.000 user, merchant di luar kampus",
-        "pembuat": "3 tim",
-        "prd": "PRD v4: top-up dari bank lewat gateway, verifikasi identitas, QR",
+        "lingkup": "Dibuka ke publik oleh PT Rekeningo (fiktif)",
+        "user": "100.000 user terdaftar, merchant di luar kampus",
+        "pembuat": "13 orang dalam tiga tim: Pembayaran, Merchant, Platform",
+        "prd": "PRD v4: PT berdiri sendiri, top-up dari bank lewat gateway, verifikasi identitas, QR merchant luar, kartu virtual, back office tim risk",
         "pendek": "Dibuka ke publik"
-      }
+      },
+      "bagian": [
+        {
+          "no": 1,
+          "nama": "PRD"
+        },
+        {
+          "no": 2,
+          "nama": "Dari fitur ke pekerjaan teknis"
+        },
+        {
+          "no": 3,
+          "nama": "Kabar dari luar adalah klaim"
+        },
+        {
+          "no": "3b",
+          "nama": "Skema data"
+        },
+        {
+          "no": 4,
+          "nama": "Masalah yang muncul"
+        },
+        {
+          "no": 5,
+          "nama": "Yang dibawa keluar"
+        },
+        {
+          "no": 6,
+          "nama": "Jembatan ke Tahap 5"
+        }
+      ],
+      "naskah": "plan/CERITA-TAHAP-4.md"
     },
     {
       "no": 5,
@@ -3188,12 +3224,753 @@
       "menit": 10
     },
     {
+      "id": "t4-prd",
+      "judul": "PRD v4: Rekeningo dibuka ke publik",
+      "tahap": 4,
+      "path": "tahap-4/prd-v4.md",
+      "topik": "Gambaran besar",
+      "jenis": "prd",
+      "bagian": 1,
+      "inti": true,
+      "masalah": "Orang di luar Lestari ingin mengisi saldo dari bank, dikenali, dan membayar di toko luar kampus, dan tiga pertanyaan belum pernah diuji",
+      "prasyarat": [
+        "t3-jembatan"
+      ],
+      "ada": false,
+      "nomor": "4.1"
+    },
+    {
+      "id": "t4-fitur-teknis",
+      "judul": "Dari fitur ke pekerjaan teknis v4",
+      "tahap": 4,
+      "path": "tahap-4/fitur-ke-teknis.md",
+      "topik": "Gambaran besar",
+      "jenis": "fitur",
+      "bagian": 2,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Dari PRD v4, apa yang berubah di app, backend, dan database?",
+      "prasyarat": [
+        "t4-prd"
+      ],
+      "ada": false,
+      "nomor": "4.2"
+    },
+    {
+      "id": "t4-topup-verifikasi",
+      "judul": "Fitur: top-up dari bank dan verifikasi identitas",
+      "tahap": 4,
+      "path": "tahap-4/fitur-topup-verifikasi.md",
+      "topik": "Integrasi pihak ketiga",
+      "jenis": "fitur",
+      "bagian": 2,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "masalah": "Saldo Budi naik karena kabar dari gateway, dan pendaftar baru dikenali lewat layanan verifikasi di luar Rekeningo",
+      "pendek": "Fitur top-up dan verifikasi",
+      "prasyarat": [
+        "t4-fitur-teknis"
+      ],
+      "lab": [
+        "api-t4"
+      ],
+      "ada": false,
+      "nomor": "4.3"
+    },
+    {
+      "id": "t4-dua-arah",
+      "judul": "Dua arah ke pihak ketiga: dipanggil masuk, memanggil keluar",
+      "tahap": 4,
+      "path": "tahap-4/dua-arah-pihak-ketiga.md",
+      "topik": "Integrasi pihak ketiga",
+      "jenis": "konsep",
+      "bagian": 3,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Kabar dari luar adalah klaim, bukan fakta: gateway bisa mengirim dua kali, terlambat, palsu, atau tidak sama sekali",
+      "prasyarat": [
+        "t4-topup-verifikasi"
+      ],
+      "lab": [
+        "t4-webhook"
+      ],
+      "ada": false,
+      "nomor": "4.4"
+    },
+    {
+      "id": "t4-skema",
+      "judul": "Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya",
+      "tahap": 4,
+      "path": "tahap-4/skema-data.md",
+      "topik": "Data",
+      "jenis": "konsep",
+      "bagian": "3b",
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Tabel mana yang lahir, berubah, dan dibagi per modul saat gateway, verifikasi, QR, dan kartu masuk?",
+      "pendek": "Skema data Tahap 4",
+      "prasyarat": [
+        "t4-dua-arah"
+      ],
+      "lab": [
+        "api-t3",
+        "api-t4"
+      ],
+      "ada": false,
+      "nomor": "4.5"
+    },
+    {
+      "id": "t4-m29",
+      "judul": "M29: Top-up Budi masuk dua kali",
+      "tahap": 4,
+      "path": "tahap-4/m29-topup-dua-kali.md",
+      "topik": "Integrasi pihak ketiga",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 29 · minggu 3",
+      "masalah": "Saldo Budi naik dua kali untuk satu pembayaran di bank karena gateway mengulang kiriman yang balasannya hilang",
+      "prasyarat": [
+        "t4-skema"
+      ],
+      "lab": [
+        "t4-webhook"
+      ],
+      "ada": false,
+      "nomor": "4.6"
+    },
+    {
+      "id": "t4-webhook",
+      "judul": "Webhook masuk: tanda tangan, event ganda, urutan + ADR 34",
+      "tahap": 4,
+      "path": "tahap-4/webhook-masuk.md",
+      "topik": "Integrasi pihak ketiga",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "adr": [
+        34
+      ],
+      "masalah": "Kiriman dari gateway diperiksa tanda tangannya atas byte mentah, dicatat satu kali, dan tidak boleh memundurkan status",
+      "prasyarat": [
+        "t4-m29"
+      ],
+      "lab": [
+        "t4-webhook"
+      ],
+      "ada": false,
+      "nomor": "4.7"
+    },
+    {
+      "id": "t4-m30",
+      "judul": "M30: Saldo Citra tidak naik, padahal bank sudah memotong",
+      "tahap": 4,
+      "path": "tahap-4/m30-saldo-tidak-naik.md",
+      "topik": "Integrasi pihak ketiga",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "label": "Masalah 30 · minggu 4",
+      "masalah": "Citra sudah membayar Rp500.000 dari rekening banknya, tetapi saldo di app tidak naik sampai Minggu pagi",
+      "prasyarat": [
+        "t4-webhook"
+      ],
+      "lab": [
+        "t4-webhook"
+      ],
+      "ada": false,
+      "nomor": "4.8"
+    },
+    {
+      "id": "t4-rekonsiliasi",
+      "judul": "Rekonsiliasi dengan gateway + ADR 35",
+      "tahap": 4,
+      "path": "tahap-4/rekonsiliasi-gateway.md",
+      "topik": "Integrasi pihak ketiga",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        35
+      ],
+      "masalah": "Kalau satu-satunya jalan kabar putus, jalan kedua harus sudah ada, dan selisih menjadi insiden bernomor, bukan angka yang dikoreksi dengan tangan",
+      "pendek": "Rekonsiliasi dengan gateway",
+      "prasyarat": [
+        "t4-m30",
+        "t2-job-rekonsiliasi"
+      ],
+      "lab": [
+        "t4-webhook"
+      ],
+      "ada": false,
+      "nomor": "4.9"
+    },
+    {
+      "id": "t4-m31",
+      "judul": "M31: 146 pendaftar tertahan \"Sedang diverifikasi\"",
+      "tahap": 4,
+      "path": "tahap-4/m31-verifikasi-tertahan.md",
+      "topik": "Integrasi pihak ketiga",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "label": "Masalah 31 · minggu 5",
+      "masalah": "Pendaftar baru berstatus Verifikasi gagal padahal fotonya jelas, karena layanan verifikasi mati dan semua percobaan habis",
+      "prasyarat": [
+        "t3-at-least-once"
+      ],
+      "lab": [
+        "t4-integrasi"
+      ],
+      "ada": false,
+      "nomor": "4.10"
+    },
+    {
+      "id": "t4-breaker",
+      "judul": "Timeout, retry berkunci, circuit breaker, lajur per vendor + ADR 36",
+      "tahap": 4,
+      "path": "tahap-4/timeout-retry-breaker.md",
+      "topik": "Integrasi pihak ketiga",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        36
+      ],
+      "masalah": "Vendor yang lambat atau mati tidak boleh menghabiskan percobaan pekerjaan yang tidak bersalah atau menahan pembayaran",
+      "pendek": "Timeout, retry, breaker, lajur per vendor",
+      "prasyarat": [
+        "t4-m31"
+      ],
+      "lab": [
+        "t4-integrasi"
+      ],
+      "ada": false,
+      "nomor": "4.11"
+    },
+    {
+      "id": "t4-m32",
+      "judul": "M32: Rilis Kamis memecahkan top-up",
+      "tahap": 4,
+      "path": "tahap-4/m32-rilis-kamis.md",
+      "topik": "Struktur kode",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 32 · minggu 6",
+      "masalah": "Rilis tim Merchant mengganti nama kolom dan memecahkan top-up, padahal tes tim Pembayaran lolos",
+      "prasyarat": [
+        "t2-skema-tanpa-downtime"
+      ],
+      "lab": [
+        "t4-modul"
+      ],
+      "ada": false,
+      "nomor": "4.12"
+    },
+    {
+      "id": "t4-modul",
+      "judul": "Modular monolith, CODEOWNERS, ADR wajib + ADR 37",
+      "tahap": 4,
+      "path": "tahap-4/modular-monolith.md",
+      "topik": "Struktur kode",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        37
+      ],
+      "masalah": "Tiga tim di satu codebase dan satu skema butuh batas yang dijaga compiler dan database, bukan ingatan",
+      "pendek": "Modular monolith",
+      "prasyarat": [
+        "t4-m32"
+      ],
+      "lab": [
+        "t4-modul"
+      ],
+      "ada": false,
+      "nomor": "4.13"
+    },
+    {
+      "id": "t4-m33",
+      "judul": "M33: Uji pulih mingguan makin lama",
+      "tahap": 4,
+      "path": "tahap-4/m33-uji-pulih.md",
+      "topik": "Data",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "label": "Masalah 33 · minggu 7",
+      "masalah": "Uji pulih mingguan makin lama karena foto kartu identitas disimpan di kolom bytea dan ikut backup",
+      "prasyarat": [
+        "t4-topup-verifikasi",
+        "t3-tim-infra"
+      ],
+      "lab": [
+        "t4-storage"
+      ],
+      "ada": false,
+      "nomor": "4.14"
+    },
+    {
+      "id": "t4-storage",
+      "judul": "Keamanan 7: File identitas: object storage, presigned URL + ADR 38",
+      "tahap": 4,
+      "path": "tahap-4/object-storage-presigned.md",
+      "topik": "Keamanan",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "adr": [
+        38
+      ],
+      "masalah": "File identitas disimpan di object storage, diunggah lewat presigned URL, dan diunduh hanya lewat server yang mencatat audit",
+      "pendek": "File identitas dan presigned URL",
+      "prasyarat": [
+        "t4-m33"
+      ],
+      "lab": [
+        "t4-storage"
+      ],
+      "ada": false,
+      "nomor": "4.15"
+    },
+    {
+      "id": "t4-m34",
+      "judul": "M34: Semua verifikasi ditolak sesudah pindah hosting",
+      "tahap": 4,
+      "path": "tahap-4/m34-verifikasi-ditolak.md",
+      "topik": "Operasional",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "label": "Masalah 34 · minggu 8",
+      "masalah": "Semua verifikasi ditolak 403 sesudah pindah hosting karena alamat keluar berubah dan belum didaftarkan",
+      "prasyarat": [
+        "t4-breaker",
+        "t1-secret"
+      ],
+      "lab": [
+        "t4-infra"
+      ],
+      "ada": false,
+      "nomor": "4.16"
+    },
+    {
+      "id": "t4-infra-secret",
+      "judul": "Secret manager, IaC, alamat keluar tetap + ADR 39",
+      "tahap": 4,
+      "path": "tahap-4/secret-iac-alamat-keluar.md",
+      "topik": "Operasional",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        39
+      ],
+      "masalah": "Pindahan membawa yang tidak tertulis: alamat keluar, secret, dan state IaC yang memuat nilai secret",
+      "pendek": "Secret manager, IaC, alamat keluar",
+      "prasyarat": [
+        "t4-m34"
+      ],
+      "lab": [
+        "t4-infra"
+      ],
+      "ada": false,
+      "nomor": "4.17"
+    },
+    {
+      "id": "t4-m35",
+      "judul": "M35: QR di kasir Bu Marni",
+      "tahap": 4,
+      "path": "tahap-4/m35-qr-bu-marni.md",
+      "topik": "Keamanan",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "security",
+        "backend"
+      ],
+      "label": "Masalah 35 · minggu 8",
+      "masalah": "Stiker QR di kasir Bu Marni diganti pihak lain, dan tiga pembayaran pelanggan tidak masuk laporannya",
+      "prasyarat": [
+        "t4-topup-verifikasi"
+      ],
+      "lab": [
+        "t4-qr"
+      ],
+      "ada": false,
+      "nomor": "4.18"
+    },
+    {
+      "id": "t4-qr",
+      "judul": "QR pembayaran: statis, dinamis, konfirmasi + ADR 40",
+      "tahap": 4,
+      "path": "tahap-4/qr-pembayaran.md",
+      "topik": "Khusus app mobile",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "security",
+        "backend"
+      ],
+      "adr": [
+        40
+      ],
+      "masalah": "CRC pada QR mendeteksi salah baca, bukan penggantian; yang menjaga pembeli adalah nama merchant terverifikasi dan QR dinamis",
+      "prasyarat": [
+        "t4-m35"
+      ],
+      "lab": [
+        "t4-qr"
+      ],
+      "ada": false,
+      "nomor": "4.19"
+    },
+    {
+      "id": "t4-m36",
+      "judul": "M36: Pratinjau gambar yang berisi JSON",
+      "tahap": 4,
+      "path": "tahap-4/m36-pratinjau-json.md",
+      "topik": "Keamanan",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "label": "Masalah 36 · minggu 9",
+      "masalah": "Pratinjau gambar toko berisi teks JSON dari layanan dalam karena server mengunduh URL yang diisi merchant",
+      "prasyarat": [
+        "t4-storage"
+      ],
+      "lab": [
+        "t4-ssrf"
+      ],
+      "ada": false,
+      "nomor": "4.20"
+    },
+    {
+      "id": "t4-ssrf",
+      "judul": "Keamanan 8: SSRF + ADR 41",
+      "tahap": 4,
+      "path": "tahap-4/ssrf.md",
+      "topik": "Keamanan",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "adr": [
+        41
+      ],
+      "masalah": "Server yang mengambil URL dari user mengambil atas nama server, jadi alamat tujuan diperiksa saat dial, bukan lewat string",
+      "pendek": "SSRF",
+      "prasyarat": [
+        "t4-m36"
+      ],
+      "lab": [
+        "t4-ssrf"
+      ],
+      "ada": false,
+      "nomor": "4.21"
+    },
+    {
+      "id": "t4-m37",
+      "judul": "M37: Kartu virtual disetujui dua kali dengan satu saldo",
+      "tahap": 4,
+      "path": "tahap-4/m37-kartu-dua-kali.md",
+      "topik": "Integrasi pihak ketiga",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "label": "Masalah 37 · minggu 10",
+      "masalah": "Kartu virtual Budi disetujui dua kali dengan satu saldo karena otorisasi tidak menahan dana",
+      "prasyarat": [
+        "t2-race-lock"
+      ],
+      "lab": [
+        "t4-kartu"
+      ],
+      "ada": false,
+      "nomor": "4.22"
+    },
+    {
+      "id": "t4-kartu",
+      "judul": "Kartu virtual: otorisasi, dana tertahan, kill switch + ADR 42",
+      "tahap": 4,
+      "path": "tahap-4/kartu-virtual.md",
+      "topik": "Integrasi pihak ketiga",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "adr": [
+        42
+      ],
+      "masalah": "Persetujuan tidak bisa ditarik, jadi dana ditahan sebagai jurnal sebelum menjawab setuju",
+      "prasyarat": [
+        "t4-m37",
+        "t4-modul"
+      ],
+      "lab": [
+        "t4-kartu"
+      ],
+      "ada": false,
+      "nomor": "4.23"
+    },
+    {
+      "id": "t4-m38",
+      "judul": "M38: Siapa yang membuka data Budi?",
+      "tahap": 4,
+      "path": "tahap-4/m38-siapa-membuka.md",
+      "topik": "Keamanan",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "label": "Masalah 38 · minggu 11",
+      "masalah": "Tidak ada yang bisa menjawab siapa yang membuka data identitas Budi dalam 30 hari terakhir",
+      "prasyarat": [
+        "t4-modul",
+        "t4-storage"
+      ],
+      "lab": [
+        "t4-audit"
+      ],
+      "ada": false,
+      "nomor": "4.24"
+    },
+    {
+      "id": "t4-audit",
+      "judul": "Keamanan 9: Back office, audit log berantai, agen baca-saja + ADR 43",
+      "tahap": 4,
+      "path": "tahap-4/audit-log-back-office.md",
+      "topik": "Keamanan",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "adr": [
+        43
+      ],
+      "masalah": "Jawaban tidak ada sama nilainya dengan tidak tahu, kecuali ada peran, persetujuan dua orang, dan audit log berantai",
+      "pendek": "Back office dan audit log berantai",
+      "prasyarat": [
+        "t4-m38"
+      ],
+      "lab": [
+        "t4-audit"
+      ],
+      "ada": false,
+      "nomor": "4.25"
+    },
+    {
+      "id": "t4-tim-infra",
+      "judul": "Tim dan infra Tahap 4: pipeline per modul, supply chain, rilis bertahap + ADR 44",
+      "tahap": 4,
+      "path": "tahap-4/tim-infra.md",
+      "topik": "Operasional",
+      "jenis": "tim-infra",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        44
+      ],
+      "masalah": "Tiga tim, 13 engineer, dan uang publik: pipeline per modul, supply chain, rilis bertahap, dan giliran jaga belum ada",
+      "pendek": "Tim dan infra Tahap 4",
+      "prasyarat": [
+        "t4-modul",
+        "t3-tim-infra"
+      ],
+      "lab": [
+        "api-t4",
+        "t4-pipeline"
+      ],
+      "ada": false,
+      "nomor": "4.26"
+    },
+    {
+      "id": "t4-m39",
+      "judul": "M39: Uji coba publik lolos, PRD v5 datang",
+      "tahap": 4,
+      "path": "tahap-4/m39-prd-v5.md",
+      "topik": "Desain sistem",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 39 · minggu 12",
+      "masalah": "Uji coba publik lolos, lalu PRD v5 datang dengan skala nasional, padahal kapasitas satu server belum terukur",
+      "prasyarat": [
+        "t4-tim-infra"
+      ],
+      "ada": false,
+      "nomor": "4.27"
+    },
+    {
+      "id": "t4-estimasi",
+      "judul": "Estimasi Tahap 4 → 5",
+      "tahap": 4,
+      "path": "tahap-4/estimasi.md",
+      "topik": "Desain sistem",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Menghitung beban Tahap 5 dari angka Tahap 4 sebelum memilih komponen",
+      "prasyarat": [
+        "t4-m39"
+      ],
+      "ada": false,
+      "nomor": "4.28"
+    },
+    {
+      "id": "t4-adr-45",
+      "judul": "ADR 45: Sengaja belum dilakukan",
+      "tahap": 4,
+      "path": "tahap-4/sengaja-belum.md",
+      "topik": "Desain sistem",
+      "jenis": "adr",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        45
+      ],
+      "masalah": "Tergoda memecah semua modul jadi service, memakai Kubernetes, gRPC, dan read replica sebelum angkanya meminta",
+      "prasyarat": [
+        "t4-estimasi"
+      ],
+      "ada": false,
+      "nomor": "4.29"
+    },
+    {
+      "id": "t4-rekap",
+      "judul": "Yang dibawa keluar dari Tahap 4",
+      "tahap": 4,
+      "path": "tahap-4/rekap.md",
+      "topik": "Gambaran besar",
+      "jenis": "konsep",
+      "bagian": 5,
+      "inti": true,
+      "masalah": "Mengingat tiga belas konsep Tahap 4 dalam satu kalimat masing-masing",
+      "prasyarat": [
+        "t4-adr-45"
+      ],
+      "ada": false,
+      "nomor": "4.30"
+    },
+    {
+      "id": "t4-jembatan",
+      "judul": "Jembatan: pratinjau PRD v5",
+      "tahap": 4,
+      "path": "tahap-4/jembatan-prd-v5.md",
+      "topik": "Gambaran besar",
+      "jenis": "prd",
+      "bagian": 6,
+      "inti": true,
+      "masalah": "Keputusan Tahap 4 mana yang pecah lebih dulu saat PRD v5 datang?",
+      "pendek": "Pratinjau PRD v5",
+      "prasyarat": [
+        "t4-rekap"
+      ],
+      "ada": false,
+      "nomor": "4.31"
+    },
+    {
       "id": "T4",
       "judul": "Tahap 4 · Ceritanya",
       "tahap": 4,
       "path": "cerita/tahap-4.md",
-      "inti": true,
       "ada": true,
+      "bagian": 1,
+      "diganti_oleh": "t4-prd",
       "menit": 5
     },
     {
@@ -3205,10 +3982,15 @@
       "prasyarat": [
         "B10.1"
       ],
-      "inti": true,
       "masalah": "Payment gateway lambat, request ikut menggantung",
       "ada": true,
-      "nomor": "4.1",
+      "pendek": "Integrasi pihak ketiga (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t4-breaker",
+      "lab": [
+        "t4-integrasi"
+      ],
       "menit": 10
     },
     {
@@ -3222,7 +4004,13 @@
       ],
       "masalah": "Layanan luar hanya menerima IP terdaftar; layar beranda butuh 5 request",
       "ada": true,
-      "nomor": "4.2",
+      "pendek": "Proxy dan BFF (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t4-infra-secret",
+      "lab": [
+        "t4-infra"
+      ],
       "menit": 11
     },
     {
@@ -3237,7 +4025,13 @@
       ],
       "masalah": "Webhook dikirim dua kali; saldo bertambah dua kali",
       "ada": true,
-      "nomor": "4.3",
+      "pendek": "Webhook dan outbox (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t4-webhook",
+      "lab": [
+        "t4-webhook"
+      ],
       "menit": 10
     },
     {
@@ -3251,7 +4045,10 @@
       ],
       "masalah": "Ingin login dengan akun lain milik user (login sosial)",
       "ada": true,
-      "nomor": "4.4",
+      "pendek": "OAuth dan login sosial (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t4-adr-45",
       "menit": 10
     },
     {
@@ -3265,7 +4062,13 @@
       ],
       "masalah": "Dua tim bentrok di satu codebase",
       "ada": true,
-      "nomor": "4.5",
+      "pendek": "Modular monolith (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t4-modul",
+      "lab": [
+        "t4-modul"
+      ],
       "menit": 10
     },
     {
@@ -3279,7 +4082,10 @@
       ],
       "masalah": "Keputusan desain lupa alasannya",
       "ada": true,
-      "nomor": "4.6",
+      "pendek": "Template ADR (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t4-modul",
       "menit": 6
     },
     {
