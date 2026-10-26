@@ -116,7 +116,7 @@ Layanan push yang mati lebih lama dari 45 detik mengirim hampir semua baris yang
 
 Penyaring `notifikasi_id` hanya berguna bila kode app jalan saat pesan tiba. Itu ditentukan jenis pesan FCM. Dokumentasi FCM menulis bahwa pesan notification ditampilkan FCM SDK saat app di background, dan pesan data diproses kode app sendiri ([FCM: message types](https://firebase.google.com/docs/cloud-messaging/customize-messages/set-message-type), dibuka 2026-10-26).
 
-Tabel ini mengikuti dokumentasi Android. Di sana `onMessageReceived` adalah callback pesan masuk ([FCM: receive messages di Android](https://firebase.google.com/docs/cloud-messaging/android/receive), dibuka 2026-10-26).
+Tabel ini mengikuti dokumentasi Android untuk pesan AndroidConfig v1, yaitu field `android`. Di sana `onMessageReceived` adalah callback pesan masuk ([FCM: receive messages di Android](https://firebase.google.com/docs/cloud-messaging/android/receive), dibuka 2026-10-26).
 
 | Jenis pesan | App di foreground | App di background |
 |---|---|---|
@@ -291,7 +291,7 @@ Batasnya: ini sisi pengirim satu produk, untuk penerima yang bisa mati berjam-ja
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
 1. Penyaring tidak jalan saat dibutuhkan. Pesan data bisa tertunda di Doze dan tidak dijamin di iOS. Pesan juga tidak datang setelah user menutup paksa app (dokumentasi FCM dan FlutterFire, Tidak dijalankan di perangkat). Dampaknya ulangan tampil dua kali atau pemberitahuan terlambat. Pencegahannya riwayat di app yang dimuat dari API, bukan dari notifikasi, dan uji di perangkat Android dan iOS sebelum rilis.
-2. Layanan push mati lebih lama dari jendela retry, dan baris `mati` menumpuk tanpa yang membacanya. Gangguan 10 menit memasukkan paling banyak 521 baris ke dead-letter. Itu Asumsi, dengan tabel di blok Paham. `-bersih` tidak membuang baris `mati`, jadi tidak ada yang menghapusnya dan tidak ada yang melihatnya. Pencegahannya satu pemilik, alert jumlah `mati` di ADR 32 ([[t3-tim-infra]]), dan satu `UPDATE` yang memutar ulang semuanya.
+2. Layanan push mati lebih lama dari jendela retry, dan baris `mati` menumpuk tanpa yang membacanya. Gangguan 10 menit memasukkan paling banyak 521 baris ke dead-letter. Itu Asumsi, dengan tabel di blok Paham. `-bersih` tidak membuang baris `mati`, jadi tidak ada yang menghapusnya dan tidak ada yang melihatnya. Alert umur tertua tidak menangkapnya, karena `RingkasOutbox` menghitung umur baris `menunggu` saja. Pencegahannya satu pemilik, alert jumlah `mati` yang belum ada di ADR 32 ([[t3-tim-infra]]), dan satu `UPDATE` yang memutar ulang semuanya.
 3. Klaim lebih pendek daripada waktu kirim terburuk satu baris. Dua worker mengirim baris yang sama tanpa ada yang mati. Contohnya klaim 300 milidetik lawan push 1,5 detik (`ganda.txt` bagian B), atau dua HP yang menggantung lawan klaim 5 detik (bagian D). Pencegahannya aturan 7 dan tes yang menaikkan jumlah perangkat.
 
 **Kapan keputusan ini salah.**
@@ -299,9 +299,9 @@ Batasnya: ini sisi pengirim satu produk, untuk penerima yang bisa mati berjam-ja
 - Saat penerimanya menggerakkan uang, misalnya webhook dari gateway di Tahap 4. Penyaring "yang sudah tampil" tidak cukup, dan penerima wajib idempoten dengan key ([[t2-idempotency]]).
 - Saat uji di perangkat menunjukkan pesan data tertunda atau hilang. Pindah ke pesan notification, terima ulangan di tray, dan saring di daftar riwayat app.
 - Saat penerima punya dua perangkat yang menggantung dan klaim tetap 5 detik (`ganda.txt` bagian D).
-- Saat urutan antar pemberitahuan penting. Retry mengacak urutan, karena baris yang ditunda tiba sesudah baris yang lebih baru. Stripe menulis hal yang sama tentang event.
+- Saat urutan antar pemberitahuan penting. Retry mengacak urutan, karena baris yang ditunda tiba sesudah baris yang lebih baru. Stripe menulis bahwa urutan event tidak dijamin.
 
-**Yang akan merevisinya.** ADR 32 menambah alert untuk baris `mati` dan umur tertua per kelas ([[t3-m27]], [[t3-tim-infra]]). Webhook masuk di Tahap 4 membalik arahnya: Rekeningo menjadi penerima yang wajib idempoten.
+**Yang akan merevisinya.** ADR 32 memuat alert umur tertua per kelas ([[t3-m27]], [[t3-tim-infra]]), dan alert jumlah baris `mati` menjadi tambahan yang diusulkan ADR ini. Webhook masuk di Tahap 4 membalik arahnya: Rekeningo menjadi penerima yang wajib idempoten.
 
 ### Sengaja belum dilakukan
 
