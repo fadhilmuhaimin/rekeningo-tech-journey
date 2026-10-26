@@ -401,6 +401,8 @@ describe("kode lab: latar, ekspor, ringkasan, jeda, endpoint uji, dan mode renta
     expect(f).toContain('log.Printf("latar %s panik: %v (proses tetap hidup)\\n%s", nama, r, debug.Stack())');
     expect(f.indexOf("recover()")).toBeLessThan(f.indexOf("\t\tf()"));
     expect(latarGo).toContain('const RentanEksporPanic = "ekspor-panic"');
+    expect(latarGo).toContain("dokumentasi http.Handler menulis bahwa server memulihkan panic dari ServeHTTP, tetapi tidak\n// menyebut goroutine yang dibuka handler."); // kalimat itu ada di Handler, bukan di Server; komentar ini tampil di Snippet
+    expect(latarGo).not.toContain("dokumentasi http.Server menulis");
     harus("Selisihnya satu cabang di fungsi `Latar`. Versi benar memasang `recover` di dalam goroutine latar, dan mode rentan membuangnya:");
   });
   test("LaporanEkspor membuka Latar sebelum mengembalikan baris; ringkasan rentan memakai baris[0]; ringkasan benar menangani kosong; JedaAudit 50 ms", () => {
