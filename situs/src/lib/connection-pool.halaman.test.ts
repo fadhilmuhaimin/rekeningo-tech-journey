@@ -468,6 +468,21 @@ describe("versi dan sumber dokumentasi", () => {
       expect(slot[i]!.isi).toContain(kata);
     }
   });
+  // Tinjauan 1031: satuan() membuang tanda # dari heading, jadi lompatan tingkat (h3 jadi h5) lolos semua alat ukur dan penjaga lama
+  // (axe heading-order bukan bagian tag WCAG yang dijalankan gerbang).
+  test("tingkat heading tidak melompat: h2 dulu, lalu naik paling banyak satu tingkat", () => {
+    let dalamKode = false;
+    const tingkat: number[] = [];
+    for (const b of badan.split("\n")) {
+      if (b.trim().startsWith("```")) { dalamKode = !dalamKode; continue; }
+      const m = !dalamKode && b.match(/^(#{2,6}) \S/);
+      if (m) tingkat.push(m[1]!.length);
+    }
+    expect(tingkat.length).toBeGreaterThan(5);
+    expect(tingkat[0]).toBe(2);
+    tingkat.forEach((n, i) => { if (i > 0) expect(n, `heading ke-${i + 1} melompat dari h${tingkat[i - 1]} ke h${n}`).toBeLessThanOrEqual(tingkat[i - 1]! + 1); });
+    expect(tingkat.filter((n) => n === 3).length).toBeGreaterThanOrEqual(5);
+  });
   // Tinjauan 1031: mutasi angka di tanggal akses atau di kolom halaman pemakai baris riset lolos penjaga lama.
   test("baris riset R3-135 sampai R3-139: tiap tanggal dikenal (akses 2026-10-26 atau tanggal terbit sumber) dan halaman pemakai 3.8 dari registry", () => {
     const sah = new Set(["2026-10-26", "2024-12-31", "2014-03-06", "2026-09-30", "2026-10-20", "2026-10-06", "2024-03-28"]);
