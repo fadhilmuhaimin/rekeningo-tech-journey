@@ -2353,8 +2353,9 @@
         "api-t2",
         "api-t3"
       ],
-      "ada": false,
-      "nomor": "3.5"
+      "ada": true,
+      "nomor": "3.5",
+      "menit": 19
     },
     {
       "id": "t3-m18",

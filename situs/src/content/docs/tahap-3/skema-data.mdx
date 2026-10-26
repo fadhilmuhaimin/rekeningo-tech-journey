@@ -1,0 +1,332 @@
+---
+title: "3.5 Skema data: ERD Tahap 2 → Tahap 3 dan pertumbuhannya"
+description: 8 tabel Tahap 2 menjadi 14 tabel Tahap 3. Tabel uang tidak berubah, pemberitahuan menumpang pada jurnal lewat tabel baru, lalu ukuran database diperkirakan sampai Tahap 4.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t3-skema-inti.json";
+import ErdHalaman from "../../../components/ErdHalaman.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import dataTebak from "../../../../data/widget/t3-skema-tebak.json";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+
+<p class="meta">Baca 16 menit · coba 3 menit · Prasyarat: [[t3-dua-tempat]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Tahap 3 menambah enam tabel dan tiga kolom, sedangkan `buku`, `jurnal`, dan `posting` tetap sama.
+
+<Rantai data={intiDiagram} ringkas />
+
+ERD di halaman ini dibaca dari database lab, bukan digambar tangan. Skema akhir Tahap 2 di lab api-t2 punya 8 tabel, dan skema akhir Tahap 3 di lab api-t3 punya 14 tabel. Enam tabel baru adalah `kota`, `perangkat`, `outbox`, `produk`, `promo`, dan `operasi_sinkron`. Tiga kolom baru ada di `akun` (`kota_id`) dan `sesi` (`jenis`, `csrf_hash`).
+
+Pemberitahuan menumpang pada uang lewat `outbox.jurnal_id`, jadi tabel uang tidak mendapat kolom. Tabel terbesar tetap `posting`: ±5,5 juta baris per tahun, 8,3 kali Tahap 2. Angka ukuran adalah Asumsi dengan rumus di blok Paham, dan arti semua label ada di [Label sumber](/cara-pakai/#label-sumber).
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Tabel Tahap 2 mana yang mendapat kolom baru di Tahap 3?
+2. Kenapa `outbox` menunjuk ke `jurnal`, dan bukan `jurnal` yang mendapat kolom pemberitahuan?
+3. Dari rumus apa ±5,5 juta posting per tahun, dan kenapa ±820 MB dan ±1,4 GB sama-sama disebut ukuran satu tahun?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: tabel uang Tahap 2 tidak berubah, dan pemberitahuan menumpang pada jurnal lewat tabel baru bernama outbox.">
+
+Tebak dulu, lalu cek jawabanmu di ERD di bawahnya. ERD adalah gambar tabel, kolom, dan foreign key di antaranya. Kedua ERD dibangun dari skema lab: Tahap 2 dari migration api-t2 sampai 000013, Tahap 3 dari migration api-t2 sampai 000014 dan api-t3 000015 sampai 000019.
+
+<Tebak client:visible data={dataTebak} />
+
+<noscript>
+<p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: Tidak ada. outbox menunjuk ke jurnal lewat jurnal_id, dan tabel uang tidak tahu outbox ada.</p>
+</noscript>
+
+Diagram dibuka di Tahap 3. Tiap tabel diberi label baru, berubah, atau tetap menurut Tahap 2, dan kolom yang bertambah diberi label baru.
+
+<ErdHalaman id="erd-t3" tahap={[2, 3]} />
+
+**Ubah satu hal:** tekan **Bandingkan dengan Tahap 2**. Di layar lebar kedua skema tampil berdampingan, dan di HP skema Tahap 2 tampil di atas skema Tahap 3. Pilih `jurnal` di Tahap 3: labelnya tetap, dan tidak ada kolom yang berlabel baru. Lalu pilih `outbox`: dua foreign key, ke `jurnal` dan ke `akun`, dan dua index.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+PRD v3 meminta pemberitahuan, katalog, dasbor, promo, dan mode offline. Masing-masing butuh tempat menyimpan data, dan [[t3-fitur-teknis]] menurunkannya jadi pekerjaan. Halaman ini menunjukkan akibatnya pada tabel.
+
+Setiap perubahan di bawah punya alasan dan masalah yang memicunya. Tanpa catatan itu, tim berikutnya tidak tahu kenapa `outbox` menunjuk ke `jurnal` dan aturan mana yang melindungi uang.
+
+### Cara kerjanya
+
+**Apa yang berubah dan kenapa.** Kolom kiri adalah skema akhir Tahap 2, kolom kedua skema akhir Tahap 3. Nama tabel dan kolom ada di skema lab api-t3 (Rekaman lab, `skema.txt` bagian A dan B). Kolom Alasan adalah pertimbangan tim, bukan hasil ukur.
+
+| Tahap 2 | Tahap 3 | Alasan | Masalah atau syarat |
+|---|---|---|---|
+| (tidak ada) | `perangkat` (akun, platform, token push, aktif, terakhir terlihat) | Tujuan notifikasi; token yang tidak berlaku dibersihkan | [[t3-notifikasi\|Notifikasi]] |
+| (tidak ada) | `outbox` (notifikasi_id, jurnal_id, akun_id, kelas, jenis, payload, status: menunggu, terkirim, dilewati, mati; percobaan, coba_lagi, klaim_sampai) | Pemberitahuan ditulis dalam transaction yang sama dengan jurnal | [[t3-m18\|M18]], [[t3-m19\|M19]], [[t3-m20\|M20]], [[t3-m27\|M27]] |
+| (tidak ada) | `produk`, `kota`, `promo` | Katalog, stok, dan harga per kota; promo HR | [[t3-cache\|Katalog]], [[t3-notifikasi\|promo]] |
+| (tidak ada) | `operasi_sinkron` (kunci, perangkat, produk, jenis, nilai, versi_dasar, status) | Operasi dari queue offline dikenali sampai 14 hari | [[t3-m24\|M24]] |
+| `sesi` (token_hash, akun_id, kedaluwarsa) | `sesi` + `jenis` (app, web) dan `csrf_hash` | Sesi dasbor memakai cookie dan token CSRF | [[t3-m25\|M25]] |
+| `akun` (`jenis`: karyawan, warung, admin, sistem) | `akun` + `kota_id` (boleh kosong untuk admin dan sistem); `jenis` + `hr` | Warung dan karyawan punya kota; katalog dan promo per kota; HR membuat promo. Nilai `hr` baru di enum `jenis` jawaban API ditandai oasdiff sebagai perubahan yang bisa merusak client berenum tertutup (Rekaman lab api-t3, hasil oasdiff) | Enam kota; promo |
+| `jurnal.keterangan` teks bebas | Tetap; kini juga diisi dari catatan user dan wajib di-encode saat ditampilkan | Catatan tampil di notifikasi dan dasbor; jurnal tidak bisa dihapus, dan [[t2-adr-ledger\|halaman 2.8]] mencatat penghapusan data pribadi belum dijadwalkan | [[t3-m25\|M25]] |
+| `kunci_idempotensi` berumur 24 jam | Tabel dan umur 24 jam tetap (ADR 14). api-t2 belum memakainya di bayar dan transfer; api-t3 memasangnya sebagai header Idempotency-Key opsional di bayar, transfer, dan pesanan (lab t3-offline), jadi app 1.0 dan 1.1 tanpa key tetap rentan M10 | Offline tidak memperpanjangnya; versi baris yang menjaga (ADR 29) | [[t3-m24\|M24]] |
+
+**Yang tidak berubah.** Enam tabel Tahap 2 sama persis di kedua ERD: `buku`, `jurnal`, `posting`, `kunci_idempotensi`, `batch_pencairan`, dan `baris_pencairan`. Kolom, foreign key, UNIQUE, CHECK, dan index-nya sama, dan `tools/erd.py` menghitung selisih itu dari kedua skema. Hanya `akun` dan `sesi` yang berubah, dan tidak ada tabel atau kolom yang dihapus.
+
+**Semua bermuara di `akun`.** Di Tahap 2 empat tabel menunjuk `akun`: `sesi`, `buku`, `jurnal`, dan `kunci_idempotensi`. Di Tahap 3 delapan tabel menunjuk `akun`, karena `perangkat`, `outbox`, `produk`, dan `promo` juga menyimpan akunnya. Jumlah foreign key naik dari 11 ke 20, dihitung dari kedua ERD.
+
+**`outbox` menunjuk ke `jurnal`.** Setiap baris `outbox` menunjuk ke jurnalnya lewat `jurnal_id`, dan baris ditulis di transaction yang sama dengan jurnal ([[t3-dua-tempat]]). Status pemberitahuan ada di `outbox.status`, jadi `jurnal` tidak butuh kolom untuk itu. Tiga aturan database menjaga hubungannya, dan lab merekam penolakannya (Rekaman lab, `skema.txt` bagian E):
+
+- `outbox_jurnal_atau_promo`: `jurnal_id` kosong persis ketika `jenis` adalah `promo`. INSERT bayar tanpa jurnal ditolak dengan SQLSTATE 23514.
+- `outbox_satu_per_jurnal`: unique index sebagian pada `(jurnal_id, akun_id)`. Baris kedua untuk jurnal dan penerima yang sama ditolak dengan SQLSTATE 23505.
+- `outbox_kelas_check`: kelas hanya 0 sampai 2. Kelas 3 ditolak dengan SQLSTATE 23514.
+
+<Snippet file="labs/api-t3/output/skema.txt" lines="163:174" title="Rekaman lab: labs/api-t3/output/skema.txt (bagian E)" />
+
+Aturan itu ditulis di migration 000017, bukan hanya di service:
+
+<Snippet file="labs/api-t3/migrasi/000017_perangkat_outbox.up.sql" lines="28:33" lang="sql" title="labs/api-t3/migrasi/000017_perangkat_outbox.up.sql" />
+
+Predikat `WHERE jurnal_id IS NOT NULL` membuat index tidak memuat baris promo, yang tidak punya jurnal ([PostgreSQL 17, 11.8](https://www.postgresql.org/docs/17/indexes-partial.html)). Keunikannya sendiri tidak bergantung pada predikat itu, karena unique index memperlakukan dua nilai NULL sebagai tidak sama ([PostgreSQL 17, 5.5.3](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS)). Index sebagian `outbox_antre` hanya memuat baris `menunggu`, jadi baris yang selesai keluar dari index itu. Kedua kalimat tentang index ini dicek ke dokumentasi dan tidak dijalankan di lab (Tidak dijalankan).
+
+**Lima rilis yang hanya menambah.** Kelima migration Tahap 3, 000015 sampai 000019, menambah tabel, kolom, dan aturan, kecuali satu aturan, `akun_jenis_check`, yang dihapus lalu dibuat lagi dengan nilai `hr`. Tidak ada tabel atau kolom yang dihapus, jadi tidak ada langkah contract seperti di [[t2-skema-tanpa-downtime]]. Setiap file membuka dengan `SET LOCAL lock_timeout = '3s'`.
+
+Lab menjalankan kelimanya dalam satu transaction di schema kosong (Rekaman lab, `skema.txt` bagian A). Tidak dijalankan: kelima migration di atas database berisi data sementara server Tahap 2 masih melayani request. Rilis seperti itu direkam di Tahap 2 ([[t2-m13]]).
+
+**Rancangan lawan lab.** Rancangan skema Tahap 3 di naskah dicocokkan dengan skema lab sebelum halaman ini ditulis. Semua tabel dan kolom sama (Rekaman lab, `skema.txt` bagian B). Yang ditambahkan lab dan tidak ditulis rancangan adalah aturan: CHECK, UNIQUE, dan index sebagian.
+
+Tiga hal tentang skema lab sempat tertulis lain di rancangan, dan rancangannya diperbaiki mengikuti lab. Pertama, urutan kolom `sesi`. Kedua, `jurnal.membalik_jurnal_id` yang UNIQUE, jadi satu jurnal dibalik paling banyak sekali. Ketiga, `baris_pencairan.jurnal_id` yang boleh kosong.
+
+### Pertumbuhan skala database, Tahap 2 sampai 4
+
+Semua angka di tabel ini adalah **Asumsi** cerita. Rumusnya ditulis supaya kamu bisa mengganti angkanya:
+
+- transaksi per hari = user × aktif × 3
+- posting per tahun = transaksi per hari × 2 × 365
+- ukuran per tahun = posting per tahun × 250 byte, termasuk index
+
+| Tahap | User | Aktif | Tabel inti | Baris terbesar per tahun | Ukuran per tahun |
+|---|---|---|---|---|---|
+| 2 | 1.000 | 30% | 8 | `posting` ±660 ribu | ±170 MB |
+| 3 | 10.000 | 25% | 14 | `posting` ±5,5 juta | ±1,4 GB |
+| 4 | 100.000 | 20% | ±22 | `posting` ±44 juta | ±11 GB |
+
+Contoh Tahap 3: 10.000 × 25% × 3 = 7.500 transaksi per hari. 7.500 × 2 × 365 = 5.475.000 posting, dan 5.475.000 × 250 byte = 1.368.750.000 byte, ditulis ±1,4 GB. Tahap 2 dengan cara yang sama menghasilkan 657.000 posting dan 164.250.000 byte, yang di [[t2-skema]] ditulis ±170 MB. Tahap 4 menghasilkan 43.800.000 posting dan 10.950.000.000 byte.
+
+Posting naik 8,3 kali dari Tahap 2 ke Tahap 3 (5.475.000 ÷ 657.000) dan 8,0 kali ke Tahap 4 (43.800.000 ÷ 5.475.000). Tabel inti Tahap 2 dan 3 dihitung dari ERD. Tahap 4 adalah rencana naskah tanpa lab. Persentase aktif memakai registry, sedangkan 3 transaksi per user aktif memakai naskah, bukan registry.
+
+**Tiga angka untuk satu tahun data Tahap 3.** Ketiganya menghitung hal yang berbeda, jadi tidak ditukar:
+
+| Sumber | Yang dihitung | Hasil | Label |
+|---|---|---|---|
+| Rumus data per tahun [[D1]] | 2.500 user aktif × 3 transaksi × 365 × 300 byte, satu baris per transaksi | ±820 MB | Asumsi |
+| Rumus ledger (halaman ini) | 5.475.000 posting × 250 byte | ±1,4 GB | Asumsi |
+| Ekstrapolasi rekaman lab | 5.475.000 posting × 137 byte per posting (batas bawah) | ±750 MB | Asumsi dari Rekaman lab |
+
+Selisih ±820 MB ke ±1,4 GB bukan kesalahan hitung. Rumus data per tahun menghitung satu baris 300 byte per transaksi, sedangkan rumus ledger menghitung dua posting 250 byte, jadi 500 byte per transaksi. Perbandingannya 500 ÷ 300, dan 821.250.000 × 500 ÷ 300 = 1.368.750.000 byte.
+
+Angka 137 byte datang dari lab b2-query (Rekaman lab, `index.txt` bagian E). Di sana 760.448 posting menempati tabel 50 MB dan tiga index 5.240 kB, 15 MB, dan 29 MB. Dalam byte (1 MB = 1.048.576, 1 kB = 1.024) totalnya 103.931.904, dan 103.931.904 ÷ 760.448 = 136,7 byte per posting, ditulis ±137. Primary key tidak ikut diukur, sehingga ±750 MB adalah batas bawah.
+
+**Registry dan naskah berbeda soal transaksi per user.** Registry menulis 2 transaksi per user aktif per hari untuk Tahap 2 dan 3 untuk Tahap 3, sedangkan rumus ledger memakai 3 di keduanya. Karena itu [[t2-skema]] menulis ±65,7 MB untuk satu tahun data Tahap 2 (300 × 2 × 365 × 300 byte), dan halaman itu tidak diubah. Dengan 3 transaksi hasilnya 300 × 3 × 365 × 300 byte = 98.550.000 byte, ±98,6 MB (Asumsi, hitungan di halaman ini).
+
+Kenaikan rumus registry dari Tahap 2 ke Tahap 3 adalah 12,5 kali (821.250.000 ÷ 65.700.000). Bila Tahap 2 juga memakai 3 transaksi, kenaikannya 8,3 kali (821.250.000 ÷ 98.550.000), sama dengan kenaikan posting.
+
+**Tabel baru Tahap 3 kecil.** Satu baris `outbox` ditulis untuk tiap bayar atau transfer, jadi laju tulisnya sama dengan pembayaran per detik di puncak. Nilainya 7.500 ÷ 86.400 × 10 = 0,868 per detik (lab memakai 0,87). Top-up massal dan promo juga menulis baris `outbox` (kelas 1 dan 2) dan tidak ikut dihitung.
+
+| Tabel | Rumus | Hasil | Label |
+|---|---|---|---|
+| `outbox` tanpa pembersihan | 7.500 × 365 × 300 byte | ±820 MB | Asumsi |
+| `outbox` dengan retensi 7 hari | 7.500 × 7 × 300 byte | ±15,8 MB | Asumsi |
+| `perangkat` | 10.000 × 1,3 × 300 byte | ±3,9 MB | Asumsi (1,3 perangkat per user) |
+| `produk` | 60 warung × 40 produk | 2.400 baris | Rekaman lab, `skema.txt` bagian C |
+
+Angka ±820 MB di baris pertama kebetulan sama dengan rumus data per tahun di atas, karena keduanya 7.500 × 365 × 300 byte. Yang dihitung berbeda: yang satu satu baris per transaksi di tabel catatan uang, yang lain satu baris per pemberitahuan di `outbox`.
+
+Retensi adalah berapa lama baris disimpan sebelum dibuang. Job `-bersih` di lab membuang baris `terkirim` dan `dilewati` yang lebih tua dari 7 hari, dan tidak menyentuh baris `menunggu` atau `mati` (Rekaman lab, `listen.txt` di lab t3-outbox, bagian C). Lab tidak memuat 1,3 perangkat per user: data awal berisi 10.060 perangkat untuk 10.060 akun karyawan dan warung.
+
+### Di stack lain
+
+**Skenario:** unique index sebagian `outbox_satu_per_jurnal` pada `(jurnal_id, akun_id)`, yang hanya memuat baris dengan `jurnal_id` terisi. Tab Go adalah file migration lab, dijalankan skrip lab dalam satu transaction dan ditulis rekaman sebagai `psql -1 -f`. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-26.
+
+Yang sama di semua stack: hasil akhirnya satu index PostgreSQL dengan predikat yang sama. ERD di halaman ini dibaca dari katalog database, jadi tidak bergantung pada stack yang membuat tabelnya.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: isi file SQL oleh skrip lab dalam satu transaction (rekaman menulisnya `psql -1 -f`), PostgreSQL 17.11, lab api-t3 (rekaman `skema.txt` bagian A dan E).*
+
+<Snippet file="labs/api-t3/migrasi/000017_perangkat_outbox.up.sql" lines="30:31" lang="sql" title="labs/api-t3/migrasi/000017_perangkat_outbox.up.sql" />
+
+**Yang berbeda di stack ini:** skema ditulis dengan SQL apa adanya, dan server Go tidak membuat tabel sendiri. Rekaman bagian E menunjukkan baris kedua untuk jurnal dan penerima yang sama ditolak dengan SQLSTATE 23505.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [node-pg-migrate v9.0.0: Indexes](https://github.com/salsita/node-pg-migrate/blob/v9.0.0/docs/src/migrations/indexes.md), `node-pg-migrate` 9.0.0.*
+
+<Snippet lang="js" code={`// migrations/<timestamp>_outbox_satu_per_jurnal.js
+export const up = (pgm) => {
+  pgm.createIndex("outbox", ["jurnal_id", "akun_id"], {
+    name: "outbox_satu_per_jurnal",
+    unique: true,
+    where: "jurnal_id IS NOT NULL",
+  });
+};`} />
+
+**Yang berbeda di stack ini:** syarat WHERE ditulis sebagai string SQL mentah di opsi `where`. Dokumentasi mencantumkan opsi `name`, `unique`, dan `where`, tetapi contohnya tidak memakai `where`.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Migrations](https://laravel.com/docs/13.x/migrations#creating-indexes), `laravel/framework` 13.38.0.*
+
+<Snippet lang="php" code={`DB::statement('CREATE UNIQUE INDEX outbox_satu_per_jurnal ON outbox (jurnal_id, akun_id) WHERE jurnal_id IS NOT NULL');`} />
+
+**Yang berbeda di stack ini:** dokumentasi mendaftar tipe index primary, unique, index, fullText, spatialIndex, dan vectorIndex. Daftar itu tidak memuat syarat WHERE, jadi index sebagian ditulis dengan SQL mentah. `$table->unique(['jurnal_id', 'akun_id'])` membuat unique index biasa.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: Constraints](https://docs.djangoproject.com/en/6.1/ref/models/constraints/), Django 6.1.2.*
+
+<Snippet lang="python" code={`from django.db import models
+
+class Outbox(models.Model):
+    jurnal = models.ForeignKey("Jurnal", null=True, on_delete=models.PROTECT)
+    akun = models.ForeignKey("Akun", on_delete=models.PROTECT)
+
+    class Meta:
+        db_table = "outbox"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["jurnal", "akun"],
+                condition=models.Q(jurnal__isnull=False),
+                name="outbox_satu_per_jurnal",
+            ),
+        ]`} />
+
+**Yang berbeda di stack ini:** `UniqueConstraint` punya parameter `condition` bawaan, dan syaratnya ditulis sebagai objek `Q`, bukan SQL mentah. Dokumentasinya memberi contoh keunikan bersyarat: satu draf per user.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod 4.0: Indexing](https://docs.serverpod.dev/concepts/data-and-the-database/database/indexing) dan [Migrations](https://docs.serverpod.dev/concepts/data-and-the-database/database/migrations), Serverpod 4.0.4.*
+
+<Snippet lang="yaml" code={`# lib/src/models/outbox.spy.yaml (potongan)
+indexes:
+  outbox_satu_per_jurnal:
+    fields: jurnalId, akunId
+    unique: true`} />
+
+**Yang berbeda di stack ini:** opsi index di dokumentasi adalah `fields`, `unique`, `type`, `nulls_distinct`, `operatorClass`, `distanceFunction`, dan `parameters`. Syarat WHERE tidak ada, jadi model hanya bisa meminta unique index biasa. Index sebagian ditulis tangan di `migration.sql` sesudah `serverpod create-migration`, dan Serverpod tidak memeriksa SQL tulisan tangan. Nama kolom dan urutan dengan index biasa yang dibuat model belum dicek dengan menjalankan generator [perlu verifikasi].
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase CLI: migration new](https://supabase.com/docs/reference/cli/supabase-migration-new), Supabase CLI 2.122.0.*
+
+<Snippet lang="sql" code={`-- supabase/migrations/<timestamp>_outbox_satu_per_jurnal.sql, dibuat: supabase migration new outbox_satu_per_jurnal
+CREATE UNIQUE INDEX outbox_satu_per_jurnal ON outbox (jurnal_id, akun_id) WHERE jurnal_id IS NOT NULL;`} />
+
+**Yang berbeda di stack ini:** SQL-nya sama dengan lab, karena migration Supabase adalah file `.sql`. CLI hanya menentukan folder dan nama file berpola `<timestamp>_<name>.sql`.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Situasi | Pilihan |
+|---|---|
+| Fitur baru butuh data yang mengikuti uang, mis. pemberitahuan | Tabel sendiri yang menunjuk ke `jurnal_id`; `jurnal` dan `posting` tidak diubah |
+| Aturan yang harus benar di semua jalur | CHECK, UNIQUE, dan index sebagian di database, diuji dengan INSERT yang harus ditolak |
+| Perubahan skema yang hanya menambah | Expand saja: `lock_timeout` 3 detik, tanpa langkah contract |
+| Tabel perantara yang tumbuh tiap transaksi, mis. `outbox` | Retensi tertulis dan job pembersih: 7 hari menahan ukurannya di ±15,8 MB, tanpa itu ±820 MB per tahun |
+| Perkiraan ukuran sebelum ada data | Rumus dengan angka berlabel; besaran yang menghitung hal berbeda ditulis sebagai besaran berbeda |
+
+**Biaya skema Tahap 3.** Setiap bayar atau transfer menulis satu baris `outbox` lagi di transaction yang sama (Rekaman lab, `outbox.txt` bagian A dan E). `akun` dirujuk delapan tabel, bukan empat. Tabel `outbox` butuh retensi, dan baris yang `mati` tetap tinggal sampai ada yang memeriksanya. Bila salah satu biaya ini terasa, masalahnya dibahas di [[t3-m19]] dan [[t3-m27]].
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Partisi `posting` per bulan | ±5,5 juta posting per tahun (Asumsi); `posting` tetap tabel terbesar, dan belum ada rekaman lab dengan 5.475.000 posting | Tahap 5, saat `posting` diperkirakan ±440 juta per tahun ([[t2-skema]]) |
+| Menghapus data pribadi dari `jurnal.keterangan` | Jurnal tidak bisa dihapus: DELETE ditolak untuk role aplikasi (SQLSTATE 42501), sedangkan catatan user kini ikut masuk ke `keterangan` | Belum dijadwalkan ([[t2-adr-ledger]]) |
+| Memisah tabel per modul (schema) | 14 tabel masih dikerjakan satu tim 4 developer | Tahap 4, saat tabel diperkirakan ±22 dan tim 6–10 developer dalam 2 tim |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Tabel Tahap 2 mana yang mendapat kolom baru di Tahap 3, dan kolom apa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+`akun` mendapat `kota_id`, dan `sesi` mendapat `jenis` dan `csrf_hash`. Nilai `hr` juga ditambahkan ke aturan `akun_jenis_check`. Enam tabel Tahap 2 lainnya tidak berubah.
+
+</details>
+
+**2.** Kenapa `jurnal` tidak mendapat kolom pemberitahuan?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Status pemberitahuan berubah dari `menunggu` ke `terkirim`, dan tempatnya `outbox.status`. `outbox.jurnal_id` menunjuk jurnalnya, dan unique index `outbox_satu_per_jurnal` menjaga satu baris per jurnal dan penerima. Role aplikasi juga tidak boleh DELETE jurnal.
+
+</details>
+
+**3.** `outbox` menolak baris bayar tanpa jurnal. Aturan apa yang menolaknya, dan baris jenis apa yang boleh tanpa jurnal?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+CHECK `outbox_jurnal_atau_promo` mewajibkan `jurnal_id` kosong persis ketika `jenis` adalah `promo`, dan melanggarnya ditolak dengan SQLSTATE 23514. Hanya pengumuman promo yang boleh tanpa jurnal.
+
+</details>
+
+**4.** Dari rumus apa ±5,5 juta posting per tahun di Tahap 3, dan kenapa ±820 MB dan ±1,4 GB berbeda?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+10.000 × 25% × 3 = 7.500 transaksi per hari. Lalu 7.500 × 2 posting × 365 hari = 5.475.000 posting. Angka ±820 MB menghitung satu baris 300 byte per transaksi, sedangkan ±1,4 GB menghitung dua posting 250 byte per transaksi.
+
+</details>
+
+**5.** Berapa ukuran `outbox` setahun tanpa pembersihan, dan dengan retensi 7 hari?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tanpa pembersihan 7.500 × 365 × 300 byte, ±820 MB. Dengan retensi 7 hari 7.500 × 7 × 300 byte, ±15,8 MB. Keduanya Asumsi.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Tabel baru yang mengikuti uang menunjuk ke `jurnal_id`, dan kolom pemberitahuan atau status tidak ditambahkan ke `jurnal` atau `posting`.
+- [ ] Aturan yang melindungi data (CHECK, UNIQUE) ada di migration dan diuji dengan INSERT yang harus ditolak, bukan hanya di service.
+- [ ] Migration yang hanya menambah membuka dengan `lock_timeout`, dan yang menghapus kolom atau tabel lewat expand, migrate, lalu contract.
+- [ ] Tabel perantara yang tumbuh tiap transaksi punya retensi tertulis dan job pembersih.
+- [ ] Rumus ukuran data menyebut apa yang dihitung (baris atau posting) dan ukuran per barisnya.
+
+### Bacaan lanjut
+
+- [PostgreSQL 17: Partial Indexes](https://www.postgresql.org/docs/17/indexes-partial.html)
+- [PostgreSQL 17: Unique Constraints](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS)
+
+</Blok>

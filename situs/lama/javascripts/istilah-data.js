@@ -466,6 +466,15 @@ window.ISTILAH = {
   "t": "Idempotent",
   "u": "tahap-2/pagination-kursor/"
  },
+ "Index sebagian": {
+  "b": "t3-skema",
+  "d": "Index yang hanya memuat baris yang memenuhi syarat WHERE, sehingga lebih kecil, dan pada unique index hanya baris itu yang dijaga keunikannya.",
+  "h": "istilah/index-sebagian/",
+  "n": "3.5 Skema data Tahap 3",
+  "s": "istilah-index-sebagian",
+  "t": "Index sebagian (partial index)",
+  "u": "tahap-3/skema-data/"
+ },
  "Insecure Direct Object Reference": {
   "b": "t1-idor",
   "d": "Celah saat server memakai ID dari request tanpa bertanya apakah peminta boleh menyentuh data itu. OWASP API Security menyebutnya BOLA.",
@@ -1666,6 +1675,15 @@ window.ISTILAH = {
   "s": "istilah-idempotent",
   "t": "Idempotent",
   "u": "tahap-2/pagination-kursor/"
+ },
+ "index sebagian": {
+  "b": "t3-skema",
+  "d": "Index yang hanya memuat baris yang memenuhi syarat WHERE, sehingga lebih kecil, dan pada unique index hanya baris itu yang dijaga keunikannya.",
+  "h": "istilah/index-sebagian/",
+  "n": "3.5 Skema data Tahap 3",
+  "s": "istilah-index-sebagian",
+  "t": "Index sebagian (partial index)",
+  "u": "tahap-3/skema-data/"
  },
  "invarian": {
   "b": "C1",

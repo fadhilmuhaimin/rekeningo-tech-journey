@@ -1,0 +1,53 @@
+{
+  "id": "t3-skema-inti",
+  "judul": "Skema Tahap 2 ke Tahap 3: tabel dan ukuran",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Baris 1 rekaman lab, baris 2 Asumsi"
+  },
+  "baris": [
+    {
+      "label": "Tabel",
+      "sub": "dari ERD lab api-t2 dan api-t3",
+      "simpul": [
+        {
+          "teks": "tabel uang sama",
+          "sub": "buku, jurnal, posting: kolom dan aturannya sama dengan Tahap 2",
+          "nada": "old"
+        },
+        {
+          "teks": "+ 6 tabel",
+          "sub": "outbox menunjuk ke jurnal; tiga kolom baru ada di akun dan sesi",
+          "nada": "system"
+        },
+        {
+          "teks": "14 tabel",
+          "sub": "8 dari Tahap 2, 6 baru, 0 dihapus",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Posting per tahun",
+      "sub": "Tahap 2, 3, dan 4 (Asumsi)",
+      "simpul": [
+        {
+          "teks": "±170 MB",
+          "sub": "Tahap 2: ±660 ribu posting",
+          "nada": "old"
+        },
+        {
+          "teks": "±1,4 GB",
+          "sub": "Tahap 3: ±5,5 juta posting",
+          "nada": "system"
+        },
+        {
+          "teks": "±11 GB",
+          "sub": "Tahap 4: ±44 juta posting (rencana)",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Abu-abu: Tahap 2. Biru: Tahap 3. Kuning: Tahap 4, rencana naskah tanpa lab. Rumus ukuran ada di blok Paham."
+}
