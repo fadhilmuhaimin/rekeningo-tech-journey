@@ -2479,8 +2479,9 @@
       "lab": [
         "t3-outbox"
       ],
-      "ada": false,
-      "nomor": "3.10"
+      "ada": true,
+      "nomor": "3.10",
+      "menit": 10
     },
     {
       "id": "t3-klaim-baris",
