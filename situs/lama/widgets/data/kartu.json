@@ -1812,8 +1812,8 @@
   "halaman": "t3-rate-limit-redis",
   "judul": "3.17 Rate limit lintas instance dan Redis + ADR 27",
   "url": "tahap-3/rate-limit-redis/",
-  "tanya": "Redis dihentikan di tengah percobaan. Apa yang terjadi pada login?",
-  "jawab": "Login tetap dijawab, dan batas jatuh ke bucket lokal: 20 dari 24 percobaan sampai ke pemeriksaan password, sama dengan bagian A. Tiap penghitung menulis satu baris log saat gagal dan satu baris saat Redis pulih (bagian I)."
+  "tanya": "Redis dihentikan sebelum 24 percobaan dikirim. Apa yang terjadi pada login?",
+  "jawab": "Login tetap dijawab, dan batas jatuh ke bucket lokal: 20 dari 24 percobaan sampai ke pemeriksaan password, sama dengan bagian A. Tiap penghitung menulis satu baris log saat gagal dan satu baris saat Redis pulih (bagian I). Redis yang berhenti di tengah 24 percobaan tidak direkam."
  },
  {
   "id": "t3-rate-limit-redis-4",
@@ -1821,7 +1821,7 @@
   "judul": "3.17 Rate limit lintas instance dan Redis + ADR 27",
   "url": "tahap-3/rate-limit-redis/",
   "tanya": "Karyawan di dua HP berbeda login lewat proxy yang sama, dan api-t3 belum membaca `X-Forwarded-For`. Berapa key per alamat yang mereka pakai?",
-  "jawab": "Satu: handler membaca alamat koneksi, dan itu alamat proxy untuk semua client. Batas 10 per menit berlaku untuk keduanya sekaligus. Lab tidak merekam dua client yang berbeda, jadi ini dibaca dari kode `clientIP`."
+  "jawab": "Satu: handler membaca alamat koneksi, dan itu alamat proxy untuk semua client. Dengan hitungan di Redis, batas 10 per menit berlaku untuk keduanya sekaligus. Lab tidak merekam dua client yang berbeda, jadi ini dibaca dari kode `clientIP`."
  },
  {
   "id": "t3-rate-limit-redis-5",
