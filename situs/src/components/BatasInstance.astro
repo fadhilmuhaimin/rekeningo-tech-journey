@@ -1,0 +1,58 @@
+---
+/**
+ * Widget "Satu penyemprotan, satu atau dua instance" (3.16): tebak berapa dari 24 percobaan login sampai ke pemeriksaan
+ * password lewat proxy yang bergantian ke dua instance, lalu ubah satu hal (jumlah instance) dan baca hasil rekamannya.
+ *   <BatasInstance />
+ * Memakai island PertahananLogin (2.28) dengan data lain. Angka dibaca saat build dari
+ * labs/t3-instance/output/batas.txt (bagian A dan B) dan konstanta AmbangLoginIP di labs/api-t3/internal/service/pembatas.go
+ * lewat logika.ts; rekaman yang berubah bentuk menggagalkan build. Teks dari data/widget/t3-m22-batas.json (skema.ts).
+ * Island di-render saat build (client:visible); tanpa JavaScript hasil rekaman tampil di <noscript>.
+ * Satu widget per halaman (dipasang di blok Coba 3.16).
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import PertahananLoginIsland from "../widgets/pertahanan-login/PertahananLogin";
+import { isi } from "../widgets/pertahanan-login/logika";
+import { LabelBatasInstance } from "../widgets/batas-instance/skema";
+import { KONDISI, bacaBatas, bacaBatasAlamat, indeksBenar, nilaiBatas, tabelBatas } from "../widgets/batas-instance/logika";
+import labelMentah from "../../data/widget/t3-m22-batas.json";
+
+const baca = (rel: string): string => {
+  const abs = path.join(ROOT, rel);
+  if (!fs.existsSync(abs)) throw new Error(`BatasInstance: ${rel} tidak ada`);
+  return fs.readFileSync(abs, "utf8");
+};
+const R = bacaBatas(baca("labs/t3-instance/output/batas.txt"));
+const batas = bacaBatasAlamat(baca("labs/api-t3/internal/service/pembatas.go")).kapasitas;
+const L = LabelBatasInstance.parse(labelMentah);
+const nilai = (k: (typeof KONDISI)[number]) => nilaiBatas(R[k], batas);
+const utama = nilai("dua-instance");
+const pilihan = L.pilihan.map((p) => ({ ...p, alasan: isi(p.alasan, utama) }));
+const benar = indeksBenar(pilihan, R["dua-instance"].sampai);
+const kondisi = KONDISI.map((kode) => ({
+  kode,
+  label: L.kondisi[kode].label,
+  kesimpulan: isi(L.kondisi[kode].kesimpulan, nilai(kode)),
+  catatan: L.kondisi[kode].catatan,
+}));
+const tabel = Object.fromEntries(KONDISI.map((k) => [k, tabelBatas(R[k], batas)])) as Record<(typeof KONDISI)[number], ReturnType<typeof tabelBatas>>;
+const label = {
+  judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, pertanyaan: isi(L.pertanyaan, utama), benar: L.benar, belum: L.belum, ulang: L.ulang,
+  tabel: L.tabel, baris: L.baris, ubahJudul: L.ubahJudul,
+};
+---
+<PertahananLoginIsland client:visible pilihan={pilihan.map((p) => ({ teks: p.teks, alasan: p.alasan }))} benar={benar} kondisi={kondisi} tabel={tabel} label={label} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <table>
+    <thead>
+      <tr><th>{L.tabel.perbandingan}</th>{KONDISI.map((k) => <th>{L.kondisi[k].label}</th>)}</tr>
+    </thead>
+    <tbody>
+      {(["percobaan", "sampai", "ditolak", "terbuka"] as const).map((b, i) => (
+        <tr><th scope="row">{L.baris[b]}</th>{KONDISI.map((k) => <td>{tabel[k][i]!.nilai}</td>)}</tr>
+      ))}
+    </tbody>
+  </table>
+</noscript>

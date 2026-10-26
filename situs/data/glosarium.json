@@ -558,6 +558,15 @@
   "h": "/istilah/isolation-level/"
  },
  {
+  "t": "Jendela tetap (fixed window)",
+  "d": "Cara menghitung batas: hitungan mulai dari nol di awal jendela waktu, naik tiap percobaan, dan dibuang saat jendelanya habis.",
+  "b": "t3-rate-limit-redis",
+  "n": "3.17 Rate limit lintas instance dan Redis",
+  "u": "/tahap-3/rate-limit-redis/",
+  "s": "istilah-jendela-tetap",
+  "h": "/istilah/jendela-tetap/"
+ },
+ {
   "t": "Job terjadwal",
   "d": "Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.",
   "b": "t2-pencairan",

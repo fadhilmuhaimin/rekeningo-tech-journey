@@ -1792,6 +1792,78 @@
   "jawab": "Tanpa `Shutdown`, request lambat yang sedang jalan tidak mendapat jawaban dan proses keluar karena sinyal 15 (`bergulir.txt` bagian B). Kombinasi tanpa `Shutdown` di belakang proxy dengan retry tidak direkam. Retry hanya mengulang GET yang terputus sesudah tersambung, dan POST yang terputus tidak diulang."
  },
  {
+  "id": "t3-m22-1",
+  "halaman": "t3-m22",
+  "judul": "3.16 M22: Batas login jadi dua kali lipat",
+  "url": "tahap-3/m22-batas-login-dua-kali/",
+  "tanya": "Satu instance menolak percobaan ke-11 dari satu alamat. Kenapa dua instance di belakang proxy meloloskan 20 dari 24?",
+  "jawab": "Tiap instance menyimpan bucket per alamat di memorinya sendiri. Proxy bergantian, jadi masing-masing menerima 12 percobaan, mengizinkan 10 dan menolak 2 (`batas.txt` bagian A). Batas di kode tetap 10 per instance."
+ },
+ {
+  "id": "t3-m22-2",
+  "halaman": "t3-m22",
+  "judul": "3.16 M22: Batas login jadi dua kali lipat",
+  "url": "tahap-3/m22-batas-login-dua-kali/",
+  "tanya": "Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali. Kenapa password hanya dibandingkan dengan hash akun lima kali?",
+  "jawab": "Bucket per akun di memori memberi 5 tebakan per instance, jadi 10 lolos ke akun. Hitungan `gagal_login` ada di database dan berhenti di 5. Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama, sesudah dibandingkan dengan hash tiruan (dibaca dari kode; `batas.txt` bagian D mencatat hasil akhirnya)."
+ },
+ {
+  "id": "t3-m22-3",
+  "halaman": "t3-m22",
+  "judul": "3.16 M22: Batas login jadi dua kali lipat",
+  "url": "tahap-3/m22-batas-login-dua-kali/",
+  "tanya": "Dengan kebijakan acak bawaan Caddy, berapa dari 24 percobaan yang bisa sampai ke pemeriksaan password?",
+  "jawab": "Antara 10 dan 20. Sepuluh bila semua percobaan jatuh ke satu instance, dua puluh bila tiap instance menerima paling sedikit 10. Angka pastinya bergantung pada urutan acak dan tidak direkam (`batas.txt` bagian C)."
+ },
+ {
+  "id": "t3-m22-4",
+  "halaman": "t3-m22",
+  "judul": "3.16 M22: Batas login jadi dua kali lipat",
+  "url": "tahap-3/m22-batas-login-dua-kali/",
+  "tanya": "Kenapa semua karyawan di belakang proxy berbagi satu key per alamat di `api-t3`?",
+  "jawab": "Kode memakai alamat koneksi, dan di belakang proxy itu alamat proxy. Kode juga tidak membaca `X-Forwarded-For`. Ini dibaca dari kode dan tidak direkam, karena lab tidak membedakan dua client lewat proxy."
+ },
+ {
+  "id": "t3-rate-limit-redis-1",
+  "halaman": "t3-rate-limit-redis",
+  "judul": "3.17 Rate limit lintas instance dan Redis + ADR 27",
+  "url": "tahap-3/rate-limit-redis/",
+  "tanya": "Dua instance menyimpan bucket di memori, batas per alamat 10. Satu alamat mengirim 24 percobaan ke 24 akun. Berapa yang sampai ke pemeriksaan password, dan berapa bila hitungannya di Redis?",
+  "jawab": "20 dengan bucket di memori, 10 dengan Redis. Tiap instance menyimpan bucket sendiri, jadi dua instance memberi dua jatah 10. Redis menaikkan satu key yang sama, jadi jatahnya satu (`batas.txt` bagian A dan E)."
+ },
+ {
+  "id": "t3-rate-limit-redis-2",
+  "halaman": "t3-rate-limit-redis",
+  "judul": "3.17 Rate limit lintas instance dan Redis + ADR 27",
+  "url": "tahap-3/rate-limit-redis/",
+  "tanya": "Kenapa `INCR` dan `PEXPIRE` dijalankan sebagai satu skrip Lua?",
+  "jawab": "Bila proses mati di antara dua perintah, key tinggal tanpa masa berlaku dan menghitung selamanya. Bagian H merekam `PTTL` `-1` sesudah `INCR` saja. Dalam satu skrip, Redis menjalankan keduanya tanpa disela perintah lain."
+ },
+ {
+  "id": "t3-rate-limit-redis-3",
+  "halaman": "t3-rate-limit-redis",
+  "judul": "3.17 Rate limit lintas instance dan Redis + ADR 27",
+  "url": "tahap-3/rate-limit-redis/",
+  "tanya": "Redis dihentikan sebelum 24 percobaan dikirim. Apa yang terjadi pada login?",
+  "jawab": "Login tetap dijawab, dan batas jatuh ke bucket lokal: 20 dari 24 percobaan sampai ke pemeriksaan password, sama dengan bagian A. Tiap penghitung menulis satu baris log saat gagal dan satu baris saat Redis pulih (bagian I). Redis yang berhenti di tengah 24 percobaan tidak direkam."
+ },
+ {
+  "id": "t3-rate-limit-redis-4",
+  "halaman": "t3-rate-limit-redis",
+  "judul": "3.17 Rate limit lintas instance dan Redis + ADR 27",
+  "url": "tahap-3/rate-limit-redis/",
+  "tanya": "Karyawan di dua HP berbeda login lewat proxy yang sama, dan api-t3 belum membaca `X-Forwarded-For`. Berapa key per alamat yang mereka pakai?",
+  "jawab": "Satu: handler membaca alamat koneksi, dan itu alamat proxy untuk semua client. Dengan hitungan di Redis, batas 10 per menit berlaku untuk keduanya sekaligus. Lab tidak merekam dua client yang berbeda, jadi ini dibaca dari kode `clientIP`."
+ },
+ {
+  "id": "t3-rate-limit-redis-5",
+  "halaman": "t3-rate-limit-redis",
+  "judul": "3.17 Rate limit lintas instance dan Redis + ADR 27",
+  "url": "tahap-3/rate-limit-redis/",
+  "tanya": "App menerima 429 dengan `Retry-After: 40` dari login. Apa yang sebaiknya dilakukan app?",
+  "jawab": "Menampilkan \"coba lagi dalam 40 detik\" dan menunda percobaan berikutnya. Retry langsung hanya menghasilkan 429 lagi, dan hitungan di Redis naik juga untuk percobaan yang ditolak (`batas.txt` bagian E). Angka 40 adalah contoh: nilainya sisa jendela, antara 1 dan 60 detik."
+ },
+ {
   "id": "t3-m23-1",
   "halaman": "t3-m23",
   "judul": "3.18 M23: Dua harga di satu meja",

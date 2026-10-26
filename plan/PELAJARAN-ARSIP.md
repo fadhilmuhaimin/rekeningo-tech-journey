@@ -327,3 +327,18 @@ Pola per halaman: branch `tahap-1/<slug>` dari `main`; lab dulu bila perlu (PR s
 ## Perlu dicek pemilik, halaman 3.1–3.3 (arsip 2026-10-26 malam)
 
 - Halaman 3.1–3.3 (#364–#366): top-up massal "beberapa menit" (naskah) lawan ±12,5 menit M27, usul "belasan menit"; pemicu ADR 21 sudah dipenuhi sejak PRD tetapi M21 menceritakannya kejutan (3.14 pilih opsi a atau b); versi app 3.0/3.1 Asumsi penulis; dokumentasi FCM menyarankan FID, field FID di request HTTP v1 [perlu verifikasi] (bila bukan `token`, `perangkat.token_push` di ERD3 berubah); penyaring `notifikasi_id` butuh kode app padahal pesan notification ditampilkan SDK (3.13 pilih data message); widget peta 3.2 "–" padahal pilah.
+
+## Ukur antrean merge, baris 3.4–3.8 (arsip 2026-10-27 dini hari)
+
+| Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
+| --- | --- | --- | --- | --- |
+| 3.4 | #368 | 50 | 2 | 0 |
+| 3.5 | #369 | 102 (dua restart sesi) | 2 | 0 |
+| 3.6 | #370 | 66 (jeda limit #5) | 4 | 0 |
+| 3.7 | #371 | 29 | 1 | 0 |
+| 3.8 | #372 | 53 | 2 | 0 |
+
+## Perlu dicek pemilik, halaman 3.4–3.12 (arsip 2026-10-27 dini hari)
+
+- Halaman 3.4–3.8 (#368–#372): hal 1 "pemberitahuan tidak mendahului uangnya" hanya penalaran ("push berhasil lalu COMMIT gagal" tak direkam; push tiruan rentan.txt A menerima 10 permintaan sebelum COMMIT); ±170 MB di 2.9 (nilai tepat 164,25 MB) dan registry `trx` 2 lawan 3 (±65,7 lawan ±98,6 MB); timeout app 30/10 detik Asumsi, perilaku `http`/`dio` [perlu verifikasi]; komponen Tebak bersama: tiga tombol tanpa fungsi saat JS mati (USULAN-PERBAIKAN 9); widget cari-bug diperluas (fokus sesudah Ulang kini juga di 1.19/1.20) dan `.bb-chip.is-good` mengubah chip 2.23; "ubah satu hal" 3.7 hanya perbandingan dua rekaman (W5); naskah: M18 ±12 vs ±11,5 detik, adegan log tak ada, Val Town dan Fowler ke kolom Sumber ADR 22.
+- Halaman 3.9–3.12 (#374–#378): ambang "ratusan per detik" ADR 23 naskah bertentangan dengan pembandingnya (±231 per detik; ditulis sebagai usulan, naskah tak diubah); naskah M19 "tiga pembayaran Ani" dan "dua hari" (poller tanpa restart; tak direkam) dan "nomor urut id pun bukan urutan commit" (rekaman hanya `dibuat` terbalik); naskah M20 "worker dihentikan saat deploy" vs `Jalankan` menyelesaikan putaran saat SIGTERM (lab merekam mati paksa) dan "selang di atas lima detik" bukan yang diukur; peta 3.11 "widget race" padahal OutboxWorker kursor; pgmq/Serverpod/Laravel label [perlu verifikasi]; nomor keputusan tampil di 2.x ("keputusan 415/514") belum ditangkap alat; rekaman t3-pool adr22 diubah tanpa dijalankan ulang (Docker mati): jalankan `make -C labs/t3-pool cek` sebelum EVAL-3.

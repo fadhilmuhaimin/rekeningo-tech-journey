@@ -1,0 +1,29 @@
+{
+  "id": "t3-rate-limit-redis-inti",
+  "judul": "Satu alamat dan dua instance: dua jatah di memori, satu jatah di Redis",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t3-instance, batas.txt bagian A dan E"
+  },
+  "baris": [
+    {
+      "label": "Bucket di memori",
+      "sub": "bagian A dari batas.txt",
+      "simpul": [
+        { "teks": "24 percobaan", "sub": "satu alamat, 24 akun" },
+        { "teks": "dua bucket", "sub": "10 di a, 10 di b", "nada": "warn" },
+        { "teks": "20 sampai password", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Hitungan di Redis",
+      "sub": "bagian E dari batas.txt",
+      "simpul": [
+        { "teks": "24 percobaan", "sub": "satu alamat, 24 akun" },
+        { "teks": "satu hitungan", "sub": "satu key di Redis" },
+        { "teks": "10 sampai password", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah penyebab batas berlipat. Proxy memakai round_robin supaya angkanya tetap."
+}

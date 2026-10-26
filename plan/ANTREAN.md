@@ -1651,29 +1651,29 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### 3.13 · At-least-once: retry, dead-letter, penyaring di app + ADR 25
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.12, W3-outbox, lab-t3-outbox, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Konsep + ADR 3.13 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 25 (menyerap E4 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget W3-outbox; ADR 25 dengan opsi at-most-once, retry tanpa batas, exactly-once; penyaring `notifikasi_id` di app (Dart); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Halaman lama E4 (Push dan real-time) dilebur ke sini dan ke 3.3.
+- catatan: Halaman lama E4 (Push dan real-time) dilebur ke sini dan ke 3.3. Selesai 2026-10-26 di PR #381 (keputusan 1048–1051): at-least-once.mdx, ADR 25 pesan data, E4 diserap lewat lebur_ke, penjaga 35 tes; peninjau memperbaiki klaim lima kali, jendela retry 45 detik bersyarat, dan klaim FCM.
 
 ### 3.14 · M21: Satu proses mati, semua mati
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.13, lab-t3-instance, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Masalah 3.14 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M21) dan peta halaman Tahap 3; rekaman dari `labs/t3-instance`; widget alur; panic di goroutine latar berlabel [perlu verifikasi di lab] bila tidak terekam; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: - Selesai 2026-10-26 di PR #382 (keputusan 1052–1055): m21-satu-proses-mati.mdx, alur t3-m21 dari panic.txt, penjaga 46 tes; peninjau memperbaiki kalimat naskah yang salah dikunci dan label rekaman lawan kode; pertentangan dengan restart otomatis Tahap 1 dicatat untuk pemilik.
 
 ### 3.15 · Dua instance di belakang proxy + ADR 26
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.14, lab-t3-instance, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Konsep + ADR 3.15 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 26 dan peta halaman Tahap 3; rekaman dari `labs/t3-instance`; widget banding; ADR 26 dengan opsi proxy bawaan, satu instance dengan restart otomatis, dua VPS, Kubernetes; satu VPS tetap titik gagal tunggal; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: - Selesai 2026-10-27 di PR #383 (keputusan 1056–1059): dua-instance.mdx, ADR 26 lima opsi, Tebak + banding, penjaga 78 tes tanpa snapshot; peninjau memperbaiki klaim universal load balancer, jadwal Kubernetes lawan PROPOSAL, dan margin layar pertama.
 
 ### 3.16 · M22: Batas login jadi dua kali lipat
 
