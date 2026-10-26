@@ -194,9 +194,9 @@ Yang sama di semua stack: baris dikunci selama klaim dan ditahan sesudahnya. Yan
 </Fragment>
 <Fragment slot="t5">
 
-*Tidak dijalankan. Dicek ke [Supabase: Queues](https://supabase.com/docs/guides/queues) dan [pgmq: functions](https://github.com/pgmq/pgmq/blob/main/docs/api/sql/functions.md), pgmq v1.10.0 (tag image di README).*
+*Tidak dijalankan. Dicek ke [Supabase: Queues](https://supabase.com/docs/guides/queues) dan [pgmq: functions](https://github.com/pgmq/pgmq/blob/main/docs/api/sql/functions.md), pgmq v1.13.1 (rilis GitHub 2026-10-20; dokumentasi cabang utama), dibuka 2026-10-26.*
 
-**Yang berbeda di stack ini:** Supabase Queues dibangun di atas ekstensi pgmq. `pgmq.read` menerima `vt`: lama pesan tak terlihat oleh consumer lain sesudah dibaca, pasangan `klaim_sampai`. Dokumentasi yang dibuka tidak menyebut `SKIP LOCKED` atau lock, jadi cara pgmq menghindari dua consumer pada pesan yang sama tidak terbaca dari sana.
+**Yang berbeda di stack ini:** Supabase Queues dibangun di atas ekstensi pgmq. `pgmq.read` menerima `vt`: lama pesan tak terlihat oleh consumer lain sesudah dibaca, pasangan `klaim_sampai`. Dokumentasi yang dibuka tidak menyebut `SKIP LOCKED`, jadi cara pgmq menghindari dua consumer pada pesan yang sama tidak terbaca dari sana.
 
 </Fragment>
 </TabSet>

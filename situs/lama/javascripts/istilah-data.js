@@ -1126,6 +1126,15 @@ window.ISTILAH = {
   "t": "SELECT FOR UPDATE",
   "u": "tahap-2/race-lock/"
  },
+ "SKIP LOCKED": {
+  "b": "t3-klaim-baris",
+  "d": "Opsi FOR UPDATE yang melewati baris yang sudah dikunci transaction lain, bukan menunggunya.",
+  "h": "istilah/skip-locked/",
+  "n": "3.11 Klaim per baris",
+  "s": "istilah-skip-locked",
+  "t": "SKIP LOCKED",
+  "u": "tahap-3/klaim-per-baris/"
+ },
  "SSE": {
   "b": "E4",
   "d": "Koneksi HTTP yang dibiarkan terbuka sehingga server bisa mengirim pesan satu arah ke client.",
