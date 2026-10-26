@@ -80,10 +80,59 @@ describe("registry cerita.json", () => {
       C2: "t3-observability", "B2.5": "t3-pool", "B10.1": "t3-outbox", B8: "t3-klaim-baris", E4: "t3-notifikasi",
       B9: "t3-cache", C4: "t3-rate-limit-redis", E2: "t3-offline",
     });
-    // Naskah 3b memakai 3 transaksi per user aktif per hari; Tahap 1 dan 2 tetap 2 (registry lama, tidak diubah diam-diam).
-    expect(d.tahap.map((t) => t.asumsi.trx)).toEqual([2, 2, 3, 2, 2]);
+    // Naskah 3b memakai 3 transaksi per user aktif per hari di Tahap 3 dan 4 (keputusan 902, 1207); Tahap 1 dan 2 tetap 2 (registry lama, tidak diubah diam-diam).
+    expect(d.tahap.map((t) => t.asumsi.trx)).toEqual([2, 2, 3, 3, 2]);
     expect(JSON.stringify(d.tahap[2]!.arsitektur)).not.toMatch(/email|FCM/i);
     expect(d.tahap[2]!.versi).toBeUndefined();
+  });
+
+  // Peta halaman Tahap 4 dibaca dari naskah (T4-siap, keputusan 1207): nomor, judul, jenis, bagian, ★, lab, peran, dan
+  // nomor ADR registry harus sama dengan naskah (kolom Widget naskah ada di ANTREAN, bukan di registry).
+  it("Tahap 4 punya 31 halaman yang cocok dengan peta halaman naskah", () => {
+    const naskah = fs.readFileSync(path.resolve(__dirname, "../../../plan/CERITA-TAHAP-4.md"), "utf8");
+    const peta = naskah.split("## Peta halaman Tahap 4")[1]!.split("\n## ")[0]!;
+    const JENIS: Record<string, string> = {
+      PRD: "prd", "Fitur → teknis": "fitur", Konsep: "konsep", "Konsep + ADR": "konsep", "Keamanan + ADR": "konsep",
+      ADR: "adr", Masalah: "masalah", "Tim dan infra": "tim-infra",
+    };
+    const harap = [...peta.matchAll(/^\| (4\.\d+) \| (\w+) \| (.+?) \| (.+?) \| (★?) *\| (.+?) \| (.+?) \|$/gm)].map((m) => ({
+      nomor: m[1], bagian: /^\d+$/.test(m[2]!) ? Number(m[2]) : m[2], judul: m[3], jenis: JENIS[m[4]!], inti: m[5] === "★",
+      lab: m[6] === "–" ? [] : m[6]!.split(", "),
+    }));
+    expect(harap).toHaveLength(31);
+    const d = Registry.parse(baca());
+    const ada = d.halaman.filter((h) => h.tahap === 4 && h.nomor).map((h) => ({
+      nomor: h.nomor, bagian: h.bagian, judul: h.judul, jenis: h.jenis, inti: !!h.inti, lab: h.lab ?? [],
+    }));
+    expect(ada).toEqual(harap);
+    const peran = (p: string) => d.halaman.filter((h) => h.tahap === 4 && h.peran?.includes(p as never)).map((h) => h.nomor);
+    expect(peran("mobile")).toEqual(["4.3", "4.8", "4.18", "4.19", "4.22", "4.23", "4.26"]);
+    expect(peran("devops")).toEqual(["4.10", "4.11", "4.13", "4.16", "4.17", "4.26"]);
+    expect(peran("security")).toEqual(["4.7", "4.14", "4.15", "4.18", "4.19", "4.20", "4.21", "4.24", "4.25"]);
+    // ADR 34 sampai 45 masing-masing satu halaman, berurutan, tanpa ADR ganda.
+    const adr = d.halaman.filter((h) => h.tahap === 4 && h.adr).flatMap((h) => h.adr!);
+    expect(adr).toEqual(Array.from({ length: 12 }, (_, i) => 34 + i));
+    // Tahap 4 punya sebelas lab setelah t4-beban dilipat ke api-t4 (keputusan 1207); tiap lab baru punya tugas di ANTREAN.
+    const lab = [...new Set(d.halaman.filter((h) => h.tahap === 4 && h.nomor).flatMap((h) => h.lab ?? []))].sort();
+    expect(lab).toEqual(["api-t3", "api-t4", "t4-audit", "t4-integrasi", "t4-kartu", "t4-modul", "t4-pipeline", "t4-qr", "t4-ssrf", "t4-storage", "t4-webhook"]);
+    const antrean = fs.readFileSync(path.resolve(__dirname, "../../../plan/ANTREAN.md"), "utf8");
+    for (const l of lab.filter((x) => x.endsWith("-t4") || x.startsWith("t4-"))) expect(antrean).toContain(`### lab-${l} · `);
+    for (const h of d.halaman.filter((x) => x.tahap === 4 && x.nomor)) expect(antrean).toContain(`### ${h.nomor} · `);
+  });
+
+  it("Tahap 4: enam halaman lama dilebur ke halaman baru, asumsi 3 transaksi dan 13 orang, data tahap bukan versi lama", () => {
+    const d = Registry.parse(baca());
+    const lama = Object.fromEntries(d.halaman.filter((h) => h.tahap === 4 && h.lebur_ke).map((h) => [h.id, h.lebur_ke]));
+    expect(lama).toEqual({
+      B11: "t4-breaker", "B11.2": "t4-infra-secret", "B10.2": "t4-webhook", "B5.2": "t4-adr-45", "B7.2": "t4-modul", D5: "t4-modul",
+    });
+    expect(d.halaman.find((h) => h.id === "T4")!.diganti_oleh).toBe("t4-prd");
+    const t4 = d.tahap[3]!;
+    expect(t4.versi).toBeUndefined();
+    expect(t4.asumsi.trx).toBe(3);
+    expect(t4.asumsi.tim).toBe("13 developer, 3 tim");
+    expect(t4.arsitektur.baris.flat().length).toBeLessThanOrEqual(6);
+    expect(t4.user).toBe("100.000");
   });
 
   it("nomor tampilan tidak dipakai dua halaman", () => {

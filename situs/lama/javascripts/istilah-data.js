@@ -11,7 +11,7 @@ window.ISTILAH = {
  "ADR": {
   "b": "D5",
   "d": "Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.",
-  "n": "4.6 Template ADR",
+  "n": "Template ADR (versi lama)",
   "s": "istilah-adr",
   "t": "ADR (Architecture Decision Record)",
   "u": "d-system-design/d5-adr/"
@@ -43,7 +43,7 @@ window.ISTILAH = {
  "Architecture Decision Record": {
   "b": "D5",
   "d": "Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.",
-  "n": "4.6 Template ADR",
+  "n": "Template ADR (versi lama)",
   "s": "istilah-adr",
   "t": "ADR (Architecture Decision Record)",
   "u": "d-system-design/d5-adr/"
@@ -101,7 +101,7 @@ window.ISTILAH = {
  "BFF": {
   "b": "B11.2",
   "d": "Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile.",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "s": "istilah-bff",
   "t": "BFF (Backend for Frontend)",
   "u": "b-fondasi/b11-2-proxy-bff/"
@@ -117,7 +117,7 @@ window.ISTILAH = {
  "Backend for Frontend": {
   "b": "B11.2",
   "d": "Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile.",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "s": "istilah-bff",
   "t": "BFF (Backend for Frontend)",
   "u": "b-fondasi/b11-2-proxy-bff/"
@@ -203,7 +203,7 @@ window.ISTILAH = {
  "Circuit breaker": {
   "b": "B11",
   "d": "Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda.",
-  "n": "4.1 Integrasi pihak ketiga",
+  "n": "Integrasi pihak ketiga (versi lama)",
   "s": "istilah-circuit-breaker",
   "t": "Circuit breaker",
   "u": "b-fondasi/b11-integrasi-pihak-ketiga/"
@@ -682,7 +682,7 @@ window.ISTILAH = {
  "Microservice": {
   "b": "B7.2",
   "d": "Gaya arsitektur yang memecah backend jadi beberapa service kecil yang di-deploy terpisah dan saling memanggil lewat jaringan.",
-  "n": "4.5 Modular monolith",
+  "n": "Modular monolith (versi lama)",
   "s": "istilah-microservice",
   "t": "Microservice",
   "u": "b-fondasi/b7-2-batas-modul/"
@@ -706,7 +706,7 @@ window.ISTILAH = {
  "Modular monolith": {
   "b": "B7.2",
   "d": "Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.",
-  "n": "4.5 Modular monolith",
+  "n": "Modular monolith (versi lama)",
   "s": "istilah-modular-monolith",
   "t": "Modular monolith",
   "u": "b-fondasi/b7-2-batas-modul/"
@@ -748,7 +748,7 @@ window.ISTILAH = {
  "OAuth 2.0": {
   "b": "B5.2",
   "d": "Standar untuk memberi aplikasi akses terbatas ke akun user di layanan lain tanpa memberikan password.",
-  "n": "4.4 OAuth dan login sosial",
+  "n": "OAuth dan login sosial (versi lama)",
   "s": "istilah-oauth-2-0",
   "t": "OAuth 2.0",
   "u": "b-fondasi/b5-2-oauth-oidc/"
@@ -756,7 +756,7 @@ window.ISTILAH = {
  "OIDC": {
   "b": "B5.2",
   "d": "Lapisan di atas OAuth 2.0 untuk login, yang memberi tahu aplikasi siapa user-nya.",
-  "n": "4.4 OAuth dan login sosial",
+  "n": "OAuth dan login sosial (versi lama)",
   "s": "istilah-oidc",
   "t": "OIDC (OpenID Connect)",
   "u": "b-fondasi/b5-2-oauth-oidc/"
@@ -773,7 +773,7 @@ window.ISTILAH = {
  "Object storage": {
   "b": "B11.2",
   "d": "Layanan penyimpanan file besar per objek, diakses lewat HTTP, mis. layanan kompatibel S3.",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "s": "istilah-object-storage",
   "t": "Object storage",
   "u": "b-fondasi/b11-2-proxy-bff/"
@@ -797,7 +797,7 @@ window.ISTILAH = {
  "OpenID Connect": {
   "b": "B5.2",
   "d": "Lapisan di atas OAuth 2.0 untuk login, yang memberi tahu aplikasi siapa user-nya.",
-  "n": "4.4 OAuth dan login sosial",
+  "n": "OAuth dan login sosial (versi lama)",
   "s": "istilah-oidc",
   "t": "OIDC (OpenID Connect)",
   "u": "b-fondasi/b5-2-oauth-oidc/"
@@ -840,7 +840,7 @@ window.ISTILAH = {
  "PKCE": {
   "b": "B5.2",
   "d": "Tambahan pada alur OAuth untuk app mobile yang mencegah authorization code dipakai oleh aplikasi lain.",
-  "n": "4.4 OAuth dan login sosial",
+  "n": "OAuth dan login sosial (versi lama)",
   "s": "istilah-pkce",
   "t": "PKCE",
   "u": "b-fondasi/b5-2-oauth-oidc/"
@@ -955,7 +955,7 @@ window.ISTILAH = {
  "Proxy": {
   "b": "B11.2",
   "d": "Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "s": "istilah-proxy",
   "t": "Proxy",
   "u": "b-fondasi/b11-2-proxy-bff/"
@@ -1081,7 +1081,7 @@ window.ISTILAH = {
  "Reverse proxy": {
   "b": "B11.2",
   "d": "Server di depan aplikasi yang menerima request dari internet lalu meneruskannya, sambil mengurus hal bersama seperti TLS dan kompresi.",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "s": "istilah-reverse-proxy",
   "t": "Reverse proxy",
   "u": "b-fondasi/b11-2-proxy-bff/"
@@ -1097,7 +1097,7 @@ window.ISTILAH = {
  "Round trip": {
   "b": "B11.2",
   "d": "Satu kali bolak-balik request dan response antara app dan server. Di jaringan seluler, setiap round trip menambah latency.",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "s": "istilah-round-trip",
   "t": "Round trip",
   "u": "b-fondasi/b11-2-proxy-bff/"
@@ -1222,7 +1222,7 @@ window.ISTILAH = {
  "Signed URL": {
   "b": "B11.2",
   "d": "URL berbatas waktu yang memberi akses langsung ke satu file di object storage.",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "s": "istilah-signed-url",
   "t": "Signed URL",
   "u": "b-fondasi/b11-2-proxy-bff/"
@@ -1313,7 +1313,7 @@ window.ISTILAH = {
  "Timeout": {
   "b": "B11",
   "d": "Batas waktu menunggu sebelum sebuah panggilan dianggap gagal.",
-  "n": "4.1 Integrasi pihak ketiga",
+  "n": "Integrasi pihak ketiga (versi lama)",
   "s": "istilah-timeout",
   "t": "Timeout",
   "u": "b-fondasi/b11-integrasi-pihak-ketiga/"
@@ -1395,7 +1395,7 @@ window.ISTILAH = {
  "Webhook": {
   "b": "B10.2",
   "d": "HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil.",
-  "n": "4.3 Webhook dan outbox",
+  "n": "Webhook dan outbox (versi lama)",
   "s": "istilah-webhook",
   "t": "Webhook",
   "u": "b-fondasi/b10-2-webhook-outbox/"
@@ -1515,7 +1515,7 @@ window.ISTILAH = {
  "circuit breaker": {
   "b": "B11",
   "d": "Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda.",
-  "n": "4.1 Integrasi pihak ketiga",
+  "n": "Integrasi pihak ketiga (versi lama)",
   "s": "istilah-circuit-breaker",
   "t": "Circuit breaker",
   "u": "b-fondasi/b11-integrasi-pihak-ketiga/"
@@ -1882,7 +1882,7 @@ window.ISTILAH = {
  "microservice": {
   "b": "B7.2",
   "d": "Gaya arsitektur yang memecah backend jadi beberapa service kecil yang di-deploy terpisah dan saling memanggil lewat jaringan.",
-  "n": "4.5 Modular monolith",
+  "n": "Modular monolith (versi lama)",
   "s": "istilah-microservice",
   "t": "Microservice",
   "u": "b-fondasi/b7-2-batas-modul/"
@@ -1906,7 +1906,7 @@ window.ISTILAH = {
  "modular monolith": {
   "b": "B7.2",
   "d": "Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.",
-  "n": "4.5 Modular monolith",
+  "n": "Modular monolith (versi lama)",
   "s": "istilah-modular-monolith",
   "t": "Modular monolith",
   "u": "b-fondasi/b7-2-batas-modul/"
@@ -1939,7 +1939,7 @@ window.ISTILAH = {
  "object storage": {
   "b": "B11.2",
   "d": "Layanan penyimpanan file besar per objek, diakses lewat HTTP, mis. layanan kompatibel S3.",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "s": "istilah-object-storage",
   "t": "Object storage",
   "u": "b-fondasi/b11-2-proxy-bff/"
@@ -2081,7 +2081,7 @@ window.ISTILAH = {
  "proxy": {
   "b": "B11.2",
   "d": "Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "s": "istilah-proxy",
   "t": "Proxy",
   "u": "b-fondasi/b11-2-proxy-bff/"
@@ -2165,7 +2165,7 @@ window.ISTILAH = {
  "reverse proxy": {
   "b": "B11.2",
   "d": "Server di depan aplikasi yang menerima request dari internet lalu meneruskannya, sambil mengurus hal bersama seperti TLS dan kompresi.",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "s": "istilah-reverse-proxy",
   "t": "Reverse proxy",
   "u": "b-fondasi/b11-2-proxy-bff/"
@@ -2181,7 +2181,7 @@ window.ISTILAH = {
  "round trip": {
   "b": "B11.2",
   "d": "Satu kali bolak-balik request dan response antara app dan server. Di jaringan seluler, setiap round trip menambah latency.",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "s": "istilah-round-trip",
   "t": "Round trip",
   "u": "b-fondasi/b11-2-proxy-bff/"
@@ -2339,7 +2339,7 @@ window.ISTILAH = {
  "timeout": {
   "b": "B11",
   "d": "Batas waktu menunggu sebelum sebuah panggilan dianggap gagal.",
-  "n": "4.1 Integrasi pihak ketiga",
+  "n": "Integrasi pihak ketiga (versi lama)",
   "s": "istilah-timeout",
   "t": "Timeout",
   "u": "b-fondasi/b11-integrasi-pihak-ketiga/"
@@ -2414,7 +2414,7 @@ window.ISTILAH = {
  "webhook": {
   "b": "B10.2",
   "d": "HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil.",
-  "n": "4.3 Webhook dan outbox",
+  "n": "Webhook dan outbox (versi lama)",
   "s": "istilah-webhook",
   "t": "Webhook",
   "u": "b-fondasi/b10-2-webhook-outbox/"
