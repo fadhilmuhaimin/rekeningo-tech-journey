@@ -422,7 +422,9 @@ describe("kode lab: latar, ekspor, ringkasan, jeda, endpoint uji, dan mode renta
   test("handler laporanCSV memanggil LaporanEkspor dahulu, lalu menulis baris judul CSV; endpoint /lab/panik memakai Latar untuk di=latar dan panic langsung untuk di=handler", () => {
     const h = handlerT3.slice(handlerT3.indexOf("func (s Server) laporanCSV"));
     expect(h.indexOf("s.svc.LaporanEkspor(")).toBeGreaterThan(0);
-    expect(h.indexOf("s.svc.LaporanEkspor(")).toBeLessThan(h.indexOf('c.Write([]string{"tanggal", "transaksi", "total"})'));
+    const tulisJudul = [...h.matchAll(/\.Write\(\[\]string\{"tanggal", "transaksi", "total"\}\)/g)];
+    expect(tulisJudul, "penulisan baris judul CSV").toHaveLength(1); // satu penulisan, apa pun nama variabel penulisnya
+    expect(h.indexOf("s.svc.LaporanEkspor(")).toBeLessThan(tulisJudul[0]!.index!);
     expect(baca("labs/api-t3/internal/handler/handler.go")).toContain('mux.HandleFunc("GET /warung/{id}/laporan.csv", s.wajibLogin(s.laporanCSV))');
     expect(mainGo).toContain('panic("uji panic di goroutine handler")');
     expect(mainGo).toContain('svc.Latar("uji", func() {');
@@ -432,8 +434,10 @@ describe("kode lab: latar, ekspor, ringkasan, jeda, endpoint uji, dan mode renta
     harus("Handler `laporanCSV` memanggil `LaporanEkspor`.");
   });
   test("tes Go di lab api-t3 untuk kedua perubahan lulus terpisah di testing.txt", () => {
+    const latarTes = baca("labs/api-t3/internal/service/latar_test.go");
     for (const t of ["TestLatarMenangkapPanic", "TestLatarRentanMematikanProses", "TestRingkasanEksporLaporanKosong", "TestRingkasanEksporRentanPanikDiLaporanKosong"]) {
       expect(testingTxt, t).toContain(`--- PASS: ${t}`);
+      expect(latarTes, `${t} ada di kode tes`).toContain(`func ${t}(`); // rekaman PASS tanpa tesnya di kode bukan bukti
     }
     harus("Tes Go di lab `api-t3` menguji keduanya terpisah (`testing.txt`). Panic di `Latar` versi benar ditangkap dan pekerjaan sesudahnya tetap jalan, sedangkan ringkasan versi pertama panic pada laporan kosong.");
     harus("Rekaman tidak menjalankan ekspor kosong dengan salah satu perubahan saja.");
