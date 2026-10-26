@@ -1,0 +1,29 @@
+{
+  "id": "t3-at-least-once-inti",
+  "judul": "Satu pemberitahuan dikirim dua kali, ditampilkan sekali",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t3-outbox, ganda.txt bagian A dan C"
+  },
+  "baris": [
+    {
+      "label": "Worker",
+      "sub": "bagian A dari ganda.txt",
+      "simpul": [
+        { "teks": "kirim berhasil", "sub": "push menerima 1 pesan" },
+        { "teks": "mati sebelum menandai", "sub": "baris tetap menunggu", "nada": "warn" },
+        { "teks": "kirim ulang", "sub": "sesudah klaim 5 detik habis" }
+      ]
+    },
+    {
+      "label": "HP Ani",
+      "sub": "bagian C dari ganda.txt",
+      "simpul": [
+        { "teks": "2 pesan diterima", "sub": "1 notifikasi_id" },
+        { "teks": "penyaring", "sub": "id yang sudah tampil dilewati" },
+        { "teks": "1 ditampilkan", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah titik yang membuat pengiriman ulang. Penyaring di rekaman adalah lima baris Python di lab, bukan kode app Dart."
+}
