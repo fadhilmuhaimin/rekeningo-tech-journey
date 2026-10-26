@@ -240,7 +240,7 @@ const EXPECT: string[] = [
   "<p class=\"meta\">Baca 19 menit · coba 3 menit · Prasyarat: [[t3-m23]] · Jalur inti</p>",
   "<Blok nama=\"Mulai\" buka>",
   "## Inti",
-  "Satu cache bersama menyatukan harga di kedua instance bila kunci dihapus sesudah COMMIT, dan TTL membatasi celah yang tersisa.",
+  "Satu cache bersama menyatukan harga bila kunci dihapus sesudah COMMIT, dan TTL membatasi celah yang tersisa.",
   "<Rantai data={intiDiagram} ringkas />",
   "Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `redis.txt` bagian E, Ani mengubah harga dari «awal» ke «ubah». Kunci dihapus sesudah COMMIT, dan Citra di instance lain langsung melihat «ubah». Bagian D membalik urutannya: kunci hilang sebelum COMMIT, pembaca di celah mengisi «awal» lagi, dan harga lama bertahan sampai TTL habis.",
   "Urutan yang benar masih punya satu celah. Di bagian F, pembaca yang membaca database sebelum tulis menyimpan «awal» sesudah kunci dihapus, dan hanya TTL yang membatasinya.",
