@@ -1,0 +1,35 @@
+{
+  "id": "t3-m19-kursor-tertinggal",
+  "judul": "Kursor (dibuat, id): kapan satu baris tertinggal",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-outbox · kursor.txt bagian A, B, dan C" },
+  "baris": [
+    {
+      "label": "COMMIT terbalik",
+      "sub": "bagian B, poller kursor",
+      "simpul": [
+        { "teks": "Budi mulai lebih dulu, lalu menunggu", "sub": "dibuat paling awal" },
+        { "teks": "Dimas COMMIT lebih dulu", "sub": "nomor outbox 1, terkirim" },
+        { "teks": "Kursor maju melewati dibuat Budi" },
+        { "teks": "Baris Budi tertinggal", "sub": "nomor 2, menunggu; HP Citra menerima 1 pesan", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "COMMIT berurutan",
+      "sub": "bagian A, poller kursor",
+      "simpul": [
+        { "teks": "Dua kiriman antre di buku Citra", "sub": "2 transaction menunggu lock" },
+        { "teks": "Budi COMMIT, lalu Dimas", "sub": "nomor 1 dan 2, dibuat urut 1 dan 2" },
+        { "teks": "Dua pesan terkirim", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Sesudah B: klaim per baris",
+      "sub": "bagian C, tanpa kursor",
+      "simpul": [
+        { "teks": "Worker mengklaim baris yang tertinggal", "sub": "diklaim 1, terkirim 1" },
+        { "teks": "HP Citra menerima 2 pesan", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kursor hanya maju. Baris dari transaction yang mulai lebih awal tetapi COMMIT belakangan ada di belakangnya."
+}
