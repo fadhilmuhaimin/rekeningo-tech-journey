@@ -47,14 +47,14 @@
       "ke": "redis",
       "judul": "Instance menaikkan hitungan di Redis",
       "kirim": "EVAL skrip: INCR key alamat, PEXPIRE bila key baru, kembalikan hitungan dan sisa masa berlaku",
-      "jelas": "Instance a dan b memanggil skrip yang sama untuk key yang sama, jadi keduanya menaikkan satu hitungan. INCR dan PEXPIRE ada dalam satu skrip, jadi Redis menjalankannya tanpa disela perintah lain."
+      "jelas": "Instance a dan b memanggil skrip yang sama untuk key yang sama, jadi keduanya menaikkan satu hitungan. Kode lab menulis INCR dan PEXPIRE dalam satu skrip, jadi Redis menjalankannya tanpa disela perintah lain."
     },
     {
       "dari": "redis",
       "ke": "a",
       "judul": "Redis menjawab dengan hitungan",
       "kirim": "hitungan 1 sampai 24 untuk satu key, sisa jendela antara 1 dan 60 detik",
-      "jelas": "Hitungan naik juga untuk percobaan yang ditolak. Jendelanya mulai dari percobaan pertama dan tidak diperpanjang percobaan berikutnya, karena masa berlaku hanya dipasang saat key baru."
+      "jelas": "Rekaman mencatat bahwa hitungan naik juga untuk percobaan yang ditolak. Menurut kode lab, jendelanya mulai dari percobaan pertama dan tidak diperpanjang percobaan berikutnya, karena masa berlaku hanya dipasang saat key baru."
     },
     {
       "dari": "a",

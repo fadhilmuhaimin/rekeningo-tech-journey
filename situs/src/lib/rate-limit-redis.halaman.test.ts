@@ -611,6 +611,9 @@ describe("widget alur t3-batas-redis.json: valid, nilai dari rekaman dan kode, t
     expect(c).toContain("batas.txt bagian E");
     expect(c).toContain("batas.txt bagian I");
     expect(skenario.langkah[3]!.jelas).toContain("karena masa berlaku hanya dipasang saat key baru");
+    // teks langkah menyebut asal klaim sendiri; chip "Rekaman lab" dan tooltip saja tidak cukup untuk pembaca sentuh dan keyboard
+    expect(skenario.langkah[2]!.jelas).toContain("Kode lab menulis INCR dan PEXPIRE dalam satu skrip");
+    expect(skenario.langkah[3]!.jelas).toContain("Menurut kode lab, jendelanya mulai dari percobaan pertama");
     expect(rbGo).toContain("if n == 1 or redis.call('PTTL', KEYS[1]) < 0 then");
     expect(halaman).toContain("Langkah 3 dan 4 memuat hal yang dibaca dari kode lab, bukan dari rekaman, dan catatan sumber di widget menyebutnya.");
   });
@@ -836,11 +839,11 @@ const PROSA = {
     ],
     [
       "Instance menaikkan hitungan di Redis",
-      "Instance a dan b memanggil skrip yang sama untuk key yang sama, jadi keduanya menaikkan satu hitungan. INCR dan PEXPIRE ada dalam satu skrip, jadi Redis menjalankannya tanpa disela perintah lain."
+      "Instance a dan b memanggil skrip yang sama untuk key yang sama, jadi keduanya menaikkan satu hitungan. Kode lab menulis INCR dan PEXPIRE dalam satu skrip, jadi Redis menjalankannya tanpa disela perintah lain."
     ],
     [
       "Redis menjawab dengan hitungan",
-      "Hitungan naik juga untuk percobaan yang ditolak. Jendelanya mulai dari percobaan pertama dan tidak diperpanjang percobaan berikutnya, karena masa berlaku hanya dipasang saat key baru."
+      "Rekaman mencatat bahwa hitungan naik juga untuk percobaan yang ditolak. Menurut kode lab, jendelanya mulai dari percobaan pertama dan tidak diperpanjang percobaan berikutnya, karena masa berlaku hanya dipasang saat key baru."
     ],
     [
       "Hitungan 1 sampai 10 lolos ke pemeriksaan password",
