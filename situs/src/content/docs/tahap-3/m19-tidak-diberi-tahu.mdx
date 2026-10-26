@@ -1,0 +1,144 @@
+---
+title: "3.10 M19: Ani tidak diberi tahu"
+description: Minggu 4. Saldo Citra naik Rp50.000 tetapi HP-nya berbunyi sekali, dan Ani menemukan pembayaran yang tidak pernah diberitahukan. Poller outbox membaca dengan kursor (dibuat, id), dan baris dari transaction yang COMMIT belakangan tertinggal di belakang kursor.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import OutboxWorker from "../../../components/OutboxWorker.astro";
+import kursorTertinggal from "../../../../data/diagram/t3-m19-kursor-tertinggal.json";
+
+<p class="meta">Baca 7 menit · coba 3 menit · Prasyarat: [[t3-outbox]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 4 Tahap 3. Budi dan seorang rekan mengirim patungan ke Citra hampir bersamaan, dua kiriman dengan jumlah Rp50.000. Saldo Citra naik Rp50.000, tetapi HP-nya berbunyi sekali, bukan dua kali.
+
+Dua hari kemudian Ani mencocokkan buku catatannya dengan daftar notifikasi di HP-nya. Tiga pembayaran hari Jumat ada di bukunya, tetapi tidak pernah muncul sebagai notifikasi.
+
+Saldo Citra benar dan uangnya sudah pindah. Yang hilang hanya pemberitahuannya, dan Ani yang menemukannya, bukan sistem.
+
+*Angka cerita (Ilustrasi):* tiga pembayaran dan dua hari berasal dari naskah, tanpa rekaman yang mengulangnya. Rekaman di blok "Yang sebenarnya" memakai dua kiriman Rp25.000 dari Budi dan Dimas ke Citra, bukan pembayaran ke Ani.
+
+Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka memeriksa yang paling dekat dengan HP Citra: token perangkatnya. Ia menduga token itu salah, jadi satu pesan tidak sampai.
+
+Nadia punya dugaan lain. Poller adalah bagian worker yang membaca tabel `outbox` berkala dan mengirim barisnya. Menurut Nadia, poller butuh nomor urut tanpa celah supaya tidak ada baris yang terlewat.
+
+<details class="question">
+<summary>Tebak dulu: kiriman Budi mulai lebih dulu, tetapi menunggu lock. Kiriman rekannya mulai kemudian dan COMMIT lebih dulu. Keduanya ke token Citra yang sama. Pesan siapa yang sampai ke HP Citra?</summary>
+
+Pesan rekannya, yaitu kiriman yang COMMIT lebih dulu. Di rekaman lab `kursor.txt` bagian B, HP Citra (token `tiruan-504`) menerima satu pesan, dan baris Budi masih `menunggu` sesudah 1,5 detik pengamatan.
+
+Token itu menerima pesan yang lain, jadi token bukan sebabnya. Nomor outbox kedua baris adalah 1 dan 2 tanpa celah, jadi celah nomor juga bukan sebabnya. Penyebabnya ada di blok berikutnya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Poller outbox membaca dengan kursor `(dibuat, id)`, sama seperti riwayat di ADR 16 ([[t2-kursor]]). Kursor adalah penanda baris terakhir yang sudah dibaca.
+
+`dibuat` adalah awal transaction, bukan saat COMMIT. Baris dari transaction yang mulai lebih awal tetapi COMMIT belakangan berada di belakang kursor, dan poller tidak membacanya lagi.
+
+<Rantai data={kursorTertinggal} />
+
+*Kondisi rekaman:* PostgreSQL 17.11, server Go dengan poller dalam mode rentan `kursor` (selang 20 ms), dan layanan push tiruan lokal. Akun Dimas memerankan rekan Budi.
+
+**Apa yang dibaca poller.** Query-nya mengambil baris `menunggu` dengan `(dibuat, id)` lebih besar dari kursor, urut menurut `(dibuat, id)`:
+
+<Snippet file="labs/api-t3/internal/repo/outbox.go" region="baca-kursor" lang="go" title="Kode lab: labs/api-t3/internal/repo/outbox.go, region baca-kursor (poller versi pertama)" />
+
+Komentar di kode itu juga menulis bahwa nomor `id` bukan urutan COMMIT. Lab tidak merekam bagian itu, dan klaim itu dibahas di akhir blok ini.
+
+Sesudah satu putaran, kursor pindah ke baris terakhir yang dibaca. Di kode itu kursor tidak pernah mundur:
+
+<Snippet file="labs/api-t3/internal/worker/worker.go" lines="87:92" lang="go" title="Kode lab: labs/api-t3/internal/worker/worker.go baris 87 sampai 92 (kursor hanya maju)" />
+
+Kolom `dibuat` diisi `now()` oleh database:
+
+<Snippet file="labs/api-t3/migrasi/000017_perangkat_outbox.up.sql" lines="27:27" lang="sql" title="Kode lab: labs/api-t3/migrasi/000017_perangkat_outbox.up.sql baris 27 (dibuat memakai now())" />
+
+Dokumentasi PostgreSQL 17 menyebut `now()` memakai waktu mulai transaction, dan nilainya tidak berubah selama transaction itu. Sumbernya [bagian 9.9.5](https://www.postgresql.org/docs/17/functions-datetime.html#FUNCTIONS-DATETIME-CURRENT), dibuka 2026-10-26 (Tidak dijalankan).
+
+**Bila COMMIT sesuai urutan mulai, kursor bekerja.** Di bagian A sesi tangan memegang baris buku Citra, dan dua transaction menunggu lock itu. Budi menunggu lebih dulu, lalu Dimas. Sesudah lock dilepas, nomor outbox dan urutan `dibuat` sama, yaitu 1 untuk Budi dan 2 untuk Dimas, dan kedua pesan terkirim:
+
+<Snippet file="labs/t3-outbox/output/kursor.txt" lines="7:22" title="Rekaman lab: labs/t3-outbox/output/kursor.txt, bagian A (dua kiriman antre di buku Citra)" />
+
+Lab mengatur siapa yang lebih dulu. Budi dilepas lebih dulu, lab menunggu sampai ia terlihat menunggu lock, baru Dimas dilepas.
+
+Halaman explicit locking di dokumentasi PostgreSQL 17 tidak menjanjikan urutan transaction yang menunggu satu baris. Jadi "yang tiba lebih dulu selesai lebih dulu" hanya berlaku di rekaman ini, bukan aturan. Urutan COMMIT di bagian A tidak direkam langsung: ia dibaca dari nomor outbox, seperti di bagian D. Sumbernya [bagian 13.3.2](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS), dibuka 2026-10-26 (Tidak dijalankan).
+
+**Satu kiriman terhambat dan barisnya tertinggal.** Bagian B mengubah satu hal. Sebelum Budi mengirim, sesi tangan memegang baris buku Budi sendiri, mewakili permintaan lain dari Budi yang belum selesai. Kiriman Budi mulai lebih dulu lalu menunggu bukunya sendiri, sedangkan kiriman Dimas mulai kemudian, tidak terhalang, dan COMMIT lebih dulu.
+
+Poller mengirim baris Dimas dan memajukan kursornya. Baru sesudah itu lock dilepas dan kiriman Budi selesai. Barisnya bernomor 2 tetapi `dibuat`-nya lebih awal, jadi ia ada di belakang kursor:
+
+<Snippet file="labs/t3-outbox/output/kursor.txt" lines="24:45" title="Rekaman lab: labs/t3-outbox/output/kursor.txt, bagian B (baris Budi di belakang kursor)" />
+
+Saldo Citra naik Rp50.000, tetapi HP-nya menerima satu pesan. Baris Budi tetap `menunggu` selama 1,5 detik pengamatan dengan selang poller 20 ms. Penghambatnya buatan: lab memanjangkan celah supaya terekam.
+
+**Tanpa penghambat buatan, urutannya juga bisa terbalik.** Bagian D melepas dua kiriman ke Citra bersamaan dari dua thread. Lab mengulang sampai paling banyak 10 pasang dan berhenti pada pasang pertama yang urutan `dibuat`-nya terbalik dari nomor outbox. Jumlah pasang yang dipakai tidak direkam, karena bergantung waktu:
+
+<Snippet file="labs/t3-outbox/output/kursor.txt" lines="59:69" title="Rekaman lab: labs/t3-outbox/output/kursor.txt, bagian D (urutan dibuat terbalik dari nomor outbox)" />
+
+Nomor outbox diberikan saat INSERT, yaitu sesudah transaction memegang lock buku Citra. Lock itu baru lepas saat transaction berakhir ([bagian 13.3.2](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)), jadi nomor 1 COMMIT lebih dulu dari nomor 2. Itu dibaca dari kode `Kirim`, tidak direkam. Transaction bernomor 1 mulai lebih akhir, sehingga `dibuat`-nya lebih akhir.
+
+Bagian D tidak menjalankan poller, dan seberapa sering putaran poller jatuh di antara dua COMMIT itu tidak diukur. Lab hanya merekam mekanismenya. Rekaman lain di `api-t3` (`rentan.txt` bagian C) memperlihatkan bentuk yang sama dengan pelaku berbeda. Pembayaran Dimas ke Warung Ani COMMIT lebih dulu dan terkirim, sedangkan transfer Budi ke Citra tertinggal.
+
+**Bagian C memakai worker yang mengklaim baris.** Worker itu tidak memakai kursor, dan ia mengirim baris Budi yang tertinggal. HP Citra menerima dua pesan untuk dua transfer:
+
+<Snippet file="labs/t3-outbox/output/kursor.txt" lines="48:57" title="Rekaman lab: labs/t3-outbox/output/kursor.txt, bagian C (klaim menemukan baris yang tertinggal)" />
+
+Kenapa klaim itu tidak mengirim satu baris dua kali dibahas di [[t3-klaim-baris]]. Harganya juga ada di sana: urutan antar pesan tidak dijaga.
+
+**Ini celah yang ADR 16 tulis terbuka, tetapi akibatnya lain.** ADR 16 menerima celah COMMIT belakangan untuk riwayat. App memuat ulang riwayat dari atas, jadi akibatnya hanya di tampilan (aturan 2 dan 3 di [[t2-kursor]]). Aturan 5 melarang kursor itu untuk pembaca aliran dan menyebut notifikasi sebagai contoh.
+
+Poller adalah pembaca aliran, dan ia tidak memuat ulang dari atas. Baris di belakang kursornya tidak dibaca lagi selama poller itu berjalan. Kursor di lab hanya ada di memori proses, jadi poller yang dimulai ulang membaca dari awal. Restart poller tidak direkam (Tidak dijalankan).
+
+**Nomor urut tanpa celah tidak menyelesaikannya.** Nadia mengusulkan nomor urut tanpa celah. Sequence PostgreSQL tidak bisa memberinya: nilai yang dipakai transaction yang batal tidak dipakai ulang.
+
+Rekaman `listen.txt` memperlihatkannya: bagian A membatalkan satu baris dengan ROLLBACK, dan baris berikutnya di bagian B bernomor 3, jadi nomor 2 terpakai tanpa baris. Sumbernya [bagian 9.17](https://www.postgresql.org/docs/17/functions-sequence.html), dibuka 2026-10-26 (Tidak dijalankan).
+
+Halaman sequence itu tidak menyebut urutan COMMIT. Morling menulis bahwa urutan pesan di tabel outbox, menurut timestamp atau kolom sequence, tidak dijamin sama dengan urutan COMMIT. Ia merujuk Kleppmann untuk masalah urutan itu dan menyebut relay bisa melewatkan pesan ([Revisiting the Outbox Pattern](https://www.morling.dev/blog/revisiting-the-outbox-pattern/), 2024-10-31, dibuka 2026-10-26, Tidak dijalankan). Lab ini tidak merekam kasus itu: di bagian B dan D nomor 1 COMMIT lebih dulu, dan yang terbalik hanya `dibuat`.
+
+Jadi kursor `id` saja akan menangkap kasus M19 di lab, tetapi urutan nomor tidak dijanjikan sama dengan urutan COMMIT. Opsi nomor urut ditimbang di [[t3-klaim-baris]].
+
+**Siapa yang tahu?** Pertanyaan kedua PRD v3 ([[t3-prd]]) bertanya siapa yang tahu bila pemberitahuan gagal terkirim. Di M19 jawabannya tidak ada, sampai Ani membandingkan bukunya. Pemberitahuan itu tidak gagal terkirim, melainkan tidak dibaca poller.
+
+Poller kursor tidak mencatat percobaan: baris Dimas yang terkirim pun berpercobaan 0 (bagian C). Baris Budi tetap `menunggu` dan umurnya bertambah. Kode `RingkasOutbox` melaporkan umur baris `menunggu` tertua. Alert dari angka itu dibahas di [[t3-m27]], dan Tidak dijalankan untuk kasus ini.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengulang rekaman `kursor.txt` bagian A, B, dan C. Tebak dulu berapa notifikasi yang sampai ke HP Citra. Lalu ubah satu hal: urutan COMMIT, atau cara worker mengambil baris.
+
+<OutboxWorker skenario={["kursor"]} />
+
+Dengan kursor dan COMMIT terbalik, hanya satu notifikasi yang sampai (bagian B). Pilih "Klaim per baris" dan kedua notifikasi sampai (bagian C). Kombinasi klaim dengan COMMIT berurutan tidak dijalankan di lab, jadi widget menulisnya sebagai Hitungan.
+
+<details>
+<summary>Rekaman bagian A sampai D (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/t3-outbox/output/kursor.txt" title="Rekaman lab: labs/t3-outbox/output/kursor.txt" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t3-klaim-baris]]: klaim per baris, bukan kursor. Worker mengambil baris dengan klausa kunci `FOR UPDATE` dan `klaim_sampai`, jadi baris yang COMMIT belakangan tetap terlihat. Harganya, urutan antar pesan tidak dijaga. Keputusannya ADR 24.
+- [[t2-kursor]]: ADR 16 tetap benar untuk riwayat di layar HP. Aturan 5 di sana, kursor tidak untuk pembaca aliran, adalah yang M19 tunjukkan.
+- [[t3-outbox]]: pemberitahuan tetap ditulis di transaction jurnal, dan barisnya ada di tabel. Yang gagal di M19 adalah cara poller membacanya.
+- [[t3-m27]]: alert umur notifikasi tertua, jawaban untuk siapa yang tahu.
+
+Urutan COMMIT tidak sama dengan urutan `dibuat`, dan kursor yang bersandar padanya melewatkan baris.
+
+</Blok>

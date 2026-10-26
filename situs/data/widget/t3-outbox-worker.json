@@ -87,7 +87,7 @@
         "pilihanTeks": "{n} notifikasi",
         "pilihan": [
           { "nilai": 0, "alasan": "Poller membaca baris Dimas begitu COMMIT. Nol notifikasi hanya terjadi bila kedua baris terlewat, dan baris Dimas tidak terlewat." },
-          { "nilai": 1, "alasan": "{pesan} notifikasi: baris Dimas dikirim dan kursor maju. Baris Budi bernomor lebih besar, tetapi dibuat lebih awal, jadi ada di belakang kursor dan tidak pernah dibaca. Saldo Citra naik {saldo}." },
+          { "nilai": 1, "alasan": "{pesan} notifikasi: baris Dimas dikirim dan kursor maju. Baris Budi bernomor lebih besar, tetapi dibuat lebih awal, jadi ada di belakang kursor dan tidak dibaca selama poller berjalan. Saldo Citra naik {saldo}." },
           { "nilai": 2, "alasan": "Dua notifikasi benar bila yang COMMIT lebih dulu juga dibuat lebih dulu. Di sini urutan itu terbalik, dan kursor hanya melihat ke depan." }
         ]
       },

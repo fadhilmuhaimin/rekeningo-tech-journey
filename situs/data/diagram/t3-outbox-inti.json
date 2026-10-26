@@ -1,0 +1,29 @@
+{
+  "id": "t3-outbox-inti",
+  "judul": "Satu pembayaran lewat outbox",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t3-outbox, transaksi.txt bagian A"
+  },
+  "baris": [
+    {
+      "label": "Pembayaran",
+      "sub": "bagian A dari transaksi.txt",
+      "simpul": [
+        { "teks": "201: jurnal 10001", "sub": "dua posting" },
+        { "teks": "1 baris outbox: menunggu", "sub": "satu COMMIT dengan jurnal", "nada": "good" },
+        { "teks": "push tiruan: 0 pesan", "sub": "belum dikirim" }
+      ]
+    },
+    {
+      "label": "Worker",
+      "sub": "bagian A dari transaksi.txt",
+      "simpul": [
+        { "teks": "mengklaim 1 baris", "sub": "proses sendiri, sesudah COMMIT" },
+        { "teks": "baris: terkirim", "sub": "terkirim 1" },
+        { "teks": "push tiruan: 1 pesan", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kotak hijau adalah tempat pemberitahuan menumpang pada uang dan hasilnya. Layanan push tiruan menerima 0 pesan saat pembayaran selesai."
+}
