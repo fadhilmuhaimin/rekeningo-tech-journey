@@ -51,7 +51,7 @@ Poller outbox membaca dengan kursor `(dibuat, id)`, sama seperti riwayat di ADR 
 
 *Kondisi rekaman:* PostgreSQL 17.11, server Go dengan poller dalam mode rentan `kursor` (selang 20 ms), dan layanan push tiruan lokal. Akun Dimas memerankan rekan Budi.
 
-**Apa yang dibaca poller.** Query-nya mengambil baris `menunggu` dengan `(dibuat, id)` lebih besar dari kursor, urut menurut `(dibuat, id)`. Hanya baris yang sudah COMMIT yang terlihat oleh query itu:
+**Apa yang dibaca poller.** Query-nya mengambil baris `menunggu` dengan `(dibuat, id)` lebih besar dari kursor, urut menurut `(dibuat, id)`:
 
 <Snippet file="labs/api-t3/internal/repo/outbox.go" region="baca-kursor" lang="go" title="Kode lab: labs/api-t3/internal/repo/outbox.go, region baca-kursor (poller versi pertama)" />
 
@@ -93,17 +93,17 @@ Bagian D tidak menjalankan poller, dan seberapa sering putaran poller jatuh di a
 
 Kenapa klaim itu tidak mengirim satu baris dua kali dibahas di [[t3-klaim-baris]]. Harganya juga ada di sana: urutan antar pesan tidak dijaga.
 
-**Ini celah yang ADR 16 tulis terbuka, tetapi akibatnya lain.** ADR 16 menerima celah COMMIT belakangan untuk riwayat. App memuat ulang riwayat dari atas, jadi akibatnya hanya di tampilan (aturan 3 di [[t2-kursor]]). Aturan 5 melarang kursor itu untuk pembaca aliran dan menyebut notifikasi sebagai contoh.
+**Ini celah yang ADR 16 tulis terbuka, tetapi akibatnya lain.** ADR 16 menerima celah COMMIT belakangan untuk riwayat. App memuat ulang riwayat dari atas, jadi akibatnya hanya di tampilan (aturan 2 dan 3 di [[t2-kursor]]). Aturan 5 melarang kursor itu untuk pembaca aliran dan menyebut notifikasi sebagai contoh.
 
 Poller adalah pembaca aliran, dan ia tidak memuat ulang dari atas. Baris di belakang kursornya tidak dibaca lagi selama poller itu berjalan. Kursor di lab hanya ada di memori proses, jadi poller yang dimulai ulang membaca dari awal. Restart poller tidak direkam (Tidak dijalankan).
 
-**Nomor outbox bukan jawabannya.** Nadia mengusulkan nomor urut tanpa celah. Sequence PostgreSQL tidak bisa memberinya: nilai yang dipakai transaction yang batal tidak dipakai ulang.
+**Nomor urut tanpa celah tidak menyelesaikannya.** Nadia mengusulkan nomor urut tanpa celah. Sequence PostgreSQL tidak bisa memberinya: nilai yang dipakai transaction yang batal tidak dipakai ulang.
 
 Rekaman `listen.txt` bagian A memperlihatkannya, karena baris yang di-ROLLBACK memakai nomor 2 dan baris berikutnya bernomor 3. Sumbernya [bagian 9.17](https://www.postgresql.org/docs/17/functions-sequence.html), dibuka 2026-10-26 (Tidak dijalankan).
 
 Halaman sequence itu tidak menyebut urutan COMMIT. Morling mengutip Kleppmann bahwa urutan baris di tabel outbox bisa berbeda dari urutan COMMIT ([Revisiting the Outbox Pattern](https://www.morling.dev/blog/revisiting-the-outbox-pattern/), 2024-10-31, dibuka 2026-10-26, Tidak dijalankan). Lab ini tidak merekam kasus itu: di bagian B dan D nomor 1 COMMIT lebih dulu, dan yang terbalik hanya `dibuat`.
 
-Jadi kursor `id` saja akan menangkap kasus M19, tetapi itu bukan aturan umum. Opsi nomor urut ditimbang di [[t3-klaim-baris]].
+Jadi kursor `id` saja akan menangkap kasus M19 di lab, tetapi urutan nomor tidak dijanjikan sama dengan urutan COMMIT. Opsi nomor urut ditimbang di [[t3-klaim-baris]].
 
 **Siapa yang tahu?** Pertanyaan kedua PRD v3 ([[t3-prd]]) bertanya siapa yang tahu bila pemberitahuan gagal terkirim. Di M19 jawabannya tidak ada, sampai Ani membandingkan bukunya. Pemberitahuan itu tidak gagal terkirim, melainkan tidak dibaca poller.
 
