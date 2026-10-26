@@ -1792,6 +1792,38 @@
   "jawab": "Tanpa `Shutdown`, request lambat yang sedang jalan tidak mendapat jawaban dan proses keluar karena sinyal 15 (`bergulir.txt` bagian B). Kombinasi tanpa `Shutdown` di belakang proxy dengan retry tidak direkam. Retry hanya mengulang GET yang terputus sesudah tersambung, dan POST yang terputus tidak diulang."
  },
  {
+  "id": "t3-m23-1",
+  "halaman": "t3-m23",
+  "judul": "3.18 M23: Dua harga di satu meja",
+  "url": "tahap-3/m23-dua-harga/",
+  "tanya": "HR membuat promo lewat instance A. Kenapa Citra, yang membaca lewat B, masih menerima Rp25.000?",
+  "jawab": "Cache ada di memori tiap proses. Promo membuang entri hanya di peta A (kunci dihapus: A satu, B nol), dan B memegang entrinya sampai TTL habis (`memori.txt` bagian B)."
+ },
+ {
+  "id": "t3-m23-2",
+  "halaman": "t3-m23",
+  "judul": "3.18 M23: Dua harga di satu meja",
+  "url": "tahap-3/m23-dua-harga/",
+  "tanya": "Citra memesan saat layarnya Rp25.000. Berapa yang ditagih, dan dari mana angka itu?",
+  "jawab": "Rp22.500. `Pesan` membaca harga dari database sesudah produk dikunci, bukan dari katalog (`memori.txt` bagian C; kode `KunciProduk`)."
+ },
+ {
+  "id": "t3-m23-3",
+  "halaman": "t3-m23",
+  "judul": "3.18 M23: Dua harga di satu meja",
+  "url": "tahap-3/m23-dua-harga/",
+  "tanya": "Raka mengira ini bug Flutter. Apa di rekaman yang menolak dugaan itu?",
+  "jawab": "Jawaban server sendiri berbeda untuk dua pembaca, Rp22.500 lawan Rp25.000, jadi perbedaannya ada sebelum sampai ke HP mana pun. Rekaman tidak memakai app Flutter, jadi hanya sisi server yang teruji."
+ },
+ {
+  "id": "t3-m23-4",
+  "halaman": "t3-m23",
+  "judul": "3.18 M23: Dua harga di satu meja",
+  "url": "tahap-3/m23-dua-harga/",
+  "tanya": "Paling lama berapa lama harga lama bertahan di B, dan kenapa itu bukan penyembuhan?",
+  "jawab": "Paling lama sebesar TTL, 300 detik sejak entri diisi: detik ke-299 masih Rp25.000 dan detik ke-300 Rp22.500 (`memori.txt` bagian D). TTL hanya membatasi, karena tidak ada yang memberi tahu B sebelum entrinya habis."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",

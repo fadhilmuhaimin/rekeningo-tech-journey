@@ -1,0 +1,35 @@
+{
+  "id": "t3-m23-dua-harga",
+  "judul": "Satu promo, dua instance, dua harga",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-cache · memori.txt bagian B, C, dan D" },
+  "baris": [
+    {
+      "label": "Promo lewat instance A",
+      "sub": "bagian B",
+      "simpul": [
+        { "teks": "HR membuat promo lewat A", "sub": "POST /promo, 201" },
+        { "teks": "A membuang entrinya", "sub": "kunci dihapus: A 1, instance B nol" },
+        { "teks": "Budi lewat A: Rp22.500", "sub": "dibaca dari database", "nada": "good" },
+        { "teks": "Citra lewat B: Rp25.000", "sub": "entri lama, hit", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Pesanan Citra",
+      "sub": "bagian C",
+      "simpul": [
+        { "teks": "Citra memesan lewat B", "sub": "layarnya Rp25.000" },
+        { "teks": "Ditagih Rp22.500", "sub": "harga dibaca dari database", "nada": "good" },
+        { "teks": "Katalog B masih lama", "sub": "Rp25.000 dan stok 50; database: stok 49", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Entri B habis",
+      "sub": "bagian D",
+      "simpul": [
+        { "teks": "Detik ke-299", "sub": "Rp25.000, stok 50", "nada": "warn" },
+        { "teks": "Detik ke-300", "sub": "Rp22.500, stok 49, versi 2", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Cache di memori tiap instance hanya dibuang di instance yang menerima promo, dan entri yang tidak dibuang bertahan sampai TTL 300 detik habis."
+}

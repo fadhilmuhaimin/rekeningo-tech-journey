@@ -2722,8 +2722,9 @@
       "lab": [
         "t3-cache"
       ],
-      "ada": false,
-      "nomor": "3.18"
+      "ada": true,
+      "nomor": "3.18",
+      "menit": 12
     },
     {
       "id": "t3-cache",

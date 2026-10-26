@@ -1,0 +1,178 @@
+---
+title: "3.18 M23: Dua harga di satu meja"
+description: Minggu 6. HR menyalakan promo pukul 11.30, lalu HP Budi menampilkan nasi goreng Rp22.500 dan HP Citra di meja yang sama Rp25.000. Cache katalog di memori tiap instance hanya dibuang di instance yang menerima promo.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import duaHarga from "../../../../data/diagram/t3-m23-dua-harga.json";
+
+<p class="meta">Baca 9 menit · coba 3 menit · Prasyarat: [[t3-rate-limit-redis]]</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 6 Tahap 3. HR menyalakan promo pukul 11.30. Sesudah itu dua HP di satu meja di warung Ani menampilkan dua harga untuk nasi goreng yang sama.
+
+HP Budi menunjukkan Rp22.500. HP Citra, di meja yang sama, menunjukkan Rp25.000.
+
+Orang yang mengantre di warung Ani berdebat soal harga mana yang benar.
+
+*Angka cerita (Ilustrasi):* pukul 11.30, dua harga, dan perdebatan orang yang mengantre berasal dari naskah, tanpa rekaman yang mengulangnya. Naskah tidak menyebut besar promo. Rp22.500 adalah Rp25.000 dikurangi 10%, sama dengan promo di rekaman. Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka mengira app Flutter menyimpan harga lama di HP Citra. Dugaan itu bisa diuji tanpa membuka kode app. Bila isi yang tidak terbaru ada di HP, kedua HP menerima jawaban server yang sama. Bila jawaban server sendiri berbeda, sumbernya di server.
+
+Lab tidak punya app Flutter, jadi rekaman di bawah menguji hal itu di sisi server. Dua pembaca memanggil `GET /katalog`, dan jawaban mentahnya dibandingkan.
+
+Di minggu 2 Nadia menambah cache untuk katalog, karena katalog dibaca terus (naskah, Ilustrasi). Cache adalah salinan jawaban yang disimpan supaya tidak dibaca ulang dari database ([[t3-cache]]). Cache Nadia hidup di memori proses API, satu peta per proses, dengan TTL 5 menit, yaitu 300 detik. TTL adalah masa berlaku satu entri sebelum dibuang.
+
+Sampai minggu 5 hanya ada satu proses, jadi satu peta itu benar. Instance kedua datang lewat [[t3-dua-instance]]. Bacaan yang dijawab dari entri disebut *hit*. Bacaan tanpa entri, atau dengan entri yang sudah habis, disebut *miss*: prosesnya membaca database lalu menyimpan hasilnya.
+
+<details class="question">
+<summary>Tebak dulu: Citra melihat Rp25.000 di layarnya lalu memesan satu nasi goreng. Berapa yang ditagih?</summary>
+
+Rp22.500. Di rekaman lab `memori.txt` bagian C, pesanan Citra ditagih Rp22.500, harga dari database, walau katalog di instance B masih menjawab Rp25.000.
+
+Kenapa harga lama tidak ikut ditagih dijelaskan di blok berikutnya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Katalog dibaca dari cache di memori tiap proses, dan promo hanya membuang entri di proses yang menerimanya. Proses lain menjawab harga lama sampai entrinya habis.
+
+<Rantai data={duaHarga} />
+
+*Kondisi rekaman:* PostgreSQL 17.11 dan dua proses `api-t3` yang sama, instance A dan instance B, masing-masing dengan cache katalog di memori dan TTL 300 detik. Keduanya memakai satu database. Tidak ada proxy: lab memanggil A atau B langsung, supaya jelas siapa yang menjawab.
+
+**Setiap instance mengisi cache-nya sendiri.** Budi membaca katalog warung Ani lewat A, dan Citra lewat B, masing-masing dua kali:
+
+<Snippet file="labs/t3-cache/output/memori.txt" lines="8:15" title="Rekaman lab: labs/t3-cache/output/memori.txt baris 8 sampai 15, bagian A (tiap instance mengisi cache-nya sendiri)" />
+
+Empat bacaan menghasilkan dua baca database. Tiap instance membaca database satu kali dan menjawab bacaan keduanya dari petanya sendiri. Peta itu bagian dari proses:
+
+<Snippet file="labs/api-t3/internal/cache/cache.go" lines="30:35" lang="go" title="Kode lab: labs/api-t3/internal/cache/cache.go baris 30 sampai 35 (peta di dalam proses)" />
+
+**Promo hanya membuang entri di satu instance.** HR Jakarta membuat promo lewat A. Bagian B merekam bahwa A membuang entri katalog dan B tidak:
+
+<Snippet file="labs/t3-cache/output/memori.txt" lines="17:28" title="Rekaman lab: labs/t3-cache/output/memori.txt baris 17 sampai 28, bagian B (promo lewat A, dua harga)" />
+
+Budi menerima Rp22.500 dari database, karena entri A sudah dibuang. Citra menerima Rp25.000 dari entri B yang stale, yaitu data yang sudah tidak terbaru. Database menyebut Rp22.500, jadi Rp25.000 tidak mungkin berasal dari database.
+
+Mekanismenya ada di kode. Sesudah COMMIT, pembuatan promo memanggil `hapusKatalogKota`, dan fungsi itu hanya menyentuh cache milik prosesnya sendiri (`s.kc`):
+
+<Snippet file="labs/api-t3/internal/service/katalog_cache.go" lines="77:82" lang="go" title="Kode lab: labs/api-t3/internal/service/katalog_cache.go baris 77 sampai 82 (promo membuang kunci di cache prosesnya)" />
+
+**Yang ditagih tetap dari database.** Bagian C merekam Citra memesan satu nasi goreng sambil melihat Rp25.000:
+
+<Snippet file="labs/t3-cache/output/memori.txt" lines="30:43" title="Rekaman lab: labs/t3-cache/output/memori.txt baris 30 sampai 43, bagian C (pesanan dari database, katalog B tetap lama)" />
+
+Pesanan ditagih Rp22.500 dan stok sisa 49. Sesudah itu katalog B masih menjawab Rp25.000 dan stok 50, sedangkan database berisi stok 49 dan versi 2. Penyebabnya dibaca dari kode: `Pesan` memanggil `KunciProduk`, yang mengunci produk dan membaca harga, stok, dan promo yang berlaku sekarang dari database:
+
+<Snippet file="labs/api-t3/internal/repo/katalog.go" lines="87:101" lang="go" title="Kode lab: labs/api-t3/internal/repo/katalog.go baris 87 sampai 101 (harga dan promo dibaca dari database)" />
+
+Tagihan memakai `p.Harga * int64(100-p.Potongan) / 100`, dan pemeriksaan stok memakai `p.Stok < porsi`. Keduanya memakai hasil `KunciProduk`, bukan jawaban katalog (dibaca dari kode; rekaman tidak memesan sampai stok habis). Harga di layar tidak ikut menentukan tagihan.
+
+Di rekaman, harga yang stale menguntungkan Citra: layarnya Rp25.000 dan tagihannya Rp22.500. Bila promo selesai selagi entri belum habis, arahnya terbalik: layar menunjukkan harga promo dan tagihan memakai harga penuh (penalaran dari kode; tidak direkam).
+
+**Stok ikut tertinggal.** Pesanan mengurangi stok di database tanpa membuang entri. Layar Citra menunjukkan stok 50 padahal database 49 (bagian C).
+
+**TTL membatasi, tidak menyembuhkan.** Bagian D menggeser jam cache B. Pada detik ke-299 Citra masih menerima Rp25.000, dan pada detik ke-300 ia menerima Rp22.500 dengan stok 49:
+
+<Snippet file="labs/t3-cache/output/memori.txt" lines="45:50" title="Rekaman lab: labs/t3-cache/output/memori.txt baris 45 sampai 50, bagian D (entri B habis pada detik ke-300)" />
+
+Jam cache di lab dibekukan dan digeser lewat `POST /lab/jam`, jadi lima menit tidak ditunggu. Kode `Memori.Ambil` membuang entri bila jam cache tidak lebih awal dari waktu habisnya. Jadi entri yang diisi pada detik 0 habis tepat pada detik ke-300 (dibaca dari kode).
+
+Entri B diisi pada jam yang sama dengan saat promo dibuat, jadi tertinggalnya tepat 300 detik. Entri yang diisi lebih awal habis lebih awal, dan batas atasnya tetap TTL (penalaran).
+
+**Cache ini tidak dibutuhkan beban.** Puncak Tahap 3 adalah 10.000 × 25% × 60 ÷ 86.400 × 10 = 17,36 request per detik (Asumsi, angka registry). Bila 30% request membaca katalog, hasilnya 17,36 × 0,30 = 5,208, dibulatkan 5,2 baca per detik. Satu baca database berlangsung 5 ms, jadi L = 5,208 × 0,005 = 0,026 koneksi (Asumsi: 30% dan 5 ms).
+
+ADR 21 membuka cache bila L kelas itu mencapai 5 koneksi ([[t2-adr-21]]). Katalog berada jauh di bawahnya.
+
+Rekaman `beban.txt` memeriksa batas yang sama. Tanpa cache, 52 bacaan menjadi 52 baca database. Waktu baca tetap di bawah 20 ms dan L di bawah 0,1 koneksi dari pool 10 (Rekaman lab, batas).
+
+Apakah cache dipasang sama sekali dibahas di [[t3-cache]].
+
+**Kenapa proxy membuatnya terlihat.** Lab memanggil A dan B langsung. Di depan keduanya, proxy memilih instance per request dengan kebijakan bawaan `random` ([[t3-dua-instance]]). Satu HP pun bisa menerima dua harga bergantian (penalaran; tidak direkam).
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `memori.txt` dari bacaan pertama Budi sampai entri di instance B habis. Tebak dulu harga yang Citra terima, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t3-m23.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: satu Redis untuk kedua instance**. Langkahnya dari `redis.txt` bagian C: A dan B membaca satu Redis, container lokal di lab. Layar HP di widget digambar dari isi rekaman: lab tidak punya app Flutter.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: Budi menerima Rp22.500 lewat instance A dan Citra Rp25.000 lewat instance B, dan harga di B baru berubah pada detik ke-300.
+
+Dengan satu Redis untuk kedua instance, Citra juga menerima Rp22.500. Rekaman lengkap ada di lipatan di bawah.
+</noscript>
+
+<details>
+<summary>Rekaman bagian A sampai D (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/t3-cache/output/memori.txt" lines="8:50" title="Rekaman lab: labs/t3-cache/output/memori.txt baris 8 sampai 50, bagian A sampai D (tanpa baris kepala)" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t3-cache]]: cache dan invalidation, yaitu membuang entri yang tidak berlaku lagi. Keputusannya ADR 28, termasuk pilihan "tanpa cache".
+- [[t3-dua-instance]]: ADR 26 memasang instance kedua. Penyebab ketiga di pre-mortem-nya, memori satu proses yang berlipat, terjadi di sini.
+- [[t3-m22]]: masalah dengan sebab yang sama. Batas login yang ada di memori tiap instance ikut berlipat.
+
+Yang disimpan di memori satu proses berlipat saat prosesnya dua. Cache boleh stale untuk tampilan, tidak untuk uang.
+
+### Cek diri
+
+**1.** HR membuat promo lewat instance A. Kenapa Citra, yang membaca lewat B, masih menerima Rp25.000?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Cache ada di memori tiap proses. Promo membuang entri hanya di peta A (kunci dihapus: A satu, B nol), dan B memegang entrinya sampai TTL habis (`memori.txt` bagian B).
+
+</details>
+
+**2.** Citra memesan saat layarnya Rp25.000. Berapa yang ditagih, dan dari mana angka itu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Rp22.500. `Pesan` membaca harga dari database sesudah produk dikunci, bukan dari katalog (`memori.txt` bagian C; kode `KunciProduk`).
+
+</details>
+
+**3.** Raka mengira ini bug Flutter. Apa di rekaman yang menolak dugaan itu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Jawaban server sendiri berbeda untuk dua pembaca, Rp22.500 lawan Rp25.000, jadi perbedaannya ada sebelum sampai ke HP mana pun. Rekaman tidak memakai app Flutter, jadi hanya sisi server yang teruji.
+
+</details>
+
+**4.** Paling lama berapa lama harga lama bertahan di B, dan kenapa itu bukan penyembuhan?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Paling lama sebesar TTL, 300 detik sejak entri diisi: detik ke-299 masih Rp25.000 dan detik ke-300 Rp22.500 (`memori.txt` bagian D). TTL hanya membatasi, karena tidak ada yang memberi tahu B sebelum entrinya habis.
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />
