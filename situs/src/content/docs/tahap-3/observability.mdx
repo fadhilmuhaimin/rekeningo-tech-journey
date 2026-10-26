@@ -154,7 +154,7 @@ Trace layak dibayar saat satu request melewati lebih dari satu komponen dan log 
 <details class="success">
 <summary>Jawaban</summary>
 
-Tidak. api-t3 tidak punya log akses: pembacaan saldo yang selesai dengan 200 pun meninggalkan nol baris (`jejak.txt` bagian J). Log ditulis saat sesuatu berakhir atau gagal, jadi request yang menggantung belum menulis apa pun. Log kosong tidak membedakan keadaan sehat dari keadaan menggantung.
+Tidak. api-t3 tidak punya log akses: pembacaan saldo yang selesai dengan 200 pun meninggalkan nol baris (`jejak.txt` bagian J). Di api-t3, log ditulis saat sesuatu berakhir atau gagal, jadi request yang menggantung belum menulis apa pun. Log kosong tidak membedakan keadaan sehat dari keadaan menggantung.
 
 </details>
 
