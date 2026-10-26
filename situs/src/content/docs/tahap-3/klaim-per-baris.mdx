@@ -109,7 +109,7 @@ Tanpa `SKIP LOCKED`, uji mutasi di README lab mencatat worker belum selesai dala
 
 <Snippet files={["labs/t3-outbox/output/kursor.txt:49:50", "labs/t3-outbox/output/kursor.txt:57:57"]} title="Rekaman lab: labs/t3-outbox/output/kursor.txt" />
 
-**Urutan antar pesan tidak dijaga.** Worker A mengklaim baris 1 lalu macet. Worker B mengirim baris 2 sampai 5, dan baris 1 baru terkirim sesudah klaim A habis:
+**Urutan antar pesan tidak dijaga.** Rekaman memerankan worker A dengan satu `UPDATE` klaim atas baris 1, tanpa mengirim apa pun. Worker B mengirim baris 2 sampai 5, dan baris 1 baru terkirim sesudah klaim A habis:
 
 <Snippet file="labs/t3-outbox/output/klaim.txt" lines="47:55" title="Rekaman lab: labs/t3-outbox/output/klaim.txt" />
 
@@ -147,7 +147,7 @@ Tiap goroutine pengirim harus punya jalan keluar. Rekaman lab yang sama mencatat
 
 **Skenario:** worker mengambil baris queue di PostgreSQL tanpa dua worker mengirim baris yang sama. Tab Go adalah kode lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi atau kode sumber pada 2026-10-26.
 
-Yang sama di semua stack: baris dikunci selama klaim dan ditahan sesudahnya. Yang berbeda adalah siapa yang menulis klausa kunci, ada tidaknya batas waktu klaim, dan model concurrency proses worker. Menunggu jaringan sama cepatnya di Go dan Node.js: paralel 0,50 dan 0,51 detik untuk 10 kiriman 500 ms (Rekaman lab `b8-concurrency`). Bedanya terasa pada kerja CPU: saat satu request menghitung 1 detik, `/ping` dijawab dalam 0,35 ms di Go dan 0,96 detik di Node.js (`cpu.txt`).
+Tab-tab di bawah menjawab pertanyaan yang sama. Perbedaannya ada pada siapa yang menulis klausa kunci, ada tidaknya batas waktu klaim yang terbaca di dokumentasi, dan model concurrency proses worker. Menunggu jaringan sama cepatnya di Go dan Node.js: paralel 0,50 dan 0,51 detik untuk 10 kiriman 500 ms (Rekaman lab `b8-concurrency`). Bedanya terasa pada kerja CPU: saat satu request menghitung 1 detik, `/ping` dijawab dalam 0,35 ms di Go dan 0,96 detik di Node.js (`cpu.txt`).
 
 <TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
 <Fragment slot="t0">
@@ -236,6 +236,8 @@ Opsi B Tidak dijalankan di lab: yang direkam hanya celah pada nomor sequence, ya
 **Kenapa C, bukan B.** B menjaga urutan, tetapi penghitung global membuat semua pembayaran antre di satu baris. Penghitung per penerima mengharuskan setiap jalur tulis outbox menaikkannya di bawah lock buku. Pemberitahuan di Tahap 3 berdiri sendiri, jadi urutan penuh tidak dibutuhkan.
 
 **Kenapa C, bukan D.** Pesan yang dikirim selagi listener putus hilang, jadi D tidak bisa jadi satu-satunya sumber. Tabel dan polling harus tetap ada, dan di titik itu D hanya menurunkan jeda.
+
+**Kenapa C, bukan batas aman dari snapshot.** Opsi C di ADR 16 ([[t2-kursor]]) menutup celah COMMIT belakangan, tetapi menunda baris terbaru selama ada transaction penulis yang terbuka. Ia tetap kursor di satu proses, jadi dua worker membaca batas yang sama dan butuh pembagian kerja sendiri. Opsi ini Tidak dijalankan di lab t3-outbox.
 
 **Kasus industri: Solid Queue (37signals, 2023 dan 2024).** Dalam tulisan 2023-12-18, 37signals menyebut `SELECT ... FOR UPDATE SKIP LOCKED` penting bagi implementasi mereka, karena worker bisa mengambil dan mengunci job tanpa mengunci worker lain. Fitur itu mereka tulis baru hadir di MySQL 8.
 

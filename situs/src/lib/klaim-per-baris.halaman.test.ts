@@ -227,7 +227,7 @@ describe("rekaman: klaim.txt, kursor.txt, listen.txt, retry.txt, ganda.txt, outb
     expect(outboxGo).toContain("(klaim_sampai IS NULL OR klaim_sampai < now())");
     expect(rentangKlaim.urutan.map(String)).toEqual(["47", "55"]);
     harus(`<Snippet file="labs/t3-outbox/output/klaim.txt" lines="${rentangKlaim.urutan[0]}:${rentangKlaim.urutan[1]}"`);
-    harus("Worker A mengklaim baris 1 lalu macet. Worker B mengirim baris 2 sampai 5, dan baris 1 baru terkirim sesudah klaim A habis:");
+    harus("Rekaman memerankan worker A dengan satu `UPDATE` klaim atas baris 1, tanpa mengirim apa pun. Worker B mengirim baris 2 sampai 5, dan baris 1 baru terkirim sesudah klaim A habis:");
     harus("Baris 1 dilewati karena `klaim_sampai`-nya masih di masa depan, bukan karena `SKIP LOCKED`: `WHERE` mengeluarkannya sebelum ada yang dikunci.");
     expect(kC.join("\n")).toContain("Klaim per baris menjaga agar tidak ada baris ganda atau terlewat, bukan urutan");
   });
@@ -693,6 +693,93 @@ describe("ADR 24: opsi, aturan, diagram, sel tabel, dan kalimat", () => {
   });
 });
 
+// ---- pagar tambahan tinjauan 3.11 (keputusan 1043): hal yang lolos mutasi di penjaga awal --------------------------------------------
+describe("pagar tinjauan: halaman istilah, tanggal akses riset, tingkat heading, summary dan details, judul Snippet", () => {
+  const daun: [string, string][] = [];
+  const jalan = (x: unknown, p: string): void => {
+    if (typeof x === "string") daun.push([p, x]);
+    else if (Array.isArray(x)) x.forEach((v, i) => jalan(v, `${p}[${i}]`));
+    else if (x && typeof x === "object") for (const [k, v] of Object.entries(x)) jalan(v, p ? `${p}.${k}` : k);
+  };
+  jalan(JSON.parse(baca("situs/data/halaman-istilah/skip-locked.json")), "");
+  const nilai = Object.fromEntries(daun);
+  test("halaman istilah skip-locked: setiap nilai teks dikunci; URL dikenal di halaman atau baris riset; angka dan versi diturunkan dari sumber", () => {
+    expect(nilai).toEqual(KUNCI_ISTILAH);
+    const url = daun.filter(([p]) => /\.(url|dokumentasi)$/.test(p)).map(([, u]) => u);
+    expect(url).toHaveLength(11);
+    for (const u of url) expect(badan.includes(u) || riset.includes(u.replace(/^https:\/\/[^/]+\//, "")), `URL ${u} tidak ada di halaman atau baris riset`).toBe(true);
+    // Versi Laravel: ambang di teks istilah sama dengan baris riset yang membaca kode sumbernya.
+    const r151 = riset.split("\n").find((b) => b.startsWith("| R3-151 |"))!;
+    for (const [dalamTeks, dalamRiset] of [["PostgreSQL 9.5", "pgsql >= 9.5"], ["MySQL 8.0.1", "mysql >= 8.0.1"], ["MariaDB 10.6.0", "mariadb >= 10.6.0"]] as const) {
+      expect(nilai["stack.laravel.teks"], dalamTeks).toContain(dalamTeks);
+      expect(r151, dalamRiset).toContain(dalamRiset);
+    }
+    // Angka Go dan cerita diturunkan dari rekaman klaim.txt A dan B.
+    const [, terkirim, , ganda] = ambil(kB, /^push tiruan menerima: (\d+) permintaan, (\d+) notifikasi_id berbeda, (\d+) ganda$/);
+    expect(nilai["stack.go.teks"]).toContain(`${terkirim} terkirim, ${ganda} ganda`);
+    const a = ambil(kA, /^ sesi 2 langsung mendapat nomor (\d+), (\d+), (\d+), (\d+), tanpa menunggu$/).slice(1);
+    const s2 = ambil(kA, /^ sesi 2 memilih nomor (\d+), (\d+), (\d+), (\d+): baris yang sama dengan sesi 1/).slice(1);
+    expect(nilai["cerita[0].teks"]).toContain(`baris ${a[0]} sampai ${a[3]} saat sesi pertama memegang baris ${s2[0]} sampai ${s2[3]}`);
+    expect(nilai["cerita[0].teks"]).toContain("sesi ketiga mendapat 0 baris walau queue belum kosong");
+    // Versi di halaman istilah sama dengan versi di tab halaman dan baris riset.
+    for (const [kunciStack, kataHalaman] of [["node", "pg-boss 12.38.0"], ["laravel", "`laravel/framework` 13.38.0"], ["django", "Django 6.1.2"], ["serverpod", "Serverpod 4.0.4"], ["supabase", "pgmq v1.13.1"]] as const) {
+      expect(badan, kunciStack).toContain(kataHalaman);
+      expect(nilai[`stack.${kunciStack}.versi`], kunciStack).toBe(kataHalaman.replace(/`/g, ""));
+    }
+  });
+  test("baris riset R3-150 sampai R3-154: tiap tanggal dikunci (dua tanggal akses 2026-10-26 per baris; tanggal rilis dan terbit sumber)", () => {
+    const harap: Record<string, Record<string, number>> = {
+      "R3-150": { "2026-10-26": 2, "2026-10-13": 1 },
+      "R3-151": { "2026-10-26": 2, "2026-10-20": 1 },
+      "R3-152": { "2026-10-26": 2, "2026-10-06": 1 },
+      "R3-153": { "2026-10-26": 2, "2026-10-20": 1 },
+      "R3-154": { "2026-10-26": 2, "2023-12-18": 1, "2024-09-26": 1 },
+    };
+    for (const [id, tgl] of Object.entries(harap)) {
+      const baris = riset.split("\n").find((b) => b.startsWith(`| ${id} |`))!;
+      const hitung: Record<string, number> = {};
+      for (const d of baris.match(/\d{4}-\d{2}-\d{2}/g) ?? []) hitung[d] = (hitung[d] ?? 0) + 1;
+      expect(hitung, id).toEqual(tgl);
+    }
+  });
+  test("tingkat dan urutan heading, serta penanda blok, dikunci", () => {
+    const kepala: [number, string][] = [];
+    let dalamKode = false;
+    for (const b of badan.split("\n")) {
+      if (b.trim().startsWith("```")) { dalamKode = !dalamKode; continue; }
+      if (dalamKode) continue;
+      const blok = b.match(/^<Blok nama="([^"]+)"/);
+      if (blok) kepala.push([0, blok[1]!]);
+      const h = b.match(/^(#{1,6}) (.+)$/);
+      if (h) kepala.push([h[1]!.length, h[2]!]);
+    }
+    expect(kepala).toEqual([
+      [0, "Mulai"], [2, "Inti"], [0, "Coba"], [0, "Paham"], [3, "Kenapa ini ada"], [3, "Cara kerjanya"], [3, "Di stack lain"],
+      [0, "Putuskan"], [3, "ADR 24: worker mengklaim baris, tanpa kursor"], [3, "Sengaja belum dilakukan"],
+      [0, "Kunci"], [3, "Cek diri"], [3, "Saat me-review kode AI, cek ini"], [3, "Bacaan lanjut"],
+    ]);
+  });
+  test("details dan summary: satu pertanyaan cepat dengan jumlah pertanyaan sama dengan daftar, empat jawaban Cek diri", () => {
+    expect([...badan.matchAll(/<details class="([^"]+)">/g)].map((m) => m[1])).toEqual(["question", "success", "success", "success", "success"]);
+    expect([...badan.matchAll(/<summary>(.*?)<\/summary>/g)].map((m) => m[1])).toEqual(["Sudah tahu? Cek 3 pertanyaan", "Jawaban", "Jawaban", "Jawaban", "Jawaban"]);
+    const q = badan.split('<details class="question">')[1]!.split("</details>")[0]!;
+    expect([...q.matchAll(/^\d+\. /gm)]).toHaveLength(Number(badan.match(/Cek (\d+) pertanyaan/)![1]));
+    expect(badan.match(/<details class="success">/g)).toHaveLength([...badan.split("### Cek diri")[1]!.split("### Saat me-review")[0]!.matchAll(/^\*\*\d\.\*\*/gm)].length);
+  });
+  test("judul Snippet sama dengan label sumbernya: berkas output rekaman berjudul Rekaman lab, berkas kode berjudul path-nya saja", () => {
+    const tag = [...badan.matchAll(/^<Snippet (.+) \/>$/gm)].map((m) => m[1]!).filter((x) => !x.startsWith("lang="));
+    expect(tag.length).toBeGreaterThanOrEqual(15);
+    for (const t of tag) {
+      const berkas = [...(t.match(/files=\{\[([^\]]+)\]\}/)?.[1] ?? "").matchAll(/"([^":]+):\d+:\d+"/g)].map((m) => m[1]!);
+      const satu = t.match(/file="([^"]+)"/)?.[1];
+      if (satu) berkas.push(satu);
+      expect(new Set(berkas).size, t).toBe(1);
+      const judul = t.match(/title="([^"]+)"/)?.[1];
+      expect(judul, t).toBe(berkas[0]!.includes("/output/") ? `Rekaman lab: ${berkas[0]}` : berkas[0]);
+    }
+  });
+});
+
 // ---- setiap kalimat di halaman punya asal ---------------------------------------------------------------------------------
 function satuan(b: string): string[] {
   const hasil: string[] = [];
@@ -771,7 +858,7 @@ const KALIMAT_PENULIS: string[] = [
   "**Kapan SKIP LOCKED terasa.** Di bagian D, sesi tangan memegang baris 1 sampai 4 dengan `FOR UPDATE` tanpa mengubahnya, jadi `klaim_sampai` tetap kosong. Worker sungguhan mengklaim baris 5 sampai 8 tanpa menunggu, dan hanya `SKIP LOCKED` yang melewati baris 1 sampai 4 di sini. Sesudah ROLLBACK, keempatnya dikirim:",
   "Tanpa `SKIP LOCKED`, uji mutasi di README lab mencatat worker belum selesai dalam 10 detik, karena ia menunggu baris yang dikunci sesi tangan. Klaim sendiri hanya sebentar, jadi `SKIP LOCKED` penting bila ada pemegang lock lain di baris outbox yang bertahan lebih lama dari satu pernyataan klaim.",
   "**Kenapa tidak ada baris yang terlewat.** Klaim tidak punya kursor. Tiap putaran memeriksa semua baris yang layak, jadi baris yang COMMIT belakangan terlihat di putaran berikutnya. Baris Dimas sudah dikirim poller kursor, jadi worker mengklaim satu baris: baris Budi yang tertinggal.",
-  "**Urutan antar pesan tidak dijaga.** Worker A mengklaim baris 1 lalu macet. Worker B mengirim baris 2 sampai 5, dan baris 1 baru terkirim sesudah klaim A habis:",
+  "**Urutan antar pesan tidak dijaga.** Rekaman memerankan worker A dengan satu `UPDATE` klaim atas baris 1, tanpa mengirim apa pun. Worker B mengirim baris 2 sampai 5, dan baris 1 baru terkirim sesudah klaim A habis:",
   "Baris 1 dilewati karena `klaim_sampai`-nya masih di masa depan, bukan karena `SKIP LOCKED`: `WHERE` mengeluarkannya sebelum ada yang dikunci. Dokumentasi menulis hal yang serupa untuk satu pernyataan. `ORDER BY` bersama klausa kunci di READ COMMITTED bisa mengembalikan baris tidak berurutan, karena pengurutan terjadi sebelum baris terkunci.",
   "Akibatnya tiap baris outbox harus berdiri sendiri. Payload membawa judul dan catatannya sendiri, mis. \"Rp25.000 dari Budi\" ([[t3-skema]] membahas tabelnya), jadi dua notifikasi yang tiba terbalik tetap terbaca benar. Pesan yang artinya bergantung pada pesan sebelumnya tidak cocok dengan queue ini.",
   "**Klaim yang habis.** `klaim_sampai` adalah lease: batas waktu satu worker memegang baris. Worker yang berhenti sesudah push berhasil dan sebelum menandai terkirim membuat barisnya dikirim ulang oleh worker lain sesudah klaim habis, dengan `notifikasi_id` yang sama:",
@@ -784,7 +871,7 @@ const KALIMAT_PENULIS: string[] = [
   "Tiap goroutine pengirim harus punya jalan keluar. Rekaman lab yang sama mencatat 1.000 goroutine tertinggal bila pemanggil menyerah duluan (5 sebelum, 1.005 sesudah). Di worker, jalan keluarnya timeout push 3 detik ([[t3-m18]]).",
   "Di stack lain",
   "**Skenario:** worker mengambil baris queue di PostgreSQL tanpa dua worker mengirim baris yang sama. Tab Go adalah kode lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi atau kode sumber pada 2026-10-26.",
-  "Yang sama di semua stack: baris dikunci selama klaim dan ditahan sesudahnya. Yang berbeda adalah siapa yang menulis klausa kunci, ada tidaknya batas waktu klaim, dan model concurrency proses worker. Menunggu jaringan sama cepatnya di Go dan Node.js: paralel 0,50 dan 0,51 detik untuk 10 kiriman 500 ms (Rekaman lab `b8-concurrency`). Bedanya terasa pada kerja CPU: saat satu request menghitung 1 detik, `/ping` dijawab dalam 0,35 ms di Go dan 0,96 detik di Node.js (`cpu.txt`).",
+  "Tab-tab di bawah menjawab pertanyaan yang sama. Perbedaannya ada pada siapa yang menulis klausa kunci, ada tidaknya batas waktu klaim yang terbaca di dokumentasi, dan model concurrency proses worker. Menunggu jaringan sama cepatnya di Go dan Node.js: paralel 0,50 dan 0,51 detik untuk 10 kiriman 500 ms (Rekaman lab `b8-concurrency`). Bedanya terasa pada kerja CPU: saat satu request menghitung 1 detik, `/ping` dijawab dalam 0,35 ms di Go dan 0,96 detik di Node.js (`cpu.txt`).",
   "*Dijalankan: lab api-t3 dan t3-outbox, PostgreSQL 17.11 (rekaman `klaim.txt` bagian A sampai D).*",
   "**Yang berbeda di stack ini:** klaim ditulis sebagai SQL tangan lewat `database/sql`, tanpa library queue. Cabang `Kursor` adalah mode rentan M19. Request lain tetap dijawab saat satu request menghitung (rekaman `b8-concurrency`: 0,35 ms).",
   "*Tidak dijalankan. Dicek ke [README pg-boss](https://github.com/timgit/pg-boss), pg-boss 12.38.0 (npm, rilis 2026-10-13), dibuka 2026-10-26.*",
@@ -840,6 +927,7 @@ const KALIMAT_PENULIS: string[] = [
   "**Kenapa C, bukan A.** A melewatkan baris yang COMMIT belakangan. Rekaman `kursor.txt` memakai penghambat buatan di bagian B untuk memanjangkan celahnya, dan bagian D menunjukkan bahwa urutan `dibuat` dan nomor bisa terbalik tanpa penghambat. C memperbaikinya tanpa kolom urutan.",
   "**Kenapa C, bukan B.** B menjaga urutan, tetapi penghitung global membuat semua pembayaran antre di satu baris. Penghitung per penerima mengharuskan setiap jalur tulis outbox menaikkannya di bawah lock buku. Pemberitahuan di Tahap 3 berdiri sendiri, jadi urutan penuh tidak dibutuhkan.",
   "**Kenapa C, bukan D.** Pesan yang dikirim selagi listener putus hilang, jadi D tidak bisa jadi satu-satunya sumber. Tabel dan polling harus tetap ada, dan di titik itu D hanya menurunkan jeda.",
+  "**Kenapa C, bukan batas aman dari snapshot.** Opsi C di ADR 16 ([[t2-kursor]]) menutup celah COMMIT belakangan, tetapi menunda baris terbaru selama ada transaction penulis yang terbuka. Ia tetap kursor di satu proses, jadi dua worker membaca batas yang sama dan butuh pembagian kerja sendiri. Opsi ini Tidak dijalankan di lab t3-outbox.",
   "**Kasus industri: Solid Queue (37signals, 2023 dan 2024).** Dalam tulisan 2023-12-18, 37signals menyebut `SELECT ... FOR UPDATE SKIP LOCKED` penting bagi implementasi mereka, karena worker bisa mengambil dan mengunci job tanpa mengunci worker lain. Fitur itu mereka tulis baru hadir di MySQL 8.",
   "Di antara alasan pindah dari Resque, mereka menulis tujuh gem untuk menjalankan job dan tantangan mengoperasikan Redis di skala mereka. Debugging juga lebih mudah di database relasional ([Introducing Solid Queue](https://dev.37signals.com/introducing-solid-queue/), dibuka 2026-10-26).",
   "Tulisan 2024-09-26 melaporkan HEY memproses ±20 juta job per hari dengan 800 worker di 74 VM dan dua datacenter ([Solid Queue 1.0 released](https://dev.37signals.com/solid-queue-v1-0/), dibuka 2026-10-26). README Solid Queue menulis bahwa ia memakai `FOR UPDATE SKIP LOCKED`, bila tersedia, untuk menghindari menunggu lock saat polling ([rails/solid_queue](https://github.com/rails/solid_queue), dibuka 2026-10-26). Itu sejalan dengan rekaman di atas: `SKIP LOCKED` mengganti menunggu.",
@@ -889,3 +977,74 @@ const KALIMAT_PENULIS: string[] = [
   "[37signals: Introducing Solid Queue](https://dev.37signals.com/introducing-solid-queue/) (2023) dan [Solid Queue 1.0 released](https://dev.37signals.com/solid-queue-v1-0/) (2024)",
   "[pg-boss](https://github.com/timgit/pg-boss) dan [pgmq](https://github.com/pgmq/pgmq)",
 ];
+
+// Nilai teks halaman istilah skip-locked, dikunci utuh (path JSON: nilai). Angka dan versi di dalamnya diperiksa terpisah terhadap sumbernya.
+const KUNCI_ISTILAH: Record<string, string> = {
+  "istilah": "SKIP LOCKED",
+  "sehari_hari": "Saat beberapa pekerja mengambil tugas dari satu daftar, pekerja yang tiba belakangan tidak antre di belakang yang sedang memegang tugas. Ia melewati tugas itu dan mengambil yang berikutnya.",
+  "cerita[0].rujukan": "t3-klaim-baris",
+  "cerita[0].teks": "Worker outbox mengklaim baris dengan `FOR UPDATE SKIP LOCKED`. Sesi kedua langsung mendapat baris 5 sampai 8 saat sesi pertama memegang baris 1 sampai 4, dan sesi ketiga mendapat 0 baris walau queue belum kosong.",
+  "mekanisme[0]": "`SELECT ... FOR UPDATE SKIP LOCKED` memilih baris sesuai `WHERE` dan `ORDER BY`, lalu mencoba mengunci tiap baris yang terpilih.",
+  "mekanisme[1]": "Baris yang sudah dikunci transaction lain dilewati, bukan ditunggu. Tanpa `SKIP LOCKED`, pernyataan menunggu transaction itu selesai.",
+  "mekanisme[2]": "Kunci yang didapat dipegang sampai transaction selesai. Worker yang mengklaim baris dalam satu pernyataan melepasnya saat pernyataan itu selesai, dan kolom seperti `klaim_sampai` menahan baris sesudahnya.",
+  "mekanisme[3]": "Karena baris yang dilewati tidak ikut hasil, dua pernyataan bersamaan bisa mendapat himpunan baris yang berbeda. Urutan antar baris juga tidak dijaga.",
+  "stack.go.label": "Rekaman lab",
+  "stack.go.versi": "Go 1.27.1, pgx v5.11.0 lewat database/sql, PostgreSQL 17.11",
+  "stack.go.teks": "`KlaimOutbox` menjalankan `WITH pilih AS (SELECT id FROM outbox WHERE ... LIMIT $1 FOR UPDATE SKIP LOCKED) UPDATE ...` dalam satu pernyataan. Tiga worker serentak atas 60 baris: 60 terkirim, 0 ganda.",
+  "stack.go.rekaman": "labs/t3-outbox/output/klaim.txt",
+  "stack.node.label": "Tidak dijalankan",
+  "stack.node.versi": "pg-boss 12.38.0",
+  "stack.node.teks": "README pg-boss menulis bahwa library ini bertumpu pada `SKIP LOCKED` dan worker bersamaan mengklaim job tanpa saling memblokir. Kamu tidak menulis SQL-nya.",
+  "stack.node.dokumentasi": "https://github.com/timgit/pg-boss",
+  "stack.laravel.label": "Tidak dijalankan",
+  "stack.laravel.versi": "laravel/framework 13.38.0",
+  "stack.laravel.teks": "Kode `DatabaseQueue` memilih `FOR UPDATE SKIP LOCKED` untuk PostgreSQL 9.5 ke atas, MySQL 8.0.1 ke atas, dan MariaDB 10.6.0 ke atas. Halaman Queues di dokumentasi tidak menyebutnya.",
+  "stack.laravel.dokumentasi": "https://github.com/laravel/framework/blob/v13.38.0/src/Illuminate/Queue/DatabaseQueue.php",
+  "stack.django.label": "Tidak dijalankan",
+  "stack.django.versi": "Django 6.1.2",
+  "stack.django.teks": "`select_for_update(skip_locked=True)` di dalam `transaction.atomic()`. `nowait` dan `skip_locked` tidak bisa dipakai bersamaan, dan di autocommit pemanggilannya menimbulkan `TransactionManagementError`.",
+  "stack.django.dokumentasi": "https://docs.djangoproject.com/en/6.1/ref/models/querysets/#select-for-update",
+  "stack.serverpod.label": "Tidak dijalankan",
+  "stack.serverpod.versi": "Serverpod 4.0.4",
+  "stack.serverpod.teks": "Row locking mendukung `LockBehavior.skipLocked` di `find` dengan `lockMode` dan `transaction`. Future call memakai klaim antar instance yang caranya tidak dijelaskan di halaman Scheduling.",
+  "stack.serverpod.dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/row-locking",
+  "stack.supabase.label": "Tidak dijalankan",
+  "stack.supabase.versi": "pgmq v1.13.1",
+  "stack.supabase.teks": "Supabase Queues memakai pgmq. `pgmq.read` menerima `vt`, lama pesan tak terlihat oleh consumer lain sesudah dibaca. Dokumentasi yang dibuka tidak menyebut `SKIP LOCKED`.",
+  "stack.supabase.dokumentasi": "https://github.com/pgmq/pgmq/blob/main/docs/api/sql/functions.md",
+  "jebakan[0]": "Mengira `SKIP LOCKED` yang mencegah baris dikirim dua kali. Yang mencegahnya klausa kunci `FOR UPDATE` bersama batas klaim; `SKIP LOCKED` hanya mengganti menunggu dengan melewati.",
+  "jebakan[1]": "Mengira `SKIP LOCKED` menjaga urutan. Baris yang dilewati dikirim belakangan, dan dokumentasi PostgreSQL menyebut hasilnya tampilan data yang tidak konsisten.",
+  "jebakan[2]": "Memakainya untuk pekerjaan umum seperti laporan. Dokumentasi menulis bahwa itu tidak cocok, dan gunanya menghindari lock contention banyak consumer pada tabel yang mirip queue.",
+  "terkait[0]": "SELECT FOR UPDATE",
+  "terkait[1]": "Lease",
+  "terkait[2]": "Outbox",
+  "terkait[3]": "Lock",
+  "sumber[0].riset": "R3-60",
+  "sumber[0].judul": "PostgreSQL 17: SELECT, The Locking Clause",
+  "sumber[0].url": "https://www.postgresql.org/docs/17/sql-select.html#SQL-FOR-UPDATE-SHARE",
+  "sumber[0].catatan": "SKIP LOCKED melewati baris yang tidak bisa langsung dikunci, memberi tampilan data yang tidak konsisten, dan bisa menghindari lock contention untuk banyak consumer pada tabel mirip queue.",
+  "sumber[1].riset": "R3-60",
+  "sumber[1].judul": "Rekaman lab t3-outbox: klaim per baris",
+  "sumber[1].rekaman": "labs/t3-outbox/output/klaim.txt",
+  "sumber[1].catatan": "Bagian A: tanpa klausa kunci dua sesi memilih baris yang sama; FOR UPDATE membuat sesi kedua menunggu; SKIP LOCKED membuatnya langsung mendapat baris lain. Bagian D: worker sungguhan melewati baris yang dikunci sesi lain.",
+  "sumber[2].riset": "R3-154",
+  "sumber[2].judul": "37signals: Introducing Solid Queue",
+  "sumber[2].url": "https://dev.37signals.com/introducing-solid-queue/",
+  "sumber[2].catatan": "Menyebut SELECT ... FOR UPDATE SKIP LOCKED penting bagi implementasi, karena worker mengambil dan mengunci job tanpa mengunci worker lain.",
+  "sumber[3].riset": "R3-150",
+  "sumber[3].judul": "pg-boss (README)",
+  "sumber[3].url": "https://github.com/timgit/pg-boss",
+  "sumber[3].catatan": "Bertumpu pada SKIP LOCKED; worker bersamaan mengklaim job tanpa saling memblokir; polling dengan dukungan LISTEN/NOTIFY.",
+  "sumber[4].riset": "R3-151",
+  "sumber[4].judul": "laravel/framework 13.38.0: Illuminate\\Queue\\DatabaseQueue",
+  "sumber[4].url": "https://github.com/laravel/framework/blob/v13.38.0/src/Illuminate/Queue/DatabaseQueue.php",
+  "sumber[4].catatan": "getLockForPopping mengembalikan FOR UPDATE SKIP LOCKED untuk PostgreSQL 9.5 ke atas; reserved_at dan retryAfter menjadi batas klaim.",
+  "sumber[5].riset": "R3-152",
+  "sumber[5].judul": "Django 6.1: QuerySet API, select_for_update",
+  "sumber[5].url": "https://docs.djangoproject.com/en/6.1/ref/models/querysets/#select-for-update",
+  "sumber[5].catatan": "select_for_update(skip_locked=True) mengabaikan baris yang terkunci; nowait dan skip_locked tidak bisa dipakai bersamaan.",
+  "sumber[6].riset": "R3-153",
+  "sumber[6].judul": "pgmq: functions (pgmq.read)",
+  "sumber[6].url": "https://github.com/pgmq/pgmq/blob/main/docs/api/sql/functions.md",
+  "sumber[6].catatan": "vt adalah waktu dalam detik sebuah pesan tak terlihat oleh consumer lain sesudah dibaca; halaman tidak menyebut SKIP LOCKED.",
+};
