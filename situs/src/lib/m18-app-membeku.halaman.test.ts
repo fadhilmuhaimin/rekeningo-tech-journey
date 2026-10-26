@@ -51,6 +51,7 @@ const fitur = baca("situs/src/content/docs/tahap-3/fitur-notifikasi.mdx");
 interface Layar { judul?: string; nada?: string; isi?: { jenis: string; teks?: string; nada?: string }[] }
 interface Langkah { dari: string; ke?: string; judul: string; kirim: string; jelas: string; nada?: string; layar?: Record<string, Layar> }
 interface Skenario {
+  judul: string;
   sumber: { jenis: string; file: string; fileVarian: string; catatan: string };
   pengantar: string;
   komponen: { id: string; label: string }[];
@@ -404,6 +405,46 @@ describe("m18-app-membeku.mdx: tiap angka turunan dari rekaman dan hitungan", ()
   });
 });
 
+// Peninjau 3.6 (keputusan 1023): uji mutasi per kalimat (sisipkan "tidak" di tiap kalimat prosa) meloloskan 16 dari 142 kalimat.
+// Kalimat yang membawa klaim mekanisme, hitungan, atau janji ke blok lain dikunci di sini dan dipasangkan dengan sumbernya.
+describe("kalimat klaim yang sebelumnya tidak terkunci", () => {
+  test("mekanisme: layanan push diam, satu koneksi per pembayaran, koneksi ke-10 mengosongkan pool, pembacaan ikut mengantre", () => {
+    harus("Layanan push menerima koneksi tetapi tidak menjawab, dan pembayaran menunggu jawabannya di dalam transaction. Tiap pembayaran menahan satu koneksi database.");
+    // satu koneksi per pembayaran: idle in transaction naik satu per pembayaran (1, 5, 9, 10) dan 10 pembayaran = 10 koneksi = maks pool
+    expect(idle.every(([ke, n]) => ke === n)).toBe(true);
+    harus(`Sesudah koneksi ke-${idle[3]![0]} ditahan, pool kosong dan request apa pun yang butuh koneksi mengantre, termasuk pembacaan saldo.`);
+    expect(idle[3]![1]).toBe(poolA.maks);
+    harus("Mode rentan `push-dalam-tx` di lab menuliskan ulang susunan itu:");
+    expect(notif).toContain("// Mode rentan push-dalam-tx (M18, versi pertama minggu 1): HTTP ke layanan push di dalam transaction, dengan client");
+    harus("Di PostgreSQL, jumlah transaction berstatus `idle in transaction` naik satu per pembayaran:");
+    harus("Pembacaan butuh koneksi juga.");
+  });
+  test("hitungan: pool 10 penuh hanya bila nilai itu mencapai 10, dan tabel merangkum tiga keadaan", () => {
+    harus(`Pool ${kepalaPool[1]} hanya penuh bila nilai itu mencapai ${kepalaPool[1]}, yaitu bila T lebih dari 9 ÷ ${koma(lambda, 3)} = ±${koma(ambang, 1)} detik.`);
+    expect(Number(kepalaPool[1]) - 1).toBe(9);
+    harus("Tabel ini merangkum tiga keadaan.");
+    expect(halaman.split("\n").filter((b) => b.startsWith("| Pool")).length).toBe(3);
+  });
+  test("janji ke blok lain: tebakan menjanjikan penyebab di blok berikutnya, Coba menjanjikan varian, adegan menjanjikan rekaman", () => {
+    harus("Penyebabnya tidak berubah, dan blok berikutnya menunjukkannya.");
+    expect(halaman.indexOf("Penyebabnya tidak berubah")).toBeLessThan(halaman.indexOf('<Blok nama="Yang sebenarnya">'));
+    harus("Koneksi kembali ke pool dan Budi mendapat jawabannya (bagian C).");
+    harus('Rekaman di blok "Yang sebenarnya" mengulang mekanismenya di server lokal.');
+    expect(halaman.indexOf("Rekaman di blok")).toBeLessThan(halaman.indexOf('<Blok nama="Yang sebenarnya">'));
+  });
+  test("adegan: Budi dan Ani melihat lingkaran berputar, Raka memeriksa tepat dua tempat (log lalu PostgreSQL), keluhan datang dalam menit", () => {
+    harus("Budi membuka Rekeningo untuk melihat saldonya sebelum memesan. Layarnya hanya menampilkan lingkaran yang berputar.");
+    harus("Di warung lantai dasar, Ani membuka laporan penjualan dan mendapat lingkaran yang sama.");
+    harus("Keluhan masuk ke Raka dari Budi dan dari Ani dalam beberapa menit.");
+    const raka = halaman.split("Raka memeriksa dua tempat.")[1]!.split("\n\n")[0]!;
+    expect(raka.trim().startsWith("Pertama log server")).toBe(true);
+    const kedua = halaman.split("Raka memeriksa dua tempat.")[1]!.split("\n\n")[1]!;
+    expect(kedua.startsWith("Kedua PostgreSQL")).toBe(true);
+    const periksa = halaman.split("Raka memeriksa dua tempat.")[1]!.split("Raka menyimpulkan")[0]!;
+    expect(hitung(periksa, /\b(Pertama|Kedua|Ketiga|Keempat) /g)).toBe(2);
+  });
+});
+
 describe("klaim dokumentasi: tiap kalimat dipasangkan dengan baris RISET, versi, dan tanggal", () => {
   const baris = (id: string): string => riset.split("\n").find((b) => b.startsWith(`| ${id} |`))!;
   test("net/http: Timeout nol berarti tanpa batas waktu (R3-08, Go 1.27.3)", () => {
@@ -568,6 +609,15 @@ describe("skenario alur t3-m18.json: tiap langkah dari rekaman, kode, dan hitung
     expect(skenario.predict.answer).toBe(1);
     expect(skenario.predict.options[skenario.predict.answer]).toBe("Tidak ada jawaban: server butuh satu koneksi bebas, bahkan untuk memeriksa sesi");
     expect(skenario.predict.options).toHaveLength(4);
+    // Pilihan salah adalah kepercayaan yang masuk akal (200, 503, 401), bukan klaim sistem; dikunci utuh supaya tidak berubah jadi benar tanpa sengaja.
+    expect(skenario.predict.options).toEqual([
+      "Saldonya dengan status 200: membaca saldo hanya satu query kecil",
+      "Tidak ada jawaban: server butuh satu koneksi bebas, bahkan untuk memeriksa sesi",
+      "Status 503 segera: server menolak request saat pool penuh",
+      "Status 401: sesi Budi tidak bisa diperiksa",
+    ]);
+    expect(skenario.judul).toBe("Layanan push menggantung, Budi membuka saldonya");
+    expect(skenario.pengantar).toBe("Layanan push menerima koneksi dan tidak pernah menjawab. Tebak dulu, lalu ikuti pembayaran yang menunggunya sampai Budi membuka saldonya. Sesudah langkah terakhir, centang 'Ubah satu hal'.");
     expect(skenario.predict.q).toBe(`Pembayaran ke-${idle[3]![0]} sudah sampai di layanan push dan belum dijawab, jadi ${idle[3]![1]} koneksi pool terpakai semua. Budi membuka saldonya. Apa yang diterima app Budi?`);
     expect(skenario.predict.explain).toBe(`Tidak ada jawaban. Sesudah pool penuh, ${bacaSesudah[2]} dari ${bacaSesudah[1]} pembacaan tidak dijawab dalam ${batasBaca[1]} detik (m18.txt bagian A), dan GET /akun/419 juga tidak dijawab (rentan.txt bagian A). Server memakai satu koneksi untuk memeriksa sesi sebelum membaca saldo.`);
     expect(skenario.pengantar).toContain("Layanan push menerima koneksi dan tidak pernah menjawab.");
@@ -778,7 +828,10 @@ describe("blok Coba dan tampilan: urutan blok, tebak sebelum hasil, dan penganta
     expect(halaman).toContain('<SkripLama daftar={["hp","alur-core","alur"]} />');
   });
   test("Coba: pengantar tebak dulu, ubah satu hal, dan layar HP digambar dari rekaman", () => {
-    harus("Widget ini mengikuti rekaman `m18.txt` bagian A dari satu pembayaran sampai Budi membuka saldonya. Tebak dulu apa yang diterima app Budi, lalu tekan Berikutnya atau panah kanan.");
+    harus("Widget ini mengikuti rekaman `m18.txt` bagian A dari satu pembayaran sampai pool penuh, lalu langkah Budi membuka saldonya dari `rentan.txt` bagian A. Tebak dulu apa yang diterima app Budi, lalu tekan Berikutnya atau panah kanan.");
+    // Pembagian sumber ada di kode langkah: "GET /akun/419" dan header Bearer hanya di rentan.txt; baris pool, idle in transaction, dan 190 di m18.txt.
+    expect(m18).not.toContain("GET '/akun/419'");
+    expect(rentan).toContain("GET '/akun/419'");
     harus(`Sesudah langkah terakhir, centang **Ubah satu hal: app menyerah sesudah ${batasC[2]} detik**.`);
     harus(`Layanan push tetap menahan ${tahanC[1]} permintaan.`);
     harus("Layar HP di widget digambar dari isi rekaman: lab `api-t3` tidak punya app Flutter.");
