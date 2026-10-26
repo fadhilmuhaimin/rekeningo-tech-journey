@@ -19,7 +19,9 @@ Satu transfer menyentuh dua tempat, PostgreSQL dan layanan push, dan keduanya ti
 
 <Rantai data={intiDiagram} ringkas />
 
-Layanan push adalah layanan di luar PostgreSQL yang meneruskan pesan ke HP. Versi pertama minggu 1 mengirim push di dalam transaction, dan Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) memerankannya dengan mode rentan `push-dalam-tx`. Saat layanan push mati, sepuluh pembayaran selesai dengan 201, tabel `outbox` tetap 0 baris, dan kegagalan hanya ada di sepuluh baris log (`rentan.txt` bagian B). Saat push menggantung, sepuluh pembayaran serentak menahan sepuluh koneksi, dan permintaan ke-11, membuka saldo, tidak dijawab selama 2 detik pengamatan (bagian A).
+Layanan push adalah layanan di luar PostgreSQL yang meneruskan pesan ke HP. Versi pertama minggu 1 mengirim push di dalam transaction, dan Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) memerankannya dengan mode rentan `push-dalam-tx`.
+
+Saat layanan push dimatikan, sepuluh pembayaran yang menunggunya selesai dengan 201. Tabel `outbox` tetap 0 baris, dan kegagalan hanya ada di sepuluh baris log (`rentan.txt` bagian B). Saat push menggantung, sepuluh pembayaran serentak menahan sepuluh koneksi, dan permintaan ke-11, membuka saldo, tidak dijawab selama 2 detik pengamatan (bagian A).
 
 Tiga hal harus selalu benar: pemberitahuan tidak mendahului uangnya, uang yang tercatat tidak kehilangan pemberitahuannya tanpa ada yang tahu, dan uang tidak menunggu pihak luar. Push mati melanggar hal kedua, dan push menggantung melanggar hal ketiga. Hal pertama rusak bila COMMIT gagal sesudah push terkirim. Kejadian itu Tidak dijalankan di lab Tahap 3, jadi ia penalaran dari urutan kode.
 
@@ -43,6 +45,10 @@ Minggu 1, Nadia dan Raka menulis urutan paling pendek: buka transaction, kunci b
 Kode di bawah adalah Ilustrasi, yaitu contoh dan bukan hasil sistem: ringkasan versi pertama, dengan bentuk transaction yang sama dengan `DalamTx` di lab. Perilakunya direkam di Rekaman lab lewat mode rentan `push-dalam-tx`.
 
 <CariBug client:visible data={caribug} />
+
+<noscript>
+<p>Tanpa JavaScript, baris di atas tidak bisa ditandai. Dua baris yang bermasalah adalah baris 14 dan baris 15. Hasilnya ada di tabel Empat kejadian di blok Paham.</p>
+</noscript>
 
 Dua baris yang kamu tandai mengisi keempat kejadian di atas. Keempatnya menghasilkan lima sel Tidak: satu untuk hal pertama, satu untuk hal kedua, dan tiga untuk hal ketiga.
 
@@ -70,15 +76,15 @@ Di minggu 1, dua pertanyaan ditanam. Bayu bertanya apakah uang ikut menunggu bil
 
 **Yang ikut satu COMMIT.** Jurnal dan baris lain yang ditulis di transaction yang sama ikut satu COMMIT. Di rekaman lab t3-outbox, COMMIT yang ditolak database (jurnal tidak seimbang, SQLSTATE 23514) tidak meninggalkan jurnal, dan baris `outbox` yang ditulis bersamanya ikut hilang:
 
-<Snippet file="labs/t3-outbox/output/transaksi.txt" lines="68:75" title="Rekaman lab: labs/t3-outbox/output/transaksi.txt" />
+<Snippet file="labs/t3-outbox/output/transaksi.txt" lines="67:75" title="Rekaman lab: labs/t3-outbox/output/transaksi.txt" />
 
 **Yang tidak ikut.** Pesan yang sudah diterima layanan push tidak ikut batal bila COMMIT gagal sesudahnya. Kejadian itu Tidak dijalankan di lab Tahap 3. Ia dibaca dari urutan kode lab, tempat `beritahu` dipanggil di dalam transaction dan COMMIT datang sesudahnya:
 
 <Snippet file="labs/api-t3/internal/service/notif.go" region="beritahu" lang="go" title="labs/api-t3/internal/service/notif.go" />
 
-**Push mati.** Layanan push dimatikan, lalu sepuluh pembayaran dijalankan. Semuanya selesai, dan tidak ada baris di database yang menandai pemberitahuan yang gagal:
+**Push mati.** Layanan push dimatikan saat sepuluh pembayaran di bagian A masih menunggu jawabannya. Sepuluh pembayaran itu selesai dengan 201, dan tidak ada baris di database yang menandai pemberitahuan yang gagal:
 
-<Snippet file="labs/api-t3/output/rentan.txt" lines="33:40" title="Rekaman lab: labs/api-t3/output/rentan.txt" />
+<Snippet file="labs/api-t3/output/rentan.txt" lines="32:40" title="Rekaman lab: labs/api-t3/output/rentan.txt" />
 
 **Push menggantung.** Layanan push menerima permintaan dan tidak menjawab. Sepuluh pembayaran ke sepuluh warung berbeda, serentak, memegang sepuluh koneksi dengan transaction terbuka. Permintaan ke-11 hanya membuka saldo, tetapi server butuh satu koneksi bebas bahkan untuk memeriksa sesinya:
 
@@ -97,7 +103,7 @@ Status `idle in transaction` berarti sesi database membuka transaction dan sedan
 
 Sel Ya dan Tidak berlaku adalah penalaran dari urutan kode, bukan rekaman terpisah. Setiap sel Tidak punya dasarnya sendiri:
 
-- **Baris 1, hal 3:** Rekaman lab `little.txt` (lab t3-pool). Untuk push yang menjawab sesudah 0,3, 2, dan 10 detik, lama satu pembayaran sama dengan lama jawaban ditambah kurang dari 50 ms.
+- **Baris 1, hal 3:** Rekaman lab `little.txt` (lab t3-pool). Untuk push yang menjawab sesudah 0,3, 2, dan 10 detik, rata-rata lama satu pembayaran sama dengan lama jawaban ditambah kurang dari 50 ms.
 - **Baris 2, hal 1:** Tidak dijalankan. Yang direkam hanya bahwa database bisa menolak COMMIT (`transaksi.txt` bagian D).
 - **Baris 3, hal 2:** Rekaman lab `rentan.txt` bagian B. Hal 3 di baris yang sama dibaca dari urutan kode.
 - **Baris 4, hal 3:** Rekaman lab `rentan.txt` bagian A.
@@ -115,7 +121,7 @@ Di app Flutter kamu mungkin pernah menyimpan data ke database lokal lalu memangg
 | Cara mengirim pemberitahuan | Yang rusak atau dijaga | Bukti |
 |---|---|---|
 | Kirim di dalam transaction (versi pertama) | Hal 1, 2, dan 3 bisa rusak, di kejadian berbeda | Rekaman lab `rentan.txt` bagian A dan B; hal 1 Tidak dijalankan |
-| Kirim sesudah COMMIT, tanpa catatan di database | Hal 2: proses yang mati di antara COMMIT dan kirim tidak meninggalkan catatan | Tidak dijalankan: `transaksi.txt` bagian F menulis opsi ini Tidak dijalankan di lab Tahap 3 |
+| Kirim sesudah COMMIT, tanpa catatan di database | Hal 2: proses yang mati di antara COMMIT dan kirim tidak meninggalkan catatan | Tidak dijalankan: `transaksi.txt` bagian F menulis opsi ini Tidak dijalankan di lab t3-outbox |
 | Tulis pemberitahuan sebagai satu baris di transaction yang sama, kirim dari worker | Tiga hal terjaga di rekaman; ongkosnya satu tabel dan satu proses worker | Rekaman lab `transaksi.txt`: hal 1 di bagian B (worker tidak melihat baris sebelum COMMIT), hal 2 di bagian F (API mati sesudah COMMIT, baris tetap ada dan dikirim worker), hal 3 di bagian A (pembayaran selesai sebelum push menerima apa pun) |
 
 **Biaya cara ketiga.** Pembayaran selesai lebih dulu, dan pemberitahuan menyusul dari worker. Di `transaksi.txt` bagian A, layanan push tiruan menerima 0 pesan saat pembayaran selesai, dan 1 pesan sesudah worker berjalan. Cara kerjanya, alasan memilihnya, dan kapan keputusan itu salah ada di [[t3-outbox]].

@@ -170,6 +170,10 @@ describe("naskah: tiga hal, versi pertama, empat kejadian, dua pertanyaan, pola 
     harus(`Keempatnya menghasilkan ${kata(perHal.reduce((a, b) => a + b, 0))} sel Tidak: ${kata(perHal[0]!)} untuk hal pertama, ${kata(perHal[1]!)} untuk hal kedua, dan ${kata(perHal[2]!)} untuk hal ketiga.`);
     expect(K.baris).toHaveLength(4);
     harus("keempat kejadian di atas");
+    // Tanpa JavaScript (noscript): nomor tampil baris bug diturunkan dari data widget (indeks + 1), tabel ada di blok Paham.
+    harus(`<noscript>\n<p>Tanpa JavaScript, baris di atas tidak bisa ditandai. Dua baris yang bermasalah adalah baris ${widget.bug[0]! + 1} dan baris ${widget.bug[1]! + 1}. Hasilnya ada di tabel Empat kejadian di blok Paham.</p>\n</noscript>`);
+    expect(badan.indexOf("<noscript>")).toBeGreaterThan(badan.indexOf("<CariBug"));
+    expect(badan.indexOf("<noscript>")).toBeLessThan(badan.indexOf("<Blok nama=\"Paham\">"));
     // Baris kode 13 (push di dalam transaction) menyentuh hal 1 dan 3; baris 14 (error hanya di log) menyentuh hal 2.
     expect(widget.bug).toEqual([13, 14]);
     expect(widget.alasan["13"]!.startsWith("Hal 1 dan hal 3.")).toBe(true);
@@ -199,12 +203,22 @@ describe("rekaman: rentan.txt A dan B, transaksi.txt, little.txt, dan rentang Sn
     const bayar = bagianB.join("\n").match(/^(\d+) pembayaran: (\d+) x(\d+)$/m)!;
     expect(bayar.slice(1)).toEqual(["10", "201", "10"]);
     expect(bagianB.some((b) => b.startsWith("$ kill -TERM <pid push tiruan>"))).toBe(true);
+    // Sepuluh pembayaran bagian B adalah sepuluh pembayaran bagian A yang tertahan di push; ia selesai begitu push dimatikan,
+    // bukan sepuluh pembayaran baru (labs/api-t3/run.py: satu `serentak(` di bagian A, bagian B hanya menunggu thread yang sama).
+    const runPy = baca("labs/api-t3/run.py");
+    const rekam = runPy.split("def rekam_rentan():")[1]!.split("def ")[0]!;
+    const sA = rekam.split('bagian("B. Layanan push dimatikan')[0]!;
+    const sB = rekam.split('bagian("B. Layanan push dimatikan')[1]!.split('bagian("C. M19')[0]!;
+    expect(sA).toContain("hasil, thread = serentak(");
+    expect(sB).not.toContain("serentak(");
+    expect(sB).toContain("tunggu_semua(thread)");
+    expect(sB.indexOf("d.stop(PORT_PUSH")).toBeLessThan(sB.indexOf("tunggu_semua(thread)"));
     const baris = bagianB.find((b) => /^ \d+ +\| \d+$/.test(b))!;
     const [jurnal, outbox] = baris.split("|").map((x) => x.trim());
     expect([jurnal, outbox]).toEqual(["10", "0"]);
     const log = bagianB.join("\n").match(/server log: (\d+) baris 'push gagal, hanya dicatat/)!;
     expect(log[1]).toBe("10");
-    harus(`Saat layanan push mati, ${kata(Number(bayar[1]))} pembayaran selesai dengan ${bayar[2]}, tabel \`outbox\` tetap ${outbox} baris, dan kegagalan hanya ada di ${kata(Number(log[1]))} baris log (\`rentan.txt\` bagian B).`);
+    harus(`Saat layanan push dimatikan, ${kata(Number(bayar[1]))} pembayaran yang menunggunya selesai dengan ${bayar[2]}. Tabel \`outbox\` tetap ${outbox} baris, dan kegagalan hanya ada di ${kata(Number(log[1]))} baris log (\`rentan.txt\` bagian B).`);
     expect(bagianB.join("\n")).toContain("# Sepuluh pemberitahuan hilang tanpa ada yang tahu, kecuali yang membaca log");
     // Rantai ringkas: simpul baris 1.
     expect(rantai.baris[0]!.simpul.map((s) => s.teks)).toEqual([`${bayar[1]} pembayaran: ${bayar[2]}`, "push gagal: hanya log", `${outbox} baris di database`]);
@@ -228,7 +242,7 @@ describe("rekaman: rentan.txt A dan B, transaksi.txt, little.txt, dan rentang Sn
   });
   test("rentang Snippet diturunkan dari baris rekaman, bukan ditulis tangan", () => {
     const nomor = (baris: string[], i: number) => i + 1;
-    const b1 = nomorBaris(rentan, (b) => b.startsWith("10 pembayaran: 201 x10"), iB);
+    const b1 = nomorBaris(rentan, (b) => b.startsWith("$ kill -TERM <pid push tiruan>"), iB);
     const b2 = nomorBaris(rentan, (b) => b.startsWith("# Sepuluh pemberitahuan hilang"), iB);
     harus(`<Snippet file="labs/api-t3/output/rentan.txt" lines="${nomor(rentan, b1)}:${nomor(rentan, b2)}"`);
     const a1 = nomorBaris(rentan, (b) => b.startsWith("=> SELECT state, count(*) FROM pg_stat_activity"), iA);
@@ -241,8 +255,9 @@ describe("rekaman: rentan.txt A dan B, transaksi.txt, little.txt, dan rentang Sn
     const d2 = nomorBaris(transaksi, (b) => b === "=> COMMIT", d1);
     const d3 = nomorBaris(transaksi, (b) => b.includes("AS outbox_90003"), d2);
     const d4 = nomorBaris(transaksi, (b) => b === "(1 row)", d3);
-    harus(`<Snippet file="labs/t3-outbox/output/transaksi.txt" lines="${nomor(transaksi, d2)}:${nomor(transaksi, d4)}"`);
-    expect(transaksi.slice(d2, d4 + 1).join("\n")).toMatch(/ERROR: {2}jurnal 90003 tidak seimbang[\s\S]*SQLSTATE 23514 · constraint jurnal_seimbang[\s\S]* 0 {12}\| 0\n\(1 row\)/);
+    harus(`<Snippet file="labs/t3-outbox/output/transaksi.txt" lines="${nomor(transaksi, d1)}:${nomor(transaksi, d4)}"`);
+    expect(transaksi[d1]).toBe("# Sesi tangan: jurnal 90003 tidak seimbang (-1000 dan +900) dan satu baris outbox");
+    expect(transaksi.slice(d1, d4 + 1).join("\n")).toMatch(/ERROR: {2}jurnal 90003 tidak seimbang[\s\S]*SQLSTATE 23514 · constraint jurnal_seimbang[\s\S]* 0 {12}\| 0\n\(1 row\)/);
     harus("(jurnal tidak seimbang, SQLSTATE 23514)");
   });
   test("transaksi.txt: A pembayaran selesai sebelum push menerima, B worker tidak melihat baris sebelum COMMIT, C ROLLBACK, F API mati sesudah COMMIT, G outbox gagal membatalkan pembayaran", () => {
@@ -268,14 +283,14 @@ describe("rekaman: rentan.txt A dan B, transaksi.txt, little.txt, dan rentang Sn
     // Putuskan dan catatan perbaikan menyebut bagian rekaman yang sama.
     harus("Rekaman lab `transaksi.txt`: hal 1 di bagian B (worker tidak melihat baris sebelum COMMIT), hal 2 di bagian F (API mati sesudah COMMIT, baris tetap ada dan dikirim worker), hal 3 di bagian A (pembayaran selesai sebelum push menerima apa pun)");
     harus("Di `transaksi.txt` bagian A, layanan push tiruan menerima 0 pesan saat pembayaran selesai, dan 1 pesan sesudah worker berjalan.");
-    harus("`transaksi.txt` bagian F menulis opsi ini Tidak dijalankan di lab Tahap 3");
+    harus("`transaksi.txt` bagian F menulis opsi ini Tidak dijalankan di lab t3-outbox");
   });
-  test("little.txt: untuk push 0,3, 2, dan 10 detik, lama satu pembayaran sama dengan t ditambah kurang dari 50 ms", () => {
+  test("little.txt: untuk push 0,3, 2, dan 10 detik, rata-rata lama satu pembayaran sama dengan t ditambah kurang dari 50 ms", () => {
     const t = [...little.matchAll(/^# --- t = (\d+(?:,\d+)?) detik: layanan push menjawab/gm)].map((m) => m[1]!.replace(/,0$/, ""));
     expect(t).toEqual(["0,3", "2", "10"]);
     const w = [...little.matchAll(/^W dari data \(rata-rata satu pembayaran\): t ditambah kurang dari (\d+) ms .*: ya$/gm)].map((m) => m[1]);
     expect(w).toEqual(["50", "50", "50"]);
-    harus(`Untuk push yang menjawab sesudah ${t[0]}, ${t[1]}, dan ${t[2]} detik, lama satu pembayaran sama dengan lama jawaban ditambah kurang dari ${w[0]} ms.`);
+    harus(`Untuk push yang menjawab sesudah ${t[0]}, ${t[1]}, dan ${t[2]} detik, rata-rata lama satu pembayaran sama dengan lama jawaban ditambah kurang dari ${w[0]} ms.`);
     expect(little).toContain("(batas lab; Asumsi naskah 20 ms)");
   });
 });
@@ -421,7 +436,7 @@ function satuan(b: string): string[] {
   for (const mentah of b.split("\n")) {
     const l = mentah.trim();
     if (!l || l.startsWith("import ") || l.startsWith("<Snippet") || l.startsWith("<Rantai") || l.startsWith("<CariBug") || l.startsWith("<p class=\"meta\"")) continue;
-    if (l.startsWith("</") || l.startsWith("<details") || l.startsWith("<summary>") || /^\|[-| ]+\|$/.test(l)) continue;
+    if (l.startsWith("</") || l === "<noscript>" || l.startsWith("<details") || l.startsWith("<summary>") || /^\|[-| ]+\|$/.test(l)) continue;
     const aman = l.match(/^<Blok nama="[^"]+"(?: buka)?(?: aman="([^"]+)")?>$/);
     if (aman) {
       if (aman[1]) hasil.push(aman[1]);
@@ -460,12 +475,12 @@ const TEKS_WIDGET = {
   "sumberJenis": "ilustrasi",
   "sumberTeks": "Ringkasan urutan versi pertama dari naskah Tahap 3 bagian 3. Bentuk BeginTx, defer Rollback, dan Commit sama dengan DalamTx di labs/api-t3, dan pesan log sama dengan notif.go; nama fungsi lain disederhanakan. Perilakunya direkam di rentan.txt bagian A dan B, lewat mode rentan push-dalam-tx.",
   "tebak": {
-    "q": "Dua baris di handler ini membuat satu dari tiga hal yang harus selalu benar tidak lagi terjaga. Yang mana?",
+    "q": "Dua baris di handler ini membuat tiga hal yang harus selalu benar tidak lagi terjaga. Baris mana?",
     "petunjuk": "Tiga hal itu: pemberitahuan tidak mendahului uangnya, uang yang tercatat tidak kehilangan pemberitahuannya tanpa ada yang tahu, dan uang tidak menunggu pihak luar. Untuk tiap baris, tanya: kalau baris ini gagal, lambat, atau jalan lebih dulu, hal mana yang rusak?"
   },
   "alasan": {
     "13": "Hal 1 dan hal 3. Push dikirim di dalam transaction, sebelum COMMIT. Kalau COMMIT gagal sesudahnya, Citra sudah diberi tahu uang yang tidak ada (Tidak dijalankan di lab Tahap 3, dari urutan kode). Selama push belum menjawab, sepuluh pembayaran serentak menahan sepuluh koneksi (Rekaman lab rentan.txt bagian A).",
-    "14": "Hal 2. Error push hanya masuk log, tanpa baris di database. Di rekaman, push dimatikan: sepuluh pembayaran selesai dengan 201, tabel outbox tetap 0 baris, dan log berisi sepuluh baris \"push gagal, hanya dicatat\" (Rekaman lab rentan.txt bagian B)."
+    "14": "Hal 2. Error push hanya masuk log, tanpa baris di database. Di rekaman, push dimatikan saat sepuluh pembayaran masih menunggunya: semuanya selesai dengan 201, tabel outbox tetap 0 baris, dan log berisi sepuluh baris \"push gagal, hanya dicatat\" (Rekaman lab rentan.txt bagian B)."
   },
   "aman": {
     "6": "Kunci buku (ADR 13) harus ada sebelum saldo dibaca. Baris ini bukan masalahnya. Yang menentukan adalah apa yang dikerjakan selama kunci dipegang.",
@@ -475,7 +490,7 @@ const TEKS_WIDGET = {
   "label": {
     "sumber": "Ilustrasi: ringkasan versi pertama",
     "tebakDulu": "Tebak dulu:",
-    "perintah": "Klik baris yang membuat satu dari tiga hal tidak terjaga, lalu Periksa.",
+    "perintah": "Klik baris yang membuat paling sedikit satu dari tiga hal tidak terjaga, lalu Periksa.",
     "periksa": "Periksa tanda saya",
     "ulang": "Ulang",
     "benar": "sumber masalah",
@@ -491,7 +506,8 @@ const TEKS_WIDGET = {
 const KALIMAT_PENULIS: string[] = [
   "Inti",
   "Satu transfer menyentuh dua tempat, PostgreSQL dan layanan push, dan keduanya tidak bisa COMMIT bersama.",
-  "Layanan push adalah layanan di luar PostgreSQL yang meneruskan pesan ke HP. Versi pertama minggu 1 mengirim push di dalam transaction, dan Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) memerankannya dengan mode rentan `push-dalam-tx`. Saat layanan push mati, sepuluh pembayaran selesai dengan 201, tabel `outbox` tetap 0 baris, dan kegagalan hanya ada di sepuluh baris log (`rentan.txt` bagian B). Saat push menggantung, sepuluh pembayaran serentak menahan sepuluh koneksi, dan permintaan ke-11, membuka saldo, tidak dijawab selama 2 detik pengamatan (bagian A).",
+  "Layanan push adalah layanan di luar PostgreSQL yang meneruskan pesan ke HP. Versi pertama minggu 1 mengirim push di dalam transaction, dan Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) memerankannya dengan mode rentan `push-dalam-tx`.",
+  "Saat layanan push dimatikan, sepuluh pembayaran yang menunggunya selesai dengan 201. Tabel `outbox` tetap 0 baris, dan kegagalan hanya ada di sepuluh baris log (`rentan.txt` bagian B). Saat push menggantung, sepuluh pembayaran serentak menahan sepuluh koneksi, dan permintaan ke-11, membuka saldo, tidak dijawab selama 2 detik pengamatan (bagian A).",
   "Tiga hal harus selalu benar: pemberitahuan tidak mendahului uangnya, uang yang tercatat tidak kehilangan pemberitahuannya tanpa ada yang tahu, dan uang tidak menunggu pihak luar. Push mati melanggar hal kedua, dan push menggantung melanggar hal ketiga. Hal pertama rusak bila COMMIT gagal sesudah push terkirim. Kejadian itu Tidak dijalankan di lab Tahap 3, jadi ia penalaran dari urutan kode.",
   "Push dimatikan, dan sepuluh pembayaran tetap selesai dengan 201. Hal mana dari tiga hal yang rusak?",
   "Layanan push menggantung, dan Budi hanya membuka saldo. Kenapa permintaannya ikut tidak dijawab?",
@@ -500,6 +516,7 @@ const KALIMAT_PENULIS: string[] = [
   "Kalau berhenti di sini, kamu sudah tahu: dua baris, kirim push di dalam transaction dan error yang hanya dicatat di log, membuat tiga hal tidak terjaga.",
   "Minggu 1, Nadia dan Raka menulis urutan paling pendek: buka transaction, kunci buku (ADR 13), tulis jurnal dan posting, kirim push lewat HTTP, lalu COMMIT. Client HTTP memakai pengaturan bawaan Go, dan di sana nol berarti tanpa batas waktu ([dokumentasi net/http, Go 1.27.3](https://pkg.go.dev/net/http#Client), dibuka 2026-10-26). Di staging urutan ini tampak cukup.",
   "Kode di bawah adalah Ilustrasi, yaitu contoh dan bukan hasil sistem: ringkasan versi pertama, dengan bentuk transaction yang sama dengan `DalamTx` di lab. Perilakunya direkam di Rekaman lab lewat mode rentan `push-dalam-tx`.",
+  "<p>Tanpa JavaScript, baris di atas tidak bisa ditandai. Dua baris yang bermasalah adalah baris 14 dan baris 15. Hasilnya ada di tabel Empat kejadian di blok Paham.</p>",
   "Dua baris yang kamu tandai mengisi keempat kejadian di atas. Keempatnya menghasilkan lima sel Tidak: satu untuk hal pertama, satu untuk hal kedua, dan tiga untuk hal ketiga.",
   "**Ubah satu hal:** tekan Lihat versi benar sesudah memeriksa. Dua baris diganti, dan di versi itu tidak ada baris yang memanggil layanan push.",
   "Kenapa ini ada",
@@ -512,12 +529,12 @@ const KALIMAT_PENULIS: string[] = [
   "Cara kerjanya",
   "**Yang ikut satu COMMIT.** Jurnal dan baris lain yang ditulis di transaction yang sama ikut satu COMMIT. Di rekaman lab t3-outbox, COMMIT yang ditolak database (jurnal tidak seimbang, SQLSTATE 23514) tidak meninggalkan jurnal, dan baris `outbox` yang ditulis bersamanya ikut hilang:",
   "**Yang tidak ikut.** Pesan yang sudah diterima layanan push tidak ikut batal bila COMMIT gagal sesudahnya. Kejadian itu Tidak dijalankan di lab Tahap 3. Ia dibaca dari urutan kode lab, tempat `beritahu` dipanggil di dalam transaction dan COMMIT datang sesudahnya:",
-  "**Push mati.** Layanan push dimatikan, lalu sepuluh pembayaran dijalankan. Semuanya selesai, dan tidak ada baris di database yang menandai pemberitahuan yang gagal:",
+  "**Push mati.** Layanan push dimatikan saat sepuluh pembayaran di bagian A masih menunggu jawabannya. Sepuluh pembayaran itu selesai dengan 201, dan tidak ada baris di database yang menandai pemberitahuan yang gagal:",
   "**Push menggantung.** Layanan push menerima permintaan dan tidak menjawab. Sepuluh pembayaran ke sepuluh warung berbeda, serentak, memegang sepuluh koneksi dengan transaction terbuka. Permintaan ke-11 hanya membuka saldo, tetapi server butuh satu koneksi bebas bahkan untuk memeriksa sesinya:",
   "Status `idle in transaction` berarti sesi database membuka transaction dan sedang tidak menjalankan query ([PostgreSQL 17: pg_stat_activity](https://www.postgresql.org/docs/17/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW)). Sepuluh pembayaran serentak bukan beban berjadwal; rekaman dengan beban berjadwal ada di [[t3-m18]].",
   "**Empat kejadian.** Tabel yang terisi di blok Coba, lengkap dengan hal yang rusak:",
   "Sel Ya dan Tidak berlaku adalah penalaran dari urutan kode, bukan rekaman terpisah. Setiap sel Tidak punya dasarnya sendiri:",
-  "**Baris 1, hal 3:** Rekaman lab `little.txt` (lab t3-pool). Untuk push yang menjawab sesudah 0,3, 2, dan 10 detik, lama satu pembayaran sama dengan lama jawaban ditambah kurang dari 50 ms.",
+  "**Baris 1, hal 3:** Rekaman lab `little.txt` (lab t3-pool). Untuk push yang menjawab sesudah 0,3, 2, dan 10 detik, rata-rata lama satu pembayaran sama dengan lama jawaban ditambah kurang dari 50 ms.",
   "**Baris 2, hal 1:** Tidak dijalankan. Yang direkam hanya bahwa database bisa menolak COMMIT (`transaksi.txt` bagian D).",
   "**Baris 3, hal 2:** Rekaman lab `rentan.txt` bagian B. Hal 3 di baris yang sama dibaca dari urutan kode.",
   "**Baris 4, hal 3:** Rekaman lab `rentan.txt` bagian A.",
@@ -532,7 +549,7 @@ const KALIMAT_PENULIS: string[] = [
   "Rekaman lab `rentan.txt` bagian A dan B; hal 1 Tidak dijalankan",
   "Kirim sesudah COMMIT, tanpa catatan di database",
   "Hal 2: proses yang mati di antara COMMIT dan kirim tidak meninggalkan catatan",
-  "Tidak dijalankan: `transaksi.txt` bagian F menulis opsi ini Tidak dijalankan di lab Tahap 3",
+  "Tidak dijalankan: `transaksi.txt` bagian F menulis opsi ini Tidak dijalankan di lab t3-outbox",
   "Tulis pemberitahuan sebagai satu baris di transaction yang sama, kirim dari worker",
   "Tiga hal terjaga di rekaman; ongkosnya satu tabel dan satu proses worker",
   "Rekaman lab `transaksi.txt`: hal 1 di bagian B (worker tidak melihat baris sebelum COMMIT), hal 2 di bagian F (API mati sesudah COMMIT, baris tetap ada dan dikirim worker), hal 3 di bagian A (pembayaran selesai sebelum push menerima apa pun)",

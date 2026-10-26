@@ -32,7 +32,7 @@
   ],
   "alasan": {
     "13": "Hal 1 dan hal 3. Push dikirim di dalam transaction, sebelum COMMIT. Kalau COMMIT gagal sesudahnya, Citra sudah diberi tahu uang yang tidak ada (Tidak dijalankan di lab Tahap 3, dari urutan kode). Selama push belum menjawab, sepuluh pembayaran serentak menahan sepuluh koneksi (Rekaman lab rentan.txt bagian A).",
-    "14": "Hal 2. Error push hanya masuk log, tanpa baris di database. Di rekaman, push dimatikan: sepuluh pembayaran selesai dengan 201, tabel outbox tetap 0 baris, dan log berisi sepuluh baris \"push gagal, hanya dicatat\" (Rekaman lab rentan.txt bagian B)."
+    "14": "Hal 2. Error push hanya masuk log, tanpa baris di database. Di rekaman, push dimatikan saat sepuluh pembayaran masih menunggunya: semuanya selesai dengan 201, tabel outbox tetap 0 baris, dan log berisi sepuluh baris \"push gagal, hanya dicatat\" (Rekaman lab rentan.txt bagian B)."
   },
   "aman": {
     "6": "Kunci buku (ADR 13) harus ada sebelum saldo dibaca. Baris ini bukan masalahnya. Yang menentukan adalah apa yang dikerjakan selama kunci dipegang.",
@@ -40,7 +40,7 @@
     "16": "COMMIT di akhir sudah tepat untuk data di PostgreSQL. Yang salah adalah apa yang sudah terkirim sebelum COMMIT sampai."
   },
   "tebak": {
-    "q": "Dua baris di handler ini membuat satu dari tiga hal yang harus selalu benar tidak lagi terjaga. Yang mana?",
+    "q": "Dua baris di handler ini membuat tiga hal yang harus selalu benar tidak lagi terjaga. Baris mana?",
     "petunjuk": "Tiga hal itu: pemberitahuan tidak mendahului uangnya, uang yang tercatat tidak kehilangan pemberitahuannya tanpa ada yang tahu, dan uang tidak menunggu pihak luar. Untuk tiap baris, tanya: kalau baris ini gagal, lambat, atau jalan lebih dulu, hal mana yang rusak?"
   },
   "perbaikan": {
@@ -146,7 +146,7 @@
   "label": {
     "sumber": "Ilustrasi: ringkasan versi pertama",
     "tebakDulu": "Tebak dulu:",
-    "perintah": "Klik baris yang membuat satu dari tiga hal tidak terjaga, lalu Periksa.",
+    "perintah": "Klik baris yang membuat paling sedikit satu dari tiga hal tidak terjaga, lalu Periksa.",
     "periksa": "Periksa tanda saya",
     "ulang": "Ulang",
     "benar": "sumber masalah",
