@@ -1,0 +1,148 @@
+# Potongan OpenAPI untuk QR merchant luar (lab-api-t4). Induk menyisipkan blok paths di bawah `paths:` dan blok
+# schemas di akhir `components.schemas` pada openapi.yaml. Indentasi sudah sama dengan berkas itu.
+# --- paths ---
+  /qr:
+    post:
+      operationId: buatQR
+      summary: Merchant terverifikasi menerbitkan QR statis (tanpa nominal, dibayar berkali-kali) atau dinamis (satu nominal, 5 menit, sekali bayar)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanQR' }
+      responses:
+        '201':
+          description: QR terbit
+          headers:
+            Location: { description: 'Alamat QR, misalnya /qr/0fa0431d-1f2e-4c11-8a55-7d0c4b6d9a01', schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QR' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /qr/{id}:
+    get:
+      operationId: lihatQR
+      summary: Layar konfirmasi sebelum membayar. Nama merchant dibaca dari tabel akun, bukan dari isi QR. QR yang tidak ada, tidak aktif, kedaluwarsa, atau milik merchant yang dibekukan atau belum terverifikasi dijawab 404 yang sama
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: QR yang bisa dibayar
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KonfirmasiQR' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /qr/{id}/bayar:
+    post:
+      operationId: bayarQR
+      summary: Karyawan atau pemakai (tingkat apa pun) membayar QR dari saldo. QR dinamis sekali bayar (409 sesudahnya, 410 sesudah 5 menit); QR statis wajib nominal paling banyak Rp200.000
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanBayarQR' }
+      responses:
+        '201':
+          description: Jurnal bayar dibuat; merchant mendapat satu baris outbox di transaction yang sama
+          headers:
+            Location: { description: 'Alamat jurnal, misalnya /transfers/10001', schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HasilBayarQR' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '410': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /qr/{id}/laporkan:
+    post:
+      operationId: laporkanQR
+      summary: Laporan QR palsu membekukan merchant pemilik QR lebih dulu; tim risk memeriksa kemudian. Satu baris audit log berantai ditulis di transaction yang sama
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [alasan]
+              properties:
+                alasan: { type: string, minLength: 20, maxLength: 200 }
+      responses:
+        '202':
+          description: Merchant dibekukan sementara
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: ['merchant dibekukan sementara'] }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+# --- schemas ---
+    PermintaanQR:
+      type: object
+      required: [jenis]
+      properties:
+        jenis: { type: string, enum: [statis, dinamis] }
+        nominal: { type: integer, format: int64, minimum: 1, maximum: 5000000, description: 'Wajib untuk dinamis, dilarang untuk statis' }
+    QR:
+      type: object
+      required: [id, jenis]
+      properties:
+        id: { type: string, format: uuid, description: 'Di lab ini id adalah isi QR; payload dengan CRC ada di lab t4-qr' }
+        jenis: { type: string, enum: [statis, dinamis] }
+        nominal: { $ref: '#/components/schemas/Rupiah' }
+        berlaku_sampai: { type: string, format: date-time, description: 'Hanya QR dinamis: 5 menit sejak terbit' }
+    KonfirmasiQR:
+      type: object
+      required: [id, jenis, merchant, terverifikasi]
+      properties:
+        id: { type: string, format: uuid }
+        jenis: { type: string, enum: [statis, dinamis] }
+        nominal: { $ref: '#/components/schemas/Rupiah' }
+        berlaku_sampai: { type: string, format: date-time }
+        merchant:
+          type: object
+          required: [nama]
+          properties:
+            nama: { type: string }
+            kota: { type: string }
+        terverifikasi: { type: boolean, enum: [true] }
+    PermintaanBayarQR:
+      type: object
+      properties:
+        nominal: { $ref: '#/components/schemas/Rupiah', description: 'Wajib untuk QR statis (paling banyak 200000); untuk QR dinamis boleh kosong, bila diisi harus sama dengan nominal QR' }
+    HasilBayarQR:
+      type: object
+      required: [id, saldo, nominal, merchant]
+      properties:
+        id: { type: integer, format: int64 }
+        saldo: { $ref: '#/components/schemas/Rupiah' }
+        nominal: { $ref: '#/components/schemas/Rupiah' }
+        merchant: { type: string }
