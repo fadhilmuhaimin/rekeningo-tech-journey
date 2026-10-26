@@ -434,3 +434,11 @@ Polesan dan pencegahan dari tinjauan lab dan halaman Tahap 2 yang sengaja tidak 
 - Uji mutasi `urutanBaca` tanpa penjaga siklus (M8) menggantung, bukan gagal cepat, karena loop sinkron tidak bisa diputus `node:test`; CI baru gagal lewat batas waktu job. Bila mau gagal cepat, jalankan kasus siklus di proses anak dengan batas waktu.
 - `penggantiAda` memakai `lebur_ke ?? diganti_oleh` (satu pengganti per halaman), sedangkan `eval_tahap.py rantai` memeriksa keduanya (`any`); samakan bila suatu halaman kelak punya kedua field.
 - Tambahkan `eval_tahap.py rantai 3` ke gerbang (`tools/cek_situs.sh`, sesudah baris rantai 1 dan 2) begitu Tahap 3 lengkap; sekarang exit 1 karena 3.1 segera.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- 2.30 (`estimasi.mdx`, tabel Little dan Latihan 2): "0,87 × (0,02 + 2) = 1,75" menurut angka yang tertulis adalah 1,76, dan "17,4 × 2 = 34,7" adalah 34,8. Tulis 0,868 dan 17,36 atau satu kalimat pembulatan di tempat pemakaian; penjaga angka `estimasi-t2.halaman.test.ts` ikut diubah. Kelas yang sama dengan contoh "satu angka, satu bentuk" di gaya-bahasa.
+- 2.30 tabel Little baris 1 dan 2: beri label di sel L (turunan λ Asumsi), mis. "(λ: Asumsi, W: Rekaman lab)", supaya L tidak terbaca sebagai rekaman.
+- 2.28 (`brute-force.mdx` baris 86): pecah kalimat 33 kata dari perbaikan keputusan 750; isinya sudah cocok dengan kode lab.
+- Label "Dipersempit" (dipakai 2.32) belum ada di `/cara-pakai/` "Label sumber"; tambahkan atau ganti kata di 2.32.
+- `tools/eval_tahap.py adr`: hitung penyebab pre-mortem (tepat 3) dan daftar halaman tanpa label Ilustrasi atau Asumsi, supaya kartu W2 tidak menulis daftar dari pencarian longgar.
