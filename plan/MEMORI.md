@@ -46,8 +46,8 @@ Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditan
 - Butir Tahap 2.20–2.28, RISET-3–6, T3-siap, CI-CEPAT dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik Tahap 2–3 (arsip 2026-10-26)".
 - Butir 2.29–2.31 dan lab Tahap 3 dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik, 2.29–2.31 dan lab Tahap 3 (arsip 2026-10-26 siang)".
 - Batch 16 dan CI-CEPAT dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik, batch 16 dan CI-CEPAT (arsip 2026-10-26 siang)".
-- Halaman 3.4–3.8 (#368–#372): hal 1 "pemberitahuan tidak mendahului uangnya" hanya penalaran ("push berhasil lalu COMMIT gagal" tak direkam; push tiruan rentan.txt A menerima 10 permintaan sebelum COMMIT); ±170 MB di 2.9 (nilai tepat 164,25 MB) dan registry `trx` 2 lawan 3 (±65,7 lawan ±98,6 MB); timeout app 30/10 detik Asumsi, perilaku `http`/`dio` [perlu verifikasi]; komponen Tebak bersama: tiga tombol tanpa fungsi saat JS mati (USULAN-PERBAIKAN 9); widget cari-bug diperluas (fokus sesudah Ulang kini juga di 1.19/1.20) dan `.bb-chip.is-good` mengubah chip 2.23; "ubah satu hal" 3.7 hanya perbandingan dua rekaman (W5); naskah: M18 ±12 vs ±11,5 detik, adegan log tak ada, Val Town dan Fowler ke kolom Sumber ADR 22.
-- Halaman 3.9–3.12 (#374–#378): ambang "ratusan per detik" ADR 23 naskah bertentangan dengan pembandingnya (±231 per detik; ditulis sebagai usulan, naskah tak diubah); naskah M19 "tiga pembayaran Ani" dan "dua hari" (poller tanpa restart; tak direkam) dan "nomor urut id pun bukan urutan commit" (rekaman hanya `dibuat` terbalik); naskah M20 "worker dihentikan saat deploy" vs `Jalankan` menyelesaikan putaran saat SIGTERM (lab merekam mati paksa) dan "selang di atas lima detik" bukan yang diukur; peta 3.11 "widget race" padahal OutboxWorker kursor; pgmq/Serverpod/Laravel label [perlu verifikasi]; nomor keputusan tampil di 2.x ("keputusan 415/514") belum ditangkap alat; rekaman t3-pool adr22 diubah tanpa dijalankan ulang (Docker mati): jalankan `make -C labs/t3-pool cek` sebelum EVAL-3.
+- Halaman 3.4–3.12 dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik, halaman 3.4–3.12 (arsip 2026-10-27 dini hari)".
+- Halaman 3.13–3.15 (#381–#383) dan naskah 4: ADR 25 tetap pesan `data` (iOS tak menjamin; Doze) atau `notification` + `tag` = `notifikasi_id` (keduanya Tidak dijalankan di perangkat); alert baris `mati` dan replay otomatis dijanjikan ke 3.27 tetapi naskah ADR 32 hanya alert umur tertua; naskah M21 "tidak ada yang memulainya lagi" (±9 menit) vs `restart: unless-stopped` Tahap 1 (opsi A: restart otomatis ada, mati beberapa detik; opsi B: API tanpa pengawas: ubah Tahap 1 dan 2); naskah M20 "worker dihentikan saat deploy" vs mati paksa; selang health check 1 detik Asumsi; BFF: PROPOSAL Tahap 4 "modular monolith + 1 service pembayaran + BFF" vs naskah menunda ke ADR 45 (membatalkan = satu ADR + satu halaman); pemangkasan Tahap 4 (1207: 11 lab, 2 widget baru) belum dilihat pemilik; registry/3.5 "tim 6–10 dalam 2 tim" vs naskah 4 tim 13 dalam tiga tim (KONSISTENSI-4).
 - Riwayat app sesudah ledger turun 17 → 3 baris (tiga-rilis.txt 69–72, transaksi v1 tidak jadi jurnal): diterima atau migrasi menyalin transaksi v1 (2.22). Akun lab Karyawan 800 berperan Citra di M14 (2.23). Paket 1 GB dan 20 buka/hari untuk kuota adalah Asumsi (2.20-lab). api-t2 tidak mengompres respons dan Dart selalu mengirim Accept-Encoding gzip.
 
 ## Ukur antrean merge (keputusan 727, 728)
@@ -56,19 +56,17 @@ Alat: `python3 tools/ukur_pr.py <PR...> --sejak <waktu>` (data dari GitHub). Gar
 
 | Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
 | --- | --- | --- | --- | --- |
-| 3.4 | #368 | 50 | 2 | 0 |
-| 3.5 | #369 | 102 (dua restart sesi) | 2 | 0 |
-| 3.6 | #370 | 66 (jeda limit #5) | 4 | 0 |
-| 3.7 | #371 | 29 | 1 | 0 |
-| 3.8 | #372 | 53 | 2 | 0 |
 | 3.9 | #374 | 31 | 1 | 0 |
 | 3.10 | #375 | 140 (tinjauan 359 mutasi) | 2 | 0 |
 | 3.11 | #376 | 37 | 2 | 0 |
 | 3.12 | #378 | 39 | 3 | 0 |
+| 3.13 | #381 | 58 | 2 | 1 (infra Playwright digest-mismatch) |
+| 3.14 | #382 | 45 | 2 | 0 |
+| 3.15 | #383 | 131 (macet, dua restart) | 2 | 0 |
 
 ## Sedang dikerjakan
 
-2026-10-26 21.00 · Tahap 2 selesai (EVAL-2 #356, EVAL-2-ulang #363); Tahap 3: lab, ERD3, widget, DIRI-2, KONSISTENSI-3 di main; halaman 3.1–3.12 merge (#364–#366, #368–#372, #374–#376, #378; median 39 menit, run main merah 0 dari 23); gerbang ID riset #377. Berjalan: pelaksana 3.13 (`tahap-3/at-least-once`, rjt-konten3), 3.14 (`tahap-3/m21-satu-proses-mati`, rjt-konten2), 3.15 (`tahap-3/dua-instance`, rjt-konten4), NASKAH-4 (`tahap-4/naskah`, rjt-teknis; dijalankan paralel tanpa menunggu DIRI-3) dengan `tmp/brief-halaman-t3.md`. Docker mati: nyalakan saat lab Tahap 4. Berikutnya: peninjau tiap halaman, 3.16–3.32 (paling banyak 3 PR halaman terbuka), peninjau konsistensi NASKAH-4, T4-siap, EVAL-3, DIRI-3, Tahap 4–6, LAPORAN-AKHIR. Alokasi nomor: `tmp/catat-antre.md` (tidak di repo; bila hilang: halaman 3.n memakai 1000+4×(n−1) sampai +3, ID riset R3-100+5×(n−1) sampai +4, cadangan 1150–1179 terpakai sampai 1172; NASKAH-4 1200–1206, R4-100+; Tahap 4 mulai 1200, Tahap 5 1400, Tahap 6 1600). Untuk melanjutkan: `gh pr list --state open`.
+2026-10-27 00.50 · Tahap 2 selesai; Tahap 3: lab, ERD3, widget, DIRI-2, KONSISTENSI-3 di main; halaman 3.1–3.15 merge (#364–#366, #368–#372, #374–#376, #378, #381–#383; median ±45 menit); naskah Tahap 4 (#379, 54 tambalan konsistensi) dan T4-siap (#384: registry 31 halaman, ANTREAN lab/widget/halaman Tahap 4, plan/BRIEF-HALAMAN.md) di main; gerbang ID riset #377. Berjalan: peninjau 3.17 (#385, rjt-konten2) dan 3.16 (#386, rjt-konten3), pelaksana 3.18 (`tahap-3/m23-dua-harga`, rjt-konten4), lab-api-t4 (`tahap-4/lab-api-t4`, rjt-konten lajur bawaan; Docker Desktop dinyalakan 00.20). Berikutnya: peninjau 3.18, 3.19–3.32 (paling banyak 3 PR halaman terbuka), lab-t4-* sesudah api-t4, EVAL-3, DIRI-3, KONSISTENSI-4, ERD4, W4-*, halaman 4.x, Tahap 5–6, LAPORAN-AKHIR. Alokasi nomor: tertulis di `catatan` tiap tugas ANTREAN Tahap 4 dan `tmp/catat-antre.md` (halaman 3.n 1000+4×(n−1) sampai +3, ID riset R3-100+5×(n−1) sampai +4; Tahap 5 1400, Tahap 6 1600). Untuk melanjutkan: `gh pr list --state open`.
 
 ## Pelajaran
 

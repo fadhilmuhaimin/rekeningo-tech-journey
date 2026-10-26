@@ -1824,6 +1824,46 @@
   "jawab": "Kode memakai alamat koneksi, dan di belakang proxy itu alamat proxy. Kode juga tidak membaca `X-Forwarded-For`. Ini dibaca dari kode dan tidak direkam, karena lab tidak membedakan dua client lewat proxy."
  },
  {
+  "id": "t3-rate-limit-redis-1",
+  "halaman": "t3-rate-limit-redis",
+  "judul": "3.17 Rate limit lintas instance dan Redis + ADR 27",
+  "url": "tahap-3/rate-limit-redis/",
+  "tanya": "Dua instance menyimpan bucket di memori, batas per alamat 10. Satu alamat mengirim 24 percobaan ke 24 akun. Berapa yang sampai ke pemeriksaan password, dan berapa bila hitungannya di Redis?",
+  "jawab": "20 dengan bucket di memori, 10 dengan Redis. Tiap instance menyimpan bucket sendiri, jadi dua instance memberi dua jatah 10. Redis menaikkan satu key yang sama, jadi jatahnya satu (`batas.txt` bagian A dan E)."
+ },
+ {
+  "id": "t3-rate-limit-redis-2",
+  "halaman": "t3-rate-limit-redis",
+  "judul": "3.17 Rate limit lintas instance dan Redis + ADR 27",
+  "url": "tahap-3/rate-limit-redis/",
+  "tanya": "Kenapa `INCR` dan `PEXPIRE` dijalankan sebagai satu skrip Lua?",
+  "jawab": "Bila proses mati di antara dua perintah, key tinggal tanpa masa berlaku dan menghitung selamanya. Bagian H merekam `PTTL` `-1` sesudah `INCR` saja. Dalam satu skrip, Redis menjalankan keduanya tanpa disela perintah lain."
+ },
+ {
+  "id": "t3-rate-limit-redis-3",
+  "halaman": "t3-rate-limit-redis",
+  "judul": "3.17 Rate limit lintas instance dan Redis + ADR 27",
+  "url": "tahap-3/rate-limit-redis/",
+  "tanya": "Redis dihentikan sebelum 24 percobaan dikirim. Apa yang terjadi pada login?",
+  "jawab": "Login tetap dijawab, dan batas jatuh ke bucket lokal: 20 dari 24 percobaan sampai ke pemeriksaan password, sama dengan bagian A. Tiap penghitung menulis satu baris log saat gagal dan satu baris saat Redis pulih (bagian I). Redis yang berhenti di tengah 24 percobaan tidak direkam."
+ },
+ {
+  "id": "t3-rate-limit-redis-4",
+  "halaman": "t3-rate-limit-redis",
+  "judul": "3.17 Rate limit lintas instance dan Redis + ADR 27",
+  "url": "tahap-3/rate-limit-redis/",
+  "tanya": "Karyawan di dua HP berbeda login lewat proxy yang sama, dan api-t3 belum membaca `X-Forwarded-For`. Berapa key per alamat yang mereka pakai?",
+  "jawab": "Satu: handler membaca alamat koneksi, dan itu alamat proxy untuk semua client. Dengan hitungan di Redis, batas 10 per menit berlaku untuk keduanya sekaligus. Lab tidak merekam dua client yang berbeda, jadi ini dibaca dari kode `clientIP`."
+ },
+ {
+  "id": "t3-rate-limit-redis-5",
+  "halaman": "t3-rate-limit-redis",
+  "judul": "3.17 Rate limit lintas instance dan Redis + ADR 27",
+  "url": "tahap-3/rate-limit-redis/",
+  "tanya": "App menerima 429 dengan `Retry-After: 40` dari login. Apa yang sebaiknya dilakukan app?",
+  "jawab": "Menampilkan \"coba lagi dalam 40 detik\" dan menunda percobaan berikutnya. Retry langsung hanya menghasilkan 429 lagi, dan hitungan di Redis naik juga untuk percobaan yang ditolak (`batas.txt` bagian E). Angka 40 adalah contoh: nilainya sisa jendela, antara 1 dan 60 detik."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",
