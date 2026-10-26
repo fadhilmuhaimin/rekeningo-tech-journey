@@ -891,8 +891,11 @@ describe("label sumber, riset, glosarium, dan halaman istilah", () => {
   });
   test("baris riset R3-120 sampai R3-124: berurutan setelah R3-94, tanpa ID ganda, memuat versi dan klaim yang dipakai halaman", () => {
     const baris = riset.split("\n");
-    const i94 = baris.findIndex((b) => b.startsWith("| R3-94 "));
-    expect(baris.slice(i94 + 1, i94 + 6).map((b) => b.slice(0, 9))).toEqual(["| R3-120 ", "| R3-121 ", "| R3-122 ", "| R3-123 ", "| R3-124 "]);
+    const awal = baris.findIndex((b) => b.startsWith("## Konsep dan sumber"));
+    const akhir = baris.findIndex((b, i) => i > awal && b.startsWith("## Teknik terbaru"));
+    const konsep = baris.slice(awal, akhir).filter((b) => /^\| R3-\d+ /.test(b)).map((b) => Number(b.match(/^\| R3-(\d+) /)![1]));
+    expect(konsep, "baris konsep urut ID").toEqual([...konsep].sort((x, y) => x - y));
+    expect(konsep.slice(konsep.indexOf(120), konsep.indexOf(120) + 5)).toEqual([120, 121, 122, 123, 124]);
     const id = baris.filter((b) => b.startsWith("| R3-")).map((b) => b.split("|")[1]!.trim());
     expect(new Set(id).size).toBe(id.length);
     for (const [n, kunci] of [[0, ["§11.8", "§5.5.3", "NULLS NOT DISTINCT"]], [1, ["9.0.0", "where", "2.122.0", "migration new"]], [2, ["13.38.0", "vectorIndex"]], [3, ["6.1.2", "condition"]], [4, ["4.0.4", "nulls_distinct", "migration.sql", "[perlu verifikasi]"]]] as [number, string[]][])
