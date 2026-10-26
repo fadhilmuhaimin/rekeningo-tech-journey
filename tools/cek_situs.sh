@@ -109,8 +109,8 @@ if [ "$MODE" != "--ukur" ]; then
   if [ "$OK" != 1 ]; then echo "GAGAL: build strict"; exit 1; fi
   echo "build strict lolos (0 warning)"
 
-  echo "== ID internal tidak tampil: ID halaman dan ID riset (R2-04) di teks, atribut, SVG, dan data JSON (keputusan 1170)"; $PY tools/cek_id_tampil.py
-  echo "== uji pemeriksa ID internal (lolos palsu, keputusan 1170)"; $PY tools/test_cek_id_tampil.py | tail -1
+  echo "== ID internal tidak tampil: ID halaman, ID riset (R2-04), nomor keputusan, dan nomor PR di teks, atribut, SVG, dan data JSON (keputusan 1170, 1180)"; $PY tools/cek_id_tampil.py
+  echo "== uji pemeriksa ID internal (lolos palsu, keputusan 1170, 1180)"; $PY tools/test_cek_id_tampil.py | tail -1
   echo "== tautan internal di dist: path, anchor, data widget (P6, keputusan 318)"; $PY tools/cek_tautan.py
   echo "== uji pemeriksa tautan (lolos palsu, keputusan 318)"; $PY tools/test_cek_tautan.py | tail -1
   echo "== rantai Berikutnya Tahap 1 dan 2 di dist: urutan sama dengan nomor, tanpa 404, tanpa halaman lama sesudah jembatan (keputusan 1164)"
