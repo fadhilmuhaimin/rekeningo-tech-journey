@@ -1522,7 +1522,7 @@
   "judul": "3.7 Observability: log, metric, trace",
   "url": "tahap-3/observability/",
   "tanya": "App mengirim `traceparent`, tetapi trace-id itu tidak muncul di log atau di mana pun di API. Kenapa?",
-  "jawab": "Kode api-t3 tidak menyebut `traceparent`: `grep` di `cmd` dan `internal` tidak menemukan berkas, dan client push hanya menulis `Content-Type`. Trace-id berhenti di perbatasan API. Karena itu satu trace tidak bisa menyambung app, API, dan layanan push."
+  "jawab": "Kode api-t3 tidak menyebut `traceparent`: `grep` di `cmd` dan `internal` tidak menemukan file, dan client push hanya menulis `Content-Type`. Trace-id berhenti di perbatasan API. Karena itu satu trace tidak bisa menyambung app, API, dan layanan push."
  },
  {
   "id": "t3-observability-4",
