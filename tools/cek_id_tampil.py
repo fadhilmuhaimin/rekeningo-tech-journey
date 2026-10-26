@@ -6,7 +6,7 @@ atribut data-*). Pembaca membaca nama sumber, versi, dan tanggal, bukan nomor ba
 Memeriksa situs/dist hasil build di semua tempat yang dibaca atau dibacakan pembaca:
 - teks terlihat: isi artikel, kode di <pre>, sidebar, judul tab;
 - atribut title (tooltip istilah dan tautan), aria-label, aria-description, alt, placeholder;
-- teks SVG (text, title, desc, tspan);
+- teks di dalam SVG;
 - props island Astro dan script application/json inline, yang dirender JavaScript;
 - string di data widget (dist/widgets/data/**/*.json) dan di javascripts/istilah-data.js.
 Yang tidak diperiksa karena tidak tampil: script dan style, komentar HTML, atribut data-*, class, id, href.
@@ -29,7 +29,6 @@ POLA_RISET = re.compile(r"\bR[0-9]-[0-9]{1,3}\b")      # R<tahap>-<nomor> di pla
 LEWAT_HAL = ()
 LEWAT_TOKEN = re.compile(r"^G\d{3}$")          # aturan gosec
 ATRIBUT_TAMPIL = ("title", "aria-label", "aria-description", "alt", "placeholder")
-SVG_TEKS = ("text", "title", "desc", "tspan")
 KUNCI_INTERNAL = ("id", "halaman", "src", "file", "fileVarian", "s", "b")   # tidak ditampilkan
 
 
@@ -37,9 +36,7 @@ class Teks(html.parser.HTMLParser):
     """Kumpulkan teks yang dibaca pembaca; lewati script, style, dan atribut yang tidak tampil."""
     def __init__(self):
         super().__init__()
-        self.skip = 0            # script dan style
-        self.svg = 0             # kedalaman <svg>
-        self.svg_teks = 0        # kedalaman text/title/desc/tspan di dalam svg
+        self.skip = 0            # kedalaman script dan style
         self.json_inline = None  # potongan script application/json yang sedang dibaca
         self.out = []            # teks terlihat
         self.atribut = []        # (tag, nama atribut, nilai)
@@ -52,10 +49,6 @@ class Teks(html.parser.HTMLParser):
             self.skip += 1
             if tag == "script" and a.get("type") == "application/json":
                 self.json_inline = []
-        elif tag == "svg":
-            self.svg += 1
-        elif self.svg and tag in SVG_TEKS:
-            self.svg_teks += 1
         for k, v in attrs:
             if v and k in ATRIBUT_TAMPIL:
                 self.atribut.append((tag, k, v))
@@ -68,15 +61,11 @@ class Teks(html.parser.HTMLParser):
             if tag == "script" and self.json_inline is not None:
                 self.baca_json("".join(self.json_inline), "script application/json")
                 self.json_inline = None
-        elif tag == "svg" and self.svg:
-            self.svg -= 1
-        elif self.svg and self.svg_teks and tag in SVG_TEKS:
-            self.svg_teks -= 1
 
     def handle_data(self, data):
         if self.json_inline is not None:
             self.json_inline.append(data)
-        elif not self.skip and (not self.svg or self.svg_teks):
+        elif not self.skip:
             self.out.append(data)
 
     def baca_json(self, teks, asal):
