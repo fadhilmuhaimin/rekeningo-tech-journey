@@ -2506,8 +2506,9 @@
       "lab": [
         "t3-outbox"
       ],
-      "ada": false,
-      "nomor": "3.11"
+      "ada": true,
+      "nomor": "3.11",
+      "menit": 21
     },
     {
       "id": "t3-m20",
@@ -2529,8 +2530,9 @@
       "lab": [
         "t3-outbox"
       ],
-      "ada": false,
-      "nomor": "3.12"
+      "ada": true,
+      "nomor": "3.12",
+      "menit": 10
     },
     {
       "id": "t3-at-least-once",

@@ -135,7 +135,7 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [3.8 Connection pool, Little's Law, dan timeout + ADR 22](/tahap-3/connection-pool/) | Tahap 3 | Pool koneksi habis karena panggilan keluar menggantung di dalam transaction, bukan karena beban banyak |
 | [3.9 Outbox transaksional dan worker + ADR 23](/tahap-3/outbox-worker/) | Tahap 3 | Uang dan pemberitahuan ditulis di satu tempat dulu, lalu dikirim worker dari tempat lain |
 | [3.10 M19: Ani tidak diberi tahu](/tahap-3/m19-tidak-diberi-tahu/) | Tahap 3 | Saldo Citra naik, tetapi satu notifikasi tidak pernah sampai ke Ani |
-| 3.11 Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24 · *segera* | Tahap 3 | Kursor atas waktu dan id melewatkan baris yang COMMIT belakangan, jadi notifikasinya hilang |
+| [3.11 Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24](/tahap-3/klaim-per-baris/) | Tahap 3 | Kursor atas waktu dan id melewatkan baris yang COMMIT belakangan, jadi notifikasinya hilang |
 | 3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25 · *segera* | Tahap 3 | Mengirim ulang itu benar; yang kurang adalah penerima yang mengenali ulangan |
 | 3.18 M23: Dua harga di satu meja · *segera* | Tahap 3 | Dua HP di meja yang sama menampilkan dua harga untuk menu yang sama |
 | 3.19 Cache dan invalidation + ADR 28 · *segera* | Tahap 3 | Cache boleh basi untuk tampilan, tidak untuk uang, dan beban katalog sebenarnya tidak memaksa cache |
@@ -166,7 +166,7 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [Retry dan idempotency key](/e-mobile/e3-retry-idempotency/) | Tahap 2 | – |
 | [Ukuran payload dan kuota HP](/e-mobile/e5-ukuran-payload/) | Tahap 2 | – |
 | [3.3 Fitur: notifikasi push dan promo HR](/tahap-3/fitur-notifikasi/) | Tahap 3 | Budi dan Ani ingin tahu saat uang masuk tanpa membuka app, dan notifikasi tidak boleh mendahului uangnya |
-| 3.12 M20: Notifikasi masuk dua kali · *segera* | Tahap 3 | Ani menerima notifikasi yang sama dua kali dan mengira Budi membayar dua kali |
+| [3.12 M20: Notifikasi masuk dua kali](/tahap-3/m20-notifikasi-dua-kali/) | Tahap 3 | Ani menerima notifikasi yang sama dua kali dan mengira Budi membayar dua kali |
 | 3.20 M24: Stok yang kembali ke angka lama · *segera* | Tahap 3 | Stok yang diisi warung hari Sabtu kembali ke angka lama saat app warung tersambung lagi hari Senin |
 | 3.21 Offline-first dan sinkron + ADR 29 · *segera* | Tahap 3 | Operasi yang menunggu lama harus bisa ditolak dengan benar, bukan menimpa data yang lebih baru |
 | [Push dan real-time](/e-mobile/e4-push-real-time/) | Tahap 3 | App polling status pesanan tiap 5 detik |
