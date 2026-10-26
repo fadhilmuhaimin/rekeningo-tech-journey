@@ -1,0 +1,37 @@
+{
+  "id": "t3-m18-pool-penuh",
+  "judul": "Push menggantung: kapan pool penuh",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-pool · m18.txt bagian A, B, dan C" },
+  "baris": [
+    {
+      "label": "Pool 10, app terus menunggu",
+      "sub": "beban 17,4 request per detik",
+      "simpul": [
+        { "teks": "Push tidak menjawab", "sub": "client push tanpa batas waktu" },
+        { "teks": "Tiap pembayaran menahan 1 koneksi", "sub": "pembayaran ke-10: idle in transaction 10" },
+        { "teks": "Pool penuh", "sub": "antara detik ke-11 dan ke-12", "nada": "warn" },
+        { "teks": "Pembacaan saldo tidak dijawab", "sub": "190 dari 190 dalam 3 detik", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Pool 50, usul Raka",
+      "sub": "beban yang sama",
+      "simpul": [
+        { "teks": "Push tidak menjawab", "sub": "client push tanpa batas waktu" },
+        { "teks": "Pembayaran ke-50 menahan koneksi terakhir", "sub": "idle in transaction 50" },
+        { "teks": "Pool penuh", "sub": "antara detik ke-57 dan ke-58", "nada": "warn" },
+        { "teks": "Pembacaan saldo tidak dijawab", "sub": "18 dari 18 dalam 3 detik", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "App menyerah sesudah 5 detik",
+      "sub": "pool 10",
+      "simpul": [
+        { "teks": "App memutus pembayaran", "sub": "20 dari 20 tanpa jawaban" },
+        { "teks": "Koneksi kembali ke pool", "sub": "puncak 5 dari 10 ditahan", "nada": "good" },
+        { "teks": "Pembacaan saldo dijawab", "sub": "380 dari 380 dengan 200", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Pool yang lebih besar menunda pembekuan, dan app yang menyerah menahan lebih sedikit koneksi. Tidak satu pun membuat layanan push menjawab."
+}

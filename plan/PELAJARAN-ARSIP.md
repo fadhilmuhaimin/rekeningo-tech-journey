@@ -301,3 +301,14 @@ Pola per halaman: branch `tahap-1/<slug>` dari `main`; lab dulu bila perlu (PR s
 | 2.23 | #318 | 78 | 2 | 0 |
 | 2.20 | #322 | 319 (peninjau 63; sisanya menunggu) | 0 | 0 |
 | 2.24 | #323 | 63 | 0 | 0 |
+
+## Ukur antrean merge, baris 2.25–2.30 (arsip 2026-10-26 sore)
+
+| Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
+| --- | --- | --- | --- | --- |
+| 2.25 | #327 | 41 | 1 | 0 |
+| 2.27 | #335 | 53 (jeda limit 3 jam di antaranya) | 1 | 0 |
+| 2.26 | #334 | 74 (jeda limit) | 3 | 0 |
+| 2.28 | #337 | 28 (15.12 → 15.40) | 3 | 0 |
+| 2.29 | #339 | 32 | 1 | 0 |
+| 2.30 | #341 | 184 (jeda limit #2; peninjau 25) | 1 | 0 |

@@ -299,9 +299,9 @@
  {
   "t": "Connection pool",
   "d": "Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request.",
-  "b": "B2.5",
-  "n": "Connection pool (versi lama)",
-  "u": "/b-fondasi/b2-5-connection-pool/",
+  "b": "t3-pool",
+  "n": "3.8 Connection pool dan Little's Law",
+  "u": "/tahap-3/connection-pool/",
   "s": "istilah-connection-pool",
   "h": null
  },
@@ -623,9 +623,9 @@
  {
   "t": "Little's Law",
   "d": "Rumus L = λ × W: jumlah yang sedang diproses sama dengan laju kedatangan dikali lama tiap item tinggal.",
-  "b": "B2.5",
-  "n": "Connection pool (versi lama)",
-  "u": "/b-fondasi/b2-5-connection-pool/",
+  "b": "t3-pool",
+  "n": "3.8 Connection pool dan Little's Law",
+  "u": "/tahap-3/connection-pool/",
   "s": "istilah-little-s-law",
   "h": null
  },

@@ -1573,6 +1573,39 @@
   "jawab": "PostgreSQL membuka transaction dan menunggu data dari client, jadi yang lambat bukan query (PostgreSQL 17: pg_stat_activity, dibuka 2026-10-26). Bagian API mana yang menunggu belum terlihat. Itu pertanyaan untuk trace."
  },
  {
+  "id": "t3-pool-1",
+  "halaman": "t3-pool",
+  "judul": "3.8 Connection pool, Little's Law, dan timeout + ADR 22",
+  "url": "tahap-3/connection-pool/",
+  "tanya": "AI menulis handler ini. Apa yang rusak, dan apa dua perbaikannya?",
+  "jawab": "`http.Post` memakai `http.DefaultClient`, yang `Timeout`-nya nol, jadi panggilannya tanpa batas waktu. Selama push menunggu, transaction memegang satu koneksi. Perbaikan pertama: pindahkan push keluar dari transaction dengan menulis baris `outbox`. Perbaikan kedua: beri client `Timeout` eksplisit, mis. 3 detik.",
+  "kode": "tx, _ := db.BeginTx(ctx, nil)\ndefer tx.Rollback()\ncatatJurnal(ctx, tx, budi, citra, nominal)\nhttp.Post(pushURL, \"application/json\", body)\nreturn tx.Commit()"
+ },
+ {
+  "id": "t3-pool-2",
+  "halaman": "t3-pool",
+  "judul": "3.8 Connection pool, Little's Law, dan timeout + ADR 22",
+  "url": "tahap-3/connection-pool/",
+  "tanya": "Pool 10 koneksi, 0,868 pembayaran per detik, dan push menjawab sesudah 2 detik. Apakah pool muat? Hitung L.",
+  "jawab": "Muat. L = 0,868 × (0,02 + 2) = 1,75 koneksi, jauh di bawah 10. Rekaman `little.txt` mencatat koneksi dengan transaction terbuka paling banyak 2, dan rata-ratanya cocok dalam 15% dengan hitungannya."
+ },
+ {
+  "id": "t3-pool-3",
+  "halaman": "t3-pool",
+  "judul": "3.8 Connection pool, Little's Law, dan timeout + ADR 22",
+  "url": "tahap-3/connection-pool/",
+  "tanya": "Raka menaikkan pool ke 50 dan push tetap tidak menjawab. Kapan pool penuh, dan kenapa itu bukan perbaikan?",
+  "jawab": "Pada 50 ÷ 0,868 = 57,6 detik, bukan 11,5. Rekaman `m18.txt` bagian B mencatat antara detik ke-57 dan ke-58. Penyebabnya, push tanpa batas waktu di dalam transaction, tidak berubah, jadi pool hanya penuh lebih lambat."
+ },
+ {
+  "id": "t3-pool-4",
+  "halaman": "t3-pool",
+  "judul": "3.8 Connection pool, Little's Law, dan timeout + ADR 22",
+  "url": "tahap-3/connection-pool/",
+  "tanya": "`idle_in_transaction_session_timeout` 5 detik sudah dipasang. Kenapa pool Go tetap penuh?",
+  "jawab": "PostgreSQL memutus sesi yang diam dan melepas lock bukunya, tetapi slot pool ada di proses Go dan tetap dipakai selama handler menunggu push. Di `adr22.txt` bagian E, pool Go terpakai 10 dari 10 dan 12 pembacaan tidak dijawab, walau sesi PostgreSQL sudah diputus."
+ },
+ {
   "id": "t3-outbox-1",
   "halaman": "t3-outbox",
   "judul": "3.9 Outbox transaksional dan worker + ADR 23",

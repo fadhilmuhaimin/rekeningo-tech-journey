@@ -1,0 +1,158 @@
+---
+title: "3.6 M18: Seluruh app membeku jam 12.20"
+description: Minggu 3. Jumat jam makan siang, semua layar Rekeningo berhenti menjawab sekitar sembilan menit. Layanan push menerima koneksi tetapi tidak menjawab, dan tiap pembayaran menunggunya di dalam transaction sambil menahan satu koneksi database.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import poolPenuh from "../../../../data/diagram/t3-m18-pool-penuh.json";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t3-skema]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 3 Tahap 3. Jumat pukul 12.20, jam makan siang di kampus pusat. Budi membuka Rekeningo untuk melihat saldonya sebelum memesan. Layarnya hanya menampilkan lingkaran yang berputar.
+
+Di warung lantai dasar, Ani membuka laporan penjualan dan mendapat lingkaran yang sama. Seorang pelanggan menekan Bayar, dan tombolnya berputar lama sebelum menulis "timeout". Bukan hanya pembayaran yang macet: semua layar berhenti menjawab.
+
+Keluhan masuk ke Raka dari Budi dan dari Ani dalam beberapa menit. Sekitar sembilan menit sesudah pukul 12.20 app menjawab lagi, dan Raka mulai mencari sebabnya.
+
+*Angka cerita (Ilustrasi):* pukul 12.20 dan sembilan menit berasal dari naskah, tanpa rekaman yang mengulang menit itu. Rekaman di blok "Yang sebenarnya" mengulang mekanismenya di server lokal.
+
+*Asumsi (pilihan penulis atau angka beban naskah, tanpa rekaman):* naskah tidak menyebut batas waktu app, jadi halaman ini memakai 30 detik. Naskah juga tidak menyebut apa yang membuat app menjawab lagi, dan halaman ini tidak mengklaimnya. Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka memeriksa dua tempat. Pertama log server, yang tidak memuat satu baris pun untuk request yang menggantung. Rekaman lab `jejak.txt` bagian J mengulangnya untuk satu pembayaran yang menggantung: 0 baris log baru sesudah 4 detik. Alasan log itu penting dibahas di [[t3-observability]].
+
+Kedua PostgreSQL, tempat kesepuluh koneksi pool sedang terpakai.
+
+Raka menyimpulkan bahwa database kewalahan. Sepuluh koneksi terlalu sedikit untuk jam makan siang, jadi rencananya pool dinaikkan dari 10 ke 50. Angka 10 adalah batas yang Bayu tetapkan di minggu 1 (Asumsi cerita).
+
+<details class="question">
+<summary>Tebak dulu: pool dinaikkan ke 50, dan layanan push menggantung lagi di Jumat berikutnya. Apakah layar tidak lagi membeku, membeku lebih jarang, atau tetap membeku?</summary>
+
+Tetap membeku, hanya terlambat. Pada beban yang sama, pool 10 penuh antara detik ke-11 dan ke-12. Pool 50 penuh antara detik ke-57 dan ke-58 (Rekaman lab `m18.txt` bagian A dan B). Penyebabnya tidak berubah, dan blok berikutnya menunjukkannya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Layanan push menerima koneksi tetapi tidak menjawab, dan pembayaran menunggu jawabannya di dalam transaction. Tiap pembayaran menahan satu koneksi database. Sesudah koneksi ke-10 ditahan, pool kosong dan request apa pun yang butuh koneksi mengantre, termasuk pembacaan saldo.
+
+<Rantai data={poolPenuh} />
+
+*Kondisi rekaman:* layanan push di lab adalah tiruan lokal dalam mode `gantung`: ia menerima permintaan dan tidak pernah menjawab. Penyedia push sungguhan tidak dipakai. Server berjalan dalam mode rentan `push-dalam-tx` dengan pool 10 dan client push tanpa batas waktu.
+
+Masukan beban adalah Asumsi dari naskah, dengan faktor puncak 10. Lab membulatkannya dengan selisih 0,2%:
+
+- Puncak request: 10.000 user × 25% aktif × 60 request = 150.000 per hari, ÷ 86.400 × 10 = 17,36 per detik. Lab menjadwalkan 17,4.
+- Pembayaran: 10.000 × 25% × 3 transaksi = 7.500 per hari, ÷ 86.400 × 10 = 0,868 per detik. Lab menjadwalkan 0,87.
+
+Beban datang dengan jadwal tetap, bukan acak, dan tiap request ke-20 adalah pembayaran. Sisanya pembacaan saldo. Tiap pembayaran memakai pembayar dan warung yang belum dipakai pembayaran lain, dan pembacaan saldo hanya membaca tanpa lock, jadi tidak ada rebutan lock buku. Di lab, pembayaran menunggu sampai 300 detik dan pembacaan menyerah sesudah 3 detik.
+
+**Kenapa pembayaran menunggu layanan push.** Di minggu 1, Nadia dan Raka mengirim push di dalam transaction jurnal, sebelum COMMIT, dengan client HTTP bawaan Go ([[t3-dua-tempat]]). Mode rentan `push-dalam-tx` di lab menuliskan ulang susunan itu:
+
+<Snippet file="labs/api-t3/internal/service/notif.go" lines="99:107" lang="go" title="Kode lab: labs/api-t3/internal/service/notif.go baris 99 sampai 107 (mode rentan push-dalam-tx)" />
+
+Client push dibuat dengan `Timeout: 0`. Dokumentasi `net/http` menulis bahwa Timeout nol berarti tanpa batas waktu, jadi `Kirim` menunggu selama layanan push diam. Sumbernya [net/http Client](https://pkg.go.dev/net/http#Client), Go 1.27.3, dibuka 2026-10-26 (Tidak dijalankan).
+
+<Snippet file="labs/api-t3/internal/push/push.go" lines="36:39" lang="go" title="Kode lab: labs/api-t3/internal/push/push.go baris 36 sampai 39 (batas 0 berarti tanpa batas waktu)" />
+
+**Satu pembayaran menahan satu koneksi.** Pembayaran ke-1 sampai ke-10 sampai di layanan push satu per satu. Di PostgreSQL, jumlah transaction berstatus `idle in transaction` naik satu per pembayaran:
+
+<Snippet file="labs/t3-pool/output/m18.txt" lines="13:18" title="Rekaman lab: labs/t3-pool/output/m18.txt, bagian A (koneksi yang ditahan)" />
+
+Menurut dokumentasi PostgreSQL 17, status itu berarti backend ada di dalam transaction dan sedang tidak menjalankan query. Sumbernya [pg_stat_activity](https://www.postgresql.org/docs/17/monitoring-stats.html), dibuka 2026-10-26 (Tidak dijalankan). Database tidak sedang bekerja lambat: ia tidak menjalankan query apa pun untuk transaction itu. Transaction terbuka karena server Go menunggu layanan push.
+
+**Kapan pool penuh.** Pembayaran ke-10 tiba sekitar 10 ÷ 0,868 = 11,5 detik sesudah beban mulai. Rekaman memeriksa `pg_stat_activity` tiap 50 ms dan menemukan pool penuh antara detik ke-11 dan ke-12.
+
+Sebelum itu 190 dari 190 pembacaan saldo dijawab dengan 200. Sesudahnya 190 dari 190 tidak dijawab dalam 3 detik:
+
+<Snippet file="labs/t3-pool/output/m18.txt" lines="19:23" title="Rekaman lab: labs/t3-pool/output/m18.txt, bagian A (pool penuh dan pembacaan)" />
+
+Tabel ini merangkum tiga keadaan. Masukannya satu: λ = 0,868 pembayaran per detik di puncak (7.500 per hari ÷ 86.400 × 10, Asumsi). Kolom Hitungan adalah hasil rumus dari masukan itu dan memakai label masukan terlemahnya, jadi tetap Asumsi. Kolom Rekaman lab membuktikan mekanismenya di lab dengan λ = 0,87.
+
+| Keadaan | Hitungan | Rekaman lab |
+|---|---|---|
+| Pool 10, app terus menunggu | 10 ÷ 0,868 = ±11,5 detik | penuh antara detik ke-11 dan ke-12 |
+| Pool 50, app terus menunggu | 50 ÷ 0,868 = ±57,6 detik | penuh antara detik ke-57 dan ke-58 |
+| Pool 10, app menyerah sesudah T detik | penuh hanya bila T > 9 ÷ 0,868 = ±10,4 detik | T = 5: paling banyak 5 koneksi ditahan |
+
+Ambang T datang dari jumlah koneksi yang ditahan pembayaran pada satu saat. Tiap pembayaran melepas koneksinya T detik sesudah datang, jadi paling banyak ⌈0,868 × T⌉ koneksi ditahan. Pool 10 hanya penuh bila nilai itu mencapai 10, yaitu bila T lebih dari 9 ÷ 0,868 = ±10,4 detik. Lab dengan λ = 0,87 menghitung 10,34.
+
+Ambang itu tidak direkam: rekaman hanya mencoba T = 5.
+
+**Satu pembacaan saldo ikut membeku.** Pembacaan butuh koneksi juga. Server membaca sesi Budi dari database sebelum membaca saldonya (`SesiAktif`), jadi tanpa koneksi bebas pembacaan itu tidak bisa dijawab.
+
+Rekaman terpisah ini bukan beban berjadwal M18. Ia memakai sepuluh pembayaran serentak ke sepuluh warung berbeda, hanya untuk melihat satu pembacaan. Request ke-11, Budi membuka saldonya, tidak dijawab:
+
+<Snippet file="labs/api-t3/output/rentan.txt" lines="21:29" title="Rekaman lab: labs/api-t3/output/rentan.txt, bagian A (request ke-11)" />
+
+**Pool 50 hanya menunda.** Bagian B mengulang beban yang sama dengan pool 50. Pool penuh antara detik ke-57 dan ke-58, dan 18 pembacaan sesudahnya tidak dijawab. Sebelum itu 950 dari 950 pembacaan dijawab dengan 200.
+
+<Snippet file="labs/t3-pool/output/m18.txt" lines="41:47" title="Rekaman lab: labs/t3-pool/output/m18.txt, bagian B (pool 50)" />
+
+Pool 50 menunda pembekuan dari ±11,5 ke ±57,6 detik, dan 50 koneksi ke PostgreSQL ikut tertahan. Layanan push tetap tidak menjawab.
+
+**App yang menyerah melindungi pool, bukan server.** Pool 10 hanya penuh bila app menunggu lebih dari ±10,4 detik. Dengan batas waktu 30 detik (Asumsi), app Budi menunggu jauh melewati ambang itu. Layar mulai berputar ±11,5 detik sesudah beban mulai, dan tombol yang ditekan sesudahnya menulis "timeout" sekitar 30 detik kemudian.
+
+Bagian C mengubah satu hal: app menyerah sesudah 5 detik dan memutus koneksinya. Koneksi yang ditahan (`idle in transaction`) mencapai puncak 5 dari 10, pool tidak penuh, dan 380 dari 380 pembacaan dijawab dengan 200:
+
+<Snippet file="labs/t3-pool/output/m18.txt" lines="56:66" title="Rekaman lab: labs/t3-pool/output/m18.txt, bagian C (app menyerah sesudah 5 detik)" />
+
+Server membatalkan transaction saat request dibatalkan, jadi koneksinya kembali ke pool. Dokumentasi `database/sql` menulis bahwa bila konteks dibatalkan, paket `sql` membatalkan (roll back) transaction itu. Sumbernya [DB.BeginTx](https://pkg.go.dev/database/sql#DB.BeginTx), Go 1.27.3, dibuka 2026-10-26 (Tidak dijalankan).
+
+Satu baris di rekaman itu tidak membuktikan pembatalan: jumlah jurnal bayar 0. Layanan push tidak pernah menjawab, jadi transaction memang tidak pernah sampai COMMIT. Buktinya adalah puncak 5 koneksi dan 380 pembacaan yang dijawab.
+
+Handler tidak berhenti walau app pergi. Sesudah 30 detik layanan push masih menahan 26 permintaan, karena `beritahu` memanggilnya dengan `context.WithoutCancel`. App yang menyerah menyelamatkan pool, tetapi server tetap menunggu layanan push.
+
+**App Flutter belum tentu menyerah dengan cara itu.** Lab menutup koneksi TCP saat menyerah, jadi bagian C adalah kasus terbaik. Dokumentasi `Future.timeout` menulis bahwa source future masih bisa selesai normal sesudah batas waktu. Sumbernya [Future.timeout](https://api.dart.dev/stable/dart-async/Future/timeout.html), Dart 3.13.7, dibuka 2026-10-26 (Tidak dijalankan).
+
+App yang hanya memakai `Future.timeout` belum tentu menutup koneksinya. Perilaku package `http` dan `dio` tidak dibaca dan tidak dijalankan [perlu verifikasi].
+
+**Tebakan Raka salah dua kali.** Database tidak lambat: ia menunggu. Pool 50 hanya menunda pembekuan. Di ketiga rekaman penyebabnya sama, yaitu pembayaran menunggu layanan luar di dalam transaction, dengan client push yang tidak punya batas waktu.
+
+Beban hanya 0,868 pembayaran per detik. Yang membuat pool penuh adalah lamanya satu panggilan, bukan banyaknya pembayaran. Itu menjawab pertanyaan pertama PRD v3 ([[t3-prd]]): ya, pembayaran ikut menunggu layanan push, dan bukan hanya pembayaran.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `m18.txt` bagian A dari satu pembayaran sampai pool penuh, lalu langkah Budi membuka saldonya dari `rentan.txt` bagian A. Tebak dulu apa yang diterima app Budi, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t3-m18.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: app menyerah sesudah 5 detik**. Koneksi kembali ke pool dan Budi mendapat jawabannya (bagian C). Layanan push tetap menahan 26 permintaan. Layar HP di widget digambar dari isi rekaman: lab `api-t3` tidak punya app Flutter.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: Budi tidak mendapat jawaban, karena 190 dari 190 pembacaan sesudah pool penuh tidak dijawab. Bila app menyerah sesudah 5 detik, 380 dari 380 pembacaan dijawab. Rekaman lengkap ada di lipatan di bawah.
+</noscript>
+
+<details>
+<summary>Rekaman bagian A sampai C (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/t3-pool/output/m18.txt" title="Rekaman lab: labs/t3-pool/output/m18.txt" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t3-pool]]: connection pool, Little's Law, dan timeout. Lama satu panggilan, bukan banyaknya pembayaran, yang membuat pool penuh. ADR 22 menetapkan panggilan keluar di luar transaction, timeout 3 detik di setiap client yang memanggil layanan luar, dan pool yang tidak dinaikkan.
+- [[t3-observability]]: log, metric, dan trace. Selama pembekuan log server kosong, metric pool hanya menunjukkan jumlah koneksi yang dipakai, dan hanya PostgreSQL yang menunjukkan transaction itu diam menunggu client.
+- [[t3-outbox]]: outbox transaksional dan worker. Pemberitahuan ditulis di transaction jurnal, lalu dikirim worker sesudah COMMIT, jadi layanan push yang diam tidak menahan koneksi.
+- [[t3-dua-tempat]]: susunan pertama yang memanggil push di dalam transaction, dan tiga hal yang harus selalu benar.
+
+Pool habis karena lama, bukan karena banyak.
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />

@@ -54,7 +54,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Circuit breaker** | Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda. | [[B11]] |
 | **CODEOWNERS** | File yang menunjuk pemilik tiap bagian repo, supaya GitHub meminta mereka me-review PR yang menyentuhnya. | [[t2-tim-infra]] |
 | **COMMIT** | Perintah yang membuat semua perubahan dalam transaction menjadi permanen dan terlihat oleh koneksi lain. | [[B3.1]] |
-| **Connection pool** | Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request. | [[B2.5]] |
+| **Connection pool** | Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request. | [[t3-pool]] |
 | **Container** | Paket aplikasi beserta semua dependensinya yang berjalan dengan cara sama di laptop maupun server. | [[C3]] |
 | **Credential stuffing** | Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama. | [[t2-m16]] |
 | **Dead-letter queue** | Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya. | [[B10.1]] |
@@ -90,7 +90,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Lazy loading** | Memuat data berelasi baru saat kode pertama kali mengaksesnya, dengan satu query setiap akses. | [[t2-n-plus-1]] |
 | **Lease** | Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis. | [[B10.1]] |
 | **Ledger** | Cara mencatat uang dengan menyimpan setiap perpindahan sebagai baris yang tidak diubah; saldo adalah jumlah baris itu, bukan angka yang ditimpa. | [[t2-saldo-bukan-kolom]] |
-| **Little's Law** | Rumus L = λ × W: jumlah yang sedang diproses sama dengan laju kedatangan dikali lama tiap item tinggal. | [[B2.5]] |
+| **Little's Law** | Rumus L = λ × W: jumlah yang sedang diproses sama dengan laju kedatangan dikali lama tiap item tinggal. | [[t3-pool]] |
 | **Load balancer** | Komponen yang membagi request ke beberapa instance server yang sama. | [[D2]] |
 | **Lock** | Tanda di database bahwa satu transaction sedang memakai baris atau tabel, sehingga transaction lain harus menunggu. | [[t2-race-lock]] |
 | **lock_timeout** | Batas waktu menunggu lock di PostgreSQL; bila lewat, perintah menyerah dengan galat 55P03, bukan antre tanpa batas. | [[t2-skema-tanpa-downtime]] |
