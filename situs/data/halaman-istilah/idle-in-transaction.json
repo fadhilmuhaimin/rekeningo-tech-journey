@@ -1,0 +1,50 @@
+{
+  "istilah": "Idle in transaction",
+  "sehari_hari": "Idle in transaction adalah keadaan sesi database yang sudah membuka transaction, tetapi sedang tidak menjalankan query dan menunggu perintah berikutnya dari client. Selama itu, lock yang sudah ia dapat tetap dipegang.",
+  "cerita": [
+    {
+      "rujukan": "t3-dua-tempat",
+      "teks": "Di versi pertama, sepuluh pembayaran serentak menunggu layanan push di dalam transaction. pg_stat_activity menunjukkan sepuluh sesi dengan status ini."
+    },
+    {
+      "rujukan": "t3-observability",
+      "teks": "Satu pembayaran yang menggantung terlihat dari database sebagai satu sesi idle in transaction dengan wait event ClientRead, pada transaction yang terbuka lebih dari 3 detik."
+    }
+  ],
+  "mekanisme": [
+    "Client membuka transaction dengan BEGIN dan menjalankan satu atau beberapa perintah.",
+    "Sesudah perintah terakhir selesai, PostgreSQL menunggu perintah berikutnya dari client. Di pg_stat_activity, kolom state bernilai idle in transaction, wait_event_type Client, dan wait_event ClientRead.",
+    "Sesi itu tetap membuka transaction sampai client mengirim COMMIT atau ROLLBACK, atau sampai sesinya diputus.",
+    "Pengaman idle_in_transaction_session_timeout memutus sesi yang diam lebih lama dari batasnya. Bawaannya 0, yang berarti mati."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira idle in transaction berarti query lambat. Sesi itu tidak menjalankan query; yang menunggu adalah sisi client, bukan PostgreSQL.",
+    "Mengira pengaman di PostgreSQL ikut membebaskan pool di aplikasi. Di rekaman lab, PostgreSQL memutus sesi yang diam lebih dari 5 detik, tetapi pool Go tetap penuh selama handler menunggu push."
+  ],
+  "terkait": ["Transaction", "Connection pool", "Timeout"],
+  "sumber": [
+    {
+      "riset": "R3-115",
+      "judul": "PostgreSQL 17: pg_stat_activity",
+      "url": "https://www.postgresql.org/docs/17/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW",
+      "catatan": "State idle in transaction: the backend is in a transaction, but is not currently executing a query."
+    },
+    {
+      "riset": "R3-62",
+      "judul": "PostgreSQL 17: client connection defaults",
+      "url": "https://www.postgresql.org/docs/17/runtime-config-client.html",
+      "catatan": "idle_in_transaction_session_timeout memutus sesi yang diam di dalam transaction lebih lama dari batasnya, dan bawaannya 0 (mati)."
+    },
+    {
+      "judul": "Rekaman lab t3-pool: satu pembayaran selama M18",
+      "rekaman": "labs/t3-pool/output/jejak.txt",
+      "catatan": "Satu sesi idle in transaction dengan wait event ClientRead pada transaction yang terbuka lebih dari 3 detik."
+    },
+    {
+      "judul": "Rekaman lab t3-pool: idle_in_transaction_session_timeout saja",
+      "rekaman": "labs/t3-pool/output/adr22.txt",
+      "catatan": "Bagian E: PostgreSQL memutus sesi yang diam lebih dari 5 detik, tetapi pool Go tetap penuh."
+    }
+  ]
+}

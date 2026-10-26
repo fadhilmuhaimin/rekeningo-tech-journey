@@ -459,6 +459,15 @@
   "h": null
  },
  {
+  "t": "Golden signals",
+  "d": "Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation.",
+  "b": "t3-observability",
+  "n": "3.7 Observability",
+  "u": "/tahap-3/observability/",
+  "s": "istilah-golden-signals",
+  "h": "/istilah/golden-signals/"
+ },
+ {
   "t": "gzip",
   "d": "Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip.",
   "b": "t2-payload",
@@ -475,6 +484,15 @@
   "u": "/tahap-2/retry-idempotency/",
   "s": "istilah-idempotency-key",
   "h": "/istilah/idempotency-key/"
+ },
+ {
+  "t": "Idle in transaction",
+  "d": "Keadaan sesi database yang sudah membuka transaction tetapi sedang tidak menjalankan query, dan menunggu perintah berikutnya dari client.",
+  "b": "t3-observability",
+  "n": "3.7 Observability",
+  "u": "/tahap-3/observability/",
+  "s": "istilah-idle-in-transaction",
+  "h": "/istilah/idle-in-transaction/"
  },
  {
   "t": "IDOR (Insecure Direct Object Reference)",
@@ -569,9 +587,9 @@
  {
   "t": "Latency",
   "d": "Lama waktu satu request dari dikirim sampai response diterima.",
-  "b": "C2",
-  "n": "Observability: log, metric, trace (versi lama)",
-  "u": "/c-operasional/c2-observability/",
+  "b": "t3-observability",
+  "n": "3.7 Observability",
+  "u": "/tahap-3/observability/",
   "s": "istilah-latency",
   "h": null
  },
@@ -641,9 +659,9 @@
  {
   "t": "Log",
   "d": "Catatan kejadian per request atau per peristiwa, ditulis aplikasi untuk dibaca saat menyelidiki masalah.",
-  "b": "C2",
-  "n": "Observability: log, metric, trace (versi lama)",
-  "u": "/c-operasional/c2-observability/",
+  "b": "t3-observability",
+  "n": "3.7 Observability",
+  "u": "/tahap-3/observability/",
   "s": "istilah-log",
   "h": null
  },
@@ -677,9 +695,9 @@
  {
   "t": "Metric",
   "d": "Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error.",
-  "b": "C2",
-  "n": "Observability: log, metric, trace (versi lama)",
-  "u": "/c-operasional/c2-observability/",
+  "b": "t3-observability",
+  "n": "3.7 Observability",
+  "u": "/tahap-3/observability/",
   "s": "istilah-metric",
   "h": null
  },
@@ -830,9 +848,9 @@
  {
   "t": "p95 / p50",
   "d": "Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median).",
-  "b": "C2",
-  "n": "Observability: log, metric, trace (versi lama)",
-  "u": "/c-operasional/c2-observability/",
+  "b": "t3-observability",
+  "n": "3.7 Observability",
+  "u": "/tahap-3/observability/",
   "s": "istilah-p95-p50",
   "h": null
  },
@@ -1262,9 +1280,9 @@
  {
   "t": "Throughput",
   "d": "Jumlah pekerjaan yang selesai per satuan waktu, mis. request per detik.",
-  "b": "C2",
-  "n": "Observability: log, metric, trace (versi lama)",
-  "u": "/c-operasional/c2-observability/",
+  "b": "t3-observability",
+  "n": "3.7 Observability",
+  "u": "/tahap-3/observability/",
   "s": "istilah-throughput",
   "h": null
  },
@@ -1307,11 +1325,20 @@
  {
   "t": "Trace",
   "d": "Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.",
-  "b": "C2",
-  "n": "Observability: log, metric, trace (versi lama)",
-  "u": "/c-operasional/c2-observability/",
+  "b": "t3-observability",
+  "n": "3.7 Observability",
+  "u": "/tahap-3/observability/",
   "s": "istilah-trace",
   "h": null
+ },
+ {
+  "t": "traceparent",
+  "d": "Header HTTP standar W3C yang membawa trace-id perjalanan satu request, supaya komponen yang berbeda bisa menyambung trace yang sama.",
+  "b": "t3-observability",
+  "n": "3.7 Observability",
+  "u": "/tahap-3/observability/",
+  "s": "istilah-traceparent",
+  "h": "/istilah/traceparent/"
  },
  {
   "t": "TTL (Time To Live)",

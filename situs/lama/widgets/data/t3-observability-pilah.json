@@ -1,0 +1,13 @@
+{
+  "judul": "Pertanyaan ini paling cepat dijawab oleh sinyal apa?",
+  "kelompok": ["Log", "Metric", "Trace"],
+  "item": [
+    { "teks": "Berapa koneksi pool yang dipakai sekarang, dari batas 10?", "jawab": 1, "kenapa": "Angka yang dibaca terus-menerus dan bisa dipasangi alert. Rekaman lab: GET /lab/pool menjawab dipakai 10 dari maks 10 saat pool penuh (m18.txt bagian A)." },
+    { "teks": "Apa galat persis saat panggilan ke layanan push berhenti sesudah 3 detik?", "jawab": 0, "kenapa": "Satu kejadian dengan pesan galatnya. Rekaman lab: sepuluh baris \"push gagal, hanya dicatat\" yang memuat Client.Timeout exceeded (adr22.txt bagian D)." },
+    { "teks": "Satu pembayaran lewat app, API, layanan push, dan database. Di komponen mana waktunya habis?", "jawab": 2, "kenapa": "Trace memecah satu request menjadi span, masing-masing dengan durasinya. Tidak dijalankan: api-t3 tidak punya trace, dan kodenya tidak membaca traceparent (jejak.txt bagian J)." },
+    { "teks": "Berapa persen pembacaan saldo yang tidak dijawab dalam 3 detik, menit demi menit?", "jawab": 1, "kenapa": "Angka agregat per jendela waktu. Buku SRE Google menghitung request yang lebih lambat dari janji sebagai error. Rekaman lab: 190 pembacaan sesudah pool penuh tanpa jawaban (m18.txt bagian A)." },
+    { "teks": "Apakah satu pembacaan saldo Budi tadi sampai ke server dan dijawab 200?", "jawab": 0, "kenapa": "Satu kejadian per request, biasanya satu baris log akses. Rekaman lab: api-t3 tidak menulisnya, dan pembacaan saldo yang selesai pun meninggalkan 0 baris (jejak.txt bagian J), jadi di lab pertanyaan ini tidak terjawab." },
+    { "teks": "Seberapa sering pool habis dalam sebulan, dan pada jam berapa?", "jawab": 1, "kenapa": "Metric adalah agregat dalam rentang waktu, jadi \"seberapa sering\" dibaca dari angkanya. Rekaman lab: GET /lab/pool hanya memberi keadaan pada satu saat, dan rekaman memuat satu pembacaan per kejadian, bukan deret angka." },
+    { "teks": "Request dari HP Budi sampai ke API dengan trace yang sama, atau putus di tengah?", "jawab": 2, "kenapa": "Jawabannya butuh trace-id yang diteruskan lewat header traceparent. Rekaman lab: header contoh dari spesifikasi W3C dikirim ke api-t3, kodenya tidak membacanya, dan trace-id berhenti di API (jejak.txt bagian J)." }
+  ]
+}

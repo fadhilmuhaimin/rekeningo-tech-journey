@@ -417,6 +417,15 @@ window.ISTILAH = {
   "t": "HTTP method",
   "u": "tahap-1/http/"
  },
+ "Golden signals": {
+  "b": "t3-observability",
+  "d": "Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation.",
+  "h": "istilah/golden-signals/",
+  "n": "3.7 Observability",
+  "s": "istilah-golden-signals",
+  "t": "Golden signals",
+  "u": "tahap-3/observability/"
+ },
  "HTTP method": {
   "b": "B1.1",
   "d": "Kata kerja request (GET, POST, PUT, PATCH, DELETE) yang menyatakan maksud request terhadap resource.",
@@ -465,6 +474,15 @@ window.ISTILAH = {
   "s": "istilah-idempotent",
   "t": "Idempotent",
   "u": "tahap-2/pagination-kursor/"
+ },
+ "Idle in transaction": {
+  "b": "t3-observability",
+  "d": "Keadaan sesi database yang sudah membuka transaction tetapi sedang tidak menjalankan query, dan menunggu perintah berikutnya dari client.",
+  "h": "istilah/idle-in-transaction/",
+  "n": "3.7 Observability",
+  "s": "istilah-idle-in-transaction",
+  "t": "Idle in transaction",
+  "u": "tahap-3/observability/"
  },
  "Index sebagian": {
   "b": "t3-skema",
@@ -562,12 +580,12 @@ window.ISTILAH = {
   "u": "d-system-design/d3-consistency/"
  },
  "Latency": {
-  "b": "C2",
+  "b": "t3-observability",
   "d": "Lama waktu satu request dari dikirim sampai response diterima.",
-  "n": "Observability: log, metric, trace (versi lama)",
+  "n": "3.7 Observability",
   "s": "istilah-latency",
   "t": "Latency",
-  "u": "c-operasional/c2-observability/"
+  "u": "tahap-3/observability/"
  },
  "Lazy loading": {
   "b": "t2-n-plus-1",
@@ -613,12 +631,12 @@ window.ISTILAH = {
   "u": "tahap-2/race-lock/"
  },
  "Log": {
-  "b": "C2",
+  "b": "t3-observability",
   "d": "Catatan kejadian per request atau per peristiwa, ditulis aplikasi untuk dibaca saat menyelidiki masalah.",
-  "n": "Observability: log, metric, trace (versi lama)",
+  "n": "3.7 Observability",
   "s": "istilah-log",
   "t": "Log",
-  "u": "c-operasional/c2-observability/"
+  "u": "tahap-3/observability/"
  },
  "Log Sequence Number": {
   "b": "D3",
@@ -654,12 +672,12 @@ window.ISTILAH = {
   "u": "tahap-2/pagination-kursor/"
  },
  "Metric": {
-  "b": "C2",
+  "b": "t3-observability",
   "d": "Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error.",
-  "n": "Observability: log, metric, trace (versi lama)",
+  "n": "3.7 Observability",
   "s": "istilah-metric",
   "t": "Metric",
-  "u": "c-operasional/c2-observability/"
+  "u": "tahap-3/observability/"
  },
  "Microservice": {
   "b": "B7.2",
@@ -1267,12 +1285,12 @@ window.ISTILAH = {
   "u": "tahap-2/tim-infra/"
  },
  "Throughput": {
-  "b": "C2",
+  "b": "t3-observability",
   "d": "Jumlah pekerjaan yang selesai per satuan waktu, mis. request per detik.",
-  "n": "Observability: log, metric, trace (versi lama)",
+  "n": "3.7 Observability",
   "s": "istilah-throughput",
   "t": "Throughput",
-  "u": "c-operasional/c2-observability/"
+  "u": "tahap-3/observability/"
  },
  "Time To Live": {
   "b": "B9",
@@ -1316,12 +1334,12 @@ window.ISTILAH = {
   "u": "tahap-3/fitur-notifikasi/"
  },
  "Trace": {
-  "b": "C2",
+  "b": "t3-observability",
   "d": "Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.",
-  "n": "Observability: log, metric, trace (versi lama)",
+  "n": "3.7 Observability",
   "s": "istilah-trace",
   "t": "Trace",
-  "u": "c-operasional/c2-observability/"
+  "u": "tahap-3/observability/"
  },
  "Trade-off": {
   "b": "D1",
@@ -1634,6 +1652,15 @@ window.ISTILAH = {
   "t": "Foreign key",
   "u": "tahap-1/data-modeling/"
  },
+ "golden signals": {
+  "b": "t3-observability",
+  "d": "Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation.",
+  "h": "istilah/golden-signals/",
+  "n": "3.7 Observability",
+  "s": "istilah-golden-signals",
+  "t": "Golden signals",
+  "u": "tahap-3/observability/"
+ },
  "gzip": {
   "b": "t2-payload",
   "d": "Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip.",
@@ -1675,6 +1702,15 @@ window.ISTILAH = {
   "s": "istilah-idempotent",
   "t": "Idempotent",
   "u": "tahap-2/pagination-kursor/"
+ },
+ "idle in transaction": {
+  "b": "t3-observability",
+  "d": "Keadaan sesi database yang sudah membuka transaction tetapi sedang tidak menjalankan query, dan menunggu perintah berikutnya dari client.",
+  "h": "istilah/idle-in-transaction/",
+  "n": "3.7 Observability",
+  "s": "istilah-idle-in-transaction",
+  "t": "Idle in transaction",
+  "u": "tahap-3/observability/"
  },
  "index sebagian": {
   "b": "t3-skema",
@@ -1740,12 +1776,12 @@ window.ISTILAH = {
   "u": "tahap-2/m16-akun-terkunci/"
  },
  "latency": {
-  "b": "C2",
+  "b": "t3-observability",
   "d": "Lama waktu satu request dari dikirim sampai response diterima.",
-  "n": "Observability: log, metric, trace (versi lama)",
+  "n": "3.7 Observability",
   "s": "istilah-latency",
   "t": "Latency",
-  "u": "c-operasional/c2-observability/"
+  "u": "tahap-3/observability/"
  },
  "lazy loading": {
   "b": "t2-n-plus-1",
@@ -1800,12 +1836,12 @@ window.ISTILAH = {
   "u": "tahap-2/skema-tanpa-downtime/"
  },
  "log": {
-  "b": "C2",
+  "b": "t3-observability",
   "d": "Catatan kejadian per request atau per peristiwa, ditulis aplikasi untuk dibaca saat menyelidiki masalah.",
-  "n": "Observability: log, metric, trace (versi lama)",
+  "n": "3.7 Observability",
   "s": "istilah-log",
   "t": "Log",
-  "u": "c-operasional/c2-observability/"
+  "u": "tahap-3/observability/"
  },
  "lost update": {
   "b": "t2-race-lock",
@@ -1825,12 +1861,12 @@ window.ISTILAH = {
   "u": "tahap-2/pagination-kursor/"
  },
  "metric": {
-  "b": "C2",
+  "b": "t3-observability",
   "d": "Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error.",
-  "n": "Observability: log, metric, trace (versi lama)",
+  "n": "3.7 Observability",
   "s": "istilah-metric",
   "t": "Metric",
-  "u": "c-operasional/c2-observability/"
+  "u": "tahap-3/observability/"
  },
  "microservice": {
   "b": "B7.2",
@@ -1932,20 +1968,20 @@ window.ISTILAH = {
   "u": "tahap-2/ukuran-payload/"
  },
  "p50": {
-  "b": "C2",
+  "b": "t3-observability",
   "d": "Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median).",
-  "n": "Observability: log, metric, trace (versi lama)",
+  "n": "3.7 Observability",
   "s": "istilah-p95-p50",
   "t": "p95 / p50",
-  "u": "c-operasional/c2-observability/"
+  "u": "tahap-3/observability/"
  },
  "p95": {
-  "b": "C2",
+  "b": "t3-observability",
   "d": "Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median).",
-  "n": "Observability: log, metric, trace (versi lama)",
+  "n": "3.7 Observability",
   "s": "istilah-p95-p50",
   "t": "p95 / p50",
-  "u": "c-operasional/c2-observability/"
+  "u": "tahap-3/observability/"
  },
  "pagination": {
   "b": "t2-kursor",
@@ -2281,12 +2317,12 @@ window.ISTILAH = {
   "u": "tahap-2/tim-infra/"
  },
  "throughput": {
-  "b": "C2",
+  "b": "t3-observability",
   "d": "Jumlah pekerjaan yang selesai per satuan waktu, mis. request per detik.",
-  "n": "Observability: log, metric, trace (versi lama)",
+  "n": "3.7 Observability",
   "s": "istilah-throughput",
   "t": "Throughput",
-  "u": "c-operasional/c2-observability/"
+  "u": "tahap-3/observability/"
  },
  "timeout": {
   "b": "B11",
@@ -2322,12 +2358,21 @@ window.ISTILAH = {
   "u": "tahap-3/fitur-notifikasi/"
  },
  "trace": {
-  "b": "C2",
+  "b": "t3-observability",
   "d": "Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.",
-  "n": "Observability: log, metric, trace (versi lama)",
+  "n": "3.7 Observability",
   "s": "istilah-trace",
   "t": "Trace",
-  "u": "c-operasional/c2-observability/"
+  "u": "tahap-3/observability/"
+ },
+ "traceparent": {
+  "b": "t3-observability",
+  "d": "Header HTTP standar W3C yang membawa trace-id perjalanan satu request, supaya komponen yang berbeda bisa menyambung trace yang sama.",
+  "h": "istilah/traceparent/",
+  "n": "3.7 Observability",
+  "s": "istilah-traceparent",
+  "t": "traceparent",
+  "u": "tahap-3/observability/"
  },
  "trade-off": {
   "b": "D1",

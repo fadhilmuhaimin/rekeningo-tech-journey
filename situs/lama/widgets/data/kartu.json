@@ -1541,6 +1541,38 @@
   "jawab": "Tanpa pembersihan 7.500 × 365 × 300 byte, ±820 MB. Dengan retensi 7 hari 7.500 × 7 × 300 byte, ±15,8 MB. Keduanya Asumsi."
  },
  {
+  "id": "t3-observability-1",
+  "halaman": "t3-observability",
+  "judul": "3.7 Observability: log, metric, trace",
+  "url": "tahap-3/observability/",
+  "tanya": "Log api-t3 tidak bertambah selama 4 detik, padahal satu pembayaran belum dijawab. Apakah itu berarti tidak ada yang salah?",
+  "jawab": "Tidak. api-t3 tidak punya log akses: pembacaan saldo yang selesai dengan 200 pun meninggalkan nol baris (`jejak.txt` bagian J). Di api-t3, log ditulis saat sebuah kejadian terjadi, selesai, atau gagal, jadi request yang menggantung belum menulis apa pun. Log kosong tidak membedakan keadaan sehat dari keadaan menggantung."
+ },
+ {
+  "id": "t3-observability-2",
+  "halaman": "t3-observability",
+  "judul": "3.7 Observability: log, metric, trace",
+  "url": "tahap-3/observability/",
+  "tanya": "Dari empat golden signals, mana yang dilaporkan api-t3 sendiri saat pool penuh, dan lewat apa?",
+  "jawab": "Saturation, lewat `GET /lab/pool`: dipakai 10 dari maks 10 (`m18.txt` bagian A). Endpoint itu hanya ada dengan flag `-lab`. Latency, traffic, dan errors di rekaman dihitung pembangkit beban di luar server."
+ },
+ {
+  "id": "t3-observability-3",
+  "halaman": "t3-observability",
+  "judul": "3.7 Observability: log, metric, trace",
+  "url": "tahap-3/observability/",
+  "tanya": "App mengirim `traceparent`, tetapi trace-id itu tidak muncul di log atau di mana pun di API. Kenapa?",
+  "jawab": "Kode api-t3 tidak menyebut `traceparent`: `grep` di `cmd` dan `internal` tidak menemukan file, dan client push hanya menulis `Content-Type`. Trace-id berhenti di perbatasan API. Karena itu satu trace tidak bisa menyambung app, API, dan layanan push."
+ },
+ {
+  "id": "t3-observability-4",
+  "halaman": "t3-observability",
+  "judul": "3.7 Observability: log, metric, trace",
+  "url": "tahap-3/observability/",
+  "tanya": "`pg_stat_activity` menunjukkan satu sesi `idle in transaction` dengan wait event `ClientRead`, pada transaction yang sudah terbuka lebih dari 3 detik. Apa yang ditunjukkan, dan apa yang belum?",
+  "jawab": "PostgreSQL membuka transaction dan menunggu data dari client, jadi yang lambat bukan query (PostgreSQL 17: pg_stat_activity, dibuka 2026-10-26). Bagian API mana yang menunggu belum terlihat. Itu pertanyaan untuk trace."
+ },
+ {
   "id": "t3-pool-1",
   "halaman": "t3-pool",
   "judul": "3.8 Connection pool, Little's Law, dan timeout + ADR 22",
