@@ -2672,8 +2672,9 @@
       "lab": [
         "t3-instance"
       ],
-      "ada": false,
-      "nomor": "3.16"
+      "ada": true,
+      "nomor": "3.16",
+      "menit": 9
     },
     {
       "id": "t3-rate-limit-redis",
