@@ -3,7 +3,7 @@
   "opsi": [
     {
       "id": "polos",
-      "nama": "Opsi A · Proxy tanpa pengaman (round_robin)",
+      "nama": "A · Proxy tanpa pengaman (round_robin)",
       "baris": [
         [
           {
@@ -21,12 +21,12 @@
           {
             "id": "a-ia",
             "label": "Instance a",
-            "sub": "hidup"
+            "sub": "proses api-t3"
           },
           {
             "id": "a-ib",
             "label": "Instance b",
-            "sub": "mati"
+            "sub": "proses api-t3"
           }
         ]
       ],
@@ -37,7 +37,7 @@
     },
     {
       "id": "adr26",
-      "nama": "Opsi B · ADR 26: health check aktif dan retry",
+      "nama": "C · ADR 26: health check aktif dan retry",
       "baris": [
         [
           {
@@ -65,12 +65,12 @@
           {
             "id": "b-ia",
             "label": "Instance a",
-            "sub": "hidup"
+            "sub": "proses api-t3"
           },
           {
             "id": "b-ib",
             "label": "Instance b",
-            "sub": "mati"
+            "sub": "proses api-t3"
           }
         ]
       ],

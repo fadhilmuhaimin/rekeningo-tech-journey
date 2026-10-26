@@ -1,6 +1,6 @@
 {
   "id": "t3-dua-instance-inti",
-  "judul": "Satu instance mati di belakang proxy, tanpa dan dengan pengaman",
+  "judul": "Satu instance mati, tanpa dan dengan pengaman",
   "sumber": {
     "jenis": "rekaman",
     "teks": "Rekaman lab t3-instance, proxy.txt bagian C dan F"

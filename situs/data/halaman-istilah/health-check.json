@@ -16,7 +16,7 @@
   "stack": {
     "go": {
       "label": "Rekaman lab",
-      "versi": "Caddy 2.11.7, Go 1.27.1, PostgreSQL 17.11",
+      "versi": "Caddy 2.11.7, PostgreSQL 17.11, go.mod Go 1.27.1",
       "teks": "`GET /healthz` di `api-t3` menjawab 200 bila `PingContext` selesai dalam 1 detik. Dengan selang 30 detik, 5 dari 10 request sesudah instance mati gagal. Dengan selang 1 detik, instance mati dikeluarkan dan masuk lagi sesudah lolos pemeriksaan.",
       "rekaman": "labs/t3-instance/output/proxy.txt"
     },
@@ -79,7 +79,7 @@
       "riset": "R3-173",
       "judul": "Amazon Builders' Library: Implementing health checks",
       "url": "https://builder.aws.com/content/3Ev53O39izHCtWLzp4XU6t8PC1O/implementing-health-checks",
-      "catatan": "Pemeriksaan dependency bisa memicu cascading failure, dan load balancer yang melihat semua server gagal bersamaan membiarkan lalu lintas ke semuanya."
+      "catatan": "Pemeriksaan dependency bisa memicu cascading failure, dan sebagian load balancer, mis. AWS Network Load Balancer, membuka lalu lintas ke semua server bila tidak ada yang lolos pemeriksaan (fail open)."
     },
     {
       "riset": "R3-173",

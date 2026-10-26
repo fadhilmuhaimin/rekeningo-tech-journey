@@ -49,7 +49,7 @@ Rekaman lab mematikan instance b dengan SIGKILL di belakang proxy Caddy. Tebak d
 <p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: 10 dari 20, yaitu setiap request kedua (proxy.txt bagian C).</p>
 </noscript>
 
-Widget perbandingan menaruh dua susunan proxy berdampingan untuk satu kejadian. Tiga kejadian pertama memakai rekaman lab, dan kejadian VPS mati Tidak dijalankan. Arti label ada di [Label sumber](/cara-pakai/#label-sumber).
+Widget perbandingan menaruh dua susunan proxy berdampingan untuk satu kejadian. Rekaman lab mendukung tiga kejadian pertama, kecuali sisi tanpa pengaman pada Kedua instance mati, yang tidak direkam. Kejadian VPS mati Tidak dijalankan. Arti label ada di [Label sumber](/cara-pakai/#label-sumber).
 
 <WidgetLama nama="banding" src="data/t3-dua-instance-banding.json" />
 
@@ -57,7 +57,7 @@ Widget perbandingan menaruh dua susunan proxy berdampingan untuk satu kejadian. 
 <p>Tanpa JavaScript widget perbandingan tidak tampil. Isinya ada di tabel ADR 26 pada blok Putuskan.</p>
 </noscript>
 
-**Ubah satu hal:** pilih Deploy bergulir, lalu Kedua instance mati. Opsi B melewati penggantian a dan b tanpa satu pun jawaban selain 200, tetapi menjawab 503 saat kedua instance mati.
+**Ubah satu hal:** pilih Deploy bergulir, lalu Kedua instance mati. Opsi C melewati penggantian a dan b tanpa satu pun jawaban selain 200 pada GET yang diukur, tetapi menjawab 503 saat kedua instance mati.
 
 </Blok>
 
@@ -87,11 +87,13 @@ Caddyfile bawaan hanya berisi satu baris `reverse_proxy`, jadi tidak ada yang me
 
 POST itu diulang karena koneksi ke b gagal sebelum ada byte terkirim. POST yang sudah diterima instance lalu terputus di tengah tidak direkam, jadi Tidak dijalankan. App mengulangnya dengan Idempotency-Key ([[t2-idempotency]]).
 
-**Health check aktif.** Dengan `health_uri /healthz`, Caddy memanggil tiap instance setiap `health_interval` dan menganggapnya sehat bila status 200. Bawaan selangnya 30 detik dan timeout-nya 5 detik. Instance yang gagal dikeluarkan dari pilihan sampai pemeriksaan berikutnya lolos. Selang itu meninggalkan celah: b mati sesudah pemeriksaan terakhir, jadi 5 dari 10 request langsung sesudahnya gagal, dan retry menutupnya:
+**Health check aktif.** Dengan `health_uri /healthz`, Caddy memanggil tiap instance setiap `health_interval` dan menganggapnya sehat bila status 200. Bawaan selangnya 30 detik dan timeout-nya 5 detik. Instance yang gagal dikeluarkan dari pilihan sampai pemeriksaan berikutnya lolos.
+
+Selang itu meninggalkan celah: b mati sesudah pemeriksaan terakhir, jadi 5 dari 10 request langsung sesudahnya gagal, dan retry menutupnya:
 
 <Snippet files={["labs/t3-instance/output/proxy.txt:26:28", "labs/t3-instance/output/proxy.txt:30:32"]} title="Rekaman lab: labs/t3-instance/output/proxy.txt" />
 
-Pada puncak 17,36 request per detik, selang 30 detik berarti 17,36 × 30 = 520,8 request, dan separuhnya, ±260, jatuh ke instance yang mati. Itu Hitungan atas Asumsi: beban merata dan pembagian separuh. Dengan selang 1 detik, b dikeluarkan dan masuk lagi sesudah lolos pemeriksaan:
+Pada puncak 17,36 request per detik, selang 30 detik berarti paling banyak 17,36 × 30 = 520,8 request. Separuhnya, ±260, jatuh ke instance yang mati. Itu Hitungan atas Asumsi: beban merata, pembagian separuh, dan b mati tepat sesudah pemeriksaan terakhir. Dengan selang 1 detik, b dikeluarkan dan masuk lagi sesudah lolos pemeriksaan:
 
 <Snippet file="labs/t3-instance/output/proxy.txt" lines="34:36" title="Rekaman lab: labs/t3-instance/output/proxy.txt" />
 
@@ -101,7 +103,7 @@ Pada puncak 17,36 request per detik, selang 30 detik berarti 17,36 × 30 = 520,8
 
 Server yang hidup tetapi tidak bisa memakai database tidak boleh menerima request. Val Town tidak punya pemeriksaan itu. Pool koneksi satu servernya habis. Health check server itu tidak memeriksa kondisi database, jadi server tetap terdegradasi cukup lama ([Val Town: post-mortem](https://blog.val.town/blog/post-mortem-exhausted-host-connection-pool/), 2024-12-31, dibuka 2026-10-26).
 
-Arah sebaliknya juga berbahaya. Amazon Builders' Library menulis bahwa pemeriksaan dependency bisa memicu cascading failure ([Implementing health checks](https://builder.aws.com/content/3Ev53O39izHCtWLzp4XU6t8PC1O/implementing-health-checks), terbit 2019-12-05, dibuka 2026-10-26). Load balancer yang melihat semua server gagal bersamaan membiarkan lalu lintas ke semuanya.
+Arah sebaliknya juga berbahaya. Amazon Builders' Library menulis bahwa pemeriksaan dependency bisa memicu cascading failure ([Implementing health checks](https://builder.aws.com/content/3Ev53O39izHCtWLzp4XU6t8PC1O/implementing-health-checks), terbit 2019-12-05, dibuka 2026-10-26). Tulisan itu juga menyebut pengamannya: sebagian load balancer, mis. AWS Network Load Balancer, membuka lalu lintas ke semua server bila tidak ada yang lolos pemeriksaan (fail open).
 
 Dibaca dari kode, belum direkam: saat pool penuh seperti di [[t3-m18]], `PingContext` menunggu koneksi sampai 1 detik lalu `/healthz` menjawab 503, jadi kedua instance bisa dikeluarkan bersamaan. Rekaman bagian D di `panic.txt` menunjukkan kelanjutannya untuk dua proses yang mati. Sesudah pemeriksaan menandai keduanya, proxy menjawab 503, bukan 502, jadi ia tidak mengirim request ke instance yang sudah ditandai:
 
@@ -109,18 +111,20 @@ Dibaca dari kode, belum direkam: saat pool penuh seperti di [[t3-m18]], `PingCon
 
 Dokumentasi Caddy yang dibuka tidak menyebut kode 503 itu. Tombol Ekspor sampai ke a lebih dulu karena lab mengatur putaran, bukan karena pilihan proxy.
 
-**Proxy dan pengawas lain.** Caddy bukan satu-satunya. Tabel ini memuat apa yang dokumentasi masing-masing tulis tentang tiga hal. Pertama, kegagalan dihitung dari mana. Kedua, apa yang diulang. Ketiga, siapa yang menghidupkan proses lagi. Semuanya Tidak dijalankan di lab ini.
+**Proxy dan pengawas lain.** Caddy bukan satu-satunya. Tabel ini memuat apa yang dokumentasi masing-masing tulis tentang tiga hal: dari mana kegagalan dihitung, apa yang diulang, dan siapa yang menghidupkan proses lagi. Semuanya Tidak dijalankan di lab ini.
 
 | Alat | Kegagalan dan retry | Menghidupkan proses lagi |
 |---|---|---|
 | nginx 1.30.6 stable | Kegagalan dihitung pasif: `max_fails` 1 dan `fail_timeout` 10 detik. Health check aktif ada di modul langganan komersial. `proxy_next_upstream` bawaan `error timeout`, dan POST yang sudah terkirim tidak diteruskan ke server lain kecuali `non_idempotent` | Bukan tugas nginx |
 | Traefik v3.7 | Health check service: `interval` 30 detik dan `timeout` 5 detik. Middleware Retry berhenti begitu server menjawab, apa pun statusnya, dan `retryNonIdempotentMethod` bawaan `false` | Bukan tugas Traefik |
 | Docker | Tidak ada | Kebijakan restart `no` bawaan, lalu `on-failure`, `always`, dan `unless-stopped`. Kebijakan baru berlaku sesudah kontainer hidup sedikitnya 10 detik |
-| systemd 262 | Tidak ada | `Restart=` bawaan `no`. `on-failure` memulai ulang proses yang keluar dengan kode bukan nol, dihentikan sinyal, atau kena timeout. `RestartSec=` bawaan 100 ms, dan batas start bawaan 5 kali dalam 10 detik |
+| systemd 262 | Tidak ada | `Restart=` bawaan `no`. `on-failure` memulai ulang proses yang keluar dengan kode bukan nol, dihentikan sinyal selain SIGHUP, SIGINT, SIGTERM, dan SIGPIPE, atau kena timeout. `RestartSec=` bawaan 100 ms, dan batas start bawaan 5 kali dalam 10 detik |
 
 Sumbernya [nginx upstream](https://nginx.org/en/docs/http/ngx_http_upstream_module.html), [nginx proxy](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_next_upstream), [nginx health check](https://nginx.org/en/docs/http/ngx_http_upstream_hc_module.html), [Traefik: health check](https://doc.traefik.io/traefik/reference/routing-configuration/http/load-balancing/service/), [Traefik: Retry](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/retry/), [Docker: restart policy](https://docs.docker.com/engine/containers/start-containers-automatically/), [systemd.service](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html), dan [systemd-system.conf](https://www.freedesktop.org/software/systemd/man/latest/systemd-system.conf.html), semuanya dibuka 2026-10-26. Caddy tidak memulai proses, dan di lab tidak ada pengawas proses.
 
-**Shutdown dan deploy bergulir.** Deploy mengganti proses. Go menyediakan `http.Server.Shutdown`. Ia menutup listener, menutup koneksi idle, lalu menunggu koneksi aktif selesai. `ListenAndServe` kembali seketika sesudah `Shutdown` dimulai, jadi `main` harus menunggu `Shutdown` kembali ([Go 1.27.3: net/http, kode `server.go`](https://github.com/golang/go/blob/go1.27.3/src/net/http/server.go), dibuka 2026-10-26). `api-t3` memasangnya dengan batas 10 detik:
+**Shutdown dan deploy bergulir.** Deploy mengganti proses, dan Go menyediakan `http.Server.Shutdown` untuk itu. Ia menutup listener, menutup koneksi idle, lalu menunggu koneksi aktif selesai. Fungsi `ListenAndServe` kembali seketika sesudah `Shutdown` dimulai, jadi `main` harus menunggu `Shutdown` kembali ([Go 1.27.3: net/http, kode `server.go`](https://github.com/golang/go/blob/go1.27.3/src/net/http/server.go), dibuka 2026-10-26).
+
+`api-t3` memasangnya dengan batas 10 detik:
 
 <Snippet file="labs/api-t3/cmd/api/main.go" lines="216:243" lang="go" title="labs/api-t3/cmd/api/main.go" />
 
@@ -134,7 +138,9 @@ Di belakang proxy, rekaman mengganti a lalu b sementara beban berjalan. Dengan h
 
 `Shutdown` melindungi request yang sedang jalan, sedangkan health check dan retry melindungi request baru. Kombinasi tanpa `Shutdown` di belakang proxy dengan retry tidak direkam, jadi halaman ini tidak mengklaim bahwa retry menutupnya. Retry hanya mengulang GET yang terputus sesudah tersambung. Selama deploy bergulir instance lama dan baru melayani bersamaan, jadi migration harus cocok dengan keduanya ([[t2-skema-tanpa-downtime]]).
 
-**Koneksi database dikali instance.** Tiap instance membuka pool sendiri, dan `api-t3` memakai 10 koneksi per proses lewat flag `-pool`. PostgreSQL membatasi semua koneksi dengan `max_connections`, yang bawaannya biasanya 100, dan menyisihkan 3 slot untuk superuser ([PostgreSQL 17.11, bab 19.3](https://www.postgresql.org/docs/17/runtime-config-connection.html), dibuka 2026-10-26). Worker memakai 4 koneksi dan koneksi admin 3, keduanya Asumsi naskah. Hitungannya instance × pool + worker + admin + cadangan.
+**Koneksi database dikali instance.** Tiap instance membuka pool sendiri, dan `api-t3` memakai 10 koneksi per proses lewat flag `-pool`. PostgreSQL membatasi semua koneksi dengan `max_connections`, yang bawaannya biasanya 100, dan menyisihkan 3 slot untuk superuser ([PostgreSQL 17.11, bab 19.3](https://www.postgresql.org/docs/17/runtime-config-connection.html), dibuka 2026-10-26).
+
+Worker memakai 4 koneksi dan koneksi admin 3, keduanya Asumsi naskah. Hitungannya instance × pool + worker + admin + cadangan.
 
 Untuk dua instance dengan pool 10, hasilnya 2 × 10 + 4 + 3 + 3 = 30 dari 100 koneksi. Pool 50 per instance, yang diusulkan Raka di [[t3-m18]], menghasilkan 2 × 50 + 4 + 3 + 3 = 110 koneksi, di atas 100. Menambah instance mengalikan pool, jadi pool tidak dinaikkan untuk menambal masalah lain ([[t3-pool]]).
 
@@ -165,7 +171,7 @@ Tab-tab di bawah menjawab pertanyaan yang sama. Perbedaannya ada pada siapa yang
 
 *Tidak dijalankan. Dicek ke [Laravel 13.x: Deployment](https://laravel.com/docs/13.x/deployment), dibuka 2026-10-26.*
 
-**Yang berbeda di stack ini:** Laravel menyediakan route health check `/up`, yang menjawab 200 bila aplikasi selesai boot tanpa exception dan 500 bila tidak. Pemeriksaan database hanya lewat listener event `DiagnosingHealth` yang kamu tulis. Untuk proses yang bisa di-reload, mis. queue worker, dokumentasi menyuruh memasang process monitor sendiri yang memulai ulang proses yang keluar, kecuali di Laravel Cloud.
+**Yang berbeda di stack ini:** Laravel menyediakan route health check `/up`, yang menjawab 200 bila aplikasi selesai boot tanpa exception dan 500 bila tidak. Pemeriksaan database kamu tulis sendiri di listener event `DiagnosingHealth`. Untuk proses yang bisa di-reload, mis. queue worker, dokumentasi menyuruh memasang process monitor sendiri yang memulai ulang proses yang keluar, kecuali di Laravel Cloud.
 
 </Fragment>
 <Fragment slot="t3">
@@ -179,7 +185,9 @@ Tab-tab di bawah menjawab pertanyaan yang sama. Perbedaannya ada pada siapa yang
 
 *Tidak dijalankan. Dicek ke [Serverpod: Health checks](https://docs.serverpod.dev/concepts/operations/health-checks) (dokumentasi bertanda 4.0.0; Serverpod 4.0.4), dibuka 2026-10-26.*
 
-**Yang berbeda di stack ini:** Serverpod menjawab tiga pertanyaan lewat HTTP. `/livez` menjawab 200 bila server bisa menjawab, `/readyz` menjawab 200 bila dependency sehat dan 503 bila tidak, dan `/startupz` menjawab 200 sesudah startup selesai. Dokumentasi menulis bahwa liveness sengaja permisif. Pemisahan itu tidak ada di `/healthz` api-t3, yang menggabungkan keduanya.
+**Yang berbeda di stack ini:** Serverpod menjawab tiga pertanyaan lewat tiga endpoint HTTP. Endpoint `/livez` menjawab 200 bila server bisa menjawab. Endpoint `/readyz` menjawab 200 bila dependency sehat dan 503 bila tidak. Endpoint `/startupz` menjawab 200 sesudah startup selesai.
+
+Dokumentasi menulis bahwa liveness sengaja permisif. Pemisahan itu tidak ada di `/healthz` api-t3, yang menggabungkan keduanya.
 
 </Fragment>
 <Fragment slot="t5">
@@ -204,9 +212,9 @@ Tab-tab di bawah menjawab pertanyaan yang sama. Perbedaannya ada pada siapa yang
 | | A. Dua instance, proxy bawaan | B. Satu instance dengan restart otomatis | C. Dua instance, health check aktif dan retry | D. Dua VPS dengan load balancer | E. Kubernetes |
 |---|---|---|---|---|---|
 | Cara kerja | Caddy hanya `reverse_proxy` ke a dan b, dengan kebijakan `random`, tanpa health check, tanpa retry | Satu proses. Pengawas proses menghidupkannya lagi sesudah mati | Proxy memanggil `/healthz` tiap selang, mengeluarkan instance yang gagal, dan mengulang request yang gagal ke instance lain | Dua mesin dengan satu instance per mesin, dan load balancer di depannya | Orkestrator menjalankan, memeriksa, dan mengganti pod |
-| Kelebihan | Tanpa konfigurasi tambahan | Satu proses, jadi rate limit dan cache di memori tetap benar | Satu kematian tertahan: 0 dari 10 request gagal. Deploy bergulir tanpa jawaban selain 200 | Menahan kematian satu mesin | Health check, rolling update, dan restart sudah ada |
+| Kelebihan | Tanpa konfigurasi tambahan | Satu proses, jadi rate limit dan cache di memori tetap benar | Satu kematian tertahan: 0 dari 10 request gagal. Deploy bergulir tanpa jawaban selain 200 pada GET yang diukur | Menahan kematian satu mesin | Health check, rolling update, dan restart sudah ada |
 | Kekurangan | Instance mati tetap dipilih: 10 dari 20 request gagal, dan deploy bergulir menghasilkan 502 | Selama proses naik dan selama deploy tidak ada instance yang menjawab (penalaran) | Satu VPS mati berarti kedua instance mati. Satu bug berulang mematikan keduanya, dan memori satu proses berlipat | Biaya mesin kedua, dan state di memori harus dipindah ke tempat bersama | Biaya operasional besar untuk tim empat orang |
-| Biaya operasional | Satu baris `reverse_proxy` | Satu unit pengawas proses | Enam opsi tambahan di Caddyfile, endpoint `/healthz`, dan alert untuk instance yang dikeluarkan | Dua mesin, jaringan, dan deploy ke dua tempat | Cluster, manifest, dan upgrade cluster |
+| Biaya operasional | Satu baris `reverse_proxy` | Satu unit pengawas proses | Empat opsi tambahan di Caddyfile (`health_uri`, `health_interval`, `health_timeout`, `lb_retries`), endpoint `/healthz`, dan alert untuk instance yang dikeluarkan | Dua mesin, jaringan, dan deploy ke dua tempat | Cluster, manifest, dan upgrade cluster |
 | Bukti | Rekaman `proxy.txt` B dan C, `bergulir.txt` D; dokumentasi Caddy | Tidak dijalankan: dokumentasi Docker dan systemd | Rekaman `proxy.txt` D sampai G, `bergulir.txt` A sampai C, `panic.txt` D | Tidak dijalankan: [[t3-adr-33]] | Tidak dijalankan: [[t3-adr-33]] |
 
 Opsi B, D, dan E Tidak dijalankan di lab. Kelebihan dan kekurangannya berasal dari dokumentasi dan penalaran, bukan dari ukuran.
@@ -225,9 +233,9 @@ Opsi B, D, dan E Tidak dijalankan di lab. Kelebihan dan kekurangannya berasal da
 
 **Kenapa C, bukan D.** D menahan kematian satu mesin, tetapi menambah mesin kedua dan memaksa state di memori pindah ke tempat bersama. Beban Tahap 3 tidak menuntutnya, dan [[t3-adr-33]] menundanya.
 
-**Kenapa C, bukan E.** Kubernetes memberi semua yang C kerjakan dengan tangan, dengan biaya operasional yang tidak dibenarkan oleh dua instance dan empat engineer. PROPOSAL menaruhnya di Tahap 4 sampai 5.
+**Kenapa C, bukan E.** Kubernetes memberi semua yang C kerjakan dengan tangan, dengan biaya operasional yang tidak dibenarkan oleh dua instance dan empat engineer. PROPOSAL menaruhnya di Tahap 5.
 
-**Kasus industri: Kamal Proxy (37signals).** Kamal Proxy adalah proxy HTTP kecil untuk deploy tanpa jeda. Ia menguji tiap instance dengan `GET /up` sekali per detik dan menganggap 200 sehat. Lalu lintas baru hanya dialihkan ke instance baru sesudah ia sehat, dan lalu lintas ke instance lama dikuras sebelum instance itu dihapus. README menyebut deploy berjalan tanpa downtime ([kamal-proxy README](https://github.com/basecamp/kamal-proxy), dibuka 2026-10-26).
+**Kasus industri: Kamal Proxy (37signals).** Kamal Proxy adalah proxy HTTP kecil untuk deploy tanpa jeda, dan README-nya menyebut deploy berjalan tanpa downtime ([kamal-proxy README](https://github.com/basecamp/kamal-proxy), dibuka 2026-10-26). Ia menguji tiap instance dengan `GET /up` sekali per detik dan menganggap 200 sehat. Lalu lintas baru hanya dialihkan ke instance baru sesudah ia sehat, dan lalu lintas ke instance lama dikuras sebelum instance itu dihapus.
 
 Batas deploy dan batas pengurasan bawaannya masing-masing 30 detik di kode sumber ([`service.go`](https://github.com/basecamp/kamal-proxy/blob/main/internal/server/service.go), dibuka 2026-10-26). Kamal 2.12.0 dirilis 2026-06-18. Batas kasus ini jelas: README tidak memuat angka ketersediaan, tidak menyebut berapa kontainer aplikasi per host, dan tidak membahas proses yang mati di tengah hari. Kasus ini mendukung proxy yang memeriksa kesehatan sebelum mengirim lalu lintas, bukan klaim bahwa dua instance cukup.
 

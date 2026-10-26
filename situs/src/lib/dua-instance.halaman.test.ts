@@ -31,6 +31,7 @@ const mdx = baca(HALAMAN);
 const badan = mdx.split(/^---\n/m).slice(2).join("---\n");
 const naskah = baca("plan/CERITA-TAHAP-3.md");
 const riset = baca("plan/RISET-TAHAP-3.md");
+const proposal = baca("plan/PROPOSAL.md");
 const proxyTeks = baca("labs/t3-instance/output/proxy.txt");
 const bergulirTeks = baca("labs/t3-instance/output/bergulir.txt");
 const panicTeks = baca("labs/t3-instance/output/panic.txt");
@@ -430,17 +431,21 @@ describe("kode: /healthz, Shutdown, pool, Caddyfile, dan klaim negatif berlingku
     expect(fmt(puncak, 2)).toBe("17,36");
     expect(fmt(puncak * 30, 1)).toBe("520,8");
     expect(Math.round(gagalCelah)).toBe(260);
-    harus(`Pada puncak ${fmt(puncak, 2)} request per detik, selang ${tigaPuluh} detik berarti ${fmt(puncak, 2)} × ${tigaPuluh} = ${fmt(puncak * tigaPuluh, 1)} request, dan separuhnya, ±${Math.round(gagalCelah)}, jatuh ke instance yang mati.`);
-    harus("Itu Hitungan atas Asumsi: beban merata dan pembagian separuh.");
+    harus(`Pada puncak ${fmt(puncak, 2)} request per detik, selang ${tigaPuluh} detik berarti paling banyak ${fmt(puncak, 2)} × ${tigaPuluh} = ${fmt(puncak * tigaPuluh, 1)} request. Separuhnya, ±${Math.round(gagalCelah)}, jatuh ke instance yang mati.`);
+    harus("Itu Hitungan atas Asumsi: beban merata, pembagian separuh, dan b mati tepat sesudah pemeriksaan terakhir.");
     harus("Beban puncak 17,36 request per detik tidak menuntut server kedua");
     expect(naskah).toContain("Kapasitas satu server tetap belum diukur.");
     harus("kapasitas satu server belum diukur, dan load test Tidak dijalankan.");
     expect(baca("situs/src/content/docs/tahap-3/m18-app-membeku.mdx")).toContain("17,36 per detik");
   });
-  test("Caddyfile: aktif-retry memuat enam opsi tambahan dan nilai yang ditulis halaman; bawaan hanya satu baris reverse_proxy tanpa health check dan retry", () => {
+  test("Caddyfile: aktif-retry memuat enam baris, empat di antaranya keputusan ADR, dan nilai yang ditulis halaman; bawaan hanya satu baris reverse_proxy tanpa health check dan retry", () => {
     const blok = caddyAktifRetry.split("\n").filter((b) => /^\t\t[a-z_]+ /.test(b)).map((b) => b.trim());
     expect(blok).toEqual(["lb_policy round_robin", "lb_retries 2", "health_uri /healthz", "health_interval {$HEALTH_INTERVAL}", "health_timeout 1s", "health_status 200"]);
-    harus("Enam opsi tambahan di Caddyfile, endpoint `/healthz`, dan alert untuk instance yang dikeluarkan");
+    // Keputusan ADR memakai empat opsi; lb_policy hanya supaya rekaman bisa diulang dan health_status 200 adalah bawaan Caddy (tinjauan, keputusan 1059).
+    const keputusan = blok.filter((b) => !b.startsWith("lb_policy") && !b.startsWith("health_status")).map((b) => b.split(" ")[0]!);
+    expect([...keputusan].sort()).toEqual(["health_interval", "health_timeout", "health_uri", "lb_retries"]);
+    harus("Empat opsi tambahan di Caddyfile (`health_uri`, `health_interval`, `health_timeout`, `lb_retries`), endpoint `/healthz`, dan alert untuk instance yang dikeluarkan");
+    harus("tambahkan `health_uri /healthz`, `health_interval`, `health_timeout`, dan `lb_retries 2`, seperti di bagian F.");
     harus("dan memakai `lb_retries 2`.");
     harus("Proxy memanggil `GET /healthz` tiap 1 detik dengan timeout 1 detik");
     const aktif = caddyBawaan.split("\n").filter((b) => b.trim() !== "" && !b.trim().startsWith("#"));
@@ -484,7 +489,7 @@ describe("ADR 26: tabel opsi, lima aturan, pre-mortem tiga penyebab, kapan salah
     const kolom = (n: number) => baris.slice(2).map((r) => r[n]!);
     expect(kolom(3)[1]).toContain(`${jumlahF[1] - jumlahF[0]} dari ${jumlahF[0]} request gagal`);
     expect(kolom(1)[2]).toContain(`${jumlahC[1]} dari ${jumlahC[0] + jumlahC[1]} request gagal`);
-    expect(kolom(3)[3]).toContain("Enam opsi tambahan di Caddyfile");
+    expect(kolom(3)[3]).toContain("Empat opsi tambahan di Caddyfile");
     expect(kolom(3)[4]).toContain("`proxy.txt` D sampai G");
     expect(kolom(1)[4]).toContain("`proxy.txt` B dan C, `bergulir.txt` D");
     expect(kolom(2)[4]).toContain("Tidak dijalankan");
@@ -512,8 +517,12 @@ describe("ADR 26: tabel opsi, lima aturan, pre-mortem tiga penyebab, kapan salah
     expect(naskah).toContain("| 26 | Dua instance di satu VPS (menjalankan pemicu server kedua ADR 21: PRD meminta deploy tanpa jeda); proxy dengan health check aktif dan retry; graceful shutdown; deploy bergulir.");
     expect(naskah).toContain("Bila VPS mati: kedua instance ikut mati, dijawab Tahap 4. Dua instance menahan satu kematian, bukan satu bug yang bisa dipicu berulang");
     expect(naskah).toContain("Dua instance dengan proxy bawaan (instance mati tetap dipilih acak: tanpa health check aktif dan tanpa retry, R3-13); satu instance dengan restart otomatis; dua VPS dengan load balancer; Kubernetes");
-    expect(riset).toContain("PROPOSAL menaruhnya di Tahap 4–5");
-    harus("PROPOSAL menaruhnya di Tahap 4 sampai 5.");
+    // PROPOSAL menaruh Kubernetes di Tahap 5 (k3s di VPS), bukan di Tahap 4 (cloud managed dan IaC): tinjauan 3.15, keputusan 1059.
+    expect(proposal).toMatch(/^\| 5 \| Kubernetes \(dimulai dari k3s di VPS/m);
+    expect(proposal.split("\n").filter((l) => /^\| 4 \| /.test(l) && /kubernetes|k8s|k3s/i.test(l))).toEqual([]);
+    expect(riset).toContain("PROPOSAL menaruhnya di Tahap 5 | R3-13 |");
+    harus("PROPOSAL menaruhnya di Tahap 5.");
+    expect(badan).not.toMatch(/Tahap 4 sampai 5/);
     harus("tim empat orang");
     expect(naskah).toContain("Empat engineer, tiga peran");
     expect(cerita.tahap[2]!.asumsi.tim).toBe("4 developer");
@@ -660,6 +669,67 @@ describe("sumber dan versi: baris RISET, halaman istilah, tab stack, tabel proxy
     expect(RENTANG.healthz).toBe("173:184");
     expect(RENTANG.shutdown).toBe("216:243");
     expect(RENTANG.caddy).toBe("3:16");
+  });
+});
+
+describe("tinjauan 3.15 (keputusan 1059): lingkup klaim, label widget, dan peringatan bahasa", () => {
+  const fungsiRun = (nama: string): string => {
+    const i = runPy.indexOf(`def ${nama}(`);
+    expect(i, nama).toBeGreaterThanOrEqual(0);
+    const j = runPy.indexOf("\ndef ", i + 5);
+    return runPy.slice(i, j < 0 ? undefined : j);
+  };
+  test("fail open berlingkup: sebagian load balancer AWS, bukan semua, dan bukan Caddy", () => {
+    harus("Tulisan itu juga menyebut pengamannya: sebagian load balancer, mis. AWS Network Load Balancer, membuka lalu lintas ke semua server bila tidak ada yang lolos pemeriksaan (fail open).");
+    expect(badan).not.toMatch(/Load balancer yang melihat semua server gagal/);
+    expect(istilahTeks).toContain("sebagian load balancer, mis. AWS Network Load Balancer, membuka lalu lintas ke semua server bila tidak ada yang lolos pemeriksaan (fail open).");
+    expect(istilahTeks).not.toMatch(/load balancer yang melihat semua server gagal/i);
+    const r173 = riset.split("\n").find((l) => l.startsWith("| R3-173 |"))!;
+    expect(r173).toContain("Some load balancers can act as a smart central authority");
+    expect(r173).toContain("AWS Network Load Balancer, Application Load Balancer, Route 53");
+    // Caddy tidak fail open: bila semua instance ditandai gagal, jawabannya 503 dan bukan 502 dari instance yang dicoba.
+    expect(pnD.join("\n")).toContain("503: tidak ada instance yang sehat");
+    expect(pnD.join("\n")).not.toContain("502");
+  });
+  test("deploy bergulir: yang diukur hanya GET (/healthz dan /lab/lambat); klaim 'tanpa jawaban selain 200' berlingkup GET", () => {
+    const beban = fungsiRun("beban");
+    expect(beban).toContain('minta("GET", "/healthz", PORT_PROXY');
+    expect(beban).toContain('minta("GET", "/lab/lambat?ms=300", PORT_PROXY');
+    expect(beban).not.toMatch(/POST|PUT|PATCH|DELETE/);
+    expect(fungsiRun("rekam_bergulir")).not.toContain('"POST"');
+    expect(badan.match(/pada GET yang diukur/g)).toHaveLength(2);
+    harus("tanpa satu pun jawaban selain 200 pada GET yang diukur, tetapi menjawab 503 saat kedua instance mati.");
+    expect(badan).not.toMatch(/Deploy bergulir tanpa jawaban selain 200 \|/);
+  });
+  test("widget banding memakai huruf opsi yang sama dengan tabel ADR; simpul instance tidak menulis keadaan yang berubah antar kejadian", () => {
+    expect(banding.opsi.map((o) => o.nama)).toEqual(["A · Proxy tanpa pengaman (round_robin)", "C · ADR 26: health check aktif dan retry"]);
+    const kepala = badan.split("\n").find((l) => l.startsWith("| | A. Dua instance, proxy bawaan"))!.split("|").slice(1, -1).map((c) => c.trim());
+    expect(kepala[1]).toMatch(/^A\. /);
+    expect(kepala[3]).toMatch(/^C\. /);
+    expect(banding.opsi.map((o) => o.nama[0])).toEqual([kepala[1]![0], kepala[3]![0]]);
+    harus("Opsi C melewati penggantian a dan b");
+    expect(badan).not.toMatch(/Opsi B melewati/);
+    // Simpul dipakai di empat kejadian: "hidup" atau "mati" tetap di simpul salah di tiga kejadian (kedua instance mati, VPS mati, deploy bergulir).
+    const instance = banding.opsi.flatMap((o) => o.baris.flat()).filter((n) => /^Instance [ab]$/.test(n.label));
+    expect(instance).toHaveLength(4);
+    for (const n of instance) expect(n.sub, n.id).toBe("proses api-t3");
+    expect(bandingTeks).not.toMatch(/"sub": "(hidup|mati)"/);
+    harus("Rekaman lab mendukung tiga kejadian pertama, kecuali sisi tanpa pengaman pada Kedua instance mati, yang tidak direkam.");
+    expect(banding.fitur[2]!.catatan.polos).toContain("Tidak direkam");
+  });
+  test("systemd on-failure: sinyal bersih dikecualikan seperti di dokumentasi, dan baris riset memuatnya", () => {
+    harus("dihentikan sinyal selain SIGHUP, SIGINT, SIGTERM, dan SIGPIPE, atau kena timeout.");
+    expect(riset.split("\n").find((l) => l.startsWith("| R3-172 |"))!).toContain("dihentikan sinyal selain SIGHUP, SIGINT, SIGTERM, dan SIGPIPE (keluar bersih)");
+  });
+  test("audit bahasa: 0 error dan 0 peringatan (paragraf paling banyak 4 kalimat, kalimat paling banyak 25 kata)", () => {
+    const keluar = execFileSync("python3", ["tools/audit_bahasa.py", "--check", HALAMAN], { cwd: akar, encoding: "utf8" });
+    expect(keluar).toMatch(/0 error · 0 peringatan/);
+  });
+  test("janji ke halaman yang belum ada: 3.27 menerima alert request menunggu koneksi dari naskah; alert instance dikeluarkan belum ada di naskah 3.27 (catatan ke pengatur)", () => {
+    harus("Alert untuk request yang menunggu koneksi ([[t3-tim-infra]])");
+    expect(naskah).toContain("request yang menunggu koneksi");
+    harus("Alert untuk instance yang dikeluarkan ada di [[t3-tim-infra]].");
+    expect(naskah.slice(naskah.indexOf("Isi halaman 3.27"))).not.toMatch(/instance yang dikeluarkan/);
   });
 });
 

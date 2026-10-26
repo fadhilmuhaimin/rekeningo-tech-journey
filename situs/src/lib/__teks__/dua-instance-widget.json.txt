@@ -1,7 +1,7 @@
 [
  {
   "id": "t3-dua-instance-inti",
-  "judul": "Satu instance mati di belakang proxy, tanpa dan dengan pengaman",
+  "judul": "Satu instance mati, tanpa dan dengan pengaman",
   "sumber": {
    "jenis": "rekaman",
    "teks": "Rekaman lab t3-instance, proxy.txt bagian C dan F"
@@ -89,7 +89,7 @@
   "opsi": [
    {
     "id": "polos",
-    "nama": "Opsi A · Proxy tanpa pengaman (round_robin)",
+    "nama": "A · Proxy tanpa pengaman (round_robin)",
     "baris": [
      [
       {
@@ -107,12 +107,12 @@
       {
        "id": "a-ia",
        "label": "Instance a",
-       "sub": "hidup"
+       "sub": "proses api-t3"
       },
       {
        "id": "a-ib",
        "label": "Instance b",
-       "sub": "mati"
+       "sub": "proses api-t3"
       }
      ]
     ],
@@ -123,7 +123,7 @@
    },
    {
     "id": "adr26",
-    "nama": "Opsi B · ADR 26: health check aktif dan retry",
+    "nama": "C · ADR 26: health check aktif dan retry",
     "baris": [
      [
       {
@@ -151,12 +151,12 @@
       {
        "id": "b-ia",
        "label": "Instance a",
-       "sub": "hidup"
+       "sub": "proses api-t3"
       },
       {
        "id": "b-ib",
        "label": "Instance b",
-       "sub": "mati"
+       "sub": "proses api-t3"
       }
      ]
     ],
