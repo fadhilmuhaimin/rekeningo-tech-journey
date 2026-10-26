@@ -1695,6 +1695,70 @@
   "jawab": "Klaim worker A habis selagi ia menunggu jawaban. Worker B mengklaim baris yang sama dan mengirimnya, jadi keduanya melapor `terkirim` (`ganda.txt` bagian B). Klaim harus lebih panjang dari waktu kirim."
  },
  {
+  "id": "t3-at-least-once-1",
+  "halaman": "t3-at-least-once",
+  "judul": "3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25",
+  "url": "tahap-3/at-least-once/",
+  "tanya": "Worker mati sesudah tiap push berhasil, dan batasnya lima percobaan. Berapa pesan sampai ke layanan push, dan pada klaim ke berapa baris masuk dead-letter?",
+  "jawab": "Lima pesan, dan baris masuk dead-letter pada klaim ke-6. Percobaan naik saat klaim, jadi klaim ke-6 melewati batas dan memasukkan baris ke dead-letter tanpa mengirim (`retry.txt` bagian C)."
+ },
+ {
+  "id": "t3-at-least-once-2",
+  "halaman": "t3-at-least-once",
+  "judul": "3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25",
+  "url": "tahap-3/at-least-once/",
+  "tanya": "Layanan push menjawab 503 terus. Kenapa baris masuk dead-letter pada kegagalan ke-5, bukan klaim ke-6?",
+  "jawab": "Worker mencatat tiap kegagalan lewat `tunda`, dan `percobaan` yang sudah 5 langsung memindahkan baris ke `mati` (`retry.txt` bagian A: 5 permintaan). Klaim ke-6 terjadi bila baris diklaim lebih sering daripada kegagalannya dicatat, misalnya saat worker mati sebelum sempat mencatat."
+ },
+ {
+  "id": "t3-at-least-once-3",
+  "halaman": "t3-at-least-once",
+  "judul": "3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25",
+  "url": "tahap-3/at-least-once/",
+  "tanya": "Pesan notification dikirim, dan app sedang di background. Kenapa penyaring `notifikasi_id` tidak jalan?",
+  "jawab": "Dokumentasi FCM menulis bahwa FCM SDK menampilkan pesan notification saat app di background, jadi kode app tidak dijalankan. Penyaring butuh kode app, dan itu sebabnya ADR 25 mengirim pemberitahuan uang sebagai pesan data."
+ },
+ {
+  "id": "t3-at-least-once-4",
+  "halaman": "t3-at-least-once",
+  "judul": "3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25",
+  "url": "tahap-3/at-least-once/",
+  "tanya": "Kenapa app mencatat `notifikasi_id` sesudah menampilkan, bukan sebelumnya?",
+  "jawab": "App yang mati di antara dua langkah itu menampilkan ulangan, dan tidak kehilangan pemberitahuan. Urutan sebaliknya bisa kehilangan, dan PRD melarang hilang tanpa terdeteksi. Dokumentasi Kafka menulis pola yang sama untuk posisi consumer."
+ },
+ {
+  "id": "t3-m21-1",
+  "halaman": "t3-m21",
+  "judul": "3.14 M21: Satu proses mati, semua mati",
+  "url": "tahap-3/m21-satu-proses-mati/",
+  "tanya": "Panic terjadi di handler, lalu di goroutine yang dibuka handler. Kenapa hanya yang kedua mematikan proses?",
+  "jawab": "`net/http` memulihkan panic dari `ServeHTTP`, jadi koneksi request itu putus dan proses hidup. Panic di goroutine yang dibuka handler naik sampai fungsi paling atas goroutine itu, lalu program berhenti (`panic.txt` bagian B: kode keluar 2)."
+ },
+ {
+  "id": "t3-m21-2",
+  "halaman": "t3-m21",
+  "judul": "3.14 M21: Satu proses mati, semua mati",
+  "url": "tahap-3/m21-satu-proses-mati/",
+  "tanya": "Sari menerima CSV berstatus 200, tetapi proses API mati. Kenapa Sari tidak melihat galat?",
+  "jawab": "Handler selesai menjawab sebelum goroutine latar panik: CSV 200 sampai ke Sari lebih dulu (`panic.txt` bagian C). Di lab, jeda 50 ms di kode menjaga urutan itu (dibaca dari komentar, Tidak dijalankan). Kegagalan di latar tidak muncul di jawaban request yang memicunya."
+ },
+ {
+  "id": "t3-m21-3",
+  "halaman": "t3-m21",
+  "judul": "3.14 M21: Satu proses mati, semua mati",
+  "url": "tahap-3/m21-satu-proses-mati/",
+  "tanya": "Seorang engineer mengusulkan VPS yang lebih besar. Apa di pesan panic yang menolak usul itu?",
+  "jawab": "Pesannya `index out of range [0] with length 0`, galat di kode yang mengambil baris pertama laporan kosong. Itu bukan kehabisan memori atau CPU, jadi mesin yang lebih besar mati dengan cara yang sama (penalaran)."
+ },
+ {
+  "id": "t3-m21-4",
+  "halaman": "t3-m21",
+  "judul": "3.14 M21: Satu proses mati, semua mati",
+  "url": "tahap-3/m21-satu-proses-mati/",
+  "tanya": "Dua instance di belakang proxy menahan Ekspor kosong yang pertama. Kenapa Ekspor kosong yang kedua tidak tertahan?",
+  "jawab": "Kedua instance menjalankan kode yang sama, jadi laporan kosong yang sama mematikan instance kedua. Sesudah itu proxy menjawab 503 pada 10 dari 10 request (`panic.txt` bagian D)."
+ },
+ {
   "id": "t3-dua-instance-1",
   "halaman": "t3-dua-instance",
   "judul": "3.15 Dua instance di belakang proxy + ADR 26",

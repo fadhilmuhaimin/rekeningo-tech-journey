@@ -1,0 +1,37 @@
+{
+  "id": "t3-m21-satu-proses-mati",
+  "judul": "Satu laporan kosong: satu proses, dua instance, versi benar",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-instance · panic.txt bagian C, D, dan E" },
+  "baris": [
+    {
+      "label": "Satu instance, tanpa pelindung",
+      "sub": "bagian C",
+      "simpul": [
+        { "teks": "Sari menekan Ekspor", "sub": "warung tanpa pembayaran, laporan kosong" },
+        { "teks": "CSV terkirim", "sub": "200, hanya judul kolom" },
+        { "teks": "Goroutine latar panik", "sub": "index out of range [0] with length 0", "nada": "warn" },
+        { "teks": "Proses keluar", "sub": "kode 2, /healthz tidak menjawab", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Dua instance, health check dan retry",
+      "sub": "bagian D",
+      "simpul": [
+        { "teks": "Ekspor kosong mematikan a", "sub": "kode keluar 2" },
+        { "teks": "20 request sesudahnya", "sub": "200: 20, semuanya dari b", "nada": "good" },
+        { "teks": "Ekspor kosong mematikan b", "sub": "kode keluar 2", "nada": "warn" },
+        { "teks": "10 request sesudahnya", "sub": "503: 10, tidak ada instance yang sehat", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Versi benar",
+      "sub": "bagian E",
+      "simpul": [
+        { "teks": "Sari menekan Ekspor", "sub": "laporan kosong" },
+        { "teks": "CSV terkirim", "sub": "200, judul kolom; log: laporan kosong" },
+        { "teks": "Kedua instance hidup", "sub": "20 request: 200, a 10, b 10", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Di versi rentan, panic di goroutine latar tidak dipulihkan siapa pun, jadi satu laporan kosong mengakhiri seluruh proses."
+}

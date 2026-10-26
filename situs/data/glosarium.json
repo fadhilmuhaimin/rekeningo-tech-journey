@@ -173,9 +173,9 @@
  {
   "t": "At-least-once",
   "d": "Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda.",
-  "b": "B10.1",
-  "n": "Background job, queue, retry (versi lama)",
-  "u": "/b-fondasi/b10-1-background-job/",
+  "b": "t3-at-least-once",
+  "n": "3.13 At-least-once dan penyaring di app",
+  "u": "/tahap-3/at-least-once/",
   "s": "istilah-at-least-once",
   "h": "/istilah/at-least-once/"
  },
@@ -326,11 +326,11 @@
  {
   "t": "Dead-letter queue",
   "d": "Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.",
-  "b": "B10.1",
-  "n": "Background job, queue, retry (versi lama)",
-  "u": "/b-fondasi/b10-1-background-job/",
+  "b": "t3-at-least-once",
+  "n": "3.13 At-least-once dan penyaring di app",
+  "u": "/tahap-3/at-least-once/",
   "s": "istilah-dead-letter-queue",
-  "h": null
+  "h": "/istilah/dead-letter-queue/"
  },
  {
   "t": "Deadlock",

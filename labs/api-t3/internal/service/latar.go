@@ -21,10 +21,10 @@ func (s Service) DenganMode(mode string) Service { s.rentan = mode; return s }
 
 // --8<-- [start:latar]
 // Latar menjalankan pekerjaan yang tidak ditunggu request di goroutine sendiri. Panic di goroutine ini tidak
-// ditangkap net/http: dokumentasi http.Server menulis bahwa panic di goroutine yang menjalankan handler dipulihkan
-// dan dicatat, tetapi goroutine yang dibuka handler tidak punya pelindung itu, dan panic yang tidak ditangkap di
-// goroutine mana pun menghentikan seluruh program (spesifikasi Go, "Handling panics"). Versi benar menangkap di
-// sini, mencatat, dan membiarkan proses hidup; mode rentan membuang pelindungnya.
+// ditangkap net/http: dokumentasi http.Handler menulis bahwa server memulihkan panic dari ServeHTTP, tetapi tidak
+// menyebut goroutine yang dibuka handler. Panic yang tidak ditangkap di goroutine mana pun menghentikan seluruh
+// program (spesifikasi Go, "Handling panics"). Versi benar menangkap di sini, mencatat, dan membiarkan proses
+// hidup; mode rentan membuang pelindungnya.
 func (s Service) Latar(nama string, f func()) {
 	go func() {
 		if s.rentan != RentanEksporPanic {
