@@ -209,12 +209,12 @@ window.ISTILAH = {
   "u": "b-fondasi/b11-integrasi-pihak-ketiga/"
  },
  "Connection pool": {
-  "b": "B2.5",
+  "b": "t3-pool",
   "d": "Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request.",
-  "n": "Connection pool (versi lama)",
+  "n": "3.8 Connection pool dan Little's Law",
   "s": "istilah-connection-pool",
   "t": "Connection pool",
-  "u": "b-fondasi/b2-5-connection-pool/"
+  "u": "tahap-3/connection-pool/"
  },
  "Constraint": {
   "b": "B2.1",
@@ -1492,12 +1492,12 @@ window.ISTILAH = {
   "u": "b-fondasi/b11-integrasi-pihak-ketiga/"
  },
  "connection pool": {
-  "b": "B2.5",
+  "b": "t3-pool",
   "d": "Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request.",
-  "n": "Connection pool (versi lama)",
+  "n": "3.8 Connection pool dan Little's Law",
   "s": "istilah-connection-pool",
   "t": "Connection pool",
-  "u": "b-fondasi/b2-5-connection-pool/"
+  "u": "tahap-3/connection-pool/"
  },
  "constraint": {
   "b": "B2.1",
