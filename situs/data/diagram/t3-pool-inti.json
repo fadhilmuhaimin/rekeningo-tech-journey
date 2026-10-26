@@ -10,18 +10,41 @@
       "label": "Push di dalam transaction",
       "sub": "bagian A dari m18.txt",
       "simpul": [
-        { "teks": "pool 10 penuh", "sub": "antara detik ke-11 dan ke-12", "nada": "warn" },
-        { "teks": "26 pembayaran: belum dijawab", "sub": "sesudah 30 detik", "nada": "warn" },
-        { "teks": "190 pembacaan: tanpa jawaban", "sub": "sesudah pool penuh", "nada": "warn" }
+        {
+          "teks": "pool 10 penuh",
+          "sub": "antara detik ke-11 dan ke-12",
+          "nada": "warn"
+        },
+        {
+          "teks": "26 pembayaran: belum dijawab",
+          "sub": "sesudah 30 detik",
+          "nada": "warn"
+        },
+        {
+          "teks": "190 pembacaan: tanpa jawaban",
+          "sub": "sesudah pool penuh",
+          "nada": "warn"
+        }
       ]
     },
     {
       "label": "Push di luar transaction",
       "sub": "bagian F dari adr22.txt",
       "simpul": [
-        { "teks": "push menahan worker", "sub": "bukan pembayaran" },
-        { "teks": "26 pembayaran: 201", "sub": "transaction terbuka paling banyak 1", "nada": "good" },
-        { "teks": "494 pembacaan: 200", "sub": "jadwal beban sama", "nada": "good" }
+        {
+          "teks": "push menahan worker",
+          "sub": "bukan pembayaran"
+        },
+        {
+          "teks": "26 pembayaran: 201",
+          "sub": "transaction terbuka paling banyak 1",
+          "nada": "good"
+        },
+        {
+          "teks": "494 pembacaan: 200",
+          "sub": "jadwal beban sama",
+          "nada": "good"
+        }
       ]
     }
   ],

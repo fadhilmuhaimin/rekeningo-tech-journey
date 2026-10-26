@@ -15,11 +15,11 @@ import intiDiagram from "../../../../data/diagram/t3-pool-inti.json";
 
 ## Inti
 
-Pool habis karena lamanya satu panggilan, bukan karena banyaknya pembayaran: satu pembayaran yang menunggu layanan push memegang satu koneksi database selama ia menunggu.
+Pool habis karena lamanya satu panggilan, bukan karena banyaknya pembayaran.
 
 <Rantai data={intiDiagram} ringkas />
 
-Connection pool adalah sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request. Pool api-t3 berisi 10 koneksi. Versi pertama memanggil layanan push di dalam transaction, dengan client Go yang tidak punya batas waktu. Dokumentasi Go menulis bahwa `Timeout` nol berarti tanpa batas ([net/http: Client](https://pkg.go.dev/net/http#Client), Go 1.27.3, dibuka 2026-10-26).
+Connection pool adalah sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request. Pool api-t3 berisi 10 koneksi, dan satu pembayaran yang menunggu layanan push memegang satu koneksi selama ia menunggu. Versi pertama memanggil layanan push di dalam transaction, dengan client Go yang tidak punya batas waktu. Dokumentasi Go menulis bahwa `Timeout` nol berarti tanpa batas ([net/http: Client](https://pkg.go.dev/net/http#Client), Go 1.27.3, dibuka 2026-10-26).
 
 Pembayaran masuk 0,868 per detik (Asumsi naskah; arti label ada di [Label sumber](/cara-pakai/#label-sumber)). Pembayaran ke-10 mengambil koneksi terakhir pada 10 ÷ 0,868 = 11,5 detik, bila client terus menunggu. Sesudah itu pembacaan saldo ikut menunggu, karena tiap request butuh satu koneksi bebas. Rekaman lab mencatat pool penuh antara detik ke-11 dan ke-12.
 
