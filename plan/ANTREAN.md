@@ -1325,21 +1325,19 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### 2.32 · Yang dibawa keluar dari Tahap 2
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.31
 - selesai bila: halaman Konsep 2.32 sesuai `plan/CERITA-TAHAP-2.md` bagian 5 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
-
+- catatan: Selesai 2026-10-26 di PR #351 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 ### 2.33 · Jembatan: pratinjau PRD v3
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 2.32
 - selesai bila: halaman PRD 2.33 sesuai `plan/CERITA-TAHAP-2.md` bagian 6 dan peta halaman Tahap 2 (★); tanpa lab baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
-
+- catatan: Selesai 2026-10-26 di PR #353 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 ### EVAL-2 · Evaluasi Tahap 2
 
 - jenis: crosscheck
@@ -1372,9 +1370,9 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 - jenis: perbaikan
 - status: antre
 - percobaan: 0
-- bergantung: EVAL-2-ulang
+- bergantung: EVAL-2
 - selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-2.md` dan pelajaran MEMORI Tahap 2, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 2, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 2 selesai".
-- catatan: Langkah penutup alur tahap.
+- catatan: Langkah penutup alur tahap. Pengatur 2026-10-26 (keputusan 728 butir 3, boleh menurut catatan EVAL-2-ulang): bergantung EVAL-2 supaya Tahap 3 tidak tertunda; EVAL-2-ulang berjalan paralel.
 
 ### LAB-PARALEL · Lab bisa jalan di beberapa lajur sekaligus
 
@@ -1421,9 +1419,9 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 - jenis: crosscheck
 - status: antre
 - percobaan: 0
-- bergantung: NASKAH-3, EVAL-2-ulang
+- bergantung: NASKAH-3, EVAL-2
 - selesai bila: satu subagent membaca `plan/CERITA-TAHAP-3.md`, `plan/EVALUASI-TAHAP-2.md`, halaman Tahap 2 yang ditulis, ADR 13–21 dan keputusan Tahap 2 di KEPUTUSAN, lalu menambal naskah seperlunya (nama tabel dan kolom, nomor M dan ADR, angka beban, apa yang sudah ada di akhir Tahap 2, peta halaman dan prasyarat) tanpa menulis ulang struktur; setiap tambalan dicatat satu baris di bagian atas naskah ("Disesuaikan dengan Tahap 2 pada <tanggal>: ...") dan di KEPUTUSAN; bila peta halaman berubah, registry dan `plan/RINGKAS.md` Tahap 3 diselaraskan di PR yang sama; gerbang lolos.
-- catatan: Keputusan 728 butir 3. Halaman 3.1 baru boleh mulai sesudah tugas ini dan DIRI-2.
+- catatan: Keputusan 728 butir 3. Halaman 3.1 baru boleh mulai sesudah tugas ini dan DIRI-2. Pengatur 2026-10-26 (keputusan 728 butir 3, boleh menurut catatan EVAL-2-ulang): bergantung EVAL-2 supaya Tahap 3 tidak tertunda; EVAL-2-ulang berjalan paralel.
 
 ### T3-siap · RINGKAS, registry, dan antrean Tahap 3
 
@@ -1473,20 +1471,20 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### lab-t3-cache · Lab t3-cache: katalog di memori proses lawan Redis
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: lab-api-t3
 - selesai bila: Lab `labs/t3-cache`: katalog 60 warung × 40 item (720 KB, R3-37). Direkam: cache di memori proses dua instance dengan TTL 5 menit, hanya instance yang menerima perubahan yang membuang entri, instance lain basi sampai TTL habis (M23); cache-aside di Redis dengan TTL 60 detik dan hapus kunci sesudah tulis database (urutan terbalik meninggalkan data basi, R3-09); promo yang mulai pada jam tertentu tidak punya tulis saat mulai, jadi hapus kunci tidak menutupnya dan TTL membatasi; harga yang ditagih selalu dari database; error backend tidak membuang entri (R3-25); beban tanpa cache (5,2 baca per detik, L = 0,026) diukur lawan dengan cache, supaya "tanpa cache" tetap opsi sah. Stampede hanya disebut. Rekaman dari database bersih, diulang identik.
-- catatan: Jalur lab. Sumber W3-cache dan halaman 3.18, 3.19. `b9-cache` hanya bahan; Redis lab bersama `t3-instance`.
+- catatan: Jalur lab. Sumber W3-cache dan halaman 3.18, 3.19. `b9-cache` hanya bahan; Redis lab bersama `t3-instance`. Selesai 2026-10-26 di PR #347 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### lab-t3-offline · Lab t3-offline: sinkron stok dan harga, key 24 jam lawan 62 jam
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: lab-api-t3
 - selesai bila: Lab `labs/t3-offline`: (a) key idempotensi 24 jam (ADR 14) lawan offline Jumat 17.00 sampai Senin 07.00 (62 jam, Asumsi): key sudah dibuang dan operasi "stok = 0" diterapkan sebagai timpa tanpa pemeriksaan versi (M24); jam diperankan (baris diberi waktu mundur), bukan menunggu 62 jam; (b) operasi bersyarat versi `UPDATE … WHERE versi = …`: 409 saat versi berubah dan pilihan user; (c) `operasi_sinkron` dengan key 14 hari dan queue paling lama 7 hari: pengiriman ulang dengan key sama tidak menerapkan dua kali; (d) pembayaran dari queue offline ditolak server. Rekaman dari database bersih, diulang identik. `e2-sync` hanya bahan.
-- catatan: Jalur lab. Sumber halaman 3.20, 3.21.
+- catatan: Jalur lab. Sumber halaman 3.20, 3.21. Selesai 2026-10-26 di PR #349 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### lab-t3-dasbor · Lab t3-dasbor: dasbor kecil dengan mode rentan
 
@@ -1518,11 +1516,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### W3-pool · Simulasi connection pool dan Little's Law
 
 - jenis: interaksi
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: ERD3, lab-t3-pool
 - selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: slider beban (request per detik) dan lama query; L = λ × W dihitung dan ditampilkan; antrean menunggu koneksi terlihat saat L melewati ukuran pool; angka contoh dari rekaman lab pool Tahap 3 atau berlabel Simulasi/Ilustrasi. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
-- catatan: Dipakai 3.8. Masukan awal dari naskah bagian 3 (Asumsi): 0,87 pembayaran per detik dan pool 10; angka halaman dari rekaman `t3-pool`.
+- catatan: Dipakai 3.8. Masukan awal dari naskah bagian 3 (Asumsi): 0,87 pembayaran per detik dan pool 10; angka halaman dari rekaman `t3-pool`. Selesai 2026-10-26 di PR #352 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### W3-cache · Simulasi cache dan invalidation
 
@@ -1536,11 +1534,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### W3-outbox · Timeline outbox dan worker
 
 - jenis: interaksi
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: ERD3, lab-t3-outbox
 - selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: garis waktu jurnal + baris outbox dalam satu transaction, worker mengambil, gagal, retry, notifikasi sekali; dari rekaman lab outbox Tahap 3. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
-- catatan: Dipakai 3.9, 3.13, dan 3.26. Butuh mode queue dengan dan tanpa kolom `kelas` untuk 3.26 (naskah, catatan widget).
+- catatan: Dipakai 3.9, 3.13, dan 3.26. Butuh mode queue dengan dan tanpa kolom `kelas` untuk 3.26 (naskah, catatan widget). Selesai 2026-10-26 di PR #354 (catatan keputusan dan polesan di badan PR, dilipat pengatur).
 
 ### 3.1 · PRD v3: Rekeningo untuk enam kota
 
