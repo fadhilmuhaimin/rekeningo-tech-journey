@@ -39,7 +39,7 @@ ok    lab/apit4/internal/cache
 --- PASS: TestRuteKartuApp
 --- PASS: TestDaftarEndpoint
 --- PASS: TestDaftarBatasPerAlamatDanJenisAdmin
-2026/10/27 01:21:06 cek status top-up 1 sesudah kabar diparkir: gateway tidak dikonfigurasi
+cek status top-up 1 sesudah kabar diparkir: gateway tidak dikonfigurasi
 --- PASS: TestWebhookEndpointTandaTangan
 --- PASS: TestTopupBankEndpoint
 --- PASS: TestVerifikasiEndpoint
@@ -229,7 +229,7 @@ ok    lab/apit4/internal/service
 --- PASS: TestAmanLambatDiputusDiBatasWaktu
 --- PASS: TestAmanBukanGambarDanPesanTanpaIsi
 --- PASS: TestRentanDenyListStringTidakMenyentuhServer
-    unduh_test.go:290: bentuk yang lolos deny-list dan sampai ke server uji di platform ini: [http://127.1:52604/dalam http://0.0.0.0:52604/dalam http://2130706433:52604/dalam http://0x7f000001:52604/dalam http://LOCALHOST:52604/dalam http://127.000.000.001:52604/dalam]
+    unduh_test.go:290: bentuk yang lolos deny-list dan sampai ke server uji di platform ini: [http://127.1:<port>/dalam http://0.0.0.0:<port>/dalam http://2130706433:<port>/dalam http://0x7f000001:<port>/dalam http://LOCALHOST:<port>/dalam http://127.000.000.001:<port>/dalam]
 --- PASS: TestRentanDenyListDilewatiBentukLainAmanMenolak
 --- PASS: TestRentanPesanGalatMembocorkanIsiLayananDalam
 --- PASS: TestRentanMengikutiRedirectKeAlamatDalam

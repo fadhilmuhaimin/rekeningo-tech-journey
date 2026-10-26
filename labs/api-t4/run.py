@@ -792,6 +792,8 @@ def go_test(*args, env, cwd=d.HERE):
     teks = re.sub(r" \(\d+\.\d+s\)", "", teks)
     teks = re.sub(r"^(ok|FAIL)(\s+\S+)\s+[\d.]+s", r"\1\2", teks, flags=re.M)
     teks = re.sub(r"^(ok\s+\S+)\s+\(cached\)", r"\1", teks, flags=re.M)
+    teks = re.sub(r"^\d{4}/\d\d/\d\d \d\d:\d\d:\d\d(?:\.\d+)? ", "", teks, flags=re.M)   # baris log yang dicetak tes membawa waktu
+    teks = re.sub(r"(?<=:)\d{4,5}\b", "<port>", teks)                                        # port sementara server uji (httptest)
     return r.returncode, teks.rstrip()
 
 
