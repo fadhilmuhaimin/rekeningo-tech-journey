@@ -481,13 +481,22 @@ func TestKedaluwarsaHoldDijalankanDuaKali(t *testing.T) {
 	}
 	id := holdBaru(t, svc, db, akun, 60_000)
 
-	if d, l, err := svc.KedaluwarsaHold(ctx); err != nil || l != 0 {
-		t.Fatalf("job sebelum jatuh tempo: diperiksa %d, dilepas %d, %v; harus 0 dilepas", d, l, err)
+	if d, l, err := svc.KedaluwarsaHold(ctx); err != nil || d != 0 || l != 0 {
+		t.Fatalf("job sebelum jatuh tempo: diperiksa %d, dilepas %d, %v; harus 0 dan 0", d, l, err)
 	}
 	if s := saldo(t, db, akun); s != 40_000 {
 		t.Fatalf("saldo %d: hold yang belum jatuh tempo tidak boleh dilepas", s)
 	}
 
+	// Dua job bersamaan, dipaksa bertemu: transaction luar memegang buku pemilik, kedua job berhenti menunggu lock,
+	// lalu lock dilepas. Tanpa lock baris otorisasi dan syarat status, job kedua membalik hold yang sudah dibalik.
+	penahan, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := penahan.Exec(`SELECT id FROM buku WHERE akun_id = $1 FOR UPDATE`, akun); err != nil {
+		t.Fatal(err)
+	}
 	var wg sync.WaitGroup
 	var total atomic.Int64
 	for range 2 {
@@ -501,6 +510,14 @@ func TestKedaluwarsaHoldDijalankanDuaKali(t *testing.T) {
 			total.Add(int64(l))
 		}()
 	}
+	for mulai := time.Now(); hitungKartu(t, db, `SELECT count(*) FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND application_name = 'api-t4-tes' AND (query LIKE '%otorisasi_kartu%' OR query LIKE '%FROM buku%')`) < 2; {
+		if time.Since(mulai) > 5*time.Second {
+			penahan.Rollback()
+			t.Fatal("kedua job tidak sampai menunggu lock dalam 5 detik")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	penahan.Rollback()
 	wg.Wait()
 	if total.Load() != 1 {
 		t.Fatalf("dua job bersamaan melepas %d hold, harus 1", total.Load())
