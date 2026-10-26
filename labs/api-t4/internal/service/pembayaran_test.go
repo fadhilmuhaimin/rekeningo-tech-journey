@@ -277,14 +277,17 @@ func TestWebhookLapisanPenahanJurnalKedua(t *testing.T) {
 		nama   string
 		lapis  []string
 		jeda   time.Duration // waktu service untuk kiriman kedua, sesudah kiriman pertama
+		sama   bool          // kiriman kedua memakai event_id yang sama dengan yang pertama
 		jurnal int
 	}{
-		{"semua lapis menyala", nil, time.Minute, 1},
-		{"hanya status dimatikan: kunci ledger menahan (key masih hidup)", []string{"status"}, time.Minute, 1},
-		{"hanya kunci dimatikan: status menahan", []string{"kunci"}, time.Minute, 1},
-		{"status dimatikan dan key sudah habis (25 jam): tidak ada yang menahan", []string{"status"}, 25 * time.Hour, 2},
-		{"key sudah habis (25 jam), status menyala: status menahan", nil, 25 * time.Hour, 1},
-		{"status dan kunci dimatikan: hanya kunci utama event_id tersisa dan event berbeda lolos", []string{"status", "kunci"}, time.Minute, 2},
+		{"semua lapis menyala", nil, time.Minute, false, 1},
+		{"hanya status dimatikan: kunci ledger menahan (key masih hidup)", []string{"status"}, time.Minute, false, 1},
+		{"hanya kunci dimatikan: status menahan", []string{"kunci"}, time.Minute, false, 1},
+		{"status dimatikan dan key sudah habis (25 jam): tidak ada yang menahan", []string{"status"}, 25 * time.Hour, false, 2},
+		{"key sudah habis (25 jam), status menyala: status menahan", nil, 25 * time.Hour, false, 1},
+		{"status dan kunci dimatikan, event berbeda: tidak ada yang menahan", []string{"status", "kunci"}, time.Minute, false, 2},
+		{"status dan kunci dimatikan, event yang sama: kunci utama event_id menahan sendirian", []string{"status", "kunci"}, time.Minute, true, 1},
+		{"status dan kunci dimatikan, event yang sama, key habis: kunci utama event_id tetap menahan", []string{"status", "kunci"}, 25 * time.Hour, true, 1},
 	}
 	for _, k := range kasus {
 		t.Run(k.nama, func(t *testing.T) {
@@ -293,11 +296,16 @@ func TestWebhookLapisanPenahanJurnalKedua(t *testing.T) {
 			budi := qrAkun(t, db, "pemakai", "terverifikasi", "aktif", 0)
 			_, order := topupSiap(t, db, budi, 50_000)
 			s1 := svcT4(t, svc0, nil, k.lapis...).DenganJam(jam(awal))
-			if h, err := kabarSah(s1, awal, idEvent(t, "a"), order, "settlement", 50_000); err != nil || h.Hasil != "diproses" {
+			ev1 := idEvent(t, "a")
+			if h, err := kabarSah(s1, awal, ev1, order, "settlement", 50_000); err != nil || h.Hasil != "diproses" {
 				t.Fatalf("kiriman pertama: %+v, %v", h, err)
 			}
 			s2 := svcT4(t, svc0, nil, k.lapis...).DenganJam(jam(awal.Add(k.jeda)))
-			if _, err := kabarSah(s2, awal.Add(k.jeda), idEvent(t, "b"), order, "settlement", 50_000); err != nil {
+			ev2 := idEvent(t, "b")
+			if k.sama {
+				ev2 = ev1
+			}
+			if _, err := kabarSah(s2, awal.Add(k.jeda), ev2, order, "settlement", 50_000); err != nil {
 				t.Fatalf("kiriman kedua: %v", err)
 			}
 			if n := jumlahJurnalTopup(t, db, order); n != k.jurnal {
@@ -410,13 +418,14 @@ func TestWebhookJumlahBedaOrderTakDikenalDanPalsu(t *testing.T) {
 		t.Errorf("order tidak dikenal: %+v", h)
 	}
 	// kiriman palsu: tanda tangan salah tidak meninggalkan event atau jurnal.
-	body, _ := json.Marshal(KabarGateway{EventID: "evt-palsu", OrderID: order, Status: "settlement", Jumlah: 10_000})
+	evPalsu := idEvent(t, "palsu")
+	body, _ := json.Marshal(KabarGateway{EventID: evPalsu, OrderID: order, Status: "settlement", Jumlah: 10_000})
 	ts := time.Now().Unix()
 	if _, err := svc.TerimaWebhook(context.Background(), body, fmt.Sprint(ts), TandaTangan("rahasia-lain", ts, body)); !errors.Is(err, ErrTandaTangan) {
 		t.Errorf("tanda tangan salah: %v", err)
 	}
 	var n int
-	db.QueryRow(`SELECT count(*) FROM webhook_event WHERE event_id = 'evt-palsu'`).Scan(&n)
+	db.QueryRow(`SELECT count(*) FROM webhook_event WHERE event_id = $1`, evPalsu).Scan(&n)
 	if n != 0 || jumlahJurnalTopup(t, db, order) != 0 {
 		t.Error("kiriman palsu meninggalkan jejak")
 	}
