@@ -55,7 +55,7 @@ const hal34 = baca("situs/src/content/docs/tahap-3/dua-tempat-commit.mdx");
 const c4 = baca("labs/c4-ratelimit/output/login/ratelimit.txt");
 const cara = baca("situs/src/content/docs/cara-pakai.mdx");
 
-interface H { id: string; judul: string; tahap: number; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
+interface H { id: string; judul: string; label?: string; tahap: number; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
 const hal = cerita.halaman as unknown as H[];
 const dari = (id: string): H => {
   const h = hal.find((x) => x.id === id);
