@@ -830,11 +830,11 @@
  {
   "t": "Outbox",
   "d": "Tabel tempat event ditulis dalam transaction yang sama dengan perubahan data, lalu dikirim oleh worker.",
-  "b": "B10.2",
-  "n": "4.3 Webhook dan outbox",
-  "u": "/b-fondasi/b10-2-webhook-outbox/",
+  "b": "t3-outbox",
+  "n": "3.9 Outbox transaksional dan worker",
+  "u": "/tahap-3/outbox-worker/",
   "s": "istilah-outbox",
-  "h": null
+  "h": "/istilah/outbox/"
  },
  {
   "t": "Over-fetching",
@@ -974,9 +974,9 @@
  {
   "t": "Queue",
   "d": "Daftar pekerjaan yang menunggu diproses oleh worker, satu per satu atau paralel.",
-  "b": "B10.1",
-  "n": "Background job, queue, retry (versi lama)",
-  "u": "/b-fondasi/b10-1-background-job/",
+  "b": "t3-outbox",
+  "n": "3.9 Outbox transaksional dan worker",
+  "u": "/tahap-3/outbox-worker/",
   "s": "istilah-queue",
   "h": null
  },
@@ -1388,10 +1388,10 @@
  {
   "t": "Worker",
   "d": "Proses terpisah yang mengambil pekerjaan dari queue dan mengerjakannya di luar jalur request. Di server web seperti WSGI, worker juga berarti satu proses yang melayani request.",
-  "b": "B10.1",
-  "n": "Background job, queue, retry (versi lama)",
-  "u": "/b-fondasi/b10-1-background-job/",
+  "b": "t3-outbox",
+  "n": "3.9 Outbox transaksional dan worker",
+  "u": "/tahap-3/outbox-worker/",
   "s": "istilah-worker",
-  "h": null
+  "h": "/istilah/worker/"
  }
 ]

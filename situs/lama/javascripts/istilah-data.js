@@ -812,12 +812,13 @@ window.ISTILAH = {
   "u": "tahap-2/race-lock/"
  },
  "Outbox": {
-  "b": "B10.2",
+  "b": "t3-outbox",
   "d": "Tabel tempat event ditulis dalam transaction yang sama dengan perubahan data, lalu dikirim oleh worker.",
-  "n": "4.3 Webhook dan outbox",
+  "h": "istilah/outbox/",
+  "n": "3.9 Outbox transaksional dan worker",
   "s": "istilah-outbox",
   "t": "Outbox",
-  "u": "b-fondasi/b10-2-webhook-outbox/"
+  "u": "tahap-3/outbox-worker/"
  },
  "Over-fetching": {
   "b": "t2-payload",
@@ -978,12 +979,12 @@ window.ISTILAH = {
   "u": "tahap-2/index-query-plan/"
  },
  "Queue": {
-  "b": "B10.1",
+  "b": "t3-outbox",
   "d": "Daftar pekerjaan yang menunggu diproses oleh worker, satu per satu atau paralel.",
-  "n": "Background job, queue, retry (versi lama)",
+  "n": "3.9 Outbox transaksional dan worker",
   "s": "istilah-queue",
   "t": "Queue",
-  "u": "b-fondasi/b10-1-background-job/"
+  "u": "tahap-3/outbox-worker/"
  },
  "RBAC": {
   "b": "B5.3",
@@ -1391,12 +1392,13 @@ window.ISTILAH = {
   "u": "b-fondasi/b10-2-webhook-outbox/"
  },
  "Worker": {
-  "b": "B10.1",
+  "b": "t3-outbox",
   "d": "Proses terpisah yang mengambil pekerjaan dari queue dan mengerjakannya di luar jalur request. Di server web seperti WSGI, worker juga berarti satu proses yang melayani request.",
-  "n": "Background job, queue, retry (versi lama)",
+  "h": "istilah/worker/",
+  "n": "3.9 Outbox transaksional dan worker",
   "s": "istilah-worker",
   "t": "Worker",
-  "u": "b-fondasi/b10-1-background-job/"
+  "u": "tahap-3/outbox-worker/"
  },
  "argon2id": {
   "b": "t2-login-aman",
@@ -1951,12 +1953,13 @@ window.ISTILAH = {
   "u": "tahap-2/race-lock/"
  },
  "outbox": {
-  "b": "B10.2",
+  "b": "t3-outbox",
   "d": "Tabel tempat event ditulis dalam transaction yang sama dengan perubahan data, lalu dikirim oleh worker.",
-  "n": "4.3 Webhook dan outbox",
+  "h": "istilah/outbox/",
+  "n": "3.9 Outbox transaksional dan worker",
   "s": "istilah-outbox",
   "t": "Outbox",
-  "u": "b-fondasi/b10-2-webhook-outbox/"
+  "u": "tahap-3/outbox-worker/"
  },
  "over-fetching": {
   "b": "t2-payload",
@@ -2093,12 +2096,12 @@ window.ISTILAH = {
   "u": "tahap-2/index-query-plan/"
  },
  "queue": {
-  "b": "B10.1",
+  "b": "t3-outbox",
   "d": "Daftar pekerjaan yang menunggu diproses oleh worker, satu per satu atau paralel.",
-  "n": "Background job, queue, retry (versi lama)",
+  "n": "3.9 Outbox transaksional dan worker",
   "s": "istilah-queue",
   "t": "Queue",
-  "u": "b-fondasi/b10-1-background-job/"
+  "u": "tahap-3/outbox-worker/"
  },
  "race condition": {
   "b": "t2-race-lock",
@@ -2408,11 +2411,12 @@ window.ISTILAH = {
   "u": "b-fondasi/b10-2-webhook-outbox/"
  },
  "worker": {
-  "b": "B10.1",
+  "b": "t3-outbox",
   "d": "Proses terpisah yang mengambil pekerjaan dari queue dan mengerjakannya di luar jalur request. Di server web seperti WSGI, worker juga berarti satu proses yang melayani request.",
-  "n": "Background job, queue, retry (versi lama)",
+  "h": "istilah/worker/",
+  "n": "3.9 Outbox transaksional dan worker",
   "s": "istilah-worker",
   "t": "Worker",
-  "u": "b-fondasi/b10-1-background-job/"
+  "u": "tahap-3/outbox-worker/"
  }
 };

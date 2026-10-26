@@ -1,0 +1,286 @@
+---
+title: "3.9 Outbox transaksional dan worker + ADR 23"
+description: Pemberitahuan ditulis sebagai satu baris di COMMIT yang sama dengan jurnal, lalu worker mengirimnya sesudahnya. ADR 23 menimbang tiga cara lain dan menulis kapan pilihan ini salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import OutboxWorker from "../../../components/OutboxWorker.astro";
+import intiDiagram from "../../../../data/diagram/t3-outbox-inti.json";
+
+<p class="meta">Baca 14 menit · coba 3 menit · Prasyarat: [[t3-pool]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Pembayaran menulis jurnal dan satu baris outbox di satu COMMIT, dan worker mengirim pemberitahuannya sesudah itu.
+
+<Rantai data={intiDiagram} ringkas />
+
+Outbox adalah tabel di PostgreSQL yang menampung pemberitahuan yang belum terkirim, dan worker adalah proses terpisah yang mengirim isinya ke layanan push. Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `transaksi.txt` bagian A, Budi membayar Rp25.000 ke warung Ani dan API menjawab 201. Jurnal 10001 punya dua posting, tabel `outbox` punya satu baris berstatus `menunggu`, dan layanan push tiruan menerima 0 pesan. Sesudah worker berjalan sekali, layanan itu menerima 1 pesan.
+
+Tiga hal di [[t3-dua-tempat]] terjaga di rekaman. Selagi sesi tangan memegang transaction yang belum COMMIT, worker mengklaim 0 baris, jadi pemberitahuan tidak mendahului uangnya (bagian B). Proses API yang dimatikan sesudah 201 tidak menghilangkan baris, dan worker mengirimnya (bagian F). Uang tidak menunggu pihak luar, karena pembayaran selesai sebelum layanan push menerima apa pun (bagian A).
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Sesi tangan menulis jurnal dan baris outbox tetapi belum COMMIT. Kenapa worker yang berjalan saat itu mengklaim 0 baris?
+2. Proses API mati sesudah menjawab 201. Kenapa Ani tetap diberi tahu?
+3. Layanan push tiruan menerima 0 pesan saat pembayaran selesai. Apakah pemberitahuannya hilang?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: hanya cara outbox yang menjaga ketiga hal saat proses API mati, karena pemberitahuannya sudah menjadi baris yang ikut COMMIT.">
+
+Widget memerankan satu pembayaran Budi ke warung Ani dengan tiga cara mengirim pemberitahuan dan lima kejadian. Tebak dulu, lalu ubah satu hal. Empat dari lima kejadian pada cara outbox punya Rekaman lab, dan Push menggantung pada cara itu adalah Hitungan, yaitu hasil rumus dari angka rekaman. Semua hasil pada dua cara lain adalah Ilustrasi, yaitu penalaran dari urutan langkah.
+
+<OutboxWorker skenario={["cara"]} />
+
+**Ubah satu hal:** pilih kejadian Proses API mati, lalu ganti cara kirim. Pada Push di dalam transaction, HP Ani menerima notifikasi tentang uang yang tidak ada: 1 dari 3 hal terpenuhi. Pada Push sesudah COMMIT di permintaan yang sama, uangnya ada dan HP Ani tidak menerima apa pun, tanpa baris yang menunggu: 2 dari 3. Pada Outbox dan worker, baris tersimpan bersama jurnal dan worker mengirimnya: 3 dari 3 (`transaksi.txt` bagian F).
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t3-dua-tempat]] menunjukkan bahwa PostgreSQL dan layanan push tidak bisa COMMIT bersama. [[t3-m18]] menunjukkan harganya: push yang menggantung di dalam transaction menahan koneksi sampai pool penuh. Outbox menjawab keduanya dengan satu aturan. Apa pun yang menyentuh pihak luar dikerjakan sesudah COMMIT, dan yang tertinggal di PostgreSQL hanya satu baris yang berarti "kirim ini".
+
+[[t2-adr-21]] menunda queue sampai L = λ × (0,02 + W luar) mencapai 5 koneksi. Di puncak, λ = 0,868 pembayaran per detik (Asumsi, yaitu angka beban dari cerita). Pemicu itu tercapai pada W luar ±5,7 detik (Hitungan: 5 ÷ 0,868 − 0,02 = 5,74).
+
+Layanan push yang menggantung melewatinya: untuk t = 10 detik, lab t3-pool menghitung L = 8,717 dengan λ = 0,87 (`little.txt`). Karena itu queue masuk di Tahap 3.
+
+PRD v3 menjanjikan 95% pemberitahuan bayar dan transfer diserahkan ke layanan push dalam kurang dari 30 detik ([[t3-prd]]). Pengukurannya berhenti saat pesan diserahkan, bukan saat HP menerimanya.
+
+### Cara kerjanya
+
+**Tulis dan kirim dipisah oleh COMMIT.** Saat Budi membayar, service menulis jurnal, dua posting, dan satu baris `outbox` di transaction yang sama. Tidak ada panggilan jaringan di dalamnya, hanya `INSERT`.
+
+Bila COMMIT gagal, baris outbox ikut hilang, dan bila berhasil, baris itu ikut tersimpan. Bagian B merekam akibatnya bagi worker:
+
+<Snippet file="labs/t3-outbox/output/transaksi.txt" lines="30:46" title="Rekaman lab: labs/t3-outbox/output/transaksi.txt" />
+
+Satu pertanyaan mendapat dua jawaban: sesi tangan melihat 1 baris, dan sesi lain, termasuk worker, melihat 0. Kebalikannya juga terekam. Bila `INSERT` outbox di kode API gagal, pembayarannya ikut batal (bagian G, dibahas di [[t3-notifikasi]]).
+
+**Worker mengklaim baris.** Worker adalah `api-t3 -peran worker`, proses yang terpisah dari server API. Ia mengklaim sampai empat baris, mengirimnya serentak, lalu menandai tiap baris `terkirim`, `dilewati`, ditunda dengan backoff, atau `mati`.
+
+Bila queue kosong, ia menunggu 200 milidetik sebelum memeriksa lagi. Klaimnya satu pernyataan SQL:
+
+<Snippet file="labs/api-t3/internal/repo/outbox.go" region="klaim" lang="go" title="labs/api-t3/internal/repo/outbox.go" />
+
+Dua hal bekerja bersama di pernyataan itu. `FOR UPDATE` mengunci baris yang dipilih selama klaim, dan `klaim_sampai` menahannya sesudahnya selama 5 detik. Itulah yang mencegah dua worker mengirim baris yang sama selagi klaim berlaku. Tanpa klausa kunci sama sekali, dua sesi memilih nomor 1 sampai 4 yang sama (`klaim.txt` bagian A).
+
+`SKIP LOCKED` tidak menambah kebenaran. Ia mengganti menunggu dengan melewati baris yang terkunci, dan dokumentasi menyebut ongkosnya: tampilan data yang tidak konsisten ([PostgreSQL 17: The Locking Clause](https://www.postgresql.org/docs/17/sql-select.html#SQL-FOR-UPDATE-SHARE), dibuka 2026-10-26). Rinciannya ada di [[t3-klaim-baris]].
+
+**Satu baris bisa terkirim dua kali.** Worker menandai `terkirim` sesudah layanan push menjawab. Bila ia berhenti di antara dua langkah itu, klaim habis dan worker lain mengirim baris yang sama lagi. Di `outbox.txt` bagian G, layanan push tiruan menerima 2 pesan dengan 1 `notifikasi_id`.
+
+Mengirim ulang itu benar. Penerima yang mengenali `notifikasi_id` menyaring ulangannya, dan itu isi [[t3-at-least-once]].
+
+**Urutan antar pesan tidak dijaga.** Di `klaim.txt` bagian C, worker yang macet memegang baris 1, dan pesan 2 sampai 5 tiba lebih dulu sehingga pesan tertua tiba paling akhir. Nomor outbox juga bukan nomor tanpa celah: baris yang di-ROLLBACK memakai nomornya (`listen.txt` bagian A). Akibatnya bagi poller dengan kursor ada di [[t3-m19]].
+
+**Berapa cepat dan berapa besar.** Angka di tabel ini berlabel per baris, dan arti labelnya ada di [Label sumber](/cara-pakai/#label-sumber).
+
+| Besaran | Nilai | Label |
+|---|---|---|
+| Kapasitas worker (c ÷ t) | 4 ÷ 0,3 = 13,33 per detik; terukur antara 12 dan 13,33 | Rekaman lab `queue.txt` bagian A; c dan t Asumsi |
+| Kapasitas lawan puncak | 13,33 ÷ 0,868 = ±15 kali | Asumsi |
+| Jeda worker saat queue kosong | 200 milidetik | Kode `worker.go`; Asumsi lab |
+| `outbox` tanpa pembersihan | ±820 MB per tahun | Asumsi, rumus di [[t3-skema]] |
+| `outbox` dengan retensi 7 hari | ±15,8 MB | Asumsi, rumus di [[t3-skema]] |
+| Baris yang dibuang `-bersih` | 2 dari 5 (terkirim dan dilewati, 8 hari); `menunggu` dan `mati` tetap | Rekaman lab `listen.txt` bagian C |
+
+Retensi adalah berapa lama baris selesai disimpan sebelum dibuang. Baris `mati` dibaca manusia dulu, jadi tabel ini butuh satu pemilik yang memeriksanya.
+
+### Di stack lain
+
+**Skenario:** satu pembayaran menulis jurnal, dan pemberitahuannya harus ikut COMMIT yang sama atau hanya dikirim sesudahnya. Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-26. Tanda [perlu verifikasi] berarti klaim itu belum bisa dicek ke sumber primer.
+
+Yang sama di semua stack: pemberitahuan tidak mendahului uang, dan kegagalan push tidak membatalkan pembayaran. Yang berbeda adalah siapa yang menulis tabel queue dan siapa yang mengklaim barisnya.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: lab api-t3 dan t3-outbox, PostgreSQL 17.11 (rekaman `transaksi.txt` bagian A sampai G).*
+
+<Snippet file="labs/api-t3/internal/repo/outbox.go" region="tulis-outbox" lang="go" title="labs/api-t3/internal/repo/outbox.go" />
+
+**Yang berbeda di stack ini:** outbox adalah tabel biasa dengan `INSERT` biasa. Worker adalah binary Go yang sama dengan server API, dijalankan dengan flag peran. Klaim ditulis sebagai SQL tangan, tanpa library queue.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [pg-boss](https://pgboss.io/) 12.38.0, dibuka 2026-10-26.*
+
+**Yang berbeda di stack ini:** pg-boss adalah job queue Node.js di atas PostgreSQL. Halaman utamanya menyebut `SKIP LOCKED` dan menyebut bahwa job bisa dibuat di dalam transaction yang sudah ada lewat adapter untuk Drizzle, Knex, Kysely, dan Prisma. Tabel dan klaim disediakan library, jadi kamu tidak menulisnya. Halaman itu tidak menyebut jaminan pengiriman, jadi penerima tetap diperlakukan sebagai penerima at-least-once.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Queues](https://laravel.com/docs/13.x/queues), `laravel/framework` 13.38.0. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="php" code={`DB::transaction(function () use ($jurnal) {
+    // tulis jurnal dan posting
+    NotifikasiUang::dispatch($jurnal->id)->afterCommit();
+});`} />
+
+**Yang berbeda di stack ini:** dengan `after_commit` atau `afterCommit()`, Laravel menunggu transaction terbuka COMMIT sebelum men-dispatch job. Job yang di-dispatch di transaction yang rollback karena exception dibuang. Itu pola "kirim sesudah COMMIT" di opsi A di bawah. Jendela di antara COMMIT dan dispatch tidak ditulis di dokumentasi; bahwa proses yang mati di sana kehilangan job adalah penalaran.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: Tasks](https://docs.djangoproject.com/en/6.1/topics/tasks/) dan [Transactions](https://docs.djangoproject.com/en/6.1/topics/db/transactions/), Django 6.1.2. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="python" code={`with transaction.atomic():
+    jurnal = Jurnal.objects.create(...)
+    transaction.on_commit(partial(kirim_notifikasi.enqueue, jurnal_id=jurnal.id))`} />
+
+**Yang berbeda di stack ini:** Django tidak punya worker bawaan, dan backend bawaannya hanya untuk pengembangan dan uji. Callback `on_commit` dijalankan sesudah COMMIT dan dibuang bila transaction rollback. Kegagalan callback tidak membatalkan transaction, dan halaman Transactions tidak menyebut retry otomatis. Sama seperti Laravel, ini pola opsi A.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: Scheduling](https://docs.serverpod.dev/concepts/scheduling/overview), Serverpod 4.0.4.*
+
+**Yang berbeda di stack ini:** future call disimpan di database, bertahan saat server restart, dan dijalankan at-least-once. Bila metodenya melempar exception, Serverpod mencatat error dan tidak mengulangnya. Halaman itu tidak menyebut apakah penjadwalan bisa ikut transaction database yang sama dengan datamu. Untuk COMMIT yang sama dengan jurnal, tabel outbox sendiri tetap kandidat [perlu verifikasi].
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Queues](https://supabase.com/docs/guides/queues) dan [pgmq](https://github.com/pgmq/pgmq) v1.10.0. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="sql" code={`BEGIN;
+-- INSERT jurnal dan posting
+SELECT pgmq.send('notifikasi', '{"jurnal_id": 10001}');
+COMMIT;`} />
+
+**Yang berbeda di stack ini:** Supabase Queues memakai ekstensi pgmq, dan `pgmq.send` adalah fungsi SQL biasa di database yang sama. Menurut pgmq, pesan terkirim tepat sekali selama visibility timeout, yaitu lama pesan disembunyikan sesudah dibaca. Dokumentasi yang dibuka tidak membahas pemanggilan di dalam transaction. Bahwa pesan ikut COMMIT adalah penalaran [perlu verifikasi].
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 23: outbox di PostgreSQL, worker di proses terpisah
+
+**Kebutuhan.** Pembayaran harus memberi tahu Ani tanpa melanggar tiga hal di [[t3-dua-tempat]]. Bebannya kecil: 7.500 bayar dan transfer per hari dan 0,868 per detik di puncak (Asumsi, rumus di [[t3-skema]]).
+
+**Status:** diterima sesudah M18 (minggu 3) dan sebelum M19 (minggu 4), karena poller yang gagal di M19 membaca tabel outbox ini ([[t3-m18]], [[t3-m19]]). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR. Dibuka lagi oleh ADR 32 untuk kelas queue ([[t3-tim-infra]]).
+
+| | A. Kirim sesudah COMMIT, tanpa outbox | B. Queue di Redis | C. Log-based CDC (Debezium dan Kafka) | D. Outbox di PostgreSQL, worker terpisah |
+|---|---|---|---|---|
+| Cara kerja | Proses API men-COMMIT jurnal, lalu memanggil layanan push atau memasukkan job ke queue | Sesudah COMMIT, API mendorong job ke Redis, dan worker membacanya dari sana | API menulis baris outbox di transaction jurnal. Debezium membaca log transaksi PostgreSQL dan menerbitkan baris itu ke Kafka | API menulis baris outbox di transaction jurnal. Worker mengklaim baris dan mengirimnya |
+| Kelebihan | Tanpa tabel dan tanpa proses baru. Tidak ada push di dalam transaction | Queue yang matang. Worker bisa banyak tanpa membebani PostgreSQL | Tanpa polling. Event keluar dalam urutan commit, dengan latensi dua digit milidetik menurut Morling | Pemberitahuan ikut COMMIT dan ROLLBACK jurnal. Satu komponen data, yaitu PostgreSQL |
+| Kekurangan | Proses yang mati di antara COMMIT dan kirim tidak meninggalkan catatan, jadi pemberitahuan hilang tanpa ada yang tahu | Dua sistem tidak bisa COMMIT bersama. Redis dengan AOF `everysec` bisa kehilangan 1 detik data, dan RDB beberapa menit | Butuh Kafka, Kafka Connect, dan Debezium. Replication slot menahan WAL bila konsumennya mati | Polling dan klaim per baris tidak menjaga urutan antar pesan. Tabel butuh retensi |
+| Biaya operasional | Tidak ada tambahan, dan tidak ada yang dipantau | Komponen yang menyimpan data, dengan persistence dan alert sendiri. [[t2-adr-21]] menunda Redis sampai kebutuhannya terbukti | Tiga komponen baru, satu tim yang memahaminya, dan replication slot yang diawasi | Satu proses worker dan satu tabel. Alert umur baris tertua |
+| Bukti | Tidak dijalankan. `transaksi.txt` bagian F menulis opsi ini Tidak dijalankan di lab t3-outbox. Laravel dan Django di tab stack lain mengikuti pola ini | Tidak dijalankan. Dokumentasi Redis persistence dan BullMQ | Tidak dijalankan. Debezium (2019) dan Morling (2024), PostgreSQL 17 logical decoding | Rekaman lab `transaksi.txt` bagian A sampai G dan `klaim.txt` |
+
+**Keputusan: opsi D.** Enam aturan:
+
+1. Pemberitahuan ditulis sebagai satu baris `outbox` di transaction yang sama dengan jurnal, dengan `INSERT` biasa dan tanpa panggilan jaringan.
+2. Satu pemberitahuan per jurnal per penerima. Unique index `outbox_satu_per_jurnal` menolak baris kedua (`transaksi.txt` bagian E).
+3. Worker berjalan di proses sendiri dan mengklaim baris dengan `FOR UPDATE` dan `klaim_sampai`. ADR 24 merincinya ([[t3-klaim-baris]]).
+4. Pengiriman at-least-once, `notifikasi_id` tetap sama di semua percobaan, dan penerima menyaring ulangan. ADR 25 merincinya ([[t3-at-least-once]]).
+5. Baris `terkirim` dan `dilewati` dibuang sesudah 7 hari oleh `-bersih`. Baris `menunggu` dan `mati` tidak dibuang. Lab menjalankan `-bersih` dengan tangan dan tidak menjadwalkannya.
+6. Janji 30 detik diukur sampai pesan diserahkan ke layanan push. Alert umur tertua ditentukan di ADR 32 ([[t3-tim-infra]]).
+
+**Kenapa D, bukan A, B, atau C.**
+
+- **A ditolak** karena tidak ada catatan di antara COMMIT dan kirim. Yang direkam hanya sisi outbox: proses API mati sesudah COMMIT, dan barisnya tetap ada (`transaksi.txt` bagian F).
+- **B ditolak** karena Redis bukan bagian dari COMMIT PostgreSQL, dan [[t2-adr-21]] belum punya kebutuhan yang membuka Redis. BullMQ menyebut tujuannya semantik tepat sekali, dengan jaminan terkirim minimal sekali dalam kasus terburuk.
+- **C ditolak untuk sekarang** karena tiga komponen baru tidak sebanding dengan 0,868 pemberitahuan per detik. Morling sendiri mencatat bahwa polling punya urutan buruk dan CDC punya urutan commit, jadi C menang di urutan, bukan di beban ini.
+
+**Kasus industri: Solid Queue.** 37signals memindahkan job HEY dari Resque dan Redis ke queue di database. Posting 2023-12-18 menulis bahwa worker mengambil job dengan `FOR UPDATE SKIP LOCKED`, dan sekitar sepertiga dari ±18 juta job per hari HEY sudah berjalan di sana. Posting versi 1.0 (2024-09-26) melaporkan ±20 juta job per hari, 800 worker, dan 74 VM di dua datacenter.
+
+Batasnya: database queue itu terpisah dari database aplikasi, dengan satu primary dan dua replika. Karena itu satu COMMIT tidak mencakup keduanya (penalaran dari posting itu). Kasus ini membuktikan bahwa queue di database dan `SKIP LOCKED` bertahan di skala besar, bukan bahwa pola outbox bertahan.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Kode baru menulis outbox di luar transaction jurnal, misalnya sesudah COMMIT. Tes biasa lolos. Di lab, mutasi itu lolos sampai `transaksi.txt` bagian G ditambah, yang membuat INSERT outbox yang gagal membatalkan pembayaran (tabel mutasi di README lab t3-outbox). Pencegahannya satu fungsi `beritahu` di dalam `DalamTx`, tes bagian G, dan checklist review di blok Kunci.
+2. Queue menumpuk dan alert tidak menunjuk yang benar. Umur tertua dari semua kelas lebih dari 30 detik, padahal umur tertua kelas uang 0 (`queue.txt` bagian E). Alert semua kelas berbunyi walau uang tepat waktu. Tanpa alert, keterlambatan baru diketahui dari Ani, seperti di [[t3-m27]]. Pencegahannya alert umur tertua per kelas uang, ditulis di ADR 32.
+3. Tabel tumbuh dan baris `mati` tidak pernah dibaca. Tanpa pembersihan, tabel mencapai ±820 MB per tahun, dan dengan retensi 7 hari ±15,8 MB (Asumsi). Pencegahannya `-bersih` yang dijadwalkan, karena lab hanya menjalankannya dengan tangan (`listen.txt` bagian C), dan satu pemilik untuk baris `mati`.
+
+**Kapan keputusan ini salah.**
+
+- Saat beberapa consumer butuh urutan commit penuh. Klaim per baris tidak menjaga urutan (`klaim.txt` bagian C), dan CDC mengeluarkan event dalam urutan commit ([Morling, 2024-10-31](https://www.morling.dev/blog/revisiting-the-outbox-pattern/)).
+- Saat pesan mengalir sampai tabel queue bersaing dengan transaksi uang. Solid Queue melaporkan ±20 juta job per hari, yaitu ±231 per detik rata-rata (Hitungan: 20.000.000 ÷ 86.400), dengan database queue sendiri. Batas database lab ini belum diukur: 13,33 per detik adalah c ÷ t, bukan batas PostgreSQL (Tidak dijalankan).
+- Saat penerimanya sistem lain yang menggerakkan uang, misalnya webhook di Tahap 4. Penerima wajib idempoten dengan key ([[t2-idempotency]]).
+
+**Yang akan merevisinya.** ADR 32 menambah kelas queue dan alert per kelas ([[t3-m27]]). ADR 24 dan ADR 25 mengisi klaim dan pengiriman ulang. ADR 33 mencatat CDC sebagai yang sengaja belum dilakukan ([[t3-adr-33]]).
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| `LISTEN` dan `NOTIFY` untuk membangunkan worker | Polling 200 milidetik cukup untuk 0,868 per detik. `NOTIFY` hanya membangunkan, dan sumbernya tetap tabel (`listen.txt` bagian B) | [[t3-klaim-baris]] |
+| Kelas queue dan batas laju promo | Masalahnya baru terlihat saat 10.000 promo menumpuk di depan notifikasi uang. Lab memuat kelas karena ia memuat skema akhir Tahap 3; ADR 23 ditulis tanpanya | [[t3-m27]] |
+| Log-based CDC | Tiga komponen baru tanpa kebutuhan urutan commit penuh | [[t3-adr-33]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Sesi tangan menulis jurnal dan baris outbox tetapi belum COMMIT. Kenapa worker yang berjalan saat itu mengklaim 0 baris?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Baris outbox ditulis di transaction yang sama dengan jurnal. Yang belum COMMIT tidak terlihat oleh sesi lain. `transaksi.txt` bagian B: sesi tangan melihat 1 baris, sesi lain 0. Setelah COMMIT, worker mengklaim 1 dan mengirimnya.
+
+</details>
+
+**2.** Proses API mati sesudah menjawab 201. Kenapa Ani tetap diberi tahu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Pemberitahuannya sudah menjadi baris `menunggu` yang tersimpan bersama jurnal. Worker, proses lain, mengirimnya (`transaksi.txt` bagian F). Tanpa outbox, proses yang mati di antara COMMIT dan kirim tidak meninggalkan catatan. Opsi itu Tidak dijalankan di lab.
+
+</details>
+
+**3.** Dua worker memilih baris yang sama bila klausa kunci dihapus. Apa yang mencegahnya, dan apa yang ditambah `SKIP LOCKED`?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+`FOR UPDATE` bersama `klaim_sampai` yang mencegahnya (`klaim.txt` bagian A). `SKIP LOCKED` hanya mengganti menunggu dengan melewati baris yang terkunci. Ongkosnya tampilan data yang tidak konsisten.
+
+</details>
+
+**4.** Kapan ADR 23 salah, dan kenapa Solid Queue tidak cukup membuktikannya benar?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+ADR 23 salah saat beberapa consumer butuh urutan commit penuh, atau saat pesan membuat tabel queue bersaing dengan transaksi uang. Solid Queue memakai database queue yang terpisah dari database aplikasi, jadi ia membuktikan queue di database, bukan outbox yang ikut COMMIT.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] `INSERT` outbox ada di fungsi yang sama dengan jurnal, di dalam satu transaction, dan tidak ada panggilan push di sana ([[t3-dua-tempat]]).
+- [ ] Ada tes yang membuktikan jurnal dan outbox hilang bersama saat ROLLBACK.
+- [ ] Klaim memakai `FOR UPDATE` dan `klaim_sampai`; `SKIP LOCKED` bukan satu-satunya pagar.
+- [ ] `notifikasi_id` dibuat saat `INSERT`, bukan saat kirim, supaya tetap sama di semua percobaan.
+- [ ] Ada retensi, ada alert umur tertua per kelas uang, dan ada yang membaca baris `mati`.
+
+### Bacaan lanjut
+
+- [microservices.io: Transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html)
+- [Debezium: Reliable Microservices Data Exchange With the Outbox Pattern](https://debezium.io/blog/2019/02/19/reliable-microservices-data-exchange-with-the-outbox-pattern/) (2019-02-19)
+- [Morling: Revisiting the Outbox Pattern](https://www.morling.dev/blog/revisiting-the-outbox-pattern/) (2024-10-31)
+- [37signals: Introducing Solid Queue](https://dev.37signals.com/introducing-solid-queue/) (2023-12-18) dan [Solid Queue 1.0](https://dev.37signals.com/solid-queue-v1-0/) (2024-09-26)
+- [PostgreSQL 17: SELECT, The Locking Clause](https://www.postgresql.org/docs/17/sql-select.html#SQL-FOR-UPDATE-SHARE)
+- [PostgreSQL 17: Logical decoding](https://www.postgresql.org/docs/17/logicaldecoding-explanation.html)
+- [Redis: persistence](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/)
+
+</Blok>
