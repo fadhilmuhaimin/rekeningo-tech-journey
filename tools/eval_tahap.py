@@ -1,4 +1,5 @@
-"""Bukti W1, W5, W6, dan W8 untuk evaluasi tahap (skill evaluasi-tahap, EVAL-2, keputusan 753). Tidak masuk gerbang.
+"""Bukti W1, W5, W6, dan W8 untuk evaluasi tahap (skill evaluasi-tahap, EVAL-2, keputusan 753). Hanya `rantai` untuk tahap
+yang sudah lengkap (1 dan 2) masuk gerbang (`tools/cek_situs.sh`, keputusan 1164); yang lain dijalankan tangan.
 
     python3 tools/eval_tahap.py peta  2   # W1: peta halaman naskah lawan registry (nomor, judul, bintang, lab, ada)
     python3 tools/eval_tahap.py coba  2   # W5: blok Coba tiap halaman, komponennya, ada tebakan, ada "ubah satu hal"
@@ -9,8 +10,9 @@
 Semua perintah membaca berkas di repo (naskah, registry, MDX, situs/dist) dan tidak mengubah apa pun. `rantai` butuh
 `bun run --cwd situs build` lebih dulu. Exit 1 bila ada selisih nyata: W1 nomor, judul, bintang, lab, atau halaman
 "segera"; W6 ADR dengan opsi < 3 atau tanpa pre-mortem atau tanpa "kapan salah"; W8 halaman 404 atau tautan Berikutnya
-yang hilang, atau halaman sesudah halaman terakhir yang sudah punya pengganti ada. `coba` hanya mencetak (nilai W5 butuh
-penilaian: lihat isi widget).
+yang hilang, halaman sesudah halaman terakhir yang sudah punya pengganti ada, urutan yang dilalui tidak sama dengan nomor
+tahap itu (halaman terlewat, tertukar, atau rantai berhenti sebelum halaman terakhir), atau tautan "Berikutnya" di akhir
+blok berbeda dari tombol Berikutnya. `coba` hanya mencetak (nilai W5 butuh penilaian: lihat isi widget).
 """
 import json
 import pathlib
@@ -148,9 +150,17 @@ def rantai(n):
     by = {x["id"]: x for x in d["halaman"]}
     dist = AKAR / "situs" / "dist"
     sini = "/" + pertama["path"].replace(".md", "") + "/"
-    dilihat, masalah = [], 0
+    # Urutan yang harus dilalui: halaman bernomor tahap ini menurut nomor. Halaman lama tanpa nomor tidak boleh ada di tengah,
+    # dan Berikutnya tidak boleh melompati, menukar, atau berhenti sebelum halaman terakhir (EVAL2-F1, keputusan 1164).
+    harap = ["/" + reg[no]["path"].replace(".mdx", "").replace(".md", "") + "/" for no in sorted(reg, key=urut)]
+    dilihat, masalah, sampai = [], 0, False
     while sini and sini not in dilihat and len(dilihat) < 120:
         dilihat.append(sini)
+        i = len(dilihat) - 1
+        if i < len(harap) and sini != harap[i]:
+            print(f"{len(dilihat):2d} URUTAN SALAH: langkah ini seharusnya {harap[i]} ({n}.{i + 1}), ditemukan {sini}")
+            masalah += 1
+            break
         f = dist / sini.strip("/") / "index.html"
         h = por.get(sini, {})
         if not f.exists():
@@ -164,6 +174,13 @@ def rantai(n):
         if not nxt:
             masalah += 1
             break
+        # Halaman berblok punya tautan kedua ke halaman berikutnya di akhir blok terakhir (`data-akhir`, Blok.astro); keduanya
+        # dihitung `tetangga()` yang sama, jadi harus sama. Halaman lama tanpa Blok tidak punya tautan itu.
+        akhir = re.search(r'<a\b[^>]*\bdata-akhir\b[^>]*>', html)
+        akhir = re.search(r'href="([^"]+)"', akhir.group(0)) if akhir else None
+        if akhir and akhir.group(1) != nxt:
+            print(f"   TAUTAN AKHIR BLOK BEDA: {akhir.group(1)} (tombol Berikutnya: {nxt})")
+            masalah += 1
         if h.get("id") == terakhir["id"]:
             tujuan = por.get(nxt, {})
             ada = (dist / nxt.strip("/") / "index.html").exists()
@@ -173,8 +190,12 @@ def rantai(n):
             print(f"   sesudah halaman terakhir: {nxt} ada={ada} id={tujuan.get('id')} judul={tujuan.get('judul')!r} halaman lama (penggantinya ada)={lama}")
             if not ada or lama:
                 masalah += 1
+            sampai = True
             break
         sini = nxt
+    if not sampai and not masalah:
+        print(f"   rantai berhenti atau berputar sebelum halaman terakhir {terakhir['nomor']}")
+        masalah += 1
     print(f"langkah dari {n}.1 sampai {terakhir['nomor']}: {len(dilihat)}; 404 atau tautan hilang: {masalah}")
     return 1 if masalah else 0
 
