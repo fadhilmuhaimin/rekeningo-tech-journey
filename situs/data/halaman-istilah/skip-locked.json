@@ -76,7 +76,7 @@
       "catatan": "Bagian A: tanpa klausa kunci dua sesi memilih baris yang sama; FOR UPDATE membuat sesi kedua menunggu; SKIP LOCKED membuatnya langsung mendapat baris lain. Bagian D: worker sungguhan melewati baris yang dikunci sesi lain."
     },
     {
-      "riset": "R3-24",
+      "riset": "R3-154",
       "judul": "37signals: Introducing Solid Queue",
       "url": "https://dev.37signals.com/introducing-solid-queue/",
       "catatan": "Menyebut SELECT ... FOR UPDATE SKIP LOCKED penting bagi implementasi, karena worker mengambil dan mengunci job tanpa mengunci worker lain."
