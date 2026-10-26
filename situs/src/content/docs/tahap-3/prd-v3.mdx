@@ -1,0 +1,182 @@
+---
+title: "3.1 PRD v3: Rekeningo untuk enam kota"
+description: Dokumen produk ketiga Rekeningo. Sinta menulisnya untuk 10.000 karyawan dan ±60 warung di enam kota, Pak Hadi menambah satu syarat tentang pemberitahuan, dan empat engineer punya 10 minggu.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import prdDiagram from "../../../../data/diagram/t3-prd-sebelum-sesudah.json";
+
+<p class="meta">Baca 7 menit · Prasyarat: [[t2-jembatan]] · Jalur inti</p>
+
+Sinta menulis PRD ketiga ini untuk semua cabang **Grup Lestari** (fiktif) di enam kota. Ringkasannya sudah tampil di [[t2-jembatan]]. Halaman ini memuat dokumen lengkapnya, dan blok terakhir membuka jawaban atas tebakan di sana.
+
+<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v3">
+  <dl><div><dt>Penulis</dt><dd>Sinta, unit Inisiatif Digital</dd></div><div><dt>Syarat baru</dt><dd>Pak Hadi, Kepala Divisi Keuangan</dd></div></dl>
+  <dl><div><dt>Lingkup</dt><dd>Enam kota: ±10.000 karyawan, ±60 warung</dd></div><div><dt>Waktu</dt><dd>10 minggu, 4 engineer</dd></div></dl>
+</div>
+
+<Blok nama="Latar masalah" buka>
+
+Uji coba tutup buku kedua di kampus pusat selesai dalam tiga jam, dengan selisih Rp0 ([[t2-m17]]). Direksi lalu memperluas Rekeningo ke semua cabang di enam kota dan ke warung tenant mitra di luar gedung Lestari.
+
+Hitungannya sekitar 10.000 karyawan dan ±60 warung (Asumsi): 12 warung di kampus pusat dan ±48 di lima kota lain.
+
+Tahap 2 belum menjawab tiga hal. Karyawan tidak tahu kapan uang masuk, warung harus meminta admin untuk mengubah menu, dan satu proses yang mati mematikan semuanya. Di enam kota, ketiganya terasa 10 kali lipat.
+
+<Rantai data={prdDiagram} />
+
+Tahap 3 berangkat dari api-t2 di akhir Tahap 2, belum dari sistem yang sudah dibereskan. Empat hal yang dicatat [[t2-jembatan]] masih terbuka:
+
+- Kapasitas satu server belum diukur.
+- Lupa password mandiri belum ada, dan password sementara berpola.
+- Penutupan periode tutup buku belum dibuat.
+- Idempotency-Key belum dipasang di bayar dan transfer.
+
+Angka di dokumen ini adalah angka cerita (Ilustrasi: contoh, bukan hasil sistem), kecuali yang ditulis Asumsi atau Rekaman lab. Asumsi adalah angka beban yang rumusnya ditulis di halaman. Rekaman lab adalah keluaran lab di repo, ditunjuk dengan file dan bagiannya. Arti lengkap semua label ada di [Label sumber](/cara-pakai/#label-sumber).
+
+</Blok>
+
+<Blok nama="Tujuan">
+
+1. Semua karyawan di enam kota dan warung tenant mitra memakai Rekeningo.
+2. Budi dan Ani tahu saat uang masuk, tanpa membuka app.
+3. Warung mengelola menu, harga, dan stok sendiri, dari app atau dari laptop.
+4. Rekeningo tetap berjalan saat deploy atau saat satu proses mati.
+
+</Blok>
+
+<Blok nama="User dan kebutuhan barunya">
+
+| User | Kebutuhan baru | Yang membuatnya berhenti memakai |
+|---|---|---|
+| Karyawan (Budi, Citra) | Tahu saat uang masuk; melihat menu dan harga warung di kotanya | Notifikasi terlambat, hilang, atau muncul dua kali; harga di layar berbeda dari harga di kasir |
+| Warung (Ani dan ±59 lainnya) | Mengatur menu, harga, stok dari app atau laptop; tahu saat dibayar; tetap bisa bekerja saat sinyal hilang | Perubahan hilang saat offline; dasbor yang tidak aman |
+| HR (peran baru) | Membuat promo per kota dengan jam mulai dan selesai | Promo yang muncul terlambat atau berbeda di HP yang berbeda |
+| Keuangan (Pak Hadi) | Laporan dan tutup buku tetap bisa ditelusuri sampai kejadian pertama | Pemberitahuan yang tidak cocok dengan jurnal |
+
+</Blok>
+
+<Blok nama="Ruang lingkup">
+
+Lingkupnya enam kota: ±10.000 karyawan dan ±60 warung, selama 10 minggu. [[t2-jembatan]] menyebut delapan fitur P0 dan P1 dan satu baris P2. PRD lengkap menambah keterangan tiap fitur, janji waktu notifikasi, metrik, risiko, dan pertanyaan terbuka.
+
+| Prioritas | Fitur | Keterangan |
+|---|---|---|
+| P0 | Notifikasi saat menerima uang | Bayar, transfer, dan top-up memunculkan notifikasi di HP penerima lewat layanan push, yaitu layanan yang meneruskan pesan ke HP. Notifikasi tidak pernah mendahului uangnya dan tidak hilang tanpa terdeteksi. Bayar dan transfer: 95% dalam kurang dari 30 detik. Top-up massal tiap Senin boleh menyusul beberapa menit, karena 10.000 notifikasi sekaligus ([[t3-m27]]) |
+| P0 | Katalog dan stok warung | Menu, harga, dan sisa porsi per warung; warung mengubah dari app atau dasbor; karyawan melihat per kota |
+| P0 | Dasbor web warung | Laporan penjualan harian, ekspor CSV, kelola menu; masuk dengan akun yang sama |
+| P0 | Tidak berhenti saat deploy | Deploy dan satu proses yang mati tidak terlihat oleh user. Caranya: dua instance API, yaitu dua proses API yang berjalan bersamaan; staging, yaitu lingkungan uji yang meniru produksi; dan backup terjadwal |
+| P1 | Promo dari HR | Potongan harga per kota dengan jam mulai dan selesai; tampil di katalog; pengumuman ke karyawan kota itu bila HR memilih |
+| P1 | Catatan pada pembayaran dan transfer | Maksimal 100 karakter; tampil di notifikasi dan di dasbor |
+| P1 | Mode offline di app warung | Ubah stok dan harga tanpa sinyal, tersinkron saat sinyal kembali; pembayaran tidak pernah offline |
+| P1 | Masuk dasbor lebih aman | Kata sandi tetap ada; passkey, yaitu masuk dengan kunci yang tersimpan di perangkat, boleh dipilih |
+| P2 | Top-up dari rekening bank, kartu virtual, verifikasi identitas | Ditunda ke v4 |
+
+Janji 95% dalam 30 detik berlaku untuk bayar dan transfer saja. Top-up massal dan promo tidak masuk janji itu.
+
+**Bukan lingkup v3:** pembayaran offline, integrasi bank, user di luar Lestari, kartu virtual, API untuk kasir pihak ketiga, dasbor multi-cabang, email, dan notifikasi untuk publik.
+
+</Blok>
+
+<Blok nama="Metrik dan batasan">
+
+**Metrik keberhasilan (target, Asumsi)**
+
+- Minimal 7.000 karyawan aktif setiap minggu.
+- 95% notifikasi bayar dan transfer diserahkan ke layanan push dalam kurang dari 30 detik.
+- 0 notifikasi uang yang hilang tanpa terdeteksi otomatis.
+- Deploy tanpa error yang terlihat user.
+- Tutup buku bulanan tetap selesai dalam kurang dari 1 hari, dengan selisih Rp0.
+
+Metrik kedua mengukur sampai pesan diserahkan ke layanan push, bukan sampai HP menerimanya.
+
+**Batasan**
+
+- Empat engineer selama 10 minggu: Raka memegang app, Nadia dan Bayu memegang backend, Wulan memegang dasbor web.
+- Satu VPS produksi, yaitu server virtual yang disewa, dan satu staging.
+- Anggaran naik sedikit untuk satu penyimpanan sementara kecil dan satu staging.
+- Aturan Pak Hadi dipertahankan dan ditambah:
+
+| PRD | Aturan Pak Hadi |
+|---|---|
+| v1 | "Tidak ada angka yang berubah tanpa catatan siapa, kapan, kenapa." |
+| v2 | "Setiap rupiah di saldo siapa pun harus bisa ditelusuri ke kejadian yang membuatnya, tanpa tabel koreksi tangan." |
+| v3 | Aturan v2 tetap berlaku, ditambah: "Ani tidak boleh diberi tahu uang masuk sebelum uang itu benar-benar tercatat." |
+
+**Beban yang diharapkan (Asumsi)**
+
+| Besaran | Nilai | Cara hitung |
+|---|---|---|
+| User terdaftar | 10.000 | PRD v3 |
+| User aktif harian (DAU) | 2.500 | 10.000 × 25% (asumsi) |
+| Request per hari | 150.000 | 2.500 × 60 request (asumsi) |
+| Puncak request per detik | ±17,4 | 150.000 ÷ 86.400 × 10 = 17,36 (asumsi) |
+| Bayar dan transfer per hari | 7.500 | 2.500 × 3 transaksi (asumsi) |
+| Bayar dan transfer per detik di puncak | 0,868 | 7.500 ÷ 86.400 × 10 (asumsi) |
+
+Puncaknya 12,5 kali puncak PRD v2 (±1,4). Rumusnya sama dengan [[t2-estimasi]].
+
+</Blok>
+
+<Blok nama="Tim dan risiko">
+
+Tahap 3 punya dua tokoh baru:
+
+| Tokoh baru | Bayu |
+|---|---|
+| Siapa | Backend engineer kedua, dari tim infrastruktur Grup Lestari. Enam tahun mengurus server Linux dan proxy, belum pernah menulis kode yang menggerakkan uang |
+| Ingin | Sistem yang bisa di-deploy kapan saja tanpa ada yang sadar |
+| Kelemahan | Menganggap bawaan komponen sudah aman: health check, retry, dan batas waktu |
+| Yang dibawanya | Staging, proxy, backup, alert, dan rotasi on-call |
+
+| Tokoh baru | Wulan |
+|---|---|
+| Siapa | Web engineer dari tim web Lestari. Sepuluh tahun front-end, membangun dasbor warung |
+| Ingin | Dasbor yang cepat dan enak dipakai Ani di laptop |
+| Kelemahan | Menganggap data dari sistem sendiri aman ditampilkan apa adanya |
+| Yang dibawanya | Sudut pandang browser: cookie, CSP, CORS |
+
+Tokoh lama tetap ada. Raka memegang app dan masih ikut menulis backend, dan Nadia memimpin backend. Budi kini sering patungan dengan Citra, dan Ani satu dari ±60 warung. Dimas tetap orang yang mencoba.
+
+Sinta menulis empat risiko:
+
+1. Rekeningo pertama kali bergantung pada layanan luar di jalur uang. Di lab situs ini, layanan itu tiruan lokal.
+2. Satu server menjadi dua.
+3. Dasbor web membuka permukaan serangan baru.
+4. App dipakai di Wi-Fi tenant mitra yang tidak dikelola Rekeningo.
+
+</Blok>
+
+<Blok nama="Pertanyaan terbuka">
+
+Tiga pertanyaan ini ada di PRD v3, tapi belum dijawab:
+
+1. Kalau layanan push lambat, apakah pembayaran ikut lambat?
+2. Kalau pemberitahuan gagal terkirim, siapa yang tahu?
+3. Kalau server jadi dua, apa yang tadinya disimpan di memori satu server?
+
+Tidak ada yang menjawabnya sebelum kode ditulis. Ketiganya jadi masalah terbesar Tahap 3. Jawabannya dimulai di [[t3-m18]] untuk pertanyaan pertama, [[t3-m19]] untuk yang kedua, dan [[t3-m22]] untuk yang ketiga.
+
+</Blok>
+
+<Blok nama="Yang dibuka lagi dari Tahap 2">
+
+Di [[t2-jembatan]] kamu menebak ADR Tahap 2 mana yang pecah lebih dulu. Jawabannya ADR 20 dan ADR 13. PRD lengkap menunjukkan baris mana yang membuka masing-masing, dan ADR 21 ikut dibaca ulang.
+
+**ADR 20, batas laju di memori: dibuka baris "Tidak berhenti saat deploy".** Caranya di baris itu adalah dua instance API. ADR 20 menghitung batas percobaan login di memori tiap proses ([[t2-login-aman]]).
+
+Rekaman lab c4-ratelimit bagian F menjalankan dua instance. Dari 24 percobaan satu alamat yang bergantian ke keduanya, 20 lolos ke pemeriksaan password. Itu 10 per instance, bukan 10 total, jadi batasnya berlipat sebanyak jumlah proses.
+
+**ADR 13, lock buku: dibuka baris "Notifikasi saat menerima uang".** Pembayaran memegang lock buku sampai COMMIT, dan request kedua ke buku yang sama menunggu selama itu (Rekaman lab b3-race, `ledger-for-update.txt`, [[t2-race-lock]]). ADR 13 melarang panggilan jaringan selama lock dipegang. Panggilan ke layanan push adalah panggilan jaringan pertama di jalur uang.
+
+Bila panggilan itu ada di dalam transaction jurnal, lock buku dan koneksi database tertahan selama panggilannya. Ini penalaran dari rekaman lock (Tidak dijalankan di Tahap 2).
+
+Hitungannya memakai 0,868 bayar dan transfer per detik, 0,02 detik untuk query, dan panggilan 2 atau 30 detik (semuanya Asumsi). Panggilan 2 detik menahan 0,868 × (0,02 + 2) = 1,75 koneksi, dan panggilan 30 detik menahan 26,1. Rumusnya sama dengan [[t2-estimasi]].
+
+Kedua jawaban itu bukan soal banyaknya request. Batas laju pecah karena jumlah proses, dan lock pecah karena lamanya transaction.
+
+**ADR 21, dibaca ulang.** ADR 21 meminta dibaca ulang setiap PRD baru datang ([[t2-adr-21]]). PRD v3 memenuhi satu pemicunya: baris "Tidak berhenti saat deploy" meminta deploy tanpa jeda.
+
+Pemicu kapasitas belum bisa dibaca, karena kapasitas satu server belum diukur (Tidak dijalankan). Apa yang terjadi sesudah pemicu itu tercatat ada di [[t3-m21]]. api-t2 sendiri belum pernah dijalankan dengan dua instance (Tidak dijalankan). Di antara lab Tahap 2, hanya c4-ratelimit yang merekamnya.
+
+</Blok>
