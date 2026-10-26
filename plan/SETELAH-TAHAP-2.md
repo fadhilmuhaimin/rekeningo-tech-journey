@@ -402,3 +402,27 @@ Polesan dan pencegahan dari tinjauan lab dan halaman Tahap 2 yang sengaja tidak 
 - Naskah Tahap 3 memasukkan Redis untuk rate limit lintas instance (ADR 27, 3.17); pemicu Redis ADR 21 meminta kebutuhan itu sudah diukur di PostgreSQL dan tidak cukup. 3.17 perlu mengukur counter di PostgreSQL lebih dulu atau mengubah pemicunya.
 - Pemicu server kedua di ADR 21 hanya kapasitas dan permintaan PRD, sedangkan M21 Tahap 3 dipicu kejadian (satu proses berhenti dan user melihatnya). Tambahkan pemicu kejadian itu di KONSISTENSI-3 atau saat 2.33 ditulis.
 - 2.30 dan 2.31 memakai 3 transaksi per user aktif untuk Tahap 2 walau registry `trx` = 2: λ bayar dan transfer 0,104 lawan 0,069 per detik, W luar untuk 5 koneksi ±48 lawan ±72 detik. Selaraskan registry atau tulis satu kalimat di 2.31.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- `kartu.js` merender jawaban dengan `textContent`, jadi backtick di kartu Cek diri hasil sinkron (`kartu.json`, termasuk lima soal 2.32) tampil apa adanya; `t2-rekap-kartu.json` menghindari backtick.
+- Margin layar pertama 2.32 di 375×667 adalah 53 px dengan Rantai 5+5 simpul; menambah satu simpul atau memanjangkan Inti bisa membawanya ke bawah 20 px.
+- Widget kartu bersama (`situs/lama/widgets/kartu.js`, juga 1.41 dan halaman Kartu): sesudah "Tunjukkan jawaban" dan "Ingat" fokus jatuh ke `BODY` karena tombolnya dihapus dari DOM, dan seluruh kartu ber-`aria-live="polite"` sehingga pembaca layar membacakan seluruh kartu tiap pindah; usul: fokus ke jawaban atau tombol Ingat, dan live region satu kalimat (diukur Playwright di 2.32, tidak diubah PR ini).
+- 2.29 (`m17-prd-v3.mdx`) menulis "Tidak satu pun penyebabnya adalah server yang kehabisan tenaga" tanpa penanda bacaan atas naskah; 2.32 menulisnya sebagai bacaan (R2-204): selaraskan 2.29.
+- `t2-rekap-kejadian.json`: teks simpul setelah nomor M (mis. "baris ganda") tidak dijaga tes; mutasi "M12 dobel" lolos.
+- Widget Tebak (komponen bersama beranda, 1.42, 2.9 tebak skema, dan 2.33) membacakan seluruh hasil lewat satu `role="status"` (judul, alasan, jawaban benar, penutup, banyak angka); pisahkan menjadi satu kalimat di live region dan rincian di luar, dengan tes `locator.ariaSnapshot()`.
+- Halaman 3.1 (PRD v3 lengkap): ulangi jawaban jembatan 2.33 dan tunjuk baris PRD v3 yang membuka ADR 20 (server kedua) dan ADR 13 (notifikasi), seperti 2.1 melakukannya untuk ADR 6 dan ADR 5; tulis juga kalimat "dua instance API" dari naskah yang sengaja tidak ada di 2.33.
+- Tabel "Ruang lingkup" 2.33 selebar 329 px di viewport 320 px dan digulir di wadahnya; kolom ketiga bisa dipersingkat supaya muat tanpa gulir.
+- Widget Tebak (komponen bersama, juga 1.42 dan 2.9): sesudah menjawab, tombol pilihan `disabled` tetap memegang fokus di Chromium, dan sesudah "Coba pilihan lain" fokus jatuh ke `<astro-island>` karena tombolnya dilepas; tanpa JavaScript tiga tombol pilihan tampil tetapi tidak berfungsi. Usul: fokus ke kotak hasil atau tombol pertama sesudah mengulang, dan `<noscript>` atau tombol disembunyikan tanpa JS.
+- Jawaban benar 2.33 dan 1.42 adalah satu-satunya pilihan yang menyebut dua ADR; di 2.33 juga yang terpanjang (121 lawan 103 dan 71 karakter). Usul: satu pilihan salah memuat dua ADR dengan alasan dari rekaman, atau panjang pilihan disamakan.
+- 2.29 menulis "Isi PRD v3 selengkapnya ada di [[t2-jembatan]]" (juga R2-200) sedangkan 2.33 menulis PRD v3 lengkap ada di awal Tahap 3: samakan kata ("ringkasannya") saat 2.29 disentuh; tes 2.33 menjaga kalimat 2.29 itu dan ikut diubah.
+- Tabel 2.30 menulis λ 0,87 dan L 1,75 (0,87 × 2,02 = 1,76): tulis 0,868 atau catatan pembulatan di tabel (2.33 sudah memakai 0,868).
+- `ukur-gerak.mjs` bagian tetap: satu kegagalan sementara di gerbang lokal pelaksana pada `jumlah-total` 1.11 (ukuran wadah 265,5 lawan 238,5 antar frame), lolos saat diulang, di CI, dan di run peninjau; bila terulang, ukur wadah sesudah font dan hidrasi selesai.
+- Chip sumber widget Tebak hanya satu jenis ("Rekaman lab"), sedangkan jawaban 2.33 memuat Rekaman lab, Asumsi, dan penalaran; tiap kalimat berlabel di teks, chip hanya yang pertama. Usul: chip boleh dua jenis.
+- 2.14: Inti memakai "niat bayar" dan "sidik jari" sebelum didefinisikan di blok Paham (uji baca pembaca segar); tambah satu kalimat penjelas di Inti atau tooltip istilah.
+- 2.10: "invarian 3" dan "pemeriksaan yang ditunda" dipakai di blok Yang sebenarnya tanpa penjelasan di halaman itu; tambah satu kalimat pengantar atau tautan "2.7" yang terlihat di tempat istilah muncul.
+- 2.28: dua lapis dengan ambang sama (5) membingungkan; tambah satu tabel yang membedakan "batas per akun di memori: 5 sekaligus, isi ulang 5 per menit, jawaban 429" dari "kunci akun di database: 5 gagal berturut-turut, jawaban 401, kunci 60 detik".
+- 2.14 ADR 14: pisahkan "diputuskan" dari "belum dibangun" dalam satu daftar ringkas di bagian Putuskan supaya pembaca tahu apa yang berlaku sekarang.
+- Label kejujuran ([perlu verifikasi], Asumsi, Ilustrasi): artinya dijelaskan hanya di `/cara-pakai/`; tambah tooltip atau satu kalimat di pemakaian pertama tiap halaman.
+- 2.26 dan 2.24: tebakan berupa lipatan tidak menyembunyikan hasil tab pertama; bila tebakan harus bermakna, tab pertama kosong sampai pembaca memilih.
+- `eval-keyboard.mjs` bisa masuk gerbang untuk tiga halaman (lokal ±6 detik per halaman di HP) bila pemilik mau; `layar.mjs` melewati 13 halaman Tahap 2 tanpa Inti, usul pengukuran minimal (judul dan blok pertama).

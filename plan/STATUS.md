@@ -96,7 +96,7 @@ Prompt pemilik: Tahap 2 sampai 6 diselesaikan tanpa bertanya, pemilik meninjau d
 
 | Tahap | Riset | Naskah | Lab | ERD | Widget | Halaman | Evaluasi |
 |---|---|---|---|---|---|---|---|
-| 2 | selesai (#272) | naskah pemilik | 12/12 (lab-api-t2a #294, lab-c4a #304, 2.20-lab #317) | ERD2, ERD-1.12 selesai | semua tugas teknis dan widget Tahap 2 selesai | 31/33 (2.1–2.31) | antre |
+| 2 | selesai (#272) | naskah pemilik | 12/12 (lab-api-t2a #294, lab-c4a #304, 2.20-lab #317) | ERD2, ERD-1.12 selesai | semua tugas teknis dan widget Tahap 2 selesai | 33/33 (2.1–2.33); EVAL-2 selesai (#356), perbaikan EVAL2-F1 dan DIRI-2 berjalan | EVAL-2 selesai (#356); W5 TIDAK |
 | 3 | selesai (#325) | selesai (#331, ditinjau konsistensi) | api-t3, t3-pool, t3-outbox, t3-instance, t3-mitm di main; t3-cache, t3-offline, t3-dasbor menyusul | ERD3 selesai (#344) | antre | - | antre |
 | 4 | selesai (#329) | antre | - | antre | antre | - | antre |
 | 5 | selesai (#330) | antre | - | antre | antre | - | antre |

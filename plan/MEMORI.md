@@ -66,10 +66,12 @@ Alat: `python3 tools/ukur_pr.py <PR...> --sejak <waktu>` (data dari GitHub). Gar
 | 2.29 | #339 | 32 | 1 | 0 |
 | 2.30 | #341 | 184 (jeda limit #2; peninjau 25) | 1 | 0 |
 | 2.31 | #346 | 57 | 0 | 0 |
+| 2.32 | #351 | 31 | 1 | 0 |
+| 2.33 | #353 | 42 | 1 | 0 |
 
 ## Sedang dikerjakan
 
-2026-10-26 02.00 · Tahap 2 halaman + Tahap 3–6 kerja di depan (727, 728). Selesai: 2.1–2.31 (31 dari 33), lab Tahap 3 api-t3, t3-pool, t3-outbox, t3-instance, t3-mitm, ERD3 (di main). Berjalan: 2.32, lab t3-cache (#347) dan t3-offline (#349) CONFLICTING (peninjau/pelaksana menggabung main), W3-pool. Berikutnya: 2.33, EVAL-2, DIRI-2, KONSISTENSI-3, lab t3-dasbor, W3-outbox, W3-cache, halaman 3.x. Alokasi nomor per tugas: `tmp/catat-antre.md` (tidak di repo; bila hilang: Tahap 2 sisa 743–779, Tahap 3 konten 900–949 teknis 950–979 widget 980–989 overflow 990–999, ID riset R3-80+ (dasbor), R3-90+ (offline); cek terbesar atas KEPUTUSAN dan PR terbuka). Untuk melanjutkan: `gh pr list --state open`.
+2026-10-26 09.00 · Tahap 2 selesai (33/33, EVAL-2 #356, W5 TIDAK ke pemilik); Tahap 3: semua lab (api-t3, t3-pool/outbox/instance/cache/offline/mitm) dan ERD3, W3-pool, W3-outbox di main; berjalan: EVAL2-F1 (urutan baca), DIRI-2 (skill), lab t3-dasbor #355 (peninjau), W3-cache; berikutnya KONSISTENSI-3 (naskah 3 vs keputusan Tahap 2 dan temuan lab), EVAL-2-ulang, halaman 3.1–3.32, EVAL-3, DIRI-3, Tahap 4–6. DIRI-2 dan KONSISTENSI-3 kini bergantung EVAL-2 (pengatur, paralel). Alokasi nomor: `tmp/catat-antre.md` (tidak di repo; bila hilang: Tahap 3 konten 900–949 (T3-siap memakai 900–905), teknis 950–979, widget 980–989, overflow 990–999 (terpakai semua), cadangan 1150–1169, ID riset R3-95+; cek terbesar atas KEPUTUSAN dan PR terbuka). Untuk melanjutkan: `gh pr list --state open`.
 
 ## Pelajaran
 
