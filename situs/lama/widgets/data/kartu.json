@@ -1671,6 +1671,30 @@
   "jawab": "Notifikasi yang dikirim selagi listener putus tidak pernah sampai ke listener baru. Di `listen.txt` bagian B, barisnya tetap menunggu di tabel dan baru terkirim saat worker yang polling menemukannya. Karena itu tabel dan polling tetap sumber, dan `NOTIFY` hanya membangunkan."
  },
  {
+  "id": "t3-m20-1",
+  "halaman": "t3-m20",
+  "judul": "3.12 M20: Notifikasi masuk dua kali",
+  "url": "tahap-3/m20-notifikasi-dua-kali/",
+  "tanya": "Satu jurnal bayar dan dua pesan di layanan push. Kenapa itu bukan M10?",
+  "jawab": "Dua pesan itu membawa `notifikasi_id` yang sama, dan kolom itu UNIQUE di tabel `outbox`. Jadi satu baris dikirim dua kali. Bila M10 terulang sekarang, dua jurnal menulis dua baris outbox dengan `notifikasi_id` sendiri (penalaran, tidak direkam)."
+ },
+ {
+  "id": "t3-m20-2",
+  "halaman": "t3-m20",
+  "judul": "3.12 M20: Notifikasi masuk dua kali",
+  "url": "tahap-3/m20-notifikasi-dua-kali/",
+  "tanya": "Worker mati sesudah layanan push menjawab. Worker baru yang dijalankan saat itu juga mengklaim 0 baris. Kenapa?",
+  "jawab": "Klaim 5 detik belum habis, jadi baris yang berstatus `menunggu` masih dipegang (`ganda.txt` bagian A). Sesudah klaim habis, worker berikutnya mengklaimnya lagi dan mengirimnya dengan `notifikasi_id` yang sama."
+ },
+ {
+  "id": "t3-m20-3",
+  "halaman": "t3-m20",
+  "judul": "3.12 M20: Notifikasi masuk dua kali",
+  "url": "tahap-3/m20-notifikasi-dua-kali/",
+  "tanya": "Klaim 300 ms dan layanan push yang menjawab sesudah 1,5 detik. Kenapa HP Ani tetap berbunyi dua kali tanpa ada worker yang mati?",
+  "jawab": "Klaim worker A habis selagi ia menunggu jawaban. Worker B mengklaim baris yang sama dan mengirimnya, jadi keduanya melapor `terkirim` (`ganda.txt` bagian B). Klaim harus lebih panjang dari waktu kirim."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",

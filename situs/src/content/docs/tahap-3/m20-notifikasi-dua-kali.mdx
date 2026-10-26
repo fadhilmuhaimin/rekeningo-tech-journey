@@ -1,0 +1,168 @@
+---
+title: "3.12 M20: Notifikasi masuk dua kali"
+description: Minggu 4. HP Ani menampilkan "Rp25.000 dari Budi" dua kali dalam enam detik, dan Ani mengira Budi membayar dua kali. Hanya ada satu jurnal. Worker berhenti di antara kirim dan tandai terkirim, klaim habis, dan worker baru mengirim baris yang sama lagi.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import duaPesan from "../../../../data/diagram/t3-m20-satu-jurnal-dua-pesan.json";
+
+<p class="meta">Baca 7 menit · coba 3 menit · Prasyarat: [[t3-klaim-baris]]</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 4 Tahap 3. Budi membayar Rp25.000 di warung Ani. HP Ani berbunyi dan menampilkan "Rp25.000 dari Budi". Dalam enam detik HP itu berbunyi lagi dengan teks yang sama.
+
+Ani teringat [[t2-m10]], saat satu nasi goreng tercatat sebagai dua pembayaran. Ia mengira hal yang sama terjadi lagi, dan hampir menyerahkan dua porsi.
+
+Ani menahan porsi kedua dan menghubungi Raka.
+
+*Angka cerita (Ilustrasi):* dua notifikasi dalam enam detik berasal dari naskah, tanpa rekaman yang mengulang selang itu. Jam 12.10 di layar HP pada widget adalah pilihan penulis, karena naskah tidak menyebut jam. Rekaman di blok "Yang sebenarnya" mengulang mekanismenya di server lokal. Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka mulai dari tebakan yang ia kenal dari M10: pembayaran Budi tercatat dua kali, atau app mengulang request-nya. Ia menghitung jurnal bayar baru di database. Hasilnya satu.
+
+Jadi pembayarannya tidak ganda. Yang ganda adalah pesan yang sampai ke layanan push, dan Raka mencari siapa yang mengirimnya dua kali.
+
+Tiap baris `outbox` punya `notifikasi_id`, yaitu pengenal yang diberikan saat baris itu ditulis ([[t3-outbox]]).
+
+<details class="question">
+<summary>Tebak dulu: ada satu jurnal bayar, tetapi layanan push menerima dua pesan. Apakah `notifikasi_id` kedua pesan itu sama atau berbeda?</summary>
+
+Sama. Di rekaman lab `ganda.txt` bagian A, layanan push tiruan menerima 2 pesan dengan 1 `notifikasi_id`. Kolom itu UNIQUE di tabel `outbox`, jadi dua baris tidak mungkin berbagi satu `notifikasi_id`.
+
+Dua pesan dengan id yang sama berasal dari satu baris yang dikirim dua kali. Itu bukan M10. Siapa yang mengirimnya dua kali ada di blok berikutnya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Hanya ada satu jurnal, dan baris outbox-nya dikirim dua kali. Worker berhenti di antara mengirim ke layanan push dan menandai barisnya `terkirim`. Klaim lima detik habis, dan worker baru mengklaim baris yang sama lagi.
+
+<Rantai data={duaPesan} />
+
+*Kondisi rekaman:* PostgreSQL 17.11, server Go dan worker `api-t3`, dan layanan push tiruan lokal. Penerimanya Warung Ani, yang punya satu HP di bagian A.
+
+**Tiga langkah, dan celah di antara dua yang terakhir.** Worker mengklaim baris, mengirimnya ke tiap perangkat penerima, lalu menandainya. Klaim menaikkan `percobaan` dan menahan baris sampai `klaim_sampai` ([[t3-outbox]]). Pengiriman memakai `notifikasi_id` dari baris itu:
+
+<Snippet file="labs/api-t3/internal/worker/worker.go" lines="154:157" lang="go" title="Kode lab: labs/api-t3/internal/worker/worker.go baris 154 sampai 157 (pengiriman membawa notifikasi_id)" />
+
+Penandaan baru dikerjakan sesudah layanan push menjawab. Kode lab menyisipkan satu cabang di antaranya, yang hanya jalan bila flag khusus lab menyala:
+
+<Snippet file="labs/api-t3/internal/worker/worker.go" lines="170:182" lang="go" title="Kode lab: labs/api-t3/internal/worker/worker.go baris 170 sampai 182 (celah di antara kirim dan tandai)" />
+
+**Lab memerankan worker yang mati dengan keluar paksa.** Flag `-lab-henti-sebelum-tandai` membuat proses keluar dengan exit status 3 sesudah layanan push menjawab. Itu bukan deploy sungguhan. Di cerita Bayu menghentikan worker saat deploy.
+
+Kode `Jalankan` memakai konteks terlepas untuk putaran yang berjalan, dengan komentar bahwa deploy tidak memotong pengiriman di tengah (Tidak dijalankan). Bila deploy menunggu putaran selesai, proses tidak berhenti di celah itu. Apa pun yang menghentikan proses di antara dua langkah itu menghasilkan akibat yang sama. Galat saat UPDATE penandaan membuka celah yang sama tanpa ada yang mati (dibaca dari kode, Tidak dijalankan).
+
+**Worker baru melewati baris itu dulu.** Sesudah worker mati, baris tetap `menunggu` dengan `percobaan` 1 dan klaim yang masih berlaku. Worker baru yang dijalankan saat itu juga mengklaim 0 baris:
+
+<Snippet file="labs/t3-outbox/output/ganda.txt" lines="6:22" title="Rekaman lab: labs/t3-outbox/output/ganda.txt, bagian A (worker mati, worker baru melewati baris)" />
+
+**Sesudah klaim habis, baris dikirim lagi.** Tidak ada yang menandai baris itu terkirim, jadi klaim yang habis melepasnya. Worker berikutnya mengklaim baris yang sama dan mengirimnya dengan `notifikasi_id` yang sama:
+
+<Snippet file="labs/t3-outbox/output/ganda.txt" lines="23:38" title="Rekaman lab: labs/t3-outbox/output/ganda.txt, bagian A (pengiriman ulang, satu jurnal)" />
+
+Layanan push menerima 2 pesan dengan 1 `notifikasi_id`. Jurnal bayar baru ada 1, dan baris outbox berakhir `terkirim` dengan `percobaan` 2. Angka `percobaan` naik tiap klaim, jadi 2 berarti dua kali diklaim. Berapa kali pesan tiba terlihat di layanan push.
+
+**Berapa lama klaim, dan kenapa enam detik.** Klaim bawaan worker lab 5 detik. Itu pilihan lab, tanpa pengukuran (Asumsi). Pengiriman kedua baru bisa terjadi sesudah `klaim_sampai` lewat.
+
+Karena itu selang enam detik di naskah menuntut klaim paling lama sekitar enam detik. Klaim bawaan 5 detik memenuhi batas itu, dan klaim 30 detik tidak akan memberi selang itu (penalaran dari syarat klaim, tidak direkam). Angka enam detik di naskah berlabel Ilustrasi.
+
+Rekaman tidak mengukur selang antara dua pesan. Yang diperiksa lab adalah selang dari start worker yang mati sampai worker yang mengirim ulang selesai, dan hasilnya sedikit di atas 5 detik. Lab menolak nilai di luar 4,9 sampai 7,0 detik, karena angkanya bergantung mesin.
+
+**Tidak harus ada yang mati.** Bagian B memakai klaim 300 ms dan layanan push yang menjawab permintaan pertama sesudah 1,5 detik. Worker A masih menunggu saat klaimnya habis. Worker B mengklaim baris yang sama, dan keduanya melapor `terkirim`:
+
+<Snippet file="labs/t3-outbox/output/ganda.txt" lines="40:53" title="Rekaman lab: labs/t3-outbox/output/ganda.txt, bagian B (klaim lebih pendek dari waktu kirim)" />
+
+Klaim bekerja seperti dirancang: ia menahan baris 300 ms, tidak lebih. Yang kurang adalah klaim yang lebih pendek dari waktu kirim. Bagian D menunjukkan bentuk ketiga, yaitu penerima dengan dua HP yang sama-sama menggantung memakan 2 × 3 detik, lebih dari klaim 5 detik. Bentuk itu dibahas di [[t3-at-least-once]].
+
+**Pengiriman ulang itu benar.** Bila worker menandai `terkirim` sebelum mengirim, worker yang mati di antaranya membuat Ani tidak diberi tahu, seperti [[t3-m19]] dengan sebab lain. Tidak ada baris yang tersisa untuk dikirim ulang (penalaran, tidak direkam). Urutan kirim lalu tandai menukar kehilangan dengan ulangan.
+
+Layanan push dan PostgreSQL tidak bisa COMMIT bersama ([[t3-dua-tempat]]), jadi worker baru tidak bisa tahu apakah layanan push sudah menjawab. Pola outbox menulis hal yang sama: relay bisa memublikasikan pesan lebih dari sekali, sehingga consumer harus idempoten. Sumbernya [microservices.io: Transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html), halaman tanpa tanggal terbit, dibuka 2026-10-26 (Tidak dijalankan).
+
+**Ini bukan retry app.** Idempotency key ([[t2-idempotency]]) menjaga request dari app ke server. Pesan kedua di M20 lahir di dalam worker, sesudah request itu selesai.
+
+**Jawaban untuk Pak Hadi.** Di minggu 1 Pak Hadi bertanya bagaimana ia tahu satu pemberitahuan sesuai satu jurnal ([[t3-dua-tempat]]). Tabel `outbox` menjawabnya. Tiap baris pemberitahuan uang (bayar, transfer, dan top-up) punya `jurnal_id`, dan indeks unik `outbox_satu_per_jurnal` menolak baris kedua untuk jurnal dan penerima yang sama. Pengumuman promo tidak punya jurnal, jadi tidak ikut indeks itu.
+
+Baris pemberitahuan uang juga mencatat `percobaan`, jadi `percobaan` 2 dengan satu jurnal menunjukkan pengiriman ulang, bukan pembayaran kedua.
+
+**Yang belum menyelesaikannya.** Klaim yang lebih panjang dari waktu kirim menutup bentuk tanpa worker mati, yaitu bagian B dan D (penalaran, tidak direkam). Sesudah worker mati, klaim yang lebih panjang tidak menghapus ulangan. Ia hanya menunda pengiriman ulang, jadi Ani menunggu lebih lama (penalaran, tidak direkam).
+
+Yang menyelesaikannya ada di penerima: pesan dengan `notifikasi_id` yang sudah tampil dilewati.
+
+Bagian C merekam penyaring lima baris di skrip lab, dan hasilnya 2 pesan diterima dan 1 ditampilkan. Itu bukan kode app Dart. App, batas lima percobaan, dan dead-letter dibahas di [[t3-at-least-once]].
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `ganda.txt` bagian A dari klaim pertama sampai HP Ani. Tebak dulu apa yang dikerjakan worker baru, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t3-m20.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: klaim lebih pendek dari waktu kirim (300 ms lawan 1,5 detik), tidak ada yang mati**. Worker tidak perlu mati supaya HP Ani berbunyi dua kali (bagian B). Layar HP di widget digambar dari isi rekaman: lab tidak punya app Flutter, dan layanan push tiruan hanya mencatat pesan yang diterima.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: worker baru mengklaim 0 baris selama klaim 5 detik berlaku, lalu mengirim baris yang sama lagi. Layanan push menerima 2 pesan dengan 1 notifikasi_id, dan jurnal bayar baru hanya 1.
+
+Bila klaim 300 ms lebih pendek dari waktu kirim 1,5 detik, dua worker mengirim baris yang sama tanpa ada yang mati. Rekaman lengkap ada di lipatan di bawah.
+</noscript>
+
+<details>
+<summary>Rekaman bagian A sampai D (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/t3-outbox/output/ganda.txt" lines="4:75" title="Rekaman lab: labs/t3-outbox/output/ganda.txt, bagian A sampai D (tanpa baris kepala)" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t3-at-least-once]]: at-least-once, retry dengan backoff dan jitter, dead-letter, dan penerima idempoten dengan `notifikasi_id`. Keputusannya ADR 25.
+- [[t3-klaim-baris]]: klaim per baris dengan `FOR UPDATE` dan `klaim_sampai`. Klaim mencegah dua worker mengirim baris yang sama selama klaim berlaku, tetapi tidak menutup celah sesudah klaim habis.
+- [[t3-m19]]: sisi lain pengiriman. Di M19 pesan tidak pernah dikirim, dan di M20 pesan dikirim dua kali.
+- [[t2-idempotency]]: key yang menjaga request dari app, berbeda dari penyaring yang menjaga pesan ke app.
+
+Mengirim ulang itu benar, dan penerima harus mengenali ulangannya.
+
+### Cek diri
+
+**1.** Satu jurnal bayar dan dua pesan di layanan push. Kenapa itu bukan M10?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Dua pesan itu membawa `notifikasi_id` yang sama, dan kolom itu UNIQUE di tabel `outbox`. Jadi satu baris dikirim dua kali. Bila M10 terulang sekarang, dua jurnal menulis dua baris outbox dengan `notifikasi_id` sendiri (penalaran, tidak direkam).
+
+</details>
+
+**2.** Worker mati sesudah layanan push menjawab. Worker baru yang dijalankan saat itu juga mengklaim 0 baris. Kenapa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Klaim 5 detik belum habis, jadi baris yang berstatus `menunggu` masih dipegang (`ganda.txt` bagian A). Sesudah klaim habis, worker berikutnya mengklaimnya lagi dan mengirimnya dengan `notifikasi_id` yang sama.
+
+</details>
+
+**3.** Klaim 300 ms dan layanan push yang menjawab sesudah 1,5 detik. Kenapa HP Ani tetap berbunyi dua kali tanpa ada worker yang mati?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Klaim worker A habis selagi ia menunggu jawaban. Worker B mengklaim baris yang sama dan mengirimnya, jadi keduanya melapor `terkirim` (`ganda.txt` bagian B). Klaim harus lebih panjang dari waktu kirim.
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />
