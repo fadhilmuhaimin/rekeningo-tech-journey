@@ -719,11 +719,11 @@ describe("Di stack lain: skenario, versi, tautan, dan kode enam tab", () => {
     expect(mdx).toContain(`labels={${JSON.stringify(labels).replace(/","/g, '", "')}}`);
     expect(mdx29).toContain(`labels={${JSON.stringify(labels).replace(/","/g, '", "')}}`);
     expect(blokPaham).toContain(`**Skenario:** unique index sebagian \`${unik.nama}\` pada \`(${kolomIndex.join(", ")})\`, yang hanya memuat baris dengan \`${predikat.replace(" IS NOT NULL", "")}\` terisi.`);
-    expect(blokPaham).toContain("Tab Go adalah file migration lab yang dijalankan `psql -1 -f`. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-26.");
+    expect(blokPaham).toContain("Tab Go adalah file migration lab, dijalankan skrip lab dalam satu transaction dan ditulis rekaman sebagai `psql -1 -f`. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-26.");
     expect(blokPaham).toContain("Yang sama di semua stack: hasil akhirnya satu index PostgreSQL dengan predikat yang sama.");
     for (const n of [0, 1, 2, 3, 4]) expect(riset12x(n), `R3-12${n}`).toMatch(/dibuka 2026-10-26/);
     expect(skema[1]).toContain("PostgreSQL 17.11");
-    expect(tab(0)).toContain("*Dijalankan: file SQL lewat `psql -1 -f`, PostgreSQL 17.11, lab api-t3 (rekaman `skema.txt` bagian A dan E).*");
+    expect(tab(0)).toContain("*Dijalankan: isi file SQL oleh skrip lab dalam satu transaction (rekaman menulisnya `psql -1 -f`), PostgreSQL 17.11, lab api-t3 (rekaman `skema.txt` bagian A dan E).*");
     expect(tab(0)).toContain("Rekaman bagian E menunjukkan baris kedua untuk jurnal dan penerima yang sama ditolak dengan SQLSTATE 23505.");
     expect(sqlstate(skemaE, "outbox_satu_per_jurnal")).toBe("23505");
     // satu-satunya tab yang Dijalankan adalah Go; tab lain berlabel Tidak dijalankan
@@ -809,6 +809,63 @@ describe("Di stack lain: skenario, versi, tautan, dan kode enam tab", () => {
     expect(tab(4)).toContain("belum dicek dengan menjalankan generator [perlu verifikasi].");
     expect(tab(5)).toContain("CLI hanya menentukan folder dan nama file berpola `<timestamp>_<name>.sql`.");
     expect(riset12x(1)).toContain("`<timestamp>_<name>.sql`");
+  });
+  // Tinjauan 3.5 (keputusan 1019): tiga mutasi lolos penjaga di atas. Teks tautan dokumentasi ("Serverpod 4.0" jadi "3.0"),
+  // nama dan versi di baris RISET ("node-pg-migrate v9.0.0 Indexes" jadi "v8.0.3", sementara v9.0.0 masih ada di URL baris yang sama),
+  // dan nama berkas di komentar kode tab ("outbox.spy.yaml" jadi "outbox.yaml").
+  test("teks tautan dokumentasi tiap tab, frasa nama + versi + sumber + tanggal di RISET, dan seluruh kode tab dipatok utuh", () => {
+    const tautan: [number, string][] = [
+      [1, "[node-pg-migrate v9.0.0: Indexes](https://github.com/salsita/node-pg-migrate/blob/v9.0.0/docs/src/migrations/indexes.md)"],
+      [2, "[Laravel 13.x: Migrations](https://laravel.com/docs/13.x/migrations#creating-indexes)"],
+      [3, "[Django 6.1: Constraints](https://docs.djangoproject.com/en/6.1/ref/models/constraints/)"],
+      [4, "[Serverpod 4.0: Indexing](https://docs.serverpod.dev/concepts/data-and-the-database/database/indexing) dan [Migrations](https://docs.serverpod.dev/concepts/data-and-the-database/database/migrations)"],
+      [5, "[Supabase CLI: migration new](https://supabase.com/docs/reference/cli/supabase-migration-new)"],
+    ];
+    for (const [n, t] of tautan) expect(tab(n), `tab ${n}`).toContain(`Dicek ke ${t}`);
+    const frasaRiset: [number, string][] = [
+      [0, "PostgreSQL 17.11 §11.8 Partial Indexes (www.postgresql.org/docs/17/indexes-partial.html, dibuka 2026-10-26)"],
+      [0, "§5.5.3 Unique Constraints (www.postgresql.org/docs/17/ddl-constraints.html, dibuka 2026-10-26)"],
+      [1, "node-pg-migrate v9.0.0 Indexes (github.com/salsita/node-pg-migrate/blob/v9.0.0/docs/src/migrations/indexes.md, dibuka 2026-10-26)"],
+      [1, "Supabase CLI `migration new` (supabase.com/docs/reference/cli/supabase-migration-new, dibuka 2026-10-26)"],
+      [2, "Laravel 13.x Database: Migrations, bagian Creating Indexes (laravel.com/docs/13.x/migrations, dibuka 2026-10-26)"],
+      [3, "Django 6.1 Constraints (docs.djangoproject.com/en/6.1/ref/models/constraints/, dibuka 2026-10-26)"],
+      [4, "Serverpod docs Indexing (docs.serverpod.dev/concepts/data-and-the-database/database/indexing, halaman bertanda 4.0.0, dibuka 2026-10-26)"],
+      [4, "Halaman Migrations (docs.serverpod.dev/concepts/data-and-the-database/database/migrations)"],
+    ];
+    for (const [n, f] of frasaRiset) expect(riset12x(n), `RISET R3-12${n}: ${f.slice(0, 40)}`).toContain(f);
+    const nama = unik.nama;
+    const kol = kolomIndex.join(", ");
+    expect(kodeTab(1)).toBe(`// migrations/<timestamp>_${nama}.js
+export const up = (pgm) => {
+  pgm.createIndex("outbox", [${kolomIndex.map((k) => `"${k}"`).join(", ")}], {
+    name: "${nama}",
+    unique: true,
+    where: "${predikat}",
+  });
+};`);
+    expect(kodeTab(2)).toBe(`DB::statement('CREATE UNIQUE INDEX ${nama} ON outbox (${kol}) WHERE ${predikat}');`);
+    expect(kodeTab(3)).toBe(`from django.db import models
+
+class Outbox(models.Model):
+    jurnal = models.ForeignKey("Jurnal", null=True, on_delete=models.PROTECT)
+    akun = models.ForeignKey("Akun", on_delete=models.PROTECT)
+
+    class Meta:
+        db_table = "outbox"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["jurnal", "akun"],
+                condition=models.Q(jurnal__isnull=False),
+                name="${nama}",
+            ),
+        ]`);
+    expect(kodeTab(4)).toBe(`# lib/src/models/outbox.spy.yaml (potongan)
+indexes:
+  ${nama}:
+    fields: jurnalId, akunId
+    unique: true`);
+    expect(kodeTab(5)).toBe(`-- supabase/migrations/<timestamp>_${nama}.sql, dibuat: supabase migration new ${nama}
+CREATE UNIQUE INDEX ${nama} ON outbox (${kol}) WHERE ${predikat};`);
   });
 });
 

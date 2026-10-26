@@ -154,14 +154,14 @@ Retensi adalah berapa lama baris disimpan sebelum dibuang. Job `-bersih` di lab 
 
 ### Di stack lain
 
-**Skenario:** unique index sebagian `outbox_satu_per_jurnal` pada `(jurnal_id, akun_id)`, yang hanya memuat baris dengan `jurnal_id` terisi. Tab Go adalah file migration lab yang dijalankan `psql -1 -f`. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-26.
+**Skenario:** unique index sebagian `outbox_satu_per_jurnal` pada `(jurnal_id, akun_id)`, yang hanya memuat baris dengan `jurnal_id` terisi. Tab Go adalah file migration lab, dijalankan skrip lab dalam satu transaction dan ditulis rekaman sebagai `psql -1 -f`. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-26.
 
 Yang sama di semua stack: hasil akhirnya satu index PostgreSQL dengan predikat yang sama. ERD di halaman ini dibaca dari katalog database, jadi tidak bergantung pada stack yang membuat tabelnya.
 
 <TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
 <Fragment slot="t0">
 
-*Dijalankan: file SQL lewat `psql -1 -f`, PostgreSQL 17.11, lab api-t3 (rekaman `skema.txt` bagian A dan E).*
+*Dijalankan: isi file SQL oleh skrip lab dalam satu transaction (rekaman menulisnya `psql -1 -f`), PostgreSQL 17.11, lab api-t3 (rekaman `skema.txt` bagian A dan E).*
 
 <Snippet file="labs/api-t3/migrasi/000017_perangkat_outbox.up.sql" lines="30:31" lang="sql" title="labs/api-t3/migrasi/000017_perangkat_outbox.up.sql" />
 
