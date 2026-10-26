@@ -56,7 +56,7 @@ Pada pengaturan awal, jawabannya sekitar detik ke-12: pembayaran ke-10 datang pa
 
 ### Kenapa ini ada
 
-Jumat 12.20 semua layar app berhenti menjawab ([[t3-m18]]). Di [[t3-dua-tempat]], Bayu bertanya apakah uang ikut menunggu bila layanan push lambat. Jawabannya ya, selama push dipanggil di dalam transaction.
+Jumat 12.20 semua layar app berhenti menjawab (Ilustrasi, [[t3-m18]]). Di [[t3-dua-tempat]], Bayu bertanya apakah uang ikut menunggu bila layanan push lambat. Jawabannya ya, selama push dipanggil di dalam transaction.
 
 Raka mengira database lambat dan mengusulkan pool 50. Halaman ini menjelaskan apa pool itu, kenapa lamanya panggilan yang menghabiskannya, dan apa yang diputuskan ADR 22.
 
@@ -210,7 +210,7 @@ database:
 | Biaya operasional | Tiap koneksi tambahan adalah satu proses backend di PostgreSQL, dan jatah `max_connections` menyusut | Alert untuk lock yang menunggu lama, dan penyedia yang menjawab dalam 3 detik | Status breaker dan alert bila ia membuka. Fowler menyarankan monitor. Statusnya per instance bila ditulis di memori (penalaran) | Satu tabel dan satu proses worker, parameter koneksi `idle_in_transaction_session_timeout`, dan alert umur notifikasi tertua ([[t3-tim-infra]]) |
 | Bukti | Rekaman `m18.txt` bagian B; HikariCP wiki; hitungan koneksi | Rekaman `adr22.txt` bagian D | [Fowler, 2014](https://martinfowler.com/bliki/CircuitBreaker.html); Tidak dijalankan di lab | Rekaman `adr22.txt` bagian E dan F |
 
-Di rekaman, hanya B dan D yang menyelamatkan pool, dan B melakukannya dengan mengorbankan lock buku warung. C Tidak dijalankan: lab tidak memuat breaker, jadi klaim C datang dari artikel dan penalaran, bukan dari rekaman.
+Di rekaman, hanya B dan D yang menyelamatkan pool, dan B melakukannya dengan mengorbankan lock buku warung. C Tidak dijalankan: kode lab Tahap 3 (api-t3 dan lab t3-*) tidak memuat breaker, jadi klaim C datang dari artikel dan penalaran, bukan dari rekaman.
 
 **Keputusan: opsi D.** Empat aturan, dan tiap aturan punya tugas sendiri:
 
