@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"lab/apit4/internal/penerbit"
+	"lab/apit4/internal/repo"
 )
 
 // Tes kartu virtual (M37, ADR 42) dengan PostgreSQL sungguhan. Pola db_test.go: setiap tes membuat akun dan kartunya
@@ -627,5 +629,61 @@ func TestUbahStatusKartu(t *testing.T) {
 	}
 	if _, err := svc.UbahStatusKartu(ctx, akun, id, "aktif"); !errors.Is(err, ErrKartuStatus) {
 		t.Fatalf("buka kartu ditutup: %v; harus ErrKartuStatus", err)
+	}
+}
+
+// Seluruh alur kartu sebagai role aplikasi (api_t4), bukan pemilik schema: hak yang kurang (kolom, tabel, atau
+// set_config) baru ketahuan di sini, karena tes lain memakai role pemilik. Dilewati bila TEST_APP_DATABASE_URL
+// kosong; schema harus dibuat dengan hak (dasar_t4.buat_schema(nama, hak=True)).
+func TestKartuSebagaiRoleAplikasi(t *testing.T) {
+	appURL := os.Getenv("TEST_APP_DATABASE_URL")
+	if appURL == "" {
+		t.Skip("TEST_APP_DATABASE_URL kosong: tes hak role aplikasi dilewati")
+	}
+	_, db := siapkan(t) // pemilik: menyiapkan akun, buku, kartu, dan saldo
+	app, err := sql.Open("pgx", appURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { app.Close() })
+	var user string
+	if err := app.QueryRow(`SELECT current_user`).Scan(&user); err != nil || user == "lab" {
+		t.Fatalf("koneksi aplikasi memakai role %q (%v); harus role aplikasi, bukan pemilik", user, err)
+	}
+	penerbitTiruan := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(201)
+		fmt.Fprint(w, `{"token":"tok_app_`+r.Header.Get("Idempotency-Key")+`","empat_digit":"0007"}`)
+	}))
+	defer penerbitTiruan.Close()
+	svc := Baru(repo.Baru(app), time.Hour).DenganT4(Dep{KunciPenerbit: "kunci-tes", Penerbit: penerbit.Baru(penerbitTiruan.URL, 3*time.Second)})
+	ctx := context.Background()
+	akun := pemakaiBaru(t, db, "terverifikasi", 200_000)
+
+	k, err := svc.TerbitkanKartu(ctx, akun)
+	if err != nil {
+		t.Fatalf("terbitkan sebagai role aplikasi: %v", err)
+	}
+	token := kartuTes(t, db, akun, "aktif", 1_000_000)
+	_ = k
+	id1, id2, id3 := idOtorisasi(), idOtorisasi(), idOtorisasi()
+	for _, id := range []string{id1, id2, id3} {
+		kp, err := svc.Otorisasi(ctx, PermintaanOtorisasi{IDPenerbit: id, Token: token, Jumlah: 20_000})
+		harapSetuju(t, kp, err)
+	}
+	if _, err := svc.Clearing(ctx, id1, 20_000); err != nil {
+		t.Fatalf("clearing sebagai role aplikasi: %v", err)
+	}
+	if _, err := svc.Reversal(ctx, id2); err != nil {
+		t.Fatalf("reversal sebagai role aplikasi: %v", err)
+	}
+	nanti := svc.DenganJam(func() time.Time { return time.Now().Add(UmurTahanKartu + time.Hour) })
+	if _, _, err := nanti.KedaluwarsaHold(ctx); err != nil {
+		t.Fatalf("kedaluwarsa sebagai role aplikasi: %v", err)
+	}
+	if kp, err := svc.UbahStatusKartu(ctx, akun, k.ID, "dibekukan"); err != nil || kp.Status != "dibekukan" {
+		t.Fatalf("bekukan sebagai role aplikasi: %+v, %v", kp, err)
+	}
+	if s := saldo(t, db, akun); s != 180_000 {
+		t.Fatalf("saldo %d, harus 180000 (satu penagihan Rp20.000; dua hold lainnya sudah dilepas)", s)
 	}
 }
