@@ -10,7 +10,8 @@ import { describe, expect, test } from "vitest";
 import rantaiMentah from "../../data/diagram/t3-m19-kursor-tertinggal.json";
 import registry from "../../data/cerita.json";
 import widgetMentah from "../../data/widget/t3-outbox-worker.json";
-import { acuanDari } from "../widgets/outbox-worker/logika";
+import { acuanDari, jalankanKursor, konstanta } from "../widgets/outbox-worker/logika";
+import { bacaAcuan } from "../widgets/outbox-worker/rekaman";
 import { DataRantai } from "./rantai";
 
 const akar = path.resolve(__dirname, "../../..");
@@ -193,6 +194,7 @@ const EXPECT: string[] = [
   "*Kondisi rekaman:* PostgreSQL «pg», server Go dengan poller dalam mode rentan `kursor` (selang «selang» ms), dan layanan push tiruan lokal. Akun Dimas memerankan rekan Budi.",
   "**Apa yang dibaca poller.** Query-nya mengambil baris `menunggu` dengan `(dibuat, id)` lebih besar dari kursor, urut menurut `(dibuat, id)`:",
   "<Snippet file=\"labs/api-t3/internal/repo/outbox.go\" region=\"baca-kursor\" lang=\"go\" title=\"Kode lab: labs/api-t3/internal/repo/outbox.go, region baca-kursor (poller versi pertama)\" />",
+  "Komentar di kode itu juga menulis bahwa nomor `id` bukan urutan COMMIT. Lab tidak merekam bagian itu, dan klaim itu dibahas di akhir blok ini.",
   "Sesudah satu putaran, kursor pindah ke baris terakhir yang dibaca. Di kode itu kursor tidak pernah mundur:",
   "<Snippet file=\"labs/api-t3/internal/worker/worker.go\" lines=\"«w0»:«w1»\" lang=\"go\" title=\"Kode lab: labs/api-t3/internal/worker/worker.go baris «w0» sampai «w1» (kursor hanya maju)\" />",
   "Kolom `dibuat` diisi `now()` oleh database:",
@@ -201,7 +203,7 @@ const EXPECT: string[] = [
   "**Bila COMMIT sesuai urutan mulai, kursor bekerja.** Di bagian A sesi tangan memegang baris buku Citra, dan «kataMenunggu» transaction menunggu lock itu. Budi menunggu lebih dulu, lalu Dimas. Sesudah lock dilepas, nomor outbox dan urutan `dibuat` sama, yaitu «a1» untuk Budi dan «a2» untuk Dimas, dan kedua pesan terkirim:",
   "<Snippet file=\"labs/t3-outbox/output/kursor.txt\" lines=\"«snipA»\" title=\"Rekaman lab: labs/t3-outbox/output/kursor.txt, bagian A (dua kiriman antre di buku Citra)\" />",
   "Lab mengatur siapa yang lebih dulu. Budi dilepas lebih dulu, lab menunggu sampai ia terlihat menunggu lock, baru Dimas dilepas.",
-  "Halaman explicit locking di dokumentasi PostgreSQL 17 tidak menjanjikan urutan transaction yang menunggu satu baris. Jadi \"yang tiba lebih dulu selesai lebih dulu\" adalah hasil rekaman, bukan aturan. Sumbernya [bagian 13.3.2](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS), dibuka «tanggal» (Tidak dijalankan).",
+  "Halaman explicit locking di dokumentasi PostgreSQL 17 tidak menjanjikan urutan transaction yang menunggu satu baris. Jadi \"yang tiba lebih dulu selesai lebih dulu\" hanya berlaku di rekaman ini, bukan aturan. Urutan COMMIT di bagian A tidak direkam langsung: ia dibaca dari nomor outbox, seperti di bagian D. Sumbernya [bagian 13.3.2](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS), dibuka «tanggal» (Tidak dijalankan).",
   "**Satu kiriman terhambat dan barisnya tertinggal.** Bagian B mengubah satu hal. Sebelum Budi mengirim, sesi tangan memegang baris buku Budi sendiri, mewakili permintaan lain dari Budi yang belum selesai. Kiriman Budi mulai lebih dulu lalu menunggu bukunya sendiri, sedangkan kiriman Dimas mulai kemudian, tidak terhalang, dan COMMIT lebih dulu.",
   "Poller mengirim baris Dimas dan memajukan kursornya. Baru sesudah itu lock dilepas dan kiriman Budi selesai. Barisnya bernomor «nomorBudiB» tetapi `dibuat`-nya lebih awal, jadi ia ada di belakang kursor:",
   "<Snippet file=\"labs/t3-outbox/output/kursor.txt\" lines=\"«snipB»\" title=\"Rekaman lab: labs/t3-outbox/output/kursor.txt, bagian B (baris Budi di belakang kursor)\" />",
@@ -216,8 +218,8 @@ const EXPECT: string[] = [
   "**Ini celah yang ADR 16 tulis terbuka, tetapi akibatnya lain.** ADR 16 menerima celah COMMIT belakangan untuk riwayat. App memuat ulang riwayat dari atas, jadi akibatnya hanya di tampilan (aturan «aturanMuat» dan «aturanCelah» di [[t2-kursor]]). Aturan «aturanAliran» melarang kursor itu untuk pembaca aliran dan menyebut notifikasi sebagai contoh.",
   "Poller adalah pembaca aliran, dan ia tidak memuat ulang dari atas. Baris di belakang kursornya tidak dibaca lagi selama poller itu berjalan. Kursor di lab hanya ada di memori proses, jadi poller yang dimulai ulang membaca dari awal. Restart poller tidak direkam (Tidak dijalankan).",
   "**Nomor urut tanpa celah tidak menyelesaikannya.** Nadia mengusulkan nomor urut tanpa celah. Sequence PostgreSQL tidak bisa memberinya: nilai yang dipakai transaction yang batal tidak dipakai ulang.",
-  "Rekaman `listen.txt` bagian A memperlihatkannya, karena baris yang di-ROLLBACK memakai nomor «celah» dan baris berikutnya bernomor «celahBerikut». Sumbernya [bagian 9.17](https://www.postgresql.org/docs/17/functions-sequence.html), dibuka «tanggal» (Tidak dijalankan).",
-  "Halaman sequence itu tidak menyebut urutan COMMIT. Morling mengutip Kleppmann bahwa urutan baris di tabel outbox bisa berbeda dari urutan COMMIT ([Revisiting the Outbox Pattern](https://www.morling.dev/blog/revisiting-the-outbox-pattern/), «tglMorling», dibuka «tanggal», Tidak dijalankan). Lab ini tidak merekam kasus itu: di bagian B dan D nomor «nomorDimasB» COMMIT lebih dulu, dan yang terbalik hanya `dibuat`.",
+  "Rekaman `listen.txt` memperlihatkannya: bagian A membatalkan satu baris dengan ROLLBACK, dan baris berikutnya di bagian B bernomor «celahBerikut», jadi nomor «celah» terpakai tanpa baris. Sumbernya [bagian 9.17](https://www.postgresql.org/docs/17/functions-sequence.html), dibuka «tanggal» (Tidak dijalankan).",
+  "Halaman sequence itu tidak menyebut urutan COMMIT. Morling menulis bahwa urutan pesan di tabel outbox, menurut timestamp atau kolom sequence, tidak dijamin sama dengan urutan COMMIT ([Revisiting the Outbox Pattern](https://www.morling.dev/blog/revisiting-the-outbox-pattern/), «tglMorling», dibuka «tanggal», Tidak dijalankan). Ia merujuk Kleppmann untuk masalah urutan itu dan menyebut relay bisa melewatkan pesan. Lab ini tidak merekam kasus itu: di bagian B dan D nomor «nomorDimasB» COMMIT lebih dulu, dan yang terbalik hanya `dibuat`.",
   "Jadi kursor `id` saja akan menangkap kasus M19 di lab, tetapi urutan nomor tidak dijanjikan sama dengan urutan COMMIT. Opsi nomor urut ditimbang di [[t3-klaim-baris]].",
   "**Siapa yang tahu?** Pertanyaan kedua PRD v3 ([[t3-prd]]) bertanya siapa yang tahu bila pemberitahuan gagal terkirim. Di M19 jawabannya tidak ada, sampai Ani membandingkan bukunya. Pemberitahuan itu tidak gagal terkirim, melainkan tidak dibaca poller.",
   "Poller kursor tidak mencatat percobaan: baris Dimas yang terkirim pun berpercobaan «percobaanDimas» (bagian C). Baris Budi tetap `menunggu` dan umurnya bertambah. Kode `RingkasOutbox` melaporkan umur baris `menunggu` tertua. Alert dari angka itu dibahas di [[t3-m27]], dan Tidak dijalankan untuk kasus ini.",
@@ -335,7 +337,7 @@ describe("rekaman kursor.txt: bagian A sampai D", () => {
     expect(KD.some((b) => b.startsWith(`pasang terbalik ditemukan dalam paling banyak ${maksPasang} pasang (jumlah pasang yang dipakai tidak direkam: bergantung waktu)`))).toBe(true);
     expect(tabelD).toEqual([["1", "2"], ["2", "1"]]);
     expect(KD.some((b) => b.startsWith("# Nomor 1 tiba di baris buku Citra lebih dulu, tetapi transaction-nya mulai lebih akhir (`dibuat` lebih akhir)."))).toBe(true);
-    expect(KD.some((b) => b.startsWith("# Pemicu tidak harus dibuat: dua transfer yang berdekatan cukup untuk membalik urutan. Apakah baris benar-benar tertinggal bergantung pada putaran poller jatuh di antara dua COMMIT;"))).toBe(true);
+    expect(KD.some((b) => b.startsWith("# Pemicu tidak harus dibuat: dua transfer yang berdekatan cukup untuk membalik urutan. Apakah baris benar-benar tertinggal bergantung pada putaran poller jatuh di antara dua COMMIT; B membuat celah itu panjang supaya terekam."))).toBe(true);
     const d = fnKursor.slice(fnKursor.indexOf('bagian("D.'), fnKursor.indexOf('tulis("kursor.txt"'));
     expect(d).toContain(`for _ in range(${maksPasang}):`);
     expect(d).toContain("threading.Barrier(2)");
@@ -356,6 +358,11 @@ describe("rekaman kursor.txt: bagian A sampai D", () => {
   });
   test("listen.txt A: baris yang di-ROLLBACK memakai nomor 2, berikutnya 3; klaim.txt C: urutan antar pesan tidak dijaga", () => {
     expect([celahNomor[1], celahNomor[2]]).toEqual(["2", "3"]);
+    // komentar A hanya tulisan lab; nomor 3 yang benar-benar dibaca dari database ada di bagian B (nomor3 dikembalikan INSERT)
+    const lb = bagian(pecah(listenTxt), "B");
+    expect(lb.some((b) => b === `=> SELECT id, status FROM outbox WHERE id = ${celahNomor[2]}`)).toBe(true);
+    expect(lb.filter((x) => new RegExp(`^ ${celahNomor[2]}\\s+\\| (menunggu|terkirim)$`).test(x))).toHaveLength(2);
+    expect(hitung(runOutbox, /sql\("SELECT id, status FROM outbox WHERE id = %d" % nomor3\)/g)).toBe(2);
     expect(klaimTxt).toContain("# --- C. Urutan antar pesan tidak dijaga: baris yang dipegang worker lain dilewati, dikirim paling akhir ---");
   });
 });
@@ -430,8 +437,8 @@ describe("sumber lain: RISET, naskah, ADR 16 di 2.19, PRD v3, widget, Rantai", (
     expect(risetBaris).toContain("halaman tidak membahas urutan COMMIT lawan urutan nilai");
     expect(risetBaris).toContain('"Row-level locks are released at transaction end"');
     expect(risetBaris).toContain("halaman tidak menjanjikan urutan transaction yang menunggu satu baris");
-    expect(risetBaris).toContain('(mengutip Kleppmann, "poor ordering semantics")');
-    expect(risetBaris).toContain("urutan pesan di tabel outbox tidak dijamin sama dengan urutan COMMIT");
+    expect(risetBaris).toContain("urutan pesan di tabel outbox, menurut timestamp atau kolom sequence, tidak dijamin sama dengan urutan COMMIT dan relay bisa melewatkan pesan");
+    expect(risetBaris).toContain('(kalimat Morling sendiri; Kleppmann dirujuk lewat tulisan di X yang tidak dibuka, hanya untuk "poor ordering semantics")');
     expect(risetBaris).toContain("3.10: M19");
     // R3-04 dan R2-145 tetap ada sebagai dasar
     expect(riset).toContain("| R3-04 |");
@@ -480,6 +487,68 @@ describe("sumber lain: RISET, naskah, ADR 16 di 2.19, PRD v3, widget, Rantai", (
     expect(komponenOutbox).toMatch(/^<noscript>\n  <p>\{L\.tanpaJs\}<\/p>$/m);
     expect(komponenOutbox).toContain("OutboxWorkerIsland client:visible");
   });
+  test("widget kursor: teks dikunci, jawaban dan nomor tiap COMMIT dan sumber diturunkan dari rekaman (alasan 'tidak pernah dibaca' lebih kuat dari kode)", () => {
+    const berkas = {
+      transaksi: baca("labs/t3-outbox/output/transaksi.txt"),
+      kursor: kursorTxt,
+      ganda: baca("labs/t3-outbox/output/ganda.txt"),
+      retry: baca("labs/t3-outbox/output/retry.txt"),
+      queue: baca("labs/t3-outbox/output/queue.txt"),
+    };
+    const k = konstanta(bacaAcuan(berkas));
+    const w = (widgetMentah as unknown as { skenario: { kursor: { nama: string; tebak: { pilihanTeks: string; pilihan: { nilai: number; alasan: string }[] }; knob: { id: string; label: string; opsi: Record<string, string> }[]; peristiwa: Record<string, string>; ringkas: Record<string, string> } } }).skenario.kursor;
+    const terbalik = jalankanKursor("kursor", "terbalik", k);
+    const berurutan = jalankanKursor("kursor", "berurutan", k);
+    const klaim = jalankanKursor("klaim", "terbalik", k);
+    expect([terbalik.angka.pesan, berurutan.angka.pesan, klaim.angka.pesan]).toEqual([pesanB, tabelA.filter((r) => r[4] === "terkirim").length, pesanC]);
+    expect(terbalik.angka.saldoNaik).toBe(saldoNaik);
+    expect(k.nominal).toBe(nominal);
+    const nilai = (h: ReturnType<typeof jalankanKursor>, kunci: string) => h.garis.find((p) => p.kunci === kunci)!.nilai;
+    const nomorDi = (tb: string[][], pengirim: number) => Number(tb.find((r) => r[tb[0]!.length === 5 ? 2 : 1] === String(pengirim))![0]);
+    expect([nilai(terbalik, "commit-pertama"), nilai(terbalik, "commit-kedua")]).toEqual([
+      { siapa: "Dimas", nomor: nomorDi(tabelB, dimas) },
+      { siapa: "Budi", nomor: nomorDi(tabelB, budi) },
+    ]);
+    expect([nilai(berurutan, "commit-pertama"), nilai(berurutan, "commit-kedua")]).toEqual([
+      { siapa: "Budi", nomor: nomorDi(tabelA, budi) },
+      { siapa: "Dimas", nomor: nomorDi(tabelA, dimas) },
+    ]);
+    expect(w.nama).toBe("Kursor atau klaim");
+    expect(w.tebak.pilihan.map((p) => p.nilai)).toEqual([0, 1, 2]);
+    expect(w.tebak.pilihan.find((p) => p.nilai === terbalik.angka.pesan)!.alasan).toBe(
+      `{pesan} notifikasi: baris Dimas dikirim dan kursor maju. Baris Budi bernomor lebih besar, tetapi dibuat lebih awal, jadi ada di belakang kursor dan tidak dibaca selama poller berjalan. Saldo Citra naik {saldo}.`,
+    );
+    expect(w.tebak.pilihan[0]!.alasan).toBe("Poller membaca baris Dimas begitu COMMIT. Nol notifikasi hanya terjadi bila kedua baris terlewat, dan baris Dimas tidak terlewat.");
+    expect(w.tebak.pilihan[2]!.alasan).toBe("Dua notifikasi benar bila yang COMMIT lebih dulu juga dibuat lebih dulu. Di sini urutan itu terbalik, dan kursor hanya melihat ke depan.");
+    // "tidak pernah dibaca" melampaui kode: kursor di memori, poller yang dimulai ulang membaca dari awal (worker.go)
+    expect(JSON.stringify(widgetMentah.skenario.kursor)).not.toMatch(/tidak pernah/);
+    expect(w.knob.map((b) => [b.id, b.label, b.opsi])).toEqual([
+      ["poller", "Cara worker mengambil", { kursor: "Kursor (dibuat, id)", klaim: "Klaim per baris" }],
+      ["urutan", "Urutan COMMIT", { berurutan: "Yang mulai lebih dulu COMMIT lebih dulu", terbalik: "Yang mulai lebih dulu COMMIT belakangan" }],
+    ]);
+    expect(w.ringkas).toEqual({
+      "ringkas-dua": "{konfig}: kedua transfer diberi tahu, saldo Citra naik {saldo}.",
+      "ringkas-hilang": "{konfig}: HP Citra menerima {pesan} notifikasi, padahal saldonya naik {saldo}.",
+    });
+    expect(w.peristiwa).toEqual({
+      "mulai-berurutan": "Budi dan Dimas mengirim ke Citra. Keduanya antre di baris buku Citra, dan Budi tiba lebih dulu.",
+      "mulai-terbalik": "Budi mulai lebih dulu, tetapi menunggu baris bukunya sendiri yang dipegang permintaan lain. Dimas mulai kemudian dan tidak terhalang.",
+      "commit-pertama": "COMMIT {siapa}: baris outbox bernomor {nomor}.",
+      "commit-kedua": "COMMIT {siapa}: baris outbox bernomor {nomor}.",
+      "kursor-kirim": "Poller kursor mengirim baris {siapa} (nomor {nomor}) dan memajukan kursor.",
+      "kursor-lewat": "Poller kursor tidak membaca baris {siapa} (nomor {nomor}): waktu dibuatnya lebih awal dari kursor.",
+      "klaim-kirim": "Worker mengklaim baris {siapa} (nomor {nomor}) dan mengirimnya.",
+      "hp-terima": "HP Citra menerima notifikasi dari {siapa}.",
+    });
+    // sumber rekaman tiap kombinasi, dan Hitungan bagi yang tidak direkam
+    const sumber = (poller: string, urutan: string): string => `${acuanDari("kursor", { poller, urutan }).jenis}:${acuanDari("kursor", { poller, urutan }).sumber}`;
+    expect([sumber("kursor", "berurutan"), sumber("kursor", "terbalik"), sumber("klaim", "terbalik"), sumber("klaim", "berurutan")]).toEqual([
+      "rekaman:kursor.txt A",
+      "rekaman:kursor.txt B",
+      "rekaman:kursor.txt C",
+      "hitungan:kursor",
+    ]);
+  });
   test("Rantai: tiap nilai teks diturunkan dari rekaman bagian A, B, dan C", () => {
     const harap = {
       id: "t3-m19-kursor-tertinggal",
@@ -501,7 +570,7 @@ describe("sumber lain: RISET, naskah, ADR 16 di 2.19, PRD v3, widget, Rantai", (
           sub: "bagian A, poller kursor",
           simpul: [
             { teks: "Dua kiriman antre di buku Citra", sub: `${menungguA} transaction menunggu lock` },
-            { teks: "Budi COMMIT, lalu Dimas", sub: `nomor ${tabelA[0]![0]} dan ${tabelA[1]![0]}, dibuat urut ${tabelA[0]![3]} dan ${tabelA[1]![3]}` },
+            { teks: `Nomor ${tabelA[0]![0]} untuk Budi, ${tabelA[1]![0]} untuk Dimas`, sub: `dibuat urut ${tabelA[0]![3]} dan ${tabelA[1]![3]}` },
             { teks: "Dua pesan terkirim", nada: "good" },
           ],
         },
