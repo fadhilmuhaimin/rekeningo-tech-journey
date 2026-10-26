@@ -148,7 +148,7 @@ describe("registry, meta, blok, dan tautan", () => {
     expect(badan.indexOf("<OutboxWorker")).toBeGreaterThan(badan.indexOf('<Blok nama="Coba"'));
     expect(badan.indexOf("<OutboxWorker")).toBeLessThan(badan.indexOf('<Blok nama="Paham">'));
     expect(badan).toContain("**Ubah satu hal:**");
-    expect(baca("situs/src/components/OutboxWorker.astro")).toContain("<noscript>");
+    expect(baca("situs/src/components/OutboxWorker.astro")).toContain("<noscript>\n  <p>{L.tanpaJs}</p>");
     // Pengaturan widget: dua pilihan poller dan dua urutan COMMIT, jadi empat kombinasi; tiga direkam di kursor.txt A, B, dan C.
     expect(widgetJson.skenario.kursor.knob.map((k) => [k.id, Object.keys(k.opsi)])).toEqual([["poller", ["kursor", "klaim"]], ["urutan", ["berurutan", "terbalik"]]]);
     expect(POLLER.length * URUTAN.length).toBe(4);
