@@ -24,7 +24,7 @@ Tujuan: setiap klaim di naskah dan halaman tahap N bisa ditelusuri ke satu baris
 6. **Jebakan dari forum.** 5–10 pertanyaan nyata dari Stack Overflow atau GitHub issues (judul + tautan) yang menunjukkan apa yang orang kira. Forum hanya untuk menemukan pertanyaannya; jawabannya dicek ke sumber primer di langkah 2. Ini bahan kolom "Yang dikira" dan "yang Raka kira".
 7. **Angka beban dan ukuran data** dihitung ulang dengan rumus PROPOSAL dan registry (user aktif × request per user ÷ detik aktif × faktor puncak; posting per hari × ukuran baris × 365). Tulis rumusnya, setiap masukan, dan hasilnya sebagai Asumsi. Bandingkan dengan angka tahap sebelumnya; lonjakan lebih dari 10× ditulis alasannya.
 8. **Keamanan tahap ini.** Ancaman yang masuk menurut PROPOSAL "Peta ancaman per lapisan", sumber primer (OWASP ASVS, CWE, RFC), dan apakah bisa direkam di container lokal. Tahap 5–6: yang tidak bisa direkam ditandai Ilustrasi.
-9. **Beri nomor.** Setiap baris sumber mendapat ID `R<N>-<nn>` (R3-01, R3-02, …). Naskah, halaman, ADR, dan evaluasi merujuk ID ini.
+9. **Beri nomor.** Setiap baris sumber mendapat ID `R<N>-<nn>` (R3-01, R3-02, …). Naskah, catatan halaman, ADR, dan evaluasi merujuk ID ini; teks yang dibaca pembaca tidak memuatnya (lihat Aturan).
 
 ## Format `plan/RISET-TAHAP-N.md` (paling banyak 120 baris)
 
@@ -62,6 +62,10 @@ Dikerjakan <tanggal>, skill riset-tahap. Versi dicek hari itu.
 - Angka industri ditulis dengan konteksnya (siapa mengukur, kapan, metode); angka tanpa konteks tidak dipakai.
 - Riset tidak menulis cerita. Usulan cerita yang lahir dari riset masuk naskah draft (Tahap 3–6) atau MEMORI "Usulan perubahan cerita" (Tahap 1–2).
 - Kalau halaman nanti butuh klaim yang tidak ada di riset: tambahkan barisnya ke RISET-TAHAP-N dengan ID berikutnya di PR halaman itu, jangan menulis klaim tanpa ID.
+- ID riset hanya hidup di `plan/`, badan PR, dan komentar kode. Teks pembaca (halaman, widget, halaman istilah) menulis nama sumber, versi, dan tanggal. `tools/cek_id_tampil.py` hanya mengenali ID halaman `[A-G]\d`, jadi tes halaman menolak pola `\bR\d-\d{2,3}\b` sampai alat itu diperluas. Tahap 2: "R2-04" tampil di halaman istilah backfill dan "R2-06" di 2.19. Tiga ID R3 tampil di teks widget pool (#352).
+- Alokasi ID riset dan nomor keputusan datang per tugas dari pengatur, dalam blok yang tidak tumpang tindih. Sebelum memakai, cek ID terbesar di RISET dan di badan semua PR terbuka (`gh pr list`). Tahap 2: R2-36 dipakai dua PR (#281, #282); R3-61 dipakai dua PR (#342, #343).
+- Dokumentasi dibuka pada versi yang dipakai lab atau halaman; bila berbeda, buka dokumen versi itu atau tulis kedua versi. Dokumen "latest" atau "current" tanpa nomor versi diberi tanggal akses. Untuk flag atau API yang deprecated, cek changelog di repositori sumber, karena salinan di host pihak ketiga bisa tertinggal. Tahap 2: bawaan `max_connections` dibaca di PostgreSQL 18.6, padahal lab memakai 17.11 (#341). Tab django-axes memakai flag deprecated sejak 6.0.0, dan salinan RTD tidak memuat penandaannya (#337). Redis `latest` ditulis tanpa versi (#346).
+- Kolom Hasil angka memuat nilai tepat dan satu bentuk bulat yang dipakai semua halaman tahap itu. Halaman menghitung turunan dari bentuk yang tertulis. Tahap 2 dan 3: R3-31 menulis λ 0,868 tepat, halaman memakai 0,87, dan 0,87 × 2,02 = 1,76, bukan 1,75 (#343, #353).
 
 <examples>
 <example>

@@ -36,6 +36,15 @@ Narasi membuka, ekspositori menjelaskan. Meta-analisis (Mar 2021; Tobler 2024) m
 - Ilustrasi yang `aria-hidden` tidak membawa informasi sendiri: setiap angka dan siapa melihat apa juga ada di teks DOM di dekatnya. Teks alternatif menyebut pesan gambar dan tidak mengulang judul atau keterangan di sebelahnya.
 - Sumber ketiga aturan ini: plan/RISET-SKILL.md butir 5–7.
 
+## Angka, label, dan istilah (diperiksa peninjau dan penjaga angka; bukti Tahap 2)
+
+- Satu angka, satu bentuk di semua halaman. Bila registry, rekaman, atau halaman prasyarat sudah menulis angka itu, pakai bentuk yang sama atau tulis nilai tepat dengan satu kalimat pembulatan. Hasil turunan dihitung dari angka yang tertulis di halaman, supaya pembaca bisa mengulang hitungannya. Tahap 2: 2.31 menulis "0,10 × (0,02 + t) = 5, jadi t ≈ 48 detik", padahal hasilnya 49,98 (48 datang dari 0,104). Di halaman yang sama 3.571 ÷ 1,4 = 2.551, bukan 2.571, dan 0,87 × 2,02 = 1,76, bukan 1,75 (#346, #353).
+- Satu arti per label, selaras dengan `/cara-pakai/`. Rekaman lab: keluaran lab di repo, ditunjuk dengan file dan bagian. Asumsi: angka pilihan penulis tanpa rekaman atau sumber. Ilustrasi: skenario atau angka untuk cerita, bukan hasil sistem. Tidak dijalankan: dibaca dari dokumentasi atau kode.
+- Hasil rumus memakai label masukan terlemahnya: satu masukan Asumsi membuat hasilnya Asumsi, dan "Hitungan" hanya penjelas, bukan pengganti label. Tahap 2: tabel Little di 2.30 menulis "(W: Rekaman lab)", sehingga L terbaca rekaman padahal λ Asumsi (#341). Kartu 2.32 menulis bacaan atas naskah sebagai "didukung rekaman" (#351).
+- Pemakaian pertama label di satu halaman diberi satu kalimat arti atau tautan ke `/cara-pakai/`. Pembaca masuk lewat tautan langsung. Uji baca EVAL-2 (butir 5): "Asumsi" dan "[perlu verifikasi]" tanpa penjelasan di 2.28.
+- Inti, Rantai, dan pertanyaan Tebak hanya memakai kata yang sudah dikenal pembaca di halaman itu. Istilah dari blok Paham atau halaman prasyarat diberi satu kalimat arti di pemakaian pertama, atau ditaut ke halaman istilahnya. Bukti: 2.14 ("niat", "sidik jari") dan 2.10 ("invarian 3") menjadi dua dari lima keluhan pembaca segar.
+- Halaman istilah dan tooltip menjelaskan arti istilah, bukan jawaban masalah di halaman lain. Istilah "buku ledger" menulis jawaban M9 sebelum ADR 13 dibaca (#292).
+
 ## Cara membuat cerita yang diingat
 
 1. Mulai dari apa yang **dilihat** seseorang: layar HP, buku Ani, laporan Pak Hadi. Bukan dari log server, bukan dari konsep.
