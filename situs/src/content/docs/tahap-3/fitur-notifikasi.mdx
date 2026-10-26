@@ -1,0 +1,253 @@
+---
+title: "3.3 Fitur: notifikasi push dan promo HR"
+description: Budi membayar Rp25.000 dan Ani menerima "Rp25.000 dari Budi" di HP. Backend menulis satu baris pemberitahuan di transaction yang sama dengan jurnal, lalu worker mengirimnya ke layanan push. Promo HR memakai jalur yang sama.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t3-notifikasi-inti.json";
+import PetaFitur from "../../../components/PetaFitur.astro";
+import petaNotifikasi from "../../../../data/widget/t3-peta-notifikasi.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Snippet from "../../../components/Snippet.astro";
+
+<p class="meta">Baca 9 menit · coba 2 menit · Prasyarat: [[t3-fitur-teknis]] · Jalur inti</p>
+
+<Blok nama="Yang diminta PRD" buka>
+
+## Inti
+
+Ani tahu uang masuk karena pemberitahuan ditulis sebagai satu baris bersama jurnal, lalu dikirim worker sesudah pembayaran selesai.
+
+<Rantai data={intiDiagram} ringkas />
+
+Budi membayar Rp25.000 ke Warung Ani dengan catatan "nasi goreng dua porsi". Satu transaction menulis jurnal 10001, dua posting, dan satu baris outbox untuk Ani. Budi mendapat `201` dengan saldo Rp225.000, dan saat itu layanan push belum menerima apa pun (rekaman lab `outbox.txt` bagian A).
+
+Sesudahnya worker, proses yang terpisah dari server, mengklaim baris itu dan mengirimnya, lalu menandainya `terkirim` (bagian B). Kalau layanan push menggantung, client worker berhenti di batas 3 detik dan barisnya tetap `menunggu`. Pembayaran tidak ikut menunggu (`push.txt` bagian E dan F).
+
+### Baris PRD
+
+| Prioritas | Fitur | Keterangan |
+|---|---|---|
+| P0 | Notifikasi saat menerima uang | Bayar, transfer, dan top-up memunculkan notifikasi di HP penerima, tidak pernah mendahului uangnya, tidak hilang tanpa terdeteksi. Bayar dan transfer: 95% dalam kurang dari 30 detik. Top-up massal tiap Senin boleh menyusul beberapa menit, karena 10.000 notifikasi sekaligus ([[t3-m27]]) |
+| P1 | Promo dari HR | Potongan harga per kota dengan jam mulai dan selesai; tampil di katalog; pengumuman ke karyawan kota itu bila HR memilih |
+| P1 | Catatan pada pembayaran dan transfer | Maksimal 100 karakter; tampil di notifikasi dan di dasbor |
+
+Tujuan PRD v3 untuk fitur ini: Budi dan Ani tahu saat uang masuk, tanpa membuka app. Pak Hadi menambah satu syarat. Katanya: *"Ani tidak boleh diberi tahu uang masuk sebelum uang itu benar-benar tercatat."* Menurut PRD, karyawan berhenti memakai Rekeningo kalau notifikasi terlambat, hilang, atau muncul dua kali.
+
+Janji 95% dalam kurang dari 30 detik hanya untuk bayar dan transfer, dan PRD mengukurnya sampai "diserahkan ke layanan push". Sampai ke HP tidak diukur. Dokumentasi FCM menyebut pesan bisa tidak diantar bila lebih dari 100 pesan menunggu di satu HP, atau HP tidak terhubung lebih dari sebulan. Sumbernya [FCM: receive messages](https://firebase.google.com/docs/cloud-messaging/android/receive-messages), dibuka 2026-10-26 (Tidak dijalankan).
+
+Dua pertanyaan terbuka PRD v3 ada di fitur ini: apakah pembayaran ikut lambat kalau layanan push lambat, dan siapa yang tahu kalau pemberitahuan gagal terkirim. Widget di blok Coba menunjukkan jawaban susunan akhirnya. Kenapa susunan pertama yang lebih pendek ternyata keliru dibahas di [[t3-dua-tempat]].
+
+<PetaFitur data={petaNotifikasi} />
+
+Fitur ini butuh app baru. App 1.0 dan 1.1 tidak punya layar izin dan tidak mengirim token perangkat. Akun yang masih memakainya tidak punya perangkat aktif, jadi barisnya berakhir `dilewati` (keadaan tanpa perangkat aktif direkam di `push.txt` bagian D).
+
+Naskah belum memberi nomor versi app Tahap 3. Halaman ini memakai dua nomor sebagai Asumsi: app 3.0 membawa notifikasi, dan app 3.1 adalah rilis yang dipakai di [[t3-m26]]. Arti label Asumsi, Rekaman lab, dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Coba: kapan HP Ani berbunyi?" buka aman="Kalau berhenti di sini, kamu sudah tahu: pembayaran selesai sebelum pemberitahuan dikirim, dan layanan push yang menggantung hanya menahan worker.">
+
+Widget ini mengikuti rekaman `outbox.txt` dari HP Budi sampai HP Ani. Tebak dulu, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t3-notifikasi.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: layanan push menggantung**. Client worker berhenti di batas 3 detik dan barisnya tetap `menunggu` (`push.txt` bagian E). Di bagian F, pembayaran selesai dalam kurang dari 1 detik, dan tidak ada koneksi server yang diam di dalam transaction.
+
+Jadi pembayaran tidak bergantung pada jawaban layanan push. Layar HP di widget digambar dari isi rekaman: lab `api-t3` tidak punya app Flutter, dan layanan push tiruan hanya mencatat pesan yang diterima.
+
+</Blok>
+
+<Blok nama="Di backend: token, outbox, worker, dan promo">
+
+### Token perangkat
+
+App mengirim token perangkat ke `POST /perangkat`. Server menyimpannya di tabel `perangkat`, satu baris per HP. Token yang sama dari akun lain dipindahkan ke akun itu, karena satu HP tidak boleh menerima pemberitahuan milik dua akun.
+
+<Snippet file="labs/api-t3/internal/repo/outbox.go" lines="187:197" lang="go" title="labs/api-t3/internal/repo/outbox.go" />
+
+Rekaman mengirim token yang sama dua kali, platform yang tidak dikenal, dan token yang pindah tangan:
+
+<Snippet file="labs/api-t3/output/sinkron.txt" lines="6:36" title="Rekaman lab: labs/api-t3/output/sinkron.txt (bagian A)" />
+
+Token `hp-ani-1` yang dikirim dua kali tetap satu baris, id 10061. Platform `symbian` dijawab `422`. Di akhir, satu token iOS pindah ke Dimas, akun 417.
+
+Kolom `terakhir_terlihat` diisi ulang setiap app mengirim token yang sama. Dokumentasi FCM menyarankan timestamp itu: registrasi yang tidak terhubung lebih dari sebulan dianggap stale, dan di Android dihapus sesudah 270 hari. Sumbernya [FCM: manage registrations](https://firebase.google.com/docs/cloud-messaging/manage-tokens), dibuka 2026-10-26 (Tidak dijalankan). Di `labs/api-t3` tidak ada job yang membuang perangkat stale, dan job `-bersih` hanya membuang baris outbox dan operasi sinkron yang lama.
+
+### Satu transaction, dua tabel
+
+Service `Bayar` menulis jurnal dan posting seperti di Tahap 2. Sesudahnya, di transaction yang sama, ia memanggil `beritahu`, yang menulis satu baris outbox untuk penerima:
+
+<Snippet file="labs/api-t3/internal/service/bayar.go" lines="53:73" lang="go" title="labs/api-t3/internal/service/bayar.go" />
+
+<Snippet file="labs/api-t3/internal/repo/outbox.go" region="tulis-outbox" lang="go" title="labs/api-t3/internal/repo/outbox.go" />
+
+Yang ada di dalam transaction hanya `INSERT`. Panggilan ke layanan push tidak ada di sana; worker mengerjakannya sesudah COMMIT. Rekaman bagian A menunjukkan hasilnya:
+
+<Snippet file="labs/api-t3/output/outbox.txt" lines="14:33" title="Rekaman lab: labs/api-t3/output/outbox.txt (bagian A)" />
+
+COMMIT yang ditolak database membuang jurnal dan baris outbox sekaligus. Di bagian D, jurnal yang tidak seimbang gagal di constraint `jurnal_seimbang`, dan keduanya tidak ada sesudahnya:
+
+<Snippet file="labs/api-t3/output/outbox.txt" lines="58:75" title="Rekaman lab: labs/api-t3/output/outbox.txt (bagian D)" />
+
+Susunan ini ada harganya. Karena `INSERT` outbox ada di transaction jurnal, `INSERT` yang gagal membatalkan pembayarannya. Di rekaman `transaksi.txt` bagian G, trigger yang menolak `INSERT` outbox membuat `POST /transfers` dijawab `500`, tanpa jurnal, posting, atau perubahan saldo:
+
+<Snippet file="labs/t3-outbox/output/transaksi.txt" lines="98:111" title="Rekaman lab: labs/t3-outbox/output/transaksi.txt (bagian G)" />
+
+### Worker dan empat status
+
+Worker adalah proses terpisah: `api-t3 -peran worker`. Ia mengklaim baris yang siap, mengirimnya ke semua perangkat aktif penerima, lalu menentukan nasib barisnya:
+
+<Snippet files={["labs/api-t3/internal/worker/worker.go:154:169", "labs/api-t3/internal/worker/worker.go:174:182"]} lang="go" title="labs/api-t3/internal/worker/worker.go" />
+
+Layanan push di lab adalah tiruan lokal, dan FCM v1 hanya rujukan. Server mengirim `POST` ke `fcm.googleapis.com/v1/projects/<id>/messages:send` dengan access token OAuth 2.0 dari service account. Target pesannya ada di field `token`. Sumbernya [FCM: HTTP v1](https://firebase.google.com/docs/cloud-messaging/send/v1-api), dibuka 2026-10-26 (Tidak dijalankan).
+
+| Status | Kapan | Rekaman |
+|---|---|---|
+| `menunggu` | Baru ditulis, atau gagal sementara (503, timeout) dan akan dicoba lagi | `outbox.txt` A; `push.txt` B dan E |
+| `terkirim` | Layanan push menerima pesan | `outbox.txt` B |
+| `dilewati` | Tidak ada perangkat aktif, atau token ditolak dengan 404 | `push.txt` D |
+| `mati` | Lima percobaan habis, dan barisnya tidak dikirim lagi | `push.txt` C |
+
+Empat status itu menjawab pertanyaan kedua PRD. Pemberitahuan yang gagal tidak berhenti sebagai baris log: barisnya ada di tabel, bisa dihitung, dan punya umur. Rekaman bagian B dan C memperlihatkan 503 dua kali lalu berhasil di percobaan ke-3, dan 503 terus-menerus sampai `mati` di percobaan ke-5:
+
+<Snippet file="labs/api-t3/output/push.txt" lines="16:37" title="Rekaman lab: labs/api-t3/output/push.txt (bagian B dan C)" />
+
+Token yang ditolak layanan push dijawab 404, dan perangkatnya dinonaktifkan. Pembayaran berikutnya ke Ani tidak memanggil layanan push sama sekali, karena tidak ada perangkat aktif:
+
+<Snippet file="labs/api-t3/output/push.txt" lines="39:64" title="Rekaman lab: labs/api-t3/output/push.txt (bagian D)" />
+
+Satu hal dibaca dari kode, bukan direkam. Client menganggap jawaban 404 dan 400 sama-sama berarti token mati:
+
+<Snippet file="labs/api-t3/internal/push/push.go" lines="60:67" lang="go" title="labs/api-t3/internal/push/push.go" />
+
+Dokumentasi FCM membolehkan menghapus token yang dijawab 400 hanya bila payload pesannya valid, karena 400 juga bisa berarti payload yang salah. Sumbernya [FCM: manage registrations](https://firebase.google.com/docs/cloud-messaging/manage-tokens), dibuka 2026-10-26 (Tidak dijalankan). Di kode ini, payload yang cacat bisa menonaktifkan perangkat penerimanya satu per satu. Retry dengan backoff dan jitter dibahas di [[t3-at-least-once]].
+
+### Kelas dan urutan kirim
+
+Setiap baris punya kelas: 0 untuk bayar dan transfer, 1 untuk top-up, 2 untuk promo. Bayar, transfer, dan top-up menulisnya di `outbox.txt` bagian E, dan promo di `katalog.txt` bagian F. Database menolak baris kedua untuk jurnal dan penerima yang sama (`transaksi.txt` bagian E). Worker mengurutkan klaim menurut kelas lebih dulu, baru nomor:
+
+<Snippet file="labs/api-t3/output/outbox.txt" lines="102:113" title="Rekaman lab: labs/api-t3/output/outbox.txt (bagian F)" />
+
+Dua baris kelas 0 dikirim lebih dulu, padahal nomor ketiga baris top-up lebih kecil daripada nomor baris transfer. Kenapa kelas penting dibuka di [[t3-m27]].
+
+Kelas milik queue di tabel outbox. Prioritas FCM adalah hal lain: ia menentukan seberapa cepat HP dibangunkan. Menurut dokumentasi FCM, pesan normal diantar segera selama HP tidak tidur, dan bisa tertunda saat HP dalam Doze. Pesan high priority dicoba diantar segera dan boleh membangunkan HP, untuk konten mendesak yang terlihat user ([FCM: Android message priority](https://firebase.google.com/docs/cloud-messaging/android/message-priority), dibuka 2026-10-26, Tidak dijalankan).
+
+Pemberitahuan uang cocok dengan high priority dan promo dengan normal. Itu pilihan penulis, dan layanan push tiruan tidak punya prioritas untuk direkam.
+
+### Promo dari HR
+
+HR membuat promo lewat `POST /promo`: judul, potongan persen, jam mulai dan selesai. Hanya akun `hr` yang boleh; Budi dijawab `403`. Harga efektif di katalog turun, harga dasar tidak:
+
+<Snippet file="labs/api-t3/output/katalog.txt" lines="23:34" title="Rekaman lab: labs/api-t3/output/katalog.txt (bagian B)" />
+
+Nasi goreng Warung Ani jadi Rp22.500 dari Rp25.000. Promo juga bisa diumumkan: dengan `umumkan` menyala, satu baris outbox kelas 2 ditulis untuk setiap karyawan di kota itu.
+
+<Snippet file="labs/api-t3/output/katalog.txt" lines="117:133" title="Rekaman lab: labs/api-t3/output/katalog.txt (bagian F)" />
+
+Jakarta punya 1.000 karyawan, jadi satu pengumuman menulis 1.000 baris. Untuk 10.000 karyawan di enam kota, queue yang sama membawa 10.000 baris promo (`queue.txt` bagian B). Berapa lama itu menahan pemberitahuan uang dihitung di bawah.
+
+### Beban pemberitahuan
+
+Semua angka di tabel ini Asumsi: masukannya dari naskah, dan rumusnya ditulis supaya kamu bisa mengganti angkanya. Hanya baris kapasitas punya pengukuran, dan batasnya yang diperiksa lab.
+
+| Besaran | Rumus | Hasil |
+|---|---|---|
+| Bayar dan transfer di puncak | 7.500 per hari ÷ 86.400 × 10 | 0,868 pemberitahuan per detik (Asumsi) |
+| Kapasitas worker | 4 pengirim ÷ 0,3 detik | 13,3 per detik; terukur antara 12 dan 13,33 (Rekaman lab `queue.txt` bagian A; c dan t Asumsi) |
+| Kapasitas lawan puncak | 13,33 ÷ 0,868 | ±15 kali (Asumsi) |
+| Promo ke 10.000 HP | 10.000 ÷ 13,33 | 750 detik, 12,5 menit (Asumsi; tidak dijalankan 12,5 menit) |
+
+Dengan kapasitas ±15 kali puncak, baris kelas 0 hampir tidak pernah menunggu lama (Asumsi). Satu pemberitahuan uang yang tiba di tengah banjir promo, dengan kelas, terkirim dalam kurang dari 1,5 detik (`queue.txt` bagian E). Janji 95% dalam 30 detik sendiri tidak diukur di lab.
+
+### Contract: satu nilai enum baru
+
+Akun HR membuat field `jenis` punya nilai baru, `hr`. Pemeriksa contract menandainya sebagai perubahan yang bisa merusak client lama:
+
+<Snippet file="labs/api-t3/output/kontrak.txt" lines="17:25" title="Rekaman lab: labs/api-t3/output/kontrak.txt" />
+
+Nilai itu hanya muncul di jawaban untuk akun HR. Tetap saja contract-nya berubah, dan client yang membaca `jenis` sebagai enum tertutup harus menangani nilai yang tidak dikenal.
+
+</Blok>
+
+<Blok nama="Di app: izin, token, dan pesan yang sama dua kali">
+
+Raka mengerjakan sisi app. Lab `api-t3` tidak punya app Flutter, jadi bagian ini tidak direkam. Semua rujukan dokumentasi di blok ini berlabel Tidak dijalankan: dicek ke dokumentasi pada 2026-10-26, tidak dijalankan.
+
+### Kenapa push, bukan polling
+
+PRD meminta Budi dan Ani tahu saat uang masuk tanpa membuka app. Tiga cara memberi tahu app punya syarat yang berbeda:
+
+| Cara | Siapa memulai | Syarat |
+|---|---|---|
+| Polling | App bertanya berulang | App harus berjalan |
+| SSE | Server, lewat koneksi HTTP yang dibiarkan terbuka | Koneksi harus tetap terbuka |
+| Push | Server, lewat layanan push sistem operasi | App boleh tertutup |
+
+Rekaman lab `e4-realtime` memakai server kecil dari halaman push lama, bukan `api-t3`. Status berubah di detik ke-7. SSE memberi tahu di detik 7,1, dan polling tiap 5 detik baru tahu di detik 10,1:
+
+<Snippet file="labs/e4-realtime/output/realtime.txt" title="Rekaman lab: labs/e4-realtime/output/realtime.txt" />
+
+Spesifikasi HTML menyebut event stream dikirim lewat koneksi yang dibuka client, dan client menyambung ulang bila koneksi tertutup ([HTML Standard: server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html), dibuka 2026-10-26). Handler SSE yang memegang koneksi database selama koneksinya terbuka menghabiskan pool, alasannya ada di [[t3-pool]]. Untuk uang masuk yang harus sampai ke HP dengan app tertutup, hanya push yang cocok. Polling dan SSE tetap berguna di layar yang sedang dibuka, tetapi bukan bagian fitur ini.
+
+### Kerangka di app
+
+Kerangka ini memasang tiga hal: izin notifikasi, pengenal HP, dan penyaring pesan yang sama dua kali.
+
+<Snippet lang="dart" code={`final messaging = FirebaseMessaging.instance;
+
+// 1. Izin. Di Android 13 ke atas, notifikasi mati sampai user setuju.
+await messaging.requestPermission();
+
+// 2. Kirim pengenal HP ke server, setiap kali ia berubah.
+messaging.onRegistered.listen((String installationId) {
+  api.daftarkanPerangkat(platform, installationId); // POST /perangkat
+});
+await messaging.register();
+
+// 3. Pesan saat app terbuka: saring notifikasi_id yang sudah tampil.
+final sudahTampil = <String>{};
+FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+  final id = message.data['notifikasi_id'] as String?;
+  if (id == null || sudahTampil.add(id)) tampilkan(message);
+});`} />
+
+*Tidak dijalankan. Kerangkanya dari [FlutterFire: client](https://firebase.google.com/docs/cloud-messaging/flutter/client) dan [FlutterFire: receive](https://firebase.google.com/docs/cloud-messaging/flutter/receive); `api.daftarkanPerangkat` dan `tampilkan` buatan sendiri.*
+
+### Tiga dugaan yang perlu dicek
+
+| Dugaan | Yang tertulis di dokumentasi |
+|---|---|
+| Token HP tidak berubah, simpan sekali | Dokumentasi FCM, diperbarui 2026-10-23, menyarankan Firebase Installation ID untuk app baru, dan kedua pola didukung bersama. Halaman FlutterFire menyebut `getToken()` deprecated. Server sebaiknya menyimpan pengenal bersama timestamp setiap kali ia diunggah ([manage registrations](https://firebase.google.com/docs/cloud-messaging/manage-tokens), [FlutterFire: client](https://firebase.google.com/docs/cloud-messaging/flutter/client)). Contoh request HTTP v1 memakai field `token`; field untuk FID tidak disebut [perlu verifikasi]. |
+| Dialog izin dan tampilan pesan terjadi sendiri | Android 13 ke atas punya izin runtime `POST_NOTIFICATIONS`, dan notifikasi app yang baru terpasang mati sampai user setuju ([Android: notification permission](https://developer.android.com/develop/ui/views/notifications/notification-permission)). Pesan notification yang tiba saat app terbuka tidak tampil sendiri; kode app yang memutuskan ([FlutterFire: receive](https://firebase.google.com/docs/cloud-messaging/flutter/receive), [FCM: message types](https://firebase.google.com/docs/cloud-messaging/customize-messages/set-message-type)). |
+| Push yang diterima FCM berarti Ani sudah menerimanya | Halaman Understanding message delivery tidak memuat jaminan sampai ke HP. Peristiwa `MESSAGE_ACCEPTED` berarti pesan diterima server FCM, sedangkan `MESSAGE_DELIVERED` berarti sampai ke SDK di HP dan harus dinyalakan per instance app ([understand delivery](https://firebase.google.com/docs/cloud-messaging/understand-delivery), dibuka 2026-10-26). |
+
+Pesan yang sama bisa tiba dua kali. Di rekaman `outbox.txt` bagian G, worker berhenti sesudah push berhasil dan sebelum menandai terkirim. Worker berikutnya mengirim ulang, dan layanan push menerima 2 pesan dengan 1 `notifikasi_id`.
+
+Penyaring di kerangka kode di atas hanya jalan bila kode app dijalankan untuk pesan itu. Menurut dokumentasi FCM, pesan notification yang tiba saat app di background ditampilkan SDK, dan kode app baru menangani datanya sesudah user menyentuhnya ([FCM: message types](https://firebase.google.com/docs/cloud-messaging/customize-messages/set-message-type)). Siapa yang menyaring ulangan saat app tertutup dibahas di [[t3-at-least-once]].
+
+</Blok>
+
+<Blok nama="Konsep yang akan dibutuhkan">
+
+- [[t3-dua-tempat]]: pemberitahuan adalah akibat dari uang yang bergerak, bukan bagian darinya. Versi pertama yang lebih pendek melanggar salah satu dari tiga hal yang harus selalu benar.
+- [[t3-pool]]: connection pool, Little's Law, dan batas waktu untuk panggilan keluar.
+- [[t3-outbox]]: outbox transaksional dan worker, dengan alasan susunan di halaman ini.
+- [[t3-klaim-baris]]: dua worker yang mengambil baris yang sama.
+- [[t3-at-least-once]]: retry, dead-letter, dan penyaring di app.
+- [[t3-m27]]: promo ke semua HP dan pemberitahuan uang yang terlambat.
+
+**Pertanyaan yang belum dijawab** di halaman ini:
+
+| Pertanyaan | Kenapa belum dijawab | Dijawab di |
+|---|---|---|
+| Kenapa tidak mengirim push langsung di handler, sesudah COMMIT? | Rekaman hanya memperlihatkan susunan akhir | [[t3-dua-tempat]] |
+| Apa yang terjadi bila client ke layanan push tanpa batas waktu dan layanan itu menggantung? | Widget memakai batas 3 detik | [[t3-m18]] |
+| Dua worker mengambil baris yang sama? | Halaman ini hanya memakai satu worker | [[t3-klaim-baris]] |
+| Siapa menyaring pesan ganda saat app tertutup? | Jenis pesan menentukan kapan kode app jalan | [[t3-at-least-once]] |
+| Promo ke 10.000 HP menahan pemberitahuan uang? | Halaman ini hanya menghitung lamanya | [[t3-m27]] |
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />
