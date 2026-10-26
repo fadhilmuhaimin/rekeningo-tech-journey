@@ -156,7 +156,10 @@ describe("registry, meta, blok, dan tautan", () => {
     expect(direkam.map((t) => t.sumber)).toEqual(["kursor.txt A", "kursor.txt B", "kursor.txt C"]);
     expect(direkam.some((t) => t.konfig.poller === "klaim" && t.konfig.urutan === "berurutan")).toBe(false);
     expect(direkam).toHaveLength(3);
-    harus("Tiga dari empat pengaturan sama dengan satu bagian rekaman `kursor.txt`.");
+    harus("Tiga dari empat pengaturan punya bagian rekaman di `kursor.txt`: A, B, dan C. Bagian A merekam nomor outbox dan urutan `dibuat`, bukan urutan COMMIT.");
+    expect(bagian(kursor, "A").join("\n")).not.toMatch(/urutan COMMIT|COMMIT (Budi|Dimas)/);
+    expect(bagian(kursor, "A").some((b) => /^ 1 +\| 10001 +\| 419 +\| 1 +\| terkirim/.test(b))).toBe(true);
+    expect(bagian(kursor, "A").some((b) => /^ 2 +\| 10002 +\| 417 +\| 2 +\| terkirim/.test(b))).toBe(true);
     expect(widgetJson.skenario.kursor.tebak.pertanyaan).toContain("Dengan poller kursor (dibuat, id), berapa notifikasi sampai ke HP Citra?");
     harus("Pertanyaannya sama dengan di [[t3-m19]].");
     harus("Klaim per baris dengan COMMIT berurutan tidak direkam sebagai bagian sendiri, jadi widget menandainya Hitungan.");
@@ -264,10 +267,17 @@ describe("rekaman: klaim.txt, kursor.txt, listen.txt, retry.txt, ganda.txt, outb
     expect(A.some((b) => b.startsWith("listener menerima: tidak ada (notifikasi menunggu COMMIT)"))).toBe(true);
     expect(A.some((b) => b.startsWith("listener menerima: nomor baris yang baru (1 notifikasi)"))).toBe(true);
     expect(A.some((b) => b.startsWith("listener menerima: tidak ada (ROLLBACK membuang notifikasi bersama barisnya)"))).toBe(true);
-    expect(A.join("\n")).toContain("# Nomor 2 sudah terpakai oleh baris yang di-ROLLBACK: nomor berikutnya 3, ada celah");
     const B = bagian(listen, "B");
     expect(B.some((b) => b.startsWith("listener menerima: tidak ada (notifikasi yang dikirim selagi putus tidak diulang)"))).toBe(true);
     expect(B.some((b) => /^ 3 +\| menunggu$/.test(b))).toBe(true);
+    // Celah nomor dari keluaran database: baris sesudah INSERT yang di-ROLLBACK bernomor 3, dan worker mengklaim dua baris (1 dan 3), tanpa nomor 2.
+    expect(B.join("\n")).toContain("worker: diklaim 2, terkirim 2, dilewati 0, ditunda 0, mati 0");
+    expect(B.some((b) => /^ 2 +\|/.test(b))).toBe(false);
+    harus("Opsi B Tidak dijalankan di lab: yang direkam hanya celah pada nomor sequence, yaitu baris sesudah INSERT yang di-ROLLBACK bernomor 3 (`listen.txt` bagian B).");
+    harus("Kursor itu hanya ada di memori poller. Sesudah restart, poller membaca lagi dari awal (dibaca dari kode lab, tidak direkam).");
+    expect(workerGo).toContain("\tkursorDibuat time.Time");
+    expect(workerGo).toContain("return &Worker{repo: r, push: p, cfg: cfg, acak: rand.Float64}");
+    expect(outboxGo).toContain("FROM outbox WHERE status = 'menunggu' AND (dibuat, id) > ($1, $2)");
     expect(B.some((b) => /^ 3 +\| terkirim$/.test(b))).toBe(true);
     expect(B.join("\n")).toContain("# NOTIFY hanya membangunkan; sumbernya tetap tabel. Worker yang polling menemukan baris itu:");
     expect(rentangListen.notify.map(String)).toEqual(["7", "13"]);
@@ -347,8 +357,8 @@ describe("klaim negatif berlingkup dan label sumber", () => {
     expect((badan.match(/^\*Tidak dijalankan\. Dicek ke /gm) ?? []).length).toBe(5);
     expect((badan.match(/^\*Dijalankan: lab api-t3 dan t3-outbox/gm) ?? []).length).toBe(1);
     harus("Kode di bawah adalah Ilustrasi.*");
-    harus("Opsi B Tidak dijalankan di lab: yang direkam hanya celah pada nomor sequence.");
-    harus("| Tidak dijalankan. Rekaman `listen.txt` A untuk celah nomor; PostgreSQL 17 bab 9.17; ADR 16 opsi D |");
+    harus("Opsi B Tidak dijalankan di lab: yang direkam hanya celah pada nomor sequence, yaitu baris sesudah INSERT yang di-ROLLBACK bernomor 3 (`listen.txt` bagian B).");
+    harus("| Tidak dijalankan. Rekaman `listen.txt` B untuk celah nomor; PostgreSQL 17 bab 9.17; ADR 16 opsi D |");
     expect(baca(".claude/skills/gaya-bahasa/SKILL.md")).toContain("Tidak dijalankan: dicek ke dokumentasi atau kode, tidak dijalankan.");
     expect(readmeLab).toContain("Opsi ADR 23 yang tidak ada di lab ini");
     expect(readmeLab).toContain("## Uji mutasi");
@@ -366,6 +376,47 @@ describe("klaim negatif berlingkup dan label sumber", () => {
     harus("Dokumentasi NOTIFY tidak menulis nasib notifikasi yang dikirim selagi listener putus.");
     expect(riset).toMatch(/\| R3-04 \|[^\n]*halaman tidak menyebut urutan commit/);
     harus("Dokumentasi menulis bahwa sequence tidak bisa dipakai untuk nomor tanpa celah, dan tidak menyebut urutan COMMIT");
+  });
+  test("isi Snippet (rekaman dan kode yang ditampilkan) tidak memuat ID riset, nomor PR, nomor keputusan, atau komentar lab internal; kode ditunjuk lewat lines fungsi saja", () => {
+    const tag = [...badan.matchAll(/^<Snippet (.+) \/>$/gm)].map((m) => m[1]!).filter((x) => !x.startsWith("lang="));
+    expect(tag.length).toBe((badan.match(/<Snippet (file|files)=/g) ?? []).length);
+    expect(tag.length).toBeGreaterThanOrEqual(15);
+    let dicek = 0;
+    for (const t of tag) {
+      const entri: [string, number, number][] = [];
+      const files = t.match(/files=\{\[([^\]]+)\]\}/);
+      if (files) for (const m of files[1]!.matchAll(/"([^":]+):(\d+):(\d+)"/g)) entri.push([m[1]!, Number(m[2]), Number(m[3])]);
+      const satu = t.match(/file="([^"]+)" lines="(\d+):(\d+)"/);
+      if (satu) entri.push([satu[1]!, Number(satu[2]), Number(satu[3])]);
+      expect(entri.length, t).toBeGreaterThan(0);
+      for (const [f, a, z] of entri) {
+        const isi = baca(f).split("\n").slice(a - 1, z).join("\n");
+        expect(isi.length, `${f}:${a}:${z}`).toBeGreaterThan(0);
+        expect(isi, `${f}:${a}:${z}`).not.toMatch(/\bR\d-\d{2,3}\b|\bPR ?#?\d{2,}|\bkeputusan \d+|#\d{3}\b|mutasi tinjauan|TestKlaim/);
+        dicek++;
+      }
+    }
+    expect(dicek).toBeGreaterThanOrEqual(20);
+    expect(badan).not.toMatch(/region=/); // komentar penjelas di atas fungsi (ID riset, nama tes) tidak ikut tampil
+  });
+  test("atribusi riset lama tidak disalin: tanpa Morling, Kleppmann, dan Debezium; kursor tidak ditulis 'tidak pernah dibaca'; tanpa ID lab B8", () => {
+    expect(badan).not.toMatch(/Morling|Kleppmann|Debezium/);
+    expect(badan).not.toMatch(/tidak pernah dibaca/);
+    expect(badan).not.toMatch(/\bB8\b/);
+  });
+  test("daftar bernomor berurutan 1..n di tiap daftar: pertanyaan Cek 3, aturan ADR 5, pre-mortem 3", () => {
+    const daftar: number[][] = [];
+    let dalamKode = false;
+    for (const baris of badan.split("\n")) {
+      if (baris.trim().startsWith("```")) { dalamKode = !dalamKode; continue; }
+      if (dalamKode) continue;
+      const m = baris.match(/^(\d+)\. /);
+      if (!m) continue;
+      const n = Number(m[1]);
+      if (n === 1) daftar.push([]);
+      daftar[daftar.length - 1]!.push(n);
+    }
+    expect(daftar.map((l) => l.join(","))).toEqual(["1,2,3", "1,2,3,4,5", "1,2,3"]);
   });
   test("ID riset dan ID internal tidak tampil di halaman, diagram, dan teks halaman istilah", () => {
     expect(mdx).not.toMatch(/\bR\d-\d{2,3}\b/);
@@ -543,7 +594,7 @@ describe("ADR 24: opsi, aturan, diagram, sel tabel, dan kalimat", () => {
     expect(A3).toContain("Melewatkan baris yang COMMIT belakangan. Kursor disimpan di tiap proses worker, jadi hanya cocok untuk satu poller (dibaca dari kode lab)");
     expect(workerGo).toContain("\tkursorDibuat time.Time");
     expect(workerGo).toContain("w.kursorDibuat, w.kursorID = akhir.Dibuat, akhir.ID");
-    expect(B3).toContain("`bigserial` tidak bisa dipakai: nomor 2 hilang saat ROLLBACK");
+    expect(B3).toContain("`bigserial` tidak bisa dipakai: sesudah ROLLBACK baris berikutnya bernomor 3, bukan 2");
     expect(C3).toContain("Urutan antar pesan tidak dijaga");
     expect(C3).toContain("sesi ketiga mendapat 0 baris walau queue belum kosong");
     expect(C3).toContain("Klaim yang terlalu pendek menghasilkan ganda");
@@ -557,12 +608,11 @@ describe("ADR 24: opsi, aturan, diagram, sel tabel, dan kalimat", () => {
     const [, A5, B5, C5, D5] = sel("Bukti");
     expect(A5).toContain("Rekaman `kursor.txt` A sampai D");
     expect(B5).toContain("Tidak dijalankan");
-    expect(B5).toContain("`listen.txt` A");
+    expect(B5).toContain("`listen.txt` B");
     expect(C5).toContain("Rekaman `klaim.txt` A sampai D, `kursor.txt` C, `ganda.txt` B dan D");
     expect(D5).toContain("Rekaman `listen.txt` A dan B");
     // Isi sel sama dengan sumbernya.
     expect(migrasi).toContain("CREATE INDEX outbox_antre");
-    expect(listen.some((b) => b.includes("nomor berikutnya 3, ada celah"))).toBe(true);
     expect(riset).toMatch(/\| R3-61 \|[^\n]*antrean 8 GB, transaction pemanggil gagal saat commit bila penuh/);
     expect(riset).toMatch(/\| R3-05 \|[^\n]*transaction yang memanggil NOTIFY gagal saat commit bila antrean penuh/);
     // Sengaja belum: tiap baris berisi yang ditunda, alasannya, dan tempat munculnya, tidak bertukar.
@@ -693,7 +743,7 @@ const KALIMAT_PENULIS: string[] = [
   "Yakin dengan ketiganya? Lompat ke [[berikutnya]].",
   "Kalau berhenti di sini, kamu sudah tahu: poller kursor melewatkan baris yang COMMIT belakangan, sedangkan klaim per baris mengirim keduanya, apa pun urutan COMMIT-nya.",
   "Widget ini memutar ulang dua transfer ke Citra dari rekaman lab: Budi dan Dimas masing-masing mengirim Rp25.000. Tebak dulu berapa notifikasi yang sampai ke HP Citra bila worker memakai kursor. Pertanyaannya sama dengan di [[t3-m19]]. Bila kamu sudah menjawabnya di sana, jawab lagi dengan cepat, lalu lanjut ke bagian ubah.",
-  "Tiga dari empat pengaturan sama dengan satu bagian rekaman `kursor.txt`. Klaim per baris dengan COMMIT berurutan tidak direkam sebagai bagian sendiri, jadi widget menandainya Hitungan. Arti label ada di [Label sumber](/cara-pakai/#label-sumber).",
+  "Tiga dari empat pengaturan punya bagian rekaman di `kursor.txt`: A, B, dan C. Bagian A merekam nomor outbox dan urutan `dibuat`, bukan urutan COMMIT. Klaim per baris dengan COMMIT berurutan tidak direkam sebagai bagian sendiri, jadi widget menandainya Hitungan. Arti label ada di [Label sumber](/cara-pakai/#label-sumber).",
   "**Ubah satu hal:** pada Cara worker mengambil, pilih Klaim per baris, dengan urutan COMMIT tetap terbalik. HP Citra menerima dua notifikasi dan tidak ada baris yang tertinggal. Lalu pilih Kursor dengan COMMIT berurutan: kursor juga mengirim keduanya. Di widget ini kursor melewatkan baris hanya pada urutan COMMIT yang terbalik.",
   "Kenapa ini ada",
   "Di [[t3-m19]], saldo Citra naik Rp50.000 dari dua transfer, tetapi HP-nya menerima satu notifikasi. Dugaan di naskah: token perangkat Citra salah, atau poller butuh nomor urut tanpa celah. Keduanya salah arah, karena datanya benar dan pembacanya yang melewatkan satu baris.",
@@ -701,6 +751,7 @@ const KALIMAT_PENULIS: string[] = [
   "Cara kerjanya",
   "**Kenapa kursor melewatkan baris.** Kursor mengandaikan baris baru selalu masuk di belakang baris yang sudah dibaca. Dua kolomnya tidak menjamin itu. `dibuat` berisi `now()`, yaitu waktu awal transaction, bukan waktu COMMIT ([PostgreSQL 17, bab 9.9.5](https://www.postgresql.org/docs/17/functions-datetime.html#FUNCTIONS-DATETIME-CURRENT), dibuka 2026-10-26). `id` datang dari sequence. Dokumentasi menulis bahwa sequence tidak bisa dipakai untuk nomor tanpa celah, dan tidak menyebut urutan COMMIT ([PostgreSQL 17, bab 9.17](https://www.postgresql.org/docs/17/functions-sequence.html), dibuka 2026-10-26).",
   "Di rekaman, Budi mulai lebih dulu tetapi menunggu bukunya sendiri, dan Dimas COMMIT lebih dulu. Baris Dimas bernomor 1 dengan urutan `dibuat` ke-2, sedangkan baris Budi bernomor 2 dengan urutan `dibuat` ke-1. Poller sudah maju ke baris Dimas, jadi baris Budi tertinggal:",
+  "Kursor itu hanya ada di memori poller. Sesudah restart, poller membaca lagi dari awal (dibaca dari kode lab, tidak direkam).",
   "**Satu pernyataan untuk klaim.** Klaim ditulis sebagai satu pernyataan SQL yang memilih baris yang layak, mengunci, lalu menulis `klaim_sampai`. Kolom itu ada di tabel `outbox` sejak migration 000017.",
   "Tiap bagian punya tugas sendiri.",
   "`WHERE`: baris yang layak berstatus `menunggu`, sudah waktunya dicoba (`coba_lagi`), dan tidak punya klaim yang masih berlaku.",
@@ -763,7 +814,7 @@ const KALIMAT_PENULIS: string[] = [
   "Worker terbangun seketika, tanpa jeda polling",
   "Kekurangan",
   "Melewatkan baris yang COMMIT belakangan. Kursor disimpan di tiap proses worker, jadi hanya cocok untuk satu poller (dibaca dari kode lab)",
-  "Penghitung global membuat semua pembayaran antre di satu baris. Satu jalur tulis yang lupa menaikkannya merusak jaminan tanpa tanda. `bigserial` tidak bisa dipakai: nomor 2 hilang saat ROLLBACK",
+  "Penghitung global membuat semua pembayaran antre di satu baris. Satu jalur tulis yang lupa menaikkannya merusak jaminan tanpa tanda. `bigserial` tidak bisa dipakai: sesudah ROLLBACK baris berikutnya bernomor 3, bukan 2",
   "Urutan antar pesan tidak dijaga. `SKIP LOCKED` memberi tampilan tidak konsisten: sesi ketiga mendapat 0 baris walau queue belum kosong. Klaim yang terlalu pendek menghasilkan ganda",
   "Notifikasi yang dikirim selagi listener putus tidak pernah sampai, dan barisnya menunggu. `NOTIFY` di jalur uang menambah satu cara COMMIT gagal bila queue notifikasi penuh",
   "Biaya operasional",
@@ -773,10 +824,10 @@ const KALIMAT_PENULIS: string[] = [
   "Satu koneksi tetap terbuka untuk mendengar, dan polling tetap dibutuhkan sebagai cadangan",
   "Bukti",
   "Rekaman `kursor.txt` A sampai D; [[t2-kursor]]",
-  "Tidak dijalankan. Rekaman `listen.txt` A untuk celah nomor; PostgreSQL 17 bab 9.17; ADR 16 opsi D",
+  "Tidak dijalankan. Rekaman `listen.txt` B untuk celah nomor; PostgreSQL 17 bab 9.17; ADR 16 opsi D",
   "Rekaman `klaim.txt` A sampai D, `kursor.txt` C, `ganda.txt` B dan D; PostgreSQL 17 SELECT",
   "Rekaman `listen.txt` A dan B; PostgreSQL 17 NOTIFY dan LISTEN",
-  "Opsi B Tidak dijalankan di lab: yang direkam hanya celah pada nomor sequence. Cara kerja dan kekurangannya berasal dari ADR 16 dan penalaran, bukan dari ukuran.",
+  "Opsi B Tidak dijalankan di lab: yang direkam hanya celah pada nomor sequence, yaitu baris sesudah INSERT yang di-ROLLBACK bernomor 3 (`listen.txt` bagian B). Cara kerja dan kekurangannya berasal dari ADR 16 dan penalaran, bukan dari ukuran.",
   "**Keputusan: opsi C.** Lima aturan, dan tiap aturan punya tugas sendiri:",
   "Worker mengklaim baris dalam satu pernyataan dengan `FOR UPDATE SKIP LOCKED` dan `klaim_sampai`, tanpa kursor. Tugasnya membuat baris COMMIT belakangan tetap terlihat.",
   "Selama klaim berlaku, yang mencegah baris dikirim dua kali adalah klausa kunci `FOR UPDATE` bersama `klaim_sampai`. `SKIP LOCKED` hanya mengganti menunggu dengan melewati baris yang terkunci.",

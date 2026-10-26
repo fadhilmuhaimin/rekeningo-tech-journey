@@ -40,7 +40,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 Widget ini memutar ulang dua transfer ke Citra dari rekaman lab: Budi dan Dimas masing-masing mengirim Rp25.000. Tebak dulu berapa notifikasi yang sampai ke HP Citra bila worker memakai kursor. Pertanyaannya sama dengan di [[t3-m19]]. Bila kamu sudah menjawabnya di sana, jawab lagi dengan cepat, lalu lanjut ke bagian ubah.
 
-Tiga dari empat pengaturan sama dengan satu bagian rekaman `kursor.txt`. Klaim per baris dengan COMMIT berurutan tidak direkam sebagai bagian sendiri, jadi widget menandainya Hitungan. Arti label ada di [Label sumber](/cara-pakai/#label-sumber).
+Tiga dari empat pengaturan punya bagian rekaman di `kursor.txt`: A, B, dan C. Bagian A merekam nomor outbox dan urutan `dibuat`, bukan urutan COMMIT. Klaim per baris dengan COMMIT berurutan tidak direkam sebagai bagian sendiri, jadi widget menandainya Hitungan. Arti label ada di [Label sumber](/cara-pakai/#label-sumber).
 
 <OutboxWorker skenario={["kursor"]} />
 
@@ -63,6 +63,8 @@ Halaman ini menjawab tiga pertanyaan. Kenapa kursor melewatkan baris, apa yang m
 Di rekaman, Budi mulai lebih dulu tetapi menunggu bukunya sendiri, dan Dimas COMMIT lebih dulu. Baris Dimas bernomor 1 dengan urutan `dibuat` ke-2, sedangkan baris Budi bernomor 2 dengan urutan `dibuat` ke-1. Poller sudah maju ke baris Dimas, jadi baris Budi tertinggal:
 
 <Snippet files={["labs/t3-outbox/output/kursor.txt:32:38", "labs/t3-outbox/output/kursor.txt:44:45"]} title="Rekaman lab: labs/t3-outbox/output/kursor.txt" />
+
+Kursor itu hanya ada di memori poller. Sesudah restart, poller membaca lagi dari awal (dibaca dari kode lab, tidak direkam).
 
 **Satu pernyataan untuk klaim.** Klaim ditulis sebagai satu pernyataan SQL yang memilih baris yang layak, mengunci, lalu menulis `klaim_sampai`. Kolom itu ada di tabel `outbox` sejak migration 000017.
 
@@ -215,11 +217,11 @@ Yang sama di semua stack: baris dikunci selama klaim dan ditahan sesudahnya. Yan
 |---|---|---|---|---|
 | Cara kerja | Poller menyimpan `(dibuat, id)` baris terakhir yang dibaca dan meminta baris sesudahnya, seperti ADR 16 | Tiap baris outbox mendapat nomor dari penghitung yang dinaikkan di bawah lock baris, per penerima atau global. Poller membaca nomor berikutnya dan menunggu bila ada yang hilang (pola opsi D di ADR 16) | Worker mengambil baris yang menunggu dan tidak dipegang dengan `FOR UPDATE SKIP LOCKED`, lalu menahannya sampai `klaim_sampai` | Pembayaran memanggil `pg_notify` di transaction jurnal. Listener menerima nomor baris sesudah COMMIT dan mengirimnya, tanpa polling |
 | Kelebihan | Tanpa kolom baru dan tanpa lock. Urutan keluaran mengikuti `dibuat` | Urutan sama dengan urutan COMMIT, karena lock dipegang sampai COMMIT. Nomor yang hilang terdeteksi | Baris COMMIT belakangan terlihat di putaran berikutnya. Tiga worker, 60 baris, 0 ganda. Klaim yang habis melepas baris dari worker yang mati | Worker terbangun seketika, tanpa jeda polling |
-| Kekurangan | Melewatkan baris yang COMMIT belakangan. Kursor disimpan di tiap proses worker, jadi hanya cocok untuk satu poller (dibaca dari kode lab) | Penghitung global membuat semua pembayaran antre di satu baris. Satu jalur tulis yang lupa menaikkannya merusak jaminan tanpa tanda. `bigserial` tidak bisa dipakai: nomor 2 hilang saat ROLLBACK | Urutan antar pesan tidak dijaga. `SKIP LOCKED` memberi tampilan tidak konsisten: sesi ketiga mendapat 0 baris walau queue belum kosong. Klaim yang terlalu pendek menghasilkan ganda | Notifikasi yang dikirim selagi listener putus tidak pernah sampai, dan barisnya menunggu. `NOTIFY` di jalur uang menambah satu cara COMMIT gagal bila queue notifikasi penuh |
+| Kekurangan | Melewatkan baris yang COMMIT belakangan. Kursor disimpan di tiap proses worker, jadi hanya cocok untuk satu poller (dibaca dari kode lab) | Penghitung global membuat semua pembayaran antre di satu baris. Satu jalur tulis yang lupa menaikkannya merusak jaminan tanpa tanda. `bigserial` tidak bisa dipakai: sesudah ROLLBACK baris berikutnya bernomor 3, bukan 2 | Urutan antar pesan tidak dijaga. `SKIP LOCKED` memberi tampilan tidak konsisten: sesi ketiga mendapat 0 baris walau queue belum kosong. Klaim yang terlalu pendek menghasilkan ganda | Notifikasi yang dikirim selagi listener putus tidak pernah sampai, dan barisnya menunggu. `NOTIFY` di jalur uang menambah satu cara COMMIT gagal bila queue notifikasi penuh |
 | Biaya operasional | Kursor harus disimpan dan dijaga satu proses | Kolom baru, backfill, dan satu baris penghitung yang dikunci tiap pembayaran | Kolom `klaim_sampai` dan `percobaan`, index `outbox_antre`, dan panjang klaim yang dihitung ulang bila batas push berubah | Satu koneksi tetap terbuka untuk mendengar, dan polling tetap dibutuhkan sebagai cadangan |
-| Bukti | Rekaman `kursor.txt` A sampai D; [[t2-kursor]] | Tidak dijalankan. Rekaman `listen.txt` A untuk celah nomor; PostgreSQL 17 bab 9.17; ADR 16 opsi D | Rekaman `klaim.txt` A sampai D, `kursor.txt` C, `ganda.txt` B dan D; PostgreSQL 17 SELECT | Rekaman `listen.txt` A dan B; PostgreSQL 17 NOTIFY dan LISTEN |
+| Bukti | Rekaman `kursor.txt` A sampai D; [[t2-kursor]] | Tidak dijalankan. Rekaman `listen.txt` B untuk celah nomor; PostgreSQL 17 bab 9.17; ADR 16 opsi D | Rekaman `klaim.txt` A sampai D, `kursor.txt` C, `ganda.txt` B dan D; PostgreSQL 17 SELECT | Rekaman `listen.txt` A dan B; PostgreSQL 17 NOTIFY dan LISTEN |
 
-Opsi B Tidak dijalankan di lab: yang direkam hanya celah pada nomor sequence. Cara kerja dan kekurangannya berasal dari ADR 16 dan penalaran, bukan dari ukuran.
+Opsi B Tidak dijalankan di lab: yang direkam hanya celah pada nomor sequence, yaitu baris sesudah INSERT yang di-ROLLBACK bernomor 3 (`listen.txt` bagian B). Cara kerja dan kekurangannya berasal dari ADR 16 dan penalaran, bukan dari ukuran.
 
 **Keputusan: opsi C.** Lima aturan, dan tiap aturan punya tugas sendiri:
 
