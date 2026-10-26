@@ -446,7 +446,7 @@ describe("kode lab: latar, ekspor, ringkasan, jeda, endpoint uji, dan mode renta
     const rekam = runPy.slice(runPy.indexOf("def rekam_bergulir"), runPy.indexOf('bagian("C. Deploy bergulir'));
     expect(rekam).not.toContain("PORT_PROXY");
     expect(rekam).toContain('ulang_instans(args_a=["-rentan", "tanpa-shutdown"])');
-    harus("Dengan `Shutdown`, cara server Go berhenti pelan-pelan, request yang berjalan selesai dan koneksi baru ditolak selagi menunggu. Tanpa itu, request yang berjalan putus.");
+    harus("`Shutdown` adalah cara server Go berhenti pelan-pelan. Dengan itu, request yang berjalan selesai dan koneksi baru ditolak selagi menunggu. Tanpa itu, request yang berjalan putus.");
     harus("menghentikan satu instance dengan SIGTERM, sinyal yang meminta proses berhenti, saat satu request lambat berjalan:");
     expect(readmeLab).toContain("Dengan `Shutdown`, request lambat yang sedang jalan selesai, koneksi baru ditolak, dan proses keluar dengan kode 0.");
     expect(barisRiset("R3-72")).toContain("Shutdown: main tidak boleh keluar sebelum Shutdown kembali");
@@ -549,7 +549,7 @@ describe("skenario alur t3-m21.json: valid, nilai dari rekaman, tebakan, dan var
     expect(core.validate(d, { exists: (p) => fs.existsSync(path.join(akar, p)) })).toEqual([]);
     expect(skenario.sumber).toMatchObject({ jenis: "rekaman", file: "labs/t3-instance/output/panic.txt", fileVarian: "labs/t3-instance/output/panic.txt" });
     expect(skenario.komponen.map((k) => [k.id, k.label, k.lapisan ?? null])).toEqual([
-      ["klien", "Client", null], ["api", "Proses API (satu-satunya)", ["handler", "goroutine latar"]], ["app", "App", null],
+      ["client", "Client", null], ["api", "Proses API (satu-satunya)", ["handler", "goroutine latar"]], ["app", "App", null],
     ]);
     expect(skenario.perangkat).toEqual([{ id: "budi", label: "HP Budi" }]);
     expect(skenario.langkah).toHaveLength(6);
@@ -683,7 +683,7 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
 const SIDIK_RISET_165 = "72bfc11c1b6a9561";
 const SIDIK_RISET_166 = "deaaf77e6fcd710a";
 const SIDIK_DIAGRAM = "492470702cdc2f1c";
-const SIDIK_SKENARIO = "4d55ad6c0696d511";
+const SIDIK_SKENARIO = "f1ee6bb3501f68ef";
 const KALIMAT_TERKUNCI: string[] = [
   "import Blok from \"../../../components/Blok.astro\";",
   "import Rantai from \"../../../components/Rantai.astro\";",
@@ -738,7 +738,7 @@ const KALIMAT_TERKUNCI: string[] = [
   "Pengawas hanya mempersingkat matinya. Selama proses naik, semua request tetap gagal, dan Ekspor kosong berikutnya mematikannya lagi (penalaran).",
   "**Deploy Kamis memakai proses yang sama.** Bagian A dan B di `bergulir.txt` menghentikan satu instance dengan SIGTERM, sinyal yang meminta proses berhenti, saat satu request lambat berjalan:",
   "<Snippet file=\"labs/t3-instance/output/bergulir.txt\" lines=\"5:16\" title=\"Rekaman lab: labs/t3-instance/output/bergulir.txt, bagian A dan B (satu instance dihentikan)\" />",
-  "Dengan `Shutdown`, cara server Go berhenti pelan-pelan, request yang berjalan selesai dan koneksi baru ditolak selagi menunggu. Tanpa itu, request yang berjalan putus. Di kedua cara, sesudah proses lama berhenti dan sebelum yang baru mendengar, tidak ada yang menjawab (penalaran dari satu proses).",
+  "`Shutdown` adalah cara server Go berhenti pelan-pelan. Dengan itu, request yang berjalan selesai dan koneksi baru ditolak selagi menunggu. Tanpa itu, request yang berjalan putus. Di kedua cara, sesudah proses lama berhenti dan sebelum yang baru mendengar, tidak ada yang menjawab (penalaran dari satu proses).",
   "Lab tidak mengukur jeda deploy satu proses, jadi 40 detik di naskah berlabel Ilustrasi. Deploy manual di Tahap 1 membuat 3 dari 8 putaran prober tanpa jawaban ([[t1-m6]]).",
   "**Dua instance menahan satu kematian.** Bagian D menjalankan dua instance di belakang proxy dengan health check dan retry, keduanya dalam mode rentan:",
   "<Snippet file=\"labs/t3-instance/output/panic.txt\" lines=\"31:35\" title=\"Rekaman lab: labs/t3-instance/output/panic.txt, bagian D (dua instance, dua kali Ekspor kosong)\" />",

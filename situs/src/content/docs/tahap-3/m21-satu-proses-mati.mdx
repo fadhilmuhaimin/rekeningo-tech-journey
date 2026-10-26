@@ -102,7 +102,7 @@ Pengawas hanya mempersingkat matinya. Selama proses naik, semua request tetap ga
 
 <Snippet file="labs/t3-instance/output/bergulir.txt" lines="5:16" title="Rekaman lab: labs/t3-instance/output/bergulir.txt, bagian A dan B (satu instance dihentikan)" />
 
-Dengan `Shutdown`, cara server Go berhenti pelan-pelan, request yang berjalan selesai dan koneksi baru ditolak selagi menunggu. Tanpa itu, request yang berjalan putus. Di kedua cara, sesudah proses lama berhenti dan sebelum yang baru mendengar, tidak ada yang menjawab (penalaran dari satu proses).
+`Shutdown` adalah cara server Go berhenti pelan-pelan. Dengan itu, request yang berjalan selesai dan koneksi baru ditolak selagi menunggu. Tanpa itu, request yang berjalan putus. Di kedua cara, sesudah proses lama berhenti dan sebelum yang baru mendengar, tidak ada yang menjawab (penalaran dari satu proses).
 
 Lab tidak mengukur jeda deploy satu proses, jadi 40 detik di naskah berlabel Ilustrasi. Deploy manual di Tahap 1 membuat 3 dari 8 putaran prober tanpa jawaban ([[t1-m6]]).
 

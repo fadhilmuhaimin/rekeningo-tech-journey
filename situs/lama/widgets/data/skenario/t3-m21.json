@@ -9,7 +9,7 @@
   },
   "pengantar": "Satu laporan kosong dari dasbor, dan satu proses API yang melayani semuanya. Tebak dulu, lalu ikuti sampai HP Budi. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
   "komponen": [
-    { "id": "klien", "label": "Client" },
+    { "id": "client", "label": "Client" },
     { "id": "api", "label": "Proses API (satu-satunya)", "lapisan": ["handler", "goroutine latar"] },
     { "id": "app", "label": "App" }
   ],
@@ -39,7 +39,7 @@
   },
   "langkah": [
     {
-      "dari": "klien",
+      "dari": "client",
       "ke": "api",
       "lapisan": "handler",
       "judul": "Sari menekan Ekspor di dasbor",
@@ -48,7 +48,7 @@
     },
     {
       "dari": "api",
-      "ke": "klien",
+      "ke": "client",
       "lapisan": "handler",
       "judul": "Handler menjawab 200",
       "kirim": "→ 200, isi: tanggal,transaksi,total (hanya judul kolom)",
@@ -103,7 +103,7 @@
     "mulai": 0,
     "langkah": [
       {
-        "dari": "klien",
+        "dari": "client",
         "ke": "api",
         "lapisan": "handler",
         "judul": "Lab memicu panic di goroutine latar",
@@ -119,7 +119,7 @@
       },
       {
         "dari": "api",
-        "ke": "klien",
+        "ke": "client",
         "lapisan": "handler",
         "judul": "Server tetap menjawab",
         "kirim": "GET /healthz sesudahnya → 200",
