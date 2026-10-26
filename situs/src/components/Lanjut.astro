@@ -1,15 +1,13 @@
 ---
 /**
  * Mengganti Pagination Starlight: tautan Sebelumnya/Berikutnya mengikuti urutan baca registry (cerita.json),
- * bukan urutan sidebar. Tautan ke halaman yang belum ditulis diberi kelas menyusul (keputusan 104).
+ * bukan urutan sidebar. Tautan ke halaman yang belum ditulis diberi kelas menyusul (keputusan 104). Halaman lama yang
+ * sudah punya pengganti tidak ada di urutan; tetangganya dihitung `tetangga()` (keputusan 1150, 1151).
  */
-import { muat, urutanBaca, label, url, urlDariId } from "../../tools/registri.mjs";
+import { muat, tetangga, dariUrl, label, url, urlDariId } from "../../tools/registri.mjs";
 const d = muat();
-const urut = urutanBaca(d);
 const sini = urlDariId(Astro.locals.starlightRoute.entry.id);
-const i = urut.findIndex((h) => url(h) === sini);
-const prev = i > 0 ? urut[i - 1] : null;
-const next = i >= 0 && i + 1 < urut.length ? urut[i + 1] : null;
+const { prev, next } = tetangga(d, dariUrl(d, sini));
 ---
 {(prev || next) && Astro.locals.starlightRoute.entry.data.template !== "splash" && (
   <nav class="bb-lanjut" aria-label="Urutan baca">

@@ -2,7 +2,7 @@
 // ID tidak pernah tampil. ID yang tidak dikenal menggagalkan build (padanan hook MkDocs).
 // Rujukan ke halaman yang belum ditulis jadi teks "segera" tanpa tautan, bukan link ke 404 (keputusan 104, 450).
 import path from "node:path";
-import { muat, byId, label, url, urutanBaca, urlDariId, SITE_DOCS, JUDUL_MENYUSUL } from "../../tools/registri.mjs";
+import { muat, byId, label, url, tetangga, urlDariId, SITE_DOCS, JUDUL_MENYUSUL } from "../../tools/registri.mjs";
 
 const TOKEN = /\[\[([A-Za-z0-9.\-]+)(?:\|([^\]]+))?\]\]/g;
 const LEWATI = new Set(["code", "inlineCode", "link", "linkReference", "mdxJsxTextElement"]);
@@ -23,10 +23,9 @@ export default function remarkRujukan() {
 
     function berikutnya() {
       if (!halamanIni) throw new Error(`${file.path}: [[berikutnya]] dipakai di halaman yang tidak ada di cerita.json`);
-      const urut = urutanBaca(d);
-      const i = urut.findIndex((h) => h.id === halamanIni.id);
-      if (i < 0 || i + 1 >= urut.length) throw new Error(`${file.path}: [[berikutnya]] dipakai, tapi halaman ini tidak punya halaman berikutnya`);
-      return urut[i + 1];
+      const { next } = tetangga(d, halamanIni);
+      if (!next) throw new Error(`${file.path}: [[berikutnya]] dipakai, tapi halaman ini tidak punya halaman berikutnya`);
+      return next;
     }
 
     function linkNode(h, teks) {

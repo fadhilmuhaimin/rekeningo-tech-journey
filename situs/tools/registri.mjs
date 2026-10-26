@@ -61,9 +61,45 @@ export function urlDariId(id) {
 
 // title tautan ke halaman yang belum ditulis, sama di sidebar dan di rujukan teks (keputusan 245).
 export const JUDUL_MENYUSUL = "Halaman ini belum ditulis";
-export const urutanBaca = (d) => URUT_BACA.flatMap((k) => d.halaman.filter((h) => h.tahap === k && h.ada));
 export const byId = (d) => Object.fromEntries(d.halaman.map((h) => [h.id, h]));
 export const dariUrl = (d, u) => d.halaman.find((h) => url(h) === u);
+
+// Pengganti halaman h yang sudah ada di situs (`ada: true`), atau null. Penggantinya ditunjuk `lebur_ke` (halaman lama
+// yang isinya sudah ditulis ulang di slot naskah) atau `diganti_oleh` (halaman pembuka tahap versi lama). Rantai
+// A -> B -> C diikuti sampai ujungnya yang ada; pengganti yang belum ada ("segera") dan siklus berarti tidak digantikan.
+export function penggantiAda(h, by) {
+  const lihat = new Set([h.id]);
+  let sekarang = h;
+  for (;;) {
+    const t = by[sekarang.lebur_ke ?? sekarang.diganti_oleh];
+    if (!t?.ada) return sekarang === h ? null : sekarang;
+    if (lihat.has(t.id)) return null;
+    lihat.add(t.id);
+    sekarang = t;
+  }
+}
+
+// Urutan baca (Berikutnya/Sebelumnya, [[berikutnya]], peran di beranda). Halaman yang penggantinya sudah ada dilewati,
+// supaya pembaca yang mengikuti Berikutnya dari jembatan tahap tidak masuk halaman versi lama (EVAL2-F1, keputusan 1150).
+// Halaman itu tidak dihapus: tetap di sidebar, di URL-nya, dan sebagai rujukan [[ID]]. Selama penggantinya masih
+// "segera", halaman lama tetap di urutan supaya jalur baca tidak putus.
+export const urutanBaca = (d) => {
+  const by = byId(d);
+  return URUT_BACA.flatMap((k) => d.halaman.filter((h) => h.tahap === k && h.ada && !penggantiAda(h, by)));
+};
+
+// Tetangga h di urutan baca. Halaman yang dilewati diperlakukan duduk tepat sebelum penggantinya: Berikutnya menuju
+// penggantinya, Sebelumnya menuju halaman di depan penggantinya, jadi pembaca di halaman lama masuk ke jalur baca
+// (keputusan 1151). Halaman di luar urutan (alat, belum ada, atau tidak dikenal) tidak punya tetangga.
+export function tetangga(d, h) {
+  const kosong = { prev: null, next: null };
+  if (!h) return kosong;
+  const urut = urutanBaca(d);
+  const peng = penggantiAda(h, byId(d));
+  const i = urut.findIndex((x) => x.id === (peng ? peng.id : h.id));
+  if (i < 0) return kosong;
+  return { prev: urut[i - 1] ?? null, next: peng ? urut[i] : (urut[i + 1] ?? null) };
+}
 
 const TOKEN = /\[\[([A-Za-z0-9.\-]+)(?:\|([^\]]+))?\]\]/g;
 // [[ID]] di teks data widget -> teks polos

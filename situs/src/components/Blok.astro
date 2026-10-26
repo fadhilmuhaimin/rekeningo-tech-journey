@@ -13,7 +13,7 @@
  */
 import { daftarBlok, slugBlok, menitBlok } from "../lib/blok";
 import Ilustrasi from "./Ilustrasi.astro";
-import { muat, urutanBaca, label, url, urlDariId, dariUrl } from "../../tools/registri.mjs";
+import { muat, tetangga, label, url, urlDariId, dariUrl } from "../../tools/registri.mjs";
 
 interface Props { nama: string; buka?: boolean; menit?: number; aman?: string; ilustrasi?: string }
 const { nama, buka = false, aman, ilustrasi } = Astro.props;
@@ -27,11 +27,7 @@ const h = dariUrl(d, sini);
 const menit = menitBlok(h?.jenis, bloks[i]!);
 const next = bloks[i + 1];
 let halBerikut: { nomor?: string; judul: string; path: string } | null = null;
-if (!next) {
-  const urut = urutanBaca(d);
-  const j = urut.findIndex((x: { path: string }) => url(x) === sini);
-  halBerikut = j >= 0 && j + 1 < urut.length ? urut[j + 1] : null;
-}
+if (!next) halBerikut = tetangga(d, h).next;
 const id = slugBlok(nama);
 ---
 <details class="blok" data-blok={id} open={buka}>
