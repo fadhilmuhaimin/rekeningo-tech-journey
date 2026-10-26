@@ -7,14 +7,14 @@ import (
 	"lab/apit4/internal/gateway"
 	"lab/apit4/internal/objek"
 	"lab/apit4/internal/penerbit"
-	"lab/apit4/internal/vendor"
+	"lab/apit4/internal/verifikasi"
 )
 
 // Dep adalah pihak ketiga tiruan dan setelan lab Tahap 4. Semuanya boleh kosong: fitur yang butuh pihak itu
 // menjawab 503 sendiri, dan lab Tahap 3 yang memakai server ini tidak berubah.
 type Dep struct {
 	Gateway  *gateway.Klien
-	Vendor   *vendor.Klien
+	Vendor   *verifikasi.Klien
 	Penerbit *penerbit.Klien
 	Objek    objek.Penyimpan
 
