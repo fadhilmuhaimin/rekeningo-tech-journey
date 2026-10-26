@@ -35,7 +35,7 @@ Pemilik belum menamai kota. Data lab api-t3 memakai nama umum (Asumsi lab, keput
 
 Tiga hal berubah sekaligus. Pertama, Rekeningo harus **memberi tahu**: Budi tidak tahu kapan uang masuk, dan Ani menunggu layar HP pelanggan untuk yakin sudah dibayar. Kedua, warung ingin mengatur menu, harga, dan stok sendiri dari laptop, tanpa meminta admin. Ketiga, Direksi tidak mau app berhenti saat deploy atau saat satu proses mati.
 
-Tahap 3 berangkat dari api-t2 di akhir Tahap 2, bukan dari sistem yang sudah dibereskan (halaman 2.29 sampai 2.33). Satu proses API melayani kampus pusat, dan dua instance hanya pernah dijalankan di lab c4-ratelimit untuk batas laju. Password di-hash dengan bcrypt; argon2id dari ADR 20 hanya ada di lab c4-ratelimit, dan password sementara masih berpola `sementara-<id>`. Riwayat di app sesudah ledger turun dari 17 ke 3 baris, dan kursor riwayat (ADR 16) bisa melewatkan baris yang COMMIT belakangan.
+Tahap 3 berangkat dari api-t2 di akhir Tahap 2, bukan dari sistem yang sudah dibereskan (halaman 2.29 sampai 2.33). Satu proses API melayani kampus pusat, dan dua instance hanya pernah dijalankan di lab c4-ratelimit untuk batas laju. Password di-hash dengan bcrypt; argon2id dari ADR 20 hanya ada di lab c4-ratelimit, dan password sementara masih berpola `sementara-<id>`. Riwayat app 1.0 di akun lab turun dari 17 ke 3 baris sesudah ledger, dan kursor riwayat (ADR 16) bisa melewatkan baris COMMIT belakangan.
 
 Halaman 2.33 mencatat empat hal yang ikut ke PRD v3. Kapasitas satu server belum diukur (load test). Lupa password mandiri belum ada, penutupan periode tutup buku belum dibuat, dan Idempotency-Key belum dipasang di bayar dan transfer.
 
@@ -175,7 +175,7 @@ Satu nilai dipakai untuk bayar dan transfer: 7.500 ÷ 86.400 × 10 = 0,868 per d
 
 Dua kesimpulan dari tabel ini menentukan seluruh tahap. Beban 17,4 request per detik tidak membuat apa pun sesak. Yang berbahaya adalah **lama** satu panggilan, bukan **banyak**: Little's Law (R2-35).
 
-Kapasitas satu server tetap belum diukur. ADR 21 aturan 5 menjadwalkan satu load test sebelum fitur PRD v3 pertama. Lab Tahap 3 memakai beban berjadwal 17,4 request per detik yang mengukur koneksi, bukan kapasitas (Tidak dijalankan). Kata "tidak sesak" dan "lega" di naskah ini berarti L kecil terhadap pool 10 di laptop lab.
+Kapasitas satu server tetap belum diukur. ADR 21 aturan 5 menjadwalkan satu load test sebelum fitur PRD v3 pertama. Lab Tahap 3 memakai beban berjadwal 17,4 request per detik yang mengukur koneksi, bukan kapasitas; load test kapasitas Tidak dijalankan. Kata "tidak sesak" dan "lega" di naskah ini berarti L kecil terhadap pool 10 di laptop lab.
 
 ## 3b. Skema data: ERD dari Tahap 2 ke Tahap 3
 
