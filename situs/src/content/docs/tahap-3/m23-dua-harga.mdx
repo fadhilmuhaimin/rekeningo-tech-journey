@@ -9,7 +9,7 @@ import WidgetLama from "../../../components/WidgetLama.astro";
 import SkripLama from "../../../components/SkripLama.astro";
 import duaHarga from "../../../../data/diagram/t3-m23-dua-harga.json";
 
-<p class="meta">Baca 9 menit · coba 3 menit · Prasyarat: [[t3-rate-limit-redis]]</p>
+<p class="meta">Baca 6 menit · coba 3 menit · Prasyarat: [[t3-rate-limit-redis]]</p>
 
 <Blok nama="Gejala" buka>
 
@@ -27,7 +27,7 @@ Orang yang mengantre di warung Ani berdebat soal harga mana yang benar.
 
 Raka mengira app Flutter menyimpan harga lama di HP Citra. Dugaan itu bisa diuji tanpa membuka kode app. Bila isi yang tidak terbaru ada di HP, kedua HP menerima jawaban server yang sama. Bila jawaban server sendiri berbeda, sumbernya di server.
 
-Lab tidak punya app Flutter, jadi rekaman di bawah menguji hal itu di sisi server. Dua pembaca memanggil `GET /katalog`, dan jawaban mentahnya dibandingkan.
+Lab `t3-cache` tidak punya app Flutter, jadi rekaman di bawah menguji hal itu di sisi server. Dua pembaca memanggil `GET /katalog`, dan jawaban mentahnya dibandingkan.
 
 Di minggu 2 Nadia menambah cache untuk katalog, karena katalog dibaca terus (naskah, Ilustrasi). Cache adalah salinan jawaban yang disimpan supaya tidak dibaca ulang dari database ([[t3-cache]]). Cache Nadia hidup di memori proses API, satu peta per proses, dengan TTL 5 menit, yaitu 300 detik. TTL adalah masa berlaku satu entri sebelum dibuang.
 
@@ -110,7 +110,7 @@ Widget ini mengikuti rekaman `memori.txt` dari bacaan pertama Budi sampai entri 
 
 <WidgetLama nama="alur" src="data/skenario/t3-m23.json" />
 
-Sesudah langkah terakhir, centang **Ubah satu hal: satu Redis untuk kedua instance**. Langkahnya dari `redis.txt` bagian C: A dan B membaca satu Redis, container lokal di lab. Layar HP di widget digambar dari isi rekaman: lab tidak punya app Flutter.
+Sesudah langkah terakhir, centang **Ubah satu hal: satu Redis untuk kedua instance**. Langkahnya dari `redis.txt` bagian C: A dan B membaca satu Redis, container lokal di lab. Layar HP di widget digambar dari isi rekaman: lab `t3-cache` tidak punya app Flutter.
 
 <noscript>
 Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: Budi menerima Rp22.500 lewat instance A dan Citra Rp25.000 lewat instance B, dan harga di B baru berubah pada detik ke-300.

@@ -5,7 +5,7 @@
     "jenis": "rekaman",
     "file": "labs/t3-cache/output/memori.txt",
     "fileVarian": "labs/t3-cache/output/redis.txt",
-    "catatan": "Dua server Go api-t3 dengan cache katalog di memori masing-masing, PostgreSQL 17.11, dan jam cache yang digeser lewat POST /lab/jam, dari database bersih (make -C labs/t3-cache run). Tanpa proxy: lab memanggil instance A atau instance B langsung. Jalur utama: memori.txt bagian A sampai D. Ubah satu hal: redis.txt bagian C, satu Redis (container lokal) untuk kedua instance. Layar HP digambar dari isi rekaman: lab tidak punya app Flutter. Jam di layar HP adalah pilihan penulis, kecuali 11.30 dari naskah. Penjelasan bahwa pesanan membaca harga dari database dan bahwa promo membuang kunci hanya di prosesnya sendiri dibaca dari kode labs/api-t3, bukan dari rekaman."
+    "catatan": "Dua server Go api-t3 dengan cache katalog di memori masing-masing, PostgreSQL 17.11, dan jam cache yang digeser lewat POST /lab/jam, dari database bersih (make -C labs/t3-cache run). Tanpa proxy: lab memanggil instance A atau instance B langsung. Jalur utama: memori.txt bagian A sampai D. Ubah satu hal: redis.txt bagian C, satu Redis (container lokal) untuk kedua instance. Layar HP digambar dari isi rekaman: lab t3-cache tidak punya app Flutter. Jam di layar HP adalah pilihan penulis, kecuali 11.30 dari naskah. Penjelasan bahwa pesanan membaca harga dari database dan bahwa promo membuang kunci hanya di prosesnya sendiri dibaca dari kode labs/api-t3, bukan dari rekaman."
   },
   "pengantar": "HR menyalakan promo lewat satu instance, dan dua HP di meja yang sama membaca katalog lewat instance yang berbeda. Tebak dulu harga yang Citra terima, lalu ikuti sampai entri di instance kedua habis. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
   "komponen": [
@@ -41,7 +41,7 @@
   "predict": {
     "q": "HR membuat promo 10% lewat instance A, dan A membuang entri nasi goreng di cache-nya. Citra membaca katalog lewat instance B, yang menyimpan entrinya sendiri. Harga apa yang Citra terima?",
     "options": [
-      "Rp22.500: promo sudah ada di database, jadi semua jawaban memakainya",
+      "Rp22.500: promo sudah ada di database, jadi kedua instance menjawab dengan harga promo",
       "Rp25.000: B masih memegang entri lama, dan tidak ada yang membuangnya",
       "Rp22.500: B memeriksa database dulu pada setiap bacaan",
       "Galat 500: B mendeteksi entrinya berbeda dari database"
