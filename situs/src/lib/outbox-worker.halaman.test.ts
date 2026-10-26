@@ -228,6 +228,9 @@ describe("naskah: ADR 23, urutan M18 dan M19, ADR 32 dan 33", () => {
     harus("Dibuka lagi oleh ADR 32 untuk kelas queue ([[t3-tim-infra]]).");
     expect(naskah3).toMatch(/\| 33 \| Sengaja belum: [^|]*CDC[^|]*\|/);
     expect(barisM19).toContain("Poller outbox membaca dengan kursor `(dibuat, id)`");
+    expect(barisM18).toContain("pool 10 penuh dalam ±11,5 detik");
+    expect(barisM18).toContain("Pembayaran memanggilnya di dalam transaction");
+    harus("push yang menggantung di dalam transaction menahan koneksi sampai pool penuh");
     expect(naskah3).toContain("Pak Hadi bertanya bagaimana ia tahu satu pemberitahuan sesuai satu jurnal");
   });
   test("naskah tidak menulis tanggal ADR 23: urutan di halaman dibaca dari tabel masalah (usulan perubahan cerita di badan PR)", () => {
@@ -361,6 +364,15 @@ describe("kode lab: TulisOutbox, KlaimOutbox, worker, Bayar, 000017", () => {
     harus("Worker adalah `api-t3 -peran worker`, proses yang terpisah dari server API.");
     harus('<Snippet file="labs/api-t3/internal/repo/outbox.go" region="klaim" lang="go" title="labs/api-t3/internal/repo/outbox.go" />');
     harus("Worker adalah binary Go yang sama dengan server API, dijalankan dengan flag peran.");
+    // Klaim "mengirimnya serentak": Putaran memulai satu goroutine per baris; polling berhenti bila queue kosong (Jalankan tidur Selang).
+    const putaran = workerGo.split("func (w *Worker) Putaran(")[1]!.split("\nfunc ")[0]!;
+    expect(putaran).toMatch(/wg\.Add\(1\)\n\t\tgo func\(\) \{/);
+    expect(workerGo.split("func (w *Worker) Jalankan(")[1]!.split("\nfunc ")[0]).toMatch(/case r\.Diklaim == 0:\n\t\t\tsleep\(ctx, w\.cfg\.Selang\)/);
+    harus("mengirimnya serentak");
+    // Klaim negatif berlingkup (labs/api-t3/go.mod): klaim ditulis tangan, tanpa library queue.
+    const gomod = baca("labs/api-t3/go.mod");
+    for (const lib of ["asynq", "river", "machinery", "faktory", "gocraft", "bull", "rabbitmq", "amqp", "kafka", "nats"]) expect(gomod.toLowerCase(), lib).not.toContain(lib);
+    harus("Klaim ditulis sebagai SQL tangan, tanpa library queue.");
   });
   test("kolom outbox dan -bersih: retensi 7 hari, lab tidak menjadwalkannya", () => {
     expect(mainGo).toContain('bersih := flag.Bool("bersih", false, "buang outbox selesai lebih dari 7 hari');
@@ -779,7 +791,7 @@ const SIDIK_ISTILAH: Record<string, string> = {
   "outbox": "2465a8311c91fcfc",
   "worker": "4a87a1da9ebf83a2"
 };
-const SIDIK_TABEL = "78dfbc1be98f675a";
+const SIDIK_TABEL = "8a844c53474e7c3d";
 const LEBAR_TABEL: number[] = [3,3,3,3,3,3,3,5,5,5,5,5,5,3,3,3,3];
 const KODE_STACK: string[] = [
   "DB::transaction(function () use ($jurnal) {\n    // tulis jurnal dan posting\n    NotifikasiUang::dispatch($jurnal->id)->afterCommit();\n});",
@@ -867,7 +879,7 @@ const KALIMAT_TERKUNCI: string[] = [
   "API menulis baris outbox di transaction jurnal. Worker mengklaim baris dan mengirimnya",
   "Kelebihan",
   "Tanpa tabel dan tanpa proses baru. Tidak ada push di dalam transaction",
-  "Queue yang matang. Worker bisa banyak tanpa membebani PostgreSQL",
+  "Library queue siap pakai, dan pembacaan queue tidak menyentuh PostgreSQL",
   "Tanpa polling. Event keluar dalam urutan commit, dengan latensi dua digit milidetik menurut Morling",
   "Pemberitahuan ikut COMMIT dan ROLLBACK jurnal. Satu komponen data, yaitu PostgreSQL",
   "Kekurangan",
