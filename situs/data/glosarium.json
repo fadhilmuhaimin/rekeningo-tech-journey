@@ -1215,6 +1215,15 @@
   "h": null
  },
  {
+  "t": "SKIP LOCKED",
+  "d": "Opsi FOR UPDATE yang melewati baris yang sudah dikunci transaction lain, bukan menunggunya.",
+  "b": "t3-klaim-baris",
+  "n": "3.11 Klaim per baris",
+  "u": "/tahap-3/klaim-per-baris/",
+  "s": "istilah-skip-locked",
+  "h": "/istilah/skip-locked/"
+ },
+ {
   "t": "Snapshot",
   "d": "Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang.",
   "b": "t2-isolation-level",

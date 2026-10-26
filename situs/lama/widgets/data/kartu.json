@@ -1638,6 +1638,39 @@
   "jawab": "ADR 23 salah saat beberapa consumer butuh urutan commit penuh, atau saat pesan membuat tabel queue bersaing dengan transaksi uang. Solid Queue memakai database queue yang terpisah dari database aplikasi, jadi ia membuktikan queue di database, bukan outbox yang ikut COMMIT."
  },
  {
+  "id": "t3-klaim-baris-1",
+  "halaman": "t3-klaim-baris",
+  "judul": "3.11 Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24",
+  "url": "tahap-3/klaim-per-baris/",
+  "tanya": "AI menulis klaim ini untuk worker. Apa yang rusak, dan bagaimana memperbaikinya?",
+  "jawab": "Pilihannya tanpa klausa kunci dan tanpa klaim, jadi dua worker bisa memilih baris yang sama. Di `klaim.txt` bagian A, sesi 2 mendapat baris 1 sampai 4 sementara sesi 1 baru mengklaimnya. Perbaikannya satu pernyataan: `FOR UPDATE SKIP LOCKED` di dalam `WITH`, lalu `UPDATE` yang menulis `klaim_sampai` dan menaikkan `percobaan`.",
+  "kode": "SELECT id FROM outbox\nWHERE status = 'menunggu'\nORDER BY id\nLIMIT 4;\n-- lalu di aplikasi: UPDATE outbox SET status = 'terkirim' WHERE id = ANY($1)"
+ },
+ {
+  "id": "t3-klaim-baris-2",
+  "halaman": "t3-klaim-baris",
+  "judul": "3.11 Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24",
+  "url": "tahap-3/klaim-per-baris/",
+  "tanya": "Raka menghapus `SKIP LOCKED` karena \"`FOR UPDATE` sudah cukup\". Apa yang tetap benar, dan apa yang berubah?",
+  "jawab": "Tetap benar: tidak ada baris ganda. Di `klaim.txt` bagian A, sesi 2 dengan `FOR UPDATE` menunggu, lalu mendapat baris 5 sampai 8. Yang berubah: worker menunggu baris yang dikunci transaction lain. Di bagian D, sesi tangan memegang baris 1 sampai 4, dan uji mutasi di README lab mencatat worker belum selesai dalam 10 detik."
+ },
+ {
+  "id": "t3-klaim-baris-3",
+  "halaman": "t3-klaim-baris",
+  "judul": "3.11 Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24",
+  "url": "tahap-3/klaim-per-baris/",
+  "tanya": "Worker A mengklaim baris 1 lalu macet, dan worker B mengambil baris 2 sampai 5. Dalam urutan apa baris sampai ke layanan push, dan kenapa?",
+  "jawab": "Urutannya 2, 3, 4, 5, lalu 1 (`klaim.txt` bagian C). Baris 1 dilewati karena `klaim_sampai`-nya masih di masa depan, bukan karena `SKIP LOCKED`. Klaim per baris menjaga baris tidak ganda dan tidak terlewat, bukan urutan."
+ },
+ {
+  "id": "t3-klaim-baris-4",
+  "halaman": "t3-klaim-baris",
+  "judul": "3.11 Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24",
+  "url": "tahap-3/klaim-per-baris/",
+  "tanya": "Kenapa `LISTEN` dan `NOTIFY` tidak boleh jadi satu-satunya cara worker tahu ada baris baru?",
+  "jawab": "Notifikasi yang dikirim selagi listener putus tidak pernah sampai ke listener baru. Di `listen.txt` bagian B, barisnya tetap menunggu di tabel dan baru terkirim saat worker yang polling menemukannya. Karena itu tabel dan polling tetap sumber, dan `NOTIFY` hanya membangunkan."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",
