@@ -2583,8 +2583,9 @@
       "lab": [
         "t3-instance"
       ],
-      "ada": false,
-      "nomor": "3.14"
+      "ada": true,
+      "nomor": "3.14",
+      "menit": 11
     },
     {
       "id": "t3-dua-instance",
