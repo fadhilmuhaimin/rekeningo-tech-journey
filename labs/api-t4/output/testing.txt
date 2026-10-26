@@ -39,6 +39,7 @@ ok    lab/apit4/internal/cache
 --- PASS: TestRuteKartuApp
 --- PASS: TestDaftarEndpoint
 --- PASS: TestDaftarBatasPerAlamatDanJenisAdmin
+2026/10/27 01:21:06 cek status top-up 1 sesudah kabar diparkir: gateway tidak dikonfigurasi
 --- PASS: TestWebhookEndpointTandaTangan
 --- PASS: TestTopupBankEndpoint
 --- PASS: TestVerifikasiEndpoint
@@ -228,7 +229,7 @@ ok    lab/apit4/internal/service
 --- PASS: TestAmanLambatDiputusDiBatasWaktu
 --- PASS: TestAmanBukanGambarDanPesanTanpaIsi
 --- PASS: TestRentanDenyListStringTidakMenyentuhServer
-    unduh_test.go:290: bentuk yang lolos deny-list dan sampai ke server uji di platform ini: [http://127.1:55006/dalam http://0.0.0.0:55006/dalam http://2130706433:55006/dalam http://0x7f000001:55006/dalam http://LOCALHOST:55006/dalam http://127.000.000.001:55006/dalam]
+    unduh_test.go:290: bentuk yang lolos deny-list dan sampai ke server uji di platform ini: [http://127.1:52604/dalam http://0.0.0.0:52604/dalam http://2130706433:52604/dalam http://0x7f000001:52604/dalam http://LOCALHOST:52604/dalam http://127.000.000.001:52604/dalam]
 --- PASS: TestRentanDenyListDilewatiBentukLainAmanMenolak
 --- PASS: TestRentanPesanGalatMembocorkanIsiLayananDalam
 --- PASS: TestRentanMengikutiRedirectKeAlamatDalam
@@ -308,11 +309,11 @@ ok    lab/apit4/internal/cache
 --- FAIL: TestWebhookEndpointTandaTangan
     handler_pembayaran_test.go:244: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestTopupBankEndpoint
-    handler_pembayaran_test.go:291: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    handler_pembayaran_test.go:302: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestVerifikasiEndpoint
-    handler_pembayaran_test.go:357: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    handler_pembayaran_test.go:368: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestBatasLajuEndpointLama
-    handler_pembayaran_test.go:415: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    handler_pembayaran_test.go:426: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHandlerQRAlurDinamis
     handler_qr_test.go:178: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHandlerQRKedaluwarsaDanKesalahan
