@@ -15,13 +15,13 @@ import intiDiagram from "../../../../data/diagram/t3-klaim-inti.json";
 
 ## Inti
 
-Worker mengklaim baris outbox dengan kunci baris dan batas waktu klaim, bukan membaca dari kursor, karena urutan id bukan urutan COMMIT.
+Worker mengklaim baris, tanpa kursor, karena urutan id bukan urutan COMMIT.
 
 <Rantai data={intiDiagram} ringkas />
 
-Kursor menyimpan satu titik, yaitu `(dibuat, id)` baris terakhir yang dibaca. Baris yang COMMIT belakangan berada di belakang titik itu dan tidak pernah dibaca ([[t3-m19]]). Klaim per baris tidak menyimpan titik. Tiap putaran, worker meminta baris yang menunggu dan tidak dipegang siapa pun, lalu menahannya sampai `klaim_sampai`.
+Kursor menyimpan satu titik, yaitu `(dibuat, id)` baris terakhir yang dibaca. Baris yang COMMIT belakangan berada di belakang titik itu, dan kursor yang hanya maju tidak membacanya ([[t3-m19]]). Klaim per baris tidak menyimpan titik. Tiap putaran, worker meminta baris yang menunggu dan tidak dipegang siapa pun, lalu menahannya dengan kunci baris dan batas waktu `klaim_sampai`.
 
-Karena klausa kunci `FOR UPDATE` dan syarat `klaim_sampai`, dua worker tidak mengirim baris yang sama. `SKIP LOCKED` tidak menambah kebenaran: ia membuat worker kedua melewati baris yang terkunci, bukan menunggunya. Urutan antar pesan juga tidak dijaga. Di rekaman, baris 1 yang tertahan dikirim paling akhir.
+Selama klaim berlaku, `FOR UPDATE` dan `klaim_sampai` mencegah dua worker mengirim baris yang sama. `SKIP LOCKED` tidak menambah kebenaran: ia membuat worker kedua melewati baris yang terkunci, bukan menunggunya. Urutan antar pesan juga tidak dijaga. Di rekaman, baris 1 yang tertahan dikirim paling akhir.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -161,7 +161,7 @@ Yang sama di semua stack: baris dikunci selama klaim dan ditahan sesudahnya. Yan
 
 *Tidak dijalankan. Dicek ke [README pg-boss](https://github.com/timgit/pg-boss), pg-boss 12.38.0 (npm, rilis 2026-10-13), dibuka 2026-10-26.*
 
-**Yang berbeda di stack ini:** pg-boss adalah queue Node.js di atas PostgreSQL. Menurut README, ia bertumpu pada `SKIP LOCKED` dan worker bersamaan mengklaim job tanpa saling memblokir. Tabel dan klaim disediakan library, dan pollingnya mendukung `LISTEN/NOTIFY` untuk pengiriman lebih cepat. Satu event loop menjalankan semua handler: kerja CPU 1 detik menahan request lain selama 0,96 detik (rekaman `b8-concurrency`).
+**Yang berbeda di stack ini:** pg-boss adalah queue Node.js di atas PostgreSQL, dengan tabel dan klaim yang disediakan library. Menurut README, ia bertumpu pada `SKIP LOCKED`, worker bersamaan mengklaim job tanpa saling memblokir, dan pollingnya mendukung `LISTEN/NOTIFY`. Di rekaman `b8-concurrency`, satu request Node.js yang menghitung 1 detik menahan `/ping` selama 0,96 detik. Handler job yang berat di CPU butuh proses sendiri (penalaran).
 
 </Fragment>
 <Fragment slot="t2">
@@ -215,7 +215,7 @@ Yang sama di semua stack: baris dikunci selama klaim dan ditahan sesudahnya. Yan
 |---|---|---|---|---|
 | Cara kerja | Poller menyimpan `(dibuat, id)` baris terakhir yang dibaca dan meminta baris sesudahnya, seperti ADR 16 | Tiap baris outbox mendapat nomor dari penghitung yang dinaikkan di bawah lock baris, per penerima atau global. Poller membaca nomor berikutnya dan menunggu bila ada yang hilang (pola opsi D di ADR 16) | Worker mengambil baris yang menunggu dan tidak dipegang dengan `FOR UPDATE SKIP LOCKED`, lalu menahannya sampai `klaim_sampai` | Pembayaran memanggil `pg_notify` di transaction jurnal. Listener menerima nomor baris sesudah COMMIT dan mengirimnya, tanpa polling |
 | Kelebihan | Tanpa kolom baru dan tanpa lock. Urutan keluaran mengikuti `dibuat` | Urutan sama dengan urutan COMMIT, karena lock dipegang sampai COMMIT. Nomor yang hilang terdeteksi | Baris COMMIT belakangan terlihat di putaran berikutnya. Tiga worker, 60 baris, 0 ganda. Klaim yang habis melepas baris dari worker yang mati | Worker terbangun seketika, tanpa jeda polling |
-| Kekurangan | Melewatkan baris yang COMMIT belakangan, dan hanya cocok untuk satu poller | Penghitung global membuat semua pembayaran antre di satu baris. Satu jalur tulis yang lupa menaikkannya merusak jaminan tanpa tanda. `bigserial` tidak bisa dipakai: nomor 2 hilang saat ROLLBACK | Urutan antar pesan tidak dijaga. `SKIP LOCKED` memberi tampilan tidak konsisten: sesi ketiga mendapat 0 baris walau queue belum kosong. Klaim yang terlalu pendek menghasilkan ganda | Notifikasi yang dikirim selagi listener putus tidak pernah sampai, dan barisnya menunggu. `NOTIFY` di jalur uang menambah satu cara COMMIT gagal bila queue notifikasi penuh |
+| Kekurangan | Melewatkan baris yang COMMIT belakangan. Kursor disimpan di tiap proses worker, jadi hanya cocok untuk satu poller (dibaca dari kode lab) | Penghitung global membuat semua pembayaran antre di satu baris. Satu jalur tulis yang lupa menaikkannya merusak jaminan tanpa tanda. `bigserial` tidak bisa dipakai: nomor 2 hilang saat ROLLBACK | Urutan antar pesan tidak dijaga. `SKIP LOCKED` memberi tampilan tidak konsisten: sesi ketiga mendapat 0 baris walau queue belum kosong. Klaim yang terlalu pendek menghasilkan ganda | Notifikasi yang dikirim selagi listener putus tidak pernah sampai, dan barisnya menunggu. `NOTIFY` di jalur uang menambah satu cara COMMIT gagal bila queue notifikasi penuh |
 | Biaya operasional | Kursor harus disimpan dan dijaga satu proses | Kolom baru, backfill, dan satu baris penghitung yang dikunci tiap pembayaran | Kolom `klaim_sampai` dan `percobaan`, index `outbox_antre`, dan panjang klaim yang dihitung ulang bila batas push berubah | Satu koneksi tetap terbuka untuk mendengar, dan polling tetap dibutuhkan sebagai cadangan |
 | Bukti | Rekaman `kursor.txt` A sampai D; [[t2-kursor]] | Tidak dijalankan. Rekaman `listen.txt` A untuk celah nomor; PostgreSQL 17 bab 9.17; ADR 16 opsi D | Rekaman `klaim.txt` A sampai D, `kursor.txt` C, `ganda.txt` B dan D; PostgreSQL 17 SELECT | Rekaman `listen.txt` A dan B; PostgreSQL 17 NOTIFY dan LISTEN |
 
@@ -224,7 +224,7 @@ Opsi B Tidak dijalankan di lab: yang direkam hanya celah pada nomor sequence. Ca
 **Keputusan: opsi C.** Lima aturan, dan tiap aturan punya tugas sendiri:
 
 1. Worker mengklaim baris dalam satu pernyataan dengan `FOR UPDATE SKIP LOCKED` dan `klaim_sampai`, tanpa kursor. Tugasnya membuat baris COMMIT belakangan tetap terlihat.
-2. Yang mencegah baris dikirim dua kali adalah klausa kunci `FOR UPDATE` bersama `klaim_sampai`. `SKIP LOCKED` hanya mengganti menunggu dengan melewati baris yang terkunci.
+2. Selama klaim berlaku, yang mencegah baris dikirim dua kali adalah klausa kunci `FOR UPDATE` bersama `klaim_sampai`. `SKIP LOCKED` hanya mengganti menunggu dengan melewati baris yang terkunci.
 3. Klaim lebih panjang dari waktu kirim terburuk satu baris, yaitu jumlah perangkat × batas waktu push. Klaim bawaan 5 detik hanya muat satu perangkat yang menggantung.
 4. Urutan antar pesan tidak dijaga. Tiap baris outbox membawa isi lengkap, dan tidak ada fitur yang bergantung pada urutan tiba.
 5. `LISTEN` dan `NOTIFY` hanya boleh membangunkan worker. Tabel tetap sumber, dan polling tetap berjalan. `labs/api-t3` belum memakainya.

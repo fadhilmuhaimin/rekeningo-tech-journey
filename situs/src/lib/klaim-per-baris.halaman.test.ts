@@ -540,7 +540,9 @@ describe("ADR 24: opsi, aturan, diagram, sel tabel, dan kalimat", () => {
     expect(C2).toContain("Klaim yang habis melepas baris dari worker yang mati");
     expect(D2).toContain("tanpa jeda polling");
     const [, A3, B3, C3, D3] = sel("Kekurangan");
-    expect(A3).toContain("Melewatkan baris yang COMMIT belakangan");
+    expect(A3).toContain("Melewatkan baris yang COMMIT belakangan. Kursor disimpan di tiap proses worker, jadi hanya cocok untuk satu poller (dibaca dari kode lab)");
+    expect(workerGo).toContain("\tkursorDibuat time.Time");
+    expect(workerGo).toContain("w.kursorDibuat, w.kursorID = akhir.Dibuat, akhir.ID");
     expect(B3).toContain("`bigserial` tidak bisa dipakai: nomor 2 hilang saat ROLLBACK");
     expect(C3).toContain("Urutan antar pesan tidak dijaga");
     expect(C3).toContain("sesi ketiga mendapat 0 baris walau queue belum kosong");
@@ -579,6 +581,8 @@ describe("ADR 24: opsi, aturan, diagram, sel tabel, dan kalimat", () => {
   });
   test("keputusan opsi C: lima aturan, pre-mortem tepat tiga, kapan salah tiga; pencegahan menunjuk tes Go yang ada", () => {
     harus("**Keputusan: opsi C.** Lima aturan, dan tiap aturan punya tugas sendiri:");
+    harus("Selama klaim berlaku, yang mencegah baris dikirim dua kali adalah klausa kunci `FOR UPDATE` bersama `klaim_sampai`.");
+    harus("Selama klaim berlaku, `FOR UPDATE` dan `klaim_sampai` mencegah dua worker mengirim baris yang sama.");
     const aturan = badan.split("**Keputusan: opsi C.**")[1]!.split("**Kenapa C, bukan A.**")[0]!;
     expect([...aturan.matchAll(/^\d\. /gm)]).toHaveLength(5);
     const pre = badan.split("**Pre-mortem.**")[1]!.split("**Kapan keputusan ini salah.**")[0]!;
@@ -680,9 +684,9 @@ describe("setiap kalimat di halaman punya asal", () => {
 // Kalimat halaman yang ditulis penulis, dikunci utuh. Nilai di dalamnya diperiksa terpisah di atas terhadap sumbernya.
 const KALIMAT_PENULIS: string[] = [
   "Inti",
-  "Worker mengklaim baris outbox dengan kunci baris dan batas waktu klaim, bukan membaca dari kursor, karena urutan id bukan urutan COMMIT.",
-  "Kursor menyimpan satu titik, yaitu `(dibuat, id)` baris terakhir yang dibaca. Baris yang COMMIT belakangan berada di belakang titik itu dan tidak pernah dibaca ([[t3-m19]]). Klaim per baris tidak menyimpan titik. Tiap putaran, worker meminta baris yang menunggu dan tidak dipegang siapa pun, lalu menahannya sampai `klaim_sampai`.",
-  "Karena klausa kunci `FOR UPDATE` dan syarat `klaim_sampai`, dua worker tidak mengirim baris yang sama. `SKIP LOCKED` tidak menambah kebenaran: ia membuat worker kedua melewati baris yang terkunci, bukan menunggunya. Urutan antar pesan juga tidak dijaga. Di rekaman, baris 1 yang tertahan dikirim paling akhir.",
+  "Worker mengklaim baris, tanpa kursor, karena urutan id bukan urutan COMMIT.",
+  "Kursor menyimpan satu titik, yaitu `(dibuat, id)` baris terakhir yang dibaca. Baris yang COMMIT belakangan berada di belakang titik itu, dan kursor yang hanya maju tidak membacanya ([[t3-m19]]). Klaim per baris tidak menyimpan titik. Tiap putaran, worker meminta baris yang menunggu dan tidak dipegang siapa pun, lalu menahannya dengan kunci baris dan batas waktu `klaim_sampai`.",
+  "Selama klaim berlaku, `FOR UPDATE` dan `klaim_sampai` mencegah dua worker mengirim baris yang sama. `SKIP LOCKED` tidak menambah kebenaran: ia membuat worker kedua melewati baris yang terkunci, bukan menunggunya. Urutan antar pesan juga tidak dijaga. Di rekaman, baris 1 yang tertahan dikirim paling akhir.",
   "Dua worker memilih baris dengan `SELECT` tanpa klausa kunci. Apa yang terjadi pada baris yang sama?",
   "Apa yang dikerjakan `SKIP LOCKED`, dan apa yang bukan tugasnya?",
   "Worker A mengklaim baris 1 lalu macet, sementara worker B mengambil baris 2 sampai 5. Dalam urutan apa baris sampai ke layanan push?",
@@ -730,7 +734,7 @@ const KALIMAT_PENULIS: string[] = [
   "*Dijalankan: lab api-t3 dan t3-outbox, PostgreSQL 17.11 (rekaman `klaim.txt` bagian A sampai D).*",
   "**Yang berbeda di stack ini:** klaim ditulis sebagai SQL tangan lewat `database/sql`, tanpa library queue. Cabang `Kursor` adalah mode rentan M19. Request lain tetap dijawab saat satu request menghitung (rekaman `b8-concurrency`: 0,35 ms).",
   "*Tidak dijalankan. Dicek ke [README pg-boss](https://github.com/timgit/pg-boss), pg-boss 12.38.0 (npm, rilis 2026-10-13), dibuka 2026-10-26.*",
-  "**Yang berbeda di stack ini:** pg-boss adalah queue Node.js di atas PostgreSQL. Menurut README, ia bertumpu pada `SKIP LOCKED` dan worker bersamaan mengklaim job tanpa saling memblokir. Tabel dan klaim disediakan library, dan pollingnya mendukung `LISTEN/NOTIFY` untuk pengiriman lebih cepat. Satu event loop menjalankan semua handler: kerja CPU 1 detik menahan request lain selama 0,96 detik (rekaman `b8-concurrency`).",
+  "**Yang berbeda di stack ini:** pg-boss adalah queue Node.js di atas PostgreSQL, dengan tabel dan klaim yang disediakan library. Menurut README, ia bertumpu pada `SKIP LOCKED`, worker bersamaan mengklaim job tanpa saling memblokir, dan pollingnya mendukung `LISTEN/NOTIFY`. Di rekaman `b8-concurrency`, satu request Node.js yang menghitung 1 detik menahan `/ping` selama 0,96 detik. Handler job yang berat di CPU butuh proses sendiri (penalaran).",
   "*Tidak dijalankan. Dicek ke kode sumber [`DatabaseQueue`](https://github.com/laravel/framework/blob/v13.38.0/src/Illuminate/Queue/DatabaseQueue.php), `laravel/framework` 13.38.0, dan [Laravel 13.x: Queues](https://laravel.com/docs/13.x/queues).*",
   "**Yang berbeda di stack ini:** halaman Queues tidak menyebut `SKIP LOCKED`, tetapi kode driver `database` memakainya. Untuk PostgreSQL 9.5 ke atas, driver memilih `FOR UPDATE SKIP LOCKED`, lalu menulis `reserved_at` dan menaikkan `attempts`. Job yang `reserved_at`-nya lebih tua dari `retryAfter` boleh diambil lagi, jadi pasangannya sama dengan `klaim_sampai`. Kamu tidak menulis SQL-nya.",
   "*Tidak dijalankan. Dicek ke [Django 6.1: QuerySet API, select_for_update](https://docs.djangoproject.com/en/6.1/ref/models/querysets/#select-for-update), Django 6.1.2. Kode di bawah adalah Ilustrasi.*",
@@ -758,7 +762,7 @@ const KALIMAT_PENULIS: string[] = [
   "Baris COMMIT belakangan terlihat di putaran berikutnya. Tiga worker, 60 baris, 0 ganda. Klaim yang habis melepas baris dari worker yang mati",
   "Worker terbangun seketika, tanpa jeda polling",
   "Kekurangan",
-  "Melewatkan baris yang COMMIT belakangan, dan hanya cocok untuk satu poller",
+  "Melewatkan baris yang COMMIT belakangan. Kursor disimpan di tiap proses worker, jadi hanya cocok untuk satu poller (dibaca dari kode lab)",
   "Penghitung global membuat semua pembayaran antre di satu baris. Satu jalur tulis yang lupa menaikkannya merusak jaminan tanpa tanda. `bigserial` tidak bisa dipakai: nomor 2 hilang saat ROLLBACK",
   "Urutan antar pesan tidak dijaga. `SKIP LOCKED` memberi tampilan tidak konsisten: sesi ketiga mendapat 0 baris walau queue belum kosong. Klaim yang terlalu pendek menghasilkan ganda",
   "Notifikasi yang dikirim selagi listener putus tidak pernah sampai, dan barisnya menunggu. `NOTIFY` di jalur uang menambah satu cara COMMIT gagal bila queue notifikasi penuh",
@@ -775,7 +779,7 @@ const KALIMAT_PENULIS: string[] = [
   "Opsi B Tidak dijalankan di lab: yang direkam hanya celah pada nomor sequence. Cara kerja dan kekurangannya berasal dari ADR 16 dan penalaran, bukan dari ukuran.",
   "**Keputusan: opsi C.** Lima aturan, dan tiap aturan punya tugas sendiri:",
   "Worker mengklaim baris dalam satu pernyataan dengan `FOR UPDATE SKIP LOCKED` dan `klaim_sampai`, tanpa kursor. Tugasnya membuat baris COMMIT belakangan tetap terlihat.",
-  "Yang mencegah baris dikirim dua kali adalah klausa kunci `FOR UPDATE` bersama `klaim_sampai`. `SKIP LOCKED` hanya mengganti menunggu dengan melewati baris yang terkunci.",
+  "Selama klaim berlaku, yang mencegah baris dikirim dua kali adalah klausa kunci `FOR UPDATE` bersama `klaim_sampai`. `SKIP LOCKED` hanya mengganti menunggu dengan melewati baris yang terkunci.",
   "Klaim lebih panjang dari waktu kirim terburuk satu baris, yaitu jumlah perangkat × batas waktu push. Klaim bawaan 5 detik hanya muat satu perangkat yang menggantung.",
   "Urutan antar pesan tidak dijaga. Tiap baris outbox membawa isi lengkap, dan tidak ada fitur yang bergantung pada urutan tiba.",
   "`LISTEN` dan `NOTIFY` hanya boleh membangunkan worker. Tabel tetap sumber, dan polling tetap berjalan. `labs/api-t3` belum memakainya.",
