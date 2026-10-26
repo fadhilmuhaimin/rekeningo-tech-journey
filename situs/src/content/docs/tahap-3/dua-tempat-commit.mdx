@@ -1,0 +1,185 @@
+---
+title: "3.4 Dua tempat yang tidak bisa commit bersama"
+description: Satu transfer menyentuh PostgreSQL dan layanan push, dan keduanya tidak ikut satu COMMIT. Cara paling pendek menulisnya tidak menjaga tiga hal yang harus selalu benar.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import CariBug from "../../../widgets/cari-bug/CariBug.tsx";
+import intiDiagram from "../../../../data/diagram/t3-dua-tempat-inti.json";
+import caribug from "../../../../data/widget/t3-dua-tempat-caribug.json";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t3-notifikasi]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Satu transfer menyentuh dua tempat, PostgreSQL dan layanan push, dan keduanya tidak bisa COMMIT bersama.
+
+<Rantai data={intiDiagram} ringkas />
+
+Layanan push adalah layanan di luar PostgreSQL yang meneruskan pesan ke HP. Versi pertama minggu 1 mengirim push di dalam transaction, dan Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) memerankannya dengan mode rentan `push-dalam-tx`. Saat layanan push mati, sepuluh pembayaran selesai dengan 201, tabel `outbox` tetap 0 baris, dan kegagalan hanya ada di sepuluh baris log (`rentan.txt` bagian B). Saat push menggantung, sepuluh pembayaran serentak menahan sepuluh koneksi, dan permintaan ke-11, membuka saldo, tidak dijawab selama 2 detik pengamatan (bagian A).
+
+Tiga hal harus selalu benar: pemberitahuan tidak mendahului uangnya, uang yang tercatat tidak kehilangan pemberitahuannya tanpa ada yang tahu, dan uang tidak menunggu pihak luar. Push mati melanggar hal kedua, dan push menggantung melanggar hal ketiga. Hal pertama rusak bila COMMIT gagal sesudah push terkirim. Kejadian itu Tidak dijalankan di lab Tahap 3, jadi ia penalaran dari urutan kode.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Push dimatikan, dan sepuluh pembayaran tetap selesai dengan 201. Hal mana dari tiga hal yang rusak?
+2. Layanan push menggantung, dan Budi hanya membuka saldo. Kenapa permintaannya ikut tidak dijawab?
+3. Push sudah diterima layanan push, lalu database menolak COMMIT. Kenapa ROLLBACK tidak menolong?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: dua baris, kirim push di dalam transaction dan error yang hanya dicatat di log, membuat tiga hal tidak terjaga.">
+
+Minggu 1, Nadia dan Raka menulis urutan paling pendek: buka transaction, kunci buku (ADR 13), tulis jurnal dan posting, kirim push lewat HTTP, lalu COMMIT. Client HTTP memakai pengaturan bawaan Go, dan di sana nol berarti tanpa batas waktu ([dokumentasi net/http, Go 1.27.3](https://pkg.go.dev/net/http#Client), dibuka 2026-10-26). Di staging urutan ini tampak cukup.
+
+Kode di bawah adalah Ilustrasi, yaitu contoh dan bukan hasil sistem: ringkasan versi pertama, dengan bentuk transaction yang sama dengan `DalamTx` di lab. Perilakunya direkam di Rekaman lab lewat mode rentan `push-dalam-tx`.
+
+<CariBug client:visible data={caribug} />
+
+Dua baris yang kamu tandai mengisi keempat kejadian di atas. Keempatnya menghasilkan lima sel Tidak: satu untuk hal pertama, satu untuk hal kedua, dan tiga untuk hal ketiga.
+
+**Ubah satu hal:** tekan Lihat versi benar sesudah memeriksa. Dua baris diganti, dan di versi itu tidak ada baris yang memanggil layanan push.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Transfer Budi ke Citra menulis satu jurnal dan dua posting di PostgreSQL, dan HP Citra harus berbunyi ([[t3-notifikasi]]). PostgreSQL bisa COMMIT atau ROLLBACK jurnal dan posting itu sebagai satu unit ([[B3.1]]). Layanan push bukan bagian dari PostgreSQL, jadi ia tidak ikut unit itu.
+
+Notifikasi adalah akibat dari uang yang bergerak, bukan bagian dari uang yang bergerak. Dari kalimat itu lahir tiga hal yang harus selalu benar, masing-masing dengan pemilik syaratnya:
+
+| Hal yang harus selalu benar | Syarat dari | Isinya |
+|---|---|---|
+| 1. Pemberitahuan tidak mendahului uangnya | Pak Hadi | Kalau jurnal batal, Citra tidak diberi tahu |
+| 2. Uang yang tercatat tidak kehilangan pemberitahuannya tanpa ada yang tahu | Sinta | Ani menyerahkan makanan setelah melihat notifikasi |
+| 3. Uang tidak menunggu pihak luar | Direksi | Pembayaran selesai dalam milidetik walau layanan push lambat |
+
+Di minggu 1, dua pertanyaan ditanam. Bayu bertanya apakah uang ikut menunggu bila layanan push lambat. Pak Hadi bertanya bagaimana ia tahu satu pemberitahuan sesuai satu jurnal. Jawabannya ada di [[t3-m18]], [[t3-m19]], dan [[t3-m20]].
+
+### Cara kerjanya
+
+**Yang ikut satu COMMIT.** Jurnal dan baris lain yang ditulis di transaction yang sama ikut satu COMMIT. Di rekaman lab t3-outbox, COMMIT yang ditolak database (jurnal tidak seimbang, SQLSTATE 23514) tidak meninggalkan jurnal, dan baris `outbox` yang ditulis bersamanya ikut hilang:
+
+<Snippet file="labs/t3-outbox/output/transaksi.txt" lines="68:75" title="Rekaman lab: labs/t3-outbox/output/transaksi.txt" />
+
+**Yang tidak ikut.** Pesan yang sudah diterima layanan push tidak ikut batal bila COMMIT gagal sesudahnya. Kejadian itu Tidak dijalankan di lab Tahap 3. Ia dibaca dari urutan kode lab, tempat `beritahu` dipanggil di dalam transaction dan COMMIT datang sesudahnya:
+
+<Snippet file="labs/api-t3/internal/service/notif.go" region="beritahu" lang="go" title="labs/api-t3/internal/service/notif.go" />
+
+**Push mati.** Layanan push dimatikan, lalu sepuluh pembayaran dijalankan. Semuanya selesai, dan tidak ada baris di database yang menandai pemberitahuan yang gagal:
+
+<Snippet file="labs/api-t3/output/rentan.txt" lines="33:40" title="Rekaman lab: labs/api-t3/output/rentan.txt" />
+
+**Push menggantung.** Layanan push menerima permintaan dan tidak menjawab. Sepuluh pembayaran ke sepuluh warung berbeda, serentak, memegang sepuluh koneksi dengan transaction terbuka. Permintaan ke-11 hanya membuka saldo, tetapi server butuh satu koneksi bebas bahkan untuk memeriksa sesinya:
+
+<Snippet files={["labs/api-t3/output/rentan.txt:15:19", "labs/api-t3/output/rentan.txt:21:24"]} title="Rekaman lab: labs/api-t3/output/rentan.txt" />
+
+Status `idle in transaction` berarti sesi database membuka transaction dan sedang tidak menjalankan query ([PostgreSQL 17: pg_stat_activity](https://www.postgresql.org/docs/17/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW)). Sepuluh pembayaran serentak bukan beban berjadwal; rekaman dengan beban berjadwal ada di [[t3-m18]].
+
+**Empat kejadian.** Tabel yang terisi di blok Coba, lengkap dengan hal yang rusak:
+
+| Kejadian | 1. Tidak mendahului uang | 2. Tidak hilang | 3. Tidak menunggu |
+|---|---|---|---|
+| Push berhasil, COMMIT berhasil | Ya | Ya | Tidak: uang menunggu selama panggilan push |
+| Push berhasil, COMMIT gagal | Tidak: Citra diberi tahu uang yang tidak ada | Tidak berlaku | Tidak berlaku |
+| Push gagal, error dicatat saja | Ya | Tidak: hilang tanpa catatan | Tidak: uang menunggu sampai push gagal |
+| Push menggantung | Tidak berlaku | Tidak berlaku | Tidak: uang dan koneksi database ikut tertahan |
+
+Sel Ya dan Tidak berlaku adalah penalaran dari urutan kode, bukan rekaman terpisah. Yang direkam hanya sel Tidak di bawah ini:
+
+- **Baris 1, hal 3:** Rekaman lab `little.txt` (lab t3-pool). Untuk push yang menjawab sesudah 0,3, 2, dan 10 detik, lama satu pembayaran sama dengan lama jawaban ditambah kurang dari 50 ms.
+- **Baris 2, hal 1:** Tidak dijalankan. Yang direkam hanya bahwa database bisa menolak COMMIT (`transaksi.txt` bagian D).
+- **Baris 3, hal 2:** Rekaman lab `rentan.txt` bagian B. Hal 3 di baris yang sama dibaca dari urutan kode.
+- **Baris 4, hal 3:** Rekaman lab `rentan.txt` bagian A.
+
+Di app Flutter kamu mungkin pernah menyimpan data ke database lokal lalu memanggil API. Itu juga dua tempat: penyimpanan lokal yang berhasil tidak menjamin API berhasil.
+
+**Pola ini kembali.** Dua tempat yang tidak bisa commit bersama muncul lagi di memori dua server ([[t3-m22]]), cache ([[t3-m23]]), queue offline di HP ([[t3-m24]]), dan queue worker ([[t3-m27]]). Halaman itu yang merekamnya. Aturannya sama: PostgreSQL tetap satu-satunya source of truth, dan yang lain hanya salinan atau perantara yang boleh stale, tetapi tidak boleh menggerakkan uang.
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Cara mengirim pemberitahuan | Yang rusak atau dijaga | Bukti |
+|---|---|---|
+| Kirim di dalam transaction (versi pertama) | Hal 1, 2, dan 3 bisa rusak, di kejadian berbeda | Rekaman lab `rentan.txt` bagian A dan B; hal 1 Tidak dijalankan |
+| Kirim sesudah COMMIT, tanpa catatan di database | Hal 2: proses yang mati di antara COMMIT dan kirim tidak meninggalkan catatan | Tidak dijalankan: `transaksi.txt` bagian F menulis opsi ini Tidak dijalankan di lab Tahap 3 |
+| Tulis pemberitahuan sebagai satu baris di transaction yang sama, kirim dari worker | Tiga hal terjaga di rekaman; ongkosnya satu tabel dan satu proses worker | Rekaman lab `transaksi.txt`: hal 1 di bagian B (worker tidak melihat baris sebelum COMMIT), hal 2 di bagian F (API mati sesudah COMMIT, baris tetap ada dan dikirim worker), hal 3 di bagian A (pembayaran selesai sebelum push menerima apa pun) |
+
+**Biaya cara ketiga.** Pembayaran selesai lebih dulu, dan pemberitahuan menyusul dari worker. Di `transaksi.txt` bagian A, layanan push tiruan menerima 0 pesan saat pembayaran selesai, dan 1 pesan sesudah worker berjalan. Cara kerjanya, alasan memilihnya, dan kapan keputusan itu salah ada di [[t3-outbox]].
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Batas waktu client dan ukuran pool | Pertanyaan Bayu menunggu rekaman beban berjadwal | [[t3-pool]] |
+| Outbox dan worker | Halaman ini hanya merumuskan pertanyaan | [[t3-outbox]] |
+| Pengiriman ulang dan pesan ganda | Jawaban untuk pertanyaan Pak Hadi | [[t3-at-least-once]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Push dimatikan dan sepuluh pembayaran tetap selesai dengan 201. Hal mana yang rusak, dan apa buktinya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Hal kedua. Di `rentan.txt` bagian B, jurnal pembayaran ada 10 dan tabel `outbox` 0 baris. Kegagalan push hanya ada di sepuluh baris log "push gagal, hanya dicatat", jadi tidak ada yang tahu kecuali yang membaca log.
+
+</details>
+
+**2.** Layanan push menggantung dan Budi hanya membuka saldo. Kenapa permintaannya tidak dijawab?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Sepuluh pembayaran serentak menahan sepuluh koneksi dengan status `idle in transaction`. Membuka saldo butuh satu koneksi bebas, bahkan untuk memeriksa sesi, dan tidak ada yang bebas. Permintaan itu tidak dijawab selama 2 detik pengamatan (`rentan.txt` bagian A).
+
+</details>
+
+**3.** Push sudah diterima layanan push, lalu database menolak COMMIT. Hal mana yang rusak, dan kenapa ROLLBACK tidak menolong?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Hal pertama: Citra diberi tahu uang yang tidak ada. ROLLBACK hanya membatalkan data di PostgreSQL. Pesan yang sudah diterima layanan push tidak ikut batal. Kejadian ini Tidak dijalankan di lab Tahap 3, tetapi database memang bisa menolak COMMIT (`transaksi.txt` bagian D).
+
+</details>
+
+**4.** Di handler versi pertama, kenapa baris `tx.Commit()` bukan baris yang salah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+COMMIT sudah tepat untuk data di PostgreSQL. Yang salah adalah apa yang sudah terkirim sebelum COMMIT sampai, dan apa yang terjadi bila pengiriman itu gagal atau lambat.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Tidak ada panggilan HTTP, push, atau email di dalam transaction yang memegang lock ([[t2-race-lock]]).
+- [ ] Kegagalan pemberitahuan meninggalkan baris di database yang bisa dicari, bukan hanya baris log.
+- [ ] Client HTTP punya batas waktu eksplisit, karena nol berarti tanpa batas ([net/http](https://pkg.go.dev/net/http#Client)).
+- [ ] Tidak ada pemberitahuan yang dikirim sebelum COMMIT.
+
+### Bacaan lanjut
+
+- [Go: net/http, tipe Client](https://pkg.go.dev/net/http#Client) (Go 1.27.3)
+- [PostgreSQL 17: pg_stat_activity](https://www.postgresql.org/docs/17/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW)
+
+</Blok>

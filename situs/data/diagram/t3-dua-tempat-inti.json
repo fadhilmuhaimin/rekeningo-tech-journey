@@ -1,0 +1,29 @@
+{
+  "id": "t3-dua-tempat-inti",
+  "judul": "Versi pertama, dua kegagalan push",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t3, rentan.txt bagian A dan B"
+  },
+  "baris": [
+    {
+      "label": "Push mati",
+      "sub": "rentan.txt B",
+      "simpul": [
+        { "teks": "10 pembayaran: 201", "sub": "semuanya selesai" },
+        { "teks": "push gagal: hanya log", "sub": "10 baris log", "nada": "warn" },
+        { "teks": "0 baris di database", "sub": "tabel outbox kosong", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Push menggantung",
+      "sub": "rentan.txt A",
+      "simpul": [
+        { "teks": "10 pembayaran serentak", "sub": "push tidak menjawab" },
+        { "teks": "10 koneksi tertahan", "sub": "idle in transaction", "nada": "warn" },
+        { "teks": "buka saldo: tanpa jawaban", "sub": "permintaan ke-11, 2 detik", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah akibat yang direkam. Kedua baris memakai versi pertama dengan layanan push tiruan lokal."
+}

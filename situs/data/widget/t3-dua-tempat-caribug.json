@@ -1,0 +1,158 @@
+{
+  "id": "t3-dua-tempat-caribug",
+  "judul": "Versi pertama minggu 1: bayar, lalu kirim push",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Ringkasan urutan versi pertama dari naskah Tahap 3 bagian 3. Bentuk BeginTx, defer Rollback, dan Commit sama dengan DalamTx di labs/api-t3, dan pesan log sama dengan notif.go; nama fungsi lain disederhanakan. Perilakunya direkam di rentan.txt bagian A dan B, lewat mode rentan push-dalam-tx."
+  },
+  "bahasa": "go",
+  "baris": [
+    "func (s Service) Bayar(ctx context.Context, dari, ke, jumlah int64) error {",
+    "\ttx, err := s.db.BeginTx(ctx, nil)",
+    "\tif err != nil {",
+    "\t\treturn err",
+    "\t}",
+    "\tdefer tx.Rollback()",
+    "\tif err := kunciBuku(ctx, tx, dari, ke); err != nil {",
+    "\t\treturn err",
+    "\t}",
+    "\tid, err := catatJurnal(ctx, tx, dari, ke, jumlah)",
+    "\tif err != nil {",
+    "\t\treturn err",
+    "\t}",
+    "\tif err := s.push.Kirim(ctx, ke, pesanUang(id, jumlah)); err != nil {",
+    "\t\tlog.Printf(\"push gagal, hanya dicatat: %v\", err)",
+    "\t}",
+    "\treturn tx.Commit()",
+    "}"
+  ],
+  "bug": [
+    13,
+    14
+  ],
+  "alasan": {
+    "13": "Hal 1 dan hal 3. Push dikirim di dalam transaction, sebelum COMMIT. Kalau COMMIT gagal sesudahnya, Citra sudah diberi tahu uang yang tidak ada (Tidak dijalankan di lab Tahap 3, dari urutan kode). Selama push belum menjawab, sepuluh pembayaran serentak menahan sepuluh koneksi (Rekaman lab rentan.txt bagian A).",
+    "14": "Hal 2. Error push hanya masuk log, tanpa baris di database. Di rekaman, push dimatikan: sepuluh pembayaran selesai dengan 201, tabel outbox tetap 0 baris, dan log berisi sepuluh baris \"push gagal, hanya dicatat\" (Rekaman lab rentan.txt bagian B)."
+  },
+  "aman": {
+    "6": "Kunci buku (ADR 13) harus ada sebelum saldo dibaca. Baris ini bukan masalahnya. Yang menentukan adalah apa yang dikerjakan selama kunci dipegang.",
+    "9": "Jurnal ditulis di transaction ini, jadi ia ikut batal bila transaction batal (Rekaman lab transaksi.txt bagian C dan D).",
+    "16": "COMMIT di akhir sudah tepat untuk data di PostgreSQL. Yang salah adalah apa yang sudah terkirim sebelum COMMIT sampai."
+  },
+  "tebak": {
+    "q": "Dua baris di handler ini membuat satu dari tiga hal yang harus selalu benar tidak lagi terjaga. Yang mana?",
+    "petunjuk": "Tiga hal itu: pemberitahuan tidak mendahului uangnya, uang yang tercatat tidak kehilangan pemberitahuannya tanpa ada yang tahu, dan uang tidak menunggu pihak luar. Untuk tiap baris, tanya: kalau baris ini gagal, lambat, atau jalan lebih dulu, hal mana yang rusak?"
+  },
+  "perbaikan": {
+    "label": "Dua baris diganti: tulis ke database dulu, kirim belakangan",
+    "baris": [
+      "func (s Service) Bayar(ctx context.Context, dari, ke, jumlah int64) error {",
+      "\ttx, err := s.db.BeginTx(ctx, nil)",
+      "\tif err != nil {",
+      "\t\treturn err",
+      "\t}",
+      "\tdefer tx.Rollback()",
+      "\tif err := kunciBuku(ctx, tx, dari, ke); err != nil {",
+      "\t\treturn err",
+      "\t}",
+      "\tid, err := catatJurnal(ctx, tx, dari, ke, jumlah)",
+      "\tif err != nil {",
+      "\t\treturn err",
+      "\t}",
+      "\tif err := tulisOutbox(ctx, tx, id, ke, pesanUang(id, jumlah)); err != nil {",
+      "\t\treturn err",
+      "\t}",
+      "\treturn tx.Commit()",
+      "}"
+    ],
+    "catatan": "Pemberitahuan menjadi satu baris di tabel outbox, di transaction yang sama dengan jurnal. Di rekaman, COMMIT menyimpan keduanya (transaksi.txt bagian A), sedangkan ROLLBACK dan COMMIT yang ditolak membuang keduanya (bagian C dan D). Kalau penulisan outbox gagal, pembayaran ikut batal (bagian G). Worker mengirim pesan itu sesudah COMMIT; caranya ada di halaman 3.9."
+  },
+  "kejadian": {
+    "judul": "Empat kejadian di versi pertama",
+    "hal": [
+      "1. Tidak mendahului uang",
+      "2. Tidak hilang",
+      "3. Tidak menunggu"
+    ],
+    "status": {
+      "ya": "Ya",
+      "tidak": "Tidak",
+      "na": "Tidak berlaku"
+    },
+    "baris": [
+      {
+        "nama": "Push berhasil, COMMIT berhasil",
+        "sel": [
+          {
+            "status": "ya"
+          },
+          {
+            "status": "ya"
+          },
+          {
+            "status": "tidak",
+            "detail": "Uang menunggu selama panggilan push"
+          }
+        ]
+      },
+      {
+        "nama": "Push berhasil, COMMIT gagal",
+        "sel": [
+          {
+            "status": "tidak",
+            "detail": "Citra diberi tahu uang yang tidak ada"
+          },
+          {
+            "status": "na"
+          },
+          {
+            "status": "na"
+          }
+        ]
+      },
+      {
+        "nama": "Push gagal, error dicatat saja",
+        "sel": [
+          {
+            "status": "ya"
+          },
+          {
+            "status": "tidak",
+            "detail": "Hilang tanpa catatan"
+          },
+          {
+            "status": "tidak",
+            "detail": "Uang menunggu sampai push gagal"
+          }
+        ]
+      },
+      {
+        "nama": "Push menggantung",
+        "sel": [
+          {
+            "status": "na"
+          },
+          {
+            "status": "na"
+          },
+          {
+            "status": "tidak",
+            "detail": "Uang dan koneksi database ikut tertahan"
+          }
+        ]
+      }
+    ]
+  },
+  "label": {
+    "sumber": "Ilustrasi: ringkasan versi pertama",
+    "tebakDulu": "Tebak dulu:",
+    "perintah": "Klik baris yang membuat satu dari tiga hal tidak terjaga, lalu Periksa.",
+    "periksa": "Periksa tanda saya",
+    "ulang": "Ulang",
+    "benar": "sumber masalah",
+    "lewat": "terlewat",
+    "salahTanda": "baris ini tidak salah",
+    "perbaikanTombol": "Lihat versi benar",
+    "ringkas": "Kamu menandai {benar} dari {bug} baris yang bermasalah, dan {salah} baris lain ikut ditandai."
+  }
+}
