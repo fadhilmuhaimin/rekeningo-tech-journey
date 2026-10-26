@@ -27,7 +27,7 @@ Keluhan masuk ke Raka dari Budi dan dari Ani dalam beberapa menit. Sekitar sembi
 
 <Blok nama="Yang Raka kira" buka>
 
-Raka memeriksa dua tempat. Log server tidak memuat satu baris pun untuk request yang menggantung (Rekaman lab `jejak.txt` bagian J; kenapa itu penting dibahas di [[t3-observability]]). Di PostgreSQL, kesepuluh koneksi pool sedang terpakai.
+Raka memeriksa dua tempat. Log server tidak memuat satu baris pun untuk request yang menggantung (Rekaman lab `jejak.txt` bagian J: satu pembayaran yang menggantung, 0 baris log baru sesudah 4 detik; kenapa itu penting dibahas di [[t3-observability]]). Di PostgreSQL, kesepuluh koneksi pool sedang terpakai.
 
 Raka menyimpulkan bahwa database kewalahan. Sepuluh koneksi terlalu sedikit untuk jam makan siang, jadi rencananya pool dinaikkan dari 10 ke 50. Angka 10 adalah batas yang Bayu tetapkan di minggu 1 (Asumsi cerita).
 
@@ -89,11 +89,11 @@ Ambang itu tidak direkam: rekaman hanya mencoba T = 5.
 
 **Satu pembacaan saldo ikut membeku.** Pembacaan butuh koneksi juga. Server membaca sesi Budi dari database sebelum membaca saldonya (`SesiAktif`), jadi tanpa koneksi bebas pembacaan itu tidak bisa dijawab.
 
-Rekaman terpisah memakai sepuluh pembayaran serentak ke sepuluh warung berbeda. Request ke-11, Budi membuka saldonya, tidak dijawab:
+Rekaman terpisah ini bukan beban berjadwal M18. Ia memakai sepuluh pembayaran serentak ke sepuluh warung berbeda, hanya untuk melihat satu pembacaan. Request ke-11, Budi membuka saldonya, tidak dijawab:
 
 <Snippet file="labs/api-t3/output/rentan.txt" lines="21:29" title="Rekaman lab: labs/api-t3/output/rentan.txt, bagian A (request ke-11)" />
 
-**Pool 50 hanya menunda.** Bagian B mengulang beban yang sama dengan pool 50. Pool penuh antara detik ke-57 dan ke-58, dan 18 pembacaan sesudahnya tidak dijawab. Sebelum itu tidak ada request yang gagal: 950 pembacaan dijawab dengan 200.
+**Pool 50 hanya menunda.** Bagian B mengulang beban yang sama dengan pool 50. Pool penuh antara detik ke-57 dan ke-58, dan 18 pembacaan sesudahnya tidak dijawab. Sebelum itu 950 dari 950 pembacaan dijawab dengan 200.
 
 <Snippet file="labs/t3-pool/output/m18.txt" lines="41:47" title="Rekaman lab: labs/t3-pool/output/m18.txt, bagian B (pool 50)" />
 
@@ -128,6 +128,10 @@ Widget ini mengikuti rekaman `m18.txt` bagian A dari satu pembayaran sampai Budi
 <WidgetLama nama="alur" src="data/skenario/t3-m18.json" />
 
 Sesudah langkah terakhir, centang **Ubah satu hal: app menyerah sesudah 5 detik**. Koneksi kembali ke pool dan Budi mendapat jawabannya (bagian C). Layanan push tetap menahan 26 permintaan. Layar HP di widget digambar dari isi rekaman: lab `api-t3` tidak punya app Flutter.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: Budi tidak mendapat jawaban (190 dari 190 pembacaan sesudah pool penuh tidak dijawab), dan bila app menyerah sesudah 5 detik, 380 dari 380 pembacaan dijawab. Rekaman lengkap ada di lipatan di bawah.
+</noscript>
 
 <details>
 <summary>Rekaman bagian A sampai C (juga untuk pembaca tanpa JavaScript)</summary>

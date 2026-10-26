@@ -213,7 +213,7 @@ describe("rekaman: nilai turunan yang dipakai halaman", () => {
   });
 });
 
-const baris17 = riset.split("\n").find((b) => b.startsWith("| R3-125 |"))!;
+const baris17 = riset.split("\n").find((b) => b.startsWith("| R3-115 |"))!;
 
 describe("m18-app-membeku.mdx: tiap angka turunan dari rekaman dan hitungan", () => {
   test("frontmatter, meta, dan registry", () => {
@@ -247,7 +247,8 @@ describe("m18-app-membeku.mdx: tiap angka turunan dari rekaman dan hitungan", ()
     harus("Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].");
   });
   test("Yang Raka kira: log kosong dari jejak.txt J, rencana pool 10 ke 50, batas 10 dari Bayu, dan jawaban tebakan", () => {
-    harus("Log server tidak memuat satu baris pun untuk request yang menggantung (Rekaman lab `jejak.txt` bagian J;");
+    harus("Log server tidak memuat satu baris pun untuk request yang menggantung (Rekaman lab `jejak.txt` bagian J: satu pembayaran yang menggantung, 0 baris log baru sesudah 4 detik;");
+    expect(Number(logJejak[1])).toBe(4);
     expect(Number(logJejak[2])).toBe(0);
     harus("Raka menyimpulkan bahwa database kewalahan. Sepuluh koneksi terlalu sedikit untuk jam makan siang, jadi rencananya pool dinaikkan dari 10 ke 50.");
     harus("Angka 10 adalah batas yang Bayu tetapkan di minggu 1 (Asumsi cerita).");
@@ -320,11 +321,13 @@ describe("m18-app-membeku.mdx: tiap angka turunan dari rekaman dan hitungan", ()
     expect(handlerGo).toMatch(/func \(s \*?\w+\) wajibLogin[^]*?s\.svc\.Periksa\(r\.Context\(\), token\)/);
     expect(baca("labs/api-t3/internal/service/sesi.go")).toMatch(/func \(s Service\) Periksa[^]*?s\.repo\.SesiAktif\(/);
     expect(repoGo).toMatch(/func \(r Repo\) SesiAktif[^]*?r\.db\.QueryRowContext\(ctx, `\s*SELECT s\.akun_id[^`]*FROM sesi s/);
-    harus("Rekaman terpisah memakai sepuluh pembayaran serentak ke sepuluh warung berbeda. Request ke-11, Budi membuka saldonya, tidak dijawab:");
+    harus("Rekaman terpisah ini bukan beban berjadwal M18. Ia memakai sepuluh pembayaran serentak ke sepuluh warung berbeda, hanya untuk melihat satu pembacaan. Request ke-11, Budi membuka saldonya, tidak dijawab:");
+    expect(baca("situs/src/content/docs/tahap-3/dua-tempat-commit.mdx")).toContain("Sepuluh pembayaran serentak bukan beban berjadwal; rekaman dengan beban berjadwal ada di [[t3-m18]].");
   });
   test("pool 50, app menyerah, tertahan di layanan push, dan jurnal 0 bukan bukti", () => {
     harus(`**Pool 50 hanya menunda.** Bagian B mengulang beban yang sama dengan pool 50. Pool penuh antara detik ke-${penuhB[1]} dan ke-${penuhB[2]}, dan ${bacaSesudahB[1]} pembacaan sesudahnya tidak dijawab.`);
-    harus(`Sebelum itu tidak ada request yang gagal: ${bacaSebelumB[1]} pembacaan dijawab dengan 200.`);
+    harus(`Sebelum itu ${bacaSebelumB[2]} dari ${bacaSebelumB[1]} pembacaan dijawab dengan 200.`);
+    expect(B.some((b) => b.startsWith("# Sebelum pool penuh tidak ada request yang gagal. Pembacaan request 1 sampai 999:"))).toBe(true);
     harus(`Pool 50 menunda pembekuan dari ±${koma(penuh10, 1)} ke ±${koma(penuh50, 1)} detik, dan ${poolB.dipakai} koneksi ke PostgreSQL ikut tertahan. Layanan push tetap tidak menjawab.`);
     harus(`Pool 10 hanya penuh bila app menunggu lebih dari ±${koma(ambang, 1)} detik. Dengan batas waktu 30 detik (Asumsi), app Budi menunggu jauh melewati ambang itu.`);
     expect(30).toBeGreaterThan(ambang);
@@ -387,11 +390,13 @@ describe("klaim dokumentasi: tiap kalimat dipasangkan dengan baris RISET, versi,
     expect(baris("R3-08")).toContain("Go 1.27.3");
     harus("Dokumentasi `net/http` menulis bahwa Timeout nol berarti tanpa batas waktu, jadi `Kirim` menunggu selama layanan push diam. Sumbernya [net/http Client](https://pkg.go.dev/net/http#Client), Go 1.27.3, dibuka 2026-10-26 (Tidak dijalankan).");
   });
-  test("pg_stat_activity: arti idle in transaction (R3-125, PostgreSQL 17)", () => {
-    expect(baris("R3-125")).toContain("idle in transaction: The backend is in a transaction, but is not currently executing a query.");
-    expect(baris("R3-125")).toContain("PostgreSQL 17.11");
-    expect(baris("R3-125")).toContain("postgresql.org/docs/17/monitoring-stats.html");
-    expect(baris("R3-125")).toContain("dibuka 2026-10-26");
+  test("pg_stat_activity: arti idle in transaction (R3-115, PostgreSQL 17)", () => {
+    expect(baris("R3-115")).toContain('"The backend is in a transaction, but is not currently executing a query."');
+    expect(baris("R3-115")).toContain("PostgreSQL 17.11");
+    expect(baris("R3-115")).toContain("postgresql.org/docs/17");
+    expect(baris("R3-115")).toContain("dibuka 2026-10-26");
+    expect(baris("R3-115")).toContain("pkg.go.dev/net/http#Client");
+    expect(baris("R3-115")).toContain('"A Timeout of zero means no timeout"');
     harus("Sumbernya [pg_stat_activity](https://www.postgresql.org/docs/17/monitoring-stats.html), dibuka 2026-10-26 (Tidak dijalankan).");
     expect(m18).toContain("state = 'idle in transaction'");
   });
@@ -756,6 +761,7 @@ describe("blok Coba dan tampilan: urutan blok, tebak sebelum hasil, dan penganta
     harus(`Sesudah langkah terakhir, centang **Ubah satu hal: app menyerah sesudah ${batasC[2]} detik**.`);
     harus(`Layanan push tetap menahan ${tahanC[1]} permintaan.`);
     harus("Layar HP di widget digambar dari isi rekaman: lab `api-t3` tidak punya app Flutter.");
+    harus(`<noscript>\nTanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: Budi tidak mendapat jawaban (${bacaSesudah[2]} dari ${bacaSesudah[1]} pembacaan sesudah pool penuh tidak dijawab), dan bila app menyerah sesudah ${batasC[2]} detik, ${bacaC[2]} dari ${bacaC[1]} pembacaan dijawab. Rekaman lengkap ada di lipatan di bawah.\n</noscript>`);
     expect(skenario.varian.label).toBe(`app menyerah sesudah ${batasC[2]} detik`);
     expect(baca("labs/api-t3/README.md")).not.toMatch(/flutter run|pubspec/);
   });
