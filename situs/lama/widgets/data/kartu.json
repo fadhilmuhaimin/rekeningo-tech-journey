@@ -1606,6 +1606,38 @@
   "jawab": "PostgreSQL memutus sesi yang diam dan melepas lock bukunya, tetapi slot pool ada di proses Go dan tetap dipakai selama handler menunggu push. Di `adr22.txt` bagian E, pool Go terpakai 10 dari 10 dan 12 pembacaan tidak dijawab, walau sesi PostgreSQL sudah diputus."
  },
  {
+  "id": "t3-outbox-1",
+  "halaman": "t3-outbox",
+  "judul": "3.9 Outbox transaksional dan worker + ADR 23",
+  "url": "tahap-3/outbox-worker/",
+  "tanya": "Sesi tangan menulis jurnal dan baris outbox tetapi belum COMMIT. Kenapa worker yang berjalan saat itu mengklaim 0 baris?",
+  "jawab": "Baris outbox ditulis di transaction yang sama dengan jurnal. Yang belum COMMIT tidak terlihat oleh sesi lain. `transaksi.txt` bagian B: sesi tangan melihat 1 baris, sesi lain 0. Setelah COMMIT, worker mengklaim 1 dan mengirimnya."
+ },
+ {
+  "id": "t3-outbox-2",
+  "halaman": "t3-outbox",
+  "judul": "3.9 Outbox transaksional dan worker + ADR 23",
+  "url": "tahap-3/outbox-worker/",
+  "tanya": "Proses API mati sesudah menjawab 201. Kenapa Ani tetap diberi tahu?",
+  "jawab": "Pemberitahuannya sudah menjadi baris `menunggu` yang tersimpan bersama jurnal. Worker, proses lain, mengirimnya (`transaksi.txt` bagian F). Tanpa outbox, proses yang mati di antara COMMIT dan kirim tidak meninggalkan catatan. Opsi itu Tidak dijalankan di lab."
+ },
+ {
+  "id": "t3-outbox-3",
+  "halaman": "t3-outbox",
+  "judul": "3.9 Outbox transaksional dan worker + ADR 23",
+  "url": "tahap-3/outbox-worker/",
+  "tanya": "Dua worker memilih baris yang sama bila klausa kunci dihapus. Apa yang mencegahnya, dan apa yang ditambah `SKIP LOCKED`?",
+  "jawab": "`FOR UPDATE` bersama `klaim_sampai` yang mencegahnya (`klaim.txt` bagian A). `SKIP LOCKED` hanya mengganti menunggu dengan melewati baris yang terkunci. Ongkosnya tampilan data yang tidak konsisten."
+ },
+ {
+  "id": "t3-outbox-4",
+  "halaman": "t3-outbox",
+  "judul": "3.9 Outbox transaksional dan worker + ADR 23",
+  "url": "tahap-3/outbox-worker/",
+  "tanya": "Kapan ADR 23 salah, dan kenapa Solid Queue tidak cukup membuktikannya benar?",
+  "jawab": "ADR 23 salah saat beberapa consumer butuh urutan commit penuh, atau saat pesan membuat tabel queue bersaing dengan transaksi uang. Solid Queue memakai database queue yang terpisah dari database aplikasi, jadi ia membuktikan queue di database, bukan outbox yang ikut COMMIT."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",

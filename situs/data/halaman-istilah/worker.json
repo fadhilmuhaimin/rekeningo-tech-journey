@@ -1,0 +1,44 @@
+{
+  "istilah": "Worker",
+  "sehari_hari": "Worker adalah proses yang mengerjakan pekerjaan di belakang layar, di luar jawaban ke user. Ia mengambil pekerjaan dari tabel atau queue satu per satu, jadi request tidak menunggu pekerjaan yang lambat.",
+  "cerita": [
+    {
+      "rujukan": "t3-outbox",
+      "teks": "Worker berjalan sebagai proses terpisah dari server API. Sesudah pembayaran Budi selesai, ia mengklaim baris outbox dan mengirimnya ke layanan push tiruan."
+    },
+    {
+      "rujukan": "t3-m18",
+      "teks": "Saat layanan push menggantung, yang tertahan hanya worker. Pembayaran tidak ikut menunggu, karena panggilan push tidak lagi ada di dalam transaction."
+    }
+  ],
+  "mekanisme": [
+    "Worker memeriksa tabel pekerjaan. Di Rekaman lab itu tabel outbox.",
+    "Ia mengklaim beberapa baris sekaligus, empat di lab, dan memegangnya selama 5 detik.",
+    "Ia mengirim tiap baris ke layanan push dan menandai hasilnya: terkirim, dilewati, ditunda, atau mati.",
+    "Bila queue kosong, ia menunggu 200 milidetik lalu memeriksa lagi."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menjalankan dua worker tanpa klausa kunci di klaim. Dua sesi memilih baris yang sama dan keduanya mengirimnya.",
+    "Mengira worker yang mati tidak meninggalkan apa pun. Barisnya tetap di database dan dikirim worker lain sesudah klaim habis, jadi pengirimannya bisa ganda."
+  ],
+  "terkait": ["Outbox", "Queue", "Lease", "Dead-letter queue", "At-least-once"],
+  "sumber": [
+    {
+      "riset": "R3-60",
+      "judul": "PostgreSQL 17: SELECT, The Locking Clause",
+      "url": "https://www.postgresql.org/docs/17/sql-select.html#SQL-FOR-UPDATE-SHARE",
+      "catatan": "SKIP LOCKED melewati baris yang tidak bisa langsung dikunci, memberi tampilan data yang tidak konsisten, dan bisa menghindari lock contention untuk banyak consumer pada tabel mirip queue."
+    },
+    {
+      "judul": "Rekaman lab t3-outbox: klaim per baris",
+      "rekaman": "labs/t3-outbox/output/klaim.txt",
+      "catatan": "Bagian A: tanpa klausa kunci dua sesi memilih baris yang sama. Bagian B: tiga worker serentak mengirim 60 baris tanpa ganda."
+    },
+    {
+      "judul": "Rekaman lab api-t3: worker berhenti sebelum menandai terkirim",
+      "rekaman": "labs/api-t3/output/outbox.txt",
+      "catatan": "Bagian G: klaim habis, baris dikirim ulang, dan layanan push menerima 2 pesan dengan 1 notifikasi_id."
+    }
+  ]
+}
