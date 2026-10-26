@@ -345,6 +345,8 @@ describe("label, versi, dan sumber", () => {
   test("net/http: Go 1.27.3 dan 'A Timeout of zero means no timeout' dari riset; PostgreSQL 17 sama dengan versi rekaman", () => {
     const riset = baca("plan/RISET-TAHAP-3.md");
     expect(riset).toMatch(/\| R3-08 \|[^\n]*Go 1\.27\.3 net\/http client\.go: "A Timeout of zero means no timeout"/);
+    expect(riset).toMatch(/\| R3-115 \|[^\n]*"The backend is in a transaction, but is not currently executing a query\."/);
+    expect(riset).toMatch(/\| R3-115 \|[^\n]*Go 1\.27\.3 net\/http Client[^\n]*"A Timeout of zero means no timeout"/);
     harus("([dokumentasi net/http, Go 1.27.3](https://pkg.go.dev/net/http#Client), dibuka 2026-10-26)");
     harus("Client HTTP memakai pengaturan bawaan Go, dan di sana nol berarti tanpa batas waktu");
     harus("karena nol berarti tanpa batas ([net/http](https://pkg.go.dev/net/http#Client))");
@@ -514,7 +516,7 @@ const KALIMAT_PENULIS: string[] = [
   "**Push menggantung.** Layanan push menerima permintaan dan tidak menjawab. Sepuluh pembayaran ke sepuluh warung berbeda, serentak, memegang sepuluh koneksi dengan transaction terbuka. Permintaan ke-11 hanya membuka saldo, tetapi server butuh satu koneksi bebas bahkan untuk memeriksa sesinya:",
   "Status `idle in transaction` berarti sesi database membuka transaction dan sedang tidak menjalankan query ([PostgreSQL 17: pg_stat_activity](https://www.postgresql.org/docs/17/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW)). Sepuluh pembayaran serentak bukan beban berjadwal; rekaman dengan beban berjadwal ada di [[t3-m18]].",
   "**Empat kejadian.** Tabel yang terisi di blok Coba, lengkap dengan hal yang rusak:",
-  "Sel Ya dan Tidak berlaku adalah penalaran dari urutan kode, bukan rekaman terpisah. Yang direkam hanya sel Tidak di bawah ini:",
+  "Sel Ya dan Tidak berlaku adalah penalaran dari urutan kode, bukan rekaman terpisah. Setiap sel Tidak punya dasarnya sendiri:",
   "**Baris 1, hal 3:** Rekaman lab `little.txt` (lab t3-pool). Untuk push yang menjawab sesudah 0,3, 2, dan 10 detik, lama satu pembayaran sama dengan lama jawaban ditambah kurang dari 50 ms.",
   "**Baris 2, hal 1:** Tidak dijalankan. Yang direkam hanya bahwa database bisa menolak COMMIT (`transaksi.txt` bagian D).",
   "**Baris 3, hal 2:** Rekaman lab `rentan.txt` bagian B. Hal 3 di baris yang sama dibaca dari urutan kode.",

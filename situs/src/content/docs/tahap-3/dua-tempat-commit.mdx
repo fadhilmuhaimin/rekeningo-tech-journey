@@ -95,7 +95,7 @@ Status `idle in transaction` berarti sesi database membuka transaction dan sedan
 | Push gagal, error dicatat saja | Ya | Tidak: hilang tanpa catatan | Tidak: uang menunggu sampai push gagal |
 | Push menggantung | Tidak berlaku | Tidak berlaku | Tidak: uang dan koneksi database ikut tertahan |
 
-Sel Ya dan Tidak berlaku adalah penalaran dari urutan kode, bukan rekaman terpisah. Yang direkam hanya sel Tidak di bawah ini:
+Sel Ya dan Tidak berlaku adalah penalaran dari urutan kode, bukan rekaman terpisah. Setiap sel Tidak punya dasarnya sendiri:
 
 - **Baris 1, hal 3:** Rekaman lab `little.txt` (lab t3-pool). Untuk push yang menjawab sesudah 0,3, 2, dan 10 detik, lama satu pembayaran sama dengan lama jawaban ditambah kurang dari 50 ms.
 - **Baris 2, hal 1:** Tidak dijalankan. Yang direkam hanya bahwa database bisa menolak COMMIT (`transaksi.txt` bagian D).
