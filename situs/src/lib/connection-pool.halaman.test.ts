@@ -272,6 +272,13 @@ describe("rekaman: m18.txt, adr22.txt, little.txt, ganda.txt dan rentang Snippet
     expect(rantai.baris[0]!.sub).toBe("bagian A dari m18.txt");
     harus("Di rekaman, tiap pembayaran yang menunggu push tampil sebagai satu sesi `idle in transaction` di `pg_stat_activity`, dan pembayaran ke-10 membuat jumlahnya 10:");
     expect(A.join("\n")).toContain("=> SELECT count(*) AS idle_in_transaction FROM pg_stat_activity WHERE application_name = 'api-t3' AND state = 'idle in transaction'");
+    // Rentang Snippet dari baris rekaman: sesi idle in transaction sampai pool penuh, lalu pembacaan sampai keadaan 30 detik.
+    const a1 = nomorBaris(m18, (b) => b.startsWith("=> SELECT count(*) AS idle_in_transaction"));
+    const a2 = nomorBaris(m18, (b) => b.startsWith("pool 10 penuh antara detik ke-"), a1);
+    const a3 = nomorBaris(m18, (b) => b.startsWith("# Pembacaan sebelum pool penuh"), a2);
+    const a4 = nomorBaris(m18, (b) => b.startsWith("# Sesudah 30 detik: 26 pembayaran dikirim"), a3);
+    harus(`<Snippet files={["labs/t3-pool/output/m18.txt:${a1 + 1}:${a2 + 1}", "labs/t3-pool/output/m18.txt:${a3 + 1}:${a4 + 1}"]}`);
+    expect([a1 + 1, a2 + 1, a3 + 1, a4 + 1]).toEqual([13, 19, 22, 24]);
   });
   test("C: client menyerah sesudah 5 detik, koneksi terpakai paling banyak 5 dari 10, jurnal 0, 26 permintaan tetap tertahan di layanan push", () => {
     const c = cocok(C, /^koneksi idle in transaction: puncak (\d+) dari (\d+) \(0,87 × (\d+) detik = (\d,\d+), jadi paling banyak (\d+)\)$/);
@@ -542,6 +549,13 @@ describe("ADR 22: opsi, aturan, diagram, dan kalimat", () => {
     expect(badan.indexOf("<Rantai")).toBeGreaterThan(badan.indexOf("## Inti"));
     expect(badan.indexOf("<Rantai")).toBeLessThan(badan.indexOf("Connection pool adalah sekumpulan koneksi"));
   });
+  test("pre-mortem 3: alert request yang menunggu koneksi ada di naskah on-call, dan /healthz api-t3 memakai koneksi database (PingContext)", () => {
+    expect(naskah).toContain("request yang menunggu koneksi");
+    const hz = mainGo.split('rute.HandleFunc("GET /healthz"')[1]!.split("})")[0]!;
+    expect(hz).toContain("db.PingContext(ctx)");
+    expect(hz).toContain("context.WithTimeout(req.Context(), time.Second)");
+    harus("Pencegahannya alert untuk request yang menunggu koneksi ([[t3-tim-infra]]) dan health check yang memakai koneksi database ([[t3-dua-instance]]).");
+  });
   test("Cek diri: empat kartu; hitungan kartu 2 dan 3 dari rumus dan rekaman; kode kartu 1 memakai http.Post tanpa client sendiri", () => {
     const cek = badan.split("### Cek diri")[1]!.split("### Saat me-review")[0]!;
     expect([...cek.matchAll(/^\*\*(\d)\.\*\*/gm)].map((m) => m[1])).toEqual(["1", "2", "3", "4"]);
@@ -736,7 +750,7 @@ const KALIMAT_PENULIS: string[] = [
   "[[t3-estimasi]]",
   "Cek diri",
   "**1.** AI menulis handler ini. Apa yang rusak, dan apa dua perbaikannya?",
-  "`http.Post` memakai `http.DefaultClient`, yang `Timeout`-nya nol, jadi panggilannya tanpa batas waktu. Selama push menunggu, transaction memegang satu koneksi dan lock buku. Perbaikan pertama: pindahkan push keluar dari transaction dengan menulis baris `outbox`. Perbaikan kedua: beri client `Timeout` eksplisit, mis. 3 detik.",
+  "`http.Post` memakai `http.DefaultClient`, yang `Timeout`-nya nol, jadi panggilannya tanpa batas waktu. Selama push menunggu, transaction memegang satu koneksi. Perbaikan pertama: pindahkan push keluar dari transaction dengan menulis baris `outbox`. Perbaikan kedua: beri client `Timeout` eksplisit, mis. 3 detik.",
   "**2.** Pool 10 koneksi, 0,868 pembayaran per detik, dan push menjawab sesudah 2 detik. Apakah pool muat? Hitung L.",
   "Muat. L = 0,868 × (0,02 + 2) = 1,75 koneksi, jauh di bawah 10. Rekaman `little.txt` mencatat koneksi terukur paling banyak 2, dan rata-ratanya cocok dalam 15% dengan hitungannya.",
   "**3.** Raka menaikkan pool ke 50 dan push tetap tidak menjawab. Kapan pool penuh, dan kenapa itu bukan perbaikan?",

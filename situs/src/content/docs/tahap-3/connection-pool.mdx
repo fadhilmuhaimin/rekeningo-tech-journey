@@ -268,7 +268,7 @@ return tx.Commit()
 <details class="success">
 <summary>Jawaban</summary>
 
-`http.Post` memakai `http.DefaultClient`, yang `Timeout`-nya nol, jadi panggilannya tanpa batas waktu. Selama push menunggu, transaction memegang satu koneksi dan lock buku. Perbaikan pertama: pindahkan push keluar dari transaction dengan menulis baris `outbox`. Perbaikan kedua: beri client `Timeout` eksplisit, mis. 3 detik.
+`http.Post` memakai `http.DefaultClient`, yang `Timeout`-nya nol, jadi panggilannya tanpa batas waktu. Selama push menunggu, transaction memegang satu koneksi. Perbaikan pertama: pindahkan push keluar dari transaction dengan menulis baris `outbox`. Perbaikan kedua: beri client `Timeout` eksplisit, mis. 3 detik.
 
 </details>
 
