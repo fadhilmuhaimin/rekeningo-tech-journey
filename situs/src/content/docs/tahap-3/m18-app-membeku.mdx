@@ -55,7 +55,7 @@ Masukan beban adalah Asumsi dari naskah, dengan faktor puncak 10. Lab membulatka
 - Puncak request: 10.000 user × 25% aktif × 60 request = 150.000 per hari, ÷ 86.400 × 10 = 17,36 per detik. Lab menjadwalkan 17,4.
 - Pembayaran: 10.000 × 25% × 3 transaksi = 7.500 per hari, ÷ 86.400 × 10 = 0,868 per detik. Lab menjadwalkan 0,87.
 
-Beban datang dengan jadwal tetap, bukan acak, dan tiap request ke-20 adalah pembayaran. Sisanya pembacaan saldo. Pembayar, warung, dan pembaca selalu berbeda, jadi tidak ada rebutan lock buku. Di lab, pembayaran menunggu sampai 300 detik dan pembacaan menyerah sesudah 3 detik.
+Beban datang dengan jadwal tetap, bukan acak, dan tiap request ke-20 adalah pembayaran. Sisanya pembacaan saldo. Tiap pembayaran memakai pembayar dan warung yang belum dipakai pembayaran lain, dan pembacaan saldo hanya membaca tanpa lock, jadi tidak ada rebutan lock buku. Di lab, pembayaran menunggu sampai 300 detik dan pembacaan menyerah sesudah 3 detik.
 
 **Kenapa pembayaran menunggu layanan push.** Di minggu 1, Nadia dan Raka mengirim push di dalam transaction jurnal, sebelum COMMIT, dengan client HTTP bawaan Go ([[t3-dua-tempat]]). Mode rentan `push-dalam-tx` di lab menuliskan ulang susunan itu:
 
@@ -83,9 +83,9 @@ Tabel ini merangkum tiga keadaan. Masukannya satu: λ = 0,868 pembayaran per det
 |---|---|---|
 | Pool 10, app terus menunggu | 10 ÷ 0,868 = ±11,5 detik | penuh antara detik ke-11 dan ke-12 |
 | Pool 50, app terus menunggu | 50 ÷ 0,868 = ±57,6 detik | penuh antara detik ke-57 dan ke-58 |
-| Pool 10, app menyerah sesudah T detik | penuh hanya bila T > 9 ÷ 0,868 = ±10,4 detik | T = 5: paling banyak 5 koneksi terpakai |
+| Pool 10, app menyerah sesudah T detik | penuh hanya bila T > 9 ÷ 0,868 = ±10,4 detik | T = 5: paling banyak 5 koneksi ditahan |
 
-Ambang T datang dari jumlah koneksi yang terpakai pada satu saat. Tiap pembayaran melepas koneksinya T detik sesudah datang, jadi paling banyak ⌈0,868 × T⌉ koneksi terpakai. Pool 10 hanya penuh bila nilai itu mencapai 10, yaitu bila T lebih dari 9 ÷ 0,868 = ±10,4 detik. Lab dengan λ = 0,87 menghitung 10,34.
+Ambang T datang dari jumlah koneksi yang ditahan pembayaran pada satu saat. Tiap pembayaran melepas koneksinya T detik sesudah datang, jadi paling banyak ⌈0,868 × T⌉ koneksi ditahan. Pool 10 hanya penuh bila nilai itu mencapai 10, yaitu bila T lebih dari 9 ÷ 0,868 = ±10,4 detik. Lab dengan λ = 0,87 menghitung 10,34.
 
 Ambang itu tidak direkam: rekaman hanya mencoba T = 5.
 
@@ -103,7 +103,7 @@ Pool 50 menunda pembekuan dari ±11,5 ke ±57,6 detik, dan 50 koneksi ke Postgre
 
 **App yang menyerah melindungi pool, bukan server.** Pool 10 hanya penuh bila app menunggu lebih dari ±10,4 detik. Dengan batas waktu 30 detik (Asumsi), app Budi menunggu jauh melewati ambang itu. Layar mulai berputar ±11,5 detik sesudah beban mulai, dan tombol yang ditekan sesudahnya menulis "timeout" sekitar 30 detik kemudian.
 
-Bagian C mengubah satu hal: app menyerah sesudah 5 detik dan memutus koneksinya. Koneksi terpakai paling banyak 5 dari 10, pool tidak penuh, dan 380 dari 380 pembacaan dijawab dengan 200:
+Bagian C mengubah satu hal: app menyerah sesudah 5 detik dan memutus koneksinya. Koneksi yang ditahan (`idle in transaction`) mencapai puncak 5 dari 10, pool tidak penuh, dan 380 dari 380 pembacaan dijawab dengan 200:
 
 <Snippet file="labs/t3-pool/output/m18.txt" lines="56:66" title="Rekaman lab: labs/t3-pool/output/m18.txt, bagian C (app menyerah sesudah 5 detik)" />
 
@@ -147,7 +147,7 @@ Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: Budi
 <Blok nama="Konsep yang lahir">
 
 - [[t3-pool]]: connection pool, Little's Law, dan timeout. Lama satu panggilan, bukan banyaknya pembayaran, yang membuat pool penuh. ADR 22 menetapkan panggilan keluar di luar transaction, timeout 3 detik di setiap client yang memanggil layanan luar, dan pool yang tidak dinaikkan.
-- [[t3-observability]]: log, metric, dan trace. Selama pembekuan log server kosong, dan satu transaction yang menunggu hanya terlihat dari PostgreSQL.
+- [[t3-observability]]: log, metric, dan trace. Selama pembekuan log server kosong, metric pool hanya menunjukkan jumlah koneksi yang dipakai, dan hanya PostgreSQL yang menunjukkan transaction itu diam menunggu client.
 - [[t3-outbox]]: outbox transaksional dan worker. Pemberitahuan ditulis di transaction jurnal, lalu dikirim worker sesudah COMMIT, jadi layanan push yang diam tidak menahan koneksi.
 - [[t3-dua-tempat]]: susunan pertama yang memanggil push di dalam transaction, dan tiga hal yang harus selalu benar.
 

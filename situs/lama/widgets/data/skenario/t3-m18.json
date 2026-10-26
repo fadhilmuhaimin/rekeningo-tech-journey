@@ -103,7 +103,7 @@
       "ke": "app",
       "judul": "Budi tidak mendapat jawaban",
       "kirim": "(tidak ada jawaban)\nPembacaan sesudah pool penuh (request 201 sampai 400): 190 pembacaan: tanpa jawaban x190",
-      "jelas": "Server tidak mengirim jawaban apa pun, termasuk pesan galat. Di lab, 190 dari 190 pembacaan sesudah pool penuh tidak dijawab dalam 3 detik.",
+      "jelas": "Selama 3 detik tidak ada jawaban sama sekali dari server, termasuk pesan galat. Di lab, 190 dari 190 pembacaan sesudah pool penuh mengalaminya.",
       "nada": "warn",
       "layar": {
         "budi": {
@@ -143,7 +143,7 @@
         "ke": "db",
         "judul": "Transaction dibatalkan, koneksi kembali",
         "kirim": "koneksi idle in transaction: puncak 5 dari 10 (0,87 × 5 detik = 4,35, jadi paling banyak 5)",
-        "jelas": "Server membatalkan transaction saat app memutus, jadi koneksinya kembali ke pool. Pada satu saat paling banyak 5 koneksi terpakai, dan pool tidak penuh.",
+        "jelas": "Server membatalkan transaction saat app memutus, jadi koneksinya kembali ke pool. Pada satu saat paling banyak 5 koneksi ditahan, dan pool tidak penuh.",
         "nada": "good"
       },
       {

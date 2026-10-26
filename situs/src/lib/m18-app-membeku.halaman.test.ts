@@ -115,6 +115,7 @@ const batasBaca = cari(/^# Client pembacaan menyerah sesudah (\d+) detik\. Clien
 const jadwal = cari(/^# Beban dengan jadwal tetap, bukan acak: ([\d,]+) request per detik \(Asumsi naskah bagian 3\)\. Request ke-(\d+), ke-\d+, dan seterusnya adalah pembayaran \(([\d,]+) per detik, (\d+)%, Asumsi\)\.$/, A, "jadwal A");
 const penuhB = cari(/^pool 50 penuh antara detik ke-(\d+) dan ke-(\d+) sejak beban mulai \(hitungan 50 ÷ 0,87 = ([\d,]+)\)$/, B, "pool penuh B");
 const poolB = JSON.parse(cari(/^(\{"dipakai":50,"maks":50,"terbuka":50\})$/, B, "pool B")[1]!) as { dipakai: number };
+const b53 = cari(/^# Sesudah 61,6 detik: (\d+) pembayaran dikirim, (\d+) belum dijawab, (\d+) menggantung di layanan push, (\d+) menunggu koneksi\.$/, B, "61,6 detik B");
 const bacaSebelumB = cari(/^# Sebelum pool penuh tidak ada request yang gagal\. Pembacaan request 1 sampai 999: (\d+) pembacaan: 200 x(\d+)$/, B, "baca sebelum B");
 const bacaSesudahB = cari(/^# Sesudah pool penuh \(request 1001 sampai 1018\): (\d+) pembacaan: tanpa jawaban x(\d+)$/, B, "baca sesudah B");
 const batasC = cari(/^# Client pembacaan menyerah sesudah (\d+) detik\. Client pembayaran menyerah sesudah (\d+) detik \(HP yang menampilkan "timeout"\)\.$/, C, "batas C");
@@ -270,8 +271,22 @@ describe("m18-app-membeku.mdx: tiap angka turunan dari rekaman dan hitungan", ()
     harus(`- Pembayaran: ${titik(a3.user)} × ${a3.aktif}% × ${a3.trx} transaksi = ${titik(trxHari)} per hari, ÷ ${titik(86400)} × ${a3.puncak} = ${koma(lambda, 3)} per detik. Lab menjadwalkan ${jadwal[3]}.`);
     harus("Masukan beban adalah Asumsi dari naskah, dengan faktor puncak 10. Lab membulatkannya dengan selisih 0,2%:");
     harus(`tiap request ke-${jadwal[2]} adalah pembayaran. Sisanya pembacaan saldo.`);
-    harus("Pembayar, warung, dan pembaca selalu berbeda, jadi tidak ada rebutan lock buku.");
-    expect(A.some((b) => b.includes("Pembayar, warung, dan pembaca selalu berbeda: tidak ada rebutan lock buku."))).toBe(true);
+    harus("Tiap pembayaran memakai pembayar dan warung yang belum dipakai pembayaran lain, dan pembacaan saldo hanya membaca tanpa lock, jadi tidak ada rebutan lock buku.");
+    // Kalimat lab "pembayar, warung, dan pembaca selalu berbeda" lebih kuat dari kodenya (pembaca = sesi ke-k mod 64, bisa sama dengan pembayar);
+    // halaman hanya menulis yang dijamin kode: indeks pembayar dan warung tiap pembayaran berbeda selama pembayaran <= jumlah warung, dan pembacaan tanpa lock.
+    expect(A.some((b) => b.includes("tidak ada rebutan lock buku."))).toBe(true);
+    expect(bebanPy).toContain("token, _ = self.pembayar[(j - 1) % len(self.pembayar)]");
+    expect(bebanPy).toContain("ke = self.warung[(j - 1) % len(self.warung)]");
+    expect(bebanPy).toContain("token, akun = self.pembayar[k % len(self.pembayar)]");
+    const sesi = Number(umumPy.match(/def pasang\(args, mode_push="gantung", ms=0, tampil=None, sesi=(\d+)\)/)![1]);
+    const warungN = Number(umumPy.match(/b\.daftar_warung\(d\.sambung, (\d+)\)/)![1]);
+    expect([sesi, warungN]).toEqual([64, 60]);
+    expect(Math.max(Number(tigaPuluh[1]), Number(b53[1]))).toBeLessThanOrEqual(warungN);
+    for (const fn of [/func \(r Repo\) Akun\(ctx[^]*?\n}\n/, /func \(r Repo\) SesiAktif\(ctx[^]*?\n}\n/]) {
+      const f = repoGo.match(fn)![0];
+      expect(f).toContain("QueryRowContext");
+      expect(f).not.toMatch(/FOR (UPDATE|SHARE|NO KEY UPDATE|KEY SHARE)/);
+    }
     harus(`Di lab, pembayaran menunggu sampai ${batasBaca[2]} detik dan pembacaan menyerah sesudah ${batasBaca[1]} detik.`);
     harus("Beban datang dengan jadwal tetap, bukan acak");
   });
@@ -309,10 +324,10 @@ describe("m18-app-membeku.mdx: tiap angka turunan dari rekaman dan hitungan", ()
     expect(baris.map((b) => b.split("|").slice(1, -1).map((s) => s.trim()))).toEqual([
       ["Pool 10, app terus menunggu", `10 ÷ ${koma(lambda, 3)} = ±${koma(penuh10, 1)} detik`, `penuh antara detik ke-${penuhA[1]} dan ke-${penuhA[2]}`],
       ["Pool 50, app terus menunggu", `50 ÷ ${koma(lambda, 3)} = ±${koma(penuh50, 1)} detik`, `penuh antara detik ke-${penuhB[1]} dan ke-${penuhB[2]}`],
-      ["Pool 10, app menyerah sesudah T detik", `penuh hanya bila T > 9 ÷ ${koma(lambda, 3)} = ±${koma(ambang, 1)} detik`, `T = ${batasC[2]}: paling banyak ${puncakC[1]} koneksi terpakai`],
+      ["Pool 10, app menyerah sesudah T detik", `penuh hanya bila T > 9 ÷ ${koma(lambda, 3)} = ±${koma(ambang, 1)} detik`, `T = ${batasC[2]}: paling banyak ${puncakC[1]} koneksi ditahan`],
     ]);
-    harus("Ambang T datang dari jumlah koneksi yang terpakai pada satu saat.");
-    harus(`Tiap pembayaran melepas koneksinya T detik sesudah datang, jadi paling banyak ⌈${koma(lambda, 3)} × T⌉ koneksi terpakai.`);
+    harus("Ambang T datang dari jumlah koneksi yang ditahan pembayaran pada satu saat.");
+    harus(`Tiap pembayaran melepas koneksinya T detik sesudah datang, jadi paling banyak ⌈${koma(lambda, 3)} × T⌉ koneksi ditahan.`);
     harus(`yaitu bila T lebih dari 9 ÷ ${koma(lambda, 3)} = ±${koma(ambang, 1)} detik. Lab dengan λ = 0,87 menghitung ${koma(ambangLab, 2)}.`);
     harus(`Ambang itu tidak direkam: rekaman hanya mencoba T = ${batasC[2]}.`);
   });
@@ -333,7 +348,7 @@ describe("m18-app-membeku.mdx: tiap angka turunan dari rekaman dan hitungan", ()
     harus(`Pool 10 hanya penuh bila app menunggu lebih dari ±${koma(ambang, 1)} detik. Dengan batas waktu 30 detik (Asumsi), app Budi menunggu jauh melewati ambang itu.`);
     expect(30).toBeGreaterThan(ambang);
     harus(`Layar mulai berputar ±${koma(penuh10, 1)} detik sesudah beban mulai, dan tombol yang ditekan sesudahnya menulis "timeout" sekitar 30 detik kemudian.`);
-    harus(`Bagian C mengubah satu hal: app menyerah sesudah ${batasC[2]} detik dan memutus koneksinya. Koneksi terpakai paling banyak ${puncakC[1]} dari ${puncakC[2]}, pool tidak penuh, dan ${bacaC[1]} dari ${bacaC[2]} pembacaan dijawab dengan 200:`);
+    harus(`Bagian C mengubah satu hal: app menyerah sesudah ${batasC[2]} detik dan memutus koneksinya. Koneksi yang ditahan (\`idle in transaction\`) mencapai puncak ${puncakC[1]} dari ${puncakC[2]}, pool tidak penuh, dan ${bacaC[1]} dari ${bacaC[2]} pembacaan dijawab dengan 200:`);
     harus("Server membatalkan transaction saat request dibatalkan, jadi koneksinya kembali ke pool.");
     expect(C.some((b) => b.startsWith("# Transaction pembayaran dibatalkan saat konteks request batal, jadi koneksi kembali ke pool"))).toBe(true);
     harus(`Satu baris di rekaman itu tidak membuktikan pembatalan: jumlah jurnal bayar ${jurnalC[1]}. Layanan push tidak pernah menjawab, jadi transaction memang tidak pernah sampai COMMIT. Buktinya adalah puncak ${puncakC[1]} koneksi dan ${bacaC[1]} pembacaan yang dijawab.`);
@@ -375,7 +390,12 @@ describe("m18-app-membeku.mdx: tiap angka turunan dari rekaman dan hitungan", ()
     expect(m18naskah).toContain("ADR 22: panggilan keluar tidak pernah di dalam transaction; setiap client punya timeout 3 detik; pool tidak dinaikkan");
     harus("ADR 22 menetapkan panggilan keluar di luar transaction, timeout 3 detik di setiap client yang memanggil layanan luar, dan pool yang tidak dinaikkan.");
     harus("- [[t3-pool]]: connection pool, Little's Law, dan timeout. Lama satu panggilan, bukan banyaknya pembayaran, yang membuat pool penuh.");
-    harus("- [[t3-observability]]: log, metric, dan trace. Selama pembekuan log server kosong, dan satu transaction yang menunggu hanya terlihat dari PostgreSQL.");
+    harus("- [[t3-observability]]: log, metric, dan trace. Selama pembekuan log server kosong, metric pool hanya menunjukkan jumlah koneksi yang dipakai, dan hanya PostgreSQL yang menunjukkan transaction itu diam menunggu client.");
+    // Dasar kalimat: jejak.txt J memperlihatkan log kosong, metric DBStats ("dipakai" dan "terbuka" saja), dan pg_stat_activity (idle in transaction, ClientRead).
+    expect(JJ.some((b) => b.startsWith("# 2. Metric: kolom dipakai dan terbuka dari database/sql DBStats lewat GET /lab/pool."))).toBe(true);
+    expect(JJ).toContain('{"dipakai":1,"maks":10,"terbuka":1}');
+    expect(JJ.some((b) => /^ idle in transaction \| Client\s+\| ClientRead/.test(b))).toBe(true);
+    expect(JJ.some((b) => b.startsWith("# Dari luar proses, petunjuk itu satu-satunya: yang lambat bukan PostgreSQL."))).toBe(true);
     harus("- [[t3-outbox]]: outbox transaksional dan worker. Pemberitahuan ditulis di transaction jurnal, lalu dikirim worker sesudah COMMIT, jadi layanan push yang diam tidak menahan koneksi.");
     harus("- [[t3-dua-tempat]]: susunan pertama yang memanggil push di dalam transaction, dan tiga hal yang harus selalu benar.");
     expect(naskah).toContain("Pemberitahuan tidak mendahului uangnya.");
@@ -512,7 +532,7 @@ describe("Rantai t3-m18-pool-penuh: teks simpul dan sub dari rekaman", () => {
         sub: "pool 10",
         simpul: [
           ["App memutus pembayaran", `${bayarC[2]} dari ${bayarC[1]} tanpa jawaban`, "biasa"],
-          ["Koneksi kembali ke pool", `puncak ${puncakC[1]} dari ${puncakC[2]} terpakai`, "good"],
+          ["Koneksi kembali ke pool", `puncak ${puncakC[1]} dari ${puncakC[2]} ditahan`, "good"],
           ["Pembacaan saldo dijawab", `${bacaC[2]} dari ${bacaC[1]} dengan 200`, "good"],
         ],
       },
@@ -610,7 +630,7 @@ describe("skenario alur t3-m18.json: tiap langkah dari rekaman, kode, dan hitung
     expect(L[6]!.jelas).toBe(`Sepuluh dari sepuluh koneksi dipakai, dan tidak satu pun akan kembali selama layanan push diam. Request Budi menunggu.`);
     expect(poolA.dipakai).toBe(poolA.maks);
     expect(L[7]!.kirim).toBe(`(tidak ada jawaban)\nPembacaan sesudah pool penuh (request 201 sampai 400): ${bacaSesudah[1]} pembacaan: tanpa jawaban x${bacaSesudah[2]}`);
-    expect(L[7]!.jelas).toBe(`Server tidak mengirim jawaban apa pun, termasuk pesan galat. Di lab, ${bacaSesudah[2]} dari ${bacaSesudah[1]} pembacaan sesudah pool penuh tidak dijawab dalam ${batasBaca[1]} detik.`);
+    expect(L[7]!.jelas).toBe(`Selama ${batasBaca[1]} detik tidak ada jawaban sama sekali dari server, termasuk pesan galat. Di lab, ${bacaSesudah[2]} dari ${bacaSesudah[1]} pembacaan sesudah pool penuh mengalaminya.`);
     expect(L[8]!.kirim).toBe(tigaPuluh[0]!.replace(/^# /, ""));
     expect(L[8]!.jelas).toBe(`Hanya ${tigaPuluh[3]} pembayaran yang sampai ke layanan push. Sisanya mengantre di pool. Angka ${tigaPuluh[1]} hanya jadwal × waktu, karena tidak ada pembayaran yang selesai.`);
     expect(README_POOL).toContain("Angka 26 hanya jadwal × waktu, karena tidak ada pembayaran yang selesai");
@@ -627,7 +647,7 @@ describe("skenario alur t3-m18.json: tiap langkah dari rekaman, kode, dan hitung
     expect(V[0]!.kirim).toBe(`pembayaran request 1 sampai 400: ${bayarC[1]} pembayaran: tanpa jawaban x${bayarC[2]}`);
     expect(V[0]!.jelas).toBe(`App di HP berhenti menunggu sesudah ${batasC[2]} detik dan menampilkan "timeout". Jawaban pembayaran tidak pernah sampai: ${bayarC[2]} dari ${bayarC[1]} tanpa jawaban.`);
     expect(V[1]!.kirim).toBe(C.find((b) => b.startsWith("koneksi idle in transaction: puncak"))!);
-    expect(V[1]!.jelas).toBe(`Server membatalkan transaction saat app memutus, jadi koneksinya kembali ke pool. Pada satu saat paling banyak ${puncakC[5]} koneksi terpakai, dan pool tidak penuh.`);
+    expect(V[1]!.jelas).toBe(`Server membatalkan transaction saat app memutus, jadi koneksinya kembali ke pool. Pada satu saat paling banyak ${puncakC[5]} koneksi ditahan, dan pool tidak penuh.`);
     expect(V[2]!.kirim).toBe(`pembacaan request 1 sampai 400: ${bacaC[1]} pembacaan: 200 x${bacaC[2]}`);
     expect(V[2]!.jelas).toBe(`Pool punya koneksi bebas, jadi ${bacaC[2]} dari ${bacaC[1]} pembacaan dijawab dengan 200.`);
     expect(V[3]!.kirim).toBe(tahanC[0]!.replace(/^# /, ""));

@@ -28,7 +28,7 @@
       "sub": "pool 10",
       "simpul": [
         { "teks": "App memutus pembayaran", "sub": "20 dari 20 tanpa jawaban" },
-        { "teks": "Koneksi kembali ke pool", "sub": "puncak 5 dari 10 terpakai", "nada": "good" },
+        { "teks": "Koneksi kembali ke pool", "sub": "puncak 5 dari 10 ditahan", "nada": "good" },
         { "teks": "Pembacaan saldo dijawab", "sub": "380 dari 380 dengan 200", "nada": "good" }
       ]
     }
