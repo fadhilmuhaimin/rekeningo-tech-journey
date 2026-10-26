@@ -20,7 +20,7 @@
   "stack": {
     "go": {
       "label": "Tidak dijalankan",
-      "versi": "pgx v5.11.0 (R2-04)",
+      "versi": "pgx v5.11.0",
       "teks": "SQL batch yang sama dijalankan di dalam `pgx.Tx` per batch. Lab menjalankannya lewat Python (psycopg), dan rekamannya ada di `tiga-rilis.txt`; kode Go untuk backfill tidak dijalankan.",
       "dokumentasi": "https://pkg.go.dev/github.com/jackc/pgx/v5"
     },
