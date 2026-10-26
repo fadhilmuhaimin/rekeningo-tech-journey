@@ -80,7 +80,7 @@ Tokoh lama tetap:
 | P0 | Notifikasi saat menerima uang | Bayar, transfer, dan top-up memunculkan notifikasi di HP penerima, tidak pernah mendahului uangnya, tidak hilang tanpa terdeteksi. Bayar dan transfer: 95% dalam kurang dari 30 detik. Top-up massal tiap Senin boleh menyusul beberapa menit, karena 10.000 notifikasi sekaligus (M27) |
 | P0 | Katalog dan stok warung | Menu, harga, dan sisa porsi per warung; warung mengubah dari app atau dasbor; karyawan melihat per kota |
 | P0 | Dasbor web warung | Laporan penjualan harian, ekspor CSV, kelola menu; masuk dengan akun yang sama |
-| P0 | Tidak berhenti saat deploy | Deploy dan satu proses mati tidak terlihat oleh user; staging dan backup terjadwal |
+| P0 | Tidak berhenti saat deploy | Dua instance API, staging, backup terjadwal; satu proses mati tidak terlihat oleh user |
 | P1 | Promo dari HR | Potongan harga per kota dengan jam mulai dan selesai; tampil di katalog; pengumuman ke karyawan kota itu bila HR memilih |
 | P1 | Catatan pada pembayaran dan transfer | Maksimal 100 karakter; tampil di notifikasi dan di dasbor |
 | P1 | Mode offline di app warung | Ubah stok dan harga tanpa sinyal, tersinkron saat sinyal kembali; pembayaran tidak pernah offline |
