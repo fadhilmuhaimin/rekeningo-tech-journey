@@ -147,7 +147,7 @@
   "t": "ADR (Architecture Decision Record)",
   "d": "Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.",
   "b": "D5",
-  "n": "4.6 Template ADR",
+  "n": "Template ADR (versi lama)",
   "u": "/d-system-design/d5-adr/",
   "s": "istilah-adr",
   "h": null
@@ -219,7 +219,7 @@
   "t": "BFF (Backend for Frontend)",
   "d": "Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile.",
   "b": "B11.2",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "u": "/b-fondasi/b11-2-proxy-bff/",
   "s": "istilah-bff",
   "h": null
@@ -273,7 +273,7 @@
   "t": "Circuit breaker",
   "d": "Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda.",
   "b": "B11",
-  "n": "4.1 Integrasi pihak ketiga",
+  "n": "Integrasi pihak ketiga (versi lama)",
   "u": "/b-fondasi/b11-integrasi-pihak-ketiga/",
   "s": "istilah-circuit-breaker",
   "h": null
@@ -714,7 +714,7 @@
   "t": "Microservice",
   "d": "Gaya arsitektur yang memecah backend jadi beberapa service kecil yang di-deploy terpisah dan saling memanggil lewat jaringan.",
   "b": "B7.2",
-  "n": "4.5 Modular monolith",
+  "n": "Modular monolith (versi lama)",
   "u": "/b-fondasi/b7-2-batas-modul/",
   "s": "istilah-microservice",
   "h": null
@@ -732,7 +732,7 @@
   "t": "Modular monolith",
   "d": "Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.",
   "b": "B7.2",
-  "n": "4.5 Modular monolith",
+  "n": "Modular monolith (versi lama)",
   "u": "/b-fondasi/b7-2-batas-modul/",
   "s": "istilah-modular-monolith",
   "h": null
@@ -777,7 +777,7 @@
   "t": "OAuth 2.0",
   "d": "Standar untuk memberi aplikasi akses terbatas ke akun user di layanan lain tanpa memberikan password.",
   "b": "B5.2",
-  "n": "4.4 OAuth dan login sosial",
+  "n": "OAuth dan login sosial (versi lama)",
   "u": "/b-fondasi/b5-2-oauth-oidc/",
   "s": "istilah-oauth-2-0",
   "h": null
@@ -786,7 +786,7 @@
   "t": "Object storage",
   "d": "Layanan penyimpanan file besar per objek, diakses lewat HTTP, mis. layanan kompatibel S3.",
   "b": "B11.2",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "u": "/b-fondasi/b11-2-proxy-bff/",
   "s": "istilah-object-storage",
   "h": null
@@ -804,7 +804,7 @@
   "t": "OIDC (OpenID Connect)",
   "d": "Lapisan di atas OAuth 2.0 untuk login, yang memberi tahu aplikasi siapa user-nya.",
   "b": "B5.2",
-  "n": "4.4 OAuth dan login sosial",
+  "n": "OAuth dan login sosial (versi lama)",
   "u": "/b-fondasi/b5-2-oauth-oidc/",
   "s": "istilah-oidc",
   "h": null
@@ -903,7 +903,7 @@
   "t": "PKCE",
   "d": "Tambahan pada alur OAuth untuk app mobile yang mencegah authorization code dipakai oleh aplikasi lain.",
   "b": "B5.2",
-  "n": "4.4 OAuth dan login sosial",
+  "n": "OAuth dan login sosial (versi lama)",
   "u": "/b-fondasi/b5-2-oauth-oidc/",
   "s": "istilah-pkce",
   "h": null
@@ -957,7 +957,7 @@
   "t": "Proxy",
   "d": "Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.",
   "b": "B11.2",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "u": "/b-fondasi/b11-2-proxy-bff/",
   "s": "istilah-proxy",
   "h": null
@@ -1074,7 +1074,7 @@
   "t": "Reverse proxy",
   "d": "Server di depan aplikasi yang menerima request dari internet lalu meneruskannya, sambil mengurus hal bersama seperti TLS dan kompresi.",
   "b": "B11.2",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "u": "/b-fondasi/b11-2-proxy-bff/",
   "s": "istilah-reverse-proxy",
   "h": null
@@ -1110,7 +1110,7 @@
   "t": "Round trip",
   "d": "Satu kali bolak-balik request dan response antara app dan server. Di jaringan seluler, setiap round trip menambah latency.",
   "b": "B11.2",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "u": "/b-fondasi/b11-2-proxy-bff/",
   "s": "istilah-round-trip",
   "h": null
@@ -1218,7 +1218,7 @@
   "t": "Signed URL",
   "d": "URL berbatas waktu yang memberi akses langsung ke satu file di object storage.",
   "b": "B11.2",
-  "n": "4.2 Proxy dan BFF",
+  "n": "Proxy dan BFF (versi lama)",
   "u": "/b-fondasi/b11-2-proxy-bff/",
   "s": "istilah-signed-url",
   "h": null
@@ -1308,7 +1308,7 @@
   "t": "Timeout",
   "d": "Batas waktu menunggu sebelum sebuah panggilan dianggap gagal.",
   "b": "B11",
-  "n": "4.1 Integrasi pihak ketiga",
+  "n": "Integrasi pihak ketiga (versi lama)",
   "u": "/b-fondasi/b11-integrasi-pihak-ketiga/",
   "s": "istilah-timeout",
   "h": null
@@ -1389,7 +1389,7 @@
   "t": "Webhook",
   "d": "HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil.",
   "b": "B10.2",
-  "n": "4.3 Webhook dan outbox",
+  "n": "Webhook dan outbox (versi lama)",
   "u": "/b-fondasi/b10-2-webhook-outbox/",
   "s": "istilah-webhook",
   "h": null

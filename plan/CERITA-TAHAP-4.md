@@ -8,6 +8,8 @@ Ditinjau konsistensi pada 2026-10-26 (PR #379, keputusan 1205 dan 1206). ADR 34 
 
 Dari hitungan: M31 memakai lima percobaan (ADR 25), bukan enam, jadi 1,74 dari 4 worker. Ambang pool memakai dua bentuk M18 Tahap 3 (±17,3 dan ±15,5 detik). M33 memakai 28 hari, dan ambang 5 detik di ADR 34 diberi pembandingnya. Dari sumber: jadwal retry gateway dibatasi ke kode status yang diulang lima kali, dan kalimat otorisasi kartu mengikuti dokumentasinya.
 
+Dipangkas pada 2026-10-26 oleh tugas T4-siap (keputusan 1207 sampai 1209, usulan peninjau PR #379). Lab `t4-beban` dilipat ke `api-t4` sebagai target `make beban`, jadi M39 dan estimasi tidak punya lab sendiri, seperti M28 dan estimasi Tahap 3. Widget `W4-modul` diganti `banding` yang sudah ada. Lab `t4-infra` memakai OpenTofu dengan provider `random` dan `local`, bukan provider Docker. Hasilnya 11 lab dan dua widget baru (`W4-webhook`, `W4-breaker`). BFF terpisah tidak diubah di sini: pilihan draf 6 menunggu keputusan pemilik.
+
 ## Kenapa dokumen ini ada
 
 Naskah ini adalah source of truth Tahap 4, disimpan di repo sebagai `plan/CERITA-TAHAP-4.md`. Strukturnya sama dengan Tahap 2 dan 3: **PRD → fitur → pekerjaan teknis → inti teknis → masalah yang muncul pelan-pelan → konsep**. Halaman situs ditulis dari naskah ini. Penomoran melanjutkan Tahap 3: masalah M29 dan seterusnya (Tahap 3 berakhir di M28), ADR 34 dan seterusnya (Tahap 3 berakhir di ADR 33).
@@ -33,7 +35,7 @@ Tujuh pilihan berikut diambil tanpa bertanya, dengan opsi paling aman dan paling
 2. **Transaksi per user aktif per hari: 3.** Naskah Tahap 2 dan 3 memakai 3, registry `tahap[3].asumsi.trx` masih 2. Naskah ini mengikuti naskah sebelumnya, jadi ukuran data per tahun punya tiga besaran berlabel (bagian 3b). Koneksi database dihitung dengan semua suku Tahap 3 (instance × pool, worker, admin, reserved) ditambah pool pembayaran. Hasilnya 40, bukan 37 seperti di riset yang melewatkan satu suku.
 3. **Webhook ganda datang dari balasan yang hilang, bukan dari "dua kali dalam satu detik".** Gateway mengulang kiriman yang tidak dijawab 2xx dengan jeda menit (R4-08). Kasus M29 dan M30 memakai jadwal itu.
 4. **Tidak ada pool habis kedua.** ADR 22 sudah menutup pemicunya: panggilan keluar di luar transaction dengan timeout 3 detik. Pool pembayaran 10 koneksi penuh dalam 10 ÷ 0,579 = ±17,3 detik bila gateway tidak pernah menjawab dan client terus menunggu. Bila client menyerah sesudah T detik, pool penuh hanya bila T > 9 ÷ 0,579 = ±15,5 detik (bentuk ambang M18 Tahap 3). Keduanya hanya bila client gateway tanpa timeout memegang koneksi database (Hitungan, Asumsi). Pemicu M31 adalah queue dan jumlah percobaan, bukan pool.
-5. **Hosting terkelola tidak bisa direkam.** PostgreSQL terkelola, NAT cloud, dan secret manager penyedia hanya bisa dijelaskan. Lab memakai tiruan di Compose (PostgreSQL, SeaweedFS, OpenBao, OpenTofu dengan provider Docker, proxy keluar) dan menandai sisanya Tidak dijalankan atau Ilustrasi. VPS kedua tetap tidak dibuat: ADR 33 menunda, dan ADR 39 menjawab sebagian titik gagal tunggal dengan layanan terkelola (data dan secret, bukan ketersediaan app).
+5. **Hosting terkelola tidak bisa direkam.** PostgreSQL terkelola, NAT cloud, dan secret manager penyedia hanya bisa dijelaskan. Lab memakai tiruan di Compose (PostgreSQL, SeaweedFS, OpenBao, OpenTofu dengan provider `random` dan `local`, proxy keluar) dan menandai sisanya Tidak dijalankan atau Ilustrasi. VPS kedua tetap tidak dibuat: ADR 33 menunda, dan ADR 39 menjawab sebagian titik gagal tunggal dengan layanan terkelola (data dan secret, bukan ketersediaan app).
 6. **Login sosial, BFF terpisah, dan gRPC tidak jadi halaman.** Riset memasukkannya sebagai teknik, tetapi tidak ada fitur PRD v4 yang memaksanya. ADR 45 mencatat pemicunya. PROPOSAL "Enam tahap dalam satu tabel" menulis bentuk Tahap 4 sebagai "modular monolith + 1 service pembayaran + BFF". Naskah ini menunda BFF (R4-06: pola ini tidak cocok bila antarmuka memanggil hal yang sama). Pemilik memutuskan mana yang berlaku.
 7. **QR memakai standar publik tanpa nama skema nasional.** Cerita memakai "QR Rekeningo" dengan format yang mengikuti EMVCo (R4-27, R4-101). Parameter CRC belum dibaca dari PDF EMVCo (R4-101, [perlu verifikasi]).
 
@@ -53,7 +55,7 @@ Tahap 4 berangkat dari `api-t3` di akhir Tahap 3, bukan dari sistem yang sudah d
 - Idempotency-Key opsional di bayar, transfer, dan pesanan. App 1.0 dan 1.1 tanpa key tetap rentan terhadap M10.
 - Satu-satunya pihak ketiga di `api-t3` dan lab Tahap 3 adalah layanan push tiruan. Belum ada pihak ketiga yang menggerakkan uang atau menerima data pribadi.
 - Rate limit belum ada di `/perangkat`, `/pesanan`, `/promo`, dan `/sinkron` (README `api-t3`, bagian "Yang belum ada di lab ini"). Pendaftaran terbuka membuat celah itu relevan; PRD v4 mencatatnya sebagai risiko dan halaman 4.3 sebagai syarat.
-- Load test kapasitas (ADR 21 aturan 5) Tidak dijalankan di Tahap 3, dan M28 menulis kapasitas belum diukur. Tahap 4 menambah lab `t4-beban`.
+- Load test kapasitas (ADR 21 aturan 5) Tidak dijalankan di Tahap 3, dan M28 menulis kapasitas belum diukur. Tahap 4 menambah beban berjadwal di lab `api-t4` (target `make beban`).
 
 Tim tumbuh dari 4 menjadi 13 orang dalam tiga tim selama 12 minggu (Asumsi cerita): enam minggu pertama menerima engineer baru bertahap. **Tim Pembayaran** (5 orang, dipimpin Nadia) memegang gateway, top-up, rekonsiliasi, dan kartu. **Tim Merchant** (4 orang, dipimpin Wulan) memegang merchant luar, QR, katalog, dan dasbor web. **Tim Platform** (4 orang, dipimpin Bayu) memegang akun, identitas, outbox, infrastruktur, dan keamanan; Raka memegang paket inti app di dalamnya.
 
@@ -224,7 +226,7 @@ Dua kesimpulan dari tabel ini menentukan seluruh tahap. Pertama, beban 138,9 req
 
 Yang berbahaya dari pihak ketiga adalah **lama dan tidak pasti**, bukan banyak: Little's Law (R2-35) dan hasil yang tidak diketahui sesudah timeout. Kedua, yang tumbuh paling cepat bukan request tetapi file (365 GB per tahun lawan 10,95 GB posting) dan pekerjaan worker (6,5% menjadi 56%).
 
-Kapasitas satu server tetap belum terukur. Lab `t4-beban` memberi beban berjadwal 138,9 request per detik dan mengukur koneksi dan p95 di laptop lab. Itu bukan kapasitas produksi, dan kata "tidak sesak" di naskah ini berarti L kecil terhadap pool di laptop lab.
+Kapasitas satu server tetap belum terukur. Target `make beban` di lab `api-t4` memberi beban berjadwal 138,9 request per detik dan mengukur koneksi dan p95 di laptop lab. Itu bukan kapasitas produksi, dan kata "tidak sesak" di naskah ini berarti L kecil terhadap pool di laptop lab.
 
 ## 3b. Skema data: ERD dari Tahap 3 ke Tahap 4
 
@@ -477,7 +479,7 @@ Pola sama dengan Tahap 1 sampai 3. Gejala yang dilihat orang, lalu yang Raka, Na
 | M36 | 9 | Senin. Ratih meninjau merchant baru dan melihat kolom "pratinjau gambar" toko "Toko Andalan" berisi teks JSON dengan kata `penyimpanan-internal`, bukan gambar. Laras menemukan hal yang sama dalam security review (Ilustrasi). | Gambar rusak atau file CSV salah | Merchant luar mengimpor katalog dari CSV dengan kolom `gambar_url`, dan server mengunduh URL itu untuk membuat thumbnail. Pihak yang mencoba mengisi alamat di jaringan dalam (nama layanan penyimpanan objek di container). Server memintanya dengan hak jaringan dalam, dan pesan kesalahan menampilkan sebagian isi respons. Pemeriksaan teks atas URL ("tidak boleh mengandung localhost") dilewati dengan nama atau bentuk alamat lain, dan redirect dari alamat luar ke alamat dalam tidak diperiksa (R4-14) | **SSRF**; allowlist bila tujuan dikenal, validasi alamat saat dial (`Dialer.ControlContext`), redirect dimatikan, batas ukuran dan waktu; deny-list string hanya pilihan terakhir (R4-14) | ADR 41: satu fungsi unduh: hanya https; resolusi DNS lalu pemeriksaan alamat di `ControlContext`; redirect dimatikan; 2 MB dan 3 detik; pesan kesalahan tanpa isi respons |
 | M37 | 10 | Budi menerbitkan kartu virtual; saldonya Rp100.000. Ia membeli barang Rp80.000 di dua toko online dalam beberapa detik, dan keduanya disetujui. Esok harinya clearing kedua ditolak ledger karena saldo tidak boleh negatif, dan Pak Hadi menemukan Rp80.000 yang sudah disetujui kepada toko tanpa saldo yang menutupinya (Ilustrasi). | Bug di penerbit kartu | Handler otorisasi versi pertama memeriksa saldo lalu menjawab setuju tanpa menahan dana: cek-lalu-tulis seperti M9. Ledger menjaga saldo tidak negatif saat clearing, yang datang berjam-jam kemudian, padahal persetujuan sudah diberikan dan tidak bisa ditarik. Penerbit memberi tenggat 2 detik (tiruan lab mengikuti dokumentasi satu penerbit); bila jawaban terlambat, penerbit memutuskan menurut aturan timeout yang dipasang, bukan menurut Rekeningo (R4-100) | **Otorisasi lawan clearing**; dana tertahan sebagai jurnal di ledger; `lock_timeout` lebih pendek dari tenggat penerbit; reversal dan kedaluwarsa hold; kill switch dan rilis bertahap lewat feature flag (R4-100, R4-21, R4-22) | ADR 42: otorisasi menahan dana dalam satu transaction (jurnal ke akun dana tertahan), id penerbit unik, `lock_timeout` 1 detik; hold kedaluwarsa 7 hari (Asumsi); kill switch dan rilis bertahap 1%, 5%, 25%, 100% (Asumsi) |
 | M38 | 11 | Budi menerima pesan dari orang tak dikenal yang menyebut nama lengkap dan nomor identitasnya. Pak Hadi bertanya: siapa yang membuka data Budi dalam 30 hari terakhir? Tidak ada yang bisa menjawab (Ilustrasi). | Layanan verifikasi yang bocor; Ratih: "Kami hanya melihat data bila perlu" | Back office versi pertama memakai satu akun bersama untuk tim risk, dan log aplikasi biasa mencatat sebagian aksi tetapi tidak pembacaan file. Engineer membaca tabel `verifikasi` lewat role pemilik schema, yang melewati semua pembatasan dan tidak meninggalkan catatan. Bahkan bila log ada, baris log biasa bisa diubah atau dihapus oleh siapa pun yang punya akses tulis. Sumber pesan ke Budi tidak pernah dibuktikan. Yang terbukti: Rekeningo tidak bisa menjawab pertanyaan Pak Hadi, dan jawaban "tidak ada" sama nilainya dengan "tidak tahu" | **Insider**; peran dan persetujuan dua orang; **audit log append-only berantai hash**; jangkar hash di luar database; agen AI baca-saja (MCP) tanpa meneruskan token; data user sebagai input tak tepercaya bagi agen (R4-24, R4-26, R4-102) | ADR 43: peran `cs`, `risk`, `keuangan`, dan `admin-sistem`; ubah batas dan buka blokir butuh dua orang; audit log berantai dengan jangkar harian di luar database; akses langsung ke database hanya lewat role baca per modul dengan sesi tercatat; agen hanya baca |
-| M39 | 12 | Uji coba publik lolos: 100.000 user terdaftar, dan rekonsiliasi harian selisih Rp0 atau insiden tertutup dalam satu hari kerja selama 14 hari berturut-turut (target, Asumsi). Sinta datang dengan PRD v5: skala nasional, merchant massal, cicilan dan tabungan, laporan merchant real-time, notifikasi massal, API publik untuk POS (Ilustrasi). | Perlu server lebih besar, Kubernetes, atau satu service per modul | Puncak 138,9 request per detik (naik 8 kali), 6,94 transaksi uang per detik, worker notifikasi 56% terpakai (naik dari 6,5%), pengumuman ke 100.000 HP butuh 125 menit (semua Hitungan, Asumsi). Di lab `t4-beban`, koneksi dan p95 diukur di laptop; kapasitas produksi belum diukur. Yang belum pernah diuji: laporan merchant dan transaksi di satu database, satu worker untuk notifikasi massal, dan 13 orang menjadi 20 sampai 40 di satu repo (PROPOSAL, tahap 5) | Estimasi Tahap 4 → 5; **Tim 4** retrospektif | ADR 45 "Sengaja belum dilakukan": tanpa service per modul, Kubernetes, gRPC, read replica, BFF terpisah, login sosial |
+| M39 | 12 | Uji coba publik lolos: 100.000 user terdaftar, dan rekonsiliasi harian selisih Rp0 atau insiden tertutup dalam satu hari kerja selama 14 hari berturut-turut (target, Asumsi). Sinta datang dengan PRD v5: skala nasional, merchant massal, cicilan dan tabungan, laporan merchant real-time, notifikasi massal, API publik untuk POS (Ilustrasi). | Perlu server lebih besar, Kubernetes, atau satu service per modul | Puncak 138,9 request per detik (naik 8 kali), 6,94 transaksi uang per detik, worker notifikasi 56% terpakai (naik dari 6,5%), pengumuman ke 100.000 HP butuh 125 menit (semua Hitungan, Asumsi). Di lab `api-t4` (`make beban`), koneksi dan p95 diukur di laptop; kapasitas produksi belum diukur. Yang belum pernah diuji: laporan merchant dan transaksi di satu database, satu worker untuk notifikasi massal, dan 13 orang menjadi 20 sampai 40 di satu repo (PROPOSAL, tahap 5) | Estimasi Tahap 4 → 5; **Tim 4** retrospektif | ADR 45 "Sengaja belum dilakukan": tanpa service per modul, Kubernetes, gRPC, read replica, BFF terpisah, login sosial |
 
 Fitur PRD v4 yang memicu tiap masalah:
 
@@ -536,22 +538,21 @@ Naskah ini ditulis sebelum lab. Tabel berikut daftar pernyataan yang bisa gagal;
 | `t4-kartu` | Tanpa hold, dua otorisasi serentak (dengan jeda buatan di antara cek dan tulis) yang masing-masing di bawah saldo keduanya disetujui dan clearing kedua ditolak ledger; dengan hold, yang kedua ditolak. `id_penerbit` yang sama dua kali menghasilkan satu hold. `lock_timeout` membuat jawaban keluar dalam tenggat saat buku terkunci. Job kedaluwarsa dijalankan dua kali tidak melepas hold dua kali. Kill switch menolak otorisasi baru tanpa deploy | ADR 42 dan M37 diubah |
 | `t4-audit` | UPDATE pada baris tengah log biasa tidak terdeteksi; pada log berantai verifikasi gagal di baris itu. Menghapus ekor log berantai tidak terdeteksi tanpa jangkar luar dan terdeteksi dengan jangkar [perlu verifikasi]. Role aplikasi ditolak UPDATE dan DELETE. MCP server baca-saja tidak punya tool tulis dan tidak meneruskan token. Perilaku model terhadap isi catatan berisi instruksi Tidak dijalankan | ADR 43 dan M38 diubah |
 | `t4-pipeline` | oasdiff `breaking` mendeteksi perubahan enum dan penghapusan field; apakah ia mendeteksi parameter tingkat path (isu #1163) [perlu verifikasi]. Pindai grype atas SBOM syft menemukan satu kerentanan yang disiapkan (grype butuh basis data kerentanan yang diunduh sekali; versinya dicatat di rekaman). `cosign verify` gagal pada image tanpa tanda tangan atau yang ditandatangani lewat tag lalu berubah, dan berhasil pada digest | ADR 44 diubah |
-| `t4-beban` | Pada beban berjadwal 138,9 request per detik, koneksi terpakai tidak melewati pool dan p95 terukur (sebagai batas, bukan nilai tunggal). Kapasitas worker 4 ÷ 0,3 detik = 13,3 per detik terukur dalam 15% dan pengumuman ke 100.000 HP diskalakan lalu diekstrapolasi, bukan dijalankan | M39 dan estimasi diubah |
+| `api-t4` (`make beban`) | Pada beban berjadwal 138,9 request per detik, koneksi terpakai tidak melewati pool dan p95 terukur (sebagai batas, bukan nilai tunggal). Kapasitas worker 4 ÷ 0,3 detik = 13,3 per detik terukur dalam 15% dan pengumuman ke 100.000 HP diskalakan lalu diekstrapolasi, bukan dijalankan | M39 dan estimasi diubah |
 
 Lab yang dipakai. Semuanya baru atau naik dari lab lama; `b10-2-webhook`, `b11-integrasi`, `b11-2-proxy`, `b7-2-modul`, dan `b5-2-oidc` hanya bahan, bukan dasar angka (skema lama).
 
-- `api-t4`: api-t3 naik dengan modul pembayaran, top-up bank, verifikasi, merchant luar, QR, kartu, dan audit; lab utama dan sumber ERD.
+- `api-t4`: api-t3 naik dengan modul pembayaran, top-up bank, verifikasi, merchant luar, QR, kartu, dan audit; lab utama dan sumber ERD. Target `make beban` menjalankan generator beban berjadwal untuk koneksi dan p95.
 - `t4-webhook`: gateway tiruan dengan webhook ganda, terlambat, tidak berurutan, palsu, dan hilang; cek status, laporan settlement, dan rekonsiliasi.
 - `t4-integrasi`: layanan verifikasi tiruan yang mati, lambat, dan setengah menjawab; retry, breaker, dan lajur queue.
 - `t4-modul`: batas modul, schema dan role per modul, service pembayaran memanggil ledger.
 - `t4-storage`: file di `bytea` lawan penyimpanan objek, presigned URL, checksum.
-- `t4-infra`: proxy keluar bertetap, OpenBao mode dev, OpenTofu dengan provider Docker, state.
+- `t4-infra`: proxy keluar bertetap, OpenBao mode dev, OpenTofu dengan provider `random` dan `local`, state.
 - `t4-qr`: payload QR dengan CRC, statis lawan dinamis, penggantian QR.
 - `t4-ssrf`: fetcher gambar rentan lawan aman.
 - `t4-kartu`: penerbit kartu tiruan: otorisasi, clearing, reversal, hold, dan feature flag.
 - `t4-audit`: audit log berantai, role, dan MCP server baca-saja.
 - `t4-pipeline`: oasdiff, SBOM, pindai, dan tanda tangan image.
-- `t4-beban`: generator beban berjadwal untuk koneksi dan p95.
 
 ## 5. Yang dibawa pembaca keluar dari Tahap 4
 
@@ -613,7 +614,7 @@ Jenis halaman sama dengan Tahap 1 sampai 3. Halaman lama Tahap 4 dipakai ulang i
 | 4.10 | 4 | M31: 146 pendaftar tertahan "Sedang diverifikasi" | Masalah | ★ | t4-integrasi | alur |
 | 4.11 | 4 | Timeout, retry berkunci, circuit breaker, lajur per vendor + ADR 36 | Konsep + ADR | ★ | t4-integrasi | W4-breaker |
 | 4.12 | 4 | M32: Rilis Kamis memecahkan top-up | Masalah | ★ | t4-modul | alur |
-| 4.13 | 4 | Modular monolith, CODEOWNERS, ADR wajib + ADR 37 | Konsep + ADR | ★ | t4-modul | W4-modul |
+| 4.13 | 4 | Modular monolith, CODEOWNERS, ADR wajib + ADR 37 | Konsep + ADR | ★ | t4-modul | banding |
 | 4.14 | 4 | M33: Uji pulih mingguan makin lama | Masalah | ★ | t4-storage | alur |
 | 4.15 | 4 | Keamanan 7: File identitas: object storage, presigned URL + ADR 38 | Keamanan + ADR | ★ | t4-storage | banding |
 | 4.16 | 4 | M34: Semua verifikasi ditolak sesudah pindah hosting | Masalah | ★ | t4-infra | alur |
@@ -627,17 +628,17 @@ Jenis halaman sama dengan Tahap 1 sampai 3. Halaman lama Tahap 4 dipakai ulang i
 | 4.24 | 4 | M38: Siapa yang membuka data Budi? | Masalah | ★ | t4-audit | alur |
 | 4.25 | 4 | Keamanan 9: Back office, audit log berantai, agen baca-saja + ADR 43 | Keamanan + ADR | ★ | t4-audit | banding |
 | 4.26 | 4 | Tim dan infra Tahap 4: pipeline per modul, supply chain, rilis bertahap + ADR 44 | Tim dan infra | ★ | api-t4, t4-pipeline | pilah |
-| 4.27 | 4 | M39: Uji coba publik lolos, PRD v5 datang | Masalah | ★ | t4-beban | kalkulator |
-| 4.28 | 4 | Estimasi Tahap 4 → 5 | Konsep | ★ | t4-beban | kalkulator |
+| 4.27 | 4 | M39: Uji coba publik lolos, PRD v5 datang | Masalah | ★ | – | kalkulator |
+| 4.28 | 4 | Estimasi Tahap 4 → 5 | Konsep | ★ | – | kalkulator |
 | 4.29 | 4 | ADR 45: Sengaja belum dilakukan | ADR | ★ | – | – |
 | 4.30 | 5 | Yang dibawa keluar dari Tahap 4 | Konsep | ★ | – | kartu |
 | 4.31 | 6 | Jembatan: pratinjau PRD v5 | PRD | ★ | – | tebak |
 
-Widget bertanda W4 adalah widget baru (tugas `W4-webhook`, `W4-breaker`, `W4-modul`); widget lain sudah ada atau diturunkan dari yang ada.
+Widget bertanda W4 adalah widget baru (tugas `W4-webhook` dan `W4-breaker`); widget lain sudah ada atau diturunkan dari yang ada.
 
 - `W4-webhook` memakai tiga kejadian bagian 3 (ganda, terlambat, hilang) dan jadwal retry tiruan.
 - `W4-breaker` memakai bawaan breaker dari ADR 36 dan laju verifikasi 0,116 per detik.
-- `W4-modul` memakai pembagian modul dan schema di bagian 3b.
+- Halaman 4.13 memakai `banding`: batas yang hanya tertulis di dokumen lawan batas yang dijaga compiler dan database. Pembagian modul dan schema di bagian 3b memakai diagram arsitektur.
 - Halaman 4.5 memakai widget **ERD bertumbuh** yang sama dengan 1.12, 2.9, dan 3.5, dengan Tahap 3 dan 4 berdampingan.
 
 Jalur per peran:

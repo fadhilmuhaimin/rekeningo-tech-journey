@@ -112,6 +112,7 @@ const HARI = Number(rumus[2]);
 const BYTE_POSTING = Number(rumus[3]);
 const TRX_LEDGER = Number(naskah.match(/Transaksi uang (\d+) per user aktif per hari/)![1]);
 const BYTE_BARIS = asumsi(3).baris;
+const TIM_T4_HALAMAN = "6–10 developer dalam 2 tim"; // kalimat halaman 3.5 (naskah lama); lihat catatan T4-siap di bawah
 function tahunData(no: number) {
   const a = asumsi(no);
   const aktif = (a.user * a.aktif) / 100;
@@ -891,10 +892,12 @@ describe("blok Putuskan dan Kunci", () => {
     expect(rekamanLab.length).toBeGreaterThan(50);
     expect(rekamanLab.filter((f) => /5\.?475\.?000/.test(baca(f)))).toEqual([]);
     expect(blokPutuskan).toContain(`| Menghapus data pribadi dari \`jurnal.keterangan\` | Jurnal tidak bisa dihapus: DELETE ditolak untuk role aplikasi (SQLSTATE ${sqlstateSetelah(skemaD, "DELETE FROM jurnal WHERE id = 1")}), sedangkan catatan user kini ikut masuk ke \`keterangan\` | Belum dijadwalkan ([[t2-adr-ledger]]) |`);
-    expect(blokPutuskan).toContain(`| Memisah tabel per modul (schema) | ${erd3.tabel.length} tabel masih dikerjakan satu tim ${asumsi(3).tim} | Tahap 4, saat tabel diperkirakan ±22 dan tim ${asumsi(4).tim.replace(", 2 tim", " dalam 2 tim")} |`);
+    expect(blokPutuskan).toContain(`| Memisah tabel per modul (schema) | ${erd3.tabel.length} tabel masih dikerjakan satu tim ${asumsi(3).tim} | Tahap 4, saat tabel diperkirakan ±22 dan tim ${TIM_T4_HALAMAN} |`);
     expect(bagian3b).toContain("| 4 | 100.000 | ±22, dibagi per modul |");
     expect(asumsi(3).tim).toBe("4 developer");
-    expect(asumsi(4).tim).toBe("6–10 developer, 2 tim");
+    // T4-siap (keputusan 1208) memindahkan registry dan naskah Tahap 4 ke 13 developer dalam tiga tim; halaman 3.5 belum diubah
+    // dan KONSISTENSI-4 memperbaikinya, lalu TIM_T4_HALAMAN dan baris ini mengikuti.
+    expect(asumsi(4).tim).toBe("13 developer, 3 tim");
   });
   test("Cek diri: lima kartu, jawaban memakai nilai turunan, dan kartu ulang digenerate dari pertanyaan yang sama", () => {
     const pertanyaan = [...blokKunci.matchAll(/^\*\*(\d)\.\*\* (.+)$/gm)].map((m) => [m[1], m[2]]);

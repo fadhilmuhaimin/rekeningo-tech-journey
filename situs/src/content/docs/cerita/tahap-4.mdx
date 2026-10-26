@@ -4,7 +4,7 @@ title: "Tahap 4 · Integrasi pihak ketiga"
 import WidgetLama from "../../../components/WidgetLama.astro";
 import SkripLama from "../../../components/SkripLama.astro";
 
-<p class="meta">Baca 5 menit · Halaman tahap · Jalur inti</p>
+<p class="meta">Baca 5 menit · Halaman tahap</p>
 
 ## Inti
 
@@ -18,7 +18,7 @@ Sinta bekerja sama dengan sebuah payment gateway untuk top-up. Gateway itu kadan
 
 Untuk saldo besar, Rekeningo harus memverifikasi identitas lewat layanan pihak ketiga. Layanan itu hanya menerima request dari IP yang didaftarkan. Ini asumsi cerita, bukan klaim regulasi.
 
-Foto produk dan bukti pembayaran mulai menumpuk di server. Tim kini delapan orang dalam dua tim, dan keduanya sering bentrok saat deploy monolith yang sama.
+Foto produk dan bukti pembayaran mulai menumpuk di server. Tim kini 13 orang dalam tiga tim, dan ketiganya sering bentrok di satu codebase dan satu skema.
 
 ## Angka di tahap ini
 
@@ -28,7 +28,7 @@ Foto produk dan bukti pembayaran mulai menumpuk di server. Tim kini delapan oran
 | User aktif harian (DAU) | 20.000 | 100.000 × 20% (asumsi) |
 | Request per hari | 1,2 juta | 20.000 × 60 request (asumsi) |
 | Puncak request per detik | ±140 | 1,2 juta ÷ 86.400 × 10 (asumsi) |
-| Data transaksi per tahun | ±4,4 GB | 20.000 × 2 transaksi × 365 × 300 B (asumsi) |
+| Data transaksi per tahun | ±6,6 GB | 20.000 × 3 transaksi × 365 × 300 B (asumsi) |
 | File per tahun | ±365 GB | 2.000 upload per hari × 500 KB × 365 (asumsi) |
 
 Angka file jauh lebih besar dari data transaksi. Karena itu file disimpan di object storage, bukan di database.
@@ -48,12 +48,43 @@ Memecah service menambah deploy, monitoring, dan panggilan jaringan yang bisa ga
 {/* daftar-tahap */}
 | Masalah | Halaman |
 |---|---|
-| Payment gateway lambat, request ikut menggantung | [4.1 Integrasi pihak ketiga](/b-fondasi/b11-integrasi-pihak-ketiga/) |
-| Layanan luar hanya menerima IP terdaftar; layar beranda butuh 5 request | [4.2 Proxy dan BFF](/b-fondasi/b11-2-proxy-bff/) |
-| Webhook dikirim dua kali; saldo bertambah dua kali | [4.3 Webhook dan outbox](/b-fondasi/b10-2-webhook-outbox/) |
-| Ingin login dengan akun lain milik user (login sosial) | [4.4 OAuth dan login sosial](/b-fondasi/b5-2-oauth-oidc/) |
-| Dua tim bentrok di satu codebase | [4.5 Modular monolith](/b-fondasi/b7-2-batas-modul/) |
-| Keputusan desain lupa alasannya | [4.6 Template ADR](/d-system-design/d5-adr/) |
+| Orang di luar Lestari ingin mengisi saldo dari bank, dikenali, dan membayar di toko luar kampus, dan tiga pertanyaan belum pernah diuji | 4.1 PRD v4: Rekeningo dibuka ke publik · *segera* |
+| Dari PRD v4, apa yang berubah di app, backend, dan database? | 4.2 Dari fitur ke pekerjaan teknis v4 · *segera* |
+| Saldo Budi naik karena kabar dari gateway, dan pendaftar baru dikenali lewat layanan verifikasi di luar Rekeningo | 4.3 Fitur: top-up dari bank dan verifikasi identitas · *segera* |
+| Kabar dari luar adalah klaim, bukan fakta: gateway bisa mengirim dua kali, terlambat, palsu, atau tidak sama sekali | 4.4 Dua arah ke pihak ketiga: dipanggil masuk, memanggil keluar · *segera* |
+| Tabel mana yang lahir, berubah, dan dibagi per modul saat gateway, verifikasi, QR, dan kartu masuk? | 4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya · *segera* |
+| Saldo Budi naik dua kali untuk satu pembayaran di bank karena gateway mengulang kiriman yang balasannya hilang | 4.6 M29: Top-up Budi masuk dua kali · *segera* |
+| Kiriman dari gateway diperiksa tanda tangannya atas byte mentah, dicatat satu kali, dan tidak boleh memundurkan status | 4.7 Webhook masuk: tanda tangan, event ganda, urutan + ADR 34 · *segera* |
+| Citra sudah membayar Rp500.000 dari rekening banknya, tetapi saldo di app tidak naik sampai Minggu pagi | 4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong · *segera* |
+| Kalau satu-satunya jalan kabar putus, jalan kedua harus sudah ada, dan selisih menjadi insiden bernomor, bukan angka yang dikoreksi dengan tangan | 4.9 Rekonsiliasi dengan gateway + ADR 35 · *segera* |
+| Pendaftar baru berstatus Verifikasi gagal padahal fotonya jelas, karena layanan verifikasi mati dan semua percobaan habis | 4.10 M31: 146 pendaftar tertahan "Sedang diverifikasi" · *segera* |
+| Vendor yang lambat atau mati tidak boleh menghabiskan percobaan pekerjaan yang tidak bersalah atau menahan pembayaran | 4.11 Timeout, retry berkunci, circuit breaker, lajur per vendor + ADR 36 · *segera* |
+| Rilis tim Merchant mengganti nama kolom dan memecahkan top-up, padahal tes tim Pembayaran lolos | 4.12 M32: Rilis Kamis memecahkan top-up · *segera* |
+| Tiga tim di satu codebase dan satu skema butuh batas yang dijaga compiler dan database, bukan ingatan | 4.13 Modular monolith, CODEOWNERS, ADR wajib + ADR 37 · *segera* |
+| Uji pulih mingguan makin lama karena foto kartu identitas disimpan di kolom bytea dan ikut backup | 4.14 M33: Uji pulih mingguan makin lama · *segera* |
+| File identitas disimpan di object storage, diunggah lewat presigned URL, dan diunduh hanya lewat server yang mencatat audit | 4.15 Keamanan 7: File identitas: object storage, presigned URL + ADR 38 · *segera* |
+| Semua verifikasi ditolak 403 sesudah pindah hosting karena alamat keluar berubah dan belum didaftarkan | 4.16 M34: Semua verifikasi ditolak sesudah pindah hosting · *segera* |
+| Pindahan membawa yang tidak tertulis: alamat keluar, secret, dan state IaC yang memuat nilai secret | 4.17 Secret manager, IaC, alamat keluar tetap + ADR 39 · *segera* |
+| Stiker QR di kasir Bu Marni diganti pihak lain, dan tiga pembayaran pelanggan tidak masuk laporannya | 4.18 M35: QR di kasir Bu Marni · *segera* |
+| CRC pada QR mendeteksi salah baca, bukan penggantian; yang menjaga pembeli adalah nama merchant terverifikasi dan QR dinamis | 4.19 QR pembayaran: statis, dinamis, konfirmasi + ADR 40 · *segera* |
+| Pratinjau gambar toko berisi teks JSON dari layanan dalam karena server mengunduh URL yang diisi merchant | 4.20 M36: Pratinjau gambar yang berisi JSON · *segera* |
+| Server yang mengambil URL dari user mengambil atas nama server, jadi alamat tujuan diperiksa saat dial, bukan lewat string | 4.21 Keamanan 8: SSRF + ADR 41 · *segera* |
+| Kartu virtual Budi disetujui dua kali dengan satu saldo karena otorisasi tidak menahan dana | 4.22 M37: Kartu virtual disetujui dua kali dengan satu saldo · *segera* |
+| Persetujuan tidak bisa ditarik, jadi dana ditahan sebagai jurnal sebelum menjawab setuju | 4.23 Kartu virtual: otorisasi, dana tertahan, kill switch + ADR 42 · *segera* |
+| Tidak ada yang bisa menjawab siapa yang membuka data identitas Budi dalam 30 hari terakhir | 4.24 M38: Siapa yang membuka data Budi? · *segera* |
+| Jawaban tidak ada sama nilainya dengan tidak tahu, kecuali ada peran, persetujuan dua orang, dan audit log berantai | 4.25 Keamanan 9: Back office, audit log berantai, agen baca-saja + ADR 43 · *segera* |
+| Tiga tim, 13 engineer, dan uang publik: pipeline per modul, supply chain, rilis bertahap, dan giliran jaga belum ada | 4.26 Tim dan infra Tahap 4: pipeline per modul, supply chain, rilis bertahap + ADR 44 · *segera* |
+| Uji coba publik lolos, lalu PRD v5 datang dengan skala nasional, padahal kapasitas satu server belum terukur | 4.27 M39: Uji coba publik lolos, PRD v5 datang · *segera* |
+| Menghitung beban Tahap 5 dari angka Tahap 4 sebelum memilih komponen | 4.28 Estimasi Tahap 4 → 5 · *segera* |
+| Tergoda memecah semua modul jadi service, memakai Kubernetes, gRPC, dan read replica sebelum angkanya meminta | 4.29 ADR 45: Sengaja belum dilakukan · *segera* |
+| Mengingat tiga belas konsep Tahap 4 dalam satu kalimat masing-masing | 4.30 Yang dibawa keluar dari Tahap 4 · *segera* |
+| Keputusan Tahap 4 mana yang pecah lebih dulu saat PRD v5 datang? | 4.31 Jembatan: pratinjau PRD v5 · *segera* |
+| Payment gateway lambat, request ikut menggantung | [Integrasi pihak ketiga](/b-fondasi/b11-integrasi-pihak-ketiga/) |
+| Layanan luar hanya menerima IP terdaftar; layar beranda butuh 5 request | [Proxy dan BFF](/b-fondasi/b11-2-proxy-bff/) |
+| Webhook dikirim dua kali; saldo bertambah dua kali | [Webhook dan outbox](/b-fondasi/b10-2-webhook-outbox/) |
+| Ingin login dengan akun lain milik user (login sosial) | [OAuth dan login sosial](/b-fondasi/b5-2-oauth-oidc/) |
+| Dua tim bentrok di satu codebase | [Modular monolith](/b-fondasi/b7-2-batas-modul/) |
+| Keputusan desain lupa alasannya | [Template ADR](/d-system-design/d5-adr/) |
 {/* /daftar-tahap */}
 
 ## Sengaja belum dilakukan
