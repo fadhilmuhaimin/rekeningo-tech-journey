@@ -353,6 +353,9 @@ describe("rekaman proxy.txt, panic.txt, bergulir.txt, batas.txt: angka halaman d
     expect(proxyTeks).not.toMatch(/POST.*terputus/);
     harus("POST yang sudah diterima instance lalu terputus di tengah tidak direkam, jadi Tidak dijalankan.");
     harus("Retry hanya mengulang GET yang terputus sesudah tersambung.");
+    // Temuan lab: versi pertama keluar dari main begitu ListenAndServe kembali (README lab), dan main sekarang menunggu
+    expect(readmeLab).toContain("versi pertama keluar dari `main` begitu `ListenAndServe` kembali");
+    harus("Versi pertama lab keluar dari `main` begitu `ListenAndServe` kembali, dan itu memutus request yang sedang jalan.");
   });
   test("panic D: satu kematian tertahan, dua tidak, 503 bukan 502; E: versi benar tidak mematikan instance; semua rekaman D memakai proxy aktif-retry", () => {
     const d = pnD.join("\n");
@@ -560,7 +563,7 @@ describe("sumber dan versi: baris RISET, halaman istilah, tab stack, tabel proxy
     harus("[Serverpod: Health checks](https://docs.serverpod.dev/concepts/operations/health-checks) (dokumentasi bertanda 4.0.0; Serverpod 4.0.4)");
     harus("[Caddy 2.11.7: reverse_proxy]");
     harus("Kamal 2.12.0");
-    expect(istilah.sumber!.map((s) => ("riset" in s ? s.riset : null))).toEqual(["R3-170", "R3-170", "R3-173", "R3-137", "R3-174"]);
+    expect(istilah.sumber!.map((s) => ("riset" in s ? s.riset : null))).toEqual(["R3-170", "R3-170", "R3-173", "R3-173", "R3-174"]);
     for (const s of istilah.sumber!) expect(riset).toContain(`${s.riset} `);
   });
   test("tab stack: enam tab, label Go dijalankan dan lima lain Tidak dijalankan dengan tanggal 2026-10-26; slot t0 sampai t5 urut", () => {

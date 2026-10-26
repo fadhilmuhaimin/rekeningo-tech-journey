@@ -82,7 +82,7 @@
       "catatan": "Pemeriksaan dependency bisa memicu cascading failure, dan load balancer yang melihat semua server gagal bersamaan membiarkan lalu lintas ke semuanya."
     },
     {
-      "riset": "R3-137",
+      "riset": "R3-173",
       "judul": "Val Town: Post-mortem, Exhausted Host Connection Pool",
       "url": "https://blog.val.town/blog/post-mortem-exhausted-host-connection-pool/",
       "catatan": "Health check server itu tidak memeriksa kondisi database, jadi server tetap dalam keadaan terdegradasi cukup lama."
