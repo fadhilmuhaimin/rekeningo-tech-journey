@@ -1,0 +1,59 @@
+{
+  "id": "t3-peta-notifikasi",
+  "judul": "Uang masuk: dari izin di HP Ani sampai pemberitahuan di layarnya",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t3 · sinkron.txt A, outbox.txt A dan B"
+  },
+  "jalur": [
+    { "id": "hp", "nama": "HP Ani", "jenis": "app" },
+    { "id": "api", "nama": "Server Go", "jenis": "backend" },
+    { "id": "db", "nama": "PostgreSQL", "jenis": "db" },
+    { "id": "worker", "nama": "Worker", "jenis": "backend" },
+    { "id": "push", "nama": "Layanan push (tiruan)", "jenis": "backend" }
+  ],
+  "langkah": [
+    {
+      "jalur": "hp",
+      "judul": "Minta izin, lalu kirim pengenal HP ke server",
+      "rinci": ["Android 13 ke atas: notifikasi mati sampai pengguna setuju", "Dikirim sekali, dan lagi bila berubah"]
+    },
+    {
+      "jalur": "api",
+      "judul": "Simpan di tabel perangkat",
+      "kode": ["POST /perangkat", "{\"platform\": \"android\", \"token_push\": \"hp-ani-1\"}"],
+      "rinci": ["Jawaban 201 dengan id 10061"]
+    },
+    {
+      "jalur": "api",
+      "judul": "Bayar menulis jurnal dan pemberitahuan",
+      "rinci": ["Jurnal 10001, dua posting", "Satu baris outbox untuk akun 418"]
+    },
+    {
+      "jalur": "db",
+      "judul": "COMMIT menyimpan keduanya",
+      "rinci": ["outbox 1: kelas 0, menunggu"]
+    },
+    {
+      "jalur": "worker",
+      "judul": "Klaim baris, lalu kirim",
+      "rinci": ["Empat pengirim serentak", "Batas waktu client 3 detik"]
+    },
+    {
+      "jalur": "push",
+      "judul": "Terima satu pesan",
+      "rinci": ["Untuk token tiruan-418", "notifikasi_id sama di tiap percobaan"]
+    },
+    {
+      "jalur": "db",
+      "judul": "Status jadi terkirim",
+      "rinci": ["Empat status: menunggu, terkirim, dilewati, mati"]
+    },
+    {
+      "jalur": "hp",
+      "judul": "Tampilkan, dan saring pesan yang sama dua kali",
+      "rinci": ["Pesan ganda tiba bila worker mati di tengah kirim"]
+    }
+  ],
+  "catatan": "Langkah 1 dan 8 terjadi di app dan tidak direkam: lab api-t3 tidak punya app Flutter. Lab merekam token yang diterima server dan pesan yang diterima layanan push tiruan."
+}
