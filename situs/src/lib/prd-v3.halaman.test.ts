@@ -108,9 +108,15 @@ describe("beban dan lingkup: angka turunan dari registry dan naskah", () => {
     ada("estimasi.mdx", "| Bayar dan transfer (Tahap 3) | 7.500 | 0,87 | 2.500 × 3 transaksi; 5% dari semua request |");
     ada("estimasi.mdx", "Mulai tabel ini puncak Tahap 3 ditulis 17,4 (17,36 dibulatkan)");
   });
-  test("puncak 12,5 kali puncak PRD v2 (±1,4), dan rumusnya sama dengan 2.30", () => {
+  test("puncak 12,5 kali puncak PRD v2 (±1,4): tiga pengali yang bisa dihitung ulang dari angka di halaman, sama dengan 2.30", () => {
     expect([koma(p2), koma(p3 / p2)]).toEqual(["1,4", "12,5"]);
-    harus(`Puncaknya ${koma(p3 / p2)} kali puncak PRD v2 (±${koma(p2)}). Rumusnya sama dengan [[t2-estimasi]].`);
+    // Keputusan 1003: ±17,4 ÷ ±1,4 = 12,4 bila dihitung dari angka yang tertulis; 12,5 hanya keluar dari nilai tak dibulatkan
+    // atau dari tiga pengali. Halaman menulis tiga pengali itu (pola 2.30, pelajaran #346 dan #353).
+    expect(koma(17.4 / 1.4)).toBe("12,4");
+    const kali = `${a3.user / a2.user} × (${a3.aktif} ÷ ${a2.aktif}) × (${a3.req} ÷ ${a2.req}) = ${koma((a3.user / a2.user) * (a3.aktif / a2.aktif) * (a3.req / a2.req))}`;
+    expect(kali).toBe("10 × (25 ÷ 30) × (60 ÷ 40) = 12,5");
+    harus(`Puncaknya ${koma(p3 / p2)} kali puncak PRD v2 (±${koma(p2)}): ${kali}. User naik ${a3.user / a2.user} kali, user aktif turun dari ${a2.aktif}% ke ${a3.aktif}%, dan request per user naik dari ${a2.req} ke ${a3.req}. Rumusnya sama dengan [[t2-estimasi]].`);
+    ada("estimasi.mdx", kali);
     ada("prd-v2.mdx", `| Puncak request per detik | ±${koma(p2)} | 12.000 ÷ 86.400 × 10 (asumsi) |`);
   });
   test("panggilan 2 detik menahan 1,75 koneksi dan 30 detik 26,1, dari λ tepat 0,868", () => {
@@ -333,7 +339,10 @@ describe("yang dibuka lagi dari Tahap 2: ADR, rekaman, dan nomor halaman", () =>
     expect({ percobaan, instance, lolos, ditolak, perInstance: lolos / instance }).toEqual({ percobaan: 24, instance: 2, lolos: 20, ditolak: 4, perInstance: 10 });
     expect(c4.some((b) => b.startsWith("== F. Dua instance: bucket di memori tidak dibagi (ADR 20)"))).toBe(true);
     expect(c4.some((b) => b.includes("(20 lolos = 10 per instance, bukan 10 total;"))).toBe(true);
-    harus(`Rekaman lab c4-ratelimit bagian F menjalankan dua instance. Dari ${percobaan} percobaan satu alamat yang bergantian ke keduanya, ${lolos} lolos ke pemeriksaan password. Itu ${lolos / instance} per instance, bukan ${lolos / instance} total, jadi batasnya berlipat sebanyak jumlah proses.`);
+    harus(`Rekaman lab c4-ratelimit bagian F menjalankan dua instance. Dari ${percobaan} percobaan satu alamat yang bergantian ke keduanya, ${lolos} lolos ke pemeriksaan password. Itu ${lolos / instance} per instance, bukan ${lolos / instance} total, jadi batas per alamat menjadi dua kali pada dua instance yang dipakai bergantian.`);
+    // Keputusan 1003: rekaman F hanya N = 2, satu alamat, bergantian; "sebanyak jumlah proses" melampaui rekaman, dan kunci akun di database tidak diukur di sini.
+    expect(instance).toBe(2);
+    expect(badan).not.toMatch(/sebanyak jumlah proses/);
   });
   test("rekaman b3-race: request kedua menunggu lock sampai COMMIT; ADR 13 melarang panggilan jaringan", () => {
     const kunci = baca("labs/b3-race/output/ledger/ledger-for-update.txt").split("\n");
@@ -347,7 +356,9 @@ describe("yang dibuka lagi dari Tahap 2: ADR, rekaman, dan nomor halaman", () =>
     expect(i.bLanjut).toBeGreaterThan(i.aCommit);
     ada("race-lock.mdx", "4. Tidak ada panggilan jaringan atau kerja lambat selama lock dipegang.");
     ada("race-lock.mdx", "### ADR 13: lock baris buku di dalam transaction jurnal");
-    harus("Pembayaran memegang lock buku sampai COMMIT, dan request kedua ke buku yang sama menunggu selama itu (Rekaman lab b3-race, `ledger-for-update.txt`, [[t2-race-lock]]). ADR 13 melarang panggilan jaringan selama lock dipegang.");
+    // Keputusan 1003: rekaman memerankan dua transfer dari buku Budi (header berkas), bukan pembayaran ke warung.
+    expect(kunci.slice(0, 4).join("\n")).toContain("A (HP) transfer 70000 ke Citra, B (tablet) transfer 50000 ke Dimas");
+    harus("Transaction jurnal memegang lock buku sampai COMMIT. Request kedua ke buku yang sama menunggu selama itu (Rekaman lab b3-race, `ledger-for-update.txt`: dua transfer dari buku Budi, [[t2-race-lock]]). ADR 13 melarang panggilan jaringan selama lock dipegang.");
     harus("Ini penalaran dari rekaman lock (Tidak dijalankan di Tahap 2).");
   });
   test("ADR 21: dibaca ulang tiap PRD baru, pemicu deploy tanpa jeda dipenuhi, kapasitas belum diukur", () => {
@@ -506,7 +517,8 @@ describe("semua angka di halaman bisa diturunkan", () => {
     "2", "3", "4", // panggilan 2 detik, 3 transaksi, 4 engineer, dan nomor daftar
     "1", // 1 hari, nomor daftar
     "60", // request per user aktif dan warung
-    "30", "95", // detik dan persen janji notifikasi
+    "30", "95", // detik dan persen janji notifikasi; 30% user aktif PRD v2
+    String(a2.req), // 40: request per user aktif PRD v2 (tiga pengali puncak, keputusan 1003)
     "12", "48", "59", // warung pusat, kota lain, selain Ani
     "100", // karakter catatan
     "7.000", // 70% dari 10.000
@@ -515,7 +527,7 @@ describe("semua angka di halaman bisa diturunkan", () => {
     koma(p3), koma(p3, 2), koma(lambda, 3), koma(p3 / p2), koma(p2),
     "0", "0,02", koma(lambda * 2.02, 2), koma(lambda * 30.02),
     "24", "20", // rekaman bagian F
-    "7", // menit baca
+    String(dari("t3-prd").menit), // menit baca, dari registry
   ]);
   test("tidak ada angka di luar himpunan turunan", () => {
     const b = badan
@@ -533,13 +545,97 @@ describe("semua angka di halaman bisa diturunkan", () => {
   });
 });
 
+describe("tinjauan PR 364 (keputusan 1003): deskripsi, kalimat bebas, arti istilah, dan teks diagram", () => {
+  // Uji mutasi peninjau meloloskan 17 dari 45 mutasi sebelum blok ini: deskripsi frontmatter, kalimat bebas
+  // (jumlah hal, jumlah tokoh, "selama 10 minggu", penutup pertanyaan), arti istilah, dua kalimat penutup ADR 13
+  // dan semua teks simpul diagram selain tiga judul pertama.
+  const front = mdx.split(/^---\n/m)[1]!;
+  const tokohBaru = [...naskah3.split("### Tokoh baru")[1]!.split("Tokoh lama tetap:")[0]!.matchAll(/^\| \*\*/gm)].length;
+
+  test("deskripsi frontmatter: lingkup dari registry, tim dan syarat dari naskah", () => {
+    const d = front.match(/^description: (.+)$/m)![1]!;
+    expect(d).toBe(`Dokumen produk ketiga Rekeningo. Sinta menulisnya untuk ${titik(a3.user)} karyawan dan ±60 warung di enam kota, Pak Hadi menambah satu syarat tentang pemberitahuan, dan empat engineer punya 10 minggu.`);
+    expect(naskah3).toContain("Tim jadi empat orang dalam 10 minggu");
+    expect(naskah3).toContain("**Pak Hadi** menambah satu syarat: pemberitahuan tidak mendahului uang.");
+    expect(a3.tim).toBe("4 developer");
+  });
+  test("kalimat bebas di Latar, Ruang lingkup, Tim, dan Pertanyaan terbuka sama dengan naskah", () => {
+    expect(naskah3).toContain("memperluas Rekeningo ke semua cabang di enam kota dan ke warung tenant mitra di luar gedung Lestari");
+    harus("Direksi lalu memperluas Rekeningo ke semua cabang di enam kota dan ke warung tenant mitra di luar gedung Lestari.");
+    expect(bag1).toContain("Tiga hal belum terjawab");
+    harus("Tahap 2 belum menjawab tiga hal.");
+    expect(naskah3).toContain("**Ruang lingkup (enam kota, 10.000 karyawan, ±60 warung, 10 minggu).**");
+    harus(`Lingkupnya enam kota: ±${titik(a3.user)} karyawan dan ±60 warung, selama 10 minggu.`);
+    expect(tokohBaru).toBe(2);
+    harus("Tahap 3 punya dua tokoh baru:");
+    expect(badan.match(/^\| Tokoh baru \|/gm)).toHaveLength(2);
+    expect(naskah3).toContain("Ketiganya tidak dijawab PRD dan menjadi masalah terbesar Tahap 3.");
+    harus("Tidak ada yang menjawabnya sebelum kode ditulis. Ketiganya jadi masalah terbesar Tahap 3.");
+  });
+  test("janji 95% diukur sampai pesan diserahkan ke layanan push, di tabel lingkup dan di metrik", () => {
+    expect(bag1).toContain("95% notifikasi bayar dan transfer diserahkan ke layanan push dalam kurang dari 30 detik");
+    harus("Pengukurannya berhenti saat pesan diserahkan ke layanan push, seperti di blok Metrik dan batasan.");
+    harus("Metrik kedua mengukur sampai pesan diserahkan ke layanan push, bukan sampai HP menerimanya.");
+  });
+  test("dua kalimat penutup ADR 13 sama dengan alasan widget 2.33 dan naskah (lama, bukan banyak)", () => {
+    const benar = dataTebak.pilihan.find((p) => p.benar)!;
+    expect(benar.alasan).toContain("memperpanjang lock itu sepanjang panggilannya");
+    harus("Bila panggilan itu ada di dalam transaction jurnal, lock buku dan koneksi database tertahan selama panggilannya.");
+    expect(naskah3).toContain("Yang berbahaya adalah **lama** satu panggilan, bukan **banyak**");
+    expect(dataTebak.pilihan.some((p) => p.alasan.includes("Little's Law di halaman 2.30 menunjuk lama request, bukan jumlahnya"))).toBe(true);
+    harus("Kedua jawaban itu bukan soal banyaknya request. Batas laju pecah karena jumlah proses, dan lock pecah karena lamanya transaction.");
+  });
+  test("istilah baru diberi arti satu kalimat di pemakaian pertamanya, dan artinya dijaga", () => {
+    const DEF: Array<[string, string]> = [
+      ["layanan push", "yaitu layanan yang meneruskan pesan ke HP"],
+      ["dua instance API", "yaitu dua proses API yang berjalan bersamaan"],
+      ["staging", "yaitu lingkungan uji yang meniru produksi"],
+      ["passkey", "yaitu masuk dengan kunci yang tersimpan di perangkat"],
+      ["VPS produksi", "yaitu server virtual yang disewa"],
+    ];
+    for (const [istilah, arti] of DEF) {
+      harus(`${istilah}, ${arti}`);
+      expect(badan.indexOf(istilah), `pemakaian pertama "${istilah}" harus yang diberi arti`).toBe(badan.indexOf(`${istilah}, yaitu`));
+    }
+    // "Instance" = proses API (rekaman c4-ratelimit bagian F: bucket hidup di memori tiap proses); passkey = istilah naskah baris "Masuk dasbor lebih aman".
+    expect(baca("labs/c4-ratelimit/output/login/ratelimit.txt")).toContain("Rate limit hidup di memori tiap proses");
+    expect(bag1).toContain("| P1 | Masuk dasbor lebih aman | Kata sandi tetap ada; passkey boleh dipilih |");
+  });
+  test("diagram Rantai: setiap judul, label, sub, dan nada sama dengan susunan yang diperiksa, dengan tali ke naskah", () => {
+    expect(rantai.judul).toBe("Enam kota: sesudah Tahap 2 dan yang diminta PRD v3");
+    const bentuk = rantai.baris.map((b) => ({ label: b.label, sub: b.sub ?? null, simpul: b.simpul.map((s) => [s.teks, s.sub ?? null, s.nada ?? null]) }));
+    expect(bentuk).toEqual([
+      { label: "Sesudah Tahap 2", sub: "yang belum ada", simpul: [
+        ["Uang masuk tanpa kabar", "penerima harus membuka app", "biasa"],
+        ["Menu diubah lewat admin", "warung tidak bisa mengatur sendiri", "biasa"],
+        ["Satu proses API", "mati atau deploy: semua berhenti", "biasa"],
+        ["10 kali lipat karyawan", "enam kota, ±60 warung", "warn"],
+      ] },
+      { label: "Rekeningo v3", sub: "enam kota, 10 minggu", simpul: [
+        ["Notifikasi uang masuk", "bayar dan transfer: 95% dalam 30 detik", "system"],
+        ["Katalog dan stok sendiri", "dari app atau dasbor web", "system"],
+        ["Dua instance API", "dua proses API berjalan bersamaan", "system"],
+        ["Tutup buku < 1 hari", "selisih Rp0, dibuktikan dari data", "good"],
+      ] },
+    ]);
+    // Tali ke naskah dan ke tabel lingkup halaman: tiap simpul meringkas kalimat yang ada di sumber.
+    expect(naskah3).toContain("Budi dan Ani tahu saat uang masuk, tanpa membuka app");
+    expect(naskah3).toContain("warung meminta admin untuk mengubah menu");
+    expect(naskah3).toContain("satu proses mati mematikan semuanya");
+    expect(naskah3).toContain("Rekeningo tetap berjalan saat deploy atau saat satu proses mati");
+    expect(naskah3).toContain("Warung mengelola menu, harga, dan stok sendiri, dari app atau dari laptop");
+    expect(bag1).toContain("warung mengubah dari app atau dasbor");
+    expect(barisTabel("| P0 | Katalog dan stok warung |")[2]).toContain("warung mengubah dari app atau dasbor");
+  });
+});
+
 describe("label kejujuran: tiap kalimat berangka membawa labelnya", () => {
   test("Asumsi di angka beban dan metrik, Rekaman lab di rekaman, Tidak dijalankan di penalaran", () => {
     harus("(Asumsi): 12 warung di kampus pusat");
     harus("**Metrik keberhasilan (target, Asumsi)**");
     harus("**Beban yang diharapkan (Asumsi)**");
     harus("panggilan 2 atau 30 detik (semuanya Asumsi)");
-    harus("(Rekaman lab b3-race, `ledger-for-update.txt`, [[t2-race-lock]])");
+    harus("(Rekaman lab b3-race, `ledger-for-update.txt`: dua transfer dari buku Budi, [[t2-race-lock]])");
     harus("Rekaman lab c4-ratelimit bagian F");
     harus("Ini penalaran dari rekaman lock (Tidak dijalankan di Tahap 2).");
     harus("kapasitas satu server belum diukur (Tidak dijalankan).");

@@ -6,7 +6,7 @@ import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
 import prdDiagram from "../../../../data/diagram/t3-prd-sebelum-sesudah.json";
 
-<p class="meta">Baca 7 menit · Prasyarat: [[t2-jembatan]] · Jalur inti</p>
+<p class="meta">Baca 8 menit · Prasyarat: [[t2-jembatan]] · Jalur inti</p>
 
 Sinta menulis PRD ketiga ini untuk semua cabang **Grup Lestari** (fiktif) di enam kota. Ringkasannya sudah tampil di [[t2-jembatan]]. Halaman ini memuat dokumen lengkapnya, dan blok terakhir membuka jawaban atas tebakan di sana.
 
@@ -72,7 +72,7 @@ Lingkupnya enam kota: ±10.000 karyawan dan ±60 warung, selama 10 minggu. [[t2-
 | P1 | Masuk dasbor lebih aman | Kata sandi tetap ada; passkey, yaitu masuk dengan kunci yang tersimpan di perangkat, boleh dipilih |
 | P2 | Top-up dari rekening bank, kartu virtual, verifikasi identitas | Ditunda ke v4 |
 
-Janji 95% dalam 30 detik berlaku untuk bayar dan transfer saja. Top-up massal dan promo tidak masuk janji itu.
+Janji 95% dalam 30 detik berlaku untuk bayar dan transfer saja. Top-up massal dan promo tidak masuk janji itu. Pengukurannya berhenti saat pesan diserahkan ke layanan push, seperti di blok Metrik dan batasan.
 
 **Bukan lingkup v3:** pembayaran offline, integrasi bank, user di luar Lestari, kartu virtual, API untuk kasir pihak ketiga, dasbor multi-cabang, email, dan notifikasi untuk publik.
 
@@ -114,7 +114,7 @@ Metrik kedua mengukur sampai pesan diserahkan ke layanan push, bukan sampai HP m
 | Bayar dan transfer per hari | 7.500 | 2.500 × 3 transaksi (asumsi) |
 | Bayar dan transfer per detik di puncak | 0,868 | 7.500 ÷ 86.400 × 10 (asumsi) |
 
-Puncaknya 12,5 kali puncak PRD v2 (±1,4). Rumusnya sama dengan [[t2-estimasi]].
+Puncaknya 12,5 kali puncak PRD v2 (±1,4): 10 × (25 ÷ 30) × (60 ÷ 40) = 12,5. User naik 10 kali, user aktif turun dari 30% ke 25%, dan request per user naik dari 40 ke 60. Rumusnya sama dengan [[t2-estimasi]].
 
 </Blok>
 
@@ -165,11 +165,11 @@ Di [[t2-jembatan]] kamu menebak ADR Tahap 2 mana yang pecah lebih dulu. Jawabann
 
 **ADR 20, batas laju di memori: dibuka baris "Tidak berhenti saat deploy".** Caranya di baris itu adalah dua instance API. ADR 20 menghitung batas percobaan login di memori tiap proses ([[t2-login-aman]]).
 
-Rekaman lab c4-ratelimit bagian F menjalankan dua instance. Dari 24 percobaan satu alamat yang bergantian ke keduanya, 20 lolos ke pemeriksaan password. Itu 10 per instance, bukan 10 total, jadi batasnya berlipat sebanyak jumlah proses.
+Rekaman lab c4-ratelimit bagian F menjalankan dua instance. Dari 24 percobaan satu alamat yang bergantian ke keduanya, 20 lolos ke pemeriksaan password. Itu 10 per instance, bukan 10 total, jadi batas per alamat menjadi dua kali pada dua instance yang dipakai bergantian.
 
-**ADR 13, lock buku: dibuka baris "Notifikasi saat menerima uang".** Pembayaran memegang lock buku sampai COMMIT, dan request kedua ke buku yang sama menunggu selama itu (Rekaman lab b3-race, `ledger-for-update.txt`, [[t2-race-lock]]). ADR 13 melarang panggilan jaringan selama lock dipegang. Di api-t2, panggilan ke layanan push akan menjadi panggilan jaringan pertama di jalur uang.
+**ADR 13, lock buku: dibuka baris "Notifikasi saat menerima uang".** Transaction jurnal memegang lock buku sampai COMMIT. Request kedua ke buku yang sama menunggu selama itu (Rekaman lab b3-race, `ledger-for-update.txt`: dua transfer dari buku Budi, [[t2-race-lock]]). ADR 13 melarang panggilan jaringan selama lock dipegang.
 
-Bila panggilan itu ada di dalam transaction jurnal, lock buku dan koneksi database tertahan selama panggilannya. Ini penalaran dari rekaman lock (Tidak dijalankan di Tahap 2).
+Di api-t2, panggilan ke layanan push akan menjadi panggilan jaringan pertama di jalur uang. Bila panggilan itu ada di dalam transaction jurnal, lock buku dan koneksi database tertahan selama panggilannya. Ini penalaran dari rekaman lock (Tidak dijalankan di Tahap 2).
 
 Hitungannya memakai 0,868 bayar dan transfer per detik, 0,02 detik untuk query, dan panggilan 2 atau 30 detik (semuanya Asumsi). Panggilan 2 detik menahan 0,868 × (0,02 + 2) = 1,75 koneksi, dan panggilan 30 detik menahan 26,1. Rumusnya sama dengan [[t2-estimasi]].
 
