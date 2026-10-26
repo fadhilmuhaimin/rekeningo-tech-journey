@@ -269,7 +269,7 @@ describe("fitur-notifikasi.mdx: tiap angka turunan dari rekaman", () => {
     harus(`Jakarta punya ${titik(karyawanJakarta)} karyawan, jadi satu pengumuman menulis ${titik(diumumkan)} baris.`);
     harus(`queue yang sama membawa ${titik(promoSemua)} baris promo`);
     harus(`| Bayar dan transfer di puncak | 7.500 per hari ÷ 86.400 × 10 | ${koma(puncak, 3)} pemberitahuan per detik (Asumsi) |`);
-    harus(`| Kapasitas worker | 4 pengirim ÷ 0,3 detik | ${koma(kapasitasRumus, 1)} per detik; terukur antara ${bawah} dan ${koma(atas, 2)} (Rekaman lab \`queue.txt\` bagian A; c dan t Asumsi) |`);
+    harus(`| Kapasitas worker | 4 pengirim ÷ 0,3 detik | ${koma(kapasitasRumus, 2)} per detik; terukur antara ${bawah} dan ${koma(atas, 2)} (Rekaman lab \`queue.txt\` bagian A; c dan t Asumsi) |`);
     harus(`| Kapasitas lawan puncak | ${koma(atas, 2)} ÷ ${koma(puncak, 3)} | ±${rasio} kali (Asumsi) |`);
     harus(`| Promo ke ${titik(promoSemua)} HP | ${titik(promoSemua)} ÷ ${koma(atas, 2)} | ${Math.round(promoDetik)} detik, ${koma(Math.round(promoDetik) / 60, 1)} menit (Asumsi; tidak dijalankan ${koma(Math.round(promoDetik) / 60, 1)} menit) |`);
     harus(`Dengan kapasitas ±${rasio} kali puncak, baris kelas 0 hampir tidak pernah menunggu lama (Asumsi).`);
@@ -542,6 +542,17 @@ describe("Snippet berrentang baris di halaman", () => {
     }
   });
 
+  test("judul Snippet menyebut tepat bagian rekaman yang disentuh rentangnya (tinjauan 1011: 'bagian A dan C' untuk baris bagian B dan C lolos)", () => {
+    const rekaman = potongan.filter((p) => petaBagian[p.file] && /bagian [A-Z]/.test(p.judul));
+    for (const p of rekaman) {
+      const semuaBagian = petaBagian[p.file]!;
+      const disentuh = Object.entries(semuaBagian).filter(([, b]) => p.a <= b.akhir && p.b >= b.awal && baca(p.file).split("\n").slice(Math.max(p.a, b.awal) - 1, Math.min(p.b, b.akhir)).some((x) => x.trim() !== "")).map(([h]) => h).sort();
+      const disebut = [...p.judul.matchAll(/bagian ([A-Z])(?: dan ([A-Z]))?/g)][0]!;
+      const huruf = [disebut[1]!, disebut[2]].filter((x): x is string => Boolean(x)).sort();
+      expect(disentuh, `${p.file}:${p.a}:${p.b} menyentuh bagian ${disentuh.join("+")}, judul menyebut ${huruf.join("+")}`).toEqual(huruf);
+    }
+  });
+
   // Jangkar: baris pertama, baris terakhir, dan isi yang dijelaskan prosa. Menggeser kode atau rekaman menggagalkan tes ini.
   const jangkar: Record<string, { awal: string; akhir: string; ada: string[] }> = {
     "labs/api-t3/internal/repo/outbox.go:187:197": { awal: "// DaftarkanPerangkat", akhir: "}", ada: ["ON CONFLICT (token_push) DO UPDATE", "terakhir_terlihat = now()", "return id, err"] },
@@ -600,5 +611,238 @@ describe("istilah Token perangkat", () => {
     const hari = Number(riset.split("\n").find((b) => b.startsWith("| R3-111 |"))!.match(/sesudah (\d+) hari/)![1]);
     expect(istilah.jebakan[0]).toContain(`dihapus sesudah ${hari} hari`);
     expect(istilah.mekanisme[0]).toContain("Android 13 ke atas");
+  });
+});
+
+// ---- Tambahan peninjau (keputusan 1011): 37 dari 74 mutasi peninjau lolos penjaga awal ----------------------------
+// Kalimat bebas, isi tabel status dan tabel cara, kalimat klaim dokumentasi, teks simpul Rantai, peta, dan alur tidak
+// punya pasangan di sumber. Tiap klaim di bawah dipasangkan dengan sumbernya: rekaman, kode, migrasi, naskah, E4, atau baris RISET.
+describe("tinjauan 1011: klaim bebas dipasangkan dengan sumbernya", () => {
+  const baris = (id: string): string => riset.split("\n").find((b) => b.startsWith(`| ${id} |`)) ?? "";
+  const kata = (n: number): string => ["Nol", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam"][n]!;
+
+  test("tabel status: nama dari CHECK migrasi, jumlah percobaan dan kode tolak dari rekaman", () => {
+    const sql = baca("labs/api-t3/migrasi/000017_perangkat_outbox.up.sql");
+    const status = [...sql.match(/status IN \(([^)]*)\)/)![1]!.matchAll(/'(\w+)'/g)].map((m) => m[1]!);
+    expect(status).toEqual(["menunggu", "terkirim", "dilewati", "mati"]);
+    const tabel = halaman.split("\n").filter((b) => /^\| `(menunggu|terkirim|dilewati|mati)` \|/.test(b));
+    expect(tabel.map((b) => b.match(/^\| `(\w+)`/)![1])).toEqual(status);
+    const kodeTolak = cari(/\(yang dijawab (\d+)\)/, PD, "kode token mati")[1]!;
+    const row = (s: string): string => tabel.find((b) => b.startsWith(`| \`${s}\` |`))!;
+    expect(row("dilewati")).toBe(`| \`dilewati\` | Tidak ada perangkat aktif, atau token ditolak dengan ${kodeTolak} | \`push.txt\` D |`);
+    expect(row("mati")).toBe(`| \`mati\` | ${kata(Number(matiC[1]))} percobaan habis, dan barisnya tidak dikirim lagi | \`push.txt\` C |`);
+    expect(row("terkirim")).toBe("| `terkirim` | Layanan push menerima pesan | `outbox.txt` B |");
+    expect(row("menunggu")).toBe("| `menunggu` | Baru ditulis, atau gagal sementara (503, timeout) dan akan dicoba lagi | `outbox.txt` A; `push.txt` B dan E |");
+    expect(PE.join("\n")).toContain("push gagal sementara");
+    expect(PB.join("\n")).toContain("outbox.status = menunggu");
+  });
+
+  test("promo: kode tolak Budi dan syarat akun hr dari rekaman katalog", () => {
+    const tolak = cari(/^HTTP\/1\.1 (\d+) Forbidden$/, KB, "tolak Budi")[1]!;
+    harus(`Budi dijawab \`${tolak}\``);
+    const judul = cari(/"title":"Hanya akun (\w+) yang boleh membuat promo"/, KB, "syarat hr")[1]!;
+    harus(`Hanya akun \`${judul}\` yang boleh;`);
+    expect(baca("labs/api-t3/migrasi/000017_perangkat_outbox.up.sql") + baca("labs/api-t3/internal/repo/outbox.go")).toContain("KelasPromo");
+  });
+
+  test("pindah token, push di luar transaction, kegagalan INSERT outbox: dari kode dan rekaman", () => {
+    const kode = baca("labs/api-t3/internal/repo/outbox.go");
+    expect(kode).toContain("ON CONFLICT (token_push) DO UPDATE");
+    expect(kode).toContain("SET akun_id = EXCLUDED.akun_id");
+    harus("Token yang sama dari akun lain dipindahkan ke akun itu, karena satu HP tidak boleh menerima pemberitahuan milik dua akun.");
+    const bayar = baca("labs/api-t3/internal/service/bayar.go");
+    expect(bayar).not.toContain("internal/push");
+    expect(baca("labs/api-t3/internal/worker/worker.go")).toContain("w.push.Kirim(");
+    harus("Yang ada di dalam transaction hanya `INSERT`. Panggilan ke layanan push tidak ada di sana; worker mengerjakannya sesudah COMMIT.");
+    harus("Karena `INSERT` outbox ada di transaction jurnal, `INSERT` yang gagal membatalkan pembayarannya.");
+    expect(transaksi).toContain("Penulisan outbox gagal di kode Go: pembayaran ikut batal");
+    harus("Jadi pembayaran tidak bergantung pada jawaban layanan push.");
+    expect(push).toContain("F. Versi benar (ADR 22): push menggantung, pembayaran tetap selesai cepat dan tidak ada koneksi yang tertahan");
+  });
+
+  test("dua pertanyaan terbuka PRD ditulis sama dengan naskah", () => {
+    expect(naskah).toContain("Kalau layanan push lambat, apakah pembayaran ikut lambat?");
+    expect(naskah).toContain("Kalau pemberitahuan gagal terkirim, siapa yang tahu?");
+    harus("apakah pembayaran ikut lambat kalau layanan push lambat, dan siapa yang tahu kalau pemberitahuan gagal terkirim");
+    expect(naskah).toContain("Tiga hal harus selalu benar:");
+    harus("Versi pertama yang lebih pendek melanggar salah satu dari tiga hal yang harus selalu benar.");
+  });
+
+  test("klaim dokumentasi: tiap kalimat halaman dipasangkan dengan frasa di baris RISET yang menyokongnya", () => {
+    const pasangan: [string, string, string][] = [
+      ["Menurut dokumentasi FCM, pesan normal diantar segera selama HP tidak tidur, dan bisa tertunda saat HP dalam Doze.", "R3-110", "pesan normal diantar segera bila HP tidak tidur dan bisa tertunda saat Doze"],
+      ["Pesan high priority dicoba diantar segera dan boleh membangunkan HP, untuk konten mendesak yang terlihat user", "R3-110", "high priority dicoba segera, boleh membangunkan HP, untuk konten mendesak"],
+      ["Pesan notification yang tiba saat app terbuka tidak tampil sendiri; kode app yang memutuskan", "R3-114", "notification message di foreground tidak tampil sendiri"],
+      ["pesan notification yang tiba saat app di background ditampilkan SDK", "R3-114", "notification message ditampilkan SDK saat app di background"],
+      ["Penyaring di kerangka kode di atas hanya jalan bila kode app dijalankan untuk pesan itu.", "R3-114", "data message hanya diproses kode app"],
+      ["menyarankan Firebase Installation ID dan sedang beralih dari registration token; kedua pola didukung bersama selama peralihan.", "R3-111", "Firebase Installation ID disarankan"],
+      ["Server sebaiknya menyimpan pengenal bersama timestamp setiap kali ia diunggah", "R3-111", "simpan pengenal bersama stempel waktu tiap unggah"],
+      ["Contoh request HTTP v1 memakai field `token`; field untuk FID tidak disebut [perlu verifikasi].", "R3-111", "field untuk FID tidak disebut [perlu verifikasi]"],
+      ["Dokumentasi FCM membolehkan menghapus token yang dijawab 400 hanya bila payload pesannya valid", "R3-111", "INVALID_ARGUMENT (400) dengan payload valid"],
+      ["`MESSAGE_ACCEPTED` berarti pesan diterima server FCM, sedangkan `MESSAGE_DELIVERED` berarti sampai ke SDK di HP.", "R3-112", "MESSAGE_ACCEPTED berarti diterima server FCM, MESSAGE_DELIVERED berarti sampai ke SDK di HP"],
+      ["Datanya secara bawaan tidak dikirim dan harus dinyalakan, dan dokumentasi menyarankan per instance app", "R3-112", "secara bawaan tidak dikirim dan harus dinyalakan (disarankan per instance app"],
+      ["Halaman Understanding message delivery tidak memuat jaminan sampai ke HP.", "R3-112", "halaman tidak memuat jaminan sampai ke HP"],
+      ["dan notifikasi app yang baru terpasang mati sampai user setuju", "R3-113", "notifikasi app yang baru terpasang di Android 13 ke atas mati sampai disetujui"],
+      ["client menyambung ulang bila koneksi tertutup", "R3-114", "client menyambung ulang bila koneksi tertutup"],
+      ["dengan access token OAuth 2.0 dari service account", "R3-16", "token OAuth 2.0 dari service account"],
+    ];
+    for (const [kalimat, id, frasa] of pasangan) {
+      harus(kalimat);
+      expect(baris(id), `${id} tidak memuat: ${frasa}`).toContain(frasa);
+    }
+    expect(halaman).not.toContain("untuk app baru");
+    expect(halaman).toContain("Dokumentasi FCM, diperbarui 2026-10-23, menyarankan");
+    harus("Pemberitahuan uang cocok dengan high priority dan promo dengan normal. Itu pilihan penulis, dan layanan push tiruan tidak punya prioritas untuk direkam.");
+    harus("Layanan push di lab adalah tiruan lokal, dan FCM v1 hanya rujukan.");
+    expect(outbox).toContain("layanan push tiruan: ./pushpalsu");
+    harus("Nilai itu hanya muncul di jawaban untuk akun HR. Tetap saja contract-nya berubah");
+    expect(kontrak).toContain("added the new `hr` enum value to the `jenis` response property");
+  });
+
+  test("tabel cara memberi tahu app: baris sama dengan E4 dan syarat 'app tertutup' hanya di push", () => {
+    const e4 = baca("situs/src/content/docs/e-mobile/e4-push-real-time.mdx");
+    expect(e4).toContain("| Polling | App bertanya berulang |");
+    expect(e4).toContain("| Push (FCM) | Sampai walau app tertutup |");
+    expect(e4).toContain("tidak bekerja saat app tertutup");
+    harus("| Polling | App bertanya berulang | App harus berjalan |");
+    harus("| SSE | Server, lewat koneksi HTTP yang dibiarkan terbuka | Koneksi harus tetap terbuka |");
+    harus("| Push | Server, lewat layanan push sistem operasi | App boleh tertutup |");
+    harus("Untuk uang masuk yang harus sampai ke HP dengan app tertutup, hanya push yang cocok dari tiga cara di tabel.");
+  });
+
+  test("kerangka Dart: nama API dengan batas kata, dan kunci data sama dengan kolom lab", () => {
+    const dart = halaman.match(/<Snippet lang="dart" code=\{`([^`]+)`\} \/>/)![1]!;
+    for (const api of ["requestPermission()", "messaging.register()", "messaging.onRegistered.listen", "FirebaseMessaging.onMessage.listen"]) expect(dart, api).toContain(api);
+    expect(dart).not.toMatch(/requestPermissions/);
+    expect(dart).toContain("data['notifikasi_id']");
+    expect(outbox).toContain("notifikasi_id");
+    harus("*Tidak dijalankan. Kerangkanya dari [FlutterFire: client]");
+  });
+
+  test("beban: 7.500 per hari dari registry, satu bentuk 13,33 per detik", () => {
+    const a = (registry.tahap as unknown as { asumsi: { user: number; aktif: number; trx: number; puncak: number } }[])[2]!.asumsi;
+    const perHari = (a.user * a.aktif) / 100 * a.trx;
+    expect(perHari).toBe(7500);
+    expect(a.puncak).toBe(10);
+    harus(`Masukannya dari naskah: ${titik(a.user)} user, ${a.aktif}% aktif, dan ${a.trx} transaksi uang per user aktif per hari, jadi ${titik(perHari)} per hari.`);
+    expect(halaman).not.toMatch(/13,3(?!\d)/);
+    expect(halaman).toContain("13,33 per detik; terukur antara 12 dan 13,33");
+  });
+
+  test("label sumber: widget alur rekaman dengan catatan layar digambar; Rantai dan peta menyebut bagian rekaman yang dipakai", () => {
+    const mentah = JSON.parse(skenarioMentah) as { sumber: { jenis: string; catatan: string } };
+    expect(mentah.sumber.jenis).toBe("rekaman");
+    expect(mentah.sumber.catatan).toContain("Layar HP digambar dari isi rekaman");
+    expect(mentah.sumber.catatan).toContain("push.txt bagian E dan F");
+    expect(rantai.sumber.jenis).toBe("rekaman");
+    expect(peta.sumber.jenis).toBe("rekaman");
+  });
+
+  test("Rantai: judul dan catatan sama dengan fakta rekaman, tidak terbalik", () => {
+    expect(rantai.judul).toBe("Bayar selesai dulu, pemberitahuan menyusul");
+    expect(rantai.catatan).toBe("Pembayaran tidak menunggu layanan push. Yang menunggu hanya worker, dan barisnya tetap tercatat di tabel.");
+    expect(push).toContain("pembayaran tetap selesai cepat");
+    expect(PF.join("\n")).toContain("barisnya menunggu di outbox");
+    harus("Pembayaran tidak ikut menunggu (`push.txt` bagian E dan F).");
+  });
+
+  test("peta fitur: nama status, tabel, versi Android, dan sebab pesan ganda dari sumbernya", () => {
+    const status = [...halaman.matchAll(/^\| `(\w+)` \|/gm)].map((m) => m[1]!).filter((s) => ["menunggu", "terkirim", "dilewati", "mati"].includes(s));
+    const rinci = peta.langkah.flatMap((l) => l.rinci);
+    expect(rinci).toContain(`${kata(status.length)} status: ${status.join(", ")}`);
+    const android = cari(/Android (\d+)/, [baris("R3-113")], "Android 13")[1]!;
+    expect(rinci).toContain(`Android ${android} ke atas: notifikasi mati sampai user setuju`);
+    expect(peta.langkah[1]!.judul).toBe("Simpan di tabel perangkat");
+    expect(sinkron).toContain("FROM perangkat");
+    expect(rinci).toContain("Pesan ganda tiba bila worker mati di tengah kirim");
+    expect(outbox).toContain("G. Worker berhenti mendadak di antara kirim dan tandai terkirim");
+    expect(JSON.stringify(peta)).not.toContain("pengguna");
+  });
+
+  test("alur: sebab-akibat langkah worker, timeout, push di luar transaction, dan tiruan dari rekaman dan kode", () => {
+    const jelas = skenario.langkah.map((l) => l.jelas).join("\n");
+    expect(jelas).toContain("Ia hanya melihat baris yang sudah di-COMMIT.");
+    expect(transaksi).toContain("Sebelum COMMIT worker tidak melihat baris outbox; sesudah COMMIT terlihat dan terkirim");
+    expect(jelas).toContain("Layanan push di lab adalah tiruan lokal.");
+    expect(outbox).toContain("layanan push tiruan: ./pushpalsu");
+    const varian = skenario.varian.langkah.map((l) => l.jelas).join("\n");
+    expect(varian).toContain("Timeout dihitung kegagalan sementara, jadi barisnya dikembalikan ke antrean, bukan dibuang.");
+    expect(PE.join("\n")).toContain("push gagal sementara");
+    expect(varian).toContain("Push tidak dipanggil di dalam transaction, jadi layanan push yang menggantung tidak menahan koneksi database.");
+    expect(baca("labs/api-t3/internal/service/bayar.go")).not.toContain("internal/push");
+    expect(skenario.langkah[3]!.kirim).toContain("→ layanan push menerima: 0 pesan");
+  });
+});
+
+describe("tinjauan 1011: kalimat penjelas lain dipasangkan dengan naskah, kode, E4, dan rekaman", () => {
+  const e4 = baca("situs/src/content/docs/e-mobile/e4-push-real-time.mdx");
+
+  test("Inti, tujuan, dan alasan berhenti memakai: sama dengan naskah dan rekaman A", () => {
+    harus("Pemberitahuan ditulis bersama jurnal, lalu dikirim worker sesudah pembayaran selesai.");
+    expect(outbox).toContain("Pembayaran sudah selesai (201), pemberitahuan belum dikirim");
+    expect(naskah).toContain("(2) Budi dan Ani tahu saat uang masuk, tanpa membuka app.");
+    harus("Tujuan PRD v3 untuk fitur ini: Budi dan Ani tahu saat uang masuk, tanpa membuka app.");
+    expect(naskah).toContain("Notifikasi terlambat, hilang, atau muncul dua kali");
+    harus("Menurut PRD, karyawan berhenti memakai Rekeningo kalau notifikasi terlambat, hilang, atau muncul dua kali.");
+    expect(naskah).toContain("Minta izin notifikasi, kirim token perangkat, tampilkan pesan, saring pesan ganda");
+    harus("Fitur ini butuh app baru. App 1.0 dan 1.1 tidak punya layar izin dan tidak mengirim token perangkat.");
+  });
+
+  test("worker proses terpisah, terakhir_terlihat diisi ulang, pesan ganda dari rekaman G", () => {
+    const main = baca("labs/api-t3/cmd/api/main.go");
+    expect(main).toContain('flag.String("peran", "api", "api atau worker")');
+    expect(outbox).toContain("B. Worker (proses sendiri) mengklaim baris");
+    harus("Worker adalah proses terpisah: `api-t3 -peran worker`.");
+    expect(baca("labs/api-t3/internal/repo/outbox.go")).toContain("terakhir_terlihat = now()");
+    harus("Kolom `terakhir_terlihat` diisi ulang setiap app mengirim token yang sama.");
+    harus(`Pesan yang sama bisa tiba dua kali. Di rekaman \`outbox.txt\` bagian G, worker berhenti sesudah push berhasil dan sebelum menandai terkirim. Worker berikutnya mengirim ulang, dan layanan push menerima ${pushG[1]} pesan dengan ${pushG[2]} \`notifikasi_id\`.`);
+    expect(G.join("\n")).toContain("worker: diklaim 1, terkirim 1");
+  });
+
+  test("polling, SSE, dan pool: kalimat halaman sama dengan E4 yang diserap", () => {
+    expect(e4).toContain("Setiap layar pesanan yang terbuka memegang satu koneksi database selama koneksi SSE hidup. Dengan ratusan user, pool habis");
+    harus("Handler SSE yang memegang koneksi database selama koneksinya terbuka menghabiskan pool, alasannya ada di [[t3-pool]].");
+    expect(e4).toContain("| SSE / WebSocket | Kabar saat itu juga |");
+    harus("Polling dan SSE tetap berguna di layar yang sedang dibuka, tetapi bukan bagian fitur ini.");
+  });
+
+  test("butir Konsep dan baris pertanyaan: teks tiap butir sama dengan yang dijanjikan", () => {
+    const butir = [...halaman.matchAll(/^- (\[\[[\w.-]+\]\]: .+)$/gm)].map((m) => m[1]!);
+    expect(butir).toEqual([
+      "[[t3-dua-tempat]]: pemberitahuan adalah akibat dari uang yang bergerak, bukan bagian darinya. Versi pertama yang lebih pendek melanggar salah satu dari tiga hal yang harus selalu benar.",
+      "[[t3-pool]]: connection pool, Little's Law, dan batas waktu untuk panggilan keluar.",
+      "[[t3-outbox]]: outbox transaksional dan worker, dengan alasan susunan di halaman ini.",
+      "[[t3-klaim-baris]]: dua worker yang mengambil baris yang sama.",
+      "[[t3-at-least-once]]: retry, dead-letter, dan penyaring di app.",
+      "[[t3-m27]]: promo ke semua HP dan pemberitahuan uang yang terlambat.",
+    ]);
+    const tabel = halaman.split("\n").filter((b) => /^\| .+ \| .+ \| \[\[t3-[\w-]+\]\] \|$/.test(b));
+    expect(tabel).toEqual([
+      "| Kenapa tidak mengirim push langsung di handler, sesudah COMMIT? | Rekaman hanya memperlihatkan susunan akhir | [[t3-dua-tempat]] |",
+      "| Apa yang terjadi bila client ke layanan push tanpa batas waktu dan layanan itu menggantung? | Widget memakai batas 3 detik | [[t3-m18]] |",
+      "| Dua worker mengambil baris yang sama? | Halaman ini hanya memakai satu worker | [[t3-klaim-baris]] |",
+      "| Siapa menyaring pesan ganda saat app tertutup? | Jenis pesan menentukan kapan kode app jalan | [[t3-at-least-once]] |",
+      "| Promo ke 10.000 HP menahan pemberitahuan uang? | Halaman ini hanya menghitung lamanya | [[t3-m27]] |",
+    ]);
+    expect(Number(tabel[1]!.match(/batas (\d+) detik/)![1])).toBe(timeoutPush);
+    expect(Number(tabel[4]!.match(/Promo ke ([\d.]+) HP/)![1]!.replace(".", ""))).toBe(promoSemua);
+  });
+
+  test("alur: lama bayar, bentuk request, tombol, dan pilihan tebakan sama dengan rekaman dan kontrak", () => {
+    const varian = skenario.varian.langkah.map((l) => l.jelas).join("\n");
+    const kurang = cari(/POST \/transfers selesai dalam kurang dari (\d+) detik/, PF.concat(push.split("\n")), "lama bayar F")[1]!;
+    expect(varian).toContain(`Pembayaran di rekaman selesai dalam kurang dari ${kurang} detik.`);
+    expect(skenario.langkah[1]!.jelas).toContain("Bentuk request sama dengan Tahap 2.");
+    expect(baca("labs/api-t2/openapi.yaml")).toContain("/transfers:");
+    expect(baca("labs/api-t2/openapi.yaml")).not.toContain("catatan");
+    expect(baca("labs/api-t3/openapi.yaml")).toContain("catatan: { type: string, maxLength: 100 }");
+    expect(skenario.langkah[1]!.jelas).toContain("Catatan hanya dikirim app yang baru.");
+    const tombol = skenario.layarAwal.budi!.isi!.find((i) => i.jenis === "tombol")!.teks!;
+    expect(skenario.langkah[0]!.judul).toBe(`Budi menekan ${tombol}`);
+    const opsi = skenario.predict.options;
+    expect(opsi.filter((o) => o.startsWith("Nol")).length).toBe(1);
+    expect(opsi[3]).toBe("Nol: baru ada satu baris yang menunggu di outbox");
+    expect(A.filter((b) => b.trim() === "(1 row)").length).toBeGreaterThanOrEqual(1);
+    expect(opsi.slice(0, 3).every((o) => /^(Satu|Dua)/.test(o))).toBe(true);
   });
 });
