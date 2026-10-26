@@ -1,0 +1,44 @@
+{
+  "istilah": "Jendela tetap (fixed window)",
+  "sehari_hari": "Jendela tetap adalah cara menghitung batas: hitungan mulai dari nol di awal jendela waktu, naik tiap percobaan, dan dibuang saat jendelanya habis. Batasnya berlaku per jendela, bukan per selang waktu yang bergeser.",
+  "cerita": [
+    {
+      "rujukan": "t3-rate-limit-redis",
+      "teks": "Hitungan login di Redis berlaku 60 detik sejak percobaan pertama. Untuk 24 percobaan dari satu alamat, hitungannya 24, dan hanya 10 yang sampai ke pemeriksaan password (`batas.txt` bagian E)."
+    },
+    {
+      "rujukan": "t2-login-aman",
+      "teks": "Batas di memori ADR 20 memakai token bucket, yang mengisi ulang token pelan-pelan dan tidak menolak sampai jendela habis."
+    }
+  ],
+  "mekanisme": [
+    "Percobaan pertama membuat key dengan hitungan 1 dan memasang masa berlaku jendela, 60 detik di lab.",
+    "Tiap percobaan berikutnya menaikkan hitungan. Hitungan di atas batas, 10 per alamat, ditolak, dan hitungannya tetap naik.",
+    "Masa berlaku dipasang hanya saat key baru, jadi percobaan yang ditolak tidak memperpanjang jendela (dibaca dari kode lab).",
+    "Saat jendela habis, key hilang dan hitungan mulai dari nol. Sisa jendela menjadi `Retry-After`, antara 1 dan 60 detik."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Di batas dua jendela, paling banyak dua kali batas lolos dalam selang pendek: batas percobaan di detik terakhir jendela dan batas lagi di detik pertama jendela berikutnya. Komentar kode lab menulis hal itu, dan lab tidak menjalankannya.",
+    "Menyamakannya dengan token bucket. Bucket mengisi ulang pelan-pelan, sedangkan jendela tetap menolak sampai jendelanya habis, sampai 60 detik di lab."
+  ],
+  "terkait": [
+    "Rate limit",
+    "Token bucket",
+    "Brute force"
+  ],
+  "sumber": [
+    {
+      "riset": "R3-180",
+      "judul": "Redis: INCR, pola rate limiter",
+      "url": "https://redis.io/docs/latest/commands/incr/",
+      "catatan": "Halaman latest tanpa nomor versi, dibuka 2026-10-26. Pola 1 menghitung satu key per alamat per detik, dan pola 2 memakai satu counter dengan masa berlaku dari percobaan pertama."
+    },
+    {
+      "riset": "R3-180",
+      "judul": "Rekaman lab t3-instance: batas.txt bagian E",
+      "rekaman": "labs/t3-instance/output/batas.txt",
+      "catatan": "24 percobaan dari satu alamat: hitungan 24, sisa jendela antara 1 dan 60 detik, dan 10 yang sampai ke pemeriksaan password."
+    }
+  ]
+}

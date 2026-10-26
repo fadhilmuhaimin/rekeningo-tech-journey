@@ -1,0 +1,349 @@
+---
+title: "3.17 Rate limit lintas instance dan Redis + ADR 27"
+description: Hitungan batas login pindah dari memori tiap instance ke satu hitungan di Redis, dan login tetap dijawab saat Redis mati. ADR 27 menimbang tiga cara lain dan menulis kapan pilihan ini salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import intiDiagram from "../../../../data/diagram/t3-rate-limit-redis-inti.json";
+
+<p class="meta">Baca 17 menit · coba 3 menit · Prasyarat: [[t3-m22]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Hitungan batas harus ada di tempat yang dipakai semua instance, bukan di memori satu proses.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `batas.txt` bagian A, satu alamat mengirim 24 percobaan login ke 24 akun berbeda lewat dua instance. Tiap instance menyimpan bucket sendiri, dan 20 percobaan sampai ke pemeriksaan password. Bagian E memakai satu hitungan di Redis dan hanya 10 yang sampai, sama dengan satu instance di bagian B.
+
+Redis menambah satu komponen yang bisa mati. Di bagian I, Redis dihentikan dan login tetap dijawab. Batas jatuh ke bucket lokal: 20 dari 24 percobaan sampai ke pemeriksaan password, sama seperti sebelum ada Redis.
+
+Di bagian J, Redis dibekukan. Satu login selesai kurang dari 1 detik dengan batas waktu 50 milidetik, dan butuh lebih dari 5 detik dengan bawaan go-redis.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Dua instance menyimpan bucket di memori, dan batas per alamat 10. Berapa dari 24 percobaan satu alamat sampai ke pemeriksaan password, dan berapa bila hitungannya di Redis?
+2. Kenapa `INCR` dan `PEXPIRE` dijalankan sebagai satu skrip Lua, bukan dua perintah?
+3. Redis berhenti menjawab. Login ikut mati, ditolak semua, atau tetap dijawab?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: satu hitungan bersama menahan satu alamat di 10 percobaan berapa pun jumlah instance, dan Redis yang mati mengembalikan batas per instance, bukan membuka login tanpa batas.">
+
+Widget ini mengikuti rekaman `batas.txt` bagian E: satu alamat mengirim 24 percobaan ke 24 akun lewat dua instance, dan hitungannya di Redis. Tebak dulu berapa yang sampai ke pemeriksaan password, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t3-batas-redis.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: Redis mati**. Jalur itu mengikuti bagian I. Langkah 3 dan 4 memuat hal yang dibaca dari kode lab, bukan dari rekaman, dan catatan sumber di widget menyebutnya.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: dengan hitungan di Redis, 10 dari 24 percobaan sampai ke pemeriksaan password dan 14 ditolak 429.
+
+Bila Redis mati, login tetap dijawab dan batas jatuh ke bucket lokal: 20 sampai dan 4 ditolak. Rekaman lengkap ada di lipatan di bawah.
+</noscript>
+
+<details class="abstract">
+<summary>Rekaman bagian A, E, H, I, dan J (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet files={["labs/t3-instance/output/batas.txt:8:10","labs/t3-instance/output/batas.txt:35:42","labs/t3-instance/output/batas.txt:56:57","labs/t3-instance/output/batas.txt:59:66","labs/t3-instance/output/batas.txt:68:70"]} title="Rekaman lab: labs/t3-instance/output/batas.txt, bagian A, E, H, I, dan J (tanpa baris kepala)" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t3-m22]] menunjukkan batas login per alamat yang longgar sesudah instance kedua dipasang. Yang berlipat adalah bucket di memori. Kunci akun di database tidak berlipat: `gagal_login` berhenti di 5 pada bagian D dan G.
+
+ADR 20 menunda Redis ke Tahap 3, saat server kedua datang ([[t2-login-aman]]). ADR 21 menulis dua syarat untuk Redis. Satu kebutuhan data bersama antar proses muncul, dan tabel PostgreSQL untuk kebutuhan itu sudah diukur dan tidak cukup ([[t2-adr-21]]). M22 memenuhi syarat pertama.
+
+Syarat kedua belum terpenuhi, karena tidak ada rekaman operasi counter di PostgreSQL.
+
+Karena itu ADR 27 di bawah adalah pilihan desain dengan alasan yang ditulis, bukan hasil ukur. Halaman ini tidak mengulang cara menahan tebakan password. Itu ada di [[t2-login-aman]].
+
+### Cara kerjanya
+
+**Dua key per login, keduanya di Redis.** Handler memeriksa alamat client, lalu service memeriksa akun. Tiap pemeriksaan menaikkan satu key: `rekeningo:rl:login:ip:` dan `rekeningo:rl:login:akun:`, masing-masing diikuti hash dari alamat atau email, supaya `KEYS` dan file cadangan Redis tidak memuat email. Di bagian E, Redis berisi 1 key per alamat dan 10 key per akun.
+
+**Satu skrip, bukan dua perintah.** Dokumentasi Redis memuat pola rate limiter dengan satu counter per alamat. Pola itu punya race.
+
+Client yang menjalankan `INCR` tetapi tidak sempat menjalankan `EXPIRE` meninggalkan key yang tidak pernah kedaluwarsa. Dokumentasi memperbaikinya dengan skrip Lua lewat `EVAL` ([Redis: INCR](https://redis.io/docs/latest/commands/incr/), halaman latest tanpa nomor versi, dibuka 2026-10-26).
+
+Dokumentasi scripting menulis bahwa Redis menjamin eksekusi skrip yang atomik ([Redis: scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/), dibuka 2026-10-26). Lab merekam bahayanya di bagian H: `INCR` saja menghasilkan `PTTL` `-1`, key tanpa masa berlaku. Skrip lab menaikkan hitungan dan memasang masa berlaku dalam satu perintah:
+
+<Snippet file="labs/api-t3/internal/redisbatas/redisbatas.go" lines="27:33" lang="go" title="labs/api-t3/internal/redisbatas/redisbatas.go" />
+
+Cabang `PTTL < 0` juga memperbaiki key yang sudah telanjur tanpa masa berlaku. Cache skrip di Redis tidak persisten. go-redis v9.23.0 mengirim isi skrip lewat `EVAL` bila Redis menjawab `NOSCRIPT` (kode `script.go`, dibuka 2026-10-26).
+
+**Jendela tetap menggantikan token bucket.** Bucket di memori mengisi ulang token pelan-pelan. Hitungan di Redis mulai dari percobaan pertama dan berlaku 60 detik. Sesudah itu key hilang dan hitungan mulai dari nol.
+
+Percobaan yang melewati 10 ditolak, dan hitungannya tetap naik. Bagian E mencatat hitungan 24 untuk 24 percobaan.
+
+<Snippet file="labs/api-t3/internal/service/batas_bersama.go" lines="53:77" lang="go" title="labs/api-t3/internal/service/batas_bersama.go" />
+
+`PEXPIRE` hanya dipasang saat key baru, jadi percobaan yang ditolak tidak memperpanjang jendela. Sisa jendela menjadi `Retry-After`, paling sedikit 1 detik. RFC 6585 bagian 4 menulis bahwa jawaban 429 boleh memuat header itu ([RFC 6585](https://www.rfc-editor.org/rfc/rfc6585.html#section-4), dibuka 2026-10-26). Kode `Izinkan` yang menghitungnya tidak direkam, dan bagian E hanya mencatat bahwa sisa jendela antara 1 dan 60 detik.
+
+Jendela tetap punya kelemahan yang ditulis komentar kode: di batas dua jendela, paling banyak 2 × 10 percobaan lolos dalam selang pendek. Itu Hitungan, Tidak dijalankan: 10 percobaan di detik terakhir jendela dan 10 di detik pertama jendela berikutnya.
+
+**Redis mati, login tidak ikut mati.** Bila panggilan ke Redis gagal atau lewat batas waktu, pemeriksaan memakai bucket lokal. Bagian I mencatat 20 dari 24 percobaan sampai ke pemeriksaan password, sama dengan bagian A. Tiap penghitung, alamat dan akun, menulis satu baris log saat mulai gagal dan satu baris saat pulih.
+
+Sesudah Redis hidup lagi, instance tidak dimulai ulang: 6 percobaan baru dijawab 401, dan instance a kembali memakai Redis. Kode memanggil Redis lebih dulu pada setiap pemeriksaan, jadi tidak ada jadwal pemulihan dan tidak ada circuit breaker (dibaca dari kode).
+
+**Redis yang menggantung menguji batas waktu.** Bagian J membekukan kontainer Redis, jadi panggilan tidak mendapat jawaban. Lamanya ditentukan batas waktu client. Kode lab memasang satu batas 50 milidetik untuk satu pemeriksaan dan mematikan retry:
+
+<Snippet file="labs/api-t3/internal/redisbatas/redisbatas.go" lines="47:56" lang="go" title="labs/api-t3/internal/redisbatas/redisbatas.go" />
+
+Bawaan go-redis v9.23.0 adalah `DialTimeout` dan `ReadTimeout` 5 detik dan `MaxRetries` 3 (kode `options.go`, dibuka 2026-10-26). Bagian J mencatat satu login selesai kurang dari 1 detik dengan batas 50 milidetik, dan butuh lebih dari 5 detik dengan bawaan. Waktu pastinya bergantung pada mesin dan tidak direkam.
+
+Satu login memeriksa alamat lalu akun, dua panggilan terpisah. Tanpa circuit breaker, bawaan itu bisa menahan satu login lebih lama daripada satu batas waktu (dibaca dari kode).
+
+**Alamat client di belakang proxy.** Key per alamat hanya sebaik alamat yang dipakainya. Handler membaca alamat koneksi TCP:
+
+<Snippet file="labs/api-t3/internal/handler/handler.go" lines="153:159" lang="go" title="labs/api-t3/internal/handler/handler.go" />
+
+Di belakang proxy, alamat koneksi adalah alamat proxy untuk semua client. Seluruh karyawan berbagi satu key per alamat, dan batas 10 per menit berlaku untuk semuanya sekaligus, dengan atau tanpa Redis. Satu penyerang yang menghabiskan jatah itu menolak login semua orang (dari mekanismenya, tidak direkam). Kepala rekaman menulis hal yang sama, dan README lab menulis bahwa lab tidak bisa membedakan dua client lewat proxy di Docker Desktop.
+
+Caddy mengabaikan nilai `X-Forwarded-For` dari request masuk dan mengisi header itu sendiri, kecuali `trusted_proxies` diisi ([Caddy: reverse_proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy), dibuka 2026-10-26). Jadi api-t3 aman membaca header itu bila koneksinya datang dari proxy sendiri. Kode lab belum melakukannya. Itu pekerjaan berikutnya, dan ADR 27 menjadikannya syarat.
+
+### Di stack lain
+
+**Skenario:** batas login per alamat yang dijalankan oleh lebih dari satu server. Yang ditanyakan: di mana hitungan disimpan secara bawaan, apakah dua proses berbagi hitungan itu, dan apa yang terjadi bila penyimpanannya mati.
+
+Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-26. Tanda [perlu verifikasi] berarti klaim itu belum bisa dicek ke sumber primer.
+
+Yang sama di semua stack: hitungan di memori satu proses tidak dilihat proses lain. Yang berbeda adalah store bawaan dan perilaku saat store mati.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: lab api-t3 dan t3-instance, go-redis v9.23.0, Redis 8.10.2 (rekaman `batas.txt` bagian E sampai J).*
+
+<Snippet file="labs/api-t3/internal/service/batas_bersama.go" lines="12:17" lang="go" title="labs/api-t3/internal/service/batas_bersama.go" />
+
+**Yang berbeda di stack ini:** tidak ada library rate limit. Dua pembatas memenuhi satu antarmuka: bucket di memori dan hitungan di Redis. Handler dan service tidak tahu mana yang dipakai, dan kegagalan Redis ditangani di `PembatasBersama`.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke README [express-rate-limit](https://github.com/express-rate-limit/express-rate-limit/blob/v8.7.1/readme.md) 8.7.1 dan [rate-limit-redis](https://github.com/express-rate-limit/rate-limit-redis/blob/v6.0.1/readme.md) 6.0.1, dibuka 2026-10-26. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="js" code={`import { rateLimit } from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
+
+const batasAlamat = rateLimit({
+  windowMs: 60_000,
+  limit: 10,
+  passOnStoreError: true,
+  store: new RedisStore({
+    sendCommand: (...args) => client.sendCommand(args),
+  }),
+});`} />
+
+**Yang berbeda di stack ini:** store bawaan ada di memori. Opsi `store` membagi hitungan antar node. `passOnStoreError` bawaannya `false`, dan README menulis lalu lintas diblokir bila store tidak tersedia. Itu berbeda dari pilihan lab, yang jatuh ke bucket lokal. Contoh di atas memilih `true`, jadi login tetap dijawab tanpa batas sama sekali selama store mati.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Rate Limiting](https://laravel.com/docs/13.x/rate-limiting), dibuka 2026-10-26, `laravel/framework` 13.38.0. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="php" code={`// config/cache.php
+'default' => env('CACHE_STORE', 'database'),
+'limiter' => 'redis',
+
+// satu key per alamat
+if (RateLimiter::increment('login:'.$request->ip()) > 10) {
+    abort(429);
+}`} />
+
+**Yang berbeda di stack ini:** rate limiter memakai cache aplikasi, dan kunci `limiter` di konfigurasi cache memilih driver lain. Contoh dokumentasinya memakai `database` sebagai cache bawaan. Dokumentasi menulis bahwa `increment` bersifat atomik di store redis, memcached, dan database, jadi counter di database juga jalur yang ditulis dokumentasinya.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: Cache](https://docs.djangoproject.com/en/6.1/topics/cache/) dan [Django REST framework: Throttling](https://www.django-rest-framework.org/api-guide/throttling/), dibuka 2026-10-26. Halaman DRF tidak menulis nomor versi, dan rilis terbaru di PyPI 3.18.3. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="python" code={`CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379",
+    }
+}`} />
+
+**Yang berbeda di stack ini:** cache bawaan Django adalah local-memory, dan dokumentasinya menulis tiap proses punya instance cache sendiri, jadi tidak ada cache lintas proses. Throttle DRF memakai cache itu, jadi dua proses menghitung sendiri-sendiri sampai backend diganti. Dokumentasi DRF juga menulis implementasinya tidak atomik dan boleh meloloskan beberapa request lebih saat concurrency tinggi, dan throttle itu bukan pengaman terhadap brute force.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: Caching](https://docs.serverpod.dev/concepts/endpoints-and-apis/caching) dan [Serverpod: konfigurasi email](https://docs.serverpod.dev/concepts/authentication/providers/email/configuration), halaman bertanda versi dokumentasi 4.0.0, rilis terbaru di pub.dev 4.0.4, dibuka 2026-10-26. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="dart" code={`Future<int?> hitung(Session session, String key) async {
+  var command = await session.serverpod.redisController?.getConnection();
+  if (command == null) return null;
+  var hasil = await command.send_object(['INCR', 'login:$key']);
+  return hasil is int ? hasil : null;
+}`} />
+
+**Yang berbeda di stack ini:** batas login gagal sudah bawaan, 5 percobaan per 5 menit, dan halaman konfigurasi tidak menyebut tempat hitungannya disimpan [perlu verifikasi]. Untuk hitungan sendiri, halaman Caching menunjukkan `INCR` lewat koneksi Redis milik Serverpod. Koneksi itu `null` bila Redis mati atau tidak dikonfigurasi, jadi cabang gagalnya harus kamu tulis. Cache global jatuh diam-diam ke memori satu proses bila Redis tidak dikonfigurasi, dan readiness probe tetap lolos.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Rate Limiting Edge Functions](https://supabase.com/docs/guides/functions/examples/rate-limiting), dibuka 2026-10-26.*
+
+**Yang berbeda di stack ini:** untuk Edge Functions buatan sendiri, dokumentasi menaruh hitungan di Redis lewat Upstash, dan menulis client HTTP/REST-nya cocok untuk serverless. Halaman itu tidak menyebut rate limiter bawaan. Kode contohnya ada di GitHub dan tidak dibuka, jadi cara kerja hitungannya dan perilaku saat Redis mati belum dicek [perlu verifikasi].
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 27: hitungan batas login di Redis, dengan batas waktu 50 milidetik dan bucket lokal sebagai cadangan
+
+**Kebutuhan.** Dua instance membuat 20 dari 24 percobaan lolos penahan per alamat, padahal batasnya 10 (`batas.txt` bagian A). Penahan itu melindungi hash password dari banjir. Kunci akun di database tetap menahan tebakan ke satu akun di 5 (bagian D).
+
+Beban penghitung kecil. Puncak request 17,36 per detik (Asumsi, rumus di [[t3-prd]]). Bila semuanya login, ada paling banyak 34,72 operasi Redis per detik (Hitungan: 2 key per login × 17,36).
+
+**Status:** diterima sesudah M22 (minggu 6), memakai dua instance dari ADR 26 ([[t3-dua-instance]]). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR. ADR ini menyimpang dari syarat kedua ADR 21: counter di PostgreSQL belum diukur ([[t2-adr-21]]).
+
+| | A. Counter di PostgreSQL | B. Sticky session di proxy | C. Batas dibagi N | D. Hitungan di Redis |
+|---|---|---|---|---|
+| Cara kerja | Satu baris per key. `INSERT ... ON CONFLICT DO UPDATE` menaikkan hitungan, dan kolom waktu menandai jendela | Proxy mengirim satu alamat selalu ke instance yang sama (`ip_hash` atau `client_ip_hash` di Caddy), jadi bucket di memori cukup | Tiap instance memakai batas 10 ÷ 2 = 5 per alamat, dihitung dari jumlah instance | Satu hitungan per key di Redis, dinaikkan lewat skrip atomik oleh semua instance. Redis mati berarti bucket lokal |
+| Kelebihan | Tanpa komponen baru. Dokumentasi PostgreSQL menjamin hasil atomik untuk `ON CONFLICT DO UPDATE` | Tanpa komponen baru dan tanpa panggilan jaringan per login | Tanpa komponen baru dan tanpa panggilan jaringan per login | Satu jatah untuk semua instance (bagian E). Beban tulis percobaan ditolak tidak sampai ke database uang |
+| Kekurangan | Tiap percobaan, juga yang ditolak, menulis baris di database yang menyimpan jurnal. GitHub menolak opsi ini untuk batas API karena tidak mau menambah tulis ke primary MySQL | Menyamakan jatah per alamat saja. Satu akun yang diserang dari banyak alamat tetap tersebar di semua instance. `ip_hash` memakai alamat peer langsung, jadi di belakang CDN atau proxy lain semua client masuk ke satu instance | Batas efektif antara 5 dan 10: dengan pembagian acak, tiap instance menolak di 5 walau total di bawah 10. Jumlah instance masuk konfigurasi | Komponen baru yang bisa mati. Jendela tetap kasar di batas dua jendela. Satu panggilan jaringan per pemeriksaan |
+| Biaya operasional | Tabel kecil, tetapi butuh pembersihan baris lama dan ikut beban database yang sama | Aturan proxy dan uji bila instance bertambah | Ubah konfigurasi tiap kali jumlah instance berubah | Layanan Redis untuk dipasang, dipantau, dan dicadangkan, dengan keputusan persistence dan batas memori |
+| Bukti | Tidak dijalankan. Dokumentasi PostgreSQL 17 dan artikel GitHub | Tidak dijalankan. Dokumentasi Caddy | Hitungan: 5 + 5 = 10 dengan round_robin dan antara 5 dan 10 dengan acak. Tidak dijalankan | Rekaman lab `batas.txt` bagian E sampai J |
+
+**Keputusan: opsi D.** Enam aturan:
+
+1. Hitungan login per alamat dan per akun hidup di Redis. Jendelanya tetap 60 detik, dengan batas 10 per alamat dan 5 per akun (bagian E dan G).
+2. Menaikkan hitungan dan memasang masa berlaku dalam satu skrip atomik. Dua perintah terpisah tidak dipakai (bagian H).
+3. Batas waktu 50 milidetik untuk satu pemeriksaan, tanpa retry. Bila panggilan gagal, pemeriksaan memakai bucket lokal. Tiap penghitung menulis satu baris log saat mulai gagal dan satu baris saat pulih (bagian I dan J).
+4. Redis hanya menyimpan hitungan. Tidak ada uang, sesi, atau queue di sana, dan hilangnya semua key hanya membuka jendela baru.
+5. Alamat client dibaca dari `X-Forwarded-For` hanya bila koneksi datang dari proxy yang tepercaya. Aturan ini belum ada di kode lab, jadi sebelum itu ada, semua karyawan berbagi satu key per alamat dan ADR ini tidak menutup M22 sepenuhnya.
+6. Jumlah pemeriksaan yang jatuh ke bucket lokal dipantau, dan lonjakannya menjadi alert. Lab sudah menghitungnya di `/lab/batas`, tetapi belum ada alert.
+
+**Kenapa D, bukan A, B, atau C.**
+
+- **A tidak dipilih** karena percobaan yang ditolak ikut menulis baris di database yang menyimpan jurnal, dan penyerang menentukan lajunya. Bebannya sendiri kecil, jadi alasan ini penalaran, bukan ukuran. Opsi ini sah bila Redis ternyata tidak diperlukan.
+- **B ditolak** karena hanya menyamakan jatah per alamat, dan di belakang proxy lain alamat itu sama untuk semua client. Per akun tetap tersebar di semua instance.
+- **C ditolak** karena batas efektifnya tidak lagi sama dengan yang ditulis di konfigurasi, dan jumlah instance harus dikawinkan dengan konfigurasi.
+
+**Kasus industri: GitHub.** Tulisan insinyur GitHub (2021-04-05, diperbarui 2023-03-23) menceritakan pemindahan rate limiter API dari Memcached ke Redis. Alasannya: Memcached akan dipecah per datacenter, sehingga limiter berperilaku aneh bila request dirutekan ke datacenter berbeda. Cache bersama itu juga kadang membuang data limiter yang masih aktif.
+
+Logika penyimpanan ditulis dalam Lua untuk menjamin atomisitas. Key-value store di MySQL ditolak karena tulisnya menambah beban primary MySQL yang sudah sibuk ([GitHub Blog: sharded, replicated rate limiter in Redis](https://github.blog/engineering/infrastructure/how-we-scaled-github-api-sharded-replicated-rate-limiter-redis/), dibuka 2026-10-26).
+
+Batasnya: ini satu produk dengan banyak server dan beberapa datacenter, dan Redis mereka dipecah di sisi aplikasi dengan primary dan replika. Tulisan itu tidak menyebut jumlah request, jadi tidak ada angka untuk dibandingkan dengan 17,36 per detik.
+
+Sesudah rilis ada dua bug. Nilai `X-RateLimit-Reset` bergoyang karena dihitung dari TTL Redis. Penolakan juga muncul dengan sisa jatah penuh, karena replika belum membuang key yang kedaluwarsa. Lab ini memakai satu Redis tanpa replika, jadi bug kedua tidak berlaku di sini.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Key penghitung terbuang. Redis yang memori penuh bisa membuang key hitungan, dan penyerang mendapat jendela baru. GitHub menulis cache bersama yang membuang data limiter sebagai salah satu alasan pindah. Lab tidak mengatur `maxmemory`, jadi ini Tidak dijalankan. Pencegahannya Redis khusus untuk hitungan, terpisah dari cache katalog ([[t3-cache]]), dengan batas memori dan alert pemakaian memori.
+2. Redis mati atau menggantung lama tanpa ada yang tahu. Login tetap dijawab, tetapi batas diam-diam kembali ke N kali lipat, dan log hanya menulis satu baris per perubahan keadaan. Pencegahannya aturan 6: alert jumlah pemeriksaan yang jatuh ke bucket lokal.
+3. Alamat client salah. Tanpa aturan 5, satu penyerang menolak login semua karyawan. Dengan `X-Forwarded-For` yang dipercaya dari sembarang sumber, penyerang mengganti alamat di tiap request ([[t2-login-aman]]). Pencegahannya aturan 5 dan satu tes dengan dua client yang alamatnya berbeda, yang belum bisa direkam di lab.
+
+**Kapan keputusan ini salah.**
+
+- Saat counter di PostgreSQL ternyata cukup. Ukur W operasinya lebih dulu, lalu cabut Redis bila tidak ada komponen lain yang memakainya.
+- Saat Redis menjadi komponen kritis tanpa cadangan, atau key penting terbuang saat memori penuh.
+- Di belakang proxy tanpa `X-Forwarded-For` dari proxy tepercaya. Semua client berbagi satu key per alamat, dan satu penyerang bisa menolak login semua orang (dari mekanismenya, tidak direkam).
+- Saat jendela tetap terlalu kasar: batas dua jendela mengizinkan 2 × 10 percobaan dalam selang pendek. Pindah ke sliding window atau token bucket di skrip yang sama.
+
+**Yang akan merevisinya.** [[t3-cache]] (ADR 28) menambah komponen kedua yang memakai Redis, dan membuka soal memori dan eviction. Tahap 4 membawa gateway dan penolakan per merchant, yang butuh batas dengan key baru. Pengukuran counter PostgreSQL bisa membatalkan ADR ini.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Penahan `/kiriman` di Redis | Hanya login yang berpindah. Penahan kiriman tetap bucket di memori dan berlipat bersama jumlah instance (penalaran dari kode, tidak direkam) | Belum dijadwalkan |
+| Sliding window atau token bucket di Redis | Jendela tetap cukup untuk 10 percobaan per 60 detik, dan kasarnya di batas jendela sudah ditulis | Bila serangan di batas jendela terbukti |
+| Redis dengan replika atau cluster | Redis mati tidak menghapus batas: bucket lokal tetap berlaku (bagian I), jadi ketersediaan Redis tidak dibeli sekarang | Belum dijadwalkan |
+| Autentikasi dan TLS ke Redis | Lab hanya memasang Redis di 127.0.0.1 tanpa autentikasi (README lab) | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Dua instance menyimpan bucket di memori, batas per alamat 10. Satu alamat mengirim 24 percobaan ke 24 akun. Berapa yang sampai ke pemeriksaan password, dan berapa bila hitungannya di Redis?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+20 dengan bucket di memori, 10 dengan Redis. Tiap instance menyimpan bucket sendiri, jadi dua instance memberi dua jatah 10. Redis menaikkan satu key yang sama, jadi jatahnya satu (`batas.txt` bagian A dan E).
+
+</details>
+
+**2.** Kenapa `INCR` dan `PEXPIRE` dijalankan sebagai satu skrip Lua?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Bila proses mati di antara dua perintah, key tinggal tanpa masa berlaku dan menghitung selamanya. Bagian H merekam `PTTL` `-1` sesudah `INCR` saja. Dalam satu skrip, Redis menjalankan keduanya tanpa disela perintah lain.
+
+</details>
+
+**3.** Redis dihentikan di tengah percobaan. Apa yang terjadi pada login?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Login tetap dijawab, dan batas jatuh ke bucket lokal: 20 dari 24 percobaan sampai ke pemeriksaan password, sama dengan bagian A. Tiap penghitung menulis satu baris log saat gagal dan satu baris saat Redis pulih (bagian I).
+
+</details>
+
+**4.** Karyawan di dua HP berbeda login lewat proxy yang sama, dan api-t3 belum membaca `X-Forwarded-For`. Berapa key per alamat yang mereka pakai?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Satu: handler membaca alamat koneksi, dan itu alamat proxy untuk semua client. Batas 10 per menit berlaku untuk keduanya sekaligus. Lab tidak merekam dua client yang berbeda, jadi ini dibaca dari kode `clientIP`.
+
+</details>
+
+**5.** App menerima 429 dengan `Retry-After: 40` dari login. Apa yang sebaiknya dilakukan app?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Menampilkan "coba lagi dalam 40 detik" dan menunda percobaan berikutnya. Retry langsung hanya menghasilkan 429 lagi, dan hitungan di Redis naik juga untuk percobaan yang ditolak (`batas.txt` bagian E). Angka 40 adalah contoh: nilainya sisa jendela, antara 1 dan 60 detik.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Hitungan rate limit untuk lebih dari satu instance hidup di tempat bersama, dan bukan di memori satu proses.
+- [ ] Menaikkan hitungan dan memasang masa berlaku satu operasi atomik, bukan dua perintah terpisah.
+- [ ] Ada batas waktu untuk setiap panggilan ke store, dan ada aturan tertulis saat store gagal: tolak, izinkan, atau jatuh ke batas lokal.
+- [ ] Alamat client dibaca dari proxy yang tepercaya, dan diuji dengan dua client yang berbeda di belakang proxy.
+- [ ] Kegagalan store dihitung dan menjadi alert, bukan hanya ditulis satu kali di log.
+- [ ] Key di store tidak memuat email atau alamat sebagai teks biasa. Redis untuk rate limit tidak berbagi memori dengan cache yang boleh dibuang.
+
+### Bacaan lanjut
+
+- [Redis: INCR](https://redis.io/docs/latest/commands/incr/)
+- [Redis: scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/)
+- [GitHub Blog: sharded, replicated rate limiter in Redis](https://github.blog/engineering/infrastructure/how-we-scaled-github-api-sharded-replicated-rate-limiter-redis/) (2021-04-05)
+- [Caddy: reverse_proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy)
+- [PostgreSQL 17: INSERT](https://www.postgresql.org/docs/17/sql-insert.html)
+- [Django REST framework: Throttling](https://www.django-rest-framework.org/api-guide/throttling/)
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />

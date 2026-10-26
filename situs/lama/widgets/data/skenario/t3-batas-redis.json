@@ -1,0 +1,118 @@
+{
+  "versi": 2,
+  "judul": "Satu alamat, dua instance, satu hitungan di Redis",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t3-instance/output/batas.txt",
+    "fileVarian": "labs/t3-instance/output/batas.txt",
+    "catatan": "Dua instance api-t3 di belakang proxy Caddy dengan round_robin, Redis dari lab b9-cache, PostgreSQL 17.11 dari database bersih (make -C labs/t3-instance run BAGIAN=batas). Jalur utama: batas.txt bagian E, hitungan bersama di Redis. Ubah satu hal: batas.txt bagian I, Redis dihentikan. Langkah 3 dan 4 memuat hal yang dibaca dari kode lab, bukan dari rekaman: isi skrip Lua di labs/api-t3/internal/redisbatas/redisbatas.go (INCR dan PEXPIRE dalam satu skrip), dan jendela yang tidak diperpanjang percobaan yang ditolak (PEXPIRE hanya dipasang saat key baru). Rekaman E hanya mencatat hitungan 24 dan sisa jendela antara 1 dan 60 detik. Angka dan status di langkah lain ada di rekaman."
+  },
+  "pengantar": "Satu alamat menebak password ke 24 akun lewat dua instance. Tebak dulu berapa yang sampai ke pemeriksaan password, lalu ikuti sampai isi Redis. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "client", "label": "Client (satu alamat)" },
+    { "id": "proxy", "label": "Proxy (round_robin)" },
+    { "id": "a", "label": "Instance a" },
+    { "id": "b", "label": "Instance b" },
+    { "id": "redis", "label": "Redis" }
+  ],
+  "predict": {
+    "q": "Satu alamat mengirim 24 percobaan login ke 24 akun berbeda. Proxy membaginya bergantian ke dua instance, batas per alamat 10, dan hitungannya di Redis. Berapa percobaan sampai ke pemeriksaan password?",
+    "options": [
+      "24: Redis hanya menghitung dan tidak menolak apa pun",
+      "20: tiap instance tetap menghitung di memorinya sendiri",
+      "10: dua instance menaikkan satu hitungan",
+      "12: separuh percobaan, karena proxy membagi dua instance"
+    ],
+    "answer": 2,
+    "varian": false,
+    "explain": "Sepuluh (batas.txt bagian E): 401 sepuluh kali, 5 dari tiap instance, dan 14 percobaan ditolak 429. Dua instance menaikkan satu key yang sama di Redis, jadi jatahnya satu, bukan dua."
+  },
+  "langkah": [
+    {
+      "dari": "client",
+      "ke": "proxy",
+      "judul": "Satu alamat mengirim 24 percobaan login",
+      "kirim": "24 × POST /login ke 24 akun berbeda, password salah",
+      "jelas": "Satu client menebak password dari satu alamat, satu percobaan per akun. Kunci akun di database tidak tersentuh, jadi hanya penahan per alamat yang menahannya. Batasnya 10."
+    },
+    {
+      "dari": "proxy",
+      "ke": "a",
+      "judul": "Proxy meneruskan bergantian ke a dan b",
+      "kirim": "round_robin: 12 percobaan ke a, 12 ke b",
+      "jelas": "Lab memakai round_robin supaya angkanya tetap. Dengan kebijakan random bawaan Caddy, pembagiannya acak, dan hasil di bagian F tetap 10."
+    },
+    {
+      "dari": "a",
+      "ke": "redis",
+      "judul": "Instance menaikkan hitungan di Redis",
+      "kirim": "EVAL skrip: INCR key alamat, PEXPIRE bila key baru, kembalikan hitungan dan sisa masa berlaku",
+      "jelas": "Instance a dan b memanggil skrip yang sama untuk key yang sama, jadi keduanya menaikkan satu hitungan. INCR dan PEXPIRE ada dalam satu skrip, jadi Redis menjalankannya tanpa disela perintah lain."
+    },
+    {
+      "dari": "redis",
+      "ke": "a",
+      "judul": "Redis menjawab dengan hitungan",
+      "kirim": "hitungan 1 sampai 24 untuk satu key, sisa jendela antara 1 dan 60 detik",
+      "jelas": "Hitungan naik juga untuk percobaan yang ditolak. Jendelanya mulai dari percobaan pertama dan tidak diperpanjang percobaan berikutnya, karena masa berlaku hanya dipasang saat key baru."
+    },
+    {
+      "dari": "a",
+      "ke": "client",
+      "judul": "Hitungan 1 sampai 10 lolos ke pemeriksaan password",
+      "kirim": "10 percobaan → 401 (5 dari a, 5 dari b)",
+      "jelas": "Percobaan ini sampai ke pemeriksaan akun dan password, lalu ditolak sebagai password salah. 5 + 5 = 10: jatahnya satu, bukan dua.",
+      "nada": "good"
+    },
+    {
+      "dari": "a",
+      "ke": "client",
+      "judul": "Hitungan 11 sampai 24 ditolak",
+      "kirim": "14 percobaan → 429 (7 dari a, 7 dari b)",
+      "jelas": "Penolakan terjadi sebelum pemeriksaan akun dan password: hanya 10 key per akun dibuat di Redis."
+    },
+    {
+      "dari": "redis",
+      "judul": "Isi Redis sesudahnya",
+      "kirim": "1 key per alamat (hitungan 24), 10 key per akun, key berisi hash",
+      "jelas": "Key per alamat berhitungan 24, bukan 10, karena percobaan yang ditolak ikut dihitung. Key berisi hash alamat dan email, bukan teksnya."
+    }
+  ],
+  "varian": {
+    "label": "Redis mati",
+    "mulai": 2,
+    "langkah": [
+      {
+        "dari": "a",
+        "ke": "redis",
+        "judul": "Instance memanggil Redis yang sudah dihentikan",
+        "kirim": "docker compose stop redis, lalu EVAL skrip → gagal",
+        "jelas": "Panggilan ke Redis gagal. Kontainer Redis dihentikan sebelum percobaan pertama.",
+        "nada": "warn"
+      },
+      {
+        "dari": "a",
+        "judul": "Instance memakai bucket lokal",
+        "kirim": "log: batas bersama: gagal: memakai bucket lokal (satu baris per penghitung, alamat dan akun)",
+        "jelas": "Login tidak boleh ikut mati karena penghitung mati. Instance kembali ke bucket di memorinya, dan kegagalan dicatat sekali saat mulai.",
+        "nada": "warn"
+      },
+      {
+        "dari": "a",
+        "ke": "client",
+        "judul": "Login tetap dijawab, batasnya kembali per instance",
+        "kirim": "24 percobaan → 401: 20 · 429: 4 (sama dengan bucket di memori, bagian A)",
+        "jelas": "Batas tidak hilang, tetapi jatuh ke jatah per instance: 10 di a dan 10 di b.",
+        "nada": "warn"
+      },
+      {
+        "dari": "redis",
+        "ke": "a",
+        "judul": "Redis hidup lagi",
+        "kirim": "6 percobaan baru → 401: 6; instance a menjawab dengan hitungan bersama lagi",
+        "jelas": "Instance tidak dimulai ulang. Pemeriksaan berikutnya memakai Redis lagi, dan log mencatat bahwa penghitung pulih.",
+        "nada": "good"
+      }
+    ]
+  }
+}

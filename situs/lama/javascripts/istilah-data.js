@@ -536,6 +536,15 @@ window.ISTILAH = {
   "t": "JWT (JSON Web Token)",
   "u": "tahap-1/authentication/"
  },
+ "Jendela tetap": {
+  "b": "t3-rate-limit-redis",
+  "d": "Cara menghitung batas: hitungan mulai dari nol di awal jendela waktu, naik tiap percobaan, dan dibuang saat jendelanya habis.",
+  "h": "istilah/jendela-tetap/",
+  "n": "3.17 Rate limit lintas instance dan Redis",
+  "s": "istilah-jendela-tetap",
+  "t": "Jendela tetap (fixed window)",
+  "u": "tahap-3/rate-limit-redis/"
+ },
  "Job terjadwal": {
   "b": "t2-pencairan",
   "d": "Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.",
@@ -1751,6 +1760,15 @@ window.ISTILAH = {
   "s": "istilah-isolation-level",
   "t": "Isolation level",
   "u": "tahap-2/isolation-level/"
+ },
+ "jendela tetap": {
+  "b": "t3-rate-limit-redis",
+  "d": "Cara menghitung batas: hitungan mulai dari nol di awal jendela waktu, naik tiap percobaan, dan dibuang saat jendelanya habis.",
+  "h": "istilah/jendela-tetap/",
+  "n": "3.17 Rate limit lintas instance dan Redis",
+  "s": "istilah-jendela-tetap",
+  "t": "Jendela tetap (fixed window)",
+  "u": "tahap-3/rate-limit-redis/"
  },
  "job terjadwal": {
   "b": "t2-pencairan",
