@@ -1759,6 +1759,39 @@
   "jawab": "Kedua instance menjalankan kode yang sama, jadi laporan kosong yang sama mematikan instance kedua. Sesudah itu proxy menjawab 503 pada 10 dari 10 request (`panic.txt` bagian D)."
  },
  {
+  "id": "t3-dua-instance-1",
+  "halaman": "t3-dua-instance",
+  "judul": "3.15 Dua instance di belakang proxy + ADR 26",
+  "url": "tahap-3/dua-instance/",
+  "tanya": "AI menulis Caddyfile ini untuk dua instance. Apa yang kurang, dan apa akibatnya saat satu instance mati?",
+  "jawab": "Tidak ada `health_uri` dan tidak ada `lb_retries`, jadi proxy tidak tahu instance mana yang mati dan tidak mengulang request yang gagal. Di `proxy.txt` bagian C, 10 dari 20 request gagal dengan 502. Perbaikannya: tambahkan `health_uri /healthz`, `health_interval`, `health_timeout`, dan `lb_retries 2`, seperti di bagian F.",
+  "kode": ":8080 {\n\treverse_proxy host-a:8080 host-b:8080\n}"
+ },
+ {
+  "id": "t3-dua-instance-2",
+  "halaman": "t3-dua-instance",
+  "judul": "3.15 Dua instance di belakang proxy + ADR 26",
+  "url": "tahap-3/dua-instance/",
+  "tanya": "Raka menaikkan pool dari 10 ke 50 per instance \"supaya muat dua instance\". Hitung koneksinya, lalu tulis kenapa itu salah arah.",
+  "jawab": "2 × 50 + 4 + 3 + 3 = 110 koneksi, di atas `max_connections` bawaan 100 (Hitungan; worker dan admin Asumsi naskah). Pool yang lebih besar juga hanya menunda pool penuh dari ±11,5 detik ke ±57,6 detik di 3.6 M18. Dua instance dengan pool 10 memakai 30 dari 100."
+ },
+ {
+  "id": "t3-dua-instance-3",
+  "halaman": "t3-dua-instance",
+  "judul": "3.15 Dua instance di belakang proxy + ADR 26",
+  "url": "tahap-3/dua-instance/",
+  "tanya": "`/healthz` selalu menjawab 200 tanpa menyentuh database. Apa risikonya, dan apa risiko kebalikannya?",
+  "jawab": "Instance yang tidak bisa memakai database tetap menerima request. Val Town mengalaminya: pool koneksi satu server habis, dan health check server itu tidak memeriksa kondisi database, jadi server tetap terdegradasi cukup lama. Kebalikannya: pemeriksaan database mengeluarkan kedua instance sekaligus bila penyebabnya bersama, dan proxy menjawab 503 untuk semua. Kasus itu dibaca dari kode dan belum direkam."
+ },
+ {
+  "id": "t3-dua-instance-4",
+  "halaman": "t3-dua-instance",
+  "judul": "3.15 Dua instance di belakang proxy + ADR 26",
+  "url": "tahap-3/dua-instance/",
+  "tanya": "Tim mengganti `Shutdown` dengan keluar langsung saat SIGTERM karena \"proxy punya retry\". Apa yang direkam, dan apa yang tidak?",
+  "jawab": "Tanpa `Shutdown`, request lambat yang sedang jalan tidak mendapat jawaban dan proses keluar karena sinyal 15 (`bergulir.txt` bagian B). Kombinasi tanpa `Shutdown` di belakang proxy dengan retry tidak direkam. Retry hanya mengulang GET yang terputus sesudah tersambung, dan POST yang terputus tidak diulang."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",

@@ -1,0 +1,260 @@
+[
+ {
+  "id": "t3-dua-instance-inti",
+  "judul": "Satu instance mati, tanpa dan dengan pengaman",
+  "sumber": {
+   "jenis": "rekaman",
+   "teks": "Rekaman lab t3-instance, proxy.txt bagian C dan F"
+  },
+  "baris": [
+   {
+    "label": "Tanpa pengaman",
+    "sub": "round_robin, bagian C",
+    "simpul": [
+     {
+      "teks": "instance b mati",
+      "sub": "proxy tetap memilihnya"
+     },
+     {
+      "teks": "10 dari 20 request gagal",
+      "sub": "502 pada tiap request kedua",
+      "nada": "warn"
+     }
+    ]
+   },
+   {
+    "label": "Health check dan retry",
+    "sub": "selang 30 detik, bagian F",
+    "simpul": [
+     {
+      "teks": "instance b mati",
+      "sub": "pemeriksaan berikutnya belum jalan"
+     },
+     {
+      "teks": "0 dari 10 request gagal",
+      "sub": "semuanya dijawab instance a",
+      "nada": "good"
+     }
+    ]
+   }
+  ],
+  "catatan": "Kotak oranye adalah akibat yang direkam: setengah request ke proxy gagal. Kedua baris memakai dua instance api-t3 di belakang Caddy 2.11.7 di satu mesin, dan instance b dimatikan dengan SIGKILL."
+ },
+ {
+  "id": "t3-dua-instance-tebak",
+  "judul": "Satu instance mati di belakang proxy bawaan",
+  "sumber": {
+   "jenis": "rekaman",
+   "teks": "labs/t3-instance/output/proxy.txt bagian C"
+  },
+  "adegan": [
+   "Dua instance api-t3, a dan b, melayani lewat satu proxy Caddy. Instance b mati mendadak.",
+   "Proxy memakai round_robin, tanpa health check dan tanpa retry. Raka mengirim 20 request berurutan ke proxy."
+  ],
+  "pertanyaan": "Berapa dari 20 request itu yang gagal?",
+  "pilihan": [
+   {
+    "teks": "Tidak ada. Proxy tahu instance b mati dan memakai instance a saja.",
+    "benar": false,
+    "alasan": "Proxy tidak tahu apa pun sampai ada yang memeriksa instance b. Tanpa health check aktif, ia tetap memilih b setiap giliran."
+   },
+   {
+    "teks": "Satu. Sesudah request pertama gagal, proxy berhenti memilih instance b.",
+    "benar": false,
+    "alasan": "Pemeriksaan pasif mati bawaan, dan tanpa retry setiap kegagalan langsung sampai ke client. Di rekaman, kegagalan terus berulang di tiap giliran b."
+   },
+   {
+    "teks": "10, yaitu setiap request kedua.",
+    "benar": true,
+    "alasan": "round_robin bergantian a dan b. Urutan di rekaman: 200 dari a, lalu 502, berulang 10 kali."
+   },
+   {
+    "teks": "Semua dua puluh, karena satu instance mati membuat proxy berhenti menjawab.",
+    "benar": false,
+    "alasan": "Instance a tetap hidup dan menjawab request yang dipilihkan untuknya. Yang gagal hanya request yang jatuh ke b."
+   }
+  ],
+  "penutup": "Dua instance yang tidak dipantau tidak otomatis menjadi satu instance yang sehat. Selama proxy belum tahu, setengah request menuju instance yang mati.",
+  "label": {
+   "sumber": "Rekaman lab · proxy.txt",
+   "tebakDulu": "Tebak dulu:",
+   "benar": "Tepat",
+   "belum": "Belum tepat",
+   "ulang": "Coba pilihan lain",
+   "jawaban": "Jawaban yang tepat"
+  }
+ },
+ {
+  "judul": "Dua instance di satu VPS: proxy tanpa pengaman atau pilihan ADR 26",
+  "opsi": [
+   {
+    "id": "polos",
+    "nama": "A · Proxy tanpa pengaman (round_robin)",
+    "baris": [
+     [
+      {
+       "id": "a-hp",
+       "label": "App Budi",
+       "sub": "request ke satu alamat"
+      }
+     ],
+     [
+      {
+       "id": "a-proxy",
+       "label": "Proxy",
+       "sub": "bergantian a dan b"
+      },
+      {
+       "id": "a-ia",
+       "label": "Instance a",
+       "sub": "proses api-t3"
+      },
+      {
+       "id": "a-ib",
+       "label": "Instance b",
+       "sub": "proses api-t3"
+      }
+     ]
+    ],
+    "judulBaris": [
+     "App",
+     "Satu VPS"
+    ]
+   },
+   {
+    "id": "adr26",
+    "nama": "C · ADR 26: health check aktif dan retry",
+    "baris": [
+     [
+      {
+       "id": "b-hp",
+       "label": "App Budi",
+       "sub": "request ke satu alamat"
+      }
+     ],
+     [
+      {
+       "id": "b-proxy",
+       "label": "Proxy",
+       "sub": "bergantian a dan b"
+      },
+      {
+       "id": "b-cek",
+       "label": "Health check",
+       "sub": "GET /healthz"
+      },
+      {
+       "id": "b-retry",
+       "label": "Retry",
+       "sub": "instance lain"
+      },
+      {
+       "id": "b-ia",
+       "label": "Instance a",
+       "sub": "proses api-t3"
+      },
+      {
+       "id": "b-ib",
+       "label": "Instance b",
+       "sub": "proses api-t3"
+      }
+     ]
+    ],
+    "judulBaris": [
+     "App",
+     "Satu VPS"
+    ]
+   }
+  ],
+  "fitur": [
+   {
+    "label": "Satu instance mati",
+    "sorot": {
+     "polos": [
+      "a-proxy",
+      "a-ib"
+     ],
+     "adr26": [
+      "b-proxy",
+      "b-retry",
+      "b-ia"
+     ]
+    },
+    "catatan": {
+     "polos": "10 dari 20 request gagal dengan 502, karena proxy bergantian dan tiap request kedua jatuh ke instance b (proxy.txt bagian C).",
+     "adr26": "10 request langsung sesudah b mati, semuanya 200 dari instance a, sebelum pemeriksaan berikutnya yang selangnya 30 detik (proxy.txt bagian F)."
+    },
+    "nada": {
+     "polos": "warn"
+    }
+   },
+   {
+    "label": "Deploy bergulir",
+    "sorot": {
+     "polos": [
+      "a-proxy",
+      "a-ia"
+     ],
+     "adr26": [
+      "b-proxy",
+      "b-cek",
+      "b-ia"
+     ]
+    },
+    "catatan": {
+     "polos": "Selama a lalu b diganti, ada 502 di antara jawaban 200, dengan jeda naik pengganti 0,5 detik yang dipilih lab (bergulir.txt bagian D).",
+     "adr26": "Selama a lalu b diganti saat beban berjalan, semua jawaban /healthz dan semua request lambat 200 (bergulir.txt bagian C)."
+    },
+    "nada": {
+     "polos": "warn"
+    }
+   },
+   {
+    "label": "Kedua instance mati",
+    "sorot": {
+     "polos": [
+      "a-proxy",
+      "a-ia",
+      "a-ib"
+     ],
+     "adr26": [
+      "b-proxy",
+      "b-cek",
+      "b-ia",
+      "b-ib"
+     ]
+    },
+    "catatan": {
+     "polos": "Tidak direkam: lab tidak mematikan kedua instance di belakang proxy tanpa pengaman.",
+     "adr26": "Setelah tombol Ekspor ditekan dua kali, 10 dari 10 request dijawab 503 (panic.txt bagian D)."
+    },
+    "nada": {
+     "adr26": "warn"
+    }
+   },
+   {
+    "label": "VPS mati",
+    "sorot": {
+     "polos": [
+      "a-proxy",
+      "a-ia",
+      "a-ib"
+     ],
+     "adr26": [
+      "b-proxy",
+      "b-ia",
+      "b-ib"
+     ]
+    },
+    "catatan": {
+     "polos": "Tidak dijalankan: proxy dan kedua instance memakai satu mesin, jadi semuanya ikut mati.",
+     "adr26": "Tidak dijalankan: proxy dan kedua instance memakai satu mesin, jadi satu VPS tetap titik gagal tunggal."
+    },
+    "nada": {
+     "polos": "warn",
+     "adr26": "warn"
+    }
+   }
+  ]
+ }
+]

@@ -186,7 +186,7 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     harus("[[t2-jembatan]] dan [[t3-prd]] sudah mencatat pemicu itu. Di cerita, tidak ada pekerjaan yang dijadwalkan untuknya sampai Rabu itu (Ilustrasi).");
     expect(dari("t3-dua-instance").prasyarat).toEqual(["t3-m21"]);
     expect(hal231).toMatch(/Server kedua \| Puncak yang diperkirakan[^\n]*\[\[t3-dua-instance\]\]/);
-    const menaut = ["prd-v3.mdx"];
+    const menaut = ["dua-instance.mdx", "prd-v3.mdx"];
     const sebenarnya = fs.readdirSync(path.join(akar, "situs/src/content/docs/tahap-3")).filter((f) => f.endsWith(".mdx") && f !== "m21-satu-proses-mati.mdx" && baca(`situs/src/content/docs/tahap-3/${f}`).includes("[[t3-m21"));
     expect(sebenarnya.sort()).toEqual(menaut);
   });
