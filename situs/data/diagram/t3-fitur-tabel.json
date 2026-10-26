@@ -1,7 +1,7 @@
 {
   "id": "t3-fitur-tabel",
-  "judul": "Dari PRD v3: tabel yang bertambah dan pekerjaan di luar database",
-  "sumber": { "jenis": "ilustrasi", "teks": "Baris 1: Rekaman lab api-t3 (skema.txt). Baris 2: Ilustrasi" },
+  "judul": "Dari PRD v3: tabel dan pemberitahuan",
+  "sumber": { "jenis": "ilustrasi", "teks": "Baris 1: rekaman lab api-t3. Baris 2: Ilustrasi" },
   "baris": [
     {
       "label": "Database",

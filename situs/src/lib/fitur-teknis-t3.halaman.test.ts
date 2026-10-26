@@ -211,7 +211,7 @@ describe("Inti dan diagram Rantai: jumlah tabel dari ERD dan rekaman", () => {
     const [db, luar] = rantai.baris;
     expect(db!.simpul.map((s) => s.teks)).toEqual([`${erd2.tabel.length} tabel`, `+ ${erd3.selisih.tabel_baru.length} tabel`, `${erd3.tabel.length} tabel`]);
     expect(db!.simpul[1]!.sub).toBe(erd3.selisih.tabel_baru.join(", "));
-    expect(rantai.sumber.teks).toBe("Baris 1: Rekaman lab api-t3 (skema.txt). Baris 2: Ilustrasi");
+    expect(rantai.sumber.teks).toBe("Baris 1: rekaman lab api-t3. Baris 2: Ilustrasi");
     expect(rantai.sumber.jenis).toBe("ilustrasi");
     expect(rantai.baris.map((b) => b.label)).toEqual(["Database", "Di luar database"]);
     expect(luar!.simpul.map((s) => s.teks)).toEqual(["Jurnal COMMIT", "HP Citra berbunyi"]);
