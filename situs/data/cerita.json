@@ -2594,8 +2594,9 @@
       "lab": [
         "t3-outbox"
       ],
-      "ada": false,
-      "nomor": "3.13"
+      "ada": true,
+      "nomor": "3.13",
+      "menit": 22
     },
     {
       "id": "t3-m21",
@@ -2618,8 +2619,9 @@
       "lab": [
         "t3-instance"
       ],
-      "ada": false,
-      "nomor": "3.14"
+      "ada": true,
+      "nomor": "3.14",
+      "menit": 11
     },
     {
       "id": "t3-dua-instance",

@@ -731,11 +731,12 @@ describe("halaman istilah Outbox dan Worker, glosarium, dan peleburan B10.1", ()
     expect(klaimTxt.join("\n")).toContain("jumlah diklaim ketiga worker: 60; jumlah terkirim: 60");
     expect(wk.sumber[2]!.catatan).toBe("Bagian G: klaim habis, baris dikirim ulang, dan layanan push menerima 2 pesan dengan 1 notifikasi_id.");
   });
-  test("glosarium: Outbox, Worker, dan Queue menuju 3.9; halaman istilah Outbox dan Worker terpasang; B10.1 lain tidak dialihkan", () => {
+  test("glosarium: Outbox, Worker, dan Queue menuju 3.9; At-least-once dan Dead-letter queue menuju 3.13; halaman istilah Outbox dan Worker terpasang; Lease tetap B10.1", () => {
     const g = baca("situs/src/content/docs/alat/glosarium.mdx");
     const barisG = (nama: string) => g.split("\n").find((b) => b.startsWith(`| **${nama}** |`))!;
     for (const nama of ["Outbox", "Worker", "Queue"]) expect(barisG(nama), nama).toMatch(/\| \[\[t3-outbox\]\] \|$/);
-    for (const nama of ["At-least-once", "Dead-letter queue", "Lease"]) expect(barisG(nama), nama).toMatch(/\| \[\[B10\.1\]\] \|$/);
+    for (const nama of ["At-least-once", "Dead-letter queue"]) expect(barisG(nama), nama).toMatch(/\| \[\[t3-at-least-once\]\] \|$/);
+    for (const nama of ["Lease"]) expect(barisG(nama), nama).toMatch(/\| \[\[B10\.1\]\] \|$/);
     expect(barisG("Outbox")).toContain("Tabel tempat event ditulis dalam transaction yang sama dengan perubahan data, lalu dikirim oleh worker.");
     const glos = JSON.parse(baca("situs/data/glosarium.json")) as { t: string; h: string | null; b: string | null }[];
     expect(glos.find((x) => x.t === "Outbox")).toMatchObject({ h: "/istilah/outbox/", b: "t3-outbox" });

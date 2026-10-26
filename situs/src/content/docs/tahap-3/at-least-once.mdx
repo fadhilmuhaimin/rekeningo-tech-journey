@@ -1,0 +1,381 @@
+---
+title: "3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25"
+description: Worker mengirim pemberitahuan paling banyak lima kali, lalu memindahkannya ke dead-letter, dan app menampilkan satu pemberitahuan untuk tiap notifikasi_id. ADR 25 menimbang tiga cara lain dan menulis kapan pilihan ini salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import OutboxWorker from "../../../components/OutboxWorker.astro";
+import intiDiagram from "../../../../data/diagram/t3-at-least-once-inti.json";
+
+<p class="meta">Baca 19 menit · coba 3 menit · Prasyarat: [[t3-m20]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Worker mengirim paling banyak lima kali, dan app menampilkan satu pemberitahuan untuk tiap `notifikasi_id`.
+
+<Rantai data={intiDiagram} ringkas />
+
+At-least-once artinya pemberitahuan tidak hilang, tetapi bisa sampai lebih dari sekali. Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `ganda.txt` bagian A, worker berhenti sesudah layanan push menjawab dan sebelum baris ditandai `terkirim`. Klaim 5 detik habis, worker berikutnya mengirim ulang, dan layanan push menerima 2 pesan dengan 1 `notifikasi_id`. Jurnalnya tetap satu.
+
+Pengiriman ulang punya batas. Di `retry.txt` bagian A, layanan push yang menjawab 503 terus menerima 5 permintaan, lalu baris berstatus `mati`. Di `ganda.txt` bagian C, penyaring tiruan menerima 2 pesan dan menampilkan 1. Penyaring itu lima baris Python di lab, jadi bentuk Dart-nya ada di blok Paham dan Tidak dijalankan.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Worker mati sesudah tiap push berhasil, dan batasnya lima percobaan. Berapa pesan sampai ke layanan push, dan pada klaim ke berapa baris masuk dead-letter?
+2. Kenapa penyaring `notifikasi_id` di app tidak jalan untuk pesan notification saat app di background?
+3. Apa yang terjadi bila klaim lebih pendek daripada waktu kirim satu baris?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: mengirim ulang itu benar, dan yang harus berubah adalah penerima yang mengenali ulangan, bukan pengirim yang berhenti mengulang.">
+
+Widget ini memerankan dua keadaan: Retry dan dead-letter, lalu Pengiriman ganda. Tebak dulu, lalu ubah satu hal.
+
+Hitungan adalah hasil rumus dari angka rekaman, dan Asumsi adalah angka pilihan penulis tanpa rekaman. Dari 9 pengaturan Retry dan dead-letter, 2 punya Rekaman lab dan 7 adalah Hitungan. Dari 8 pengaturan Pengiriman ganda, 4 punya Rekaman lab, 2 adalah Hitungan, dan 2 adalah Asumsi.
+
+<OutboxWorker skenario={["ulang", "ganda"]} />
+
+**Ubah satu hal:** di Retry dan dead-letter, pilih Worker mati sesudah kirim dengan Batas 5. Lima pesan sampai ke layanan push dan percobaan di baris menjadi 6, karena klaim ke-6 melewati batas tanpa mengirim (`retry.txt` bagian C). Ganti ke Push gagal 2 kali, lalu pulih: baris terkirim pada percobaan ke-3, dan `push.txt` bagian B di lab api-t3 merekam urutan yang sama.
+
+Di Pengiriman ganda, pilih Worker mati, klaim bawaan, lalu Saring notifikasi_id. Dua pesan diterima dan satu ditampilkan (`ganda.txt` bagian C). Pilih Dua HP menggantung, klaim bawaan: 4 pesan sampai ke layanan push, dan penyaring menampilkan 2, satu per HP (Hitungan).
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t3-m20]] menunjukkan satu jurnal dan dua pemberitahuan. Pengirimnya benar mengirim ulang, dan yang kurang adalah penerima yang mengenali ulangan. Halaman ini memutuskan cara mengirim ulang yang aman dan siapa yang menyaring.
+
+Dokumentasi Kafka membedakan tiga jaminan pengiriman. At-most-once: pesan bisa hilang tetapi tidak pernah dikirim ulang. At-least-once: pesan tidak hilang tetapi bisa dikirim ulang. Exactly-once: tiap pesan diproses sekali dan hanya sekali ([Apache Kafka: Message Delivery Semantics](https://github.com/apache/kafka/blob/trunk/docs/design/design.md), dibaca dari sumber dokumentasinya, dibuka 2026-10-26).
+
+PRD v3 menyebut notifikasi yang terlambat, hilang, atau muncul dua kali sebagai hal yang membuat karyawan berhenti memakai Rekeningo ([[t3-prd]]). Pemberitahuan uang juga tidak boleh hilang tanpa terdeteksi. Hanya at-least-once yang memenuhi syarat itu di sisi pengirim, dan penerima menutup syarat sisanya.
+
+Kenapa bukan exactly-once? Dokumentasi Kafka menulis bahwa menulis ke sistem luar menuntut koordinasi posisi consumer dengan output, lewat two-phase commit atau dengan menyimpan keduanya di tempat yang sama. Layanan push tidak memberi worker jalan untuk itu. Itu penalaran dari dokumentasi FCM. `MESSAGE_ACCEPTED` berarti server FCM menerima pesan, dan `MESSAGE_DELIVERED` berarti pesan sampai ke SDK di HP ([FCM: Understanding message delivery](https://firebase.google.com/docs/cloud-messaging/understand-delivery), dibuka 2026-10-26).
+
+Dokumentasi menulis `MESSAGE_DELIVERED` tidak diteruskan secara bawaan, dan mengaktifkannya butuh `setDeliveryMetricsExportToBigQuery` di app. Itu data ekspor BigQuery, bukan jawaban atas permintaan worker.
+
+### Cara kerjanya
+
+**Empat kejadian membuat satu baris dikirim lagi, dan satu tidak.**
+
+| Kejadian | Nasib baris | Dikirim lagi | Sumber |
+|---|---|---|---|
+| Layanan push menjawab 503, atau tidak menjawab dalam 3 detik | `menunggu`, dengan `coba_lagi` di depan | Ya, sesudah backoff | `retry.txt` bagian A; `push.txt` bagian E |
+| Worker mati sesudah push berhasil | `menunggu` sampai klaim habis | Ya, oleh worker berikutnya | `ganda.txt` bagian A |
+| Klaim habis selagi worker pertama masih mengirim | Dua worker mengirim, tanpa ada yang mati | Ya, bersamaan | `ganda.txt` bagian B dan D |
+| Satu perangkat gagal sementara, perangkat lain sudah menerima | Seluruh baris ditunda | Ya, ke semua perangkat aktif | Dibaca dari kode `kirimSatu`, tidak direkam |
+| Token ditolak dengan 404 atau 400 | `dilewati`, perangkat dinonaktifkan | Tidak | `push.txt` bagian D (404); 400 dibaca dari kode |
+
+Baris kelima bukan kegagalan sementara. Mengirim ulang ke token yang ditolak tidak mengubah jawabannya, jadi worker menonaktifkan perangkatnya ([[t3-notifikasi]] membahasnya).
+
+**Jeda antar percobaan makin panjang dan diacak.** Tunggu sesudah kegagalan ke-n adalah angka acak antara 0 dan min(60, 2 × 2^(n−1)) detik:
+
+<Snippet file="labs/api-t3/internal/worker/worker.go" lines="59:68" lang="go" title="labs/api-t3/internal/worker/worker.go" />
+
+Lab merekam batas atasnya, bukan nilai acaknya. Sesudah kegagalan ke-1 sampai ke-4, `coba_lagi` paling lama 2, 4, 8, dan 16 detik lagi (`retry.txt` bagian A). Lab memajukan `coba_lagi` dengan `UPDATE` tangan supaya tidak menunggu. Jumlah batas itu 30 detik (Hitungan: 2 + 4 + 8 + 16), dan kegagalan ke-5 tidak menunggu lagi karena barisnya masuk dead-letter.
+
+Jitter mencegah baris yang gagal bersamaan mengulang bersamaan. Di bagian B, 20 baris yang gagal pada putaran yang sama mendapat 20 waktu coba berbeda. Waktunya tersebar lebih dari 0,5 detik, semuanya paling lama 2 detik lagi.
+
+Brooker menulis hasil serupa dari simulasi optimistic concurrency control terhadap database jarak jauh. Sesudah jitter ditambahkan, 100 client yang berebut memanggil lebih dari separuh lebih sedikit ([Brooker: Exponential Backoff And Jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/), 2015-03-04, dibuka 2026-10-26). Konteksnya bukan layanan push.
+
+**Batas lima dihitung saat klaim.** Kolom `percobaan` menghitung berapa kali baris diklaim, bukan berapa kali ia gagal. Klaim menaikkannya sebelum worker mengirim. Worker yang menerima baris dengan `percobaan` di atas 5 memasukkannya ke dead-letter tanpa mengirim:
+
+<Snippet file="labs/api-t3/internal/worker/worker.go" lines="135:144" lang="go" title="labs/api-t3/internal/worker/worker.go" />
+
+Push yang gagal sementara dicatat lewat `tunda`, dan batasnya di sana sedikit berbeda:
+
+<Snippet file="labs/api-t3/internal/worker/worker.go" lines="187:197" lang="go" title="labs/api-t3/internal/worker/worker.go" />
+
+Akibatnya dua jalan menuju `mati` punya hitungan berbeda. Push yang menjawab 503 terus menerima 5 permintaan, dan barisnya `mati` pada kegagalan ke-5 (`retry.txt` bagian A). Worker yang mati sesudah tiap push berhasil juga mengirim 5 pesan, tetapi barisnya baru `mati` pada klaim ke-6, tanpa kirim (bagian C). Worker yang mati tidak sempat mencatat kegagalan, jadi hanya hitungan saat klaim yang menghentikan pengulangannya.
+
+Amazon SQS memakai hitungan yang sama. `maxReceiveCount` adalah berapa kali consumer boleh menerima pesan sebelum pesan pindah ke dead-letter queue ([Amazon SQS: dead-letter queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html), dibuka 2026-10-26).
+
+**Dead-letter dibaca manusia dulu.** Di outbox itu status `mati`. Barisnya tetap di tabel, tidak diklaim lagi (putaran ke-6 di `retry.txt` bagian A mengklaim 0 baris), dan tidak dibuang oleh `-bersih` (`listen.txt` bagian C).
+
+Seseorang membaca baris `mati`, memperbaiki penyebabnya, lalu memutarnya ulang dengan satu `UPDATE` yang mengembalikan `status` ke `menunggu` dan `percobaan` ke 0. Di bagian D baris itu terkirim pada percobaan ke-1, dengan `notifikasi_id` yang sama. Dokumentasi SQS menulis tujuan yang sama: pesan yang gagal diisolasi supaya penyebabnya bisa diperiksa, dan ada cara memindahkannya kembali.
+
+**Berapa lama jendela retry, dan berapa baris yang mati bila push mati.**
+
+| Besaran | Rumus | Hasil | Label |
+|---|---|---|---|
+| Jeda paling lama sebelum dead-letter | 2 + 4 + 8 + 16 | 30 detik | Hitungan dari batas atas di `retry.txt` bagian A |
+| Jendela retry paling lama | 30 + 5 × 3 | 45 detik | Hitungan untuk satu baris dan satu perangkat, tanpa baris lain yang menunggu worker; batas push 3 detik dari `push.txt` bagian E; selang polling worker 200 milidetik per klaim tidak dihitung |
+| Baris yang masuk dead-letter bila push mati 10 menit | 0,868 × 600 | paling banyak 521 baris (520,8) | Asumsi: 0,868 per detik dan 10 menit adalah angka penulis |
+
+Layanan push yang mati lebih lama dari 45 detik memasukkan baris yang masuk di awal gangguan ke dead-letter. Makin lama gangguannya, makin besar bagian barisnya. Barisnya tidak hilang, dan statusnya bisa dihitung.
+
+Jendela itu mengandaikan tidak ada baris lain yang menunggu worker. Bila push menggantung dan tiap percobaan memakai batas 3 detik penuh, 4 pengirim serentak ÷ 3 detik = 1,33 percobaan per detik. Beban percobaannya 0,868 × 5 = 4,34 per detik, jadi baris yang menunggu menumpuk dan jendelanya memanjang (Asumsi: hasil rumus dari 0,868 per detik).
+
+### Penyaring di app
+
+Penyaring `notifikasi_id` hanya berguna bila kode app jalan saat pesan tiba. Itu ditentukan jenis pesan FCM. Dokumentasi FCM menulis bahwa pesan notification ditampilkan FCM SDK saat app di background, dan pesan data diproses kode app sendiri ([FCM: message types](https://firebase.google.com/docs/cloud-messaging/customize-messages/set-message-type), dibuka 2026-10-26).
+
+Tabel ini mengikuti dokumentasi Android untuk pesan AndroidConfig v1, yaitu field `android`. Di sana `onMessageReceived` adalah callback pesan masuk ([FCM: receive messages di Android](https://firebase.google.com/docs/cloud-messaging/android/receive), dibuka 2026-10-26).
+
+| Jenis pesan | App di foreground | App di background |
+|---|---|---|
+| notification | `onMessageReceived` | Tray sistem, tanpa kode app |
+| data | `onMessageReceived` | `onMessageReceived` |
+| notification dan data | `onMessageReceived` | Notification di tray; data baru diterima saat user mengetuknya |
+
+Di Flutter, `onMessage` melayani app di foreground dan `onBackgroundMessage` melayani app di background atau tertutup ([FlutterFire: receive messages](https://firebase.google.com/docs/cloud-messaging/flutter/receive-messages), dibuka 2026-10-26). Halaman FlutterFire itu tidak menulis jenis pesan mana yang sampai ke `onBackgroundMessage`. Pemetaan dari tabel Android ke Flutter adalah penalaran [perlu verifikasi di perangkat].
+
+Akibatnya bagi penyaring: pesan notification di background tidak melewati kode app, jadi penyaring tidak jalan dan ulangan tampil dua kali di tray. Pesan notification juga selalu collapsible dan mengabaikan `collapse_key`. Pesan collapsible hanya diganti selama belum sampai ke HP, jadi collapse bukan cara menyaring ([FCM: collapsible messages](https://firebase.google.com/docs/cloud-messaging/customize-messages/collapsible-message-types), dibuka 2026-10-26). Pesan data melewati kode app, jadi penyaring bisa jalan.
+
+Pesan notification punya satu jalan lain di Android: field `tag` di `android.notification`. Dokumentasi FCM menulis bahwa notifikasi baru dengan `tag` yang sama menggantikan yang sudah tampil di notification drawer ([FCM HTTP v1: Message](https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages), dibuka 2026-10-26). Dengan `tag` sama dengan `notifikasi_id`, ulangan menggantikan dan tidak menumpuk. Itu tidak diuji di perangkat dan tidak mencatat id, dan padanannya untuk iOS tidak dicek.
+
+Field `data` di FCM HTTP v1 berisi pasangan string ke string. Sumbernya [FCM HTTP v1: Message](https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages), dibuka 2026-10-26. `notifikasi_id`, `judul`, dan `isi` di payload lab juga string, jadi bentuknya muat.
+
+`RemoteMessage` punya `messageId`. Halaman FlutterFire itu tidak menyebut apakah dua pengiriman terpisah dengan isi sama mendapat `messageId` yang sama. Karena itu id yang dipakai adalah `notifikasi_id` dari server, yang nilainya ditentukan sendiri.
+
+Kerangka Dart ini menyaring di dua tempat dengan satu fungsi. Handler latar harus fungsi top-level, bukan fungsi anonim, dan di Flutter 3.3.0 ke atas diberi `@pragma('vm:entry-point')`. Fungsi `tampilkanSekali` menampilkan dulu, lalu mencatat id:
+
+<Snippet lang="dart" code={`@pragma('vm:entry-point')
+Future<void> terimaDiLatar(RemoteMessage pesan) async {
+  await Firebase.initializeApp();
+  await tampilkanSekali(pesan);
+}
+
+Future<void> tampilkanSekali(RemoteMessage pesan) async {
+  final id = pesan.data['notifikasi_id'] as String?;
+  if (id != null && await riwayatId.sudahAda(id)) return;
+  await notifikasiLokal.tampilkan(pesan.data['judul'], pesan.data['isi']);
+  if (id != null) await riwayatId.catat(id);
+}
+
+void pasangPenerima() {
+  FirebaseMessaging.onBackgroundMessage(terimaDiLatar);
+  FirebaseMessaging.onMessage.listen(tampilkanSekali);
+}`} />
+
+*Tidak dijalankan. Kerangkanya dari [FlutterFire: receive messages](https://firebase.google.com/docs/cloud-messaging/flutter/receive-messages). `riwayatId` (penyimpanan lokal) dan `notifikasiLokal` (API notifikasi lokal) buatan sendiri. Lab hanya punya penyaring tiruan lima baris Python (`ganda.txt` bagian C).*
+
+Urutan menampilkan lalu mencatat disengaja. App yang mati di antaranya menampilkan ulangan, dan tidak kehilangan pemberitahuan. Urutan sebaliknya bisa kehilangan, padahal PRD melarang hilang tanpa terdeteksi. Dokumentasi Kafka menulis pola yang sama untuk posisi consumer: menyimpan posisi sebelum memproses memberi at-most-once, dan memproses lalu menyimpan memberi at-least-once.
+
+Dua salinan yang tiba bersamaan bisa sama-sama lolos pemeriksaan. Itu penalaran dan tidak diuji.
+
+Pesan data punya harga, dan dokumentasi menulisnya:
+
+- **iOS:** pesan dengan `content-available` menjadi silent notification yang membangunkan app. Platform Apple tidak menjamin pengiriman background notification ([FCM: receive messages di Apple](https://firebase.google.com/docs/cloud-messaging/ios/receive), dibuka 2026-10-26).
+- **App ditutup paksa:** di iOS, app yang digeser keluar dari app switcher harus dibuka manual supaya pesan latar bekerja lagi. Di Android, hal yang sama berlaku bila user menutup paksa dari pengaturan.
+- **Prioritas Android:** pesan normal bisa tertunda saat Doze. Pesan high priority yang tidak menghasilkan notifikasi untuk user bisa diturunkan ke normal. FCM membaca pola 7 hari per instance app ([FCM: message priority](https://firebase.google.com/docs/cloud-messaging/android/message-priority), dibuka 2026-10-26).
+- **Handler harus cepat:** FlutterFire menulis bahwa tugas lebih dari 30 detik bisa membuat perangkat mematikan prosesnya.
+
+Dokumentasi FCM juga memuat AndroidConfigV2, yang menyarankan `RemoteNotification` untuk semua pesan yang menampilkan notifikasi. Halaman itu menandainya preview (Pre-GA), jadi ADR 25 tidak bersandar padanya ([FCM: migrate ke AndroidConfigV2](https://firebase.google.com/docs/cloud-messaging/send/v2-api), dibuka 2026-10-26).
+
+### Di stack lain
+
+**Skenario:** satu baris pemberitahuan gagal dikirim, atau worker-nya mati di tengah. Yang ditanyakan: berapa kali ia dicoba, berapa jedanya, ke mana ia pergi sesudah gagal terus, dan siapa menyaring ulangan.
+
+Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-26. Tanda [perlu verifikasi] berarti klaim itu belum bisa dicek ke sumber primer.
+
+Yang sama di semua stack: pengiriman at-least-once menuntut penerima yang tahan ulangan. Yang berbeda adalah siapa yang menghitung percobaan dan siapa yang menyimpan baris yang menyerah.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: lab api-t3 dan t3-outbox, PostgreSQL 17.11 (rekaman `retry.txt` bagian A sampai D dan `ganda.txt`).*
+
+<Snippet file="labs/api-t3/internal/worker/worker.go" lines="39:42" lang="go" title="labs/api-t3/internal/worker/worker.go" />
+
+**Yang berbeda di stack ini:** percobaan, jeda, dan dead-letter adalah kolom `percobaan`, `coba_lagi`, dan status `mati` di tabel outbox. Tidak ada library queue. Penyaring ganda ada di penerima, bukan di worker.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke dokumentasi [pg-boss](https://github.com/timgit/pg-boss/blob/12.38.0/docs/api/queues.md) 12.38.0, dibuka 2026-10-26. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="js" code={`await boss.createQueue('notifikasi-mati')
+await boss.createQueue('notifikasi', {
+  retryLimit: 4,
+  retryDelay: 2,
+  retryBackoff: true,
+  deadLetter: 'notifikasi-mati'
+})`} />
+
+**Yang berbeda di stack ini:** `retryLimit` menghitung ulangan dan bawaannya 2, `retryDelay` bawaannya 0, dan `retryBackoff` bawaannya false. Dokumentasi menulis jedanya `retryDelay * 2 ^ retryCount` dengan sedikit jitter. Sesudah semua ulangan gagal, payload disalin ke queue `deadLetter` yang harus sudah dibuat. Padanan lima percobaan memakai `retryLimit` 4 bila percobaan pertama tidak dihitung ulangan [perlu verifikasi].
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Queues](https://laravel.com/docs/13.x/queues), dibuka 2026-10-26. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="php" code={`#[Tries(5)]
+#[Backoff([2, 4, 8, 16])]
+class KirimNotifikasi implements ShouldQueue
+{
+    // ...
+}`} />
+
+**Yang berbeda di stack ini:** Laravel mencoba job sekali saja secara bawaan, dan `--tries=0` mengulang tanpa batas. Job yang melewati batas masuk tabel `failed_jobs` dan bisa diulang dengan `queue:retry`. Backoff berupa daftar detik, dan dokumentasi tidak menyebut jitter. `retry_after` adalah lamanya job dipegang, dan bila `--timeout` lebih panjang daripada `retry_after`, job bisa diproses dua kali. Itu pola `ganda.txt` bagian B.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: Tasks](https://docs.djangoproject.com/en/6.1/topics/tasks/), dibuka 2026-10-26. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="python" code={`@task(takes_context=True)
+def kirim_notifikasi(context, jurnal_id):
+    logger.debug(f"Percobaan {context.attempt} untuk jurnal {jurnal_id}")
+    kirim(jurnal_id)`} />
+
+**Yang berbeda di stack ini:** Django tidak menyediakan worker. Halaman Tasks menunjukkan `context.attempt`, nomor percobaan, dan tidak menjelaskan retry otomatis, backoff, atau dead-letter. Kebijakan itu datang dari backend yang dipasang [perlu verifikasi].
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: Scheduling](https://docs.serverpod.dev/concepts/scheduling/overview), halaman bertanda versi dokumentasi 4.0.0, rilis terbaru di pub.dev 4.0.4, dibuka 2026-10-26.*
+
+**Yang berbeda di stack ini:** future call berjalan at-least-once. Bila instance yang mengklaimnya mati di tengah, instance lain menjalankannya lagi, dan dokumentasi menyuruh menulis pekerjaan yang aman diulang. Bila metodenya melempar exception, Serverpod mencatat error dan tidak mengulang. Retry menjadi tugas kodemu sendiri, dan halaman Scheduling tidak menyebut dead-letter.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Queues](https://supabase.com/docs/guides/queues) dan README [pgmq](https://github.com/pgmq/pgmq), rilis terbaru v1.13.1 (2026-10-20), dibuka 2026-10-26. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="sql" code={`SELECT * FROM pgmq.read(
+  queue_name => 'notifikasi',
+  vt         => 5,
+  qty        => 4
+);`} />
+
+**Yang berbeda di stack ini:** Supabase Queues dibangun di atas pgmq, dan README pgmq menjamin exactly-once ke consumer hanya selama visibility timeout (`vt`). Pesan yang tidak dihapus atau diarsipkan dalam `vt` terlihat lagi dan bisa dibaca consumer lain, sama dengan `klaim_sampai`. Kolom `read_ct` ada di hasil `read`, dan halaman Supabase: Queues serta README yang dibuka tidak membahas dead-letter. Membuatnya dari `read_ct` adalah penalaran [perlu verifikasi].
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 25: at-least-once dengan batas lima percobaan, dead-letter, dan penyaring di app
+
+**Kebutuhan.** Pemberitahuan uang tidak boleh hilang tanpa terdeteksi dan tidak boleh muncul dua kali ([[t3-prd]]). Layanan push tidak ikut COMMIT, dan worker bisa mati di antara kirim dan tandai. Bebannya kecil: 0,868 pemberitahuan bayar dan transfer per detik di puncak (Asumsi, rumus di [[t3-skema]]).
+
+**Status:** diterima sesudah M20 (minggu 4), memakai tabel outbox dari ADR 23 dan klaim dari ADR 24 ([[t3-outbox]], [[t3-klaim-baris]]). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR.
+
+| | A. At-most-once | B. At-least-once, retry tanpa batas | C. Exactly-once lewat kerja sama penerima | D. At-least-once, 5 percobaan, dead-letter, penyaring di app |
+|---|---|---|---|---|
+| Cara kerja | Worker menandai baris `terkirim` sebelum mengirim, atau tidak pernah mengulang | Worker mengulang sampai berhasil, dengan atau tanpa backoff, dan penerima menyaring | Worker dan HP bertukar konfirmasi, atau menyimpan posisi bersama, supaya tiap pesan sampai sekali | Worker mengulang paling banyak 5 percobaan dengan backoff dan jitter. Baris yang gagal masuk dead-letter. App menyaring `notifikasi_id` |
+| Kelebihan | Tidak ada ulangan, jadi tidak ada penyaring | Tidak ada pemberitahuan yang menyerah | Penerima tidak pernah melihat ulangan | Tidak hilang tanpa terdeteksi, dan ulangan tidak tampil. Baris yang gagal terus tidak berputar selamanya |
+| Kekurangan | Pemberitahuan hilang saat push menjawab 503 atau worker mati, dan PRD v3 melarangnya | Baris yang tidak pernah bisa terkirim berputar tanpa akhir dan menghabiskan kapasitas worker | Layanan push tidak memberi konfirmasi dari layar HP, dan koordinasi ini menuntut two-phase commit atau penyimpanan bersama | Butuh pesan data dan kode di app. Push yang mati lebih lama dari jendela retry memasukkan barisnya ke dead-letter |
+| Biaya operasional | Nol, tetapi kehilangan tidak terlihat | Tak ada yang mengurus baris yang tidak pernah terkirim, jadi queue membengkak diam-diam | Dua sisi dengan protokol konfirmasi dan penyimpanan posisi di HP | Satu pemilik untuk baris `mati`, alert jumlah `mati`, dan penyimpanan id di app |
+| Bukti | Tidak dijalankan. Definisi di dokumentasi Kafka | Tidak dijalankan. Dokumentasi Laravel menulis `--tries=0` mengulang tanpa batas. Mutasi di README lab: tanpa batas klaim, klaim ke-6 mengirim lagi | Tidak dijalankan. Dokumentasi Kafka dan FCM | Rekaman lab `retry.txt`, `ganda.txt`, dan `push.txt`. Penyaring di app Tidak dijalankan |
+
+**Keputusan: opsi D.** Tujuh aturan:
+
+1. `notifikasi_id` dibuat saat `INSERT` outbox, sebagai kolom `uuid` `UNIQUE` dengan bawaan `gen_random_uuid()`, dan sama di semua percobaan.
+2. Paling banyak 5 percobaan, dan `percobaan` naik saat klaim. Push yang gagal sementara masuk dead-letter pada kegagalan ke-5. Baris yang mematikan worker masuk dead-letter pada klaim ke-6, tanpa kirim (`retry.txt` bagian A dan C).
+3. Hanya kegagalan sementara diulang, dengan jeda acak antara 0 dan min(60, 2 × 2^(n−1)) detik. Token yang ditolak 404 tidak diulang: perangkatnya dinonaktifkan (`push.txt` bagian D). Kode lab menyamakan 400 dengan 404, dan dokumentasi FCM membolehkannya hanya bila payload valid ([[t3-notifikasi]]).
+4. Baris `mati` tidak diklaim lagi dan tidak dibuang oleh `-bersih`. Satu pemilik membacanya, memperbaiki penyebabnya, lalu memutarnya ulang dengan `notifikasi_id` yang sama (`retry.txt` bagian D).
+5. Pemberitahuan uang dikirim sebagai pesan data berprioritas high dengan `notifikasi_id`, `judul`, dan `isi`. Pesan notification tidak dipakai untuk uang, karena FCM SDK menampilkannya di background tanpa kode app. Prioritas high adalah pilihan penulis dan tidak dijalankan di perangkat.
+6. App menyaring `notifikasi_id` di handler foreground dan background: menampilkan dulu, mencatat id sesudahnya, dan mengingat id 7 hari (Asumsi, sama dengan retensi baris outbox).
+7. Klaim sekurang-kurangnya sebanyak jumlah perangkat × batas waktu push, atau worker mengirim ke perangkat serentak. Kode lab belum memenuhinya untuk dua perangkat: 2 × 3 detik lebih panjang daripada klaim 5 detik (`ganda.txt` bagian D).
+
+**Kenapa D, bukan A, B, atau C.**
+
+- **A ditolak** karena pemberitahuan hilang saat push menjawab 503 atau worker mati, dan PRD v3 melarang hilang tanpa terdeteksi.
+- **B ditolak** karena baris yang tidak pernah bisa terkirim berputar tanpa akhir. Lab menunjukkan arahnya lewat mutasi: tanpa batas klaim, klaim ke-6 mengirim lagi.
+- **C ditolak** karena layanan push tidak memberi jalan untuk koordinasi yang dibutuhkan. Yang tercapai adalah efek satu kali di layar: pengirim mengulang, dan penerima mengenali ulangan.
+
+**Kasus industri: webhook Stripe.** Stripe mengirim event ke endpoint merchant dengan pola yang sama. Dokumentasinya menulis bahwa Stripe mencoba mengirim event sampai tiga hari dengan exponential backoff di live mode, dan di sandbox tiga kali dalam beberapa jam. Endpoint bisa menerima event yang sama lebih dari sekali, dan dokumentasi menyarankan mencatat event ID yang sudah diproses ([Stripe: webhooks](https://docs.stripe.com/webhooks), dibuka 2026-10-26).
+
+Stripe juga menulis bahwa event tidak dijamin datang menurut urutan terjadinya. Event bisa dikirim ulang dengan tangan sampai 15 hari lewat Dashboard atau 30 hari lewat CLI.
+
+Batasnya: ini sisi pengirim satu produk, untuk penerima yang bisa mati berjam-jam. Dokumentasi tidak menyebut cara Stripe menyimpan atau mengklaim event di dalam. Jadi kasus ini bukti jaminan at-least-once dengan penerima yang menyaring, bukan bukti outbox. Jendela retry Stripe tiga hari, sedangkan jendela worker ini 45 detik.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Penyaring tidak jalan saat dibutuhkan. Pesan data bisa tertunda di Doze dan tidak dijamin di iOS. Pesan juga tidak datang setelah user menutup paksa app (dokumentasi FCM dan FlutterFire, Tidak dijalankan di perangkat). Dampaknya ulangan tampil dua kali atau pemberitahuan terlambat. Pencegahannya riwayat di app yang dimuat dari API, bukan dari notifikasi, dan uji di perangkat Android dan iOS sebelum rilis.
+2. Layanan push mati lebih lama dari jendela retry, dan baris `mati` menumpuk tanpa yang membacanya. Gangguan 10 menit memasukkan paling banyak 521 baris ke dead-letter. Itu Asumsi, dengan tabel di blok Paham. `-bersih` tidak membuang baris `mati`, jadi tidak ada yang menghapusnya dan tidak ada yang melihatnya. Alert umur tertua tidak menangkapnya, karena `RingkasOutbox` menghitung umur baris `menunggu` saja. Pencegahannya satu pemilik, alert jumlah `mati` yang belum ada di ADR 32 ([[t3-tim-infra]]), dan satu `UPDATE` yang memutar ulang semuanya.
+3. Klaim lebih pendek daripada waktu kirim terburuk satu baris. Dua worker mengirim baris yang sama tanpa ada yang mati. Contohnya klaim 300 milidetik lawan push 1,5 detik (`ganda.txt` bagian B), atau dua HP yang menggantung lawan klaim 5 detik (bagian D). Pencegahannya aturan 7 dan tes yang menaikkan jumlah perangkat.
+
+**Kapan keputusan ini salah.**
+
+- Saat penerimanya menggerakkan uang, misalnya webhook dari gateway di Tahap 4. Penyaring "yang sudah tampil" tidak cukup, dan penerima wajib idempoten dengan key ([[t2-idempotency]]).
+- Saat uji di perangkat menunjukkan pesan data tertunda atau hilang. Pindah ke pesan notification dengan `tag` sama dengan `notifikasi_id`, dan saring di daftar riwayat app.
+- Saat penerima punya dua perangkat yang menggantung dan klaim tetap 5 detik (`ganda.txt` bagian D).
+- Saat urutan antar pemberitahuan penting. Retry mengacak urutan, karena baris yang ditunda tiba sesudah baris yang lebih baru. Stripe menulis bahwa urutan event tidak dijamin.
+
+**Yang akan merevisinya.** ADR 32 memuat alert umur tertua per kelas ([[t3-m27]], [[t3-tim-infra]]), dan alert jumlah baris `mati` menjadi tambahan yang diusulkan ADR ini. Webhook masuk di Tahap 4 membalik arahnya: Rekeningo menjadi penerima yang wajib idempoten.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Replay otomatis baris `mati` | Replay buta mengulang kegagalan yang sama, dan dead-letter dibaca manusia dulu | [[t3-tim-infra]] |
+| Satu baris outbox per perangkat | Satu baris dikirim ke semua perangkat aktif, dan penyaring di app menutup ulangannya. Pecah bila rata-rata perangkat per user naik dari 1,3 (Asumsi) | Belum dijadwalkan |
+| Konfirmasi tampil dari app ke server | Layanan push tidak menyediakannya, dan PRD mengukur sampai pesan diserahkan ke layanan push | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Worker mati sesudah tiap push berhasil, dan batasnya lima percobaan. Berapa pesan sampai ke layanan push, dan pada klaim ke berapa baris masuk dead-letter?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Lima pesan, dan baris masuk dead-letter pada klaim ke-6. Percobaan naik saat klaim, jadi klaim ke-6 melewati batas dan memasukkan baris ke dead-letter tanpa mengirim (`retry.txt` bagian C).
+
+</details>
+
+**2.** Layanan push menjawab 503 terus. Kenapa baris masuk dead-letter pada kegagalan ke-5, bukan klaim ke-6?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Worker mencatat tiap kegagalan lewat `tunda`, dan `percobaan` yang sudah 5 langsung memindahkan baris ke `mati` (`retry.txt` bagian A: 5 permintaan). Klaim ke-6 terjadi bila baris diklaim lebih sering daripada kegagalannya dicatat, misalnya saat worker mati sebelum sempat mencatat.
+
+</details>
+
+**3.** Pesan notification dikirim, dan app sedang di background. Kenapa penyaring `notifikasi_id` tidak jalan?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Dokumentasi FCM menulis bahwa FCM SDK menampilkan pesan notification saat app di background, jadi kode app tidak dijalankan. Penyaring butuh kode app, dan itu sebabnya ADR 25 mengirim pemberitahuan uang sebagai pesan data.
+
+</details>
+
+**4.** Kenapa app mencatat `notifikasi_id` sesudah menampilkan, bukan sebelumnya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+App yang mati di antara dua langkah itu menampilkan ulangan, dan tidak kehilangan pemberitahuan. Urutan sebaliknya bisa kehilangan, dan PRD melarang hilang tanpa terdeteksi. Dokumentasi Kafka menulis pola yang sama untuk posisi consumer.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] `notifikasi_id` dibuat saat `INSERT`, bukan saat kirim, dan dikirim sama di semua percobaan.
+- [ ] `percobaan` naik saat klaim, ada batas, dan baris yang melewatinya masuk `mati` tanpa dikirim.
+- [ ] Jeda retry memakai jitter, dan hanya kegagalan sementara diulang. Token yang ditolak (404, atau 400 dengan payload valid) tidak diulang.
+- [ ] Baris `mati` tidak dibuang otomatis, ada pemilik yang membacanya, dan ada alert jumlah `mati`.
+- [ ] Pemberitahuan uang dikirim sebagai pesan data, handler latar berupa fungsi top-level, dan app mencatat id sesudah menampilkan.
+- [ ] Klaim lebih panjang daripada jumlah perangkat × batas waktu push, dan ada tes dengan dua perangkat.
+
+### Bacaan lanjut
+
+- [Apache Kafka: Message Delivery Semantics](https://github.com/apache/kafka/blob/trunk/docs/design/design.md)
+- [Stripe: webhooks](https://docs.stripe.com/webhooks)
+- [Amazon SQS: dead-letter queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html)
+- [Brooker: Exponential Backoff And Jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/) (2015-03-04)
+- [FCM: message types](https://firebase.google.com/docs/cloud-messaging/customize-messages/set-message-type)
+- [FCM: message priority](https://firebase.google.com/docs/cloud-messaging/android/message-priority)
+- [FlutterFire: receive messages](https://firebase.google.com/docs/cloud-messaging/flutter/receive-messages)
+
+</Blok>

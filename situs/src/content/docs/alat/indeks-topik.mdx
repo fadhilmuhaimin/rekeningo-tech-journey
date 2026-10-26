@@ -135,7 +135,7 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [2.25 M15: Rp15.000 di file bank](/tahap-2/m15-file-bank/) | Tahap 2 | Total pencairan di file bank Rp15.000 lebih besar dari mutasi ledger |
 | [2.26 Job terjadwal yang idempoten dan rekonsiliasi + ADR 19](/tahap-2/job-rekonsiliasi/) | Tahap 2 | Job pencairan jalan dua kali sesudah server restart di tengah |
 | [3.7 Observability: log, metric, trace](/tahap-3/observability/) | Tahap 3 | Tanpa log, metric, dan trace, "lambat" tidak punya alamat |
-| 3.14 M21: Satu proses mati, semua mati · *segera* | Tahap 3 | Satu proses API keluar, tidak ada yang memulainya lagi, dan deploy mematikan app sesaat |
+| [3.14 M21: Satu proses mati, semua mati](/tahap-3/m21-satu-proses-mati/) | Tahap 3 | Satu proses API keluar, tidak ada yang memulainya lagi, dan deploy mematikan app sesaat |
 | 3.15 Dua instance di belakang proxy + ADR 26 · *segera* | Tahap 3 | Dua proses butuh proxy yang tahu mana yang hidup, dan deploy yang tidak memutus koneksi |
 | 3.27 Tim dan infra Tahap 3: staging, pipeline, alert, on-call + ADR 32 · *segera* | Tahap 3 | Empat engineer, tiga peran, dan satu VPS: staging, pipeline, alert, dan giliran jaga belum ada |
 | [Observability: log, metric, trace](/c-operasional/c2-observability/) | Tahap 3 | Tidak tahu bagian mana yang lambat |
@@ -153,7 +153,7 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [3.9 Outbox transaksional dan worker + ADR 23](/tahap-3/outbox-worker/) | Tahap 3 | Uang dan pemberitahuan ditulis di satu tempat dulu, lalu dikirim worker dari tempat lain |
 | [3.10 M19: Ani tidak diberi tahu](/tahap-3/m19-tidak-diberi-tahu/) | Tahap 3 | Saldo Citra naik, tetapi satu notifikasi tidak pernah sampai ke Ani |
 | [3.11 Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24](/tahap-3/klaim-per-baris/) | Tahap 3 | Kursor atas waktu dan id melewatkan baris yang COMMIT belakangan, jadi notifikasinya hilang |
-| 3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25 · *segera* | Tahap 3 | Mengirim ulang itu benar; yang kurang adalah penerima yang mengenali ulangan |
+| [3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25](/tahap-3/at-least-once/) | Tahap 3 | Mengirim ulang itu benar; yang kurang adalah penerima yang mengenali ulangan |
 | 3.18 M23: Dua harga di satu meja · *segera* | Tahap 3 | Dua HP di meja yang sama menampilkan dua harga untuk menu yang sama |
 | 3.19 Cache dan invalidation + ADR 28 · *segera* | Tahap 3 | Cache boleh basi untuk tampilan, tidak untuk uang, dan beban katalog sebenarnya tidak memaksa cache |
 | 3.26 M27: Hari promo, notifikasi uang terlambat · *segera* | Tahap 3 | Promo ke semua HP menahan notifikasi pembayaran Ani di belakang antrean yang sama |
