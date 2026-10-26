@@ -55,6 +55,8 @@ Poller outbox membaca dengan kursor `(dibuat, id)`, sama seperti riwayat di ADR 
 
 <Snippet file="labs/api-t3/internal/repo/outbox.go" region="baca-kursor" lang="go" title="Kode lab: labs/api-t3/internal/repo/outbox.go, region baca-kursor (poller versi pertama)" />
 
+Komentar di kode itu juga menulis bahwa nomor `id` bukan urutan COMMIT. Lab tidak merekam bagian itu, dan klaim itu dibahas di akhir blok ini.
+
 Sesudah satu putaran, kursor pindah ke baris terakhir yang dibaca. Di kode itu kursor tidak pernah mundur:
 
 <Snippet file="labs/api-t3/internal/worker/worker.go" lines="87:92" lang="go" title="Kode lab: labs/api-t3/internal/worker/worker.go baris 87 sampai 92 (kursor hanya maju)" />
@@ -71,7 +73,7 @@ Dokumentasi PostgreSQL 17 menyebut `now()` memakai waktu mulai transaction, dan 
 
 Lab mengatur siapa yang lebih dulu. Budi dilepas lebih dulu, lab menunggu sampai ia terlihat menunggu lock, baru Dimas dilepas.
 
-Halaman explicit locking di dokumentasi PostgreSQL 17 tidak menjanjikan urutan transaction yang menunggu satu baris. Jadi "yang tiba lebih dulu selesai lebih dulu" adalah hasil rekaman, bukan aturan. Sumbernya [bagian 13.3.2](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS), dibuka 2026-10-26 (Tidak dijalankan).
+Halaman explicit locking di dokumentasi PostgreSQL 17 tidak menjanjikan urutan transaction yang menunggu satu baris. Jadi "yang tiba lebih dulu selesai lebih dulu" hanya berlaku di rekaman ini, bukan aturan. Urutan COMMIT di bagian A tidak direkam langsung: ia dibaca dari nomor outbox, seperti di bagian D. Sumbernya [bagian 13.3.2](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS), dibuka 2026-10-26 (Tidak dijalankan).
 
 **Satu kiriman terhambat dan barisnya tertinggal.** Bagian B mengubah satu hal. Sebelum Budi mengirim, sesi tangan memegang baris buku Budi sendiri, mewakili permintaan lain dari Budi yang belum selesai. Kiriman Budi mulai lebih dulu lalu menunggu bukunya sendiri, sedangkan kiriman Dimas mulai kemudian, tidak terhalang, dan COMMIT lebih dulu.
 
@@ -101,9 +103,9 @@ Poller adalah pembaca aliran, dan ia tidak memuat ulang dari atas. Baris di bela
 
 **Nomor urut tanpa celah tidak menyelesaikannya.** Nadia mengusulkan nomor urut tanpa celah. Sequence PostgreSQL tidak bisa memberinya: nilai yang dipakai transaction yang batal tidak dipakai ulang.
 
-Rekaman `listen.txt` bagian A memperlihatkannya, karena baris yang di-ROLLBACK memakai nomor 2 dan baris berikutnya bernomor 3. Sumbernya [bagian 9.17](https://www.postgresql.org/docs/17/functions-sequence.html), dibuka 2026-10-26 (Tidak dijalankan).
+Rekaman `listen.txt` memperlihatkannya: bagian A membatalkan satu baris dengan ROLLBACK, dan baris berikutnya di bagian B bernomor 3, jadi nomor 2 terpakai tanpa baris. Sumbernya [bagian 9.17](https://www.postgresql.org/docs/17/functions-sequence.html), dibuka 2026-10-26 (Tidak dijalankan).
 
-Halaman sequence itu tidak menyebut urutan COMMIT. Morling mengutip Kleppmann bahwa urutan baris di tabel outbox bisa berbeda dari urutan COMMIT ([Revisiting the Outbox Pattern](https://www.morling.dev/blog/revisiting-the-outbox-pattern/), 2024-10-31, dibuka 2026-10-26, Tidak dijalankan). Lab ini tidak merekam kasus itu: di bagian B dan D nomor 1 COMMIT lebih dulu, dan yang terbalik hanya `dibuat`.
+Halaman sequence itu tidak menyebut urutan COMMIT. Morling menulis bahwa urutan pesan di tabel outbox, menurut timestamp atau kolom sequence, tidak dijamin sama dengan urutan COMMIT ([Revisiting the Outbox Pattern](https://www.morling.dev/blog/revisiting-the-outbox-pattern/), 2024-10-31, dibuka 2026-10-26, Tidak dijalankan). Ia merujuk Kleppmann untuk masalah urutan itu dan menyebut relay bisa melewatkan pesan. Lab ini tidak merekam kasus itu: di bagian B dan D nomor 1 COMMIT lebih dulu, dan yang terbalik hanya `dibuat`.
 
 Jadi kursor `id` saja akan menangkap kasus M19 di lab, tetapi urutan nomor tidak dijanjikan sama dengan urutan COMMIT. Opsi nomor urut ditimbang di [[t3-klaim-baris]].
 

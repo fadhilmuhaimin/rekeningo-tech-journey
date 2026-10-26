@@ -18,7 +18,7 @@
       "sub": "bagian A, poller kursor",
       "simpul": [
         { "teks": "Dua kiriman antre di buku Citra", "sub": "2 transaction menunggu lock" },
-        { "teks": "Budi COMMIT, lalu Dimas", "sub": "nomor 1 dan 2, dibuat urut 1 dan 2" },
+        { "teks": "Nomor 1 untuk Budi, 2 untuk Dimas", "sub": "dibuat urut 1 dan 2" },
         { "teks": "Dua pesan terkirim", "nada": "good" }
       ]
     },
