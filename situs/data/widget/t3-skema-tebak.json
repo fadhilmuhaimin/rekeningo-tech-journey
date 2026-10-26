@@ -1,0 +1,39 @@
+{
+  "id": "t3-skema-tebak",
+  "judul": "Tabel uang di Tahap 3",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/api-t3/output/skema.txt bagian A, D, dan E; ERD dari situs/data/erd/tahap-2.json dan tahap-3.json"
+  },
+  "adegan": [
+    "Raka membuka ERD Tahap 2 dan ERD Tahap 3 berdampingan. Tahap 2 punya 8 tabel dan Tahap 3 punya 14.",
+    "Salah satu tabel baru, outbox, harus ditulis di transaction yang sama dengan jurnal. Raka bertanya apakah tabel uang ikut berubah."
+  ],
+  "pertanyaan": "Apa yang berubah di tabel buku, jurnal, dan posting?",
+  "pilihan": [
+    {
+      "teks": "Tidak ada. outbox menunjuk ke jurnal lewat jurnal_id, dan tabel uang tidak tahu outbox ada.",
+      "benar": true,
+      "alasan": "Tabel buku, jurnal, dan posting sama persis di kedua ERD. Pemberitahuan menumpang pada uang lewat outbox.jurnal_id, dan unique index outbox_satu_per_jurnal menjaga satu baris per jurnal dan penerima."
+    },
+    {
+      "teks": "jurnal mendapat kolom notifikasi_terkirim, supaya satu jurnal bisa dicocokkan dengan satu pemberitahuan.",
+      "benar": false,
+      "alasan": "Kolom baru Tahap 3 hanya tiga, dan semuanya ada di akun dan sesi. Pencocokan jurnal dan pemberitahuan ada di outbox: baris kedua untuk jurnal dan penerima yang sama ditolak database dengan SQLSTATE 23505."
+    },
+    {
+      "teks": "posting mendapat kolom kota_id, karena promo dan katalog dibuat per kota.",
+      "benar": false,
+      "alasan": "Kota hanya ditambahkan ke akun lewat kota_id, dan posting tidak berubah. Role aplikasi bahkan tidak boleh mengubah posting: UPDATE ditolak dengan SQLSTATE 42501."
+    }
+  ],
+  "penutup": "Pemberitahuan tidak mengubah bentuk uang. Ia mengikuti uang lewat satu tabel baru, dan tabel yang mencatat rupiah tetap sama seperti di Tahap 2.",
+  "label": {
+    "sumber": "Rekaman lab · skema.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}
