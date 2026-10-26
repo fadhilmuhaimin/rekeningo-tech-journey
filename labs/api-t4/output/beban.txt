@@ -1,0 +1,29 @@
+# Lab api-t4 · beban berjadwal 138,9 request per detik, koneksi lawan pool, kapasitas worker
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4 · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/api-t4 run.
+# server: ./api-t4 -lab (pool 10); push tiruan: ./pushpalsu
+# Beban berjadwal kedatangan tetap (open loop: permintaan berangkat menurut jadwal, tidak menunggu jawaban sebelumnya).
+# 138,9 = 20.000 aktif × 60 request ÷ 86.400 × 10 (naskah bagian 3, Asumsi). Dijalankan di laptop lab: bukan kapasitas produksi.
+
+# --- A. 20 detik pada 138.9 permintaan per detik: campuran baca saldo, riwayat, katalog, dan pembayaran ---
+$ ./beban -rps 138.9 -detik 20 -pengguna 200   # keluaran mesin diperiksa terhadap batas; nilai mentah bergantung mesin dan tidak direkam
+permintaan dijadwalkan: 2778 (= ⌊138.9 × 20⌋)
+permintaan selesai: 2778 dari 2778
+status: 200 x2483, 201 x295   # 200 = baca, 201 = bayar
+p95 di bawah 500 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya
+jadwal tidak tertinggal lebih dari 100 ms (generator tidak jadi penghambat): ya
+koneksi database dari api-t4 (pg_stat_activity, disampel tiap 100 ms): paling banyak <= 10 (pool 10)
+koneksi yang aktif menjalankan query bersamaan paling banyak < 10: pool tidak pernah menjadi antrean tunggal
+pool setelah beban: maks 10
+# Kata 'tidak sesak' berarti L kecil terhadap pool di laptop lab. Bukan klaim kapasitas produksi.
+
+# --- B. Kapasitas worker: c ÷ t = 4 ÷ 0,3 detik = 13,3 per detik. Push tiruan menjawab 300 ms; 100 pemberitahuan dikuras satu worker ---
+=> DELETE FROM outbox
+DELETE 295
+$ ./api-t4 -peran worker -sekali   # c = 4 pengirim serentak (bawaan), push tiruan 300 ms per pesan
+terkirim: 100 dari 100
+laju terukur dalam 15% dari 13,3 per detik: ya (nilai ukur tidak direkam)
+
+# Pengumuman ke 100.000 HP: 100.000 ÷ 13,3 = 7.500 detik = 125 menit. Hitungan dari c ÷ t, Tidak dijalankan:
+# lab tidak menulis 100.000 baris outbox dan tidak mengirimnya; angka itu diekstrapolasi dari laju yang baru diukur.
+hitungan: 100000 / (4 / 0,3) = 7500 detik

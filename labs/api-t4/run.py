@@ -269,7 +269,7 @@ def rekam_topup():
     h3 = kirim_webhook(event_id="evt-201", order_id=t2["order_id"])
     catat("kiriman 3 (event evt-201, event berbeda untuk kejadian yang sama): " + ", ".join(h3))
     harap(h3, ["200 ganda"], "event kedua untuk kejadian yang sama")
-    sql("SELECT (SELECT count(*) FROM jurnal WHERE jenis = 'topup_bank' AND keterangan = 'Top-up bank " + t2["order_id"] + "') AS jurnal_untuk_order_2")
+    sql(f"SELECT (SELECT count(*) FROM jurnal j JOIN topup_bank t ON j.keterangan = 'Top-up bank ' || t.order_id WHERE t.id = {t2['id']}) AS jurnal_untuk_top_up_{t2['id']}")
     sql("SELECT event_id, jenis, hasil FROM webhook_event ORDER BY event_id")
     catat("# evt-201 tidak tercatat sebagai diproses: status top-up sudah dibayar, jadi hasilnya ganda dan tidak ada jurnal kedua.")
     catat("# Event yang sama tidak masuk tabel dua kali (kunci utama event_id).")
@@ -380,6 +380,7 @@ def rekam_topup():
     gateway_bayar(tl["order_id"])
     catat("# tidak_di_ledger: gateway sudah settlement, webhook tidak pernah datang dan job cek belum jalan")
     tgl = hari_ini()
+    sebelum = sql("SELECT count(*), sum(jumlah), (SELECT sum(saldo_cache) FROM buku WHERE jenis = 'karyawan') FROM posting", tampil=False)[0]
     for ke in (1, 2):
         r = subprocess.run([str(d.BIN), "-rekon", tgl, *d.args_t4()], env=dict(d.ENV, DATABASE_URL=d.db_app()), capture_output=True, text=True)
         harap(r.returncode, 0, "exit -rekon")
@@ -389,7 +390,9 @@ def rekam_topup():
     harap(satu("SELECT count(*) FROM insiden_rekon"), 4, "empat insiden: dua tidak_di_ledger, satu jumlah_beda, satu tidak_di_gateway")
     catat("# Job tidak mengoreksi apa pun dan tidak mengubah posting atau buku.saldo_cache; koreksi lewat jurnal normal ada di lab t4-webhook.")
     catat("# Dijalankan dua kali: insiden yang sama tidak ditulis dua kali ((tanggal, order_id, jenis) unik).")
-    sql("SELECT (SELECT count(*) FROM posting) - (SELECT count(*) FROM posting WHERE true) AS posting_berubah")
+    sesudah = sql("SELECT count(*), sum(jumlah), (SELECT sum(saldo_cache) FROM buku WHERE jenis = 'karyawan') FROM posting", tampil=False)[0]
+    harap(sesudah, sebelum, "rekonsiliasi tidak mengubah posting atau saldo")
+    catat(f"posting sebelum dan sesudah rekonsiliasi: {sebelum[0]} baris dengan jumlah {sebelum[1]}, saldo karyawan {sebelum[2]}; sama: ya")
     tulis("topup.txt", "top-up dari bank: webhook ADR 34, tanda tangan, gateway gagal, cek status, batas tingkat, rekonsiliasi",)
 
 
@@ -413,7 +416,7 @@ def rekam_verifikasi():
     dina = login("pemakai1@publik.example", label="Dina")
     p3 = login("pemakai3@publik.example", label="Pemakai 3")
     p4 = login("pemakai4@publik.example", label="Pemakai 4")
-    P = ["-maks-percobaan", "5", "-backoff", "1ms"]
+    P = ["-maks-percobaan", "5", "-backoff", "1ms", "-satu-putaran"]   # satu putaran per panggilan: jumlah percobaan tidak bergantung kecepatan mesin
 
     bagian("A. Dina (pemakai, belum terverifikasi) tidak boleh mengirim ke rekan; hanya akun terverifikasi")
     curl("GET", "/akun/40001", token=dina)
@@ -421,7 +424,6 @@ def rekam_verifikasi():
     harap(s, 403, "kirim sebelum verifikasi")
 
     bagian("B. Dina mengajukan verifikasi: dua file ke penyimpanan objek, satu baris verifikasi, satu pekerjaan di outbox (satu transaction)")
-    s, isi = curl("POST", "/verifikasi", {"berkas_kartu": "(base64 PNG, 69 byte)", "berkas_swafoto": "(base64 PNG, 76 byte)"}, dina, tampil=False)
     catat("$ curl -i -X POST /verifikasi -H 'Authorization: Bearer <token sesi Dina>' -d '{\"berkas_kartu\":\"<base64 PNG>\",\"berkas_swafoto\":\"<base64 PNG>\"}'")
     s, isi = curl("POST", "/verifikasi", kunci_json(), dina, tampil=False)
     catat(f"HTTP {s}\n" + d.samarkan(isi.strip()))
@@ -628,7 +630,8 @@ def rekam_beban():
     harap(m["lag_maks_ms"] < 100, True, "generator tidak tertinggal")
     catat(f"koneksi database dari api-t4 (pg_stat_activity, disampel tiap 100 ms): paling banyak {'<= 10' if m['koneksi_maks'] <= 10 else '> 10'} (pool 10)")
     harap(m["koneksi_maks"] <= 10, True, "koneksi tidak melewati pool")
-    catat(f"koneksi yang aktif menjalankan query bersamaan paling banyak {'< 10' if m['aktif_maks'] < 10 else '10'}: pool tidak pernah menjadi antrean tunggal")
+    harap(m["aktif_maks"] <= 10, True, "koneksi aktif tidak melewati pool")
+    print("beban (nilai mentah, tidak direkam):", {k: m[k] for k in ("p50_ms", "p95_ms", "p99_ms", "maks_ms", "lag_maks_ms", "koneksi_maks", "aktif_maks")}, file=sys.stderr)
     s, isi = curl("GET", "/lab/pool", tampil=False)
     catat(f"pool setelah beban: maks {j(isi)['maks']}")
     harap(j(isi)["maks"], 10, "pool 10")

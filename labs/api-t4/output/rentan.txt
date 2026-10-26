@@ -1,0 +1,53 @@
+# Lab api-t4 · mode rentan webhook-v1 dan webhook-cek-tulis (M29)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4 · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/api-t4 run.
+
+# --- A. M29 · mode rentan webhook-v1: handler paling pendek (tanpa tanda tangan, tanpa tabel event, tanpa status bersyarat) ---
+$ ./api-t4 -rentan webhook-v1 -lab
+server log: PERINGATAN: mode rentan webhook-v1 menyala
+server log: api-t4 siap: pool 10, push timeout 3s, idle-tx 5s
+kiriman event yang sama dua kali, tanpa tanda tangan: 200 diproses, 200 diproses
+=> SELECT p.jurnal_id, b.jenis AS buku, p.jumlah FROM posting p JOIN jurnal j ON j.id = p.jurnal_id JOIN buku b ON b.id = p.buku_id WHERE j.jenis = 'topup_bank' ORDER BY p.id
+ jurnal_id | buku     | jumlah
+-----------+----------+---------
+ 10201     | bank     | -200000
+ 10201     | karyawan | 200000
+ 10202     | bank     | -200000
+ 10202     | karyawan | 200000
+(4 rows)
+=> SELECT count(*) AS event_tercatat FROM webhook_event
+ event_tercatat
+----------------
+ 0
+(1 row)
+$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":419,"jenis":"karyawan","nama":"Budi","saldo":650000,"nomor_karyawan":"K00419","kota_id":1,"tingkat":"terverifikasi","status":"aktif"}
+# Dua jurnal untuk satu pembayaran: saldo Budi naik Rp400.000 untuk Rp200.000 yang dibayar.
+=> SELECT status FROM topup_bank WHERE id = 1
+ status
+----------
+ menunggu
+(1 row)
+# Kabar pending sesudah dibayar: status mundur ke menunggu (tidak ada status bersyarat).
+$ curl -i -X POST '/webhooks/pembayaran' -d '{"event_id": "evt-palsu", "order_id": "<order 1>", "status": "settlement", "jumlah": 1234567}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"hasil":"diproses","jurnal":10203}
+# POST dari siapa pun diterima, dan jumlah di isi kabar dipercaya: Rp1.234.567 dikreditkan ke Budi.
+$ kill -TERM <pid api-t4>
+
+# --- B. Mode webhook-cek-tulis: tanda tangan diperiksa, duplikat dicegah dengan cek-lalu-tulis. Dua kiriman bersamaan lolos (jeda lab 300 ms di antara cek dan tulis) ---
+$ ./api-t4 -rentan webhook-cek-tulis -lab-jeda-cek-tulis 300ms -lab
+dua kiriman bersamaan, tanda tangan sah (diurutkan): 200 diproses, 200 diproses
+=> SELECT count(*) AS jurnal_topup_bank FROM jurnal WHERE jenis = 'topup_bank'
+ jurnal_topup_bank
+-------------------
+ 2
+(1 row)
+# Keduanya membaca status menunggu sebelum salah satu menulis. Pada versi ADR 34 (topup.txt bagian D) satu diproses dan satu ganda.
+$ kill -TERM <pid api-t4>
+# Mode lain yang dipakai lab turunan: kartu-tanpa-hold (t4-kartu), unduh-rentan (t4-ssrf), bo-tanpa-audit (t4-audit).

@@ -1,0 +1,84 @@
+# Lab api-t4 · batas laju endpoint baru: daftar, top-up bank, perangkat, pesanan, sinkron, promo
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4 · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/api-t4 run.
+# server: ./api-t4 -lab -jam-lab (jam service dibekukan lewat POST /lab/jam: bucket tidak terisi di tengah rekaman)
+# Batas laju: token bucket di memori satu proses (ADR 20); lintas instance butuh penghitung bersama (ADR 27). Semua angka Asumsi lab.
+
+# --- A. POST /daftar: 5 pendaftaran per alamat (isi ulang 5 per jam, 1 token per 720 detik). Pendaftaran keenam ditolak sebelum body dibaca ---
+$ curl -i -X POST '/daftar' -d '{"nama": "Pendaftar 1", "email": "daftar1@publik.example", "password": "kata-sandi-lab-ke-1"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /akun/50001
+
+{"id":50001,"jenis":"pemakai","tingkat":"belum"}
+# pendaftaran 2 sampai 5: 201 x4
+$ curl -i -X POST '/daftar' -d '{"nama": "Pendaftar 6", "email": "daftar6@publik.example", "password": "kata-sandi-lab-ke-6"}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 720
+
+{"type":"/problems/rate-limit-ip","title":"Terlalu banyak permintaan dari alamat ini","status":429,"detail":"Coba lagi dalam 720 detik."}
+=> SELECT jenis, tingkat, status FROM akun WHERE email LIKE 'daftar%@publik.example' GROUP BY jenis, tingkat, status
+ jenis   | tingkat | status
+---------+---------+--------
+ pemakai | belum   | aktif
+(1 row)
+=> SELECT count(*) AS akun_baru, (SELECT count(*) FROM buku WHERE akun_id >= 50001) AS buku_baru FROM akun WHERE id >= 50001
+ akun_baru | buku_baru
+-----------+-----------
+ 5         | 5
+(1 row)
+# Password kurang dari 15 karakter ditolak 422, email yang sudah terdaftar 409; keduanya memakai token bucket yang sama.
+
+# --- B. Per akun: /topup-bank 10 per jam (Eko, terverifikasi), /perangkat 10 per jam, /pesanan 20 per menit, /sinkron 30 per menit, /promo 5 per jam ---
+/topup-bank, 10 permintaan pertama Eko: 201 x10
+$ curl -i -X POST '/topup-bank' -H 'Authorization: Bearer <token sesi Eko>' -d '{"jumlah": 10000}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 360
+
+{"type":"/problems/rate-limit-akun","title":"Terlalu banyak permintaan dari akun ini","status":429,"detail":"Coba lagi dalam 360 detik."}
+/perangkat, 10 permintaan pertama Budi: 201 x10
+$ curl -i -X POST '/perangkat' -H 'Authorization: Bearer <token sesi Budi>' -d '{"platform": "android", "token_push": "tiruan-lab-baru"}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 360
+
+{"type":"/problems/rate-limit-akun","title":"Terlalu banyak permintaan dari akun ini","status":429,"detail":"Coba lagi dalam 360 detik."}
+/pesanan, 20 permintaan pertama (body kosong, ditolak 400 sesudah mengambil token): 400 x20
+$ curl -i -X POST '/pesanan' -H 'Authorization: Bearer <token sesi Budi>' -d '{}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 3
+
+{"type":"/problems/rate-limit-akun","title":"Terlalu banyak permintaan dari akun ini","status":429,"detail":"Coba lagi dalam 3 detik."}
+/sinkron, 30 permintaan pertama: 400 x30
+$ curl -i -X POST '/sinkron' -H 'Authorization: Bearer <token sesi Budi>' -d '{}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 2
+
+{"type":"/problems/rate-limit-akun","title":"Terlalu banyak permintaan dari akun ini","status":429,"detail":"Coba lagi dalam 2 detik."}
+/promo, 5 permintaan pertama HR: 400 x5
+$ curl -i -X POST '/promo' -H 'Authorization: Bearer <token sesi HR Jakarta>' -d '{}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 720
+
+{"type":"/problems/rate-limit-akun","title":"Terlalu banyak permintaan dari akun ini","status":429,"detail":"Coba lagi dalam 720 detik."}
+# Bucket per akun: Budi yang habis di /pesanan tetap bisa bayar. Batas satu endpoint tidak memakai token endpoint lain.
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "nominal": 10000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10201
+
+{"id":10201,"saldo":240000}
+
+# --- C. Jam diputar 1 jam: bucket terisi ulang menurut laju (5 daftar per jam = 5 token) ---
+$ curl -i -X POST '/daftar' -d '{"nama": "Pendaftar 7", "email": "daftar7@publik.example", "password": "kata-sandi-lab-ke-7"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /akun/50006
+
+{"id":50006,"jenis":"pemakai","tingkat":"belum"}
+# Batas ini per alamat TCP. Di belakang proxy semua client berbagi satu alamat (labs/t3-instance); membaca X-Forwarded-For hanya dari proxy tepercaya belum ada.

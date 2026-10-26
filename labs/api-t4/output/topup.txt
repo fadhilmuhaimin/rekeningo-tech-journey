@@ -1,0 +1,196 @@
+# Lab api-t4 · top-up dari bank: webhook ADR 34, tanda tangan, gateway gagal, cek status, batas tingkat, rekonsiliasi
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4 · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/api-t4 run.
+# server: ./api-t4 -lab -gateway-timeout 500ms (bawaan 3 detik; dipendekkan supaya rekaman cepat); gateway dan layanan verifikasi tiruan: ./tiruan
+server log: api-t4 siap: pool 10, push timeout 3s, idle-tx 5s
+
+# --- A. Alur normal: Budi mengisi Rp200.000 dari rekening bank. Gateway tiruan menjawab dengan tujuan bayar, status menunggu ---
+$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1,"tingkat":"terverifikasi","status":"aktif"}
+$ curl -i -X POST '/topup-bank' -H 'Authorization: Bearer <token sesi Budi>' -d '{"jumlah": 200000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /topup-bank/1
+
+{"id":1,"order_id":"<order 1>","jumlah":200000,"status":"menunggu","tujuan_bayar":"<tujuan bayar>","dibuat":"<waktu>","kedaluwarsa_pada":"<waktu>"}
+=> SELECT id, akun_id, jumlah, status, tujuan_bayar IS NOT NULL AS ada_tujuan_bayar, jurnal_id FROM topup_bank
+ id | akun_id | jumlah | status   | ada_tujuan_bayar | jurnal_id
+----+---------+--------+----------+------------------+-----------
+ 1  | 419     | 200000 | menunggu | t                |
+(1 row)
+# Belum ada uang yang bergerak: tidak ada jurnal topup_bank, saldo Budi tetap.
+
+# --- B. Budi membayar di app bank; gateway mengirim webhook bertanda tangan. Satu transaction: event, status, jurnal, outbox ---
+$ curl -X POST gateway/lab/webhook -d '{"event_id":"evt-100","order_id":"<order 1>"}'   # gateway menandatangani dan mengirim ke /webhooks/pembayaran
+hasil kiriman: 200 diproses
+$ curl -i -X GET '/topup-bank/1' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1,"order_id":"<order 1>","jumlah":200000,"status":"dibayar","tujuan_bayar":"<tujuan bayar>","dibuat":"<waktu>","kedaluwarsa_pada":"<waktu>","jurnal_id":10201}
+$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":419,"jenis":"karyawan","nama":"Budi","saldo":450000,"nomor_karyawan":"K00419","kota_id":1,"tingkat":"terverifikasi","status":"aktif"}
+=> SELECT p.jurnal_id, j.jenis, b.jenis AS buku, p.jumlah FROM posting p JOIN jurnal j ON j.id = p.jurnal_id JOIN buku b ON b.id = p.buku_id WHERE j.jenis = 'topup_bank' ORDER BY p.id
+ jurnal_id | jenis      | buku     | jumlah
+-----------+------------+----------+---------
+ 10201     | topup_bank | bank     | -200000
+ 10201     | topup_bank | karyawan | 200000
+(2 rows)
+=> SELECT event_id, jenis, hasil, jurnal_id FROM webhook_event ORDER BY event_id
+ event_id | jenis      | hasil    | jurnal_id
+----------+------------+----------+-----------
+ evt-100  | settlement | diproses | 10201
+(1 row)
+=> SELECT akun_id, kelas, jenis, tujuan, status, payload->>'judul' AS judul FROM outbox
+ akun_id | kelas | jenis | tujuan | status   | judul
+---------+-------+-------+--------+----------+---------------------
+ 419     | 0     | topup | push   | menunggu | Rp200.000 dari Bank
+(1 row)
+# Pemberitahuan ke Budi ditulis di transaction yang sama dengan jurnal; worker mengirimnya sesudah COMMIT.
+$ ./api-t4 -peran worker -sekali
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+push tiruan menerima: 1 pesan
+
+# --- C. Balasan 200 yang pertama hilang di jalan: gateway mengirim event yang sama lagi, dan event lain untuk kejadian yang sama ---
+kiriman 1 (event evt-200): koneksi diputus sesudah balasan mulai datang
+kiriman 2 (event evt-200 yang sama): 200 ganda
+kiriman 3 (event evt-201, event berbeda untuk kejadian yang sama): 200 ganda
+=> SELECT (SELECT count(*) FROM jurnal j JOIN topup_bank t ON j.keterangan = 'Top-up bank ' || t.order_id WHERE t.id = 2) AS jurnal_untuk_top_up_2
+ jurnal_untuk_top_up_2
+-----------------------
+ 1
+(1 row)
+=> SELECT event_id, jenis, hasil FROM webhook_event ORDER BY event_id
+ event_id | jenis      | hasil
+----------+------------+----------
+ evt-100  | settlement | diproses
+ evt-200  | settlement | diproses
+ evt-201  | settlement | ganda
+(3 rows)
+# evt-201 tidak tercatat sebagai diproses: status top-up sudah dibayar, jadi hasilnya ganda dan tidak ada jurnal kedua.
+# Event yang sama tidak masuk tabel dua kali (kunci utama event_id).
+
+# --- D. Dua kiriman event yang sama tiba bersamaan: tepat satu diproses, satu ganda (urutan antar kiriman tidak dijaga) ---
+hasil dua kiriman bersamaan (diurutkan): 200 diproses, 200 ganda
+
+# --- E. Kabar dari luar adalah klaim: tanda tangan atas byte mentah, isi, dan timestamp diperiksa sebelum JSON diurai ---
+tanpa tanda tangan: 401
+rahasia lain: 401
+isi diubah sesudah ditandatangani (jumlah x10): 401
+JSON ditulis ulang dengan spasi lain, tanda tangan atas byte asli: 401
+timestamp 400 detik lalu (toleransi 300 detik, Asumsi): 401
+timestamp 400 detik di depan: 401
+# Tidak ada event, tidak ada jurnal. Yang sah, dengan tanda tangan atas byte yang sama, diproses:
+kiriman sah: 200 diproses
+kiriman sah untuk order yang tidak dikenal: 200 ditolak
+
+# --- F. Kabar yang datang mundur: status menunggu sesudah dibayar diparkir, status tidak mundur (lalu dicek ke gateway di luar transaction) ---
+kabar pending untuk top-up yang sudah dibayar: 200 diparkir
+=> SELECT id, status FROM topup_bank WHERE id = 1
+ id | status
+----+---------
+ 1  | dibayar
+(1 row)
+=> SELECT event_id, jenis, hasil FROM webhook_event WHERE event_id = 'evt-600'
+ event_id | jenis   | hasil
+----------+---------+----------
+ evt-600  | pending | diparkir
+(1 row)
+
+# --- G. Gateway gagal: mati, lambat, dan order dibuat tetapi jawabannya tidak pernah sampai. Pembayaran dan transfer tidak ikut ---
+# gateway tiruan mode mati: semua panggilan dijawab 503
+$ curl -i -X POST '/topup-bank' -H 'Authorization: Bearer <token sesi Budi>' -d '{"jumlah": 100000}'
+HTTP/1.1 502 Bad Gateway
+Content-Type: application/problem+json
+
+{"type":"/problems/gateway-tidak-tersedia","title":"Gateway tidak tersedia; top-up tidak dibuat","status":502,"detail":"Top-up 5 tercatat gagal. Coba lagi nanti; pembayaran dan transfer tidak terpengaruh."}
+=> SELECT id, status, tujuan_bayar IS NULL AS tanpa_tujuan_bayar, jurnal_id FROM topup_bank ORDER BY id DESC LIMIT 1
+ id | status | tanpa_tujuan_bayar | jurnal_id
+----+--------+--------------------+-----------
+ 5  | gagal  | t                  |
+(1 row)
+# Penolakan eksplisit (503, atau koneksi ditolak) = gagal: order belum dibuat di gateway.
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 418, "nominal": 25000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10205
+
+{"id":10205,"saldo":605000}
+# Pembayaran ke warung tetap 201: jalur uang tidak memanggil gateway (ADR 22).
+# gateway tiruan mode setelah-buat-menggantung: order dibuat, jawaban tidak pernah dikirim; client menyerah sesudah 500 ms
+$ curl -i -X POST '/topup-bank' -H 'Authorization: Bearer <token sesi Budi>' -d '{"jumlah": 70000}'
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+Location: /topup-bank/6
+
+{"id":6,"order_id":"<order 2>","jumlah":70000,"status":"tidak_pasti","dibuat":"<waktu>","kedaluwarsa_pada":"<waktu>"}
+# Timeout = tidak_pasti, bukan gagal: order mungkin sudah ada di gateway. Pengguna tidak diminta membayar dua kali.
+=> SELECT id, status, tujuan_bayar IS NULL AS tanpa_tujuan_bayar FROM topup_bank WHERE id = 6
+ id | status      | tanpa_tujuan_bayar
+----+-------------+--------------------
+ 6  | tidak_pasti | t
+(1 row)
+# Gateway pulih. Budi sudah membayar di app bank, tetapi webhook tidak pernah dikirim (hilang).
+
+# --- H. Job cek status (-cek-topup): top-up menunggu atau tidak_pasti ditanyakan ke gateway, dikredit lewat jurnal yang sama dengan webhook ---
+$ ./api-t4 -cek-topup -cek-umur 0s   # bawaan -cek-umur 30m (Asumsi)
+cek top-up: diperiksa 1, dikredit 1, selesai tanpa kredit 0, masih menunggu 0, galat 0
+=> SELECT id, status, jurnal_id IS NOT NULL AS ada_jurnal FROM topup_bank WHERE id = 6
+ id | status  | ada_jurnal
+----+---------+------------
+ 6  | dibayar | t
+(1 row)
+$ ./api-t4 -cek-topup -cek-umur 0s   # dijalankan lagi: tidak ada yang tersisa
+cek top-up: diperiksa 0, dikredit 0, selesai tanpa kredit 0, masih menunggu 0, galat 0
+
+# --- I. Batas saldo menurut tingkat dijaga sesudah lock: dua top-up Dina (belum terverifikasi, saldo Rp900.000, batas Rp1.000.000) lolos cek awal, hanya satu dikredit ---
+$ curl -i -X GET '/akun/40001' -H 'Authorization: Bearer <token sesi Dina>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":40001,"jenis":"pemakai","nama":"Dina","saldo":900000,"tingkat":"belum","status":"aktif"}
+$ curl -i -X POST '/topup-bank' -H 'Authorization: Bearer <token sesi Dina>' -d '{"jumlah": 200000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/batas-saldo-tingkat","title":"Saldo akan melewati batas tingkat akun","status":422,"detail":"Saldo paling banyak Rp1.000.000 untuk akun belum terverifikasi dan Rp10.000.000 untuk akun terverifikasi."}
+webhook top-up pertama: 200 diproses; webhook top-up kedua: 200 diparkir
+=> SELECT id, jumlah, status FROM topup_bank WHERE akun_id = 40001 ORDER BY id
+ id | jumlah | status
+----+--------+----------
+ 7  | 60000  | dibayar
+ 8  | 60000  | menunggu
+(2 rows)
+$ curl -i -X GET '/akun/40001' -H 'Authorization: Bearer <token sesi Dina>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":40001,"jenis":"pemakai","nama":"Dina","saldo":960000,"tingkat":"belum","status":"aktif"}
+# Uang Rp60.000 yang kedua sudah di bank dan tidak dikredit: kabar diparkir, top-up tetap menunggu. Rekonsiliasi harian melihatnya
+# sebagai tidak_di_ledger (bagian J); PRD v4 belum menjawab pengembalian dana (Asumsi: tim risk memutuskan).
+
+# --- J. Rekonsiliasi harian (-rekon <tanggal>): laporan settlement gateway lawan jurnal, per order_id; tiga jenis selisih jadi insiden bernomor ---
+# jumlah_beda: dikredit Rp20.000, laporan settlement menulis Rp25.000 untuk order yang sama
+# tidak_di_gateway: dikredit hari ini, tetapi gateway mencatat settlement tanggal lain
+# tidak_di_ledger: gateway sudah settlement, webhook tidak pernah datang dan job cek belum jalan
+$ ./api-t4 -rekon <tanggal>   # jalan ke-1
+rekon <tanggal>: 9 baris di laporan gateway; insiden baru: tidak_di_ledger 2, tidak_di_gateway 1, jumlah_beda 1
+$ ./api-t4 -rekon <tanggal>   # jalan ke-2
+rekon <tanggal>: 9 baris di laporan gateway; insiden baru: tidak_di_ledger 0, tidak_di_gateway 0, jumlah_beda 0
+=> SELECT jenis, selisih, status, jurnal_id IS NULL AS belum_dikoreksi, topup_id IS NOT NULL AS ada_topup FROM insiden_rekon ORDER BY jenis, selisih
+ jenis            | selisih | status  | belum_dikoreksi | ada_topup
+------------------+---------+---------+-----------------+-----------
+ jumlah_beda      | 5000    | terbuka | t               | t
+ tidak_di_gateway | -40000  | terbuka | t               | t
+ tidak_di_ledger  | 15000   | terbuka | t               | t
+ tidak_di_ledger  | 60000   | terbuka | t               | t
+(4 rows)
+# Job tidak mengoreksi apa pun dan tidak mengubah posting atau buku.saldo_cache; koreksi lewat jurnal normal ada di lab t4-webhook.
+# Dijalankan dua kali: insiden yang sama tidak ditulis dua kali ((tanggal, order_id, jenis) unik).
+posting sebelum dan sesudah rekonsiliasi: 20418 baris dengan jumlah 0, saldo karyawan 2500485000; sama: ya
