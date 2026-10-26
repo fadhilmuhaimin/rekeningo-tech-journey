@@ -371,7 +371,7 @@ describe("rekaman m24.txt dan versi.txt: nilai dan rentang Snippet", () => {
   test("pengiriman ulang diperankan: skrip menerima jawaban Jumat dan menyimpannya, kepala rekaman menyebut HP diperankan curl dan server mode rentan", () => {
     expect(runPy).toContain("asli_ayam = isi");
     expect(runPy).toContain('catat("# HP tidak menerima jawaban di atas (sinyal putus); HP mengingat operasi dan key-nya, lalu offline")');
-    expect(M.b[1]).toContain("PostgreSQL 17.11");
+    expect(M.b[1]).toBe("# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · schema tahap3_offline · server Go di 127.0.0.1:18180");
     expect(M.b[3]).toBe("# server: ./api-t3 -lab -jam-lab -rentan stok-timpa");
     expect(readmeLab).toContain("HP diperankan oleh curl");
     expect(runPy).toContain('curl("POST", "/lab/jam", {"ms": ms}');
@@ -379,9 +379,9 @@ describe("rekaman m24.txt dan versi.txt: nilai dan rentang Snippet", () => {
     harus("Jawaban yang hilang juga diperankan: lab menerima jawaban Jumat, lalu mengirim operasi yang sama lagi seolah-olah HP tidak pernah menerimanya.");
   });
   test("versi.txt bagian C: soto dikenali kuncinya (ulang true, stok 30 versi 3); bakso kunci baru versi dasar 1 dijawab 409 konflik dengan stok 30 versi 2 dan tidak berubah", () => {
-    const soto = cocok(vBagC, /"kunci": "ani-hp1-0301"[^\n]*\n[^\n]*\n[^\n]*\n\n(\{.*\})/)[1]!;
+    const soto = cocok(vBagC, /"kunci": "ani-hp1-0301"[^\n]*\n[^\n]*\n[^\n]*\n\n(\{.*\})\n/)[1]!;
     expect(JSON.parse(soto)).toEqual({ sekarang: { id: 181, harga: 22000, stok: 30, versi: 3 }, status: "diterapkan", ulang: true });
-    const bakso = cocok(vBagC, /"kunci": "ani-hp1-0302"[^\n]*\nHTTP\/1\.1 (\d+) Conflict\n[^\n]*\n\n(\{.*\})/);
+    const bakso = cocok(vBagC, /"kunci": "ani-hp1-0302"[^\n]*\nHTTP\/1\.1 (\d+) Conflict\n[^\n]*\n\n(\{.*\})\n/);
     expect(bakso[1]).toBe("409");
     expect(JSON.parse(bakso[2]!)).toEqual({ sekarang: { id: 361, harga: 18000, stok: 30, versi: 2 }, status: "konflik", ulang: false });
     expect(vBagC).toMatch(/"produk_id": 361, "jenis": "stok", "nilai": 0, "versi_dasar": 1/);
