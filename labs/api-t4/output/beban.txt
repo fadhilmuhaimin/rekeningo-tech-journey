@@ -13,7 +13,6 @@ status: 200 x2483, 201 x295   # 200 = baca, 201 = bayar
 p95 di bawah 500 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya
 jadwal tidak tertinggal lebih dari 100 ms (generator tidak jadi penghambat): ya
 koneksi database dari api-t4 (pg_stat_activity, disampel tiap 100 ms): paling banyak <= 10 (pool 10)
-koneksi yang aktif menjalankan query bersamaan paling banyak < 10: pool tidak pernah menjadi antrean tunggal
 pool setelah beban: maks 10
 # Kata 'tidak sesak' berarti L kecil terhadap pool di laptop lab. Bukan klaim kapasitas produksi.
 

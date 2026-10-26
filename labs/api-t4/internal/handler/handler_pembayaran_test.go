@@ -277,9 +277,20 @@ func TestWebhookEndpointTandaTangan(t *testing.T) {
 	if c, _ := kirim([]byte("{"), rahasiaHTTP, 0); c != 400 {
 		t.Errorf("JSON rusak: %d", c)
 	}
-	besar := bytes.Repeat([]byte("a"), MaksWebhook+1)
+	// JSON yang sah dan bertanda tangan, tetapi lebih besar dari batas: ditolak karena ukurannya, bukan isinya.
+	evBesar := order + "-besar"
+	sahBesar, _ := json.Marshal(service.KabarGateway{EventID: evBesar, OrderID: order, Status: "pending", Jumlah: 50_000})
+	besar := append(sahBesar, bytes.Repeat([]byte(" "), 100<<10)...) // 100 KiB, angka tertulis: tidak mengikuti konstanta yang dites
 	if c, _ := kirim(besar, rahasiaHTTP, 0); c != 400 {
 		t.Errorf("body terlalu besar: %d", c)
+	}
+	var nBesar int
+	db.QueryRow(`SELECT count(*) FROM webhook_event WHERE event_id = $1`, evBesar).Scan(&nBesar)
+	if nBesar != 0 {
+		t.Error("body yang melewati batas ukuran tetap diproses")
+	}
+	if c, _ := kirim(sahBesar, rahasiaHTTP, 0); c != 200 {
+		t.Errorf("kabar yang sama tanpa padding harus diproses: %d", c)
 	}
 	if c, _, _ := kirimReq(t, srv, "GET", "/webhooks/pembayaran", "", nil); c != 405 {
 		t.Errorf("GET ke webhook: %d", c)

@@ -71,7 +71,7 @@ HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /topup-bank/1
 
-{"id":1,"order_id":"<order 1>","jumlah":200000,"status":"menunggu","tujuan_bayar":"<tujuan bayar>","dibuat":"<waktu>","kedaluwarsa_pada":"<waktu>"}
+{"id":1,"order_id":"<order 3>","jumlah":200000,"status":"menunggu","tujuan_bayar":"<tujuan bayar>","dibuat":"<waktu>","kedaluwarsa_pada":"<waktu>"}
 # Sebelum verifikasi, top-up Rp200.000 untuk saldo Rp900.000 ditolak 422 (topup.txt bagian I); kini batasnya Rp10.000.000.
 
 # --- D. Timeout: jawaban vendor terpotong. Pengajuan menjadi tidak_pasti (bukan gagal); pulih, diulang dengan key yang sama, satu objek di vendor ---

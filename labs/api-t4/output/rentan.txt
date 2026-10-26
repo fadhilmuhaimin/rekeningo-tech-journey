@@ -32,7 +32,7 @@ Content-Type: application/json
  menunggu
 (1 row)
 # Kabar pending sesudah dibayar: status mundur ke menunggu (tidak ada status bersyarat).
-$ curl -i -X POST '/webhooks/pembayaran' -d '{"event_id": "evt-palsu", "order_id": "<order 1>", "status": "settlement", "jumlah": 1234567}'
+$ curl -i -X POST '/webhooks/pembayaran' -d '{"event_id": "evt-palsu", "order_id": "<order 4>", "status": "settlement", "jumlah": 1234567}'
 HTTP/1.1 200 OK
 Content-Type: application/json
 

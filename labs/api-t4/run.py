@@ -8,7 +8,7 @@ jumlah koneksi) hanya direkam sebagai batas yang diperiksa. Lab gagal keras bila
 hasilnya tidak sesuai yang diharapkan.
 
     make -C labs/api-t4 run                      (butuh: Docker, Go; PostgreSQL dijalankan lewat labs/b3-race)
-    make -C labs/api-t4 run BAGIAN=topup         (satu bagian: skema topup verifikasi batas rentan beban testing)
+    make -C labs/api-t4 run BAGIAN=topup         (satu bagian: skema topup verifikasi batas rentan fitur beban testing)
     make -C labs/api-t4 beban                    (hanya bagian beban)
 """
 import base64, datetime, json, os, pathlib, re, subprocess, sys, threading, time
@@ -598,6 +598,129 @@ def rekam_rentan():
     tulis("rentan.txt", "mode rentan webhook-v1 dan webhook-cek-tulis (M29)",)
 
 
+# ---------- fitur.txt ----------
+
+def rekam_fitur():
+    """Asap untuk fitur publik di bawah role aplikasi (api_t4, bukan pemilik): QR, kartu, back office, audit, impor katalog.
+    Bukti mendalam (mutasi, kasus tepi) ada di tes Go dan di lab turunan t4-qr, t4-kartu, t4-audit, t4-ssrf."""
+    siapkan_data()
+    d.mulai_push()
+    d.mulai_gateway()
+    d.mulai_verifikasi()
+    d.mulai_penerbit()
+    d.mulai_api(["-unduh-izinkan-http"], tampil="# server: ./api-t4 -lab -unduh-izinkan-http (tiruan lokal tidak punya TLS); penerbit kartu tiruan: ./penerbit; semua sebagai role api_t4")
+    marni = login("merchant1@merchant.example", label="Bu Marni")
+    andalan = login("merchant2@merchant.example", label="Toko Andalan")
+    baru = login("merchant21@merchant.example", label="Toko Baru")
+    eko = login("pemakai2@publik.example", label="Eko")
+    dina = login("pemakai1@publik.example", label="Dina")
+    ratih = login("ratih@rekeningo.example", label="Ratih")
+    risk2 = login("risk.dua@rekeningo.example", label="Risk Dua")
+
+    bagian("A. QR merchant luar: dinamis (sekali bayar, nominal terikat) dan statis (batas Rp200.000, Asumsi produk)")
+    s, isi = curl("POST", "/qr", {"jenis": "dinamis", "nominal": 35_000}, marni,
+                  daftarkan=lambda k, i: samaran.__setitem__(j(i)["id"], "<qr 1>"))
+    harap(s, 201, "QR dinamis")
+    qr1 = [k for k, v in samaran.items() if v == "<qr 1>"][0]
+    s, isi = curl("GET", f"/qr/{qr1}", token=eko)
+    harap((s, j(isi)["merchant"]["nama"]), (200, "Toko Sumber Rejeki"), "layar konfirmasi")
+    s, isi = curl("POST", f"/qr/{qr1}/bayar", {}, eko)
+    harap(s, 201, "bayar QR dinamis")
+    s, isi = curl("POST", f"/qr/{qr1}/bayar", {}, eko)
+    harap(s, 409, "QR dinamis dibayar dua kali")
+    sql("SELECT jenis, status, nominal, jurnal_id IS NOT NULL AS ada_jurnal FROM qr")
+    sql("SELECT p.jurnal_id, b.jenis AS buku, p.jumlah FROM posting p JOIN buku b ON b.id = p.buku_id WHERE p.jurnal_id = (SELECT jurnal_id FROM qr) ORDER BY p.id")
+    s, isi = curl("POST", "/qr", {"jenis": "statis"}, andalan, daftarkan=lambda k, i: samaran.__setitem__(j(i)["id"], "<qr 2>"))
+    harap(s, 201, "QR statis")
+    qr2 = [k for k, v in samaran.items() if v == "<qr 2>"][0]
+    s, isi = curl("POST", f"/qr/{qr2}/bayar", {"nominal": 20_000}, dina)
+    harap(s, 201, "Dina (belum terverifikasi) membayar QR statis")
+    s, isi = curl("POST", f"/qr/{qr2}/bayar", {"nominal": 250_000}, dina)
+    harap(s, 422, "QR statis melewati Rp200.000")
+    s, isi = curl("POST", "/qr", {"jenis": "dinamis", "nominal": 10_000}, baru)
+    harap(s, 403, "merchant belum terverifikasi tidak menerbitkan QR")
+
+    bagian("B. Merchant baru: verifikasi tanpa vendor, diputuskan tim risk; keputusan tercatat di audit log berantai (satu transaction dengan aksinya)")
+    s, isi = curl("POST", "/verifikasi", kunci_json(), baru, tampil=False)
+    harap(s, 202, "pengajuan merchant")
+    sql("SELECT akun_id, subjek, status FROM verifikasi")
+    s, isi = curl("POST", "/bo/merchant/30021/setujui", {"alasan": "Dokumen lengkap dan sesuai, toko dikunjungi"}, ratih)
+    harap(s, 204, "setujui merchant")
+    sql("SELECT a.tingkat, v.status FROM akun a JOIN verifikasi v ON v.akun_id = a.id WHERE a.id = 30021")
+    s, isi = curl("POST", "/qr", {"jenis": "dinamis", "nominal": 10_000}, baru, daftarkan=lambda k, i: samaran.__setitem__(j(i)["id"], "<qr 3>"))
+    harap(s, 201, "QR sesudah disetujui")
+
+    bagian("C. Kartu virtual: penerbit tiruan menerbitkan, otorisasi menahan dana (hold) sebagai jurnal di ledger, clearing, reversal, kill switch")
+    s, isi = curl("POST", "/kartu", {}, eko, tampil=False)
+    harap(s, 201, "terbitkan kartu")
+    catat("$ curl -i -X POST /kartu -H 'Authorization: Bearer <token sesi Eko>'   # penerbit tiruan menjawab dengan token; HTTP 201 (token dan empat digit acak, tidak direkam)")
+    token = satu("SELECT token_penerbit FROM kartu WHERE akun_id = 40002")
+    s, isi = curl("POST", "/kartu", {}, dina, tampil=False)
+    harap(s, 403, "Dina belum terverifikasi: tidak boleh memegang kartu")
+    catat(f"POST /kartu oleh Dina (belum terverifikasi): HTTP {s}")
+    s, isi = curl("POST", "/lab/otorisasi", {"id_penerbit": "AUTH-1", "token": token, "jumlah": 80_000}, port=d.PORT_PENERBIT,
+                  tampil_body='{"id_penerbit":"AUTH-1","token":"<token kartu>","jumlah":80000}')
+    harap((s, j(isi)["keputusan"]), (200, "setuju"), "otorisasi")
+    sql("SELECT status, jumlah, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu")
+    sql("SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.jenis = 'dana_tertahan' OR b.akun_id = 40002 ORDER BY b.jenis")
+    s, isi = curl("POST", "/lab/otorisasi", {"id_penerbit": "AUTH-2", "token": token, "jumlah": 400_000}, port=d.PORT_PENERBIT, tampil=False)
+    catat("otorisasi AUTH-2 Rp400.000 (saldo tinggal Rp385.000 sesudah QR dan hold): " + isi.strip())
+    harap(j(isi)["keputusan"], "tolak", "saldo kurang")
+    s, isi = curl("POST", "/lab/clearing", {"id_penerbit": "AUTH-1", "jumlah": 80_000}, port=d.PORT_PENERBIT, tampil=False)
+    harap(s, 200, "clearing")
+    sql("SELECT status FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-1'")
+    sql("SELECT jenis, saldo_cache FROM buku WHERE jenis IN ('dana_tertahan', 'settlement_kartu') ORDER BY jenis")
+    s, isi = curl("POST", "/lab/otorisasi", {"id_penerbit": "AUTH-3", "token": token, "jumlah": 50_000}, port=d.PORT_PENERBIT, tampil=False)
+    harap(j(isi)["keputusan"], "setuju", "AUTH-3")
+    s, isi = curl("POST", "/lab/reversal", {"id_penerbit": "AUTH-3"}, port=d.PORT_PENERBIT, tampil=False)
+    harap(s, 200, "reversal")
+    sql("SELECT id_penerbit, status FROM otorisasi_kartu ORDER BY id")
+    sql("SELECT jenis, saldo_cache FROM buku WHERE jenis = 'dana_tertahan' OR akun_id = 40002 ORDER BY jenis")
+    s, isi = curl("POST", "/bo/flag/kartu", {"aktif": False, "alasan": "Kill switch dicoba: penerbit melaporkan anomali"}, ratih)
+    harap(s, 200, "kill switch mati")
+    s, isi = curl("POST", "/lab/otorisasi", {"id_penerbit": "AUTH-4", "token": token, "jumlah": 10_000}, port=d.PORT_PENERBIT, tampil=False)
+    catat("otorisasi AUTH-4 sesudah kill switch mati (tanpa deploy): " + isi.strip())
+    harap(j(isi)["keputusan"], "tolak", "kill switch")
+    s, isi = curl("POST", "/bo/flag/kartu", {"aktif": True, "alasan": "Anomali sudah diperiksa, kartu dibuka lagi"}, ratih, tampil=False)
+    harap(s, 200, "kill switch nyala")
+
+    bagian("D. Back office tim risk: lihat akun, bekukan, buka dengan persetujuan petugas kedua. Hanya jenis risk")
+    s, isi = curl("GET", "/bo/akun/40001", token=dina, tampil=False)
+    catat(f"GET /bo/akun/40001 oleh Dina (bukan petugas risk): HTTP {s}")
+    harap(s, 403, "bukan risk")
+    curl("GET", "/bo/akun/40001", token=ratih)
+    s, isi = curl("POST", "/bo/akun/40001/bekukan", {"alasan": "Dugaan akun dipakai pihak lain, menunggu konfirmasi"}, ratih)
+    harap(s, 204, "bekukan")
+    s, isi = curl("POST", "/topup-bank", {"jumlah": 50_000}, dina)
+    harap(s, 403, "dibekukan tidak top-up")
+    s, isi = curl("POST", "/bo/akun/40001/buka", {"alasan": "Pemilik sudah dikonfirmasi lewat layanan pelanggan"}, ratih)
+    harap(s, 403, "buka tanpa penyetuju")
+    s, isi = curl("POST", "/bo/akun/40001/buka", {"alasan": "Pemilik sudah dikonfirmasi lewat layanan pelanggan"}, ratih, kepala=[f"X-Penyetuju-Token: {ratih}"])
+    harap(s, 403, "penyetuju sama dengan pelaku")
+    s, isi = curl("POST", "/bo/akun/40001/buka", {"alasan": "Pemilik sudah dikonfirmasi lewat layanan pelanggan"}, ratih, kepala=[f"X-Penyetuju-Token: {risk2}"])
+    harap(s, 204, "buka dengan penyetuju lain")
+    sql("SELECT status FROM akun WHERE id = 40001")
+
+    bagian("E. Audit log berantai: setiap aksi berisiko satu baris di transaction yang sama; mengubah baris di tengah memutus rantai di baris itu")
+    sql("SELECT id, peran, aksi, objek, penyetuju_id FROM audit_log ORDER BY id")
+    s, isi = curl("GET", "/bo/audit/verifikasi", token=ratih, tampil=False)
+    harap(j(isi)["utuh"], True, "rantai utuh")
+    catat(f"verifikasi rantai: {j(isi)['baris']} baris, utuh: ya (hash baris terakhir adalah jangkar; bergantung waktu, tidak direkam)")
+    sql("UPDATE audit_log SET alasan = 'diubah pemilik schema' WHERE id = 2")
+    s, isi = curl("GET", "/bo/audit/verifikasi", token=ratih, tampil=False)
+    harap((j(isi)["utuh"], j(isi).get("rusak_di_id")), (False, 2), "rantai putus di baris 2")
+    catat(f"sesudah pemilik schema mengubah baris 2: utuh {'ya' if j(isi)['utuh'] else 'tidak'}, rusak di baris {j(isi)['rusak_di_id']}")
+    catat("# Role aplikasi tidak bisa mengubah baris itu (skema.txt bagian D); pemilik schema bisa, dan rantai yang mendeteksinya. Menghapus ekor rantai tanpa jangkar di luar database: t4-audit.")
+
+    bagian("F. Impor katalog merchant dengan URL gambar: fetcher versi aman menolak alamat jaringan dalam; produk tetap tersimpan")
+    s, isi = curl("POST", "/merchant/katalog/impor", {"produk": [{"nama": "Kopi tubruk", "harga": 8000, "stok": 20,
+                  "gambar_url": f"http://127.0.0.1:{PORT_GATEWAY}/orders/x"}, {"nama": "Teh tarik", "harga": 9000, "stok": 15}]}, andalan)
+    harap(s, 200, "impor katalog")
+    sql("SELECT nama, harga, stok, gambar_url IS NOT NULL AS ada_url FROM produk WHERE akun_id = 30002 ORDER BY nama")
+    catat("# Mode rentan unduh-rentan (t4-ssrf) menjangkau alamat itu; versi aman tidak. Lab ini hanya memastikan jalur dan hak tulisnya.")
+    tulis("fitur.txt", "QR, kartu virtual, back office, audit berantai, dan impor katalog sebagai role aplikasi")
+
+
 # ---------- beban.txt ----------
 
 def rekam_beban():
@@ -673,8 +796,9 @@ def go_test(*args, env, cwd=d.HERE):
 
 
 def rekam_testing():
-    d.buat_schema(d.TES, hak=False)
+    d.buat_schema(d.TES)   # dengan hak: dua tes berjalan sebagai role aplikasi api_t4 (hak kolom dan tabel yang kurang baru ketahuan di sana)
     tes_db = d.db_pemilik(d.TES, "api-t4-tes")
+    tes_app = f"postgres://{d.ROLE}:{d.ROLE}@127.0.0.1:{d.DB_PORT}/lab?search_path={d.TES}&application_name=api-t4-tes-app"
     bagian(f"A. go vet, lalu tes aturan uang, outbox, tingkat verifikasi, QR, kartu, dan audit dengan PostgreSQL sungguhan (schema {d.TES}, skema akhir Tahap 4)")
     rc, teks = go_test("vet", "./...", env=d.ENV)
     catat("$ go vet ./...")
@@ -682,11 +806,14 @@ def rekam_testing():
     catat(f"# exit status {rc}")
     harap(rc, 0, "go vet")
     rc, teks = go_test("test", "-v", "-count=1", "-p", "1", "./...",
-                       env=dict(d.ENV, TEST_DATABASE_URL=tes_db, TEST_REDIS_ADDR=f"127.0.0.1:{d.REDIS_PORT}"))
+                       env=dict(d.ENV, TEST_DATABASE_URL=tes_db, TEST_APP_DATABASE_URL=tes_app, TEST_DATABASE_URL_APP=tes_app,
+                                TEST_REDIS_ADDR=f"127.0.0.1:{d.REDIS_PORT}"))
     teks = "\n".join(l for l in teks.splitlines() if not l.startswith("?") and not l.startswith("=== RUN") and not l.startswith("=== PAUSE") and not l.startswith("=== CONT"))
-    catat(f"$ TEST_DATABASE_URL=<schema {d.TES}> TEST_REDIS_ADDR=<Redis lab> go test -v -count=1 -p 1 ./...")
+    catat(f"$ TEST_DATABASE_URL=<pemilik, schema {d.TES}> TEST_APP_DATABASE_URL=<role api_t4, schema yang sama> TEST_REDIS_ADDR=<Redis lab> go test -v -count=1 -p 1 ./...")
     catat(teks)
     catat(f"# exit status {rc}")
+    if rc != 0:   # lab gagal keras, tetapi alasannya harus terbaca
+        print("\n".join(l for l in teks.splitlines() if "FAIL" in l or "panic" in l or l.startswith("    ")), file=sys.stderr)
     harap(rc, 0, "go test")
     harap("--- SKIP" in teks, False, "tes dilewati")
     bagian("B. Tanpa TEST_DATABASE_URL dan TEST_REDIS_ADDR: tes yang butuh keduanya dilewati, tes tanpa itu tetap jalan")
@@ -708,7 +835,7 @@ def rekam_testing():
 
 
 BAGIAN = {"skema": rekam_skema, "topup": rekam_topup, "verifikasi": rekam_verifikasi, "batas": rekam_batas,
-          "rentan": rekam_rentan, "beban": rekam_beban, "testing": rekam_testing}
+          "rentan": rekam_rentan, "fitur": rekam_fitur, "beban": rekam_beban, "testing": rekam_testing}
 
 
 def main():

@@ -34,7 +34,7 @@ import (
 )
 
 func main() {
-	url := flag.String("url", "http://127.0.0.1:18280", "alamat api-t4")
+	url := flag.String("url", "http://127.0.0.1:"+portLab(18280), "alamat api-t4")
 	dsn := flag.String("db", "", "DSN pemilik schema (membuat sesi dan menyampel pg_stat_activity)")
 	aplikasi := flag.String("aplikasi", "api-t4", "application_name koneksi api-t4 yang disampel")
 	rps := flag.Float64("rps", 138.9, "permintaan per detik (kedatangan tetap)")

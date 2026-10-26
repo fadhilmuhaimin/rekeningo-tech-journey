@@ -289,6 +289,11 @@ def mulai_verifikasi(tampil=None):
     mulai(BIN_TIRUAN, PORT_VERIFIKASI, ["-peran", "verifikasi"], tampil=tampil)
 
 
+def mulai_penerbit(tampil=None, args=()):
+    """Penerbit kartu tiruan: dipanggil Rekeningo untuk menerbitkan kartu, dan (lewat /lab/*) memanggil Rekeningo untuk otorisasi."""
+    mulai(BIN_PENERBIT, PORT_PENERBIT, ["-api", f"http://127.0.0.1:{PORT}", "-kunci", KUNCI_PENERBIT, *args], tampil=tampil)
+
+
 def tiruan_mode(port, mode, ms=0):
     """Pasang perilaku gateway atau layanan verifikasi tiruan (normal, mati, lambat, menggantung, ...)."""
     s, _ = curl("POST", "/lab/mode", {"mode": mode, "ms": ms}, port=port, tampil=False)
