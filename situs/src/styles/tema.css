@@ -1386,3 +1386,48 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .ow :is(.ow-garis, .tb-pilihan, .qr-pilih, .qr-angka) > * + * { margin-top: 0; }
 .sl-markdown-content .ow :is(.tb-pilihan, .qr-pilih) > li > button { margin-bottom: 0; }
 @media (max-width: 30em) { .sl-markdown-content .ow-angka { grid-template-columns: 1fr; } .sl-markdown-content .ow-garis > li { padding: 0.35rem 0.5rem; } }
+
+/* Widget cache dan invalidation (W3-cache, keputusan 986): memakai tb-* (tebak); ch-* untuk pilihan, tiap instance, garis waktu, dan hitungan. Token saja, tanpa animasi. Teks di dalam kotak berwarna memakai --teks supaya kontras terjaga. */
+.sl-markdown-content .ch-kelompok { margin: 0 0 0.7rem; }
+.sl-markdown-content .ch-label { margin: 0 0 0.3rem; color: var(--teks-2); font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .ch-pilih { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.sl-markdown-content .ch-pilih li { margin: 0; max-width: 100%; }
+.sl-markdown-content .ch-tombol { width: auto; max-width: 100%; display: inline-block; overflow-wrap: anywhere; min-height: 2.25rem; padding: 0.3rem 0.65rem; }
+.sl-markdown-content .ch-tombol[aria-pressed="true"] { border-color: var(--k-system-edge); background: var(--k-system-fill); color: var(--k-system-ink); }
+.sl-markdown-content .ch-pilih--daftar { display: grid; }
+.sl-markdown-content .ch-pilih--daftar .ch-tombol { display: block; width: 100%; }
+.sl-markdown-content .ch :is(.tb-pilihan, .ch-pilih, .ch-meja, .ch-hitung ul) > * + * { margin-top: 0; }
+.sl-markdown-content .ch :is(.tb-pilihan, .ch-pilih) > li > button { margin-bottom: 0; }
+.sl-markdown-content .ch .tb-pilih:focus-visible, .sl-markdown-content .ch .bb-btn:focus-visible { outline: 2px solid var(--aksen); outline-offset: 2px; }
+.sl-markdown-content .ch-kembali { margin: 0.2rem 0 0; }
+.sl-markdown-content .ch-status { margin: 0.5rem 0 0; min-height: 1.4em; font-weight: 600; color: var(--judul); }
+.sl-markdown-content .ch-vonis:not(:empty) { margin: 0.8rem 0 0; padding: 0.6rem 0.9rem; border-left: 3px solid var(--k-system-edge); background: var(--bg-2); border-radius: 0 8px 8px 0; }
+.sl-markdown-content .ch-vonis.is-benar { border-left-color: var(--k-good-edge); }
+.sl-markdown-content .ch-vonis.is-stale { border-left-color: var(--k-warn-edge); }
+.sl-markdown-content .ch-vonis p { margin: 0; }
+.sl-markdown-content .ch-banding, .sl-markdown-content .ch-acuan, .sl-markdown-content .ch-catatan { margin: 0.6rem 0 0; }
+.sl-markdown-content .ch-judul { margin: 0.9rem 0 0.3rem; color: var(--judul); }
+.sl-markdown-content .ch-db { margin: 0 0 0.4rem; font-variant-numeric: tabular-nums; }
+.sl-markdown-content .ch-meja { list-style: none; margin: 0.3rem 0; padding: 0; display: grid; gap: 0.4rem; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
+.sl-markdown-content .ch-kotak { margin: 0; padding: 0.5rem 0.65rem; display: grid; gap: 0.25rem; align-content: start; border: 1px solid var(--garis-2); border-radius: 8px; color: var(--teks); }
+.sl-markdown-content .ch-kotak.is-benar { border-color: var(--k-good-edge); background: var(--k-good-fill); }
+.sl-markdown-content .ch-kotak.is-stale { border-color: var(--k-warn-edge); background: var(--k-warn-fill); }
+.sl-markdown-content .ch-kotak .bb-chip { width: fit-content; max-width: 100%; }
+.sl-markdown-content .ch-isi { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--judul); overflow-wrap: anywhere; }
+.sl-markdown-content .ch-istilah, .sl-markdown-content .ch-legenda { margin: 0.3rem 0 0.5rem; }
+.sl-markdown-content .ch-garis { position: relative; display: flex; height: 1.1rem; margin: 0.8rem 0 0.3rem; border: 1px solid var(--garis-2); border-radius: 3px; overflow: hidden; }
+.sl-markdown-content .ch-seg { display: block; height: 100%; flex: none; }
+.sl-markdown-content .ch-seg.is-benar { background: var(--k-good-edge); }
+.sl-markdown-content .ch-seg.is-stale { background: var(--k-warn-edge); }
+.sl-markdown-content .ch-kursor { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--judul); }
+.sl-markdown-content .ch-jam { margin: 0.6rem 0 0.4rem; }
+.sl-markdown-content .ch-jam label { display: block; margin-bottom: 0.3rem; }
+.sl-markdown-content .ch-jam input[type="range"] { display: block; width: 100%; min-height: 1.75rem; margin: 0; accent-color: var(--aksen); }
+.sl-markdown-content .ch-jam input[type="range"]:focus-visible { outline: 2px solid var(--aksen); outline-offset: 2px; }
+.sl-markdown-content .ch-lompat { margin: 0.6rem 0 0; }
+.sl-markdown-content .ch-hitung ul { list-style: none; margin: 0; padding: 0; }
+.sl-markdown-content .ch-hitung li { margin: 0; padding: 0.35rem 0; border-top: 1px solid var(--garis); overflow-wrap: anywhere; }
+.sl-markdown-content .ch-asal { margin: 0.8rem 0 0.4rem; }
+.sl-markdown-content .ch-asal ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
+.sl-markdown-content .ch-asal li { margin: 0.3rem 0; }
+.sl-markdown-content .ch code { overflow-wrap: anywhere; }

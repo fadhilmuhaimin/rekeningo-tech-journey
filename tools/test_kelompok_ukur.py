@@ -2,7 +2,7 @@
 tidak boleh menghilangkan atau menggandakan pemeriksaan. Yang dijaga:
 
   - gabungan nama alat di semua kelompok sama dengan daftar alat sebelum pembagian (layar, tangkap, judul, ilustrasi, rantai,
-    race, gerak, galur [loop alur yang dulu di dalam gerak], kontras, axe, erd, diagram, cls, luapan, alur, pool, outbox);
+    race, gerak, galur [loop alur yang dulu di dalam gerak], kontras, axe, erd, diagram, cls, luapan, alur, pool, outbox, cache);
   - alat yang dibagi per ukuran (layar, galur) muncul hanya sebagai bagian "@", dan ukuran semua bagiannya, digabung, sama
     persis dengan ukuran alat itu (tiap ukuran tepat sekali);
   - tiap ukuran benar-benar dikenal alatnya (tercantum di sumber .mjs) dan alat menolak ukuran yang tidak dikenal;
@@ -21,7 +21,7 @@ import sys
 AKAR = pathlib.Path(__file__).resolve().parent.parent
 
 ALAT_SEBELUM = {"layar", "tangkap", "judul", "ilustrasi", "rantai", "race", "gerak", "galur", "kontras", "axe", "erd", "diagram",
-                "cls", "luapan", "alur", "pool", "outbox"}
+                "cls", "luapan", "alur", "pool", "outbox", "cache"}
 # Ukuran lengkap tiap alat yang dibagi, dari sumber alat sebelum pembagian (layar.mjs VIEWPORTS; ukur-gerak.mjs loop alur).
 UKURAN_PENUH = {
     "layar": {"1366x768", "1366x657", "375x812", "375x667"},

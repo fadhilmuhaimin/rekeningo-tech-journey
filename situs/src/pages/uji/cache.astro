@@ -1,0 +1,24 @@
+---
+// Halaman uji widget cache dan invalidation (W3-cache, keputusan 986). Bukan halaman cerita: tidak di registry, tidak di
+// sidebar, tidak diindeks. Angka acuan dari labs/t3-cache/output (memori.txt, redis.txt, gagal.txt, beban.txt).
+// Dipakai situs/tools/ukur-cache.mjs (tebak dulu, keyboard, ARIA, reduced motion, angka dari rekaman, CLS) dan ukur-axe.mjs.
+// Halaman 3.19 memasang komponen yang sama di PR halamannya.
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import CacheInvalidation from "../../components/CacheInvalidation.astro";
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Uji cache dan invalidation",
+    description: "Halaman uji widget cache dan invalidation.",
+    pagefind: false,
+    tableOfContents: false,
+    head: [{ tag: "meta", attrs: { name: "robots", content: "noindex" } }],
+  }}
+>
+  <p>
+    Halaman uji widget cache. Harga nasi goreng berubah di database, dan katalog di-cache di memori tiap instance atau di Redis.
+  </p>
+  <CacheInvalidation />
+  <p>Teks sesudah widget, supaya halaman cukup panjang untuk diuji geser isi saat hydrate.</p>
+</StarlightPage>
