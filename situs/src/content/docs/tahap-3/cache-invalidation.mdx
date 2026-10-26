@@ -9,13 +9,13 @@ import TabSet from "../../../components/TabSet.astro";
 import CacheInvalidation from "../../../components/CacheInvalidation.astro";
 import intiDiagram from "../../../../data/diagram/t3-cache-inti.json";
 
-<p class="meta">Baca 18 menit · coba 3 menit · Prasyarat: [[t3-m23]] · Jalur inti</p>
+<p class="meta">Baca 19 menit · coba 3 menit · Prasyarat: [[t3-m23]] · Jalur inti</p>
 
 <Blok nama="Mulai" buka>
 
 ## Inti
 
-Satu cache bersama menyatukan harga di semua instance bila kunci dihapus sesudah COMMIT, dan TTL membatasi celah yang tersisa.
+Satu cache bersama menyatukan harga di kedua instance bila kunci dihapus sesudah COMMIT, dan TTL membatasi celah yang tersisa.
 
 <Rantai data={intiDiagram} ringkas />
 
@@ -38,7 +38,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 </Blok>
 
-<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: satu cache bersama dengan hapus kunci sesudah COMMIT menyatukan harga di semua instance, dan hanya TTL yang membatasi pembaca lambat dan promo yang mulai nanti.">
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: satu cache bersama dengan hapus kunci sesudah COMMIT menyatukan harga di kedua instance, dan hanya TTL yang membatasi pembaca lambat dan promo yang mulai nanti.">
 
 Widget ini membaca satu entri katalog: harga nasi goreng di warung Ani berubah, dan cache menyimpan salinannya. Tebak dulu kapan Citra pertama kali melihat harga promo, lalu ubah satu hal dan lihat siapa yang masih melihat harga lama.
 
@@ -63,7 +63,9 @@ Pilih **Redis bersama** dan **Sesudah COMMIT**: tidak ada instance yang melihat 
 
 [[t3-m23]] menunjukkan dua HP di meja yang sama dengan dua harga. Cache katalog ada di memori tiap instance, dengan TTL 300 detik, dan promo yang dibuat lewat instance A hanya membuang entri di A. Citra di instance B melihat Rp25.000 sampai entrinya habis di detik ke-300, dengan jam cache yang digeser lewat endpoint lab (`memori.txt` bagian B dan D).
 
-Cache ini tidak dituntut oleh beban. Naskah menghitung 2.500 user aktif × 60 request = 150.000 request per hari, dan 30% membaca katalog: 45.000 bacaan (Asumsi). Puncaknya 45.000 ÷ 86.400 × 10 = 5,21 baca per detik (5,208 dibulatkan; Asumsi). Dengan W = 5 ms (Asumsi), L = λ × W = 5,21 × 0,005 = 0,026 koneksi dari pool 10 (Asumsi, rumusnya di [[t3-pool]]).
+Cache ini tidak dituntut oleh beban. Naskah menghitung 2.500 user aktif × 60 request = 150.000 request per hari, dan 30% membaca katalog: 45.000 bacaan. Puncaknya 45.000 ÷ 86.400 × 10 = 5,21 baca per detik (5,208 dibulatkan).
+
+Dengan W = 5 ms, L = λ × W = 5,21 × 0,005 = 0,026 koneksi dari pool 10 ([[t3-pool]]). Semua masukan itu Asumsi, yaitu angka cerita tanpa rekaman, jadi hasilnya juga Asumsi.
 
 ADR 21 menunda cache sampai L kelas query itu mencapai 5 koneksi ([[t2-adr-21]]). Katalog sekitar 192 kali di bawah pemicu itu (5 ÷ 0,026; Asumsi). Rekaman `beban.txt` bagian B tidak mengukur angka tersebut. Ia hanya memeriksa W di bawah 20 ms dan L di bawah 0,1.
 
@@ -111,7 +113,7 @@ Kasus industri di ADR 28 menceritakan pola serupa di skala besar.
 
 Di bagian B Redis dimatikan, dan 50 bacaan serentak menjadi 50 baca database. Semuanya 200, dengan koneksi PostgreSQL paling banyak 10. Lab tidak mengukur apakah ada bacaan yang mengantre di pool. Tanpa circuit breaker, tiap bacaan tetap membayar satu batas waktu selama Redis menggantung (dibaca dari kode, tidak diukur).
 
-**Uang tidak pernah dari cache.** `Pesan` membaca harga dari database sesudah buku dan produk dikunci di transaction, dan tidak menyentuh cache:
+**Uang tidak dibaca dari cache.** `Pesan` membaca harga dari database sesudah buku dan produk dikunci di transaction, dan tidak menyentuh cache:
 
 <Snippet file="labs/api-t3/internal/service/katalog.go" lines="89:101" lang="go" title="labs/api-t3/internal/service/katalog.go" />
 
@@ -229,16 +231,16 @@ Beban tidak memaksa cache: katalog 5,21 baca per detik, L = 0,026 koneksi dari p
 | | A. Tanpa cache | B. Cache di memori tiap instance | C. Cache bersama di Redis | D. ETag dan cache di app saja |
 |---|---|---|---|---|
 | Cara kerja | Tiap bacaan katalog membaca PostgreSQL | Peta di dalam proses API, TTL 300 detik, satu salinan per instance | Satu Redis: `GET`, `SET` dengan TTL, `DEL`. Kunci per kota dan per warung, TTL 60 detik | Server memberi ETag, dan app menyimpan jawaban terakhir. App mengirim ETag itu, dan server menjawab tidak berubah bila sama |
-| Kelebihan | Tanpa salinan, jadi tanpa data lama dan tanpa invalidation. Tanpa komponen baru | Tanpa komponen baru dan tanpa panggilan jaringan | Satu salinan untuk semua instance, harga baru langsung di semua instance (`redis.txt` bagian B). 13 baca database untuk 52 bacaan | Mengurangi byte yang dikirim ke HP, dan salinan tinggal di perangkat |
+| Kelebihan | Tanpa salinan, jadi tanpa data lama dan tanpa invalidation. Tanpa komponen baru | Tanpa komponen baru dan tanpa panggilan jaringan | Satu salinan untuk kedua instance, harga baru langsung di keduanya (`redis.txt` bagian B). 13 baca database untuk 52 bacaan | Mengurangi byte yang dikirim ke HP, dan salinan tinggal di perangkat |
 | Kekurangan | 52 baca database untuk 52 bacaan, bukan 13 | Hanya instance yang menerima perubahan yang membuang entri. Harga lama bertahan sampai 300 detik (`memori.txt` bagian B dan D) | Komponen yang bisa mati atau menggantung. Tiga celah tersisa (bagian D, F, G) dan hapus kunci yang bisa gagal (`gagal.txt` bagian C). Tiap jalur tulis harus ingat menghapus | Salinan di HP tidak bisa dibatalkan dari server. Tanpa cache di server, server tetap membaca database untuk mencocokkan ETag (penalaran) |
-| Biaya operasional | Tidak ada | Tidak ada, tetapi invalidation lintas instance tidak mungkin tanpa saluran antar instance | Redis untuk dipasang, dipantau, dan diberi batas memori, ditambah batas waktu per perintah | Kode ETag di backend dan penyimpanan di app. App 1.0 dan 1.1 tidak memakainya |
+| Biaya operasional | Tidak ada | Tidak ada, tetapi invalidation lintas instance tidak mungkin tanpa saluran antar instance | Redis untuk dipasang, dipantau, dan diberi batas memori, ditambah batas waktu per perintah | Kode ETag di backend dan penyimpanan di app. App versi lama tidak memakainya |
 | Bukti | Rekaman lab `beban.txt` bagian B: W di bawah 20 ms, L di bawah 0,1 | Rekaman lab `memori.txt` bagian A sampai D | Rekaman lab `redis.txt`, `gagal.txt`, dan `beban.txt` bagian C | Tidak dijalankan. Tidak ada client Dart di lab |
 
 **Keputusan: opsi C.** Delapan aturan:
 
 1. Hanya jawaban baca katalog yang di-cache, di Redis, dengan TTL 60 detik dan satu kunci per kota dan per warung (`redis.txt` bagian A).
 2. Tulis database dulu, COMMIT, baru hapus kunci. Tulis yang ditolak tidak menghapus apa pun (`redis.txt` bagian B, D, E dan `gagal.txt` bagian D).
-3. Harga dan stok yang dipakai pembayaran dibaca dari database di dalam transaction. Tidak ada jalur uang yang membaca cache (`memori.txt` bagian C).
+3. Harga dan stok yang dipakai pembayaran dibaca dari database di dalam transaction. Tidak ada jalur uang di kode lab yang membaca cache (`memori.txt` bagian C).
 4. Client Redis memakai batas waktu per perintah dan tanpa retry. Redis yang galat atau lambat berarti bacaan jatuh ke database tanpa menyimpan apa pun (`gagal.txt` bagian A dan B).
 5. Redis untuk cache dipisah dari Redis untuk batas login ([[t3-rate-limit-redis]]), dengan batas memori dan kebijakan eviction yang dipilih untuk cache. Lab tidak mengatur `maxmemory`, jadi aturan ini Tidak dijalankan.
 6. Setiap jalur tulis yang mengubah harga, stok, atau promo menghapus kuncinya. Sekarang hanya `PATCH /produk/{id}` dan `POST /promo` yang melakukannya, dan jalur sinkron stok ([[t3-offline]]) harus ditambahkan sebelum dipakai.
@@ -266,7 +268,7 @@ Batasnya: satu insiden, dan datanya konfigurasi, bukan harga katalog. Tulisan it
 **Kapan keputusan ini salah.**
 
 - Saat tanpa cache ternyata cukup: hit rate rendah, atau baca database tanpa cache tetap di bawah batas W dan L. Cabut cache dan hapus kode invalidation-nya.
-- Saat harga di layar tidak boleh berbeda dari tagihan sama sekali. Cache dengan TTL selalu punya selang stale, dan hanya tanpa cache yang menutupnya.
+- Saat harga di layar tidak boleh berbeda dari tagihan sama sekali. Cache menyisakan selang stale yang hanya dibatasi TTL, dan hanya tanpa cache yang menutupnya.
 - Saat pembaca lambat sering mengisi ulang entri sesudah hapus kunci (`redis.txt` bagian F). Lease atau TTL yang lebih pendek hanya membatasinya.
 - Saat Redis menjadi komponen kritis tanpa cadangan, atau key penting terbuang saat memori penuh.
 
