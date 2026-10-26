@@ -167,7 +167,7 @@ Di [[t2-jembatan]] kamu menebak ADR Tahap 2 mana yang pecah lebih dulu. Jawabann
 
 Rekaman lab c4-ratelimit bagian F menjalankan dua instance. Dari 24 percobaan satu alamat yang bergantian ke keduanya, 20 lolos ke pemeriksaan password. Itu 10 per instance, bukan 10 total, jadi batasnya berlipat sebanyak jumlah proses.
 
-**ADR 13, lock buku: dibuka baris "Notifikasi saat menerima uang".** Pembayaran memegang lock buku sampai COMMIT, dan request kedua ke buku yang sama menunggu selama itu (Rekaman lab b3-race, `ledger-for-update.txt`, [[t2-race-lock]]). ADR 13 melarang panggilan jaringan selama lock dipegang. Panggilan ke layanan push adalah panggilan jaringan pertama di jalur uang.
+**ADR 13, lock buku: dibuka baris "Notifikasi saat menerima uang".** Pembayaran memegang lock buku sampai COMMIT, dan request kedua ke buku yang sama menunggu selama itu (Rekaman lab b3-race, `ledger-for-update.txt`, [[t2-race-lock]]). ADR 13 melarang panggilan jaringan selama lock dipegang. Di api-t2, panggilan ke layanan push akan menjadi panggilan jaringan pertama di jalur uang.
 
 Bila panggilan itu ada di dalam transaction jurnal, lock buku dan koneksi database tertahan selama panggilannya. Ini penalaran dari rekaman lock (Tidak dijalankan di Tahap 2).
 

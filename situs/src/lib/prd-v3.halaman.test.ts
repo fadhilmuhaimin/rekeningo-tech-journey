@@ -408,6 +408,13 @@ describe("klaim 'belum ada' dipindai dengan lingkup api-t2 dan sepuluh lab Tahap
     expect(badan).toContain("- Kapasitas satu server belum diukur.");
     ada("jembatan-prd-v3.mdx", "- Kapasitas satu server belum diukur.");
   });
+  test("panggilan jaringan pertama di jalur uang: kode api-t2 tidak memanggil layanan lain selain database", () => {
+    expect(kodeApi.length).toBeGreaterThan(5);
+    const kena = kodeApi.filter((f) => /\bhttp\.(Get|Post|PostForm|Head|NewRequest(WithContext)?|Client|DefaultClient)\b|\bnet\.Dial|\bsmtp\.|\bexec\.Command/.test(isi(f)));
+    expect(rel(kena)).toEqual([]);
+    expect(naskah3).toContain("Rekeningo pertama kali bergantung pada layanan luar di jalur uang.");
+    harus("Di api-t2, panggilan ke layanan push akan menjadi panggilan jaringan pertama di jalur uang.");
+  });
   test("lupa password mandiri belum ada: kode api-t2 tanpa jalur lupa atau reset password", () => {
     expect(kodeApi.length).toBeGreaterThan(5);
     expect(rel(kodeApi.filter((f) => /lupa|forgot|reset.?password|reset-password/i.test(isi(f))))).toEqual([]);
