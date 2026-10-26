@@ -1350,11 +1350,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### EVAL2-F1 · Berikutnya sesudah jembatan Tahap 2 tidak masuk halaman lama
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: EVAL-2
 - selesai bila: `urutanBaca` di `situs/tools/registri.mjs` (dipakai `Lanjut.astro`, `Blok.astro`, `Beranda.astro`, `remark-rujukan.mjs`) melewati halaman yang punya `lebur_ke` atau `diganti_oleh` yang menunjuk halaman `ada: true`; halaman itu tidak dihapus dan tetap ada di sidebar, di URL-nya, dan sebagai rujukan `[[ID]]`; halaman lama yang penggantinya masih "segera" tetap ada di urutan baca. Sesudah perbaikan `python3 tools/eval_tahap.py rantai 2` tetap mencetak 33 langkah dari 2.1 ke 2.33 tanpa 404, dan baris "sesudah halaman terakhir" menunjuk halaman tahap berikutnya yang bukan halaman lama (sekarang `T3`, "Tahap 3 · Ceritanya", selama 3.1 masih "segera"; 3.1 bila sudah ada); Sebelumnya dari halaman itu menunjuk 2.33; Berikutnya dari 1.42 tetap 2.1. Satu tes (Vitest di `situs/src/lib/` atau `node --test` di `situs/tests/`) membuktikan urutan: halaman lama yang penggantinya `ada` tidak muncul, halaman lama tanpa pengganti `ada` tetap muncul, dan satu mutasi (syarat dihapus) membuatnya gagal. `jalur_inti` dan menit baca Tahap 2 dihitung ulang bila berubah (`sinkron_cerita.py`); gerbang lolos.
-- catatan: Dari EVAL-2 (keputusan 752), kategori rusak. Bukti: `python3 tools/eval_tahap.py rantai 2` mencetak Berikutnya dari 2.33 menuju `/cerita/tahap-2/` (`T2`, `diganti_oleh` t2-prd), disusul B3.2, B3.3, B2.4, B2.3, E3, B4.2, B1.3, E5 (semuanya `lama` dengan `lebur_ke` ke halaman 2.x yang sudah ada), baru Tahap 3 (keputusan 605, 638, 642, 653, 665, 781 memindahkan halaman lama ke akhir Tahap 2). Tugas ini hanya mengubah urutan baca. Menghapus atau menulis ulang halaman lama menunggu keputusan pemilik (`plan/TINJAUAN-PEMILIK.md` Tahap 2 butir 2). File yang disentuh: `situs/tools/registri.mjs` dan tesnya.
+- catatan: Dari EVAL-2 (keputusan 752), kategori rusak. Bukti: `python3 tools/eval_tahap.py rantai 2` mencetak Berikutnya dari 2.33 menuju `/cerita/tahap-2/` (`T2`, `diganti_oleh` t2-prd), disusul B3.2, B3.3, B2.4, B2.3, E3, B4.2, B1.3, E5 (semuanya `lama` dengan `lebur_ke` ke halaman 2.x yang sudah ada), baru Tahap 3 (keputusan 605, 638, 642, 653, 665, 781 memindahkan halaman lama ke akhir Tahap 2). Tugas ini hanya mengubah urutan baca. Menghapus atau menulis ulang halaman lama menunggu keputusan pemilik (`plan/TINJAUAN-PEMILIK.md` Tahap 2 butir 2). File yang disentuh: `situs/tools/registri.mjs` dan tesnya. Selesai 2026-10-26 di PR #361 (keputusan 1150–1153, 1164): urutanBaca melewati halaman lama; rantai Tahap 1 dan 2 dijalankan di gerbang.
 
 ### EVAL-2-ulang · Evaluasi ulang Tahap 2
 
@@ -1368,11 +1368,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### DIRI-2 · Perbaikan diri sesudah Tahap 2
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: EVAL-2
 - selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-2.md` dan pelajaran MEMORI Tahap 2, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 2, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 2 selesai".
-- catatan: Langkah penutup alur tahap. Pengatur 2026-10-26 (keputusan 728 butir 3, boleh menurut catatan EVAL-2-ulang): bergantung EVAL-2 supaya Tahap 3 tidak tertunda; EVAL-2-ulang berjalan paralel.
+- catatan: Langkah penutup alur tahap. Pengatur 2026-10-26 (keputusan 728 butir 3, boleh menurut catatan EVAL-2-ulang): bergantung EVAL-2 supaya Tahap 3 tidak tertunda; EVAL-2-ulang berjalan paralel. Selesai 2026-10-26 di PR #359 (keputusan 754–759, 1160–1161): lima skill diperbaiki dengan bukti Tahap 2, usulan di luar wewenang di plan/USULAN-PERBAIKAN.md.
 
 ### LAB-PARALEL · Lab bisa jalan di beberapa lajur sekaligus
 
@@ -1394,7 +1394,7 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 
 ## Tahap 3
 
-Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan oleh `T3-siap` dari peta halaman naskah: lab sebelum `ERD3`, halaman sesudah widget. Nomor keputusan Tahap 3: konten 900–949, teknis 950–979, pengatur 980–999 (keputusan 900: rentang 800–899 sudah dipakai Tahap 2; Tahap 4 tetap 1000–1199). Lab, `ERD3`, dan `W3-*` tidak menunggu `EVAL-2`; setiap halaman Tahap 3 menunggu `KONSISTENSI-3` dan `DIRI-2` (keputusan 728).
+Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan oleh `T3-siap` dari peta halaman naskah: lab sebelum `ERD3`, halaman sesudah widget. Nomor keputusan Tahap 3: konten 900–949, teknis 950–979, pengatur 980–999, halaman 3.n blok 1000+4×(n−1) sampai +3 (sampai 1127), cadangan 1150–1169 (keputusan 900: rentang 800–899 sudah dipakai Tahap 2; Tahap 4 mulai 1200). Lab, `ERD3`, dan `W3-*` tidak menunggu `EVAL-2`; setiap halaman Tahap 3 menunggu `KONSISTENSI-3` dan `DIRI-2` (keputusan 728).
 
 ### RISET-3 · Riset Tahap 3
 
@@ -1417,11 +1417,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### KONSISTENSI-3 · NASKAH-3 dicocokkan dengan keputusan Tahap 2 yang sebenarnya
 
 - jenis: crosscheck
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: NASKAH-3, EVAL-2
 - selesai bila: satu subagent membaca `plan/CERITA-TAHAP-3.md`, `plan/EVALUASI-TAHAP-2.md`, halaman Tahap 2 yang ditulis, ADR 13–21 dan keputusan Tahap 2 di KEPUTUSAN, lalu menambal naskah seperlunya (nama tabel dan kolom, nomor M dan ADR, angka beban, apa yang sudah ada di akhir Tahap 2, peta halaman dan prasyarat) tanpa menulis ulang struktur; setiap tambalan dicatat satu baris di bagian atas naskah ("Disesuaikan dengan Tahap 2 pada <tanggal>: ...") dan di KEPUTUSAN; bila peta halaman berubah, registry dan `plan/RINGKAS.md` Tahap 3 diselaraskan di PR yang sama; gerbang lolos.
-- catatan: Keputusan 728 butir 3. Halaman 3.1 baru boleh mulai sesudah tugas ini dan DIRI-2. Pengatur 2026-10-26 (keputusan 728 butir 3, boleh menurut catatan EVAL-2-ulang): bergantung EVAL-2 supaya Tahap 3 tidak tertunda; EVAL-2-ulang berjalan paralel.
+- catatan: Keputusan 728 butir 3. Halaman 3.1 baru boleh mulai sesudah tugas ini dan DIRI-2. Pengatur 2026-10-26 (keputusan 728 butir 3, boleh menurut catatan EVAL-2-ulang): bergantung EVAL-2 supaya Tahap 3 tidak tertunda; EVAL-2-ulang berjalan paralel. Selesai 2026-10-26 di PR #360 (keputusan 890–895, 1162–1163): 63 tambalan di plan/CERITA-TAHAP-3.md (21 dari keputusan Tahap 2, 42 dari lab dan widget).
 
 ### T3-siap · RINGKAS, registry, dan antrean Tahap 3
 
@@ -1489,11 +1489,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### lab-t3-dasbor · Lab t3-dasbor: dasbor kecil dengan mode rentan
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-api-t3
 - selesai bila: Lab `labs/t3-dasbor`: dasbor kecil HTML dan Go dengan mode rentan. Direkam: (a) XSS tersimpan, `<img src=x onerror=…>` di `jurnal.keterangan` ditampilkan lewat `innerHTML` (M25) lawan teks tanpa HTML dan CSP dengan nonce; (b) CSRF: form lintas situs ke endpoint ubah menu tanpa token, dengan `SameSite=Lax`, dengan token dan pemeriksaan `Sec-Fetch-Site` dan `Origin`; XSS mengalahkan token CSRF (R3-19); (c) cookie `__Host-` dengan `HttpOnly`, `Secure`, dan `SameSite=Lax`, dengan batasan `Secure` di `localhost` dicatat; (d) passkey dengan authenticator virtual bila terbukti (R3-20), kalau tidak berlabel Tidak dijalankan. Bukti perilaku browser dari Playwright, bukan dari ingatan. Rekaman dari database bersih, diulang identik.
-- catatan: Jalur lab. Sumber halaman 3.22, 3.23.
+- catatan: Jalur lab. Sumber halaman 3.22, 3.23. Selesai 2026-10-26 di PR #355 (keputusan 974–976, 1165): dua binary Go dan lima sumbu mode; peninjau menemukan dan memperbaiki reflected XSS di dasbor benar.
 
 ### lab-t3-mitm · Lab t3-mitm: proxy tiruan, pinning, dan rotasi pin
 
@@ -1525,11 +1525,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### W3-cache · Simulasi cache dan invalidation
 
 - jenis: interaksi
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: ERD3, lab-t3-cache
 - selesai bila: Widget baru (skill visualisasi) dibuat sebelum halaman yang memakainya: baca dengan dan tanpa cache, hit/miss, TTL dan invalidasi saat saldo berubah, kasus data basi yang terlihat orang; skenario dari lab cache Tahap 3. Tebak dulu sebelum hasil, satu hal yang bisa diubah pembaca, chip sumber ke rekaman atau label Simulasi/Ilustrasi, keyboard penuh, `prefers-reduced-motion` tanpa gerak dengan fungsi tetap, teks sebagai DOM (bukan di SVG), token warna gelap/terang, dimuat hanya di halaman yang memakainya, ukuran JS dicatat di `plan/AUDIT-TAMPILAN.md`, diuji di halaman `/uji/`, axe 0, tes Vitest untuk logika murni.
-- catatan: Dipakai 3.19. Tampilkan juga kasus "tanpa cache" (5,2 baca per detik, L = 0,026) sebagai opsi sah.
+- catatan: Dipakai 3.19. Tampilkan juga kasus "tanpa cache" (5,2 baca per detik, L = 0,026) sebagai opsi sah. Selesai 2026-10-26 di PR #358 (keputusan 986–988): widget CacheInvalidation, sembilan pengaturan dari rekaman, hanya di /uji/cache/ (3.19 yang memasang).
 
 ### W3-outbox · Timeline outbox dan worker
 
@@ -1848,7 +1848,7 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 
 ## Tahap 4
 
-Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan oleh `T4-siap` dari peta halaman naskah: lab sebelum `ERD4`, halaman sesudah widget. Nomor keputusan: 1000–1199 (konten +0–99, teknis +100–149, pengatur +150–199).
+Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan oleh `T4-siap` dari peta halaman naskah: lab sebelum `ERD4`, halaman sesudah widget. Nomor keputusan: 1200–1399 (konten +0–99, teknis +100–149, pengatur +150–199); 1000–1199 sudah dipakai halaman dan cadangan Tahap 3 (pengatur, 2026-10-26).
 
 ### RISET-4 · Riset Tahap 4
 
@@ -1933,7 +1933,7 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan ole
 
 ## Tahap 5
 
-Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 5 disisipkan oleh `T5-siap` dari peta halaman naskah: lab sebelum `ERD5`, halaman sesudah widget. Nomor keputusan: 1200–1399 (konten +0–99, teknis +100–149, pengatur +150–199).
+Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 5 disisipkan oleh `T5-siap` dari peta halaman naskah: lab sebelum `ERD5`, halaman sesudah widget. Nomor keputusan: 1400–1599 (konten +0–99, teknis +100–149, pengatur +150–199; digeser dari 1200–1399 karena Tahap 3 memakai 1000–1199 dan Tahap 4 1200–1399, pengatur 2026-10-26).
 
 ### RISET-5 · Riset Tahap 5
 
@@ -2018,7 +2018,7 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 5 disisipkan ole
 
 ## Tahap 6
 
-Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 6 disisipkan oleh `T6-siap` dari peta halaman naskah: lab sebelum `ERD6`, halaman sesudah widget. Nomor keputusan: 1400–1599 (konten +0–99, teknis +100–149, pengatur +150–199). Tahap 6 konseptual: 10–12 halaman tanpa lab dan tanpa widget baru.
+Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 6 disisipkan oleh `T6-siap` dari peta halaman naskah: lab sebelum `ERD6`, halaman sesudah widget. Nomor keputusan: 1600–1799 (konten +0–99, teknis +100–149, pengatur +150–199; digeser dari 1400–1599, pengatur 2026-10-26). Tahap 6 konseptual: 10–12 halaman tanpa lab dan tanpa widget baru.
 
 ### RISET-6 · Riset Tahap 6
 

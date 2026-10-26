@@ -426,3 +426,11 @@ Polesan dan pencegahan dari tinjauan lab dan halaman Tahap 2 yang sengaja tidak 
 - Label kejujuran ([perlu verifikasi], Asumsi, Ilustrasi): artinya dijelaskan hanya di `/cara-pakai/`; tambah tooltip atau satu kalimat di pemakaian pertama tiap halaman.
 - 2.26 dan 2.24: tebakan berupa lipatan tidak menyembunyikan hasil tab pertama; bila tebakan harus bermakna, tab pertama kosong sampai pembaca memilih.
 - `eval-keyboard.mjs` bisa masuk gerbang untuk tiga halaman (lokal ±6 detik per halaman di HP) bila pemilik mau; `layar.mjs` melewati 13 halaman Tahap 2 tanpa Inti, usul pengukuran minimal (judul dan blok pertama).
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- `tools/registri.py` punya `urutan_baca` (duplikat Python dari `urutanBaca`) yang tidak dipanggil dari mana pun dan tidak mengikuti aturan melewati halaman lama; hapus atau samakan.
+- `[[berikutnya]]` ("Yakin dengan ketiganya? Lompat ke ...") di lima halaman lama (`b1-3-pagination-idempotent`, `b2-3-index`, `b2-4-n-plus-1`, `b3-3-isolation-level`, `e5-ukuran-payload`) kini menuju versi barunya (2.19, 2.17, 2.16, 2.12, 2.20), bukan topik sesudahnya, jadi kalimat itu mengajak membaca halaman dengan topik yang sama; halaman lama itu menunggu keputusan arsip pemilik.
+- Uji mutasi `urutanBaca` tanpa penjaga siklus (M8) menggantung, bukan gagal cepat, karena loop sinkron tidak bisa diputus `node:test`; CI baru gagal lewat batas waktu job. Bila mau gagal cepat, jalankan kasus siklus di proses anak dengan batas waktu.
+- `penggantiAda` memakai `lebur_ke ?? diganti_oleh` (satu pengganti per halaman), sedangkan `eval_tahap.py rantai` memeriksa keduanya (`any`); samakan bila suatu halaman kelak punya kedua field.
+- Tambahkan `eval_tahap.py rantai 3` ke gerbang (`tools/cek_situs.sh`, sesudah baris rantai 1 dan 2) begitu Tahap 3 lengkap; sekarang exit 1 karena 3.1 segera.
