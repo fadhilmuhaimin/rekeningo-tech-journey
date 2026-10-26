@@ -130,7 +130,7 @@
         "dari": "worker",
         "ke": "push",
         "judul": "Layanan push menjawab lambat",
-        "kirim": "# layanan push menjawab permintaan pertama sesudah 1,5 detik\nPOST /v1/pesan: worker A menunggu jawaban",
+        "kirim": "# Klaim 300 ms, layanan push menjawab permintaan pertama sesudah 1,5 detik (lambat), permintaan berikutnya langsung\nPOST /v1/pesan: worker A menunggu jawaban",
         "jelas": "Jawaban baru datang sesudah 1,5 detik, lebih lama dari klaim 300 ms.",
         "nada": "warn"
       },
