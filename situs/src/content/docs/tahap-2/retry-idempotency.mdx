@@ -276,7 +276,7 @@ const { data, error } = await supabase.rpc('bayar', {
 
 **Kebutuhan.** Di M10, Budi membayar nasi goreng Rp25.000 dan riwayatnya mencatat dua jurnal ([[t2-m10]]). Ledger tidak menolak keduanya: tiap jurnal seimbang dan saldo tidak negatif ([[t2-ledger]]). Yang salah adalah jumlah niatnya. Bebannya kecil: ±900 transaksi per hari dan puncak ±1,4 request per detik (Asumsi naskah bagian 3b).
 
-**Status:** diterima di minggu 2 Tahap 2, sesudah M10. Berlaku untuk jalur uang yang dikirim app: bayar ke warung dan transfer antar karyawan. Lab e3 membuktikan pola ini di server sendiri; `labs/api-t2` belum memasangnya (usulan di keputusan 517).
+**Status:** diterima di minggu 2 Tahap 2, sesudah M10. Berlaku untuk jalur uang yang dikirim app: bayar ke warung dan transfer antar karyawan. Lab e3 membuktikan pola ini di server sendiri; `labs/api-t2` belum memasangnya, dan pemasangannya masih usulan.
 
 | | A. Tanpa key, app mencegah dobel | B. Key per request | C. Key per niat bayar, hasil disimpan | D. Dedup isi request dalam jendela waktu |
 |---|---|---|---|---|
@@ -315,7 +315,7 @@ Lab hanya merekam dua ujungnya: server tanpa key (`tanpa-key.txt`) dan server ya
 2. Key hanya ada di memori. App ditutup atau crash sesudah Budi menekan Bayar, dan saat app dibuka ia menekan lagi, dengan key baru. Lab menyimpan key di memori dan tidak merekam kasus ini. Pencegahannya: simpan niat (key, tujuan, jumlah) di penyimpanan lokal sampai jawaban final.
 3. Dua niat memakai key yang sama karena generatornya tidak acak, misalnya seed tetap dari tes terbawa ke app. Bayar kedua dengan tujuan dan jumlah yang sama dijawab dengan respons pembayaran pertama: Budi melihat "berhasil" padahal tidak ada jurnal baru. Pencegahannya `Random.secure()` di app. Pemeriksaan pemilik di server hanya menolak tabrakan antar akun dengan 422, bukan tabrakan di satu akun. Kasus ini belum direkam.
 
-**Kapan keputusan ini salah.** Saat satu niat bisa dikirim ulang lebih dari 24 jam sesudah percobaan pertama. Contohnya queue offline yang baru tersambung keesokan harinya ([[E2]]). Lab tetap menghormati key yang belum dihapus (keputusan 514), jadi job pembersih yang menghapus tepat 24 jam akan membuka celah itu.
+**Kapan keputusan ini salah.** Saat satu niat bisa dikirim ulang lebih dari 24 jam sesudah percobaan pertama. Contohnya queue offline yang baru tersambung keesokan harinya ([[E2]]). Lab tetap menghormati key yang belum dihapus, jadi job pembersih yang menghapus tepat 24 jam akan membuka celah itu.
 
 Keputusan ini juga salah untuk jalur uang yang tidak dimulai app, seperti pencairan Jumat. Di sana tidak ada client yang membuat key.
 

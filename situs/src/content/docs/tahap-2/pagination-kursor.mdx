@@ -232,7 +232,7 @@ class RiwayatPagination(CursorPagination):
 
 **Kebutuhan.** Di M12, Budi menggulir riwayat dan transaksi yang sama tampil dua kali, sementara satu transaksi baru tidak tampil ([[t2-m12]]). Rekaman `pagination.txt` bagian C: riwayat Budi 20 baris per halaman, 205 halaman, satu kiriman sebelum setiap halaman berikutnya. OFFSET menampilkan 204 baris ganda dan tidak menampilkan 204 kiriman, sedangkan kursor 0 dan 0. Beban kecil: riwayat Budi ±3.892 posting setahun dan puncak ±1,4 request per detik (Asumsi naskah).
 
-**Status:** diterima di minggu 3 Tahap 2, sesudah M12. `labs/api-t2` sudah memakainya (keputusan 415, `riwayat.txt`).
+**Status:** diterima di minggu 3 Tahap 2, sesudah M12. `labs/api-t2` sudah memakainya (`riwayat.txt`).
 
 | | A. OFFSET dan nomor halaman | B. Kursor `(dibuat, id)` | C. Kursor dengan batas aman dari snapshot | D. Nomor urut per buku di bawah lock |
 |---|---|---|---|---|
@@ -252,7 +252,7 @@ class RiwayatPagination(CursorPagination):
 
 **Celah COMMIT belakangan: yang sudah dan belum direkam.** `dibuat` memakai `now()`, yaitu awal transaction ([PostgreSQL 17, 9.9.5](https://www.postgresql.org/docs/17/functions-datetime.html#FUNCTIONS-DATETIME-CURRENT)), sedangkan `id` diambil dari sequence saat INSERT. Dokumentasi PostgreSQL menyebut nilai sequence tidak dipakai ulang dan tidak bisa dijadikan nomor tanpa lubang ([PostgreSQL 17, 9.17](https://www.postgresql.org/docs/17/functions-sequence.html)). Baris yang belum COMMIT tidak terlihat oleh SELECT di transaction lain ([PostgreSQL 17, 13.2.1](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-READ-COMMITTED)). Jadi dua transaksi yang berjalan bersamaan bisa COMMIT dalam urutan yang berbeda dari urutan `dibuat` dan `id`.
 
-Yang sudah direkam adalah mekanismenya di api-t2, untuk laporan tutup buku. Transaction [A] menulis jurnal top-up tanpa COMMIT, laporan menghitung 1.122 jurnal, lalu [A] COMMIT. Sesudahnya ada 1.123 jurnal dengan `dibuat < waktu laporan`, dan jurnal [A] termasuk di dalamnya (Rekaman lab `tutup-buku.txt` bagian C, keputusan 407).
+Yang sudah direkam adalah mekanismenya di api-t2, untuk laporan tutup buku. Transaction [A] menulis jurnal top-up tanpa COMMIT, laporan menghitung 1.122 jurnal, lalu [A] COMMIT. Sesudahnya ada 1.123 jurnal dengan `dibuat < waktu laporan`, dan jurnal [A] termasuk di dalamnya (Rekaman lab `tutup-buku.txt` bagian C).
 
 Pembaca kursor bisa mengalami hal yang sama. Kursor sudah melewati 13:26, lalu baris bertanda 13:23 baru terlihat. Rekaman PostgreSQL untuk riwayat Budi, dengan dua transaction dan satu baca di antaranya, belum ada. Widget di blok Coba memakai SQLite dengan waktu yang ditulis tangan (Ilustrasi).
 
