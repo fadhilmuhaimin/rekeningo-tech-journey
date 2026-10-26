@@ -105,7 +105,7 @@ Poller adalah pembaca aliran, dan ia tidak memuat ulang dari atas. Baris di bela
 
 Rekaman `listen.txt` memperlihatkannya: bagian A membatalkan satu baris dengan ROLLBACK, dan baris berikutnya di bagian B bernomor 3, jadi nomor 2 terpakai tanpa baris. Sumbernya [bagian 9.17](https://www.postgresql.org/docs/17/functions-sequence.html), dibuka 2026-10-26 (Tidak dijalankan).
 
-Halaman sequence itu tidak menyebut urutan COMMIT. Morling menulis bahwa urutan pesan di tabel outbox, menurut timestamp atau kolom sequence, tidak dijamin sama dengan urutan COMMIT ([Revisiting the Outbox Pattern](https://www.morling.dev/blog/revisiting-the-outbox-pattern/), 2024-10-31, dibuka 2026-10-26, Tidak dijalankan). Ia merujuk Kleppmann untuk masalah urutan itu dan menyebut relay bisa melewatkan pesan. Lab ini tidak merekam kasus itu: di bagian B dan D nomor 1 COMMIT lebih dulu, dan yang terbalik hanya `dibuat`.
+Halaman sequence itu tidak menyebut urutan COMMIT. Morling menulis bahwa urutan pesan di tabel outbox, menurut timestamp atau kolom sequence, tidak dijamin sama dengan urutan COMMIT. Ia merujuk Kleppmann untuk masalah urutan itu dan menyebut relay bisa melewatkan pesan ([Revisiting the Outbox Pattern](https://www.morling.dev/blog/revisiting-the-outbox-pattern/), 2024-10-31, dibuka 2026-10-26, Tidak dijalankan). Lab ini tidak merekam kasus itu: di bagian B dan D nomor 1 COMMIT lebih dulu, dan yang terbalik hanya `dibuat`.
 
 Jadi kursor `id` saja akan menangkap kasus M19 di lab, tetapi urutan nomor tidak dijanjikan sama dengan urutan COMMIT. Opsi nomor urut ditimbang di [[t3-klaim-baris]].
 
