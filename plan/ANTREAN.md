@@ -1570,47 +1570,47 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### 3.4 · Dua tempat yang tidak bisa commit bersama
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.3, lab-t3-outbox, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Konsep 3.4 sesuai `plan/CERITA-TAHAP-3.md` bagian 3 dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget cari-bug (tandai baris handler versi pertama yang melanggar satu dari tiga hal, lalu tabel empat kejadian terisi); tiga hal yang harus selalu benar dan versi pertama minggu 1 dari naskah; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Cek diri minimal tiga kartu. Pola dua tempat dijanjikan muncul lagi di M22, M23, M24, dan M27.
+- catatan: Cek diri minimal tiga kartu. Pola dua tempat dijanjikan muncul lagi di M22, M23, M24, dan M27. Selesai 2026-10-26 di PR #368 (keputusan 1012–1015): dua-tempat-commit.mdx, widget cari-bug diperluas (kejadian, label.ringkas, fokus), penjaga mengunci kalimat penulis; peninjau memperbaiki urutan rekaman push mati dan lima klaim.
 
 ### 3.5 · Skema data: ERD Tahap 2 → Tahap 3 dan pertumbuhannya
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.4, ERD3, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Konsep 3.5 sesuai `plan/CERITA-TAHAP-3.md` bagian 3b dan peta halaman Tahap 3; widget ERD bertumbuh dengan Tahap 2 dan Tahap 3 berdampingan dari `situs/data/erd/tahap-3.json` (ERD3); tabel "Apa yang berubah dan kenapa" dan pertumbuhan skala Tahap 2 sampai 4; selisih dengan mermaid naskah ditulis (lab yang benar); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Dua besaran dengan label, tidak disamakan diam-diam: "data transaksi per tahun" registry ±820 MB (3 × 300 B) dan ukuran posting naskah 3b ±1,4 GB (2 posting × 250 B, R3-38). Outbox 0,82 GB tanpa pembersihan lawan 15,8 MB dengan retensi 7 hari.
+- catatan: Dua besaran dengan label, tidak disamakan diam-diam: "data transaksi per tahun" registry ±820 MB (3 × 300 B) dan ukuran posting naskah 3b ±1,4 GB (2 posting × 250 B, R3-38). Outbox 0,82 GB tanpa pembersihan lawan 15,8 MB dengan retensi 7 hari. Selesai 2026-10-26 di PR #369 (keputusan 1016–1019): skema-data.mdx, ERD bertumbuh Tahap 2 dan 3, tiga besaran penyimpanan berlabel Asumsi, penjaga 51 tes; peninjau memperbaiki klaim psql -1 -f dan tiga mutasi nyata.
 
 ### 3.6 · M18: Seluruh app membeku jam 12.20
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.5, lab-t3-pool, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Masalah 3.6 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M18) dan peta halaman Tahap 3; rekaman dari `labs/t3-pool`; widget alur; gejala berlabel Ilustrasi sampai ada rekaman; yang dikira (pool dinaikkan dari 10 ke 50) sebelum yang sebenarnya; konsep tidak di dalam adegan; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: - Selesai 2026-10-26 di PR #370 (keputusan 1020–1023): m18-app-membeku.mdx, alur t3-m18, penjaga 47 tes; peninjau memperbaiki label koneksi ditahan, klaim pembaca selalu berbeda, dan jam widget.
 
 ### 3.7 · Observability: log, metric, trace
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.6, lab-api-t3, lab-t3-pool, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Konsep 3.7 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan peta (menyerap C2 lama) dan peta halaman Tahap 3; rekaman dari `labs/api-t3` dan `labs/t3-pool`; widget pilah; empat golden signals dan `traceparent` (R3-14); log Go masih Release Candidate di OpenTelemetry (R3-14); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Halaman lama C2 dilebur ke sini.
+- catatan: Halaman lama C2 dilebur ke sini. Selesai 2026-10-26 di PR #371 (keputusan 1024–1027): observability.mdx, C2 dilebur lewat lebur_ke, tiga halaman istilah, penjaga 46 tes; peninjau memperbaiki umur transaction dan klaim hanya menulis.
 
 ### 3.8 · Connection pool, Little's Law, dan timeout + ADR 22
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.7, W3-pool, lab-t3-pool, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Konsep + ADR 3.8 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 22 (menyerap B2.5 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-pool`; widget W3-pool; ADR 22 dengan tiga opsi atau lebih (pool 50, timeout tetap di dalam transaction, circuit breaker), pre-mortem, kapan salah; kasus pgx#1974 hanya sebagai jebakan forum; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Halaman lama B2.5 dilebur ke sini.
+- catatan: Halaman lama B2.5 dilebur ke sini. Selesai 2026-10-26 di PR #372 (keputusan 1028–1031): connection-pool.mdx, ADR 22 empat opsi, widget pool-little, B2.5 dilebur, penjaga 39 tes; peninjau memperbaiki atribusi HikariCP, label ditahan, dan kalimat node-postgres.
 
 ### 3.9 · Outbox transaksional dan worker + ADR 23
 

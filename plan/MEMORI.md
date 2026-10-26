@@ -47,6 +47,7 @@ Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditan
 - Butir 2.29–2.31 dan lab Tahap 3 dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik, 2.29–2.31 dan lab Tahap 3 (arsip 2026-10-26 siang)".
 - Batch 16 dan CI-CEPAT dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik, batch 16 dan CI-CEPAT (arsip 2026-10-26 siang)".
 - Halaman 3.1–3.3 (#364–#366): top-up massal "beberapa menit" (naskah) lawan ±12,5 menit M27, usul "belasan menit"; pemicu ADR 21 sudah dipenuhi sejak PRD tetapi M21 menceritakannya kejutan (3.14 pilih opsi a atau b); versi app 3.0/3.1 Asumsi penulis; dokumentasi FCM menyarankan FID, field FID di request HTTP v1 [perlu verifikasi] (bila bukan `token`, `perangkat.token_push` di ERD3 berubah); penyaring `notifikasi_id` butuh kode app padahal pesan notification ditampilkan SDK (3.13 pilih data message); widget peta 3.2 "–" padahal pilah.
+- Halaman 3.4–3.8 (#368–#372): hal 1 "pemberitahuan tidak mendahului uangnya" hanya penalaran ("push berhasil lalu COMMIT gagal" tak direkam; push tiruan rentan.txt A menerima 10 permintaan sebelum COMMIT); ±170 MB di 2.9 (nilai tepat 164,25 MB) dan registry `trx` 2 lawan 3 (±65,7 lawan ±98,6 MB); timeout app 30/10 detik Asumsi, perilaku `http`/`dio` [perlu verifikasi]; komponen Tebak bersama: tiga tombol tanpa fungsi saat JS mati (USULAN-PERBAIKAN 9); widget cari-bug diperluas (fokus sesudah Ulang kini juga di 1.19/1.20) dan `.bb-chip.is-good` mengubah chip 2.23; "ubah satu hal" 3.7 hanya perbandingan dua rekaman (W5); naskah: M18 ±12 vs ±11,5 detik, adegan log tak ada, Val Town dan Fowler ke kolom Sumber ADR 22.
 - Riwayat app sesudah ledger turun 17 → 3 baris (tiga-rilis.txt 69–72, transaksi v1 tidak jadi jurnal): diterima atau migrasi menyalin transaksi v1 (2.22). Akun lab Karyawan 800 berperan Citra di M14 (2.23). Paket 1 GB dan 20 buka/hari untuk kuota adalah Asumsi (2.20-lab). api-t2 tidak mengompres respons dan Dart selalu mengirim Accept-Encoding gzip.
 
 ## Ukur antrean merge (keputusan 727, 728)
@@ -55,22 +56,21 @@ Alat: `python3 tools/ukur_pr.py <PR...> --sejak <waktu>` (data dari GitHub). Gar
 
 | Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
 | --- | --- | --- | --- | --- |
-| 2.25 | #327 | 41 | 1 | 0 |
-| 2.27 | #335 | 53 (jeda limit 3 jam di antaranya) | 1 | 0 |
-| 2.26 | #334 | 74 (jeda limit) | 3 | 0 |
-| 2.28 | #337 | 28 (15.12 → 15.40) | 3 | 0 |
-| 2.29 | #339 | 32 | 1 | 0 |
-| 2.30 | #341 | 184 (jeda limit #2; peninjau 25) | 1 | 0 |
 | 2.31 | #346 | 57 | 0 | 0 |
 | 2.32 | #351 | 31 | 1 | 0 |
 | 2.33 | #353 | 42 | 1 | 0 |
 | 3.1 | #364 | 24 (pelaksana terputus restart sesi) | 0 | 0 |
 | 3.2 | #365 | 36 | 1 | 0 |
 | 3.3 | #366 | 39 | 1 | 0 |
+| 3.4 | #368 | 50 | 2 | 0 |
+| 3.5 | #369 | 102 (dua restart sesi) | 2 | 0 |
+| 3.6 | #370 | 66 (jeda limit #5) | 4 | 0 |
+| 3.7 | #371 | 29 | 1 | 0 |
+| 3.8 | #372 | 53 | 2 | 0 |
 
 ## Sedang dikerjakan
 
-2026-10-26 12.45 · Tahap 2 selesai (33/33, EVAL-2 #356, EVAL-2-ulang #363); Tahap 3: lab, ERD3, widget, DIRI-2, KONSISTENSI-3 di main; halaman 3.1–3.3 merge (#364–#366, median 36 menit, run main merah 0 dari 11). Berjalan: pelaksana 3.4 (`tahap-3/dua-tempat-commit`, rjt-konten4), 3.5 (`tahap-3/skema-data`, rjt-konten2), 3.6 (`tahap-3/m18-app-membeku`, rjt-konten3) dengan `tmp/brief-halaman-t3.md`. Berikutnya: peninjau tiap halaman, 3.7–3.32 (paling banyak 3 PR halaman terbuka), EVAL-3, DIRI-3, Tahap 4–6, LAPORAN-AKHIR. Alokasi nomor: `tmp/catat-antre.md` (tidak di repo; bila hilang: halaman 3.n memakai 1000+4×(n−1) sampai +3, ID riset R3-100+5×(n−1) sampai +4, cadangan 1150–1169 terpakai sampai 1168; Tahap 4 mulai 1200, Tahap 5 1400, Tahap 6 1600). Untuk melanjutkan: `gh pr list --state open`.
+2026-10-26 17.00 · Tahap 2 selesai (33/33, EVAL-2 #356, EVAL-2-ulang #363); Tahap 3: lab, ERD3, widget, DIRI-2, KONSISTENSI-3 di main; halaman 3.1–3.8 merge (#364–#366, #368–#372; median 50 menit, run main merah 0 dari 17). Berjalan: pelaksana 3.9 (`tahap-3/outbox-worker`, rjt-konten4), 3.10 (`tahap-3/m19-tidak-diberi-tahu`, rjt-konten3), 3.11 (`tahap-3/klaim-per-baris`, rjt-konten2) dengan `tmp/brief-halaman-t3.md` (memuat pelajaran peninjau: label vs kode rekaman, klaim negatif dipindai, penjaga diturunkan dari sumber). Berikutnya: peninjau tiap halaman, 3.12–3.32 (paling banyak 3 PR halaman terbuka), EVAL-3, DIRI-3, Tahap 4–6, LAPORAN-AKHIR. Alokasi nomor: `tmp/catat-antre.md` (tidak di repo; bila hilang: halaman 3.n memakai 1000+4×(n−1) sampai +3, ID riset R3-100+5×(n−1) sampai +4, cadangan 1150–1169 terpakai sampai 1168; Tahap 4 mulai 1200, Tahap 5 1400, Tahap 6 1600). Untuk melanjutkan: `gh pr list --state open`.
 
 ## Pelajaran
 
