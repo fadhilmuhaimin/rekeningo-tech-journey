@@ -1,0 +1,173 @@
+{
+  "judul": "Dua instance di satu VPS: proxy tanpa pengaman atau pilihan ADR 26",
+  "opsi": [
+    {
+      "id": "polos",
+      "nama": "Opsi A · Proxy tanpa pengaman (round_robin)",
+      "baris": [
+        [
+          {
+            "id": "a-hp",
+            "label": "App Budi",
+            "sub": "request ke satu alamat"
+          }
+        ],
+        [
+          {
+            "id": "a-proxy",
+            "label": "Proxy",
+            "sub": "bergantian a dan b"
+          },
+          {
+            "id": "a-ia",
+            "label": "Instance a",
+            "sub": "hidup"
+          },
+          {
+            "id": "a-ib",
+            "label": "Instance b",
+            "sub": "mati"
+          }
+        ]
+      ],
+      "judulBaris": [
+        "App",
+        "Satu VPS"
+      ]
+    },
+    {
+      "id": "adr26",
+      "nama": "Opsi B · ADR 26: health check aktif dan retry",
+      "baris": [
+        [
+          {
+            "id": "b-hp",
+            "label": "App Budi",
+            "sub": "request ke satu alamat"
+          }
+        ],
+        [
+          {
+            "id": "b-proxy",
+            "label": "Proxy",
+            "sub": "bergantian a dan b"
+          },
+          {
+            "id": "b-cek",
+            "label": "Health check",
+            "sub": "GET /healthz"
+          },
+          {
+            "id": "b-retry",
+            "label": "Retry",
+            "sub": "instance lain"
+          },
+          {
+            "id": "b-ia",
+            "label": "Instance a",
+            "sub": "hidup"
+          },
+          {
+            "id": "b-ib",
+            "label": "Instance b",
+            "sub": "mati"
+          }
+        ]
+      ],
+      "judulBaris": [
+        "App",
+        "Satu VPS"
+      ]
+    }
+  ],
+  "fitur": [
+    {
+      "label": "Satu instance mati",
+      "sorot": {
+        "polos": [
+          "a-proxy",
+          "a-ib"
+        ],
+        "adr26": [
+          "b-proxy",
+          "b-retry",
+          "b-ia"
+        ]
+      },
+      "catatan": {
+        "polos": "10 dari 20 request gagal dengan 502, karena proxy bergantian dan tiap request kedua jatuh ke instance b (proxy.txt bagian C).",
+        "adr26": "10 request langsung sesudah b mati, semuanya 200 dari instance a, sebelum pemeriksaan berikutnya yang selangnya 30 detik (proxy.txt bagian F)."
+      },
+      "nada": {
+        "polos": "warn"
+      }
+    },
+    {
+      "label": "Deploy bergulir",
+      "sorot": {
+        "polos": [
+          "a-proxy",
+          "a-ia"
+        ],
+        "adr26": [
+          "b-proxy",
+          "b-cek",
+          "b-ia"
+        ]
+      },
+      "catatan": {
+        "polos": "Selama a lalu b diganti, ada 502 di antara jawaban 200, dengan jeda naik pengganti 0,5 detik yang dipilih lab (bergulir.txt bagian D).",
+        "adr26": "Selama a lalu b diganti saat beban berjalan, semua jawaban /healthz dan semua request lambat 200 (bergulir.txt bagian C)."
+      },
+      "nada": {
+        "polos": "warn"
+      }
+    },
+    {
+      "label": "Kedua instance mati",
+      "sorot": {
+        "polos": [
+          "a-proxy",
+          "a-ia",
+          "a-ib"
+        ],
+        "adr26": [
+          "b-proxy",
+          "b-cek",
+          "b-ia",
+          "b-ib"
+        ]
+      },
+      "catatan": {
+        "polos": "Tidak direkam: lab tidak mematikan kedua instance di belakang proxy tanpa pengaman.",
+        "adr26": "Setelah tombol Ekspor ditekan dua kali, 10 dari 10 request dijawab 503 (panic.txt bagian D)."
+      },
+      "nada": {
+        "adr26": "warn"
+      }
+    },
+    {
+      "label": "VPS mati",
+      "sorot": {
+        "polos": [
+          "a-proxy",
+          "a-ia",
+          "a-ib"
+        ],
+        "adr26": [
+          "b-proxy",
+          "b-ia",
+          "b-ib"
+        ]
+      },
+      "catatan": {
+        "polos": "Tidak dijalankan: proxy dan kedua instance memakai satu mesin, jadi semuanya ikut mati.",
+        "adr26": "Tidak dijalankan: proxy dan kedua instance memakai satu mesin, jadi satu VPS tetap titik gagal tunggal."
+      },
+      "nada": {
+        "polos": "warn",
+        "adr26": "warn"
+      }
+    }
+  ]
+}

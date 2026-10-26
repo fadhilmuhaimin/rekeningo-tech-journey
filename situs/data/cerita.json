@@ -2609,8 +2609,9 @@
       "lab": [
         "t3-instance"
       ],
-      "ada": false,
-      "nomor": "3.15"
+      "ada": true,
+      "nomor": "3.15",
+      "menit": 20
     },
     {
       "id": "t3-m22",

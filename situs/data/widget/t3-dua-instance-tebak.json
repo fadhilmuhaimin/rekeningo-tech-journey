@@ -1,0 +1,44 @@
+{
+  "id": "t3-dua-instance-tebak",
+  "judul": "Satu instance mati di belakang proxy bawaan",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t3-instance/output/proxy.txt bagian C"
+  },
+  "adegan": [
+    "Dua instance api-t3, a dan b, melayani lewat satu proxy Caddy. Instance b mati mendadak.",
+    "Proxy memakai round_robin, tanpa health check dan tanpa retry. Raka mengirim 20 request berurutan ke proxy."
+  ],
+  "pertanyaan": "Berapa dari 20 request itu yang gagal?",
+  "pilihan": [
+    {
+      "teks": "Tidak ada. Proxy tahu instance b mati dan memakai instance a saja.",
+      "benar": false,
+      "alasan": "Proxy tidak tahu apa pun sampai ada yang memeriksa instance b. Tanpa health check aktif, ia tetap memilih b setiap giliran."
+    },
+    {
+      "teks": "Satu. Sesudah request pertama gagal, proxy berhenti memilih instance b.",
+      "benar": false,
+      "alasan": "Pemeriksaan pasif mati bawaan, dan tanpa retry setiap kegagalan langsung sampai ke client. Di rekaman, kegagalan terus berulang di tiap giliran b."
+    },
+    {
+      "teks": "10, yaitu setiap request kedua.",
+      "benar": true,
+      "alasan": "round_robin bergantian a dan b. Urutan di rekaman: 200 dari a, lalu 502, berulang 10 kali."
+    },
+    {
+      "teks": "Semua dua puluh, karena satu instance mati membuat proxy berhenti menjawab.",
+      "benar": false,
+      "alasan": "Instance a tetap hidup dan menjawab request yang dipilihkan untuknya. Yang gagal hanya request yang jatuh ke b."
+    }
+  ],
+  "penutup": "Dua instance yang tidak dipantau tidak otomatis menjadi satu instance yang sehat. Selama proxy belum tahu, setengah request menuju instance yang mati.",
+  "label": {
+    "sumber": "Rekaman lab · proxy.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}

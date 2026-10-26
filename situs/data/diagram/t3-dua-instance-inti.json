@@ -1,0 +1,41 @@
+{
+  "id": "t3-dua-instance-inti",
+  "judul": "Satu instance mati di belakang proxy, tanpa dan dengan pengaman",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t3-instance, proxy.txt bagian C dan F"
+  },
+  "baris": [
+    {
+      "label": "Tanpa pengaman",
+      "sub": "round_robin, bagian C",
+      "simpul": [
+        {
+          "teks": "instance b mati",
+          "sub": "proxy tetap memilihnya"
+        },
+        {
+          "teks": "10 dari 20 request gagal",
+          "sub": "502 pada tiap request kedua",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Health check dan retry",
+      "sub": "selang 30 detik, bagian F",
+      "simpul": [
+        {
+          "teks": "instance b mati",
+          "sub": "pemeriksaan berikutnya belum jalan"
+        },
+        {
+          "teks": "0 dari 10 request gagal",
+          "sub": "semuanya dijawab instance a",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah akibat yang direkam: setengah request ke proxy gagal. Kedua baris memakai dua instance api-t3 di belakang Caddy 2.11.7 di satu mesin, dan instance b dimatikan dengan SIGKILL."
+}

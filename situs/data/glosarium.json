@@ -468,6 +468,15 @@
   "h": "/istilah/golden-signals/"
  },
  {
+  "t": "Graceful shutdown",
+  "d": "Mematikan proses dengan rapi: berhenti menerima koneksi baru, lalu menunggu request yang sedang jalan selesai sebelum keluar.",
+  "b": "t3-dua-instance",
+  "n": "3.15 Dua instance di belakang proxy",
+  "u": "/tahap-3/dua-instance/",
+  "s": "istilah-graceful-shutdown",
+  "h": null
+ },
+ {
   "t": "gzip",
   "d": "Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip.",
   "b": "t2-payload",
@@ -475,6 +484,15 @@
   "u": "/tahap-2/ukuran-payload/",
   "s": "istilah-gzip",
   "h": "/istilah/gzip/"
+ },
+ {
+  "t": "Health check",
+  "d": "Pemeriksaan berkala yang dilakukan proxy atau orkestrator ke tiap instance untuk memutuskan apakah instance itu boleh menerima request.",
+  "b": "t3-dua-instance",
+  "n": "3.15 Dua instance di belakang proxy",
+  "u": "/tahap-3/dua-instance/",
+  "s": "istilah-health-check",
+  "h": "/istilah/health-check/"
  },
  {
   "t": "Idempotency key",

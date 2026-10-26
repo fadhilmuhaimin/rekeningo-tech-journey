@@ -426,6 +426,14 @@ window.ISTILAH = {
   "t": "Golden signals",
   "u": "tahap-3/observability/"
  },
+ "Graceful shutdown": {
+  "b": "t3-dua-instance",
+  "d": "Mematikan proses dengan rapi: berhenti menerima koneksi baru, lalu menunggu request yang sedang jalan selesai sebelum keluar.",
+  "n": "3.15 Dua instance di belakang proxy",
+  "s": "istilah-graceful-shutdown",
+  "t": "Graceful shutdown",
+  "u": "tahap-3/dua-instance/"
+ },
  "HTTP method": {
   "b": "B1.1",
   "d": "Kata kerja request (GET, POST, PUT, PATCH, DELETE) yang menyatakan maksud request terhadap resource.",
@@ -449,6 +457,15 @@ window.ISTILAH = {
   "s": "istilah-header",
   "t": "Header",
   "u": "tahap-1/http/"
+ },
+ "Health check": {
+  "b": "t3-dua-instance",
+  "d": "Pemeriksaan berkala yang dilakukan proxy atau orkestrator ke tiap instance untuk memutuskan apakah instance itu boleh menerima request.",
+  "h": "istilah/health-check/",
+  "n": "3.15 Dua instance di belakang proxy",
+  "s": "istilah-health-check",
+  "t": "Health check",
+  "u": "tahap-3/dua-instance/"
  },
  "IDOR": {
   "b": "t1-idor",
@@ -1672,6 +1689,14 @@ window.ISTILAH = {
   "t": "Golden signals",
   "u": "tahap-3/observability/"
  },
+ "graceful shutdown": {
+  "b": "t3-dua-instance",
+  "d": "Mematikan proses dengan rapi: berhenti menerima koneksi baru, lalu menunggu request yang sedang jalan selesai sebelum keluar.",
+  "n": "3.15 Dua instance di belakang proxy",
+  "s": "istilah-graceful-shutdown",
+  "t": "Graceful shutdown",
+  "u": "tahap-3/dua-instance/"
+ },
  "gzip": {
   "b": "t2-payload",
   "d": "Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip.",
@@ -1696,6 +1721,15 @@ window.ISTILAH = {
   "s": "istilah-header",
   "t": "Header",
   "u": "tahap-1/http/"
+ },
+ "health check": {
+  "b": "t3-dua-instance",
+  "d": "Pemeriksaan berkala yang dilakukan proxy atau orkestrator ke tiap instance untuk memutuskan apakah instance itu boleh menerima request.",
+  "h": "istilah/health-check/",
+  "n": "3.15 Dua instance di belakang proxy",
+  "s": "istilah-health-check",
+  "t": "Health check",
+  "u": "tahap-3/dua-instance/"
  },
  "idempotency key": {
   "b": "t2-idempotency",

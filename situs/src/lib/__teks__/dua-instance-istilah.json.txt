@@ -1,0 +1,97 @@
+{
+  "istilah": "Health check",
+  "sehari_hari": "Proxy bertanya ke tiap instance secara berkala apakah ia siap menerima request. Instance yang tidak menjawab dengan benar dikeluarkan dari daftar sampai ia menjawab dengan benar lagi.",
+  "cerita": [
+    {
+      "rujukan": "t3-dua-instance",
+      "teks": "Caddy memanggil `GET /healthz` pada tiap instance `api-t3`. Dengan selang 30 detik dan tanpa retry, 5 dari 10 request sesudah instance b mati tetap gagal. Dengan retry, semuanya dijawab 200."
+    }
+  ],
+  "mekanisme": [
+    "Proxy atau orkestrator memanggil satu path, mis. `/healthz`, pada tiap instance dengan selang tetap. Di Caddy selang bawaannya 30 detik dan timeout bawaannya 5 detik.",
+    "Instance dianggap sehat bila statusnya sesuai harapan, bawaannya `200` di Caddy. Instance yang tidak menjawab dalam timeout dianggap tidak sehat.",
+    "Instance yang gagal dikeluarkan dari pilihan sampai pemeriksaan berikutnya lolos. Di antara dua pemeriksaan proxy belum tahu, jadi request bisa tetap jatuh ke instance yang mati.",
+    "Isi pemeriksaan menentukan akibatnya. Pemeriksaan yang hanya memastikan proses hidup tidak melihat database yang rusak. Pemeriksaan yang memanggil database bisa mengeluarkan semua instance sekaligus bila penyebabnya bersama."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "Caddy 2.11.7, Go 1.27.1, PostgreSQL 17.11",
+      "teks": "`GET /healthz` di `api-t3` menjawab 200 bila `PingContext` selesai dalam 1 detik. Dengan selang 30 detik, 5 dari 10 request sesudah instance mati gagal. Dengan selang 1 detik, instance mati dikeluarkan dan masuk lagi sesudah lolos pemeriksaan.",
+      "rekaman": "labs/t3-instance/output/proxy.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "Node.js v26.12.1",
+      "teks": "Halaman dokumentasi modul `cluster` tidak memuat kata health. Endpoint pemeriksaan ditulis sendiri, dan worker yang mati dihidupkan lagi lewat event `'exit'` yang memanggil `.fork()`.",
+      "dokumentasi": "https://nodejs.org/docs/latest/api/cluster.html"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.x",
+      "teks": "Route `/up` menjawab 200 bila aplikasi selesai boot tanpa exception dan 500 bila tidak. Pemeriksaan database ditulis di listener event `DiagnosingHealth`.",
+      "dokumentasi": "https://laravel.com/docs/13.x/deployment"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1, gunicorn",
+      "teks": "Tiga halaman deployment Django 6.1 yang dibuka tidak menyebut health check, jadi endpoint-nya ditulis sendiri. Master gunicorn memulai ulang worker yang gagal.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/howto/deployment/"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4, dokumentasi 4.0.0",
+      "teks": "`/livez` menjawab 200 bila server bisa menjawab. `/readyz` menjawab 200 bila dependency sehat dan 503 bila tidak. `/startupz` menjawab 200 sesudah startup selesai.",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/operations/health-checks"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "docker-compose.yml cabang master, dibuka 2026-10-26",
+      "teks": "Untuk self-hosting, file compose memberi `healthcheck` pada sebagian besar layanan, mis. database dengan `pg_isready` tiap 5 detik.",
+      "dokumentasi": "https://github.com/supabase/supabase/blob/master/docker/docker-compose.yml"
+    }
+  },
+  "jebakan": [
+    "Mengira health check aktif menutup semua request yang gagal. Dengan selang 30 detik, 5 dari 10 request sesudah instance mati tetap gagal, dan retry menutupnya.",
+    "Memeriksa database tanpa memikirkan penyebab bersama. Bila database atau pool bermasalah, kedua instance gagal bersamaan dan proxy menjawab 503 untuk semua. Kasus ini dibaca dari kode dan belum direkam.",
+    "Mengira bawaan proxy sudah memeriksa. Caddy bawaan tidak punya health check, dan pemeriksaan pasifnya mati karena `fail_duration` bernilai 0."
+  ],
+  "terkait": [
+    "Reverse proxy",
+    "Load balancer",
+    "Retry",
+    "Graceful shutdown"
+  ],
+  "sumber": [
+    {
+      "riset": "R3-170",
+      "judul": "Caddy 2.11.7: reverse_proxy",
+      "url": "https://caddyserver.com/docs/caddyfile/directives/reverse_proxy",
+      "catatan": "health_uri, health_interval (bawaan 30 detik), health_timeout (bawaan 5 detik), health_status (bawaan 200), health_fails dan health_passes (bawaan 1), dan fail_duration bawaan 0 untuk pemeriksaan pasif."
+    },
+    {
+      "riset": "R3-170",
+      "judul": "Rekaman lab t3-instance: instance mati di belakang proxy",
+      "rekaman": "labs/t3-instance/output/proxy.txt",
+      "catatan": "Bagian E: health check saja dengan selang 30 detik, 5 dari 10 request gagal. Bagian F: dengan retry, 0 dari 10 gagal. Bagian G: selang 1 detik, instance mati dikeluarkan dan masuk lagi."
+    },
+    {
+      "riset": "R3-173",
+      "judul": "Amazon Builders' Library: Implementing health checks",
+      "url": "https://builder.aws.com/content/3Ev53O39izHCtWLzp4XU6t8PC1O/implementing-health-checks",
+      "catatan": "Pemeriksaan dependency bisa memicu cascading failure, dan load balancer yang melihat semua server gagal bersamaan membiarkan lalu lintas ke semuanya."
+    },
+    {
+      "riset": "R3-137",
+      "judul": "Val Town: Post-mortem, Exhausted Host Connection Pool",
+      "url": "https://blog.val.town/blog/post-mortem-exhausted-host-connection-pool/",
+      "catatan": "Health check server itu tidak memeriksa kondisi database, jadi server tetap dalam keadaan terdegradasi cukup lama."
+    },
+    {
+      "riset": "R3-174",
+      "judul": "Serverpod: Health checks",
+      "url": "https://docs.serverpod.dev/concepts/operations/health-checks",
+      "catatan": "Tiga endpoint /livez, /readyz, dan /startupz, dengan liveness yang sengaja permisif."
+    }
+  ]
+}
