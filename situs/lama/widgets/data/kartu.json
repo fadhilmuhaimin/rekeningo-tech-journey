@@ -1671,6 +1671,38 @@
   "jawab": "Notifikasi yang dikirim selagi listener putus tidak pernah sampai ke listener baru. Di `listen.txt` bagian B, barisnya tetap menunggu di tabel dan baru terkirim saat worker yang polling menemukannya. Karena itu tabel dan polling tetap sumber, dan `NOTIFY` hanya membangunkan."
  },
  {
+  "id": "t3-m21-1",
+  "halaman": "t3-m21",
+  "judul": "3.14 M21: Satu proses mati, semua mati",
+  "url": "tahap-3/m21-satu-proses-mati/",
+  "tanya": "Panic terjadi di handler, lalu di goroutine yang dibuka handler. Kenapa hanya yang kedua mematikan proses?",
+  "jawab": "`net/http` memulihkan panic dari `ServeHTTP`, jadi koneksi request itu putus dan proses hidup. Panic di goroutine yang dibuka handler naik sampai fungsi paling atas goroutine itu, lalu program berhenti (`panic.txt` bagian B: kode keluar 2)."
+ },
+ {
+  "id": "t3-m21-2",
+  "halaman": "t3-m21",
+  "judul": "3.14 M21: Satu proses mati, semua mati",
+  "url": "tahap-3/m21-satu-proses-mati/",
+  "tanya": "Sari menerima CSV berstatus 200, tetapi proses API mati. Kenapa Sari tidak melihat galat?",
+  "jawab": "Handler selesai menjawab sebelum goroutine latar panik. Di lab, jeda 50 ms memastikan urutan itu (`panic.txt` bagian C). Kegagalan di latar tidak muncul di jawaban request yang memicunya."
+ },
+ {
+  "id": "t3-m21-3",
+  "halaman": "t3-m21",
+  "judul": "3.14 M21: Satu proses mati, semua mati",
+  "url": "tahap-3/m21-satu-proses-mati/",
+  "tanya": "Seorang engineer mengusulkan VPS yang lebih besar. Apa di pesan panic yang menolak usul itu?",
+  "jawab": "Pesannya `index out of range [0] with length 0`, galat di kode yang mengambil baris pertama laporan kosong. Itu bukan kehabisan memori atau CPU, jadi mesin yang lebih besar mati dengan cara yang sama (penalaran)."
+ },
+ {
+  "id": "t3-m21-4",
+  "halaman": "t3-m21",
+  "judul": "3.14 M21: Satu proses mati, semua mati",
+  "url": "tahap-3/m21-satu-proses-mati/",
+  "tanya": "Dua instance di belakang proxy menahan Ekspor kosong yang pertama. Kenapa Ekspor kosong yang kedua tidak tertahan?",
+  "jawab": "Kedua instance menjalankan kode yang sama, jadi laporan kosong yang sama mematikan instance kedua. Sesudah itu proxy menjawab 503 pada 10 dari 10 request (`panic.txt` bagian D)."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",

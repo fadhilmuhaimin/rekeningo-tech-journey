@@ -1,0 +1,189 @@
+---
+title: "3.14 M21: Satu proses mati, semua mati"
+description: Minggu 5. Rabu 12.05 Rekeningo tidak bisa dibuka sampai Bayu memulai ulang prosesnya, dan Kamis malam deploy mematikannya lagi. Sebabnya panic di goroutine latar ekspor laporan, di satu-satunya proses API.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import satuProses from "../../../../data/diagram/t3-m21-satu-proses-mati.json";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t3-at-least-once]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 5 Tahap 3. Rabu pukul 12.05 Rekeningo tidak bisa dibuka. Budi membuka app dan saldonya tidak mau muncul, sedangkan Ani tidak bisa membuka laporan di dasbor.
+
+Layar yang menunggu itu bertahan sekitar sembilan menit. Bayu memulai ulang proses API, dan semuanya berjalan lagi.
+
+Kamis malam deploy mematikan app sekitar 40 detik. Sinta merangkumnya: "Satu proses mati, semua mati."
+
+*Angka cerita (Ilustrasi):* Rabu 12.05, sembilan menit, dan 40 detik berasal dari naskah, tanpa rekaman yang mengulangnya. Naskah tidak menyebut siapa yang menekan Ekspor, jadi rekaman di bawah memakai Warung Sari, warung di data lab yang belum punya pembayaran. Jam 12.05 di layar HP pada widget adalah jam di naskah. Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka melihat prosesnya sudah tidak ada dan menyimpulkan server kurang kuat. Ia membuka catatannya dari minggu 8 Tahap 2: VPS yang lebih besar dulu, baru server kedua ([[t2-m17]]). Rabu itu ia mengusulkan VPS yang lebih besar.
+
+Pemicu server kedua sebenarnya sudah ada sejak PRD v3 dibagikan. ADR 21 menulis dua pemicu: puncak mencapai separuh kapasitas satu server, atau PRD meminta deploy tanpa jeda ([[t2-adr-21]]). PRD v3 memintanya lewat baris "Tidak berhenti saat deploy" ([[t3-prd]]).
+
+[[t2-jembatan]] dan [[t3-prd]] sudah mencatat pemicu itu. Di cerita, tidak ada pekerjaan yang dijadwalkan untuknya sampai Rabu itu (Ilustrasi). Yang terlambat adalah pekerjaannya, bukan pencatatannya.
+
+Goroutine adalah alur kerja yang berjalan bersamaan di dalam satu proses Go. Server membuat satu goroutine untuk tiap koneksi, dan goroutine itu memanggil handler ([Serve](https://pkg.go.dev/net/http#Serve), go1.27.3, dibuka 2026-10-26, Tidak dijalankan). Handler bisa membuka goroutine lain dengan kata `go`.
+
+<details class="question">
+<summary>Tebak dulu: lab memicu panic dua kali di server yang sama, sekali di handler dan sekali di goroutine yang dibuka handler. Mana yang mematikan proses?</summary>
+
+Yang kedua. Di rekaman lab `panic.txt` bagian B, panic di handler memutus satu koneksi dan `/healthz` sesudahnya menjawab 200. Panic di goroutine latar mengakhiri proses dengan kode keluar 2, dan `/healthz` tidak menjawab.
+
+Kenapa hanya yang kedua mematikan proses dijelaskan di blok berikutnya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Proses API keluar karena panic di goroutine latar milik ekspor laporan. Kodenya mengira laporan tidak pernah kosong, dan goroutine itu tidak punya pelindung. Di lab, tidak ada yang menyalakan prosesnya lagi.
+
+<Rantai data={satuProses} />
+
+*Kondisi rekaman:* PostgreSQL 17.11 dan server Go `api-t3`. Bagian A, B, dan C memanggil satu instance langsung. Bagian D dan E memakai proxy Caddy 2.11.7 di depan dua instance.
+
+**Pekerjaan latar dibuka sebelum jawaban terkirim.** Handler `laporanCSV` memanggil `LaporanEkspor`. Fungsi itu membuka goroutine latar untuk mencatat ringkasan audit, lalu mengembalikan barisnya, dan handler menulis CSV:
+
+<Snippet file="labs/api-t3/internal/service/latar.go" lines="50:65" lang="go" title="Kode lab: labs/api-t3/internal/service/latar.go baris 50 sampai 65 (ringkasan audit dicatat di latar)" />
+
+Jeda `JedaAudit` 50 ms adalah tiruan waktu tulis catatan audit. Komentar di kode menulis bahwa tanpa jeda itu panic bisa mendahului jawaban (dibaca dari komentar, Tidak dijalankan).
+
+**Kode ringkasannya mengira laporan tidak pernah kosong.** Versi pertama mengambil baris pertama laporan untuk mencari hari tersibuk:
+
+<Snippet file="labs/api-t3/internal/service/latar.go" lines="81:82" lang="go" title="Kode lab: labs/api-t3/internal/service/latar.go baris 81 sampai 82 (baris pertama laporan)" />
+
+Pada laporan kosong tidak ada baris pertama, dan Go menghentikan fungsi itu dengan panic `index out of range`. Warung Ani punya satu pembayaran hari ini, jadi log-nya biasa. Hanya laporan Warung Sari yang kosong:
+
+<Snippet file="labs/t3-instance/output/panic.txt" lines="22:29" title="Rekaman lab: labs/t3-instance/output/panic.txt, bagian C (laporan kosong mematikan instance)" />
+
+Sari menerima CSV berstatus 200. Sesudahnya proses berhenti sendiri dengan kode keluar 2, dan tiga detik kemudian `/healthz` tidak menjawab.
+
+**Kenapa handler selamat dan goroutine latar tidak.** Bagian B memicu dua panic buatan di endpoint uji `/lab/panik`, satu di handler dan satu di goroutine latar:
+
+<Snippet file="labs/t3-instance/output/panic.txt" lines="13:20" title="Rekaman lab: labs/t3-instance/output/panic.txt, bagian B (handler dipulihkan, goroutine latar tidak)" />
+
+Dokumentasi `net/http` menulis bahwa server memulihkan panic dari `ServeHTTP`, mencatat stack trace, dan menutup koneksi request itu ([Handler](https://pkg.go.dev/net/http#Handler), go1.27.3, dibuka 2026-10-26, Tidak dijalankan). Spesifikasi Go menulis bahwa panic yang tidak dipulihkan naik sampai fungsi paling atas goroutine itu. Sesudah itu program berhenti ([Handling panics](https://go.dev/ref/spec#Handling_panics), versi bahasa go1.27, dibuka 2026-10-26, Tidak dijalankan).
+
+Kalimat di dokumentasi itu hanya membahas panic dari `ServeHTTP` dan tidak menyebut goroutine yang dibuka handler. Yang menunjukkannya adalah rekaman bagian B: tidak ada yang memulihkan panic di goroutine latar, jadi proses berhenti.
+
+**Satu hal membedakan bagian A dan B.** Keduanya memanggil `/lab/panik?di=latar`. Bagian A berjalan tanpa mode rentan, dan prosesnya tetap hidup:
+
+<Snippet file="labs/t3-instance/output/panic.txt" lines="5:11" title="Rekaman lab: labs/t3-instance/output/panic.txt, bagian A (versi benar, proses tetap hidup)" />
+
+Selisihnya satu cabang di fungsi `Latar`. Versi benar memasang `recover` di dalam goroutine latar, dan mode rentan membuangnya:
+
+<Snippet file="labs/api-t3/internal/service/latar.go" lines="23:39" lang="go" title="Kode lab: labs/api-t3/internal/service/latar.go baris 23 sampai 39 (pelindung recover di goroutine latar)" />
+
+**Versi benar punya dua perubahan, dan lab tidak memisahkannya untuk ekspor.** Ringkasan versi benar menangani laporan kosong, dan `Latar` memasang pelindung. Bagian E memakai keduanya sekaligus: CSV berstatus 200, log menulis "laporan kosong", dan kedua instance tetap hidup. Bagian A menguji pelindung saja, dengan panic buatan.
+
+Tes Go di lab `api-t3` menguji keduanya terpisah (`testing.txt`). Panic di `Latar` versi benar ditangkap dan pekerjaan sesudahnya tetap jalan, sedangkan ringkasan versi pertama panic pada laporan kosong. Rekaman tidak menjalankan ekspor kosong dengan salah satu perubahan saja. Ringkasan yang benar menghindari panic itu, dan pelindung menahan panic berikutnya dari kode lain (penalaran).
+
+**Kenapa VPS yang lebih besar tidak membantu.** Pesan panic di bagian C berbunyi `index out of range [0] with length 0`. Itu galat di kode, bukan kehabisan memori atau CPU. Mesin yang lebih besar menjalankan kode yang sama dan mati dengan cara yang sama (penalaran; lab tidak mengubah ukuran mesin).
+
+**Siapa yang menyalakannya lagi?** Lab menjalankan instance sebagai proses biasa tanpa pengawas, jadi sesudah kode keluar 2 tidak ada yang menyalakannya (Rekaman lab). Restart policy Docker dan `Restart=` di systemd tidak dijalankan di lab (Tidak dijalankan).
+
+Compose di Tahap 1 memakai `restart: unless-stopped`, yang menyalakan container lagi apa pun exit code-nya ([[C3]], [dokumentasi Compose](https://docs.docker.com/reference/compose-file/services/#restart), tanpa nomor versi, dibuka 2026-10-26, Tidak dijalankan). Naskah M21 tidak menjelaskan kenapa Rekeningo tetap mati sembilan menit sampai Bayu turun tangan.
+
+Pengawas hanya mempersingkat matinya. Selama proses naik, semua request tetap gagal, dan Ekspor kosong berikutnya mematikannya lagi (penalaran).
+
+**Deploy Kamis memakai proses yang sama.** Bagian A dan B di `bergulir.txt` menghentikan satu instance dengan SIGTERM saat satu request lambat berjalan:
+
+<Snippet file="labs/t3-instance/output/bergulir.txt" lines="5:16" title="Rekaman lab: labs/t3-instance/output/bergulir.txt, bagian A dan B (satu instance dihentikan)" />
+
+Dengan `Shutdown`, request yang berjalan selesai dan koneksi baru ditolak selagi menunggu. Tanpa itu, request yang berjalan putus. Di kedua cara, sesudah proses lama berhenti dan sebelum yang baru mendengar, tidak ada yang menjawab (penalaran dari satu proses).
+
+Lab tidak mengukur jeda deploy satu proses, jadi 40 detik di naskah berlabel Ilustrasi. Deploy manual di Tahap 1 membuat 3 dari 8 putaran prober tanpa jawaban ([[t1-m6]]).
+
+**Dua instance menahan satu kematian.** Bagian D menjalankan dua instance di belakang proxy dengan health check dan retry, keduanya dalam mode rentan:
+
+<Snippet file="labs/t3-instance/output/panic.txt" lines="31:35" title="Rekaman lab: labs/t3-instance/output/panic.txt, bagian D (dua instance, dua kali Ekspor kosong)" />
+
+Ekspor kosong mematikan instance a, dan 20 request berikutnya dijawab b. Ekspor yang sama mematikan b, dan proxy menjawab 503. Dua instance menahan satu kematian, bukan satu bug yang bisa dipicu berulang.
+
+Cara proxy tahu instance mana yang hidup, dan apa yang terjadi bila ia tidak tahu, ada di [[t3-dua-instance]]. Satu VPS yang menjalankan keduanya tetap titik gagal tunggal.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `panic.txt` bagian C dari tombol Ekspor sampai HP Budi. Tebak dulu apa yang terjadi pada proses sesudah jawaban 200 terkirim, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t3-m21.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: pelindung recover di goroutine latar**. Pemicunya endpoint uji lab, bukan Ekspor (bagian A dan B). Layar HP di widget digambar dari isi rekaman: lab tidak punya app Flutter.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: Sari menerima CSV berstatus 200, lalu proses berhenti sendiri dengan kode keluar 2, dan tiga detik kemudian /healthz tidak menjawab.
+
+Bila goroutine latar punya pelindung recover, panic yang sama dicatat dan /healthz tetap menjawab 200. Rekaman lengkap ada di lipatan di bawah.
+</noscript>
+
+<details>
+<summary>Rekaman bagian A sampai E (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/t3-instance/output/panic.txt" lines="5:42" title="Rekaman lab: labs/t3-instance/output/panic.txt, bagian A sampai E (tanpa baris kepala)" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t3-dua-instance]]: dua instance di belakang proxy dengan health check aktif dan retry, `Shutdown` saat SIGTERM, dan deploy bergulir. Keputusannya ADR 26, yang menjalankan pemicu ADR 21.
+- [[t3-m22]]: instance kedua membawa masalah baru. Penahan batas login yang ada di memori tiap instance ikut berlipat.
+- [[t2-adr-21]]: ADR 21 meminta dibaca ulang setiap PRD baru. M21 menunjukkan harga pemicu yang tercatat tetapi tidak dijadwalkan.
+- [[t3-m18]]: sisi lain dari semua layar berhenti. Di M18 poolnya penuh, dan di M21 prosesnya hilang.
+
+Satu proses yang berhenti membawa semua yang dilayaninya, dan dua proses butuh proxy yang tahu mana yang hidup.
+
+### Cek diri
+
+**1.** Panic terjadi di handler, lalu di goroutine yang dibuka handler. Kenapa hanya yang kedua mematikan proses?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+`net/http` memulihkan panic dari `ServeHTTP`, jadi koneksi request itu putus dan proses hidup. Panic di goroutine yang dibuka handler naik sampai fungsi paling atas goroutine itu, lalu program berhenti (`panic.txt` bagian B: kode keluar 2).
+
+</details>
+
+**2.** Sari menerima CSV berstatus 200, tetapi proses API mati. Kenapa Sari tidak melihat galat?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Handler selesai menjawab sebelum goroutine latar panik. Di lab, jeda 50 ms memastikan urutan itu (`panic.txt` bagian C). Kegagalan di latar tidak muncul di jawaban request yang memicunya.
+
+</details>
+
+**3.** Seorang engineer mengusulkan VPS yang lebih besar. Apa di pesan panic yang menolak usul itu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Pesannya `index out of range [0] with length 0`, galat di kode yang mengambil baris pertama laporan kosong. Itu bukan kehabisan memori atau CPU, jadi mesin yang lebih besar mati dengan cara yang sama (penalaran).
+
+</details>
+
+**4.** Dua instance di belakang proxy menahan Ekspor kosong yang pertama. Kenapa Ekspor kosong yang kedua tidak tertahan?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Kedua instance menjalankan kode yang sama, jadi laporan kosong yang sama mematikan instance kedua. Sesudah itu proxy menjawab 503 pada 10 dari 10 request (`panic.txt` bagian D).
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />
