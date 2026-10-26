@@ -263,60 +263,39 @@
         "baris": [
           [
             {
-              "label": "App Flutter",
-              "zona": "hp"
+              "label": "App Flutter"
             },
             {
               "label": "API modular",
               "berubah": true,
-              "zona": "vps",
               "catatan": "Modul ledger, akun, identitas, merchant, platform; satu proses, satu schema dan role per modul"
             },
             {
-              "label": "Service pembayaran",
-              "baru": true,
-              "zona": "vps",
-              "catatan": "Gateway, kartu, dan webhook; meminta jurnal lewat API ledger dengan Idempotency-Key"
+              "label": "PostgreSQL terkelola",
+              "berubah": true,
+              "catatan": "Layanan terkelola milik PT, dengan penyimpanan objek dan secret manager (lab: tiruan di Compose); source of truth tetap satu"
             }
           ],
           [
             {
-              "label": "PostgreSQL terkelola",
-              "berubah": true,
-              "lepas": true,
-              "zona": "terkelola",
-              "catatan": "Layanan terkelola milik PT (lab: tiruan di Compose); source of truth tetap satu"
-            },
-            {
               "label": "Penyimpanan objek",
               "baru": true,
               "lepas": true,
-              "zona": "terkelola",
               "catatan": "File identitas; database hanya menyimpan kunci objek dan checksum"
             },
             {
-              "label": "Secret manager",
+              "label": "Service pembayaran",
               "baru": true,
-              "zona": "terkelola",
-              "catatan": "Secret dibaca saat runtime, bukan dari konfigurasi IaC (lab: OpenBao mode dev)"
+              "catatan": "Gateway, kartu, dan webhook; meminta jurnal lewat API ledger dengan Idempotency-Key"
+            },
+            {
+              "label": "Pihak ketiga",
+              "baru": true,
+              "catatan": "Gateway pembayaran, layanan verifikasi, dan penerbit kartu: tiruan lokal di lab, merek tidak dipakai"
             }
           ]
         ],
-        "caption": "Tahap 4: modul dan service pembayaran di satu VPS milik PT; data, file, dan secret di layanan terkelola. Biru = baru atau berubah; proxy, worker, dan Redis dari Tahap 3 tidak digambar.",
-        "zona": [
-          {
-            "id": "hp",
-            "label": "HP user"
-          },
-          {
-            "id": "vps",
-            "label": "Satu VPS milik PT"
-          },
-          {
-            "id": "terkelola",
-            "label": "Layanan terkelola"
-          }
-        ]
+        "caption": "Tahap 4: pembayaran jadi service sendiri dan file pindah ke penyimpanan objek. Biru = baru atau berubah; proxy, worker, dan Redis dari Tahap 3 tidak digambar."
       },
       "asumsi": {
         "user": 100000,

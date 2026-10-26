@@ -112,9 +112,9 @@ describe("registry cerita.json", () => {
     // ADR 34 sampai 45 masing-masing satu halaman, berurutan, tanpa ADR ganda.
     const adr = d.halaman.filter((h) => h.tahap === 4 && h.adr).flatMap((h) => h.adr!);
     expect(adr).toEqual(Array.from({ length: 12 }, (_, i) => 34 + i));
-    // Tahap 4 punya sebelas lab setelah t4-beban dilipat ke api-t4 (keputusan 1207); tiap lab baru punya tugas di ANTREAN.
+    // Tahap 4 punya sebelas lab sendiri (api-t4 dan sepuluh t4-*) setelah t4-beban dilipat ke api-t4 (keputusan 1207); tiap lab baru punya tugas di ANTREAN.
     const lab = [...new Set(d.halaman.filter((h) => h.tahap === 4 && h.nomor).flatMap((h) => h.lab ?? []))].sort();
-    expect(lab).toEqual(["api-t3", "api-t4", "t4-audit", "t4-integrasi", "t4-kartu", "t4-modul", "t4-pipeline", "t4-qr", "t4-ssrf", "t4-storage", "t4-webhook"]);
+    expect(lab).toEqual(["api-t3", "api-t4", "t4-audit", "t4-infra", "t4-integrasi", "t4-kartu", "t4-modul", "t4-pipeline", "t4-qr", "t4-ssrf", "t4-storage", "t4-webhook"]);
     const antrean = fs.readFileSync(path.resolve(__dirname, "../../../plan/ANTREAN.md"), "utf8");
     for (const l of lab.filter((x) => x.endsWith("-t4") || x.startsWith("t4-"))) expect(antrean).toContain(`### lab-${l} · `);
     for (const h of d.halaman.filter((x) => x.tahap === 4 && x.nomor)) expect(antrean).toContain(`### ${h.nomor} · `);
