@@ -1,7 +1,9 @@
-"""Pastikan ID internal tidak tampil ke pembaca: ID halaman (A1, B3.1, C2, ...) dan ID riset (R2-04, R3-32, ...).
+"""Pastikan ID internal tidak tampil ke pembaca: ID halaman (A1, B3.1, C2, ...), ID riset (R2-04, R3-32, ...),
+nomor keputusan ("keputusan 415") dan nomor PR ("PR 340", "PR #340", "(#340)").
 
-Kedua jenis ID hidup di plan/, komentar kode, tes, dan field yang tidak tampil (`riset` di halaman-istilah JSON,
-atribut data-*). Pembaca membaca nama sumber, versi, dan tanggal, bukan nomor baris di tabel riset.
+Keempat jenis hidup di plan/, komentar kode, tes, rekaman lab, dan field yang tidak tampil (`riset` di halaman-istilah
+JSON, atribut data-*). Pembaca membaca nama sumber, versi, dan tanggal, bukan nomor baris di tabel riset atau nomor
+di KEPUTUSAN.md yang tidak ada di situs. Rujukan yang bermakna bagi pembaca adalah halaman, ADR, atau tautan sumber.
 
 Memeriksa situs/dist hasil build di semua tempat yang dibaca atau dibacakan pembaca:
 - teks terlihat: isi artikel, kode di <pre>, sidebar, judul tab;
@@ -11,6 +13,10 @@ Memeriksa situs/dist hasil build di semua tempat yang dibaca atau dibacakan pemb
 - string di data widget (dist/widgets/data/**/*.json) dan di javascripts/istilah-data.js.
 Yang tidak diperiksa karena tidak tampil: script dan style, komentar HTML, atribut data-*, class, id, href.
 Kode aturan gosec (G101, G104, ...) bukan ID halaman dan dilewati.
+Teks halaman diperiksa sesudah spasi dan pindah baris dilipat jadi satu spasi, jadi "keputusan" di ujung satu baris dan
+nomornya di baris berikutnya tetap tertangkap. Nomor keputusan hanya 2 sampai 4 digit: "Keputusan 3" di ADR menunjuk
+keputusan ketiga di ADR itu, bukan nomor di KEPUTUSAN.md. Komentar berkas lab yang tampil lewat Snippet disaring lebih
+dulu oleh situs/src/lib/rujukan-internal.ts; bentuk rujukan yang tidak dikenalnya muncul di sini.
 
     bun run --cwd situs build && python3 tools/cek_id_tampil.py [--dist DIR]
 
@@ -26,6 +32,12 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 POLA = re.compile(r"(?<![\w./#-])[A-G]\d+(?:\.\d+)?(?![\w])")
 POLA_RISET = re.compile(r"\bR[0-9]-[0-9]{1,3}\b")      # R<tahap>-<nomor> di plan/RISET-TAHAP-N.md
+# "keputusan 415", "KEPUTUSAN 415", "keputusan #415", "keputusan nomor 415": nomor baris di plan/KEPUTUSAN.md.
+POLA_KEPUTUSAN = re.compile(r"\bkeputusan(?:\s+(?:nomor|no\.?))?\s+#?\s*\d{2,4}\b", re.I)
+# "PR 340", "PR #340", "tinjauan PR 340", "pull request #340", "(#340)": nomor PR repo ini, tidak ada di situs.
+# "PR cfug/dio#2512" (PR di repo orang lain, ditulis dengan nama repo) tidak cocok dan boleh tampil.
+POLA_PR = re.compile(r"\bPR\s*#?\s*\d{2,4}\b|\b[Pp]ull [Rr]equest\s*#\s*\d+\b|\(#\d{3,4}\)")
+POLA_SEMUA = (POLA, POLA_RISET, POLA_KEPUTUSAN, POLA_PR)
 LEWAT_HAL = ()
 LEWAT_TOKEN = re.compile(r"^G\d{3}$")          # aturan gosec
 ATRIBUT_TAMPIL = ("title", "aria-label", "aria-description", "alt", "placeholder")
@@ -76,12 +88,13 @@ class Teks(html.parser.HTMLParser):
 
 
 def temuan(teks):
-    """(ID, potongan teks di sekitarnya) untuk tiap ID internal di teks."""
+    """(ID, potongan teks di sekitarnya) untuk tiap ID internal di teks; spasi dan baris baru dilipat jadi satu spasi."""
+    datar = re.sub(r"\s+", " ", teks)
     hasil = []
-    for pola in (POLA, POLA_RISET):
-        for m in pola.finditer(teks):
+    for pola in POLA_SEMUA:
+        for m in pola.finditer(datar):
             if not LEWAT_TOKEN.match(m.group(0)):
-                hasil.append((m.group(0), teks[max(0, m.start() - 40):m.end() + 40].strip()))
+                hasil.append((m.group(0), datar[max(0, m.start() - 40):m.end() + 40].strip()))
     return hasil
 
 
@@ -109,8 +122,7 @@ def periksa(site):
             continue
         t = Teks()
         t.feed(p.read_text())
-        for baris in "".join(t.out).splitlines():
-            salah += lapor(rel, baris)
+        salah += lapor(rel, "".join(t.out))
         for tag, k, v in t.atribut:
             salah += lapor(f"{rel} (atribut {k} pada <{tag}>)", v)
         for v in t.json:
@@ -138,7 +150,7 @@ def main():
         print("\n".join(salah))
         print(f"\nGAGAL: {len(salah)} ID internal tampil ke pembaca.")
         sys.exit(1)
-    print("ID internal (halaman dan riset) tidak tampil di teks halaman, atribut, SVG, data JSON, sidebar, dan data widget.")
+    print("ID internal (halaman, riset, nomor keputusan, nomor PR) tidak tampil di teks halaman, atribut, SVG, data JSON, sidebar, dan data widget.")
 
 
 if __name__ == "__main__":
