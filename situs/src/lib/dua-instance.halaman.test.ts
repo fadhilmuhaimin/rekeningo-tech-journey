@@ -793,6 +793,10 @@ describe("penjaga tambahan tinjauan 3.15 (keputusan 1059): kunci yang tidak berg
     harus("terbit 2019-12-05, dibuka 2026-10-26");
     harus("2024-12-31, dibuka 2026-10-26");
   });
+  test("judul Rantai Inti paling banyak 47 karakter: lebih panjang menjadi dua baris di 375 px dan layar pertama HP tinggal 12 px (layar.mjs hanya menandai 'tipis', tidak gagal)", () => {
+    expect(rantai.judul.length).toBeLessThanOrEqual(47);
+    expect(rantai.judul).toBe("Satu instance mati, tanpa dan dengan pengaman");
+  });
   test("tautan [[id]] per kalimat: jumlah pemakaian tiap id, kalimat janji ke 3.16, 3.18, dan 3.27", () => {
     const hitung: Record<string, number> = {};
     for (const x of badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)) hitung[x[1]!] = (hitung[x[1]!] ?? 0) + 1;
