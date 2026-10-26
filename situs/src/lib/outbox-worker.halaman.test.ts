@@ -337,7 +337,12 @@ describe("kode lab: TulisOutbox, KlaimOutbox, worker, Bayar, 000017", () => {
     expect(beritahu).toContain("return tx.TulisOutbox(ctx, jurnal, penerima, repo.KelasUang, jenis, b)");
     // jalur benar (bukan mode rentan) tidak memanggil push
     expect(beritahu.split("if s.rentan == RentanPushDalamTx {")[1]!.split("\n\t}\n")[1]).not.toContain("s.push.Kirim(");
-    harus("Tidak ada panggilan jaringan di dalamnya, hanya `INSERT`.");
+    harus("Tidak ada panggilan jaringan di dalamnya, dan baris outbox ditulis dengan satu `INSERT`.");
+    // Klaim lingkup (keputusan 1035): transaction Bayar bukan hanya INSERT (ada SELECT ... FOR UPDATE buku dan UPDATE saldo_cache), jadi "hanya INSERT" berlaku untuk baris outbox saja.
+    const dalamTx = bayarGo.split("s.repo.DalamTx(")[1]!.split("\n\t})\n")[0]!;
+    for (const x of ["tx.KunciBukuAkun(", "tx.CatatJurnal(", "s.beritahu("]) expect(dalamTx, x).toContain(x);
+    expect(dalamTx).not.toMatch(/http\.|net\.|\.push\.|\.Kirim\(/);
+    expect(baca("labs/api-t3/internal/repo/ledger.go")).toMatch(/FOR UPDATE[\s\S]*UPDATE buku b SET saldo_cache/);
     harus('<Snippet file="labs/api-t3/internal/repo/outbox.go" region="tulis-outbox" lang="go" title="labs/api-t3/internal/repo/outbox.go" />');
   });
   test("klaim: FOR UPDATE SKIP LOCKED dan klaim_sampai; klaim 5 detik dan empat baris bawaan; jeda polling 200 milidetik; lima status akhir", () => {
@@ -814,6 +819,59 @@ describe("setiap kalimat di halaman punya asal", () => {
   });
 });
 
+// Struktur yang tidak ikut terkunci oleh satuan(): tingkat heading, nomor daftar, slot tab, dan judul diagram (tinjauan, keputusan 1035).
+// Uji mutasi peninjau: 17 dari 17 mutasi tingkat heading, 11 mutasi nomor daftar, 1 mutasi slot tab, dan 2 mutasi id/judul diagram lolos sebelum tes ini.
+describe("struktur halaman: heading, daftar bernomor, slot tab, judul diagram", () => {
+  test("tingkat heading dikunci: Inti h2, bagian lain h3, urutan dan teks tetap", () => {
+    let dalamKode = false;
+    const hd: [number, string][] = [];
+    for (const b of badan.split("\n")) {
+      if (b.trim().startsWith("```")) { dalamKode = !dalamKode; continue; }
+      const m = !dalamKode && b.match(/^(#{1,6}) (.+)$/);
+      if (m) hd.push([m[1]!.length, m[2]!]);
+    }
+    expect(hd).toEqual([
+      [2, "Inti"],
+      [3, "Kenapa ini ada"],
+      [3, "Cara kerjanya"],
+      [3, "Di stack lain"],
+      [3, "ADR 23: outbox di PostgreSQL, worker di proses terpisah"],
+      [3, "Sengaja belum dilakukan"],
+      [3, "Cek diri"],
+      [3, "Saat me-review kode AI, cek ini"],
+      [3, "Bacaan lanjut"],
+    ]);
+    // Sama dengan halaman tetangga yang memakai templat konsep yang sama (3.8).
+    const hd38 = baca("situs/src/content/docs/tahap-3/connection-pool.mdx").split("\n").filter((b) => /^#{2,3} /.test(b)).map((b) => b.match(/^#+/)![0].length);
+    expect(hd.map((x) => x[0])).toEqual(hd38);
+  });
+  test("daftar bernomor mulai dari 1 dan naik satu per butir", () => {
+    const grup: number[][] = [];
+    let sebelum: number | null = null;
+    for (const b of badan.split("\n")) {
+      const m = b.match(/^(\d+)\. /);
+      if (!m) { sebelum = null; continue; }
+      const n = Number(m[1]);
+      if (sebelum === null) grup.push([]);
+      grup[grup.length - 1]!.push(n);
+      sebelum = n;
+    }
+    expect(grup.map((g) => g.length)).toEqual([3, 6, 3]);
+    for (const g of grup) expect(g).toEqual(g.map((_, i) => i + 1));
+  });
+  test("slot tab berurutan t0 sampai t5 dan tiap slot memuat sumber yang sama dengan labelnya", () => {
+    expect([...badan.matchAll(/<Fragment slot="(t\d)">/g)].map((m) => m[1])).toEqual(["t0", "t1", "t2", "t3", "t4", "t5"]);
+    const potong = badan.split(/<Fragment slot="t\d">/).slice(1);
+    const penanda = ["lab api-t3 dan t3-outbox", "[pg-boss](", "[Laravel 13.x: Queues](", "[Django 6.1: Tasks](", "[Serverpod: Scheduling](", "[Supabase: Queues]("];
+    penanda.forEach((p, i) => expect(potong[i]!.split("</Fragment>")[0], `slot t${i}`).toContain(p));
+  });
+  test("judul dan id diagram Inti", () => {
+    expect(diagram.id).toBe("t3-outbox-inti");
+    expect(diagram.judul).toBe("Satu pembayaran lewat outbox");
+    expect(diagram.baris).toHaveLength(2);
+  });
+});
+
 const labelWidgetCara = JSON.parse(baca("situs/data/widget/t3-outbox-worker.json"));
 const SIDIK_RISET: Record<string, string> = {
   "R3-140": "83aab0435ddb7c85",
@@ -851,7 +909,7 @@ const KALIMAT_TERKUNCI: string[] = [
   "Layanan push yang menggantung melewatinya: untuk t = 10 detik, lab t3-pool menghitung L = 8,717 dengan λ = 0,87, yaitu 0,868 yang dibulatkan (`little.txt`). Karena itu queue masuk di Tahap 3.",
   "PRD v3 menjanjikan 95% pemberitahuan bayar dan transfer diserahkan ke layanan push dalam kurang dari 30 detik ([[t3-prd]]). Pengukurannya berhenti saat pesan diserahkan, bukan saat HP menerimanya.",
   "Cara kerjanya",
-  "**Tulis dan kirim dipisah oleh COMMIT.** Saat Budi membayar, service menulis jurnal, dua posting, dan satu baris `outbox` di transaction yang sama. Tidak ada panggilan jaringan di dalamnya, hanya `INSERT`.",
+  "**Tulis dan kirim dipisah oleh COMMIT.** Saat Budi membayar, service menulis jurnal, dua posting, dan satu baris `outbox` di transaction yang sama. Tidak ada panggilan jaringan di dalamnya, dan baris outbox ditulis dengan satu `INSERT`.",
   "Bila COMMIT gagal, baris outbox ikut hilang, dan bila berhasil, baris itu ikut tersimpan. Bagian B merekam akibatnya bagi worker:",
   "Satu pertanyaan mendapat dua jawaban: sesi tangan melihat 1 baris, dan sesi lain, termasuk worker, melihat 0. Kebalikannya juga terekam. Bila `INSERT` outbox di kode API gagal, pembayarannya ikut batal (bagian G, dibahas di [[t3-notifikasi]]).",
   "**Worker mengklaim baris.** Worker adalah `api-t3 -peran worker`, proses yang terpisah dari server API. Ia mengklaim sampai empat baris, mengirimnya serentak, lalu menandai tiap baris `terkirim`, `dilewati`, ditunda dengan backoff, atau `mati`.",

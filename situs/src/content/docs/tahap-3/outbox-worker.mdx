@@ -60,7 +60,7 @@ PRD v3 menjanjikan 95% pemberitahuan bayar dan transfer diserahkan ke layanan pu
 
 ### Cara kerjanya
 
-**Tulis dan kirim dipisah oleh COMMIT.** Saat Budi membayar, service menulis jurnal, dua posting, dan satu baris `outbox` di transaction yang sama. Tidak ada panggilan jaringan di dalamnya, hanya `INSERT`.
+**Tulis dan kirim dipisah oleh COMMIT.** Saat Budi membayar, service menulis jurnal, dua posting, dan satu baris `outbox` di transaction yang sama. Tidak ada panggilan jaringan di dalamnya, dan baris outbox ditulis dengan satu `INSERT`.
 
 Bila COMMIT gagal, baris outbox ikut hilang, dan bila berhasil, baris itu ikut tersimpan. Bagian B merekam akibatnya bagi worker:
 
