@@ -1,0 +1,27 @@
+{
+  "id": "t3-m20-satu-jurnal-dua-pesan",
+  "judul": "Satu jurnal, dua pesan",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-outbox · ganda.txt bagian A dan B" },
+  "baris": [
+    {
+      "label": "Worker mati di tengah",
+      "sub": "klaim 5 detik",
+      "simpul": [
+        { "teks": "Push menjawab", "sub": "1 pesan diterima" },
+        { "teks": "Worker mati sebelum menandai", "sub": "baris tetap menunggu", "nada": "warn" },
+        { "teks": "Klaim habis", "sub": "worker baru mengklaim lagi" },
+        { "teks": "Dikirim ulang", "sub": "2 pesan, 1 notifikasi_id", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Klaim 300 ms, tanpa ada yang mati",
+      "sub": "push menjawab sesudah 1,5 detik",
+      "simpul": [
+        { "teks": "Worker A menunggu push", "sub": "klaim 300 ms habis di tengah" },
+        { "teks": "Worker B mengklaim baris yang sama", "sub": "dan mengirimnya" },
+        { "teks": "Keduanya melapor terkirim", "sub": "2 pesan, 1 notifikasi_id", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Di kedua cara, baris outbox berakhir terkirim dengan percobaan 2, dan hanya satu baris yang dikirim dua kali."
+}

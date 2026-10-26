@@ -1,0 +1,180 @@
+{
+  "versi": 2,
+  "judul": "Worker mati di tengah, HP Ani berbunyi dua kali",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t3-outbox/output/ganda.txt",
+    "fileVarian": "labs/t3-outbox/output/ganda.txt",
+    "catatan": "Server Go dan worker api-t3 dengan layanan push tiruan lokal, PostgreSQL 17.11, dari database bersih (make -C labs/t3-outbox run BAGIAN=ganda). Jalur utama: ganda.txt bagian A, dengan klaim bawaan 5 detik. Ubah satu hal: bagian B, klaim 300 ms lebih pendek dari waktu kirim 1,5 detik, tanpa worker yang mati. Worker yang mati diperankan flag khusus lab yang membuat proses keluar dengan exit status 3, bukan deploy sungguhan. Baris diawali tanda panah diringkas dari tabel PostgreSQL di rekaman yang sama, bukan baris log. Layar HP digambar dari isi rekaman: layanan push tiruan hanya mencatat pesan yang diterima, dan lab tidak punya app Flutter. Jam 12.10 di layar HP adalah pilihan penulis."
+  },
+  "pengantar": "Satu pembayaran Budi ke Warung Ani sudah menjadi satu baris outbox, dan worker mengirimnya. Tebak dulu, lalu ikuti sampai HP Ani. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "worker", "label": "Worker" },
+    { "id": "db", "label": "PostgreSQL" },
+    { "id": "push", "label": "Layanan push (tiruan)" }
+  ],
+  "perangkat": [
+    { "id": "ani", "label": "HP Warung Ani" }
+  ],
+  "layarAwal": {
+    "ani": {
+      "judul": "Warung Ani",
+      "waktu": "12.10",
+      "sinyal": 3,
+      "isi": [{ "jenis": "teks", "teks": "Belum ada notifikasi" }]
+    }
+  },
+  "predict": {
+    "q": "Worker mati sesudah layanan push menjawab dan sebelum baris ditandai terkirim. Deploy langsung menjalankan worker baru. Apa yang dikerjakan worker baru pada baris itu?",
+    "options": [
+      "Melewati baris itu lebih dulu, lalu mengirimnya lagi sesudah klaim 5 detik habis",
+      "Mengirimnya lagi saat itu juga, karena worker lama sudah mati",
+      "Tidak pernah mengirimnya: baris itu sudah dianggap terkirim",
+      "Menulis baris outbox baru dengan notifikasi_id baru, lalu mengirimnya"
+    ],
+    "answer": 0,
+    "varian": false,
+    "explain": "Worker baru melewati baris itu: diklaim 0, karena klaim 5 detik belum habis. Sesudah klaim habis, worker berikutnya mengklaim baris yang sama dan mengirimnya lagi dengan notifikasi_id yang sama. Rekaman ganda.txt bagian A: layanan push menerima 2 pesan dan 1 notifikasi_id."
+  },
+  "langkah": [
+    {
+      "dari": "worker",
+      "ke": "db",
+      "judul": "Worker mengklaim baris",
+      "kirim": "$ ./api-t3 -peran worker -sekali -lab-henti-sebelum-tandai\n→ outbox: menunggu, percobaan 1, klaim dipegang (bawaan 5 detik)",
+      "jelas": "Pembayaran Budi sudah menjadi satu jurnal dan satu baris outbox. Klaim menaikkan percobaan sebelum mengirim dan menahan baris selama 5 detik."
+    },
+    {
+      "dari": "worker",
+      "ke": "push",
+      "judul": "Worker mengirim ke layanan push",
+      "kirim": "POST /v1/pesan, notifikasi_id dari kolom outbox.notifikasi_id\npush tiruan menerima: 1 pesan",
+      "jelas": "Layanan push menjawab. Pemberitahuan sudah sampai, tetapi barisnya di database belum tahu.",
+      "layar": {
+        "ani": {
+          "judul": "Notifikasi",
+          "waktu": "12.10",
+          "sinyal": 3,
+          "isi": [{ "jenis": "baris", "kiri": "Rp25.000 dari Budi", "kanan": "pertama" }]
+        }
+      }
+    },
+    {
+      "dari": "worker",
+      "judul": "Worker mati sebelum menandai terkirim",
+      "kirim": "# exit status 3: mati sesudah layanan push menjawab, sebelum UPDATE status\n→ outbox: menunggu, percobaan 1, klaim masih dipegang",
+      "jelas": "Di cerita Bayu menghentikan worker saat deploy. Lab memerankannya dengan flag khusus lab, bukan deploy sungguhan. Tidak ada catatan di database bahwa layanan push sudah menjawab.",
+      "nada": "warn"
+    },
+    {
+      "dari": "worker",
+      "ke": "db",
+      "judul": "Worker baru dijalankan saat itu juga",
+      "kirim": "$ ./api-t3 -peran worker -sekali\nworker: diklaim 0, terkirim 0, dilewati 0, ditunda 0, mati 0\n→ outbox: menunggu, percobaan 1, klaim masih dipegang",
+      "jelas": "Klaim 5 detik belum habis, jadi worker baru melewati baris itu. Diklaim 0 berarti ia tidak mengirim apa pun."
+    },
+    {
+      "dari": "db",
+      "judul": "Klaim habis, barisnya masih menunggu",
+      "kirim": "# klaim habis: worker berikutnya mengklaim baris yang sama\n→ outbox: menunggu, percobaan 1",
+      "jelas": "Tidak ada yang menandai baris itu terkirim. Begitu klaim lewat, baris itu boleh diklaim lagi."
+    },
+    {
+      "dari": "worker",
+      "ke": "db",
+      "judul": "Worker baru mengklaim baris yang sama",
+      "kirim": "$ ./api-t3 -peran worker -sekali\nworker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0",
+      "jelas": "Worker baru tidak tahu layanan push sudah menjawab. Dari start worker yang mati sampai worker yang mengirim ulang selesai: sedikit di atas 5 detik, dan lab menolak nilai di luar 4,9 sampai 7,0 detik.",
+      "nada": "warn"
+    },
+    {
+      "dari": "worker",
+      "ke": "push",
+      "judul": "Worker mengirim ulang",
+      "kirim": "push tiruan menerima: 2 pesan, 1 notifikasi_id",
+      "jelas": "Pesan kedua membawa notifikasi_id yang sama dengan yang pertama. Di HP Ani dua notifikasi tampil dengan teks yang sama.",
+      "nada": "warn",
+      "layar": {
+        "ani": {
+          "judul": "Notifikasi",
+          "waktu": "12.10",
+          "sinyal": 3,
+          "nada": "warn",
+          "isi": [
+            { "jenis": "baris", "kiri": "Rp25.000 dari Budi", "kanan": "pertama" },
+            { "jenis": "baris", "kiri": "Rp25.000 dari Budi", "kanan": "kedua", "nada": "warn" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "worker",
+      "ke": "db",
+      "judul": "Baris ditandai terkirim: satu jurnal",
+      "kirim": "→ outbox: terkirim, percobaan 2\n→ jurnal bayar baru: 1",
+      "jelas": "Uangnya berpindah sekali. Yang terjadi dua kali adalah pengiriman."
+    }
+  ],
+  "varian": {
+    "label": "klaim lebih pendek dari waktu kirim (300 ms lawan 1,5 detik), tidak ada yang mati",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "worker",
+        "ke": "db",
+        "judul": "Worker A mengklaim baris, klaim 300 ms",
+        "kirim": "$ ./api-t3 -peran worker -sekali -klaim 300ms\n→ outbox: menunggu, percobaan 1, klaim dipegang 300 ms",
+        "jelas": "Klaim 300 ms, bukan 5 detik, dan layanan push akan menjawab lambat. Tidak ada worker yang akan mati."
+      },
+      {
+        "dari": "worker",
+        "ke": "push",
+        "judul": "Layanan push menjawab lambat",
+        "kirim": "# Klaim 300 ms, layanan push menjawab permintaan pertama sesudah 1,5 detik (lambat), permintaan berikutnya langsung\nPOST /v1/pesan: worker A menunggu jawaban",
+        "jelas": "Jawaban baru datang sesudah 1,5 detik, lebih lama dari klaim 300 ms.",
+        "nada": "warn"
+      },
+      {
+        "dari": "db",
+        "judul": "Klaim A habis selagi A menunggu",
+        "kirim": "# worker A masih menunggu jawaban push; klaimnya habis\n→ outbox: menunggu, percobaan 1, klaim habis",
+        "jelas": "Barisnya belum ditandai, jadi sesudah klaim habis ia boleh diklaim lagi."
+      },
+      {
+        "dari": "worker",
+        "ke": "db",
+        "judul": "Worker B mengklaim baris yang sama",
+        "kirim": "$ ./api-t3 -peran worker -sekali -klaim 300ms\n→ outbox: percobaan 2",
+        "jelas": "Worker B tidak tahu worker A sedang menunggu layanan push."
+      },
+      {
+        "dari": "worker",
+        "ke": "push",
+        "judul": "Kedua worker mengirim",
+        "kirim": "push tiruan menerima: 2 pesan, 1 notifikasi_id",
+        "jelas": "Layanan push menjawab worker B langsung, dan worker A sesudah 1,5 detik. Di HP Ani dua notifikasi tampil dengan teks yang sama.",
+        "nada": "warn",
+        "layar": {
+          "ani": {
+            "judul": "Notifikasi",
+            "waktu": "12.10",
+            "sinyal": 3,
+            "nada": "warn",
+            "isi": [
+              { "jenis": "baris", "kiri": "Rp25.000 dari Budi", "kanan": "pertama" },
+              { "jenis": "baris", "kiri": "Rp25.000 dari Budi", "kanan": "kedua", "nada": "warn" }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "worker",
+        "ke": "db",
+        "judul": "Kedua worker melapor terkirim",
+        "kirim": "worker A: diklaim 1, terkirim 1\nworker B: diklaim 1, terkirim 1   # keduanya mengira ia yang mengirim\n→ outbox: terkirim, percobaan 2",
+        "jelas": "Tidak ada yang mati. Klaim 300 ms lebih pendek dari waktu kirim, jadi dua worker memegang baris yang sama bergiliran.",
+        "nada": "warn"
+      }
+    ]
+  }
+}
