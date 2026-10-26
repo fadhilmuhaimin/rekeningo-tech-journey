@@ -1,7 +1,7 @@
 {
   "id": "t3-m22-batas-dua-jatah",
   "judul": "Satu jatah menjadi dua",
-  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-instance · batas.txt bagian A, B, dan D" },
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-instance · batas.txt bagian A, B, dan D; urutan tebakan di bagian D dibaca dari kode" },
   "baris": [
     {
       "label": "Satu instance",

@@ -45,7 +45,7 @@ Batas per alamat tidak salah hitung. Batas itu dihitung di memori tiap instance,
 
 *Kondisi rekaman:* PostgreSQL 17.11, dua proses `api-t3` (a dan b) di host, dan proxy Caddy 2.11.7 di kontainer. Proxy memakai kebijakan `round_robin` (bawaan Caddy: `random`), supaya angkanya tetap. Jam bucket dibekukan supaya tidak terisi ulang di tengah rekaman, dan password yang dikirim salah.
 
-**Satu bucket per key, di memori satu proses.** Setiap alamat punya bucket berisi paling banyak 10 token, dan setiap request mengambil satu token. Bucket itu hanya ada di peta milik proses yang menerimanya:
+**Satu bucket per key, di memori satu proses.** Setiap alamat punya bucket login berisi paling banyak 10 token, dan setiap request login mengambil satu token. Bucket itu hanya ada di peta milik proses yang menerimanya:
 
 <Snippet file="labs/api-t3/internal/service/pembatas.go" lines="16:21" lang="go" title="Kode lab: labs/api-t3/internal/service/pembatas.go baris 16 sampai 21 (bucket di peta satu proses)" />
 
@@ -71,7 +71,7 @@ Dengan N instance, batasnya sampai N × 10 (Hitungan; hanya dua instance yang di
 
 <Snippet file="labs/t3-instance/output/batas.txt" lines="19:27" title="Rekaman lab: labs/t3-instance/output/batas.txt, bagian D (satu akun, dua instance)" />
 
-Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama dengan password salah. Password dibandingkan lima kali, bukan sepuluh. Kodenya mencatat percobaan di database sebelum membandingkan password:
+Rekaman mencatat hasil akhirnya: `gagal_login` 5 dan akun terkunci. Dari kode di bawah, tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama dengan password salah. Jadi password dibandingkan lima kali, bukan sepuluh (penalaran dari kode). Kodenya mencatat percobaan di database sebelum membandingkan password:
 
 <Snippet file="labs/api-t3/internal/service/sesi.go" lines="108:124" lang="go" title="Kode lab: labs/api-t3/internal/service/sesi.go baris 108 sampai 124 (hitungan gagal login dan kunci di database)" />
 
@@ -87,7 +87,7 @@ Setiap `POST /login` mengambil satu token dari bucket alamat itu sebelum isi req
 
 Dokumentasi `net/http` Go 1.27.1, versi yang dipakai lab, menulis bahwa server mengisi `RemoteAddr` dengan alamat "IP:port" yang mengirim request (dibuka 2026-10-26; Go 1.27.3 menulis hal yang sama). Di belakang proxy, koneksi ke `api-t3` datang dari proxy (penalaran), jadi alamat itu alamat proxy. Caddy menyetel atau menambah `X-Forwarded-For` dan, secara bawaan, mengabaikan nilai yang datang dari client (dokumentasi Caddy tanpa nomor versi, dibuka 2026-10-26), tetapi `api-t3` tidak membaca header itu.
 
-Jadi semua karyawan yang masuk lewat satu proxy memakai satu key per alamat. Bila satu instance menerima sebelas login dari sebelas orang berbeda hampir bersamaan, jatah 10 habis dan yang ke-11 mendapat 429 walau passwordnya benar. Satu penyerang bisa menghabiskan jatah itu untuk semua orang.
+Jadi semua karyawan yang masuk lewat satu proxy memakai satu key per alamat. Dari bucket yang penuh, sebelas login dari sebelas orang berbeda yang tiba hampir bersamaan di satu instance menghabiskan jatah 10. Yang ke-11 mendapat 429 walau passwordnya benar. Satu penyerang bisa menghabiskan jatah itu untuk semua orang.
 
 Lab tidak membedakan dua client lewat proxy di Docker Desktop, jadi perilaku ini tidak direkam. Cara menutupnya ada di [[t3-rate-limit-redis]].
 
@@ -136,7 +136,7 @@ Tiap instance menyimpan bucket per alamat di memorinya sendiri. Proxy bergantian
 <details class="success">
 <summary>Jawaban</summary>
 
-Bucket per akun di memori memberi 5 tebakan per instance, jadi 10 lolos ke akun. Hitungan `gagal_login` ada di database dan berhenti di 5. Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama (`batas.txt` bagian D).
+Bucket per akun di memori memberi 5 tebakan per instance, jadi 10 lolos ke akun. Hitungan `gagal_login` ada di database dan berhenti di 5. Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama (dibaca dari kode; `batas.txt` bagian D mencatat hasil akhirnya).
 
 </details>
 

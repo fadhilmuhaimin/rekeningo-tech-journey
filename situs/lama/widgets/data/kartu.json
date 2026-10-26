@@ -1740,7 +1740,7 @@
   "judul": "3.16 M22: Batas login jadi dua kali lipat",
   "url": "tahap-3/m22-batas-login-dua-kali/",
   "tanya": "Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali. Kenapa password hanya dibandingkan lima kali?",
-  "jawab": "Bucket per akun di memori memberi 5 tebakan per instance, jadi 10 lolos ke akun. Hitungan `gagal_login` ada di database dan berhenti di 5. Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama (`batas.txt` bagian D)."
+  "jawab": "Bucket per akun di memori memberi 5 tebakan per instance, jadi 10 lolos ke akun. Hitungan `gagal_login` ada di database dan berhenti di 5. Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama (dibaca dari kode; `batas.txt` bagian D mencatat hasil akhirnya)."
  },
  {
   "id": "t3-m22-3",
