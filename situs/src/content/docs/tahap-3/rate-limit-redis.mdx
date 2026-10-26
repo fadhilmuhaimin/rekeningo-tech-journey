@@ -16,7 +16,7 @@ import intiDiagram from "../../../../data/diagram/t3-rate-limit-redis-inti.json"
 
 ## Inti
 
-Hitungan batas harus ada di tempat yang dipakai semua instance, bukan di memori satu proses.
+Agar dua instance berbagi satu batas, hitungannya disimpan di tempat yang dipakai keduanya, bukan di memori satu proses.
 
 <Rantai data={intiDiagram} ringkas />
 
@@ -39,7 +39,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 </Blok>
 
-<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: satu hitungan bersama menahan satu alamat di 10 percobaan berapa pun jumlah instance, dan Redis yang mati mengembalikan batas per instance, bukan membuka login tanpa batas.">
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: satu hitungan bersama menahan satu alamat di 10 percobaan walau dua instance yang menerimanya, dan Redis yang mati mengembalikan batas per instance, bukan membuka login tanpa batas.">
 
 Widget ini mengikuti rekaman `batas.txt` bagian E: satu alamat mengirim 24 percobaan ke 24 akun lewat dua instance, dan hitungannya di Redis. Tebak dulu berapa yang sampai ke pemeriksaan password, lalu tekan Berikutnya atau panah kanan.
 
