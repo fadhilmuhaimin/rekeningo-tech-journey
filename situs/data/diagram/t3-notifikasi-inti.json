@@ -1,0 +1,26 @@
+{
+  "id": "t3-notifikasi-inti",
+  "judul": "Bayar selesai dulu, pemberitahuan menyusul",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab api-t3 · outbox.txt A dan B, push.txt E dan F" },
+  "baris": [
+    {
+      "label": "Push menjawab",
+      "sub": "Budi bayar Rp25.000",
+      "simpul": [
+        { "teks": "201 + baris outbox", "sub": "satu transaction" },
+        { "teks": "push: 0 pesan", "sub": "belum dikirim" },
+        { "teks": "terkirim", "sub": "worker, 1 pesan untuk Ani", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Push menggantung",
+      "sub": "pembayaran yang sama",
+      "simpul": [
+        { "teks": "201 + baris outbox", "sub": "satu transaction" },
+        { "teks": "berhenti di 3 detik", "sub": "batas client worker" },
+        { "teks": "baris menunggu", "sub": "percobaan 1, dikirim lagi nanti" }
+      ]
+    }
+  ],
+  "catatan": "Pembayaran tidak menunggu layanan push. Yang menunggu hanya worker, dan barisnya tetap tercatat di tabel."
+}

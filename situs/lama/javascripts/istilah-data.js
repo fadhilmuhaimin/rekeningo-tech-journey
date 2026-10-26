@@ -1297,6 +1297,15 @@ window.ISTILAH = {
   "t": "Token bucket",
   "u": "c-operasional/c4-security-dasar/"
  },
+ "Token perangkat": {
+  "b": "t3-notifikasi",
+  "d": "Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu.",
+  "h": "istilah/token-perangkat/",
+  "n": "3.3 Fitur notifikasi push",
+  "s": "istilah-token-perangkat",
+  "t": "Token perangkat",
+  "u": "tahap-3/fitur-notifikasi/"
+ },
  "Trace": {
   "b": "C2",
   "d": "Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.",
@@ -2284,6 +2293,15 @@ window.ISTILAH = {
   "s": "istilah-token-bucket",
   "t": "Token bucket",
   "u": "c-operasional/c4-security-dasar/"
+ },
+ "token perangkat": {
+  "b": "t3-notifikasi",
+  "d": "Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu.",
+  "h": "istilah/token-perangkat/",
+  "n": "3.3 Fitur notifikasi push",
+  "s": "istilah-token-perangkat",
+  "t": "Token perangkat",
+  "u": "tahap-3/fitur-notifikasi/"
  },
  "trace": {
   "b": "C2",
