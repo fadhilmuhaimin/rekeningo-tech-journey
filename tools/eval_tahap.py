@@ -9,7 +9,8 @@
 Semua perintah membaca berkas di repo (naskah, registry, MDX, situs/dist) dan tidak mengubah apa pun. `rantai` butuh
 `bun run --cwd situs build` lebih dulu. Exit 1 bila ada selisih nyata: W1 nomor, judul, bintang, lab, atau halaman
 "segera"; W6 ADR dengan opsi < 3 atau tanpa pre-mortem atau tanpa "kapan salah"; W8 halaman 404 atau tautan Berikutnya
-yang hilang. `coba` hanya mencetak (nilai W5 butuh penilaian: lihat isi widget).
+yang hilang, atau halaman sesudah halaman terakhir yang sudah punya pengganti ada. `coba` hanya mencetak (nilai W5 butuh
+penilaian: lihat isi widget).
 """
 import json
 import pathlib
@@ -144,6 +145,7 @@ def rantai(n):
     pertama = reg[f"{n}.1"]
     terakhir = reg[max(reg, key=urut)]
     por = {"/" + x["path"].replace(".md", "").replace(".mdx", "") + "/": x for x in d["halaman"] if x.get("path")}
+    by = {x["id"]: x for x in d["halaman"]}
     dist = AKAR / "situs" / "dist"
     sini = "/" + pertama["path"].replace(".md", "") + "/"
     dilihat, masalah = [], 0
@@ -165,9 +167,11 @@ def rantai(n):
         if h.get("id") == terakhir["id"]:
             tujuan = por.get(nxt, {})
             ada = (dist / nxt.strip("/") / "index.html").exists()
-            lama = bool(tujuan.get("lama") or tujuan.get("lebur_ke") or tujuan.get("diganti_oleh"))
-            print(f"   sesudah halaman terakhir: {nxt} ada={ada} id={tujuan.get('id')} judul={tujuan.get('judul')!r} halaman lama={lama}")
-            if not ada:
+            # "Halaman lama" = sudah punya pengganti yang ada (lebur_ke atau diganti_oleh ke halaman `ada`); halaman lama yang
+            # penggantinya masih "segera" (mis. T3 selama 3.1 belum ditulis) boleh di urutan baca (EVAL2-F1, keputusan 1150).
+            lama = any(by.get(tujuan.get(k), {}).get("ada") for k in ("lebur_ke", "diganti_oleh"))
+            print(f"   sesudah halaman terakhir: {nxt} ada={ada} id={tujuan.get('id')} judul={tujuan.get('judul')!r} halaman lama (penggantinya ada)={lama}")
+            if not ada or lama:
                 masalah += 1
             break
         sini = nxt
