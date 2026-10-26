@@ -94,7 +94,7 @@ Tes Go di lab `api-t3` menguji keduanya terpisah (`testing.txt`). Panic di `Lata
 
 **Siapa yang menyalakannya lagi?** Lab menjalankan instance sebagai proses biasa tanpa pengawas, jadi sesudah kode keluar 2 tidak ada yang menyalakannya (Rekaman lab). Restart policy Docker dan `Restart=` di systemd tidak dijalankan di lab (Tidak dijalankan).
 
-Compose di Tahap 1 memakai `restart: unless-stopped`, yang menyalakan container lagi apa pun exit code-nya ([[C3]], [dokumentasi Compose](https://docs.docker.com/reference/compose-file/services/#restart), tanpa nomor versi, dibuka 2026-10-26, Tidak dijalankan). Naskah M21 tidak menjelaskan kenapa Rekeningo tetap mati sembilan menit sampai Bayu turun tangan.
+Compose di Tahap 1 memakai `restart: unless-stopped`, yang menyalakan container lagi apa pun exit code-nya ([[C3]], [dokumentasi Compose](https://docs.docker.com/reference/compose-file/services/#restart), tanpa nomor versi, dibuka 2026-10-26, Tidak dijalankan). Naskah M21 menulis bahwa tidak ada yang memulainya lagi, dan itu belum cocok dengan Compose di Tahap 1. Halaman ini tidak menyelesaikannya, jadi sembilan menit tetap berlabel Ilustrasi.
 
 Pengawas hanya mempersingkat matinya. Selama proses naik, semua request tetap gagal, dan Ekspor kosong berikutnya mematikannya lagi (penalaran).
 
@@ -111,6 +111,8 @@ Lab tidak mengukur jeda deploy satu proses, jadi 40 detik di naskah berlabel Ilu
 <Snippet file="labs/t3-instance/output/panic.txt" lines="31:35" title="Rekaman lab: labs/t3-instance/output/panic.txt, bagian D (dua instance, dua kali Ekspor kosong)" />
 
 Ekspor kosong mematikan instance a, dan 20 request berikutnya dijawab b. Ekspor yang sama mematikan b, dan proxy menjawab 503. Dua instance menahan satu kematian, bukan satu bug yang bisa dipicu berulang.
+
+Di bagian D, b tetap hidup sesudah Ekspor pertama, jadi permintaan itu tidak diulang ke b (penalaran dari rekaman). Komentar di kode menulis bahwa bila panic mendahului jawaban, proxy mengulang GET yang sama ke instance lain (dibaca dari komentar, Tidak dijalankan). Instance itu menjalankan kode yang sama, jadi satu Ekspor bisa mematikan keduanya (penalaran).
 
 Cara proxy tahu instance mana yang hidup, dan apa yang terjadi bila ia tidak tahu, ada di [[t3-dua-instance]]. Satu VPS yang menjalankan keduanya tetap titik gagal tunggal.
 
@@ -164,7 +166,7 @@ Satu proses yang berhenti membawa semua yang dilayaninya, dan dua proses butuh p
 <details class="success">
 <summary>Jawaban</summary>
 
-Handler selesai menjawab sebelum goroutine latar panik. Di lab, jeda 50 ms memastikan urutan itu (`panic.txt` bagian C). Kegagalan di latar tidak muncul di jawaban request yang memicunya.
+Handler selesai menjawab sebelum goroutine latar panik: CSV 200 sampai ke Sari lebih dulu (`panic.txt` bagian C). Di lab, jeda 50 ms di kode menjaga urutan itu (dibaca dari komentar, Tidak dijalankan). Kegagalan di latar tidak muncul di jawaban request yang memicunya.
 
 </details>
 

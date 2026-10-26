@@ -1708,7 +1708,7 @@
   "judul": "3.14 M21: Satu proses mati, semua mati",
   "url": "tahap-3/m21-satu-proses-mati/",
   "tanya": "Sari menerima CSV berstatus 200, tetapi proses API mati. Kenapa Sari tidak melihat galat?",
-  "jawab": "Handler selesai menjawab sebelum goroutine latar panik. Di lab, jeda 50 ms memastikan urutan itu (`panic.txt` bagian C). Kegagalan di latar tidak muncul di jawaban request yang memicunya."
+  "jawab": "Handler selesai menjawab sebelum goroutine latar panik: CSV 200 sampai ke Sari lebih dulu (`panic.txt` bagian C). Di lab, jeda 50 ms di kode menjaga urutan itu (dibaca dari komentar, Tidak dijalankan). Kegagalan di latar tidak muncul di jawaban request yang memicunya."
  },
  {
   "id": "t3-m21-3",

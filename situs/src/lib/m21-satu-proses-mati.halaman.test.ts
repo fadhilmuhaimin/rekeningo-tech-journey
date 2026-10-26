@@ -224,11 +224,15 @@ describe("naskah M21: gejala, yang dikira, pemicu ADR 21, dan klaim negatif tent
     expect((badan.match(/\b\d\d\.\d\d\b/g) ?? []).filter((x) => x !== "17.11")).toEqual([jam, jam, jam]); // gejala, catatan Angka cerita, dan catatan jam; 17.11 adalah versi PostgreSQL di rekaman
     expect(panic + bergulir).toContain("PostgreSQL 17.11");
   });
-  test("klaim negatif tentang naskah: baris M21 tidak menyebut siapa menekan Ekspor dan tidak menjelaskan kenapa proses tidak dinyalakan lagi", () => {
+  test("klaim negatif tentang naskah: baris M21 tidak menyebut siapa menekan Ekspor; klaim positifnya: naskah menulis tidak ada yang memulainya lagi, tanpa Compose atau pengawas", () => {
     harus("Naskah tidak menyebut siapa yang menekan Ekspor, jadi rekaman di bawah memakai Warung Sari, warung di data lab yang belum punya pembayaran.");
     expect(barisM21).not.toMatch(/Sari|menekan|tombol Ekspor/);
-    harus("Naskah M21 tidak menjelaskan kenapa Rekeningo tetap mati sembilan menit sampai Bayu turun tangan.");
+    // Pertentangan dengan Tahap 1: halaman menulis apa yang naskah katakan (kalimat itu diturunkan dari baris naskah), bukan bahwa naskah diam.
+    const frasa = cocok(barisM21, /dan (tidak ada yang memulainya lagi)\./)[1]!;
+    harus(`Naskah M21 menulis bahwa ${frasa}, dan itu belum cocok dengan Compose di Tahap 1. Halaman ini tidak menyelesaikannya, jadi sembilan menit tetap berlabel Ilustrasi.`);
+    expect(badan).not.toMatch(/Naskah M21 tidak menjelaskan/);
     expect(barisM21).not.toMatch(/restart|Compose|pengawas|systemd|unless-stopped/i);
+    expect(compose1).toMatch(/^\s+restart: unless-stopped$/m); // sumber pertentangan: Tahap 1 memakai restart otomatis
     expect(runPy).toContain("Warung Sari (belum ada pembayaran)");
   });
   test("catatan Raka: m17 (2.29) menulis VPS lebih besar dulu, lalu server kedua; Warung Sari ada di Tahap 2", () => {
@@ -305,6 +309,26 @@ describe("rekaman panic.txt: bagian A sampai E dan rentang Snippet", () => {
     harus("*Kondisi rekaman:* PostgreSQL 17.11 dan server Go `api-t3`. Bagian A, B, dan C memanggil satu instance langsung. Bagian D dan E memakai proxy Caddy 2.11.7 di depan dua instance.");
     expect(panic.split("\n")[1]).toContain("PostgreSQL 17.11");
     expect(panic.split("\n")[1]).toContain("Caddy 2.11.7");
+  });
+  test("permintaan Ekspor: A sampai C langsung ke instance (PORT_A), D dan E lewat PORT_PROXY (bukan hanya proxy dinyalakan); D dua kali Ekspor", () => {
+    const rekam = runPy.slice(runPy.indexOf("def rekam_panic"), runPy.indexOf("# ---------- bergulir.txt"));
+    const bagianRun = (h: string) => rekam.slice(rekam.indexOf(`bagian("${h}. `), rekam.indexOf(`bagian("${String.fromCharCode(h.charCodeAt(0) + 1)}. `) > 0 ? rekam.indexOf(`bagian("${String.fromCharCode(h.charCodeAt(0) + 1)}. `) : undefined);
+    expect(bagianRun("C").match(/csv_warung\(\d+, \w+, PORT_PROXY\)/g)).toBeNull();
+    expect(bagianRun("C").match(/csv_warung\(\d+, \w+, PORT_A\)/g)).toHaveLength(2);
+    expect(bagianRun("D").match(/csv_warung\(502, sari, PORT_PROXY\)/g)).toHaveLength(2);
+    expect(bagianRun("D").match(/csv_warung\(\d+, \w+, PORT_A\)/g)).toBeNull();
+    expect(bagianRun("E").match(/csv_warung\(502, sari, PORT_PROXY\)/g)).toHaveLength(1);
+    expect(bagianRun("E").match(/csv_warung\(\d+, \w+, PORT_A\)/g)).toBeNull();
+    expect(bagianRun("D")).toContain("lewat_proxy(20)");
+    expect(bagianRun("E")).toContain("lewat_proxy(20)");
+  });
+  test("catatan D: b hidup sesudah Ekspor pertama (rekaman), komentar kode menulis panic yang mendahului jawaban diulang proxy ke instance lain, dan Caddy mengulang GET", () => {
+    expect(bagD).toContain("20 request sesudahnya lewat proxy: 200: 20 · 200 per instance: b 20");
+    expect(latarGo).toContain("tanpa jeda, panic bisa mendahului respons dan proxy mengulang GET yang sama ke instance lain.");
+    expect(bergulir).toMatch(/Caddy hanya mengulang\s+GET untuk kegagalan sesudah koneksi tersambung/);
+    harus("Di bagian D, b tetap hidup sesudah Ekspor pertama, jadi permintaan itu tidak diulang ke b (penalaran dari rekaman).");
+    harus("Komentar di kode menulis bahwa bila panic mendahului jawaban, proxy mengulang GET yang sama ke instance lain (dibaca dari komentar, Tidak dijalankan).");
+    harus("Instance itu menjalankan kode yang sama, jadi satu Ekspor bisa mematikan keduanya (penalaran).");
   });
   test("A dan B memakai pemicu yang sama (/lab/panik?di=latar) dan hanya mode server yang berbeda", () => {
     const rekam = runPy.slice(runPy.indexOf("def rekam_panic"));
@@ -390,7 +414,7 @@ describe("kode lab: latar, ekspor, ringkasan, jeda, endpoint uji, dan mode renta
     expect(latarGo).toContain('if len(baris) == 0 {\n\t\treturn fmt.Sprintf("ekspor warung %d: laporan kosong", warung)\n\t}');
     const ms = cocok(latarGo, /const JedaAudit = (\d+) \* time\.Millisecond/)[1];
     harus(`Jeda \`JedaAudit\` ${ms} ms adalah tiruan waktu tulis catatan audit.`);
-    harus(`jeda ${ms} ms memastikan urutan itu`);
+    harus(`jeda ${ms} ms di kode menjaga urutan itu (dibaca dari komentar, Tidak dijalankan)`);
     expect(latarGo).toContain("tanpa jeda, panic bisa mendahului respons dan proxy mengulang GET yang sama ke instance lain.");
     harus("Komentar di kode menulis bahwa tanpa jeda itu panic bisa mendahului jawaban (dibaca dari komentar, Tidak dijalankan).");
     expect(skenario.langkah[1]!.jelas).toContain(`menunggu ${ms} ms, tiruan waktu tulis catatan audit di kode lab`);
@@ -501,9 +525,9 @@ describe("sumber luar: dokumentasi Go dan Docker, dan baris riset R3-165 dan R3-
   });
   test("label sumber: arti ditaut ke A0 di Gejala; Tidak dijalankan untuk dokumentasi dan komentar kode; Ilustrasi untuk cerita; penalaran bertanda", () => {
     harus("Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].");
-    expect(badan.match(/Tidak dijalankan\)/g)).toHaveLength(6);
+    expect(badan.match(/Tidak dijalankan\)/g)).toHaveLength(8);
     expect(badan.match(/\(Ilustrasi\)/g)).toHaveLength(2);
-    expect(badan.match(/\(penalaran[^)]*\)/g)).toHaveLength(5);
+    expect(badan.match(/\(penalaran[^)]*\)/g)).toHaveLength(7);
     expect(badan).not.toMatch(/\[perlu verifikasi\]/);
   });
 });
@@ -643,13 +667,19 @@ describe("kartu Cek diri: empat kartu, sama dengan kartu.json", () => {
     expect(kartu[1]!.jawab).toContain("(`panic.txt` bagian C)");
     expect(kartu[3]!.jawab).toContain("(`panic.txt` bagian D)");
   });
+  test("jawaban tiap kartu di kartu.json sama persis dengan isi details Jawaban di halaman (bukan hanya soalnya)", () => {
+    const kartu = (JSON.parse(baca("situs/lama/widgets/data/kartu.json")) as { halaman: string; jawab: string }[]).filter((k) => k.halaman === "t3-m21");
+    const jawabanHalaman = [...badan.matchAll(/<summary>Jawaban<\/summary>\n\n([\s\S]*?)\n\n<\/details>/g)].map((m) => m[1]!);
+    expect(jawabanHalaman).toHaveLength(4);
+    expect(kartu.map((k) => k.jawab)).toEqual(jawabanHalaman);
+  });
   test("kartu 1 sampai 4 menyebut fakta rekaman yang sama dengan bagian B, C, dan D", () => {
     expect(bagB).toContain("kode keluar 2");
     expect(bagC).toContain("Warung Sari (belum ada pembayaran) GET /warung/502/laporan.csv → 200");
     expect(bagD).toContain("10 request sesudahnya lewat proxy: 503: 10");
     harus("Pesannya `index out of range [0] with length 0`, galat di kode yang mengambil baris pertama laporan kosong. Itu bukan kehabisan memori atau CPU, jadi mesin yang lebih besar mati dengan cara yang sama (penalaran).");
     harus("Kedua instance menjalankan kode yang sama, jadi laporan kosong yang sama mematikan instance kedua. Sesudah itu proxy menjawab 503 pada 10 dari 10 request (`panic.txt` bagian D).");
-    harus("Handler selesai menjawab sebelum goroutine latar panik. Di lab, jeda 50 ms memastikan urutan itu (`panic.txt` bagian C). Kegagalan di latar tidak muncul di jawaban request yang memicunya.");
+    harus("Handler selesai menjawab sebelum goroutine latar panik: CSV 200 sampai ke Sari lebih dulu (`panic.txt` bagian C). Di lab, jeda 50 ms di kode menjaga urutan itu (dibaca dari komentar, Tidak dijalankan). Kegagalan di latar tidak muncul di jawaban request yang memicunya.");
   });
 });
 
@@ -734,7 +764,7 @@ const KALIMAT_TERKUNCI: string[] = [
   "Tes Go di lab `api-t3` menguji keduanya terpisah (`testing.txt`). Panic di `Latar` versi benar ditangkap dan pekerjaan sesudahnya tetap jalan, sedangkan ringkasan versi pertama panic pada laporan kosong. Rekaman tidak menjalankan ekspor kosong dengan salah satu perubahan saja. Ringkasan yang benar menghindari panic itu, dan pelindung menahan panic berikutnya dari kode lain (penalaran).",
   "**Kenapa VPS yang lebih besar tidak membantu.** Pesan panic di bagian C berbunyi `index out of range [0] with length 0`. Itu galat di kode, bukan kehabisan memori atau CPU. Mesin yang lebih besar menjalankan kode yang sama dan mati dengan cara yang sama (penalaran; lab tidak mengubah ukuran mesin).",
   "**Siapa yang menyalakannya lagi?** Lab menjalankan instance sebagai proses biasa tanpa pengawas, jadi sesudah kode keluar 2 tidak ada yang menyalakannya (Rekaman lab). Restart policy Docker dan `Restart=` di systemd tidak dijalankan di lab (Tidak dijalankan).",
-  "Compose di Tahap 1 memakai `restart: unless-stopped`, yang menyalakan container lagi apa pun exit code-nya ([[C3]], [dokumentasi Compose](https://docs.docker.com/reference/compose-file/services/#restart), tanpa nomor versi, dibuka 2026-10-26, Tidak dijalankan). Naskah M21 tidak menjelaskan kenapa Rekeningo tetap mati sembilan menit sampai Bayu turun tangan.",
+  "Compose di Tahap 1 memakai `restart: unless-stopped`, yang menyalakan container lagi apa pun exit code-nya ([[C3]], [dokumentasi Compose](https://docs.docker.com/reference/compose-file/services/#restart), tanpa nomor versi, dibuka 2026-10-26, Tidak dijalankan). Naskah M21 menulis bahwa tidak ada yang memulainya lagi, dan itu belum cocok dengan Compose di Tahap 1. Halaman ini tidak menyelesaikannya, jadi sembilan menit tetap berlabel Ilustrasi.",
   "Pengawas hanya mempersingkat matinya. Selama proses naik, semua request tetap gagal, dan Ekspor kosong berikutnya mematikannya lagi (penalaran).",
   "**Deploy Kamis memakai proses yang sama.** Bagian A dan B di `bergulir.txt` menghentikan satu instance dengan SIGTERM, sinyal yang meminta proses berhenti, saat satu request lambat berjalan:",
   "<Snippet file=\"labs/t3-instance/output/bergulir.txt\" lines=\"5:16\" title=\"Rekaman lab: labs/t3-instance/output/bergulir.txt, bagian A dan B (satu instance dihentikan)\" />",
@@ -743,6 +773,7 @@ const KALIMAT_TERKUNCI: string[] = [
   "**Dua instance menahan satu kematian.** Bagian D menjalankan dua instance di belakang proxy dengan health check dan retry, keduanya dalam mode rentan:",
   "<Snippet file=\"labs/t3-instance/output/panic.txt\" lines=\"31:35\" title=\"Rekaman lab: labs/t3-instance/output/panic.txt, bagian D (dua instance, dua kali Ekspor kosong)\" />",
   "Ekspor kosong mematikan instance a, dan 20 request berikutnya dijawab b. Ekspor yang sama mematikan b, dan proxy menjawab 503. Dua instance menahan satu kematian, bukan satu bug yang bisa dipicu berulang.",
+  "Di bagian D, b tetap hidup sesudah Ekspor pertama, jadi permintaan itu tidak diulang ke b (penalaran dari rekaman). Komentar di kode menulis bahwa bila panic mendahului jawaban, proxy mengulang GET yang sama ke instance lain (dibaca dari komentar, Tidak dijalankan). Instance itu menjalankan kode yang sama, jadi satu Ekspor bisa mematikan keduanya (penalaran).",
   "Cara proxy tahu instance mana yang hidup, dan apa yang terjadi bila ia tidak tahu, ada di [[t3-dua-instance]]. Satu VPS yang menjalankan keduanya tetap titik gagal tunggal.",
   "</Blok>",
   "<Blok nama=\"Coba sendiri\">",
@@ -773,7 +804,7 @@ const KALIMAT_TERKUNCI: string[] = [
   "**2.** Sari menerima CSV berstatus 200, tetapi proses API mati. Kenapa Sari tidak melihat galat?",
   "<details class=\"success\">",
   "<summary>Jawaban</summary>",
-  "Handler selesai menjawab sebelum goroutine latar panik. Di lab, jeda 50 ms memastikan urutan itu (`panic.txt` bagian C). Kegagalan di latar tidak muncul di jawaban request yang memicunya.",
+  "Handler selesai menjawab sebelum goroutine latar panik: CSV 200 sampai ke Sari lebih dulu (`panic.txt` bagian C). Di lab, jeda 50 ms di kode menjaga urutan itu (dibaca dari komentar, Tidak dijalankan). Kegagalan di latar tidak muncul di jawaban request yang memicunya.",
   "</details>",
   "**3.** Seorang engineer mengusulkan VPS yang lebih besar. Apa di pesan panic yang menolak usul itu?",
   "<details class=\"success\">",
