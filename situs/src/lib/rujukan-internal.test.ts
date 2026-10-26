@@ -61,6 +61,8 @@ describe("yang bukan rujukan internal tidak diubah", () => {
     "-- keputusan 12345 bukan nomor internal",
     "# Lab 1.31 · satu VPS, satu container API.",
     "(keputusan)",
+    "(keputusan 3)",
+    "# Keputusan 3 di ADR menunjuk keputusan ketiga di ADR itu (keputusan 3 dari 3)",
   ])("%s", (teks) => expect(b(teks)).toBe(teks));
 
   it("bentuk yang tidak dikenali dibiarkan supaya pemeriksa ID menggagalkan build", () => {

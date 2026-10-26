@@ -140,7 +140,7 @@ KASUS = [
     ("Keputusan 3 di ADR menunjuk keputusan ketiga di ADR itu, bukan nomor KEPUTUSAN.md",
      sisip("<p>Pilihan hash. Keputusan 3 adalah keputusan terpisah dengan opsinya sendiri.</p>"), 0, ["tidak tampil"]),
     ("kata keputusan tanpa nomor dan pola mirip nomor keputusan",
-     sisip("<p>Keputusan ini salah bila beban naik. keputusan 12345, keputusan 1, dan keputusan: 415.</p>"), 0, ["tidak tampil"]),
+     sisip("<p>Keputusan ini salah bila beban naik. keputusan 12345, keputusan 1, prakeputusan 415, dan keputusan: 415.</p>"), 0, ["tidak tampil"]),
     ("pola mirip nomor PR", sisip("<p>PR cfug/dio#2512, pull request review, tebakan #10 \u2192 instance 2, (#12), PR 5, SPR 340, dan PR-340.</p>"),
      0, ["tidak tampil"]),
 ]
