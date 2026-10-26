@@ -48,7 +48,7 @@
     ],
     "answer": 1,
     "varian": false,
-    "explain": "Rp25.000. Instance A mencatat satu kunci dihapus dan instance B nol, dan Citra menerima harga lama dari entri B (memori.txt bagian B). Budi, yang membaca lewat A, menerima Rp22.500."
+    "explain": "Rp25.000 bila tiap instance menyimpan entrinya di memorinya sendiri: A mencatat satu kunci dihapus dan B nol, jadi Citra menerima harga lama dari entri B (memori.txt bagian B). Dengan satu Redis untuk kedua instance, Citra menerima Rp22.500 (redis.txt bagian C)."
   },
   "langkah": [
     {
@@ -146,7 +146,7 @@
       "ke": "b",
       "judul": "Citra membaca lewat instance B: tetap Rp25.000",
       "kirim": "GET /katalog?warung=418 (Citra, instance B)\n→ 200 harga_efektif 25000, stok 50, versi 1\ndatabase: harga_efektif_db 22500",
-      "jelas": "Instance B masih memegang entrinya. Dua HP di meja yang sama menerima dua harga. Rp25.000 tidak ada di database, jadi jawaban itu berasal dari entri B.",
+      "jelas": "Instance B masih memegang entrinya. Dua HP di meja yang sama menerima dua harga. Database sekarang menghitung harga efektif Rp22.500, jadi Rp25.000 berasal dari entri B yang diisi sebelum promo.",
       "nada": "warn",
       "layar": {
         "citra": {
@@ -267,7 +267,7 @@
         "ke": "a",
         "judul": "HR menyalakan promo lewat instance A",
         "kirim": "POST /promo potongan 10%, mulai 1 menit lalu, sudah berlaku (HR Jakarta, instance A)\n→ 201\nredis EXISTS katalog:1:418: 0 (SCAN katalog:1:* lalu DEL)",
-        "jelas": "A membuang entri katalog kota itu dari Redis, tempat yang dibaca kedua instance. Entri yang dibuang adalah entri milik B juga."
+        "jelas": "A membuang entri katalog kota itu dari Redis, tempat yang dibaca kedua instance. Hanya ada satu entri untuk kedua instance, jadi B tidak punya entri lama lagi."
       },
       {
         "dari": "client",

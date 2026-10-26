@@ -15,6 +15,7 @@ import { describe, expect, test } from "vitest";
 import cerita from "../../data/cerita.json";
 import { DataRantai } from "./rantai";
 import { daftarBlok, cekTemplat } from "./blok";
+import { bersihkanRujukanInternal } from "./rujukan-internal";
 
 const akar = path.resolve(__dirname, "../../..");
 const terlacak = new Set(
@@ -264,7 +265,10 @@ describe("rekaman memori.txt: harga, stok, hitungan baca database, dan kunci yan
     expect(dbB).toMatchObject({ harga: 25000, efektif: 22500, stok: 50, versi: 1 });
     harus(`Budi menerima ${rp(bacB[0]!.harga_efektif)} dari database`);
     harus(`Citra menerima ${rp(bacB[1]!.harga_efektif)} dari entri B yang stale`);
-    harus(`Database menyebut ${rp(dbB.efektif)}`);
+    harus(`Database menghitung harga efektif ${rp(dbB.efektif)}, jadi ${rp(bacB[1]!.harga_efektif)} bukan hasil bacaan database sekarang. Ia bacaan lama yang tersimpan di entri B.`);
+    // Kolom `harga` di database memang ${rp(dbB.harga)}: yang bukan berasal dari database sekarang adalah harga EFEKTIF di katalog B.
+    expect(dbB.harga).toBe(bacB[1]!.harga_efektif);
+    expect(dbB.efektif).not.toBe(bacB[1]!.harga_efektif);
     // Satu-satunya harga selain harga dasar yang disebut halaman adalah harga promo; promo 10% = Rp25.000 × 90% = Rp22.500.
     expect(Math.floor((dbB.harga * (100 - 10)) / 100)).toBe(dbB.efektif);
     harus(`${rp(dbB.efektif)} adalah ${rp(dbB.harga)} dikurangi 10%`);
@@ -298,6 +302,9 @@ describe("rekaman memori.txt: harga, stok, hitungan baca database, dan kunci yan
   });
   test("kondisi rekaman: PostgreSQL 17.11, dua proses api-t3 dengan cache memori, satu database, tanpa proxy; harga dibekukan oleh jam lab", () => {
     expect(memori[1]).toContain("PostgreSQL 17.11");
+    expect(memori[3]).toContain("dua proses api-t3 yang sama, satu PostgreSQL");
+    expect(memori[4]).toContain(`-katalog-cache memori -jam-lab (TTL ${ttlDetik} detik)`);
+    harus("Keduanya memakai satu database.");
     harus("*Kondisi rekaman:* PostgreSQL 17.11 dan dua proses `api-t3` yang sama, instance A dan instance B");
     harus("masing-masing dengan cache katalog di memori dan TTL 300 detik.");
     const fn = runPy.slice(runPy.indexOf("def rekam_memori("), runPy.indexOf("# ---------- redis.txt"));
@@ -442,7 +449,9 @@ describe("Snippet: berkas, rentang, dan judul sama dengan yang diturunkan dari i
       expect(a.match(/title="([^"]+)"/)![1], a).toMatch(new RegExp(`^${jenis}: ${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} baris ${x} sampai ${y}[ ,]`));
       expect(a.includes('lang="go"'), a).toBe(file.endsWith(".go"));
       const isi = baca(file).split("\n").slice(Number(x) - 1, Number(y)).join("\n");
-      expect(isi, `${file} ${rentang}`).not.toMatch(/keputusan \d+|R\d-\d{2,3}\b|\bPR \d+|\(lab t3-cache, keputusan/);
+      // Snippet.astro membuang "(keputusan NNN)" dan "(tinjauan PR NNN)" dari teks berkas lab saat tampil (rujukan-internal.ts): yang diperiksa
+      // adalah teks sesudah penyaring, persis yang dilihat pembaca. ID riset tidak disaring oleh Snippet, jadi tetap tidak boleh ada di rentang.
+      expect(bersihkanRujukanInternal(isi), `${file} ${rentang}`).not.toMatch(/keputusan \d+|R\d-\d{2,3}\b|\bPR \d+|\(lab t3-cache, keputusan/);
       if (file.endsWith("memori.txt")) expect(Number(x), "tanpa baris kepala").toBeGreaterThan(7);
     });
     expect(RENTANG).toEqual({ memoriA: "8:15", memoriB: "17:28", memoriC: "30:43", memoriD: "45:50", memoriSemua: "8:50", struktur: "30:35", hapusKota: "77:82", kunciProduk: "87:101" });
@@ -516,9 +525,13 @@ describe("skenario alur t3-m23.json: valid, nilai dari rekaman, tebakan, dan var
     expect(Math.max(...p.options.map((o) => o.length))).toBeGreaterThan(benar.length);
     expect(p.options.some((o, i) => i !== p.answer && o.length >= benar.length)).toBe(true);
     expect(p.q).toContain("HR membuat promo 10% lewat instance A");
+    // Widget alur membuka jawaban tebakan di akhir jalur utama DAN di akhir jalur varian (predict.varian false; alur.js: `!d.predict.varian || varianOn`),
+    // jadi penjelasan harus benar di kedua jalur: harga lama di B pada jalur utama, harga promo bila satu Redis dipakai kedua instance.
     expect(p.explain).toBe(
-      `${rp(bacB[1]!.harga_efektif)}. Instance A mencatat satu kunci dihapus dan instance B nol, dan Citra menerima harga lama dari entri B (memori.txt bagian B). Budi, yang membaca lewat A, menerima ${rp(bacB[0]!.harga_efektif)}.`,
+      `${rp(bacB[1]!.harga_efektif)} bila tiap instance menyimpan entrinya di memorinya sendiri: A mencatat satu kunci dihapus dan B nol, jadi Citra menerima harga lama dari entri B (memori.txt bagian B). ` +
+        `Dengan satu Redis untuk kedua instance, Citra menerima ${rp(bacRC[2]!.harga_efektif)} (redis.txt bagian C).`,
     );
+    expect(baca("situs/lama/widgets/alur.js")).toContain("(!d.predict.varian || varianOn)");
     expect(statB.map((x) => x.hapus)).toEqual([1, 0]);
     // Jawaban benar tidak boleh juga ada di jawaban tebakan blok Raka kira (pertanyaan lain: tagihan).
     expect(badan).not.toContain(benar);
@@ -638,7 +651,7 @@ describe("Cek diri, label sumber, bahasa, dan susunan teks", () => {
   test("negasi dan kata pembatas dihitung: satu 'tidak' atau 'hanya' yang ditambah atau dibuang mengubah arti kalimat", () => {
     const hitung = (kata: string): number => (badan.match(new RegExp(`\\b${kata}\\b`, "gi")) ?? []).length;
     expect({ tidak: hitung("tidak"), bukan: hitung("bukan"), belum: hitung("belum"), hanya: hitung("hanya"), semua: hitung("semua"), setiap: hitung("setiap"), selalu: hitung("selalu"), tanpa: hitung("tanpa"), kecuali: hitung("kecuali"), sebagian: hitung("sebagian") })
-      .toEqual({ tidak: 24, bukan: 3, belum: 1, hanya: 7, semua: 0, setiap: 1, selalu: 0, tanpa: 9, kecuali: 0, sebagian: 0 });
+      .toEqual({ tidak: 24, bukan: 5, belum: 1, hanya: 7, semua: 0, setiap: 1, selalu: 0, tanpa: 9, kecuali: 0, sebagian: 0 });
   });
   test("heading, tingkat heading, tag Blok, tanpa komentar HTML; audit bahasa 0 error dan 0 peringatan", () => {
     expect([...badan.matchAll(/^(#{2,6}) (.+)$/gm)].map((x) => `${x[1]!.length} ${x[2]}`)).toEqual(["3 Cek diri"]);
@@ -651,6 +664,124 @@ describe("Cek diri, label sumber, bahasa, dan susunan teks", () => {
     harus("Yang disimpan di memori satu proses berlipat saat prosesnya dua. Cache boleh stale untuk tampilan, tidak untuk uang.");
     expect(naskah).toContain("| Cache | Cache boleh stale untuk tampilan, tidak untuk uang | M23 |");
     expect(naskah).toContain("| State bersama | Yang disimpan di memori satu proses berlipat saat prosesnya dua | M22 |");
+  });
+});
+
+// Penjaga tambahan dari tinjauan: 24 dari 112 mutasi lolos ketika tes snapshot dikecualikan (snapshot gampang di-update, jadi bukan penjaga).
+// Yang lolos: aktor dan instance di prosa (Budi/Citra, A/B, promo lewat A), minggu dan Nadia, noscript, penyebab pre-mortem ke-3, hit dan miss,
+// "jauh di bawahnya", dan semua teks `jelas` serta pilihan tebakan di widget. Semuanya kini diturunkan dari rekaman, kode, registry, naskah, dan 3.15.
+const kata = ["nol", "satu", "dua", "tiga", "empat", "lima"];
+const kapital = (s: string): string => s[0]!.toUpperCase() + s.slice(1);
+
+describe("penjaga tambahan tinjauan: minggu, aktor, instance, noscript, penyebab pre-mortem, hit dan miss, teks langkah widget", () => {
+  const instPromo = mB.find((l) => l.startsWith("HR Jakarta lewat instance "))!.match(/lewat instance ([AB]):/)![1]!;
+  test("Gejala dan Yang Raka kira: minggu dari label registry, jam promo, Nadia, minggu cache, dan TTL dari naskah; satu peta per proses dari kode", () => {
+    const minggu = (dari("t3-m23") as H & { label: string }).label.match(/minggu (\d+)$/)![1]!;
+    expect(naskah).toContain(`| M23 | ${minggu} |`);
+    const jam = naskah.match(/\| M23 \| \d+ \| HR menyalakan promo pukul (\d+\.\d+)\./)![1]!;
+    harus(`Minggu ${minggu} Tahap 3. HR menyalakan promo pukul ${jam}. Sesudah itu dua HP di satu meja di warung Ani menampilkan dua harga untuk nasi goreng yang sama.`);
+    harus(`HP Budi menunjukkan ${rp(bacB[0]!.harga_efektif)}. HP Citra, di meja yang sama, menunjukkan ${rp(bacB[1]!.harga_efektif)}.`);
+    harus(`pukul ${jam}, dua harga, dan perdebatan orang yang mengantre berasal dari naskah`);
+    const n = naskah.match(/Di minggu (\d+) (Nadia) menambah cache katalog di memori proses \(TTL (\d+) detik, (\d+) menit\)/)!;
+    harus(`Di minggu ${n[1]} ${n[2]} menambah cache untuk katalog, karena katalog dibaca terus (naskah, Ilustrasi).`);
+    harus(`dengan TTL ${n[4]} menit, yaitu ${n[3]} detik.`);
+    expect(Number(n[3])).toBe(ttlDetik);
+    harus("Cache Nadia hidup di memori proses API, satu peta per proses");
+    expect(cacheGo).toMatch(/\tm\s+map\[string\]entri\n/);
+    expect(cacheGo).toContain("return &Memori{m: map[string]entri{}, kini: kini}");
+    harus("Selama hanya ada satu proses, satu peta itu benar. Instance kedua datang lewat [[t3-dua-instance]].");
+    harus("Bila isi yang tidak terbaru ada di HP, kedua HP menerima jawaban server yang sama. Bila jawaban server sendiri berbeda, sumbernya di server.");
+    // Rekaman mencetak lima field item, bukan jawaban mentah: kalimat halaman menyebut kelimanya.
+    expect(runPy).toContain('for k in ("nama", "harga", "harga_efektif", "stok", "versi")');
+    harus("Dua pembaca memanggil `GET /katalog`, dan item nasi goreng di jawabannya dibandingkan. Rekaman mencetak nama, harga, harga efektif, stok, dan versi item itu.");
+  });
+  test("aktor dan instance di prosa, noscript, dan Cek diri 1 dan 3 diturunkan dari baris rekaman (Budi lewat A, Citra lewat B, promo lewat A)", () => {
+    const [b1, c1] = [bacA[0]!, bacA[1]!];
+    expect([b1.siapa, b1.inst, c1.siapa, c1.inst, instPromo]).toEqual(["Budi", "A", "Citra", "B", "A"]);
+    harus(`${b1.siapa} membaca katalog warung Ani lewat ${b1.inst}, dan ${c1.siapa} lewat ${c1.inst}, masing-masing dua kali:`);
+    harus(`HR Jakarta membuat promo lewat ${instPromo}. Bagian B merekam bahwa ${instPromo} membuang entri katalog dan ${c1.inst} tidak:`);
+    harus(`${bacB[0]!.siapa} menerima ${rp(bacB[0]!.harga_efektif)} dari database, karena entri ${bacB[0]!.inst} sudah dibuang.`);
+    harus(`${bacB[1]!.siapa} menerima ${rp(bacB[1]!.harga_efektif)} dari entri ${bacB[1]!.inst} yang stale, yaitu data yang sudah tidak terbaru.`);
+    harus(`Hasilnya: ${bacB[0]!.siapa} menerima ${rp(bacB[0]!.harga_efektif)} lewat instance ${bacB[0]!.inst} dan ${bacB[1]!.siapa} ${rp(bacB[1]!.harga_efektif)} lewat instance ${bacB[1]!.inst}, dan harga di ${bacB[1]!.inst} baru berubah pada detik ke-${ttlDetik}.`);
+    harus(`Dengan satu Redis untuk kedua instance, ${bacRC[2]!.siapa} juga menerima ${rp(bacRC[2]!.harga_efektif)}.`);
+    harus(`**1.** HR membuat promo lewat instance ${instPromo}. Kenapa ${bacB[1]!.siapa}, yang membaca lewat ${bacB[1]!.inst}, masih menerima ${rp(bacB[1]!.harga_efektif)}?`);
+    harus("**3.** Raka mengira ini bug Flutter. Apa di rekaman yang menunjukkan perbedaan itu sudah ada di server?");
+    harus("Ia tidak membuktikan app bebas dari cache sendiri, hanya sisi server yang teruji.");
+    harus(`**2.** Citra memesan saat layarnya ${rp(bacC[0]!.harga_efektif)}. Berapa yang ditagih, dan dari mana angka itu?`);
+  });
+  test("Konsep yang lahir: penyebab ketiga di pre-mortem 3.15 memang memori satu proses; batas login M22 ada di memori tiap instance", () => {
+    const pm = hal315.slice(hal315.indexOf("**Pre-mortem.**"));
+    const butir = pm.split("\n").filter((l) => /^\d+\. /.test(l));
+    const idx = butir.findIndex((l) => l.includes("Memori satu proses berlipat.") && l.includes("Cache katalog di memori menjadi stale di satu instance."));
+    expect(idx).toBe(2);
+    harus(`Penyebab ${["pertama", "kedua", "ketiga"][idx]} di pre-mortem-nya, memori satu proses yang berlipat, terjadi di sini.`);
+    expect(hal315).toContain("Batas login per IP 10 pada satu instance menjadi 20");
+    expect(naskah).toContain("Token bucket ADR 20 ada di memori tiap instance");
+    harus("Batas login yang ada di memori tiap instance ikut berlipat.");
+    harus("Yang disimpan di memori satu proses berlipat saat prosesnya dua.");
+  });
+  test("hit dan miss diturunkan dari kode Katalog.Baca dan Memori.Ambil; L jauh di bawah ambang; beban.txt memeriksa batas, bukan angka tunggal", () => {
+    harus("Bacaan yang dijawab dari entri disebut *hit*. Bacaan tanpa entri, atau dengan entri yang sudah habis, disebut *miss*: prosesnya membaca database lalu menyimpan hasilnya.");
+    expect(cacheGo).toContain("case ada:\n\t\tk.Hit.Add(1)\n\t\treturn b, nil\n\tdefault:\n\t\tk.Miss.Add(1)\n\t}");
+    expect(cacheGo).toContain("b, merr := muat(ctx)");
+    expect(cacheGo).toContain("k.P.Simpan(ctx, kunci, b, k.TTL)");
+    expect(cacheGo).toContain("return append([]byte(nil), e.nilai...), true, nil");
+    const a = cerita.tahap[2]!.asumsi;
+    const L = ((a.user * (a.aktif / 100) * a.req) / 86400) * a.puncak * 0.3 * 0.005;
+    expect(L / 5).toBeLessThan(0.01);
+    harus("Katalog berada jauh di bawahnya.");
+    expect(bebanTeks).toContain("Rekaman memeriksa batas, bukan angkanya");
+    harus("Rekaman `beban.txt` memeriksa besaran yang sama sebagai batas, bukan sebagai angka tunggal.");
+  });
+  test("widget: pilihan tebakan, judul, dan teks jelas tiap langkah (jalur utama dan varian) diturunkan dari rekaman dan kode", () => {
+    const hargaPromo = rp(bacB[0]!.harga_efektif);
+    const hargaLama = rp(bacB[1]!.harga_efektif);
+    expect(skenario.predict.options).toEqual([
+      `${hargaPromo}: promo sudah ada di database, jadi kedua instance menjawab dengan harga promo`,
+      `${hargaLama}: B masih memegang entri lama, dan tidak ada yang membuangnya`,
+      `${hargaPromo}: B memeriksa database dulu pada setiap bacaan`,
+      "Galat 500: B mendeteksi entrinya berbeda dari database",
+    ]);
+    const dbTotal = statA.reduce((s, x) => s + x.db, 0);
+    expect(skenario.langkah.map((x) => x.judul)).toEqual([
+      "Budi membaca katalog warung Ani lewat instance A",
+      "Citra membaca katalog yang sama lewat instance B",
+      "HR menyalakan promo lewat instance A",
+      "Instance A membuang entri katalog kota itu",
+      `Budi membaca lagi lewat instance A: ${hargaPromo}`,
+      `Citra membaca lewat instance B: tetap ${hargaLama}`,
+      "Citra memesan: harga dibaca dari database",
+      "Katalog B sesudah pesanan: harga dan stok masih lama",
+      `TTL ${ttlDetik} detik: entri B habis`,
+    ]);
+    expect(skenario.langkah.map((x) => x.jelas)).toEqual([
+      "Instance A belum punya entri. Ia membaca PostgreSQL, menyimpan hasilnya di cache memorinya sendiri, dan menjawab.",
+      `Instance B tidak melihat entri A, jadi B juga membaca database. ${kapital(kata[bacA.length]!)} bacaan menghasilkan ${kata[dbTotal]} baca database, satu per instance.`,
+      `Promo disimpan di database untuk kota HR itu. Harga efektif nasi goreng di database sekarang ${hargaPromo}.`,
+      `Pembuangan hanya mengenai peta di dalam proses ${instPromo}. Peta di proses B tidak disentuh: B mencatat ${kata[statB[1]!.hapus]} kunci dihapus.`,
+      `Entri A sudah dibuang, jadi A membaca database dan mendapat harga promo. ${hargaPromo} tidak mungkin berasal dari entri lama, yang berisi ${hargaLama}.`,
+      `Instance B masih memegang entrinya. Dua HP di meja yang sama menerima dua harga. Database sekarang menghitung harga efektif ${hargaPromo}, jadi ${hargaLama} berasal dari entri B yang diisi sebelum promo.`,
+      `Pesanan tidak membaca cache. Kode Pesan mengunci produk dan membaca harga, promo, dan stok dari database, jadi Citra ditagih ${rp(pesanan.nominal)} walau layarnya ${rp(bacC[0]!.harga_efektif)}.`,
+      `Pesanan mengurangi stok di database, tetapi tidak membuang entri. Layar Citra menunjukkan stok ${bacC[0]!.stok} padahal database ${dbC.stok}.`,
+      `TTL membatasi lamanya harga lama, tetapi tidak menyembuhkannya sebelum entri habis. Detik ke-${ttlDetik} dihitung sejak entri B diisi.`,
+    ]);
+    expect(skenario.varian.langkah.map((x) => x.judul)).toEqual([
+      "Budi membaca katalog lewat instance A",
+      "Citra membaca lewat instance B",
+      "HR menyalakan promo lewat instance A",
+      `Citra membaca lewat instance B: ${rp(bacRC[2]!.harga_efektif)}`,
+      `Budi membaca lewat instance A: ${rp(bacRC[3]!.harga_efektif)}`,
+    ]);
+    expect(skenario.varian.langkah.map((x) => x.jelas)).toEqual([
+      "Kali ini A dan B memakai satu Redis, container lokal di lab. A menyimpan entrinya di Redis, bukan di peta prosesnya.",
+      `B membaca entri yang diisi A. Di bagian A rekaman yang sama, urutan ini menghasilkan ${kata[statRA[0]!.db + statRA[1]!.db]} baca database untuk dua instance.`,
+      "A membuang entri katalog kota itu dari Redis, tempat yang dibaca kedua instance. Hanya ada satu entri untuk kedua instance, jadi B tidak punya entri lama lagi.",
+      "Redis tidak punya entri, jadi B membaca database dan mendapat harga promo. Tidak ada dua harga.",
+      "Kedua HP menerima harga yang sama. Satu Redis menutup M23, tetapi celah cache lain tetap ada dan dibahas di halaman cache dan invalidation.",
+    ]);
+    // "A dan B memakai satu Redis" dan "menutup M23" dari README lab dan rekaman: Redis satu container, EXISTS 0 sesudah promo, kedua instance melihat harga promo.
+    expect(readmeLab).toContain("Cache bersama menutup M23 tetapi tidak menutup tiga hal lain.");
+    expect(redis[3]).toContain("Redis 8.10.2 (container lokal)");
   });
 });
 

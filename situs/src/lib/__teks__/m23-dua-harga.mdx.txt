@@ -27,11 +27,11 @@ Orang yang mengantre di warung Ani berdebat soal harga mana yang benar.
 
 Raka mengira app Flutter menyimpan harga lama di HP Citra. Dugaan itu bisa diuji tanpa membuka kode app. Bila isi yang tidak terbaru ada di HP, kedua HP menerima jawaban server yang sama. Bila jawaban server sendiri berbeda, sumbernya di server.
 
-Lab `t3-cache` tidak punya app Flutter, jadi rekaman di bawah menguji hal itu di sisi server. Dua pembaca memanggil `GET /katalog`, dan jawaban mentahnya dibandingkan.
+Lab `t3-cache` tidak punya app Flutter, jadi rekaman di bawah menguji hal itu di sisi server. Dua pembaca memanggil `GET /katalog`, dan item nasi goreng di jawabannya dibandingkan. Rekaman mencetak nama, harga, harga efektif, stok, dan versi item itu.
 
 Di minggu 2 Nadia menambah cache untuk katalog, karena katalog dibaca terus (naskah, Ilustrasi). Cache adalah salinan jawaban yang disimpan supaya tidak dibaca ulang dari database ([[t3-cache]]). Cache Nadia hidup di memori proses API, satu peta per proses, dengan TTL 5 menit, yaitu 300 detik. TTL adalah masa berlaku satu entri sebelum dibuang.
 
-Sampai minggu 5 hanya ada satu proses, jadi satu peta itu benar. Instance kedua datang lewat [[t3-dua-instance]]. Bacaan yang dijawab dari entri disebut *hit*. Bacaan tanpa entri, atau dengan entri yang sudah habis, disebut *miss*: prosesnya membaca database lalu menyimpan hasilnya.
+Selama hanya ada satu proses, satu peta itu benar. Instance kedua datang lewat [[t3-dua-instance]]. Bacaan yang dijawab dari entri disebut *hit*. Bacaan tanpa entri, atau dengan entri yang sudah habis, disebut *miss*: prosesnya membaca database lalu menyimpan hasilnya.
 
 <details class="question">
 <summary>Tebak dulu: Citra melihat Rp25.000 di layarnya lalu memesan satu nasi goreng. Berapa yang ditagih?</summary>
@@ -64,7 +64,7 @@ Empat bacaan menghasilkan dua baca database. Tiap instance membaca database satu
 
 <Snippet file="labs/t3-cache/output/memori.txt" lines="17:28" title="Rekaman lab: labs/t3-cache/output/memori.txt baris 17 sampai 28, bagian B (promo lewat A, dua harga)" />
 
-Budi menerima Rp22.500 dari database, karena entri A sudah dibuang. Citra menerima Rp25.000 dari entri B yang stale, yaitu data yang sudah tidak terbaru. Database menyebut Rp22.500, jadi Rp25.000 tidak mungkin berasal dari database.
+Budi menerima Rp22.500 dari database, karena entri A sudah dibuang. Citra menerima Rp25.000 dari entri B yang stale, yaitu data yang sudah tidak terbaru. Database menghitung harga efektif Rp22.500, jadi Rp25.000 bukan hasil bacaan database sekarang. Ia bacaan lama yang tersimpan di entri B.
 
 Mekanismenya ada di kode. Sesudah COMMIT, pembuatan promo memanggil `hapusKatalogKota`, dan fungsi itu hanya menyentuh cache milik prosesnya sendiri (`s.kc`):
 
@@ -96,7 +96,7 @@ Entri B diisi pada jam yang sama dengan saat promo dibuat, jadi tertinggalnya te
 
 ADR 21 membuka cache bila L kelas itu mencapai 5 koneksi ([[t2-adr-21]]). Katalog berada jauh di bawahnya.
 
-Rekaman `beban.txt` memeriksa batas yang sama. Tanpa cache, 52 bacaan menjadi 52 baca database. Waktu baca tetap di bawah 20 ms dan L di bawah 0,1 koneksi dari pool 10 (Rekaman lab, batas).
+Rekaman `beban.txt` memeriksa besaran yang sama sebagai batas, bukan sebagai angka tunggal. Tanpa cache, 52 bacaan menjadi 52 baca database. Waktu baca tetap di bawah 20 ms dan L di bawah 0,1 koneksi dari pool 10 (Rekaman lab, batas).
 
 Apakah cache dipasang sama sekali dibahas di [[t3-cache]].
 
@@ -155,12 +155,12 @@ Rp22.500. `Pesan` membaca harga dari database sesudah produk dikunci, bukan dari
 
 </details>
 
-**3.** Raka mengira ini bug Flutter. Apa di rekaman yang menolak dugaan itu?
+**3.** Raka mengira ini bug Flutter. Apa di rekaman yang menunjukkan perbedaan itu sudah ada di server?
 
 <details class="success">
 <summary>Jawaban</summary>
 
-Jawaban server sendiri berbeda untuk dua pembaca, Rp22.500 lawan Rp25.000, jadi perbedaannya ada sebelum sampai ke HP mana pun. Rekaman tidak memakai app Flutter, jadi hanya sisi server yang teruji.
+Jawaban server sendiri berbeda untuk dua pembaca, Rp22.500 lawan Rp25.000, jadi perbedaannya ada sebelum sampai ke HP mana pun. Rekaman tidak memakai app Flutter. Ia tidak membuktikan app bebas dari cache sendiri, hanya sisi server yang teruji.
 
 </details>
 

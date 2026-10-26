@@ -1884,8 +1884,8 @@
   "halaman": "t3-m23",
   "judul": "3.18 M23: Dua harga di satu meja",
   "url": "tahap-3/m23-dua-harga/",
-  "tanya": "Raka mengira ini bug Flutter. Apa di rekaman yang menolak dugaan itu?",
-  "jawab": "Jawaban server sendiri berbeda untuk dua pembaca, Rp22.500 lawan Rp25.000, jadi perbedaannya ada sebelum sampai ke HP mana pun. Rekaman tidak memakai app Flutter, jadi hanya sisi server yang teruji."
+  "tanya": "Raka mengira ini bug Flutter. Apa di rekaman yang menunjukkan perbedaan itu sudah ada di server?",
+  "jawab": "Jawaban server sendiri berbeda untuk dua pembaca, Rp22.500 lawan Rp25.000, jadi perbedaannya ada sebelum sampai ke HP mana pun. Rekaman tidak memakai app Flutter. Ia tidak membuktikan app bebas dari cache sendiri, hanya sisi server yang teruji."
  },
  {
   "id": "t3-m23-4",
