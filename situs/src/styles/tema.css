@@ -290,6 +290,7 @@ nav.bb-lanjut a.menyusul { color: var(--teks-2); border-style: dashed; }
 .sl-markdown-content .bb-chip { font-size: 0.72em; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 1.2em; border: 1px solid var(--k-old-edge); color: var(--k-old-ink); background: var(--k-old-fill); flex-shrink: 0; max-width: 100%; overflow-wrap: anywhere; }
 .sl-markdown-content .bb-chip.is-warn { border-color: var(--k-warn-edge); color: var(--k-warn-ink); background: var(--k-warn-fill); }
 .sl-markdown-content .bb-chip.is-system { border-color: var(--k-system-edge); color: var(--k-system-ink); background: var(--k-system-fill); }
+.sl-markdown-content .bb-chip.is-good { border-color: var(--k-good-edge); color: var(--k-good-ink); background: var(--k-good-fill); }
 .sl-markdown-content p.meta .bb-selesai { font-size: inherit; }
 .sl-markdown-content .bb-selesai { display: inline-flex; gap: 0.4rem; align-items: center; color: var(--teks-2); cursor: pointer; }
 .sl-markdown-content .bb-fb { border-top: 1px solid var(--garis); margin-top: 2.4em; padding-top: 0.8rem; }
@@ -949,6 +950,17 @@ body:has(.beranda) .content-panel { padding-block: 0.6rem; border-top: 0; }
 .sl-markdown-content .cb-hasil { margin-top: 0.4rem; }
 .sl-markdown-content .cb-alasan { list-style: none; padding: 0; margin: 0 0 0.6rem; display: grid; gap: 0.5rem; }
 .sl-markdown-content .cb-alasan li { display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; align-items: baseline; }
+.sl-markdown-content .cb-ringkas { margin: 0.5rem 0 0; }
+.sl-markdown-content .cb-ringkas:empty { display: none; }
+/* Matriks kejadian × hal (3.4): satu kartu per kejadian, supaya tetap terbaca di 320 px tanpa gulir ke samping. */
+.sl-markdown-content .cb-kejadian { margin: 0.6rem 0; }
+.sl-markdown-content .cb-kejadian__judul { margin: 0 0 0.4rem; }
+.sl-markdown-content .cb-kejadian__daftar { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.6rem; }
+.sl-markdown-content .cb-kejadian__item { margin: 0; padding: 0.5rem 0.7rem; border: 1px solid var(--garis); border-radius: 8px; background: var(--bg-2); }
+.sl-markdown-content .cb-kejadian__nama { margin: 0 0 0.3rem; }
+.sl-markdown-content .cb-kejadian__sel { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.3rem; }
+.sl-markdown-content .cb-kejadian__sel > li { margin: 0; display: flex; flex-wrap: wrap; gap: 0.2rem 0.5rem; align-items: baseline; overflow-wrap: anywhere; }
+.sl-markdown-content .cb-kejadian__hal { color: var(--teks-2); }
 .sl-markdown-content .cb-perbaikan { margin-top: 0.6rem; }
 .sl-markdown-content .cb-perbaikan__label { margin: 0 0 0.3rem; }
 .sl-markdown-content .cb-kode.is-benar-kode { border-color: var(--k-good-edge); }

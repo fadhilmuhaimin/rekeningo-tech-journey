@@ -1469,6 +1469,38 @@
   "jawab": "Tidak. Header itu hanya menyatakan app sanggup menerima gzip. Server yang memutuskan, dan `net/http` tidak mengompres sendiri. Pasang middleware atau aktifkan di reverse proxy."
  },
  {
+  "id": "t3-dua-tempat-1",
+  "halaman": "t3-dua-tempat",
+  "judul": "3.4 Dua tempat yang tidak bisa commit bersama",
+  "url": "tahap-3/dua-tempat-commit/",
+  "tanya": "Push dimatikan dan sepuluh pembayaran tetap selesai dengan 201. Hal mana yang rusak, dan apa buktinya?",
+  "jawab": "Hal kedua. Di `rentan.txt` bagian B, jurnal pembayaran ada 10 dan tabel `outbox` 0 baris. Kegagalan push hanya ada di sepuluh baris log \"push gagal, hanya dicatat\", jadi tidak ada yang tahu kecuali yang membaca log."
+ },
+ {
+  "id": "t3-dua-tempat-2",
+  "halaman": "t3-dua-tempat",
+  "judul": "3.4 Dua tempat yang tidak bisa commit bersama",
+  "url": "tahap-3/dua-tempat-commit/",
+  "tanya": "Layanan push menggantung dan Budi hanya membuka saldo. Kenapa permintaannya tidak dijawab?",
+  "jawab": "Sepuluh pembayaran serentak menahan sepuluh koneksi dengan status `idle in transaction`. Membuka saldo butuh satu koneksi bebas, bahkan untuk memeriksa sesi, dan tidak ada yang bebas. Permintaan itu tidak dijawab selama 2 detik pengamatan (`rentan.txt` bagian A)."
+ },
+ {
+  "id": "t3-dua-tempat-3",
+  "halaman": "t3-dua-tempat",
+  "judul": "3.4 Dua tempat yang tidak bisa commit bersama",
+  "url": "tahap-3/dua-tempat-commit/",
+  "tanya": "Push sudah diterima layanan push, lalu database menolak COMMIT. Hal mana yang rusak, dan kenapa ROLLBACK tidak menolong?",
+  "jawab": "Hal pertama: Citra diberi tahu uang yang tidak ada. ROLLBACK hanya membatalkan data di PostgreSQL. Pesan yang sudah diterima layanan push tidak ikut batal. Kejadian ini Tidak dijalankan di lab Tahap 3, tetapi database memang bisa menolak COMMIT (`transaksi.txt` bagian D)."
+ },
+ {
+  "id": "t3-dua-tempat-4",
+  "halaman": "t3-dua-tempat",
+  "judul": "3.4 Dua tempat yang tidak bisa commit bersama",
+  "url": "tahap-3/dua-tempat-commit/",
+  "tanya": "Di handler versi pertama, kenapa baris `tx.Commit()` bukan baris yang salah?",
+  "jawab": "COMMIT sudah tepat untuk data di PostgreSQL. Yang salah adalah apa yang sudah terkirim sebelum COMMIT sampai, dan apa yang terjadi bila pengiriman itu gagal atau lambat."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",

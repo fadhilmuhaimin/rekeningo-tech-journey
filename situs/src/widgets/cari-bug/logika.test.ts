@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import mentah from "../../../data/widget/t1-m3-caribug.json";
 import sqli from "../../../data/widget/t1-sqli-caribug.json";
 import { DataCariBug } from "./skema";
-import { periksa } from "./logika";
+import { periksa, ringkas } from "./logika";
 
 const data = DataCariBug.parse(mentah);
 
@@ -58,5 +58,24 @@ describe("cari-bug t1-sqli (1.20)", () => {
 
   test("baris aman yang juga bug ditolak skema", () => {
     expect(DataCariBug.safeParse({ ...sqli, aman: { "3": "x" } }).success).toBe(false);
+  });
+});
+
+describe("kejadian dan ringkas (3.4, keputusan 1012)", () => {
+  test("data lama tanpa kejadian dan tanpa ringkas tetap valid", () => {
+    expect(data.kejadian).toBeUndefined();
+    expect(data.label.ringkas).toBeUndefined();
+  });
+
+  test("ringkas mengisi {benar}, {bug}, dan {salah} dari hasil periksa", () => {
+    const h = periksa(data, new Set([1, 3]));
+    expect(ringkas("{benar} dari {bug}; {salah} salah", h)).toBe("1 dari 2; 1 salah");
+  });
+
+  test("kejadian: jumlah sel sama dengan jumlah hal, status hanya ya, tidak, atau na", () => {
+    const dasar = { judul: "k", hal: ["a", "b"], status: { ya: "Ya", tidak: "Tidak", na: "Tidak berlaku" }, baris: [{ nama: "n", sel: [{ status: "ya" }, { status: "na" }] }] };
+    expect(DataCariBug.safeParse({ ...mentah, kejadian: dasar }).success).toBe(true);
+    expect(DataCariBug.safeParse({ ...mentah, kejadian: { ...dasar, baris: [{ nama: "n", sel: [{ status: "ya" }] }] } }).success).toBe(false);
+    expect(DataCariBug.safeParse({ ...mentah, kejadian: { ...dasar, baris: [{ nama: "n", sel: [{ status: "mungkin" }, { status: "ya" }] }] } }).success).toBe(false);
   });
 });
