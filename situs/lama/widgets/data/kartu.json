@@ -1587,7 +1587,7 @@
   "judul": "3.8 Connection pool, Little's Law, dan timeout + ADR 22",
   "url": "tahap-3/connection-pool/",
   "tanya": "Pool 10 koneksi, 0,868 pembayaran per detik, dan push menjawab sesudah 2 detik. Apakah pool muat? Hitung L.",
-  "jawab": "Muat. L = 0,868 × (0,02 + 2) = 1,75 koneksi, jauh di bawah 10. Rekaman `little.txt` mencatat koneksi terukur paling banyak 2, dan rata-ratanya cocok dalam 15% dengan hitungannya."
+  "jawab": "Muat. L = 0,868 × (0,02 + 2) = 1,75 koneksi, jauh di bawah 10. Rekaman `little.txt` mencatat koneksi dengan transaction terbuka paling banyak 2, dan rata-ratanya cocok dalam 15% dengan hitungannya."
  },
  {
   "id": "t3-pool-3",
