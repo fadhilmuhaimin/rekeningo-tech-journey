@@ -1,0 +1,39 @@
+{
+  "istilah": "Golden signals",
+  "sehari_hari": "Golden signals adalah empat angka yang kamu lihat lebih dulu saat sesuatu terasa salah: seberapa lambat, seberapa ramai, seberapa sering gagal, dan seberapa penuh. Angka itu belum menjelaskan penyebabnya, tetapi menunjukkan ke mana harus memeriksa.",
+  "cerita": [
+    {
+      "rujukan": "t3-observability",
+      "teks": "Saat pool penuh di M18, hanya saturation yang bisa dibaca dari api-t3: dipakai 10 dari maks 10. Latency, traffic, dan errors di rekaman dihitung pembangkit beban di luar server."
+    },
+    {
+      "rujukan": "t3-m18",
+      "teks": "Sesudah pool penuh, 190 pembacaan saldo tidak dijawab sama sekali. Dengan janji waktu, setiap pembacaan itu terhitung error."
+    }
+  ],
+  "mekanisme": [
+    "Latency adalah lama melayani satu request. Request yang berhasil dan yang gagal dihitung terpisah.",
+    "Traffic adalah banyaknya permintaan ke sistem. Untuk web service, ukurannya biasanya request per detik.",
+    "Errors adalah request yang gagal secara eksplisit (mis. HTTP 500), implisit (200 dengan isi yang salah), atau menurut kebijakan (lebih lambat dari waktu yang dijanjikan).",
+    "Saturation adalah seberapa penuh sistem, dengan menekankan sumber daya yang paling terbatas, mis. koneksi di connection pool."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menghitung error hanya dari status 5xx. Request yang tidak pernah dijawab belum punya status code, jadi hitungan itu tidak melihatnya.",
+    "Hanya melihat rata-rata latency. Buku SRE memberi contoh rata-rata 100 ms pada 1.000 request per detik, saat 1% request bisa makan 5 detik."
+  ],
+  "terkait": ["Latency", "Throughput", "Metric", "p95 / p50", "Connection pool"],
+  "sumber": [
+    {
+      "riset": "R3-133",
+      "judul": "Google SRE book, bab 6: Monitoring Distributed Systems",
+      "url": "https://sre.google/sre-book/monitoring-distributed-systems/",
+      "catatan": "Edisi 2017. Empat sinyal latency, traffic, errors, dan saturation. Errors mencakup kegagalan eksplisit, implisit, dan menurut kebijakan. Bagian \"Worrying About Your Tail\" memberi contoh rata-rata yang menyembunyikan request lambat."
+    },
+    {
+      "judul": "Rekaman lab t3-pool: M18 dengan beban terjadwal",
+      "rekaman": "labs/t3-pool/output/m18.txt",
+      "catatan": "Pool 10 penuh antara detik ke-11 dan ke-12 (dipakai 10 dari maks 10), dan 190 pembacaan sesudahnya tanpa jawaban."
+    }
+  ]
+}

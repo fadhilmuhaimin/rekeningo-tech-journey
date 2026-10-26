@@ -99,9 +99,13 @@
 *[Firebase Cloud Messaging]: Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya.
 *[Foreign key]: Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada.
 *[foreign key]: Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada.
+*[Golden signals]: Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation.
+*[golden signals]: Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation.
 *[gzip]: Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip.
 *[Idempotency key]: Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.
 *[idempotency key]: Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.
+*[Idle in transaction]: Keadaan sesi database yang sudah membuka transaction tetapi sedang tidak menjalankan query, dan menunggu perintah berikutnya dari client.
+*[idle in transaction]: Keadaan sesi database yang sudah membuka transaction tetapi sedang tidak menjalankan query, dan menunggu perintah berikutnya dari client.
 *[IDOR]: Celah saat server memakai ID dari request tanpa bertanya apakah peminta boleh menyentuh data itu. OWASP API Security menyebutnya BOLA.
 *[Insecure Direct Object Reference]: Celah saat server memakai ID dari request tanpa bertanya apakah peminta boleh menyentuh data itu. OWASP API Security menyebutnya BOLA.
 *[Index sebagian]: Index yang hanya memuat baris yang memenuhi syarat WHERE, sehingga lebih kecil, dan pada unique index hanya baris itu yang dijaga keunikannya.
@@ -273,6 +277,7 @@
 *[token perangkat]: Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu.
 *[Trace]: Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.
 *[trace]: Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.
+*[traceparent]: Header HTTP standar W3C yang membawa trace-id perjalanan satu request, supaya komponen yang berbeda bisa menyambung trace yang sama.
 *[TTL]: Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa.
 *[Time To Live]: Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa.
 *[Tutup buku]: Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang.
