@@ -472,6 +472,13 @@ describe("istilah baru, glosarium, dan peleburan C2", () => {
       expect(d.stack).toBeNull();
     }
   });
+  test("isi tiga halaman istilah (arti, cerita, mekanisme, jebakan, terkait) dikunci utuh", () => {
+    const isi = Object.fromEntries(slugs.map((s) => {
+      const d = JSON.parse(baca(`situs/data/halaman-istilah/${s}.json`));
+      return [s, { sehari_hari: d.sehari_hari, cerita: d.cerita, mekanisme: d.mekanisme, jebakan: d.jebakan, terkait: d.terkait }];
+    }));
+    expect(isi).toEqual(ISTILAH_TERKUNCI);
+  });
   test("glosarium: tiga baris baru dan enam baris lama dialihkan dari C2 ke 3.7", () => {
     const g = baca("situs/src/content/docs/alat/glosarium.mdx");
     const baris = (nama: string) => g.split("\n").find((b) => b.startsWith(`| **${nama}** |`))!;
@@ -744,4 +751,89 @@ const RANTAI_TERKUNCI = {
     }
   ],
   "catatan": "Kotak oranye adalah yang tidak terlihat dari luar. Layanan push tiruan menerima permintaan dan tidak pernah menjawab."
+};
+
+const ISTILAH_TERKUNCI: Record<string, unknown> = {
+  "golden-signals": {
+    "sehari_hari": "Golden signals adalah empat angka yang kamu lihat lebih dulu saat sesuatu terasa salah: seberapa lambat, seberapa ramai, seberapa sering gagal, dan seberapa penuh. Angka itu belum menjelaskan penyebabnya, tetapi menunjukkan ke mana harus memeriksa.",
+    "cerita": [
+      {
+        "rujukan": "t3-observability",
+        "teks": "Saat pool penuh di M18, hanya saturation yang bisa dibaca dari api-t3: dipakai 10 dari maks 10. Latency, traffic, dan errors di rekaman dihitung pembangkit beban di luar server."
+      },
+      {
+        "rujukan": "t3-m18",
+        "teks": "Sesudah pool penuh, 190 pembacaan saldo tidak dijawab sama sekali. Dengan janji waktu, setiap pembacaan itu terhitung error."
+      }
+    ],
+    "mekanisme": [
+      "Latency adalah lama melayani satu request. Request yang berhasil dan yang gagal dihitung terpisah.",
+      "Traffic adalah banyaknya permintaan ke sistem. Untuk web service, ukurannya biasanya request per detik.",
+      "Errors adalah request yang gagal secara eksplisit (mis. HTTP 500), implisit (200 dengan isi yang salah), atau menurut kebijakan (lebih lambat dari waktu yang dijanjikan).",
+      "Saturation adalah seberapa penuh sistem, dengan menekankan sumber daya yang paling terbatas, mis. koneksi di connection pool."
+    ],
+    "jebakan": [
+      "Menghitung error hanya dari status 5xx. Request yang tidak pernah dijawab belum punya status code, jadi hitungan itu tidak melihatnya.",
+      "Hanya melihat rata-rata latency. Buku SRE memberi contoh rata-rata 100 ms pada 1.000 request per detik, saat 1% request bisa makan 5 detik."
+    ],
+    "terkait": [
+      "Latency",
+      "Throughput",
+      "Metric",
+      "p95 / p50",
+      "Connection pool"
+    ]
+  },
+  "idle-in-transaction": {
+    "sehari_hari": "Idle in transaction adalah keadaan sesi database yang sudah membuka transaction, tetapi sedang tidak menjalankan query dan menunggu perintah berikutnya dari client. Selama itu, lock yang sudah ia dapat tetap dipegang.",
+    "cerita": [
+      {
+        "rujukan": "t3-dua-tempat",
+        "teks": "Di versi pertama, sepuluh pembayaran serentak menunggu layanan push di dalam transaction. pg_stat_activity menunjukkan sepuluh sesi dengan status ini."
+      },
+      {
+        "rujukan": "t3-observability",
+        "teks": "Satu pembayaran yang menggantung terlihat dari database sebagai satu sesi idle in transaction dengan wait event ClientRead, lebih dari 3 detik."
+      }
+    ],
+    "mekanisme": [
+      "Client membuka transaction dengan BEGIN dan menjalankan satu atau beberapa perintah.",
+      "Sesudah perintah terakhir selesai, PostgreSQL menunggu perintah berikutnya dari client. Di pg_stat_activity, kolom state bernilai idle in transaction, wait_event_type Client, dan wait_event ClientRead.",
+      "Sesi itu tetap membuka transaction sampai client mengirim COMMIT atau ROLLBACK, atau sampai sesinya diputus.",
+      "Pengaman idle_in_transaction_session_timeout memutus sesi yang diam lebih lama dari batasnya. Bawaannya 0, yang berarti mati."
+    ],
+    "jebakan": [
+      "Mengira idle in transaction berarti query lambat. Sesi itu tidak menjalankan query; yang menunggu adalah sisi client, bukan PostgreSQL.",
+      "Mengira pengaman di PostgreSQL ikut membebaskan pool di aplikasi. Di rekaman lab, PostgreSQL memutus sesi yang diam lebih dari 5 detik, tetapi pool Go tetap penuh selama handler menunggu push."
+    ],
+    "terkait": [
+      "Transaction",
+      "Connection pool",
+      "Timeout"
+    ]
+  },
+  "traceparent": {
+    "sehari_hari": "traceparent adalah header HTTP yang membawa nomor perjalanan satu request. Setiap komponen yang menerimanya bisa menulis nomor yang sama di log atau trace, sehingga potongan dari app, API, dan komponen lain bisa disambung.",
+    "cerita": [
+      {
+        "rujukan": "t3-observability",
+        "teks": "Rekaman jejak.txt bagian J mengirim header contoh dari spesifikasi ke api-t3. Kode api-t3 tidak membacanya, jadi trace-id berhenti di API."
+      }
+    ],
+    "mekanisme": [
+      "Pemanggil yang memulai trace menulis empat field di header: versi, trace-id (32 karakter heksadesimal), parent-id (16), dan trace-flags (2).",
+      "Penerima yang ikut menelusuri mengganti parent-id dengan id miliknya di request keluar, dan trace-id tetap sama.",
+      "Alat tracing yang paling minimal tetap meneruskan header itu supaya trace tidak putus.",
+      "Bit paling kanan trace-flags, sampled, menandai bahwa pemanggil mungkin sudah merekam trace."
+    ],
+    "jebakan": [
+      "Mengira header itu menyalakan tracing dengan sendirinya. Tanpa kode yang membacanya, trace-id berhenti di komponen pertama, seperti di api-t3.",
+      "Membaca trace-flags sebagai angka biasa. Spesifikasi meminta flag dibaca dengan bit mask, karena bit lain bisa memakai arti baru."
+    ],
+    "terkait": [
+      "Trace",
+      "Header",
+      "Log"
+    ]
+  }
 };
