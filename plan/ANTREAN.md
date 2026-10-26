@@ -1359,11 +1359,11 @@ Dari `plan/CERITA-TAHAP-2.md`. Sejak 2026-10-23 (mode penyelesaian penuh, keputu
 ### EVAL-2-ulang · Evaluasi ulang Tahap 2
 
 - jenis: crosscheck
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: EVAL2-F1
 - selesai bila: satu subagent yang bukan penulis halaman Tahap 2 dan bukan pelaksana `EVAL2-F1` menambah bagian "Putaran 2" ke `plan/EVALUASI-TAHAP-2.md` dengan seed 2 yang sama dan bagian "Cara mengulang" file itu: gerbang penuh sekali; W8 (rantai Berikutnya 2.1 sampai 2.33 dan langkah sesudah jembatan yang tidak lagi masuk halaman bertanda lama); W4 (`ukur-axe --semua --awalan /tahap-2/` dan `eval-keyboard.mjs` di 2.4 dan 2.11); W5 dinilai ulang dengan definisi skill yang berlaku saat itu (DIRI-2 mungkin sudah mengubahnya; tidak ada halaman yang diubah di putaran ini); W1 sampai W3, W6, dan W7 diulang dengan perintah yang sama. Tidak ada putaran perbaikan kedua. Sesudahnya tahap dinyatakan selesai apa pun hasilnya, dan butir yang tetap TIDAK dipastikan ada di `plan/TINJAUAN-PEMILIK.md`.
-- catatan: Skill evaluasi-tahap: evaluasi ulang SEKALI. Boleh lebih ringan dari EVAL-2. `DIRI-2` dan `KONSISTENSI-3` menunggu tugas ini (keputusan 752); perbaikan `EVAL2-F1` tidak mengubah bukti yang mereka pakai, jadi bila pengatur ingin Tahap 3 jalan lebih awal, `bergantung` keduanya boleh dikembalikan ke `EVAL-2`.
+- catatan: Skill evaluasi-tahap: evaluasi ulang SEKALI. Boleh lebih ringan dari EVAL-2. `DIRI-2` dan `KONSISTENSI-3` menunggu tugas ini (keputusan 752); perbaikan `EVAL2-F1` tidak mengubah bukti yang mereka pakai, jadi bila pengatur ingin Tahap 3 jalan lebih awal, `bergantung` keduanya boleh dikembalikan ke `EVAL-2`. Selesai 2026-10-26 di PR #363 (keputusan 1166 sampai 1168): W1 sampai W4 dan W6 sampai W8 YA, W5 tetap TIDAK (2.32 tanpa "ubah satu hal"; definisi sesudah DIRI-2 tidak mengecualikan rekap dan pilah); Berikutnya dari 2.33 kini menuju `/cerita/tahap-3/`; lab tidak dijalankan ulang (tidak berubah sejak putaran 1); temuan baru berupa polesan (2.30, 2.28, label Dipersempit) ke SETELAH-TAHAP-2; butir TIDAK tetap di `plan/TINJAUAN-PEMILIK.md` Tahap 2 butir 3.
 
 ### DIRI-2 · Perbaikan diri sesudah Tahap 2
 

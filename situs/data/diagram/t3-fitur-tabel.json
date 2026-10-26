@@ -1,0 +1,25 @@
+{
+  "id": "t3-fitur-tabel",
+  "judul": "Dari PRD v3: tabel dan pemberitahuan",
+  "sumber": { "jenis": "ilustrasi", "teks": "Baris 1: rekaman lab api-t2 dan api-t3. Baris 2: Ilustrasi" },
+  "baris": [
+    {
+      "label": "Database",
+      "sub": "jumlah tabel di skema lab",
+      "simpul": [
+        { "teks": "8 tabel", "sub": "akhir Tahap 2", "nada": "old" },
+        { "teks": "+ 6 tabel", "sub": "kota, perangkat, outbox, produk, promo, operasi_sinkron", "nada": "system" },
+        { "teks": "14 tabel", "sub": "skema lab api-t3", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Di luar database",
+      "sub": "satu pemberitahuan",
+      "simpul": [
+        { "teks": "Jurnal COMMIT", "sub": "PostgreSQL: berhasil atau batal sebagai satu unit", "nada": "system" },
+        { "teks": "HP Citra berbunyi", "sub": "layanan push tidak ikut unit itu", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Abu-abu: akhir Tahap 2. Biru: yang ditambahkan. Hijau: hasilnya. Kuning: pekerjaan yang tidak ikut COMMIT."
+}

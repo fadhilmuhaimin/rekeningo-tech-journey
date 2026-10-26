@@ -1,0 +1,28 @@
+{
+  "id": "t3-prd-sebelum-sesudah",
+  "judul": "Enam kota: sesudah Tahap 2 dan yang diminta PRD v3",
+  "sumber": { "jenis": "ilustrasi", "teks": "Ringkasan PRD v3" },
+  "baris": [
+    {
+      "label": "Sesudah Tahap 2",
+      "sub": "yang belum ada",
+      "simpul": [
+        { "teks": "Uang masuk tanpa kabar", "sub": "penerima harus membuka app" },
+        { "teks": "Menu diubah lewat admin", "sub": "warung tidak bisa mengatur sendiri" },
+        { "teks": "Satu proses API", "sub": "mati atau deploy: semua berhenti" },
+        { "teks": "10 kali lipat karyawan", "sub": "enam kota, ±60 warung", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Rekeningo v3",
+      "sub": "enam kota, 10 minggu",
+      "simpul": [
+        { "teks": "Notifikasi uang masuk", "sub": "bayar dan transfer: 95% dalam 30 detik", "nada": "system" },
+        { "teks": "Katalog dan stok sendiri", "sub": "dari app atau dasbor web", "nada": "system" },
+        { "teks": "Dua instance API", "sub": "dua proses API berjalan bersamaan", "nada": "system" },
+        { "teks": "Tutup buku < 1 hari", "sub": "selisih Rp0, dibuktikan dari data", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kotak biru adalah fitur P0 di PRD v3. Kotak terakhir adalah metrik tutup buku bulanan."
+}
