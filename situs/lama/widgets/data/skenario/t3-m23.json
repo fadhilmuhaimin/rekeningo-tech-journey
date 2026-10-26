@@ -1,0 +1,314 @@
+{
+  "versi": 2,
+  "judul": "Promo lewat satu instance, dua harga di satu meja",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t3-cache/output/memori.txt",
+    "fileVarian": "labs/t3-cache/output/redis.txt",
+    "catatan": "Dua server Go api-t3 dengan cache katalog di memori masing-masing, PostgreSQL 17.11, dan jam cache yang digeser lewat POST /lab/jam, dari database bersih (make -C labs/t3-cache run). Tanpa proxy: lab memanggil instance A atau instance B langsung. Jalur utama: memori.txt bagian A sampai D. Ubah satu hal: redis.txt bagian C, satu Redis (container lokal) untuk kedua instance. Layar HP digambar dari isi rekaman: lab t3-cache tidak punya app Flutter. Jam di layar HP adalah pilihan penulis, kecuali 11.30 dari naskah. Penjelasan bahwa pesanan membaca harga dari database dan bahwa promo membuang kunci hanya di prosesnya sendiri dibaca dari kode labs/api-t3, bukan dari rekaman."
+  },
+  "pengantar": "HR menyalakan promo lewat satu instance, dan dua HP di meja yang sama membaca katalog lewat instance yang berbeda. Tebak dulu harga yang Citra terima, lalu ikuti sampai entri di instance kedua habis. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "a", "label": "Instance A", "lapisan": ["cache memori"] },
+    { "id": "client", "label": "Client" },
+    { "id": "b", "label": "Instance B", "lapisan": ["cache memori"] },
+    { "id": "db", "label": "PostgreSQL" }
+  ],
+  "perangkat": [
+    { "id": "budi", "label": "HP Budi" },
+    { "id": "citra", "label": "HP Citra" }
+  ],
+  "layarAwal": {
+    "budi": {
+      "judul": "Warung Ani",
+      "waktu": "11.29",
+      "sinyal": 3,
+      "isi": [
+        { "jenis": "teks", "teks": "Menu hari ini" },
+        { "jenis": "tombol", "teks": "Lihat menu" }
+      ]
+    },
+    "citra": {
+      "judul": "Warung Ani",
+      "waktu": "11.29",
+      "sinyal": 3,
+      "isi": [
+        { "jenis": "teks", "teks": "Menu hari ini" },
+        { "jenis": "tombol", "teks": "Lihat menu" }
+      ]
+    }
+  },
+  "predict": {
+    "q": "HR membuat promo 10% lewat instance A, dan A membuang entri nasi goreng di cache-nya. Citra membaca katalog lewat instance B, yang menyimpan entrinya sendiri. Harga apa yang Citra terima?",
+    "options": [
+      "Rp22.500: promo sudah ada di database, jadi kedua instance menjawab dengan harga promo",
+      "Rp25.000: B masih memegang entri lama, dan tidak ada yang membuangnya",
+      "Rp22.500: B memeriksa database dulu pada setiap bacaan",
+      "Galat 500: B mendeteksi entrinya berbeda dari database"
+    ],
+    "answer": 1,
+    "varian": false,
+    "explain": "Rp25.000 bila tiap instance menyimpan entrinya di memorinya sendiri: A mencatat satu kunci dihapus dan B nol, jadi Citra menerima harga lama dari entri B (memori.txt bagian B). Dengan satu Redis untuk kedua instance, Citra menerima Rp22.500 (redis.txt bagian C)."
+  },
+  "langkah": [
+    {
+      "dari": "client",
+      "ke": "a",
+      "judul": "Budi membaca katalog warung Ani lewat instance A",
+      "kirim": "GET /katalog?warung=418 (Budi, instance A)\n→ 200 harga_efektif 25000, stok 50, versi 1 (miss)",
+      "jelas": "Instance A belum punya entri. Ia membaca PostgreSQL, menyimpan hasilnya di cache memorinya sendiri, dan menjawab.",
+      "layar": {
+        "budi": {
+          "judul": "Warung Ani",
+          "waktu": "11.29",
+          "sinyal": 3,
+          "isi": [
+            { "jenis": "baris", "kiri": "Nasi goreng", "kanan": "Rp25.000" },
+            { "jenis": "tombol", "teks": "Pesan" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "client",
+      "ke": "b",
+      "judul": "Citra membaca katalog yang sama lewat instance B",
+      "kirim": "GET /katalog?warung=418 (Citra, instance B)\n→ 200 harga_efektif 25000, stok 50, versi 1 (miss)\nsesudah tiap orang membaca sekali lagi (hit):\ninstance A: hit 1, miss 1, baca database 1\ninstance B: hit 1, miss 1, baca database 1",
+      "jelas": "Instance B tidak melihat entri A, jadi B juga membaca database. Empat bacaan menghasilkan dua baca database, satu per instance.",
+      "layar": {
+        "citra": {
+          "judul": "Warung Ani",
+          "waktu": "11.29",
+          "sinyal": 3,
+          "isi": [
+            { "jenis": "baris", "kiri": "Nasi goreng", "kanan": "Rp25.000" },
+            { "jenis": "tombol", "teks": "Pesan" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "client",
+      "ke": "a",
+      "judul": "HR menyalakan promo lewat instance A",
+      "kirim": "POST /promo potongan 10%, mulai 1 menit lalu, sudah berlaku (HR Jakarta, instance A)\n→ 201",
+      "jelas": "Promo disimpan di database untuk kota HR itu. Harga efektif nasi goreng di database sekarang Rp22.500.",
+      "layar": {
+        "budi": {
+          "judul": "Warung Ani",
+          "waktu": "11.30",
+          "sinyal": 3,
+          "isi": [
+            { "jenis": "baris", "kiri": "Nasi goreng", "kanan": "Rp25.000" },
+            { "jenis": "tombol", "teks": "Pesan" }
+          ]
+        },
+        "citra": {
+          "judul": "Warung Ani",
+          "waktu": "11.30",
+          "sinyal": 3,
+          "isi": [
+            { "jenis": "baris", "kiri": "Nasi goreng", "kanan": "Rp25.000" },
+            { "jenis": "tombol", "teks": "Pesan" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "a",
+      "lapisan": "cache memori",
+      "judul": "Instance A membuang entri katalog kota itu",
+      "kirim": "instance A: kunci dihapus 1\ninstance B: kunci dihapus 0",
+      "jelas": "Pembuangan hanya mengenai peta di dalam proses A. Peta di proses B tidak disentuh: B mencatat nol kunci dihapus.",
+      "nada": "warn"
+    },
+    {
+      "dari": "client",
+      "ke": "a",
+      "judul": "Budi membaca lagi lewat instance A: Rp22.500",
+      "kirim": "GET /katalog?warung=418 (Budi, instance A)\n→ 200 harga_efektif 22500, stok 50, versi 1",
+      "jelas": "Entri A sudah dibuang, jadi A membaca database dan mendapat harga promo. Rp22.500 tidak mungkin berasal dari entri lama, yang berisi Rp25.000.",
+      "layar": {
+        "budi": {
+          "judul": "Warung Ani",
+          "waktu": "11.30",
+          "sinyal": 3,
+          "nada": "good",
+          "isi": [
+            { "jenis": "baris", "kiri": "Nasi goreng", "kanan": "Rp22.500" },
+            { "jenis": "tombol", "teks": "Pesan" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "client",
+      "ke": "b",
+      "judul": "Citra membaca lewat instance B: tetap Rp25.000",
+      "kirim": "GET /katalog?warung=418 (Citra, instance B)\n→ 200 harga_efektif 25000, stok 50, versi 1\ndatabase: harga_efektif_db 22500",
+      "jelas": "Instance B masih memegang entrinya. Dua HP di meja yang sama menerima dua harga. Database sekarang menghitung harga efektif Rp22.500, jadi Rp25.000 berasal dari entri B yang diisi sebelum promo.",
+      "nada": "warn",
+      "layar": {
+        "citra": {
+          "judul": "Warung Ani",
+          "waktu": "11.30",
+          "sinyal": 3,
+          "nada": "warn",
+          "isi": [
+            { "jenis": "baris", "kiri": "Nasi goreng", "kanan": "Rp25.000" },
+            { "jenis": "tombol", "teks": "Pesan" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "b",
+      "ke": "db",
+      "judul": "Citra memesan: harga dibaca dari database",
+      "kirim": "POST /pesanan produk 1, 1 porsi (Citra, instance B)\n→ 201 harga_satuan 22500, nominal 22500, potongan_persen 10, stok_sisa 49",
+      "jelas": "Pesanan tidak membaca cache. Kode Pesan mengunci produk dan membaca harga, promo, dan stok dari database, jadi Citra ditagih Rp22.500 walau layarnya Rp25.000.",
+      "nada": "good",
+      "layar": {
+        "citra": {
+          "judul": "Warung Ani",
+          "waktu": "11.31",
+          "sinyal": 3,
+          "isi": [
+            { "jenis": "baris", "kiri": "Nasi goreng", "kanan": "Rp25.000" },
+            { "jenis": "toast", "teks": "Pesanan Rp22.500 berhasil", "nada": "good" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "client",
+      "ke": "b",
+      "judul": "Katalog B sesudah pesanan: harga dan stok masih lama",
+      "kirim": "GET /katalog?warung=418 (Citra, instance B)\n→ 200 harga_efektif 25000, stok 50, versi 1 (hit)\ndatabase: harga_efektif_db 22500, stok 49, versi 2",
+      "jelas": "Pesanan mengurangi stok di database, tetapi tidak membuang entri. Layar Citra menunjukkan stok 50 padahal database 49.",
+      "nada": "warn",
+      "layar": {
+        "citra": {
+          "judul": "Warung Ani",
+          "waktu": "11.31",
+          "sinyal": 3,
+          "nada": "warn",
+          "isi": [
+            { "jenis": "baris", "kiri": "Nasi goreng", "kanan": "Rp25.000" },
+            { "jenis": "baris", "kiri": "Stok", "kanan": "50" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "client",
+      "ke": "b",
+      "lapisan": "cache memori",
+      "judul": "TTL 300 detik: entri B habis",
+      "kirim": "jam cache B digeser lewat POST /lab/jam\ndetik ke-299 → harga_efektif 25000, stok 50, versi 1\ndetik ke-300 → harga_efektif 22500, stok 49, versi 2 (entri habis, dibaca dari database)",
+      "jelas": "TTL membatasi lamanya harga lama, tetapi tidak menyembuhkannya sebelum entri habis. Detik ke-300 dihitung sejak entri B diisi.",
+      "nada": "good",
+      "layar": {
+        "citra": {
+          "judul": "Warung Ani",
+          "waktu": "11.34",
+          "sinyal": 3,
+          "nada": "good",
+          "isi": [
+            { "jenis": "baris", "kiri": "Nasi goreng", "kanan": "Rp22.500" },
+            { "jenis": "baris", "kiri": "Stok", "kanan": "49" }
+          ]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "satu Redis untuk kedua instance",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "client",
+        "ke": "a",
+        "judul": "Budi membaca katalog lewat instance A",
+        "kirim": "GET /katalog?warung=418 (Budi, instance A)\n→ 200 harga_efektif 25000, stok 50, versi 1",
+        "jelas": "Kali ini A dan B memakai satu Redis, container lokal di lab. A menyimpan entrinya di Redis, bukan di peta prosesnya.",
+        "layar": {
+          "budi": {
+            "judul": "Warung Ani",
+            "waktu": "11.29",
+            "sinyal": 3,
+            "isi": [
+              { "jenis": "baris", "kiri": "Nasi goreng", "kanan": "Rp25.000" },
+              { "jenis": "tombol", "teks": "Pesan" }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "client",
+        "ke": "b",
+        "judul": "Citra membaca lewat instance B",
+        "kirim": "GET /katalog?warung=418 (Citra, instance B)\n→ 200 harga_efektif 25000, stok 50, versi 1",
+        "jelas": "B membaca entri yang diisi A. Di bagian A rekaman yang sama, urutan ini menghasilkan satu baca database untuk dua instance.",
+        "layar": {
+          "citra": {
+            "judul": "Warung Ani",
+            "waktu": "11.29",
+            "sinyal": 3,
+            "isi": [
+              { "jenis": "baris", "kiri": "Nasi goreng", "kanan": "Rp25.000" },
+              { "jenis": "tombol", "teks": "Pesan" }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "client",
+        "ke": "a",
+        "judul": "HR menyalakan promo lewat instance A",
+        "kirim": "POST /promo potongan 10%, mulai 1 menit lalu, sudah berlaku (HR Jakarta, instance A)\n→ 201\nredis EXISTS katalog:1:418: 0 (SCAN katalog:1:* lalu DEL)",
+        "jelas": "A membuang entri katalog kota itu dari Redis, tempat yang dibaca kedua instance. Hanya ada satu entri untuk kedua instance, jadi B tidak punya entri lama lagi."
+      },
+      {
+        "dari": "client",
+        "ke": "b",
+        "judul": "Citra membaca lewat instance B: Rp22.500",
+        "kirim": "GET /katalog?warung=418 (Citra, instance B)\n→ 200 harga_efektif 22500, stok 50, versi 1",
+        "jelas": "Redis tidak punya entri, jadi B membaca database dan mendapat harga promo. Tidak ada dua harga.",
+        "nada": "good",
+        "layar": {
+          "citra": {
+            "judul": "Warung Ani",
+            "waktu": "11.30",
+            "sinyal": 3,
+            "nada": "good",
+            "isi": [
+              { "jenis": "baris", "kiri": "Nasi goreng", "kanan": "Rp22.500" },
+              { "jenis": "tombol", "teks": "Pesan" }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "client",
+        "ke": "a",
+        "judul": "Budi membaca lewat instance A: Rp22.500",
+        "kirim": "GET /katalog?warung=418 (Budi, instance A)\n→ 200 harga_efektif 22500, stok 50, versi 1",
+        "jelas": "Kedua HP menerima harga yang sama. Satu Redis menutup M23, tetapi celah cache lain tetap ada dan dibahas di halaman cache dan invalidation.",
+        "nada": "good",
+        "layar": {
+          "budi": {
+            "judul": "Warung Ani",
+            "waktu": "11.30",
+            "sinyal": 3,
+            "nada": "good",
+            "isi": [
+              { "jenis": "baris", "kiri": "Nasi goreng", "kanan": "Rp22.500" },
+              { "jenis": "tombol", "teks": "Pesan" }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
