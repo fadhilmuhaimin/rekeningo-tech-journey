@@ -11,8 +11,8 @@
       "teks": "ADR 14: server dirancang untuk ulangan, dengan key dan hasil tersimpan 24 jam, supaya efeknya satu kali."
     },
     {
-      "rujukan": "B10.1",
-      "teks": "Di Tahap 3, pesan dikirim lagi bila worker mati sebelum menandainya terkirim, dan penerima harus tahan pesan ganda."
+      "rujukan": "t3-at-least-once",
+      "teks": "Worker yang mati sesudah push berhasil membuat pemberitahuan dikirim lagi. Layanan push menerima 2 pesan dengan 1 notifikasi_id, dan penyaring di app menampilkan satu."
     }
   ],
   "mekanisme": [
@@ -53,6 +53,18 @@
       "judul": "Rekaman lab e3-idempotency: server mati sebelum COMMIT",
       "rekaman": "labs/e3-idempotency/output/ledger/mati-di-tengah.txt",
       "catatan": "Jurnal, status selesai, dan respons ditulis di satu transaction; saat koneksi database diputus sebelum COMMIT, ketiganya batal dan ulangan mengerjakan dari awal."
+    },
+    {
+      "riset": "R3-160",
+      "judul": "Apache Kafka: Message Delivery Semantics",
+      "url": "https://github.com/apache/kafka/blob/trunk/docs/design/design.md",
+      "catatan": "At-least-once berarti pesan tidak hilang tetapi bisa dikirim ulang. Memproses lalu menyimpan posisi memberi at-least-once, dan menyimpan posisi sebelum memproses memberi at-most-once."
+    },
+    {
+      "riset": "R3-161",
+      "judul": "Rekaman lab t3-outbox: pengiriman ganda",
+      "rekaman": "labs/t3-outbox/output/ganda.txt",
+      "catatan": "Bagian A: worker mati sesudah kirim, klaim habis, dan layanan push menerima 2 pesan dengan 1 notifikasi_id. Bagian C: penyaring tiruan menampilkan 1 dari 2."
     }
   ]
 }
