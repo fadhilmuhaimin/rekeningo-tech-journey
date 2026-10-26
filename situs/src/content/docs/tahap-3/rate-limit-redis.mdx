@@ -220,7 +220,7 @@ if (RateLimiter::increment('login:'.$request->ip()) > 10) {
 
 **Kebutuhan.** Dua instance membuat 20 dari 24 percobaan lolos penahan per alamat, padahal batasnya 10 (`batas.txt` bagian A). Penahan itu melindungi hash password dari banjir. Kunci akun di database tetap menahan tebakan ke satu akun di 5 (bagian D).
 
-Beban penghitung kecil. Puncak request 17,36 per detik (Asumsi, rumus di [[t3-prd]]). Bila semuanya login, ada paling banyak 34,72 operasi Redis per detik (Hitungan: 2 key per login × 17,36).
+Beban penghitung kecil. Puncak request 17,36 per detik (Asumsi, rumus di [[t3-prd]]). Bila semuanya login, ada paling banyak 34,72 operasi Redis per detik (Asumsi, dihitung dari 2 key per login × 17,36).
 
 **Status:** diterima sesudah M22 (minggu 6), memakai dua instance dari ADR 26 ([[t3-dua-instance]]). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR. ADR ini menyimpang dari syarat kedua ADR 21: counter di PostgreSQL belum diukur ([[t2-adr-21]]).
 

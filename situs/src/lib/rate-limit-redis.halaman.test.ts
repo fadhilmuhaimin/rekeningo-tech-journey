@@ -279,7 +279,7 @@ const EXPECT: string[] = [
   "<Blok nama=\"Putuskan\">",
   "### ADR 27: hitungan batas login di Redis, dengan batas waktu 50 milidetik dan bucket lokal sebagai cadangan",
   "**Kebutuhan.** Dua instance membuat 20 dari 24 percobaan lolos penahan per alamat, padahal batasnya 10 (`batas.txt` bagian A). Penahan itu melindungi hash password dari banjir. Kunci akun di database tetap menahan tebakan ke satu akun di 5 (bagian D).",
-  "Beban penghitung kecil. Puncak request «rps» per detik (Asumsi, rumus di [[t3-prd]]). Bila semuanya login, ada paling banyak «operasi» operasi Redis per detik (Hitungan: 2 key per login × «rps»).",
+  "Beban penghitung kecil. Puncak request «rps» per detik (Asumsi, rumus di [[t3-prd]]). Bila semuanya login, ada paling banyak «operasi» operasi Redis per detik (Asumsi, dihitung dari 2 key per login × «rps»).",
   "**Status:** diterima sesudah M22 (minggu 6), memakai dua instance dari ADR 26 ([[t3-dua-instance]]). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR. ADR ini menyimpang dari syarat kedua ADR 21: counter di PostgreSQL belum diukur ([[t2-adr-21]]).",
   "| | A. Counter di PostgreSQL | B. Sticky session di proxy | C. Batas dibagi N | D. Hitungan di Redis |\n|---|---|---|---|---|\n| Cara kerja | Satu baris per key. `INSERT ... ON CONFLICT DO UPDATE` menaikkan hitungan, dan kolom waktu menandai jendela | Proxy mengirim satu alamat selalu ke instance yang sama (`ip_hash` atau `client_ip_hash` di Caddy), jadi bucket di memori cukup | Tiap instance memakai batas «batasIP» ÷ 2 = «dibagi» per alamat, dihitung dari jumlah instance | Satu hitungan per key di Redis, dinaikkan lewat skrip atomik oleh semua instance. Redis mati berarti bucket lokal |\n| Kelebihan | Tanpa komponen baru. Dokumentasi PostgreSQL menjamin hasil atomik untuk `ON CONFLICT DO UPDATE` | Tanpa komponen baru dan tanpa panggilan jaringan per login | Tanpa komponen baru dan tanpa panggilan jaringan per login | Satu jatah untuk semua instance (bagian E). Beban tulis percobaan ditolak tidak sampai ke database uang |\n| Kekurangan | Tiap percobaan, juga yang ditolak, menulis baris di database yang menyimpan jurnal. GitHub menolak key-value store berbasis MySQL untuk batas API karena tidak mau menambah tulis ke primary yang sudah sibuk | Menyamakan jatah per alamat saja. Satu akun yang diserang dari banyak alamat tetap tersebar di semua instance. `ip_hash` memakai alamat peer langsung, jadi di belakang CDN atau proxy lain semua client masuk ke satu instance | Batas efektif antara «efektifMin» dan «batasIP»: dengan pembagian acak, tiap instance menolak di «dibagi» walau total di bawah «batasIP». Jumlah instance masuk konfigurasi | Komponen baru yang bisa mati. Jendela tetap kasar di batas dua jendela. Satu panggilan jaringan per pemeriksaan |\n| Biaya operasional | Tabel kecil, tetapi butuh pembersihan baris lama dan ikut beban database yang sama | Aturan proxy dan uji bila instance bertambah | Ubah konfigurasi tiap kali jumlah instance berubah | Layanan Redis untuk dipasang, dipantau, dan dicadangkan, dengan keputusan persistence dan batas memori |\n| Bukti | Tidak dijalankan. Dokumentasi PostgreSQL 17 dan artikel GitHub | Tidak dijalankan. Dokumentasi Caddy | Hitungan: 5 + 5 = «sampaiE» dengan round_robin dan antara «efektifMin» dan «sampaiE» dengan acak. Tidak dijalankan | Rekaman lab `batas.txt` bagian E sampai J |",
   "**Keputusan: opsi D.** Enam aturan:",
@@ -451,6 +451,10 @@ describe("kode lab: skrip, jendela, fallback, batas waktu, alamat client", () =>
       const kode = salinan[s.file]!.slice(a! - 1, b!).join("\n");
       expect(kode, s.rentang).not.toMatch(/\bR\d-\d{2,3}\b|\bPR ?#?\d{2,3}\b|keputusan \d{3,4}/);
     }
+    // Snippet rekaman (files=[...]): isi barisnya juga tampil ke pembaca, jadi tanpa ID riset, nomor keputusan, atau PR (kepala rekaman dan judul bagian H memuatnya)
+    const rek = [...halaman.matchAll(/"(labs\/t3-instance\/output\/batas\.txt):(\d+):(\d+)"/g)].map((m) => [Number(m[2]), Number(m[3])] as const);
+    expect(rek).toHaveLength(5);
+    for (const [a1, b1] of rek) expect(barisBatas.slice(a1 - 1, b1).join("\n"), `${a1}:${b1}`).not.toMatch(/\bR\d-\d{2,3}\b|\bPR ?#?\d{2,3}\b|keputusan \d{3,4}/i);
     expect(kodeRb.slice(Number(String(V.skripRentang).split(":")[0]) - 1, Number(String(V.skripRentang).split(":")[1])).join("\n")).toContain("redis.call('INCR', KEYS[1])");
     expect(kodeHd.slice(Number(String(V.alamatRentang).split(":")[0]) - 1, Number(String(V.alamatRentang).split(":")[1])).join("\n")).toContain("net.SplitHostPort(r.RemoteAddr)");
   });
@@ -673,6 +677,7 @@ describe("diagram Rantai Inti dan halaman istilah", () => {
     }
     expect(sidik(JSON.stringify(j))).toBe(SIDIK_ISTILAH);
     expect(j.cerita[0]!.teks).toBe(`Hitungan login di Redis berlaku ${hitE[2]} detik sejak percobaan pertama. Untuk ${nCoba} percobaan dari satu alamat, hitungannya ${hitE[1]}, dan hanya ${mE[2]} yang sampai ke pemeriksaan password (\`batas.txt\` bagian E).`);
+    expect(j.cerita[1]!.teks).toBe("Batas di memori ADR 20 memakai token bucket. Token terisi ulang pelan-pelan, jadi tidak ada saat hitungan kembali ke nol sekaligus.");
     expect(j.mekanisme[0]).toBe(`Percobaan pertama membuat key dengan hitungan 1 dan memasang masa berlaku jendela, ${hitE[2]} detik di lab.`);
     expect(j.mekanisme[1]).toContain(`Hitungan di atas batas, ${batasIP} per alamat, ditolak`);
     expect(j.sumber[1]!.catatan).toBe(`${nCoba} percobaan dari satu alamat: hitungan ${hitE[1]}, sisa jendela antara 1 dan ${hitE[2]} detik, dan ${mE[2]} yang sampai ke pemeriksaan password.`);
@@ -877,7 +882,7 @@ const SIDIK_RISET: Record<string, string> = {
   "R3-182": "adc2c8f404ae1720",
   "R3-183": "9799e7d951bb5a4b",
 };
-const SIDIK_ISTILAH = "6e38613e28e3f588";
+const SIDIK_ISTILAH = "99cefdcdb46a6c63";
 const ALAMAT: [string, string][] = [
   ["https://redis.io/docs/latest/commands/incr/", "redis.io/docs/latest/commands/incr/"],
   ["https://redis.io/docs/latest/develop/programmability/eval-intro/", "redis.io/docs/latest/develop/programmability/eval-intro/"],

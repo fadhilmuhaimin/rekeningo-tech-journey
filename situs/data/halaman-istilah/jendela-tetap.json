@@ -8,7 +8,7 @@
     },
     {
       "rujukan": "t2-login-aman",
-      "teks": "Batas di memori ADR 20 memakai token bucket, yang mengisi ulang token pelan-pelan dan tidak menolak sampai jendela habis."
+      "teks": "Batas di memori ADR 20 memakai token bucket. Token terisi ulang pelan-pelan, jadi tidak ada saat hitungan kembali ke nol sekaligus."
     }
   ],
   "mekanisme": [
