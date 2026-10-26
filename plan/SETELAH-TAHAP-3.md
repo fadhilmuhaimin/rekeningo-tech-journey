@@ -285,3 +285,45 @@ Polesan dari tinjauan Tahap 3 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - Lab t3-outbox: kalimat `ganda.txt` bagian A "dari start worker pertama sampai worker kedua selesai" menyebut worker kedua, padahal skrip mengukur sampai worker ketiga (yang mengirim ulang; worker kedua mengklaim 0 baris). Perbaiki bersama kalimat "jeda polling" di atas dan di README lab.
 - Widget `alur` t3-m20: pilihan tebakan yang benar paling panjang (80 karakter lawan 61, 59, 69), jadi panjangnya menjadi petunjuk; samakan panjang pilihan.
 - Lab t3-outbox: tidak ada rekaman selang antara dua pesan; hanya selang dari start worker yang mati sampai worker yang mengirim ulang selesai (4,9 sampai 7,0 detik). Bila halaman 3.13 membutuhkan selang pesan, rekam dari stempel waktu layanan push tiruan.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- Alert jumlah baris `mati` belum ada di ADR 32: `RingkasOutbox` menghitung umur baris `menunggu` saja, jadi baris dead-letter tidak membunyikan alert umur tertua. Tambahkan ke daftar alert 3.27 atau `GET /lab/outbox`.
+- Jendela retry 45 detik (30 detik jeda + 5 × 3 detik): layanan push yang mati lebih lama memasukkan semua baris masuk ke `mati` (paling banyak 521 baris per 10 menit pada 0,868 per detik, Asumsi). Pertimbangkan jeda maksimum lebih panjang, replay terjadwal, atau lab `t3-outbox` yang merekam gangguan 2 menit.
+- Penyaring Dart dan pesan `data` belum ada rekaman: usul lab kecil dengan client Dart (seperti `t3-mitm`) yang memerankan `onMessage` dan penyimpanan id, dan uji di emulator Android dan simulator iOS.
+- 3.9 menulis pgmq v1.10.0; rilis terbaru saat ini v1.13.1 (2026-10-20): samakan versi bila 3.9 dibuka lagi.
+- Tulisan Brooker menyimpan rumus Full Jitter di gambar, bukan teks: bila lab ingin menyebut rumus dari sumbernya, ambil dari alt gambar atau kode AWS SDK.
+- Kode lab `kirimSatu` mengulang seluruh baris ke semua perangkat bila satu perangkat gagal sementara; tulis tes Go untuk dua perangkat (perangkat pertama berhasil, kedua 503) bila baris dipecah per perangkat.
+- Dua tebakan widget OutboxWorker (`ulang` dan `ganda`) menaruh jawaban benar di pilihan kedua dari tiga: variasikan posisinya (skill visualisasi).
+- FCM menulis non-collapsible Android menyimpan paling banyak 100 pesan saat HP offline, lalu semua dibuang dan app menerima pesan khusus untuk meminta sinkron penuh (dokumentasi collapsible, dibuka 2026-10-26). Pesan data uang non-collapsible: tambahkan ke pre-mortem 1 ADR 25 bahwa app harus memuat riwayat dari API saat pesan khusus itu tiba.
+- Penyaring yang membuang ulangan berarti pesan high priority tanpa notifikasi untuk user; dokumentasi FCM membaca pola 7 hari per instance app untuk deprioritisasi. Ukur di perangkat apakah ulangan yang dibuang menurunkan prioritas pesan uang berikutnya.
+- Rekaman lab untuk gangguan push yang lebih panjang dari 45 detik pada 0,868 per detik: halaman memakai hitungan 4 ÷ 3 = 1,33 percobaan per detik lawan 4,34 (Asumsi), belum direkam.
+- Janji lintas halaman ke 3.27: ADR 25 menaruh alert jumlah baris `mati` dan "replay otomatis" di [[t3-tim-infra]], tetapi naskah ADR 32 memuat alert umur tertua per kelas saja. Penulis 3.27 mengambilnya atau halaman ini diubah.
+- Halaman Serverpod Scheduling bertanda Version 4.0.0 sedangkan rilis pub.dev 4.0.4 (2026-10-06): samakan bila 3.9 atau 3.11 menulis versi dokumentasi.
+- Lab t3-instance: rekam ekspor kosong dengan pelindung saja dan dengan ringkasan benar saja, supaya dua perubahan versi benar terpisah dan 3.14 tidak memakai penalaran.
+- Lab: rekam restart policy Docker (`unless-stopped`) pada panic di goroutine latar bila Docker tersedia; sekarang Tidak dijalankan, dan inilah bahan jawaban "siapa yang menyalakannya lagi".
+- Halaman istilah goroutine, panic, dan recover (tab per stack) belum ada; 3.14 mendefinisikannya satu kalimat di tempat.
+- Registry `masalah` untuk `t3-m21` ("tidak ada yang memulainya lagi") tampil di indeks topik dan cerita/tahap-3; ubah bila USULAN-CERITA diterima.
+- 3.15 sebaiknya merujuk 3.14 untuk panic.txt bagian D (sudah dipakai di sini sebagai Snippet) dan memakai proxy.txt dan bergulir.txt bagian C dan D.
+- Label komponen "Client" di widget alur 3.14 generik untuk dasbor dan skrip lab; bila ada widget alur dengan peran client lain, samakan.
+- `alur.js` (semua halaman alur): sesudah langkah terakhir tombol Berikutnya `disabled` dan fokus jatuh ke `<body>` (diukur `document.activeElement` di 375 dan 1366 pada 3.14; `ukur-detail-alur` hanya memeriksa fokus sesudah tebakan). Pakai `aria-disabled` atau pindahkan fokus ke kotak "Ubah satu hal" atau jawaban.
+- Lab t3-instance: rekam ekspor kosong dengan `JedaAudit` 0 lewat proxy (bila Docker tersedia): apakah satu Ekspor mematikan kedua instance lewat retry GET; sekarang hanya dibaca dari komentar (3.14, paragraf bagian D). 3.15 (ADR 26) harus menyebut bahwa "dua instance menahan satu kematian" berlaku bila jawaban terkirim sebelum panic, dan naskah ADR 26 sudah menimbang "satu instance dengan restart otomatis" (keadaan Tahap 1).
+- Kalimat "menutup koneksi request itu" di 3.14 menyederhanakan dokumentasi `http.Handler` ("menutup koneksi atau mengirim RST_STREAM, tergantung protokol"); lab memakai HTTP/1.
+- Tebakan widget 3.14: pilihan benar (86 karakter) paling panjang dan memuat alasannya; pilihan lain 79, 57, 56. Samakan panjangnya.
+- 3.2 (`fitur-ke-teknis`) memetakan "Tidak berhenti saat deploy" ke "Dua instance; proxy ..." sebagai pekerjaan teknis, sedangkan 3.14 menulis "tidak ada pekerjaan yang dijadwalkan"; pilih kata yang sama bila USULAN-CERITA diterima.
+- Cek diri 2 dan kalimat "dibaca dari komentar" di 3.14 bisa diganti rekaman bila lab merekam urutan jawaban lawan panic tanpa `JedaAudit`.
+- Rekam `/healthz` saat pool penuh (M18) di belakang proxy: apakah kedua instance dikeluarkan dan proxy menjawab 503 (sekarang dibaca dari kode di 3.15).
+- Rekam POST yang terputus sesudah tersambung dan kombinasi tanpa `Shutdown` dengan proxy beretry; `bergulir.txt` memisahkan keduanya hanya lewat bagian B lawan C.
+- Ukur jeda naik instance pengganti di `bergulir.txt` D; 0,5 detik sekarang `time.sleep` pilihan lab.
+- Rekam `health_fails 2` dan `fail_duration` pasif agar pre-mortem 1 punya bukti pencegahan.
+- Widget `banding` (lama): tanpa `noscript` tabel statis, `aria-live="polite"` bukan `role="status"`, dan tanpa alat ukur geometri; halaman 3.15 menulis noscript sendiri.
+- `labs/t3-instance`: rekam instance yang hidup tetapi tidak menjawab (hung), bukan hanya SIGKILL, untuk `health_timeout`.
+- Halaman istilah "Graceful shutdown" belum ada (hanya baris glosarium).
+- 3.27 (pelaksana dan pengatur): 3.15 menulis "Alert untuk instance yang dikeluarkan ada di 3.27" (aturan 3 dan biaya opsi C), padahal naskah dan "selesai bila" 3.27 hanya memuat alert gejala yang dirasakan user (umur notifikasi uang tertua, error rate, p95, request yang menunggu koneksi). Muat alert instance dikeluarkan di 3.27 atau ubah kalimat di 3.15.
+- Tebak (komponen bersama): tombol memakai `disabled` sesudah memilih, jadi fokus kadang jatuh ke body, dan `role="status"` memuat hasil empat paragraf; di 3.15 tombol "Coba pilihan lain" juga menjatuhkan fokus ke body. Pakai `aria-disabled` dan pindahkan fokus ke hasil.
+- Banding (widget lama): simpul tidak bisa berganti keadaan per kejadian (sub statis); data 3.15 memakai sub netral "proses api-t3". Beri `nada` per simpul bila halaman lain butuh "hidup" dan "mati".
+- `layar.mjs` hanya menandai margin di bawah 20 px sebagai "tipis" dan exit 0; `cek_id_tampil.py` tidak membaca "keputusan N" di teks; nama Blok salah lolos build (hanya Vitest halaman yang menangkap).
+- Label "(penalaran)" di tabel ADR opsi B bukan salah satu dari lima label sumber di `/cara-pakai/`; pakai "Tidak dijalankan" atau jelaskan di `/cara-pakai/`.
+- `RISET-TAHAP-3.md` baris "Canary, GitOps, k8s, service mesh" sudah dikoreksi ke Tahap 5; baris riset lain yang menulis "Tahap 4–5" untuk Kubernetes (cek `grep -n "Tahap 4–5" plan/RISET-TAHAP-*.md`) perlu diperiksa ke PROPOSAL.
+- Rekam `labs/t3-instance` bagian D `bergulir.txt` dengan deploy yang menunggu pengganti (seperti C) supaya perbandingan C lawan D hanya berbeda di proxy.
+- Halaman 3.15: sumber Amazon kini bernama AWS Builder Center di builder.aws.com (tautan lama builders-library mengalihkan); ganti "Amazon Builders' Library" bila pemilik ingin nama sumbernya persis.
