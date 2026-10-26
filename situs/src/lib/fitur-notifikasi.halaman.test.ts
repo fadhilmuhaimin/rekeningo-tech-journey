@@ -593,7 +593,7 @@ describe("istilah Token perangkat", () => {
     const glos = baca("situs/src/content/docs/alat/glosarium.mdx");
     expect(glos).toMatch(/\| \*\*Token perangkat\*\* \|[^\n]*\| \[\[t3-notifikasi\]\] \|/);
     expect(istilah.cerita[0]!.rujukan).toBe("t3-notifikasi");
-    const rekaman = istilah.sumber.flatMap((s) => ("rekaman" in s ? [s.rekaman] : []));
+    const rekaman = istilah.sumber.flatMap((s) => ("rekaman" in s && typeof s.rekaman === "string" ? [s.rekaman] : []));
     expect(rekaman).toEqual(["labs/api-t3/output/sinkron.txt"]);
     for (const r of rekaman) expect(fs.existsSync(path.join(akar, r))).toBe(true);
     for (const s of istilah.sumber) if ("riset" in s) expect(riset, s.riset).toContain(`| ${s.riset} |`);
