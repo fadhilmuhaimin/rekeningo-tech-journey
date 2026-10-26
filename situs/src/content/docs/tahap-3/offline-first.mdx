@@ -1,0 +1,327 @@
+---
+title: "3.21 Offline-first dan sinkron + ADR 29"
+description: Operasi di queue HP warung membawa kunci dan versi, jadi server mengenali kiriman ulang dan menolak operasi yang sudah usang. ADR 29 menimbang empat cara lain dan menulis kapan pilihan ini salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import intiDiagram from "../../../../data/diagram/t3-offline-inti.json";
+import dataTebak from "../../../../data/widget/t3-offline-tebak.json";
+
+<p class="meta">Baca 16 menit · coba 3 menit · Prasyarat: [[t3-m24]]</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Operasi yang menunggu di HP membawa kunci dan versi: kunci mengenali kiriman ulang, dan versi menolak operasi yang sudah usang.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `versi.txt` bagian C, HP Ani online lagi hari Senin, 62 jam sesudah Jumat. Operasi soto dikirim ulang dengan kunci yang sama dan dikenali: jawabannya `ulang: true`, dan stok 30 dari hari Sabtu utuh. Operasi bakso belum pernah sampai, jadi kuncinya tidak dikenal, tetapi versi dasar 1 sudah lewat. Server menjawab 409 dengan stok 30 dan versi 2, dan tidak mengubah apa pun.
+
+Jalur lama tanpa versi merekam kebalikannya. Di `m24.txt` bagian D, kunci sudah dibuang sesudah 24 jam, jadi `stok = 0` diterapkan di atas stok 30 dan jawabannya 200. Waktu di lab diperankan (Ilustrasi mekanisme), dan HP diperankan curl, jadi queue lokal dan layar konflik di app Tidak dijalankan.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Operasi bakso belum pernah sampai dan tiba hari Senin. Apa yang menolaknya, kunci atau versi?
+2. Kenapa queue di HP paling lama 7 hari, padahal kunci sinkron hidup 14 hari?
+3. Kenapa pembayaran tidak ikut lewat sinkron ini?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: kunci saja tidak cukup untuk operasi yang menunggu lama, dan versi baris yang menolak operasi dari keadaan yang sudah lewat.">
+
+Tebak dulu apa jawaban server, lalu baca alasan tiap pilihan. Adegannya memakai bakso di `versi.txt` bagian B, C, dan D.
+
+<Tebak client:visible data={dataTebak} />
+
+<noscript>
+<p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: 409, stok tetap 30, dan jawabannya memuat stok 30 dan versi 2.</p>
+</noscript>
+
+**Ubah satu hal:** bayangkan operasi serupa untuk soto sampai ke server Jumat, sebelum Ani mengisi lewat dasbor. Versi dasarnya masih sama dengan versi di server, jadi server menerapkannya. `versi.txt` bagian A merekamnya: jawaban 200, status `diterapkan`, stok 0 dan versi 2.
+
+Ubah satu hal lagi: tab dasbor yang masih menampilkan soto versi 2 mengubah stok ke 10 sesudah Ani mengisi 30. Hasilnya 409 dan stok 30 utuh (`versi.txt` bagian B).
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t3-m24]] menunjukkan stok yang diisi Ani hari Sabtu kembali ke angka lama hari Senin. Penyebabnya dua. Kunci kirim ulang hanya hidup 24 jam ([[t2-idempotency]]), sedangkan akhir pekan warung 62 jam (Asumsi dari naskah). Dan endpoint stok versi lama menimpa tanpa memeriksa versi (`m24.txt` bagian D).
+
+PRD v3 meminta warung bisa mengubah stok dan harga tanpa sinyal, dan menegaskan pembayaran tidak pernah offline ([[t3-prd]]). Halaman ini memutuskan apa yang dijaga untuk operasi yang menunggu lama, dan operasi apa yang boleh menunggu.
+
+Dokumentasi Android menyebut tiga cara menulis, dan halaman itu bertanda Last updated 2026-10-14 UTC ([Android: Build an offline-first app](https://developer.android.com/topic/architecture/data-layer/offline-first), dibuka 2026-10-27). Online-only writes menulis lewat jaringan dulu dan melempar exception bila gagal. Queued writes memasukkan objek ke queue dan mengosongkannya dengan exponential backoff saat online. Lazy writes menulis ke penyimpanan lokal dulu, lalu memasukkan tulis jaringan ke queue secepatnya.
+
+Dokumentasi yang sama menulis bahwa pola lazy writes tidak sederhana karena konflik bisa terjadi, dan bahwa penyelesaian konflik sering butuh versioning.
+
+Dokumentasi Flutter memberi flag `synchronized` pada data yang belum terkirim ([Flutter: Offline-first support](https://docs.flutter.dev/app-architecture/design-patterns/offline-first), dokumentasi Flutter 3.47, diperbarui 2026-05-05, dibuka 2026-10-27). Ia menyebut empat cara menyinkronkan: timer, background process dengan plugin `workmanager`, tarik untuk menyegarkan, dan push.
+
+Kata conflict dan versioning tidak ada di halaman itu, jadi aturan yang menentukan nasib stok Ani harus kamu putuskan sendiri.
+
+### Cara kerjanya
+
+**Enam hal bisa terjadi pada satu operasi di queue, dan tiap hal punya penjaga sendiri.**
+
+| Kejadian | Jawaban server | Penjaga | Sumber |
+|---|---|---|---|
+| HP mengirim ulang dengan kunci yang sama sesudah jawaban hilang | 200 dengan `ulang: true`, stok tidak berubah | Kunci sinkron | `versi.txt` bagian C (soto); `sinkron14.txt` bagian A |
+| Operasi belum pernah sampai dan tiba sesudah stok berubah | 409 dengan keadaan terkini, tidak ada yang berubah | Versi dasar | `versi.txt` bagian C (bakso) |
+| Tab dasbor di laptop masih menampilkan angka lama | 409 dengan keadaan terkini | Versi di `PATCH /produk/{id}` | `versi.txt` bagian B |
+| Operasi lebih tua dari 7 hari | 422, tidak ada baris yang dicatat | Umur queue | `sinkron14.txt` bagian B dan D |
+| Kunci yang sama dengan isi lain, atau milik akun lain | 422 | Perbandingan isi kunci | `sinkron14.txt` bagian C |
+| Jenis bayar, transfer, atau topup | 422 apa pun isinya | Daftar jenis | `sinkron14.txt` bagian E |
+
+**Versi diperiksa di dalam satu UPDATE.** Syaratnya `AND versi = $5`. Bila baris sudah diubah, UPDATE tidak cocok dengan baris mana pun, dan kode membaca keadaan terkini untuk jawaban 409:
+
+<Snippet file="labs/api-t3/internal/repo/katalog.go" region="ubah-produk" lang="go" title="labs/api-t3/internal/repo/katalog.go" />
+
+Dua perubahan serentak dari versi yang sama tidak bisa sama-sama menang. Bila transaction pertama sudah commit, PostgreSQL mengevaluasi ulang WHERE pada versi baru baris. UPDATE kedua melanjutkan hanya bila versinya masih cocok ([PostgreSQL 17: Transaction Isolation](https://www.postgresql.org/docs/17/transaction-iso.html), bagian Read Committed, dibuka 2026-10-25). Tes Go `TestUbahProdukBersamaanSatuPemenang` menjalankan 20 perubahan dari versi 1: 1 berhasil dan 19 mendapat versi berbeda, dan itu tes, bukan rekaman lab.
+
+RFC 9110 menulis bahwa jawaban 409 sebaiknya memuat cukup isi supaya pengirim mengenali sumber konflik ([RFC 9110 §15.5.10](https://www.rfc-editor.org/rfc/rfc9110#section-15.5.10), dibuka 2026-10-25). Karena itu jawaban lab membawa `sekarang`, yaitu stok, harga, dan versi terkini.
+
+**Kunci dan hasilnya disimpan dalam satu transaction.** Baris produk lebih dulu dikunci dengan `FOR UPDATE`. Potongan ini menunjukkan sisanya: kunci dicari, versi dibandingkan, lalu hasilnya, diterapkan atau konflik, disimpan bersama kuncinya:
+
+<Snippet file="labs/api-t3/internal/repo/katalog.go" lines="216:251" lang="go" title="labs/api-t3/internal/repo/katalog.go" />
+
+Tes Go `TestSinkronKunciSamaBersamaanSekali` mengirim 10 operasi dengan kunci yang sama serentak: 1 diterapkan, 9 dikenali sebagai ulangan, dan versi naik sekali. Server yang mati di tengah tidak meninggalkan kunci tanpa efek atau efek tanpa kunci. Itu dibaca dari kode dan sifat transaction, dan tidak direkam. Jalur Idempotency-Key di bayar tidak sama: kerja dan penyimpanan responsnya bukan satu transaction.
+
+**Kunci tetap dibutuhkan walau ada versi.** Tanpa kunci, kiriman ulang operasi yang sudah diterapkan dijawab 409, karena operasi itu sendiri sudah menaikkan versi. Ani akan melihat layar konflik untuk perubahannya sendiri. Kunci membuat server menjawab `ulang: true`, dan itu dibaca dari `TerapkanOperasi`, tidak direkam.
+
+**Tujuh hari lawan empat belas hari.** Operasi diterima bila umurnya paling lama 7 hari, dan baris kuncinya dibuang job `-bersih` bila lebih tua dari 14 hari. Keduanya dihitung dari timestamp `dibuat_di_hp`, jadi baris kunci masih ada selama operasinya masih bisa dikirim. Angka 7 dan 14 hari adalah pilihan naskah (Asumsi), dan batas 14 hari persisnya dibaca dari kode.
+
+| Titik uji | Hasil | Sumber |
+|---|---|---|
+| Sesudah 62 jam, job `-bersih` dijalankan | 0 operasi dibuang, kiriman ulang dikenali | `sinkron14.txt` bagian A |
+| Umur operasi 6 hari 23 jam | Diterima | `sinkron14.txt` bagian B |
+| Umur operasi 7 hari 1 jam | Ditolak 422, tidak ada baris dicatat | `sinkron14.txt` bagian B |
+| Sesudah 15 hari, job `-bersih` dijalankan | 2 operasi dibuang | `sinkron14.txt` bagian D |
+| Operasi 15 hari dikirim | Ditolak 422 karena umurnya, bukan karena kuncinya | `sinkron14.txt` bagian D |
+
+Rekaman melompat ke 62 jam dan 15 hari, jadi titik 14 hari persisnya tidak terekam. Timestamp itu datang dari jam HP. Server menolak timestamp yang lebih dari sehari di depan jam server, karena barisnya tidak akan pernah dibersihkan (`TestSinkronBatasUmurQueue`, tidak direkam). Timestamp itu hanya membatasi umur, dan versi yang menentukan siapa menang.
+
+**Respons tersimpan adalah foto lama.** Jalur Idempotency-Key menjawab ulangan dengan respons yang disimpan. Di `m24.txt` bagian C, ulangan 17 jam dijawab `stok 0, versi 2`, padahal database sudah menyimpan stok 50 dan versi 3. Jalur sinkron berbeda: jawaban `ulang: true` membawa keadaan terkini, yaitu stok 30 dan versi 3 di `versi.txt` bagian C.
+
+**Versi naik pada setiap penjualan.** Pesanan mengurangi stok dengan `stok = stok - $2, versi = versi + 1` (`katalog.go`). Di `kunci24.txt` bagian E, nasi goreng berversi 3 sesudah dua pesanan, jadi operasi offline untuk menu yang laku di antaranya mendapat 409. Lab tidak merekam sinkron bersama penjualan, jadi seberapa sering itu terjadi di warung ramai Tidak dijalankan.
+
+**Selisih atau nilai akhir.** Nilai akhir seperti `stok = 0` hanya benar bila keadaan yang Ani lihat masih berlaku, jadi butuh versi. Selisih seperti "tambah 10" bisa digabung dalam urutan apa pun. Firestore menunjuk `FieldValue.increment()` untuk mengubah angka tanpa transaction ([Firestore: Transactions and batched writes](https://firebase.google.com/docs/firestore/manage-data/transactions), komentar kode, dibuka 2026-10-27).
+
+Ani mencatat "habis", yaitu nilai yang ia ketahui, jadi stok memakai nilai akhir. Database menjaga stok tidak negatif dengan `CHECK (stok >= 0)`.
+
+**Jalur uang tetap tertutup.** `/sinkron` menolak bayar, transfer, dan topup dengan 422 (`sinkron14.txt` bagian E). Alasannya ada di `kunci24.txt` bagian E: tiga permintaan yang sudah diterapkan hari Sabtu dikerjakan lagi hari Senin, karena kuncinya sudah dibuang. Riwayat Budi mendapat tiga jurnal baru: Rp28.000, Rp10.000, dan Rp25.000, jumlahnya Rp63.000 (Hitungan).
+
+### Di stack lain
+
+**Skenario:** HP warung menyimpan perubahan stok saat offline dan mengirimnya sesudah sinyal kembali. Yang ditanyakan: apa yang disediakan stack itu untuk queue, sinkron, dan konflik, dan apa yang tidak ditulis dokumentasinya.
+
+Tidak ada tab yang dijalankan: lab memerankan HP dengan curl. Semua tab dicek ke dokumentasi pada 2026-10-27. Tanda [perlu verifikasi] berarti klaim itu belum bisa dicek ke sumber primer.
+
+<TabSet id="stack-mobile" labels={["Flutter", "Android", "iOS", "React Native", "Firestore", "Dart (Serverpod)"]}>
+<Fragment slot="t0">
+
+*Tidak dijalankan. Dicek ke [Flutter: Offline-first support](https://docs.flutter.dev/app-architecture/design-patterns/offline-first), dokumentasi Flutter 3.47, dan [drift](https://pub.dev/packages/drift) 2.35.3, dibuka 2026-10-27. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="dart" code={`class AntrianOperasi extends Table {
+  TextColumn get kunci => text()();
+  IntColumn get produkId => integer()();
+  IntColumn get nilai => integer()();
+  IntColumn get versiDasar => integer()();
+  DateTimeColumn get dibuatDiHp => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {kunci};
+}`} />
+
+**Yang berbeda di stack ini:** dokumentasi Flutter memberi pola `synchronized` dan empat cara menyinkronkan, tetapi kata conflict dan versioning tidak ada di halaman itu. Kunci dan versi dasar di tabel kamu tulis sendiri.
+
+Di pub.dev, drift adalah library untuk menyimpan data relasional, sembast dan isar 3.1.0+1 adalah database NoSQL, dan hive 2.2.3 adalah database key-value. Rilis terbaru isar bertanggal 2023-04-25 dan hive 2022-06-30, sedangkan hive_ce 2.22.0 melanjutkan Hive. Deskripsi kelimanya tidak menyebut sinkron ke server.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [Android: Build an offline-first app](https://developer.android.com/topic/architecture/data-layer/offline-first), Last updated 2026-10-14 UTC, dibuka 2026-10-27. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="kotlin" code={`val syarat = Constraints.Builder()
+    .setRequiredNetworkType(NetworkType.CONNECTED)
+    .build()
+val kerja = OneTimeWorkRequestBuilder<SinkronWorker>()
+    .setConstraints(syarat)
+    .build()
+WorkManager.getInstance(context)
+    .enqueueUniqueWork("sinkron-stok", ExistingWorkPolicy.KEEP, kerja)`} />
+
+**Yang berbeda di stack ini:** dokumentasi memakai Room sebagai contoh penyimpanan lokal dan WorkManager sebagai pengosong queue. Worker yang mengembalikan `Result.retry()` diulang dengan exponential backoff. Dokumentasi menulis bahwa penyelesaian konflik sering butuh versioning, dan menyebut last write wins dengan timestamp dari perangkat sebagai pendekatan yang umum untuk app mobile. Itu opsi B di ADR 29, bukan pilihannya.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke dokumentasi Apple [NSMergePolicy](https://developer.apple.com/documentation/coredata/nsmergepolicy), [Mirroring a Core Data store with CloudKit](https://developer.apple.com/documentation/coredata/mirroring-a-core-data-store-with-cloudkit), dan [ModelConfiguration](https://developer.apple.com/documentation/swiftdata/modelconfiguration), halaman tanpa nomor versi, dibuka 2026-10-27.*
+
+**Yang berbeda di stack ini:** konflik antara store dan versi di memori diselesaikan `NSMergePolicy`. Kebijakan bawaannya `error`: bila konflik terjadi, simpan gagal. Kebijakan `mergeByPropertyObjectTrump` memenangkan perubahan di memori per properti, dan `overwrite` menyimpan seluruh objek di memori. Dua kebijakan terakhir condong ke last write wins.
+
+Sinkron ke CloudKit memakai `NSPersistentCloudKitContainer`, dan CloudKit tidak mendukung unique constraint, atribut tak terdefinisi, atau relationship wajib. Halaman Apple yang dibuka tidak menulis cara CloudKit menyelesaikan konflik antar perangkat [perlu verifikasi]. Di SwiftData, `ModelConfiguration` punya opsi `cloudKitDatabase`.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [WatermelonDB: Synchronization](https://watermelondb.dev/docs/Sync/Intro) dan [WatermelonDB: Backend](https://watermelondb.dev/docs/Sync/Backend), paket @nozbe/watermelondb 0.28.0 (npm, 2025-04-07), dibuka 2026-10-27.*
+
+**Yang berbeda di stack ini:** WatermelonDB hanya database lokal, dan sinkronnya butuh dua endpoint backend yang kamu sediakan. Aturan push-nya mirip versi dasar. Bila record berubah di server sesudah `lastPulledAt`, endpoint harus membatalkan push dan mengembalikan galat. Frontend lalu memanggil pull lagi untuk menyelesaikan konflik.
+
+Bedanya, pembandingnya waktu pull terakhir client, bukan versi per baris. Dokumentasi juga melarang memakai `created_at` buatan client untuk melacak perubahan di server, karena timestamp lokal tidak bisa dipercaya.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Firestore: Access data offline](https://firebase.google.com/docs/firestore/manage-data/enable-offline) dan [Firestore: Transactions and batched writes](https://firebase.google.com/docs/firestore/manage-data/transactions), halaman tanpa nomor versi, dibuka 2026-10-27.*
+
+**Yang berbeda di stack ini:** persistence offline aktif secara bawaan di Android dan Apple, dan nonaktif di web. Tulis offline diantrekan sampai jaringan aktif. Untuk beberapa perubahan pada satu dokumen, dokumentasi menulis last write wins, yaitu opsi B di ADR 29 tanpa pilihan lain. Transaction gagal saat client offline, jadi pembacaan lalu penulisan bersyarat di HP tidak bisa memakai transaction.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Serverpod: Client-side database](https://docs.serverpod.dev/concepts/data-and-the-database/database/client-side-database), halaman bertanda versi dokumentasi 4.0.0, rilis terbaru di pub.dev 4.0.4, dibuka 2026-10-27.*
+
+**Yang berbeda di stack ini:** basis data di sisi client berbentuk SQLite di perangkat, dan tabel `database: sync` disinkronkan modul `serverpod_offline_sync`. Halaman itu memberi peringatan bahwa sinkron offline masih eksperimental dan belum siap produksi. Modulnya menggabungkan perubahan offline dan menyelesaikan konflik sendiri, dan halaman tidak menulis strateginya. Karena strategi konfliknya tidak terbaca, ADR 29 tidak bisa bersandar padanya.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 29: offline hanya stok dan harga, operasi bersyarat versi, kunci sinkron 14 hari
+
+**Kebutuhan.** PRD v3 meminta warung mengubah stok dan harga tanpa sinyal ([[t3-prd]]). Akhir pekan warung 62 jam (Asumsi) lebih panjang daripada umur Idempotency-Key 24 jam ([[t2-idempotency]]). M24 merekam akibatnya: stok 30 dari Sabtu menjadi 0 hari Senin, dengan jawaban 200 ([[t3-m24]]).
+
+**Status:** diterima sesudah M24 (minggu 7), memakai kolom `versi` di tabel `produk` dan tabel `operasi_sinkron` ([[t3-skema]]). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR.
+
+| | A. Key semua endpoint 7 hari | B. Last-write-wins dengan waktu HP | C. CRDT | D. Queue pembayaran offline | E. Versi, kunci sinkron 14 hari, hanya stok dan harga |
+|---|---|---|---|---|---|
+| Cara kerja | Umur semua Idempotency-Key naik dari 24 jam ke 7 hari, termasuk bayar, transfer, dan stok, tanpa versi | Tiap operasi membawa waktu HP. Server menyimpan nilai dari operasi yang waktunya paling baru | Tiap perubahan disimpan sebagai tipe data yang bisa digabung otomatis, misalnya counter untuk stok | HP menyimpan pembayaran bersama key saat offline dan mengirimnya sesudah online | Stok dan harga bersyarat versi. Kunci sinkron 14 hari, queue paling lama 7 hari. Pembayaran tidak pernah offline |
+| Kelebihan | Satu angka berubah. Kiriman ulang 62 jam dikenali dan tidak dikerjakan lagi | Tidak ada layar konflik dan tidak ada kolom versi | Tidak ada konflik yang harus dipilih user | Warung bisa menerima pembayaran tanpa sinyal | Operasi usang ditolak dengan keadaan terkini, kiriman ulang dikenali, dan jam HP tidak menentukan pemenang |
+| Kekurangan | Operasi yang belum pernah sampai tidak punya kunci di server dan tetap menimpa. Tebingnya pindah ke hari ke-8 | Pemenangnya ditentukan jam HP. Dua perubahan sah yang serentak: satu hilang tanpa tanda | Stok tidak boleh negatif, dan penyimpanan eventually consistent tidak bisa menegakkan invarian numerik tanpa tipe khusus | Pembayaran bergantung pada saldo dan stok yang tidak bisa diperiksa offline, dan bisa ditolak sesudah pembeli pergi | Butuh layar konflik di app dan kolom versi. Versi naik pada tiap penjualan, jadi menu yang laku lebih sering mendapat 409 |
+| Biaya operasional | Ketentuan ADR 14 berubah untuk semua endpoint, bukan hanya stok | Server tidak punya cara mendeteksi jam HP yang salah selain batas kasar | Tipe data, library, dan skema baru di app dan server untuk dua perangkat milik satu pemilik | Layar status tertunda, aturan batal, dan rekonsiliasi untuk pembayaran yang ditolak | Satu kolom, satu tabel, job `-bersih`, dan layar konflik |
+| Bukti | Tidak direkam. Mutasi di README lab: umur key 7 hari membuat ulangan 62 jam dikenali. `versi.txt` bagian C: key tidak mengenali operasi yang belum pernah sampai | Tidak dijalankan. Dokumentasi Android menyebutnya umum, dan dokumentasi WatermelonDB menulis timestamp lokal tidak bisa dipercaya | Tidak dijalankan. Preguiça (2018) dan Balegas dkk. (2015) | `kunci24.txt` bagian E: tiga jurnal baru Rp63.000. Queue pembayaran sendiri Tidak dijalankan | Rekaman lab `versi.txt`, `sinkron14.txt`, `m24.txt`, dan `kunci24.txt`. App Flutter Tidak dijalankan |
+
+**Keputusan: opsi E.** Tujuh aturan:
+
+1. Hanya stok dan harga yang lewat `POST /sinkron`. Jenis bayar, transfer, dan topup ditolak 422 apa pun isinya, dan pembayaran tidak pernah offline (`sinkron14.txt` bagian E).
+2. Perubahan stok dan harga bersyarat versi: `UPDATE ... WHERE versi = ...` menaikkan versi satu. Versi yang berbeda tidak mengubah apa pun dan dijawab 409 dengan keadaan terkini, di `PATCH /produk/{id}` dan `POST /sinkron` (`versi.txt` bagian B dan C).
+3. HP membuat kunci operasi saat Ani mengubah data, bukan saat mengirim, dan memakai kunci yang sama di setiap pengiriman ulang. Kunci berupa UUID acak. Lab memakai string tetap supaya rekaman identik, dan perilaku app Tidak dijalankan.
+4. Kunci sinkron hidup 14 hari dan queue paling lama 7 hari, keduanya dihitung dari `dibuat_di_hp` (pilihan naskah, Asumsi). Timestamp lebih dari sehari di depan jam server ditolak.
+5. Jawaban 409 membawa `sekarang`, dan app menawarkan dua pilihan. Pilihan pertama memakai angka server dan membuang operasi dari queue lokal. Pilihan kedua mengirim operasi baru dengan kunci baru dan versi dasar dari `sekarang` (`versi.txt` bagian D). Layar konflik Tidak dijalankan.
+6. Sesudah jawaban ulangan dari jalur Idempotency-Key, app membaca keadaan terbaru, karena respons tersimpan adalah foto lama (`m24.txt` bagian C).
+7. Umur Idempotency-Key di bayar, transfer, dan pesanan tetap 24 jam dan tetap opsional (ADR 14). App 1.0 dan 1.1 tanpa key tetap rentan M10 (`kunci24.txt` bagian A).
+
+**Kenapa E, bukan A sampai D.**
+
+- **A ditolak** karena key hanya mengenali kiriman yang sudah pernah sampai. Operasi bakso belum pernah sampai, dan hanya versi yang menolaknya (`versi.txt` bagian C). Umur 7 hari juga hanya memindahkan tebingnya ke hari ke-8.
+- **B ditolak** karena pemenangnya ditentukan jam HP, dan dua perubahan sah yang serentak berakhir dengan satu yang hilang tanpa tanda. Jam yang benar memang membuat operasi Jumat kalah dari isian Sabtu. Itu penalaran dan tidak direkam.
+- **C ditolak** karena stok punya batas bawah, dan ongkos tipe data baru terlalu besar untuk dua perangkat milik satu pemilik. Itu alasan penulis, bukan hasil ukur.
+- **D ditolak** karena `kunci24.txt` bagian E menunjukkan harganya, dan PRD v3 mengeluarkan pembayaran offline dari lingkup.
+
+CRDT adalah pendekatan untuk menggabung update konkuren pada replika yang boleh berbeda sementara ([Preguiça: Conflict-free Replicated Data Types, an overview](https://arxiv.org/abs/1806.10254), 2018-06-27, dibuka 2026-10-27). Balegas dkk. menulis bahwa penyimpanan eventually consistent tidak mampu menegakkan invarian numerik di semua replika ([Balegas dkk.: Enforcing Numeric Invariants](https://arxiv.org/abs/1503.09052), 2015-03-31, dibuka 2026-10-27). Mereka mengusulkan bounded counter sebagai tipe data baru.
+
+**Kasus industri: Figma.** Figma menghadapi pertanyaan serupa untuk dokumen desain. Artikel engineering itu menulis bahwa user boleh offline selama waktu sembarang. Sesudah online, client mengunduh salinan dokumen baru dan menerapkan ulang suntingan offline di atasnya (Evan Wallace, [How Figma's multiplayer technology works](https://www.figma.com/blog/how-figmas-multiplayer-technology-works/), 2019-10-16, dibuka 2026-10-27).
+
+Bila dua client mengubah properti yang sama, dokumen berakhir dengan nilai terakhir yang dikirim ke server, dan server yang menentukan urutannya tanpa timestamp. Figma tidak memakai CRDT murni, karena CRDT dibuat untuk sistem tanpa otoritas pusat dan server Figma adalah otoritas pusat. Suntingan serentak pada satu nilai teks berakhir sebagai salah satunya, dan Figma menerimanya karena alat desain bukan editor teks.
+
+Batasnya: satu produk desain kolaboratif, tanpa angka, tanpa invarian seperti stok tidak negatif, dan artikelnya tidak menyebut berapa lama offline yang diuji.
+
+Bagi Rekeningo, kasus ini memperlihatkan dua bentuk last-write-wins. Dengan urutan kedatangan di server, operasi Senin menang atas isian Sabtu, dan itu persis M24. Opsi B memakai waktu HP, yang memperbaiki urutan itu hanya bila jam HP benar. Figma menerima aturannya untuk properti desain yang mudah dikoreksi, sedangkan stok dibaca pembeli sebagai kenyataan.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Layar konflik muncul terlalu sering, karena versi naik pada tiap penjualan (`katalog.go`; `kunci24.txt` bagian E). Ani yang terbiasa menekan "pakai angka server" tanpa membaca bisa membuang catatan habis yang benar. Lab tidak merekam sinkron bersama penjualan. Pencegahannya mengukur frekuensi 409 sebelum rilis, dan memisahkan versi stok dari versi harga bila tinggi.
+2. HP offline lebih dari 7 hari, misalnya cuti panjang. Semua operasinya ditolak 422 dengan pesan lebih dari 7 hari di queue (`sinkron14.txt` bagian B dan D), dan Ani mengetik ulang. Angka 7 hari adalah pilihan naskah. Pencegahannya app menampilkan umur operasi tertua dan peringatan sebelum hari ke-7.
+3. Kunci bertabrakan. Kunci utama `operasi_sinkron` berlaku untuk semua akun, jadi akun lain dengan kunci yang sama mendapat 422 (`sinkron14.txt` bagian C). Dua POST bersamaan dengan kunci sama untuk produk berbeda berakhir di unique violation 500, dibaca dari kode dan Tidak dijalankan. Pencegahannya UUID acak dari HP dan kunci per perangkat.
+
+**Kapan keputusan ini salah.**
+
+- Saat warung perlu menerima pembayaran tanpa sinyal. Opsi D kembali, dengan umur key yang lebih panjang daripada umur queue pembayaran.
+- Saat banyak perangkat sering mengubah baris yang sama, atau 409 di menu yang laku menjadi biasa. Stok pindah ke selisih yang digabung, dan harga tetap bersyarat versi.
+- Saat server mati di antara COMMIT dan penyimpanan respons di jalur Idempotency-Key. Ulangan dijawab 409, jadi uang berpindah paling banyak sekali selama key berlaku. Tetapi 5xx dari COMMIT yang hasilnya tidak diketahui melepas key, dan ulangannya bisa menggandakan. Itu dibaca dari kode api-t3 dan Tidak dijalankan. Rancangan e3-idempotency menutup keduanya.
+
+**Yang akan merevisinya.** ADR 33 mencatat pembayaran offline sebagai yang sengaja belum dilakukan ([[t3-adr-33]]).
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Pembayaran offline | Pembayaran memakai saldo dan stok yang tidak bisa diperiksa offline, dan PRD v3 mengeluarkannya dari lingkup | [[t3-adr-33]] |
+| Kunci sinkron per perangkat | Kunci utama `operasi_sinkron` berlaku untuk semua akun. Akun lain mendapat 422 yang membuka bahwa kunci itu sudah dipakai | Belum dijadwalkan |
+| Sinkron menghapus entri cache katalog | `TerapkanOperasi` tidak menghapus entri cache, dan hanya `PATCH /produk/{id}` yang menghapus. TTL cache membatasi basinya. Dibaca dari kode dan Tidak dijalankan | [[t3-cache]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Operasi bakso belum pernah sampai dan tiba hari Senin. Apa yang menolaknya, kunci atau versi, dan apa isi jawabannya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Versi. Kuncinya tidak dikenal server, tetapi versi dasar 1 sudah lewat karena dasbor mengisi bakso hari Sabtu. Jawabannya 409 dengan stok 30 dan versi 2, dan tidak ada yang berubah (`versi.txt` bagian C).
+
+</details>
+
+**2.** Kenapa queue di HP paling lama 7 hari, padahal kunci sinkron hidup 14 hari?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Keduanya dihitung dari `dibuat_di_hp`. Operasi diterima sampai umur 7 hari dan barisnya dibuang sesudah 14 hari, jadi kunci masih ada selama operasi itu masih bisa dikirim. Di `sinkron14.txt` bagian D, kunci 15 hari sudah dibuang dan operasinya ditolak karena umurnya, bukan karena kuncinya.
+
+</details>
+
+**3.** Pembayaran dikirim ulang dengan key yang sama 62 jam kemudian. Kenapa pembayaran tidak boleh lewat sinkron?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Key sudah lewat 24 jam, jadi server mengerjakan ulangan itu sebagai pembayaran baru. Di `kunci24.txt` bagian E, tiga permintaan hari Sabtu dikerjakan lagi hari Senin. Riwayat Budi mendapat tiga jurnal baru: Rp28.000, Rp10.000, dan Rp25.000. `/sinkron` menolak bayar, transfer, dan topup dengan 422.
+
+</details>
+
+**4.** HP mengirim ulang dengan key yang sama 17 jam sesudah Jumat, dan server menjawab stok 0 dan versi 2. Kenapa app tidak boleh menampilkan angka itu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Jawaban itu respons yang tersimpan sejak Jumat. Database sudah menyimpan stok 50 dan versi 3 (`m24.txt` bagian C). App membaca keadaan terbaru sesudah jawaban ulangan.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Operasi di queue membawa kunci yang dibuat saat perubahan terjadi dan versi dasar yang Ani lihat. Kunci yang sama dipakai di setiap pengiriman ulang.
+- [ ] Server menolak versi yang berbeda dengan 409 dan keadaan terkini, bukan menimpa dan bukan membuang diam-diam.
+- [ ] Umur queue lebih pendek daripada umur kunci, dan keduanya dihitung dari timestamp yang sama.
+- [ ] Pembayaran, transfer, dan topup tidak masuk queue offline.
+- [ ] Waktu HP tidak dipakai untuk menentukan pemenang.
+- [ ] App membaca keadaan terbaru sesudah jawaban ulangan yang berasal dari respons tersimpan.
+
+### Bacaan lanjut
+
+- [Android: Build an offline-first app](https://developer.android.com/topic/architecture/data-layer/offline-first)
+- [Flutter: Offline-first support](https://docs.flutter.dev/app-architecture/design-patterns/offline-first)
+- [Figma: How Figma's multiplayer technology works](https://www.figma.com/blog/how-figmas-multiplayer-technology-works/) (2019-10-16)
+- [WatermelonDB: Backend](https://watermelondb.dev/docs/Sync/Backend)
+- [Preguiça: Conflict-free Replicated Data Types, an overview](https://arxiv.org/abs/1806.10254) (2018)
+- [Balegas dkk.: Enforcing Numeric Invariants](https://arxiv.org/abs/1503.09052) (2015)
+
+</Blok>
