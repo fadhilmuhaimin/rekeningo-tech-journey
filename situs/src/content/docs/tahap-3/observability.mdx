@@ -64,7 +64,7 @@ Bebannya berbeda: bagian D memakai beban terjadwal 17,4 request per detik, bagia
 
 Di [[t3-m18]] seluruh layar berhenti menjawab. Raka mengira database lambat dan mengusulkan pool 50. Untuk tahu bagian mana yang menunggu, api-t3 harus mengeluarkan data tentang dirinya sendiri.
 
-Observability adalah kemampuan memahami keadaan sebuah sistem dari data yang ia keluarkan, tanpa membaca kodenya, termasuk untuk masalah yang belum pernah terpikir ([OpenTelemetry: Observability primer](https://opentelemetry.io/docs/concepts/observability-primer/), dibuka 2026-10-26). Data itu datang dalam tiga bentuk: log, metric, dan trace.
+Observability adalah kemampuan memahami keadaan sebuah sistem dari data yang ia keluarkan, tanpa membaca kodenya. Kemampuan itu juga berlaku untuk masalah yang belum pernah terpikir ([OpenTelemetry: Observability primer](https://opentelemetry.io/docs/concepts/observability-primer/), dibuka 2026-10-26). Data itu datang dalam tiga bentuk: log, metric, dan trace.
 
 ### Cara kerjanya
 
@@ -109,7 +109,7 @@ Trace-id mengenali seluruh perjalanan. Parent-id adalah id request ini menurut p
 
 Header di atas adalah contoh dari spesifikasi, dan itu yang dikirim rekaman `jejak.txt` bagian J. Kode api-t3 tidak menyebut `traceparent` di mana pun, dan client push-nya hanya menulis header `Content-Type`. Trace-id berhenti di perbatasan API. Paket instrumentasi `otelhttp` membungkus `http.Handler` untuk menambah tracing ([pkg.go.dev: otelhttp](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp), dibuka 2026-10-26), tetapi paket itu tidak dipasang di api-t3 dan tidak dijalankan di lab.
 
-**Empat golden signals.** Buku SRE Google menyebut empat sinyal yang diukur lebih dulu bila kamu hanya bisa mengukur empat hal pada sistem yang dipakai orang: latency, traffic, errors, dan saturation ([SRE book, bab 6, edisi 2017](https://sre.google/sre-book/monitoring-distributed-systems/), dibuka 2026-10-26). Tabel ini memasangkan tiap sinyal dengan M18 dan menyebut siapa yang menghitungnya di rekaman:
+**Empat golden signals.** Buku SRE Google menyebut empat sinyal: latency, traffic, errors, dan saturation. Bila kamu hanya bisa mengukur empat hal pada sistem yang dipakai orang, ukurlah keempatnya ([SRE book, bab 6, edisi 2017](https://sre.google/sre-book/monitoring-distributed-systems/), dibuka 2026-10-26). Tabel ini memasangkan tiap sinyal dengan M18 dan menyebut siapa yang menghitungnya di rekaman:
 
 | Sinyal | Arti menurut buku SRE | Di rekaman M18 | Siapa yang menghitung |
 |---|---|---|---|
@@ -172,7 +172,7 @@ Saturation, lewat `GET /lab/pool`: dipakai 10 dari maks 10 (`m18.txt` bagian A).
 <details class="success">
 <summary>Jawaban</summary>
 
-Kode api-t3 tidak menyebut `traceparent`: `grep` di `cmd` dan `internal` tidak menemukan berkas, dan client push hanya menulis `Content-Type`. Trace-id berhenti di perbatasan API. Karena itu satu trace tidak bisa menyambung app, API, dan layanan push.
+Kode api-t3 tidak menyebut `traceparent`: `grep` di `cmd` dan `internal` tidak menemukan file, dan client push hanya menulis `Content-Type`. Trace-id berhenti di perbatasan API. Karena itu satu trace tidak bisa menyambung app, API, dan layanan push.
 
 </details>
 
