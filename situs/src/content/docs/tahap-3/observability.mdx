@@ -96,7 +96,7 @@ Di OpenTelemetry untuk Go, Traces dan Metrics berstatus Stable, sedangkan Logs m
 
 <Snippet file="labs/t3-pool/output/m18.txt" lines="19:21" title="Rekaman lab: labs/t3-pool/output/m18.txt" />
 
-Semua pembacaan angka di api-t3 ada di bawah `/lab/` dan hanya hidup dengan flag `-lab`, dan tidak ada endpoint `/metrics`. Yang relevan untuk M18 ada dua: `GET /lab/pool` dan `GET /lab/outbox` (jumlah baris per status dan umur baris tertua). Kolom `menunggu` adalah hitungan kumulatif sejak server hidup, jadi rekaman tidak mencetaknya.
+Semua pembacaan metric di api-t3 ada di bawah `/lab/` dan hanya hidup dengan flag `-lab`, dan tidak ada endpoint `/metrics`. Yang relevan untuk M18 ada dua: `GET /lab/pool` dan `GET /lab/outbox` (jumlah baris per status dan umur baris tertua). Kolom `menunggu` adalah hitungan kumulatif sejak server hidup, jadi rekaman tidak mencetaknya.
 
 **Trace.** Satu trace adalah perjalanan satu request. Ia terdiri dari span, dan setiap span mencatat satu unit kerja dengan durasinya. Antar komponen, trace disambung lewat header `traceparent` dari W3C Trace Context Level 1, edisi Recommendation 23 November 2021 ([W3C: Trace Context](https://www.w3.org/TR/trace-context/), dibuka 2026-10-26). Header itu terdiri dari empat field yang dipisah tanda minus:
 
@@ -132,7 +132,7 @@ Di rekaman t3-pool, hanya saturation yang dibaca dari api-t3, dan hanya dengan `
 | Log terstruktur dan metric empat sinyal | Apa yang terjadi per kejadian, dan seberapa penuh sumber daya | Kode log dan endpoint metric di server, ruang simpan, dan ambang untuk alert | Rekaman lab: metric saturation ada; log terstruktur hanya Ilustrasi |
 | Ditambah trace | Di bagian mana waktu satu request habis, lintas komponen | Dependency baru dengan ADR sendiri, instrumentasi, dan penyimpanan trace; Logs Go masih Release Candidate | Tidak dijalankan |
 
-Trace layak dibayar saat satu request melewati lebih dari satu komponen dan log serta metric sudah menunjuk komponennya, tetapi belum langkahnya. Di M18, metric pool menunjukkan 10 dari 10 dipakai dan database menunjuk client yang menunggu. Langkah yang menunggu di dalam API tetap tidak terlihat sampai ada span atau field durasi.
+Ini pertimbangan penulis, bukan hasil ukur. Trace layak dibayar saat satu request melewati lebih dari satu komponen dan log serta metric sudah menunjuk komponennya, tetapi belum langkahnya. Di M18, metric pool menunjukkan 10 dari 10 dipakai dan database menunjuk client yang menunggu. Langkah yang menunggu di dalam API tetap tidak terlihat sampai ada span atau field durasi.
 
 ### Sengaja belum dilakukan
 

@@ -1506,7 +1506,7 @@
   "judul": "3.7 Observability: log, metric, trace",
   "url": "tahap-3/observability/",
   "tanya": "Log api-t3 tidak bertambah selama 4 detik, padahal satu pembayaran belum dijawab. Apakah itu berarti tidak ada yang salah?",
-  "jawab": "Tidak. api-t3 tidak punya log akses: pembacaan saldo yang selesai dengan 200 pun meninggalkan nol baris (`jejak.txt` bagian J). Log ditulis saat sesuatu berakhir atau gagal, jadi request yang menggantung belum menulis apa pun. Log kosong tidak membedakan keadaan sehat dari keadaan menggantung."
+  "jawab": "Tidak. api-t3 tidak punya log akses: pembacaan saldo yang selesai dengan 200 pun meninggalkan nol baris (`jejak.txt` bagian J). Di api-t3, log ditulis saat sesuatu berakhir atau gagal, jadi request yang menggantung belum menulis apa pun. Log kosong tidak membedakan keadaan sehat dari keadaan menggantung."
  },
  {
   "id": "t3-observability-2",
