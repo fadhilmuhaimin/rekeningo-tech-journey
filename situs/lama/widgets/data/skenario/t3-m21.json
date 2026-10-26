@@ -1,0 +1,131 @@
+{
+  "versi": 2,
+  "judul": "Ekspor laporan kosong mematikan satu-satunya proses",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t3-instance/output/panic.txt",
+    "fileVarian": "labs/t3-instance/output/panic.txt",
+    "catatan": "Server Go api-t3 satu instance, dipanggil langsung tanpa proxy, dengan PostgreSQL 17.11 dari database bersih (make -C labs/t3-instance run BAGIAN=panic). Jalur utama: panic.txt bagian C, mode rentan ekspor-panic. Ubah satu hal: panic.txt bagian A, server tanpa mode rentan sehingga goroutine latar punya pelindung recover. Pemicunya endpoint uji lab /lab/panik, bukan Ekspor, dan bagian B memakai pemicu yang sama tanpa pelindung. Baris diawali tanda panah diringkas dari rekaman yang sama, bukan baris log. Layar HP digambar dari isi rekaman: lab tidak punya app Flutter, dan teks di layar adalah pilihan penulis. Langkah 3 menampilkan satu baris kode dari labs/api-t3/internal/service/latar.go, dan langkah 2 menyebut jeda 50 ms dari kode yang sama; keduanya tidak ada di rekaman. Jam 12.05 di layar HP adalah jam di naskah."
+  },
+  "pengantar": "Satu laporan kosong dari dasbor, dan satu proses API yang melayani semuanya. Tebak dulu, lalu ikuti sampai HP Budi. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "client", "label": "Client" },
+    { "id": "api", "label": "Proses API (satu-satunya)", "lapisan": ["handler", "goroutine latar"] },
+    { "id": "app", "label": "App" }
+  ],
+  "perangkat": [{ "id": "budi", "label": "HP Budi" }],
+  "layarAwal": {
+    "budi": {
+      "judul": "Beranda",
+      "waktu": "12.05",
+      "sinyal": 3,
+      "isi": [
+        { "jenis": "teks", "teks": "Saldo dan riwayat" },
+        { "jenis": "tombol", "teks": "Lihat saldo" }
+      ]
+    }
+  },
+  "predict": {
+    "q": "Sari menekan Ekspor. Laporannya kosong, dan dasbor menerima CSV berstatus 200. Apa yang terjadi pada proses API sesudahnya?",
+    "options": [
+      "Tetap hidup: laporan kosong adalah keadaan biasa, dan jawabannya sudah terkirim",
+      "Hanya request Sari yang gagal, request lain tetap dijawab",
+      "Berhenti sesudah jawaban terkirim: panic di goroutine latar tidak dipulihkan siapa pun",
+      "Menjawab 500 pada request berikutnya, lalu pulih sendiri"
+    ],
+    "answer": 2,
+    "varian": false,
+    "explain": "Proses berhenti sendiri dengan kode keluar 2, dan tiga detik kemudian /healthz tidak menjawab (panic.txt bagian C). CSV Sari sudah terkirim dengan status 200 sebelum itu."
+  },
+  "langkah": [
+    {
+      "dari": "client",
+      "ke": "api",
+      "lapisan": "handler",
+      "judul": "Sari menekan Ekspor di dasbor",
+      "kirim": "Warung Sari (belum ada pembayaran) GET /warung/502/laporan.csv",
+      "jelas": "Warung Sari belum punya pembayaran di rentang tanggal itu, jadi laporannya kosong. Itu keadaan biasa, bukan galat."
+    },
+    {
+      "dari": "api",
+      "ke": "client",
+      "lapisan": "handler",
+      "judul": "Handler menjawab 200",
+      "kirim": "→ 200, isi: tanggal,transaksi,total (hanya judul kolom)",
+      "jelas": "Sari menerima CSV berisi judul kolom saja. Goroutine latar sudah dibuka dan menunggu 50 ms, tiruan waktu tulis catatan audit di kode lab."
+    },
+    {
+      "dari": "api",
+      "lapisan": "goroutine latar",
+      "judul": "Goroutine latar menyusun ringkasan audit",
+      "kirim": "tersibuk := baris[0] // panic \"index out of range [0] with length 0\" bila baris kosong",
+      "jelas": "Kode ini mengira laporan selalu punya baris pertama. Laporan Sari kosong, jadi baris pertama itu tidak ada.",
+      "nada": "warn"
+    },
+    {
+      "dari": "api",
+      "lapisan": "goroutine latar",
+      "judul": "Panic di goroutine latar",
+      "kirim": "panic: runtime error: index out of range [0] with length 0\ngoroutine <n> [running]:",
+      "jelas": "Goroutine ini tidak punya recover, dan net/http hanya memulihkan panic dari handler. Panic naik sampai fungsi paling atas goroutine itu.",
+      "nada": "warn"
+    },
+    {
+      "dari": "api",
+      "judul": "Seluruh proses berhenti",
+      "kirim": "proses berhenti sendiri: kode keluar 2",
+      "jelas": "Go mengakhiri program, bukan hanya satu goroutine. Handler dan semua request lain ikut berhenti.",
+      "nada": "warn"
+    },
+    {
+      "dari": "app",
+      "ke": "api",
+      "judul": "Budi membuka app",
+      "kirim": "3 detik kemudian GET /healthz → tidak ada jawaban: tidak ada yang memulainya lagi",
+      "jelas": "Lab memeriksa /healthz, bukan saldo. Tidak ada proses yang mendengar, jadi request apa pun tidak dijawab. Lab tidak menjalankan pengawas yang menyalakan prosesnya lagi.",
+      "nada": "warn",
+      "layar": {
+        "budi": {
+          "judul": "Saldo",
+          "waktu": "12.05",
+          "sinyal": 3,
+          "nada": "warn",
+          "isi": [
+            { "jenis": "proses", "teks": "Memuat saldo..." },
+            { "jenis": "teks", "teks": "Tidak ada jawaban dari server" }
+          ]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "pelindung recover di goroutine latar",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "client",
+        "ke": "api",
+        "lapisan": "handler",
+        "judul": "Lab memicu panic di goroutine latar",
+        "kirim": "GET /lab/panik?di=latar → 202 (panic terjadi 100 ms sesudah jawaban)",
+        "jelas": "Pemicunya endpoint uji lab, bukan Ekspor. Satu hal berubah: server berjalan tanpa mode rentan, jadi goroutine latar punya pelindung recover."
+      },
+      {
+        "dari": "api",
+        "lapisan": "goroutine latar",
+        "judul": "Panic ditangkap di goroutine latar",
+        "kirim": "latar uji panik: uji panic di goroutine latar (proses tetap hidup)",
+        "jelas": "Pelindung memanggil recover, mencatat panic, dan membiarkan proses hidup."
+      },
+      {
+        "dari": "api",
+        "ke": "client",
+        "lapisan": "handler",
+        "judul": "Server tetap menjawab",
+        "kirim": "GET /healthz sesudahnya → 200",
+        "jelas": "Proses hidup, jadi request lain tetap dijawab. Di bagian B, pemicu yang sama tanpa pelindung menghentikan proses dengan kode keluar 2.",
+        "nada": "good"
+      }
+    ]
+  }
+}
