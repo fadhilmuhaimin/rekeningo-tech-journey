@@ -1708,7 +1708,7 @@
   "judul": "3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25",
   "url": "tahap-3/at-least-once/",
   "tanya": "Layanan push menjawab 503 terus. Kenapa baris masuk dead-letter pada kegagalan ke-5, bukan klaim ke-6?",
-  "jawab": "Worker mencatat tiap kegagalan lewat `tunda`, dan `percobaan` yang sudah 5 langsung memindahkan baris ke `mati` (`retry.txt` bagian A: 5 permintaan). Klaim ke-6 hanya terjadi bila worker mati sebelum sempat mencatat."
+  "jawab": "Worker mencatat tiap kegagalan lewat `tunda`, dan `percobaan` yang sudah 5 langsung memindahkan baris ke `mati` (`retry.txt` bagian A: 5 permintaan). Klaim ke-6 terjadi bila baris diklaim lebih sering daripada kegagalannya dicatat, misalnya saat worker mati sebelum sempat mencatat."
  },
  {
   "id": "t3-at-least-once-3",

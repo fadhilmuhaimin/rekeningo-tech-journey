@@ -269,7 +269,7 @@ def kirim_notifikasi(context, jurnal_id):
 | Cara kerja | Worker menandai baris `terkirim` sebelum mengirim, atau tidak pernah mengulang | Worker mengulang sampai berhasil, dengan atau tanpa backoff, dan penerima menyaring | Worker dan HP bertukar konfirmasi, atau menyimpan posisi bersama, supaya tiap pesan sampai sekali | Worker mengulang paling banyak 5 percobaan dengan backoff dan jitter. Baris yang gagal masuk dead-letter. App menyaring `notifikasi_id` |
 | Kelebihan | Tidak ada ulangan, jadi tidak ada penyaring | Tidak ada pemberitahuan yang menyerah | Penerima tidak pernah melihat ulangan | Tidak hilang tanpa terdeteksi, dan ulangan tidak tampil. Baris yang gagal terus tidak berputar selamanya |
 | Kekurangan | Pemberitahuan hilang saat push menjawab 503 atau worker mati, dan PRD v3 melarangnya | Baris yang tidak pernah bisa terkirim berputar tanpa akhir dan menghabiskan kapasitas worker | Layanan push tidak memberi konfirmasi dari layar HP, dan koordinasi ini menuntut two-phase commit atau penyimpanan bersama | Butuh pesan data dan kode di app. Push yang mati lebih lama dari jendela retry memasukkan barisnya ke dead-letter |
-| Biaya operasional | Nol, tetapi kehilangan tidak terlihat | Tak ada yang mengurus baris yang menyerah, jadi queue membengkak diam-diam | Dua sisi dengan protokol konfirmasi dan penyimpanan posisi di HP | Satu pemilik untuk baris `mati`, alert jumlah `mati`, dan penyimpanan id di app |
+| Biaya operasional | Nol, tetapi kehilangan tidak terlihat | Tak ada yang mengurus baris yang tidak pernah terkirim, jadi queue membengkak diam-diam | Dua sisi dengan protokol konfirmasi dan penyimpanan posisi di HP | Satu pemilik untuk baris `mati`, alert jumlah `mati`, dan penyimpanan id di app |
 | Bukti | Tidak dijalankan. Definisi di dokumentasi Kafka | Tidak dijalankan. Dokumentasi Laravel menulis `--tries=0` mengulang tanpa batas. Mutasi di README lab: tanpa batas klaim, klaim ke-6 mengirim lagi | Tidak dijalankan. Dokumentasi Kafka dan FCM | Rekaman lab `retry.txt`, `ganda.txt`, dan `push.txt`. Penyaring di app Tidak dijalankan |
 
 **Keputusan: opsi D.** Tujuh aturan:
@@ -288,7 +288,7 @@ def kirim_notifikasi(context, jurnal_id):
 - **B ditolak** karena baris yang tidak pernah bisa terkirim berputar tanpa akhir. Lab menunjukkan arahnya lewat mutasi: tanpa batas klaim, klaim ke-6 mengirim lagi.
 - **C ditolak** karena layanan push tidak memberi jalan untuk koordinasi yang dibutuhkan. Yang tercapai adalah efek satu kali di layar: pengirim mengulang, dan penerima mengenali ulangan.
 
-**Kasus industri: webhook Stripe.** Stripe mengirim event ke endpoint merchant dengan jaminan yang sama. Dokumentasinya menulis bahwa Stripe mencoba mengirim event sampai tiga hari dengan exponential backoff di live mode, dan di sandbox tiga kali dalam beberapa jam. Endpoint bisa menerima event yang sama lebih dari sekali, dan dokumentasi menyarankan mencatat event ID yang sudah diproses ([Stripe: webhooks](https://docs.stripe.com/webhooks), dibuka 2026-10-26).
+**Kasus industri: webhook Stripe.** Stripe mengirim event ke endpoint merchant dengan pola yang sama. Dokumentasinya menulis bahwa Stripe mencoba mengirim event sampai tiga hari dengan exponential backoff di live mode, dan di sandbox tiga kali dalam beberapa jam. Endpoint bisa menerima event yang sama lebih dari sekali, dan dokumentasi menyarankan mencatat event ID yang sudah diproses ([Stripe: webhooks](https://docs.stripe.com/webhooks), dibuka 2026-10-26).
 
 Stripe juga menulis bahwa event tidak dijamin datang menurut urutan terjadinya. Event bisa dikirim ulang dengan tangan sampai 15 hari lewat Dashboard atau 30 hari lewat CLI.
 
@@ -337,7 +337,7 @@ Lima pesan, dan baris masuk dead-letter pada klaim ke-6. Percobaan naik saat kla
 <details class="success">
 <summary>Jawaban</summary>
 
-Worker mencatat tiap kegagalan lewat `tunda`, dan `percobaan` yang sudah 5 langsung memindahkan baris ke `mati` (`retry.txt` bagian A: 5 permintaan). Klaim ke-6 hanya terjadi bila worker mati sebelum sempat mencatat.
+Worker mencatat tiap kegagalan lewat `tunda`, dan `percobaan` yang sudah 5 langsung memindahkan baris ke `mati` (`retry.txt` bagian A: 5 permintaan). Klaim ke-6 terjadi bila baris diklaim lebih sering daripada kegagalannya dicatat, misalnya saat worker mati sebelum sempat mencatat.
 
 </details>
 
