@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -349,5 +350,88 @@ func TestRentanGambarSahDiterima(t *testing.T) {
 func TestAlamatKhususTidakKosongDanValid(t *testing.T) {
 	if len(alamatKhusus) < 10 {
 		t.Fatalf("daftar alamat khusus hanya %d awalan", len(alamatKhusus))
+	}
+}
+
+// ---------- tambahan dari uji mutasi ----------
+
+// alamatDilarang diuji langsung, bukan hanya lewat unduhan: lapis ControlContext melihat alamat dalam bentuk
+// dotted-quad dan menutupi kekurangan lapis pertama, jadi uji lewat unduhan saja tidak menangkap bentuk
+// IPv4-mapped yang tidak dinormalkan.
+func TestAlamatDilarangPerKelas(t *testing.T) {
+	a := Aturan{}
+	for _, s := range []string{
+		"127.0.0.1", "127.9.9.9", "::1", "10.0.0.1", "172.16.5.5", "172.31.255.255", "192.168.0.1", "169.254.169.254",
+		"fd00::1", "fc00::1", "fe80::1", "0.0.0.0", "::", "224.0.0.1", "ff02::1", "100.64.0.1", "100.127.255.254",
+		"198.18.0.1", "240.0.0.1", "64:ff9b::a9fe:a9fe", "2002:a9fe:a9fe::1", "2001::1",
+		"::ffff:127.0.0.1", "::ffff:10.0.0.1", "::ffff:169.254.169.254", "::ffff:100.64.0.1", "::ffff:198.18.0.1", "::ffff:240.0.0.1",
+	} {
+		if !a.alamatDilarang(netip.MustParseAddr(s)) {
+			t.Errorf("%s tidak ditolak", s)
+		}
+	}
+	for _, s := range []string{"93.184.216.34", "8.8.8.8", "1.1.1.1", "172.15.0.1", "172.32.0.1", "100.63.255.255", "100.128.0.1", "2606:4700:4700::1111", "::ffff:8.8.8.8"} {
+		if a.alamatDilarang(netip.MustParseAddr(s)) {
+			t.Errorf("%s publik tetapi ditolak", s)
+		}
+	}
+	if (Aturan{IzinkanLoopback: true}).alamatDilarang(netip.MustParseAddr("::ffff:127.0.0.1")) {
+		t.Error("IzinkanLoopback tidak membuka loopback dalam bentuk IPv4-mapped")
+	}
+	if !(Aturan{IzinkanLoopback: true}).alamatDilarang(netip.MustParseAddr("10.0.0.1")) {
+		t.Error("IzinkanLoopback ikut membuka alamat private")
+	}
+}
+
+// Aliran tanpa akhir dipotong di batas ukuran: galatnya "terlalu besar", bukan menunggu sampai waktu habis.
+// Tanpa pembatas baca, ReadAll terus membaca sampai batas waktu dan galatnya menjadi "tidak menjawab".
+func TestAmanAliranTanpaAkhirDipotongDiBatasUkuran(t *testing.T) {
+	var tertulis atomic.Int64
+	s := mulaiServer(t, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(isiPNG(1024))
+		w.(http.Flusher).Flush()
+		potongan := make([]byte, 64<<10)
+		for r.Context().Err() == nil {
+			n, err := w.Write(potongan)
+			tertulis.Add(int64(n))
+			if err != nil {
+				return
+			}
+			w.(http.Flusher).Flush()
+		}
+	}))
+	mulai := time.Now()
+	_, err := lokal(func(a *Aturan) { a.Waktu = 2 * time.Second }).Unduh(context.Background(), s.URL+"/")
+	if !errors.Is(err, ErrTerlaluBesar) {
+		t.Fatalf("aliran tanpa akhir: galat %v sesudah %s, ingin ErrTerlaluBesar", err, time.Since(mulai))
+	}
+}
+
+// Content-Length yang sudah melewati batas menolak sebelum isi dibaca: server yang menjanjikan 1 GiB tetapi
+// berhenti menulis tidak membuat unduhan menggantung sampai batas waktu.
+func TestAmanContentLengthBesarDitolakSebelumMembaca(t *testing.T) {
+	s := mulaiServer(t, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", "1073741824")
+		w.Write(isiPNG(512))
+		w.(http.Flusher).Flush()
+		<-r.Context().Done() // menjanjikan 1 GiB, mengirim 512 byte, lalu diam
+	}))
+	mulai := time.Now()
+	_, err := lokal(func(a *Aturan) { a.Waktu = 2 * time.Second }).Unduh(context.Background(), s.URL+"/")
+	if !errors.Is(err, ErrTerlaluBesar) || time.Since(mulai) > time.Second {
+		t.Fatalf("Content-Length 1 GiB: galat %v sesudah %s; ingin ErrTerlaluBesar segera", err, time.Since(mulai))
+	}
+}
+
+// Satu jawaban DNS yang memuat alamat terlarang menolak seluruh unduhan, walau alamat lain dalam jawaban itu boleh
+// dijangkau. Tanpa pemeriksaan awal, dial melewati yang terlarang lalu tersambung ke yang boleh.
+func TestAmanJawabanDNSCampuranDitolakUtuh(t *testing.T) {
+	s := mulaiServer(t, false, ruteUmum())
+	r := func(ctx context.Context, host string) ([]net.IPAddr, error) {
+		return []net.IPAddr{{IP: net.ParseIP("10.0.0.1")}, {IP: net.ParseIP("127.0.0.1")}}, nil
+	}
+	_, err := lokal(func(a *Aturan) { a.Resolver = r }).Unduh(context.Background(), "http://campuran.contoh:"+port(s)+"/gambar.png")
+	if !errors.Is(err, ErrTujuan) || s.kena.Load() != 0 {
+		t.Fatalf("jawaban campuran: galat %v, permintaan sampai %d kali; ingin ErrTujuan dan 0", err, s.kena.Load())
 	}
 }
