@@ -224,7 +224,7 @@ Contoh invalidate di dokumentasi memakai cache lokal, dan `invalidateKey` pada c
 
 **Kebutuhan.** Dua HP di meja yang sama menampilkan Rp22.500 dan Rp25.000 untuk menu yang sama (`memori.txt` bagian B). Dua instance harus melihat harga yang sama sesudah Ani atau HR mengubahnya, dan tagihan tidak boleh bergantung pada salinan mana pun.
 
-Beban tidak memaksa cache: katalog 5,21 baca per detik, L = 0,026 koneksi dari pool 10 (Asumsi, rumus di Paham). Tanpa cache, 52 bacaan menjadi 52 baca database, dan di bawah Redis 13 (`beban.txt` bagian B dan C).
+Beban tidak memaksa cache: katalog 5,21 baca per detik, L = 0,026 koneksi dari pool 10 (Asumsi, rumus di Paham). Tanpa cache, 52 bacaan menjadi 52 baca database. Dengan Redis jadi 13 (`beban.txt` bagian B dan C).
 
 **Status:** diterima sesudah M23 (minggu 6), memakai dua instance dari ADR 26 ([[t3-dua-instance]]). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR. ADR ini menyimpang dari pemicu cache ADR 21: L kelas katalog 0,026 belum mencapai 5 koneksi ([[t2-adr-21]]).
 
@@ -243,7 +243,7 @@ Beban tidak memaksa cache: katalog 5,21 baca per detik, L = 0,026 koneksi dari p
 3. Harga dan stok yang dipakai pembayaran dibaca dari database di dalam transaction. Tidak ada jalur uang di kode lab yang membaca cache (`memori.txt` bagian C).
 4. Client Redis memakai batas waktu per perintah dan tanpa retry. Redis yang galat atau lambat berarti bacaan jatuh ke database tanpa menyimpan apa pun (`gagal.txt` bagian A dan B).
 5. Redis untuk cache dipisah dari Redis untuk batas login ([[t3-rate-limit-redis]]), dengan batas memori dan kebijakan eviction yang dipilih untuk cache. Lab tidak mengatur `maxmemory`, jadi aturan ini Tidak dijalankan.
-6. Setiap jalur tulis yang mengubah harga, stok, atau promo menghapus kuncinya. Sekarang hanya `PATCH /produk/{id}` dan `POST /promo` yang melakukannya, dan jalur sinkron stok ([[t3-offline]]) harus ditambahkan sebelum dipakai.
+6. Setiap jalur tulis yang mengubah harga, stok, atau promo menghapus kuncinya. Sekarang hanya `PATCH /produk/{id}` dan `POST /promo` yang melakukannya, dan jalur sinkron stok ([[t3-offline]]) harus menambahkan hapus kunci sebelum cache dipakai di produksi.
 7. Promo yang mulai di jam tertentu ditutup dengan TTL entri yang dipendekkan sampai waktu mulai, atau harga efektif yang dihitung saat baca. Sampai itu ada, harga promo bisa telat sampai TTL.
 8. Jumlah hit, miss, baca database, dan galat cache dipantau, dan lonjakan galat cache menjadi alert. Lab sudah menghitungnya di `/lab/cache`, tetapi belum ada alert.
 
