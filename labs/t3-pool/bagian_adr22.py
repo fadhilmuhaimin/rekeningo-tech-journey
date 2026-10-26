@@ -145,7 +145,7 @@ def rekam_adr22():
     catat("W rata-rata satu pembayaran dan satu pembacaan kurang dari 50 ms (batas lab; Asumsi naskah 20 ms): "
           + ya(w_bayar < BATAS_W and w_baca < BATAS_W, f"W bayar {w_bayar:.4f} W baca {w_baca:.4f}"))
     l_semua = RPS * statistics.mean(be.durasi("bayar", 1, 520) + be.durasi("baca", 1, 520))
-    catat("L semua request = 17,4 × W rata-rata dari data kurang dari 0,87 koneksi (batas lab 17,4 × 50 ms; hitungan naskah R3-32 dengan 20 ms: 0,35): "
+    catat("L semua request = 17,4 × W rata-rata dari data kurang dari 0,87 koneksi (batas lab 17,4 × 50 ms; hitungan naskah dengan 20 ms: 0,35): "
           + ya(l_semua < RPS * BATAS_W, f"L semua request {l_semua:.3f}"))
     print(f"  (konsol) L semua request {l_semua:.3f}")
     harap(pg.puncak(2) <= 1, True, "transaction terbuka paling banyak 1")

@@ -56,7 +56,7 @@ $ ./api-t3 -peran worker -maks-percobaan 20 &   # mengirim isi outbox; push time
 pembayaran request 1 sampai 520: 26 pembayaran: 201 x26
 pembacaan request 1 sampai 520: 494 pembacaan: 200 x494
 W rata-rata satu pembayaran dan satu pembacaan kurang dari 50 ms (batas lab; Asumsi naskah 20 ms): ya
-L semua request = 17,4 × W rata-rata dari data kurang dari 0,87 koneksi (batas lab 17,4 × 50 ms; hitungan naskah R3-32 dengan 20 ms: 0,35): ya
+L semua request = 17,4 × W rata-rata dari data kurang dari 0,87 koneksi (batas lab 17,4 × 50 ms; hitungan naskah dengan 20 ms: 0,35): ya
 transaction terbuka paling banyak 1 pada satu waktu (satu pembayaran setiap 1,149 detik, tiap transaction hanya milidetik): ya
 layanan push sedang menahan permintaan dari worker: ya; pembayaran tetap selesai dalam milidetik
 => SELECT status, count(*) AS baris FROM outbox GROUP BY status
