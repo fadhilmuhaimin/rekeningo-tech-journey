@@ -5,6 +5,9 @@
  *   <Snippet file="labs/b3-stack/output/go-transfer.txt" title="Output rekaman" />
  *   <Snippet lang="java" code={`...`} />      kode yang tidak dijalankan di lab (label ditulis di prosa)
  * Penanda region sama dengan lab: `// --8<-- [start:transfer]` ... `// --8<-- [end:transfer]`.
+ * Teks dari berkas lab tampil tanpa rujukan internal di komentarnya ("(keputusan 430)", "(tinjauan PR 340)"): berkas
+ * dan rekaman tidak diubah, hanya tampilannya (keputusan 1180, `lib/rujukan-internal.ts`). Kode yang ditulis langsung
+ * di prop `code` tidak disaring: penulisnya membuang rujukan itu sendiri.
  * File atau region yang tidak ada menggagalkan build. Setiap baris mendapat id `__span-<kunci>-<n>`,
  * kontrak DOM yang dibaca widget stackstep lama (keputusan 103).
  */
@@ -14,6 +17,7 @@ import { createHash } from "node:crypto";
 import { codeToHtml } from "shiki";
 import { ROOT } from "../../tools/registri.mjs";
 import { temaShiki } from "../lib/shiki-tema.mjs";
+import { bersihkanRujukanInternal } from "../lib/rujukan-internal";
 
 interface Props { file?: string; files?: string[]; region?: string; lines?: string; lang?: string; title?: string; code?: string }
 const { file, files, region, lines: rentang, lang = "text", title, code } = Astro.props;
@@ -62,6 +66,7 @@ if (code != null) {
 }
 // Baris penanda region lain di dalam potongan tidak ikut tampil (perilaku pymdownx.snippets).
 src = src.split("\n").filter((l) => !l.includes("--8<-- [")).join("\n").replace(/\n+$/, "");
+if (code == null) src = bersihkanRujukanInternal(src);
 
 const kunci = createHash("md5").update(file ?? files?.join("|") ?? code ?? "").update(region ?? rentang ?? "").digest("hex").slice(0, 6);
 const html = await codeToHtml(src, {
