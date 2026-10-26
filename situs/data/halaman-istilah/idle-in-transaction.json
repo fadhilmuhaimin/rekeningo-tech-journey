@@ -8,7 +8,7 @@
     },
     {
       "rujukan": "t3-observability",
-      "teks": "Satu pembayaran yang menggantung terlihat dari database sebagai satu sesi idle in transaction dengan wait event ClientRead, lebih dari 3 detik."
+      "teks": "Satu pembayaran yang menggantung terlihat dari database sebagai satu sesi idle in transaction dengan wait event ClientRead, pada transaction yang terbuka lebih dari 3 detik."
     }
   ],
   "mekanisme": [
@@ -39,7 +39,7 @@
     {
       "judul": "Rekaman lab t3-pool: satu pembayaran selama M18",
       "rekaman": "labs/t3-pool/output/jejak.txt",
-      "catatan": "Satu sesi idle in transaction dengan wait event ClientRead selama lebih dari 3 detik."
+      "catatan": "Satu sesi idle in transaction dengan wait event ClientRead pada transaction yang terbuka lebih dari 3 detik."
     },
     {
       "judul": "Rekaman lab t3-pool: idle_in_transaction_session_timeout saja",

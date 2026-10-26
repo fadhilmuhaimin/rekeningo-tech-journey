@@ -220,7 +220,7 @@ describe("rekaman jejak.txt bagian J: log, metric, database, trace", () => {
     expect(diagram.baris.map((b) => [b.label, b.sub])).toEqual([["Menjawab", "bagian J dari jejak.txt"], ["Diam", "bagian J dari jejak.txt"]]);
     expect(diagram.baris[0]!.simpul.map((s) => s.teks)).toEqual([`metric: ${poolJ.dipakai} dari ${poolJ.maks} dipakai`, "database: menunggu client"]);
     expect(diagram.baris[0]!.simpul[0]!.sub).toBe("GET /lab/pool, satu pembayaran");
-    expect(diagram.baris[0]!.simpul[1]!.sub).toBe(`idle in transaction lebih dari ${batasDb} detik, bukan query yang lambat`);
+    expect(diagram.baris[0]!.simpul[1]!.sub).toBe(`idle in transaction, transaction terbuka lebih dari ${batasDb} detik; bukan query yang lambat`);
     expect(diagram.baris[1]!.simpul.map((s) => s.teks)).toEqual([`log: ${logBaru[2]} baris baru`, "trace-id: berhenti di API"]);
     expect(diagram.baris[1]!.simpul[1]!.sub).toBe("kode API tidak membaca traceparent; trace Tidak dijalankan");
     expect(diagram.baris.map((b) => b.simpul.map((s) => s.nada))).toEqual([["biasa", "biasa"], ["warn", "warn"]]);
@@ -321,7 +321,9 @@ describe("kode api-t3: klaim negatif berlingkup cmd dan internal", () => {
     expect(lab).toContain('"maks": st.MaxOpenConnections, "terbuka": st.OpenConnections');
     expect(lab).toContain('"dipakai": st.InUse, "menganggur": st.Idle, "menunggu": int(st.WaitCount)');
     expect(lab).toContain('"per_status": per, "tertua_detik": int(tertua)');
-    harus("Semua pembacaan metric di api-t3 ada di bawah `/lab/` dan hanya hidup dengan flag `-lab`, dan tidak ada endpoint `/metrics`. Yang relevan untuk M18 ada dua: `GET /lab/pool` dan `GET /lab/outbox` (jumlah baris per status dan umur baris tertua).");
+    harus("Semua pembacaan metric di api-t3 ada di bawah `/lab/` dan hanya hidup dengan flag `-lab`, dan tidak ada endpoint `/metrics`. Yang menjawab seberapa penuh pool di M18 adalah `GET /lab/pool`. `GET /lab/outbox` (jumlah baris per status dan umur baris tertua) tidak menjawab M18: di mode rentan push dipanggil di dalam transaction dan tidak ada baris outbox.");
+    expect(notifGo).toContain("tidak ada baris outbox");
+    expect(notifGo).toContain("if s.rentan == RentanPushDalamTx {\n\t\tfor _, d := range perangkat {");
   });
   test("client push hanya menulis Content-Type, jadi traceparent tidak diteruskan", () => {
     const set = [...pushGo.matchAll(/Header\.Set\("([^"]+)"/g)].map((m) => m[1]);
@@ -539,9 +541,9 @@ describe("setiap kalimat di halaman punya asal", () => {
     `Rekaman lab: keadaan api-t3, ${kata(Number(logBaru[2]))} baris selama ${detik} detik`,
     `Ini pertimbangan penulis, bukan hasil ukur. Trace layak dibayar saat satu request melewati lebih dari satu komponen dan log serta metric sudah menunjuk komponennya, tetapi belum langkahnya. Di M18, metric pool menunjukkan ${poolA.dipakai} dari ${poolA.maks} dipakai dan database menunjuk client yang menunggu. Langkah yang menunggu di dalam API tetap tidak terlihat sampai ada span atau field durasi.`,
     `**1.** Log api-t3 tidak bertambah selama ${detik} detik, padahal satu pembayaran belum dijawab. Apakah itu berarti tidak ada yang salah?`,
-    `Tidak. api-t3 tidak punya log akses: pembacaan saldo yang selesai dengan ${selesai200[1]} pun meninggalkan ${kata(Number(selesai200[2]))} baris (\`jejak.txt\` bagian J). Di api-t3, log ditulis saat sesuatu berakhir atau gagal, jadi request yang menggantung belum menulis apa pun. Log kosong tidak membedakan keadaan sehat dari keadaan menggantung.`,
+    `Tidak. api-t3 tidak punya log akses: pembacaan saldo yang selesai dengan ${selesai200[1]} pun meninggalkan ${kata(Number(selesai200[2]))} baris (\`jejak.txt\` bagian J). Di api-t3, log ditulis saat sebuah kejadian terjadi, selesai, atau gagal, jadi request yang menggantung belum menulis apa pun. Log kosong tidak membedakan keadaan sehat dari keadaan menggantung.`,
     `Saturation, lewat \`GET /lab/pool\`: dipakai ${poolA.dipakai} dari maks ${poolA.maks} (\`m18.txt\` bagian A). Endpoint itu hanya ada dengan flag \`-lab\`. Latency, traffic, dan errors di rekaman dihitung pembangkit beban di luar server.`,
-    `**4.** \`pg_stat_activity\` menunjukkan ${kata(barisDb.length)} sesi \`idle in transaction\` dengan wait event \`ClientRead\` selama lebih dari ${batasDb} detik. Apa yang ditunjukkan, dan apa yang belum?`,
+    `**4.** \`pg_stat_activity\` menunjukkan ${kata(barisDb.length)} sesi \`idle in transaction\` dengan wait event \`ClientRead\`, pada transaction yang sudah terbuka lebih dari ${batasDb} detik. Apa yang ditunjukkan, dan apa yang belum?`,
   ];
   test("batas pool di kartu pertama sama dengan maks di rekaman", () => expect(Number(batasKe)).toBe(poolA.maks));
   test("tidak ada kalimat yang bukan turunan dan tidak dikunci", () => {
@@ -554,13 +556,181 @@ describe("setiap kalimat di halaman punya asal", () => {
   });
 });
 
+
+// ---- penjaga tambahan peninjau (keputusan 1027) ------------------------------------------------------------------------
+// Pemeriksaan per kalimat memakai himpunan: sel tabel, jawaban Cek diri, dan sumber istilah yang tertukar tempat tetap
+// "dikenal". Di sini tabel dikunci per baris dan urutan, baris details/summary dan Rantai dikunci, sumber tiga halaman
+// istilah dikunci dan diturunkan dari rekaman, baris riset R3-130 sampai R3-134 dikunci dengan sidik jari, dan klaim "tidak
+// punya log akses" dijaga dengan daftar semua titik log di lapisan handler (bukan hanya pembungkus main.go).
+const TABEL_TERKUNCI = (): string[][] => [
+  [
+    "| Sinyal | Isinya | Pertanyaan yang dijawab | Di api-t3 saat M18 |",
+    "|---|---|---|---|",
+    `| Log | Pesan bertanda waktu yang ditulis service atau komponen lain | Apa yang terjadi pada satu kejadian, dan galat apa? | Rekaman lab: ${kata(Number(logBaru[2]))} baris untuk request yang menggantung |`,
+    "| Metric | Angka agregat dalam rentang waktu, mis. error rate atau pemakaian sumber daya | Seberapa sering atau seberapa penuh? | Rekaman lab: pembacaan pool, hanya dengan flag `-lab` |",
+    "| Trace | Perjalanan satu request, terdiri dari span: satu unit kerja dengan durasinya | Di bagian mana waktu satu request habis? | Tidak dijalankan |",
+  ],
+  [
+    "| Sinyal | Arti menurut buku SRE | Di rekaman M18 | Siapa yang menghitung |",
+    "|---|---|---|---|",
+    "| Latency | Lama melayani request, dengan request yang berhasil dan yang gagal dipisah | Hanya rata-rata lama satu pembayaran (`little.txt`); p95 tidak direkam | Pembangkit beban lab |",
+    "| Traffic | Banyaknya permintaan, untuk web service biasanya request per detik | Request per detik terjadwal (Asumsi) | Pembangkit beban lab |",
+    `| Errors | Request yang gagal secara eksplisit, implisit, atau melanggar janji waktu | ${tanpaJawaban[1]} pembacaan sesudah pool penuh tanpa jawaban (\`m18.txt\` bagian A) | Pembangkit beban lab |`,
+    `| Saturation | Seberapa penuh sumber daya yang paling terbatas | Dipakai ${poolA.dipakai} dari maks ${poolA.maks} (\`m18.txt\` bagian A) | api-t3, lewat \`GET /lab/pool\` |`,
+  ],
+  [
+    "| Pilihan | Yang bisa dijawab | Ongkosnya | Keadaan di lab |",
+    "|---|---|---|---|",
+    `| Log teks bebas saja | Kejadian yang sudah selesai dan dicatat | Tanpa usaha tambahan, tetapi tiap pesan berbentuk bebas sehingga sulit disaring atau dihitung mesin, dan request yang menggantung tidak muncul | Rekaman lab: keadaan api-t3, ${kata(Number(logBaru[2]))} baris selama ${detik} detik |`,
+    "| Log terstruktur dan metric empat sinyal | Apa yang terjadi per kejadian, dan seberapa penuh sumber daya | Kode log dan endpoint metric di server, ruang simpan, dan ambang untuk alert | Rekaman lab: metric saturation ada; log terstruktur hanya Ilustrasi |",
+    "| Ditambah trace | Di bagian mana waktu satu request habis, lintas komponen | Dependency baru dengan ADR sendiri, instrumentasi, dan penyimpanan trace; Logs Go masih Release Candidate | Tidak dijalankan |",
+  ],
+  [
+    "| Yang ditunda | Kenapa ditunda | Muncul lagi di atau pemicunya |",
+    "|---|---|---|",
+    "| Trace OpenTelemetry di api-t3 | Dependency baru butuh ADR, dan tidak ada rekaman yang menjalankannya | Satu request melewati lebih dari satu komponen yang belum bisa ditunjuk |",
+    "| Batas waktu client dan ukuran pool | Jawabannya butuh beban terjadwal dan Little's Law | [[t3-pool]] |",
+    "| Alert dan ambangnya | Ambang adalah Asumsi yang ditetapkan lab | [[t3-tim-infra]] |",
+    "| Umur pemberitahuan tertua sebagai metric | Dibutuhkan saat promo menahan notifikasi uang | [[t3-m27]] |",
+  ],
+];
+const SUMBER_TERKUNCI: Record<string, unknown> = {
+  "golden-signals": [
+    {
+      "riset": "R3-133",
+      "judul": "Google SRE book, bab 6: Monitoring Distributed Systems",
+      "url": "https://sre.google/sre-book/monitoring-distributed-systems/",
+      "catatan": "Edisi 2017. Empat sinyal latency, traffic, errors, dan saturation. Errors mencakup kegagalan eksplisit, implisit, dan menurut kebijakan. Bagian \"Worrying About Your Tail\" memberi contoh rata-rata yang menyembunyikan request lambat."
+    },
+    {
+      "judul": "Rekaman lab t3-pool: M18 dengan beban terjadwal",
+      "rekaman": "labs/t3-pool/output/m18.txt",
+      "catatan": "Pool 10 penuh antara detik ke-11 dan ke-12 (dipakai 10 dari maks 10), dan 190 pembacaan sesudahnya tanpa jawaban."
+    }
+  ],
+  "idle-in-transaction": [
+    {
+      "riset": "R3-115",
+      "judul": "PostgreSQL 17: pg_stat_activity",
+      "url": "https://www.postgresql.org/docs/17/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW",
+      "catatan": "State idle in transaction: the backend is in a transaction, but is not currently executing a query."
+    },
+    {
+      "riset": "R3-62",
+      "judul": "PostgreSQL 17: client connection defaults",
+      "url": "https://www.postgresql.org/docs/17/runtime-config-client.html",
+      "catatan": "idle_in_transaction_session_timeout memutus sesi yang diam di dalam transaction lebih lama dari batasnya, dan bawaannya 0 (mati)."
+    },
+    {
+      "judul": "Rekaman lab t3-pool: satu pembayaran selama M18",
+      "rekaman": "labs/t3-pool/output/jejak.txt",
+      "catatan": "Satu sesi idle in transaction dengan wait event ClientRead pada transaction yang terbuka lebih dari 3 detik."
+    },
+    {
+      "judul": "Rekaman lab t3-pool: idle_in_transaction_session_timeout saja",
+      "rekaman": "labs/t3-pool/output/adr22.txt",
+      "catatan": "Bagian E: PostgreSQL memutus sesi yang diam lebih dari 5 detik, tetapi pool Go tetap penuh."
+    }
+  ],
+  "traceparent": [
+    {
+      "riset": "R3-133",
+      "judul": "W3C: Trace Context Level 1",
+      "url": "https://www.w3.org/TR/trace-context/",
+      "catatan": "Recommendation 23 November 2021. Format traceparent, arti parent-id, flag sampled, dan kewajiban alat tracing meneruskan header (bagian 2.3)."
+    },
+    {
+      "judul": "Rekaman lab t3-pool: satu pembayaran selama M18",
+      "rekaman": "labs/t3-pool/output/jejak.txt",
+      "catatan": "Header contoh dari spesifikasi dikirim ke api-t3, dan pencarian traceparent di kode API tidak menemukan file."
+    }
+  ]
+};
+const HASH_RISET: Record<string, string> = {
+  "R3-130": "b3dc2f6385c031a9",
+  "R3-131": "8819eb1b1fe59e17",
+  "R3-132": "46ec0787c374bbd3",
+  "R3-133": "479f9569b5e3cf5c",
+  "R3-134": "67025576bd8852f2"
+};
+
+describe("penjaga tambahan peninjau: tabel, details, Rantai, sumber istilah, baris riset, titik log", () => {
+  const tabelHalaman = (): string[][] => {
+    const hasil: string[][] = [];
+    let cur: string[] = [];
+    for (const l of badan.split("\n")) {
+      if (l.startsWith("|")) cur.push(l.trim());
+      else if (cur.length) { hasil.push(cur); cur = []; }
+    }
+    if (cur.length) hasil.push(cur);
+    return hasil;
+  };
+  test("tabel dikunci per baris, urutan sel, dan pemisah: sel yang tertukar antar baris atau kolom yang hilang menggagalkan tes", () => {
+    expect(tabelHalaman()).toEqual(TABEL_TERKUNCI());
+  });
+  test("details dan summary dikunci; jumlah pertanyaan di summary sama dengan butir bernomor; Rantai memakai ringkas", () => {
+    const baris = badan.split("\n").map((l) => l.trim()).filter((l) => /^<(details|summary)/.test(l));
+    const dalam = badan.split('<details class="question">')[1]!.split("</details>")[0]!;
+    const butir = (dalam.match(/^\d+\. /gm) ?? []).length;
+    expect(butir).toBe(3);
+    expect(baris).toEqual([
+      '<details class="question">', `<summary>Sudah tahu? Cek ${butir} pertanyaan</summary>`,
+      ...[1, 2, 3, 4].flatMap(() => ['<details class="success">', "<summary>Jawaban</summary>"]),
+    ]);
+    expect((badan.match(/^\*\*\d\.\*\* /gm) ?? []).length).toBe(4);
+    harus("<Rantai data={intiDiagram} ringkas />");
+  });
+  test("sumber tiga halaman istilah: dikunci utuh, rekaman ada dan terlacak, ID riset ada, angka diturunkan dari rekaman", () => {
+    const sumber = Object.fromEntries(["golden-signals", "idle-in-transaction", "traceparent"].map((s) => [s, JSON.parse(baca(`situs/data/halaman-istilah/${s}.json`)).sumber]));
+    expect(sumber).toEqual(SUMBER_TERKUNCI);
+    const terlacak = new Set(lacak("labs/t3-pool/output"));
+    for (const daftar of Object.values(sumber) as { riset?: string; rekaman?: string }[][])
+      for (const x of daftar) {
+        if (x.rekaman) expect(terlacak.has(x.rekaman), x.rekaman).toBe(true);
+        if (x.riset) expect(riset, x.riset).toMatch(new RegExp(`\\| ${x.riset} \\|`));
+      }
+    const gold = JSON.stringify(sumber["golden-signals"]);
+    expect(gold).toContain(`Pool ${poolA.maks} penuh antara detik ke-${penuhAntara[1]} dan ke-${penuhAntara[2]}`);
+    expect(gold).toContain(`${tanpaJawaban[1]} pembacaan sesudahnya tanpa jawaban`);
+    expect(gold).toContain(`dipakai ${poolA.dipakai} dari maks ${poolA.maks}`);
+    const idleTx = Number(cocok(adr22.join("\n"), /^\$ \.\/api-t3 -rentan push-dalam-tx -idle-tx (\d+)s -lab/m)[1]);
+    const idle = JSON.stringify(sumber["idle-in-transaction"]);
+    expect(idle).toContain(`diam lebih dari ${idleTx} detik`);
+    expect(idle).toContain(`transaction yang terbuka lebih dari ${batasDb} detik`);
+    const bagian23 = cocok(riset, /\| R3-133 \|[^\n]*bagian (\d\.\d): alat tracing minimal MUST/)[1]!;
+    expect(JSON.stringify(sumber["traceparent"])).toContain(`(bagian ${bagian23})`);
+  });
+  test("baris riset R3-130 sampai R3-134 dikunci dengan sidik jari: ubah satu karakter, buka lagi sumbernya, lalu perbarui sidik jarinya", async () => {
+    const { createHash } = await import("node:crypto");
+    for (const [id, h] of Object.entries(HASH_RISET)) {
+      const b = riset.split("\n").filter((l) => l.startsWith(`| ${id} |`));
+      expect(b, id).toHaveLength(1);
+      expect(createHash("sha256").update(b[0]!.trim()).digest("hex").slice(0, 16), `${id} berubah: periksa ulang ke sumber primer`).toBe(h);
+    }
+  });
+  test("klaim 'tidak punya log akses': titik log di lapisan handler hanya kesalahan internal dan simpan respons; ekspor dan push gagal ada di service", () => {
+    const titik = (isi: string) => [...isi.matchAll(/\blog\.(?:Printf|Print|Println|Fatalf|Fatal)\(\s*(?:"((?:[^"\\]|\\.)*)")?/g)].map((m) => m[1] ?? "(tanpa literal)");
+    const handler = isiGo
+      .filter((x) => x.f.startsWith("labs/api-t3/internal/handler/") && !x.f.endsWith("_test.go"))
+      .flatMap((x) => titik(x.isi).map((t) => `${path.basename(x.f)}: ${t}`))
+      .sort();
+    expect(handler).toEqual(["handler.go: error internal: %v", "handler_idempoten.go: simpan respons key %s gagal: %v"]);
+    const latar = baca("labs/api-t3/internal/service/latar.go");
+    expect(latar).toContain("log.Print(ringkas(warung, salinan))");
+    expect(latar).toContain('return fmt.Sprintf("ekspor warung %d: laporan kosong", warung)');
+    expect(mainGo).toContain('log.Printf("api-t3 mendengar di %s", *alamat)');
+    expect(mainGo).toContain('log.Print("api-t3 berhenti")');
+    harus("Di api-t3, baris log ditulis untuk kejadian tertentu. Contohnya server mulai atau berhenti, kesalahan internal, push yang gagal di mode rentan M18, dan satu ringkasan tiap ekspor laporan. Server ini tidak punya log akses: tidak ada baris untuk tiap request.");
+  });
+});
+
 const KALIMAT_PENULIS: string[] = [
   "Inti",
-  "Log mencatat kejadian, metric mengukur seberapa penuh, dan trace menunjukkan di mana waktu habis.",
+  "Log mencatat kejadian, metric mengukur seberapa sering dan seberapa penuh, dan trace menunjukkan di mana waktu habis.",
   "Metric apa yang bisa dibaca dari api-t3, dan kapan metric itu hidup?",
   "App mengirim `traceparent`. Kenapa trace-id itu tidak muncul di mana pun di API?",
   "Yakin dengan ketiganya? Lompat ke [[berikutnya]].",
-  "Kalau berhenti di sini, kamu sudah tahu: log menjawab apa yang terjadi, metric menjawab seberapa penuh, dan trace menjawab di bagian mana waktu habis.",
+  "Kalau berhenti di sini, kamu sudah tahu: log menjawab apa yang terjadi, metric menjawab seberapa sering dan seberapa penuh, dan trace menjawab di bagian mana waktu habis.",
   "<p>Tanpa JavaScript, kartu di atas tidak bisa dipilah. Berikut jawaban tiap pertanyaan.</p>",
   "{pilah.item.map((it) => (",
   "<li><strong>{pilah.kelompok[it.jawab]}.</strong> {it.teks} {it.kenapa}</li>",
@@ -580,16 +750,16 @@ const KALIMAT_PENULIS: string[] = [
   "Metric",
   "Angka agregat dalam rentang waktu, mis. error rate atau pemakaian sumber daya",
   "Seberapa sering atau seberapa penuh?",
-  "Rekaman lab: pembacaan pool dan outbox, hanya dengan flag `-lab`",
+  "Rekaman lab: pembacaan pool, hanya dengan flag `-lab`",
   "Trace",
   "Perjalanan satu request, terdiri dari span: satu unit kerja dengan durasinya",
   "Di bagian mana waktu satu request habis?",
   "Tidak dijalankan",
   "Arti ketiga sinyal mengikuti dokumentasi OpenTelemetry ([primer](https://opentelemetry.io/docs/concepts/observability-primer/) dan [traces](https://opentelemetry.io/docs/concepts/signals/traces/), dibuka 2026-10-26). Rekaman di bawah menunjukkan apa yang bisa dibaca dari luar proses api-t3 saat satu pembayaran menggantung. Bagian pertama memuat log dan trace, bagian kedua metric dan database:",
-  "**Log.** Di api-t3, baris log ditulis saat sesuatu berakhir: sebuah galat atau akhir sebuah panggilan. Server ini tidak punya log akses: ia hanya menulis kejadian server dan kesalahan internal. Request yang menggantung tidak meninggalkan baris, dan pembacaan saldo yang selesai dengan 200 pun tidak. Server ini juga memakai paket `log` biasa, yang menulis teks bebas, bukan JSON.",
-  "Log terstruktur menulis tiap kejadian sebagai JSON dengan field tetap, supaya mesin bisa menyaring dan menghitungnya. Go punya `log/slog` di pustaka standar untuk itu ([Go 1.27.3: log/slog](https://pkg.go.dev/log/slog), dibuka 2026-10-26). Baris di bawah adalah Ilustrasi, bukan keluaran api-t3: bentuk satu baris yang tersambung ke trace lewat `trace_id`.",
+  "**Log.** Di api-t3, baris log ditulis untuk kejadian tertentu. Contohnya server mulai atau berhenti, kesalahan internal, push yang gagal di mode rentan M18, dan satu ringkasan tiap ekspor laporan. Server ini tidak punya log akses: tidak ada baris untuk tiap request. Request yang menggantung tidak meninggalkan baris, dan pembacaan saldo yang selesai dengan 200 pun tidak.",
+  "Server ini memakai paket `log` biasa, yang menulis teks bebas, bukan JSON. Log terstruktur menulis tiap kejadian sebagai JSON dengan field tetap, supaya mesin bisa menyaring dan menghitungnya. Go punya `log/slog` di pustaka standar untuk itu ([Go 1.27.3: log/slog](https://pkg.go.dev/log/slog), dibuka 2026-10-26). Baris di bawah adalah Ilustrasi, bukan keluaran api-t3: bentuk satu baris yang tersambung ke trace lewat `trace_id`.",
   "Di OpenTelemetry untuk Go, Traces dan Metrics berstatus Stable, sedangkan Logs masih Release Candidate ([OpenTelemetry: Go](https://opentelemetry.io/docs/languages/go/), dibuka 2026-10-26). Karena SDK log belum Stable, pilihan yang tidak bergantung padanya adalah menulis log sendiri sebagai JSON dengan `trace_id`. Request pada rekaman membawa header `Authorization: Bearer`. Panduan OWASP menyebut access token, password, dan session identification values sebagai data yang biasanya dikecualikan dari log ([OWASP: Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html), dibuka 2026-10-26).",
-  "Semua pembacaan metric di api-t3 ada di bawah `/lab/` dan hanya hidup dengan flag `-lab`, dan tidak ada endpoint `/metrics`. Yang relevan untuk M18 ada dua: `GET /lab/pool` dan `GET /lab/outbox` (jumlah baris per status dan umur baris tertua). Kolom `menunggu` adalah hitungan kumulatif sejak server hidup, jadi rekaman tidak mencetaknya.",
+  "Semua pembacaan metric di api-t3 ada di bawah `/lab/` dan hanya hidup dengan flag `-lab`, dan tidak ada endpoint `/metrics`. Yang menjawab seberapa penuh pool di M18 adalah `GET /lab/pool`. `GET /lab/outbox` (jumlah baris per status dan umur baris tertua) tidak menjawab M18: di mode rentan push dipanggil di dalam transaction dan tidak ada baris outbox. Kolom `menunggu` adalah hitungan kumulatif sejak server hidup, jadi rekaman tidak mencetaknya.",
   "**Trace.** Satu trace adalah perjalanan satu request. Ia terdiri dari span, dan setiap span mencatat satu unit kerja dengan durasinya. Antar komponen, trace disambung lewat header `traceparent` dari W3C Trace Context Level 1, edisi Recommendation 23 November 2021 ([W3C: Trace Context](https://www.w3.org/TR/trace-context/), dibuka 2026-10-26). Header itu terdiri dari empat field yang dipisah tanda minus:",
   "versi, trace-id (32 heksadesimal), parent-id (16), trace-flags (2)",
   "Trace-id mengenali seluruh perjalanan. Parent-id adalah id request ini menurut pemanggilnya. Bit paling kanan trace-flags, sampled, menyala: pemanggil mungkin sudah merekam trace. Alat tracing yang sesuai spesifikasi minimal meneruskan header itu supaya trace tidak putus (bagian 2.3).",
@@ -684,7 +854,7 @@ const PILAH_TERKUNCI = {
       "kenapa": "Satu kejadian dengan pesan galatnya. Rekaman lab: sepuluh baris \"push gagal, hanya dicatat\" yang memuat Client.Timeout exceeded (adr22.txt bagian D)."
     },
     {
-      "teks": "Dari lama satu pembayaran, berapa detik habis di panggilan ke layanan push dan berapa di query?",
+      "teks": "Satu pembayaran lewat app, API, layanan push, dan database. Di komponen mana waktunya habis?",
       "jawab": 2,
       "kenapa": "Trace memecah satu request menjadi span, masing-masing dengan durasinya. Tidak dijalankan: api-t3 tidak punya trace, dan kodenya tidak membaca traceparent (jejak.txt bagian J)."
     },
@@ -729,7 +899,7 @@ const RANTAI_TERKUNCI = {
         },
         {
           "teks": "database: menunggu client",
-          "sub": "idle in transaction lebih dari 3 detik, bukan query yang lambat"
+          "sub": "idle in transaction, transaction terbuka lebih dari 3 detik; bukan query yang lambat"
         }
       ]
     },
@@ -793,7 +963,7 @@ const ISTILAH_TERKUNCI: Record<string, unknown> = {
       },
       {
         "rujukan": "t3-observability",
-        "teks": "Satu pembayaran yang menggantung terlihat dari database sebagai satu sesi idle in transaction dengan wait event ClientRead, lebih dari 3 detik."
+        "teks": "Satu pembayaran yang menggantung terlihat dari database sebagai satu sesi idle in transaction dengan wait event ClientRead, pada transaction yang terbuka lebih dari 3 detik."
       }
     ],
     "mekanisme": [

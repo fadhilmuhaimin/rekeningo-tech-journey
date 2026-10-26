@@ -11,7 +11,7 @@
       "sub": "bagian J dari jejak.txt",
       "simpul": [
         { "teks": "metric: 1 dari 10 dipakai", "sub": "GET /lab/pool, satu pembayaran" },
-        { "teks": "database: menunggu client", "sub": "idle in transaction lebih dari 3 detik, bukan query yang lambat" }
+        { "teks": "database: menunggu client", "sub": "idle in transaction, transaction terbuka lebih dari 3 detik; bukan query yang lambat" }
       ]
     },
     {
