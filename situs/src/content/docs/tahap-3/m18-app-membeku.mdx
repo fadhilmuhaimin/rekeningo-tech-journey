@@ -27,7 +27,9 @@ Keluhan masuk ke Raka dari Budi dan dari Ani dalam beberapa menit. Sekitar sembi
 
 <Blok nama="Yang Raka kira" buka>
 
-Raka memeriksa dua tempat. Log server tidak memuat satu baris pun untuk request yang menggantung (Rekaman lab `jejak.txt` bagian J: satu pembayaran yang menggantung, 0 baris log baru sesudah 4 detik; kenapa itu penting dibahas di [[t3-observability]]). Di PostgreSQL, kesepuluh koneksi pool sedang terpakai.
+Raka memeriksa dua tempat. Pertama log server, yang tidak memuat satu baris pun untuk request yang menggantung. Rekaman lab `jejak.txt` bagian J mengulangnya untuk satu pembayaran yang menggantung: 0 baris log baru sesudah 4 detik. Alasan log itu penting dibahas di [[t3-observability]].
+
+Kedua PostgreSQL, tempat kesepuluh koneksi pool sedang terpakai.
 
 Raka menyimpulkan bahwa database kewalahan. Sepuluh koneksi terlalu sedikit untuk jam makan siang, jadi rencananya pool dinaikkan dari 10 ke 50. Angka 10 adalah batas yang Bayu tetapkan di minggu 1 (Asumsi cerita).
 
@@ -130,7 +132,7 @@ Widget ini mengikuti rekaman `m18.txt` bagian A dari satu pembayaran sampai Budi
 Sesudah langkah terakhir, centang **Ubah satu hal: app menyerah sesudah 5 detik**. Koneksi kembali ke pool dan Budi mendapat jawabannya (bagian C). Layanan push tetap menahan 26 permintaan. Layar HP di widget digambar dari isi rekaman: lab `api-t3` tidak punya app Flutter.
 
 <noscript>
-Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: Budi tidak mendapat jawaban (190 dari 190 pembacaan sesudah pool penuh tidak dijawab), dan bila app menyerah sesudah 5 detik, 380 dari 380 pembacaan dijawab. Rekaman lengkap ada di lipatan di bawah.
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: Budi tidak mendapat jawaban, karena 190 dari 190 pembacaan sesudah pool penuh tidak dijawab. Bila app menyerah sesudah 5 detik, 380 dari 380 pembacaan dijawab. Rekaman lengkap ada di lipatan di bawah.
 </noscript>
 
 <details>

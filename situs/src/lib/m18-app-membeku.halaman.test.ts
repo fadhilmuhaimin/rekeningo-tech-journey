@@ -247,7 +247,8 @@ describe("m18-app-membeku.mdx: tiap angka turunan dari rekaman dan hitungan", ()
     harus("Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].");
   });
   test("Yang Raka kira: log kosong dari jejak.txt J, rencana pool 10 ke 50, batas 10 dari Bayu, dan jawaban tebakan", () => {
-    harus("Log server tidak memuat satu baris pun untuk request yang menggantung (Rekaman lab `jejak.txt` bagian J: satu pembayaran yang menggantung, 0 baris log baru sesudah 4 detik;");
+    harus("Pertama log server, yang tidak memuat satu baris pun untuk request yang menggantung. Rekaman lab `jejak.txt` bagian J mengulangnya untuk satu pembayaran yang menggantung: 0 baris log baru sesudah 4 detik. Alasan log itu penting dibahas di [[t3-observability]].");
+    harus("Kedua PostgreSQL, tempat kesepuluh koneksi pool sedang terpakai.");
     expect(Number(logJejak[1])).toBe(4);
     expect(Number(logJejak[2])).toBe(0);
     harus("Raka menyimpulkan bahwa database kewalahan. Sepuluh koneksi terlalu sedikit untuk jam makan siang, jadi rencananya pool dinaikkan dari 10 ke 50.");
@@ -454,7 +455,7 @@ describe("rujukan [[ID]] dan registry", () => {
     expect(lokasi).toEqual([
       "· coba 3 menit · Prasyarat: →t3-skema",
       "dan Tidak dijalankan ada di →A0",
-      "napa itu penting dibahas di →t3-observability",
+      " log itu penting dibahas di →t3-observability",
       "ngan client HTTP bawaan Go (→t3-dua-tempat",
       " pertanyaan pertama PRD v3 (→t3-prd",
       "- →t3-pool",
@@ -761,7 +762,7 @@ describe("blok Coba dan tampilan: urutan blok, tebak sebelum hasil, dan penganta
     harus(`Sesudah langkah terakhir, centang **Ubah satu hal: app menyerah sesudah ${batasC[2]} detik**.`);
     harus(`Layanan push tetap menahan ${tahanC[1]} permintaan.`);
     harus("Layar HP di widget digambar dari isi rekaman: lab `api-t3` tidak punya app Flutter.");
-    harus(`<noscript>\nTanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: Budi tidak mendapat jawaban (${bacaSesudah[2]} dari ${bacaSesudah[1]} pembacaan sesudah pool penuh tidak dijawab), dan bila app menyerah sesudah ${batasC[2]} detik, ${bacaC[2]} dari ${bacaC[1]} pembacaan dijawab. Rekaman lengkap ada di lipatan di bawah.\n</noscript>`);
+    harus(`<noscript>\nTanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: Budi tidak mendapat jawaban, karena ${bacaSesudah[2]} dari ${bacaSesudah[1]} pembacaan sesudah pool penuh tidak dijawab. Bila app menyerah sesudah ${batasC[2]} detik, ${bacaC[2]} dari ${bacaC[1]} pembacaan dijawab. Rekaman lengkap ada di lipatan di bawah.\n</noscript>`);
     expect(skenario.varian.label).toBe(`app menyerah sesudah ${batasC[2]} detik`);
     expect(baca("labs/api-t3/README.md")).not.toMatch(/flutter run|pubspec/);
   });
