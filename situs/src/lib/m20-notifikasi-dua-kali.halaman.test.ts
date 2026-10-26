@@ -180,8 +180,9 @@ describe("registry, meta, susunan blok, dan tautan", () => {
   });
 });
 
+const barisM20Naskah = naskah.split("\n").find((b) => b.startsWith("| M20 |"))!;
 describe("naskah M20: gejala, yang dikira, dan yang sebenarnya", () => {
-  const barisM20 = naskah.split("\n").find((b) => b.startsWith("| M20 |"))!;
+  const barisM20 = barisM20Naskah;
   test("baris M20 di naskah memuat enam detik, M10, klaim 5 detik, 4,9 sampai 7,0 detik, dan ADR 25", () => {
     expect(barisM20).toContain('Ani menerima "Rp25.000 dari Budi" dua kali dalam enam detik dan mengira Budi membayar dua kali, seperti M10. Ia hampir menyerahkan dua porsi.');
     expect(barisM20).toContain("Jurnal ganda atau retry app (M10 terulang)");
@@ -250,7 +251,7 @@ describe("rekaman ganda.txt: bagian A, B, C, D dan rentang Snippet", () => {
     expect(bagD).toContain("INSERT INTO perangkat (akun_id, platform, token_push) VALUES (418, 'ios', 'tiruan-418-b')");
     harus("Penerimanya Warung Ani, yang punya satu HP di bagian A.");
   });
-  test("selang: lab memeriksa 4,9 sampai 7,0 detik dari start worker pertama sampai worker kedua selesai; rekaman menulis sedikit di atas 5 detik", () => {
+  test("selang: lab memeriksa 4,9 sampai 7,0 detik dari start worker yang mati sampai worker yang mengirim ulang selesai (worker ketiga di skrip); rekaman menulis sedikit di atas 5 detik", () => {
     const m = cocok(runPy, /harap\((\d\.\d) <= selang <= (\d\.\d), True, f"selang dua pengiriman \{selang:\.2f\} detik harus sedikit di atas klaim 5 detik"\)/);
     expect([m[1], m[2]]).toEqual(["4.9", "7.0"]);
     expect(runPy).toContain("t0 = time.monotonic()");
@@ -259,6 +260,22 @@ describe("rekaman ganda.txt: bagian A, B, C, D dan rentang Snippet", () => {
     harus("Lab menolak nilai di luar 4,9 sampai 7,0 detik, karena angkanya bergantung mesin.");
     harus("hasilnya sedikit di atas 5 detik");
     harus("Rekaman tidak mengukur selang antara dua pesan.");
+  });
+  test("worker yang mengirim ulang adalah pemanggilan worker() ketiga sesudah t0; batas klaim dari selang naskah (enam detik), bukan dari klaim bawaan", () => {
+    const a = runPy.slice(runPy.indexOf("def rekam_ganda"));
+    const antara = a.slice(a.indexOf("t0 = time.monotonic()"), a.indexOf("selang = time.monotonic() - t0"));
+    expect((antara.match(/\bworker\(/g) ?? []).length, "pemanggilan worker() antara t0 dan selang").toBe(3);
+    expect(antara).toContain('worker(["-lab-henti-sebelum-tandai"], tampil=False, kode=3)');
+    expect(antara).toMatch(/h = worker\(\)\n\s+harap\(h\["diklaim"\], 0,/); // yang kedua mengklaim 0
+    // Batas atas klaim: pengiriman kedua tidak bisa mendahului klaim_sampai, jadi klaim <= selang antara dua pengiriman + waktu kirim.
+    const enam = cocok(badan, /selang (\w+) detik di naskah menuntut klaim paling lama sekitar (\w+) detik/);
+    expect(enam[1]).toBe(enam[2]);
+    expect(barisM20Naskah).toContain(`dalam ${enam[1]} detik`);
+    expect(enam[1]).toBe("enam");
+    const klaimBawaan = Number(cocok(workerGo, /Klaim: (\d+) \* time\.Second/)[1]);
+    expect(klaimBawaan).toBeLessThanOrEqual(6);
+    harus("Klaim bawaan 5 detik memenuhi batas itu, dan klaim 30 detik tidak akan memberi selang itu");
+    expect(30).toBeGreaterThan(6);
   });
   test("rentang Snippet diturunkan dari baris rekaman dan kode, bukan ditulis tangan", () => {
     const tag = [...badan.matchAll(/<Snippet ([^>]*?)\/>/g)].map((m) => m[1]!);
@@ -340,6 +357,15 @@ describe("kode lab: pengiriman, celah, klaim, notifikasi_id, dan indeks unik", (
     harus("Angka `percobaan` naik tiap klaim, jadi 2 berarti dua kali diklaim.");
     harus("Klaim menaikkan `percobaan` dan menahan baris sampai `klaim_sampai`");
   });
+  test("jurnal_id kosong hanya untuk promo: kalimat 'tiap baris pemberitahuan uang' sesuai CHECK dan daftar jenis di migrasi", () => {
+    expect(migrasi).toMatch(/jurnal_id +bigint +REFERENCES jurnal\(id\),/); // tanpa NOT NULL
+    expect(migrasi).toContain("CHECK ((jurnal_id IS NULL) = (jenis = 'promo'))");
+    const jenis = cocok(migrasi, /jenis +text +NOT NULL CHECK \(jenis IN \(([^)]+)\)\)/)[1]!.split(",").map((x) => x.trim().replace(/'/g, ""));
+    expect(jenis).toEqual(["bayar", "transfer", "topup", "promo"]);
+    harus("Tiap baris pemberitahuan uang (bayar, transfer, dan top-up) punya `jurnal_id`");
+    harus("Pengumuman promo tidak punya jurnal, jadi tidak ikut indeks itu.");
+    expect(badan).not.toMatch(/Tiap baris punya `jurnal_id`/);
+  });
   test("outbox.notifikasi_id UNIQUE DEFAULT; indeks unik outbox_satu_per_jurnal pada (jurnal_id, akun_id)", () => {
     expect(migrasi).toMatch(/notifikasi_id uuid +NOT NULL UNIQUE DEFAULT gen_random_uuid\(\)/);
     expect(migrasi).toContain("CREATE UNIQUE INDEX outbox_satu_per_jurnal ON outbox (jurnal_id, akun_id) WHERE jurnal_id IS NOT NULL;");
@@ -382,7 +408,7 @@ describe("sumber luar: microservices.io dan baris riset R3-155", () => {
     harus("Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].");
     expect(badan.match(/\(Tidak dijalankan\)|, Tidak dijalankan\)|Tidak dijalankan\)/g)).toHaveLength(3);
     expect(badan.match(/\(Asumsi\)/g)).toHaveLength(1);
-    expect(badan.match(/\(penalaran[^)]*\)/g)).toHaveLength(4);
+    expect(badan.match(/\(penalaran[^)]*\)/g)).toHaveLength(5);
   });
 });
 
@@ -423,9 +449,21 @@ describe("skenario alur t3-m20.json: valid, nilai dari rekaman, tebakan, dan var
     expect(skenario.langkah).toHaveLength(8);
     expect(skenario.varian.langkah).toHaveLength(6);
     expect(skenario.varian.mulai).toBe(0);
-    expect(skenario.varian.label).toBe("klaim hanya 300 ms, tidak ada yang mati");
-    harus("**Ubah satu hal: klaim hanya 300 ms, tidak ada yang mati**");
+    expect(skenario.varian.label).toBe("klaim lebih pendek dari waktu kirim (300 ms lawan 1,5 detik), tidak ada yang mati");
+    harus("**Ubah satu hal: klaim lebih pendek dari waktu kirim (300 ms lawan 1,5 detik), tidak ada yang mati**");
     harus('<WidgetLama nama="alur" src="data/skenario/t3-m20.json" />');
+  });
+  test("label varian menyebut kedua angka bagian B (klaim 300 ms DAN push 1,5 detik) yang sama dengan run.py dan rekaman; langkah pertama varian tidak menyebut satu hal saja", () => {
+    const klaim = cocok(runPy, /worker\(\["-klaim", "(\d+)ms"\]/)[1];
+    const lambat = Number(cocok(runPy, /d\.push_mode\("lambat", ms=(\d+), kali=1\)/)[1]);
+    expect(skenario.varian.label).toContain(`${klaim} ms lawan ${String(lambat / 1000).replace(".", ",")} detik`);
+    expect(bagB).toContain(`# Klaim ${klaim} ms, layanan push menjawab permintaan pertama sesudah ${String(lambat / 1000).replace(".", ",")} detik`);
+    expect(skenario.varian.langkah[0]!.jelas).not.toMatch(/^Satu hal berubah/);
+    expect(skenario.varian.langkah[0]!.jelas).toContain("layanan push akan menjawab lambat");
+    expect(skenario.varian.langkah[1]!.judul).toBe("Layanan push menjawab lambat");
+    expect(skenario.sumber.catatan).toContain(`klaim ${klaim} ms lebih pendek dari waktu kirim ${String(lambat / 1000).replace(".", ",")} detik`);
+    // klaim 300 ms saja (push cepat) tidak cukup: A menyelesaikan kirim dalam milidetik, jadi lab harus memperlambat push untuk bagian B
+    expect(runPy.slice(runPy.indexOf("B. Klaim yang lebih pendek"), runPy.indexOf("C. Penyaring"))).toContain('d.push_mode("lambat"');
   });
   test("tebakan: empat pilihan, jawaban benar sama dengan rekaman (melewati dulu, kirim lagi sesudah klaim habis), posisinya tidak ditulis di halaman", () => {
     expect(skenario.predict.options).toHaveLength(4);
@@ -496,7 +534,7 @@ describe("skenario alur t3-m20.json: valid, nilai dari rekaman, tebakan, dan var
     const ns = cocok(badan, /<noscript>\n([\s\S]*?)<\/noscript>/)[1]!;
     expect(ns).toContain("mengklaim 0 baris selama klaim 5 detik berlaku");
     expect(ns).toContain("Layanan push menerima 2 pesan dengan 1 notifikasi_id, dan jurnal bayar baru hanya 1.");
-    expect(ns).toContain("Bila klaim hanya 300 ms, dua worker mengirim baris yang sama tanpa ada yang mati.");
+    expect(ns).toContain("Bila klaim 300 ms lebih pendek dari waktu kirim 1,5 detik, dua worker mengirim baris yang sama tanpa ada yang mati.");
     expect(badan).toContain(`<Snippet file="labs/t3-outbox/output/ganda.txt" lines="${barisPertama}:${baris.length - 1}" title="Rekaman lab: labs/t3-outbox/output/ganda.txt, bagian A sampai D (tanpa baris kepala)" />`);
   });
 });
@@ -548,9 +586,9 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
   });
 });
 
-const SIDIK_RISET = "7bdc5d21e25b6105";
+const SIDIK_RISET = "2b2f13b879e6bb96";
 const SIDIK_DIAGRAM = "7883fae46197187e";
-const SIDIK_SKENARIO = "0ea57b34c3f79030";
+const SIDIK_SKENARIO = "2ace9313b576babd";
 const KALIMAT_TERKUNCI: string[] = [
   "import Blok from \"../../../components/Blok.astro\";",
   "import Rantai from \"../../../components/Rantai.astro\";",
@@ -591,25 +629,27 @@ const KALIMAT_TERKUNCI: string[] = [
   "<Snippet file=\"labs/t3-outbox/output/ganda.txt\" lines=\"23:38\" title=\"Rekaman lab: labs/t3-outbox/output/ganda.txt, bagian A (pengiriman ulang, satu jurnal)\" />",
   "Layanan push menerima 2 pesan dengan 1 `notifikasi_id`. Jurnal bayar baru ada 1, dan baris outbox berakhir `terkirim` dengan `percobaan` 2. Angka `percobaan` naik tiap klaim, jadi 2 berarti dua kali diklaim. Berapa kali pesan tiba terlihat di layanan push.",
   "**Berapa lama klaim, dan kenapa enam detik.** Klaim bawaan worker lab 5 detik. Itu pilihan lab, tanpa pengukuran (Asumsi). Pengiriman kedua baru bisa terjadi sesudah `klaim_sampai` lewat.",
-  "Karena itu selang enam detik di naskah menuntut klaim paling lama sekitar lima detik. Klaim 30 detik tidak akan memberi selang itu (penalaran dari syarat klaim, tidak direkam). Angka enam detik di naskah berlabel Ilustrasi.",
-  "Rekaman tidak mengukur selang antara dua pesan. Yang diperiksa lab adalah selang dari start worker pertama sampai worker kedua selesai, dan hasilnya sedikit di atas 5 detik. Lab menolak nilai di luar 4,9 sampai 7,0 detik, karena angkanya bergantung mesin.",
+  "Karena itu selang enam detik di naskah menuntut klaim paling lama sekitar enam detik. Klaim bawaan 5 detik memenuhi batas itu, dan klaim 30 detik tidak akan memberi selang itu (penalaran dari syarat klaim, tidak direkam). Angka enam detik di naskah berlabel Ilustrasi.",
+  "Rekaman tidak mengukur selang antara dua pesan. Yang diperiksa lab adalah selang dari start worker yang mati sampai worker yang mengirim ulang selesai, dan hasilnya sedikit di atas 5 detik. Lab menolak nilai di luar 4,9 sampai 7,0 detik, karena angkanya bergantung mesin.",
   "**Tidak harus ada yang mati.** Bagian B memakai klaim 300 ms dan layanan push yang menjawab permintaan pertama sesudah 1,5 detik. Worker A masih menunggu saat klaimnya habis. Worker B mengklaim baris yang sama, dan keduanya melapor `terkirim`:",
   "<Snippet file=\"labs/t3-outbox/output/ganda.txt\" lines=\"40:53\" title=\"Rekaman lab: labs/t3-outbox/output/ganda.txt, bagian B (klaim lebih pendek dari waktu kirim)\" />",
   "Klaim bekerja seperti dirancang: ia menahan baris 300 ms, tidak lebih. Yang kurang adalah klaim yang lebih pendek dari waktu kirim. Bagian D menunjukkan bentuk ketiga, yaitu penerima dengan dua HP yang sama-sama menggantung memakan 2 × 3 detik, lebih dari klaim 5 detik. Bentuk itu dibahas di [[t3-at-least-once]].",
   "**Pengiriman ulang itu benar.** Bila worker menandai `terkirim` sebelum mengirim, worker yang mati di antaranya membuat Ani tidak diberi tahu, seperti [[t3-m19]] dengan sebab lain. Tidak ada baris yang tersisa untuk dikirim ulang (penalaran, tidak direkam). Urutan kirim lalu tandai menukar kehilangan dengan ulangan.",
   "Layanan push dan PostgreSQL tidak bisa COMMIT bersama ([[t3-dua-tempat]]), jadi worker baru tidak bisa tahu apakah layanan push sudah menjawab. Pola outbox menulis hal yang sama: relay bisa memublikasikan pesan lebih dari sekali, sehingga consumer harus idempoten. Sumbernya [microservices.io: Transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html), halaman tanpa tanggal terbit, dibuka 2026-10-26 (Tidak dijalankan).",
   "**Ini bukan retry app.** Idempotency key ([[t2-idempotency]]) menjaga request dari app ke server. Pesan kedua di M20 lahir di dalam worker, sesudah request itu selesai.",
-  "**Jawaban untuk Pak Hadi.** Di minggu 1 Pak Hadi bertanya bagaimana ia tahu satu pemberitahuan sesuai satu jurnal ([[t3-dua-tempat]]). Tabel `outbox` menjawabnya. Tiap baris punya `jurnal_id`, dan indeks unik `outbox_satu_per_jurnal` menolak baris kedua untuk jurnal dan penerima yang sama. Baris itu juga mencatat `percobaan`, jadi `percobaan` 2 dengan satu jurnal menunjukkan pengiriman ulang, bukan pembayaran kedua.",
-  "**Yang belum menyelesaikannya.** Klaim yang lebih panjang tidak menghapus ulangan. Ia hanya menunda pengiriman ulang sesudah worker mati, jadi Ani menunggu lebih lama (penalaran, tidak direkam). Yang menyelesaikannya ada di penerima: pesan dengan `notifikasi_id` yang sudah tampil dilewati.",
+  "**Jawaban untuk Pak Hadi.** Di minggu 1 Pak Hadi bertanya bagaimana ia tahu satu pemberitahuan sesuai satu jurnal ([[t3-dua-tempat]]). Tabel `outbox` menjawabnya. Tiap baris pemberitahuan uang (bayar, transfer, dan top-up) punya `jurnal_id`, dan indeks unik `outbox_satu_per_jurnal` menolak baris kedua untuk jurnal dan penerima yang sama. Pengumuman promo tidak punya jurnal, jadi tidak ikut indeks itu.",
+  "Baris pemberitahuan uang juga mencatat `percobaan`, jadi `percobaan` 2 dengan satu jurnal menunjukkan pengiriman ulang, bukan pembayaran kedua.",
+  "**Yang belum menyelesaikannya.** Klaim yang lebih panjang dari waktu kirim menutup bentuk tanpa worker mati, yaitu bagian B dan D (penalaran, tidak direkam). Sesudah worker mati, klaim yang lebih panjang tidak menghapus ulangan. Ia hanya menunda pengiriman ulang, jadi Ani menunggu lebih lama (penalaran, tidak direkam).",
+  "Yang menyelesaikannya ada di penerima: pesan dengan `notifikasi_id` yang sudah tampil dilewati.",
   "Bagian C merekam penyaring lima baris di skrip lab, dan hasilnya 2 pesan diterima dan 1 ditampilkan. Itu bukan kode app Dart. App, batas lima percobaan, dan dead-letter dibahas di [[t3-at-least-once]].",
   "</Blok>",
   "<Blok nama=\"Coba sendiri\">",
   "Widget ini mengikuti rekaman `ganda.txt` bagian A dari klaim pertama sampai HP Ani. Tebak dulu apa yang dikerjakan worker baru, lalu tekan Berikutnya atau panah kanan.",
   "<WidgetLama nama=\"alur\" src=\"data/skenario/t3-m20.json\" />",
-  "Sesudah langkah terakhir, centang **Ubah satu hal: klaim hanya 300 ms, tidak ada yang mati**. Worker tidak perlu mati supaya HP Ani berbunyi dua kali (bagian B). Layar HP di widget digambar dari isi rekaman: lab tidak punya app Flutter, dan layanan push tiruan hanya mencatat pesan yang diterima.",
+  "Sesudah langkah terakhir, centang **Ubah satu hal: klaim lebih pendek dari waktu kirim (300 ms lawan 1,5 detik), tidak ada yang mati**. Worker tidak perlu mati supaya HP Ani berbunyi dua kali (bagian B). Layar HP di widget digambar dari isi rekaman: lab tidak punya app Flutter, dan layanan push tiruan hanya mencatat pesan yang diterima.",
   "<noscript>",
   "Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: worker baru mengklaim 0 baris selama klaim 5 detik berlaku, lalu mengirim baris yang sama lagi. Layanan push menerima 2 pesan dengan 1 notifikasi_id, dan jurnal bayar baru hanya 1.",
-  "Bila klaim hanya 300 ms, dua worker mengirim baris yang sama tanpa ada yang mati. Rekaman lengkap ada di lipatan di bawah.",
+  "Bila klaim 300 ms lebih pendek dari waktu kirim 1,5 detik, dua worker mengirim baris yang sama tanpa ada yang mati. Rekaman lengkap ada di lipatan di bawah.",
   "</noscript>",
   "<details>",
   "<summary>Rekaman bagian A sampai D (juga untuk pembaca tanpa JavaScript)</summary>",

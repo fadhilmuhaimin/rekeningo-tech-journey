@@ -74,9 +74,9 @@ Layanan push menerima 2 pesan dengan 1 `notifikasi_id`. Jurnal bayar baru ada 1,
 
 **Berapa lama klaim, dan kenapa enam detik.** Klaim bawaan worker lab 5 detik. Itu pilihan lab, tanpa pengukuran (Asumsi). Pengiriman kedua baru bisa terjadi sesudah `klaim_sampai` lewat.
 
-Karena itu selang enam detik di naskah menuntut klaim paling lama sekitar lima detik. Klaim 30 detik tidak akan memberi selang itu (penalaran dari syarat klaim, tidak direkam). Angka enam detik di naskah berlabel Ilustrasi.
+Karena itu selang enam detik di naskah menuntut klaim paling lama sekitar enam detik. Klaim bawaan 5 detik memenuhi batas itu, dan klaim 30 detik tidak akan memberi selang itu (penalaran dari syarat klaim, tidak direkam). Angka enam detik di naskah berlabel Ilustrasi.
 
-Rekaman tidak mengukur selang antara dua pesan. Yang diperiksa lab adalah selang dari start worker pertama sampai worker kedua selesai, dan hasilnya sedikit di atas 5 detik. Lab menolak nilai di luar 4,9 sampai 7,0 detik, karena angkanya bergantung mesin.
+Rekaman tidak mengukur selang antara dua pesan. Yang diperiksa lab adalah selang dari start worker yang mati sampai worker yang mengirim ulang selesai, dan hasilnya sedikit di atas 5 detik. Lab menolak nilai di luar 4,9 sampai 7,0 detik, karena angkanya bergantung mesin.
 
 **Tidak harus ada yang mati.** Bagian B memakai klaim 300 ms dan layanan push yang menjawab permintaan pertama sesudah 1,5 detik. Worker A masih menunggu saat klaimnya habis. Worker B mengklaim baris yang sama, dan keduanya melapor `terkirim`:
 
@@ -90,9 +90,13 @@ Layanan push dan PostgreSQL tidak bisa COMMIT bersama ([[t3-dua-tempat]]), jadi 
 
 **Ini bukan retry app.** Idempotency key ([[t2-idempotency]]) menjaga request dari app ke server. Pesan kedua di M20 lahir di dalam worker, sesudah request itu selesai.
 
-**Jawaban untuk Pak Hadi.** Di minggu 1 Pak Hadi bertanya bagaimana ia tahu satu pemberitahuan sesuai satu jurnal ([[t3-dua-tempat]]). Tabel `outbox` menjawabnya. Tiap baris punya `jurnal_id`, dan indeks unik `outbox_satu_per_jurnal` menolak baris kedua untuk jurnal dan penerima yang sama. Baris itu juga mencatat `percobaan`, jadi `percobaan` 2 dengan satu jurnal menunjukkan pengiriman ulang, bukan pembayaran kedua.
+**Jawaban untuk Pak Hadi.** Di minggu 1 Pak Hadi bertanya bagaimana ia tahu satu pemberitahuan sesuai satu jurnal ([[t3-dua-tempat]]). Tabel `outbox` menjawabnya. Tiap baris pemberitahuan uang (bayar, transfer, dan top-up) punya `jurnal_id`, dan indeks unik `outbox_satu_per_jurnal` menolak baris kedua untuk jurnal dan penerima yang sama. Pengumuman promo tidak punya jurnal, jadi tidak ikut indeks itu.
 
-**Yang belum menyelesaikannya.** Klaim yang lebih panjang tidak menghapus ulangan. Ia hanya menunda pengiriman ulang sesudah worker mati, jadi Ani menunggu lebih lama (penalaran, tidak direkam). Yang menyelesaikannya ada di penerima: pesan dengan `notifikasi_id` yang sudah tampil dilewati.
+Baris pemberitahuan uang juga mencatat `percobaan`, jadi `percobaan` 2 dengan satu jurnal menunjukkan pengiriman ulang, bukan pembayaran kedua.
+
+**Yang belum menyelesaikannya.** Klaim yang lebih panjang dari waktu kirim menutup bentuk tanpa worker mati, yaitu bagian B dan D (penalaran, tidak direkam). Sesudah worker mati, klaim yang lebih panjang tidak menghapus ulangan. Ia hanya menunda pengiriman ulang, jadi Ani menunggu lebih lama (penalaran, tidak direkam).
+
+Yang menyelesaikannya ada di penerima: pesan dengan `notifikasi_id` yang sudah tampil dilewati.
 
 Bagian C merekam penyaring lima baris di skrip lab, dan hasilnya 2 pesan diterima dan 1 ditampilkan. Itu bukan kode app Dart. App, batas lima percobaan, dan dead-letter dibahas di [[t3-at-least-once]].
 
@@ -104,12 +108,12 @@ Widget ini mengikuti rekaman `ganda.txt` bagian A dari klaim pertama sampai HP A
 
 <WidgetLama nama="alur" src="data/skenario/t3-m20.json" />
 
-Sesudah langkah terakhir, centang **Ubah satu hal: klaim hanya 300 ms, tidak ada yang mati**. Worker tidak perlu mati supaya HP Ani berbunyi dua kali (bagian B). Layar HP di widget digambar dari isi rekaman: lab tidak punya app Flutter, dan layanan push tiruan hanya mencatat pesan yang diterima.
+Sesudah langkah terakhir, centang **Ubah satu hal: klaim lebih pendek dari waktu kirim (300 ms lawan 1,5 detik), tidak ada yang mati**. Worker tidak perlu mati supaya HP Ani berbunyi dua kali (bagian B). Layar HP di widget digambar dari isi rekaman: lab tidak punya app Flutter, dan layanan push tiruan hanya mencatat pesan yang diterima.
 
 <noscript>
 Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: worker baru mengklaim 0 baris selama klaim 5 detik berlaku, lalu mengirim baris yang sama lagi. Layanan push menerima 2 pesan dengan 1 notifikasi_id, dan jurnal bayar baru hanya 1.
 
-Bila klaim hanya 300 ms, dua worker mengirim baris yang sama tanpa ada yang mati. Rekaman lengkap ada di lipatan di bawah.
+Bila klaim 300 ms lebih pendek dari waktu kirim 1,5 detik, dua worker mengirim baris yang sama tanpa ada yang mati. Rekaman lengkap ada di lipatan di bawah.
 </noscript>
 
 <details>

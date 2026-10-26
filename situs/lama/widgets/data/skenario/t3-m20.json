@@ -5,7 +5,7 @@
     "jenis": "rekaman",
     "file": "labs/t3-outbox/output/ganda.txt",
     "fileVarian": "labs/t3-outbox/output/ganda.txt",
-    "catatan": "Server Go dan worker api-t3 dengan layanan push tiruan lokal, PostgreSQL 17.11, dari database bersih (make -C labs/t3-outbox run BAGIAN=ganda). Jalur utama: ganda.txt bagian A, dengan klaim bawaan 5 detik. Ubah satu hal: bagian B, klaim 300 ms tanpa worker yang mati. Worker yang mati diperankan flag khusus lab yang membuat proses keluar dengan exit status 3, bukan deploy sungguhan. Baris diawali tanda panah diringkas dari tabel PostgreSQL di rekaman yang sama, bukan baris log. Layar HP digambar dari isi rekaman: layanan push tiruan hanya mencatat pesan yang diterima, dan lab tidak punya app Flutter. Jam 12.10 di layar HP adalah pilihan penulis."
+    "catatan": "Server Go dan worker api-t3 dengan layanan push tiruan lokal, PostgreSQL 17.11, dari database bersih (make -C labs/t3-outbox run BAGIAN=ganda). Jalur utama: ganda.txt bagian A, dengan klaim bawaan 5 detik. Ubah satu hal: bagian B, klaim 300 ms lebih pendek dari waktu kirim 1,5 detik, tanpa worker yang mati. Worker yang mati diperankan flag khusus lab yang membuat proses keluar dengan exit status 3, bukan deploy sungguhan. Baris diawali tanda panah diringkas dari tabel PostgreSQL di rekaman yang sama, bukan baris log. Layar HP digambar dari isi rekaman: layanan push tiruan hanya mencatat pesan yang diterima, dan lab tidak punya app Flutter. Jam 12.10 di layar HP adalah pilihan penulis."
   },
   "pengantar": "Satu pembayaran Budi ke Warung Ani sudah menjadi satu baris outbox, dan worker mengirimnya. Tebak dulu, lalu ikuti sampai HP Ani. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
   "komponen": [
@@ -84,7 +84,7 @@
       "ke": "db",
       "judul": "Worker baru mengklaim baris yang sama",
       "kirim": "$ ./api-t3 -peran worker -sekali\nworker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0",
-      "jelas": "Worker baru tidak tahu layanan push sudah menjawab. Dari start worker pertama sampai worker kedua selesai: sedikit di atas 5 detik, dan lab menolak nilai di luar 4,9 sampai 7,0 detik.",
+      "jelas": "Worker baru tidak tahu layanan push sudah menjawab. Dari start worker yang mati sampai worker yang mengirim ulang selesai: sedikit di atas 5 detik, dan lab menolak nilai di luar 4,9 sampai 7,0 detik.",
       "nada": "warn"
     },
     {
@@ -116,7 +116,7 @@
     }
   ],
   "varian": {
-    "label": "klaim hanya 300 ms, tidak ada yang mati",
+    "label": "klaim lebih pendek dari waktu kirim (300 ms lawan 1,5 detik), tidak ada yang mati",
     "mulai": 0,
     "langkah": [
       {
@@ -124,7 +124,7 @@
         "ke": "db",
         "judul": "Worker A mengklaim baris, klaim 300 ms",
         "kirim": "$ ./api-t3 -peran worker -sekali -klaim 300ms\n→ outbox: menunggu, percobaan 1, klaim dipegang 300 ms",
-        "jelas": "Satu hal berubah: klaim 300 ms, bukan 5 detik. Tidak ada worker yang akan mati."
+        "jelas": "Klaim 300 ms, bukan 5 detik, dan layanan push akan menjawab lambat. Tidak ada worker yang akan mati."
       },
       {
         "dari": "worker",
