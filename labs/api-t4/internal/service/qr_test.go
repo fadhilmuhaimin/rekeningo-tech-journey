@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"lab/apit4/internal/repo"
 )
 
 // Tes QR (ADR 40, M35) dengan PostgreSQL sungguhan, memakai siapkan, saldo, dan isiSaldo dari db_test.go.
@@ -558,5 +560,37 @@ func TestBayarQRKaryawanLestari(t *testing.T) {
 	qrJurnalSeimbang(t, db, h.ID)
 	if s := saldo(t, db, budi); s != 78_000 {
 		t.Fatalf("saldo karyawan %d, ingin 78000", s)
+	}
+}
+
+// Pengaman kedua pembayaran QR dinamis: UPDATE ... WHERE status = 'aktif' hanya berhasil sekali, juga tanpa lock
+// baris QR. Diuji langsung di repo karena KunciQR sudah menutup balapan lebih dulu, jadi tes pembayaran saja tidak
+// membuktikan pengaman ini.
+func TestTandaiQRTerpakaiHanyaSekali(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	merchant := qrAkun(t, db, "merchant", "terverifikasi", "aktif", 0)
+	pembeli := qrAkun(t, db, "pemakai", "belum", "aktif", 10_000)
+	isiSaldo(t, db, pembeli, 10_000) // dua jurnal topup yang bisa dipakai sebagai pengikat
+	var j1, j2 int64
+	if err := db.QueryRow(`SELECT (array_agg(id ORDER BY id DESC))[1], (array_agg(id ORDER BY id DESC))[2] FROM jurnal`).Scan(&j1, &j2); err != nil {
+		t.Fatal(err)
+	}
+	q, err := svc.BuatQR(ctx, merchant, "dinamis", qrNom(5_000))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var pertama, kedua bool
+	if err := svc.repo.DalamTx(ctx, func(tx repo.Tx) error { var e error; pertama, e = tx.TandaiQRTerpakai(ctx, q.ID, j1); return e }); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.repo.DalamTx(ctx, func(tx repo.Tx) error { var e error; kedua, e = tx.TandaiQRTerpakai(ctx, q.ID, j2); return e }); err != nil {
+		t.Fatal(err)
+	}
+	if !pertama || kedua {
+		t.Fatalf("menandai terpakai: pertama %v, kedua %v; harus true lalu false", pertama, kedua)
+	}
+	if st, j := qrStatus(t, db, q.ID); st != "terpakai" || j == nil || *j != j1 {
+		t.Fatalf("QR: %s %v; harus terpakai dan tetap terikat ke jurnal pertama %d", st, j, j1)
 	}
 }
