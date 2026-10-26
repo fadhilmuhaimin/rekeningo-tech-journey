@@ -441,7 +441,7 @@ describe("penjaga tambahan: label sumber, versi, kata kunci, dan rujukan rekaman
     expect(tabelNaskah[0]![2]).toContain("tiruan lokal");
     expect(baris1[0]![2]).toContain("tiruan lokal");
     expect(blokTabel).toContain("Layanan push di lab adalah tiruan lokal.");
-    expect(fs.existsSync(path.join(akar, "labs/api-t3/pushpalsu"))).toBe(true);
+    expect(fs.existsSync(path.join(akar, "labs/api-t3/cmd/pushpalsu/main.go"))).toBe(true); // sumber yang di-commit, bukan binari hasil build
   });
   test("tanggal akses sumber FCM: tidak sebelum riset Tahap 3 dan tidak di masa depan", () => {
     const m = mdx.match(/dokumentasi dibuka (\d{4}-\d{2}-\d{2})/);
