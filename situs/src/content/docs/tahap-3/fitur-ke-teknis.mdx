@@ -1,0 +1,97 @@
+---
+title: "3.2 Dari fitur ke pekerjaan teknis v3"
+description: Raka, Nadia, Bayu, dan Wulan menurunkan PRD v3 jadi pekerjaan di app, backend, dan database, lalu menulis pertanyaan pertama Tahap 3 sebelum kode.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import tabelBaru from "../../../../data/diagram/t3-fitur-tabel.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 6 menit · coba 2 menit · Prasyarat: [[t3-prd]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+PRD v3 menambah enam tabel di database. Pekerjaan yang membuka Tahap 3 terjadi di luar database: memberi tahu HP orang lain bahwa uang sudah masuk.
+
+<Rantai data={tabelBaru} ringkas />
+
+Enam tabel baru ada di skema lab api-t3: `kota`, `perangkat`, `outbox`, `produk`, `promo`, dan `operasi_sinkron`. Tabel `akun` bertambah kolom `kota_id` dan nilai jenis `hr`. Tabel `sesi` bertambah kolom `jenis` dan `csrf_hash`.
+
+Baris pertama dari delapan baris pekerjaan di bawah, notifikasi saat menerima uang, menyentuh dua tempat sekaligus. PostgreSQL bisa COMMIT atau ROLLBACK sebagai satu unit, tetapi layanan push tidak ikut unit itu. Dari baris itu lahir pertanyaan pertama Tahap 3.
+
+</Blok>
+
+<Blok nama="Coba dulu: di mana pekerjaannya?" buka aman="Kalau berhenti di sini, kamu sudah tahu: layar ada di app, aturan uang ada di backend, dan database menolak data yang melanggar aturannya.">
+
+Sepuluh pekerjaan dari PRD v3. Pilah masing-masing ke tempat yang mengerjakannya, lalu periksa jawabanmu. Nama endpoint, tabel, dan status berasal dari rekaman lab api-t3.
+
+<WidgetLama nama="pilah" src="data/t3-fitur-pilah.json" />
+
+</Blok>
+
+<Blok nama="Dari fitur ke pekerjaan">
+
+Ini tabel yang tim tulis sebelum satu baris kode Tahap 3 ada. Empat orang membagi pekerjaannya: Raka di app, Nadia dan Bayu di backend, Wulan di dasbor web.
+
+| Fitur | Di app | Di backend | Di database |
+|---|---|---|---|
+| Notifikasi saat menerima uang | Minta izin notifikasi, kirim token perangkat, tampilkan pesan, saring pesan ganda | Simpan token (`POST /perangkat`); kirim pemberitahuan setelah jurnal; layanan push (tiruan lokal; rujukan FCM HTTP v1) | `perangkat`, `outbox` |
+| Katalog dan stok | Layar menu per kota; di app warung: ubah harga dan stok | Endpoint katalog (`GET /katalog`); ubah produk bersyarat versi (`PATCH /produk/{id}`); total pembayaran dihitung ulang dari database (`POST /pesanan`) | `produk`, `kota` |
+| Dasbor web warung | Tidak ada (halaman web) | Login web dengan cookie sesi (`POST /web/login`); laporan harian; ekspor CSV (`GET /warung/{id}/laporan.csv`); kelola menu | `sesi` jenis web |
+| Promo dari HR | Banner promo; harga promo di katalog | Promo per kota (`POST /promo`); harga efektif; pengumuman massal lewat `outbox` | `promo` |
+| Catatan pada pembayaran | Kolom isian | Validasi panjang; simpan di `jurnal.keterangan` | `jurnal.keterangan` |
+| Tidak berhenti saat deploy | Tidak ada | Dua instance; proxy dengan health check; graceful shutdown; staging; backup | Tidak ada |
+| Mode offline warung | Queue perubahan lokal; tombol sinkron | Endpoint sinkron bersyarat versi (`POST /sinkron`) | `operasi_sinkron` |
+| Empat engineer, tiga peran | Mock server dari kontrak; pipeline iOS dan Android | Staging; pipeline dengan Redis nyata; migration dry-run; k6 smoke | Tidak ada |
+
+Nama tabel dan kolom di tabel ini ada di skema lab api-t3 (`skema.txt` dan ERD Tahap 3), dan nama endpoint ada di kontrak `labs/api-t3/openapi.yaml`. Di luar nama tabel dan endpoint itu, isi tabel adalah rencana kerja tim, bukan hasil ukur.
+
+Layanan push di lab adalah tiruan lokal. Untuk bentuk permintaannya, tim memakai [dokumentasi FCM HTTP v1](https://firebase.google.com/docs/cloud-messaging/send/v1-api) sebagai rujukan: sebuah `POST` ke `messages:send` dengan header `Authorization: Bearer` (dokumentasi dibuka 2026-10-26).
+
+Katalog, dasbor, dan offline tidak punya halaman fitur sendiri di Tahap 3. Barisnya di tabel ini sudah cukup, lalu halaman konsep di bawah yang membahas isinya.
+
+</Blok>
+
+<Blok nama="Pertanyaan sebelum kode">
+
+Tabel itu memaksa satu pertanyaan sebelum editor dibuka. "Budi transfer Rp50.000 ke Citra" kini menyentuh dua tempat: jurnal dan dua posting di PostgreSQL, ditambah satu pemberitahuan ke HP Citra.
+
+PostgreSQL bisa COMMIT atau ROLLBACK sebagai satu unit. Layanan push tidak ikut unit itu. Jadi pemberitahuan adalah akibat dari uang yang bergerak, bukan bagian dari uang yang bergerak.
+
+Tiga hal harus selalu benar, dan masing-masing punya pemiliknya:
+
+1. Pemberitahuan tidak mendahului uangnya. Kalau jurnal batal, Citra tidak diberi tahu. Ini syarat Pak Hadi.
+2. Uang yang tercatat tidak kehilangan pemberitahuannya tanpa ada yang tahu. Ani menyerahkan makanan setelah melihat notifikasi. Ini syarat Sinta.
+3. Uang tidak menunggu pihak luar. Pembayaran tidak ikut lambat bila layanan push lambat. Ini syarat Direksi.
+
+Pertanyaannya: bagaimana satu jurnal dan satu pemberitahuan memenuhi ketiganya, padahal keduanya ada di tempat yang tidak bisa COMMIT bersama?
+
+Cara pertama yang ditulis tim ternyata keliru. Alasannya dibahas di [[t3-dua-tempat]]. Tiga pertanyaan terbuka PRD v3 yang ikut menentukan jawabannya ada di [[t3-prd]].
+
+</Blok>
+
+<Blok nama="Konsep yang akan dibutuhkan">
+
+Tabel ini menyebut konsep untuk tiap fitur. Sebagian baru, sebagian dari Tahap 1 dan 2 yang dipakai lagi. Tahap 3 membahas yang baru satu per satu, saat masalahnya muncul.
+
+| Fitur | Konsep |
+|---|---|
+| Notifikasi saat menerima uang | [[t3-dua-tempat\|Dua tempat yang tidak bisa COMMIT bersama]], [[t3-outbox\|outbox dan worker]], [[t3-pool\|connection pool]], [[t3-at-least-once\|retry dan consumer idempoten]] |
+| Katalog dan stok | [[t3-cache\|Cache dan invalidation]], [[t3-offline\|optimistic lock]] |
+| Dasbor web warung | [[t3-xss-csrf\|XSS, CSRF, cookie, CSP, passkey]] |
+| Promo dari HR | [[t3-cache\|Cache invalidation]], [[t3-m27\|fan-out dan kelas prioritas queue]] |
+| Catatan pada pembayaran | [[B6\|Validation]], [[t3-xss-csrf\|output encoding]] |
+| Tidak berhenti saat deploy | [[t3-dua-instance\|Reverse proxy]], [[t3-rate-limit-redis\|rate limit lintas instance]], [[t3-observability\|observability]] |
+| Mode offline warung | [[t3-offline\|Offline-first]], [[t2-idempotency\|umur key lawan umur queue]] |
+| Empat engineer, tiga peran | [[t3-tim-infra\|Staging, mock server, backup, dan on-call]] |
+
+Pola dua tempat muncul lagi di empat masalah lain: memori dua instance ([[t3-m22]]), cache ([[t3-m23]]), queue offline di HP ([[t3-m24]]), dan queue worker ([[t3-m27]]). Aturan Tahap 3 sama untuk semuanya. PostgreSQL tetap source of truth. Yang lain hanya salinan atau perantara yang boleh stale, tetapi tidak boleh menggerakkan uang.
+
+Halaman fitur berikutnya, [[t3-notifikasi]], membahas notifikasi push dan promo HR.
+
+</Blok>
+
+<SkripLama daftar={["pilah"]} />
