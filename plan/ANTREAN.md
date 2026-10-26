@@ -1615,38 +1615,38 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### 3.9 · Outbox transaksional dan worker + ADR 23
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.8, W3-outbox, lab-t3-outbox, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Konsep + ADR 3.9 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 23 (menyerap B10.1 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget W3-outbox; ADR 23 dengan opsi queue di Redis, log-based CDC, kirim sesudah COMMIT tanpa outbox; kasus industri Solid Queue (R3-24); di stack lain (Laravel, Django) dari dokumentasi berlabel Tidak dijalankan; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Halaman lama B10.1 dilebur ke sini (juga ke 3.11 dan 3.13).
+- catatan: Halaman lama B10.1 dilebur ke sini (juga ke 3.11 dan 3.13). Selesai 2026-10-26 di PR #374 (keputusan 1032–1035): outbox-worker.mdx, ADR 23 empat opsi, B10.1 dilebur, widget OutboxWorker cara, penjaga 63 tes; peninjau memperbaiki Snippet yang menampilkan komentar lab dan klaim hanya INSERT.
 
 ### 3.10 · M19: Ani tidak diberi tahu
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.9, lab-t3-outbox, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Masalah 3.10 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M19) dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget race; kursor `(dibuat, id)` melewatkan baris yang COMMIT belakangan; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Dua transfer ke penerima yang sama saling menunggu di baris buku penerima: rekaman atau Tidak dijalankan (lab-t3-outbox).
+- catatan: Dua transfer ke penerima yang sama saling menunggu di baris buku penerima: rekaman atau Tidak dijalankan (lab-t3-outbox). Selesai 2026-10-26 di PR #375 (keputusan 1036–1039): m19-tidak-diberi-tahu.mdx, widget OutboxWorker kursor, penjaga 23 tes; peninjau memperbaiki atribusi Morling dan label urutan COMMIT yang tak terekam.
 
 ### 3.11 · Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.10, lab-t3-outbox, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Konsep + ADR 3.11 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 24 (menyerap B8 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget race; ADR 24 dengan opsi kursor `(dibuat, id)`, nomor urut tanpa celah, `LISTEN`/`NOTIFY` hanya sebagai pembangun; worker di berbagai stack; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Halaman lama B8 (Concurrency dan async) dilebur ke sini. `SKIP LOCKED` tidak menjaga urutan antar pesan: tulis di "kapan salah".
+- catatan: Halaman lama B8 (Concurrency dan async) dilebur ke sini. `SKIP LOCKED` tidak menjaga urutan antar pesan: tulis di "kapan salah". Selesai 2026-10-26 di PR #376 (keputusan 1040–1043): klaim-per-baris.mdx, ADR 24 empat opsi, B8 dilebur, penjaga 39 tes; peninjau memperbaiki klaim universal tab stack, label worker A, dan opsi C ADR 16.
 
 ### 3.12 · M20: Notifikasi masuk dua kali
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.11, lab-t3-outbox, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Masalah 3.12 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M20) dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget alur; hanya satu jurnal, worker dihentikan saat deploy di antara kirim dan tandai terkirim; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Dua pengiriman berselang sekitar enam detik menuntut klaim paling lama sekitar 5 detik (SETELAH-TAHAP-3): sebut panjang klaim.
+- catatan: Dua pengiriman berselang sekitar enam detik menuntut klaim paling lama sekitar 5 detik (SETELAH-TAHAP-3): sebut panjang klaim. Selesai 2026-10-26 di PR #378 (keputusan 1044–1047): m20-notifikasi-dua-kali.mdx, alur t3-m20, penjaga 45 tes; peninjau memperbaiki lima kalimat terkunci yang salah (jurnal_id kosong untuk promo, label klaim 300 ms, batas klaim, atribusi worker kedua).
 
 ### 3.13 · At-least-once: retry, dead-letter, penyaring di app + ADR 25
 
@@ -1864,7 +1864,7 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan ole
 - jenis: konten
 - status: antre
 - percobaan: 0
-- bergantung: RISET-4, DIRI-3
+- bergantung: RISET-4
 - selesai bila: `plan/CERITA-TAHAP-4.md` dengan struktur persis CERITA-TAHAP-2 (Kenapa dokumen ini ada, Latar, Tokoh baru, 1 PRD v4, 2 Dari fitur ke pekerjaan teknis, 3 Inti teknis, 3b Skema data, 4 Masalah, 5 Yang dibawa keluar, 6 Jembatan, Peta halaman, Jalur per peran), baris pertama "Draft otomatis, belum ditinjau pemilik", memakai RISET-TAHAP-4; nomor M dan ADR melanjutkan tahap sebelumnya; peta halaman 24–32 halaman dengan kolom lab, setiap halaman masalah dipicu fitur PRD, pihak ketiga selalu tiruan lokal; peninjau konsistensi (subagent kedua) membaca naskah terhadap semua naskah sebelumnya (tokoh, nama perusahaan, angka saldo dan user, istilah glosarium, nomor ADR dan M, rantai PRD → fitur → teknis → masalah → konsep) dan semua temuannya ditutup.
 - catatan: Satu-satunya naskah yang ditulis Claude; Tahap 1–2 milik pemilik dan tidak disentuh.
 
