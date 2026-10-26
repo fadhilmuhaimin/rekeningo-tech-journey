@@ -76,15 +76,17 @@ Bila memakai pgxpool langsung, batasnya `pool_max_conns`, dengan bawaan yang leb
 
 Worker memakai 4 koneksi dan koneksi admin 3, keduanya Asumsi naskah. Jadi dua instance memakai 2 × 10 + 4 + 3 + 3 = 30 dari 100 koneksi. Angka 3 yang terakhir adalah slot cadangan superuser.
 
-Wiki HikariCP memberi titik awal ((jumlah core × 2) + spindle efektif). Untuk 4 core dan satu disk hasilnya 9, dan wiki menulis "call it 10". Penulisnya juga menulis bahwa belum ada analisis untuk SSD dan meminta angkanya diuji dengan beban ([HikariCP: About Pool Sizing](https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing), dibuka 2026-10-26). Itu titik awal, bukan hukum.
+Wiki HikariCP mengutip titik awal dari proyek PostgreSQL: (jumlah core × 2) + spindle efektif. Untuk 4 core dan satu disk hasilnya 9, dan wiki menulis "call it 10". Kutipan proyek PostgreSQL itu menulis bahwa belum ada analisis untuk SSD, dan penulis wiki meminta angkanya diuji dengan beban ([HikariCP: About Pool Sizing](https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing), dibuka 2026-10-26). Itu titik awal, bukan hukum.
 
-**Little's Law menghitung koneksi yang terpegang.** Rumusnya L = λ × W. λ adalah laju kedatangan, W lama satu pembayaran memegang koneksi, dan L jumlah koneksi yang terpegang pada rata-rata. J. D. C. Little membuktikannya untuk rata-rata, dengan syarat tiga rata-ratanya terhingga dan prosesnya stasioner ketat (Operations Research 9(3):383-387, 1961; abstrak dari OpenAlex, dibuka 2026-10-26). Abstrak itu tidak menyebut batas atas untuk satu detik tertentu, jadi L bukan batas.
+**Little's Law menghitung koneksi yang terpegang.** Rumusnya L = λ × W, dengan λ laju kedatangan, W lama satu pembayaran memegang koneksi, dan L jumlah koneksi yang terpegang pada rata-rata.
+
+J. D. C. Little membuktikannya untuk rata-rata (Operations Research 9(3):383-387, 1961; abstrak dari OpenAlex, dibuka 2026-10-26). Syaratnya: tiga rata-ratanya terhingga, prosesnya stasioner ketat, dan proses kedatangannya memenuhi syarat teknis lain. Abstrak itu tidak menyebut batas atas untuk satu detik tertentu, jadi L bukan batas.
 
 Masukannya Asumsi naskah: 10.000 user, 25% aktif, 60 request dan 3 pembayaran atau transfer per user aktif per hari, faktor puncak 10. Jadi λ = 2.500 × 3 ÷ 86.400 × 10 = 0,868 pembayaran per detik. Seluruh request datang 2.500 × 60 ÷ 86.400 × 10 = 17,4 per detik.
 
 Tanpa panggilan keluar, W = 0,02 detik (Asumsi 20 ms; rekaman hanya membuktikan di bawah 50 ms). Jadi seluruh request memegang 17,4 × 0,02 = 0,35 koneksi dari 10. Dengan push yang menjawab sesudah t detik, W = 0,02 + t:
 
-| t (detik) | L = 0,868 × (0,02 + t) | Rekaman lab: L dengan λ 0,87 | Rekaman lab: koneksi terukur |
+| t (detik) | L = 0,868 × (0,02 + t) | Rekaman lab: L dengan λ 0,87 | Rekaman lab: koneksi dengan transaction terbuka |
 |---|---|---|---|
 | 0,3 | 0,28 | 0,278 | paling banyak 1 |
 | 2 | 1,75 | 1,757 | paling banyak 2 |
@@ -97,7 +99,7 @@ Rekaman `little.txt` menulis rata-rata koneksi cocok dalam 15% dari hitungannya 
 
 Untuk n = 10 hasilnya 10 ÷ 0,868 = 11,5 detik, dan untuk n = 50 hasilnya 50 ÷ 0,868 = 57,6 detik. Rekaman mencatat antara detik ke-11 dan ke-12 untuk pool 10, dan antara detik ke-57 dan ke-58 untuk pool 50 (`m18.txt` bagian A dan B).
 
-Client yang menyerah sesudah T detik melepas koneksinya, karena `BeginTx` membatalkan transaction saat konteksnya dibatalkan ([Go 1.27.3: DB.BeginTx](https://pkg.go.dev/database/sql#DB.BeginTx)). Pembayaran pertama menyerah pada 1 ÷ λ + T, sedangkan pembayaran ke-10 tiba pada 10 ÷ λ. Pool penuh hanya bila pembayaran pertama belum menyerah saat itu, yaitu bila T lebih dari (10 − 1) ÷ 0,868 = 10,4 detik. Dengan T = 5, koneksi terpakai paling banyak 5 dari 10, dan tidak ada jurnal:
+Client yang menyerah sesudah T detik melepas koneksinya, karena `BeginTx` membatalkan transaction saat konteksnya dibatalkan ([Go 1.27.3: DB.BeginTx](https://pkg.go.dev/database/sql#DB.BeginTx)). Pembayaran pertama menyerah pada 1 ÷ λ + T, sedangkan pembayaran ke-10 tiba pada 10 ÷ λ. Pool penuh hanya bila pembayaran pertama belum menyerah saat itu, yaitu bila T lebih dari (10 − 1) ÷ 0,868 = 10,4 detik. Dengan T = 5, koneksi yang ditahan (`idle in transaction`) mencapai puncak 5 dari 10, dan tidak ada jurnal:
 
 <Snippet file="labs/t3-pool/output/m18.txt" lines="57:65" title="Rekaman lab: labs/t3-pool/output/m18.txt" />
 
@@ -150,7 +152,7 @@ Yang sama di semua stack: koneksi yang tidak kembali ke pool membuat request ber
 
 const pool = new pg.Pool({ max: 10 });`} />
 
-**Yang berbeda di stack ini:** `max` bernilai 10 bila tidak ditulis. Bila semua client terpinjam, request menunggu di queue FIFO sampai ada yang dikembalikan. Dokumentasi menulis bahwa client yang tidak dilepas membuat permintaan berikutnya menunggu selamanya. `connectionTimeoutMillis` bernilai 0 bila tidak ditulis, yaitu tanpa timeout. Dokumentasinya menjelaskan opsi itu untuk menyambung client baru dan tidak menyebut menunggu giliran di queue.
+**Yang berbeda di stack ini:** `max` bernilai 10 bila tidak ditulis. Bila semua client terpinjam, request menunggu di queue FIFO sampai ada yang dikembalikan. Dokumentasi menulis bahwa client yang tidak dilepas membuat permintaan berikutnya menunggu selamanya. `connectionTimeoutMillis` bernilai 0 bila tidak ditulis, yaitu tanpa timeout. Deskripsi opsinya menyebut menyambung client baru, tetapi halaman Pool menulis bahwa `pool.connect` sesudah client habis kena error timeout, atau menggantung bila nilainya 0.
 
 </Fragment>
 <Fragment slot="t2">
@@ -207,7 +209,7 @@ database:
 | | A. Pool 50 | B. Timeout 3 detik, tetap di dalam transaction | C. Circuit breaker | D. Di luar transaction + timeout + idle timeout |
 |---|---|---|---|---|
 | Cara kerja | Naikkan `SetMaxOpenConns` dari 10 ke 50. Push tetap dipanggil di dalam transaction tanpa batas waktu | Client push diberi `Timeout` 3 detik, tetapi panggilannya tetap di antara `BEGIN` dan `COMMIT` | Panggilan push dibungkus breaker. Bila kegagalan mencapai ambang, breaker membuka dan panggilan berikutnya langsung dijawab error tanpa memanggil layanan ([Fowler, 2014](https://martinfowler.com/bliki/CircuitBreaker.html)) | Pembayaran menulis jurnal, posting, dan satu baris `outbox`, lalu COMMIT. Worker mengirim push dengan batas 3 detik. PostgreSQL memutus sesi diam lebih dari 5 detik. Pool tetap 10 |
-| Kelebihan | Satu angka berubah, tanpa kode baru | Pool selamat: koneksi terpakai paling banyak 3 dari 10, sesuai ⌈0,868 × 3⌉ | Setelah breaker membuka, panggilan ke layanan yang gagal tidak lagi menahan koneksi (penalaran) | Uang tidak menunggu pihak luar: 26 pembayaran dijawab 201 dan 494 pembacaan dijawab 200 selama push menggantung |
+| Kelebihan | Satu angka berubah, tanpa kode baru | Pool selamat: koneksi yang ditahan (`idle in transaction`) mencapai puncak 3 dari 10, sesuai ⌈0,868 × 3⌉ | Setelah breaker membuka, panggilan ke layanan yang gagal tidak lagi menahan koneksi (penalaran) | Uang tidak menunggu pihak luar: 26 pembayaran dijawab 201 dan 494 pembacaan dijawab 200 selama push menggantung |
 | Kekurangan | Penyebabnya tidak berubah: pool 50 penuh pada 50 ÷ 0,868 = 57,6 detik, bukan 11,5. Dengan dua instance ([[t3-dua-instance]]), 2 × 50 + 4 + 3 + 3 = 110 koneksi melebihi `max_connections` bawaan 100 (Hitungan; worker dan admin Asumsi) | Lock buku warung tertahan selama push menunggu: pembayaran kedua ke warung yang sama selesai sesudah lebih dari 5 detik, bukan 3 | Tidak mengubah posisi panggilan. Tiap panggilan sebelum breaker membuka tetap menahan koneksi dan lock buku. Ambang baru harus dipilih (penalaran) | Butuh tempat menyimpan pemberitahuan sampai terkirim, yaitu `outbox` ([[t3-outbox]]). Pemberitahuan menyusul dari worker, tidak seketika |
 | Biaya operasional | Tiap koneksi tambahan adalah satu proses backend di PostgreSQL, dan jatah `max_connections` menyusut | Alert untuk lock yang menunggu lama, dan penyedia yang menjawab dalam 3 detik | Status breaker dan alert bila ia membuka. Fowler menyarankan monitor. Statusnya per instance bila ditulis di memori (penalaran) | Satu tabel dan satu proses worker, parameter koneksi `idle_in_transaction_session_timeout`, dan alert umur notifikasi tertua ([[t3-tim-infra]]) |
 | Bukti | Rekaman `m18.txt` bagian B; HikariCP wiki; hitungan koneksi | Rekaman `adr22.txt` bagian D | [Fowler, 2014](https://martinfowler.com/bliki/CircuitBreaker.html); Tidak dijalankan di lab | Rekaman `adr22.txt` bagian E dan F |
@@ -221,7 +223,7 @@ Di rekaman, hanya B dan D yang menyelamatkan pool, dan B melakukannya dengan men
 3. `idle_in_transaction_session_timeout` 5 detik dikirim sebagai parameter koneksi API dan worker. Tugasnya melindungi PostgreSQL dari lock dan transaction terbuka. Ia tidak melindungi pool di proses Go (rekaman `adr22.txt` bagian E).
 4. Pool tetap 10. Ukurannya diubah hanya bila L seluruh request terukur mendekati 9, bukan untuk mengobati pool yang penuh karena panggilan menggantung.
 
-**Kenapa D, bukan B.** B dan D sama-sama menyelamatkan pool. B membuat satu warung hanya menerima satu pembayaran per 3 detik selama push menggantung, walau pool kosong (`adr22.txt` bagian D). D tidak membuat pembayaran menunggu push sama sekali.
+**Kenapa D, bukan B.** B dan D sama-sama menyelamatkan pool. Di B, pembayaran kedua ke warung yang sama menunggu lock buku selama yang pertama menunggu push, walau pool masih punya koneksi bebas (`adr22.txt` bagian D). D tidak membuat pembayaran menunggu push sama sekali.
 
 **Kenapa bukan A.** Pool 50 menunda penuhnya dari 11,5 ke 57,6 detik dan tidak menyentuh sebabnya.
 
@@ -239,7 +241,7 @@ Server itu baru dimatikan manual pukul 07.04 ET sesudah laporan user. Perbaikan 
 
 **Kapan keputusan ini salah.** Pertama, bila panggilan luar harus atomik dengan uang, mis. otorisasi kartu di Tahap 4. Aturan 1 tidak bisa dipenuhi di sana, dan jalur itu butuh pengaman lain.
 
-Kedua, bila pool 10 tidak muat tanpa panggilan luar, yaitu bila L melebihi 10 − 1 = 9. Dengan W 20 ms (Asumsi), itu terjadi pada 9 ÷ 0,02 = 450 request per detik, atau 25,9 kali puncak 17,4. Kapasitas satu server belum diukur (load test ADR 21 Tidak dijalankan), jadi angka itu belum terbukti.
+Kedua, bila pool 10 tidak muat tanpa panggilan luar, yaitu bila L melebihi 10 − 1 = 9. Dengan W 20 ms (Asumsi), itu terjadi pada 9 ÷ 0,02 = 450 request per detik, atau 25,9 kali puncak 17,4, untuk kedatangan berjadwal tetap. Kedatangan acak mengantre lebih awal. Kapasitas satu server belum diukur (load test ADR 21 Tidak dijalankan), jadi angka itu belum terbukti.
 
 **Yang akan merevisinya.** Halaman Tahap 4 yang membahas panggilan luar yang harus selesai sebelum uang bergerak. Revisinya belum ditulis di naskah.
 
@@ -279,7 +281,7 @@ return tx.Commit()
 <details class="success">
 <summary>Jawaban</summary>
 
-Muat. L = 0,868 × (0,02 + 2) = 1,75 koneksi, jauh di bawah 10. Rekaman `little.txt` mencatat koneksi terukur paling banyak 2, dan rata-ratanya cocok dalam 15% dengan hitungannya.
+Muat. L = 0,868 × (0,02 + 2) = 1,75 koneksi, jauh di bawah 10. Rekaman `little.txt` mencatat koneksi dengan transaction terbuka paling banyak 2, dan rata-ratanya cocok dalam 15% dengan hitungannya.
 
 </details>
 

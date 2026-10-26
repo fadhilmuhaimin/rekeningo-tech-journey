@@ -193,7 +193,7 @@ describe("asumsi, rumus, dan hitungan diturunkan dari registry dan naskah", () =
       harus(`| ${baris4[i]![0]!.replace(",0", "")} | ${nask[i]} | ${baris4[i]![1]} | ${baris4[i]![2]} |`);
     });
     expect(baris4.map((b) => b[1])).toEqual(["0,278", "1,757", "8,717", "26,117"]);
-    harus("| t (detik) | L = 0,868 × (0,02 + t) | Rekaman lab: L dengan λ 0,87 | Rekaman lab: koneksi terukur |");
+    harus("| t (detik) | L = 0,868 × (0,02 + t) | Rekaman lab: L dengan λ 0,87 | Rekaman lab: koneksi dengan transaction terbuka |");
     // Rata-rata cocok dalam 15% dari hitungan: tiga titik, semuanya "ya".
     const ya = little.filter((b) => /^rata-rata koneksi dalam 15% dari hitungan [\d,]+: ya$/.test(b));
     expect(ya).toHaveLength(3);
@@ -221,7 +221,7 @@ describe("asumsi, rumus, dan hitungan diturunkan dari registry dan naskah", () =
     harus("Dalam bentuk L: pool penuh bila L melebihi n − 1.");
     for (const [W, pn] of [[10.35, 10], [10.38, 10]] as const) expect(0.868 * W > pn - 1).toBe(W > (pn - 1) / 0.868);
     // Kapan salah: L seluruh request melebihi 9 pada 9 ÷ 0,02 = 450 request per detik, 25,9 kali puncak.
-    harus(`yaitu bila L melebihi ${n} − 1 = ${n - 1}. Dengan W ${W0 * 1000} ms (Asumsi), itu terjadi pada ${n - 1} ÷ ${fmt(W0, 2)} = ${fmt((n - 1) / W0)} request per detik, atau ${fmt((n - 1) / W0 / rpsTotal, 1)} kali puncak ${RPS}.`);
+    harus(`yaitu bila L melebihi ${n} − 1 = ${n - 1}. Dengan W ${W0 * 1000} ms (Asumsi), itu terjadi pada ${n - 1} ÷ ${fmt(W0, 2)} = ${fmt((n - 1) / W0)} request per detik, atau ${fmt((n - 1) / W0 / rpsTotal, 1)} kali puncak ${RPS}, untuk kedatangan berjadwal tetap. Kedatangan acak mengantre lebih awal.`);
     expect(fmt((n - 1) / W0 / R.beban.rpsTotal, 1)).toBe("25,9");
     expect(fmt((n - 1) / W0 / rpsTotal, 1)).toBe("25,9");
   });
@@ -280,13 +280,13 @@ describe("rekaman: m18.txt, adr22.txt, little.txt, ganda.txt dan rentang Snippet
     harus(`<Snippet files={["labs/t3-pool/output/m18.txt:${a1 + 1}:${a2 + 1}", "labs/t3-pool/output/m18.txt:${a3 + 1}:${a4 + 1}"]}`);
     expect([a1 + 1, a2 + 1, a3 + 1, a4 + 1]).toEqual([13, 19, 22, 24]);
   });
-  test("C: client menyerah sesudah 5 detik, koneksi terpakai paling banyak 5 dari 10, jurnal 0, 26 permintaan tetap tertahan di layanan push", () => {
+  test("C: client menyerah sesudah 5 detik, koneksi yang ditahan (idle in transaction) mencapai puncak 5 dari 10, jurnal 0, 26 permintaan tetap tertahan di layanan push", () => {
     const c = cocok(C, /^koneksi idle in transaction: puncak (\d+) dari (\d+) \(0,87 × (\d+) detik = (\d,\d+), jadi paling banyak (\d+)\)$/);
     expect([c[1], c[2], c[3], c[5]]).toEqual(["5", "10", "5", "5"]);
     expect(R.c).toEqual({ menyerah: 5, puncak: 5, ukuran: 10 });
     expect(C.join("\n")).toMatch(/ jurnal_bayar\n-+\n 0\n\(1 row\)/);
     expect(C.join("\n")).toContain("# Sesudah 30 detik layanan push masih menahan 26 permintaan: handler tidak berhenti walau client pergi (push memakai konteks yang dilepas dari request).");
-    harus(`Dengan T = ${R.c.menyerah}, koneksi terpakai paling banyak ${R.c.puncak} dari ${R.c.ukuran}, dan tidak ada jurnal:`);
+    harus(`Dengan T = ${R.c.menyerah}, koneksi yang ditahan (\`idle in transaction\`) mencapai puncak ${R.c.puncak} dari ${R.c.ukuran}, dan tidak ada jurnal:`);
     harus("jadi 26 permintaan masih tertahan di layanan push walau client sudah pergi (`m18.txt` bagian C)");
     expect(notifGo).toContain("s.push.Kirim(context.WithoutCancel(ctx),");
     // Kalimat penutup m18.txt C menulis ambang 11,5 yang kurang tepat; halaman tidak mengutipnya (ambang benar 10,4, R3-63).
@@ -298,10 +298,10 @@ describe("rekaman: m18.txt, adr22.txt, little.txt, ganda.txt dan rentang Snippet
   test("D: timeout push 3 detik di dalam transaction: puncak 3, pembayaran kedua ke warung yang sama selesai sesudah lebih dari 5 detik", () => {
     expect(R.d).toEqual({ timeoutPush: 3, puncak: 3, ukuran: 10, keduaLebihDari: 5 });
     expect(Math.ceil(0.868 * R.d.timeoutPush)).toBe(R.d.puncak);
-    harus(`koneksi terpakai paling banyak ${R.d.puncak} dari ${R.a.ukuran}, sesuai ⌈${LAMBDA} × ${R.d.timeoutPush}⌉`);
+    harus(`koneksi yang ditahan (\`idle in transaction\`) mencapai puncak ${R.d.puncak} dari ${R.a.ukuran}, sesuai ⌈${LAMBDA} × ${R.d.timeoutPush}⌉`);
     harus(`pembayaran kedua ke warung yang sama selesai sesudah lebih dari ${R.d.keduaLebihDari} detik, bukan ${R.d.timeoutPush}`);
     expect(D.join("\n")).toContain("# Satu warung hanya menerima satu pembayaran per 3 detik selama push menggantung, walau pool kosong.");
-    harus(`B membuat satu warung hanya menerima satu pembayaran per ${R.d.timeoutPush} detik selama push menggantung, walau pool kosong (\`adr22.txt\` bagian D).`);
+    harus(`Di B, pembayaran kedua ke warung yang sama menunggu lock buku selama yang pertama menunggu push, walau pool masih punya koneksi bebas (\`adr22.txt\` bagian D).`);
     const d1 = nomorBaris(adr22, (b) => b.startsWith("pembayaran request 1 sampai 200: 10 pembayaran"));
     const d2 = nomorBaris(adr22, (b) => b.startsWith("# Satu warung hanya menerima"), d1);
     harus(`<Snippet file="labs/t3-pool/output/adr22.txt" lines="${d1 + 1}:${d2 + 1}"`);
@@ -466,7 +466,7 @@ describe("versi dan sumber dokumentasi", () => {
     expect(riset2).toMatch(/\| R2-35 \|[^\n]*DOI 10\.1287\/opre\.9\.3\.383/);
     expect(riset2).toMatch(/\| R2-205 \|[^\n]*jika tiga rata-rata terhingga, proses stasioner ketat[^\n]*makalah tidak menyebut batas atas jumlah pada satu detik tertentu/);
     harus("(Operations Research 9(3):383-387, 1961; abstrak dari OpenAlex, dibuka 2026-10-26)");
-    harus("dengan syarat tiga rata-ratanya terhingga dan prosesnya stasioner ketat");
+    harus("Syaratnya: tiga rata-ratanya terhingga, prosesnya stasioner ketat, dan proses kedatangannya memenuhi syarat teknis lain.");
     harus("Abstrak itu tidak menyebut batas atas untuk satu detik tertentu, jadi L bukan batas.");
     harus("- [J. D. C. Little, A Proof for the Queuing Formula: L = λW](https://doi.org/10.1287/opre.9.3.383) (1961)");
   });
@@ -568,7 +568,7 @@ describe("ADR 22: opsi, aturan, diagram, dan kalimat", () => {
     const cek = badan.split("### Cek diri")[1]!.split("### Saat me-review")[0]!;
     expect([...cek.matchAll(/^\*\*(\d)\.\*\*/gm)].map((m) => m[1])).toEqual(["1", "2", "3", "4"]);
     harus(`L = ${LAMBDA} × (${fmt(W0, 2)} + 2) = ${fmt(0.868 * (W0 + 2), 2)} koneksi, jauh di bawah ${R.a.ukuran}.`);
-    harus(`Rekaman \`little.txt\` mencatat koneksi terukur paling banyak ${R.little[1]!.paling}, dan rata-ratanya cocok dalam 15% dengan hitungannya.`);
+    harus(`Rekaman \`little.txt\` mencatat koneksi dengan transaction terbuka paling banyak ${R.little[1]!.paling}, dan rata-ratanya cocok dalam 15% dengan hitungannya.`);
     harus(`Pada ${R.b.ukuran} ÷ ${LAMBDA} = ${fmt(R.b.ukuran / 0.868, 1)} detik, bukan ${fmt(R.a.ukuran / 0.868, 1)}.`.replace("Pada 50", "Pada 50"));
     harus(`Di \`adr22.txt\` bagian E, pool Go terpakai ${R.e.dipakai} dari ${R.e.maks} dan 12 pembacaan tidak dijawab`);
     harus("`http.Post` memakai `http.DefaultClient`, yang `Timeout`-nya nol");
@@ -614,6 +614,65 @@ describe("setiap kalimat di halaman punya asal", () => {
     const ada = new Set(satuan(badan));
     expect(KALIMAT_PENULIS.filter((s) => !ada.has(s))).toEqual([]);
   });
+  // Tinjauan 1031: menukar sel antar baris atau antar kolom tabel (opsi A dan D, Kelebihan dan Kekurangan, dua baris Sengaja belum)
+  // lolos dua tes di atas karena keduanya hanya memeriksa keanggotaan. Urutan satuan di halaman harus sama dengan urutan daftar.
+  test("urutan satuan halaman sama dengan urutan KALIMAT_PENULIS (sel tabel tidak bisa bertukar tempat)", () => {
+    const urutHalaman = satuan(badan);
+    expect(urutHalaman).toEqual(KALIMAT_PENULIS);
+  });
+  test("tabel ADR 22: tiap sel di baris dan kolom yang benar memuat nilai yang diturunkan dari rekaman, naskah, dan rumus", () => {
+    const baris = badan.split("\n").filter((b) => b.startsWith("|"));
+    const sel = (awal: string): string[] => {
+      const b = baris.find((x) => x.startsWith(`| ${awal} |`));
+      expect(b, `baris tabel ADR tidak ada: ${awal}`).toBeDefined();
+      return b!.split(/(?<!\\)\|/).slice(1, -1).map((c) => c.trim());
+    };
+    const [, A1, B1, C1, D1] = sel("Cara kerja");
+    expect(A1).toContain("Naikkan `SetMaxOpenConns` dari 10 ke 50");
+    expect(B1).toContain("`Timeout` 3 detik");
+    expect(B1).toContain("tetap di antara `BEGIN` dan `COMMIT`");
+    expect(C1).toContain("breaker");
+    expect(C1).toContain("martinfowler.com/bliki/CircuitBreaker.html");
+    expect(D1).toContain("satu baris `outbox`");
+    expect(D1).toContain("5 detik");
+    const [, A2, B2, C2, D2] = sel("Kelebihan");
+    expect(A2).toContain("Satu angka berubah");
+    expect(B2).toContain(`mencapai puncak ${R.d.puncak} dari ${R.a.ukuran}`);
+    expect(C2).toContain("(penalaran)");
+    const pembacaanF = cocok(F, /^pembacaan request 1 sampai 520: (\d+) pembacaan: 200 x(\d+)$/)[1];
+    expect(D2).toContain(`${R.f.bayar201} pembayaran dijawab 201 dan ${pembacaanF} pembacaan dijawab 200`);
+    const [, A3, B3, C3, D3] = sel("Kekurangan");
+    expect(A3).toContain(`pool 50 penuh pada 50 ÷ ${LAMBDA} = ${fmt(50 / lambda, 1)} detik, bukan ${fmt(10 / lambda, 1)}`);
+    expect(A3).toContain("2 × 50 + 4 + 3 + 3 = 110");
+    expect(B3).toContain(`lebih dari ${R.d.keduaLebihDari} detik, bukan ${R.d.timeoutPush}`);
+    expect(C3).toContain("Tidak mengubah posisi panggilan");
+    expect(D3).toContain("`outbox`");
+    const [, A4, B4, C4, D4] = sel("Biaya operasional");
+    expect(A4).toContain("`max_connections`");
+    expect(B4).toContain("lock yang menunggu lama");
+    expect(C4).toContain("breaker");
+    expect(D4).toContain("`idle_in_transaction_session_timeout`");
+    const [, A5, B5, C5, D5] = sel("Bukti");
+    expect(A5).toContain("`m18.txt` bagian B");
+    expect(B5).toContain("`adr22.txt` bagian D");
+    expect(C5).toContain("Tidak dijalankan di lab");
+    expect(D5).toContain("`adr22.txt` bagian E dan F");
+    // Tabel Sengaja belum: tiap baris berisi yang ditunda, alasannya, dan tempat munculnya, tidak bertukar.
+    const sb = (awal: string): string[] => {
+      const b = baris.find((x) => x.startsWith(`| ${awal} |`));
+      expect(b, `baris Sengaja belum tidak ada: ${awal}`).toBeDefined();
+      return b!.split(/(?<!\\)\|/).slice(1, -1).map((c) => c.trim());
+    };
+    const p = sb("Pooler terpisah seperti PgBouncer");
+    expect(p[1]).toContain("30 dari 100 koneksi");
+    expect(p[2]).toBe("[[t3-adr-33]]");
+    const cb = sb("Circuit breaker");
+    expect(cb[1]).toContain("hanya menahan worker");
+    expect(cb[2]).toBe("Belum dijadwalkan di naskah");
+    const uk = sb("Mengubah ukuran pool dari L terukur");
+    expect(uk[1]).toContain("0,35 koneksi (Asumsi)");
+    expect(uk[2]).toBe("[[t3-estimasi]]");
+  });
 });
 
 // Kalimat halaman yang ditulis penulis, dikunci utuh. Angka di dalamnya diperiksa terpisah di atas terhadap sumbernya.
@@ -641,14 +700,15 @@ const KALIMAT_PENULIS: string[] = [
   "**Ukuran pool ditulis sendiri.** `database/sql` di Go punya batas nol bawaan, dan nol berarti tanpa batas ([Go 1.27.3: SetMaxOpenConns](https://pkg.go.dev/database/sql#DB.SetMaxOpenConns)). api-t2 tidak mengaturnya. api-t3 menulis batasnya:",
   "Bila memakai pgxpool langsung, batasnya `pool_max_conns`, dengan bawaan yang lebih besar antara 4 dan jumlah core ([pgx v5.11.0: pgxpool](https://pkg.go.dev/github.com/jackc/pgx/v5/pgxpool#ParseConfig)). Angka 10 di api-t3 adalah Asumsi naskah: batas yang Bayu tetapkan di minggu 1.",
   "Worker memakai 4 koneksi dan koneksi admin 3, keduanya Asumsi naskah. Jadi dua instance memakai 2 × 10 + 4 + 3 + 3 = 30 dari 100 koneksi. Angka 3 yang terakhir adalah slot cadangan superuser.",
-  "Wiki HikariCP memberi titik awal ((jumlah core × 2) + spindle efektif). Untuk 4 core dan satu disk hasilnya 9, dan wiki menulis \"call it 10\". Penulisnya juga menulis bahwa belum ada analisis untuk SSD dan meminta angkanya diuji dengan beban ([HikariCP: About Pool Sizing](https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing), dibuka 2026-10-26). Itu titik awal, bukan hukum.",
-  "**Little's Law menghitung koneksi yang terpegang.** Rumusnya L = λ × W. λ adalah laju kedatangan, W lama satu pembayaran memegang koneksi, dan L jumlah koneksi yang terpegang pada rata-rata. J. D. C. Little membuktikannya untuk rata-rata, dengan syarat tiga rata-ratanya terhingga dan prosesnya stasioner ketat (Operations Research 9(3):383-387, 1961; abstrak dari OpenAlex, dibuka 2026-10-26). Abstrak itu tidak menyebut batas atas untuk satu detik tertentu, jadi L bukan batas.",
+  "Wiki HikariCP mengutip titik awal dari proyek PostgreSQL: (jumlah core × 2) + spindle efektif. Untuk 4 core dan satu disk hasilnya 9, dan wiki menulis \"call it 10\". Kutipan proyek PostgreSQL itu menulis bahwa belum ada analisis untuk SSD, dan penulis wiki meminta angkanya diuji dengan beban ([HikariCP: About Pool Sizing](https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing), dibuka 2026-10-26). Itu titik awal, bukan hukum.",
+  "**Little's Law menghitung koneksi yang terpegang.** Rumusnya L = λ × W, dengan λ laju kedatangan, W lama satu pembayaran memegang koneksi, dan L jumlah koneksi yang terpegang pada rata-rata.",
+  "J. D. C. Little membuktikannya untuk rata-rata (Operations Research 9(3):383-387, 1961; abstrak dari OpenAlex, dibuka 2026-10-26). Syaratnya: tiga rata-ratanya terhingga, prosesnya stasioner ketat, dan proses kedatangannya memenuhi syarat teknis lain. Abstrak itu tidak menyebut batas atas untuk satu detik tertentu, jadi L bukan batas.",
   "Masukannya Asumsi naskah: 10.000 user, 25% aktif, 60 request dan 3 pembayaran atau transfer per user aktif per hari, faktor puncak 10. Jadi λ = 2.500 × 3 ÷ 86.400 × 10 = 0,868 pembayaran per detik. Seluruh request datang 2.500 × 60 ÷ 86.400 × 10 = 17,4 per detik.",
   "Tanpa panggilan keluar, W = 0,02 detik (Asumsi 20 ms; rekaman hanya membuktikan di bawah 50 ms). Jadi seluruh request memegang 17,4 × 0,02 = 0,35 koneksi dari 10. Dengan push yang menjawab sesudah t detik, W = 0,02 + t:",
   "t (detik)",
   "L = 0,868 × (0,02 + t)",
   "Rekaman lab: L dengan λ 0,87",
-  "Rekaman lab: koneksi terukur",
+  "Rekaman lab: koneksi dengan transaction terbuka",
   "0,3",
   "0,28",
   "0,278",
@@ -668,7 +728,7 @@ const KALIMAT_PENULIS: string[] = [
   "Rekaman `little.txt` menulis rata-rata koneksi cocok dalam 15% dari hitungannya untuk t = 0,3, 2, dan 10. Baris 30 detik ada di ringkasan `little.txt` dan berasal dari `m18.txt` bagian A. Bagian itu menulisnya bukan ujian L = λ × W: tidak ada pembayaran yang selesai, jadi 26 hanya jadwal × waktu.",
   "**Kapan pool penuh.** Pool n koneksi penuh bila pembayaran ke-n tiba selagi n − 1 pembayaran sebelumnya masih memegang koneksi. Bila push tidak pernah menjawab dan client terus menunggu, itu terjadi pada n ÷ λ. Dalam bentuk L: pool penuh bila L melebihi n − 1.",
   "Untuk n = 10 hasilnya 10 ÷ 0,868 = 11,5 detik, dan untuk n = 50 hasilnya 50 ÷ 0,868 = 57,6 detik. Rekaman mencatat antara detik ke-11 dan ke-12 untuk pool 10, dan antara detik ke-57 dan ke-58 untuk pool 50 (`m18.txt` bagian A dan B).",
-  "Client yang menyerah sesudah T detik melepas koneksinya, karena `BeginTx` membatalkan transaction saat konteksnya dibatalkan ([Go 1.27.3: DB.BeginTx](https://pkg.go.dev/database/sql#DB.BeginTx)). Pembayaran pertama menyerah pada 1 ÷ λ + T, sedangkan pembayaran ke-10 tiba pada 10 ÷ λ. Pool penuh hanya bila pembayaran pertama belum menyerah saat itu, yaitu bila T lebih dari (10 − 1) ÷ 0,868 = 10,4 detik. Dengan T = 5, koneksi terpakai paling banyak 5 dari 10, dan tidak ada jurnal:",
+  "Client yang menyerah sesudah T detik melepas koneksinya, karena `BeginTx` membatalkan transaction saat konteksnya dibatalkan ([Go 1.27.3: DB.BeginTx](https://pkg.go.dev/database/sql#DB.BeginTx)). Pembayaran pertama menyerah pada 1 ÷ λ + T, sedangkan pembayaran ke-10 tiba pada 10 ÷ λ. Pool penuh hanya bila pembayaran pertama belum menyerah saat itu, yaitu bila T lebih dari (10 − 1) ÷ 0,868 = 10,4 detik. Dengan T = 5, koneksi yang ditahan (`idle in transaction`) mencapai puncak 5 dari 10, dan tidak ada jurnal:",
   "Lab menjadwalkan kedatangan dengan jarak tetap. Kedatangan acak bisa mengisi pool lebih awal, karena kedatangan bisa menggerombol. Itu penalaran dan Tidak dijalankan, jadi hitungan di halaman ini berlaku untuk jadwal tetap.",
   "**Pertanyaan dari forum.** Isu pgx \"my pool keeps running out of connections\" ([jackc/pgx#1974](https://github.com/jackc/pgx/issues/1974), terbuka sejak 2024-03-28, diakses 2026-10-26) melaporkan pool yang habis dan tidak pulih tanpa restart. Pelapor sudah memeriksa penutupan rows, penyebabnya tidak dikonfirmasi, dan pengelola menyarankan melihat `pg_stat_activity` saat pool habis. Isu forum bukan bukti, tetapi pertanyaannya sama dengan pertanyaan Raka, dan jawabannya ada di rekaman di atas.",
   "**Satu tugas untuk tiap timeout.** Layanan push yang tidak menjawab bisa ditangani di empat tempat, dan tiap tempat melindungi hal yang berbeda.",
@@ -684,7 +744,7 @@ const KALIMAT_PENULIS: string[] = [
   "*Dijalankan: api-t3 dengan `database/sql` dan driver pgx, PostgreSQL 17.11 (rekaman `m18.txt` bagian A dan B).*",
   "**Yang berbeda di stack ini:** `database/sql` tidak membatasi koneksi bila `SetMaxOpenConns` tidak dipanggil. Pengaturan pool di `DB` hanya `SetMaxOpenConns`, `SetMaxIdleConns`, `SetConnMaxLifetime`, dan `SetConnMaxIdleTime`, jadi tidak ada pengaturan batas waktu menunggu koneksi di antaranya.",
   "*Tidak dijalankan. Dicek ke [node-postgres: Pool](https://node-postgres.com/apis/pool) dan [Pooling](https://node-postgres.com/features/pooling), `pg` 8.23.1 (npm, rilis 2026-09-30).*",
-  "**Yang berbeda di stack ini:** `max` bernilai 10 bila tidak ditulis. Bila semua client terpinjam, request menunggu di queue FIFO sampai ada yang dikembalikan. Dokumentasi menulis bahwa client yang tidak dilepas membuat permintaan berikutnya menunggu selamanya. `connectionTimeoutMillis` bernilai 0 bila tidak ditulis, yaitu tanpa timeout. Dokumentasinya menjelaskan opsi itu untuk menyambung client baru dan tidak menyebut menunggu giliran di queue.",
+  "**Yang berbeda di stack ini:** `max` bernilai 10 bila tidak ditulis. Bila semua client terpinjam, request menunggu di queue FIFO sampai ada yang dikembalikan. Dokumentasi menulis bahwa client yang tidak dilepas membuat permintaan berikutnya menunggu selamanya. `connectionTimeoutMillis` bernilai 0 bila tidak ditulis, yaitu tanpa timeout. Deskripsi opsinya menyebut menyambung client baru, tetapi halaman Pool menulis bahwa `pool.connect` sesudah client habis kena error timeout, atau menggantung bila nilainya 0.",
   "*Tidak dijalankan. Dicek ke [Laravel 13.x: Database](https://laravel.com/docs/13.x/database), `laravel/framework` 13.38.0.*",
   "**Yang berbeda di stack ini:** halaman Database: Getting Started tidak membahas pool di dalam framework. Bagiannya tentang koneksi PostgreSQL ber-pool membahas pooler di luar aplikasi, seperti PgBouncer, dan memakai koneksi langsung untuk migration. Kata \"timeout\" tidak ada di halaman itu, jadi batas waktu menunggu koneksi tidak diatur di sana.",
   "*Tidak dijalankan. Dicek ke [Django 6.1: Databases](https://docs.djangoproject.com/en/6.1/ref/databases/#connection-pool), Django 6.1.2.*",
@@ -708,7 +768,7 @@ const KALIMAT_PENULIS: string[] = [
   "Pembayaran menulis jurnal, posting, dan satu baris `outbox`, lalu COMMIT. Worker mengirim push dengan batas 3 detik. PostgreSQL memutus sesi diam lebih dari 5 detik. Pool tetap 10",
   "Kelebihan",
   "Satu angka berubah, tanpa kode baru",
-  "Pool selamat: koneksi terpakai paling banyak 3 dari 10, sesuai ⌈0,868 × 3⌉",
+  "Pool selamat: koneksi yang ditahan (`idle in transaction`) mencapai puncak 3 dari 10, sesuai ⌈0,868 × 3⌉",
   "Setelah breaker membuka, panggilan ke layanan yang gagal tidak lagi menahan koneksi (penalaran)",
   "Uang tidak menunggu pihak luar: 26 pembayaran dijawab 201 dan 494 pembacaan dijawab 200 selama push menggantung",
   "Kekurangan",
@@ -732,7 +792,7 @@ const KALIMAT_PENULIS: string[] = [
   "Setiap client yang memanggil layanan luar punya `Timeout` eksplisit 3 detik, dan nol tidak dipakai. Tugasnya membatasi satu panggilan, mis. dari worker (`push.BatasBawaan`).",
   "`idle_in_transaction_session_timeout` 5 detik dikirim sebagai parameter koneksi API dan worker. Tugasnya melindungi PostgreSQL dari lock dan transaction terbuka. Ia tidak melindungi pool di proses Go (rekaman `adr22.txt` bagian E).",
   "Pool tetap 10. Ukurannya diubah hanya bila L seluruh request terukur mendekati 9, bukan untuk mengobati pool yang penuh karena panggilan menggantung.",
-  "**Kenapa D, bukan B.** B dan D sama-sama menyelamatkan pool. B membuat satu warung hanya menerima satu pembayaran per 3 detik selama push menggantung, walau pool kosong (`adr22.txt` bagian D). D tidak membuat pembayaran menunggu push sama sekali.",
+  "**Kenapa D, bukan B.** B dan D sama-sama menyelamatkan pool. Di B, pembayaran kedua ke warung yang sama menunggu lock buku selama yang pertama menunggu push, walau pool masih punya koneksi bebas (`adr22.txt` bagian D). D tidak membuat pembayaran menunggu push sama sekali.",
   "**Kenapa bukan A.** Pool 50 menunda penuhnya dari 11,5 ke 57,6 detik dan tidak menyentuh sebabnya.",
   "Wiki HikariCP menulis bahwa demonstrasi grup Oracle Real-World Performance menurunkan waktu respons dari ±100 ms ke ±2 ms hanya dengan mengecilkan pool. Wiki yang sama menulis bahwa video itu mengecilkan koneksi dari 2.048 ke 96. Itu laporan penulis wiki atas satu demonstrasi, bukan hasil lab ini, dan ia menyuruh pembaca menguji dengan beban sendiri.",
   "**Kasus industri: Val Town (2024).** Max McDonnell menulis post-mortem Val Town tertanggal 2024-12-31 ([Val Town, Post-mortem: Exhausted Host Connection Pool](https://blog.val.town/blog/post-mortem-exhausted-host-connection-pool), dibuka 2026-10-26). Beberapa query database saling mengunci, pool-nya tidak punya timeout query, dan koneksi yang terkunci menempati slot pool selamanya. Satu server kehabisan koneksi, sebagian besar request tertahan tanpa batas, dan health check-nya tidak memeriksa database.",
@@ -742,7 +802,7 @@ const KALIMAT_PENULIS: string[] = [
   "Timeout 3 detik salah ukur untuk penyedia sungguhan. Di worker, dua perangkat yang menggantung memakan 2 × 3 detik, lebih dari klaim 5 detik. Akibatnya pesan yang sama terkirim dua kali ke tiap perangkat (rekaman `ganda.txt` bagian D di lab t3-outbox, dibahas di [[t3-at-least-once]]). Pencegahannya: ukur jawaban penyedia sebelum mengubah batasnya, dan hitung ulang klaim worker bila batas berubah.",
   "Pool habis lagi karena sebab yang tidak terpikirkan, dan tidak ada yang tahu sampai user melapor. Server Val Town begitu: health check-nya tidak melihat database. Pencegahannya alert untuk request yang menunggu koneksi ([[t3-tim-infra]]) dan health check yang memakai koneksi database ([[t3-dua-instance]]).",
   "**Kapan keputusan ini salah.** Pertama, bila panggilan luar harus atomik dengan uang, mis. otorisasi kartu di Tahap 4. Aturan 1 tidak bisa dipenuhi di sana, dan jalur itu butuh pengaman lain.",
-  "Kedua, bila pool 10 tidak muat tanpa panggilan luar, yaitu bila L melebihi 10 − 1 = 9. Dengan W 20 ms (Asumsi), itu terjadi pada 9 ÷ 0,02 = 450 request per detik, atau 25,9 kali puncak 17,4. Kapasitas satu server belum diukur (load test ADR 21 Tidak dijalankan), jadi angka itu belum terbukti.",
+  "Kedua, bila pool 10 tidak muat tanpa panggilan luar, yaitu bila L melebihi 10 − 1 = 9. Dengan W 20 ms (Asumsi), itu terjadi pada 9 ÷ 0,02 = 450 request per detik, atau 25,9 kali puncak 17,4, untuk kedatangan berjadwal tetap. Kedatangan acak mengantre lebih awal. Kapasitas satu server belum diukur (load test ADR 21 Tidak dijalankan), jadi angka itu belum terbukti.",
   "**Yang akan merevisinya.** Halaman Tahap 4 yang membahas panggilan luar yang harus selesai sebelum uang bergerak. Revisinya belum ditulis di naskah.",
   "Sengaja belum dilakukan",
   "Yang ditunda",
@@ -761,7 +821,7 @@ const KALIMAT_PENULIS: string[] = [
   "**1.** AI menulis handler ini. Apa yang rusak, dan apa dua perbaikannya?",
   "`http.Post` memakai `http.DefaultClient`, yang `Timeout`-nya nol, jadi panggilannya tanpa batas waktu. Selama push menunggu, transaction memegang satu koneksi. Perbaikan pertama: pindahkan push keluar dari transaction dengan menulis baris `outbox`. Perbaikan kedua: beri client `Timeout` eksplisit, mis. 3 detik.",
   "**2.** Pool 10 koneksi, 0,868 pembayaran per detik, dan push menjawab sesudah 2 detik. Apakah pool muat? Hitung L.",
-  "Muat. L = 0,868 × (0,02 + 2) = 1,75 koneksi, jauh di bawah 10. Rekaman `little.txt` mencatat koneksi terukur paling banyak 2, dan rata-ratanya cocok dalam 15% dengan hitungannya.",
+  "Muat. L = 0,868 × (0,02 + 2) = 1,75 koneksi, jauh di bawah 10. Rekaman `little.txt` mencatat koneksi dengan transaction terbuka paling banyak 2, dan rata-ratanya cocok dalam 15% dengan hitungannya.",
   "**3.** Raka menaikkan pool ke 50 dan push tetap tidak menjawab. Kapan pool penuh, dan kenapa itu bukan perbaikan?",
   "Pada 50 ÷ 0,868 = 57,6 detik, bukan 11,5. Rekaman `m18.txt` bagian B mencatat antara detik ke-57 dan ke-58. Penyebabnya, push tanpa batas waktu di dalam transaction, tidak berubah, jadi pool hanya penuh lebih lambat.",
   "**4.** `idle_in_transaction_session_timeout` 5 detik sudah dipasang. Kenapa pool Go tetap penuh?",
