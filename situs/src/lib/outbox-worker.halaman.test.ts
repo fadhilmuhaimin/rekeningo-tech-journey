@@ -178,10 +178,10 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(cekTemplat("konsep", b)).toEqual([]);
     expect(b.filter((x) => x.buka).map((x) => x.nama)).toEqual(["Mulai", "Coba"]);
   });
-  test("B10.1 lama dilebur ke 3.9 lewat registry dan tidak dihapus; B10.2 tidak disentuh", () => {
+  test("B10.1 lama dilebur ke 3.9 lewat registry dan tidak dihapus; B10.2 dilebur ke Tahap 4 (T4-siap), bukan ke 3.9", () => {
     expect(dari("B10.1")).toMatchObject({ ada: true, lama: true, lebur_ke: "t3-outbox" });
     expect(fs.existsSync(path.join(akar, "situs/src/content/docs/b-fondasi/b10-1-background-job.mdx"))).toBe(true);
-    expect(dari("B10.2").lebur_ke).toBeUndefined();
+    expect(dari("B10.2").lebur_ke).toBe("t4-webhook");
   });
   test("tautan [[id]]: himpunan sama dengan yang diharapkan; nomor dan judul sama dengan peta naskah", () => {
     const id = [...new Set([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1]!))].filter((x) => x !== "berikutnya").sort();

@@ -1759,6 +1759,39 @@
   "jawab": "Kedua instance menjalankan kode yang sama, jadi laporan kosong yang sama mematikan instance kedua. Sesudah itu proxy menjawab 503 pada 10 dari 10 request (`panic.txt` bagian D)."
  },
  {
+  "id": "t3-dua-instance-1",
+  "halaman": "t3-dua-instance",
+  "judul": "3.15 Dua instance di belakang proxy + ADR 26",
+  "url": "tahap-3/dua-instance/",
+  "tanya": "AI menulis Caddyfile ini untuk dua instance. Apa yang kurang, dan apa akibatnya saat satu instance mati?",
+  "jawab": "Tidak ada `health_uri` dan tidak ada `lb_retries`, jadi proxy tidak tahu instance mana yang mati dan tidak mengulang request yang gagal. Di `proxy.txt` bagian C, 10 dari 20 request gagal dengan 502. Perbaikannya: tambahkan `health_uri /healthz`, `health_interval`, `health_timeout`, dan `lb_retries 2`, seperti di bagian F.",
+  "kode": ":8080 {\n\treverse_proxy host-a:8080 host-b:8080\n}"
+ },
+ {
+  "id": "t3-dua-instance-2",
+  "halaman": "t3-dua-instance",
+  "judul": "3.15 Dua instance di belakang proxy + ADR 26",
+  "url": "tahap-3/dua-instance/",
+  "tanya": "Raka menaikkan pool dari 10 ke 50 per instance \"supaya muat dua instance\". Hitung koneksinya, lalu tulis kenapa itu salah arah.",
+  "jawab": "2 × 50 + 4 + 3 + 3 = 110 koneksi, di atas `max_connections` bawaan 100 (Hitungan; worker dan admin Asumsi naskah). Pool yang lebih besar juga hanya menunda pool penuh dari ±11,5 detik ke ±57,6 detik di 3.6 M18. Dua instance dengan pool 10 memakai 30 dari 100."
+ },
+ {
+  "id": "t3-dua-instance-3",
+  "halaman": "t3-dua-instance",
+  "judul": "3.15 Dua instance di belakang proxy + ADR 26",
+  "url": "tahap-3/dua-instance/",
+  "tanya": "`/healthz` selalu menjawab 200 tanpa menyentuh database. Apa risikonya, dan apa risiko kebalikannya?",
+  "jawab": "Instance yang tidak bisa memakai database tetap menerima request. Val Town mengalaminya: pool koneksi satu server habis, dan health check server itu tidak memeriksa kondisi database, jadi server tetap terdegradasi cukup lama. Kebalikannya: pemeriksaan database mengeluarkan kedua instance sekaligus bila penyebabnya bersama, dan proxy menjawab 503 untuk semua. Kasus itu dibaca dari kode dan belum direkam."
+ },
+ {
+  "id": "t3-dua-instance-4",
+  "halaman": "t3-dua-instance",
+  "judul": "3.15 Dua instance di belakang proxy + ADR 26",
+  "url": "tahap-3/dua-instance/",
+  "tanya": "Tim mengganti `Shutdown` dengan keluar langsung saat SIGTERM karena \"proxy punya retry\". Apa yang direkam, dan apa yang tidak?",
+  "jawab": "Tanpa `Shutdown`, request lambat yang sedang jalan tidak mendapat jawaban dan proses keluar karena sinyal 15 (`bergulir.txt` bagian B). Kombinasi tanpa `Shutdown` di belakang proxy dengan retry tidak direkam. Retry hanya mengulang GET yang terputus sesudah tersambung, dan POST yang terputus tidak diulang."
+ },
+ {
   "id": "t3-m22-1",
   "halaman": "t3-m22",
   "judul": "3.16 M22: Batas login jadi dua kali lipat",
@@ -1985,7 +2018,7 @@
  {
   "id": "B11-1",
   "halaman": "B11",
-  "judul": "4.1 Integrasi pihak ketiga",
+  "judul": "Integrasi pihak ketiga",
   "url": "b-fondasi/b11-integrasi-pihak-ketiga/",
   "tanya": "Timeout API 2 detik, retry 3 kali dengan jeda 200, 400 ms (ditambah jitter). Gateway mati total. Berapa lama paling cepat Budi menunggu sebelum melihat gagal?",
   "jawab": "±6,6 detik: tiga kali 2 detik timeout, ditambah jeda 0,2 dan 0,4 detik, ditambah jitter. Rekaman E selesai setelah 6,7 detik. Retry membuat penantian lebih lama saat gangguan panjang. Itu salah satu alasan memasang circuit breaker."
@@ -1993,7 +2026,7 @@
  {
   "id": "B11-2",
   "halaman": "B11",
-  "judul": "4.1 Integrasi pihak ketiga",
+  "judul": "Integrasi pihak ketiga",
   "url": "b-fondasi/b11-integrasi-pihak-ketiga/",
   "tanya": "Jelaskan kenapa timeout saat membuat tagihan tidak boleh langsung ditampilkan sebagai \"Top-up gagal\".",
   "jawab": "Timeout hanya berarti API berhenti menunggu. Gateway bisa saja sudah membuat tagihan, dan Budi bisa sudah membayar. Kalau app bilang gagal, Budi mungkin top-up lagi dan membayar dua kali. Status yang jujur adalah pending, sampai webhook atau pengecekan status memberi hasil akhir."
@@ -2001,7 +2034,7 @@
  {
   "id": "B11-3",
   "halaman": "B11",
-  "judul": "4.1 Integrasi pihak ketiga",
+  "judul": "Integrasi pihak ketiga",
   "url": "b-fondasi/b11-integrasi-pihak-ketiga/",
   "tanya": "Breaker terbuka selama 5 detik. Kenapa breaker tidak langsung tertutup begitu jeda habis?",
   "jawab": "Gateway belum tentu pulih. Kalau semua request langsung dilepas, gateway yang baru pulih bisa kewalahan lagi. Karena itu hanya satu request yang mencoba (half-open). Rekaman C: percobaan di detik 11 masih timeout, jadi breaker terbuka lagi."
@@ -2009,7 +2042,7 @@
  {
   "id": "B11.2-1",
   "halaman": "B11.2",
-  "judul": "4.2 Proxy dan BFF",
+  "judul": "Proxy dan BFF",
   "url": "b-fondasi/b11-2-proxy-bff/",
   "tanya": "Kredensial layanan verifikasi disimpan di app, tapi disamarkan (obfuscation). Kenapa itu tetap tidak aman?",
   "jawab": "App berjalan di HP orang lain. Kode yang disamarkan tetap bisa dibongkar, dan request dari HP milik penyerang sendiri bisa disadap untuk melihat kredensialnya. Begitu bocor, kredensial tidak bisa dicabut dari app yang sudah terpasang. Kredensial di proxy bisa diganti kapan saja tanpa update app."
@@ -2017,7 +2050,7 @@
  {
   "id": "B11.2-2",
   "halaman": "B11.2",
-  "judul": "4.2 Proxy dan BFF",
+  "judul": "Proxy dan BFF",
   "url": "b-fondasi/b11-2-proxy-bff/",
   "tanya": "Jelaskan kenapa bukti bayar lebih cocok lewat proxy, sedangkan foto produk cocok dengan signed URL.",
   "jawab": "Bukti bayar bersifat pribadi. Proxy memeriksa pemilik di setiap unduhan, sedangkan signed URL yang diteruskan bisa dibuka orang lain (rekaman: Ani mendapat file Budi). Foto produk memang publik, jadi bebas dibuka siapa pun. Untuk foto, yang penting byte tidak membebani server API."
@@ -2025,15 +2058,15 @@
  {
   "id": "B11.2-3",
   "halaman": "B11.2",
-  "judul": "4.2 Proxy dan BFF",
+  "judul": "Proxy dan BFF",
   "url": "b-fondasi/b11-2-proxy-bff/",
   "tanya": "Proxy verifikasi dipasang tanpa timeout. Layanan eksternal lambat 8 detik di jam sibuk. Apa yang terjadi pada proxy?",
-  "jawab": "Setiap request menunggu 8 detik dan menahan koneksi di proxy (rekaman C). Request yang datang terus menumpuk, sama seperti top-up di 4.1 Integrasi pihak ketiga. Pasang timeout, dan pertimbangkan circuit breaker untuk layanan yang sering lambat."
+  "jawab": "Setiap request menunggu 8 detik dan menahan koneksi di proxy (rekaman C). Request yang datang terus menumpuk, sama seperti top-up di Integrasi pihak ketiga (versi lama). Pasang timeout, dan pertimbangkan circuit breaker untuk layanan yang sering lambat."
  },
  {
   "id": "B10.2-1",
   "halaman": "B10.2",
-  "judul": "4.3 Webhook dan outbox",
+  "judul": "Webhook dan outbox",
   "url": "b-fondasi/b10-2-webhook-outbox/",
   "tanya": "Handler webhook mengirim email konfirmasi sebelum menjawab, dan email butuh 20 detik. Apa yang akan dilakukan gateway?",
   "jawab": "Kalau gateway punya timeout lebih pendek dari 20 detik, ia menganggap kiriman gagal lalu mengirim ulang. Spesifikasi Standard Webhooks menyarankan timeout 15–30 detik dan retry berhari-hari. Jawab 200 secepatnya, dan kirim email lewat outbox dan worker."
@@ -2041,7 +2074,7 @@
  {
   "id": "B10.2-2",
   "halaman": "B10.2",
-  "judul": "4.3 Webhook dan outbox",
+  "judul": "Webhook dan outbox",
   "url": "b-fondasi/b10-2-webhook-outbox/",
   "tanya": "Jelaskan kenapa memeriksa signature saja tidak cukup untuk mencegah saldo ganda.",
   "jawab": "Kiriman ulang dari gateway adalah kiriman sah dengan signature yang benar. Signature hanya membuktikan pengirimnya, bukan bahwa event itu baru. Yang mencegah pemrosesan ganda adalah catatan id event dengan constraint unik, di transaction yang sama dengan perubahan saldo."
@@ -2049,7 +2082,7 @@
  {
   "id": "B10.2-3",
   "halaman": "B10.2",
-  "judul": "4.3 Webhook dan outbox",
+  "judul": "Webhook dan outbox",
   "url": "b-fondasi/b10-2-webhook-outbox/",
   "tanya": "Outbox dan worker dipakai untuk notifikasi. Worker mati setelah mengirim push, sebelum menandai baris outbox terkirim. Apa yang terjadi?",
   "jawab": "Saat worker jalan lagi, baris itu masih belum terkirim, jadi push dikirim lagi. Outbox menjamin pesan terkirim setidaknya sekali (at-least-once), bukan tepat sekali. Penerima harus tahan pesan ganda, mis. app mengabaikan notifikasi dengan id top-up yang sudah ditampilkan."
@@ -2057,7 +2090,7 @@
  {
   "id": "B5.2-1",
   "halaman": "B5.2",
-  "judul": "4.4 OAuth dan login sosial",
+  "judul": "OAuth dan login sosial",
   "url": "b-fondasi/b5-2-oauth-oidc/",
   "tanya": "App Rekeningo versi baru selalu mengirim PKCE, tapi server identitas tidak mewajibkannya. Apakah serangan di widget sudah tertutup?",
   "jawab": "Belum. App versi lama yang belum mengirim PKCE masih terpasang di banyak HP (1.33 App versi lama). Selama server menerima alur tanpa PKCE, code dari versi lama bisa dicegat dan ditukar. Serangan baru tertutup setelah server menolak setiap alur tanpa PKCE."
@@ -2065,7 +2098,7 @@
  {
   "id": "B5.2-2",
   "halaman": "B5.2",
-  "judul": "4.4 OAuth dan login sosial",
+  "judul": "OAuth dan login sosial",
   "url": "b-fondasi/b5-2-oauth-oidc/",
   "tanya": "Jelaskan kenapa API harus memeriksa `aud`, walau signature ID token sudah sah.",
   "jawab": "Signature hanya membuktikan token diterbitkan server identitas. Server itu menerbitkan token untuk banyak app. Token yang diterbitkan untuk app lain tetap bersignature sah. `aud` memastikan token itu memang ditujukan untuk Rekeningo (rekaman D: aud=app-lain → 401)."
@@ -2073,7 +2106,7 @@
  {
   "id": "B5.2-3",
   "halaman": "B5.2",
-  "judul": "4.4 OAuth dan login sosial",
+  "judul": "OAuth dan login sosial",
   "url": "b-fondasi/b5-2-oauth-oidc/",
   "tanya": "Setelah login sosial berhasil, apakah app sebaiknya memakai ID token untuk setiap request ke API Rekeningo?",
   "jawab": "Tidak. ID token adalah bukti identitas saat login, dengan masa berlaku dari server identitas. Rekeningo menukarnya dengan token Rekeningo sendiri, yang umur, refresh, dan pencabutannya dikendalikan Rekeningo (1.27 Authentication)."
@@ -2081,7 +2114,7 @@
  {
   "id": "B7.2-1",
   "halaman": "B7.2",
-  "judul": "4.5 Modular monolith",
+  "judul": "Modular monolith",
   "url": "b-fondasi/b7-2-batas-modul/",
   "tanya": "Tim toko butuh status pembayaran untuk layar riwayat pesanan. Sebutkan dua cara yang tidak melanggar batas.",
   "jawab": "Pertama, memanggil API publik modul pembayaran, mis. `pembayaran.Status(pesananID)`. Kedua, modul pesanan menyimpan salinan status yang ia terima dari event `pembayaran_berhasil` di outbox. Cara kedua tidak menambah ketergantungan saat membaca, tapi datanya bisa terlambat sebentar."
@@ -2089,7 +2122,7 @@
  {
   "id": "B7.2-2",
   "halaman": "B7.2",
-  "judul": "4.5 Modular monolith",
+  "judul": "Modular monolith",
   "url": "b-fondasi/b7-2-batas-modul/",
   "tanya": "Jelaskan kenapa larangan `JOIN` lintas modul tetap berguna walau semuanya masih satu database.",
   "jawab": "Pemilik tabel bebas mengubah strukturnya tanpa memeriksa kode modul lain. Rusaknya layar riwayat di cerita ini terjadi karena ketergantungan tersembunyi. Kalau suatu saat modul itu dipecah jadi service dengan database sendiri, tidak ada `JOIN` yang harus dibongkar."
@@ -2097,7 +2130,7 @@
  {
   "id": "B7.2-3",
   "halaman": "B7.2",
-  "judul": "4.5 Modular monolith",
+  "judul": "Modular monolith",
   "url": "b-fondasi/b7-2-batas-modul/",
   "tanya": "Kenapa Rekeningo hanya memecah pembayaran, bukan katalog dan pesanan juga?",
   "jawab": "Pembayaran punya alasan yang berbeda dari modul lain: credential gateway, audit ketat, dan ritme rilis yang lebih hati-hati. Katalog dan pesanan belum punya kebutuhan seperti itu. Memecahnya hanya menambah panggilan jaringan yang bisa gagal dan deploy yang harus dirawat."
@@ -2105,7 +2138,7 @@
  {
   "id": "D5-1",
   "halaman": "D5",
-  "judul": "4.6 Template ADR",
+  "judul": "Template ADR",
   "url": "d-system-design/d5-adr/",
   "tanya": "Rekeningo memutuskan saldo kurang dijawab `422`. Tulis bagian \"Alternatif yang ditolak\" dalam dua butir.",
   "jawab": "Contoh: \"`400`: ditolak, supaya `400` tetap berarti format salah dan app bisa membedakannya dari saldo kurang.\" \"`409`: sah juga, tapi ditolak supaya `409` disimpan untuk bentrok versi data.\" Alasan lengkapnya ada di 1.5 Perjalanan satu request."
@@ -2113,7 +2146,7 @@
  {
   "id": "D5-2",
   "halaman": "D5",
-  "judul": "4.6 Template ADR",
+  "judul": "Template ADR",
   "url": "d-system-design/d5-adr/",
   "tanya": "Jelaskan kenapa ADR lama yang dibatalkan tidak dihapus.",
   "jawab": "Riwayatnya tetap berguna: orang bisa melihat keputusan apa yang pernah berlaku, kapan, dan kenapa diganti. Kode lama yang masih mengikuti keputusan lama juga jadi bisa dijelaskan. Statusnya diubah jadi digantikan, dengan rujukan ke ADR baru."
@@ -2121,7 +2154,7 @@
  {
   "id": "D5-3",
   "halaman": "D5",
-  "judul": "4.6 Template ADR",
+  "judul": "Template ADR",
   "url": "d-system-design/d5-adr/",
   "tanya": "AI membuat draft ADR dari rangkuman rapat. Bagian apa yang paling perlu kamu periksa?",
   "jawab": "Alternatif dan konsekuensi negatif. AI cenderung menulis keputusan yang terdengar meyakinkan, tapi melewatkan pilihan yang ditolak atau biaya yang muncul. Periksa juga angka di konteks: harus berasal dari data atau asumsi yang ditulis terbuka, bukan karangan."
