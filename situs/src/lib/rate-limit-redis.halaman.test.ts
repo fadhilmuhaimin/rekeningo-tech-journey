@@ -619,7 +619,12 @@ describe("prosa widget dan diagram dikunci; teks registry", () => {
     expect(h.masalah).toBe("Yang disimpan di memori satu proses berlipat saat prosesnya dua");
     expect(naskah).toContain("| State bersama | Yang disimpan di memori satu proses berlipat saat prosesnya dua | M22 |");
     expect(h.pendek).toBe("Rate limit lintas instance dan Redis");
-    expect(baca("plan/RINGKAS.md")).toContain("devops 3.14, 3.15, 3.17, 3.26, 3.27; security 3.16, 3.17, 3.22–3.25");
+    // Jalur per peran dibaca dari naskah (sumber), bukan dari RINGKAS: RINGKAS dilipat per tahap (keputusan 1208) dan tidak lagi memuatnya.
+    const jalur = (peran: string): string => cari(new RegExp(`^- \\*\\*${peran}\\*\\* (.+)\\.$`), naskah.split("\n"), `jalur ${peran}`)[1]!;
+    expect(jalur("DevOps")).toBe("3.14, 3.15, 3.17, 3.26, 3.27");
+    expect(jalur("Security")).toBe("3.16, 3.17, 3.22 sampai 3.25");
+    expect(jalur("Mobile")).not.toMatch(/\b3\.17\b/);
+    expect(h.peran).toEqual(["devops", "security", "backend"]);
   });
 });
 
