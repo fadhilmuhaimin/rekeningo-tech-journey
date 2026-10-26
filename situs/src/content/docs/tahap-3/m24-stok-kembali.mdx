@@ -1,0 +1,183 @@
+---
+title: "3.20 M24: Stok yang kembali ke angka lama"
+description: Minggu 7. Senin pagi app Budi menunjukkan ayam geprek habis, padahal Ani mengisi 30 porsi hari Sabtu. Operasi "stok = 0" dari Jumat dikirim ulang 62 jam kemudian, key-nya sudah lewat 24 jam, dan endpoint stok menimpa tanpa memeriksa versi.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import stokKembali from "../../../../data/diagram/t3-m24-stok-kembali.json";
+
+<p class="meta">Baca 7 menit · coba 3 menit · Prasyarat: [[t2-idempotency]]</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 7 Tahap 3. Senin pukul 07.05 Budi membuka app untuk memesan ayam geprek di warung Ani. Menu itu tertulis "habis".
+
+Ani mengisi 30 porsi ayam geprek lewat dasbor hari Sabtu. Ia tidak mengerti kenapa menu itu habis lagi.
+
+Ani: "Jumat sore saya catat habis, itu sudah lewat dua hari."
+
+Ani menghubungi Raka.
+
+*Angka cerita (Ilustrasi):* Senin 07.05, "dua hari", dan 30 porsi berasal dari naskah. Lama offline 62 jam, dari Jumat 16.50 sampai Senin 06.50, adalah Asumsi naskah: warung tutup Jumat 17.00 sampai Senin 07.00. Rekaman di blok "Yang sebenarnya" memerankan waktu itu dengan jam service yang dimajukan, jadi tidak ada yang menunggu 62 jam.
+
+Jam di layar HP pada widget mengikuti jam lab, bukan 07.05. Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka punya dua dugaan, seperti di naskah: dasbor yang salah, atau jam HP Ani yang salah. Ia mulai dari pertanyaan siapa yang terakhir mengubah stok ayam geprek.
+
+Pola ini ia kenal dari [[t2-m10]]. Bila sinyal putus sebelum jawaban sampai, app tidak tahu operasinya berhasil. App menyimpannya di queue lokal, yaitu daftar operasi yang belum pasti sampai, lalu mengirimnya lagi saat sinyal kembali.
+
+Pengiriman ulang itu aman karena key. App memakai key yang sama, dan server mengenali ulangannya selama 24 jam ([[t2-idempotency]]). Ulangan yang dikenali tidak mengubah apa pun untuk kedua kalinya.
+
+Lab menjalankan langkah itu juga untuk nasi goreng, produk lain di warung Ani yang melewati Jumat dan Sabtu yang sama. Pembanding ini bukan bagian cerita: di cerita, HP Ani baru tersambung hari Senin.
+
+<details class="question">
+<summary>Tebak dulu: Sabtu 09.50, 17 jam sesudah Jumat, lab mengirim ulang "stok = 0" untuk nasi goreng dengan key yang sama. Ani sudah mengisi nasi goreng 50 porsi lewat dasbor. Berapa stok nasi goreng sesudahnya?</summary>
+
+50. Di rekaman `m24.txt` bagian C, key masih dikenali. Server menjawab dengan jawaban Jumat, yaitu stok 0 dan versi 2, dan database tetap menyimpan stok 50, versi 3.
+
+Jawaban itu melaporkan keadaan Jumat, bukan keadaan sekarang. App yang menggambar layar dari jawaban itu akan menampilkan 0 padahal stok 50. Karena itu app perlu mengambil keadaan terbaru sesudah ulangan (penalaran; app tidak ada di lab).
+
+Pengiriman ulang yang sama 62 jam sesudah Jumat berakhir lain. Itu isi blok berikutnya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Stok ayam geprek kembali ke 0 karena operasi Jumat dikirim ulang sesudah key-nya kedaluwarsa. Server menganggapnya keputusan baru dan menimpa stok 30 dari Sabtu.
+
+<Rantai data={stokKembali} />
+
+*Kondisi rekaman:* PostgreSQL 17.11 dan server Go `api-t3` dengan mode rentan `stok-timpa`. HP diperankan `curl`, dan jam service dimajukan lewat `POST /lab/jam` (Ilustrasi mekanisme). Jawaban yang hilang juga diperankan: lab menerima jawaban Jumat, lalu mengirim operasi yang sama lagi seolah-olah HP tidak pernah menerimanya.
+
+**Jumat dan Sabtu: dua jalur ke baris yang sama.** Jumat 16.50 operasi "stok = 0" sampai ke server dan diterapkan: stok 0, versi 2.
+
+<Snippet file="labs/t3-offline/output/m24.txt" lines="9:19" title="Rekaman lab: labs/t3-offline/output/m24.txt baris 9 sampai 19 (bagian A, ayam geprek habis dari HP Ani)" />
+
+Sabtu 07.50 Ani mengisi 30 porsi, dan versinya naik ke 3. Rekaman memerankan dasbor lewat `PATCH /produk/{id}`, yang membawa versi:
+
+<Snippet file="labs/t3-offline/output/m24.txt" lines="29:34" title="Rekaman lab: labs/t3-offline/output/m24.txt baris 29 sampai 34 (bagian B, dasbor mengisi 30 porsi)" />
+
+Kedua jalur berbeda. `PATCH` mengubah stok hanya bila versinya masih sama dengan yang dilihat pengirim. Lab memerankan HP Ani lewat `PUT /produk/{id}/stok`, endpoint yang hanya ada di mode rentan, dan `{"stok": 0}` adalah seluruh isi permintaannya:
+
+<Snippet file="labs/api-t3/internal/repo/katalog.go" lines="126:129" lang="go" title="Kode lab: labs/api-t3/internal/repo/katalog.go baris 126 sampai 129 (stok berubah hanya bila versi sama)" />
+
+<Snippet file="labs/api-t3/internal/repo/idempoten.go" lines="83:86" lang="go" title="Kode lab: labs/api-t3/internal/repo/idempoten.go baris 83 sampai 86 (stok diganti tanpa syarat versi)" />
+
+**Key hanya berlaku 24 jam.** Server mencatat key saat pertama kali dipakai, dengan masa berlaku 24 jam. Key Jumat 16.50 berlaku sampai Sabtu 16.50 (hitungan dari kode ini):
+
+<Snippet files={["labs/api-t3/internal/service/idempoten.go:14:14", "labs/api-t3/internal/service/idempoten.go:22:25"]} lang="go" title="Kode lab: labs/api-t3/internal/service/idempoten.go baris 14 dan 22 sampai 25 (umur key dan klaim)" />
+
+Pembanding Sabtu 09.50 jatuh di dalam masa itu, jadi key dikenali dan stok tidak berubah:
+
+<Snippet file="labs/t3-offline/output/m24.txt" lines="42:52" title="Rekaman lab: labs/t3-offline/output/m24.txt baris 42 sampai 52 (bagian C, ulangan 17 jam)" />
+
+Tes Go `TestKunciKedaluwarsaSesudah24Jam` memeriksa batas persisnya: 23 jam 59 menit 59 detik masih dikenali, tepat 24 jam dianggap baru (dibaca dari kode tes, Tidak dijalankan). Rekaman hanya mengapit batas itu: 17 jam dikenali, 62 jam tidak.
+
+Angka 24 jam adalah pilihan Rekeningo ([[t2-idempotency]]), bukan aturan spesifikasi. Draft IETF untuk header `Idempotency-Key` tidak menetapkan umur key. Resource boleh memakai key berbasis waktu, tulis draft itu, dan sebaiknya menerbitkan kebijakan kedaluwarsanya ([draft-08 bagian 2.3](https://www.ietf.org/archive/id/draft-ietf-httpapi-idempotency-key-header-08.txt), kedaluwarsa 25 April 2027, dibuka 2026-10-27, Tidak dijalankan).
+
+**Senin 06.50: key sudah lewat, dan tidak ada yang membandingkan.** HP Ani mengirim ulang "stok = 0" dengan key Jumat, 62 jam sesudahnya. Key itu sudah lewat sejak Sabtu 16.50, jadi server mengklaimnya sebagai key baru lewat satu perintah `INSERT … ON CONFLICT … WHERE kedaluwarsa <= kini`:
+
+<Snippet file="labs/api-t3/internal/repo/idempoten.go" lines="27:33" lang="go" title="Kode lab: labs/api-t3/internal/repo/idempoten.go baris 27 sampai 33 (key yang kedaluwarsa diklaim ulang)" />
+
+Sesudah itu `TimpaStok` mengganti stok tanpa melihat stok sekarang. Rekaman Senin menunjukkan hasilnya:
+
+<Snippet file="labs/t3-offline/output/m24.txt" lines="56:66" title="Rekaman lab: labs/t3-offline/output/m24.txt baris 56 sampai 66 (bagian D, pengiriman ulang 62 jam)" />
+
+Server menjawab 200 dan versi naik ke 4. Katalog lalu memberi Budi stok 0 untuk ayam geprek. App Budi menampilkan "habis"; tampilan app tidak direkam, hanya jawaban katalognya:
+
+<Snippet file="labs/t3-offline/output/m24.txt" lines="68:74" title="Rekaman lab: labs/t3-offline/output/m24.txt baris 68 sampai 74 (bagian D, isi database dan katalog sesudahnya)" />
+
+**Yang menang adalah permintaan yang tiba terakhir.** Keputusan Ani yang terakhir adalah 30 porsi pada Sabtu. Permintaan yang tiba terakhir adalah "habis" dari Jumat. `TimpaStok` memilih yang tiba terakhir, bukan yang diputuskan terakhir.
+
+**Kenapa dua dugaan Raka tidak cocok.** Dasbor tidak salah: `PATCH` Sabtu diterima dengan versi 2 dan menghasilkan versi 3 (bagian B). Jam HP juga bukan sebabnya, karena isi permintaan di bagian A dan D hanya `{"stok": 0}`, tanpa jam HP dan tanpa versi.
+
+**Versi bersyarat menolak hal yang sama.** Lab merekam urutan yang sama lewat `POST /sinkron`, yang membawa versi dasar, yaitu versi baris yang dilihat HP saat Ani mengubahnya. Operasi bakso belum pernah sampai dan tiba pertama kali hari Senin dengan versi dasar 1, padahal versi sekarang 2:
+
+<Snippet file="labs/t3-offline/output/versi.txt" lines="49:53" title="Rekaman lab: labs/t3-offline/output/versi.txt baris 49 sampai 53 (bagian C, operasi lama ditolak 409)" />
+
+Server menjawab 409 dengan keadaan sekarang dan tidak mengubah apa pun. Operasi soto sudah sampai hari Jumat, jadi kuncinya dikenali dan stok 30 dari Sabtu utuh (`versi.txt` bagian C).
+
+Versi benar punya dua perubahan sekaligus. Soto menunjukkan yang pertama: kunci sinkron, yang disimpan 14 hari, mengenali ulangannya. Bakso menunjukkan yang kedua: kuncinya tidak dikenal, dan syarat versi menolaknya. Batas 14 hari dan keputusannya ada di [[t3-offline]].
+
+**Untuk app Flutter.** Panduan offline-first di docs.flutter.dev (dibuka 2026-10-27, tanpa nomor versi dokumen, Tidak dijalankan) menandai data lokal dengan flag `synchronized` dan mengirimnya dengan satu `PUT`. Teks panduan itu tidak memuat kata conflict, version, atau timestamp. Panduan itu tidak membahas konflik, jadi cara menolak data lama perlu ada di request dan response API (penalaran).
+
+**Pembayaran memakai key yang sama.** `POST /transfers`, `/kiriman`, dan `/pesanan` di `api-t3` dibungkus middleware key yang sama (dibaca dari kode, Tidak dijalankan di halaman ini). Rekaman `kunci24.txt` bagian E mengirim ulang tiga permintaan lama 62 jam kemudian, dan ketiganya dikerjakan lagi. Itu alasan pembayaran tidak pernah offline, dan [[t3-offline]] membahasnya.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `m24.txt` dari operasi Jumat sampai HP Budi. Tebak dulu apa jawaban server pada pengiriman ulang hari Senin, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t3-m24.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: operasi bersyarat versi lewat POST /sinkron**. Rekamannya `versi.txt`, dengan produk soto dan bakso. Layar HP di widget digambar dari isi rekaman: lab tidak punya app Flutter.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: pengiriman ulang hari Senin dijawab 200, stok ayam geprek menjadi 0 dengan versi 4, dan katalog memberi Budi stok 0.
+
+Pada operasi bersyarat versi, soto dikenali kuncinya dan stok tetap 30, sedangkan bakso ditolak 409 dengan keadaan sekarang. Rekaman lengkapnya ada di blok "Yang sebenarnya".
+</noscript>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t3-offline]]: offline-first dan queue sinkron, operasi bersyarat versi (optimistic lock), dan umur key lawan umur queue. Keputusannya ADR 29.
+- [[t2-idempotency]]: ADR 14 menulis kapan keputusannya salah, yaitu saat satu niat bisa dikirim ulang lebih dari 24 jam sesudah percobaan pertama. M24 adalah kejadiannya.
+- [[t3-dua-tempat]]: queue di HP adalah perantara yang berisi keputusan Jumat, sedangkan PostgreSQL berisi keadaan Senin. Pola yang sama muncul di [[t3-m22]].
+- [[t3-skema]]: tabel `operasi_sinkron` dan umur key 24 jam sudah tercatat di skema Tahap 3, dengan M24 sebagai alasannya.
+- [[t3-prd]]: mode offline untuk stok dan harga adalah P1 di PRD v3, dan pembayaran tidak pernah offline.
+
+Key menjawab apakah permintaan ini pernah datang. Versi baris menjawab apakah keadaan sudah berubah sejak operasi dibuat.
+
+### Cek diri
+
+**1.** HP mengirim ulang "stok = 0" 17 jam sesudah Jumat dan 62 jam sesudah Jumat, keduanya dengan key yang sama. Kenapa hasilnya berbeda?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Key berlaku 24 jam sejak dipakai pertama kali. Pada 17 jam key dikenali, server menjawab seperti Jumat, dan stok database tetap 50 (`m24.txt` bagian C). Pada 62 jam key sudah lewat, jadi permintaan dianggap baru dan stok tertimpa (bagian D). Rekaman hanya mengapit batas itu; angka 24 jam persis dijaga tes Go (dibaca dari kode tes, Tidak dijalankan).
+
+</details>
+
+**2.** Server menjawab 200 pada pengiriman ulang hari Senin. Kenapa tidak ada galat yang memberi tahu siapa pun?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Endpoint `PUT /produk/{id}/stok` hanya menerima `{"stok": 0}`. Ia tidak membandingkan apa pun dengan stok sekarang, jadi tidak ada yang bisa gagal: `TimpaStok` menjalankan `UPDATE` tanpa syarat versi (dibaca dari kode lab).
+
+</details>
+
+**3.** Raka menduga jam HP Ani salah. Apa di rekaman yang menunjukkan dugaan itu tidak cocok?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Isi permintaan hanya `{"stok": 0}` (`m24.txt` bagian A dan D). Tidak ada jam HP dan tidak ada versi, jadi jam HP yang salah tidak bisa memengaruhi hasilnya.
+
+</details>
+
+**4.** Operasi bakso lewat `POST /sinkron` membawa versi dasar 1, padahal versi sekarang 2. Apa jawaban server dan apa yang berubah di database?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Server menjawab 409 dengan keadaan sekarang (stok 30, versi 2), dan tidak ada yang berubah (`versi.txt` bagian C). Ani lalu memilih. Pilihannya operasi baru dengan kunci baru dan versi dasar 2 (bagian D); layar pilihan di HP adalah Ilustrasi.
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />
