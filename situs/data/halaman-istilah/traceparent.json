@@ -1,0 +1,35 @@
+{
+  "istilah": "traceparent",
+  "sehari_hari": "traceparent adalah header HTTP yang membawa nomor perjalanan satu request. Setiap komponen yang menerimanya bisa menulis nomor yang sama di log atau trace, sehingga potongan dari app, API, dan komponen lain bisa disambung.",
+  "cerita": [
+    {
+      "rujukan": "t3-observability",
+      "teks": "Rekaman jejak.txt bagian J mengirim header contoh dari spesifikasi ke api-t3. Kode api-t3 tidak membacanya, jadi trace-id berhenti di API."
+    }
+  ],
+  "mekanisme": [
+    "Pemanggil yang memulai trace menulis empat field di header: versi, trace-id (32 karakter heksadesimal), parent-id (16), dan trace-flags (2).",
+    "Penerima yang ikut menelusuri mengganti parent-id dengan id miliknya di request keluar, dan trace-id tetap sama.",
+    "Alat tracing yang paling minimal tetap meneruskan header itu supaya trace tidak putus.",
+    "Bit paling kanan trace-flags, sampled, menandai bahwa pemanggil mungkin sudah merekam trace."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira header itu menyalakan tracing dengan sendirinya. Tanpa kode yang membacanya, trace-id berhenti di komponen pertama, seperti di api-t3.",
+    "Membaca trace-flags sebagai angka biasa. Spesifikasi meminta flag dibaca dengan bit mask, karena bit lain bisa memakai arti baru."
+  ],
+  "terkait": ["Trace", "Header", "Log"],
+  "sumber": [
+    {
+      "riset": "R3-133",
+      "judul": "W3C: Trace Context Level 1",
+      "url": "https://www.w3.org/TR/trace-context/",
+      "catatan": "Recommendation 23 November 2021. Format traceparent, arti parent-id, flag sampled, dan kewajiban alat tracing meneruskan header (bagian 2.3)."
+    },
+    {
+      "judul": "Rekaman lab t3-pool: satu pembayaran selama M18",
+      "rekaman": "labs/t3-pool/output/jejak.txt",
+      "catatan": "Header contoh dari spesifikasi dikirim ke api-t3, dan pencarian traceparent di kode API tidak menemukan file."
+    }
+  ]
+}
