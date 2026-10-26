@@ -1,0 +1,27 @@
+{
+  "id": "t3-observability-inti",
+  "judul": "Satu pembayaran menggantung 4 detik",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t3-pool, jejak.txt bagian J"
+  },
+  "baris": [
+    {
+      "label": "Menjawab",
+      "sub": "bagian J dari jejak.txt",
+      "simpul": [
+        { "teks": "metric: 1 dari 10 dipakai", "sub": "GET /lab/pool, satu pembayaran" },
+        { "teks": "database: menunggu client", "sub": "idle in transaction, transaction terbuka lebih dari 3 detik; bukan query yang lambat" }
+      ]
+    },
+    {
+      "label": "Diam",
+      "sub": "bagian J dari jejak.txt",
+      "simpul": [
+        { "teks": "log: 0 baris baru", "sub": "api-t3 tidak punya log akses", "nada": "warn" },
+        { "teks": "trace-id: berhenti di API", "sub": "kode API tidak membaca traceparent; trace Tidak dijalankan", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah yang tidak terlihat dari luar. Layanan push tiruan menerima permintaan dan tidak pernah menjawab."
+}

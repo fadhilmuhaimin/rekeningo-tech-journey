@@ -1,0 +1,207 @@
+---
+title: "3.7 Observability: log, metric, trace"
+description: Saat satu pembayaran menggantung, log api-t3 tetap kosong dan hanya metric pool serta database yang menunjuk sesuatu. Tiga sinyal menjawab tiga pertanyaan yang berbeda.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import intiDiagram from "../../../../data/diagram/t3-observability-inti.json";
+import pilah from "../../../../lama/widgets/data/t3-observability-pilah.json";
+
+<p class="meta">Baca 9 menit · coba 3 menit · Prasyarat: [[t3-m18]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Log mencatat kejadian, metric mengukur seberapa sering dan seberapa penuh, dan trace menunjukkan di mana waktu habis.
+
+<Rantai data={intiDiagram} ringkas />
+
+Rekaman lab adalah keluaran program yang dijalankan di `labs/` ([Label sumber](/cara-pakai/#label-sumber)). Di rekaman ini api-t3 berjalan dalam mode rentan `push-dalam-tx`, dan layanan push tiruan menerima permintaan tanpa menjawab, seperti di [[t3-m18]]. Satu pembayaran dikirim dengan header `traceparent`, lalu server diamati dari luar selama 4 detik (`jejak.txt` bagian J).
+
+Dua pembacaan menjawab: metric pool, dan database yang melaporkan satu sesi `idle in transaction` tanpa query yang berjalan. Dua yang lain diam. Log tidak bertambah satu baris pun, dan trace Tidak dijalankan, yaitu hanya dicek ke dokumentasi dan kode, tidak dijalankan di lab. Kode api-t3 tidak membaca `traceparent`, jadi trace-id dari app berhenti di API.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Log api-t3 tidak bertambah selama 4 detik. Apakah itu berarti pembayarannya berjalan normal?
+2. Metric apa yang bisa dibaca dari api-t3, dan kapan metric itu hidup?
+3. App mengirim `traceparent`. Kenapa trace-id itu tidak muncul di mana pun di API?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: log menjawab apa yang terjadi, metric menjawab seberapa sering dan seberapa penuh, dan trace menjawab di bagian mana waktu habis.">
+
+Tujuh pertanyaan muncul di sekitar pembayaran yang menggantung. Pilah tiap pertanyaan ke sinyal yang paling cepat menjawabnya, lalu periksa jawabanmu. Angka dan nama berasal dari Rekaman lab api-t3 dan t3-pool. Untuk trace, rekamannya hanya menunjukkan bahwa api-t3 tidak punya.
+
+<WidgetLama nama="pilah" src="data/t3-observability-pilah.json" />
+
+<noscript>
+<p>Tanpa JavaScript, kartu di atas tidak bisa dipilah. Berikut jawaban tiap pertanyaan.</p>
+<ol>
+{pilah.item.map((it) => (
+<li><strong>{pilah.kelompok[it.jawab]}.</strong> {it.teks} {it.kenapa}</li>
+))}
+</ol>
+</noscript>
+
+**Ubah satu hal:** pasang timeout 3 detik di client push, seperti di ADR 22 ([[t3-pool]]). Di `adr22.txt` bagian D, sepuluh pembayaran pertama menunggu push sampai batas itu, dan masing-masing menulis satu baris log `push gagal, hanya dicatat` yang memuat `Client.Timeout exceeded`. Tanpa timeout, `jejak.txt` bagian J mencatat nol baris. Baris itu ada karena panggilan push berakhir; selama ia menggantung, tidak ada baris.
+
+Bebannya berbeda: bagian D memakai beban terjadwal 17,4 request per detik (Asumsi, yaitu angka beban dari cerita), bagian J satu pembayaran. Perbandingan ini menunjukkan arah, bukan satu percobaan yang diulang.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Di [[t3-m18]] seluruh layar berhenti menjawab. Raka mengira database lambat dan mengusulkan pool 50. Untuk tahu bagian mana yang menunggu, api-t3 harus mengeluarkan data tentang dirinya sendiri.
+
+Observability adalah kemampuan memahami keadaan sebuah sistem dari data yang ia keluarkan, tanpa membaca kodenya. Kemampuan itu juga berlaku untuk masalah yang belum pernah terpikir ([OpenTelemetry: Observability primer](https://opentelemetry.io/docs/concepts/observability-primer/), dibuka 2026-10-26). Data itu datang dalam tiga bentuk: log, metric, dan trace.
+
+### Cara kerjanya
+
+Tiga sinyal menjawab pertanyaan yang berbeda:
+
+| Sinyal | Isinya | Pertanyaan yang dijawab | Di api-t3 saat M18 |
+|---|---|---|---|
+| Log | Pesan bertanda waktu yang ditulis service atau komponen lain | Apa yang terjadi pada satu kejadian, dan galat apa? | Rekaman lab: nol baris untuk request yang menggantung |
+| Metric | Angka agregat dalam rentang waktu, mis. error rate atau pemakaian sumber daya | Seberapa sering atau seberapa penuh? | Rekaman lab: pembacaan pool, hanya dengan flag `-lab` |
+| Trace | Perjalanan satu request, terdiri dari span: satu unit kerja dengan durasinya | Di bagian mana waktu satu request habis? | Tidak dijalankan |
+
+Arti ketiga sinyal mengikuti dokumentasi OpenTelemetry ([primer](https://opentelemetry.io/docs/concepts/observability-primer/) dan [traces](https://opentelemetry.io/docs/concepts/signals/traces/), dibuka 2026-10-26). Rekaman di bawah menunjukkan apa yang bisa dibaca dari luar proses api-t3 saat satu pembayaran menggantung. Bagian pertama memuat log dan trace, bagian kedua metric dan database:
+
+<Snippet file="labs/t3-pool/output/jejak.txt" lines="13:17" title="Rekaman lab: labs/t3-pool/output/jejak.txt" />
+
+<Snippet file="labs/t3-pool/output/jejak.txt" lines="18:27" title="Rekaman lab: labs/t3-pool/output/jejak.txt" />
+
+**Log.** Di api-t3, baris log ditulis untuk kejadian tertentu. Contohnya server mulai atau berhenti, kesalahan internal, push yang gagal di mode rentan M18, dan satu ringkasan tiap ekspor laporan. Server ini tidak punya log akses: tidak ada baris untuk tiap request. Request yang menggantung tidak meninggalkan baris, dan pembacaan saldo yang selesai dengan 200 pun tidak.
+
+Server ini memakai paket `log` biasa, yang menulis teks bebas, bukan JSON. Log terstruktur menulis tiap kejadian sebagai JSON dengan field tetap, supaya mesin bisa menyaring dan menghitungnya. Go punya `log/slog` di pustaka standar untuk itu ([Go 1.27.3: log/slog](https://pkg.go.dev/log/slog), dibuka 2026-10-26). Baris di bawah adalah Ilustrasi, bukan keluaran api-t3: bentuk satu baris yang tersambung ke trace lewat `trace_id`.
+
+```json
+{"level":"ERROR","msg":"push gagal","durasi_ms":3000,"trace_id":"4bf92f3577b34da6a3ce929d0e0e4736"}
+```
+
+Di OpenTelemetry untuk Go, Traces dan Metrics berstatus Stable, sedangkan Logs masih Release Candidate ([OpenTelemetry: Go](https://opentelemetry.io/docs/languages/go/), dibuka 2026-10-26). Karena SDK log belum Stable, pilihan yang tidak bergantung padanya adalah menulis log sendiri sebagai JSON dengan `trace_id`. Request pada rekaman membawa header `Authorization: Bearer`. Panduan OWASP menyebut access token, password, dan session identification values sebagai data yang biasanya dikecualikan dari log ([OWASP: Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html), dibuka 2026-10-26).
+
+**Metric.** `GET /lab/pool` membaca `DBStats` dari `database/sql`: koneksi yang terbuka, yang dipakai, dan batas pool ([Go 1.27.3: DBStats](https://pkg.go.dev/database/sql#DBStats), dibuka 2026-10-26). Saat pool penuh di M18, pembacaan yang sama menjawab dipakai 10 dari maks 10:
+
+<Snippet file="labs/t3-pool/output/m18.txt" lines="19:21" title="Rekaman lab: labs/t3-pool/output/m18.txt" />
+
+Semua pembacaan metric di api-t3 ada di bawah `/lab/` dan hanya hidup dengan flag `-lab`, dan tidak ada endpoint `/metrics`. Yang menjawab seberapa penuh pool di M18 adalah `GET /lab/pool`. `GET /lab/outbox` (jumlah baris per status dan umur baris tertua) tidak menjawab M18: di mode rentan push dipanggil di dalam transaction dan tidak ada baris outbox. Kolom `menunggu` adalah hitungan kumulatif sejak server hidup, jadi rekaman tidak mencetaknya.
+
+**Trace.** Satu trace adalah perjalanan satu request. Ia terdiri dari span, dan setiap span mencatat satu unit kerja dengan durasinya. Antar komponen, trace disambung lewat header `traceparent` dari W3C Trace Context Level 1, edisi Recommendation 23 November 2021 ([W3C: Trace Context](https://www.w3.org/TR/trace-context/), dibuka 2026-10-26). Header itu terdiri dari empat field yang dipisah tanda minus:
+
+```text
+traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+             versi, trace-id (32 heksadesimal), parent-id (16), trace-flags (2)
+```
+
+Trace-id mengenali seluruh perjalanan. Parent-id adalah id request ini menurut pemanggilnya. Bit paling kanan trace-flags, sampled, menyala: pemanggil mungkin sudah merekam trace. Alat tracing yang sesuai spesifikasi minimal meneruskan header itu supaya trace tidak putus (bagian 2.3).
+
+Header di atas adalah contoh dari spesifikasi, dan itu yang dikirim rekaman `jejak.txt` bagian J. Kode api-t3 (`cmd` dan `internal`) tidak menyebut `traceparent`, dan client push-nya hanya menulis header `Content-Type`. Trace-id berhenti di perbatasan API. Paket instrumentasi `otelhttp` membungkus `http.Handler` untuk menambah tracing ([pkg.go.dev: otelhttp](https://pkg.go.dev/go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp), dibuka 2026-10-26), tetapi paket itu tidak dipasang di api-t3 dan tidak dijalankan di lab.
+
+**Empat golden signals.** Buku SRE Google menyebut empat sinyal: latency, traffic, errors, dan saturation. Bila kamu hanya bisa mengukur empat hal pada sistem yang dipakai orang, ukurlah keempatnya ([SRE book, bab 6, edisi 2017](https://sre.google/sre-book/monitoring-distributed-systems/), dibuka 2026-10-26). Tabel ini memasangkan tiap sinyal dengan M18 dan menyebut siapa yang menghitungnya di rekaman:
+
+| Sinyal | Arti menurut buku SRE | Di rekaman M18 | Siapa yang menghitung |
+|---|---|---|---|
+| Latency | Lama melayani request, dengan request yang berhasil dan yang gagal dipisah | Hanya rata-rata lama satu pembayaran (`little.txt`); p95 tidak direkam | Pembangkit beban lab |
+| Traffic | Banyaknya permintaan, untuk web service biasanya request per detik | Request per detik terjadwal (Asumsi) | Pembangkit beban lab |
+| Errors | Request yang gagal secara eksplisit, implisit, atau melanggar janji waktu | 190 pembacaan sesudah pool penuh tanpa jawaban (`m18.txt` bagian A) | Pembangkit beban lab |
+| Saturation | Seberapa penuh sumber daya yang paling terbatas | Dipakai 10 dari maks 10 (`m18.txt` bagian A) | api-t3, lewat `GET /lab/pool` |
+
+Di rekaman t3-pool, hanya saturation yang dibaca dari api-t3, dan hanya dengan `-lab`. Request yang tidak pernah dijawab tidak punya status code. Buku SRE tetap menghitungnya sebagai error bila melewati janji waktu. Alert dan ambangnya dibahas di [[t3-tim-infra]].
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Pilihan | Yang bisa dijawab | Ongkosnya | Keadaan di lab |
+|---|---|---|---|
+| Log teks bebas saja | Kejadian yang sudah selesai dan dicatat | Tanpa usaha tambahan, tetapi tiap pesan berbentuk bebas sehingga sulit disaring atau dihitung mesin, dan request yang menggantung tidak muncul | Rekaman lab: keadaan api-t3, nol baris selama 4 detik |
+| Log terstruktur dan metric empat sinyal | Apa yang terjadi per kejadian, dan seberapa penuh sumber daya | Kode log dan endpoint metric di server, ruang simpan, dan ambang untuk alert | Rekaman lab: metric saturation ada; log terstruktur hanya Ilustrasi |
+| Ditambah trace | Di bagian mana waktu satu request habis, lintas komponen | Dependency baru dengan ADR sendiri, instrumentasi, dan penyimpanan trace; Logs Go masih Release Candidate | Tidak dijalankan |
+
+Ini pertimbangan penulis, bukan hasil ukur, termasuk pemicu di tabel berikutnya. Trace layak dibayar saat satu request melewati lebih dari satu komponen dan log serta metric sudah menunjuk komponennya, tetapi belum langkahnya. Di M18, metric pool menunjukkan 10 dari 10 dipakai dan database menunjuk client yang menunggu. Langkah yang menunggu di dalam API tetap tidak terlihat sampai ada span atau field durasi.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di atau pemicunya |
+|---|---|---|
+| Trace OpenTelemetry di api-t3 | Dependency baru butuh ADR, dan tidak ada rekaman yang menjalankannya | Satu request melewati lebih dari satu komponen yang belum bisa ditunjuk |
+| Batas waktu client dan ukuran pool | Jawabannya butuh beban terjadwal dan Little's Law | [[t3-pool]] |
+| Alert dan ambangnya | Ambang adalah Asumsi yang ditetapkan lab | [[t3-tim-infra]] |
+| Umur pemberitahuan tertua sebagai metric | Dibutuhkan saat promo menahan notifikasi uang | [[t3-m27]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Log api-t3 tidak bertambah selama 4 detik, padahal satu pembayaran belum dijawab. Apakah itu berarti tidak ada yang salah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. api-t3 tidak punya log akses: pembacaan saldo yang selesai dengan 200 pun meninggalkan nol baris (`jejak.txt` bagian J). Di api-t3, log ditulis saat sebuah kejadian terjadi, selesai, atau gagal, jadi request yang menggantung belum menulis apa pun. Log kosong tidak membedakan keadaan sehat dari keadaan menggantung.
+
+</details>
+
+**2.** Dari empat golden signals, mana yang dilaporkan api-t3 sendiri saat pool penuh, dan lewat apa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Saturation, lewat `GET /lab/pool`: dipakai 10 dari maks 10 (`m18.txt` bagian A). Endpoint itu hanya ada dengan flag `-lab`. Latency, traffic, dan errors di rekaman dihitung pembangkit beban di luar server.
+
+</details>
+
+**3.** App mengirim `traceparent`, tetapi trace-id itu tidak muncul di log atau di mana pun di API. Kenapa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Kode api-t3 tidak menyebut `traceparent`: `grep` di `cmd` dan `internal` tidak menemukan file, dan client push hanya menulis `Content-Type`. Trace-id berhenti di perbatasan API. Karena itu satu trace tidak bisa menyambung app, API, dan layanan push.
+
+</details>
+
+**4.** `pg_stat_activity` menunjukkan satu sesi `idle in transaction` dengan wait event `ClientRead`, pada transaction yang sudah terbuka lebih dari 3 detik. Apa yang ditunjukkan, dan apa yang belum?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+PostgreSQL membuka transaction dan menunggu data dari client, jadi yang lambat bukan query ([PostgreSQL 17: pg_stat_activity](https://www.postgresql.org/docs/17/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW), dibuka 2026-10-26). Bagian API mana yang menunggu belum terlihat. Itu pertanyaan untuk trace.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Setiap request meninggalkan satu baris log di akhirnya dengan status, durasi, dan id; log kosong tidak dianggap tanda sehat.
+- [ ] Panggilan keluar (push, bank, email) punya durasi sendiri sebagai span atau field log, dan timeout yang eksplisit ([[t3-dua-tempat]]).
+- [ ] Tidak ada token, password, atau session identifier di log, termasuk header `Authorization`.
+- [ ] Ada metric untuk latency, traffic, errors, dan saturation di endpoint yang menggerakkan uang, dan request yang lewat batas waktu dihitung sebagai error.
+- [ ] Header `traceparent` dari app diteruskan ke panggilan keluar, atau halaman menulis bahwa trace putus di API.
+
+### Bacaan lanjut
+
+- [Google SRE book, bab 6: Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/) (edisi 2017)
+- [W3C: Trace Context Level 1](https://www.w3.org/TR/trace-context/) (Recommendation, 23 November 2021)
+- [OpenTelemetry: Observability primer](https://opentelemetry.io/docs/concepts/observability-primer/)
+- [OpenTelemetry: Go](https://opentelemetry.io/docs/languages/go/)
+- [Go: database/sql, DBStats](https://pkg.go.dev/database/sql#DBStats) (Go 1.27.3)
+- [OWASP: Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html)
+
+</Blok>
+
+<SkripLama daftar={["pilah"]} />

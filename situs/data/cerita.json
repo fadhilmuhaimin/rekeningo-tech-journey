@@ -2400,8 +2400,9 @@
         "api-t3",
         "t3-pool"
       ],
-      "ada": false,
-      "nomor": "3.7"
+      "ada": true,
+      "nomor": "3.7",
+      "menit": 12
     },
     {
       "id": "t3-pool",
