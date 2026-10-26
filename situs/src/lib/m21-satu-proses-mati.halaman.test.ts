@@ -617,6 +617,16 @@ describe("skenario alur t3-m21.json: valid, nilai dari rekaman, tebakan, dan var
     expect(skenario.langkah[2]!.kirim).toBe(kodeLatar[tersibuk0]!.trim());
     expect(skenario.langkah.map((l) => l.kirim.split("\n").length)).toEqual([1, 1, 1, 2, 1, 1]);
   });
+  test("label sumber widget: langkah 2 dan 3 memakai kode lab (latar.go), bukan rekaman; catatan chip menyebutnya", () => {
+    const kode3 = skenario.langkah[2]!.kirim;
+    expect(panic).not.toContain(kode3); // baris kode ini tidak ada di panic.txt
+    expect(latarGo).toContain(kode3.split(" //")[0]!);
+    expect(panic).not.toMatch(/50 ms/);
+    expect(latarGo).toContain("const JedaAudit = 50 * time.Millisecond");
+    expect(skenario.sumber.catatan).toContain("Langkah 3 menampilkan satu baris kode dari labs/api-t3/internal/service/latar.go, dan langkah 2 menyebut jeda 50 ms dari kode yang sama; keduanya tidak ada di rekaman.");
+    expect(skenario.langkah[1]!.jelas).toContain("di kode lab");
+    expect(skenario.langkah[2]!.jelas).toMatch(/^Kode ini/);
+  });
   test("lapisan: handler untuk langkah yang dijawab handler, goroutine latar untuk panic dan ringkasan; proses berhenti tanpa lapisan", () => {
     expect(skenario.langkah.map((l) => l.lapisan ?? null)).toEqual(["handler", "handler", "goroutine latar", "goroutine latar", null, null]);
     expect(skenario.varian.langkah.map((l) => l.lapisan ?? null)).toEqual(["handler", "goroutine latar", "handler"]);
@@ -713,7 +723,7 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
 const SIDIK_RISET_165 = "72bfc11c1b6a9561";
 const SIDIK_RISET_166 = "deaaf77e6fcd710a";
 const SIDIK_DIAGRAM = "492470702cdc2f1c";
-const SIDIK_SKENARIO = "f1ee6bb3501f68ef";
+const SIDIK_SKENARIO = "797e2320433b6812";
 const KALIMAT_TERKUNCI: string[] = [
   "import Blok from \"../../../components/Blok.astro\";",
   "import Rantai from \"../../../components/Rantai.astro\";",
