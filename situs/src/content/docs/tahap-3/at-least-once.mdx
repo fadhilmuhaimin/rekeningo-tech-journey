@@ -114,7 +114,7 @@ Seseorang membaca baris `mati`, memperbaiki penyebabnya, lalu memutarnya ulang d
 
 Layanan push yang mati lebih lama dari 45 detik memasukkan baris yang masuk di awal gangguan ke dead-letter. Makin lama gangguannya, makin besar bagian barisnya. Barisnya tidak hilang, dan statusnya bisa dihitung.
 
-Jendela itu mengandaikan tidak ada baris lain yang menunggu worker. Bila push menggantung dan tiap percobaan memakai batas 3 detik penuh, 4 pengirim serentak ÷ 3 detik = 1,33 percobaan per detik. Beban percobaannya 0,868 × 5 = 4,34 per detik, jadi baris yang menunggu menumpuk dan jendelanya memanjang (Hitungan; 0,868 per detik adalah Asumsi).
+Jendela itu mengandaikan tidak ada baris lain yang menunggu worker. Bila push menggantung dan tiap percobaan memakai batas 3 detik penuh, 4 pengirim serentak ÷ 3 detik = 1,33 percobaan per detik. Beban percobaannya 0,868 × 5 = 4,34 per detik, jadi baris yang menunggu menumpuk dan jendelanya memanjang (Asumsi: hasil rumus dari 0,868 per detik).
 
 ### Penyaring di app
 
