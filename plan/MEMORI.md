@@ -45,8 +45,8 @@ Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditan
 
 - Butir Tahap 2.20–2.28, RISET-3–6, T3-siap, CI-CEPAT dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik Tahap 2–3 (arsip 2026-10-26)".
 - Butir 2.29–2.31 dan lab Tahap 3 dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik, 2.29–2.31 dan lab Tahap 3 (arsip 2026-10-26 siang)".
-- Batch 16 (#355–#361): aturan 5 ADR 21 (load test kapasitas api-t2) belum dijalankan di lab mana pun, pemicu Redis ADR 21 (counter PostgreSQL) tak diukur; Idempotency-Key api-t3 melepas key saat 5xx COMMIT tak diketahui dan 409 tertinggal bila server mati (butuh tugas lab sebelum 3.21); lupa password mandiri belum di PRD v3; "7 dari 15 pasang terbalik" M19 tak direkam; Chromium 156 satu-satunya browser (3.22, 3.23); TTL "5 menit" naskah M23 = 300 detik; W5 Inti hasil-dulu, pengecualian bagian j untuk DIRI-N, label "Hitungan" di /cara-pakai/ ke pemilik (USULAN-PERBAIKAN); 8 halaman lama Tahap 2 tetap di sidebar (hapus atau arsip tetap TINJAUAN-PEMILIK Tahap 2 butir 2).
-- CI-CEPAT (#328): main tanpa branch protection; jadwal GitHub nonaktif setelah 60 hari tanpa aktivitas; PR halaman selalu menyentuh berkas turunan bersama sehingga mode semua (±7 menit), mode sebagian teramati di #337 dan #341; batas 20 job bersamaan.
+- Batch 16 dan CI-CEPAT dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik, batch 16 dan CI-CEPAT (arsip 2026-10-26 siang)".
+- Halaman 3.1–3.3 (#364–#366): top-up massal "beberapa menit" (naskah) lawan ±12,5 menit M27, usul "belasan menit"; pemicu ADR 21 sudah dipenuhi sejak PRD tetapi M21 menceritakannya kejutan (3.14 pilih opsi a atau b); versi app 3.0/3.1 Asumsi penulis; dokumentasi FCM menyarankan FID, field FID di request HTTP v1 [perlu verifikasi] (bila bukan `token`, `perangkat.token_push` di ERD3 berubah); penyaring `notifikasi_id` butuh kode app padahal pesan notification ditampilkan SDK (3.13 pilih data message); widget peta 3.2 "–" padahal pilah.
 - Riwayat app sesudah ledger turun 17 → 3 baris (tiga-rilis.txt 69–72, transaksi v1 tidak jadi jurnal): diterima atau migrasi menyalin transaksi v1 (2.22). Akun lab Karyawan 800 berperan Citra di M14 (2.23). Paket 1 GB dan 20 buka/hari untuk kuota adalah Asumsi (2.20-lab). api-t2 tidak mengompres respons dan Dart selalu mengirim Accept-Encoding gzip.
 
 ## Ukur antrean merge (keputusan 727, 728)
@@ -55,10 +55,6 @@ Alat: `python3 tools/ukur_pr.py <PR...> --sejak <waktu>` (data dari GitHub). Gar
 
 | Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
 | --- | --- | --- | --- | --- |
-| 2.22 | #319 | 53 | 2 | 0 |
-| 2.23 | #318 | 78 | 2 | 0 |
-| 2.20 | #322 | 319 (peninjau 63; sisanya menunggu) | 0 | 0 |
-| 2.24 | #323 | 63 | 0 | 0 |
 | 2.25 | #327 | 41 | 1 | 0 |
 | 2.27 | #335 | 53 (jeda limit 3 jam di antaranya) | 1 | 0 |
 | 2.26 | #334 | 74 (jeda limit) | 3 | 0 |
@@ -68,13 +64,16 @@ Alat: `python3 tools/ukur_pr.py <PR...> --sejak <waktu>` (data dari GitHub). Gar
 | 2.31 | #346 | 57 | 0 | 0 |
 | 2.32 | #351 | 31 | 1 | 0 |
 | 2.33 | #353 | 42 | 1 | 0 |
+| 3.1 | #364 | 24 (pelaksana terputus restart sesi) | 0 | 0 |
+| 3.2 | #365 | 36 | 1 | 0 |
+| 3.3 | #366 | 39 | 1 | 0 |
 
 ## Sedang dikerjakan
 
-2026-10-26 10.30 · Tahap 2 selesai (33/33, EVAL-2 #356, EVAL2-F1 #361); Tahap 3: semua lab, ERD3, W3-pool/outbox/cache, DIRI-2 (#359) dan KONSISTENSI-3 (#360) di main. Berjalan: pelaksana 3.1 (`tahap-3/prd-v3`, rjt-konten), 3.2 (`tahap-3/fitur-ke-teknis`, rjt-konten2), 3.3 (`tahap-3/fitur-notifikasi`, rjt-konten3) dengan `tmp/brief-halaman-t3.md`. Berikutnya: peninjau tiap halaman, 3.4–3.32 (paling banyak 3 PR halaman terbuka), EVAL-2-ulang (ringan), EVAL-3, DIRI-3, Tahap 4–6, LAPORAN-AKHIR. Alokasi nomor: `tmp/catat-antre.md` (tidak di repo; bila hilang: halaman 3.n memakai 1000+4×(n−1) sampai +3, ID riset R3-100+5×(n−1) sampai +4, cadangan 1150–1169 terpakai sampai 1165; Tahap 4 mulai 1200, Tahap 5 1400, Tahap 6 1600). Untuk melanjutkan: `gh pr list --state open`.
+2026-10-26 12.45 · Tahap 2 selesai (33/33, EVAL-2 #356, EVAL-2-ulang #363); Tahap 3: lab, ERD3, widget, DIRI-2, KONSISTENSI-3 di main; halaman 3.1–3.3 merge (#364–#366, median 36 menit, run main merah 0 dari 11). Berjalan: pelaksana 3.4 (`tahap-3/dua-tempat-commit`, rjt-konten4), 3.5 (`tahap-3/skema-data`, rjt-konten2), 3.6 (`tahap-3/m18-app-membeku`, rjt-konten3) dengan `tmp/brief-halaman-t3.md`. Berikutnya: peninjau tiap halaman, 3.7–3.32 (paling banyak 3 PR halaman terbuka), EVAL-3, DIRI-3, Tahap 4–6, LAPORAN-AKHIR. Alokasi nomor: `tmp/catat-antre.md` (tidak di repo; bila hilang: halaman 3.n memakai 1000+4×(n−1) sampai +3, ID riset R3-100+5×(n−1) sampai +4, cadangan 1150–1169 terpakai sampai 1168; Tahap 4 mulai 1200, Tahap 5 1400, Tahap 6 1600). Untuk melanjutkan: `gh pr list --state open`.
 
 ## Pelajaran
 
 - Alat yang menulis berkas menolak argumen asing (lipat_masuk, sinkron_cerita, build_istilah). Chromium crash saat gerbang bersamaan: ulangi kelompok dengan `--ukur`. `pkill -f` berpola ditolak pagar izin: hentikan server lewat PID `lsof`.
 - Tujuh agen paralel menghabiskan batas sesi ±4,5 jam: paling banyak lima agen aktif. Koneksi GitHub putus-putus (graphql broken pipe): ulangi perintah, jangan hapus branch sebelum `gh pr view <n> --json state` = MERGED; di zsh `set -- $var` tidak memecah kata, pakai `bash`. Cari tes yang bergantung pada halaman "segera" sebelum menutup daftar; jalankan build SEGERA sesudah gabung konflik JSX; `node --test tests/widgets/*.cjs` dan `sinkron_cerita.py --check` dulu (murah) sebelum gerbang 24 menit.
-- Empat jeda limit tiap ±5 jam (10.47–13.47, 16.50–19.01, 22.10–23.40, 04.12–08.24) dengan 5–7 agen paralel; pesan pemilik "lanjutkan" diperlukan setelah tiap jeda (agen tak bangun sendiri). Lab yang mengubah `labs/api-t3` bersama harus mencek flag terhadap PR terbuka lain, menjalankan ulang `make cek` api-t3/outbox/pool/instance, dan peninjau menjalankannya lagi: mutasi pada kode uang sering lolos sampai ditambah tes.
+- Peninjau menemukan cacat nyata di tiap halaman (label lebih kuat dari rekaman, hitungan tak bisa diulang, klaim melampaui dokumentasi, penjaga yang tak menangkap perubahan kata): brief halaman Tahap 3 memuatnya. Empat jeda limit tiap ±5 jam (10.47–13.47, 16.50–19.01, 22.10–23.40, 04.12–08.24) dengan 5–7 agen paralel; pesan pemilik "lanjutkan" diperlukan setelah tiap jeda (agen tak bangun sendiri). Lab yang mengubah `labs/api-t3` bersama harus mencek flag terhadap PR terbuka lain, menjalankan ulang `make cek` api-t3/outbox/pool/instance, dan peninjau menjalankannya lagi: mutasi pada kode uang sering lolos sampai ditambah tes.

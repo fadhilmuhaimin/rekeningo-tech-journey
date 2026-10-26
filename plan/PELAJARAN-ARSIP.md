@@ -287,3 +287,17 @@ Pola per halaman: branch `tahap-1/<slug>` dari `main`; lab dulu bila perlu (PR s
 
 - 2.29–2.31: naskah M17 "banyak server belum diuji" perlu lingkup api-t2 (c4 dan t5-skala punya dua instance); "3 jam"/"kurang dari satu hari" tak terukur; penutupan periode belum di peta; ADR 21 bertumpu Asumsi (kapasitas satu server belum diukur); registry `trx` 2 lawan 3 (usul samakan: 2.9 ±65,7 → ±98,6 MB); ADR 27 (Redis) lawan pemicu Redis ADR 21.
 - Lab Tahap 3: enum `hr` di GET /akun/{id} (oasdiff: app lama enum tertutup); nama enam kota tak di naskah; Idempotency-Key bayar/transfer/pesanan belum di api-t2/api-t3 (lab t3-offline menambah opsional); satu key per IP di belakang proxy (10/menit untuk SEMUA client, juga lewat Redis): 3.16/3.17 harus menyebut; RemoteAddr tanpa X-Forwarded-For; naskah M18 tak menyebut timeout app; `Future.timeout` Dart tak membatalkan permintaan [perlu verifikasi]; W 20 ms Asumsi; satu λ 0,868; SKIP LOCKED tidak membuat klaim benar (klausa kunci + klaim_sampai): rumusan 3.11/ADR 24 di keputusan 990–991; R3-37 300 B/item vs terukur 86 B (207 KB); Redis 8 AGPLv3 vs Valkey; dependency lab (go-redis 967, dio dan crypto Dart tanpa ADR); mitmproxy diganti proxy Go.
+
+## Perlu dicek pemilik, batch 16 dan CI-CEPAT (arsip 2026-10-26 siang)
+
+- Batch 16 (#355–#361): aturan 5 ADR 21 (load test kapasitas api-t2) belum dijalankan di lab mana pun, pemicu Redis ADR 21 (counter PostgreSQL) tak diukur; Idempotency-Key api-t3 melepas key saat 5xx COMMIT tak diketahui dan 409 tertinggal bila server mati (butuh tugas lab sebelum 3.21); lupa password mandiri belum di PRD v3; "7 dari 15 pasang terbalik" M19 tak direkam; Chromium 156 satu-satunya browser (3.22, 3.23); TTL "5 menit" naskah M23 = 300 detik; W5 Inti hasil-dulu, pengecualian bagian j untuk DIRI-N, label "Hitungan" di /cara-pakai/ ke pemilik (USULAN-PERBAIKAN); 8 halaman lama Tahap 2 tetap di sidebar (hapus atau arsip tetap TINJAUAN-PEMILIK Tahap 2 butir 2).
+- CI-CEPAT (#328): main tanpa branch protection; jadwal GitHub nonaktif setelah 60 hari tanpa aktivitas; PR halaman selalu menyentuh berkas turunan bersama sehingga mode semua (±7 menit), mode sebagian teramati di #337 dan #341; batas 20 job bersamaan.
+
+## Ukur antrean merge, baris 2.20–2.24 (arsip 2026-10-26 siang)
+
+| Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
+| --- | --- | --- | --- | --- |
+| 2.22 | #319 | 53 | 2 | 0 |
+| 2.23 | #318 | 78 | 2 | 0 |
+| 2.20 | #322 | 319 (peninjau 63; sisanya menunggu) | 0 | 0 |
+| 2.24 | #323 | 63 | 0 | 0 |
