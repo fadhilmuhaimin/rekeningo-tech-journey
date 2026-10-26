@@ -261,6 +261,24 @@
   "h": null
  },
  {
+  "t": "Cache invalidation",
+  "d": "Membuang atau memperbarui entri cache saat data aslinya berubah, supaya salinan tidak tertinggal.",
+  "b": "t3-cache",
+  "n": "3.19 Cache dan invalidation",
+  "u": "/tahap-3/cache-invalidation/",
+  "s": "istilah-cache-invalidation",
+  "h": "/istilah/cache-invalidation/"
+ },
+ {
+  "t": "Cache-aside",
+  "d": "Cara memakai cache: aplikasi memeriksa cache lebih dulu, membaca database bila entrinya tidak ada, lalu menyimpan hasilnya di cache.",
+  "b": "t3-cache",
+  "n": "3.19 Cache dan invalidation",
+  "u": "/tahap-3/cache-invalidation/",
+  "s": "istilah-cache-aside",
+  "h": "/istilah/cache-aside/"
+ },
+ {
   "t": "CI (Continuous Integration)",
   "d": "Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung.",
   "b": "B1.4",
