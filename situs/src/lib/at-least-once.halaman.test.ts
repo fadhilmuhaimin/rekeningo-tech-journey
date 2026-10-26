@@ -179,10 +179,11 @@ const nUlang = W.skenario.ulang;
 const nGanda = W.skenario.ganda;
 const opsiU = (id: string, nilai: string) => nUlang.knob.find((k) => k.id === id)!.opsi[nilai]!;
 const opsiG = (id: string, nilai: string) => nGanda.knob.find((k) => k.id === id)!.opsi[nilai]!;
-const hitungJenis = (s: "ulang" | "ganda") => {
-  const j: Record<string, number> = { rekaman: 0, hitungan: 0, ilustrasi: 0, asumsi: 0 };
-  for (const kf of semuaKonfig(s)) j[acuanDari(s, kf).jenis]!++;
-  return { total: semuaKonfig(s).length, ...j };
+interface Hitung { total: number; rekaman: number; hitungan: number; ilustrasi: number; asumsi: number }
+const hitungJenis = (s: "ulang" | "ganda"): Hitung => {
+  const j: Hitung = { total: semuaKonfig(s).length, rekaman: 0, hitungan: 0, ilustrasi: 0, asumsi: 0 };
+  for (const kf of semuaKonfig(s)) j[acuanDari(s, kf).jenis]++;
+  return j;
 };
 const hu = hitungJenis("ulang");
 const hg = hitungJenis("ganda");
@@ -216,7 +217,7 @@ const EXPECT: string[] = [
   "<p class=\"meta\">Baca 19 menit · coba 3 menit · Prasyarat: [[t3-m20]] · Jalur inti</p>",
   "<Blok nama=\"Mulai\" buka>",
   "## Inti",
-  "Worker mengirim ulang pemberitahuan sampai lima kali, dan app menampilkan satu pemberitahuan untuk setiap `notifikasi_id`.",
+  "Worker mengirim ulang sampai lima kali, dan app menampilkan satu pemberitahuan untuk tiap `notifikasi_id`.",
   "<Rantai data={intiDiagram} ringkas />",
   "At-least-once artinya pemberitahuan tidak hilang, tetapi bisa sampai lebih dari sekali. Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `ganda.txt` bagian A, worker berhenti sesudah layanan push menjawab dan sebelum baris ditandai `terkirim`. Klaim «klaim» detik habis, worker berikutnya mengirim ulang, dan layanan push menerima «gandaPesan» pesan dengan «gandaId» `notifikasi_id`. Jurnalnya tetap «kataJurnal».",
   "Pengiriman ulang punya batas. Di `retry.txt` bagian A, layanan push yang menjawab 503 terus menerima «mintaA» permintaan, lalu baris berstatus `mati`. Di `ganda.txt` bagian C, penyaring tiruan menerima «diterimaC» pesan dan menampilkan «tampilC». Penyaring itu lima baris Python di lab, jadi bentuk Dart-nya ada di blok Paham dan Tidak dijalankan.",
