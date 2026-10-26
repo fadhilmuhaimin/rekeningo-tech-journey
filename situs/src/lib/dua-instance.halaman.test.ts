@@ -554,7 +554,7 @@ describe("sumber dan versi: baris RISET, halaman istilah, tab stack, tabel proxy
     const semuaId = [...riset.matchAll(/^\| (R3-\d+) \|/gm)].map((m) => m[1]!);
     expect(new Set(semuaId).size).toBe(semuaId.length);
     const angka = semuaId.map((x) => Number(x.slice(3)));
-    expect(angka.slice(angka.indexOf(170))).toEqual([170, 171, 172, 173, 174]);
+    expect(angka.slice(angka.indexOf(170), angka.indexOf(170) + 5)).toEqual([170, 171, 172, 173, 174]); // baris sesudahnya (R3-175 dan seterusnya) milik halaman lain
     for (const id of ["R3-170", "R3-171", "R3-172", "R3-173", "R3-174"]) expect(barisRiset(id)).toMatch(/2026-10-26/);
     expect(barisRiset("R3-170")).toContain("v2.11.7 rilis terbaru, 2026-10-03");
     expect(barisRiset("R3-170")).toContain("health_interval bawaan 30s; health_timeout bawaan 5s");
