@@ -513,6 +513,15 @@
   "h": "/istilah/index/"
  },
  {
+  "t": "Index sebagian (partial index)",
+  "d": "Index yang hanya memuat baris yang memenuhi syarat WHERE, sehingga lebih kecil, dan pada unique index hanya baris itu yang dijaga keunikannya.",
+  "b": "t3-skema",
+  "n": "3.5 Skema data Tahap 3",
+  "u": "/tahap-3/skema-data/",
+  "s": "istilah-index-sebagian",
+  "h": "/istilah/index-sebagian/"
+ },
+ {
   "t": "Invarian",
   "d": "Aturan yang harus selalu benar apa pun yang terjadi, mis. transfer tidak mengubah total saldo semua akun.",
   "b": "C1",

@@ -1,0 +1,114 @@
+{
+  "istilah": "Index sebagian (partial index)",
+  "sehari_hari": "Index biasa mencatat semua baris tabel. Index sebagian hanya mencatat baris yang lolos satu syarat, mis. baris yang jurnalnya terisi, jadi lebih kecil dan, bila UNIQUE, hanya menjaga baris itu.",
+  "cerita": [
+    {
+      "rujukan": "t3-skema",
+      "teks": "`outbox_satu_per_jurnal` pada `(jurnal_id, akun_id)` hanya memuat baris yang `jurnal_id`-nya terisi, jadi pengumuman promo tidak ikut. Baris kedua untuk jurnal dan penerima yang sama ditolak database dengan SQLSTATE 23505. `outbox_antre` hanya memuat baris `menunggu`."
+    }
+  ],
+  "mekanisme": [
+    "`CREATE INDEX ... WHERE <syarat>` membuat index yang hanya punya entri untuk baris yang memenuhi syarat itu.",
+    "Pada UNIQUE index sebagian, keunikan ditegakkan di antara baris yang memenuhi syarat, tanpa membatasi baris yang tidak.",
+    "Query memakai index sebagian hanya bila WHERE query menyiratkan syarat index. Planner mengenali kasus sederhana, selain itu syarat harus sama persis dengan bagian WHERE query.",
+    "Pencocokan terjadi saat query direncanakan, jadi klausa query berparameter tidak cocok dengan index sebagian."
+  ],
+  "stack": {
+    "go": {
+      "label": "Rekaman lab",
+      "versi": "PostgreSQL 17.11; file migration labs/api-t3 dijalankan skrip lab",
+      "teks": "Migration 000017 menulis `CREATE UNIQUE INDEX outbox_satu_per_jurnal ON outbox (jurnal_id, akun_id) WHERE jurnal_id IS NOT NULL`. INSERT kedua untuk jurnal dan penerima yang sama ditolak dengan SQLSTATE 23505.",
+      "rekaman": "labs/api-t3/output/skema.txt"
+    },
+    "node": {
+      "label": "Tidak dijalankan",
+      "versi": "node-pg-migrate 9.0.0",
+      "teks": "`pgm.createIndex` menerima opsi `name`, `unique`, dan `where`. Syarat ditulis sebagai string SQL mentah di opsi `where`.",
+      "dokumentasi": "https://github.com/salsita/node-pg-migrate/blob/v9.0.0/docs/src/migrations/indexes.md"
+    },
+    "laravel": {
+      "label": "Tidak dijalankan",
+      "versi": "Laravel 13.38.0",
+      "teks": "Daftar tipe index di dokumentasi tidak punya syarat WHERE, jadi index sebagian ditulis dengan `DB::statement` dan SQL mentah.",
+      "dokumentasi": "https://laravel.com/docs/13.x/migrations#creating-indexes"
+    },
+    "django": {
+      "label": "Tidak dijalankan",
+      "versi": "Django 6.1.2",
+      "teks": "`UniqueConstraint` menerima parameter `condition` berupa objek `Q`, misalnya `condition=Q(jurnal__isnull=False)`, untuk keunikan bersyarat.",
+      "dokumentasi": "https://docs.djangoproject.com/en/6.1/ref/models/constraints/"
+    },
+    "serverpod": {
+      "label": "Tidak dijalankan",
+      "versi": "Serverpod 4.0.4 (halaman dokumentasi bertanda 4.0.0)",
+      "teks": "Opsi index di model tidak memuat syarat WHERE, jadi model hanya bisa meminta unique index biasa. Index sebagian ditulis tangan di `migration.sql` [perlu verifikasi].",
+      "dokumentasi": "https://docs.serverpod.dev/concepts/data-and-the-database/database/indexing"
+    },
+    "supabase": {
+      "label": "Tidak dijalankan",
+      "versi": "Supabase CLI 2.122.0",
+      "teks": "Migration adalah file SQL biasa, jadi SQL-nya sama dengan lab. `supabase migration new` hanya membuat file berpola `<timestamp>_<name>.sql`.",
+      "dokumentasi": "https://supabase.com/docs/reference/cli/supabase-migration-new"
+    }
+  },
+  "jebakan": [
+    "Mengira `WHERE kolom IS NOT NULL` perlu supaya baris dengan kolom kosong tidak bentrok. Unique index sudah menganggap dua NULL tidak sama, jadi syarat itu hanya mengecilkan index.",
+    "Mengira seluruh tabel ikut dijaga. Keunikan hanya berlaku di antara baris yang memenuhi syarat, dan baris di luar syarat bebas duplikat.",
+    "Menulis query berparameter, mis. `WHERE status = $1`, dan berharap index sebagian dipakai. Pencocokan syarat terjadi saat perencanaan, jadi klausa berparameter tidak cocok."
+  ],
+  "terkait": [
+    "Index",
+    "Constraint",
+    "Outbox",
+    "Expand-migrate-contract"
+  ],
+  "sumber": [
+    {
+      "riset": "R3-120",
+      "judul": "PostgreSQL 17: Partial Indexes",
+      "url": "https://www.postgresql.org/docs/17/indexes-partial.html",
+      "catatan": "Index memuat entri hanya untuk baris yang memenuhi predikat; unique index sebagian menegakkan keunikan di antara baris itu; dipakai query hanya bila WHERE query menyiratkan predikat; klausa berparameter tidak bekerja."
+    },
+    {
+      "riset": "R3-120",
+      "judul": "PostgreSQL 17: Unique Constraints",
+      "url": "https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS",
+      "catatan": "Bawaannya dua NULL tidak dianggap sama; NULLS NOT DISTINCT mengubahnya."
+    },
+    {
+      "judul": "Rekaman lab api-t3: aturan tabel baru ditolak database",
+      "rekaman": "labs/api-t3/output/skema.txt",
+      "catatan": "Bagian E: baris kedua untuk jurnal dan penerima yang sama ditolak dengan SQLSTATE 23505 (outbox_satu_per_jurnal)."
+    },
+    {
+      "riset": "R3-121",
+      "judul": "node-pg-migrate v9.0.0: Indexes",
+      "url": "https://github.com/salsita/node-pg-migrate/blob/v9.0.0/docs/src/migrations/indexes.md",
+      "catatan": "Opsi createIndex: name, unique, dan where (SQL mentah); tanpa contoh where."
+    },
+    {
+      "riset": "R3-122",
+      "judul": "Laravel 13.x: Migrations, Creating Indexes",
+      "url": "https://laravel.com/docs/13.x/migrations#creating-indexes",
+      "catatan": "Tipe index: primary, unique, index, fullText, spatialIndex, vectorIndex; tidak ada syarat WHERE."
+    },
+    {
+      "riset": "R3-123",
+      "judul": "Django 6.1: Constraints",
+      "url": "https://docs.djangoproject.com/en/6.1/ref/models/constraints/",
+      "catatan": "UniqueConstraint punya parameter condition berupa objek Q; batasan database sama dengan Index.condition."
+    },
+    {
+      "riset": "R3-124",
+      "judul": "Serverpod 4.0: Indexing",
+      "url": "https://docs.serverpod.dev/concepts/data-and-the-database/database/indexing",
+      "catatan": "Opsi index: fields, unique, type, nulls_distinct, operatorClass, distanceFunction, parameters; tanpa syarat WHERE."
+    },
+    {
+      "riset": "R3-121",
+      "judul": "Supabase CLI: migration new",
+      "url": "https://supabase.com/docs/reference/cli/supabase-migration-new",
+      "catatan": "Membuat file migration lokal berpola <timestamp>_<name>.sql di supabase/migrations."
+    }
+  ]
+}
