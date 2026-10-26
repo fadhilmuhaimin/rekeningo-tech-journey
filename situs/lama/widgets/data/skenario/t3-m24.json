@@ -115,7 +115,7 @@
       "dari": "api",
       "lapisan": "handler stok",
       "judul": "Key sudah lewat 24 jam: operasi dianggap baru",
-      "kirim": "key berlaku sampai Sabtu 16.50, diklaim ulang\nUPDATE produk SET stok = 0, versi = versi + 1 (tanpa syarat versi)\n→ 200 {\"id\":61,\"harga\":28000,\"stok\":0,\"versi\":4}",
+      "kirim": "dari kode lab, bukan baris rekaman:\nkey berlaku sampai Sabtu 16.50, diklaim ulang\nUPDATE produk SET stok = 0, versi = versi + 1 (tanpa syarat versi)\n→ 200 {\"id\":61,\"harga\":28000,\"stok\":0,\"versi\":4}",
       "jelas": "Key diperlakukan belum pernah ada. Endpoint ini tidak membandingkan apa pun dengan stok sekarang, jadi stok 30 dari Sabtu tertimpa. Jawabannya 200, tanpa galat.",
       "nada": "warn"
     },
@@ -146,7 +146,7 @@
         "ke": "api",
         "judul": "Jumat 16.50: HP Ani mengirim 'soto habis' lewat POST /sinkron",
         "kirim": "POST /sinkron\n{\"kunci\": \"ani-hp1-0301\", \"perangkat_id\": 10061, \"produk_id\": 181, \"jenis\": \"stok\", \"nilai\": 0, \"versi_dasar\": 1}\n→ 200 {\"sekarang\":{\"id\":181,\"harga\":22000,\"stok\":0,\"versi\":2},\"status\":\"diterapkan\",\"ulang\":false}",
-        "jelas": "Operasi membawa kunci sendiri dan versi dasar 1, yaitu versi baris yang dilihat HP. Server menerapkannya: stok 0, versi 2. Jawabannya hilang seperti di jalur utama. Produk di rekaman ini Soto ayam, bukan ayam geprek.",
+        "jelas": "Operasi membawa kunci sendiri dan versi dasar 1, yaitu versi baris yang dilihat HP. Server menerapkannya: stok 0, versi 2. Jawabannya hilang seperti di jalur utama (diperankan). Produk di rekaman ini Soto ayam, bukan ayam geprek.",
         "layar": {
           "ani": {
             "judul": "Stok warung",

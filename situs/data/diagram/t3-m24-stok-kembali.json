@@ -1,13 +1,13 @@
 {
   "id": "t3-m24-stok-kembali",
   "judul": "Stok ayam geprek: Jumat, Sabtu, Senin",
-  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-offline · m24.txt bagian A sampai D dan versi.txt bagian C" },
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-offline · m24.txt bagian A sampai D dan versi.txt bagian C; jam dan jawaban yang hilang diperankan" },
   "baris": [
     {
       "label": "Endpoint stok tanpa versi, ayam geprek",
       "sub": "bagian A, B, D",
       "simpul": [
-        { "teks": "Jumat 16.50: stok 0", "sub": "versi 2, jawaban hilang" },
+        { "teks": "Jumat 16.50: stok 0", "sub": "versi 2; jawaban hilang diperankan" },
         { "teks": "Sabtu 07.50: dasbor mengisi 30", "sub": "versi 3" },
         { "teks": "Senin 06.50: kirim ulang, key sama", "sub": "62 jam sesudah Jumat" },
         { "teks": "Stok 0 lagi", "sub": "200, versi 4, tanpa galat", "nada": "warn" }

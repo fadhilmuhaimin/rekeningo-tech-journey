@@ -586,12 +586,12 @@ describe("diagram Rantai: nilai simpul diturunkan dari rekaman", () => {
     const harapan = {
       id: "t3-m24-stok-kembali",
       judul: "Stok ayam geprek: Jumat, Sabtu, Senin",
-      sumber: { jenis: "rekaman", teks: "Rekaman lab t3-offline · m24.txt bagian A sampai D dan versi.txt bagian C" },
+      sumber: { jenis: "rekaman", teks: "Rekaman lab t3-offline · m24.txt bagian A sampai D dan versi.txt bagian C; jam dan jawaban yang hilang diperankan" },
       baris: [
         {
           label: "Endpoint stok tanpa versi, ayam geprek", sub: "bagian A, B, D",
           simpul: [
-            { teks: `${hariJam(0)}: stok ${AYAM_JUMAT.stok}`, sub: `versi ${AYAM_JUMAT.versi}, jawaban hilang`, nada: "biasa", kode: false },
+            { teks: `${hariJam(0)}: stok ${AYAM_JUMAT.stok}`, sub: `versi ${AYAM_JUMAT.versi}; jawaban hilang diperankan`, nada: "biasa", kode: false },
             { teks: `${hariJam(15)}: dasbor mengisi ${AYAM_SABTU.stok}`, sub: `versi ${AYAM_SABTU.versi}`, nada: "biasa", kode: false },
             { teks: `${hariJam(62)}: kirim ulang, key sama`, sub: `${lompatan[2]!.jam} jam sesudah Jumat`, nada: "biasa", kode: false },
             { teks: `Stok ${AYAM_SENIN.stok} lagi`, sub: `200, versi ${AYAM_SENIN.versi}, tanpa galat`, nada: "warn", kode: false },
@@ -657,7 +657,7 @@ describe("widget alur t3-m24: skenario valid, nilai dari rekaman, tebakan, dan t
       `→ 200 ${AYAM_JUMAT_MENTAH}\njawaban ini tidak sampai ke HP (diperankan)`,
       `PATCH /produk/61\n${badanPerintah(bagB, "-X PATCH '/produk/61'")}\n→ 200 ${AYAM_SABTU_MENTAH}`,
       put,
-      `key berlaku sampai ${hariJam(24)}, diklaim ulang\nUPDATE produk SET stok = 0, versi = versi + 1 (tanpa syarat versi)\n→ 200 ${AYAM_SENIN_MENTAH}`,
+      `dari kode lab, bukan baris rekaman:\nkey berlaku sampai ${hariJam(24)}, diklaim ulang\nUPDATE produk SET stok = 0, versi = versi + 1 (tanpa syarat versi)\n→ 200 ${AYAM_SENIN_MENTAH}`,
       `GET /katalog?warung=418\n→ Ayam geprek: ${KATALOG_BUDI_MENTAH}`,
     ]);
     expect(langkah.map((l) => l.judul.split(":")[0])).toEqual([`${hariJam(0)}`, "Server menerapkan, jawabannya hilang", hariJam(15), hariJam(62), "Key sudah lewat 24 jam", "Senin"]);
@@ -802,8 +802,8 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
 
 const SIDIK_R195 = "fe5c748e39eeb37e";
 const SIDIK_R196 = "f045c5ed538479b1";
-const SIDIK_DIAGRAM = "64efc893632c220d";
-const SIDIK_SKENARIO = "03036d99bf54f36c";
+const SIDIK_DIAGRAM = "20a469f69a7a5bef";
+const SIDIK_SKENARIO = "829e886a17785ff5";
 const FRONTMATTER: string[] = [
   "title: \"3.20 M24: Stok yang kembali ke angka lama\"",
   "description: Minggu 7. Senin pagi app Budi menunjukkan ayam geprek habis, padahal Ani mengisi 30 porsi hari Sabtu. Operasi \"stok = 0\" dari Jumat dikirim ulang 62 jam kemudian, key-nya sudah lewat 24 jam, dan endpoint stok menimpa tanpa memeriksa versi.",
