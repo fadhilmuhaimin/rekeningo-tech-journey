@@ -267,6 +267,8 @@
 *[token]: String yang dibawa request sebagai bukti siapa pengirimnya, mis. token login di header Authorization; siapa pun yang memegangnya bisa memakainya. Di token bucket, token berarti satu jatah request.
 *[Token bucket]: Algoritma rate limit: setiap key (IP atau akun) punya bucket berisi token yang terisi ulang dengan laju tetap, dan setiap request memakai satu token.
 *[token bucket]: Algoritma rate limit: setiap key (IP atau akun) punya bucket berisi token yang terisi ulang dengan laju tetap, dan setiap request memakai satu token.
+*[Token perangkat]: Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu.
+*[token perangkat]: Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu.
 *[Trace]: Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.
 *[trace]: Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.
 *[TTL]: Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa.
