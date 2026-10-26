@@ -16,19 +16,19 @@ import pilah from "../../../../lama/widgets/data/t3-observability-pilah.json";
 
 ## Inti
 
-Log mencatat kejadian yang sudah selesai, metric menghitung seberapa penuh sebuah sumber daya, dan trace menunjukkan di bagian mana waktu satu request habis.
+Log mencatat kejadian, metric mengukur seberapa penuh, dan trace menunjukkan di mana waktu habis.
 
 <Rantai data={intiDiagram} ringkas />
 
 Rekaman lab adalah keluaran program yang dijalankan di `labs/` ([Label sumber](/cara-pakai/#label-sumber)). Di rekaman ini api-t3 berjalan dalam mode rentan `push-dalam-tx`, dan layanan push tiruan menerima permintaan tanpa menjawab, seperti di [[t3-m18]]. Satu pembayaran dikirim dengan header `traceparent`, lalu server diamati dari luar selama 4 detik (`jejak.txt` bagian J).
 
-Dua pembacaan menjawab: metric pool dan database. Dua yang lain tidak. Log tidak bertambah satu baris pun, dan trace Tidak dijalankan, yaitu hanya dicek ke dokumentasi dan kode, tidak dijalankan di lab. Kode api-t3 tidak membaca `traceparent`, jadi trace-id dari app berhenti di API.
+Dua pembacaan menjawab: metric pool, dan database yang melaporkan satu sesi `idle in transaction` tanpa query yang berjalan. Dua yang lain diam. Log tidak bertambah satu baris pun, dan trace Tidak dijalankan, yaitu hanya dicek ke dokumentasi dan kode, tidak dijalankan di lab. Kode api-t3 tidak membaca `traceparent`, jadi trace-id dari app berhenti di API.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
 
 1. Log api-t3 tidak bertambah selama 4 detik. Apakah itu berarti pembayarannya berjalan normal?
-2. Metric apa saja yang dimiliki api-t3, dan kapan metric itu hidup?
+2. Metric apa yang bisa dibaca dari api-t3, dan kapan metric itu hidup?
 3. App mengirim `traceparent`. Kenapa trace-id itu tidak muncul di mana pun di API?
 
 Yakin dengan ketiganya? Lompat ke [[berikutnya]].
@@ -73,7 +73,7 @@ Tiga sinyal menjawab pertanyaan yang berbeda:
 | Sinyal | Isinya | Pertanyaan yang dijawab | Di api-t3 saat M18 |
 |---|---|---|---|
 | Log | Pesan bertanda waktu yang ditulis service atau komponen lain | Apa yang terjadi pada satu kejadian, dan galat apa? | Rekaman lab: nol baris untuk request yang menggantung |
-| Metric | Angka agregat dalam rentang waktu, mis. error rate atau pemakaian sumber daya | Seberapa sering atau seberapa penuh? | Rekaman lab: dua pembacaan, hanya dengan flag `-lab` |
+| Metric | Angka agregat dalam rentang waktu, mis. error rate atau pemakaian sumber daya | Seberapa sering atau seberapa penuh? | Rekaman lab: pembacaan pool dan outbox, hanya dengan flag `-lab` |
 | Trace | Perjalanan satu request, terdiri dari span: satu unit kerja dengan durasinya | Di bagian mana waktu satu request habis? | Tidak dijalankan |
 
 Arti ketiga sinyal mengikuti dokumentasi OpenTelemetry yang sama. Rekaman di bawah menunjukkan apa yang bisa dibaca dari luar proses api-t3 saat satu pembayaran menggantung. Bagian pertama memuat log dan trace, bagian kedua metric dan database:
@@ -96,7 +96,7 @@ Di OpenTelemetry untuk Go, Traces dan Metrics berstatus Stable, sedangkan Logs m
 
 <Snippet file="labs/t3-pool/output/m18.txt" lines="19:21" title="Rekaman lab: labs/t3-pool/output/m18.txt" />
 
-Endpoint itu dan `GET /lab/outbox` (jumlah baris per status dan umur baris tertua) hanya ada bila server dijalankan dengan `-lab`. Selain keduanya, api-t3 tidak punya endpoint metric. Kolom `menunggu` adalah hitungan kumulatif sejak server hidup, jadi rekaman tidak mencetaknya.
+Semua pembacaan angka di api-t3 ada di bawah `/lab/` dan hanya hidup dengan flag `-lab`, dan tidak ada endpoint `/metrics`. Yang relevan untuk M18 ada dua: `GET /lab/pool` dan `GET /lab/outbox` (jumlah baris per status dan umur baris tertua). Kolom `menunggu` adalah hitungan kumulatif sejak server hidup, jadi rekaman tidak mencetaknya.
 
 **Trace.** Satu trace adalah perjalanan satu request. Ia terdiri dari span, dan setiap span mencatat satu unit kerja dengan durasinya. Antar komponen, trace disambung lewat header `traceparent` dari W3C Trace Context Level 1, yang berstatus Recommendation sejak 23 November 2021 ([W3C: Trace Context](https://www.w3.org/TR/trace-context/), dibuka 2026-10-26). Header itu terdiri dari empat field yang dipisah tanda minus:
 
@@ -118,7 +118,7 @@ Header di atas adalah contoh dari spesifikasi, dan itu yang dikirim rekaman `jej
 | Errors | Request yang gagal secara eksplisit, implisit, atau melanggar janji waktu | 190 pembacaan sesudah pool penuh tanpa jawaban (`m18.txt` bagian A) | Pembangkit beban lab |
 | Saturation | Seberapa penuh sumber daya yang paling terbatas | Dipakai 10 dari maks 10 (`m18.txt` bagian A) | api-t3, lewat `GET /lab/pool` |
 
-Dari empat sinyal itu, hanya saturation yang dilaporkan api-t3 sendiri, dan hanya dengan `-lab`. Request yang tidak pernah dijawab tidak punya status code. Buku SRE tetap menghitungnya sebagai error bila melewati janji waktu. Alert dan ambangnya dibahas di [[t3-tim-infra]].
+Di rekaman t3-pool, hanya saturation yang dibaca dari api-t3, dan hanya dengan `-lab`. Request yang tidak pernah dijawab tidak punya status code. Buku SRE tetap menghitungnya sebagai error bila melewati janji waktu. Alert dan ambangnya dibahas di [[t3-tim-infra]].
 
 </Blok>
 

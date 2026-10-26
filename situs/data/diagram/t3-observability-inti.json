@@ -7,21 +7,19 @@
   },
   "baris": [
     {
-      "label": "Yang menjawab",
+      "label": "Menjawab",
       "sub": "bagian J dari jejak.txt",
       "simpul": [
         { "teks": "metric: 1 dari 10 dipakai", "sub": "GET /lab/pool, satu pembayaran" },
-        { "teks": "database: idle in transaction", "sub": "menunggu client lebih dari 3 detik" },
-        { "teks": "bukan query yang lambat", "sub": "PostgreSQL tidak menjalankan apa pun" }
+        { "teks": "database: menunggu client", "sub": "idle in transaction lebih dari 3 detik, bukan query yang lambat" }
       ]
     },
     {
-      "label": "Yang diam",
+      "label": "Diam",
       "sub": "bagian J dari jejak.txt",
       "simpul": [
         { "teks": "log: 0 baris baru", "sub": "api-t3 tidak punya log akses", "nada": "warn" },
-        { "teks": "trace-id: berhenti di API", "sub": "kode API tidak membaca traceparent", "nada": "warn" },
-        { "teks": "titik tunggu: tak terlihat", "sub": "trace Tidak dijalankan", "nada": "warn" }
+        { "teks": "trace-id: berhenti di API", "sub": "kode API tidak membaca traceparent; trace Tidak dijalankan", "nada": "warn" }
       ]
     }
   ],
