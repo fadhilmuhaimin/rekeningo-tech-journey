@@ -638,7 +638,7 @@ Widget bertanda W4 adalah widget baru (tugas `W4-webhook` dan `W4-breaker`); wid
 
 - `W4-webhook` memakai tiga kejadian bagian 3 (ganda, terlambat, hilang) dan jadwal retry tiruan.
 - `W4-breaker` memakai bawaan breaker dari ADR 36 dan laju verifikasi 0,116 per detik.
-- Halaman 4.13 memakai `banding` (batas yang hanya ditulis di dokumen lawan batas yang dijaga compiler dan database) dan diagram arsitektur untuk pembagian modul dan schema di bagian 3b.
+- Halaman 4.13 memakai `banding`: batas yang hanya tertulis di dokumen lawan batas yang dijaga compiler dan database. Pembagian modul dan schema di bagian 3b memakai diagram arsitektur.
 - Halaman 4.5 memakai widget **ERD bertumbuh** yang sama dengan 1.12, 2.9, dan 3.5, dengan Tahap 3 dan 4 berdampingan.
 
 Jalur per peran:
