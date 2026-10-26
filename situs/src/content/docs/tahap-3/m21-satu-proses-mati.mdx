@@ -33,6 +33,8 @@ Pemicu server kedua sebenarnya sudah ada sejak PRD v3 dibagikan. ADR 21 menulis 
 
 Goroutine adalah alur kerja yang berjalan bersamaan di dalam satu proses Go. Server membuat satu goroutine untuk tiap koneksi, dan goroutine itu memanggil handler ([Serve](https://pkg.go.dev/net/http#Serve), go1.27.3, dibuka 2026-10-26, Tidak dijalankan). Handler bisa membuka goroutine lain dengan kata `go`.
 
+Panic adalah galat yang menghentikan fungsi dan naik ke fungsi pemanggilnya satu per satu. Fungsi bisa menangkapnya dengan `recover`.
+
 <details class="question">
 <summary>Tebak dulu: lab memicu panic dua kali di server yang sama, sekali di handler dan sekali di goroutine yang dibuka handler. Mana yang mematikan proses?</summary>
 
@@ -96,11 +98,11 @@ Compose di Tahap 1 memakai `restart: unless-stopped`, yang menyalakan container 
 
 Pengawas hanya mempersingkat matinya. Selama proses naik, semua request tetap gagal, dan Ekspor kosong berikutnya mematikannya lagi (penalaran).
 
-**Deploy Kamis memakai proses yang sama.** Bagian A dan B di `bergulir.txt` menghentikan satu instance dengan SIGTERM saat satu request lambat berjalan:
+**Deploy Kamis memakai proses yang sama.** Bagian A dan B di `bergulir.txt` menghentikan satu instance dengan SIGTERM, sinyal yang meminta proses berhenti, saat satu request lambat berjalan:
 
 <Snippet file="labs/t3-instance/output/bergulir.txt" lines="5:16" title="Rekaman lab: labs/t3-instance/output/bergulir.txt, bagian A dan B (satu instance dihentikan)" />
 
-Dengan `Shutdown`, request yang berjalan selesai dan koneksi baru ditolak selagi menunggu. Tanpa itu, request yang berjalan putus. Di kedua cara, sesudah proses lama berhenti dan sebelum yang baru mendengar, tidak ada yang menjawab (penalaran dari satu proses).
+Dengan `Shutdown`, cara server Go berhenti pelan-pelan, request yang berjalan selesai dan koneksi baru ditolak selagi menunggu. Tanpa itu, request yang berjalan putus. Di kedua cara, sesudah proses lama berhenti dan sebelum yang baru mendengar, tidak ada yang menjawab (penalaran dari satu proses).
 
 Lab tidak mengukur jeda deploy satu proses, jadi 40 detik di naskah berlabel Ilustrasi. Deploy manual di Tahap 1 membuat 3 dari 8 putaran prober tanpa jawaban ([[t1-m6]]).
 
