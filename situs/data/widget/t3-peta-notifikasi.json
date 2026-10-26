@@ -16,7 +16,7 @@
     {
       "jalur": "hp",
       "judul": "Minta izin, lalu kirim pengenal HP ke server",
-      "rinci": ["Android 13 ke atas: notifikasi mati sampai pengguna setuju", "Dikirim sekali, dan lagi bila berubah"]
+      "rinci": ["Android 13 ke atas: notifikasi mati sampai user setuju", "Dikirim sekali, dan lagi bila berubah"]
     },
     {
       "jalur": "api",
