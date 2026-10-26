@@ -155,7 +155,7 @@ const hariJam = (jam: number): string => {
   const d = new Date(JUMAT + jam * 3600_000);
   return `${HARI[d.getUTCDay()]} ${String(d.getUTCHours()).padStart(2, "0")}.${String(d.getUTCMinutes()).padStart(2, "0")}`;
 };
-const lompatan = [...rekaman.matchAll(/^# Jam lab: (\w+ \d\d\.\d\d) \((\d+) jam sesudah Jumat 16\.50\)\. Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu \d+ jam$/gm)].map((m) => ({ label: m[1]!, jam: Number(m[2]) }));
+const lompatan = [...rekaman.matchAll(/^# Jam lab: (\w+ \d\d\.\d\d) \((\d+) jam sesudah Jumat 16\.50\)\. Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu \2 jam$/gm)].map((m) => ({ label: m[1]!, jam: Number(m[2]) }));
 
 // ---- kode lab: nomor baris diturunkan dari isi ----------------------------------------------------------------------------
 const kodeBaris = (kode: string): string[] => kode.split("\n");
@@ -291,9 +291,13 @@ describe("naskah M24 dan jam: gejala, angka cerita, dan hitungan hari", () => {
     expect(hariJam(24)).toBe("Sabtu 16.50");
     expect(svcTest).toContain("t0 := time.Date(2026, 10, 23, 16, 50, 0, 0, time.UTC) // Jumat 16.50");
     expect(runPy).toContain("def ke_jam(jam_sejak_jumat, label):");
-    expect(runPy).toContain('ke_jam(15, "Sabtu 07.50")');
-    expect(runPy).toContain('ke_jam(17, "Sabtu 09.50")');
-    expect(runPy).toContain('ke_jam(62, "Senin 06.50")');
+    const fungsiM24 = runPy.slice(runPy.indexOf("def rekam_m24():"), runPy.indexOf("def rekam_versi():"));
+    expect(fungsiM24).toContain('ke_jam(15, "Sabtu 07.50")');
+    expect(fungsiM24).toContain('ke_jam(17, "Sabtu 09.50")');
+    expect(fungsiM24).toContain('ke_jam(62, "Senin 06.50")');
+    const fungsiVersi = runPy.slice(runPy.indexOf("def rekam_versi():"), runPy.indexOf("def rekam_kunci24():"));
+    expect(fungsiVersi).toContain('ke_jam(15, "Sabtu 07.50")');
+    expect(fungsiVersi).toContain('ke_jam(62, "Senin 06.50")');
   });
   test("62 jam: Jumat 17.00 sampai Senin 07.00 dan Jumat 16.50 sampai Senin 06.50 sama-sama 62 jam; Asumsi naskah dan README lab", () => {
     expect((Date.UTC(2026, 9, 26, 7, 0) - Date.UTC(2026, 9, 23, 17, 0)) / 3600_000).toBe(62);
@@ -437,6 +441,10 @@ describe("rekaman m24.txt dan versi.txt: nilai dan rentang Snippet", () => {
     expect(V.b[SV1]!.startsWith("# 409 membawa")).toBe(true);
     // bagian kepala rekaman (baris 1 sampai 6, memuat nomor keputusan) tidak ikut
     expect(Math.min(SA0, SB0, SC0, SD0, SE0, SV0)).toBeGreaterThan(6);
+  });
+  test("baris rekaman yang tampil di Snippet dikunci utuh dengan sidik jari (enam rentang): rekaman direkam ulang dari database bersih, jadi ubah sidiknya hanya sesudah membaca perbedaannya", () => {
+    const tampil = [M.antara(SA0, SA1), M.antara(SB0, SB1), M.antara(SC0, SC1), M.antara(SD0, SD1), M.antara(SE0, SE1), V.antara(SV0, SV1)];
+    expect(tampil.map(sidik)).toEqual(SIDIK_REKAMAN_TAMPIL);
   });
   test("baris rekaman yang tampil hanya berawalan # bila itu catatan jam lab bentukan skrip; satu catatan pada baris katalog; tanpa ID, nomor keputusan, atau PR", () => {
     const tampil = [M.antara(SA0, SA1), M.antara(SB0, SB1), M.antara(SC0, SC1), M.antara(SD0, SD1), M.antara(SE0, SE1), V.antara(SV0, SV1)];
@@ -800,6 +808,7 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
   });
 });
 
+const SIDIK_REKAMAN_TAMPIL: string[] = ["5c80fd741bdc865a","956d95568f57ce24","1cd0d038306b5b1f","08184018a0077388","b1c06772e7272bb7","c40dee822354fc24"];
 const SIDIK_R195 = "fe5c748e39eeb37e";
 const SIDIK_R196 = "f045c5ed538479b1";
 const SIDIK_DIAGRAM = "20a469f69a7a5bef";
