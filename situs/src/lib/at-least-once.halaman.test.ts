@@ -377,6 +377,11 @@ describe("halaman 3.13: isi dikunci unit demi unit, nilai diturunkan dari sumber
     );
     expect(kata(batasP)).toBe("lima");
     expect(naskah).toMatch(/\| 3\.13 \| 4 \| At-least-once: retry, dead-letter, penyaring di app \+ ADR 25 \| Konsep \+ ADR \| ★ \| t3-outbox \| W3-outbox \|/);
+    const adr25 = naskah.split("\n").find((b) => b.startsWith("| 25 | At-least-once"))!;
+    expect(adr25).toContain(`maksimal ${batasP} percobaan`);
+    expect(adr25).toContain(`dikirim ${kata(mintaC)} kali dan masuk dead-letter di klaim ke-${klaimMati} tanpa kirim`);
+    expect(adr25).toContain(`klaim ${klaim} detik kurang dari ${hp2} × ${pushTimeout} detik`);
+    expect(adr25).not.toMatch(/jenis pesan|pesan data|notification/);
     const meta = halaman.match(/^<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: \[\[t3-m20\]\] · Jalur inti<\/p>$/m)!;
     expect(meta).not.toBeNull();
     expect(Number(meta[1]) + Number(meta[2])).toBe(h.menit);
@@ -611,6 +616,14 @@ describe("sumber dokumentasi: baris riset R3-160 sampai R3-164, tanggal, versi, 
     const semuaRiset = ids.map(barisRiset).join("\n");
     for (const [u, jejak] of ALAMAT) expect(semuaRiset, u).toContain(jejak);
     expect(caraPakai).toMatch(/^#+ Label sumber$/m);
+  });
+  test("404 direkam di push.txt D, 400 hanya dibaca dari kode: push.go memetakan keduanya ke token tidak terdaftar", () => {
+    expect(PD.join("\n")).toContain("push tiruan menerima: 1 permintaan (yang dijawab 404)");
+    expect(PD.join("\n")).not.toMatch(/\b400\b/);
+    expect(pushGo).toContain("resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusBadRequest");
+    expect(halaman).toContain("`push.txt` bagian D (404); 400 dibaca dari kode");
+    expect(halaman).toContain("Kode lab menyamakan 400 dengan 404, dan dokumentasi FCM membolehkannya hanya bila payload valid");
+    expect(hal33).toContain("hanya bila payload pesannya valid");
   });
   test("klaim negatif halaman dibatasi ke halaman dokumentasi yang dibuka dan dijaga baris riset", () => {
     expect(halaman).toContain("Halaman FlutterFire itu tidak menulis jenis pesan mana yang sampai ke `onBackgroundMessage`.");
