@@ -96,8 +96,8 @@ Prompt pemilik: Tahap 2 sampai 6 diselesaikan tanpa bertanya, pemilik meninjau d
 
 | Tahap | Riset | Naskah | Lab | ERD | Widget | Halaman | Evaluasi |
 |---|---|---|---|---|---|---|---|
-| 2 | selesai (#272) | naskah pemilik | 12/12 (lab-api-t2a #294, lab-c4a #304, 2.20-lab #317) | ERD2, ERD-1.12 selesai | semua tugas teknis dan widget Tahap 2 selesai | 33/33 (2.1–2.33); EVAL-2 selesai (#356), perbaikan EVAL2-F1 dan DIRI-2 berjalan | EVAL-2 selesai (#356); W5 TIDAK |
-| 3 | selesai (#325) | selesai (#331; konsistensi #360, 63 tambalan) | 8/8 lab di main (api-t3, t3-pool, t3-outbox, t3-instance, t3-cache, t3-offline, t3-mitm, t3-dasbor #355) | ERD3 selesai (#344) | W3-pool, W3-outbox, W3-cache selesai (#352, #354, #358) | 0/32 (3.1–3.3 ditulis) | antre |
+| 2 | selesai (#272) | naskah pemilik | 12/12 (lab-api-t2a #294, lab-c4a #304, 2.20-lab #317) | ERD2, ERD-1.12 selesai | semua tugas teknis dan widget Tahap 2 selesai | 33/33 (2.1–2.33); perbaikan EVAL2-F1 (#361) dan DIRI-2 (#359) selesai | EVAL-2 (#356) dan putaran 2 (#363): W1–W4, W6–W8 YA, W5 TIDAK; tahap dinyatakan selesai |
+| 3 | selesai (#325) | selesai (#331; konsistensi #360, 63 tambalan) | 8/8 lab di main (api-t3, t3-pool, t3-outbox, t3-instance, t3-cache, t3-offline, t3-mitm, t3-dasbor #355) | ERD3 selesai (#344) | W3-pool, W3-outbox, W3-cache selesai (#352, #354, #358) | 3/32 (3.1–3.3 merge #364–#366; 3.4–3.6 ditulis) | antre |
 | 4 | selesai (#329) | antre | - | antre | antre | - | antre |
 | 5 | selesai (#330) | antre | - | antre | antre | - | antre |
 | 6 | selesai (#332) | antre | tanpa lab | tanpa ERD | tanpa widget | - | antre |
