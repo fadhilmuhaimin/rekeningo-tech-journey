@@ -475,7 +475,7 @@ describe("sumber lain: RISET, naskah, ADR 16 di 2.19, PRD v3, widget, Rantai", (
     const jenis = (poller: string, urutan: string): string => acuanDari("kursor", { poller, urutan }).jenis;
     expect([jenis("kursor", "berurutan"), jenis("kursor", "terbalik"), jenis("klaim", "terbalik"), jenis("klaim", "berurutan")]).toEqual(["rekaman", "rekaman", "rekaman", "hitungan"]);
     expect(hitung(halaman, /<OutboxWorker skenario=\{\["kursor"\]\} \/>/g)).toBe(1);
-    expect(komponenOutbox).toContain("<noscript>");
+    expect(komponenOutbox).toMatch(/^<noscript>\n  <p>\{L\.tanpaJs\}<\/p>$/m);
     expect(komponenOutbox).toContain("OutboxWorkerIsland client:visible");
   });
   test("Rantai: tiap nilai teks diturunkan dari rekaman bagian A, B, dan C", () => {
