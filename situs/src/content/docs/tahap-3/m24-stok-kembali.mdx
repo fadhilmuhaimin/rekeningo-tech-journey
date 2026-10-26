@@ -108,7 +108,7 @@ Server menjawab 409 dengan keadaan sekarang dan tidak mengubah apa pun. Operasi 
 
 Versi benar punya dua perubahan sekaligus. Soto menunjukkan yang pertama: kunci sinkron, yang disimpan 14 hari, mengenali ulangannya. Bakso menunjukkan yang kedua: kuncinya tidak dikenal, dan syarat versi menolaknya. Batas 14 hari dan keputusannya ada di [[t3-offline]].
 
-**Untuk app Flutter.** Panduan offline-first di docs.flutter.dev (dibuka 2026-10-27, tanpa nomor versi dokumen, Tidak dijalankan) menandai data lokal dengan flag `synchronized` dan mengirimnya dengan satu `PUT`. Teks panduan itu tidak memuat kata conflict, version, atau timestamp. Panduan itu tidak membahas konflik, jadi cara menolak data lama perlu ada di request dan response API (penalaran).
+**Untuk app Flutter.** [Panduan offline-first di docs.flutter.dev](https://docs.flutter.dev/app-architecture/design-patterns/offline-first) (dibuka 2026-10-27, tanpa nomor versi dokumen, Tidak dijalankan) menandai data lokal dengan flag `synchronized` dan mengirimnya dengan satu `PUT`. Teks panduan itu tidak memuat kata conflict, version, atau timestamp. Panduan itu tidak membahas konflik, jadi cara menolak data lama perlu ada di request dan response API (penalaran).
 
 **Pembayaran memakai key yang sama.** `POST /transfers`, `/kiriman`, dan `/pesanan` di `api-t3` dibungkus middleware key yang sama (dibaca dari kode, Tidak dijalankan di halaman ini). Rekaman `kunci24.txt` bagian E mengirim ulang tiga permintaan lama 62 jam kemudian, dan ketiganya dikerjakan lagi. Itu alasan pembayaran tidak pernah offline, dan [[t3-offline]] membahasnya.
 
