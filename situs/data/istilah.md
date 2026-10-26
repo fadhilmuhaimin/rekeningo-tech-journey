@@ -252,6 +252,7 @@
 *[Signature]: Nilai hasil perhitungan kriptografi atas data dan secret, untuk membuktikan data tidak diubah.
 *[signature]: Nilai hasil perhitungan kriptografi atas data dan secret, untuk membuktikan data tidak diubah.
 *[Signed URL]: URL berbatas waktu yang memberi akses langsung ke satu file di object storage.
+*[SKIP LOCKED]: Opsi FOR UPDATE yang melewati baris yang sudah dikunci transaction lain, bukan menunggunya.
 *[Snapshot]: Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang.
 *[snapshot]: Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang.
 *[Source of truth]: Satu tempat yang isinya dianggap benar ketika salinan lain berbeda, mis. database backend untuk saldo; cache dan data di HP hanya salinan.

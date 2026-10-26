@@ -60,8 +60,8 @@ Urutan di tabel ini adalah urutan baca yang disarankan.
 | Pool koneksi habis karena panggilan keluar menggantung di dalam transaction, bukan karena beban banyak | [3.8 Connection pool, Little's Law, dan timeout + ADR 22](/tahap-3/connection-pool/) |
 | Uang dan pemberitahuan ditulis di satu tempat dulu, lalu dikirim worker dari tempat lain | [3.9 Outbox transaksional dan worker + ADR 23](/tahap-3/outbox-worker/) |
 | Saldo Citra naik, tetapi satu notifikasi tidak pernah sampai ke Ani | [3.10 M19: Ani tidak diberi tahu](/tahap-3/m19-tidak-diberi-tahu/) |
-| Kursor atas waktu dan id melewatkan baris yang COMMIT belakangan, jadi notifikasinya hilang | 3.11 Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24 · *segera* |
-| Ani menerima notifikasi yang sama dua kali dan mengira Budi membayar dua kali | 3.12 M20: Notifikasi masuk dua kali · *segera* |
+| Kursor atas waktu dan id melewatkan baris yang COMMIT belakangan, jadi notifikasinya hilang | [3.11 Klaim per baris, bukan kursor: SKIP LOCKED + ADR 24](/tahap-3/klaim-per-baris/) |
+| Ani menerima notifikasi yang sama dua kali dan mengira Budi membayar dua kali | [3.12 M20: Notifikasi masuk dua kali](/tahap-3/m20-notifikasi-dua-kali/) |
 | Mengirim ulang itu benar; yang kurang adalah penerima yang mengenali ulangan | [3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25](/tahap-3/at-least-once/) |
 | Satu proses API keluar, tidak ada yang memulainya lagi, dan deploy mematikan app sesaat | 3.14 M21: Satu proses mati, semua mati · *segera* |
 | Dua proses butuh proxy yang tahu mana yang hidup, dan deploy yang tidak memutus koneksi | 3.15 Dua instance di belakang proxy + ADR 26 · *segera* |

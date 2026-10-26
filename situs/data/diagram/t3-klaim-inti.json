@@ -1,0 +1,41 @@
+{
+  "id": "t3-klaim-inti",
+  "judul": "Dua sesi memilih baris outbox, tanpa dan dengan kunci baris",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t3-outbox, klaim.txt bagian A"
+  },
+  "baris": [
+    {
+      "label": "Tanpa klausa kunci",
+      "sub": "bagian A dari klaim.txt",
+      "simpul": [
+        {
+          "teks": "sesi 1 mengklaim baris 1 sampai 4",
+          "sub": "belum COMMIT"
+        },
+        {
+          "teks": "sesi 2 memilih baris 1 sampai 4 juga",
+          "sub": "baris yang sama",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Dengan FOR UPDATE",
+      "sub": "bagian A dari klaim.txt",
+      "simpul": [
+        {
+          "teks": "sesi 2 menunggu",
+          "sub": "sampai sesi 1 COMMIT"
+        },
+        {
+          "teks": "sesudah COMMIT: baris 5 sampai 8",
+          "sub": "tanpa baris ganda",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah akibat yang direkam: dua sesi memilih baris yang sama. Rekaman ini baru memilih baris, belum mengubahnya. Kedua baris memakai delapan baris outbox yang menunggu di PostgreSQL 17.11."
+}
