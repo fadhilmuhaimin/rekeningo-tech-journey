@@ -1,0 +1,224 @@
+# Potongan OpenAPI untuk pendaftaran, top-up dari bank, webhook gateway, dan verifikasi identitas (lab-api-t4).
+# --- paths ---
+  /daftar:
+    post:
+      operationId: daftar
+      summary: Pendaftaran sendiri sebagai pemakai atau merchant; tingkat belum terverifikasi, status aktif. Dibatasi 5 pendaftaran per alamat per jam (Asumsi lab)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanDaftar' }
+      responses:
+        '201':
+          description: Akun dibuat
+          headers:
+            Location: { description: 'Alamat akun, /akun/{id}', schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AkunBaru' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: Email sudah terdaftar (/problems/email-terpakai). Jawaban ini membuka enumerasi email; di lab hanya ditahan batas laju per alamat
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /topup-bank:
+    post:
+      operationId: buatTopupBank
+      summary: Buat top-up dari rekening bank. Server membuat order di gateway (timeout 3 detik, Idempotency-Key ke gateway = order_id) dan menjawab dengan tujuan bayar. Uang baru bergerak saat webhook atau job cek status menjurnalnya
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanTopupBank' }
+      responses:
+        '201':
+          description: Order dibuat di gateway; status menunggu
+          headers:
+            Location: { description: 'Alamat top-up, /topup-bank/{id}', schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TopupBank' }
+        '202':
+          description: Gateway tidak menjawab dalam batas waktu; status tidak_pasti (order mungkin sudah dibuat). Jangan membayar dua kali; cek status lewat GET /topup-bank/{id}
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TopupBank' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403':
+          description: Akun dibekukan (/problems/akun-dibekukan) atau jenis akun tidak boleh (/problems/dilarang)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422':
+          description: Jumlah di luar Rp10.000 sampai Rp5.000.000, atau saldo akan melewati batas tingkat akun (/problems/batas-saldo-tingkat; Rp1.000.000 belum terverifikasi, Rp10.000.000 terverifikasi, Asumsi produk)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+        '502':
+          description: Gateway menolak atau tidak terjangkau; top-up berstatus gagal dan tidak ada order di gateway (/problems/gateway-tidak-tersedia)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503': { $ref: '#/components/responses/Problem' }
+  /topup-bank/{id}:
+    get:
+      operationId: lihatTopupBank
+      summary: Status satu top-up milik sendiri. Milik orang lain dijawab 404
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200':
+          description: Top-up
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TopupBank' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /webhooks/pembayaran:
+    post:
+      operationId: webhookPembayaran
+      summary: Kabar dari gateway (klaim, bukan fakta). Tanda tangan HMAC-SHA256 atas "<timestamp>.<byte mentah body>" diperiksa sebelum JSON diurai, timestamp dalam 5 menit. Event yang sama diproses sekali; balasan 2xx hanya sesudah COMMIT
+      security: []
+      parameters:
+        - name: X-Gateway-Timestamp
+          in: header
+          required: true
+          description: Detik sejak epoch Unix
+          schema: { type: integer, format: int64 }
+        - name: X-Gateway-Signature
+          in: header
+          required: true
+          description: HMAC-SHA256 heksadesimal atas "<timestamp>.<body>"
+          schema: { type: string, pattern: '^[0-9a-f]{64}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/KabarGateway' }
+      responses:
+        '200':
+          description: Kabar diterima. hasil diproses (jurnal ditulis bila settlement), ganda (event atau kejadian yang sama sudah tercatat), diparkir (kabar mundur, atau melewati batas saldo atau akun dibekukan), ditolak (order tidak dikenal atau jumlah beda)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HasilWebhook' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401':
+          description: Tanda tangan salah, timestamp di luar toleransi, atau header hilang (satu jawaban untuk semuanya; /problems/tanda-tangan)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+  /verifikasi:
+    post:
+      operationId: ajukanVerifikasi
+      summary: Ajukan verifikasi identitas dengan foto kartu identitas dan swafoto (JPEG atau PNG, paling besar 1 MiB masing-masing). File disimpan di penyimpanan objek; hasil menyusul lewat GET /verifikasi/{id}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanVerifikasi' }
+      responses:
+        '202':
+          description: Diterima; pekerjaan verifikasi ditulis di outbox pada transaction yang sama
+          headers:
+            Location: { description: 'Alamat pengajuan, /verifikasi/{id}', schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Verifikasi' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: Sudah terverifikasi, atau pengajuan sebelumnya belum selesai
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+        '503': { $ref: '#/components/responses/Problem' }
+  /verifikasi/{id}:
+    get:
+      operationId: lihatVerifikasi
+      summary: Status satu pengajuan milik sendiri. Milik orang lain dijawab 404. Kunci objek tidak pernah dikirim ke client
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200':
+          description: Pengajuan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Verifikasi' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+# --- schemas ---
+    PermintaanDaftar:
+      type: object
+      required: [nama, email, password]
+      properties:
+        jenis: { type: string, enum: [pemakai, merchant], default: pemakai }
+        nama: { type: string, minLength: 1, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 15, description: 'Paling sedikit 15 karakter dan paling banyak 72 byte (batas bcrypt)' }
+    AkunBaru:
+      type: object
+      required: [id, jenis, tingkat]
+      properties:
+        id: { type: integer, format: int64 }
+        jenis: { type: string, enum: [pemakai, merchant] }
+        tingkat: { type: string, enum: [belum, terverifikasi] }
+    PermintaanTopupBank:
+      type: object
+      required: [jumlah]
+      properties:
+        jumlah: { type: integer, format: int64, minimum: 10000, maximum: 5000000, description: Rupiah }
+    TopupBank:
+      type: object
+      required: [id, order_id, jumlah, status, dibuat, kedaluwarsa_pada]
+      properties:
+        id: { type: integer, format: int64 }
+        order_id: { type: string, description: 'Nomor order di gateway; juga Idempotency-Key ke gateway dan ke ledger' }
+        jumlah: { $ref: '#/components/schemas/Rupiah' }
+        status: { type: string, enum: [menunggu, dibayar, kedaluwarsa, gagal, tidak_pasti] }
+        tujuan_bayar: { type: string, description: 'Nomor tujuan dari gateway; tidak ada bila gateway belum menjawab' }
+        dibuat: { type: string, format: date-time }
+        kedaluwarsa_pada: { type: string, format: date-time }
+        jurnal_id: { type: integer, format: int64, description: 'Ada bila status dibayar lewat versi benar (ADR 34)' }
+    KabarGateway:
+      type: object
+      required: [event_id, order_id, status]
+      properties:
+        event_id: { type: string, description: 'Dari gateway; kunci utama webhook_event' }
+        order_id: { type: string }
+        status: { type: string, enum: [settlement, pending, expire, failure] }
+        jumlah: { $ref: '#/components/schemas/Rupiah' }
+    HasilWebhook:
+      type: object
+      required: [hasil]
+      properties:
+        hasil: { type: string, enum: [diproses, ganda, diparkir, ditolak] }
+        jurnal: { type: integer, format: int64 }
+    PermintaanVerifikasi:
+      type: object
+      required: [berkas_kartu, berkas_swafoto]
+      properties:
+        berkas_kartu: { type: string, format: byte, description: 'JPEG atau PNG, base64' }
+        berkas_swafoto: { type: string, format: byte, description: 'JPEG atau PNG, base64' }
+    Verifikasi:
+      type: object
+      required: [id, subjek, status, tingkat_diminta, checksum_kartu, checksum_swafoto, diajukan]
+      properties:
+        id: { type: integer, format: int64 }
+        subjek: { type: string, enum: [pemakai, merchant] }
+        status: { type: string, enum: [diajukan, lulus, ditolak, tidak_pasti, gagal], description: 'tidak_pasti: layanan verifikasi tidak menjawab; gagal: layanan tidak tersedia sampai percobaan habis, bukan salah pendaftar' }
+        tingkat_diminta: { type: string, enum: [terverifikasi] }
+        checksum_kartu: { type: string, description: 'SHA-256 heksadesimal' }
+        checksum_swafoto: { type: string }
+        hapus_pada: { type: string, format: date-time, description: 'File dihapus 30 hari sesudah selesai (Asumsi produk)' }
+        diajukan: { type: string, format: date-time }
+        selesai: { type: string, format: date-time }

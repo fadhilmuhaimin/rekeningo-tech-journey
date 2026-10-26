@@ -90,6 +90,7 @@ func main() {
 	rekon := flag.String("rekon", "", "job: rekonsiliasi laporan settlement gateway tanggal YYYY-MM-DD dengan ledger, catat insiden, lalu keluar (ADR 35)")
 	kedaluwarsaHold := flag.Bool("kedaluwarsa-hold", false, "job: balik dana kartu yang tertahan lewat tahan_sampai, lalu keluar (ADR 42)")
 	tujuan := flag.String("tujuan", "", "worker: lajur yang diklaim, dipisah koma (push, verifikasi); kosong = semua lajur")
+	unduhHTTP := flag.Bool("unduh-izinkan-http", false, "lab saja: fetcher gambar versi aman menerima skema http (tiruan lokal tidak punya TLS); produksi hanya https (ADR 41)")
 	flag.Parse()
 
 	// Mode rentan push-dalam-tx adalah versi pertama minggu 1: client tanpa batas waktu dan tanpa pengaman
@@ -179,7 +180,7 @@ func main() {
 		return
 	}
 
-	svc := service.Baru(r, *umurSesi).DenganT4(dep)
+	svc := service.Baru(r, *umurSesi).DenganT4(dep).DenganUnduhHTTP(*unduhHTTP)
 	var jamMS atomic.Int64 // 0 = waktu sungguhan
 	jam := func() time.Time {
 		if ms := jamMS.Load(); ms != 0 {
