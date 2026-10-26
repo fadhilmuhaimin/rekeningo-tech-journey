@@ -1,0 +1,35 @@
+{
+  "id": "t3-m22-batas-dua-jatah",
+  "judul": "Satu jatah menjadi dua",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-instance · batas.txt bagian A, B, dan D" },
+  "baris": [
+    {
+      "label": "Satu instance",
+      "sub": "24 percobaan ke 24 akun berbeda",
+      "simpul": [
+        { "teks": "24 percobaan dari satu alamat", "sub": "langsung ke instance a" },
+        { "teks": "10 sampai ke pemeriksaan password", "sub": "jatah per alamat 10", "nada": "good" },
+        { "teks": "14 ditolak 429" }
+      ]
+    },
+    {
+      "label": "Dua instance, bergantian",
+      "sub": "24 percobaan ke 24 akun berbeda",
+      "simpul": [
+        { "teks": "24 percobaan dari satu alamat", "sub": "12 ke tiap instance" },
+        { "teks": "20 sampai ke pemeriksaan password", "sub": "a 10, b 10", "nada": "warn" },
+        { "teks": "4 ditolak 429", "sub": "a 2, b 2" }
+      ]
+    },
+    {
+      "label": "Dua instance, satu akun",
+      "sub": "12 tebakan ke satu akun",
+      "simpul": [
+        { "teks": "10 lolos batas per akun di memori", "sub": "401 sepuluh kali, 429 dua kali", "nada": "warn" },
+        { "teks": "gagal_login di database berhenti di 5", "sub": "kunci akun tidak berlipat", "nada": "good" },
+        { "teks": "tebakan 6 sampai 10 bertemu akun terkunci", "sub": "tetap dijawab 401" }
+      ]
+    }
+  ],
+  "catatan": "Batas per alamat dan per akun di memori berlipat menjadi dua jatah. Hitungan kunci akun di database tetap lima."
+}

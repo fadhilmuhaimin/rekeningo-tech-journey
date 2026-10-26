@@ -5,10 +5,11 @@
 // difokus hilang atau dinonaktifkan (pola selisih-bank).
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { muncul } from "../../gerak/muncul";
-import type { BarisTabel, Kondisi } from "./logika";
+import type { BarisTabel } from "./logika";
 
 export interface PilihanSiap { teks: string; alasan: string }
-export interface KondisiSiap { kode: Kondisi; label: string; kesimpulan: string; catatan: string }
+// kode: kunci kondisi apa pun (halaman 2.28 memakai enam kode pertahanan, halaman 3.16 dua kode instance)
+export interface KondisiSiap { kode: string; label: string; kesimpulan: string; catatan: string }
 export interface LabelSiap {
   judul: string; sumber: string; tebakDulu: string; pertanyaan: string; benar: string; belum: string; ulang: string;
   tabel: { judul: string; perbandingan: string; nilai: string };
@@ -17,12 +18,12 @@ export interface LabelSiap {
 }
 type Fokus = "lanjut" | "pilihan" | null;
 interface Props {
-  pilihan: PilihanSiap[]; benar: number; kondisi: KondisiSiap[]; tabel: Record<Kondisi, BarisTabel[]>; label: LabelSiap;
+  pilihan: PilihanSiap[]; benar: number; kondisi: KondisiSiap[]; tabel: Record<string, BarisTabel[]>; label: LabelSiap;
 }
 
 export default function PertahananLogin({ pilihan, benar, kondisi, tabel, label: L }: Props) {
   const [dipilih, setDipilih] = useState<number | null>(null);
-  const [aktif, setAktif] = useState<Kondisi>(kondisi[0]!.kode);
+  const [aktif, setAktif] = useState<string>(kondisi[0]!.kode);
   const hasil = useRef<HTMLDivElement>(null);
   const akar = useRef<HTMLDivElement>(null);
   const fokus = useRef<Fokus>(null);

@@ -1,0 +1,56 @@
+{
+  "judul": "Satu penyemprotan, satu atau dua instance",
+  "sumber": "Rekaman lab · t3-instance, bagian A dan B",
+  "tebakDulu": "Tebak dulu:",
+  "pertanyaan": "Satu alamat mengirim {percobaan} percobaan login ke {percobaan} akun berbeda, satu percobaan per akun, dengan password yang salah. Proxy meneruskannya bergantian ke dua instance, dan tiap instance membatasi satu alamat {batas} percobaan sekaligus. Berapa dari {percobaan} percobaan sampai ke pemeriksaan password?",
+  "pilihan": [
+    {
+      "teks": "Sepuluh: jatah satu alamat habis, sisanya ditolak.",
+      "angka": 10,
+      "alasan": "Rekaman menunjukkan {sampai}, bukan {batas}. Sepuluh adalah hasil satu instance, yang bisa kamu lihat dengan kondisi satu instance di bawah. Dua instance memegang dua jatah."
+    },
+    {
+      "teks": "Dua puluh empat: di belakang proxy batas per alamat tidak berlaku.",
+      "angka": 24,
+      "alasan": "Rekaman menunjukkan {sampai}. Batas tetap berlaku di tiap instance, dan {ditolak} percobaan ditolak 429."
+    },
+    {
+      "teks": "Dua belas: separuh percobaan sampai karena proxy membaginya dua.",
+      "angka": 12,
+      "alasan": "Rekaman menunjukkan {sampai}. Dua belas adalah percobaan yang diterima tiap instance, bukan yang lolos. Tiap instance mengizinkan {batas} dari {diterima} dan menolak {tolakTiap}."
+    },
+    {
+      "teks": "Dua puluh: tiap instance mengizinkan sepuluh dari dua belas percobaan yang ia terima.",
+      "angka": 20,
+      "alasan": "Rekaman menunjukkan {sampai} ({perInstance}) dan {ditolak} ditolak 429. Tiap instance menyimpan bucket per alamat di memorinya sendiri, jadi dua instance memberi dua jatah."
+    }
+  ],
+  "benar": "Tepat",
+  "belum": "Belum tepat",
+  "ulang": "Coba pilihan lain",
+  "tabel": {
+    "judul": "Hasil rekaman",
+    "perbandingan": "Yang dihitung",
+    "nilai": "Jumlah"
+  },
+  "baris": {
+    "percobaan": "Percobaan yang dikirim",
+    "sampai": "Sampai ke pemeriksaan password (401)",
+    "ditolak": "Ditolak 429",
+    "terbuka": "Yang sampai, per instance"
+  },
+  "ubahJudul": "Ubah satu hal: jumlah instance",
+  "kondisi": {
+    "dua-instance": {
+      "label": "Dua instance, bergantian",
+      "kesimpulan": "{sampai} dari {percobaan} percobaan sampai ke pemeriksaan password ({perInstance}), dan {ditolak} ditolak 429.",
+      "catatan": "Rekaman bagian A. Proxy memakai round_robin supaya angkanya tetap. Dengan kebijakan random bawaan Caddy hasilnya antara 10 dan 20, dan angka pastinya tidak direkam (bagian C)."
+    },
+    "satu-instance": {
+      "label": "Satu instance",
+      "kesimpulan": "{sampai} dari {percobaan} percobaan sampai ke pemeriksaan password, dan {ditolak} ditolak 429 sesudah jatah {batas} habis.",
+      "catatan": "Rekaman bagian B. Percobaan dikirim langsung ke instance a, tanpa proxy."
+    }
+  },
+  "tanpaJs": "Tanpa JavaScript, tebakan dan tombol kondisi tidak tersedia. Tabel ini memuat hasil rekaman untuk kedua kondisi."
+}

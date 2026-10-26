@@ -1727,6 +1727,38 @@
   "jawab": "App yang mati di antara dua langkah itu menampilkan ulangan, dan tidak kehilangan pemberitahuan. Urutan sebaliknya bisa kehilangan, dan PRD melarang hilang tanpa terdeteksi. Dokumentasi Kafka menulis pola yang sama untuk posisi consumer."
  },
  {
+  "id": "t3-m22-1",
+  "halaman": "t3-m22",
+  "judul": "3.16 M22: Batas login jadi dua kali lipat",
+  "url": "tahap-3/m22-batas-login-dua-kali/",
+  "tanya": "Satu instance menolak percobaan ke-11 dari satu alamat. Kenapa dua instance di belakang proxy meloloskan 20 dari 24?",
+  "jawab": "Tiap instance menyimpan bucket per alamat di memorinya sendiri. Proxy bergantian, jadi masing-masing menerima 12 percobaan, mengizinkan 10 dan menolak 2 (`batas.txt` bagian A). Batas di kode tetap 10 per instance."
+ },
+ {
+  "id": "t3-m22-2",
+  "halaman": "t3-m22",
+  "judul": "3.16 M22: Batas login jadi dua kali lipat",
+  "url": "tahap-3/m22-batas-login-dua-kali/",
+  "tanya": "Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali. Kenapa password hanya dibandingkan lima kali?",
+  "jawab": "Bucket per akun di memori memberi 5 tebakan per instance, jadi 10 lolos ke akun. Hitungan `gagal_login` ada di database dan berhenti di 5. Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama (`batas.txt` bagian D)."
+ },
+ {
+  "id": "t3-m22-3",
+  "halaman": "t3-m22",
+  "judul": "3.16 M22: Batas login jadi dua kali lipat",
+  "url": "tahap-3/m22-batas-login-dua-kali/",
+  "tanya": "Dengan kebijakan acak bawaan Caddy, berapa dari 24 percobaan yang bisa sampai ke pemeriksaan password?",
+  "jawab": "Antara 10 dan 20. Sepuluh bila semua percobaan jatuh ke satu instance, dua puluh bila tiap instance menerima paling sedikit 10. Angka pastinya bergantung pada urutan acak dan tidak direkam (`batas.txt` bagian C)."
+ },
+ {
+  "id": "t3-m22-4",
+  "halaman": "t3-m22",
+  "judul": "3.16 M22: Batas login jadi dua kali lipat",
+  "url": "tahap-3/m22-batas-login-dua-kali/",
+  "tanya": "Kenapa semua karyawan di belakang proxy berbagi satu key per alamat di `api-t3`?",
+  "jawab": "Kode memakai alamat koneksi, dan di belakang proxy itu alamat proxy. Kode juga tidak membaca `X-Forwarded-For`. Ini dibaca dari kode dan tidak direkam, karena lab tidak membedakan dua client lewat proxy."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",

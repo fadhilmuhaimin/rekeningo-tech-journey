@@ -1,0 +1,161 @@
+---
+title: "3.16 M22: Batas login jadi dua kali lipat"
+description: Minggu 6. Sesudah instance kedua dipasang di staging, 20 dari 24 percobaan login dari satu alamat sampai ke pemeriksaan password, padahal batas per alamat 10. Batas itu dihitung di memori tiap instance, jadi dua instance memberi dua jatah. Kunci akun di database tetap lima.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import BatasInstance from "../../../components/BatasInstance.astro";
+import batas from "../../../../data/diagram/t3-m22-batas-dua-jatah.json";
+
+<p class="meta">Baca 6 menit · coba 3 menit · Prasyarat: [[t3-dua-instance]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 6 Tahap 3. Bayu memasang instance API kedua di staging dan meminta Dimas dari tim TI mengujinya. Dimas suka mencoba, dan ia mulai dari pintu login.
+
+Ia mengirim 24 percobaan login dari satu alamat. Tiap percobaan ke akun uji yang berbeda, dengan password dari daftar kebocoran. Batas per alamat tertulis 10, tetapi 20 percobaan sampai ke pemeriksaan password sebelum ada yang ditolak dengan 429. Pemeriksaan password adalah saat server membandingkan password dengan hash yang tersimpan.
+
+Dimas memberi tahu Bayu: "Batasnya sepuluh, tetapi dua puluh yang lewat." Bayu meneruskannya ke Raka.
+
+*Angka cerita (Ilustrasi):* staging, password dari daftar kebocoran, dan Dimas sebagai pencoba berasal dari naskah. Angka 24 dan 20 sama dengan rekaman di blok "Yang sebenarnya", yang memakai password salah, jadi tiap percobaan yang sampai ke pemeriksaan password berakhir 401. Hasil dengan password yang benar tidak direkam. Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka mengira penghitung gagal login salah di kode. Ia membuka konstanta batas: 10 percobaan per alamat, terisi ulang 10 per menit, dan 5 percobaan per akun, terisi ulang 5 per menit. Angka itu sama dengan yang ditulis ADR 20 di [[t2-login-aman]].
+
+Lalu ia menjalankan 24 percobaan yang sama langsung ke satu instance, tanpa proxy.
+
+<details class="question">
+<summary>Tebak dulu: 24 percobaan ke 24 akun berbeda dari satu alamat, langsung ke satu instance. Berapa yang sampai ke pemeriksaan password?</summary>
+
+Sepuluh. Di rekaman lab `batas.txt` bagian B, 10 percobaan menjawab 401 dan 14 ditolak 429. Penghitungnya benar. Yang berubah di staging adalah jumlah instance, bukan kodenya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Batas per alamat tidak salah hitung. Batas itu dihitung di memori tiap instance, dan dua instance punya dua penghitung yang tidak saling tahu.
+
+<Rantai data={batas} />
+
+*Kondisi rekaman:* PostgreSQL 17.11, dua proses `api-t3` (a dan b) di host, dan proxy Caddy 2.11.7 di kontainer. Proxy memakai kebijakan `round_robin` (bawaan Caddy: `random`), supaya angkanya tetap. Jam bucket dibekukan supaya tidak terisi ulang di tengah rekaman, dan password yang dikirim salah.
+
+**Satu bucket per key, di memori satu proses.** Setiap alamat punya bucket berisi paling banyak 10 token, dan setiap request mengambil satu token. Bucket itu hanya ada di peta milik proses yang menerimanya:
+
+<Snippet file="labs/api-t3/internal/service/pembatas.go" lines="16:21" lang="go" title="Kode lab: labs/api-t3/internal/service/pembatas.go baris 16 sampai 21 (bucket di peta satu proses)" />
+
+Batas login ditulis sebagai kapasitas dan laju isi ulang per detik:
+
+<Snippet file="labs/api-t3/internal/service/pembatas.go" lines="96:97" lang="go" title="Kode lab: labs/api-t3/internal/service/pembatas.go baris 96 sampai 97 (batas login per alamat dan per akun)" />
+
+**Dua instance, dua jatah.** Proxy bergantian, jadi tiap instance menerima 12 dari 24 percobaan. Bucket per alamat di tiap instance mulai penuh, jadi tiap instance mengizinkan 10 dan menolak 2. Hasilnya 20 percobaan lolos dan 4 ditolak:
+
+<Snippet file="labs/t3-instance/output/batas.txt" lines="8:10" title="Rekaman lab: labs/t3-instance/output/batas.txt, bagian A (dua instance, round_robin)" />
+
+Satu instance dengan 24 percobaan yang sama meloloskan 10 dan menolak 14:
+
+<Snippet file="labs/t3-instance/output/batas.txt" lines="12:13" title="Rekaman lab: labs/t3-instance/output/batas.txt, bagian B (satu instance)" />
+
+**Pilihan Caddy menentukan angkanya.** Kebijakan bawaan Caddy memilih instance secara acak, jadi hasilnya antara 10 dan 20. Sepuluh bila semua percobaan jatuh ke satu instance, dan 20 bila tiap instance menerima paling sedikit 10 percobaan (bagian C; angka pastinya tidak direkam).
+
+Dengan N instance, batasnya sampai N × 10 (Hitungan; hanya dua instance yang direkam).
+
+**Isi ulang ikut berlipat.** Tiap instance mengisi ulang 10 token per menit. Dalam 30 menit satu instance mengizinkan paling banyak 10 + 10 × 30 = 310 percobaan dari satu alamat. Dua instance mengizinkan 620 (Hitungan dari konstanta di atas; tidak direkam).
+
+**Yang tidak berlipat: kunci akun.** Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali dan 429 dua kali. Bucket per akun juga di memori, 5 per instance. Tetapi hitungan `gagal_login` ada di database, dan dua instance memakai database yang sama:
+
+<Snippet file="labs/t3-instance/output/batas.txt" lines="19:27" title="Rekaman lab: labs/t3-instance/output/batas.txt, bagian D (satu akun, dua instance)" />
+
+Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama dengan password salah. Password dibandingkan lima kali, bukan sepuluh. Kodenya mencatat percobaan di database sebelum membandingkan password:
+
+<Snippet file="labs/api-t3/internal/service/sesi.go" lines="108:124" lang="go" title="Kode lab: labs/api-t3/internal/service/sesi.go baris 108 sampai 124 (hitungan gagal login dan kunci di database)" />
+
+Yang longgar adalah penahan banjir per alamat. Satu tebakan per akun tidak pernah menyentuh kunci akun, jadi penyemprotan banyak akun hanya dihentikan batas per alamat ([[t2-login-aman]], bagian C rekaman c4-ratelimit). ADR 20 sudah menulis batas di memori sebagai yang pecah saat server kedua datang, dan bagian F rekaman c4-ratelimit mengukurnya: 20 dari 24. Lab Tahap 3 mengulangnya dengan dua proses `api-t3` dan proxy sungguhan.
+
+**Satu key untuk semua client (dibaca dari kode, Tidak dijalankan).** Rekaman memakai satu client, jadi tidak membedakan client. Kode memakai alamat koneksi sebagai alamat client:
+
+<Snippet file="labs/api-t3/internal/handler/handler.go" lines="153:159" lang="go" title="Kode lab: labs/api-t3/internal/handler/handler.go baris 153 sampai 159 (alamat client dari alamat koneksi)" />
+
+Setiap `POST /login` mengambil satu token dari bucket alamat itu sebelum isi request dibaca, juga login yang passwordnya benar:
+
+<Snippet files={["labs/api-t3/internal/handler/handler.go:170:176", "labs/api-t3/internal/handler/handler.go:201:204"]} lang="go" title="Kode lab: labs/api-t3/internal/handler/handler.go baris 170 sampai 176 dan 201 sampai 204 (token diambil sebelum isi request dibaca)" />
+
+Dokumentasi `net/http` Go 1.27.1, versi yang dipakai lab, menulis bahwa server mengisi `RemoteAddr` dengan alamat "IP:port" yang mengirim request (dibuka 2026-10-26; Go 1.27.3 menulis hal yang sama). Di belakang proxy, koneksi ke `api-t3` datang dari proxy (penalaran), jadi alamat itu alamat proxy. Caddy menyetel atau menambah `X-Forwarded-For` dan, secara bawaan, mengabaikan nilai yang datang dari client (dokumentasi Caddy tanpa nomor versi, dibuka 2026-10-26), tetapi `api-t3` tidak membaca header itu.
+
+Jadi semua karyawan yang masuk lewat satu proxy memakai satu key per alamat. Bila satu instance menerima sebelas login dari sebelas orang berbeda hampir bersamaan, jatah 10 habis dan yang ke-11 mendapat 429 walau passwordnya benar. Satu penyerang bisa menghabiskan jatah itu untuk semua orang.
+
+Lab tidak membedakan dua client lewat proxy di Docker Desktop, jadi perilaku ini tidak direkam. Cara menutupnya ada di [[t3-rate-limit-redis]].
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini membaca rekaman bagian A dan B. Tebak dulu apa yang terjadi di dua instance, lalu ubah satu hal: jumlah instance.
+
+<BatasInstance />
+
+Kunci akun (bagian D) dan kebijakan acak Caddy (bagian C) tidak ada di widget. Keduanya ada di rekaman ini, juga untuk pembaca tanpa JavaScript:
+
+<details>
+<summary>Rekaman bagian A sampai D (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/t3-instance/output/batas.txt" lines="8:33" title="Rekaman lab: labs/t3-instance/output/batas.txt, bagian A sampai D (tanpa baris kepala)" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t3-rate-limit-redis]]: hitungan bersama di Redis, alamat client di belakang proxy, dan apa yang terjadi bila Redis mati. Keputusannya ADR 27.
+- [[t3-dua-instance]]: dua instance di belakang proxy, yang membuat batas ini berlipat. Keputusannya ADR 26.
+- [[t2-login-aman]]: batas per alamat dan per akun di memori satu server. Keputusannya ADR 20.
+- [[t2-m16]]: kunci akun di database, yang tidak ikut berlipat.
+- [[t3-dua-tempat]]: pola salinan di luar database yang kembali di memori dua instance.
+
+Yang disimpan di memori satu proses berlipat saat prosesnya dua.
+
+### Cek diri
+
+**1.** Satu instance menolak percobaan ke-11 dari satu alamat. Kenapa dua instance di belakang proxy meloloskan 20 dari 24?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tiap instance menyimpan bucket per alamat di memorinya sendiri. Proxy bergantian, jadi masing-masing menerima 12 percobaan, mengizinkan 10 dan menolak 2 (`batas.txt` bagian A). Batas di kode tetap 10 per instance.
+
+</details>
+
+**2.** Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali. Kenapa password hanya dibandingkan lima kali?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Bucket per akun di memori memberi 5 tebakan per instance, jadi 10 lolos ke akun. Hitungan `gagal_login` ada di database dan berhenti di 5. Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama (`batas.txt` bagian D).
+
+</details>
+
+**3.** Dengan kebijakan acak bawaan Caddy, berapa dari 24 percobaan yang bisa sampai ke pemeriksaan password?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Antara 10 dan 20. Sepuluh bila semua percobaan jatuh ke satu instance, dua puluh bila tiap instance menerima paling sedikit 10. Angka pastinya bergantung pada urutan acak dan tidak direkam (`batas.txt` bagian C).
+
+</details>
+
+**4.** Kenapa semua karyawan di belakang proxy berbagi satu key per alamat di `api-t3`?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Kode memakai alamat koneksi, dan di belakang proxy itu alamat proxy. Kode juga tidak membaca `X-Forwarded-For`. Ini dibaca dari kode dan tidak direkam, karena lab tidak membedakan dua client lewat proxy.
+
+</details>
+
+</Blok>
