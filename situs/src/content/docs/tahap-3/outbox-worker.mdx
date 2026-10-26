@@ -54,7 +54,7 @@ Widget memerankan satu pembayaran Budi ke warung Ani dengan tiga cara mengirim p
 
 [[t2-adr-21]] menunda queue sampai L = λ × (0,02 + W luar) mencapai 5 koneksi. Di puncak, λ = 0,868 pembayaran per detik (Asumsi, yaitu angka beban dari cerita). Pemicu itu tercapai pada W luar ±5,7 detik (Hitungan: 5 ÷ 0,868 − 0,02 = 5,74).
 
-Layanan push yang menggantung melewatinya: untuk t = 10 detik, lab t3-pool menghitung L = 8,717 dengan λ = 0,87 (`little.txt`). Karena itu queue masuk di Tahap 3.
+Layanan push yang menggantung melewatinya: untuk t = 10 detik, lab t3-pool menghitung L = 8,717 dengan λ = 0,87, yaitu 0,868 yang dibulatkan (`little.txt`). Karena itu queue masuk di Tahap 3.
 
 PRD v3 menjanjikan 95% pemberitahuan bayar dan transfer diserahkan ke layanan push dalam kurang dari 30 detik ([[t3-prd]]). Pengukurannya berhenti saat pesan diserahkan, bukan saat HP menerimanya.
 
@@ -72,7 +72,7 @@ Satu pertanyaan mendapat dua jawaban: sesi tangan melihat 1 baris, dan sesi lain
 
 Bila queue kosong, ia menunggu 200 milidetik sebelum memeriksa lagi. Klaimnya satu pernyataan SQL:
 
-<Snippet file="labs/api-t3/internal/repo/outbox.go" region="klaim" lang="go" title="labs/api-t3/internal/repo/outbox.go" />
+<Snippet file="labs/api-t3/internal/repo/outbox.go" lines="74:94" lang="go" title="labs/api-t3/internal/repo/outbox.go" />
 
 Dua hal bekerja bersama di pernyataan itu. `FOR UPDATE` mengunci baris yang dipilih selama klaim, dan `klaim_sampai` menahannya sesudahnya selama 5 detik. Itulah yang mencegah dua worker mengirim baris yang sama selagi klaim berlaku. Tanpa klausa kunci sama sekali, dua sesi memilih nomor 1 sampai 4 yang sama (`klaim.txt` bagian A).
 

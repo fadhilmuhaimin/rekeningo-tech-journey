@@ -362,7 +362,13 @@ describe("kode lab: TulisOutbox, KlaimOutbox, worker, Bayar, 000017", () => {
     expect(mainGo).toContain('peran := flag.String("peran", "api", "api atau worker")');
     expect(mainGo).toContain("Satu binary, dua peran");
     harus("Worker adalah `api-t3 -peran worker`, proses yang terpisah dari server API.");
-    harus('<Snippet file="labs/api-t3/internal/repo/outbox.go" region="klaim" lang="go" title="labs/api-t3/internal/repo/outbox.go" />');
+    // Snippet klaim memakai rentang baris fungsinya saja: komentar di region memuat ID riset, nomor PR, dan nama tes lab yang tidak boleh tampil ke pembaca (keputusan 1035).
+    const goBaris = outboxGo.split("\n");
+    const awalKlaim = goBaris.findIndex((b) => b.startsWith("func (r Repo) KlaimOutbox(")) + 1;
+    const akhirKlaim = goBaris.findIndex((b, i) => i >= awalKlaim && b === "}") + 1;
+    expect([awalKlaim, akhirKlaim]).toEqual([74, 94]);
+    harus(`<Snippet file="labs/api-t3/internal/repo/outbox.go" lines="${awalKlaim}:${akhirKlaim}" lang="go" title="labs/api-t3/internal/repo/outbox.go" />`);
+    expect(badan).not.toContain('region="klaim"');
     harus("Worker adalah binary Go yang sama dengan server API, dijalankan dengan flag peran.");
     // Klaim "mengirimnya serentak": Putaran memulai satu goroutine per baris; polling berhenti bila queue kosong (Jalankan tidur Selang).
     const putaran = workerGo.split("func (w *Worker) Putaran(")[1]!.split("\nfunc ")[0]!;
@@ -469,7 +475,10 @@ describe("pemicu queue di ADR 21, janji 30 detik, dan beban", () => {
     expect([littleT10[1], littleT10[2]]).toEqual(["0,87", "8,717"]);
     expect(Number(littleT10[2]!.replace(",", "."))).toBeGreaterThan(pemicuL);
     harus(`Di puncak, λ = ${lambdaTxt} pembayaran per detik (Asumsi, yaitu angka beban dari cerita). Pemicu itu tercapai pada W luar ±${koma(wLuar, 1)} detik (Hitungan: ${pemicuL} ÷ ${lambdaTxt} − 0,02 = ${koma(wLuar, 2)}).`);
-    harus(`untuk t = 10 detik, lab t3-pool menghitung L = ${littleT10[2]} dengan λ = ${littleT10[1]} (\`little.txt\`)`);
+    harus(`untuk t = 10 detik, lab t3-pool menghitung L = ${littleT10[2]} dengan λ = ${littleT10[1]}, yaitu ${lambdaTxt} yang dibulatkan (\`little.txt\`)`);
+    // Pembulatan 0,868 ke 0,87 dihitung, bukan ditulis tangan; L dari λ yang tertulis bisa diulang pembaca (0,87 × 10,02 = 8,7174).
+    expect(Math.round(lambda * 100) / 100).toBe(Number(littleT10[1]!.replace(",", ".")));
+    expect(koma(Number(littleT10[1]!.replace(",", ".")) * (0.02 + 10), 3)).toBe(littleT10[2]);
   });
   test("janji 95% dalam 30 detik diukur sampai pesan diserahkan ke layanan push, sama dengan 3.1", () => {
     expect(prd).toContain("Bayar dan transfer: 95% dalam kurang dari 30 detik.");
@@ -652,6 +661,32 @@ describe("label, versi, tanggal akses, dan baris riset", () => {
     expect(kartu.length).toBe(4);
     expect(JSON.stringify(kartu)).not.toMatch(/\bR\d-\d{2,3}\b/);
   });
+  test("kode dan rekaman yang tampil di Snippet tidak membawa ID riset, nomor PR, nomor keputusan, atau nama tes lab (keputusan 1035)", () => {
+    // Meniru Snippet.astro: berkas, lalu rentang baris, lalu region, tanpa baris penanda `--8<-- [`. Komentar ikut tampil ke pembaca.
+    const tampil = (tag: string): string => {
+      const atr = (n: string) => tag.match(new RegExp(`${n}="([^"]*)"`))?.[1];
+      const file = atr("file");
+      let src = file ? baca(file) : "";
+      const rentang = atr("lines");
+      if (rentang) {
+        const [a, b] = rentang.split(":").map(Number);
+        src = src.split("\n").slice(a! - 1, b).join("\n");
+      }
+      const region = atr("region");
+      if (region) {
+        const l = src.split("\n");
+        src = l.slice(l.findIndex((x) => x.includes(`--8<-- [start:${region}]`)) + 1, l.findIndex((x) => x.includes(`--8<-- [end:${region}]`))).join("\n");
+      }
+      return src.split("\n").filter((l) => !l.includes("--8<-- [")).join("\n");
+    };
+    const tag = [...badan.matchAll(/<Snippet ([^>]*?)\/>/g)].map((m) => m[1]!).filter((t) => /file="/.test(t));
+    expect(tag.length).toBeGreaterThanOrEqual(3);
+    for (const t of tag) {
+      const isi = tampil(t);
+      expect(isi.length, t).toBeGreaterThan(0);
+      expect(isi, t).not.toMatch(/\bR\d-\d{2,3}\b|\bPR #?\d{3}\b|\bkeputusan \d{3}\b|\bTest[A-Z][A-Za-z]+/);
+    }
+  });
   test("baris riset R3-140 sampai R3-144 dikunci dengan sidik jari: ubah satu karakter, buka lagi sumbernya, lalu perbarui sidik jarinya", () => {
     const hasil = Object.fromEntries(["R3-140", "R3-141", "R3-142", "R3-143", "R3-144"].map((id) => [id, sidik(barisRiset(id))]));
     expect(hasil).toEqual(SIDIK_RISET);
@@ -813,7 +848,7 @@ const KALIMAT_TERKUNCI: string[] = [
   "Kenapa ini ada",
   "[[t3-dua-tempat]] menunjukkan bahwa PostgreSQL dan layanan push tidak bisa COMMIT bersama. [[t3-m18]] menunjukkan harganya: push yang menggantung di dalam transaction menahan koneksi sampai pool penuh. Outbox menjawab keduanya dengan satu aturan. Apa pun yang menyentuh pihak luar dikerjakan sesudah COMMIT, dan yang tertinggal di PostgreSQL hanya satu baris yang berarti \"kirim ini\".",
   "[[t2-adr-21]] menunda queue sampai L = λ × (0,02 + W luar) mencapai 5 koneksi. Di puncak, λ = 0,868 pembayaran per detik (Asumsi, yaitu angka beban dari cerita). Pemicu itu tercapai pada W luar ±5,7 detik (Hitungan: 5 ÷ 0,868 − 0,02 = 5,74).",
-  "Layanan push yang menggantung melewatinya: untuk t = 10 detik, lab t3-pool menghitung L = 8,717 dengan λ = 0,87 (`little.txt`). Karena itu queue masuk di Tahap 3.",
+  "Layanan push yang menggantung melewatinya: untuk t = 10 detik, lab t3-pool menghitung L = 8,717 dengan λ = 0,87, yaitu 0,868 yang dibulatkan (`little.txt`). Karena itu queue masuk di Tahap 3.",
   "PRD v3 menjanjikan 95% pemberitahuan bayar dan transfer diserahkan ke layanan push dalam kurang dari 30 detik ([[t3-prd]]). Pengukurannya berhenti saat pesan diserahkan, bukan saat HP menerimanya.",
   "Cara kerjanya",
   "**Tulis dan kirim dipisah oleh COMMIT.** Saat Budi membayar, service menulis jurnal, dua posting, dan satu baris `outbox` di transaction yang sama. Tidak ada panggilan jaringan di dalamnya, hanya `INSERT`.",
