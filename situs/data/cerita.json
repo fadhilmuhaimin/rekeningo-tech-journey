@@ -2260,8 +2260,9 @@
       "prasyarat": [
         "t2-jembatan"
       ],
-      "ada": false,
-      "nomor": "3.1"
+      "ada": true,
+      "nomor": "3.1",
+      "menit": 8
     },
     {
       "id": "t3-fitur-teknis",
