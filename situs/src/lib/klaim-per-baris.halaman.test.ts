@@ -455,13 +455,13 @@ describe("versi dan sumber dokumentasi", () => {
     harus('<Snippet file="labs/b8-concurrency/output/go.txt" lines="2:4"');
     expect(Math.ceil(10 / 3) * 0.5).toBeCloseTo(2, 5);
     expect(b8Node.find((b) => b.startsWith("paralel (Promise.all)"))).toContain("0.51 detik");
-    harus("paralel 0,50 dan 0,51 detik untuk 10 kiriman 500 ms (Rekaman lab B8)");
+    harus("paralel 0,50 dan 0,51 detik untuk 10 kiriman 500 ms (Rekaman lab `b8-concurrency`)");
     const ping = (k: string) => Number(b8Cpu.find((b) => b.startsWith(k))!.match(/(\d+\.\d+) detik/)![1]);
     expect(fmt(ping("Go") * 1000, 2)).toBe("0,35");
     expect(fmt(ping("Node.js"), 2)).toBe("0,96");
     harus("`/ping` dijawab dalam 0,35 ms di Go dan 0,96 detik di Node.js (`cpu.txt`)");
     expect(baca("labs/b8-concurrency/output/go.txt")).toContain("goroutine sebelum: 5\ngoroutine sesudah: 1005");
-    harus("Rekaman B8 yang sama mencatat 1.000 goroutine tertinggal bila pemanggil menyerah duluan (5 sebelum, 1.005 sesudah).");
+    harus("Rekaman lab yang sama mencatat 1.000 goroutine tertinggal bila pemanggil menyerah duluan (5 sebelum, 1.005 sesudah).");
     expect(badan).not.toMatch(/Spring|170 notifikasi/);
     // Kapasitas worker: c ÷ t, diukur 12 sampai 13,33 per detik.
     expect(fmt(4 / 0.3, 1)).toBe("13,3");
@@ -722,15 +722,15 @@ const KALIMAT_PENULIS: string[] = [
   "Pendaftaran `LISTEN` hilang saat sesi berakhir ([PostgreSQL 17: LISTEN](https://www.postgresql.org/docs/17/sql-listen.html), dibuka 2026-10-26). Dokumentasi NOTIFY tidak menulis nasib notifikasi yang dikirim selagi listener putus. Rekaman lab menjawabnya untuk satu kejadian: notifikasi itu tidak pernah sampai, dan barisnya tetap menunggu di tabel sampai worker yang polling menemukannya:",
   "Dokumentasi LISTEN sendiri menyarankan memeriksa keadaan database sesudah `LISTEN` berjalan, lalu mengandalkan notifikasi untuk perubahan berikutnya. Di `labs/api-t3` (kode Go dan migration) tidak ada `LISTEN` atau `NOTIFY`, dan worker memakai polling dengan jeda bawaan 200 ms. Perilaku di atas direkam dengan skrip lab Python.",
   "**Berapa kiriman sekaligus.** Satu putaran worker mengklaim paling banyak c baris, lalu mengirimnya serentak, satu goroutine per baris. Batas klaim sama dengan batas paralelisme, jadi tidak ada semaphore lain:",
-  "Kapasitasnya c ÷ t = 4 ÷ 0,3 = 13,3 baris per detik (c dan t Asumsi naskah). Rekaman `queue.txt` bagian A mengukur antara 12 dan 13,33 per detik. Rekaman lab B8 menunjukkan kenapa paralelisme dibatasi, karena layanan luar bisa punya kuota. Sepuluh kiriman 500 ms butuh 5,02 detik berurutan, 0,50 detik paralel penuh, dan 2,01 detik dengan batas tiga bersamaan:",
-  "Tiap goroutine pengirim harus punya jalan keluar. Rekaman B8 yang sama mencatat 1.000 goroutine tertinggal bila pemanggil menyerah duluan (5 sebelum, 1.005 sesudah). Di worker, jalan keluarnya timeout push 3 detik ([[t3-m18]]).",
+  "Kapasitasnya c ÷ t = 4 ÷ 0,3 = 13,3 baris per detik (c dan t Asumsi naskah). Rekaman `queue.txt` bagian A mengukur antara 12 dan 13,33 per detik. Rekaman lab `b8-concurrency` menunjukkan kenapa paralelisme dibatasi, karena layanan luar bisa punya kuota. Sepuluh kiriman 500 ms butuh 5,02 detik berurutan, 0,50 detik paralel penuh, dan 2,01 detik dengan batas tiga bersamaan:",
+  "Tiap goroutine pengirim harus punya jalan keluar. Rekaman lab yang sama mencatat 1.000 goroutine tertinggal bila pemanggil menyerah duluan (5 sebelum, 1.005 sesudah). Di worker, jalan keluarnya timeout push 3 detik ([[t3-m18]]).",
   "Di stack lain",
   "**Skenario:** worker mengambil baris queue di PostgreSQL tanpa dua worker mengirim baris yang sama. Tab Go adalah kode lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi atau kode sumber pada 2026-10-26.",
-  "Yang sama di semua stack: baris dikunci selama klaim dan ditahan sesudahnya. Yang berbeda adalah siapa yang menulis klausa kunci, ada tidaknya batas waktu klaim, dan model concurrency proses worker. Menunggu jaringan sama cepatnya di Go dan Node.js: paralel 0,50 dan 0,51 detik untuk 10 kiriman 500 ms (Rekaman lab B8). Bedanya terasa pada kerja CPU: saat satu request menghitung 1 detik, `/ping` dijawab dalam 0,35 ms di Go dan 0,96 detik di Node.js (`cpu.txt`).",
+  "Yang sama di semua stack: baris dikunci selama klaim dan ditahan sesudahnya. Yang berbeda adalah siapa yang menulis klausa kunci, ada tidaknya batas waktu klaim, dan model concurrency proses worker. Menunggu jaringan sama cepatnya di Go dan Node.js: paralel 0,50 dan 0,51 detik untuk 10 kiriman 500 ms (Rekaman lab `b8-concurrency`). Bedanya terasa pada kerja CPU: saat satu request menghitung 1 detik, `/ping` dijawab dalam 0,35 ms di Go dan 0,96 detik di Node.js (`cpu.txt`).",
   "*Dijalankan: lab api-t3 dan t3-outbox, PostgreSQL 17.11 (rekaman `klaim.txt` bagian A sampai D).*",
-  "**Yang berbeda di stack ini:** klaim ditulis sebagai SQL tangan lewat `database/sql`, tanpa library queue. Cabang `Kursor` adalah mode rentan M19. Request lain tetap dijawab saat satu request menghitung (rekaman B8: 0,35 ms).",
+  "**Yang berbeda di stack ini:** klaim ditulis sebagai SQL tangan lewat `database/sql`, tanpa library queue. Cabang `Kursor` adalah mode rentan M19. Request lain tetap dijawab saat satu request menghitung (rekaman `b8-concurrency`: 0,35 ms).",
   "*Tidak dijalankan. Dicek ke [README pg-boss](https://github.com/timgit/pg-boss), pg-boss 12.38.0 (npm, rilis 2026-10-13), dibuka 2026-10-26.*",
-  "**Yang berbeda di stack ini:** pg-boss adalah queue Node.js di atas PostgreSQL. Menurut README, ia bertumpu pada `SKIP LOCKED` dan worker bersamaan mengklaim job tanpa saling memblokir. Tabel dan klaim disediakan library, dan pollingnya mendukung `LISTEN/NOTIFY` untuk pengiriman lebih cepat. Satu event loop menjalankan semua handler: kerja CPU 1 detik menahan request lain selama 0,96 detik (rekaman B8).",
+  "**Yang berbeda di stack ini:** pg-boss adalah queue Node.js di atas PostgreSQL. Menurut README, ia bertumpu pada `SKIP LOCKED` dan worker bersamaan mengklaim job tanpa saling memblokir. Tabel dan klaim disediakan library, dan pollingnya mendukung `LISTEN/NOTIFY` untuk pengiriman lebih cepat. Satu event loop menjalankan semua handler: kerja CPU 1 detik menahan request lain selama 0,96 detik (rekaman `b8-concurrency`).",
   "*Tidak dijalankan. Dicek ke kode sumber [`DatabaseQueue`](https://github.com/laravel/framework/blob/v13.38.0/src/Illuminate/Queue/DatabaseQueue.php), `laravel/framework` 13.38.0, dan [Laravel 13.x: Queues](https://laravel.com/docs/13.x/queues).*",
   "**Yang berbeda di stack ini:** halaman Queues tidak menyebut `SKIP LOCKED`, tetapi kode driver `database` memakainya. Untuk PostgreSQL 9.5 ke atas, driver memilih `FOR UPDATE SKIP LOCKED`, lalu menulis `reserved_at` dan menaikkan `attempts`. Job yang `reserved_at`-nya lebih tua dari `retryAfter` boleh diambil lagi, jadi pasangannya sama dengan `klaim_sampai`. Kamu tidak menulis SQL-nya.",
   "*Tidak dijalankan. Dicek ke [Django 6.1: QuerySet API, select_for_update](https://docs.djangoproject.com/en/6.1/ref/models/querysets/#select-for-update), Django 6.1.2. Kode di bawah adalah Ilustrasi.*",

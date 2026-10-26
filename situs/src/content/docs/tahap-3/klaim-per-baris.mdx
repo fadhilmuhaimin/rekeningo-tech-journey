@@ -135,17 +135,17 @@ Dokumentasi LISTEN sendiri menyarankan memeriksa keadaan database sesudah `LISTE
 
 <Snippet file="labs/api-t3/internal/worker/worker.go" lines="105:114" lang="go" title="labs/api-t3/internal/worker/worker.go" />
 
-Kapasitasnya c ÷ t = 4 ÷ 0,3 = 13,3 baris per detik (c dan t Asumsi naskah). Rekaman `queue.txt` bagian A mengukur antara 12 dan 13,33 per detik. Rekaman lab B8 menunjukkan kenapa paralelisme dibatasi, karena layanan luar bisa punya kuota. Sepuluh kiriman 500 ms butuh 5,02 detik berurutan, 0,50 detik paralel penuh, dan 2,01 detik dengan batas tiga bersamaan:
+Kapasitasnya c ÷ t = 4 ÷ 0,3 = 13,3 baris per detik (c dan t Asumsi naskah). Rekaman `queue.txt` bagian A mengukur antara 12 dan 13,33 per detik. Rekaman lab `b8-concurrency` menunjukkan kenapa paralelisme dibatasi, karena layanan luar bisa punya kuota. Sepuluh kiriman 500 ms butuh 5,02 detik berurutan, 0,50 detik paralel penuh, dan 2,01 detik dengan batas tiga bersamaan:
 
 <Snippet file="labs/b8-concurrency/output/go.txt" lines="2:4" title="Rekaman lab: labs/b8-concurrency/output/go.txt" />
 
-Tiap goroutine pengirim harus punya jalan keluar. Rekaman B8 yang sama mencatat 1.000 goroutine tertinggal bila pemanggil menyerah duluan (5 sebelum, 1.005 sesudah). Di worker, jalan keluarnya timeout push 3 detik ([[t3-m18]]).
+Tiap goroutine pengirim harus punya jalan keluar. Rekaman lab yang sama mencatat 1.000 goroutine tertinggal bila pemanggil menyerah duluan (5 sebelum, 1.005 sesudah). Di worker, jalan keluarnya timeout push 3 detik ([[t3-m18]]).
 
 ### Di stack lain
 
 **Skenario:** worker mengambil baris queue di PostgreSQL tanpa dua worker mengirim baris yang sama. Tab Go adalah kode lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi atau kode sumber pada 2026-10-26.
 
-Yang sama di semua stack: baris dikunci selama klaim dan ditahan sesudahnya. Yang berbeda adalah siapa yang menulis klausa kunci, ada tidaknya batas waktu klaim, dan model concurrency proses worker. Menunggu jaringan sama cepatnya di Go dan Node.js: paralel 0,50 dan 0,51 detik untuk 10 kiriman 500 ms (Rekaman lab B8). Bedanya terasa pada kerja CPU: saat satu request menghitung 1 detik, `/ping` dijawab dalam 0,35 ms di Go dan 0,96 detik di Node.js (`cpu.txt`).
+Yang sama di semua stack: baris dikunci selama klaim dan ditahan sesudahnya. Yang berbeda adalah siapa yang menulis klausa kunci, ada tidaknya batas waktu klaim, dan model concurrency proses worker. Menunggu jaringan sama cepatnya di Go dan Node.js: paralel 0,50 dan 0,51 detik untuk 10 kiriman 500 ms (Rekaman lab `b8-concurrency`). Bedanya terasa pada kerja CPU: saat satu request menghitung 1 detik, `/ping` dijawab dalam 0,35 ms di Go dan 0,96 detik di Node.js (`cpu.txt`).
 
 <TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
 <Fragment slot="t0">
@@ -154,14 +154,14 @@ Yang sama di semua stack: baris dikunci selama klaim dan ditahan sesudahnya. Yan
 
 <Snippet file="labs/api-t3/internal/worker/worker.go" lines="87:101" lang="go" title="labs/api-t3/internal/worker/worker.go" />
 
-**Yang berbeda di stack ini:** klaim ditulis sebagai SQL tangan lewat `database/sql`, tanpa library queue. Cabang `Kursor` adalah mode rentan M19. Request lain tetap dijawab saat satu request menghitung (rekaman B8: 0,35 ms).
+**Yang berbeda di stack ini:** klaim ditulis sebagai SQL tangan lewat `database/sql`, tanpa library queue. Cabang `Kursor` adalah mode rentan M19. Request lain tetap dijawab saat satu request menghitung (rekaman `b8-concurrency`: 0,35 ms).
 
 </Fragment>
 <Fragment slot="t1">
 
 *Tidak dijalankan. Dicek ke [README pg-boss](https://github.com/timgit/pg-boss), pg-boss 12.38.0 (npm, rilis 2026-10-13), dibuka 2026-10-26.*
 
-**Yang berbeda di stack ini:** pg-boss adalah queue Node.js di atas PostgreSQL. Menurut README, ia bertumpu pada `SKIP LOCKED` dan worker bersamaan mengklaim job tanpa saling memblokir. Tabel dan klaim disediakan library, dan pollingnya mendukung `LISTEN/NOTIFY` untuk pengiriman lebih cepat. Satu event loop menjalankan semua handler: kerja CPU 1 detik menahan request lain selama 0,96 detik (rekaman B8).
+**Yang berbeda di stack ini:** pg-boss adalah queue Node.js di atas PostgreSQL. Menurut README, ia bertumpu pada `SKIP LOCKED` dan worker bersamaan mengklaim job tanpa saling memblokir. Tabel dan klaim disediakan library, dan pollingnya mendukung `LISTEN/NOTIFY` untuk pengiriman lebih cepat. Satu event loop menjalankan semua handler: kerja CPU 1 detik menahan request lain selama 0,96 detik (rekaman `b8-concurrency`).
 
 </Fragment>
 <Fragment slot="t2">
