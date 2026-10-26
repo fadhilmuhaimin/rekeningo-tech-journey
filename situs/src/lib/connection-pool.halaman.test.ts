@@ -453,6 +453,14 @@ describe("versi dan sumber dokumentasi", () => {
     expect(riset).toMatch(/\| R3-94 \|[^\n]*Dart 3\.13\.7/);
     harus("([Dart 3.13.7: Future.timeout](https://api.dart.dev/dart-async/Future/timeout.html), dibuka 2026-10-26)");
   });
+  test("pgx#1974 hanya jebakan forum: judul, tanggal, status, dan saran pengelola sama dengan baris riset; bukan bukti", () => {
+    expect(riset).toContain('[jackc/pgx#1974 "my pool keeps running out of connections"](https://github.com/jackc/pgx/issues/1974) (open, 2024-03-28)');
+    expect(riset).toMatch(/jackc\/pgx#1974[^\n]*komentar di isu menyarankan menutup rows, penyebab pastinya tidak dikonfirmasi/);
+    harus('Isu pgx "my pool keeps running out of connections" ([jackc/pgx#1974](https://github.com/jackc/pgx/issues/1974), terbuka sejak 2024-03-28, diakses 2026-10-26)');
+    harus("pengelola menyarankan melihat `pg_stat_activity` saat pool habis");
+    harus("Pelapor sudah memeriksa penutupan rows, penyebabnya tidak dikonfirmasi");
+    harus("Isu forum bukan bukti");
+  });
   test("Little 1961: syarat tiga rata-rata terhingga dan proses stasioner ketat; abstrak tidak menyebut batas atas; DOI sama dengan RISET", () => {
     const riset2 = baca("plan/RISET-TAHAP-2.md");
     expect(riset2).toMatch(/\| R2-35 \|[^\n]*DOI 10\.1287\/opre\.9\.3\.383/);
@@ -662,6 +670,7 @@ const KALIMAT_PENULIS: string[] = [
   "Untuk n = 10 hasilnya 10 ÷ 0,868 = 11,5 detik, dan untuk n = 50 hasilnya 50 ÷ 0,868 = 57,6 detik. Rekaman mencatat antara detik ke-11 dan ke-12 untuk pool 10, dan antara detik ke-57 dan ke-58 untuk pool 50 (`m18.txt` bagian A dan B).",
   "Client yang menyerah sesudah T detik melepas koneksinya, karena `BeginTx` membatalkan transaction saat konteksnya dibatalkan ([Go 1.27.3: DB.BeginTx](https://pkg.go.dev/database/sql#DB.BeginTx)). Pembayaran pertama menyerah pada 1 ÷ λ + T, sedangkan pembayaran ke-10 tiba pada 10 ÷ λ. Pool penuh hanya bila pembayaran pertama belum menyerah saat itu, yaitu bila T lebih dari (10 − 1) ÷ 0,868 = 10,4 detik. Dengan T = 5, koneksi terpakai paling banyak 5 dari 10, dan tidak ada jurnal:",
   "Lab menjadwalkan kedatangan dengan jarak tetap. Kedatangan acak bisa mengisi pool lebih awal, karena kedatangan bisa menggerombol. Itu penalaran dan Tidak dijalankan, jadi hitungan di halaman ini berlaku untuk jadwal tetap.",
+  "**Pertanyaan dari forum.** Isu pgx \"my pool keeps running out of connections\" ([jackc/pgx#1974](https://github.com/jackc/pgx/issues/1974), terbuka sejak 2024-03-28, diakses 2026-10-26) melaporkan pool yang habis dan tidak pulih tanpa restart. Pelapor sudah memeriksa penutupan rows, penyebabnya tidak dikonfirmasi, dan pengelola menyarankan melihat `pg_stat_activity` saat pool habis. Isu forum bukan bukti, tetapi pertanyaannya sama dengan pertanyaan Raka, dan jawabannya ada di rekaman di atas.",
   "**Satu tugas untuk tiap timeout.** Layanan push yang tidak menjawab bisa ditangani di empat tempat, dan tiap tempat melindungi hal yang berbeda.",
   "**Timeout client HTTP.** `http.Client.Timeout` membatasi satu panggilan keluar, termasuk waktu menyambung dan membaca body, dan nol berarti tanpa batas (Go 1.27.3). Client push api-t3 memakai 3 detik:",
   "**Konteks request.** Untuk request masuk, Go membatalkan konteksnya saat koneksi client tertutup atau handler kembali ([net/http: Request.Context](https://pkg.go.dev/net/http#Request.Context)). Handler lab memanggil push dengan konteks yang dilepas dari request, jadi 26 permintaan masih tertahan di layanan push walau client sudah pergi (`m18.txt` bagian C).",

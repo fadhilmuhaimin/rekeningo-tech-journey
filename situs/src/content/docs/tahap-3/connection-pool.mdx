@@ -103,6 +103,8 @@ Client yang menyerah sesudah T detik melepas koneksinya, karena `BeginTx` membat
 
 Lab menjadwalkan kedatangan dengan jarak tetap. Kedatangan acak bisa mengisi pool lebih awal, karena kedatangan bisa menggerombol. Itu penalaran dan Tidak dijalankan, jadi hitungan di halaman ini berlaku untuk jadwal tetap.
 
+**Pertanyaan dari forum.** Isu pgx "my pool keeps running out of connections" ([jackc/pgx#1974](https://github.com/jackc/pgx/issues/1974), terbuka sejak 2024-03-28, diakses 2026-10-26) melaporkan pool yang habis dan tidak pulih tanpa restart. Pelapor sudah memeriksa penutupan rows, penyebabnya tidak dikonfirmasi, dan pengelola menyarankan melihat `pg_stat_activity` saat pool habis. Isu forum bukan bukti, tetapi pertanyaannya sama dengan pertanyaan Raka, dan jawabannya ada di rekaman di atas.
+
 **Satu tugas untuk tiap timeout.** Layanan push yang tidak menjawab bisa ditangani di empat tempat, dan tiap tempat melindungi hal yang berbeda.
 
 - **Timeout client HTTP.** `http.Client.Timeout` membatasi satu panggilan keluar, termasuk waktu menyambung dan membaca body, dan nol berarti tanpa batas (Go 1.27.3). Client push api-t3 memakai 3 detik:
