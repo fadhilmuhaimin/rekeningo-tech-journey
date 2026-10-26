@@ -2375,8 +2375,9 @@
       "lab": [
         "t3-pool"
       ],
-      "ada": false,
-      "nomor": "3.6"
+      "ada": true,
+      "nomor": "3.6",
+      "menit": 11
     },
     {
       "id": "t3-observability",

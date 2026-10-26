@@ -1,0 +1,175 @@
+{
+  "versi": 2,
+  "judul": "Layanan push menggantung, Budi membuka saldonya",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t3-pool/output/m18.txt",
+    "fileVarian": "labs/t3-pool/output/m18.txt",
+    "catatan": "Server Go dalam mode rentan push-dalam-tx, PostgreSQL 17.11, dan layanan push tiruan lokal dari database bersih (make -C labs/t3-pool run). Jalur utama: m18.txt bagian A, dengan beban berjadwal tetap 17,4 request per detik (bukan acak); langkah Budi membuka saldo: labs/api-t3/output/rentan.txt bagian A. Ubah satu hal: m18.txt bagian C. Baris diawali tanda panah diringkas dari rekaman yang sama, bukan baris log. Layar HP digambar dari isi rekaman; lab api-t3 tidak punya app Flutter. Waktu di langkah adalah jadwal beban, bukan jam sungguhan."
+  },
+  "pengantar": "Layanan push menerima koneksi dan tidak pernah menjawab. Tebak dulu, lalu ikuti pembayaran yang menunggunya sampai Budi membuka saldonya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "app", "label": "App" },
+    { "id": "api", "label": "Server Go" },
+    { "id": "db", "label": "PostgreSQL" },
+    { "id": "push", "label": "Layanan push (tiruan)" }
+  ],
+  "perangkat": [
+    { "id": "budi", "label": "HP Budi" }
+  ],
+  "layarAwal": {
+    "budi": {
+      "judul": "Beranda",
+      "sinyal": 3,
+      "isi": [
+        { "jenis": "teks", "teks": "Saldo dan riwayat" },
+        { "jenis": "tombol", "teks": "Lihat saldo" }
+      ]
+    }
+  },
+  "predict": {
+    "q": "Pembayaran ke-10 sudah sampai di layanan push dan belum dijawab, jadi 10 koneksi pool terpakai semua. Budi membuka saldonya. Apa yang diterima app Budi?",
+    "options": [
+      "Saldonya dengan status 200: membaca saldo hanya satu query kecil",
+      "Tidak ada jawaban: server butuh satu koneksi bebas, bahkan untuk memeriksa sesi",
+      "Status 503 segera: server menolak request saat pool penuh",
+      "Status 401: sesi Budi tidak bisa diperiksa"
+    ],
+    "answer": 1,
+    "varian": false,
+    "explain": "Tidak ada jawaban. Sesudah pool penuh, 190 dari 190 pembacaan tidak dijawab dalam 3 detik (m18.txt bagian A), dan GET /akun/419 juga tidak dijawab (rentan.txt bagian A). Server memakai satu koneksi untuk memeriksa sesi sebelum membaca saldo."
+  },
+  "langkah": [
+    {
+      "dari": "app",
+      "ke": "api",
+      "judul": "Pembayaran pertama datang",
+      "kirim": "POST /transfers\n→ pool 10 koneksi: transaction pembayaran ke-1 memakai satu",
+      "jelas": "Pembayaran biasa, seperti di Tahap 2. Di puncak, satu pembayaran datang tiap ±1,15 detik (1 ÷ 0,868, Asumsi)."
+    },
+    {
+      "dari": "api",
+      "ke": "push",
+      "judul": "Server memanggil layanan push di dalam transaction",
+      "kirim": "POST /v1/pesan, di dalam transaction\nserver log: api-t3 siap: pool 10, push timeout 0s, idle-tx 0s\nlayanan push tiruan: menerima permintaan, tidak pernah menjawab",
+      "jelas": "Client push tidak punya batas waktu (push timeout 0), jadi transaction tetap terbuka sampai layanan push menjawab. Ia tidak pernah menjawab.",
+      "nada": "warn"
+    },
+    {
+      "dari": "db",
+      "judul": "Transaction diam, koneksinya ditahan",
+      "kirim": "=> SELECT count(*) AS idle_in_transaction FROM pg_stat_activity WHERE application_name = 'api-t3' AND state = 'idle in transaction'\npembayaran ke-1 sampai di layanan push: idle in transaction 1",
+      "jelas": "PostgreSQL tidak menjalankan query apa pun untuk transaction itu. Transaction terbuka karena server Go menunggu layanan push."
+    },
+    {
+      "dari": "app",
+      "ke": "api",
+      "judul": "Pembayaran ke-2 sampai ke-9 menahan satu koneksi lagi tiap kali",
+      "kirim": "pembayaran ke-5 sampai di layanan push: idle in transaction 5\npembayaran ke-9 sampai di layanan push: idle in transaction 9",
+      "jelas": "Tidak ada jawaban dari layanan push, jadi tidak ada koneksi yang kembali ke pool. Pembacaan saldo masih dijawab: 190 dari 190 sebelum pool penuh."
+    },
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Pembayaran ke-10 menahan koneksi terakhir",
+      "kirim": "pembayaran ke-10 sampai di layanan push: idle in transaction 10\npool 10 penuh antara detik ke-11 dan ke-12 sejak beban mulai (hitungan 10 ÷ 0,87 = 11,5)",
+      "jelas": "Hitungan 10 ÷ 0,868 = ±11,5 detik (Asumsi); lab memakai 0,87 dengan hasil yang sama dalam satu desimal. Dari sini pool tidak punya koneksi bebas.",
+      "nada": "warn"
+    },
+    {
+      "dari": "app",
+      "ke": "api",
+      "judul": "Budi membuka saldonya",
+      "kirim": "GET /akun/419\nAuthorization: Bearer <token sesi Budi>",
+      "jelas": "Pembacaan butuh satu koneksi, bahkan untuk memeriksa sesi Budi.",
+      "layar": {
+        "budi": {
+          "judul": "Saldo",
+          "sinyal": 3,
+          "isi": [{ "jenis": "proses", "teks": "Memuat saldo..." }]
+        }
+      }
+    },
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Server meminta koneksi, dan pool kosong",
+      "kirim": "$ curl -i -X GET '/lab/pool'\n{\"dipakai\":10,\"maks\":10,\"terbuka\":10}",
+      "jelas": "Sepuluh dari sepuluh koneksi dipakai, dan tidak satu pun akan kembali selama layanan push diam. Request Budi menunggu.",
+      "nada": "warn"
+    },
+    {
+      "dari": "api",
+      "ke": "app",
+      "judul": "Budi tidak mendapat jawaban",
+      "kirim": "(tidak ada jawaban)\nPembacaan sesudah pool penuh (request 201 sampai 400): 190 pembacaan: tanpa jawaban x190",
+      "jelas": "Server tidak mengirim jawaban apa pun, termasuk pesan galat. Di lab, 190 dari 190 pembacaan sesudah pool penuh tidak dijawab dalam 3 detik.",
+      "nada": "warn",
+      "layar": {
+        "budi": {
+          "judul": "Saldo",
+          "sinyal": 3,
+          "nada": "warn",
+          "isi": [
+            { "jenis": "proses", "teks": "Memuat saldo..." },
+            { "jenis": "teks", "teks": "Belum ada jawaban dari server" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "api",
+      "ke": "push",
+      "judul": "Sesudah 30 detik, 16 pembayaran mengantre",
+      "kirim": "Sesudah 30 detik: 26 pembayaran dikirim, 26 belum dijawab. Di layanan push 10 permintaan menggantung, jadi 16 pembayaran menunggu koneksi di API.",
+      "jelas": "Hanya 10 pembayaran yang sampai ke layanan push. Sisanya mengantre di pool. Angka 26 hanya jadwal × waktu, karena tidak ada pembayaran yang selesai.",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "app menyerah sesudah 5 detik",
+    "mulai": 3,
+    "langkah": [
+      {
+        "dari": "app",
+        "ke": "api",
+        "judul": "App memutus pembayaran sesudah 5 detik",
+        "kirim": "pembayaran request 1 sampai 400: 20 pembayaran: tanpa jawaban x20",
+        "jelas": "App di HP berhenti menunggu sesudah 5 detik dan menampilkan \"timeout\". Jawaban pembayaran tidak pernah sampai: 20 dari 20 tanpa jawaban.",
+        "nada": "warn"
+      },
+      {
+        "dari": "api",
+        "ke": "db",
+        "judul": "Transaction dibatalkan, koneksi kembali",
+        "kirim": "koneksi idle in transaction: puncak 5 dari 10 (0,87 × 5 detik = 4,35, jadi paling banyak 5)",
+        "jelas": "Server membatalkan transaction saat app memutus, jadi koneksinya kembali ke pool. Pada satu saat paling banyak 5 koneksi terpakai, dan pool tidak penuh.",
+        "nada": "good"
+      },
+      {
+        "dari": "app",
+        "ke": "api",
+        "judul": "Budi membuka saldonya",
+        "kirim": "pembacaan request 1 sampai 400: 380 pembacaan: 200 x380",
+        "jelas": "Pool punya koneksi bebas, jadi 380 dari 380 pembacaan dijawab dengan 200.",
+        "nada": "good",
+        "layar": {
+          "budi": {
+            "judul": "Saldo",
+            "sinyal": 3,
+            "nada": "good",
+            "isi": [{ "jenis": "toast", "teks": "Saldo dimuat", "nada": "good" }]
+          }
+        }
+      },
+      {
+        "dari": "api",
+        "ke": "push",
+        "judul": "Layanan push tetap menahan permintaan",
+        "kirim": "Sesudah 30 detik layanan push masih menahan 26 permintaan: handler tidak berhenti walau client pergi (push memakai konteks yang dilepas dari request).",
+        "jelas": "App yang menyerah melindungi pool, tetapi tidak menghentikan server menunggu layanan push. Perbaikan yang benar ada di [[t3-pool]].",
+        "nada": "warn"
+      }
+    ]
+  }
+}
