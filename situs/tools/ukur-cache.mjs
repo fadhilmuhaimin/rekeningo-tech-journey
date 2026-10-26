@@ -141,6 +141,12 @@ const tiles = (w) => w.locator(".ch-kotak").evaluateAll((k) => k.map((x) => { co
 // Warna kotak dan kalimat penuh yang stale lawan yang benar harus berbeda (tema aktif): kumpulan dicocokkan sesudah semua kasus.
 const warna = { staleKotak: new Set(), benarKotak: new Set(), staleVonis: new Set(), benarVonis: new Set() };
 const rapi = (t) => t.replace(/\s+/g, " ").trim();
+// role=status hanya satu kalimat ringkas, tanpa tombol, dan alasan tebakan tidak di dalam daerah live (pola OutboxWorker).
+const statusSatuKalimat = (w) => w.evaluate((el) => {
+  const st = [...el.querySelectorAll('[role="status"]')];
+  const kalimat = (t) => (t.trim().match(/[^.!?]+[.!?]+(\s|$)/g) ?? [t.trim()].filter(Boolean)).length;
+  return { n: st.length, maks: Math.max(0, ...st.map((x) => kalimat(x.textContent))), tombol: st.filter((x) => x.querySelector("button")).length, alasan: !!el.querySelector('[role="status"] .tb-hasil') };
+});
 
 // 1. Tebak dulu, keyboard, slider, tombol lompat, gerak: 2 ukuran × 2 reduced motion.
 for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no-preference", "reduce"]) {
@@ -176,6 +182,9 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
   const salah = { pressed: await w.locator(".tb-pilihan button").first().getAttribute("aria-pressed"), aktif: await w.locator(".tb-pilihan button:not(:disabled)").count(), fokus: await fokusTeks(page), status: await status() };
   lapor(salah.pressed === "true" && salah.aktif === 0 && salah.fokus === L.ulang && salah.status.includes(L.belum),
     `cache ${nama}: tebakan salah: aria-pressed ${salah.pressed}, ${salah.aktif} pilihan aktif, fokus di "${salah.fokus}", hasil "${salah.status.split("\n")[0]}"`);
+  const satuSalah = await statusSatuKalimat(w);
+  lapor(satuSalah.n === 2 && satuSalah.maks <= 1 && satuSalah.tombol === 0 && !satuSalah.alasan,
+    `cache ${nama}: sesudah tebakan salah ${satuSalah.n} role=status, paling banyak ${satuSalah.maks} kalimat, ${satuSalah.tombol} berisi tombol, alasan tebakan di dalam status ${satuSalah.alasan}`);
   await page.keyboard.press("Enter");
   const ulang = { fokus: await fokusTeks(page), ubah: await w.locator(".ch-ubah").count(), aktif: await w.locator(".tb-pilihan button:not(:disabled)").count() };
   const norm = (t) => t.replace(/^A\s*/, "").replace(/\s+/g, " ").trim();
@@ -186,7 +195,7 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
   const b60 = w.locator(".tb-pilih", { hasText: `Sekitar detik ke-${TTL_R}.` });
   await b60.focus();
   await page.keyboard.press("Space");
-  const alasan60 = await status();
+  const alasan60 = await w.locator(".tb-hasil").innerText();
   lapor(alasan60.includes(`${TTL_R} detik adalah TTL cache Redis`) && alasan60.includes(`C. Entri di instance B habis sendiri`) && alasan60.includes(`detik ke-${LAMA_D}`) && alasan60.includes(`detik ke-${BARU_D}`),
     `cache ${nama}: tebakan ${TTL_R} detik lewat Spasi menyebut TTL Redis dan alasan yang benar: "${alasan60.replace(/\s+/g, " ").slice(0, 120)}"`);
   await w.getByRole("button", { name: L.ulang }).click();
@@ -198,6 +207,10 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
   const tepat = { pressed: await benar.getAttribute("aria-pressed"), fokus: await fokusTeks(page), ubah: await w.locator(".ch-ubah").count(), status: await status() };
   lapor(tepat.pressed === "true" && tepat.fokus === NOL.cache && tepat.ubah === 1 && tepat.status.includes(L.benar),
     `cache ${nama}: tebakan benar: aria-pressed ${tepat.pressed}, fokus di "${tepat.fokus}" (tombol pertama Ubah), hasil "${tepat.status.split("\n")[0]}"`);
+
+  const satuBenar = await statusSatuKalimat(w);
+  lapor(satuBenar.n === 2 && satuBenar.maks <= 1 && satuBenar.tombol === 0 && !satuBenar.alasan,
+    `cache ${nama}: sesudah tebakan benar ${satuBenar.n} role=status, paling banyak ${satuBenar.maks} kalimat, ${satuBenar.tombol} berisi tombol, alasan tebakan di dalam status ${satuBenar.alasan}`);
 
   // Slider jam: awal di detik ke-LAMA_D; panah, Home, End; kalimat penuh tidak berubah; aria-valuetext mengikuti.
   const slider = w.locator(".ch-jam input");

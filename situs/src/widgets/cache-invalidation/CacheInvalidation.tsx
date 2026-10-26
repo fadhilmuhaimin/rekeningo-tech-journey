@@ -124,16 +124,14 @@ export default function CacheInvalidation({ aturan, awal, jamAwal, pertanyaan, p
         })}
       </ol>
 
-      <div role="status" aria-live="polite">
-        {dipilih !== null && (
-          <div ref={hasil} className={"tb-hasil " + (tepat ? "is-benar" : "is-salah")}>
-            <p className="tb-hasil__judul"><strong>{tepat ? L.benar : L.belum}</strong></p>
-            <p><Teks t={pilihan[dipilih]!.alasan} /></p>
-            {!tepat && <p><strong>{String.fromCharCode(65 + benar)}.</strong> <Teks t={pilihan[benar]!.alasan} /></p>}
-            {!tepat && <p className="tb-tautan"><button type="button" className="bb-btn bb-btn--quiet" onClick={ulangi}>{L.ulang}</button></p>}
-          </div>
-        )}
-      </div>
+      <p role="status" aria-live="polite" className="ch-status">{dipilih === null ? "" : tepat ? L.benar : L.belum}</p>
+      {dipilih !== null && (
+        <div ref={hasil} className={"tb-hasil " + (tepat ? "is-benar" : "is-salah")}>
+          <p><Teks t={pilihan[dipilih]!.alasan} /></p>
+          {!tepat && <p><strong>{String.fromCharCode(65 + benar)}.</strong> <Teks t={pilihan[benar]!.alasan} /></p>}
+          {!tepat && <p className="tb-tautan"><button type="button" className="bb-btn bb-btn--quiet" onClick={ulangi}>{L.ulang}</button></p>}
+        </div>
+      )}
 
       {dipilih !== null && (
         <div className="ch-ubah">
