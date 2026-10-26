@@ -27,7 +27,7 @@
       "simpul": [
         { "teks": "10 lolos batas per akun di memori", "sub": "401 sepuluh kali, 429 dua kali", "nada": "warn" },
         { "teks": "gagal_login di database berhenti di 5", "sub": "kunci akun tidak berlipat", "nada": "good" },
-        { "teks": "tebakan 6 sampai 10 bertemu akun terkunci", "sub": "tetap dijawab 401" }
+        { "teks": "tebakan 6 sampai 10 bertemu akun terkunci", "sub": "dibaca dari kode: tetap dijawab 401" }
       ]
     }
   ],

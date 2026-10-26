@@ -71,7 +71,9 @@ Dengan N instance, batasnya sampai N × 10 (Hitungan; hanya dua instance yang di
 
 <Snippet file="labs/t3-instance/output/batas.txt" lines="19:27" title="Rekaman lab: labs/t3-instance/output/batas.txt, bagian D (satu akun, dua instance)" />
 
-Rekaman mencatat hasil akhirnya: `gagal_login` 5 dan akun terkunci. Dari kode di bawah, tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama dengan password salah. Jadi password dibandingkan lima kali, bukan sepuluh (penalaran dari kode). Kodenya mencatat percobaan di database sebelum membandingkan password:
+Rekaman mencatat hasil akhirnya: `gagal_login` 5 dan akun terkunci. Dua baris keterangan di rekaman itu (tebakan 1-5 per instance lolos bucket; tebakan 6-10 bertemu akun terkunci) ditulis oleh lab, bukan diukur per tebakan.
+
+Dari kode di bawah, tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama dengan password salah. Jadi password dibandingkan dengan hash akun lima kali, bukan sepuluh. Lima tebakan sisanya dibandingkan dengan hash tiruan, supaya waktunya sama (penalaran dari kode). Kodenya mencatat percobaan di database sebelum membandingkan password:
 
 <Snippet file="labs/api-t3/internal/service/sesi.go" lines="108:124" lang="go" title="Kode lab: labs/api-t3/internal/service/sesi.go baris 108 sampai 124 (hitungan gagal login dan kunci di database)" />
 
@@ -131,12 +133,12 @@ Tiap instance menyimpan bucket per alamat di memorinya sendiri. Proxy bergantian
 
 </details>
 
-**2.** Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali. Kenapa password hanya dibandingkan lima kali?
+**2.** Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali. Kenapa password hanya dibandingkan dengan hash akun lima kali?
 
 <details class="success">
 <summary>Jawaban</summary>
 
-Bucket per akun di memori memberi 5 tebakan per instance, jadi 10 lolos ke akun. Hitungan `gagal_login` ada di database dan berhenti di 5. Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama (dibaca dari kode; `batas.txt` bagian D mencatat hasil akhirnya).
+Bucket per akun di memori memberi 5 tebakan per instance, jadi 10 lolos ke akun. Hitungan `gagal_login` ada di database dan berhenti di 5. Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama, sesudah dibandingkan dengan hash tiruan (dibaca dari kode; `batas.txt` bagian D mencatat hasil akhirnya).
 
 </details>
 

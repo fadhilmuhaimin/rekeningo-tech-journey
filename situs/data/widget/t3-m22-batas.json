@@ -5,7 +5,7 @@
   "pertanyaan": "Satu alamat mengirim {percobaan} percobaan login ke {percobaan} akun berbeda, satu percobaan per akun, dengan password yang salah. Proxy meneruskannya bergantian ke dua instance, dan tiap instance membatasi satu alamat {batas} percobaan sekaligus. Berapa dari {percobaan} percobaan sampai ke pemeriksaan password?",
   "pilihan": [
     {
-      "teks": "Sepuluh: jatah satu alamat habis, sisanya ditolak.",
+      "teks": "Sepuluh: jatah satu alamat habis di satu instance, lalu sisanya ditolak.",
       "angka": 10,
       "alasan": "Rekaman menunjukkan {sampai}, bukan {batas}. Sepuluh adalah hasil satu instance, yang bisa kamu lihat dengan kondisi satu instance di bawah. Dua instance memegang dua jatah."
     },
@@ -20,7 +20,7 @@
       "alasan": "Rekaman menunjukkan {sampai}. Dua belas adalah percobaan yang diterima tiap instance, bukan yang lolos. Tiap instance mengizinkan {batas} dari {diterima} dan menolak {tolakTiap}."
     },
     {
-      "teks": "Dua puluh: tiap instance mengizinkan sepuluh dari dua belas percobaan yang ia terima.",
+      "teks": "Dua puluh: tiap instance meloloskan sepuluh dari dua belas percobaan.",
       "angka": 20,
       "alasan": "Rekaman menunjukkan {sampai} ({perInstance}) dan {ditolak} ditolak 429. Tiap instance menyimpan bucket per alamat di memorinya sendiri, jadi dua instance memberi dua jatah."
     }

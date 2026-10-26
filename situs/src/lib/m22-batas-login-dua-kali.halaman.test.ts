@@ -291,9 +291,20 @@ describe("rekaman batas.txt: bagian A sampai D dan rentang Snippet", () => {
     expect(d[iSatu]).toBe("satu instance, 12 tebakan ke satu akun → 401: 5 · 429: 7");
     expect(tabel(iSatu + 1)).toEqual(["=> SELECT gagal_login, terkunci_sampai IS NOT NULL AS terkunci FROM akun WHERE email = 'karyawan10102@lestari.example'", " gagal_login | terkunci", "-------------+----------", " 5 | t", "(1 row)"]);
     harus("Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali dan 429 dua kali. Bucket per akun juga di memori, 5 per instance.");
-    harus("Rekaman mencatat hasil akhirnya: `gagal_login` 5 dan akun terkunci. Dari kode di bawah, tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama dengan password salah. Jadi password dibandingkan lima kali, bukan sepuluh (penalaran dari kode).");
+    harus("Rekaman mencatat hasil akhirnya: `gagal_login` 5 dan akun terkunci. Dua baris keterangan di rekaman itu (tebakan 1-5 per instance lolos bucket; tebakan 6-10 bertemu akun terkunci) ditulis oleh lab, bukan diukur per tebakan.");
+    harus("Dari kode di bawah, tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama dengan password salah. Jadi password dibandingkan dengan hash akun lima kali, bukan sepuluh. Lima tebakan sisanya dibandingkan dengan hash tiruan, supaya waktunya sama (penalaran dari kode).");
+    // dua keterangan itu memang ada di rekaman sebagai teks tulisan tangan run.py (bukan hasil ukur per tebakan)
+    expect(runPy).toContain("tebakan 1-5 per instance lolos bucket, tebakan 11 dan 12 ditolak 429");
+    expect(runPy).toContain("tebakan 6-10 bertemu akun terkunci");
     expect(runPy).toContain("hs = tebak(PORT_PROXY, [akun] * 12)");
     expect(10 - 5).toBe(5); // tebakan 6 sampai 10
+  });
+  test("baris rekaman yang tampil di Snippet (baris 8 sampai 33: bagian A sampai D, dengan kepala dan keterangan tiap bagian) dikunci utuh dengan sidik jari", () => {
+    // keterangan di kepala bagian dan kurung penjelas ikut tampil lewat Snippet tetapi tidak diurai angka-angkanya; ubah satu karakter,
+    // baca lagi rekamannya, lalu perbarui sidiknya
+    expect(baris[7]).toMatch(/^# --- A\. /);
+    expect(baris[32]).toBe("(1 row)");
+    expect(sidik(baris.slice(7, 33).join("\n"))).toBe(SIDIK_REKAMAN_TAMPIL);
   });
   test("kata bilangan di halaman cocok dengan angka rekaman dan kode (sepuluh, dua puluh, dua belas, lima, dua)", () => {
     const KATA: Record<string, number> = { dua: 2, lima: 5, sepuluh: 10, "dua belas": 12, "dua puluh": 20 };
@@ -486,7 +497,7 @@ describe("diagram Rantai: nilai simpul diturunkan dari rekaman", () => {
     expect(teks(2)).toEqual([
       ["10 lolos batas per akun di memori", "401 sepuluh kali, 429 dua kali", "warn"],
       ["gagal_login di database berhenti di 5", "kunci akun tidak berlipat", "good"],
-      ["tebakan 6 sampai 10 bertemu akun terkunci", "tetap dijawab 401", "biasa"],
+      ["tebakan 6 sampai 10 bertemu akun terkunci", "dibaca dari kode: tetap dijawab 401", "biasa"],
     ]);
     expect(diagram.baris[0]!.sub).toBe(`${satu.percobaan} percobaan ke ${satu.percobaan} akun berbeda`);
     expect(diagram.baris[1]!.sub).toBe(`${dua.percobaan} percobaan ke ${dua.percobaan} akun berbeda`);
@@ -527,6 +538,21 @@ describe("widget BatasInstance: dipasang sekali di blok Coba, teks dikunci, dan 
     expect(widgetMentah.kondisi["dua-instance"].catatan).toContain("antara 10 dan 20, dan angka pastinya tidak direkam (bagian C)");
     expect(widgetMentah.baris.terbuka).toBe("Yang sampai, per instance");
   });
+  test("jawaban benar tidak terpanjang dan tidak terpendek di antara pilihan (panjang teks tidak membocorkan jawaban)", () => {
+    const panjang = widgetMentah.pilihan.map((p) => p.teks.length);
+    const benar = widgetMentah.pilihan.findIndex((p) => p.angka === R["dua-instance"].sampai);
+    expect(panjang[benar]).toBeLessThan(Math.max(...panjang));
+    expect(panjang[benar]).toBeGreaterThan(Math.min(...panjang));
+  });
+  test("wrapper menurunkan pilihan, jawaban benar, kondisi, dan tabel dari rekaman dan meneruskannya ke island", () => {
+    expect(wrapper).toContain('const benar = indeksBenar(pilihan, R["dua-instance"].sampai);');
+    expect(wrapper).toContain("const pilihan = L.pilihan.map((p) => ({ ...p, alasan: isi(p.alasan, utama) }));");
+    expect(wrapper).toContain('const utama = nilai("dua-instance");');
+    expect(wrapper).toContain("kesimpulan: isi(L.kondisi[kode].kesimpulan, nilai(kode)),");
+    expect(wrapper).toContain("const tabel = Object.fromEntries(KONDISI.map((k) => [k, tabelBatas(R[k], batas)]))");
+    expect(wrapper).toContain("pertanyaan: isi(L.pertanyaan, utama)");
+    expect(wrapper).toContain("pilihan={pilihan.map((p) => ({ teks: p.teks, alasan: p.alasan }))} benar={benar} kondisi={kondisi} tabel={tabel} label={label} />");
+  });
   test("widget dikunci dengan sidik jari (setiap nilai string)", () => {
     expect(sidik(JSON.stringify(widgetMentah))).toBe(SIDIK_WIDGET);
   });
@@ -553,7 +579,7 @@ describe("kartu Cek diri: empat kartu, sama dengan kartu.json", () => {
   test("kartu 1 sampai 4 menyebut fakta rekaman yang sama dengan bagian A, D, C, dan kode", () => {
     const k = (n: number) => badan.slice(badan.indexOf(`**${n}.**`), badan.indexOf(`**${n + 1}.**`) > 0 ? badan.indexOf(`**${n + 1}.**`) : undefined);
     expect(k(1)).toContain("masing-masing menerima 12 percobaan, mengizinkan 10 dan menolak 2 (`batas.txt` bagian A). Batas di kode tetap 10 per instance.");
-    expect(k(2)).toContain("Hitungan `gagal_login` ada di database dan berhenti di 5. Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama (dibaca dari kode; `batas.txt` bagian D mencatat hasil akhirnya).");
+    expect(k(2)).toContain("Hitungan `gagal_login` ada di database dan berhenti di 5. Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama, sesudah dibandingkan dengan hash tiruan (dibaca dari kode; `batas.txt` bagian D mencatat hasil akhirnya).");
     expect(k(3)).toContain("Antara 10 dan 20. Sepuluh bila semua percobaan jatuh ke satu instance, dua puluh bila tiap instance menerima paling sedikit 10. Angka pastinya bergantung pada urutan acak dan tidak direkam (`batas.txt` bagian C).");
     expect(k(4)).toContain("Kode memakai alamat koneksi, dan di belakang proxy itu alamat proxy. Kode juga tidak membaca `X-Forwarded-For`. Ini dibaca dari kode dan tidak direkam, karena lab tidak membedakan dua client lewat proxy.");
   });
@@ -590,8 +616,9 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
 
 const SIDIK_R175 = "4277ac286584aed7";
 const SIDIK_R176 = "9fa5f20bd1143c8c";
-const SIDIK_DIAGRAM = "a354be7364ce2f7b";
-const SIDIK_WIDGET = "15be637b35063bbb";
+const SIDIK_DIAGRAM = "81e95ca515f69051";
+const SIDIK_WIDGET = "56fd7236ca72377d";
+const SIDIK_REKAMAN_TAMPIL = "f0ad4b05a688e3a3";
 const FRONTMATTER: string[] = [
   "title: \"3.16 M22: Batas login jadi dua kali lipat\"",
   "description: Minggu 6. Sesudah instance kedua dipasang di staging, 20 dari 24 percobaan login dari satu alamat sampai ke pemeriksaan password, padahal batas per alamat 10. Batas itu dihitung di memori tiap instance, jadi dua instance memberi dua jatah. Kunci akun di database tetap lima.",
@@ -634,7 +661,8 @@ const KALIMAT_TERKUNCI: string[] = [
   "**Isi ulang ikut berlipat.** Tiap instance mengisi ulang 10 token per menit. Dalam 30 menit satu instance mengizinkan paling banyak 10 + 10 × 30 = 310 percobaan dari satu alamat. Dua instance mengizinkan 620 (Hitungan dari konstanta di atas; tidak direkam).",
   "**Yang tidak berlipat: kunci akun.** Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali dan 429 dua kali. Bucket per akun juga di memori, 5 per instance. Tetapi hitungan `gagal_login` ada di database, dan dua instance memakai database yang sama:",
   "<Snippet file=\"labs/t3-instance/output/batas.txt\" lines=\"19:27\" title=\"Rekaman lab: labs/t3-instance/output/batas.txt, bagian D (satu akun, dua instance)\" />",
-  "Rekaman mencatat hasil akhirnya: `gagal_login` 5 dan akun terkunci. Dari kode di bawah, tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama dengan password salah. Jadi password dibandingkan lima kali, bukan sepuluh (penalaran dari kode). Kodenya mencatat percobaan di database sebelum membandingkan password:",
+  "Rekaman mencatat hasil akhirnya: `gagal_login` 5 dan akun terkunci. Dua baris keterangan di rekaman itu (tebakan 1-5 per instance lolos bucket; tebakan 6-10 bertemu akun terkunci) ditulis oleh lab, bukan diukur per tebakan.",
+  "Dari kode di bawah, tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama dengan password salah. Jadi password dibandingkan dengan hash akun lima kali, bukan sepuluh. Lima tebakan sisanya dibandingkan dengan hash tiruan, supaya waktunya sama (penalaran dari kode). Kodenya mencatat percobaan di database sebelum membandingkan password:",
   "<Snippet file=\"labs/api-t3/internal/service/sesi.go\" lines=\"108:124\" lang=\"go\" title=\"Kode lab: labs/api-t3/internal/service/sesi.go baris 108 sampai 124 (hitungan gagal login dan kunci di database)\" />",
   "Yang longgar adalah penahan banjir per alamat. Satu tebakan per akun tidak pernah menyentuh kunci akun, jadi penyemprotan banyak akun hanya dihentikan batas per alamat ([[t2-login-aman]], bagian C rekaman c4-ratelimit). ADR 20 sudah menulis batas di memori sebagai yang pecah saat server kedua datang, dan bagian F rekaman c4-ratelimit mengukurnya: 20 dari 24. Lab Tahap 3 mengulangnya dengan dua proses `api-t3` dan proxy sungguhan.",
   "**Satu key untuk semua client (dibaca dari kode, Tidak dijalankan).** Rekaman memakai satu client, jadi tidak membedakan client. Kode memakai alamat koneksi sebagai alamat client:",
@@ -667,10 +695,10 @@ const KALIMAT_TERKUNCI: string[] = [
   "<summary>Jawaban</summary>",
   "Tiap instance menyimpan bucket per alamat di memorinya sendiri. Proxy bergantian, jadi masing-masing menerima 12 percobaan, mengizinkan 10 dan menolak 2 (`batas.txt` bagian A). Batas di kode tetap 10 per instance.",
   "</details>",
-  "**2.** Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali. Kenapa password hanya dibandingkan lima kali?",
+  "**2.** Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali. Kenapa password hanya dibandingkan dengan hash akun lima kali?",
   "<details class=\"success\">",
   "<summary>Jawaban</summary>",
-  "Bucket per akun di memori memberi 5 tebakan per instance, jadi 10 lolos ke akun. Hitungan `gagal_login` ada di database dan berhenti di 5. Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama (dibaca dari kode; `batas.txt` bagian D mencatat hasil akhirnya).",
+  "Bucket per akun di memori memberi 5 tebakan per instance, jadi 10 lolos ke akun. Hitungan `gagal_login` ada di database dan berhenti di 5. Tebakan 6 sampai 10 bertemu akun terkunci dan dijawab 401 yang sama, sesudah dibandingkan dengan hash tiruan (dibaca dari kode; `batas.txt` bagian D mencatat hasil akhirnya).",
   "</details>",
   "**3.** Dengan kebijakan acak bawaan Caddy, berapa dari 24 percobaan yang bisa sampai ke pemeriksaan password?",
   "<details class=\"success\">",
