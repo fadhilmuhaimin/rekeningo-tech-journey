@@ -101,3 +101,37 @@ Polesan dari tinjauan Tahap 3 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - W3-outbox (tinjauan): hal yang tidak berlaku pada satu kejadian ditulis "ya" (mis. push menggantung di transaction: notifikasi tidak mendahului uang "ya"; proses API mati sebelum push pada cara sesudah COMMIT: "Pembayaran tidak menunggu push" "ya"), sedangkan naskah bagian 3 menulis "Tidak berlaku"; bisa jadi jenis ketiga "tidak berlaku" bila halaman 3.4 menampilkannya berdampingan dengan tabel naskah.
 - W3-outbox (tinjauan): satu worker dengan satu HP yang menggantung (cara outbox, push menggantung) belum direkam; usul bagian kecil di lab t3-outbox supaya label naik dari Hitungan ke Rekaman lab.
 - W3-outbox (tinjauan): `periksaAcuan` memakai angka tulis tangan 0,6 untuk dua putaran (queue E); aman karena build gagal bila rekaman berubah, tetapi sebaiknya diturunkan dari satu sumber.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- Skenario Lax bawaan yang menunggu lebih dari dua menit (cookie dipasang, tunggu 120 detik lebih, serang lagi) untuk mengukur batas masa tenggang, bukan hanya efeknya (`labs/t3-dasbor`, README "Keterbatasan uji").
+- Skenario client tanpa Sec-Fetch-Site dan Origin (client lama atau non-browser dengan cookie curian) untuk menunjukkan token sendirian di luar browser; sekarang hanya tes Go.
+- `GET /logout` di dasbor lab mengubah keadaan (logout CSRF); tidak dicakup lab, boleh disebut di 3.23 sebagai contoh endpoint GET yang mengubah data.
+- Tabel `sesi` di dasbor lab hanya di memori tanpa kedaluwarsa sisi server; cukup untuk lab, bukan pola untuk produksi.
+- Widget cache: umur entri saat perubahan selalu 0 (kasus terburuk); usul pengaturan "umur entri" bila 3.19 butuh rata-rata atau ingin menunjukkan entri yang lebih tua habis lebih cepat.
+- Widget cache: stampede, lease, dan XFetch tidak dimodelkan (lab tidak merekamnya); usul lab tersendiri bila 3.19 ingin menunjukkannya.
+- Widget cache: cara menutup promo yang mulai nanti (TTL entri dipendekkan sampai waktu mulai promo berikutnya, atau harga efektif dihitung saat baca) belum bisa ditunjukkan; butuh rekaman lab (README t3-cache "Tidak dijalankan").
+- Widget cache: jumlah baca database sebagai fungsi TTL tidak dihitung (rekaman beban satu TTL dan satu jendela 10 detik); usul rekaman beban untuk TTL 6 dan 300 bila halaman ingin membandingkan.
+- Widget cache: "Redis mati" hanya memengaruhi perubahan yang menghapus kunci; waktu tunggu bacaan saat Redis menggantung (batas 100 ms lawan 5 detik, gagal.txt A) tidak dimodelkan.
+- Widget cache: cache memori dengan urutan "sebelum COMMIT" atau pembaca lambat (instance A mengisi ulang entrinya sendiri) berlabel Ilustrasi; lab merekam urutan itu hanya di Redis.
+- Halaman 3.19: pasang `<CacheInvalidation />` sekali di blok Coba; jangan menulis "hit tidak menyentuh database" (catatan tinjauan #347), dan tulis "kapan keputusan ini salah" dari pengaturan "pembaca lambat" dan "promo mulai nanti".
+- Widget cache: panel "Ubah satu hal" setinggi sekitar 800 px, jadi tombol di kelompok pertama (Jenis cache) berjarak lebih dari 800 px dari kalimat penuh di 320, 375, dan 1366 px (kalimat penuh di luar layar sesudah klik; terukur di `/uji/cache/`). Usul: kalimat penuh di antara kelompok pengaturan, atau dua kolom di desktop, atau kalimat penuh lengket di layar sempit.
+- Widget cache: pilihan benar 300 adalah satu-satunya pilihan berangka yang sama dengan TTL di pertanyaan, jadi terbaca tanpa memahami, dan urutan pilihan tetap. Usul: pengecoh "separuh TTL" dan urutan pilihan diputar deterministik per halaman.
+- Widget cache: tombol "Urutan hapus kunci" tidak berpengaruh bila yang berubah promo mulai nanti atau pesanan, atau cache tanpa atau Redis mati, tetapi tetap aktif tanpa petunjuk. Usul: tandai "tidak berpengaruh untuk pengaturan ini".
+- Widget cache: baris "Baca database untuk mengisi satu kunci yang sama" menulis 1 untuk "Redis bersama, mati saat harga berubah", padahal selama Redis mati tiap bacaan membaca database (gagal.txt B); catatan di bawahnya menyebut itu, barisnya belum.
+- Widget cache: acuan memori-stok dan redis-mati berlabel dua instance, padahal rekamannya hanya membaca satu instance (B di memori.txt C, A di gagal.txt C); instance lain disimpulkan dari model.
+- Widget cache: judul "Siapa masih melihat harga lama?" tanpa "yang".
+- Widget cache: uji mutasi peninjau N5 sampai N12 dan N19 (pengamat, indeks benar, TTL tak terhingga, persen garis, id slider, aria-hidden garis, kontras angka kotak, animasi penanda, urutan pilihan) belum dijalankan; jalankan `python3 tmp/mutasi-358.py 11 12 13 14 15 16 17 18 19` bila tmp/ masih ada, atau salin daftar M dari badan ini.
+- Paragraf kepala naskah ("Disesuaikan ...") berisi lima kalimat dan memicu peringatan audit bahasa; pecah menjadi daftar bila pemilik meninjau.
+- Sel "Pool 10 penuh" di tabel angka beban naskah panjang; halaman 3.8 sebaiknya memecahnya menjadi dua baris (tanpa client menyerah, dengan client menyerah).
+- RINGKAS masih menulis Tahap 2 sebagai "2.1 sampai 2.25 ditulis, 2.26 sampai 2.33 sedang ditulis"; lipat sekalian saat `T4-siap`.
+- Widget W3-outbox sudah punya skenario kursor-atau-klaim dan pengiriman ganda yang cocok untuk 3.10 dan 3.12; naskah menulis `race` dan `alur`. Peta tidak diubah; pelaksana halaman boleh memilih.
+- Naskah belum mendefinisikan versi app Tahap 3 (3.0 notifikasi, 3.1 rilis M26); tulis di 3.3 bila halaman membutuhkannya.
+- Baris PRD P0 "Dua instance API" di naskah menyebut solusi, sedangkan tabel 2.33 menulis kebutuhan; halaman 3.1 sebaiknya menulis kebutuhan dulu, lalu solusinya, tanpa mengubah penjaga 2.33.
+- Lab t3-pool: kalimat penutup `m18.txt` C dan README ("Pool 10 baru penuh bila client menunggu lebih dari 10 ÷ 0,87 = 11,5 detik") menyebut ambang yang kurang tepat; naskah memakai (n − 1) ÷ λ = 10,34 detik untuk client yang menyerah dan 11,5 hanya untuk client yang tidak menyerah. Halaman 3.6 dan 3.8 mengikuti naskah; perbaiki kalimat lab di tugas lab sendiri bersama rekamannya.
+- "Client" di M18 dan tabel pool berarti app di HP yang menunggu (lab `m18.txt` C), bukan `http.Client` ke layanan push; halaman 3.6 dan 3.8 menulis "client app" dan "client push" terpisah.
+- Pool "penuh" berarti 10 koneksi terpakai (T lebih dari ±10,4 detik); pembayaran baru tertahan hanya bila T lebih dari n ÷ λ (±11,5), di antaranya hanya pembacaan yang tertunda sebentar (simulasi peninjau, bukan rekaman). Tulis pembedaan itu bila 3.8 menampilkan nilai T di antaranya.
+- ADR 21 punya pemicu queue (L kelas bayar dan transfer mencapai 5 koneksi, W luar ±5,7 detik) yang terpenuhi oleh M18 (push menggantung); ADR 23 menjawabnya. Naskah menghubungkan ADR 21 hanya di M21, ADR 24, 27, 28; tulis satu kalimat di 3.9.
+- `m18.txt` C "jurnal 0" bukan bukti rollback (push tidak pernah kembali, transaction memang tidak COMMIT); buktinya 380 pembacaan 200 dan puncak 5 koneksi (catatan #343). Halaman 3.6 jangan memakai "jurnal 0" sebagai bukti.
+- Ulangan dalam 24 jam menjawab respons lama (stok 0, versi 2, padahal stok sekarang 50; `m24.txt` C): app harus mengambil keadaan terbaru sesudah ulangan; bahan 3.20 dan 3.21.
+- Naskah M18 memakai satu kata "client" untuk dua hal dan "Naskah tidak menyebut timeout app" menunjuk bagian lain naskah; rapikan saat pemilik meninjau.
