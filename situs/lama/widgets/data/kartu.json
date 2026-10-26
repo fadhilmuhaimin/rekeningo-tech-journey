@@ -1638,6 +1638,38 @@
   "jawab": "ADR 23 salah saat beberapa consumer butuh urutan commit penuh, atau saat pesan membuat tabel queue bersaing dengan transaksi uang. Solid Queue memakai database queue yang terpisah dari database aplikasi, jadi ia membuktikan queue di database, bukan outbox yang ikut COMMIT."
  },
  {
+  "id": "t3-at-least-once-1",
+  "halaman": "t3-at-least-once",
+  "judul": "3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25",
+  "url": "tahap-3/at-least-once/",
+  "tanya": "Worker mati sesudah tiap push berhasil, dan batasnya lima percobaan. Berapa pesan sampai ke layanan push, dan pada klaim ke berapa baris masuk dead-letter?",
+  "jawab": "Lima pesan, dan baris masuk dead-letter pada klaim ke-6. Percobaan naik saat klaim, jadi klaim ke-6 melewati batas dan memasukkan baris ke dead-letter tanpa mengirim (`retry.txt` bagian C)."
+ },
+ {
+  "id": "t3-at-least-once-2",
+  "halaman": "t3-at-least-once",
+  "judul": "3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25",
+  "url": "tahap-3/at-least-once/",
+  "tanya": "Layanan push menjawab 503 terus. Kenapa baris masuk dead-letter pada kegagalan ke-5, bukan klaim ke-6?",
+  "jawab": "Worker mencatat tiap kegagalan lewat `tunda`, dan `percobaan` yang sudah 5 langsung memindahkan baris ke `mati` (`retry.txt` bagian A: 5 permintaan). Klaim ke-6 hanya terjadi bila worker mati sebelum sempat mencatat."
+ },
+ {
+  "id": "t3-at-least-once-3",
+  "halaman": "t3-at-least-once",
+  "judul": "3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25",
+  "url": "tahap-3/at-least-once/",
+  "tanya": "Pesan notification dikirim, dan app sedang di background. Kenapa penyaring `notifikasi_id` tidak jalan?",
+  "jawab": "Dokumentasi FCM menulis bahwa FCM SDK menampilkan pesan notification saat app di background, jadi kode app tidak dijalankan. Penyaring butuh kode app, dan itu sebabnya ADR 25 mengirim pemberitahuan uang sebagai pesan data."
+ },
+ {
+  "id": "t3-at-least-once-4",
+  "halaman": "t3-at-least-once",
+  "judul": "3.13 At-least-once: retry, dead-letter, penyaring di app + ADR 25",
+  "url": "tahap-3/at-least-once/",
+  "tanya": "Kenapa app mencatat `notifikasi_id` sesudah menampilkan, bukan sebelumnya?",
+  "jawab": "App yang mati di antara dua langkah itu menampilkan ulangan, dan tidak kehilangan pemberitahuan. Urutan sebaliknya bisa kehilangan, dan PRD melarang hilang tanpa terdeteksi. Dokumentasi Kafka menulis pola yang sama untuk posisi consumer."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",

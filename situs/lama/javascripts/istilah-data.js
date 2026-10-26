@@ -58,13 +58,13 @@ window.ISTILAH = {
   "u": "tahap-2/brute-force/"
  },
  "At-least-once": {
-  "b": "B10.1",
+  "b": "t3-at-least-once",
   "d": "Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda.",
   "h": "istilah/at-least-once/",
-  "n": "Background job, queue, retry (versi lama)",
+  "n": "3.13 At-least-once dan penyaring di app",
   "s": "istilah-at-least-once",
   "t": "At-least-once",
-  "u": "b-fondasi/b10-1-background-job/"
+  "u": "tahap-3/at-least-once/"
  },
  "Atomicity": {
   "b": "B3.1",
@@ -258,12 +258,13 @@ window.ISTILAH = {
   "u": "tahap-1/data-modeling/"
  },
  "Dead-letter queue": {
-  "b": "B10.1",
+  "b": "t3-at-least-once",
   "d": "Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.",
-  "n": "Background job, queue, retry (versi lama)",
+  "h": "istilah/dead-letter-queue/",
+  "n": "3.13 At-least-once dan penyaring di app",
   "s": "istilah-dead-letter-queue",
   "t": "Dead-letter queue",
-  "u": "b-fondasi/b10-1-background-job/"
+  "u": "tahap-3/at-least-once/"
  },
  "Deadlock": {
   "b": "t2-race-lock",
@@ -1410,13 +1411,13 @@ window.ISTILAH = {
   "u": "tahap-2/brute-force/"
  },
  "at-least-once": {
-  "b": "B10.1",
+  "b": "t3-at-least-once",
   "d": "Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda.",
   "h": "istilah/at-least-once/",
-  "n": "Background job, queue, retry (versi lama)",
+  "n": "3.13 At-least-once dan penyaring di app",
   "s": "istilah-at-least-once",
   "t": "At-least-once",
-  "u": "b-fondasi/b10-1-background-job/"
+  "u": "tahap-3/at-least-once/"
  },
  "atomicity": {
   "b": "B3.1",
@@ -1553,12 +1554,13 @@ window.ISTILAH = {
   "u": "tahap-1/data-modeling/"
  },
  "dead-letter queue": {
-  "b": "B10.1",
+  "b": "t3-at-least-once",
   "d": "Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.",
-  "n": "Background job, queue, retry (versi lama)",
+  "h": "istilah/dead-letter-queue/",
+  "n": "3.13 At-least-once dan penyaring di app",
   "s": "istilah-dead-letter-queue",
   "t": "Dead-letter queue",
-  "u": "b-fondasi/b10-1-background-job/"
+  "u": "tahap-3/at-least-once/"
  },
  "deadlock": {
   "b": "t2-race-lock",

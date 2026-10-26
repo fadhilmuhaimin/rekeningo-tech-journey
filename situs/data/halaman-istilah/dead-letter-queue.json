@@ -1,0 +1,53 @@
+{
+  "istilah": "Dead-letter queue",
+  "sehari_hari": "Dead-letter queue adalah tempat pekerjaan yang terus gagal sesudah batas percobaan, supaya manusia memeriksanya dan sistem tidak mengulangnya selamanya. Di outbox Rekeningo, tempat itu adalah baris berstatus mati di tabel yang sama.",
+  "cerita": [
+    {
+      "rujukan": "t3-notifikasi",
+      "teks": "Baris outbox punya empat status: menunggu, terkirim, dilewati, dan mati. Pemberitahuan yang gagal tidak berhenti sebagai baris log, karena barisnya ada di tabel, bisa dihitung, dan punya umur."
+    },
+    {
+      "rujukan": "t3-at-least-once",
+      "teks": "Layanan push yang menjawab 503 terus menerima 5 permintaan, lalu barisnya mati. Worker yang mati sesudah tiap push berhasil mengirim 5 pesan, dan barisnya mati pada klaim ke-6 tanpa dikirim."
+    }
+  ],
+  "mekanisme": [
+    "Setiap klaim menaikkan hitungan percobaan di baris, dan push yang gagal sementara menunda baris dengan backoff.",
+    "Bila hitungan sudah di batas, baris pindah ke status mati dan tidak diklaim lagi.",
+    "Seseorang membaca baris mati dan memperbaiki penyebabnya.",
+    "Satu UPDATE mengembalikan baris ke menunggu dengan hitungan 0. Notifikasi_id tetap sama, jadi penerima yang sudah menampilkannya menyaringnya."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Memutar ulang baris mati sebelum penyebabnya beres. Hitungan kembali ke 0, jadi baris menghabiskan lima percobaan lagi dengan hasil yang sama.",
+    "Membiarkan baris mati menumpuk. Di lab t3-outbox, pembersihan tidak membuang baris mati, jadi jumlahnya tumbuh bila tidak ada yang membaca dan tidak ada alert.",
+    "Memakai dead-letter queue di queue yang urutannya penting. Dokumentasi Amazon SQS menulis agar dead-letter queue tidak dipakai dengan queue FIFO bila urutan pesan tidak boleh rusak."
+  ],
+  "terkait": [
+    "At-least-once",
+    "Retry",
+    "Backoff",
+    "Outbox",
+    "Worker"
+  ],
+  "sumber": [
+    {
+      "riset": "R3-161",
+      "judul": "Amazon SQS: dead-letter queues",
+      "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html",
+      "catatan": "maxReceiveCount adalah berapa kali consumer boleh menerima pesan sebelum pesan pindah ke dead-letter queue. Dead-letter queue dipakai untuk memeriksa penyebab, dan pesan bisa dipindah keluar lewat redrive."
+    },
+    {
+      "riset": "R3-164",
+      "judul": "pg-boss 12.38.0: Queues",
+      "url": "https://github.com/timgit/pg-boss/blob/12.38.0/docs/api/queues.md",
+      "catatan": "Sesudah semua ulangan gagal, payload job disalin ke queue deadLetter yang harus sudah dibuat, dan salinan itu berjalan dengan pengaturan queue itu."
+    },
+    {
+      "riset": "R3-161",
+      "judul": "Rekaman lab t3-outbox: retry dan dead-letter",
+      "rekaman": "labs/t3-outbox/output/retry.txt",
+      "catatan": "Bagian A: 503 terus, 5 permintaan, lalu status mati. Bagian C: worker mati, klaim ke-6 masuk dead-letter tanpa kirim. Bagian D: satu UPDATE memutar ulang baris dan terkirim pada percobaan ke-1."
+    }
+  ]
+}
