@@ -69,7 +69,9 @@ Dokumentasi PostgreSQL 17 menyebut `now()` memakai waktu mulai transaction, dan 
 
 <Snippet file="labs/t3-outbox/output/kursor.txt" lines="7:22" title="Rekaman lab: labs/t3-outbox/output/kursor.txt, bagian A (dua kiriman antre di buku Citra)" />
 
-Lab mengatur siapa yang lebih dulu. Budi dilepas lebih dulu, lab menunggu sampai ia terlihat menunggu lock, baru Dimas dilepas. Dokumentasi PostgreSQL tidak menjanjikan urutan transaction yang menunggu satu baris, jadi "yang tiba lebih dulu selesai lebih dulu" adalah hasil rekaman, bukan aturan. Sumbernya [bagian 13.3.2](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS), dibuka 2026-10-26 (Tidak dijalankan).
+Lab mengatur siapa yang lebih dulu. Budi dilepas lebih dulu, lab menunggu sampai ia terlihat menunggu lock, baru Dimas dilepas.
+
+Halaman explicit locking di dokumentasi PostgreSQL 17 tidak menjanjikan urutan transaction yang menunggu satu baris. Jadi "yang tiba lebih dulu selesai lebih dulu" adalah hasil rekaman, bukan aturan. Sumbernya [bagian 13.3.2](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS), dibuka 2026-10-26 (Tidak dijalankan).
 
 **Satu kiriman terhambat dan barisnya tertinggal.** Bagian B mengubah satu hal. Sebelum Budi mengirim, sesi tangan memegang baris buku Budi sendiri, mewakili permintaan lain dari Budi yang belum selesai. Kiriman Budi mulai lebih dulu lalu menunggu bukunya sendiri, sedangkan kiriman Dimas mulai kemudian, tidak terhalang, dan COMMIT lebih dulu.
 
@@ -83,7 +85,7 @@ Saldo Citra naik Rp50.000, tetapi HP-nya menerima satu pesan. Baris Budi tetap `
 
 <Snippet file="labs/t3-outbox/output/kursor.txt" lines="59:69" title="Rekaman lab: labs/t3-outbox/output/kursor.txt, bagian D (urutan dibuat terbalik dari nomor outbox)" />
 
-Nomor outbox diberikan saat INSERT, yaitu sesudah transaction memegang lock buku Citra. Lock itu baru lepas saat COMMIT, jadi nomor 1 COMMIT lebih dulu dari nomor 2 (dibaca dari kode `Kirim` dan dokumentasi, tidak direkam). Transaction bernomor 1 mulai lebih akhir, sehingga `dibuat`-nya lebih akhir.
+Nomor outbox diberikan saat INSERT, yaitu sesudah transaction memegang lock buku Citra. Lock itu baru lepas saat transaction berakhir ([bagian 13.3.2](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)), jadi nomor 1 COMMIT lebih dulu dari nomor 2. Itu dibaca dari kode `Kirim`, tidak direkam. Transaction bernomor 1 mulai lebih akhir, sehingga `dibuat`-nya lebih akhir.
 
 Bagian D tidak menjalankan poller, dan seberapa sering putaran poller jatuh di antara dua COMMIT itu tidak diukur. Lab hanya merekam mekanismenya. Rekaman lain di `api-t3` (`rentan.txt` bagian C) memperlihatkan bentuk yang sama dengan pelaku berbeda. Pembayaran Dimas ke Warung Ani COMMIT lebih dulu dan terkirim, sedangkan transfer Budi ke Citra tertinggal.
 
@@ -131,7 +133,7 @@ Dengan kursor dan COMMIT terbalik, hanya satu notifikasi yang sampai (bagian B).
 <Blok nama="Konsep yang lahir">
 
 - [[t3-klaim-baris]]: klaim per baris, bukan kursor. Worker mengambil baris dengan klausa kunci `FOR UPDATE` dan `klaim_sampai`, jadi baris yang COMMIT belakangan tetap terlihat. Harganya, urutan antar pesan tidak dijaga. Keputusannya ADR 24.
-- [[t2-kursor]]: ADR 16 tetap benar untuk riwayat di layar HP. Aturan 5 di sana, kursor tidak untuk pembaca aliran, adalah yang M19 buktikan.
+- [[t2-kursor]]: ADR 16 tetap benar untuk riwayat di layar HP. Aturan 5 di sana, kursor tidak untuk pembaca aliran, adalah yang M19 tunjukkan.
 - [[t3-outbox]]: pemberitahuan tetap ditulis di transaction jurnal, dan barisnya ada di tabel. Yang gagal di M19 adalah cara poller membacanya.
 - [[t3-m27]]: alert umur notifikasi tertua, jawaban untuk siapa yang tahu.
 
