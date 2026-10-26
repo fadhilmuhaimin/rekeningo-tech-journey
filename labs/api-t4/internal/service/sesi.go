@@ -40,12 +40,15 @@ type Service struct {
 	rentan string
 	// Cache katalog (lab t3-cache, keputusan 968). Nil berarti tanpa cache: perilaku api-t4 tidak berubah.
 	kc *cache.Katalog
+	// Tahap 4: pihak ketiga tiruan dan setelan lab (t4_dep.go), batas laju endpoint baru (batas_endpoint.go).
+	t4    Dep
+	batas *batasEndpoint
 }
 
 func Baru(r repo.Repo, umurSesi time.Duration) Service {
 	return Service{repo: r, umurSesi: umurSesi, kini: time.Now,
 		loginAkun: PembatasBaru(AmbangLoginAkun[0], AmbangLoginAkun[1]),
-		kirimAkun: PembatasBaru(AmbangKirimAkun[0], AmbangKirimAkun[1])}
+		kirimAkun: PembatasBaru(AmbangKirimAkun[0], AmbangKirimAkun[1]), batas: batasEndpointBaru()}
 }
 
 // DenganRentan menyalakan mode rentan service (RentanPushDalamTx) dengan client push yang dipakainya.

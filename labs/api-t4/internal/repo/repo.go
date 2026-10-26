@@ -19,6 +19,10 @@ type Akun struct {
 	NomorKaryawan *string `json:"nomor_karyawan,omitempty"`
 	// KotaID ditambah Tahap 3 (migrasi 000015); kosong untuk admin dan sistem.
 	KotaID *int64 `json:"kota_id,omitempty"`
+	// Tingkat dan Status ditambah Tahap 4 (migrasi 000020): tingkat verifikasi (belum, terverifikasi) dan status
+	// akun (aktif, dibekukan). Field baru; app lama mengabaikannya.
+	Tingkat string `json:"tingkat"`
+	Status  string `json:"status"`
 }
 
 var ErrTidakAda = errors.New("tidak ada")
@@ -30,10 +34,10 @@ func Baru(db *sql.DB) Repo { return Repo{db: db} }
 func (r Repo) Akun(ctx context.Context, id int64) (Akun, error) {
 	var a Akun
 	err := r.db.QueryRowContext(ctx, `
-		SELECT a.id, a.jenis, a.nama, coalesce(b.saldo_cache, 0), a.nomor_karyawan, a.kota_id
+		SELECT a.id, a.jenis, a.nama, coalesce(b.saldo_cache, 0), a.nomor_karyawan, a.kota_id, a.tingkat, a.status
 		FROM akun a LEFT JOIN buku b ON b.akun_id = a.id
 		WHERE a.id = $1`, id).
-		Scan(&a.ID, &a.Jenis, &a.Nama, &a.Saldo, &a.NomorKaryawan, &a.KotaID)
+		Scan(&a.ID, &a.Jenis, &a.Nama, &a.Saldo, &a.NomorKaryawan, &a.KotaID, &a.Tingkat, &a.Status)
 	if errors.Is(err, sql.ErrNoRows) {
 		return a, ErrTidakAda
 	}

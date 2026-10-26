@@ -65,8 +65,8 @@ func siapkan(t *testing.T) (repo.Repo, *sql.DB) {
 	if err := db.QueryRow("SELECT current_database(), coalesce(current_schema(), '')").Scan(&nama, &schema); err != nil {
 		t.Fatal(err)
 	}
-	if nama != "lab" || schema != "tahap4_tes" {
-		t.Fatalf("%s/%s bukan database tes lab/tahap4_tes: tidak ada data yang ditulis", nama, schema)
+	if nama != "lab" || schema != schemaTes() {
+		t.Fatalf("%s/%s bukan database tes lab/%s: tidak ada data yang ditulis", nama, schema, schemaTes())
 	}
 	if _, err := db.Exec(`UPDATE outbox SET status = 'dilewati' WHERE status = 'menunggu'`); err != nil {
 		t.Fatal(err)
@@ -264,4 +264,12 @@ func TestWorkerBackoffDihormati(t *testing.T) {
 	if status, p := statusOutbox(t, db, akun); status != "terkirim" || p != 2 {
 		t.Fatalf("status %s, percobaan %d: ingin terkirim di percobaan 2", status, p)
 	}
+}
+
+// schemaTes: schema tes. Pekerjaan paralel di database bersama memakai schema tes sendiri lewat LAB_TES_SCHEMA.
+func schemaTes() string {
+	if s := os.Getenv("LAB_TES_SCHEMA"); s != "" {
+		return s
+	}
+	return "tahap4_tes"
 }

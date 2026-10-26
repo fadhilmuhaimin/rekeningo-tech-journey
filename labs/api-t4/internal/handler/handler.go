@@ -71,6 +71,11 @@ func (s Server) Rute() *http.ServeMux {
 	if s.rentan == service.RentanStokTimpa { // M24: endpoint stok sebelum ADR 29
 		mux.HandleFunc("PUT /produk/{id}/stok", s.wajibLogin(s.idempoten(s.timpaStok)))
 	}
+	// Tahap 4 (lab-api-t4): satu fungsi pemasang per kelompok endpoint, tiap kelompok di berkas handler sendiri.
+	s.pasangPembayaran(mux) // daftar, top-up dari bank, webhook gateway, verifikasi identitas
+	s.pasangQR(mux)         // merchant luar dan QR
+	s.pasangKartu(mux)      // kartu virtual dan panggilan dari penerbit
+	s.pasangBackOffice(mux) // back office tim risk, audit log, impor katalog merchant
 	return mux
 }
 

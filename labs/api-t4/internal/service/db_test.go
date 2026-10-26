@@ -18,7 +18,15 @@ import (
 
 // --8<-- [start:siapkan]
 // Database dan schema yang dibuat labs/api-t4/run.py dari file migration yang sama (skema akhir Tahap 3).
-const databaseTes, schemaTes = "lab", "tahap4_tes"
+const databaseTes = "lab"
+
+// schemaTes: schema tes. Pekerjaan paralel di database bersama memakai schema tes sendiri lewat LAB_TES_SCHEMA.
+var schemaTes = func() string {
+	if s := os.Getenv("LAB_TES_SCHEMA"); s != "" {
+		return s
+	}
+	return "tahap4_tes"
+}()
 
 // siapkan membuka PostgreSQL sungguhan. Posting tidak bisa dihapus (invarian 2), jadi tes tidak mengosongkan
 // tabel: setiap tes membuat akun dan bukunya sendiri. Tes berhenti bila database atau schema bukan milik tes.

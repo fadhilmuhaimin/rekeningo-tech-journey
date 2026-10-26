@@ -71,8 +71,8 @@ func siapkanDB(t *testing.T) (Server, *sql.DB, int64) {
 	if err := db.QueryRow("SELECT current_database(), coalesce(current_schema(), '')").Scan(&nama, &schema); err != nil {
 		t.Fatal(err)
 	}
-	if nama != "lab" || schema != "tahap4_tes" {
-		t.Fatalf("%s/%s bukan database tes lab/tahap4_tes", nama, schema)
+	if nama != "lab" || schema != schemaTes() {
+		t.Fatalf("%s/%s bukan database tes lab/%s", nama, schema, schemaTes())
 	}
 	var akun int64
 	if err := db.QueryRow(`
@@ -226,4 +226,12 @@ func TestStokTimpaHanyaDiModeRentan(t *testing.T) {
 	if _, pola := (Server{}).DenganRentan(service.RentanStokTimpa).Rute().Handler(req); pola != "PUT /produk/{id}/stok" {
 		t.Errorf("mode stok-timpa: rute %q; harus PUT /produk/{id}/stok", pola)
 	}
+}
+
+// schemaTes: schema tes. Pekerjaan paralel di database bersama memakai schema tes sendiri lewat LAB_TES_SCHEMA.
+func schemaTes() string {
+	if s := os.Getenv("LAB_TES_SCHEMA"); s != "" {
+		return s
+	}
+	return "tahap4_tes"
 }
