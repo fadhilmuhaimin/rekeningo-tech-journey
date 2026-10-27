@@ -221,3 +221,33 @@ func TestRotasiRahasiaLangsungDipakaiJadwal(t *testing.T) {
 		t.Error("kiriman sebelum rotasi harus bertanda rahasia lama, sesudahnya rahasia baru")
 	}
 }
+
+func TestWebhookBodyCantikDitandatanganApaAdanyaDanDicekDihitung(t *testing.T) {
+	p := penerimaBaru(t, 200)
+	g := &gateway{order: map[string]*order{"o1": {OrderID: "o1", Jumlah: 1000, Status: "pending"}}, kunci: map[string]string{}, webhook: "http://127.0.0.1:1/tidak-dipakai", rahasia: "r"}
+	srv := httptest.NewServer(g.rute())
+	defer srv.Close()
+	perintah := fmt.Sprintf(`{"event_id":"e1","order_id":"o1","body_cantik":true,"url_target":%q}`, p.srv.URL+"/webhook")
+	r, err := http.Post(srv.URL+"/lab/webhook", "application/json", strings.NewReader(perintah))
+	if err != nil || r.StatusCode != 200 {
+		t.Fatalf("%v %v", err, r)
+	}
+	r.Body.Close()
+	if len(p.body) != 1 || !strings.Contains(string(p.body[0]), "\n  \"event_id\"") {
+		t.Fatalf("body %q bukan format berindentasi", p.body)
+	}
+	if p.tanda[0] != tandatangani("r", p.ts[0], p.body[0]) {
+		t.Error("tanda tangan harus atas byte yang dikirim")
+	}
+	for i := 0; i < 2; i++ {
+		r, _ := http.Get(srv.URL + "/orders/o1")
+		r.Body.Close()
+	}
+	r, _ = http.Get(srv.URL + "/lab/dicek")
+	var isi struct{ Dicek map[string]int }
+	json.NewDecoder(r.Body).Decode(&isi)
+	r.Body.Close()
+	if isi.Dicek["o1"] != 2 {
+		t.Errorf("dicek %v, harus o1 = 2", isi.Dicek)
+	}
+}
