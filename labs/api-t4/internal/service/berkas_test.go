@@ -341,6 +341,52 @@ func TestAjukanTerunggahKunciBukanMilikAkunDitolakTanpaMenghapusMilikOrang(t *te
 	}
 }
 
+// Kunci di bawah awalan akun sendiri tetapi bukan bentuk yang diterbitkan server (identitas/<akun>/<32 heksadesimal
+// kecil>) adalah kesalahan masukan: dijawab sebagai galat validasi (422) pada kolom kunci itu sebelum menyentuh
+// penyimpanan, bukan sebagai galat internal (500) dari penyimpanan yang menolak bentuk kunci. Kunci `../` dan huruf
+// besar tidak pernah sampai ke penyimpanan.
+func TestAjukanTerunggahKunciBentukSalahDitolakSebagaiValidasiBukanGalatInternal(t *testing.T) {
+	svc, db := siapkan(t)
+	svc, p := svcPalsu(t, svc)
+	ctx := context.Background()
+	dina := qrAkun(t, db, "pemakai", "belum", "aktif", 0)
+	ud, _ := svc.MintaUnggahan(ctx, dina, 0, 0)
+	unggah(t, p, ud.KunciKartu, pngDengan("kartu"))
+	unggah(t, p, ud.KunciSwafoto, pngDengan("swafoto"))
+	awalan := fmt.Sprintf("identitas/%d/", dina)
+	for nama, kunci := range map[string]string{
+		"naik satu folder":       awalan + "../" + strings.Repeat("a", 32),
+		"huruf besar":            awalan + strings.ToUpper(ud.KunciKartu[len(awalan):]),
+		"terlalu pendek":         awalan + ud.KunciKartu[len(awalan):len(awalan)+31],
+		"terlalu panjang":        ud.KunciKartu + "0",
+		"berisi garis miring":    awalan + "a/" + strings.Repeat("a", 30),
+		"berisi spasi":           awalan + strings.Repeat("a", 31) + " ",
+		"bukan heksadesimal":     awalan + strings.Repeat("g", 32),
+		"garis bawah dan strip":  awalan + strings.Repeat("a", 30) + "_-",
+		"byte nol":               awalan + strings.Repeat("a", 31) + "\x00",
+		"titik":                  awalan + strings.Repeat("a", 31) + ".",
+		"awalan akun sendiri 2x": awalan + awalan + strings.Repeat("a", 32),
+	} {
+		var e ErrValidasi
+		in := masukan(ud, pngDengan("kartu"), pngDengan("swafoto"))
+		in.KunciKartu = kunci
+		if _, err := svc.AjukanVerifikasiTerunggah(ctx, dina, in); !errors.As(err, &e) || e.Field != "kunci_kartu" {
+			t.Errorf("%s (%q): harus ErrValidasi kunci_kartu, dapat %v", nama, kunci, err)
+		}
+		in = masukan(ud, pngDengan("kartu"), pngDengan("swafoto"))
+		in.KunciSwafoto = kunci
+		if _, err := svc.AjukanVerifikasiTerunggah(ctx, dina, in); !errors.As(err, &e) || e.Field != "kunci_swafoto" {
+			t.Errorf("%s sebagai kunci swafoto (%q): harus ErrValidasi kunci_swafoto, dapat %v", nama, kunci, err)
+		}
+	}
+	if !p.ada(ud.KunciKartu) || !p.ada(ud.KunciSwafoto) {
+		t.Error("pengajuan yang ditolak karena bentuk kunci tidak boleh menghapus file sah milik akun itu")
+	}
+	if _, err := svc.AjukanVerifikasiTerunggah(ctx, dina, masukan(ud, pngDengan("kartu"), pngDengan("swafoto"))); err != nil {
+		t.Fatalf("kunci yang diterbitkan server tetap diterima: %v", err)
+	}
+}
+
 func TestAjukanTerunggahBentukChecksumDanNomorIdentitas(t *testing.T) {
 	svc, db := siapkan(t)
 	svc, p := svcPalsu(t, svc)
@@ -667,6 +713,194 @@ func TestRetensiHalamanLebihDariSeratusBaris(t *testing.T) {
 	}
 	if len(p.dihapus) < 500 {
 		t.Errorf("DELETE ke penyimpanan: %d kunci, harus >= 500 (dua file per baris)", len(p.dihapus))
+	}
+}
+
+// Baris yang hanya satu kuncinya terisi (sisa job yang mati di antara dua penghapusan, atau kolom yang diubah dari
+// luar) tetap dipilih job: kunci kosong tidak dikirim ke penyimpanan, jadi tidak dihitung galat.
+func TestRetensiBarisDenganSatuKunciKosongTetapDiprosesTanpaGalat(t *testing.T) {
+	svc, db := siapkan(t)
+	svc, p := svcPalsu(t, svc)
+	ctx := context.Background()
+	t0 := time.Date(2026, 11, 3, 10, 0, 0, 0, time.UTC)
+	_, vA, uA := pengajuanTerunggah(t, svc, db, p)
+	_, vB, uB := pengajuanTerunggah(t, svc, db, p)
+	h := selesaiLulus(t, svc, db, 0, vA, t0, "lulus")
+	selesaiLulus(t, svc, db, 0, vB, t0, "lulus")
+	if _, err := db.Exec(`UPDATE verifikasi SET berkas_swafoto_kunci = '' WHERE id = $1`, vA.ID); err != nil { // hanya kartu terisi
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`UPDATE verifikasi SET berkas_kartu_kunci = '' WHERE id = $1`, vB.ID); err != nil { // hanya swafoto terisi
+		t.Fatal(err)
+	}
+	sebelum := jatuhTempo(t, db, h)
+	if sebelum != 2 {
+		t.Fatalf("baris jatuh tempo menurut database: %d, harus 2 (satu kunci terisi pun dihitung)", sebelum)
+	}
+	hasil, err := svc.DenganJam(func() time.Time { return h }).HapusBerkasJatuhTempo(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hasil.Diperiksa != 2 || hasil.Dihapus != 2 || hasil.Galat != 0 {
+		t.Errorf("hasil %+v, harus diperiksa 2, dihapus 2, galat 0", hasil)
+	}
+	if p.ada(uA.KunciKartu) || p.ada(uB.KunciSwafoto) {
+		t.Error("file yang kuncinya masih terisi harus terhapus")
+	}
+	if !kunciKosong(t, db, vA.ID) || !kunciKosong(t, db, vB.ID) {
+		t.Error("kedua baris harus ditandai terhapus")
+	}
+}
+
+// penyimpanBaca menghitung panggilan Baca dan bisa menjawab Baca dengan galat (objek yang berubah di antara HEAD dan GET).
+type penyimpanBaca struct {
+	*penyimpanPalsu
+	baca      int
+	galatBaca error
+}
+
+func (h *penyimpanBaca) Baca(ctx context.Context, kunci string) ([]byte, error) {
+	h.baca++
+	if h.galatBaca != nil {
+		return nil, h.galatBaca
+	}
+	return h.penyimpanPalsu.Baca(ctx, kunci)
+}
+
+func svcBaca(t *testing.T, svc Service) (Service, *penyimpanBaca) {
+	t.Helper()
+	w := &penyimpanBaca{penyimpanPalsu: &penyimpanPalsu{Dir: objek.Dir{Akar: t.TempDir()}, galatHapus: map[string]error{}}}
+	return svc.DenganT4(Dep{Objek: w, TanpaLapis: map[string]bool{}}), w
+}
+
+// Ukuran dibaca dari HEAD sebelum isi dibaca: objek 1 MiB + 1 byte ditolak tanpa satu pun panggilan Baca (isi tidak
+// masuk memori), dan kedua file dihapus.
+func TestAjukanTerunggahUkuranDariHeadDitolakSebelumIsiDibaca(t *testing.T) {
+	svc, db := siapkan(t)
+	svc, w := svcBaca(t, svc)
+	ctx := context.Background()
+	dina := qrAkun(t, db, "pemakai", "belum", "aktif", 0)
+	u, _ := svc.MintaUnggahan(ctx, dina, 0, 0)
+	besar := append(pngDengan(""), bytes.Repeat([]byte{1}, MaksBerkasIdentitas-len(pngKecil)+1)...)
+	kecil := pngDengan("swafoto")
+	unggah(t, w.penyimpanPalsu, u.KunciKartu, besar)
+	unggah(t, w.penyimpanPalsu, u.KunciSwafoto, kecil)
+	var e ErrValidasi
+	if _, err := svc.AjukanVerifikasiTerunggah(ctx, dina, masukan(u, besar, kecil)); !errors.As(err, &e) || e.Field != "berkas_kartu" || e.Pesan != "paling besar 1 MiB" {
+		t.Fatalf("kartu 1 MiB + 1 byte: %v", err)
+	}
+	if w.baca != 0 {
+		t.Errorf("Baca dipanggil %d kali; ukuran harus ditolak dari HEAD sebelum isi dibaca", w.baca)
+	}
+	if w.ada(u.KunciKartu) || w.ada(u.KunciSwafoto) {
+		t.Error("file yang ditolak harus dihapus")
+	}
+}
+
+// Objek yang membesar di antara HEAD dan GET (batas baca dilewati) dijawab sebagai galat validasi 1 MiB dan file
+// dihapus, bukan sebagai galat internal.
+func TestAjukanTerunggahObjekMembesarSesudahHeadDitolakSebagaiValidasi(t *testing.T) {
+	svc, db := siapkan(t)
+	svc, w := svcBaca(t, svc)
+	ctx := context.Background()
+	dina := qrAkun(t, db, "pemakai", "belum", "aktif", 0)
+	u, _ := svc.MintaUnggahan(ctx, dina, 0, 0)
+	kartu, swafoto := pngDengan("kartu"), pngDengan("swafoto")
+	unggah(t, w.penyimpanPalsu, u.KunciKartu, kartu)
+	unggah(t, w.penyimpanPalsu, u.KunciSwafoto, swafoto)
+	w.galatBaca = objek.ErrTerlaluBesar
+	var e ErrValidasi
+	if _, err := svc.AjukanVerifikasiTerunggah(ctx, dina, masukan(u, kartu, swafoto)); !errors.As(err, &e) || e.Field != "berkas_kartu" || e.Pesan != "paling besar 1 MiB" {
+		t.Fatalf("objek melewati batas baca: %v", err)
+	}
+	if w.ada(u.KunciKartu) || w.ada(u.KunciSwafoto) {
+		t.Error("file yang ditolak harus dihapus")
+	}
+	if jumlahVerifikasi(t, db, dina) != 0 {
+		t.Error("tidak boleh ada baris verifikasi")
+	}
+}
+
+// Pengajuan terunggah memakai batas yang sama dengan pengajuan lewat server: 3 per akun per jam. Percobaan yang
+// ditolak karena isinya (di sini: belum diunggah) tetap memakai jatah.
+func TestAjukanTerunggahDibatasiTigaPerJamPerAkun(t *testing.T) {
+	svc, db := siapkan(t)
+	svc, _ = svcPalsu(t, svc)
+	svc = svc.DenganJam(func() time.Time { return time.Date(2026, 10, 27, 9, 0, 0, 0, time.UTC) })
+	ctx := context.Background()
+	dina := qrAkun(t, db, "pemakai", "belum", "aktif", 0)
+	u, _ := svc.MintaUnggahan(ctx, dina, 0, 0)
+	in := masukan(u, pngDengan("kartu"), pngDengan("swafoto"))
+	var e ErrValidasi
+	for i := 1; i <= 3; i++ {
+		if _, err := svc.AjukanVerifikasiTerunggah(ctx, dina, in); !errors.As(err, &e) || e.Pesan != "belum diunggah" {
+			t.Fatalf("percobaan %d: %v, harus ErrValidasi belum diunggah", i, err)
+		}
+	}
+	var l ErrTerlaluSering
+	if _, err := svc.AjukanVerifikasiTerunggah(ctx, dina, in); !errors.As(err, &l) || l.Lapis != "akun" {
+		t.Fatalf("percobaan 4: %v, harus ErrTerlaluSering per akun", err)
+	}
+	lain := qrAkun(t, db, "pemakai", "belum", "aktif", 0)
+	ul, _ := svc.MintaUnggahan(ctx, lain, 0, 0)
+	if _, err := svc.AjukanVerifikasiTerunggah(ctx, lain, masukan(ul, pngDengan("kartu"), pngDengan("swafoto"))); errors.As(err, &l) {
+		t.Errorf("akun lain tidak boleh ikut dibatasi: %v", err)
+	}
+}
+
+// Hapus menghapus tepat satu kunci: kunci yang berawalan sama (identitas/7/ab lawan identitas/7/abc) tidak ikut.
+func TestByteaHapusHanyaKunciItuBukanYangBerawalanSama(t *testing.T) {
+	_, db := siapkan(t)
+	if _, err := db.Exec(objek.SkemaBytea); err != nil {
+		t.Fatal(err)
+	}
+	b := objek.Bytea{DB: db}
+	ctx := context.Background()
+	awal := fmt.Sprintf("identitas/prefiks%d/", time.Now().UnixNano())
+	for _, k := range []string{awal + "ab", awal + "abc", awal + "b"} {
+		if err := b.Simpan(ctx, k, []byte(k)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := b.Hapus(ctx, awal+"ab"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.Baca(ctx, awal+"ab"); !errors.Is(err, objek.ErrTidakAda) {
+		t.Errorf("kunci yang dihapus: %v", err)
+	}
+	for _, k := range []string{awal + "abc", awal + "b"} {
+		if got, err := b.Baca(ctx, k); err != nil || string(got) != k {
+			t.Errorf("kunci %s harus tetap ada: %q, %v", k, got, err)
+		}
+	}
+}
+
+// Jatah permintaan URL pulih 3 per jam, yaitu satu per 20 menit: sesudah 10 menit belum ada yang pulih, sesudah 21
+// menit tepat satu.
+func TestMintaUnggahanBatasIsiUlangSatuPerDuaPuluhMenit(t *testing.T) {
+	svc, db := siapkan(t)
+	svc, _ = svcPalsu(t, svc)
+	t0 := time.Date(2026, 10, 27, 9, 0, 0, 0, time.UTC)
+	kini := t0
+	svc = svc.DenganJam(func() time.Time { return kini })
+	ctx := context.Background()
+	dina := qrAkun(t, db, "pemakai", "belum", "aktif", 0)
+	for i := 1; i <= 3; i++ {
+		if _, err := svc.MintaUnggahan(ctx, dina, 0, 0); err != nil {
+			t.Fatalf("permintaan %d: %v", i, err)
+		}
+	}
+	var l ErrTerlaluSering
+	kini = t0.Add(10 * time.Minute)
+	if _, err := svc.MintaUnggahan(ctx, dina, 0, 0); !errors.As(err, &l) || l.Lapis != "akun" {
+		t.Fatalf("10 menit sesudah habis: %v, harus masih ErrTerlaluSering per akun", err)
+	}
+	kini = t0.Add(21 * time.Minute)
+	if _, err := svc.MintaUnggahan(ctx, dina, 0, 0); err != nil {
+		t.Fatalf("21 menit sesudah habis: %v, satu jatah harus sudah pulih", err)
+	}
+	if _, err := svc.MintaUnggahan(ctx, dina, 0, 0); !errors.As(err, &l) {
+		t.Fatalf("permintaan sesudah satu jatah pulih terpakai: %v, harus ErrTerlaluSering", err)
 	}
 }
 

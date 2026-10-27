@@ -116,6 +116,22 @@ func (s Service) MintaUnggahan(ctx context.Context, peminta, ukuranKartu, ukuran
 	return u, nil
 }
 
+// bentukKunciServer: bagian kunci sesudah awalan akun harus persis yang diterbitkan MintaUnggahan (acakHex(16): 32
+// heksadesimal huruf kecil). Bentuk lain (`../`, huruf besar, panjang lain) adalah kesalahan masukan yang dijawab
+// sebagai galat validasi sebelum menyentuh penyimpanan dan sebelum memakai jatah batas laju, bukan sebagai galat
+// internal dari klien penyimpanan yang menolak bentuk kunci.
+func bentukKunciServer(sisa string) bool {
+	if len(sisa) != 32 {
+		return false
+	}
+	for _, r := range sisa {
+		if !(r >= '0' && r <= '9' || r >= 'a' && r <= 'f') {
+			return false
+		}
+	}
+	return true
+}
+
 // periksaChecksum: bentuk checksum dari app (64 heksadesimal); nilainya diperiksa terhadap isi, bukan dipercaya.
 func periksaBentukChecksum(nama, c string) error {
 	if len(c) != 64 {
@@ -190,7 +206,7 @@ func (s Service) AjukanVerifikasiTerunggah(ctx context.Context, peminta int64, i
 	}
 	awalan := fmt.Sprintf("identitas/%d/", peminta)
 	for _, c := range []struct{ nama, k string }{{"kunci_kartu", in.KunciKartu}, {"kunci_swafoto", in.KunciSwafoto}} {
-		if !strings.HasPrefix(c.k, awalan) || len(c.k) <= len(awalan) {
+		if !strings.HasPrefix(c.k, awalan) || len(c.k) <= len(awalan) || !bentukKunciServer(c.k[len(awalan):]) {
 			return repo.Verifikasi{}, ErrValidasi{c.nama, "bukan kunci yang diterbitkan untuk akun ini"}
 		}
 	}
