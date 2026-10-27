@@ -389,10 +389,13 @@ describe("tinjauan 3.30: cache katalog lawan pemicu, CDC lonjakan lawan laju, bu
     expect(naskah).toContain("Satu queue urut waktu: 10.000 baris promo berada di depan notifikasi uang");
     expect(naskah).toContain("top-up 10.000 akun bila semua karyawan menerima tunjangan (Asumsi)");
     expect(baris(naskah).find((b) => b.startsWith("| 23 |"))).toContain("pesan terus mengalir ratusan per detik");
+    expect(baris(naskah).find((b) => b.startsWith("| 32 |"))).toContain("laju promo 5 per detik dijadwalkan di lab lewat `coba_lagi`");
+    expect(baris(naskah).find((b) => b.startsWith("| 32 |"))).toContain("belum ada di kode api-t3");
+    expect(baca("situs/src/content/docs/tahap-3/tim-infra.mdx")).toContain("5 per detik");
     const k = baris(badan).find((b) => b.startsWith("| CDC | Dua consumer"))!;
     expect(k).toContain("atau pesan outbox masuk 100 per detik terus-menerus");
     expect(k).toContain("Laju baris outbox per detik di luar lonjakan");
-    expect(k).toContain("Notifikasi uang 0,868 per detik (Hitungan atas Asumsi). Promo dan top-up massal memasukkan sampai 10.000 baris sekaligus, tetapi worker mengirim ±13,3 per detik (Asumsi naskah), jadi itu lonjakan, bukan laju");
+    expect(k).toContain("Notifikasi uang 0,868 per detik (Hitungan atas Asumsi). Promo dan top-up massal memasukkan sampai 10.000 baris sekaligus, karena batas promo 5 per detik di ADR 32 belum ada di kode, tetapi worker mengirim ±13,3 per detik (Asumsi naskah), jadi itu lonjakan, bukan laju");
   });
   test("panic.txt bagian D: kedua instance berhenti karena bug M21 (panic di ekspor laporan, mode rentan), bukan karena VPS mati", () => {
     const d = panic.slice(panic.indexOf("# --- D. "), panic.indexOf("# --- E. "));
