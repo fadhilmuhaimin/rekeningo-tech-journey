@@ -2173,7 +2173,7 @@
   "judul": "3.28 M28: Uji coba enam kota lolos, PRD v4 datang",
   "url": "tahap-3/m28-prd-v4/",
   "tanya": "Sebutkan tiga hal yang diminta PRD v4 dan belum pernah diuji di Tahap 3.",
-  "jawab": "Pihak ketiga yang menggerakkan uang, tiga tim di satu codebase, dan satu VPS sebagai titik gagal tunggal. Di Tahap 3 satu-satunya panggilan keluar dari `api-t3` adalah ke layanan push tiruan, timnya empat orang (Asumsi cerita) di satu codebase Go, dan semua komponen produksi ada di satu VPS."
+  "jawab": "Pihak ketiga yang menggerakkan uang, tiga tim di satu codebase, dan satu VPS sebagai titik gagal tunggal. Di Tahap 3 satu-satunya panggilan keluar dari `api-t3` adalah ke layanan push tiruan. Timnya empat orang (Asumsi cerita) di satu codebase Go, dan semua komponen produksi ada di satu VPS."
  },
  {
   "id": "C2-1",
