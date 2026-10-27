@@ -1,0 +1,36 @@
+{
+  "id": "t3-m24-stok-kembali",
+  "judul": "Stok ayam geprek: Jumat, Sabtu, Senin",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-offline · m24.txt bagian A sampai D dan versi.txt bagian C; jam dan jawaban yang hilang diperankan" },
+  "baris": [
+    {
+      "label": "Endpoint stok tanpa versi, ayam geprek",
+      "sub": "bagian A, B, D",
+      "simpul": [
+        { "teks": "Jumat 16.50: stok 0", "sub": "versi 2; jawaban hilang diperankan" },
+        { "teks": "Sabtu 07.50: dasbor mengisi 30", "sub": "versi 3" },
+        { "teks": "Senin 06.50: kirim ulang, key sama", "sub": "62 jam sesudah Jumat" },
+        { "teks": "Stok 0 lagi", "sub": "200, versi 4, tanpa galat", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Pembanding 17 jam, nasi goreng",
+      "sub": "bagian C",
+      "simpul": [
+        { "teks": "Sabtu 09.50: kirim ulang, key sama", "sub": "17 jam sesudah Jumat" },
+        { "teks": "Key dikenali", "sub": "jawaban Jumat: stok 0, versi 2" },
+        { "teks": "Database tidak berubah", "sub": "stok 50, versi 3", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Operasi bersyarat versi, Bakso",
+      "sub": "versi.txt bagian C",
+      "simpul": [
+        { "teks": "Senin 06.50: operasi lama tiba", "sub": "versi dasar 1" },
+        { "teks": "Versi sekarang 2", "sub": "stok 30 dari Sabtu" },
+        { "teks": "409 membawa keadaan sekarang", "sub": "tidak ada yang berubah", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Di api-t3, key mengenali ulangan selama 24 jam. Operasi bersyarat versi menolak data lama."
+}
