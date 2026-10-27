@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"testing"
 	"time"
 
@@ -14,6 +16,10 @@ import (
 // flag itu berperilaku ADR 25 apa adanya dan rekaman api-t4 tidak berubah; hanya lajur verifikasi yang punya breaker;
 // jawaban 4xx vendor dihitung sukses kecuali -breaker-bawaan memasang bawaan pustaka.
 func TestBreakerLajurMatiBawaanDanHanyaUntukLajurVerifikasi(t *testing.T) {
+	// Perpindahan status breaker dicatat lewat log bawaan; senyap di sini supaya tidak masuk rekaman testing.
+	asal := log.Writer()
+	log.SetOutput(io.Discard)
+	defer log.SetOutput(asal)
 	if m := breakerLajur(false, time.Second, true); m != nil {
 		t.Fatalf("tanpa -breaker peta harus kosong, dapat %v", m)
 	}

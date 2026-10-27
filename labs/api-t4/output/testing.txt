@@ -7,6 +7,7 @@ $ go vet ./...
 (tanpa temuan)
 # exit status 0
 $ TEST_DATABASE_URL=<pemilik, schema tahap4_tes> TEST_APP_DATABASE_URL=<role api_t4, schema yang sama> TEST_REDIS_ADDR=<Redis lab> go test -v -count=1 -p 1 ./...
+--- PASS: TestBreakerLajurMatiBawaanDanHanyaUntukLajurVerifikasi
 --- PASS: TestBukaCacheKatalogTanpaGerbangBawaan
 --- PASS: TestBukaCacheKatalogMenolakFlagSalah
 --- PASS: TestEndpointLepasGerbangHanyaBilaGerbangAda
@@ -69,6 +70,7 @@ ok    lab/apit4/internal/handler
 --- PASS: TestClientTidakMengikutiRedirect
 --- PASS: TestBatasNolMembuatClientTanpaBatasWaktuHanyaUntukRekamanPerbandingan
 --- PASS: TestBaruDenganTransportMemakaiTransportYangDiberikan
+--- PASS: TestTerlambatDanTidakTerhubungMembedakanSebabGalat
 PASS
 ok    lab/apit4/internal/klien
     lajur_test.go:47: gagal berturut-turut ke-1: status closed, hitungan gagal berturut-turut 1
@@ -88,17 +90,18 @@ ok    lab/apit4/internal/klien
     lajur_test.go:121: 61 detik sesudah membuka lagi: status half-open
 --- PASS: TestBreakerHalfOpenGagalMembukaLagiSelama60Detik
 --- PASS: TestBreakerSuksesMemutusGagalBerturutTurut
-    lajur_test.go:158: IsSuccessful bawaan pustaka, 6 jawaban 4xx berturut-turut: status open
-    lajur_test.go:167: IsSuccessful kustom (4xx sukses), 6 jawaban 4xx berturut-turut: status closed, gagal berturut-turut 0
-    lajur_test.go:178: kustom, 5 gagal vendor, 1 jawaban 4xx, 1 gagal vendor: status closed
-    lajur_test.go:185: kustom, 6 kegagalan vendor berturut-turut: status open
+--- PASS: TestBreakerGagalBerturutTurutTidakDihapusWaktu
+    lajur_test.go:178: IsSuccessful bawaan pustaka, 6 jawaban 4xx berturut-turut: status open
+    lajur_test.go:187: IsSuccessful kustom (4xx sukses), 6 jawaban 4xx berturut-turut: status closed, gagal berturut-turut 0
+    lajur_test.go:198: kustom, 5 gagal vendor, 1 jawaban 4xx, 1 gagal vendor: status closed
+    lajur_test.go:205: kustom, 6 kegagalan vendor berturut-turut: status open
 --- PASS: TestRekamanBreaker4xx
 --- PASS: TestBreakerTimeoutDapatDiatur
 --- PASS: TestBreakerPanggilanDijedaTidakMenambahHitungan
 --- PASS: TestDijedaHanyaUntukPenolakanBreaker
 --- PASS: TestBreakerLogPerubahanStatus
 --- PASS: TestBreakerTanpaCatatMemakaiLog
-    lajur_test.go:289: v2.4.0: 5 gagal, 1 error dikecualikan: gagal berturut-turut 5, dikecualikan 1, status closed
+    lajur_test.go:309: v2.4.0: 5 gagal, 1 error dikecualikan: gagal berturut-turut 5, dikecualikan 1, status closed
 --- PASS: TestGobreakerV240IsExcluded
 PASS
 ok    lab/apit4/internal/lajur
@@ -323,6 +326,8 @@ ok    lab/apit4/internal/verifikasi
 --- PASS: TestLajurBanyakPekerjaanBersamaanTidakAdaYangMati
 --- PASS: TestLajurBarisDiklaimSebelumBreakerTerbukaDilepasTanpaMenaikkanPercobaan
 --- PASS: TestLepasOutboxTidakDiBawahNolDanHanyaBarisMenunggu
+--- PASS: TestLajurPermintaanPercobaanSetengahTerbukaMenghabiskanPercobaanPekerjaanTerdepan
+--- PASS: TestLajurTerbukaWorkerSatuLajurTidakMengklaimApaPun
 --- PASS: TestLajurPushTetapJalanSelagiLajurVerifikasiTerbuka
 --- PASS: TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan
     --- PASS: TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan/bawaan=false

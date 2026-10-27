@@ -51,7 +51,7 @@ $ ./api-t4 -peran worker -sekali -rentan verifikasi-tanpa-key -maks-percobaan 5 
  lulus
 (1 row)
 # sesudah pulih: 2 permintaan masuk, 1 objek dibuat (kunci berbeda = objek berbeda)
-# Pengajuan lain, vendor menjawab 503: vendor pasti tidak memprosesnya, jadi statusnya tidak berubah dan pekerjaan menunggu percobaan berikutnya:
+# Pengajuan lain, vendor menjawab 503 (tiruan menjawab 503 sebelum membuat objek; vendor nyata tidak menjamin itu, dan retry berkunci aman di kedua kasus): statusnya tidak berubah dan pekerjaan menunggu percobaan berikutnya:
 => SELECT status FROM verifikasi
  status
 ----------
