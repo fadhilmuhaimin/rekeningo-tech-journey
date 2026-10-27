@@ -14,6 +14,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"lab/apit4/internal/klien"
 )
 
 // S3 adalah klien penyimpanan objek yang berbicara S3 (SigV4 dengan parameter di query string, gaya path) dan
@@ -64,9 +66,10 @@ func (s S3) region() string {
 	return s.Region
 }
 
-// klienBawaan: satu client untuk semua panggilan (koneksi dipakai ulang), tanpa proxy dan tanpa mengikuti redirect.
-var klienBawaan = &http.Client{Timeout: 30 * time.Second, Transport: &http.Transport{Proxy: nil},
-	CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+// klienBawaan: satu client untuk semua panggilan (koneksi dipakai ulang), tanpa proxy, dari satu-satunya pembuat client
+// keluar (klien.BaruDenganTransport: timeout selalu diisi, redirect tidak diikuti; ADR 22). Batasnya 3 detik, sama
+// dengan semua panggilan keluar; file 1 MiB di jaringan yang lambat bisa melewatinya (Asumsi lab, tidak diukur).
+var klienBawaan = klien.BaruDenganTransport(klien.BatasBawaan, &http.Transport{Proxy: nil})
 
 func (s S3) klien() *http.Client {
 	if s.HTTP != nil {
