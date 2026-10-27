@@ -760,7 +760,7 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
 // ---- nilai terkunci (dihasilkan dari berkas saat ini; ubah hanya sesudah membaca perbedaannya) -------------------------------
 const HITUNG_TIDAK_DIJALANKAN = 9;
 const SIDIK_REKAMAN_TAMPIL: string[] = ["77ed1f18c23e0b12","1b2fa48066c363f9","04d4d221161e4e1a","a52660f75101ee21","d6b4cfb6683378e7","0d44e6e002f471fb","4f02763220fa7a6e"];
-const SIDIK_R215 = "686e3784bce993ae";
+const SIDIK_R215 = "697f9ff4cc73cf63";
 const SIDIK_R216 = "f9cd24df9e2d9264";
 const SIDIK_DIAGRAM = "0133fc18787f2129";
 const SIDIK_SKENARIO = "46f16aadd86b3668";
