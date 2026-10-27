@@ -973,7 +973,7 @@ window.ISTILAH = {
   "h": "istilah/passkey/",
   "n": "3.23 XSS, CSRF, cookie sesi, passkey",
   "s": "istilah-passkey",
-  "t": "Passkey",
+  "t": "Passkey (WebAuthn)",
   "u": "tahap-3/xss-csrf-cookie/"
  },
  "Payload": {
@@ -1464,6 +1464,15 @@ window.ISTILAH = {
   "s": "istilah-wal",
   "t": "WAL (Write-Ahead Log)",
   "u": "d-system-design/d3-consistency/"
+ },
+ "WebAuthn": {
+  "b": "t3-xss-csrf",
+  "d": "Nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat pengguna membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "h": "istilah/passkey/",
+  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
+  "s": "istilah-passkey",
+  "t": "Passkey (WebAuthn)",
+  "u": "tahap-3/xss-csrf-cookie/"
  },
  "WebSocket": {
   "b": "E4",
@@ -2170,7 +2179,7 @@ window.ISTILAH = {
   "h": "istilah/passkey/",
   "n": "3.23 XSS, CSRF, cookie sesi, passkey",
   "s": "istilah-passkey",
-  "t": "Passkey",
+  "t": "Passkey (WebAuthn)",
   "u": "tahap-3/xss-csrf-cookie/"
  },
  "payload": {

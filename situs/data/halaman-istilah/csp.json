@@ -19,8 +19,8 @@
     "Menambah `'unsafe-inline'` supaya halaman jalan lagi. MDN menyarankan menghindarinya, karena ia melemahkan sebagian besar tujuan CSP."
   ],
   "terkait": [
-    "XSS",
-    "CSRF"
+    "XSS (cross-site scripting)",
+    "CSRF (cross-site request forgery)"
   ],
   "sumber": [
     {

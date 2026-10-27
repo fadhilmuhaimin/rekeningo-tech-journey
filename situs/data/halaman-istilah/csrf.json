@@ -1,6 +1,6 @@
 {
   "istilah": "CSRF (cross-site request forgery)",
-  "sehari_hari": "CSRF membuat browser pengguna yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie pengguna ikut terkirim.",
+  "sehari_hari": "CSRF membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim.",
   "cerita": [
     {
       "rujukan": "t3-xss-csrf",
@@ -8,7 +8,7 @@
     }
   ],
   "mekanisme": [
-    "Pengguna sudah login, jadi browser menyimpan cookie sesi untuk dasbor.",
+    "User sudah login, jadi browser menyimpan cookie sesi untuk dasbor.",
     "Halaman dari situs lain mengirim form ke dasbor. Browser menambahkan cookie sesuai atribut `SameSite`.",
     "Dasbor memeriksa `Sec-Fetch-Site` dan `Origin`, lalu token yang terikat ke sesi.",
     "Permintaan tanpa token yang cocok ditolak dengan 403 sebelum data berubah (`csrf.txt` bagian D)."
@@ -19,8 +19,8 @@
     "Menganggap pagar CSRF menahan XSS. Skrip di halaman yang sama lolos semua pemeriksaan, karena permintaannya same-origin (`xss.txt` bagian D)."
   ],
   "terkait": [
-    "XSS",
-    "CSP"
+    "XSS (cross-site scripting)",
+    "CSP (Content Security Policy)"
   ],
   "sumber": [
     {

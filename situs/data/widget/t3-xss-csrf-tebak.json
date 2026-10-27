@@ -12,22 +12,22 @@
   "pertanyaan": "Apa jawaban dasbor untuk permintaan itu?",
   "pilihan": [
     {
-      "teks": "401, karena cookie HttpOnly tidak bisa dipakai oleh skrip, jadi permintaannya tanpa sesi.",
+      "teks": "Ditolak dengan 401, karena cookie HttpOnly tidak bisa dipakai skrip.",
       "benar": false,
       "alasan": "HttpOnly melarang skrip membaca cookie, bukan memakainya. Browser tetap mengirim cookie itu pada permintaan dari JavaScript."
     },
     {
-      "teks": "403, karena Origin atau Sec-Fetch-Site menandai permintaan dari skrip sebagai permintaan asing.",
+      "teks": "Ditolak dengan 403, karena Origin atau Sec-Fetch-Site menandai skrip sebagai asing.",
       "benar": false,
       "alasan": "Kedua header menyebut asal halaman yang mengirim. Halamannya dasbor itu sendiri, jadi permintaannya same-origin."
     },
     {
-      "teks": "403, karena token CSRF hanya dikenali bila datang dari form, bukan dari skrip.",
+      "teks": "Ditolak dengan 403, karena token CSRF hanya dikenali bila datang dari form.",
       "benar": false,
       "alasan": "Token adalah nilai biasa yang ada di halaman. Skrip yang berjalan di halaman bisa membacanya dan mengirimnya di header."
     },
     {
-      "teks": "200, dan harga berubah dari Rp25.000 ke Rp2.",
+      "teks": "Diterima dengan 200, dan harga Nasi goreng berubah dari Rp25.000 ke Rp2.",
       "benar": true,
       "alasan": "Skrip berjalan sebagai halaman itu sendiri. Cookie ikut terkirim, token benar, dan asalnya same-origin, jadi semua pemeriksaan lolos."
     }

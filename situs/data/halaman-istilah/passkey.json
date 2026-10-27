@@ -8,10 +8,10 @@
     }
   ],
   "mekanisme": [
-    "Situs, yang disebut relying party, memanggil `navigator.credentials.create()` dengan identitas situs, data pengguna, dan challenge acak.",
-    "Browser meminta authenticator membuat pasangan kunci untuk situs itu, biasanya sesudah pengguna memverifikasi diri dengan PIN atau biometrik.",
+    "Situs, yang disebut relying party, memanggil `navigator.credentials.create()` dengan identitas situs, data user, dan challenge acak.",
+    "Browser meminta authenticator membuat pasangan kunci untuk situs itu, biasanya sesudah user memverifikasi diri dengan PIN atau biometrik.",
     "Situs menyimpan kredensial yang dihasilkan dan mengaitkannya dengan akun. Rangkaian ini disebut registration ceremony.",
-    "Saat login, situs meminta authenticator membuktikan bahwa pengguna memegang kredensial itu. Rangkaian ini disebut authentication ceremony."
+    "Saat login, situs meminta authenticator membuktikan bahwa user memegang kredensial itu. Rangkaian ini disebut authentication ceremony."
   ],
   "stack": null,
   "jebakan": [
@@ -19,8 +19,8 @@
     "Menyamakan authenticator virtual di lab dengan perangkat sungguhan. Lab hanya merekam `create()` di Chromium, dan perangkat sungguhan Tidak dijalankan."
   ],
   "terkait": [
-    "XSS",
-    "CSRF"
+    "XSS (cross-site scripting)",
+    "CSRF (cross-site request forgery)"
   ],
   "sumber": [
     {

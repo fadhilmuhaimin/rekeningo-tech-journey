@@ -12,7 +12,7 @@
     }
   ],
   "mekanisme": [
-    "Data dari satu pengguna, di sini catatan pembayaran, disimpan apa adanya di database.",
+    "Data dari satu user, di sini catatan pembayaran, disimpan apa adanya di database.",
     "Halaman lain menulis data itu ke DOM lewat sink yang membaca HTML, seperti `innerHTML`.",
     "Browser menafsir teks itu sebagai elemen dan atribut, termasuk event handler seperti `onerror`.",
     "Skrip yang berjalan memakai sesi pemilik halaman: cookie ikut terkirim dan variabel halaman bisa dibaca."
@@ -23,8 +23,8 @@
     "Menganggap `HttpOnly` menghentikan XSS. Cookie jadi tidak terbaca skrip, tetapi tetap dikirim pada permintaan dari JavaScript, jadi aksinya tetap terjadi."
   ],
   "terkait": [
-    "CSRF",
-    "CSP"
+    "CSRF (cross-site request forgery)",
+    "CSP (Content Security Policy)"
   ],
   "sumber": [
     {
