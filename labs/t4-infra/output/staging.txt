@@ -1,0 +1,27 @@
+# Lab t4-infra · secret staging dan produksi terpisah, dan pemindai kunci produksi di staging
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema t4_infra
+# OpenBao v2.7.2 mode dev, image ghcr.io/openbao/openbao@sha256:5046911075e1…
+# Rekaman dari database bersih: make -C labs/t4-infra run.
+
+# --- A. Secret staging dan produksi terpisah di OpenBao: token staging tidak bisa membaca produksi ---
+token staging membaca secret/staging/gateway: 200
+token staging membaca secret/produksi/gateway: 403
+token staging menulis secret/produksi/gateway: 403
+# Dev mode hanya punya satu instance, jadi pemisahan di lab adalah kebijakan (path dan token). Produksi sebaiknya memisahkan instance atau akun, supaya satu kebijakan yang keliru tidak membuka keduanya [perlu verifikasi: rekomendasi OpenBao belum dicek].
+
+# --- B. Kunci produksi yang tersasar di staging (Ilustrasi: naskah menulis staging memakai kunci gateway produksi) dideteksi pemindai ---
+# Pekerjaan keamanan membaca sidik (SHA-256) semua rahasia produksi dari OpenBao dengan tokennya sendiri dan menyimpannya tanpa nilai. Dua file konfigurasi staging, masing-masing salah menyalin satu kunci produksi:
+  staging.env: GATEWAY_KEY=<kunci produksi gateway, berawalan gw_live_>
+  penerbit.env: PENERBIT_KUNCI=<kunci produksi penerbit, tanpa awalan>
+$ pindairahasia -awalan gw_live_ -sidik produksi.sidik staging.env penerbit.env
+staging.env:2: kunci produksi (awalan)
+penerbit.env:1: kunci produksi (sidik)
+# exit status 1
+# Keluaran memuat file, nomor baris, dan alasan; nilai kuncinya tidak dicetak.
+$ pindairahasia -awalan gw_live_ staging.env penerbit.env   # tanpa daftar sidik
+staging.env:2: kunci produksi (awalan)
+# Aturan awalan menangkap kunci yang formatnya mengikuti vendor (gw_live_ lawan gw_test_), termasuk yang belum pernah dilihat pemindai. Kunci tanpa awalan hanya tertangkap oleh sidik, dan hanya bila sidiknya diketahui pemindai.
+# Perbaikan: staging memakai kunci staging dari secret/staging/* (berawalan gw_test_), kunci penerbit staging dibaca saat runtime, bukan ditulis di file:
+$ pindairahasia -awalan gw_live_ -sidik produksi.sidik staging.env penerbit.env
+# exit status 0, keluaran: (kosong)
+# Pemindai hanya melihat file yang diberikan kepadanya (di lab: dua file). Menjalankannya di CI atas seluruh konfigurasi staging, dan state IaC staging, adalah pekerjaan pipeline; Tidak dijalankan di lab ini.
