@@ -684,6 +684,24 @@
   "h": null
  },
  {
+  "t": "Kapasitas worker",
+  "d": "Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman.",
+  "b": "t3-m27",
+  "n": "3.26 M27",
+  "u": "/tahap-3/m27-hari-promo/",
+  "s": "istilah-kapasitas-worker",
+  "h": null
+ },
+ {
+  "t": "Kelas queue",
+  "d": "Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil.",
+  "b": "t3-m27",
+  "n": "3.26 M27",
+  "u": "/tahap-3/m27-hari-promo/",
+  "s": "istilah-kelas-queue",
+  "h": null
+ },
+ {
   "t": "Kredit",
   "d": "Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit.",
   "b": "t2-ledger",
@@ -1519,6 +1537,15 @@
   "u": "/tahap-2/fitur-tutup-buku/",
   "s": "istilah-tutup-buku",
   "h": "/istilah/tutup-buku/"
+ },
+ {
+  "t": "Umur notifikasi tertua",
+  "d": "Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu.",
+  "b": "t3-m27",
+  "n": "3.26 M27",
+  "u": "/tahap-3/m27-hari-promo/",
+  "s": "istilah-umur-notifikasi-tertua",
+  "h": null
  },
  {
   "t": "WAL (Write-Ahead Log)",

@@ -693,6 +693,22 @@ window.ISTILAH = {
   "t": "Jurnal",
   "u": "tahap-2/ledger/"
  },
+ "Kapasitas worker": {
+  "b": "t3-m27",
+  "d": "Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman.",
+  "n": "3.26 M27",
+  "s": "istilah-kapasitas-worker",
+  "t": "Kapasitas worker",
+  "u": "tahap-3/m27-hari-promo/"
+ },
+ "Kelas queue": {
+  "b": "t3-m27",
+  "d": "Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil.",
+  "n": "3.26 M27",
+  "s": "istilah-kelas-queue",
+  "t": "Kelas queue",
+  "u": "tahap-3/m27-hari-promo/"
+ },
  "Kredit": {
   "b": "t2-ledger",
   "d": "Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit.",
@@ -1550,6 +1566,14 @@ window.ISTILAH = {
   "t": "Tutup buku",
   "u": "tahap-2/fitur-tutup-buku/"
  },
+ "Umur notifikasi tertua": {
+  "b": "t3-m27",
+  "d": "Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu.",
+  "n": "3.26 M27",
+  "s": "istilah-umur-notifikasi-tertua",
+  "t": "Umur notifikasi tertua",
+  "u": "tahap-3/m27-hari-promo/"
+ },
  "WAL": {
   "b": "D3",
   "d": "Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary.",
@@ -2021,6 +2045,22 @@ window.ISTILAH = {
   "s": "istilah-jurnal",
   "t": "Jurnal",
   "u": "tahap-2/ledger/"
+ },
+ "kapasitas worker": {
+  "b": "t3-m27",
+  "d": "Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman.",
+  "n": "3.26 M27",
+  "s": "istilah-kapasitas-worker",
+  "t": "Kapasitas worker",
+  "u": "tahap-3/m27-hari-promo/"
+ },
+ "kelas queue": {
+  "b": "t3-m27",
+  "d": "Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil.",
+  "n": "3.26 M27",
+  "s": "istilah-kelas-queue",
+  "t": "Kelas queue",
+  "u": "tahap-3/m27-hari-promo/"
  },
  "kredit": {
   "b": "t2-ledger",
@@ -2690,6 +2730,14 @@ window.ISTILAH = {
   "s": "istilah-tutup-buku",
   "t": "Tutup buku",
   "u": "tahap-2/fitur-tutup-buku/"
+ },
+ "umur notifikasi tertua": {
+  "b": "t3-m27",
+  "d": "Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu.",
+  "n": "3.26 M27",
+  "s": "istilah-umur-notifikasi-tertua",
+  "t": "Umur notifikasi tertua",
+  "u": "tahap-3/m27-hari-promo/"
  },
  "webhook": {
   "b": "B10.2",
