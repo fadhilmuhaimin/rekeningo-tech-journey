@@ -244,6 +244,8 @@ describe("naskah M28 dan gejala: lingkup PRD v4, dugaan Raka, dan batas yang dit
   });
   test("penutupan periode: naskah Tahap 3 menyebutnya sekali, di Latar, sebagai belum dibuat; halaman 2.4 menulis keduanya belum dibuat di lab", () => {
     expect(hitung(naskah, "penutupan periode")).toBe(1);
+    // klaim negatif "tidak menyebutnya lagi" dipindai tanpa peduli huruf besar dan kata turunan: kata "periode" hanya sekali di naskah
+    expect((naskah.match(/periode/gi) ?? []).length).toBe(1);
     expect(naskah.indexOf("penutupan periode")).toBeLessThan(naskah.indexOf("## 1. PRD v3"));
     expect(naskah.indexOf("penutupan periode")).toBeGreaterThan(naskah.indexOf("## Latar: dari satu kampus ke enam kota"));
     expect(naskah).toContain("penutupan periode tutup buku belum dibuat, dan Idempotency-Key belum dipasang di bayar dan transfer.");
