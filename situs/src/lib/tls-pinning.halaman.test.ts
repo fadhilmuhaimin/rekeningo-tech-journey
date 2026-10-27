@@ -288,7 +288,7 @@ const EXPECT: string[] = [
   "[[t3-m26]] merekam transfer «rpTransfer» yang tidak dibuat Budi. Validasi sertifikat menolak CA Dimas selama CA itu di luar daftar akar app (`m26.txt` bagian B). Begitu CA itu masuk daftar, validasi meloloskannya (`m26.txt` bagian D). Bagaimana CA Dimas sampai di daftar akar HP sungguhan Tidak dijalankan.",
   "Dokumentasi Android menulis bahwa app bawaannya mempercayai CA sistem ([Android: Network security configuration](https://developer.android.com/privacy-and-security/security-config), Last updated «andNsc» UTC, dibuka «tgl»). App yang menarget Android 6.0 (API level «apiLevel») ke bawah juga mempercayai CA tambahan dari user.",
   "Dokumentasi React Native menulis bahwa penyerang bisa memasang root CA berbahaya di perangkat, dan pinning menahannya ([React Native: Security](https://reactnative.dev/docs/security), dibuka «tgl»).",
-  "PRD v3 tidak meminta pin. Yang memintanya adalah risiko Sinta bahwa app dipakai di Wi-Fi tenant mitra yang tidak dikelola Rekeningo ([[t3-prd]]). Halaman ini memutuskan apa yang dipasang di app, dan apa yang tidak.",
+  "PRD v3 tidak meminta pin. Yang mendorongnya adalah risiko Sinta bahwa app dipakai di Wi-Fi tenant mitra yang tidak dikelola Rekeningo ([[t3-prd]]). Halaman ini memutuskan apa yang dipasang di app, dan apa yang tidak.",
   "### Cara kerjanya",
   "**Di antara lima pengaman yang direkam, hanya pin di `connectionFactory` menahan CA Dimas yang dipercaya sebelum request keluar.**",
   "| Pengaman di app | CA Dimas di luar daftar akar | CA Dimas di daftar akar | Sumber |\n|---|---|---|---|\n| Validasi bawaan | Ditolak saat handshake, proxy melihat nol request | Lolos: request terbaca, transfer «rpTransfer» tercatat | `m26.txt` bagian B dan D |\n| Flag terima-semua | Lolos: callback dipanggil «cbFlag» kali, transfer tercatat | Tidak direkam | `m26.txt` bagian C |\n| Pin di `badCertificateCallback` | Callback dipanggil «cbBadTolak» kali dan menolak | Callback dipanggil «cbBad0» kali, transfer tercatat | `pin.txt` bagian B |\n| Pin di `validateCertificate` dio | Tidak direkam | Callback menolak, tetapi request sudah terbaca dan transfer tercatat | `dio.txt` bagian A |\n| Pin di `connectionFactory` | Tidak direkam | Ditolak sesudah handshake: nol request, nol transfer | `pin.txt` bagian A, `dio.txt` bagian B |",
@@ -685,6 +685,9 @@ describe("kode lab: connectionFactory, penelusur SPKI, HSTS di server tepi, dan 
   test("klaim negatif berlingkup: lab t3-mitm tidak punya kode Android, iOS, atau browser; README mengakui yang tidak dijalankan", () => {
     const berkasLab = [...(terlacak ?? [])].filter((b) => b.startsWith("labs/t3-mitm/"));
     expect(berkasLab.length).toBeGreaterThan(20);
+    // "diuji hanya lewat rekaman": lab t3-mitm tidak punya tes Dart (hanya tes Go untuk pki, tepi, mitm, dan pagar).
+    expect(berkasLab.filter((b) => b.startsWith("labs/t3-mitm/dart/") && /test|_test\.dart$/i.test(b))).toEqual([]);
+    expect(berkasLab.filter((b) => b.endsWith("_test.go")).length).toBeGreaterThan(0);
     expect(berkasLab.filter((b) => /android|\bios\b|\.kt$|\.swift$|\.plist$|AndroidManifest|network_security_config|\.html$/i.test(b))).toEqual([]);
     for (const k of [
       "**Flutter di Android atau iOS: Tidak dijalankan.**",
