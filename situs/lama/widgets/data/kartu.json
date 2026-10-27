@@ -2053,7 +2053,7 @@
   "judul": "3.24 M26: Transfer yang tidak dibuat Budi",
   "url": "tahap-3/m26-transfer-bukan-budi/",
   "tanya": "Flag sudah dihapus dan validasi sertifikat aktif. Kapan hotspot Dimas masih bisa membaca token Budi?",
-  "jawab": "Bila CA Dimas ada di daftar akar app. Di bagian D validasi lolos dan hasilnya sama dengan flag: hotspot membaca 1 request dan nominalnya diubah. Cara CA itu sampai di daftar akar Tidak dijalankan di lab. Halaman Keamanan 6 membahas jawabannya."
+  "jawab": "Bila CA Dimas ada di daftar akar app. Di bagian D validasi lolos dan hasilnya sama dengan flag: hotspot membaca 1 request dan nominalnya diubah. Cara CA itu sampai di daftar akar Tidak dijalankan di lab. Halaman Keamanan 6 membahas cara menahannya."
  },
  {
   "id": "t3-m26-4",

@@ -52,6 +52,7 @@ const repoGo = baca("labs/api-t3/internal/repo/repo.go");
 const sesiGo = baca("labs/api-t3/internal/service/sesi.go");
 const handlerGo = baca("labs/api-t3/internal/handler/handler.go");
 const mainGo = baca("labs/api-t3/cmd/api/main.go");
+const dasarT3 = baca("labs/api-t3/dasar_t3.py");
 const hal31 = baca("situs/src/content/docs/tahap-3/prd-v3.mdx");
 const hal33 = baca("situs/src/content/docs/tahap-3/fitur-notifikasi.mdx");
 const hal127 = baca("situs/src/content/docs/tahap-1/authentication.mdx");
@@ -344,7 +345,7 @@ describe("rekaman m26.txt: nilai dan rentang Snippet", () => {
     expect(bagD).toContain("# body diteruskan:    ");
     expect(bagD).toContain("Bagaimana CA itu sampai di sana (profil dipasang di HP, CA yang salah menerbitkan): Tidak dijalankan.");
     expect(readmeLab).toContain("Bagaimana CA Dimas bisa sampai di daftar akar (profil dipasang di HP, CA yang salah menerbitkan): Tidak dijalankan.");
-    harus("Bagaimana sebuah CA bisa masuk daftar akar (profil yang dipasang di HP, atau CA yang salah menerbitkan) Tidak dijalankan di lab. Jawabannya ada di [[t3-tls-pinning]].");
+    harus("Bagaimana sebuah CA bisa masuk daftar akar (profil yang dipasang di HP, atau CA yang salah menerbitkan) Tidak dijalankan di lab. Cara menahannya ada di [[t3-tls-pinning]].");
     harus("Validasi lolos, hotspot membaca token, dan nominal diubah.");
   });
   test("bagian E: app dengan flag membuka saldo lewat hotspot (200, saldo awal, callback 1 kali, 1 request GET); Dimas memakai token (201) langsung ke server; riwayat Budi memuat satu kiriman keluar ke Dimas", () => {
@@ -370,6 +371,19 @@ describe("rekaman m26.txt: nilai dan rentang Snippet", () => {
     harus("Bagian E tidak memuat permintaan login. Dimas hanya mengirim token. Password ikut terbaca bila Budi login lewat hotspot itu, karena hotspot membaca body request (penalaran; lab tidak merekam login lewat hotspot).");
     harus("Token Budi dibuat dengan login langsung ke server.");
     expect(mitmGo).toContain('cat := map[string]any{"jenis": "request", "metode": r.Method, "path": r.URL.Path, "authorization": r.Header.Get("Authorization"), "body": string(body)}');
+  });
+  test("laptop Dimas dan riwayat Budi di bagian E: curl langsung ke api-t3 (port bawaan d.curl), tanpa server tepi TLS dan tanpa hotspot; halaman menyebutnya", () => {
+    const dimas = bagianM26.split("\n").find((b) => b.includes("d.curl(\"POST\", \"/kiriman\", '{\"ke_nomor_karyawan\":\"K00417\""))!;
+    const riw = bagianM26.split("\n").find((b) => b.includes("d.curl(\"GET\", \"/akun/419/riwayat?batas=1\""))!;
+    expect(dimas).toBeDefined();
+    expect(riw).toBeDefined();
+    expect(dimas).not.toMatch(/port=/);
+    expect(riw).not.toMatch(/port=/);
+    expect(dasarT3).toMatch(/def curl\(method, path, body=None, token=None, jenis="application\/json", tampil=True, tampil_body=None, port=PORT,/);
+    expect(dasarT3).toContain('cmd = ["curl", "-s", "-i", "-X", method, f"http://127.0.0.1:{port}{path}"]');
+    expect(umumPy).toContain("PORT_MITM_PLACEHOLDER".replace("PORT_MITM_PLACEHOLDER", 'DASAR = {"tepi": 18190, "tepi_http": 18191, "mitm": 18192, "mitm_polos": 18193}'));
+    harus("Rekaman memerankan laptopnya dengan curl langsung ke `api-t3`, tanpa server tepi.");
+    harus("Rekaman mengambil riwayat itu dengan token Budi langsung dari server, bukan dari app.");
   });
   test("bagian A: tanpa TLS, hotspot meneruskan HTTP biasa: kiriman 201, nominal diubah, saldo Budi dari saldo awal ke saldo akhir", () => {
     expect(bagA).toContain("lewat HTTP biasa (port 18193: proxy hotspot Dimas, bukan server)");
@@ -419,7 +433,7 @@ describe("rekaman m26.txt: nilai dan rentang Snippet", () => {
     expect(bagianM26).toContain("U.mulai_mitm(rekam, tls=False, ubah=UBAH)");
     expect(umumPy).toContain('cmd += ["-ubah-nominal", str(ubah[0]), "-ubah-ke", ubah[1]]');
     expect(readmeLab).toContain("Proxy dan server tepi hanya mau mendengar dan meneruskan ke loopback");
-    harus("Semuanya berjalan di satu laptop, dan proxy serta server tepi hanya mendengar di alamat loopback.");
+    harus("Semuanya berjalan di satu mesin, dan proxy serta server tepi hanya mendengar di alamat loopback.");
     harus("Proxy diberi aturan mengubah transfer: itu aturan lab, bukan sifat setiap proxy.");
     harus("Hotspot yang sama bisa mengubah transfer yang sedang lewat. Di bagian C, hotspot lab diberi aturan: transfer Rp10.000 ke Citra diganti menjadi Rp150.000 ke Dimas.");
   });
@@ -474,8 +488,17 @@ describe("kode api-t3: sesi, umur sesi, dan pemeriksaan token", () => {
     expect(mainGo).toContain('umurSesi := flag.Duration("umur-sesi", 8*time.Hour, "masa berlaku sesi (asumsi: satu hari kerja)")');
     const jam = Number(cocok(mainGo, /flag\.Duration\("umur-sesi", (\d+)\*time\.Hour/)[1]);
     expect(hal127).toContain(`token acak yang berlaku ${jam} jam`);
-    harus(`Sesi api-t3 berlaku ${jam} jam secara bawaan, sama dengan yang ditulis [[B5.1]] (dibaca dari kode lab, Tidak dijalankan di bagian ini).`);
-    harus("Pemeriksaan token di api-t3 hanya menerima token, mencari hash-nya di tabel sesi, dan mengembalikan akun, jenis sesi, dan hash CSRF.");
+    harus(`Sesi api-t3 berlaku ${jam} jam secara bawaan, sama dengan yang ditulis [[B5.1]]. Logout dan ganti password menghapus barisnya lebih awal (dibaca dari kode lab, Tidak dijalankan di bagian ini).`);
+    // sesi berakhir lebih awal: logout menghapus satu baris, ganti password menghapus semua sesi akun (klaim "sampai sesinya habis" salah)
+    const gantiPw = repoGo.slice(repoGo.indexOf("func (r Repo) GantiPassword("), repoGo.indexOf("// --8<-- [start:sesi]"));
+    expect(gantiPw).toContain("`DELETE FROM sesi WHERE akun_id = $1`");
+    expect(repoGo).toContain("`DELETE FROM sesi WHERE token_hash = $1`");
+    expect(sesiGo).toContain("return s.repo.HapusSesi(ctx, hashToken(token))");
+    expect(handlerGo).toContain("s.svc.Logout(r.Context(), token)");
+    expect(hal127).toContain("Logout menghapus barisnya, dan token yang sama langsung ditolak");
+    harus("**Token berguna sampai sesinya berakhir.**");
+    expect(badan).not.toMatch(/sampai sesinya habis/);
+    harus("Pemeriksaan token di api-t3 hanya menerima token, mencari hash-nya di tabel sesi yang belum kedaluwarsa, dan mengembalikan akun, jenis sesi, dan hash CSRF.");
     harus("Objek sesi itu tidak memuat alamat atau perangkat pengirim. Karena itu pemeriksaan tidak membedakan laptop Dimas dari HP Budi (dibaca dari kode lab, Tidak dijalankan di halaman ini).");
   });
 });
@@ -499,7 +522,7 @@ describe("sumber luar: dokumentasi Dart dan OWASP MASWE-0027, baris riset R3-215
     expect(r215).toContain("cannot be authenticated by any of our trusted root certificates");
     expect(r215).toContain("bila nilainya null, sertifikat buruk ditolak");
     expect(r215).toContain("bila callback mengembalikan true, koneksi aman diterima");
-    harus("Menurut dokumentasi Dart, callback itu menentukan nasib sertifikat yang tidak bisa diautentikasi oleh akar tepercaya mana pun. Bila callback mengembalikan `true`, koneksi aman diterima, dan bila nilainya `null`, sertifikat ditolak");
+    harus("Menurut dokumentasi Dart, callback itu menentukan nasib sertifikat yang tidak bisa diautentikasi oleh akar tepercaya mana pun. Bila callback mengembalikan `true`, koneksi aman diterima. Bila callback tidak diisi (`null`), sertifikat ditolak");
     expect(r215).toContain("Lab `t3-mitm` client.dart mode `terima-semua` memasang callback yang selalu true");
     expect(r215).toContain("Dart 3.11.4, halaman dokumentasi Dart 3.13.7");
     expect(M.b[3]).toContain("Dart 3.11.4");
@@ -510,6 +533,9 @@ describe("sumber luar: dokumentasi Dart dan OWASP MASWE-0027, baris riset R3-215
     expect(r216).toContain("penangkapan kredensial atau token sesi di jaringan yang berakibat peniruan user");
     harus("OWASP mencatat kelemahan ini sebagai MASWE-0027, validasi sertifikat yang tidak aman. Salah satu cara masuknya persis seperti di sini: validasi dimatikan untuk mempermudah pengembangan, lalu konfigurasi itu terbawa ke produksi. Dampak yang ditulis OWASP termasuk token sesi yang terbaca di jaringan. Orang lain lalu bisa meniru user");
     expect(badan).not.toMatch(/Disabling|Insecure Certificate|session tokens|simplify development/);
+    expect(r216).toContain("tidak menyebut Flutter atau Dart");
+    harus("**Untuk app mobile**, OWASP mencatat");
+    expect(badan).not.toContain("Untuk app Flutter");
     harus("tanpa nomor versi, Tidak dijalankan)");
   });
   test("baris riset R3-215 dan R3-216 dikunci dengan sidik jari: ubah satu karakter, buka lagi sumbernya, lalu perbarui sidiknya; ID urut tanpa ganda", () => {
@@ -692,7 +718,7 @@ describe("widget alur t3-m26: skenario valid, nilai dari rekaman, tebakan, dan t
     expect(hitung(badan, "<noscript>")).toBe(1);
     expect(coba).toContain("<noscript>");
     expect(coba).toContain(`transfer Dimas ${rupiah(NOMINAL_UBAH)} dijawab ${cocok(bagE, /HTTP\/1\.1 (\d+) Created/)[1]}.`);
-    expect(coba).toContain("Pada app yang memeriksa sertifikat, handshake ditolak, hotspot membaca 0 request, dan database tidak memuat transfer.");
+    expect(coba).toContain("Pada app yang memeriksa sertifikat dan tidak mempercayai CA Dimas, handshake ditolak, hotspot membaca 0 request, dan database tidak memuat transfer.");
     expect(coba).toContain("**Ubah satu hal: app memeriksa sertifikat (tanpa flag)**. Rekamannya bagian B.");
   });
   test("teks widget dikunci dengan sidik jari (setiap nilai string)", () => {
@@ -721,7 +747,7 @@ describe("kartu Cek diri: empat kartu, sama dengan kartu.json", () => {
     expect(k(1)).toContain(`Client yang memeriksa sertifikat: ${rB} request, karena CA Dimas tidak ada di daftar akarnya dan handshake ditolak (\`m26.txt\` bagian B). Client yang membawa flag: ${rC} request, karena callback dipanggil ${hasilClient(bagC, "localhost:18192/kiriman").callback_dipanggil} kali dan menerima sertifikat tiruan, jadi hotspot membaca request lengkap beserta header Authorization (bagian C).`);
     expect(k(2)).toContain(`Dimas mengirim transfer dengan token itu langsung ke server, dan server menjawab ${cocok(bagE, /HTTP\/1\.1 (\d+) Created/)[1]} (\`m26.txt\` bagian E). Bagian E tidak memuat password atau login.`);
     expect(k(3)).toContain(`Di bagian D validasi lolos dan hasilnya sama dengan flag: hotspot membaca ${cocok(bagD, /request terbaca (\d+)/)[1]} request dan nominalnya diubah.`);
-    expect(k(3)).toContain("Cara CA itu sampai di daftar akar Tidak dijalankan di lab. Halaman Keamanan 6 membahas jawabannya.");
+    expect(k(3)).toContain("Cara CA itu sampai di daftar akar Tidak dijalankan di lab. Halaman Keamanan 6 membahas cara menahannya.");
     expect(k(4)).toContain("Token itu sah, saldo cukup, dan batas harian tidak terlampaui (`m26.txt` bagian E). Pemeriksaan token di api-t3 hanya memakai token, tanpa alamat atau perangkat pengirim (dibaca dari kode lab, Tidak dijalankan di halaman ini).");
     expect(bagE).not.toMatch(/password|login/i);
   });
@@ -789,14 +815,14 @@ const KALIMAT_TERKUNCI: string[] = [
   "<details class=\"question\">",
   "<summary>Tebak dulu: app yang memeriksa sertifikat mengirim satu transfer lewat hotspot Dimas. Berapa request yang terbaca hotspot?</summary>",
   "Nol. Di rekaman `m26.txt` bagian B, validasi menolak sertifikat hotspot saat handshake. Hotspot melihat handshake dan 0 request, dan database tidak memuat transfer.",
-  "Dugaan Raka benar untuk app yang memeriksa sertifikat. Yang belum ia periksa adalah apakah app Budi memang begitu.",
+  "Dugaan Raka benar untuk app yang memeriksa sertifikat dan tidak mempercayai CA Dimas. Yang belum ia periksa adalah apakah app Budi memang begitu.",
   "</details>",
   "</Blok>",
   "<Blok nama=\"Yang sebenarnya\">",
   "App Budi menerima sertifikat apa pun. Hotspot Dimas membaca token Budi, dan Dimas memakainya untuk transfer Rp150.000 ke dirinya.",
   "<Rantai data={transferBukanBudi} />",
   "*Kondisi rekaman:* PostgreSQL 17.11, server Go `api-t3` di belakang server tepi TLS, dan client Dart 3.11.4 (`dart:io`) sebagai app Budi. Hotspot Dimas adalah proxy tiruan Go, yaitu program perantara yang meneruskan request ke server asli (Ilustrasi mekanisme). Token Budi dibuat dengan login langsung ke server.",
-  "Semuanya berjalan di satu laptop, dan proxy serta server tepi hanya mendengar di alamat loopback. Hotspot diperankan dengan mengarahkan client ke port proxy dengan nama host yang sama, jadi routing Wi-Fi dan DNS Tidak dijalankan. Proxy diberi aturan mengubah transfer: itu aturan lab, bukan sifat setiap proxy.",
+  "Semuanya berjalan di satu mesin, dan proxy serta server tepi hanya mendengar di alamat loopback. Hotspot diperankan dengan mengarahkan client ke port proxy dengan nama host yang sama, jadi routing Wi-Fi dan DNS Tidak dijalankan. Proxy diberi aturan mengubah transfer: itu aturan lab, bukan sifat setiap proxy.",
   "**App yang memeriksa sertifikat menolak hotspot.** Kontrol memakai client yang hanya percaya CA Lab Publik, yang memerankan CA yang dipercaya sistem. Langsung ke server tepi, client terhubung dan menerima jawaban 200. Lewat hotspot, handshake ditolak:",
   "<Snippet file=\"labs/t3-mitm/output/m26.txt\" lines=\"33:39\" title=\"Rekaman lab: labs/t3-mitm/output/m26.txt baris 33 sampai 39 (bagian B, validasi aktif menolak hotspot)\" />",
   "**Staging membutuhkan flag, dan flag ikut ke rilis.** Server staging memakai sertifikat dari CA buatan sendiri, yang tidak ada di daftar akar app, jadi validasi menolaknya:",
@@ -804,25 +830,26 @@ const KALIMAT_TERKUNCI: string[] = [
   "Supaya staging bisa dipakai, Bayu meminta flag yang menerima sertifikat apa pun, dan Raka memasangnya. Flag itu tidak dicabut dari build rilis app 3.1. Bagian cerita itu Ilustrasi: lab tidak punya build Flutter, dan nomor versi 3.1 adalah Asumsi ([[t3-notifikasi]]).",
   "Lab memerankan flag dengan `badCertificateCallback`, fungsi yang Dart panggil saat sertifikat tidak bisa diautentikasi. Fungsi itu selalu mengembalikan `true`:",
   "<Snippet file=\"labs/t3-mitm/dart/bin/client.dart\" lines=\"109:114\" lang=\"dart\" title=\"Kode lab: labs/t3-mitm/dart/bin/client.dart baris 109 sampai 114 (flag: callback selalu true)\" />",
-  "Menurut dokumentasi Dart, callback itu menentukan nasib sertifikat yang tidak bisa diautentikasi oleh akar tepercaya mana pun. Bila callback mengembalikan `true`, koneksi aman diterima, dan bila nilainya `null`, sertifikat ditolak ([dokumentasi API Dart 3.13.7](https://api.dart.dev/stable/dart-io/HttpClient/badCertificateCallback.html), dibuka 2026-10-27, Tidak dijalankan).",
+  "Menurut dokumentasi Dart, callback itu menentukan nasib sertifikat yang tidak bisa diautentikasi oleh akar tepercaya mana pun. Bila callback mengembalikan `true`, koneksi aman diterima. Bila callback tidak diisi (`null`), sertifikat ditolak ([dokumentasi API Dart 3.13.7](https://api.dart.dev/stable/dart-io/HttpClient/badCertificateCallback.html), dibuka 2026-10-27, Tidak dijalankan).",
   "**Dengan flag, hotspot membaca token.** Client yang membawa flag menerima sertifikat tiruan. Callback dipanggil 1 kali, dan hotspot membaca header Authorization yang sama dengan token Budi:",
   "<Snippet file=\"labs/t3-mitm/output/m26.txt\" lines=\"87:91\" title=\"Rekaman lab: labs/t3-mitm/output/m26.txt baris 87 sampai 91 (bagian E, app dengan flag membuka saldo lewat hotspot)\" />",
-  "**Dimas memakai token itu.** Tanpa app Budi dan tanpa password, Dimas mengirim transfer dengan token yang terbaca. Rekaman memerankan laptopnya dengan curl langsung ke server. Server menjawab 201 dan mencatat satu jurnal dengan dua posting yang berjumlah nol:",
+  "**Dimas memakai token itu.** Tanpa app Budi dan tanpa password, Dimas mengirim transfer dengan token yang terbaca. Rekaman memerankan laptopnya dengan curl langsung ke `api-t3`, tanpa server tepi. Server menjawab 201 dan mencatat satu jurnal dengan dua posting yang berjumlah nol:",
   "<Snippet file=\"labs/t3-mitm/output/m26.txt\" lines=\"93:106\" title=\"Rekaman lab: labs/t3-mitm/output/m26.txt baris 93 sampai 106 (bagian E, Dimas memakai token dan isi database)\" />",
-  "Budi lalu membuka riwayatnya dan melihat satu kiriman keluar ke Dimas. Gejala itu cocok dengan bagian E, karena Budi tidak mengirim transfer apa pun:",
+  "Budi lalu membuka riwayatnya dan melihat satu kiriman keluar ke Dimas. Rekaman mengambil riwayat itu dengan token Budi langsung dari server, bukan dari app. Gejala itu cocok dengan bagian E, karena Budi tidak mengirim transfer apa pun:",
   "<Snippet file=\"labs/t3-mitm/output/m26.txt\" lines=\"108:112\" title=\"Rekaman lab: labs/t3-mitm/output/m26.txt baris 108 sampai 112 (bagian E, riwayat Budi)\" />",
   "**Hotspot juga bisa mengubah transfer Budi.** Hotspot yang sama bisa mengubah transfer yang sedang lewat. Di bagian C, hotspot lab diberi aturan: transfer Rp10.000 ke Citra diganti menjadi Rp150.000 ke Dimas. Request yang sampai ke server memuat nominal dan tujuan yang sudah diubah:",
   "<Snippet file=\"labs/t3-mitm/output/m26.txt\" lines=\"49:64\" title=\"Rekaman lab: labs/t3-mitm/output/m26.txt baris 49 sampai 64 (bagian C, hotspot mengubah transfer dan isi database)\" />",
-  "**Pemeriksaan token tidak membedakan Dimas dari Budi.** Pada kedua jalur server menjawab 201. Pemeriksaan token di api-t3 hanya menerima token, mencari hash-nya di tabel sesi, dan mengembalikan akun, jenis sesi, dan hash CSRF.",
+  "**Pemeriksaan token tidak membedakan Dimas dari Budi.** Pada kedua jalur server menjawab 201. Pemeriksaan token di api-t3 hanya menerima token, mencari hash-nya di tabel sesi yang belum kedaluwarsa, dan mengembalikan akun, jenis sesi, dan hash CSRF.",
   "Objek sesi itu tidak memuat alamat atau perangkat pengirim. Karena itu pemeriksaan tidak membedakan laptop Dimas dari HP Budi (dibaca dari kode lab, Tidak dijalankan di halaman ini).",
   "**Dimas tidak memerlukan password.** Bagian E tidak memuat permintaan login. Dimas hanya mengirim token. Password ikut terbaca bila Budi login lewat hotspot itu, karena hotspot membaca body request (penalaran; lab tidak merekam login lewat hotspot).",
-  "**Token berguna sampai sesinya habis.** Sesi api-t3 berlaku 8 jam secara bawaan, sama dengan yang ditulis [[B5.1]] (dibaca dari kode lab, Tidak dijalankan di bagian ini). Berapa lama token sebaiknya berlaku dibahas di [[t3-tls-pinning]].",
+  "**Token berguna sampai sesinya berakhir.** Sesi api-t3 berlaku 8 jam secara bawaan, sama dengan yang ditulis [[B5.1]]. Logout dan ganti password menghapus barisnya lebih awal (dibaca dari kode lab, Tidak dijalankan di bagian ini).",
+  "Berapa lama token sebaiknya berlaku dibahas di [[t3-tls-pinning]].",
   "**Validasi yang aktif belum cukup.** Menghapus flag perlu, tetapi bukan seluruh jawabannya. Di bagian D validasi tetap aktif, tetapi CA Dimas ada di daftar akar app:",
   "<Snippet file=\"labs/t3-mitm/output/m26.txt\" lines=\"68:74\" title=\"Rekaman lab: labs/t3-mitm/output/m26.txt baris 68 sampai 74 (bagian D, CA Dimas ada di daftar akar)\" />",
-  "Validasi lolos, hotspot membaca token, dan nominal diubah. Bagaimana sebuah CA bisa masuk daftar akar (profil yang dipasang di HP, atau CA yang salah menerbitkan) Tidak dijalankan di lab. Jawabannya ada di [[t3-tls-pinning]].",
+  "Validasi lolos, hotspot membaca token, dan nominal diubah. Bagaimana sebuah CA bisa masuk daftar akar (profil yang dipasang di HP, atau CA yang salah menerbitkan) Tidak dijalankan di lab. Cara menahannya ada di [[t3-tls-pinning]].",
   "**Tanpa TLS tidak ada yang perlu dilewati.** Bagian A merekam hotspot yang meneruskan HTTP biasa. Nominal diubah, server menjawab 201, dan saldo Budi turun dari Rp250.000 ke Rp100.000.",
   "**Yang tidak dijalankan.** Lab tidak menjalankan jaringan Wi-Fi nyata dan routing hotspot. Lab tidak menjalankan perangkat Android atau iOS, karena client lab adalah Dart di terminal macOS. HTTPS publik dengan CA yang dipercaya sistem dan app Flutter dengan flag di build rilis juga tidak dijalankan.",
-  "**Untuk app Flutter.** OWASP mencatat kelemahan ini sebagai MASWE-0027, validasi sertifikat yang tidak aman. Salah satu cara masuknya persis seperti di sini: validasi dimatikan untuk mempermudah pengembangan, lalu konfigurasi itu terbawa ke produksi. Dampak yang ditulis OWASP termasuk token sesi yang terbaca di jaringan. Orang lain lalu bisa meniru user ([halaman MASWE-0027](https://mas.owasp.org/MASWE/MASVS-NETWORK/MASWE-0027/), dibuka 2026-10-27, tanpa nomor versi, Tidak dijalankan).",
+  "**Untuk app mobile**, OWASP mencatat kelemahan ini sebagai MASWE-0027, validasi sertifikat yang tidak aman. Salah satu cara masuknya persis seperti di sini: validasi dimatikan untuk mempermudah pengembangan, lalu konfigurasi itu terbawa ke produksi. Dampak yang ditulis OWASP termasuk token sesi yang terbaca di jaringan. Orang lain lalu bisa meniru user ([halaman MASWE-0027](https://mas.owasp.org/MASWE/MASVS-NETWORK/MASWE-0027/), dibuka 2026-10-27, tanpa nomor versi, Tidak dijalankan).",
   "</Blok>",
   "<Blok nama=\"Coba sendiri\">",
   "Widget ini mengikuti rekaman bagian E dari hotspot sampai riwayat Budi. Tebak dulu apa jawaban server atas transfer Dimas, lalu tekan Berikutnya atau panah kanan.",
@@ -830,13 +857,13 @@ const KALIMAT_TERKUNCI: string[] = [
   "Sesudah langkah terakhir, centang **Ubah satu hal: app memeriksa sertifikat (tanpa flag)**. Rekamannya bagian B. Layar HP di widget digambar dari isi rekaman: lab tidak punya app Flutter.",
   "<noscript>",
   "Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: app dengan flag menerima sertifikat hotspot, hotspot membaca token Budi, dan transfer Dimas Rp150.000 dijawab 201.",
-  "Pada app yang memeriksa sertifikat, handshake ditolak, hotspot membaca 0 request, dan database tidak memuat transfer. Rekaman lengkapnya ada di blok \"Yang sebenarnya\".",
+  "Pada app yang memeriksa sertifikat dan tidak mempercayai CA Dimas, handshake ditolak, hotspot membaca 0 request, dan database tidak memuat transfer. Rekaman lengkapnya ada di blok \"Yang sebenarnya\".",
   "</noscript>",
   "</Blok>",
   "<Blok nama=\"Konsep yang lahir\">",
   "- [[t3-tls-pinning]]: validasi sertifikat yang selalu aktif, HSTS, pin dengan cadangan, dan token yang lebih pendek. Keputusannya ADR 31.",
   "- [[t3-prd]]: Sinta menulis risikonya di PRD v3, yaitu app dipakai di Wi-Fi tenant mitra yang tidak dikelola Rekeningo. M26 adalah kejadiannya.",
-  "- [[B5.1]]: password dikirim sekali, lalu setiap request membawa token. Token yang terbaca bisa dipakai tanpa password sampai sesinya habis.",
+  "- [[B5.1]]: password dikirim sekali, lalu setiap request membawa token. Token yang terbaca bisa dipakai tanpa password sampai sesinya berakhir.",
   "- [[t3-xss-csrf]]: di M25 skrip Dimas berjalan dengan sesi Ani, dan di M26 hotspot Dimas membaca sesi Budi. Di kedua kasus server melihat sesi yang sah.",
   "Validasi sertifikat memastikan app berbicara dengan server yang benar. Token memberi tahu server siapa pengirimnya. Flag mematikan yang pertama, jadi pihak di tengah ikut membaca yang kedua.",
   "### Cek diri",
@@ -853,7 +880,7 @@ const KALIMAT_TERKUNCI: string[] = [
   "**3.** Flag sudah dihapus dan validasi sertifikat aktif. Kapan hotspot Dimas masih bisa membaca token Budi?",
   "<details class=\"success\">",
   "<summary>Jawaban</summary>",
-  "Bila CA Dimas ada di daftar akar app. Di bagian D validasi lolos dan hasilnya sama dengan flag: hotspot membaca 1 request dan nominalnya diubah. Cara CA itu sampai di daftar akar Tidak dijalankan di lab. Halaman Keamanan 6 membahas jawabannya.",
+  "Bila CA Dimas ada di daftar akar app. Di bagian D validasi lolos dan hasilnya sama dengan flag: hotspot membaca 1 request dan nominalnya diubah. Cara CA itu sampai di daftar akar Tidak dijalankan di lab. Halaman Keamanan 6 membahas cara menahannya.",
   "</details>",
   "**4.** Server menjawab 201 untuk transfer Dimas. Kenapa tidak ada yang ditolak?",
   "<details class=\"success\">",

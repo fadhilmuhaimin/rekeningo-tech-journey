@@ -36,7 +36,7 @@ Kalau app memeriksa sertifikat, hotspot tidak bisa membaca apa pun, dan password
 
 Nol. Di rekaman `m26.txt` bagian B, validasi menolak sertifikat hotspot saat handshake. Hotspot melihat handshake dan 0 request, dan database tidak memuat transfer.
 
-Dugaan Raka benar untuk app yang memeriksa sertifikat. Yang belum ia periksa adalah apakah app Budi memang begitu.
+Dugaan Raka benar untuk app yang memeriksa sertifikat dan tidak mempercayai CA Dimas. Yang belum ia periksa adalah apakah app Budi memang begitu.
 
 </details>
 
@@ -50,7 +50,7 @@ App Budi menerima sertifikat apa pun. Hotspot Dimas membaca token Budi, dan Dima
 
 *Kondisi rekaman:* PostgreSQL 17.11, server Go `api-t3` di belakang server tepi TLS, dan client Dart 3.11.4 (`dart:io`) sebagai app Budi. Hotspot Dimas adalah proxy tiruan Go, yaitu program perantara yang meneruskan request ke server asli (Ilustrasi mekanisme). Token Budi dibuat dengan login langsung ke server.
 
-Semuanya berjalan di satu laptop, dan proxy serta server tepi hanya mendengar di alamat loopback. Hotspot diperankan dengan mengarahkan client ke port proxy dengan nama host yang sama, jadi routing Wi-Fi dan DNS Tidak dijalankan. Proxy diberi aturan mengubah transfer: itu aturan lab, bukan sifat setiap proxy.
+Semuanya berjalan di satu mesin, dan proxy serta server tepi hanya mendengar di alamat loopback. Hotspot diperankan dengan mengarahkan client ke port proxy dengan nama host yang sama, jadi routing Wi-Fi dan DNS Tidak dijalankan. Proxy diberi aturan mengubah transfer: itu aturan lab, bukan sifat setiap proxy.
 
 **App yang memeriksa sertifikat menolak hotspot.** Kontrol memakai client yang hanya percaya CA Lab Publik, yang memerankan CA yang dipercaya sistem. Langsung ke server tepi, client terhubung dan menerima jawaban 200. Lewat hotspot, handshake ditolak:
 
@@ -66,17 +66,17 @@ Lab memerankan flag dengan `badCertificateCallback`, fungsi yang Dart panggil sa
 
 <Snippet file="labs/t3-mitm/dart/bin/client.dart" lines="109:114" lang="dart" title="Kode lab: labs/t3-mitm/dart/bin/client.dart baris 109 sampai 114 (flag: callback selalu true)" />
 
-Menurut dokumentasi Dart, callback itu menentukan nasib sertifikat yang tidak bisa diautentikasi oleh akar tepercaya mana pun. Bila callback mengembalikan `true`, koneksi aman diterima, dan bila nilainya `null`, sertifikat ditolak ([dokumentasi API Dart 3.13.7](https://api.dart.dev/stable/dart-io/HttpClient/badCertificateCallback.html), dibuka 2026-10-27, Tidak dijalankan).
+Menurut dokumentasi Dart, callback itu menentukan nasib sertifikat yang tidak bisa diautentikasi oleh akar tepercaya mana pun. Bila callback mengembalikan `true`, koneksi aman diterima. Bila callback tidak diisi (`null`), sertifikat ditolak ([dokumentasi API Dart 3.13.7](https://api.dart.dev/stable/dart-io/HttpClient/badCertificateCallback.html), dibuka 2026-10-27, Tidak dijalankan).
 
 **Dengan flag, hotspot membaca token.** Client yang membawa flag menerima sertifikat tiruan. Callback dipanggil 1 kali, dan hotspot membaca header Authorization yang sama dengan token Budi:
 
 <Snippet file="labs/t3-mitm/output/m26.txt" lines="87:91" title="Rekaman lab: labs/t3-mitm/output/m26.txt baris 87 sampai 91 (bagian E, app dengan flag membuka saldo lewat hotspot)" />
 
-**Dimas memakai token itu.** Tanpa app Budi dan tanpa password, Dimas mengirim transfer dengan token yang terbaca. Rekaman memerankan laptopnya dengan curl langsung ke server. Server menjawab 201 dan mencatat satu jurnal dengan dua posting yang berjumlah nol:
+**Dimas memakai token itu.** Tanpa app Budi dan tanpa password, Dimas mengirim transfer dengan token yang terbaca. Rekaman memerankan laptopnya dengan curl langsung ke `api-t3`, tanpa server tepi. Server menjawab 201 dan mencatat satu jurnal dengan dua posting yang berjumlah nol:
 
 <Snippet file="labs/t3-mitm/output/m26.txt" lines="93:106" title="Rekaman lab: labs/t3-mitm/output/m26.txt baris 93 sampai 106 (bagian E, Dimas memakai token dan isi database)" />
 
-Budi lalu membuka riwayatnya dan melihat satu kiriman keluar ke Dimas. Gejala itu cocok dengan bagian E, karena Budi tidak mengirim transfer apa pun:
+Budi lalu membuka riwayatnya dan melihat satu kiriman keluar ke Dimas. Rekaman mengambil riwayat itu dengan token Budi langsung dari server, bukan dari app. Gejala itu cocok dengan bagian E, karena Budi tidak mengirim transfer apa pun:
 
 <Snippet file="labs/t3-mitm/output/m26.txt" lines="108:112" title="Rekaman lab: labs/t3-mitm/output/m26.txt baris 108 sampai 112 (bagian E, riwayat Budi)" />
 
@@ -84,25 +84,27 @@ Budi lalu membuka riwayatnya dan melihat satu kiriman keluar ke Dimas. Gejala it
 
 <Snippet file="labs/t3-mitm/output/m26.txt" lines="49:64" title="Rekaman lab: labs/t3-mitm/output/m26.txt baris 49 sampai 64 (bagian C, hotspot mengubah transfer dan isi database)" />
 
-**Pemeriksaan token tidak membedakan Dimas dari Budi.** Pada kedua jalur server menjawab 201. Pemeriksaan token di api-t3 hanya menerima token, mencari hash-nya di tabel sesi, dan mengembalikan akun, jenis sesi, dan hash CSRF.
+**Pemeriksaan token tidak membedakan Dimas dari Budi.** Pada kedua jalur server menjawab 201. Pemeriksaan token di api-t3 hanya menerima token, mencari hash-nya di tabel sesi yang belum kedaluwarsa, dan mengembalikan akun, jenis sesi, dan hash CSRF.
 
 Objek sesi itu tidak memuat alamat atau perangkat pengirim. Karena itu pemeriksaan tidak membedakan laptop Dimas dari HP Budi (dibaca dari kode lab, Tidak dijalankan di halaman ini).
 
 **Dimas tidak memerlukan password.** Bagian E tidak memuat permintaan login. Dimas hanya mengirim token. Password ikut terbaca bila Budi login lewat hotspot itu, karena hotspot membaca body request (penalaran; lab tidak merekam login lewat hotspot).
 
-**Token berguna sampai sesinya habis.** Sesi api-t3 berlaku 8 jam secara bawaan, sama dengan yang ditulis [[B5.1]] (dibaca dari kode lab, Tidak dijalankan di bagian ini). Berapa lama token sebaiknya berlaku dibahas di [[t3-tls-pinning]].
+**Token berguna sampai sesinya berakhir.** Sesi api-t3 berlaku 8 jam secara bawaan, sama dengan yang ditulis [[B5.1]]. Logout dan ganti password menghapus barisnya lebih awal (dibaca dari kode lab, Tidak dijalankan di bagian ini).
+
+Berapa lama token sebaiknya berlaku dibahas di [[t3-tls-pinning]].
 
 **Validasi yang aktif belum cukup.** Menghapus flag perlu, tetapi bukan seluruh jawabannya. Di bagian D validasi tetap aktif, tetapi CA Dimas ada di daftar akar app:
 
 <Snippet file="labs/t3-mitm/output/m26.txt" lines="68:74" title="Rekaman lab: labs/t3-mitm/output/m26.txt baris 68 sampai 74 (bagian D, CA Dimas ada di daftar akar)" />
 
-Validasi lolos, hotspot membaca token, dan nominal diubah. Bagaimana sebuah CA bisa masuk daftar akar (profil yang dipasang di HP, atau CA yang salah menerbitkan) Tidak dijalankan di lab. Jawabannya ada di [[t3-tls-pinning]].
+Validasi lolos, hotspot membaca token, dan nominal diubah. Bagaimana sebuah CA bisa masuk daftar akar (profil yang dipasang di HP, atau CA yang salah menerbitkan) Tidak dijalankan di lab. Cara menahannya ada di [[t3-tls-pinning]].
 
 **Tanpa TLS tidak ada yang perlu dilewati.** Bagian A merekam hotspot yang meneruskan HTTP biasa. Nominal diubah, server menjawab 201, dan saldo Budi turun dari Rp250.000 ke Rp100.000.
 
 **Yang tidak dijalankan.** Lab tidak menjalankan jaringan Wi-Fi nyata dan routing hotspot. Lab tidak menjalankan perangkat Android atau iOS, karena client lab adalah Dart di terminal macOS. HTTPS publik dengan CA yang dipercaya sistem dan app Flutter dengan flag di build rilis juga tidak dijalankan.
 
-**Untuk app Flutter.** OWASP mencatat kelemahan ini sebagai MASWE-0027, validasi sertifikat yang tidak aman. Salah satu cara masuknya persis seperti di sini: validasi dimatikan untuk mempermudah pengembangan, lalu konfigurasi itu terbawa ke produksi. Dampak yang ditulis OWASP termasuk token sesi yang terbaca di jaringan. Orang lain lalu bisa meniru user ([halaman MASWE-0027](https://mas.owasp.org/MASWE/MASVS-NETWORK/MASWE-0027/), dibuka 2026-10-27, tanpa nomor versi, Tidak dijalankan).
+**Untuk app mobile**, OWASP mencatat kelemahan ini sebagai MASWE-0027, validasi sertifikat yang tidak aman. Salah satu cara masuknya persis seperti di sini: validasi dimatikan untuk mempermudah pengembangan, lalu konfigurasi itu terbawa ke produksi. Dampak yang ditulis OWASP termasuk token sesi yang terbaca di jaringan. Orang lain lalu bisa meniru user ([halaman MASWE-0027](https://mas.owasp.org/MASWE/MASVS-NETWORK/MASWE-0027/), dibuka 2026-10-27, tanpa nomor versi, Tidak dijalankan).
 
 </Blok>
 
@@ -117,7 +119,7 @@ Sesudah langkah terakhir, centang **Ubah satu hal: app memeriksa sertifikat (tan
 <noscript>
 Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: app dengan flag menerima sertifikat hotspot, hotspot membaca token Budi, dan transfer Dimas Rp150.000 dijawab 201.
 
-Pada app yang memeriksa sertifikat, handshake ditolak, hotspot membaca 0 request, dan database tidak memuat transfer. Rekaman lengkapnya ada di blok "Yang sebenarnya".
+Pada app yang memeriksa sertifikat dan tidak mempercayai CA Dimas, handshake ditolak, hotspot membaca 0 request, dan database tidak memuat transfer. Rekaman lengkapnya ada di blok "Yang sebenarnya".
 </noscript>
 
 </Blok>
@@ -126,7 +128,7 @@ Pada app yang memeriksa sertifikat, handshake ditolak, hotspot membaca 0 request
 
 - [[t3-tls-pinning]]: validasi sertifikat yang selalu aktif, HSTS, pin dengan cadangan, dan token yang lebih pendek. Keputusannya ADR 31.
 - [[t3-prd]]: Sinta menulis risikonya di PRD v3, yaitu app dipakai di Wi-Fi tenant mitra yang tidak dikelola Rekeningo. M26 adalah kejadiannya.
-- [[B5.1]]: password dikirim sekali, lalu setiap request membawa token. Token yang terbaca bisa dipakai tanpa password sampai sesinya habis.
+- [[B5.1]]: password dikirim sekali, lalu setiap request membawa token. Token yang terbaca bisa dipakai tanpa password sampai sesinya berakhir.
 - [[t3-xss-csrf]]: di M25 skrip Dimas berjalan dengan sesi Ani, dan di M26 hotspot Dimas membaca sesi Budi. Di kedua kasus server melihat sesi yang sah.
 
 Validasi sertifikat memastikan app berbicara dengan server yang benar. Token memberi tahu server siapa pengirimnya. Flag mematikan yang pertama, jadi pihak di tengah ikut membaca yang kedua.
@@ -156,7 +158,7 @@ Hotspot membaca header Authorization yang sama dengan token sesi Budi. Dimas men
 <details class="success">
 <summary>Jawaban</summary>
 
-Bila CA Dimas ada di daftar akar app. Di bagian D validasi lolos dan hasilnya sama dengan flag: hotspot membaca 1 request dan nominalnya diubah. Cara CA itu sampai di daftar akar Tidak dijalankan di lab. Halaman Keamanan 6 membahas jawabannya.
+Bila CA Dimas ada di daftar akar app. Di bagian D validasi lolos dan hasilnya sama dengan flag: hotspot membaca 1 request dan nominalnya diubah. Cara CA itu sampai di daftar akar Tidak dijalankan di lab. Halaman Keamanan 6 membahas cara menahannya.
 
 </details>
 
