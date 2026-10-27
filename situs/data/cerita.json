@@ -2880,8 +2880,9 @@
       "lab": [
         "t3-mitm"
       ],
-      "ada": false,
-      "nomor": "3.24"
+      "ada": true,
+      "nomor": "3.24",
+      "menit": 11
     },
     {
       "id": "t3-tls-pinning",

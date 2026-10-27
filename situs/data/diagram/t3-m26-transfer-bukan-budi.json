@@ -1,0 +1,38 @@
+{
+  "id": "t3-m26-transfer-bukan-budi",
+  "judul": "Transfer Rp150.000 yang bukan dari Budi",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-mitm · m26.txt bagian B, D, dan E; hotspot, laptop Dimas, dan build rilis diperankan" },
+  "baris": [
+    {
+      "label": "App dengan flag, lewat hotspot",
+      "sub": "bagian E",
+      "simpul": [
+        { "teks": "Flag: terima sertifikat apa pun", "sub": "callback dipanggil 1 kali" },
+        { "teks": "Hotspot membaca token Budi", "sub": "sama dengan token sesi" },
+        { "teks": "Token dipakai dari laptop Dimas", "sub": "tanpa password" },
+        { "teks": "Transfer Rp150.000 tercatat", "sub": "201, dua posting seimbang", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "App yang memeriksa sertifikat",
+      "sub": "bagian B",
+      "simpul": [
+        { "teks": "Hanya CA Lab Publik dipercaya", "sub": "CA Dimas tidak ada" },
+        { "teks": "Handshake ditolak", "sub": "application verification failure" },
+        { "teks": "Hotspot membaca 0 request" },
+        { "teks": "Database tanpa transfer", "sub": "0 baris", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Memeriksa, tetapi CA Dimas dipercaya",
+      "sub": "bagian D",
+      "simpul": [
+        { "teks": "CA Dimas ada di daftar akar", "sub": "cara masuknya Tidak dijalankan" },
+        { "teks": "Validasi lolos", "sub": "tanpa flag" },
+        { "teks": "Hotspot membaca 1 request", "sub": "nominal diubah" },
+        { "teks": "Transfer Rp150.000 tercatat", "sub": "201", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Flag membuat app menerima sertifikat apa pun. Validasi yang aktif menahan CA yang tidak dikenal, tetapi tidak menahan CA yang sudah ada di daftar akar."
+}
