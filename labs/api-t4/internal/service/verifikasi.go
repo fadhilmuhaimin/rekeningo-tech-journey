@@ -43,18 +43,9 @@ func (s Service) AjukanVerifikasi(ctx context.Context, peminta int64, kartu, swa
 	if s.t4.Objek == nil {
 		return repo.Verifikasi{}, ErrLayananTidakAda
 	}
-	a, err := s.repo.Akun(ctx, peminta)
+	a, err := s.periksaPengaju(ctx, peminta)
 	if err != nil {
 		return repo.Verifikasi{}, err
-	}
-	if a.Jenis != "pemakai" && a.Jenis != "merchant" {
-		return repo.Verifikasi{}, ErrDilarang
-	}
-	if a.Status == "dibekukan" {
-		return repo.Verifikasi{}, ErrDibekukan
-	}
-	if a.Tingkat == "terverifikasi" {
-		return repo.Verifikasi{}, ErrSudahTerverifikasi
 	}
 	if err := periksaGambar("berkas_kartu", kartu); err != nil {
 		return repo.Verifikasi{}, err
@@ -65,7 +56,6 @@ func (s Service) AjukanVerifikasi(ctx context.Context, peminta int64, kartu, swa
 	if err := s.BatasAkun("verifikasi", peminta); err != nil {
 		return repo.Verifikasi{}, err
 	}
-	subjek := a.Jenis // pemakai atau merchant
 	kunciKartu, kunciSwafoto := "identitas/"+acakHex(16), "identitas/"+acakHex(16)
 	if err := s.t4.Objek.Simpan(ctx, kunciKartu, kartu); err != nil {
 		return repo.Verifikasi{}, err
@@ -74,10 +64,17 @@ func (s Service) AjukanVerifikasi(ctx context.Context, peminta int64, kartu, swa
 		s.t4.Objek.Hapus(ctx, kunciKartu)
 		return repo.Verifikasi{}, err
 	}
+	return s.catatPengajuan(ctx, peminta, a.Jenis, kunciKartu, kunciSwafoto, checksum(kartu), checksum(swafoto))
+}
+
+// catatPengajuan menulis baris verifikasi dan (untuk pemakai) satu baris outbox di satu transaction. Bila
+// pengajuan gagal ditulis, kedua file dihapus: file yatim tidak dibiarkan. Dipakai jalur unggah lewat server
+// (AjukanVerifikasi) dan jalur presigned PUT (AjukanVerifikasiTerunggah).
+func (s Service) catatPengajuan(ctx context.Context, peminta int64, subjek, kunciKartu, kunciSwafoto, ckKartu, ckSwafoto string) (repo.Verifikasi, error) {
 	var id int64
-	err = s.repo.DalamTx(ctx, func(tx repo.Tx) error {
+	err := s.repo.DalamTx(ctx, func(tx repo.Tx) error {
 		var err error
-		id, err = tx.BuatVerifikasi(ctx, peminta, subjek, kunciKartu, kunciSwafoto, checksum(kartu), checksum(swafoto))
+		id, err = tx.BuatVerifikasi(ctx, peminta, subjek, kunciKartu, kunciSwafoto, ckKartu, ckSwafoto)
 		if err != nil {
 			return err
 		}

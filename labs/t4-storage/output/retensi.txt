@@ -1,0 +1,56 @@
+# Lab t4-storage · retensi 30 hari: job idempoten, batas 29 dan 31 hari dengan jam diperankan, penyimpanan mati, dan unduh sesudah dihapus
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_storage · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-storage run.
+# penyimpanan objek: SeaweedFS 4.51 di container, endpoint S3 lokal, bucket privat 'berkas'
+# server: ./api-t4 -lab -objek-s3 <endpoint lokal>; layanan verifikasi tiruan: ./tiruan -peran verifikasi
+
+# --- A. Tiga pengajuan mencapai status akhir lewat worker dan layanan verifikasi tiruan (satu per satu, urutan A, B, C); satu masih berjalan ---
+# A: vendor menjawab lulus; B: vendor menjawab ditolak; C: vendor mati, satu percobaan lalu dead-letter (pendaftar tidak bersalah, M31); D: tidak ada worker.
+=> SELECT id, status, hapus_pada IS NOT NULL AS punya_hapus_pada, hapus_pada - selesai AS masa_simpan FROM verifikasi ORDER BY id
+ id | status   | punya_hapus_pada | masa_simpan
+----+----------+------------------+------------------
+ 1  | lulus    | t                | 30 days, 0:00:00
+ 2  | ditolak  | t                | 30 days, 0:00:00
+ 3  | gagal    | t                | 30 days, 0:00:00
+ 4  | diajukan | f                |
+(4 rows)
+# Masa simpan tepat 30 hari untuk lulus, ditolak, dan gagal; pengajuan yang masih berjalan belum punya hapus_pada dan tidak pernah dipilih job.
+
+# --- B. Job retensi dengan jam diperankan: 29 hari, satu detik sebelum batas, dan (di bagian D) tepat di batas dan 31 hari ---
+# Ketiganya selesai berjarak beberapa detik: batas A lebih awal daripada B, B daripada C. Yang diperiksa terhadap satu detik adalah batas A.
+$ ./api-t4 -retensi-identitas -lab-sekarang <selesai A + 29 hari>
+retensi identitas: diperiksa 0, dihapus 0, galat 0
+$ ./api-t4 -retensi-identitas -lab-sekarang <batas A - 1 detik>
+retensi identitas: diperiksa 0, dihapus 0, galat 0
+file A sesudah kedua putaran itu: masih ada (HEAD)
+
+# --- C. Penyimpanan mati saat job jalan: galat dihitung, baris tidak ditandai, file tetap diulang pada putaran berikutnya ---
+$ ./api-t4 -retensi-identitas -lab-sekarang <batas A>
+retensi identitas: diperiksa 1, dihapus 0, galat 1
+baris A sesudah putaran gagal: kunci objek masih terisi (belum ditandai terhapus)
+
+# --- D. Penyimpanan pulih: tepat di batas dihapus (hapus_pada <= sekarang); diulang tidak mengubah apa pun; pengajuan lain menunggu batasnya ---
+$ ./api-t4 -retensi-identitas -lab-sekarang <batas A>
+retensi identitas: diperiksa 1, dihapus 1, galat 0
+file A (HEAD): kartu tidak ada, swafoto tidak ada
+$ ./api-t4 -retensi-identitas -lab-sekarang <batas A>
+retensi identitas: diperiksa 0, dihapus 0, galat 0
+# Putaran kedua dengan jam yang sama tidak memeriksa apa pun: baris yang sudah ditandai tidak dipilih lagi (idempoten).
+B dan C (batas lebih lambat): file masih ada
+$ ./api-t4 -retensi-identitas -lab-sekarang <batas C + 1 hari>
+retensi identitas: diperiksa 2, dihapus 2, galat 0
+pengajuan D (belum diputuskan): file masih ada, tanpa hapus_pada, tidak pernah dipilih job
+=> SELECT id, status, berkas_kartu_kunci = '' AS kunci_kosong, length(checksum_kartu) AS panjang_checksum FROM verifikasi ORDER BY id
+ id | status   | kunci_kosong | panjang_checksum
+----+----------+--------------+------------------
+ 1  | lulus    | t            | 64
+ 2  | ditolak  | t            | 64
+ 3  | gagal    | t            | 64
+ 4  | diajukan | f            | 64
+(4 rows)
+
+# --- E. Sesudah retensi: baris tetap sebagai catatan; membuka file dijawab 410 dan percobaannya tetap tercatat ---
+GET /bo/verifikasi/<A>/berkas/kartu sebagai Ratih: HTTP 410
+badan: {"type":"/problems/berkas-dihapus","title":"Berkas sudah dihapus menurut masa simpan","status":410}
+baris audit buka_berkas bertambah satu: 0 jadi 1
+# Tidak ada kolom "sudah dihapus" di tabel naskah; lab memakai kunci objek kosong sebagai penanda. Retensi 30 hari adalah Asumsi produk [perlu verifikasi]; aturan hukum tentang masa simpan tidak diperiksa lab ini.
