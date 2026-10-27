@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
+
 	"lab/apit4/internal/gateway"
 	"lab/apit4/internal/repo"
 )
@@ -179,4 +181,60 @@ func TestPenyetujuHarusSesiApp(t *testing.T) {
 	if err := svc.BukaBlokirBO(ctx, risk, sasaran, alasanUji, sesiBaru(t, db, risk2)); err != nil {
 		t.Fatalf("token app penyetuju sah: %v", err)
 	}
+}
+
+// harapPelanggaran: err harus pelanggaran unik atau CHECK dengan nama constraint itu (bukan error lain).
+func harapPelanggaran(t *testing.T, err error, kode, nama string) {
+	t.Helper()
+	var pg *pgconn.PgError
+	if !errors.As(err, &pg) {
+		t.Fatalf("ditolak database dengan %q, dapat %v; harus %s %s", nama, err, kode, nama)
+	}
+	if pg.Code != kode || pg.ConstraintName != nama {
+		t.Fatalf("pelanggaran %s %s, harus %s %s", pg.Code, pg.ConstraintName, kode, nama)
+	}
+}
+
+// Satu kejadian paling banyak satu catatan: constraint unik yang menjadi lapis terakhir bila service salah. Mutan
+// migrasi: UNIQUE dibuang dari topup_bank.jurnal_id, otorisasi_kartu.id_penerbit, otorisasi_kartu.jurnal_tahan_id,
+// atau index verifikasi_satu_berjalan. Tidak ada tes lain yang memeriksanya langsung di database.
+func TestAturanUnikDatabaseTahap4(t *testing.T) {
+	svc0, db := siapkan(t)
+	svc := svcT4(t, svc0, nil)
+
+	// Dua top-up tidak boleh menunjuk satu jurnal.
+	budi := qrAkun(t, db, "pemakai", "terverifikasi", "aktif", 0)
+	_, order1 := topupSiap(t, db, budi, 10_000)
+	id2, _ := topupSiap(t, db, budi, 10_000)
+	if h, err := kabarSah(svc, time.Now(), idEvent(t, "unik"), order1, "settlement", 10_000); err != nil || h.Hasil != "diproses" {
+		t.Fatalf("settlement: %+v, %v", h, err)
+	}
+	var jurnal1 int64
+	if err := db.QueryRow(`SELECT jurnal_id FROM topup_bank WHERE order_id = $1`, order1).Scan(&jurnal1); err != nil {
+		t.Fatal(err)
+	}
+	_, err := db.Exec(`UPDATE topup_bank SET jurnal_id = $1 WHERE id = $2`, jurnal1, id2)
+	harapPelanggaran(t, err, "23505", "topup_bank_jurnal_id_key")
+
+	// Otorisasi: id_penerbit dan jurnal tahan masing-masing satu baris.
+	svcK, dbK := svcKartu(t, Dep{})
+	pemilik := pemakaiBaru(t, dbK, "terverifikasi", 100_000)
+	satu := holdBaru(t, svcK, dbK, pemilik, 5_000)
+	dua := holdBaru(t, svcK, dbK, pemilik, 6_000)
+	_, err = dbK.Exec(`INSERT INTO otorisasi_kartu (kartu_id, id_penerbit, jumlah, status)
+		SELECT kartu_id, id_penerbit, 1, 'ditolak' FROM otorisasi_kartu WHERE id_penerbit = $1`, satu)
+	harapPelanggaran(t, err, "23505", "otorisasi_kartu_id_penerbit_key")
+	_, err = dbK.Exec(`UPDATE otorisasi_kartu SET jurnal_tahan_id = (SELECT jurnal_tahan_id FROM otorisasi_kartu WHERE id_penerbit = $1)
+		WHERE id_penerbit = $2`, satu, dua)
+	harapPelanggaran(t, err, "23505", "otorisasi_kartu_jurnal_tahan_id_key")
+
+	// Satu pengajuan verifikasi yang berjalan per akun dan subjek.
+	dina := qrAkun(t, db, "pemakai", "belum", "aktif", 0)
+	ajukan := `INSERT INTO verifikasi (akun_id, subjek, berkas_kartu_kunci, berkas_swafoto_kunci, checksum_kartu, checksum_swafoto)
+		VALUES ($1, 'pemakai', 'k', 's', 'c', 'c')`
+	if _, err := db.Exec(ajukan, dina); err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(ajukan, dina)
+	harapPelanggaran(t, err, "23505", "verifikasi_satu_berjalan")
 }
