@@ -352,7 +352,7 @@
  },
  {
   "t": "CSRF (cross-site request forgery)",
-  "d": "Serangan yang membuat browser pengguna yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie pengguna ikut terkirim.",
+  "d": "Serangan yang membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim.",
   "b": "t3-xss-csrf",
   "n": "3.23 XSS, CSRF, cookie sesi, passkey",
   "u": "/tahap-3/xss-csrf-cookie/",
@@ -946,7 +946,7 @@
  },
  {
   "t": "Passkey (WebAuthn)",
-  "d": "Nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat pengguna membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "d": "Nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
   "b": "t3-xss-csrf",
   "n": "3.23 XSS, CSRF, cookie sesi, passkey",
   "u": "/tahap-3/xss-csrf-cookie/",

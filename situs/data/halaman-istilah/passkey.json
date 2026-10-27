@@ -1,6 +1,6 @@
 {
   "istilah": "Passkey (WebAuthn)",
-  "sehari_hari": "Passkey adalah nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat pengguna membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "sehari_hari": "Passkey adalah nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
   "cerita": [
     {
       "rujukan": "t3-xss-csrf",

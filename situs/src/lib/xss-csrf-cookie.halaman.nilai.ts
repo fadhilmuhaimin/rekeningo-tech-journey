@@ -418,7 +418,7 @@ export const NILAI_JSON: Record<string, string[]> = {
  ],
  "passkey": [
   "istilah=\"Passkey (WebAuthn)\"",
-  "sehari_hari=\"Passkey adalah nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat pengguna membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.\"",
+  "sehari_hari=\"Passkey adalah nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.\"",
   "cerita.0.rujukan=\"t3-xss-csrf\"",
   "cerita.0.teks=\"Lab t3-dasbor merekam bagian browser dari pendaftaran: `navigator.credentials.create()` dengan authenticator virtual selesai dan mengembalikan kredensial. Sisi server dan login Tidak dijalankan (`webauthn.txt`).\"",
   "mekanisme.0=\"Situs, yang disebut relying party, memanggil `navigator.credentials.create()` dengan identitas situs, data user, dan challenge acak.\"",

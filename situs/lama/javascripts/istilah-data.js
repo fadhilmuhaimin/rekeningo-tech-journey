@@ -203,7 +203,7 @@ window.ISTILAH = {
  },
  "CSRF": {
   "b": "t3-xss-csrf",
-  "d": "Serangan yang membuat browser pengguna yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie pengguna ikut terkirim.",
+  "d": "Serangan yang membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim.",
   "h": "istilah/csrf/",
   "n": "3.23 XSS, CSRF, cookie sesi, passkey",
   "s": "istilah-csrf",
@@ -969,7 +969,7 @@ window.ISTILAH = {
  },
  "Passkey": {
   "b": "t3-xss-csrf",
-  "d": "Nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat pengguna membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "d": "Nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
   "h": "istilah/passkey/",
   "n": "3.23 XSS, CSRF, cookie sesi, passkey",
   "s": "istilah-passkey",
@@ -1467,7 +1467,7 @@ window.ISTILAH = {
  },
  "WebAuthn": {
   "b": "t3-xss-csrf",
-  "d": "Nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat pengguna membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "d": "Nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
   "h": "istilah/passkey/",
   "n": "3.23 XSS, CSRF, cookie sesi, passkey",
   "s": "istilah-passkey",
@@ -2175,7 +2175,7 @@ window.ISTILAH = {
  },
  "passkey": {
   "b": "t3-xss-csrf",
-  "d": "Nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat pengguna membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "d": "Nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
   "h": "istilah/passkey/",
   "n": "3.23 XSS, CSRF, cookie sesi, passkey",
   "s": "istilah-passkey",
