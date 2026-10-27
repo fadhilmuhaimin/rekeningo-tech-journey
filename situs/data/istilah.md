@@ -57,12 +57,16 @@
 *[brute force]: Menebak banyak password untuk satu akun sampai ada yang cocok, biasanya otomatis.
 *[Buku ledger]: Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya.
 *[buku ledger]: Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya.
+*[CA]: Pihak yang menandatangani sertifikat. App yang mempercayai sebuah CA ikut mempercayai sertifikat yang ia terbitkan.
+*[Certificate Authority]: Pihak yang menandatangani sertifikat. App yang mempercayai sebuah CA ikut mempercayai sertifikat yang ia terbitkan.
 *[Cache]: Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli.
 *[cache]: Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli.
 *[Cache invalidation]: Membuang atau memperbarui entri cache saat data aslinya berubah, supaya salinan tidak tertinggal.
 *[cache invalidation]: Membuang atau memperbarui entri cache saat data aslinya berubah, supaya salinan tidak tertinggal.
 *[Cache-aside]: Cara memakai cache: aplikasi memeriksa cache lebih dulu, membaca database bila entrinya tidak ada, lalu menyimpan hasilnya di cache.
 *[cache-aside]: Cara memakai cache: aplikasi memeriksa cache lebih dulu, membaca database bila entrinya tidak ada, lalu menyimpan hasilnya di cache.
+*[Certificate pinning]: App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem.
+*[certificate pinning]: App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem.
 *[CI]: Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung.
 *[Continuous Integration]: Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung.
 *[Circuit breaker]: Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda.
@@ -79,6 +83,8 @@
 *[CSP]: Header respons yang memberi tahu browser sumber skrip dan sumber lain mana yang boleh dipakai halaman, sehingga skrip yang tidak dikenal ditolak.
 *[Content Security Policy]: Header respons yang memberi tahu browser sumber skrip dan sumber lain mana yang boleh dipakai halaman, sehingga skrip yang tidak dikenal ditolak.
 *[CSRF]: Serangan yang membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim.
+*[Daftar akar]: Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu.
+*[daftar akar]: Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu.
 *[Dead-letter queue]: Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.
 *[dead-letter queue]: Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.
 *[Deadlock]: Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya.
@@ -112,8 +118,11 @@
 *[Graceful shutdown]: Mematikan proses dengan rapi: berhenti menerima koneksi baru, lalu menunggu request yang sedang jalan selesai sebelum keluar.
 *[graceful shutdown]: Mematikan proses dengan rapi: berhenti menerima koneksi baru, lalu menunggu request yang sedang jalan selesai sebelum keluar.
 *[gzip]: Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip.
+*[Handshake TLS]: Tahap awal koneksi TLS, sebelum byte HTTP pertama: server menunjukkan sertifikatnya dan client memeriksanya.
 *[Health check]: Pemeriksaan berkala yang dilakukan proxy atau orkestrator ke tiap instance untuk memutuskan apakah instance itu boleh menerima request.
 *[health check]: Pemeriksaan berkala yang dilakukan proxy atau orkestrator ke tiap instance untuk memutuskan apakah instance itu boleh menerima request.
+*[HSTS]: Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.
+*[HTTP Strict Transport Security]: Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.
 *[Idempotency key]: Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.
 *[idempotency key]: Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.
 *[Idle in transaction]: Keadaan sesi database yang sudah membuka transaction tetapi sedang tidak menjalankan query, dan menunggu perintah berikutnya dari client.
@@ -171,6 +180,7 @@
 *[microservice]: Gaya arsitektur yang memecah backend jadi beberapa service kecil yang di-deploy terpisah dan saling memanggil lewat jaringan.
 *[Middleware]: Fungsi yang dijalankan sebelum atau sesudah semua handler, mis. pemeriksa token atau pencatat log.
 *[middleware]: Fungsi yang dijalankan sebelum atau sesudah semua handler, mis. pemeriksa token atau pencatat log.
+*[MITM]: Penyerang yang berdiri di antara client dan server, lalu membaca atau mengubah lalu lintas di antara keduanya.
 *[Modular monolith]: Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.
 *[modular monolith]: Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.
 *[Monolith]: Satu aplikasi backend yang memuat semua fitur dan di-deploy sebagai satu unit.
