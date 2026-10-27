@@ -69,7 +69,7 @@ export const BARIS_MDX: string[] = [
  "| Koneksi tertahan oleh semua request (W 20 ms) | 0,35 | 2,78 | 18 |",
  "| Posting per tahun | 5,475 juta | 43,8 juta | ±440 juta |",
  "Notifikasi uang naik 8,7 kali (7,52 ÷ 0,868), lebih cepat dari request, karena top-up dari bank ikut ditambahkan: 6,94 + 0,579 = 7,52 per detik. Tahap 3 menghitung bayar dan transfer saja. Pemakaian 56% adalah 7,52 ÷ 13,33.",
- "Makan siang diasumsikan memuat 80% transaksi sehari dalam 90 menit, yaitu 5.400 detik. Tahap 4: 65.000 × 0,8 ÷ 5.400 = 9,63 per detik, atau 72%. Tahap 3: 7.500 × 0,8 ÷ 5.400 = 1,11 per detik, atau 8,3%.",
+ "Makan siang diasumsikan memuat 80% transaksi sehari dalam 90 menit, yaitu 5.400 detik. Tahap 4: 65.000 × 0,8 ÷ 5.400 = 9,63 per detik, atau 72%. Tahap 3: 7.500 × 0,8 ÷ 5.400 = 1,11 per detik, atau 8,3%. Bila kapasitasnya hanya 12 per detik, batas bawah rekaman, pemakaiannya 63% pada puncak dan 80% pada makan siang (7,52 ÷ 12 dan 9,63 ÷ 12).",
  "Koneksi: 2 × 10 + 2 × 5 + 4 + 3 + 3 = 40 dari 100. Tahap 3 memakai 2 × 10 + 4 + 3 + 3 = 30 ([[t3-pool]]). Suku 2 × 5 adalah pool dua instance layanan pembayaran bank, Asumsi desain; worker 4, admin 3, dan cadangan superuser 3 mengikuti [[t3-pool]].",
  "Koneksi tertahan oleh semua request adalah L = λ × W = 138,9 × 0,02 = 2,78, dengan W 20 ms (Asumsi, belum diukur). Batasnya 2 pool × (10 − 1) = 18, dari aturan di [[t3-pool]]. L baru menyentuh 18 bila W rata-rata 18 ÷ 138,9 = 130 ms, atau 6,5 kali W yang diasumsikan. Ukuran pool tidak diubah dari angka yang belum pernah diukur di server sungguhan.",
  "Partisi `posting` dijadwalkan saat ±440 juta posting per tahun di Tahap 5 ([[t2-skema]]). Tahap 4 memakai 43,8 ÷ 440 = 10% dari batas itu.",

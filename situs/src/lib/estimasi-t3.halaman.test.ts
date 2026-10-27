@@ -107,6 +107,7 @@ const TIMEOUT = Number(naskahVerCoba[2]);
 const naskahKoneksi = cocok(naskah4, /\| Koneksi database \|[^|]*\| (\d+) × (\d+) \+ (\d+) × (\d+) \+ (\d+) \+ (\d+) \+ (\d+) \|/);
 const [, INST, POOL, INST_BAYAR, POOL_BAYAR, WORKER_DB, ADMIN, CADANGAN] = naskahKoneksi.map(Number) as number[];
 const MAX_KONEKSI = 100;
+const KAP_BAWAH = Number(cocok(queue, /kapasitas diukur: antara (\d+) dan [\d,]+ per detik/)[1]); // batas bawah yang diperiksa lab (queue.txt bagian A)
 const W_DB = dibaca(cocok(naskah3, /W (\d+) ms \(Asumsi; lab t3-pool/)[1]!) / 1000;
 const POSTING_PER_TRX = 2;
 const PARTISI_POSTING = 440_000_000;
@@ -401,7 +402,7 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     harus(`Notifikasi uang naik ${koma(notif4Tulis / dibaca(koma(lamTrx3, 3)), 1)} kali (${koma(notif4, 2)} ÷ ${koma(lamTrx3, 3)}), lebih cepat dari request, karena top-up dari bank ikut ditambahkan: ${koma(lamTrx4, 2)} + ${koma(lamTop, 3)} = ${koma(notif4, 2)} per detik.`);
     harus(`Pemakaian ${Math.round(pakai4 * 100)}% adalah ${koma(notif4, 2)} ÷ ${koma(KAP, 2)}.`);
     harus(`Makan siang diasumsikan memuat ${FRAKSI_SIANG * 100}% transaksi sehari dalam ${DETIK_SIANG / 60} menit, yaitu ${ribu(DETIK_SIANG)} detik.`);
-    harus(`Tahap 4: ${ribu(trx4Hari + topupHari)} × ${koma(FRAKSI_SIANG, 1)} ÷ ${ribu(DETIK_SIANG)} = ${koma(siang4, 2)} per detik, atau ${Math.round((siang4 / KAP) * 100)}%. Tahap 3: ${ribu(trx3Hari)} × ${koma(FRAKSI_SIANG, 1)} ÷ ${ribu(DETIK_SIANG)} = ${koma(sianga3, 2)} per detik, atau ${koma((sianga3 / KAP) * 100, 1)}%.`);
+    harus(`Tahap 4: ${ribu(trx4Hari + topupHari)} × ${koma(FRAKSI_SIANG, 1)} ÷ ${ribu(DETIK_SIANG)} = ${koma(siang4, 2)} per detik, atau ${Math.round((siang4 / KAP) * 100)}%. Tahap 3: ${ribu(trx3Hari)} × ${koma(FRAKSI_SIANG, 1)} ÷ ${ribu(DETIK_SIANG)} = ${koma(sianga3, 2)} per detik, atau ${koma((sianga3 / KAP) * 100, 1)}%. Bila kapasitasnya hanya ${KAP_BAWAH} per detik, batas bawah rekaman, pemakaiannya ${Math.round((notif4 / KAP_BAWAH) * 100)}% pada puncak dan ${Math.round((siang4 / KAP_BAWAH) * 100)}% pada makan siang (${koma(notif4, 2)} ÷ ${KAP_BAWAH} dan ${koma(siang4, 2)} ÷ ${KAP_BAWAH}).`);
     harus(`Koneksi: ${INST} × ${POOL} + ${INST_BAYAR} × ${POOL_BAYAR} + ${WORKER_DB} + ${ADMIN} + ${CADANGAN} = ${INST * POOL + INST_BAYAR * POOL_BAYAR + WORKER_DB + ADMIN + CADANGAN} dari ${MAX_KONEKSI}.`);
     harus(`Tahap 3 memakai ${INST} × ${POOL} + ${WORKER_DB} + ${ADMIN} + ${CADANGAN} = ${INST * POOL + WORKER_DB + ADMIN + CADANGAN} ([[t3-pool]])`);
     harus(`worker ${WORKER_DB}, admin ${ADMIN}, dan cadangan superuser ${CADANGAN} mengikuti [[t3-pool]]`);
@@ -417,6 +418,8 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     harus("Di tabel halaman ini, tidak satu komponen pun melewati batasnya hanya karena jumlah request.");
     expect(pakai4).toBeLessThan(1);
     expect(siang4 / KAP).toBeLessThan(1);
+    expect(siang4 / KAP_BAWAH, "pemakaian makan siang di batas bawah rekaman").toBeLessThan(1);
+    expect(KAP_BAWAH).toBeLessThan(KAP);
     expect(INST * POOL + INST_BAYAR * POOL_BAYAR + WORKER_DB + ADMIN + CADANGAN).toBeLessThan(MAX_KONEKSI);
     expect(L4).toBeLessThan(BATAS_L);
     expect(posting4).toBeLessThan(PARTISI_POSTING);
@@ -533,7 +536,7 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
   });
   test("klaim 'tidak ada' berlingkup: kata rekaman, ukur, dan Rekaman lab hanya di kalimat yang boleh memakainya", () => {
     const hitungRegex = (re: RegExp): number => (badan.match(re) ?? []).length;
-    expect(hitungRegex(/rekaman/gi)).toBe(6);
+    expect(hitungRegex(/rekaman/gi)).toBe(7);
     expect(hitungKali(badan, "Rekaman lab")).toBe(3);
     for (const konteks of [
       "[Rekaman lab](/cara-pakai/#label-sumber) t3-outbox mengukurnya",
@@ -542,6 +545,7 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
       "Angka itu diganti rekaman sesudah integrasinya dibangun.",
       "Tulis semuanya sebagai Asumsi sampai ada rekaman.",
       "label Asumsi atau Rekaman lab untuk setiap angka.",
+      "batas bawah rekaman, pemakaiannya",
     ]) expect(badan, konteks).toContain(konteks);
     expect(hitungRegex(/mengukur|terukur|diukur|pengukuran/gi)).toBe(5);
     for (const konteks of [
