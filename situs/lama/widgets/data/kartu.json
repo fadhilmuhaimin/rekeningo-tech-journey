@@ -2005,7 +2005,7 @@
   "judul": "3.23 Keamanan 5: XSS, CSRF, cookie sesi, passkey + ADR 30",
   "url": "tahap-3/xss-csrf-cookie/",
   "tanya": "Cookie sesi memakai `HttpOnly`. Kenapa itu tidak menghentikan skrip mengubah harga?",
-  "jawab": "`HttpOnly` hanya melarang skrip membaca cookie. Browser tetap mengirim cookie itu pada permintaan dari JavaScript, dan di bagian D harga tetap berubah. `HttpOnly` mengurangi akibat XSS: di bagian B `document.cookie` kosong, tetapi ia tidak menggantikan escape dan CSP."
+  "jawab": "`HttpOnly` hanya melarang skrip membaca cookie. Browser tetap mengirim cookie itu pada permintaan dari JavaScript, jadi di bagian D harga tetap berubah. `HttpOnly` mengurangi akibat XSS, karena di bagian B `document.cookie` kosong. Ia tidak menggantikan escape dan CSP."
  },
  {
   "id": "t3-xss-csrf-6",
