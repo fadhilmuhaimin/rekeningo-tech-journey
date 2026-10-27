@@ -1,0 +1,122 @@
+# Lab api-t4 · verifikasi identitas: tingkat akun, outbox bertujuan verifikasi, timeout, vendor mati
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4 · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/api-t4 run.
+# server: ./api-t4 -lab; layanan verifikasi tiruan: ./tiruan -peran verifikasi
+
+# --- A. Dina (pemakai, belum terverifikasi) tidak boleh mengirim ke rekan; hanya akun terverifikasi ---
+$ curl -i -X GET '/akun/40001' -H 'Authorization: Bearer <token sesi Dina>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":40001,"jenis":"pemakai","nama":"Dina","saldo":900000,"tingkat":"belum","status":"aktif"}
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Dina>' -d '{"ke_nomor_karyawan": "K00419", "nominal": 10000}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/butuh-verifikasi","title":"Fitur ini butuh akun terverifikasi","status":403,"detail":"Ajukan verifikasi identitas lewat POST /verifikasi."}
+
+# --- B. Dina mengajukan verifikasi: dua file ke penyimpanan objek, satu baris verifikasi, satu pekerjaan di outbox (satu transaction) ---
+$ curl -i -X POST /verifikasi -H 'Authorization: Bearer <token sesi Dina>' -d '{"berkas_kartu":"<base64 PNG>","berkas_swafoto":"<base64 PNG>"}'
+HTTP 202
+{"id":1,"subjek":"pemakai","status":"diajukan","tingkat_diminta":"terverifikasi","checksum_kartu":"497790947d4666760ce38f3c00e852c71fdb66cae849bae8e9ede352719e1581","checksum_swafoto":"7517a872ebba034c34526da163a9f6d3d6ab5d5e421704dfc469cc0094473ef8","diajukan":"<waktu>"}
+# Database hanya menyimpan kunci objek dan checksum (SHA-256); isi file ada di penyimpanan objek tiruan (direktori lokal).
+$ curl -i -X POST '/verifikasi' -H 'Authorization: Bearer <token sesi Dina>' -d '{"berkas_kartu": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "berkas_swafoto": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggnN3YWZvdG8="}'
+HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{"type":"/problems/verifikasi-berjalan","title":"Pengajuan sebelumnya belum selesai","status":409}
+# file yang bukan gambar (tipe dari byte, bukan nama): HTTP 422
+=> SELECT id, akun_id, subjek, status, length(berkas_kartu_kunci) AS panjang_kunci, checksum_kartu, checksum_swafoto FROM verifikasi
+ id | akun_id | subjek  | status   | panjang_kunci | checksum_kartu                                                   | checksum_swafoto
+----+---------+---------+----------+---------------+------------------------------------------------------------------+------------------------------------------------------------------
+ 1  | 40001   | pemakai | diajukan | 42            | 497790947d4666760ce38f3c00e852c71fdb66cae849bae8e9ede352719e1581 | 7517a872ebba034c34526da163a9f6d3d6ab5d5e421704dfc469cc0094473ef8
+(1 row)
+=> SELECT akun_id, kelas, jenis, tujuan, status, jurnal_id FROM outbox
+ akun_id | kelas | jenis      | tujuan     | status   | jurnal_id
+---------+-------+------------+------------+----------+-----------
+ 40001   | 1     | verifikasi | verifikasi | menunggu |
+(1 row)
+
+# --- C. Worker mengklaim pekerjaan verifikasi, memanggil layanan verifikasi (Idempotency-Key = id pengajuan), tingkat akun naik ---
+$ ./api-t4 -peran worker -sekali
+worker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0
+$ curl -i -X GET '/verifikasi/1' -H 'Authorization: Bearer <token sesi Dina>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1,"subjek":"pemakai","status":"lulus","tingkat_diminta":"terverifikasi","checksum_kartu":"497790947d4666760ce38f3c00e852c71fdb66cae849bae8e9ede352719e1581","checksum_swafoto":"7517a872ebba034c34526da163a9f6d3d6ab5d5e421704dfc469cc0094473ef8","hapus_pada":"<waktu>","diajukan":"<waktu>","selesai":"<waktu>"}
+$ curl -i -X GET '/akun/40001' -H 'Authorization: Bearer <token sesi Dina>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":40001,"jenis":"pemakai","nama":"Dina","saldo":900000,"tingkat":"terverifikasi","status":"aktif"}
+$ curl -i -X GET '/lab/diterima'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"objek":1,"permintaan":1}
+=> SELECT status, percobaan FROM outbox
+ status   | percobaan
+----------+-----------
+ terkirim | 1
+(1 row)
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Dina>' -d '{"ke_nomor_karyawan": "K00419", "nominal": 10000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10201
+
+{"id":10201,"saldo":890000,"sisa_batas_harian":490000}
+$ curl -i -X POST '/topup-bank' -H 'Authorization: Bearer <token sesi Dina>' -d '{"jumlah": 200000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /topup-bank/1
+
+{"id":1,"order_id":"<order 3>","jumlah":200000,"status":"menunggu","tujuan_bayar":"<tujuan bayar>","dibuat":"<waktu>","kedaluwarsa_pada":"<waktu>"}
+# Sebelum verifikasi, top-up Rp200.000 untuk saldo Rp900.000 ditolak 422 (topup.txt bagian I); kini batasnya Rp10.000.000.
+
+# --- D. Timeout: jawaban vendor terpotong. Pengajuan menjadi tidak_pasti (bukan gagal); pulih, diulang dengan key yang sama, satu objek di vendor ---
+# layanan verifikasi tiruan mode setengah: jawaban 200 terpotong, koneksi ditutup
+=> SELECT status FROM verifikasi WHERE akun_id = 40004
+ status
+-------------
+ tidak_pasti
+(1 row)
+=> SELECT status, percobaan FROM outbox WHERE akun_id = 40004
+ status   | percobaan
+----------+-----------
+ menunggu | 1
+(1 row)
+=> SELECT status FROM verifikasi WHERE akun_id = 40004
+ status
+--------
+ lulus
+(1 row)
+$ curl -i -X GET '/lab/diterima'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"objek":1,"permintaan":2}
+# Vendor menerima 2 permintaan dan membuat 1 objek: Idempotency-Key membuat retry tidak menggandakan.
+
+# --- E. Vendor mati: lima percobaan lalu dead-letter (ADR 25). Pendaftar yang tidak bersalah berstatus gagal (M31); lajur dan breaker ada di lab t4-integrasi ---
+=> SELECT status, percobaan FROM outbox WHERE akun_id = 40003
+ status | percobaan
+--------+-----------
+ mati   | 5
+(1 row)
+=> SELECT status FROM verifikasi WHERE akun_id = 40003
+ status
+--------
+ gagal
+(1 row)
+=> SELECT a.tingkat FROM akun a WHERE a.id = 40003
+ tingkat
+---------
+ belum
+(1 row)
+$ curl -i -X GET '/lab/diterima'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"objek":0,"permintaan":5}
+# Vendor mati: 5 percobaan, tidak satu pun sampai ke objek vendor (objek 0).

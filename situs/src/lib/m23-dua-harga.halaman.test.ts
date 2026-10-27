@@ -525,13 +525,14 @@ describe("skenario alur t3-m23.json: valid, nilai dari rekaman, tebakan, dan var
     expect(Math.max(...p.options.map((o) => o.length))).toBeGreaterThan(benar.length);
     expect(p.options.some((o, i) => i !== p.answer && o.length >= benar.length)).toBe(true);
     expect(p.q).toContain("HR membuat promo 10% lewat instance A");
-    // Widget alur membuka jawaban tebakan di akhir jalur utama DAN di akhir jalur varian (predict.varian false; alur.js: `!d.predict.varian || varianOn`),
-    // jadi penjelasan harus benar di kedua jalur: harga lama di B pada jalur utama, harga promo bila satu Redis dipakai kedua instance.
+    // Widget alur membuka jawaban tebakan hanya di akhir jalur yang ditanyakan: predict.varian false berarti jalur utama, jadi di akhir
+    // varian tidak ada jawaban (alur-core.js bukaJawaban; sebelumnya `!d.predict.varian || varianOn` membukanya di kedua jalur). Penjelasan
+    // tetap memuat kedua kemungkinan (tiap instance menyimpan sendiri, satu Redis); teksnya benar tanpa bergantung pada jalur.
     expect(p.explain).toBe(
       `${rp(bacB[1]!.harga_efektif)} bila tiap instance menyimpan entrinya di memorinya sendiri: A mencatat satu kunci dihapus dan B nol, jadi Citra menerima harga lama dari entri B (memori.txt bagian B). ` +
         `Dengan satu Redis untuk kedua instance, Citra menerima ${rp(bacRC[2]!.harga_efektif)} (redis.txt bagian C).`,
     );
-    expect(baca("situs/lama/widgets/alur.js")).toContain("(!d.predict.varian || varianOn)");
+    expect(baca("situs/lama/widgets/alur.js")).toContain("core.bukaJawaban(d, varianOn, i, list.length)");
     expect(statB.map((x) => x.hapus)).toEqual([1, 0]);
     // Jawaban benar tidak boleh juga ada di jawaban tebakan blok Raka kira (pertanyaan lain: tagihan).
     expect(badan).not.toContain(benar);

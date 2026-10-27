@@ -209,6 +209,24 @@ window.ISTILAH = {
   "t": "Cache",
   "u": "b-fondasi/b9-caching/"
  },
+ "Cache invalidation": {
+  "b": "t3-cache",
+  "d": "Membuang atau memperbarui entri cache saat data aslinya berubah, supaya salinan tidak tertinggal.",
+  "h": "istilah/cache-invalidation/",
+  "n": "3.19 Cache dan invalidation",
+  "s": "istilah-cache-invalidation",
+  "t": "Cache invalidation",
+  "u": "tahap-3/cache-invalidation/"
+ },
+ "Cache-aside": {
+  "b": "t3-cache",
+  "d": "Cara memakai cache: aplikasi memeriksa cache lebih dulu, membaca database bila entrinya tidak ada, lalu menyimpan hasilnya di cache.",
+  "h": "istilah/cache-aside/",
+  "n": "3.19 Cache dan invalidation",
+  "s": "istilah-cache-aside",
+  "t": "Cache-aside",
+  "u": "tahap-3/cache-invalidation/"
+ },
  "Circuit breaker": {
   "b": "B11",
   "d": "Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda.",
@@ -1556,6 +1574,24 @@ window.ISTILAH = {
   "s": "istilah-cache",
   "t": "Cache",
   "u": "b-fondasi/b9-caching/"
+ },
+ "cache invalidation": {
+  "b": "t3-cache",
+  "d": "Membuang atau memperbarui entri cache saat data aslinya berubah, supaya salinan tidak tertinggal.",
+  "h": "istilah/cache-invalidation/",
+  "n": "3.19 Cache dan invalidation",
+  "s": "istilah-cache-invalidation",
+  "t": "Cache invalidation",
+  "u": "tahap-3/cache-invalidation/"
+ },
+ "cache-aside": {
+  "b": "t3-cache",
+  "d": "Cara memakai cache: aplikasi memeriksa cache lebih dulu, membaca database bila entrinya tidak ada, lalu menyimpan hasilnya di cache.",
+  "h": "istilah/cache-aside/",
+  "n": "3.19 Cache dan invalidation",
+  "s": "istilah-cache-aside",
+  "t": "Cache-aside",
+  "u": "tahap-3/cache-invalidation/"
  },
  "circuit breaker": {
   "b": "B11",

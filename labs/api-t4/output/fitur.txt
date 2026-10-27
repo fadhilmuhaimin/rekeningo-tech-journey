@@ -1,0 +1,201 @@
+# Lab api-t4 · QR, kartu virtual, back office, audit berantai, dan impor katalog sebagai role aplikasi
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4 · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/api-t4 run.
+# server: ./api-t4 -lab -unduh-izinkan-http (tiruan lokal tidak punya TLS); penerbit kartu tiruan: ./penerbit; semua sebagai role api_t4
+
+# --- A. QR merchant luar: dinamis (sekali bayar, nominal terikat) dan statis (batas Rp200.000, Asumsi produk) ---
+$ curl -i -X POST '/qr' -H 'Authorization: Bearer <token sesi Bu Marni>' -d '{"jenis": "dinamis", "nominal": 35000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /qr/<qr 1>
+
+{"id":"<qr 1>","jenis":"dinamis","nominal":35000,"berlaku_sampai":"<waktu>"}
+$ curl -i -X GET '/qr/<qr 1>' -H 'Authorization: Bearer <token sesi Eko>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":"<qr 1>","jenis":"dinamis","nominal":35000,"berlaku_sampai":"<waktu>","merchant":{"nama":"Toko Sumber Rejeki"},"terverifikasi":true}
+$ curl -i -X POST '/qr/<qr 1>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10201
+
+{"id":10201,"saldo":465000,"nominal":35000,"merchant":"Toko Sumber Rejeki"}
+$ curl -i -X POST '/qr/<qr 1>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{}'
+HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{"type":"/problems/qr-terpakai","title":"QR dinamis ini sudah dibayar","status":409}
+=> SELECT jenis, status, nominal, jurnal_id IS NOT NULL AS ada_jurnal FROM qr
+ jenis   | status   | nominal | ada_jurnal
+---------+----------+---------+------------
+ dinamis | terpakai | 35000   | t
+(1 row)
+=> SELECT p.jurnal_id, b.jenis AS buku, p.jumlah FROM posting p JOIN buku b ON b.id = p.buku_id WHERE p.jurnal_id = (SELECT jurnal_id FROM qr) ORDER BY p.id
+ jurnal_id | buku     | jumlah
+-----------+----------+--------
+ 10201     | pemakai  | -35000
+ 10201     | merchant | 35000
+(2 rows)
+$ curl -i -X POST '/qr' -H 'Authorization: Bearer <token sesi Toko Andalan>' -d '{"jenis": "statis"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /qr/<qr 2>
+
+{"id":"<qr 2>","jenis":"statis"}
+$ curl -i -X POST '/qr/<qr 2>/bayar' -H 'Authorization: Bearer <token sesi Dina>' -d '{"nominal": 20000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10202
+
+{"id":10202,"saldo":880000,"nominal":20000,"merchant":"Toko Andalan"}
+$ curl -i -X POST '/qr/<qr 2>/bayar' -H 'Authorization: Bearer <token sesi Dina>' -d '{"nominal": 250000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nominal","pesan":"QR statis wajib bernominal lebih dari 0 dan paling banyak 200000"}]}
+$ curl -i -X POST '/qr' -H 'Authorization: Bearer <token sesi Toko Baru>' -d '{"jenis": "dinamis", "nominal": 10000}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/butuh-verifikasi","title":"Akun harus terverifikasi dulu","status":403}
+
+# --- B. Merchant baru: verifikasi tanpa vendor, diputuskan tim risk; keputusan tercatat di audit log berantai (satu transaction dengan aksinya) ---
+=> SELECT akun_id, subjek, status FROM verifikasi
+ akun_id | subjek   | status
+---------+----------+----------
+ 30021   | merchant | diajukan
+(1 row)
+$ curl -i -X POST '/bo/merchant/30021/setujui' -H 'Authorization: Bearer <token sesi Ratih>' -d '{"alasan": "Dokumen lengkap dan sesuai, toko dikunjungi"}'
+HTTP/1.1 204 No Content
+
+
+=> SELECT a.tingkat, v.status FROM akun a JOIN verifikasi v ON v.akun_id = a.id WHERE a.id = 30021
+ tingkat       | status
+---------------+--------
+ terverifikasi | lulus
+(1 row)
+$ curl -i -X POST '/qr' -H 'Authorization: Bearer <token sesi Toko Baru>' -d '{"jenis": "dinamis", "nominal": 10000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /qr/<qr 3>
+
+{"id":"<qr 3>","jenis":"dinamis","nominal":10000,"berlaku_sampai":"<waktu>"}
+
+# --- C. Kartu virtual: penerbit tiruan menerbitkan, otorisasi menahan dana (hold) sebagai jurnal di ledger, clearing, reversal, kill switch ---
+$ curl -i -X POST /kartu -H 'Authorization: Bearer <token sesi Eko>'   # penerbit tiruan menjawab dengan token; HTTP 201 (token dan empat digit acak, tidak direkam)
+POST /kartu oleh Dina (belum terverifikasi): HTTP 403
+$ curl -i -X POST '/lab/otorisasi' -d '{"id_penerbit":"AUTH-1","token":"<token kartu>","jumlah":80000}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"keputusan":"setuju","sumber":"rekeningo"}
+=> SELECT status, jumlah, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu
+ status  | jumlah | ada_jurnal_tahan
+---------+--------+------------------
+ ditahan | 80000  | t
+(1 row)
+=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.jenis = 'dana_tertahan' OR b.akun_id = 40002 ORDER BY b.jenis
+ jenis         | saldo_cache
+---------------+-------------
+ dana_tertahan | 80000
+ pemakai       | 385000
+(2 rows)
+otorisasi AUTH-2 Rp400.000 (saldo tinggal Rp385.000 sesudah QR dan hold): {"alasan":"saldo-kurang","keputusan":"tolak","sumber":"rekeningo"}
+=> SELECT status FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-1'
+ status
+-----------
+ ditangkap
+(1 row)
+=> SELECT jenis, saldo_cache FROM buku WHERE jenis IN ('dana_tertahan', 'settlement_kartu') ORDER BY jenis
+ jenis            | saldo_cache
+------------------+-------------
+ dana_tertahan    | 0
+ settlement_kartu | 80000
+(2 rows)
+=> SELECT id_penerbit, status FROM otorisasi_kartu ORDER BY id
+ id_penerbit | status
+-------------+-----------
+ AUTH-1      | ditangkap
+ AUTH-2      | ditolak
+ AUTH-3      | dibalik
+(3 rows)
+=> SELECT jenis, saldo_cache FROM buku WHERE jenis = 'dana_tertahan' OR akun_id = 40002 ORDER BY jenis
+ jenis         | saldo_cache
+---------------+-------------
+ dana_tertahan | 0
+ pemakai       | 385000
+(2 rows)
+$ curl -i -X POST '/bo/flag/kartu' -H 'Authorization: Bearer <token sesi Ratih>' -d '{"aktif": false, "alasan": "Kill switch dicoba: penerbit melaporkan anomali"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"aktif":false}
+otorisasi AUTH-4 sesudah kill switch mati (tanpa deploy): {"alasan":"kill-switch","keputusan":"tolak","sumber":"rekeningo"}
+
+# --- D. Back office tim risk: lihat akun, bekukan, buka dengan persetujuan petugas kedua. Hanya jenis risk ---
+GET /bo/akun/40001 oleh Dina (bukan petugas risk): HTTP 403
+$ curl -i -X GET '/bo/akun/40001' -H 'Authorization: Bearer <token sesi Ratih>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":40001,"jenis":"pemakai","nama":"Dina","tingkat":"belum","status":"aktif","saldo":880000}
+$ curl -i -X POST '/bo/akun/40001/bekukan' -H 'Authorization: Bearer <token sesi Ratih>' -d '{"alasan": "Dugaan akun dipakai pihak lain, menunggu konfirmasi"}'
+HTTP/1.1 204 No Content
+
+
+$ curl -i -X POST '/topup-bank' -H 'Authorization: Bearer <token sesi Dina>' -d '{"jumlah": 50000}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/akun-dibekukan","title":"Akun dibekukan","status":403,"detail":"Hubungi tim risk lewat layanan pelanggan."}
+$ curl -i -X POST '/bo/akun/40001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -d '{"alasan": "Pemilik sudah dikonfirmasi lewat layanan pelanggan"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/butuh-persetujuan","title":"Aksi ini butuh persetujuan petugas risk kedua","status":403,"detail":"Kirim token sesi app petugas risk lain di header X-Penyetuju-Token."}
+$ curl -i -X POST '/bo/akun/40001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -H 'X-Penyetuju-Token: <token sesi Ratih>' -d '{"alasan": "Pemilik sudah dikonfirmasi lewat layanan pelanggan"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/butuh-persetujuan","title":"Aksi ini butuh persetujuan petugas risk kedua","status":403,"detail":"Kirim token sesi app petugas risk lain di header X-Penyetuju-Token."}
+$ curl -i -X POST '/bo/akun/40001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -H 'X-Penyetuju-Token: <token sesi Risk Dua>' -d '{"alasan": "Pemilik sudah dikonfirmasi lewat layanan pelanggan"}'
+HTTP/1.1 204 No Content
+
+
+=> SELECT status FROM akun WHERE id = 40001
+ status
+--------
+ aktif
+(1 row)
+
+# --- E. Audit log berantai: setiap aksi berisiko satu baris di transaction yang sama; mengubah baris di tengah memutus rantai di baris itu ---
+=> SELECT id, peran, aksi, objek, penyetuju_id FROM audit_log ORDER BY id
+ id | peran | aksi             | objek            | penyetuju_id
+----+-------+------------------+------------------+--------------
+ 1  | risk  | setujui_merchant | verifikasi:1     |
+ 2  | risk  | flag_kartu       | flag:kartu=mati  |
+ 3  | risk  | flag_kartu       | flag:kartu=aktif |
+ 4  | risk  | lihat_akun       | akun:40001       |
+ 5  | risk  | bekukan          | akun:40001       |
+ 6  | risk  | buka_blokir      | akun:40001       | 421
+(6 rows)
+verifikasi rantai: 6 baris, utuh: ya (hash baris terakhir adalah jangkar; bergantung waktu, tidak direkam)
+=> UPDATE audit_log SET alasan = 'diubah pemilik schema' WHERE id = 2
+UPDATE 1
+sesudah pemilik schema mengubah baris 2: utuh tidak, rusak di baris 2
+# Role aplikasi tidak bisa mengubah baris itu (skema.txt bagian D); pemilik schema bisa, dan rantai yang mendeteksinya. Menghapus ekor rantai tanpa jangkar di luar database: t4-audit.
+
+# --- F. Impor katalog merchant dengan URL gambar: fetcher versi aman menolak alamat jaringan dalam; produk tetap tersimpan ---
+$ curl -i -X POST '/merchant/katalog/impor' -H 'Authorization: Bearer <token sesi Toko Andalan>' -d '{"produk": [{"nama": "Kopi tubruk", "harga": 8000, "stok": 20, "gambar_url": "http://127.0.0.1:18283/orders/x"}, {"nama": "Teh tarik", "harga": 9000, "stok": 15}]}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"hasil":[{"nama":"Kopi tubruk","pratinjau":null,"galat":"tujuan tidak diizinkan"},{"nama":"Teh tarik","pratinjau":null,"galat":null}]}
+=> SELECT nama, harga, stok, gambar_url IS NOT NULL AS ada_url FROM produk WHERE akun_id = 30002 ORDER BY nama
+ nama        | harga | stok | ada_url
+-------------+-------+------+---------
+ Kopi tubruk | 8000  | 20   | t
+ Teh tarik   | 9000  | 15   | f
+(2 rows)
+# Mode rentan unduh-rentan (t4-ssrf) menjangkau alamat itu; versi aman tidak. Lab ini hanya memastikan jalur dan hak tulisnya.

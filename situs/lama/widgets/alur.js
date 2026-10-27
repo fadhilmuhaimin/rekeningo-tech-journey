@@ -99,7 +99,7 @@
           var atas = cb.getBoundingClientRect().top;
           varianOn = cb.checked;
           list = core.steps(d, varianOn);
-          // Jawaban tebakan dibuka lagi di akhir jalur yang baru.
+          // Jawaban tebakan milik satu jalur: ditutup saat jalur berganti, dibuka lagi di akhir jalurnya sendiri.
           revealed = false;
           if (pBox) pBox.querySelectorAll(".bb-predict__a").forEach(function (a) { a.remove(); });
           // Lompat ke langkah pertama yang berbeda: di situlah pelajarannya.
@@ -244,7 +244,9 @@
         counter.textContent = "Langkah " + i + " dari " + list.length;
         prev.disabled = i === 0;
         next.disabled = !guessed || i >= list.length;
-        if (i === list.length && pBox && !revealed && (!d.predict.varian || varianOn)) {
+        // Jawaban dibuka hanya di akhir jalur yang ditanyakan (core.jalurTebakan): tebakan tentang jalur utama tidak
+        // dibuka di akhir varian, karena penjelasannya membicarakan jalur yang sedang tidak dibaca.
+        if (pBox && !revealed && core.bukaJawaban(d, varianOn, i, list.length)) {
           pBox.reveal(d.predict.answer, d.predict.explain);
           revealed = true;
         }
