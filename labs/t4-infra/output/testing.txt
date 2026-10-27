@@ -1,0 +1,47 @@
+# Lab t4-infra · tes Go untuk daftar alamat, proxy keluar, pembaca rahasia, dan pemindai kunci produksi
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0
+# Rekaman dari: make -C labs/t4-infra run BAGIAN=testing.
+
+# --- A. Tes Go yang ditambahkan lab ini (tanpa database; server HTTP uji di memori) ---
+$ go test -v -count=1 -run '<36 tes baru>' ./cmd/tiruan/ ./cmd/proxykeluar/ ./internal/rahasia/ ./internal/modul/pembayaran/
+--- PASS: TestDaftarMengembalikanSalinanYangTidakMengubahIsiPembaca
+--- PASS: TestDokumenTanpaLamaHanyaSatuRahasiaDanLamaSamaDenganSekarangTidakGanda
+--- PASS: TestIzinkanKeduaKaliMenggantiDaftarPertamaBukanMenambah
+--- PASS: TestIzinkanMenggantiDaftarLewatRuteLabDanUlangTidakMenghapusIzin
+--- PASS: TestJalanMembacaUlangBerkalaTanpaDeploy
+--- PASS: TestMuatMembacaDokumenKVv2DenganTokenDanUrutanSekarangLaluLama
+--- PASS: TestParseIzin
+--- PASS: TestParseIzinIPv6TunggalHanyaSatuAlamatDanRingkasanDiurutkan
+--- PASS: TestPembacaTanpaPembacaanBerhasilTidakPunyaRahasia
+--- PASS: TestPembacaanGagalMemakaiPembacaanTerakhirDanMenghitungKegagalan
+--- PASS: TestPembacaanYangMenggantungBerakhirDenganGalatDalamBatasWaktu
+--- PASS: TestPeriksaDaftarKosongMenerimaSemuaDanDaftarIsiMenolakSisanya
+--- PASS: TestPindaiAturanDimatikanBilaMasukanKosongDanAwalanMenangAtasSidik
+--- PASS: TestPindaiAwalanHanyaBerlakuDiAwalTokenBukanDiTengah
+--- PASS: TestPindaiAwalanKunciProduksiMenangkapBarisYangBenarTanpaMenyalinNilai
+--- PASS: TestPindaiBarisLebihPanjangDariBatasTidakMenyembunyikanSisaBerkas
+--- PASS: TestPindaiBerkasStagingBersihTidakMenghasilkanTemuan
+--- PASS: TestPindaiSatuTemuanPerBarisDanNomorBarisDimulaiDariSatu
+--- PASS: TestPindaiSidikMenangkapNilaiTersalinDenganFormatLainTermasukPadding
+--- PASS: TestPindaiSidikMenangkapTokenPendekDanBerhubungDanNilaiBerkarakterKhusus
+--- PASS: TestProxyConnectDanHttpsDitolakDanTujuanMatiJadi502
+--- PASS: TestProxyMeneruskanKeTujuanTerdaftarDanMenolakYangLain
+--- PASS: TestProxyMeneruskanMetodeDanBodyDanKodeStatus
+--- PASS: TestProxyTanpaDaftarTujuanDitolakSaatDibuat
+--- PASS: TestProxyTidakMemakaiProxyLainDariLingkungan
+--- PASS: TestProxyTidakMenambahAtauMeneruskanKlaimAlamatDanHeaderKoneksi
+--- PASS: TestProxyTidakMeneruskanHeaderPerKoneksiDariJawabanTujuan
+--- PASS: TestProxyTujuanTanpaPortDianggapPort80
+--- PASS: TestRahasiaFnDipanggilTiapPemeriksaanDanMenggantikanDaftarTetap
+--- PASS: TestSecretManagerMatiBukanPanikDanDihitungGagal
+--- PASS: TestSidikTidakMembukaNilaiDanDihitungDariSHA256
+--- PASS: TestSumberHanyaAlamatPeerBukanHeader
+--- PASS: TestTanpaRahasiaFnDaftarTetapTetapBerlaku
+--- PASS: TestVerifikasiMenolak403PadaAlamatTakTerdaftarTanpaMembuatObjek
+--- PASS: TestVerifikasiTanpaDaftarMenerimaSemuaDanRuteLabTetapTerbuka
+--- PASS: TestVersiDokumenMengikutiOpenBaoTermasukTurunSesudahRestartModeDev
+ok  36 tes induk, 0 subtes
+
+# --- B. go vet seluruh modul ---
+$ go vet ./...
+(tanpa temuan)
