@@ -54,7 +54,9 @@ func (t Tx) BuatVerifikasi(ctx context.Context, akun int64, subjek, kunciKartu, 
 }
 
 // TulisOutboxVerifikasi menulis pekerjaan verifikasi di transaction yang sama dengan pengajuannya. Kelas 1: di
-// belakang notifikasi uang (kelas 0) dan di depan promo (kelas 2), supaya pekerjaan verifikasi tidak menahan uang.
+// belakang notifikasi uang (kelas 0) dan di depan promo (kelas 2) saat diklaim. Itu hanya urutan klaim: percobaan
+// verifikasi yang sudah berjalan menahan slot worker sampai selesai atau timeout, dan notifikasi uang menunggu putaran
+// itu (lab t4-integrasi, worker.txt bagian A). Yang membebaskan slot adalah lajur yang dijeda breaker (ADR 36).
 func (t Tx) TulisOutboxVerifikasi(ctx context.Context, akun int64, payload []byte) error {
 	_, err := t.tx.ExecContext(ctx, `
 		INSERT INTO outbox (akun_id, kelas, jenis, tujuan, payload) VALUES ($1, 1, 'verifikasi', 'verifikasi', $2)`, akun, payload)
