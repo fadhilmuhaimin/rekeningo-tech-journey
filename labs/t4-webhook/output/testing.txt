@@ -58,6 +58,12 @@ ok    lab/apit4/cmd/tiruan
 --- PASS: TestRekonHarianTigaJenisSelisih
 --- PASS: TestRekonHarianLedgerLebihBesarDariGateway
 --- PASS: TestWebhookDiparkirDicekKeGatewayHanyaBilaMasihMenunggu
+--- PASS: TestKoreksiRekonTidakMenahanTransactionSelamaGatewayMenunggu
+--- PASS: TestKoreksiRekonJumlahBedaTepatDiBatasTingkat
+--- PASS: TestCekTopupBelumSelesaiBatasTigaPuluhMenitDanTidakPasti
+--- PASS: TestKoreksiRekonTidakDiLedgerTopupTidakPasti
+--- PASS: TestKoreksiRekonSatuGalatTidakMenghentikanYangLain
+--- PASS: TestWebhookEventMenyimpanJenisTopupDanJurnal
 PASS
 ok    lab/apit4/internal/service
 # exit status 0

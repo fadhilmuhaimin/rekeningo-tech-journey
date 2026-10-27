@@ -100,6 +100,16 @@ def catat_job(deskripsi, *args):
     catat(d.samarkan(job(*args)))
 
 
+def diperiksa_cek(deskripsi):
+    """Jalankan job -cek-topup, catat keluarannya, dan kembalikan berapa top-up yang diperiksa."""
+    catat(f"$ ./api-t4 {deskripsi}")
+    keluar = d.samarkan(job("-cek-topup"))
+    catat(keluar)
+    m = re.search(r"diperiksa (\d+)", keluar)
+    harap(bool(m), True, "keluaran job cek status memuat jumlah yang diperiksa")
+    return int(m.group(1))
+
+
 def hari_ini():
     return satu("SELECT (now() AT TIME ZONE 'Asia/Jakarta')::date::text")
 
@@ -207,7 +217,7 @@ def rekam_ganda_serentak():
     harap(h, ["200 diproses", "200 diproses"], "cek-lalu-tulis lolos dua kali")
     harap(jurnal_topup(t["order_id"]), 2, "dua jurnal")
     sql("SELECT count(*) AS jurnal_topup_bank FROM jurnal WHERE jenis = 'topup_bank'")
-    catat("# Celah itu ada di antara membaca status dan menulis jurnal; jeda lab hanya melebarkannya (celah alami hanya mikrodetik, tidak diukur).")
+    catat("# Celah itu ada di antara membaca status dan menulis jurnal. Jeda lab melebarkannya supaya hasil tidak bergantung pada waktu; lebar celah tanpa jeda tidak diukur dan tidak menjadi klaim.")
 
     bagian("B. Versi ADR 34 tanpa dua lapis cadangan: event_id yang sama bersamaan tetap satu jurnal, hanya karena kunci utama")
     ganti_api(["-lab-tanpa-lapis", "status,kunci"],
@@ -576,10 +586,13 @@ def rekam_rekon():
     ct = buat_topup(citra, 500_000)
     gateway_bayar(ct["order_id"])
     catat("# Citra sudah membayar di bank (gateway: settlement); gateway tidak mengirim webhook.")
-    catat_job("-cek-topup   # bawaan -cek-umur 30m, top-up baru dibuat", "-cek-topup")
+    harap(diperiksa_cek("-cek-topup   # bawaan -cek-umur 30m, top-up baru dibuat"), 0, "top-up baru belum ditanyakan")
+    sql("UPDATE topup_bank SET dibuat = now() - interval '29 minutes'")
+    catat("# Lab saja: umur top-up diputar mundur 29 menit lewat UPDATE kolom `dibuat` oleh pemilik schema (bukan posting atau saldo). Batas 30 menit belum terlewati.")
+    harap(diperiksa_cek("-cek-topup   # bawaan -cek-umur 30m, umur 29 menit"), 0, "umur 29 menit belum ditanyakan")
     sql("UPDATE topup_bank SET dibuat = now() - interval '31 minutes'")
-    catat("# Lab saja: umur top-up diputar mundur 31 menit lewat UPDATE kolom `dibuat` oleh pemilik schema (bukan posting atau saldo).")
-    catat_job("-cek-topup   # bawaan -cek-umur 30m", "-cek-topup")
+    catat("# Sama, diputar mundur 31 menit: sudah melewati batas 30 menit.")
+    harap(diperiksa_cek("-cek-topup   # bawaan -cek-umur 30m, umur 31 menit"), 1, "umur 31 menit ditanyakan")
     harap(satu("SELECT status FROM topup_bank WHERE id = 1"), "dibayar", "cek status mengkredit")
     harap(jurnal_topup(ct["order_id"]), 1, "satu jurnal")
     sql("SELECT status, jurnal_id IS NOT NULL AS ada_jurnal FROM topup_bank WHERE id = 1")

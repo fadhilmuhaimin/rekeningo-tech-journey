@@ -7,10 +7,15 @@
 # Citra sudah membayar di bank (gateway: settlement); gateway tidak mengirim webhook.
 $ ./api-t4 -cek-topup   # bawaan -cek-umur 30m, top-up baru dibuat
 cek top-up: diperiksa 0, dikredit 0, selesai tanpa kredit 0, masih menunggu 0, galat 0
+=> UPDATE topup_bank SET dibuat = now() - interval '29 minutes'
+UPDATE 1
+# Lab saja: umur top-up diputar mundur 29 menit lewat UPDATE kolom `dibuat` oleh pemilik schema (bukan posting atau saldo). Batas 30 menit belum terlewati.
+$ ./api-t4 -cek-topup   # bawaan -cek-umur 30m, umur 29 menit
+cek top-up: diperiksa 0, dikredit 0, selesai tanpa kredit 0, masih menunggu 0, galat 0
 => UPDATE topup_bank SET dibuat = now() - interval '31 minutes'
 UPDATE 1
-# Lab saja: umur top-up diputar mundur 31 menit lewat UPDATE kolom `dibuat` oleh pemilik schema (bukan posting atau saldo).
-$ ./api-t4 -cek-topup   # bawaan -cek-umur 30m
+# Sama, diputar mundur 31 menit: sudah melewati batas 30 menit.
+$ ./api-t4 -cek-topup   # bawaan -cek-umur 30m, umur 31 menit
 cek top-up: diperiksa 1, dikredit 1, selesai tanpa kredit 0, masih menunggu 0, galat 0
 => SELECT status, jurnal_id IS NOT NULL AS ada_jurnal FROM topup_bank WHERE id = 1
  status  | ada_jurnal

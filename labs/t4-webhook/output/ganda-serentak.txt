@@ -10,7 +10,7 @@ dua kiriman bersamaan, tanda tangan sah (diurutkan): 200 diproses, 200 diproses
 -------------------
  2
 (1 row)
-# Celah itu ada di antara membaca status dan menulis jurnal; jeda lab hanya melebarkannya (celah alami hanya mikrodetik, tidak diukur).
+# Celah itu ada di antara membaca status dan menulis jurnal. Jeda lab melebarkannya supaya hasil tidak bergantung pada waktu; lebar celah tanpa jeda tidak diukur dan tidak menjadi klaim.
 
 # --- B. Versi ADR 34 tanpa dua lapis cadangan: event_id yang sama bersamaan tetap satu jurnal, hanya karena kunci utama ---
 # server: ./api-t4 -lab -lab-tanpa-lapis status,kunci (ADR 34 tanpa dua lapis cadangan: status top-up hanya maju dan Idempotency-Key ke ledger dimatikan; kunci utama event_id tidak bisa dimatikan)
