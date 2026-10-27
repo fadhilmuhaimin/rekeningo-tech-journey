@@ -319,7 +319,7 @@ def rekam_retry():
     (akun4, tok4), = pendaftar(1, 40003)
     ajukan([(akun4, tok4)])
     d.tiruan_mode(PORT_VERIFIKASI, "mati")
-    catat("# Pengajuan lain, vendor menjawab 503: vendor pasti tidak memprosesnya, jadi statusnya tidak berubah dan pekerjaan menunggu percobaan berikutnya:")
+    catat("# Pengajuan lain, vendor menjawab 503 (tiruan menjawab 503 sebelum membuat objek; vendor nyata tidak menjamin itu, dan retry berkunci aman di kedua kasus): statusnya tidak berubah dan pekerjaan menunggu percobaan berikutnya:")
     d.worker(batas, tampil=False, db=DB)
     sql("SELECT status FROM verifikasi")
     sql("SELECT status, percobaan FROM outbox WHERE tujuan = 'verifikasi'")
@@ -482,6 +482,10 @@ TES_BARU = ["TestRekamanBreakerBawaan", "TestBreakerHalfOpenGagalMembukaLagiSela
             "TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan", "TestKunciIdempotensiPerPercobaan",
             "TestTanpaBreakerSemuaPekerjaanMatiSebelumVendorPulih", "TestRingkasanMenjumlahkanDanMencetakDijeda",
             "TestRingkasHasilMenghitungSetiapJenis", "TestLajurSetengahTerbukaMembagiKapasitasDenganLajurLain",
+            "TestBreakerGagalBerturutTurutTidakDihapusWaktu", "TestLajurTerbukaWorkerSatuLajurTidakMengklaimApaPun",
+            "TestLajurPermintaanPercobaanSetengahTerbukaMenghabiskanPercobaanPekerjaanTerdepan",
+            "TestBreakerLajurMatiBawaanDanHanyaUntukLajurVerifikasi",
+            "TestTerlambatDanTidakTerhubungMembedakanSebabGalat",
             "TestSatuPembuatClientUntukSemuaPanggilanKeluar", "TestBatasWaktuBawaanTigaDetikDiSemuaPembuat",
             "TestClientTidakMengikutiRedirect", "TestBatasNolMembuatClientTanpaBatasWaktuHanyaUntukRekamanPerbandingan",
             "TestBaruDenganTransportMemakaiTransportYangDiberikan", "TestKlasifikasiJawabanVendor",
@@ -493,7 +497,7 @@ def rekam_testing():
     url = f"postgres://lab:lab@127.0.0.1:{d.DB_PORT}/lab?search_path={SCH_TES}&application_name=t4-integrasi-tes"
     env = dict(d.ENV, TEST_DATABASE_URL=url, LAB_TES_SCHEMA=SCH_TES)
     pola = "^(" + "|".join(TES_BARU) + ")$"
-    r = subprocess.run(["go", "test", "-v", "-count=1", "-p", "1", "-run", pola, "./internal/lajur/", "./internal/worker/", "./internal/klien/", "./internal/verifikasi/"],
+    r = subprocess.run(["go", "test", "-v", "-count=1", "-p", "1", "-run", pola, "./internal/lajur/", "./internal/worker/", "./internal/klien/", "./internal/verifikasi/", "./cmd/api/"],
                        cwd=d.HERE, env=env, capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stdout[-3000:], r.stderr[-2000:], file=sys.stderr)
@@ -503,7 +507,7 @@ def rekam_testing():
     induk = [n for n in lulus if "/" not in n]
     harap(sorted(induk), sorted(TES_BARU), "semua tes baru berjalan dan lulus")
     bagian("A. Tes Go yang ditambahkan lab ini (PostgreSQL sungguhan untuk paket worker; jam palsu untuk paket lajur)")
-    catat(f"$ TEST_DATABASE_URL=<pemilik, schema {SCH_TES}> go test -v -count=1 -p 1 -run '<{len(TES_BARU)} tes baru>' ./internal/lajur/ ./internal/worker/ ./internal/klien/ ./internal/verifikasi/")
+    catat(f"$ TEST_DATABASE_URL=<pemilik, schema {SCH_TES}> go test -v -count=1 -p 1 -run '<{len(TES_BARU)} tes baru>' ./internal/lajur/ ./internal/worker/ ./internal/klien/ ./internal/verifikasi/ ./cmd/api/")
     for n in sorted(lulus):
         catat(f"--- PASS: {n}")
     catat(f"ok  {len(induk)} tes induk, {len(lulus) - len(induk)} subtes")
