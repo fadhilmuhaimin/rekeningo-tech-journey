@@ -1,0 +1,236 @@
+---
+title: "3.29 Estimasi Tahap 3 → 4"
+description: Estimasi dengan masukan PRD v4, semua Asumsi. Puncak naik 8 kali, dari 17,4 ke 138,9 request per detik. Di tabel halaman ini hanya pekerjaan yang menunggu pihak ketiga lama yang mencapai batasnya.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t3-estimasi-inti.json";
+import Kalkulator from "../../../widgets/kalkulator/Kalkulator.tsx";
+import dataKalkulator from "../../../../data/widget/t3-estimasi-kalkulator.json";
+import cerita from "../../../../data/cerita.json";
+
+<p class="meta">Baca 13 menit · coba 3 menit · Prasyarat: [[t3-m28]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Estimasi antar tahap menghitung ulang rumus yang sama dengan masukan PRD v4, lalu membandingkan tiap hasil dengan batasnya.
+
+<Rantai data={intiDiagram} ringkas />
+
+Dari Tahap 3 ke Tahap 4, user naik 10 kali, tetapi puncak request hanya naik 8 kali. Puncaknya 17,4 menjadi 138,9 per detik (Asumsi naskah; arti label ada di [Label sumber](/cara-pakai/#label-sumber)). Di tabel halaman ini, tidak satu komponen pun melewati batasnya hanya karena jumlah request.
+
+Yang naik lebih cepat dari request adalah pekerjaan worker, dari 6,5% ke 56% terpakai, dan file, yang mencapai 365 GB per tahun. Yang paling berbahaya tetap lamanya panggilan ke pihak ketiga, seperti di [[t3-m18]].
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. User naik 10 kali dari Tahap 3 ke Tahap 4. Berapa kali puncak request naik, dan pengali mana yang membuatnya begitu?
+2. Pemakaian worker naik dari 6,5% ke 56%, lebih dari 8 kali. Dari mana tambahannya?
+3. Gateway bank dipanggil hanya 0,579 kali per detik. Kapan angka sekecil itu tetap menahan lebih dari 10 koneksi?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: puncak Tahap 4 naik 8 kali, bukan 10 kali, dan walau semua request sehari masuk di satu jam, puncaknya ±330 request per detik (Asumsi).">
+
+Rumusnya sama dengan [[t2-estimasi]], sekarang untuk Tahap 3 dan Tahap 4. Tebak dulu berapa kali lipat puncaknya naik, lalu pilih Tahap 4 dan baca baris mana yang berubah.
+
+<Kalkulator client:visible data={dataKalkulator} asumsi={cerita.tahap.map((t) => t.asumsi)} />
+
+Widget membulatkan hasil ke dua angka penting, jadi Tahap 3 tampil 17 dan Tahap 4 tampil 140. Tabel di blok Paham memakai 17,4 dan 138,9.
+
+Pilih **Aktif 25%**: user aktif kembali ke angka Tahap 3, dan puncak naik ke ±170, tepat 10 kali Tahap 3. Selisih 10 lawan 8 datang dari satu pengali, yaitu 0,8 (20 ÷ 25). Pilih **Satu jam**: semua request sehari masuk di satu jam, faktor puncaknya 24, dan puncak naik ke ±330, atau 2,4 kali dari Tahap 4 biasa.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+PRD v4 ([[t3-m28]]) menambah top-up dari bank lewat gateway, verifikasi identitas, QR di merchant luar, dan kartu virtual. Dugaan pertama adalah server yang lebih besar. Estimasi menjawabnya dengan hitungan, sebelum ada komponen yang dipilih.
+
+[[t2-estimasi]] menghitung Tahap 3 dan menemukan bahwa lamanya satu panggilan lebih penting dari banyaknya request. Halaman ini mengulang caranya untuk Tahap 4, dengan dua tambahan: pekerjaan worker dan ukuran file.
+
+### Cara kerjanya
+
+**1. Hitung ulang dengan rumus yang sama.** Rumusnya dari [[D1]], masukannya `tahap[2].asumsi` dan `tahap[3].asumsi` di `cerita.json`. Semua angka di tabel ini adalah Asumsi naskah, bukan pengukuran.
+
+| Besaran | Tahap 3 | Tahap 4 | Cara hitung Tahap 4 (Asumsi) |
+|---|---|---|---|
+| User terdaftar | 10.000 | 100.000 | PRD v4 |
+| User aktif harian | 2.500 | 20.000 | 100.000 × 20% |
+| Request per hari | 150.000 | 1.200.000 | 20.000 × 60 request |
+| Puncak request per detik | 17,4 | 138,9 | 1.200.000 ÷ 86.400 × 10 |
+
+**2. Satu angka, tiga pengali.** Puncak naik 8 kali, bukan 10 kali, walau jumlah user naik 10 kali. Persentase aktif turun dari 25% ke 20% (× 20 ÷ 25), dan request per user aktif tetap 60 (× 60 ÷ 60). Hasilnya 10 × (20 ÷ 25) × (60 ÷ 60) = 8.
+
+Dari angka yang dibulatkan, 138,9 ÷ 17,4 = 7,98. Selisihnya dari 8 hanya pembulatan, bukan pengali lain. Persentase aktif dan request per user adalah Asumsi naskah, jadi keduanya boleh kamu ganti di widget.
+
+**3. Hitung per kelas pekerjaan.** Tidak semua pekerjaan memakai koneksi, worker, atau disk dengan cara yang sama. Tabel ini memisahkan kelasnya, dan tiap kelas memakai faktor puncak 10 yang sama.
+
+| Kelas | Per hari | Puncak per detik | Cara hitung (semua Asumsi) |
+|---|---|---|---|
+| Semua request | 1.200.000 | 138,9 | tabel di atas |
+| Transaksi uang: bayar, transfer, QR | 60.000 | 6,94 | 20.000 × 3 transaksi; 5% dari semua request |
+| Top-up dari bank | 5.000 | 0,579 | 20.000 × 0,25 top-up |
+| Verifikasi identitas | 1.000 | 0,116 | 1.000 pendaftar |
+| Otorisasi kartu virtual | 1.000 | 0,116 | 5% × 20.000 × 1 |
+| Unggahan file | 2.000 | 0,231 | 1.000 pendaftar × 2 file |
+
+Transaksi uang naik 8,0 kali (0,868 ke 6,94), sama dengan semua request, karena tiga transaksi per user aktif per hari tetap. Empat kelas lain baru di PRD v4. Dari empat kelas baru, registry hanya memuat unggahan per hari dan ukuran file; angka kelas lain adalah Asumsi naskah.
+
+**4. Bandingkan tiap hasil dengan batasnya.** Kapasitas bukan jumlah request per detik. Setiap kelas dibandingkan dengan batas komponen yang dipakainya: worker dengan c ÷ t, koneksi dengan `max_connections` dan batas pool, ukuran data dengan jadwal partisi.
+
+Kapasitas worker adalah c ÷ t: c = 4 pengirim serentak dan t = 0,3 detik per pengiriman (Asumsi), jadi 4 ÷ 0,3 = 13,33 per detik. [Rekaman lab](/cara-pakai/#label-sumber) t3-outbox mengukurnya antara 12 dan 13,33 per detik pada layanan push tiruan yang menjawab sesudah 300 ms ([[t3-m27]]).
+
+| Besaran | Tahap 3 | Tahap 4 | Batas |
+|---|---|---|---|
+| Notifikasi uang per detik, puncak | 0,868 | 7,52 | 13,33 per detik |
+| Pemakaian worker, puncak | 6,5% | 56% | 100% |
+| Pemakaian worker, makan siang | 8,3% | 72% | 100% |
+| Koneksi database | 30 | 40 | 100 |
+| Koneksi tertahan oleh semua request (W 20 ms) | 0,35 | 2,78 | 18 |
+| Posting per tahun | 5,475 juta | 43,8 juta | ±440 juta |
+
+Notifikasi uang naik 8,7 kali (7,52 ÷ 0,868), lebih cepat dari request, karena top-up dari bank ikut ditambahkan: 6,94 + 0,579 = 7,52 per detik. Tahap 3 menghitung bayar dan transfer saja. Pemakaian 56% adalah 7,52 ÷ 13,33.
+
+Makan siang diasumsikan memuat 80% transaksi sehari dalam 90 menit, yaitu 5.400 detik. Tahap 4: 65.000 × 0,8 ÷ 5.400 = 9,63 per detik, atau 72%. Tahap 3: 7.500 × 0,8 ÷ 5.400 = 1,11 per detik, atau 8,3%.
+
+Koneksi: 2 × 10 + 2 × 5 + 4 + 3 + 3 = 40 dari 100. Tahap 3 memakai 2 × 10 + 4 + 3 + 3 = 30 ([[t3-pool]]). Suku 2 × 5 adalah pool dua instance layanan pembayaran bank, Asumsi desain; worker 4, admin 3, dan cadangan superuser 3 mengikuti [[t3-pool]].
+
+Koneksi tertahan oleh semua request adalah L = λ × W = 138,9 × 0,02 = 2,78, dengan W 20 ms (Asumsi, belum diukur). Batasnya 2 pool × (10 − 1) = 18, dari aturan di [[t3-pool]]. L baru menyentuh 18 bila W rata-rata 18 ÷ 138,9 = 130 ms, atau 6,5 kali W yang diasumsikan. Ukuran pool tidak diubah dari angka yang belum pernah diukur di server sungguhan.
+
+Partisi `posting` dijadwalkan saat ±440 juta posting per tahun di Tahap 5 ([[t2-skema]]). Tahap 4 memakai 43,8 ÷ 440 = 10% dari batas itu.
+
+Pengumuman ke semua HP memakai satu queue. 100.000 × 0,3 ÷ 4 = 7.500 detik, atau 125 menit (Asumsi); di Tahap 3 angkanya 750 detik untuk 10.000 HP. Lamanya bukan masalah bila notifikasi uang tidak menunggu di belakangnya, dan urutan queue ditulis di [[t3-m27]].
+
+**5. Pihak ketiga: yang dihitung adalah lamanya.** Top-up dari bank dan verifikasi identitas memanggil pihak ketiga. L = λ × W memberi koneksi atau worker yang tertahan ([[t2-estimasi]]), dengan W sebagai Asumsi karena pihak ketiganya belum ada.
+
+| Kasus (semua Asumsi) | λ per detik | W | L |
+|---|---|---|---|
+| Gateway di dalam request, menjawab normal | 0,579 | 0,3 detik | 0,17 koneksi |
+| Gateway di dalam request, timeout 3 detik | 0,579 | 3 detik | 1,74 koneksi |
+| Gateway di dalam request, menggantung 30 detik | 0,579 | 30 detik | 17,4 koneksi |
+| Verifikasi saat vendor mati: 5 percobaan × 3 detik | 0,116 | 15 detik | 1,74 worker |
+| Notifikasi uang di worker yang sama | 7,52 | 0,3 detik | 2,26 worker |
+
+Tiga baris pertama mengandaikan panggilan gateway ada di dalam transaction, dan koneksi dipegang sampai panggilan selesai. ADR 22 ([[t3-pool]]) melarangnya, jadi tabel ini menghitung akibatnya bila aturan itu dilanggar. Pool pembayaran 10 (2 instance × 5, Asumsi) penuh pada 10 ÷ 0,579 = 17,3 detik bila gateway tidak pernah menjawab dan client terus menunggu.
+
+Client yang menyerah sesudah T detik melepas koneksinya, jadi pool hanya penuh bila T > 9 ÷ 0,579 = 15,5 detik. Rumusnya sama dengan [[t3-pool]], dan kedatangannya dianggap berjadwal tetap. L adalah rata-rata, jadi pada satu detik tertentu jumlahnya bisa lebih besar ([[t2-estimasi]]).
+
+Dua baris terakhir mengandaikan verifikasi memakai empat worker yang sama dengan notifikasi (Asumsi desain), dan jeda antar percobaan tidak memegang worker (Asumsi). Hasilnya 1,74 + 2,26 = 4,0 dari 4 worker. Hanya 0,116 pendaftar per detik, tetapi lamanya 15 detik per pekerjaan menghabiskan worker.
+
+**6. Ukuran data dan file dihitung sebagai ukuran.** Posting per tahun di Tahap 4 adalah 20.000 × 3 × 2 × 365 = 43,8 juta. Tiga cara menghitung ukurannya, sama dengan tiga cara di [[t2-estimasi]]:
+
+| Sumber | Yang dihitung | Hasil | Label |
+|---|---|---|---|
+| Rumus data per tahun [[D1]] | 20.000 user aktif × 3 transaksi × 365 × 300 byte, satu baris per transaksi | ±6,6 GB | Asumsi |
+| Rumus ledger [[t2-skema]] | 43,8 juta posting × 250 byte | ±11 GB | Asumsi |
+| Ekstrapolasi rekaman lab | 43,8 juta posting × 137 byte per posting (batas bawah) | ±6,0 GB | Asumsi dari Rekaman lab |
+
+Ketiganya paling jauh berbeda 1,8 kali, jadi masih satu orde besaran. Tiap rumus naik 8,0 kali dari Tahap 3: rumus [[D1]] dari ±820 MB ke ±6,6 GB, dan rumus ledger dari ±1,4 GB ke ±11 GB.
+
+File memakai hitungan lain. Unggahan 2.000 per hari × 500 KB = 1 GB per hari, atau 365 GB per tahun (Asumsi, dari `upload` dan `fileKB` di registry). Itu 33 kali posting ledger (365 ÷ 10,95) dan 56 kali rumus [[D1]] (365 ÷ 6,57). Lajunya kecil, 0,231 unggahan per detik atau 116 KB per detik di puncak.
+
+Yang berubah adalah ukurannya. Di mana file disimpan adalah keputusan tersendiri di Tahap 4.
+
+**7. Yang tidak dijawab estimasi.** Tiga pertanyaan tetap terbuka sesudah semua hitungan di atas.
+
+1. *Berapa request per detik yang sanggup dilayani satu server?* Estimasi tidak menyebutnya. Panduan SRE Google menulis bahwa memodelkan kapasitas sebagai "queries per second" sering menjadi metrik yang buruk, karena biaya tiap query berbeda dan berubah. ADR 21 ([[t2-adr-21]]) menjadwalkan satu load test, dan load test itu Tidak dijalankan di repo ini, jadi 138,9 tidak dibandingkan dengan kapasitas apa pun.
+2. *Berapa lama gateway dan vendor menjawab?* Pihak ketiganya belum ada, jadi 0,3, 3, 15, dan 30 detik adalah Asumsi. Angka itu diganti rekaman sesudah integrasinya dibangun.
+3. *Bagaimana tim yang lebih besar mengubah satu codebase?* Tim naik dari 4 menjadi 10 sampai 15 orang dalam tiga tim (Asumsi naskah). Tidak ada rumus di halaman ini yang memuat koordinasi.
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Cara memperkirakan Tahap 4 | Kelebihan | Kekurangan |
+|---|---|---|
+| Hanya request per detik (rumus [[D1]]) | Satu hitungan, selesai dalam beberapa menit | 138,9 request per detik terlihat aman, padahal koneksi tertahan bisa 17,4 bila gateway menggantung 30 detik |
+| Per kelas pekerjaan, lalu L = λ × W dan pemakaian terhadap batas | Menemukan kelas yang menahan koneksi atau worker, termasuk yang menunggu pihak ketiga | W pihak ketiga yang belum ada adalah tebakan dan harus berlabel Asumsi |
+| Load test sebelum PRD v4 dibangun | Memberi angka nyata untuk kode yang ada | Integrasi pihak ketiga belum ada; yang diuji tiruan dengan W yang juga tebakan |
+
+### Aturan estimasi antar tahap di Rekeningo
+
+1. Hitung ulang dari registry dan tulis rumus serta masukannya. Angka tahap lama tidak dikali sendiri.
+2. Pisahkan kelas pekerjaan. Kelas yang menahan koneksi, worker, atau disk dihitung dengan λ-nya sendiri.
+3. Bandingkan tiap hasil dengan batas komponennya: c ÷ t untuk worker, `max_connections` dan pool untuk koneksi. Tulis pemakaiannya dalam persen atau koneksi.
+4. Hitung pihak ketiga dengan tiga W: normal, batas timeout, dan tanpa timeout. Tulis semuanya sebagai Asumsi sampai ada rekaman.
+5. Hitung file sebagai ukuran, terpisah dari ukuran tabel.
+6. Catat apa yang tidak dijawab estimasi. Keputusan atas angka ini ditulis di [[t3-adr-33]].
+
+Aturan ini salah bila beban datang bergelombang: λ rata-rata di jam puncak tidak menggambarkan pengumuman ke 100.000 HP sekaligus ([[t3-m27]]). Dugaan, belum direkam: ia juga salah bila W naik saat sistem sibuk, karena L ikut naik lebih jauh dari hitungan W yang tetap.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Load test kapasitas satu server | Integrasi PRD v4 belum ada, jadi W pihak ketiganya Asumsi | [[t3-adr-33]] |
+| Mengubah ukuran pool | L semua request 2,78 dari batas 18, dan W 20 ms belum diukur | [[t3-adr-33]] |
+| Pooler seperti PgBouncer | Koneksi 40 dari 100 | [[t3-adr-33]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Puncak request diperkirakan naik 10 kali karena user naik 10 kali. Pengali mana yang membuatnya 8 kali?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+User aktif turun dari 25% ke 20% (× 0,8), dan request per user aktif tetap 60. Hasil kalinya 10 × (20 ÷ 25) × (60 ÷ 60) = 8, jadi puncak naik dari 17,4 ke 138,9 request per detik.
+
+</details>
+
+**2.** Pemakaian worker naik dari 6,5% ke 56%, lebih dari 8 kali. Dari mana tambahannya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Notifikasi uang naik 8,7 kali, bukan 8 kali, karena top-up dari bank ikut ditambahkan: 6,94 + 0,579 = 7,52 per detik. Dibagi kapasitas 13,33 per detik, hasilnya 56%. Tahap 3 menghitung bayar dan transfer saja: 0,868 ÷ 13,33 = 6,5%.
+
+</details>
+
+**3.** Gateway bank dipanggil 0,579 kali per detik, dan koneksi dipegang sampai ia menjawab. Berapa detik gateway menggantung sampai pool 10 penuh, dan kenapa λ sekecil itu tetap berbahaya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Pool penuh pada 10 ÷ 0,579 = 17,3 detik bila gateway tidak pernah menjawab dan client terus menunggu. Dengan W 30 detik, L = 0,579 × 30 = 17,4 koneksi. Yang menahan koneksi adalah lamanya, bukan banyaknya: dengan timeout 3 detik, L hanya 1,74.
+
+</details>
+
+**4.** File hasil verifikasi identitas mencapai 365 GB per tahun, sedangkan posting 10,95 GB. Apakah itu masalah jumlah request?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Bukan. Lajunya hanya 0,231 unggahan per detik di puncak, atau 116 KB per detik. Yang berubah adalah ukuran: 365 ÷ 10,95 = 33 kali posting. Itu keputusan tentang tempat menyimpan file, dan dibahas di Tahap 4.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Estimasi menyebut rumus, masukan, dan label Asumsi atau Rekaman lab untuk setiap angka.
+- [ ] Setiap kelas pekerjaan punya λ sendiri, dan L = λ × W dihitung untuk kelas yang memegang koneksi atau worker.
+- [ ] Panggilan ke pihak ketiga dihitung dengan W normal, W batas timeout, dan W tanpa timeout.
+- [ ] Hasil dibandingkan dengan batas komponen (c ÷ t, `max_connections`, pool), bukan dengan request per detik.
+- [ ] Ukuran file dihitung terpisah dari ukuran tabel.
+- [ ] Kapasitas server tidak disebut tanpa load test.
+
+### Bacaan lanjut
+
+- [Little 1961, Operations Research 9(3): A Proof for the Queuing Formula L = λW](https://doi.org/10.1287/opre.9.3.383)
+- [Google SRE book: Handling Overload](https://sre.google/sre-book/handling-overload/), bagian "The Pitfalls of Queries per Second"
+- [PostgreSQL 18: Connection Settings](https://www.postgresql.org/docs/18/runtime-config-connection.html)
+
+</Blok>
