@@ -2080,6 +2080,38 @@
   "jawab": "Yang direkam: `navigator.credentials.create()` dengan authenticator virtual selesai dan mengembalikan kredensial (`webauthn.txt`). Yang tidak: penyimpanan dan verifikasi di server, login dengan `navigator.credentials.get()`, perangkat sungguhan, dan pemulihan akun. Semuanya Tidak dijalankan."
  },
  {
+  "id": "t3-m26-1",
+  "halaman": "t3-m26",
+  "judul": "3.24 M26: Transfer yang tidak dibuat Budi",
+  "url": "tahap-3/m26-transfer-bukan-budi/",
+  "tanya": "Dua client mengirim transfer lewat hotspot Dimas, satu memeriksa sertifikat dan satu membawa flag. Berapa request yang terbaca hotspot di masing-masing, dan kenapa?",
+  "jawab": "Client yang memeriksa sertifikat: 0 request, karena CA Dimas tidak ada di daftar akarnya dan handshake ditolak (`m26.txt` bagian B). Client yang membawa flag: 1 request, karena callback dipanggil 1 kali dan menerima sertifikat tiruan, jadi hotspot membaca request lengkap beserta header Authorization (bagian C)."
+ },
+ {
+  "id": "t3-m26-2",
+  "halaman": "t3-m26",
+  "judul": "3.24 M26: Transfer yang tidak dibuat Budi",
+  "url": "tahap-3/m26-transfer-bukan-budi/",
+  "tanya": "Dimas tidak tahu password Budi. Bagaimana transfer Rp150.000 bisa tercatat?",
+  "jawab": "Hotspot membaca header Authorization yang sama dengan token sesi Budi. Dimas mengirim transfer dengan token itu langsung ke server, dan server menjawab 201 (`m26.txt` bagian E). Bagian E tidak memuat password atau login."
+ },
+ {
+  "id": "t3-m26-3",
+  "halaman": "t3-m26",
+  "judul": "3.24 M26: Transfer yang tidak dibuat Budi",
+  "url": "tahap-3/m26-transfer-bukan-budi/",
+  "tanya": "Flag sudah dihapus dan validasi sertifikat aktif. Kapan hotspot Dimas masih bisa membaca token Budi?",
+  "jawab": "Bila CA Dimas ada di daftar akar app. Di bagian D validasi lolos dan hasilnya sama dengan flag: hotspot membaca 1 request dan nominalnya diubah. Cara CA itu sampai di daftar akar Tidak dijalankan di lab. Halaman Keamanan 6 membahas cara menahannya."
+ },
+ {
+  "id": "t3-m26-4",
+  "halaman": "t3-m26",
+  "judul": "3.24 M26: Transfer yang tidak dibuat Budi",
+  "url": "tahap-3/m26-transfer-bukan-budi/",
+  "tanya": "Server menjawab 201 untuk transfer Dimas. Kenapa tidak ada yang ditolak?",
+  "jawab": "Token itu sah, saldo cukup, dan batas harian tidak terlampaui (`m26.txt` bagian E). Pemeriksaan token di api-t3 hanya memakai token, tanpa alamat atau perangkat pengirim (dibaca dari kode lab, Tidak dijalankan di halaman ini)."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",
