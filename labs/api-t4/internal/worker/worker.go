@@ -137,7 +137,12 @@ func (w *Worker) Putaran(ctx context.Context) (Ringkasan, error) {
 		}()
 	}
 	wg.Wait()
-	r := Ringkasan{Diklaim: len(baris)}
+	return ringkasHasil(hasil), nil
+}
+
+// ringkasHasil menghitung nasib tiap baris satu putaran (terkirim, dilewati, ditunda, mati, dijeda).
+func ringkasHasil(hasil []string) Ringkasan {
+	r := Ringkasan{Diklaim: len(hasil)}
 	for _, h := range hasil {
 		switch h {
 		case "terkirim":
@@ -152,7 +157,7 @@ func (w *Worker) Putaran(ctx context.Context) (Ringkasan, error) {
 			r.Dijeda++
 		}
 	}
-	return r, nil
+	return r
 }
 
 // --8<-- [start:klaim-lajur]

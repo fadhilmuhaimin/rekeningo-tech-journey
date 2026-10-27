@@ -481,6 +481,7 @@ TES_BARU = ["TestRekamanBreakerBawaan", "TestBreakerHalfOpenGagalMembukaLagiSela
             "TestLepasOutboxTidakDiBawahNolDanHanyaBarisMenunggu", "TestLajurPushTetapJalanSelagiLajurVerifikasiTerbuka",
             "TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan", "TestKunciIdempotensiPerPercobaan",
             "TestTanpaBreakerSemuaPekerjaanMatiSebelumVendorPulih", "TestRingkasanMenjumlahkanDanMencetakDijeda",
+            "TestRingkasHasilMenghitungSetiapJenis", "TestLajurSetengahTerbukaMembagiKapasitasDenganLajurLain",
             "TestSatuPembuatClientUntukSemuaPanggilanKeluar", "TestBatasWaktuBawaanTigaDetikDiSemuaPembuat",
             "TestClientTidakMengikutiRedirect", "TestBatasNolMembuatClientTanpaBatasWaktuHanyaUntukRekamanPerbandingan",
             "TestBaruDenganTransportMemakaiTransportYangDiberikan", "TestKlasifikasiJawabanVendor",

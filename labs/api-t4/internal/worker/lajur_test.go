@@ -341,3 +341,39 @@ func TestRingkasanMenjumlahkanDanMencetakDijeda(t *testing.T) {
 		t.Errorf("dengan dijeda %q, harus %q", got, harus)
 	}
 }
+
+// Setiap nasib baris dihitung tepat satu kali di ringkasan putaran.
+func TestRingkasHasilMenghitungSetiapJenis(t *testing.T) {
+	r := ringkasHasil([]string{"terkirim", "terkirim", "dilewati", "ditunda", "mati", "dijeda", "dijeda", "dijeda"})
+	if r != (Ringkasan{Diklaim: 8, Terkirim: 2, Dilewati: 1, Ditunda: 1, Mati: 1, Dijeda: 3}) {
+		t.Errorf("%+v", r)
+	}
+}
+
+// Setengah terbuka: satu baris percobaan dihitung dalam kapasitas c, bukan di atasnya. Dengan c = 2 dan tiga
+// pemberitahuan push menunggu, putaran mengklaim 1 percobaan verifikasi + 1 push, bukan 1 + 2.
+func TestLajurSetengahTerbukaMembagiKapasitasDenganLajurLain(t *testing.T) {
+	r, db := siapkan(t)
+	v := vendorUji(t)
+	var kode, n atomic.Int32
+	kode.Store(200)
+	srv := layananPalsu(&kode, &n)
+	defer srv.Close()
+	banyakPengajuan(t, db, 2)
+	b := breakerTes(false)
+	for i := 0; i < 6; i++ {
+		b.Jalankan(func() error { return verifikasi.ErrTidakTersedia })
+	}
+	time.Sleep(timeoutBreakerTes + 50*time.Millisecond)
+	if b.Status() != lajur.SetengahTerbuka {
+		t.Fatalf("status %s", b.Status())
+	}
+	for i := 0; i < 3; i++ {
+		akunDenganPerangkat(t, db, "hidup")
+	}
+	w := workerDenganBreaker(r, v, 2, b, srv.URL)
+	h, err := w.Putaran(context.Background())
+	if err != nil || h.Diklaim != 2 || h.Terkirim != 2 || n.Load() != 1 || v.n.Load() != 1 {
+		t.Fatalf("putaran: %+v %v, push %d, vendor %d (harus 2 klaim: 1 percobaan verifikasi dan 1 push)", h, err, n.Load(), v.n.Load())
+	}
+}
