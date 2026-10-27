@@ -1968,6 +1968,38 @@
   "jawab": "Server menjawab 409 dengan keadaan sekarang (stok 30, versi 2), dan tidak ada yang berubah (`versi.txt` bagian C). Ani lalu memilih. Pilihannya operasi baru dengan kunci baru dan versi dasar 2 (bagian D); layar pilihan di HP adalah Ilustrasi."
  },
  {
+  "id": "t3-offline-1",
+  "halaman": "t3-offline",
+  "judul": "3.21 Offline-first dan sinkron + ADR 29",
+  "url": "tahap-3/offline-first/",
+  "tanya": "Operasi bakso belum pernah sampai dan tiba hari Senin. Apa yang menolaknya, kunci atau versi, dan apa isi jawabannya?",
+  "jawab": "Versi. Kuncinya tidak dikenal server, tetapi versi dasar 1 sudah lewat karena dasbor mengisi bakso hari Sabtu. Jawabannya 409 dengan stok 30 dan versi 2, dan produk tidak berubah (`versi.txt` bagian C)."
+ },
+ {
+  "id": "t3-offline-2",
+  "halaman": "t3-offline",
+  "judul": "3.21 Offline-first dan sinkron + ADR 29",
+  "url": "tahap-3/offline-first/",
+  "tanya": "Kenapa queue di HP paling lama 7 hari, padahal kunci sinkron hidup 14 hari?",
+  "jawab": "Keduanya dihitung dari `dibuat_di_hp`. Operasi diterima sampai umur 7 hari dan barisnya dibuang sesudah 14 hari, jadi kunci masih ada selama operasi itu masih bisa dikirim. Di `sinkron14.txt` bagian D, kunci 15 hari sudah dibuang dan operasinya ditolak karena umurnya, bukan karena kuncinya."
+ },
+ {
+  "id": "t3-offline-3",
+  "halaman": "t3-offline",
+  "judul": "3.21 Offline-first dan sinkron + ADR 29",
+  "url": "tahap-3/offline-first/",
+  "tanya": "Pembayaran dikirim ulang dengan key yang sama 62 jam kemudian. Kenapa pembayaran tidak boleh lewat sinkron?",
+  "jawab": "Key sudah lewat 24 jam, jadi server mengerjakan ulangan itu sebagai pembayaran baru. Di `kunci24.txt` bagian E, tiga permintaan dari hari Jumat dan Sabtu dikerjakan lagi hari Senin. Riwayat Budi mendapat tiga jurnal baru: Rp28.000, Rp10.000, dan Rp25.000. `/sinkron` menolak bayar, transfer, dan topup dengan 422."
+ },
+ {
+  "id": "t3-offline-4",
+  "halaman": "t3-offline",
+  "judul": "3.21 Offline-first dan sinkron + ADR 29",
+  "url": "tahap-3/offline-first/",
+  "tanya": "HP mengirim ulang dengan key yang sama 17 jam sesudah Jumat, dan server menjawab stok 0 dan versi 2. Kenapa app tidak boleh menampilkan angka itu?",
+  "jawab": "Jawaban itu respons yang tersimpan sejak Jumat. Database sudah menyimpan stok 50 dan versi 3 (`m24.txt` bagian C). App membaca keadaan terbaru sesudah jawaban ulangan."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",
