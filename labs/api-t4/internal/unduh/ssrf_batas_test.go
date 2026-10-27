@@ -446,18 +446,21 @@ func TestSSRFBatasMasukanEkstremGagalTertutup(t *testing.T) {
 		t.Fatalf("rantai redirect: %v, langkah %d", err, langkah.Load())
 	}
 
-	// Jawaban DNS panjang: satu alamat terlarang di ujung menolak seluruh unduhan, tanpa dipotong atau dilewati.
+	// Jawaban DNS panjang: 4.096 alamat yang boleh dijangkau (loopback, dibuka lewat IzinkanLoopback untuk tes) dan
+	// satu alamat private di ujung menolak seluruh unduhan. Pemeriksaan yang berhenti di awal daftar (terpotong)
+	// membiarkan client menyambung ke alamat pertama.
+	dalamPanjang := mulaiServer(t, false, ruteUmum())
 	panjang := func(ctx context.Context, host string) ([]net.IPAddr, error) {
 		semua := make([]net.IPAddr, 0, 4097)
 		for i := 0; i < 4096; i++ {
-			semua = append(semua, net.IPAddr{IP: net.IPv4(8, 8, byte(i>>8), byte(i))}) // alamat publik yang hanya dibaca
+			semua = append(semua, net.IPAddr{IP: net.ParseIP("127.0.0.1")})
 		}
 		return append(semua, net.IPAddr{IP: net.ParseIP("10.0.0.1")}), nil
 	}
-	_, err = Aturan{IzinkanHTTP: true, Resolver: panjang, Waktu: time.Second}.Unduh(ctx, "http://panjang.contoh/a.png")
-	fmt.Printf("%-52s %s\n", "jawaban DNS 4.097 alamat, yang terakhir private", ringkasHasil(Gambar{}, err))
-	if !errors.Is(err, ErrTujuan) {
-		t.Fatalf("jawaban DNS panjang: %v", err)
+	_, err = lokal(func(a *Aturan) { a.Resolver = panjang }).Unduh(ctx, "http://panjang.contoh:"+port(dalamPanjang)+"/gambar.png")
+	fmt.Printf("%-52s %s; permintaan sampai: %d\n", "jawaban DNS 4.097 alamat, yang terakhir private", ringkasHasil(Gambar{}, err), dalamPanjang.kena.Load())
+	if !errors.Is(err, ErrTujuan) || dalamPanjang.kena.Load() != 0 {
+		t.Fatalf("jawaban DNS panjang: %v, permintaan %d", err, dalamPanjang.kena.Load())
 	}
 }
 
