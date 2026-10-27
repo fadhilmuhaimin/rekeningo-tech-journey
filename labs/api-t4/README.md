@@ -33,7 +33,7 @@ Setiap bagian membuat ulang schema `tahap4` dan data awalnya dari nol, jadi `out
 | golang.org/x/crypto | v0.57.0 (bcrypt) | `@latest` = v0.58.0; belum dinaikkan |
 | Redis (tes warisan api-t3) | 8.10.2 (kontainer `redis:8-alpine` yang sedang berjalan) | tag 8.10.3 ada di Docker Hub; pin Tahap 3 tidak diubah |
 
-Dependency baru di lab ini: tidak ada (semua paket Go yang dipakai sudah ada di `go.mod` api-t3). Versi alat Tahap 4 yang lain (SeaweedFS, OpenBao, OpenTofu, oasdiff, syft, grype, cosign, gobreaker) dipakai lab turunan, bukan lab ini.
+Dependency baru di lab ini: tidak ada (semua paket Go yang dipakai sudah ada di `go.mod` api-t3). Satu dependency ditambahkan oleh lab turunan `t4-integrasi`: `github.com/sony/gobreaker/v2` v2.4.0 (`@latest` dicek 2026-10-27), dipakai `internal/lajur`. Versi alat Tahap 4 yang lain (SeaweedFS, OpenBao, OpenTofu, oasdiff, syft, grype, cosign) dipakai lab turunan, bukan lab ini.
 
 ## Rekaman
 
@@ -189,8 +189,9 @@ Seperti `api-t1`: satu flag `-rentan` menyalakan versi yang salah untuk rekaman 
 | `kartu-tanpa-hold` | M37 | Otorisasi memeriksa saldo tanpa lock lalu menyetujui tanpa menahan dana (bagian kartu) |
 | `unduh-rentan` | M36 | Impor katalog mengunduh URL tanpa pemeriksaan alamat tujuan (bagian back office) |
 | `bo-tanpa-audit` | M38 | Back office versi pertama: semua aksi berjalan, tidak ada catatan audit (bagian back office) |
+| `verifikasi-tanpa-key` | M31 | Worker memakai Idempotency-Key baru di setiap percobaan ke layanan verifikasi (retry bebas tanpa kunci, ditolak ADR 36); hanya worker yang terpengaruh (`t4-integrasi`, `retry.txt` bagian B) |
 
-Flag Tahap 4: `-gateway-url`, `-gateway-timeout`, `-verifikasi-url`, `-verifikasi-timeout`, `-penerbit-url`, `-penerbit-kunci`, `-kartu-lock-timeout`, `-objek-dir`, `-rahasia-webhook` (dipisah koma; kosong = semua webhook ditolak), `-lab-jeda-cek-tulis`, `-lab-tanpa-lapis`, `-unduh-izinkan-http` (lab saja), job `-cek-topup` (`-cek-umur`), `-rekon <tanggal>`, `-kedaluwarsa-hold`, dan flag worker `-tujuan`. Flag Tahap 3 tetap (`-pool`, `-jam-lab`, `-redis`, `-katalog-cache`, dan seterusnya).
+Flag Tahap 4: `-gateway-url`, `-gateway-timeout`, `-verifikasi-url`, `-verifikasi-timeout`, `-penerbit-url`, `-penerbit-kunci`, `-kartu-lock-timeout`, `-objek-dir`, `-rahasia-webhook` (dipisah koma; kosong = semua webhook ditolak), `-lab-jeda-cek-tulis`, `-lab-tanpa-lapis`, `-unduh-izinkan-http` (lab saja), job `-cek-topup` (`-cek-umur`), `-rekon <tanggal>`, `-kedaluwarsa-hold`, flag worker `-tujuan`, dan flag worker `-breaker`, `-breaker-timeout`, `-breaker-bawaan` (lab `t4-integrasi`: breaker per lajur verifikasi; tanpa `-breaker` worker berperilaku seperti sebelumnya, ADR 25 apa adanya). Flag Tahap 3 tetap (`-pool`, `-jam-lab`, `-redis`, `-katalog-cache`, dan seterusnya).
 
 ## Beban dan kapasitas worker (M39)
 
@@ -369,7 +370,7 @@ Pembaruan naskah dan ERD4 dikerjakan KONSISTENSI-4; lab ini yang benar.
 
 - Pembagian enam schema dan role per modul, service pembayaran terpisah yang memanggil API ledger, dan latensi HTTP internal: `t4-modul`.
 - Jadwal retry gateway (2, 10, 30, 90, 210 menit) dengan waktu yang diperankan, rotasi secret dengan masa tumpang tindih sebagai rekaman, tiga gaya tanda tangan sebagai pembanding, dan koreksi insiden lewat jurnal normal: `t4-webhook`. Mekanismenya (dua rahasia, `-lab-tanpa-lapis`, `-rekon`) sudah ada di lab ini dan dites.
-- Breaker `sony/gobreaker`, lajur yang dijeda tanpa menaikkan hitungan percobaan, dan pengukuran pemakaian worker bersama notifikasi uang: `t4-integrasi`.
+- Breaker jalur sinkron (panggilan gateway yang ditunggu user): tidak ada. Breaker `sony/gobreaker` untuk lajur queue verifikasi, lajur yang dijeda tanpa menaikkan hitungan percobaan, dan pengukuran pemakaian worker bersama notifikasi uang sudah ada di `t4-integrasi` (flag `-breaker`).
 - Penyimpanan objek sungguhan, presigned URL, retensi 30 hari yang dijalankan job, dan ukuran dump lawan `bytea`: `t4-storage`.
 - Penerbit yang menolak tetapi jaringan kartu menyetujui, p95 otorisasi, dan hold yang menumpuk di satu buku sistem: `t4-kartu`.
 - Payload QR dengan CRC: `t4-qr`. Fetcher dengan resolver buatan dan nama IDNA: `t4-ssrf`. Perilaku agen AI di back office dan jangkar hash di luar database: `t4-audit`.
