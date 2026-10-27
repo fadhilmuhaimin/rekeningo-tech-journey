@@ -198,6 +198,15 @@ Service pembayaran adalah binary sendiri, `cmd/pembayaran` (port dasar 18286), d
 
 Tes tanpa database di `internal/modul/` dan tes dengan tag `t4modul` (`go test -tags t4modul`, hanya dijalankan `labs/t4-modul/run.py`) memeriksa batas modul, schema, dan role. Detail dan keterbatasan: `labs/t4-modul/README.md`.
 
+## Alamat sumber, proxy keluar, dan rahasia dari secret manager (M34, M30, ADR 35, ADR 39, lab t4-infra)
+
+Lab `t4-infra` menambah empat hal ke api-t4 tanpa mengubah perilaku lab lain (semuanya mati secara bawaan). Detail, rekaman, dan keterbatasannya: `labs/t4-infra/README.md`.
+
+- `cmd/tiruan -peran verifikasi -izinkan-alamat <IP atau CIDR,...>`: `POST /verifikasi` dari alamat peer TCP di luar daftar dijawab 403 sebelum isi dibaca dan sebelum objek dibuat (`alamat.go`). `POST /lab/izinkan {"alamat": [...]}` mengganti daftar; `GET /lab/alamat` membaca daftar dan hitungan diterima dan ditolak per alamat. Daftar kosong menerima semua. Header `X-Forwarded-For` tidak dibaca.
+- `cmd/proxykeluar -tujuan host:port,...`: proxy HTTP keluar yang hanya meneruskan ke tujuan terdaftar, tanpa menambah klaim alamat. Daftar tujuan wajib; CONNECT dijawab 501.
+- `internal/rahasia`: pembaca dokumen rahasia KV v2 dari OpenBao (`{sekarang, lama}`, stdlib saja) dan pemindai kunci produksi (`Pindai`, `cmd/pindairahasia`).
+- `cmd/pembayaran -rahasia-bao <alamat> [-rahasia-bao-path] [-rahasia-segar]` dengan token di `BAO_TOKEN`: rahasia webhook dibaca saat runtime dan dibaca ulang berkala, menggantikan `-rahasia-webhook`; `Service.RahasiaFn` di `internal/modul/pembayaran` dipanggil di tiap pemeriksaan tanda tangan. `GET /lab/rahasia` (mode `-lab`) menunjukkan jumlah, versi, dan sidik delapan karakter, tidak nilainya.
+
 ## Mode rentan
 
 Seperti `api-t1`: satu flag `-rentan` menyalakan versi yang salah untuk rekaman halaman masalah. Tanpa flag, server berperilaku benar. Mode Tahap 3 (`push-dalam-tx`, `kursor`, `urut-waktu`, `ekspor-panic`, `tanpa-shutdown`, `stok-timpa`) tetap ada dan dijelaskan README api-t3.

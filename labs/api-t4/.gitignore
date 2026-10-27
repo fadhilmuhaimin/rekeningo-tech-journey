@@ -6,4 +6,6 @@
 __pycache__/
 /.openapi-t3.yaml
 /pembayaran
+/proxykeluar
+/pindairahasia
 /qrlab

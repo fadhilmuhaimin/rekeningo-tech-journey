@@ -28,6 +28,7 @@ import (
 	"lab/apit4/internal/klien"
 	"lab/apit4/internal/modul/ledger"
 	"lab/apit4/internal/modul/pembayaran"
+	"lab/apit4/internal/rahasia"
 )
 
 func main() {
@@ -37,7 +38,10 @@ func main() {
 	ledgerBatas := flag.Duration("ledger-timeout", klien.BatasBawaan, "batas waktu satu panggilan ke ledger (ADR 22, ADR 36)")
 	gatewayURL := flag.String("gateway-url", "http://127.0.0.1:"+portLab(18283), "alamat gateway pembayaran (tiruan lokal)")
 	gatewayBatas := flag.Duration("gateway-timeout", klien.BatasBawaan, "batas waktu satu panggilan ke gateway (ADR 22, ADR 36)")
-	rahasia := flag.String("rahasia-webhook", "", "rahasia penanda tangan webhook, dipisah koma (yang pertama dipakai sekarang)")
+	rahasiaWebhook := flag.String("rahasia-webhook", "", "rahasia penanda tangan webhook, dipisah koma (yang pertama dipakai sekarang)")
+	baoAlamat := flag.String("rahasia-bao", "", "alamat secret manager (OpenBao): rahasia webhook dibaca dari sana saat runtime dan dibaca ulang tiap -rahasia-segar, menggantikan -rahasia-webhook; token dari lingkungan BAO_TOKEN (ADR 39)")
+	baoPath := flag.String("rahasia-bao-path", "secret/data/pembayaran/webhook", "path KV v2 dokumen rahasia ({sekarang, lama})")
+	baoSegar := flag.Duration("rahasia-segar", 30*time.Second, "jeda membaca ulang dokumen rahasia (Asumsi: 30 detik)")
 	pool := flag.Int("pool", 5, "batas koneksi database (Asumsi naskah: 2 instance x 5)")
 	cekTopup := flag.Bool("cek-topup", false, "job: tanyakan ke gateway semua top-up yang menunggu lebih dari -cek-umur, lalu keluar (ADR 35)")
 	cekUmur := flag.Duration("cek-umur", 30*time.Minute, "job -cek-topup: umur minimal top-up yang ditanyakan (Asumsi: 30 menit)")
@@ -61,10 +65,23 @@ func main() {
 
 	s := &pembayaran.Service{DB: db, Ledger: ledger.Baru(*ledgerURL, *ledgerKunci, *ledgerBatas),
 		Gateway: gateway.Baru(*gatewayURL, *gatewayBatas)}
-	for _, r := range strings.Split(*rahasia, ",") {
+	for _, r := range strings.Split(*rahasiaWebhook, ",") {
 		if r = strings.TrimSpace(r); r != "" {
 			s.Rahasia = append(s.Rahasia, r)
 		}
+	}
+	var bao *rahasia.Pembaca
+	if *baoAlamat != "" {
+		token := os.Getenv("BAO_TOKEN")
+		if token == "" {
+			log.Fatal("-rahasia-bao butuh BAO_TOKEN di lingkungan")
+		}
+		bao = rahasia.Baru(*baoAlamat, token, *baoPath, klien.BatasBawaan)
+		if err := bao.Muat(context.Background()); err != nil {
+			log.Fatalf("rahasia awal tidak terbaca, service tidak dinyalakan: %v", err) // tanpa rahasia semua webhook akan ditolak
+		}
+		s.RahasiaFn = bao.Daftar
+		go bao.Jalan(context.Background(), *baoSegar)
 	}
 	if *matiSesudahLedger {
 		s.TitikGagal = func(titik string) {
@@ -148,6 +165,13 @@ func main() {
 				return
 			}
 			jawab(w, http.StatusCreated, map[string]any{"order_id": t.OrderID, "status": t.Status, "jumlah": t.Jumlah})
+		})
+		mux.HandleFunc("GET /lab/rahasia", func(w http.ResponseWriter, r *http.Request) {
+			if bao == nil {
+				http.NotFound(w, r)
+				return
+			}
+			jawab(w, http.StatusOK, bao.Status())
 		})
 		mux.HandleFunc("POST /lab/lepas", func(w http.ResponseWriter, r *http.Request) {
 			lepas.Do(func() { close(gerbang) })

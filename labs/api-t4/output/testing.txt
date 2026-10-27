@@ -15,6 +15,24 @@ $ TEST_DATABASE_URL=<pemilik, schema tahap4_tes> TEST_APP_DATABASE_URL=<role api
 --- PASS: TestEndpointLepasGerbangHanyaBilaGerbangAda
 PASS
 ok    lab/apit4/cmd/api
+--- PASS: TestProxyTanpaDaftarTujuanDitolakSaatDibuat
+--- PASS: TestProxyMeneruskanKeTujuanTerdaftarDanMenolakYangLain
+--- PASS: TestProxyTidakMenambahAtauMeneruskanKlaimAlamatDanHeaderKoneksi
+--- PASS: TestProxyMeneruskanMetodeDanBodyDanKodeStatus
+--- PASS: TestProxyConnectDanHttpsDitolakDanTujuanMatiJadi502
+--- PASS: TestProxyTujuanTanpaPortDianggapPort80
+--- PASS: TestProxyTidakMemakaiProxyLainDariLingkungan
+--- PASS: TestProxyTidakMeneruskanHeaderPerKoneksiDariJawabanTujuan
+PASS
+ok    lab/apit4/cmd/proxykeluar
+--- PASS: TestParseIzin
+--- PASS: TestPeriksaDaftarKosongMenerimaSemuaDanDaftarIsiMenolakSisanya
+--- PASS: TestSumberHanyaAlamatPeerBukanHeader
+--- PASS: TestVerifikasiMenolak403PadaAlamatTakTerdaftarTanpaMembuatObjek
+--- PASS: TestVerifikasiTanpaDaftarMenerimaSemuaDanRuteLabTetapTerbuka
+--- PASS: TestIzinkanMenggantiDaftarLewatRuteLabDanUlangTidakMenghapusIzin
+--- PASS: TestParseIzinIPv6TunggalHanyaSatuAlamatDanRingkasanDiurutkan
+--- PASS: TestIzinkanKeduaKaliMenggantiDaftarPertamaBukanMenambah
 --- PASS: TestJedaTotal342Menit
 --- PASS: TestJumlahUlangPerKode
 --- PASS: TestJadwalBerhentiMenurutKode
@@ -143,6 +161,8 @@ ok    lab/apit4/internal/modul/ledger
 --- PASS: TestPembayaranTidakMengimporRepoDanService
 --- PASS: TestWebhookKalahDariJobDiTengahMenjawabGanda
 --- PASS: TestJobCekStatusUmurDariDuaSisi
+--- PASS: TestRahasiaFnDipanggilTiapPemeriksaanDanMenggantikanDaftarTetap
+--- PASS: TestTanpaRahasiaFnDaftarTetapTetapBerlaku
 PASS
 ok    lab/apit4/internal/modul/pembayaran
 --- PASS: TestTandaiURLCocokDenganContohDokumentasiAWS
@@ -163,6 +183,27 @@ ok    lab/apit4/internal/modul/pembayaran
 --- PASS: TestEndpointTidakSahDitolak
 PASS
 ok    lab/apit4/internal/objek
+--- PASS: TestMuatMembacaDokumenKVv2DenganTokenDanUrutanSekarangLaluLama
+--- PASS: TestDokumenTanpaLamaHanyaSatuRahasiaDanLamaSamaDenganSekarangTidakGanda
+--- PASS: TestPembacaanGagalMemakaiPembacaanTerakhirDanMenghitungKegagalan
+--- PASS: TestPembacaTanpaPembacaanBerhasilTidakPunyaRahasia
+--- PASS: TestSecretManagerMatiBukanPanikDanDihitungGagal
+rahasia: pembacaan gagal, memakai pembacaan terakhir: secret manager menjawab 500
+--- PASS: TestJalanMembacaUlangBerkalaTanpaDeploy
+--- PASS: TestSidikTidakMembukaNilaiDanDihitungDariSHA256
+--- PASS: TestPembacaanYangMenggantungBerakhirDenganGalatDalamBatasWaktu
+--- PASS: TestVersiDokumenMengikutiOpenBaoTermasukTurunSesudahRestartModeDev
+--- PASS: TestDaftarMengembalikanSalinanYangTidakMengubahIsiPembaca
+--- PASS: TestPindaiAwalanKunciProduksiMenangkapBarisYangBenarTanpaMenyalinNilai
+--- PASS: TestPindaiBerkasStagingBersihTidakMenghasilkanTemuan
+--- PASS: TestPindaiSidikMenangkapNilaiTersalinDenganFormatLainTermasukPadding
+--- PASS: TestPindaiAturanDimatikanBilaMasukanKosongDanAwalanMenangAtasSidik
+--- PASS: TestPindaiSatuTemuanPerBarisDanNomorBarisDimulaiDariSatu
+--- PASS: TestPindaiAwalanHanyaBerlakuDiAwalTokenBukanDiTengah
+--- PASS: TestPindaiSidikMenangkapTokenPendekDanBerhubungDanNilaiBerkarakterKhusus
+--- PASS: TestPindaiBarisLebihPanjangDariBatasTidakMenyembunyikanSisaBerkas
+PASS
+ok    lab/apit4/internal/rahasia
 --- PASS: TestNaikAtomikDanBermasaBerlaku
 --- PASS: TestNaikMemperbaikiKeyTanpaMasaBerlaku
 --- PASS: TestJendelaTidakDiperpanjang
@@ -463,6 +504,7 @@ ok    lab/apit4/internal/worker
 # --- B. Tanpa TEST_DATABASE_URL dan TEST_REDIS_ADDR: tes yang butuh keduanya dilewati, tes tanpa itu tetap jalan ---
 $ go test -count=1 ./...
 ok    lab/apit4/cmd/api
+ok    lab/apit4/cmd/proxykeluar
 ok    lab/apit4/cmd/tiruan
 ok    lab/apit4/internal/cache
 ok    lab/apit4/internal/handler
@@ -471,6 +513,7 @@ ok    lab/apit4/internal/lajur
 ok    lab/apit4/internal/modul/ledger
 ok    lab/apit4/internal/modul/pembayaran
 ok    lab/apit4/internal/objek
+ok    lab/apit4/internal/rahasia
 ok    lab/apit4/internal/redisbatas
 ok    lab/apit4/internal/repo
 ok    lab/apit4/internal/service
@@ -482,6 +525,7 @@ ok    lab/apit4/internal/worker
 # --- C. TES_DB_WAJIB=1 dan TES_REDIS_WAJIB=1 tanpa database dan Redis: gagal keras, bukan hijau karena tes dilewati (pola 2.24) ---
 $ TES_DB_WAJIB=1 TES_REDIS_WAJIB=1 go test -count=1 ./...
 ok    lab/apit4/cmd/api
+ok    lab/apit4/cmd/proxykeluar
 ok    lab/apit4/cmd/tiruan
 ok    lab/apit4/internal/cache
 --- FAIL: TestHandlerBerkasUnggahanLoginUkuranDanTanpaCache
@@ -594,6 +638,7 @@ ok    lab/apit4/internal/modul/ledger
 FAIL
 FAIL  lab/apit4/internal/modul/pembayaran
 ok    lab/apit4/internal/objek
+ok    lab/apit4/internal/rahasia
 TES_REDIS_WAJIB=1 tetapi TEST_REDIS_ADDR kosong: tes yang butuh Redis tidak boleh dilewati
 FAIL  lab/apit4/internal/redisbatas
 --- FAIL: TestAuditBerantaiUtuhDanBerurutan
