@@ -125,7 +125,7 @@ ADR 32 memakai empat alert, dan tiap alert menunjuk gejala yang user rasakan:
 
 Hanya 30 detik yang punya dasar, yaitu janji PRD v3 untuk bayar dan transfer. Tiga ambang lain butuh ukuran dasar dari beban sungguhan, dan kapasitas satu server belum diukur ([[t3-pool]]). Dokumentasi k6 memberi contoh `http_req_failed: rate<0.01` dan `http_req_duration: p(95)<200` ([k6: Thresholds](https://grafana.com/docs/k6/latest/using-k6/thresholds/), dibuka 2026-10-27). Itu contoh, bukan ambang Rekeningo.
 
-Alert error rate juga menangkap saat kedua instance dikeluarkan proxy sekaligus. Di `panic.txt` bagian D, sesudah instance a dan b berhenti, 10 dari 10 request menjawab 503. Satu instance yang dikeluarkan hanya dibaca di dasbor, karena 20 dari 20 request tetap menjawab 200.
+Alert error rate akan menangkap saat kedua instance dikeluarkan proxy sekaligus. Di `panic.txt` bagian D, sesudah instance a dan b berhenti, 10 dari 10 request menjawab 503. Satu instance yang dikeluarkan hanya dibaca di dasbor, karena 20 dari 20 request tetap menjawab 200.
 
 Umur per kelas butuh satu perubahan kecil. Fungsi yang dipakai `GET /lab/outbox` menghitung umur dari semua baris `menunggu`:
 
@@ -189,7 +189,7 @@ Keputusan lain punya opsi sendiri:
 |---|---|---|---|
 | Alert | Umur uang tertua per kelas, error rate, p95, dan request menunggu koneksi | Alert hanya dari CPU | CPU adalah penyebab yang mungkin, bukan gejala; lab tidak mengukurnya (Tidak dijalankan) |
 | Alert | Umur dihitung dari kelas uang | Umur tertua dari semua kelas | Berbunyi walau uang tepat waktu (`queue.txt` bagian E) |
-| Alert | Alert hanya ke yang jaga | Semua engineer menerima semua alert | Buku SRE: bila orang lain ikut dipanggil, setidaknya satu panggilan tidak perlu |
+| Alert | Alert hanya ke yang jaga | Semua engineer menerima semua alert | Buku SRE menanyakan apakah orang lain ikut dipanggil, karena itu membuat setidaknya satu panggilan tidak perlu |
 | Lingkungan | Staging yang berbentuk sama dengan produksi | Tanpa staging | Batas login dua kali lipat di [[t3-m22]] ditemukan di staging; tanpa staging, itu terlihat pertama kali di produksi (penalaran) |
 
 **Keputusan: opsi C, dengan enam aturan.**

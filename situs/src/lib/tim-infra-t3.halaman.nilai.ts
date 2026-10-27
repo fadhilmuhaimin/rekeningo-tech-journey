@@ -1,7 +1,7 @@
 // Dihasilkan dari berkas saat ini (tmp/gen_nilai327.py). Ubah hanya sesudah membaca perbedaannya; tes tim-infra-t3.halaman.test.ts memakai nilai ini.
 export const FRONTMATTER: string[] = ["title: \"3.27 Tim dan infra Tahap 3: staging, pipeline, alert, on-call + ADR 32\"", "description: Empat engineer menjaga dua instance, worker, Redis, dan staging, tetapi di M27 tidak ada alert yang melihat notifikasi uang menunggu di belakang 10.000 promo. ADR 32 memilih kelas queue, alert umur uang tertua per kelas, staging yang berbentuk sama dengan produksi, dan giliran jaga mingguan."];
 export const SIDIK_BENTUK_MDX = "d5a3521e08e661fb";
-export const SIDIK_PILAH = "ae5749417de758a8";
+export const SIDIK_PILAH = "c88741345ade7dc0";
 export const SIDIK_DIAGRAM_INTI = "5b579f1250feaf7a";
 export const SIDIK_DIAGRAM_PIPELINE = "832660f91fc1c89b";
 export const SIDIK_ISTILAH: Record<string, string> = {"alert": "1ccb24f3272b14d0", "on-call": "aead6bec18ac7d9e", "staging": "452f89700ce54461"};
@@ -87,7 +87,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "| p95 | Latency | Tidak ada: p95 tidak direkam | Belum ditetapkan |",
  "| Request menunggu koneksi | Saturation | `GET /lab/pool` memberi kolom `menunggu`, hitungan kumulatif | Belum ditetapkan |",
  "Hanya 30 detik yang punya dasar, yaitu janji PRD v3 untuk bayar dan transfer. Tiga ambang lain butuh ukuran dasar dari beban sungguhan, dan kapasitas satu server belum diukur ([[t3-pool]]). Dokumentasi k6 memberi contoh `http_req_failed: rate<0.01` dan `http_req_duration: p(95)<200` ([k6: Thresholds](https://grafana.com/docs/k6/latest/using-k6/thresholds/), dibuka 2026-10-27). Itu contoh, bukan ambang Rekeningo.",
- "Alert error rate juga menangkap saat kedua instance dikeluarkan proxy sekaligus. Di `panic.txt` bagian D, sesudah instance a dan b berhenti, 10 dari 10 request menjawab 503. Satu instance yang dikeluarkan hanya dibaca di dasbor, karena 20 dari 20 request tetap menjawab 200.",
+ "Alert error rate akan menangkap saat kedua instance dikeluarkan proxy sekaligus. Di `panic.txt` bagian D, sesudah instance a dan b berhenti, 10 dari 10 request menjawab 503. Satu instance yang dikeluarkan hanya dibaca di dasbor, karena 20 dari 20 request tetap menjawab 200.",
  "Umur per kelas butuh satu perubahan kecil. Fungsi yang dipakai `GET /lab/outbox` menghitung umur dari semua baris `menunggu`:",
  "<Snippet file=\"labs/api-t3/internal/repo/outbox.go\" lines=\"169:171\" lang=\"go\" title=\"Kode lab: labs/api-t3/internal/repo/outbox.go baris 169 sampai 171 (umur tertua semua kelas)\" />",
  "Kueri di rekaman bagian E menambah `AND kelas = 0`. Fungsi di kode api-t3 belum punya filter itu, jadi alert per kelas belum ada di kode. Alertnya sendiri Tidak dijalankan.",
@@ -127,7 +127,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "|---|---|---|---|",
  "| Alert | Umur uang tertua per kelas, error rate, p95, dan request menunggu koneksi | Alert hanya dari CPU | CPU adalah penyebab yang mungkin, bukan gejala; lab tidak mengukurnya (Tidak dijalankan) |",
  "| Alert | Umur dihitung dari kelas uang | Umur tertua dari semua kelas | Berbunyi walau uang tepat waktu (`queue.txt` bagian E) |",
- "| Alert | Alert hanya ke yang jaga | Semua engineer menerima semua alert | Buku SRE: bila orang lain ikut dipanggil, setidaknya satu panggilan tidak perlu |",
+ "| Alert | Alert hanya ke yang jaga | Semua engineer menerima semua alert | Buku SRE menanyakan apakah orang lain ikut dipanggil, karena itu membuat setidaknya satu panggilan tidak perlu |",
  "| Lingkungan | Staging yang berbentuk sama dengan produksi | Tanpa staging | Batas login dua kali lipat di [[t3-m22]] ditemukan di staging; tanpa staging, itu terlihat pertama kali di produksi (penalaran) |",
  "**Keputusan: opsi C, dengan enam aturan.**",
  "1. Baris `outbox` punya kolom `kelas`: 0 untuk bayar dan transfer, 1 untuk top-up massal, 2 untuk promo. Worker mengklaim menurut kelas, lalu nomor.",
