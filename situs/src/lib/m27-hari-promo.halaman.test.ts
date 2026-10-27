@@ -741,6 +741,12 @@ describe("tinjauan: kelas, versi, huruf bagian, dan teks widget diturunkan dari 
     expect(R.b[dengan - 1]).toContain("tiga top-up (kelas 1), lalu satu transfer ke Dimas (kelas 0, nomor terbesar)");
     expect(R.b[tanpa - 1]).toContain("tiga top-up (kelas 1), lalu satu transfer ke Dimas (kelas 0, nomor terbesar)");
   });
+  test("Rantai dipasang tepat sekali dari JSON yang diimpor; paragraf pembuka blok Yang sebenarnya memakai jumlah promo dari rekaman", () => {
+    expect(hitung(badan, "<Rantai data={hariPromo} />")).toBe(1);
+    expect(hitung(mdx, 'import hariPromo from "../../../../data/diagram/t3-m27-hari-promo.json";')).toBe(1);
+    expect(badan.indexOf("<Rantai data={hariPromo} />")).toBeGreaterThan(badan.indexOf('<Blok nama="Yang sebenarnya">'));
+    harus(`worker mengklaim baris menurut nomor, dan ${ribu(nPromo)} promo bernomor lebih kecil.`);
+  });
   test("mesin widget: laju 5 per detik dengan kelas menghabiskan promo dalam 2.000 detik dan menyisakan 13,33 \u2212 5 = 8,33 per detik", () => {
     const f = mesin("dengan", "5", C_PENGIRIM);
     expect(f.habis).toBe(nPromo / LAJU);
