@@ -406,6 +406,27 @@ func TestSSRFBatasPesanGalatTanpaIsiResponsDanTanpaAlamat(t *testing.T) {
 	fmt.Printf("pesan galat versi aman yang mungkin: %d kalimat tetap; server uji disentuh oleh unduhan yang ditolak: 0\n", len(semuaPesanAman()))
 }
 
+// TestSSRFBatasPesanMembedakanNamaDikenalDariTidakDikenal mencatat batas ADR 41 yang belum tertutup: untuk alamat literal
+// semua penolakan satu pesan (tes di atas), tetapi untuk nama, nama yang diselesaikan ke alamat terlarang dijawab
+// "tujuan tidak diizinkan" sedangkan nama yang tidak ada dijawab "tidak menjawab". Pemanggil yang mengirim banyak nama
+// bisa membedakan nama yang ada dari yang tidak ada. Resolver buatan, tanpa permintaan DNS yang keluar dari mesin.
+// Tes ini menetapkan perilaku saat ini; bila pesannya kelak disamakan, tes ini yang diubah.
+func TestSSRFBatasPesanMembedakanNamaDikenalDariTidakDikenal(t *testing.T) {
+	fmt.Println("\n## batas yang belum tertutup: nama yang ada dan nama yang tidak ada dijawab dengan pesan berbeda")
+	r := func(ctx context.Context, host string) ([]net.IPAddr, error) {
+		if host == "nama-ada.contoh" {
+			return []net.IPAddr{{IP: net.ParseIP("10.0.0.9")}}, nil // alamat private yang hanya dibaca, tidak pernah dihubungi
+		}
+		return nil, &net.DNSError{Err: "no such host", Name: host, IsNotFound: true}
+	}
+	_, ada := Aturan{IzinkanHTTP: true, Resolver: r, Waktu: time.Second}.Unduh(context.Background(), "http://nama-ada.contoh/a.png")
+	_, tidakAda := Aturan{IzinkanHTTP: true, Resolver: r, Waktu: time.Second}.Unduh(context.Background(), "http://nama-tidak-ada.contoh/a.png")
+	fmt.Printf("nama yang diselesaikan ke alamat private: %q\nnama yang tidak ada:                      %q\npesan sama: %v\n", ada.Error(), tidakAda.Error(), ada.Error() == tidakAda.Error())
+	if !errors.Is(ada, ErrTujuan) || !errors.Is(tidakAda, ErrTidakMenjawab) {
+		t.Fatalf("perilaku berubah: %v dan %v; perbarui tes, rekaman, dan README bila pesannya disamakan", ada, tidakAda)
+	}
+}
+
 func semuaPesanAman() []error {
 	return []error{ErrTujuan, ErrBukanGambar, ErrTerlaluBesar, ErrTidakMenjawab, ErrGagal}
 }
@@ -445,6 +466,11 @@ func TestSSRFKelasAlamatIsPrivateTidakCukup(t *testing.T) {
 		{"2001:2::5", "benchmarking IPv6 2001:2::/48 (RFC 5180)"},
 		{"3fff::1", "dokumentasi IPv6 3fff::/20 (RFC 9637)"},
 		{"5f00::5", "SRv6 SIDs 5f00::/16 (RFC 9602)"},
+		{"198.19.255.254", "ujung atas benchmark 198.18.0.0/15 (RFC 2544)"},
+		{"255.255.255.255", "limited broadcast (RFC 919)"},
+		{"2002:c0a8:101::1", "6to4 membawa 192.168.1.1"},
+		{"239.255.0.1", "multicast IPv4 di luar skop tautan"},
+		{"ff0e::1", "multicast IPv6 skop global"},
 		{"93.184.216.34", "alamat publik (kontrol: harus lolos)"},
 		{"100.63.255.255", "tepat di bawah CGNAT (kontrol: harus lolos)"},
 		{"100.128.0.1", "tepat di atas CGNAT (kontrol: harus lolos)"},
