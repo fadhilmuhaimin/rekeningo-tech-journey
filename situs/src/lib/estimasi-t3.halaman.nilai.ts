@@ -82,8 +82,9 @@ export const BARIS_MDX: string[] = [
  "| Gateway di dalam request, menggantung 30 detik | 0,579 | 30 detik | 17,4 koneksi |",
  "| Verifikasi saat vendor mati: 5 percobaan × 3 detik | 0,116 | 15 detik | 1,74 worker |",
  "| Notifikasi uang di worker yang sama | 7,52 | 0,3 detik | 2,26 worker |",
- "Tiga baris pertama mengandaikan panggilan gateway ada di dalam transaction, dan koneksi dipegang sampai panggilan selesai. ADR 22 ([[t3-pool]]) melarangnya, jadi tabel ini menghitung akibatnya bila aturan itu dilanggar. Pool pembayaran 10 (2 instance × 5, Asumsi) penuh pada 10 ÷ 0,579 = 17,3 detik bila gateway tidak pernah menjawab dan client terus menunggu.",
- "Client yang menyerah sesudah T detik melepas koneksinya, jadi pool hanya penuh bila T > 9 ÷ 0,579 = 15,5 detik. Rumusnya sama dengan [[t3-pool]], dan kedatangannya dianggap berjadwal tetap. L adalah rata-rata, jadi pada satu detik tertentu jumlahnya bisa lebih besar ([[t2-estimasi]]).",
+ "Tiga baris pertama mengandaikan panggilan gateway ada di dalam transaction, dan koneksi dipegang sampai panggilan selesai. ADR 22 ([[t3-pool]]) melarangnya, jadi tabel ini menghitung akibatnya bila aturan itu dilanggar. Pool pembayaran 10 (2 instance × 5, Asumsi) penuh pada 10 ÷ 0,579 = 17,3 detik bila gateway tidak pernah menjawab dan client terus menunggu. Baris 30 detik menghasilkan L 17,4, kebutuhan koneksi yang lebih besar dari pool 10: paling banyak 10 koneksi terpakai, dan request selebihnya menunggu.",
+ "Client yang menyerah sesudah T detik melepas koneksinya. Tiap instance menerima setengah kedatangan, 0,579 ÷ 2 per detik. Jadi pool 5 hanya penuh bila T > 4 ÷ (0,579 ÷ 2) = 13,8 detik. Bila kedua pool dihitung sebagai satu pool 10, ambangnya 9 ÷ 0,579 = 15,5 detik, rumus yang sama dengan [[t3-pool]].",
+ "Kedatangannya dianggap berjadwal tetap dan terbagi sama rata. L adalah rata-rata, jadi pada satu detik tertentu jumlahnya bisa lebih besar ([[t2-estimasi]]).",
  "Dua baris terakhir mengandaikan verifikasi memakai empat worker yang sama dengan notifikasi (Asumsi desain), dan jeda antar percobaan tidak memegang worker (Asumsi). Hasilnya 1,74 + 2,26 = 4,0 dari 4 worker. Hanya 0,116 pendaftar per detik, tetapi lamanya 15 detik per pekerjaan menghabiskan worker.",
  "**6. Ukuran data dan file dihitung sebagai ukuran.** Posting per tahun di Tahap 4 adalah 20.000 × 3 × 2 × 365 = 43,8 juta. Tiga cara menghitung ukurannya, sama dengan tiga cara di [[t2-estimasi]]:",
  "| Sumber | Yang dihitung | Hasil | Label |",
@@ -95,7 +96,7 @@ export const BARIS_MDX: string[] = [
  "File memakai hitungan lain. Unggahan 2.000 per hari × 500 KB = 1 GB per hari, atau 365 GB per tahun (Asumsi, dari `upload` dan `fileKB` di registry). Itu 33 kali posting ledger (365 ÷ 10,95) dan 56 kali rumus [[D1]] (365 ÷ 6,57). Lajunya kecil, 0,231 unggahan per detik atau 116 KB per detik di puncak.",
  "Yang berubah adalah ukurannya. Di mana file disimpan adalah keputusan tersendiri di Tahap 4.",
  "**7. Yang tidak dijawab estimasi.** Tiga pertanyaan tetap terbuka sesudah semua hitungan di atas.",
- "1. *Berapa request per detik yang sanggup dilayani satu server?* Estimasi tidak menyebutnya. Panduan SRE Google menulis bahwa memodelkan kapasitas sebagai \"queries per second\" sering menjadi metrik yang buruk, karena biaya tiap query berbeda dan berubah. ADR 21 ([[t2-adr-21]]) menjadwalkan satu load test, dan load test itu Tidak dijalankan di repo ini, jadi 138,9 tidak dibandingkan dengan kapasitas apa pun.",
+ "1. *Berapa request per detik yang sanggup dilayani satu server?* Estimasi tidak menyebutnya. Panduan SRE Google menulis bahwa memodelkan kapasitas sebagai \"queries per second\" sering menjadi metrik yang buruk, karena biaya tiap query berbeda dan berubah. ADR 21 ([[t2-adr-21]]) menjadwalkan satu load test, dan load test kapasitas itu Tidak dijalankan di repo ini. Karena itu halaman ini tidak membandingkan 138,9 dengan kapasitas server mana pun.",
  "2. *Berapa lama gateway dan vendor menjawab?* Pihak ketiganya belum ada, jadi 0,3, 3, 15, dan 30 detik adalah Asumsi. Angka itu diganti rekaman sesudah integrasinya dibangun.",
  "3. *Bagaimana tim yang lebih besar mengubah satu codebase?* Tim naik dari 4 menjadi 10 sampai 15 orang dalam tiga tim (Asumsi naskah). Tidak ada rumus di halaman ini yang memuat koordinasi.",
  "</Blok>",
@@ -158,7 +159,7 @@ export const BARIS_MDX: string[] = [
 ];
 // Bentuk baris tiap baris MDX: - = baris kosong, # = baris isi. Baris kosong menentukan cara MDX mengurai paragraf, daftar, tabel,
 // dan tag JSX, jadi satu baris kosong yang hilang harus gagal (tinjauan).
-export const BENTUK_MDX = "##########-#-#-#-#-#-#-#-##-###-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-######-#-#-#-########-#-#-#-########-#-#-#-#-#-#-#-#######-#-#-#-#-#####-#-#-#-#-###-#-#-#-#####-#-######-#-#-#####-#-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-######-#-###-#-";
+export const BENTUK_MDX = "##########-#-#-#-#-#-#-#-##-###-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-######-#-#-#-########-#-#-#-########-#-#-#-#-#-#-#-#######-#-#-#-#-#-#####-#-#-#-#-###-#-#-#-#####-#-######-#-#-#####-#-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-######-#-###-#-";
 export const NILAI_JSON: Record<string, string[]> = {
  "rantai": [
   "id=\"t3-estimasi-inti\"",

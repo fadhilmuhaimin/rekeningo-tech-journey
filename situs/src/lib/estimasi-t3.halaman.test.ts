@@ -437,11 +437,56 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     harus(`| Verifikasi saat vendor mati: ${PERCOBAAN} percobaan × ${TIMEOUT} detik | ${koma(lamVerTulis, 3)} | ${PERCOBAAN * TIMEOUT} detik | ${koma(lamVerTulis * PERCOBAAN * TIMEOUT, 2)} worker |`);
     harus(`| Notifikasi uang di worker yang sama | ${koma(notif4Tulis, 2)} | ${koma(T_PUSH, 1)} detik | ${koma(notif4Tulis * T_PUSH, 2)} worker |`);
     harus(`Pool pembayaran ${INST_BAYAR * POOL_BAYAR} (${INST_BAYAR} instance × ${POOL_BAYAR}, Asumsi) penuh pada ${INST_BAYAR * POOL_BAYAR} ÷ ${koma(lamTopTulis, 3)} = ${koma((INST_BAYAR * POOL_BAYAR) / lamTopTulis, 1)} detik bila gateway tidak pernah menjawab dan client terus menunggu.`);
-    harus(`pool hanya penuh bila T > ${INST_BAYAR * POOL_BAYAR - 1} ÷ ${koma(lamTopTulis, 3)} = ${koma((INST_BAYAR * POOL_BAYAR - 1) / lamTopTulis, 1)} detik.`);
+    // ambang client yang menyerah: tiap instance punya pool sendiri dan menerima 1 ÷ INST dari kedatangan (tinjauan PR 407)
+    const ambangPerPool = (POOL_BAYAR - 1) / (lamTopTulis / INST_BAYAR);
+    const ambangSatuPool = (INST_BAYAR * POOL_BAYAR - 1) / lamTopTulis;
+    harus(`Tiap instance menerima setengah kedatangan, ${koma(lamTopTulis, 3)} ÷ ${INST_BAYAR} per detik. Jadi pool ${POOL_BAYAR} hanya penuh bila T > ${POOL_BAYAR - 1} ÷ (${koma(lamTopTulis, 3)} ÷ ${INST_BAYAR}) = ${koma(ambangPerPool, 1)} detik.`);
+    harus(`Bila kedua pool dihitung sebagai satu pool ${INST_BAYAR * POOL_BAYAR}, ambangnya ${INST_BAYAR * POOL_BAYAR - 1} ÷ ${koma(lamTopTulis, 3)} = ${koma(ambangSatuPool, 1)} detik, rumus yang sama dengan [[t3-pool]].`);
+    expect(INST_BAYAR).toBe(2);
+    expect(koma(ambangPerPool, 1)).toBe("13,8");
+    expect(koma(ambangSatuPool, 1)).toBe("15,5");
+    expect(ambangPerPool).toBeLessThan(ambangSatuPool);
+    harus(`Baris 30 detik menghasilkan L ${koma(lamTopTulis * 30, 1)}, kebutuhan koneksi yang lebih besar dari pool ${INST_BAYAR * POOL_BAYAR}: paling banyak ${INST_BAYAR * POOL_BAYAR} koneksi terpakai, dan request selebihnya menunggu.`);
+    expect(lamTopTulis * 30).toBeGreaterThan(INST_BAYAR * POOL_BAYAR);
+    harus("Kedatangannya dianggap berjadwal tetap dan terbagi sama rata.");
+    harus(`verifikasi memakai ${["nol", "satu", "dua", "tiga", "empat"][C]} worker yang sama dengan notifikasi (Asumsi desain)`);
     harus(`Hasilnya ${koma(lamVerTulis * PERCOBAAN * TIMEOUT, 2)} + ${koma(notif4Tulis * T_PUSH, 2)} = ${koma(lamVerTulis * PERCOBAAN * TIMEOUT + notif4Tulis * T_PUSH, 1)} dari ${C} worker.`);
     harus(`Hanya ${koma(lamVerTulis, 3)} pendaftar per detik, tetapi lamanya ${PERCOBAAN * TIMEOUT} detik per pekerjaan menghabiskan worker.`);
     harus(`jadi 0,3, 3, 15, dan 30 detik adalah Asumsi`);
     expect(0.3).toBe(T_PUSH);
+  });
+  test("ambang client yang menyerah dari simulasi jadwal tetap: satu pool 10 pada 15,5 detik, dua pool 5 (kedatangan bergilir) pada 13,8 detik", () => {
+    // kedatangan ke-k pada k ÷ λ, dibagi bergilir ke instance; tiap client memegang koneksi T detik lalu menyerah.
+    // Pool "penuh" memakai arti 3.8: kedatangan yang tiba selagi n − 1 sebelumnya masih memegang koneksi mengambil yang terakhir.
+    const penuh = (n: number, instance: number, lambda: number, T: number): boolean => {
+      const dipegang: number[][] = Array.from({ length: instance }, () => []);
+      for (let k = 0; k < 400; k++) {
+        const t = k / lambda;
+        const i = k % instance;
+        dipegang[i] = dipegang[i]!.filter((selesai) => selesai > t);
+        if (dipegang[i]!.length >= n - 1) return true;
+        dipegang[i]!.push(t + T);
+      }
+      return false;
+    };
+    const cari = (n: number, instance: number): number => {
+      let rendah = 0;
+      let tinggi = 100;
+      for (let i = 0; i < 60; i++) {
+        const tengah = (rendah + tinggi) / 2;
+        if (penuh(n, instance, lamTopTulis, tengah)) tinggi = tengah;
+        else rendah = tengah;
+      }
+      return tinggi;
+    };
+    expect(koma(cari(INST_BAYAR * POOL_BAYAR, 1), 1)).toBe("15,5");
+    expect(koma(cari(POOL_BAYAR, INST_BAYAR), 1)).toBe("13,8");
+    expect(cari(INST_BAYAR * POOL_BAYAR, 1)).toBeCloseTo((INST_BAYAR * POOL_BAYAR - 1) / lamTopTulis, 6);
+    expect(cari(POOL_BAYAR, INST_BAYAR)).toBeCloseTo((POOL_BAYAR - 1) / (lamTopTulis / INST_BAYAR), 6);
+    expect(penuh(POOL_BAYAR, INST_BAYAR, lamTopTulis, 13.7)).toBe(false);
+    expect(penuh(POOL_BAYAR, INST_BAYAR, lamTopTulis, 13.9)).toBe(true);
+    expect(penuh(INST_BAYAR * POOL_BAYAR, 1, lamTopTulis, 15.4)).toBe(false);
+    expect(penuh(INST_BAYAR * POOL_BAYAR, 1, lamTopTulis, 15.6)).toBe(true);
   });
   test("Paham 6: ukuran data dan file", () => {
     harus(`Posting per tahun di Tahap 4 adalah ${ribu(h4.dau)} × ${TRX} × ${POSTING_PER_TRX} × 365 = ${koma(posting4 / 1e6, 1)} juta.`);
@@ -456,11 +501,21 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     expect(hal230).toContain("137 byte per posting (batas bawah)");
   });
   test("Paham 7: yang tidak dijawab estimasi, dengan ADR 21, tim 10 sampai 15 dari naskah, dan klaim SRE", () => {
-    harus("ADR 21 ([[t2-adr-21]]) menjadwalkan satu load test, dan load test itu Tidak dijalankan di repo ini, jadi");
+    harus("ADR 21 ([[t2-adr-21]]) menjadwalkan satu load test, dan load test kapasitas itu Tidak dijalankan di repo ini.");
     expect(hal231).toContain("satu load test mengukur kapasitas api-t2");
     expect(hal38).toContain("load test ADR 21 Tidak dijalankan");
     expect(hitungKali(badan, "Tidak dijalankan")).toBe(1);
-    harus(`${koma(h4.puncak, 1)} tidak dibandingkan dengan kapasitas apa pun.`);
+    harus(`Karena itu halaman ini tidak membandingkan ${koma(h4.puncak, 1)} dengan kapasitas server mana pun.`);
+    // lingkup klaim: lab api-t4 memutar ${koma(h4.puncak, 1)} per detik di laptop (beban.txt) dan menulis sendiri bahwa itu bukan kapasitas produksi;
+    // keluaran lab lain tidak memuat angka itu, jadi klaim "load test kapasitas Tidak dijalankan" tidak dibantah rekaman mana pun (tinjauan PR 407)
+    const beban4 = baca("labs/api-t4/output/beban.txt");
+    expect(beban4).toContain(`${koma(h4.puncak, 1)} = ${ribu(h4.dau)} aktif × ${a4.req} request ÷ ${ribu(DETIK)} × ${a4.puncak}`);
+    expect(beban4).toContain("Dijalankan di laptop lab: bukan kapasitas produksi.");
+    expect(beban4).toContain("Bukan klaim kapasitas produksi.");
+    const keluaranLab = execSync("git ls-files labs", { cwd: akar, maxBuffer: 1 << 26 }).toString().split("\n").filter((f) => /\/output\/[^/]+\.txt$/.test(f));
+    expect(keluaranLab.length).toBeGreaterThan(100);
+    expect(keluaranLab.filter((f) => fs.readFileSync(path.join(akar, f), "utf8").includes(koma(h4.puncak, 1)))).toEqual(["labs/api-t4/output/beban.txt"]);
+    expect(baca("labs/api-t4/README.md")).toContain("Testcontainers dan k6 Tidak dijalankan");
     harus("Tim naik dari 4 menjadi 10 sampai 15 orang dalam tiga tim (Asumsi naskah).");
     expect(naskah3).toContain("Tim naik dari 4 menjadi 10 sampai 15 orang dalam tiga tim.");
     expect(m3.tim).toBe("4 developer");
@@ -494,7 +549,7 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
       "dengan W 20 ms (Asumsi, belum diukur)",
       "belum pernah diukur di server sungguhan",
       "Semua angka di tabel ini adalah Asumsi naskah, bukan pengukuran.",
-      "load test itu Tidak dijalankan di repo ini",
+      "load test kapasitas itu Tidak dijalankan di repo ini",
     ]) expect(badan, konteks).toContain(konteks);
     // tanpa lab: tidak ada Snippet dan tidak ada rujukan ke labs/
     expect(badan).not.toMatch(/<Snippet|labs\//);
