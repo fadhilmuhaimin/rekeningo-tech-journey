@@ -1,0 +1,95 @@
+# Lab t4-modul · API ledger dan Idempotency-Key: satu jurnal per order lewat webhook, kiriman ganda, dan job cek status
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema t4m_* (enam modul), monolith di 127.0.0.1:18280, service pembayaran di 127.0.0.1:18286
+# Rekaman dari database bersih: make -C labs/t4-modul run.
+
+# --- A. API ledger: satu jurnal per Idempotency-Key (permintaan langsung ke ledger, tanpa gateway) ---
+# Akun Budi (419) punya saldo awal dari data awal; top-up Rp200.000 dengan key = order_id.
+# saldo Budi sebelum: 250000
+# tanpa kunci layanan
+$ curl -i -X POST '/ledger/jurnal-topup' -H 'Idempotency-Key: <order A>' -d '{"order_id": "<order A>", "akun_id": 419, "jumlah": 200000}'
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+
+{"alasan":"kunci-layanan"}
+# tanpa Idempotency-Key
+$ curl -i -X POST '/ledger/jurnal-topup' -H 'X-Layanan-Kunci: kunci-layanan-pembayaran-lab' -d '{"order_id": "<order A>", "akun_id": 419, "jumlah": 200000}'
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+
+{"alasan":"idempotency-key-wajib"}
+# Idempotency-Key bukan order_id
+$ curl -i -X POST '/ledger/jurnal-topup' -H 'X-Layanan-Kunci: kunci-layanan-pembayaran-lab' -H 'Idempotency-Key: lain' -d '{"order_id": "<order A>", "akun_id": 419, "jumlah": 200000}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/json
+
+{"alasan":"tidak-sah","field":"Idempotency-Key"}
+# permintaan sah, lalu ulangan yang sama
+$ curl -i -X POST '/ledger/jurnal-topup' -H 'X-Layanan-Kunci: kunci-layanan-pembayaran-lab' -H 'Idempotency-Key: <order A>' -d '{"order_id": "<order A>", "akun_id": 419, "jumlah": 200000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"jurnal":10201,"ulang":false}
+$ curl -i -X POST '/ledger/jurnal-topup' -H 'X-Layanan-Kunci: kunci-layanan-pembayaran-lab' -H 'Idempotency-Key: <order A>' -d '{"order_id": "<order A>", "akun_id": 419, "jumlah": 200000}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"jurnal":10201,"ulang":true}
+# key yang sama, jumlah lain
+$ curl -i -X POST '/ledger/jurnal-topup' -H 'X-Layanan-Kunci: kunci-layanan-pembayaran-lab' -H 'Idempotency-Key: <order A>' -d '{"order_id": "<order A>", "akun_id": 419, "jumlah": 200001}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/json
+
+{"alasan":"key-dipakai-permintaan-lain"}
+=> SELECT count(*) AS jurnal_untuk_key, (SELECT count(*) FROM t4m_ledger.posting p JOIN t4m_ledger.jurnal j ON j.id = p.jurnal_id WHERE j.keterangan = 'Top-up bank <order A>') AS posting FROM t4m_ledger.jurnal WHERE keterangan = 'Top-up bank <order A>'
+ jurnal_untuk_key | posting
+------------------+---------
+ 1                | 2
+(1 row)
+# saldo Budi bertambah Rp200000 (sekali), outbox untuk jurnal itu:
+=> SELECT count(*) AS outbox_di_platform FROM t4m_platform.outbox o JOIN t4m_ledger.jurnal j ON j.id = o.jurnal_id WHERE j.keterangan = 'Top-up bank <order A>'
+ outbox_di_platform
+--------------------
+ 1
+(1 row)
+
+# --- B. Webhook dari gateway lewat service pembayaran: kiriman yang sama, dan event berbeda untuk kejadian yang sama ---
+# proses: gateway tiruan, monolith (role t4m_monolit, API ledger), service pembayaran (role t4m_pembayaran)
+# kiriman pertama event e1
+hasil: 200 diproses
+# kiriman e1 yang sama lagi, lalu event e2 (berbeda) untuk kejadian yang sama
+hasil: 200 ganda; 200 ganda
+# keadaan order di tiga modul
+=> SELECT t.status AS topup_bank, t.jurnal_id IS NOT NULL AS terikat_jurnal,
+                        (SELECT count(*) FROM t4m_ledger.jurnal WHERE jenis = 'topup_bank' AND keterangan = 'Top-up bank ' || t.order_id) AS jurnal_di_ledger,
+                        (SELECT count(*) FROM t4m_platform.outbox o JOIN t4m_ledger.jurnal j ON j.id = o.jurnal_id WHERE j.keterangan = 'Top-up bank ' || t.order_id) AS outbox_di_platform
+                 FROM t4m_pembayaran.topup_bank t WHERE t.order_id = '<order 1>'
+ topup_bank | terikat_jurnal | jurnal_di_ledger | outbox_di_platform
+------------+----------------+------------------+--------------------
+ dibayar    | t              | 1                | 1
+(1 row)
+=> SELECT w.event_id, w.hasil, w.jurnal_id IS NOT NULL AS ada_jurnal FROM t4m_pembayaran.webhook_event w JOIN t4m_pembayaran.topup_bank t ON t.id = w.topup_id WHERE t.order_id = '<order 1>' ORDER BY w.event_id
+ event_id | hasil    | ada_jurnal
+----------+----------+------------
+ e1       | diproses | t
+ e2       | ganda    | t
+(2 rows)
+
+# --- C. Webhook dan job cek status datang ke ledger dengan key yang sama ---
+# service pembayaran dinyalakan dengan jeda 1,5 detik sesudah ledger menjurnal dan sebelum transaction pembayaran (lab saja);
+# selama jeda itu job cek status berjalan, bertanya ke gateway, dan memanggil ledger dengan key yang sama.
+# jurnal sudah ada (jalur webhook), transaction pembayaran belum jalan; job cek status berjalan sekarang
+$ pembayaran -cek-topup -cek-umur 0s
+cek top-up: diperiksa 1, dikredit 1, selesai 0, tertunda 0, galat 0
+# webhook e3 menyelesaikan transaction-nya sesudah jeda: 200 ganda
+# log API ledger, satu baris per panggilan (urutan datang):
+ledger: key=<order 2> status=201 jurnal=10203 ulang=false
+ledger: key=<order 2> status=200 jurnal=10203 ulang=true
+# keadaan order di tiga modul
+=> SELECT t.status AS topup_bank, t.jurnal_id IS NOT NULL AS terikat_jurnal,
+                        (SELECT count(*) FROM t4m_ledger.jurnal WHERE jenis = 'topup_bank' AND keterangan = 'Top-up bank ' || t.order_id) AS jurnal_di_ledger,
+                        (SELECT count(*) FROM t4m_platform.outbox o JOIN t4m_ledger.jurnal j ON j.id = o.jurnal_id WHERE j.keterangan = 'Top-up bank ' || t.order_id) AS outbox_di_platform
+                 FROM t4m_pembayaran.topup_bank t WHERE t.order_id = '<order 2>'
+ topup_bank | terikat_jurnal | jurnal_di_ledger | outbox_di_platform
+------------+----------------+------------------+--------------------
+ dibayar    | t              | 1                | 1
+(1 row)

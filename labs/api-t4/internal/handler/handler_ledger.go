@@ -44,25 +44,28 @@ func PasangLedger(mux *http.ServeMux, svc service.Service, kunciLayanan string) 
 		}
 		h, err := svc.LedgerKreditTopup(r.Context(), kunci, in.OrderID, in.AkunID, in.Jumlah)
 		var ev service.ErrValidasi
+		status, isi := http.StatusInternalServerError, map[string]any{"alasan": "galat-server"}
 		switch {
 		case err == nil && h.Ulang:
-			ledgerJawab(w, http.StatusOK, map[string]any{"jurnal": h.Jurnal, "ulang": true})
+			status, isi = http.StatusOK, map[string]any{"jurnal": h.Jurnal, "ulang": true}
 		case err == nil:
-			ledgerJawab(w, http.StatusCreated, map[string]any{"jurnal": h.Jurnal, "ulang": false})
+			status, isi = http.StatusCreated, map[string]any{"jurnal": h.Jurnal, "ulang": false}
 		case errors.As(err, &ev):
-			ledgerJawab(w, http.StatusUnprocessableEntity, map[string]any{"alasan": "tidak-sah", "field": ev.Field})
+			status, isi = http.StatusUnprocessableEntity, map[string]any{"alasan": "tidak-sah", "field": ev.Field}
 		case errors.Is(err, service.ErrKunciBentrok):
-			ledgerJawab(w, http.StatusUnprocessableEntity, map[string]any{"alasan": "key-dipakai-permintaan-lain"})
+			status, isi = http.StatusUnprocessableEntity, map[string]any{"alasan": "key-dipakai-permintaan-lain"}
 		case errors.Is(err, service.ErrDibekukan):
-			ledgerJawab(w, http.StatusUnprocessableEntity, map[string]any{"alasan": "akun-dibekukan"})
+			status, isi = http.StatusUnprocessableEntity, map[string]any{"alasan": "akun-dibekukan"}
 		case errors.Is(err, service.ErrBatasTingkat):
-			ledgerJawab(w, http.StatusUnprocessableEntity, map[string]any{"alasan": "batas-tingkat"})
+			status, isi = http.StatusUnprocessableEntity, map[string]any{"alasan": "batas-tingkat"}
 		case errors.Is(err, service.ErrTidakDitemukan):
-			ledgerJawab(w, http.StatusNotFound, map[string]any{"alasan": "akun-tidak-ada"})
+			status, isi = http.StatusNotFound, map[string]any{"alasan": "akun-tidak-ada"}
 		default:
 			log.Printf("ledger jurnal-topup %s: %v", kunci, err)
-			ledgerJawab(w, http.StatusInternalServerError, map[string]any{"alasan": "galat-server"})
 		}
+		// Satu baris per panggilan, supaya lab bisa menunjukkan dua panggilan dengan key yang sama dan jurnal yang sama.
+		log.Printf("ledger: key=%s status=%d jurnal=%v ulang=%v", kunci, status, isi["jurnal"], isi["ulang"])
+		ledgerJawab(w, status, isi)
 	})
 }
 

@@ -1,0 +1,67 @@
+# Lab t4-modul · service pembayaran dimatikan di antara ledger dan transaction pembayaran: kiriman ulang, job cek status, dan batas key 24 jam
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema t4m_* (enam modul), monolith di 127.0.0.1:18280, service pembayaran di 127.0.0.1:18286
+# Rekaman dari database bersih: make -C labs/t4-modul run.
+
+# --- A. Service pembayaran mati (SIGKILL) sesudah ledger menjurnal dan sebelum topup_bank ditandai dibayar, lalu gateway mengulang kirimannya ---
+# Titik kematian disuntik: proses mengirim SIGKILL ke dirinya sendiri tepat sesudah ledger menjawab, tanpa defer dan tanpa balasan ke gateway.
+# gateway mengirim webhook e1; service pembayaran mati di tengah
+hasil: galat: koneksi putus, tidak ada balasan
+# proses service pembayaran: keluar dengan sinyal 9 (SIGKILL)
+# sesudah mati: ledger sudah menjurnal, pembayaran belum menandai apa pun
+=> SELECT t.status AS topup_bank, t.jurnal_id IS NOT NULL AS terikat_jurnal,
+                        (SELECT count(*) FROM t4m_ledger.jurnal WHERE jenis = 'topup_bank' AND keterangan = 'Top-up bank ' || t.order_id) AS jurnal_di_ledger,
+                        (SELECT count(*) FROM t4m_platform.outbox o JOIN t4m_ledger.jurnal j ON j.id = o.jurnal_id WHERE j.keterangan = 'Top-up bank ' || t.order_id) AS outbox_di_platform
+                 FROM t4m_pembayaran.topup_bank t WHERE t.order_id = '<order 1>'
+ topup_bank | terikat_jurnal | jurnal_di_ledger | outbox_di_platform
+------------+----------------+------------------+--------------------
+ menunggu   | f              | 1                | 1
+(1 row)
+=> SELECT count(*) AS webhook_event_e1 FROM t4m_pembayaran.webhook_event WHERE event_id = 'e1'
+ webhook_event_e1
+------------------
+ 0
+(1 row)
+# service pembayaran dinyalakan lagi; gateway mengulang event e1 yang sama (jadwal ulangan gateway nyata berbeda, di sini satu kiriman)
+hasil: 200 diproses
+# sesudah kiriman ulang
+=> SELECT t.status AS topup_bank, t.jurnal_id IS NOT NULL AS terikat_jurnal,
+                        (SELECT count(*) FROM t4m_ledger.jurnal WHERE jenis = 'topup_bank' AND keterangan = 'Top-up bank ' || t.order_id) AS jurnal_di_ledger,
+                        (SELECT count(*) FROM t4m_platform.outbox o JOIN t4m_ledger.jurnal j ON j.id = o.jurnal_id WHERE j.keterangan = 'Top-up bank ' || t.order_id) AS outbox_di_platform
+                 FROM t4m_pembayaran.topup_bank t WHERE t.order_id = '<order 1>'
+ topup_bank | terikat_jurnal | jurnal_di_ledger | outbox_di_platform
+------------+----------------+------------------+--------------------
+ dibayar    | t              | 1                | 1
+(1 row)
+=> SELECT w.event_id, w.hasil, w.jurnal_id IS NOT NULL AS ada_jurnal FROM t4m_pembayaran.webhook_event w JOIN t4m_pembayaran.topup_bank t ON t.id = w.topup_id WHERE t.order_id = '<order 1>'
+ event_id | hasil    | ada_jurnal
+----------+----------+------------
+ e1       | diproses | t
+(1 row)
+
+# --- B. Sama, tetapi pemulihan lewat job cek status, tanpa kiriman ulang dari gateway ---
+hasil: galat: koneksi putus, tidak ada balasan
+# proses service pembayaran: keluar dengan sinyal 9 (SIGKILL)
+$ pembayaran -cek-topup -cek-umur 0s
+cek top-up: diperiksa 1, dikredit 1, selesai 0, tertunda 0, galat 0
+# sesudah job cek status
+=> SELECT t.status AS topup_bank, t.jurnal_id IS NOT NULL AS terikat_jurnal,
+                        (SELECT count(*) FROM t4m_ledger.jurnal WHERE jenis = 'topup_bank' AND keterangan = 'Top-up bank ' || t.order_id) AS jurnal_di_ledger,
+                        (SELECT count(*) FROM t4m_platform.outbox o JOIN t4m_ledger.jurnal j ON j.id = o.jurnal_id WHERE j.keterangan = 'Top-up bank ' || t.order_id) AS outbox_di_platform
+                 FROM t4m_pembayaran.topup_bank t WHERE t.order_id = '<order 2>'
+ topup_bank | terikat_jurnal | jurnal_di_ledger | outbox_di_platform
+------------+----------------+------------------+--------------------
+ dibayar    | t              | 1                | 1
+(1 row)
+
+# --- C. Batas: Idempotency-Key ledger hidup 24 jam; sesudah itu hanya status topup_bank yang menahan jurnal kedua ---
+hasil: galat: koneksi putus, tidak ada balasan
+# service pembayaran mati sesudah ledger menjurnal (topup_bank masih menunggu)
+# jam ledger digeser 25 jam sebelum kiriman ulang (key berumur 24 jam)
+hasil: 200 diproses
+=> SELECT j.id IS NOT NULL AS jurnal, (t.jurnal_id = j.id) AS dipegang_topup_bank FROM t4m_pembayaran.topup_bank t JOIN t4m_ledger.jurnal j ON j.keterangan = 'Top-up bank ' || t.order_id WHERE t.order_id = '<order 3>' ORDER BY j.id
+ jurnal | dipegang_topup_bank
+--------+---------------------
+ t      | f
+ t      | t
+(2 rows)
+# dua jurnal untuk satu top-up Rp100.000 dan saldo naik dua kali; hanya rekonsiliasi harian (ADR 35) yang menangkapnya, dan itu Tidak dijalankan di lab ini

@@ -41,6 +41,7 @@ func main() {
 	cekTopup := flag.Bool("cek-topup", false, "job: tanyakan ke gateway semua top-up yang menunggu lebih dari -cek-umur, lalu keluar (ADR 35)")
 	cekUmur := flag.Duration("cek-umur", 30*time.Minute, "job -cek-topup: umur minimal top-up yang ditanyakan (Asumsi: 30 menit)")
 	lab := flag.Bool("lab", false, "lab saja: POST /lab/topup (akun tanpa autentikasi sesi; autentikasi ada di modul akun)")
+	jedaSesudahLedger := flag.Duration("lab-jeda-sesudah-ledger", 0, "lab saja: tidur sebentar sesudah ledger menjurnal dan sebelum transaction pembayaran, supaya jalur lain (job cek status) bisa datang ke ledger dengan key yang sama di antaranya")
 	matiSesudahLedger := flag.Bool("lab-mati-sesudah-ledger", false, "lab saja: proses mengirim SIGKILL ke dirinya sendiri sesudah ledger menjurnal dan sebelum transaction pembayaran")
 	flag.Parse()
 
@@ -70,6 +71,13 @@ func main() {
 				// Kematian sungguhan: tanpa defer, tanpa penutupan koneksi yang rapi, tanpa balasan ke gateway.
 				syscall.Kill(os.Getpid(), syscall.SIGKILL)
 				select {} // menunggu sinyal sampai
+			}
+		}
+	}
+	if *jedaSesudahLedger > 0 {
+		s.TitikGagal = func(titik string) {
+			if titik == "sesudah-ledger" {
+				time.Sleep(*jedaSesudahLedger)
 			}
 		}
 	}
