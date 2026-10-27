@@ -66,7 +66,7 @@ t4m_platform: UPDATE dan DELETE pada platform.audit_log -> permission denied (42
 t4m_ledger: UPDATE dan DELETE pada ledger.jurnal -> permission denied (42501)
 t4m_ledger: UPDATE dan DELETE pada ledger.posting -> permission denied (42501)
 --- PASS: TestRoleTidakBisaMengubahCatatanYangHanyaBertambah
-hak role modul: 50 baris hak (tabel, kolom, urutan, schema) sama dengan rancangan; 7 role tanpa atribut istimewa; t4m_monolit anggota lima role modul tanpa admin option
+hak role modul: 50 baris hak (tabel, kolom, urutan, schema) sama dengan rancangan; 7 role tanpa atribut istimewa dan dengan search_path yang dirancang; t4m_monolit anggota lima role modul tanpa admin option
 --- PASS: TestHakRoleModulSamaDenganRancangan
 PASS
 ok    lab/apit4/internal/modul

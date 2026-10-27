@@ -545,11 +545,16 @@ func TestHakRoleModulSamaDenganRancangan(t *testing.T) {
 	hak := baris(t, pemilik, sqlHakRole)
 	bandingkan(t, "hak tabel, kolom, urutan, dan schema", hak, rancanganHak)
 	atribut := baris(t, pemilik, `SELECT rolname || ' | super=' || rolsuper || ' createrole=' || rolcreaterole || ' createdb=' || rolcreatedb ||
-		' replication=' || rolreplication || ' bypassrls=' || rolbypassrls || ' login=' || rolcanlogin || ' inherit=' || rolinherit
+		' replication=' || rolreplication || ' bypassrls=' || rolbypassrls || ' login=' || rolcanlogin || ' inherit=' || rolinherit ||
+		' config=' || coalesce(rolconfig::text, '')
 		FROM pg_roles WHERE rolname LIKE 't4m\_%' ORDER BY 1`)
 	var wantAtribut []string
 	for _, r := range []string{"akun", "identitas", "ledger", "merchant", "monolit", "pembayaran", "platform"} {
-		wantAtribut = append(wantAtribut, "t4m_"+r+" | super=false createrole=false createdb=false replication=false bypassrls=false login=true inherit=true")
+		config := "{search_path=t4m_" + r + "}"
+		if r == "monolit" {
+			config = `{"search_path=t4m_ledger, t4m_akun, t4m_identitas, t4m_merchant, t4m_platform"}`
+		}
+		wantAtribut = append(wantAtribut, "t4m_"+r+" | super=false createrole=false createdb=false replication=false bypassrls=false login=true inherit=true config="+config)
 	}
 	bandingkan(t, "atribut role", atribut, wantAtribut)
 	anggota := baris(t, pemilik, `SELECT pg_get_userbyid(roleid) || ' <- ' || pg_get_userbyid(member) || ' admin=' || admin_option
@@ -559,5 +564,5 @@ func TestHakRoleModulSamaDenganRancangan(t *testing.T) {
 		wantAnggota = append(wantAnggota, "t4m_"+r+" <- t4m_monolit admin=false")
 	}
 	bandingkan(t, "keanggotaan role", anggota, wantAnggota)
-	lab("hak role modul: %d baris hak (tabel, kolom, urutan, schema) sama dengan rancangan; 7 role tanpa atribut istimewa; t4m_monolit anggota lima role modul tanpa admin option", len(hak))
+	lab("hak role modul: %d baris hak (tabel, kolom, urutan, schema) sama dengan rancangan; 7 role tanpa atribut istimewa dan dengan search_path yang dirancang; t4m_monolit anggota lima role modul tanpa admin option", len(hak))
 }
