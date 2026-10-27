@@ -605,6 +605,14 @@ describe("sumber luar, tanggal akses, dan versi (baris riset R3-210 sampai R3-21
     expect(baris("R3-212")).toContain("cookie tetap dikirim pada permintaan dari JavaScript");
     expect(baris("R3-212")).toContain("paling lama dua menit");
     expect(baris("R3-210")).toContain("our single most effective mitigation");
+    expect(baris("R3-211")).toContain("satu XSS bisa mencuri semua data di Local Storage");
+    expect(isi).toContain("Satu XSS bisa mencuri semua data di `localStorage` (OWASP HTML5 Security Cheat Sheet)");
+    expect(baris("R3-212")).toContain("`__Host-` butuh `Secure`, tanpa `Domain`, `Path=/`");
+    expect(isi).toContain("awalan `__Host-` mensyaratkan `Secure`, tanpa `Domain`, dan `Path=/`");
+    expect(baris("R3-212")).toContain("berlaku per registrable domain, bukan origin");
+    expect(isi).toContain("`SameSite` mengukur situs, bukan origin");
+    expect(baris("R3-214")).toMatch(/`laravel\/framework` 13\.38\.0/);
+    expect(baris("R3-214")).toMatch(/pub\.dev 4\.0\.4/);
   });
 });
 
