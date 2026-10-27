@@ -279,6 +279,15 @@
   "h": "/istilah/cache-aside/"
  },
  {
+  "t": "Certificate pinning",
+  "d": "App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem.",
+  "b": "t3-tls-pinning",
+  "n": "3.25 TLS, HSTS, pinning",
+  "u": "/tahap-3/tls-pinning/",
+  "s": "istilah-certificate-pinning",
+  "h": "/istilah/certificate-pinning/"
+ },
+ {
   "t": "CI (Continuous Integration)",
   "d": "Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung.",
   "b": "B1.4",
@@ -520,6 +529,15 @@
   "u": "/tahap-3/dua-instance/",
   "s": "istilah-health-check",
   "h": "/istilah/health-check/"
+ },
+ {
+  "t": "HSTS (HTTP Strict Transport Security)",
+  "d": "Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.",
+  "b": "t3-tls-pinning",
+  "n": "3.25 TLS, HSTS, pinning",
+  "u": "/tahap-3/tls-pinning/",
+  "s": "istilah-hsts",
+  "h": "/istilah/hsts/"
  },
  {
   "t": "Idempotency key",

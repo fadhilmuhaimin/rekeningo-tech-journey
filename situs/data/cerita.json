@@ -2910,8 +2910,9 @@
       "lab": [
         "t3-mitm"
       ],
-      "ada": false,
-      "nomor": "3.25"
+      "ada": true,
+      "nomor": "3.25",
+      "menit": 22
     },
     {
       "id": "t3-m27",

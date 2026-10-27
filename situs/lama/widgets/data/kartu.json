@@ -2032,6 +2032,38 @@
   "jawab": "D memakai `innerHTML` dan satu dialog berisi 1 muncul. E memakai `textContent`: 0 dialog, 0 elemen `<img>`, dan tag terlihat sebagai teks. Catatan di database sama di keduanya, dan hanya cara menulisnya ke halaman yang berbeda."
  },
  {
+  "id": "t3-tls-pinning-1",
+  "halaman": "t3-tls-pinning",
+  "judul": "3.25 Keamanan 6: TLS, HSTS, pinning + ADR 31",
+  "url": "tahap-3/tls-pinning/",
+  "tanya": "Daftar akar app berisi CA Dimas, dan pin A dan B dipasang di `validateCertificate` milik dio. Apa yang proxy lihat, dan apa yang tercatat di database?",
+  "jawab": "Proxy membaca token dan body, dan database mencatat satu transfer Rp150.000 dari Budi ke Dimas. Baru sesudahnya callback menolak dan app menampilkan galat sertifikat (`dio.txt` bagian A). Kode dio memanggil `request.close()` sebelum `validateCertificate`."
+ },
+ {
+  "id": "t3-tls-pinning-2",
+  "halaman": "t3-tls-pinning",
+  "judul": "3.25 Keamanan 6: TLS, HSTS, pinning + ADR 31",
+  "url": "tahap-3/tls-pinning/",
+  "tanya": "Server pindah ke kunci B, dan app 1.0 hanya mem-pin A. Server sehat dan sertifikatnya sah. Apa yang terjadi, dan apa yang memperbaikinya?",
+  "jawab": "Pin A menolak server B, dan request tidak pernah dikirim. Hanya rilis app baru yang memperbaikinya, dan app 1.1 dengan pin A dan B tetap terhubung (`pin.txt` bagian C)."
+ },
+ {
+  "id": "t3-tls-pinning-3",
+  "halaman": "t3-tls-pinning",
+  "judul": "3.25 Keamanan 6: TLS, HSTS, pinning + ADR 31",
+  "url": "tahap-3/tls-pinning/",
+  "tanya": "App 1.1 mem-pin A dan B, lalu server dirotasi ke kunci C. Apa yang terjadi, dan apa yang seharusnya sudah ada di rilis sebelumnya?",
+  "jawab": "Pin A dan B menolak server C, dan app dengan pin B dan C terhubung. Cadangan hanya menahan satu rotasi, jadi rilis berikutnya harus sudah memasang B dan C sebelum rotasi itu (`pin.txt` bagian C)."
+ },
+ {
+  "id": "t3-tls-pinning-4",
+  "halaman": "t3-tls-pinning",
+  "judul": "3.25 Keamanan 6: TLS, HSTS, pinning + ADR 31",
+  "url": "tahap-3/tls-pinning/",
+  "tanya": "Sertifikat server terbit ulang dengan kunci yang sama. Pin mana yang mati: hash SPKI atau hash sertifikat daun?",
+  "jawab": "Hash sertifikat daun. Hash SPKI tidak berubah karena kuncinya sama (`pin.txt` bagian D). Dengan masa berlaku 200 hari, pin daun mati paling sedikit 1,83 kali per tahun (Hitungan)."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",

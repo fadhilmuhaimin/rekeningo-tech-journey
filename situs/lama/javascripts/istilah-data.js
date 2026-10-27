@@ -227,6 +227,15 @@ window.ISTILAH = {
   "t": "Cache-aside",
   "u": "tahap-3/cache-invalidation/"
  },
+ "Certificate pinning": {
+  "b": "t3-tls-pinning",
+  "d": "App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem.",
+  "h": "istilah/certificate-pinning/",
+  "n": "3.25 TLS, HSTS, pinning",
+  "s": "istilah-certificate-pinning",
+  "t": "Certificate pinning",
+  "u": "tahap-3/tls-pinning/"
+ },
  "Circuit breaker": {
   "b": "B11",
   "d": "Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda.",
@@ -461,6 +470,24 @@ window.ISTILAH = {
   "s": "istilah-graceful-shutdown",
   "t": "Graceful shutdown",
   "u": "tahap-3/dua-instance/"
+ },
+ "HSTS": {
+  "b": "t3-tls-pinning",
+  "d": "Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.",
+  "h": "istilah/hsts/",
+  "n": "3.25 TLS, HSTS, pinning",
+  "s": "istilah-hsts",
+  "t": "HSTS (HTTP Strict Transport Security)",
+  "u": "tahap-3/tls-pinning/"
+ },
+ "HTTP Strict Transport Security": {
+  "b": "t3-tls-pinning",
+  "d": "Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.",
+  "h": "istilah/hsts/",
+  "n": "3.25 TLS, HSTS, pinning",
+  "s": "istilah-hsts",
+  "t": "HSTS (HTTP Strict Transport Security)",
+  "u": "tahap-3/tls-pinning/"
  },
  "HTTP method": {
   "b": "B1.1",
@@ -1609,6 +1636,15 @@ window.ISTILAH = {
   "s": "istilah-cache-aside",
   "t": "Cache-aside",
   "u": "tahap-3/cache-invalidation/"
+ },
+ "certificate pinning": {
+  "b": "t3-tls-pinning",
+  "d": "App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem.",
+  "h": "istilah/certificate-pinning/",
+  "n": "3.25 TLS, HSTS, pinning",
+  "s": "istilah-certificate-pinning",
+  "t": "Certificate pinning",
+  "u": "tahap-3/tls-pinning/"
  },
  "circuit breaker": {
   "b": "B11",
