@@ -408,7 +408,7 @@ describe("rekaman m26.txt: nilai dan rentang Snippet", () => {
     expect(validasi.trim()).toBe("case 'validasi':\n          klien = HttpClient(context: ctx);");
     expect(clientDart).toContain("final c = SecurityContext(withTrustedRoots: false);");
     expect(clientDart).toContain('//   terima-semua      badCertificateCallback selalu true: flag "terima sertifikat apa pun" dari build staging (M26)');
-    harus("Lab memerankan flag dengan `badCertificateCallback` yang selalu mengembalikan `true`:");
+    harus("Lab memerankan flag dengan `badCertificateCallback`, fungsi yang Dart panggil saat sertifikat tidak bisa diautentikasi. Fungsi itu selalu mengembalikan `true`:");
   });
   test("proxy lab: mengubah hanya POST /kiriman, hanya bila diberi aturan, dan hanya mendengar dan meneruskan ke loopback; aturan ubah dipakai m26 (nominal dan nomor Dimas)", () => {
     expect(mitmGo).toContain('if r.Method == "POST" && r.URL.Path == "/kiriman" {');
@@ -475,7 +475,8 @@ describe("kode api-t3: sesi, umur sesi, dan pemeriksaan token", () => {
     const jam = Number(cocok(mainGo, /flag\.Duration\("umur-sesi", (\d+)\*time\.Hour/)[1]);
     expect(hal127).toContain(`token acak yang berlaku ${jam} jam`);
     harus(`Sesi api-t3 berlaku ${jam} jam secara bawaan, sama dengan yang ditulis [[B5.1]] (dibaca dari kode lab, Tidak dijalankan di bagian ini).`);
-    harus("Pemeriksaan token di api-t3 hanya menerima token, mencari hash-nya di tabel sesi, dan mengembalikan akun, jenis sesi, dan hash CSRF. Objek sesi itu tidak memuat alamat atau perangkat pengirim. Pemeriksaan itu tidak membedakan laptop Dimas dari HP Budi (dibaca dari kode lab, Tidak dijalankan di halaman ini).");
+    harus("Pemeriksaan token di api-t3 hanya menerima token, mencari hash-nya di tabel sesi, dan mengembalikan akun, jenis sesi, dan hash CSRF.");
+    harus("Objek sesi itu tidak memuat alamat atau perangkat pengirim. Karena itu pemeriksaan tidak membedakan laptop Dimas dari HP Budi (dibaca dari kode lab, Tidak dijalankan di halaman ini).");
   });
 });
 
@@ -498,7 +499,7 @@ describe("sumber luar: dokumentasi Dart dan OWASP MASWE-0027, baris riset R3-215
     expect(r215).toContain("cannot be authenticated by any of our trusted root certificates");
     expect(r215).toContain("bila nilainya null, sertifikat buruk ditolak");
     expect(r215).toContain("bila callback mengembalikan true, koneksi aman diterima");
-    harus("Dart memanggil callback itu saat sertifikat tidak bisa diautentikasi oleh akar tepercaya mana pun. Bila callback mengembalikan `true`, koneksi aman diterima, dan bila nilainya `null`, sertifikat ditolak");
+    harus("Menurut dokumentasi Dart, callback itu menentukan nasib sertifikat yang tidak bisa diautentikasi oleh akar tepercaya mana pun. Bila callback mengembalikan `true`, koneksi aman diterima, dan bila nilainya `null`, sertifikat ditolak");
     expect(r215).toContain("Lab `t3-mitm` client.dart mode `terima-semua` memasang callback yang selalu true");
     expect(r215).toContain("Dart 3.11.4, halaman dokumentasi Dart 3.13.7");
     expect(M.b[3]).toContain("Dart 3.11.4");
@@ -783,7 +784,7 @@ const KALIMAT_TERKUNCI: string[] = [
   "</Blok>",
   "<Blok nama=\"Yang Raka kira\" buka>",
   "Raka mengira password Budi bocor. Dalam pikirannya, akun Budi hanya bisa dipakai orang yang tahu passwordnya, karena token baru ada sesudah login ([[B5.1]]).",
-  "Ia juga mengira app Budi memeriksa sertifikat server. Saat app membuka koneksi HTTPS, server mengirim sertifikat, dan app memeriksanya pada tahap awal yang disebut handshake. Sertifikat itu ditandatangani certificate authority (CA), dan app hanya menerima CA yang ada di daftar akarnya. Hotspot Dimas memakai sertifikat tiruan yang ditandatangani CA buatan Dimas, yang tidak ada di daftar itu.",
+  "Ia juga mengira app Budi memeriksa sertifikat server. Saat app membuka koneksi HTTPS, server mengirim sertifikat, dan app memeriksanya pada tahap awal yang disebut handshake. Sertifikat itu ditandatangani certificate authority (CA), dan app hanya menerima CA yang ada di daftar akarnya (root store). Hotspot Dimas memakai sertifikat tiruan yang ditandatangani CA buatan Dimas, yang tidak ada di daftar itu.",
   "Kalau app memeriksa sertifikat, hotspot tidak bisa membaca apa pun, dan password bocor menjadi satu-satunya penjelasan. Lab menjalankan dugaan itu dengan app yang benar-benar memeriksa sertifikat, lewat hotspot yang sama.",
   "<details class=\"question\">",
   "<summary>Tebak dulu: app yang memeriksa sertifikat mengirim satu transfer lewat hotspot Dimas. Berapa request yang terbaca hotspot?</summary>",
@@ -800,9 +801,10 @@ const KALIMAT_TERKUNCI: string[] = [
   "<Snippet file=\"labs/t3-mitm/output/m26.txt\" lines=\"33:39\" title=\"Rekaman lab: labs/t3-mitm/output/m26.txt baris 33 sampai 39 (bagian B, validasi aktif menolak hotspot)\" />",
   "**Staging membutuhkan flag, dan flag ikut ke rilis.** Server staging memakai sertifikat dari CA buatan sendiri, yang tidak ada di daftar akar app, jadi validasi menolaknya:",
   "<Snippet file=\"labs/t3-mitm/output/m26.txt\" lines=\"43:44\" title=\"Rekaman lab: labs/t3-mitm/output/m26.txt baris 43 sampai 44 (bagian C, staging ditolak validasi)\" />",
-  "Supaya staging bisa dipakai, Bayu meminta flag yang menerima sertifikat apa pun, dan Raka memasangnya. Flag itu tidak dicabut dari build rilis app 3.1. Bagian cerita itu Ilustrasi: lab tidak punya build Flutter, dan nomor versi 3.1 adalah Asumsi ([[t3-notifikasi]]). Lab memerankan flag dengan `badCertificateCallback` yang selalu mengembalikan `true`:",
+  "Supaya staging bisa dipakai, Bayu meminta flag yang menerima sertifikat apa pun, dan Raka memasangnya. Flag itu tidak dicabut dari build rilis app 3.1. Bagian cerita itu Ilustrasi: lab tidak punya build Flutter, dan nomor versi 3.1 adalah Asumsi ([[t3-notifikasi]]).",
+  "Lab memerankan flag dengan `badCertificateCallback`, fungsi yang Dart panggil saat sertifikat tidak bisa diautentikasi. Fungsi itu selalu mengembalikan `true`:",
   "<Snippet file=\"labs/t3-mitm/dart/bin/client.dart\" lines=\"109:114\" lang=\"dart\" title=\"Kode lab: labs/t3-mitm/dart/bin/client.dart baris 109 sampai 114 (flag: callback selalu true)\" />",
-  "Dart memanggil callback itu saat sertifikat tidak bisa diautentikasi oleh akar tepercaya mana pun. Bila callback mengembalikan `true`, koneksi aman diterima, dan bila nilainya `null`, sertifikat ditolak ([dokumentasi API Dart 3.13.7](https://api.dart.dev/stable/dart-io/HttpClient/badCertificateCallback.html), dibuka 2026-10-27, Tidak dijalankan).",
+  "Menurut dokumentasi Dart, callback itu menentukan nasib sertifikat yang tidak bisa diautentikasi oleh akar tepercaya mana pun. Bila callback mengembalikan `true`, koneksi aman diterima, dan bila nilainya `null`, sertifikat ditolak ([dokumentasi API Dart 3.13.7](https://api.dart.dev/stable/dart-io/HttpClient/badCertificateCallback.html), dibuka 2026-10-27, Tidak dijalankan).",
   "**Dengan flag, hotspot membaca token.** Client yang membawa flag menerima sertifikat tiruan. Callback dipanggil 1 kali, dan hotspot membaca header Authorization yang sama dengan token Budi:",
   "<Snippet file=\"labs/t3-mitm/output/m26.txt\" lines=\"87:91\" title=\"Rekaman lab: labs/t3-mitm/output/m26.txt baris 87 sampai 91 (bagian E, app dengan flag membuka saldo lewat hotspot)\" />",
   "**Dimas memakai token itu.** Tanpa app Budi dan tanpa password, Dimas mengirim transfer dengan token yang terbaca. Rekaman memerankan laptopnya dengan curl langsung ke server. Server menjawab 201 dan mencatat satu jurnal dengan dua posting yang berjumlah nol:",
@@ -811,8 +813,9 @@ const KALIMAT_TERKUNCI: string[] = [
   "<Snippet file=\"labs/t3-mitm/output/m26.txt\" lines=\"108:112\" title=\"Rekaman lab: labs/t3-mitm/output/m26.txt baris 108 sampai 112 (bagian E, riwayat Budi)\" />",
   "**Hotspot juga bisa mengubah transfer Budi.** Hotspot yang sama bisa mengubah transfer yang sedang lewat. Di bagian C, hotspot lab diberi aturan: transfer Rp10.000 ke Citra diganti menjadi Rp150.000 ke Dimas. Request yang sampai ke server memuat nominal dan tujuan yang sudah diubah:",
   "<Snippet file=\"labs/t3-mitm/output/m26.txt\" lines=\"49:64\" title=\"Rekaman lab: labs/t3-mitm/output/m26.txt baris 49 sampai 64 (bagian C, hotspot mengubah transfer dan isi database)\" />",
-  "**Server tidak punya alasan menolak.** Pada kedua jalur server menjawab 201. Pemeriksaan token di api-t3 hanya menerima token, mencari hash-nya di tabel sesi, dan mengembalikan akun, jenis sesi, dan hash CSRF. Objek sesi itu tidak memuat alamat atau perangkat pengirim. Pemeriksaan itu tidak membedakan laptop Dimas dari HP Budi (dibaca dari kode lab, Tidak dijalankan di halaman ini).",
-  "**Dugaan password bocor tidak diperlukan.** Bagian E tidak memuat permintaan login. Dimas hanya mengirim token. Password ikut terbaca bila Budi login lewat hotspot itu, karena hotspot membaca body request (penalaran; lab tidak merekam login lewat hotspot).",
+  "**Pemeriksaan token tidak membedakan Dimas dari Budi.** Pada kedua jalur server menjawab 201. Pemeriksaan token di api-t3 hanya menerima token, mencari hash-nya di tabel sesi, dan mengembalikan akun, jenis sesi, dan hash CSRF.",
+  "Objek sesi itu tidak memuat alamat atau perangkat pengirim. Karena itu pemeriksaan tidak membedakan laptop Dimas dari HP Budi (dibaca dari kode lab, Tidak dijalankan di halaman ini).",
+  "**Dimas tidak memerlukan password.** Bagian E tidak memuat permintaan login. Dimas hanya mengirim token. Password ikut terbaca bila Budi login lewat hotspot itu, karena hotspot membaca body request (penalaran; lab tidak merekam login lewat hotspot).",
   "**Token berguna sampai sesinya habis.** Sesi api-t3 berlaku 8 jam secara bawaan, sama dengan yang ditulis [[B5.1]] (dibaca dari kode lab, Tidak dijalankan di bagian ini). Berapa lama token sebaiknya berlaku dibahas di [[t3-tls-pinning]].",
   "**Validasi yang aktif belum cukup.** Menghapus flag perlu, tetapi bukan seluruh jawabannya. Di bagian D validasi tetap aktif, tetapi CA Dimas ada di daftar akar app:",
   "<Snippet file=\"labs/t3-mitm/output/m26.txt\" lines=\"68:74\" title=\"Rekaman lab: labs/t3-mitm/output/m26.txt baris 68 sampai 74 (bagian D, CA Dimas ada di daftar akar)\" />",
