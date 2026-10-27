@@ -1973,7 +1973,7 @@
   "judul": "3.21 Offline-first dan sinkron + ADR 29",
   "url": "tahap-3/offline-first/",
   "tanya": "Operasi bakso belum pernah sampai dan tiba hari Senin. Apa yang menolaknya, kunci atau versi, dan apa isi jawabannya?",
-  "jawab": "Versi. Kuncinya tidak dikenal server, tetapi versi dasar 1 sudah lewat karena dasbor mengisi bakso hari Sabtu. Jawabannya 409 dengan stok 30 dan versi 2, dan tidak ada yang berubah (`versi.txt` bagian C)."
+  "jawab": "Versi. Kuncinya tidak dikenal server, tetapi versi dasar 1 sudah lewat karena dasbor mengisi bakso hari Sabtu. Jawabannya 409 dengan stok 30 dan versi 2, dan produk tidak berubah (`versi.txt` bagian C)."
  },
  {
   "id": "t3-offline-2",

@@ -19,7 +19,7 @@
     {
       "teks": "Menjawab 409, stok tetap 30, dan jawabannya memuat stok 30 dan versi 2.",
       "benar": true,
-      "alasan": "versi.txt bagian C: kunci tidak dikenal, tetapi versi dasar 1 sudah lewat karena dasbor mengisi bakso hari Sabtu. Server tidak mengubah apa pun dan mengirim keadaan terkini supaya Ani memilih."
+      "alasan": "versi.txt bagian C: kunci tidak dikenal, tetapi versi dasar 1 sudah lewat karena dasbor mengisi bakso hari Sabtu. Server tidak mengubah produk dan mengirim keadaan terkini supaya Ani memilih."
     },
     {
       "teks": "Menjawab 422, karena operasinya lebih tua dari 24 jam.",

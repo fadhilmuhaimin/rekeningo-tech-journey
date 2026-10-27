@@ -20,7 +20,7 @@ Operasi yang menunggu di HP membawa kunci dan versi: kunci mengenali kiriman ula
 
 <Rantai data={intiDiagram} ringkas />
 
-Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `versi.txt` bagian C, HP Ani online lagi hari Senin, 62 jam sesudah Jumat. Operasi soto dikirim ulang dengan kunci yang sama dan dikenali: jawabannya `ulang: true`, dan stok 30 dari hari Sabtu utuh. Operasi bakso belum pernah sampai, jadi kuncinya tidak dikenal, tetapi versi dasar 1 sudah lewat. Server menjawab 409 dengan stok 30 dan versi 2, dan tidak mengubah apa pun.
+Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `versi.txt` bagian C, HP Ani online lagi hari Senin, 62 jam sesudah Jumat. Operasi soto dikirim ulang dengan kunci yang sama dan dikenali: jawabannya `ulang: true`, dan stok 30 dari hari Sabtu utuh. Operasi bakso belum pernah sampai, jadi kuncinya tidak dikenal, tetapi versi dasar 1 sudah lewat. Server menjawab 409 dengan stok 30 dan versi 2: produk tidak berubah, dan operasi itu hanya dicatat sebagai konflik.
 
 Jalur lama tanpa versi merekam kebalikannya. Di `m24.txt` bagian D, kunci sudah kedaluwarsa sesudah 24 jam, jadi `stok = 0` diterapkan di atas stok 30 dan jawabannya 200. Waktu di lab diperankan (Ilustrasi mekanisme), dan HP diperankan curl, jadi queue lokal dan layar konflik di app Tidak dijalankan.
 
@@ -76,7 +76,7 @@ Kata conflict dan versioning tidak ada di halaman itu, jadi aturan yang menentuk
 | Kejadian | Jawaban server | Penjaga | Sumber |
 |---|---|---|---|
 | HP mengirim ulang dengan kunci yang sama sesudah jawaban hilang | 200 dengan `ulang: true`, stok tidak berubah | Kunci sinkron | `versi.txt` bagian C (soto); `sinkron14.txt` bagian A |
-| Operasi belum pernah sampai dan tiba sesudah stok berubah | 409 dengan keadaan terkini, tidak ada yang berubah | Versi dasar | `versi.txt` bagian C (bakso) |
+| Operasi belum pernah sampai dan tiba sesudah stok berubah | 409 dengan keadaan terkini, produk tidak berubah | Versi dasar | `versi.txt` bagian C (bakso) |
 | Tab dasbor di laptop masih menampilkan angka lama | 409 dengan keadaan terkini | Versi di `PATCH /produk/{id}` | `versi.txt` bagian B |
 | Operasi lebih tua dari 7 hari | 422, tidak ada baris yang dicatat | Umur queue | `sinkron14.txt` bagian B dan D |
 | Kunci yang sama dengan isi lain, atau milik akun lain | 422 | Perbandingan isi kunci | `sinkron14.txt` bagian C |
@@ -218,7 +218,7 @@ Bedanya, pembandingnya waktu pull terakhir client, bukan versi per baris. Dokume
 **Keputusan: opsi E.** Tujuh aturan:
 
 1. Hanya stok dan harga yang lewat `POST /sinkron`. Jenis bayar, transfer, dan topup ditolak 422 apa pun isinya, dan pembayaran tidak pernah offline (`sinkron14.txt` bagian E).
-2. Perubahan stok dan harga bersyarat versi: `UPDATE ... WHERE versi = ...` menaikkan versi satu. Versi yang berbeda tidak mengubah apa pun dan dijawab 409 dengan keadaan terkini, di `PATCH /produk/{id}` dan `POST /sinkron` (`versi.txt` bagian B dan C).
+2. Perubahan stok dan harga bersyarat versi: `UPDATE ... WHERE versi = ...` menaikkan versi satu. Versi yang berbeda tidak mengubah produk dan dijawab 409 dengan keadaan terkini, di `PATCH /produk/{id}` dan `POST /sinkron` (`versi.txt` bagian B dan C).
 3. HP membuat kunci operasi saat Ani mengubah data, bukan saat mengirim, dan memakai kunci yang sama di setiap pengiriman ulang. Kunci berupa UUID acak. Lab memakai string tetap supaya rekaman identik, dan perilaku app Tidak dijalankan.
 4. Kunci sinkron hidup 14 hari dan queue paling lama 7 hari, keduanya dihitung dari `dibuat_di_hp` (pilihan naskah, Asumsi). Timestamp lebih dari sehari di depan jam server ditolak.
 5. Jawaban 409 membawa `sekarang`, dan app menawarkan dua pilihan. Pilihan pertama memakai angka server dan membuang operasi dari queue lokal. Pilihan kedua mengirim operasi baru dengan kunci baru dan versi dasar dari `sekarang` (`versi.txt` bagian D). Layar konflik Tidak dijalankan.
@@ -275,7 +275,7 @@ Bagi Rekeningo, kasus ini memperlihatkan dua bentuk last-write-wins. Dengan urut
 <details class="success">
 <summary>Jawaban</summary>
 
-Versi. Kuncinya tidak dikenal server, tetapi versi dasar 1 sudah lewat karena dasbor mengisi bakso hari Sabtu. Jawabannya 409 dengan stok 30 dan versi 2, dan tidak ada yang berubah (`versi.txt` bagian C).
+Versi. Kuncinya tidak dikenal server, tetapi versi dasar 1 sudah lewat karena dasbor mengisi bakso hari Sabtu. Jawabannya 409 dengan stok 30 dan versi 2, dan produk tidak berubah (`versi.txt` bagian C).
 
 </details>
 
