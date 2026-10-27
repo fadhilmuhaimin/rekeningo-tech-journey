@@ -1678,56 +1678,56 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### 3.16 · M22: Batas login jadi dua kali lipat
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.15, lab-t3-instance, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Masalah 3.16 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M22) dan peta halaman Tahap 3; rekaman dari `labs/t3-instance`; widget ember; yang berlipat adalah penahan per IP di memori, bukan kunci akun di database (keputusan 877, 550); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: - Selesai 2026-10-27 di PR #386 (keputusan 1060–1063): m22-batas-login-dua-kali.mdx + widget BatasInstance (island PertahananLogin), penjaga 39+16 tes; peninjau memperbaiki klaim password dibandingkan lima kali dan komentar lab di Snippet.
 
 ### 3.17 · Rate limit lintas instance dan Redis + ADR 27
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.16, lab-t3-instance, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Konsep + ADR 3.17 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 27 (menyerap C4 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-instance`; widget ember; ADR 27 dengan opsi counter di PostgreSQL, sticky session, batas dibagi N; bagian brute force tidak diulang (sudah di 2.28); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Halaman lama C4 dilebur ke sini. Lisensi Redis 8 dan Valkey hanya dicatat di PERLU-DICEK-PEMILIK (R3-10).
+- catatan: Halaman lama C4 dilebur ke sini. Lisensi Redis 8 dan Valkey hanya dicatat di PERLU-DICEK-PEMILIK (R3-10). Selesai 2026-10-27 di PR #385 (keputusan 1064–1067): rate-limit-redis.mdx, ADR 27, C4 dilebur, widget alur t3-batas-redis, penjaga 75 mutasi; peninjau memperbaiki urutan Redis mati dan klaim satu key per alamat.
 
 ### 3.18 · M23: Dua harga di satu meja
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.17, lab-t3-cache, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Masalah 3.18 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M23) dan peta halaman Tahap 3; rekaman dari `labs/t3-cache`; widget alur; cache memori proses dua instance tetap basi sampai TTL habis; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: - Selesai 2026-10-27 di PR #389 (keputusan 1068–1071): M23 dua harga, alur dari memori.txt dan redis.txt; peninjau menemukan bug komponen alur (jawaban tebakan di jalur varian; diperbaiki #394).
 
 ### 3.19 · Cache dan invalidation + ADR 28
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.18, W3-cache, lab-t3-cache, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Konsep + ADR 3.19 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 28 (menyerap B9 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-cache`; widget W3-cache; ADR 28 jujur bahwa beban tidak memaksa cache dan "tanpa cache" tetap opsi sah; kasus Facebook 2010 (R3-25); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Halaman lama B9 dilebur ke sini. Promo yang mulai di jam tertentu tidak punya tulis saat mulai: tulis di ADR (SETELAH-TAHAP-3).
+- catatan: Halaman lama B9 dilebur ke sini. Promo yang mulai di jam tertentu tidak punya tulis saat mulai: tulis di ADR (SETELAH-TAHAP-3). Selesai 2026-10-27 di PR #391 (keputusan 1072–1075): cache-invalidation.mdx, ADR 28 Redis bersama, widget CacheInvalidation, B9 dilebur, penjaga 45+8 tes; peninjau memperbaiki petunjuk Coba dan aturan 6.
 
 ### 3.20 · M24: Stok yang kembali ke angka lama
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.19, lab-t3-offline, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Masalah 3.20 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M24) dan peta halaman Tahap 3; rekaman dari `labs/t3-offline`; widget alur; offline akhir pekan 62 jam lawan key 24 jam (Asumsi, jam diperankan); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: - Selesai 2026-10-27 di PR #390 (keputusan 1076–1079): m24-stok-kembali.mdx, alur t3-m24, penjaga 46 tes; peninjau memperbaiki kalimat hanya menerima stok 0 dan jam bilah status.
 
 ### 3.21 · Offline-first dan sinkron + ADR 29
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.20, lab-t3-offline, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Konsep + ADR 3.21 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 29 (menyerap E2 lama) dan peta halaman Tahap 3; rekaman dari `labs/t3-offline`; widget tebak; ADR 29 dengan opsi key 7 hari semua endpoint, last-write-wins, CRDT, queue pembayaran offline; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Halaman lama E2 dilebur ke sini. Bukan ★ di naskah.
+- catatan: Halaman lama E2 dilebur ke sini. Bukan ★ di naskah. Selesai 2026-10-27 di PR #393 (keputusan 1080–1083): offline-first.mdx, ADR 29 lima opsi, E2 dilebur, tab enam stack mobile, penjaga EXPECT unit demi unit; peninjau memperbaiki hari Jumat dan Sabtu, 409 mencatat konflik, dan atribusi dokumentasi.
 
 ### 3.22 · M25: Kotak peringatan di riwayat Ani
 
@@ -1880,11 +1880,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan ole
 ### lab-api-t4 · Lab api-t4: api-t3 naik ke publik
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: T4-siap
 - selesai bila: Lab baru `labs/api-t4` (Go, `make -C labs/api-t4 run`) berangkat dari `labs/api-t3` dan menambah semua tabel naskah bagian 3b lewat migrasi baru di atas migrasi terakhir api-t3: delapan tabel baru (`topup_bank`, `webhook_event`, `insiden_rekon`, `verifikasi`, `qr`, `kartu`, `otorisasi_kartu`, `audit_log`) dan kolom baru (`akun.tingkat`, `akun.status`, nilai jenis `pemakai`, `merchant`, dan `risk` di `akun.jenis`, `outbox.tujuan`, `produk.gambar_url`), jadi 22 tabel; kolom persis mengikuti skema lab, selisih dengan blok mermaid naskah dicatat (lab yang benar); pembagian schema per modul mengikuti tabel "Modul (schema)" bagian 3b sebagai rancangan yang dibuktikan `t4-modul`. Fitur: top-up dari bank (buat top-up di gateway tiruan dengan kunci, tujuan bayar, status menunggu sampai dibayar, webhook masuk versi pertama dan versi ADR 34 lewat mode, cek status, laporan settlement), verifikasi identitas (unggah, pekerjaan di `outbox` dengan `tujuan`, layanan verifikasi tiruan, tingkat akun dan batas saldo Rp1.000.000 dan Rp10.000.000 sebagai Asumsi produk), merchant luar dan QR, kartu virtual dan penerbit tiruan, audit log, dan endpoint back office. Versi satu proses (minggu 3 naskah): pembayaran memanggil ledger sebagai fungsi; pemisahan service ada di `t4-modul`. Jalur uang tetap satu-satunya tempat uang bergerak (ledger, ADR 6 revisi) dan tidak memanggil jaringan di dalam transaction (ADR 22); Idempotency-Key ke ledger `order_id` (top-up) dan `id_penerbit` (otorisasi). Mode rentan seperti `api-t3` (handler webhook versi pertama untuk M29, unduh gambar rentan untuk M36, otorisasi tanpa hold untuk M37) supaya lab turunan berbagi lab ini. Batas laju untuk endpoint publik baru (daftar, verifikasi, top-up) dan untuk `/perangkat`, `/pesanan`, `/promo`, `/sinkron` yang belum punya (README api-t3, "Yang belum ada di lab ini"). Target `make beban` (melipat lab `t4-beban`, keputusan 1207): generator beban berjadwal kedatangan tetap 138,9 request per detik (20.000 aktif × 60 ÷ 86.400 × 10), merekam koneksi terpakai (`pg_stat_activity`) terhadap pool dan p95 sebagai batas, bukan nilai tunggal, dan kapasitas worker 4 ÷ 0,3 detik = 13,3 per detik terukur dalam 15%; pengumuman ke 100.000 HP diskalakan lalu diekstrapolasi, bukan dijalankan; kapasitas produksi tidak diklaim. Rekaman minimal: top-up bank (alur normal dan gateway gagal), verifikasi sampai tingkat akun naik, batas laju, dan beban. Tes Go untuk aturan uang, outbox, dan tingkat verifikasi dari PostgreSQL; kontrak OpenAPI v4 untuk endpoint baru (sumber `t4-pipeline`). Aturan lab (`plan/BRIEF-HALAMAN.md` bagian Tugas lab dan widget): schema sendiri di PostgreSQL bersama, `make -C labs/api-t4 run`, gagal keras bila hasil berbeda dari pernyataan naskah (bila lab membantah naskah, naskah yang berubah lewat KONSISTENSI-4 dan halaman memakai rekaman); rekaman `output/*.txt` dari database bersih, diulang identik (status, saldo, urutan; angka mesin sebagai batas yang diperiksa; kepala rekaman menulis versi alat); port dan nama kontainer lewat `labs/lab_env.*` (keputusan 860–864), tanpa 54333 tertulis tetap (`tools/cek_port_lab.py`); pihak ketiga tiruan lokal di container; uji mutasi atas kode uang dan keamanan (tes atau lab gagal karena sebab yang diuji, bukan koneksi mati); klaim dari dokumentasi diberi versi dan tanggal, dan yang tidak terbukti ditulis Tidak dijalankan atau [perlu verifikasi] di README dan rekaman.
-- catatan: Jalur lab. Sumber `ERD4`, `lab-t4-*`, dan halaman 4.3, 4.5, 4.26, 4.27, 4.28. Versi dasar R4-01 (PostgreSQL 17.11, Go 1.27.3, pgx v5.11.0, Redis pin Tahap 3 8.10.2 lawan 8.10.3 terbaru menurut tinjauan PR #379) dicek ulang saat lab ditulis. Lab lama `b10-2-webhook`, `b11-integrasi`, `b11-2-proxy`, `b7-2-modul`, `b5-2-oidc` hanya bahan (skema lama), bukan dasar angka. Pembagian schema per modul (6 schema) bentuk akhirnya ditetapkan `t4-modul`; bila berbeda, tulis selisihnya di badan PR dan KONSISTENSI-4 menyelaraskan naskah dan `ERD4`. ALOKASI: keputusan 1210–1213 (1210–1212 pelaksana, 1213 peninjau), ID riset R4-300 sampai R4-304.
+- catatan: Jalur lab. Sumber `ERD4`, `lab-t4-*`, dan halaman 4.3, 4.5, 4.26, 4.27, 4.28. Versi dasar R4-01 (PostgreSQL 17.11, Go 1.27.3, pgx v5.11.0, Redis pin Tahap 3 8.10.2 lawan 8.10.3 terbaru menurut tinjauan PR #379) dicek ulang saat lab ditulis. Lab lama `b10-2-webhook`, `b11-integrasi`, `b11-2-proxy`, `b7-2-modul`, `b5-2-oidc` hanya bahan (skema lama), bukan dasar angka. Pembagian schema per modul (6 schema) bentuk akhirnya ditetapkan `t4-modul`; bila berbeda, tulis selisihnya di badan PR dan KONSISTENSI-4 menyelaraskan naskah dan `ERD4`. ALOKASI: keputusan 1210–1213 (1210–1212 pelaksana, 1213 peninjau), ID riset R4-300 sampai R4-304. Selesai 2026-10-27 di PR #392 (keputusan 1210–1213): labs/api-t4 22 tabel, webhook ADR 34 tiga lapis, verifikasi, merchant+QR, kartu, audit berantai, make beban; peninjau memperbaiki deadlock jalur kartu (urutan lock) dan flake pg_stat_activity.
 
 ### lab-t4-webhook · Lab t4-webhook: gateway tiruan, webhook ganda, dan rekonsiliasi
 

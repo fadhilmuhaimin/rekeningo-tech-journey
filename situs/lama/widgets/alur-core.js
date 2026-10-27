@@ -6,7 +6,8 @@
  *   komponen:  [{ id, label, lapisan?: ["handler", ...] }]
  *   perangkat: [{ id, label }]                  (opsional; bawaan satu perangkat "hp")
  *   layarAwal: { <id perangkat>: Layar }        (format Layar: hp.js)
- *   predict?:  { q, options, answer, explain, varian? }
+ *   predict?:  { q, options, answer, explain, varian? }  (varian: true bila pertanyaannya tentang jalur varian;
+ *              selain itu tentang jalur utama. Jawabannya hanya dibuka di akhir jalur yang ditanyakan: jalurTebakan)
  *   langkah:   [{ dari, ke?, lapisan?, judul, kirim, jelas, nada?, layar?: { <id perangkat>: Layar } }]
  *   varian?:   { label, mulai, langkah: [...] }  (ganti ekor jalur sejak indeks mulai)
  * Format v1 (a2-alur.json lama) diterjemahkan oleh normalize(): jalur → komponen k0..kN,
@@ -58,6 +59,17 @@
   function steps(d, varianOn) {
     if (!varianOn || !d.varian) return d.langkah.slice();
     return d.langkah.slice(0, d.varian.mulai).concat(d.varian.langkah);
+  }
+
+  // Jalur yang ditanyakan tebakan: "varian" bila predict.varian benar, selain itu "utama". Jawaban tebakan
+  // membicarakan jalur itu, jadi ia tidak boleh muncul di akhir jalur yang lain: di akhir varian, "Tebakanmu benar"
+  // beserta penjelasan jalur utama bertentangan dengan layar dan langkah varian di atasnya.
+  function jalurTebakan(d) { return d.predict && d.predict.varian ? "varian" : "utama"; }
+
+  // Apakah jawaban tebakan dibuka sekarang: ada tebakan, pembaca di langkah terakhir (i langkah sudah dibuka dari
+  // `panjang`), dan jalur yang sedang dibaca (varianOn) adalah jalur yang ditanyakan.
+  function bukaJawaban(d, varianOn, i, panjang) {
+    return !!d.predict && i === panjang && jalurTebakan(d) === (varianOn ? "varian" : "utama");
   }
 
   // Layar perangkat yang berlaku setelah langkah ke-i (0-based): layar terakhir yang ditetapkan, atau layar awal.
@@ -161,7 +173,7 @@
   }
 
   var api = { normalize: normalize, validate: validate, steps: steps, layarAt: layarAt,
-    packetPos: packetPos, sisiAsal: sisiAsal, pemilikLapisan: pemilikLapisan, indexOf: indexOf, MAKS_LANGKAH: MAKS_LANGKAH };
+    jalurTebakan: jalurTebakan, bukaJawaban: bukaJawaban, packetPos: packetPos, sisiAsal: sisiAsal, pemilikLapisan: pemilikLapisan, indexOf: indexOf, MAKS_LANGKAH: MAKS_LANGKAH };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else (root.BB = root.BB || {}).alurCore = api;
 })(this);

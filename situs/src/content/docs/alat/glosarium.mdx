@@ -58,6 +58,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **COMMIT** | Perintah yang membuat semua perubahan dalam transaction menjadi permanen dan terlihat oleh koneksi lain. | [[B3.1]] |
 | **Connection pool** | Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request. | [[t3-pool]] |
 | **Container** | Paket aplikasi beserta semua dependensinya yang berjalan dengan cara sama di laptop maupun server. | [[C3]] |
+| **CRDT** (Conflict-free Replicated Data Type) | Jenis data yang dirancang supaya perubahan dari beberapa salinan yang boleh berbeda sementara bisa digabung otomatis. | [[t3-offline]] |
 | **Credential stuffing** | Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama. | [[t2-m16]] |
 | **CSP** (Content Security Policy) | Header respons yang memberi tahu browser sumber skrip dan sumber lain mana yang boleh dipakai halaman, sehingga skrip yang tidak dikenal ditolak. | [[t3-xss-csrf]] |
 | **CSRF** (cross-site request forgery) | Serangan yang membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim. | [[t3-xss-csrf]] |
@@ -93,6 +94,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **JWT** (JSON Web Token) | Token berisi data JSON plus signature, sehingga server bisa memeriksa keasliannya tanpa query ke database. | [[B5.1]] |
 | **Kredit** | Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit. | [[t2-ledger]] |
 | **Kunci akun** | Penolakan login sementara pada satu akun sesudah beberapa kali gagal berturut-turut, yang menahan penebak tetapi juga pemilik akun yang sebenarnya. | [[t2-m16]] |
+| **Last-write-wins** | Aturan konflik: dari beberapa perubahan pada hal yang sama, yang tersimpan paling akhir menang dan yang lain dibuang. | [[t3-offline]] |
 | **Latency** | Lama waktu satu request dari dikirim sampai response diterima. | [[t3-observability]] |
 | **Lazy loading** | Memuat data berelasi baru saat kode pertama kali mengaksesnya, dengan satu query setiap akses. | [[t2-n-plus-1]] |
 | **Lease** | Batas waktu satu pekerjaan di queue dipegang satu worker. Kalau worker mati sebelum selesai, pekerjaan diberikan ke worker lain setelah lease habis. | [[B10.1]] |
@@ -115,7 +117,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Nonrepeatable read** | Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan. | [[t2-isolation-level]] |
 | **OAuth 2.0** | Standar untuk memberi aplikasi akses terbatas ke akun user di layanan lain tanpa memberikan password. | [[B5.2]] |
 | **Object storage** | Layanan penyimpanan file besar per objek, diakses lewat HTTP, mis. layanan kompatibel S3. | [[B11.2]] |
-| **Offline-first** | Desain app yang menyimpan perubahan di HP dulu, lalu menyinkronkannya ke server saat sinyal ada. | [[E2]] |
+| **Offline-first** | Desain app yang menyimpan perubahan di HP dulu, lalu menyinkronkannya ke server saat sinyal ada. | [[t3-offline]] |
 | **OIDC** (OpenID Connect) | Lapisan di atas OAuth 2.0 untuk login, yang memberi tahu aplikasi siapa user-nya. | [[B5.2]] |
 | **OpenAPI** | Format standar untuk menulis kontrak API (endpoint, request, response) yang bisa dibaca manusia dan mesin. | [[B1.4]] |
 | **Optimistic lock** | Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca. | [[t2-race-lock]] |

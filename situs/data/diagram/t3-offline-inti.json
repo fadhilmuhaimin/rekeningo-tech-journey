@@ -1,0 +1,29 @@
+{
+  "id": "t3-offline-inti",
+  "judul": "Dua operasi lama sampai Senin, stok 30 utuh",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t3-offline, versi.txt bagian C; waktu diperankan"
+  },
+  "baris": [
+    {
+      "label": "Soto",
+      "sub": "dikirim Jumat, jawabannya hilang",
+      "simpul": [
+        { "teks": "kirim ulang", "sub": "kunci yang sama" },
+        { "teks": "kunci dikenali", "sub": "ulang true", "nada": "good" },
+        { "teks": "stok 30 utuh", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Bakso",
+      "sub": "tidak pernah sampai",
+      "simpul": [
+        { "teks": "kirim pertama", "sub": "versi dasar 1" },
+        { "teks": "versi sudah 2", "sub": "kunci tidak dikenal", "nada": "warn" },
+        { "teks": "409, stok 30 utuh", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah titik yang menolak operasi. HP diperankan curl dan waktu diperankan di lab, jadi queue lokal dan layar konflik di app Tidak dijalankan."
+}
