@@ -2208,6 +2208,38 @@
   "jawab": "Tes yang butuh keduanya dilewati, dan tes yang dilewati bukan tes yang gagal. Di `testing.txt` bagian B semua paket lolos dengan exit 0. Dengan `TES_DB_WAJIB=1` dan `TES_REDIS_WAJIB=1`, bagian C gagal dengan exit 1."
  },
  {
+  "id": "t3-estimasi-1",
+  "halaman": "t3-estimasi",
+  "judul": "3.29 Estimasi Tahap 3 → 4",
+  "url": "tahap-3/estimasi/",
+  "tanya": "Puncak request diperkirakan naik 10 kali karena user naik 10 kali. Pengali mana yang membuatnya 8 kali?",
+  "jawab": "User aktif turun dari 25% ke 20% (× 0,8), dan request per user aktif tetap 60. Hasil kalinya 10 × (20 ÷ 25) × (60 ÷ 60) = 8, jadi puncak naik dari 17,4 ke 138,9 request per detik."
+ },
+ {
+  "id": "t3-estimasi-2",
+  "halaman": "t3-estimasi",
+  "judul": "3.29 Estimasi Tahap 3 → 4",
+  "url": "tahap-3/estimasi/",
+  "tanya": "Pemakaian worker naik dari 6,5% ke 56%, lebih dari 8 kali. Dari mana tambahannya?",
+  "jawab": "Notifikasi uang naik 8,7 kali, bukan 8 kali, karena top-up dari bank ikut ditambahkan: 6,94 + 0,579 = 7,52 per detik. Dibagi kapasitas 13,33 per detik, hasilnya 56%. Tahap 3 menghitung bayar dan transfer saja: 0,868 ÷ 13,33 = 6,5%."
+ },
+ {
+  "id": "t3-estimasi-3",
+  "halaman": "t3-estimasi",
+  "judul": "3.29 Estimasi Tahap 3 → 4",
+  "url": "tahap-3/estimasi/",
+  "tanya": "Gateway bank dipanggil 0,579 kali per detik, dan koneksi dipegang sampai ia menjawab. Berapa detik gateway menggantung sampai pool 10 penuh, dan kenapa λ sekecil itu tetap berbahaya?",
+  "jawab": "Pool penuh pada 10 ÷ 0,579 = 17,3 detik bila gateway tidak pernah menjawab dan client terus menunggu. Dengan W 30 detik, L = 0,579 × 30 = 17,4 koneksi. Yang menahan koneksi adalah lamanya, bukan banyaknya: dengan timeout 3 detik, L hanya 1,74."
+ },
+ {
+  "id": "t3-estimasi-4",
+  "halaman": "t3-estimasi",
+  "judul": "3.29 Estimasi Tahap 3 → 4",
+  "url": "tahap-3/estimasi/",
+  "tanya": "File hasil verifikasi identitas mencapai 365 GB per tahun, sedangkan posting 10,95 GB. Apakah itu masalah jumlah request?",
+  "jawab": "Bukan. Lajunya hanya 0,231 unggahan per detik di puncak, atau 116 KB per detik. Yang berubah adalah ukuran: 365 ÷ 10,95 = 33 kali posting. Itu keputusan tentang tempat menyimpan file, dan dibahas di Tahap 4."
+ },
+ {
   "id": "t3-adr-33-1",
   "halaman": "t3-adr-33",
   "judul": "3.30 ADR 33: Sengaja belum dilakukan",
