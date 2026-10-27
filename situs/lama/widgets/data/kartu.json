@@ -1989,7 +1989,7 @@
   "judul": "3.21 Offline-first dan sinkron + ADR 29",
   "url": "tahap-3/offline-first/",
   "tanya": "Pembayaran dikirim ulang dengan key yang sama 62 jam kemudian. Kenapa pembayaran tidak boleh lewat sinkron?",
-  "jawab": "Key sudah lewat 24 jam, jadi server mengerjakan ulangan itu sebagai pembayaran baru. Di `kunci24.txt` bagian E, tiga permintaan hari Sabtu dikerjakan lagi hari Senin. Riwayat Budi mendapat tiga jurnal baru: Rp28.000, Rp10.000, dan Rp25.000. `/sinkron` menolak bayar, transfer, dan topup dengan 422."
+  "jawab": "Key sudah lewat 24 jam, jadi server mengerjakan ulangan itu sebagai pembayaran baru. Di `kunci24.txt` bagian E, tiga permintaan dari hari Jumat dan Sabtu dikerjakan lagi hari Senin. Riwayat Budi mendapat tiga jurnal baru: Rp28.000, Rp10.000, dan Rp25.000. `/sinkron` menolak bayar, transfer, dan topup dengan 422."
  },
  {
   "id": "t3-offline-4",
