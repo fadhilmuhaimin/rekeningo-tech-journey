@@ -1,0 +1,138 @@
+# Lab t4-integrasi · vendor mati: dead-letter lawan lajur dan breaker
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema t4_integrasi · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-integrasi run.
+
+# --- A. Tanpa lajur dan tanpa breaker (ADR 25 apa adanya): vendor mati, 10 pendaftar masuk, semua pekerjaan habis sebelum vendor pulih ---
+# server: ./api-t4 -lab; layanan verifikasi tiruan: ./tiruan -peran verifikasi, mode mati (503 untuk semua permintaan)
+# 10 pendaftar mengajukan verifikasi: 10 baris verifikasi dan 10 pekerjaan di outbox (lajur verifikasi)
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | jumlah
+----------+-----------+--------
+ menunggu | 0         | 10
+(1 row)
+# worker: kapasitas 1, lima percobaan, tanpa backoff (waktu diperankan: backoff produksi 2 detik sampai 60 detik tidak ditunggu, dan pekerjaan yang gagal langsung diklaim lagi)
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status | percobaan | jumlah
+--------+-----------+--------
+ mati   | 5         | 10
+(1 row)
+=> SELECT status, count(*) AS jumlah FROM verifikasi GROUP BY status ORDER BY status
+ status | jumlah
+--------+--------
+ gagal  | 10
+(1 row)
+# vendor mati: 50 permintaan masuk, 0 objek dibuat (kunci berbeda = objek berbeda)
+# Vendor pulih. Pekerjaan yang sudah dead-letter tidak diklaim lagi dan tidak ada yang mengantrekannya ulang:
+$ ./api-t4 -peran worker -sekali -serentak 1 -backoff 0s -maks-percobaan 5
+worker: diklaim 0, terkirim 0, dilewati 0, ditunda 0, mati 0
+=> SELECT tingkat, count(*) AS jumlah FROM akun WHERE id BETWEEN 40003 AND 40012 GROUP BY tingkat
+ tingkat | jumlah
+---------+--------
+ belum   | 10
+(1 row)
+
+# --- B. Dengan breaker per lajur: vendor mati, 10 pendaftar masuk, lajur dijeda, pekerjaan menunggu dan selesai sesudah vendor pulih ---
+# worker yang berputar terus: kapasitas 1, lima percobaan, tanpa backoff, breaker lajur verifikasi dengan Timeout 3 detik
+# (waktu diperankan: bawaan pustaka 60 detik diperiksa di breaker.txt; vendor mati beberapa detik menggantikan 3 jam 30 menit)
+$ ./api-t4 -peran worker -serentak 1 -backoff 0s -maks-percobaan 5 -selang 50ms -breaker -breaker-timeout 3s
+# Enam percobaan gagal berturut-turut membuka breaker. Pekerjaan pertama sudah memakai kelima percobaannya, pekerjaan kedua satu:
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | jumlah
+----------+-----------+--------
+ mati     | 5         | 1
+ menunggu | 0         | 8
+ menunggu | 1         | 1
+(3 rows)
+=> SELECT status, count(*) AS jumlah FROM verifikasi GROUP BY status ORDER BY status
+ status   | jumlah
+----------+--------
+ diajukan | 9
+ gagal    | 1
+(2 rows)
+# vendor mati, breaker terbuka: 6 permintaan masuk, 0 objek dibuat (kunci berbeda = objek berbeda)
+# Sesudah 0,5 detik (sepuluh putaran worker) lajur tetap dijeda: percobaan semua pekerjaan dan jumlah permintaan ke vendor sama persis dengan di atas.
+# Vendor pulih. Sesudah Timeout breaker setengah terbuka: satu permintaan percobaan lewat, sukses menutup breaker, sisanya diklaim:
+log: breaker verifikasi: closed -> open
+log: breaker verifikasi: open -> half-open
+log: breaker verifikasi: half-open -> closed
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | jumlah
+----------+-----------+--------
+ mati     | 5         | 1
+ terkirim | 1         | 8
+ terkirim | 2         | 1
+(3 rows)
+=> SELECT status, count(*) AS jumlah FROM verifikasi GROUP BY status ORDER BY status
+ status | jumlah
+--------+--------
+ gagal  | 1
+ lulus  | 9
+(2 rows)
+=> SELECT tingkat, count(*) AS jumlah FROM akun WHERE id BETWEEN 40003 AND 40012 GROUP BY tingkat ORDER BY tingkat
+ tingkat       | jumlah
+---------------+--------
+ belum         | 1
+ terverifikasi | 9
+(2 rows)
+# sesudah vendor pulih: 15 permintaan masuk, 9 objek dibuat (kunci berbeda = objek berbeda)
+# 9 dari 10 pendaftar lulus. Yang pertama sudah dead-letter sebelum breaker terbuka: ambang bawaan (lebih dari 5 gagal berturut-turut) lebih tinggi daripada batas percobaan satu pekerjaan (5).
+# Pekerjaan kedua: satu percobaan gagal saat vendor mati dan satu sukses (percobaan 2); sisanya satu percobaan sukses.
+
+# --- C. Breaker, banyak pekerjaan menunggu bersamaan dan kapasitas 4: tidak ada pekerjaan yang mati ---
+$ ./api-t4 -peran worker -serentak 4 -backoff 1ms -maks-percobaan 5 -selang 50ms -breaker -breaker-timeout 30s
+=> SELECT count(*) FILTER (WHERE status = 'mati') AS mati, max(percobaan) <= 2 AS paling_banyak_dua_percobaan, sum(percobaan) BETWEEN 6 AND 8 AS enam_sampai_delapan_percobaan FROM outbox WHERE tujuan = 'verifikasi'
+ mati | paling_banyak_dua_percobaan | enam_sampai_delapan_percobaan
+------+-----------------------------+-------------------------------
+ 0    | t                           | t
+(1 row)
+# diperiksa: tidak ada pekerjaan mati; percobaan terbanyak satu pekerjaan paling banyak 2; seluruh percobaan antara 6 dan 8 (batas, bukan nilai tunggal:
+# berapa permintaan yang sudah berangkat ke vendor ketika kegagalan keenam tercatat bergantung pada kecepatan mesin)
+# Worker baru (breaker baru, Timeout 300 ms), vendor sudah pulih: semua pekerjaan selesai.
+=> SELECT status, count(*) AS jumlah FROM verifikasi GROUP BY status ORDER BY status
+ status | jumlah
+--------+--------
+ lulus  | 8
+(1 row)
+
+# --- D. Dokumen rusak di depan antrean: 6 pengajuan ditolak vendor (422), lalu 4 pengajuan sehat; vendor sehat. IsSuccessful bawaan pustaka (4xx = gagal) ---
+=> UPDATE verifikasi SET checksum_kartu = 'buruk' WHERE id <= 6
+UPDATE 6
+# 6 pengajuan pertama membawa dokumen yang tidak terbaca: vendor menjawab 422 (vendor sehat, permintaannya yang salah). 4 pengajuan berikutnya sehat.
+$ ./api-t4 -peran worker -serentak 1 -backoff 0s -maks-percobaan 5 -selang 50ms -breaker -breaker-timeout 30s -breaker-bawaan
+# Enam jawaban 4xx berturut-turut membuka breaker; lajur dijeda dan 4 pengajuan sehat menunggu di belakang dokumen rusak:
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | jumlah
+----------+-----------+--------
+ mati     | 5         | 1
+ menunggu | 0         | 8
+ menunggu | 1         | 1
+(3 rows)
+=> SELECT status, count(*) AS jumlah FROM verifikasi GROUP BY status ORDER BY status
+ status   | jumlah
+----------+--------
+ diajukan | 9
+ gagal    | 1
+(2 rows)
+# vendor sehat: 6 permintaan masuk, 0 objek dibuat (kunci berbeda = objek berbeda)
+log breaker: breaker verifikasi: closed -> open
+
+# --- E. Dokumen rusak di depan antrean: 6 pengajuan ditolak vendor (422), lalu 4 pengajuan sehat; vendor sehat. IsSuccessful kustom (4xx = sukses, ADR 36) ---
+=> UPDATE verifikasi SET checksum_kartu = 'buruk' WHERE id <= 6
+UPDATE 6
+# 6 pengajuan pertama membawa dokumen yang tidak terbaca: vendor menjawab 422 (vendor sehat, permintaannya yang salah). 4 pengajuan berikutnya sehat.
+$ ./api-t4 -peran worker -serentak 1 -backoff 0s -maks-percobaan 5 -selang 50ms -breaker -breaker-timeout 30s
+# Jawaban 4xx dihitung sukses: breaker tidak pernah terbuka. Pengajuan sehat lulus; enam pengajuan rusak habis lima percobaan (4xx diulang walau tidak akan berubah):
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | jumlah
+----------+-----------+--------
+ mati     | 5         | 6
+ terkirim | 1         | 4
+(2 rows)
+=> SELECT status, count(*) AS jumlah FROM verifikasi GROUP BY status ORDER BY status
+ status | jumlah
+--------+--------
+ gagal  | 6
+ lulus  | 4
+(2 rows)
+# vendor sehat: 34 permintaan masuk, 4 objek dibuat (kunci berbeda = objek berbeda)
+log breaker: (tidak ada perpindahan status)

@@ -20,7 +20,13 @@ var (
 	ErrTidakPasti = errors.New("layanan verifikasi tidak menjawab: hasil tidak diketahui")
 	// ErrTidakTersedia: koneksi ditolak atau vendor menjawab 5xx. Pekerjaan dicoba lagi nanti.
 	ErrTidakTersedia = errors.New("layanan verifikasi tidak tersedia")
+	// ErrDitolakVendor: vendor menjawab 4xx. Vendor sehat, permintaannya yang salah; breaker tidak boleh menghitungnya
+	// sebagai kegagalan vendor (ADR 36).
+	ErrDitolakVendor = errors.New("vendor menolak permintaan")
 )
+
+// SalahPermintaan: error berasal dari jawaban 4xx vendor.
+func SalahPermintaan(err error) bool { return errors.Is(err, ErrDitolakVendor) }
 
 type Klien struct {
 	url  string
@@ -36,6 +42,9 @@ type Permintaan struct {
 	Referensi       string `json:"referensi"` // id internal; juga Idempotency-Key
 	ChecksumKartu   string `json:"checksum_kartu"`
 	ChecksumSwafoto string `json:"checksum_swafoto"`
+	// Kunci menggantikan Referensi sebagai Idempotency-Key bila diisi. Hanya mode rentan verifikasi-tanpa-key
+	// (retry bebas tanpa kunci, ADR 36 menolaknya) yang mengisinya; kode benar membiarkannya kosong.
+	Kunci string `json:"-"`
 }
 
 // Hasil: jawaban vendor. Status lulus atau ditolak; Referensi nomor di vendor.
@@ -52,7 +61,11 @@ func (k *Klien) Verifikasi(ctx context.Context, p Permintaan) (Hasil, error) {
 		return Hasil{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Idempotency-Key", p.Referensi)
+	kunci := p.Referensi
+	if p.Kunci != "" {
+		kunci = p.Kunci
+	}
+	req.Header.Set("Idempotency-Key", kunci)
 	resp, err := k.http.Do(req)
 	if err != nil {
 		if klien.TidakTerhubung(err) {
@@ -68,8 +81,11 @@ func (k *Klien) Verifikasi(ctx context.Context, p Permintaan) (Hasil, error) {
 	if resp.StatusCode >= 500 {
 		return Hasil{}, fmt.Errorf("%w: status %d", ErrTidakTersedia, resp.StatusCode)
 	}
+	if resp.StatusCode >= 400 {
+		return Hasil{}, fmt.Errorf("%w: status %d", ErrDitolakVendor, resp.StatusCode)
+	}
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return Hasil{}, fmt.Errorf("vendor menolak permintaan: status %d", resp.StatusCode)
+		return Hasil{}, fmt.Errorf("jawaban vendor tak terduga: status %d", resp.StatusCode) // 1xx dan 3xx: redirect tidak diikuti
 	}
 	var h Hasil
 	if err := json.Unmarshal(isi, &h); err != nil || (h.Status != "lulus" && h.Status != "ditolak") {

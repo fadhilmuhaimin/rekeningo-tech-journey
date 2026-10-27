@@ -7,6 +7,7 @@ $ go vet ./...
 (tanpa temuan)
 # exit status 0
 $ TEST_DATABASE_URL=<pemilik, schema tahap4_tes> TEST_APP_DATABASE_URL=<role api_t4, schema yang sama> TEST_REDIS_ADDR=<Redis lab> go test -v -count=1 -p 1 ./...
+--- PASS: TestBreakerLajurMatiBawaanDanHanyaUntukLajurVerifikasi
 --- PASS: TestBukaCacheKatalogTanpaGerbangBawaan
 --- PASS: TestBukaCacheKatalogMenolakFlagSalah
 --- PASS: TestEndpointLepasGerbangHanyaBilaGerbangAda
@@ -62,31 +63,48 @@ cek status top-up 1 sesudah kabar diparkir: gateway tidak dikonfigurasi
 --- PASS: TestHandlerQRBayarMemakaiIdempotencyKey
 --- PASS: TestHandlerQRLaporkan
 --- PASS: TestRuteHandlerSamaDenganOpenAPI
---- PASS: TestLedgerHTTPKunciLayananDanIdempotencyKeyWajib
---- PASS: TestLedgerTanpaKunciLayananRuteTidakAda
---- PASS: TestLedgerKlienBaruUlangDitolak
---- PASS: TestLedgerTimeoutPemanggilBukanGagal
 PASS
 ok    lab/apit4/internal/handler
---- PASS: TestTeksTopupLangsungDenganDataTiruanLolos
---- PASS: TestTeksTopupLewatKontrakAkunDenganDataTiruan
---- PASS: TestWebhookSettlementSatuJurnalWalauDuaKiriman
---- PASS: TestWebhookDuaEventSatuKejadianSatuJurnal
---- PASS: TestWebhookSerentakEventSamaDanBeda
---- PASS: TestMatiSesudahLedgerLaluKirimUlangSatuJurnal
---- PASS: TestWebhookMatiLaluJobCekStatusSatuJurnal
---- PASS: TestWebhookDanJobCekStatusSerentakSatuJurnal
---- PASS: TestJumlahDariBarisTopupBukanDariKabar
---- PASS: TestTandaTanganDanTimestamp
---- PASS: TestStatusHanyaMaju
---- PASS: TestLedgerTidakPastiTidakMenandaiApaPun
---- PASS: TestLedgerMenolakDiparkirTanpaMengubahStatus
---- PASS: TestOrderTidakDikenalDitolakDanDicatat
---- PASS: TestPembayaranTidakMengimporRepoDanService
---- PASS: TestWebhookKalahDariJobDiTengahMenjawabGanda
---- PASS: TestJobCekStatusUmurDariDuaSisi
+--- PASS: TestSatuPembuatClientUntukSemuaPanggilanKeluar
+--- PASS: TestBatasWaktuBawaanTigaDetikDiSemuaPembuat
+--- PASS: TestClientTidakMengikutiRedirect
+--- PASS: TestBatasNolMembuatClientTanpaBatasWaktuHanyaUntukRekamanPerbandingan
+--- PASS: TestBaruDenganTransportMemakaiTransportYangDiberikan
+--- PASS: TestTerlambatDanTidakTerhubungMembedakanSebabGalat
 PASS
-ok    lab/apit4/internal/modul/pembayaran
+ok    lab/apit4/internal/klien
+    lajur_test.go:47: gagal berturut-turut ke-1: status closed, hitungan gagal berturut-turut 1
+    lajur_test.go:47: gagal berturut-turut ke-2: status closed, hitungan gagal berturut-turut 2
+    lajur_test.go:47: gagal berturut-turut ke-3: status closed, hitungan gagal berturut-turut 3
+    lajur_test.go:47: gagal berturut-turut ke-4: status closed, hitungan gagal berturut-turut 4
+    lajur_test.go:47: gagal berturut-turut ke-5: status closed, hitungan gagal berturut-turut 5
+    lajur_test.go:53: gagal berturut-turut ke-6: status open
+    lajur_test.go:59: permintaan saat open: circuit breaker is open; vendor dipanggil: false
+    lajur_test.go:65: sesudah 59,999 detik: status open
+    lajur_test.go:70: sesudah 60,001 detik: status half-open
+    lajur_test.go:83: half-open, permintaan pertama berjalan, permintaan kedua: too many requests
+    lajur_test.go:91: permintaan pertama sukses: status closed
+--- PASS: TestRekamanBreakerBawaan
+    lajur_test.go:111: permintaan percobaan di half-open gagal: status open
+    lajur_test.go:116: 59 detik sesudah membuka lagi: status open
+    lajur_test.go:121: 61 detik sesudah membuka lagi: status half-open
+--- PASS: TestBreakerHalfOpenGagalMembukaLagiSelama60Detik
+--- PASS: TestBreakerSuksesMemutusGagalBerturutTurut
+--- PASS: TestBreakerGagalBerturutTurutTidakDihapusWaktu
+    lajur_test.go:178: IsSuccessful bawaan pustaka, 6 jawaban 4xx berturut-turut: status open
+    lajur_test.go:187: IsSuccessful kustom (4xx sukses), 6 jawaban 4xx berturut-turut: status closed, gagal berturut-turut 0
+    lajur_test.go:198: kustom, 5 gagal vendor, 1 jawaban 4xx, 1 gagal vendor: status closed
+    lajur_test.go:205: kustom, 6 kegagalan vendor berturut-turut: status open
+--- PASS: TestRekamanBreaker4xx
+--- PASS: TestBreakerTimeoutDapatDiatur
+--- PASS: TestBreakerPanggilanDijedaTidakMenambahHitungan
+--- PASS: TestDijedaHanyaUntukPenolakanBreaker
+--- PASS: TestBreakerLogPerubahanStatus
+--- PASS: TestBreakerTanpaCatatMemakaiLog
+    lajur_test.go:309: v2.4.0: 5 gagal, 1 error dikecualikan: gagal berturut-turut 5, dikecualikan 1, status closed
+--- PASS: TestGobreakerV240IsExcluded
+PASS
+ok    lab/apit4/internal/lajur
 --- PASS: TestNaikAtomikDanBermasaBerlaku
 --- PASS: TestNaikMemperbaikiKeyTanpaMasaBerlaku
 --- PASS: TestJendelaTidakDiperpanjang
@@ -180,14 +198,6 @@ ok    lab/apit4/internal/repo
 --- PASS: TestLatarRentanMematikanProses
 --- PASS: TestRingkasanEksporLaporanKosong
 --- PASS: TestRingkasanEksporRentanPanikDiLaporanKosong
---- PASS: TestLedgerKreditTopupSatuJurnalPerKey
---- PASS: TestLedgerKreditTopupSerentakSatuJurnal
---- PASS: TestLedgerKunciHarusSamaDenganOrderDanDipakaiSatuPermintaan
---- PASS: TestLedgerDitolakDibekukanDanBatasTingkatTidakMenahanKey
---- PASS: TestLedgerUlanganTidakKenaBatasSaldo
---- PASS: TestLedgerAkunTidakAda
---- PASS: TestLedgerJumlahTidakSah
---- PASS: TestLedgerKeyHidup24JamLaluMenjurnalLagi
 --- PASS: TestSinkronBersamaanSatuPemenang
 --- PASS: TestSinkronKunciSamaBersamaanSekali
 --- PASS: TestSinkronMenolakPembayaran
@@ -306,6 +316,29 @@ ok    lab/apit4/internal/service
 --- PASS: TestAmanJawabanDNSCampuranDitolakUtuh
 PASS
 ok    lab/apit4/internal/unduh
+--- PASS: TestKlasifikasiJawabanVendor
+--- PASS: TestIdempotencyKeyDariReferensiAtauKunciRentan
+--- PASS: TestKoneksiDitolakTidakTersediaDanTimeoutTidakPasti
+PASS
+ok    lab/apit4/internal/verifikasi
+--- PASS: TestLajurTerbukaTidakMengklaimDanPercobaanTidakNaik
+--- PASS: TestLajurPulihHanyaSatuPermintaanPercobaanLaluSemuaSelesai
+--- PASS: TestLajurBanyakPekerjaanBersamaanTidakAdaYangMati
+--- PASS: TestLajurBarisDiklaimSebelumBreakerTerbukaDilepasTanpaMenaikkanPercobaan
+--- PASS: TestLepasOutboxTidakDiBawahNolDanHanyaBarisMenunggu
+--- PASS: TestLajurPermintaanPercobaanSetengahTerbukaMenghabiskanPercobaanPekerjaanTerdepan
+--- PASS: TestLajurTerbukaWorkerSatuLajurTidakMengklaimApaPun
+--- PASS: TestLajurPushTetapJalanSelagiLajurVerifikasiTerbuka
+--- PASS: TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan
+    --- PASS: TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan/bawaan=false
+    --- PASS: TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan/bawaan=true
+--- PASS: TestKunciIdempotensiPerPercobaan
+    --- PASS: TestKunciIdempotensiPerPercobaan/tanpaKunci=false
+    --- PASS: TestKunciIdempotensiPerPercobaan/tanpaKunci=true
+--- PASS: TestTanpaBreakerSemuaPekerjaanMatiSebelumVendorPulih
+--- PASS: TestRingkasanMenjumlahkanDanMencetakDijeda
+--- PASS: TestRingkasHasilMenghitungSetiapJenis
+--- PASS: TestLajurSetengahTerbukaMembagiKapasitasDenganLajurLain
 --- PASS: TestVerifikasiLulusMenaikkanTingkat
 --- PASS: TestVerifikasiDitolakTidakMenaikkanTingkat
 --- PASS: TestVerifikasiTimeoutTidakPastiLaluPulih
@@ -329,11 +362,13 @@ ok    lab/apit4/cmd/api
 ok    lab/apit4/cmd/tiruan
 ok    lab/apit4/internal/cache
 ok    lab/apit4/internal/handler
-ok    lab/apit4/internal/modul/pembayaran
+ok    lab/apit4/internal/klien
+ok    lab/apit4/internal/lajur
 ok    lab/apit4/internal/redisbatas
 ok    lab/apit4/internal/repo
 ok    lab/apit4/internal/service
 ok    lab/apit4/internal/unduh
+ok    lab/apit4/internal/verifikasi
 ok    lab/apit4/internal/worker
 # exit status 0
 
@@ -390,44 +425,10 @@ ok    lab/apit4/internal/cache
     handler_qr_test.go:257: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHandlerQRLaporkan
     handler_qr_test.go:287: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestLedgerHTTPKunciLayananDanIdempotencyKeyWajib
-    ledger_layanan_test.go:97: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestLedgerKlienBaruUlangDitolak
-    ledger_layanan_test.go:139: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestLedgerTimeoutPemanggilBukanGagal
-    ledger_layanan_test.go:176: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 FAIL
 FAIL  lab/apit4/internal/handler
---- FAIL: TestWebhookSettlementSatuJurnalWalauDuaKiriman
-    pembayaran_test.go:209: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestWebhookDuaEventSatuKejadianSatuJurnal
-    pembayaran_test.go:233: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestWebhookSerentakEventSamaDanBeda
-    pembayaran_test.go:250: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestMatiSesudahLedgerLaluKirimUlangSatuJurnal
-    pembayaran_test.go:276: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestWebhookMatiLaluJobCekStatusSatuJurnal
-    pembayaran_test.go:309: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestWebhookDanJobCekStatusSerentakSatuJurnal
-    pembayaran_test.go:327: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestJumlahDariBarisTopupBukanDariKabar
-    pembayaran_test.go:342: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestTandaTanganDanTimestamp
-    pembayaran_test.go:355: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestStatusHanyaMaju
-    pembayaran_test.go:393: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestLedgerTidakPastiTidakMenandaiApaPun
-    pembayaran_test.go:410: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestLedgerMenolakDiparkirTanpaMengubahStatus
-    pembayaran_test.go:430: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestOrderTidakDikenalDitolakDanDicatat
-    pembayaran_test.go:445: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestWebhookKalahDariJobDiTengahMenjawabGanda
-    pembayaran_test.go:474: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
---- FAIL: TestJobCekStatusUmurDariDuaSisi
-    pembayaran_test.go:499: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
-FAIL
-FAIL  lab/apit4/internal/modul/pembayaran
+ok    lab/apit4/internal/klien
+ok    lab/apit4/internal/lajur
 TES_REDIS_WAJIB=1 tetapi TEST_REDIS_ADDR kosong: tes yang butuh Redis tidak boleh dilewati
 FAIL  lab/apit4/internal/redisbatas
 --- FAIL: TestAuditBerantaiUtuhDanBerurutan
@@ -447,6 +448,7 @@ FAIL  lab/apit4/internal/repo
 TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong: tes yang butuh PostgreSQL tidak boleh dilewati
 FAIL  lab/apit4/internal/service
 ok    lab/apit4/internal/unduh
+ok    lab/apit4/internal/verifikasi
 TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong: tes yang butuh PostgreSQL tidak boleh dilewati
 FAIL  lab/apit4/internal/worker
 FAIL

@@ -91,6 +91,9 @@ func main() {
 	koreksiRekon := flag.Bool("koreksi-rekon", false, "job: tutup insiden rekonsiliasi yang terbuka lewat jurnal normal (jurnal top-up atau pembalik), lalu keluar (ADR 35, ADR 19)")
 	kedaluwarsaHold := flag.Bool("kedaluwarsa-hold", false, "job: balik dana kartu yang tertahan lewat tahan_sampai, lalu keluar (ADR 42)")
 	tujuan := flag.String("tujuan", "", "worker: lajur yang diklaim, dipisah koma (push, verifikasi); kosong = semua lajur")
+	breaker := flag.Bool("breaker", false, "worker: breaker per vendor di lajur verifikasi (ADR 36): lajur yang breakernya terbuka tidak diklaim; mati = ADR 25 apa adanya")
+	breakerTimeout := flag.Duration("breaker-timeout", 0, "worker, dengan -breaker: lama breaker terbuka sebelum setengah terbuka; 0 = bawaan sony/gobreaker v2.4.0 (60 detik)")
+	breakerBawaan := flag.Bool("breaker-bawaan", false, "lab saja, dengan -breaker: IsSuccessful bawaan pustaka (jawaban 4xx vendor dihitung gagal); bawaan lab: 4xx dihitung sukses (ADR 36)")
 	unduhHTTP := flag.Bool("unduh-izinkan-http", false, "lab saja: fetcher gambar versi aman menerima skema http (tiruan lokal tidak punya TLS); produksi hanya https (ADR 41)")
 	ledgerKunci := flag.String("ledger-kunci", "", "API ledger untuk service pembayaran (POST /ledger/jurnal-topup, ADR 37): kunci layanan di header X-Layanan-Kunci; kosong = rute tidak dipasang")
 	flag.Parse()
@@ -110,7 +113,8 @@ func main() {
 	}
 	switch *rentan {
 	case "", service.RentanPushDalamTx, service.RentanEksporPanic, service.RentanStokTimpa, rentanTanpaShutdown, "kursor", "urut-waktu",
-		service.RentanWebhookV1, service.RentanWebhookCekTulis, service.RentanKartuTanpaHold, service.RentanUnduhRentan, service.RentanTanpaAudit:
+		service.RentanWebhookV1, service.RentanWebhookCekTulis, service.RentanKartuTanpaHold, service.RentanUnduhRentan, service.RentanTanpaAudit,
+		service.RentanVerifikasiTanpaKey:
 	default:
 		log.Fatalf("mode rentan tidak dikenal: %s", *rentan)
 	}
@@ -169,16 +173,17 @@ func main() {
 		log.Printf("PERINGATAN: mode rentan %s menyala", *rentan)
 	}
 	if *peran == "worker" {
-		var lajur []string
+		var lajurWorker []string
 		for _, s := range strings.Split(*tujuan, ",") {
 			if s = strings.TrimSpace(s); s != "" {
-				lajur = append(lajur, s)
+				lajurWorker = append(lajurWorker, s)
 			}
 		}
 		jalankanWorker(r, db, *pushURL, *pushBatas, *sekali, *satuPutaran, *rentan, dep.Vendor, worker.Konfigurasi{
 			Serentak: *serentak, Klaim: *klaim, Selang: *selang, MaksPercobaan: *maksPercobaan, DasarBackoff: *dasarBackoff,
 			MaksBackoff: worker.Bawaan().MaksBackoff, UrutKelas: *rentan != "urut-waktu", Kursor: *rentan == "kursor",
-			HentiSebelumTandai: *henti, Tujuan: lajur})
+			HentiSebelumTandai: *henti, Tujuan: lajurWorker, Breaker: breakerLajur(*breaker, *breakerTimeout, *breakerBawaan),
+			KunciBaruTiapPercobaan: *rentan == service.RentanVerifikasiTanpaKey})
 		return
 	}
 
@@ -345,8 +350,7 @@ func jalankanWorker(r repo.Repo, db *sql.DB, pushURL string, batas time.Duration
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("worker: diklaim %d, terkirim %d, dilewati %d, ditunda %d, mati %d\n",
-			hasil.Diklaim, hasil.Terkirim, hasil.Dilewati, hasil.Ditunda, hasil.Mati)
+		fmt.Println("worker: " + hasil.String())
 		return
 	}
 	_ = rentan

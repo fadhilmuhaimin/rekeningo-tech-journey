@@ -1,0 +1,185 @@
+{
+  "versi": 2,
+  "judul": "Hotspot Dimas membaca token Budi",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t3-mitm/output/m26.txt",
+    "fileVarian": "labs/t3-mitm/output/m26.txt",
+    "catatan": "Dart 3.11.4 (dart:io) sebagai app Budi, proxy tiruan Go sebagai hotspot Dimas, server tepi TLS Go, server Go api-t3, dan PostgreSQL 17.11 dari database bersih (make -C labs/t3-mitm run). Jalur utama: m26.txt bagian E. Ubah satu hal: m26.txt bagian B. HP, Wi-Fi kantin, hotspot, dan laptop Dimas diperankan: lab menjalankan client Dart di terminal, proxy, dan curl di satu mesin, dengan nama host localhost. Langkah 4 dan 5 memerankan laptop Dimas dengan curl langsung ke server, tanpa melewati hotspot, dan langkah 6 mengambil riwayat langsung dari server. Teks di layar HP adalah pilihan penulis: lab tidak punya app Flutter. Jam 12.15 di layar adalah Ilustrasi: naskah tidak menyebut jam."
+  },
+  "pengantar": "Satu app dengan flag 'terima sertifikat apa pun', satu hotspot, dan satu token yang terbaca. Tebak dulu, lalu ikuti sampai riwayat Budi. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "client", "label": "HP Budi" },
+    { "id": "hotspot", "label": "Hotspot Dimas" },
+    { "id": "api", "label": "Server" },
+    { "id": "dimas", "label": "Laptop Dimas" }
+  ],
+  "perangkat": [
+    { "id": "budi", "label": "HP Budi" }
+  ],
+  "layarAwal": {
+    "budi": {
+      "judul": "Rekeningo",
+      "waktu": "12.15",
+      "sinyal": 4,
+      "saldo": 250000,
+      "isi": [
+        { "jenis": "tombol", "teks": "Kirim uang" }
+      ]
+    }
+  },
+  "predict": {
+    "q": "Hotspot Dimas membaca header Authorization dari app Budi. Dari laptopnya, Dimas lalu mengirim POST /kiriman Rp150.000 ke nomor karyawannya sendiri dengan token itu, tanpa password. Apa jawaban server?",
+    "options": [
+      "401: server melihat request datang dari alamat lain, bukan dari HP Budi",
+      "403: perangkat itu belum terdaftar untuk akun Budi",
+      "429: batas percobaan per alamat tercapai",
+      "201: transfer dikerjakan, seperti request dari Budi"
+    ],
+    "answer": 3,
+    "varian": false,
+    "explain": "Server menjawab 201 (m26.txt bagian E). Token itu sah, saldo cukup, dan batas harian tidak terlampaui. Di api-t3 token tidak terikat ke alamat atau perangkat: objek sesinya hanya berisi akun, jenis, dan hash CSRF (dibaca dari kode lab). Di jalur Ubah satu hal app memeriksa sertifikat, dan Dimas tidak mendapat token apa pun: hotspot membaca 0 request (bagian B)."
+  },
+  "langkah": [
+    {
+      "dari": "client",
+      "ke": "hotspot",
+      "judul": "App Budi membuka koneksi lewat hotspot",
+      "kirim": "TLS handshake\nsertifikat server: ditandatangani CA Dimas",
+      "jelas": "Hotspot menjawab dengan sertifikat tiruan yang ditandatangani CA Dimas. CA itu tidak ada di daftar akar app. Flag 'terima sertifikat apa pun' membuat app menerimanya: callback dipanggil 1 kali (bagian E).",
+      "layar": {
+        "budi": {
+          "judul": "Rekeningo",
+          "waktu": "12.15",
+          "sinyal": 4,
+          "saldo": 250000,
+          "isi": [
+            { "jenis": "proses", "teks": "Menghubungkan..." }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "client",
+      "ke": "hotspot",
+      "judul": "App mengirim GET /akun/419 dengan token",
+      "kirim": "GET /akun/419\nAuthorization: Bearer <token sesi Budi>",
+      "jelas": "App menganggap koneksi aman, jadi ia mengirim request seperti biasa. Hotspot membaca header Authorization: isinya sama dengan token sesi Budi (bagian E).",
+      "layar": {
+        "budi": {
+          "judul": "Rekeningo",
+          "waktu": "12.15",
+          "sinyal": 4,
+          "saldo": 250000,
+          "isi": [
+            { "jenis": "proses", "teks": "Memuat saldo..." }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "hotspot",
+      "ke": "api",
+      "judul": "Hotspot meneruskan request, server menjawab 200",
+      "kirim": "GET /akun/419\n→ 200 {\"id\":419,\"jenis\":\"karyawan\",\"nama\":\"Budi\",\"saldo\":250000,\"nomor_karyawan\":\"K00419\",\"kota_id\":1}",
+      "jelas": "Hotspot meneruskan request ke server dan mengembalikan jawabannya. App menerima 200 dengan saldo Rp250.000, sama dengan tanpa hotspot (hasil client lab: terhubung, status 200).",
+      "layar": {
+        "budi": {
+          "judul": "Rekeningo",
+          "waktu": "12.15",
+          "sinyal": 4,
+          "saldo": 250000,
+          "isi": [
+            { "jenis": "tombol", "teks": "Kirim uang" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "dimas",
+      "ke": "api",
+      "judul": "Dimas memakai token itu dari laptopnya",
+      "kirim": "POST /kiriman\nAuthorization: Bearer <token sesi Budi>\n{\"ke_nomor_karyawan\":\"K00417\",\"nominal\":150000,\"catatan\":\"uji lapangan\"}",
+      "jelas": "Tanpa password: hanya token yang dibaca hotspot. Rekaman memerankan laptop Dimas dengan curl langsung ke server. K00417 adalah nomor karyawan Dimas."
+    },
+    {
+      "dari": "api",
+      "ke": "dimas",
+      "judul": "Server menjawab 201 dan mencatat transfer",
+      "kirim": "201 Created\n{\"id\":10001,\"saldo\":100000,\"sisa_batas_harian\":350000}",
+      "jelas": "Satu jurnal dengan dua posting: Budi −150.000 dan Dimas +150.000, berjumlah nol (bagian E). Server menjawab 201 karena token sah, saldo cukup, dan batas harian tidak terlampaui. Layar Budi belum berubah."
+    },
+    {
+      "dari": "client",
+      "ke": "api",
+      "judul": "Budi membuka riwayat dan melihat transfer ke Dimas",
+      "kirim": "GET /akun/419/riwayat?batas=1\n→ 200 {\"berikutnya\":\"<kursor>\",\"riwayat\":[{\"id\":10001,\"jenis\":\"transfer\",\"arah\":\"keluar\",\"lawan\":\"Dimas\",\"jumlah\":150000,\"nominal\":150000,\"waktu\":\"<waktu>\"}]}",
+      "jelas": "Riwayat memuat satu kiriman keluar ke Dimas, Rp150.000, yang tidak dibuat Budi. Saldo Budi sekarang Rp100.000. Rekaman mengambil riwayat langsung dari server, bukan lewat hotspot.",
+      "layar": {
+        "budi": {
+          "judul": "Rekeningo",
+          "waktu": "12.15",
+          "sinyal": 4,
+          "saldo": 100000,
+          "nada": "warn",
+          "isi": [
+            { "jenis": "baris", "kiri": "Transfer ke Dimas", "kanan": "−Rp150.000", "nada": "warn" }
+          ]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "app memeriksa sertifikat (tanpa flag)",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "client",
+        "ke": "hotspot",
+        "judul": "App yang memeriksa sertifikat membuka koneksi",
+        "kirim": "TLS handshake\nsertifikat server: ditandatangani CA Dimas",
+        "jelas": "App hanya percaya CA Lab Publik, yang memerankan CA yang dipercaya sistem. CA Dimas tidak ada di daftarnya, jadi validasi menolak sertifikat itu saat handshake (bagian B).",
+        "layar": {
+          "budi": {
+            "judul": "Rekeningo",
+            "waktu": "12.15",
+            "sinyal": 4,
+            "saldo": 250000,
+            "isi": [
+              { "jenis": "proses", "teks": "Menghubungkan..." }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "client",
+        "judul": "App menutup koneksi: sertifikat ditolak",
+        "kirim": "{\"hasil\":\"ditolak\",\"jenis\":\"handshake\",\"alasan\":\"application verification failure\"}",
+        "jelas": "Hasil client lab: ditolak saat handshake. App tidak mengirim request apa pun, jadi header Authorization tidak sampai ke hotspot.",
+        "layar": {
+          "budi": {
+            "judul": "Rekeningo",
+            "waktu": "12.15",
+            "sinyal": 4,
+            "saldo": 250000,
+            "isi": [
+              { "jenis": "toast", "teks": "Koneksi ditolak", "nada": "warn" }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "hotspot",
+        "judul": "Hotspot melihat handshake, tanpa request",
+        "kirim": "handshake: ya\nrequest terbaca: 0",
+        "jelas": "Rekaman proxy: handshake masuk, request terbaca 0. Tidak ada token yang bisa dibaca dan tidak ada nominal yang bisa diubah."
+      },
+      {
+        "dari": "api",
+        "judul": "Server tidak menerima apa pun: 0 transfer",
+        "kirim": "jurnal dengan jenis 'transfer'\n→ 0 baris",
+        "jelas": "Database tidak memuat transfer (bagian B). Dimas tidak punya token untuk dipakai."
+      }
+    ]
+  }
+}

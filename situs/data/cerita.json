@@ -2856,8 +2856,9 @@
       "lab": [
         "t3-dasbor"
       ],
-      "ada": false,
-      "nomor": "3.23"
+      "ada": true,
+      "nomor": "3.23",
+      "menit": 22
     },
     {
       "id": "t3-m26",
@@ -2881,8 +2882,9 @@
       "lab": [
         "t3-mitm"
       ],
-      "ada": false,
-      "nomor": "3.24"
+      "ada": true,
+      "nomor": "3.24",
+      "menit": 11
     },
     {
       "id": "t3-tls-pinning",
