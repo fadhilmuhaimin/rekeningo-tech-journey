@@ -218,8 +218,39 @@ def rekam_lajur():
     catat("# Worker baru (breaker baru, Timeout 300 ms), vendor sudah pulih: semua pekerjaan selesai.")
     ringkas_verifikasi()
     harap(vendor()["objek"], 8, "8 objek untuk 8 pendaftar")
-    tulis("lajur.txt", "vendor mati: dead-letter lawan lajur dan breaker")
     d.stop("w-c4b")
+
+    for bawaan in (True, False):
+        nama = "D" if bawaan else "E"
+        bagian(f"{nama}. Dokumen rusak di depan antrean: 6 pengajuan ditolak vendor (422), lalu 4 pengajuan sehat; vendor sehat. "
+               + ("IsSuccessful bawaan pustaka (4xx = gagal)" if bawaan else "IsSuccessful kustom (4xx = sukses, ADR 36)"))
+        siapkan()
+        mulai_semua()
+        ajukan(pendaftar(10))
+        sql("UPDATE verifikasi SET checksum_kartu = 'buruk' WHERE id <= 6")
+        catat("# 6 pengajuan pertama membawa dokumen yang tidak terbaca: vendor menjawab 422 (vendor sehat, permintaannya yang salah). 4 pengajuan berikutnya sehat.")
+        arg = [*PEKERJA_SATU, "-selang", "50ms", "-breaker", "-breaker-timeout", "30s"] + (["-breaker-bawaan"] if bawaan else [])
+        catat("$ ./api-t4 -peran worker " + " ".join(arg))
+        d.mulai_worker("w-4xx", arg, db=DB)
+        if bawaan:
+            tunggu_log("w-4xx", "closed -> open")
+            time.sleep(0.5)
+            catat("# Enam jawaban 4xx berturut-turut membuka breaker; lajur dijeda dan 4 pengajuan sehat menunggu di belakang dokumen rusak:")
+            harap(satu("SELECT count(*) FROM verifikasi WHERE status = 'lulus'"), 0, "tidak ada yang lulus selagi dijeda")
+        else:
+            d.tunggu(lambda: satu("SELECT count(*) FROM outbox WHERE status = 'menunggu'") == 0, "semua pekerjaan selesai", batas=30.0)
+            catat("# Jawaban 4xx dihitung sukses: breaker tidak pernah terbuka. Pengajuan sehat lulus; enam pengajuan rusak habis lima percobaan (4xx diulang walau tidak akan berubah):")
+            harap(log_breaker("w-4xx"), [], "breaker tidak membuka")
+        ringkas_outbox()
+        ringkas_verifikasi()
+        v = tampil_vendor("vendor sehat")
+        if bawaan:
+            harap((v["permintaan"], v["objek"]), (6, 0), "enam permintaan salah, tidak satu pun membuat objek")
+        else:
+            harap((v["permintaan"], v["objek"]), (34, 4), "30 permintaan salah (6 x 5) dan 4 sehat; 4 objek")
+        catat("log breaker: " + (", ".join(log_breaker("w-4xx")) or "(tidak ada perpindahan status)"))
+        d.stop("w-4xx")
+    tulis("lajur.txt", "vendor mati: dead-letter lawan lajur dan breaker")
 
 
 # ---------- retry.txt (b, c) ----------
@@ -451,7 +482,9 @@ TES_BARU = ["TestRekamanBreakerBawaan", "TestBreakerHalfOpenGagalMembukaLagiSela
             "TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan", "TestKunciIdempotensiPerPercobaan",
             "TestTanpaBreakerSemuaPekerjaanMatiSebelumVendorPulih", "TestRingkasanMenjumlahkanDanMencetakDijeda",
             "TestSatuPembuatClientUntukSemuaPanggilanKeluar", "TestBatasWaktuBawaanTigaDetikDiSemuaPembuat",
-            "TestClientTidakMengikutiRedirect", "TestBatasNolMembuatClientTanpaBatasWaktuHanyaUntukRekamanPerbandingan"]
+            "TestClientTidakMengikutiRedirect", "TestBatasNolMembuatClientTanpaBatasWaktuHanyaUntukRekamanPerbandingan",
+            "TestBaruDenganTransportMemakaiTransportYangDiberikan", "TestKlasifikasiJawabanVendor",
+            "TestIdempotencyKeyDariReferensiAtauKunciRentan", "TestKoneksiDitolakTidakTersediaDanTimeoutTidakPasti"]
 
 
 def rekam_testing():
@@ -459,7 +492,7 @@ def rekam_testing():
     url = f"postgres://lab:lab@127.0.0.1:{d.DB_PORT}/lab?search_path={SCH_TES}&application_name=t4-integrasi-tes"
     env = dict(d.ENV, TEST_DATABASE_URL=url, LAB_TES_SCHEMA=SCH_TES)
     pola = "^(" + "|".join(TES_BARU) + ")$"
-    r = subprocess.run(["go", "test", "-v", "-count=1", "-p", "1", "-run", pola, "./internal/lajur/", "./internal/worker/", "./internal/klien/"],
+    r = subprocess.run(["go", "test", "-v", "-count=1", "-p", "1", "-run", pola, "./internal/lajur/", "./internal/worker/", "./internal/klien/", "./internal/verifikasi/"],
                        cwd=d.HERE, env=env, capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stdout[-3000:], r.stderr[-2000:], file=sys.stderr)
@@ -469,7 +502,7 @@ def rekam_testing():
     induk = [n for n in lulus if "/" not in n]
     harap(sorted(induk), sorted(TES_BARU), "semua tes baru berjalan dan lulus")
     bagian("A. Tes Go yang ditambahkan lab ini (PostgreSQL sungguhan untuk paket worker; jam palsu untuk paket lajur)")
-    catat(f"$ TEST_DATABASE_URL=<pemilik, schema {SCH_TES}> go test -v -count=1 -p 1 -run '<{len(TES_BARU)} tes baru>' ./internal/lajur/ ./internal/worker/ ./internal/klien/")
+    catat(f"$ TEST_DATABASE_URL=<pemilik, schema {SCH_TES}> go test -v -count=1 -p 1 -run '<{len(TES_BARU)} tes baru>' ./internal/lajur/ ./internal/worker/ ./internal/klien/ ./internal/verifikasi/")
     for n in sorted(lulus):
         catat(f"--- PASS: {n}")
     catat(f"ok  {len(induk)} tes induk, {len(lulus) - len(induk)} subtes")

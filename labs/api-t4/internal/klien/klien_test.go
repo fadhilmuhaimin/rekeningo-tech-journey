@@ -98,3 +98,25 @@ func TestBatasNolMembuatClientTanpaBatasWaktuHanyaUntukRekamanPerbandingan(t *te
 		t.Error("batas 0 harus tetap 0 (rekaman M18 membandingkan client tanpa batas)")
 	}
 }
+
+// BaruDenganTransport memakai transport yang diberikan (fetcher gambar memerlukannya untuk memeriksa alamat saat dial).
+type penghitung struct{ n int }
+
+func (p *penghitung) RoundTrip(r *http.Request) (*http.Response, error) {
+	p.n++
+	return http.DefaultTransport.RoundTrip(r)
+}
+
+func TestBaruDenganTransportMemakaiTransportYangDiberikan(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer s.Close()
+	p := &penghitung{}
+	resp, err := klien.BaruDenganTransport(time.Second, p).Get(s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if p.n != 1 {
+		t.Errorf("transport dipakai %d kali, harus 1", p.n)
+	}
+}
