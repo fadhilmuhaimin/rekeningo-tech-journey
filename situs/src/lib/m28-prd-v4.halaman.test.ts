@@ -180,6 +180,7 @@ describe("registry, naskah, blok, dan tautan", () => {
     expect(hitung(badan, "[[t3-jembatan]]")).toBe(3);
     expect(hitung(badan, "[[t3-estimasi]]")).toBe(2);
     expect(hitung(badan, "[[t3-m18]]")).toBe(2);
+    expect(hitung(badan, "[[t3-m23]]")).toBe(3);
     expect(hitung(badan, "[[t3-m27]]")).toBe(2);
     expect(hitung(badan, "[[t2-m17]]")).toBe(2);
   });
@@ -286,7 +287,9 @@ describe("angka beban: dari asumsi registry dan rumus, semuanya berlabel Asumsi 
     harus("Kata Hitungan di halaman ini berarti hasil rumus yang ditulis di sebelahnya, dan labelnya mengikuti masukan terlemahnya.");
     expect(hitung(badan, "Kata Hitungan")).toBe(1);
     harus("| Besaran | Nilai | Cara hitung (semua asumsi) |");
-    harus("Persentase aktif, request per user, dan faktor puncak adalah Asumsi naskah dari `cerita.json`. W = 20 ms juga Asumsi, karena rekaman lab hanya membuktikan W di bawah 50 ms. Karena itu seluruh tabel berlabel Asumsi.");
+    harus(`Persentase aktif, request per user, dan faktor puncak adalah Asumsi naskah dari \`cerita.json\`. W = 20 ms juga Asumsi, karena rekaman lab hanya membuktikan W di bawah 50 ms. Karena itu seluruh tabel berlabel Asumsi. Tanpa pembulatan, rata-ratanya ${koma(T3.rata, 3)} dan puncaknya ${koma(T3.puncak, 2)}; naskah dan lab menulis ${koma(T3.puncak, 1)}, dan halaman ini mengikutinya.`);
+    expect([koma(T3.rata, 3), koma(T3.puncak, 2)]).toEqual(["1,736", "17,36"]);
+    expect(baca("situs/src/content/docs/tahap-3/m18-app-membeku.mdx")).toContain("= 17,36 per detik. Lab menjadwalkan 17,4.");
     harus("Naskah tidak menyebut beban uji coba, jadi puncak 17,4 adalah hitungan dari asumsi registry:");
     expect(badan).not.toMatch(/Rekaman lab[^.\n]*(1,74|2\.500|150\.000|puncak 17,4)/);
   });
@@ -307,12 +310,13 @@ describe("angka beban: dari asumsi registry dan rumus, semuanya berlabel Asumsi 
     harus(`Pilih Semua aktif, dan puncak naik empat kali, dari ${koma(T3.puncak, 1)} ke ${koma(semuaAktif.puncak, 1)} request per detik.`);
     harus(`Dengan W ${W * 1000} ms, L seluruh request menjadi ${koma(semuaAktif.puncak, 1)} × ${koma(W, 2)} = ${koma(semuaAktif.puncak * W, 2)} koneksi dari pool ${POOL} (Hitungan; W Asumsi).`);
     harus(`Pilih Satu jam, dan ${ribu(T3.reqHari)} ÷ ${ribu(3600)} = ${koma(satuJam.puncak, 1)} request per detik, atau L ${koma(satuJam.puncak * W, 2)} koneksi (Hitungan).`);
-    harus(`Pool ${POOL} baru terdesak bila L melebihi ${POOL - 1}. Itu terjadi pada ${POOL - 1} ÷ ${koma(W, 2)} = ${batas} request per detik, ${koma(batas / T3.puncak, 1)} kali puncak ${koma(T3.puncak, 1)} (Hitungan untuk kedatangan berjadwal tetap, [[t3-pool]]).`);
-    harus("Itu hitungan untuk satu sumber daya, yaitu koneksi database. Kapasitas VPS belum diukur.");
+    harus(`Pool ${POOL} baru terdesak bila L melebihi ${POOL - 1}. Itu terjadi pada ${POOL - 1} ÷ ${koma(W, 2)} = ${batas} request per detik, ${koma(batas / T3.puncak, 1)} kali puncak ${koma(T3.puncak, 1)} (Hitungan untuk kedatangan berjadwal tetap, [[t3-pool]]). Kedatangan acak mengantre lebih awal.`);
+    expect(hal38).toContain("Kedatangan acak mengantre lebih awal.");
+    harus("Itu hitungan untuk koneksi database saja, dan kapasitas VPS belum diukur.");
   });
   test("pembulatan widget: dua angka penting, jadi 1,74 tampil 1,7, 17,4 tampil 17, 69,4 tampil 69; kalimat di halaman memakai mesin widget yang sama", () => {
-    expect([duaAngka(T3.rata), duaAngka(T3.puncak), duaAngka(semuaAktif.puncak)]).toEqual(["1,7", "17", "69"]);
-    harus(`Widget membulatkan ke dua angka penting, jadi rata-rata ${koma(T3.rata, 2)} tampil ${duaAngka(T3.rata)}, puncak ${koma(T3.puncak, 1)} tampil ${duaAngka(T3.puncak)}, dan puncak ${koma(semuaAktif.puncak, 1)} tampil ${duaAngka(semuaAktif.puncak)}.`);
+    expect([duaAngka(T3.rata), duaAngka(T3.puncak), duaAngka(semuaAktif.puncak), duaAngka(satuJam.puncak)]).toEqual(["1,7", "17", "69", "42"]);
+    harus(`Widget membulatkan ke dua angka penting, jadi rata-rata ${koma(T3.rata, 2)} tampil ${duaAngka(T3.rata)}, puncak ${koma(T3.puncak, 1)} tampil ${duaAngka(T3.puncak)}, puncak ${koma(semuaAktif.puncak, 1)} tampil ${duaAngka(semuaAktif.puncak)}, dan puncak ${koma(satuJam.puncak, 1)} tampil ${duaAngka(satuJam.puncak)}.`);
     expect(jarakKal(T3.jarak, SATUAN)).toBe("58 ms");
   });
 });
@@ -332,7 +336,17 @@ describe("rekaman t3-pool adr22.txt bagian F: batas L, bukan nilai tunggal, di s
     expect(0.87 / 0.05).toBeCloseTo(17.4, 10);
     expect(cocok(naskah, /\| Pembayaran dan transfer per detik \|[^|]*\|[^|]*\| 0,087 rata-rata dan ([\d,]+) puncak/)[1]).toBe("0,868");
     harus("Lab t3-pool menjadwalkan 17,4 request per detik pada pool 10, dan tiap request ke-20 adalah pembayaran:");
-    harus("Lab memeriksa batas, bukan nilai tunggal: W rata-rata di bawah 50 ms, jadi L di bawah 17,4 × 0,05 = 0,87 koneksi. Angka 0,87 itu koneksi, bukan pembayaran per detik.");
+    harus("Lab memeriksa batas, bukan nilai tunggal: W rata-rata di bawah 50 ms, jadi L di bawah 17,4 × 0,05 = 0,87 koneksi. Pembangkit beban");
+    // 0,87 muncul dua kali di potongan rekaman: pembayaran per detik (λ 0,868 dibulatkan) di baris beban, koneksi (batas L) di baris L
+    const lambda = (T3.dau * reg.trx) / 86400 * reg.puncak;
+    expect(koma(lambda, 3)).toBe("0,868");
+    expect(koma(lambda, 2)).toBe("0,87");
+    expect(reg.trx).toBe(3);
+    expect(T3.dau * reg.trx).toBe(7500);
+    harus(`Angka 0,87 muncul dua kali di potongan itu, dengan arti berbeda. Di baris beban, 0,87 per detik adalah pembayaran, yaitu ${koma(lambda, 3)} yang dibulatkan (${ribu(T3.dau * reg.trx)} ÷ 86.400 × ${reg.puncak}, Asumsi). Di baris L, 0,87 adalah koneksi.`);
+    expect(hitung(badan, "0,87 per detik")).toBe(1);
+    expect(hitung(badan, "0,868")).toBe(1);
+    expect(hitung(badan, "bukan pembayaran per detik")).toBe(0);
     expect(cocok(naskah, /di lab t3-pool L semua request terbukti di bawah ([\d,]+) koneksi \(batas lab\) pada pool (\d+)/).slice(1)).toEqual(["0,87", "10"]);
   });
   test("Snippet: satu rentang, dari baris beban berjadwal sampai baris L; nomor baris dihitung dari jangkar", () => {
@@ -382,13 +396,16 @@ describe("klaim negatif berlingkup, dijaga pemindaian berkas terlacak", () => {
   test("aturan 5 ADR 21 meminta satu load test sebelum fitur PRD v3 pertama yang menambah λ atau W ditulis; kapasitas belum diukur ditulis juga di 3.8 dan 3.15", () => {
     expect(hal231).toContain("5. Sebelum fitur PRD v3 pertama yang menambah λ atau W ditulis, satu load test mengukur kapasitas api-t2 yang sekarang.");
     harus("Aturan 5 di [[t2-adr-21]] meminta satu load test sebelum fitur PRD v3 pertama yang menambah λ atau W ditulis.");
-    harus("Jadi jumlah request per detik yang sanggup dilayani VPS belum pernah diukur (Tidak dijalankan).");
+    harus("Jadi di delapan lab itu jumlah request per detik yang sanggup dilayani VPS tidak pernah diukur (Tidak dijalankan).");
+    // lingkup klaim negatif: lab Tahap 4 (api-t4) memutar 138,9 per detik di laptop dan menulis "bukan kapasitas produksi"; halaman menulis delapan lab Tahap 3
+    expect(baca("labs/api-t4/output/beban.txt")).toContain("Dijalankan di laptop lab: bukan kapasitas produksi.");
+    expect(badan).not.toContain("belum pernah diukur (Tidak dijalankan)");
     expect(hal315).toContain("kapasitas satu server belum diukur, dan load test Tidak dijalankan.");
     expect(hal38).toContain("Kapasitas satu server belum diukur (load test ADR 21 Tidak dijalankan), jadi angka itu belum terbukti.");
     expect(naskah).toContain('Kata "tidak sesak" dan "lega" di naskah ini berarti L kecil terhadap pool 10 di laptop lab.');
     harus('Kata "tidak sesak" di sini berarti L kecil terhadap pool 10 di laptop lab, bukan kapasitas yang terbukti.');
   });
-  test("satu-satunya panggilan keluar dari api-t3 adalah ke layanan push: klien HTTP hanya di internal/push/push.go, mengirim POST /v1/pesan", () => {
+  test("satu-satunya panggilan HTTP keluar dari api-t3 adalah ke layanan push: klien HTTP hanya di internal/push/push.go, mengirim POST /v1/pesan; PostgreSQL dan Redis komponen sendiri", () => {
     const pola = /\bhttp\.(Client|NewRequest|NewRequestWithContext|Post|Get|Head|DefaultClient)\b|\bnet\.Dial|\btls\.Dial|\bgrpc\.Dial/;
     expect(pola.test("req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)")).toBe(true);
     const goNon = [...(terlacak ?? [])].filter((f) => f.startsWith("labs/api-t3/") && f.endsWith(".go") && !f.endsWith("_test.go"));
@@ -397,7 +414,14 @@ describe("klaim negatif berlingkup, dijaga pemindaian berkas terlacak", () => {
     expect(temuan).toEqual(["labs/api-t3/internal/push/push.go"]);
     const push = baca("labs/api-t3/internal/push/push.go");
     expect(push).toContain("http.MethodPost, k.url+\"/v1/pesan\"");
-    harus("Satu-satunya panggilan keluar dari `api-t3` adalah ke layanan push tiruan, yang hanya menerima pemberitahuan");
+    harus("Satu-satunya panggilan HTTP keluar dari `api-t3` adalah ke layanan push tiruan, yang hanya menerima pemberitahuan. PostgreSQL dan Redis adalah komponen sendiri");
+    // api-t3 juga membuka koneksi ke PostgreSQL (pgx) dan Redis (go-redis): bukan panggilan HTTP, dan komponen sendiri; tidak ada klien keluar lain di go.mod
+    const gomod = baca("labs/api-t3/go.mod");
+    const langsung = [...gomod.split(/^require \($/m)[1]!.split(/^\)$/m)[0]!.matchAll(/^\t(\S+) v\S+$/gm)].map((m) => m[1]!);
+    expect(langsung).toEqual(["github.com/jackc/pgx/v5", "github.com/redis/go-redis/v9", "golang.org/x/crypto"]);
+    const pakaiRedis = goNon.filter((f) => fs.readFileSync(path.join(akar, f), "utf8").includes("github.com/redis/go-redis")).sort();
+    expect(pakaiRedis).toEqual(["labs/api-t3/internal/cache/redis.go", "labs/api-t3/internal/redisbatas/redisbatas.go"]);
+    expect(goNon.filter((f) => /\bnet\/smtp\b|\bnet\/rpc\b|google\.golang\.org\/grpc/.test(fs.readFileSync(path.join(akar, f), "utf8")))).toEqual([]);
   });
 });
 
@@ -437,7 +461,17 @@ describe("sepuluh masalah Tahap 3: baris tabel sama dengan naskah dan halaman ma
     expect(baruNaskah("M27")).toContain("ADR 32 (merevisi ADR 23): kolom `kelas`, bayar dan transfer lebih dulu, top-up massal dan promo sesudahnya; promo paling banyak 5 per detik; alert umur tertua; staging; on-call");
     expect(baruNaskah("M27")).toContain("Kapasitas worker 4 ÷ 0,3 detik = 13,3 per detik");
     expect(baru.length).toBe(10);
-    harus("Dua dari sepuluh masalah memakai kapasitas dalam hitungannya: pool di [[t3-m18]] dan worker di [[t3-m27]]. Keduanya dijawab tanpa memperbesar apa pun. ADR 22 menahan pool di 10, karena pool 50 hanya menunda penuhnya ke ±58 detik. ADR 32 mengubah urutan klaim dan laju promo, bukan jumlah pengirim.");
+    harus("Angka di tabel mengikuti halaman asalnya. Lama offline 62 jam adalah Asumsi naskah, umur key 24 jam berasal dari ADR 14, dan 10.000 promo adalah angka cerita (Ilustrasi).");
+    harus("Hitungan kapasitas atau beban muncul di [[t3-m18]] (pool), [[t3-m23]] (katalog), dan [[t3-m27]] (worker). Di [[t3-m23]] hasilnya menunjukkan cache tidak dibutuhkan beban (Asumsi).");
+    harus("Pool dan worker dijawab tanpa memperbesar apa pun. ADR 22 menahan pool di 10, karena pool 50 hanya menunda penuhnya ke ±58 detik. ADR 32 mengubah urutan klaim dan laju promo, bukan jumlah pengirim.");
+    expect(badan).not.toContain("Dua dari sepuluh masalah");
+    // pelajaran: hitungan kapasitas ada juga di M23 (L katalog 0,03 dari pool 10; cache tidak dibutuhkan beban), jadi bukan hanya dua masalah
+    expect(berkasHal("t3-m23")).toContain("**Cache ini tidak dibutuhkan beban.**");
+    expect(berkasHal("t3-m23")).toContain("(Asumsi, angka registry)");
+    expect(berkasHal("t3-m24")).toContain("Lama offline 62 jam, dari Jumat 16.50 sampai Senin 06.50, adalah Asumsi naskah");
+    expect(berkasHal("t3-m24")).toContain("masa berlaku 24 jam");
+    expect(berkasHal("t3-m27")).toContain("jumlah 10.000 HP, dan orang yang menumpuk berasal dari naskah");
+    expect(baca("situs/src/content/docs/tahap-2/retry-idempotency.mdx")).toContain("### ADR 14: key sekali per niat bayar, hasil disimpan 24 jam");
     expect(hal38).toContain("untuk n = 50 hasilnya 50 ÷ 0,868 = 57,6 detik");
     expect(berkasHal("t3-m27")).toContain("Tidak. Kapasitas jadi 20 ÷ 0,3 = 66,7 per detik");
   });
@@ -456,6 +490,11 @@ describe("diagram Rantai: nilai simpul diturunkan dari angka halaman dan rekaman
     const [a, b] = diagram.baris as [(typeof diagram.baris)[number], (typeof diagram.baris)[number]];
     expect(a.simpul.map((s) => s.teks)).toEqual(["Tutup buku Rp0", `Puncak ${koma(T3.puncak, 1)} per detik`, `L kurang dari ${koma(17.4 * 0.05, 2)}`]);
     expect(a.simpul[2]!.sub).toBe(`batas lab, pool ${POOL}`);
+    // baris pertama bukan "hasil uji coba": hanya tutup buku yang dari uji coba; puncak adalah hitungan, L adalah batas rekaman lab
+    expect([a.label, a.sub]).toEqual(["Yang sudah terjawab", "pertanyaan Tahap 3"]);
+    expect(a.simpul.map((s) => s.sub)).toEqual(["data yang terlihat cocok", "hitungan dari asumsi", `batas lab, pool ${POOL}`]);
+    harus("Yang sudah terjawab adalah pertanyaan Tahap 3: apakah data cocok, dan apakah beban enam kota menekan sumber daya yang dihitung. Hanya hasil tutup buku yang datang dari uji coba; puncak 17,4 adalah hitungan, dan batas L adalah rekaman lab.");
+    expect(badan).not.toContain("Uji coba lolos karena ia menjawab");
     expect(a.simpul.map((s) => s.nada)).toEqual(["good", "system", "good"]);
     expect(b.simpul.map((s) => s.teks)).toEqual(["Pihak ketiga memegang uang", "Tiga tim, satu codebase", "Satu VPS"]);
     expect(b.simpul.map((s) => s.nada)).toEqual(["warn", "warn", "warn"]);
@@ -581,12 +620,12 @@ describe("struktur halaman: tingkat heading, daftar, label, dan tanpa ID interna
     expect(badan).not.toMatch(/!(?!\[)/);
     expect(badan).not.toMatch(/\b(Anda|kita|pengguna|mudah|cukup|tinggal)\b/i);
     expect(badan).not.toMatch(/terukur|ter-ukur/i);
-    expect(hitung(badan, "(Ilustrasi)")).toBe(2);
-    expect(hitung(badan, "Ilustrasi")).toBe(4);
+    expect(hitung(badan, "(Ilustrasi)")).toBe(3);
+    expect(hitung(badan, "Ilustrasi")).toBe(5);
     expect(hitung(badan, "Tidak dijalankan")).toBe(3);
     expect(hitung(badan, "Asumsi")).toBeGreaterThanOrEqual(10);
     expect(hitung(badan, "0,87 ")).toBeGreaterThanOrEqual(1);
-    expect(hitung(badan, "0,868")).toBe(0);
+    expect(hitung(badan, "0,868")).toBe(1);
   });
   test("front matter dikunci: title dan description memuat Minggu 10, Rp0, 17,4, dan tiga hal PRD v4", () => {
     expect(frontmatter).toBe(

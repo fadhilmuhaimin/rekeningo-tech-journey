@@ -7,8 +7,8 @@
   },
   "baris": [
     {
-      "label": "Uji coba enam kota",
-      "sub": "yang sudah terjawab",
+      "label": "Yang sudah terjawab",
+      "sub": "pertanyaan Tahap 3",
       "simpul": [
         {
           "teks": "Tutup buku Rp0",
