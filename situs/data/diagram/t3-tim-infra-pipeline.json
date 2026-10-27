@@ -1,0 +1,32 @@
+{
+  "id": "t3-tim-infra-pipeline",
+  "judul": "Pipeline Tahap 3: backend dan app",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Urutan dari tabel pipeline di PROPOSAL; hanya tes dengan PostgreSQL dan Redis yang direkam (testing.txt)"
+  },
+  "baris": [
+    {
+      "label": "Backend",
+      "sub": "tiap merge ke main",
+      "simpul": [
+        { "teks": "tes PostgreSQL dan Redis", "sub": "Rekaman lab", "nada": "good" },
+        { "teks": "migration dry-run", "sub": "Tidak dijalankan" },
+        { "teks": "k6 smoke 30 detik", "sub": "Tidak dijalankan" },
+        { "teks": "staging otomatis", "sub": "Tidak dijalankan" },
+        { "teks": "approve, lalu produksi", "sub": "Tidak dijalankan" }
+      ]
+    },
+    {
+      "label": "App",
+      "sub": "Raka",
+      "simpul": [
+        { "teks": "build iOS di runner macOS", "sub": "Tidak dijalankan" },
+        { "teks": "signing lewat fastlane match", "sub": "Tidak dijalankan" },
+        { "teks": "golden test", "sub": "Tidak dijalankan" },
+        { "teks": "TestFlight dan App Distribution", "sub": "Tidak dijalankan" }
+      ]
+    }
+  ],
+  "catatan": "Hanya kotak hijau yang punya rekaman. Sisanya dicek ke dokumentasi atau PROPOSAL dan tidak dijalankan di lab."
+}

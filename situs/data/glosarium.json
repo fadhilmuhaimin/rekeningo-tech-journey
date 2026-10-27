@@ -153,6 +153,15 @@
   "h": null
  },
  {
+  "t": "Alert",
+  "d": "Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.",
+  "b": "t3-tim-infra",
+  "n": "3.27 Tim dan infra Tahap 3",
+  "u": "/tahap-3/tim-infra/",
+  "s": "istilah-alert",
+  "h": "/istilah/alert/"
+ },
+ {
   "t": "API gateway",
   "d": "Server di depan beberapa instance atau service yang mengurus hal bersama sebelum request diteruskan, mis. rate limit, authentication, dan routing.",
   "b": "C4",
@@ -954,6 +963,15 @@
   "h": null
  },
  {
+  "t": "On-call",
+  "d": "Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu.",
+  "b": "t3-tim-infra",
+  "n": "3.27 Tim dan infra Tahap 3",
+  "u": "/tahap-3/tim-infra/",
+  "s": "istilah-on-call",
+  "h": "/istilah/on-call/"
+ },
+ {
   "t": "OpenAPI",
   "d": "Format standar untuk menulis kontrak API (endpoint, request, response) yang bisa dibaca manusia dan mesin.",
   "b": "B1.4",
@@ -1420,6 +1438,15 @@
   "u": "/e-mobile/e4-push-real-time/",
   "s": "istilah-sse",
   "h": null
+ },
+ {
+  "t": "Staging",
+  "d": "Lingkungan uji yang dibuat semirip mungkin dengan produksi, tempat perubahan dicoba sebelum user sungguhan menyentuhnya.",
+  "b": "t3-tim-infra",
+  "n": "3.27 Tim dan infra Tahap 3",
+  "u": "/tahap-3/tim-infra/",
+  "s": "istilah-staging",
+  "h": "/istilah/staging/"
  },
  {
   "t": "Stale",
