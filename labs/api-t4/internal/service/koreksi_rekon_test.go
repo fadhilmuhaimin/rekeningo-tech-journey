@@ -263,12 +263,16 @@ func TestKoreksiRekonJumlahBeda(t *testing.T) {
 	tidZ, orderZ := kredit(beku, 20_000)
 	dibekukan := insidenBaru(t, db, orderZ, tidZ, "jumlah_beda", 5_000)
 	db.Exec(`UPDATE akun SET status = 'dibekukan' WHERE id = $1`, beku)
-	bersihkanInsiden(t, db, orderB, orderK, orderD, orderZ)
+	// Top-up yang belum dibayar menurut ledger tidak punya jurnal untuk diselisihkan: tidak dikredit.
+	belum := qrAkun(t, db, "pemakai", "terverifikasi", "aktif", 0)
+	tidM, orderM := topupSiap(t, db, belum, 20_000)
+	menunggu := insidenBaru(t, db, orderM, tidM, "jumlah_beda", 5_000)
+	bersihkanInsiden(t, db, orderB, orderK, orderD, orderZ, orderM)
 	h, err := svc.KoreksiRekon(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if h != (HasilKoreksi{Diperiksa: 4, Dikoreksi: 1, Ditahan: 3}) {
+	if h != (HasilKoreksi{Diperiksa: 5, Dikoreksi: 1, Ditahan: 4}) {
 		t.Fatalf("hasil %+v", h)
 	}
 	if s := saldo(t, db, biasa); s != 25_000 {
@@ -290,7 +294,7 @@ func TestKoreksiRekonJumlahBeda(t *testing.T) {
 	if n := jumlahOutboxAkun(t, db, biasa); n != 2 {
 		t.Errorf("%d pemberitahuan, harus 2 (kredit awal dan koreksi)", n)
 	}
-	for nama, id := range map[string]int64{"selisih negatif": lebihKecil, "melewati batas": lewat, "dibekukan": dibekukan} {
+	for nama, id := range map[string]int64{"selisih negatif": lebihKecil, "melewati batas": lewat, "dibekukan": dibekukan, "belum dibayar": menunggu} {
 		if st, _ := statusInsiden(t, db, id); st != "terbuka" {
 			t.Errorf("%s: %s", nama, st)
 		}
@@ -298,17 +302,21 @@ func TestKoreksiRekonJumlahBeda(t *testing.T) {
 	for nama, c := range map[string]struct {
 		akun, saldo int64
 		order       string
-	}{"negatif": {kurang, 20_000, orderK}, "batas": {dekat, 980_000, orderD}, "beku": {beku, 20_000, orderZ}} {
+	}{"negatif": {kurang, 20_000, orderK}, "batas": {dekat, 980_000, orderD}, "beku": {beku, 20_000, orderZ}, "belum dibayar": {belum, 0, orderM}} {
 		if s := saldo(t, db, c.akun); s != c.saldo {
 			t.Errorf("%s: saldo %d", nama, s)
 		}
-		if n := jurnalUntukOrder(t, db, c.order); n != 1 {
+		harusJurnal := 1
+		if nama == "belum dibayar" {
+			harusJurnal = 0
+		}
+		if n := jurnalUntukOrder(t, db, c.order); n != harusJurnal {
 			t.Errorf("%s: %d jurnal", nama, n)
 		}
 	}
 	// Job kedua: yang sudah ditutup tidak dikoreksi lagi; yang ditahan tetap ditahan.
 	h2, _ := svc.KoreksiRekon(ctx)
-	if h2 != (HasilKoreksi{Diperiksa: 3, Ditahan: 3}) {
+	if h2 != (HasilKoreksi{Diperiksa: 4, Ditahan: 4}) {
 		t.Errorf("job kedua %+v", h2)
 	}
 	if s := saldo(t, db, biasa); s != 25_000 {
@@ -367,13 +375,17 @@ func TestKoreksiRekonTidakDiGateway(t *testing.T) {
 		t.Fatalf("balik: %v", err)
 	}
 	insF := insidenBaru(t, db, orderF, tidF, "tidak_di_gateway", -49_000)
-	semua := []string{orderA, orderB, orderC, orderD, orderE, orderF}
+	// g. top-up belum dibayar menurut ledger: tidak ada jurnal yang bisa dibalik.
+	akunG := qrAkun(t, db, "pemakai", "terverifikasi", "aktif", 0)
+	tidG, orderG := topupSiap(t, db, akunG, 41_000)
+	insG := insidenBaru(t, db, orderG, tidG, "tidak_di_gateway", -41_000)
+	semua := []string{orderA, orderB, orderC, orderD, orderE, orderF, orderG}
 	bersihkanInsiden(t, db, semua...)
 	h, err := svc.KoreksiRekon(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if h != (HasilKoreksi{Diperiksa: 6, Dikoreksi: 2, SelesaiTanpaJurnal: 2, Ditahan: 2}) {
+	if h != (HasilKoreksi{Diperiksa: 7, Dikoreksi: 2, SelesaiTanpaJurnal: 2, Ditahan: 3}) {
 		t.Fatalf("hasil %+v", h)
 	}
 	cek := func(nama string, ins int64, st string, adaJurnal bool) {
@@ -389,13 +401,14 @@ func TestKoreksiRekonTidakDiGateway(t *testing.T) {
 	cek("d jumlah beda", insD, "terbuka", false)
 	cek("e uang terpakai", insE, "terbuka", false)
 	cek("f sudah dibalik", insF, "selesai", true)
+	cek("g belum dibayar", insG, "terbuka", false)
 	for nama, c := range map[string]struct {
 		akun, saldo int64
 		order       string
 		jurnal      int
 	}{
 		"a": {akunA, 40_000, orderA, 1}, "b": {akunB, 0, orderB, 2}, "c": {akunC, 0, orderC, 2},
-		"d": {akunD, 47_000, orderD, 1}, "e": {akunE, 8_000, orderE, 1}, "f": {akunF, 0, orderF, 1},
+		"d": {akunD, 47_000, orderD, 1}, "e": {akunE, 8_000, orderE, 1}, "f": {akunF, 0, orderF, 1}, "g": {akunG, 0, orderG, 0},
 	} {
 		if s := saldo(t, db, c.akun); s != c.saldo {
 			t.Errorf("%s: saldo %d, harus %d", nama, s, c.saldo)
@@ -416,7 +429,7 @@ func TestKoreksiRekonTidakDiGateway(t *testing.T) {
 	}
 	// Dijalankan lagi: dua insiden terbuka tetap terbuka, tidak ada jurnal baru.
 	sebelum, _ := jumlahPosting(t, db)
-	if h2, _ := svc.KoreksiRekon(ctx); h2 != (HasilKoreksi{Diperiksa: 2, Ditahan: 2}) {
+	if h2, _ := svc.KoreksiRekon(ctx); h2 != (HasilKoreksi{Diperiksa: 3, Ditahan: 3}) {
 		t.Errorf("job kedua %+v", h2)
 	}
 	if n, _ := jumlahPosting(t, db); n != sebelum {
