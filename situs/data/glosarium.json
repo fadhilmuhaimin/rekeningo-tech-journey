@@ -252,6 +252,15 @@
   "h": "/istilah/buku-ledger/"
  },
  {
+  "t": "CA (Certificate Authority)",
+  "d": "Pihak yang menandatangani sertifikat. App yang mempercayai sebuah CA ikut mempercayai sertifikat yang ia terbitkan.",
+  "b": "t3-tls-pinning",
+  "n": "3.25 TLS, HSTS, pinning",
+  "u": "/tahap-3/tls-pinning/",
+  "s": "istilah-ca",
+  "h": null
+ },
+ {
   "t": "Cache",
   "d": "Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli.",
   "b": "B9",
@@ -277,6 +286,15 @@
   "u": "/tahap-3/cache-invalidation/",
   "s": "istilah-cache-aside",
   "h": "/istilah/cache-aside/"
+ },
+ {
+  "t": "Certificate pinning",
+  "d": "App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem.",
+  "b": "t3-tls-pinning",
+  "n": "3.25 TLS, HSTS, pinning",
+  "u": "/tahap-3/tls-pinning/",
+  "s": "istilah-certificate-pinning",
+  "h": "/istilah/certificate-pinning/"
  },
  {
   "t": "CI (Continuous Integration)",
@@ -367,6 +385,15 @@
   "u": "/tahap-3/xss-csrf-cookie/",
   "s": "istilah-csrf",
   "h": "/istilah/csrf/"
+ },
+ {
+  "t": "Daftar akar (root store)",
+  "d": "Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu.",
+  "b": "t3-tls-pinning",
+  "n": "3.25 TLS, HSTS, pinning",
+  "u": "/tahap-3/tls-pinning/",
+  "s": "istilah-daftar-akar",
+  "h": null
  },
  {
   "t": "Dead-letter queue",
@@ -531,6 +558,15 @@
   "h": "/istilah/gzip/"
  },
  {
+  "t": "Handshake TLS",
+  "d": "Tahap awal koneksi TLS, sebelum byte HTTP pertama: server menunjukkan sertifikatnya dan client memeriksanya.",
+  "b": "t3-tls-pinning",
+  "n": "3.25 TLS, HSTS, pinning",
+  "u": "/tahap-3/tls-pinning/",
+  "s": "istilah-handshake-tls",
+  "h": null
+ },
+ {
   "t": "Health check",
   "d": "Pemeriksaan berkala yang dilakukan proxy atau orkestrator ke tiap instance untuk memutuskan apakah instance itu boleh menerima request.",
   "b": "t3-dua-instance",
@@ -538,6 +574,15 @@
   "u": "/tahap-3/dua-instance/",
   "s": "istilah-health-check",
   "h": "/istilah/health-check/"
+ },
+ {
+  "t": "HSTS (HTTP Strict Transport Security)",
+  "d": "Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.",
+  "b": "t3-tls-pinning",
+  "n": "3.25 TLS, HSTS, pinning",
+  "u": "/tahap-3/tls-pinning/",
+  "s": "istilah-hsts",
+  "h": "/istilah/hsts/"
  },
  {
   "t": "Idempotency key",
@@ -816,6 +861,15 @@
   "n": "1.21 Lapisan dasar",
   "u": "/tahap-1/lapisan-dasar/",
   "s": "istilah-middleware",
+  "h": null
+ },
+ {
+  "t": "MITM (man-in-the-middle)",
+  "d": "Penyerang yang berdiri di antara client dan server, lalu membaca atau mengubah lalu lintas di antara keduanya.",
+  "b": "t3-m26",
+  "n": "3.24 M26",
+  "u": "/tahap-3/m26-transfer-bukan-budi/",
+  "s": "istilah-mitm",
   "h": null
  },
  {

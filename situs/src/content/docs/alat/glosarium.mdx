@@ -49,9 +49,11 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Branch protection** | Aturan di GitHub tentang apa yang boleh masuk ke satu branch: persetujuan wajib, status check wajib, dan larangan force push. | [[t2-tim-infra]] |
 | **Brute force** | Menebak banyak password untuk satu akun sampai ada yang cocok, biasanya otomatis. | [[t2-login-aman]] |
 | **Buku ledger** | Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya. | [[t2-ledger]] |
+| **CA** (Certificate Authority) | Pihak yang menandatangani sertifikat. App yang mempercayai sebuah CA ikut mempercayai sertifikat yang ia terbitkan. | [[t3-tls-pinning]] |
 | **Cache** | Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli. | [[B9]] |
 | **Cache invalidation** | Membuang atau memperbarui entri cache saat data aslinya berubah, supaya salinan tidak tertinggal. | [[t3-cache]] |
 | **Cache-aside** | Cara memakai cache: aplikasi memeriksa cache lebih dulu, membaca database bila entrinya tidak ada, lalu menyimpan hasilnya di cache. | [[t3-cache]] |
+| **Certificate pinning** | App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem. | [[t3-tls-pinning]] |
 | **CI** (Continuous Integration) | Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung. | [[B1.4]] |
 | **Circuit breaker** | Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda. | [[B11]] |
 | **CODEOWNERS** | File yang menunjuk pemilik tiap bagian repo, supaya GitHub meminta mereka me-review PR yang menyentuhnya. | [[t2-tim-infra]] |
@@ -62,6 +64,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Credential stuffing** | Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama. | [[t2-m16]] |
 | **CSP** (Content Security Policy) | Header respons yang memberi tahu browser sumber skrip dan sumber lain mana yang boleh dipakai halaman, sehingga skrip yang tidak dikenal ditolak. | [[t3-xss-csrf]] |
 | **CSRF** (cross-site request forgery) | Serangan yang membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim. | [[t3-xss-csrf]] |
+| **Daftar akar** (root store) | Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu. | [[t3-tls-pinning]] |
 | **Dead-letter queue** | Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya. | [[t3-at-least-once]] |
 | **Deadlock** | Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya. | [[t2-race-lock]] |
 | **Debit** | Sisi kiri sebuah jurnal akuntansi; di setiap jurnal total debit sama dengan total kredit, dan akun aset bertambah di sisi debit. | [[t2-ledger]] |
@@ -80,7 +83,9 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Golden signals** | Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation. | [[t3-observability]] |
 | **Graceful shutdown** | Mematikan proses dengan rapi: berhenti menerima koneksi baru, lalu menunggu request yang sedang jalan selesai sebelum keluar. | [[t3-dua-instance]] |
 | **gzip** | Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip. | [[t2-payload]] |
+| **Handshake TLS** | Tahap awal koneksi TLS, sebelum byte HTTP pertama: server menunjukkan sertifikatnya dan client memeriksanya. | [[t3-tls-pinning]] |
 | **Health check** | Pemeriksaan berkala yang dilakukan proxy atau orkestrator ke tiap instance untuk memutuskan apakah instance itu boleh menerima request. | [[t3-dua-instance]] |
+| **HSTS** (HTTP Strict Transport Security) | Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser. | [[t3-tls-pinning]] |
 | **Idempotency key** | Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali. | [[t2-idempotency]] |
 | **Idle in transaction** | Keadaan sesi database yang sudah membuka transaction tetapi sedang tidak menjalankan query, dan menunggu perintah berikutnya dari client. | [[t3-observability]] |
 | **IDOR** (Insecure Direct Object Reference) | Celah saat server memakai ID dari request tanpa bertanya apakah peminta boleh menyentuh data itu. OWASP API Security menyebutnya BOLA. | [[t1-idor]] |
@@ -112,6 +117,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Metric** | Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error. | [[t3-observability]] |
 | **Microservice** | Gaya arsitektur yang memecah backend jadi beberapa service kecil yang di-deploy terpisah dan saling memanggil lewat jaringan. | [[B7.2]] |
 | **Middleware** | Fungsi yang dijalankan sebelum atau sesudah semua handler, mis. pemeriksa token atau pencatat log. | [[B7.1]] |
+| **MITM** (man-in-the-middle) | Penyerang yang berdiri di antara client dan server, lalu membaca atau mengubah lalu lintas di antara keduanya. | [[t3-m26]] |
 | **Modular monolith** | Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas. | [[B7.2]] |
 | **Monolith** | Satu aplikasi backend yang memuat semua fitur dan di-deploy sebagai satu unit. | [[A1]] |
 | **MVCC** (Multi-Version Concurrency Control) | Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis. | [[t2-isolation-level]] |

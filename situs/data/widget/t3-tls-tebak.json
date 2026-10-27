@@ -1,0 +1,44 @@
+{
+  "id": "t3-tls-tebak",
+  "judul": "Pin di callback milik dio",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t3-mitm/output/dio.txt bagian A; pin.txt bagian B"
+  },
+  "adegan": [
+    "App Budi memasang pin SPKI A dan B di callback `validateCertificate` milik dio. Daftar akar app berisi CA Dimas, jadi sertifikat tiruan hotspot Dimas lolos validasi bawaan.",
+    "Budi mengirim Rp10.000 ke Citra lewat hotspot itu. Proxy Dimas mengubahnya menjadi Rp150.000 ke Dimas dan meneruskannya ke server asli."
+  ],
+  "pertanyaan": "Apa yang proxy Dimas lihat, dan apa yang tercatat di database?",
+  "pilihan": [
+    {
+      "teks": "Pin menolak sertifikat tiruan sebelum request keluar, jadi proxy hanya melihat handshake dan database tanpa transfer.",
+      "benar": false,
+      "alasan": "Itu hasil pin di `connectionFactory` (dio.txt bagian B). Pin dio diperiksa sesudah jawaban tiba: kode dio 5.11.0 memanggil `request.close()` di baris 161, sebelum `validateCertificate` di baris 195."
+    },
+    {
+      "teks": "Handshake gagal karena CA Dimas tidak ada di daftar akar, jadi pin tidak pernah diperiksa.",
+      "benar": false,
+      "alasan": "CA Dimas ada di daftar akar, jadi handshake lolos. Callback dio dipanggil satu kali (`callback_dipanggil` 1 di dio.txt bagian A). Validasi bawaan tidak menolak CA yang sudah dipercaya."
+    },
+    {
+      "teks": "Request lolos dan transfer tercatat, karena callback pin tidak pernah dipanggil bila CA dipercaya.",
+      "benar": false,
+      "alasan": "Itu hasil pin di `badCertificateCallback` milik dart:io: callback dipanggil 0 kali (pin.txt bagian B). Callback dio lain: ia dipanggil, dan menolak, tetapi terlambat."
+    },
+    {
+      "teks": "Proxy sudah membaca request, server mencatat Rp150.000 ke Dimas, dan baru sesudahnya callback menolak.",
+      "benar": true,
+      "alasan": "dio.txt bagian A: proxy membaca token dan body, database mencatat satu transfer Rp150.000 dari Budi ke Dimas, lalu `validateCertificate` menolak dan dio melempar galat sertifikat. Penolakannya benar, tetapi datang sesudah uang pindah."
+    }
+  ],
+  "penutup": "Pin yang sama menahan sebelum request di `connectionFactory`, dan hanya menyesali sesudahnya di `validateCertificate`. Tempat pin diperiksa menentukan apa yang sempat keluar.",
+  "label": {
+    "sumber": "Rekaman lab · dio.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}
