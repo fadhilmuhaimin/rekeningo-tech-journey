@@ -391,7 +391,7 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     expect(hitungKali(badan, "tiga transaksi per user aktif per hari")).toBe(1);
   });
   test("Paham 4: pemakaian terhadap batas, tabel Tahap 3 dan Tahap 4", () => {
-    harus(`Kapasitas worker adalah c ÷ t: c = ${C} pengirim serentak dan t = ${koma(T_PUSH, 1)} detik per pengiriman (Asumsi), jadi ${C} ÷ ${koma(T_PUSH, 1)} = ${koma(KAP, 2)} per detik.`);
+    harus(`Kapasitas worker adalah c ÷ t. Di sini c = ${C} pengirim serentak dan t = ${koma(T_PUSH, 1)} detik per pengiriman (Asumsi), jadi ${C} ÷ ${koma(T_PUSH, 1)} = ${koma(KAP, 2)} per detik.`);
     harus(`| Notifikasi uang per detik, puncak | ${koma(lamTrx3, 3)} | ${koma(notif4, 2)} | ${koma(KAP, 2)} per detik |`);
     harus(`| Pemakaian worker, puncak | ${koma(pakai3 * 100, 1)}% | ${Math.round(pakai4 * 100)}% | 100% |`);
     harus(`| Pemakaian worker, makan siang | ${koma((sianga3 / KAP) * 100, 1)}% | ${Math.round((siang4 / KAP) * 100)}% | 100% |`);

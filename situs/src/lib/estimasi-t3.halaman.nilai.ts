@@ -59,7 +59,7 @@ export const BARIS_MDX: string[] = [
  "| Unggahan file | 2.000 | 0,231 | 1.000 pendaftar × 2 file |",
  "Transaksi uang naik 8,0 kali (0,868 ke 6,94), sama dengan semua request, karena tiga transaksi per user aktif per hari tetap. Empat kelas lain baru di PRD v4. Dari empat kelas baru, registry hanya memuat unggahan per hari dan ukuran file; angka kelas lain adalah Asumsi naskah.",
  "**4. Bandingkan tiap hasil dengan batasnya.** Kapasitas bukan jumlah request per detik. Setiap kelas dibandingkan dengan batas komponen yang dipakainya: worker dengan c ÷ t, koneksi dengan `max_connections` dan batas pool, ukuran data dengan jadwal partisi.",
- "Kapasitas worker adalah c ÷ t: c = 4 pengirim serentak dan t = 0,3 detik per pengiriman (Asumsi), jadi 4 ÷ 0,3 = 13,33 per detik. [Rekaman lab](/cara-pakai/#label-sumber) t3-outbox mengukurnya antara 12 dan 13,33 per detik pada layanan push tiruan yang menjawab sesudah 300 ms ([[t3-m27]]).",
+ "Kapasitas worker adalah c ÷ t. Di sini c = 4 pengirim serentak dan t = 0,3 detik per pengiriman (Asumsi), jadi 4 ÷ 0,3 = 13,33 per detik. [Rekaman lab](/cara-pakai/#label-sumber) t3-outbox mengukurnya antara 12 dan 13,33 per detik pada layanan push tiruan yang menjawab sesudah 300 ms ([[t3-m27]]).",
  "| Besaran | Tahap 3 | Tahap 4 | Batas |",
  "|---|---|---|---|",
  "| Notifikasi uang per detik, puncak | 0,868 | 7,52 | 13,33 per detik |",
