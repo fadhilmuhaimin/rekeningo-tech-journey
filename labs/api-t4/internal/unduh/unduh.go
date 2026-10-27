@@ -49,6 +49,8 @@ const (
 	BatasUkuran = 2 << 20
 	// BatasWaktu: waktu total satu unduhan, termasuk resolusi nama, koneksi, dan pembacaan isi (ADR 41, ADR 22).
 	BatasWaktu = 3 * time.Second
+	// BatasHeader: header jawaban paling besar 64 KiB (Asumsi lab: header gambar yang sehat jauh di bawahnya).
+	BatasHeader = 64 << 10
 	// batasRentan: versi pertama hanya membatasi isi pada angka yang wajar, bukan pada kebutuhan gambar.
 	batasRentan = 10 << 20
 	// awalGalatRentan: berapa byte pertama isi respons yang ikut di pesan galat versi rentan.
@@ -208,6 +210,9 @@ func (a Aturan) Unduh(ctx context.Context, alamat string) (Gambar, error) {
 			return nil, galat
 		},
 		DisableKeepAlives: true,
+		// Batas 2 MiB berlaku untuk isi. Tanpa batas ini header jawaban boleh sampai 10 MB (bawaan Transport), dan
+		// delapan unduhan serentak bisa menahan puluhan MB memori dari satu server yang sengaja mengirim header besar.
+		MaxResponseHeaderBytes: BatasHeader,
 	}
 	c := klien.BaruDenganTransport(waktu, tr) // timeout dan aturan "redirect tidak diikuti" dari satu pembuat client
 	defer tr.CloseIdleConnections()

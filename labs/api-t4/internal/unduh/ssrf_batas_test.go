@@ -29,6 +29,7 @@ import (
 	"net/netip"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -384,6 +385,95 @@ func TestSSRFBatasBentukIDNATidakMelewatiFetcherAman(t *testing.T) {
 		if err == nil || s.kena.Load() != 0 {
 			t.Fatalf("%s: galat %v, permintaan sampai %d", k.label, err, s.kena.Load())
 		}
+	}
+}
+
+// ---------- (e) masukan ekstrem: gagal tertutup ----------
+
+// TestSSRFBatasMasukanEkstremGagalTertutup memeriksa bahwa masukan yang terlalu besar atau terlalu panjang membuat
+// fetcher menolak (gagal tertutup), bukan menerima atau menggantung: host dan path sangat panjang, header jawaban
+// besar, rantai redirect panjang, dan jawaban DNS yang panjang dengan satu alamat terlarang di ujung.
+func TestSSRFBatasMasukanEkstremGagalTertutup(t *testing.T) {
+	fmt.Println("\n## masukan ekstrem: host dan path sangat panjang, header jawaban besar, rantai redirect, dan jawaban DNS panjang gagal tertutup")
+	ctx := context.Background()
+	tidakAda := func(ctx context.Context, host string) ([]net.IPAddr, error) {
+		return nil, &net.DNSError{Err: "no such host", Name: "x", IsNotFound: true}
+	}
+	_, err := Aturan{IzinkanHTTP: true, Resolver: tidakAda, Waktu: time.Second}.Unduh(ctx, "http://"+strings.Repeat("a", 100000)+".contoh/a.png")
+	fmt.Printf("%-52s ditolak: %v\n", "host 100.000 karakter", err != nil)
+	if err == nil {
+		t.Fatal("host 100.000 karakter diterima")
+	}
+
+	s := mulaiServer(t, false, ruteUmum())
+	mulai := time.Now()
+	_, err = lokal().Unduh(ctx, s.URL+"/"+strings.Repeat("a", 2<<20))
+	fmt.Printf("%-52s ditolak: %v; selesai kurang dari 2 detik: %v\n", "path 2 MiB", err != nil, time.Since(mulai) < 2*time.Second)
+	if err == nil || time.Since(mulai) >= 2*time.Second {
+		t.Fatalf("path 2 MiB: galat %v sesudah %s", err, time.Since(mulai))
+	}
+
+	// Header jawaban: 32 KiB masih diterima, 128 KiB dan 11 MiB ditolak (BatasHeader 64 KiB).
+	for _, k := range []struct {
+		label  string
+		n      int
+		terima bool
+	}{{"32 KiB", 32 << 10, true}, {"128 KiB", 128 << 10, false}, {"11 MiB", 11 << 20, false}} {
+		h := mulaiServer(t, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("X-Besar", strings.Repeat("a", k.n))
+			w.Write(pngKecil)
+		}))
+		g, err := lokal().Unduh(ctx, h.URL+"/")
+		fmt.Printf("header jawaban %-37s %s\n", k.label, ringkasHasil(g, err))
+		if k.terima && err != nil {
+			t.Errorf("header %d byte: %v, ingin diterima", k.n, err)
+		}
+		if !k.terima && !errors.Is(err, ErrGagal) {
+			t.Errorf("header %d byte: %v, ingin ErrGagal", k.n, err)
+		}
+	}
+
+	// Rantai redirect: hanya langkah pertama yang tersentuh.
+	var langkah atomic.Int64
+	var rantai *serverUji
+	rantai = mulaiServer(t, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		langkah.Add(1)
+		http.Redirect(w, r, fmt.Sprintf("/rantai/%d", langkah.Load()), http.StatusFound)
+	}))
+	g, err := lokal().Unduh(ctx, rantai.URL+"/rantai/0")
+	fmt.Printf("%-52s %s; langkah yang tersentuh: %d\n", "rantai redirect tanpa akhir", ringkasHasil(g, err), langkah.Load())
+	if !errors.Is(err, ErrTujuan) || langkah.Load() != 1 {
+		t.Fatalf("rantai redirect: %v, langkah %d", err, langkah.Load())
+	}
+
+	// Jawaban DNS panjang: satu alamat terlarang di ujung menolak seluruh unduhan, tanpa dipotong atau dilewati.
+	panjang := func(ctx context.Context, host string) ([]net.IPAddr, error) {
+		semua := make([]net.IPAddr, 0, 4097)
+		for i := 0; i < 4096; i++ {
+			semua = append(semua, net.IPAddr{IP: net.IPv4(8, 8, byte(i>>8), byte(i))}) // alamat publik yang hanya dibaca
+		}
+		return append(semua, net.IPAddr{IP: net.ParseIP("10.0.0.1")}), nil
+	}
+	_, err = Aturan{IzinkanHTTP: true, Resolver: panjang, Waktu: time.Second}.Unduh(ctx, "http://panjang.contoh/a.png")
+	fmt.Printf("%-52s %s\n", "jawaban DNS 4.097 alamat, yang terakhir private", ringkasHasil(Gambar{}, err))
+	if !errors.Is(err, ErrTujuan) {
+		t.Fatalf("jawaban DNS panjang: %v", err)
+	}
+}
+
+// TestSSRFBatasJawabanDNSDenganAlamatTerlarangDiUrutanKedua: satu jawaban DNS yang memuat alamat terlarang menolak
+// seluruh unduhan walau alamat pertamanya boleh dijangkau. Pemeriksaan yang hanya melihat alamat pertama melewatkannya,
+// dan client menyambung ke alamat pertama.
+func TestSSRFBatasJawabanDNSDenganAlamatTerlarangDiUrutanKedua(t *testing.T) {
+	fmt.Println("\n## jawaban DNS campuran: alamat terlarang di urutan kedua menolak seluruh unduhan")
+	s := mulaiServer(t, false, ruteUmum())
+	r := func(ctx context.Context, host string) ([]net.IPAddr, error) {
+		return []net.IPAddr{{IP: net.ParseIP("127.0.0.1")}, {IP: net.ParseIP("10.0.0.1")}}, nil
+	}
+	_, err := lokal(func(a *Aturan) { a.Resolver = r }).Unduh(context.Background(), "http://terbalik.contoh:"+port(s)+"/gambar.png")
+	fmt.Printf("alamat yang boleh dijangkau lebih dulu, private kedua: %s; permintaan sampai: %d\n", ringkasHasil(Gambar{}, err), s.kena.Load())
+	if !errors.Is(err, ErrTujuan) || s.kena.Load() != 0 {
+		t.Fatalf("jawaban campuran terbalik: %v, permintaan %d", err, s.kena.Load())
 	}
 }
 
