@@ -544,7 +544,7 @@ describe("widget Tebak dan diagram Inti: nilai diturunkan dari rekaman", () => {
   });
   test("Tebak: posisi dan panjang jawaban benar tidak mencolok; semua string diturunkan dari rekaman dan kode", () => {
     const i = tebak.pilihan.findIndex((p) => p.benar);
-    expect(i).toBe(2);
+    expect(i).toBe(1);
     expect(tebak.pilihan).toHaveLength(4);
     const panjang = tebak.pilihan.map((p) => p.teks.length);
     expect(panjang[i]).toBeLessThan(Math.max(...panjang));
@@ -555,19 +555,19 @@ describe("widget Tebak dan diagram Inti: nilai diturunkan dari rekaman", () => {
     expect(tebak.sumber).toEqual({ jenis: "rekaman", teks: "labs/t3-offline/output/versi.txt bagian B, C, dan D; sinkron14.txt bagian B; waktu diperankan" });
     expect(tebak.adegan).toEqual([
       `Jumat 16.50 Ani mencatat "bakso habis" di HP, tetapi sinyalnya sudah hilang dan operasi itu tidak pernah sampai ke server. Sabtu pagi ia mengisi bakso ${stokIsiBakso} porsi lewat dasbor di laptop.`,
-      `Senin 06.50 HP kembali online dan mengirim operasi "stok bakso = 0" untuk pertama kalinya, dengan kunci baru dan versi yang Ani lihat hari Jumat.`,
+      `Senin 06.50 HP kembali online dan mengirim operasi "stok bakso = 0" untuk pertama kalinya, dengan kunci yang belum pernah diterima server dan versi yang Ani lihat hari Jumat.`,
     ]);
     expect(tebak.pertanyaan).toBe("Apa jawaban server, dan berapa stok bakso sesudahnya?");
     expect(tebak.pilihan.map((p) => p.teks)).toEqual([
       "Menjawab 200, dan stok jadi 0, karena server belum pernah melihat kunci ini.",
-      `Menjawab 422, karena operasinya lebih tua dari ${jamKunci} jam.`,
       `Menjawab ${baksoC.kode}, stok tetap ${bakso.stok}, dan jawabannya memuat stok ${bakso.stok} dan versi ${bakso.versi}.`,
+      `Menjawab 422, karena operasinya lebih tua dari ${jamKunci} jam.`,
       `Menjawab 200, stok tetap ${bakso.stok}, karena server membuang operasi yang usang tanpa memberi tahu HP.`,
     ]);
     expect(tebak.pilihan.map((p) => p.alasan)).toEqual([
-      `Itu hasil jalur lama di m24.txt bagian D: tanpa pemeriksaan versi, stok ${stokSabtu} menjadi 0 dengan jawaban ${mD[0]!.kode}. Jalur sinkron memeriksa versi, jadi kunci baru saja tidak cukup untuk menerapkan operasi.`,
-      `Batas ${jamKunci} jam milik Idempotency-Key di jalur uang. Queue sinkron menerima operasi sampai ${hariQueue} hari: ${umurOk} diterima dan ${umurTolak} ditolak (sinkron14.txt bagian B).`,
+      `Itu hasil jalur lama di m24.txt bagian D: tanpa pemeriksaan versi, stok ${stokSabtu} menjadi 0 dengan jawaban ${mD[0]!.kode}. Jalur sinkron memeriksa versi, jadi kunci yang belum dikenal saja tidak cukup untuk menerapkan operasi.`,
       `versi.txt bagian C: kunci tidak dikenal, tetapi versi dasar ${versiDasarBakso} sudah lewat karena dasbor mengisi bakso hari Sabtu. Server tidak mengubah apa pun dan mengirim keadaan terkini supaya Ani memilih.`,
+      `Batas ${jamKunci} jam milik Idempotency-Key di jalur uang. Queue sinkron menerima operasi sampai ${hariQueue} hari: ${umurOk} diterima dan ${umurTolak} ditolak (sinkron14.txt bagian B).`,
       `Kode TerapkanOperasi tidak punya cabang itu. Versi yang berbeda dicatat sebagai konflik dan dijawab ${baksoC.kode} (versi.txt bagian C). Jawaban 200 untuk operasi yang tidak diterapkan membuat HP mengira bakso sudah tercatat habis.`,
     ]);
     expect(tebak.penutup).toBe("Kunci mengenali kiriman yang sudah pernah sampai, dan versi menolak operasi yang dibuat dari keadaan yang sudah lewat. Dua pengaman itu menjawab dua pertanyaan berbeda.");
