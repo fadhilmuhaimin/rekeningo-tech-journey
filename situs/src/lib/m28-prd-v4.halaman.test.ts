@@ -342,6 +342,10 @@ describe("rekaman t3-pool adr22.txt bagian F: batas L, bukan nilai tunggal, di s
       { berkas: "labs/t3-pool/output/adr22.txt", lines: `${awal}:${akhir}`, lang: undefined, judul: `Rekaman lab: labs/t3-pool/output/adr22.txt baris ${awal} sampai ${akhir} (bagian F, beban berjadwal)` },
     ]);
     expect(akhir - awal).toBe(5);
+    // baris Snippet tidak masuk kunci baris MDX (diturunkan dari rekaman), jadi bentuk utuhnya dikunci di sini: tanpa teks atau atribut lain
+    expect(mdx.split("\n").filter((x) => x.startsWith("<Snippet"))).toEqual([
+      `<Snippet file="labs/t3-pool/output/adr22.txt" lines="${awal}:${akhir}" title="Rekaman lab: labs/t3-pool/output/adr22.txt baris ${awal} sampai ${akhir} (bagian F, beban berjadwal)" />`,
+    ]);
     for (const t of tagSnippet()) {
       const [a, z] = t.lines!.split(":").map(Number) as [number, number];
       expect(bersihkanRujukanInternal(A22.antara(a, z)), t.judul).not.toMatch(POLA_ID_INTERNAL);
