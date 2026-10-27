@@ -123,6 +123,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Optimistic lock** | Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca. | [[t2-race-lock]] |
 | **ORM** (Object-Relational Mapping) | Library yang memetakan tabel database ke objek di kode, sehingga query ditulis sebagai pemanggilan method, mis. Eloquent di Laravel atau ORM bawaan Django. | [[t2-n-plus-1]] |
 | **Outbox** | Tabel tempat event ditulis dalam transaction yang sama dengan perubahan data, lalu dikirim oleh worker. | [[t3-outbox]] |
+| **Output encoding** | Mengubah teks yang akan ditulis ke halaman supaya tanda khusus HTML tampil sebagai teks dan tidak dibaca sebagai markup. | [[t3-m25]] |
 | **Over-fetching** | Response yang mengirim lebih banyak kolom atau baris daripada yang dipakai layar. | [[t2-payload]] |
 | **p95 / p50** | Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median). | [[t3-observability]] |
 | **Pagination** | Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu. | [[t2-kursor]] |
@@ -187,7 +188,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Webhook** | HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil. | [[B10.2]] |
 | **WebSocket** | Koneksi dua arah yang tetap terbuka antara app dan server. | [[E4]] |
 | **Worker** | Proses terpisah yang mengambil pekerjaan dari queue dan mengerjakannya di luar jalur request. Di server web seperti WSGI, worker juga berarti satu proses yang melayani request. | [[t3-outbox]] |
-| **XSS** (cross-site scripting) | Celah saat teks dari luar dibaca browser sebagai kode, lalu berjalan di halaman milik orang lain dengan hak halaman itu. | [[t3-xss-csrf]] |
+| **XSS** (cross-site scripting) | Celah di halaman web yang membuat browser menjalankan skrip dari data yang ditampilkan, mis. catatan pembayaran yang ditulis ke halaman tanpa di-encode. | [[t3-m25]] |
 
 <WidgetLama nama="umpan-balik" />
 

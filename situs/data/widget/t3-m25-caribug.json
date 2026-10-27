@@ -1,0 +1,68 @@
+{
+  "id": "t3-m25-caribug",
+  "judul": "Skrip halaman dasbor yang menulis riwayat penerimaan",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Skrip halaman dasbor mode rentan dari labs/t3-dasbor/go/cmd/dasbor/main.go baris 258 sampai 268, dengan baris render dari renderRentan (baris 238). Kodenya dari repo lab; perilakunya direkam di xss.txt bagian A."
+  },
+  "bahasa": "js",
+  "baris": [
+    "fetch('/api/riwayat', {credentials: 'same-origin'}).then(function(r){ return r.json(); }).then(function(rows){",
+    "  var c = document.getElementById('daftar');",
+    "  c.innerHTML = '';",
+    "  rows.forEach(function(row){",
+    "    var b = document.createElement('div');",
+    "    b.className = 'baris';",
+    "    b.innerHTML = row.jenis + ': Rp' + row.nominal + ' — ' + row.keterangan;",
+    "    c.appendChild(b);",
+    "  });",
+    "  if (rows.length === 0) { c.textContent = '(belum ada penerimaan)'; }",
+    "});"
+  ],
+  "bug": [
+    6
+  ],
+  "alasan": {
+    "6": "Teks dari kolom keterangan ditulis lewat innerHTML, jadi browser mengurainya sebagai HTML. Catatan Dimas menjadi elemen img nyata (1 elemen di daftar), gambar x gagal dimuat, dan onerror menjalankan alert(1) (Rekaman lab xss.txt bagian A)."
+  },
+  "aman": {
+    "0": "Baris ini mengambil data dan menguraikannya sebagai JSON. Tanda kurung sudut di dalam string JSON tetap karakter biasa, jadi baris ini bukan masalahnya.",
+    "2": "Baris ini mengosongkan daftar dengan string tetap dari kode. Tidak ada data dari database yang masuk lewat innerHTML di baris ini.",
+    "9": "textContent dengan teks tetap dari kode. textContent menulis teks tanpa mengurai HTML, dan perbaikan untuk keterangan memakai cara yang sama."
+  },
+  "tebak": {
+    "q": "Satu baris di skrip ini membuat catatan dari Dimas menjadi elemen halaman, bukan teks. Baris mana?",
+    "petunjuk": "Untuk tiap baris, tanya: apakah ada string dari database yang masuk ke browser sebagai HTML, dan siapa yang menulis isi string itu?"
+  },
+  "perbaikan": {
+    "label": "Satu baris diganti tiga baris: keterangan ditulis sebagai teks",
+    "baris": [
+      "fetch('/api/riwayat', {credentials: 'same-origin'}).then(function(r){ return r.json(); }).then(function(rows){",
+      "  var c = document.getElementById('daftar');",
+      "  c.innerHTML = '';",
+      "  rows.forEach(function(row){",
+      "    var b = document.createElement('div');",
+      "    b.className = 'baris';",
+      "    var kiri = document.createElement('span'); kiri.textContent = row.jenis + ': Rp' + row.nominal + ' — ';",
+      "    var ket = document.createElement('span'); ket.textContent = row.keterangan;",
+      "    b.appendChild(kiri); b.appendChild(ket);",
+      "    c.appendChild(b);",
+      "  });",
+      "  if (rows.length === 0) { c.textContent = '(belum ada penerimaan)'; }",
+      "});"
+    ],
+    "catatan": "Catatan Dimas tetap sama di jurnal. Di rekaman bagian E, tag tampil sebagai teks di daftar: 0 elemen img dan 0 kotak peringatan. textContent tidak mengurai HTML."
+  },
+  "label": {
+    "sumber": "Kode lab; perilakunya Rekaman lab",
+    "tebakDulu": "Tebak dulu:",
+    "perintah": "Klik baris yang membuat catatan menjadi elemen, lalu Periksa.",
+    "periksa": "Periksa tanda saya",
+    "ulang": "Ulang",
+    "benar": "sumber masalah",
+    "lewat": "terlewat",
+    "salahTanda": "baris ini tidak salah",
+    "perbaikanTombol": "Lihat rancangan yang benar",
+    "ringkas": "Kamu menandai {benar} dari {bug} baris yang bermasalah, dan {salah} baris lain ikut ditandai."
+  }
+}

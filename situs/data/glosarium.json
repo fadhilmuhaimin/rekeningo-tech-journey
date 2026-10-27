@@ -918,6 +918,15 @@
   "h": "/istilah/outbox/"
  },
  {
+  "t": "Output encoding",
+  "d": "Mengubah teks yang akan ditulis ke halaman supaya tanda khusus HTML tampil sebagai teks dan tidak dibaca sebagai markup.",
+  "b": "t3-m25",
+  "n": "3.22 M25",
+  "u": "/tahap-3/m25-kotak-peringatan/",
+  "s": "istilah-output-encoding",
+  "h": null
+ },
+ {
   "t": "Over-fetching",
   "d": "Response yang mengirim lebih banyak kolom atau baris daripada yang dipakai layar.",
   "b": "t2-payload",
@@ -1495,10 +1504,10 @@
  },
  {
   "t": "XSS (cross-site scripting)",
-  "d": "Celah saat teks dari luar dibaca browser sebagai kode, lalu berjalan di halaman milik orang lain dengan hak halaman itu.",
-  "b": "t3-xss-csrf",
-  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
-  "u": "/tahap-3/xss-csrf-cookie/",
+  "d": "Celah di halaman web yang membuat browser menjalankan skrip dari data yang ditampilkan, mis. catatan pembayaran yang ditulis ke halaman tanpa di-encode.",
+  "b": "t3-m25",
+  "n": "3.22 M25",
+  "u": "/tahap-3/m25-kotak-peringatan/",
   "s": "istilah-xss",
   "h": "/istilah/xss/"
  }

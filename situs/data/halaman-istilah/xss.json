@@ -1,43 +1,43 @@
 {
   "istilah": "XSS (cross-site scripting)",
-  "sehari_hari": "XSS terjadi saat teks dari luar dibaca browser sebagai kode, lalu berjalan di halaman milik orang lain dengan hak halaman itu.",
+  "sehari_hari": "XSS adalah celah yang membuat browser menjalankan skrip dari data yang seharusnya hanya tampil sebagai teks. Skrip itu berjalan sebagai halaman yang sedang dibuka, jadi ia memakai sesi orang yang membukanya.",
   "cerita": [
     {
       "rujukan": "t3-m25",
-      "teks": "Catatan pembayaran Dimas berisi elemen `img` dengan `onerror`. Dasbor Ani menampilkannya lewat `innerHTML`, jadi satu dialog `alert` muncul setiap kali Ani membuka riwayat."
-    },
-    {
-      "rujukan": "t3-xss-csrf",
-      "teks": "Di rekaman, `textContent` saja atau CSP saja menahan payload yang sama (`xss.txt` bagian C dan E). Hanya saat keduanya mati sekaligus `onerror` berjalan (bagian A)."
+      "teks": "Dimas membayar Warung Ani Rp5.000 dengan catatan berupa tag gambar. Dasbor menulis catatan lewat innerHTML, dan Ani melihat kotak peringatan berisi 1 setiap kali membuka riwayat (`xss.txt` bagian A)."
     }
   ],
   "mekanisme": [
-    "Data dari satu user, di sini catatan pembayaran, disimpan apa adanya di database.",
-    "Halaman lain menulis data itu ke DOM lewat sink yang membaca HTML, seperti `innerHTML`.",
-    "Browser menafsir teks itu sebagai elemen dan atribut, termasuk event handler seperti `onerror`.",
-    "Skrip yang berjalan memakai sesi pemilik halaman: cookie ikut terkirim dan variabel halaman bisa dibaca."
+    "Seseorang menaruh teks berisi markup di kolom yang nanti ditampilkan, di sini catatan pembayaran.",
+    "Server menyimpan teks itu apa adanya. Di jurnal, baris itu tidak bisa dihapus.",
+    "Halaman menulis teks itu lewat `innerHTML`, jadi browser mengurainya sebagai HTML dan menjalankan atribut seperti `onerror`.",
+    "Skrip berjalan sebagai halaman itu: ia memakai cookie dan token halaman, jadi token CSRF yang benar tidak menahannya (bagian D).",
+    "Perbaikannya menulis teks lewat `textContent`, yang tidak mengurai HTML."
   ],
   "stack": null,
   "jebakan": [
-    "Menganggap token CSRF yang benar cukup. Skrip yang berjalan di halaman dasbor mengirim permintaan same-origin dengan token yang benar, dan diterima (`xss.txt` bagian D).",
-    "Menganggap `HttpOnly` menghentikan XSS. Cookie jadi tidak terbaca skrip, tetapi tetap dikirim pada permintaan dari JavaScript, jadi aksinya tetap terjadi."
+    "Mengira hanya elemen `script` yang berbahaya. `innerHTML` memang tidak menjalankan `script`, tetapi atribut seperti `onerror` pada `img` tetap berjalan (MDN).",
+    "Mengira data dari database sendiri aman. Catatan yang tersimpan di sistem sendiri tetap ditulis orang lain, dan halaman harus menulisnya sebagai teks.",
+    "Mengira `HttpOnly` menghentikan serangan. Ia hanya melarang skrip membaca cookie, dan skrip tetap bisa mengirim request dengan cookie itu (bagian D)."
   ],
-  "terkait": [
-    "CSRF (cross-site request forgery)",
-    "CSP (Content Security Policy)"
-  ],
+  "terkait": ["Output encoding", "Authentication", "Token"],
   "sumber": [
     {
-      "riset": "R3-211",
-      "judul": "OWASP: Cross Site Scripting Prevention Cheat Sheet",
-      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
-      "catatan": "Teks mentah dibuka 2026-10-27. Ganti innerHTML dengan textContent, yang membuat text node tanpa mem-parse HTML; CSP adalah lapis tambahan, bukan pertahanan utama."
+      "riset": "R3-205",
+      "judul": "MDN: Element.innerHTML, bagian Security considerations",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML",
+      "catatan": "Halaman tanpa nomor versi, dibuka 2026-10-27. innerHTML mencegah elemen script berjalan tetapi rentan terhadap cara lain, dan contohnya memakai img dengan onerror."
     },
     {
-      "riset": "R3-211",
-      "judul": "Rekaman lab t3-dasbor: xss.txt bagian A sampai E",
+      "riset": "R3-206",
+      "judul": "OWASP: Cross Site Scripting Prevention Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
+      "catatan": "Halaman tanpa nomor versi, dibuka 2026-10-27. textContent membuat text node tanpa mengurai HTML, dan data dari sumber internal dianggap tercemar kecuali divalidasi ketat saat diambil."
+    },
+    {
+      "judul": "Rekaman lab t3-dasbor: xss.txt bagian A, D, dan E",
       "rekaman": "labs/t3-dasbor/output/xss.txt",
-      "catatan": "Bagian A: innerHTML tanpa CSP, 1 dialog. Bagian B: textContent, 0 dialog. Bagian C: CSP saja, 0 dialog. Bagian E: textContent saja, 0 dialog."
+      "catatan": "A: innerHTML memunculkan satu dialog berisi 1. D: skrip di halaman dasbor mengubah harga walau cookie dan token benar. E: textContent tanpa dialog."
     }
   ]
 }

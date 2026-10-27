@@ -190,6 +190,8 @@
 *[ORM]: Library yang memetakan tabel database ke objek di kode, sehingga query ditulis sebagai pemanggilan method, mis. Eloquent di Laravel atau ORM bawaan Django.
 *[Outbox]: Tabel tempat event ditulis dalam transaction yang sama dengan perubahan data, lalu dikirim oleh worker.
 *[outbox]: Tabel tempat event ditulis dalam transaction yang sama dengan perubahan data, lalu dikirim oleh worker.
+*[Output encoding]: Mengubah teks yang akan ditulis ke halaman supaya tanda khusus HTML tampil sebagai teks dan tidak dibaca sebagai markup.
+*[output encoding]: Mengubah teks yang akan ditulis ke halaman supaya tanda khusus HTML tampil sebagai teks dan tidak dibaca sebagai markup.
 *[Over-fetching]: Response yang mengirim lebih banyak kolom atau baris daripada yang dipakai layar.
 *[over-fetching]: Response yang mengirim lebih banyak kolom atau baris daripada yang dipakai layar.
 *[p95]: Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median).
@@ -308,4 +310,4 @@
 *[WebSocket]: Koneksi dua arah yang tetap terbuka antara app dan server.
 *[Worker]: Proses terpisah yang mengambil pekerjaan dari queue dan mengerjakannya di luar jalur request. Di server web seperti WSGI, worker juga berarti satu proses yang melayani request.
 *[worker]: Proses terpisah yang mengambil pekerjaan dari queue dan mengerjakannya di luar jalur request. Di server web seperti WSGI, worker juga berarti satu proses yang melayani request.
-*[XSS]: Celah saat teks dari luar dibaca browser sebagai kode, lalu berjalan di halaman milik orang lain dengan hak halaman itu.
+*[XSS]: Celah di halaman web yang membuat browser menjalankan skrip dari data yang ditampilkan, mis. catatan pembayaran yang ditulis ke halaman tanpa di-encode.

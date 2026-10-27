@@ -136,7 +136,7 @@ describe("kata-kata halaman terkunci (lapis 2)", () => {
         : [`${jalur}=${JSON.stringify(x)}`];
     const berkas: Record<string, string> = {
       rantai: "situs/data/diagram/t3-xss-csrf-inti.json", tebak: "situs/data/widget/t3-xss-csrf-tebak.json",
-      banding: "situs/lama/widgets/data/t3-xss-csrf-banding.json", xss: "situs/data/halaman-istilah/xss.json",
+      banding: "situs/lama/widgets/data/t3-xss-csrf-banding.json",
       csrf: "situs/data/halaman-istilah/csrf.json", csp: "situs/data/halaman-istilah/csp.json", passkey: "situs/data/halaman-istilah/passkey.json",
     };
     expect(Object.keys(NILAI_JSON).sort()).toEqual(Object.keys(berkas).sort());
@@ -298,6 +298,10 @@ describe("kode lab: klaim mekanisme", () => {
     expect(fnCsrfSah).toContain("subtle.ConstantTimeCompare");
     expect(fnCsrfSah).toContain("hashToken(tok)");
     expect(fnCsrfSah.match(/return true/g) ?? []).toHaveLength(0);
+    expect(fnCsrfSah).toMatch(/site != "same-origin" && site != "none" \{\n\t\treturn false\n\t\}/);
+    expect(fnCsrfSah).toMatch(/o != "http:\/\/"\+r\.Host \{\n\t\treturn false\n\t\}/);
+    expect(fnCsrfSah).toMatch(/return tok != "" && subtle\.ConstantTimeCompare\(\[\]byte\(hashToken\(tok\)\), \[\]byte\(x\.CsrfHash\)\) == 1/);
+    expect(isi).toContain("Gerbangnya tiga pemeriksaan:");
     expect(dasborGo).toMatch(/if s\.token != "tidak" && !s\.csrfSah\(r, x\)/);
     for (const t of ["TestCsrfSahMenolakOriginAsing", "TestCsrfSahMenolakSecFetchSiteLintasSitus", "TestCsrfSahMenolakTokenSalahAtauKosong", "TestCsrfSahMenerimaSameOriginDenganTokenBenar"]) expect(dasborTest).toContain(`func ${t}(`);
     expect(dasborGo).toMatch(/token, csrf := tokenAcak\(\), tokenAcak\(\)/);
@@ -326,6 +330,22 @@ describe("kode lab: klaim mekanisme", () => {
     expect(PAYLOAD).toBe(PAYLOAD.trim());
     expect(isi).toContain(`${[...PAYLOAD].length} karakter, di bawah batas ${maksCatatan}, tanpa karakter kontrol`);
     expect(isi).toContain(`\`${PAYLOAD}\``);
+  });
+  test("textContent dibedakan dari output encoding, dengan sumber dan kode", () => {
+    const r211 = riset.split("\n").find((x) => x.startsWith("| R3-211 |"))!;
+    expect(r211).toContain("it does not HTML-encode the value");
+    expect(r211).toContain("bukan output encoding");
+    const aman = dasborGo.slice(dasborGo.indexOf("const renderAman"), dasborGo.indexOf("const halamanDasbor"));
+    expect(aman).toContain("textContent");
+    expect(aman).not.toMatch(/html\.EscapeString|EscapeString|&lt;/);
+    expect(isi).toContain("`textContent` berbeda dari output encoding.");
+    expect(isi).toContain("Halaman ini menyebut lapis pertama itu escape, seperti sumbu `-escape` di lab.");
+    expect(runPy).toContain('"-escape", escape');
+  });
+  test("payload dengan fetch dalam batas 100 karakter tidak direkam dan tidak diklaim", () => {
+    expect(isi).toContain("payload yang sendiri mengirim `fetch` dalam batas 100 karakter tidak direkam");
+    expect(`${xssTxt}\n${runPy}`).not.toMatch(/onerror=fetch|onerror=.*fetch\(/);
+    expect(PAYLOAD.length).toBeLessThan(maksCatatan);
   });
   test("PRD v3: dasbor P0 dan catatan P1", () => {
     expect(prd).toMatch(/[Dd]asbor web/);
@@ -623,7 +643,7 @@ describe("keputusan ADR 30 mengikuti naskah", () => {
 });
 
 describe("istilah baru, glosarium, dan pola terlarang", () => {
-  const slug = ["xss", "csrf", "csp", "passkey"];
+  const slug = ["csrf", "csp", "passkey"];
   test("empat halaman istilah valid, bersumber, dan terhubung ke glosarium", () => {
     const idReg = new Set(registry.halaman.map((h) => h.id as string));
     for (const s of slug) {
@@ -639,10 +659,15 @@ describe("istilah baru, glosarium, dan pola terlarang", () => {
       for (const t of d.terkait!) expect(glosMdx.includes(`**${t.split(" (")[0]}**`), t).toBe(true);
     }
     expect(glosMdx).toContain("| **Passkey** (WebAuthn) |");
-    expect(hitung(glosMdx, /\[\[t3-xss-csrf\]\]/g)).toBe(4);
+    expect(hitung(glosMdx, /\[\[t3-xss-csrf\]\]/g)).toBe(3);
+    // XSS dan Output encoding diperkenalkan di 3.22: halaman ini menautkan, tidak menduplikasi
+    expect(hitung(glosMdx, /^\| \*\*XSS\*\* \(cross-site scripting\) \|/gm)).toBe(1);
+    expect(glosMdx).toMatch(/^\| \*\*XSS\*\* \(cross-site scripting\) \|.*\[\[t3-m25\]\] \|$/m);
+    expect(hitung(glosMdx, /^\| \*\*Output encoding\*\* \|/gm)).toBe(1);
+    expect(terlacak?.has("situs/data/halaman-istilah/xss.json")).toBe(true);
   });
   test("teks tampil tidak memuat ID riset, nomor keputusan, nomor PR, atau kode label rekaman", () => {
-    const tampil = [isi, ...Object.entries(NILAI_JSON).flatMap(([k, v]) => v.filter((x) => !/^sumber\.\d+\.riset=/.test(x) || !["xss", "csrf", "csp", "passkey"].includes(k)))].join("\n");
+    const tampil = [isi, ...Object.entries(NILAI_JSON).flatMap(([k, v]) => v.filter((x) => !/^sumber\.\d+\.riset=/.test(x) || !["csrf", "csp", "passkey"].includes(k)))].join("\n");
     expect(tampil).not.toMatch(/\bR\d-\d{2,3}\b/);
     expect(tampil).not.toMatch(/keputusan \d{2,4}|\bPR #?\d{2,4}\b|mutasi tinjauan/i);
     expect(tampil).not.toMatch(/\b[A-G]\d\b(?!\.\d)/);

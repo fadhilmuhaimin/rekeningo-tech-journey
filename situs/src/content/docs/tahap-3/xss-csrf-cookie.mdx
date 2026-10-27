@@ -18,7 +18,7 @@ import dataTebak from "../../../../data/widget/t3-xss-csrf-tebak.json";
 
 ## Inti
 
-Catatan pembayaran adalah input, dan dua lapis yang berdiri sendiri menahan skripnya: teks yang tidak menjadi HTML, dan CSP.
+Catatan pembayaran adalah input, dan dua lapis yang berdiri sendiri menahan skrip di catatan Dimas: teks yang tidak menjadi HTML, dan CSP.
 
 <Rantai data={intiDiagram} ringkas />
 
@@ -88,6 +88,10 @@ Tiga ancaman bertemu di halaman itu: skrip dari data, permintaan dari situs lain
 
 OWASP menulis bahwa `textContent` membuat text node tanpa mem-parse HTML, dan menyarankan membuang `innerHTML` dari kode yang menampilkan data user ([OWASP: XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html), dibuka 2026-10-27). Di bagian B payload tampil sebagai teks: 0 dialog dan 0 elemen `img`.
 
+`textContent` berbeda dari output encoding. Encoding mengubah `<` menjadi `&lt;` sebelum teks ditulis sebagai HTML, dan template engine di tab stack mengerjakannya. `textContent` tidak membaca HTML sama sekali, jadi tidak ada yang di-encode. OWASP menulis bahwa teks asli diberikan tanpa di-encode lebih dulu.
+
+Halaman ini menyebut lapis pertama itu escape, seperti sumbu `-escape` di lab.
+
 OWASP juga menulis bahwa tiap variabel yang tidak melewati validasi, lalu escape atau sanitasi, adalah kelemahan yang mungkin. Itu sama dengan [[t1-m3]]: satu tempat yang terlupa sudah cukup.
 
 **Browser menolak skrip inline: CSP.** CSP adalah header respons yang menyebut sumber skrip mana yang boleh dijalankan. Dasbor mode benar mengirim satu kebijakan baru di setiap respons halaman:
@@ -102,7 +106,7 @@ CSP bukan pengganti escape. OWASP menulis bahwa CSP mudah salah dikonfigurasi da
 
 **XSS mengalahkan CSRF.** Dasbor punya satu endpoint yang mengubah data: harga menu produk 1 (Nasi goreng, Warung Ani). Di bagian D, escape dan CSP mati, tetapi cookie `__Host-sesi` dengan `HttpOnly` dan token CSRF tetap benar. Dialog `alert` muncul, lalu satu `fetch` dari dalam halaman memanggil `/api/menu/harga` dengan token dari variabel `csrf`, dan jawabannya 200: harga berubah dari Rp25.000 ke Rp2.
 
-Payload Dimas di lab hanya memanggil `alert(1)`. Penggerak Playwright mengirim `fetch` itu lewat `page.evaluate`, jadi rekaman membuktikan apa yang diterima dasbor dari dalam halaman, bukan bahwa payload itu sendiri mengirimnya. Tidak ada pemeriksaan yang ditembus: permintaan itu same-origin, cookie ikut terkirim, dan tokennya benar.
+Payload Dimas di lab hanya memanggil `alert(1)`, dan payload yang sendiri mengirim `fetch` dalam batas 100 karakter tidak direkam. Penggerak Playwright mengirim `fetch` itu lewat `page.evaluate`, jadi rekaman membuktikan apa yang diterima dasbor dari dalam halaman. Tidak ada pemeriksaan di gerbang yang ditembus: permintaan itu same-origin, cookie ikut terkirim, dan tokennya benar.
 
 `HttpOnly` melarang skrip membaca cookie, tetapi cookie tetap dikirim pada permintaan dari JavaScript ([MDN: Set-Cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie), dibuka 2026-10-27). OWASP menulis hal yang sama tentang hubungan XSS dan CSRF: XSS bisa mengalahkan semua teknik mitigasi CSRF ([OWASP: CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html), dibuka 2026-10-27).
 
@@ -223,7 +227,7 @@ app.use(csrfSynchronisedProtection);`} />
 | | A. Escape manual saja | B. CSP saja | C. Token di localStorage tanpa cookie | D. Escape bawaan, CSP, token, cookie `__Host-` |
 |---|---|---|---|---|
 | Cara kerja | Pengembang meng-escape tiap variabel yang ditulis ke halaman, dan tidak memakai header tambahan | Satu header CSP dengan nonce menolak skrip inline, sedangkan teks dari data boleh ditulis lewat `innerHTML` | App web menyimpan token sesi di `localStorage` dan mengirimnya di header `Authorization`, tanpa cookie | Teks lewat `textContent`, CSP dengan nonce, token CSRF terikat sesi plus `Sec-Fetch-Site` dan `Origin`, cookie `__Host-` dengan `HttpOnly`, `Secure`, `SameSite=Lax` |
-| Kelebihan | Tanpa header tambahan. Bagian E: `textContent` sendirian menahan payload ini | Bagian C: CSP sendirian menahan payload ini walau elemen `img` terbentuk | Browser tidak mengirim header itu dari form situs lain, jadi permintaan form dari luar tidak membawa token (penalaran, Tidak dijalankan) | Tiap lapis berdiri sendiri: bagian C dan E untuk XSS, bagian B sampai F untuk CSRF |
+| Kelebihan | Tanpa header tambahan. Bagian E: `textContent` sendirian menahan payload ini | Bagian C: CSP sendirian menahan payload ini walau elemen `img` terbentuk | Browser tidak mengirim header itu dari form situs lain, jadi permintaan form dari luar tidak membawa token (penalaran, Tidak dijalankan) | Dua lapis XSS menahan payload ini sendirian (bagian C dan E), dan lapis CSRF teruji di bagian B sampai F |
 | Kekurangan | Satu variabel yang terlupa sudah cukup, seperti satu query yang terlupa di M3. Bagian A menunjukkan akibatnya | OWASP menulis CSP mudah salah dikonfigurasi dan tidak boleh menjadi pertahanan utama. Elemen `img` tetap terbentuk dan data tetap salah tempat | Satu XSS bisa mencuri semua data di `localStorage` (OWASP HTML5 Security Cheat Sheet). Bagian A merekam hal serupa untuk cookie tanpa `HttpOnly` | Lebih banyak bagian yang harus tetap benar: nonce tiap respons, token tiap sesi, HTTPS. Bagian D menunjukkan token tidak menahan skrip di halaman |
 | Biaya operasional | Aturan review dan pencarian `innerHTML` di CI | Kebijakan harus dirawat tiap komponen baru. Draf CSP Level 3 masih Working Draft | Tidak ada cookie, tetapi app harus mengelola dan menghapus token sendiri | W3C menulis nonce harus unik tiap kebijakan dikirim, jadi HTML dengan nonce lama tidak dipakai ulang. Token dan cookie dikelola server |
 | Bukti | Rekaman lab `xss.txt` bagian A, B, dan E | Rekaman lab `xss.txt` bagian C. Dokumentasi OWASP dan MDN | Tidak dijalankan. Dokumentasi OWASP | Rekaman lab `xss.txt` bagian B sampai E dan `csrf.txt` bagian A sampai F |
@@ -239,7 +243,7 @@ app.use(csrfSynchronisedProtection);`} />
 
 **Kenapa D, bukan A, B, atau C.**
 
-- **A tidak dipilih** karena satu tempat yang terlupa membuka seluruh halaman, dan tidak ada lapis kedua yang menahan. Opsi ini sah sebagai lapis pertama di dalam D.
+- **A tidak dipilih** karena satu tempat yang terlupa menjalankan skrip, dan opsi ini tidak punya lapis kedua. Opsi ini sah sebagai lapis pertama di dalam D.
 - **B ditolak** karena bergantung pada satu kebijakan yang mudah salah, dan karena data tetap masuk ke tempat yang salah walau skripnya tertahan.
 - **C ditolak** karena memindahkan masalah: token di `localStorage` bisa dicuri oleh XSS yang sama, dan HttpOnly tidak ada di sana.
 
@@ -292,7 +296,7 @@ Dengan `innerHTML`, satu elemen `img` terbentuk, `onerror` berjalan, dan satu di
 <details class="success">
 <summary>Jawaban</summary>
 
-Nol dialog. Elemen `img` tetap terbentuk, tetapi browser melaporkan satu pelanggaran `script-src-attr` untuk event handler inline (`xss.txt` bagian C). CSP menahan skripnya walau escape gagal, dan sebaliknya bagian E.
+Nol dialog. Elemen `img` tetap terbentuk, tetapi browser melaporkan satu pelanggaran `script-src-attr` untuk event handler inline (`xss.txt` bagian C). Untuk payload ini, CSP menahan skripnya walau escape gagal, dan sebaliknya di bagian E.
 
 </details>
 

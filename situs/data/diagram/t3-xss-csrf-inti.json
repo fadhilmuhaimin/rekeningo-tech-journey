@@ -10,18 +10,38 @@
       "label": "Dua lapis mati",
       "sub": "bagian A",
       "simpul": [
-        { "teks": "catatan Dimas", "sub": "elemen img dengan onerror" },
-        { "teks": "innerHTML, tanpa CSP", "nada": "warn" },
-        { "teks": "skrip berjalan", "sub": "1 dialog alert", "nada": "warn" }
+        {
+          "teks": "catatan Dimas",
+          "sub": "elemen img dengan onerror"
+        },
+        {
+          "teks": "innerHTML, tanpa CSP",
+          "nada": "warn"
+        },
+        {
+          "teks": "skrip berjalan",
+          "sub": "1 dialog alert",
+          "nada": "warn"
+        }
       ]
     },
     {
       "label": "Satu lapis hidup",
       "sub": "bagian C dan E",
       "simpul": [
-        { "teks": "catatan Dimas", "sub": "sama" },
-        { "teks": "textContent atau CSP", "sub": "salah satu cukup" },
-        { "teks": "skrip tertahan", "sub": "0 dialog", "nada": "good" }
+        {
+          "teks": "catatan Dimas",
+          "sub": "sama"
+        },
+        {
+          "teks": "textContent atau CSP",
+          "sub": "salah satu cukup untuk payload ini"
+        },
+        {
+          "teks": "skrip tertahan",
+          "sub": "0 dialog",
+          "nada": "good"
+        }
       ]
     }
   ],
