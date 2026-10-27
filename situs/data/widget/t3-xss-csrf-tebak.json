@@ -1,0 +1,44 @@
+{
+  "id": "t3-xss-csrf-tebak",
+  "judul": "Skrip di dalam halaman memanggil endpoint ubah harga",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t3-dasbor/output/xss.txt bagian D"
+  },
+  "adegan": [
+    "Dasbor Ani memeriksa token CSRF, Origin, dan Sec-Fetch-Site di endpoint ubah harga. Cookie sesinya bernama __Host-sesi, dengan HttpOnly dan SameSite=Lax.",
+    "Dasbor masih menampilkan catatan lewat innerHTML dan belum punya CSP. Catatan Dimas berjalan di halaman Ani. Dari dalam halaman itu dikirim satu permintaan ubah harga Nasi goreng, dengan token yang dibaca dari halaman."
+  ],
+  "pertanyaan": "Apa jawaban dasbor untuk permintaan itu?",
+  "pilihan": [
+    {
+      "teks": "Ditolak dengan 401, karena cookie HttpOnly tidak bisa dipakai skrip.",
+      "benar": false,
+      "alasan": "HttpOnly melarang skrip membaca cookie, bukan memakainya. Browser tetap mengirim cookie itu pada permintaan dari JavaScript."
+    },
+    {
+      "teks": "Ditolak dengan 403, karena Origin atau Sec-Fetch-Site menandai skrip sebagai asing.",
+      "benar": false,
+      "alasan": "Kedua header menyebut asal halaman yang mengirim. Halamannya dasbor itu sendiri, jadi permintaannya same-origin."
+    },
+    {
+      "teks": "Ditolak dengan 403, karena token CSRF hanya dikenali bila datang dari form.",
+      "benar": false,
+      "alasan": "Token adalah nilai biasa yang ada di halaman. Skrip yang berjalan di halaman bisa membacanya dan mengirimnya di header."
+    },
+    {
+      "teks": "Diterima dengan 200, dan harga Nasi goreng berubah dari Rp25.000 ke Rp2.",
+      "benar": true,
+      "alasan": "Skrip berjalan sebagai halaman itu sendiri. Cookie ikut terkirim, token benar, dan asalnya same-origin, jadi semua pemeriksaan lolos."
+    }
+  ],
+  "penutup": "Pagar CSRF (SameSite, token, Origin, dan Sec-Fetch-Site) menahan permintaan dari situs lain, bukan skrip yang sudah berjalan di dasbor. Karena itu escape dan CSP dikerjakan sebagai lapis sendiri.",
+  "label": {
+    "sumber": "Rekaman lab · xss.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}
