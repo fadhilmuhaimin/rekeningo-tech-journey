@@ -237,7 +237,8 @@ func (s Service) webhookAman(ctx context.Context, k KabarGateway) (HasilWebhook,
 		return HasilWebhook{}, err // ROLLBACK: event tidak tercatat, jadi kiriman ulang dari gateway diproses penuh
 	}
 	if h.Hasil == "diparkir" && topupID != 0 {
-		// Kabar yang tidak berurutan dicek ke gateway, di luar transaction (ADR 34).
+		// Kabar yang diparkir tidak mengubah status. Top-up yang masih menunggu (mis. diparkir karena batas saldo) ditanyakan ke
+		// gateway di luar transaction; top-up yang sudah berstatus akhir tidak, karena CekTopup berhenti sebelum memanggil gateway.
 		if _, err := s.CekTopup(ctx, topupID); err != nil {
 			log.Printf("cek status top-up %d sesudah kabar diparkir: %v", topupID, err)
 		}
