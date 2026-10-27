@@ -1,0 +1,169 @@
+---
+title: "3.22 M25: Kotak peringatan di riwayat Ani"
+description: Minggu 8. Setiap Ani membuka riwayat penerimaan di dasbor, muncul kotak peringatan berisi angka 1. Catatan Rp5.000 dari Dimas berisi tag gambar, dasbor menulisnya lewat innerHTML, dan baris jurnalnya tidak bisa dihapus.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import CariBug from "../../../widgets/cari-bug/CariBug.tsx";
+import kotak from "../../../../data/diagram/t3-m25-kotak-peringatan.json";
+import caribug from "../../../../data/widget/t3-m25-caribug.json";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t3-offline]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 8 Tahap 3. Ani membuka dasbor warung di laptopnya dan memilih "Riwayat penerimaan". Sebuah kotak peringatan muncul dengan satu angka: 1.
+
+Ani menutup kotak itu, lalu riwayatnya tampil seperti biasa. Setiap kali ia membuka riwayat itu lagi, kotak yang sama muncul.
+
+Ani menghubungi Wulan, web engineer yang membangun dasbor itu. Wulan: "Mungkin ekstensi browser Ani."
+
+*Angka cerita (Ilustrasi):* Minggu 8, kotak yang muncul setiap kali riwayat dibuka, dan angka 1 berasal dari naskah. Rekaman di blok "Yang sebenarnya" membuka riwayat itu satu kali per skenario. Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Wulan dan Raka punya dua dugaan, seperti di naskah: ekstensi di browser Ani, atau bug di library tabel yang dipakai dasbor.
+
+Kedua dugaan mencari sebab di laptop Ani atau di kode tampilan. Tidak ada yang menanyakan isi riwayat itu sendiri, karena isinya datang dari sistem mereka sendiri.
+
+Lab menguji dugaan pertama dengan membuka riwayat Warung Ani di Chromium baru yang tidak dipasangi ekstensi. Riwayat itu memuat satu penerimaan Rp5.000 dari Dimas, dengan catatan.
+
+<details class="question">
+<summary>Tebak dulu: berapa kotak peringatan yang muncul di Chromium baru itu, dan apa isinya?</summary>
+
+Satu kotak, berisi 1 (`xss.txt` bagian A). Browser itu dibuat baru oleh `driver.js`, jadi ekstensi Ani bukan sebabnya.
+
+Yang khas di riwayat itu hanya satu baris, penerimaan dari Dimas. Blok berikutnya menunjukkan bagaimana baris itu menjadi kotak.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Kotak itu muncul karena catatan Dimas. Dasbor menulis catatan ke halaman lewat `innerHTML`, jadi browser membacanya sebagai HTML, bukan sebagai teks.
+
+<Rantai data={kotak} />
+
+*Kondisi rekaman:* PostgreSQL 17.11, server Go `api-t3` yang menulis catatan, dan dasbor kecil `t3-dasbor` yang menampilkannya. Dasbor itu pengganti dasbor Wulan: ia membaca `jurnal` langsung dari database dengan query yang sama dengan `RiwayatPenerimaan` di `api-t3`. Browser-nya Chromium 156.0.8078.4 yang dikendalikan Playwright 1.64.0 (menurut README lab). Browser lain Tidak dijalankan.
+
+**Dimas menaruh catatan.** Dimas membayar Rp5.000 ke Warung Ani lewat `api-t3` dengan catatan `<img src=x onerror=alert(1)>`, untuk mencoba. Catatan itu 28 karakter, jauh di bawah batas 100. Server hanya menolak catatan yang terlalu panjang atau berisi karakter kontrol, lalu menambahkan sisanya ke teks jurnal setelah spasi di ujungnya dipangkas:
+
+<Snippet files={["labs/api-t3/internal/service/notif.go:37:48", "labs/api-t3/internal/service/notif.go:51:56"]} lang="go" title="Kode lab: labs/api-t3/internal/service/notif.go baris 37 sampai 48 dan 51 sampai 56 (catatan diperiksa panjangnya, lalu masuk ke keterangan jurnal)" />
+
+Tanda `<` dan `>` bukan karakter kontrol, jadi catatan itu lolos. Aturan yang melarang kedua tanda itu juga akan menolak catatan sah seperti "5 < 10" (penalaran). Catatan yang sama ikut ke teks notifikasi uang (`pesanUang` di `api-t3`). Cara HP menampilkannya Tidak dijalankan.
+
+**Dasbor menulis catatan lewat `innerHTML`.** Mode rentan dasbor memilih salah satu dari dua cara menulis `keterangan` ke halaman:
+
+<Snippet file="labs/t3-dasbor/go/cmd/dasbor/main.go" lines="236:241" lang="go" title="Kode lab: labs/t3-dasbor/go/cmd/dasbor/main.go baris 236 sampai 241 (dua cara menulis keterangan)" />
+
+`innerHTML` meminta browser mengurai string sebagai HTML. MDN memberi contoh yang serupa, `<img src='x' onerror='alert(1)'>`: `src` bukan gambar yang valid, jadi `onerror` berjalan. MDN menulis juga bahwa `innerHTML` mencegah elemen `script` berjalan, tetapi tetap rentan terhadap banyak cara lain untuk menjalankan JavaScript ([MDN, Element.innerHTML](https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML), dibuka 2026-10-27, Tidak dijalankan).
+
+Rekaman bagian A menunjukkan akibatnya: satu elemen `<img>` nyata di daftar, dan satu dialog `alert` berisi 1.
+
+<Snippet file="labs/t3-dasbor/output/xss.txt" lines="7:9" title="Rekaman lab: labs/t3-dasbor/output/xss.txt baris 7 sampai 9 (bagian A, dasbor rentan)" />
+
+Dasbor di bagian A menyalakan semua mode rentan sekaligus. Tiga berperan di halaman ini: `-escape rentan`, `-csp mati`, dan `-cookie rentan`. Dua lainnya, `-samesite none` dan `-token tidak`, baru berperan di CSRF ([[t3-xss-csrf]]). Karena cookie sesi di A tanpa `HttpOnly`, `document.cookie` bisa dibaca skrip (`cookieJSBisaDibaca: true`); lab tidak mengirim isinya ke mana pun.
+
+**Ekstensi bukan sebabnya.** Browser di rekaman diluncurkan baru di tiap skenario, dan lab tidak memasang ekstensi apa pun:
+
+<Snippet file="labs/t3-dasbor/js/driver.js" lines="22:23" lang="js" title="Kode lab: labs/t3-dasbor/js/driver.js baris 22 dan 23 (browser baru, konteks baru)" />
+
+Dokumentasi Playwright 1.64.0 menulis bahwa ekstensi hanya bekerja di Chromium dengan persistent context, dan kode di atas tidak memakainya ([Playwright, Chrome extensions](https://github.com/microsoft/playwright/blob/v1.64.0/docs/src/chrome-extensions-js-python.md), dibuka 2026-10-27, Tidak dijalankan). Dugaan Wulan tidak cocok. Dugaan library tabel juga tidak diperlukan. Halaman riwayat di dasbor lab hanya memuat satu skrip inline (dibaca dari `main.go`), dan kotaknya tetap muncul.
+
+**Skrip yang lebih berbahaya tidak butuh celah tambahan.** Payload Dimas hanya `alert(1)`. Bagian D memerankan skrip lain: `driver.js` menjalankan `fetch` di halaman dasbor lewat `page.evaluate`, dengan token CSRF dari variabel `csrf` di halaman itu. Skrip itu milik Playwright, bukan catatan Dimas:
+
+<Snippet file="labs/t3-dasbor/js/driver.js" lines="79:86" lang="js" title="Kode lab: labs/t3-dasbor/js/driver.js baris 79 sampai 86 (fetch dijalankan di dalam halaman dasbor)" />
+
+Dasbor di bagian D memakai cookie sesi `HttpOnly` dan memeriksa token CSRF, Origin, dan Sec-Fetch-Site, karena `-cookie`, `-samesite`, dan `-token` memakai nilai bawaannya (dibaca dari `run.py`). Jawabannya 200, dan harga Nasi goreng Warung Ani berubah dari Rp25.000 ke Rp2:
+
+<Snippet file="labs/t3-dasbor/output/xss.txt" lines="20:22" title="Rekaman lab: labs/t3-dasbor/output/xss.txt baris 20 sampai 22 (bagian D, skrip di halaman dasbor mengubah harga)" />
+
+Baris terakhir rekaman itu menulis "skrip yang sama". Maksudnya skrip yang berjalan di halaman yang sama, yaitu skrip Playwright tadi. Skrip di halaman berjalan sebagai halaman itu sendiri, jadi cookie, token, dan Origin-nya sah. `HttpOnly` melarang skrip membaca cookie. Cookie tetap dikirim bersama request dari JavaScript, termasuk `fetch` ([MDN, Set-Cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie), dibuka 2026-10-27, Tidak dijalankan).
+
+**Perbaikannya di output, karena barisnya tidak bisa dihapus.** Role aplikasi tidak bisa menghapus baris `jurnal`:
+
+<Snippet file="labs/api-t3/output/skema.txt" lines="155:157" title="Rekaman lab: labs/api-t3/output/skema.txt baris 155 sampai 157 (bagian D, DELETE jurnal ditolak)" />
+
+Role `api_t3` hanya punya `SELECT` dan `INSERT` pada `jurnal` dan `posting` (dibaca dari `dasar_t3.py`). Catatan Dimas karena itu tinggal di jurnal, dan menyaringnya saat masuk tidak membersihkan baris yang sudah ada. Penghapusan data pribadi dari `keterangan` belum dijadwalkan ([[t2-adr-ledger]]).
+
+**Satu pengaturan diganti, dan kotaknya hilang.** Bagian D dan E memakai dasbor yang sama, kecuali cara menulis catatan: D memakai `-escape rentan`, E tidak. Keduanya `-csp mati`:
+
+<Snippet files={["labs/t3-dasbor/run.py:200:200", "labs/t3-dasbor/run.py:215:215"]} lang="python" title="Kode lab: labs/t3-dasbor/run.py baris 200 dan 215 (D dan E, dasbor yang sama kecuali tampilan catatan)" />
+
+Di E catatan tampil sebagai teks biasa: 0 elemen `<img>` dan 0 dialog.
+
+<Snippet file="labs/t3-dasbor/output/xss.txt" lines="27:29" title="Rekaman lab: labs/t3-dasbor/output/xss.txt baris 27 sampai 29 (bagian E, textContent)" />
+
+OWASP menulis bahwa `textContent` membuat text node tanpa mengurai HTML. OWASP juga menyarankan menghapus rujukan ke `innerHTML` dan memakai `textContent` atau `value` ([OWASP, XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html), dibuka 2026-10-27, Tidak dijalankan). Baris di database tidak berubah.
+
+**Data dari sistem sendiri tetap input.** Catatan itu masuk lewat `api-t3` milik sendiri, tersimpan di database sendiri, dan tampil di dasbor sendiri, tetapi isinya ditulis orang lain. Menurut OWASP, data dari sumber internal seperti database internal dianggap tercemar, kecuali divalidasi ketat saat diambil (bagian tentang interceptor di halaman yang sama).
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Di bawah ini skrip halaman dasbor mode rentan, yang dikirim server ke browser Ani. Tandai baris yang membuat catatan Dimas menjadi elemen, lalu periksa.
+
+<CariBug client:visible data={caribug} />
+
+<noscript>
+Tanpa JavaScript, baris tidak bisa ditandai. Baris yang bermasalah adalah baris 7, yang menulis `keterangan` lewat `innerHTML`. Alasannya ada di blok "Yang sebenarnya".
+</noscript>
+
+**Ubah satu hal:** sesudah memeriksa, tekan Lihat rancangan yang benar. Satu baris diganti tiga baris yang memakai `textContent`, dan rekaman E menunjukkan hasilnya: 0 kotak, dan tag terlihat sebagai teks.
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t3-xss-csrf]]: XSS tersimpan (stored XSS), output encoding, CSP, CSRF, cookie sesi, dan passkey. Keputusannya ADR 30.
+- [[t1-sql-injection]]: pola yang sama di tempat lain. Parameter query memisahkan data dari perintah SQL, dan encoding saat output memisahkan data dari markup HTML.
+- [[t2-adr-ledger]]: jurnal tidak bisa dihapus, jadi catatan teks bebas tinggal di sana. Penghapusan data pribadi belum dijadwalkan.
+- [[t3-skema]]: `jurnal.keterangan` berisi teks bebas yang wajib di-encode saat ditampilkan, dan sesi jenis web memakai cookie dan token CSRF.
+- [[t3-prd]]: dasbor web warung adalah P0 dan catatan pada pembayaran adalah P1 di PRD v3.
+
+Data dari sistem sendiri tetap input. Catatan bisa lolos validasi panjang, tersimpan di database sendiri, dan tetap menjalankan skrip di tempat ia tampil.
+
+### Cek diri
+
+**1.** Catatan Dimas lolos validasi panjang dan karakter kontrol. Kenapa menolak tanda `<` saat catatan masuk bukan perbaikan yang baik?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Catatan sah seperti "5 < 10" ikut ditolak (penalaran). Baris yang sudah ada di jurnal juga tidak bisa dihapus: role aplikasi hanya punya `SELECT` dan `INSERT`, dan `DELETE` ditolak (`skema.txt` bagian D). Catatan perlu ditulis sebagai teks di tempat ia tampil.
+
+</details>
+
+**2.** Cookie sesi Ani `HttpOnly`. Kenapa skrip yang berjalan di halaman dasbor tetap bisa mengubah harga?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+`HttpOnly` melarang skrip membaca cookie, bukan memakainya: `fetch` dari halaman yang sama ikut mengirim cookie (MDN Set-Cookie, Tidak dijalankan). Di bagian D `fetch` membawa cookie dan token CSRF halaman itu, jadi dijawab 200 dan harga berubah ke Rp2. Skrip D diperankan Playwright, bukan catatan Dimas.
+
+</details>
+
+**3.** Wulan menduga ekstensi browser Ani. Apa di rekaman yang menunjukkan dugaan itu tidak cocok?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+`driver.js` meluncurkan Chromium baru lewat `chromium.launch()` dan `newContext()`, tanpa persistent context, jadi tanpa ekstensi. Dialog berisi 1 tetap muncul di sana (`xss.txt` bagian A).
+
+</details>
+
+**4.** Bagian D dan E memakai dasbor yang sama kecuali cara menulis catatan. Apa bedanya hasil, dan apa yang tidak berubah di database?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+D memakai `innerHTML` dan satu dialog berisi 1 muncul. E memakai `textContent`: 0 dialog, 0 elemen `<img>`, dan tag terlihat sebagai teks. Catatan di database sama di keduanya, dan hanya cara menulisnya ke halaman yang berbeda.
+
+</details>
+
+</Blok>

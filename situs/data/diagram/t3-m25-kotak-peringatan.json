@@ -1,0 +1,36 @@
+{
+  "id": "t3-m25-kotak-peringatan",
+  "judul": "Catatan Dimas: dari jurnal sampai kotak peringatan",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-dasbor, xss.txt bagian A dan E, dan api-t3 skema.txt bagian D; langkah gambar gagal dimuat menurut MDN, tidak terekam" },
+  "baris": [
+    {
+      "label": "Dasbor menulis catatan lewat innerHTML",
+      "sub": "xss.txt bagian A",
+      "simpul": [
+        { "teks": "Catatan Dimas: tag gambar", "sub": "28 karakter, disimpan apa adanya" },
+        { "teks": "Dasbor: innerHTML", "sub": "1 elemen img di daftar" },
+        { "teks": "Gambar x gagal dimuat", "sub": "onerror berjalan (MDN)" },
+        { "teks": "Kotak berisi 1", "sub": "satu dialog alert", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Dasbor menulis catatan lewat textContent",
+      "sub": "xss.txt bagian E",
+      "simpul": [
+        { "teks": "Catatan yang sama", "sub": "terbaca utuh di daftar" },
+        { "teks": "Dasbor: textContent", "sub": "0 elemen img" },
+        { "teks": "Tag tampil sebagai teks", "sub": "0 kotak peringatan", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Baris jurnal itu tidak bisa dihapus",
+      "sub": "api-t3 skema.txt bagian D",
+      "simpul": [
+        { "teks": "DELETE FROM jurnal", "sub": "role aplikasi api_t3", "kode": true },
+        { "teks": "permission denied", "sub": "SQLSTATE 42501" },
+        { "teks": "Catatan tinggal di jurnal", "sub": "perbaikan di output", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah akibat yang direkam. Langkah gambar gagal dimuat menurut MDN dan tidak terekam."
+}
