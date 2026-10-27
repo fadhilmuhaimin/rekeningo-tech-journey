@@ -86,8 +86,8 @@ $ docker run -d --name host-baru --network jaringan-lab -e HTTP_PROXY=http://pro
 # Batasnya: proxy keluar adalah titik gagal tunggal baru, dan alamatnya hanya tetap selama proxy itu sendiri tidak dipindah (di cloud: NAT dengan IP tetap, Tidak dijalankan).
 
 # --- C. Pindahan tanpa proxy, dengan breaker per lajur (ADR 36): jawaban 403 vendor dihitung sukses (4xx), dan dengan pengaturan bawaan pustaka dihitung gagal ---
-$ docker run -d --name vendor --network jaringan-lab -p 127.0.0.1:<port>:8284 tiruan -peran verifikasi -addr 0.0.0.0:8284
-# Vendor masih mendaftarkan alamat host lama, yang sudah tidak ada, jadi semua permintaan host baru dijawab 403. Pengaturan breaker: ADR 36 (4xx = sukses)
+$ docker run -d --name vendor --network jaringan-lab -p 127.0.0.1:<port>:8284 tiruan -peran verifikasi -addr 0.0.0.0:8284 -izinkan-alamat 192.0.2.1
+# Vendor masih mendaftarkan alamat host lama (192.0.2.1, alamat dokumentasi yang tidak dimiliki container mana pun), yang sudah tidak ada, jadi semua permintaan host baru dijawab 403. Pengaturan breaker: ADR 36 (4xx = sukses)
 $ docker run -d --name host-baru --network jaringan-lab api-t4 -peran worker -tujuan verifikasi -serentak 1 -backoff 0s -maks-percobaan 5 -selang 50ms -verifikasi-url http://vendor:8284 -breaker -breaker-timeout 3s
 => SELECT v.status, a.tingkat, count(*) AS jumlah FROM verifikasi v JOIN akun a ON a.id = v.akun_id WHERE v.akun_id BETWEEN 40003 AND 40010 GROUP BY v.status, a.tingkat ORDER BY v.status
  status | tingkat | jumlah
@@ -106,8 +106,8 @@ $ docker run -d --name host-baru --network jaringan-lab api-t4 -peran worker -tu
 #   permintaan yang diproses: 0, objek dibuat: 0
 # Breaker tidak pernah terbuka: 403 adalah jawaban 4xx, dihitung sukses. Delapan pekerjaan habis lima percobaan dan delapan pengajuan berstatus `gagal`.
 # Aturan ADR 36 benar untuk dokumen yang salah (422), tetapi 403 karena alamat sumber salah semua permintaan, bukan satu dokumen: breaker tidak menolong.
-$ docker run -d --name vendor --network jaringan-lab -p 127.0.0.1:<port>:8284 tiruan -peran verifikasi -addr 0.0.0.0:8284
-# Vendor masih mendaftarkan alamat host lama, yang sudah tidak ada, jadi semua permintaan host baru dijawab 403. Pengaturan breaker: bawaan pustaka (4xx = gagal)
+$ docker run -d --name vendor --network jaringan-lab -p 127.0.0.1:<port>:8284 tiruan -peran verifikasi -addr 0.0.0.0:8284 -izinkan-alamat 192.0.2.1
+# Vendor masih mendaftarkan alamat host lama (192.0.2.1, alamat dokumentasi yang tidak dimiliki container mana pun), yang sudah tidak ada, jadi semua permintaan host baru dijawab 403. Pengaturan breaker: bawaan pustaka (4xx = gagal)
 $ docker run -d --name host-baru --network jaringan-lab api-t4 -peran worker -tujuan verifikasi -serentak 1 -backoff 0s -maks-percobaan 5 -selang 50ms -verifikasi-url http://vendor:8284 -breaker -breaker-timeout 3s -breaker-bawaan
 => SELECT v.status, a.tingkat, count(*) AS jumlah FROM verifikasi v JOIN akun a ON a.id = v.akun_id WHERE v.akun_id BETWEEN 40003 AND 40010 GROUP BY v.status, a.tingkat ORDER BY v.status
  status   | tingkat | jumlah

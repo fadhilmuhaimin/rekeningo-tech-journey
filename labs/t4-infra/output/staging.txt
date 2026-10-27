@@ -10,7 +10,7 @@ token staging menulis secret/produksi/gateway: 403
 # Dev mode hanya punya satu instance, jadi pemisahan di lab adalah kebijakan (path dan token). Produksi sebaiknya memisahkan instance atau akun, supaya satu kebijakan yang keliru tidak membuka keduanya [perlu verifikasi: rekomendasi OpenBao belum dicek].
 
 # --- B. Kunci produksi yang tersasar di staging (Ilustrasi: naskah menulis staging memakai kunci gateway produksi) dideteksi pemindai ---
-# Pekerjaan keamanan membaca sidik (SHA-256) semua rahasia produksi dari OpenBao dengan tokennya sendiri dan menyimpannya tanpa nilai. Dua file konfigurasi staging, masing-masing salah menyalin satu kunci produksi:
+# Pekerjaan keamanan membaca sidik (SHA-256) dua rahasia produksi dari OpenBao dan menyimpannya tanpa nilai (di lab dengan token root dev; produksi memakai token yang hanya boleh membaca path produksi). Dua file konfigurasi staging, masing-masing salah menyalin satu kunci produksi:
   staging.env: GATEWAY_KEY=<kunci produksi gateway, berawalan gw_live_>
   penerbit.env: PENERBIT_KUNCI=<kunci produksi penerbit, tanpa awalan>
 $ pindairahasia -awalan gw_live_ -sidik produksi.sidik staging.env penerbit.env
@@ -21,6 +21,14 @@ penerbit.env:1: kunci produksi (sidik)
 $ pindairahasia -awalan gw_live_ staging.env penerbit.env   # tanpa daftar sidik
 staging.env:2: kunci produksi (awalan)
 # Aturan awalan menangkap kunci yang formatnya mengikuti vendor (gw_live_ lawan gw_test_), termasuk yang belum pernah dilihat pemindai. Kunci tanpa awalan hanya tertangkap oleh sidik, dan hanya bila sidiknya diketahui pemindai.
+$ pindairahasia -awalan gw_live_ -sidik produksi.sidik besar.env   # baris pertama 2 MiB, kunci produksi di baris kedua
+besar.env:1: baris tidak bisa dipindai (lebih panjang dari 1048576 byte); sisa berkas tidak diperiksa
+# exit status 1
+# Pemindai berhenti di baris yang tidak bisa dibacanya, jadi baris itu dilaporkan sebagai temuan: berkas tidak boleh tampak bersih hanya karena kunci produksi ada sesudah baris yang panjang.
+$ pindairahasia -awalan gw_live_ -sidik produksi.sidik tidak-ada.env   # berkas yang tidak ada
+open tidak-ada.env: no such file or directory
+# exit status 2
+# Berkas yang tidak bisa dibaca dilaporkan sebagai galat (exit 2), tidak dihitung bersih.
 # Perbaikan: staging memakai kunci staging dari secret/staging/* (berawalan gw_test_), kunci penerbit staging dibaca saat runtime, bukan ditulis di file:
 $ pindairahasia -awalan gw_live_ -sidik produksi.sidik staging.env penerbit.env
 # exit status 0, keluaran: (kosong)

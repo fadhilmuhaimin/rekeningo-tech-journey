@@ -16,8 +16,9 @@ sesudah container dihentikan dan dinyalakan lagi, GET secret/pembayaran/webhook 
 # Mode dev menyimpan data di memori dan tidak menyimpannya ke disk: restart menghapus semuanya. Hanya untuk lab; produksi memakai penyimpanan yang bertahan, unseal, dan token yang bukan root.
 
 # --- B. Service membaca rahasia dari OpenBao saat runtime (service pembayaran, token baca-saja) ---
+service dengan token yang tidak dikenal OpenBao: exit status 1, "rahasia awal tidak terbaca, service tidak dinyalakan: secret manager menjawab 403" (pembacaan awal yang gagal menghentikan service)
 $ BAO_TOKEN=<token service> ./pembayaran -rahasia-bao http://<openbao>:8200 -rahasia-bao-path secret/data/pembayaran/webhook -rahasia-segar 50ms
-# Service tidak menerima rahasia lewat flag atau file; tokennya hanya boleh membaca secret/data/pembayaran/*.
+# Di run ini service tidak diberi rahasia webhook lewat flag atau file (flag -rahasia-webhook masih ada, tidak dipakai); yang diberikan hanya token lewat lingkungan, dan tokennya hanya boleh membaca secret/data/pembayaran/*.
 service: jumlah rahasia 1, versi dokumen 1, sidik ['bdd884ce']
 kabar bertanda tangan rahasia v1 (gateway memakai v1): sah
 kabar bertanda tangan rahasia lain: ditolak
@@ -35,12 +36,15 @@ kabar dari gateway sesudah beralih: sah
 service: jumlah rahasia 1, versi dokumen 3, sidik ['6a06f30d']
 kabar bertanda tangan v1 sesudah masa tumpang tindih berakhir: ditolak
 kabar bertanda tangan v2: sah
+token service membaca versi 1 dokumen sesudah masa tumpang tindih berakhir: 200, berisi rahasia lama (riwayat versi KV v2 menyimpannya; versi 2 memuat rahasia lama di bidang lama)
+operator menghancurkan versi 1 dan 2 (destroy): token service membaca versi 1 dan 2: 404; versi terbaru (3): 200
+# Menulis versi baru dan mengakhiri tumpang tindih hanya mengubah apa yang diterima service. Rotasi karena rahasia bocor belum selesai sebelum versi lama dihancurkan.
 
 # --- D. Urutan terbalik (M30): gateway beralih lebih dulu, service belum membaca rahasia baru ---
 # Gateway langsung menandatangani dengan v3; operator belum menulis v3 ke OpenBao:
 kabar dari gateway: ditolak
 # Gateway akan mengulang kiriman yang tidak dijawab 2xx (M30). Operator menulis v3 dengan v2 sebagai lama; service membacanya tanpa dimulai ulang:
-kabar yang sama, kiriman ulang: sah
+kabar baru dari gateway sesudah service membaca v3 (event_id baru; lab tidak mengulang kabar yang sama): sah
 # Urutan yang aman: tulis ke OpenBao dulu, tunggu service membacanya (paling lama satu jeda baca; di lab 50 ms, bawaan service 30 detik, Asumsi), baru gateway beralih.
 # Selama service belum membaca, kabar bertanda v3 ditolak 401. Berapa lama jendelanya = jeda baca; lab tidak merekam nilainya (bergantung mesin).
 

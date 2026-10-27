@@ -218,10 +218,12 @@ def tampil_vendor(judul):
     return a, v
 
 
-def mulai_vendor():
-    jalankan("vendor", ["-peran", "verifikasi", "-addr", "0.0.0.0:8284"], biner="tiruan", alias="vendor", terbit=f"127.0.0.1:{PORT_VENDOR}:8284")
+def mulai_vendor(izin=None):
+    """izin: bila diisi, daftar alamat diberikan lewat flag -izinkan-alamat (bagian C); selain itu lewat POST /lab/izinkan."""
+    arg = ["-izinkan-alamat", izin] if izin else []
+    jalankan("vendor", ["-peran", "verifikasi", "-addr", "0.0.0.0:8284", *arg], biner="tiruan", alias="vendor", terbit=f"127.0.0.1:{PORT_VENDOR}:8284")
     tunggu_http(PORT_VENDOR, "/lab/alamat", "vendor menjawab")
-    catat("$ docker run -d --name vendor --network jaringan-lab -p 127.0.0.1:<port>:8284 tiruan -peran verifikasi -addr 0.0.0.0:8284")
+    catat("$ docker run -d --name vendor --network jaringan-lab -p 127.0.0.1:<port>:8284 tiruan -peran verifikasi -addr 0.0.0.0:8284" + "".join(f" {a}" for a in arg))
 
 
 def izinkan(*ips):
@@ -345,10 +347,10 @@ def rekam_alamat():
     for bawaan in (False, True):
         siapkan()
         d.mulai_api(db=DB)
-        mulai_vendor()
-        izinkan("192.0.2.1")   # alamat dokumentasi (RFC 5737): bukan alamat host mana pun di jaringan lab
+        mulai_vendor("192.0.2.1")   # alamat dokumentasi (RFC 5737): bukan alamat host mana pun di jaringan lab; lewat flag, jadi flag ikut terbukti
         NAMA["192.0.2.1"] = "host lama"
-        catat(f"# Vendor masih mendaftarkan alamat host lama, yang sudah tidak ada, jadi semua permintaan host baru dijawab 403. Pengaturan breaker: {'bawaan pustaka (4xx = gagal)' if bawaan else 'ADR 36 (4xx = sukses)'}")
+        harap(vendor_alamat()["izin"], ["192.0.2.1/32"], "flag -izinkan-alamat dibaca vendor")
+        catat(f"# Vendor masih mendaftarkan alamat host lama (192.0.2.1, alamat dokumentasi yang tidak dimiliki container mana pun), yang sudah tidak ada, jadi semua permintaan host baru dijawab 403. Pengaturan breaker: {'bawaan pustaka (4xx = gagal)' if bawaan else 'ADR 36 (4xx = sukses)'}")
         ajukan(pendaftar(8, 40003))
         extra = ["-breaker", "-breaker-timeout", "3s"] + (["-breaker-bawaan"] if bawaan else [])
         mulai_host("host-baru", tambah=extra)
@@ -640,12 +642,17 @@ def rekam_rotasi():
     tulis_rahasia("pembayaran/webhook", sekarang=RAHASIA_V1)
     token = token_dengan("pembayaran-baca", 'path "secret/data/pembayaran/*" { capabilities = ["read"] }')
     d.samaran[token] = "<token service>"
+    r = subprocess.run([str(BIN_HOST / "pembayaran"), "-addr", f"127.0.0.1:{PORT_PEMB}", "-rahasia-bao", f"http://127.0.0.1:{PORT_BAO}"],
+                       env=dict(d.ENV, DATABASE_URL=DB, BAO_TOKEN="token-yang-tidak-dikenal"), capture_output=True, text=True, timeout=30)
+    pesan = re.search(r"rahasia awal tidak terbaca, service tidak dinyalakan: (.*)", r.stdout + r.stderr)
+    harap((r.returncode, pesan.group(1) if pesan else None), (1, "secret manager menjawab 403"), "pembacaan awal yang gagal menghentikan service")
+    catat("service dengan token yang tidak dikenal OpenBao: exit status 1, \"rahasia awal tidak terbaca, service tidak dinyalakan: secret manager menjawab 403\" (pembacaan awal yang gagal menghentikan service)")
     d.mulai(d.BIN_TIRUAN, d.PORT_GATEWAY, ["-peran", "gateway", "-webhook-url", f"http://127.0.0.1:{PORT_PEMB}/webhooks/pembayaran", "-rahasia", RAHASIA_V1])
     d.mulai(BIN_HOST / "pembayaran", PORT_PEMB, ["-lab", "-rahasia-bao", f"http://127.0.0.1:{PORT_BAO}", "-rahasia-segar", "50ms"],
             db=DB, env_lain={"BAO_TOKEN": token})
     pid = d.server[PORT_PEMB][0].pid
     catat("$ BAO_TOKEN=<token service> ./pembayaran -rahasia-bao http://<openbao>:8200 -rahasia-bao-path secret/data/pembayaran/webhook -rahasia-segar 50ms")
-    catat("# Service tidak menerima rahasia lewat flag atau file; tokennya hanya boleh membaca secret/data/pembayaran/*.")
+    catat("# Di run ini service tidak diberi rahasia webhook lewat flag atau file (flag -rahasia-webhook masih ada, tidak dipakai); yang diberikan hanya token lewat lingkungan, dan tokennya hanya boleh membaca secret/data/pembayaran/*.")
     st = status_service()
     harap((st["jumlah"], st["versi"], st["sidik"]), (1, 1, sidik(RAHASIA_V1)), "service membaca versi 1")
     catat(f"service: jumlah rahasia {st['jumlah']}, versi dokumen {st['versi']}, sidik {st['sidik']}")
@@ -676,6 +683,18 @@ def rekam_rotasi():
     kabar("kabar bertanda tangan v1 sesudah masa tumpang tindih berakhir", "ditolak", RAHASIA_V1)
     kabar("kabar bertanda tangan v2", "sah", RAHASIA_V2)
     harap(d.server[PORT_PEMB][0].pid == pid, True, "proses service sama")
+    s, h = bao("GET", "/v1/secret/data/pembayaran/webhook?version=1", token=token)
+    harap((s, h["data"]["data"]["sekarang"] == RAHASIA_V1), (200, True), "versi 1 masih terbaca dari riwayat KV")
+    catat("token service membaca versi 1 dokumen sesudah masa tumpang tindih berakhir: 200, berisi rahasia lama (riwayat versi KV v2 menyimpannya; versi 2 memuat rahasia lama di bidang lama)")
+    s, _ = bao("PUT", "/v1/secret/destroy/pembayaran/webhook", {"versions": [1, 2]})
+    harap(s, 204, "operator menghancurkan versi 1 dan 2")
+    for v in (1, 2):
+        s, _ = bao("GET", f"/v1/secret/data/pembayaran/webhook?version={v}", token=token)
+        harap(s, 404, f"versi {v} sudah dihancurkan")
+    s, h = bao("GET", "/v1/secret/data/pembayaran/webhook", token=token)
+    harap((s, h["data"]["metadata"]["version"]), (200, 3), "versi terbaru tetap terbaca")
+    catat("operator menghancurkan versi 1 dan 2 (destroy): token service membaca versi 1 dan 2: 404; versi terbaru (3): 200")
+    catat("# Menulis versi baru dan mengakhiri tumpang tindih hanya mengubah apa yang diterima service. Rotasi karena rahasia bocor belum selesai sebelum versi lama dihancurkan.")
 
     bagian("D. Urutan terbalik (M30): gateway beralih lebih dulu, service belum membaca rahasia baru")
     gateway_rotasi(RAHASIA_V3)
@@ -684,7 +703,7 @@ def rekam_rotasi():
     catat("# Gateway akan mengulang kiriman yang tidak dijawab 2xx (M30). Operator menulis v3 dengan v2 sebagai lama; service membacanya tanpa dimulai ulang:")
     tulis_rahasia("pembayaran/webhook", sekarang=RAHASIA_V3, lama=RAHASIA_V2)
     tunggu_sidik(RAHASIA_V3, RAHASIA_V2, apa="service membaca v3")
-    kabar("kabar yang sama, kiriman ulang", "sah")
+    kabar("kabar baru dari gateway sesudah service membaca v3 (event_id baru; lab tidak mengulang kabar yang sama)", "sah")
     catat("# Urutan yang aman: tulis ke OpenBao dulu, tunggu service membacanya (paling lama satu jeda baca; di lab 50 ms, bawaan service 30 detik, Asumsi), baru gateway beralih.")
     catat("# Selama service belum membaca, kabar bertanda v3 ditolak 401. Berapa lama jendelanya = jeda baca; lab tidak merekam nilainya (bergantung mesin).")
 
@@ -747,7 +766,7 @@ def rekam_staging():
         sidik_berkas.write_text("\n".join(hashlib.sha256(x.encode()).hexdigest() for x in (h["data"]["data"]["sekarang"], h2["data"]["data"]["sekarang"])) + "\n")
         for k in (KUNCI_PROD_GW, KUNCI_PROD_PENERBIT):
             d.samaran[k] = "<kunci produksi>"
-        catat("# Pekerjaan keamanan membaca sidik (SHA-256) semua rahasia produksi dari OpenBao dengan tokennya sendiri dan menyimpannya tanpa nilai. Dua file konfigurasi staging, masing-masing salah menyalin satu kunci produksi:")
+        catat("# Pekerjaan keamanan membaca sidik (SHA-256) dua rahasia produksi dari OpenBao dan menyimpannya tanpa nilai (di lab dengan token root dev; produksi memakai token yang hanya boleh membaca path produksi). Dua file konfigurasi staging, masing-masing salah menyalin satu kunci produksi:")
         catat("  staging.env: GATEWAY_KEY=<kunci produksi gateway, berawalan gw_live_>")
         catat("  penerbit.env: PENERBIT_KUNCI=<kunci produksi penerbit, tanpa awalan>")
 
@@ -770,6 +789,19 @@ def rekam_staging():
         catat(k)
         harap((rc, k.splitlines()), (1, ["staging.env:2: kunci produksi (awalan)"]), "tanpa sidik hanya aturan awalan")
         catat("# Aturan awalan menangkap kunci yang formatnya mengikuti vendor (gw_live_ lawan gw_test_), termasuk yang belum pernah dilihat pemindai. Kunci tanpa awalan hanya tertangkap oleh sidik, dan hanya bila sidiknya diketahui pemindai.")
+        (kerja / "besar.env").write_text("CATATAN=" + "x" * (2 << 20) + f"\nGATEWAY_KEY={KUNCI_PROD_GW}\n")
+        rc, k = pindai("besar.env")
+        catat("$ pindairahasia -awalan gw_live_ -sidik produksi.sidik besar.env   # baris pertama 2 MiB, kunci produksi di baris kedua")
+        catat(k)
+        catat(f"# exit status {rc}")
+        harap((rc, k.splitlines()), (1, ["besar.env:1: baris tidak bisa dipindai (lebih panjang dari 1048576 byte); sisa berkas tidak diperiksa"]), "baris terlalu panjang dilaporkan")
+        catat("# Pemindai berhenti di baris yang tidak bisa dibacanya, jadi baris itu dilaporkan sebagai temuan: berkas tidak boleh tampak bersih hanya karena kunci produksi ada sesudah baris yang panjang.")
+        rc, k = pindai("tidak-ada.env")
+        catat("$ pindairahasia -awalan gw_live_ -sidik produksi.sidik tidak-ada.env   # berkas yang tidak ada")
+        catat(k)
+        catat(f"# exit status {rc}")
+        harap((rc, k), (2, "open tidak-ada.env: no such file or directory"), "berkas yang tidak bisa dibaca bukan berkas bersih")
+        catat("# Berkas yang tidak bisa dibaca dilaporkan sebagai galat (exit 2), tidak dihitung bersih.")
         (kerja / "staging.env").write_text(f"GATEWAY_URL=http://gateway-staging.internal\nGATEWAY_KEY={KUNCI_STG_GW}\nLOG_LEVEL=info\n")
         (kerja / "penerbit.env").write_text("PENERBIT_URL=http://penerbit-staging.internal\n")
         rc, k = pindai("staging.env", "penerbit.env")
@@ -794,7 +826,7 @@ PAKET_TES = ["./cmd/tiruan/", "./cmd/proxykeluar/", "./internal/rahasia/", "./in
 def rekam_testing():
     nama = []
     for b in BERKAS_TES:
-        nama += re.findall(r"^func (Test\w+)\(", (d.HERE / b).read_text(), flags=re.M)
+        nama += [n for n in re.findall(r"^func (Test\w+)\(", (d.HERE / b).read_text(), flags=re.M) if n != "TestMain"]   # TestMain: penyiap proses tes, bukan tes
     harap(len(nama), len(set(nama)), "nama tes baru unik")
     r = subprocess.run(["go", "test", "-v", "-count=1", "-run", "^(" + "|".join(nama) + ")$", *PAKET_TES], cwd=d.HERE, env=d.ENV, capture_output=True, text=True)
     if r.returncode != 0:
