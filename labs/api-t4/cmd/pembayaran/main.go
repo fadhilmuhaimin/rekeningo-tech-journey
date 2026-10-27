@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -41,7 +42,7 @@ func main() {
 	cekTopup := flag.Bool("cek-topup", false, "job: tanyakan ke gateway semua top-up yang menunggu lebih dari -cek-umur, lalu keluar (ADR 35)")
 	cekUmur := flag.Duration("cek-umur", 30*time.Minute, "job -cek-topup: umur minimal top-up yang ditanyakan (Asumsi: 30 menit)")
 	lab := flag.Bool("lab", false, "lab saja: POST /lab/topup (akun tanpa autentikasi sesi; autentikasi ada di modul akun)")
-	jedaSesudahLedger := flag.Duration("lab-jeda-sesudah-ledger", 0, "lab saja: tidur sebentar sesudah ledger menjurnal dan sebelum transaction pembayaran, supaya jalur lain (job cek status) bisa datang ke ledger dengan key yang sama di antaranya")
+	tahanSesudahLedger := flag.Bool("lab-tahan-sesudah-ledger", false, "lab saja: menahan proses sesudah ledger menjurnal dan sebelum transaction pembayaran sampai POST /lab/lepas, supaya jalur lain (job cek status) bisa datang ke ledger dengan key yang sama di antaranya; tanpa jeda waktu tetap")
 	matiSesudahLedger := flag.Bool("lab-mati-sesudah-ledger", false, "lab saja: proses mengirim SIGKILL ke dirinya sendiri sesudah ledger menjurnal dan sebelum transaction pembayaran")
 	flag.Parse()
 
@@ -74,10 +75,15 @@ func main() {
 			}
 		}
 	}
-	if *jedaSesudahLedger > 0 {
+	gerbang := make(chan struct{})
+	var lepas sync.Once
+	if *tahanSesudahLedger {
 		s.TitikGagal = func(titik string) {
 			if titik == "sesudah-ledger" {
-				time.Sleep(*jedaSesudahLedger)
+				select {
+				case <-gerbang:
+				case <-time.After(time.Minute): // pengaman: lab yang lupa melepas tidak menggantung selamanya
+				}
 			}
 		}
 	}
@@ -142,6 +148,10 @@ func main() {
 				return
 			}
 			jawab(w, http.StatusCreated, map[string]any{"order_id": t.OrderID, "status": t.Status, "jumlah": t.Jumlah})
+		})
+		mux.HandleFunc("POST /lab/lepas", func(w http.ResponseWriter, r *http.Request) {
+			lepas.Do(func() { close(gerbang) })
+			w.WriteHeader(http.StatusNoContent)
 		})
 		mux.HandleFunc("GET /lab/topup/{order}", func(w http.ResponseWriter, r *http.Request) {
 			t, err := s.Topup(r.Context(), r.PathValue("order"))

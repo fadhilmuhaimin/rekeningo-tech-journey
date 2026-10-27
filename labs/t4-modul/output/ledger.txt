@@ -75,12 +75,12 @@ hasil: 200 ganda; 200 ganda
 (2 rows)
 
 # --- C. Webhook dan job cek status datang ke ledger dengan key yang sama ---
-# service pembayaran dinyalakan dengan jeda 1,5 detik sesudah ledger menjurnal dan sebelum transaction pembayaran (lab saja);
-# selama jeda itu job cek status berjalan, bertanya ke gateway, dan memanggil ledger dengan key yang sama.
+# service pembayaran dinyalakan dengan gerbang sesudah ledger menjurnal dan sebelum transaction pembayaran (lab saja):
+# webhook berhenti di gerbang, job cek status berjalan, bertanya ke gateway, dan memanggil ledger dengan key yang sama, lalu gerbang dilepas.
 # jurnal sudah ada (jalur webhook), transaction pembayaran belum jalan; job cek status berjalan sekarang
 $ pembayaran -cek-topup -cek-umur 0s
 cek top-up: diperiksa 1, dikredit 1, selesai 0, tertunda 0, galat 0
-# webhook e3 menyelesaikan transaction-nya sesudah jeda: 200 ganda
+# gerbang dilepas; webhook e3 menyelesaikan transaction-nya: 200 ganda
 # log API ledger, satu baris per panggilan (urutan datang):
 ledger: key=<order 2> status=201 jurnal=10203 ulang=false
 ledger: key=<order 2> status=200 jurnal=10203 ulang=true
