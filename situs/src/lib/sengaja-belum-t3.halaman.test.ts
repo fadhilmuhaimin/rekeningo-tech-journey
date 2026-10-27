@@ -130,6 +130,7 @@ const wRiwayat = Number(cocok(n1.slice(n1.indexOf("# --- E. ")), /Riwayat Budi h
 const lBaca = (puncakRps - lambdaUang) * W; // 0,33
 const lRiwayat = puncakRps * wRiwayat; // 0,024
 const picuRiwayat = AMBANG_L / wRiwayat; // 3.571
+const lKatalog = ((aktif * as.req * 0.3) / 86400) * as.puncak * 0.005; // 0,026 (katalog 30% request, W 5 ms: Asumsi halaman 3.19)
 
 describe("registry, meta, susunan blok, dan tautan", () => {
   test("3.30 ada, ADR, jalur inti, prasyarat 3.29, tanpa lab, peran backend, ADR 33; judul dan baris peta sama dengan naskah", () => {
@@ -168,7 +169,7 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(dari("A0").ada).toBe(true);
     const pakai: Record<string, number> = {};
     for (const m of badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)) pakai[m[1]!] = (pakai[m[1]!] ?? 0) + 1;
-    expect(pakai).toEqual({ A0: 1, berikutnya: 1, "t1-adr-12": 1, "t2-adr-21": 6, "t2-ledger": 1, "t2-race-lock": 1, "t3-cache": 4, "t3-dua-instance": 2, "t3-estimasi": 4, "t3-jembatan": 1, "t3-klaim-baris": 1, "t3-m28": 2, "t3-offline": 1, "t3-outbox": 2, "t3-pool": 2, "t3-rate-limit-redis": 1, "t3-tim-infra": 9 });
+    expect(pakai).toEqual({ A0: 1, berikutnya: 1, "t1-adr-12": 1, "t2-adr-21": 6, "t2-ledger": 1, "t2-race-lock": 1, "t3-cache": 5, "t3-dua-instance": 2, "t3-estimasi": 4, "t3-jembatan": 1, "t3-klaim-baris": 1, "t3-m28": 2, "t3-offline": 1, "t3-outbox": 2, "t3-pool": 2, "t3-rate-limit-redis": 1, "t3-tim-infra": 9 });
   });
   test("yang sudah dipasang: bentuk, ADR, dan M-nomor tiap baris sama dengan registry dan judul halaman tujuan", () => {
     const t = tabelPertama("### Yang sudah dipasang dan tidak termasuk daftar ini");
@@ -370,13 +371,60 @@ describe("hitungan: koneksi, L baca, L riwayat, CDC, jendela backup, dan tabel U
   });
 });
 
+describe("tinjauan 3.30: cache katalog lawan pemicu, CDC lonjakan lawan laju, bug M21, dan permintaan lama", () => {
+  test("cache katalog dipasang walau L katalog 0,026 di bawah pemicu 5: sama dengan 3.19; cache saldo dibedakan oleh uang, bukan oleh L", () => {
+    expect(id(lKatalog, 3)).toBe("0,026");
+    expect(lKatalog).toBeLessThan(AMBANG_L);
+    const c = baca("situs/src/content/docs/tahap-3/cache-invalidation.mdx");
+    expect(c).toContain("L = λ × W = 5,21 × 0,005 = 0,026 koneksi dari pool 10");
+    expect(c).toContain("ADR ini menyimpang dari pemicu cache ADR 21: L kelas katalog 0,026 belum mencapai 5 koneksi");
+    expect(c).toContain("Cache bukan syarat: tanpa cache adalah opsi yang sah");
+    harus("[[t3-cache]] memasang cache katalog walau L katalog hanya 0,026 koneksi (Asumsi), jauh di bawah pemicu 5, dan menulisnya sebagai pilihan desain, bukan hasil ukur. Cache saldo dan riwayat dibedakan oleh uang (aturan 2), bukan oleh angka L yang lebih kecil.");
+    harus("L riwayat yang kecil (0,024 koneksi) bukan pembedanya: L katalog juga kecil (0,026), dan cache katalog tetap dipasang.");
+  });
+  test("CDC: 100 per detik berarti laju terus-menerus; promo dan top-up massal 10.000 baris sekaligus dikirim ±13,3 per detik (c ÷ t naskah), jadi lonjakan", () => {
+    expect(id(serentak / 0.3, 1)).toBe("13,3");
+    expect(naskah).toContain("| Kapasitas worker | c ÷ t | c = 4, t = 0,3 detik (Asumsi) | 13,3 per detik");
+    expect(naskah).toContain("Jumat 11.30 HR mengirim promo ke semua 10.000 HP");
+    expect(naskah).toContain("Satu queue urut waktu: 10.000 baris promo berada di depan notifikasi uang");
+    expect(naskah).toContain("top-up 10.000 akun bila semua karyawan menerima tunjangan (Asumsi)");
+    expect(baris(naskah).find((b) => b.startsWith("| 23 |"))).toContain("pesan terus mengalir ratusan per detik");
+    const k = baris(badan).find((b) => b.startsWith("| CDC | Dua consumer"))!;
+    expect(k).toContain("atau pesan outbox masuk 100 per detik terus-menerus");
+    expect(k).toContain("Laju baris outbox per detik di luar lonjakan");
+    expect(k).toContain("Notifikasi uang 0,868 per detik (Hitungan atas Asumsi). Promo dan top-up massal memasukkan sampai 10.000 baris sekaligus, tetapi worker mengirim ±13,3 per detik (Asumsi naskah), jadi itu lonjakan, bukan laju");
+  });
+  test("panic.txt bagian D: kedua instance berhenti karena bug M21 (panic di ekspor laporan, mode rentan), bukan karena VPS mati", () => {
+    const d = panic.slice(panic.indexOf("# --- D. "), panic.indexOf("# --- E. "));
+    expect(d).toContain("keduanya mode rentan");
+    expect(d).toContain("Sari menekan Ekspor: laporan kosong sampai di instance a; a berhenti sendiri (kode keluar 2)");
+    expect(d).toContain("Sari menekan Ekspor lagi: sampai di instance b; b berhenti sendiri (kode keluar 2)");
+    expect(baris(naskah).find((b) => b.startsWith("| M21 |"))).toContain("panic di goroutine latar milik ekspor laporan");
+    expect(mainGo).toContain("ekspor-panic dan tanpa-shutdown (M21)");
+    expect(dari("t3-m21").judul.startsWith("M21")).toBe(true);
+  });
+  test("kunci24.txt bagian E: tiga permintaan lama (bayar 28.000, transfer 10.000, pesanan 25.000) dikirim ulang dengan key yang sama dan menjadi jurnal tambahan", () => {
+    const e = kunci24.slice(kunci24.indexOf("# --- E. "));
+    expect(e).toContain("HP kembali online dan mengirim ulang tiga permintaan lama dengan key yang sama");
+    expect(e).toContain("Key sudah lewat 24 jam: server memperlakukan permintaan ini baru. Jurnal kedua, saldo turun lagi");
+    expect(e).toContain("Kiriman dan pesanan dengan key lama juga dikerjakan lagi");
+    harus("Tiga permintaan lama yang dikirim ulang sesudah 62 jam dikerjakan sebagai permintaan baru: tiga jurnal tambahan, Rp63.000");
+  });
+  test("kata 'perkakas load test' tanpa daftar nama tidak dipakai: klaim 'tidak memakai' hanya untuk empat nama yang dipindai; lab t3-pool memang punya pembangkit beban berjadwal", () => {
+    expect(baca("labs/t3-pool/beban.py")).toContain("Pembangkit beban dan pengamat koneksi untuk lab t3-pool");
+    expect(badan).not.toContain("perkakas load test");
+    expect(badan).not.toContain("tidak punya perkakas");
+    harus("Lab hanya memutar beban berjadwal di laptop, dan itu bukan kapasitas produksi.");
+  });
+});
+
 describe("rekaman lab dan kode lab yang dikutip", () => {
   test("panic.txt bagian D: satu instance berhenti, 20 dari 20 request 200 dari b; dua berhenti, 10 dari 10 503", () => {
     const d = panic.slice(panic.indexOf("# --- D. "), panic.indexOf("# --- E. "));
     expect(d).toContain("20 request sesudahnya lewat proxy: 200: 20 · 200 per instance: b 20");
     expect(d).toContain("10 request sesudahnya lewat proxy: 503: 10 (503: tidak ada instance yang sehat)");
     const v = sel(badan, "VPS kedua");
-    expect(v[2]).toContain("Satu instance berhenti: 20 dari 20 request menjawab 200. Dua berhenti: 10 dari 10 menjawab 503 (Rekaman lab `panic.txt` bagian D). VPS yang mati menghentikan keduanya (penalaran).");
+    expect(v[2]).toContain("Dengan bug M21 dalam mode rentan, satu instance berhenti: 20 dari 20 request menjawab 200. Instance kedua ikut berhenti: 10 dari 10 menjawab 503 (Rekaman lab `panic.txt` bagian D). VPS yang mati menghentikan keduanya (penalaran).");
   });
   test("kunci24.txt bagian E: jurnal baru sesudah 10006 ada tiga (28.000, 10.000, 25.000) = Rp63.000; sinkron14.txt bagian E: 422 untuk bayar, transfer, topup, nol baris operasi", () => {
     const e = kunci24.slice(kunci24.indexOf("# --- E. "));
@@ -388,7 +436,7 @@ describe("rekaman lab dan kode lab yang dikutip", () => {
     expect(total).toBe(63000);
     expect(`Rp${id(total, 0)}`).toBe("Rp63.000");
     const o = sel(badan, "Pembayaran offline");
-    expect(o[2]).toContain("Pembayaran yang menunggu 62 jam dikerjakan lagi: tiga jurnal, Rp63.000 (Rekaman lab `kunci24.txt` bagian E, jam lab diperankan)");
+    expect(o[2]).toContain("Tiga permintaan lama yang dikirim ulang sesudah 62 jam dikerjakan sebagai permintaan baru: tiga jurnal tambahan, Rp63.000 (Rekaman lab `kunci24.txt` bagian E, jam lab diperankan)");
     const s14 = sinkron14.slice(sinkron14.indexOf("# --- E. "));
     expect(s14).toContain("HTTP/1.1 422 Unprocessable Entity");
     expect(s14).toContain("pembayaran tidak pernah lewat sinkron offline; hanya stok dan harga");
@@ -435,8 +483,8 @@ describe("rekaman lab dan kode lab yang dikutip", () => {
     harus("tes halaman ini memindai compose, `go.mod`, `go.sum`, Makefile, skrip Python, kode Go, SQL, dan Caddyfile di delapan lab Tahap 3, di luar `output/`.");
     harus("Tes tidak menemukan nama pgbouncer, kafka, debezium, kubectl, kubernetes, k3s, helm, `wal_level`, `primary_conninfo`, `pg_basebackup`, `walsender`, `replication slot`, `hot_standby`, k6, locust, vegeta, atau canary. Klaim ini hanya untuk folder dan jenis file itu.");
     expect(sel(badan, "VPS kedua").length).toBe(4);
-    expect(badan).toContain("delapan lab Tahap 3 tidak punya perkakas load test");
-    expect(hitung(badan, "delapan lab Tahap 3 tidak punya perkakas load test")).toBe(2);
+    expect(badan).not.toContain("perkakas load test");
+    expect(hitung(badan, "delapan lab Tahap 3 tidak memakai k6, locust, vegeta, atau wrk")).toBe(2);
   });
   test("klaim 3.27: hanya satu ambang alert punya dasar (30 detik); error rate, p95, dan request menunggu koneksi belum ditetapkan", () => {
     const t = baca("situs/src/content/docs/tahap-3/tim-infra.mdx");
@@ -517,7 +565,7 @@ describe("sumber luar, atribusi Segment, dan baris riset R3-245 sampai R3-248", 
     const v = sel(badan, "VPS kedua");
     expect(v[3]).toContain("asinkron bisa kehilangan commit saat failover, sinkron membuat tiap commit menunggu, dan primary lama harus diberi tahu bahwa ia bukan primary lagi");
     const kc = sel(badan, "Kubernetes dan canary");
-    expect(kc[3]).toContain("Kubernetes menjalankan kube-apiserver, etcd, kube-scheduler, kube-controller-manager, dan kubelet di tiap node. Canary menuntut deploy ke sebagian, penilaian baik atau buruk, dan penilaian itu terhubung ke rilis");
+    expect(kc[3]).toContain("Kubernetes menjalankan control plane (kube-apiserver, etcd, kube-scheduler, kube-controller-manager) dan kubelet di tiap node. Canary menuntut deploy ke sebagian, penilaian baik atau buruk, dan penilaian itu terhubung ke rilis");
     const cdc = sel(badan, "CDC");
     expect(cdc[3]).toContain("Replication slot menahan WAL sampai consumer membacanya. Dalam kasus ekstrem database berhenti demi mencegah wraparound transaction ID.");
     expect(sel(badan, "Microservices")[3]).toContain("Pasangan jurnal dan notifikasi tidak lagi atomik bila keduanya pindah ke service dengan database berbeda.");
@@ -606,7 +654,7 @@ describe("widget Tebak, diagram Rantai, halaman istilah, glosarium, dan kartu Ce
       expect(mine[n]!.url).toBe("tahap-3/sengaja-belum/");
     });
     expect(mine[0]!.jawab).toContain(`instance = (${AMBANG_KONEKSI} − 10) ÷ 10 = 6`);
-    expect(mine[1]!.jawab).toContain(`L riwayat hanya ${id(lRiwayat, 3)} koneksi, jauh dari pemicu ${AMBANG_L}`);
+    expect(mine[1]!.jawab).toContain(`L riwayat yang kecil (${id(lRiwayat, 3)} koneksi) bukan pembedanya: L katalog juga kecil (${id(lKatalog, 3)}), dan cache katalog tetap dipasang.`);
     expect(mine[2]!.jawab).toContain("PostgreSQL tetap di VPS pertama");
   });
 });

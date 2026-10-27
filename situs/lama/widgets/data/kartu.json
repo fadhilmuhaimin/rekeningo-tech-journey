@@ -2285,7 +2285,7 @@
   "judul": "3.30 ADR 33: Sengaja belum dilakukan",
   "url": "tahap-3/sengaja-belum/",
   "tanya": "Cache katalog sudah dipasang di 3.19 Cache dan invalidation. Kenapa cache saldo dan riwayat belum?",
-  "jawab": "Cache katalog hanya menyimpan jawaban baca katalog, dan harga serta stok yang dipakai pembayaran dibaca dari database. Saldo adalah uang. Salinan di luar database tidak ikut COMMIT dan ROLLBACK, dan L riwayat hanya 0,024 koneksi, jauh dari pemicu 5."
+  "jawab": "Cache katalog hanya menyimpan jawaban baca katalog, dan harga serta stok yang dipakai pembayaran dibaca dari database. Saldo adalah uang. Salinan di luar database tidak ikut COMMIT dan ROLLBACK. L riwayat yang kecil (0,024 koneksi) bukan pembedanya: L katalog juga kecil (0,026), dan cache katalog tetap dipasang."
  },
  {
   "id": "t3-adr-33-3",
