@@ -1,3 +1,5 @@
+//go:build t4qr
+
 package qrpayload
 
 import (
@@ -7,7 +9,8 @@ import (
 	"testing"
 )
 
-// Tes payload QR (lab t4-qr). Nilai pembanding dihitung terpisah dengan binascii.crc_hqx dari pustaka standar Python
+// Tes payload QR (lab t4-qr). Hanya dikompilasi dengan -tags t4qr, supaya rekaman testing lab api-t4 tidak berubah
+// (pola t4modul); run.py lab t4-qr menjalankannya. Nilai pembanding dihitung terpisah dengan binascii.crc_hqx dari pustaka standar Python
 // (CRC-CCITT berpolinomial 0x1021 dengan nilai awal yang bisa diberikan; nilai awal 0xFFFF), bukan dari kode ini.
 // Baris yang diawali "LAB|" ikut direkam oleh run.py.
 
@@ -129,7 +132,7 @@ func TestPayloadSalahBacaSatuKarakterTerdeteksiSemua(t *testing.T) {
 			}
 		}
 	}
-	fmt.Printf("LAB|salah baca satu karakter pada payload statis %d karakter: %d dari %d terdeteksi (%d oleh CRC, %d oleh tag 63 yang rusak)\n",
+	fmt.Printf("LAB|salah baca satu karakter pada payload contoh statis milik tes (%d karakter): %d dari %d terdeteksi (%d oleh CRC, %d oleh tag 63 yang rusak)\n",
 		len(p), terdeteksi, total, crc, terdeteksi-crc)
 }
 
@@ -148,7 +151,7 @@ func TestPayloadDuaKarakterBertukarTempatTerdeteksi(t *testing.T) {
 			terdeteksi++
 		}
 	}
-	fmt.Printf("LAB|dua karakter bersebelahan bertukar tempat pada payload yang sama: %d dari %d terdeteksi (hasil untuk payload ini, bukan jaminan umum)\n", terdeteksi, total)
+	fmt.Printf("LAB|dua karakter bersebelahan bertukar tempat pada payload contoh yang sama: %d dari %d terdeteksi (hasil untuk payload ini, bukan jaminan umum)\n", terdeteksi, total)
 }
 
 func TestPayloadCRCBukanAutentikasi(t *testing.T) {

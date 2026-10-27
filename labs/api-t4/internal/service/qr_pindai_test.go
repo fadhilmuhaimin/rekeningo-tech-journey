@@ -1,3 +1,5 @@
+//go:build t4qr
+
 package service
 
 import (
@@ -11,7 +13,8 @@ import (
 	"lab/apit4/internal/qrpayload"
 )
 
-// Tes lab t4-qr (ADR 40, M35) dengan PostgreSQL sungguhan, memakai siapkan, qrAkun, qrNom, qrStatus, qrJurnalSeimbang,
+// Tes lab t4-qr (ADR 40, M35) dengan PostgreSQL sungguhan. Hanya dikompilasi dengan -tags t4qr, supaya rekaman testing
+// lab api-t4 tidak berubah (pola t4modul). Memakai siapkan, qrAkun, qrNom, qrStatus, qrJurnalSeimbang,
 // dan saldo dari db_test.go dan qr_test.go. Semua batas ditulis sebagai angka di tes (Rp200.000, Rp5.000.000, 5 menit,
 // 20 dan 200 karakter), bukan lewat konstanta paket: mengubah konstanta di kode harus menggagalkan tes. Setiap batas
 // diperankan di kedua sisinya; jam diperankan lewat DenganJam, tidak ditunggu. Baris "LAB|" ikut direkam run.py.
@@ -250,7 +253,7 @@ func TestQRBatasLaporanMembekukanMerchantSebelumDiperiksa(t *testing.T) {
 	if st, _ := qrStatus(t, db, statis.ID); st != "aktif" {
 		t.Fatalf("baris QR statis %s: laporan membekukan akun merchant, bukan baris QR", st)
 	}
-	fmt.Println("LAB|laporan QR palsu dari akun belum terverifikasi: 19 dan 201 karakter ditolak, 20 dan 200 diterima; satu laporan membekukan merchant lebih dulu; QR-nya 404 bagi pembeli; saldo merchant tidak ditarik")
+	fmt.Println("LAB|laporan QR palsu dari akun belum terverifikasi: 19 dan 201 karakter ditolak, 20 dan 200 diterima; satu laporan membekukan merchant lebih dulu; QR-nya tidak ditemukan (ErrTidakDitemukan) bagi pembeli; saldo merchant tidak ditarik")
 }
 
 func TestQRPindaiPayloadStatisMilikMerchantLainMenjadiJurnalSah(t *testing.T) {
