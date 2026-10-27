@@ -29,6 +29,7 @@ func main() {
 	alamat := flag.String("addr", "", "alamat server (bawaan: gateway 127.0.0.1:"+portLab(18283)+", verifikasi 127.0.0.1:"+portLab(18284)+")")
 	webhook := flag.String("webhook-url", "http://127.0.0.1:"+portLab(18280)+"/webhooks/pembayaran", "gateway: alamat webhook Rekeningo")
 	rahasia := flag.String("rahasia", "rahasia-gateway-lab-1", "gateway: rahasia penanda tangan webhook (data lab, bukan secret)")
+	izinkan := flag.String("izinkan-alamat", "", "verifikasi: alamat IP atau CIDR sumber yang boleh memanggil POST /verifikasi, dipisah koma (alamat lain dijawab 403; M34, ADR 39); kosong = semua diterima")
 	flag.Parse()
 	var h http.Handler
 	switch *peran {
@@ -41,7 +42,13 @@ func main() {
 		if *alamat == "" {
 			*alamat = "127.0.0.1:" + portLab(18284)
 		}
-		h = (&verifikasi{objek: map[string]string{}}).rute()
+		izin, err := parseIzin(*izinkan)
+		if err != nil {
+			log.Fatalf("-izinkan-alamat: %v", err)
+		}
+		v := &verifikasi{objek: map[string]string{}, alamat: daftarBaru()}
+		v.alamat.Atur(izin)
+		h = v.rute()
 	default:
 		log.Fatal("-peran harus gateway atau verifikasi")
 	}
@@ -415,6 +422,8 @@ type verifikasi struct {
 	// permintaan ditahan sampai selesai (t terukur; pada mode menggantung = sampai client menyerah).
 	berjalan, serentakMaks int
 	lamaMS                 []int64
+	// Daftar alamat sumber (alamat.go): kosong = semua diterima.
+	alamat *daftarAlamat
 }
 
 func (v *verifikasi) masuk() {
@@ -438,6 +447,7 @@ func (v *verifikasi) rute() http.Handler {
 		v.mu.Lock()
 		v.objek, v.permintaan, v.serentakMaks, v.lamaMS = map[string]string{}, 0, v.berjalan, nil
 		v.mu.Unlock()
+		v.alamat.Ulang()
 		v.m.mu.Lock()
 		v.m.nama, v.m.ms = "", 0
 		v.m.mu.Unlock()
@@ -453,6 +463,7 @@ func (v *verifikasi) rute() http.Handler {
 		defer v.mu.Unlock()
 		tulis(w, 200, map[string]any{"serentak_maks": v.serentakMaks, "lama_ms": append([]int64{}, v.lamaMS...)})
 	})
+	v.alamat.pasang(mux)
 	mux.HandleFunc("POST /verifikasi", v.proses)
 	return mux
 }
@@ -461,6 +472,10 @@ func (v *verifikasi) rute() http.Handler {
 // jawaban terpotong lalu koneksi ditutup), ditolak (jawaban sah: status ditolak). Permintaan dengan checksum_kartu
 // "buruk" dijawab 422 pada semua mode (permintaan yang salah, bukan vendor yang sakit).
 func (v *verifikasi) proses(w http.ResponseWriter, r *http.Request) {
+	if !v.alamat.Periksa(sumber(r)) { // alamat sumber tidak terdaftar: vendor menolak sebelum membaca isi (M34)
+		tulis(w, http.StatusForbidden, map[string]string{"galat": "alamat sumber tidak terdaftar"})
+		return
+	}
 	mulai := time.Now()
 	v.masuk()
 	defer func() { v.keluar(time.Since(mulai)) }()
