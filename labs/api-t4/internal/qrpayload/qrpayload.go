@@ -1,12 +1,12 @@
 // Package qrpayload membangun dan memeriksa payload QR bergaya EMV Merchant-Presented Mode untuk lab t4-qr (ADR 40, M35).
 //
-// Ini bukan implementasi EMVCo penuh. Yang dibaca dari sumber yang bisa dibuka: tag 00 bernilai "01" dan berada
-// paling depan, tag 01 bernilai "11" (QR statis) atau "12" (QR dinamis), tag 63 berpanjang "04" berada paling
-// belakang, dan CRC-16 berpolinomial 0x1021 dengan nilai awal 0xFFFF dihitung atas semua data object termasuk
-// "6304" tetapi tanpa nilai CRC-nya, lalu ditulis empat karakter heksadesimal dengan nol di depan. Yang lain
-// (tag 26 sebagai template merchant dengan dua sub-tag, tag 52, 53, 58, 59, 60, batas panjang nama dan kota, huruf
-// besar pada CRC) adalah pilihan lab, bukan kutipan spesifikasi; PDF EMVCo belum dibuka [perlu verifikasi di PDF
-// EMVCo].
+// Ini bukan implementasi EMVCo penuh. Yang dibaca dari sumber yang bisa dibuka: tag 00 bernilai "01", tag 01
+// bernilai "11" (QR statis) atau "12" (QR dinamis), tag 63 berpanjang "04" dan menjadi data object terakhir, dan
+// CRC-16 berpolinomial 0x1021 dengan nilai awal 0xFFFF dihitung atas semua data object termasuk "6304" tetapi tanpa
+// nilai CRC-nya, lalu ditulis empat karakter heksadesimal dengan nol di depan. Yang lain (tag 00 harus paling
+// depan, tag 26 sebagai template merchant dengan dua sub-tag, tag 52, 53, 58, 59, 60, batas panjang nama dan kota,
+// huruf besar pada CRC, tag ganda ditolak) adalah pilihan lab, bukan kutipan spesifikasi; PDF EMVCo belum dibuka
+// [perlu verifikasi di PDF EMVCo].
 //
 // CRC mendeteksi salah baca, bukan penggantian: tidak ada kunci rahasia di dalamnya, jadi siapa pun yang mengubah
 // isi payload bisa menghitung CRC yang baru (PasangCRC). Keaslian QR tidak bisa dibuktikan dari payload ini.

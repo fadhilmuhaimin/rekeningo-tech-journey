@@ -6,7 +6,7 @@
 UPDATE 1
 => UPDATE akun SET kota_id = (SELECT id FROM kota WHERE nama = 'Surabaya') WHERE id = 30002
 UPDATE 1
-# server: ./api-t4 -lab (satu proses)
+# server: ./api-t4 -lab -jam-lab (jam service dibekukan lewat POST /lab/jam: batas laju tidak terisi di tengah rekaman, jadi Retry-After sama di setiap run)
 
 # --- A. Setiap merchant menerbitkan satu QR statis ---
 $ curl -i -X POST '/qr' -H 'Authorization: Bearer <token sesi Bu Marni>' -d '{"jenis": "statis"}'

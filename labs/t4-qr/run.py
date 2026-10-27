@@ -404,7 +404,8 @@ def rekam_dinamis():
 def rekam_lapor():
     siapkan()
     isi_kota_merchant()
-    mulai(tampil="# server: ./api-t4 -lab (satu proses)")
+    mulai(["-jam-lab"], tampil="# server: ./api-t4 -lab -jam-lab (jam service dibekukan lewat POST /lab/jam: batas laju tidak terisi di tengah rekaman, jadi Retry-After sama di setiap run)")
+    harap(curl("POST", "/lab/jam", {"ms": int(time.time() * 1000)}, tampil=False)[0], 204, "bekukan jam")
     marni = login("merchant1@merchant.example", label="Bu Marni")
     andalan = login("merchant2@merchant.example", label="Toko Andalan")
     budi = login("budi@lestari.example", label="Budi")
