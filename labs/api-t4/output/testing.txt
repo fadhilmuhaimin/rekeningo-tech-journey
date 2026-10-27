@@ -12,6 +12,19 @@ $ TEST_DATABASE_URL=<pemilik, schema tahap4_tes> TEST_APP_DATABASE_URL=<role api
 --- PASS: TestEndpointLepasGerbangHanyaBilaGerbangAda
 PASS
 ok    lab/apit4/cmd/api
+--- PASS: TestJedaTotal342Menit
+--- PASS: TestJumlahUlangPerKode
+--- PASS: TestJadwalBerhentiMenurutKode
+--- PASS: TestJadwalTandaTanganMemakaiWaktuMayaDanByteAsli
+--- PASS: TestJadwalMemberiTahuJamKePenerimaSebelumTiapKiriman
+--- PASS: TestJadwalDiterimaDiTengahBerhenti
+--- PASS: TestJadwalDariDanSampai
+--- PASS: TestJadwalKodeBerubahMemakaiKodeTerakhir
+--- PASS: TestJadwalTanpaJawabanDihitungKodeLain
+--- PASS: TestRotasiRahasiaLangsungDipakaiJadwal
+--- PASS: TestWebhookBodyCantikDitandatanganApaAdanyaDanDicekDihitung
+PASS
+ok    lab/apit4/cmd/tiruan
 --- PASS: TestMemoriTTL
 --- PASS: TestMemoriHapusAwalan
 --- PASS: TestBacaGalatDatabaseTidakMenyimpanDanTidakMenghapus
@@ -133,6 +146,13 @@ ok    lab/apit4/internal/repo
 --- PASS: TestKatalogCacheTulisDitolakTidakMenghapus
 --- PASS: TestKatalogCachePromoMenghapusSatuKota
 --- PASS: TestPesanTidakMembacaCache
+--- PASS: TestKoreksiRekonTidakDiLedgerMengkreditLaluKabarTerlambatGanda
+--- PASS: TestKoreksiRekonTidakDiLedgerYangDitahan
+--- PASS: TestKoreksiRekonTidakDiLedgerYangSudahDikreditJalurLain
+--- PASS: TestKoreksiRekonJumlahBeda
+--- PASS: TestKoreksiRekonTidakDiGateway
+--- PASS: TestKoreksiRekonGatewayTidakMenjawabTidakMembalik
+--- PASS: TestKoreksiRekonDuaJobBersamaanSatuJurnalPerInsiden
 --- PASS: TestLatarMenangkapPanic
 --- PASS: TestLatarRentanMematikanProses
 --- PASS: TestRingkasanEksporLaporanKosong
@@ -269,6 +289,7 @@ ok    lab/apit4/internal/worker
 # --- B. Tanpa TEST_DATABASE_URL dan TEST_REDIS_ADDR: tes yang butuh keduanya dilewati, tes tanpa itu tetap jalan ---
 $ go test -count=1 ./...
 ok    lab/apit4/cmd/api
+ok    lab/apit4/cmd/tiruan
 ok    lab/apit4/internal/cache
 ok    lab/apit4/internal/handler
 ok    lab/apit4/internal/redisbatas
@@ -281,6 +302,7 @@ ok    lab/apit4/internal/worker
 # --- C. TES_DB_WAJIB=1 dan TES_REDIS_WAJIB=1 tanpa database dan Redis: gagal keras, bukan hijau karena tes dilewati (pola 2.24) ---
 $ TES_DB_WAJIB=1 TES_REDIS_WAJIB=1 go test -count=1 ./...
 ok    lab/apit4/cmd/api
+ok    lab/apit4/cmd/tiruan
 ok    lab/apit4/internal/cache
 --- FAIL: TestHTTPBOTanpaLoginDanBukanRisk
     handler_bo_test.go:110: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
