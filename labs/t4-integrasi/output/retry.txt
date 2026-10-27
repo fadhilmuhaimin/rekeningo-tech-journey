@@ -14,22 +14,23 @@
 ----------+-----------
  menunggu | 1
 (1 row)
-=> SELECT status FROM verifikasi
- status
---------
- lulus
+=> SELECT status, referensi_vendor FROM verifikasi
+ status | referensi_vendor
+--------+------------------
+ lulus  | VND-0001
 (1 row)
 # retry berkunci: 2 permintaan masuk, 1 objek dibuat (kunci berbeda = objek berbeda)
 
 # --- B. Pembanding yang ditolak: retry bebas tanpa kunci (mode rentan verifikasi-tanpa-key, Idempotency-Key baru di setiap percobaan) ---
 $ ./api-t4 -peran worker -sekali -rentan verifikasi-tanpa-key -maks-percobaan 5 -backoff 1ms -satu-putaran
-=> SELECT status FROM verifikasi
- status
---------
- lulus
+=> SELECT status, referensi_vendor FROM verifikasi
+ status | referensi_vendor
+--------+------------------
+ lulus  | VND-0002
 (1 row)
 # retry tanpa kunci: 2 permintaan masuk, 2 objek dibuat (kunci berbeda = objek berbeda)
-# Satu pendaftar, dua objek di vendor: vendor yang menagih per verifikasi menagih dua kali, dan referensi vendor di Rekeningo hanya menunjuk satu.
+# Satu pendaftar, dua objek di vendor (VND-0001 dan VND-0002); Rekeningo hanya menyimpan referensi dari percobaan yang jawabannya terbaca.
+# Bila vendor menagih per objek, pendaftar ini ditagih dua kali (Asumsi: tiruan tidak menagih).
 
 # --- C. Timeout (vendor menggantung, batas waktu client 300 ms) menghasilkan tidak_pasti; vendor yang menjawab 503 tidak ---
 # Vendor menggantung. Client menyerah sesudah 300 ms; vendor mungkin sudah mengerjakannya, hasilnya tidak diketahui:

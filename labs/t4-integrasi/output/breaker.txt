@@ -22,6 +22,8 @@ PASS
 # --- B. Permintaan percobaan di half-open yang gagal membuka breaker lagi selama 60 detik penuh ---
 $ go test -v -run '^TestBreakerHalfOpenGagalMembukaLagiSelama60Detik$' ./internal/lajur/
   permintaan percobaan di half-open gagal: status open
+  59 detik sesudah membuka lagi: status open
+  61 detik sesudah membuka lagi: status half-open
 PASS
 
 # --- C. IsSuccessful: bawaan pustaka menghitung jawaban 4xx sebagai gagal, kustom (ADR 36) sebagai sukses ---

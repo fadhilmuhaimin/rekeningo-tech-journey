@@ -3,7 +3,8 @@
 # Rekaman dari: make -C labs/t4-integrasi run BAGIAN=testing.
 
 # --- A. Tes Go yang ditambahkan lab ini (PostgreSQL sungguhan untuk paket worker; jam palsu untuk paket lajur) ---
-$ TEST_DATABASE_URL=<pemilik, schema t4_integrasi_tes> go test -v -count=1 -p 1 -run '<24 tes baru>' ./internal/lajur/ ./internal/worker/ ./internal/klien/
+$ TEST_DATABASE_URL=<pemilik, schema t4_integrasi_tes> go test -v -count=1 -p 1 -run '<28 tes baru>' ./internal/lajur/ ./internal/worker/ ./internal/klien/ ./internal/verifikasi/
+--- PASS: TestBaruDenganTransportMemakaiTransportYangDiberikan
 --- PASS: TestBatasNolMembuatClientTanpaBatasWaktuHanyaUntukRekamanPerbandingan
 --- PASS: TestBatasWaktuBawaanTigaDetikDiSemuaPembuat
 --- PASS: TestBreakerHalfOpenGagalMembukaLagiSelama60Detik
@@ -15,6 +16,9 @@ $ TEST_DATABASE_URL=<pemilik, schema t4_integrasi_tes> go test -v -count=1 -p 1 
 --- PASS: TestClientTidakMengikutiRedirect
 --- PASS: TestDijedaHanyaUntukPenolakanBreaker
 --- PASS: TestGobreakerV240IsExcluded
+--- PASS: TestIdempotencyKeyDariReferensiAtauKunciRentan
+--- PASS: TestKlasifikasiJawabanVendor
+--- PASS: TestKoneksiDitolakTidakTersediaDanTimeoutTidakPasti
 --- PASS: TestKunciIdempotensiPerPercobaan
 --- PASS: TestKunciIdempotensiPerPercobaan/tanpaKunci=false
 --- PASS: TestKunciIdempotensiPerPercobaan/tanpaKunci=true
@@ -32,7 +36,7 @@ $ TEST_DATABASE_URL=<pemilik, schema t4_integrasi_tes> go test -v -count=1 -p 1 
 --- PASS: TestRingkasanMenjumlahkanDanMencetakDijeda
 --- PASS: TestSatuPembuatClientUntukSemuaPanggilanKeluar
 --- PASS: TestTanpaBreakerSemuaPekerjaanMatiSebelumVendorPulih
-ok  24 tes induk, 4 subtes
+ok  28 tes induk, 4 subtes
 
 # --- B. go vet seluruh modul ---
 $ go vet ./...

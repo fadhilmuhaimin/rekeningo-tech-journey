@@ -39,4 +39,4 @@ bersama: 1,74 + 2,26 = 4,0 dari 4 slot
 # Hitungan. c = 4 dan t = 3 detik terukur di bagian A (t sebagai batas waktu client dan batas bawah yang diperiksa, bukan rata-rata).
 # 0,116 verifikasi per detik (naskah: 1.000 pendaftar per hari x puncak 10), 7,52 notifikasi uang per detik, dan 0,3 detik per notifikasi adalah Asumsi naskah;
 # kapasitas worker untuk push (c dibagi t = 13,3 per detik) diukur di rekaman beban lab api-t4. Hasilnya Asumsi, bukan beban yang dijalankan.
-# Pada 4,0 dari 4 slot antrean tidak lagi surut: pekerjaan yang pasti gagal memakai slot yang dibutuhkan pemberitahuan uang.
+# Hitungan: pada 4,0 dari 4 slot tidak ada sisa kapasitas untuk menguras antrean yang sudah menumpuk; pekerjaan yang pasti gagal memakai slot yang dibutuhkan pemberitahuan uang.
