@@ -1,0 +1,73 @@
+# Lab t4-webhook · kabar yang datang mundur, dan tiga lapis penahan jurnal kedua
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_webhook · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-webhook run.
+# server: ./api-t4 -lab; gateway tiruan: ./tiruan (menghitung berapa kali Rekeningo menanyakan keadaan satu order)
+
+# --- F1. Kabar menunggu datang sesudah dibayar: diparkir, status tidak mundur, tidak ada jurnal kedua ---
+kabar pending sesudah settlement: 200 diparkir
+=> SELECT status FROM topup_bank
+ status
+---------
+ dibayar
+(1 row)
+=> SELECT event_id, jenis, hasil FROM webhook_event ORDER BY event_id
+ event_id | jenis      | hasil
+----------+------------+----------
+ evt-f1   | settlement | diproses
+ evt-f2   | pending    | diparkir
+(2 rows)
+berapa kali api-t4 menanyakan order ini ke gateway: 0
+# Top-up yang sudah berstatus akhir tidak ditanyakan ke gateway: tidak ada yang bisa ditambah oleh jawabannya.
+
+# --- F2. Kabar diparkir pada top-up yang masih menunggu: dicek ke gateway di luar transaction (Dina, saldo Rp900.000, batas Rp1.000.000 untuk tingkat belum) ---
+top-up kedua melewati batas tingkat sesudah lock: 200 diparkir
+=> SELECT jumlah, status FROM topup_bank WHERE akun_id = 40001 ORDER BY id
+ jumlah | status
+--------+----------
+ 60000  | dibayar
+ 60000  | menunggu
+(2 rows)
+berapa kali api-t4 menanyakan top-up kedua ke gateway: 1 (di luar transaction, sesudah COMMIT kabar yang diparkir)
+# Jawaban gateway: settlement, tetapi kredit tetap ditolak batas tingkat; status tetap menunggu dan uangnya tertahan di bank sampai tim risk memutuskan.
+
+# --- F3. Kabar terbalik: expire datang lebih dulu, settlement menyusul. Settlement diparkir, uang di bank tidak tercatat di ledger ---
+settlement sesudah expire: 200 diparkir
+=> SELECT status, jurnal_id FROM topup_bank WHERE id = 4
+ status      | jurnal_id
+-------------+-----------
+ kedaluwarsa |
+(1 row)
+# Status kedaluwarsa itu akhir, jadi kabar settlement tidak memundurkannya dan tidak ditanyakan ke gateway. Uangnya ditemukan rekonsiliasi:
+$ ./api-t4 -rekon <tanggal>
+rekon <tanggal>: 4 baris di laporan gateway; insiden baru: tidak_di_ledger 2, tidak_di_gateway 0, jumlah_beda 0
+=> SELECT jenis, selisih, status FROM insiden_rekon ORDER BY jenis, selisih
+ jenis           | selisih | status
+-----------------+---------+---------
+ tidak_di_ledger | 50000   | terbuka
+ tidak_di_ledger | 60000   | terbuka
+(2 rows)
+$ ./api-t4 -koreksi-rekon
+koreksi rekon: diperiksa 2, dikoreksi lewat jurnal 0, selesai tanpa jurnal baru 0, tetap terbuka 2, galat 0
+=> SELECT jenis, selisih, status, jurnal_id IS NULL AS belum_dikoreksi FROM insiden_rekon ORDER BY jenis, selisih
+ jenis           | selisih | status  | belum_dikoreksi
+-----------------+---------+---------+-----------------
+ tidak_di_ledger | 50000   | terbuka | t
+ tidak_di_ledger | 60000   | terbuka | t
+(2 rows)
+# Kedua insiden tetap terbuka: yang satu melewati batas tingkat, yang lain top-up kedaluwarsa. Keduanya perlu keputusan tim risk; job tidak mengkredit akun yang tidak boleh dikredit (PRD v4 belum menjawab pengembalian dana).
+
+# --- G. Dua Event berbeda untuk satu kejadian: tiga lapis menahan jurnal kedua (event_id, status top-up, Idempotency-Key = order_id di ledger, umur 24 jam) ---
+# server: ./api-t4 -lab -jam-lab (ketiga lapis menyala; jam service bisa diputar lewat /lab/jam)
+ kasus                                   | event kedua datang | jawaban event kedua | jurnal untuk satu order
+-----------------------------------------+--------------------+---------------------+-------------------------
+ 1. semua lapis menyala                  | 0 jam              | ganda               | 1
+ 2. semua lapis menyala, 25 jam kemudian | 25 jam             | ganda               | 1
+(2 rows)
+# server: ./api-t4 -lab -jam-lab -lab-tanpa-lapis status (status top-up hanya maju dimatikan; tinggal event_id dan Idempotency-Key)
+ kasus                                                    | event kedua datang | jawaban event kedua | jurnal untuk satu order
+----------------------------------------------------------+--------------------+---------------------+-------------------------
+ 3. tanpa lapis status, event kedua langsung              | 0 jam              | ganda               | 1
+ 4. tanpa lapis status, 25 jam kemudian (key sudah habis) | 25 jam             | diproses            | 2
+(2 rows)
+# Kasus 1 dan 2: status top-up yang hanya maju menahannya, juga sesudah 24 jam. Kasus 3: tanpa itu, Idempotency-Key = order_id menahannya selama key hidup.
+# Kasus 4: key hidup 24 jam; sesudahnya key lama diperlakukan belum pernah ada, dan tanpa status top-up jurnal kedua lolos. Karena itu hanya status top-up yang menahan sesudah 24 jam.

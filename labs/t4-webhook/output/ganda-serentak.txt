@@ -1,0 +1,25 @@
+# Lab t4-webhook · dua kiriman bersamaan: celah cek-lalu-tulis dan penahan satu-satunya kunci utama
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_webhook · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-webhook run.
+# server: ./api-t4 -lab -rentan webhook-cek-tulis -lab-jeda-cek-tulis 300ms (cek status lalu tulis, tanda tangan diperiksa; jeda 300 ms di antara cek dan tulis supaya celah terekam)
+
+# --- A. Cek-lalu-tulis: dua kiriman bersamaan sama-sama melihat status menunggu, dan keduanya menjurnal ---
+dua kiriman bersamaan, tanda tangan sah (diurutkan): 200 diproses, 200 diproses
+=> SELECT count(*) AS jurnal_topup_bank FROM jurnal WHERE jenis = 'topup_bank'
+ jurnal_topup_bank
+-------------------
+ 2
+(1 row)
+# Celah itu ada di antara membaca status dan menulis jurnal; jeda lab hanya melebarkannya (celah alami hanya mikrodetik, tidak diukur).
+
+# --- B. Versi ADR 34 tanpa dua lapis cadangan: event_id yang sama bersamaan tetap satu jurnal, hanya karena kunci utama ---
+# server: ./api-t4 -lab -lab-tanpa-lapis status,kunci (ADR 34 tanpa dua lapis cadangan: status top-up hanya maju dan Idempotency-Key ke ledger dimatikan; kunci utama event_id tidak bisa dimatikan)
+dua kiriman bersamaan, event_id yang sama (diurutkan): 200 diproses, 200 ganda
+=> SELECT event_id, hasil FROM webhook_event WHERE event_id = 'evt-2'
+ event_id | hasil
+----------+----------
+ evt-2    | diproses
+(1 row)
+# INSERT ... ON CONFLICT DO NOTHING: kiriman yang kalah mendapat nol baris dan menjawab ganda.
+dua event berbeda untuk satu kejadian, berurutan, tanpa dua lapis cadangan: 200 diproses, 200 diproses
+# Kunci utama hanya mengenali event yang sama. Dua Event berbeda untuk satu kejadian ditahan lapis lain (bagian urutan.txt G).

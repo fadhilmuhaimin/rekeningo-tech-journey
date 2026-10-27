@@ -1,0 +1,90 @@
+# Lab t4-webhook · cek status, rekonsiliasi harian, dan koreksi insiden lewat jurnal normal
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_webhook · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-webhook run.
+# server: ./api-t4 -lab; gateway tiruan: ./tiruan
+
+# --- A. Job cek status: top-up menunggu lebih dari 30 menit (Asumsi) ditanyakan ke gateway; webhook Citra tidak pernah datang ---
+# Citra sudah membayar di bank (gateway: settlement); gateway tidak mengirim webhook.
+$ ./api-t4 -cek-topup   # bawaan -cek-umur 30m, top-up baru dibuat
+cek top-up: diperiksa 0, dikredit 0, selesai tanpa kredit 0, masih menunggu 0, galat 0
+=> UPDATE topup_bank SET dibuat = now() - interval '31 minutes'
+UPDATE 1
+# Lab saja: umur top-up diputar mundur 31 menit lewat UPDATE kolom `dibuat` oleh pemilik schema (bukan posting atau saldo).
+$ ./api-t4 -cek-topup   # bawaan -cek-umur 30m
+cek top-up: diperiksa 1, dikredit 1, selesai tanpa kredit 0, masih menunggu 0, galat 0
+=> SELECT status, jurnal_id IS NOT NULL AS ada_jurnal FROM topup_bank WHERE id = 1
+ status  | ada_jurnal
+---------+------------
+ dibayar | t
+(1 row)
+
+# --- B. Rekonsiliasi harian menemukan lima selisih; -koreksi-rekon menutup yang bisa lewat jurnal normal ---
+# t1: dibayar di bank, webhook hilang. t2b (Dina): kabar diparkir karena batas Rp1.000.000. t3: dikredit Rp20.000, gateway menerima Rp25.000.
+# t4: dikredit hari ini, gateway menulis settlement tanggal lain (jumlah sama). t5: dikredit, lalu gateway membatalkan (status failure; Asumsi lab).
+$ ./api-t4 -rekon <tanggal>
+rekon <tanggal>: 5 baris di laporan gateway; insiden baru: tidak_di_ledger 2, tidak_di_gateway 2, jumlah_beda 1
+=> SELECT i.jenis, i.selisih, i.status, j.jenis AS jenis_jurnal, i.topup_id IS NOT NULL AS ada_topup FROM insiden_rekon i LEFT JOIN jurnal j ON j.id = i.jurnal_id ORDER BY i.jenis, i.selisih
+ jenis            | selisih | status  | jenis_jurnal | ada_topup
+------------------+---------+---------+--------------+-----------
+ jumlah_beda      | 5000    | terbuka |              | t
+ tidak_di_gateway | -40000  | terbuka |              | t
+ tidak_di_gateway | -30000  | terbuka |              | t
+ tidak_di_ledger  | 15000   | terbuka |              | t
+ tidak_di_ledger  | 60000   | terbuka |              | t
+(5 rows)
+# Saldo sebelum koreksi:
+=> SELECT a.nama, b.saldo_cache AS saldo FROM akun a JOIN buku b ON b.akun_id = a.id WHERE a.id IN (419, 40001, 40002, 504) ORDER BY a.id
+ nama  | saldo
+-------+--------
+ Budi  | 310000
+ Citra | 750000
+ Dina  | 960000
+ Eko   | 530000
+(4 rows)
+$ ./api-t4 -koreksi-rekon
+koreksi rekon: diperiksa 5, dikoreksi lewat jurnal 3, selesai tanpa jurnal baru 1, tetap terbuka 1, galat 0
+=> SELECT i.jenis, i.selisih, i.status, j.jenis AS jenis_jurnal, i.topup_id IS NOT NULL AS ada_topup FROM insiden_rekon i LEFT JOIN jurnal j ON j.id = i.jurnal_id ORDER BY i.jenis, i.selisih
+ jenis            | selisih | status  | jenis_jurnal | ada_topup
+------------------+---------+---------+--------------+-----------
+ jumlah_beda      | 5000    | selesai | topup_bank   | t
+ tidak_di_gateway | -40000  | selesai |              | t
+ tidak_di_gateway | -30000  | selesai | pembalik     | t
+ tidak_di_ledger  | 15000   | selesai | topup_bank   | t
+ tidak_di_ledger  | 60000   | terbuka |              | t
+(5 rows)
+# Saldo sesudah koreksi:
+=> SELECT a.nama, b.saldo_cache AS saldo FROM akun a JOIN buku b ON b.akun_id = a.id WHERE a.id IN (419, 40001, 40002, 504) ORDER BY a.id
+ nama  | saldo
+-------+--------
+ Budi  | 330000
+ Citra | 750000
+ Dina  | 960000
+ Eko   | 500000
+(4 rows)
+posting yang sudah ada sebelum koreksi (id sampai nomor terakhir): sidik MD5 sama sesudah koreksi: ya; posting baru: 6 (tiga jurnal, dua posting masing-masing)
+jurnal yang jumlah posting-nya bukan nol: 0; buku yang saldo_cache-nya beda dari jumlah posting: 0
+# t1 dikredit lewat jurnal top-up (fungsi yang sama dengan webhook). t3: selisih Rp5.000 dikredit lewat jurnal kedua. t5: kreditnya dibalik lewat jurnal pembalik (cermin jurnal asal).
+# t4 ditutup tanpa jurnal: gateway menjawab settlement dengan jumlah yang sama, hanya tanggalnya lain. t2b tetap terbuka: akun melewati batas tingkat, perlu keputusan tim risk.
+# Tidak ada UPDATE pada posting maupun saldo_cache oleh job: posting hanya bertambah (trigger append-only), saldo_cache berubah hanya oleh jurnal baru.
+$ ./api-t4 -koreksi-rekon   # dijalankan lagi
+koreksi rekon: diperiksa 1, dikoreksi lewat jurnal 0, selesai tanpa jurnal baru 0, tetap terbuka 1, galat 0
+=> SELECT i.jenis, i.selisih, i.status, j.jenis AS jenis_jurnal, i.topup_id IS NOT NULL AS ada_topup FROM insiden_rekon i LEFT JOIN jurnal j ON j.id = i.jurnal_id ORDER BY i.jenis, i.selisih
+ jenis            | selisih | status  | jenis_jurnal | ada_topup
+------------------+---------+---------+--------------+-----------
+ jumlah_beda      | 5000    | selesai | topup_bank   | t
+ tidak_di_gateway | -40000  | selesai |              | t
+ tidak_di_gateway | -30000  | selesai | pembalik     | t
+ tidak_di_ledger  | 15000   | selesai | topup_bank   | t
+ tidak_di_ledger  | 60000   | terbuka |              | t
+(5 rows)
+
+# --- C. Dua job bersamaan: satu jurnal per insiden (insiden dikunci FOR UPDATE, yang sudah selesai dilewati) ---
+$ ./api-t4 -rekon <tanggal>
+rekon <tanggal>: 8 baris di laporan gateway; insiden baru: tidak_di_ledger 3, tidak_di_gateway 0, jumlah_beda 0
+dua job bersamaan: jumlah insiden yang dikoreksi oleh keduanya bersama = 3 (pembagian antar job bergantung pada waktu dan tidak direkam)
+=> SELECT count(*) AS insiden_tidak_di_ledger_terbuka FROM insiden_rekon WHERE status = 'terbuka' AND jenis = 'tidak_di_ledger'
+ insiden_tidak_di_ledger_terbuka
+---------------------------------
+ 1
+(1 row)
+jurnal yang jumlah posting-nya bukan nol: 0; buku yang saldo_cache-nya beda dari jumlah posting: 0

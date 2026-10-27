@@ -1,0 +1,63 @@
+# Lab t4-webhook · tes Go jalur webhook: tanda tangan, event, lapis penahan, cek status, rekonsiliasi, koreksi, dan jadwal ulangan
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_webhook · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-webhook run.
+
+# --- A. go vet, lalu tes Go milik jalur webhook (service dengan PostgreSQL sungguhan, dan gateway tiruan) di schema tahap4_webhook_tes ---
+$ go vet ./cmd/tiruan ./internal/service ./internal/repo
+(tanpa temuan)
+# exit status 0
+$ TEST_DATABASE_URL=<pemilik, schema tahap4_webhook_tes> go test -v -count=1 -p 1 -run 'Koreksi|Webhook|Rekon|TopupBank|CekTopup|TandaTangan|Jadwal|Jeda|JumlahUlang|Rotasi|Lapisan' ./cmd/tiruan ./internal/service
+--- PASS: TestJedaTotal342Menit
+--- PASS: TestJumlahUlangPerKode
+--- PASS: TestJadwalBerhentiMenurutKode
+--- PASS: TestJadwalTandaTanganMemakaiWaktuMayaDanByteAsli
+--- PASS: TestJadwalMemberiTahuJamKePenerimaSebelumTiapKiriman
+--- PASS: TestJadwalDiterimaDiTengahBerhenti
+--- PASS: TestJadwalDariDanSampai
+--- PASS: TestJadwalKodeBerubahMemakaiKodeTerakhir
+--- PASS: TestJadwalTanpaJawabanDihitungKodeLain
+--- PASS: TestRotasiRahasiaLangsungDipakaiJadwal
+--- PASS: TestWebhookBodyCantikDitandatanganApaAdanyaDanDicekDihitung
+PASS
+ok    lab/apit4/cmd/tiruan
+--- PASS: TestKoreksiRekonTidakDiLedgerMengkreditLaluKabarTerlambatGanda
+--- PASS: TestKoreksiRekonTidakDiLedgerYangDitahan
+--- PASS: TestKoreksiRekonTidakDiLedgerYangSudahDikreditJalurLain
+--- PASS: TestKoreksiRekonJumlahBeda
+--- PASS: TestKoreksiRekonTidakDiGateway
+--- PASS: TestKoreksiRekonGatewayTidakMenjawabTidakMembalik
+--- PASS: TestKoreksiRekonDuaJobBersamaanSatuJurnalPerInsiden
+--- PASS: TestTandaTanganAtasByteMentah
+--- PASS: TestWebhookSatuKaliLaluUlang
+--- PASS: TestWebhookDuaEventSatuKejadianSatuJurnal
+--- PASS: TestWebhookLapisanPenahanJurnalKedua
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/semua_lapis_menyala
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/hanya_status_dimatikan:_kunci_ledger_menahan_(key_masih_hidup)
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/hanya_kunci_dimatikan:_status_menahan
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/status_dimatikan_dan_key_sudah_habis_(25_jam):_tidak_ada_yang_menahan
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/key_sudah_habis_(25_jam),_status_menyala:_status_menahan
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/status_dan_kunci_dimatikan,_event_berbeda:_tidak_ada_yang_menahan
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/status_dan_kunci_dimatikan,_event_yang_sama:_kunci_utama_event_id_menahan_sendirian
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/status_dan_kunci_dimatikan,_event_yang_sama,_key_habis:_kunci_utama_event_id_tetap_menahan
+--- PASS: TestWebhookSerentakEventSamaDanEventBeda
+    --- PASS: TestWebhookSerentakEventSamaDanEventBeda/event_yang_sama
+    --- PASS: TestWebhookSerentakEventSamaDanEventBeda/event_berbeda
+--- PASS: TestWebhookStatusHanyaMaju
+--- PASS: TestWebhookJumlahBedaOrderTakDikenalDanPalsu
+--- PASS: TestWebhookBatasSaldoTingkatSesudahLock
+--- PASS: TestWebhookAkunDibekukanDiparkir
+--- PASS: TestWebhookEventDanJurnalSatuTransaction
+--- PASS: TestWebhookModeRentanV1MenjurnalDuaKali
+--- PASS: TestWebhookModeCekTulisLolosBersamaan
+    --- PASS: TestWebhookModeCekTulisLolosBersamaan/mode_webhook-cek-tulis
+    --- PASS: TestWebhookModeCekTulisLolosBersamaan/mode_
+--- PASS: TestBuatTopupBankGatewayTiruan
+--- PASS: TestBuatTopupBankAturan
+--- PASS: TestBuatTopupBankTidakMenahanLockSelamaGatewayMenunggu
+--- PASS: TestCekTopupMenerapkanStatusGateway
+--- PASS: TestRekonHarianTigaJenisSelisih
+--- PASS: TestRekonHarianLedgerLebihBesarDariGateway
+--- PASS: TestWebhookDiparkirDicekKeGatewayHanyaBilaMasihMenunggu
+PASS
+ok    lab/apit4/internal/service
+# exit status 0
