@@ -82,12 +82,17 @@ func Aman(ctx context.Context, alamat string) (Gambar, error) {
 // alamatKhusus: kelas alamat yang tidak boleh menjadi tujuan unduhan selain yang sudah dikenali netip
 // (loopback, private termasuk fc00::/7, link-local, multicast, unspecified). Daftar ini menutup yang tidak
 // tercakup IsPrivate: bagian "this network", CGNAT, protokol IETF, dokumentasi, benchmark, cadangan, dan
-// awalan IPv6 yang membawa alamat IPv4 (NAT64, 6to4, Teredo). golang/go#79925: IsPrivate saja tidak cukup.
+// awalan IPv6 yang membawa alamat IPv4 (NAT64 termasuk awalan lokal RFC 8215, 6to4, Teredo). golang/go#79925:
+// IsPrivate saja tidak cukup. Baris IPv6 sesudah 100::/64 dicocokkan dengan registri alamat khusus IPv6 IANA
+// (diakses 2026-10-28) oleh lab t4-ssrf: awalan NAT64 lokal, 100:0:0:1::/64, 2001::/23 (protokol IETF, memuat
+// 2001::/32), dokumentasi 2001:db8::/32 dan 3fff::/20, SRv6 5f00::/16, serta dua blok usang (IPv4-compatible ::/96
+// dan site-local fec0::/10) yang tidak dipakai host sungguhan.
 var alamatKhusus = func() []netip.Prefix {
 	var p []netip.Prefix
 	for _, s := range []string{
 		"0.0.0.0/8", "100.64.0.0/10", "192.0.0.0/24", "192.0.2.0/24", "198.18.0.0/15", "198.51.100.0/24",
 		"203.0.113.0/24", "240.0.0.0/4", "64:ff9b::/96", "2002::/16", "2001::/32", "100::/64",
+		"64:ff9b:1::/48", "100:0:0:1::/64", "2001::/23", "2001:db8::/32", "3fff::/20", "5f00::/16", "::/96", "fec0::/10",
 	} {
 		p = append(p, netip.MustParsePrefix(s))
 	}
