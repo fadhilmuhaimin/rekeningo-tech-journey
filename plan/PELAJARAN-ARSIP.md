@@ -358,3 +358,18 @@ Pola per halaman: branch `tahap-1/<slug>` dari `main`; lab dulu bila perlu (PR s
 ## Perlu dicek pemilik, halaman 3.13–3.15 dan naskah 4 (arsip 2026-10-27 siang)
 
 - Halaman 3.13–3.15 (#381–#383) dan naskah 4: ADR 25 tetap pesan `data` (iOS tak menjamin; Doze) atau `notification` + `tag` = `notifikasi_id` (keduanya Tidak dijalankan di perangkat); alert baris `mati` dan replay otomatis dijanjikan ke 3.27 tetapi naskah ADR 32 hanya alert umur tertua; naskah M21 "tidak ada yang memulainya lagi" (±9 menit) vs `restart: unless-stopped` Tahap 1 (opsi A: restart otomatis ada, mati beberapa detik; opsi B: API tanpa pengawas: ubah Tahap 1 dan 2); naskah M20 "worker dihentikan saat deploy" vs mati paksa; selang health check 1 detik Asumsi; BFF: PROPOSAL Tahap 4 "modular monolith + 1 service pembayaran + BFF" vs naskah menunda ke ADR 45 (membatalkan = satu ADR + satu halaman); pemangkasan Tahap 4 (1207: 11 lab, 2 widget baru) belum dilihat pemilik; registry/3.5 "tim 6–10 dalam 2 tim" vs naskah 4 tim 13 dalam tiga tim (KONSISTENSI-4).
+
+## Perlu dicek pemilik, halaman 3.16–3.21 dan lab api-t4 (arsip 2026-10-27 sore)
+
+- Halaman 3.16–3.21 (#385–#393) dan lab api-t4 (#392): lisensi Redis 8 (RSALv2, SSPLv1, AGPLv3) vs Valkey (BSD) dan satu key per alamat di belakang proxy (kode lab belum membaca X-Forwarded-For); ADR 27 menyimpang dari syarat kedua ADR 21 (counter PostgreSQL belum diukur); ADR 28 memilih Redis walau hitungan menunjuk "tanpa cache" (L 0,026) dan naskah tak menulis alasan; naskah M22 "600" vs 620; M23 cache "menumpang Redis" vs minggu 2 vs 3.17; naskah M24 "api-t3 tak punya endpoint stok" (PATCH /produk bersyarat versi ada); tab stack mobile 3.21; komponen alur diperbaiki #394 (vonis tebakan hanya di akhir jalur utama; 11 halaman Tahap 1 tersentuh); lab api-t4: top-up melewati batas saldo tanpa jalur pengembalian, penerbit tiruan menganggap non-200 timeout "setuju" (ADR 42/4.23: tolak/gagal tertutup untuk 40P01 dan 40001), laporan QR palsu membekukan merchant, `make kontrak` exit 1 karena enum baru; Snippet membuang "(keputusan NNN)" saat tampil (#388; mudah dibatalkan).
+
+## Ukur antrean merge, baris 3.16–3.21 (arsip 2026-10-27 sore)
+
+| Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
+| --- | --- | --- | --- | --- |
+| 3.16 | #386 | 53 | 3 | 0 |
+| 3.17 | #385 | 42 | 2 | 0 |
+| 3.18 | #389 | 39 | 2 | 0 |
+| 3.19 | #391 | 572 (jeda limit #6 ±8 jam; kerja ±80) | 3 | 0 |
+| 3.20 | #390 | 556 (jeda limit #6; kerja ±70) | 2 | 0 |
+| 3.21 | #393 | 43 | 2 | 0 |

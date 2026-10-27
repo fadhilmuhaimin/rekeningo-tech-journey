@@ -1732,29 +1732,29 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### 3.22 · M25: Kotak peringatan di riwayat Ani
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.21, lab-t3-dasbor, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Masalah 3.22 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M25) dan peta halaman Tahap 3; rekaman dari `labs/t3-dasbor`; widget cari-bug; Dimas hanya mencoba, catatan di `jurnal.keterangan` tinggal selamanya (append-only), perbaikannya di output; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: - Selesai 2026-10-27 di PR #397 (keputusan 1084–1087): m25-kotak-peringatan.mdx dari xss.txt A, D, E dan skema.txt D, widget cari-bug t3-m25-caribug, penjaga; peninjau mempersempit klaim query dasbor (batas 20 baris) dan mengunci gerbang CSRF serta definisi glosarium XSS (11 mutasi yang lolos dibunuh).
 
 ### 3.23 · Keamanan 5: XSS, CSRF, cookie sesi, passkey + ADR 30
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.22, lab-t3-dasbor, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Keamanan + ADR 3.23 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 30 dan peta halaman Tahap 3; rekaman dari `labs/t3-dasbor`; widget banding; ADR 30 dengan opsi escape manual saja, CSP saja, token di `localStorage`; passkey berlabel Tidak dijalankan bila authenticator virtual tidak terbukti (R3-20); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: - Selesai 2026-10-27 di PR #399 (keputusan 1088–1091): xss-csrf-cookie.mdx (Keamanan 5, ADR 30, kasus GitHub CSP journey), tab enam stack, penjaga 51 tes + BENTUK_MDX; peninjau meluruskan klaim token CSRF dan HttpOnly menahan, lingkup CSP, atribusi nonce, kata Passkey (WebAuthn L3 DEPRECATED), penjaga bolong baris kosong.
 
 ### 3.24 · M26: Transfer yang tidak dibuat Budi
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.23, lab-t3-mitm, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Masalah 3.24 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M26) dan peta halaman Tahap 3; rekaman dari `labs/t3-mitm`; widget alur; flag "terima sertifikat apa pun" di build staging yang ikut ke rilis; uji lapangan dengan akun uji; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: - Selesai 2026-10-27 di PR #400 (keputusan 1092–1095): m26-transfer-bukan-budi.mdx, alur t3-m26, penjaga 44 tes; peninjau meluruskan lingkup sertifikat dan CA Dimas, token berakhir lewat logout dan ganti password, janji ke 3.25, rekaman memakai curl ke api-t3 tanpa tepi TLS, dan mengunci bentuk baris MDX.
 
 ### 3.25 · Keamanan 6: TLS, HSTS, pinning + ADR 31
 
@@ -1889,20 +1889,20 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan ole
 ### lab-t4-webhook · Lab t4-webhook: gateway tiruan, webhook ganda, dan rekonsiliasi
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-api-t4
 - selesai bila: Lab `labs/t4-webhook` di atas `api-t4`: gateway tiruan di container yang mengirim webhook ganda, terlambat, tidak berurutan, palsu, dan hilang, dengan tanda tangan HMAC-SHA256 atas byte mentah. Direkam: (a) kiriman yang sama dua kali menghasilkan dua jurnal pada handler versi pertama dan satu jurnal pada versi ADR 34; (b) dua kiriman bersamaan lolos cek-lalu-tulis (jeda buatan di antara cek dan tulis supaya celah terekam) dan hanya kunci utama `webhook_event.event_id` yang menahannya; (c) tanda tangan atas body yang diurai ulang gagal pada isi yang sah dan lolos atas byte mentah; isi yang diubah dan timestamp lama (toleransi 5 menit, Asumsi untuk tiruan) ditolak; (d) secret lama menolak kiriman bertanda secret baru (401), dan masa tumpang tindih menerimanya; (e) jadwal retry tiruan 2, 10, 30, 90, 210 menit (total 342 menit) diskalakan, waktu diperankan dan bukan ditunggu, berhenti sesudah kiriman ke-6; jadwal per kode status (2xx tanpa ulangan, 400 dan 404 dua kali, 500 sekali, 503 empat kali, lainnya lima kali) menurut dokumentasi satu gateway nyata (R4-08); (f) kabar `menunggu` yang datang sesudah `dibayar` tidak memundurkan status; kabar yang datang mundur diparkir dan dicek ke gateway di luar transaction; (g) dua Event berbeda untuk satu kejadian tidak menjurnal dua kali karena Idempotency-Key ke ledger `order_id`; key habis sesudah 24 jam dan hanya status `topup_bank` yang menahan jurnal kedua; (h) cek status untuk top-up `menunggu` lebih dari 30 menit dan rekonsiliasi harian menemukan tiga jenis selisih (`tidak_di_ledger`, `tidak_di_gateway`, `jumlah_beda`) sebagai `insiden_rekon`, dikoreksi lewat jurnal normal oleh job idempoten (ADR 19), bukan UPDATE pada posting atau `buku.saldo_cache`; (i) tiga gaya tanda tangan sebagai pembanding (HMAC atas timestamp dan body, SHA-512 atas field tertentu, token statis; SETELAH-TAHAP-4). Pembanding ADR 34 bila murah: koneksi terpakai pada 3,47 kiriman per detik dengan W = 5 detik (L = 17,4 melewati pool 10), kalau tidak berlabel Hitungan. Lab ini berbagi `labs/api-t4` lewat mode rentan (pola api-t1 dan api-t3), bukan salinan; sebelum mengubah api-t4 cek flag terhadap PR terbuka lain dan jalankan ulang `make cek` lab yang berbagi (peninjau menjalankannya lagi). Aturan lab (`plan/BRIEF-HALAMAN.md` bagian Tugas lab dan widget): schema sendiri di PostgreSQL bersama, `make -C labs/t4-webhook run`, gagal keras bila hasil berbeda dari pernyataan naskah (bila lab membantah naskah, naskah yang berubah lewat KONSISTENSI-4 dan halaman memakai rekaman); rekaman `output/*.txt` dari database bersih, diulang identik (status, saldo, urutan; angka mesin sebagai batas yang diperiksa; kepala rekaman menulis versi alat); port dan nama kontainer lewat `labs/lab_env.*` (keputusan 860–864), tanpa 54333 tertulis tetap (`tools/cek_port_lab.py`); pihak ketiga tiruan lokal di container; uji mutasi atas kode uang dan keamanan (tes atau lab gagal karena sebab yang diuji, bukan koneksi mati); klaim dari dokumentasi diberi versi dan tanggal, dan yang tidak terbukti ditulis Tidak dijalankan atau [perlu verifikasi] di README dan rekaman.
-- catatan: Jalur lab. Sumber W4-webhook dan halaman 4.4, 4.6, 4.7, 4.8, 4.9. Baris `t4-webhook` di tabel "Yang harus bisa dibuktikan lab" naskah adalah isi minimal; bila lab membantah satu pernyataan, M29 dan M30 diubah mengikuti rekaman. Gateway nyata hanya rujukan dokumentasi (R4-08), tanpa merek di halaman. ALOKASI: keputusan 1214–1217 (1214–1216 pelaksana, 1217 peninjau), ID riset R4-305 sampai R4-309.
+- catatan: Jalur lab. Sumber W4-webhook dan halaman 4.4, 4.6, 4.7, 4.8, 4.9. Baris `t4-webhook` di tabel "Yang harus bisa dibuktikan lab" naskah adalah isi minimal; bila lab membantah satu pernyataan, M29 dan M30 diubah mengikuti rekaman. Gateway nyata hanya rujukan dokumentasi (R4-08), tanpa merek di halaman. ALOKASI: keputusan 1214–1217 (1214–1216 pelaksana, 1217 peninjau), ID riset R4-305 sampai R4-309. Selesai 2026-10-27 di PR #396 (keputusan 1214–1217): labs/t4-webhook (ganda, tanda tangan, retry, urutan, rekon, testing); peninjau memperbaiki batas 30 menit job cek status (29 lawan 31), ADR 22 job koreksi, enam tes jalur uang; batas baru: sesudah jurnal pembalik topup_bank.status tetap dibayar.
 
 ### lab-t4-integrasi · Lab t4-integrasi: layanan verifikasi tiruan, retry, breaker, dan lajur queue
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-api-t4
 - selesai bila: Lab `labs/t4-integrasi` di atas `api-t4`: layanan verifikasi tiruan yang mati, lambat, dan setengah menjawab. Direkam: (a) vendor mati: lima percobaan lalu dead-letter (ADR 25) menghabiskan semua pekerjaan sebelum vendor pulih, sedangkan dengan lajur per `tujuan` dan breaker pekerjaan menunggu dan selesai sesudah pulih (jam diperankan, bukan ditunggu 3 jam 30 menit); (b) retry dengan Idempotency-Key tidak membuat dua objek di vendor tiruan; (c) timeout menghasilkan status `tidak_pasti`, bukan gagal; (d) breaker `sony/gobreaker` v2.4.0 bawaan membuka sesudah lebih dari 5 gagal berturut-turut (Timeout 60 detik, satu permintaan di half-open) dan menghitung 4xx sebagai gagal (dokumentasi pkg.go.dev v2.4.0 dibuka 2026-10-26: `IsSuccessful` bawaan menganggap semua error non-nil gagal; lab membuktikan perilakunya), sedangkan `IsSuccessful` kustom menghitung 4xx sebagai sukses; (e) lajur queue yang dijeda tidak menaikkan hitungan percobaan (ADR 25 dan ADR 36), dan pekerjaan uang tidak ikut tertahan di belakang pekerjaan verifikasi; (f) pemakaian worker diukur lawan hitungan naskah: 0,116 verifikasi per detik × 5 percobaan × 3 detik = 1,74 dari 4 worker, dan 4,0 dari 4 bersama notifikasi uang (Hitungan, Asumsi; lab memberi c dan t terukur). Satu fungsi pembuat client (timeout 3 detik, ADR 22) dipakai semua panggilan keluar. Lab ini berbagi `labs/api-t4` lewat mode rentan (pola api-t1 dan api-t3), bukan salinan; sebelum mengubah api-t4 cek flag terhadap PR terbuka lain dan jalankan ulang `make cek` lab yang berbagi (peninjau menjalankannya lagi). Aturan lab (`plan/BRIEF-HALAMAN.md` bagian Tugas lab dan widget): schema sendiri di PostgreSQL bersama, `make -C labs/t4-integrasi run`, gagal keras bila hasil berbeda dari pernyataan naskah (bila lab membantah naskah, naskah yang berubah lewat KONSISTENSI-4 dan halaman memakai rekaman); rekaman `output/*.txt` dari database bersih, diulang identik (status, saldo, urutan; angka mesin sebagai batas yang diperiksa; kepala rekaman menulis versi alat); port dan nama kontainer lewat `labs/lab_env.*` (keputusan 860–864), tanpa 54333 tertulis tetap (`tools/cek_port_lab.py`); pihak ketiga tiruan lokal di container; uji mutasi atas kode uang dan keamanan (tes atau lab gagal karena sebab yang diuji, bukan koneksi mati); klaim dari dokumentasi diberi versi dan tanggal, dan yang tidak terbukti ditulis Tidak dijalankan atau [perlu verifikasi] di README dan rekaman.
-- catatan: Jalur lab. Sumber W4-breaker dan halaman 4.10, 4.11. `b11-integrasi` hanya bahan (SETELAH-TAHAP-4: gateway tanpa timeout, breaker, antrean per gateway). Versi gobreaker dicek ulang (`proxy.golang.org @latest` = v2.4.0, repositori tanpa GitHub Release, hanya tag). ALOKASI: keputusan 1218–1221 (1218–1220 pelaksana, 1221 peninjau), ID riset R4-310 sampai R4-314.
+- catatan: Jalur lab. Sumber W4-breaker dan halaman 4.10, 4.11. `b11-integrasi` hanya bahan (SETELAH-TAHAP-4: gateway tanpa timeout, breaker, antrean per gateway). Versi gobreaker dicek ulang (`proxy.golang.org @latest` = v2.4.0, repositori tanpa GitHub Release, hanya tag). ALOKASI: keputusan 1218–1221 (1218–1220 pelaksana, 1221 peninjau), ID riset R4-310 sampai R4-314. Selesai 2026-10-27 di PR #398 (keputusan 1218–1221): labs/t4-integrasi (lajur per tujuan, retry, breaker gobreaker v2.4.0, worker); peninjau memperbaiki rekaman worker B yang tak deterministik (jitter), klaim breaker, dan mencatat celah probe half-open (sampai 42 dari 146 pekerjaan mati).
 
 ### lab-t4-modul · Lab t4-modul: batas modul, schema dan role, dan service pembayaran
 
