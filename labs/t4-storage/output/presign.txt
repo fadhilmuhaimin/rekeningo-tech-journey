@@ -1,17 +1,16 @@
 # Lab t4-storage · presigned URL: dipakai ulang, kedaluwarsa, ditimpa, batas ukuran, checksum, dan penolakan di SeaweedFS
 # PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_storage · server Go di 127.0.0.1:18280
 # Rekaman dari database bersih: make -C labs/t4-storage run.
-# penyimpanan objek: SeaweedFS 4.51 di container, endpoint S3 lokal, bucket privat 'identitas'
+# penyimpanan objek: SeaweedFS 4.51 di container, endpoint S3 lokal, bucket privat 'berkas'
 # server: ./api-t4 -lab -objek-s3 <endpoint lokal> -objek-presign-umur 5s (umur pendek supaya kedaluwarsa bisa ditunggu)
 
 # --- A. Dina meminta URL unggah: kunci acak milik akunnya dan dua URL PUT bertanda tangan server ---
 $ curl -i -X POST /verifikasi/unggahan -H 'Authorization: Bearer <token sesi Dina>'
 HTTP 201 (Cache-Control: no-store)
-badan: {"kunci_kartu":"identitas/40001/<kunci 1>","url_kartu":"http://127.0.0.1:<port>/identitas/identitas/40001/<kunci 1>?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=labkunci%2F<tanggal>%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=<waktu>&X-Amz-Expires=5&X-Amz-SignedHeaders=host&X-Amz-Signature=<tanda tangan>","kunci_swafoto":"identitas/40001/<kunci 2>","url_swafoto":"http://127.0.0.1:<port>/identitas/identitas/40001/<kunci 2>?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=labkunci%2F<tanggal>%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=<waktu>&X-Amz-Expires=5&X-Amz-SignedHeaders=host&X-Amz-Signature=<tanda tangan>","berlaku_sampai":"<waktu>"}
+badan: {"kunci_kartu":"identitas/40001/<kunci 1>","url_kartu":"http://127.0.0.1:<port>/berkas/identitas/40001/<kunci 1>?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=labkunci%2F<tanggal>%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=<waktu>&X-Amz-Expires=5&X-Amz-SignedHeaders=host&X-Amz-Signature=<tanda tangan>","kunci_swafoto":"identitas/40001/<kunci 2>","url_swafoto":"http://127.0.0.1:<port>/berkas/identitas/40001/<kunci 2>?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=labkunci%2F<tanggal>%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=<waktu>&X-Amz-Expires=5&X-Amz-SignedHeaders=host&X-Amz-Signature=<tanda tangan>","berlaku_sampai":"<waktu>"}
 # Isi URL yang bukan tanda tangan (tanda tangan, tanggal, dan kunci disamarkan):
-  metode_url = PUT
   host = 127.0.0.1:<port>
-  jalur = /identitas/identitas/40001/<kunci 1>
+  jalur = /berkas/identitas/40001/<kunci 1>
   X-Amz-Expires = 5
   X-Amz-SignedHeaders = host
 # URL tidak memuat token sesi Dina atau kredensial lain. Yang menandatangani adalah server; siapa pun yang memegang URL ini memegang izinnya.
@@ -42,7 +41,7 @@ daftar isi bucket tanpa tanda tangan: HTTP 403 AccessDenied
 
 # --- F. Batas ukuran di penyimpanan: URL tanpa panjang ditandatangani tidak membatasi apa pun; panjang yang ditandatangani dipaksa penyimpanan ---
 PUT 5.242.880 byte lewat URL tanpa ukuran ditandatangani: HTTP 200
-# Tidak ada batas ukuran di URL itu; satu-satunya pemeriksaan ukuran adalah yang dilakukan server sesudah unggah (unggah.txt bagian C).
+# URL ini tidak membatasi ukuran, dan SeaweedFS 4.51 dengan setelan lab menerima 5 MiB. Pemeriksaan ukuran yang direkam lab ini adalah milik server sesudah unggah (unggah.txt bagian C); batas ukuran per objek di SeaweedFS tidak ditemukan di dokumentasi yang dibuka [perlu verifikasi].
 $ curl -X POST /verifikasi/unggahan -d '{"ukuran_kartu":1000}'    # panjang PUT ikut ditandatangani (SignedHeaders memuat content-length)
 PUT 1.001 byte (ditandatangani 1.000): HTTP 403 SignatureDoesNotMatch
 PUT 999 byte: HTTP 403 SignatureDoesNotMatch
@@ -53,4 +52,8 @@ PUT 1.000 byte: HTTP 200
 checksum cocok: HTTP 200
 checksum beda: HTTP 400 BadDigest
 objek dengan checksum beda tersimpan: tidak
-# Penyimpanan hanya memeriksa bila pengunggah mengirim header itu; pengunggah yang tidak mengirimnya tidak diperiksa. Karena itu server menghitung ulang checksum dari isi objek (unggah.txt bagian B).
+# Pemeriksaan ini hanya terjadi bila pengunggah mengirim header checksum yang ikut ditandatangani; PUT tanpa header itu (bagian B dan F) diterima tanpa pemeriksaan isi. Karena itu server menghitung ulang checksum dari isi objek (unggah.txt bagian B).
+
+# --- H. Log penyimpanan: apakah URL bertanda tangan (bearer token) tercatat di log container SeaweedFS pada setelan lab ---
+baris log SeaweedFS yang memuat X-Amz-Signature atau X-Amz-Credential sesudah semua permintaan di atas: 0
+# Itu hasil pada setelan lab (tingkat log bawaan, tanpa -s3.auditLogConfig). Log akses di proxy atau penyeimbang beban di depan penyimpanan nyata tidak diperiksa (Tidak dijalankan): URL yang tercatat di sana adalah izin yang bocor.

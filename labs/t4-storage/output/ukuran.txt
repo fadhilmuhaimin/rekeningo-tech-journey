@@ -26,10 +26,10 @@
 # --- B. Pulih: dump tabel berkas_bytea (format custom) dipulihkan ke database lain; isinya harus sama ---
 $ psql lab_pulih -c 'SELECT count(*), sum(octet_length(isi)) FROM berkas_bytea'
 16|8000000   # 16 baris, 8.000.000 byte: sama dengan sebelum dump
-# Waktu dump dan pulih tidak direkam (bergantung mesin). Hanya batasnya yang diperiksa: kedua perintah selesai tanpa galat.
+# Waktu dump dan pulih tidak direkam (bergantung mesin). Hanya batasnya yang diperiksa: dump dan pulih 8 MB selesai dalam 120 detik. Waktu untuk puluhan GB tidak diukur (Tidak dijalankan).
 
 # --- C. Penyimpanan objek: file di SeaweedFS, database menyimpan kunci dan checksum ---
-# penyimpanan objek: SeaweedFS 4.51 di container, endpoint S3 lokal, bucket privat 'identitas'
+# penyimpanan objek: SeaweedFS 4.51 di container, endpoint S3 lokal, bucket privat 'berkas'
 # server: ./api-t4 -lab -objek-s3 <endpoint lokal> (file lewat URL PUT bertanda tangan)
 # Di penyimpanan objek: 16 objek, 8.000.000 byte; di database: baris verifikasi dengan kunci dan checksum saja.
 => SELECT count(*) AS pengajuan, min(length(berkas_kartu_kunci)) AS panjang_kunci, min(length(checksum_kartu)) AS panjang_checksum FROM verifikasi

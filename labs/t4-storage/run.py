@@ -830,7 +830,12 @@ POLA_TES = ("TandaiURL|S3|Presign|Unggahan|Terunggah|Retensi|BukaBerkasSesudah|B
 
 def go(*a, env=None):
     r = subprocess.run(["go", *a], cwd=HERE.parent / "api-t4", env=env or d.ENV, capture_output=True, text=True)
-    return r.returncode, (r.stdout + r.stderr).strip()
+    teks = (r.stdout + r.stderr).replace("\t", "  ")
+    teks = re.sub(r" \(\d+\.\d+s\)", "", teks)                                   # waktu per tes bergantung mesin: tidak direkam
+    teks = re.sub(r"^(ok|FAIL)(\s+\S+)\s+[\d.]+s", r"\1\2", teks, flags=re.M)
+    teks = re.sub(r"^(ok\s+\S+)\s+\(cached\)", r"\1", teks, flags=re.M)
+    teks = re.sub(r"^\d{4}/\d\d/\d\d \d\d:\d\d:\d\d(?:\.\d+)? ", "", teks, flags=re.M)
+    return r.returncode, teks.strip()
 
 
 def rekam_testing():

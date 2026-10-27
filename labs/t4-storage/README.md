@@ -92,4 +92,48 @@ Naskah tidak diubah (usulan masuk badan PR, `### USULAN-CERITA`). Yang rekaman p
 
 ## Uji mutasi
 
-HASIL_MUTASI
+Dijalankan pelaksana lab ini: 40 mutan di kode Go (satu perubahan per mutan pada salinan terpisah di folder sementara, schema tes dibangun ulang sebelum tiap mutan, hasil dibaca dari nama tes yang gagal) dan 5 mutan yang hanya terlihat oleh rekaman lab. Hasil: 39 dari 40 tertangkap tes Go, satu setara perilaku; 5 dari 5 tertangkap rekaman lab. Dua mutan pertama gagal kompilasi (V11, H2) dan diulang dalam bentuk yang terkompilasi; keduanya tertangkap. Penjaga `hapus_pada` di `TandaiBerkasDihapus` (R3) hanya tertangkap oleh `TestRetensiTandaiBerkasDihapusMenjagaBatasDanSekaliSaja`: tes lain memanggilnya lewat job yang hanya meneruskan baris yang sudah jatuh tempo, jadi tes itu ditulis khusus.
+
+| Kode | Berkas | Mutan | Ditangkap oleh |
+|---|---|---|---|
+| S1, S2 | `objek/s3.go` | batas atas umur URL 604801 detik; batas bawah 1 detik ditolak | `TestPresignUmurDiLuarRentangDitolak` |
+| S3 | `objek/s3.go` | `UNSIGNED-PAYLOAD` diubah | `TestTandaiURLCocokDenganContohDokumentasiAWS` |
+| S4 | `objek/s3.go` | daftar header ditandatangani dipisah koma, bukan titik koma | `TestPresignPUTUkuranDitandatanganMenolakPanjangLain` |
+| S5, S6 | `objek/s3.go` | batas baca `>=` pada isi dan pada `Content-Length` | `TestBacaMemakaiBatasUkuran` |
+| S7 | `objek/s3.go` | 404 tidak dipetakan ke `ErrTidakAda` | `TestS3SimpanBacaUkuranHapus` |
+| S9 | `objek/s3.go` | URL tidak dibuang dari galat jaringan | `TestGalatS3TidakMemuatTandaTanganAtauURL` |
+| S10 | `objek/s3.go` | kunci objek tidak diperiksa bentuknya | `TestS3KunciTidakSahDitolakSebelumKeJaringan` |
+| S11 | `objek/s3.go` | `content-length` ditandatangani juga bila ukuran 0 | `TestPresignPUTDipakaiPemegangLainSampaiKedaluwarsa`, `TestPresignPUTUkuranDitandatanganMenolakPanjangLain` |
+| S12 | `objek/s3.go` | nilai query tidak di-encode | `TestTandaiURLCocokDenganContohDokumentasiAWS` |
+| B2 | `objek/bytea.go` | `ON CONFLICT DO NOTHING`: kunci yang sama tidak menimpa | `TestBytea` |
+| V1 | `service/berkas.go` | umur URL 6 menit | `TestMintaUnggahanKunciAcakMilikAkunDanUmurLimaMenit` |
+| V2 | `service/berkas.go` | akun terverifikasi boleh meminta URL | `TestMintaUnggahanSyaratAkunDanPenyimpanan`, tes handler |
+| V3, V4, V5 | `service/berkas.go` | awalan kunci tanpa garis miring; kunci hanya awalan; dua kunci sama | `TestAjukanTerunggahKunciBukanMilikAkunDitolakTanpaMenghapusMilikOrang` |
+| V6 | `service/berkas.go` | panjang checksum `< 64` | `TestAjukanTerunggahBentukChecksumDanNomorIdentitas` |
+| V7 | `service/berkas.go` | nomor identitas 15 angka | beberapa tes `TestAjukanTerunggah...` |
+| V8 | `service/berkas.go` | ukuran tepat 1 MiB ditolak | `TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos` |
+| V9, V13 | `service/berkas.go` | checksum dibandingkan peka huruf besar; checksum klaim disimpan, bukan hitungan server | `TestAjukanTerunggahBerhasilMemakaiChecksumHitunganServer` |
+| V10 | `service/berkas.go` | hanya kartu yang dihapus saat ditolak | `TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos` |
+| V11 | `service/berkas.go` | file dihapus juga saat galat penyimpanan | `TestAjukanTerunggahGalatPenyimpananTidakMenghapusFile` |
+| V12 | `service/berkas.go` | tipe isi tidak diperiksa | `TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos` |
+| V14 | `service/berkas.go` | batas laju `unggahan` dibuang | `TestMintaUnggahanDibatasiTigaPerJamPerAkun` |
+| V15 | `service/berkas.go` | baris ditandai terhapus walau file gagal dihapus | `TestRetensiDihentikanGalatSatuFile...` |
+| V19 | `service/berkas.go` | ukuran swafoto dipakai untuk URL kartu | `TestMintaUnggahanUmurDariDepDanUkuranDitandatangani` |
+| V20 | `service/berkas.go` | pemeriksaan file kosong dibuang | lolos: setara perilaku (`periksaGambar` menolak file kosong dengan pesan yang sama) |
+| R1 | `repo/berkas.go` | batas retensi `<` bukan `<=` | `TestRetensiBatas29Dan31HariJamDiperankan` dan dua tes lain |
+| R3 | `repo/berkas.go` | penanda terhapus tanpa penjaga `hapus_pada` (batas diperlebar 100 tahun) | hanya `TestRetensiTandaiBerkasDihapusMenjagaBatasDanSekaliSaja` |
+| R5 | `repo/berkas.go` | hanya kunci kartu yang dikosongkan | `TestRetensiBatas29Dan31HariJamDiperankan` dan tes lain (baris dipilih lagi) |
+| T1, T2 | `repo/verifikasi.go` | status `gagal` tanpa `hapus_pada`; 31 hari | `TestRetensiMasaSimpanTigaPuluhHariTepatDariSelesai` |
+| T3 | `repo/verifikasi.go` | `SelesaikanVerifikasi` memakai 29 hari | `TestRetensiMasaSimpanTigaPuluhHariTepatDariSelesai` |
+| O1 | `service/bo.go` | kunci kosong dibaca sebagai kunci objek | `TestBukaBerkasSesudahRetensiMenjawabDihapusDanTetapMencatatAudit` |
+| H1 | `handler_berkas.go` | `Cache-Control: no-store` dibuang | `TestHandlerBerkasUnggahanLoginUkuranDanTanpaCache` |
+| H2 | `handler_berkas.go` | `nomor_identitas` bertipe `string`: pesan galat JSON mengutip nilainya | `TestHandlerBerkasTerunggahAlurDanNomorIdentitasTidakDiulang` |
+| H3 | `handler_bo.go` | 410 tidak dipetakan | `TestHandlerBerkasBukaSesudahRetensiMenjawab410DanTetapMencatatAudit` |
+| H4 | `handler_berkas.go` | batas badan 409.600 byte, bukan 4096 | `TestHandlerBerkasTerunggahAlurDanNomorIdentitasTidakDiulang` |
+| L1 | `cmd/api/berkas.go` | job retensi memastikan bucket (gagal saat penyimpanan mati) | `retensi.txt`: job berhenti dengan galat koneksi, bukan melapor galat per file |
+| L2 | `handler_berkas.go` | handler mencatat nomor identitas ke log | `unggah.txt`: "log memuat nomor identitas" |
+| L4 | `cmd/api/main.go` | mode `berkas-bytea` tidak memilih `objek.Bytea` | `ukuran.txt`: tabel `berkas_bytea` kosong, rasio dump 0,00 |
+| L6 | `cmd/api/berkas.go` | `-lab-sekarang` diabaikan | `retensi.txt`: bagian C mendapat (0, 0, 0), harus (1, 0, 1) |
+| L7 | `cmd/api/main.go` | `-objek-presign-umur` diabaikan | `presign.txt`: `X-Amz-Expires` 300, harus 5 |
+
+Mutan yang tidak dijalankan atau dianggap setara tanpa tes: ukuran halaman job (100) yang diganti 1.000 (perilaku sama), `id > $2` menjadi `>=` pada pemilihan halaman (baris yang sudah ditandai tidak dipilih lagi, jadi hasilnya sama), dan `.UTC()` pada waktu penanda tangan (semua tes memakai UTC). Mutasi tidak mencakup `s3sign.py` (alat lab; dua implementasi saling dibandingkan oleh penyimpanan yang sama: bila salah satu salah, penyimpanan menolaknya dan rekaman gagal).

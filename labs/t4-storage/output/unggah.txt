@@ -5,7 +5,7 @@
 # server: ./api-t4 -lab -objek-s3 <endpoint lokal> (umur URL bawaan 5 menit, Asumsi)
 
 # --- A. Alur normal: minta URL, unggah langsung ke penyimpanan, lalu ajukan dengan kunci dan checksum ---
-PUT kartu 500.000 byte dan swafoto 500.000 byte langsung ke penyimpanan: HTTP 200 dan 200 (server tidak melihat byte-nya)
+PUT kartu 500.000 byte dan swafoto 500.000 byte langsung ke penyimpanan lewat dua URL: HTTP 200 dan 200 (skrip lab berperan sebagai app; byte tidak melewati server pada jalur unggah)
 $ curl -i -X POST /verifikasi/terunggah -H 'Authorization: Bearer <token sesi Dina>' -d '{kunci_kartu, kunci_swafoto, checksum_kartu: <SHA-256 hitungan app>, checksum_swafoto: <...>, nomor_identitas: <16 angka>}'
 HTTP 202
 badan: {"id":1,"subjek":"pemakai","status":"diajukan","tingkat_diminta":"terverifikasi","checksum_kartu":"7a3ec9ac3c71866aefef9f0185a0b144ad42a120c0e3b3981e352d74f874cb8e","checksum_swafoto":"763bdbe895930e0abe509035e85127bf72aa050535734e60c6c37f7dd033dcd7","diajukan":"<waktu>"}
@@ -50,6 +50,7 @@ badan: {"type":"/problems/validasi","title":"Input tidak memenuhi aturan","statu
 objek milik akun lain di penyimpanan sesudah penolakan: tetap ada
 
 # --- E. Nomor identitas dan tanda tangan URL tidak masuk log; tidak diulang di jawaban galat ---
+# Skrip lab sengaja mengirim nomor sebagai angka JSON: pesan galat standar pengurai JSON mengutip nilai yang bertipe salah, dan di sinilah nomor bisa bocor ke jawaban.
 nomor identitas dikirim sebagai angka JSON, bukan teks: HTTP 422
 badan: {"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nomor_identitas","pesan":"harus 16 angka"}]}
 jawaban galat memuat nomor identitas: tidak

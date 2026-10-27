@@ -35,8 +35,7 @@ baris audit buka_berkas sesudah dua unduhan lewat URL: 1 (tetap); unduh lewat se
 # --- D. File ditimpa sesudah diterima (pemegang URL unggah yang belum kedaluwarsa): checksum tidak cocok, file ditolak, percobaan tetap tercatat ---
 unduh kartu sesudah ditimpa: HTTP 500
 badan: {"type":"/problems/berkas-rusak","title":"Berkas tidak lolos pemeriksaan checksum","status":500}
-
 baris audit bertambah satu: 1 jadi 2
 swafoto yang tidak ditimpa tetap bisa dibuka: HTTP 200
 # Yang ditolak adalah isi yang tidak cocok dengan checksum yang dicatat saat diterima. File aslinya sudah hilang: penyimpanan tidak menyimpan versi lama (presign.txt bagian B).
-# Penutup: ADR yang sama menyebut ganti ke unggah lewat server bila data tidak boleh ditimpa.
+# Bila data tidak boleh ditimpa, pilihannya unggah lewat server (jalur POST /verifikasi di api-t4 sudah ada); ongkosnya server menyangga tiap file.
