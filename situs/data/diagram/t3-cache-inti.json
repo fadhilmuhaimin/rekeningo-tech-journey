@@ -1,0 +1,29 @@
+{
+  "id": "t3-cache-inti",
+  "judul": "Hapus kunci sesudah dan sebelum COMMIT",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t3-cache, redis.txt bagian D dan E"
+  },
+  "baris": [
+    {
+      "label": "Hapus kunci sesudah COMMIT",
+      "sub": "bagian E dari redis.txt",
+      "simpul": [
+        { "teks": "Ani: Rp28.000", "sub": "UPDATE, lalu COMMIT" },
+        { "teks": "kunci dihapus", "sub": "sesudah COMMIT" },
+        { "teks": "Citra: Rp28.000", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Hapus kunci sebelum COMMIT",
+      "sub": "bagian D dari redis.txt",
+      "simpul": [
+        { "teks": "Ani: Rp28.000", "sub": "UPDATE, COMMIT belum" },
+        { "teks": "pembaca mengisi lagi", "sub": "Rp25.000, kunci sudah hilang", "nada": "warn" },
+        { "teks": "Citra: masih Rp25.000", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah penyebab harga lama bertahan sampai TTL habis."
+}

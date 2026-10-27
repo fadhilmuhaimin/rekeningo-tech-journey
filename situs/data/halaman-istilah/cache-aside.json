@@ -1,0 +1,47 @@
+{
+  "istilah": "Cache-aside",
+  "sehari_hari": "Cache-aside adalah cara memakai cache: aplikasi memeriksa cache lebih dulu, membaca database bila entrinya tidak ada, lalu menyimpan hasilnya di cache. Aplikasi sendiri yang mengatur isi dan pembuangan entri, bukan cache.",
+  "cerita": [
+    {
+      "rujukan": "t3-m23",
+      "teks": "Cache katalog di memori proses mengikuti pola ini, dengan satu salinan per instance. Promo yang dibuat lewat instance A hanya membuang entri di A, dan Citra di instance B melihat Rp25.000 sampai entrinya habis (`memori.txt` bagian B dan D)."
+    },
+    {
+      "rujukan": "t3-cache",
+      "teks": "Satu Redis dipakai dua instance. Instance A miss dan membaca database, lalu instance B langsung hit dari entri yang sama (`redis.txt` bagian A)."
+    }
+  ],
+  "mekanisme": [
+    "Aplikasi membaca kunci di cache. Bila entrinya ada, ia dipakai dan database tidak dibaca untuk data itu.",
+    "Bila entrinya tidak ada, aplikasi membaca database dan menyimpan hasilnya di cache dengan TTL.",
+    "Saat data berubah, aplikasi menulis database dulu, lalu menghapus kunci. Bacaan berikutnya miss dan mengambil nilai baru.",
+    "Cache hanya menyimpan salinan. Database tetap source of truth, dan angka yang menggerakkan uang dibaca dari database."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menghapus kunci sebelum COMMIT. Pembaca di celah membaca nilai lama dari database dan menyimpannya lagi, jadi Redis berisi harga lama sampai TTL habis (`redis.txt` bagian D).",
+    "Mengira hapus sesudah COMMIT menutup semuanya. Pembaca yang membaca database sebelum tulis bisa menyimpan nilai lamanya sesudah kunci dihapus (`redis.txt` bagian F).",
+    "Cache di memori tiap instance. Satu instance membuang entrinya, instance lain tidak, dan keduanya menjawab dengan harga berbeda (`memori.txt` bagian B)."
+  ],
+  "terkait": ["Cache", "Cache invalidation", "TTL (Time To Live)", "Stale", "Source of truth"],
+  "sumber": [
+    {
+      "riset": "R3-190",
+      "judul": "Azure Architecture Center: Cache-Aside pattern",
+      "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside",
+      "catatan": "ms.date 2025-09-11, dibuka 2026-10-27. Pola ini memuat data ke cache saat dibutuhkan, menulis ke data store lalu membatalkan item cache, dan tidak menjamin konsistensi antara store dan cache."
+    },
+    {
+      "riset": "R3-190",
+      "judul": "Nishtala dkk.: Scaling Memcache at Facebook (NSDI 2013)",
+      "url": "https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf",
+      "catatan": "Bagian 2: tulis ke database, lalu kirim delete ke memcache. Delete dipilih daripada update karena delete bersifat idempoten."
+    },
+    {
+      "riset": "R3-190",
+      "judul": "Rekaman lab t3-cache: redis.txt bagian A",
+      "rekaman": "labs/t3-cache/output/redis.txt",
+      "catatan": "Satu Redis untuk dua instance: instance A miss dan membaca database, instance B hit."
+    }
+  ]
+}
