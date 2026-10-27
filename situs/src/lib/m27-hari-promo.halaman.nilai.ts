@@ -15,7 +15,7 @@ export const BARIS_MDX: string[] = [
  "<p class=\"meta\">Baca 9 menit · coba 3 menit · Prasyarat: [[t3-at-least-once]] · Jalur inti</p>",
  "<Blok nama=\"Gejala\" buka>",
  "Minggu 9 Tahap 3. Jumat pukul 11.30 HR mengumumkan promo makan siang ke 10.000 HP karyawan.",
- "Di warung Ani, Budi membayar nasi goreng Rp25.000. HP Ani tidak berbunyi, padahal Ani menyerahkan makanan sesudah melihat notifikasinya.",
+ "Di warung Ani, Budi membayar nasi goreng Rp25.000. HP Ani tidak berbunyi, dan Ani baru menyerahkan makanan sesudah melihat notifikasinya.",
  "Sampai pukul 11.42 notifikasi itu belum datang. Orang menumpuk di warung, dan pukul 11.44 Ani mengabari Sinta.",
  "*Angka cerita (Ilustrasi):* pukul 11.30, 11.42, dan 11.44, jumlah 10.000 HP, dan orang yang menumpuk berasal dari naskah, tanpa rekaman yang mengulang jam-jamnya. Budi dan Rp25.000 adalah pilihan penulis, mengikuti rekaman. Lab mengulang mekanismenya dengan jam lab, dan hanya 30 detik yang dijalankan. Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].",
  "</Blok>",
