@@ -639,3 +639,55 @@ describe("struktur halaman: tingkat heading, daftar, label, dan tanpa ID interna
     );
   });
 });
+
+describe("dunia angka tertutup: tiap token angka dan konteksnya dihitung dari sumber, supaya mutasi yang membangkitkan ulang kunci kata tetap gagal", () => {
+  const barisNaskah = naskah.split("\n").find((b) => b.startsWith("| M28 |"))!;
+  test("selisih rupiah di halaman, Rantai, dan description sama dengan selisih di baris M28 naskah (Rp0)", () => {
+    const selisih = cocok(barisNaskah, /selisih (Rp[\d.]+)\./)[1]!;
+    expect(selisih).toBe("Rp0");
+    const semua = [...badan.matchAll(/Rp\d+(?:\.\d{3})*/g)].map((m) => m[0]);
+    expect(semua.length).toBeGreaterThanOrEqual(6);
+    expect(new Set(semua)).toEqual(new Set([selisih]));
+    expect(diagram.baris[0]!.simpul[0]!.teks).toBe(`Tutup buku ${selisih}`);
+    expect(diagram.sumber.teks).toContain(`${selisih} Ilustrasi`);
+    expect(frontmatter).toContain(`dengan selisih ${selisih},`);
+  });
+  test("angka berkoma: himpunan token di badan sama dengan himpunan yang dihitung dari registry, rumus, dan halaman tetangga", () => {
+    const t2 = cerita.tahap[1]!.asumsi;
+    const puncakT2 = koma(hitungBeban({ user: t2.user, aktif: t2.aktif, req: t2.req, puncak: t2.puncak }).puncak, 1);
+    const lambda = (T3.dau * reg.trx) / 86400 * reg.puncak;
+    const boleh = new Set([
+      koma(W, 2), koma(0.05, 2), koma(L3, 2), koma(satuJam.puncak * W, 2), koma(17.4 * 0.05, 2), koma(semuaAktif.puncak * W, 2),
+      koma(T3.rata, 2), koma(T3.puncak, 1), koma((POOL - 1) / W / T3.puncak, 1), koma(satuJam.puncak, 1), koma(semuaAktif.puncak, 1),
+      koma(lambda, 3), koma(T3.rata, 3), koma(T3.puncak, 2), puncakT2, duaAngka(T3.rata),
+    ]);
+    const token = [...badan.matchAll(/\d+,\d+/g)].map((m) => m[0]);
+    expect([...new Set(token.filter((x) => !boleh.has(x)))], "token berkoma di halaman yang tidak dihitung dari sumber").toEqual([]);
+    for (const b of boleh) expect(token, `nilai yang dihitung tidak dipakai halaman: ${b}`).toContain(b);
+  });
+  test("angka berpemisah ribuan: user, aktif, request per hari, detik per hari dan per jam, pembayaran per hari", () => {
+    const boleh = new Set([ribu(reg.user), ribu(T3.dau), ribu(T3.reqHari), ribu(86400), ribu(3600), ribu(T3.dau * reg.trx)]);
+    const token = [...badan.matchAll(/\d{1,3}(?:\.\d{3})+/g)].map((m) => m[0]);
+    expect([...new Set(token.filter((x) => !boleh.has(x)))]).toEqual([]);
+    for (const b of boleh) expect(token, b).toContain(b);
+  });
+  test("konteks bernomor: Tahap, api-t, ADR, dan baris tabel Dibaca di cocok dengan registry dan halaman tetangga", () => {
+    expect(new Set([...badan.matchAll(/Tahap \d+(?: → \d+)?/g)].map((m) => m[0]))).toEqual(new Set(["Tahap 3", "Tahap 3 → 4", "Tahap 2", "Tahap 1"]));
+    expect(dari("t3-m28").tahap).toBe(3);
+    expect(dari("t3-estimasi").judul).toBe("Estimasi Tahap 3 → 4");
+    expect(dari("t2-m17").tahap).toBe(2);
+    expect(dari("t1-m8").tahap).toBe(1);
+    harus(`| Hal baru di PRD v4 | Yang ada di Tahap ${dari("t3-m28").tahap} | Dibaca di |`);
+    expect([...badan.matchAll(/\bapi-t\d\b/g)].map((m) => m[0])).toEqual(["api-t3", "api-t3"]);
+    expect(new Set([...badan.matchAll(/ADR (\d+)/g)].map((m) => m[1]))).toEqual(new Set(["14", "21", "22", "32", "33"]));
+    expect(dari("t3-adr-33").adr).toEqual([33]);
+    expect(dari("t3-tim-infra").adr).toEqual([32]);
+    expect(hal231).toContain("ADR 21");
+  });
+  test("kartu 4: jawaban memuat lingkup HTTP dan api-t3, sama dengan sel tabel", () => {
+    const soalKartu = kartu.filter((x) => x.halaman === "t3-m28");
+    expect(soalKartu[3]!.jawab).toContain("Di Tahap 3 satu-satunya panggilan HTTP keluar dari `api-t3` adalah ke layanan push tiruan.");
+    expect(soalKartu[1]!.tanya).toBe(`Dari mana angka puncak ${koma(T3.puncak, 1)} request per detik, dan berlabel apa?`);
+    expect(soalKartu[0]!.tanya).toContain("selisih Rp0");
+  });
+});
