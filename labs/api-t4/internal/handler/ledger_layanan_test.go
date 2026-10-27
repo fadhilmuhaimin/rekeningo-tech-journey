@@ -42,7 +42,7 @@ func ledgerTes(t *testing.T, bungkus func(http.Handler) http.Handler) (*httptest
 		t.Fatalf("%s/%s bukan database tes lab/%s", nama, schema, schemaTes())
 	}
 	mux := http.NewServeMux()
-	PasangLedger(mux, service.Baru(repo.Baru(db), time.Hour), kunciLayananTes)
+	PasangLedger(mux, service.Baru(repo.Baru(db), time.Hour), kunciLayananTes, false)
 	var h http.Handler = mux
 	if bungkus != nil {
 		h = bungkus(mux)
@@ -127,7 +127,7 @@ func TestLedgerHTTPKunciLayananDanIdempotencyKeyWajib(t *testing.T) {
 
 func TestLedgerTanpaKunciLayananRuteTidakAda(t *testing.T) {
 	mux := http.NewServeMux()
-	PasangLedger(mux, service.Service{}, "")
+	PasangLedger(mux, service.Service{}, "", false)
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	if got := postLedger(t, srv, "", "x", `{}`); got != http.StatusNotFound {

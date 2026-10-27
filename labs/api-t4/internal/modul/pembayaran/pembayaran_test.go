@@ -115,7 +115,7 @@ func siapkan(t *testing.T) *lingkungan {
 	}
 	svc := service.Baru(repo.Baru(db), time.Hour)
 	mux := http.NewServeMux()
-	handler.PasangLedger(mux, svc, kunciLedger)
+	handler.PasangLedger(mux, svc, kunciLedger, false)
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	l := &pengkreditHitung{dalam: ledger.Baru(srv.URL, kunciLedger, 3*time.Second)}

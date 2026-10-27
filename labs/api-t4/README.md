@@ -178,6 +178,26 @@ Selisih dengan naskah: peran `cs`, `keuangan`, dan `admin-sistem` (ADR 43) belum
 
 Uji mutasi bagian ini: dijalankan oleh pelaksana tugas lab ini (tabel di bagian "Uji mutasi lab ini" di bawah); tes Go bagian back office, audit, dan unduh ada di `internal/service/bo_test.go`, `bo_impor_test.go`, `internal/handler/handler_bo_test.go`, `internal/repo/audit_test.go`, dan `internal/unduh/unduh_test.go`.
 
+## API ledger dan service pembayaran terpisah (ADR 37, lab t4-modul)
+
+Lab `t4-modul` memisahkan top-up dari monolith tanpa menyalin api-t4: server ini dinyalakan dengan `-ledger-kunci <kunci>` dan mendapat satu rute internal, `POST /ledger/jurnal-topup` (`internal/handler/ledger_layanan.go`, sisi ledger di `internal/service/ledger_api.go`). Tanpa flag itu rute tidak dipasang, dan semua perilaku api-t4 di atas tidak berubah. Rute ini bukan bagian `openapi.yaml`: hanya service pembayaran yang memanggilnya, dengan kunci layanan di header `X-Layanan-Kunci` (data lab, bukan secret).
+
+| Permintaan | Hasil |
+|---|---|
+| `Idempotency-Key` sama dengan `order_id`, body `{order_id, akun_id, jumlah}` | 201 `{jurnal, ulang: false}` untuk jurnal baru; 200 `{jurnal, ulang: true}` untuk ulangan dengan jurnal pertama |
+| tanpa kunci layanan atau kunci salah | 401 |
+| tanpa `Idempotency-Key`, atau body tidak terbaca | 400 |
+| key berbeda dari `order_id`, atau jumlah di luar Rp1 sampai Rp5.000.000 | 422 `tidak-sah` |
+| key yang sama untuk akun atau jumlah lain | 422 `key-dipakai-permintaan-lain` |
+| akun dibekukan, atau saldo melewati batas tingkat | 422 `akun-dibekukan` atau `batas-tingkat`; transaction di-ROLLBACK, jadi key tidak tertahan |
+| akun tidak ada | 404 |
+
+Di dalam satu transaction: key diklaim lebih dulu (ulangan tidak mengunci buku dan tidak ditolak oleh batas saldo yang sudah berisi kreditnya sendiri), buku akun dikunci menurut ADR 13, batas tingkat dan pembekuan diperiksa sesudah lock, jurnal `topup_bank` ditulis (lawan: buku `bank`), key diikat ke jurnalnya, dan satu baris outbox ditulis. Key berumur 24 jam (ADR 14): sesudah itu key yang sama dianggap baru, dan hanya status `topup_bank` di service pembayaran yang menahan jurnal kedua (rekaman `proses-mati.txt` bagian C di `t4-modul`).
+
+Service pembayaran adalah binary sendiri, `cmd/pembayaran` (port dasar 18286), dengan logika di `internal/modul/pembayaran`: tanda tangan webhook, event, status top-up, dan job cek status (`-cek-topup`) memakai tabel `topup_bank`, `webhook_event`, dan `insiden_rekon` saja, dan uang bergerak hanya lewat `internal/modul/ledger` (client HTTP dengan timeout 3 detik dari `internal/klien`). Paket itu tidak mengimpor `internal/repo`, `internal/service`, atau `internal/handler` (dijaga `TestPembayaranTidakMengimporRepoDanService`). Flag lab saja: `-lab-mati-sesudah-ledger` (SIGKILL ke diri sendiri sesudah ledger menjawab dan sebelum transaction pembayaran) dan `-lab-jeda-sesudah-ledger`. Rute `/webhooks/pembayaran` dan `/topup-bank` di monolith di atas tetap ada sebagai versi satu proses; di lab `t4-modul` schema pembayaran tidak terbaca dari role monolith, jadi rute itu tidak dipakai.
+
+Tes tanpa database di `internal/modul/` dan tes dengan tag `t4modul` (`go test -tags t4modul`, hanya dijalankan `labs/t4-modul/run.py`) memeriksa batas modul, schema, dan role. Detail dan keterbatasan: `labs/t4-modul/README.md`.
+
 ## Mode rentan
 
 Seperti `api-t1`: satu flag `-rentan` menyalakan versi yang salah untuk rekaman halaman masalah. Tanpa flag, server berperilaku benar. Mode Tahap 3 (`push-dalam-tx`, `kursor`, `urut-waktu`, `ekspor-panic`, `tanpa-shutdown`, `stok-timpa`) tetap ada dan dijelaskan README api-t3.

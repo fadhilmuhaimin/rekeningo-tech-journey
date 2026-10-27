@@ -18,8 +18,9 @@ import (
 // KunciLayananHeader: kunci bersama antar service (di lab: data lab, bukan secret).
 const KunciLayananHeader = "X-Layanan-Kunci"
 
-// PasangLedger memasang POST /ledger/jurnal-topup di mux. Kunci kosong = tidak memasang apa pun.
-func PasangLedger(mux *http.ServeMux, svc service.Service, kunciLayanan string) {
+// PasangLedger memasang POST /ledger/jurnal-topup di mux. Kunci kosong = tidak memasang apa pun. catat=true (mode -lab)
+// menulis satu baris log per panggilan, supaya lab bisa menunjukkan dua panggilan dengan key yang sama.
+func PasangLedger(mux *http.ServeMux, svc service.Service, kunciLayanan string, catat bool) {
 	if kunciLayanan == "" {
 		return
 	}
@@ -64,8 +65,9 @@ func PasangLedger(mux *http.ServeMux, svc service.Service, kunciLayanan string) 
 		default:
 			log.Printf("ledger jurnal-topup %s: %v", kunci, err)
 		}
-		// Satu baris per panggilan, supaya lab bisa menunjukkan dua panggilan dengan key yang sama dan jurnal yang sama.
-		log.Printf("ledger: key=%s status=%d jurnal=%v ulang=%v", kunci, status, isi["jurnal"], isi["ulang"])
+		if catat {
+			log.Printf("ledger: key=%s status=%d jurnal=%v ulang=%v", kunci, status, isi["jurnal"], isi["ulang"])
+		}
 		ledgerJawab(w, status, isi)
 	})
 }

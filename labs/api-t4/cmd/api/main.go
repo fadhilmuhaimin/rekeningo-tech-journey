@@ -255,7 +255,7 @@ func main() {
 			w.WriteHeader(http.StatusNoContent)
 		})
 	}
-	handler.PasangLedger(rute, svc, *ledgerKunci)
+	handler.PasangLedger(rute, svc, *ledgerKunci, *lab)
 	if *lab {
 		pasangEndpointLab(rute, db, r)
 		pasangEndpointCache(rute, kc)
