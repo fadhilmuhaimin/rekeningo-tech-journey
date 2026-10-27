@@ -1,0 +1,39 @@
+{
+  "istilah": "CSP (Content Security Policy)",
+  "sehari_hari": "CSP adalah header respons yang memberi tahu browser sumber skrip dan sumber lain mana yang boleh dipakai halaman.",
+  "cerita": [
+    {
+      "rujukan": "t3-xss-csrf",
+      "teks": "Dasbor Ani mengirim CSP dengan nonce di tiap respons. Di bagian C, elemen `img` dari catatan Dimas tetap terbentuk, tetapi `onerror` ditolak browser dan dialognya 0 (`xss.txt`)."
+    }
+  ],
+  "mekanisme": [
+    "Server menulis header `Content-Security-Policy` dengan direktif seperti `default-src` dan `script-src`.",
+    "Untuk skrip milik halaman, server membuat nonce acak di tiap respons dan menaruhnya di header dan di atribut `nonce` tiap `<script>`.",
+    "Browser hanya menjalankan skrip yang membawa nonce itu. Atribut seperti `onerror` tidak bisa membawa nonce, jadi ditolak.",
+    "Browser melaporkan pemblokiran lewat event `securitypolicyviolation`. Kebijakan baru bisa dipasang dulu sebagai Report-Only."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menjadikan CSP satu-satunya pertahanan. OWASP menulis bahwa CSP mudah salah dikonfigurasi dan tidak boleh menjadi pertahanan utama.",
+    "Menambah `'unsafe-inline'` supaya halaman jalan lagi. MDN menyarankan menghindarinya, karena ia melemahkan sebagian besar tujuan CSP."
+  ],
+  "terkait": [
+    "XSS (cross-site scripting)",
+    "CSRF (cross-site request forgery)"
+  ],
+  "sumber": [
+    {
+      "riset": "R3-211",
+      "judul": "MDN: Content Security Policy (CSP)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP",
+      "catatan": "Dibuka 2026-10-27. Nonce adalah pendekatan yang disarankan untuk skrip dan style, dibuat acak di tiap respons HTTP. Event handler inline harus diganti addEventListener(), dan unsafe-inline diabaikan bila ada nonce atau hash."
+    },
+    {
+      "riset": "R3-211",
+      "judul": "W3C: Content Security Policy Level 3",
+      "url": "https://www.w3.org/TR/CSP3/",
+      "catatan": "Working Draft 16 September 2026, dibuka 2026-10-27. Nonce sebaiknya paling sedikit 128 bit dan unik tiap kebijakan dikirim, dan hanya berlaku untuk skrip dan style inline, bukan atribut elemen."
+    }
+  ]
+}

@@ -351,6 +351,24 @@
   "h": "/istilah/credential-stuffing/"
  },
  {
+  "t": "CSP (Content Security Policy)",
+  "d": "Header respons yang memberi tahu browser sumber skrip dan sumber lain mana yang boleh dipakai halaman, sehingga skrip yang tidak dikenal ditolak.",
+  "b": "t3-xss-csrf",
+  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
+  "u": "/tahap-3/xss-csrf-cookie/",
+  "s": "istilah-csp",
+  "h": "/istilah/csp/"
+ },
+ {
+  "t": "CSRF (cross-site request forgery)",
+  "d": "Serangan yang membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim.",
+  "b": "t3-xss-csrf",
+  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
+  "u": "/tahap-3/xss-csrf-cookie/",
+  "s": "istilah-csrf",
+  "h": "/istilah/csrf/"
+ },
+ {
   "t": "Dead-letter queue",
   "d": "Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.",
   "b": "t3-at-least-once",
@@ -952,6 +970,15 @@
   "u": "/d-system-design/d2-scaling/",
   "s": "istilah-partitioning",
   "h": null
+ },
+ {
+  "t": "Passkey (WebAuthn)",
+  "d": "Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "b": "t3-xss-csrf",
+  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
+  "u": "/tahap-3/xss-csrf-cookie/",
+  "s": "istilah-passkey",
+  "h": "/istilah/passkey/"
  },
  {
   "t": "Phantom read",

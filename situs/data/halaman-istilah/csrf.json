@@ -1,0 +1,39 @@
+{
+  "istilah": "CSRF (cross-site request forgery)",
+  "sehari_hari": "CSRF membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim.",
+  "cerita": [
+    {
+      "rujukan": "t3-xss-csrf",
+      "teks": "Halaman Dimas memuat satu form yang langsung mengirim POST ke endpoint ubah harga dasbor Ani. Dengan `SameSite=None` dan tanpa token, harga berubah dari Rp25.000 ke Rp1. Dengan `SameSite=Lax` yang tertulis, cookie tidak terkirim dan jawabannya 401 (`csrf.txt` bagian A dan B)."
+    }
+  ],
+  "mekanisme": [
+    "User sudah login, jadi browser menyimpan cookie sesi untuk dasbor.",
+    "Halaman dari situs lain mengirim form ke dasbor. Browser menambahkan cookie sesuai atribut `SameSite`.",
+    "Dasbor memeriksa `Sec-Fetch-Site` dan `Origin`, lalu token yang terikat ke sesi.",
+    "Permintaan yang gagal salah satu pemeriksaan itu ditolak dengan 403 sebelum data berubah (`csrf.txt` bagian D: ketiganya gagal sekaligus)."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengandalkan `SameSite=Lax` saja. OWASP menulis bahwa `Lax` hanya menahan method yang tidak aman, jadi perubahan data lewat GET tidak tertahan.",
+    "Menganggap pagar CSRF menahan XSS. Skrip di halaman yang sama lolos semua pemeriksaan, karena permintaannya same-origin (`xss.txt` bagian D)."
+  ],
+  "terkait": [
+    "XSS (cross-site scripting)",
+    "CSP (Content Security Policy)"
+  ],
+  "sumber": [
+    {
+      "riset": "R3-212",
+      "judul": "OWASP: Cross-Site Request Forgery Prevention Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html",
+      "catatan": "Teks mentah dibuka 2026-10-27. Sec-Fetch-Site adalah sinyal utama dengan fallback ke Origin; SameSite berguna sebagai defense in depth dan tidak menggantikan pertahanan CSRF di sebagian besar penerapan."
+    },
+    {
+      "riset": "R3-212",
+      "judul": "Rekaman lab t3-dasbor: csrf.txt bagian A sampai F",
+      "rekaman": "labs/t3-dasbor/output/csrf.txt",
+      "catatan": "Enam skenario: cookie terkirim atau tidak, jenis penolakan (401 atau 403), dan harga produk sesudahnya."
+    }
+  ]
+}
