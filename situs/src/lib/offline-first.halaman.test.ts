@@ -690,6 +690,15 @@ describe("tab Di stack lain, kartu Cek diri, dan tetangga", () => {
     expect(halaman.match(/<Snippet lang="(dart|kotlin)" code=/g)).toHaveLength(2);
     expect(halaman).not.toMatch(/yang sama di semua stack/i);
   });
+  test("kartu.json (turunan sinkron_cerita.py) memuat empat soal Cek diri persis seperti di halaman", () => {
+    const kartu = JSON.parse(baca("situs/lama/widgets/data/kartu.json")) as { halaman: string; tanya: string; jawab: string }[];
+    const k = kartu.filter((x) => x.halaman === "t3-offline");
+    expect(k).toHaveLength(4);
+    for (const x of k) {
+      expect(halaman, x.tanya).toContain(x.tanya);
+      expect(halaman, x.tanya).toContain(x.jawab);
+    }
+  });
   test("Sudah tahu? Cek 3 pertanyaan sama dengan jumlah butir; Cek diri punya empat kartu dengan jawaban", () => {
     const sum = halaman.match(/<summary>Sudah tahu\? Cek (\d+) pertanyaan<\/summary>\n\n((?:\d+\. .+\n)+)/)!;
     expect(Number(sum[1])).toBe(sum[2]!.trim().split("\n").length);
