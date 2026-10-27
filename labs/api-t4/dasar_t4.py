@@ -382,11 +382,11 @@ def login(email, password=PASSWORD, label=None):
     return token
 
 
-def mulai_worker(nama, args=()):
+def mulai_worker(nama, args=(), db=None):
     """Worker terus berjalan (tanpa -sekali); dihentikan dengan stop(nama). Mengembalikan setelah proses hidup."""
     f = tempfile.TemporaryFile(mode="a+")  # a+: tulisan proses selalu ke ujung, aman dibaca sambil jalan
     p = subprocess.Popen([str(BIN), "-peran", "worker", "-push-url", f"http://127.0.0.1:{PORT_PUSH}", *args_t4(), *args],
-                         env=dict(ENV, DATABASE_URL=db_app()), stdout=f, stderr=f, text=True)
+                         env=dict(ENV, DATABASE_URL=db or db_app()), stdout=f, stderr=f, text=True)
     server[nama] = (p, f)
     time.sleep(0.3)
     if p.poll() is not None:

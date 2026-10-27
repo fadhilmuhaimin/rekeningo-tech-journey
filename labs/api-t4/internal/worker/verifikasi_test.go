@@ -23,7 +23,7 @@ import (
 type vendorTes struct {
 	srv   *httptest.Server
 	mu    sync.Mutex
-	mode  string // "", "503", "ditolak", "tidur"
+	mode  string // "", "503", "422" (permintaan salah), "ditolak", "tidur"
 	tidur time.Duration
 	kunci []string
 	n     atomic.Int32
@@ -40,6 +40,9 @@ func vendorUji(t *testing.T) *vendorTes {
 		switch mode {
 		case "503":
 			http.Error(w, "mati", 503)
+			return
+		case "422":
+			http.Error(w, "dokumen tidak terbaca", 422)
 			return
 		case "tidur":
 			select {

@@ -13,6 +13,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"lab/apit4/internal/klien"
 )
 
 // BatasBawaan: batas waktu satu panggilan ke layanan luar (ADR 22).
@@ -33,9 +35,10 @@ type Klien struct {
 	http *http.Client
 }
 
-// Baru: batas 0 membuat client tanpa batas waktu (http.Client{}), hanya untuk mode rentan M18.
+// Baru: batas 0 membuat client tanpa batas waktu, hanya untuk mode rentan M18. Client dibuat oleh klien.Baru seperti
+// semua panggilan keluar lain (ADR 22).
 func Baru(url string, batas time.Duration) Klien {
-	return Klien{url: url, http: &http.Client{Timeout: batas}}
+	return Klien{url: url, http: klien.Baru(batas)}
 }
 
 // Aktif: ada alamat layanan push.
