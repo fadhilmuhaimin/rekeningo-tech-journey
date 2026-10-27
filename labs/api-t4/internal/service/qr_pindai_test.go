@@ -345,3 +345,27 @@ func TestQRPindaiPayloadDinamisDenganNominalDipalsukan(t *testing.T) {
 	}
 	fmt.Println("LAB|payload dinamis dengan nominal Rp1 dan CRC dihitung ulang lolos pemindai; nominal di server tetap Rp35.000: body Rp1 ditolak (ErrValidasi nominal), body kosong memotong Rp35.000")
 }
+
+func TestQRBatasSaldoTepatDanKurangSatuRupiah(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	merchant := qrAkun(t, db, "merchant", "terverifikasi", "aktif", 0)
+	pas := qrAkun(t, db, "pemakai", "belum", "aktif", 35_000)
+	kurang := qrAkun(t, db, "pemakai", "belum", "aktif", 34_999)
+	q1, _ := svc.BuatQR(ctx, merchant, "dinamis", qrNom(35_000))
+	q2, _ := svc.BuatQR(ctx, merchant, "dinamis", qrNom(35_000))
+	h, err := svc.BayarQR(ctx, pas, q1.ID, nil)
+	if err != nil || h.Saldo != 0 {
+		t.Fatalf("saldo Rp35.000 membayar QR Rp35.000: %+v %v; harus lolos dan menyisakan Rp0", h, err)
+	}
+	if _, err := svc.BayarQR(ctx, kurang, q2.ID, nil); !errors.Is(err, ErrSaldoKurang) {
+		t.Fatalf("saldo Rp34.999 membayar QR Rp35.000: ingin ErrSaldoKurang, dapat %v", err)
+	}
+	if st, _ := qrStatus(t, db, q2.ID); st != "aktif" {
+		t.Fatalf("QR yang gagal dibayar karena saldo: %s, ingin tetap aktif", st)
+	}
+	if saldo(t, db, kurang) != 34_999 || saldo(t, db, pas) != 0 || saldo(t, db, merchant) != 35_000 {
+		t.Fatalf("saldo kurang %d, pas %d, merchant %d", saldo(t, db, kurang), saldo(t, db, pas), saldo(t, db, merchant))
+	}
+	fmt.Println("LAB|saldo tepat Rp35.000 membayar QR Rp35.000 dan menyisakan Rp0; saldo Rp34.999 ditolak (ErrSaldoKurang) dan QR tetap aktif")
+}

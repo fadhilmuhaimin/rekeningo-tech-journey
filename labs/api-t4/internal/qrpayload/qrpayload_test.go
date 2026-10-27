@@ -222,6 +222,8 @@ func TestPayloadDitolakKarenaIsinya(t *testing.T) {
 		{"nama hilang", dasar(tlv("00", "01"), tlv("01", "11"), tag26(idMarni), tlv("60", "Bandung")), ErrIsi},
 		{"kota hilang", dasar(tlv("00", "01"), tlv("01", "11"), tag26(idMarni), tlv("59", "Toko Sumber Rejeki")), ErrIsi},
 		{"panjang melewati sisa payload", dasar(tlv("00", "01"), tlv("01", "11"), tag26(idMarni), "5950Toko", tlv("60", "Bandung")), ErrBentuk},
+		{"panjang satu lebih dari sisa", dasar(tlv("00", "01"), tlv("01", "11"), tag26(idMarni), tlv("59", "Toko Sumber Rejeki"), "6008Bandung"), ErrBentuk},
+		{"nominal bertanda plus", dasar(tlv("00", "01"), tlv("01", "12"), tag26(idMarni), tlv("54", "+500"), tlv("59", "Toko Sumber Rejeki"), tlv("60", "Bandung")), ErrIsi},
 		{"panjang bukan angka", dasar(tlv("00", "01"), tlv("01", "11"), tag26(idMarni), "59xxToko", tlv("60", "Bandung")), ErrBentuk},
 		{"panjang bertanda plus", dasar(tlv("00", "01"), tlv("01", "11"), tag26(idMarni), "59+4Toko", tlv("60", "Bandung")), ErrBentuk},
 		{"sisa pendek di ujung isi", dasar(baik("5")...), ErrBentuk},
