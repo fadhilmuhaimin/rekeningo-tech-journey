@@ -3,6 +3,20 @@
 -- schema sumber. Awalan t4m_ dipakai karena nama schema dan role bersifat global di database lab bersama.
 
 DROP SCHEMA IF EXISTS t4m_ledger, t4m_akun, t4m_identitas, t4m_merchant, t4m_pembayaran, t4m_platform CASCADE;
+-- Role dan keanggotaannya bersifat global di klaster, jadi tidak ikut hilang bersama schema: satu run yang
+-- menambah hak atau keanggotaan tidak boleh tertinggal di run berikutnya. Role dibuang (hak yang tersisa dicabut
+-- dulu) lalu dibuat ulang di bawah.
+DO $$
+DECLARE r text;
+BEGIN
+  FOREACH r IN ARRAY ARRAY['t4m_monolit', 't4m_ledger', 't4m_akun', 't4m_identitas', 't4m_merchant', 't4m_pembayaran', 't4m_platform'] LOOP
+    IF EXISTS (SELECT FROM pg_roles WHERE rolname = r) THEN
+      EXECUTE format('DROP OWNED BY %I', r);
+      EXECUTE format('DROP ROLE %I', r);
+    END IF;
+  END LOOP;
+END $$;
+
 CREATE SCHEMA t4m_ledger;
 CREATE SCHEMA t4m_akun;
 CREATE SCHEMA t4m_identitas;
