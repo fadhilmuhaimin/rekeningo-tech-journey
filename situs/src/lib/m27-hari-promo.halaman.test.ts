@@ -388,6 +388,10 @@ describe("rekaman queue.txt dan kode penggerak: bagian A sampai F", () => {
     expect(e).toContain("harap((float(umur_semua) > 30, float(umur_uang) == 0), (True, True)");
     harus("Menurut rekaman, penggerak lab membayar 1,5 detik sesudah worker dijalankan, jadi waktu itu pilihan lab, bukan hasil sistem. Notifikasi uangnya terkirim dalam kurang dari 1,5 detik.");
     harus("Hitungannya paling lama dua putaran: satu putaran yang sedang berjalan, lalu satu putaran untuk mengirimnya, 2 × 0,3 = 0,6 detik. Lab memeriksa batas 1,5 detik, bukan 0,6. Yang direkam satu notifikasi, bukan 95%.");
+    expect(bagE[0]).toBe("# --- E. Promo membanjiri antrean: notifikasi uang yang tiba di tengah banjir menunggu paling lama satu putaran ---");
+    expect(Q.b.filter((x) => x.includes("dua putaran")).length).toBe(1);
+    expect(bagE.filter((x) => x.includes("paling lama dua putaran")).length).toBe(1);
+    harus("Judul bagian E di rekaman menulis satu putaran, sedangkan baris hitungannya menulis dua putaran. Halaman ini memakai dua putaran, karena putaran yang sedang berjalan harus selesai lebih dulu.");
     harus("Query di rekaman ditulis `max(umur)` sebagai ringkasan. `run.py` memakai `now() - min(dibuat)`, dan nol berarti tidak ada baris kelas uang yang menunggu.");
     expect(hit).toContain("=> SELECT max(umur) FROM outbox WHERE status = 'menunggu'   # semua kelas");
     expect(hit).toContain("=> SELECT max(umur) FROM outbox WHERE status = 'menunggu' AND kelas = 0   # hanya uang");

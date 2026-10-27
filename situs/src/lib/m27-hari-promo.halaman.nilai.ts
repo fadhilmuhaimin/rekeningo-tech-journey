@@ -50,6 +50,7 @@ export const BARIS_MDX: string[] = [
  "Lab `api-t3` merekam kontrasnya pada queue kecil, yaitu tiga top-up lalu satu transfer. Tanpa kelas transfer uang keluar terakhir, dan dengan kelas pertama:",
  "**Promo yang masih menumpuk tidak menahan uang.** Bagian E menjalankan worker dengan kelas selagi promo masih menunggu. Menurut rekaman, penggerak lab membayar 1,5 detik sesudah worker dijalankan, jadi waktu itu pilihan lab, bukan hasil sistem. Notifikasi uangnya terkirim dalam kurang dari 1,5 detik.",
  "Hitungannya paling lama dua putaran: satu putaran yang sedang berjalan, lalu satu putaran untuk mengirimnya, 2 × 0,3 = 0,6 detik. Lab memeriksa batas 1,5 detik, bukan 0,6. Yang direkam satu notifikasi, bukan 95%.",
+ "Judul bagian E di rekaman menulis satu putaran, sedangkan baris hitungannya menulis dua putaran. Halaman ini memakai dua putaran, karena putaran yang sedang berjalan harus selesai lebih dulu.",
  "**Kelas hanya mengatur urutan klaim.** Kelas tidak memisahkan kapasitas. Putaran menunggu keempat pengiriman selesai, jadi satu pengiriman promo yang menggantung menahan putaran itu sampai batas waktu push, 3 detik per panggilan. Uang yang tiba sesudahnya menunggu putaran berikutnya (dibaca dari kode, Tidak dijalankan).",
  "**Kenapa baru ketahuan dari Ani.** Tidak ada alert untuk umur notifikasi tertua, yaitu berapa lama baris `menunggu` tertua sudah menunggu. Di kode lab angkanya ada: `RingkasOutbox` mengembalikan umur baris `menunggu` tertua dari semua kelas lewat `GET /lab/outbox`.",
  "Alert sungguhan Tidak dijalankan di lab ini. Bagian E membandingkan dua umur: semua kelas lawan kelas uang.",
@@ -99,7 +100,7 @@ export const BARIS_MDX: string[] = [
 ];
 // Bentuk baris tiap baris MDX: S = <Snippet> berberkas (diturunkan dari kode), - = baris kosong, # = baris isi. Baris kosong
 // menentukan cara MDX mengurai paragraf, daftar, tabel, dan tag JSX, jadi satu baris kosong yang hilang harus gagal (tinjauan).
-export const BENTUK_MDX = "#########-#-#-#-#-#-#-#-#-#-#-#-##-#-#-#-#-#-#-#-#-#-#-S-#-#-S-#-#-S-#-#-S-#-#-S-#-#-#-#-S-#-S-#-#-#-#-#-S-#-#-S-#-#-#-#-#-#-#-#-##-S-#-#-#-#####-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-";
+export const BENTUK_MDX = "#########-#-#-#-#-#-#-#-#-#-#-#-##-#-#-#-#-#-#-#-#-#-#-S-#-#-S-#-#-S-#-#-S-#-#-S-#-#-#-#-S-#-S-#-#-#-#-#-#-S-#-#-S-#-#-#-#-#-#-#-#-##-S-#-#-#-#####-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-";
 export const NILAI_JSON: Record<string, string[]> = {
  "rantai": [
   "id=\"t3-m27-hari-promo\"",
