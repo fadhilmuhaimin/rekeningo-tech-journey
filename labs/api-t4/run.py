@@ -713,8 +713,11 @@ def rekam_fitur():
     catat("# Role aplikasi tidak bisa mengubah baris itu (skema.txt bagian D); pemilik schema bisa, dan rantai yang mendeteksinya. Menghapus ekor rantai tanpa jangkar di luar database: t4-audit.")
 
     bagian("F. Impor katalog merchant dengan URL gambar: fetcher versi aman menolak alamat jaringan dalam; produk tetap tersimpan")
-    s, isi = curl("POST", "/merchant/katalog/impor", {"produk": [{"nama": "Kopi tubruk", "harga": 8000, "stok": 20,
-                  "gambar_url": f"http://127.0.0.1:{PORT_GATEWAY}/orders/x"}, {"nama": "Teh tarik", "harga": 9000, "stok": 15}]}, andalan)
+    impor = {"produk": [{"nama": "Kopi tubruk", "harga": 8000, "stok": 20,
+             "gambar_url": f"http://127.0.0.1:{PORT_GATEWAY}/orders/x"}, {"nama": "Teh tarik", "harga": 9000, "stok": 15}]}
+    # Teks rekaman memakai port dasar, bukan port lajur (lab_env): `make cek` harus sama di semua lajur.
+    s, isi = curl("POST", "/merchant/katalog/impor", impor, andalan,
+                  tampil_body=json.dumps(impor).replace(f":{PORT_GATEWAY}/", f":{d.DASAR_GATEWAY}/"))
     harap(s, 200, "impor katalog")
     sql("SELECT nama, harga, stok, gambar_url IS NOT NULL AS ada_url FROM produk WHERE akun_id = 30002 ORDER BY nama")
     catat("# Mode rentan unduh-rentan (t4-ssrf) menjangkau alamat itu; versi aman tidak. Lab ini hanya memastikan jalur dan hak tulisnya.")

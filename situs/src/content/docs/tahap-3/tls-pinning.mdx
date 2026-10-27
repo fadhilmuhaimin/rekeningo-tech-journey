@@ -20,7 +20,7 @@ Validasi sertifikat tidak menahan CA yang sudah ada di daftar akar. Pin yang dip
 
 <Rantai data={intiDiagram} ringkas />
 
-Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `dio.txt` bagian A, daftar akar app berisi CA Dimas, dan pin A dan B dipasang di `validateCertificate` milik dio. Proxy hotspot Dimas membaca token dan body Budi, server mencatat satu transfer Rp150.000 ke Dimas, dan baru sesudahnya app menampilkan galat sertifikat.
+Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `dio.txt` bagian A, daftar akar app berisi CA Dimas, dan pin A dan B dipasang di `validateCertificate` milik dio. Proxy hotspot Dimas membaca token dan body Budi, server mencatat satu transfer Rp150.000 ke Dimas, dan baru sesudahnya dio melempar galat sertifikat.
 
 Bagian B memasang pin yang sama di `connectionFactory` milik dart:io. Proxy hanya melihat handshake, nol request, dan database tanpa transfer. Proxy, server, dan client Dart berjalan di satu laptop, jadi Wi-Fi, perangkat, dan trust store HP sungguhan Tidak dijalankan.
 
@@ -132,6 +132,8 @@ Android punya opsi menolak lalu lintas tanpa enkripsi. iOS mengaktifkan App Tran
 
 Dimas memakai token itu lewat curl langsung ke api-t3, tanpa tepi TLS, dan hanya satu request saldo yang lewat proxy. Angka 15 menit adalah pilihan naskah (Asumsi), dan token itu butuh cara app memperbaruinya tanpa login ulang. Usulnya refresh token dengan rotasi. RFC 9700 mengaturnya untuk client OAuth 2.0 publik ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), bagian 2.2.2, dibuka 2026-10-27). api-t3 hanya punya sesi berumur tetap, jadi itu Tidak dijalankan.
 
+Token juga berakhir lebih awal lewat logout dan ganti password. Kode api-t3 menghapus baris sesinya di `Logout` dan `GantiPassword`, dan `token.txt` tidak merekamnya (Tidak dijalankan).
+
 **Log tidak boleh menyalin token.** Server tepi lab menyamarkan `Authorization` dan `Cookie` di log aksesnya: token Budi muncul 0 kali di log tepi (`token.txt` bagian B). Varian rentan yang menyalin header membuat token muncul 2 kali: satu dari `Authorization` dan satu dari `Cookie`. Siapa pun yang membaca log bisa memakainya sampai umurnya habis.
 
 OWASP ASVS menulis bahwa token sesi hanya boleh dicatat dalam bentuk hash atau disamarkan ([OWASP ASVS v5.0.0](https://github.com/OWASP/ASVS/tree/v5.0.0), V16.2.5, dibuka 2026-10-25).
@@ -217,6 +219,8 @@ val client = OkHttpClient.Builder()
 
 **Kebutuhan.** App 3.1 memuat flag yang menerima sertifikat apa pun, dan hotspot Dimas membaca token lalu mengubah transfer ([[t3-m26]]). PRD v3 menyebut Wi-Fi tenant mitra sebagai risiko ([[t3-prd]]). Validasi sertifikat tidak cukup bila daftar akar berisi CA yang salah (`m26.txt` bagian D).
 
+OWASP mencatat kelemahan yang sama dengan flag itu: pemeriksaan sertifikat dimatikan untuk pengembangan, lalu konfigurasinya terkirim ke produksi ([OWASP MASWE-0027](https://mas.owasp.org/MASWE/MASVS-NETWORK/MASWE-0027/), dibuka 2026-10-27). Halamannya tidak menyebut Flutter atau Dart.
+
 **Status:** diterima sesudah M26 (minggu 9). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR.
 
 | | A. Tanpa pinning | B. Pin sertifikat daun | C. Pin CA | D. Pin SPKI dengan satu cadangan |
@@ -286,7 +290,7 @@ Chrome mencabut HPKP, yaitu pin lewat header untuk browser, di versi 72. Alasann
 <details class="success">
 <summary>Jawaban</summary>
 
-Proxy membaca token dan body, dan database mencatat satu transfer Rp150.000 dari Budi ke Dimas. Baru sesudahnya callback menolak dan app menampilkan galat sertifikat (`dio.txt` bagian A). Kode dio memanggil `request.close()` sebelum `validateCertificate`.
+Proxy membaca token dan body, dan database mencatat satu transfer Rp150.000 dari Budi ke Dimas. Baru sesudahnya callback menolak dan dio melempar galat sertifikat (`dio.txt` bagian A). Kode dio memanggil `request.close()` sebelum `validateCertificate`.
 
 </details>
 

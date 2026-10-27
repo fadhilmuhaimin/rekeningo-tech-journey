@@ -24,6 +24,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"lab/apit4/internal/klien"
 )
 
 // Gambar adalah hasil pratinjau: tipe isi yang dideteksi dari byte, dan ukuran dalam byte.
@@ -202,19 +204,13 @@ func (a Aturan) Unduh(ctx context.Context, alamat string) (Gambar, error) {
 		},
 		DisableKeepAlives: true,
 	}
-	klien := &http.Client{
-		Transport: tr,
-		Timeout:   waktu,
-		// --8<-- [start:tanpa-redirect]
-		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
-		// --8<-- [end:tanpa-redirect]
-	}
+	c := klien.BaruDenganTransport(waktu, tr) // timeout dan aturan "redirect tidak diikuti" dari satu pembuat client
 	defer tr.CloseIdleConnections()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return Gambar{}, ErrTujuan
 	}
-	resp, err := klien.Do(req)
+	resp, err := c.Do(req)
 	if err != nil {
 		return Gambar{}, galatAman(err)
 	}

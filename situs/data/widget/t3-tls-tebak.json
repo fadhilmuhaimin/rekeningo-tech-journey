@@ -29,7 +29,7 @@
     {
       "teks": "Proxy sudah membaca request, server mencatat Rp150.000 ke Dimas, dan baru sesudahnya callback menolak.",
       "benar": true,
-      "alasan": "dio.txt bagian A: proxy membaca token dan body, database mencatat satu transfer Rp150.000 dari Budi ke Dimas, lalu `validateCertificate` menolak dan app menampilkan galat sertifikat. Penolakannya benar, tetapi datang sesudah uang pindah."
+      "alasan": "dio.txt bagian A: proxy membaca token dan body, database mencatat satu transfer Rp150.000 dari Budi ke Dimas, lalu `validateCertificate` menolak dan dio melempar galat sertifikat. Penolakannya benar, tetapi datang sesudah uang pindah."
     }
   ],
   "penutup": "Pin yang sama menahan sebelum request di `connectionFactory`, dan hanya menyesali sesudahnya di `validateCertificate`. Tempat pin diperiksa menentukan apa yang sempat keluar.",

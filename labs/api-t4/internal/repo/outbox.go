@@ -15,6 +15,15 @@ const (
 	KelasPromo = 2 // pengumuman promo
 )
 
+// Lajur pekerjaan (kolom `tujuan`, migrasi 000020). Satu worker boleh mengklaim satu lajur, beberapa, atau semuanya.
+const (
+	TujuanPush       = "push"
+	TujuanVerifikasi = "verifikasi"
+)
+
+// TujuanSemua: semua lajur yang dikenal. Worker tanpa daftar lajur mengklaim semuanya.
+var TujuanSemua = []string{TujuanPush, TujuanVerifikasi}
+
 // Notifikasi adalah satu baris outbox yang sudah dipegang worker.
 type Notifikasi struct {
 	ID           int64
@@ -141,6 +150,16 @@ func bacaNotifikasi(rows *sql.Rows) ([]Notifikasi, error) {
 func (r Repo) SelesaiOutbox(ctx context.Context, id int64, status string) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE outbox SET status = $2, klaim_sampai = NULL WHERE id = $1 AND status = 'menunggu'`, id, status)
+	return err
+}
+
+// LepasOutbox mengembalikan baris yang baru diklaim tanpa pernah dikerjakan: klaim dilepas dan percobaan yang
+// dinaikkan klaim itu dikurangi lagi. Dipakai bila lajur dijeda breaker sesudah baris diklaim (ADR 25 dan 36:
+// percobaan hanya dihitung bila vendor benar-benar dihubungi).
+func (r Repo) LepasOutbox(ctx context.Context, id int64) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE outbox SET klaim_sampai = NULL, percobaan = greatest(percobaan - 1, 0)
+		WHERE id = $1 AND status = 'menunggu'`, id)
 	return err
 }
 

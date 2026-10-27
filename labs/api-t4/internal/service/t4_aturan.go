@@ -52,6 +52,8 @@ const (
 	RentanKartuTanpaHold  = "kartu-tanpa-hold"  // M37: otorisasi memeriksa saldo lalu menyetujui tanpa menahan dana
 	RentanUnduhRentan     = "unduh-rentan"      // M36: unduh gambar tanpa pemeriksaan alamat tujuan
 	RentanTanpaAudit      = "bo-tanpa-audit"    // M38: back office versi pertama: tidak ada catatan audit
+	// M31 (retry bebas tanpa kunci, ditolak ADR 36): worker memakai Idempotency-Key baru di setiap percobaan ke vendor.
+	RentanVerifikasiTanpaKey = "verifikasi-tanpa-key"
 )
 
 var (

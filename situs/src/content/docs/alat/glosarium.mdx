@@ -62,6 +62,8 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Container** | Paket aplikasi beserta semua dependensinya yang berjalan dengan cara sama di laptop maupun server. | [[C3]] |
 | **CRDT** (Conflict-free Replicated Data Type) | Jenis data yang dirancang supaya perubahan dari beberapa salinan yang boleh berbeda sementara bisa digabung otomatis. | [[t3-offline]] |
 | **Credential stuffing** | Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama. | [[t2-m16]] |
+| **CSP** (Content Security Policy) | Header respons yang memberi tahu browser sumber skrip dan sumber lain mana yang boleh dipakai halaman, sehingga skrip yang tidak dikenal ditolak. | [[t3-xss-csrf]] |
+| **CSRF** (cross-site request forgery) | Serangan yang membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim. | [[t3-xss-csrf]] |
 | **Daftar akar** (root store) | Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu. | [[t3-tls-pinning]] |
 | **Dead-letter queue** | Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya. | [[t3-at-least-once]] |
 | **Deadlock** | Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya. | [[t2-race-lock]] |
@@ -133,6 +135,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Pagination** | Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu. | [[t2-kursor]] |
 | **Pagination kursor** (keyset) | Pagination yang meminta baris sesudah nilai urutan baris terakhir yang sudah tampil, bukan halaman ke-N, jadi tetap stabil saat baris baru masuk. | [[t2-kursor]] |
 | **Partitioning** | Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data. | [[D2]] |
+| **Passkey** (WebAuthn) | Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun. | [[t3-xss-csrf]] |
 | **Phantom read** | Anomali: query yang sama dalam satu transaction mengembalikan kumpulan baris berbeda, karena transaction lain menambah atau menghapus baris. | [[t2-isolation-level]] |
 | **PKCE** | Tambahan pada alur OAuth untuk app mobile yang mencegah authorization code dipakai oleh aplikasi lain. | [[B5.2]] |
 | **Polling** | App menanyakan status ke server berulang kali dengan jeda tetap. | [[E4]] |

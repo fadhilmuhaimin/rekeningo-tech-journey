@@ -369,6 +369,24 @@
   "h": "/istilah/credential-stuffing/"
  },
  {
+  "t": "CSP (Content Security Policy)",
+  "d": "Header respons yang memberi tahu browser sumber skrip dan sumber lain mana yang boleh dipakai halaman, sehingga skrip yang tidak dikenal ditolak.",
+  "b": "t3-xss-csrf",
+  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
+  "u": "/tahap-3/xss-csrf-cookie/",
+  "s": "istilah-csp",
+  "h": "/istilah/csp/"
+ },
+ {
+  "t": "CSRF (cross-site request forgery)",
+  "d": "Serangan yang membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim.",
+  "b": "t3-xss-csrf",
+  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
+  "u": "/tahap-3/xss-csrf-cookie/",
+  "s": "istilah-csrf",
+  "h": "/istilah/csrf/"
+ },
+ {
   "t": "Daftar akar (root store)",
   "d": "Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu.",
   "b": "t3-tls-pinning",
@@ -832,7 +850,7 @@
   "d": "Penyerang yang berdiri di antara client dan server, lalu membaca atau mengubah lalu lintas di antara keduanya.",
   "b": "t3-m26",
   "n": "3.24 M26",
-  "u": null,
+  "u": "/tahap-3/m26-transfer-bukan-budi/",
   "s": "istilah-mitm",
   "h": null
  },
@@ -1006,6 +1024,15 @@
   "u": "/d-system-design/d2-scaling/",
   "s": "istilah-partitioning",
   "h": null
+ },
+ {
+  "t": "Passkey (WebAuthn)",
+  "d": "Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "b": "t3-xss-csrf",
+  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
+  "u": "/tahap-3/xss-csrf-cookie/",
+  "s": "istilah-passkey",
+  "h": "/istilah/passkey/"
  },
  {
   "t": "Phantom read",

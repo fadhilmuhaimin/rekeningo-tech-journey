@@ -56,6 +56,8 @@ const pkiGo = baca("labs/t3-mitm/go/internal/pki/pki.go");
 const bagianPinPy = baca("labs/t3-mitm/bagian_pin.py");
 const bagianTokenPy = baca("labs/t3-mitm/bagian_token.py");
 const umumPy = baca("labs/t3-mitm/umum.py");
+const sesiGo = baca("labs/api-t3/internal/service/sesi.go");
+const repoGo = baca("labs/api-t3/internal/repo/repo.go");
 const prd = baca("situs/src/content/docs/tahap-3/prd-v3.mdx");
 const ceritaT3 = baca("situs/src/content/docs/cerita/tahap-3.mdx");
 const caraPakai = baca("situs/src/content/docs/cara-pakai.mdx");
@@ -97,6 +99,13 @@ const fungsiPy = (kode: string, nama: string): string => {
   if (a < 0) throw new Error(`kode: fungsi ${nama} tidak ada`);
   const b = kode.indexOf("\ndef ", a + 1);
   return kode.slice(a, b < 0 ? undefined : b);
+};
+
+const fungsiGo = (kode: string, nama: string): string => {
+  const m = new RegExp(`^func (?:\\([^)]*\\) )?${nama}\\(`, "m").exec(kode);
+  if (!m) throw new Error(`kode: fungsi ${nama} tidak ada`);
+  const b = kode.indexOf("\nfunc ", m.index + 1);
+  return kode.slice(m.index, b < 0 ? undefined : b);
 };
 
 interface Panggilan { mode: string; percaya: string; url: string; port: string; pin: string[]; hasil: Record<string, any> }
@@ -260,7 +269,7 @@ const EXPECT: string[] = [
   "## Inti",
   "Validasi sertifikat tidak menahan CA yang sudah ada di daftar akar. Pin yang diperiksa sebelum request keluar menahannya.",
   "<Rantai data={intiDiagram} ringkas />",
-  "Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `dio.txt` bagian A, daftar akar app berisi CA Dimas, dan pin A dan B dipasang di `validateCertificate` milik dio. Proxy hotspot Dimas membaca token dan body Budi, server mencatat satu transfer «rpTransfer» ke Dimas, dan baru sesudahnya app menampilkan galat sertifikat.",
+  "Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `dio.txt` bagian A, daftar akar app berisi CA Dimas, dan pin A dan B dipasang di `validateCertificate` milik dio. Proxy hotspot Dimas membaca token dan body Budi, server mencatat satu transfer «rpTransfer» ke Dimas, dan baru sesudahnya dio melempar galat sertifikat.",
   "Bagian B memasang pin yang sama di `connectionFactory` milik dart:io. Proxy hanya melihat handshake, nol request, dan database tanpa transfer. Proxy, server, dan client Dart berjalan di satu laptop, jadi Wi-Fi, perangkat, dan trust store HP sungguhan Tidak dijalankan.",
   "<details class=\"question\">\n<summary>Sudah tahu? Cek 3 pertanyaan</summary>",
   "1. Daftar akar app berisi CA Dimas. Kenapa validasi sertifikat yang aktif tidak menolaknya?\n2. Pin A dan B sudah terpasang, tetapi transfer «rpTransfer» tetap tercatat. Apa beda `validateCertificate` dan `connectionFactory`?\n3. Kenapa pin tanpa kunci cadangan bisa mematikan app yang server-nya sehat?",
@@ -305,6 +314,7 @@ const EXPECT: string[] = [
   "Android punya opsi menolak lalu lintas tanpa enkripsi. iOS mengaktifkan App Transport Security bawaan untuk app yang di-link ke SDK iOS «ios9» atau lebih baru. Keduanya dibahas di tab di bawah, dan Tidak dijalankan. HSTS preload dan perilaku browser sungguhan juga Tidak dijalankan.",
   "**Token «tokenMenit» menit membatasi pencurian, tidak menghentikannya.** Server dijalankan dengan `-umur-sesi «tokenMenit»m`, dan login menjawab `kedaluwarsa_detik` «tokenDetik». Token yang proxy baca berlaku pada menit «tokenM1» dan menit «tokenM2». Pada menit «tokenM3» ia ditolak 401 (`token.txt` bagian A; jam server dimajukan lewat `POST /lab/jam`, waktu tidak ditunggu).",
   "Dimas memakai token itu lewat curl langsung ke api-t3, tanpa tepi TLS, dan hanya satu request saldo yang lewat proxy. Angka «tokenMenit» menit adalah pilihan naskah (Asumsi), dan token itu butuh cara app memperbaruinya tanpa login ulang. Usulnya refresh token dengan rotasi. RFC 9700 mengaturnya untuk client OAuth 2.0 publik ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), bagian 2.2.2, dibuka «tgl»). api-t3 hanya punya sesi berumur tetap, jadi itu Tidak dijalankan.",
+  "Token juga berakhir lebih awal lewat logout dan ganti password. Kode api-t3 menghapus baris sesinya di `Logout` dan `GantiPassword`, dan `token.txt` tidak merekamnya (Tidak dijalankan).",
   "**Log tidak boleh menyalin token.** Server tepi lab menyamarkan `Authorization` dan `Cookie` di log aksesnya: token Budi muncul «log0» kali di log tepi (`token.txt` bagian B). Varian rentan yang menyalin header membuat token muncul «log2» kali: satu dari `Authorization` dan satu dari `Cookie`. Siapa pun yang membaca log bisa memakainya sampai umurnya habis.",
   "OWASP ASVS menulis bahwa token sesi hanya boleh dicatat dalam bentuk hash atau disamarkan ([OWASP ASVS v5.0.0](https://github.com/OWASP/ASVS/tree/v5.0.0), V16.2.5, dibuka «tglAsvs»).",
   "### Di stack lain",
@@ -337,6 +347,7 @@ const EXPECT: string[] = [
   "<Blok nama=\"Putuskan\">",
   "### ADR 31: validasi selalu aktif, pin SPKI dengan satu cadangan, HSTS di dasbor, token «tokenMenit» menit",
   "**Kebutuhan.** App 3.1 memuat flag yang menerima sertifikat apa pun, dan hotspot Dimas membaca token lalu mengubah transfer ([[t3-m26]]). PRD v3 menyebut Wi-Fi tenant mitra sebagai risiko ([[t3-prd]]). Validasi sertifikat tidak cukup bila daftar akar berisi CA yang salah (`m26.txt` bagian D).",
+  "OWASP mencatat kelemahan yang sama dengan flag itu: pemeriksaan sertifikat dimatikan untuk pengembangan, lalu konfigurasinya terkirim ke produksi ([OWASP MASWE-0027](https://mas.owasp.org/MASWE/MASVS-NETWORK/MASWE-0027/), dibuka «tgl»). Halamannya tidak menyebut Flutter atau Dart.",
   "**Status:** diterima sesudah M26 (minggu 9). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR.",
   "| | A. Tanpa pinning | B. Pin sertifikat daun | C. Pin CA | D. Pin SPKI dengan satu cadangan |\n|---|---|---|---|---|\n| Cara kerja | Validasi bawaan terhadap daftar akar. Flag terima-semua dicabut dari build rilis | App menyimpan hash seluruh sertifikat server dan menolak sertifikat lain | App hanya mempercayai satu CA penerbit atau intermediate, bukan seluruh daftar akar sistem | App menyimpan hash SPKI kunci server sekarang dan satu kunci cadangan, lalu memeriksanya sesudah handshake di `connectionFactory` |\n| Kelebihan | Tidak ada yang bisa mati karena rotasi, dan tidak ada kode pin | Paling sempit: hanya satu sertifikat yang lolos | Tahan penerbitan ulang dan rotasi kunci selama CA tetap sama. RFC 7469 menulis bahwa pin pada penerbit mengurangi jumlah penerbit yang bisa menipu | Tahan penerbitan ulang dengan kunci yang sama dan satu rotasi (`pin.txt` bagian C dan D). Menolak CA yang dipercaya sistem (`pin.txt` bagian A) |\n| Kekurangan | CA yang sudah ada di daftar akar lolos, dan transfer «rpTransfer» tercatat (`m26.txt` bagian D) | Mati di setiap penerbitan ulang, walau kuncinya sama (`pin.txt` bagian D) | CA yang dipin tetap bisa menerbitkan sertifikat tiruan bila salah menerbitkan, dan pindah CA mematikan app | Rotasi kedua mematikan app bila rilis berikutnya belum memasang kunci baru (`pin.txt` bagian C). Butuh kode periksa sendiri di Dart |\n| Biaya operasional | Nol | Rilis app di setiap penerbitan ulang: paling sedikit «kali0» kali per tahun untuk sertifikat CA publik (Hitungan) | Rilis app bila pindah CA. Let's Encrypt memutar intermediate dan memilihnya acak, jadi pin intermediate tidak bisa diandalkan | Kunci cadangan dibuat dan disimpan di luar server sebelum rilis, dan rotasi dijadwalkan bersama rilis app |\n| Bukti | `m26.txt` bagian B dan D | `pin.txt` bagian D dan E, dan Baseline Requirements «brVer» | `m26.txt` bagian B: daftar akar hanya CA Lab Publik menolak CA Dimas. Pin CA sendiri Tidak dijalankan | `pin.txt` bagian A, C, dan D, dan `dio.txt` bagian B |",
   "**Keputusan: opsi D.** Tujuh aturan:",
@@ -359,7 +370,7 @@ const EXPECT: string[] = [
   "### Cek diri",
   "**1.** Daftar akar app berisi CA Dimas, dan pin A dan B dipasang di `validateCertificate` milik dio. Apa yang proxy lihat, dan apa yang tercatat di database?",
   "<details class=\"success\">\n<summary>Jawaban</summary>",
-  "Proxy membaca token dan body, dan database mencatat satu transfer «rpTransfer» dari Budi ke Dimas. Baru sesudahnya callback menolak dan app menampilkan galat sertifikat (`dio.txt` bagian A). Kode dio memanggil `request.close()` sebelum `validateCertificate`.",
+  "Proxy membaca token dan body, dan database mencatat satu transfer «rpTransfer» dari Budi ke Dimas. Baru sesudahnya callback menolak dan dio melempar galat sertifikat (`dio.txt` bagian A). Kode dio memanggil `request.close()` sebelum `validateCertificate`.",
   "</details>",
   "**2.** Server pindah ke kunci B, dan app 1.0 hanya mem-pin A. Server sehat dan sertifikatnya sah. Apa yang terjadi, dan apa yang memperbaikinya?",
   "<details class=\"success\">\n<summary>Jawaban</summary>",
@@ -425,6 +436,16 @@ describe("halaman 3.25: isi dikunci unit demi unit, nilai diturunkan dari sumber
   test("EXPECT: semua unit halaman sama dengan yang diturunkan dari sumber, urutan dan isinya", () => {
     expect(unitHalaman).toEqual(EXPECT.map(isi));
   });
+  test("bentuk baris dikunci: tepat satu baris kosong antar unit, tanpa spasi di ujung baris, tanpa tab atau CR, berakhir satu baris baru", () => {
+    // Pemisah /\n{2,}/ di atas menyerap baris kosong ganda dan menyatukan baris kosong yang dihapus tanpa mengubah teks unit: bandingkan utuh.
+    expect(halaman).toBe(EXPECT.map(isi).join("\n\n") + "\n");
+    expect(halaman.includes("\r")).toBe(false);
+    expect(halaman.includes("\t")).toBe(false);
+    expect(halaman.split("\n").filter((b) => b !== b.trimEnd())).toEqual([]);
+    expect(halaman.endsWith("</Blok>\n")).toBe(true);
+    expect(mdx.startsWith("---\ntitle: ")).toBe(true);
+    expect(mdx.split(/^---\n/m)).toHaveLength(3);
+  });
   test("lima blok sesuai templat konsep: dua pertama terbuka", () => {
     const b = daftarBlok(halaman);
     expect(b.map((x) => x.nama)).toEqual(["Mulai", "Coba", "Paham", "Putuskan", "Kunci"]);
@@ -450,6 +471,14 @@ describe("halaman 3.25: isi dikunci unit demi unit, nilai diturunkan dari sumber
     tampilkan(`Android 6.0 (API level ${apiLevel}) ke bawah`);
     tampilkan(`\`max-age=${hstsDetik}\` berarti ${hstsHari} hari.`);
     tampilkan(`login menjawab \`kedaluwarsa_detik\` ${tokenDetik}.`);
+    tampilkan("Proxy hotspot Dimas membaca token dan body Budi, server mencatat satu transfer " + rp(nominalPindah) + " ke Dimas, dan baru sesudahnya dio melempar galat sertifikat.");
+    expect(dioA[1]!.hasil).toMatchObject({ hasil: "ditolak", jenis: "dio-badCertificate" });
+    // Logout dan ganti password menghapus baris sesi: dibaca dari kode api-t3, bukan direkam di token.txt.
+    expect(fungsiGo(sesiGo, "Logout")).toContain("s.repo.HapusSesi(ctx, hashToken(token))");
+    expect(fungsiGo(repoGo, "GantiPassword")).toContain("DELETE FROM sesi WHERE akun_id = $1");
+    expect(fungsiGo(repoGo, "HapusSesi")).toContain("DELETE FROM sesi WHERE token_hash = $1");
+    tampilkan("Kode api-t3 menghapus baris sesinya di `Logout` dan `GantiPassword`, dan `token.txt` tidak merekamnya (Tidak dijalankan).");
+    expect(tokenTxt).not.toMatch(/logout|ganti password|GantiPassword/i);
     expect(tokenMenit).toBe(15);
     expect(menitKomentar).toEqual(["1", "14,5", "15,5"]);
     expect(logToken).toEqual([0, 2]);
@@ -703,7 +732,7 @@ describe("widget Tebak dan diagram Inti: nilai diturunkan dari rekaman", () => {
       `Itu hasil pin di \`connectionFactory\` (dio.txt bagian B). Pin dio diperiksa sesudah jawaban tiba: kode dio ${dioVer} memanggil \`request.close()\` di baris ${dioClose}, sebelum \`validateCertificate\` di baris ${dioValidasi}.`,
       `CA Dimas ada di daftar akar, jadi handshake lolos. Callback dio dipanggil satu kali (\`callback_dipanggil\` ${dioA[1]!.hasil.callback_dipanggil} di dio.txt bagian A). Validasi bawaan tidak menolak CA yang sudah dipercaya.`,
       `Itu hasil pin di \`badCertificateCallback\` milik dart:io: callback dipanggil ${pinB[0]!.hasil.callback_dipanggil} kali (pin.txt bagian B). Callback dio lain: ia dipanggil, dan menolak, tetapi terlambat.`,
-      `dio.txt bagian A: proxy membaca token dan body, database mencatat satu transfer ${rp(nominalPindah)} dari Budi ke Dimas, lalu \`validateCertificate\` menolak dan app menampilkan galat sertifikat. Penolakannya benar, tetapi datang sesudah uang pindah.`,
+      `dio.txt bagian A: proxy membaca token dan body, database mencatat satu transfer ${rp(nominalPindah)} dari Budi ke Dimas, lalu \`validateCertificate\` menolak dan dio melempar galat sertifikat. Penolakannya benar, tetapi datang sesudah uang pindah.`,
     ]);
     expect(tebak.penutup).toBe("Pin yang sama menahan sebelum request di `connectionFactory`, dan hanya menyesali sesudahnya di `validateCertificate`. Tempat pin diperiksa menentukan apa yang sempat keluar.");
     expect(tebak.label).toEqual({ sumber: "Rekaman lab · dio.txt", tebakDulu: "Tebak dulu:", benar: "Tepat", belum: "Belum tepat", ulang: "Coba pilihan lain", jawaban: "Jawaban yang tepat" });
@@ -758,6 +787,8 @@ describe("sumber dokumentasi: baris riset R3-220 sampai R3-224, tanggal, versi, 
     for (const k of ["10 pasang kunci intermediate baru dan menerbitkan 15 sertifikat intermediate baru", "pada 2024-03-13", "Aaron Gable, 2024-03-19", "discourages outdated practices like key pinning", "manual process", "lima tahun", "tiga tahun", "dipilih acak per tipe kunci", "incredibly rare", "tanpa angka berapa app rusak", "Last updated 2018-12-18 UTC", "HPKP dihapus di Chrome 72", "denial of service dan hostile pinning", "RFC 7469 (April 2015", "bagian 4", "still significantly reduces the number of issuers", "an untested backup is no backup at all", "Baseline Requirements 2.3.1 (4 Oktober 2026", "200 hari sejak 2026-03-15", "100 hari sejak 2027-03-15", "47 hari sejak 2029-03-15", "bukan CA privat"]) expect(r222, k).toContain(k);
     for (const k of ["Dart 3.13.7", "cannot be authenticated by any of our trusted root certificates", "Sets the function used to create socket connections", "`proxyHost` dan `proxyPort`", "DIRECT", "`X509Certificate` punya `der`, `pem`, `sha1`", "tanpa accessor SubjectPublicKeyInfo", "`issuer` berupa String", "`SecurityContext({withTrustedRoots = false})`", "`hsts` dan `strict-transport` 0 kemunculan di `lib/_http` dan `lib/io` Dart SDK 3.11.4 dan di `lib` paket dio 5.11.0", "tag dio_v5.11.0", "`request.close()` baris 161", "`validateCertificate!(` baris 195", "komentar `validateCertificate` menulis callback dipanggil hanya bila SecurityContext dan badCertificateCallback menerima rantai", "absennya kata tidak membuktikan absennya perilaku di versi lain"]) expect(r223, k).toContain(k);
     for (const k of ["llms-full.txt", "paket serverpod_client 4.0.0", "`httpClientOverride`", "`cupertino_http`", "`cronet_http`", "`SecurityContextConfig`", "kata `pinning`, `badCertificate`, dan `connectionFactory` 0 kemunculan di seluruh berkas", "RFC 9700 (BCP 240, Januari 2025", "bagian 2.2.2", "sender-constrained", "refresh token rotation", "api-t3 bukan server OAuth", "RFC 6797 (November 2012", "MUST NOT include the STS header field in HTTP responses conveyed over non-secure transport", "bagian 6.1.1", "bagian 8.1.1", "bagian 14.6"]) expect(r224, k).toContain(k);
+    const r216 = barisRiset("R3-216");
+    for (const k of ["mas.owasp.org/MASWE/MASVS-NETWORK/MASWE-0027/", "dibuka 2026-10-27", "Disabling Certificate Validation", "mematikan atau melewati pemeriksaan sertifikat untuk mempermudah pengembangan atau menelusuri masalah koneksi, lalu mengirim konfigurasi itu ke produksi", "tidak menyebut Flutter atau Dart"]) expect(r216, k).toContain(k);
     expect(r74).toContain("dio 5.11.0 (pub.dev; terbaru 5.11.1, 2026-09-04, changelog tidak menyebut validateCertificate; dibuka 2026-10-25)");
     expect(r74).toContain("kode dio 5.11.1 dibaca dari tag `dio_v5.11.1` lewat GitHub API (2026-10-25)");
     expect(r74).toContain("PR #2512 (open, 2026-05-10)");
@@ -783,7 +814,7 @@ describe("sumber dokumentasi: baris riset R3-220 sampai R3-224, tanggal, versi, 
     for (const [t, u] of tautan) peta.set(t, (peta.get(t) ?? new Set()).add(u));
     for (const [t, us] of peta) expect(us.size, `teks tautan ganda: ${t}`).toBe(1);
     expect([...new Set(tautan.map(([, u]) => u))].sort()).toEqual(ALAMAT.map(([u]) => u).sort());
-    const semuaRiset = [...ids, "R3-74", "R3-78"].map(barisRiset).join("\n");
+    const semuaRiset = [...ids, "R3-74", "R3-78", "R3-216"].map(barisRiset).join("\n");
     for (const [u, jejak] of ALAMAT) expect(semuaRiset, u).toContain(jejak);
     expect(caraPakai).toMatch(/^#+ Label sumber$/m);
   });
@@ -947,4 +978,5 @@ const ALAMAT: [string, string][] = [
   ["https://docs.serverpod.dev/concepts/endpoints-and-apis/configure-http-calls", "docs.serverpod.dev"],
   ["https://letsencrypt.org/2024/03/19/new-intermediate-certificates", "letsencrypt.org/2024/03/19/new-intermediate-certificates"],
   ["https://developer.chrome.com/blog/chrome-72-deps-rems", "developer.chrome.com/blog/chrome-72-deps-rems"],
+  ["https://mas.owasp.org/MASWE/MASVS-NETWORK/MASWE-0027/", "mas.owasp.org/MASWE/MASVS-NETWORK/MASWE-0027/"],
 ];

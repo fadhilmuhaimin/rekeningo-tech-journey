@@ -209,6 +209,24 @@ window.ISTILAH = {
   "t": "CRDT (Conflict-free Replicated Data Type)",
   "u": "tahap-3/offline-first/"
  },
+ "CSP": {
+  "b": "t3-xss-csrf",
+  "d": "Header respons yang memberi tahu browser sumber skrip dan sumber lain mana yang boleh dipakai halaman, sehingga skrip yang tidak dikenal ditolak.",
+  "h": "istilah/csp/",
+  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
+  "s": "istilah-csp",
+  "t": "CSP (Content Security Policy)",
+  "u": "tahap-3/xss-csrf-cookie/"
+ },
+ "CSRF": {
+  "b": "t3-xss-csrf",
+  "d": "Serangan yang membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim.",
+  "h": "istilah/csrf/",
+  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
+  "s": "istilah-csrf",
+  "t": "CSRF (cross-site request forgery)",
+  "u": "tahap-3/xss-csrf-cookie/"
+ },
  "Cache": {
   "b": "B9",
   "d": "Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli.",
@@ -283,6 +301,15 @@ window.ISTILAH = {
   "s": "istilah-container",
   "t": "Container",
   "u": "tahap-1/deployment-rollback/"
+ },
+ "Content Security Policy": {
+  "b": "t3-xss-csrf",
+  "d": "Header respons yang memberi tahu browser sumber skrip dan sumber lain mana yang boleh dipakai halaman, sehingga skrip yang tidak dikenal ditolak.",
+  "h": "istilah/csp/",
+  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
+  "s": "istilah-csp",
+  "t": "CSP (Content Security Policy)",
+  "u": "tahap-3/xss-csrf-cookie/"
  },
  "Continuous Integration": {
   "b": "B1.4",
@@ -782,7 +809,7 @@ window.ISTILAH = {
   "n": "3.24 M26",
   "s": "istilah-mitm",
   "t": "MITM (man-in-the-middle)",
-  "u": null
+  "u": "tahap-3/m26-transfer-bukan-budi/"
  },
  "MVCC": {
   "b": "t2-isolation-level",
@@ -1032,6 +1059,15 @@ window.ISTILAH = {
   "s": "istilah-partitioning",
   "t": "Partitioning",
   "u": "d-system-design/d2-scaling/"
+ },
+ "Passkey": {
+  "b": "t3-xss-csrf",
+  "d": "Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "h": "istilah/passkey/",
+  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
+  "s": "istilah-passkey",
+  "t": "Passkey (WebAuthn)",
+  "u": "tahap-3/xss-csrf-cookie/"
  },
  "Payload": {
   "b": "t2-payload",
@@ -1521,6 +1557,15 @@ window.ISTILAH = {
   "s": "istilah-wal",
   "t": "WAL (Write-Ahead Log)",
   "u": "d-system-design/d3-consistency/"
+ },
+ "WebAuthn": {
+  "b": "t3-xss-csrf",
+  "d": "Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "h": "istilah/passkey/",
+  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
+  "s": "istilah-passkey",
+  "t": "Passkey (WebAuthn)",
+  "u": "tahap-3/xss-csrf-cookie/"
  },
  "WebSocket": {
   "b": "E4",
@@ -2254,6 +2299,15 @@ window.ISTILAH = {
   "s": "istilah-partitioning",
   "t": "Partitioning",
   "u": "d-system-design/d2-scaling/"
+ },
+ "passkey": {
+  "b": "t3-xss-csrf",
+  "d": "Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "h": "istilah/passkey/",
+  "n": "3.23 XSS, CSRF, cookie sesi, passkey",
+  "s": "istilah-passkey",
+  "t": "Passkey (WebAuthn)",
+  "u": "tahap-3/xss-csrf-cookie/"
  },
  "payload": {
   "b": "t2-payload",
