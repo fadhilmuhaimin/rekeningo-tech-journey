@@ -1,0 +1,97 @@
+# Lab t4-modul · batas modul: schema dan role per modul, paket internal Go, dan perubahan nama kolom lintas modul (M32)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_modul (satu schema), lalu t4m_ledger, t4m_akun, t4m_identitas, t4m_merchant, t4m_pembayaran, t4m_platform
+# Rekaman dari database bersih: make -C labs/t4-modul run.
+
+# --- A. M32 pada versi tanpa batas: satu schema (tahap4_modul), satu role aplikasi (api_t4) untuk semua modul ---
+# Langkah CI tim Pembayaran dan tim Akun. Tes pembayaran memakai data tiruan, seperti pada naskah: tidak ada skema tim lain di dalamnya.
+$ go build ./...
+(tanpa keluaran)
+# exit status 0
+$ go vet ./internal/modul/...
+(tanpa keluaran)
+# exit status 0
+$ go test -count=1 -run TestTeksTopupLangsungDenganDataTiruanLolos -v ./internal/modul/pembayaran
+--- PASS: TestTeksTopupLangsungDenganDataTiruanLolos
+PASS
+ok    lab/apit4/internal/modul/pembayaran
+# exit status 0
+# Ketiga langkah CI tidak membuka koneksi database: tes pembayaran memakai driver tiruan, jadi migration tim Merchant tidak mengubah hasilnya.
+
+# Pemeriksaan terhadap skema nyata (di lingkungan yang meniru produksi):
+$ T4M_SCHEMA_SATU=tahap4_modul go test -tags t4modul -count=1 -v -run TestM32TanpaBatas ./internal/modul/
+sebelum rename, role aplikasi (satu role untuk semua modul): pembayaran.TeksTopupLangsung -> "Top-up Rp200000 masuk ke Budi"
+migration tim Merchant: ALTER TABLE akun RENAME COLUMN nama TO nama_tampil
+sesudah rename, pembayaran.TeksTopupLangsung dengan role dan skema yang sama -> column "nama" does not exist (42703)
+--- PASS: TestM32TanpaBatasRenameLolosDiCIGagalDiProduksi
+PASS
+ok    lab/apit4/internal/modul
+# exit status 0
+# Ilustrasi mekanisme: TeksTopupLangsung adalah kode lab yang ditulis seperti uraian M32 di naskah (kode top-up api-t4 tidak membaca akun.nama);
+# skema, role, dan pesan galatnya nyata (PostgreSQL), tetapi kodenya bukan rekaman kode produksi.
+
+# --- B. Dengan batas: enam schema modul, satu role per modul, dan paket internal/ Go ---
+# Pembagian dan hak dari modul.sql; tes berjalan sebagai role modul, bukan sebagai pemilik schema.
+$ go test -tags t4modul -count=1 -v -run 'TestPembagian|TestMatriks|TestKontrakKolom|TestRoleModul|TestMonolit|TestKunciAsing|TestKeterikatan|TestHakRole|TestRoleTidak' ./internal/modul/
+schema t4m_ledger: 6 tabel (baris_pencairan, batch_pencairan, buku, jurnal, kunci_idempotensi, posting)
+schema t4m_akun: 4 tabel (akun, kota, perangkat, sesi)
+schema t4m_identitas: 1 tabel (verifikasi)
+schema t4m_merchant: 4 tabel (operasi_sinkron, produk, promo, qr)
+schema t4m_pembayaran: 5 tabel (insiden_rekon, kartu, otorisasi_kartu, topup_bank, webhook_event)
+schema t4m_platform: 2 tabel (audit_log, outbox)
+--- PASS: TestPembagianCocokDenganKatalog
+role t4m_ledger: 7 tabel terbaca (milik sendiri dan kolom id, tingkat, status akun), 15 ditolak permission denied (42501)
+role t4m_akun: 4 tabel terbaca (milik sendiri), 18 ditolak permission denied (42501)
+role t4m_identitas: 1 tabel terbaca (milik sendiri), 21 ditolak permission denied (42501)
+role t4m_merchant: 4 tabel terbaca (milik sendiri), 18 ditolak permission denied (42501)
+role t4m_pembayaran: 5 tabel terbaca (milik sendiri), 17 ditolak permission denied (42501)
+role t4m_platform: 2 tabel terbaca (milik sendiri), 20 ditolak permission denied (42501)
+--- PASS: TestMatriksRoleModul
+ledger: SELECT nama FROM t4m_akun.akun LIMIT 1 -> permission denied for table akun (42501)
+ledger: SELECT * FROM t4m_akun.akun LIMIT 1 -> permission denied for table akun (42501)
+ledger: SELECT password_hash FROM t4m_akun.akun LIMIT 1 -> permission denied for table akun (42501)
+--- PASS: TestKontrakKolomLedgerKeAkunHanyaTigaKolom
+t4m_pembayaran: CREATE TABLE public.tabel_gelap (a int) -> permission denied for schema public (42501)
+t4m_pembayaran: CREATE TABLE t4m_akun.tabel_gelap (a int) -> permission denied for schema t4m_akun (42501)
+t4m_akun: CREATE TABLE t4m_ledger.tabel_gelap (a int) -> permission denied for schema t4m_ledger (42501)
+--- PASS: TestRoleModulTidakBisaMembuatObjek
+role t4m_monolit: 17 tabel lima modul terbaca; 5 tabel pembayaran ditolak (42501 dengan awalan schema, tidak ada di search_path tanpa awalan)
+--- PASS: TestMonolitMembacaLimaModulTapiBukanPembayaran
+role t4m_pembayaran menulis topup_bank untuk akun yang ada: berhasil tanpa hak apa pun di schema akun
+role t4m_pembayaran menulis topup_bank untuk akun yang tidak ada: insert or update on table "topup_bank" violates foreign key constraint "topup_bank_akun_id_fkey" (23503)
+--- PASS: TestKunciAsingLintasSchemaTidakButuhHakBaca
+kunci asing yang menyeberang schema modul: 21; tujuan: akun.akun x12, akun.kota x1, akun.perangkat x1, ledger.jurnal x7
+asal kunci asing lintas schema: identitas 1, ledger 3, merchant 6, pembayaran 7, platform 4
+--- PASS: TestKeterikatanLintasSchema
+t4m_platform: UPDATE dan DELETE pada platform.audit_log -> permission denied (42501)
+t4m_ledger: UPDATE dan DELETE pada ledger.jurnal -> permission denied (42501)
+t4m_ledger: UPDATE dan DELETE pada ledger.posting -> permission denied (42501)
+--- PASS: TestRoleTidakBisaMengubahCatatanYangHanyaBertambah
+hak role modul: 50 baris hak (tabel, kolom, urutan, schema) sama dengan rancangan; 7 role tanpa atribut istimewa dan dengan search_path yang dirancang; t4m_monolit anggota lima role modul tanpa admin option
+--- PASS: TestHakRoleModulSamaDenganRancangan
+PASS
+ok    lab/apit4/internal/modul
+# exit status 0
+
+# M32 lagi, sekarang dengan batas:
+$ go test -tags t4modul -count=1 -v -run 'TestPembayaranTidakBisa|TestRenameKolom|TestImporInternal' ./internal/modul/
+pembayaran menjalankan SQL M32 apa adanya (SELECT nama FROM akun): relation "akun" does not exist (42P01)
+pembayaran menulis awalan schema sendiri (SELECT nama FROM t4m_akun.akun): permission denied for schema t4m_akun (42501)
+kontrol: role t4m_akun menjalankan SQL yang sama pada baris yang sama: berhasil
+--- PASS: TestPembayaranTidakBisaMembacaAkunLangsung
+sesudah ALTER TABLE akun RENAME COLUMN nama TO nama_tampil oleh pemilik schema akun dan kode modul akun ikut diubah:
+  modul akun membaca nama_tampil: berhasil; pembayaran.TeksTopup lewat kontrak akun: "Top-up Rp200000 masuk ke Budi"
+  kontrak kolom ledger (id, tingkat, status): berhasil; tidak ada modul lain yang menyentuh kolom nama
+--- PASS: TestRenameKolomNamaTidakMematahkanModulLain
+ALTER TABLE akun RENAME COLUMN tingkat TO tingkat_baru (kolom di kontrak ledger): tes kontrak ledger gagal: column "tingkat" does not exist (42703)
+--- PASS: TestRenameKolomKontrakTerdeteksiDiCI
+$ go build ./internal/modul/pembayaran/   (berkas uji menambah: import "lab/apit4/internal/modul/akun/internal/data")
+package lab/apit4/internal/modul/pembayaran
+  internal/modul/pembayaran/impor_uji.go:3:8: use of internal package lab/apit4/internal/modul/akun/internal/data not allowed
+$ go build ./internal/modul/pembayaran/   (kontrol: berkas uji mengimpor lab/apit4/internal/modul/akun, paket publik)
+(lolos, tanpa keluaran)
+--- PASS: TestImporInternalModulLainDitolakKompiler
+PASS
+ok    lab/apit4/internal/modul
+# exit status 0
+
+# CODEOWNERS dan review wajib: Tidak dijalankan di lab ini. Keduanya fitur GitHub; lab hanya menjalankan hal yang bisa dijalankan di container lokal.
