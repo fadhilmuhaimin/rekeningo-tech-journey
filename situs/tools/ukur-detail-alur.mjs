@@ -60,6 +60,8 @@ function salahTebakan(x) {
   if (x.varian !== v) salah.push(`akhir jalur varian ${x.varian} jawaban (seharusnya ${v})`);
   if (x.sesudahLepas !== cL) salah.push(`sesudah varian dilepas ${x.sesudahLepas} jawaban (seharusnya ${cL})`);
   if (x.utamaLagi !== u) salah.push(`akhir jalur utama lagi ${x.utamaLagi} jawaban (seharusnya ${u})`);
+  if (x.bolakBalikUtama !== u) salah.push(`mundur lalu maju di akhir jalur utama ${x.bolakBalikUtama} jawaban (seharusnya ${u})`);
+  if (x.bolakBalikVarian !== v) salah.push(`mundur lalu maju di akhir jalur varian ${x.bolakBalikVarian} jawaban (seharusnya ${v})`);
   return salah;
 }
 
@@ -105,6 +107,10 @@ for (const [w, h] of UKURAN) {
         const tb = {};
         for (let k = 1; maju && !maju.disabled && k <= 40; k++) { maju.click(); await ukurLangkah("utama"); }
         tb.utama = jawab();
+        // Mundur satu langkah lalu maju lagi ke akhir jalur: jawaban yang sudah terbuka tidak dibuka dua kali (alur.js: revealed).
+        const mundur = [...alur.querySelectorAll(".bb-row button")].find((b) => b.textContent.includes("Sebelumnya"));
+        const bolakBalik = async () => { mundur.click(); await frame(); maju.click(); await frame(); return jawab(); };
+        tb.bolakBalikUtama = await bolakBalik();
         if (cb && !cb.disabled) {
           cb.scrollIntoView({ block: "center", behavior: "instant" });
           const t0 = cb.getBoundingClientRect().top;
@@ -114,6 +120,7 @@ for (const [w, h] of UKURAN) {
           tb.sesudahCentang = jawab(); tb.akhirCentang = diAkhir();
           for (let k = 1; maju && !maju.disabled && k <= 40; k++) { maju.click(); await ukurLangkah("varian"); }
           tb.varian = jawab();
+          tb.bolakBalikVarian = await bolakBalik();
           // Kembali ke jalur utama (varian dilepas) dan berjalan ke akhirnya; tidak diukur, hanya jawaban yang dihitung.
           cb.click();
           await frame();
@@ -148,7 +155,12 @@ for (const [w, h] of UKURAN) {
   if (!process.argv.includes("--tanpa-tebakan")) {
     const utama = tebakan.filter((x) => x.ditanya === "utama").length;
     const salah = tebakan.filter((x) => x.salah.length);
-    const okt = !PAGAR || ((disaring || tebakan.length > 0) && !salah.length);
+    const kunci = (x) => `${x.pth} ${x.src} ${x.ditanya}`;
+    const harap = daftarBerVarian().filter((x) => halAlur.includes(x.pth)).map(kunci).sort();
+    const dilihat = tebakan.map(kunci).sort();
+    const cocok = harap.length === dilihat.length && harap.every((k, n) => k === dilihat[n]);
+    if (!cocok) console.log(`  tebakan ${w}x${h}: widget ber-varian di browser (${dilihat.length}) tidak sama dengan berkas mdx dan skenario (${harap.length}); jalur yang ditanyakan dibaca dari skenario yang sama`);
+    const okt = !PAGAR || (cocok && !salah.length);
     console.log(`${okt ? "ok" : "GAGAL"} jawaban tebakan hanya di akhir jalur yang ditanyakan ${w}x${h}: ${tebakan.length} widget ber-varian (${utama} tentang jalur utama, ${tebakan.length - utama} tentang jalur varian); ${salah.length} salah${PAGAR ? "" : " (dicetak saja)"}`);
     for (const x of salah) console.log(`  tebakan ${w}x${h} ${x.pth} ${x.src} (ditanya: ${x.ditanya}): ${x.salah.join("; ")}`);
     if (!okt) gagal++;
@@ -217,19 +229,22 @@ if (!process.argv.includes("--tanpa-fokus")) {
 // yang dimuat browser satu halaman, bukan semua sampai yang pertama bersalah. Berhenti di temuan pertama.
 const PANGGILAN = "core.bukaJawaban(d, varianOn, i, list.length)";
 const KONDISI_LAMA = "(i === list.length && (!d.predict.varian || varianOn))";
-function halamanTebakanUtama() {
-  const lama = new URL("../lama/widgets/", import.meta.url);
-  return halAlurSemua.filter((pth) => {
+// Widget ber-varian menurut berkas (mdx dan skenario): { pth, src, ditanya }. Pembanding hasil browser: jumlahnya dan
+// jalur yang ditanyakan harus sama, jadi pemeriksa yang diam-diam tidak melihat satu widget pun tidak lolos.
+function daftarBerVarian() {
+  const lama = new URL("../lama/widgets/", import.meta.url), hasil = [];
+  for (const pth of halAlurSemua) {
     const rel = pth.slice(1, -1);
     const mdx = [rel + ".mdx", rel + "/index.mdx"].find((f) => existsSync(new URL(f, DOCS)));
-    if (!mdx) return false;
-    const teks = readFileSync(new URL(mdx, DOCS), "utf8");
-    return [...teks.matchAll(/<WidgetLama nama="alur"[^>]*src="([^"]+)"/g)].some((m) => {
+    if (!mdx) continue;
+    for (const m of readFileSync(new URL(mdx, DOCS), "utf8").matchAll(/<WidgetLama nama="alur"[^>]*src="([^"]+)"/g)) {
       const d = JSON.parse(readFileSync(new URL(m[1], lama), "utf8"));
-      return d.predict && d.varian && d.predict.varian !== true;
-    });
-  });
+      if (d.predict && d.varian) hasil.push({ pth, src: m[1], ditanya: d.predict.varian === true ? "varian" : "utama" });
+    }
+  }
+  return hasil;
 }
+const halamanTebakanUtama = () => [...new Set(daftarBerVarian().filter((x) => x.ditanya === "utama").map((x) => x.pth))];
 async function cekTebakanMutasi() {
   const calon = halamanTebakanUtama();
   let terganti = 0, temu = null, dimuat = 0;
