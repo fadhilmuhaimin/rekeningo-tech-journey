@@ -19,6 +19,8 @@ ok    lab/apit4/cmd/api
 --- PASS: TestProxyMeneruskanMetodeDanBodyDanKodeStatus
 --- PASS: TestProxyConnectDanHttpsDitolakDanTujuanMatiJadi502
 --- PASS: TestProxyTujuanTanpaPortDianggapPort80
+--- PASS: TestProxyTidakMemakaiProxyLainDariLingkungan
+--- PASS: TestProxyTidakMeneruskanHeaderPerKoneksiDariJawabanTujuan
 PASS
 ok    lab/apit4/cmd/proxykeluar
 --- PASS: TestParseIzin
@@ -27,6 +29,8 @@ ok    lab/apit4/cmd/proxykeluar
 --- PASS: TestVerifikasiMenolak403PadaAlamatTakTerdaftarTanpaMembuatObjek
 --- PASS: TestVerifikasiTanpaDaftarMenerimaSemuaDanRuteLabTetapTerbuka
 --- PASS: TestIzinkanMenggantiDaftarLewatRuteLabDanUlangTidakMenghapusIzin
+--- PASS: TestParseIzinIPv6TunggalHanyaSatuAlamatDanRingkasanDiurutkan
+--- PASS: TestIzinkanKeduaKaliMenggantiDaftarPertamaBukanMenambah
 --- PASS: TestJedaTotal342Menit
 --- PASS: TestJumlahUlangPerKode
 --- PASS: TestJadwalBerhentiMenurutKode
@@ -163,6 +167,8 @@ ok    lab/apit4/internal/modul/pembayaran
 rahasia: pembacaan gagal, memakai pembacaan terakhir: secret manager menjawab 500
 --- PASS: TestJalanMembacaUlangBerkalaTanpaDeploy
 --- PASS: TestSidikTidakMembukaNilaiDanDihitungDariSHA256
+--- PASS: TestPembacaanYangMenggantungBerakhirDenganGalatDalamBatasWaktu
+--- PASS: TestVersiDokumenMengikutiOpenBaoTermasukTurunSesudahRestartModeDev
 --- PASS: TestDaftarMengembalikanSalinanYangTidakMengubahIsiPembaca
 --- PASS: TestPindaiAwalanKunciProduksiMenangkapBarisYangBenarTanpaMenyalinNilai
 --- PASS: TestPindaiBerkasStagingBersihTidakMenghasilkanTemuan
@@ -170,6 +176,8 @@ rahasia: pembacaan gagal, memakai pembacaan terakhir: secret manager menjawab 50
 --- PASS: TestPindaiAturanDimatikanBilaMasukanKosongDanAwalanMenangAtasSidik
 --- PASS: TestPindaiSatuTemuanPerBarisDanNomorBarisDimulaiDariSatu
 --- PASS: TestPindaiAwalanHanyaBerlakuDiAwalTokenBukanDiTengah
+--- PASS: TestPindaiSidikMenangkapTokenPendekDanBerhubungDanNilaiBerkarakterKhusus
+--- PASS: TestPindaiBarisLebihPanjangDariBatasTidakMenyembunyikanSisaBerkas
 PASS
 ok    lab/apit4/internal/rahasia
 --- PASS: TestNaikAtomikDanBermasaBerlaku
