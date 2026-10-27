@@ -3,11 +3,14 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
 	"testing"
 	"time"
+
+	"lab/apit4/internal/repo"
 )
 
 // Tes API ledger untuk service pembayaran (ADR 37, lab t4-modul): satu jurnal per Idempotency-Key, batas yang
@@ -54,6 +57,104 @@ func TestLedgerKreditTopupSatuJurnalPerKey(t *testing.T) {
 	}
 	if n := outboxUntukJurnal(t, db, h1.Jurnal); n != 1 {
 		t.Fatalf("baris outbox untuk jurnal: %d, ingin 1 (satu transaction dengan jurnal)", n)
+	}
+	// Isi baris outbox menentukan notifikasi ke penerima: jenis, kelas uang (ADR 23), penerima, dan jumlah di pesan.
+	var jenis string
+	var kelas int
+	var penerima int64
+	var muatan []byte
+	if err := db.QueryRow(`SELECT jenis, kelas, akun_id, payload FROM outbox WHERE jurnal_id = $1`, h1.Jurnal).Scan(&jenis, &kelas, &penerima, &muatan); err != nil {
+		t.Fatal(err)
+	}
+	var isi struct {
+		Nominal int64  `json:"nominal"`
+		Dari    string `json:"dari"`
+		Jurnal  int64  `json:"jurnal"`
+	}
+	if err := json.Unmarshal(muatan, &isi); err != nil {
+		t.Fatal(err)
+	}
+	if jenis != "topup" || kelas != repo.KelasUang || penerima != a || isi.Nominal != 200_000 || isi.Dari != "Bank" || isi.Jurnal != h1.Jurnal {
+		t.Fatalf("outbox: jenis %q kelas %d penerima %d muatan %+v; ingin topup, kelas uang, akun %d, Rp200000 dari Bank, jurnal %d",
+			jenis, kelas, penerima, isi, a, h1.Jurnal)
+	}
+}
+
+// Buku akun dikunci sebelum batas tingkat diperiksa (ADR 13, M9). Transaction lain memegang lock baris buku dan
+// menambah saldo; kredit menunggu di lock dan sesudah lock dilepas membaca saldo yang baru, jadi batas tingkat
+// memakai saldo yang benar. Tanpa FOR UPDATE kredit tetap menunggu (UPDATE saldo menunggu baris yang sama) tetapi
+// batasnya sudah diperiksa terhadap saldo lama, dan jurnal menembus batas. Tes membaca pg_stat_activity (difilter
+// application_name tes ini) sampai ada backend yang menunggu Lock, bukan menunggu jeda tetap.
+func TestLedgerMenungguLockBukuAkunLaluMemakaiSaldoTerbaru(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	a, _ := akunBaru(t, db, "karyawan", 0)
+	if _, err := db.Exec(`UPDATE akun SET tingkat = 'belum' WHERE id = $1`, a); err != nil { // batas saldo Rp1.000.000
+		t.Fatal(err)
+	}
+	pemegang, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { pemegang.Rollback() })
+	if _, err := pemegang.Exec(`UPDATE buku SET saldo_cache = saldo_cache + 900000 WHERE akun_id = $1`, a); err != nil {
+		t.Fatal(err)
+	}
+	order := kunciOrder()
+	selesai := make(chan error, 1)
+	go func() {
+		_, err := svc.LedgerKreditTopup(ctx, order, order, a, 200_000)
+		selesai <- err
+	}()
+	batas := time.After(10 * time.Second)
+	for menunggu := false; !menunggu; {
+		select {
+		case err := <-selesai:
+			t.Fatalf("kredit selesai (%v) padahal transaction lain memegang lock buku akun", err)
+		case <-batas:
+			t.Fatal("tidak ada backend yang menunggu lock dalam 10 detik")
+		default:
+		}
+		var n int
+		if err := db.QueryRow(`SELECT count(*) FROM pg_stat_activity WHERE application_name = $1 AND wait_event_type = 'Lock' AND pid <> pg_backend_pid()`, appTes).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if menunggu = n > 0; !menunggu {
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+	if err := pemegang.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-selesai:
+		if !errors.Is(err, ErrBatasTingkat) {
+			t.Fatalf("kredit sesudah lock dilepas: %v; ingin ErrBatasTingkat (saldo 900000 + 200000 melewati Rp1.000.000)", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("kredit tidak selesai sesudah lock dilepas")
+	}
+	if n := jurnalUntukKey(t, db, order); n != 0 {
+		t.Fatalf("jurnal %d, ingin 0: permintaan yang melewati batas tidak menulis jurnal", n)
+	}
+}
+
+// Umur key tepat 24 jam dengan jam yang dibekukan: sedetik sebelumnya key masih menahan, tepat pada 24 jam key habis.
+func TestLedgerKeyHabisTepatPada24Jam(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	a, _ := akunBaru(t, db, "karyawan", 0)
+	order := kunciOrder()
+	t0 := time.Now()
+	pukul := func(selisih time.Duration) Service { return svc.DenganJam(func() time.Time { return t0.Add(selisih) }) }
+	if _, err := pukul(0).LedgerKreditTopup(ctx, order, order, a, 100_000); err != nil {
+		t.Fatal(err)
+	}
+	if h, err := pukul(UmurKunciLedger-time.Second).LedgerKreditTopup(ctx, order, order, a, 100_000); err != nil || !h.Ulang {
+		t.Fatalf("sedetik sebelum 24 jam: %+v, %v; ingin ulang", h, err)
+	}
+	if h, err := pukul(UmurKunciLedger).LedgerKreditTopup(ctx, order, order, a, 100_000); err != nil || h.Ulang {
+		t.Fatalf("tepat 24 jam: %+v, %v; ingin jurnal baru (key habis pada 24 jam)", h, err)
 	}
 }
 

@@ -13,6 +13,8 @@ $ go vet -tags t4modul ./...
 # --- B. Tes API ledger (service dan HTTP) dan modul pembayaran dengan PostgreSQL sungguhan (schema tahap4_modul_tes) ---
 $ TEST_DATABASE_URL=<pemilik, schema tahap4_modul_tes> go test -count=1 -p 1 -v -run TestLedger ./internal/service ./internal/handler
 --- PASS: TestLedgerKreditTopupSatuJurnalPerKey
+--- PASS: TestLedgerMenungguLockBukuAkunLaluMemakaiSaldoTerbaru
+--- PASS: TestLedgerKeyHabisTepatPada24Jam
 --- PASS: TestLedgerKreditTopupSerentakSatuJurnal
 --- PASS: TestLedgerKunciHarusSamaDenganOrderDanDipakaiSatuPermintaan
 --- PASS: TestLedgerDitolakDibekukanDanBatasTingkatTidakMenahanKey
@@ -22,6 +24,7 @@ $ TEST_DATABASE_URL=<pemilik, schema tahap4_modul_tes> go test -count=1 -p 1 -v 
 --- PASS: TestLedgerKeyHidup24JamLaluMenjurnalLagi
 PASS
 ok    lab/apit4/internal/service
+--- PASS: TestLedgerHTTPStatusDanAlasanPerPenolakan
 --- PASS: TestLedgerHTTPKunciLayananDanIdempotencyKeyWajib
 --- PASS: TestLedgerTanpaKunciLayananRuteTidakAda
 --- PASS: TestLedgerKlienBaruUlangDitolak
@@ -33,9 +36,18 @@ $ TEST_DATABASE_URL=<pemilik, schema tahap4_modul_tes> go test -count=1 -p 1 -v 
 ?     lab/apit4/internal/modul  [no test files]
 ?     lab/apit4/internal/modul/akun  [no test files]
 ?     lab/apit4/internal/modul/akun/internal/data  [no test files]
-?     lab/apit4/internal/modul/ledger  [no test files]
+--- PASS: TestKlienMemetakanJawabanLedger
+--- PASS: TestKlienMengirimKunciLayananIdempotencyKeyDanBody
+--- PASS: TestKlienTimeoutAdalahTidakPasti
+PASS
+ok    lab/apit4/internal/modul/ledger
 --- PASS: TestTeksTopupLangsungDenganDataTiruanLolos
 --- PASS: TestTeksTopupLewatKontrakAkunDenganDataTiruan
+--- PASS: TestKabarGatewayDipetakanKeStatusTopup
+--- PASS: TestTopupTidakPastiYangDibayarTetapDikredit
+--- PASS: TestTandaTanganDiperiksaSebelumJSONDiurai
+--- PASS: TestToleransiTimestampTepatLimaMenit
+--- PASS: TestOrderTopupBerumurDuaPuluhEmpatJam
 --- PASS: TestWebhookSettlementSatuJurnalWalauDuaKiriman
 --- PASS: TestWebhookDuaEventSatuKejadianSatuJurnal
 --- PASS: TestWebhookSerentakEventSamaDanBeda
@@ -60,10 +72,20 @@ $ go test -count=1 ./internal/modul/...
 ?     lab/apit4/internal/modul  [no test files]
 ?     lab/apit4/internal/modul/akun  [no test files]
 ?     lab/apit4/internal/modul/akun/internal/data  [no test files]
-?     lab/apit4/internal/modul/ledger  [no test files]
+ok    lab/apit4/internal/modul/ledger
 ok    lab/apit4/internal/modul/pembayaran
 # exit status 0
 $ TES_DB_WAJIB=1 go test -count=1 ./internal/modul/pembayaran
+--- FAIL: TestKabarGatewayDipetakanKeStatusTopup
+    pembayaran_status_test.go:19: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestTopupTidakPastiYangDibayarTetapDikredit
+    pembayaran_status_test.go:37: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestTandaTanganDiperiksaSebelumJSONDiurai
+    pembayaran_status_test.go:64: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestToleransiTimestampTepatLimaMenit
+    pembayaran_status_test.go:77: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestOrderTopupBerumurDuaPuluhEmpatJam
+    pembayaran_status_test.go:97: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestWebhookSettlementSatuJurnalWalauDuaKiriman
     pembayaran_test.go:209: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestWebhookDuaEventSatuKejadianSatuJurnal
