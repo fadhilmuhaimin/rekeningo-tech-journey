@@ -368,7 +368,13 @@ describe("rekaman t3-pool adr22.txt bagian F: batas L, bukan nilai tunggal, di s
   test("satu laptop: README t3-pool menulis pembangkit beban, API, PostgreSQL, dan layanan push tiruan di satu laptop; waktu berlabel Asumsi sampai diulang di VPS", () => {
     expect(readmePool).toContain("**Satu mesin.** Pembangkit beban, API, PostgreSQL, dan layanan push tiruan berjalan di satu laptop.");
     expect(readmePool).toContain("berlabel Asumsi sampai diulang di VPS");
-    harus("Pembangkit beban, API, PostgreSQL, dan layanan push tiruan berjalan di satu laptop, jadi rekaman tidak menyebut kapasitas VPS.");
+    harus("Pembangkit beban, API, PostgreSQL, dan layanan push tiruan berjalan di satu laptop, jadi rekaman tidak menyebut kapasitas VPS. Pembangkit itu hanya menjadwalkan 17,4 per detik, tanpa menaikkannya sampai sesak.");
+    // pembangkit beban t3-pool bagian F: satu Beban(...) dengan rps bawaan 17,4, tanpa kenaikan bertahap
+    const beban = baca("labs/t3-pool/beban.py");
+    expect(beban).toContain("rps=17.4");
+    const bagianAdr22 = baca("labs/t3-pool/bagian_adr22.py");
+    expect(bagianAdr22).not.toMatch(/Beban\([^)]*rps\s*=/);
+    expect(bagianAdr22).not.toMatch(/for rps in|rps \*=|rps \+=/);
     expect(readmePool).toContain("Bebannya 17,4 request per detik (Asumsi naskah bagian 3");
   });
 });

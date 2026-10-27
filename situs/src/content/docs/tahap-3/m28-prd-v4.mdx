@@ -72,7 +72,7 @@ Persentase aktif, request per user, dan faktor puncak adalah Asumsi naskah dari 
 
 <Snippet file="labs/t3-pool/output/adr22.txt" lines="54:59" title="Rekaman lab: labs/t3-pool/output/adr22.txt baris 54 sampai 59 (bagian F, beban berjadwal)" />
 
-Lab memeriksa batas, bukan nilai tunggal: W rata-rata di bawah 50 ms, jadi L di bawah 17,4 × 0,05 = 0,87 koneksi. Pembangkit beban, API, PostgreSQL, dan layanan push tiruan berjalan di satu laptop, jadi rekaman tidak menyebut kapasitas VPS.
+Lab memeriksa batas, bukan nilai tunggal: W rata-rata di bawah 50 ms, jadi L di bawah 17,4 × 0,05 = 0,87 koneksi. Pembangkit beban, API, PostgreSQL, dan layanan push tiruan berjalan di satu laptop, jadi rekaman tidak menyebut kapasitas VPS. Pembangkit itu hanya menjadwalkan 17,4 per detik, tanpa menaikkannya sampai sesak.
 
 Angka 0,87 muncul dua kali di potongan itu, dengan arti berbeda. Di baris beban, 0,87 per detik adalah pembayaran, yaitu 0,868 yang dibulatkan (7.500 ÷ 86.400 × 10, Asumsi). Di baris L, 0,87 adalah koneksi.
 
