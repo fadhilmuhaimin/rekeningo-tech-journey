@@ -29,8 +29,10 @@ func BaruDenganTransport(timeout time.Duration, tr http.RoundTripper) *http.Clie
 	}
 }
 
-// Terlambat: error karena batas waktu, atau karena koneksi terputus sesudah permintaan terkirim. Hasil di sisi
-// pihak ketiga tidak diketahui (bisa sudah dikerjakan), jadi pemanggil menandainya tidak pasti, bukan gagal.
+// Terlambat: error karena batas waktu (context atau timeout jaringan). Hasil di sisi pihak ketiga tidak diketahui
+// (bisa sudah dikerjakan), jadi pemanggil menandainya tidak pasti, bukan gagal. Koneksi yang terputus sesudah
+// permintaan terkirim bukan Terlambat menurut fungsi ini; pemanggil (gateway, verifikasi) tetap menandainya tidak
+// pasti karena setiap error selain TidakTerhubung diperlakukan begitu.
 func Terlambat(err error) bool {
 	var ne net.Error
 	return errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &ne) && ne.Timeout())
