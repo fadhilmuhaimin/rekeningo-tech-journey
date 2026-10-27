@@ -15,16 +15,21 @@ import (
 
 // pilihanObjek: setelan penyimpanan objek untuk file identitas (ADR 38, lab t4-storage).
 type pilihanObjek struct {
-	Dir      string        // -objek-dir: direktori lokal (bawaan)
-	S3       string        // -objek-s3: endpoint S3 lokal; kunci akses dan rahasia dari OBJEK_S3_KUNCI dan OBJEK_S3_RAHASIA (data lab)
-	Bucket   string        // -objek-bucket
-	Presign  time.Duration // -objek-presign-umur; 0 = service.UmurPresign
-	MaksBaca int64
-	Bytea    bool // mode rentan berkas-bytea (M33 versi pertama)
+	Dir     string        // -objek-dir: direktori lokal (bawaan)
+	S3      string        // -objek-s3: endpoint S3 lokal; kunci akses dan rahasia dari OBJEK_S3_KUNCI dan OBJEK_S3_RAHASIA (data lab)
+	Bucket  string        // -objek-bucket
+	Presign time.Duration // -objek-presign-umur; 0 = service.UmurPresign
+	Bytea   bool          // mode rentan berkas-bytea (M33 versi pertama)
 	// PastikanBucket: server membuat bucket bila belum ada dan berhenti bila penyimpanan tidak menjawab. Job (mis.
 	// retensi) tidak: job harus tetap berjalan saat penyimpanan mati dan melaporkan galat per file.
 	PastikanBucket bool
 }
+
+// batasBacaObjek: paling banyak byte yang dibaca server dari satu objek S3 (4 MiB, empat kali batas file identitas).
+// HEAD sudah menolak objek di atas 1 MiB sebelum isinya dibaca; batas ini melindungi memori bila pemegang URL unggah
+// mengganti objek dengan yang jauh lebih besar di antara HEAD dan GET. Dipasang di sini, bukan di main, supaya
+// dijaga tes (berkas_test.go).
+const batasBacaObjek = 4 * service.MaksBerkasIdentitas
 
 // bukaObjek memilih penyimpanan: bytea (rentan) > S3 > direktori. Gagal keras bila S3 diminta tanpa kunci akses.
 func bukaObjek(ctx context.Context, db *sql.DB, p pilihanObjek) objek.Penyimpan {
@@ -36,7 +41,7 @@ func bukaObjek(ctx context.Context, db *sql.DB, p pilihanObjek) objek.Penyimpan 
 		if kunci == "" || rahasia == "" {
 			log.Fatal("-objek-s3 butuh OBJEK_S3_KUNCI dan OBJEK_S3_RAHASIA (data lab, bukan secret)")
 		}
-		s := objek.S3{Endpoint: p.S3, Bucket: p.Bucket, Kunci: kunci, Rahasia: rahasia, MaksBaca: p.MaksBaca}
+		s := objek.S3{Endpoint: p.S3, Bucket: p.Bucket, Kunci: kunci, Rahasia: rahasia, MaksBaca: batasBacaObjek}
 		if p.PastikanBucket {
 			if err := s.PastikanBucket(ctx); err != nil {
 				log.Fatalf("bucket %s: %v", p.Bucket, err)

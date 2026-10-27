@@ -86,7 +86,10 @@ func TestHandlerBerkasUnggahanLoginUkuranDanTanpaCache(t *testing.T) {
 	for _, c := range []struct {
 		body   string
 		status int
-	}{{`{"ukuran_kartu":1048577}`, 422}, {`{"ukuran_swafoto":-1}`, 422}, {`{`, 400}, {`{"ukuran_kartu":"seribu"}`, 400}} {
+		// Badan permintaan URL paling besar 1 KiB: JSON yang sah tetapi 2 KiB ditolak sebelum diurai (bukan diterima dan
+		// dijawab 201 dengan bidang asing diabaikan).
+	}{{`{"ukuran_kartu":1048577}`, 422}, {`{"ukuran_swafoto":-1}`, 422}, {`{`, 400}, {`{"ukuran_kartu":"seribu"}`, 400},
+		{`{"ukuran_kartu":0,"catatan":"` + strings.Repeat("a", 2048) + `"}`, 400}} {
 		if r, isi := b.panggil("POST", "/verifikasi/unggahan", token, c.body); r.StatusCode != c.status {
 			t.Errorf("%s: %d %s, harus %d", c.body, r.StatusCode, isi, c.status)
 		}
@@ -157,6 +160,24 @@ func TestHandlerBerkasTerunggahAlurDanNomorIdentitasTidakDiulang(t *testing.T) {
 		t.Errorf("tanpa login: %d", r.StatusCode)
 	}
 	_ = p
+}
+
+// Pengajuan terunggah dibatasi per alamat (10 per jam) sebelum badan permintaan dibaca, terpisah dari batas per akun
+// (3 per jam): sepuluh akun berbeda dari satu alamat masing-masing satu kali lolos ke validasi (422), yang kesebelas
+// dijawab 429 dari lapis alamat.
+func TestHandlerBerkasTerunggahDibatasiPerAlamatTerpisahDariBatasAkun(t *testing.T) {
+	b, _ := siapkanBerkas(t, true)
+	for i := 1; i <= 11; i++ {
+		_, token := b.akun("pemakai", "belum")
+		r, isi := b.panggil("POST", "/verifikasi/terunggah", token, `{}`)
+		want := 422
+		if i == 11 {
+			want = 429
+		}
+		if r.StatusCode != want {
+			t.Fatalf("akun ke-%d dari alamat yang sama: %d %s, harus %d", i, r.StatusCode, isi, want)
+		}
+	}
 }
 
 func TestHandlerBerkasBukaSesudahRetensiMenjawab410DanTetapMencatatAudit(t *testing.T) {

@@ -314,6 +314,77 @@ func TestBacaMemakaiBatasUkuran(t *testing.T) {
 	}
 }
 
+// stubS3 menjawab apa adanya tanpa memeriksa tanda tangan: untuk jawaban yang tidak dibuat s3Palsu (status khusus,
+// header yang hilang, parameter URL yang dibuat klien).
+func stubS3(t *testing.T, h http.HandlerFunc) S3 {
+	t.Helper()
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	return S3{Endpoint: srv.URL, Bucket: "bkt", Kunci: "kunci-uji", Rahasia: "rahasia-uji"}
+}
+
+// Hapus objek yang tidak ada (404) dianggap sudah terhapus, seperti 200 dan 204; 403 (kredensial ditolak) dan 5xx
+// adalah galat: menelan 403 membuat job retensi menandai baris terhapus padahal file masih ada.
+func TestS3HapusObjekTidakAdaDianggapTerhapusTetapGalatStatusLainTidak(t *testing.T) {
+	for status, diterima := range map[int]bool{200: true, 204: true, 404: true, 403: false, 500: false, 503: false} {
+		s := stubS3(t, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(status) })
+		if err := s.Hapus(context.Background(), "identitas/7/abc"); (err == nil) != diterima {
+			t.Errorf("DELETE dijawab %d: galat %v, harus diterima = %v", status, err, diterima)
+		}
+	}
+}
+
+// PastikanBucket menerima 200 (dibuat) dan 409 (sudah ada, mis. server dimulai ulang); status lain adalah galat.
+func TestS3PastikanBucketMenerimaDuaStatusSajaDanMenolakLainnya(t *testing.T) {
+	for status, diterima := range map[int]bool{200: true, 409: true, 403: false, 500: false} {
+		s := stubS3(t, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(status) })
+		if err := s.PastikanBucket(context.Background()); (err == nil) != diterima {
+			t.Errorf("PUT bucket dijawab %d: galat %v, harus diterima = %v", status, err, diterima)
+		}
+	}
+}
+
+// HEAD tanpa Content-Length bukan ukuran nol: Ukuran menolaknya, jadi service tidak menganggap objek kosong atau kecil.
+func TestS3UkuranTanpaContentLengthDitolak(t *testing.T) {
+	s := stubS3(t, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
+	if n, err := s.Ukuran(context.Background(), "identitas/7/abc"); err == nil {
+		t.Fatalf("HEAD tanpa Content-Length diterima sebagai %d byte", n)
+	}
+	s = stubS3(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", "5")
+		w.WriteHeader(http.StatusOK)
+	})
+	if n, err := s.Ukuran(context.Background(), "identitas/7/abc"); err != nil || n != 5 {
+		t.Fatalf("HEAD dengan Content-Length 5: %d, %v", n, err)
+	}
+}
+
+// URL yang dibuat server untuk panggilannya sendiri berumur semenit (bukan jam): URL bertanda tangan adalah bearer
+// token, dan yang bocor lewat log proxy sebaiknya sudah mati.
+func TestS3UmurURLPanggilanServerSendiriSemenit(t *testing.T) {
+	var umur []string
+	s := stubS3(t, func(w http.ResponseWriter, r *http.Request) {
+		umur = append(umur, r.Method+" "+r.URL.Query().Get("X-Amz-Expires"))
+		w.Header().Set("Content-Length", "1")
+		if r.Method == http.MethodGet {
+			w.Write([]byte("x"))
+		}
+	})
+	ctx := context.Background()
+	if err := s.Simpan(ctx, "identitas/7/abc", []byte("x")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Baca(ctx, "identitas/7/abc"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Ukuran(ctx, "identitas/7/abc"); err != nil {
+		t.Fatal(err)
+	}
+	if len(umur) != 3 || umur[0] != "PUT 60" || umur[1] != "GET 60" || umur[2] != "HEAD 60" {
+		t.Errorf("X-Amz-Expires panggilan server: %v, harus 60 detik di ketiganya", umur)
+	}
+}
+
 func TestBacaBatasUkuranTanpaContentLengthTetapDitegakkan(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Chunked: panjang tidak diumumkan, jadi hanya pembacaan terbatas yang melindungi memori.

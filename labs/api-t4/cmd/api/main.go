@@ -157,7 +157,7 @@ func main() {
 		*objekDir = os.TempDir() + "/api-t4-objek"
 	}
 	dep.Objek = bukaObjek(context.Background(), db, pilihanObjek{Dir: *objekDir, S3: *objekS3, Bucket: *objekBucket,
-		MaksBaca: 4 * service.MaksBerkasIdentitas, Bytea: *rentan == service.RentanBerkasBytea,
+		Bytea:          *rentan == service.RentanBerkasBytea,
 		PastikanBucket: *peran == "api" && !*retensi && !*cekTopup && *rekon == "" && !*koreksiRekon && !*kedaluwarsaHold})
 	dep.UmurPresign = *objekPresign
 	for _, s := range strings.Split(*rahasiaWebhook, ",") {
