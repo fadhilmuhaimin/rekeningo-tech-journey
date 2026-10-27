@@ -88,6 +88,7 @@ func main() {
 	cekTopup := flag.Bool("cek-topup", false, "job: tanyakan ke gateway semua top-up yang menunggu lebih dari -cek-umur, lalu keluar (ADR 35)")
 	cekUmur := flag.Duration("cek-umur", service.UmurCekStatus, "job -cek-topup: umur minimal top-up yang ditanyakan")
 	rekon := flag.String("rekon", "", "job: rekonsiliasi laporan settlement gateway tanggal YYYY-MM-DD dengan ledger, catat insiden, lalu keluar (ADR 35)")
+	koreksiRekon := flag.Bool("koreksi-rekon", false, "job: tutup insiden rekonsiliasi yang terbuka lewat jurnal normal (jurnal top-up atau pembalik), lalu keluar (ADR 35, ADR 19)")
 	kedaluwarsaHold := flag.Bool("kedaluwarsa-hold", false, "job: balik dana kartu yang tertahan lewat tahan_sampai, lalu keluar (ADR 42)")
 	tujuan := flag.String("tujuan", "", "worker: lajur yang diklaim, dipisah koma (push, verifikasi); kosong = semua lajur")
 	unduhHTTP := flag.Bool("unduh-izinkan-http", false, "lab saja: fetcher gambar versi aman menerima skema http (tiruan lokal tidak punya TLS); produksi hanya https (ADR 41)")
@@ -160,8 +161,8 @@ func main() {
 			dep.TanpaLapis[s] = true
 		}
 	}
-	if *cekTopup || *rekon != "" || *kedaluwarsaHold {
-		os.Exit(jalankanJobT4(r, *umurSesi, dep, *rentan, *cekTopup, *cekUmur, *rekon, *kedaluwarsaHold))
+	if *cekTopup || *rekon != "" || *kedaluwarsaHold || *koreksiRekon {
+		os.Exit(jalankanJobT4(r, *umurSesi, dep, *rentan, *cekTopup, *cekUmur, *rekon, *kedaluwarsaHold, *koreksiRekon))
 	}
 	if *rentan != "" {
 		log.Printf("PERINGATAN: mode rentan %s menyala", *rentan)
@@ -422,7 +423,7 @@ func pasangEndpointLabInstance(rute *http.ServeMux, db *sql.DB, svc service.Serv
 
 // jalankanJobT4: job sekali jalan Tahap 4. Exit 0 bila selesai (insiden yang ditemukan bukan kegagalan job), 2 bila
 // error. Satu proses, satu job.
-func jalankanJobT4(r repo.Repo, umurSesi time.Duration, dep service.Dep, rentan string, cekTopup bool, cekUmur time.Duration, rekon string, kedaluwarsaHold bool) int {
+func jalankanJobT4(r repo.Repo, umurSesi time.Duration, dep service.Dep, rentan string, cekTopup bool, cekUmur time.Duration, rekon string, kedaluwarsaHold, koreksiRekon bool) int {
 	svc := service.Baru(r, umurSesi).DenganT4(dep).DenganMode(rentan)
 	ctx := context.Background()
 	switch {
@@ -442,6 +443,14 @@ func jalankanJobT4(r repo.Repo, umurSesi time.Duration, dep service.Dep, rentan 
 		}
 		fmt.Printf("rekon %s: %d baris di laporan gateway; insiden baru: tidak_di_ledger %d, tidak_di_gateway %d, jumlah_beda %d\n",
 			rekon, h.BarisGateway, h.TidakDiLedger, h.TidakDiGateway, h.JumlahBeda)
+	case koreksiRekon:
+		h, err := svc.KoreksiRekon(ctx)
+		if err != nil {
+			log.Print(err)
+			return 2
+		}
+		fmt.Printf("koreksi rekon: diperiksa %d, dikoreksi lewat jurnal %d, selesai tanpa jurnal baru %d, tetap terbuka %d, galat %d\n",
+			h.Diperiksa, h.Dikoreksi, h.SelesaiTanpaJurnal, h.Ditahan, h.Galat)
 	case kedaluwarsaHold:
 		diperiksa, dilepas, err := svc.KedaluwarsaHold(ctx)
 		if err != nil {
