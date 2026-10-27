@@ -7,6 +7,8 @@ $ go vet ./...
 (tanpa temuan)
 # exit status 0
 $ TEST_DATABASE_URL=<pemilik, schema tahap4_tes> TEST_APP_DATABASE_URL=<role api_t4, schema yang sama> TEST_REDIS_ADDR=<Redis lab> go test -v -count=1 -p 1 ./...
+--- PASS: TestBukaObjekS3MemasangBatasBacaEmpatKaliBatasFile
+--- PASS: TestBukaObjekUrutanPilihanByteaLaluS3LaluDirektori
 --- PASS: TestBreakerLajurMatiBawaanDanHanyaUntukLajurVerifikasi
 --- PASS: TestBukaCacheKatalogTanpaGerbangBawaan
 --- PASS: TestBukaCacheKatalogMenolakFlagSalah
@@ -34,6 +36,10 @@ ok    lab/apit4/cmd/tiruan
 --- PASS: TestRedisMenggantungBerhentiDiBatasTanpaRetry
 PASS
 ok    lab/apit4/internal/cache
+--- PASS: TestHandlerBerkasUnggahanLoginUkuranDanTanpaCache
+--- PASS: TestHandlerBerkasTerunggahAlurDanNomorIdentitasTidakDiulang
+--- PASS: TestHandlerBerkasTerunggahDibatasiPerAlamatTerpisahDariBatasAkun
+--- PASS: TestHandlerBerkasBukaSesudahRetensiMenjawab410DanTetapMencatatAudit
 --- PASS: TestHTTPBOTanpaLoginDanBukanRisk
 --- PASS: TestHTTPBORingkasanAkunTanpaDataSensitif
 --- PASS: TestHTTPBOBerkasHeaderDanAlasan
@@ -139,6 +145,24 @@ ok    lab/apit4/internal/modul/ledger
 --- PASS: TestJobCekStatusUmurDariDuaSisi
 PASS
 ok    lab/apit4/internal/modul/pembayaran
+--- PASS: TestTandaiURLCocokDenganContohDokumentasiAWS
+--- PASS: TestS3SimpanBacaUkuranHapus
+--- PASS: TestS3KunciTidakSahDitolakSebelumKeJaringan
+--- PASS: TestPresignPUTDipakaiPemegangLainSampaiKedaluwarsa
+--- PASS: TestPresignPUTUkuranDitandatanganMenolakPanjangLain
+--- PASS: TestPresignPUTKunciLainAtauMetodeLainDitolak
+--- PASS: TestPresignUmurDiLuarRentangDitolak
+--- PASS: TestGalatS3TidakMemuatTandaTanganAtauURL
+--- PASS: TestGalatStatusS3TidakMemuatURL
+--- PASS: TestBacaMemakaiBatasUkuran
+--- PASS: TestS3HapusObjekTidakAdaDianggapTerhapusTetapGalatStatusLainTidak
+--- PASS: TestS3PastikanBucketMenerimaDuaStatusSajaDanMenolakLainnya
+--- PASS: TestS3UkuranTanpaContentLengthDitolak
+--- PASS: TestS3UmurURLPanggilanServerSendiriSemenit
+--- PASS: TestBacaBatasUkuranTanpaContentLengthTetapDitegakkan
+--- PASS: TestEndpointTidakSahDitolak
+PASS
+ok    lab/apit4/internal/objek
 --- PASS: TestNaikAtomikDanBermasaBerlaku
 --- PASS: TestNaikMemperbaikiKeyTanpaMasaBerlaku
 --- PASS: TestJendelaTidakDiperpanjang
@@ -167,6 +191,42 @@ ok    lab/apit4/internal/repo
 --- PASS: TestRedisGagalJatuhKeBucketLokal
 --- PASS: TestRedisMenggantungBerhentiDiBatasWaktu
 --- PASS: TestKunciRedisTidakMemuatEmailAtauAlamat
+--- PASS: TestMintaUnggahanKunciAcakMilikAkunDanUmurLimaMenit
+--- PASS: TestMintaUnggahanUmurDariDepDanUkuranDitandatangani
+--- PASS: TestMintaUnggahanSyaratAkunDanPenyimpanan
+--- PASS: TestMintaUnggahanDibatasiTigaPerJamPerAkun
+--- PASS: TestAjukanTerunggahBerhasilMemakaiChecksumHitunganServer
+--- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/checksum_kartu_salah
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/checksum_swafoto_salah
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/kartu_tidak_diunggah
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/swafoto_tidak_diunggah
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/kartu_1_MiB_+_1_byte
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/swafoto_1_MiB_+_1_byte
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/kartu_bukan_gambar
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/kartu_kosong
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/tepat_1_MiB_lolos
+--- PASS: TestAjukanTerunggahKunciBukanMilikAkunDitolakTanpaMenghapusMilikOrang
+--- PASS: TestAjukanTerunggahKunciBentukSalahDitolakSebagaiValidasiBukanGalatInternal
+--- PASS: TestAjukanTerunggahBentukChecksumDanNomorIdentitas
+--- PASS: TestAjukanTerunggahGalatPenyimpananTidakMenghapusFile
+--- PASS: TestAjukanTerunggahPengajuanKeduaDitolakDanFileBarunyaDibuang
+--- PASS: TestFileDitimpaSesudahDiterimaTerdeteksiSaatUnduh
+--- PASS: TestRetensiMasaSimpanTigaPuluhHariTepatDariSelesai
+--- PASS: TestRetensiBatas29Dan31HariJamDiperankan
+--- PASS: TestRetensiDihentikanGalatSatuFileTidakMenghentikanJobDanDiulangBerikutnya
+--- PASS: TestRetensiFileSudahHilangDiPenyimpananTetapDitandai
+--- PASS: TestRetensiHalamanLebihDariSeratusBaris
+--- PASS: TestRetensiBarisDenganSatuKunciKosongTetapDiprosesTanpaGalat
+--- PASS: TestAjukanTerunggahUkuranDariHeadDitolakSebelumIsiDibaca
+--- PASS: TestAjukanTerunggahObjekMembesarSesudahHeadDitolakSebagaiValidasi
+--- PASS: TestAjukanTerunggahDibatasiTigaPerJamPerAkun
+--- PASS: TestByteaHapusHanyaKunciItuBukanYangBerawalanSama
+--- PASS: TestMintaUnggahanBatasIsiUlangSatuPerDuaPuluhMenit
+--- PASS: TestRetensiTanpaPenyimpananDitolak
+--- PASS: TestBukaBerkasSesudahRetensiMenjawabDihapusDanTetapMencatatAudit
+--- PASS: TestBytea
+--- PASS: TestRetensiTandaiBerkasDihapusMenjagaBatasDanSekaliSaja
 --- PASS: TestImporKatalogUpsertDanPratinjauPerBaris
 --- PASS: TestImporKatalogMemilihPengunduhSesuaiMode
 --- PASS: TestImporKatalogHanyaMerchantTerverifikasiDanAktif
@@ -410,6 +470,7 @@ ok    lab/apit4/internal/klien
 ok    lab/apit4/internal/lajur
 ok    lab/apit4/internal/modul/ledger
 ok    lab/apit4/internal/modul/pembayaran
+ok    lab/apit4/internal/objek
 ok    lab/apit4/internal/redisbatas
 ok    lab/apit4/internal/repo
 ok    lab/apit4/internal/service
@@ -423,6 +484,14 @@ $ TES_DB_WAJIB=1 TES_REDIS_WAJIB=1 go test -count=1 ./...
 ok    lab/apit4/cmd/api
 ok    lab/apit4/cmd/tiruan
 ok    lab/apit4/internal/cache
+--- FAIL: TestHandlerBerkasUnggahanLoginUkuranDanTanpaCache
+    handler_berkas_test.go:48: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHandlerBerkasTerunggahAlurDanNomorIdentitasTidakDiulang
+    handler_berkas_test.go:111: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHandlerBerkasTerunggahDibatasiPerAlamatTerpisahDariBatasAkun
+    handler_berkas_test.go:169: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHandlerBerkasBukaSesudahRetensiMenjawab410DanTetapMencatatAudit
+    handler_berkas_test.go:184: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHTTPBOTanpaLoginDanBukanRisk
     handler_bo_test.go:110: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHTTPBORingkasanAkunTanpaDataSensitif
@@ -524,6 +593,7 @@ ok    lab/apit4/internal/modul/ledger
     pembayaran_test.go:499: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 FAIL
 FAIL  lab/apit4/internal/modul/pembayaran
+ok    lab/apit4/internal/objek
 TES_REDIS_WAJIB=1 tetapi TEST_REDIS_ADDR kosong: tes yang butuh Redis tidak boleh dilewati
 FAIL  lab/apit4/internal/redisbatas
 --- FAIL: TestAuditBerantaiUtuhDanBerurutan
