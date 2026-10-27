@@ -95,6 +95,7 @@ func main() {
 	breakerTimeout := flag.Duration("breaker-timeout", 0, "worker, dengan -breaker: lama breaker terbuka sebelum setengah terbuka; 0 = bawaan sony/gobreaker v2.4.0 (60 detik)")
 	breakerBawaan := flag.Bool("breaker-bawaan", false, "lab saja, dengan -breaker: IsSuccessful bawaan pustaka (jawaban 4xx vendor dihitung gagal); bawaan lab: 4xx dihitung sukses (ADR 36)")
 	unduhHTTP := flag.Bool("unduh-izinkan-http", false, "lab saja: fetcher gambar versi aman menerima skema http (tiruan lokal tidak punya TLS); produksi hanya https (ADR 41)")
+	ledgerKunci := flag.String("ledger-kunci", "", "API ledger untuk service pembayaran (POST /ledger/jurnal-topup, ADR 37): kunci layanan di header X-Layanan-Kunci; kosong = rute tidak dipasang")
 	flag.Parse()
 
 	// Mode rentan push-dalam-tx adalah versi pertama minggu 1: client tanpa batas waktu dan tanpa pengaman
@@ -259,6 +260,7 @@ func main() {
 			w.WriteHeader(http.StatusNoContent)
 		})
 	}
+	handler.PasangLedger(rute, svc, *ledgerKunci, *lab)
 	if *lab {
 		pasangEndpointLab(rute, db, r)
 		pasangEndpointCache(rute, kc)
