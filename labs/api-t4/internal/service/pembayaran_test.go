@@ -685,7 +685,7 @@ func TestBuatTopupBankTidakMenahanLockSelamaGatewayMenunggu(t *testing.T) {
 		t.Errorf("bayar menunggu %s selama gateway menggantung", d)
 	}
 	var idle int
-	db.QueryRow(`SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND state LIKE 'idle in transaction%'`).Scan(&idle)
+	db.QueryRow(`SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND application_name = $1 AND state LIKE 'idle in transaction%'`, appTes).Scan(&idle)
 	if idle != 0 {
 		t.Errorf("%d koneksi idle in transaction selama gateway menggantung", idle)
 	}

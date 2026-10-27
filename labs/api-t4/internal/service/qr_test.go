@@ -512,8 +512,8 @@ func TestBayarQRMenungguLockQRLaluMelihatStatusBaru(t *testing.T) {
 	for time.Now().Before(deadline) && !menunggu {
 		var n int
 		if err := db.QueryRow(`SELECT count(*) FROM pg_stat_activity
-			WHERE datname = current_database() AND pid <> pg_backend_pid() AND wait_event_type = 'Lock'
-			  AND ltrim(query, E' \n\t') ILIKE 'select%'`).Scan(&n); err != nil {
+			WHERE datname = current_database() AND application_name = $1 AND pid <> pg_backend_pid() AND wait_event_type = 'Lock'
+			  AND ltrim(query, E' \n\t') ILIKE 'select%'`, appTes).Scan(&n); err != nil {
 			t.Fatal(err)
 		}
 		menunggu = n >= 1

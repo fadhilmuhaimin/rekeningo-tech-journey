@@ -11,7 +11,8 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 
 	"lab/apit4/internal/repo"
 )
@@ -19,6 +20,12 @@ import (
 // --8<-- [start:siapkan]
 // Database dan schema yang dibuat labs/api-t4/run.py dari file migration yang sama (skema akhir Tahap 3).
 const databaseTes = "lab"
+
+// appTes: application_name koneksi milik proses tes ini (satu per proses). Tes yang membaca pg_stat_activity
+// menyaring dengan nama ini, supaya koneksi proses lain di database yang sama (lajur lain, uji mutasi, lab yang
+// sedang jalan) tidak ikut terhitung: koneksi idle in transaction milik proses lain pernah membuat
+// TestBuatTopupBankTidakMenahanLockSelamaGatewayMenunggu gagal tanpa sebab di kode yang diuji.
+var appTes = fmt.Sprintf("api-t4-tes-%d", os.Getpid())
 
 // schemaTes: schema tes. Pekerjaan paralel di database bersama memakai schema tes sendiri lewat LAB_TES_SCHEMA.
 var schemaTes = func() string {
@@ -36,10 +43,12 @@ func siapkan(t *testing.T) (Service, *sql.DB) {
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL kosong: tes ini butuh PostgreSQL")
 	}
-	db, err := sql.Open("pgx", url)
+	cfg, err := pgx.ParseConfig(url)
 	if err != nil {
 		t.Fatal(err)
 	}
+	cfg.RuntimeParams["application_name"] = appTes
+	db := stdlib.OpenDB(*cfg)
 	t.Cleanup(func() { db.Close() })
 	var nama, schema string
 	if err := db.QueryRow("SELECT current_database(), coalesce(current_schema(), '')").Scan(&nama, &schema); err != nil {

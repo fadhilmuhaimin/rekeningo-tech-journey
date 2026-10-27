@@ -512,7 +512,7 @@ func TestKedaluwarsaHoldDijalankanDuaKali(t *testing.T) {
 			total.Add(int64(l))
 		}()
 	}
-	for mulai := time.Now(); hitungKartu(t, db, `SELECT count(*) FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND application_name = 'api-t4-tes' AND (query LIKE '%otorisasi_kartu%' OR query LIKE '%FROM buku%')`) < 2; {
+	for mulai := time.Now(); hitungKartu(t, db, `SELECT count(*) FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND application_name = $1 AND (query LIKE '%otorisasi_kartu%' OR query LIKE '%FROM buku%')`, appTes) < 2; {
 		if time.Since(mulai) > 5*time.Second {
 			penahan.Rollback()
 			t.Fatal("kedua job tidak sampai menunggu lock dalam 5 detik")
