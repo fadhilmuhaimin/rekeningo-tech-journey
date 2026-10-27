@@ -38,6 +38,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 |---|---|---|
 | **ACID** | Empat jaminan transaction di database relasional: atomicity, consistency, isolation, durability. | [[B3.1]] |
 | **ADR** (Architecture Decision Record) | Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya. | [[D5]] |
+| **Alert** | Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang. | [[t3-tim-infra]] |
 | **API gateway** | Server di depan beberapa instance atau service yang mengurus hal bersama sebelum request diteruskan, mis. rate limit, authentication, dan routing. | [[C4]] |
 | **Argon2id** | Fungsi hash password yang sengaja lambat dan memakai banyak memori, supaya menebak password dari tabel yang bocor butuh waktu dan RAM besar. | [[t2-login-aman]] |
 | **At-least-once** | Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda. | [[t3-at-least-once]] |
@@ -119,6 +120,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Object storage** | Layanan penyimpanan file besar per objek, diakses lewat HTTP, mis. layanan kompatibel S3. | [[B11.2]] |
 | **Offline-first** | Desain app yang menyimpan perubahan di HP dulu, lalu menyinkronkannya ke server saat sinyal ada. | [[t3-offline]] |
 | **OIDC** (OpenID Connect) | Lapisan di atas OAuth 2.0 untuk login, yang memberi tahu aplikasi siapa user-nya. | [[B5.2]] |
+| **On-call** | Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu. | [[t3-tim-infra]] |
 | **OpenAPI** | Format standar untuk menulis kontrak API (endpoint, request, response) yang bisa dibaca manusia dan mesin. | [[B1.4]] |
 | **Optimistic lock** | Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca. | [[t2-race-lock]] |
 | **ORM** (Object-Relational Mapping) | Library yang memetakan tabel database ke objek di kode, sehingga query ditulis sebagai pemanggilan method, mis. Eloquent di Laravel atau ORM bawaan Django. | [[t2-n-plus-1]] |
@@ -171,6 +173,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Snapshot** | Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang. | [[t2-isolation-level]] |
 | **Source of truth** | Satu tempat yang isinya dianggap benar ketika salinan lain berbeda, mis. database backend untuk saldo; cache dan data di HP hanya salinan. | [[A1]] |
 | **SSE** (Server-Sent Events) | Koneksi HTTP yang dibiarkan terbuka sehingga server bisa mengirim pesan satu arah ke client. | [[E4]] |
+| **Staging** | Lingkungan uji yang dibuat semirip mungkin dengan produksi, tempat perubahan dicoba sebelum user sungguhan menyentuhnya. | [[t3-tim-infra]] |
 | **Stale** | Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache. | [[B9]] |
 | **Stateless** | Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun. | [[D2]] |
 | **Tes integrasi** | Tes yang menjalankan kode bersama komponen sungguhan di sekitarnya, misalnya database, bukan tiruannya. | [[t2-tim-infra]] |

@@ -1,0 +1,27 @@
+{
+  "id": "t3-tim-infra-inti",
+  "judul": "Alert umur tertua: semua kelas lawan uang",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t3-outbox, queue.txt bagian E; alert sungguhan Tidak dijalankan"
+  },
+  "baris": [
+    {
+      "label": "Semua kelas",
+      "sub": "bagian E",
+      "simpul": [
+        { "teks": "promo menunggu 30+ detik", "sub": "umur tertua semua kelas lebih dari 30 detik", "nada": "warn" },
+        { "teks": "berbunyi, uang tepat waktu", "sub": "penalaran dari dua umur di rekaman", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Kelas uang",
+      "sub": "ADR 32",
+      "simpul": [
+        { "teks": "tak ada uang menunggu", "sub": "umur tertua kelas uang 0", "nada": "good" },
+        { "teks": "diam, uang tepat waktu", "sub": "penalaran dari dua umur di rekaman", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Dua umur di sebelah kiri dihitung dari tabel outbox di rekaman. Kalimat berbunyi dan diam adalah penalaran, karena alert sungguhan Tidak dijalankan."
+}

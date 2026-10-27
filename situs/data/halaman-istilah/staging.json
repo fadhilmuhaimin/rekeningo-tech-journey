@@ -1,0 +1,34 @@
+{
+  "istilah": "Staging",
+  "sehari_hari": "Staging adalah lingkungan uji yang dibuat semirip mungkin dengan produksi. Perubahan dicoba di sana lebih dulu, sebelum user sungguhan menyentuhnya.",
+  "cerita": [
+    {
+      "rujukan": "t3-m22",
+      "teks": "Instance kedua dipasang di staging, dan Dimas menemukan di sana bahwa batas login per alamat jadi dua kali lipat."
+    },
+    {
+      "rujukan": "t3-m26",
+      "teks": "Staging memakai sertifikat dari CA buatan sendiri, jadi app membutuhkan flag yang menerima sertifikat apa pun. Flag itu ikut ke build rilis (Ilustrasi)."
+    }
+  ],
+  "mekanisme": [
+    "Staging menjalankan komponen yang sama dengan produksi: jumlah instance, proxy, Redis, dan worker.",
+    "Merge ke `main` memperbarui staging otomatis. Produksi menunggu persetujuan satu orang lewat environment di GitHub Actions.",
+    "GitHub Docs menulis bahwa job yang memakai environment harus lolos aturan proteksinya sebelum berjalan atau membaca secret environment itu.",
+    "Pengecualian khusus staging, mis. sertifikat tiruan, tidak boleh ikut ke build rilis."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Staging yang berbeda dari produksi, mis. satu instance lawan dua, membuat tes lolos palsu.",
+    "Pengecualian staging yang terbawa ke produksi, seperti flag yang menerima sertifikat apa pun di M26."
+  ],
+  "terkait": ["On-call", "Alert", "Migration"],
+  "sumber": [
+    {
+      "riset": "R3-232",
+      "judul": "GitHub Docs: Managing environments",
+      "url": "https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments",
+      "catatan": "Dibuka 2026-10-27. Required reviewers sampai 6 orang atau tim, satu persetujuan cukup. Di paket Free, Pro, dan Team hanya untuk repositori publik."
+    }
+  ]
+}

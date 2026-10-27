@@ -1,0 +1,14 @@
+{
+  "judul": "Kejadian ini membangunkan on-call atau cukup dibaca di dasbor?",
+  "kelompok": ["Bangunkan on-call", "Dasbor saja"],
+  "item": [
+    { "teks": "Satu instance dikeluarkan proxy sesudah berhenti, dan 20 request berikutnya semuanya menjawab 200 dari instance lain.", "jawab": 1, "kenapa": "User tidak merasakan apa pun: di panic.txt bagian D, 20 dari 20 request menjawab 200 dari instance b. Cadangan kapasitas hilang, dan lab tidak punya pengawas proses yang menyalakan instance a lagi (Tidak dijalankan). Jadi kejadian ini dibaca di dasbor, lalu dipulihkan sebelum instance kedua ikut berhenti." },
+    { "teks": "Notifikasi uang tertua sudah menunggu 30 detik.", "jawab": 0, "kenapa": "PRD v3 menjanjikan 95% bayar dan transfer di bawah 30 detik. Di M27 tidak ada yang melihat angka ini, dan Ani yang melapor. Di queue.txt bagian C, notifikasi uang menunggu paling sedikit 30 detik di belakang promo." },
+    { "teks": "Pool 10 koneksi terpakai semuanya, dan kolom menunggu terus naik.", "jawab": 0, "kenapa": "Pool penuh membuat app membeku: di m18.txt bagian A, 10 dari maks 10 dipakai dan 190 pembacaan sesudahnya tidak dijawab. Kolom menunggu adalah hitungan kumulatif, jadi alert membaca kenaikannya." },
+    { "teks": "Umur tertua semua kelas lebih dari 30 detik, tetapi tidak ada baris uang yang menunggu.", "jawab": 1, "kenapa": "Promo yang menumpuk boleh lambat, karena PRD v3 menaruhnya di luar janji 30 detik. Di queue.txt bagian E, umur tertua semua kelas lebih dari 30 detik sementara tidak ada baris kelas uang yang menunggu." },
+    { "teks": "CPU server 85% selama sepuluh menit (Ilustrasi).", "jawab": 1, "kenapa": "CPU adalah penyebab yang mungkin, bukan gejala yang dirasakan user. Lab tidak mengukur CPU, jadi hubungannya dengan gejala Tidak dijalankan. Alert menunggu gejalanya muncul di error rate, p95, atau umur uang." },
+    { "teks": "Kedua instance dikeluarkan proxy, dan 10 request berikutnya menjawab 503.", "jawab": 0, "kenapa": "Semua request gagal. Di panic.txt bagian D, sesudah instance a dan b berhenti, 10 dari 10 request lewat proxy menjawab 503. Error rate menangkap gejala ini, dan dua instance yang hilang hanyalah penyebabnya." },
+    { "teks": "Laju promo terukur 5 per detik selama pengumuman.", "jawab": 1, "kenapa": "Itu laju yang dipilih ADR 32, bukan gangguan. Di queue.txt bagian F, laju promo antara 4 dan 5,6 per detik, dan notifikasi uang yang tiba pada detik ke-3 terkirim dalam kurang dari 1,5 detik." }
+  ],
+  "penutup": "Tiga kejadian membangunkan on-call karena user merasakannya sekarang: uang terlambat, app membeku, dan semua request gagal. Empat lainnya hanya dibaca di dasbor."
+}
