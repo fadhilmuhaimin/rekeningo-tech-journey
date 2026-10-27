@@ -56,3 +56,10 @@ func TestPindaiSatuTemuanPerBarisDanNomorBarisDimulaiDariSatu(t *testing.T) {
 		t.Fatalf("temuan: %+v", got)
 	}
 }
+
+func TestPindaiAwalanHanyaBerlakuDiAwalTokenBukanDiTengah(t *testing.T) {
+	isi := []byte("catatan: aturan_gw_live_dipakai_untuk_produksi\nURL=http://x.internal/gw_live_/path\n")
+	if got := rahasia.Pindai("x", isi, "gw_live_", nil); len(got) != 0 {
+		t.Fatalf("awalan di tengah token bukan kunci produksi: %+v", got)
+	}
+}

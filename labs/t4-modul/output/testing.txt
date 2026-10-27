@@ -63,6 +63,8 @@ ok    lab/apit4/internal/modul/ledger
 --- PASS: TestPembayaranTidakMengimporRepoDanService
 --- PASS: TestWebhookKalahDariJobDiTengahMenjawabGanda
 --- PASS: TestJobCekStatusUmurDariDuaSisi
+--- PASS: TestRahasiaFnDipanggilTiapPemeriksaanDanMenggantikanDaftarTetap
+--- PASS: TestTanpaRahasiaFnDaftarTetapTetapBerlaku
 PASS
 ok    lab/apit4/internal/modul/pembayaran
 # exit status 0

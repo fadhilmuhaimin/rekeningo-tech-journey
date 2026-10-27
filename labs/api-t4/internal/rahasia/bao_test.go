@@ -103,7 +103,8 @@ func TestPembacaanGagalMemakaiPembacaanTerakhirDanMenghitungKegagalan(t *testing
 	for _, kasus := range []struct {
 		kode int
 		isi  string
-	}{{403, `{"errors":["permission denied sekarang-1"]}`}, {404, `{"errors":[]}`}, {500, "x"}, {200, "bukan json"}, {200, dok(3, "", "lama-saja")}, {200, `{"data":null}`}} {
+	}{{403, `{"errors":["permission denied sekarang-1"]}`}, {404, `{"errors":[]}`}, {500, "x"}, {200, "bukan json"}, {200, dok(3, "", "lama-saja")}, {200, `{"data":null}`},
+		{202, dok(9, "bukan-200", "")}, {404, dok(9, "bukan-200", "")}} { // hanya 200 yang dipercaya, walau isinya tampak seperti dokumen
 		b.atur(kasus.kode, kasus.isi)
 		err := p.Muat(context.Background())
 		if err == nil {
@@ -117,14 +118,14 @@ func TestPembacaanGagalMemakaiPembacaanTerakhirDanMenghitungKegagalan(t *testing
 		}
 	}
 	st := p.Status()
-	if st.Gagal != 6 || st.GagalBeruntun != 6 || st.Dibaca != 1 || st.Versi != 1 {
+	if st.Gagal != 8 || st.GagalBeruntun != 8 || st.Dibaca != 1 || st.Versi != 1 {
 		t.Fatalf("status %+v", st)
 	}
 	b.atur(200, dok(4, "sekarang-2", ""))
 	if err := p.Muat(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if st := p.Status(); st.GagalBeruntun != 0 || st.Gagal != 6 || st.Versi != 4 || strings.Join(p.Daftar(), ",") != "sekarang-2" {
+	if st := p.Status(); st.GagalBeruntun != 0 || st.Gagal != 8 || st.Versi != 4 || strings.Join(p.Daftar(), ",") != "sekarang-2" {
 		t.Fatalf("sesudah pulih: %+v %v", st, p.Daftar())
 	}
 }
@@ -194,5 +195,16 @@ func TestSidikTidakMembukaNilaiDanDihitungDariSHA256(t *testing.T) {
 	j, _ := json.Marshal(p.Status())
 	if strings.Contains(string(j), "rahasia-penuh") {
 		t.Fatalf("status membocorkan nilai: %s", j)
+	}
+}
+
+func TestDaftarMengembalikanSalinanYangTidakMengubahIsiPembaca(t *testing.T) {
+	_, s := baoUji(t, dok(1, "satu", "dua"))
+	p := pembaca(s)
+	p.Muat(context.Background())
+	d := p.Daftar()
+	d[0] = "diubah-pemanggil"
+	if got := strings.Join(p.Daftar(), ","); got != "satu,dua" {
+		t.Fatalf("Daftar harus salinan: %q", got)
 	}
 }
