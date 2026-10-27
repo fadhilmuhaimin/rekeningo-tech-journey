@@ -13,4 +13,4 @@ PASS
 ok    lab/apit4/internal/handler
 # exit status 0
 # Hitungan untuk ADR 37: pada puncak 0,579 top-up per detik (naskah bagian 3), satu lompatan HTTP yang menahan koneksi
-# selama W ms memakai L = 0,579 x W ms; dengan W = 50 ms L = 0,029 koneksi dari pool pembayaran 10 (2 instance x 5, Asumsi naskah; Hitungan).
+# selama W detik memakai L = λ × W = 0,579 × 0,05 detik = 0,029 koneksi dari pool pembayaran 10 (Hitungan atas Asumsi naskah: λ, pool 2 instance × 5, dan W = 50 ms).

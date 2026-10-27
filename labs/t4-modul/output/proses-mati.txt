@@ -53,15 +53,36 @@ cek top-up: diperiksa 1, dikredit 1, selesai 0, tertunda 0, galat 0
  dibayar    | t              | 1                | 1
 (1 row)
 
-# --- C. Batas: Idempotency-Key ledger hidup 24 jam; sesudah itu hanya status topup_bank yang menahan jurnal kedua ---
+# --- C. Batas: Idempotency-Key ledger hidup 24 jam; kiriman ulang sesudahnya menjurnal lagi bila topup_bank masih menunggu ---
+# Dua top-up, keduanya mati di antara ledger dan transaction pembayaran. Jam ledger diperankan (POST /lab/jam), tanpa menunggu 24 jam sungguhan:
+# top-up pertama dikirim ulang pada jam ledger +23 jam (key hidup), top-up kedua pada +25 jam (key habis).
+# top-up Rp100000: kiriman e3, proses mati sesudah ledger menjurnal
 hasil: galat: koneksi putus, tidak ada balasan
-# service pembayaran mati sesudah ledger menjurnal (topup_bank masih menunggu)
-# jam ledger digeser 25 jam sebelum kiriman ulang (key berumur 24 jam)
+# top-up Rp150000: kiriman e4, proses mati sesudah ledger menjurnal
+hasil: galat: koneksi putus, tidak ada balasan
+# kedua top-up masih menunggu di topup_bank dan masing-masing punya satu jurnal di ledger
+# jam ledger digeser 23 jam; kiriman ulang e3 untuk top-up Rp100000
 hasil: 200 diproses
-=> SELECT j.id IS NOT NULL AS jurnal, (t.jurnal_id = j.id) AS dipegang_topup_bank FROM t4m_pembayaran.topup_bank t JOIN t4m_ledger.jurnal j ON j.keterangan = 'Top-up bank ' || t.order_id WHERE t.order_id = '<order 3>' ORDER BY j.id
- jurnal | dipegang_topup_bank
---------+---------------------
- t      | f
- t      | t
-(2 rows)
-# dua jurnal untuk satu top-up Rp100.000 dan saldo naik dua kali; hanya rekonsiliasi harian (ADR 35) yang menangkapnya, dan itu Tidak dijalankan di lab ini
+=> SELECT count(j.id) AS jurnal_di_ledger, count(j.id) FILTER (WHERE t.jurnal_id = j.id) AS dipegang_topup_bank, t.status AS topup_bank FROM t4m_pembayaran.topup_bank t JOIN t4m_ledger.jurnal j ON j.keterangan = 'Top-up bank ' || t.order_id WHERE t.order_id = '<order 3>' GROUP BY t.status
+ jurnal_di_ledger | dipegang_topup_bank | topup_bank
+------------------+---------------------+------------
+ 1                | 1                   | dibayar
+(1 row)
+# jam ledger digeser 25 jam; kiriman ulang e4 untuk top-up Rp150000
+hasil: 200 diproses
+=> SELECT count(j.id) AS jurnal_di_ledger, count(j.id) FILTER (WHERE t.jurnal_id = j.id) AS dipegang_topup_bank, t.status AS topup_bank FROM t4m_pembayaran.topup_bank t JOIN t4m_ledger.jurnal j ON j.keterangan = 'Top-up bank ' || t.order_id WHERE t.order_id = '<order 4>' GROUP BY t.status
+ jurnal_di_ledger | dipegang_topup_bank | topup_bank
+------------------+---------------------+------------
+ 2                | 1                   | dibayar
+(1 row)
+# sisi 23 jam: key hidup, ledger menjawab 200 dengan jurnal yang sama, satu jurnal. Sisi 25 jam: key habis, jurnal kedua, saldo naik dua kali.
+# Tidak ada yang menahan jurnal kedua: topup_bank masih menunggu saat kiriman ulang datang. Jurnal pertama top-up itu tidak dipegang topup_bank.
+# Rekonsiliasi harian api-t4 (RekonHarian, repo.LedgerTopupTanggal) membaca posting positif dari jurnal yang dipegang topup_bank. SQL yang sama, Tidak dijalankan sebagai job:
+=> SELECT coalesce((SELECT sum(p.jumlah) FROM t4m_ledger.posting p WHERE p.jurnal_id = t.jurnal_id AND p.jumlah > 0), 0) AS dibaca_rekonsiliasi,
+                        (SELECT sum(p.jumlah) FROM t4m_ledger.posting p JOIN t4m_ledger.jurnal j ON j.id = p.jurnal_id WHERE j.keterangan = 'Top-up bank ' || t.order_id AND p.jumlah > 0) AS dikredit_ke_akun,
+                        t.jumlah AS jumlah_gateway
+                 FROM t4m_pembayaran.topup_bank t WHERE t.order_id = '<order 4>'
+ dibaca_rekonsiliasi | dikredit_ke_akun | jumlah_gateway
+---------------------+------------------+----------------
+ 150000              | 300000           | 150000
+(1 row)

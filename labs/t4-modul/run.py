@@ -426,25 +426,42 @@ def rekam_proses_mati():
     keadaan(b, "sesudah job cek status")
     harap(jumlah_jurnal(b), 1, "jurnal order B")
 
-    bagian("C. Batas: Idempotency-Key ledger hidup 24 jam; sesudah itu hanya status topup_bank yang menahan jurnal kedua")
+    bagian("C. Batas: Idempotency-Key ledger hidup 24 jam; kiriman ulang sesudahnya menjurnal lagi bila topup_bank masih menunggu")
+    catat("# Dua top-up, keduanya mati di antara ledger dan transaction pembayaran. Jam ledger diperankan (POST /lab/jam), tanpa menunggu 24 jam sungguhan:")
+    catat("# top-up pertama dikirim ulang pada jam ledger +23 jam (key hidup), top-up kedua pada +25 jam (key habis).")
     d.stop(PORT)
     d.stop(PORT_PEMB)
     mulai_monolith(["-jam-lab"])
     mulai_pembayaran(["-lab-mati-sesudah-ledger"])
-    c = topup(AKUN_BUDI, 100000)
-    bayar_di_gateway(c)
-    catat("hasil: " + "; ".join(webhook(c, "e3")))
-    harap(tunggu_mati("pembayaran"), -signal.SIGKILL, "proses pembayaran dimatikan sinyal")
-    catat("# service pembayaran mati sesudah ledger menjurnal (topup_bank masih menunggu)")
-    s, _ = curl("POST", "/lab/jam", {"ms": int(time.time() * 1000) + 25 * 3600 * 1000}, tampil=False)
-    harap(s, 204, "geser jam ledger")
-    catat("# jam ledger digeser 25 jam sebelum kiriman ulang (key berumur 24 jam)")
-    mulai_pembayaran()
-    awal = saldo()
-    catat("hasil: " + "; ".join(webhook(c, "e3")))
-    sql_m(f"SELECT j.id IS NOT NULL AS jurnal, (t.jurnal_id = j.id) AS dipegang_topup_bank FROM t4m_pembayaran.topup_bank t JOIN t4m_ledger.jurnal j ON j.keterangan = 'Top-up bank ' || t.order_id WHERE t.order_id = '{c}' ORDER BY j.id")
-    harap((jumlah_jurnal(c), saldo() - awal), (2, 100000), "jurnal kedua sesudah key habis")
-    catat("# dua jurnal untuk satu top-up Rp100.000 dan saldo naik dua kali; hanya rekonsiliasi harian (ADR 35) yang menangkapnya, dan itu Tidak dijalankan di lab ini")
+    sisi = []
+    for jumlah, ev in [(100000, "e3"), (150000, "e4")]:
+        o = topup(AKUN_BUDI, jumlah)
+        bayar_di_gateway(o)
+        catat(f"# top-up Rp{jumlah}: kiriman {ev}, proses mati sesudah ledger menjurnal")
+        catat("hasil: " + "; ".join(webhook(o, ev)))
+        harap(tunggu_mati("pembayaran"), -signal.SIGKILL, "proses pembayaran dimatikan sinyal")
+        sisi.append((o, ev, jumlah))
+        mulai_pembayaran(["-lab-mati-sesudah-ledger"] if len(sisi) == 1 else [])
+    catat("# kedua top-up masih menunggu di topup_bank dan masing-masing punya satu jurnal di ledger")
+    for (o, ev, jumlah), jam in zip(sisi, (23, 25)):
+        harap((jumlah_jurnal(o), satu_m(f"SELECT status FROM t4m_pembayaran.topup_bank WHERE order_id = '{o}'")), (1, "menunggu"), "sebelum kiriman ulang")
+        s, _ = curl("POST", "/lab/jam", {"ms": int(time.time() * 1000) + jam * 3600 * 1000}, tampil=False)
+        harap(s, 204, "geser jam ledger")
+        awal = saldo()
+        catat(f"# jam ledger digeser {jam} jam; kiriman ulang {ev} untuk top-up Rp{jumlah}")
+        catat("hasil: " + "; ".join(webhook(o, ev)))
+        sql_m(f"SELECT count(j.id) AS jurnal_di_ledger, count(j.id) FILTER (WHERE t.jurnal_id = j.id) AS dipegang_topup_bank, t.status AS topup_bank FROM t4m_pembayaran.topup_bank t JOIN t4m_ledger.jurnal j ON j.keterangan = 'Top-up bank ' || t.order_id WHERE t.order_id = '{o}' GROUP BY t.status")
+        harap((jumlah_jurnal(o), saldo() - awal), (1, 0) if jam == 23 else (2, jumlah), f"kiriman ulang pada +{jam} jam")
+    catat("# sisi 23 jam: key hidup, ledger menjawab 200 dengan jurnal yang sama, satu jurnal. Sisi 25 jam: key habis, jurnal kedua, saldo naik dua kali.")
+    catat("# Tidak ada yang menahan jurnal kedua: topup_bank masih menunggu saat kiriman ulang datang. Jurnal pertama top-up itu tidak dipegang topup_bank.")
+    catat("# Rekonsiliasi harian api-t4 (RekonHarian, repo.LedgerTopupTanggal) membaca posting positif dari jurnal yang dipegang topup_bank. SQL yang sama, Tidak dijalankan sebagai job:")
+    o25 = sisi[1][0]
+    sql_m(f"""SELECT coalesce((SELECT sum(p.jumlah) FROM t4m_ledger.posting p WHERE p.jurnal_id = t.jurnal_id AND p.jumlah > 0), 0) AS dibaca_rekonsiliasi,
+                     (SELECT sum(p.jumlah) FROM t4m_ledger.posting p JOIN t4m_ledger.jurnal j ON j.id = p.jurnal_id WHERE j.keterangan = 'Top-up bank ' || t.order_id AND p.jumlah > 0) AS dikredit_ke_akun,
+                     t.jumlah AS jumlah_gateway
+              FROM t4m_pembayaran.topup_bank t WHERE t.order_id = '{o25}'""")
+    harap(satu_m(f"SELECT coalesce((SELECT sum(p.jumlah) FROM t4m_ledger.posting p WHERE p.jurnal_id = t.jurnal_id AND p.jumlah > 0), 0) FROM t4m_pembayaran.topup_bank t WHERE t.order_id = '{o25}'"),
+          sisi[1][2], "jumlah yang dibaca rekonsiliasi")
     tulis("proses-mati.txt", "service pembayaran dimatikan di antara ledger dan transaction pembayaran: kiriman ulang, job cek status, dan batas key 24 jam",
           f"schema t4m_* (enam modul), monolith di 127.0.0.1:{18280}, service pembayaran di 127.0.0.1:{DASAR_PEMBAYARAN}")
 
@@ -461,7 +478,7 @@ def rekam_latensi():
     jalankan_go("TEST_DATABASE_URL=<pemilik, schema tahap4_modul_tes> go test -tags t4modul -count=1 -v -run TestLatensiHTTPInternal ./internal/handler",
                 ["test", "-tags", "t4modul", "-count=1", "-v", "-run", "TestLatensiHTTPInternal", "./internal/handler"], env=env, hanya_lab=True)
     catat("# Hitungan untuk ADR 37: pada puncak 0,579 top-up per detik (naskah bagian 3), satu lompatan HTTP yang menahan koneksi")
-    catat("# selama W ms memakai L = 0,579 x W ms; dengan W = 50 ms L = 0,029 koneksi dari pool pembayaran 10 (2 instance x 5, Asumsi naskah; Hitungan).")
+    catat("# selama W detik memakai L = λ × W = 0,579 × 0,05 detik = 0,029 koneksi dari pool pembayaran 10 (Hitungan atas Asumsi naskah: λ, pool 2 instance × 5, dan W = 50 ms).")
     tulis("latensi.txt", "tambahan latensi HTTP internal sebagai batas yang diperiksa", f"schema {TES}, monolith dan klien ledger di localhost")
 
 
