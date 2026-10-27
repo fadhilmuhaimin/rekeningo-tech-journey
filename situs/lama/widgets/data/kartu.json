@@ -2100,7 +2100,7 @@
   "halaman": "t3-m27",
   "judul": "3.26 M27: Hari promo, notifikasi uang terlambat",
   "url": "tahap-3/m27-hari-promo/",
-  "tanya": "Kenapa alert umur tertua dari semua kelas tidak cukup untuk Pak Hadi dan Sinta?",
+  "tanya": "Kenapa alert umur tertua dari semua kelas tidak tepat untuk Pak Hadi dan Sinta?",
   "jawab": "Dengan promo menumpuk, umur tertua semua kelas lebih dari 30 detik, sedangkan umur tertua kelas uang 0 (`queue.txt` bagian E). Alert dari semua kelas akan berbunyi walau uang tepat waktu. Yang dihitung adalah umur kelas uang."
  },
  {
