@@ -345,6 +345,9 @@ describe("rekaman queue.txt dan kode penggerak: bagian A sampai F", () => {
     expect(bagC.join("\n")).toContain("umur notifikasi uang yang menunggu: paling sedikit 30 detik (selama worker berjalan ia belum disentuh: promo lebih dulu)");
     harus(`10.000 × ${koma(T_PUSH, 1)} ÷ ${C_PENGIRIM} = ${(nPromo * T_PUSH) / C_PENGIRIM} detik, yaitu ${koma((nPromo * T_PUSH) / C_PENGIRIM / 60, 1)} menit (Hitungan; 12,5 menit tidak dijalankan).`);
     harus(`merekam ${cC[1]}% sampai ${cC[2]}% promo terkirim. Hitungannya ${koma(KAP, 2)} × ${JENDELA} = ${cC[4]}, yaitu ${cC[5]}%:`);
+    harus(`Selama lebih dari ${cC[4]} promo masih di depannya, satu notifikasi uang menunggu lebih dari ${JENDELA} detik, batas janji PRD v3 untuk bayar dan transfer ([[t3-prd]]).`);
+    expect(hal31).toContain("Janji 95% dalam 30 detik berlaku untuk bayar dan transfer saja. Top-up massal dan promo tidak masuk janji itu.");
+    harus("PRD v3 menaruh promo di luar janji 30 detik ([[t3-prd]]), jadi promo boleh lebih lambat.");
     harus(`Pada detik ke-${JENDELA} lab menghentikan worker.`);
     harus(`paling sedikit ${ribu(nPromo - 420)} promo ada di depannya: 10.000 dikurangi batas atas ${cC[2]}%.`);
     harus("Angka 30 detik adalah saat lab berhenti.");

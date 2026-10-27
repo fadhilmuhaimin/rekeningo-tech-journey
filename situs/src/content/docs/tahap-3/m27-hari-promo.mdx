@@ -14,7 +14,7 @@ import hariPromo from "../../../../data/diagram/t3-m27-hari-promo.json";
 
 Minggu 9 Tahap 3. Jumat pukul 11.30 HR mengumumkan promo makan siang ke 10.000 HP karyawan.
 
-Di warung Ani, Budi membayar nasi goreng Rp25.000. HP Ani tidak berbunyi, padahal Ani menyerahkan makanan hanya sesudah melihat notifikasinya.
+Di warung Ani, Budi membayar nasi goreng Rp25.000. HP Ani tidak berbunyi, padahal Ani menyerahkan makanan sesudah melihat notifikasinya.
 
 Sampai pukul 11.42 notifikasi itu belum datang. Orang menumpuk di warung, dan pukul 11.44 Ani mengabari Sinta.
 
@@ -83,7 +83,7 @@ Pada detik ke-30 lab menghentikan worker. Notifikasi uang dan top-up masih menun
 
 Notifikasi Ani terkirim sesudah promo terakhir. Bila promo masuk queue pukul 11.30 dan worker langsung mulai, itu sekitar 11.42 lewat 30 detik (Hitungan atas Ilustrasi), cocok dengan "sampai 11.42 belum datang".
 
-Selama promo menumpuk, tiap notifikasi uang yang tiba menunggu di belakang promo yang tersisa. Janji PRD v3 untuk bayar dan transfer, 95% dalam kurang dari 30 detik ([[t3-prd]]), tidak terpenuhi selama itu. Itu penalaran dari urutan klaim, dan hanya satu notifikasi yang direkam.
+Selama lebih dari 400 promo masih di depannya, satu notifikasi uang menunggu lebih dari 30 detik, batas janji PRD v3 untuk bayar dan transfer ([[t3-prd]]). Itu penalaran dari urutan klaim, dan hanya satu notifikasi yang direkam.
 
 **Dengan kelas, uang dikirim lebih dulu.** Bagian D mengambil satu baris tiap panggilan worker, supaya urutan klaimnya terlihat. Pembayaran uang bernomor 10004 keluar pertama, sebelum tiga top-up dan sebelum promo bernomor lebih kecil:
 
@@ -105,9 +105,9 @@ Alert sungguhan Tidak dijalankan di lab ini. Bagian E membandingkan dua umur: se
 
 <Snippet file="labs/t3-outbox/output/queue.txt" lines="56:60" title="Rekaman lab: labs/t3-outbox/output/queue.txt baris 56 sampai 60 (bagian E, umur tertua)" />
 
-Query di rekaman ditulis `max(umur)` sebagai ringkasan. `run.py` memakai `now() - min(dibuat)`, dan nol berarti tidak ada baris kelas uang yang menunggu. Dengan promo menumpuk, alert dari semua kelas akan berbunyi walau uang tepat waktu (penalaran, tidak dijalankan). Karena itu alert untuk Pak Hadi dan Sinta dihitung dari kelas uang. Ambang dan giliran on-call ditulis di ADR 32 ([[t3-tim-infra]]).
+Query di rekaman ditulis `max(umur)` sebagai ringkasan. `run.py` memakai `now() - min(dibuat)`, dan nol berarti tidak ada baris kelas uang yang menunggu. Dengan promo menumpuk, alert dari semua kelas akan berbunyi walau uang tepat waktu (penalaran, tidak dijalankan). Karena itu alert umur tertua dihitung dari kelas uang. Ambang dan giliran on-call ditulis di ADR 32 ([[t3-tim-infra]]).
 
-**Laju promo.** Promo tidak perlu terkirim secepat uang. Bagian F menjadwalkan sisa promo 5 baris per detik lewat kolom `coba_lagi`, dan terukur 4 sampai 5,6 per detik dalam 8 detik. Notifikasi uang yang tiba pada detik ke-3 terkirim dalam kurang dari 1,5 detik:
+**Laju promo.** PRD v3 menaruh promo di luar janji 30 detik ([[t3-prd]]), jadi promo boleh lebih lambat. Bagian F menjadwalkan sisa promo 5 baris per detik lewat kolom `coba_lagi`, dan terukur 4 sampai 5,6 per detik dalam 8 detik. Notifikasi uang yang tiba pada detik ke-3 terkirim dalam kurang dari 1,5 detik:
 
 <Snippet file="labs/t3-outbox/output/queue.txt" lines="62:67" title="Rekaman lab: labs/t3-outbox/output/queue.txt baris 62 sampai 67 (bagian F, laju promo)" />
 
@@ -166,7 +166,7 @@ Kapasitasnya 4 ÷ 0,3 = 13,33 per detik, jadi 10.000 promo habis dalam 750 detik
 
 </details>
 
-**3.** Kenapa alert umur tertua dari semua kelas tidak tepat untuk Pak Hadi dan Sinta?
+**3.** Kenapa alert umur tertua dari semua kelas tidak tepat untuk mendeteksi uang yang terlambat?
 
 <details class="success">
 <summary>Jawaban</summary>
