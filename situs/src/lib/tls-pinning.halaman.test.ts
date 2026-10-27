@@ -505,9 +505,10 @@ describe("rekaman dio, pin, m26, hsts, dan token: angka dan hasil di halaman", (
     expect(lihatProxy(bagian(D, "A"))).toEqual([{ handshake: "ya", request: 1 }]);
     expect(bagian(D, "A")).toContain("# Authorization yang dibaca proxy sama dengan token sesi Budi: ya");
     expect(trfDioA).toEqual([{ jurnal: 10001, nomor: "K00419", jumlah: -nominalPindah }, { jurnal: 10001, nomor: "K00417", jumlah: nominalPindah }]);
-    expect(dioB.map((x) => [x.mode, x.port, x.hasil.hasil, x.hasil.jenis ?? null])).toEqual([
-      ["dio-pin-factory", "18192", "ditolak", "pin-tidak-cocok"],
-      ["dio-pin-factory", "18190", "terhubung", null],
+    // Daftar akar dan pin B sama dengan A (CA Dimas dipercaya, pin A dan B): hanya tempat pin yang berubah.
+    expect(dioB.map((x) => [x.mode, x.percaya, x.port, x.pin, x.hasil.hasil, x.hasil.jenis ?? null])).toEqual([
+      ["dio-pin-factory", "ca-publik+ca-dimas", "18192", ["spki_server-a", "spki_server-b"], "ditolak", "pin-tidak-cocok"],
+      ["dio-pin-factory", "ca-publik+ca-dimas", "18190", ["spki_server-a", "spki_server-b"], "terhubung", null],
     ]);
     expect(lihatProxy(bagian(D, "B"))).toEqual([{ handshake: "ya", request: 0 }]);
     expect(bagian(D, "B")).toContain("# Database: tidak ada transfer. Proxy menerima handshake, tidak menerima satu request pun.");
@@ -541,6 +542,8 @@ describe("rekaman dio, pin, m26, hsts, dan token: angka dan hasil di halaman", (
       ["pin-spki", "C", "A+B", "spki_server-a+spki_server-b", "ditolak", "pin-tidak-cocok"],
       ["pin-spki", "C", "B+C", "spki_server-b+spki_server-c", "terhubung", 200],
     ]);
+    expect(bagian(P, "C")).toContain("# C1. App 1.0 hanya mem-pin A (tanpa cadangan).");
+    expect(bagian(P, "C")).toContain("# C2. App 1.1 mem-pin A dan B (B = cadangan yang dibuat sebelum rilis).");
     expect(bagian(P, "C")).toContain("# App 1.0 terkunci di luar: server sehat, sertifikat sah, request tidak pernah dikirim. Hanya rilis baru yang memperbaikinya.");
     expect(bagian(P, "C")).toContain("# Rotasi kedua ke C, kunci yang belum ada di pin: cadangan hanya menahan satu rotasi. Rilis berikutnya harus mem-pin B dan C sebelum rotasi itu.");
     expect(rotasiKode).toContain("harap(len(baris), 5,");
@@ -548,11 +551,17 @@ describe("rekaman dio, pin, m26, hsts, dan token: angka dan hasil di halaman", (
     expect(readmeLab).toContain("Dari 7 request client di bagian itu, 5 sampai ke tepi dan 2 yang ditolak pin tidak ada di log tepi.");
   });
   test("pin.txt D dan E: SPKI sama setelah terbit ulang, hash sertifikat berbeda; masa berlaku 200 hari dengan jam tiruan; jadwal 365 ÷ hari", () => {
-    expect(pinD.map((x) => [x.mode, x.pin.join("+"), x.hasil.hasil])).toEqual([
-      ["pin-spki", "spki_server-a", "terhubung"],
-      ["pin-cert", "cert_server-a", "ditolak"],
-      ["pin-cert", "cert_server-a2", "terhubung"],
+    // Penolakan pin daun harus karena pin tidak cocok (bukan handshake), dan server memakai sertifikat terbit ulang (a2).
+    expect(pinD.map((x) => [x.mode, x.percaya, x.pin.join("+"), x.hasil.hasil, x.hasil.jenis ?? x.hasil.status])).toEqual([
+      ["pin-spki", "ca-publik", "spki_server-a", "terhubung", 200],
+      ["pin-cert", "ca-publik", "cert_server-a", "ditolak", "pin-tidak-cocok"],
+      ["pin-cert", "ca-publik", "cert_server-a2", "terhubung", 200],
     ]);
+    const kodeD = fungsiPy(bagianPinPy, "_d_pin_spki_lawan_pin_daun");
+    expect(kodeD).toContain('U.mulai_tepi("server-a2")');
+    expect(kodeD).toContain('pin=["cert_server-a"]');
+    expect(kodeD).toContain('pin=["cert_server-a2"]');
+    expect(kodeD).toContain('pin=["spki_server-a"]');
     expect(bagian(P, "D")).toContain("# pin SPKI A sama dengan SPKI A2: ya; hash sertifikat A sama dengan A2: tidak");
     expect(hariDaun).toBe(Number(cari(/^const HariDaun = (\d+)$/, pkiGo.split("\n"), "pki HariDaun")[1]));
     expect(hari199).toBe(String(hariDaun - 1));
@@ -595,6 +604,7 @@ describe("rekaman dio, pin, m26, hsts, dan token: angka dan hasil di halaman", (
     expect(jawabanTokenA.map((j) => j.kode)).toEqual([200, 200, 200, 401]);
     expect(jawabanTokenA.at(-1)!.header["www-authenticate"]).toBe('Bearer error="invalid_token"');
     expect(bagianTokenPy).toContain('U.siapkan(["-jam-lab", "-umur-sesi", "15m"], login=False)');
+    expect(tokenTxt).toContain("# Server dijalankan dengan -umur-sesi 15m (ADR 31; bawaan lab 8 jam).");
     expect(bagian(T, "A")).toContain("# Tidak dijalankan: refresh token dan pencabutan token di app; api-t3 hanya punya sesi dengan umur tetap.");
     expect(bagian(T, "A").join("\n")).toContain("Jam server dimajukan lewat POST /lab/jam (waktu tidak ditunggu).");
     expect(bagian(T, "A").join("\n")).toContain("Umur pendek tidak menghentikan pencurian: ia membatasi lamanya.");
