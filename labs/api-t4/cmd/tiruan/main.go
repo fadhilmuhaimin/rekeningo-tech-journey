@@ -13,6 +13,7 @@ import (
 	"flag"
 	"fmt"
 	"hash/fnv"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -446,6 +447,10 @@ func (v *verifikasi) proses(w http.ResponseWriter, r *http.Request) {
 	v.permintaan++
 	v.mu.Unlock()
 	nama, _ := v.m.ambil()
+	// Body dibaca habis SEBELUM mode gangguan: server net/http baru mendeteksi client yang menutup koneksi (dan
+	// membatalkan r.Context()) sesudah body terbaca sampai akhir. Tanpa ini handler menggantung tidak pernah selesai
+	// walau client sudah menyerah, dan lama tahan di /lab/statistik tidak terukur.
+	isi, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if gangguan(&v.m, w, r) {
 		return
 	}
@@ -454,7 +459,7 @@ func (v *verifikasi) proses(w http.ResponseWriter, r *http.Request) {
 		Referensi     string `json:"referensi"`
 		ChecksumKartu string `json:"checksum_kartu"`
 	}
-	if json.NewDecoder(r.Body).Decode(&in) != nil || k == "" || in.Referensi == "" {
+	if json.Unmarshal(isi, &in) != nil || k == "" || in.Referensi == "" {
 		http.Error(w, "butuh Idempotency-Key dan {referensi}", http.StatusBadRequest)
 		return
 	}

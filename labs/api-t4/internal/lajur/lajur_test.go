@@ -113,10 +113,12 @@ func TestBreakerHalfOpenGagalMembukaLagiSelama60Detik(t *testing.T) {
 			t.Fatalf("half-open lalu gagal: status %s, harus open", b.Status())
 		}
 		time.Sleep(59 * time.Second)
+		t.Logf("59 detik sesudah membuka lagi: status %s", b.Status())
 		if b.Status() != Terbuka {
 			t.Fatalf("59 detik sesudah membuka lagi: %s, harus masih open (60 detik dihitung dari kegagalan itu)", b.Status())
 		}
 		time.Sleep(2 * time.Second)
+		t.Logf("61 detik sesudah membuka lagi: status %s", b.Status())
 		if b.Status() != SetengahTerbuka {
 			t.Fatalf("61 detik sesudah membuka lagi: %s", b.Status())
 		}

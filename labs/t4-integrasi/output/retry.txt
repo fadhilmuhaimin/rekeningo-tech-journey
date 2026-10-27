@@ -1,0 +1,79 @@
+# Lab t4-integrasi · retry berkunci, timeout menjadi tidak_pasti, dan retry tanpa kunci
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema t4_integrasi · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-integrasi run.
+
+# --- A. Retry dengan Idempotency-Key = id pengajuan: balasan vendor terpotong sesudah objek dibuat, pengajuan tidak_pasti, retry tidak membuat objek kedua ---
+# layanan verifikasi tiruan mode setengah: objek dibuat, jawaban 200 terpotong, koneksi ditutup
+=> SELECT status FROM verifikasi
+ status
+-------------
+ tidak_pasti
+(1 row)
+=> SELECT status, percobaan FROM outbox WHERE tujuan = 'verifikasi'
+ status   | percobaan
+----------+-----------
+ menunggu | 1
+(1 row)
+=> SELECT status FROM verifikasi
+ status
+--------
+ lulus
+(1 row)
+# retry berkunci: 2 permintaan masuk, 1 objek dibuat (kunci berbeda = objek berbeda)
+
+# --- B. Pembanding yang ditolak: retry bebas tanpa kunci (mode rentan verifikasi-tanpa-key, Idempotency-Key baru di setiap percobaan) ---
+$ ./api-t4 -peran worker -sekali -rentan verifikasi-tanpa-key -maks-percobaan 5 -backoff 1ms -satu-putaran
+=> SELECT status FROM verifikasi
+ status
+--------
+ lulus
+(1 row)
+# retry tanpa kunci: 2 permintaan masuk, 2 objek dibuat (kunci berbeda = objek berbeda)
+# Satu pendaftar, dua objek di vendor: vendor yang menagih per verifikasi menagih dua kali, dan referensi vendor di Rekeningo hanya menunjuk satu.
+
+# --- C. Timeout (vendor menggantung, batas waktu client 300 ms) menghasilkan tidak_pasti; vendor yang menjawab 503 tidak ---
+# Vendor menggantung. Client menyerah sesudah 300 ms; vendor mungkin sudah mengerjakannya, hasilnya tidak diketahui:
+=> SELECT status FROM verifikasi
+ status
+-------------
+ tidak_pasti
+(1 row)
+=> SELECT status, percobaan FROM outbox WHERE tujuan = 'verifikasi'
+ status   | percobaan
+----------+-----------
+ menunggu | 1
+(1 row)
+# Vendor pulih: pengajuan yang sama lulus.
+=> SELECT status FROM verifikasi
+ status
+--------
+ lulus
+(1 row)
+# sesudah pulih: 2 permintaan masuk, 1 objek dibuat (kunci berbeda = objek berbeda)
+# Pengajuan lain, vendor menjawab 503: vendor pasti tidak memprosesnya, jadi statusnya tidak berubah dan pekerjaan menunggu percobaan berikutnya:
+=> SELECT status FROM verifikasi
+ status
+----------
+ diajukan
+(1 row)
+=> SELECT status, percobaan FROM outbox WHERE tujuan = 'verifikasi'
+ status   | percobaan
+----------+-----------
+ menunggu | 1
+(1 row)
+
+# --- D. Timeout terus-menerus sampai dead-letter: pengajuan berstatus gagal, padahal vendor menyimpan objeknya ---
+# mode setengah di setiap percobaan: objek dibuat di vendor, jawaban terpotong. Lima percobaan, backoff 1 ms:
+=> SELECT status, percobaan FROM outbox WHERE tujuan = 'verifikasi'
+ status | percobaan
+--------+-----------
+ mati   | 5
+(1 row)
+=> SELECT status FROM verifikasi
+ status
+--------
+ gagal
+(1 row)
+# setelah lima timeout: 5 permintaan masuk, 1 objek dibuat (kunci berbeda = objek berbeda)
+# Rekeningo menyebutnya gagal, vendor menyimpan satu objek untuk pengajuan yang sama. 'tidak_pasti' bertahan selama masih ada percobaan; percobaan kelima yang timeout menimpanya.
+# Memeriksa status ke vendor (job seperti cek status top-up) tidak ada di lab ini; pengajuan tidak_pasti juga menahan pendaftar, karena indeks verifikasi_satu_berjalan menghitungnya berjalan.

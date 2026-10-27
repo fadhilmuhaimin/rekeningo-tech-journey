@@ -1,0 +1,38 @@
+# Lab t4-integrasi · breaker github.com/sony/gobreaker/v2 v2.4.0 dengan pengaturan bawaan, jam diperankan
+# go1.27.1 · gobreaker v2.4.0 · tanpa database dan tanpa server
+# Rekaman dari: make -C labs/t4-integrasi run BAGIAN=breaker.
+# Jam diperankan dengan testing/synctest: di dalam gelembung time.Now dan time.Sleep memakai jam palsu yang maju sendiri bila semua goroutine menunggu.
+# Pustaka tidak punya jam yang bisa disuntikkan; tanpa gelembung ini 60 detik harus ditunggu sungguhan. Tiap baris dicetak tes dan diperiksa tes itu sendiri.
+
+# --- A. Pengaturan bawaan: membuka sesudah lebih dari 5 gagal berturut-turut, terbuka 60 detik, satu permintaan di half-open ---
+$ go test -v -run '^TestRekamanBreakerBawaan$' ./internal/lajur/
+  gagal berturut-turut ke-1: status closed, hitungan gagal berturut-turut 1
+  gagal berturut-turut ke-2: status closed, hitungan gagal berturut-turut 2
+  gagal berturut-turut ke-3: status closed, hitungan gagal berturut-turut 3
+  gagal berturut-turut ke-4: status closed, hitungan gagal berturut-turut 4
+  gagal berturut-turut ke-5: status closed, hitungan gagal berturut-turut 5
+  gagal berturut-turut ke-6: status open
+  permintaan saat open: circuit breaker is open; vendor dipanggil: false
+  sesudah 59,999 detik: status open
+  sesudah 60,001 detik: status half-open
+  half-open, permintaan pertama berjalan, permintaan kedua: too many requests
+  permintaan pertama sukses: status closed
+PASS
+
+# --- B. Permintaan percobaan di half-open yang gagal membuka breaker lagi selama 60 detik penuh ---
+$ go test -v -run '^TestBreakerHalfOpenGagalMembukaLagiSelama60Detik$' ./internal/lajur/
+  permintaan percobaan di half-open gagal: status open
+PASS
+
+# --- C. IsSuccessful: bawaan pustaka menghitung jawaban 4xx sebagai gagal, kustom (ADR 36) sebagai sukses ---
+$ go test -v -run '^TestRekamanBreaker4xx$' ./internal/lajur/
+  IsSuccessful bawaan pustaka, 6 jawaban 4xx berturut-turut: status open
+  IsSuccessful kustom (4xx sukses), 6 jawaban 4xx berturut-turut: status closed, gagal berturut-turut 0
+  kustom, 5 gagal vendor, 1 jawaban 4xx, 1 gagal vendor: status closed
+  kustom, 6 kegagalan vendor berturut-turut: status open
+PASS
+
+# --- D. Hasil netral di v2.4.0: error yang dikecualikan tidak dihitung sukses maupun gagal ---
+$ go test -v -run '^TestGobreakerV240IsExcluded$' ./internal/lajur/
+  v2.4.0: 5 gagal, 1 error dikecualikan: gagal berturut-turut 5, dikecualikan 1, status closed
+PASS

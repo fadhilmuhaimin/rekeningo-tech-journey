@@ -1,0 +1,42 @@
+# Lab t4-integrasi · pemakaian worker oleh pekerjaan verifikasi yang menggantung, lajur, dan breaker
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema t4_integrasi · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-integrasi run.
+
+# --- A. Satu worker untuk semua lajur, tanpa breaker; vendor menggantung: pemberitahuan uang menunggu satu putaran penuh di belakang percobaan verifikasi ---
+# 8 pekerjaan verifikasi (kelas 1) menunggu di outbox; vendor menggantung; batas waktu client 3 detik (bawaan ADR 22)
+$ ./api-t4 -peran worker -serentak 4 -backoff 1ms -selang 50ms
+# Empat percobaan verifikasi sedang berjalan: keempat slot worker terpakai. Budi membayar empat kali Rp1.000 ke Warung Ani (notifikasi uang, kelas 0, urutan lebih depan):
+# Keempat pemberitahuan sampai di layanan push SESUDAH putaran yang berjalan selesai: menunggu paling sedikit 2,0 detik (batas bawah diperiksa; nilainya tidak direkam).
+# Urutan menurut kelas hanya mengatur siapa diklaim lebih dulu; percobaan yang sudah berjalan menahan slotnya sampai timeout.
+# c terukur: permintaan bersamaan paling banyak yang sampai di vendor = 4 (kapasitas worker -serentak 4).
+# t terukur: tiap percobaan yang menggantung ditahan antara 2,9 dan 3,6 detik sampai client menyerah (batas diperiksa; batas waktu client 3 detik).
+
+# --- B. Dengan breaker per lajur; vendor tetap menggantung: lajur verifikasi dijeda, pemberitahuan uang tidak menunggu ---
+$ ./api-t4 -peran worker -serentak 4 -backoff 1ms -selang 50ms -breaker -breaker-timeout 30s
+# Dua putaran menggantung (8 percobaan, 3 detik tiap putaran) membuka breaker. Percobaan per pekerjaan:
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | jumlah
+----------+-----------+--------
+ menunggu | 0         | 4
+ menunggu | 2         | 4
+(2 rows)
+# breaker terbuka: 8 permintaan masuk, 0 objek dibuat (kunci berbeda = objek berbeda)
+# Budi membayar empat kali Rp1.000 ke Warung Ani:
+# Keempat pemberitahuan sampai di layanan push kurang dari 2,0 detik sesudah dibayar (batas atas diperiksa; nilainya tidak direkam).
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | jumlah
+----------+-----------+--------
+ menunggu | 0         | 4
+ menunggu | 2         | 4
+(2 rows)
+# Lajur verifikasi tetap dijeda: tidak ada permintaan baru ke vendor dan percobaan tidak bertambah.
+
+# --- C. Pemakaian worker: c dan t terukur di bagian A, dihitung dengan laju naskah ---
+verifikasi: 0,116 per detik x 5 percobaan x 3 detik = 1,74 slot worker dari 4
+            1,74 / 4 = 43,5% dari kapasitas worker
+notifikasi uang: 7,52 per detik x 0,3 detik = 2,26 slot
+bersama: 1,74 + 2,26 = 4,0 dari 4 slot
+# Hitungan. c = 4 dan t = 3 detik terukur di bagian A (t sebagai batas waktu client dan batas bawah yang diperiksa, bukan rata-rata).
+# 0,116 verifikasi per detik (naskah: 1.000 pendaftar per hari x puncak 10), 7,52 notifikasi uang per detik, dan 0,3 detik per notifikasi adalah Asumsi naskah;
+# kapasitas worker untuk push (c dibagi t = 13,3 per detik) diukur di rekaman beban lab api-t4. Hasilnya Asumsi, bukan beban yang dijalankan.
+# Pada 4,0 dari 4 slot antrean tidak lagi surut: pekerjaan yang pasti gagal memakai slot yang dibutuhkan pemberitahuan uang.

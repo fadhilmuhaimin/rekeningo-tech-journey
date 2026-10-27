@@ -1,0 +1,39 @@
+# Lab t4-integrasi · tes Go untuk breaker, klaim per lajur, dan satu pembuat client
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · gobreaker v2.4.0 · schema t4_integrasi_tes
+# Rekaman dari: make -C labs/t4-integrasi run BAGIAN=testing.
+
+# --- A. Tes Go yang ditambahkan lab ini (PostgreSQL sungguhan untuk paket worker; jam palsu untuk paket lajur) ---
+$ TEST_DATABASE_URL=<pemilik, schema t4_integrasi_tes> go test -v -count=1 -p 1 -run '<24 tes baru>' ./internal/lajur/ ./internal/worker/ ./internal/klien/
+--- PASS: TestBatasNolMembuatClientTanpaBatasWaktuHanyaUntukRekamanPerbandingan
+--- PASS: TestBatasWaktuBawaanTigaDetikDiSemuaPembuat
+--- PASS: TestBreakerHalfOpenGagalMembukaLagiSelama60Detik
+--- PASS: TestBreakerLogPerubahanStatus
+--- PASS: TestBreakerPanggilanDijedaTidakMenambahHitungan
+--- PASS: TestBreakerSuksesMemutusGagalBerturutTurut
+--- PASS: TestBreakerTanpaCatatMemakaiLog
+--- PASS: TestBreakerTimeoutDapatDiatur
+--- PASS: TestClientTidakMengikutiRedirect
+--- PASS: TestDijedaHanyaUntukPenolakanBreaker
+--- PASS: TestGobreakerV240IsExcluded
+--- PASS: TestKunciIdempotensiPerPercobaan
+--- PASS: TestKunciIdempotensiPerPercobaan/tanpaKunci=false
+--- PASS: TestKunciIdempotensiPerPercobaan/tanpaKunci=true
+--- PASS: TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan
+--- PASS: TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan/bawaan=false
+--- PASS: TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan/bawaan=true
+--- PASS: TestLajurBanyakPekerjaanBersamaanTidakAdaYangMati
+--- PASS: TestLajurBarisDiklaimSebelumBreakerTerbukaDilepasTanpaMenaikkanPercobaan
+--- PASS: TestLajurPulihHanyaSatuPermintaanPercobaanLaluSemuaSelesai
+--- PASS: TestLajurPushTetapJalanSelagiLajurVerifikasiTerbuka
+--- PASS: TestLajurTerbukaTidakMengklaimDanPercobaanTidakNaik
+--- PASS: TestLepasOutboxTidakDiBawahNolDanHanyaBarisMenunggu
+--- PASS: TestRekamanBreaker4xx
+--- PASS: TestRekamanBreakerBawaan
+--- PASS: TestRingkasanMenjumlahkanDanMencetakDijeda
+--- PASS: TestSatuPembuatClientUntukSemuaPanggilanKeluar
+--- PASS: TestTanpaBreakerSemuaPekerjaanMatiSebelumVendorPulih
+ok  24 tes induk, 4 subtes
+
+# --- B. go vet seluruh modul ---
+$ go vet ./...
+(tanpa temuan)
