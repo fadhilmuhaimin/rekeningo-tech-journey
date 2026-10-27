@@ -774,6 +774,13 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
     expect(aktual.filter((s) => !sah.has(s))).toEqual([]);
     expect(aktual).toEqual(KALIMAT_TERKUNCI);
   });
+  test("bentuk baris badan dikunci (baris kosong, baris isi, dan lekuk): menghapus atau menambah baris kosong, atau memberi lekuk, mengubah cara MDX dirender tetapi lolos daftar kalimat yang dipangkas", () => {
+    const bentuk = badan.split("\n").map((b) => (b.trim() === "" ? "_" : `${b.length - b.trimStart().length}T`)).join(",");
+    expect(sidik(bentuk)).toBe(SIDIK_BENTUK_MDX);
+    expect(badan.endsWith("\n")).toBe(true);
+    expect(badan.includes("\r")).toBe(false);
+    expect(badan.includes("\t")).toBe(false);
+  });
   test("front matter dikunci: title dan description (memuat Minggu 9, akun uji, Rp150.000, dan sertifikat apa pun)", () => {
     expect(frontmatter.trim().split("\n")).toEqual(FRONTMATTER);
     expect(FRONTMATTER[1]).toContain("Minggu 9.");
@@ -789,6 +796,7 @@ const SIDIK_REKAMAN_TAMPIL: string[] = ["77ed1f18c23e0b12","1b2fa48066c363f9","0
 const SIDIK_R215 = "697f9ff4cc73cf63";
 const SIDIK_R216 = "f9cd24df9e2d9264";
 const SIDIK_DIAGRAM = "0133fc18787f2129";
+const SIDIK_BENTUK_MDX = "45c57555c4ca7411";
 const SIDIK_SKENARIO = "46f16aadd86b3668";
 const FRONTMATTER: string[] = [
   "title: \"3.24 M26: Transfer yang tidak dibuat Budi\"",
