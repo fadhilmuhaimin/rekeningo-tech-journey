@@ -11,7 +11,7 @@
     "User sudah login, jadi browser menyimpan cookie sesi untuk dasbor.",
     "Halaman dari situs lain mengirim form ke dasbor. Browser menambahkan cookie sesuai atribut `SameSite`.",
     "Dasbor memeriksa `Sec-Fetch-Site` dan `Origin`, lalu token yang terikat ke sesi.",
-    "Permintaan tanpa token yang cocok ditolak dengan 403 sebelum data berubah (`csrf.txt` bagian D)."
+    "Permintaan yang gagal salah satu pemeriksaan itu ditolak dengan 403 sebelum data berubah (`csrf.txt` bagian D: ketiganya gagal sekaligus)."
   ],
   "stack": null,
   "jebakan": [

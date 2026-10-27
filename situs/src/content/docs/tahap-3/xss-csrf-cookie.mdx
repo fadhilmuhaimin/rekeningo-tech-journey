@@ -24,7 +24,7 @@ Catatan pembayaran adalah input, dan dua lapis yang berdiri sendiri menahan skri
 
 Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `xss.txt` bagian A, dasbor menampilkan catatan lewat `innerHTML` dan belum punya CSP. Browser membentuk elemen `img`, menjalankan `onerror`, dan menampilkan satu dialog `alert`. Di bagian C hanya CSP yang hidup, dan di bagian E hanya `textContent`. Keduanya menghasilkan 0 dialog.
 
-Token CSRF tidak menahan skrip itu. Di bagian D, permintaan ubah harga dari dalam halaman diterima dengan 200, walau token, Origin, dan cookie `HttpOnly` semuanya benar. Penggerak lab mengirim permintaan itu dan memerankan skrip yang XSS bisa jalankan. Permintaan dari situs lain ditahan `SameSite=Lax` atau token (`csrf.txt`).
+Token CSRF tidak menahan skrip itu. Di bagian D, permintaan ubah harga dari dalam halaman diterima dengan 200, walau token, Origin, dan cookie `HttpOnly` semuanya benar. Penggerak lab mengirim permintaan itu dan memerankan skrip yang XSS bisa jalankan. Form dari situs lain ditahan `SameSite=Lax` atau gerbang token, Origin, dan Sec-Fetch-Site (`csrf.txt` bagian B sampai D).
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -62,7 +62,7 @@ Widget perbandingan menaruh dua dasbor berdampingan untuk satu kejadian. Sisi A 
 <details class="abstract">
 <summary>Rekaman bagian A sampai F (juga untuk pembaca tanpa JavaScript)</summary>
 
-<Snippet files={["labs/t3-dasbor/output/xss.txt:7:9","labs/t3-dasbor/output/xss.txt:11:13","labs/t3-dasbor/output/xss.txt:15:17","labs/t3-dasbor/output/xss.txt:20:22","labs/t3-dasbor/output/xss.txt:27:29","labs/t3-dasbor/output/csrf.txt:5:6","labs/t3-dasbor/output/csrf.txt:10:11","labs/t3-dasbor/output/csrf.txt:13:14","labs/t3-dasbor/output/csrf.txt:18:19","labs/t3-dasbor/output/csrf.txt:22:22","labs/t3-dasbor/output/csrf.txt:26:27","labs/t3-dasbor/output/csrf.txt:29:30","labs/t3-dasbor/output/csrf.txt:34:35","labs/t3-dasbor/output/csrf.txt:38:38","labs/t3-dasbor/output/csrf.txt:42:43","labs/t3-dasbor/output/csrf.txt:45:47"]} title="Rekaman lab: labs/t3-dasbor/output/xss.txt dan csrf.txt (tanpa baris kepala dan tanpa komentar penulis lab)" />
+<Snippet files={["labs/t3-dasbor/output/xss.txt:7:9","labs/t3-dasbor/output/xss.txt:11:13","labs/t3-dasbor/output/xss.txt:15:17","labs/t3-dasbor/output/xss.txt:20:22","labs/t3-dasbor/output/xss.txt:27:29","labs/t3-dasbor/output/csrf.txt:5:6","labs/t3-dasbor/output/csrf.txt:10:11","labs/t3-dasbor/output/csrf.txt:13:14","labs/t3-dasbor/output/csrf.txt:18:19","labs/t3-dasbor/output/csrf.txt:22:22","labs/t3-dasbor/output/csrf.txt:26:27","labs/t3-dasbor/output/csrf.txt:30:30","labs/t3-dasbor/output/csrf.txt:34:35","labs/t3-dasbor/output/csrf.txt:38:38","labs/t3-dasbor/output/csrf.txt:42:43","labs/t3-dasbor/output/csrf.txt:45:47"]} title="Rekaman lab: labs/t3-dasbor/output/xss.txt dan csrf.txt (tanpa baris kepala dan tanpa komentar penulis lab)" />
 
 </details>
 
@@ -94,11 +94,13 @@ Halaman ini menyebut lapis pertama itu escape, seperti sumbu `-escape` di lab.
 
 OWASP juga menulis bahwa tiap variabel yang tidak melewati validasi, lalu escape atau sanitasi, adalah kelemahan yang mungkin. Itu sama dengan [[t1-m3]]: satu tempat yang terlupa sudah cukup.
 
-**Browser menolak skrip inline: CSP.** CSP adalah header respons yang menyebut sumber skrip mana yang boleh dijalankan. Dasbor mode benar mengirim satu kebijakan baru di setiap respons halaman:
+**Browser menolak skrip inline: CSP.** CSP adalah header respons yang menyebut sumber skrip mana yang boleh dijalankan. Dasbor mode benar mengirim satu kebijakan baru di setiap respons `GET /dasbor`:
 
 <Snippet file="labs/t3-dasbor/go/cmd/dasbor/main.go" lines="300:306" lang="go" title="labs/t3-dasbor/go/cmd/dasbor/main.go" />
 
-Nonce adalah nilai acak yang berubah di tiap respons. Tiap `<script>` dan `<style>` milik dasbor membawa nonce itu. Atribut `onerror` tidak bisa membawanya, karena MDN menulis bahwa nonce hanya berlaku untuk elemen `<script>` dan `<style>` ([MDN: Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP), dibuka 2026-10-27).
+Nonce adalah nilai acak yang berubah di tiap respons. Tiap `<script>` dan `<style>` milik dasbor membawa nonce itu. Halaman login lab tidak mengirim CSP (dibaca dari kode).
+
+Atribut `onerror` tidak bisa membawa nonce. Spesifikasi CSP Level 3 menulis bahwa nonce hanya berlaku untuk skrip dan style inline, bukan untuk atribut elemen ([W3C: CSP Level 3](https://www.w3.org/TR/CSP3/), dibuka 2026-10-27). MDN menulis bahwa event handler inline harus diganti dengan `addEventListener()` bila CSP aktif ([MDN: Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP), dibuka 2026-10-27).
 
 Di bagian C, `innerHTML` masih membentuk elemen `img`, tetapi browser melaporkan satu pelanggaran `script-src-attr` dan dialognya 0. Kode mengambil 32 karakter hex untuk nonce, jadi 32 × 4 = 128 bit (Hitungan dari kode). Draf W3C CSP Level 3 menulis nonce sebaiknya paling sedikit 128 bit ([W3C: CSP Level 3](https://www.w3.org/TR/CSP3/), Working Draft 16 September 2026, dibuka 2026-10-27). Nonce juga harus unik tiap kebijakan dikirim.
 
@@ -129,15 +131,19 @@ Bagian D memaksa cookie ikut terkirim dengan `SameSite=None`, supaya gerbang tok
 
 <Snippet file="labs/t3-dasbor/go/cmd/dasbor/main.go" lines="313:322" lang="go" title="labs/t3-dasbor/go/cmd/dasbor/main.go" />
 
-OWASP menyebut `Sec-Fetch-Site` sinyal utama untuk CSRF, dan menulis bahwa fallback ke pemeriksaan origin wajib untuk browser yang tidak mengirimnya. Token tetap diminta di kode lab walau kedua header tidak ada. Browser tidak bisa memisahkan tiga pemeriksaan itu di bagian B dan C, karena cookie tidak sampai. Tes Go lab menguji tiap pemeriksaan sendiri, dan bagian F menguji bahwa token terikat ke sesi.
+OWASP menyebut `Sec-Fetch-Site` sinyal utama untuk CSRF, dan menulis bahwa fallback ke pemeriksaan origin wajib untuk browser yang tidak mengirimnya. Token tetap diminta di kode lab walau kedua header tidak ada.
+
+Browser tidak bisa memisahkan tiga pemeriksaan itu. Di bagian B dan C cookie tidak sampai. Di bagian D ketiganya menolak sekaligus: `Sec-Fetch-Site` cross-site, Origin asing, dan form tanpa token. Tes Go lab menguji tiap pemeriksaan sendiri, dan bagian F menguji bahwa token terikat ke sesi.
 
 **Cookie sesi.** Cookie lab bernama `__Host-sesi`. MDN menulis bahwa awalan `__Host-` mensyaratkan `Secure`, tanpa `Domain`, dan `Path=/`, sehingga cookie hanya dikirim ke host yang memasangnya. Lab memasangnya di `http://localhost`, dan MDN menulis syarat `https:` diabaikan untuk localhost.
 
 Jadi rekaman ini bukan bukti bahwa `__Host-` jalan di `http:` biasa. HTTPS sungguhan Tidak dijalankan, dan [[t3-tls-pinning]] membahas HTTPS.
 
-**Passkey.** Passkey adalah nama umum untuk kredensial kunci publik WebAuthn. Tiap kredensial dibuat oleh authenticator dan terikat ke satu relying party, yaitu situs yang memintanya ([W3C: WebAuthn Level 3](https://www.w3.org/TR/webauthn-3/), Recommendation 25 Agustus 2026, dibuka 2026-10-27). Rekaman `webauthn.txt` memanggil `navigator.credentials.create()` dengan authenticator virtual Chrome DevTools Protocol, dan panggilan itu mengembalikan kredensial.
+**Passkey.** Passkey adalah nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai untuk login tanpa password. WebAuthn Level 3 menandai kata "Passkey" sebagai sinonim [DEPRECATED] untuk discoverable credential, tetapi masih memakai "synced passkey" dan "device-bound passkey" sebagai sebutan lazim. Tiap kredensial dibuat oleh authenticator dan terikat ke satu relying party, yaitu situs yang memintanya ([W3C: WebAuthn Level 3](https://www.w3.org/TR/webauthn-3/), Recommendation 25 Agustus 2026, dibuka 2026-10-27).
 
-Yang direkam hanya sisi browser dari registration ceremony. Spesifikasi mendefinisikan ceremony itu sebagai kerja bersama user, relying party, dan client untuk membuat kredensial dan mengaitkannya dengan akun. Penyimpanan di server, verifikasi, login (`navigator.credentials.get()`), perangkat sungguhan, dan pemulihan akun Tidak dijalankan. Sesudah login passkey, sesi tetap berupa cookie, jadi escape, CSP, dan token tetap berlaku (penalaran, tidak direkam).
+Rekaman `webauthn.txt` memanggil `navigator.credentials.create()` dengan authenticator virtual Chrome DevTools Protocol, dan panggilan itu mengembalikan kredensial. Panggilan itu tidak meminta `residentKey`, jadi rekaman tidak mencatat apakah kredensialnya discoverable. Yang direkam hanya sisi browser dari registration ceremony.
+
+Spesifikasi mendefinisikan ceremony itu sebagai kerja bersama user, relying party, dan client untuk membuat kredensial dan mengaitkannya dengan akun. Penyimpanan di server, verifikasi, login (`navigator.credentials.get()`), perangkat sungguhan, dan pemulihan akun Tidak dijalankan. Sesudah login passkey, sesi tetap berupa cookie, jadi escape, CSP, dan token tetap berlaku (penalaran, tidak direkam).
 
 ### Di stack lain
 
@@ -228,7 +234,7 @@ app.use(csrfSynchronisedProtection);`} />
 |---|---|---|---|---|
 | Cara kerja | Pengembang meng-escape tiap variabel yang ditulis ke halaman, dan tidak memakai header tambahan | Satu header CSP dengan nonce menolak skrip inline, sedangkan teks dari data boleh ditulis lewat `innerHTML` | App web menyimpan token sesi di `localStorage` dan mengirimnya di header `Authorization`, tanpa cookie | Teks lewat `textContent`, CSP dengan nonce, token CSRF terikat sesi plus `Sec-Fetch-Site` dan `Origin`, cookie `__Host-` dengan `HttpOnly`, `Secure`, `SameSite=Lax` |
 | Kelebihan | Tanpa header tambahan. Bagian E: `textContent` sendirian menahan payload ini | Bagian C: CSP sendirian menahan payload ini walau elemen `img` terbentuk | Browser tidak mengirim header itu dari form situs lain, jadi permintaan form dari luar tidak membawa token (penalaran, Tidak dijalankan) | Dua lapis XSS menahan payload ini sendirian (bagian C dan E), dan lapis CSRF teruji di bagian B sampai F |
-| Kekurangan | Satu variabel yang terlupa sudah cukup, seperti satu query yang terlupa di M3. Bagian A menunjukkan akibatnya | OWASP menulis CSP mudah salah dikonfigurasi dan tidak boleh menjadi pertahanan utama. Elemen `img` tetap terbentuk dan data tetap salah tempat | Satu XSS bisa mencuri semua data di `localStorage` (OWASP HTML5 Security Cheat Sheet). Bagian A merekam hal serupa untuk cookie tanpa `HttpOnly` | Lebih banyak bagian yang harus tetap benar: nonce tiap respons, token tiap sesi, HTTPS. Bagian D menunjukkan token tidak menahan skrip di halaman |
+| Kekurangan | Satu variabel yang terlupa sudah cukup, seperti satu query yang terlupa di M3. Bagian A menunjukkan akibatnya | OWASP menulis CSP mudah salah dikonfigurasi dan tidak boleh menjadi pertahanan utama. Elemen `img` tetap terbentuk dan data tetap salah tempat | Satu XSS bisa mencuri semua data di `localStorage` (OWASP HTML5 Security Cheat Sheet). Bagian A merekam bahwa `document.cookie` terbaca dari dalam halaman bila cookie tanpa `HttpOnly` (dibaca penggerak lab, bukan payload) | Lebih banyak bagian yang harus tetap benar: nonce tiap respons, token tiap sesi, HTTPS. Bagian D menunjukkan token tidak menahan skrip di halaman |
 | Biaya operasional | Aturan review dan pencarian `innerHTML` di CI | Kebijakan harus dirawat tiap komponen baru. Draf CSP Level 3 masih Working Draft | Tidak ada cookie, tetapi app harus mengelola dan menghapus token sendiri | W3C menulis nonce harus unik tiap kebijakan dikirim, jadi HTML dengan nonce lama tidak dipakai ulang. Token dan cookie dikelola server |
 | Bukti | Rekaman lab `xss.txt` bagian A, B, dan E | Rekaman lab `xss.txt` bagian C. Dokumentasi OWASP dan MDN | Tidak dijalankan. Dokumentasi OWASP | Rekaman lab `xss.txt` bagian B sampai E dan `csrf.txt` bagian A sampai F |
 
@@ -253,7 +259,7 @@ Batasnya: ini satu produk besar, dan kebijakan yang mereka tampilkan memakai daf
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
-1. CSP merusak komponen yang sah, lalu seseorang menambah `'unsafe-inline'` supaya halaman jalan lagi, dan lapis kedua hilang. Pencegahannya: pasang kebijakan baru dulu di `Content-Security-Policy-Report-Only` ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP)), dan tambah tes yang membaca header lalu gagal bila kebijakan skrip memuat `'unsafe-inline'`. Keduanya Tidak dijalankan di lab.
+1. CSP merusak komponen yang sah, lalu seseorang menghapus nonce dan menulis `'unsafe-inline'` supaya halaman jalan lagi, dan lapis kedua hilang. Bila nonce tetap ada, browser mengabaikan `'unsafe-inline'`, jadi tes di browser tidak melihat bahwa kata itu sudah ditulis (uji mutasi lab mencatat mutan itu lolos). Pencegahannya: pasang kebijakan baru dulu di `Content-Security-Policy-Report-Only` ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP)), dan tambah tes yang membaca header lalu gagal bila kebijakan skrip memuat `'unsafe-inline'`. Keduanya Tidak dijalankan di lab.
 2. Fitur baru menulis data lewat `innerHTML` lagi, misalnya ekspor atau tampilan markdown. Pencegahannya: aturan review dan pencarian `innerHTML` di CI. CSP menahan event handler inline (bagian C), tetapi OWASP menulis CSP tidak boleh jadi pertahanan utama.
 3. Dasbor pindah ke subdomain yang berbagi domain induk, atau satu endpoint GET mengubah data. `SameSite` berlaku per situs, bukan per origin, dan `Lax` tidak menahan GET. Pencegahannya: token tetap wajib, cookie tetap `__Host-` tanpa `Domain`, dan endpoint yang mengubah data tidak memakai GET.
 
@@ -264,7 +270,7 @@ Batasnya: ini satu produk besar, dan kebijakan yang mereka tampilkan memakai daf
 - Saat catatan boleh memuat format, misalnya markdown atau HTML. `textContent` tidak cukup, dan sanitizer HTML jadi syarat tambahan: OWASP memakai DOMPurify sebagai contoh.
 - Saat HTML dasbor perlu dipakai ulang oleh banyak user, misalnya lewat cache bersama, sehingga nonce per respons tidak bisa dipertahankan.
 
-**Yang akan merevisinya.** Tahap 4 menambah back office tim risk yang menampilkan data user luar ([[t4-audit]]), jadi aturan 1 dan 2 berlaku di sana. [[t3-tls-pinning]] menulis HTTPS dan HSTS di dasbor, yang dibutuhkan cookie `__Host-` di luar localhost. Login passkey penuh membutuhkan ADR sendiri.
+**Yang akan merevisinya.** Tahap 4 menambah back office tim risk yang menampilkan data user luar ([[t4-audit]]), jadi aturan 1 dan 2 berlaku di sana. [[t3-tls-pinning]] menulis HTTPS dan HSTS di dasbor, dan cookie `__Host-` membutuhkan HTTPS di luar localhost. Login passkey penuh membutuhkan ADR sendiri.
 
 ### Sengaja belum dilakukan
 
@@ -314,7 +320,7 @@ Skrip itu berjalan sebagai halaman dasbor sendiri: permintaannya same-origin, co
 <details class="success">
 <summary>Jawaban</summary>
 
-Tidak. Cookie tidak ikut terkirim, jadi dasbor menjawab 401 `belum login` sebelum gerbang token (`csrf.txt` bagian B dan C). Token baru menahan saat cookie terkirim, seperti di bagian D dengan `SameSite=None` (403 `csrf`).
+Tidak. Cookie tidak ikut terkirim, jadi dasbor menjawab 401 `belum login` sebelum gerbang token (`csrf.txt` bagian B dan C). Gerbang baru menahan saat cookie terkirim, seperti di bagian D dengan `SameSite=None` (403 `csrf`): token, Origin, dan `Sec-Fetch-Site` gagal sekaligus.
 
 </details>
 
@@ -323,7 +329,7 @@ Tidak. Cookie tidak ikut terkirim, jadi dasbor menjawab 401 `belum login` sebelu
 <details class="success">
 <summary>Jawaban</summary>
 
-`HttpOnly` hanya melarang skrip membaca cookie. Browser tetap mengirim cookie itu pada permintaan dari JavaScript, jadi di bagian D harga tetap berubah. `HttpOnly` mengurangi akibat XSS, karena di bagian B `document.cookie` kosong. Ia tidak menggantikan escape dan CSP.
+`HttpOnly` hanya melarang skrip membaca cookie, dan browser tetap mengirimnya pada permintaan dari JavaScript, jadi di bagian D harga tetap berubah. Atribut itu mengurangi akibat XSS, karena `document.cookie` terbaca di bagian A dan kosong di bagian B (dibaca penggerak lab, bukan payload). Namun ia tidak menggantikan escape dan CSP.
 
 </details>
 

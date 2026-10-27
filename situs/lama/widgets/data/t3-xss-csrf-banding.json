@@ -92,8 +92,8 @@
         "adr30": ["b-dasbor", "b-cookie"]
       },
       "catatan": {
-        "rentan": "document.cookie bisa dibaca dan memuat nama cookie sesi (xss.txt bagian A).",
-        "adr30": "document.cookie kosong (xss.txt bagian B)."
+        "rentan": "document.cookie bisa dibaca dari dalam halaman dan memuat nama cookie sesi (xss.txt bagian A, dibaca penggerak lab).",
+        "adr30": "document.cookie kosong (xss.txt bagian B, dibaca penggerak lab)."
       },
       "nada": {
         "rentan": "warn"
@@ -121,7 +121,7 @@
       },
       "catatan": {
         "rentan": "Cookie terkirim, jawabannya 200, dan harga jadi Rp1 (csrf.txt bagian A).",
-        "adr30": "Cookie tidak terkirim dan jawabannya 401 (csrf.txt bagian C); bila cookie terkirim, token menolak dengan 403 (bagian D)."
+        "adr30": "Cookie tidak terkirim dan jawabannya 401 (csrf.txt bagian C); bila cookie terkirim, gerbang token, Origin, dan Sec-Fetch-Site menolak dengan 403 (bagian D)."
       },
       "nada": {
         "rentan": "warn"

@@ -32,7 +32,7 @@
       "alasan": "Skrip berjalan sebagai halaman itu sendiri. Cookie ikut terkirim, token benar, dan asalnya same-origin, jadi semua pemeriksaan lolos."
     }
   ],
-  "penutup": "Token CSRF dan cookie HttpOnly menahan permintaan dari situs lain, bukan skrip yang sudah berjalan di dasbor. Karena itu escape dan CSP dikerjakan sebagai lapis sendiri.",
+  "penutup": "Pagar CSRF (SameSite, token, Origin, dan Sec-Fetch-Site) menahan permintaan dari situs lain, bukan skrip yang sudah berjalan di dasbor. Karena itu escape dan CSP dikerjakan sebagai lapis sendiri.",
   "label": {
     "sumber": "Rekaman lab · xss.txt",
     "tebakDulu": "Tebak dulu:",

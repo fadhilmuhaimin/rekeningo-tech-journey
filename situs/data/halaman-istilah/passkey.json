@@ -1,6 +1,6 @@
 {
   "istilah": "Passkey (WebAuthn)",
-  "sehari_hari": "Passkey adalah nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "sehari_hari": "Passkey adalah nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
   "cerita": [
     {
       "rujukan": "t3-xss-csrf",
@@ -27,7 +27,7 @@
       "riset": "R3-213",
       "judul": "W3C: Web Authentication Level 3",
       "url": "https://www.w3.org/TR/webauthn-3/",
-      "catatan": "Recommendation 25 Agustus 2026, dibuka 2026-10-27. Registration ceremony dimulai relying party lewat navigator.credentials.create(); spesifikasi memakai kata passkey secara informal untuk kredensial yang tersinkron atau terikat ke perangkat."
+      "catatan": "Recommendation 25 Agustus 2026, dibuka 2026-10-27. Registration ceremony dimulai relying party lewat navigator.credentials.create(). Kata Passkey ditandai [DEPRECATED] sebagai sinonim discoverable credential, tetapi synced passkey dan device-bound passkey masih dipakai sebagai sebutan lazim."
     },
     {
       "riset": "R3-213",

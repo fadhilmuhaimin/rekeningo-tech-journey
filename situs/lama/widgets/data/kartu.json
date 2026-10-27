@@ -2061,7 +2061,7 @@
   "judul": "3.23 Keamanan 5: XSS, CSRF, cookie sesi, passkey + ADR 30",
   "url": "tahap-3/xss-csrf-cookie/",
   "tanya": "Form dari situs lain mengirim POST ke dasbor. Cookie sesi memakai `SameSite=Lax` yang ditulis eksplisit. Apakah token sempat diperiksa?",
-  "jawab": "Tidak. Cookie tidak ikut terkirim, jadi dasbor menjawab 401 `belum login` sebelum gerbang token (`csrf.txt` bagian B dan C). Token baru menahan saat cookie terkirim, seperti di bagian D dengan `SameSite=None` (403 `csrf`)."
+  "jawab": "Tidak. Cookie tidak ikut terkirim, jadi dasbor menjawab 401 `belum login` sebelum gerbang token (`csrf.txt` bagian B dan C). Gerbang baru menahan saat cookie terkirim, seperti di bagian D dengan `SameSite=None` (403 `csrf`): token, Origin, dan `Sec-Fetch-Site` gagal sekaligus."
  },
  {
   "id": "t3-xss-csrf-5",
@@ -2069,7 +2069,7 @@
   "judul": "3.23 Keamanan 5: XSS, CSRF, cookie sesi, passkey + ADR 30",
   "url": "tahap-3/xss-csrf-cookie/",
   "tanya": "Cookie sesi memakai `HttpOnly`. Kenapa itu tidak menghentikan skrip mengubah harga?",
-  "jawab": "`HttpOnly` hanya melarang skrip membaca cookie. Browser tetap mengirim cookie itu pada permintaan dari JavaScript, jadi di bagian D harga tetap berubah. `HttpOnly` mengurangi akibat XSS, karena di bagian B `document.cookie` kosong. Ia tidak menggantikan escape dan CSP."
+  "jawab": "`HttpOnly` hanya melarang skrip membaca cookie, dan browser tetap mengirimnya pada permintaan dari JavaScript, jadi di bagian D harga tetap berubah. Atribut itu mengurangi akibat XSS, karena `document.cookie` terbaca di bagian A dan kosong di bagian B (dibaca penggerak lab, bukan payload). Namun ia tidak menggantikan escape dan CSP."
  },
  {
   "id": "t3-xss-csrf-6",

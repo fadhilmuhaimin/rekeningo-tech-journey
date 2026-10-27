@@ -995,7 +995,7 @@ window.ISTILAH = {
  },
  "Passkey": {
   "b": "t3-xss-csrf",
-  "d": "Nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "d": "Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
   "h": "istilah/passkey/",
   "n": "3.23 XSS, CSRF, cookie sesi, passkey",
   "s": "istilah-passkey",
@@ -1493,7 +1493,7 @@ window.ISTILAH = {
  },
  "WebAuthn": {
   "b": "t3-xss-csrf",
-  "d": "Nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "d": "Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
   "h": "istilah/passkey/",
   "n": "3.23 XSS, CSRF, cookie sesi, passkey",
   "s": "istilah-passkey",
@@ -2218,7 +2218,7 @@ window.ISTILAH = {
  },
  "passkey": {
   "b": "t3-xss-csrf",
-  "d": "Nama umum untuk kredensial kunci publik WebAuthn: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
+  "d": "Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
   "h": "istilah/passkey/",
   "n": "3.23 XSS, CSRF, cookie sesi, passkey",
   "s": "istilah-passkey",

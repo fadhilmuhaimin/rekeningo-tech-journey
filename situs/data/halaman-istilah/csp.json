@@ -27,13 +27,13 @@
       "riset": "R3-211",
       "judul": "MDN: Content Security Policy (CSP)",
       "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP",
-      "catatan": "Dibuka 2026-10-27. Nonce adalah pendekatan yang disarankan untuk skrip dan style, dibuat acak di tiap respons HTTP, dan hanya berlaku untuk elemen script dan style."
+      "catatan": "Dibuka 2026-10-27. Nonce adalah pendekatan yang disarankan untuk skrip dan style, dibuat acak di tiap respons HTTP. Event handler inline harus diganti addEventListener(), dan unsafe-inline diabaikan bila ada nonce atau hash."
     },
     {
       "riset": "R3-211",
       "judul": "W3C: Content Security Policy Level 3",
       "url": "https://www.w3.org/TR/CSP3/",
-      "catatan": "Working Draft 16 September 2026, dibuka 2026-10-27. Nonce sebaiknya paling sedikit 128 bit dan unik tiap kebijakan dikirim."
+      "catatan": "Working Draft 16 September 2026, dibuka 2026-10-27. Nonce sebaiknya paling sedikit 128 bit dan unik tiap kebijakan dikirim, dan hanya berlaku untuk skrip dan style inline, bukan atribut elemen."
     }
   ]
 }

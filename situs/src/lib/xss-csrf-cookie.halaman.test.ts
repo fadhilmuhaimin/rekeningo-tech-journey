@@ -17,7 +17,7 @@ import { DataTebak } from "../widgets/tebak/skema";
 import { daftarBlok } from "./blok";
 import { HalamanIstilah } from "./istilah";
 import { DataRantai } from "./rantai";
-import { BARIS_MDX, NILAI_JSON } from "./xss-csrf-cookie.halaman.nilai";
+import { BARIS_MDX, BENTUK_MDX, NILAI_JSON } from "./xss-csrf-cookie.halaman.nilai";
 
 const akar = path.resolve(__dirname, "../../..");
 const terlacak: Set<string> | null = (() => {
@@ -128,6 +128,10 @@ const fnCsrfSah = dasborGo.slice(dasborGo.indexOf("func (s *server) csrfSah"), d
 describe("kata-kata halaman terkunci (lapis 2)", () => {
   test("baris MDX sama dengan nilai terkunci", () => {
     expect(barisMdx).toEqual(BARIS_MDX);
+  });
+  test("bentuk baris kosong terkunci (baris kosong menentukan cara MDX mengurai)", () => {
+    const bentuk = mdx.split("\n").map((b) => (/^<Snippet (file|files)=/.test(b) ? "S" : b.trim() ? "#" : "-")).join("");
+    expect(bentuk).toBe(BENTUK_MDX);
   });
   test("nilai string tiap JSON data sama dengan nilai terkunci", () => {
     const ratakan = (x: unknown, jalur = ""): string[] =>
@@ -426,8 +430,8 @@ describe("kalimat halaman memuat nilai turunan", () => {
         adr30: `Tidak ada dialog dan tidak ada elemen img, dan catatan tampil sebagai teks (xss.txt bagian B).`,
       },
       "Skrip membaca cookie": {
-        rentan: "document.cookie bisa dibaca dan memuat nama cookie sesi (xss.txt bagian A).",
-        adr30: "document.cookie kosong (xss.txt bagian B).",
+        rentan: "document.cookie bisa dibaca dari dalam halaman dan memuat nama cookie sesi (xss.txt bagian A, dibaca penggerak lab).",
+        adr30: "document.cookie kosong (xss.txt bagian B, dibaca penggerak lab).",
       },
       "Skrip mengubah harga": {
         rentan: "Tidak direkam dengan cookie dan token rentan, karena bagian D memakai cookie dan token benar.",
@@ -435,7 +439,7 @@ describe("kalimat halaman memuat nilai turunan", () => {
       },
       "Form dari situs lain": {
         rentan: `Cookie terkirim, jawabannya ${A.status}, dan harga jadi ${rp(CS.A!.sesudah)} (csrf.txt bagian A).`,
-        adr30: `Cookie tidak terkirim dan jawabannya ${C.status} (csrf.txt bagian C); bila cookie terkirim, token menolak dengan ${D.status} (bagian D).`,
+        adr30: `Cookie tidak terkirim dan jawabannya ${C.status} (csrf.txt bagian C); bila cookie terkirim, gerbang token, Origin, dan Sec-Fetch-Site menolak dengan ${D.status} (bagian D).`,
       },
       "SameSite tidak ditulis": {
         rentan: `Cookie terkirim, jawabannya ${E.status}, dan harga jadi ${rp(CS.E!.sesudah)} (csrf.txt bagian E).`,
@@ -469,7 +473,7 @@ describe("rentang Snippet diturunkan dari kode dan rekaman", () => {
   test("Snippet rekaman: rentang dari kepala bagian, tanpa baris ber-ID dan tanpa komentar penulis lab", () => {
     const barisX = xssTxt.split("\n");
     const barisC = csrfTxt.split("\n");
-    const adaId = (b: string) => /R\d-\d+|keputusan \d+/i.test(b);
+    const adaId = (b: string) => /R\d-\d+|keputusan \d+|token sendirian menahan/i.test(b);
     const harap: string[] = [];
     for (const h of ["A", "B", "C", "D", "E"]) {
       const a = no(barisX, new RegExp(`^# --- ${h}\\. `));
@@ -679,5 +683,70 @@ describe("istilah baru, glosarium, dan pola terlarang", () => {
     expect(aman).not.toContain("innerHTML");
     expect(aman).toContain("textContent");
     expect(dasborGo).not.toMatch(/unsafe-inline/);
+  });
+});
+
+describe("tinjauan 1091: mekanisme, lingkup, dan siapa yang mengirim atau membaca", () => {
+  const rowRiset = (id: string): string => riset.split("\n").find((x) => x.startsWith(`| ${id} |`))!;
+  test("bagian D menolak lewat ketiga pemeriksaan sekaligus, bukan token sendirian", () => {
+    expect(CS.D!.req).toMatchObject({ secFetchSite: "cross-site", originAsing: true, status: 403, cookieTerkirim: true });
+    expect(seranganGo).not.toMatch(/X-CSRF-Token|fetch\(|XMLHttpRequest/);
+    expect(readme).toMatch(/`csrf-origin-dihapus@rekaman`[^\n]*\*\*Lolos\*\*/);
+    expect(readme).toMatch(/`csrf-secfetchsite-dihapus@rekaman`[^\n]*\*\*Lolos\*\*/);
+    expect(isi).toContain("Di bagian D ketiganya menolak sekaligus: `Sec-Fetch-Site` cross-site, Origin asing, dan form tanpa token.");
+    expect(isi).toContain("Gerbang baru menahan saat cookie terkirim");
+    expect(isi).not.toContain("Token baru menahan");
+    expect(isi).toContain("ditahan `SameSite=Lax` atau gerbang token, Origin, dan Sec-Fetch-Site (`csrf.txt` bagian B sampai D)");
+  });
+  test("HttpOnly tidak menahan permintaan lintas situs: bagian E dengan cookie HttpOnly lolos", () => {
+    expect(flagCsrf.E).toEqual({ token: "tidak", samesite: "default" });
+    expect(dasborGo).toContain('HttpOnly: s.cookie != "rentan"');
+    expect(CS.E!.req).toMatchObject({ cookieTerkirim: true, status: 200 });
+    expect(CS.E!.sesudah).toBe(1);
+    const penutup = (tebakMentah as { penutup: string }).penutup;
+    expect(penutup).not.toMatch(/HttpOnly/);
+    expect(penutup).toContain("Pagar CSRF (SameSite, token, Origin, dan Sec-Fetch-Site) menahan permintaan dari situs lain");
+  });
+  test("CSP hanya dikirim /dasbor: halaman login tanpa CSP, dan halaman menyebut lingkupnya", () => {
+    expect(dasborGo.match(/"Content-Security-Policy"/g)).toHaveLength(1);
+    const fnDasbor = dasborGo.slice(dasborGo.indexOf("func (s *server) dasborPage"), dasborGo.indexOf("// csrfSah memeriksa"));
+    expect(fnDasbor).toContain('"Content-Security-Policy"');
+    const fnLogin = dasborGo.slice(dasborGo.indexOf("func (s *server) loginPage"), dasborGo.indexOf("func (s *server) loginSubmit"));
+    expect(fnLogin.length).toBeGreaterThan(50);
+    expect(fnLogin).not.toContain("Content-Security-Policy");
+    expect(isi).toContain("satu kebijakan baru di setiap respons `GET /dasbor`:");
+    expect(isi).toContain("Halaman login lab tidak mengirim CSP (dibaca dari kode).");
+    expect(isi).not.toContain("setiap respons halaman");
+  });
+  test("nonce tidak berlaku untuk atribut: sumbernya CSP Level 3, bukan MDN; unsafe-inline diabaikan bila ada nonce (MDN)", () => {
+    const r211 = rowRiset("R3-211");
+    expect(r211).toContain("Nonces only apply to inline script and inline style, not to attributes of either element");
+    expect(r211).toContain("the unsafe-inline keyword is ignored by browsers");
+    expect(r211).not.toContain("hanya untuk elemen `<script>` dan `<style>`");
+    expect(isi).toContain("Spesifikasi CSP Level 3 menulis bahwa nonce hanya berlaku untuk skrip dan style inline, bukan untuk atribut elemen ([W3C: CSP Level 3](https://www.w3.org/TR/CSP3/)");
+    expect(isi).not.toContain("MDN menulis bahwa nonce hanya berlaku");
+    expect(isi).toContain("Bila nonce tetap ada, browser mengabaikan `'unsafe-inline'`");
+    expect(readme).toMatch(/`csp-unsafe-inline-ditambah`[^\n]*\*\*Lolos\*\*/);
+    const csp = JSON.parse(baca("situs/data/halaman-istilah/csp.json")) as { sumber: { judul: string; catatan: string }[] };
+    expect(csp.sumber.find((s) => /^MDN/.test(s.judul))!.catatan).not.toMatch(/hanya berlaku/);
+    expect(csp.sumber.find((s) => /^W3C/.test(s.judul))!.catatan).toContain("hanya berlaku untuk skrip dan style inline");
+  });
+  test("cookie dibaca dan fetch dikirim penggerak lab, bukan payload", () => {
+    expect(driverJs).toContain("page.evaluate(() => document.cookie)");
+    expect(PAYLOAD).not.toMatch(/document\.cookie|fetch/);
+    expect(hitung(isi, /dibaca penggerak lab, bukan payload/g)).toBe(2);
+  });
+  test("passkey: kata Passkey ditandai DEPRECATED di spesifikasi, dan create() tidak meminta residentKey", () => {
+    const sel = /authenticatorSelection: (\{[^}]*\})/.exec(driverJs)![1]!;
+    expect(sel).toContain("authenticatorAttachment: 'platform'");
+    expect(sel).not.toMatch(/esidentKey/);
+    expect(isi).toContain("Panggilan itu tidak meminta `residentKey`");
+    expect(rowRiset("R3-213")).toContain("tidak meminta `residentKey`");
+    expect(rowRiset("R3-213")).toContain("[DEPRECATED]");
+    expect(isi).toContain('menandai kata "Passkey" sebagai sinonim [DEPRECATED] untuk discoverable credential');
+    expect(isi).not.toContain("Passkey adalah nama umum untuk kredensial kunci publik WebAuthn");
+    const pk = JSON.parse(baca("situs/data/halaman-istilah/passkey.json")) as { sehari_hari: string };
+    expect(pk.sehari_hari).toContain("disimpan di sisi client");
+    expect(glosMdx).toContain("| **Passkey** (WebAuthn) | Nama populer untuk kredensial WebAuthn yang disimpan di sisi client");
   });
 });
