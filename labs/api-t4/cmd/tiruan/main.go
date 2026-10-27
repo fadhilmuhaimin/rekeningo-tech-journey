@@ -136,6 +136,8 @@ func (g *gateway) rute() http.Handler {
 	mux.HandleFunc("GET /settlement", g.settlement)
 	mux.HandleFunc("POST /lab/bayar", g.bayar)
 	mux.HandleFunc("POST /lab/webhook", g.kirimWebhook)
+	mux.HandleFunc("POST /lab/jadwal", g.jadwal)   // jadwal ulangan dengan waktu maya (jadwal.go)
+	mux.HandleFunc("POST /lab/rahasia", g.rotasi)  // rotasi rahasia penanda tangan (jadwal.go)
 	mux.HandleFunc("GET /lab/orders", func(w http.ResponseWriter, r *http.Request) {
 		g.mu.Lock()
 		defer g.mu.Unlock()
@@ -293,7 +295,7 @@ func (g *gateway) kirimWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 		g.mu.Unlock()
 	}
-	rahasia := g.rahasia
+	rahasia := g.rahasiaSekarang()
 	if in.Rahasia != "" {
 		rahasia = in.Rahasia
 	}
