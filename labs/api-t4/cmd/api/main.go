@@ -94,7 +94,7 @@ func main() {
 	breakerTimeout := flag.Duration("breaker-timeout", 0, "worker, dengan -breaker: lama breaker terbuka sebelum setengah terbuka; 0 = bawaan sony/gobreaker v2.4.0 (60 detik)")
 	breakerBawaan := flag.Bool("breaker-bawaan", false, "lab saja, dengan -breaker: IsSuccessful bawaan pustaka (jawaban 4xx vendor dihitung gagal); bawaan lab: 4xx dihitung sukses (ADR 36)")
 	objekS3 := flag.String("objek-s3", "", "endpoint penyimpanan objek S3 lokal untuk file identitas (lab t4-storage); kunci akses dan rahasia dari OBJEK_S3_KUNCI dan OBJEK_S3_RAHASIA; kosong = -objek-dir")
-	objekBucket := flag.String("objek-bucket", "identitas", "bucket penyimpanan objek (-objek-s3)")
+	objekBucket := flag.String("objek-bucket", "berkas", "bucket penyimpanan objek (-objek-s3)")
 	objekPresign := flag.Duration("objek-presign-umur", 0, "umur URL PUT bertanda tangan untuk unggah file identitas (ADR 38); 0 = 5 menit (Asumsi); lab saja untuk umur pendek")
 	retensi := flag.Bool("retensi-identitas", false, "job: hapus file identitas yang masa simpannya (hapus_pada) sudah sampai, lalu keluar (ADR 38)")
 	labSekarang := flag.String("lab-sekarang", "", "lab saja, dengan -retensi-identitas: waktu service RFC 3339 (waktu maya)")
@@ -156,7 +156,8 @@ func main() {
 		*objekDir = os.TempDir() + "/api-t4-objek"
 	}
 	dep.Objek = bukaObjek(context.Background(), db, pilihanObjek{Dir: *objekDir, S3: *objekS3, Bucket: *objekBucket,
-		MaksBaca: 4 * service.MaksBerkasIdentitas, Bytea: *rentan == service.RentanBerkasBytea})
+		MaksBaca: 4 * service.MaksBerkasIdentitas, Bytea: *rentan == service.RentanBerkasBytea,
+		PastikanBucket: *peran == "api" && !*retensi && !*cekTopup && *rekon == "" && !*koreksiRekon && !*kedaluwarsaHold})
 	dep.UmurPresign = *objekPresign
 	for _, s := range strings.Split(*rahasiaWebhook, ",") {
 		if s = strings.TrimSpace(s); s != "" {

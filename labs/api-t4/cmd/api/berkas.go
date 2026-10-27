@@ -21,6 +21,9 @@ type pilihanObjek struct {
 	Presign  time.Duration // -objek-presign-umur; 0 = service.UmurPresign
 	MaksBaca int64
 	Bytea    bool // mode rentan berkas-bytea (M33 versi pertama)
+	// PastikanBucket: server membuat bucket bila belum ada dan berhenti bila penyimpanan tidak menjawab. Job (mis.
+	// retensi) tidak: job harus tetap berjalan saat penyimpanan mati dan melaporkan galat per file.
+	PastikanBucket bool
 }
 
 // bukaObjek memilih penyimpanan: bytea (rentan) > S3 > direktori. Gagal keras bila S3 diminta tanpa kunci akses.
@@ -34,8 +37,10 @@ func bukaObjek(ctx context.Context, db *sql.DB, p pilihanObjek) objek.Penyimpan 
 			log.Fatal("-objek-s3 butuh OBJEK_S3_KUNCI dan OBJEK_S3_RAHASIA (data lab, bukan secret)")
 		}
 		s := objek.S3{Endpoint: p.S3, Bucket: p.Bucket, Kunci: kunci, Rahasia: rahasia, MaksBaca: p.MaksBaca}
-		if err := s.PastikanBucket(ctx); err != nil {
-			log.Fatalf("bucket %s: %v", p.Bucket, err)
+		if p.PastikanBucket {
+			if err := s.PastikanBucket(ctx); err != nil {
+				log.Fatalf("bucket %s: %v", p.Bucket, err)
+			}
 		}
 		return s
 	}

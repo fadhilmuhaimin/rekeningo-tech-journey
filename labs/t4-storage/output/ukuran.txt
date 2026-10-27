@@ -1,0 +1,53 @@
+# Lab t4-storage · file di bytea lawan penyimpanan objek: ukuran dump dan pulih
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_storage · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-storage run.
+# Tiap pengajuan membawa dua file; satu file 500.000 byte (500 KB, Asumsi naskah). Isi file karangan (Ilustrasi): tanda tangan PNG, lalu byte acak berbenih tetap.
+# Dump: pg_dump -Fc (format custom, terkompresi) atas schema lab, dihitung di container PostgreSQL. Pulih: pg_restore ke database lain.
+
+# --- A. Versi pertama (mode rentan berkas-bytea): file di kolom bytea, satu database dengan data transaksi ---
+# server: ./api-t4 -lab -rentan berkas-bytea (penyimpanan objek = tabel berkas_bytea)
+=> SELECT count(*) AS baris, sum(octet_length(isi)) AS byte_isi FROM berkas_bytea
+ baris | byte_isi
+-------+----------
+ 16    | 8000000
+(1 row)
+=> SELECT count(*) AS pengajuan, count(*) FILTER (WHERE berkas_kartu_kunci LIKE 'identitas/%') AS kunci_di_baris FROM verifikasi
+ pengajuan | kunci_di_baris
+-----------+----------------
+ 8         | 8
+(1 row)
+# Selisih ukuran dump terhadap dump sebelum pengajuan pertama, dibagi byte isi file (n pengajuan x 2 file x 500.000 byte):
+2 pengajuan (2.000.000 byte file): rasio dump/file = 1,1
+4 pengajuan (4.000.000 byte file): rasio dump/file = 1,1
+8 pengajuan (8.000.000 byte file): rasio dump/file = 1,1
+# Rasio tetap sedikit di atas 1 pada tiap ukuran: dump membesar sebanding dengan ukuran file (batas yang diperiksa: 0,99 sampai 1,25). pg_dump menulis bytea sebagai teks heksadesimal lalu memampatkannya; byte acak tidak bisa dimampatkan lebih jauh, dan JPEG nyata sudah terkompresi.
+# Dump teks biasa (pg_dump -Fp) atas tabel berkas_bytea saja: rasio dump/file = 2,0 (bytea ditulis sebagai heksadesimal: dua karakter per byte)
+
+# --- B. Pulih: dump tabel berkas_bytea (format custom) dipulihkan ke database lain; isinya harus sama ---
+$ psql lab_pulih -c 'SELECT count(*), sum(octet_length(isi)) FROM berkas_bytea'
+16|8000000   # 16 baris, 8.000.000 byte: sama dengan sebelum dump
+# Waktu dump dan pulih tidak direkam (bergantung mesin). Hanya batasnya yang diperiksa: kedua perintah selesai tanpa galat.
+
+# --- C. Penyimpanan objek: file di SeaweedFS, database menyimpan kunci dan checksum ---
+# penyimpanan objek: SeaweedFS 4.51 di container, endpoint S3 lokal, bucket privat 'identitas'
+# server: ./api-t4 -lab -objek-s3 <endpoint lokal> (file lewat URL PUT bertanda tangan)
+# Di penyimpanan objek: 16 objek, 8.000.000 byte; di database: baris verifikasi dengan kunci dan checksum saja.
+=> SELECT count(*) AS pengajuan, min(length(berkas_kartu_kunci)) AS panjang_kunci, min(length(checksum_kartu)) AS panjang_checksum FROM verifikasi
+ pengajuan | panjang_kunci | panjang_checksum
+-----------+---------------+------------------
+ 8         | 48            | 64
+(1 row)
+# Selisih ukuran dump terhadap dump sebelum pengajuan pertama, dibagi byte isi file di penyimpanan:
+2 pengajuan (2.000.000 byte file di penyimpanan): rasio dump/file di bawah 0,01: ya
+4 pengajuan (4.000.000 byte file di penyimpanan): rasio dump/file di bawah 0,01: ya
+8 pengajuan (8.000.000 byte file di penyimpanan): rasio dump/file di bawah 0,01: ya
+# Dump tidak membawa file. File punya salinan sendiri yang harus dicadangkan terpisah: pencadangan SeaweedFS Tidak dijalankan di lab ini.
+# Ukuran satu baris verifikasi (pg_column_size) ada di antara 200 dan 600 byte; hitungan di bawah memakai 400 byte (dibulatkan ke atas).
+
+# --- D. Hitungan 28 hari (Asumsi naskah: 2.000 unggahan per hari, 500 KB per file, 43,8 juta posting per tahun x 250 byte) ---
+file per hari   = 2.000 x 500 KB               = 1,00 GB
+file 28 hari    = 28 x 1,00 GB               = 28,00 GB
+posting 28 hari = 43,8 juta / 365 x 28 x 250 B = 0,84 GB
+bagian file di bytea = 28,00 / (28,00 + 0,84) = 97,1%
+baris verifikasi bila file di penyimpanan objek: 28 x 1.000 x 400 B = 11 MB; bagian baris di data yang dicadangkan = 1,3%
+# Label: Hitungan dari Asumsi naskah (laju unggahan, ukuran file, jumlah posting); bukan hasil lab. Yang diukur lab hanyalah rasio dump/file di bagian A dan C.

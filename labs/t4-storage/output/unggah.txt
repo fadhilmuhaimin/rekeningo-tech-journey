@@ -1,0 +1,61 @@
+# Lab t4-storage · unggah lewat presigned PUT: pemeriksaan checksum, ukuran, tipe, kepemilikan kunci, dan log
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_storage · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-storage run.
+# penyimpanan objek: SeaweedFS 4.51 di container, endpoint S3 lokal, bucket privat 'berkas'
+# server: ./api-t4 -lab -objek-s3 <endpoint lokal> (umur URL bawaan 5 menit, Asumsi)
+
+# --- A. Alur normal: minta URL, unggah langsung ke penyimpanan, lalu ajukan dengan kunci dan checksum ---
+PUT kartu 500.000 byte dan swafoto 500.000 byte langsung ke penyimpanan: HTTP 200 dan 200 (server tidak melihat byte-nya)
+$ curl -i -X POST /verifikasi/terunggah -H 'Authorization: Bearer <token sesi Dina>' -d '{kunci_kartu, kunci_swafoto, checksum_kartu: <SHA-256 hitungan app>, checksum_swafoto: <...>, nomor_identitas: <16 angka>}'
+HTTP 202
+badan: {"id":1,"subjek":"pemakai","status":"diajukan","tingkat_diminta":"terverifikasi","checksum_kartu":"7a3ec9ac3c71866aefef9f0185a0b144ad42a120c0e3b3981e352d74f874cb8e","checksum_swafoto":"763bdbe895930e0abe509035e85127bf72aa050535734e60c6c37f7dd033dcd7","diajukan":"<waktu>"}
+checksum tersimpan sama dengan SHA-256 dari byte yang diunggah: ya
+=> SELECT id, akun_id, status, length(berkas_kartu_kunci) AS panjang_kunci, hapus_pada IS NULL AS belum_selesai FROM verifikasi
+ id | akun_id | status   | panjang_kunci | belum_selesai
+----+---------+----------+---------------+---------------
+ 1  | 40001   | diajukan | 48            | t
+(1 row)
+=> SELECT akun_id, kelas, jenis, tujuan, status FROM outbox WHERE jenis = 'verifikasi'
+ akun_id | kelas | jenis      | tujuan     | status
+---------+-------+------------+------------+----------
+ 40001   | 1     | verifikasi | verifikasi | menunggu
+(1 row)
+objek ada di penyimpanan (HEAD): kartu ya, swafoto ya
+=> SELECT status FROM verifikasi
+ status
+--------
+ lulus
+(1 row)
+
+# --- B. Checksum dari app salah: server menghitung dari isi, menolak, dan menghapus file dari penyimpanan ---
+HTTP 422
+badan: {"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"berkas_kartu","pesan":"checksum tidak cocok dengan isi yang diunggah"}]}
+objek di penyimpanan sesudah penolakan (HEAD): kartu tidak ada, swafoto tidak ada
+baris verifikasi untuk akun itu: 0
+
+# --- C. Ukuran diperiksa sesudah unggah: penyimpanan menerima apa pun, server menolak yang di atas 1 MiB ---
+kartu tepat 1 MiB (1.048.576 byte): HTTP 202
+penyimpanan menerima kartu 1 MiB + 1 byte (1.048.577 byte) lewat URL: HTTP 200 (presign.txt bagian F)
+ajukan dengan kartu 1 MiB + 1 byte: HTTP 422
+badan: {"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"berkas_kartu","pesan":"paling besar 1 MiB"}]}
+objek di penyimpanan sesudah penolakan (HEAD): kartu tidak ada, swafoto tidak ada
+
+# --- D. Bukan gambar, belum diunggah, dan kunci milik akun lain ---
+file PDF di kunci kartu (tipe dari byte, bukan nama): HTTP 422
+badan: {"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"berkas_kartu","pesan":"harus gambar JPEG atau PNG"}]}
+kartu tidak pernah diunggah: HTTP 422
+badan: {"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"berkas_kartu","pesan":"belum diunggah"}]}
+kunci kartu milik akun lain: HTTP 422
+badan: {"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"kunci_kartu","pesan":"bukan kunci yang diterbitkan untuk akun ini"}]}
+objek milik akun lain di penyimpanan sesudah penolakan: tetap ada
+
+# --- E. Nomor identitas dan tanda tangan URL tidak masuk log; tidak diulang di jawaban galat ---
+nomor identitas dikirim sebagai angka JSON, bukan teks: HTTP 422
+badan: {"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nomor_identitas","pesan":"harus 16 angka"}]}
+jawaban galat memuat nomor identitas: tidak
+nomor 5 angka: HTTP 422, jawaban memuat nomor itu: tidak
+# Penyimpanan dimatikan: pemeriksaan objek gagal di server; galat internal tidak boleh membawa URL atau tanda tangan ke log.
+ajukan saat penyimpanan mati: HTTP 500
+# Baris log kedua proses server yang menyebut penyimpanan:
+  error internal: penyimpanan objek HEAD: dial tcp 127.0.0.1:<port>: connect: connection refused
+log server: 5 baris; memuat nomor identitas, tanda tangan URL, byte isi file, kunci objek, rahasia penyimpanan, atau token sesi: tidak
