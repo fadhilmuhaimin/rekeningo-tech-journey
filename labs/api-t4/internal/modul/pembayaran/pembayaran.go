@@ -78,7 +78,10 @@ type Service struct {
 	Ledger  Pengkredit
 	Gateway Gateway
 	Rahasia []string // yang pertama dipakai gateway sekarang, berikutnya masa tumpang tindih rotasi (ADR 35)
-	Kini    func() time.Time
+	// RahasiaFn, bila diisi, menggantikan Rahasia dan dipanggil di setiap pemeriksaan: rahasia dibaca dari secret
+	// manager saat runtime, jadi rotasi tidak butuh deploy (lab t4-infra, ADR 39).
+	RahasiaFn func() []string
+	Kini      func() time.Time
 
 	// Lab saja: dipanggil di titik tertentu ("sesudah-ledger": ledger sudah menjurnal, transaction pembayaran belum
 	// dibuka). Lab memasang SIGKILL ke proses sendiri di sini.
@@ -96,6 +99,13 @@ func (s *Service) titik(nama string) {
 	if s.TitikGagal != nil {
 		s.TitikGagal(nama)
 	}
+}
+
+func (s *Service) daftarRahasia() []string {
+	if s.RahasiaFn != nil {
+		return s.RahasiaFn()
+	}
+	return s.Rahasia
 }
 
 // TandaTangan: HMAC-SHA256 atas "<timestamp>.<byte mentah body>", heksadesimal (ADR 34).
@@ -126,7 +136,7 @@ func (s *Service) PeriksaTandaTangan(timestamp, tanda string, body []byte) error
 		return ErrTandaTangan
 	}
 	cocok := false
-	for _, r := range s.Rahasia {
+	for _, r := range s.daftarRahasia() {
 		hitung, _ := hex.DecodeString(TandaTangan(r, ts, body))
 		if hmac.Equal(hitung, diterima) {
 			cocok = true

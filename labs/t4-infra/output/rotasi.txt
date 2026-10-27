@@ -1,0 +1,57 @@
+# Lab t4-infra · rotasi secret di OpenBao terbaca service tanpa deploy, dengan masa tumpang tindih
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema t4_infra
+# OpenBao v2.7.2 mode dev, image ghcr.io/openbao/openbao@sha256:5046911075e1…
+# Rekaman dari database bersih: make -C labs/t4-infra run.
+
+# --- A. OpenBao mode dev di container lab: cara berjalan ---
+$ docker run -d --name bao -e BAO_DEV_ROOT_TOKEN_ID=<token dev lab> -p 127.0.0.1:<port>:8200 openbao server -dev -dev-no-store-token
+# skrip entrypoint image (baris yang menyusun perintah server):
+  -dev-root-token-id="$BAO_DEV_ROOT_TOKEN_ID" \
+  -dev-listen-address="${BAO_DEV_LISTEN_ADDRESS:-"0.0.0.0:8200"}" \
+seal-status: initialized true, sealed false, version 2.7.2, storage_type inmem
+mounts: secret/ bertipe kv, options.version 2 (KV v2 terpasang di mode dev)
+GET /v1/secret/data/pembayaran/webhook tanpa token: 403
+tulis lalu baca secret/pembayaran/webhook dengan token root dev: 200, versi 1
+sesudah container dihentikan dan dinyalakan lagi, GET secret/pembayaran/webhook dengan token root dev: 404
+# Mode dev menyimpan data di memori dan tidak menyimpannya ke disk: restart menghapus semuanya. Hanya untuk lab; produksi memakai penyimpanan yang bertahan, unseal, dan token yang bukan root.
+
+# --- B. Service membaca rahasia dari OpenBao saat runtime (service pembayaran, token baca-saja) ---
+service dengan token yang tidak dikenal OpenBao: exit status 1, "rahasia awal tidak terbaca, service tidak dinyalakan: secret manager menjawab 403" (pembacaan awal yang gagal menghentikan service)
+$ BAO_TOKEN=<token service> ./pembayaran -rahasia-bao http://<openbao>:8200 -rahasia-bao-path secret/data/pembayaran/webhook -rahasia-segar 50ms
+# Di run ini service tidak diberi rahasia webhook lewat flag atau file (flag -rahasia-webhook masih ada, tidak dipakai); yang diberikan hanya token lewat lingkungan, dan tokennya hanya boleh membaca secret/data/pembayaran/*.
+service: jumlah rahasia 1, versi dokumen 1, sidik ['bdd884ce']
+kabar bertanda tangan rahasia v1 (gateway memakai v1): sah
+kabar bertanda tangan rahasia lain: ditolak
+token service mencoba menulis dokumen rahasia: 403 (hanya membaca)
+
+# --- C. Rotasi dengan masa tumpang tindih: operator menulis dulu, gateway beralih sesudahnya; proses service tidak dimulai ulang ---
+# 1. Operator menulis dokumen baru: sekarang = v2, lama = v1 (versi 2 di OpenBao). Gateway belum beralih.
+service sesudah rotasi: jumlah rahasia 2, versi dokumen 2, sidik ['6a06f30d', 'bdd884ce']
+proses service sama dengan sebelum rotasi (PID tidak berubah) dan tidak ada deploy: ya
+kabar bertanda tangan v1 (gateway masih memakai v1): sah
+kabar bertanda tangan v2: sah
+# 2. Gateway beralih ke v2 (POST /lab/rahasia pada gateway tiruan). Kabar berikutnya ditandatangani v2 tanpa menyebut rahasianya:
+kabar dari gateway sesudah beralih: sah
+# 3. Operator mengakhiri masa tumpang tindih: dokumen tanpa lama (versi 3).
+service: jumlah rahasia 1, versi dokumen 3, sidik ['6a06f30d']
+kabar bertanda tangan v1 sesudah masa tumpang tindih berakhir: ditolak
+kabar bertanda tangan v2: sah
+token service membaca versi 1 dokumen sesudah masa tumpang tindih berakhir: 200, berisi rahasia lama (riwayat versi KV v2 menyimpannya; versi 2 memuat rahasia lama di bidang lama)
+operator menghancurkan versi 1 dan 2 (destroy): token service membaca versi 1 dan 2: 404; versi terbaru (3): 200
+# Menulis versi baru dan mengakhiri tumpang tindih hanya mengubah apa yang diterima service. Rotasi karena rahasia bocor belum selesai sebelum versi lama dihancurkan.
+
+# --- D. Urutan terbalik (M30): gateway beralih lebih dulu, service belum membaca rahasia baru ---
+# Gateway langsung menandatangani dengan v3; operator belum menulis v3 ke OpenBao:
+kabar dari gateway: ditolak
+# Gateway akan mengulang kiriman yang tidak dijawab 2xx (M30). Operator menulis v3 dengan v2 sebagai lama; service membacanya tanpa dimulai ulang:
+kabar baru dari gateway sesudah service membaca v3 (event_id baru; lab tidak mengulang kabar yang sama): sah
+# Urutan yang aman: tulis ke OpenBao dulu, tunggu service membacanya (paling lama satu jeda baca; di lab 50 ms, bawaan service 30 detik, Asumsi), baru gateway beralih.
+# Selama service belum membaca, kabar bertanda v3 ditolak 401. Berapa lama jendelanya = jeda baca; lab tidak merekam nilainya (bergantung mesin).
+
+# --- E. OpenBao mati: service memakai pembacaan terakhir dan menghitung kegagalan ---
+OpenBao dihentikan. service: kegagalan beruntun >= 2 (diperiksa), jumlah rahasia 2, sidik ['c6b8cb14', '6a06f30d']
+kabar bertanda tangan v3 saat OpenBao mati: sah
+OpenBao dinyalakan lagi (mode dev, memori kosong): token root membaca secret: 404; token service: 403 (token ikut hilang)
+kabar bertanda tangan v3 sesudah secret dan token hilang: sah
+# Pilihan lab: pembacaan terakhir dipakai selama pembacaan gagal. Akibatnya service tidak tahu bahwa secret sudah dicabut atau token dicabut; kegagalan beruntun (gagal_beruntun) adalah bahan alert.
+# Tokennya sendiri tidak pulih: service perlu token baru, yang di lab berarti memulai ulang service. Itu bukan rotasi rahasia webhook, tetapi bagian dari mengoperasikan secret manager.

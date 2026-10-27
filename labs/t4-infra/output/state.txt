@@ -1,0 +1,44 @@
+# Lab t4-infra · state OpenTofu dan secret: konfigurasi, secret manager, dan data source
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema t4_infra
+# OpenTofu v1.13.2, image ghcr.io/opentofu/opentofu@sha256:25bdfbe87000…; provider random 3.9.1 dan local 2.9.1
+# OpenBao v2.7.2 mode dev, image ghcr.io/openbao/openbao@sha256:5046911075e1…
+# Rekaman dari database bersih: make -C labs/t4-infra run.
+
+# --- A. Secret ditulis di konfigurasi: random_password dan variabel masuk ke state ---
+$ tofu version
+OpenTofu v1.13.2
+$ tofu init -lockfile=readonly   # provider diperiksa lawan hash di .terraform.lock.hcl
+OpenTofu has been successfully initialized!
+$ TF_VAR_kunci_gateway=<kunci gateway> tofu apply -auto-approve
++ content              = (sensitive value)
++ content              = (sensitive value)
++ bcrypt_hash = (sensitive value)
++ result      = (sensitive value)
+Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
+keluaran CLI memuat password atau kunci: tidak (diganti "(sensitive value)")
+state memuat nilai password dari random_password: ya
+  local_file.env_service: atribut content; sensitive_attributes diisi
+  random_password.db: atribut result; sensitive_attributes diisi
+state memuat nilai kunci dari variabel TF_VAR_kunci_gateway: ya
+  local_file.konfigurasi_gateway: atribut content; sensitive_attributes diisi
+# Ditandai sensitif hanya menyembunyikan nilai dari keluaran CLI; state tetap menyimpannya sebagai teks biasa (JSON) di file terraform.tfstate (dokumentasi OpenTofu, language/state/sensitive-data, dibuka 2026-10-27: state lokal adalah file JSON teks biasa).
+# Variabel yang diisi dari lingkungan ikut masuk ke state begitu dipakai satu resource: sumber nilai (konfigurasi, variabel, lingkungan) tidak mengubah apa pun.
+
+# --- B. Secret tidak melewati OpenTofu: konfigurasi hanya menyimpan alamat dan path secret manager; nilainya ditulis operator ke OpenBao dan dibaca service saat runtime ---
+# Operator menulis rahasia webhook langsung ke OpenBao (di luar OpenTofu), versi 1:
+$ curl -X POST $BAO/v1/secret/data/pembayaran/webhook -H 'X-Vault-Token: <token operator>' -d '{"data": {"sekarang": "<rahasia webhook>"}}'
+$ tofu apply -auto-approve
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+isi keluaran/service.json (konfigurasi yang dibaca service):
+  {"path":"secret/data/pembayaran/webhook","secret_manager":"http://openbao:8200"}
+state memuat nilai rahasia webhook: tidak
+# Yang ada di state: alamat OpenBao dan path secret. Nilainya hanya ada di OpenBao, dan service membacanya sendiri saat berjalan (bagian rotasi.txt).
+# Batasnya sempit: ini berlaku karena TIDAK ADA resource atau data source di konfigurasi yang menyentuh nilainya. Bagian C menunjukkan cara paling mudah melanggarnya.
+
+# --- C. Membaca secret di dalam OpenTofu (data source) juga memasukkannya ke state ---
+$ tofu apply -auto-approve   # data "local_sensitive_file" membaca file yang berisi rahasia (stand-in untuk data source pembaca secret manager)
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+state memuat nilai rahasia yang dibaca data source: ya
+  data.local_sensitive_file.rahasia: atribut content; sensitive_attributes kosong
+# Di lab ini yang terbukti hanya provider local. Bahwa data source pembaca secret manager milik provider lain berperilaku sama [perlu verifikasi: provider Vault atau OpenBao tidak dijalankan di lab ini].
+# Dokumentasi OpenTofu (language/ephemerality, dibuka 2026-10-27) menulis bahwa nilai ephemeral tidak disimpan di state maupun plan; ephemeral resources dan write-only attributes Tidak dijalankan di lab ini.

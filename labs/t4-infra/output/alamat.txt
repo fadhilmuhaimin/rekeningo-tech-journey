@@ -1,0 +1,152 @@
+# Lab t4-infra · alamat keluar tetap: host aplikasi berpindah, proxy keluar, dan breaker
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema t4_infra
+# Rekaman dari database bersih: make -C labs/t4-infra run.
+
+# --- A. Tanpa proxy: alamat sumber sama dengan alamat host. Vendor hanya menerima alamat yang didaftarkan; sesudah pindahan alamat berubah ---
+$ docker run -d --name vendor --network jaringan-lab -p 127.0.0.1:<port>:8284 tiruan -peran verifikasi -addr 0.0.0.0:8284
+$ docker run -d --name host-lama --network jaringan-lab api-t4 -peran worker -tujuan verifikasi -serentak 1 -backoff 0s -maks-percobaan 5 -selang 50ms -verifikasi-url http://vendor:8284
+# Vendor hanya menerima alamat host lama (didaftarkan seketika di tiruan; di vendor nyata makan dua hari kerja, Asumsi naskah). Tiga pendaftar mengajukan verifikasi:
+=> SELECT v.status, a.tingkat, count(*) AS jumlah FROM verifikasi v JOIN akun a ON a.id = v.akun_id WHERE v.akun_id BETWEEN 40003 AND 40005 GROUP BY v.status, a.tingkat ORDER BY v.status
+ status | tingkat       | jumlah
+--------+---------------+--------
+ lulus  | terverifikasi | 3
+(1 row)
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | jumlah
+----------+-----------+--------
+ terkirim | 1         | 3
+(1 row)
+# sebelum pindahan
+#   daftar alamat di vendor: host lama
+#   diterima, per alamat sumber yang dilihat vendor: {'host lama': 3}
+#   ditolak 403, per alamat sumber: (tidak ada)
+#   permintaan yang diproses: 3, objek dibuat: 3
+# Akhir pekan: aplikasi pindah ke infrastruktur baru. Host baru dinyalakan sebelum host lama dimatikan; alamatnya berbeda (diperiksa), dan tidak ada yang mendaftarkannya:
+$ docker run -d --name host-baru --network jaringan-lab api-t4 -peran worker -tujuan verifikasi -serentak 1 -backoff 0s -maks-percobaan 5 -selang 50ms -verifikasi-url http://vendor:8284
+# alamat host baru berbeda dari alamat host lama: ya
+# host lama dimatikan. Senin pagi tiga pendaftar baru mengajukan verifikasi:
+=> SELECT v.status, a.tingkat, count(*) AS jumlah FROM verifikasi v JOIN akun a ON a.id = v.akun_id WHERE v.akun_id BETWEEN 40010 AND 40012 GROUP BY v.status, a.tingkat ORDER BY v.status
+ status | tingkat | jumlah
+--------+---------+--------
+ gagal  | belum   | 3
+(1 row)
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | jumlah
+----------+-----------+--------
+ mati     | 5         | 3
+ terkirim | 1         | 3
+(2 rows)
+# sesudah pindahan
+#   daftar alamat di vendor: host lama
+#   diterima, per alamat sumber yang dilihat vendor: {'host lama': 3}
+#   ditolak 403, per alamat sumber: {'host baru': 15}
+#   permintaan yang diproses: 3, objek dibuat: 3
+# Tiap pekerjaan memakai lima percobaan atas jawaban 403 yang tidak akan berubah (3 pekerjaan x 5 percobaan = 15 penolakan). Status pengajuan mereka `gagal` (naskah: pendaftar melihat "Verifikasi gagal"; tampilan app tidak direkam).
+# Vendor sehat dan menjawab dengan benar: penyebabnya alamat sumber, bukan vendor.
+
+# --- B. Dengan proxy keluar bertetap: yang didaftarkan sekali adalah alamat proxy; pindahan host tidak mengubah alamat yang dilihat vendor ---
+$ docker run -d --name vendor --network jaringan-lab -p 127.0.0.1:<port>:8284 tiruan -peran verifikasi -addr 0.0.0.0:8284
+$ docker run -d --name proxy --network jaringan-lab proxykeluar -addr 0.0.0.0:3128 -tujuan vendor:8284
+# Yang didaftarkan di vendor: alamat proxy keluar, satu kali. Host lama memakai proxy lewat variabel lingkungan HTTP_PROXY (client Go bawaan membacanya; tanpa perubahan kode aplikasi):
+$ docker run -d --name host-lama --network jaringan-lab -e HTTP_PROXY=http://proxy:3128 api-t4 -peran worker -tujuan verifikasi -serentak 1 -backoff 0s -maks-percobaan 5 -selang 50ms -verifikasi-url http://vendor:8284
+=> SELECT v.status, a.tingkat, count(*) AS jumlah FROM verifikasi v JOIN akun a ON a.id = v.akun_id WHERE v.akun_id BETWEEN 40003 AND 40005 GROUP BY v.status, a.tingkat ORDER BY v.status
+ status | tingkat       | jumlah
+--------+---------------+--------
+ lulus  | terverifikasi | 3
+(1 row)
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | jumlah
+----------+-----------+--------
+ terkirim | 1         | 3
+(1 row)
+# host lama lewat proxy
+#   daftar alamat di vendor: proxy keluar
+#   diterima, per alamat sumber yang dilihat vendor: {'proxy keluar': 3}
+#   ditolak 403, per alamat sumber: (tidak ada)
+#   permintaan yang diproses: 3, objek dibuat: 3
+# Pindahan: host baru (alamat berbeda, tidak didaftarkan di vendor) dinyalakan dengan HTTP_PROXY yang sama, host lama dimatikan:
+$ docker run -d --name host-baru --network jaringan-lab -e HTTP_PROXY=http://proxy:3128 api-t4 -peran worker -tujuan verifikasi -serentak 1 -backoff 0s -maks-percobaan 5 -selang 50ms -verifikasi-url http://vendor:8284
+# tiga alamat berbeda satu sama lain (host lama, host baru, proxy): ya
+=> SELECT v.status, a.tingkat, count(*) AS jumlah FROM verifikasi v JOIN akun a ON a.id = v.akun_id WHERE v.akun_id BETWEEN 40010 AND 40012 GROUP BY v.status, a.tingkat ORDER BY v.status
+ status | tingkat       | jumlah
+--------+---------------+--------
+ lulus  | terverifikasi | 3
+(1 row)
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | jumlah
+----------+-----------+--------
+ terkirim | 1         | 6
+(1 row)
+# sesudah pindahan
+#   daftar alamat di vendor: proxy keluar
+#   diterima, per alamat sumber yang dilihat vendor: {'proxy keluar': 6}
+#   ditolak 403, per alamat sumber: (tidak ada)
+#   permintaan yang diproses: 6, objek dibuat: 6
+# Alamat host baru tidak pernah sampai ke vendor. Vendor tidak perlu didaftari lagi saat host berpindah, selama proxy tetap di alamat yang sama.
+# Batasnya: proxy keluar adalah titik gagal tunggal baru, dan alamatnya hanya tetap selama proxy itu sendiri tidak dipindah (di cloud: NAT dengan IP tetap, Tidak dijalankan).
+
+# --- C. Pindahan tanpa proxy, dengan breaker per lajur (ADR 36): jawaban 403 vendor dihitung sukses (4xx), dan dengan pengaturan bawaan pustaka dihitung gagal ---
+$ docker run -d --name vendor --network jaringan-lab -p 127.0.0.1:<port>:8284 tiruan -peran verifikasi -addr 0.0.0.0:8284 -izinkan-alamat 192.0.2.1
+# Vendor masih mendaftarkan alamat host lama (192.0.2.1, alamat dokumentasi yang tidak dimiliki container mana pun), yang sudah tidak ada, jadi semua permintaan host baru dijawab 403. Pengaturan breaker: ADR 36 (4xx = sukses)
+$ docker run -d --name host-baru --network jaringan-lab api-t4 -peran worker -tujuan verifikasi -serentak 1 -backoff 0s -maks-percobaan 5 -selang 50ms -verifikasi-url http://vendor:8284 -breaker -breaker-timeout 3s
+=> SELECT v.status, a.tingkat, count(*) AS jumlah FROM verifikasi v JOIN akun a ON a.id = v.akun_id WHERE v.akun_id BETWEEN 40003 AND 40010 GROUP BY v.status, a.tingkat ORDER BY v.status
+ status | tingkat | jumlah
+--------+---------+--------
+ gagal  | belum   | 8
+(1 row)
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status | percobaan | jumlah
+--------+-----------+--------
+ mati   | 5         | 8
+(1 row)
+# breaker ADR 36 dan jawaban 403
+#   daftar alamat di vendor: host lama
+#   diterima, per alamat sumber yang dilihat vendor: (tidak ada)
+#   ditolak 403, per alamat sumber: {'host baru': 40}
+#   permintaan yang diproses: 0, objek dibuat: 0
+# Breaker tidak pernah terbuka: 403 adalah jawaban 4xx, dihitung sukses. Delapan pekerjaan habis lima percobaan dan delapan pengajuan berstatus `gagal`.
+# Aturan ADR 36 benar untuk dokumen yang salah (422), tetapi 403 karena alamat sumber salah semua permintaan, bukan satu dokumen: breaker tidak menolong.
+$ docker run -d --name vendor --network jaringan-lab -p 127.0.0.1:<port>:8284 tiruan -peran verifikasi -addr 0.0.0.0:8284 -izinkan-alamat 192.0.2.1
+# Vendor masih mendaftarkan alamat host lama (192.0.2.1, alamat dokumentasi yang tidak dimiliki container mana pun), yang sudah tidak ada, jadi semua permintaan host baru dijawab 403. Pengaturan breaker: bawaan pustaka (4xx = gagal)
+$ docker run -d --name host-baru --network jaringan-lab api-t4 -peran worker -tujuan verifikasi -serentak 1 -backoff 0s -maks-percobaan 5 -selang 50ms -verifikasi-url http://vendor:8284 -breaker -breaker-timeout 3s -breaker-bawaan
+=> SELECT v.status, a.tingkat, count(*) AS jumlah FROM verifikasi v JOIN akun a ON a.id = v.akun_id WHERE v.akun_id BETWEEN 40003 AND 40010 GROUP BY v.status, a.tingkat ORDER BY v.status
+ status   | tingkat | jumlah
+----------+---------+--------
+ diajukan | belum   | 7
+ gagal    | belum   | 1
+(2 rows)
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | jumlah
+----------+-----------+--------
+ mati     | 5         | 1
+ menunggu | 0         | 6
+ menunggu | 1         | 1
+(3 rows)
+# breaker terbuka sesudah enam penolakan beruntun
+#   daftar alamat di vendor: host lama
+#   diterima, per alamat sumber yang dilihat vendor: (tidak ada)
+#   ditolak 403, per alamat sumber: {'host baru': 6}
+#   permintaan yang diproses: 0, objek dibuat: 0
+# Breaker terbuka dengan benar: pekerjaan menunggu, bukan mati, dan vendor tidak dihubungi lagi. Tetapi penyebabnya tidak hilang: alamat host baru belum didaftarkan.
+# Satu pekerjaan sudah memakai lima percobaannya sebelum breaker terbuka (ambang breaker 6 lebih tinggi daripada batas percobaan 5): ia mati dan pengajuannya berstatus `gagal`.
+# Operator mendaftarkan alamat host baru di vendor. Sesudah Timeout breaker, satu permintaan percobaan lulus dan lajur pulih sendiri:
+=> SELECT v.status, a.tingkat, count(*) AS jumlah FROM verifikasi v JOIN akun a ON a.id = v.akun_id WHERE v.akun_id BETWEEN 40003 AND 40010 GROUP BY v.status, a.tingkat ORDER BY v.status
+ status | tingkat       | jumlah
+--------+---------------+--------
+ gagal  | belum         | 1
+ lulus  | terverifikasi | 7
+(2 rows)
+=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
+ status   | percobaan | jumlah
+----------+-----------+--------
+ mati     | 5         | 1
+ terkirim | 1         | 6
+ terkirim | 2         | 1
+(3 rows)
+# sesudah alamat didaftarkan
+#   daftar alamat di vendor: host baru
+#   diterima, per alamat sumber yang dilihat vendor: {'host baru': 7}
+#   ditolak 403, per alamat sumber: {'host baru': 6}
+#   permintaan yang diproses: 7, objek dibuat: 7
+log breaker: breaker verifikasi: closed -> open, breaker verifikasi: open -> half-open, breaker verifikasi: half-open -> closed
+# Pendaftar yang pekerjaannya sudah mati tetap gagal; tidak ada yang mengantrekannya ulang (sama dengan temuan M31).
