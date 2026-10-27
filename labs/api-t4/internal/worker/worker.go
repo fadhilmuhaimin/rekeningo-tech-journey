@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"lab/apit4/internal/lajur"
 	"lab/apit4/internal/push"
 	"lab/apit4/internal/repo"
 	"lab/apit4/internal/verifikasi"
@@ -32,6 +33,12 @@ type Konfigurasi struct {
 	UrutKelas     bool     // false = menurut nomor saja (mode rentan urut-waktu, M27)
 	Tujuan        []string // lajur yang diklaim worker ini (push, verifikasi); kosong = semua lajur (ADR 36)
 	Kursor        bool     // true = poller kursor (dibuat, id) tanpa klaim (mode rentan kursor, M19)
+	// Breaker per lajur (ADR 36; kunci = tujuan). Kosong = ADR 25 apa adanya: setiap kegagalan vendor memakai satu
+	// percobaan pekerjaan. Lajur yang breakernya terbuka tidak diklaim, jadi percobaannya tidak bertambah.
+	Breaker map[string]*lajur.Breaker
+	// KunciBaruTiapPercobaan: lab saja (mode rentan verifikasi-tanpa-key). Setiap percobaan ke vendor memakai
+	// Idempotency-Key baru, seperti "retry bebas tanpa kunci" yang ADR 36 tolak.
+	KunciBaruTiapPercobaan bool
 	// HentiSebelumTandai: lab saja. Proses berhenti mendadak sesudah push berhasil dan sebelum baris ditandai
 	// terkirim, supaya klaim habis dan pengiriman ulang (M20) bisa direkam tanpa mengandalkan waktu mematikan proses.
 	HentiSebelumTandai bool
@@ -77,7 +84,17 @@ func Backoff(percobaan int, dasar, maks time.Duration, acak float64) time.Durati
 // --8<-- [end:backoff]
 
 // Ringkasan hasil satu putaran, untuk log dan rekaman.
-type Ringkasan struct{ Diklaim, Terkirim, Dilewati, Ditunda, Mati int }
+type Ringkasan struct{ Diklaim, Terkirim, Dilewati, Ditunda, Mati, Dijeda int }
+
+// String: satu baris ringkasan seperti yang dicetak `-sekali` dan log worker. Kata "dijeda" hanya muncul bila ada
+// baris yang dijeda breaker, supaya keluaran worker tanpa breaker sama persis dengan sebelumnya.
+func (a Ringkasan) String() string {
+	t := fmt.Sprintf("diklaim %d, terkirim %d, dilewati %d, ditunda %d, mati %d", a.Diklaim, a.Terkirim, a.Dilewati, a.Ditunda, a.Mati)
+	if a.Dijeda > 0 {
+		t += fmt.Sprintf(", dijeda %d", a.Dijeda)
+	}
+	return t
+}
 
 func (a *Ringkasan) tambah(b Ringkasan) {
 	a.Diklaim += b.Diklaim
@@ -85,6 +102,7 @@ func (a *Ringkasan) tambah(b Ringkasan) {
 	a.Dilewati += b.Dilewati
 	a.Ditunda += b.Ditunda
 	a.Mati += b.Mati
+	a.Dijeda += b.Dijeda
 }
 
 // Putaran mengambil sampai Serentak baris, mengirimnya serentak, dan mencatat hasilnya.
@@ -98,7 +116,7 @@ func (w *Worker) Putaran(ctx context.Context) (Ringkasan, error) {
 			w.kursorDibuat, w.kursorID = akhir.Dibuat, akhir.ID
 		}
 	} else {
-		baris, err = w.repo.KlaimOutboxTujuan(ctx, w.cfg.Serentak, w.cfg.Klaim, w.cfg.UrutKelas, w.cfg.Tujuan)
+		baris, err = w.klaim(ctx)
 		sort.Slice(baris, func(i, j int) bool {
 			if w.cfg.UrutKelas && baris[i].Kelas != baris[j].Kelas {
 				return baris[i].Kelas < baris[j].Kelas
@@ -130,10 +148,53 @@ func (w *Worker) Putaran(ctx context.Context) (Ringkasan, error) {
 			r.Ditunda++
 		case "mati":
 			r.Mati++
+		case "dijeda":
+			r.Dijeda++
 		}
 	}
 	return r, nil
 }
+
+// --8<-- [start:klaim-lajur]
+// klaim mengambil baris untuk satu putaran. Tanpa breaker: satu klaim ke semua lajur milik worker ini, seperti
+// sebelum ada breaker (ADR 25 apa adanya). Dengan breaker (ADR 36): lajur yang breakernya terbuka tidak diklaim sama
+// sekali, jadi percobaan pekerjaan yang menunggu di lajur itu tidak bertambah dan tidak ada slot worker yang terpakai
+// untuk vendor yang sedang mati. Lajur yang setengah terbuka hanya diklaim satu baris: itulah permintaan percobaan
+// yang diizinkan breaker. Sisa kapasitas (c) dipakai lajur lain.
+func (w *Worker) klaim(ctx context.Context) ([]repo.Notifikasi, error) {
+	if len(w.cfg.Breaker) == 0 {
+		return w.repo.KlaimOutboxTujuan(ctx, w.cfg.Serentak, w.cfg.Klaim, w.cfg.UrutKelas, w.cfg.Tujuan)
+	}
+	semua := w.cfg.Tujuan
+	if len(semua) == 0 {
+		semua = repo.TujuanSemua
+	}
+	var bebas []string
+	var hasil []repo.Notifikasi
+	for _, l := range semua {
+		b := w.cfg.Breaker[l]
+		switch {
+		case b == nil || b.Status() == lajur.Tertutup:
+			bebas = append(bebas, l)
+		case b.Status() == lajur.SetengahTerbuka && len(hasil) < w.cfg.Serentak:
+			percobaan, err := w.repo.KlaimOutboxTujuan(ctx, 1, w.cfg.Klaim, w.cfg.UrutKelas, []string{l})
+			if err != nil {
+				return nil, err
+			}
+			hasil = append(hasil, percobaan...)
+		}
+	}
+	if sisa := w.cfg.Serentak - len(hasil); sisa > 0 && len(bebas) > 0 {
+		lain, err := w.repo.KlaimOutboxTujuan(ctx, sisa, w.cfg.Klaim, w.cfg.UrutKelas, bebas)
+		if err != nil {
+			return nil, err
+		}
+		hasil = append(hasil, lain...)
+	}
+	return hasil, nil
+}
+
+// --8<-- [end:klaim-lajur]
 
 // --8<-- [start:kirim-satu]
 // kirimSatu mengirim satu notifikasi ke semua perangkat aktif akun penerima, lalu menentukan nasib barisnya:
@@ -231,8 +292,7 @@ func (w *Worker) Jalankan(ctx context.Context) error {
 		case r.Diklaim == 0:
 			sleep(ctx, w.cfg.Selang)
 		default:
-			log.Print(fmt.Sprintf("worker: diklaim %d, terkirim %d, dilewati %d, ditunda %d, mati %d",
-				r.Diklaim, r.Terkirim, r.Dilewati, r.Ditunda, r.Mati))
+			log.Print("worker: " + r.String())
 		}
 	}
 	return nil

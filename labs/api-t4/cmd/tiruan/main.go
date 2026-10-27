@@ -389,6 +389,24 @@ type verifikasi struct {
 	m          mode
 	objek      map[string]string // Idempotency-Key -> referensi_vendor
 	permintaan int
+	// Statistik untuk lab t4-integrasi: berapa permintaan yang berjalan bersamaan (c terukur) dan berapa lama tiap
+	// permintaan ditahan sampai selesai (t terukur; pada mode menggantung = sampai client menyerah).
+	berjalan, serentakMaks int
+	lamaMS                 []int64
+}
+
+func (v *verifikasi) masuk() {
+	v.mu.Lock()
+	v.berjalan++
+	v.serentakMaks = max(v.serentakMaks, v.berjalan)
+	v.mu.Unlock()
+}
+
+func (v *verifikasi) keluar(lama time.Duration) {
+	v.mu.Lock()
+	v.berjalan--
+	v.lamaMS = append(v.lamaMS, lama.Milliseconds())
+	v.mu.Unlock()
 }
 
 func (v *verifikasi) rute() http.Handler {
@@ -396,7 +414,7 @@ func (v *verifikasi) rute() http.Handler {
 	mux.HandleFunc("POST /lab/mode", v.m.pasang)
 	mux.HandleFunc("POST /lab/reset", func(w http.ResponseWriter, r *http.Request) {
 		v.mu.Lock()
-		v.objek, v.permintaan = map[string]string{}, 0
+		v.objek, v.permintaan, v.serentakMaks, v.lamaMS = map[string]string{}, 0, v.berjalan, nil
 		v.mu.Unlock()
 		v.m.mu.Lock()
 		v.m.nama, v.m.ms = "", 0
@@ -408,13 +426,22 @@ func (v *verifikasi) rute() http.Handler {
 		defer v.mu.Unlock()
 		tulis(w, 200, map[string]int{"permintaan": v.permintaan, "objek": len(v.objek)})
 	})
+	mux.HandleFunc("GET /lab/statistik", func(w http.ResponseWriter, r *http.Request) {
+		v.mu.Lock()
+		defer v.mu.Unlock()
+		tulis(w, 200, map[string]any{"serentak_maks": v.serentakMaks, "lama_ms": append([]int64{}, v.lamaMS...)})
+	})
 	mux.HandleFunc("POST /verifikasi", v.proses)
 	return mux
 }
 
 // proses: satu objek per Idempotency-Key. Mode: mati (503), lambat (tidur ms), menggantung, setengah (tubuh
-// jawaban terpotong lalu koneksi ditutup), ditolak (jawaban sah: status ditolak).
+// jawaban terpotong lalu koneksi ditutup), ditolak (jawaban sah: status ditolak). Permintaan dengan checksum_kartu
+// "buruk" dijawab 422 pada semua mode (permintaan yang salah, bukan vendor yang sakit).
 func (v *verifikasi) proses(w http.ResponseWriter, r *http.Request) {
+	mulai := time.Now()
+	v.masuk()
+	defer func() { v.keluar(time.Since(mulai)) }()
 	v.mu.Lock()
 	v.permintaan++
 	v.mu.Unlock()
@@ -424,10 +451,15 @@ func (v *verifikasi) proses(w http.ResponseWriter, r *http.Request) {
 	}
 	k := r.Header.Get("Idempotency-Key")
 	var in struct {
-		Referensi string `json:"referensi"`
+		Referensi     string `json:"referensi"`
+		ChecksumKartu string `json:"checksum_kartu"`
 	}
 	if json.NewDecoder(r.Body).Decode(&in) != nil || k == "" || in.Referensi == "" {
 		http.Error(w, "butuh Idempotency-Key dan {referensi}", http.StatusBadRequest)
+		return
+	}
+	if in.ChecksumKartu == "buruk" { // permintaan yang salah (4xx): vendor sehat, dokumennya yang rusak; tidak membuat objek
+		tulis(w, http.StatusUnprocessableEntity, map[string]string{"galat": "dokumen tidak terbaca"})
 		return
 	}
 	v.mu.Lock()

@@ -16,9 +16,17 @@ const BatasBawaan = 3 * time.Second
 // Baru membuat client dengan timeout dan tanpa redirect. timeout 0 berarti tanpa batas (hanya untuk rekaman
 // perbandingan "tanpa timeout"; kode produksi tidak memanggilnya dengan 0).
 func Baru(timeout time.Duration) *http.Client {
-	return &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error {
-		return http.ErrUseLastResponse
-	}}
+	return BaruDenganTransport(timeout, nil)
+}
+
+// BaruDenganTransport: client yang sama dengan transport sendiri (nil = bawaan). Fetcher gambar membutuhkannya untuk
+// memeriksa alamat tujuan saat dial (ADR 41); timeout dan aturan redirect tetap dari satu tempat ini.
+func BaruDenganTransport(timeout time.Duration, tr http.RoundTripper) *http.Client {
+	return &http.Client{Timeout: timeout, Transport: tr,
+		// --8<-- [start:tanpa-redirect]
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+		// --8<-- [end:tanpa-redirect]
+	}
 }
 
 // Terlambat: error karena batas waktu, atau karena koneksi terputus sesudah permintaan terkirim. Hasil di sisi
