@@ -67,9 +67,9 @@ PRD v3 tidak meminta pin. Yang mendorongnya adalah risiko Sinta bahwa app dipaka
 
 ### Cara kerjanya
 
-**Di antara lima pengaman yang direkam, hanya pin di `connectionFactory` menahan CA Dimas yang dipercaya sebelum request keluar.**
+**Di antara lima pengaturan yang direkam, hanya pin di `connectionFactory` menahan CA Dimas yang dipercaya sebelum request keluar.**
 
-| Pengaman di app | CA Dimas di luar daftar akar | CA Dimas di daftar akar | Sumber |
+| Pengaturan di app | CA Dimas di luar daftar akar | CA Dimas di daftar akar | Sumber |
 |---|---|---|---|
 | Validasi bawaan | Ditolak saat handshake, proxy melihat nol request | Lolos: request terbaca, transfer Rp150.000 tercatat | `m26.txt` bagian B dan D |
 | Flag terima-semua | Lolos: callback dipanggil 1 kali, transfer tercatat | Tidak direkam | `m26.txt` bagian C |
@@ -91,7 +91,7 @@ Rekaman mengukur "nol request" dari sisi proxy, dengan jeda 0,4 detik sebelum me
 
 <Snippet file="labs/t3-mitm/dart/lib/pin.dart" lines="30:47" lang="dart" title="labs/t3-mitm/dart/lib/pin.dart" />
 
-Itu kode lab sebesar 50 baris, diuji hanya lewat rekaman, dan belum ditinjau untuk produksi. `SecureSocket.peerCertificate` mengembalikan sertifikat server, dan `issuer` hanya berupa string. Menurut dokumentasi itu, rantai ke CA tidak bisa dibaca dari socket (penalaran penulis).
+Itu kode lab sebesar 50 baris, diuji hanya lewat rekaman, dan belum ditinjau untuk produksi. `SecureSocket.peerCertificate` mengembalikan sertifikat server, dan `issuer` hanya berupa string. Dokumentasi `SecureSocket` hanya memuat `peerCertificate` dan tidak punya accessor untuk rantai (Dart 3.13.7, dibuka 2026-10-27), jadi pin pada CA di tengah rantai Tidak dijalankan (penalaran penulis).
 
 **Pin cadangan menahan satu rotasi.** Rotasi diperankan dengan memulai ulang server tepi memakai kunci lain, dan sertifikatnya selalu sah. `pin.txt` bagian C menjalankan enam pemeriksaan pin:
 
@@ -104,7 +104,7 @@ Itu kode lab sebesar 50 baris, diuji hanya lewat rekaman, dan belum ditinjau unt
 | A dan B | C | Ditolak |
 | B dan C | C | Terhubung |
 
-Dari 7 request client di bagian itu, 5 sampai ke server tepi, dan 2 yang ditolak pin tidak ada di log akses tepi. RFC 7469 lampiran B menyuruh operator melatih rencana cadangannya secara berkala, karena cadangan yang tidak pernah diuji sama saja dengan tanpa cadangan. Dokumentasi Android menyuruh pin cadangan, termasuk satu kunci yang sepenuhnya dalam kendalimu ([Android: Security with HTTPS and SSL](https://developer.android.com/privacy-and-security/security-ssl), Last updated 2026-10-23 UTC, dibuka 2026-10-27).
+Dari 7 request client di bagian itu, 5 sampai ke server tepi, dan 2 yang ditolak pin tidak ada di log akses tepi. Enam request memakai pin dan satu tidak. RFC 7469 lampiran B menyuruh operator melatih rencana cadangannya secara berkala, karena cadangan yang tidak pernah diuji sama saja dengan tanpa cadangan. Dokumentasi Android menyuruh pin cadangan, termasuk satu kunci yang sepenuhnya dalam kendalimu ([Android: Security with HTTPS and SSL](https://developer.android.com/privacy-and-security/security-ssl), Last updated 2026-10-23 UTC, dibuka 2026-10-27).
 
 **Pin SPKI tahan penerbitan ulang dengan kunci yang sama, pin sertifikat daun tidak.** Di `pin.txt` bagian D, sertifikat terbit ulang dengan kunci yang sama. Pin SPKI lama lolos, pin hash sertifikat lama ditolak, dan pin hash baru lolos. Hash sertifikat berubah di setiap penerbitan ulang, jadi pin daun mati sebanyak penerbitan ulang itu.
 
@@ -206,7 +206,9 @@ val client = OkHttpClient.Builder()
 
 *Tidak dijalankan. Dicek ke [Serverpod: Configure HTTP calls](https://docs.serverpod.dev/concepts/endpoints-and-apis/configure-http-calls), teks mentah dari file dokumentasi lengkap yang menyebut paket serverpod_client 4.0.0, dibuka 2026-10-27.*
 
-**Yang berbeda di stack ini:** `Client` hasil generate menerima `httpClientOverride`, yaitu `http.Client` yang menukar transport HTTP. Dokumentasi menunjuk `cupertino_http` untuk iOS dan macOS dan `cronet_http` untuk Android, dan tidak menulis cara memasang pin. Kata pinning tidak ada di seluruh file dokumentasi itu. Memasang client dart:io ber-`connectionFactory` lewat `httpClientOverride` adalah penalaran penulis, dan Tidak dijalankan.
+**Yang berbeda di stack ini:** `Client` hasil generate menerima `httpClientOverride`, yaitu `http.Client` yang menukar transport HTTP. Dokumentasi menunjuk `cupertino_http` untuk iOS dan macOS dan `cronet_http` untuk Android, dan tidak menulis cara memasang pin. Kata pinning tidak ada di seluruh file dokumentasi itu.
+
+Bagian [Security and TLS](https://docs.serverpod.dev/concepts/operations/security-and-tls) memperlihatkan pola yang dekat: `HttpClient` dart:io dengan `SecurityContext` dibungkus `IOClient` dan dioper lewat `httpClientOverride`, tanpa pin. Memasang client dart:io ber-`connectionFactory` dengan cara yang sama adalah penalaran penulis, dan Tidak dijalankan.
 
 </Fragment>
 </TabSet>
@@ -236,14 +238,14 @@ OWASP mencatat kelemahan yang sama dengan flag itu: pemeriksaan sertifikat dimat
 1. Validasi sertifikat selalu aktif di semua build, dan tidak ada callback yang menerima semua sertifikat di build rilis. Staging mempercayai CA Staging lewat daftar akar build staging (usul penulis, Tidak dijalankan).
 2. Pin SPKI dengan satu cadangan, diperiksa di `connectionFactory` sesudah handshake, bukan di `badCertificateCallback` dan bukan di `validateCertificate` (`pin.txt` bagian B, `dio.txt` bagian A dan B).
 3. Pin adalah base64 dari SHA-256 atas SPKI. Kunci cadangan dibuat sebelum rilis, disimpan di luar server, dan dilatih di staging.
-4. Tiap rilis app memasang pin kunci yang dipakai dan kunci berikutnya. Server tidak merotasi ke kunci yang belum ada di rilis yang masih dipakai.
-5. Pin punya tanggal kedaluwarsa yang ditulis di tiap rilis, dan sesudahnya app kembali ke validasi biasa. Kedaluwarsa pin Tidak dijalankan.
-6. Dasbor mengirim HSTS `max-age=31536000; includeSubDomains` hanya lewat TLS, dan port HTTP hanya mengalihkan (`hsts.txt` bagian A). HSTS preload Tidak dijalankan.
+4. Tiap rilis app memasang pin kunci yang dipakai dan kunci berikutnya. Server tidak merotasi ke kunci yang belum ada di rilis yang masih dipakai. Penerbitan ulang sertifikat memakai kunci yang sama, karena kunci baru adalah rotasi (`pin.txt` bagian C dan D).
+5. Pin punya tanggal kedaluwarsa yang ditulis di tiap rilis, dan sesudahnya app kembali ke validasi biasa. Dokumentasi Android menyarankan masa kedaluwarsa yang pendek, dan memperingatkan bahwa kedaluwarsa pin bisa dimanfaatkan penyerang untuk melewatinya. Kedaluwarsa pin Tidak dijalankan.
+6. Server tepi di depan dasbor mengirim HSTS `max-age=31536000; includeSubDomains` lewat TLS saja. Port HTTP hanya mengalihkan. `hsts.txt` bagian A merekamnya di server tepi lab, bukan di lab dasbor. HSTS preload Tidak dijalankan.
 7. Token sesi berumur 15 menit (Asumsi), dan log menyamarkan `Authorization` dan `Cookie` (`token.txt` bagian A dan B). Cara app memperbarui token Tidak dijalankan.
 
 **Kenapa D, bukan A sampai C.**
 
-- **A ditolak** karena CA yang sudah ada di daftar akar lolos, dan itu terjadi di M26 (`m26.txt` bagian D). A tetap sah bila tim server tidak bisa menjanjikan jadwal rotasi.
+- **A ditolak** karena CA yang sudah ada di daftar akar lolos, dan itu terjadi di M26 (`m26.txt` bagian D). A tetap sah bila tim server tidak bisa menjanjikan jadwal rotasi. Seberapa mungkin CA seperti itu masuk daftar akar HP sungguhan belum diukur. App Android yang menarget API level 24 ke atas tidak mempercayai CA tambahan dari user secara bawaan.
 - **B ditolak** karena hash sertifikat berubah di setiap penerbitan ulang, walau kuncinya sama (`pin.txt` bagian D). Jadwal masa berlaku membuatnya mati makin sering dari 2026 ke 2029.
 - **C ditolak** karena ia menahan CA lain tetapi bukan penerbitan salah oleh CA yang dipin, dan karena kasus industri di bawah menunjukkan penerbit memutar intermediate-nya. Itu penalaran penulis dan tidak direkam.
 
@@ -251,7 +253,7 @@ OWASP mencatat kelemahan yang sama dengan flag itu: pemeriksaan sertifikat dimat
 
 Memperbarui kunci yang di-pin adalah proses manual yang menambah risiko galat dan gangguan bisnis. Intermediate biasanya berganti tiap lima tahun, dan umurnya dipendekkan menjadi tiga tahun. Penerbit dipilih acak per tipe kunci, sehingga tidak bisa diprediksi. Mereka menulis bahwa subscriber yang memin salah satu intermediate bisa terdampak, dan itu seharusnya sangat jarang.
 
-Batasnya: sikap satu penerbit CA, tanpa angka berapa app yang rusak. Bagi Rekeningo, kasus ini melemahkan opsi C bila CA yang dipin memutar intermediate-nya seperti itu. Kasus ini mendukung pin pada kunci milik sendiri (penilaian penulis halaman).
+Batasnya: sikap satu penerbit CA, tanpa angka berapa app yang rusak. Bagi Rekeningo, kasus ini melemahkan opsi C bila CA yang dipin memutar intermediate-nya seperti itu. Kasus ini membahas pin pada intermediate, bukan pin pada kunci server milik sendiri, jadi ia tidak melemahkan opsi D (penilaian penulis halaman).
 
 Chrome mencabut HPKP, yaitu pin lewat header untuk browser, di versi 72. Alasannya adopsi sangat rendah dan risiko denial of service ([Chrome 72: deprecations and removals](https://developer.chrome.com/blog/chrome-72-deps-rems), Last updated 2018-12-18 UTC, dibuka 2026-10-27). Pin di app berbeda, dan hanya rumus pin RFC 7469 yang dipakai di sini.
 
@@ -265,7 +267,8 @@ Chrome mencabut HPKP, yaitu pin lewat header untuk browser, di versi 72. Alasann
 
 - Saat rotasi kunci server lebih cepat daripada jadwal rilis app. Cadangan menahan satu rotasi, bukan dua (`pin.txt` bagian C).
 - Saat server pindah ke hosting lain tanpa rilis app yang lebih dulu memasang kunci barunya. Pindah hosting di Tahap 4 ([[t4-m34]]) mengganti server tepi dan mungkin kunci TLS-nya, dan itu penalaran penulis.
-- Saat tim server tidak mau memegang jadwal rotasi bersama tim app. Dokumentasi Android dan OkHttp sama-sama menyebut pinning berisiko tanpa persetujuan pengelola TLS server, dan opsi A kembali.
+- Saat tim server tidak mau memegang jadwal rotasi bersama tim app. Dokumentasi Android menulis bahwa pinning tidak direkomendasikan karena pindah CA memutus app yang di-pin, dan dokumentasi OkHttp melarang pinning tanpa restu administrator TLS server. Opsi A kembali.
+- Saat ancamannya perangkat yang dikuasai penyerang, bukan jaringan. OWASP menulis bahwa penyerang yang membongkar app bisa menghapus atau mengubah pin. Hooking pada perangkat yang ia kendalikan bisa melewati pemeriksaannya ([OWASP MASWE-0028](https://mas.owasp.org/MASWE/MASVS-NETWORK/MASWE-0028/), dibuka 2026-10-27). Pin tidak melindungi dari itu.
 - Pin di Android, iOS, dan Flutter Web Tidak dijalankan: perilakunya di HP sungguhan belum diketahui.
 
 **Yang akan merevisinya.** Pindah hosting di Tahap 4 ([[t4-m34]]) adalah rotasi berikutnya yang kamu tahu akan datang. ADR ini ditinjau ulang sebelum pindah.
