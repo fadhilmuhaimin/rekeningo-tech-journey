@@ -356,9 +356,9 @@ def rekam_tandatangan():
         harap(hasil, harus, nama)
         baris.append([nama] + ["diterima" if x else "ditolak" for x in hasil])
     tabel(["kejadian", "gaya 1 HMAC+timestamp", "gaya 2 SHA-512 field", "gaya 3 token statis"], baris)
-    catat("# Gaya 1 menolak isi yang diubah, kiriman lama, dan bentuk lain (yang terakhir justru kelemahan bila penerima menulis ulang JSON-nya, bagian A).")
+    catat("# Gaya 1 menolak isi yang diubah dan kiriman di luar toleransi. Harganya: body diperiksa sebagai byte yang tiba, bukan sebagai JSON yang ditulis ulang (bagian A).")
     catat("# Gaya 2 tahan terhadap format ulang dan perubahan jumlah, tetapi tidak punya waktu: kiriman lama diterima kapan pun, dan field di luar rumus tidak terlindungi.")
-    catat("# Gaya 3 tidak melindungi isi sama sekali, dan siapa pun yang membaca satu kiriman atau log yang memuat header-nya bisa mengirim yang lain.")
+    catat("# Gaya 3 tidak melindungi isi: token yang sama menyertai setiap kiriman, jadi isi yang diubah dan kiriman lama sama-sama diterima.")
     catat("# Kiriman sah yang diputar ulang 60 detik kemudian diterima oleh gaya 1 juga: di dalam toleransi, yang menahannya adalah event_id (ganda.txt).")
     tulis("tandatangan.txt", "tanda tangan atas byte mentah, toleransi waktu, rotasi rahasia, dan tiga gaya pembanding")
 

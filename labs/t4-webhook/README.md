@@ -92,4 +92,54 @@ Pembaruan naskah dikerjakan KONSISTENSI-4; lab ini yang benar.
 - Koneksi terpakai pada 3,47 kiriman per detik tidak dijalankan: lab tidak menahan koneksi 5 detik per kabar.
 - Gaya tanda tangan 2 dan 3 hanya fungsi pembanding; gaya 3 [perlu verifikasi] ke dokumentasi gateway yang memakainya.
 
-<!--MUTASI-->
+## Uji mutasi lab ini
+
+Satu perubahan per mutan pada salinan `labs/` di folder sementara (skrip sementara, tidak di repo), lalu tes Go atau bagian `run.py` dijalankan dari salinan itu; yang diubah harus membuat tes atau lab gagal karena sebab yang diuji, bukan karena kompilasi atau koneksi. Schema tes dibangun ulang sebelum tiap mutan (tabel append-only seperti `jurnal` tidak boleh meracuni mutan berikutnya), dan tes yang membaca keadaan database memakai `application_name` milik proses tesnya. Hasil: **43 dari 43 mutan tertangkap**, tanpa mutan yang setara perilaku. Mutan K dan J memakai `go test` dengan PostgreSQL sungguhan; mutan L menjalankan bagian lab dari salinan.
+
+Putaran pertama menemukan satu mutan yang lolos: K24 (top-up yang belum dibayar ikut dikoreksi pada `jumlah_beda`), jadi tes dilengkapi dengan kasus top-up belum dibayar pada `jumlah_beda` dan `tidak_di_gateway`. Delapan mutan awal gagal kompilasi (variabel atau impor tidak terpakai sesudah perubahan) dan ditulis ulang supaya mengubah perilaku saja; mutan L7 tidak bisa ditangkap tes Go karena tes menghitung tanda tangan dengan fungsi yang sama, sehingga ia ditangkap lewat HMAC yang dihitung ulang secara terpisah di `run.py`. K27 ditambahkan sesudah pemeriksaan jumlah pada insiden yang sudah dibayar jalur lain dibuat. Mutan atas kode webhook milik api-t4 (W1 sampai W21) ada di README api-t4; mutan L1 sampai L6 di sini menunjukkan bahwa rekaman lab ini sendiri gagal bila perilakunya berubah.
+
+| Mutan | Bagian | Perilaku yang diubah | Yang menangkap | Hasil |
+|---|---|---|---|---|
+| K1 | Koreksi insiden (`koreksi_rekon.go`) | status insiden tidak diperiksa lagi sesudah lock | `DuaJobBersamaanSatuJurnalPerInsiden` | tertangkap |
+| K2 | Koreksi insiden (`repo/koreksi_rekon.go`) | baris insiden dibaca tanpa `FOR UPDATE` | `DuaJobBersamaanSatuJurnalPerInsiden` | tertangkap |
+| K3 | Koreksi insiden | insiden yang sudah dikredit lewat jalur lain ditutup tanpa merujuk jurnalnya | `TidakDiLedgerYangSudahDikreditJalurLain` | tertangkap |
+| K4 | Koreksi insiden | jumlah di laporan gateway diganti jumlah order saat mengkredit | `TidakDiLedgerYangDitahan` | tertangkap |
+| K5 | Koreksi insiden | selisih negatif pada jumlah_beda ikut dikoreksi | `JumlahBeda` | tertangkap |
+| K6 | Koreksi insiden | akun dibekukan tidak diperiksa pada jumlah_beda | `JumlahBeda` | tertangkap |
+| K7 | Koreksi insiden | batas saldo menurut tingkat tidak diperiksa pada jumlah_beda | `JumlahBeda` | tertangkap |
+| K8 | Koreksi insiden | tanda posting jurnal koreksi dibalik | `JumlahBeda` | tertangkap |
+| K9 | Koreksi insiden | jurnal koreksi memakai jumlah order, bukan selisih | `JumlahBeda` | tertangkap |
+| K10 | Koreksi insiden | pemberitahuan koreksi tidak ditulis | `JumlahBeda` | tertangkap |
+| K11 | Koreksi insiden | gateway yang tidak menjawab dianggap order tidak settlement (kredit dibalik) | `GatewayTidakMenjawabTidakMembalik` | tertangkap |
+| K12 | Koreksi insiden | jumlah settlement tidak dibandingkan dengan jumlah yang dikredit | `TidakDiGateway` | tertangkap |
+| K13 | Koreksi insiden | saldo yang cukup untuk jurnal pembalik tidak diperiksa | `TidakDiGateway` | tertangkap |
+| K14 | Koreksi insiden | jurnal pembalik bukan cermin jurnal asal | `TidakDiGateway` | tertangkap |
+| K15 | Koreksi insiden | pemeriksaan jurnal yang sudah dibalik dihapus | `TidakDiGateway` | tertangkap |
+| K16 | Koreksi insiden | syarat status settlement dibalik | `TidakDiGateway` | tertangkap |
+| K17 | Koreksi insiden | keterangan pembalik kurang dari 20 karakter | `TidakDiGateway` | tertangkap |
+| K18 | Koreksi insiden | insiden yang dikoreksi dihitung sebagai selesai tanpa jurnal | `TidakDiLedgerMengkreditLaluKabarTerlambatGanda`, `JumlahBeda` dan 2 lain | tertangkap |
+| K19 | Koreksi insiden | insiden yang harus ditahan ikut ditutup | `TidakDiLedgerYangDitahan`, `JumlahBeda` dan 2 lain | tertangkap |
+| K20 | Koreksi insiden (`repo/koreksi_rekon.go`) | penutupan insiden tidak mengikat jurnalnya | `TidakDiLedgerMengkreditLaluKabarTerlambatGanda`, `TidakDiLedgerYangSudahDikreditJalurLain` dan 3 lain | tertangkap |
+| K21 | Koreksi insiden (`repo/koreksi_rekon.go`) | daftar insiden terbuka memuat yang sudah selesai | `TidakDiLedgerMengkreditLaluKabarTerlambatGanda`, `TidakDiLedgerYangDitahan` dan 3 lain | tertangkap |
+| K22 | Koreksi insiden | buku milik akun tidak dikunci sebelum buku sistem pada jurnal pembalik | `TidakDiGateway` | tertangkap |
+| K23 | Koreksi insiden | top-up kedaluwarsa atau gagal diperlakukan masih menunggu | `TidakDiLedgerYangDitahan` | tertangkap |
+| K24 | Koreksi insiden | top-up yang belum dibayar ikut dikoreksi pada jumlah_beda | `JumlahBeda` | tertangkap |
+| K25 | Koreksi insiden | galat gateway dibuang sebelum keputusan | `GatewayTidakMenjawabTidakMembalik` | tertangkap |
+| K26 | Koreksi insiden | order yang tidak dikenal gateway dianggap galat, bukan alasan membalik | `TidakDiGateway` | tertangkap |
+| K27 | Koreksi insiden | jumlah yang sudah dikredit tidak dibandingkan dengan laporan gateway (tidak_di_ledger yang sudah dibayar) | `TidakDiLedgerYangSudahDikreditJalurLain` | tertangkap |
+| J1 | Jadwal ulangan (`cmd/tiruan/jadwal.go`) | kode 503 diulang 3 kali, bukan 4 | `JumlahUlangPerKode`, `JadwalBerhentiMenurutKode` dan 1 lain | tertangkap |
+| J2 | Jadwal ulangan | kode 500 diulang 2 kali, bukan 1 | `JumlahUlangPerKode`, `JadwalBerhentiMenurutKode` dan 1 lain | tertangkap |
+| J3 | Jadwal ulangan | kode 404 tidak masuk daftar dua ulangan | `JumlahUlangPerKode`, `JadwalBerhentiMenurutKode` | tertangkap |
+| J4 | Jadwal ulangan | jeda terakhir 200 menit, bukan 210 | `JedaTotal342Menit`, `JadwalDariDanSampai` | tertangkap |
+| J5 | Jadwal ulangan | ulangan yang dipakai dihitung satu terlalu banyak | `JadwalBerhentiMenurutKode`, `JadwalTandaTanganMemakaiWaktuMayaDanByteAsli` dan 3 lain | tertangkap |
+| J6 | Jadwal ulangan | tanda tangan memakai waktu sungguhan, bukan waktu maya | `JadwalTandaTanganMemakaiWaktuMayaDanByteAsli` | tertangkap |
+| J7 | Jadwal ulangan | penerima tidak diberi tahu jam maya | `JadwalMemberiTahuJamKePenerimaSebelumTiapKiriman` | tertangkap |
+| J8 | Jadwal ulangan | offset kiriman bergeser satu jeda | `JedaTotal342Menit`, `JadwalDiterimaDiTengahBerhenti` dan 1 lain | tertangkap |
+| L1 | Tanda tangan dan lapis penahan (`service/pembayaran.go`), lewat lab | timestamp tidak diperiksa | lab gagal: timestamp 360 detik lalu (di luar toleransi): dapat '200 diproses', harus '401 ' | tertangkap |
+| L2 | Tanda tangan dan lapis penahan, lewat lab | hanya rahasia pertama dicoba (masa tumpang tindih hilang) | lab gagal: rahasia lama diterima selama tumpang tindih: dapat '401 ', harus '200 diproses' | tertangkap |
+| L3 | Tanda tangan dan lapis penahan, lewat lab | event ganda tidak dijawab ganda (kunci utama tidak menahan) | lab gagal: kunci utama menahan event yang sama: dapat ['200 diproses', '200 diproses'], harus ['200 diproses', '200 ganda'] | tertangkap |
+| L4 | Tanda tangan dan lapis penahan, lewat lab | kabar yang mundur dari status akhir diproses | lab gagal: pending diparkir: dapat ['200 diproses'], harus ['200 diparkir'] | tertangkap |
+| L5 | Tanda tangan dan lapis penahan, lewat lab | Idempotency-Key ke ledger tidak diklaim | lab gagal: jawaban event kedua: dapat ['ganda', 'ganda', 'diproses', 'diproses'], harus ['ganda', 'ganda', 'ganda', 'diproses'] | tertangkap |
+| L6 | Tanda tangan dan lapis penahan, lewat lab | umur Idempotency-Key 48 jam, bukan 24 | lab gagal: jawaban event kedua: dapat ['ganda', 'ganda', 'ganda', 'ganda'], harus ['ganda', 'ganda', 'ganda', 'diproses'] | tertangkap |
+| L7 | Tanda tangan gateway tiruan (`jadwal.go`), lewat lab | tanda tangan tanpa titik pemisah timestamp dan body (tes Go memakai fungsi yang sama; yang menangkap HMAC yang dihitung ulang di `run.py`) | lab gagal: tiap kiriman ditandatangani dengan timestamp-nya sendiri: dapat False, harus True | tertangkap |
+| L8 | Koreksi insiden, lewat lab | penutupan insiden menulis status `terbuka` | lab gagal: satu insiden tetap terbuka: dapat 5, harus 1 | tertangkap |

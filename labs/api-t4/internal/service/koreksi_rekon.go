@@ -131,6 +131,13 @@ func (s Service) koreksiTidakDiLedger(ctx context.Context, tx repo.Tx, in repo.I
 		if tp.JurnalID == nil {
 			return insidenDitahan, nil, nil
 		}
+		// Hanya bila jumlah yang sudah dikredit sama dengan jumlah di laporan gateway; yang berbeda adalah jumlah_beda,
+		// bukan tidak_di_ledger, dan menunggu rekonsiliasi berikutnya atau keputusan manusia.
+		if masuk, err := tx.JumlahMasuk(ctx, *tp.JurnalID); err != nil {
+			return insidenDitahan, nil, err
+		} else if masuk != in.Selisih {
+			return insidenDitahan, nil, nil
+		}
 		return insidenTanpaJurnal, tp.JurnalID, nil
 	case "menunggu", "tidak_pasti":
 		hasil, jurnal, err := s.terapkanStatus(ctx, tx, tp, "dibayar", in.Selisih)

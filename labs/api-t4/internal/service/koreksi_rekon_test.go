@@ -218,10 +218,19 @@ func TestKoreksiRekonTidakDiLedgerYangSudahDikreditJalurLain(t *testing.T) {
 	if h, err := kabarSah(svc, time.Now(), idEvent(t, "jl"), order, "settlement", 30_000); err != nil || h.Hasil != "diproses" {
 		t.Fatalf("%+v %v", h, err)
 	}
-	bersihkanInsiden(t, db, order)
+	// Dikredit lewat jalur lain, tetapi jumlah di laporan gateway berbeda dari yang dikredit: bukan tugas insiden ini.
+	tid2, order2 := topupSiap(t, db, akun, 20_000)
+	if h, err := kabarSah(svc, time.Now(), idEvent(t, "jl2"), order2, "settlement", 20_000); err != nil || h.Hasil != "diproses" {
+		t.Fatalf("%+v %v", h, err)
+	}
+	insidenBeda := insidenBaru(t, db, order2, tid2, "tidak_di_ledger", 21_000)
+	bersihkanInsiden(t, db, order, order2)
 	h, err := svc.KoreksiRekon(context.Background())
-	if err != nil || h != (HasilKoreksi{Diperiksa: 1, SelesaiTanpaJurnal: 1}) {
+	if err != nil || h != (HasilKoreksi{Diperiksa: 2, SelesaiTanpaJurnal: 1, Ditahan: 1}) {
 		t.Fatalf("hasil %+v %v", h, err)
+	}
+	if st, _ := statusInsiden(t, db, insidenBeda); st != "terbuka" {
+		t.Errorf("insiden dengan jumlah berbeda: %s, harus tetap terbuka", st)
 	}
 	st, j := statusInsiden(t, db, insiden)
 	var jurnalTopup *int64
@@ -232,7 +241,7 @@ func TestKoreksiRekonTidakDiLedgerYangSudahDikreditJalurLain(t *testing.T) {
 	if n := jurnalUntukOrder(t, db, order); n != 1 {
 		t.Errorf("%d jurnal untuk order", n)
 	}
-	if s := saldo(t, db, akun); s != 30_000 {
+	if s := saldo(t, db, akun); s != 50_000 {
 		t.Errorf("saldo %d", s)
 	}
 }
