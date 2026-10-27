@@ -118,19 +118,19 @@ Masa berlaku sertifikat daun dari CA publik kini dibatasi. Baseline Requirements
 
 Kolom terakhir adalah Hitungan atas jadwal itu, dan "paling sedikit" berarti sertifikat dipakai sampai batasnya. Daun lab berlaku 200 hari: dengan jam tiruan di Go, hari ke-199 lolos dan hari ke-201 ditolak (`pin.txt` bagian E). Batas itu hanya untuk sertifikat dari CA publik. Dokumentasi React Native masih menulis sertifikat kedaluwarsa setiap 1 sampai 2 tahun, dan itu sudah tidak sesuai tabel di atas (penilaian penulis halaman).
 
-**HSTS melindungi browser, bukan app.** Server tepi mengirim `Strict-Transport-Security: max-age=31536000; includeSubDomains` di setiap jawaban lewat TLS, termasuk jawaban 401. Port HTTP hanya menjawab 301 tanpa header itu. RFC 6797 melarang host mengirim header itu lewat transport yang tidak aman ([RFC 6797](https://www.rfc-editor.org/rfc/rfc6797), November 2012, bagian 7.2, dibuka 2026-10-27). `max-age=31536000` berarti 365 hari.
+**HSTS dibaca browser, dan lab hanya merekamnya dengan curl.** Server tepi mengirim `Strict-Transport-Security: max-age=31536000; includeSubDomains` di setiap jawaban lewat TLS, termasuk jawaban 401. Port HTTP hanya menjawab 301 tanpa header itu. RFC 6797 melarang host mengirim header itu lewat transport yang tidak aman ([RFC 6797](https://www.rfc-editor.org/rfc/rfc6797), November 2012, bagian 7.2, dibuka 2026-10-27). `max-age=31536000` berarti 365 hari.
 
 `hsts.txt` bagian B merekam perilaku client dengan curl, bukan browser. Dengan cache HSTS kosong, permintaan `http://` pertama keluar sebagai teks biasa dan port TLS menolaknya dengan 400. Sesudah satu jawaban TLS, cache memuat host itu, dan `http://` dinaikkan ke `https://` sebelum meninggalkan client. Alamat IP tidak disimpan (bagian C), jadi dasbor yang dibuka lewat alamat IP tidak dilindungi.
 
 RFC 6797 menulis kedua batas itu: bagian 14.6 untuk permintaan pertama dan bagian 8.1.1 untuk alamat IP.
 
-Kode `lib/_http` dan `lib/io` di Dart SDK 3.11.4 tidak memuat kata `hsts` atau `strict-transport`, begitu juga `lib` dio 5.11.0 (dipindai di mesin penulis, 2026-10-27). App Flutter yang memakai dart:io tidak menyimpan HSTS dari server: itu dibaca dari kode, bukan dijalankan.
+Kode `lib/_http` dan `lib/io` di Dart SDK 3.11.4 tidak memuat kata `hsts` atau `strict-transport`, begitu juga `lib` dio 5.11.0 (dipindai di mesin penulis, 2026-10-27). Menurut pemindaian itu, client dart:io tidak menyimpan HSTS dari server. Itu dibaca dari kode, bukan dijalankan.
 
 Android punya opsi menolak lalu lintas tanpa enkripsi. iOS mengaktifkan App Transport Security bawaan untuk app yang di-link ke SDK iOS 9.0 atau lebih baru. Keduanya dibahas di tab di bawah, dan Tidak dijalankan. HSTS preload dan perilaku browser sungguhan juga Tidak dijalankan.
 
 **Token 15 menit membatasi pencurian, tidak menghentikannya.** Server dijalankan dengan `-umur-sesi 15m`, dan login menjawab `kedaluwarsa_detik` 900. Token yang proxy baca berlaku pada menit 1 dan menit 14,5. Pada menit 15,5 ia ditolak 401 (`token.txt` bagian A; jam server dimajukan lewat `POST /lab/jam`, waktu tidak ditunggu).
 
-Angka 15 menit adalah pilihan naskah (Asumsi), dan token itu butuh cara app memperbaruinya tanpa login ulang. Usulnya refresh token dengan rotasi. RFC 9700 mengaturnya untuk client OAuth 2.0 publik ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), bagian 2.2.2, dibuka 2026-10-27). api-t3 hanya punya sesi berumur tetap, jadi itu Tidak dijalankan.
+Dimas memakai token itu lewat curl langsung ke api-t3, tanpa tepi TLS, dan hanya satu request saldo yang lewat proxy. Angka 15 menit adalah pilihan naskah (Asumsi), dan token itu butuh cara app memperbaruinya tanpa login ulang. Usulnya refresh token dengan rotasi. RFC 9700 mengaturnya untuk client OAuth 2.0 publik ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), bagian 2.2.2, dibuka 2026-10-27). api-t3 hanya punya sesi berumur tetap, jadi itu Tidak dijalankan.
 
 **Log tidak boleh menyalin token.** Server tepi lab menyamarkan `Authorization` dan `Cookie` di log aksesnya: token Budi muncul 0 kali di log tepi (`token.txt` bagian B). Varian rentan yang menyalin header membuat token muncul 2 kali: satu dari `Authorization` dan satu dari `Cookie`. Siapa pun yang membaca log bisa memakainya sampai umurnya habis.
 
@@ -255,7 +255,7 @@ Chrome mencabut HPKP, yaitu pin lewat header untuk browser, di versi 72. Alasann
 
 1. Server dirotasi lebih cepat daripada rilis app, dan app lama terkunci di luar walau server sehat (`pin.txt` bagian C). Pencegahannya aturan 4: kunci berikutnya sudah ada di rilis sebelum dipakai server, dan rotasi menunggu sampai rilis itu dipakai sebagian besar user. Angka "sebagian besar" belum ditetapkan.
 2. Kunci cadangan tidak pernah diuji, atau jatuh ke tangan lain. RFC 7469 bagian 4.3 menulis bahwa penyerang yang memegang kunci cadangan bisa melakukan MITM tanpa terdeteksi. Lampiran B menulis bahwa cadangan yang tidak diuji sama dengan tanpa cadangan. Pencegahannya aturan 3: simpan di luar server dan latih di staging.
-3. Pin berpindah tempat tanpa ada yang sadar, misalnya dio memperbaiki urutan callback atau app memakai client lain. Pull request cfug/dio#2512 terbuka saat lab ditulis, dan client native lewat `httpClientOverride` tidak memakai `connectionFactory`. Pencegahannya tes yang menjalankan proxy tiruan terhadap build rilis, seperti `make cek` di lab (usul penulis, belum ada).
+3. Pin berpindah tempat tanpa ada yang sadar, misalnya dio memperbaiki urutan callback atau app memakai client lain. Pull request cfug/dio#2512 terbuka saat lab ditulis, dan client native lewat `httpClientOverride` memakai transport lain, bukan `connectionFactory` (penalaran dari dokumentasi Serverpod). Pencegahannya tes yang menjalankan proxy tiruan terhadap build rilis, seperti `make cek` di lab (usul penulis, belum ada).
 
 **Kapan keputusan ini salah.**
 
@@ -271,7 +271,7 @@ Chrome mencabut HPKP, yaitu pin lewat header untuk browser, di versi 72. Alasann
 | Yang ditunda | Kenapa ditunda | Muncul lagi di |
 |---|---|---|
 | Pin di Android dan iOS | Lab memakai Dart CLI di macOS, dan perilaku di HP Tidak dijalankan | Sebelum rilis app yang memasang pin |
-| HSTS preload dan perilaku browser | Hanya curl yang diuji, dan preload tidak bisa dibatalkan cepat | Belum dijadwalkan |
+| HSTS preload dan perilaku browser | Hanya curl yang diuji | Belum dijadwalkan |
 | Refresh token dan pencabutan token | api-t3 hanya punya sesi berumur tetap, dan rotasi refresh token adalah usul | Belum dijadwalkan |
 | Certificate Transparency | Dokumentasi Android punya opsi untuk membatasi koneksi ke sertifikat yang tercatat di log, dan opsi itu tidak diuji | Belum dijadwalkan |
 

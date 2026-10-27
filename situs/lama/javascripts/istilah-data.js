@@ -167,6 +167,14 @@ window.ISTILAH = {
   "t": "Buku ledger",
   "u": "tahap-2/ledger/"
  },
+ "CA": {
+  "b": "t3-tls-pinning",
+  "d": "Pihak yang menandatangani sertifikat. App yang mempercayai sebuah CA ikut mempercayai sertifikat yang ia terbitkan.",
+  "n": "3.25 TLS, HSTS, pinning",
+  "s": "istilah-ca",
+  "t": "CA (Certificate Authority)",
+  "u": "tahap-3/tls-pinning/"
+ },
  "CI": {
   "b": "B1.4",
   "d": "Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung.",
@@ -227,6 +235,14 @@ window.ISTILAH = {
   "t": "Cache-aside",
   "u": "tahap-3/cache-invalidation/"
  },
+ "Certificate Authority": {
+  "b": "t3-tls-pinning",
+  "d": "Pihak yang menandatangani sertifikat. App yang mempercayai sebuah CA ikut mempercayai sertifikat yang ia terbitkan.",
+  "n": "3.25 TLS, HSTS, pinning",
+  "s": "istilah-ca",
+  "t": "CA (Certificate Authority)",
+  "u": "tahap-3/tls-pinning/"
+ },
  "Certificate pinning": {
   "b": "t3-tls-pinning",
   "d": "App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem.",
@@ -284,6 +300,14 @@ window.ISTILAH = {
   "s": "istilah-credential-stuffing",
   "t": "Credential stuffing",
   "u": "tahap-2/m16-akun-terkunci/"
+ },
+ "Daftar akar": {
+  "b": "t3-tls-pinning",
+  "d": "Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu.",
+  "n": "3.25 TLS, HSTS, pinning",
+  "s": "istilah-daftar-akar",
+  "t": "Daftar akar (root store)",
+  "u": "tahap-3/tls-pinning/"
  },
  "Database": {
   "b": "B2.1",
@@ -504,6 +528,14 @@ window.ISTILAH = {
   "s": "istilah-handler",
   "t": "Handler",
   "u": "tahap-1/perjalanan-request/"
+ },
+ "Handshake TLS": {
+  "b": "t3-tls-pinning",
+  "d": "Tahap awal koneksi TLS, sebelum byte HTTP pertama: server menunjukkan sertifikatnya dan client memeriksanya.",
+  "n": "3.25 TLS, HSTS, pinning",
+  "s": "istilah-handshake-tls",
+  "t": "Handshake TLS",
+  "u": "tahap-3/tls-pinning/"
  },
  "Header": {
   "b": "B1.1",
@@ -743,6 +775,14 @@ window.ISTILAH = {
   "s": "istilah-lost-update",
   "t": "Lost update",
   "u": "tahap-2/race-lock/"
+ },
+ "MITM": {
+  "b": "t3-m26",
+  "d": "Penyerang yang berdiri di antara client dan server, lalu membaca atau mengubah lalu lintas di antara keduanya.",
+  "n": "3.24 M26",
+  "s": "istilah-mitm",
+  "t": "MITM (man-in-the-middle)",
+  "u": null
  },
  "MVCC": {
   "b": "t2-isolation-level",
@@ -1686,6 +1726,14 @@ window.ISTILAH = {
   "s": "istilah-credential-stuffing",
   "t": "Credential stuffing",
   "u": "tahap-2/m16-akun-terkunci/"
+ },
+ "daftar akar": {
+  "b": "t3-tls-pinning",
+  "d": "Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu.",
+  "n": "3.25 TLS, HSTS, pinning",
+  "s": "istilah-daftar-akar",
+  "t": "Daftar akar (root store)",
+  "u": "tahap-3/tls-pinning/"
  },
  "database": {
   "b": "B2.1",
