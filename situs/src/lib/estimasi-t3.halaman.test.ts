@@ -507,7 +507,9 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     expect(sre).toContain("sre.google/sre-book/handling-overload/");
     expect(sre).toContain("teks HTML dibuka 2026-10-27 dengan curl");
     expect(sre).toContain('"The Pitfalls of Queries per Second"');
-    expect(sre).toContain('memodelkan kapasitas sebagai "queries per second" sering menjadi metrik yang buruk, karena biaya tiap query berbeda dan berubah');
+    const sel = sre.split("|").map((x) => x.trim());
+    expect(sel[3], "kolom sumber").toContain('memodelkan kapasitas sebagai "queries per second" sering menjadi metrik yang buruk, karena biaya tiap query berbeda dan berubah, dan bahwa kapasitas lebih baik diukur langsung dalam sumber daya seperti core CPU dan memori');
+    expect(sel[4], "kolom yang dipakai halaman").toContain('memodelkan kapasitas sebagai "queries per second" sering menjadi metrik yang buruk, karena biaya tiap query berbeda dan berubah');
     expect(sre).toContain("R2-208 (dibuka 2026-10-25)");
     expect(baris(riset2, "R2-208")).toContain("QPS ukuran kapasitas yang lemah");
     expect([...riset3.matchAll(/^\| (R3-\d+) \|/gm)].map((m) => m[1]).filter((x) => x === "R3-240")).toHaveLength(1);
