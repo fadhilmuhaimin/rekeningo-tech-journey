@@ -8,7 +8,7 @@ import kejadian from "../../../../data/diagram/t3-rekap-kejadian.json";
 import WidgetLama from "../../../components/WidgetLama.astro";
 import SkripLama from "../../../components/SkripLama.astro";
 
-<p class="meta">Baca 9 menit · coba 3 menit · Prasyarat: [[t3-adr-33]] · Jalur inti</p>
+<p class="meta">Baca 10 menit · coba 3 menit · Prasyarat: [[t3-adr-33]] · Jalur inti</p>
 
 <Blok nama="Mulai" buka>
 
@@ -47,82 +47,71 @@ Kartu yang kamu tandai **Ingat** baru muncul lagi sesuai jadwal kotaknya, sepert
 
 ### Kenapa ini ada
 
-Konsep Tahap 3 tersebar di tiga puluh halaman, dari [[t3-prd]] sampai [[t3-adr-33]]. Untuk ingatan beberapa hari kemudian, mengingat kembali jawaban lebih menguatkan daripada belajar ulang ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/), dibuka 2026-10-28).
+Konsep Tahap 3 tersebar di tiga puluh halaman, dari [[t3-prd]] sampai [[t3-adr-33]]. Tiga di antaranya, [[t3-fitur-teknis]], [[t3-notifikasi]], dan [[t3-skema]], mendukung kalimat di bawah tetapi tidak melahirkan kalimat sendiri.
 
-Karena itu setiap konsep diringkas jadi satu kalimat, dan setiap kalimat diikat ke satu kejadian. Halaman ini tidak menjelaskan ulang konsepnya. Setiap kalimat menunjuk halaman tempat konsep dan keputusannya dijelaskan.
+Untuk ingatan beberapa hari kemudian, mengingat kembali jawaban lebih menguatkan daripada belajar ulang ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/), dibuka 2026-10-28). Karena itu setiap konsep diringkas jadi satu kalimat dan diikat ke satu kejadian. Halaman ini tidak menjelaskan ulang konsepnya.
 
-Tiga belas kalimat itu berasal dari naskah Tahap 3. Bila rekaman lab hanya mendukung sebagian dari kalimat, halaman ini menulis dua hal: kalimat naskahnya, dan versi yang didukung rekaman.
-
-Angka di halaman ini dikutip dari halaman asalnya, dengan label yang sama. Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]]. Hitungan adalah hasil rumus yang ditulis di sebelahnya, dan memakai label masukan terlemahnya.
+Bila rekaman lab hanya mendukung sebagian dari kalimat naskah, halaman ini menulis dua hal: kalimat naskahnya, dan versi yang didukung rekaman. Angka dikutip dari halaman asalnya, dengan label yang sama. Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].
 
 ### Tiga belas kalimat
 
-1. **Pool habis karena lama, bukan karena banyak.** Di [[t3-m18]], layanan push menerima koneksi tetapi tidak menjawab, dan semua layar berhenti. Pembayarannya hanya 0,868 per detik (Asumsi naskah), tetapi tiap pembayaran menunggu push di dalam transaction sambil menahan satu koneksi. Pool 10 penuh antara detik ke-11 dan ke-12, sedangkan pool 50 baru penuh antara detik ke-57 dan ke-58 (`m18.txt` bagian A dan B, lab t3-pool). Konsep dan ADR 22: [[t3-pool]].
+1. **Pool habis karena lama, bukan karena banyak.** Di [[t3-m18]], layanan push menerima koneksi tetapi tidak menjawab, dan semua layar berhenti, padahal pembayaran hanya 0,868 per detik (Asumsi naskah). Pool 10 penuh antara detik ke-11 dan ke-12, sedangkan pool 50 baru penuh antara detik ke-57 dan ke-58 (`m18.txt` bagian A dan B, lab t3-pool). Konsep dan ADR 22: [[t3-pool]].
 
-   *Batas:* beban di rekaman berjadwal tetap, dan kedatangan acak bisa mengisi pool lebih awal (penalaran, Tidak dijalankan).
 
-2. **Tanpa trace, "lambat" tidak punya alamat.** Di [[t3-m18]], Raka membuka log server dan tidak menemukan satu baris pun untuk request yang menggantung. Di rekaman, satu pembayaran yang menggantung diamati dari luar selama 4 detik. Log tidak bertambah satu baris pun, metric pool menjawab dipakai 1 dari maks 10, dan database melaporkan satu sesi `idle in transaction` (`jejak.txt` bagian J, lab t3-pool). Konsep: [[t3-observability]].
+2. **Tanpa trace, "lambat" tidak punya alamat.** Di [[t3-m18]], Raka tidak menemukan satu baris log pun untuk request yang menggantung. Di rekaman, satu pembayaran yang menggantung diamati 4 detik. Log tidak bertambah, metric pool menjawab dipakai 1 dari maks 10, dan database melaporkan satu sesi `idle in transaction` (`jejak.txt` bagian J, lab t3-pool). Konsep: [[t3-observability]].
 
-   *Dipersempit:* trace Tidak dijalankan, karena kode api-t3 tidak membaca `traceparent` dan OpenTelemetry tidak dipasang di sana. Versi yang didukung rekaman: log kosong tidak membedakan sehat dari menggantung, dan hanya metric pool dan database yang menunjuk. Bagian API yang menunggu tetap tidak terlihat.
+   *Dipersempit:* trace Tidak dijalankan, karena kode api-t3 tidak membaca `traceparent`. Versi yang didukung rekaman: log kosong tidak membedakan sehat dari menggantung, dan bagian API yang menunggu tetap tidak terlihat.
 
-3. **Uang dan pemberitahuan ditulis di satu tempat dulu, dikirim dari tempat lain kemudian.** [[t3-prd]] menambah syarat Pak Hadi: Ani tidak boleh diberi tahu uang masuk sebelum uang itu tercatat. Layanan push tidak ikut COMMIT PostgreSQL ([[t3-dua-tempat]]), jadi pembayaran menulis jurnal dan satu baris outbox di satu transaction. Di rekaman, Budi membayar Rp25.000 dan API menjawab 201. Outbox berisi satu baris `menunggu`, dan layanan push menerima 0 pesan sampai worker berjalan (`transaksi.txt` bagian A, lab t3-outbox). Konsep dan ADR 23: [[t3-outbox]].
+3. **Uang dan pemberitahuan ditulis di satu tempat dulu, dikirim dari tempat lain kemudian.** [[t3-prd]] menambah syarat Pak Hadi: Ani tidak boleh diberi tahu uang masuk sebelum uang itu tercatat. Push di dalam transaction membekukan app di [[t3-m18]], dan layanan push tidak ikut COMMIT PostgreSQL ([[t3-dua-tempat]]). Jadi pembayaran menulis jurnal dan satu baris outbox di satu transaction. Di rekaman, Budi membayar Rp25.000 dan API menjawab 201, tetapi layanan push menerima 0 pesan sampai worker berjalan (`transaksi.txt` bagian A, lab t3-outbox). Konsep dan ADR 23: [[t3-outbox]].
 
-   *Batas:* rekaman hanya menjalankan opsi outbox. Opsi kirim sesudah COMMIT, queue di Redis, dan CDC Tidak dijalankan, dan batas database lab belum diukur.
+   *Batas:* rekaman hanya menjalankan opsi outbox. Opsi kirim sesudah COMMIT, queue di Redis, dan CDC Tidak dijalankan.
 
 4. **Urutan id bukan urutan commit.** Di [[t3-m19]], dua transfer ke Citra membuat saldonya naik Rp50.000, tetapi HP-nya menerima satu pesan. Poller membaca dengan kursor `(dibuat, id)`, dan baris Budi, yang mulai lebih dulu tetapi COMMIT belakangan, tertinggal di belakang kursor (`kursor.txt` bagian B, lab t3-outbox). Worker yang mengklaim baris mengirim kedua pesan (bagian C). Konsep dan ADR 24: [[t3-klaim-baris]].
 
-   *Dipersempit:* yang terbalik di rekaman adalah `dibuat`, yaitu awal transaction, bukan nomor outbox. Versi yang didukung rekaman: `dibuat` bukan urutan COMMIT, dan nomor sequence tidak dijanjikan sama dengan urutan COMMIT (sumbernya di [[t3-m19]], Tidak dijalankan). Harga klaim: urutan antar pesan tidak dijaga.
+   *Dipersempit:* yang terbalik di rekaman adalah `dibuat`, yaitu awal transaction, bukan nomor outbox. Versi yang didukung rekaman: `dibuat` bukan urutan COMMIT, dan nomor sequence tidak dijanjikan sama dengan urutan COMMIT (sumbernya di [[t3-m19]], Tidak dijalankan).
 
 5. **Mengirim ulang itu benar; yang salah adalah penerima yang tidak mengenali ulangan.** Di [[t3-m20]], HP Ani menampilkan "Rp25.000 dari Budi" dua kali, padahal hanya ada satu jurnal. Di rekaman, worker berhenti sesudah push menjawab dan sebelum baris ditandai `terkirim`, jadi klaim 5 detik habis dan worker lain mengirim ulang. Layanan push menerima 2 pesan dengan 1 `notifikasi_id`, dan penyaring tiruan menampilkan 1 (`ganda.txt` bagian A dan C, lab t3-outbox). Konsep dan ADR 25: [[t3-at-least-once]].
 
-   *Batas:* penyaring itu lima baris Python di lab, bukan kode app Dart. Bentuk Dart-nya Tidak dijalankan.
+   *Batas:* penyaring itu lima baris Python di lab, bukan kode app Dart.
 
 6. **Dua proses butuh proxy yang tahu mana yang hidup.** Di [[t3-m21]], panic di goroutine latar ekspor laporan mematikan satu-satunya proses API. Panic di handler memutus satu koneksi dan `/healthz` tetap 200, tetapi panic di goroutine latar mematikan proses dengan kode keluar 2 (`panic.txt` bagian B, lab t3-instance). Di belakang proxy tanpa health check dan retry, satu instance yang mati membuat 10 dari 20 request dijawab 502 (`proxy.txt` bagian C; lab memakai `round_robin`). Konsep dan ADR 26: [[t3-dua-instance]].
 
    *Batas:* satu Ekspor yang ditekan dua kali mematikan kedua instance, dan proxy menjawab 503 (`panic.txt` bagian D). Satu VPS tetap titik gagal tunggal, dan VPS yang mati Tidak dijalankan.
 
-7. **Yang disimpan di memori satu proses berlipat saat prosesnya dua.** Di [[t3-m22]], 24 percobaan login dari satu alamat lewat dua instance membuat 20 sampai ke pemeriksaan password. Batas per alamat tertulis 10 (`batas.txt` bagian A, lab t3-instance). Dengan satu hitungan di Redis, hanya 10 yang sampai (bagian E). Saat Redis dihentikan, login tetap dijawab dan batas jatuh ke bucket lokal, jadi 20 dari 24 lagi (bagian I). Konsep dan ADR 27: [[t3-rate-limit-redis]].
+7. **Yang disimpan di memori satu proses berlipat saat prosesnya dua.** Di [[t3-m22]], 24 percobaan login dari satu alamat lewat dua instance membuat 20 sampai ke pemeriksaan password. Batas per alamat tertulis 10 (`batas.txt` bagian A, lab t3-instance). Dengan satu hitungan di Redis, hanya 10 yang sampai (bagian E). Saat Redis dihentikan, batas jatuh ke bucket lokal dan 20 dari 24 sampai lagi (bagian I). Konsep dan ADR 27: [[t3-rate-limit-redis]].
 
-   *Batas:* kode lab memakai alamat koneksi sebagai alamat client. Di belakang proxy, semua client berbagi satu key per alamat, karena `X-Forwarded-For` tidak dibaca (dibaca dari kode, Tidak dijalankan).
+   *Batas:* kode lab tidak membaca `X-Forwarded-For`, jadi di belakang proxy semua client berbagi satu key per alamat (dibaca dari kode, Tidak dijalankan).
 
 8. **Cache boleh stale untuk tampilan, tidak untuk uang.** Di [[t3-m23]], HR menyalakan promo, lalu HP Budi menampilkan nasi goreng Rp22.500 dan HP Citra Rp25.000. Cache katalog ada di memori tiap instance dengan TTL 300 detik, dan promo hanya membuang entri di instance yang menerimanya. Citra tetap ditagih Rp22.500, karena `Pesan` membaca harga dari database, dan harga lama hilang di detik ke-300 (`memori.txt` bagian B sampai D, lab t3-cache). Konsep dan ADR 28: [[t3-cache]].
 
-   *Batas:* stok di cache juga stale (50 di cache instance B, 49 di database), dan `Pesan` memeriksa stok di database. Rekaman tidak memakai app Flutter, jadi ia tidak membuktikan app bebas dari cache sendiri.
+   *Batas:* stok di cache juga stale (50 di cache instance B, 49 di database), dan rekaman tidak memakai app Flutter.
 
-9. **Operasi yang menunggu lama harus bisa ditolak dengan benar.** Di [[t3-m24]], stok = 0 dari Jumat dikirim ulang 62 jam kemudian dan menimpa 30 porsi yang Ani isi hari Sabtu. Key hanya berlaku 24 jam. Pengiriman ulang 17 jam sesudah Jumat dikenali dan stok tetap 50, tetapi yang 62 jam menimpa stok 30 (`m24.txt` bagian C dan D, lab t3-offline). Dengan versi dasar, operasi yang belum pernah sampai dijawab 409, dan produk tidak berubah (`versi.txt` bagian C). Konsep dan ADR 29: [[t3-offline]].
+9. **Operasi yang menunggu lama harus bisa ditolak dengan benar.** Di [[t3-m24]], stok = 0 dari Jumat dikirim ulang 62 jam kemudian dan menimpa 30 porsi yang Ani isi hari Sabtu. Key berlaku 24 jam. Pengiriman ulang 17 jam sesudah Jumat dikenali dan stok tetap 50, tetapi yang 62 jam menimpa stok 30 (`m24.txt` bagian C dan D, lab t3-offline). Dengan versi dasar, operasi yang belum pernah sampai dijawab 409, dan produk tidak berubah (`versi.txt` bagian C). Konsep dan ADR 29: [[t3-offline]].
 
-   *Batas:* HP diperankan curl dan waktu dimajukan (Ilustrasi mekanisme), jadi queue lokal dan layar konflik di app Tidak dijalankan. Umur queue 7 hari dan kunci 14 hari adalah Asumsi naskah.
+   *Batas:* HP diperankan curl dan waktu dimajukan, jadi queue lokal dan layar konflik di app Tidak dijalankan. Umur queue 7 hari dan kunci 14 hari adalah Asumsi naskah.
 
-10. **Data dari sistem sendiri tetap input.** Di [[t3-m25]], catatan Rp5.000 dari Dimas berisi tag gambar, dan dasbor Ani menulisnya lewat `innerHTML`. Di Chromium baru muncul satu kotak peringatan berisi 1 (`xss.txt` bagian A, lab t3-dasbor). Hanya CSP atau hanya `textContent` menghasilkan 0 dialog (bagian C dan E). Skrip di halaman yang sama mengubah harga walau token CSRF, Origin, dan cookie `HttpOnly` benar (bagian D). Konsep dan ADR 30: [[t3-xss-csrf]].
+10. **Data dari sistem sendiri tetap input.** Di [[t3-m25]], catatan Rp5.000 dari Dimas berisi tag gambar, dan dasbor Ani menulisnya lewat `innerHTML`. Di Chromium baru muncul satu kotak peringatan berisi 1 (`xss.txt` bagian A, lab t3-dasbor). Hanya CSP atau hanya `textContent` menghasilkan 0 dialog (bagian C dan E). Skrip yang dijalankan penggerak lab di halaman yang sama mengubah harga walau token CSRF, Origin, dan cookie `HttpOnly` benar (bagian D). Konsep dan ADR 30: [[t3-xss-csrf]].
 
-    *Batas:* hanya Chromium 156 yang diuji, dan skrip di bagian D dijalankan penggerak lab, bukan catatan Dimas. Dari passkey hanya pendaftaran kredensial yang direkam, dan sisanya Tidak dijalankan.
+    *Batas:* hanya Chromium 156 yang diuji, dan dari passkey hanya pendaftaran kredensial yang direkam.
 
-11. **Sertifikat selalu divalidasi; pin selalu dengan cadangan.** Di [[t3-m26]], app Budi menerima sertifikat apa pun karena flag dari staging, jadi hotspot Dimas membaca token Budi. Dimas memakainya untuk transfer Rp150.000 ke dirinya, dan dengan validasi aktif hotspot melihat 0 request (`m26.txt` bagian B, C, dan E, lab t3-mitm). Pin di `connectionFactory` menahan CA Dimas yang sudah dipercaya (`dio.txt` bagian B). App yang hanya mem-pin satu kunci ditolak saat server rotasi (`pin.txt` bagian C). Konsep dan ADR 31: [[t3-tls-pinning]].
+11. **Sertifikat selalu divalidasi; pin selalu dengan cadangan.** Di [[t3-m26]], app Budi menerima sertifikat apa pun karena flag dari staging, jadi hotspot Dimas membaca token Budi. Dimas memakainya untuk transfer Rp150.000 ke dirinya, dan dengan validasi aktif hotspot melihat 0 request (`m26.txt` bagian B, C, dan E, lab t3-mitm). Pin di `connectionFactory` menahan CA Dimas yang sudah dipercaya (`dio.txt` bagian B), tetapi app yang hanya mem-pin satu kunci ditolak saat server rotasi (`pin.txt` bagian C). Konsep dan ADR 31: [[t3-tls-pinning]].
 
-    *Batas:* proxy, server, dan client Dart berjalan di satu laptop, jadi Wi-Fi, perangkat Android dan iOS, dan trust store HP sungguhan Tidak dijalankan. Cadangan hanya menahan satu rotasi (`pin.txt` bagian C).
+    *Batas:* proxy, server, dan client Dart berjalan di satu laptop, jadi perangkat dan Wi-Fi sungguhan Tidak dijalankan. Cadangan hanya menahan satu rotasi.
 
 12. **Queue punya umur, dan yang tertua yang paling penting.** Di [[t3-m27]], notifikasi pembayaran Ani belum datang sampai 11.42 karena 10.000 promo mendahuluinya (Ilustrasi naskah). Di rekaman, worker yang mengklaim menurut nomor mengirim 3,4% sampai 4,2% promo dalam 30 detik dan belum menyentuh notifikasi uang (`queue.txt` bagian C, lab t3-outbox). Worker yang mengklaim menurut kelas mengirimnya dalam kurang dari 1,5 detik (bagian E). Konsep dan ADR 32: [[t3-tim-infra]].
 
-    *Dipersempit:* yang dihitung adalah umur notifikasi uang tertua, bukan umur tertua seluruh queue. Dengan promo menumpuk, umur tertua semua kelas lebih dari 30 detik, sedangkan umur tertua kelas uang 0 (`queue.txt` bagian E). Versi yang didukung rekaman: alert dihitung dari umur notifikasi uang tertua, dan alert sungguhan Tidak dijalankan.
+    *Dipersempit:* yang dihitung adalah umur notifikasi uang tertua, bukan umur tertua seluruh queue. Dengan promo menumpuk, umur tertua semua kelas lebih dari 30 detik, sedangkan umur tertua kelas uang 0 (`queue.txt` bagian E). Alert sungguhan Tidak dijalankan.
 
 13. **Masalah Tahap 3 adalah ketergantungan, bukan kapasitas.** Di [[t3-m28]], tutup buku bulan ketiga selesai dengan selisih Rp0 (Ilustrasi naskah), lalu Sinta datang dengan PRD v4. Puncak 17,4 request per detik adalah Asumsi (dibulatkan dari 17,36), dan L = 17,4 × 0,02 = 0,35 koneksi dari pool 10 juga Asumsi. Rekaman hanya memeriksa batas: L kurang dari 17,4 × 50 ms, yaitu 0,87 koneksi (`adr22.txt` bagian F, lab t3-pool). Konsep dan beban PRD v4: [[t3-estimasi]].
 
-    *Dipersempit:* M18, M23, dan M27 memakai hitungan kapasitas. Pool dan worker dijawab tanpa memperbesar apa pun, dan hitungan katalog menunjukkan cache tidak dibutuhkan beban (Asumsi). Versi yang didukung hitungan di [[t3-m28]]: ketergantungan menjadi pemicu, dan kapasitas dipakai sebagai alat hitung. Kapasitas satu server belum diukur. Di delapan lab Tahap 3 tidak ada perintah yang menjalankan perkakas load test (dipindai: k6, wrk, locust, vegeta, hey, dan Apache Bench).
-
-### Tiga halaman tanpa kalimat sendiri
-
-Tiga halaman Tahap 3 mendukung kalimat di atas, tetapi tidak melahirkan kalimat sendiri di naskah.
-
-- [[t3-fitur-teknis]]: PRD v3 diturunkan jadi pekerjaan di app, backend, dan database, lalu jadi pertanyaan pertama Tahap 3.
-- [[t3-notifikasi]]: notifikasi push dan promo HR memakai satu jalur, yaitu baris pemberitahuan di transaction jurnal dan worker yang mengirimnya.
-- [[t3-skema]]: 8 tabel Tahap 2 menjadi 14 tabel Tahap 3, dan tabel uang tidak berubah.
+    *Dipersempit:* M18, M23, dan M27 memakai hitungan kapasitas sebagai alat, dan pemicunya tetap ketergantungan. Pool dan worker dijawab tanpa memperbesar apa pun, dan hitungan katalog menunjukkan cache tidak dibutuhkan beban (Asumsi). Kapasitas satu server belum diukur. Di delapan lab Tahap 3 tidak ada perintah yang menjalankan perkakas load test (dipindai: k6, wrk, locust, vegeta, hey, dan Apache Bench).
 
 ### Yang belum diuji
 
 Tiga belas kalimat itu diuji lewat rekaman lab di mesin lokal, bukan di server sungguhan. Delapan hal yang ditulis terbuka di halamannya belum diuji.
 
 - Kapasitas satu server dan load test: [[t3-m28]].
-- Trace OpenTelemetry di api-t3: [[t3-observability]].
+- Trace di api-t3: [[t3-observability]].
 - Penyaring `notifikasi_id` di app Dart: [[t3-at-least-once]].
 - VPS yang mati dan pengawas proses: [[t3-dua-instance]].
 - Membaca `X-Forwarded-For` dari proxy tepercaya di kode lab: [[t3-rate-limit-redis]].
@@ -138,11 +127,11 @@ Komponen yang sengaja belum dipasang punya halaman sendiri di [[t3-adr-33]], dan
 
 ### Dua belas keputusan Tahap 3
 
-Keputusan di balik kalimat-kalimat itu tertulis di ADR 22 sampai 33. Tabel ini merangkum keputusannya dan kejadian yang memicunya. Alasan dan kapan keputusan itu salah ada di halaman masing-masing.
+Keputusan di balik kalimat-kalimat itu tertulis di ADR 22 sampai 33. Alasan dan kapan keputusan itu salah ada di halaman masing-masing.
 
 | ADR | Keputusan | Lahir dari |
 |---|---|---|
-| 22 | Panggilan keluar di luar transaction, timeout 3 detik, dan pool tetap 10 | M18, [[t3-pool]] |
+| 22 | Panggilan keluar di luar transaction, timeout 3 detik, pool tetap 10 | M18, [[t3-pool]] |
 | 23 | Outbox di PostgreSQL, worker di proses terpisah | PRD v3 dan M18, [[t3-outbox]] |
 | 24 | Worker mengklaim baris, tanpa kursor | M19, [[t3-klaim-baris]] |
 | 25 | At-least-once dengan batas lima percobaan, dead-letter, dan penyaring di app | M20, [[t3-at-least-once]] |
@@ -155,7 +144,7 @@ Keputusan di balik kalimat-kalimat itu tertulis di ADR 22 sampai 33. Tabel ini m
 | 32 | Kelas queue, alert umur uang tertua per kelas, staging, dan giliran jaga | M27, [[t3-tim-infra]] |
 | 33 | Komponen yang belum diperlukan sengaja belum dipasang, dengan angka Tahap 3 dan pemicunya | M28, [[t3-adr-33]] |
 
-ADR 32 merevisi ADR 23 dengan kolom `kelas` di outbox. Token 15 menit di ADR 31 adalah Asumsi naskah, dan umur sesi di api-t3 tetap.
+ADR 32 merevisi ADR 23 dengan kolom `kelas` di outbox. Angka di kolom Keputusan adalah pilihan tiap ADR, dan token 15 menit serta kunci sinkron 14 hari berlabel Asumsi naskah di halamannya.
 
 </Blok>
 
@@ -163,55 +152,55 @@ ADR 32 merevisi ADR 23 dengan kolom `kelas` di outbox. Token 15 menit di ADR 31 
 
 ### Cek diri
 
-**1.** Layanan push berhenti menjawab dan semua layar membeku, sementara log server kosong. Raka mengusulkan pool 50. Kapan pool 50 penuh, dan apa yang menahan masalahnya?
+**1.** Layanan push berhenti menjawab dan semua layar membeku. Raka mengusulkan pool 50. Kapan pool 50 penuh, dan apa yang menahan masalahnya?
 
 <details class="success">
 <summary>Jawaban</summary>
 
-Pool 50 penuh pada 50 ÷ 0,868 = 57,6 detik, bukan 11,5 detik, dan di rekaman antara detik ke-57 dan ke-58 (`m18.txt` bagian B). Penyebabnya tidak berubah, yaitu lamanya panggilan ke push. ADR 22 memindahkan panggilan keluar dari transaction, memasang timeout 3 detik di client, dan menahan pool di 10. Log kosong tidak membedakan sehat dari menggantung, dan yang menunjuk adalah metric pool dan sesi `idle in transaction`.
+Pool 50 penuh pada 50 ÷ 0,868 = 57,6 detik, bukan 11,5 detik (Asumsi), dan di rekaman antara detik ke-57 dan ke-58 (`m18.txt` bagian B). Penyebabnya tetap lamanya panggilan ke push. ADR 22 memindahkan panggilan keluar dari transaction, memasang timeout 3 detik, dan menahan pool di 10.
 
 </details>
 
-**2.** Raka mengganti kursor `(dibuat, id)` di poller outbox dengan kursor `id` saja. Apa yang terekam, apa yang tidak, dan apa yang ditulis ADR 24?
+**2.** Raka mengganti kursor `(dibuat, id)` di poller outbox dengan kursor `id` saja. Apa yang terekam, dan apa yang ditulis ADR 24?
 
 <details class="success">
 <summary>Jawaban</summary>
 
-Di rekaman, nomor outbox tidak terbalik dan yang terbalik hanya `dibuat`, jadi kursor `id` akan menangkap kasus M19 di lab. Tetapi nomor sequence tidak dijanjikan sama dengan urutan COMMIT, dan lab tidak merekamnya (Tidak dijalankan). ADR 24 menggantinya dengan klaim per baris: `FOR UPDATE` dan `klaim_sampai` mencegah baris dikirim dua kali. Harganya, urutan antar pesan tidak dijaga.
+Di rekaman, nomor outbox tidak terbalik dan yang terbalik hanya `dibuat`, jadi kursor `id` akan menangkap kasus M19 di lab. Nomor sequence tetap tidak dijanjikan sama dengan urutan COMMIT (Tidak dijalankan). ADR 24 memakai klaim per baris, dan harganya urutan antar pesan tidak dijaga.
 
 </details>
 
-**3.** Satu instance menolak percobaan login ke-11, tetapi dua instance meloloskan 20 dari 24. Cache katalog yang sama menampilkan dua harga. Apa sebab yang sama, dan apa yang tetap benar?
+**3.** Dua instance meloloskan 20 dari 24 percobaan login, dan cache katalog menampilkan dua harga. Apa sebab yang sama, dan apa yang tetap benar?
 
 <details class="success">
 <summary>Jawaban</summary>
 
-Keduanya disimpan di memori satu proses. Bucket login dan cache katalog ada di tiap instance, dan promo hanya membuang entri di instance yang menerimanya (`batas.txt` bagian A, `memori.txt` bagian B). Yang tetap benar ada di database. Tagihan Rp22.500 dibaca dari database, dan kunci akun di database tetap menahan tebakan ke satu akun di 5 (`batas.txt` bagian D).
+Keduanya disimpan di memori satu proses, jadi tiap instance punya salinan sendiri (`batas.txt` bagian A, `memori.txt` bagian B). Yang tetap benar ada di database: tagihan Rp22.500, dan kunci akun yang menahan tebakan di 5 (`batas.txt` bagian D).
 
 </details>
 
-**4.** Operasi stok yang dikirim ulang 17 jam sesudah Jumat dikenali, tetapi yang 62 jam menimpa stok 30. Kenapa kunci yang hidup 14 hari saja tidak cukup untuk menolak operasi yang usang?
+**4.** Operasi stok yang dikirim ulang 62 jam sesudah Jumat menimpa stok 30. Kenapa kunci yang hidup 14 hari tidak menolak operasi itu, dan apa yang menolaknya?
 
 <details class="success">
 <summary>Jawaban</summary>
 
-Kunci menjawab apakah permintaan ini pernah datang, dan versi menjawab apakah keadaan sudah berubah sejak operasi dibuat. Di rekaman, operasi soto dengan kunci yang sama dikenali dan stok 30 utuh. Operasi bakso yang belum pernah sampai dijawab 409 karena versi dasar 1 sudah lewat, dan produk tidak berubah (`versi.txt` bagian C).
+Kunci menjawab apakah permintaan pernah datang, dan versi menjawab apakah keadaan sudah berubah. Operasi bakso yang belum pernah sampai dijawab 409 karena versi dasar 1 sudah lewat, dan produk tidak berubah (`versi.txt` bagian C).
 
 </details>
 
-**5.** Cookie sesi Ani `HttpOnly`, dan token CSRF serta Origin benar. Kenapa skrip yang berjalan di halaman dasbor tetap bisa mengubah harga, dan apa yang menahan skripnya?
+**5.** Cookie sesi Ani `HttpOnly`, dan token CSRF serta Origin benar. Kenapa skrip di halaman dasbor tetap bisa mengubah harga, dan apa yang menahannya?
 
 <details class="success">
 <summary>Jawaban</summary>
 
-Skrip di halaman berjalan sebagai halaman itu sendiri. `HttpOnly` melarang skrip membaca cookie, bukan memakainya. Jadi `fetch` dari halaman ikut membawa cookie dan token yang sah, dan dijawab 200 (`xss.txt` bagian D). Yang menahan skripnya adalah `textContent` atau CSP, masing-masing sendiri: 0 dialog di bagian C dan E. `SameSite=Lax` menahan form dari situs lain, bukan skrip di dalam halaman.
+Skrip berjalan sebagai halaman itu sendiri. `HttpOnly` melarang membaca cookie, bukan memakainya, jadi `fetch` dari halaman dijawab 200 (`xss.txt` bagian D). Yang menahannya adalah `textContent` atau CSP, masing-masing sendiri: 0 dialog di bagian C dan E.
 
 </details>
 
 ### Saat me-review kode AI, cek ini
 
 - [ ] Tidak ada panggilan HTTP, push, atau email di antara `BEGIN` dan `COMMIT` ([[t3-pool]]).
-- [ ] Setiap request meninggalkan satu baris log di akhirnya dengan status, durasi, dan id; log kosong tidak dianggap tanda sehat ([[t3-observability]]).
+- [ ] Tidak ada token, password, atau session identifier di log, termasuk header `Authorization` ([[t3-observability]]).
 - [ ] Ada tes yang membuktikan jurnal dan outbox hilang bersama saat ROLLBACK ([[t3-outbox]]).
 - [ ] Poller tidak membaca dengan kursor `(dibuat, id)` atau nomor `id` untuk pesan yang tidak boleh terlewat ([[t3-klaim-baris]]).
 - [ ] `notifikasi_id` dibuat saat `INSERT`, bukan saat kirim, dan dikirim sama di semua percobaan ([[t3-at-least-once]]).
