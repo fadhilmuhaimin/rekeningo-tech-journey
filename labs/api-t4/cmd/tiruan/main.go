@@ -35,7 +35,7 @@ func main() {
 		if *alamat == "" {
 			*alamat = "127.0.0.1:" + portLab(18283)
 		}
-		h = (&gateway{order: map[string]*order{}, kunci: map[string]string{}, webhook: *webhook, rahasia: *rahasia}).rute()
+		h = (&gateway{order: map[string]*order{}, kunci: map[string]string{}, dicek: map[string]int{}, webhook: *webhook, rahasia: *rahasia}).rute()
 	case "verifikasi":
 		if *alamat == "" {
 			*alamat = "127.0.0.1:" + portLab(18284)
@@ -109,6 +109,7 @@ type gateway struct {
 	m       mode
 	order   map[string]*order
 	kunci   map[string]string // Idempotency-Key -> order_id
+	dicek   map[string]int    // order_id -> berapa kali Rekeningo menanyakan keadaannya (GET /orders/{id}); lab melihat lewat GET /lab/dicek
 	webhook string
 	rahasia string
 }
@@ -124,7 +125,7 @@ func (g *gateway) rute() http.Handler {
 	mux.HandleFunc("POST /lab/mode", g.m.pasang)
 	mux.HandleFunc("POST /lab/reset", func(w http.ResponseWriter, r *http.Request) {
 		g.mu.Lock()
-		g.order, g.kunci = map[string]*order{}, map[string]string{}
+		g.order, g.kunci, g.dicek = map[string]*order{}, map[string]string{}, map[string]int{}
 		g.mu.Unlock()
 		g.m.mu.Lock()
 		g.m.nama, g.m.ms = "", 0
@@ -136,6 +137,13 @@ func (g *gateway) rute() http.Handler {
 	mux.HandleFunc("GET /settlement", g.settlement)
 	mux.HandleFunc("POST /lab/bayar", g.bayar)
 	mux.HandleFunc("POST /lab/webhook", g.kirimWebhook)
+	mux.HandleFunc("POST /lab/jadwal", g.jadwal)  // jadwal ulangan dengan waktu maya (jadwal.go)
+	mux.HandleFunc("POST /lab/rahasia", g.rotasi) // rotasi rahasia penanda tangan (jadwal.go)
+	mux.HandleFunc("GET /lab/dicek", func(w http.ResponseWriter, r *http.Request) {
+		g.mu.Lock()
+		defer g.mu.Unlock()
+		tulis(w, 200, map[string]any{"dicek": g.dicek})
+	})
 	mux.HandleFunc("GET /lab/orders", func(w http.ResponseWriter, r *http.Request) {
 		g.mu.Lock()
 		defer g.mu.Unlock()
@@ -189,6 +197,10 @@ func (g *gateway) status(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	g.mu.Lock()
+	if g.dicek == nil {
+		g.dicek = map[string]int{}
+	}
+	g.dicek[r.PathValue("id")]++
 	o, ok := g.order[r.PathValue("id")]
 	var salin order
 	if ok {
@@ -275,6 +287,8 @@ func (g *gateway) kirimWebhook(w http.ResponseWriter, r *http.Request) {
 		UbahBody     bool   `json:"ubah_body"`     // body diubah sesudah ditandatangani
 		BodyAneh     bool   `json:"body_spasi"`    // body ditulis ulang dengan spasi lain, tanda tangan atas versi asli
 		PutusBalasan bool   `json:"putus_balasan"` // koneksi ditutup begitu balasan mulai datang, sebelum dibaca
+		BodyCantik   bool   `json:"body_cantik"`   // body sah dengan format lain (indentasi), ditandatangani apa adanya
+		URLTarget    string `json:"url_target"`    // pengganti alamat webhook Rekeningo (lab: penangkap kiriman)
 	}
 	if json.NewDecoder(r.Body).Decode(&in) != nil || in.EventID == "" || in.OrderID == "" {
 		http.Error(w, "body harus {event_id, order_id, ...}", http.StatusBadRequest)
@@ -293,11 +307,18 @@ func (g *gateway) kirimWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 		g.mu.Unlock()
 	}
-	rahasia := g.rahasia
+	rahasia := g.rahasiaSekarang()
 	if in.Rahasia != "" {
 		rahasia = in.Rahasia
 	}
 	asli, _ := json.Marshal(map[string]any{"event_id": in.EventID, "order_id": in.OrderID, "status": in.Status, "jumlah": in.Jumlah})
+	if in.BodyCantik {
+		asli, _ = json.MarshalIndent(map[string]any{"event_id": in.EventID, "order_id": in.OrderID, "status": in.Status, "jumlah": in.Jumlah}, "", "  ")
+	}
+	target := g.webhook
+	if in.URLTarget != "" {
+		target = in.URLTarget
+	}
 	hasil := make([]string, in.Kali)
 	kirim := func(i int) {
 		ts := time.Now().Unix() + in.GeserDetik
@@ -320,7 +341,7 @@ func (g *gateway) kirimWebhook(w http.ResponseWriter, r *http.Request) {
 			hasil[i] = g.kirimPutus(body, kepala)
 			return
 		}
-		req, _ := http.NewRequest(http.MethodPost, g.webhook, strings.NewReader(string(body)))
+		req, _ := http.NewRequest(http.MethodPost, target, strings.NewReader(string(body)))
 		req.Header.Set("Content-Type", "application/json")
 		for k, v := range kepala {
 			req.Header.Set(k, v)

@@ -1,0 +1,28 @@
+# Lab t4-webhook · webhook ganda: handler versi pertama lawan versi ADR 34, dan celah cek-lalu-tulis
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_webhook · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-webhook run.
+# server: ./api-t4 -lab -rentan webhook-v1 (handler paling pendek: tanpa tanda tangan, tanpa tabel event, tanpa status bersyarat); gateway tiruan: ./tiruan
+
+# --- A. Handler versi pertama: kiriman yang sama dua kali menghasilkan dua jurnal ---
+$ curl -X POST gateway/lab/webhook -d '{"event_id":"evt-1","order_id":"<order 1>","kali":2,"tanpa_tanda_tangan":true}'   # event yang sama, dua kali, berurutan
+hasil kiriman: 200 diproses, 200 diproses
+=> SELECT p.jurnal_id, b.jenis AS buku, p.jumlah FROM posting p JOIN jurnal j ON j.id = p.jurnal_id JOIN buku b ON b.id = p.buku_id WHERE j.jenis = 'topup_bank' ORDER BY p.id
+ jurnal_id | buku     | jumlah
+-----------+----------+---------
+ 10201     | bank     | -200000
+ 10201     | karyawan | 200000
+ 10202     | bank     | -200000
+ 10202     | karyawan | 200000
+(4 rows)
+# Satu pembayaran Rp200.000, dua jurnal: saldo Budi naik Rp400.000. Tidak ada tabel event, dan status bersyarat tidak ada.
+
+# --- B. Versi ADR 34: balasan 200 yang pertama hilang di jalan, gateway mengirim event yang sama lagi: satu jurnal ---
+# server: ./api-t4 -lab (versi ADR 34: tanda tangan, tabel event, status hanya maju)
+kiriman 1 (koneksi diputus gateway begitu balasan mulai datang): koneksi diputus sesudah balasan mulai datang
+kiriman 2 (event yang sama): 200 ganda
+=> SELECT event_id, jenis, hasil, jurnal_id IS NOT NULL AS ada_jurnal FROM webhook_event ORDER BY event_id
+ event_id | jenis      | hasil    | ada_jurnal
+----------+------------+----------+------------
+ evt-1    | settlement | diproses | t
+(1 row)
+# Kiriman pertama sudah di-COMMIT sebelum balasan dikirim, jadi kiriman ulang menemukan event_id yang sama: nol baris, balas 200 tanpa jurnal.
