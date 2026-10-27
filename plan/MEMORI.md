@@ -47,7 +47,8 @@ Mode penyelesaian penuh sejak 2026-10-23: pemilik meninjau di akhir, tidak ditan
 - Butir 2.29–2.31 dan lab Tahap 3 dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik, 2.29–2.31 dan lab Tahap 3 (arsip 2026-10-26 siang)".
 - Batch 16 dan CI-CEPAT dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik, batch 16 dan CI-CEPAT (arsip 2026-10-26 siang)".
 - Halaman 3.4–3.12 dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik, halaman 3.4–3.12 (arsip 2026-10-27 dini hari)".
-- Halaman 3.13–3.15 (#381–#383) dan naskah 4: ADR 25 tetap pesan `data` (iOS tak menjamin; Doze) atau `notification` + `tag` = `notifikasi_id` (keduanya Tidak dijalankan di perangkat); alert baris `mati` dan replay otomatis dijanjikan ke 3.27 tetapi naskah ADR 32 hanya alert umur tertua; naskah M21 "tidak ada yang memulainya lagi" (±9 menit) vs `restart: unless-stopped` Tahap 1 (opsi A: restart otomatis ada, mati beberapa detik; opsi B: API tanpa pengawas: ubah Tahap 1 dan 2); naskah M20 "worker dihentikan saat deploy" vs mati paksa; selang health check 1 detik Asumsi; BFF: PROPOSAL Tahap 4 "modular monolith + 1 service pembayaran + BFF" vs naskah menunda ke ADR 45 (membatalkan = satu ADR + satu halaman); pemangkasan Tahap 4 (1207: 11 lab, 2 widget baru) belum dilihat pemilik; registry/3.5 "tim 6–10 dalam 2 tim" vs naskah 4 tim 13 dalam tiga tim (KONSISTENSI-4).
+- Halaman 3.13–3.15 dan naskah 4 dipindah ke `plan/PELAJARAN-ARSIP.md` bagian "Perlu dicek pemilik, halaman 3.13–3.15 dan naskah 4 (arsip 2026-10-27 siang)".
+- Halaman 3.16–3.21 (#385–#393) dan lab api-t4 (#392): lisensi Redis 8 (RSALv2, SSPLv1, AGPLv3) vs Valkey (BSD) dan satu key per alamat di belakang proxy (kode lab belum membaca X-Forwarded-For); ADR 27 menyimpang dari syarat kedua ADR 21 (counter PostgreSQL belum diukur); ADR 28 memilih Redis walau hitungan menunjuk "tanpa cache" (L 0,026) dan naskah tak menulis alasan; naskah M22 "600" vs 620; M23 cache "menumpang Redis" vs minggu 2 vs 3.17; naskah M24 "api-t3 tak punya endpoint stok" (PATCH /produk bersyarat versi ada); tab stack mobile 3.21; komponen alur diperbaiki #394 (vonis tebakan hanya di akhir jalur utama; 11 halaman Tahap 1 tersentuh); lab api-t4: top-up melewati batas saldo tanpa jalur pengembalian, penerbit tiruan menganggap non-200 timeout "setuju" (ADR 42/4.23: tolak/gagal tertutup untuk 40P01 dan 40001), laporan QR palsu membekukan merchant, `make kontrak` exit 1 karena enum baru; Snippet membuang "(keputusan NNN)" saat tampil (#388; mudah dibatalkan).
 - Riwayat app sesudah ledger turun 17 → 3 baris (tiga-rilis.txt 69–72, transaksi v1 tidak jadi jurnal): diterima atau migrasi menyalin transaksi v1 (2.22). Akun lab Karyawan 800 berperan Citra di M14 (2.23). Paket 1 GB dan 20 buka/hari untuk kuota adalah Asumsi (2.20-lab). api-t2 tidak mengompres respons dan Dart selalu mengirim Accept-Encoding gzip.
 
 ## Ukur antrean merge (keputusan 727, 728)
@@ -56,17 +57,16 @@ Alat: `python3 tools/ukur_pr.py <PR...> --sejak <waktu>` (data dari GitHub). Gar
 
 | Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
 | --- | --- | --- | --- | --- |
-| 3.9 | #374 | 31 | 1 | 0 |
-| 3.10 | #375 | 140 (tinjauan 359 mutasi) | 2 | 0 |
-| 3.11 | #376 | 37 | 2 | 0 |
-| 3.12 | #378 | 39 | 3 | 0 |
-| 3.13 | #381 | 58 | 2 | 1 (infra Playwright digest-mismatch) |
-| 3.14 | #382 | 45 | 2 | 0 |
-| 3.15 | #383 | 131 (macet, dua restart) | 2 | 0 |
+| 3.16 | #386 | 53 | 3 | 0 |
+| 3.17 | #385 | 42 | 2 | 0 |
+| 3.18 | #389 | 39 | 2 | 0 |
+| 3.19 | #391 | 572 (jeda limit #6 ±8 jam; kerja ±80) | 3 | 0 |
+| 3.20 | #390 | 556 (jeda limit #6; kerja ±70) | 2 | 0 |
+| 3.21 | #393 | 43 | 2 | 0 |
 
 ## Sedang dikerjakan
 
-2026-10-27 00.50 · Tahap 2 selesai; Tahap 3: lab, ERD3, widget, DIRI-2, KONSISTENSI-3 di main; halaman 3.1–3.15 merge (#364–#366, #368–#372, #374–#376, #378, #381–#383; median ±45 menit); naskah Tahap 4 (#379, 54 tambalan konsistensi) dan T4-siap (#384: registry 31 halaman, ANTREAN lab/widget/halaman Tahap 4, plan/BRIEF-HALAMAN.md) di main; gerbang ID riset #377. Berjalan: peninjau 3.17 (#385, rjt-konten2) dan 3.16 (#386, rjt-konten3), pelaksana 3.18 (`tahap-3/m23-dua-harga`, rjt-konten4), lab-api-t4 (`tahap-4/lab-api-t4`, rjt-konten lajur bawaan; Docker Desktop dinyalakan 00.20). Berikutnya: peninjau 3.18, 3.19–3.32 (paling banyak 3 PR halaman terbuka), lab-t4-* sesudah api-t4, EVAL-3, DIRI-3, KONSISTENSI-4, ERD4, W4-*, halaman 4.x, Tahap 5–6, LAPORAN-AKHIR. Alokasi nomor: tertulis di `catatan` tiap tugas ANTREAN Tahap 4 dan `tmp/catat-antre.md` (halaman 3.n 1000+4×(n−1) sampai +3, ID riset R3-100+5×(n−1) sampai +4; Tahap 5 1400, Tahap 6 1600). Untuk melanjutkan: `gh pr list --state open`.
+2026-10-27 12.40 · Tahap 3: halaman 3.1–3.21 merge (3.22–3.32 berjalan/antre; median ±45 menit kerja), lab, ERD3, widget, DIRI-2, KONSISTENSI-3 di main; gerbang ID riset #377, nomor keputusan #388, komponen alur #394. Tahap 4: naskah (#379) dan registry/ANTREAN (#384) di main; lab-api-t4 merge (#392). Berjalan: pelaksana 3.22 (`tahap-3/m25-kotak-peringatan`, rjt-konten3), 3.23 (`tahap-3/xss-csrf-cookie`, rjt-konten2), 3.24 (`tahap-3/m26-transfer-bukan-budi`, rjt-konten4), lab-t4-webhook (rjt-konten lajur bawaan), lab-t4-integrasi (rjt-teknis2 lajur 400). Docker Desktop menyala. Berikutnya: peninjau tiap halaman/lab, 3.25–3.32, lab-t4-modul/storage/infra/qr/ssrf/kartu/audit/pipeline, ERD4, W4-*, KONSISTENSI-4, EVAL-3, DIRI-3, halaman 4.x, Tahap 5–6, LAPORAN-AKHIR. Alokasi nomor: `catatan` tiap tugas ANTREAN dan `tmp/catat-antre.md` (halaman 3.n 1000+4×(n−1)..+3, R3-100+5×(n−1)..+4; Tahap 5 1400, Tahap 6 1600). Batas pemakaian sesi terkena tiap ±5–6 jam: pesan "lanjut" diperlukan. Untuk melanjutkan: `gh pr list --state open`.
 
 ## Pelajaran
 

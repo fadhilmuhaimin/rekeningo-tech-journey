@@ -19,3 +19,18 @@ Polesan dari tinjauan Tahap 4 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - `registri.test.ts` mengunci judul tugas ANTREAN (`### lab-<nama> · ` dan `### 4.n · `): mengganti nama tugas menuntut mengubah tes.
 - `plan/RISET-TAHAP-4.md` R4-20 masih menulis OpenTofu "provider Docker lokal" sebagai kemampuan; tidak diubah karena riset adalah catatan sumber, tetapi lab memakai provider `random` dan `local`.
 - `eval_tahap.py peta 4` keluar 1 selama ada halaman "segera"; pertimbangkan opsi untuk mengabaikan "segera" di gerbang awal tahap.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- Tes `TestKedaluwarsaHoldDijalankanDuaKali` bergantung pada `application_name = 'api-t4-tes'` untuk melihat penunggu lock; salinan tes dengan DSN lain gagal tanpa pesan yang jelas.
+- Satu run `make run` gagal sekali di bagian `testing` saat CPU penuh; tes yang goyah tidak ditelusuri. Jalankan `make cek` di mesin yang tidak sedang dipakai.
+- Rekonsiliasi memakai tanggal Asia/Jakarta di sisi ledger dan tiruan; gateway nyata mungkin memakai zona lain (selisih tanggal akan terbaca sebagai `tidak_di_gateway`).
+- `labs/api-t4` menyalin kode api-t3 (±8.500 baris); pertimbangkan memindahkan paket bersama ke satu modul bila lab Tahap 5 menyalin lagi.
+- `ERD4` perlu daftar migrasi `labs/api-t3/migrasi/000015..000019` dan `labs/api-t4/migrasi/000020..000023` di `tools/erd.py`.
+- Otorisasi ulang dengan `id_penerbit` yang sama bersamaan dengan reversal untuk id itu masih memakai urutan lock berbeda (otorisasi: buku pemilik lalu baris otorisasi; reversal: baris otorisasi lalu buku pemilik): deadlock mungkin tetapi sempit. Perbaikan penuh membaca baris otorisasi tanpa lock, mengunci pemilik, lalu mengunci baris otorisasi.
+- `LaporkanQR` tidak menolak karakter kontrol di `alasan` padahal back office menolaknya, dan hash audit memisah kolom dengan `0x1f`: bentuk kanonik ambigu bila `alasan` memuat `0x1f`. `audit_log.hash_sebelumnya` tidak UNIQUE: cabang rantai hanya dicegah advisory lock, bukan database.
+- `alamatKhusus` di `internal/unduh` tidak memuat `64:ff9b:1::/48` dan `192.88.99.0/24`; tidak terjangkau dari jaringan container, tetapi daftar produksi perlu melengkapinya.
+- `kontrak.txt` tidak mencetak versi oasdiff (hanya digest di `kontrak.sh`); `GET /warung` dan `POST /webhooks/pembayaran` 404 pada mode rentan tidak ada di kontrak.
+- `CekTopup` sesudah kabar diparkir tidak pernah mengubah status pada kasus yang bisa dicapai (batas saldo, akun dibekukan, status akhir); halaman 4.7 jangan menulis bahwa pemeriksaan itu menemukan kebenaran baru.
+- Dana tertahan yang dikembalikan reversal bisa menaikkan saldo `pemakai` di atas batas tingkat (batas hanya dijaga di top-up).
+- Mutan tidak tertutup: `!l.Dibayar` di rekonsiliasi, pemeriksaan alamat harfiah sebelum dial di unduh, dan `KunciBukuID(dana_tertahan, settlement)` eksplisit di clearing.
