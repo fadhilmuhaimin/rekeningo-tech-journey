@@ -88,6 +88,17 @@ def jalankan_go(perintah, args, *, env=None, hanya_lab=False, harus=0):
     return teks
 
 
+def pastikan_semua_tes_bertag_berjalan(*keluaran):
+    """Setiap tes bertag t4modul di ./internal/modul harus muncul sebagai PASS di keluaran bagian ini. Pola -run yang
+    tidak mencocokkan satu tes (ditemukan peninjau: tes hak UPDATE dan DELETE audit_log tidak pernah dijalankan gerbang)
+    membuat mutan hak lolos walau tesnya ada."""
+    rc, daftar = go("test", "-tags", "t4modul", "-list", ".", "./internal/modul/")
+    harap(rc, 0, "go test -list")
+    ada = {l.strip() for l in daftar.splitlines() if l.startswith("Test")}
+    jalan = set(re.findall(r"^--- PASS: (\S+)", "\n".join(keluaran), flags=re.M))
+    harap(sorted(ada - jalan), [], "tes bertag t4modul yang tidak dijalankan gerbang")
+
+
 # ---------- schema ----------
 
 def siapkan_satu():
@@ -227,19 +238,23 @@ def rekam_batas():
     catat("# Ketiga langkah CI tidak membuka koneksi database: tes pembayaran memakai driver tiruan, jadi migration tim Merchant tidak mengubah hasilnya.")
     catat("")
     catat("# Pemeriksaan terhadap skema nyata (di lingkungan yang meniru produksi):")
-    jalankan_go("T4M_SCHEMA_SATU=tahap4_modul go test -tags t4modul -count=1 -v -run TestM32TanpaBatas ./internal/modul/",
-                ["test", "-tags", "t4modul", "-count=1", "-v", "-run", "TestM32TanpaBatas", "./internal/modul/"], hanya_lab=True)
+    tes_a = jalankan_go("T4M_SCHEMA_SATU=tahap4_modul go test -tags t4modul -count=1 -v -run TestM32TanpaBatas ./internal/modul/",
+                        ["test", "-tags", "t4modul", "-count=1", "-v", "-run", "TestM32TanpaBatas", "./internal/modul/"], hanya_lab=True)
+    catat("# Ilustrasi mekanisme: TeksTopupLangsung adalah kode lab yang ditulis seperti uraian M32 di naskah (kode top-up api-t4 tidak membaca akun.nama);")
+    catat("# skema, role, dan pesan galatnya nyata (PostgreSQL), tetapi kodenya bukan rekaman kode produksi.")
 
     siapkan_modul()
     bagian("B. Dengan batas: enam schema modul, satu role per modul, dan paket internal/ Go")
     catat("# Pembagian dan hak dari modul.sql; tes berjalan sebagai role modul, bukan sebagai pemilik schema.")
-    jalankan_go("go test -tags t4modul -count=1 -v -run 'TestPembagian|TestMatriks|TestKontrakKolom|TestRoleModul|TestMonolit|TestKunciAsing|TestKeterikatan' ./internal/modul/",
-                ["test", "-tags", "t4modul", "-count=1", "-v", "-run", "TestPembagian|TestMatriks|TestKontrakKolom|TestRoleModul|TestMonolit|TestKunciAsing|TestKeterikatan",
-                 "./internal/modul/"], hanya_lab=True)
+    tes_b = jalankan_go("go test -tags t4modul -count=1 -v -run 'TestPembagian|TestMatriks|TestKontrakKolom|TestRoleModul|TestMonolit|TestKunciAsing|TestKeterikatan|TestHakRole|TestRoleTidak' ./internal/modul/",
+                        ["test", "-tags", "t4modul", "-count=1", "-v", "-run",
+                         "TestPembagian|TestMatriks|TestKontrakKolom|TestRoleModul|TestMonolit|TestKunciAsing|TestKeterikatan|TestHakRole|TestRoleTidak",
+                         "./internal/modul/"], hanya_lab=True)
     catat("")
     catat("# M32 lagi, sekarang dengan batas:")
-    jalankan_go("go test -tags t4modul -count=1 -v -run 'TestPembayaranTidakBisa|TestRenameKolom|TestImporInternal' ./internal/modul/",
-                ["test", "-tags", "t4modul", "-count=1", "-v", "-run", "TestPembayaranTidakBisa|TestRenameKolom|TestImporInternal", "./internal/modul/"], hanya_lab=True)
+    tes_c = jalankan_go("go test -tags t4modul -count=1 -v -run 'TestPembayaranTidakBisa|TestRenameKolom|TestImporInternal' ./internal/modul/",
+                        ["test", "-tags", "t4modul", "-count=1", "-v", "-run", "TestPembayaranTidakBisa|TestRenameKolom|TestImporInternal", "./internal/modul/"], hanya_lab=True)
+    pastikan_semua_tes_bertag_berjalan(tes_a, tes_b, tes_c)
     catat("")
     catat("# CODEOWNERS dan review wajib: Tidak dijalankan di lab ini. Keduanya fitur GitHub; lab hanya menjalankan hal yang bisa dijalankan di container lokal.")
     tulis("batas.txt", "batas modul: schema dan role per modul, paket internal Go, dan perubahan nama kolom lintas modul (M32)",
@@ -317,6 +332,41 @@ def rekam_ledger():
     keadaan(c, "keadaan order di tiga modul")
     harap(jumlah_jurnal(c), 1, "jurnal untuk order C")
     harap(len(baris_ledger(sebelum)), 2, "panggilan ke ledger untuk order C")
+
+    bagian("D. Jawaban service pembayaran ke gateway: yang bukan 2xx membuat gateway mengulang kirimannya")
+    catat("# service pembayaran dinyalakan lagi tanpa gerbang; satu top-up Rp100.000 sudah dibayar di gateway, belum ada kabar yang sah.")
+    d.stop(PORT_PEMB)
+    mulai_pembayaran()
+    e = topup(AKUN_BUDI, 100000)
+    bayar_di_gateway(e)
+    awal = saldo()
+    catat("# tanda tangan atas rahasia lain: ditolak sebelum kabar dibaca (401), tidak ada yang ditandai")
+    catat("hasil: " + "; ".join(webhook(e, "e4", rahasia="rahasia-lain")))
+    catat("# monolith (API ledger) dimatikan; kabar yang sah sampai, ledger tidak menjawab: bukan 2xx (503), tidak ada yang ditandai")
+    d.stop(PORT)
+    catat("hasil: " + "; ".join(webhook(e, "e4")))
+    keadaan(e, "sesudah dua kiriman yang tidak berhasil")
+    sql_m("SELECT count(*) AS webhook_event_e4 FROM t4m_pembayaran.webhook_event WHERE event_id = 'e4'")
+    harap((jumlah_jurnal(e), saldo() - awal), (0, 0), "kiriman yang tidak berhasil tidak menyentuh ledger")
+    mulai_monolith()
+    catat("# monolith hidup lagi; gateway mengulang event e4 yang sama")
+    catat("hasil: " + "; ".join(webhook(e, "e4")))
+    keadaan(e, "sesudah kiriman ulang")
+    harap((jumlah_jurnal(e), saldo() - awal), (1, 100000), "kiriman ulang menjurnal sekali")
+    catat("# service pembayaran tanpa -lab (bentuk produksi): rute /lab/* tidak dipasang, kabar dari gateway tetap diterima")
+    d.stop(PORT_PEMB)
+    d.mulai(BIN_PEMB, PORT_PEMB, ["-ledger-url", f"http://127.0.0.1:{PORT}", "-ledger-kunci", KUNCI,
+                                  "-gateway-url", f"http://127.0.0.1:{PORT_GATEWAY}", "-rahasia-webhook", d.RAHASIA_WEBHOOK],
+            db=url_role("t4m_pembayaran", "t4m-pembayaran"))
+    for metode, path in [("POST", "/lab/topup"), ("POST", "/lab/lepas"), ("GET", "/lab/topup/x")]:
+        st, _ = curl(metode, path, {"akun_id": AKUN_BUDI, "jumlah": 1000} if metode == "POST" else None, port=PORT_PEMB, tampil=False)
+        harap(st, 404, f"{metode} {path} tanpa -lab")
+        catat(f"{metode} {path} -> {st}")
+    st, _ = curl("GET", "/healthz", port=PORT_PEMB, tampil=False)
+    harap(st, 200, "healthz tanpa -lab")
+    catat(f"GET /healthz -> {st}")
+    catat("# rute webhook tetap ada: kabar bertanda tangan atas rahasia lain dijawab 401")
+    catat("hasil: " + "; ".join(webhook(e, "e5", rahasia="rahasia-lain")))
     tulis("ledger.txt", "API ledger dan Idempotency-Key: satu jurnal per order lewat webhook, kiriman ganda, dan job cek status",
           f"schema t4m_* (enam modul), monolith di 127.0.0.1:{18280}, service pembayaran di 127.0.0.1:{DASAR_PEMBAYARAN}")
 

@@ -323,6 +323,10 @@ func TestRenameKolomNamaTidakMematahkanModulLain(t *testing.T) {
 	akunID, nama := akunUji(t)
 	modul := akun.Modul{DB: buka(t, "t4m_akun")}
 	akun.SkemaNama(1)
+	// Kontrol: sebelum rename, kode akun versi 1 membaca kolom nama. Tanpa ini, "gagal sesudah rename" bisa gagal karena sebab lain.
+	if got, err := modul.NamaTampil(context.Background(), akunID); err != nil || got != nama {
+		t.Fatalf("kontrol: kode akun versi 1 sebelum rename: %q, %v", got, err)
+	}
 	ganti(t, `ALTER TABLE t4m_akun.akun RENAME COLUMN nama TO nama_tampil`, `ALTER TABLE t4m_akun.akun RENAME COLUMN nama_tampil TO nama`)
 	t.Cleanup(func() { akun.SkemaNama(1) })
 	// Sebelum kode tim Akun ikut berubah, kodenya sendiri gagal: itu cakupan tesnya sendiri.
@@ -409,4 +413,151 @@ func TestRoleTidakBisaMengubahCatatanYangHanyaBertambah(t *testing.T) {
 		}
 		lab("%s: UPDATE dan DELETE pada %s -> permission denied (42501)", c.role, strings.TrimPrefix(c.tabel, "t4m_"))
 	}
+}
+
+// Hak yang benar-benar diberikan modul.sql, dibaca dari katalog dan dibandingkan dengan rancangannya: hak role aplikasi
+// api-t4 (labs/api-t4/dasar_t4.py, HAK) dibagi menurut modul pemilik tabelnya, ditambah kontrak kolom ledger ke akun.
+// Tes matriks hanya membuktikan "ditolak" untuk modul lain, dan penolakan itu bisa datang dari hak USAGE schema yang
+// tidak ada walau hak tabelnya berlebih. Tes ini menangkap hak berlebih di dalam modul sendiri, kolom tambahan di
+// kontrak (mis. email), TRUNCATE, hak untuk PUBLIC, atribut role, dan keanggotaan role.
+var rancanganHak = []string{
+	"t4m_akun | schema t4m_akun | USAGE",
+	"t4m_akun | t4m_akun.akun | INSERT(email,id,jenis,nama,password_hash)",
+	"t4m_akun | t4m_akun.akun | SELECT(email,gagal_login,id,jenis,kota_id,nama,nomor_karyawan,password_hash,status,terkunci_sampai,tingkat,wajib_ganti_password)",
+	"t4m_akun | t4m_akun.akun | UPDATE(gagal_login,password_hash,status,terkunci_sampai,tingkat,wajib_ganti_password)",
+	"t4m_akun | t4m_akun.akun_publik_id | USAGE",
+	"t4m_akun | t4m_akun.kota | SELECT",
+	"t4m_akun | t4m_akun.kota_id_seq | USAGE",
+	"t4m_akun | t4m_akun.perangkat | INSERT,SELECT,UPDATE",
+	"t4m_akun | t4m_akun.perangkat_id_seq | USAGE",
+	"t4m_akun | t4m_akun.sesi | DELETE,INSERT,SELECT",
+	"t4m_identitas | schema t4m_identitas | USAGE",
+	"t4m_identitas | t4m_identitas.verifikasi | INSERT,SELECT,UPDATE",
+	"t4m_identitas | t4m_identitas.verifikasi_id_seq | USAGE",
+	"t4m_ledger | schema t4m_akun | USAGE",
+	"t4m_ledger | schema t4m_ledger | USAGE",
+	"t4m_ledger | t4m_akun.akun | SELECT(id,status,tingkat)",
+	"t4m_ledger | t4m_ledger.baris_pencairan | INSERT,SELECT,UPDATE",
+	"t4m_ledger | t4m_ledger.batch_pencairan | INSERT,SELECT,UPDATE",
+	"t4m_ledger | t4m_ledger.batch_pencairan_id_seq | USAGE",
+	"t4m_ledger | t4m_ledger.buku | INSERT(akun_id,batas_harian,batas_saldo,jenis)",
+	"t4m_ledger | t4m_ledger.buku | SELECT",
+	"t4m_ledger | t4m_ledger.buku | UPDATE(batas_harian,saldo_cache,versi)",
+	"t4m_ledger | t4m_ledger.buku_id_seq | USAGE",
+	"t4m_ledger | t4m_ledger.jurnal | INSERT,SELECT",
+	"t4m_ledger | t4m_ledger.jurnal_id_seq | USAGE",
+	"t4m_ledger | t4m_ledger.kunci_idempotensi | DELETE,INSERT,SELECT,UPDATE",
+	"t4m_ledger | t4m_ledger.posting | INSERT,SELECT",
+	"t4m_ledger | t4m_ledger.posting_id_seq | USAGE",
+	"t4m_merchant | schema t4m_merchant | USAGE",
+	"t4m_merchant | t4m_merchant.operasi_sinkron | DELETE,INSERT,SELECT",
+	"t4m_merchant | t4m_merchant.produk | INSERT,SELECT,UPDATE",
+	"t4m_merchant | t4m_merchant.produk_id_seq | USAGE",
+	"t4m_merchant | t4m_merchant.promo | INSERT,SELECT",
+	"t4m_merchant | t4m_merchant.promo_id_seq | USAGE",
+	"t4m_merchant | t4m_merchant.qr | INSERT,SELECT,UPDATE",
+	"t4m_pembayaran | schema t4m_pembayaran | USAGE",
+	"t4m_pembayaran | t4m_pembayaran.insiden_rekon | INSERT,SELECT,UPDATE",
+	"t4m_pembayaran | t4m_pembayaran.insiden_rekon_id_seq | USAGE",
+	"t4m_pembayaran | t4m_pembayaran.kartu | INSERT,SELECT,UPDATE",
+	"t4m_pembayaran | t4m_pembayaran.kartu_id_seq | USAGE",
+	"t4m_pembayaran | t4m_pembayaran.otorisasi_kartu | INSERT,SELECT,UPDATE",
+	"t4m_pembayaran | t4m_pembayaran.otorisasi_kartu_id_seq | USAGE",
+	"t4m_pembayaran | t4m_pembayaran.topup_bank | INSERT,SELECT,UPDATE",
+	"t4m_pembayaran | t4m_pembayaran.topup_bank_id_seq | USAGE",
+	"t4m_pembayaran | t4m_pembayaran.webhook_event | INSERT,SELECT,UPDATE",
+	"t4m_platform | schema t4m_platform | USAGE",
+	"t4m_platform | t4m_platform.audit_log | INSERT,SELECT",
+	"t4m_platform | t4m_platform.audit_log_id_seq | USAGE",
+	"t4m_platform | t4m_platform.outbox | DELETE,INSERT,SELECT,UPDATE",
+	"t4m_platform | t4m_platform.outbox_id_seq | USAGE",
+}
+
+const sqlHakRole = `SELECT x FROM (
+  SELECT g || ' | ' || objek || ' | ' || string_agg(hak, ',' ORDER BY hak) AS x
+  FROM (
+    SELECT CASE a.grantee WHEN 0 THEN 'PUBLIC' ELSE pg_get_userbyid(a.grantee) END AS g,
+           n.nspname || '.' || c.relname AS objek, a.privilege_type AS hak
+    FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+    CROSS JOIN LATERAL aclexplode(c.relacl) a
+    WHERE n.nspname LIKE 't4m\_%' AND c.relkind IN ('r', 'S') AND a.grantee <> c.relowner
+  ) t GROUP BY g, objek
+  UNION ALL
+  SELECT g || ' | ' || objek || ' | ' || hak || '(' || string_agg(kol, ',' ORDER BY kol) || ')'
+  FROM (
+    SELECT CASE a.grantee WHEN 0 THEN 'PUBLIC' ELSE pg_get_userbyid(a.grantee) END AS g,
+           n.nspname || '.' || c.relname AS objek, a.privilege_type AS hak, att.attname AS kol
+    FROM pg_attribute att JOIN pg_class c ON c.oid = att.attrelid JOIN pg_namespace n ON n.oid = c.relnamespace
+    CROSS JOIN LATERAL aclexplode(att.attacl) a
+    WHERE n.nspname LIKE 't4m\_%' AND att.attnum > 0 AND NOT att.attisdropped AND a.grantee <> c.relowner
+  ) t GROUP BY g, objek, hak
+  UNION ALL
+  SELECT CASE a.grantee WHEN 0 THEN 'PUBLIC' ELSE pg_get_userbyid(a.grantee) END || ' | schema ' || n.nspname || ' | ' || string_agg(a.privilege_type, ',' ORDER BY a.privilege_type)
+  FROM pg_namespace n CROSS JOIN LATERAL aclexplode(n.nspacl) a
+  WHERE n.nspname LIKE 't4m\_%' AND a.grantee <> n.nspowner GROUP BY a.grantee, n.nspname
+) s ORDER BY x`
+
+func baris(t *testing.T, db *sql.DB, q string) []string {
+	t.Helper()
+	rows, err := db.Query(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	var hasil []string
+	for rows.Next() {
+		var x string
+		if err := rows.Scan(&x); err != nil {
+			t.Fatal(err)
+		}
+		hasil = append(hasil, x)
+	}
+	return hasil
+}
+
+func bandingkan(t *testing.T, nama string, ada, ingin []string) {
+	t.Helper()
+	if strings.Join(ada, "\n") == strings.Join(ingin, "\n") {
+		return
+	}
+	punya, harusnya := map[string]bool{}, map[string]bool{}
+	for _, x := range ada {
+		punya[x] = true
+	}
+	for _, x := range ingin {
+		harusnya[x] = true
+	}
+	for _, x := range ada {
+		if !harusnya[x] {
+			t.Errorf("%s: berlebih: %s", nama, x)
+		}
+	}
+	for _, x := range ingin {
+		if !punya[x] {
+			t.Errorf("%s: kurang: %s", nama, x)
+		}
+	}
+	t.Fatalf("%s tidak sama dengan rancangan", nama)
+}
+
+func TestHakRoleModulSamaDenganRancangan(t *testing.T) {
+	pemilik := buka(t, "lab")
+	hak := baris(t, pemilik, sqlHakRole)
+	bandingkan(t, "hak tabel, kolom, urutan, dan schema", hak, rancanganHak)
+	atribut := baris(t, pemilik, `SELECT rolname || ' | super=' || rolsuper || ' createrole=' || rolcreaterole || ' createdb=' || rolcreatedb ||
+		' replication=' || rolreplication || ' bypassrls=' || rolbypassrls || ' login=' || rolcanlogin || ' inherit=' || rolinherit
+		FROM pg_roles WHERE rolname LIKE 't4m\_%' ORDER BY 1`)
+	var wantAtribut []string
+	for _, r := range []string{"akun", "identitas", "ledger", "merchant", "monolit", "pembayaran", "platform"} {
+		wantAtribut = append(wantAtribut, "t4m_"+r+" | super=false createrole=false createdb=false replication=false bypassrls=false login=true inherit=true")
+	}
+	bandingkan(t, "atribut role", atribut, wantAtribut)
+	anggota := baris(t, pemilik, `SELECT pg_get_userbyid(roleid) || ' <- ' || pg_get_userbyid(member) || ' admin=' || admin_option
+		FROM pg_auth_members WHERE pg_get_userbyid(roleid) LIKE 't4m\_%' OR pg_get_userbyid(member) LIKE 't4m\_%' ORDER BY 1`)
+	var wantAnggota []string
+	for _, r := range []string{"akun", "identitas", "ledger", "merchant", "platform"} {
+		wantAnggota = append(wantAnggota, "t4m_"+r+" <- t4m_monolit admin=false")
+	}
+	bandingkan(t, "keanggotaan role", anggota, wantAnggota)
+	lab("hak role modul: %d baris hak (tabel, kolom, urutan, schema) sama dengan rancangan; 7 role tanpa atribut istimewa; t4m_monolit anggota lima role modul tanpa admin option", len(hak))
 }

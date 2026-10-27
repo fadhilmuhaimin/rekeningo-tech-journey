@@ -93,3 +93,42 @@ ledger: key=<order 2> status=200 jurnal=10203 ulang=true
 ------------+----------------+------------------+--------------------
  dibayar    | t              | 1                | 1
 (1 row)
+
+# --- D. Jawaban service pembayaran ke gateway: yang bukan 2xx membuat gateway mengulang kirimannya ---
+# service pembayaran dinyalakan lagi tanpa gerbang; satu top-up Rp100.000 sudah dibayar di gateway, belum ada kabar yang sah.
+# tanda tangan atas rahasia lain: ditolak sebelum kabar dibaca (401), tidak ada yang ditandai
+hasil: 401 ditolak
+# monolith (API ledger) dimatikan; kabar yang sah sampai, ledger tidak menjawab: bukan 2xx (503), tidak ada yang ditandai
+hasil: 503 gagal
+# sesudah dua kiriman yang tidak berhasil
+=> SELECT t.status AS topup_bank, t.jurnal_id IS NOT NULL AS terikat_jurnal,
+                        (SELECT count(*) FROM t4m_ledger.jurnal WHERE jenis = 'topup_bank' AND keterangan = 'Top-up bank ' || t.order_id) AS jurnal_di_ledger,
+                        (SELECT count(*) FROM t4m_platform.outbox o JOIN t4m_ledger.jurnal j ON j.id = o.jurnal_id WHERE j.keterangan = 'Top-up bank ' || t.order_id) AS outbox_di_platform
+                 FROM t4m_pembayaran.topup_bank t WHERE t.order_id = '<order 3>'
+ topup_bank | terikat_jurnal | jurnal_di_ledger | outbox_di_platform
+------------+----------------+------------------+--------------------
+ menunggu   | f              | 0                | 0
+(1 row)
+=> SELECT count(*) AS webhook_event_e4 FROM t4m_pembayaran.webhook_event WHERE event_id = 'e4'
+ webhook_event_e4
+------------------
+ 0
+(1 row)
+# monolith hidup lagi; gateway mengulang event e4 yang sama
+hasil: 200 diproses
+# sesudah kiriman ulang
+=> SELECT t.status AS topup_bank, t.jurnal_id IS NOT NULL AS terikat_jurnal,
+                        (SELECT count(*) FROM t4m_ledger.jurnal WHERE jenis = 'topup_bank' AND keterangan = 'Top-up bank ' || t.order_id) AS jurnal_di_ledger,
+                        (SELECT count(*) FROM t4m_platform.outbox o JOIN t4m_ledger.jurnal j ON j.id = o.jurnal_id WHERE j.keterangan = 'Top-up bank ' || t.order_id) AS outbox_di_platform
+                 FROM t4m_pembayaran.topup_bank t WHERE t.order_id = '<order 3>'
+ topup_bank | terikat_jurnal | jurnal_di_ledger | outbox_di_platform
+------------+----------------+------------------+--------------------
+ dibayar    | t              | 1                | 1
+(1 row)
+# service pembayaran tanpa -lab (bentuk produksi): rute /lab/* tidak dipasang, kabar dari gateway tetap diterima
+POST /lab/topup -> 404
+POST /lab/lepas -> 404
+GET /lab/topup/x -> 404
+GET /healthz -> 200
+# rute webhook tetap ada: kabar bertanda tangan atas rahasia lain dijawab 401
+hasil: 401 ditolak

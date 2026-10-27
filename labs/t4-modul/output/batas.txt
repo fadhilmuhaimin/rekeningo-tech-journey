@@ -26,10 +26,12 @@ sesudah rename, pembayaran.TeksTopupLangsung dengan role dan skema yang sama -> 
 PASS
 ok    lab/apit4/internal/modul
 # exit status 0
+# Ilustrasi mekanisme: TeksTopupLangsung adalah kode lab yang ditulis seperti uraian M32 di naskah (kode top-up api-t4 tidak membaca akun.nama);
+# skema, role, dan pesan galatnya nyata (PostgreSQL), tetapi kodenya bukan rekaman kode produksi.
 
 # --- B. Dengan batas: enam schema modul, satu role per modul, dan paket internal/ Go ---
 # Pembagian dan hak dari modul.sql; tes berjalan sebagai role modul, bukan sebagai pemilik schema.
-$ go test -tags t4modul -count=1 -v -run 'TestPembagian|TestMatriks|TestKontrakKolom|TestRoleModul|TestMonolit|TestKunciAsing|TestKeterikatan' ./internal/modul/
+$ go test -tags t4modul -count=1 -v -run 'TestPembagian|TestMatriks|TestKontrakKolom|TestRoleModul|TestMonolit|TestKunciAsing|TestKeterikatan|TestHakRole|TestRoleTidak' ./internal/modul/
 schema t4m_ledger: 6 tabel (baris_pencairan, batch_pencairan, buku, jurnal, kunci_idempotensi, posting)
 schema t4m_akun: 4 tabel (akun, kota, perangkat, sesi)
 schema t4m_identitas: 1 tabel (verifikasi)
@@ -60,6 +62,12 @@ role t4m_pembayaran menulis topup_bank untuk akun yang tidak ada: insert or upda
 kunci asing yang menyeberang schema modul: 21; tujuan: akun.akun x12, akun.kota x1, akun.perangkat x1, ledger.jurnal x7
 asal kunci asing lintas schema: identitas 1, ledger 3, merchant 6, pembayaran 7, platform 4
 --- PASS: TestKeterikatanLintasSchema
+t4m_platform: UPDATE dan DELETE pada platform.audit_log -> permission denied (42501)
+t4m_ledger: UPDATE dan DELETE pada ledger.jurnal -> permission denied (42501)
+t4m_ledger: UPDATE dan DELETE pada ledger.posting -> permission denied (42501)
+--- PASS: TestRoleTidakBisaMengubahCatatanYangHanyaBertambah
+hak role modul: 50 baris hak (tabel, kolom, urutan, schema) sama dengan rancangan; 7 role tanpa atribut istimewa; t4m_monolit anggota lima role modul tanpa admin option
+--- PASS: TestHakRoleModulSamaDenganRancangan
 PASS
 ok    lab/apit4/internal/modul
 # exit status 0
