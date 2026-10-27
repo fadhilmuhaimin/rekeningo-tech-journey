@@ -47,7 +47,7 @@
       "riset": "R3-200",
       "judul": "Rekaman lab t3-offline: M24 tanpa versi",
       "rekaman": "labs/t3-offline/output/m24.txt",
-      "catatan": "Bagian D: kunci sudah dibuang sesudah 24 jam, stok 0 diterapkan tanpa memeriksa versi di atas stok 30, dan jawabannya 200."
+      "catatan": "Bagian D: kunci sudah kedaluwarsa sesudah 24 jam, stok 0 diterapkan tanpa memeriksa versi di atas stok 30, dan jawabannya 200."
     }
   ]
 }

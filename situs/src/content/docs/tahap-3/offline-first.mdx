@@ -22,7 +22,7 @@ Operasi yang menunggu di HP membawa kunci dan versi: kunci mengenali kiriman ula
 
 Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `versi.txt` bagian C, HP Ani online lagi hari Senin, 62 jam sesudah Jumat. Operasi soto dikirim ulang dengan kunci yang sama dan dikenali: jawabannya `ulang: true`, dan stok 30 dari hari Sabtu utuh. Operasi bakso belum pernah sampai, jadi kuncinya tidak dikenal, tetapi versi dasar 1 sudah lewat. Server menjawab 409 dengan stok 30 dan versi 2, dan tidak mengubah apa pun.
 
-Jalur lama tanpa versi merekam kebalikannya. Di `m24.txt` bagian D, kunci sudah dibuang sesudah 24 jam, jadi `stok = 0` diterapkan di atas stok 30 dan jawabannya 200. Waktu di lab diperankan (Ilustrasi mekanisme), dan HP diperankan curl, jadi queue lokal dan layar konflik di app Tidak dijalankan.
+Jalur lama tanpa versi merekam kebalikannya. Di `m24.txt` bagian D, kunci sudah kedaluwarsa sesudah 24 jam, jadi `stok = 0` diterapkan di atas stok 30 dan jawabannya 200. Waktu di lab diperankan (Ilustrasi mekanisme), dan HP diperankan curl, jadi queue lokal dan layar konflik di app Tidak dijalankan.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -118,7 +118,7 @@ Rekaman melompat ke 62 jam dan 15 hari, jadi titik 14 hari persisnya tidak terek
 
 Ani mencatat "habis", yaitu nilai yang ia ketahui, jadi stok memakai nilai akhir. Database menjaga stok tidak negatif dengan `CHECK (stok >= 0)`.
 
-**Jalur uang tetap tertutup.** `/sinkron` menolak bayar, transfer, dan topup dengan 422 (`sinkron14.txt` bagian E). Alasannya ada di `kunci24.txt` bagian E: tiga permintaan yang sudah diterapkan hari Sabtu dikerjakan lagi hari Senin, karena kuncinya sudah dibuang. Riwayat Budi mendapat tiga jurnal baru: Rp28.000, Rp10.000, dan Rp25.000, jumlahnya Rp63.000 (Hitungan).
+**Jalur uang tetap tertutup.** `/sinkron` menolak bayar, transfer, dan topup dengan 422 (`sinkron14.txt` bagian E). Alasannya ada di `kunci24.txt` bagian E: tiga permintaan yang sudah diterapkan hari Sabtu dikerjakan lagi hari Senin, karena kuncinya sudah kedaluwarsa. Riwayat Budi mendapat tiga jurnal baru: Rp28.000, Rp10.000, dan Rp25.000, jumlahnya Rp63.000 (Hitungan).
 
 ### Di stack lain
 
@@ -211,7 +211,7 @@ Bedanya, pembandingnya waktu pull terakhir client, bukan versi per baris. Dokume
 |---|---|---|---|---|---|
 | Cara kerja | Umur semua Idempotency-Key naik dari 24 jam ke 7 hari, termasuk bayar, transfer, dan stok, tanpa versi | Tiap operasi membawa waktu HP. Server menyimpan nilai dari operasi yang waktunya paling baru | Tiap perubahan disimpan sebagai tipe data yang bisa digabung otomatis, misalnya counter untuk stok | HP menyimpan pembayaran bersama key saat offline dan mengirimnya sesudah online | Stok dan harga bersyarat versi. Kunci sinkron 14 hari, queue paling lama 7 hari. Pembayaran tidak pernah offline |
 | Kelebihan | Satu angka berubah. Kiriman ulang 62 jam dikenali dan tidak dikerjakan lagi | Tidak ada layar konflik dan tidak ada kolom versi | Tidak ada konflik yang harus dipilih user | Warung bisa menerima pembayaran tanpa sinyal | Operasi usang ditolak dengan keadaan terkini, kiriman ulang dikenali, dan jam HP tidak menentukan pemenang |
-| Kekurangan | Operasi yang belum pernah sampai tidak punya kunci di server dan tetap menimpa. Tebingnya pindah ke hari ke-8 | Pemenangnya ditentukan jam HP. Dua perubahan sah yang serentak: satu hilang tanpa tanda | Stok tidak boleh negatif, dan penyimpanan eventually consistent tidak bisa menegakkan invarian numerik tanpa tipe khusus | Pembayaran bergantung pada saldo dan stok yang tidak bisa diperiksa offline, dan bisa ditolak sesudah pembeli pergi | Butuh layar konflik di app dan kolom versi. Versi naik pada tiap penjualan, jadi menu yang laku lebih sering mendapat 409 |
+| Kekurangan | Operasi yang belum pernah sampai tidak punya kunci di server, jadi tanpa versi tidak ada yang menolaknya. Tebingnya pindah ke hari ke-8 | Pemenangnya ditentukan jam HP. Dua perubahan sah yang serentak: satu hilang tanpa tanda | Stok tidak boleh negatif, dan penyimpanan eventually consistent tidak bisa menegakkan invarian numerik tanpa tipe khusus | Pembayaran bergantung pada saldo dan stok yang tidak bisa diperiksa offline, dan bisa ditolak sesudah pembeli pergi | Butuh layar konflik di app dan kolom versi. Versi naik pada tiap penjualan, jadi menu yang laku lebih sering mendapat 409 |
 | Biaya operasional | Ketentuan ADR 14 berubah untuk semua endpoint, bukan hanya stok | Server tidak punya cara mendeteksi jam HP yang salah selain batas kasar | Tipe data, library, dan skema baru di app dan server untuk dua perangkat milik satu pemilik | Layar status tertunda, aturan batal, dan rekonsiliasi untuk pembayaran yang ditolak | Satu kolom, satu tabel, job `-bersih`, dan layar konflik |
 | Bukti | Tidak direkam. Mutasi di README lab: umur key 7 hari membuat ulangan 62 jam dikenali. `versi.txt` bagian C: key tidak mengenali operasi yang belum pernah sampai | Tidak dijalankan. Dokumentasi Android menyebutnya umum, dan dokumentasi WatermelonDB menulis timestamp lokal tidak bisa dipercaya | Tidak dijalankan. Preguiça (2018) dan Balegas dkk. (2015) | `kunci24.txt` bagian E: tiga jurnal baru Rp63.000. Queue pembayaran sendiri Tidak dijalankan | Rekaman lab `versi.txt`, `sinkron14.txt`, `m24.txt`, dan `kunci24.txt`. App Flutter Tidak dijalankan |
 
