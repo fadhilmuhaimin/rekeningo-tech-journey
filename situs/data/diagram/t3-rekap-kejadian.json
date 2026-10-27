@@ -1,0 +1,32 @@
+{
+  "id": "t3-rekap-kejadian",
+  "judul": "Kejadian Tahap 3 dalam urutan minggu",
+  "sumber": { "jenis": "ilustrasi", "teks": "Naskah Tahap 3 · urutan kejadian" },
+  "baris": [
+    {
+      "label": "Sampai minggu 6",
+      "sub": "pemberitahuan dan ketersediaan",
+      "simpul": [
+        { "teks": "PRD v3", "sub": "syarat Pak Hadi", "nada": "system" },
+        { "teks": "M18 pool penuh", "sub": "pool dan outbox", "nada": "warn" },
+        { "teks": "M19 kursor", "sub": "klaim per baris" },
+        { "teks": "M20 pesan ganda", "sub": "at-least-once" },
+        { "teks": "M21 satu proses", "sub": "dua instance" },
+        { "teks": "M22 batas login", "sub": "state bersama" }
+      ]
+    },
+    {
+      "label": "Minggu 6 sampai 10",
+      "sub": "cache, offline, keamanan, beban",
+      "simpul": [
+        { "teks": "M23 dua harga", "sub": "cache" },
+        { "teks": "M24 stok lama", "sub": "offline" },
+        { "teks": "M25 XSS", "sub": "data tetap input" },
+        { "teks": "M26 sertifikat", "sub": "TLS dan pin" },
+        { "teks": "M27 queue", "sub": "umur dan alert" },
+        { "teks": "M28 PRD v4", "sub": "estimasi", "nada": "system" }
+      ]
+    }
+  ],
+  "catatan": "Tiga kalimat lahir dari PRD v3 dan M18; sepuluh lainnya lahir dari M19 sampai M28."
+}

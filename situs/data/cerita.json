@@ -3046,8 +3046,9 @@
       "prasyarat": [
         "t3-adr-33"
       ],
-      "ada": false,
-      "nomor": "3.31"
+      "ada": true,
+      "nomor": "3.31",
+      "menit": 12
     },
     {
       "id": "t3-jembatan",
