@@ -736,8 +736,8 @@ const SIDIK_RISET: Record<string, string> = {
   "R3-204": "fe6ac8662b8ff3dc",
 };
 const SIDIK_ISTILAH: Record<string, string> = {
-  "last-write-wins": "8cbb8248040e5bce",
-  "crdt": "00dd32ba0585e65a",
+  "last-write-wins": "1e57aa3ac7198d15",
+  "crdt": "a6d194036e982a94",
 };
 const ALAMAT: [string, string][] = [
   ["https://developer.android.com/topic/architecture/data-layer/offline-first", "developer.android.com/topic/architecture/data-layer/offline-first"],

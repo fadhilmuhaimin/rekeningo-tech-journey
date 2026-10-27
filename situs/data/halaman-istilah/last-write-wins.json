@@ -35,7 +35,7 @@
       "riset": "R3-200",
       "judul": "Figma: How Figma's multiplayer technology works",
       "url": "https://www.figma.com/blog/how-figmas-multiplayer-technology-works/",
-      "catatan": "Bila dua klien mengubah properti yang sama, dokumen berakhir dengan nilai terakhir yang dikirim ke server, dan server menentukan urutannya tanpa timestamp."
+      "catatan": "Bila dua client mengubah properti yang sama, dokumen berakhir dengan nilai terakhir yang dikirim ke server, dan server menentukan urutannya tanpa timestamp."
     },
     {
       "riset": "R3-203",

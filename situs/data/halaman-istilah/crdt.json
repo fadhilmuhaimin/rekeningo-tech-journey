@@ -4,7 +4,7 @@
   "cerita": [
     {
       "rujukan": "t3-offline",
-      "teks": "Opsi C di ADR 29: stok disimpan sebagai tipe data yang digabung otomatis. Ditolak karena stok punya batas bawah dan tipe data baru terlalu mahal untuk dua perangkat milik satu pemilik. Tidak dijalankan."
+      "teks": "Opsi C di ADR 29: stok disimpan sebagai tipe data yang digabung otomatis. Ditolak karena stok punya batas bawah dan ongkos tipe data baru terlalu besar untuk dua perangkat milik satu pemilik. Tidak dijalankan."
     }
   ],
   "mekanisme": [
