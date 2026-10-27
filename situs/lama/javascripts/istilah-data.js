@@ -32,6 +32,15 @@ window.ISTILAH = {
   "t": "API gateway",
   "u": "c-operasional/c4-security-dasar/"
  },
+ "Alert": {
+  "b": "t3-tim-infra",
+  "d": "Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.",
+  "h": "istilah/alert/",
+  "n": "3.27 Tim dan infra Tahap 3",
+  "s": "istilah-alert",
+  "t": "Alert",
+  "u": "tahap-3/tim-infra/"
+ },
  "Application Programming Interface": {
   "b": "A1",
   "d": "Sekumpulan endpoint yang disediakan server supaya program lain, mis. app Flutter, bisa membaca dan mengubah data.",
@@ -959,6 +968,15 @@ window.ISTILAH = {
   "t": "Offline-first",
   "u": "tahap-3/offline-first/"
  },
+ "On-call": {
+  "b": "t3-tim-infra",
+  "d": "Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu.",
+  "h": "istilah/on-call/",
+  "n": "3.27 Tim dan infra Tahap 3",
+  "s": "istilah-on-call",
+  "t": "On-call",
+  "u": "tahap-3/tim-infra/"
+ },
  "OpenAPI": {
   "b": "B1.4",
   "d": "Format standar untuk menulis kontrak API (endpoint, request, response) yang bisa dibaca manusia dan mesin.",
@@ -1434,6 +1452,15 @@ window.ISTILAH = {
   "t": "Source of truth",
   "u": "tahap-1/apa-yang-dikerjakan-backend/"
  },
+ "Staging": {
+  "b": "t3-tim-infra",
+  "d": "Lingkungan uji yang dibuat semirip mungkin dengan produksi, tempat perubahan dicoba sebelum user sungguhan menyentuhnya.",
+  "h": "istilah/staging/",
+  "n": "3.27 Tim dan infra Tahap 3",
+  "s": "istilah-staging",
+  "t": "Staging",
+  "u": "tahap-3/tim-infra/"
+ },
  "Stale": {
   "b": "B9",
   "d": "Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache.",
@@ -1624,6 +1651,15 @@ window.ISTILAH = {
   "s": "istilah-xss",
   "t": "XSS (cross-site scripting)",
   "u": "tahap-3/m25-kotak-peringatan/"
+ },
+ "alert": {
+  "b": "t3-tim-infra",
+  "d": "Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.",
+  "h": "istilah/alert/",
+  "n": "3.27 Tim dan infra Tahap 3",
+  "s": "istilah-alert",
+  "t": "Alert",
+  "u": "tahap-3/tim-infra/"
  },
  "argon2id": {
   "b": "t2-login-aman",
@@ -2255,6 +2291,15 @@ window.ISTILAH = {
   "t": "Offline-first",
   "u": "tahap-3/offline-first/"
  },
+ "on-call": {
+  "b": "t3-tim-infra",
+  "d": "Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu.",
+  "h": "istilah/on-call/",
+  "n": "3.27 Tim dan infra Tahap 3",
+  "s": "istilah-on-call",
+  "t": "On-call",
+  "u": "tahap-3/tim-infra/"
+ },
  "optimistic lock": {
   "b": "t2-race-lock",
   "d": "Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca.",
@@ -2605,6 +2650,15 @@ window.ISTILAH = {
   "s": "istilah-source-of-truth",
   "t": "Source of truth",
   "u": "tahap-1/apa-yang-dikerjakan-backend/"
+ },
+ "staging": {
+  "b": "t3-tim-infra",
+  "d": "Lingkungan uji yang dibuat semirip mungkin dengan produksi, tempat perubahan dicoba sebelum user sungguhan menyentuhnya.",
+  "h": "istilah/staging/",
+  "n": "3.27 Tim dan infra Tahap 3",
+  "s": "istilah-staging",
+  "t": "Staging",
+  "u": "tahap-3/tim-infra/"
  },
  "stale": {
   "b": "B9",
