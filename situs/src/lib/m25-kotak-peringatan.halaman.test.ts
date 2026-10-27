@@ -382,9 +382,30 @@ describe("kode lab: catatan diterima apa adanya, dasbor, browser tanpa ekstensi,
     expect(hitung(halamanDasbor, "<script")).toBe(1);
     expect(halamanDasbor).not.toMatch(/<script[^>]*\ssrc=|<link\b|<iframe|https?:\/\//);
     harus("Halaman riwayat di dasbor lab hanya memuat satu skrip inline (dibaca dari `main.go`), dan kotaknya tetap muncul.");
-    harus("Dasbor itu pengganti dasbor Wulan: ia membaca `jurnal` langsung dari database dengan query yang sama dengan `RiwayatPenerimaan` di `api-t3`.");
+    harus("Dasbor itu pengganti dasbor Wulan: ia membaca `jurnal` langsung dari database dengan query yang sama dengan `RiwayatPenerimaan` di `api-t3`, kecuali batasnya tetap 20 baris.");
     expect(mainGo).toContain("// riwayat: uang masuk ke buku akun warung, sama persis dengan query RiwayatPenerimaan api-t3");
     expect(readmeLab).toContain("Ia tidak memanggil server api-t3 lewat HTTP.");
+  });
+  test("tinjauan: query dasbor sama dengan RiwayatPenerimaan di api-t3 kecuali batas baris (komentar main.go 'sama persis' lebih kuat dari kodenya); batas tetap dibaca dari main.go dan ada di halaman", () => {
+    const sqlDari = (teks: string, fungsi: RegExp): string => cocok(teks, fungsi)[1]!.replace(/\s+/g, " ").trim();
+    const dasbor = sqlDari(mainGo, /func \(s \*server\) riwayat\([\s\S]*?QueryContext\(ctx, `([\s\S]*?)`/);
+    const apiT3 = sqlDari(baca("labs/api-t3/internal/repo/katalog.go"), /func \(r Repo\) RiwayatPenerimaan\([\s\S]*?QueryContext\(ctx, `([\s\S]*?)`/);
+    const tanpaBatas = (s: string): string => s.replace(/ LIMIT \S+$/, "");
+    expect(tanpaBatas(dasbor)).toBe(tanpaBatas(apiT3));
+    expect(dasbor).toContain("p.jumlah > 0");
+    expect(dasbor).toMatch(/ LIMIT 20$/);
+    expect(apiT3).toMatch(/ LIMIT \$2$/);
+    const batas = cocok(dasbor, / LIMIT (\d+)$/)[1]!;
+    harus(`kecuali batasnya tetap ${batas} baris.`);
+  });
+  test("tinjauan: csrfSah memeriksa Sec-Fetch-Site, Origin, dan token dengan syarat yang dibaca halaman (mutasi yang mematikan satu pemeriksaan harus gagal di sini)", () => {
+    const awalFn = mainGo.indexOf("func (s *server) csrfSah(");
+    expect(awalFn).toBeGreaterThan(0);
+    const fn = mainGo.slice(awalFn, mainGo.indexOf("\n}\n", awalFn));
+    expect(fn).toContain('if site := r.Header.Get("Sec-Fetch-Site"); site != "" && site != "same-origin" && site != "none" {\n\t\treturn false\n\t}');
+    expect(fn).toContain('if o := r.Header.Get("Origin"); o != "" && o != "http://"+r.Host {\n\t\treturn false\n\t}');
+    expect(fn).toContain('tok := r.Header.Get("X-CSRF-Token")\n\treturn tok != "" && subtle.ConstantTimeCompare([]byte(hashToken(tok)), []byte(x.CsrfHash)) == 1');
+    expect(fn).not.toMatch(/&& false|\|\| true|return true/);
   });
   test("mode bawaan dasbor: cookie HttpOnly, SameSite Lax, dan gerbang CSRF memeriksa Sec-Fetch-Site, Origin, dan token; bagian D tidak mengubah ketiganya, dan E merekam cookie HttpOnly", () => {
     expect(mainGo).toContain('HttpOnly: s.cookie != "rentan", Secure: secure, SameSite: sameSite,');
@@ -620,6 +641,13 @@ describe("glosarium dan halaman istilah XSS", () => {
       expect(sel[2]!.split(/\s+/).length, nama).toBeLessThanOrEqual(25);
     }
     expect(g("XSS")).toContain("**XSS** (cross-site scripting)");
+    // tinjauan: isi definisi (sel tabel) dikunci utuh; mutasi yang mengubah arti di glosarium.mdx dan turunannya sekaligus lolos penjaga awal
+    expect(g("XSS")).toBe("| **XSS** (cross-site scripting) | Celah di halaman web yang membuat browser menjalankan skrip dari data yang ditampilkan, mis. catatan pembayaran yang ditulis ke halaman tanpa di-encode. | [[t3-m25]] |");
+    expect(g("Output encoding")).toBe("| **Output encoding** | Mengubah teks yang akan ditulis ke halaman supaya tanda khusus HTML tampil sebagai teks dan tidak dibaca sebagai markup. | [[t3-m25]] |");
+    const turunan = Glosarium.parse(JSON.parse(baca("situs/data/glosarium.json")) as unknown);
+    for (const [nama, slug] of [["XSS", "istilah-xss"], ["Output encoding", "istilah-output-encoding"]] as const) {
+      expect(turunan.find((x) => x.s === slug)!.d, `${slug} di glosarium.json sama dengan sel glosarium.mdx`).toBe(g(nama)!.split("|").map((x) => x.trim())[2]);
+    }
     const hi = HalamanIstilah.parse(JSON.parse(istilahMentah));
     expect(hi.istilah).toBe("XSS (cross-site scripting)");
     expect(hi.cerita![0]!.rujukan).toBe("t3-m25");
@@ -771,7 +799,7 @@ const KALIMAT_TERKUNCI: string[] = [
   "<Blok nama=\"Yang sebenarnya\">",
   "Kotak itu muncul karena catatan Dimas. Dasbor menulis catatan ke halaman lewat `innerHTML`, jadi browser membacanya sebagai HTML, bukan sebagai teks.",
   "<Rantai data={kotak} />",
-  "*Kondisi rekaman:* PostgreSQL 17.11, server Go `api-t3` yang menulis catatan, dan dasbor kecil `t3-dasbor` yang menampilkannya. Dasbor itu pengganti dasbor Wulan: ia membaca `jurnal` langsung dari database dengan query yang sama dengan `RiwayatPenerimaan` di `api-t3`. Browser-nya Chromium 156.0.8078.4 yang dikendalikan Playwright 1.64.0 (menurut README lab). Browser lain Tidak dijalankan.",
+  "*Kondisi rekaman:* PostgreSQL 17.11, server Go `api-t3` yang menulis catatan, dan dasbor kecil `t3-dasbor` yang menampilkannya. Dasbor itu pengganti dasbor Wulan: ia membaca `jurnal` langsung dari database dengan query yang sama dengan `RiwayatPenerimaan` di `api-t3`, kecuali batasnya tetap 20 baris. Browser-nya Chromium 156.0.8078.4 yang dikendalikan Playwright 1.64.0 (menurut README lab). Browser lain Tidak dijalankan.",
   "**Dimas menaruh catatan.** Dimas membayar Rp5.000 ke Warung Ani lewat `api-t3` dengan catatan `<img src=x onerror=alert(1)>`, untuk mencoba. Catatan itu 28 karakter, jauh di bawah batas 100. Server hanya menolak catatan yang terlalu panjang atau berisi karakter kontrol, lalu menambahkan sisanya ke teks jurnal setelah spasi di ujungnya dipangkas:",
   "<Snippet files={[\"labs/api-t3/internal/service/notif.go:37:48\", \"labs/api-t3/internal/service/notif.go:51:56\"]} lang=\"go\" title=\"Kode lab: labs/api-t3/internal/service/notif.go baris 37 sampai 48 dan 51 sampai 56 (catatan diperiksa panjangnya, lalu masuk ke keterangan jurnal)\" />",
   "Tanda `<` dan `>` bukan karakter kontrol, jadi catatan itu lolos. Aturan yang melarang kedua tanda itu juga akan menolak catatan sah seperti \"5 < 10\" (penalaran). Catatan yang sama ikut ke teks notifikasi uang (`pesanUang` di `api-t3`). Cara HP menampilkannya Tidak dijalankan.",

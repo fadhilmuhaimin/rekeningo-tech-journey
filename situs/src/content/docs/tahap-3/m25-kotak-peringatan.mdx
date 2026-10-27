@@ -48,7 +48,7 @@ Kotak itu muncul karena catatan Dimas. Dasbor menulis catatan ke halaman lewat `
 
 <Rantai data={kotak} />
 
-*Kondisi rekaman:* PostgreSQL 17.11, server Go `api-t3` yang menulis catatan, dan dasbor kecil `t3-dasbor` yang menampilkannya. Dasbor itu pengganti dasbor Wulan: ia membaca `jurnal` langsung dari database dengan query yang sama dengan `RiwayatPenerimaan` di `api-t3`. Browser-nya Chromium 156.0.8078.4 yang dikendalikan Playwright 1.64.0 (menurut README lab). Browser lain Tidak dijalankan.
+*Kondisi rekaman:* PostgreSQL 17.11, server Go `api-t3` yang menulis catatan, dan dasbor kecil `t3-dasbor` yang menampilkannya. Dasbor itu pengganti dasbor Wulan: ia membaca `jurnal` langsung dari database dengan query yang sama dengan `RiwayatPenerimaan` di `api-t3`, kecuali batasnya tetap 20 baris. Browser-nya Chromium 156.0.8078.4 yang dikendalikan Playwright 1.64.0 (menurut README lab). Browser lain Tidak dijalankan.
 
 **Dimas menaruh catatan.** Dimas membayar Rp5.000 ke Warung Ani lewat `api-t3` dengan catatan `<img src=x onerror=alert(1)>`, untuk mencoba. Catatan itu 28 karakter, jauh di bawah batas 100. Server hanya menolak catatan yang terlalu panjang atau berisi karakter kontrol, lalu menambahkan sisanya ke teks jurnal setelah spasi di ujungnya dipangkas:
 
