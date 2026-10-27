@@ -1,0 +1,52 @@
+# Lab t4-webhook · tanda tangan atas byte mentah, toleransi waktu, rotasi rahasia, dan tiga gaya pembanding
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_webhook · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-webhook run.
+# server: ./api-t4 -lab -rahasia-webhook rahasia-gateway-lab-1; gateway tiruan menandatangani dengan rahasia yang sama
+
+# --- A. Tanda tangan atas byte mentah: isi sah dalam format lain lolos di api-t4, gagal bila diurai ulang sebelum diperiksa ---
+gateway menandatangani body berindentasi (JSON sah, format lain dari ringkas) dan mengirimnya ke api-t4: 200 diproses
+kiriman yang sama ke penerima di proses lab, untuk dilihat: body 109 byte, 5 baris baru
+verifikasi atas byte mentah: cocok
+verifikasi atas JSON yang diurai lalu ditulis ulang (json.dumps(json.loads(body))): tidak cocok
+# Isi sah ditolak oleh verifikasi yang menulis ulang JSON-nya: spasi dan baris baru berbeda, jadi HMAC berbeda.
+
+# --- B. Isi diubah, dan timestamp di luar toleransi 5 menit (Asumsi untuk tiruan): ditolak sebelum JSON diurai ---
+isi diubah sesudah ditandatangani (jumlah x10): 401
+timestamp 240 detik lalu (di dalam toleransi): 200 diproses
+timestamp 360 detik lalu (di luar toleransi): 401
+timestamp 360 detik di depan: 401
+# Yang ditolak tidak menulis event dan tidak menjurnal; yang di dalam toleransi diproses. Di luar toleransi, kiriman lama yang diputar ulang gagal.
+
+# --- C. Rotasi rahasia (M30): gateway langsung memakai rahasia baru; api-t4 yang belum disamakan menolak semuanya ---
+1. gateway menandatangani dengan rahasia baru, api-t4 hanya tahu yang lama: 401
+# server dinyalakan ulang: ./api-t4 -lab -rahasia-webhook <baru>,<lama> (yang pertama dipakai, yang kedua masa tumpang tindih)
+2. masa tumpang tindih, kiriman bertanda rahasia baru: 200 diproses
+3. masa tumpang tindih, kiriman yang masih bertanda rahasia lama: 200 diproses
+# server dinyalakan ulang: ./api-t4 -lab -rahasia-webhook <baru> (rotasi selesai, rahasia lama dicabut)
+4. sesudah rotasi selesai, kiriman bertanda rahasia lama: 401
+=> SELECT event_id, hasil FROM webhook_event WHERE event_id IN ('evt-r1', 'evt-r2', 'evt-r3') ORDER BY event_id
+ event_id | hasil
+----------+----------
+ evt-r1   | diproses
+ evt-r2   | diproses
+(2 rows)
+# Dokumentasi satu gateway nyata menahan rahasia lama aktif sampai 24 jam di sisi gateway dan menandatangani dengan keduanya; gateway tiruan tidak (rotasi langsung). Yang diuji di sini adalah sisi Rekeningo: dua rahasia diterima selama rotasi.
+
+# --- D. Tiga gaya tanda tangan sebagai pembanding (pembanding murni: tiga fungsi verifikasi di run.py, bukan handler yang berjalan) ---
+# Gaya 1 = yang dijalankan api-t4 (bagian A sampai C): HMAC-SHA256 atas timestamp dan byte mentah, toleransi 5 menit.
+# Gaya 2 = SHA-512 atas field tertentu ditambah rahasia, tanpa timestamp (bentuk rumus satu gateway nyata, field lab: order_id, status, jumlah).
+# Gaya 3 = token statis di header, dibandingkan dengan rahasia ([perlu verifikasi]: bentuk satu gateway nyata tidak dibuka ulang).
+ kejadian                                              | gaya 1 HMAC+timestamp | gaya 2 SHA-512 field | gaya 3 token statis
+-------------------------------------------------------+-----------------------+----------------------+---------------------
+ kiriman sah                                           | diterima              | diterima             | diterima
+ isi diubah: jumlah x10, tanda tangan lama             | ditolak               | ditolak              | diterima
+ field yang tidak ditandatangani diubah (event_id)     | ditolak               | diterima             | diterima
+ kiriman sah diputar ulang 60 detik kemudian           | diterima              | diterima             | diterima
+ kiriman sah diputar ulang 6 menit kemudian            | ditolak               | diterima             | diterima
+ isi sah diformat ulang (indentasi), tanda tangan lama | ditolak               | diterima             | diterima
+ pengirim tidak tahu rahasia                           | ditolak               | ditolak              | ditolak
+(7 rows)
+# Gaya 1 menolak isi yang diubah dan kiriman di luar toleransi. Harganya: body diperiksa sebagai byte yang tiba, bukan sebagai JSON yang ditulis ulang (bagian A).
+# Gaya 2 tahan terhadap format ulang dan perubahan jumlah, tetapi tidak punya waktu: kiriman lama diterima kapan pun, dan field di luar rumus tidak terlindungi.
+# Gaya 3 tidak melindungi isi: token yang sama menyertai setiap kiriman, jadi isi yang diubah dan kiriman lama sama-sama diterima.
+# Kiriman sah yang diputar ulang 60 detik kemudian diterima oleh gaya 1 juga: di dalam toleransi, yang menahannya adalah event_id (ganda.txt).

@@ -1,0 +1,46 @@
+{
+  "istilah": "CRDT (Conflict-free Replicated Data Type)",
+  "sehari_hari": "Jenis data yang dirancang supaya perubahan dari beberapa salinan, yang boleh berbeda sementara, bisa digabung otomatis tanpa seseorang memilih pemenang.",
+  "cerita": [
+    {
+      "rujukan": "t3-offline",
+      "teks": "Opsi C di ADR 29: stok disimpan sebagai tipe data yang digabung otomatis. Ditolak karena stok punya batas bawah dan ongkos tipe data baru terlalu besar untuk dua perangkat milik satu pemilik. Tidak dijalankan."
+    }
+  ],
+  "mekanisme": [
+    "Tiap salinan data, di HP dan di server, boleh berubah sendiri tanpa menunggu salinan lain.",
+    "Tipe datanya dirancang supaya menggabungkan dua salinan memberi hasil yang sama di kedua sisi.",
+    "Set yang hanya bisa bertambah menggabung anggota dengan urutan apa pun. Register berisi satu nilai dan memilih pembaruan terbaru lewat penanda waktu dan id peer.",
+    "Batas seperti stok tidak negatif tidak ikut terjaga sendiri. Balegas dkk. menyebutnya kekurangan penyimpanan eventually consistent dan mengusulkan bounded counter."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira CRDT otomatis menjaga batas seperti stok tidak negatif. Abstrak Balegas dkk. menyebut ketidakmampuan menegakkan invarian numerik di semua replika sebagai kekurangan penyimpanan eventually consistent.",
+    "Memakai CRDT padahal ada server pusat yang menentukan urutan. Figma menulis bahwa CRDT dirancang untuk sistem tanpa otoritas pusat, dan memilih tidak memakai CRDT murni karena servernya adalah otoritas pusat."
+  ],
+  "terkait": [
+    "Last-write-wins",
+    "Optimistic lock",
+    "Offline-first"
+  ],
+  "sumber": [
+    {
+      "riset": "R3-200",
+      "judul": "Preguiça: Conflict-free Replicated Data Types, an overview",
+      "url": "https://arxiv.org/abs/1806.10254",
+      "catatan": "CRDT adalah pendekatan terprinsip untuk menggabung update konkuren pada replika yang boleh berbeda sementara."
+    },
+    {
+      "riset": "R3-200",
+      "judul": "Balegas dkk.: Extending Eventually Consistent Cloud Databases for Enforcing Numeric Invariants",
+      "url": "https://arxiv.org/abs/1503.09052",
+      "catatan": "Bounded counter adalah tipe data replikasi baru yang menambah dukungan invarian numerik pada database eventually consistent."
+    },
+    {
+      "riset": "R3-200",
+      "judul": "Figma: How Figma's multiplayer technology works",
+      "url": "https://www.figma.com/blog/how-figmas-multiplayer-technology-works/",
+      "catatan": "Menjelaskan set yang hanya bisa bertambah dan last-writer-wins register di literatur CRDT, dan alasan Figma tidak memakai CRDT murni."
+    }
+  ]
+}

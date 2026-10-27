@@ -1,0 +1,53 @@
+{
+  "istilah": "Last-write-wins",
+  "sehari_hari": "Bila dua perubahan mengubah hal yang sama, yang tersimpan paling akhir dianggap benar dan yang lain dibuang. Tidak ada yang bertanya mana yang seharusnya menang.",
+  "cerita": [
+    {
+      "rujukan": "t3-offline",
+      "teks": "Opsi B di ADR 29: waktu HP menentukan pemenang. Jalur lama di m24.txt bagian D memberi akibat serupa dengan urutan kedatangan: stok 0 dari hari Senin menimpa stok 30 dari hari Sabtu, dan jawabannya 200."
+    }
+  ],
+  "mekanisme": [
+    "Tiap perubahan membawa penanda urutan: waktu dari HP, atau urutan tiba di server.",
+    "Server menyimpan nilai dari perubahan dengan penanda paling baru dan membuang yang lebih lama.",
+    "Penulis yang kalah tidak mendapat galat. Di m24.txt bagian D jawaban server tetap 200 walau stok Sabtu hilang.",
+    "Bila penandanya waktu HP, jam HP yang salah mengubah pemenang. Bila penandanya urutan tiba, operasi yang tertahan di jalan menang atas isian yang lebih baru."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Memercayai jam HP. Dokumentasi WatermelonDB menulis bahwa timestamp lokal tidak bisa dipercaya dan melarang memakai created_at buatan client untuk membedakan record baru dari record yang diubah.",
+    "Mengira aturan ini aman untuk data yang dibaca sebagai kenyataan. Figma memakainya per properti dengan server yang menentukan urutan, dan menerima bahwa suntingan serentak pada satu teks berakhir sebagai salah satunya."
+  ],
+  "terkait": [
+    "Optimistic lock",
+    "Offline-first",
+    "CRDT (Conflict-free Replicated Data Type)",
+    "Idempotency key"
+  ],
+  "sumber": [
+    {
+      "riset": "R3-201",
+      "judul": "Android: Build an offline-first app",
+      "url": "https://developer.android.com/topic/architecture/data-layer/offline-first",
+      "catatan": "Perangkat menempelkan metadata timestamp ke data yang ditulis dan sumber jaringan membuang data yang lebih tua dari keadaannya. Dokumentasi menyebutnya pendekatan yang umum untuk app mobile."
+    },
+    {
+      "riset": "R3-200",
+      "judul": "Figma: How Figma's multiplayer technology works",
+      "url": "https://www.figma.com/blog/how-figmas-multiplayer-technology-works/",
+      "catatan": "Bila dua client mengubah properti yang sama, dokumen berakhir dengan nilai terakhir yang dikirim ke server, dan server menentukan urutannya tanpa timestamp."
+    },
+    {
+      "riset": "R3-203",
+      "judul": "WatermelonDB: Sync backend",
+      "url": "https://watermelondb.dev/docs/Sync/Backend",
+      "catatan": "Endpoint push harus membatalkan bila record berubah di server sesudah lastPulledAt, dan timestamp lokal tidak bisa dipercaya."
+    },
+    {
+      "riset": "R3-200",
+      "judul": "Rekaman lab t3-offline: M24 tanpa versi",
+      "rekaman": "labs/t3-offline/output/m24.txt",
+      "catatan": "Bagian D: kunci sudah kedaluwarsa sesudah 24 jam, stok 0 diterapkan tanpa memeriksa versi di atas stok 30, dan jawabannya 200."
+    }
+  ]
+}

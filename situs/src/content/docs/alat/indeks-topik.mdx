@@ -98,7 +98,7 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [2.28 Keamanan 4: brute force, credential stuffing, hash password + ADR 20](/tahap-2/brute-force/) | Tahap 2 | Password yang bocor dari situs lain dipakai untuk mencoba masuk ke banyak akun |
 | [3.16 M22: Batas login jadi dua kali lipat](/tahap-3/m22-batas-login-dua-kali/) | Tahap 3 | Setelah instance kedua dipasang, batas percobaan login per IP longgar menjadi dua kali lipat |
 | [3.17 Rate limit lintas instance dan Redis + ADR 27](/tahap-3/rate-limit-redis/) | Tahap 3 | Yang disimpan di memori satu proses berlipat saat prosesnya dua |
-| 3.22 M25: Kotak peringatan di riwayat Ani · *segera* | Tahap 3 | Dasbor warung menampilkan kotak peringatan setiap kali Ani membuka riwayat penerimaan |
+| [3.22 M25: Kotak peringatan di riwayat Ani](/tahap-3/m25-kotak-peringatan/) | Tahap 3 | Dasbor warung menampilkan kotak peringatan setiap kali Ani membuka riwayat penerimaan |
 | 3.23 Keamanan 5: XSS, CSRF, cookie sesi, passkey + ADR 30 · *segera* | Tahap 3 | Data dari sistem sendiri tetap input: catatan pembayaran bisa menjalankan skrip di dasbor |
 | 3.24 M26: Transfer yang tidak dibuat Budi · *segera* | Tahap 3 | Budi melihat transfer di riwayatnya yang tidak ia buat, sesudah memakai Wi-Fi kantin tenant mitra |
 | 3.25 Keamanan 6: TLS, HSTS, pinning + ADR 31 · *segera* | Tahap 3 | Sertifikat selalu divalidasi, dan pin selalu datang dengan cadangan |
@@ -195,7 +195,7 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [3.3 Fitur: notifikasi push dan promo HR](/tahap-3/fitur-notifikasi/) | Tahap 3 | Budi dan Ani ingin tahu saat uang masuk tanpa membuka app, dan notifikasi tidak boleh mendahului uangnya |
 | [3.12 M20: Notifikasi masuk dua kali](/tahap-3/m20-notifikasi-dua-kali/) | Tahap 3 | Ani menerima notifikasi yang sama dua kali dan mengira Budi membayar dua kali |
 | [3.20 M24: Stok yang kembali ke angka lama](/tahap-3/m24-stok-kembali/) | Tahap 3 | Stok yang diisi warung hari Sabtu kembali ke angka lama saat app warung tersambung lagi hari Senin |
-| 3.21 Offline-first dan sinkron + ADR 29 · *segera* | Tahap 3 | Operasi yang menunggu lama harus bisa ditolak dengan benar, bukan menimpa data yang lebih baru |
+| [3.21 Offline-first dan sinkron + ADR 29](/tahap-3/offline-first/) | Tahap 3 | Operasi yang menunggu lama harus bisa ditolak dengan benar, bukan menimpa data yang lebih baru |
 | [Push dan real-time](/e-mobile/e4-push-real-time/) | Tahap 3 | App polling status pesanan tiap 5 detik |
 | [Offline-first dan sync](/e-mobile/e2-offline-first/) | Tahap 3 | Perubahan stok saat offline hilang |
 | 4.19 QR pembayaran: statis, dinamis, konfirmasi + ADR 40 · *segera* | Tahap 4 | CRC pada QR mendeteksi salah baca, bukan penggantian; yang menjaga pembeli adalah nama merchant terverifikasi dan QR dinamis |

@@ -1,0 +1,44 @@
+{
+  "id": "t3-offline-tebak",
+  "judul": "Operasi bakso yang belum pernah sampai",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t3-offline/output/versi.txt bagian B, C, dan D; sinkron14.txt bagian B; waktu diperankan"
+  },
+  "adegan": [
+    "Jumat 16.50 Ani mencatat \"bakso habis\" di HP, tetapi sinyalnya sudah hilang dan operasi itu tidak pernah sampai ke server. Sabtu pagi ia mengisi bakso 30 porsi lewat dasbor di laptop.",
+    "Senin 06.50 HP kembali online dan mengirim operasi \"stok bakso = 0\" untuk pertama kalinya, dengan kunci yang belum pernah diterima server dan versi yang Ani lihat hari Jumat."
+  ],
+  "pertanyaan": "Apa jawaban server, dan berapa stok bakso sesudahnya?",
+  "pilihan": [
+    {
+      "teks": "Menjawab 200, dan stok jadi 0, karena server belum pernah melihat kunci ini.",
+      "benar": false,
+      "alasan": "Itu hasil jalur lama di m24.txt bagian D: tanpa pemeriksaan versi, stok 30 menjadi 0 dengan jawaban 200. Jalur sinkron memeriksa versi, jadi kunci yang belum dikenal saja tidak cukup untuk menerapkan operasi."
+    },
+    {
+      "teks": "Menjawab 409, stok tetap 30, dan jawabannya memuat stok 30 dan versi 2.",
+      "benar": true,
+      "alasan": "versi.txt bagian C: kunci tidak dikenal, tetapi versi dasar 1 sudah lewat karena dasbor mengisi bakso hari Sabtu. Server tidak mengubah produk dan mengirim keadaan terkini supaya Ani memilih."
+    },
+    {
+      "teks": "Menjawab 422, karena operasinya lebih tua dari 24 jam.",
+      "benar": false,
+      "alasan": "Batas 24 jam milik Idempotency-Key di jalur uang. Queue sinkron menerima operasi sampai 7 hari: 6 hari 23 jam diterima dan 7 hari 1 jam ditolak (sinkron14.txt bagian B)."
+    },
+    {
+      "teks": "Menjawab 200, stok tetap 30, karena server membuang operasi yang usang tanpa memberi tahu HP.",
+      "benar": false,
+      "alasan": "Kode TerapkanOperasi tidak punya cabang itu. Versi yang berbeda dicatat sebagai konflik dan dijawab 409 (versi.txt bagian C). Jawaban 200 untuk operasi yang tidak diterapkan membuat HP mengira bakso sudah tercatat habis."
+    }
+  ],
+  "penutup": "Kunci mengenali kiriman yang sudah pernah sampai, dan versi menolak operasi yang dibuat dari keadaan yang sudah lewat. Dua pengaman itu menjawab dua pertanyaan berbeda.",
+  "label": {
+    "sumber": "Rekaman lab · versi.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}

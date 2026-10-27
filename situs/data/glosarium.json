@@ -333,6 +333,15 @@
   "h": null
  },
  {
+  "t": "CRDT (Conflict-free Replicated Data Type)",
+  "d": "Jenis data yang dirancang supaya perubahan dari beberapa salinan yang boleh berbeda sementara bisa digabung otomatis.",
+  "b": "t3-offline",
+  "n": "3.21 Offline-first dan sinkron",
+  "u": "/tahap-3/offline-first/",
+  "s": "istilah-crdt",
+  "h": "/istilah/crdt/"
+ },
+ {
   "t": "Credential stuffing",
   "d": "Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama.",
   "b": "t2-m16",
@@ -630,6 +639,15 @@
   "h": "/istilah/kunci-akun/"
  },
  {
+  "t": "Last-write-wins",
+  "d": "Aturan konflik: dari beberapa perubahan pada hal yang sama, yang tersimpan paling akhir menang dan yang lain dibuang.",
+  "b": "t3-offline",
+  "n": "3.21 Offline-first dan sinkron",
+  "u": "/tahap-3/offline-first/",
+  "s": "istilah-last-write-wins",
+  "h": "/istilah/last-write-wins/"
+ },
+ {
   "t": "Latency",
   "d": "Lama waktu satu request dari dikirim sampai response diterima.",
   "b": "t3-observability",
@@ -830,9 +848,9 @@
  {
   "t": "Offline-first",
   "d": "Desain app yang menyimpan perubahan di HP dulu, lalu menyinkronkannya ke server saat sinyal ada.",
-  "b": "E2",
-  "n": "Offline-first dan sync (versi lama)",
-  "u": "/e-mobile/e2-offline-first/",
+  "b": "t3-offline",
+  "n": "3.21 Offline-first dan sinkron",
+  "u": "/tahap-3/offline-first/",
   "s": "istilah-offline-first",
   "h": null
  },
@@ -880,6 +898,15 @@
   "u": "/tahap-3/outbox-worker/",
   "s": "istilah-outbox",
   "h": "/istilah/outbox/"
+ },
+ {
+  "t": "Output encoding",
+  "d": "Mengubah teks yang akan ditulis ke halaman supaya tanda khusus HTML tampil sebagai teks dan tidak dibaca sebagai markup.",
+  "b": "t3-m25",
+  "n": "3.22 M25",
+  "u": "/tahap-3/m25-kotak-peringatan/",
+  "s": "istilah-output-encoding",
+  "h": null
  },
  {
   "t": "Over-fetching",
@@ -1447,5 +1474,14 @@
   "u": "/tahap-3/outbox-worker/",
   "s": "istilah-worker",
   "h": "/istilah/worker/"
+ },
+ {
+  "t": "XSS (cross-site scripting)",
+  "d": "Celah di halaman web yang membuat browser menjalankan skrip dari data yang ditampilkan, mis. catatan pembayaran yang ditulis ke halaman tanpa di-encode.",
+  "b": "t3-m25",
+  "n": "3.22 M25",
+  "u": "/tahap-3/m25-kotak-peringatan/",
+  "s": "istilah-xss",
+  "h": "/istilah/xss/"
  }
 ]

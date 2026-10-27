@@ -192,6 +192,15 @@ window.ISTILAH = {
   "t": "COMMIT",
   "u": "tahap-1/transaction/"
  },
+ "CRDT": {
+  "b": "t3-offline",
+  "d": "Jenis data yang dirancang supaya perubahan dari beberapa salinan yang boleh berbeda sementara bisa digabung otomatis.",
+  "h": "istilah/crdt/",
+  "n": "3.21 Offline-first dan sinkron",
+  "s": "istilah-crdt",
+  "t": "CRDT (Conflict-free Replicated Data Type)",
+  "u": "tahap-3/offline-first/"
+ },
  "Cache": {
   "b": "B9",
   "d": "Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli.",
@@ -624,6 +633,15 @@ window.ISTILAH = {
   "t": "LSN (Log Sequence Number)",
   "u": "d-system-design/d3-consistency/"
  },
+ "Last-write-wins": {
+  "b": "t3-offline",
+  "d": "Aturan konflik: dari beberapa perubahan pada hal yang sama, yang tersimpan paling akhir menang dan yang lain dibuang.",
+  "h": "istilah/last-write-wins/",
+  "n": "3.21 Offline-first dan sinkron",
+  "s": "istilah-last-write-wins",
+  "t": "Last-write-wins",
+  "u": "tahap-3/offline-first/"
+ },
  "Latency": {
   "b": "t3-observability",
   "d": "Lama waktu satu request dari dikirim sampai response diterima.",
@@ -824,12 +842,12 @@ window.ISTILAH = {
   "u": "b-fondasi/b11-2-proxy-bff/"
  },
  "Offline-first": {
-  "b": "E2",
+  "b": "t3-offline",
   "d": "Desain app yang menyimpan perubahan di HP dulu, lalu menyinkronkannya ke server saat sinyal ada.",
-  "n": "Offline-first dan sync (versi lama)",
+  "n": "3.21 Offline-first dan sinkron",
   "s": "istilah-offline-first",
   "t": "Offline-first",
-  "u": "e-mobile/e2-offline-first/"
+  "u": "tahap-3/offline-first/"
  },
  "OpenAPI": {
   "b": "B1.4",
@@ -864,6 +882,14 @@ window.ISTILAH = {
   "s": "istilah-outbox",
   "t": "Outbox",
   "u": "tahap-3/outbox-worker/"
+ },
+ "Output encoding": {
+  "b": "t3-m25",
+  "d": "Mengubah teks yang akan ditulis ke halaman supaya tanda khusus HTML tampil sebagai teks dan tidak dibaca sebagai markup.",
+  "n": "3.22 M25",
+  "s": "istilah-output-encoding",
+  "t": "Output encoding",
+  "u": "tahap-3/m25-kotak-peringatan/"
  },
  "Over-fetching": {
   "b": "t2-payload",
@@ -1454,6 +1480,15 @@ window.ISTILAH = {
   "t": "Worker",
   "u": "tahap-3/outbox-worker/"
  },
+ "XSS": {
+  "b": "t3-m25",
+  "d": "Celah di halaman web yang membuat browser menjalankan skrip dari data yang ditampilkan, mis. catatan pembayaran yang ditulis ke halaman tanpa di-encode.",
+  "h": "istilah/xss/",
+  "n": "3.22 M25",
+  "s": "istilah-xss",
+  "t": "XSS (cross-site scripting)",
+  "u": "tahap-3/m25-kotak-peringatan/"
+ },
  "argon2id": {
   "b": "t2-login-aman",
   "d": "Fungsi hash password yang sengaja lambat dan memakai banyak memori, supaya menebak password dari tabel yang bocor butuh waktu dan RAM besar.",
@@ -1876,6 +1911,15 @@ window.ISTILAH = {
   "t": "Kunci akun",
   "u": "tahap-2/m16-akun-terkunci/"
  },
+ "last-write-wins": {
+  "b": "t3-offline",
+  "d": "Aturan konflik: dari beberapa perubahan pada hal yang sama, yang tersimpan paling akhir menang dan yang lain dibuang.",
+  "h": "istilah/last-write-wins/",
+  "n": "3.21 Offline-first dan sinkron",
+  "s": "istilah-last-write-wins",
+  "t": "Last-write-wins",
+  "u": "tahap-3/offline-first/"
+ },
  "latency": {
   "b": "t3-observability",
   "d": "Lama waktu satu request dari dikirim sampai response diterima.",
@@ -2035,12 +2079,12 @@ window.ISTILAH = {
   "u": "b-fondasi/b11-2-proxy-bff/"
  },
  "offline-first": {
-  "b": "E2",
+  "b": "t3-offline",
   "d": "Desain app yang menyimpan perubahan di HP dulu, lalu menyinkronkannya ke server saat sinyal ada.",
-  "n": "Offline-first dan sync (versi lama)",
+  "n": "3.21 Offline-first dan sinkron",
   "s": "istilah-offline-first",
   "t": "Offline-first",
-  "u": "e-mobile/e2-offline-first/"
+  "u": "tahap-3/offline-first/"
  },
  "optimistic lock": {
   "b": "t2-race-lock",
@@ -2059,6 +2103,14 @@ window.ISTILAH = {
   "s": "istilah-outbox",
   "t": "Outbox",
   "u": "tahap-3/outbox-worker/"
+ },
+ "output encoding": {
+  "b": "t3-m25",
+  "d": "Mengubah teks yang akan ditulis ke halaman supaya tanda khusus HTML tampil sebagai teks dan tidak dibaca sebagai markup.",
+  "n": "3.22 M25",
+  "s": "istilah-output-encoding",
+  "t": "Output encoding",
+  "u": "tahap-3/m25-kotak-peringatan/"
  },
  "over-fetching": {
   "b": "t2-payload",
