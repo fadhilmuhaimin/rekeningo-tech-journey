@@ -29,6 +29,7 @@ type gwTes struct {
 	kunci      []string                 // Idempotency-Key permintaan POST /orders
 	status     map[string]gateway.Order // order_id -> keadaan
 	settlement []gateway.BarisSettlement
+	gets       int           // jumlah GET /orders/{id}: berapa kali gateway ditanya keadaan satu order
 	masuk      chan struct{} // diisi saat POST /orders tiba (untuk tes yang perlu tahu panggilan sedang berjalan)
 }
 
@@ -69,6 +70,7 @@ func gatewayTes(t *testing.T) *gwTes {
 			json.NewEncoder(w).Encode(o)
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/orders/"):
 			g.mu.Lock()
+			g.gets++
 			o, ok := g.status[strings.TrimPrefix(r.URL.Path, "/orders/")]
 			g.mu.Unlock()
 			if !ok {
@@ -87,6 +89,12 @@ func gatewayTes(t *testing.T) *gwTes {
 	}))
 	t.Cleanup(g.srv.Close)
 	return g
+}
+
+func (g *gwTes) jumlahGet() int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.gets
 }
 
 func (g *gwTes) atur(mode string, tidur time.Duration) {
@@ -279,15 +287,16 @@ func TestWebhookLapisanPenahanJurnalKedua(t *testing.T) {
 		jeda   time.Duration // waktu service untuk kiriman kedua, sesudah kiriman pertama
 		sama   bool          // kiriman kedua memakai event_id yang sama dengan yang pertama
 		jurnal int
+		hasil2 string // jawaban untuk kiriman kedua: ganda bila ada lapis yang menahan, diproses bila tidak ada
 	}{
-		{"semua lapis menyala", nil, time.Minute, false, 1},
-		{"hanya status dimatikan: kunci ledger menahan (key masih hidup)", []string{"status"}, time.Minute, false, 1},
-		{"hanya kunci dimatikan: status menahan", []string{"kunci"}, time.Minute, false, 1},
-		{"status dimatikan dan key sudah habis (25 jam): tidak ada yang menahan", []string{"status"}, 25 * time.Hour, false, 2},
-		{"key sudah habis (25 jam), status menyala: status menahan", nil, 25 * time.Hour, false, 1},
-		{"status dan kunci dimatikan, event berbeda: tidak ada yang menahan", []string{"status", "kunci"}, time.Minute, false, 2},
-		{"status dan kunci dimatikan, event yang sama: kunci utama event_id menahan sendirian", []string{"status", "kunci"}, time.Minute, true, 1},
-		{"status dan kunci dimatikan, event yang sama, key habis: kunci utama event_id tetap menahan", []string{"status", "kunci"}, 25 * time.Hour, true, 1},
+		{"semua lapis menyala", nil, time.Minute, false, 1, "ganda"},
+		{"hanya status dimatikan: kunci ledger menahan (key masih hidup)", []string{"status"}, time.Minute, false, 1, "ganda"},
+		{"hanya kunci dimatikan: status menahan", []string{"kunci"}, time.Minute, false, 1, "ganda"},
+		{"status dimatikan dan key sudah habis (25 jam): tidak ada yang menahan", []string{"status"}, 25 * time.Hour, false, 2, "diproses"},
+		{"key sudah habis (25 jam), status menyala: status menahan", nil, 25 * time.Hour, false, 1, "ganda"},
+		{"status dan kunci dimatikan, event berbeda: tidak ada yang menahan", []string{"status", "kunci"}, time.Minute, false, 2, "diproses"},
+		{"status dan kunci dimatikan, event yang sama: kunci utama event_id menahan sendirian", []string{"status", "kunci"}, time.Minute, true, 1, "ganda"},
+		{"status dan kunci dimatikan, event yang sama, key habis: kunci utama event_id tetap menahan", []string{"status", "kunci"}, 25 * time.Hour, true, 1, "ganda"},
 	}
 	for _, k := range kasus {
 		t.Run(k.nama, func(t *testing.T) {
@@ -305,8 +314,12 @@ func TestWebhookLapisanPenahanJurnalKedua(t *testing.T) {
 			if k.sama {
 				ev2 = ev1
 			}
-			if _, err := kabarSah(s2, awal.Add(k.jeda), ev2, order, "settlement", 50_000); err != nil {
+			h2, err := kabarSah(s2, awal.Add(k.jeda), ev2, order, "settlement", 50_000)
+			if err != nil {
 				t.Fatalf("kiriman kedua: %v", err)
+			}
+			if h2.Hasil != k.hasil2 {
+				t.Errorf("jawaban kiriman kedua %q, harus %q", h2.Hasil, k.hasil2)
 			}
 			if n := jumlahJurnalTopup(t, db, order); n != k.jurnal {
 				t.Errorf("jurnal untuk satu kejadian = %d, harus %d", n, k.jurnal)
