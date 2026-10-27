@@ -1,0 +1,51 @@
+{
+  "id": "t3-m28-diuji",
+  "judul": "Yang dijawab uji coba, dan yang diminta PRD v4",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Asumsi naskah dan registry untuk beban; rekaman lab t3-pool, adr22.txt bagian F, hanya untuk batas L; Rp0 Ilustrasi"
+  },
+  "baris": [
+    {
+      "label": "Uji coba enam kota",
+      "sub": "yang sudah terjawab",
+      "simpul": [
+        {
+          "teks": "Tutup buku Rp0",
+          "sub": "data yang terlihat cocok",
+          "nada": "good"
+        },
+        {
+          "teks": "Puncak 17,4 per detik",
+          "sub": "hitungan dari asumsi",
+          "nada": "system"
+        },
+        {
+          "teks": "L kurang dari 0,87",
+          "sub": "batas lab, pool 10",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "PRD v4",
+      "sub": "yang diminta dan belum pernah diuji",
+      "simpul": [
+        {
+          "teks": "Pihak ketiga memegang uang",
+          "nada": "warn"
+        },
+        {
+          "teks": "Tiga tim, satu codebase",
+          "nada": "warn"
+        },
+        {
+          "teks": "Satu VPS",
+          "sub": "titik gagal tunggal",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Rp0 dan L yang kecil menjawab data dan beban yang sudah ada. Tiga hal di baris kedua belum pernah diuji, dan kapasitas satu VPS belum diukur."
+}

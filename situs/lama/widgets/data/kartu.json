@@ -2144,6 +2144,38 @@
   "jawab": "Tidak. Kapasitas jadi 20 ÷ 0,3 = 66,7 per detik, dan 10.000 promo habis dalam 150 detik, lima kali 30 detik (Hitungan). Yang membuat uang tidak menunggu promo adalah kelas, bukan jumlah pengirim."
  },
  {
+  "id": "t3-m28-1",
+  "halaman": "t3-m28",
+  "judul": "3.28 M28: Uji coba enam kota lolos, PRD v4 datang",
+  "url": "tahap-3/m28-prd-v4/",
+  "tanya": "Tutup buku bulan ketiga selesai dengan selisih Rp0. Apa yang dibuktikan hasil itu untuk PRD v4, dan apa yang tidak?",
+  "jawab": "Hasil itu hanya membuktikan bahwa buku dan jurnal yang terlihat saat laporan berjalan cocok (Ilustrasi: angka itu dari naskah). Rp0 tidak mengukur beban dan tidak menandai laporan sebagai final. Rp0 juga tidak menguji pihak ketiga yang menggerakkan uang, tiga tim di satu codebase, atau satu VPS yang mati."
+ },
+ {
+  "id": "t3-m28-2",
+  "halaman": "t3-m28",
+  "judul": "3.28 M28: Uji coba enam kota lolos, PRD v4 datang",
+  "url": "tahap-3/m28-prd-v4/",
+  "tanya": "Dari mana angka puncak 17,4 request per detik, dan berlabel apa?",
+  "jawab": "Dari hitungan 10.000 × 25% × 60 ÷ 86.400 × 10 = 17,4, dengan semua masukan Asumsi dari registry. Itu bukan hasil pengukuran uji coba. L seluruh request 17,4 × 0,02 = 0,35 koneksi juga Asumsi, karena W 20 ms Asumsi."
+ },
+ {
+  "id": "t3-m28-3",
+  "halaman": "t3-m28",
+  "judul": "3.28 M28: Uji coba enam kota lolos, PRD v4 datang",
+  "url": "tahap-3/m28-prd-v4/",
+  "tanya": "Rekaman lab menulis L di bawah 0,87 koneksi pada 17,4 request per detik. Kenapa itu belum menjawab apakah satu server siap untuk PRD v4?",
+  "jawab": "Lab memeriksa batas koneksi: W rata-rata di bawah 50 ms, jadi L di bawah 17,4 × 0,05 = 0,87, di satu laptop dengan beban berjadwal. Lab tidak mengukur berapa request per detik yang sanggup dilayani VPS. Load test dari aturan 5 ADR 21 Tidak dijalankan, jadi kapasitas satu server tetap belum diukur."
+ },
+ {
+  "id": "t3-m28-4",
+  "halaman": "t3-m28",
+  "judul": "3.28 M28: Uji coba enam kota lolos, PRD v4 datang",
+  "url": "tahap-3/m28-prd-v4/",
+  "tanya": "Sebutkan tiga hal yang diminta PRD v4 dan belum pernah diuji di Tahap 3.",
+  "jawab": "Pihak ketiga yang menggerakkan uang, tiga tim di satu codebase, dan satu VPS sebagai titik gagal tunggal. Di Tahap 3 satu-satunya panggilan keluar dari `api-t3` adalah ke layanan push tiruan, timnya empat orang (Asumsi cerita) di satu codebase Go, dan semua komponen produksi ada di satu VPS."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",
