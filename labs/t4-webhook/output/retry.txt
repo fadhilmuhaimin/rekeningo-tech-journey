@@ -1,0 +1,65 @@
+# Lab t4-webhook · jadwal ulangan gateway, M30 pada waktu maya, dan pembanding koneksi
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_webhook · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-webhook run.
+
+# --- A. Jadwal ulangan gateway tiruan per kode status; waktu diperankan (waktu maya pada tanda tangan), bukan ditunggu ---
+jeda antar percobaan (sejak percobaan sebelumnya): 2, 10, 30, 90, 210 menit (total 342 menit)
+ kode jawaban penerima | jumlah kiriman | menit kiriman (sejak kiriman pertama) | gateway berhenti karena
+-----------------------+----------------+---------------------------------------+-------------------------
+ 200                   | 1              | 0                                     | diterima
+ 400                   | 3              | 0, 2, 12                              | jadwal habis
+ 404                   | 3              | 0, 2, 12                              | jadwal habis
+ 500                   | 2              | 0, 2                                  | jadwal habis
+ 503                   | 5              | 0, 2, 12, 42, 132                     | jadwal habis
+ 401                   | 6              | 0, 2, 12, 42, 132, 342                | jadwal habis
+ 502                   | 6              | 0, 2, 12, 42, 132, 342                | jadwal habis
+(7 rows)
+# Jumlah ulangan per kode mengikuti dokumentasi satu gateway nyata (dibuka 2026-10-27): 2xx tanpa ulangan, 400 dan 404 dua kali, 500 sekali, 503 empat kali, lainnya lima kali.
+# Penolakan 401 masuk 'lainnya': lima ulangan, enam kiriman, 342 menit. Kode yang berganti di antara percobaan: dokumentasi tidak menjelaskan; tiruan memakai kode kiriman terakhir (Asumsi).
+# Tiruan tidak menggeser tiap percobaan secara acak (dokumentasi gateway itu menggeser), dan menandatangani ulang tiap percobaan dengan timestamp-nya (Asumsi untuk tiruan).
+
+# --- B. M30: gateway merotasi rahasia, api-t4 belum disamakan. Enam kiriman 401 lalu jadwal habis; webhook adalah satu-satunya jalan kabar ---
+# server: ./api-t4 -lab -jam-lab -rahasia-webhook <lama> (waktu service diatur gateway tiruan lewat /lab/jam: jam maya per kiriman)
+# Gateway merotasi rahasia dan langsung menandatangani dengan yang baru; menit 0 = kiriman pertama dengan rahasia baru (waktu maya).
+ kiriman | menit sejak kiriman pertama | jawaban api-t4
+---------+-----------------------------+----------------
+ 1       | 0                           | 401
+ 2       | 2                           | 401
+ 3       | 12                          | 401
+ 4       | 42                          | 401
+ 5       | 132                         | 401
+ 6       | 342                         | 401
+(6 rows)
+gateway berhenti: jadwal habis (342 menit sesudah kiriman pertama, ±5,7 jam)
+=> SELECT count(*) AS webhook_event FROM webhook_event
+ webhook_event
+---------------
+ 0
+(1 row)
+=> SELECT status, jurnal_id FROM topup_bank
+ status   | jurnal_id
+----------+-----------
+ menunggu |
+(1 row)
+# Uang Rp500.000 sudah di bank, status top-up menunggu, tidak ada event dan tidak ada jurnal. Tidak ada kiriman lagi dari gateway; cek status dan rekonsiliasi (rekon.txt) yang menemukannya.
+
+# --- C. Disamakan sebelum jadwal habis: rahasia baru diterima pada kiriman ke-3 (menit 12), uang tercatat satu kali ---
+kiriman 1 dan 2: 401, 401 (sesuai perintah lab)
+# menit 2 sampai 12: rahasia di api-t4 disamakan, server dinyalakan ulang dengan <baru>,<lama>
+ kiriman | menit sejak kiriman pertama | jawaban api-t4
+---------+-----------------------------+----------------
+ 3       | 12                          | 200 diproses
+(1 row)
+=> SELECT status, jurnal_id IS NOT NULL AS ada_jurnal FROM topup_bank WHERE id = 2
+ status  | ada_jurnal
+---------+------------
+ dibayar | t
+(1 row)
+
+# --- D. Pembanding untuk ADR 34: koneksi terpakai bila tiap kabar memegang satu koneksi selama W (Hitungan, Asumsi naskah; Tidak dijalankan) ---
+top-up puncak: 20.000 aktif x 0,25 top-up per hari / 86.400 x 10 = 0,579 per detik
+batas atas kiriman bila semua kiriman gagal dan diulang sampai kiriman ke-6: 6 x 0,579 = 3,47 per detik
+W = 0,3 detik: L = λ x W = 3,47 x 0,3 = 1,0 koneksi
+W = 5 detik: L = λ x W = 3,47 x 5 = 17,4 koneksi
+pool pembayaran 10 (Asumsi): penuh sejak W > 9 ÷ 3,47 = 2,6 detik
+# Hitungan dari angka naskah, bukan rekaman: lab tidak menahan koneksi 5 detik per kabar. Pada laju puncak 0,579 per detik, W = 5 detik memakai L = 2,9.
