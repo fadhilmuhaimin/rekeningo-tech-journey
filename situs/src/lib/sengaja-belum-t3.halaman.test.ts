@@ -168,7 +168,7 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(dari("A0").ada).toBe(true);
     const pakai: Record<string, number> = {};
     for (const m of badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)) pakai[m[1]!] = (pakai[m[1]!] ?? 0) + 1;
-    expect(pakai).toEqual({ A0: 1, berikutnya: 1, "t1-adr-12": 1, "t2-adr-21": 6, "t2-ledger": 1, "t2-race-lock": 1, "t3-cache": 4, "t3-dua-instance": 2, "t3-estimasi": 4, "t3-jembatan": 1, "t3-klaim-baris": 1, "t3-m28": 1, "t3-offline": 1, "t3-outbox": 2, "t3-pool": 2, "t3-rate-limit-redis": 1, "t3-tim-infra": 9 });
+    expect(pakai).toEqual({ A0: 1, berikutnya: 1, "t1-adr-12": 1, "t2-adr-21": 6, "t2-ledger": 1, "t2-race-lock": 1, "t3-cache": 4, "t3-dua-instance": 2, "t3-estimasi": 4, "t3-jembatan": 1, "t3-klaim-baris": 1, "t3-m28": 2, "t3-offline": 1, "t3-outbox": 2, "t3-pool": 2, "t3-rate-limit-redis": 1, "t3-tim-infra": 9 });
   });
   test("yang sudah dipasang: bentuk, ADR, dan M-nomor tiap baris sama dengan registry dan judul halaman tujuan", () => {
     const t = tabelPertama("### Yang sudah dipasang dan tidak termasuk daftar ini");
@@ -236,6 +236,14 @@ describe("naskah: ADR 33, M28, dan daftar delapan komponen", () => {
     expect(m28).toContain("| 10 |");
     expect(m28).toContain("Perlu server lebih besar");
     expect(m28).toContain("ADR 33 \"Sengaja belum dilakukan\": tanpa microservices, Kubernetes, read replica, PgBouncer, CDC, VPS kedua, cache saldo");
+    // 3.28 mengikuti baris M28 naskah (tujuh butir); tabel ADR 33 naskah delapan butir: halaman ini menjelaskan selisihnya
+    const h328 = baca("situs/src/content/docs/tahap-3/m28-prd-v4.mdx");
+    expect(h328).toContain("- [[t3-adr-33]]: ADR 33, \"Sengaja belum dilakukan\". Microservices, Kubernetes, read replica, PgBouncer, CDC, VPS kedua, dan cache saldo ditunda, masing-masing dengan alasan dari angka.");
+    expect(m28.match(/tanpa ([^|]+?) \|/)).not.toBeNull();
+    expect(m28).toContain("tanpa microservices, Kubernetes, read replica, PgBouncer, CDC, VPS kedua, cache saldo");
+    expect(m28.match(/tanpa microservices, Kubernetes, read replica, PgBouncer, CDC, VPS kedua, cache saldo/)![0].split(", ")).toHaveLength(7);
+    expect(dari("t3-m28").ada).toBe(true);
+    harus("Halaman [[t3-m28]] dan baris M28 di naskah menyebut tujuh butir. Tabel ADR 33 di naskah menambah pembayaran offline, dan memasangkan canary dengan Kubernetes serta riwayat dengan cache saldo, jadi hasilnya delapan baris.");
     harus("Minggu 10, uji coba enam kota lolos, lalu Sinta datang dengan PRD v4 ([[t3-m28]]). Dugaan pertama adalah server yang lebih besar.");
     expect(naskah).toContain("Tim naik dari 4 menjadi 10 sampai 15 orang dalam tiga tim");
     harus("Satu tim empat engineer (Asumsi cerita).");
