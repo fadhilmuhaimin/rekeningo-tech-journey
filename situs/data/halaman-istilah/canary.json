@@ -1,0 +1,38 @@
+{
+  "istilah": "Canary",
+  "sehari_hari": "Canary adalah cara merilis perubahan ke sebagian kecil lalu lintas lebih dulu, lalu menilai apakah hasilnya baik sebelum sisanya mendapat versi baru. Bagian kecil itu disebut canary, dan sisanya disebut kontrol.",
+  "cerita": [
+    {
+      "rujukan": "t3-dua-instance",
+      "teks": "Deploy bergulir mengganti satu instance, menunggu penggantinya menjawab, lalu mengganti instance yang lain. Halaman itu tidak menilai versi baru, hanya memastikan ia menjawab."
+    },
+    {
+      "rujukan": "t3-adr-33",
+      "teks": "ADR 33 menunda canary karena error rate dan p95 belum punya ambang. Tanpa ambang itu, tidak ada yang bisa memutuskan rilis ini baik atau buruk."
+    }
+  ],
+  "mekanisme": [
+    "Satu bagian layanan menjalankan versi baru dan menerima sebagian kecil lalu lintas, sedangkan sisanya tetap di versi lama.",
+    "Versi baru dinilai dengan metrik yang dibandingkan dengan kontrol, mis. error rate dan p95. Di proyek ini, ambangnya ditulis sebelum rilis.",
+    "Bila hasilnya baik, bagian yang menerima versi baru diperbesar sampai semuanya. Bila buruk, lalu lintas dikembalikan ke versi lama.",
+    "Google SRE Workbook menyebut tiga syarat: cara men-deploy ke sebagian layanan, proses menilai baik atau buruk, dan penilaian itu terhubung ke proses rilis."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menyebut deploy bergulir sebagai canary. Deploy bergulir mengganti instance satu per satu, tetapi tanpa penilaian yang memutuskan lanjut atau kembali, itu belum canary.",
+    "Memakai canary tanpa ambang yang ditulis sebelum rilis, sehingga tidak ada yang memutuskan lanjut atau kembali."
+  ],
+  "terkait": [
+    "Health check",
+    "Golden signals",
+    "Alert"
+  ],
+  "sumber": [
+    {
+      "riset": "R3-248",
+      "judul": "Google SRE Workbook, bab 16: Canarying Releases",
+      "url": "https://sre.google/workbook/canarying-releases/",
+      "catatan": "Definisi canarying sebagai deployment sebagian dan terbatas waktu beserta evaluasinya, dan tiga syarat prosesnya. Halaman tanpa nomor edisi, dibuka 2026-10-27."
+    }
+  ]
+}

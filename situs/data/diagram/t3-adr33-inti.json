@@ -1,0 +1,29 @@
+{
+  "id": "t3-adr33-inti",
+  "judul": "Jarak dua komponen ke pemicunya",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Hitungan atas Asumsi naskah dan Asumsi halaman ini; riwayat 1,4 ms dari rekaman lab Tahap 2 (n1.txt bagian E)"
+  },
+  "baris": [
+    {
+      "label": "PgBouncer",
+      "sub": "koneksi database",
+      "simpul": [
+        { "teks": "30 dari 100", "sub": "2 × 10 + 4 + 3 + 3 koneksi" },
+        { "teks": "pemicu 70", "sub": "Asumsi halaman ini: 70% dari max_connections", "nada": "warn" },
+        { "teks": "+4 instance", "sub": "(70 − 10) ÷ 10 = 6 instance, dua sudah ada", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Cache riwayat",
+      "sub": "L koneksi tertahan",
+      "simpul": [
+        { "teks": "L 0,024", "sub": "17,36 × 0,0014; semua request dianggap riwayat" },
+        { "teks": "pemicu 5", "sub": "separuh pool 10 (Asumsi ADR 21)", "nada": "warn" },
+        { "teks": "±206× puncak", "sub": "5 ÷ 0,0014 = 3.571 per detik; 3.571 ÷ 17,36 = 206", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Dua dari empat pemicu yang berupa angka beban. Keduanya masih di bawah pemicu; kapasitas satu server belum pernah diukur, jadi jarak ini hitungan, bukan bukti."
+}
