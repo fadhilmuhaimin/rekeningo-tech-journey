@@ -1,0 +1,45 @@
+{
+  "istilah": "Cache invalidation",
+  "sehari_hari": "Cache invalidation adalah membuang atau memperbarui entri cache saat data aslinya berubah, supaya salinan tidak tertinggal. Cara paling sederhana menghapus kuncinya sesudah database berubah, dan membiarkan TTL menutup sisanya.",
+  "cerita": [
+    {
+      "rujukan": "t3-m23",
+      "teks": "Cache di memori tiap instance hanya dibuang oleh instance yang menerima perubahan. Instance lain memakai entri lama sampai TTL 300 detik habis (`memori.txt` bagian B dan D)."
+    },
+    {
+      "rujukan": "t3-cache",
+      "teks": "Dengan satu Redis, kunci dihapus sesudah COMMIT dan semua instance langsung melihat harga baru. Pembaca lambat dan promo yang mulai nanti tetap meninggalkan harga lama sampai TTL habis (`redis.txt` bagian B, F, dan G)."
+    }
+  ],
+  "mekanisme": [
+    "Setiap jalur yang mengubah data yang di-cache menghapus kunci yang memuat data itu.",
+    "Penghapusan terjadi sesudah COMMIT, supaya bacaan berikutnya mengambil nilai yang sudah tersimpan.",
+    "TTL menjadi batas atas: entri yang lolos dari penghapusan tetap habis sendiri.",
+    "Perubahan yang tidak berasal dari tulis, seperti promo yang mulai di jam tertentu, tidak punya kejadian yang menghapus kunci."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Satu jalur tulis lupa menghapus kunci. Dari kode lab (tidak dijalankan), `POST /sinkron` mengubah stok tanpa menghapusnya.",
+    "Menghapus kunci saat tulis gagal. Di `gagal.txt` bagian D, lima PATCH yang gagal mengubah satu baca database menjadi enam."
+  ],
+  "terkait": ["Cache", "Cache-aside", "TTL (Time To Live)", "Stale", "Source of truth"],
+  "sumber": [
+    {
+      "riset": "R3-190",
+      "judul": "Azure Architecture Center: Cache-Aside pattern",
+      "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside",
+      "catatan": "ms.date 2025-09-11, dibuka 2026-10-27. Perbarui data store lebih dulu, baru hapus item cache. Bila dibalik, pembaca di celah mengisi cache lagi dengan data lama."
+    },
+    {
+      "riset": "R3-190",
+      "judul": "Nishtala dkk.: Scaling Memcache at Facebook (NSDI 2013)",
+      "url": "https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf",
+      "catatan": "Bagian 3.2.1: stale set terjadi saat server menyimpan nilai yang tidak mencerminkan nilai terbaru. Lease, token terikat satu key, menolak penyimpanan bila cache sudah menerima delete."
+    },
+    {
+      "judul": "Rekaman lab t3-cache: redis.txt bagian D, E, dan F",
+      "rekaman": "labs/t3-cache/output/redis.txt",
+      "catatan": "Hapus sebelum COMMIT dan pembaca lambat meninggalkan harga lama sampai TTL habis. Hapus sesudah COMMIT membuat instance lain langsung melihat harga baru."
+    }
+  ]
+}

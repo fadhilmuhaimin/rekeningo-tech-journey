@@ -1,0 +1,246 @@
+# Lab api-t4 · migrasi 000020-000023, 22 tabel, data awal publik, aturan database
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4 · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/api-t4 run.
+
+# --- A. Skema akhir Tahap 3, lalu migrasi api-t4 000020 sampai 000023 (satu transaction, schema kosong) ---
+# api-t1/schema.sql + b4-migration/baru/000005 + api-t2/migrasi/000009..000014 + api-t3/migrasi/000015..000019 = akhir Tahap 3;
+# yang ditulis lab ini:
+$ psql -1 -f migrasi/000020_akun_tingkat_buku_jenis.up.sql
+$ psql -1 -f migrasi/000021_topup_bank.up.sql
+$ psql -1 -f migrasi/000022_verifikasi_qr.up.sql
+$ psql -1 -f migrasi/000023_kartu_audit.up.sql
+=> SELECT count(*) AS tabel FROM information_schema.tables WHERE table_schema = current_schema()
+ tabel
+-------
+ 22
+(1 row)
+=> SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema() ORDER BY table_name
+ table_name
+-------------------
+ akun
+ audit_log
+ baris_pencairan
+ batch_pencairan
+ buku
+ insiden_rekon
+ jurnal
+ kartu
+ kota
+ kunci_idempotensi
+ operasi_sinkron
+ otorisasi_kartu
+ outbox
+ perangkat
+ posting
+ produk
+ promo
+ qr
+ sesi
+ topup_bank
+ verifikasi
+ webhook_event
+(22 rows)
+# 14 tabel Tahap 3 + 8 baru (topup_bank, webhook_event, insiden_rekon, verifikasi, qr, kartu, otorisasi_kartu, audit_log).
+# Semuanya satu schema: pembagian enam schema per modul (naskah 3b, tabel 'Modul (schema)') adalah rancangan yang
+# dibuktikan lab t4-modul, bukan lab ini.
+
+# --- B. Kolom tabel Tahap 4 dibandingkan dengan blok mermaid naskah (plan/CERITA-TAHAP-4.md bagian 3b); skema lab yang benar ---
+# tabel | kolom di lab | sama dengan naskah
+topup_bank | id, akun_id, order_id, jumlah, status, tujuan_bayar, dibuat, kedaluwarsa_pada, jurnal_id | ya, ditambah tujuan_bayar (tidak ada di mermaid)
+webhook_event | event_id, topup_id, jenis, hasil, diterima, jurnal_id | ya
+insiden_rekon | id, tanggal, order_id, topup_id, jenis, selisih, status, jurnal_id, dibuat | ya
+verifikasi | id, akun_id, subjek, status, tingkat_diminta, referensi_vendor, berkas_kartu_kunci, berkas_swafoto_kunci, checksum_kartu, checksum_swafoto, hapus_pada, diajukan, selesai | ya
+qr | id, akun_id, jenis, nominal, berlaku_sampai, status, jurnal_id | ya
+kartu | id, akun_id, token_penerbit, empat_digit, status, batas_harian | ya
+otorisasi_kartu | id, kartu_id, id_penerbit, jumlah, status, jurnal_tahan_id, jurnal_tangkap_id, tahan_sampai, dibuat | ya
+audit_log | id, waktu, pelaku_id, peran, aksi, objek, alasan, penyetuju_id, hash_sebelumnya, hash | ya
+outbox | id, notifikasi_id, jurnal_id, akun_id, kelas, jenis, payload, status, percobaan, coba_lagi, klaim_sampai, dibuat, tujuan | ya
+produk | id, akun_id, nama, harga, stok, aktif, versi, diubah, gambar_url | ya
+akun | id, jenis, nama, email, password_hash, nomor_karyawan, wajib_ganti_password, gagal_login, terkunci_sampai, kota_id, tingkat, status | ya (tingkat dan status baru)
+=> SELECT pg_get_constraintdef(oid) AS aturan_jenis_akun FROM pg_constraint WHERE conname = 'akun_jenis_check' AND connamespace = current_schema()::regnamespace
+ aturan_jenis_akun
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+ CHECK ((jenis = ANY (ARRAY['karyawan'::text, 'warung'::text, 'admin'::text, 'sistem'::text, 'hr'::text, 'pemakai'::text, 'merchant'::text, 'risk'::text])))
+(1 row)
+=> SELECT pg_get_constraintdef(oid) AS aturan_jenis_buku FROM pg_constraint WHERE conname = 'buku_jenis_check' AND connamespace = current_schema()::regnamespace
+ aturan_jenis_buku
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ CHECK ((jenis = ANY (ARRAY['karyawan'::text, 'warung'::text, 'pemakai'::text, 'merchant'::text, 'tunjangan'::text, 'kas_pencairan'::text, 'pembuka'::text, 'selisih'::text, 'bank'::text, 'dana_tertahan'::text, 'settlement_kartu'::text])))
+(1 row)
+# Selisih dengan blok mermaid: (1) topup_bank.tujuan_bayar: gateway memberi nomor tujuan bayar, dan app menampilkannya;
+# naskah menyebut 'mendapat tujuan bayar dari gateway' tetapi tidak punya kolomnya. (2) jenis buku baru untuk ledger:
+# pemakai, merchant, bank, dana_tertahan, settlement_kartu; naskah hanya menyebut akun sistem dana tertahan. (3) jenis jurnal
+# topup_bank, kartu_tahan, kartu_tangkap. (4) aturan (CHECK, UNIQUE, index sebagian) yang mermaid tidak tulis.
+=> SELECT conrelid::regclass AS tabel, conname AS aturan, pg_get_constraintdef(oid) AS isi
+   FROM pg_constraint WHERE connamespace = current_schema()::regnamespace AND contype IN ('c', 'u')
+     AND conrelid::regclass::text IN ('topup_bank', 'webhook_event', 'insiden_rekon', 'verifikasi', 'qr', 'kartu', 'otorisasi_kartu', 'audit_log')
+   ORDER BY 1::text, 2
+ tabel           | aturan                                   | isi
+-----------------+------------------------------------------+----------------------------------------------------------------------------------------------------------------------------
+ audit_log       | audit_log_hash_key                       | UNIQUE (hash)
+ insiden_rekon   | insiden_rekon_jenis_check                | CHECK ((jenis = ANY (ARRAY['tidak_di_ledger'::text, 'tidak_di_gateway'::text, 'jumlah_beda'::text])))
+ insiden_rekon   | insiden_rekon_status_check               | CHECK ((status = ANY (ARRAY['terbuka'::text, 'selesai'::text])))
+ insiden_rekon   | insiden_rekon_tanggal_order_id_jenis_key | UNIQUE (tanggal, order_id, jenis)
+ kartu           | kartu_batas_harian_check                 | CHECK ((batas_harian > 0))
+ kartu           | kartu_empat_digit_check                  | CHECK ((empat_digit ~ '^[0-9]{4}$'::text))
+ kartu           | kartu_status_check                       | CHECK ((status = ANY (ARRAY['aktif'::text, 'dibekukan'::text, 'ditutup'::text])))
+ kartu           | kartu_token_penerbit_key                 | UNIQUE (token_penerbit)
+ otorisasi_kartu | otorisasi_kartu_id_penerbit_key          | UNIQUE (id_penerbit)
+ otorisasi_kartu | otorisasi_kartu_jumlah_check             | CHECK ((jumlah > 0))
+ otorisasi_kartu | otorisasi_kartu_jurnal_tahan_id_key      | UNIQUE (jurnal_tahan_id)
+ otorisasi_kartu | otorisasi_kartu_jurnal_tangkap_id_key    | UNIQUE (jurnal_tangkap_id)
+ otorisasi_kartu | otorisasi_kartu_status_check             | CHECK ((status = ANY (ARRAY['ditahan'::text, 'ditangkap'::text, 'dibalik'::text, 'kedaluwarsa'::text, 'ditolak'::text])))
+ qr              | qr_dinamis_terikat                       | CHECK (((jenis = 'dinamis'::text) = ((nominal IS NOT NULL) AND (berlaku_sampai IS NOT NULL))))
+ qr              | qr_jenis_check                           | CHECK ((jenis = ANY (ARRAY['statis'::text, 'dinamis'::text])))
+ qr              | qr_jurnal_id_key                         | UNIQUE (jurnal_id)
+ qr              | qr_nominal_check                         | CHECK ((nominal > 0))
+ qr              | qr_statis_tanpa_jurnal                   | CHECK (((jenis = 'dinamis'::text) OR (jurnal_id IS NULL)))
+ qr              | qr_status_check                          | CHECK ((status = ANY (ARRAY['aktif'::text, 'terpakai'::text, 'kedaluwarsa'::text, 'dibatalkan'::text])))
+ topup_bank      | topup_bank_jumlah_check                  | CHECK ((jumlah > 0))
+ topup_bank      | topup_bank_jurnal_id_key                 | UNIQUE (jurnal_id)
+ topup_bank      | topup_bank_order_id_key                  | UNIQUE (order_id)
+ topup_bank      | topup_bank_status_check                  | CHECK ((status = ANY (ARRAY['menunggu'::text, 'dibayar'::text, 'kedaluwarsa'::text, 'gagal'::text, 'tidak_pasti'::text])))
+ verifikasi      | verifikasi_status_check                  | CHECK ((status = ANY (ARRAY['diajukan'::text, 'lulus'::text, 'ditolak'::text, 'tidak_pasti'::text, 'gagal'::text])))
+ verifikasi      | verifikasi_subjek_check                  | CHECK ((subjek = ANY (ARRAY['pemakai'::text, 'merchant'::text])))
+ verifikasi      | verifikasi_tingkat_diminta_check         | CHECK ((tingkat_diminta = 'terverifikasi'::text))
+ webhook_event   | webhook_event_hasil_check                | CHECK ((hasil = ANY (ARRAY['diproses'::text, 'ganda'::text, 'diparkir'::text, 'ditolak'::text])))
+(27 rows)
+=> SELECT tablename AS tabel, indexname AS index FROM pg_indexes WHERE schemaname = current_schema() AND tablename IN ('topup_bank', 'webhook_event', 'insiden_rekon', 'verifikasi', 'qr', 'kartu', 'otorisasi_kartu', 'audit_log', 'outbox') AND indexname NOT LIKE '%_pkey' ORDER BY 1, 2
+ tabel           | index
+-----------------+------------------------------------------
+ audit_log       | audit_log_hash_key
+ audit_log       | audit_log_objek
+ insiden_rekon   | insiden_rekon_tanggal_order_id_jenis_key
+ kartu           | kartu_akun
+ kartu           | kartu_token_penerbit_key
+ otorisasi_kartu | otorisasi_kartu_ditahan
+ otorisasi_kartu | otorisasi_kartu_id_penerbit_key
+ otorisasi_kartu | otorisasi_kartu_jurnal_tahan_id_key
+ otorisasi_kartu | otorisasi_kartu_jurnal_tangkap_id_key
+ otorisasi_kartu | otorisasi_kartu_kartu
+ outbox          | outbox_antre
+ outbox          | outbox_antre_tujuan
+ outbox          | outbox_notifikasi_id_key
+ outbox          | outbox_satu_per_jurnal
+ qr              | qr_akun
+ qr              | qr_jurnal_id_key
+ topup_bank      | topup_bank_akun
+ topup_bank      | topup_bank_belum_selesai
+ topup_bank      | topup_bank_jurnal_id_key
+ topup_bank      | topup_bank_order_id_key
+ verifikasi      | verifikasi_akun
+ verifikasi      | verifikasi_satu_berjalan
+ webhook_event   | webhook_event_topup
+(23 rows)
+
+# --- C. Data awal: ./api-t4 -seed (data lab, sebagai pemilik schema, tanpa lewat service) ---
+$ DATABASE_URL=<pemilik schema> ./api-t4 -seed   # password semua akun lab: lihat cmd/api/seed.go
+=> SELECT jenis, tingkat, count(*) AS akun FROM akun GROUP BY jenis, tingkat ORDER BY jenis, tingkat
+ jenis    | tingkat       | akun
+----------+---------------+-------
+ admin    | terverifikasi | 1
+ hr       | terverifikasi | 6
+ karyawan | terverifikasi | 10000
+ merchant | belum         | 1
+ merchant | terverifikasi | 20
+ pemakai  | belum         | 99
+ pemakai  | terverifikasi | 101
+ risk     | terverifikasi | 2
+ sistem   | terverifikasi | 1
+ warung   | terverifikasi | 60
+(10 rows)
+=> SELECT jenis, count(*) AS buku, sum(saldo_cache) AS saldo FROM buku GROUP BY jenis ORDER BY jenis
+ jenis            | buku  | saldo
+------------------+-------+-------------
+ bank             | 1     | -100400000
+ dana_tertahan    | 1     | 0
+ karyawan         | 10000 | 2500000000
+ kas_pencairan    | 1     | 0
+ merchant         | 21    | 0
+ pemakai          | 200   | 100400000
+ pembuka          | 1     | 0
+ selisih          | 1     | 0
+ settlement_kartu | 1     | 0
+ tunjangan        | 1     | -2500000000
+ warung           | 60    | 0
+(11 rows)
+=> SELECT a.id, a.nama, a.jenis, a.tingkat, b.saldo_cache AS saldo FROM akun a LEFT JOIN buku b ON b.akun_id = a.id WHERE a.id IN (419, 420, 421, 30001, 30002, 30021, 40001, 40002) ORDER BY a.id
+ id    | nama               | jenis    | tingkat       | saldo
+-------+--------------------+----------+---------------+--------
+ 419   | Budi               | karyawan | terverifikasi | 250000
+ 420   | Ratih              | risk     | terverifikasi |
+ 421   | Tim Risk Dua       | risk     | terverifikasi |
+ 30001 | Toko Sumber Rejeki | merchant | terverifikasi | 0
+ 30002 | Toko Andalan       | merchant | terverifikasi | 0
+ 30021 | Merchant 21        | merchant | belum         | 0
+ 40001 | Dina               | pemakai  | belum         | 900000
+ 40002 | Eko                | pemakai  | terverifikasi | 500000
+(8 rows)
+=> SELECT (SELECT count(*) FROM jurnal) AS jurnal, (SELECT count(*) FROM outbox) AS outbox, (SELECT count(*) FROM topup_bank) AS topup_bank, (SELECT count(*) FROM audit_log) AS audit_log
+ jurnal | outbox | topup_bank | audit_log
+--------+--------+------------+-----------
+ 10200  | 0      | 0          | 0
+(1 row)
+
+# --- D. Role app (api_t4) bukan pemilik tabel: invarian dan kolom tertentu tidak bisa diubah dari server ---
+api_t4=> UPDATE audit_log SET aksi = 'x' WHERE id = 1;
+ERROR:  permission denied for table audit_log
+   -- SQLSTATE 42501
+api_t4=> DELETE FROM audit_log WHERE id = 1;
+ERROR:  permission denied for table audit_log
+   -- SQLSTATE 42501
+api_t4=> UPDATE posting SET jumlah = 1 WHERE id = 1;
+ERROR:  permission denied for table posting
+   -- SQLSTATE 42501
+api_t4=> DELETE FROM jurnal WHERE id = 1;
+ERROR:  permission denied for table jurnal
+   -- SQLSTATE 42501
+api_t4=> UPDATE akun SET jenis = 'risk' WHERE id = 40001;
+ERROR:  permission denied for table akun
+   -- SQLSTATE 42501
+api_t4=> DELETE FROM webhook_event;
+ERROR:  permission denied for table webhook_event
+   -- SQLSTATE 42501
+api_t4=> ALTER TABLE topup_bank DISABLE TRIGGER ALL;
+ERROR:  must be owner of table topup_bank
+   -- SQLSTATE 42501
+# audit_log hanya bertambah dari sisi server (SELECT dan INSERT); pemilik schema tetap bisa mengubahnya, dan itulah yang
+# dideteksi rantai hash (internal/repo/audit.go), bukan dicegah.
+
+# --- E. Aturan tabel baru ditolak database, bukan hanya service (gagal keras bila tidak ditolak) ---
+=> INSERT INTO topup_bank (akun_id, order_id, jumlah, kedaluwarsa_pada) VALUES (419, 'X', 0, now())
+ERROR:  new row for relation "topup_bank" violates check constraint "topup_bank_jumlah_check"
+   -- SQLSTATE 23514 · constraint topup_bank_jumlah_check
+=> INSERT INTO topup_bank (akun_id, order_id, jumlah, kedaluwarsa_pada) VALUES (419, 'X1', 10000, now())
+INSERT 0 1
+=> INSERT INTO topup_bank (akun_id, order_id, jumlah, kedaluwarsa_pada) VALUES (419, 'X1', 10000, now())
+ERROR:  duplicate key value violates unique constraint "topup_bank_order_id_key"
+   -- SQLSTATE 23505 · constraint topup_bank_order_id_key
+=> INSERT INTO topup_bank (akun_id, order_id, jumlah, status, kedaluwarsa_pada) VALUES (419, 'X2', 10000, 'selesai', now())
+ERROR:  new row for relation "topup_bank" violates check constraint "topup_bank_status_check"
+   -- SQLSTATE 23514 · constraint topup_bank_status_check
+=> INSERT INTO webhook_event (event_id, jenis, hasil) VALUES ('evt-1', 'settlement', 'diproses')
+INSERT 0 1
+=> INSERT INTO webhook_event (event_id, jenis, hasil) VALUES ('evt-1', 'settlement', 'diproses')
+ERROR:  duplicate key value violates unique constraint "webhook_event_pkey"
+   -- SQLSTATE 23505 · constraint webhook_event_pkey
+=> INSERT INTO webhook_event (event_id, jenis, hasil) VALUES ('evt-2', 'settlement', 'dilewati')
+ERROR:  new row for relation "webhook_event" violates check constraint "webhook_event_hasil_check"
+   -- SQLSTATE 23514 · constraint webhook_event_hasil_check
+=> INSERT INTO insiden_rekon (tanggal, order_id, jenis, selisih) VALUES ('2026-01-01', 'X1', 'lain', 1)
+ERROR:  new row for relation "insiden_rekon" violates check constraint "insiden_rekon_jenis_check"
+   -- SQLSTATE 23514 · constraint insiden_rekon_jenis_check
+=> INSERT INTO qr (akun_id, jenis) VALUES (30001, 'dinamis')
+ERROR:  new row for relation "qr" violates check constraint "qr_dinamis_terikat"
+   -- SQLSTATE 23514 · constraint qr_dinamis_terikat
+=> INSERT INTO kartu (akun_id, token_penerbit, empat_digit) VALUES (40002, 'tok', '12a4')
+ERROR:  new row for relation "kartu" violates check constraint "kartu_empat_digit_check"
+   -- SQLSTATE 23514 · constraint kartu_empat_digit_check
+=> INSERT INTO outbox (akun_id, kelas, jenis, payload) VALUES (40001, 1, 'verifikasi', '{}')
+ERROR:  new row for relation "outbox" violates check constraint "outbox_tujuan_sesuai_jenis"
+   -- SQLSTATE 23514 · constraint outbox_tujuan_sesuai_jenis
+=> INSERT INTO outbox (akun_id, kelas, jenis, tujuan, payload) VALUES (40001, 1, 'verifikasi', 'verifikasi', '{}')
+INSERT 0 1
+=> INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('kartu_bebas', 'x', 400)
+ERROR:  new row for relation "jurnal" violates check constraint "jurnal_jenis_check"
+   -- SQLSTATE 23514 · constraint jurnal_jenis_check

@@ -1896,6 +1896,46 @@
   "jawab": "Paling lama sebesar TTL, 300 detik sejak entri diisi: detik ke-299 masih Rp25.000 dan detik ke-300 Rp22.500 (`memori.txt` bagian D). TTL hanya membatasi, karena tidak ada yang memberi tahu B sebelum entrinya habis."
  },
  {
+  "id": "t3-cache-1",
+  "halaman": "t3-cache",
+  "judul": "3.19 Cache dan invalidation + ADR 28",
+  "url": "tahap-3/cache-invalidation/",
+  "tanya": "Ani mengubah harga dan kunci dihapus sebelum COMMIT. Apa yang terlihat sesudahnya?",
+  "jawab": "Pembaca di celah membaca Rp25.000 dari database yang belum melihat Rp28.000, lalu menyimpannya lagi. Redis berisi Rp25.000 padahal database Rp28.000, dan hanya TTL yang menutupnya (`redis.txt` bagian D). Dengan hapus sesudah COMMIT, Citra langsung melihat Rp28.000 (bagian E)."
+ },
+ {
+  "id": "t3-cache-2",
+  "halaman": "t3-cache",
+  "judul": "3.19 Cache dan invalidation + ADR 28",
+  "url": "tahap-3/cache-invalidation/",
+  "tanya": "Kunci sudah dihapus sesudah COMMIT, tetapi Redis kembali berisi harga lama. Bagaimana itu bisa terjadi?",
+  "jawab": "Pembaca lambat membaca database sebelum tulis, lalu menyimpan hasilnya sesudah COMMIT dan hapus kunci selesai. Entri lama bertahan sampai TTL habis (`redis.txt` bagian F). Lease menutupnya, tetapi lab tidak memakainya."
+ },
+ {
+  "id": "t3-cache-3",
+  "halaman": "t3-cache",
+  "judul": "3.19 Cache dan invalidation + ADR 28",
+  "url": "tahap-3/cache-invalidation/",
+  "tanya": "Citra melihat Rp25.000 di layar, lalu memesan satu nasi goreng saat promo 10% berlaku. Berapa tagihannya, dan dari mana harganya dibaca?",
+  "jawab": "Rp22.500, dibaca dari database di dalam transaction, bukan dari cache. Stok di database 49 sementara cache instance B masih 50 (`memori.txt` bagian C)."
+ },
+ {
+  "id": "t3-cache-4",
+  "halaman": "t3-cache",
+  "judul": "3.19 Cache dan invalidation + ADR 28",
+  "url": "tahap-3/cache-invalidation/",
+  "tanya": "Redis mati dan 50 bacaan katalog datang serentak. Apa yang terjadi pada jawaban dan pada database?",
+  "jawab": "Semua 50 bacaan dijawab 200, dan semuanya menjadi baca database. Koneksi PostgreSQL paling banyak 10. Lab tidak mengukur apakah ada bacaan yang mengantre di pool (`gagal.txt` bagian B)."
+ },
+ {
+  "id": "t3-cache-5",
+  "halaman": "t3-cache",
+  "judul": "3.19 Cache dan invalidation + ADR 28",
+  "url": "tahap-3/cache-invalidation/",
+  "tanya": "Katalog 5,21 baca per detik dengan W = 5 ms. Apakah database butuh cache, dan apa kata ADR 28?",
+  "jawab": "Tidak: L = 5,21 × 0,005 = 0,026 koneksi dari pool 10 (Asumsi), sekitar 192 kali di bawah pemicu 5 koneksi di ADR 21. ADR 28 menulis itu apa adanya, memilih cache dengan alasan yang bukan beban, dan menulis syarat untuk mencabutnya."
+ },
+ {
   "id": "t3-m24-1",
   "halaman": "t3-m24",
   "judul": "3.20 M24: Stok yang kembali ke angka lama",
