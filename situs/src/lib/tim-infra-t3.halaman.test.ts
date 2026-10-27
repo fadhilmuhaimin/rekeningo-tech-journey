@@ -151,7 +151,8 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(h39).toContain("Dibuka lagi oleh ADR 32 untuk kelas queue ([[t3-tim-infra]])");
     expect(h37).toContain("| Alert dan ambangnya | Ambang adalah Asumsi yang ditetapkan lab | [[t3-tim-infra]] |");
     harus("| Request menunggu koneksi | Saturation |");
-    harus("| Umur notifikasi uang tertua | Latency untuk pekerjaan yang jalan di latar (penalaran) |");
+    harus("| Umur notifikasi uang tertua | Latency untuk pekerjaan yang jalan di latar (penalaran) | `GET /lab/outbox`, hanya dengan `-lab`, memberi umur baris `menunggu` tertua dari semua kelas;");
+    expect(mainGo).toContain("\tif *lab {\n\t\tpasangEndpointLab(rute, db, r)");
     harus("**Status:** diterima di minggu 9 Tahap 3, sesudah M27. Memperbarui ADR 23: outbox di [[t3-outbox]] ditulis tanpa kelas.");
     harus("| Replay otomatis baris `mati` | Replay buta mengulang kegagalan yang sama, dan dead-letter dibaca manusia dulu ([[t3-at-least-once]]) |");
     harus("kedua instance dikeluarkan");
@@ -432,8 +433,10 @@ describe("widget pilah, diagram Rantai, halaman istilah, glosarium, dan kartu Ce
     const p = DataRantai.parse(pipeline);
     expect(i.baris).toHaveLength(2);
     expect(i.judul.length).toBeLessThanOrEqual(47);
-    expect(i.baris.map((b) => b.simpul.at(-1)!.teks)).toEqual(["berbunyi, uang tepat waktu", "diam, uang tepat waktu"]);
+    expect(i.baris.map((b) => b.simpul.at(-1)!.teks)).toEqual(["alert berbunyi", "alert diam"]);
+    expect(i.baris.map((b) => b.simpul.at(-1)!.sub)).toEqual(["uang tepat waktu; penalaran dari dua umur di rekaman", "uang tepat waktu; penalaran dari dua umur di rekaman"]);
     expect(i.baris.map((b) => b.simpul[0]!.sub)).toEqual(["umur tertua semua kelas lebih dari 30 detik", "umur tertua kelas uang 0"]);
+    expect(i.baris.map((b) => b.simpul[0]!.teks)).toEqual(["promo 30+ detik", "uang menunggu: 0"]);
     expect(i.sumber).toEqual({ jenis: "rekaman", teks: "Rekaman lab t3-outbox, queue.txt bagian E; alert sungguhan Tidak dijalankan" });
     expect(sidikJson(inti)).toBe(SIDIK_DIAGRAM_INTI);
     expect(p.baris.map((b) => b.simpul.length)).toEqual([5, 4]);

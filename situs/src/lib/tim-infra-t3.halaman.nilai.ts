@@ -2,7 +2,7 @@
 export const FRONTMATTER: string[] = ["title: \"3.27 Tim dan infra Tahap 3: staging, pipeline, alert, on-call + ADR 32\"", "description: Empat engineer menjaga dua instance, worker, Redis, dan staging, tetapi di M27 tidak ada alert yang melihat notifikasi uang menunggu di belakang 10.000 promo. ADR 32 memilih kelas queue, alert umur uang tertua per kelas, staging yang berbentuk sama dengan produksi, dan giliran jaga mingguan."];
 export const SIDIK_BENTUK_MDX = "d5a3521e08e661fb";
 export const SIDIK_PILAH = "ae5749417de758a8";
-export const SIDIK_DIAGRAM_INTI = "b102205c0cbfbee3";
+export const SIDIK_DIAGRAM_INTI = "5b579f1250feaf7a";
 export const SIDIK_DIAGRAM_PIPELINE = "832660f91fc1c89b";
 export const SIDIK_ISTILAH: Record<string, string> = {"alert": "1ccb24f3272b14d0", "on-call": "aead6bec18ac7d9e", "staging": "452f89700ce54461"};
 export const SIDIK_RISET: Record<string, string> = {"R3-230": "a4ba30d997dc0368", "R3-231": "6040fa87778758f4", "R3-232": "bd6423c2c956688c", "R3-233": "60961a4c021846c6"};
@@ -19,7 +19,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "<p class=\"meta\">Baca 15 menit · coba 3 menit · Prasyarat: [[t3-m27]] · Jalur inti</p>",
  "<Blok nama=\"Siapa memegang apa\" buka>",
  "## Inti",
- "Empat engineer menjaga uang lewat staging, pipeline, alert yang menunjuk gejala, dan satu orang yang jaga tiap minggu.",
+ "Empat engineer menjaga uang dengan staging, alert gejala, dan giliran jaga.",
  "<Rantai data={intiDiagram} ringkas />",
  "Di [[t3-m27]], notifikasi uang menunggu di belakang 10.000 promo dan tidak ada alert yang melihatnya. Alert dari umur tertua semua kelas akan berbunyi walau uang tepat waktu, jadi umur dihitung dari kelas uang saja.",
  "Halaman ini membagi pekerjaan dan memutuskan ADR 32. Rekaman lab hanya mencakup queue, tes, dan dua instance. Alert, staging, dan giliran jaga Tidak dijalankan. Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].",
@@ -82,7 +82,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "ADR 32 memakai empat alert, dan tiap alert menunjuk gejala yang user rasakan:",
  "| Alert | Sinyal | Yang ada di lab | Ambang |",
  "|---|---|---|---|",
- "| Umur notifikasi uang tertua | Latency untuk pekerjaan yang jalan di latar (penalaran) | `GET /lab/outbox` memberi umur baris `menunggu` tertua dari semua kelas; per kelas hanya di kueri lab | 30 detik (Asumsi, dari janji PRD v3: 95% di bawah 30 detik) |",
+ "| Umur notifikasi uang tertua | Latency untuk pekerjaan yang jalan di latar (penalaran) | `GET /lab/outbox`, hanya dengan `-lab`, memberi umur baris `menunggu` tertua dari semua kelas; per kelas hanya di kueri lab | 30 detik (Asumsi, dari janji PRD v3: 95% di bawah 30 detik) |",
  "| Error rate | Errors | Tidak ada: api-t3 tidak punya metric status code | Belum ditetapkan |",
  "| p95 | Latency | Tidak ada: p95 tidak direkam | Belum ditetapkan |",
  "| Request menunggu koneksi | Saturation | `GET /lab/pool` memberi kolom `menunggu`, hitungan kumulatif | Belum ditetapkan |",

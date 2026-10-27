@@ -10,16 +10,16 @@
       "label": "Semua kelas",
       "sub": "bagian E",
       "simpul": [
-        { "teks": "promo menunggu 30+ detik", "sub": "umur tertua semua kelas lebih dari 30 detik", "nada": "warn" },
-        { "teks": "berbunyi, uang tepat waktu", "sub": "penalaran dari dua umur di rekaman", "nada": "warn" }
+        { "teks": "promo 30+ detik", "sub": "umur tertua semua kelas lebih dari 30 detik", "nada": "warn" },
+        { "teks": "alert berbunyi", "sub": "uang tepat waktu; penalaran dari dua umur di rekaman", "nada": "warn" }
       ]
     },
     {
       "label": "Kelas uang",
       "sub": "ADR 32",
       "simpul": [
-        { "teks": "tak ada uang menunggu", "sub": "umur tertua kelas uang 0", "nada": "good" },
-        { "teks": "diam, uang tepat waktu", "sub": "penalaran dari dua umur di rekaman", "nada": "good" }
+        { "teks": "uang menunggu: 0", "sub": "umur tertua kelas uang 0", "nada": "good" },
+        { "teks": "alert diam", "sub": "uang tepat waktu; penalaran dari dua umur di rekaman", "nada": "good" }
       ]
     }
   ],

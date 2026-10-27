@@ -17,7 +17,7 @@ import pilah from "../../../../lama/widgets/data/t3-tim-infra-pilah.json";
 
 ## Inti
 
-Empat engineer menjaga uang lewat staging, pipeline, alert yang menunjuk gejala, dan satu orang yang jaga tiap minggu.
+Empat engineer menjaga uang dengan staging, alert gejala, dan giliran jaga.
 
 <Rantai data={intiDiagram} ringkas />
 
@@ -118,7 +118,7 @@ ADR 32 memakai empat alert, dan tiap alert menunjuk gejala yang user rasakan:
 
 | Alert | Sinyal | Yang ada di lab | Ambang |
 |---|---|---|---|
-| Umur notifikasi uang tertua | Latency untuk pekerjaan yang jalan di latar (penalaran) | `GET /lab/outbox` memberi umur baris `menunggu` tertua dari semua kelas; per kelas hanya di kueri lab | 30 detik (Asumsi, dari janji PRD v3: 95% di bawah 30 detik) |
+| Umur notifikasi uang tertua | Latency untuk pekerjaan yang jalan di latar (penalaran) | `GET /lab/outbox`, hanya dengan `-lab`, memberi umur baris `menunggu` tertua dari semua kelas; per kelas hanya di kueri lab | 30 detik (Asumsi, dari janji PRD v3: 95% di bawah 30 detik) |
 | Error rate | Errors | Tidak ada: api-t3 tidak punya metric status code | Belum ditetapkan |
 | p95 | Latency | Tidak ada: p95 tidak direkam | Belum ditetapkan |
 | Request menunggu koneksi | Saturation | `GET /lab/pool` memberi kolom `menunggu`, hitungan kumulatif | Belum ditetapkan |
