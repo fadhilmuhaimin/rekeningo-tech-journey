@@ -642,8 +642,11 @@ def rekam_rotasi():
     tulis_rahasia("pembayaran/webhook", sekarang=RAHASIA_V1)
     token = token_dengan("pembayaran-baca", 'path "secret/data/pembayaran/*" { capabilities = ["read"] }')
     d.samaran[token] = "<token service>"
-    r = subprocess.run([str(BIN_HOST / "pembayaran"), "-addr", f"127.0.0.1:{PORT_PEMB}", "-rahasia-bao", f"http://127.0.0.1:{PORT_BAO}"],
-                       env=dict(d.ENV, DATABASE_URL=DB, BAO_TOKEN="token-yang-tidak-dikenal"), capture_output=True, text=True, timeout=30)
+    try:
+        r = subprocess.run([str(BIN_HOST / "pembayaran"), "-addr", f"127.0.0.1:{PORT_PEMB}", "-rahasia-bao", f"http://127.0.0.1:{PORT_BAO}"],
+                           env=dict(d.ENV, DATABASE_URL=DB, BAO_TOKEN="token-yang-tidak-dikenal"), capture_output=True, text=True, timeout=30)
+    except subprocess.TimeoutExpired:
+        gagal("service dengan token yang tidak dikenal tetap berjalan sesudah 30 detik; pembacaan awal yang gagal harus menghentikannya")
     pesan = re.search(r"rahasia awal tidak terbaca, service tidak dinyalakan: (.*)", r.stdout + r.stderr)
     harap((r.returncode, pesan.group(1) if pesan else None), (1, "secret manager menjawab 403"), "pembacaan awal yang gagal menghentikan service")
     catat("service dengan token yang tidak dikenal OpenBao: exit status 1, \"rahasia awal tidak terbaca, service tidak dinyalakan: secret manager menjawab 403\" (pembacaan awal yang gagal menghentikan service)")
