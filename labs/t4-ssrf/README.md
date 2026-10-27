@@ -22,7 +22,7 @@ Butuh Go (go1.27.1 dipakai saat lab ditulis). Kode yang diperiksa dan tesnya ada
 |---|---|---|
 | `batas.txt` | Batas ADR 41 dari dua sisi: skema `http` ditolak sebelum permintaan, https dengan sertifikat yang dipercaya diterima, sertifikat asing ditolak; redirect 301, 302, 303, 307, dan 308 tidak diikuti dan server tujuannya tidak tersentuh; tepat 2 MiB diterima dan 2 MiB + 1 byte ditolak (dengan dan tanpa Content-Length), `Content-Length` 1 GiB ditolak sebelum isi dibaca; batas 3 detik untuk seluruh unduhan (menjawab sesudah 1 detik diterima, tidak pernah menjawab dan isi yang menetes ditolak di antara 3 dan 5 detik); hanya status 200; hanya PNG, JPEG, GIF, dan WebP menurut byte awal, dan header `Content-Type` tidak dipercaya; header jawaban paling besar 64 KiB (32 KiB diterima, 128 KiB dan 11 MiB ditolak); masukan ekstrem yang gagal tertutup (host 100.000 karakter, path 2 MiB, rantai redirect tanpa akhir, jawaban DNS 4.097 alamat dengan satu alamat private di ujung, dan alamat terlarang di urutan kedua jawaban DNS); pesan galat tanpa isi respons, alamat, atau port, dan satu pesan untuk semua penolakan karena alamat literal; satu batas yang belum tertutup (nama yang ada lawan nama yang tidak ada); URL bernama IDNA ditolak | 4.20, 4.21 |
 | `alamat.txt` | Untuk 37 alamat: jawaban empat penanda bawaan Go (`IsPrivate`, `IsLoopback`, `IsLinkLocalUnicast`, `IsUnspecified`) dan keputusan fetcher aman. Hasil: 32 dari 32 alamat terlarang ditolak, 5 alamat publik sebagai kontrol lolos, dan 29 dari 32 alamat terlarang lolos bila `IsPrivate` satu-satunya pemeriksaan (Hitungan dari rekaman ini) | 4.21 |
-| `testing.txt` | `go vet` dengan dan tanpa tag, tes bawaan `api-t4` untuk paket `unduh` (20 fungsi, tanpa tag), dan penjaga bahwa tiap dari 11 fungsi tes bertag muncul sebagai PASS | 4.21 |
+| `testing.txt` | `go vet` dengan dan tanpa tag, tes bawaan `api-t4` untuk paket `unduh` (20 fungsi, tanpa tag), dan penjaga bahwa tiap dari 13 fungsi tes bertag muncul sebagai PASS | 4.21 |
 
 Rekaman ulang identik per byte (`make cek`, dijalankan dua kali). Alamat contoh private dan link-local di `alamat.txt` adalah angka karangan lab; alamat metadata instance cloud dan IMDSv2 tidak dijalankan dan tidak ditulis sebagai tujuan.
 
@@ -57,7 +57,29 @@ Naskah tidak diubah. Yang terbaca dari lab ini untuk KONSISTENSI-4:
 
 ## Uji mutasi
 
-@@MUTASI@@
+Skrip: `make -C labs/t4-ssrf mutasi` (±20 menit; butuh Docker; hasil dicetak, tidak ditulis ke `output/`). Tiap mutan mengubah satu hal di salinan `internal/unduh/unduh.go` atau `internal/klien/klien.go` (tiga mutan gabungan, C01 sampai C03, mengubah beberapa lapis sekaligus). Tes dikompilasi sebagai biner Linux dan dijalankan di container tanpa jaringan (`--network none`), supaya mutan yang melemahkan pemeriksaan alamat tidak bisa menyambung ke jaringan mesin. Yang dijalankan adalah tes bawaan `api-t4` untuk paket ini ditambah tes bertag lab ini. Mutan yang tidak bisa dikompilasi tidak dihitung.
+
+Hasil (80 mutan baru; 66 membuat suite gagal, satu (C01) membuat suite macet lewat 240 detik, 13 lolos):
+
+| Kelompok | Mutan | Tertangkap | Lolos |
+|---|---|---|---|
+| Rentang alamat: tiap penanda bawaan, tiap awalan di `alamatKhusus` dibuang satu per satu, lebar awalan, IPv4-mapped | 37 | 34 | U06, U08, P11 |
+| Skema dan URL | 3 | 3 | - |
+| Batas ukuran isi dan header | 9 | 9 | - |
+| Batas waktu | 6 | 3 | L07, R03, D08 |
+| Redirect | 2 | 2 | - |
+| Status dan tipe isi | 6 | 6 | - |
+| Pesan galat | 7 | 5 | E02, E03 |
+| Resolusi nama dan pemeriksaan awal | 7 | 5 | D04, X02 |
+| Transport | 3 | 0 | D06, D07, C03 |
+
+Tiga belas mutan yang lolos, dan kenapa tidak ditutup:
+
+- **Setara karena lapis lain mencakup perilakunya (5):** U06 (multicast skop tautan ikut tertolak oleh `IsMulticast`), U08 (`0.0.0.0` dan `::` sudah di 0.0.0.0/8 dan ::/96), P11 (`2001::/32` ada di dalam `2001::/23`), D04 dan X02 (alamat literal yang lolos pemeriksaan awal ditolak lagi oleh `ControlContext` dengan galat yang sama).
+- **Lapis ganda; mutan gabungannya tertangkap (5):** L07, R03, dan D08 membuang satu dari tiga batas waktu (context, `Timeout` client, `Timeout` dialer), dan C01 yang membuang ketiganya membuat suite macet. E02 dan E03 membuang satu dari dua pemetaan galat timeout, dan C02 yang membuang keduanya tertangkap.
+- **Tidak teramati dengan server uji di loopback (3):** D06 (Go tidak memakai proxy untuk tujuan loopback) serta D07 dan C03 (transport dibuat per unduhan dan ditutup, jadi koneksi tidak dipakai ulang). Pemeriksaannya ada di kode tetapi tidak ada tes yang membuktikannya: Tidak dijalankan.
+
+Dua mutan lolos pada tes yang pertama ditulis dan ditutup tes lanjutan: X01 (pemeriksaan awal hanya delapan jawaban DNS pertama) dan D01 (hanya jawaban pertama), dengan `TestSSRFBatasMasukanEkstremGagalTertutup` dan `TestSSRFBatasJawabanDNSDenganAlamatTerlarangDiUrutanKedua`. Sebelum label Content-Length diperbaiki, mutan L06 (`Content-Length` tepat 2 MiB ditolak) lolos karena server uji ternyata menjawab chunked; kini tes membuktikan header yang diterima client.
 
 ## Versi dasar dan sumber (dicek 2026-10-28)
 

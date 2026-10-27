@@ -1,0 +1,106 @@
+# Lab t4-ssrf · batas fetcher gambar versi aman dari dua sisi (https, redirect, 2 MiB, 3 detik, status, tipe, pesan galat, nama IDNA)
+# go1.27.1 · tanpa database · server uji hanya di 127.0.0.1 di dalam proses tes
+# Rekaman: make -C labs/t4-ssrf run.
+$ go test -tags t4ssrf -count=1 -v -run 'TestSSRFBatas' ./internal/unduh
+## https saja: skema http ditolak sebelum permintaan, https dengan sertifikat yang dipercaya diterima, sertifikat asing ditolak
+http://<loopback>/gambar.png (bawaan)                ditolak (tujuan tidak diizinkan); permintaan sampai: 0
+https://<loopback>/gambar.png (sertifikat dipercaya) diterima (image/png, 75 byte); permintaan sampai: 1
+https://<loopback>/gambar.png (sertifikat asing)     ditolak (gambar tidak bisa diunduh); permintaan sampai: 0
+--- PASS: TestSSRFBatasHanyaHTTPSDenganSertifikatDibuatLab
+
+## redirect dimatikan: tiap kode 3xx ditolak dan server tujuan redirect tidak tersentuh
+redirect 301 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0
+redirect 302 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0
+redirect 303 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0
+redirect 307 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0
+redirect 308 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0
+--- PASS: TestSSRFBatasRedirectTidakDiikutiUntukSemuaKode
+
+## batas 2 MiB: tepat di batas diterima, satu byte di atasnya ditolak, dengan Content-Length dan tanpa (chunked), dan aliran tanpa akhir dipotong
+2.097.152 byte (tepat 2 MiB), dengan Content-Length  diterima (image/png, 2097152 byte)
+2.097.153 byte (2 MiB + 1), dengan Content-Length    ditolak (terlalu besar)
+2.097.152 byte (tepat 2 MiB), chunked                diterima (image/png, 2097152 byte)
+2.097.153 byte (2 MiB + 1), chunked                  ditolak (terlalu besar)
+3 MiB, chunked                                       ditolak (terlalu besar)
+Content-Length 1 GiB (isi tidak pernah selesai)      ditolak (terlalu besar); ditolak sebelum isi dibaca (kurang dari 1 detik): true
+aliran tanpa akhir                                   ditolak (terlalu besar)
+--- PASS: TestSSRFBatasUkuranDuaMiBDariDuaSisi
+
+## batas 3 detik untuk seluruh unduhan: yang selesai di dalam batas diterima, yang menggantung atau menetes ditolak
+menjawab sesudah 1 detik (dalam batas)           diterima (image/png, 75 byte)
+tidak pernah menjawab                            ditolak (tidak menjawab); berhenti pada batas 3 detik (≥ 3 dan < 5 detik): true
+isi menetes 1 byte per 100 milidetik             ditolak (tidak menjawab); berhenti pada batas 3 detik (≥ 3 dan < 5 detik): true
+--- PASS: TestSSRFBatasWaktuTigaDetik
+
+## tipe isi dari byte: header Content-Type tidak dipercaya
+header image/png, isi HTML                 ditolak (bukan gambar)
+header image/png, isi JSON layanan dalam   ditolak (bukan gambar)
+header text/html, isi PNG                  diterima (image/png, 75 byte)
+header image/svg+xml, isi SVG              ditolak (bukan gambar)
+header image/png, isi kosong               ditolak (bukan gambar)
+--- PASS: TestSSRFBatasTipeIsiDariByteBukanHeader
+
+## hanya status 200 yang diterima: jawaban lain, juga 2xx yang membawa gambar sah, ditolak
+status 201 dengan isi PNG: ditolak (gambar tidak bisa diunduh)
+status 202 dengan isi PNG: ditolak (gambar tidak bisa diunduh)
+status 203 dengan isi PNG: ditolak (gambar tidak bisa diunduh)
+status 204 dengan isi PNG: ditolak (gambar tidak bisa diunduh)
+status 206 dengan isi PNG: ditolak (gambar tidak bisa diunduh)
+status 400 dengan isi PNG: ditolak (gambar tidak bisa diunduh)
+status 401 dengan isi PNG: ditolak (gambar tidak bisa diunduh)
+status 403 dengan isi PNG: ditolak (gambar tidak bisa diunduh)
+status 404 dengan isi PNG: ditolak (gambar tidak bisa diunduh)
+status 410 dengan isi PNG: ditolak (gambar tidak bisa diunduh)
+status 429 dengan isi PNG: ditolak (gambar tidak bisa diunduh)
+status 500 dengan isi PNG: ditolak (gambar tidak bisa diunduh)
+status 503 dengan isi PNG: ditolak (gambar tidak bisa diunduh)
+--- PASS: TestSSRFBatasHanyaStatus200
+
+## tipe yang diterima: PNG, JPEG, GIF, dan WebP menurut byte awal; tipe lain ditolak
+PNG          diterima (image/png, 75 byte)
+JPEG         diterima (image/jpeg, 43 byte)
+GIF          diterima (image/gif, 38 byte)
+WebP         diterima (image/webp, 44 byte)
+BMP          ditolak (bukan gambar)
+ICO          ditolak (bukan gambar)
+PDF          ditolak (bukan gambar)
+ZIP          ditolak (bukan gambar)
+teks biasa   ditolak (bukan gambar)
+--- PASS: TestSSRFBatasHanyaEmpatTipeGambarYangDikenal
+
+## nama IDNA: URL dengan angka dan titik lebar penuh ke server uji di loopback ditolak versi aman tanpa permintaan sampai
+angka dan titik lebar penuh    ditolak: true; permintaan sampai: 0
+titik penuh ideografis         ditolak: true; permintaan sampai: 0
+--- PASS: TestSSRFBatasBentukIDNATidakMelewatiFetcherAman
+
+## masukan ekstrem: host dan path sangat panjang, header jawaban besar, rantai redirect, dan jawaban DNS panjang gagal tertutup
+host 100.000 karakter                                ditolak: true
+path 2 MiB                                           ditolak: true; selesai kurang dari 2 detik: true
+header jawaban 32 KiB                                diterima (image/png, 75 byte)
+header jawaban 128 KiB                               ditolak (gambar tidak bisa diunduh)
+header jawaban 11 MiB                                ditolak (gambar tidak bisa diunduh)
+rantai redirect tanpa akhir                          ditolak (tujuan tidak diizinkan); langkah yang tersentuh: 1
+jawaban DNS 4.097 alamat, yang terakhir private      ditolak (tujuan tidak diizinkan); permintaan sampai: 0
+--- PASS: TestSSRFBatasMasukanEkstremGagalTertutup
+
+## jawaban DNS campuran: alamat terlarang di urutan kedua menolak seluruh unduhan
+alamat yang boleh dijangkau lebih dulu, private kedua: ditolak (tujuan tidak diizinkan); permintaan sampai: 0
+--- PASS: TestSSRFBatasJawabanDNSDenganAlamatTerlarangDiUrutanKedua
+
+## pesan galat versi aman: tanpa isi respons, alamat, atau port; satu pesan untuk semua penolakan karena alamat
+200 berisi JSON layanan dalam      pesan: "bukan gambar"
+403 berisi JSON layanan dalam      pesan: "gambar tidak bisa diunduh"
+404 berisi JSON layanan dalam      pesan: "gambar tidak bisa diunduh"
+500 berisi JSON layanan dalam      pesan: "gambar tidak bisa diunduh"
+penolakan karena alamat literal: 8 alamat (loopback terbuka dan tertutup, private, link-local, CGNAT, ULA, 0.0.0.0): 1 pesan berbeda: map[tujuan tidak diizinkan:8]
+pesan galat versi aman yang mungkin: 5 kalimat tetap; server uji disentuh oleh unduhan yang ditolak: 0
+--- PASS: TestSSRFBatasPesanGalatTanpaIsiResponsDanTanpaAlamat
+
+## batas yang belum tertutup: nama yang ada dan nama yang tidak ada dijawab dengan pesan berbeda
+nama yang diselesaikan ke alamat private: "tujuan tidak diizinkan"
+nama yang tidak ada:                      "tidak menjawab"
+pesan sama: false
+--- PASS: TestSSRFBatasPesanMembedakanNamaDikenalDariTidakDikenal
+PASS
+ok    lab/apit4/internal/unduh
+# exit status 0

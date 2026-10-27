@@ -1,0 +1,14 @@
+# Lab t4-ssrf · go vet, tes bawaan api-t4 untuk paket unduh, dan penjaga tes bertag
+# go1.27.1 · tanpa database · server uji hanya di 127.0.0.1 di dalam proses tes
+# Rekaman: make -C labs/t4-ssrf run.
+$ go vet ./internal/unduh
+(tanpa temuan)
+# exit status 0
+$ go vet -tags t4ssrf ./internal/unduh
+(tanpa temuan)
+# exit status 0
+$ go test -count=1 ./internal/unduh      (tes bawaan api-t4 untuk paket ini, tanpa tag)
+ok    lab/apit4/internal/unduh
+# exit status 0
+# fungsi tes di paket: 20 bawaan api-t4 tanpa tag, 13 milik lab ini (tag t4ssrf)
+# Penjaga pola -run: tiap dari 13 fungsi tes bertag muncul sebagai PASS di batas.txt atau alamat.txt.
