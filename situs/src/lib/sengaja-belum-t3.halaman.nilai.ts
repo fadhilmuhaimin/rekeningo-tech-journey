@@ -1,7 +1,7 @@
 // Dihasilkan dari berkas saat ini (tmp/gen_nilai330.py). Ubah hanya sesudah membaca perbedaannya; tes sengaja-belum-t3.halaman.test.ts memakai nilai ini.
 export const FRONTMATTER: string[] = ["title: \"3.30 ADR 33: Sengaja belum dilakukan\"", "description: ADR 33. Microservices, Kubernetes dan canary, read replica, PgBouncer, CDC, VPS kedua, cache saldo dan riwayat, dan pembayaran offline tidak dipasang di Tahap 3, masing-masing dengan angka Tahap 3 dan pemicu yang bisa dibaca. Kapasitas satu VPS belum diukur di server sungguhan."];
 export const SIDIK_BENTUK_MDX = "9ebde320823d598d";
-export const SIDIK_DIAGRAM_INTI = "e54638c33c3979b1";
+export const SIDIK_DIAGRAM_INTI = "d3bebe64f2476afc";
 export const SIDIK_TEBAK = "01ec59099f032693";
 export const SIDIK_ISTILAH: Record<string, string> = {"canary": "11d332b9d6c54280", "cdc": "7f5488d6ce7dea1a", "pgbouncer": "457f39bd279d5a04"};
 export const SIDIK_RISET: Record<string, string> = {"R3-245": "ac80d9dafd55cba0", "R3-246": "127e6d40aa5734fd", "R3-247": "d61fd18e247fb0d6", "R3-248": "d62b2cf778dfd939"};
