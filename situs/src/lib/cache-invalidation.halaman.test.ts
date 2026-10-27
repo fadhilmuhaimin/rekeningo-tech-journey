@@ -254,7 +254,7 @@ const EXPECT: string[] = [
   "Widget ini membaca satu entri katalog: harga nasi goreng di warung Ani berubah, dan cache menyimpan salinannya. Tebak dulu kapan Citra pertama kali melihat harga promo, lalu ubah satu hal dan lihat siapa yang masih melihat harga lama.",
   "<CacheInvalidation />",
   "Pengaturan yang cocok dengan rekaman diberi chip Cocok dengan Rekaman lab. Pengaturan lain adalah Ilustrasi dari aturan simulasi, dan widget menyebutnya.",
-  "Pilih **Redis bersama** dan **Sesudah COMMIT**: tidak ada instance yang melihat harga lama (`redis.txt` bagian B). Pilih **Sesudah COMMIT, pembaca lambat**: harga lama bertahan sampai TTL habis (bagian F). Pilih **Promo mulai «mulai» detik lagi**: tidak ada tulis saat promo mulai, jadi hanya TTL yang membatasi (bagian G).",
+  "Pilih **Redis bersama**, TTL **«ttlRedis»**, **Ani mengubah harga**, dan **Sesudah COMMIT**: tidak ada instance yang melihat harga lama (`redis.txt` bagian B). Ganti urutannya ke **Sesudah COMMIT, pembaca lambat**: harga lama bertahan «ttlRedis» detik, sampai TTL habis (bagian F). Pilih TTL **«ttlG»**, **Promo mulai «mulai» detik lagi**, dan **Sesudah COMMIT**: tidak ada tulis saat promo mulai, jadi hanya TTL yang membatasi (bagian G).",
   "<details class=\"abstract\">\n<summary>Rekaman bagian D, E, dan F (juga untuk pembaca tanpa JavaScript)</summary>",
   "<Snippet files={[«rekamanRentang»]} title=\"Rekaman lab: labs/t3-cache/output/redis.txt, bagian D, E, dan F\" />",
   "</details>",
@@ -296,7 +296,7 @@ const EXPECT: string[] = [
   "<TabSet id=\"stack\" labels={[\"Go\", \"Node.js\", \"Laravel\", \"Django\", \"Dart (Serverpod)\", \"Supabase\"]}>\n<Fragment slot=\"t0\">",
   "*Dijalankan: lab api-t3 dan t3-cache, go-redis «goRedis», Redis «redis» (rekaman `redis.txt` dan `gagal.txt`).*",
   "<Snippet file=\"labs/api-t3/internal/cache/cache.go\" lines=\"«penyimpanRentang»\" lang=\"go\" title=\"labs/api-t3/internal/cache/cache.go\" />",
-  "**Yang berbeda di stack ini:** lab menulis cache-aside sendiri di `internal/cache`. `go.mod` hanya memuat pgx, go-redis, dan x/crypto sebagai dependency langsung, jadi tidak ada library cache. Dua penyimpan memenuhi satu antarmuka, memori proses dan Redis, dan service tidak tahu mana yang dipakai. Perlindungan untuk miss serentak tidak ada: tiap miss membaca database, dan jumlahnya tidak direkam.",
+  "**Yang berbeda di stack ini:** lab menulis cache-aside sendiri di `internal/cache`. `go.mod` hanya memuat pgx, go-redis, dan x/crypto sebagai dependency langsung, jadi tidak ada library cache. Tiga penyimpan memenuhi satu antarmuka: memori proses, Redis, dan satu penyimpan kosong yang hanya dipakai lab untuk mengukur tanpa cache. Service tidak tahu mana yang dipakai. Perlindungan untuk miss serentak tidak ada: tiap miss membaca database, dan jumlahnya tidak direkam.",
   "</Fragment>\n<Fragment slot=\"t1\">",
   "*Tidak dijalankan. Dicek ke README [cache-manager](https://unpkg.com/cache-manager@«cm»/README.md) «cm» (npm latest, terbit «cmTerbit»), dibuka «tanggal». Kode di bawah adalah Ilustrasi.*",
   "<Snippet lang=\"js\" code={`import { createCache } from \"cache-manager\";\nimport { createKeyv as createKeyvRedis } from \"@keyv/redis\";",
@@ -331,11 +331,11 @@ const EXPECT: string[] = [
   "**Kebutuhan.** Dua HP di meja yang sama menampilkan «promo» dan «awal» untuk menu yang sama (`memori.txt` bagian B). Dua instance harus melihat harga yang sama sesudah Ani atau HR mengubahnya, dan tagihan tidak boleh bergantung pada salinan mana pun.",
   "Beban tidak memaksa cache: katalog «lambda» baca per detik, L = «l» koneksi dari pool «pool» (Asumsi, rumus di Paham). Tanpa cache, «bacaan» bacaan menjadi «tanpaDb» baca database. Dengan Redis jadi «redisDb» (`beban.txt` bagian B dan C).",
   "**Status:** diterima sesudah M23 (minggu «minggu»), memakai dua instance dari ADR 26 ([[t3-dua-instance]]). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR. ADR ini menyimpang dari pemicu cache ADR 21: L kelas katalog «l» belum mencapai «pemicu» koneksi ([[t2-adr-21]]).",
-  "| | A. Tanpa cache | B. Cache di memori tiap instance | C. Cache bersama di Redis | D. ETag dan cache di app saja |\n|---|---|---|---|---|\n| Cara kerja | Tiap bacaan katalog membaca PostgreSQL | Peta di dalam proses API, TTL «ttlMemori» detik, satu salinan per instance | Satu Redis: `GET`, `SET` dengan TTL, `DEL`. Kunci per kota dan per warung, TTL «ttlRedis» detik | Server memberi ETag, dan app menyimpan jawaban terakhir. App mengirim ETag itu, dan server menjawab tidak berubah bila sama |\n| Kelebihan | Tanpa salinan, jadi tanpa data lama dan tanpa invalidation. Tanpa komponen baru | Tanpa komponen baru dan tanpa panggilan jaringan | Satu salinan untuk kedua instance, harga baru langsung di keduanya (`redis.txt` bagian B). «redisDb» baca database untuk «bacaan» bacaan | Mengurangi byte yang dikirim ke HP, dan salinan tinggal di perangkat |\n| Kekurangan | «tanpaDb» baca database untuk «bacaan» bacaan, bukan «redisDb» | Hanya instance yang menerima perubahan yang membuang entri. Harga lama bertahan sampai «ttlMemori» detik (`memori.txt` bagian B dan D) | Komponen yang bisa mati atau menggantung. Tiga celah tersisa (bagian D, F, G) dan hapus kunci yang bisa gagal (`gagal.txt` bagian C). Tiap jalur tulis harus ingat menghapus | Salinan di HP tidak bisa dibatalkan dari server. Tanpa cache di server, server tetap membaca database untuk mencocokkan ETag (penalaran) |\n| Biaya operasional | Tidak ada | Tidak ada, tetapi invalidation lintas instance tidak mungkin tanpa saluran antar instance | Redis untuk dipasang, dipantau, dan diberi batas memori, ditambah batas waktu per perintah | Kode ETag di backend dan penyimpanan di app. App versi lama tidak memakainya |\n| Bukti | Rekaman lab `beban.txt` bagian B: W di bawah «batasWMs» ms, L di bawah «batasL» | Rekaman lab `memori.txt` bagian A sampai D | Rekaman lab `redis.txt`, `gagal.txt`, dan `beban.txt` bagian C | Tidak dijalankan. Tidak ada client Dart di lab |",
+  "| | A. Tanpa cache | B. Cache di memori tiap instance | C. Cache bersama di Redis | D. ETag dan cache di app saja |\n|---|---|---|---|---|\n| Cara kerja | Tiap bacaan katalog membaca PostgreSQL | Peta di dalam proses API, TTL «ttlMemori» detik, satu salinan per instance | Satu Redis: `GET`, `SET` dengan TTL, `DEL`. Kunci per kota dan per warung, TTL «ttlRedis» detik | Server memberi ETag, dan app menyimpan jawaban terakhir. App mengirim ETag itu, dan server menjawab tidak berubah bila sama |\n| Kelebihan | Tanpa salinan, jadi tanpa data lama dan tanpa invalidation. Tanpa komponen baru | Tanpa komponen baru dan tanpa panggilan jaringan | Satu salinan untuk kedua instance, harga baru langsung di keduanya (`redis.txt` bagian B). «redisDb» baca database untuk «bacaan» bacaan | Mengurangi byte yang dikirim ke HP, dan salinan tinggal di perangkat |\n| Kekurangan | «tanpaDb» baca database untuk «bacaan» bacaan, bukan «redisDb» | Hanya instance yang menerima perubahan yang membuang entri. Harga lama bertahan sampai «ttlMemori» detik (`memori.txt` bagian B dan D) | Komponen yang bisa mati atau menggantung. Dua celah tersisa sesudah urutan benar (bagian F dan G) dan hapus kunci yang bisa gagal (`gagal.txt` bagian C). Tiap jalur tulis harus ingat menghapus | Salinan di HP tidak bisa dibatalkan dari server. Tanpa cache di server, server tetap membaca database untuk mencocokkan ETag (penalaran) |\n| Biaya operasional | Tidak ada | Tidak ada, tetapi invalidation lintas instance tidak mungkin tanpa saluran antar instance | Redis untuk dipasang, dipantau, dan diberi batas memori, ditambah batas waktu per perintah | Kode ETag di backend dan penyimpanan di app. App versi lama tidak memakainya |\n| Bukti | Rekaman lab `beban.txt` bagian B: W di bawah «batasWMs» ms, L di bawah «batasL» | Rekaman lab `memori.txt` bagian A sampai D | Rekaman lab `redis.txt`, `gagal.txt`, dan `beban.txt` bagian C | Tidak dijalankan. Tidak ada client Dart di lab |",
   "**Keputusan: opsi C.** Delapan aturan:",
-  "1. Hanya jawaban baca katalog yang di-cache, di Redis, dengan TTL «ttlRedis» detik dan satu kunci per kota dan per warung (`redis.txt` bagian A).\n2. Tulis database dulu, COMMIT, baru hapus kunci. Tulis yang ditolak tidak menghapus apa pun (`redis.txt` bagian B, D, E dan `gagal.txt` bagian D).\n3. Harga dan stok yang dipakai pembayaran dibaca dari database di dalam transaction. Tidak ada jalur uang di kode lab yang membaca cache (`memori.txt` bagian C).\n4. Client Redis memakai batas waktu per perintah dan tanpa retry. Redis yang galat atau lambat berarti bacaan jatuh ke database tanpa menyimpan apa pun (`gagal.txt` bagian A dan B).\n5. Redis untuk cache dipisah dari Redis untuk batas login ([[t3-rate-limit-redis]]), dengan batas memori dan kebijakan eviction yang dipilih untuk cache. Lab tidak mengatur `maxmemory`, jadi aturan ini Tidak dijalankan.\n6. Setiap jalur tulis yang mengubah harga, stok, atau promo menghapus kuncinya. Sekarang hanya `PATCH /produk/{id}` dan `POST /promo` yang melakukannya, dan jalur sinkron stok ([[t3-offline]]) harus menambahkan hapus kunci sebelum cache dipakai di produksi.\n7. Promo yang mulai di jam tertentu ditutup dengan TTL entri yang dipendekkan sampai waktu mulai, atau harga efektif yang dihitung saat baca. Sampai itu ada, harga promo bisa telat sampai TTL.\n8. Jumlah hit, miss, baca database, dan galat cache dipantau, dan lonjakan galat cache menjadi alert. Lab sudah menghitungnya di `/lab/cache`, tetapi belum ada alert.",
+  "1. Hanya jawaban baca katalog yang di-cache, di Redis, dengan TTL «ttlRedis» detik dan satu kunci per kota dan per warung (`redis.txt` bagian A).\n2. Tulis database dulu, COMMIT, baru hapus kunci. Tulis yang ditolak tidak menghapus apa pun (`redis.txt` bagian B, D, E dan `gagal.txt` bagian D).\n3. Harga dan stok yang dipakai pembayaran dibaca dari database di dalam transaction. Tidak ada jalur uang di kode lab yang membaca cache (`memori.txt` bagian C).\n4. Client Redis memakai batas waktu per perintah dan tanpa retry. Redis yang galat atau lambat berarti bacaan jatuh ke database tanpa menyimpan apa pun (`gagal.txt` bagian A dan B).\n5. Redis untuk cache dipisah dari Redis untuk batas login ([[t3-rate-limit-redis]]), dengan batas memori dan kebijakan eviction yang dipilih untuk cache. Lab tidak mengatur `maxmemory`, jadi aturan ini Tidak dijalankan.\n6. Setiap jalur tulis yang mengubah harga, stok, atau promo menghapus kuncinya, kecuali pesanan. Sekarang hanya `PATCH /produk/{id}` dan `POST /promo` yang menghapus kunci. Pesanan mengurangi stok tanpa menghapusnya: layar bisa menunjukkan stok lama sampai TTL, dan pesanan memeriksa stok di database (`memori.txt` bagian C). Jalur sinkron stok ([[t3-offline]]) harus menambahkan hapus kunci sebelum cache dipakai di produksi.\n7. Promo yang mulai di jam tertentu ditutup dengan TTL entri yang dipendekkan sampai waktu mulai, atau harga efektif yang dihitung saat baca. Sampai itu ada, harga promo bisa telat sampai TTL.\n8. Jumlah hit, miss, baca database, dan galat cache dipantau, dan lonjakan galat cache menjadi alert. Lab sudah menghitungnya di `/lab/cache`, tetapi belum ada alert.",
   "**Kenapa C, bukan A, B, atau D.**",
-  "- **A tidak ditolak karena salah.** Rekaman menunjukkan database tanpa cache tetap di bawah batas W dan L, jadi hitungannya menunjuk ke A. Naskah memilih C: cache sudah ada sejak minggu «mingguCache», dan opsi C memperbaikinya dengan syarat pencabutan yang bisa diperiksa. Alasan itu pilihan desain, bukan hasil ukur.\n- **B ditolak** karena tiap instance menyimpan salinannya sendiri dan tidak ada yang memberi tahu instance lain. Itu M23.\n- **D ditolak** karena salinan di HP tidak bisa dibatalkan dari server, dan cache lokal di app menambah satu tempat lagi yang bisa menampilkan harga lama.",
+  "- **A tidak ditolak karena salah.** Rekaman menunjukkan database tanpa cache tetap di bawah batas W dan L, jadi hitungannya menunjuk ke A, dan naskah memilih C tanpa alasan terukur. Penalaran halaman ini: cache sudah ada sejak minggu «mingguCache», dan opsi C memperbaikinya dengan syarat pencabutan yang bisa diperiksa. Itu pilihan desain, bukan hasil ukur.\n- **B ditolak** karena tiap instance menyimpan salinannya sendiri dan tidak ada yang memberi tahu instance lain. Itu M23.\n- **D ditolak** karena salinan di HP tidak bisa dibatalkan dari server, dan cache lokal di app menambah satu tempat lagi yang bisa menampilkan harga lama.",
   "**Kasus industri: Facebook, 2010, gangguan sekitar «fbJam» jam.** Robert Johnson menulis bahwa sistem otomatis memeriksa nilai konfigurasi di cache, dan perubahan pada salinan persisten ditafsirkan tidak valid. Semua client mencoba memperbaikinya lewat query ke satu cluster database. Cluster itu kewalahan oleh ratusan ribu query per detik ([Facebook Engineering: More Details on Today's Outage](https://engineering.fb.com/2010/09/23/uncategorized/more-details-on-today-s-outage/), tanggal dari alamat halaman, dibuka «tanggal»).",
   "Tiap galat dari database ditafsirkan sebagai nilai tidak valid, dan client menghapus kunci cache yang sesuai. Aliran query berlanjut walau masalah asalnya sudah diperbaiki, sampai semua trafik ke cluster itu dihentikan.",
   "Batasnya: satu insiden, dan datanya konfigurasi, bukan harga katalog. Tulisan itu bukan bukti bahwa cache buruk. Padanan lab hanya sebagian. Urutan `selalu` menghapus kunci saat tulis gagal, bukan saat baca gagal, dan lab tidak merekam umpan balik atau database yang kewalahan (`gagal.txt` bagian D).",
@@ -345,7 +345,7 @@ const EXPECT: string[] = [
   "- Saat tanpa cache ternyata cukup: hit rate rendah, atau baca database tanpa cache tetap di bawah batas W dan L. Cabut cache dan hapus kode invalidation-nya.\n- Saat harga di layar tidak boleh berbeda dari tagihan sama sekali. Cache menyisakan selang stale yang hanya dibatasi TTL, dan hanya tanpa cache yang menutupnya.\n- Saat pembaca lambat sering mengisi ulang entri sesudah hapus kunci (`redis.txt` bagian F). Lease atau TTL yang lebih pendek hanya membatasinya.\n- Saat Redis menjadi komponen kritis tanpa cadangan, atau key penting terbuang saat memori penuh.",
   "**Yang akan merevisinya.** [[t3-offline]] (ADR 29) menambah jalur tulis stok lewat sinkron, yang belum menghapus kunci. [[t3-adr-33]] mencatat cache saldo dan riwayat sebagai yang sengaja belum dilakukan (naskah). Tahap 4 menaikkan puncak request ±«naik4» kali (naskah Tahap 4, Asumsi), jadi L katalog dihitung ulang dengan rumus yang sama.",
   "### Sengaja belum dilakukan",
-  "| Yang ditunda | Kenapa ditunda | Muncul lagi di |\n|---|---|---|\n| Lease atau kedaluwarsa dini untuk miss serentak | Di rekaman «kunciN» kunci dan TTL «ttlRedis» detik berarti «redisDb» baca database per TTL (`beban.txt` bagian C). Perlombaan antar pembaca pada satu kunci dingin tidak direkam. Nishtala dkk. memakainya di skala jauh lebih besar | Bila satu kunci panas habis dan banyak pembaca menekan database |\n| Menutup promo yang mulai nanti | TTL «ttlRedis» detik membatasi telatnya. Memendekkan TTL entri atau menghitung harga efektif saat baca Tidak dijalankan di lab | Saat HR memakai promo terjadwal di jam sibuk |\n| Redis dengan autentikasi, TLS, replika, dan `maxmemory` terukur | Lab memakai Redis lokal tanpa autentikasi dan tanpa batas memori (README lab) | Belum dijadwalkan |\n| ETag dan cache di app | Tidak ada client Dart di lab, dan salinan di HP tidak bisa dibatalkan dari server | Bila beban katalog menuntut pengurangan byte, bukan baca database |",
+  "| Yang ditunda | Kenapa ditunda | Muncul lagi di |\n|---|---|---|\n| Lease atau kedaluwarsa dini untuk miss serentak | Di rekaman «bacaan» bacaan atas «kunciN» kunci dengan TTL «ttlRedis» detik menjadi «redisDb» baca database (`beban.txt` bagian C). Perlombaan antar pembaca pada satu kunci dingin tidak direkam. Nishtala dkk. memakainya di skala jauh lebih besar | Bila satu kunci panas habis dan banyak pembaca menekan database |\n| Menutup promo yang mulai nanti | TTL «ttlRedis» detik membatasi telatnya. Memendekkan TTL entri atau menghitung harga efektif saat baca Tidak dijalankan di lab | Saat HR memakai promo terjadwal di jam sibuk |\n| Redis dengan autentikasi, TLS, replika, dan `maxmemory` terukur | Lab memakai Redis lokal tanpa autentikasi dan tanpa batas memori (README lab) | Belum dijadwalkan |\n| ETag dan cache di app | Tidak ada client Dart di lab, dan salinan di HP tidak bisa dibatalkan dari server | Bila beban katalog menuntut pengurangan byte, bukan baca database |",
   "</Blok>",
   "<Blok nama=\"Kunci\">",
   "### Cek diri",
@@ -370,7 +370,7 @@ const EXPECT: string[] = [
   "Tidak: L = «lambda» × «w» = «l» koneksi dari pool «pool» (Asumsi), sekitar «jarak» kali di bawah pemicu «pemicu» koneksi di ADR 21. ADR 28 menulis itu apa adanya, memilih cache dengan alasan yang bukan beban, dan menulis syarat untuk mencabutnya.",
   "</details>",
   "### Saat me-review kode AI, cek ini",
-  "- [ ] Ada alasan terukur untuk cache, dan tanpa cache sudah dipertimbangkan sebagai opsi.\n- [ ] Setiap entri punya TTL, dan jalur tulis menghapus kunci sesudah COMMIT, bukan sebelumnya.\n- [ ] Setiap jalur yang mengubah data yang di-cache menghapus kuncinya, termasuk sinkron, impor, dan admin.\n- [ ] Tagihan dan keputusan uang dibaca dari database di dalam transaction, bukan dari cache.\n- [ ] Galat dari database tidak menghapus entri dan tidak diisi ke cache.\n- [ ] Client cache punya batas waktu per perintah, tanpa retry bawaan, dan jalur jatuh ke database.\n- [ ] Nama key memuat semua yang memengaruhi hasil, dan hasil yang bergantung pada jam tidak disimpan lebih lama dari yang masih benar.",
+  "- [ ] Ada alasan terukur untuk cache, dan tanpa cache sudah dipertimbangkan sebagai opsi.\n- [ ] Setiap entri punya TTL, dan jalur tulis menghapus kunci sesudah COMMIT, bukan sebelumnya.\n- [ ] Setiap jalur yang mengubah data yang di-cache menghapus kuncinya, termasuk sinkron, impor, dan admin, kecuali pengecualian yang tertulis di ADR.\n- [ ] Tagihan dan keputusan uang dibaca dari database di dalam transaction, bukan dari cache.\n- [ ] Galat dari database tidak menghapus entri dan tidak diisi ke cache.\n- [ ] Client cache punya batas waktu per perintah, tanpa retry bawaan, dan jalur jatuh ke database.\n- [ ] Nama key memuat semua yang memengaruhi hasil, dan hasil yang bergantung pada jam tidak disimpan lebih lama dari yang masih benar.",
   "### Bacaan lanjut",
   "- [Azure Architecture Center: Cache-Aside pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside)\n- [Nishtala dkk.: Scaling Memcache at Facebook (NSDI 2013)](https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf)\n- [Facebook Engineering: More Details on Today's Outage](https://engineering.fb.com/2010/09/23/uncategorized/more-details-on-today-s-outage/) (2010)\n- [Redis: key eviction](https://redis.io/docs/latest/develop/reference/eviction/)\n- [Redis: SCAN](https://redis.io/docs/latest/commands/scan/)",
   "</Blok>",
@@ -759,8 +759,12 @@ describe("widget CacheInvalidation: halaman memakai label tombol dan chip persis
     expect(label("urutan", "sesudah")).toBe("Sesudah COMMIT");
     expect(label("urutan", "lambat")).toBe("Sesudah COMMIT, pembaca lambat");
     expect(label("kejadian", "promo-nanti")).toBe("Promo mulai {mulai} detik lagi");
-    expect(halaman).toContain("**Redis bersama** dan **Sesudah COMMIT**");
+    expect(label("kejadian", "harga")).toBe("Ani mengubah harga");
+    expect(label("ttl", ttlRedis)).toBe(String(ttlRedis));
+    expect(label("ttl", ttlG)).toBe(String(ttlG));
+    expect(halaman).toContain(`**Redis bersama**, TTL **${ttlRedis}**, **Ani mengubah harga**, dan **Sesudah COMMIT**`);
     expect(halaman).toContain("**Sesudah COMMIT, pembaca lambat**");
+    expect(halaman).toContain(`TTL **${ttlG}**, **${label("kejadian", "promo-nanti").replace("{mulai}", String(mulai))}**, dan **Sesudah COMMIT**`);
     expect(halaman).toContain(`**${label("kejadian", "promo-nanti").replace("{mulai}", String(mulai))}**`);
     expect(halaman).toContain(`diberi chip ${widgetJson.cocok}.`);
     expect(widgetJson.cocok).toBe("Cocok dengan Rekaman lab");
@@ -979,3 +983,68 @@ const ALAMAT: [string, string][] = [
 ];
 const SIDIK_RISET: Record<string, string> = {"R3-190": "3288b34feea93758", "R3-191": "e4d99d9de0d1f843", "R3-192": "882df7d992f9f016", "R3-193": "ba2b740bb2e436be"};
 const SIDIK_ISTILAH = ["bb7bd1d7caf1674f", "6f2b3654a06c8ac9"] as const;
+
+// ---- tambahan peninjau #391: celah penjaga yang ditemukan uji mutasi (mutasi yang lolos sebelumnya) ----------------
+describe("tambahan peninjau: bawaan flag, noscript sebagai elemen, jumlah penyimpan, celah tersisa, pengecualian pesanan", () => {
+  test("bawaan flag lab: urutan hapus kunci sesudah dan batas waktu Redis katalog 50 ms (rekaman memakai bawaan di bagian yang tidak menyebut flag)", () => {
+    expect(mainGo).toMatch(/flag\.String\("katalog-hapus", cache\.HapusSesudah,/);
+    expect(mainGo).toMatch(/flag\.Duration\("katalog-redis-timeout", 50\*time\.Millisecond,/);
+    expect(mainGo).toMatch(/flag\.Duration\("katalog-ttl", 0,/);
+    expect(cacheGo).toMatch(/HapusSesudah\s*=\s*"sesudah"/);
+  });
+  test("<noscript> adalah elemen di templat komponen (baris sendiri dengan tabel di dalamnya), bukan hanya kata di komentar", () => {
+    const templat = widgetAstro.split(/^---$/m).slice(2).join("---");
+    expect(templat).toMatch(/^<noscript>$/m);
+    expect(templat).toMatch(/^<\/noscript>$/m);
+    const dalam = templat.slice(templat.indexOf("<noscript>"), templat.indexOf("</noscript>"));
+    expect(dalam).toContain("<table");
+    expect(dalam).toContain("{L.tanpaJs}");
+  });
+  test("tiga tipe memenuhi Penyimpan (Memori, Redis, Tanpa), sama dengan kalimat tab Go", () => {
+    const tipe = [...cacheGo.matchAll(/^func \((?:\w+ \*?)?(\w+)\) Ambil\(/gm), ...redisGo.matchAll(/^func \((?:\w+ \*?)?(\w+)\) Ambil\(/gm)].map((m) => m[1]).sort();
+    expect(tipe).toEqual(["Memori", "Redis", "Tanpa"]);
+    expect(halaman).toContain("Tiga penyimpan memenuhi satu antarmuka: memori proses, Redis, dan satu penyimpan kosong yang hanya dipakai lab untuk mengukur tanpa cache.");
+    expect(cacheGo).toContain("Dipakai lab sebagai alat ukur \"tanpa cache\"");
+  });
+  test("celah yang tersisa sesudah urutan benar adalah dua (bagian F dan G); bagian D adalah urutan salah, bukan celah milik opsi C", () => {
+    expect(redisTxt).toMatch(/^# --- D\. Urutan salah/m);
+    expect(redisTxt).toMatch(/^# --- F\. Celah yang tersisa/m);
+    expect(redisTxt).toMatch(/^# --- G\. Promo yang mulai nanti/m);
+    const adr28 = naskah.split("\n").find((b) => b.startsWith("| 28 |"))!;
+    expect(adr28).toMatch(/dua celah terekam[^|]*redis\.txt F[^|]*redis\.txt G/);
+    const kekurangan = halaman.split("\n").find((b) => b.startsWith("| Kekurangan |"))!;
+    expect(kekurangan.split("|")[4]).toContain("Dua celah tersisa sesudah urutan benar (bagian F dan G)");
+    expect(kekurangan.split("|")[4]).not.toMatch(/bagian D/);
+    expect(halaman).not.toMatch(/Tiga celah/);
+  });
+  test("pengecualian pesanan di aturan 6 dan daftar review: Pesan mengurangi stok di database dan tidak menghapus kunci", () => {
+    expect(repoKatGo).toMatch(/UPDATE produk SET stok = stok - \$2/);
+    const pesan = fungsi(katGo, /\) Pesan\(/);
+    expect(pesan).toContain("tx.KurangiStok(ctx, produk, porsi)");
+    expect(pesan).not.toMatch(/hapusKatalog|\bs\.kc\b/);
+    expect(halaman).toContain("menghapus kuncinya, kecuali pesanan. Sekarang hanya `PATCH /produk/{id}` dan `POST /promo` yang menghapus kunci.");
+    expect(halaman).toContain("kecuali pengecualian yang tertulis di ADR.");
+  });
+  test("alasan memilih C: naskah tidak menulis alasan 'cache sudah ada'; halaman menyebutnya penalaran halaman, bukan naskah", () => {
+    const adr28 = naskah.split("\n").find((b) => b.startsWith("| 28 |"))!;
+    expect(adr28).not.toMatch(/sudah ada|minggu 2/);
+    expect(halaman).toContain("dan naskah memilih C tanpa alasan terukur. Penalaran halaman ini: cache sudah ada sejak minggu");
+    expect(halaman).not.toContain("Naskah memilih C: cache sudah ada");
+  });
+  test("naskah ADR 28 dan baris M23 memuat L katalog yang dihitung halaman", () => {
+    const adr28 = naskah.split("\n").find((b) => b.startsWith("| 28 |"))!;
+    expect(adr28).toContain(`(${koma(lNilai, 3)})`);
+    const m23 = naskah.split("\n").find((b) => b.startsWith("| M23 |"))!;
+    expect(m23).toContain(`katalog: ${koma(lNilai, 3)}`);
+  });
+  test("petunjuk Coba: pengaturan yang disebut halaman adalah pengaturan titik acuan rekaman (TTL 60 untuk B dan F, 6 untuk G)", () => {
+    const coba = halaman.slice(halaman.indexOf('<Blok nama="Coba"'), halaman.indexOf('<Blok nama="Paham">'));
+    expect(coba).toContain(`TTL **${ttlRedis}**`);
+    expect(coba).toContain(`TTL **${ttlG}**`);
+    expect(coba).toContain("**Ani mengubah harga**");
+    // acuan widget: redis-harga, redis-lambat memakai TTL 60 dan kejadian harga; redis-nanti memakai TTL 6 (ukur-cache.mjs memeriksa chip)
+    expect(baca("situs/tools/ukur-cache.mjs")).toMatch(/nama: "redis-harga", cfg: \{ cache: "redis", ttl: TTL_R, kejadian: "harga" \}/);
+    expect(baca("situs/tools/ukur-cache.mjs")).toMatch(/nama: "redis-lambat", cfg: \{ cache: "redis", ttl: TTL_R, kejadian: "harga", urutan: "lambat" \}/);
+    expect(baca("situs/tools/ukur-cache.mjs")).toMatch(/nama: "redis-nanti", cfg: \{ cache: "redis", ttl: TTL_G, kejadian: "promo-nanti" \}/);
+  });
+});

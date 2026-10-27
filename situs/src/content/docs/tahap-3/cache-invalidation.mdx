@@ -46,7 +46,7 @@ Widget ini membaca satu entri katalog: harga nasi goreng di warung Ani berubah, 
 
 Pengaturan yang cocok dengan rekaman diberi chip Cocok dengan Rekaman lab. Pengaturan lain adalah Ilustrasi dari aturan simulasi, dan widget menyebutnya.
 
-Pilih **Redis bersama** dan **Sesudah COMMIT**: tidak ada instance yang melihat harga lama (`redis.txt` bagian B). Pilih **Sesudah COMMIT, pembaca lambat**: harga lama bertahan sampai TTL habis (bagian F). Pilih **Promo mulai 3 detik lagi**: tidak ada tulis saat promo mulai, jadi hanya TTL yang membatasi (bagian G).
+Pilih **Redis bersama**, TTL **60**, **Ani mengubah harga**, dan **Sesudah COMMIT**: tidak ada instance yang melihat harga lama (`redis.txt` bagian B). Ganti urutannya ke **Sesudah COMMIT, pembaca lambat**: harga lama bertahan 60 detik, sampai TTL habis (bagian F). Pilih TTL **6**, **Promo mulai 3 detik lagi**, dan **Sesudah COMMIT**: tidak ada tulis saat promo mulai, jadi hanya TTL yang membatasi (bagian G).
 
 <details class="abstract">
 <summary>Rekaman bagian D, E, dan F (juga untuk pembaca tanpa JavaScript)</summary>
@@ -132,7 +132,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 
 <Snippet file="labs/api-t3/internal/cache/cache.go" lines="14:21" lang="go" title="labs/api-t3/internal/cache/cache.go" />
 
-**Yang berbeda di stack ini:** lab menulis cache-aside sendiri di `internal/cache`. `go.mod` hanya memuat pgx, go-redis, dan x/crypto sebagai dependency langsung, jadi tidak ada library cache. Dua penyimpan memenuhi satu antarmuka, memori proses dan Redis, dan service tidak tahu mana yang dipakai. Perlindungan untuk miss serentak tidak ada: tiap miss membaca database, dan jumlahnya tidak direkam.
+**Yang berbeda di stack ini:** lab menulis cache-aside sendiri di `internal/cache`. `go.mod` hanya memuat pgx, go-redis, dan x/crypto sebagai dependency langsung, jadi tidak ada library cache. Tiga penyimpan memenuhi satu antarmuka: memori proses, Redis, dan satu penyimpan kosong yang hanya dipakai lab untuk mengukur tanpa cache. Service tidak tahu mana yang dipakai. Perlindungan untuk miss serentak tidak ada: tiap miss membaca database, dan jumlahnya tidak direkam.
 
 </Fragment>
 <Fragment slot="t1">
@@ -232,7 +232,7 @@ Beban tidak memaksa cache: katalog 5,21 baca per detik, L = 0,026 koneksi dari p
 |---|---|---|---|---|
 | Cara kerja | Tiap bacaan katalog membaca PostgreSQL | Peta di dalam proses API, TTL 300 detik, satu salinan per instance | Satu Redis: `GET`, `SET` dengan TTL, `DEL`. Kunci per kota dan per warung, TTL 60 detik | Server memberi ETag, dan app menyimpan jawaban terakhir. App mengirim ETag itu, dan server menjawab tidak berubah bila sama |
 | Kelebihan | Tanpa salinan, jadi tanpa data lama dan tanpa invalidation. Tanpa komponen baru | Tanpa komponen baru dan tanpa panggilan jaringan | Satu salinan untuk kedua instance, harga baru langsung di keduanya (`redis.txt` bagian B). 13 baca database untuk 52 bacaan | Mengurangi byte yang dikirim ke HP, dan salinan tinggal di perangkat |
-| Kekurangan | 52 baca database untuk 52 bacaan, bukan 13 | Hanya instance yang menerima perubahan yang membuang entri. Harga lama bertahan sampai 300 detik (`memori.txt` bagian B dan D) | Komponen yang bisa mati atau menggantung. Tiga celah tersisa (bagian D, F, G) dan hapus kunci yang bisa gagal (`gagal.txt` bagian C). Tiap jalur tulis harus ingat menghapus | Salinan di HP tidak bisa dibatalkan dari server. Tanpa cache di server, server tetap membaca database untuk mencocokkan ETag (penalaran) |
+| Kekurangan | 52 baca database untuk 52 bacaan, bukan 13 | Hanya instance yang menerima perubahan yang membuang entri. Harga lama bertahan sampai 300 detik (`memori.txt` bagian B dan D) | Komponen yang bisa mati atau menggantung. Dua celah tersisa sesudah urutan benar (bagian F dan G) dan hapus kunci yang bisa gagal (`gagal.txt` bagian C). Tiap jalur tulis harus ingat menghapus | Salinan di HP tidak bisa dibatalkan dari server. Tanpa cache di server, server tetap membaca database untuk mencocokkan ETag (penalaran) |
 | Biaya operasional | Tidak ada | Tidak ada, tetapi invalidation lintas instance tidak mungkin tanpa saluran antar instance | Redis untuk dipasang, dipantau, dan diberi batas memori, ditambah batas waktu per perintah | Kode ETag di backend dan penyimpanan di app. App versi lama tidak memakainya |
 | Bukti | Rekaman lab `beban.txt` bagian B: W di bawah 20 ms, L di bawah 0,1 | Rekaman lab `memori.txt` bagian A sampai D | Rekaman lab `redis.txt`, `gagal.txt`, dan `beban.txt` bagian C | Tidak dijalankan. Tidak ada client Dart di lab |
 
@@ -243,13 +243,13 @@ Beban tidak memaksa cache: katalog 5,21 baca per detik, L = 0,026 koneksi dari p
 3. Harga dan stok yang dipakai pembayaran dibaca dari database di dalam transaction. Tidak ada jalur uang di kode lab yang membaca cache (`memori.txt` bagian C).
 4. Client Redis memakai batas waktu per perintah dan tanpa retry. Redis yang galat atau lambat berarti bacaan jatuh ke database tanpa menyimpan apa pun (`gagal.txt` bagian A dan B).
 5. Redis untuk cache dipisah dari Redis untuk batas login ([[t3-rate-limit-redis]]), dengan batas memori dan kebijakan eviction yang dipilih untuk cache. Lab tidak mengatur `maxmemory`, jadi aturan ini Tidak dijalankan.
-6. Setiap jalur tulis yang mengubah harga, stok, atau promo menghapus kuncinya. Sekarang hanya `PATCH /produk/{id}` dan `POST /promo` yang melakukannya, dan jalur sinkron stok ([[t3-offline]]) harus menambahkan hapus kunci sebelum cache dipakai di produksi.
+6. Setiap jalur tulis yang mengubah harga, stok, atau promo menghapus kuncinya, kecuali pesanan. Sekarang hanya `PATCH /produk/{id}` dan `POST /promo` yang menghapus kunci. Pesanan mengurangi stok tanpa menghapusnya: layar bisa menunjukkan stok lama sampai TTL, dan pesanan memeriksa stok di database (`memori.txt` bagian C). Jalur sinkron stok ([[t3-offline]]) harus menambahkan hapus kunci sebelum cache dipakai di produksi.
 7. Promo yang mulai di jam tertentu ditutup dengan TTL entri yang dipendekkan sampai waktu mulai, atau harga efektif yang dihitung saat baca. Sampai itu ada, harga promo bisa telat sampai TTL.
 8. Jumlah hit, miss, baca database, dan galat cache dipantau, dan lonjakan galat cache menjadi alert. Lab sudah menghitungnya di `/lab/cache`, tetapi belum ada alert.
 
 **Kenapa C, bukan A, B, atau D.**
 
-- **A tidak ditolak karena salah.** Rekaman menunjukkan database tanpa cache tetap di bawah batas W dan L, jadi hitungannya menunjuk ke A. Naskah memilih C: cache sudah ada sejak minggu 2, dan opsi C memperbaikinya dengan syarat pencabutan yang bisa diperiksa. Alasan itu pilihan desain, bukan hasil ukur.
+- **A tidak ditolak karena salah.** Rekaman menunjukkan database tanpa cache tetap di bawah batas W dan L, jadi hitungannya menunjuk ke A, dan naskah memilih C tanpa alasan terukur. Penalaran halaman ini: cache sudah ada sejak minggu 2, dan opsi C memperbaikinya dengan syarat pencabutan yang bisa diperiksa. Itu pilihan desain, bukan hasil ukur.
 - **B ditolak** karena tiap instance menyimpan salinannya sendiri dan tidak ada yang memberi tahu instance lain. Itu M23.
 - **D ditolak** karena salinan di HP tidak bisa dibatalkan dari server, dan cache lokal di app menambah satu tempat lagi yang bisa menampilkan harga lama.
 
@@ -278,7 +278,7 @@ Batasnya: satu insiden, dan datanya konfigurasi, bukan harga katalog. Tulisan it
 
 | Yang ditunda | Kenapa ditunda | Muncul lagi di |
 |---|---|---|
-| Lease atau kedaluwarsa dini untuk miss serentak | Di rekaman 13 kunci dan TTL 60 detik berarti 13 baca database per TTL (`beban.txt` bagian C). Perlombaan antar pembaca pada satu kunci dingin tidak direkam. Nishtala dkk. memakainya di skala jauh lebih besar | Bila satu kunci panas habis dan banyak pembaca menekan database |
+| Lease atau kedaluwarsa dini untuk miss serentak | Di rekaman 52 bacaan atas 13 kunci dengan TTL 60 detik menjadi 13 baca database (`beban.txt` bagian C). Perlombaan antar pembaca pada satu kunci dingin tidak direkam. Nishtala dkk. memakainya di skala jauh lebih besar | Bila satu kunci panas habis dan banyak pembaca menekan database |
 | Menutup promo yang mulai nanti | TTL 60 detik membatasi telatnya. Memendekkan TTL entri atau menghitung harga efektif saat baca Tidak dijalankan di lab | Saat HR memakai promo terjadwal di jam sibuk |
 | Redis dengan autentikasi, TLS, replika, dan `maxmemory` terukur | Lab memakai Redis lokal tanpa autentikasi dan tanpa batas memori (README lab) | Belum dijadwalkan |
 | ETag dan cache di app | Tidak ada client Dart di lab, dan salinan di HP tidak bisa dibatalkan dari server | Bila beban katalog menuntut pengurangan byte, bukan baca database |
@@ -338,7 +338,7 @@ Tidak: L = 5,21 × 0,005 = 0,026 koneksi dari pool 10 (Asumsi), sekitar 192 kali
 
 - [ ] Ada alasan terukur untuk cache, dan tanpa cache sudah dipertimbangkan sebagai opsi.
 - [ ] Setiap entri punya TTL, dan jalur tulis menghapus kunci sesudah COMMIT, bukan sebelumnya.
-- [ ] Setiap jalur yang mengubah data yang di-cache menghapus kuncinya, termasuk sinkron, impor, dan admin.
+- [ ] Setiap jalur yang mengubah data yang di-cache menghapus kuncinya, termasuk sinkron, impor, dan admin, kecuali pengecualian yang tertulis di ADR.
 - [ ] Tagihan dan keputusan uang dibaca dari database di dalam transaction, bukan dari cache.
 - [ ] Galat dari database tidak menghapus entri dan tidak diisi ke cache.
 - [ ] Client cache punya batas waktu per perintah, tanpa retry bawaan, dan jalur jatuh ke database.
