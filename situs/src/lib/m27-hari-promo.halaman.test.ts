@@ -415,7 +415,7 @@ describe("rekaman queue.txt dan kode penggerak: bagian A sampai F", () => {
     const fn = outboxGo.slice(outboxGo.indexOf("func (t Tx) UmumkanPromo"), outboxGo.indexOf("// --8<-- [start:klaim]"));
     expect(fn).toContain("INSERT INTO outbox (akun_id, kelas, jenis, payload)");
     expect(fn).not.toContain("coba_lagi");
-    expect(migrasi).toContain("coba_lagi     timestamptz NOT NULL DEFAULT now()");
+    expect(migrasi).toMatch(/coba_lagi\s+timestamptz NOT NULL DEFAULT now\(\),/);
     expect(readmeLab).toContain("4. Laju promo 5 per detik (ADR 32) belum ada di kode api-t3.");
     harus("`UmumkanPromo` di `api-t3` tidak mengisi `coba_lagi`, jadi nilainya bawaan kolom, `now()`, dan laju 5 per detik belum ada di kode.");
     harus("Penjadwalan itu ditulis lab sebagai `UPDATE`.");
@@ -440,7 +440,8 @@ describe("kode lab: urutan klaim, putaran worker, batas push, dan umur tertua", 
     expect(queue).toContain("$ ./api-t3 -peran worker -rentan urut-waktu");
   });
   test("Putaran: klaim sampai c baris, kirim serentak (goroutine per baris), tunggu semuanya (wg.Wait) sebelum klaim berikutnya; batas push 3 detik per panggilan", () => {
-    const fn = workerGo.slice(workerGo.indexOf("func (w *Worker) Putaran"), workerGo.indexOf("// --8<-- [start:kirim-satu]"));
+    const fn = workerGo.slice(workerGo.indexOf("func (w *Worker) Putaran(ctx context.Context) (Ringkasan, error) {"), workerGo.indexOf("// --8<-- [start:kirim-satu]"));
+    expect(fn.length).toBeGreaterThan(500);
     expect(fn.indexOf("KlaimOutbox(")).toBeLessThan(fn.indexOf("go func()"));
     expect(fn.indexOf("go func()")).toBeLessThan(fn.indexOf("wg.Wait()"));
     expect(fn).toContain("hasil[i] = w.kirimSatu(ctx, n)");
