@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -142,39 +143,58 @@ func TestSSRFBatasRedirectTidakDiikutiUntukSemuaKode(t *testing.T) {
 // ---------- (e) 2 MiB: dua sisi batas ----------
 
 func TestSSRFBatasUkuranDuaMiBDariDuaSisi(t *testing.T) {
-	fmt.Println("\n## batas 2 MiB: tepat di batas diterima, satu byte di atasnya ditolak (dengan dan tanpa Content-Length), dan aliran tanpa akhir dipotong")
+	fmt.Println("\n## batas 2 MiB: tepat di batas diterima, satu byte di atasnya ditolak, dengan Content-Length dan tanpa (chunked), dan aliran tanpa akhir dipotong")
 	if BatasUkuran != 2<<20 {
 		t.Fatalf("BatasUkuran %d, ingin 2 MiB", BatasUkuran)
 	}
-	s := mulaiServer(t, false, ruteUmum())
-	uji := func(jalur string) (Gambar, error) {
-		return lokal(func(a *Aturan) { a.Waktu = 10 * time.Second }).Unduh(context.Background(), s.URL+jalur)
+	// Dengan Content-Length yang diisi handler. Tanpa header itu, server Go menjawab chunked bila isinya lebih dari
+	// buffernya, jadi tes harus menyebutnya sendiri supaya label di rekaman benar.
+	denganPanjang := func(n int) *serverUji {
+		return mulaiServer(t, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Length", strconv.Itoa(n))
+			w.Write(isiPNG(n))
+		}))
 	}
-	g, err := uji("/tepat")
-	fmt.Printf("%-46s %s\n", "2.097.152 byte (tepat 2 MiB), Content-Length", ringkasHasil(g, err))
-	if err != nil || g.Ukuran != 2<<20 {
-		t.Fatalf("tepat 2 MiB: %+v %v", g, err)
+	chunked := func(n int) *serverUji {
+		return mulaiServer(t, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write(isiPNG(1024))
+			w.(http.Flusher).Flush() // sesudah Flush tanpa Content-Length, jawaban chunked
+			w.Write(make([]byte, n-1024))
+		}))
 	}
-	g, err = uji("/lebih")
-	fmt.Printf("%-46s %s\n", "2.097.153 byte (2 MiB + 1), Content-Length", ringkasHasil(g, err))
-	if !errors.Is(err, ErrTerlaluBesar) {
-		t.Fatalf("2 MiB + 1: %v", err)
+	uji := func(s *serverUji) (Gambar, error) {
+		return lokal(func(a *Aturan) { a.Waktu = 10 * time.Second }).Unduh(context.Background(), s.URL+"/")
 	}
-	g, err = uji("/mengalir")
-	fmt.Printf("%-46s %s\n", "3 MiB tanpa Content-Length (chunked)", ringkasHasil(g, err))
-	if !errors.Is(err, ErrTerlaluBesar) {
-		t.Fatalf("3 MiB chunked: %v", err)
+	kasus := []struct {
+		label   string
+		s       *serverUji
+		terima  bool
+		panjang int64 // Content-Length yang diterima client; -1 berarti tanpa Content-Length
+	}{
+		{"2.097.152 byte (tepat 2 MiB), dengan Content-Length", denganPanjang(BatasUkuran), true, BatasUkuran},
+		{"2.097.153 byte (2 MiB + 1), dengan Content-Length", denganPanjang(BatasUkuran + 1), false, BatasUkuran + 1},
+		{"2.097.152 byte (tepat 2 MiB), chunked", chunked(BatasUkuran), true, -1},
+		{"2.097.153 byte (2 MiB + 1), chunked", chunked(BatasUkuran + 1), false, -1},
+		{"3 MiB, chunked", chunked(3 << 20), false, -1},
 	}
-	// Tepat 2 MiB tanpa Content-Length juga diterima: sisi bawah batas pada jalur yang membaca aliran.
-	sc := mulaiServer(t, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write(isiPNG(1024))
-		w.(http.Flusher).Flush()
-		w.Write(make([]byte, BatasUkuran-1024))
-	}))
-	g, err = lokal(func(a *Aturan) { a.Waktu = 10 * time.Second }).Unduh(context.Background(), sc.URL+"/")
-	fmt.Printf("%-46s %s\n", "tepat 2 MiB tanpa Content-Length (chunked)", ringkasHasil(g, err))
-	if err != nil || g.Ukuran != 2<<20 {
-		t.Fatalf("tepat 2 MiB chunked: %+v %v", g, err)
+	for _, k := range kasus {
+		// Label "dengan Content-Length" dan "chunked" dibuktikan dari header yang sungguh diterima client.
+		if r, err := http.Get(k.s.URL + "/"); err != nil {
+			t.Fatal(err)
+		} else {
+			r.Body.Close()
+			if r.ContentLength != k.panjang {
+				t.Fatalf("%s: Content-Length yang diterima %d, ingin %d", k.label, r.ContentLength, k.panjang)
+			}
+		}
+		g, err := uji(k.s)
+		fmt.Printf("%-52s %s\n", k.label, ringkasHasil(g, err))
+		if k.terima && (err != nil || g.Ukuran != BatasUkuran) {
+			t.Errorf("%s: %+v %v, ingin diterima", k.label, g, err)
+		}
+		if !k.terima && !errors.Is(err, ErrTerlaluBesar) {
+			t.Errorf("%s: %v, ingin ErrTerlaluBesar", k.label, err)
+		}
 	}
 	// Server yang menjanjikan 1 GiB: ditolak dari header, sebelum isi dibaca.
 	sg := mulaiServer(t, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -184,11 +204,28 @@ func TestSSRFBatasUkuranDuaMiBDariDuaSisi(t *testing.T) {
 		<-r.Context().Done()
 	}))
 	mulai := time.Now()
-	g, err = lokal(func(a *Aturan) { a.Waktu = 2 * time.Second }).Unduh(context.Background(), sg.URL+"/")
-	fmt.Printf("%-46s %s; ditolak sebelum isi dibaca (kurang dari 1 detik): %v\n", "Content-Length 1 GiB",
+	g, err := lokal(func(a *Aturan) { a.Waktu = 2 * time.Second }).Unduh(context.Background(), sg.URL+"/")
+	fmt.Printf("%-52s %s; ditolak sebelum isi dibaca (kurang dari 1 detik): %v\n", "Content-Length 1 GiB (isi tidak pernah selesai)",
 		ringkasHasil(g, err), time.Since(mulai) < time.Second)
 	if !errors.Is(err, ErrTerlaluBesar) || time.Since(mulai) >= time.Second {
 		t.Fatalf("1 GiB: %v sesudah %s", err, time.Since(mulai))
+	}
+	// Aliran tanpa akhir: dipotong di batas ukuran, bukan menunggu sampai batas waktu.
+	tanpaAkhir := mulaiServer(t, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(isiPNG(1024))
+		w.(http.Flusher).Flush()
+		potongan := make([]byte, 64<<10)
+		for r.Context().Err() == nil {
+			if _, err := w.Write(potongan); err != nil {
+				return
+			}
+			w.(http.Flusher).Flush()
+		}
+	}))
+	g, err = lokal(func(a *Aturan) { a.Waktu = 2 * time.Second }).Unduh(context.Background(), tanpaAkhir.URL+"/")
+	fmt.Printf("%-52s %s\n", "aliran tanpa akhir", ringkasHasil(g, err))
+	if !errors.Is(err, ErrTerlaluBesar) {
+		t.Fatalf("aliran tanpa akhir: %v", err)
 	}
 }
 
