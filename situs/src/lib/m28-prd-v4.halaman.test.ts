@@ -345,7 +345,7 @@ describe("rekaman t3-pool adr22.txt bagian F: batas L, bukan nilai tunggal, di s
     expect(koma(lambda, 2)).toBe("0,87");
     expect(reg.trx).toBe(3);
     expect(T3.dau * reg.trx).toBe(7500);
-    harus(`Angka 0,87 muncul dua kali di potongan itu, dengan arti berbeda. Di baris beban, 0,87 per detik adalah pembayaran, yaitu ${koma(lambda, 3)} yang dibulatkan (${ribu(T3.dau * reg.trx)} ÷ 86.400 × ${reg.puncak}, Asumsi). Di baris L, 0,87 adalah koneksi.`);
+    harus(`Angka 0,87 muncul dua kali di potongan itu, dengan arti berbeda. Di baris beban, 0,87 per detik adalah pembayaran, yaitu ${koma(lambda, 3)} yang dibulatkan (${ribu(T3.dau)} × ${reg.trx} transaksi ÷ 86.400 × ${reg.puncak}, Asumsi). Di baris L, 0,87 adalah koneksi.`);
     expect(hitung(badan, "0,87 per detik")).toBe(1);
     expect(hitung(badan, "0,868")).toBe(1);
     expect(hitung(badan, "bukan pembayaran per detik")).toBe(0);
@@ -667,8 +667,8 @@ describe("dunia angka tertutup: tiap token angka dan konteksnya dihitung dari su
     expect([...new Set(token.filter((x) => !boleh.has(x)))], "token berkoma di halaman yang tidak dihitung dari sumber").toEqual([]);
     for (const b of boleh) expect(token, `nilai yang dihitung tidak dipakai halaman: ${b}`).toContain(b);
   });
-  test("angka berpemisah ribuan: user, aktif, request per hari, detik per hari dan per jam, pembayaran per hari", () => {
-    const boleh = new Set([ribu(reg.user), ribu(T3.dau), ribu(T3.reqHari), ribu(86400), ribu(3600), ribu(T3.dau * reg.trx)]);
+  test("angka berpemisah ribuan: user, aktif, request per hari, detik per hari dan per jam", () => {
+    const boleh = new Set([ribu(reg.user), ribu(T3.dau), ribu(T3.reqHari), ribu(86400), ribu(3600)]);
     const token = [...badan.matchAll(/\d{1,3}(?:\.\d{3})+/g)].map((m) => m[0]);
     expect([...new Set(token.filter((x) => !boleh.has(x)))]).toEqual([]);
     for (const b of boleh) expect(token, b).toContain(b);
