@@ -1,0 +1,37 @@
+{
+  "istilah": "HSTS (HTTP Strict Transport Security)",
+  "sehari_hari": "Server memberi tahu browser: untuk host ini, selama jangka waktu tertentu, pakai https saja. Sesudahnya browser menaikkan alamat http ke https sebelum mengirim apa pun.",
+  "cerita": [
+    {
+      "rujukan": "t3-tls-pinning",
+      "teks": "Server tepi dasbor menjawab lewat TLS dengan `max-age=31536000; includeSubDomains`. Dengan cache HSTS terisi, curl menaikkan `http://` ke `https://` sebelum meninggalkan client, dan alamat IP tidak disimpan (`hsts.txt` bagian B dan C)."
+    }
+  ],
+  "mekanisme": [
+    "Browser membuka host lewat https dan menerima header `Strict-Transport-Security`.",
+    "Browser mencatat host itu sebagai Known HSTS Host selama `max-age` detik, dan subdomainnya ikut bila `includeSubDomains` ada.",
+    "Permintaan `http://` ke host itu dinaikkan ke `https://` di dalam browser, sebelum jaringan terlibat.",
+    "Port http hanya mengalihkan dan tidak mengirim header itu, karena RFC 6797 melarang host mengirimnya lewat transport yang tidak aman (`hsts.txt` bagian A).",
+    "Permintaan pertama, sebelum header pernah diterima, tidak terlindungi, dan alamat IP tidak dicatat sebagai Known HSTS Host."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira HSTS melindungi permintaan pertama. Dengan cache kosong, permintaan `http://` pertama keluar sebagai teks biasa (`hsts.txt` bagian B).",
+    "Mengira HSTS berlaku untuk dasbor yang dibuka lewat alamat IP. Alamat IP tidak disimpan, jadi `http://` tetap keluar sebagai teks biasa (`hsts.txt` bagian C).",
+    "Mengira client mobile ikut memakainya. Lab hanya merekam curl, dan browser serta client dart:io tidak diuji (README lab)."
+  ],
+  "terkait": ["Certificate pinning", "Reverse proxy"],
+  "sumber": [
+    {
+      "riset": "R3-76",
+      "judul": "RFC 6797: HTTP Strict Transport Security (HSTS)",
+      "url": "https://www.rfc-editor.org/rfc/rfc6797",
+      "catatan": "Teks mentah dibuka 2026-10-27. Bagian 7.2: host tidak boleh mengirim header lewat transport tidak aman. Bagian 8.1.1: alamat IP tidak dicatat. Bagian 14.6: permintaan pertama lewat kanal tidak aman rentan."
+    },
+    {
+      "judul": "Rekaman lab t3-mitm: hsts.txt bagian A sampai C",
+      "rekaman": "labs/t3-mitm/output/hsts.txt",
+      "catatan": "A: port http mengalihkan tanpa header, jawaban TLS membawa header. B: cache curl menaikkan http ke https. C: alamat IP tidak disimpan."
+    }
+  ]
+}

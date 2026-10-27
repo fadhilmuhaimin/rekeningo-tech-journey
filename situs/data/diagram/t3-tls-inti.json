@@ -1,0 +1,29 @@
+{
+  "id": "t3-tls-inti",
+  "judul": "CA Dimas dipercaya: pin di dua tempat",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t3-mitm, dio.txt bagian A dan B"
+  },
+  "baris": [
+    {
+      "label": "Pin di dio",
+      "sub": "validateCertificate",
+      "simpul": [
+        { "teks": "handshake lolos", "sub": "CA Dimas dipercaya" },
+        { "teks": "proxy membaca request", "sub": "token dan body", "nada": "warn" },
+        { "teks": "transfer Rp150.000 tercatat", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Pin di connectionFactory",
+      "sub": "sesudah handshake",
+      "simpul": [
+        { "teks": "handshake lolos", "sub": "CA Dimas dipercaya" },
+        { "teks": "pin ditolak", "sub": "sebelum request", "nada": "good" },
+        { "teks": "0 request, 0 transfer", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah hasil yang merugikan Budi, dan kotak hijau adalah hasil yang aman. Proxy tiruan dan client Dart berjalan di satu laptop, jadi Wi-Fi dan HP sungguhan Tidak dijalankan."
+}

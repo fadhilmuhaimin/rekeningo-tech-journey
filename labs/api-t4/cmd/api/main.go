@@ -99,6 +99,7 @@ func main() {
 	retensi := flag.Bool("retensi-identitas", false, "job: hapus file identitas yang masa simpannya (hapus_pada) sudah sampai, lalu keluar (ADR 38)")
 	labSekarang := flag.String("lab-sekarang", "", "lab saja, dengan -retensi-identitas: waktu service RFC 3339 (waktu maya)")
 	unduhHTTP := flag.Bool("unduh-izinkan-http", false, "lab saja: fetcher gambar versi aman menerima skema http (tiruan lokal tidak punya TLS); produksi hanya https (ADR 41)")
+	ledgerKunci := flag.String("ledger-kunci", "", "API ledger untuk service pembayaran (POST /ledger/jurnal-topup, ADR 37): kunci layanan di header X-Layanan-Kunci; kosong = rute tidak dipasang")
 	flag.Parse()
 
 	// Mode rentan push-dalam-tx adalah versi pertama minggu 1: client tanpa batas waktu dan tanpa pengaman
@@ -269,6 +270,7 @@ func main() {
 			w.WriteHeader(http.StatusNoContent)
 		})
 	}
+	handler.PasangLedger(rute, svc, *ledgerKunci, *lab)
 	if *lab {
 		pasangEndpointLab(rute, db, r)
 		pasangEndpointCache(rute, kc)
