@@ -1,0 +1,29 @@
+{
+  "id": "t3-xss-csrf-inti",
+  "judul": "Catatan Dimas: dua lapis mati, lalu satu hidup",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t3-dasbor, xss.txt bagian A, C, dan E"
+  },
+  "baris": [
+    {
+      "label": "Dua lapis mati",
+      "sub": "bagian A",
+      "simpul": [
+        { "teks": "catatan Dimas", "sub": "elemen img dengan onerror" },
+        { "teks": "innerHTML, tanpa CSP", "nada": "warn" },
+        { "teks": "skrip berjalan", "sub": "1 dialog alert", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Satu lapis hidup",
+      "sub": "bagian C dan E",
+      "simpul": [
+        { "teks": "catatan Dimas", "sub": "sama" },
+        { "teks": "textContent atau CSP", "sub": "salah satu cukup" },
+        { "teks": "skrip tertahan", "sub": "0 dialog", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah dua lapis yang dimatikan sekaligus. Bagian C mematikan escape dan menyalakan CSP. Bagian E mematikan CSP dan menyalakan escape."
+}

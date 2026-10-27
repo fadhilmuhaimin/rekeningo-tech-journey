@@ -1,0 +1,145 @@
+{
+  "judul": "Dasbor Ani: lapis dimatikan atau pilihan ADR 30",
+  "opsi": [
+    {
+      "id": "rentan",
+      "nama": "A · Lapis dimatikan (tiap rekaman mematikan satu kelompok)",
+      "baris": [
+        [
+          {
+            "id": "a-ani",
+            "label": "Browser Ani",
+            "sub": "sudah login"
+          }
+        ],
+        [
+          {
+            "id": "a-dasbor",
+            "label": "Dasbor",
+            "sub": "innerHTML, tanpa CSP"
+          },
+          {
+            "id": "a-cookie",
+            "label": "Cookie sesi",
+            "sub": "tanpa HttpOnly"
+          },
+          {
+            "id": "a-ubah",
+            "label": "Ubah harga",
+            "sub": "tanpa token"
+          }
+        ]
+      ],
+      "judulBaris": [
+        "Pengguna",
+        "Dasbor"
+      ]
+    },
+    {
+      "id": "adr30",
+      "nama": "B · ADR 30: semua lapis hidup",
+      "baris": [
+        [
+          {
+            "id": "b-ani",
+            "label": "Browser Ani",
+            "sub": "sudah login"
+          }
+        ],
+        [
+          {
+            "id": "b-dasbor",
+            "label": "Dasbor",
+            "sub": "textContent, CSP dengan nonce"
+          },
+          {
+            "id": "b-cookie",
+            "label": "Cookie sesi",
+            "sub": "__Host-, HttpOnly, Lax"
+          },
+          {
+            "id": "b-token",
+            "label": "Ubah harga",
+            "sub": "token, Origin, Sec-Fetch-Site"
+          }
+        ]
+      ],
+      "judulBaris": [
+        "Pengguna",
+        "Dasbor"
+      ]
+    }
+  ],
+  "fitur": [
+    {
+      "label": "Catatan berisi onerror",
+      "sorot": {
+        "rentan": ["a-dasbor"],
+        "adr30": ["b-dasbor"]
+      },
+      "catatan": {
+        "rentan": "Satu dialog alert muncul dan satu elemen img terbentuk di daftar (xss.txt bagian A).",
+        "adr30": "Tidak ada dialog dan tidak ada elemen img, dan catatan tampil sebagai teks (xss.txt bagian B)."
+      },
+      "nada": {
+        "rentan": "warn"
+      }
+    },
+    {
+      "label": "Skrip membaca cookie",
+      "sorot": {
+        "rentan": ["a-dasbor", "a-cookie"],
+        "adr30": ["b-dasbor", "b-cookie"]
+      },
+      "catatan": {
+        "rentan": "document.cookie bisa dibaca dan memuat nama cookie sesi (xss.txt bagian A).",
+        "adr30": "document.cookie kosong (xss.txt bagian B)."
+      },
+      "nada": {
+        "rentan": "warn"
+      }
+    },
+    {
+      "label": "Skrip mengubah harga",
+      "sorot": {
+        "rentan": ["a-dasbor", "a-ubah"],
+        "adr30": ["b-dasbor", "b-token"]
+      },
+      "catatan": {
+        "rentan": "Tidak direkam dengan cookie dan token rentan, karena bagian D memakai cookie dan token benar.",
+        "adr30": "Bila escape dan CSP gagal, permintaan dari dalam halaman diterima dengan 200 (xss.txt bagian D)."
+      },
+      "nada": {
+        "adr30": "warn"
+      }
+    },
+    {
+      "label": "Form dari situs lain",
+      "sorot": {
+        "rentan": ["a-cookie", "a-ubah"],
+        "adr30": ["b-cookie", "b-token"]
+      },
+      "catatan": {
+        "rentan": "Cookie terkirim, jawabannya 200, dan harga jadi Rp1 (csrf.txt bagian A).",
+        "adr30": "Cookie tidak terkirim dan jawabannya 401 (csrf.txt bagian C); bila cookie terkirim, token menolak dengan 403 (bagian D)."
+      },
+      "nada": {
+        "rentan": "warn"
+      }
+    },
+    {
+      "label": "SameSite tidak ditulis",
+      "sorot": {
+        "rentan": ["a-cookie"],
+        "adr30": ["b-cookie"]
+      },
+      "catatan": {
+        "rentan": "Cookie terkirim, jawabannya 200, dan harga jadi Rp1 (csrf.txt bagian E).",
+        "adr30": "SameSite=Lax ditulis eksplisit, jadi cookie tidak terkirim dan jawabannya 401 (csrf.txt bagian B dan C)."
+      },
+      "nada": {
+        "rentan": "warn"
+      }
+    }
+  ]
+}

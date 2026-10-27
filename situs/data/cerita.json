@@ -2854,8 +2854,9 @@
       "lab": [
         "t3-dasbor"
       ],
-      "ada": false,
-      "nomor": "3.23"
+      "ada": true,
+      "nomor": "3.23",
+      "menit": 22
     },
     {
       "id": "t3-m26",

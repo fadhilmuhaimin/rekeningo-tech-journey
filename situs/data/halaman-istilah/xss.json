@@ -1,0 +1,43 @@
+{
+  "istilah": "XSS (cross-site scripting)",
+  "sehari_hari": "XSS terjadi saat teks dari luar dibaca browser sebagai kode, lalu berjalan di halaman milik orang lain dengan hak halaman itu.",
+  "cerita": [
+    {
+      "rujukan": "t3-m25",
+      "teks": "Catatan pembayaran Dimas berisi elemen `img` dengan `onerror`. Dasbor Ani menampilkannya lewat `innerHTML`, jadi satu dialog `alert` muncul setiap kali Ani membuka riwayat."
+    },
+    {
+      "rujukan": "t3-xss-csrf",
+      "teks": "Di rekaman, `textContent` saja atau CSP saja menahan payload yang sama (`xss.txt` bagian C dan E). Hanya saat keduanya mati sekaligus `onerror` berjalan (bagian A)."
+    }
+  ],
+  "mekanisme": [
+    "Data dari satu pengguna, di sini catatan pembayaran, disimpan apa adanya di database.",
+    "Halaman lain menulis data itu ke DOM lewat sink yang membaca HTML, seperti `innerHTML`.",
+    "Browser menafsir teks itu sebagai elemen dan atribut, termasuk event handler seperti `onerror`.",
+    "Skrip yang berjalan memakai sesi pemilik halaman: cookie ikut terkirim dan variabel halaman bisa dibaca."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menganggap token CSRF yang benar cukup. Skrip yang berjalan di halaman dasbor mengirim permintaan same-origin dengan token yang benar, dan diterima (`xss.txt` bagian D).",
+    "Menganggap `HttpOnly` menghentikan XSS. Cookie jadi tidak terbaca skrip, tetapi tetap dikirim pada permintaan dari JavaScript, jadi aksinya tetap terjadi."
+  ],
+  "terkait": [
+    "CSRF",
+    "CSP"
+  ],
+  "sumber": [
+    {
+      "riset": "R3-211",
+      "judul": "OWASP: Cross Site Scripting Prevention Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
+      "catatan": "Teks mentah dibuka 2026-10-27. Ganti innerHTML dengan textContent, yang membuat text node tanpa mem-parse HTML; CSP adalah lapis tambahan, bukan pertahanan utama."
+    },
+    {
+      "riset": "R3-211",
+      "judul": "Rekaman lab t3-dasbor: xss.txt bagian A sampai E",
+      "rekaman": "labs/t3-dasbor/output/xss.txt",
+      "catatan": "Bagian A: innerHTML tanpa CSP, 1 dialog. Bagian B: textContent, 0 dialog. Bagian C: CSP saja, 0 dialog. Bagian E: textContent saja, 0 dialog."
+    }
+  ]
+}
