@@ -73,6 +73,7 @@ func (s Server) Rute() *http.ServeMux {
 	}
 	// Tahap 4 (lab-api-t4): satu fungsi pemasang per kelompok endpoint, tiap kelompok di berkas handler sendiri.
 	s.pasangPembayaran(mux) // daftar, top-up dari bank, webhook gateway, verifikasi identitas
+	s.pasangBerkas(mux)     // file identitas lewat presigned PUT (lab t4-storage)
 	s.pasangQR(mux)         // merchant luar dan QR
 	s.pasangKartu(mux)      // kartu virtual dan panggilan dari penerbit
 	s.pasangBackOffice(mux) // back office tim risk, audit log, impor katalog merchant

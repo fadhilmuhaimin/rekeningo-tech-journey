@@ -29,7 +29,6 @@ import (
 	"lab/apit4/internal/gateway"
 	"lab/apit4/internal/handler"
 	"lab/apit4/internal/klien"
-	"lab/apit4/internal/objek"
 	"lab/apit4/internal/penerbit"
 	"lab/apit4/internal/push"
 	"lab/apit4/internal/redisbatas"
@@ -94,6 +93,11 @@ func main() {
 	breaker := flag.Bool("breaker", false, "worker: breaker per vendor di lajur verifikasi (ADR 36): lajur yang breakernya terbuka tidak diklaim; mati = ADR 25 apa adanya")
 	breakerTimeout := flag.Duration("breaker-timeout", 0, "worker, dengan -breaker: lama breaker terbuka sebelum setengah terbuka; 0 = bawaan sony/gobreaker v2.4.0 (60 detik)")
 	breakerBawaan := flag.Bool("breaker-bawaan", false, "lab saja, dengan -breaker: IsSuccessful bawaan pustaka (jawaban 4xx vendor dihitung gagal); bawaan lab: 4xx dihitung sukses (ADR 36)")
+	objekS3 := flag.String("objek-s3", "", "endpoint penyimpanan objek S3 lokal untuk file identitas (lab t4-storage); kunci akses dan rahasia dari OBJEK_S3_KUNCI dan OBJEK_S3_RAHASIA; kosong = -objek-dir")
+	objekBucket := flag.String("objek-bucket", "identitas", "bucket penyimpanan objek (-objek-s3)")
+	objekPresign := flag.Duration("objek-presign-umur", 0, "umur URL PUT bertanda tangan untuk unggah file identitas (ADR 38); 0 = 5 menit (Asumsi); lab saja untuk umur pendek")
+	retensi := flag.Bool("retensi-identitas", false, "job: hapus file identitas yang masa simpannya (hapus_pada) sudah sampai, lalu keluar (ADR 38)")
+	labSekarang := flag.String("lab-sekarang", "", "lab saja, dengan -retensi-identitas: waktu service RFC 3339 (waktu maya)")
 	unduhHTTP := flag.Bool("unduh-izinkan-http", false, "lab saja: fetcher gambar versi aman menerima skema http (tiruan lokal tidak punya TLS); produksi hanya https (ADR 41)")
 	flag.Parse()
 
@@ -113,7 +117,7 @@ func main() {
 	switch *rentan {
 	case "", service.RentanPushDalamTx, service.RentanEksporPanic, service.RentanStokTimpa, rentanTanpaShutdown, "kursor", "urut-waktu",
 		service.RentanWebhookV1, service.RentanWebhookCekTulis, service.RentanKartuTanpaHold, service.RentanUnduhRentan, service.RentanTanpaAudit,
-		service.RentanVerifikasiTanpaKey:
+		service.RentanVerifikasiTanpaKey, service.RentanBerkasBytea:
 	default:
 		log.Fatalf("mode rentan tidak dikenal: %s", *rentan)
 	}
@@ -151,7 +155,9 @@ func main() {
 	if *objekDir == "" {
 		*objekDir = os.TempDir() + "/api-t4-objek"
 	}
-	dep.Objek = objek.Dir{Akar: *objekDir}
+	dep.Objek = bukaObjek(context.Background(), db, pilihanObjek{Dir: *objekDir, S3: *objekS3, Bucket: *objekBucket,
+		MaksBaca: 4 * service.MaksBerkasIdentitas, Bytea: *rentan == service.RentanBerkasBytea})
+	dep.UmurPresign = *objekPresign
 	for _, s := range strings.Split(*rahasiaWebhook, ",") {
 		if s = strings.TrimSpace(s); s != "" {
 			dep.RahasiaWebhook = append(dep.RahasiaWebhook, s)
@@ -164,6 +170,9 @@ func main() {
 			}
 			dep.TanpaLapis[s] = true
 		}
+	}
+	if *retensi {
+		os.Exit(jalankanRetensi(r, *umurSesi, dep, *labSekarang))
 	}
 	if *cekTopup || *rekon != "" || *kedaluwarsaHold || *koreksiRekon {
 		os.Exit(jalankanJobT4(r, *umurSesi, dep, *rentan, *cekTopup, *cekUmur, *rekon, *kedaluwarsaHold, *koreksiRekon))

@@ -17,6 +17,9 @@ type Dep struct {
 	Vendor   *verifikasi.Klien
 	Penerbit *penerbit.Klien
 	Objek    objek.Penyimpan
+	// Umur URL PUT bertanda tangan untuk unggah file identitas (ADR 38); 0 = UmurPresign (5 menit, Asumsi). Lab saja:
+	// umur pendek (detik) supaya kedaluwarsa bisa direkam dengan menunggu.
+	UmurPresign time.Duration
 
 	// Rahasia webhook: yang pertama dipakai gateway menandatangani, yang kedua adalah rahasia lama yang masih
 	// diterima selama masa tumpang tindih rotasi (ADR 35). Kosong = webhook ditolak semua (401).

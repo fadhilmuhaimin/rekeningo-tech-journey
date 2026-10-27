@@ -54,6 +54,8 @@ const (
 	RentanTanpaAudit      = "bo-tanpa-audit"    // M38: back office versi pertama: tidak ada catatan audit
 	// M31 (retry bebas tanpa kunci, ditolak ADR 36): worker memakai Idempotency-Key baru di setiap percobaan ke vendor.
 	RentanVerifikasiTanpaKey = "verifikasi-tanpa-key"
+	// M33 (versi pertama, ditolak ADR 38): file identitas di kolom bytea di database yang sama (lab t4-storage).
+	RentanBerkasBytea = "berkas-bytea"
 )
 
 var (
