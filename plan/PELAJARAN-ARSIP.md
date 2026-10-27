@@ -342,3 +342,19 @@ Pola per halaman: branch `tahap-1/<slug>` dari `main`; lab dulu bila perlu (PR s
 
 - Halaman 3.4–3.8 (#368–#372): hal 1 "pemberitahuan tidak mendahului uangnya" hanya penalaran ("push berhasil lalu COMMIT gagal" tak direkam; push tiruan rentan.txt A menerima 10 permintaan sebelum COMMIT); ±170 MB di 2.9 (nilai tepat 164,25 MB) dan registry `trx` 2 lawan 3 (±65,7 lawan ±98,6 MB); timeout app 30/10 detik Asumsi, perilaku `http`/`dio` [perlu verifikasi]; komponen Tebak bersama: tiga tombol tanpa fungsi saat JS mati (USULAN-PERBAIKAN 9); widget cari-bug diperluas (fokus sesudah Ulang kini juga di 1.19/1.20) dan `.bb-chip.is-good` mengubah chip 2.23; "ubah satu hal" 3.7 hanya perbandingan dua rekaman (W5); naskah: M18 ±12 vs ±11,5 detik, adegan log tak ada, Val Town dan Fowler ke kolom Sumber ADR 22.
 - Halaman 3.9–3.12 (#374–#378): ambang "ratusan per detik" ADR 23 naskah bertentangan dengan pembandingnya (±231 per detik; ditulis sebagai usulan, naskah tak diubah); naskah M19 "tiga pembayaran Ani" dan "dua hari" (poller tanpa restart; tak direkam) dan "nomor urut id pun bukan urutan commit" (rekaman hanya `dibuat` terbalik); naskah M20 "worker dihentikan saat deploy" vs `Jalankan` menyelesaikan putaran saat SIGTERM (lab merekam mati paksa) dan "selang di atas lima detik" bukan yang diukur; peta 3.11 "widget race" padahal OutboxWorker kursor; pgmq/Serverpod/Laravel label [perlu verifikasi]; nomor keputusan tampil di 2.x ("keputusan 415/514") belum ditangkap alat; rekaman t3-pool adr22 diubah tanpa dijalankan ulang (Docker mati): jalankan `make -C labs/t3-pool cek` sebelum EVAL-3.
+
+## Ukur antrean merge, baris 3.9–3.15 (arsip 2026-10-27 siang)
+
+| Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
+| --- | --- | --- | --- | --- |
+| 3.9 | #374 | 31 | 1 | 0 |
+| 3.10 | #375 | 140 (tinjauan 359 mutasi) | 2 | 0 |
+| 3.11 | #376 | 37 | 2 | 0 |
+| 3.12 | #378 | 39 | 3 | 0 |
+| 3.13 | #381 | 58 | 2 | 1 (infra Playwright digest-mismatch) |
+| 3.14 | #382 | 45 | 2 | 0 |
+| 3.15 | #383 | 131 (macet, dua restart) | 2 | 0 |
+
+## Perlu dicek pemilik, halaman 3.13–3.15 dan naskah 4 (arsip 2026-10-27 siang)
+
+- Halaman 3.13–3.15 (#381–#383) dan naskah 4: ADR 25 tetap pesan `data` (iOS tak menjamin; Doze) atau `notification` + `tag` = `notifikasi_id` (keduanya Tidak dijalankan di perangkat); alert baris `mati` dan replay otomatis dijanjikan ke 3.27 tetapi naskah ADR 32 hanya alert umur tertua; naskah M21 "tidak ada yang memulainya lagi" (±9 menit) vs `restart: unless-stopped` Tahap 1 (opsi A: restart otomatis ada, mati beberapa detik; opsi B: API tanpa pengawas: ubah Tahap 1 dan 2); naskah M20 "worker dihentikan saat deploy" vs mati paksa; selang health check 1 detik Asumsi; BFF: PROPOSAL Tahap 4 "modular monolith + 1 service pembayaran + BFF" vs naskah menunda ke ADR 45 (membatalkan = satu ADR + satu halaman); pemangkasan Tahap 4 (1207: 11 lab, 2 widget baru) belum dilihat pemilik; registry/3.5 "tim 6–10 dalam 2 tim" vs naskah 4 tim 13 dalam tiga tim (KONSISTENSI-4).
