@@ -847,6 +847,14 @@ window.ISTILAH = {
   "t": "Outbox",
   "u": "tahap-3/outbox-worker/"
  },
+ "Output encoding": {
+  "b": "t3-m25",
+  "d": "Mengubah teks yang akan ditulis ke halaman supaya tanda khusus HTML tampil sebagai teks dan tidak dibaca sebagai markup.",
+  "n": "3.22 M25",
+  "s": "istilah-output-encoding",
+  "t": "Output encoding",
+  "u": "tahap-3/m25-kotak-peringatan/"
+ },
  "Over-fetching": {
   "b": "t2-payload",
   "d": "Response yang mengirim lebih banyak kolom atau baris daripada yang dipakai layar.",
@@ -1436,6 +1444,15 @@ window.ISTILAH = {
   "t": "Worker",
   "u": "tahap-3/outbox-worker/"
  },
+ "XSS": {
+  "b": "t3-m25",
+  "d": "Celah di halaman web yang membuat browser menjalankan skrip dari data yang ditampilkan, mis. catatan pembayaran yang ditulis ke halaman tanpa di-encode.",
+  "h": "istilah/xss/",
+  "n": "3.22 M25",
+  "s": "istilah-xss",
+  "t": "XSS (cross-site scripting)",
+  "u": "tahap-3/m25-kotak-peringatan/"
+ },
  "argon2id": {
   "b": "t2-login-aman",
   "d": "Fungsi hash password yang sengaja lambat dan memakai banyak memori, supaya menebak password dari tabel yang bocor butuh waktu dan RAM besar.",
@@ -2023,6 +2040,14 @@ window.ISTILAH = {
   "s": "istilah-outbox",
   "t": "Outbox",
   "u": "tahap-3/outbox-worker/"
+ },
+ "output encoding": {
+  "b": "t3-m25",
+  "d": "Mengubah teks yang akan ditulis ke halaman supaya tanda khusus HTML tampil sebagai teks dan tidak dibaca sebagai markup.",
+  "n": "3.22 M25",
+  "s": "istilah-output-encoding",
+  "t": "Output encoding",
+  "u": "tahap-3/m25-kotak-peringatan/"
  },
  "over-fetching": {
   "b": "t2-payload",

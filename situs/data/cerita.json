@@ -2827,7 +2827,7 @@
       ],
       "ada": true,
       "nomor": "3.22",
-      "menit": 11
+      "menit": 9
     },
     {
       "id": "t3-xss-csrf",

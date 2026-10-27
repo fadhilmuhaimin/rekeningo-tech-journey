@@ -28,7 +28,7 @@
       "simpul": [
         { "teks": "DELETE FROM jurnal", "sub": "role aplikasi api_t3", "kode": true },
         { "teks": "permission denied", "sub": "SQLSTATE 42501" },
-        { "teks": "Catatan tinggal di jurnal", "sub": "perbaikan di output", "nada": "warn" }
+        { "teks": "Catatan tetap di jurnal", "sub": "perbaikan di output", "nada": "warn" }
       ]
     }
   ],

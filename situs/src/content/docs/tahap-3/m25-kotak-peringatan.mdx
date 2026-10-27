@@ -9,7 +9,7 @@ import CariBug from "../../../widgets/cari-bug/CariBug.tsx";
 import kotak from "../../../../data/diagram/t3-m25-kotak-peringatan.json";
 import caribug from "../../../../data/widget/t3-m25-caribug.json";
 
-<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t3-offline]] · Jalur inti</p>
+<p class="meta">Baca 6 menit · coba 3 menit · Prasyarat: [[t3-offline]] · Jalur inti</p>
 
 <Blok nama="Gejala" buka>
 
@@ -88,7 +88,7 @@ Baris terakhir rekaman itu menulis "skrip yang sama". Maksudnya skrip yang berja
 
 <Snippet file="labs/api-t3/output/skema.txt" lines="155:157" title="Rekaman lab: labs/api-t3/output/skema.txt baris 155 sampai 157 (bagian D, DELETE jurnal ditolak)" />
 
-Role `api_t3` hanya punya `SELECT` dan `INSERT` pada `jurnal` dan `posting` (dibaca dari `dasar_t3.py`). Catatan Dimas karena itu tinggal di jurnal, dan menyaringnya saat masuk tidak membersihkan baris yang sudah ada. Penghapusan data pribadi dari `keterangan` belum dijadwalkan ([[t2-adr-ledger]]).
+Role `api_t3` hanya punya `SELECT` dan `INSERT` pada `jurnal` dan `posting` (dibaca dari `dasar_t3.py`). Catatan Dimas karena itu tetap ada di jurnal, dan menyaringnya saat masuk tidak membersihkan baris yang sudah ada. Penghapusan data pribadi dari `keterangan` belum dijadwalkan ([[t2-adr-ledger]]).
 
 **Satu pengaturan diganti, dan kotaknya hilang.** Bagian D dan E memakai dasbor yang sama, kecuali cara menulis catatan: D memakai `-escape rentan`, E tidak. Keduanya `-csp mati`:
 
@@ -122,7 +122,7 @@ Tanpa JavaScript, baris tidak bisa ditandai. Baris yang bermasalah adalah baris 
 
 - [[t3-xss-csrf]]: XSS tersimpan (stored XSS), output encoding, CSP, CSRF, cookie sesi, dan passkey. Keputusannya ADR 30.
 - [[t1-sql-injection]]: pola yang sama di tempat lain. Parameter query memisahkan data dari perintah SQL, dan encoding saat output memisahkan data dari markup HTML.
-- [[t2-adr-ledger]]: jurnal tidak bisa dihapus, jadi catatan teks bebas tinggal di sana. Penghapusan data pribadi belum dijadwalkan.
+- [[t2-adr-ledger]]: jurnal tidak bisa dihapus, jadi catatan teks bebas tetap ada di sana. Penghapusan data pribadi belum dijadwalkan.
 - [[t3-skema]]: `jurnal.keterangan` berisi teks bebas yang wajib di-encode saat ditampilkan, dan sesi jenis web memakai cookie dan token CSRF.
 - [[t3-prd]]: dasbor web warung adalah P0 dan catatan pada pembayaran adalah P1 di PRD v3.
 
