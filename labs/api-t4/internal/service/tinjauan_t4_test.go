@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	"lab/apit4/internal/gateway"
+	"lab/apit4/internal/repo"
 )
 
 // Tes tambahan dari tinjauan lab api-t4: mutan yang lolos uji mutasi peninjau (perubahan satu hal di kode, semua tes
@@ -129,5 +131,52 @@ func TestOtorisasiTepatDiBatasHarianDanSaldoBoleh(t *testing.T) {
 	}
 	if k, err := svc.Otorisasi(ctx, PermintaanOtorisasi{IDPenerbit: idOtorisasi(), Token: tokenB, Jumlah: 1}); err != nil || k.Keputusan != "tolak" || k.Alasan != "saldo-kurang" {
 		t.Errorf("Rp1 dari saldo nol: %+v, %v; harus tolak saldo-kurang", k, err)
+	}
+}
+
+// Otorisasi yang sudah ditagih (clearing) tetap dihitung dalam batas harian kartu. Mutan: hanya yang masih ditahan
+// yang dihitung, jadi pemilik bisa melewati batas dengan menunggu penagihan.
+func TestBatasHarianKartuMenghitungYangSudahDitagih(t *testing.T) {
+	svc, db := svcKartu(t, Dep{})
+	ctx := context.Background()
+	a := pemakaiBaru(t, db, "terverifikasi", 500_000)
+	token := kartuTes(t, db, a, "aktif", 50_000)
+	id := idOtorisasi()
+	k, err := svc.Otorisasi(ctx, PermintaanOtorisasi{IDPenerbit: id, Token: token, Jumlah: 50_000})
+	harapSetuju(t, k, err)
+	if _, err := svc.Clearing(ctx, id, 50_000); err != nil {
+		t.Fatal(err)
+	}
+	k, err = svc.Otorisasi(ctx, PermintaanOtorisasi{IDPenerbit: idOtorisasi(), Token: token, Jumlah: 1})
+	if err != nil || k.Keputusan != "tolak" || k.Alasan != "batas-harian" {
+		t.Fatalf("Rp1 sesudah Rp50.000 yang sudah ditagih: %+v, %v; harus tolak batas-harian", k, err)
+	}
+}
+
+// Penyetuju harus memegang sesi app. Sesi web milik staf risk (tidak bisa dibuat LoginWeb, tetapi bisa ada di
+// database) tidak menggantikan token penyetuju. Mutan: jenis sesi tidak diperiksa.
+func TestPenyetujuHarusSesiApp(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	risk2 := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "terverifikasi", 0)
+	if err := svc.BekukanBO(ctx, risk, sasaran, alasanUji); err != nil {
+		t.Fatal(err)
+	}
+	token := fmt.Sprintf("token-web-%d-%d", risk2, time.Now().UnixNano())
+	csrf := hashToken("csrf-" + token)
+	if err := repo.Baru(db).SimpanSesi(ctx, hashToken(token), risk2, time.Now().Add(time.Hour), "web", &csrf); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.BukaBlokirBO(ctx, risk, sasaran, alasanUji, token); !errors.Is(err, ErrButuhPersetujuan) {
+		t.Fatalf("sesi web sebagai penyetuju: %v; harus ErrButuhPersetujuan", err)
+	}
+	if st, _ := statusAkun(t, db, sasaran); st != "dibekukan" {
+		t.Errorf("status %s: akun tidak boleh dibuka tanpa penyetuju yang sah", st)
+	}
+	// Pembanding: token app milik petugas yang sama diterima.
+	if err := svc.BukaBlokirBO(ctx, risk, sasaran, alasanUji, sesiBaru(t, db, risk2)); err != nil {
+		t.Fatalf("token app penyetuju sah: %v", err)
 	}
 }
