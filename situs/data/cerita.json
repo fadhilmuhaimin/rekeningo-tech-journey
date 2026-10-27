@@ -2966,8 +2966,9 @@
         "api-t3",
         "t3-outbox"
       ],
-      "ada": false,
-      "nomor": "3.27"
+      "ada": true,
+      "nomor": "3.27",
+      "menit": 20
     },
     {
       "id": "t3-m28",

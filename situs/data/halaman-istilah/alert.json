@@ -1,0 +1,39 @@
+{
+  "istilah": "Alert",
+  "sehari_hari": "Alert adalah pemberitahuan otomatis ke satu orang saat sebuah angka melewati batas yang sudah ditentukan. Orang itu diminta bertindak sekarang, bukan sekadar tahu.",
+  "cerita": [
+    {
+      "rujukan": "t3-m27",
+      "teks": "Di M27, umur notifikasi uang yang menunggu tidak dipantau siapa pun, jadi keterlambatan baru diketahui dari Ani. Rekaman lab menunjukkan umur tertua semua kelas lebih dari 30 detik, sementara tidak ada baris uang yang menunggu."
+    },
+    {
+      "rujukan": "t3-tim-infra",
+      "teks": "ADR 32 membatasi alert pada empat gejala yang dirasakan user: umur notifikasi uang tertua, error rate, p95, dan request yang menunggu koneksi. Hanya umur uang yang punya ambang dari janji PRD v3."
+    }
+  ],
+  "mekanisme": [
+    "Satu angka diukur terus-menerus, mis. umur baris queue tertua atau jumlah request yang gagal.",
+    "Satu aturan membandingkan angka itu dengan ambang. Aturan yang melewati ambang selama jendela waktu tertentu menjadi alert.",
+    "Alert dikirim ke orang yang sedang giliran jaga. Buku SRE Google membedakan tiga bentuk: tiket, email, dan pager.",
+    "Alert yang baik menunjuk gejala yang dirasakan user, bisa ditindaklanjuti, dan mendesak. Alert yang berbunyi tanpa tindakan membuat alert berikutnya diabaikan."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Membuat alert dari penyebab, mis. CPU tinggi, dan bukan dari gejala. CPU tinggi tidak selalu terasa oleh user, dan gejala bisa muncul tanpa CPU tinggi.",
+    "Menghitung alert dari angka yang mencampur beberapa jenis pekerjaan. Di M27, umur tertua semua kelas berbunyi walau uang tepat waktu."
+  ],
+  "terkait": ["On-call", "Golden signals", "Metric", "Dead-letter queue", "Staging"],
+  "sumber": [
+    {
+      "riset": "R3-231",
+      "judul": "Google SRE book, bab 6: Monitoring Distributed Systems",
+      "url": "https://sre.google/sre-book/monitoring-distributed-systems/",
+      "catatan": "Edisi 2017, dibuka 2026-10-27. Bagian Symptoms Versus Causes dan daftar pertanyaan untuk aturan alert: urgent, actionable, dan user-visible."
+    },
+    {
+      "judul": "Rekaman lab t3-outbox: umur tertua semua kelas lawan kelas uang",
+      "rekaman": "labs/t3-outbox/output/queue.txt",
+      "catatan": "Bagian E mengukur dua umur dari tabel yang sama. Alert sungguhan Tidak dijalankan."
+    }
+  ]
+}

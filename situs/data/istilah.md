@@ -37,6 +37,8 @@
 *[ACID]: Empat jaminan transaction di database relasional: atomicity, consistency, isolation, durability.
 *[ADR]: Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.
 *[Architecture Decision Record]: Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.
+*[Alert]: Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.
+*[alert]: Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.
 *[API gateway]: Server di depan beberapa instance atau service yang mengurus hal bersama sebelum request diteruskan, mis. rate limit, authentication, dan routing.
 *[Argon2id]: Fungsi hash password yang sengaja lambat dan memakai banyak memori, supaya menebak password dari tabel yang bocor butuh waktu dan RAM besar.
 *[argon2id]: Fungsi hash password yang sengaja lambat dan memakai banyak memori, supaya menebak password dari tabel yang bocor butuh waktu dan RAM besar.
@@ -198,6 +200,8 @@
 *[offline-first]: Desain app yang menyimpan perubahan di HP dulu, lalu menyinkronkannya ke server saat sinyal ada.
 *[OIDC]: Lapisan di atas OAuth 2.0 untuk login, yang memberi tahu aplikasi siapa user-nya.
 *[OpenID Connect]: Lapisan di atas OAuth 2.0 untuk login, yang memberi tahu aplikasi siapa user-nya.
+*[On-call]: Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu.
+*[on-call]: Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu.
 *[OpenAPI]: Format standar untuk menulis kontrak API (endpoint, request, response) yang bisa dibaca manusia dan mesin.
 *[Optimistic lock]: Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca.
 *[optimistic lock]: Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca.
@@ -293,6 +297,8 @@
 *[Source of truth]: Satu tempat yang isinya dianggap benar ketika salinan lain berbeda, mis. database backend untuk saldo; cache dan data di HP hanya salinan.
 *[source of truth]: Satu tempat yang isinya dianggap benar ketika salinan lain berbeda, mis. database backend untuk saldo; cache dan data di HP hanya salinan.
 *[SSE]: Koneksi HTTP yang dibiarkan terbuka sehingga server bisa mengirim pesan satu arah ke client.
+*[Staging]: Lingkungan uji yang dibuat semirip mungkin dengan produksi, tempat perubahan dicoba sebelum user sungguhan menyentuhnya.
+*[staging]: Lingkungan uji yang dibuat semirip mungkin dengan produksi, tempat perubahan dicoba sebelum user sungguhan menyentuhnya.
 *[Stale]: Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache.
 *[stale]: Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache.
 *[Stateless]: Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun.

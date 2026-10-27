@@ -172,7 +172,7 @@ describe("naskah: M18, pertanyaan Raka, alert dan ambang", () => {
   });
   test("alert dan ambang: naskah on-call menyebut gejala dan ambang Asumsi; halaman menunjuk 3.27", () => {
     expect(naskah3).toContain("alert hanya untuk gejala yang dirasakan user: umur notifikasi uang tertua, error rate, p95, dan request yang menunggu koneksi. Ambangnya Asumsi, ditetapkan di lab `t3-outbox` dan `api-t3`.");
-    harus("| Alert dan ambangnya | Ambang adalah Asumsi yang ditetapkan lab | [[t3-tim-infra]] |");
+    harus("| Alert dan ambangnya | Ambang butuh ukuran dasar dari beban sungguhan, dan hanya umur uang yang punya dasar, yaitu janji PRD | [[t3-tim-infra]] |");
     expect(naskah3).toContain("Isi halaman 3.27 (Tim dan infra)");
     expect(naskah3).toContain("ADR 32 (merevisi ADR 23): kolom `kelas`, bayar dan transfer lebih dulu, top-up massal dan promo sesudahnya; promo paling banyak 5 per detik; alert umur tertua; staging; on-call");
     harus("| Umur pemberitahuan tertua sebagai metric | Dibutuhkan saat promo menahan notifikasi uang | [[t3-m27]] |");
@@ -590,7 +590,7 @@ const TABEL_TERKUNCI = (): string[][] => [
     "|---|---|---|",
     "| Trace OpenTelemetry di api-t3 | Dependency baru butuh ADR, dan tidak ada rekaman yang menjalankannya | Satu request melewati lebih dari satu komponen yang belum bisa ditunjuk |",
     "| Batas waktu client dan ukuran pool | Jawabannya butuh beban terjadwal dan Little's Law | [[t3-pool]] |",
-    "| Alert dan ambangnya | Ambang adalah Asumsi yang ditetapkan lab | [[t3-tim-infra]] |",
+    "| Alert dan ambangnya | Ambang butuh ukuran dasar dari beban sungguhan, dan hanya umur uang yang punya dasar, yaitu janji PRD | [[t3-tim-infra]] |",
     "| Umur pemberitahuan tertua sebagai metric | Dibutuhkan saat promo menahan notifikasi uang | [[t3-m27]] |",
   ],
 ];
@@ -810,7 +810,7 @@ const KALIMAT_PENULIS: string[] = [
   "Jawabannya butuh beban terjadwal dan Little's Law",
   "[[t3-pool]]",
   "Alert dan ambangnya",
-  "Ambang adalah Asumsi yang ditetapkan lab",
+  "Ambang butuh ukuran dasar dari beban sungguhan, dan hanya umur uang yang punya dasar, yaitu janji PRD",
   "[[t3-tim-infra]]",
   "Umur pemberitahuan tertua sebagai metric",
   "Dibutuhkan saat promo menahan notifikasi uang",
