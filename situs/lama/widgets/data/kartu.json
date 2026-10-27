@@ -1896,6 +1896,38 @@
   "jawab": "Paling lama sebesar TTL, 300 detik sejak entri diisi: detik ke-299 masih Rp25.000 dan detik ke-300 Rp22.500 (`memori.txt` bagian D). TTL hanya membatasi, karena tidak ada yang memberi tahu B sebelum entrinya habis."
  },
  {
+  "id": "t3-m24-1",
+  "halaman": "t3-m24",
+  "judul": "3.20 M24: Stok yang kembali ke angka lama",
+  "url": "tahap-3/m24-stok-kembali/",
+  "tanya": "HP mengirim ulang \"stok = 0\" dengan key yang sama seperti pengiriman pertamanya. Nasi goreng dikirim ulang 17 jam sesudah Jumat, ayam geprek 62 jam sesudah Jumat. Kenapa hasilnya berbeda?",
+  "jawab": "Key berlaku 24 jam sejak dipakai pertama kali. Pada 17 jam key dikenali, server menjawab seperti Jumat, dan stok nasi goreng di database tetap 50 (`m24.txt` bagian C). Pada 62 jam key sudah lewat, jadi permintaan dianggap baru dan stok ayam geprek tertimpa (bagian D). Rekaman hanya mengapit batas itu; angka 24 jam persis dijaga tes Go (dibaca dari kode tes, Tidak dijalankan)."
+ },
+ {
+  "id": "t3-m24-2",
+  "halaman": "t3-m24",
+  "judul": "3.20 M24: Stok yang kembali ke angka lama",
+  "url": "tahap-3/m24-stok-kembali/",
+  "tanya": "Server menjawab 200 pada pengiriman ulang hari Senin. Kenapa tidak ada galat yang memberi tahu siapa pun?",
+  "jawab": "Permintaan itu hanya berisi `{\"stok\": 0}`, tanpa versi. Endpoint `PUT /produk/{id}/stok` tidak membandingkan apa pun dengan stok sekarang, jadi tidak ada pemeriksaan versi yang bisa menolaknya: `TimpaStok` menjalankan `UPDATE` tanpa syarat versi (dibaca dari kode lab)."
+ },
+ {
+  "id": "t3-m24-3",
+  "halaman": "t3-m24",
+  "judul": "3.20 M24: Stok yang kembali ke angka lama",
+  "url": "tahap-3/m24-stok-kembali/",
+  "tanya": "Raka menduga jam HP Ani salah. Apa di rekaman yang menunjukkan dugaan itu tidak cocok?",
+  "jawab": "Isi permintaan hanya `{\"stok\": 0}` (`m24.txt` bagian A dan D). Tidak ada jam HP dan tidak ada versi, jadi jam HP yang salah tidak bisa memengaruhi hasilnya."
+ },
+ {
+  "id": "t3-m24-4",
+  "halaman": "t3-m24",
+  "judul": "3.20 M24: Stok yang kembali ke angka lama",
+  "url": "tahap-3/m24-stok-kembali/",
+  "tanya": "Operasi bakso lewat `POST /sinkron` membawa versi dasar 1, padahal versi sekarang 2. Apa jawaban server dan apa yang berubah di database?",
+  "jawab": "Server menjawab 409 dengan keadaan sekarang (stok 30, versi 2), dan tidak ada yang berubah (`versi.txt` bagian C). Ani lalu memilih. Pilihannya operasi baru dengan kunci baru dan versi dasar 2 (bagian D); layar pilihan di HP adalah Ilustrasi."
+ },
+ {
   "id": "t3-offline-1",
   "halaman": "t3-offline",
   "judul": "3.21 Offline-first dan sinkron + ADR 29",

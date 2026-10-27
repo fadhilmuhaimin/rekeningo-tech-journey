@@ -587,11 +587,12 @@ describe("widget Tebak dan diagram Inti: nilai diturunkan dari rekaman", () => {
 describe("sumber dokumentasi: baris riset R3-200 sampai R3-204, tanggal, versi, dan klaim negatif berlingkup", () => {
   const ids = ["R3-200", "R3-201", "R3-202", "R3-203", "R3-204"];
   const tanggal = "2026-10-27";
-  test("lima baris ada sekali, urut sesudah R3-183, dibuka pada tanggal yang sama dengan halaman", () => {
+  test("lima baris ada sekali, urut sesudah R3-196, dibuka pada tanggal yang sama dengan halaman", () => {
     const urut = riset.split("\n").filter((b) => /^\| R3-\d+ \|/.test(b)).map((b) => b.split("|")[1]!.trim());
     const i = urut.indexOf("R3-200");
     expect(urut.slice(i, i + 5)).toEqual(ids);
-    expect(urut.indexOf("R3-183")).toBe(i - 1);
+    expect(urut.indexOf("R3-196")).toBe(i - 1);
+    expect(urut.indexOf("R3-183")).toBeLessThan(urut.indexOf("R3-195"));
     expect(new Set(urut).size).toBe(urut.length);
     for (const id of ids) expect(barisRiset(id), id).toContain(`dibuka ${tanggal}`);
     const tanggalHalaman = new Set(halaman.match(/dibuka (\d{4}-\d{2}-\d{2})/g)!.map((x) => x.slice(7)));
