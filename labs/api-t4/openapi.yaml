@@ -1,0 +1,1679 @@
+openapi: 3.1.0
+info:
+  title: Rekeningo API v4 (fiktif)
+  version: 4.0.0
+  description: Kontrak server labs/api-t4 (Tahap 4, dibuka ke publik). Semua endpoint Tahap 3 tetap; akun menambah tingkat dan status serta jenis pemakai, merchant, dan risk (nilai enum baru). Yang baru adalah pendaftaran, top-up dari bank lewat gateway dan webhook-nya, verifikasi identitas, merchant luar dan QR, kartu virtual dan panggilan dari penerbit, back office tim risk, audit log berantai, dan impor katalog merchant. Gateway, layanan verifikasi, dan penerbit adalah tiruan lokal. Lab, bukan layanan sungguhan.
+  license: { name: MIT, identifier: MIT }
+servers:
+  - url: http://127.0.0.1:{port}
+    variables:
+      port: { default: '18280', description: 'Port dasar lab api-t4; ditambah LAB_PORT_OFFSET di lajur kerja lain' }
+security:
+  - bearer: []
+paths:
+  /login:
+    post:
+      operationId: login
+      summary: Login dengan email perusahaan dan password sementara
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Sesi dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, kedaluwarsa_detik]
+                properties:
+                  token: { type: string, description: Token sesi acak; simpan di secure storage }
+                  kedaluwarsa_detik: { type: integer }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401':
+          description: Email tidak terdaftar, password salah, atau akun terkunci; satu jawaban untuk ketiganya
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '403':
+          description: Password benar tetapi masih password sementara; ganti lewat /ganti-password, tanpa token
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /ganti-password:
+    post:
+      operationId: gantiPassword
+      summary: Ganti password (wajib untuk password sementara); pengaman sama dengan /login, semua sesi akun dihapus
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password_lama, password_baru]
+              properties:
+                email: { type: string, format: email }
+                password_lama: { type: string }
+                password_baru: { type: string, minLength: 15, description: 'Minimal 15 karakter, paling banyak 72 byte (batas bcrypt)' }
+      responses:
+        '204': { description: Password diganti; login lagi dengan password baru }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /logout:
+    post:
+      operationId: logout
+      summary: Matikan sesi ini di server
+      responses:
+        '204': { description: Sesi dimatikan }
+        '401': { $ref: '#/components/responses/Problem' }
+  /topup:
+    post:
+      operationId: topup
+      summary: Admin mengisi saldo dari CSV (nomor_karyawan,nominal; email,nominal tetap diterima), satu jurnal per akun dalam satu transaction
+      parameters:
+        - { name: keterangan, in: query, required: true, schema: { type: string, minLength: 1 } }
+      requestBody:
+        required: true
+        content:
+          text/csv:
+            schema: { type: string }
+      responses:
+        '200':
+          description: Semua baris diproses dalam satu transaction
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [akun, total]
+                properties:
+                  akun: { type: integer }
+                  total: { $ref: '#/components/schemas/Rupiah' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '413': { $ref: '#/components/responses/Problem' }   # lebih dari 1 MiB: ditolak utuh, tidak dipotong
+        '422': { $ref: '#/components/responses/Problem' }
+  # --8<-- [start:koreksi]
+  /koreksi:
+    post:
+      operationId: koreksi
+      deprecated: true
+      summary: Diganti POST /jurnal/{id}/pembalik; saldo tidak diubah tanpa jurnal (aturan Pak Hadi Tahap 2)
+      responses:
+        '401': { $ref: '#/components/responses/Problem' }
+        '410': { $ref: '#/components/responses/Problem' }
+  # --8<-- [end:koreksi]
+  # --8<-- [start:transfer]
+  /transfers:
+    post:
+      operationId: bayar
+      summary: Bayar dari akun karyawan yang login ke akun warung
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermintaanBayar'
+      responses:
+        '201':
+          description: Pembayaran dibuat
+          headers:
+            Location:
+              description: Alamat pembayaran yang baru dibuat, misalnya /transfers/1
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HasilBayar'
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  # --8<-- [end:transfer]
+  /transfers/{id}:
+    get:
+      operationId: lihatTransaksi
+      summary: Satu jurnal bayar atau kiriman; hanya pengirim atau penerimanya. Nomor transaksi v1 dijawab 404
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Pembayaran
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Transaksi' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /kiriman:
+    post:
+      operationId: kirim
+      summary: Kirim uang ke rekan lewat nomor karyawan; paling banyak Rp500.000 per hari sejak 00.00 WIB (PRD v2)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanKiriman' }
+      responses:
+        '201':
+          description: Jurnal transfer dibuat
+          headers:
+            Location:
+              description: Alamat jurnal yang baru dibuat, misalnya /transfers/2001
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HasilKiriman' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422':
+          description: Aturan pengirim (nominal, batas harian, saldo) diperiksa sebelum nomor penerima, jadi "tidak terdaftar" hanya muncul bila kiriman ke nomor terdaftar akan berhasil
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /jurnal/{id}/pembalik:
+    post:
+      operationId: balikJurnal
+      summary: Admin membalik satu jurnal dengan alasan; jurnal asal tidak diubah, satu jurnal paling banyak dibalik sekali
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [alasan]
+              properties:
+                alasan: { type: string, minLength: 20 }
+      responses:
+        '201':
+          description: Jurnal pembalik dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, membalik]
+                properties:
+                  id: { type: integer, format: int64 }
+                  membalik: { type: integer, format: int64 }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /tutup-buku:
+    get:
+      operationId: tutupBuku
+      summary: Laporan bulanan untuk Keuangan; saldo awal + masuk - keluar = saldo akhir per buku, dan seluruh jurnal seimbang
+      parameters:
+        - name: periode
+          in: query
+          required: true
+          schema: { type: string, pattern: '^[0-9]{4}-[0-9]{2}$' }
+      responses:
+        '200':
+          description: Tutup buku
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TutupBuku' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /akun/{id}:
+    get:
+      operationId: lihatAkun
+      summary: Akun milik sendiri, dengan saldo
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Akun
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Akun' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /akun/{id}/riwayat:
+    get:
+      operationId: riwayat
+      summary: Posting milik sendiri, terbaru dulu; halaman berikutnya lewat kursor (ADR 16)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: kursor
+          in: query
+          description: Nilai berikutnya dari halaman sebelumnya. Tanpa kursor = halaman pertama (app 1.0 dan 1.1).
+          schema: { type: string }
+        - name: batas
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        '200':
+          description: Riwayat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [riwayat, berikutnya]
+                properties:
+                  riwayat:
+                    type: array
+                    maxItems: 50
+                    items: { $ref: '#/components/schemas/BarisRiwayat' }
+                  berikutnya:
+                    type: [string, 'null']
+                    description: Kursor halaman berikutnya; null bila tidak ada baris lagi
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /warung:
+    get:
+      operationId: cariWarung
+      summary: Cari warung menurut nama (id dan nama saja). Sudah ada sejak Tahap 1; baru masuk kontrak di sini, ditemukan penjaga rute lawan kontrak
+      parameters:
+        - name: cari
+          in: query
+          required: false
+          description: Potongan nama warung, tidak peka huruf besar kecil; kosong = semua warung
+          schema: { type: string }
+      responses:
+        '200':
+          description: Daftar warung
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [warung]
+                properties:
+                  warung:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, nama]
+                      properties:
+                        id: { type: integer, format: int64 }
+                        nama: { type: string }
+        '401': { $ref: '#/components/responses/Problem' }
+  /warung/{id}/laporan:
+    get:
+      operationId: laporanWarung
+      summary: Jumlah dan total pembayaran masuk per hari (waktu Jakarta); hanya pemilik warung
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - { name: dari, in: query, required: true, schema: { type: string, format: date } }
+        - { name: sampai, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Laporan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [warung, per_hari]
+                properties:
+                  warung: { type: integer, format: int64 }
+                  per_hari:
+                    type: array
+                    items:
+                      type: object
+                      required: [tanggal, transaksi, total]
+                      properties:
+                        tanggal: { type: string, format: date }
+                        transaksi: { type: integer }
+                        total: { $ref: '#/components/schemas/Rupiah' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /web/login:
+    post:
+      operationId: loginWeb
+      summary: Login dasbor web (warung, hr, admin). Token sesi hanya lewat cookie HttpOnly; token CSRF di body
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Sesi web dibuat
+          headers:
+            Set-Cookie:
+              description: '__Host-sesi=<token>; Path=/; Max-Age=...; HttpOnly; Secure; SameSite=Lax'
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [csrf, kedaluwarsa_detik]
+                properties:
+                  csrf: { type: string, description: Kirim di header X-CSRF-Token pada permintaan yang mengubah data }
+                  kedaluwarsa_detik: { type: integer }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /perangkat:
+    post:
+      operationId: daftarPerangkat
+      summary: Daftarkan token push HP ini untuk akun yang login; token yang sama di akun lain dipindahkan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platform, token_push]
+              properties:
+                platform: { type: string, enum: [android, ios] }
+                token_push: { type: string, maxLength: 4096 }
+      responses:
+        '201':
+          description: Perangkat terdaftar
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id: { type: integer, format: int64 }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /katalog:
+    get:
+      operationId: katalog
+      summary: Warung dan menu aktif satu kota, dengan harga efektif (setelah promo yang berlaku sekarang). Jawaban baca, boleh di-cache
+      parameters:
+        - { name: kota, in: query, required: false, schema: { type: integer, format: int64 }, description: Kota akun sendiri bila tidak diisi }
+        - { name: warung, in: query, required: false, schema: { type: integer, format: int64 } }
+      responses:
+        '200':
+          description: Katalog
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Katalog' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /pesanan:
+    post:
+      operationId: pesan
+      summary: Bayar satu produk. Nominal dihitung server dari database (harga dasar dikurangi promo yang berlaku); app tidak mengirimnya
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [produk_id, porsi]
+              properties:
+                produk_id: { type: integer, format: int64 }
+                porsi: { type: integer, minimum: 1, maximum: 10 }
+                catatan: { type: string, maxLength: 100 }
+      responses:
+        '201':
+          description: Jurnal bayar dibuat, stok dikurangi
+          headers:
+            Location: { description: 'Alamat jurnal, misalnya /transfers/10001', schema: { type: string } }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, saldo, nominal, harga_satuan, potongan_persen, stok_sisa]
+                properties:
+                  id: { type: integer, format: int64 }
+                  saldo: { $ref: '#/components/schemas/Rupiah' }
+                  nominal: { $ref: '#/components/schemas/Rupiah' }
+                  harga_satuan: { $ref: '#/components/schemas/Rupiah' }
+                  potongan_persen: { type: integer }
+                  stok_sisa: { type: integer }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /produk/{id}:
+    patch:
+      operationId: ubahProduk
+      summary: Ubah harga dan atau stok bila versi masih sama dengan yang dilihat pengubah (optimistic lock, ADR 29). Hanya warung pemilik
+      security:
+        - bearer: []
+        - sesiWeb: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [versi]
+              properties:
+                harga: { type: integer, format: int64, minimum: 1 }
+                stok: { type: integer, minimum: 0 }
+                versi: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Diubah; versi naik satu
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StokProduk' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: Versi sudah berbeda; tidak ada yang berubah. sekarang berisi keadaan terkini
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /promo:
+    get:
+      operationId: daftarPromo
+      summary: Promo yang belum selesai di satu kota (kota akun sendiri bila tidak diisi)
+      parameters:
+        - { name: kota, in: query, required: false, schema: { type: integer, format: int64 } }
+      responses:
+        '200':
+          description: Daftar promo
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [promo]
+                properties:
+                  promo: { type: array, items: { $ref: '#/components/schemas/Promo' } }
+        '401': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+    post:
+      operationId: buatPromo
+      summary: Buat promo untuk kota akun hr itu; umumkan=true menulis satu pemberitahuan per karyawan kota itu ke outbox
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [judul, potongan_persen, mulai, selesai]
+              properties:
+                judul: { type: string, maxLength: 80 }
+                potongan_persen: { type: integer, minimum: 1, maximum: 90 }
+                mulai: { type: string, format: date-time }
+                selesai: { type: string, format: date-time }
+                umumkan: { type: boolean }
+      responses:
+        '201':
+          description: Promo dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, diumumkan]
+                properties:
+                  id: { type: integer, format: int64 }
+                  diumumkan: { type: integer, format: int64, description: Jumlah pemberitahuan yang ditulis ke outbox }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /sinkron:
+    post:
+      operationId: sinkron
+      summary: Satu operasi dari queue offline HP warung (hanya stok atau harga), sekali per kunci. Pembayaran tidak pernah lewat sini
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kunci, perangkat_id, produk_id, jenis, nilai, versi_dasar, dibuat_di_hp]
+              properties:
+                kunci: { type: string, maxLength: 200, description: Dikenali sampai 14 hari }
+                perangkat_id: { type: integer, format: int64 }
+                produk_id: { type: integer, format: int64 }
+                jenis: { type: string, enum: [stok, harga] }
+                nilai: { type: integer, format: int64, minimum: 0 }
+                versi_dasar: { type: integer, minimum: 1 }
+                dibuat_di_hp: { type: string, format: date-time, description: Paling lama 7 hari yang lalu }
+      responses:
+        '200':
+          description: Diterapkan, atau pengiriman ulang dari kunci yang sudah diterapkan (ulang true)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HasilSinkron' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: Konflik versi; tidak ada yang berubah. sekarang berisi keadaan terkini
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HasilSinkron' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /warung/{id}/laporan.csv:
+    get:
+      operationId: laporanCSV
+      summary: Ekspor laporan harian untuk dasbor (tanggal, transaksi, total); hanya pemilik warung
+      security:
+        - bearer: []
+        - sesiWeb: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - { name: dari, in: query, required: true, schema: { type: string, format: date } }
+        - { name: sampai, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: CSV dengan header tanggal,transaksi,total
+          content:
+            text/csv:
+              schema: { type: string }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /warung/{id}/penerimaan:
+    get:
+      operationId: penerimaan
+      summary: Uang masuk ke warung, terbaru dulu, dengan keterangan (termasuk catatan pembayar); hanya pemilik
+      security:
+        - bearer: []
+        - sesiWeb: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - { name: batas, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Penerimaan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [warung, penerimaan]
+                properties:
+                  warung: { type: integer, format: int64 }
+                  penerimaan:
+                    type: array
+                    items: { $ref: '#/components/schemas/Penerimaan' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /daftar:
+    post:
+      operationId: daftar
+      summary: Pendaftaran sendiri sebagai pemakai atau merchant; tingkat belum terverifikasi, status aktif. Dibatasi 5 pendaftaran per alamat per jam (Asumsi lab)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanDaftar' }
+      responses:
+        '201':
+          description: Akun dibuat
+          headers:
+            Location: { description: 'Alamat akun, /akun/{id}', schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AkunBaru' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: Email sudah terdaftar (/problems/email-terpakai). Jawaban ini membuka enumerasi email; di lab hanya ditahan batas laju per alamat
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /topup-bank:
+    post:
+      operationId: buatTopupBank
+      summary: Buat top-up dari rekening bank. Server membuat order di gateway (timeout 3 detik, Idempotency-Key ke gateway = order_id) dan menjawab dengan tujuan bayar. Uang baru bergerak saat webhook atau job cek status menjurnalnya
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanTopupBank' }
+      responses:
+        '201':
+          description: Order dibuat di gateway; status menunggu
+          headers:
+            Location: { description: 'Alamat top-up, /topup-bank/{id}', schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TopupBank' }
+        '202':
+          description: Gateway tidak menjawab dalam batas waktu; status tidak_pasti (order mungkin sudah dibuat). Jangan membayar dua kali; cek status lewat GET /topup-bank/{id}
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TopupBank' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403':
+          description: Akun dibekukan (/problems/akun-dibekukan) atau jenis akun tidak boleh (/problems/dilarang)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422':
+          description: Jumlah di luar Rp10.000 sampai Rp5.000.000, atau saldo akan melewati batas tingkat akun (/problems/batas-saldo-tingkat; Rp1.000.000 belum terverifikasi, Rp10.000.000 terverifikasi, Asumsi produk)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+        '502':
+          description: Gateway menolak atau tidak terjangkau; top-up berstatus gagal dan tidak ada order di gateway (/problems/gateway-tidak-tersedia)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503': { $ref: '#/components/responses/Problem' }
+  /topup-bank/{id}:
+    get:
+      operationId: lihatTopupBank
+      summary: Status satu top-up milik sendiri. Milik orang lain dijawab 404
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200':
+          description: Top-up
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TopupBank' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /webhooks/pembayaran:
+    post:
+      operationId: webhookPembayaran
+      summary: Kabar dari gateway (klaim, bukan fakta). Tanda tangan HMAC-SHA256 atas "<timestamp>.<byte mentah body>" diperiksa sebelum JSON diurai, timestamp dalam 5 menit. Event yang sama diproses sekali; balasan 2xx hanya sesudah COMMIT
+      security: []
+      parameters:
+        - name: X-Gateway-Timestamp
+          in: header
+          required: true
+          description: Detik sejak epoch Unix
+          schema: { type: integer, format: int64 }
+        - name: X-Gateway-Signature
+          in: header
+          required: true
+          description: HMAC-SHA256 heksadesimal atas "<timestamp>.<body>"
+          schema: { type: string, pattern: '^[0-9a-f]{64}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/KabarGateway' }
+      responses:
+        '200':
+          description: Kabar diterima. hasil diproses (jurnal ditulis bila settlement), ganda (event atau kejadian yang sama sudah tercatat), diparkir (kabar mundur, atau melewati batas saldo atau akun dibekukan), ditolak (order tidak dikenal atau jumlah beda)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HasilWebhook' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401':
+          description: Tanda tangan salah, timestamp di luar toleransi, atau header hilang (satu jawaban untuk semuanya; /problems/tanda-tangan)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+  /verifikasi:
+    post:
+      operationId: ajukanVerifikasi
+      summary: Ajukan verifikasi identitas dengan foto kartu identitas dan swafoto (JPEG atau PNG, paling besar 1 MiB masing-masing). File disimpan di penyimpanan objek; hasil menyusul lewat GET /verifikasi/{id}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanVerifikasi' }
+      responses:
+        '202':
+          description: Diterima; pekerjaan verifikasi ditulis di outbox pada transaction yang sama
+          headers:
+            Location: { description: 'Alamat pengajuan, /verifikasi/{id}', schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Verifikasi' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: Sudah terverifikasi, atau pengajuan sebelumnya belum selesai
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+        '503': { $ref: '#/components/responses/Problem' }
+  /verifikasi/{id}:
+    get:
+      operationId: lihatVerifikasi
+      summary: Status satu pengajuan milik sendiri. Milik orang lain dijawab 404. Kunci objek tidak pernah dikirim ke client
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200':
+          description: Pengajuan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Verifikasi' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /qr:
+    post:
+      operationId: buatQR
+      summary: Merchant terverifikasi menerbitkan QR statis (tanpa nominal, dibayar berkali-kali) atau dinamis (satu nominal, 5 menit, sekali bayar)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanQR' }
+      responses:
+        '201':
+          description: QR terbit
+          headers:
+            Location: { description: 'Alamat QR, misalnya /qr/0fa0431d-1f2e-4c11-8a55-7d0c4b6d9a01', schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QR' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /qr/{id}:
+    get:
+      operationId: lihatQR
+      summary: Layar konfirmasi sebelum membayar. Nama merchant dibaca dari tabel akun, bukan dari isi QR. QR yang tidak ada, tidak aktif, kedaluwarsa, atau milik merchant yang dibekukan atau belum terverifikasi dijawab 404 yang sama
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: QR yang bisa dibayar
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KonfirmasiQR' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /qr/{id}/bayar:
+    post:
+      operationId: bayarQR
+      summary: Karyawan atau pemakai (tingkat apa pun) membayar QR dari saldo. QR dinamis sekali bayar (409 sesudahnya, 410 sesudah 5 menit); QR statis wajib nominal paling banyak Rp200.000
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanBayarQR' }
+      responses:
+        '201':
+          description: Jurnal bayar dibuat; merchant mendapat satu baris outbox di transaction yang sama
+          headers:
+            Location: { description: 'Alamat jurnal, misalnya /transfers/10001', schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HasilBayarQR' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '410': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /qr/{id}/laporkan:
+    post:
+      operationId: laporkanQR
+      summary: Laporan QR palsu membekukan merchant pemilik QR lebih dulu; tim risk memeriksa kemudian. Satu baris audit log berantai ditulis di transaction yang sama
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [alasan]
+              properties:
+                alasan: { type: string, minLength: 20, maxLength: 200 }
+      responses:
+        '202':
+          description: Merchant dibekukan sementara
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: ['merchant dibekukan sementara'] }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /kartu:
+    get:
+      operationId: daftarKartu
+      summary: Kartu virtual milik sendiri (empat digit terakhir saja; nomor penuh dan token penerbit tidak pernah dikirim)
+      responses:
+        '200':
+          description: Daftar kartu
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [kartu]
+                properties:
+                  kartu: { type: array, items: { $ref: '#/components/schemas/Kartu' } }
+        '401': { $ref: '#/components/responses/Problem' }
+    post:
+      operationId: terbitkanKartu
+      summary: Terbitkan kartu virtual dari saldo. Hanya akun terverifikasi (tingkat terverifikasi) yang tidak dibekukan
+      responses:
+        '201':
+          description: Kartu diterbitkan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Kartu' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
+        '502': { $ref: '#/components/responses/Problem' }
+  /kartu/{id}/bekukan:
+    post:
+      operationId: bekukanKartu
+      summary: Bekukan kartu sendiri; otorisasi baru ditolak. Diulang tetap 200
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        '200':
+          description: Kartu dibekukan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Kartu' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /kartu/{id}/buka:
+    post:
+      operationId: bukaKartu
+      summary: Buka kartu yang dibekukan. Kartu yang sudah ditutup dan akun yang dibekukan tim risk tidak bisa membukanya
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        '200':
+          description: Kartu aktif
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Kartu' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /penerbit/otorisasi:
+    post:
+      operationId: otorisasiKartu
+      summary: Penerbit meminta persetujuan satu transaksi kartu (tenggat penerbit 2 detik; id_penerbit adalah Idempotency-Key ke ledger). Setuju hanya sesudah dana ditahan
+      security:
+        - kunciPenerbit: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id_penerbit, token, jumlah]
+              properties:
+                id_penerbit: { type: string, maxLength: 64 }
+                token: { type: string, maxLength: 128, description: Token kartu dari penerbit }
+                jumlah: { type: integer, format: int64, minimum: 1, maximum: 50000000, description: 'Rupiah, integer' }
+      responses:
+        '200':
+          description: Keputusan. Penolakan juga 200, dengan alasan satu kata
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KeputusanOtorisasi' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /penerbit/clearing:
+    post:
+      operationId: clearingKartu
+      summary: Penerbit menagih otorisasi yang sudah disetujui. Diulang dengan id_penerbit yang sama tetap 200 tanpa jurnal baru
+      security:
+        - kunciPenerbit: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id_penerbit, jumlah]
+              properties:
+                id_penerbit: { type: string, maxLength: 64 }
+                jumlah: { type: integer, format: int64, minimum: 1, description: Harus sama dengan jumlah otorisasi }
+      responses:
+        '200':
+          description: Penagihan tercatat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HasilOtorisasi' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+  /penerbit/reversal:
+    post:
+      operationId: reversalKartu
+      summary: Penerbit membatalkan otorisasi yang belum ditagih; dana tertahan kembali lewat jurnal pembalik. Diulang tetap 200
+      security:
+        - kunciPenerbit: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id_penerbit]
+              properties:
+                id_penerbit: { type: string, maxLength: 64 }
+      responses:
+        '200':
+          description: Otorisasi dibalik (atau sudah dibalik atau kedaluwarsa sebelumnya)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HasilOtorisasi' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /bo/akun/{id}:
+    get:
+      operationId: boLihatAkun
+      summary: Ringkasan satu akun untuk tim risk (tanpa email, password, atau nomor identitas); dicatat di audit log
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200':
+          description: Ringkasan akun; satu baris audit lihat_akun ditulis di transaction yang sama
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AkunBO' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /bo/akun/{id}/bekukan:
+    post:
+      operationId: boBekukanAkun
+      summary: Bekukan satu akun (pembekuan darurat, tanpa persetujuan kedua, alasan tertulis wajib)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AlasanBO' }
+      responses:
+        '204': { description: Akun dibekukan; satu baris audit bekukan ditulis }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { description: 'Bukan akun risk, atau sasaran akun risk atau admin', content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { description: Akun sudah dibekukan, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /bo/akun/{id}/buka:
+    post:
+      operationId: boBukaBlokirAkun
+      summary: Buka blokir satu akun; butuh persetujuan petugas risk kedua (ADR 43)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - $ref: '#/components/parameters/PenyetujuToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AlasanBO' }
+      responses:
+        '204': { description: 'Akun aktif lagi; baris audit buka_blokir mencatat penyetuju' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { description: 'Bukan akun risk, persetujuan tidak ada atau tidak sah (satu jawaban untuk semua sebab), atau sasaran akun risk atau admin', content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { description: Akun tidak sedang dibekukan, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /bo/akun/{id}/batas-harian:
+    post:
+      operationId: boUbahBatasHarian
+      summary: Ubah batas transfer harian satu akun (karyawan atau pemakai); butuh persetujuan petugas risk kedua
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - $ref: '#/components/parameters/PenyetujuToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nilai, alasan]
+              properties:
+                nilai: { type: integer, format: int64, minimum: 1, maximum: 5000000, description: 'Rupiah; batas atas 5.000.000 adalah Asumsi lab' }
+                alasan: { type: string, minLength: 20, maxLength: 300 }
+      responses:
+        '204': { description: 'Batas diubah; baris audit ubah_batas memuat nilai baru di kolom objek dan mencatat penyetuju' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { description: 'Akun tidak ada, atau akun itu tidak punya buku berbatas harian', content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /bo/verifikasi/{id}:
+    get:
+      operationId: boLihatVerifikasi
+      summary: Metadata satu pengajuan verifikasi (tanpa file); dicatat di audit log
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200':
+          description: Metadata pengajuan; satu baris audit lihat_verifikasi ditulis
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VerifikasiBO' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /bo/verifikasi/{id}/berkas/{bagian}:
+    get:
+      operationId: boBukaBerkas
+      summary: Isi file identitas; alasan tertulis wajib dan baris audit ditulis sebelum isi dikirim
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { name: bagian, in: path, required: true, schema: { type: string, enum: [kartu, swafoto] } }
+        - { name: alasan, in: query, required: true, schema: { type: string, minLength: 20, maxLength: 300 } }
+      responses:
+        '200':
+          description: Isi file. Checksum SHA-256 dibandingkan dengan yang tercatat sebelum dikirim
+          headers:
+            Cache-Control: { schema: { type: string, enum: [no-store] } }
+            X-Content-Type-Options: { schema: { type: string, enum: [nosniff] } }
+            Content-Disposition: { schema: { type: string }, description: attachment }
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { description: 'Pengajuan tidak ada, file tidak ada, atau bagian tidak dikenal', content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+        '500': { description: 'Checksum file tidak cocok dengan yang tercatat (/problems/berkas-rusak); isi tidak dikirim', content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '503': { description: Penyimpanan objek tidak dipasang di server ini, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+  /bo/merchant/{id}/setujui:
+    post:
+      operationId: boSetujuiMerchant
+      summary: Setujui pengajuan merchant (id = nomor akun merchant); akun menjadi terverifikasi
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AlasanBO' }
+      responses:
+        '204': { description: 'Pengajuan lulus, tingkat akun terverifikasi, file identitas dijadwalkan dihapus 30 hari kemudian (Asumsi produk)' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { description: 'Akun bukan merchant atau tidak pernah mengajukan', content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '409': { description: Pengajuan sudah diputuskan, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /bo/merchant/{id}/tolak:
+    post:
+      operationId: boTolakMerchant
+      summary: Tolak pengajuan merchant (id = nomor akun merchant); tingkat akun tidak berubah
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AlasanBO' }
+      responses:
+        '204': { description: Pengajuan ditolak }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { description: Pengajuan sudah diputuskan, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /bo/flag/kartu:
+    post:
+      operationId: boFlagKartu
+      summary: Kill switch kartu virtual (ADR 42); hanya di memori satu proses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [aktif, alasan]
+              properties:
+                aktif: { type: boolean }
+                alasan: { type: string, minLength: 20, maxLength: 300 }
+      responses:
+        '200':
+          description: Flag diubah; baris audit flag_kartu ditulis lebih dulu
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [aktif]
+                properties:
+                  aktif: { type: boolean }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+        '503': { description: Kill switch tidak dipasang di server ini, content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+  /bo/audit/verifikasi:
+    get:
+      operationId: boVerifikasiAudit
+      summary: Hitung ulang rantai audit log; hash terakhir adalah jangkar yang dicatat di luar database
+      responses:
+        '200':
+          description: Rantai utuh atau putus (200 untuk keduanya); yang putus menyebut baris pertama yang rusak
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HasilAudit' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+  /merchant/katalog/impor:
+    post:
+      operationId: imporKatalogMerchant
+      summary: Impor katalog merchant luar dengan URL gambar; server mengunduh gambar untuk pratinjau
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [produk]
+              properties:
+                produk:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [nama, harga, stok]
+                    properties:
+                      nama: { type: string, maxLength: 100 }
+                      harga: { $ref: '#/components/schemas/Rupiah' }
+                      stok: { type: integer, minimum: 0 }
+                      gambar_url: { type: string, maxLength: 2048, description: 'Disimpan apa adanya. Diunduh sesudah COMMIT: hanya https, alamat tujuan diperiksa saat dial, tanpa redirect, 2 MiB, 3 detik' }
+      responses:
+        '200':
+          description: Semua produk tertulis (upsert menurut nama); pratinjau dan galat per baris
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hasil]
+                properties:
+                  hasil:
+                    type: array
+                    items:
+                      type: object
+                      required: [nama, pratinjau, galat]
+                      properties:
+                        nama: { type: string }
+                        pratinjau:
+                          type: [object, 'null']
+                          properties:
+                            tipe: { type: string, description: 'Dideteksi dari byte, bukan dari header' }
+                            ukuran: { type: integer, description: Byte }
+                        galat:
+                          type: [string, 'null']
+                          description: 'Satu dari: tujuan tidak diizinkan, bukan gambar, terlalu besar, tidak menjawab, gambar tidak bisa diunduh. Tanpa isi respons.'
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { description: 'Bukan merchant, belum terverifikasi, atau dibekukan', content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer }
+    sesiWeb:
+      type: apiKey
+      in: cookie
+      name: __Host-sesi
+      description: 'Sesi dasbor dari POST /web/login. Permintaan yang mengubah data juga wajib header X-CSRF-Token dan, bila ada, Sec-Fetch-Site same-origin atau none.'
+    kunciPenerbit:
+      type: apiKey
+      in: header
+      name: X-Penerbit-Kunci
+      description: Kunci bersama penerbit kartu tiruan (data lab, bukan secret); server tanpa kunci menolak semua panggilan
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >-
+        Opsional (app 1.0 dan 1.1 tidak mengirimnya; tanpa header perilaku sama dengan sebelumnya). String berisi
+        UUID, bentuk String Structured Field (draft-ietf-httpapi-idempotency-key-header-08). Key yang sama dengan
+        isi yang sama dalam 24 jam dijawab dengan respons pertama tanpa mengerjakan ulang; sesudah 24 jam key
+        dianggap belum pernah ada. Key yang sama dengan isi atau akun lain dijawab 422, key yang masih diproses 409,
+        bentuk salah 400. Jawaban 5xx dan 429 tidak disimpan.
+      schema:
+        type: string
+        pattern: '^"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"$'
+    PenyetujuToken:
+      name: X-Penyetuju-Token
+      in: header
+      required: true
+      description: 'Token sesi app petugas risk LAIN yang menyetujui aksi ini. Bukan pelaku sendiri, harus akun risk yang aktif; semua kegagalan dijawab 403 /problems/butuh-persetujuan tanpa petunjuk bagian mana yang salah.'
+      schema: { type: string }
+  responses:
+    Problem:
+      description: Error RFC 9457
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    TerlaluSering:
+      description: Rate limit per IP atau per akun (type /problems/rate-limit-ip atau /problems/rate-limit-akun)
+      headers:
+        Retry-After:
+          description: Detik sampai percobaan berikutnya diizinkan (RFC 6585 bagian 4)
+          schema: { type: integer }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+  schemas:
+    Rupiah: { type: integer, format: int64, description: 'Rupiah, tanpa desimal' }
+    # --8<-- [start:skema-bayar]
+    PermintaanBayar:
+      type: object
+      required: [ke]
+      anyOf:
+        - required: [jumlah]
+        - required: [nominal]
+      description: 'Wajib salah satu: jumlah (app 1.0) atau nominal (app 1.1). Bila keduanya dikirim, server memakai jumlah.'
+      properties:
+        ke: { type: integer, format: int64, description: Nomor akun warung penerima }
+        jumlah: { type: integer, format: int64, minimum: 1, maximum: 200000, description: 'Rupiah; field lama, dihapus (contract) sesudah tidak ada request dari app 1.0' }
+        nominal: { type: integer, format: int64, minimum: 1, maximum: 200000, description: 'Rupiah; ditambah di 1.1.0 (expand)' }
+        catatan: { type: string, maxLength: 100, description: 'Ditambah Tahap 3; tanpa baris baru. Disimpan apa adanya di jurnal.keterangan' }
+    HasilBayar:
+      type: object
+      required: [id, saldo]
+      properties:
+        id: { type: integer, format: int64 }
+        saldo: { $ref: '#/components/schemas/Rupiah' }
+    # --8<-- [end:skema-bayar]
+    Akun:
+      type: object
+      required: [id, jenis, nama, saldo]
+      properties:
+        id: { type: integer, format: int64 }
+        jenis: { type: string, enum: [karyawan, warung, admin, hr, pemakai, merchant, risk] }
+        nama: { type: string }
+        saldo: { $ref: '#/components/schemas/Rupiah', description: 'buku.saldo_cache; 0 untuk akun tanpa buku' }
+        nomor_karyawan: { type: string, description: Ditambah Tahap 2; hanya akun karyawan }
+        kota_id: { type: integer, format: int64, description: Ditambah Tahap 3; kosong untuk admin dan sistem }
+        tingkat: { type: string, enum: [belum, terverifikasi], description: 'Ditambah Tahap 4 (migrasi 000020); menentukan batas saldo dan boleh tidaknya transfer dan kartu' }
+        status: { type: string, enum: [aktif, dibekukan], description: 'Ditambah Tahap 4; akun dibekukan tidak bisa membayar, mengirim, atau top-up' }
+    Transaksi:
+      type: object
+      required: [id, jenis, dari, ke, jumlah, nominal, waktu]
+      description: 'Jurnal bayar atau transfer. jumlah dan nominal berisi angka yang sama.'
+      properties:
+        id: { type: integer, format: int64 }
+        jenis: { type: string, enum: [bayar, transfer] }
+        dari: { type: integer, format: int64 }
+        ke: { type: integer, format: int64 }
+        jumlah: { $ref: '#/components/schemas/Rupiah' }
+        nominal: { $ref: '#/components/schemas/Rupiah' }
+        waktu: { type: string, format: date-time }
+    BarisRiwayat:
+      type: object
+      required: [id, jenis, arah, lawan, jumlah, nominal, waktu]
+      description: 'Satu posting di buku sendiri; id = nomor jurnal. jumlah dan nominal berisi angka yang sama.'
+      properties:
+        id: { type: integer, format: int64 }
+        jenis: { type: string, enum: [pembuka, selisih, topup, bayar, transfer, pencairan, pembalik] }
+        arah: { type: string, enum: [keluar, masuk] }
+        lawan: { type: string }
+        jumlah: { $ref: '#/components/schemas/Rupiah' }
+        nominal: { $ref: '#/components/schemas/Rupiah' }
+        waktu: { type: string, format: date-time }
+    PermintaanKiriman:
+      type: object
+      required: [ke_nomor_karyawan, nominal]
+      properties:
+        ke_nomor_karyawan: { type: string, description: 'Nomor karyawan penerima, misalnya K00504' }
+        nominal: { type: integer, format: int64, minimum: 1, maximum: 500000 }
+        catatan: { type: string, maxLength: 100, description: 'Ditambah Tahap 3; tanpa baris baru' }
+    HasilKiriman:
+      type: object
+      required: [id, saldo, sisa_batas_harian]
+      properties:
+        id: { type: integer, format: int64 }
+        saldo: { $ref: '#/components/schemas/Rupiah' }
+        sisa_batas_harian: { $ref: '#/components/schemas/Rupiah' }
+    TutupBuku:
+      type: object
+      required: [periode, buku, sistem]
+      properties:
+        periode: { type: string }
+        buku:
+          type: array
+          items:
+            type: object
+            required: [buku, jenis, saldo_awal, masuk, keluar, saldo_akhir, saldo_cache]
+            properties:
+              buku: { type: integer, format: int64 }
+              jenis: { type: string }
+              nama: { type: string }
+              saldo_awal: { $ref: '#/components/schemas/Rupiah' }
+              masuk: { $ref: '#/components/schemas/Rupiah' }
+              keluar: { $ref: '#/components/schemas/Rupiah' }
+              saldo_akhir: { $ref: '#/components/schemas/Rupiah' }
+              saldo_cache: { $ref: '#/components/schemas/Rupiah' }
+        sistem:
+          type: object
+          required: [jurnal, jurnal_tidak_seimbang, jumlah_semua_posting, jumlah_semua_saldo_akhir]
+          properties:
+            jurnal: { type: integer }
+            jurnal_tidak_seimbang: { type: integer }
+            jumlah_semua_posting: { $ref: '#/components/schemas/Rupiah' }
+            jumlah_semua_saldo_akhir: { $ref: '#/components/schemas/Rupiah' }
+    Menu:
+      type: object
+      required: [id, nama, harga, harga_efektif, stok, versi]
+      properties:
+        id: { type: integer, format: int64 }
+        nama: { type: string }
+        harga: { $ref: '#/components/schemas/Rupiah' }
+        harga_efektif: { $ref: '#/components/schemas/Rupiah', description: Harga dikurangi promo kota yang berlaku sekarang, dibulatkan ke bawah }
+        stok: { type: integer }
+        versi: { type: integer, description: 'Kirim kembali di PATCH /produk/{id} dan /sinkron' }
+    Katalog:
+      type: object
+      required: [kota, warung]
+      properties:
+        kota: { type: integer, format: int64 }
+        warung:
+          type: array
+          items:
+            type: object
+            required: [id, nama, menu]
+            properties:
+              id: { type: integer, format: int64 }
+              nama: { type: string }
+              menu: { type: array, items: { $ref: '#/components/schemas/Menu' } }
+    StokProduk:
+      type: object
+      required: [id, harga, stok, versi]
+      properties:
+        id: { type: integer, format: int64 }
+        harga: { $ref: '#/components/schemas/Rupiah' }
+        stok: { type: integer }
+        versi: { type: integer }
+    HasilSinkron:
+      type: object
+      required: [status, ulang, sekarang]
+      properties:
+        status: { type: string, enum: [diterapkan, konflik] }
+        ulang: { type: boolean, description: true bila kunci ini sudah pernah diproses; hasilnya sama dengan yang pertama }
+        sekarang: { $ref: '#/components/schemas/StokProduk' }
+    Promo:
+      type: object
+      required: [id, kota_id, judul, potongan_persen, mulai, selesai]
+      properties:
+        id: { type: integer, format: int64 }
+        kota_id: { type: integer, format: int64 }
+        judul: { type: string }
+        potongan_persen: { type: integer }
+        mulai: { type: string, format: date-time }
+        selesai: { type: string, format: date-time }
+    Penerimaan:
+      type: object
+      required: [id, jenis, nominal, keterangan, waktu]
+      properties:
+        id: { type: integer, format: int64, description: Nomor jurnal }
+        jenis: { type: string }
+        nominal: { $ref: '#/components/schemas/Rupiah' }
+        keterangan: { type: string, description: 'Teks bebas, termasuk catatan pembayar; tampilkan dengan encoding, jangan innerHTML' }
+        waktu: { type: string, format: date-time }
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, description: Pengenal jenis masalah; app memilih pesan dari field ini }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string, description: Untuk manusia; jangan di-parse }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              baris: { type: integer }
+              pesan: { type: string }
+        sekarang:
+          description: 'Extension member Tahap 3 (RFC 9457 bagian 3.2): pada 409 /problems/versi-berbeda berisi keadaan terkini produk'
+          $ref: '#/components/schemas/StokProduk'
+    PermintaanDaftar:
+      type: object
+      required: [nama, email, password]
+      properties:
+        jenis: { type: string, enum: [pemakai, merchant], default: pemakai }
+        nama: { type: string, minLength: 1, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 15, description: 'Paling sedikit 15 karakter dan paling banyak 72 byte (batas bcrypt)' }
+    AkunBaru:
+      type: object
+      required: [id, jenis, tingkat]
+      properties:
+        id: { type: integer, format: int64 }
+        jenis: { type: string, enum: [pemakai, merchant] }
+        tingkat: { type: string, enum: [belum, terverifikasi] }
+    PermintaanTopupBank:
+      type: object
+      required: [jumlah]
+      properties:
+        jumlah: { type: integer, format: int64, minimum: 10000, maximum: 5000000, description: Rupiah }
+    TopupBank:
+      type: object
+      required: [id, order_id, jumlah, status, dibuat, kedaluwarsa_pada]
+      properties:
+        id: { type: integer, format: int64 }
+        order_id: { type: string, description: 'Nomor order di gateway; juga Idempotency-Key ke gateway dan ke ledger' }
+        jumlah: { $ref: '#/components/schemas/Rupiah' }
+        status: { type: string, enum: [menunggu, dibayar, kedaluwarsa, gagal, tidak_pasti] }
+        tujuan_bayar: { type: string, description: 'Nomor tujuan dari gateway; tidak ada bila gateway belum menjawab' }
+        dibuat: { type: string, format: date-time }
+        kedaluwarsa_pada: { type: string, format: date-time }
+        jurnal_id: { type: integer, format: int64, description: 'Ada bila status dibayar lewat versi benar (ADR 34)' }
+    KabarGateway:
+      type: object
+      required: [event_id, order_id, status]
+      properties:
+        event_id: { type: string, description: 'Dari gateway; kunci utama webhook_event' }
+        order_id: { type: string }
+        status: { type: string, enum: [settlement, pending, expire, failure] }
+        jumlah: { $ref: '#/components/schemas/Rupiah' }
+    HasilWebhook:
+      type: object
+      required: [hasil]
+      properties:
+        hasil: { type: string, enum: [diproses, ganda, diparkir, ditolak] }
+        jurnal: { type: integer, format: int64 }
+    PermintaanVerifikasi:
+      type: object
+      required: [berkas_kartu, berkas_swafoto]
+      properties:
+        berkas_kartu: { type: string, format: byte, description: 'JPEG atau PNG, base64' }
+        berkas_swafoto: { type: string, format: byte, description: 'JPEG atau PNG, base64' }
+    Verifikasi:
+      type: object
+      required: [id, subjek, status, tingkat_diminta, checksum_kartu, checksum_swafoto, diajukan]
+      properties:
+        id: { type: integer, format: int64 }
+        subjek: { type: string, enum: [pemakai, merchant] }
+        status: { type: string, enum: [diajukan, lulus, ditolak, tidak_pasti, gagal], description: 'tidak_pasti: layanan verifikasi tidak menjawab; gagal: layanan tidak tersedia sampai percobaan habis, bukan salah pendaftar' }
+        tingkat_diminta: { type: string, enum: [terverifikasi] }
+        checksum_kartu: { type: string, description: 'SHA-256 heksadesimal' }
+        checksum_swafoto: { type: string }
+        hapus_pada: { type: string, format: date-time, description: 'File dihapus 30 hari sesudah selesai (Asumsi produk)' }
+        diajukan: { type: string, format: date-time }
+        selesai: { type: string, format: date-time }
+    PermintaanQR:
+      type: object
+      required: [jenis]
+      properties:
+        jenis: { type: string, enum: [statis, dinamis] }
+        nominal: { type: integer, format: int64, minimum: 1, maximum: 5000000, description: 'Wajib untuk dinamis, dilarang untuk statis' }
+    QR:
+      type: object
+      required: [id, jenis]
+      properties:
+        id: { type: string, format: uuid, description: 'Di lab ini id adalah isi QR; payload dengan CRC ada di lab t4-qr' }
+        jenis: { type: string, enum: [statis, dinamis] }
+        nominal: { $ref: '#/components/schemas/Rupiah' }
+        berlaku_sampai: { type: string, format: date-time, description: 'Hanya QR dinamis: 5 menit sejak terbit' }
+    KonfirmasiQR:
+      type: object
+      required: [id, jenis, merchant, terverifikasi]
+      properties:
+        id: { type: string, format: uuid }
+        jenis: { type: string, enum: [statis, dinamis] }
+        nominal: { $ref: '#/components/schemas/Rupiah' }
+        berlaku_sampai: { type: string, format: date-time }
+        merchant:
+          type: object
+          required: [nama]
+          properties:
+            nama: { type: string }
+            kota: { type: string }
+        terverifikasi: { type: boolean, enum: [true] }
+    PermintaanBayarQR:
+      type: object
+      properties:
+        nominal: { $ref: '#/components/schemas/Rupiah', description: 'Wajib untuk QR statis (paling banyak 200000); untuk QR dinamis boleh kosong, bila diisi harus sama dengan nominal QR' }
+    HasilBayarQR:
+      type: object
+      required: [id, saldo, nominal, merchant]
+      properties:
+        id: { type: integer, format: int64 }
+        saldo: { $ref: '#/components/schemas/Rupiah' }
+        nominal: { $ref: '#/components/schemas/Rupiah' }
+        merchant: { type: string }
+    Kartu:
+      type: object
+      required: [id, empat_digit, status, batas_harian]
+      properties:
+        id: { type: integer, format: int64 }
+        empat_digit: { type: string, pattern: '^[0-9]{4}$' }
+        status: { type: string, enum: [aktif, dibekukan, ditutup] }
+        batas_harian: { type: integer, format: int64, description: Rupiah per hari untuk jumlah ditahan dan ditagih }
+    KeputusanOtorisasi:
+      type: object
+      required: [keputusan]
+      properties:
+        keputusan: { type: string, enum: [setuju, tolak] }
+        alasan:
+          type: string
+          description: Satu kata pada penolakan
+          enum: [kartu-tidak-dikenal, kartu-dibekukan, saldo-kurang, batas-harian, sibuk, kill-switch, ditolak-sebelumnya]
+    HasilOtorisasi:
+      type: object
+      required: [id_penerbit, status, jumlah]
+      properties:
+        id_penerbit: { type: string }
+        status: { type: string, enum: [ditahan, ditangkap, dibalik, kedaluwarsa, ditolak] }
+        jumlah: { type: integer, format: int64 }
+        jurnal: { type: integer, format: int64, description: Jurnal yang dibuat panggilan ini; kosong pada pengulangan }
+    AlasanBO:
+      type: object
+      required: [alasan]
+      properties:
+        alasan: { type: string, minLength: 20, maxLength: 300, description: 'Alasan tertulis; dicatat di audit log. Tanpa karakter kontrol.' }
+    AkunBO:
+      type: object
+      required: [id, jenis, nama, tingkat, status, saldo]
+      properties:
+        id: { type: integer, format: int64 }
+        jenis: { type: string }
+        nama: { type: string }
+        tingkat: { type: string, enum: [belum, terverifikasi] }
+        status: { type: string, enum: [aktif, dibekukan] }
+        saldo: { $ref: '#/components/schemas/Rupiah' }
+    VerifikasiBO:
+      type: object
+      required: [id, akun_id, subjek, status, tingkat_diminta, checksum_kartu, checksum_swafoto, diajukan]
+      properties:
+        id: { type: integer, format: int64 }
+        akun_id: { type: integer, format: int64 }
+        subjek: { type: string, enum: [pemakai, merchant] }
+        status: { type: string, enum: [diajukan, lulus, ditolak, tidak_pasti, gagal] }
+        tingkat_diminta: { type: string, enum: [terverifikasi] }
+        referensi_vendor: { type: [string, 'null'] }
+        checksum_kartu: { type: string, description: SHA-256 heksadesimal huruf kecil }
+        checksum_swafoto: { type: string }
+        hapus_pada: { type: [string, 'null'], format: date-time }
+        diajukan: { type: string, format: date-time }
+        selesai: { type: [string, 'null'], format: date-time }
+    HasilAudit:
+      type: object
+      required: [baris, hash_terakhir, utuh]
+      properties:
+        baris: { type: integer }
+        hash_terakhir: { type: string, description: 'Jangkar: catat di luar database; baris ekor yang dihapus tidak terdeteksi tanpa ini' }
+        utuh: { type: boolean }
+        rusak_di_id: { type: integer, format: int64, description: 'Ada hanya bila utuh=false: baris pertama yang rantainya putus' }
