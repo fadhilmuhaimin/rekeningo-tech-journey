@@ -24,7 +24,7 @@ import (
 // Kunci akses dan rahasia adalah data lab, bukan secret. Pesan galat tidak pernah memuat URL: URL bertanda
 // tangan adalah bearer token (ADR 38), dan *url.Error dari net/http menulis URL lengkap di pesannya.
 type S3 struct {
-	Endpoint string // mis. http://127.0.0.1:18290, tanpa garis miring di akhir
+	Endpoint string // mis. http://127.0.0.1:<port lab>, tanpa garis miring di akhir
 	Bucket   string
 	Kunci    string // access key
 	Rahasia  string // secret key

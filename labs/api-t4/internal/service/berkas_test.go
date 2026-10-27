@@ -748,3 +748,21 @@ func TestBytea(t *testing.T) {
 		t.Fatal("kunci tidak sah harus ditolak")
 	}
 }
+
+// Penanda terhapus punya penjaga sendiri di repo: sebelum hapus_pada tidak mengubah apa pun, sesudahnya sekali saja.
+func TestRetensiTandaiBerkasDihapusMenjagaBatasDanSekaliSaja(t *testing.T) {
+	svc, db := siapkan(t)
+	svc, p := svcPalsu(t, svc)
+	ctx := context.Background()
+	_, v, _ := pengajuanTerunggah(t, svc, db, p)
+	h := selesaiLulus(t, svc, db, 0, v, time.Date(2026, 11, 3, 10, 0, 0, 0, time.UTC), "lulus")
+	if ok, err := svc.repo.TandaiBerkasDihapus(ctx, v.ID, h.Add(-time.Second)); err != nil || ok || kunciKosong(t, db, v.ID) {
+		t.Fatalf("satu detik sebelum batas: ok=%v err=%v kunci kosong=%v, tidak boleh mengubah apa pun", ok, err, kunciKosong(t, db, v.ID))
+	}
+	if ok, err := svc.repo.TandaiBerkasDihapus(ctx, v.ID, h); err != nil || !ok || !kunciKosong(t, db, v.ID) {
+		t.Fatalf("tepat di batas: ok=%v err=%v kunci kosong=%v", ok, err, kunciKosong(t, db, v.ID))
+	}
+	if ok, err := svc.repo.TandaiBerkasDihapus(ctx, v.ID, h.Add(time.Hour)); err != nil || ok {
+		t.Fatalf("kedua kali: ok=%v err=%v, harus false (sudah ditandai)", ok, err)
+	}
+}
