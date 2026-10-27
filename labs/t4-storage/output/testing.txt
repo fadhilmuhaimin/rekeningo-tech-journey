@@ -6,7 +6,7 @@
 $ go vet ./internal/objek ./internal/service ./internal/handler ./cmd/api
 (tanpa temuan)
 # exit status 0
-$ TEST_DATABASE_URL=<pemilik, schema tahap4_storage_tes> go test -v -count=1 -p 1 -run 'TandaiURL|S3|Presign|Unggahan|Terunggah|Retensi|BukaBerkasSesudah|Bytea|FileDitimpa|BacaMemakai|EndpointTidakSah|KunciTidakSah|GalatS3|GalatStatusS3|HandlerBerkas' ./internal/objek ./internal/service ./internal/handler
+$ TEST_DATABASE_URL=<pemilik, schema tahap4_storage_tes> go test -v -count=1 -p 1 -run 'TandaiURL|S3|Presign|Unggahan|Terunggah|Retensi|BukaBerkasSesudah|Bytea|FileDitimpa|BacaMemakai|EndpointTidakSah|KunciTidakSah|GalatS3|GalatStatusS3|HandlerBerkas|BacaBatasUkuran|BukaObjek' ./internal/objek ./internal/service ./internal/handler ./cmd/api
 --- PASS: TestTandaiURLCocokDenganContohDokumentasiAWS
 --- PASS: TestS3SimpanBacaUkuranHapus
 --- PASS: TestS3KunciTidakSahDitolakSebelumKeJaringan
@@ -17,6 +17,11 @@ $ TEST_DATABASE_URL=<pemilik, schema tahap4_storage_tes> go test -v -count=1 -p 
 --- PASS: TestGalatS3TidakMemuatTandaTanganAtauURL
 --- PASS: TestGalatStatusS3TidakMemuatURL
 --- PASS: TestBacaMemakaiBatasUkuran
+--- PASS: TestS3HapusObjekTidakAdaDianggapTerhapusTetapGalatStatusLainTidak
+--- PASS: TestS3PastikanBucketMenerimaDuaStatusSajaDanMenolakLainnya
+--- PASS: TestS3UkuranTanpaContentLengthDitolak
+--- PASS: TestS3UmurURLPanggilanServerSendiriSemenit
+--- PASS: TestBacaBatasUkuranTanpaContentLengthTetapDitegakkan
 --- PASS: TestEndpointTidakSahDitolak
 PASS
 ok    lab/apit4/internal/objek
@@ -36,6 +41,7 @@ ok    lab/apit4/internal/objek
     --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/kartu_kosong
     --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/tepat_1_MiB_lolos
 --- PASS: TestAjukanTerunggahKunciBukanMilikAkunDitolakTanpaMenghapusMilikOrang
+--- PASS: TestAjukanTerunggahKunciBentukSalahDitolakSebagaiValidasiBukanGalatInternal
 --- PASS: TestAjukanTerunggahBentukChecksumDanNomorIdentitas
 --- PASS: TestAjukanTerunggahGalatPenyimpananTidakMenghapusFile
 --- PASS: TestAjukanTerunggahPengajuanKeduaDitolakDanFileBarunyaDibuang
@@ -45,6 +51,12 @@ ok    lab/apit4/internal/objek
 --- PASS: TestRetensiDihentikanGalatSatuFileTidakMenghentikanJobDanDiulangBerikutnya
 --- PASS: TestRetensiFileSudahHilangDiPenyimpananTetapDitandai
 --- PASS: TestRetensiHalamanLebihDariSeratusBaris
+--- PASS: TestRetensiBarisDenganSatuKunciKosongTetapDiprosesTanpaGalat
+--- PASS: TestAjukanTerunggahUkuranDariHeadDitolakSebelumIsiDibaca
+--- PASS: TestAjukanTerunggahObjekMembesarSesudahHeadDitolakSebagaiValidasi
+--- PASS: TestAjukanTerunggahDibatasiTigaPerJamPerAkun
+--- PASS: TestByteaHapusHanyaKunciItuBukanYangBerawalanSama
+--- PASS: TestMintaUnggahanBatasIsiUlangSatuPerDuaPuluhMenit
 --- PASS: TestRetensiTanpaPenyimpananDitolak
 --- PASS: TestBukaBerkasSesudahRetensiMenjawabDihapusDanTetapMencatatAudit
 --- PASS: TestBytea
@@ -53,7 +65,13 @@ PASS
 ok    lab/apit4/internal/service
 --- PASS: TestHandlerBerkasUnggahanLoginUkuranDanTanpaCache
 --- PASS: TestHandlerBerkasTerunggahAlurDanNomorIdentitasTidakDiulang
+--- PASS: TestHandlerBerkasTerunggahDibatasiPerAlamatTerpisahDariBatasAkun
 --- PASS: TestHandlerBerkasBukaSesudahRetensiMenjawab410DanTetapMencatatAudit
 PASS
 ok    lab/apit4/internal/handler
+--- PASS: TestBukaObjekS3MemasangBatasBacaEmpatKaliBatasFile
+--- PASS: TestBukaObjekUrutanPilihanByteaLaluS3LaluDirektori
+PASS
+ok    lab/apit4/cmd/api
 # exit status 0
+# Penjaga pola -run: tiap dari 49 fungsi tes di empat berkas tes jalur ini muncul sebagai PASS di atas.

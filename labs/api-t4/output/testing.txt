@@ -7,6 +7,8 @@ $ go vet ./...
 (tanpa temuan)
 # exit status 0
 $ TEST_DATABASE_URL=<pemilik, schema tahap4_tes> TEST_APP_DATABASE_URL=<role api_t4, schema yang sama> TEST_REDIS_ADDR=<Redis lab> go test -v -count=1 -p 1 ./...
+--- PASS: TestBukaObjekS3MemasangBatasBacaEmpatKaliBatasFile
+--- PASS: TestBukaObjekUrutanPilihanByteaLaluS3LaluDirektori
 --- PASS: TestBreakerLajurMatiBawaanDanHanyaUntukLajurVerifikasi
 --- PASS: TestBukaCacheKatalogTanpaGerbangBawaan
 --- PASS: TestBukaCacheKatalogMenolakFlagSalah
@@ -36,6 +38,7 @@ PASS
 ok    lab/apit4/internal/cache
 --- PASS: TestHandlerBerkasUnggahanLoginUkuranDanTanpaCache
 --- PASS: TestHandlerBerkasTerunggahAlurDanNomorIdentitasTidakDiulang
+--- PASS: TestHandlerBerkasTerunggahDibatasiPerAlamatTerpisahDariBatasAkun
 --- PASS: TestHandlerBerkasBukaSesudahRetensiMenjawab410DanTetapMencatatAudit
 --- PASS: TestHTTPBOTanpaLoginDanBukanRisk
 --- PASS: TestHTTPBORingkasanAkunTanpaDataSensitif
@@ -152,6 +155,10 @@ ok    lab/apit4/internal/modul/pembayaran
 --- PASS: TestGalatS3TidakMemuatTandaTanganAtauURL
 --- PASS: TestGalatStatusS3TidakMemuatURL
 --- PASS: TestBacaMemakaiBatasUkuran
+--- PASS: TestS3HapusObjekTidakAdaDianggapTerhapusTetapGalatStatusLainTidak
+--- PASS: TestS3PastikanBucketMenerimaDuaStatusSajaDanMenolakLainnya
+--- PASS: TestS3UkuranTanpaContentLengthDitolak
+--- PASS: TestS3UmurURLPanggilanServerSendiriSemenit
 --- PASS: TestBacaBatasUkuranTanpaContentLengthTetapDitegakkan
 --- PASS: TestEndpointTidakSahDitolak
 PASS
@@ -200,6 +207,7 @@ ok    lab/apit4/internal/repo
     --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/kartu_kosong
     --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/tepat_1_MiB_lolos
 --- PASS: TestAjukanTerunggahKunciBukanMilikAkunDitolakTanpaMenghapusMilikOrang
+--- PASS: TestAjukanTerunggahKunciBentukSalahDitolakSebagaiValidasiBukanGalatInternal
 --- PASS: TestAjukanTerunggahBentukChecksumDanNomorIdentitas
 --- PASS: TestAjukanTerunggahGalatPenyimpananTidakMenghapusFile
 --- PASS: TestAjukanTerunggahPengajuanKeduaDitolakDanFileBarunyaDibuang
@@ -209,6 +217,12 @@ ok    lab/apit4/internal/repo
 --- PASS: TestRetensiDihentikanGalatSatuFileTidakMenghentikanJobDanDiulangBerikutnya
 --- PASS: TestRetensiFileSudahHilangDiPenyimpananTetapDitandai
 --- PASS: TestRetensiHalamanLebihDariSeratusBaris
+--- PASS: TestRetensiBarisDenganSatuKunciKosongTetapDiprosesTanpaGalat
+--- PASS: TestAjukanTerunggahUkuranDariHeadDitolakSebelumIsiDibaca
+--- PASS: TestAjukanTerunggahObjekMembesarSesudahHeadDitolakSebagaiValidasi
+--- PASS: TestAjukanTerunggahDibatasiTigaPerJamPerAkun
+--- PASS: TestByteaHapusHanyaKunciItuBukanYangBerawalanSama
+--- PASS: TestMintaUnggahanBatasIsiUlangSatuPerDuaPuluhMenit
 --- PASS: TestRetensiTanpaPenyimpananDitolak
 --- PASS: TestBukaBerkasSesudahRetensiMenjawabDihapusDanTetapMencatatAudit
 --- PASS: TestBytea
@@ -473,9 +487,11 @@ ok    lab/apit4/internal/cache
 --- FAIL: TestHandlerBerkasUnggahanLoginUkuranDanTanpaCache
     handler_berkas_test.go:48: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHandlerBerkasTerunggahAlurDanNomorIdentitasTidakDiulang
-    handler_berkas_test.go:108: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    handler_berkas_test.go:111: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHandlerBerkasTerunggahDibatasiPerAlamatTerpisahDariBatasAkun
+    handler_berkas_test.go:169: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHandlerBerkasBukaSesudahRetensiMenjawab410DanTetapMencatatAudit
-    handler_berkas_test.go:163: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    handler_berkas_test.go:184: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHTTPBOTanpaLoginDanBukanRisk
     handler_bo_test.go:110: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHTTPBORingkasanAkunTanpaDataSensitif

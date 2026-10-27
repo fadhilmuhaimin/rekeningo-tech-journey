@@ -26,6 +26,7 @@
 # --- B. Pulih: dump tabel berkas_bytea (format custom) dipulihkan ke database lain; isinya harus sama ---
 $ psql lab_pulih -c 'SELECT count(*), sum(octet_length(isi)) FROM berkas_bytea'
 16|8000000   # 16 baris, 8.000.000 byte: sama dengan sebelum dump
+isi tiap baris sesudah pulih sama dengan sebelum dump (md5 per baris, diurutkan; bukan hanya jumlah baris dan byte): ya
 # Waktu dump dan pulih tidak direkam (bergantung mesin). Hanya batasnya yang diperiksa: dump dan pulih 8 MB selesai dalam 120 detik. Waktu untuk puluhan GB tidak diukur (Tidak dijalankan).
 
 # --- C. Penyimpanan objek: file di SeaweedFS, database menyimpan kunci dan checksum ---
@@ -45,6 +46,7 @@ $ psql lab_pulih -c 'SELECT count(*), sum(octet_length(isi)) FROM berkas_bytea'
 # Ukuran satu baris verifikasi (pg_column_size) ada di antara 200 dan 600 byte; hitungan di bawah memakai 400 byte (dibulatkan ke atas).
 
 # --- D. Hitungan 28 hari (Asumsi naskah: 2.000 unggahan per hari, 500 KB per file, 43,8 juta posting per tahun x 250 byte) ---
+# 2.000 unggahan per hari = 1.000 pengajuan x 2 file (naskah); satu baris verifikasi per pengajuan
 file per hari   = 2.000 x 500 KB               = 1,00 GB
 file 28 hari    = 28 x 1,00 GB               = 28,00 GB
 posting 28 hari = 43,8 juta / 365 x 28 x 250 B = 0,84 GB

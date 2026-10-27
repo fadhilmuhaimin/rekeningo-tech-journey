@@ -298,6 +298,8 @@ def rekam_ukuran():
     rasio_teks = teks / (8 * 2 * FILE)
     catat(f"# Dump teks biasa (pg_dump -Fp) atas tabel berkas_bytea saja: rasio dump/file = {des(rasio_teks, 1)} (bytea ditulis sebagai heksadesimal: dua karakter per byte)")
     harap(1.95 <= rasio_teks <= 2.10, True, f"rasio dump teks {rasio_teks:.3f}")
+    # Sidik isi tiap baris, diurutkan menurut sidik itu sendiri (kunci acak membuat urutan menurut kunci berubah tiap run).
+    sidik_asal = satu("SELECT md5(string_agg(md5(isi), ',' ORDER BY md5(isi))) FROM berkas_bytea")
     d.stop(PORT)
 
     bagian("B. Pulih: dump tabel berkas_bytea (format custom) dipulihkan ke database lain; isinya harus sama")
@@ -311,6 +313,10 @@ def rekam_ukuran():
     harap(r2.stdout.strip(), f"16|{16 * FILE}", "isi tabel sesudah pulih")
     catat("$ psql lab_pulih -c 'SELECT count(*), sum(octet_length(isi)) FROM berkas_bytea'")
     catat(f"{r2.stdout.strip()}   # 16 baris, 8.000.000 byte: sama dengan sebelum dump")
+    r3 = subprocess.run(["docker", "exec", DB_KONTAINER, "psql", "-U", "lab", "-d", "lab_pulih", "-At", "-c",
+                         f"SELECT md5(string_agg(md5(isi), ',' ORDER BY md5(isi))) FROM {SCH}.berkas_bytea"], capture_output=True, text=True)
+    harap(r3.stdout.strip(), sidik_asal, "sidik isi tiap baris sesudah pulih")
+    catat("isi tiap baris sesudah pulih sama dengan sebelum dump (md5 per baris, diurutkan; bukan hanya jumlah baris dan byte): ya")
     subprocess.run(["docker", "exec", DB_KONTAINER, "dropdb", "-U", "lab", "lab_pulih"], capture_output=True)
     catat("# Waktu dump dan pulih tidak direkam (bergantung mesin). Hanya batasnya yang diperiksa: dump dan pulih 8 MB selesai dalam 120 detik. Waktu untuk puluhan GB tidak diukur (Tidak dijalankan).")
 
@@ -350,6 +356,7 @@ def rekam_ukuran():
     file28 = 28 * harian
     posting28 = 43_800_000 / 365 * 28 * 250
     baris28 = 28 * 1000 * pembulatan
+    catat("# 2.000 unggahan per hari = 1.000 pengajuan x 2 file (naskah); satu baris verifikasi per pengajuan")
     catat(f"file per hari   = 2.000 x 500 KB               = {des(harian / 1e9)} GB")
     catat(f"file 28 hari    = 28 x {des(harian / 1e9)} GB               = {des(file28 / 1e9)} GB")
     catat(f"posting 28 hari = 43,8 juta / 365 x 28 x 250 B = {des(posting28 / 1e9)} GB")
@@ -825,7 +832,7 @@ def rekam_retensi():
 # ---------- testing ----------
 
 POLA_TES = ("TandaiURL|S3|Presign|Unggahan|Terunggah|Retensi|BukaBerkasSesudah|Bytea|FileDitimpa|BacaMemakai|EndpointTidakSah|KunciTidakSah|"
-            "GalatS3|GalatStatusS3|HandlerBerkas")
+            "GalatS3|GalatStatusS3|HandlerBerkas|BacaBatasUkuran|BukaObjek")
 
 
 def go(*a, env=None):
@@ -848,9 +855,9 @@ def rekam_testing():
     catat(teks or "(tanpa temuan)")
     catat(f"# exit status {rc}")
     harap(rc, 0, "go vet")
-    rc, teks = go("test", "-v", "-count=1", "-p", "1", "-run", POLA_TES, "./internal/objek", "./internal/service", "./internal/handler", env=env)
+    rc, teks = go("test", "-v", "-count=1", "-p", "1", "-run", POLA_TES, "./internal/objek", "./internal/service", "./internal/handler", "./cmd/api", env=env)
     teks = "\n".join(l for l in teks.splitlines() if not l.startswith(("?", "=== RUN", "=== PAUSE", "=== CONT")))
-    catat(f"$ TEST_DATABASE_URL=<pemilik, schema {TES}> go test -v -count=1 -p 1 -run '{POLA_TES}' ./internal/objek ./internal/service ./internal/handler")
+    catat(f"$ TEST_DATABASE_URL=<pemilik, schema {TES}> go test -v -count=1 -p 1 -run '{POLA_TES}' ./internal/objek ./internal/service ./internal/handler ./cmd/api")
     catat(teks)
     catat(f"# exit status {rc}")
     if rc != 0:
@@ -859,6 +866,14 @@ def rekam_testing():
     harap("--- SKIP" in teks, False, "tes dilewati")
     harap(len(re.findall(r"^--- FAIL", teks, flags=re.M)), 0, "tes yang gagal")
     harap(len(re.findall(r"^--- PASS", teks, flags=re.M)) >= 30, True, "jumlah tes yang lulus")
+    # Penjaga pola -run: tes yang namanya tidak cocok dengan POLA_TES tidak pernah dijalankan dan tidak pernah gagal.
+    # Tiap fungsi tes di berkas tes jalur ini harus muncul sebagai PASS.
+    nama_tes = set()
+    for berkas_tes in ("internal/objek/s3_test.go", "internal/service/berkas_test.go", "internal/handler/handler_berkas_test.go", "cmd/api/berkas_test.go"):
+        nama_tes |= set(re.findall(r"^func (Test\w+)\(", (HERE.parent / "api-t4" / berkas_tes).read_text(), flags=re.M))
+    lulus = set(re.findall(r"^--- PASS: (\w+)", teks, flags=re.M))
+    harap(sorted(nama_tes - lulus), [], "fungsi tes jalur berkas yang tidak muncul sebagai PASS (pola -run melewatkannya)")
+    catat(f"# Penjaga pola -run: tiap dari {len(nama_tes)} fungsi tes di empat berkas tes jalur ini muncul sebagai PASS di atas.")
     tulis("testing.txt", "tes Go jalur file identitas: tanda tangan, presigned PUT, unggah, retensi, dan bytea")
 
 
