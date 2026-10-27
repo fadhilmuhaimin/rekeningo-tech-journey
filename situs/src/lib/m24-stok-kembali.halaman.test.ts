@@ -64,6 +64,7 @@ const core = createRequire(import.meta.url)(path.join(akar, "situs/lama/widgets/
   normalize: (d: unknown) => Skenario;
   validate: (d: Skenario, o?: { exists: (p: string) => boolean }) => string[];
   steps: (d: Skenario, v: boolean) => Langkah[];
+  layarAt: (d: Skenario, list: Langkah[], i: number, perangkatId: string) => Layar | null;
 };
 
 interface Layar { judul?: string; waktu?: string; nada?: string; sinyal?: number; isi?: { jenis: string; teks?: string; kiri?: string; kanan?: string; nada?: string }[] }
@@ -79,7 +80,7 @@ interface Skenario {
   langkah: Langkah[];
   varian: { label: string; mulai: number; langkah: Langkah[] };
 }
-interface H { id: string; judul: string; tahap: number; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
+interface H { id: string; judul: string; label?: string; tahap: number; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
 const hal = cerita.halaman as unknown as H[];
 const dari = (id: string): H => {
   const h = hal.find((x) => x.id === id);
@@ -209,6 +210,9 @@ describe("registry, meta, susunan blok, dan tautan", () => {
   test("3.20 ada, masalah, bukan jalur inti, prasyarat 2.14, lab t3-offline, peran mobile dan backend; judul sama dengan peta naskah", () => {
     expect(dari("t3-m24")).toMatchObject({ ada: true, nomor: "3.20", jenis: "masalah", prasyarat: ["t2-idempotency"], lab: ["t3-offline"], tahap: 3, peran: ["mobile", "backend"] });
     expect(dari("t3-m24").inti).toBeUndefined();
+    const minggu = cocok(naskah, /\| M24 \| (\d+) \|/)[1]!;
+    expect(dari("t3-m24").label).toBe(`Masalah 24 · minggu ${minggu}`);
+    harus(`Minggu ${minggu} Tahap 3.`);
     expect(dari("t2-idempotency").nomor).toBe("2.14");
     expect(frontmatter).toContain('title: "3.20 M24: Stok yang kembali ke angka lama"');
     expect(dari("t3-m24").judul).toBe("M24: Stok yang kembali ke angka lama");
@@ -303,6 +307,12 @@ describe("naskah M24 dan jam: gejala, angka cerita, dan hitungan hari", () => {
     expect((Date.UTC(2026, 9, 26, 7, 0) - Date.UTC(2026, 9, 23, 17, 0)) / 3600_000).toBe(62);
     expect((Date.UTC(2026, 9, 26, 6, 50) - JUMAT) / 3600_000).toBe(62);
     expect(readmeLab).toContain("Akhir pekan warung berlangsung 62 jam, dari Jumat 17.00 sampai Senin 07.00 (Asumsi naskah).");
+    // jam tutup diturunkan dari tabel asumsi naskah dan baris R3-40, bukan hanya dari README
+    const tutup = cocok(naskah, /\| Offline akhir pekan \| Jumat (\d\d)\.(\d\d) sampai Senin (\d\d)\.(\d\d) \|/);
+    expect((Date.UTC(2026, 9, 26, +tutup[3]!, +tutup[4]!) - Date.UTC(2026, 9, 23, +tutup[1]!, +tutup[2]!)) / 3600_000).toBe(62);
+    const jamTutup = `Jumat ${tutup[1]}.${tutup[2]} sampai Senin ${tutup[3]}.${tutup[4]}`;
+    harus(`warung tutup ${jamTutup}.`);
+    expect(riset.split("\n").find((b) => b.startsWith("| R3-40 Offline lawan key |"))).toContain(`tutup ${jamTutup} |`);
     harus("*Angka cerita (Ilustrasi):* Senin 07.05, \"dua hari\", dan 30 porsi berasal dari naskah. Lama offline 62 jam, dari Jumat 16.50 sampai Senin 06.50, adalah Asumsi naskah: warung tutup Jumat 17.00 sampai Senin 07.00.");
     harus("Jam di layar HP pada widget mengikuti jam lab, bukan 07.05.");
     // semua jam di halaman: jam lab, 07.05 naskah, warung tutup 17.00 dan buka 07.00, dan 17.11 (versi PostgreSQL di rekaman)
@@ -399,7 +409,7 @@ describe("rekaman m24.txt dan versi.txt: nilai dan rentang Snippet", () => {
     expect(naskah).toContain("key sinkron 14 hari di `operasi_sinkron`");
     expect(readmeLab).toContain("Kunci berumur 62 jam masih dikenali dan job `-bersih` tidak menyentuhnya.");
     expect(readmeLab).toContain("Sesudah 15 hari job `-bersih` membuang kuncinya");
-    harus("Versi benar punya dua perubahan sekaligus. Soto menunjukkan yang pertama: kunci sinkron, yang disimpan 14 hari, mengenali ulangannya. Bakso menunjukkan yang kedua: kuncinya tidak dikenal, dan syarat versi menolaknya. Batas 14 hari dan keputusannya ada di [[t3-offline]].");
+    harus("Rancangan yang benar memakai dua pengaman sekaligus. Soto menunjukkan yang pertama: kunci sinkron, yang disimpan 14 hari, mengenali ulangannya. Bakso menunjukkan yang kedua: kuncinya tidak dikenal, dan syarat versi menolaknya. Batas 14 hari dan keputusannya ada di [[t3-offline]].");
   });
   test("pembayaran memakai middleware key yang sama; kunci24.txt bagian E mengirim ulang tiga permintaan lama 62 jam kemudian dan ketiganya dikerjakan lagi", () => {
     const E0 = rek(kunci24).awal("E");
@@ -700,8 +710,20 @@ describe("widget alur t3-m24: skenario valid, nilai dari rekaman, tebakan, dan t
     expect(JSON.parse(jawabV(vBagC, kSoto)).ulang).toBe(true);
     expect(JSON.parse(jawabV(vBagC, kBakso)).status).toBe("konflik");
   });
-  test("jam di layar HP hanya 16.50 dan 06.50 (jam lab), sama dengan hari dan jam di judul langkah; tidak ada 07.05 di widget", () => {
-    expect(new Set(waktuSkenario)).toEqual(new Set(["16.50", "06.50"]));
+  test("jam di bilah status setiap HP mengikuti jam lab di setiap langkah, jalur utama dan varian: tidak ada HP yang tertinggal di jam lama", () => {
+    const d = core.normalize(JSON.parse(skenarioMentah));
+    for (const varianOn of [false, true]) {
+      const daftar = core.steps(d, varianOn);
+      let jam = "16.50";
+      daftar.forEach((l, i) => {
+        jam = l.judul.match(/^\w+ (\d\d\.\d\d):/)?.[1] ?? jam;
+        for (const p of d.perangkat) expect(core.layarAt(d, daftar, i, p.id)?.waktu, `${varianOn ? "varian" : "utama"} langkah ${i + 1}, ${p.id}`).toBe(jam);
+      });
+    }
+    expect(skenario.sumber.catatan).toContain("Jam di layar HP mengikuti jam lab (Jumat 16.50, Sabtu 07.50, Senin 06.50), bukan 07.05 di naskah.");
+  });
+  test("jam di layar HP hanya 16.50, 07.50, dan 06.50 (jam lab), sama dengan hari dan jam di judul langkah; tidak ada 07.05 di widget", () => {
+    expect(new Set(waktuSkenario)).toEqual(new Set(["16.50", "07.50", "06.50"]));
     expect(waktuSkenario).not.toContain("07.05");
     for (const l of [...langkah, ...varian]) {
       const jam = l.judul.match(/^\w+ (\d\d\.\d\d):/)?.[1];
@@ -728,7 +750,10 @@ describe("widget alur t3-m24: skenario valid, nilai dari rekaman, tebakan, dan t
     expect(p.options[0]).toContain(`(stok ${AYAM_JUMAT.stok}, versi ${AYAM_JUMAT.versi}), dan stok di database tetap ${AYAM_SABTU.stok}`);
     expect(p.options[2]).toContain("409");
     expect(p.options[3]).toContain("terlalu tua");
-    expect(p.explain).toBe(`Server menjawab 200 dan stok menjadi ${AYAM_SENIN.stok}, versi ${AYAM_SENIN.versi} (m24.txt bagian D). Key sudah lewat masa 24 jam, jadi permintaan ini dianggap baru, dan endpoint stok tidak membandingkan apa pun dengan stok sekarang.`);
+    // jawaban dibuka juga di akhir jalur varian: penjelasannya harus benar di kedua jalur (pelajaran 3.18)
+    const sotoSenin = (JSON.parse(jawabV(vBagC, "ani-hp1-0301")) as { sekarang: Produk }).sekarang;
+    expect(vBagC).toMatch(/"kunci": "ani-hp1-0302"[^\n]*\nHTTP\/1\.1 409 /);
+    expect(p.explain).toBe(`Di jalur utama server menjawab 200 dan stok menjadi ${AYAM_SENIN.stok}, versi ${AYAM_SENIN.versi} (m24.txt bagian D). Key sudah lewat masa 24 jam, jadi permintaan ini dianggap baru, dan endpoint stok tidak membandingkan apa pun dengan stok sekarang. Di jalur Ubah satu hal hasilnya lain: soto dikenali kuncinya dan stok tetap ${sotoSenin.stok}, sedangkan bakso ditolak 409 (versi.txt bagian C).`);
     // posisi jawaban benar divariasikan: tebakan alur Tahap 3 lain memakai posisi 2, 1, 0, 2, 3
     const lain = ["t3-batas-redis", "t3-m18", "t3-m20", "t3-m21", "t3-notifikasi"].map((s) => (JSON.parse(baca(`situs/lama/widgets/data/skenario/${s}.json`)) as Skenario).predict.answer);
     expect(lain).toEqual([2, 1, 0, 2, 3]);
@@ -767,10 +792,14 @@ describe("kartu Cek diri: empat kartu, sama dengan kartu.json", () => {
   });
   test("kartu 1 sampai 4 menyebut fakta yang sama dengan bagian C, D, A, versi.txt, dan kode", () => {
     const k = (n: number) => badan.slice(badan.indexOf(`**${n}.**`), badan.indexOf(`**${n + 1}.**`) > 0 ? badan.indexOf(`**${n + 1}.**`) : undefined);
-    expect(k(1)).toContain(`HP mengirim ulang "stok = 0" ${lompatan[1]!.jam} jam sesudah Jumat dan ${lompatan[2]!.jam} jam sesudah Jumat, keduanya dengan key yang sama.`);
-    expect(k(1)).toContain(`Pada ${lompatan[1]!.jam} jam key dikenali, server menjawab seperti Jumat, dan stok database tetap ${NASI_SABTU.stok} (\`m24.txt\` bagian C). Pada ${lompatan[2]!.jam} jam key sudah lewat`);
+    expect(k(1)).toContain(`HP mengirim ulang "stok = 0" dengan key yang sama seperti pengiriman pertamanya. Nasi goreng dikirim ulang ${lompatan[1]!.jam} jam sesudah Jumat, ayam geprek ${lompatan[2]!.jam} jam sesudah Jumat.`);
+    expect(k(1)).toContain(`Pada ${lompatan[1]!.jam} jam key dikenali, server menjawab seperti Jumat, dan stok nasi goreng di database tetap ${NASI_SABTU.stok} (\`m24.txt\` bagian C). Pada ${lompatan[2]!.jam} jam key sudah lewat, jadi permintaan dianggap baru dan stok ayam geprek tertimpa (bagian D)`);
     expect(k(1)).toContain("angka 24 jam persis dijaga tes Go (dibaca dari kode tes, Tidak dijalankan)");
-    expect(k(2)).toContain("Endpoint `PUT /produk/{id}/stok` hanya menerima `{\"stok\": 0}`.");
+    expect(k(2)).toContain("Permintaan itu hanya berisi `{\"stok\": 0}`, tanpa versi. Endpoint `PUT /produk/{id}/stok` tidak membandingkan apa pun dengan stok sekarang, jadi tidak ada pemeriksaan versi yang bisa menolaknya");
+    // handler menerima stok berapa pun (bukan hanya 0) dan hanya menolak stok negatif: kalimat "hanya menerima {stok: 0}" salah
+    expect(badan).not.toMatch(/hanya menerima/);
+    expect(svcIdem).toContain('ErrValidasi{"stok", "tidak boleh negatif"}');
+    expect(baca("labs/api-t3/internal/handler/handler_idempoten.go")).toContain("Stok *int `json:\"stok\"`");
     expect(k(2)).toContain("`TimpaStok` menjalankan `UPDATE` tanpa syarat versi (dibaca dari kode lab).");
     expect(k(3)).toContain("Isi permintaan hanya `{\"stok\": 0}` (`m24.txt` bagian A dan D). Tidak ada jam HP dan tidak ada versi");
     expect(k(4)).toContain("Server menjawab 409 dengan keadaan sekarang (stok 30, versi 2), dan tidak ada yang berubah (`versi.txt` bagian C).");
@@ -812,7 +841,7 @@ const SIDIK_REKAMAN_TAMPIL: string[] = ["5c80fd741bdc865a","956d95568f57ce24","1
 const SIDIK_R195 = "fe5c748e39eeb37e";
 const SIDIK_R196 = "f045c5ed538479b1";
 const SIDIK_DIAGRAM = "20a469f69a7a5bef";
-const SIDIK_SKENARIO = "829e886a17785ff5";
+const SIDIK_SKENARIO = "e580295b37c5d915";
 const FRONTMATTER: string[] = [
   "title: \"3.20 M24: Stok yang kembali ke angka lama\"",
   "description: Minggu 7. Senin pagi app Budi menunjukkan ayam geprek habis, padahal Ani mengisi 30 porsi hari Sabtu. Operasi \"stok = 0\" dari Jumat dikirim ulang 62 jam kemudian, key-nya sudah lewat 24 jam, dan endpoint stok menimpa tanpa memeriksa versi.",
@@ -873,7 +902,7 @@ const KALIMAT_TERKUNCI: string[] = [
   "**Versi bersyarat menolak hal yang sama.** Lab merekam urutan yang sama lewat `POST /sinkron`, yang membawa versi dasar, yaitu versi baris yang dilihat HP saat Ani mengubahnya. Operasi bakso belum pernah sampai dan tiba pertama kali hari Senin dengan versi dasar 1, padahal versi sekarang 2:",
   "<Snippet file=\"labs/t3-offline/output/versi.txt\" lines=\"49:53\" title=\"Rekaman lab: labs/t3-offline/output/versi.txt baris 49 sampai 53 (bagian C, operasi lama ditolak 409)\" />",
   "Server menjawab 409 dengan keadaan sekarang dan tidak mengubah apa pun. Operasi soto sudah sampai hari Jumat, jadi kuncinya dikenali dan stok 30 dari Sabtu utuh (`versi.txt` bagian C).",
-  "Versi benar punya dua perubahan sekaligus. Soto menunjukkan yang pertama: kunci sinkron, yang disimpan 14 hari, mengenali ulangannya. Bakso menunjukkan yang kedua: kuncinya tidak dikenal, dan syarat versi menolaknya. Batas 14 hari dan keputusannya ada di [[t3-offline]].",
+  "Rancangan yang benar memakai dua pengaman sekaligus. Soto menunjukkan yang pertama: kunci sinkron, yang disimpan 14 hari, mengenali ulangannya. Bakso menunjukkan yang kedua: kuncinya tidak dikenal, dan syarat versi menolaknya. Batas 14 hari dan keputusannya ada di [[t3-offline]].",
   "**Untuk app Flutter.** [Panduan offline-first di docs.flutter.dev](https://docs.flutter.dev/app-architecture/design-patterns/offline-first) (dibuka 2026-10-27, tanpa nomor versi dokumen, Tidak dijalankan) menandai data lokal dengan flag `synchronized` dan mengirimnya dengan satu `PUT`. Teks panduan itu tidak memuat kata conflict, version, atau timestamp. Panduan itu tidak membahas konflik, jadi cara menolak data lama perlu ada di request dan response API (penalaran).",
   "**Pembayaran memakai key yang sama.** `POST /transfers`, `/kiriman`, dan `/pesanan` di `api-t3` dibungkus middleware key yang sama (dibaca dari kode, Tidak dijalankan di halaman ini). Rekaman `kunci24.txt` bagian E mengirim ulang tiga permintaan lama 62 jam kemudian, dan ketiganya dikerjakan lagi. Itu alasan pembayaran tidak pernah offline, dan [[t3-offline]] membahasnya.",
   "</Blok>",
@@ -894,15 +923,15 @@ const KALIMAT_TERKUNCI: string[] = [
   "- [[t3-prd]]: mode offline untuk stok dan harga adalah P1 di PRD v3, dan pembayaran tidak pernah offline.",
   "Key menjawab apakah permintaan ini pernah datang. Versi baris menjawab apakah keadaan sudah berubah sejak operasi dibuat.",
   "### Cek diri",
-  "**1.** HP mengirim ulang \"stok = 0\" 17 jam sesudah Jumat dan 62 jam sesudah Jumat, keduanya dengan key yang sama. Kenapa hasilnya berbeda?",
+  "**1.** HP mengirim ulang \"stok = 0\" dengan key yang sama seperti pengiriman pertamanya. Nasi goreng dikirim ulang 17 jam sesudah Jumat, ayam geprek 62 jam sesudah Jumat. Kenapa hasilnya berbeda?",
   "<details class=\"success\">",
   "<summary>Jawaban</summary>",
-  "Key berlaku 24 jam sejak dipakai pertama kali. Pada 17 jam key dikenali, server menjawab seperti Jumat, dan stok database tetap 50 (`m24.txt` bagian C). Pada 62 jam key sudah lewat, jadi permintaan dianggap baru dan stok tertimpa (bagian D). Rekaman hanya mengapit batas itu; angka 24 jam persis dijaga tes Go (dibaca dari kode tes, Tidak dijalankan).",
+  "Key berlaku 24 jam sejak dipakai pertama kali. Pada 17 jam key dikenali, server menjawab seperti Jumat, dan stok nasi goreng di database tetap 50 (`m24.txt` bagian C). Pada 62 jam key sudah lewat, jadi permintaan dianggap baru dan stok ayam geprek tertimpa (bagian D). Rekaman hanya mengapit batas itu; angka 24 jam persis dijaga tes Go (dibaca dari kode tes, Tidak dijalankan).",
   "</details>",
   "**2.** Server menjawab 200 pada pengiriman ulang hari Senin. Kenapa tidak ada galat yang memberi tahu siapa pun?",
   "<details class=\"success\">",
   "<summary>Jawaban</summary>",
-  "Endpoint `PUT /produk/{id}/stok` hanya menerima `{\"stok\": 0}`. Ia tidak membandingkan apa pun dengan stok sekarang, jadi tidak ada yang bisa gagal: `TimpaStok` menjalankan `UPDATE` tanpa syarat versi (dibaca dari kode lab).",
+  "Permintaan itu hanya berisi `{\"stok\": 0}`, tanpa versi. Endpoint `PUT /produk/{id}/stok` tidak membandingkan apa pun dengan stok sekarang, jadi tidak ada pemeriksaan versi yang bisa menolaknya: `TimpaStok` menjalankan `UPDATE` tanpa syarat versi (dibaca dari kode lab).",
   "</details>",
   "**3.** Raka menduga jam HP Ani salah. Apa di rekaman yang menunjukkan dugaan itu tidak cocok?",
   "<details class=\"success\">",

@@ -1900,8 +1900,8 @@
   "halaman": "t3-m24",
   "judul": "3.20 M24: Stok yang kembali ke angka lama",
   "url": "tahap-3/m24-stok-kembali/",
-  "tanya": "HP mengirim ulang \"stok = 0\" 17 jam sesudah Jumat dan 62 jam sesudah Jumat, keduanya dengan key yang sama. Kenapa hasilnya berbeda?",
-  "jawab": "Key berlaku 24 jam sejak dipakai pertama kali. Pada 17 jam key dikenali, server menjawab seperti Jumat, dan stok database tetap 50 (`m24.txt` bagian C). Pada 62 jam key sudah lewat, jadi permintaan dianggap baru dan stok tertimpa (bagian D). Rekaman hanya mengapit batas itu; angka 24 jam persis dijaga tes Go (dibaca dari kode tes, Tidak dijalankan)."
+  "tanya": "HP mengirim ulang \"stok = 0\" dengan key yang sama seperti pengiriman pertamanya. Nasi goreng dikirim ulang 17 jam sesudah Jumat, ayam geprek 62 jam sesudah Jumat. Kenapa hasilnya berbeda?",
+  "jawab": "Key berlaku 24 jam sejak dipakai pertama kali. Pada 17 jam key dikenali, server menjawab seperti Jumat, dan stok nasi goreng di database tetap 50 (`m24.txt` bagian C). Pada 62 jam key sudah lewat, jadi permintaan dianggap baru dan stok ayam geprek tertimpa (bagian D). Rekaman hanya mengapit batas itu; angka 24 jam persis dijaga tes Go (dibaca dari kode tes, Tidak dijalankan)."
  },
  {
   "id": "t3-m24-2",
@@ -1909,7 +1909,7 @@
   "judul": "3.20 M24: Stok yang kembali ke angka lama",
   "url": "tahap-3/m24-stok-kembali/",
   "tanya": "Server menjawab 200 pada pengiriman ulang hari Senin. Kenapa tidak ada galat yang memberi tahu siapa pun?",
-  "jawab": "Endpoint `PUT /produk/{id}/stok` hanya menerima `{\"stok\": 0}`. Ia tidak membandingkan apa pun dengan stok sekarang, jadi tidak ada yang bisa gagal: `TimpaStok` menjalankan `UPDATE` tanpa syarat versi (dibaca dari kode lab)."
+  "jawab": "Permintaan itu hanya berisi `{\"stok\": 0}`, tanpa versi. Endpoint `PUT /produk/{id}/stok` tidak membandingkan apa pun dengan stok sekarang, jadi tidak ada pemeriksaan versi yang bisa menolaknya: `TimpaStok` menjalankan `UPDATE` tanpa syarat versi (dibaca dari kode lab)."
  },
  {
   "id": "t3-m24-3",

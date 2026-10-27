@@ -106,7 +106,7 @@ Server menjawab 200 dan versi naik ke 4. Katalog lalu memberi Budi stok 0 untuk 
 
 Server menjawab 409 dengan keadaan sekarang dan tidak mengubah apa pun. Operasi soto sudah sampai hari Jumat, jadi kuncinya dikenali dan stok 30 dari Sabtu utuh (`versi.txt` bagian C).
 
-Versi benar punya dua perubahan sekaligus. Soto menunjukkan yang pertama: kunci sinkron, yang disimpan 14 hari, mengenali ulangannya. Bakso menunjukkan yang kedua: kuncinya tidak dikenal, dan syarat versi menolaknya. Batas 14 hari dan keputusannya ada di [[t3-offline]].
+Rancangan yang benar memakai dua pengaman sekaligus. Soto menunjukkan yang pertama: kunci sinkron, yang disimpan 14 hari, mengenali ulangannya. Bakso menunjukkan yang kedua: kuncinya tidak dikenal, dan syarat versi menolaknya. Batas 14 hari dan keputusannya ada di [[t3-offline]].
 
 **Untuk app Flutter.** [Panduan offline-first di docs.flutter.dev](https://docs.flutter.dev/app-architecture/design-patterns/offline-first) (dibuka 2026-10-27, tanpa nomor versi dokumen, Tidak dijalankan) menandai data lokal dengan flag `synchronized` dan mengirimnya dengan satu `PUT`. Teks panduan itu tidak memuat kata conflict, version, atau timestamp. Panduan itu tidak membahas konflik, jadi cara menolak data lama perlu ada di request dan response API (penalaran).
 
@@ -142,12 +142,12 @@ Key menjawab apakah permintaan ini pernah datang. Versi baris menjawab apakah ke
 
 ### Cek diri
 
-**1.** HP mengirim ulang "stok = 0" 17 jam sesudah Jumat dan 62 jam sesudah Jumat, keduanya dengan key yang sama. Kenapa hasilnya berbeda?
+**1.** HP mengirim ulang "stok = 0" dengan key yang sama seperti pengiriman pertamanya. Nasi goreng dikirim ulang 17 jam sesudah Jumat, ayam geprek 62 jam sesudah Jumat. Kenapa hasilnya berbeda?
 
 <details class="success">
 <summary>Jawaban</summary>
 
-Key berlaku 24 jam sejak dipakai pertama kali. Pada 17 jam key dikenali, server menjawab seperti Jumat, dan stok database tetap 50 (`m24.txt` bagian C). Pada 62 jam key sudah lewat, jadi permintaan dianggap baru dan stok tertimpa (bagian D). Rekaman hanya mengapit batas itu; angka 24 jam persis dijaga tes Go (dibaca dari kode tes, Tidak dijalankan).
+Key berlaku 24 jam sejak dipakai pertama kali. Pada 17 jam key dikenali, server menjawab seperti Jumat, dan stok nasi goreng di database tetap 50 (`m24.txt` bagian C). Pada 62 jam key sudah lewat, jadi permintaan dianggap baru dan stok ayam geprek tertimpa (bagian D). Rekaman hanya mengapit batas itu; angka 24 jam persis dijaga tes Go (dibaca dari kode tes, Tidak dijalankan).
 
 </details>
 
@@ -156,7 +156,7 @@ Key berlaku 24 jam sejak dipakai pertama kali. Pada 17 jam key dikenali, server 
 <details class="success">
 <summary>Jawaban</summary>
 
-Endpoint `PUT /produk/{id}/stok` hanya menerima `{"stok": 0}`. Ia tidak membandingkan apa pun dengan stok sekarang, jadi tidak ada yang bisa gagal: `TimpaStok` menjalankan `UPDATE` tanpa syarat versi (dibaca dari kode lab).
+Permintaan itu hanya berisi `{"stok": 0}`, tanpa versi. Endpoint `PUT /produk/{id}/stok` tidak membandingkan apa pun dengan stok sekarang, jadi tidak ada pemeriksaan versi yang bisa menolaknya: `TimpaStok` menjalankan `UPDATE` tanpa syarat versi (dibaca dari kode lab).
 
 </details>
 

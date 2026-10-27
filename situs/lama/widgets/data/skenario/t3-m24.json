@@ -42,7 +42,7 @@
     ],
     "answer": 1,
     "varian": false,
-    "explain": "Server menjawab 200 dan stok menjadi 0, versi 4 (m24.txt bagian D). Key sudah lewat masa 24 jam, jadi permintaan ini dianggap baru, dan endpoint stok tidak membandingkan apa pun dengan stok sekarang."
+    "explain": "Di jalur utama server menjawab 200 dan stok menjadi 0, versi 4 (m24.txt bagian D). Key sudah lewat masa 24 jam, jadi permintaan ini dianggap baru, dan endpoint stok tidak membandingkan apa pun dengan stok sekarang. Di jalur Ubah satu hal hasilnya lain: soto dikenali kuncinya dan stok tetap 30, sedangkan bakso ditolak 409 (versi.txt bagian C)."
   },
   "langkah": [
     {
@@ -90,7 +90,25 @@
       "ke": "api",
       "judul": "Sabtu 07.50: Ani mengisi 30 porsi lewat dasbor",
       "kirim": "PATCH /produk/61\n{\"stok\": 30, \"versi\": 2}\n→ 200 {\"id\":61,\"harga\":28000,\"stok\":30,\"versi\":3}",
-      "jelas": "Dasbor membawa versi 2 yang dilihatnya, dan server menerimanya karena versinya masih sama. Stok 30, versi 3. HP Ani masih offline."
+      "jelas": "Dasbor membawa versi 2 yang dilihatnya, dan server menerimanya karena versinya masih sama. Stok 30, versi 3. HP Ani masih offline.",
+      "layar": {
+        "ani": {
+          "judul": "Stok warung",
+          "waktu": "07.50",
+          "sinyal": 0,
+          "nada": "warn",
+          "isi": [
+            { "jenis": "baris", "kiri": "Ayam geprek", "kanan": "habis", "nada": "warn" },
+            { "jenis": "teks", "teks": "Tidak ada jawaban. Operasi disimpan untuk dikirim ulang." }
+          ]
+        },
+        "budi": {
+          "judul": "Warung Ani",
+          "waktu": "07.50",
+          "sinyal": 4,
+          "isi": [{ "jenis": "baris", "kiri": "Ayam geprek", "kanan": "Rp28.000" }]
+        }
+      }
     },
     {
       "dari": "client",
@@ -108,6 +126,12 @@
             { "jenis": "baris", "kiri": "Ayam geprek", "kanan": "habis", "nada": "warn" },
             { "jenis": "proses", "teks": "Mengirim ulang..." }
           ]
+        },
+        "budi": {
+          "judul": "Warung Ani",
+          "waktu": "06.50",
+          "sinyal": 4,
+          "isi": [{ "jenis": "baris", "kiri": "Ayam geprek", "kanan": "Rp28.000" }]
         }
       }
     },
@@ -165,7 +189,25 @@
         "ke": "api",
         "judul": "Sabtu 07.50: Ani mengisi soto 30 porsi lewat dasbor",
         "kirim": "PATCH /produk/181\n{\"stok\": 30, \"versi\": 2}\n→ 200 {\"id\":181,\"harga\":22000,\"stok\":30,\"versi\":3}",
-        "jelas": "Sama seperti jalur utama: dasbor membawa versi 2, dan hasilnya stok 30, versi 3."
+        "jelas": "Sama seperti jalur utama: dasbor membawa versi 2, dan hasilnya stok 30, versi 3.",
+        "layar": {
+          "ani": {
+            "judul": "Stok warung",
+            "waktu": "07.50",
+            "sinyal": 0,
+            "nada": "warn",
+            "isi": [
+              { "jenis": "baris", "kiri": "Soto ayam", "kanan": "habis", "nada": "warn" },
+              { "jenis": "teks", "teks": "Tidak ada jawaban. Operasi disimpan untuk dikirim ulang." }
+            ]
+          },
+          "budi": {
+            "judul": "Warung Ani",
+            "waktu": "07.50",
+            "sinyal": 4,
+            "isi": [{ "jenis": "baris", "kiri": "Ayam geprek", "kanan": "Rp28.000" }]
+          }
+        }
       },
       {
         "dari": "client",
@@ -184,6 +226,12 @@
               { "jenis": "baris", "kiri": "Soto ayam", "kanan": "30 porsi", "nada": "good" },
               { "jenis": "teks", "teks": "Operasi lama sudah tercatat di server." }
             ]
+          },
+          "budi": {
+            "judul": "Warung Ani",
+            "waktu": "06.50",
+            "sinyal": 4,
+            "isi": [{ "jenis": "baris", "kiri": "Ayam geprek", "kanan": "Rp28.000" }]
           }
         }
       },
