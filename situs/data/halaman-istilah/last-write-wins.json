@@ -15,7 +15,7 @@
   ],
   "stack": null,
   "jebakan": [
-    "Memercayai jam HP. Dokumentasi WatermelonDB menulis bahwa timestamp lokal tidak bisa dipercaya dan melarang memakai created_at buatan client untuk melacak perubahan di server.",
+    "Memercayai jam HP. Dokumentasi WatermelonDB menulis bahwa timestamp lokal tidak bisa dipercaya dan melarang memakai created_at buatan client untuk membedakan record baru dari record yang diubah.",
     "Mengira aturan ini aman untuk data yang dibaca sebagai kenyataan. Figma memakainya per properti dengan server yang menentukan urutan, dan menerima bahwa suntingan serentak pada satu teks berakhir sebagai salah satunya."
   ],
   "terkait": [

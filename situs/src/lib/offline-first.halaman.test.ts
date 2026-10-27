@@ -211,7 +211,7 @@ const EXPECT: string[] = [
   "**Versi naik pada setiap penjualan.** Pesanan mengurangi stok dengan `stok = stok - $2, versi = versi + 1` (`katalog.go`). Di `kunci24.txt` bagian E, nasi goreng berversi 3 sesudah dua pesanan, jadi operasi offline untuk menu yang laku di antaranya mendapat 409. Lab tidak merekam sinkron bersama penjualan, jadi seberapa sering itu terjadi di warung ramai Tidak dijalankan.",
   "**Selisih atau nilai akhir.** Nilai akhir seperti `stok = 0` hanya benar bila keadaan yang Ani lihat masih berlaku, jadi butuh versi. Selisih seperti \"tambah 10\" bisa digabung dalam urutan apa pun. Firestore menunjuk `FieldValue.increment()` untuk mengubah angka tanpa transaction ([Firestore: Transactions and batched writes](https://firebase.google.com/docs/firestore/manage-data/transactions), komentar kode, dibuka 2026-10-27).",
   "Ani mencatat \"habis\", yaitu nilai yang ia ketahui, jadi stok memakai nilai akhir. Database menjaga stok tidak negatif dengan `CHECK (stok >= 0)`.",
-  "**Jalur uang tetap tertutup.** `/sinkron` menolak bayar, transfer, dan topup dengan 422 (`sinkron14.txt` bagian E). Alasannya ada di `kunci24.txt` bagian E: tiga permintaan yang sudah diterapkan hari Sabtu dikerjakan lagi hari Senin, karena kuncinya sudah kedaluwarsa. Riwayat Budi mendapat tiga jurnal baru: «rp1», «rp2», dan «rp3», jumlahnya «rpTotal» (Hitungan).",
+  "**Jalur uang tetap tertutup.** `/sinkron` menolak bayar, transfer, dan topup dengan 422 (`sinkron14.txt` bagian E). Alasannya ada di `kunci24.txt` bagian E: tiga permintaan yang sudah diterapkan hari Jumat dan Sabtu dikerjakan lagi hari Senin, karena kuncinya sudah kedaluwarsa. Riwayat Budi mendapat tiga jurnal baru: «rp1», «rp2», dan «rp3», jumlahnya «rpTotal» (Hitungan).",
   "### Di stack lain",
   "**Skenario:** HP warung menyimpan perubahan stok saat offline dan mengirimnya sesudah sinyal kembali. Yang ditanyakan: apa yang disediakan stack itu untuk queue, sinkron, dan konflik, dan apa yang tidak ditulis dokumentasinya.",
   "Tidak ada tab yang dijalankan: lab memerankan HP dengan curl. Semua tab dicek ke dokumentasi pada 2026-10-27. Tanda [perlu verifikasi] berarti klaim itu belum bisa dicek ke sumber primer.",
@@ -232,7 +232,7 @@ const EXPECT: string[] = [
   "</Fragment>\n<Fragment slot=\"t3\">",
   "*Tidak dijalankan. Dicek ke [WatermelonDB: Synchronization](https://watermelondb.dev/docs/Sync/Intro) dan [WatermelonDB: Backend](https://watermelondb.dev/docs/Sync/Backend), paket @nozbe/watermelondb 0.28.0 (npm, 2025-04-07), dibuka 2026-10-27.*",
   "**Yang berbeda di stack ini:** WatermelonDB hanya database lokal, dan sinkronnya butuh dua endpoint backend yang kamu sediakan. Aturan push-nya mirip versi dasar. Bila record berubah di server sesudah `lastPulledAt`, endpoint harus membatalkan push dan mengembalikan galat. Frontend lalu memanggil pull lagi untuk menyelesaikan konflik.",
-  "Bedanya, pembandingnya waktu pull terakhir client, bukan versi per baris. Dokumentasi juga melarang memakai `created_at` buatan client untuk melacak perubahan di server, karena timestamp lokal tidak bisa dipercaya.",
+  "Bedanya, pembandingnya waktu pull terakhir client, bukan versi per baris. Dokumentasi juga melarang memakai `created_at` buatan client untuk membedakan record baru dari record yang diubah, karena timestamp lokal tidak bisa dipercaya.",
   "</Fragment>\n<Fragment slot=\"t4\">",
   "*Tidak dijalankan. Dicek ke [Firestore: Access data offline](https://firebase.google.com/docs/firestore/manage-data/enable-offline) dan [Firestore: Transactions and batched writes](https://firebase.google.com/docs/firestore/manage-data/transactions), halaman tanpa nomor versi, dibuka 2026-10-27.*",
   "**Yang berbeda di stack ini:** persistence offline aktif secara bawaan di Android dan Apple, dan nonaktif di web. Tulis offline diantrekan sampai jaringan aktif. Untuk beberapa perubahan pada satu dokumen, dokumentasi menulis last write wins, yaitu opsi B di ADR 29 tanpa pilihan lain. Transaction gagal saat client offline, jadi pembacaan lalu penulisan bersyarat di HP tidak bisa memakai transaction.",
@@ -254,7 +254,7 @@ const EXPECT: string[] = [
   "**Kasus industri: Figma.** Figma menghadapi pertanyaan serupa untuk dokumen desain. Artikel engineering itu menulis bahwa user boleh offline selama waktu sembarang. Sesudah online, client mengunduh salinan dokumen baru dan menerapkan ulang suntingan offline di atasnya (Evan Wallace, [How Figma's multiplayer technology works](https://www.figma.com/blog/how-figmas-multiplayer-technology-works/), 2019-10-16, dibuka 2026-10-27).",
   "Bila dua client mengubah properti yang sama, dokumen berakhir dengan nilai terakhir yang dikirim ke server, dan server yang menentukan urutannya tanpa timestamp. Figma tidak memakai CRDT murni, karena CRDT dibuat untuk sistem tanpa otoritas pusat dan server Figma adalah otoritas pusat. Suntingan serentak pada satu nilai teks berakhir sebagai salah satunya, dan Figma menerimanya karena alat desain bukan editor teks.",
   "Batasnya: satu produk desain kolaboratif, tanpa angka, tanpa invarian seperti stok tidak negatif, dan artikelnya tidak menyebut berapa lama offline yang diuji.",
-  "Bagi Rekeningo, kasus ini memperlihatkan dua bentuk last-write-wins. Dengan urutan kedatangan di server, operasi Senin menang atas isian Sabtu, dan itu persis M24. Opsi B memakai waktu HP, yang memperbaiki urutan itu hanya bila jam HP benar. Figma menerima aturannya untuk properti desain yang mudah dikoreksi, sedangkan stok dibaca pembeli sebagai kenyataan.",
+  "Bagi Rekeningo, kasus ini memperlihatkan dua bentuk last-write-wins. Dengan urutan kedatangan di server, operasi Senin menang atas isian Sabtu, dan itu persis M24. Opsi B memakai waktu HP, yang memperbaiki urutan itu hanya bila jam HP benar. Artikel Figma menerima hasil itu karena alat desain bukan editor teks, sedangkan stok dibaca pembeli sebagai kenyataan (penilaian penulis halaman ini).",
   "**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:",
   "1. Layar konflik muncul terlalu sering, karena versi naik pada tiap penjualan (`katalog.go`; `kunci24.txt` bagian E). Ani yang terbiasa menekan \"pakai angka server\" tanpa membaca bisa membuang catatan habis yang benar. Lab tidak merekam sinkron bersama penjualan. Pencegahannya mengukur frekuensi 409 sebelum rilis, dan memisahkan versi stok dari versi harga bila tinggi.\n2. HP offline lebih dari «hariQueue» hari, misalnya cuti panjang. Semua operasinya ditolak 422 dengan pesan lebih dari «hariQueue» hari di queue (`sinkron14.txt` bagian B dan D), dan Ani mengetik ulang. Angka «hariQueue» hari adalah pilihan naskah. Pencegahannya app menampilkan umur operasi tertua dan peringatan sebelum hari ke-«hariQueue».\n3. Kunci bertabrakan. Kunci utama `operasi_sinkron` berlaku untuk semua akun, jadi akun lain dengan kunci yang sama mendapat 422 (`sinkron14.txt` bagian C). Dua POST bersamaan dengan kunci sama untuk produk berbeda berakhir di unique violation 500, dibaca dari kode dan Tidak dijalankan. Pencegahannya UUID acak dari HP dan kunci per perangkat.",
   "**Kapan keputusan ini salah.**",
@@ -275,7 +275,7 @@ const EXPECT: string[] = [
   "</details>",
   "**3.** Pembayaran dikirim ulang dengan key yang sama «jamOffline» jam kemudian. Kenapa pembayaran tidak boleh lewat sinkron?",
   "<details class=\"success\">\n<summary>Jawaban</summary>",
-  "Key sudah lewat «jamKunci» jam, jadi server mengerjakan ulangan itu sebagai pembayaran baru. Di `kunci24.txt` bagian E, tiga permintaan hari Sabtu dikerjakan lagi hari Senin. Riwayat Budi mendapat tiga jurnal baru: «rp1», «rp2», dan «rp3». `/sinkron` menolak bayar, transfer, dan topup dengan 422.",
+  "Key sudah lewat «jamKunci» jam, jadi server mengerjakan ulangan itu sebagai pembayaran baru. Di `kunci24.txt` bagian E, tiga permintaan dari hari Jumat dan Sabtu dikerjakan lagi hari Senin. Riwayat Budi mendapat tiga jurnal baru: «rp1», «rp2», dan «rp3». `/sinkron` menolak bayar, transfer, dan topup dengan 422.",
   "</details>",
   "**4.** HP mengirim ulang dengan key yang sama «jam17» jam sesudah Jumat, dan server menjawab stok 0 dan versi 2. Kenapa app tidak boleh menampilkan angka itu?",
   "<details class=\"success\">\n<summary>Jawaban</summary>",
@@ -334,6 +334,7 @@ describe("halaman 3.21: isi dikunci unit demi unit, nilai diturunkan dari sumber
     expect(adr29).toContain(`key sinkron ${hariKunci} hari`);
     expect(adr29).toContain(`queue paling lama ${hariQueue} hari`);
     expect(adr29).toContain("pembayaran tidak offline");
+    expect(naskah).toContain(`HP Ani lalu offline sampai Senin 07.00 (${jamOffline} jam, Asumsi`);
     expect(adr29).toContain(`| Key semua endpoint ${hariOpsiA} hari; last-write-wins dengan cap waktu HP; CRDT; queue pembayaran offline |`);
     const meta = halaman.match(/^<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: \[\[t3-m24\]\]<\/p>$/m)!;
     expect(meta).not.toBeNull();
@@ -436,6 +437,19 @@ describe("rekaman m24, versi, kunci24, dan sinkron14: angka di halaman", () => {
     expect(jawaban(bagian(K, "D")).map((j) => j.kode)).toEqual([422, 422, 400]);
     expect(bagian(K, "E").join("\n")).toContain("# Pembayaran yang menunggu di HP selama offline 62 jam akan dikerjakan dua kali bila jawaban pertamanya hilang.");
     expect(judulBagian(kunci24Txt, "E")).toContain("62 jam");
+    // Tiga permintaan yang dikerjakan lagi hari Senin: transfer diterapkan hari Jumat (bagian B), kiriman dan pesanan hari Sabtu
+    // (bagian C). Halaman menulis "hari Jumat dan Sabtu", bukan hanya Sabtu.
+    expect(judulBagian(kunci24Txt, "B")).toContain("Jumat 16.50");
+    expect(judulBagian(kunci24Txt, "C")).toContain("Sabtu 09.50");
+    const kunciPertama = (b: string[]): string[] => b.filter((x) => x.startsWith("$ curl -i -X POST")).map((x) => `${x.match(/-X POST '([^']+)'/)![1]} ${x.match(/Idempotency-Key: "([^"]+)"/)![1]}`);
+    expect(kunciPertama(bagian(K, "B"))).toEqual(["/transfers 00000000-0000-4000-8000-000000000001"]);
+    expect(kunciPertama(bagian(K, "C"))).toEqual([
+      "/transfers 00000000-0000-4000-8000-000000000001",
+      "/kiriman 00000000-0000-4000-8000-000000000002",
+      "/pesanan 00000000-0000-4000-8000-000000000003",
+    ]);
+    expect(kunciPertama(bagian(K, "E"))).toEqual(["/transfers 00000000-0000-4000-8000-000000000001"]);
+    expect(bagian(K, "E").join("\n")).toContain("# Kiriman dan pesanan dengan key lama juga dikerjakan lagi");
     expect(readmeLab).toContain("| M2 `UmurKunci` 24 jam jadi 7 hari | gagal: `TestKunciKedaluwarsaSesudah24Jam` | gagal `kunci24` E (saldo 166.000, harus 103.000) dan `m24` D |");
   });
 });
@@ -737,7 +751,7 @@ const SIDIK_RISET: Record<string, string> = {
   "R3-204": "fe6ac8662b8ff3dc",
 };
 const SIDIK_ISTILAH: Record<string, string> = {
-  "last-write-wins": "1e57aa3ac7198d15",
+  "last-write-wins": "743bb5dab8669094",
   "crdt": "a6d194036e982a94",
 };
 const ALAMAT: [string, string][] = [

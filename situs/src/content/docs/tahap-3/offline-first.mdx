@@ -118,7 +118,7 @@ Rekaman melompat ke 62 jam dan 15 hari, jadi titik 14 hari persisnya tidak terek
 
 Ani mencatat "habis", yaitu nilai yang ia ketahui, jadi stok memakai nilai akhir. Database menjaga stok tidak negatif dengan `CHECK (stok >= 0)`.
 
-**Jalur uang tetap tertutup.** `/sinkron` menolak bayar, transfer, dan topup dengan 422 (`sinkron14.txt` bagian E). Alasannya ada di `kunci24.txt` bagian E: tiga permintaan yang sudah diterapkan hari Sabtu dikerjakan lagi hari Senin, karena kuncinya sudah kedaluwarsa. Riwayat Budi mendapat tiga jurnal baru: Rp28.000, Rp10.000, dan Rp25.000, jumlahnya Rp63.000 (Hitungan).
+**Jalur uang tetap tertutup.** `/sinkron` menolak bayar, transfer, dan topup dengan 422 (`sinkron14.txt` bagian E). Alasannya ada di `kunci24.txt` bagian E: tiga permintaan yang sudah diterapkan hari Jumat dan Sabtu dikerjakan lagi hari Senin, karena kuncinya sudah kedaluwarsa. Riwayat Budi mendapat tiga jurnal baru: Rp28.000, Rp10.000, dan Rp25.000, jumlahnya Rp63.000 (Hitungan).
 
 ### Di stack lain
 
@@ -178,7 +178,7 @@ Sinkron ke CloudKit memakai `NSPersistentCloudKitContainer`, dan CloudKit tidak 
 
 **Yang berbeda di stack ini:** WatermelonDB hanya database lokal, dan sinkronnya butuh dua endpoint backend yang kamu sediakan. Aturan push-nya mirip versi dasar. Bila record berubah di server sesudah `lastPulledAt`, endpoint harus membatalkan push dan mengembalikan galat. Frontend lalu memanggil pull lagi untuk menyelesaikan konflik.
 
-Bedanya, pembandingnya waktu pull terakhir client, bukan versi per baris. Dokumentasi juga melarang memakai `created_at` buatan client untuk melacak perubahan di server, karena timestamp lokal tidak bisa dipercaya.
+Bedanya, pembandingnya waktu pull terakhir client, bukan versi per baris. Dokumentasi juga melarang memakai `created_at` buatan client untuk membedakan record baru dari record yang diubah, karena timestamp lokal tidak bisa dipercaya.
 
 </Fragment>
 <Fragment slot="t4">
@@ -240,7 +240,7 @@ Bila dua client mengubah properti yang sama, dokumen berakhir dengan nilai terak
 
 Batasnya: satu produk desain kolaboratif, tanpa angka, tanpa invarian seperti stok tidak negatif, dan artikelnya tidak menyebut berapa lama offline yang diuji.
 
-Bagi Rekeningo, kasus ini memperlihatkan dua bentuk last-write-wins. Dengan urutan kedatangan di server, operasi Senin menang atas isian Sabtu, dan itu persis M24. Opsi B memakai waktu HP, yang memperbaiki urutan itu hanya bila jam HP benar. Figma menerima aturannya untuk properti desain yang mudah dikoreksi, sedangkan stok dibaca pembeli sebagai kenyataan.
+Bagi Rekeningo, kasus ini memperlihatkan dua bentuk last-write-wins. Dengan urutan kedatangan di server, operasi Senin menang atas isian Sabtu, dan itu persis M24. Opsi B memakai waktu HP, yang memperbaiki urutan itu hanya bila jam HP benar. Artikel Figma menerima hasil itu karena alat desain bukan editor teks, sedangkan stok dibaca pembeli sebagai kenyataan (penilaian penulis halaman ini).
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
@@ -293,7 +293,7 @@ Keduanya dihitung dari `dibuat_di_hp`. Operasi diterima sampai umur 7 hari dan b
 <details class="success">
 <summary>Jawaban</summary>
 
-Key sudah lewat 24 jam, jadi server mengerjakan ulangan itu sebagai pembayaran baru. Di `kunci24.txt` bagian E, tiga permintaan hari Sabtu dikerjakan lagi hari Senin. Riwayat Budi mendapat tiga jurnal baru: Rp28.000, Rp10.000, dan Rp25.000. `/sinkron` menolak bayar, transfer, dan topup dengan 422.
+Key sudah lewat 24 jam, jadi server mengerjakan ulangan itu sebagai pembayaran baru. Di `kunci24.txt` bagian E, tiga permintaan dari hari Jumat dan Sabtu dikerjakan lagi hari Senin. Riwayat Budi mendapat tiga jurnal baru: Rp28.000, Rp10.000, dan Rp25.000. `/sinkron` menolak bayar, transfer, dan topup dengan 422.
 
 </details>
 
