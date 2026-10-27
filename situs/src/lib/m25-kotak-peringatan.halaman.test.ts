@@ -408,7 +408,7 @@ describe("kode lab: catatan diterima apa adanya, dasbor, browser tanpa ekstensi,
     harus(`Browser-nya Chromium ${versi[1]} yang dikendalikan Playwright ${versi[2]} (menurut README lab). Browser lain Tidak dijalankan.`);
     expect(readmeLab).toContain("Browser selain Chromium (Firefox, Safari, Chromium versi lain): Tidak dijalankan.");
     harus("Browser di rekaman diluncurkan baru di tiap skenario, dan lab tidak memasang ekstensi apa pun:");
-    harus(`Dokumentasi Playwright ${versi[2]} menulis bahwa ekstensi hanya bekerja di Chromium dengan persistent context, dan kode di atas tidak memakainya`);
+    harus(`Dokumentasi Playwright ${versi[2]} menulis bahwa ekstensi hanya bekerja di Chromium dengan persistent context. Kode di atas tidak memakainya`);
     expect(barisRiset("R3-207")).toContain("Extensions only work in Chromium when launched with a persistent context");
     expect(barisRiset("R3-207")).toContain(`Playwright ${versi[2]}`);
     expect(barisRiset("R3-207")).toContain(`tag v${versi[2]}`);
@@ -783,7 +783,7 @@ const KALIMAT_TERKUNCI: string[] = [
   "Dasbor di bagian A menyalakan semua mode rentan sekaligus. Tiga berperan di halaman ini: `-escape rentan`, `-csp mati`, dan `-cookie rentan`. Dua lainnya, `-samesite none` dan `-token tidak`, baru berperan di CSRF ([[t3-xss-csrf]]). Karena cookie sesi di A tanpa `HttpOnly`, `document.cookie` bisa dibaca skrip (`cookieJSBisaDibaca: true`); lab tidak mengirim isinya ke mana pun.",
   "**Ekstensi bukan sebabnya.** Browser di rekaman diluncurkan baru di tiap skenario, dan lab tidak memasang ekstensi apa pun:",
   "<Snippet file=\"labs/t3-dasbor/js/driver.js\" lines=\"22:23\" lang=\"js\" title=\"Kode lab: labs/t3-dasbor/js/driver.js baris 22 dan 23 (browser baru, konteks baru)\" />",
-  "Dokumentasi Playwright 1.64.0 menulis bahwa ekstensi hanya bekerja di Chromium dengan persistent context, dan kode di atas tidak memakainya ([Playwright, Chrome extensions](https://github.com/microsoft/playwright/blob/v1.64.0/docs/src/chrome-extensions-js-python.md), dibuka 2026-10-27, Tidak dijalankan). Dugaan Wulan tidak cocok. Dugaan library tabel juga tidak diperlukan. Halaman riwayat di dasbor lab hanya memuat satu skrip inline (dibaca dari `main.go`), dan kotaknya tetap muncul.",
+  "Dokumentasi Playwright 1.64.0 menulis bahwa ekstensi hanya bekerja di Chromium dengan persistent context. Kode di atas tidak memakainya ([Playwright, Chrome extensions](https://github.com/microsoft/playwright/blob/v1.64.0/docs/src/chrome-extensions-js-python.md), dibuka 2026-10-27, Tidak dijalankan). Dugaan Wulan tidak cocok, dan dugaan library tabel juga tidak diperlukan. Halaman riwayat di dasbor lab hanya memuat satu skrip inline (dibaca dari `main.go`), dan kotaknya tetap muncul.",
   "**Skrip yang lebih berbahaya tidak butuh celah tambahan.** Payload Dimas hanya `alert(1)`. Bagian D memerankan skrip lain: `driver.js` menjalankan `fetch` di halaman dasbor lewat `page.evaluate`, dengan token CSRF dari variabel `csrf` di halaman itu. Skrip itu milik Playwright, bukan catatan Dimas:",
   "<Snippet file=\"labs/t3-dasbor/js/driver.js\" lines=\"79:86\" lang=\"js\" title=\"Kode lab: labs/t3-dasbor/js/driver.js baris 79 sampai 86 (fetch dijalankan di dalam halaman dasbor)\" />",
   "Dasbor di bagian D memakai cookie sesi `HttpOnly` dan memeriksa token CSRF, Origin, dan Sec-Fetch-Site, karena `-cookie`, `-samesite`, dan `-token` memakai nilai bawaannya (dibaca dari `run.py`). Jawabannya 200, dan harga Nasi goreng Warung Ani berubah dari Rp25.000 ke Rp2:",
