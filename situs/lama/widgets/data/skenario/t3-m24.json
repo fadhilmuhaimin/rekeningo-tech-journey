@@ -1,0 +1,261 @@
+{
+  "versi": 2,
+  "judul": "Operasi Jumat dikirim ulang sesudah 62 jam",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t3-offline/output/m24.txt",
+    "fileVarian": "labs/t3-offline/output/versi.txt",
+    "catatan": "Server Go api-t3 dengan PostgreSQL 17.11 dari database bersih (make -C labs/t3-offline run). Jalur utama: m24.txt bagian A sampai D, mode rentan stok-timpa, produk Ayam geprek. Ubah satu hal: versi.txt bagian A sampai C, tanpa mode rentan, produk Soto ayam dan Bakso. HP, jam, dan jawaban yang hilang diperankan: lab mengirim dengan curl, memajukan jam service lewat POST /lab/jam, dan tidak memakai jawaban Jumat sebagai HP. Langkah 5 meringkas dari kode lab (internal/repo/idempoten.go) satu klaim key dan satu UPDATE, dan Sabtu 16.50 adalah hitungan Jumat 16.50 ditambah 24 jam; ketiganya bukan baris rekaman. Isi POST /sinkron di widget tanpa field dibuat_di_hp. Layar HP digambar dari isi rekaman: lab tidak punya app Flutter, dan teks di layar adalah pilihan penulis. Jam di layar HP mengikuti jam lab (Jumat 16.50, Sabtu 07.50, Senin 06.50), bukan 07.05 di naskah."
+  },
+  "pengantar": "Satu operasi 'stok = 0' dari HP Ani, satu jawaban yang hilang, dan satu pengiriman ulang. Tebak dulu, lalu ikuti sampai HP Budi. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "client", "label": "HP Ani" },
+    { "id": "dasbor", "label": "Dasbor Ani" },
+    { "id": "api", "label": "API", "lapisan": ["middleware key", "handler stok"] },
+    { "id": "app", "label": "App Budi" }
+  ],
+  "perangkat": [
+    { "id": "ani", "label": "HP Ani" },
+    { "id": "budi", "label": "HP Budi" }
+  ],
+  "layarAwal": {
+    "ani": {
+      "judul": "Stok warung",
+      "waktu": "16.50",
+      "sinyal": 4,
+      "isi": [{ "jenis": "baris", "kiri": "Ayam geprek", "kanan": "30 porsi" }]
+    },
+    "budi": {
+      "judul": "Warung Ani",
+      "waktu": "16.50",
+      "sinyal": 4,
+      "isi": [{ "jenis": "baris", "kiri": "Ayam geprek", "kanan": "Rp28.000" }]
+    }
+  },
+  "predict": {
+    "q": "Senin 06.50 HP Ani mengirim ulang 'stok = 0' dengan key yang sama seperti Jumat, 62 jam sesudahnya. Stok ayam geprek di database sekarang 30 (versi 3). Apa jawaban server?",
+    "options": [
+      "Server mengenali key, menjawab dengan jawaban Jumat (stok 0, versi 2), dan stok di database tetap 30",
+      "Server menerapkan 'stok = 0' lagi dan menjawab 200: stok menjadi 0, versi 4",
+      "Server menjawab 409 karena stok sudah berubah sejak Jumat",
+      "Server menolak karena key sudah terlalu tua"
+    ],
+    "answer": 1,
+    "varian": false,
+    "explain": "Di jalur utama server menjawab 200 dan stok menjadi 0, versi 4 (m24.txt bagian D). Key sudah lewat masa 24 jam, jadi permintaan ini dianggap baru, dan endpoint stok tidak membandingkan apa pun dengan stok sekarang. Di jalur Ubah satu hal hasilnya lain: soto dikenali kuncinya dan stok tetap 30, sedangkan bakso ditolak 409 (versi.txt bagian C)."
+  },
+  "langkah": [
+    {
+      "dari": "client",
+      "ke": "api",
+      "lapisan": "handler stok",
+      "judul": "Jumat 16.50: HP Ani mengirim 'stok = 0'",
+      "kirim": "PUT /produk/61/stok\nIdempotency-Key: \"00000000-0000-4000-8000-000000000011\"\n{\"stok\": 0}",
+      "jelas": "Ani mencatat ayam geprek habis. HP mengirim satu operasi dengan satu key. Isinya hanya stok: tanpa versi dan tanpa jam HP.",
+      "layar": {
+        "ani": {
+          "judul": "Stok warung",
+          "waktu": "16.50",
+          "sinyal": 3,
+          "isi": [
+            { "jenis": "baris", "kiri": "Ayam geprek", "kanan": "habis", "nada": "warn" },
+            { "jenis": "proses", "teks": "Mengirim..." }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "api",
+      "ke": "client",
+      "lapisan": "handler stok",
+      "judul": "Server menerapkan, jawabannya hilang",
+      "kirim": "→ 200 {\"id\":61,\"harga\":28000,\"stok\":0,\"versi\":2}\njawaban ini tidak sampai ke HP (diperankan)",
+      "jelas": "Server sudah menerapkan: stok 0, versi 2. Di lab, jawaban ini diterima skrip dan tidak dipakai sebagai HP. HP tidak tahu operasinya berhasil, jadi menyimpannya untuk dikirim ulang.",
+      "nada": "warn",
+      "layar": {
+        "ani": {
+          "judul": "Stok warung",
+          "waktu": "16.50",
+          "sinyal": 0,
+          "nada": "warn",
+          "isi": [
+            { "jenis": "baris", "kiri": "Ayam geprek", "kanan": "habis", "nada": "warn" },
+            { "jenis": "teks", "teks": "Tidak ada jawaban. Operasi disimpan untuk dikirim ulang." }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "dasbor",
+      "ke": "api",
+      "judul": "Sabtu 07.50: Ani mengisi 30 porsi lewat dasbor",
+      "kirim": "PATCH /produk/61\n{\"stok\": 30, \"versi\": 2}\n→ 200 {\"id\":61,\"harga\":28000,\"stok\":30,\"versi\":3}",
+      "jelas": "Dasbor membawa versi 2 yang dilihatnya, dan server menerimanya karena versinya masih sama. Stok 30, versi 3. HP Ani masih offline.",
+      "layar": {
+        "ani": {
+          "judul": "Stok warung",
+          "waktu": "07.50",
+          "sinyal": 0,
+          "nada": "warn",
+          "isi": [
+            { "jenis": "baris", "kiri": "Ayam geprek", "kanan": "habis", "nada": "warn" },
+            { "jenis": "teks", "teks": "Tidak ada jawaban. Operasi disimpan untuk dikirim ulang." }
+          ]
+        },
+        "budi": {
+          "judul": "Warung Ani",
+          "waktu": "07.50",
+          "sinyal": 4,
+          "isi": [{ "jenis": "baris", "kiri": "Ayam geprek", "kanan": "Rp28.000" }]
+        }
+      }
+    },
+    {
+      "dari": "client",
+      "ke": "api",
+      "lapisan": "middleware key",
+      "judul": "Senin 06.50: HP Ani mengirim ulang operasi Jumat",
+      "kirim": "PUT /produk/61/stok\nIdempotency-Key: \"00000000-0000-4000-8000-000000000011\"\n{\"stok\": 0}",
+      "jelas": "HP tersambung lagi, 62 jam sesudah Jumat 16.50, dan mengirim operasi yang sama dengan key yang sama. Stok di database sekarang 30, versi 3.",
+      "layar": {
+        "ani": {
+          "judul": "Stok warung",
+          "waktu": "06.50",
+          "sinyal": 4,
+          "isi": [
+            { "jenis": "baris", "kiri": "Ayam geprek", "kanan": "habis", "nada": "warn" },
+            { "jenis": "proses", "teks": "Mengirim ulang..." }
+          ]
+        },
+        "budi": {
+          "judul": "Warung Ani",
+          "waktu": "06.50",
+          "sinyal": 4,
+          "isi": [{ "jenis": "baris", "kiri": "Ayam geprek", "kanan": "Rp28.000" }]
+        }
+      }
+    },
+    {
+      "dari": "api",
+      "lapisan": "handler stok",
+      "judul": "Key sudah lewat 24 jam: operasi dianggap baru",
+      "kirim": "dari kode lab, bukan baris rekaman:\nkey berlaku sampai Sabtu 16.50, diklaim ulang\nUPDATE produk SET stok = 0, versi = versi + 1 (tanpa syarat versi)\n→ 200 {\"id\":61,\"harga\":28000,\"stok\":0,\"versi\":4}",
+      "jelas": "Key diperlakukan belum pernah ada. Endpoint ini tidak membandingkan apa pun dengan stok sekarang, jadi stok 30 dari Sabtu tertimpa. Jawabannya 200, tanpa galat.",
+      "nada": "warn"
+    },
+    {
+      "dari": "app",
+      "ke": "api",
+      "judul": "Senin: Budi membuka katalog",
+      "kirim": "GET /katalog?warung=418\n→ Ayam geprek: {\"id\":61,\"harga\":28000,\"stok\":0,\"versi\":4}",
+      "jelas": "Katalog membaca stok dari database: 0. App Budi menampilkan 'habis'. Tampilan app tidak direkam; layar HP digambar dari isi rekaman.",
+      "nada": "warn",
+      "layar": {
+        "budi": {
+          "judul": "Warung Ani",
+          "waktu": "06.50",
+          "sinyal": 4,
+          "nada": "warn",
+          "isi": [{ "jenis": "baris", "kiri": "Ayam geprek", "kanan": "habis", "nada": "warn" }]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "operasi bersyarat versi lewat POST /sinkron",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "client",
+        "ke": "api",
+        "judul": "Jumat 16.50: HP Ani mengirim 'soto habis' lewat POST /sinkron",
+        "kirim": "POST /sinkron\n{\"kunci\": \"ani-hp1-0301\", \"perangkat_id\": 10061, \"produk_id\": 181, \"jenis\": \"stok\", \"nilai\": 0, \"versi_dasar\": 1}\n→ 200 {\"sekarang\":{\"id\":181,\"harga\":22000,\"stok\":0,\"versi\":2},\"status\":\"diterapkan\",\"ulang\":false}",
+        "jelas": "Operasi membawa kunci sendiri dan versi dasar 1, yaitu versi baris yang dilihat HP. Server menerapkannya: stok 0, versi 2. Jawabannya hilang seperti di jalur utama (diperankan). Produk di rekaman ini Soto ayam, bukan ayam geprek.",
+        "layar": {
+          "ani": {
+            "judul": "Stok warung",
+            "waktu": "16.50",
+            "sinyal": 0,
+            "nada": "warn",
+            "isi": [
+              { "jenis": "baris", "kiri": "Soto ayam", "kanan": "habis", "nada": "warn" },
+              { "jenis": "teks", "teks": "Tidak ada jawaban. Operasi disimpan untuk dikirim ulang." }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "dasbor",
+        "ke": "api",
+        "judul": "Sabtu 07.50: Ani mengisi soto 30 porsi lewat dasbor",
+        "kirim": "PATCH /produk/181\n{\"stok\": 30, \"versi\": 2}\n→ 200 {\"id\":181,\"harga\":22000,\"stok\":30,\"versi\":3}",
+        "jelas": "Sama seperti jalur utama: dasbor membawa versi 2, dan hasilnya stok 30, versi 3.",
+        "layar": {
+          "ani": {
+            "judul": "Stok warung",
+            "waktu": "07.50",
+            "sinyal": 0,
+            "nada": "warn",
+            "isi": [
+              { "jenis": "baris", "kiri": "Soto ayam", "kanan": "habis", "nada": "warn" },
+              { "jenis": "teks", "teks": "Tidak ada jawaban. Operasi disimpan untuk dikirim ulang." }
+            ]
+          },
+          "budi": {
+            "judul": "Warung Ani",
+            "waktu": "07.50",
+            "sinyal": 4,
+            "isi": [{ "jenis": "baris", "kiri": "Ayam geprek", "kanan": "Rp28.000" }]
+          }
+        }
+      },
+      {
+        "dari": "client",
+        "ke": "api",
+        "judul": "Senin 06.50: HP Ani mengirim ulang soto dengan kunci yang sama",
+        "kirim": "POST /sinkron (kunci ani-hp1-0301, versi dasar 1)\n→ 200 {\"sekarang\":{\"id\":181,\"harga\":22000,\"stok\":30,\"versi\":3},\"status\":\"diterapkan\",\"ulang\":true}",
+        "jelas": "Kunci sinkron masih dikenali, jadi 'stok = 0' tidak diterapkan lagi dan stok 30 dari Sabtu utuh (ulang: true).",
+        "nada": "good",
+        "layar": {
+          "ani": {
+            "judul": "Stok warung",
+            "waktu": "06.50",
+            "sinyal": 4,
+            "nada": "good",
+            "isi": [
+              { "jenis": "baris", "kiri": "Soto ayam", "kanan": "30 porsi", "nada": "good" },
+              { "jenis": "teks", "teks": "Operasi lama sudah tercatat di server." }
+            ]
+          },
+          "budi": {
+            "judul": "Warung Ani",
+            "waktu": "06.50",
+            "sinyal": 4,
+            "isi": [{ "jenis": "baris", "kiri": "Ayam geprek", "kanan": "Rp28.000" }]
+          }
+        }
+      },
+      {
+        "dari": "client",
+        "ke": "api",
+        "judul": "Senin 06.50: operasi bakso yang belum pernah sampai tiba",
+        "kirim": "POST /sinkron (kunci ani-hp1-0302, produk 361, stok 0, versi dasar 1)\n→ 409 {\"sekarang\":{\"id\":361,\"harga\":18000,\"stok\":30,\"versi\":2},\"status\":\"konflik\",\"ulang\":false}",
+        "jelas": "Kunci tidak dikenal, tetapi versi dasar 1 sudah lewat: bakso sudah versi 2, stok 30 dari Sabtu. Server menolak dan membawa keadaan sekarang, jadi tidak ada yang tertimpa. Pilihan di layar HP digambar penulis.",
+        "nada": "good",
+        "layar": {
+          "ani": {
+            "judul": "Konflik stok",
+            "waktu": "06.50",
+            "sinyal": 4,
+            "nada": "good",
+            "isi": [
+              { "jenis": "teks", "teks": "Bakso sudah berubah di server: stok 30." },
+              { "jenis": "tombol", "teks": "Pakai 30" },
+              { "jenis": "tombol", "teks": "Tetap habis" }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
