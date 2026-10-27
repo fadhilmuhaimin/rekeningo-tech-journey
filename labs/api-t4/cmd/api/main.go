@@ -92,6 +92,7 @@ func main() {
 	kedaluwarsaHold := flag.Bool("kedaluwarsa-hold", false, "job: balik dana kartu yang tertahan lewat tahan_sampai, lalu keluar (ADR 42)")
 	tujuan := flag.String("tujuan", "", "worker: lajur yang diklaim, dipisah koma (push, verifikasi); kosong = semua lajur")
 	unduhHTTP := flag.Bool("unduh-izinkan-http", false, "lab saja: fetcher gambar versi aman menerima skema http (tiruan lokal tidak punya TLS); produksi hanya https (ADR 41)")
+	ledgerKunci := flag.String("ledger-kunci", "", "API ledger untuk service pembayaran (POST /ledger/jurnal-topup, ADR 37): kunci layanan di header X-Layanan-Kunci; kosong = rute tidak dipasang")
 	flag.Parse()
 
 	// Mode rentan push-dalam-tx adalah versi pertama minggu 1: client tanpa batas waktu dan tanpa pengaman
@@ -254,6 +255,7 @@ func main() {
 			w.WriteHeader(http.StatusNoContent)
 		})
 	}
+	handler.PasangLedger(rute, svc, *ledgerKunci)
 	if *lab {
 		pasangEndpointLab(rute, db, r)
 		pasangEndpointCache(rute, kc)
