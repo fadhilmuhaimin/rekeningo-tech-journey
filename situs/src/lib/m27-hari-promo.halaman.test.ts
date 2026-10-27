@@ -50,7 +50,7 @@ const pushPalsu = baca("labs/api-t3/cmd/pushpalsu/main.go");
 const migrasi = baca("labs/api-t3/migrasi/000017_perangkat_outbox.up.sql");
 const naskah = baca("plan/CERITA-TAHAP-3.md");
 const glosMdx = baca("situs/src/content/docs/alat/glosarium.mdx");
-const glosJson = JSON.parse(baca("situs/data/glosarium.json")) as { t: string; d: string; b: string; u: string }[];
+const glosJson = JSON.parse(baca("situs/data/glosarium.json")) as { t: string; d: string; b: string; n: string; u: string }[];
 const istilahMd = baca("situs/data/istilah.md");
 const kartu = JSON.parse(baca("situs/lama/widgets/data/kartu.json")) as { id: string; halaman: string; judul: string; url: string; tanya: string; jawab: string }[];
 const hal33 = baca("situs/src/content/docs/tahap-3/fitur-notifikasi.mdx");
@@ -61,6 +61,7 @@ const hal313 = baca("situs/src/content/docs/tahap-3/at-least-once.mdx");
 const hal31 = baca("situs/src/content/docs/tahap-3/prd-v3.mdx");
 const cara = baca("situs/src/content/docs/cara-pakai.mdx");
 const diagram = DataRantai.parse(diagramMentah);
+const dataWidget = JSON.parse(baca("situs/data/widget/t3-outbox-worker.json")) as { skenario: { antrean: { tebak: { pertanyaan: string }; knob: { id: string; opsi: Record<string, string> }[]; peristiwa: Record<string, string> } } };
 
 interface H { id: string; judul: string; path?: string; topik?: string; label?: string; tahap: number; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
 const hal = cerita.halaman as unknown as H[];
@@ -630,6 +631,7 @@ describe("glosarium: tiga istilah baru menunjuk 3.26, definisi paling banyak 25 
       const g = glosJson.find((x) => x.t === t);
       expect(g, t).toBeDefined();
       expect(g).toMatchObject({ d: kol[2], b: "t3-m27", u: "/tahap-3/m27-hari-promo/" });
+      expect(g!.n, `${t}: label nomor dari registry`).toBe(`${dari("t3-m27").nomor} M${dari("t3-m27").label!.match(/^Masalah (\d+) /)![1]}`);
       expect(istilahMd).toContain(`*[${t}]: ${kol[2]}`);
     }
     expect(glosMdx).toContain("| **Kapasitas worker** | Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman. | [[t3-m27]] |");
@@ -701,5 +703,60 @@ describe("struktur halaman: tingkat heading, daftar, label, dan tanpa ID interna
     expect(frontmatter).toBe(
       'title: "3.26 M27: Hari promo, notifikasi uang terlambat"\ndescription: Minggu 9. HR mengumumkan promo pukul 11.30, dan sampai 11.42 notifikasi pembayaran Ani belum datang. Promo dan notifikasi uang memakai satu queue yang diklaim menurut nomor, jadi 10.000 promo berada di depan notifikasi uang.\n',
     );
+  });
+});
+
+// ---- tambahan tinjauan (keputusan 1103): mutan lapis turunan yang lolos di penjaga awal ---------------------------------------
+describe("tinjauan: kelas, versi, huruf bagian, dan teks widget diturunkan dari sumbernya", () => {
+  test("pemetaan kelas di halaman sama dengan konstanta KelasUang, KelasTopup, KelasPromo di outbox.go dan tabel bagian B", () => {
+    const k = cocok(outboxGo, /KelasUang\s+= (\d) \/\/ bayar dan transfer\n\s*KelasTopup = (\d) \/\/ top-up massal\n\s*KelasPromo = (\d) \/\/ pengumuman promo/);
+    harus(`kolom \`kelas\`: ${k[1]} untuk bayar dan transfer, ${k[2]} untuk top-up, ${k[3]} untuk promo ([[t3-notifikasi]])`);
+    const tabel = bagB.filter((x) => /^ \d\s+\| (bayar|topup|promo)\s/.test(x)).map((x) => x.split("|").slice(0, 2).map((s) => s.trim()).join(":"));
+    expect(tabel).toEqual([`${k[1]}:bayar`, `${k[2]}:topup`, `${k[3]}:promo`]);
+  });
+  test("versi PostgreSQL di halaman sama dengan kepala rekaman queue.txt", () => {
+    const v = cocok(Q.b[1]!, /PostgreSQL ([\d.]+) \(Debian/)[1]!;
+    harus(`PostgreSQL ${v}, server Go dan worker \`api-t3\`, dan layanan push tiruan lokal.`);
+  });
+  test("huruf bagian yang disebut prosa menunjuk bagian rekaman yang judulnya cocok", () => {
+    const judul = (h: string) => Q.b.find((x) => x.startsWith(`# --- ${h}. `))!;
+    const pasangan: [string, string, string][] = [
+      ["A", "Bagian A mengukur 80 baris uang", "Kapasitas worker"],
+      ["B", "Bagian B memanggil `POST /promo` sekali per HR", "Pengumuman promo"],
+      ["C", "Bagian C menjalankan worker menurut nomor selama 30 detik", "M27 tanpa kelas (mode rentan urut-waktu)"],
+      ["D", "Bagian D mengambil satu baris tiap panggilan worker", "Dengan kelas (bawaan)"],
+      ["E", "Bagian E menjalankan worker dengan kelas selagi promo masih menunggu", "Promo membanjiri antrean"],
+      ["F", "Bagian F menjadwalkan sisa promo 5 baris per detik", "Laju promo"],
+    ];
+    for (const [h, kalimat, kata] of pasangan) {
+      harus(kalimat);
+      expect(judul(h), `judul bagian ${h}`).toContain(kata);
+    }
+  });
+  test("api-t3 rentan.txt bagian D: kedua worker mengklaim empat baris (tiga top-up dan satu transfer), semuanya terkirim", () => {
+    const a = R.nomor((x) => x.startsWith("# --- D. M27 "));
+    const dengan = R.nomor((x) => x.includes("Worker dengan kelas (bawaan)"), a);
+    const tanpa = R.nomor((x) => x.includes("Worker tanpa kelas, mode rentan urut-waktu"), a);
+    for (const i of [dengan, tanpa]) expect(R.b[i + 1], `baris ${i + 2}`).toBe("worker: diklaim 4, terkirim 4, dilewati 0, ditunda 0, mati 0");
+    expect(R.b[dengan - 1]).toContain("tiga top-up (kelas 1), lalu satu transfer ke Dimas (kelas 0, nomor terbesar)");
+    expect(R.b[tanpa - 1]).toContain("tiga top-up (kelas 1), lalu satu transfer ke Dimas (kelas 0, nomor terbesar)");
+  });
+  test("mesin widget: laju 5 per detik dengan kelas menghabiskan promo dalam 2.000 detik dan menyisakan 13,33 \u2212 5 = 8,33 per detik", () => {
+    const f = mesin("dengan", "5", C_PENGIRIM);
+    expect(f.habis).toBe(nPromo / LAJU);
+    expect(koma(f.sisa!, 2)).toBe(koma(KAP - LAJU, 2));
+    expect(koma(f.sisa!, 2)).toBe("8,33");
+  });
+  test("teks data widget skenario antrean selaras dengan halaman: queue diklaim menurut nomor (bukan menurut waktu), opsi Dengan kelas, pengirim 20, laju per detik", () => {
+    const s = dataWidget.skenario.antrean;
+    const kelas = s.knob.find((x) => x.id === "kelas")!;
+    expect(kelas.opsi).toEqual({ tanpa: "Tanpa kelas, menurut nomor", dengan: "Dengan kelas" });
+    harus("Pilih Dengan kelas, dan notifikasi uang menunggu");
+    expect(Object.keys(s.knob.find((x) => x.id === "c")!.opsi)).toEqual(["1", "4", "8", "20"]);
+    harus("Naikkan pengirim ke 20 tanpa kelas");
+    expect(s.knob.find((x) => x.id === "laju")!.opsi).toEqual({ bebas: "Semua sekaligus", "5": "Dibatasi {n} per detik" });
+    expect(s.tebak.pertanyaan).toContain("worker mengklaim queue menurut nomor, tanpa kelas");
+    expect(s.peristiwa["uang-masuk"]).toBe("Notifikasi uang masuk queue yang diklaim menurut nomor: ia menunggu promo yang bernomor lebih kecil.");
+    expect(JSON.stringify(s)).not.toMatch(/menurut waktu|urutan waktu|urut waktu/);
   });
 });
