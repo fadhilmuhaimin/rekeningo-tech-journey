@@ -225,6 +225,65 @@ func TestLepasOutboxTidakDiBawahNolDanHanyaBarisMenunggu(t *testing.T) {
 	if p != 3 {
 		t.Errorf("baris terkirim berubah: percobaan %d", p)
 	}
+	db.Exec(`UPDATE outbox SET status = 'mati', percobaan = 5 WHERE id = $1`, id)
+	r.LepasOutbox(context.Background(), id)
+	db.QueryRow(`SELECT percobaan FROM outbox WHERE id = $1`, id).Scan(&p)
+	if p != 5 {
+		t.Errorf("baris dead-letter berubah: percobaan %d (hanya baris menunggu yang dilepas)", p)
+	}
+}
+
+// Permintaan percobaan di half-open adalah percobaan sungguhan: vendor dihubungi dan percobaan pekerjaan yang diklaim
+// bertambah. Selama vendor tetap mati, tiap putaran half-open menghabiskan satu percobaan pekerjaan terdepan, jadi
+// lima permintaan percobaan mematikan satu pekerjaan (dead-letter) walau lajur dijeda di antaranya. Percobaan tidak
+// dihitung hanya selama breaker terbuka (ADR 36); pekerjaan yang menunggu lebih lama dari outage tetap bisa mati.
+func TestLajurPermintaanPercobaanSetengahTerbukaMenghabiskanPercobaanPekerjaanTerdepan(t *testing.T) {
+	r, db := siapkan(t)
+	v := vendorUji(t)
+	v.atur("503", 0)
+	akun := banyakPengajuan(t, db, 3)
+	b := breakerTes(false)
+	for i := 0; i < 6; i++ { // breaker terbuka tanpa menyentuh outbox
+		b.Jalankan(func() error { return verifikasi.ErrTidakTersedia })
+	}
+	w := workerDenganBreaker(r, v, 1, b, "http://127.0.0.1:1")
+	for probe := 1; probe <= 5; probe++ {
+		time.Sleep(timeoutBreakerTes + 50*time.Millisecond)
+		if b.Status() != lajur.SetengahTerbuka {
+			t.Fatalf("permintaan percobaan %d: status %s, harus half-open", probe, b.Status())
+		}
+		h, err := w.Putaran(context.Background())
+		if err != nil || h.Diklaim != 1 || b.Status() != lajur.Terbuka {
+			t.Fatalf("permintaan percobaan %d: %+v %v, status %s (harus 1 klaim dan breaker terbuka lagi)", probe, h, err, b.Status())
+		}
+	}
+	p, st := percobaanPerAkun(t, db, akun)
+	if p[0] != 5 || p[1] != 0 || p[2] != 0 || st["mati"] != 1 || st["menunggu"] != 2 || v.n.Load() != 5 {
+		t.Errorf("percobaan %v, status %v, panggilan vendor %d: lima permintaan percobaan yang gagal mematikan pekerjaan terdepan (5,0,0 / 1 mati 2 menunggu / 5 panggilan)", p, st, v.n.Load())
+	}
+}
+
+// Worker yang hanya memegang lajur verifikasi (flag -tujuan verifikasi): bila breakernya terbuka, tidak ada lajur
+// bebas. Klaim tidak boleh jatuh ke "semua lajur" (daftar lajur kosong berarti semua di KlaimOutboxTujuan), karena itu
+// akan mengklaim lajur yang sedang dijeda.
+func TestLajurTerbukaWorkerSatuLajurTidakMengklaimApaPun(t *testing.T) {
+	r, db := siapkan(t)
+	v := vendorUji(t)
+	akun := banyakPengajuan(t, db, 2)
+	b := lajur.Baru(repo.TujuanVerifikasi, lajur.Opsi{Timeout: time.Minute, SalahPermintaan: verifikasi.SalahPermintaan, Catat: func(string, ...any) {}})
+	for i := 0; i < 6; i++ {
+		b.Jalankan(func() error { return verifikasi.ErrTidakTersedia })
+	}
+	if b.Status() != lajur.Terbuka {
+		t.Fatalf("status %s, harus open", b.Status())
+	}
+	w := workerDenganBreaker(r, v, 2, b, "http://127.0.0.1:1")
+	w.cfg.Tujuan = []string{repo.TujuanVerifikasi}
+	h, err := w.Putaran(context.Background())
+	p, st := percobaanPerAkun(t, db, akun)
+	if err != nil || h.Diklaim != 0 || jumlah(p) != 0 || st["menunggu"] != 2 || v.n.Load() != 0 {
+		t.Errorf("putaran %+v %v, percobaan %v, status %v, panggilan vendor %d: lajur terbuka tidak boleh diklaim walau tidak ada lajur lain", h, err, p, st, v.n.Load())
+	}
 }
 
 // Notifikasi uang tidak ikut tertahan: lajur verifikasi terbuka, lajur push tetap diklaim di worker yang sama.

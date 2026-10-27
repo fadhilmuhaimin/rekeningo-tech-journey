@@ -145,6 +145,26 @@ func TestBreakerSuksesMemutusGagalBerturutTurut(t *testing.T) {
 	})
 }
 
+// Interval bawaan 0: waktu tidak menghapus hitungan gagal berturut-turut. Pada laju naskah (0,0116 pengajuan per detik,
+// satu pengajuan tiap ±86 detik) kegagalan datang berjauhan; breaker yang Interval-nya lebih dari 0 tidak akan pernah
+// membukanya. Enam kegagalan yang tersebar sehari semalam tetap membuka breaker.
+func TestBreakerGagalBerturutTurutTidakDihapusWaktu(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		b := baru(Opsi{})
+		for i := 0; i < 5; i++ {
+			gagal(b)
+			time.Sleep(24 * time.Hour)
+		}
+		if b.Status() != Tertutup || b.Hitungan().ConsecutiveFailures != 5 {
+			t.Fatalf("5 gagal tersebar 5 hari: status %s, gagal berturut-turut %d, harus closed dan 5", b.Status(), b.Hitungan().ConsecutiveFailures)
+		}
+		gagal(b)
+		if b.Status() != Terbuka {
+			t.Fatalf("gagal ke-6 sesudah jeda panjang: status %s, harus open", b.Status())
+		}
+	})
+}
+
 // --8<-- [start:tes-4xx]
 // TestRekamanBreaker4xx: bawaan pustaka menghitung semua error non-nil gagal, termasuk jawaban 4xx atas permintaan
 // yang memang salah; IsSuccessful kustom (ADR 36) menghitungnya sukses, sehingga permintaan buruk tidak membuka breaker untuk

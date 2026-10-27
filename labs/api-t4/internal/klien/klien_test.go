@@ -1,7 +1,11 @@
 package klien_test
 
 import (
+	"context"
+	"errors"
+	"io"
 	"io/fs"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -118,5 +122,38 @@ func TestBaruDenganTransportMemakaiTransportYangDiberikan(t *testing.T) {
 	resp.Body.Close()
 	if p.n != 1 {
 		t.Errorf("transport dipakai %d kali, harus 1", p.n)
+	}
+}
+
+// galatWaktu: galat jaringan yang melapor timeout tanpa membungkus context.DeadlineExceeded (misalnya batas baca
+// pada koneksi). Terlambat harus mengenalinya lewat net.Error.
+type galatWaktu struct{}
+
+func (galatWaktu) Error() string   { return "i/o timeout" }
+func (galatWaktu) Timeout() bool   { return true }
+func (galatWaktu) Temporary() bool { return false }
+
+// Terlambat (hasil di vendor tidak diketahui, jadi tidak_pasti) dan TidakTerhubung (permintaan belum sampai, pasti
+// belum dikerjakan) membedakan dua sebab galat. Koneksi yang putus saat membaca jawaban bukan "tidak terhubung":
+// permintaan sudah terkirim dan vendor mungkin mengerjakannya.
+func TestTerlambatDanTidakTerhubungMembedakanSebabGalat(t *testing.T) {
+	kasus := []struct {
+		nama                      string
+		err                       error
+		terlambat, tidakTerhubung bool
+	}{
+		{"batas waktu context", context.DeadlineExceeded, true, false},
+		{"timeout tingkat jaringan tanpa context", &net.OpError{Op: "read", Err: galatWaktu{}}, true, false},
+		{"koneksi ditolak", &net.OpError{Op: "dial", Err: errors.New("connection refused")}, false, true},
+		{"koneksi putus saat membaca", &net.OpError{Op: "read", Err: errors.New("connection reset by peer")}, false, false},
+		{"galat biasa", io.ErrUnexpectedEOF, false, false},
+	}
+	for _, k := range kasus {
+		if got := klien.Terlambat(k.err); got != k.terlambat {
+			t.Errorf("%s: Terlambat %t, harus %t", k.nama, got, k.terlambat)
+		}
+		if got := klien.TidakTerhubung(k.err); got != k.tidakTerhubung {
+			t.Errorf("%s: TidakTerhubung %t, harus %t", k.nama, got, k.tidakTerhubung)
+		}
 	}
 }
