@@ -8,7 +8,7 @@ Lab ini berjalan di atas `labs/api-t4`: server Go, skema, data awal, worker, dan
 
 ```bash
 make lab-up                                       # dari akar repo: PostgreSQL 17 lab di LAB_DB_PORT
-make -C labs/t4-infra run                         # semua bagian, ±5 menit, menulis labs/t4-infra/output/*.txt
+make -C labs/t4-infra run                         # semua bagian, ±40 detik sesudah image dan provider terunduh, menulis labs/t4-infra/output/*.txt
 make -C labs/t4-infra run BAGIAN=alamat           # satu bagian: alamat state rotasi staging testing
 make -C labs/t4-infra cek                         # rekam ulang; gagal bila output/ berbeda dari yang di-commit
 make -C labs/t4-infra verifikasi-alat             # bandingkan biner di image dengan arsip rilis (jaringan, ±100 MB)
