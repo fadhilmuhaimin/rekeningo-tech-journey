@@ -1,6 +1,6 @@
 ---
 title: "3.30 ADR 33: Sengaja belum dilakukan"
-description: ADR 33. Microservices, Kubernetes dan canary, read replica, PgBouncer, CDC, VPS kedua, cache saldo dan riwayat, dan pembayaran offline tidak dipasang di Tahap 3, masing-masing dengan angka Tahap 3 dan pemicu yang bisa dibaca. Kapasitas satu server belum pernah diukur.
+description: ADR 33. Microservices, Kubernetes dan canary, read replica, PgBouncer, CDC, VPS kedua, cache saldo dan riwayat, dan pembayaran offline tidak dipasang di Tahap 3, masing-masing dengan angka Tahap 3 dan pemicu yang bisa dibaca. Kapasitas satu VPS belum diukur di server sungguhan.
 ---
 import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
@@ -15,7 +15,7 @@ import dataTebak from "../../../../data/widget/t3-adr33-tebak.json";
 
 ## Inti
 
-Delapan komponen ditunda dengan pemicu tertulis, dan kapasitas belum diukur.
+Delapan komponen ditunda dengan pemicu tertulis, dan kapasitas VPS belum diukur.
 
 <Rantai data={intiDiagram} ringkas />
 
@@ -36,7 +36,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 ### Kenapa ADR ini ada
 
-Minggu 10, uji coba enam kota lolos, lalu Sinta datang dengan PRD v4 ([[t3-m28]]). Dugaan pertama adalah server yang lebih besar. Dugaan itu belum punya angka kapasitas, karena kapasitas satu server belum pernah diukur.
+Minggu 10, uji coba enam kota lolos, lalu Sinta datang dengan PRD v4 ([[t3-m28]]). Dugaan pertama adalah server yang lebih besar. Dugaan itu belum punya angka kapasitas, karena kapasitas satu VPS belum diukur di server sungguhan. Lab hanya memutar beban berjadwal di laptop.
 
 Engineer baru akan membuka repo tanpa microservices, Kubernetes, replica, PgBouncer, atau VPS kedua, dan tidak tahu apakah itu keputusan atau kelupaan. ADR ini menulis delapan keputusan itu, dengan angka Tahap 3 dan pemicunya.
 
@@ -66,7 +66,7 @@ Ada empat cara menjawab delapan usulan itu.
 |---|---|---|---|---|
 | Cara kerja | Service per modul, Kubernetes, replica, PgBouncer, dan VPS kedua dipasang sebelum PRD v4 | Spesifikasi VPS dinaikkan, tanpa komponen baru | Tidak ada komponen baru. Tiap komponen punya angka Tahap 3 dan pemicu yang bisa dibaca | PgBouncer dipasang sekarang; tujuh lain ditunda seperti di C |
 | Kelebihan | Bila beban atau tim naik, semuanya sudah ada | Tanpa komponen baru dan tanpa perubahan susunan mesin | Yang ada menjawab masalah yang terlihat; yang tidak ada punya alasan tertulis | Menutup jarak terdekat lebih dulu |
-| Kekurangan | Menjawab masalah yang belum punya angka: tak satu pun dari empat pemicu angka terlewati, dan empat lain menunggu kejadian atau alat ukur | Menjawab kapasitas yang belum diukur. Titik gagal tunggal tidak berubah | Pemicu harus terlihat. Tanpa alat ukur, ia datang tanpa ada yang melihat | Mode transaction membatasi fitur sesi, dan pgx menyiapkan prepared statement otomatis |
+| Kekurangan | Menjawab masalah yang belum punya angka: tak satu pun dari empat pemicu angka terlewati, dan empat lain menunggu kejadian atau alat ukur | Menjawab kapasitas VPS yang belum diukur di server sungguhan. Titik gagal tunggal tidak berubah | Pemicu harus terlihat. Tanpa alat ukur, ia datang tanpa ada yang melihat | Mode transaction membatasi fitur sesi, dan pgx menyiapkan prepared statement otomatis |
 | Biaya operasional | Empat engineer memelihara control plane, replikasi, pooler, dan mesin kedua | Harga VPS tidak ada di naskah | Membaca ulang ADR ini tiap PRD baru, dan satu load test | Satu komponen di jalur tiap query |
 | Bukti | Tidak dijalankan | Tidak dijalankan: delapan lab Tahap 3 tidak punya perkakas load test | Hitungan, rekaman lab yang ditunjuk, dokumentasi | Tidak dijalankan: dokumentasi PgBouncer, kode pgx |
 
@@ -91,18 +91,19 @@ Sumber, dibuka 2026-10-27: [PgBouncer](https://www.pgbouncer.org/features.html),
 
 <Blok nama="Yang dipilih dan kenapa">
 
-**Keputusan: opsi C.** Enam aturan:
+**Keputusan: opsi C.** Tujuh aturan:
 
 1. Delapan komponen tidak dipasang di Tahap 3. Tiap komponen punya pemicu di tabel "Kapan keputusan ini salah", dibaca dari alat yang tertulis di sana.
 2. Uang tidak dibaca dari salinan di luar database. Saldo yang menentukan bayar dibaca dari `buku` di dalam transaction ([[t2-race-lock]]). Cache saldo dan riwayat, bila nanti dipasang, hanya untuk tampilan.
-3. Pemicu angka memakai L = λ × W per kelas request dengan ambang 5 koneksi, separuh pool 10 (Asumsi dari [[t2-adr-21]]). Pemicu koneksi memakai 70 dari 100 dan pemicu CDC 100 pesan per detik, keduanya Asumsi halaman ini.
+3. Pemicu angka memakai L = λ × W per kelas request dengan ambang 5 koneksi (Asumsi dari [[t2-adr-21]], separuh satu pool 10; dua instance punya dua pool 10). Pemicu koneksi memakai 70 dari 100 dan pemicu CDC 100 pesan per detik, keduanya Asumsi halaman ini.
 4. Satu komponen per masalah, dengan urutan [[t2-adr-21]]: perbaiki query dan index, keluarkan kerja lambat, cache baca, lalu tambah instance. Lompatan urutan butuh ADR baru.
 5. Load test kapasitas satu server, yang diminta aturan 5 [[t2-adr-21]], dijadwalkan sebelum fitur PRD v4 pertama yang menambah λ atau W. Layanan pihak ketiga memakai tiruan lokal.
 6. Ambang error rate dan p95 ditetapkan dari ukuran dasar load test itu, bukan dari contoh dokumentasi ([[t3-tim-infra]]).
+7. Ukuran pool tetap 10 per instance sampai ada L dari server sungguhan ([[t3-pool]]). Mengubah ukuran pool menjawab masalah yang berbeda dari PgBouncer, dan keduanya belum punya pemicu.
 
 **Kenapa C, bukan A.** Empat dari delapan komponen punya jarak yang bisa dihitung, dan tak satu pun melewati pemicunya. Empat lain menunggu kejadian atau alat ukur. Empat engineer akan memelihara komponen yang tidak satu pun dipicu kejadian.
 
-**Kenapa C, bukan B.** VPS lebih besar menjawab kapasitas yang belum diukur, dan titik gagal tunggal tidak berubah.
+**Kenapa C, bukan B.** VPS lebih besar menjawab kapasitas VPS yang belum diukur di server sungguhan, dan titik gagal tunggal tidak berubah.
 
 **Kenapa C, bukan D.** PgBouncer memang yang terdekat, tetapi baru 30 dari pemicu 70. Ongkosnya nyata: fitur sesi tidak berjalan di mode transaction, dan pgx perlu dicocokkan. Kejadian yang memaksanya belum ada.
 
@@ -160,13 +161,13 @@ Empat komponen punya pemicu berupa angka beban. Tebak dulu mana yang paling deka
 | 6 instance, pool 5 | 40 | 57% |
 | 9 instance | 100 | 143%: `max_connections` habis |
 
-Rumusnya instance × pool + 4 + 3 + 3 (Hitungan; worker 4, admin 3, dan cadangan superuser 3 adalah Asumsi naskah). Pool 5 hanya menurunkan hitungan koneksi. Cukup tidaknya pool 5 untuk beban sebenarnya belum diukur.
+Rumusnya instance × pool + 4 + 3 + 3 (Hitungan; worker 4, admin 3, dan cadangan superuser 3 adalah Asumsi naskah). Pool 5 hanya menurunkan hitungan koneksi. Cukup tidaknya pool 5 untuk beban di server sungguhan belum diukur.
 
 </Blok>
 
 <Blok nama="Kapan keputusan ini salah">
 
-Tiap baris adalah pemicu untuk membuka ADR ini lagi: kejadian atau angka yang bisa dibaca dari alat, bukan tanggal. Ambang 5 koneksi adalah Asumsi [[t2-adr-21]]. Ambang 70 koneksi dan 100 pesan per detik adalah Asumsi halaman ini. Angka 70 menyisakan 30 koneksi untuk migration dan sesi manual, dan 100 adalah awal dari "ratusan per detik" di ADR 23.
+Tiap baris adalah pemicu untuk membuka ADR ini lagi: kejadian atau angka yang bisa dibaca dari alat, bukan tanggal. Ambang 5 koneksi adalah Asumsi [[t2-adr-21]], dihitung untuk seluruh API. Ambang 70 koneksi dan 100 pesan per detik adalah Asumsi halaman ini. Angka 70 menyisakan 30 koneksi untuk migration dan sesi manual, dan 100 adalah awal dari "ratusan per detik" di ADR 23.
 
 | Komponen | Salah saat | Yang diperiksa | Angka Tahap 3 sekarang | Dibaca dari |
 |---|---|---|---|---|
@@ -179,7 +180,7 @@ Tiap baris adalah pemicu untuk membuka ADR ini lagi: kejadian atau angka yang bi
 | Cache saldo dan riwayat | Query saldo atau riwayat yang sudah memakai index menahan 5 koneksi | L = λ × W untuk kelas itu | L riwayat paling banyak 0,024; dengan W sepuluh kali lebih besar 0,24. Pemicu tercapai pada 3.571 per detik, ±206 kali puncak (Hitungan) | `pg_stat_statements` dan log akses |
 | Pembayaran offline | Warung perlu menerima pembayaran tanpa sinyal: PRD memintanya, atau warung berhenti memakai Rekeningo karena itu | Permintaan PRD. Jumlah pembayaran yang gagal karena jaringan | Pembayaran ditolak di `/sinkron` (422). Jumlah pembayaran gagal karena jaringan belum ada di naskah | Permintaan produk dan log app |
 
-**Yang belum diukur.** Tiga angka belum ada: kapasitas satu server, ambang p95 dan error rate, dan waktu pulih dari backup. Selama ketiganya kosong, pemicu VPS kedua, canary, dan read replica hanya bisa dinyalakan oleh kejadian, bukan oleh angka.
+**Yang belum diukur.** Tiga angka belum ada: kapasitas satu VPS di server sungguhan, ambang p95 dan error rate, dan waktu pulih dari backup. Lab hanya memutar beban berjadwal di laptop, dan itu bukan kapasitas produksi. Selama ketiganya kosong, pemicu VPS kedua, canary, dan read replica hanya bisa dinyalakan oleh kejadian, bukan oleh angka.
 
 **Yang akan merevisinya.** [[t3-estimasi]] menghitung ulang beban untuk PRD v4, dan [[t3-jembatan]] meminta kamu menebak keputusan Tahap 3 mana yang pecah lebih dulu. Tahap 4 membaca daftar ini terhadap PRD v4, dengan angka tahap itu.
 

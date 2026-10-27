@@ -20,10 +20,10 @@
       "sub": "L koneksi tertahan",
       "simpul": [
         { "teks": "L 0,024", "sub": "17,36 × 0,0014; semua request dianggap riwayat" },
-        { "teks": "pemicu 5", "sub": "separuh pool 10 (Asumsi ADR 21)", "nada": "warn" },
+        { "teks": "pemicu 5", "sub": "Asumsi ADR 21, untuk seluruh API", "nada": "warn" },
         { "teks": "±206× puncak", "sub": "5 ÷ 0,0014 = 3.571 per detik; 3.571 ÷ 17,36 = 206", "nada": "good" }
       ]
     }
   ],
-  "catatan": "Dua dari empat pemicu yang berupa angka beban. Keduanya masih di bawah pemicu; kapasitas satu server belum pernah diukur, jadi jarak ini hitungan, bukan bukti."
+  "catatan": "Dua dari empat pemicu yang berupa angka beban. Keduanya masih di bawah pemicu; kapasitas satu VPS belum diukur di server sungguhan, jadi jarak ini hitungan, bukan bukti."
 }
