@@ -51,6 +51,7 @@ const katalogRepo = baca("labs/api-t3/internal/repo/katalog.go");
 const katalogSvc = baca("labs/api-t3/internal/service/katalog.go");
 const idempotenSvc = baca("labs/api-t3/internal/service/idempoten.go");
 const idempotenRepo = baca("labs/api-t3/internal/repo/idempoten.go");
+const handlerIdempoten = baca("labs/api-t3/internal/handler/handler_idempoten.go");
 const mainGo = baca("labs/api-t3/cmd/api/main.go");
 const migrasiProduk = baca("labs/api-t3/migrasi/000018_katalog_promo.up.sql");
 const migrasiSinkron = baca("labs/api-t3/migrasi/000019_operasi_sinkron.up.sql");
@@ -196,7 +197,7 @@ const EXPECT: string[] = [
   "### Cara kerjanya",
   "**Enam hal bisa terjadi pada satu operasi di queue, dan tiap hal punya penjaga sendiri.**",
   "| Kejadian | Jawaban server | Penjaga | Sumber |\n|---|---|---|---|\n| HP mengirim ulang dengan kunci yang sama sesudah jawaban hilang | 200 dengan `ulang: true`, stok tidak berubah | Kunci sinkron | `versi.txt` bagian C (soto); `sinkron14.txt` bagian A |\n| Operasi belum pernah sampai dan tiba sesudah stok berubah | 409 dengan keadaan terkini, tidak ada yang berubah | Versi dasar | `versi.txt` bagian C (bakso) |\n| Tab dasbor di laptop masih menampilkan angka lama | 409 dengan keadaan terkini | Versi di `PATCH /produk/{id}` | `versi.txt` bagian B |\n| Operasi lebih tua dari «hariQueue» hari | 422, tidak ada baris yang dicatat | Umur queue | `sinkron14.txt` bagian B dan D |\n| Kunci yang sama dengan isi lain, atau milik akun lain | 422 | Perbandingan isi kunci | `sinkron14.txt` bagian C |\n| Jenis bayar, transfer, atau topup | 422 apa pun isinya | Daftar jenis | `sinkron14.txt` bagian E |",
-  "**Versi diperiksa di dalam satu UPDATE.** Syaratnya `AND versi = $5`. Bila baris sudah diubah, UPDATE tidak cocok dengan baris mana pun, dan kode membaca keadaan terkini untuk jawaban 409:",
+  "**Versi diperiksa di dalam satu UPDATE.** Syaratnya `AND versi = $5`. Pola ini disebut optimistic lock ([[t2-race-lock]]): baris tidak dikunci saat HP membaca, dan konflik baru ketahuan saat menulis. Bila baris sudah diubah, UPDATE tidak cocok dengan baris mana pun, dan kode membaca keadaan terkini untuk jawaban 409:",
   "<Snippet file=\"labs/api-t3/internal/repo/katalog.go\" region=\"ubah-produk\" lang=\"go\" title=\"labs/api-t3/internal/repo/katalog.go\" />",
   "Dua perubahan serentak dari versi yang sama tidak bisa sama-sama menang. Bila transaction pertama sudah commit, PostgreSQL mengevaluasi ulang WHERE pada versi baru baris. UPDATE kedua melanjutkan hanya bila versinya masih cocok ([PostgreSQL 17: Transaction Isolation](https://www.postgresql.org/docs/17/transaction-iso.html), bagian Read Committed, dibuka 2026-10-25). Tes Go `TestUbahProdukBersamaanSatuPemenang` menjalankan «nUbah» perubahan dari versi 1: «nUbahOk» berhasil dan «nUbahBeda» mendapat versi berbeda, dan itu tes, bukan rekaman lab.",
   "RFC 9110 menulis bahwa jawaban 409 sebaiknya memuat cukup isi supaya pengirim mengenali sumber konflik ([RFC 9110 §15.5.10](https://www.rfc-editor.org/rfc/rfc9110#section-15.5.10), dibuka 2026-10-25). Karena itu jawaban lab membawa `sekarang`, yaitu stok, harga, dan versi terkini.",
@@ -522,6 +523,16 @@ describe("kode lab: versi, kunci, umur queue, penolakan pembayaran, dan klaim ne
     expect(t).not.toMatch(/versi = \$/);
     expect(readmeLab).toContain("Kerja dan penyimpanan respons bukan satu transaction.");
     expect(readmeLab).toContain("Respons 5xx melepas key, termasuk 5xx dari `COMMIT` yang hasilnya tidak diketahui");
+    // Klaim "kapan salah" 3 dibaca dari kode handler, bukan hanya dari README: 5xx dan 429 melepas key, key yang masih
+    // diproses dijawab 409, dan kerja (next) lebih dulu daripada penyimpanan respons (SelesaiKunci), jadi bukan satu transaction.
+    const h = handlerIdempoten;
+    expect(h).toContain("if rek.status == 0 || rek.status >= 500 || rek.status == http.StatusTooManyRequests {");
+    expect(h).toContain("_ = s.svc.LepasKunci(ctx, kunci) // kegagalan sementara: ulangan mengerjakannya dari awal");
+    expect(h).toMatch(/case repo\.KlaimBerjalan:\n\t\t\ttulisProblem\(w, Problem\{Type: "\/problems\/sedang-diproses", Status: 409,/);
+    expect(h.indexOf("s.svc.SelesaiKunci(ctx, kunci, b)")).toBeGreaterThan(h.indexOf("next(rek, r)"));
+    expect(h.indexOf("next(rek, r)")).toBeGreaterThan(h.indexOf("s.svc.KlaimKunci("));
+    expect(h).not.toContain("DalamTx");
+    expect(idempotenRepo).toContain("DELETE FROM kunci_idempotensi WHERE kunci = $1 AND status = 'diproses'");
   });
   test("klaim negatif berlingkup: lab t3-offline tidak punya kode Dart dan HP diperankan curl; README mengakui hal yang belum direkam", () => {
     const dart = [...(terlacak ?? [])].filter((f) => f.startsWith("labs/t3-offline/") && /\.(dart|kt|swift)$/.test(f));
@@ -688,12 +699,14 @@ describe("tab Di stack lain, kartu Cek diri, dan tetangga", () => {
   });
   test("tautan [[ID]] ada di registry dan daftarnya dikunci", () => {
     const ids = [...new Set([...halaman.matchAll(/\[\[([^\]]+)\]\]/g)].map((m) => m[1]!))].sort();
-    expect(ids).toEqual(["berikutnya", "t2-idempotency", "t3-adr-33", "t3-cache", "t3-m24", "t3-prd", "t3-skema"]);
+    expect(ids).toEqual(["berikutnya", "t2-idempotency", "t2-race-lock", "t3-adr-33", "t3-cache", "t3-m24", "t3-prd", "t3-skema"]);
     const reg = new Set((registry.halaman as { id: string }[]).map((h) => h.id));
     for (const id of ids.filter((x) => x !== "berikutnya")) expect(reg.has(id), id).toBe(true);
   });
   test("janji dari tetangga ditepati: 3.2 menaut halaman ini untuk optimistic lock dan offline-first; PRD menegaskan pembayaran tidak offline", () => {
     expect(fiturTeknis).toContain("[[t3-offline\\|optimistic lock]]");
+    // Tautan "optimistic lock" dari 3.2 menuju halaman yang harus menyebut istilah itu dan menaut halaman yang mengajarkannya.
+    expect(halaman).toContain("Pola ini disebut optimistic lock ([[t2-race-lock]])");
     expect(fiturTeknis).toContain("[[t3-offline\\|Offline-first]]");
     expect(fiturTeknis).toContain("Endpoint sinkron bersyarat versi (`POST /sinkron`)");
     expect(prd).toContain("Ubah stok dan harga tanpa sinyal, tersinkron saat sinyal kembali; pembayaran tidak pernah offline");

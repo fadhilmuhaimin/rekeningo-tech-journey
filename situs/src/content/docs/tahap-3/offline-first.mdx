@@ -82,7 +82,7 @@ Kata conflict dan versioning tidak ada di halaman itu, jadi aturan yang menentuk
 | Kunci yang sama dengan isi lain, atau milik akun lain | 422 | Perbandingan isi kunci | `sinkron14.txt` bagian C |
 | Jenis bayar, transfer, atau topup | 422 apa pun isinya | Daftar jenis | `sinkron14.txt` bagian E |
 
-**Versi diperiksa di dalam satu UPDATE.** Syaratnya `AND versi = $5`. Bila baris sudah diubah, UPDATE tidak cocok dengan baris mana pun, dan kode membaca keadaan terkini untuk jawaban 409:
+**Versi diperiksa di dalam satu UPDATE.** Syaratnya `AND versi = $5`. Pola ini disebut optimistic lock ([[t2-race-lock]]): baris tidak dikunci saat HP membaca, dan konflik baru ketahuan saat menulis. Bila baris sudah diubah, UPDATE tidak cocok dengan baris mana pun, dan kode membaca keadaan terkini untuk jawaban 409:
 
 <Snippet file="labs/api-t3/internal/repo/katalog.go" region="ubah-produk" lang="go" title="labs/api-t3/internal/repo/katalog.go" />
 
