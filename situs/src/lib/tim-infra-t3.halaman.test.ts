@@ -51,6 +51,8 @@ const panic = baca("labs/t3-instance/output/panic.txt");
 const m18 = baca("labs/t3-pool/output/m18.txt");
 const outboxGo = baca("labs/api-t3/internal/repo/outbox.go");
 const mainGo = baca("labs/api-t3/cmd/api/main.go");
+const workerGo = baca("labs/api-t3/internal/worker/worker.go");
+const pushGo = baca("labs/api-t3/internal/push/push.go");
 const migrasi = baca("labs/api-t3/migrasi/000017_perangkat_outbox.up.sql");
 const tesService = baca("labs/api-t3/internal/service/tahap3_test.go");
 const runQueue = baca("labs/t3-outbox/run.py");
@@ -149,11 +151,12 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(h313).toContain("alert jumlah baris `mati` menjadi tambahan yang diusulkan ADR ini");
     expect(h39).toContain("Alert umur tertua ditentukan di ADR 32 ([[t3-tim-infra]]).");
     expect(h39).toContain("Dibuka lagi oleh ADR 32 untuk kelas queue ([[t3-tim-infra]])");
-    expect(h37).toContain("| Alert dan ambangnya | Ambang adalah Asumsi yang ditetapkan lab | [[t3-tim-infra]] |");
+    expect(h37).toContain("| Alert dan ambangnya | Ambang butuh ukuran dasar dari beban sungguhan, dan hanya umur uang yang punya dasar, yaitu janji PRD | [[t3-tim-infra]] |");
     harus("| Request menunggu koneksi | Saturation |");
     harus("| Umur notifikasi uang tertua | Latency untuk pekerjaan yang jalan di latar (penalaran) | `GET /lab/outbox`, hanya dengan `-lab`, memberi umur baris `menunggu` tertua dari semua kelas;");
     expect(mainGo).toContain("\tif *lab {\n\t\tpasangEndpointLab(rute, db, r)");
-    harus("**Status:** diterima di minggu 9 Tahap 3, sesudah M27. Memperbarui ADR 23: outbox di [[t3-outbox]] ditulis tanpa kelas.");
+    expect(baris(naskah).find((b) => b.startsWith("| 32 |"))).not.toMatch(/minggu \d/);
+    harus("**Status:** diterima di minggu 9 Tahap 3, sesudah M27. Minggu itu dibaca dari tabel masalah: naskah tidak menulis tanggal ADR. Memperbarui ADR 23: outbox di [[t3-outbox]] ditulis tanpa kelas.");
     harus("| Replay otomatis baris `mati` | Replay buta mengulang kegagalan yang sama, dan dead-letter dibaca manusia dulu ([[t3-at-least-once]]) |");
     harus("kedua instance dikeluarkan");
     // 3.13 menulis alert jumlah baris mati belum ada di ADR 32: aturan 3 halaman ini tidak memuatnya
@@ -186,6 +189,11 @@ describe("naskah: ADR 32, isi halaman 3.27, M27, dan tokoh", () => {
     expect(naskah).toContain("**Raka** memegang app dan masih ikut menulis backend.");
     expect(naskah).toContain("Empat engineer selama 10 minggu.");
     harus("Tahap 3 dikerjakan empat engineer dalam 10 minggu (Asumsi cerita): Raka, Nadia, Bayu, dan Wulan.");
+    // peninjau 406: halaman menulis "dua tim" padahal naskah menulis tiga tim
+    expect(naskah).toContain("Tim naik dari 4 menjadi 10 sampai 15 orang dalam tiga tim.");
+    expect(baca("plan/CERITA-TAHAP-4.md")).toContain("13 orang dalam tiga tim");
+    harus("Tim naik dari empat menjadi 10 sampai 15 orang dalam tiga tim (naskah Tahap 3, jembatan), jadi rotasi dan alert dibagi lagi per tim.");
+    expect(badan).not.toMatch(/[Dd]ua tim/);
     expect(baca("situs/src/content/docs/tahap-3/prd-v3.mdx")).toContain("| Yang dibawanya | Staging, proxy, backup, alert, dan rotasi on-call |");
     expect(baca("situs/src/content/docs/tahap-3/m22-batas-login-dua-kali.mdx")).toContain("Bayu memasang instance API kedua di staging dan meminta Dimas dari tim TI mengujinya.");
     expect(baca("situs/src/content/docs/tahap-3/m26-transfer-bukan-budi.mdx")).toContain("Flag itu tidak dicabut dari build rilis app 3.1.");
@@ -250,7 +258,27 @@ describe("rekaman: nilai dan rentang Snippet", () => {
     expect(retry).toContain("putaran 5: outbox.status = mati, percobaan = 5");
     harus(`Jeda paling lama sebelum baris masuk dead-letter adalah ${jeda.join(" + ")} = 30 detik (Hitungan dari \`retry.txt\` bagian A, sama dengan [[t3-at-least-once]])`);
     expect(baca("situs/src/content/docs/tahap-3/at-least-once.mdx")).toContain("| Jeda paling lama sebelum dead-letter | 2 + 4 + 8 + 16 | 30 detik |");
-    harus("baris itu sudah `mati` dalam paling lama 30 detik, jadi umurnya tidak melewati ambang.");
+    // peninjau 406: kalimat "tidak melewati ambang" terkunci tetapi terlalu kuat; angka diturunkan dari kode worker dan push
+    const dasar = Number(cocok(workerGo, /DasarBackoff: (\d+) \* time\.Second/)[1]);
+    const selangMs = Number(cocok(workerGo, /Selang: (\d+) \* time\.Millisecond/)[1]);
+    const maksPercobaan = Number(cocok(workerGo, /MaksPercobaan: (\d+)/)[1]);
+    const batasPush = Number(cocok(pushGo, /const BatasBawaan = (\d+) \* time\.Second/)[1]);
+    const batas = Array.from({ length: maksPercobaan - 1 }, (_, i) => dasar * 2 ** i);
+    expect(batas).toEqual([2, 4, 8, 16]);
+    expect(workerGo).toContain("return time.Duration(acak * float64(batas))");
+    expect(workerGo).toContain("mati := n.Percobaan >= w.cfg.MaksPercobaan");
+    expect(pushGo).toContain("return ErrSementara{Sebab: fmt.Sprintf(\"status %d\", resp.StatusCode)}");
+    expect(outboxGo).toContain("UPDATE outbox SET status = 'mati', klaim_sampai = NULL WHERE id = $1 AND status = 'menunggu'");
+    const rata = batas.reduce((a, b) => a + b / 2, 0);
+    expect(rata).toBe(15);
+    expect(batas.map((b) => b / 2).join(" + ")).toBe("1 + 2 + 4 + 8");
+    expect(((selangMs * (maksPercobaan - 1)) / 1000).toFixed(1)).toBe("0.8");
+    expect(batasPush * maksPercobaan).toBe(15);
+    harus("Tiap jeda acak antara 0 dan batasnya (jitter). Jadi 30 detik adalah batas atas, dan rata-ratanya 1 + 2 + 4 + 8 = 15 detik (Hitungan dari kode worker).");
+    harus("(selang polling 200 ms menambah paling banyak 0,8 detik)");
+    harus("Bila push menjawab 503 dengan cepat, baris sudah `mati` sekitar 30 detik sesudah dibuat. Umurnya melewati ambang hanya bila keempat jitter mendekati batasnya");
+    harus("Push yang menggantung lain ceritanya. Tiap panggilan menunggu sampai 3 detik, jadi lima percobaan menambah sampai 15 detik. Umur bisa melewati 30 detik sebelum baris mati (dibaca dari kode, Tidak dijalankan).");
+    expect(badan).not.toContain("jadi umurnya tidak melewati ambang");
   });
   test("testing.txt: bagian B exit 0 tanpa database dan Redis, bagian C exit 1; paket yang gagal handler, redisbatas, service, worker; yang lolos cmd/api dan cache", () => {
     const b = rentang(testing, awalTestB, nomorBaris(testing, (x) => x.startsWith("# --- C. ")) - 1);
@@ -327,7 +355,7 @@ describe("kode lab: kelas outbox, klaim, umur tertua, metric yang ada, dan klaim
     expect(fungsi).not.toMatch(/kelas/);
     expect(fungsi).toContain("min(dibuat)");
     harus("Fungsi di kode api-t3 belum punya filter itu, jadi alert per kelas belum ada di kode. Alertnya sendiri Tidak dijalankan.");
-    harus("`RingkasOutbox` hanya menghitung baris `menunggu`.");
+    harus("`RingkasOutbox` hanya menghitung baris `menunggu`, jadi baris `mati` tidak membunyikan alert.");
     expect(baca("situs/src/content/docs/tahap-3/at-least-once.mdx")).toContain("karena `RingkasOutbox` menghitung umur baris `menunggu` saja");
   });
   test("metric yang ada: hanya /lab/pool (kolom menunggu = WaitCount) dan /lab/outbox; klaim negatif: tanpa prometheus, opentelemetry, expvar, atau /metrics di labs/api-t3 (.go dan go.mod)", () => {
@@ -342,7 +370,13 @@ describe("kode lab: kelas outbox, klaim, umur tertua, metric yang ada, dan klaim
     expect(rute).toContain("/lab/pool");
     expect(rute).toContain("/lab/outbox");
     harus("| Error rate | Errors | Tidak ada: api-t3 tidak punya metric status code | Belum ditetapkan |");
-    harus("| p95 | Latency | Tidak ada: p95 tidak direkam | Belum ditetapkan |");
+    harus("| p95 | Latency | Tidak ada: rekaman lab Tahap 3 tidak memuat p95 | Belum ditetapkan |");
+    // klaim negatif berlingkup: delapan lab Tahap 3 (bukan t3-bayar, lab lama yang memang merekam p95)
+    const labT3 = ["api-t3", "t3-pool", "t3-outbox", "t3-instance", "t3-cache", "t3-offline", "t3-dasbor", "t3-mitm"];
+    const rekaman = (terlacak ? [...terlacak] : []).filter((f) => labT3.some((l) => f.startsWith(`labs/${l}/output/`)));
+    expect(rekaman.length).toBeGreaterThan(30);
+    for (const f of rekaman) expect(baca(f), f).not.toMatch(/\bp(?:95|99)\b|persentil|percentile/i);
+    expect(baca("labs/t3-bayar/output/pool-dalam-tx.txt")).toContain("p95");
     harus("| Request menunggu koneksi | Saturation | `GET /lab/pool` memberi kolom `menunggu`, hitungan kumulatif | Belum ditetapkan |");
     expect(baca("situs/src/content/docs/tahap-3/observability.mdx")).toContain("p95 tidak direkam");
   });
@@ -389,6 +423,8 @@ describe("sumber luar dan baris riset R3-230 sampai R3-233", () => {
     const sre = barisRiset("R3-231");
     expect(sre).toContain("tiap engineer jaga satu minggu per bulan");
     harus("tidak lebih dari 25% waktu seorang SRE dipakai untuk jaga");
+    expect(sre).toContain("paging events per shift < 2");
+    harus("Buku SRE memberi contoh sasaran yang bisa diukur: kurang dari dua panggilan per giliran.");
     harus("paling sedikit delapan engineer di satu lokasi");
     harus("Dokumentasi k6 memberi contoh `http_req_failed: rate<0.01` dan `http_req_duration: p(95)<200`");
     harus("Itu contoh, bukan ambang Rekeningo.");
@@ -427,6 +463,11 @@ describe("widget pilah, diagram Rantai, halaman istilah, glosarium, dan kartu Ce
     expect(pilah.item[3]!.kenapa).toContain("lebih dari 30 detik sementara tidak ada baris kelas uang yang menunggu");
     harus("CPU 85% yang Ilustrasi.");
     expect(pilah.item[4]!.teks).toContain("(Ilustrasi)");
+    // peninjau 406: kolom menunggu tidak terekam naik (m18.txt tidak mencetaknya), laju promo terukur 4 sampai 5,6
+    expect(pilah.item[2]!.teks).not.toContain("kolom menunggu");
+    expect(pilah.item[2]!.kenapa).toContain("Rekaman m18.txt tidak mencetak kolom itu, karena nilainya bergantung pada waktu.");
+    expect(pilah.item[6]!.teks).toContain("batas 5 per detik");
+    expect(pilah.item[6]!.teks).not.toContain("terukur 5 per detik");
   });
   test("diagram Rantai: valid, dua baris, simpul akhir terbaca benar tanpa sub; sidik setiap nilai string; judul Inti ≤ 47 karakter; nilai dari rekaman", () => {
     const i = DataRantai.parse(inti);
@@ -500,13 +541,20 @@ describe("label sumber, ID tidak tampil, dan struktur halaman", () => {
     harus("| Umur notifikasi uang tertua | Latency untuk pekerjaan yang jalan di latar (penalaran) |");
     harus("30 detik (Asumsi, dari janji PRD v3: 95% di bawah 30 detik)");
     harus("Hanya 30 detik yang punya dasar, yaitu janji PRD v3 untuk bayar dan transfer.");
+    // peninjau 406: janji 95% (persentil) lawan alert umur tertua (maksimum)
+    expect(baca("situs/src/content/docs/tahap-3/prd-v3.mdx")).toContain("Bayar dan transfer: 95% dalam kurang dari 30 detik.");
+    expect(outboxGo).toContain("min(dibuat)");
+    harus("Janji PRD v3 berlaku untuk 95% notifikasi, sedangkan alert membaca umur yang tertua, yaitu nilai maksimum. Satu baris di atas 30 detik sudah membunyikannya, lebih ketat daripada janji itu (Asumsi penulis).");
     harus("Backup `pg_dump` harian dan uji pulih mingguan di staging adalah keputusan naskah.");
     harus("Jadwal harian dan uji pulih di staging Tidak dijalankan di Tahap 3, jadi jadwal itu Asumsi.");
     harus("Bagian cerita itu Ilustrasi: lab tidak punya build Flutter, dan nomor versi app adalah Asumsi.");
+    // peninjau 406: cerita staging di M22 juga Ilustrasi; angka 10 jadi 20 dari rekaman halaman itu
+    expect(baca("situs/src/content/docs/tahap-3/m22-batas-login-dua-kali.mdx")).toContain("*Angka cerita (Ilustrasi):* staging, password dari daftar kebocoran, dan Dimas sebagai pencoba berasal dari naskah.");
+    harus("Ceritanya Ilustrasi, dan angka dua kali lipat sama dengan rekaman di halaman itu.");
     expect(baca("situs/src/content/docs/cara-pakai.mdx")).toContain("Label sumber");
     expect(baca("situs/src/content/docs/tahap-1/tim-infra.mdx")).toContain("Tim dan infra Tahap 1");
     expect(hitung(badan, "[perlu verifikasi]")).toBe(1);
-    expect(hitung(badan, "Tidak dijalankan")).toBe(12);
+    expect(hitung(badan, "Tidak dijalankan")).toBe(14);
   });
   test("klaim negatif dan universal berlingkup: 'tidak ada' hanya di baris metric (lingkup api-t3), 'hanya' tidak dipakai untuk rekaman di luar queue.txt, testing.txt, dan panic.txt", () => {
     expect(hitung(badan, "Tidak ada:")).toBe(2);
@@ -514,7 +562,10 @@ describe("label sumber, ID tidak tampil, dan struktur halaman", () => {
     harus("### Siapa menjalankan setiap pekerjaan");
     harus("Bila penyebab baris `mati` selalu sama dan aman diulang");
     harus("Dari semua kotak itu, hanya tes yang direkam.");
-    harus("Rekaman lab hanya mencakup queue, tes, dan dua instance.");
+    harus("Rekaman lab yang dipakai halaman ini mencakup queue, tes, dua instance, dan pool koneksi.");
+    expect(badan).not.toContain("Rekaman lab hanya mencakup");
+    for (const k of ["queue.txt", "testing.txt", "panic.txt"]) expect(badan, k).toContain(k);
+    expect(pilahMentah).toContain("m18.txt");
   });
   test("tingkat heading dikunci: h2 Inti dan sebelas h3 dalam urutan; satu tebakan details; empat details Jawaban; ADR 32 di blok Putuskan, Cek diri di blok Kunci", () => {
     const hd: [number, string][] = [];
