@@ -194,7 +194,7 @@
     "antrean": {
       "nama": "Queue promo",
       "tebak": {
-        "pertanyaan": "HR mengirim promo ke {n} HP. Satu worker punya {c} pengirim serentak, tiap pengiriman {t} detik, dan queue diurutkan menurut waktu tanpa kelas. Berapa persen promo terkirim dalam {jendela} detik?",
+        "pertanyaan": "HR mengirim promo ke {n} HP. Satu worker punya {c} pengirim serentak, tiap pengiriman {t} detik, dan worker mengklaim queue menurut nomor, tanpa kelas. Berapa persen promo terkirim dalam {jendela} detik?",
         "pilihanTeks": "{n}% dari promo",
         "pilihan": [
           { "nilai": 4, "alasan": "{persen}%: kapasitas {kap} per detik, dikali {jendela} detik, memberi {promo30} promo dari {n}. Seluruh promo butuh {habis} detik." },
@@ -203,7 +203,7 @@
         ]
       },
       "knob": [
-        { "id": "kelas", "label": "Queue", "opsi": { "tanpa": "Satu urutan waktu", "dengan": "Dengan kelas" } },
+        { "id": "kelas", "label": "Queue", "opsi": { "tanpa": "Tanpa kelas, menurut nomor", "dengan": "Dengan kelas" } },
         { "id": "laju", "label": "Laju promo", "opsi": { "bebas": "Semua sekaligus", "5": "Dibatasi {n} per detik" } },
         { "id": "c", "label": "Pengirim serentak", "opsi": { "1": "{n} pengirim", "4": "{n} pengirim", "8": "{n} pengirim", "20": "{n} pengirim" } }
       ],
@@ -226,7 +226,7 @@
         "promo-masuk": "{n} baris promo masuk queue.",
         "worker-mulai": "Satu worker dengan {c} pengirim serentak, {t} detik per pengiriman: kapasitas {kap} per detik.",
         "laju-promo": "Promo dijadwalkan paling banyak {laju} per detik lewat kolom coba_lagi.",
-        "uang-masuk": "Notifikasi uang masuk queue yang diurutkan menurut waktu: ia menunggu promo yang lebih dulu.",
+        "uang-masuk": "Notifikasi uang masuk queue yang diklaim menurut nomor: ia menunggu promo yang bernomor lebih kecil.",
         "uang-masuk-kelas": "Notifikasi uang masuk queue dengan kelas: ia didahulukan dari promo.",
         "uang-terkirim": "Notifikasi uang terkirim sesudah menunggu {w} detik.",
         "promo-30": "Dalam {jendela} detik terkirim {kirim} promo ({persen}%).",

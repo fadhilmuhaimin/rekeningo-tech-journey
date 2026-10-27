@@ -136,6 +136,10 @@
 *[jurnal]: Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol.
 *[JWT]: Token berisi data JSON plus signature, sehingga server bisa memeriksa keasliannya tanpa query ke database.
 *[JSON Web Token]: Token berisi data JSON plus signature, sehingga server bisa memeriksa keasliannya tanpa query ke database.
+*[Kapasitas worker]: Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman.
+*[kapasitas worker]: Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman.
+*[Kelas queue]: Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil.
+*[kelas queue]: Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil.
 *[Kredit]: Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit.
 *[kredit]: Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit.
 *[Kunci akun]: Penolakan login sementara pada satu akun sesudah beberapa kali gagal berturut-turut, yang menahan penebak tetapi juga pemilik akun yang sebenarnya.
@@ -310,6 +314,8 @@
 *[Time To Live]: Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa.
 *[Tutup buku]: Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang.
 *[tutup buku]: Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang.
+*[Umur notifikasi tertua]: Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu.
+*[umur notifikasi tertua]: Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu.
 *[WAL]: Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary.
 *[Webhook]: HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil.
 *[webhook]: HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil.

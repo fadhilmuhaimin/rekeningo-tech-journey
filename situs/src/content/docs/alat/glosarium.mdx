@@ -93,6 +93,8 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Job terjadwal** | Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00. | [[t2-pencairan]] |
 | **Jurnal** | Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol. | [[t2-ledger]] |
 | **JWT** (JSON Web Token) | Token berisi data JSON plus signature, sehingga server bisa memeriksa keasliannya tanpa query ke database. | [[B5.1]] |
+| **Kapasitas worker** | Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman. | [[t3-m27]] |
+| **Kelas queue** | Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil. | [[t3-m27]] |
 | **Kredit** | Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit. | [[t2-ledger]] |
 | **Kunci akun** | Penolakan login sementara pada satu akun sesudah beberapa kali gagal berturut-turut, yang menahan penebak tetapi juga pemilik akun yang sebenarnya. | [[t2-m16]] |
 | **Last-write-wins** | Aturan konflik: dari beberapa perubahan pada hal yang sama, yang tersimpan paling akhir menang dan yang lain dibuang. | [[t3-offline]] |
@@ -187,6 +189,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **traceparent** | Header HTTP standar W3C yang membawa trace-id perjalanan satu request, supaya komponen yang berbeda bisa menyambung trace yang sama. | [[t3-observability]] |
 | **TTL** (Time To Live) | Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa. | [[B9]] |
 | **Tutup buku** | Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang. | [[t2-tutup-buku]] |
+| **Umur notifikasi tertua** | Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu. | [[t3-m27]] |
 | **WAL** (Write-Ahead Log) | Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary. | [[D3]] |
 | **Webhook** | HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil. | [[B10.2]] |
 | **WebSocket** | Koneksi dua arah yang tetap terbuka antara app dan server. | [[E4]] |
