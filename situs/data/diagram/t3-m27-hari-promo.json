@@ -1,0 +1,27 @@
+{
+  "id": "t3-m27-hari-promo",
+  "judul": "Notifikasi uang di belakang 10.000 promo",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t3-outbox, queue.txt bagian B, C, dan D; lama tunggu penuh 750 detik dihitung dan tidak dijalankan" },
+  "baris": [
+    {
+      "label": "Klaim menurut nomor",
+      "sub": "bagian B dan C di queue.txt",
+      "simpul": [
+        { "teks": "10.000 promo ditulis", "sub": "nomor 1 sampai 10000" },
+        { "teks": "Notifikasi uang", "sub": "nomor 10004, di belakang promo" },
+        { "teks": "Worker berjalan 30 detik", "sub": "3,4% sampai 4,2% promo terkirim" },
+        { "teks": "Uang belum terkirim", "sub": "9.580 promo atau lebih di depannya", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Klaim menurut kelas, lalu nomor",
+      "sub": "bagian D dan E di queue.txt",
+      "simpul": [
+        { "teks": "Notifikasi uang", "sub": "kelas 0, nomor 10004" },
+        { "teks": "ORDER BY kelas, id", "sub": "kelas 0 lebih dulu dari kelas 2", "kode": true },
+        { "teks": "Uang terkirim pertama", "sub": "sebelum promo bernomor lebih kecil", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah akibat yang direkam. Bagian C berhenti pada detik ke-30, jadi lama tunggu sampai terkirim tidak terekam."
+}
