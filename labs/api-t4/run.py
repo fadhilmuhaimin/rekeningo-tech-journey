@@ -758,7 +758,7 @@ def rekam_beban():
     s, isi = curl("GET", "/lab/pool", tampil=False)
     catat(f"pool setelah beban: maks {j(isi)['maks']}")
     harap(j(isi)["maks"], 10, "pool 10")
-    catat("# Pool tidak sesak dibuktikan oleh baris lain: semua permintaan selesai tanpa error, p95 di bawah batas, dan jadwal tidak tertinggal; kalau pool penuh, tiga hal itu pecah.")
+    catat("# Pool tidak sesak dibuktikan oleh p95 di bawah batas dan jadwal yang tidak tertinggal: pool yang penuh membuat permintaan antre dan memecahkan salah satunya.")
     catat("# Bukan klaim kapasitas produksi.")
 
     bagian("B. Kapasitas worker: c ÷ t = 4 ÷ 0,3 detik = 13,3 per detik. Push tiruan menjawab 300 ms; 100 pemberitahuan dikuras satu worker")

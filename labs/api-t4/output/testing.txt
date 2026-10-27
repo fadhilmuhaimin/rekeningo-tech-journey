@@ -112,6 +112,7 @@ ok    lab/apit4/internal/repo
 --- PASS: TestLepasKunciMembukaKlaimBaru
 --- PASS: TestTimpaStokTanpaSyaratVersi
 --- PASS: TestDuaInstanceBatasAkunDanKunciDatabase
+--- PASS: TestReversalMengunciBukuPemilikSebelumDanaTertahan
 --- PASS: TestOtorisasiMenahanDana
 --- PASS: TestOtorisasiSerentakVersiBenar
 --- PASS: TestOtorisasiSerentakTanpaHoldDanClearingKeduaDitolak
@@ -208,6 +209,13 @@ ok    lab/apit4/internal/repo
 --- PASS: TestSesiWebDanCsrf
 --- PASS: TestKlaimMelewatBarisYangDikunci
 --- PASS: TestOutboxGagalMembatalkanUang
+--- PASS: TestRekonHarianLedgerLebihBesarDariGateway
+--- PASS: TestWebhookDiparkirDicekKeGatewayHanyaBilaMasihMenunggu
+--- PASS: TestOtorisasiIDPenerbitSamaUntukKartuLainDitolak
+--- PASS: TestOtorisasiTepatDiBatasHarianDanSaldoBoleh
+--- PASS: TestBatasHarianKartuMenghitungYangSudahDitagih
+--- PASS: TestPenyetujuHarusSesiApp
+--- PASS: TestAturanUnikDatabaseTahap4
 --- PASS: TestAjukanVerifikasiSatuTransactionDanChecksum
 --- PASS: TestAjukanVerifikasiAturan
 --- PASS: TestAjukanVerifikasiMerchantTanpaVendor

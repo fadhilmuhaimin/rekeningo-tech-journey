@@ -90,7 +90,7 @@ timestamp 400 detik di depan: 401
 kiriman sah: 200 diproses
 kiriman sah untuk order yang tidak dikenal: 200 ditolak
 
-# --- F. Kabar yang datang mundur: status menunggu sesudah dibayar diparkir, status tidak mundur (lalu dicek ke gateway di luar transaction) ---
+# --- F. Kabar yang datang mundur: status menunggu sesudah dibayar diparkir, status tidak mundur (top-up yang sudah berstatus akhir tidak ditanyakan ke gateway) ---
 kabar pending untuk top-up yang sudah dibayar: 200 diparkir
 => SELECT id, status FROM topup_bank WHERE id = 1
  id | status
