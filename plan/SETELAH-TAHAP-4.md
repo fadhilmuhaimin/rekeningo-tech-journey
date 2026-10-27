@@ -34,3 +34,27 @@ Polesan dari tinjauan Tahap 4 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - `CekTopup` sesudah kabar diparkir tidak pernah mengubah status pada kasus yang bisa dicapai (batas saldo, akun dibekukan, status akhir); halaman 4.7 jangan menulis bahwa pemeriksaan itu menemukan kebenaran baru.
 - Dana tertahan yang dikembalikan reversal bisa menaikkan saldo `pemakai` di atas batas tingkat (batas hanya dijaga di top-up).
 - Mutan tidak tertutup: `!l.Dibayar` di rekonsiliasi, pemeriksaan alamat harfiah sebelum dial di unduh, dan `KunciBukuID(dana_tertahan, settlement)` eksplisit di clearing.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- Halaman 4.6 sampai 4.9 mewarisi: `urutan.txt` F2 (satu pertanyaan ke gateway) dan F3 sebagai kejadian "uang di bank tanpa jurnal"; `tandatangan.txt` A sebagai bukti "byte mentah, bukan JSON yang ditulis ulang".
+- Notifikasi ke pemilik akun saat kreditnya dibalik, pembatasan umur insiden, dan retensi `webhook_event` 30 hari belum ada di api-t4.
+- Jitter dan pengalihan 3xx pada gateway tiruan belum ditiru.
+- Rekaman `rekon.txt` B: skenario `jumlah_beda` (gateway menerima Rp25.000 untuk order Rp20.000) tidak berlabel; halaman 4.9 menulisnya Asumsi lab atau Ilustrasi.
+- `url_target` pada `/lab/webhook` dan `/lab/jadwal` menerima alamat apa pun; tiruan hanya mendengar loopback, tetapi batasi ke 127.0.0.1 bila lab ditambah.
+- Halaman 4.9: sebut bahwa batas 30 menit terjaga dari dua sisi (29 dan 31 menit) di `rekon.txt` A; tidak ada klaim bahwa celah cek-lalu-tulis tanpa jeda mikrodetik.
+- Kasus tandingan penolakan `url_target` dan 15 detik client tiruan tidak dijaga tes (mutan R33 dan R40 tidak tertutup).
+- Gateway tiruan (`cmd/tiruan`, `buat` dan penerima webhook) membaca body sesudah mode gangguan, jadi mode `menggantung` tidak mendeteksi client yang menyerah dan handler bocor; samakan dengan tiruan verifikasi di `t4-webhook`.
+- Breaker hidup di memori satu proses worker: worker yang dimulai ulang memulai dari tertutup, dua worker tidak berbagi hitungan; untuk produksi hitungan bersama atau satu worker per lajur.
+- `ReadyToTrip` kustom dengan ambang sama dengan batas percobaan (5), atau hitungan per pekerjaan berbeda, menghindari pekerjaan pertama yang mati.
+- 4xx permanen sebaiknya langsung dead-letter atau berstatus `ditolak`, bukan lima percobaan.
+- `testing.txt` api-t4 memuat awalan `berkas_test.go:baris:` dari `t.Log`; nomor baris berubah bila tes diedit dan rekaman ikut berubah. Pertimbangkan menyaringnya di `go_test` (31 baris lama ikut berubah).
+- `cmd/beban`, `cmd/tiruan`, dan `cmd/penerbit` membuat client HTTP sendiri (alat lab, di luar klaim "semua panggilan keluar" yang dibatasi ke `internal/`).
+- Jalur sinkron breaker (`POST /topup-bank`): pustaka `internal/lajur` bisa dipakai, belum dipasang.
+- Pengajuan `tidak_pasti` menahan pendaftar sampai selesai; butuh job pemeriksa status vendor sebelum produksi.
+- `SalahPermintaan` menghitung semua 4xx sukses bagi breaker, termasuk 429 (vendor membatasi laju) dan 408; ADR 36 membacanya begitu, tetapi 429 meminta backoff dan sebaiknya dihitung gagal atau menunda lajur.
+- Jendela pengamatan `lajur.txt` bagian B (Timeout breaker 3 detik, pengamatan ±1,1 detik) bisa kurang pada mesin yang sangat sibuk; naikkan Timeout bila `cek` goyah.
+- Flake `beban` p95 tidak terulang di bawah beban CPU 30 proses (p95 7,05 ms, load average 33 pada 10 inti): kemungkinan jeda I/O Docker Desktop; bila berulang, ulangi bagian itu sekali atau naikkan batas 500 ms.
+- Penanda Snippet `tanpa-redirect` pindah dari `internal/unduh/unduh.go` ke `internal/klien/klien.go`; halaman 4.21 merujuk berkas baru.
+- Tes worker dengan jendela breaker 150 ms bergantung jam nyata; aman sampai 30 proses sibuk di mesin ini (tujuh run), tetapi tetap bukan jam palsu seperti tes `internal/lajur`.
+- Mutan setara yang tidak ditutup: `len(hasil) <= Serentak` di `klaim` (hanya satu lajur punya vendor), timeout 0 di client unduh (konteks `WithTimeout` tetap memutus), dan `serentak_maks` yang menyimpan nilai terakhir di tiruan; jadi relevan bila lab menambah lajur vendor kedua.

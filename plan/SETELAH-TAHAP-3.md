@@ -411,3 +411,34 @@ Polesan dari tinjauan Tahap 3 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - Pembaca yang mencentang varian sebelum akhir jalur utama tidak melihat vonis tebakannya di jalur varian (23 skenario); vonis ada di akhir jalur utama. Bila kotak hasil khusus varian diinginkan: field opsional `varian.hasil` yang dipasang `alur.js` di akhir jalur varian (belum ada).
 - `core.validate` tidak memeriksa bahwa `predict.varian`, bila ada, bertipe boolean; `t1-migration` tidak menulis bendera itu (dibaca false). Tes baru memeriksanya untuk semua skenario di folder.
 - Pengunci jalur yang ditanyakan di `alur-tebakan.test.ts` hanya mendaftar 41 skenario yang ada; skenario baru tidak wajib masuk, tetapi PR yang membalik `predict.varian` skenario lama gagal.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- `labs/t3-dasbor/run.py` baris 48 menulis komentar payload "29 karakter", padahal `len("<img src=x onerror=alert(1)>")` = 28 (halaman 3.22 menulis 28 dan penjaga menurunkannya dari konstanta); betulkan komentar.
+- Kalimat di `xss.txt` bagian D ("sesudah skrip yang sama memanggil ...") dan README/PR lab ("skrip yang sama") lebih kuat dari kodenya: `fetch` dijalankan `page.evaluate` Playwright, bukan catatan Dimas. Ganti kalimatnya, atau tambah satu skenario D yang menyimpan payload yang membawa `fetch` sungguhan.
+- Halaman istilah `xss.json` memuat `stack: null`: 3.23 mengisi enam stack (Go, Node, Laravel, Django, Serverpod, Supabase) atau menautkannya.
+- Skrip ukur widget cari-bug (51 pemeriksaan: aria-pressed, satu status satu kalimat, fokus sesudah Periksa/Ulang, target 24 px, 320/375/1366, noscript) masih skrip sementara di worktree (`tmp/ukur-m25.cjs`, tidak di-commit): jadikan alat gerbang dengan uji diri (butir sama di SETELAH-TAHAP-3 untuk 3.4).
+- Cari-bug di 3.22 memakai `label.ringkas` (satu kalimat); 1.19 dan 1.20 menyusul bila Tahap 1 dibuka lagi.
+- (tinjauan 3.22) Judul tebal "Ekstensi bukan sebabnya." tanpa lingkup: lab hanya menunjukkan ekstensi tidak diperlukan untuk menimbulkan kotak itu; ganti ke "Ekstensi tidak diperlukan untuk kotak itu".
+- (tinjauan 3.22) Judul tebal "Skrip yang lebih berbahaya tidak butuh celah tambahan." berlaku hanya bila tidak ada CSP: bagian C merekam CSP menahan `onerror` inline. Lingkupkan di 3.23, atau tambah "(CSP mati, bagian D)".
+- (tinjauan 3.22) Catatan keputusan 1086 menulis bahwa halaman menyebut driver D dan E berbeda fungsi; halaman hanya menulis "dasbor yang sama kecuali cara menulis catatan". Driver D (`xss-lawan-csrf`) juga menjalankan `fetch`, tidak memengaruhi jumlah dialog. Tambah satu kalimat atau koreksi catatannya.
+- (tinjauan 3.22) Perbaikan yang diperankan adalah `textContent` (sink aman), bukan output encoding: OWASP menulis `textContent` tidak meng-encode nilainya. Baris glosarium Output encoding menunjuk 3.22 dan bullet "encoding saat output" di Konsep yang lahir; 3.23 sebaiknya menjelaskan perbedaan "meng-encode" dan "memakai sink yang menulis teks".
+- (tinjauan 3.22) Payload Dimas yang membawa `fetch` (atau memuat skrip luar) di dalam batas 100 karakter tidak direkam; D memerankan skrip lewat Playwright. Bila 3.23 mengklaim "catatan bisa mengubah harga", rekam skenario itu atau beri label Penalaran.
+- (tinjauan 3.22) `labs/t3-dasbor/go/cmd/dasbor/main.go` komentar `riwayat` "sama persis dengan query RiwayatPenerimaan": betulkan jadi "kecuali LIMIT tetap 20".
+- `labs/t3-dasbor/run.py` baris 48: komentar "29 karakter" salah, payload 28 karakter; rekaman tidak memuatnya.
+- Tebak (komponen bersama): fokus jatuh ke `body` sesudah memilih, dan `role=status` memuat alasan dan penutup sekaligus.
+- Widget banding lama: catatan memakai `aria-live="polite"`, bukan `role="status"`.
+- Kepala rekaman `xss.txt` bagian D serta `csrf.txt` bagian C dan E memuat ID riset; Snippet halaman 3.23 melewati baris itu, tetapi halaman lain yang menyisipkannya akan gagal `cek_id_tampil.py`.
+- Lab t3-dasbor: kebijakan CSP tanpa `report-to` dan `frame-ancestors`, `GET /logout` mengubah keadaan, dan token CSRF lewat query: tutup sebelum dasbor dipakai di luar lab.
+- Tebak 3.23: ketiga pengecoh semua diawali "Ditolak dengan" dan jawaban benar satu-satunya "Diterima": petunjuk "yang berbeda", dan penjaga mengunci pola itu. Pertimbangkan pengecoh yang juga diterima atau bentuk kalimat yang sama.
+- Lab t3-dasbor: kepala `csrf.txt` bagian D dan README ("token sendirian menahan", "token, Origin, dan Sec-Fetch-Site sendirian") menyesatkan, karena ketiganya gagal sekaligus; ganti "gerbang tiga pemeriksaan". README juga menulis "skrip yang sama bisa membaca token sesi Ani" (dibaca penggerak, bukan payload).
+- Lab t3-dasbor: halaman login tanpa CSP, `create()` WebAuthn tanpa `residentKey` (discoverable tidak tercatat), `GET /logout` mengubah keadaan; keputusan 1091 menulisnya sebagai batas di halaman.
+- Penjaga 3.23: `BENTUK_MDX` dan `nilai.ts` dibangkitkan tangan dari skrip sementara; pertimbangkan `tools/` bila halaman lain memakai pola ini (urutan baris kosong tidak terjaga di penjaga halaman lain).
+- 3.20 (`m24-stok-kembali.mdx`, diagram `t3-m24-stok-kembali.json`, widget `t3-m24.json`, kartu): masih menulis 409 "tidak mengubah apa pun" dan "tidak ada yang berubah"; 3.21 sudah menyempitkannya (produk tidak berubah, operasi dicatat sebagai konflik di `operasi_sinkron`, `versi.txt` bagian C). Selaraskan.
+- Lab `t3-mitm` bagian E memerankan laptop Dimas dengan curl langsung ke `api-t3` (tanpa server tepi TLS) dan mengambil riwayat Budi tanpa hotspot; bila lab diubah, riwayat lewat client dengan flag supaya langkah 6 widget tidak perlu catatan.
+- Lab `t3-mitm` tidak merekam login lewat hotspot (body login berisi password). Satu bagian yang merekamnya mengubah "penalaran" di 3.24 menjadi Rekaman lab.
+- Komponen HP (`hp.js`) menampilkan 12.05 bila `waktu` kosong: skenario tanpa jam perlu opsi untuk menyembunyikan jam, atau penjaga seperti di 3.24 untuk jam Ilustrasi.
+- Glosarium belum memuat certificate authority, handshake TLS, root store, dan man-in-the-middle; 3.24 memberi arti di tempat. 3.25 bisa menambahnya sebagai halaman istilah.
+- Widget `t3-m26`: `explain` tebakan (satu wilayah `role=status`) empat kalimat, lebih panjang dari tebakan Tahap 3 lain (dua sampai tiga); pangkas jadi dua kalimat bila alur menerima teks status terpisah dari penjelasan.
+- Penjaga halaman bergaya "daftar kalimat terkunci" harus menyertakan bentuk baris (baris kosong dan lekuk) sejak awal; 3.22 dan halaman sebelumnya belum diperiksa dengan mutasi hapus baris kosong.
+- Lab `t3-mitm` bagian E: laptop Dimas dan riwayat Budi lewat `d.curl` ke `api-t3` tanpa server tepi; satu rekaman melalui `tepi` (TLS) menutup catatan "tanpa server tepi" di 3.24.
