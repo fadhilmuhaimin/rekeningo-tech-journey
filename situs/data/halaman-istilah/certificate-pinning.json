@@ -1,0 +1,49 @@
+{
+  "istilah": "Certificate pinning",
+  "sehari_hari": "App menyimpan sidik jari kunci server yang ia harapkan, dan menolak server yang kuncinya lain, walau sertifikatnya sah menurut daftar CA di HP.",
+  "cerita": [
+    {
+      "rujukan": "t3-tls-pinning",
+      "teks": "Pin A dan B di `connectionFactory` menolak sertifikat tiruan hotspot Dimas walau CA Dimas ada di daftar akar app: proxy melihat handshake dan nol request (`pin.txt` bagian A)."
+    }
+  ],
+  "mekanisme": [
+    "Saat build, app memuat hash SHA-256 atas SubjectPublicKeyInfo (SPKI) kunci server sekarang, ditambah satu kunci cadangan.",
+    "Handshake TLS berjalan, dan validasi biasa memeriksa rantai sertifikat terhadap daftar akar.",
+    "Sebelum byte HTTP pertama, app menghitung hash SPKI sertifikat server dan membandingkannya dengan daftar pin. Bila tidak ada yang cocok, koneksi ditutup.",
+    "Penerbitan ulang sertifikat dengan kunci yang sama tidak mengubah hash SPKI, tetapi mengubah hash seluruh sertifikat (`pin.txt` bagian D).",
+    "Server yang pindah ke kunci yang belum ada di pin memutus app lama. Kunci cadangan menahan satu rotasi (`pin.txt` bagian C)."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Memasang pin di callback yang hanya dipanggil bila validasi gagal. `badCertificateCallback` di dart:io tidak dipanggil bila CA dipercaya (`pin.txt` bagian B).",
+    "Memasang pin tanpa kunci cadangan. Dokumentasi Android menyuruh selalu menyertakannya, karena tanpa itu koneksi hanya pulih lewat rilis app.",
+    "Mem-pin hash sertifikat daun. Hash itu berubah di setiap penerbitan ulang, walau kuncinya sama (`pin.txt` bagian D)."
+  ],
+  "terkait": ["HSTS (HTTP Strict Transport Security)", "Reverse proxy"],
+  "sumber": [
+    {
+      "riset": "R3-77",
+      "judul": "RFC 7469: Public Key Pinning Extension for HTTP",
+      "url": "https://www.rfc-editor.org/rfc/rfc7469",
+      "catatan": "Teks mentah dibuka 2026-10-27. Sidik jari pin adalah SHA-256 atas SPKI DER. Bagian 4: pin cadangan wajib, dan menyematkan kunci penerbit mengurangi jumlah penerbit yang bisa menipu. Lampiran B: cadangan yang tidak pernah diuji sama dengan tanpa cadangan."
+    },
+    {
+      "riset": "R3-220",
+      "judul": "Android: Network security configuration",
+      "url": "https://developer.android.com/privacy-and-security/security-config",
+      "catatan": "Last updated 2026-08-28 UTC, dibuka 2026-10-27. Pin berupa hash SHA-256 atas SPKI, dan app harus selalu menyertakan kunci cadangan, karena tanpa itu koneksi hanya pulih lewat pembaruan app."
+    },
+    {
+      "riset": "R3-222",
+      "judul": "Let's Encrypt: New Intermediate Certificates",
+      "url": "https://letsencrypt.org/2024/03/19/new-intermediate-certificates",
+      "catatan": "Terbit 2024-03-19, dibuka 2026-10-27. Penerbit memutar intermediate dan memilihnya acak supaya pin pada satu intermediate tidak bisa diandalkan."
+    },
+    {
+      "judul": "Rekaman lab t3-mitm: pin.txt bagian A sampai D",
+      "rekaman": "labs/t3-mitm/output/pin.txt",
+      "catatan": "A: pin SPKI menolak CA yang dipercaya. B: pin di badCertificateCallback tidak dipanggil. C: rotasi dan cadangan. D: pin SPKI lawan pin sertifikat daun."
+    }
+  ]
+}
