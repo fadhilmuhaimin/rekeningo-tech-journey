@@ -395,8 +395,11 @@ def rekam_worker():
     d.tiruan_mode(PORT_VERIFIKASI, "menggantung")
     ajukan(pendaftar(8))
     budi = uang_siap()
-    catat("$ ./api-t4 -peran worker -serentak 4 -backoff 1ms -selang 50ms -breaker -breaker-timeout 30s")
-    d.mulai_worker("w-breaker", ["-serentak", "4", "-backoff", "1ms", "-selang", "50ms", "-breaker", "-breaker-timeout", "30s"], db=DB)
+    # -backoff 0s: baris yang gagal langsung siap lagi, jadi putaran kedua memilih empat baris yang sama. Dengan backoff
+    # 1 ms jitter penuh (acak antara 0 dan 1 ms) membuat sebagian baris belum siap saat putaran kedua mengklaim, dan
+    # tabel di bawah berubah dari run ke run (diamati pada mesin yang sibuk).
+    catat("$ ./api-t4 -peran worker -serentak 4 -backoff 0s -selang 50ms -breaker -breaker-timeout 30s")
+    d.mulai_worker("w-breaker", ["-serentak", "4", "-backoff", "0s", "-selang", "50ms", "-breaker", "-breaker-timeout", "30s"], db=DB)
     tunggu_log("w-breaker", "closed -> open")
     time.sleep(0.2)
     catat("# Dua putaran menggantung (8 percobaan, 3 detik tiap putaran) membuka breaker. Percobaan per pekerjaan:")

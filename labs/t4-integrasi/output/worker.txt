@@ -12,7 +12,7 @@ $ ./api-t4 -peran worker -serentak 4 -backoff 1ms -selang 50ms
 # t terukur: tiap percobaan yang menggantung ditahan antara 2,9 dan 3,6 detik sampai client menyerah (batas diperiksa; batas waktu client 3 detik).
 
 # --- B. Dengan breaker per lajur; vendor tetap menggantung: lajur verifikasi dijeda, pemberitahuan uang tidak menunggu ---
-$ ./api-t4 -peran worker -serentak 4 -backoff 1ms -selang 50ms -breaker -breaker-timeout 30s
+$ ./api-t4 -peran worker -serentak 4 -backoff 0s -selang 50ms -breaker -breaker-timeout 30s
 # Dua putaran menggantung (8 percobaan, 3 detik tiap putaran) membuka breaker. Percobaan per pekerjaan:
 => SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan
  status   | percobaan | jumlah
