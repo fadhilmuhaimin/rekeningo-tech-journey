@@ -46,14 +46,15 @@ $ qrlab buat -jenis dinamis -id 00000000-0000-4000-8000-000000000001 -nama 'Toko
 (10 rows)
 $ qrlab urai <payload dinamis>
 {"jenis":"dinamis","id":"00000000-0000-4000-8000-000000000001","nominal":35000,"nama":"Toko Sumber Rejeki","kota":"Jakarta"}
-# Pembaca TLV di Python membaca kedua payload dengan tag, panjang, dan nilai yang sama; CRC diperiksa ulang dengan binascii.crc_hqx.
+# Pembaca TLV di Python (tag mentah) menghasilkan jenis, id, nama, kota, dan nominal yang sama, nilai demi nilai, dengan JSON dari qrlab urai;
+# CRC kedua payload diperiksa ulang dengan binascii.crc_hqx.
 
 # --- C. Salah baca: satu karakter yang berubah membuat CRC tidak cocok ---
 karakter ke-115 (di nama merchant) diganti; galat crc: CRC tidak cocok
 karakter ke-51 (di id QR) diganti; galat crc: CRC tidak cocok
 karakter ke-96 (di nominal) diganti; galat crc: CRC tidak cocok
-salah baca satu karakter pada payload statis 138 karakter: 8562 dari 8562 terdeteksi (8314 oleh CRC, 248 oleh tag 63 yang rusak)
-dua karakter bersebelahan bertukar tempat pada payload yang sama: 104 dari 104 terdeteksi (hasil untuk payload ini, bukan jaminan umum)
+salah baca satu karakter pada payload contoh statis milik tes (138 karakter): 8562 dari 8562 terdeteksi (8314 oleh CRC, 248 oleh tag 63 yang rusak)
+dua karakter bersebelahan bertukar tempat pada payload contoh yang sama: 104 dari 104 terdeteksi (hasil untuk payload ini, bukan jaminan umum)
 
 # --- D. Penggantian: CRC dihitung ulang tanpa kunci apa pun, dan payload yang diubah lolos ---
 payload asli     : 00020101021126600016id.rekeningo.lab013600000000-0000-4000-8000-0000000000015204541153033605802ID5918Toko Sumber Rejeki6007Jakarta6304B29D

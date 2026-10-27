@@ -146,7 +146,37 @@ Retry-After: 1200
 (4 rows)
 # Satu laporan sudah cukup membekukan, di api-t4 hanya panjang alasan (20 sampai 200 karakter) dan laju laporan per akun (3 per jam, Asumsi lab) yang diperiksa; pelapor dan kebenaran isi laporan tidak diverifikasi.
 
-# --- E. Pemulihan: tim risk membuka merchant dengan persetujuan petugas kedua; tidak ada pemulihan otomatis ---
+# --- E. Masukan berbentuk salah mengambil jatah laju sebelum ditolak: tiga alasan terlalu pendek (422), lalu laporan yang benar ditolak batas laju (429) ---
+$ curl -i -X POST '/qr/<qr statis Merchant 6>/laporkan' -H 'Authorization: Bearer <token sesi Pelapor Dua>' -d '{"alasan": "palsu"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"alasan","pesan":"wajib, 20 sampai 200 karakter: apa yang janggal pada QR ini"}]}
+$ curl -i -X POST '/qr/<qr statis Merchant 6>/laporkan' -H 'Authorization: Bearer <token sesi Pelapor Dua>' -d '{"alasan": "palsu"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"alasan","pesan":"wajib, 20 sampai 200 karakter: apa yang janggal pada QR ini"}]}
+$ curl -i -X POST '/qr/<qr statis Merchant 6>/laporkan' -H 'Authorization: Bearer <token sesi Pelapor Dua>' -d '{"alasan": "palsu"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"alasan","pesan":"wajib, 20 sampai 200 karakter: apa yang janggal pada QR ini"}]}
+$ curl -i -X POST '/qr/<qr statis Merchant 6>/laporkan' -H 'Authorization: Bearer <token sesi Pelapor Dua>' -d '{"alasan": "stiker di kasir tidak sama dengan papan toko 6"}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 1200
+
+{"type":"/problems/rate-limit-akun","title":"Terlalu banyak kiriman dari akun ini","status":429,"detail":"Coba lagi dalam 1200 detik."}
+=> SELECT id, nama, status FROM akun WHERE id = 30006
+ id    | nama       | status
+-------+------------+--------
+ 30006 | Merchant 6 | aktif
+(1 row)
+# Urutan di api-t4: bentuk id QR, batas laju per akun, lalu panjang alasan. Masukan yang salah mengambil token laju sebelum ditolak (disengaja di api-t4:
+# tiap percobaan dihitung, Asumsi lab), jadi pelapor yang salah ketik tiga kali tidak bisa melapor sampai token terisi lagi.
+
+# --- F. Pemulihan: tim risk membuka merchant dengan persetujuan petugas kedua; tidak ada pemulihan otomatis ---
 $ curl -i -X POST '/bo/akun/30001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -H 'X-Penyetuju-Token: <token sesi Risk Dua>' -d '{"alasan": "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"}'
 HTTP/1.1 204 No Content
 

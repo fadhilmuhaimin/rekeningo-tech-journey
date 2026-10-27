@@ -25,6 +25,8 @@ id QR diganti tanpa CRC baru: CRC tidak cocok; diganti dengan CRC dihitung ulang
 --- PASS: TestPayloadBatasPanjangNamaDanKota
 --- PASS: TestPayloadNominalDiTag54TanpaPemisah
 --- PASS: TestPayloadUraiTanpaCRCDanGantiMenolakBentukRusak
+berkas Go non-tes di modul api-t4 yang mengimpor payload QR: cmd/qrlab/main.go saja (server tidak membaca payload)
+--- PASS: TestPayloadHanyaDipakaiQrlab
 PASS
 ok    lab/apit4/internal/qrpayload
 QR statis: Rp1, Rp199.999, dan Rp200.000 diterima; Rp200.001, Rp0, Rp-1, dan nominal kosong ditolak (ErrValidasi nominal); tidak ada uang yang bergerak pada yang ditolak
@@ -35,13 +37,15 @@ QR dinamis berlaku_sampai = dibuat + 5 menit; 4 menit 59 detik: terlihat dan ter
 --- PASS: TestQRBatasKedaluwarsaLimaMenitDiKeduaSisi
 QR dinamis dibayar sekali: pembayaran kedua (pembayar yang sama dan pembayar lain) ErrQRTerpakai, satu jurnal terikat ke id QR, satu pemberitahuan untuk merchant
 --- PASS: TestQRBatasSekaliPakaiHanyaSatuJurnalPerIdQR
-laporan QR palsu dari akun belum terverifikasi: 19 dan 201 karakter ditolak, 20 dan 200 diterima; satu laporan membekukan merchant lebih dulu; QR-nya 404 bagi pembeli; saldo merchant tidak ditarik
+laporan QR palsu dari akun belum terverifikasi: 19 dan 201 karakter ditolak, 20 dan 200 diterima; satu laporan membekukan merchant lebih dulu; QR-nya tidak ditemukan (ErrTidakDitemukan) bagi pembeli; saldo merchant tidak ditarik
 --- PASS: TestQRBatasLaporanMembekukanMerchantSebelumDiperiksa
 payload Marni dengan id QR pelaku dan CRC dihitung ulang lolos pemindai; konfirmasi menampilkan nama pelaku dari tabel akun; jurnal sah ke pelaku, tidak ke Marni
 --- PASS: TestQRPindaiPayloadStatisMilikMerchantLainMenjadiJurnalSah
 payload dinamis dengan nominal Rp1 dan CRC dihitung ulang lolos pemindai; nominal di server tetap Rp35.000: body Rp1 ditolak (ErrValidasi nominal), body kosong memotong Rp35.000
 --- PASS: TestQRPindaiPayloadDinamisDenganNominalDipalsukan
+saldo tepat Rp35.000 membayar QR Rp35.000 dan menyisakan Rp0; saldo Rp34.999 ditolak (ErrSaldoKurang) dan QR tetap aktif
+--- PASS: TestQRBatasSaldoTepatDanKurangSatuRupiah
 PASS
 ok    lab/apit4/internal/service
 # exit status 0
-# 20 tes bertag t4qr lulus; tiap tes yang terdaftar oleh `go test -list` muncul sebagai PASS di atas.
+# 22 tes bertag t4qr lulus; tiap tes yang terdaftar oleh `go test -list` muncul sebagai PASS di atas.

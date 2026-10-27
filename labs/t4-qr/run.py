@@ -203,7 +203,15 @@ def rekam_crc():
         harap(rc, 0, "urai")
         catat(f"$ qrlab urai <payload {jenis}>")
         catat(out)
-    catat("# Pembaca TLV di Python membaca kedua payload dengan tag, panjang, dan nilai yang sama; CRC diperiksa ulang dengan binascii.crc_hqx.")
+        # Pembanding: isi yang dibaca Python dari tag mentah harus sama, nilai demi nilai, dengan JSON dari Go.
+        tag = dict(tlv_baca(p[:-8]))
+        sub = dict(tlv_baca(tag["26"]))
+        python = {"jenis": "statis" if tag["01"] == "11" else "dinamis", "id": sub["01"], "nama": tag["59"], "kota": tag["60"]}
+        if "54" in tag:
+            python["nominal"] = int(tag["54"])
+        harap(json.loads(out), python, f"isi payload {jenis}: Go lawan Python")
+    catat("# Pembaca TLV di Python (tag mentah) menghasilkan jenis, id, nama, kota, dan nominal yang sama, nilai demi nilai, dengan JSON dari qrlab urai;")
+    catat("# CRC kedua payload diperiksa ulang dengan binascii.crc_hqx.")
 
     bagian("C. Salah baca: satu karakter yang berubah membuat CRC tidak cocok")
     p = contoh["dinamis"]
@@ -306,10 +314,11 @@ def rekam_statis():
 
     bagian("D. Batas Rp200.000 per pembayaran QR statis (Asumsi produk): tepat di batas, satu rupiah di atasnya, dan pembayaran berulang")
     sql_saldo(40002)
-    for nominal, harus in ((200_000, 201), (200_001, 422), (0, 422), (200_000, 201)):
-        s, resp = curl("POST", f"/qr/{qa}/bayar", {"nominal": nominal}, eko)
+    for nominal, harus in ((200_000, 201), (200_001, 422), (0, 422), (-1, 422), (None, 422), (200_000, 201)):
+        s, resp = curl("POST", f"/qr/{qa}/bayar", {} if nominal is None else {"nominal": nominal}, eko)
         harap(s, harus, f"Eko membayar Rp{nominal}")
     sql_saldo(40002, 30002)
+    catat("# Nominal yang tidak diisi pembeli (body kosong) pada QR statis ditolak 422 seperti nominal di luar batas: tidak ada nominal bawaan.")
     catat("# Batas berlaku per pembayaran, bukan per QR atau per hari: dua pembayaran Rp200.000 berturut-turut sama-sama diterima.")
     catat("# Kerugian pembeli yang tidak memeriksa tujuan paling banyak Rp200.000 untuk satu pembayaran; batas itu tidak mencegah pembayaran berikutnya.")
 
@@ -458,7 +467,20 @@ def rekam_lapor():
     sql("SELECT id, nama, status FROM akun WHERE id BETWEEN 30003 AND 30006 ORDER BY id")
     catat("# Satu laporan sudah cukup membekukan, di api-t4 hanya panjang alasan (20 sampai 200 karakter) dan laju laporan per akun (3 per jam, Asumsi lab) yang diperiksa; pelapor dan kebenaran isi laporan tidak diverifikasi.")
 
-    bagian("E. Pemulihan: tim risk membuka merchant dengan persetujuan petugas kedua; tidak ada pemulihan otomatis")
+    bagian("E. Masukan berbentuk salah mengambil jatah laju sebelum ditolak: tiga alasan terlalu pendek (422), lalu laporan yang benar ditolak batas laju (429)")
+    s, resp = curl("POST", "/daftar", {"nama": "Pelapor Dua", "email": "pelapor.dua@publik.example", "password": SANDI_LAB}, tampil=False)
+    harap(s, 201, "daftar pelapor kedua")
+    dua = login("pelapor.dua@publik.example", SANDI_LAB, label="Pelapor Dua")
+    for _ in range(3):
+        s, _ = curl("POST", f"/qr/{kecil[6]}/laporkan", {"alasan": "palsu"}, dua)
+        harap(s, 422, "alasan terlalu pendek")
+    s, _ = curl("POST", f"/qr/{kecil[6]}/laporkan", {"alasan": "stiker di kasir tidak sama dengan papan toko 6"}, dua)
+    harap(s, 429, "laporan yang benar sesudah tiga masukan salah")
+    sql("SELECT id, nama, status FROM akun WHERE id = 30006")
+    catat("# Urutan di api-t4: bentuk id QR, batas laju per akun, lalu panjang alasan. Masukan yang salah mengambil token laju sebelum ditolak (disengaja di api-t4:")
+    catat("# tiap percobaan dihitung, Asumsi lab), jadi pelapor yang salah ketik tiga kali tidak bisa melapor sampai token terisi lagi.")
+
+    bagian("F. Pemulihan: tim risk membuka merchant dengan persetujuan petugas kedua; tidak ada pemulihan otomatis")
     s, _ = curl("POST", "/bo/akun/30001/buka", {"alasan": "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"}, ratih, kepala=[f"X-Penyetuju-Token: {risk2}"])
     harap(s, 204, "tim risk membuka Bu Marni")
     sql("SELECT id, nama, status FROM akun WHERE id BETWEEN 30001 AND 30006 ORDER BY id")

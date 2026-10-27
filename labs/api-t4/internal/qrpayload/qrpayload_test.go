@@ -5,6 +5,9 @@ package qrpayload
 import (
 	"errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -216,7 +219,11 @@ func TestPayloadDitolakKarenaIsinya(t *testing.T) {
 		{"nominal negatif", dasar(tlv("00", "01"), tlv("01", "12"), tag26(idMarni), tlv("54", "-500"), tlv("59", "Toko Sumber Rejeki"), tlv("60", "Bandung")), ErrIsi},
 		{"nominal 14 digit", dasar(tlv("00", "01"), tlv("01", "12"), tag26(idMarni), tlv("54", "10000000000000"), tlv("59", "Toko Sumber Rejeki"), tlv("60", "Bandung")), ErrIsi},
 		{"id QR bukan uuid", dasar(tlv("00", "01"), tlv("01", "11"), tag26("bukan-uuid"), tlv("59", "Toko Sumber Rejeki"), tlv("60", "Bandung")), ErrIsi},
-		{"id QR uuid berhuruf besar", dasar(tlv("00", "01"), tlv("01", "11"), tag26(strings.ToUpper("0a000000-0000-4000-8000-00000000000a")), tlv("59", "Toko Sumber Rejeki"), tlv("60", "Bandung")), ErrIsi},
+		{"id QR uuid berhuruf besar di grup 1", dasar(tlv("00", "01"), tlv("01", "11"), tag26("0A000000-0000-4000-8000-000000000001"), tlv("59", "Toko Sumber Rejeki"), tlv("60", "Bandung")), ErrIsi},
+		{"id QR uuid berhuruf besar di grup 2", dasar(tlv("00", "01"), tlv("01", "11"), tag26("00000000-000A-4000-8000-000000000001"), tlv("59", "Toko Sumber Rejeki"), tlv("60", "Bandung")), ErrIsi},
+		{"id QR uuid berhuruf besar di grup 3", dasar(tlv("00", "01"), tlv("01", "11"), tag26("00000000-0000-400A-8000-000000000001"), tlv("59", "Toko Sumber Rejeki"), tlv("60", "Bandung")), ErrIsi},
+		{"id QR uuid berhuruf besar di grup 4", dasar(tlv("00", "01"), tlv("01", "11"), tag26("00000000-0000-4000-800A-000000000001"), tlv("59", "Toko Sumber Rejeki"), tlv("60", "Bandung")), ErrIsi},
+		{"id QR uuid berhuruf besar di grup 5", dasar(tlv("00", "01"), tlv("01", "11"), tag26("00000000-0000-4000-8000-00000000000A"), tlv("59", "Toko Sumber Rejeki"), tlv("60", "Bandung")), ErrIsi},
 		{"pengenal penerbit lain", dasar(tlv("00", "01"), tlv("01", "11"), tlv("26", tlv("00", "id.lain.lab")+tlv("01", idMarni)), tlv("59", "Toko Sumber Rejeki"), tlv("60", "Bandung")), ErrIsi},
 		{"template merchant hilang", dasar(tlv("00", "01"), tlv("01", "11"), tlv("59", "Toko Sumber Rejeki"), tlv("60", "Bandung")), ErrIsi},
 		{"nama hilang", dasar(tlv("00", "01"), tlv("01", "11"), tag26(idMarni), tlv("60", "Bandung")), ErrIsi},
@@ -334,4 +341,33 @@ func TestPayloadUraiTanpaCRCDanGantiMenolakBentukRusak(t *testing.T) {
 	if _, err := Ganti(emasStatis, func(i *Isi) { i.Nominal = nom(5) }); !errors.Is(err, ErrIsi) {
 		t.Errorf("Ganti ke isi bertentangan: %v", err)
 	}
+}
+
+// Klaim negatif dengan lingkup: di modul api-t4 ini (semua berkas .go yang bukan tes), hanya cmd/qrlab yang mengimpor
+// internal/qrpayload. Server (handler, service, repo) tidak membaca payload; ia hanya menerima id QR dan nominal.
+func TestPayloadHanyaDipakaiQrlab(t *testing.T) {
+	var pengimpor []string
+	err := filepath.WalkDir("../..", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		isi, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if strings.Contains(string(isi), `"lab/apit4/internal/qrpayload"`) {
+			pengimpor = append(pengimpor, filepath.ToSlash(strings.TrimPrefix(path, "../../")))
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pengimpor) != 1 || pengimpor[0] != "cmd/qrlab/main.go" {
+		t.Fatalf("berkas non-tes yang mengimpor internal/qrpayload: %v; ingin hanya cmd/qrlab/main.go", pengimpor)
+	}
+	fmt.Println("LAB|berkas Go non-tes di modul api-t4 yang mengimpor payload QR: cmd/qrlab/main.go saja (server tidak membaca payload)")
 }

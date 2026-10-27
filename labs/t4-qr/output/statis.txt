@@ -34,6 +34,7 @@ $ qrlab buat -jenis statis -id <qr statis Toko Andalan> -nama 'Toko Andalan' -ko
 (3 rows)
 
 # --- B. Stiker Toko Andalan ditempel di atas stiker Bu Marni; Budi memindai dan membayar Rp35.000 ---
+# Skenario (Ilustrasi): stiker Toko Andalan tertempel di kasir Bu Marni. Lab hanya memerankan pemindaian payload Toko Andalan dan pembayarannya; letak stiker tidak ada di sistem.
 # Budi memindai stiker yang tertempel di kasir Bu Marni
 pemindai: payload 00020101021126600016id.rekeningo.lab0136<qr statis Toko Andalan>5204541153033605802ID5912Toko Andalan6008Surabaya6304<crc>
 pemindai: CRC cocok; jenis statis; id <qr statis Toko Andalan>; nama di payload 'Toko Andalan'; kota di payload 'Surabaya'
@@ -68,8 +69,31 @@ Location: /transfers/10201
 --------------------------
  0
 (1 row)
+=> SELECT sum(p.jumlah) AS jumlah_posting FROM posting p WHERE p.jurnal_id = (SELECT max(id) FROM jurnal)
+ jumlah_posting
+----------------
+ 0
+(1 row)
+=> SELECT nama, jenis, tingkat, status FROM akun WHERE id IN (30001, 30002) ORDER BY id
+ nama               | jenis    | tingkat       | status
+--------------------+----------+---------------+--------
+ Toko Sumber Rejeki | merchant | terverifikasi | aktif
+ Toko Andalan       | merchant | terverifikasi | aktif
+(2 rows)
+=> SELECT column_name FROM information_schema.columns WHERE table_schema = 'tahap4_qr' AND table_name = 'qr' ORDER BY ordinal_position
+ column_name
+----------------
+ id
+ akun_id
+ jenis
+ nominal
+ berlaku_sampai
+ status
+ jurnal_id
+(7 rows)
 # Jurnal seimbang, merchant penerima aktif dan terverifikasi, saldo cukup: pembayaran sah menurut semua aturan yang dimiliki server.
-# Server tidak punya data tentang di mana stiker itu tertempel, jadi tidak ada aturan yang bisa menolaknya.
+# Yang diterima server untuk membayar hanya sesi pembeli, id QR, dan nominal; tabel qr (kolom di atas) tidak punya lokasi atau pengenal stiker.
+# Tidak ada data yang menunjukkan di mana stiker itu tertempel, jadi tidak ada aturan yang bisa menolaknya.
 
 # --- C. Payload Bu Marni dengan id QR Toko Andalan dan CRC dihitung ulang: nama di payload lawan nama dari server ---
 $ qrlab ganti -id <qr statis Toko Andalan> <payload Bu Marni>
@@ -104,6 +128,16 @@ HTTP/1.1 422 Unprocessable Entity
 Content-Type: application/problem+json
 
 {"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nominal","pesan":"QR statis wajib bernominal lebih dari 0 dan paling banyak 200000"}]}
+$ curl -i -X POST '/qr/<qr statis Toko Andalan>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{"nominal": -1}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nominal","pesan":"QR statis wajib bernominal lebih dari 0 dan paling banyak 200000"}]}
+$ curl -i -X POST '/qr/<qr statis Toko Andalan>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nominal","pesan":"QR statis wajib bernominal lebih dari 0 dan paling banyak 200000"}]}
 $ curl -i -X POST '/qr/<qr statis Toko Andalan>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{"nominal": 200000}'
 HTTP/1.1 201 Created
 Content-Type: application/json
@@ -116,6 +150,7 @@ Location: /transfers/10203
  Toko Andalan | 435000
  Eko          | 100000
 (2 rows)
+# Nominal yang tidak diisi pembeli (body kosong) pada QR statis ditolak 422 seperti nominal di luar batas: tidak ada nominal bawaan.
 # Batas berlaku per pembayaran, bukan per QR atau per hari: dua pembayaran Rp200.000 berturut-turut sama-sama diterima.
 # Kerugian pembeli yang tidak memeriksa tujuan paling banyak Rp200.000 untuk satu pembayaran; batas itu tidak mencegah pembayaran berikutnya.
 

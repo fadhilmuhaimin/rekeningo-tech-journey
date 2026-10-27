@@ -25,9 +25,10 @@ $ qrlab buat -jenis dinamis -id <qr dinamis 1> -nama 'Toko Sumber Rejeki' -kota 
 00020101021226600016id.rekeningo.lab0136<qr dinamis 1>5204541153033605405350005802ID5918Toko Sumber Rejeki6007Jakarta6304<crc>
 # Budi memindai QR dinamis
 pemindai: payload 00020101021226600016id.rekeningo.lab0136<qr dinamis 1>5204541153033605405350005802ID5918Toko Sumber Rejeki6007Jakarta6304<crc>
-pemindai: CRC cocok; jenis dinamis; id <qr dinamis 1>. nominal Rp35.000; nama di payload 'Toko Sumber Rejeki'; kota di payload 'Jakarta'
+pemindai: CRC cocok; jenis dinamis; id <qr dinamis 1>; nominal Rp35.000; nama di payload 'Toko Sumber Rejeki'; kota di payload 'Jakarta'
 server: GET /qr/{id} -> 200; nama 'Toko Sumber Rejeki'; kota 'Jakarta'; terverifikasi ya
 nama dan kota di payload sama dengan jawaban server: ya
+nominal di payload sama dengan jawaban server: ya (payload Rp35.000; server Rp35.000)
 
 # --- B. Sekali pakai: pembayaran pertama berhasil; pembayaran kedua oleh pembayar yang sama dan oleh pembayar lain ditolak ---
 $ curl -i -X POST '/qr/<qr dinamis 1>/bayar' -H 'Authorization: Bearer <token sesi Budi>' -d '{}'
@@ -75,9 +76,10 @@ $ qrlab ganti -nominal 1 <payload dinamis 2>
 00020101021226600016id.rekeningo.lab0136<qr dinamis 2>520454115303360540115802ID5918Toko Sumber Rejeki6007Jakarta6304<crc>
 # pemindai membaca payload yang nominalnya dipalsukan
 pemindai: payload 00020101021226600016id.rekeningo.lab0136<qr dinamis 2>520454115303360540115802ID5918Toko Sumber Rejeki6007Jakarta6304<crc>
-pemindai: CRC cocok; jenis dinamis; id <qr dinamis 2>. nominal Rp1; nama di payload 'Toko Sumber Rejeki'; kota di payload 'Jakarta'
+pemindai: CRC cocok; jenis dinamis; id <qr dinamis 2>; nominal Rp1; nama di payload 'Toko Sumber Rejeki'; kota di payload 'Jakarta'
 server: GET /qr/{id} -> 200; nama 'Toko Sumber Rejeki'; kota 'Jakarta'; terverifikasi ya
 nama dan kota di payload sama dengan jawaban server: ya
+nominal di payload sama dengan jawaban server: tidak (payload Rp1; server Rp35.000)
 => SELECT a.nama, b.saldo_cache AS saldo FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id IN (40002) ORDER BY a.id
  nama | saldo
 ------+--------
