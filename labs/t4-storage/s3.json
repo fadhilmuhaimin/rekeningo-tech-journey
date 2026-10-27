@@ -1,0 +1,1 @@
+{"identities":[{"name":"lab-t4-storage","credentials":[{"accessKey":"labkunci","secretKey":"labrahasia-sementara"}],"actions":["Admin","Read","Write","List","Tagging"]}]}

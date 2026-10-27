@@ -1,0 +1,11 @@
+# Penyimpanan objek lab t4-storage: SeaweedFS 4.51 dengan endpoint S3 lokal, satu container, hanya di 127.0.0.1.
+# Port host dari LAB_S3_PORT (diisi run.py: 18290 + LAB_PORT_OFFSET); tanpa nilai bawaan tertulis di sini supaya dua lajur
+# tidak bertabrakan. Kunci akses di s3.json adalah data lab, bukan secret; bucket baru privat (tanpa tanda tangan semua ditolak).
+services:
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.51
+    command: ["server", "-dir=/data", "-s3", "-s3.config=/etc/seaweedfs/s3.json", "-master.volumeSizeLimitMB=64", "-volume.max=8", "-ip.bind=0.0.0.0"]
+    ports:
+      - "127.0.0.1:${LAB_S3_PORT:?diisi run.py}:8333"
+    volumes:
+      - ./s3.json:/etc/seaweedfs/s3.json:ro

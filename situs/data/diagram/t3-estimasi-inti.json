@@ -1,0 +1,47 @@
+{
+  "id": "t3-estimasi-inti",
+  "judul": "Hitungan Tahap 3 ke Tahap 4",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Asumsi naskah, bukan pengukuran"
+  },
+  "baris": [
+    {
+      "label": "Hitung ulang",
+      "sub": "puncak per detik",
+      "simpul": [
+        {
+          "teks": "Tahap 3: 17,4",
+          "sub": "request per detik",
+          "nada": "old"
+        },
+        {
+          "teks": "Tahap 4: 138,9",
+          "sub": "naik 8 kali",
+          "nada": "system"
+        }
+      ]
+    },
+    {
+      "label": "Hasil per kelas",
+      "sub": "dibanding batas",
+      "simpul": [
+        {
+          "teks": "Koneksi: 40 dari 100",
+          "sub": "Tahap 3: 30 dari 100",
+          "nada": "good"
+        },
+        {
+          "teks": "Worker: 56% terpakai",
+          "sub": "Tahap 3: 6,5%",
+          "nada": "system"
+        },
+        {
+          "teks": "File: 365 GB per tahun",
+          "sub": "posting: 10,95 GB",
+          "nada": "warn"
+        }
+      ]
+    }
+  ]
+}

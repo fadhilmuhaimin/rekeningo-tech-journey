@@ -1,0 +1,313 @@
+---
+title: "3.27 Tim dan infra Tahap 3: staging, pipeline, alert, on-call + ADR 32"
+description: Empat engineer menjaga dua instance, worker, Redis, dan staging, tetapi di M27 tidak ada alert yang melihat notifikasi uang menunggu di belakang 10.000 promo. ADR 32 memilih kelas queue, alert umur uang tertua per kelas, staging yang berbentuk sama dengan produksi, dan giliran jaga mingguan.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import intiDiagram from "../../../../data/diagram/t3-tim-infra-inti.json";
+import pipelineDiagram from "../../../../data/diagram/t3-tim-infra-pipeline.json";
+import pilah from "../../../../lama/widgets/data/t3-tim-infra-pilah.json";
+
+<p class="meta">Baca 17 menit · coba 3 menit · Prasyarat: [[t3-m27]] · Jalur inti</p>
+
+<Blok nama="Siapa memegang apa" buka>
+
+## Inti
+
+Empat engineer menjaga uang dengan staging, alert gejala, dan giliran jaga.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di [[t3-m27]], notifikasi uang menunggu di belakang 10.000 promo dan tidak ada alert yang melihatnya. Alert dari umur tertua semua kelas akan berbunyi walau uang tepat waktu, jadi umur dihitung dari kelas uang saja.
+
+Halaman ini membagi pekerjaan dan memutuskan ADR 32. Rekaman lab yang dipakai halaman ini mencakup queue, tes, dua instance, dan pool koneksi. Alert, staging, dan giliran jaga Tidak dijalankan. Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Alert umur tertua dari semua kelas berbunyi di tengah promo, padahal uang tepat waktu. Apa yang diganti?
+2. Satu instance berhenti dan 20 request berikutnya semuanya menjawab 200. Kenapa itu belum perlu membangunkan siapa pun?
+3. Empat engineer bergiliran jaga, satu orang per minggu. Berapa persen minggu tiap orang jaga?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+### Siapa menjalankan setiap pekerjaan
+
+Tahap 3 dikerjakan empat engineer dalam 10 minggu (Asumsi cerita): Raka, Nadia, Bayu, dan Wulan. Tabel ini memetakan pekerjaan ke orang atau mesin yang menjalankannya. Pembagian per orang mengikuti naskah, dan kolom terakhir menunjuk halaman yang menulisnya.
+
+| Pekerjaan | Siapa | Tertulis di |
+|---|---|---|
+| PRD v3, janji 30 detik, dan promo di luar janji itu | Sinta | [[t3-prd]] |
+| Syarat "pemberitahuan tidak mendahului uang" | Pak Hadi | [[t3-prd]] |
+| Kelas queue, worker, dan klaim | Nadia dan Bayu, backend (Asumsi: naskah tidak membagi lebih rinci) | ADR 32 |
+| Staging, proxy, backup, alert, dan rotasi on-call | Bayu | [[t3-prd]] |
+| App Flutter: build, signing, golden test | Raka | Blok Paham |
+| Dasbor web warung | Wulan | [[t3-xss-csrf]] |
+| Tes dengan PostgreSQL dan Redis sungguhan | CI, tiap merge ke `main` | ADR 32 |
+| Menguji staging | Dimas, yang hanya mencoba | [[t3-m22]] |
+
+Kalau kamu pernah merilis app berdua atau bertiga, polanya sudah kamu kenal. Build, tanda tangan, dan unggah ke store berjalan dari satu pipeline. Bedanya, backend Tahap 3 punya komponen yang bisa mati tanpa ada yang melihat.
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: alert membangunkan orang hanya untuk gejala yang dirasakan user, dan umur notifikasi uang dihitung dari kelas uang, bukan dari seluruh queue.">
+
+Tujuh kejadian berasal dari Rekaman lab t3-outbox, t3-instance, dan t3-pool, kecuali CPU 85% yang Ilustrasi. Pilah tiap kejadian: membangunkan on-call, atau cukup dibaca di dasbor.
+
+<WidgetLama nama="pilah" src="data/t3-tim-infra-pilah.json" />
+
+<noscript>
+<p>Tanpa JavaScript, kartu di atas tidak bisa dipilah. Berikut jawaban tiap kejadian.</p>
+<ol>
+{pilah.item.map((it) => (
+<li><strong>{pilah.kelompok[it.jawab]}.</strong> {it.teks} {it.kenapa}</li>
+))}
+</ol>
+</noscript>
+
+**Ubah satu hal:** hitung alert dari semua kelas, bukan dari kelas uang. Bagian E rekaman mengukur dua umur dari tabel yang sama, sesudah worker dengan kelas berjalan di tengah promo:
+
+<Snippet file="labs/t3-outbox/output/queue.txt" lines="53:60" title="Rekaman lab: labs/t3-outbox/output/queue.txt baris 53 sampai 60 (bagian E, umur tertua)" />
+
+Umur semua kelas lebih dari 30 detik karena promo dari bagian B masih menunggu. Angka 0 di kelas uang berarti tidak ada baris uang yang menunggu: kueri di `run.py` memakai `coalesce` dan menghasilkan 0 bila tidak ada baris. Alert dari semua kelas akan berbunyi sampai promo habis. Itu ±750 detik sesudah pengumuman pada kapasitas 13,33 per detik (Hitungan atas Asumsi c dan t, sama dengan [[t3-m27]]).
+
+Alert dari kelas uang tetap diam. Berbunyi dan diam adalah penalaran dari dua angka itu, karena alert sungguhan Tidak dijalankan.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Satu merge menjalankan apa
+
+PROPOSAL menambah lima hal ke pipeline backend di Tahap 3. Merge ke `main` menjalankan integration test dengan PostgreSQL dan Redis sungguhan, migration dry-run, dan k6 smoke 30 detik. Lalu staging diperbarui otomatis, dan produksi menunggu tombol approve.
+
+<Rantai data={pipelineDiagram} />
+
+Dari semua kotak itu, hanya tes yang direkam. `testing.txt` bagian B menjalankan `go test` tanpa database dan Redis. Semua paket lolos dan exit 0, karena tes yang butuh keduanya dilewati. Bagian C menyalakan `TES_DB_WAJIB=1` dan `TES_REDIS_WAJIB=1`. Paket yang butuh salah satunya gagal, dan `go test` keluar 1:
+
+<Snippet file="labs/api-t3/output/testing.txt" lines="113:144" title="Rekaman lab: labs/api-t3/output/testing.txt baris 113 sampai 144 (bagian B dan C, tanpa dan dengan tes wajib)" />
+
+Polanya sama dengan [[t2-tim-infra]], diperluas ke Redis. Lab memakai PostgreSQL dan Redis dari docker compose. Testcontainers, migration dry-run, k6, staging, dan GitHub Actions Tidak dijalankan.
+
+Langkah lain dicek ke dokumentasi pada 2026-10-27, dan semuanya Tidak dijalankan:
+
+| Langkah | Menurut dokumentasi | Sumber |
+|---|---|---|
+| Produksi lewat approve | Job yang memakai environment menunggu aturan proteksinya. Required reviewers bisa sampai 6 orang atau tim, dan satu persetujuan cukup. Di paket GitHub Free, Pro, dan Team, fitur itu hanya untuk repositori publik. Paket Rekeningo tidak ada di naskah [perlu verifikasi]; cadangannya pemicu manual | [GitHub Docs: Managing environments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments) |
+| Build iOS | Runner macOS 3 atau 4 inti US$0,062 per menit, runner Linux 2 inti US$0,006 per menit, jadi 0,062 ÷ 0,006 = 10,3 kali (Hitungan) | [GitHub Docs: Actions runner pricing](https://docs.github.com/en/billing/reference/actions-runner-pricing) |
+| Signing | fastlane menyarankan mode `readonly` di CI, supaya CI tidak membuat sertifikat baru | [fastlane docs: match](https://docs.fastlane.tools/actions/match/) |
+
+### Staging: bentuk yang sama, kecuali yang dikecualikan
+
+Staging menjalankan hal yang sama dengan produksi: dua instance, proxy, Redis, dan worker. Dua kejadian Tahap 3 menunjukkan apa yang dipertaruhkan. Di [[t3-m22]], instance kedua dipasang di staging, dan Dimas menemukan di sana bahwa batas login per alamat jadi dua kali lipat. Ceritanya Ilustrasi, dan angka dua kali lipat sama dengan rekaman di halaman itu.
+
+Di [[t3-m26]], arahnya terbalik. Staging memakai sertifikat dari CA buatan sendiri, jadi app membutuhkan flag yang menerima sertifikat apa pun. Flag itu ikut ke build rilis. Bagian cerita itu Ilustrasi: lab tidak punya build Flutter, dan nomor versi app adalah Asumsi.
+
+Staging yang menyimpang dari produksi bisa salah dua cara. Bug yang hanya muncul di produksi lolos, dan pengecualian khusus staging terbawa ke produksi.
+
+### Alert: empat gejala, satu per kelas
+
+Buku SRE Google memisahkan gejala dari penyebab. Gejala adalah apa yang rusak, dan penyebab adalah kenapa. Buku itu menyuruh memberi lebih banyak usaha pada gejala. Sebelum membuat alert, ia menanyakan tiga sifat aturannya: mendesak, bisa ditindaklanjuti, dan segera terlihat oleh user ([SRE book, bab 6, edisi 2017](https://sre.google/sre-book/monitoring-distributed-systems/), dibuka 2026-10-27).
+
+ADR 32 memakai empat alert, dan tiap alert menunjuk gejala yang user rasakan:
+
+| Alert | Sinyal | Yang ada di lab | Ambang |
+|---|---|---|---|
+| Umur notifikasi uang tertua | Latency untuk pekerjaan yang jalan di latar (penalaran) | `GET /lab/outbox`, hanya dengan `-lab`, memberi umur baris `menunggu` tertua dari semua kelas; per kelas hanya di kueri lab | 30 detik (Asumsi, dari janji PRD v3: 95% di bawah 30 detik) |
+| Error rate | Errors | Tidak ada: api-t3 tidak punya metric status code | Belum ditetapkan |
+| p95 | Latency | Tidak ada: rekaman lab Tahap 3 tidak memuat p95 | Belum ditetapkan |
+| Request menunggu koneksi | Saturation | `GET /lab/pool` memberi kolom `menunggu`, hitungan kumulatif | Belum ditetapkan |
+
+Hanya 30 detik yang punya dasar, yaitu janji PRD v3 untuk bayar dan transfer. Tiga ambang lain butuh ukuran dasar dari beban sungguhan, dan kapasitas satu server belum diukur ([[t3-pool]]). Dokumentasi k6 memberi contoh `http_req_failed: rate<0.01` dan `http_req_duration: p(95)<200` ([k6: Thresholds](https://grafana.com/docs/k6/latest/using-k6/thresholds/), dibuka 2026-10-27). Itu contoh, bukan ambang Rekeningo.
+
+Janji PRD v3 berlaku untuk 95% notifikasi, sedangkan alert membaca umur yang tertua, yaitu nilai maksimum. Satu baris di atas 30 detik sudah membunyikannya, lebih ketat daripada janji itu (Asumsi penulis).
+
+Alert error rate akan menangkap saat kedua instance dikeluarkan proxy sekaligus. Di `panic.txt` bagian D, sesudah instance a dan b berhenti, 10 dari 10 request menjawab 503. Instance yang mati tidak menghitung apa pun, jadi error rate dibaca di proxy (Tidak dijalankan). Satu instance yang dikeluarkan hanya dibaca di dasbor, karena 20 dari 20 request tetap menjawab 200.
+
+Umur per kelas butuh satu perubahan kecil. Fungsi yang dipakai `GET /lab/outbox` menghitung umur dari semua baris `menunggu`:
+
+<Snippet file="labs/api-t3/internal/repo/outbox.go" lines="169:171" lang="go" title="Kode lab: labs/api-t3/internal/repo/outbox.go baris 169 sampai 171 (umur tertua semua kelas)" />
+
+Kueri di rekaman bagian E menambah `AND kelas = 0`. Fungsi di kode api-t3 belum punya filter itu, jadi alert per kelas belum ada di kode. Alertnya sendiri Tidak dijalankan.
+
+Alert umur punya celah. Ia menangkap queue yang menumpuk, tetapi tidak push yang mati dengan cepat. Jeda paling lama sebelum baris masuk dead-letter adalah 2 + 4 + 8 + 16 = 30 detik (Hitungan dari `retry.txt` bagian A, sama dengan [[t3-at-least-once]]):
+
+<Snippet file="labs/t3-outbox/output/retry.txt" lines="9:13" title="Rekaman lab: labs/t3-outbox/output/retry.txt baris 9 sampai 13 (bagian A, lima percobaan)" />
+
+Tiap jeda acak antara 0 dan batasnya (jitter). Jadi 30 detik adalah batas atas, dan rata-ratanya 1 + 2 + 4 + 8 = 15 detik (Hitungan dari kode worker). Bila push menjawab 503 dengan cepat, baris sudah `mati` sekitar 30 detik sesudah dibuat. Umurnya melewati ambang hanya bila keempat jitter mendekati batasnya (selang polling 200 ms menambah paling banyak 0,8 detik).
+
+`RingkasOutbox` hanya menghitung baris `menunggu`, jadi baris `mati` tidak membunyikan alert.
+
+Push yang menggantung lain ceritanya. Tiap panggilan menunggu sampai 3 detik, jadi lima percobaan menambah sampai 15 detik. Umur bisa melewati 30 detik sebelum baris mati (dibaca dari kode, Tidak dijalankan). Celah ini dibahas di pre-mortem ADR 32.
+
+### Giliran jaga
+
+Alert hanya berguna bila ada orang yang membacanya. Rotasi mingguan memberi satu orang tanggung jawab per minggu, dan alert hanya sampai ke dia. Buku SRE menanyakan juga apakah orang lain ikut dipanggil untuk hal yang sama, karena itu membuat satu panggilan tidak perlu.
+
+Buku SRE bab 11 menulis batas: tidak lebih dari 25% waktu seorang SRE dipakai untuk jaga ([SRE book, bab 11, edisi 2017](https://sre.google/sre-book/being-on-call/), dibuka 2026-10-27). Dari batas itu buku menghitung jumlah minimum untuk rotasi 24 jam dengan dua penjaga: paling sedikit delapan engineer di satu lokasi. Rekeningo punya empat engineer dan satu penjaga. Naskah tidak menulis jam jaganya, jadi tabel ini hanya menghitung pembagian minggu:
+
+| Engineer yang ikut rotasi | Minggu jaga per orang | Terhadap batas 25% |
+|---|---|---|
+| Empat (Asumsi halaman ini) | 1 ÷ 4 = 25% | Tepat di batas |
+| Tiga: Raka, Nadia, dan Bayu | 1 ÷ 3 = 33% | Di atas batas |
+| Dua: Nadia dan Bayu | 1 ÷ 2 = 50% | Di atas batas |
+
+Empat orang berada tepat di batas, jadi satu orang yang cuti memindahkan rotasi ke tiga orang. Raka memegang app walau ia masih ikut menulis backend, dan Wulan memegang dasbor web. Siapa yang bisa memegang jalur uang saat alert berbunyi, naskah belum menjawab.
+
+### Backup
+
+Backup `pg_dump` harian dan uji pulih mingguan di staging adalah keputusan naskah. Tahap 1 merekam `pg_dump` dan `pg_restore` ([[t1-tim-infra]]). Jadwal harian dan uji pulih di staging Tidak dijalankan di Tahap 3, jadi jadwal itu Asumsi.
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 32: kelas queue, alert umur uang tertua per kelas, staging, dan giliran jaga
+
+**Kebutuhan.** Di [[t3-m27]], 10.000 promo berada di depan notifikasi uang. Tanpa kelas, notifikasi uang menunggu paling sedikit 30 detik, dan tidak ada alert untuk umur notifikasi tertua. Pak Hadi menuntut pemberitahuan yang tidak mendahului uang, dan PRD v3 menjanjikan bayar dan transfer di bawah 30 detik untuk 95% ([[t3-prd]]). Tim hanya empat orang, dengan satu VPS produksi dan satu staging.
+
+**Status:** diterima di minggu 9 Tahap 3, sesudah M27. Minggu itu dibaca dari tabel masalah: naskah tidak menulis tanggal ADR. Memperbarui ADR 23: outbox di [[t3-outbox]] ditulis tanpa kelas.
+
+**Beda dengan naskah.** Tiga hal di naskah tidak cocok dengan rekaman atau sumbernya.
+
+- Naskah menulis ambang alert ditetapkan di lab. Lab hanya merekam umur uang, dan 30 detik datang dari PRD. Error rate dan p95 tidak direkam, jadi ambangnya belum ditetapkan.
+- Naskah menulis kapan salah: tim lebih dari sekitar delapan orang. Buku SRE menulis delapan sebagai jumlah paling sedikit untuk rotasi 24 jam dengan dua penjaga, jadi delapan bukan batas atas. Halaman ini memakai tanda yang bisa dihitung.
+- Naskah dan PROPOSAL menulis Testcontainers untuk tes. Lab memakai docker compose, sama dengan [[t2-tim-infra]].
+
+Keputusan queue punya tiga opsi:
+
+| | A. Satu queue menurut nomor | B. Dua tabel outbox | C. Satu tabel dengan kolom `kelas` |
+|---|---|---|---|
+| Cara kerja | Worker mengklaim menurut nomor, seperti mode `urut-waktu` | Tabel terpisah untuk uang dan untuk top-up dan promo, dibaca worker yang sama atau dua worker | Kolom `kelas` 0 sampai 2, indeks sebagian `(kelas, id)`, klaim `ORDER BY kelas, id` |
+| Kelebihan | Kode paling sederhana, dan urutan sama dengan urutan tulis | Promo tidak bisa menumpuk di tabel uang, dan retensi bisa dibedakan | Satu klaim, satu retensi, dan satu tempat baris `mati`; uang dikirim lebih dulu |
+| Kekurangan | Uang menunggu di belakang semua promo | Kode klaim, retensi, dan pemantauan dobel; jurnal menulis ke tabel berbeda menurut jenis | Kelas hanya mengatur urutan klaim, bukan kapasitas worker |
+| Biaya operasional | Nol | Dua jalur klaim, dan dua tempat baris `mati` yang harus dibaca | Satu kolom dan satu aturan penulisan kelas; alert per kelas butuh kueri per kelas |
+| Bukti | Rekaman lab `queue.txt` bagian C: uang menunggu paling sedikit 30 detik | Tidak dijalankan; Amazon menulis queue terpisah per beban kerja berguna untuk jumlah beban kerja yang sedikit, dengan ongkos polling | Rekaman lab `queue.txt` bagian D, E, dan F |
+
+Keputusan lain punya opsi sendiri:
+
+| Keputusan | Dipilih | Ditolak | Kenapa ditolak |
+|---|---|---|---|
+| Alert | Umur uang tertua per kelas, error rate, p95, dan request menunggu koneksi | Alert hanya dari CPU | CPU adalah penyebab yang mungkin, bukan gejala; lab tidak mengukurnya (Tidak dijalankan) |
+| Alert | Umur dihitung dari kelas uang | Umur tertua dari semua kelas | Berbunyi walau uang tepat waktu (`queue.txt` bagian E) |
+| Alert | Alert hanya ke yang jaga | Semua engineer menerima semua alert | Buku SRE menanyakan apakah orang lain ikut dipanggil, karena itu membuat setidaknya satu panggilan tidak perlu |
+| Lingkungan | Staging yang berbentuk sama dengan produksi | Tanpa staging | Batas login dua kali lipat di [[t3-m22]] ditemukan di staging; tanpa staging, itu terlihat pertama kali di produksi (penalaran) |
+
+**Keputusan: opsi C, dengan enam aturan.**
+
+1. Baris `outbox` punya kolom `kelas`: 0 untuk bayar dan transfer, 1 untuk top-up massal, 2 untuk promo. Worker mengklaim menurut kelas, lalu nomor.
+2. Promo paling banyak 5 baris per detik, dijadwalkan lewat `coba_lagi`.
+3. Alert membangunkan orang hanya untuk gejala yang dirasakan user: umur notifikasi uang tertua dari kelas 0, error rate, p95, dan request menunggu koneksi. Kejadian lain dibaca di dasbor.
+4. Merge ke `main` menjalankan tes dengan PostgreSQL dan Redis sungguhan, dengan `TES_DB_WAJIB` dan `TES_REDIS_WAJIB` menyala, lalu migration dry-run dan k6 smoke 30 detik.
+5. Staging diperbarui otomatis dari `main` dan berbentuk sama dengan produksi. Produksi lewat approve. Pengecualian khusus staging tidak ikut ke build rilis. Backup `pg_dump` harian diuji pulih tiap minggu di staging (Asumsi).
+6. Giliran jaga mingguan, satu orang. Alert hanya sampai ke yang jaga.
+
+**Wujud di kode.** Aturan 1 ada di migrasi `000017` dan di klaim worker. Kolom `kelas` bertipe `smallint NOT NULL CHECK (kelas BETWEEN 0 AND 2)`, dan klaim memilih `ORDER BY kelas, id` bila `urutKelas` bernilai benar:
+
+<Snippet file="labs/api-t3/internal/repo/outbox.go" lines="74:89" lang="go" title="Kode lab: labs/api-t3/internal/repo/outbox.go baris 74 sampai 89 (klaim menurut kelas)" />
+
+Aturan 2 belum ada di kode. `UmumkanPromo` menulis semua baris sekaligus dengan `coba_lagi` bawaan, dan rekaman bagian F menjadwalkan 5 per detik lewat `UPDATE` yang ditulis lab. Terukur 4 sampai 5,6 per detik. Dengan 5 per detik, 10.000 promo butuh 2.000 detik, yaitu ±33 menit (Hitungan), dan sisa kapasitas 13,33 − 5 = 8,33 per detik.
+
+**Kenapa C, bukan A atau B.** A sudah gagal di M27, dan mengganti jumlah pengirim tidak mengubah siapa yang menunggu. B menyelesaikan hal yang sama dengan lebih banyak bagian bergerak.
+
+Amazon menulis bahwa queue terpisah per beban kerja cocok bila jumlah beban kerja sedikit. Ongkosnya polling ke semua queue ([Amazon Builders' Library: Avoiding insurmountable queue backlogs](https://aws.amazon.com/builders-library/avoiding-insurmountable-queue-backlogs/), 2019-12-05, dibuka 2026-10-27). Rekeningo punya tiga kelas, jadi B tidak salah. Biayanya lebih besar untuk hasil yang sama.
+
+**Kasus industri.** Amazon mengukur umur pesan di dalam queue untuk mengetahui sistem yang tertinggal. Alarm pada volume dead-letter queue mereka anggap baik, tetapi datang terlalu lambat bila dipakai sendirian. Backlog wajar untuk sebagian pesan.
+
+Di pemrosesan pesanan, mereka lebih suka menerima pesanan walau backlog tumbuh. Prioritas di belakang layar membuat pesanan paling mendesak ditangani lebih dulu ([sumber yang sama](https://aws.amazon.com/builders-library/avoiding-insurmountable-queue-backlogs/)).
+
+Amazon SQS punya metric `ApproximateAgeOfOldestMessage` untuk umur pesan tertua. Untuk fair queue, ada versi yang mengecualikan kelompok bervolume tinggi supaya ukuran itu tidak terdistorsi ([Amazon SQS: CloudWatch metrics](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html), dibuka 2026-10-27). Hubungannya dengan Rekeningo sejajar, bukan sama: promo adalah kelompok bervolume tinggi, dan umur dihitung per kelas supaya promo tidak menutupi uang.
+
+Batasnya: tulisan Amazon adalah pandangan satu penulis tentang praktik internal pada skala jauh di atas Rekeningo. Tulisan itu tidak menyebut ambang alarm.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Baris uang ditulis dengan kelas yang salah, dan notifikasi uang antre di belakang promo lagi. Database hanya membatasi `kelas` antara 0 dan 2, dan tidak mengikatnya ke `jenis`. Pencegahannya ada dua. Tiga konstanta `KelasUang`, `KelasTopup`, dan `KelasPromo` hidup di satu tempat, dan tes service memeriksa kelas tiap jenis. `CHECK` yang mengikat `kelas` ke `jenis` adalah tambahan yang diusulkan, Tidak dijalankan.
+2. Alert umur tidak berbunyi saat push mati dengan cepat. Baris menjadi `mati` sekitar 30 detik sesudah dibuat, dan umurnya hilang dari angka. Amazon juga menyarankan alarm pada volume dead-letter queue. Pencegahannya belum ada di ADR ini: alert jumlah baris `mati` diusulkan di [[t3-at-least-once]] dan belum diputuskan.
+3. Staging menyimpang dari produksi, dan pengecualian staging terbawa seperti flag sertifikat di [[t3-m26]]. Pencegahannya aturan 5: pengecualian staging tidak ikut ke build rilis. Aturan itu belum punya pemeriksaan otomatis (Tidak dijalankan).
+
+**Kapan keputusan ini salah.** Tiga tanda:
+
+1. Engineer yang bisa memegang jalur uang kurang dari empat. Dengan tiga orang rotasi menjadi 33% minggu, di atas batas 25% (Hitungan).
+2. Alert berbunyi dua kali atau lebih per giliran. Buku SRE memberi contoh sasaran yang bisa diukur: kurang dari dua panggilan per giliran. Itu bukan aturan, dan di Rekeningo angka itu pilihan penulis (Asumsi).
+3. Staging dan produksi berbeda dalam jumlah instance, Redis, atau konfigurasi, sehingga tes yang lolos di staging bisa lolos palsu.
+
+**Yang akan merevisinya.** Tahap 4 menambah tes contract OpenAPI, pemindaian kode, SBOM, dan image bertanda tangan ke pipeline, dengan deploy blue/green (PROPOSAL, tabel pipeline per tahap). Tim naik dari empat menjadi 10 sampai 15 orang dalam tiga tim (naskah Tahap 3, jembatan), jadi rotasi dan alert dibagi lagi per tim. [[t3-adr-33]] mencatat yang sengaja belum dilakukan.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Replay otomatis baris `mati` | Replay buta mengulang kegagalan yang sama, dan dead-letter dibaca manusia dulu ([[t3-at-least-once]]) | Bila penyebab baris `mati` selalu sama dan aman diulang |
+| Alert jumlah baris `mati` | Naskah ADR 32 hanya memuat umur tertua. [[t3-at-least-once]] mengusulkannya dan belum diputuskan | Bila gangguan push berlalu tanpa membangunkan siapa pun |
+| Worker terpisah per kelas | Satu worker cukup: 13,33 lawan 0,868 per detik, sekitar 15 kali puncak (Hitungan). Putaran yang menunggu pengiriman promo yang menggantung menahan uang sampai batas push 3 detik (dibaca dari kode, Tidak dijalankan) | Bila pengiriman promo menahan putaran uang |
+| Canary, Kubernetes, dan VPS kedua | Dua instance dan satu VPS cukup untuk beban Tahap 3 | [[t3-adr-33]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Alert umur tertua dari semua kelas berbunyi di tengah promo, padahal uang tepat waktu. Apa yang diganti?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Umur dihitung dari kelas uang saja. Di `queue.txt` bagian E, umur tertua semua kelas lebih dari 30 detik, sementara tidak ada baris uang yang menunggu.
+
+</details>
+
+**2.** Satu instance berhenti dan 20 request berikutnya semuanya menjawab 200. Kenapa itu belum perlu membangunkan siapa pun?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+User tidak merasakannya: di `panic.txt` bagian D, 20 dari 20 request menjawab 200 dari instance yang hidup. Alert hanya untuk gejala yang dirasakan user. Sesudah kedua instance berhenti, 10 dari 10 request menjawab 503, dan itu gejalanya.
+
+</details>
+
+**3.** Empat engineer bergiliran jaga, satu orang per minggu. Berapa persen minggu tiap orang jaga, dan apa yang terjadi bila satu orang cuti?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+1 ÷ 4 = 25%, tepat di batas buku SRE. Bila satu orang cuti, rotasi menjadi 1 ÷ 3 = 33%, di atas batas (Hitungan atas Asumsi empat orang ikut).
+
+</details>
+
+**4.** `go test` di CI keluar 0, tetapi lab tidak punya database dan Redis. Kenapa itu belum berarti tes uang berjalan?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tes yang butuh keduanya dilewati, dan tes yang dilewati bukan tes yang gagal. Di `testing.txt` bagian B semua paket lolos dengan exit 0. Dengan `TES_DB_WAJIB=1` dan `TES_REDIS_WAJIB=1`, bagian C gagal dengan exit 1.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Baris `outbox` baru punya kelas yang benar, dan kode baru tidak menulis uang ke kelas 2.
+- [ ] Alert baru menunjuk gejala yang dirasakan user, dan umur notifikasi dihitung per kelas uang.
+- [ ] Workflow CI mempertahankan `TES_DB_WAJIB` dan `TES_REDIS_WAJIB`, dan tidak membuat paket tes dilewati.
+- [ ] Pengecualian khusus staging, seperti flag yang menerima sertifikat apa pun, tidak ikut ke build rilis.
+
+### Bacaan lanjut
+
+- [Google SRE book, bab 6: Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/) (edisi 2017)
+- [Google SRE book, bab 11: Being On-Call](https://sre.google/sre-book/being-on-call/) (edisi 2017)
+- [GitHub Docs: Managing environments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)
+- [Amazon Builders' Library: Avoiding insurmountable queue backlogs](https://aws.amazon.com/builders-library/avoiding-insurmountable-queue-backlogs/) (2019-12-05)
+- [Amazon SQS: CloudWatch metrics](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html)
+- [fastlane docs: match](https://docs.fastlane.tools/actions/match/)
+- [k6: Thresholds](https://grafana.com/docs/k6/latest/using-k6/thresholds/)
+- [Halaman istilah alert](/istilah/alert/) · [on-call](/istilah/on-call/) · [staging](/istilah/staging/)
+
+</Blok>
+
+<SkripLama daftar={["pilah"]} />

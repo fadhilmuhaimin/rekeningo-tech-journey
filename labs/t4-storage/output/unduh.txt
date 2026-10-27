@@ -1,0 +1,41 @@
+# Lab t4-storage · unduh lewat server: peran, alasan, audit, bucket privat, dan file yang ditimpa
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_storage · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-storage run.
+# penyimpanan objek: SeaweedFS 4.51 di container, endpoint S3 lokal, bucket privat 'berkas'
+# server: ./api-t4 -lab -objek-s3 <endpoint lokal>
+
+# --- A. Petugas risk membuka file lewat server: peran diperiksa, alasan wajib, satu baris audit ---
+GET /bo/verifikasi/1/berkas/kartu?alasan=... sebagai Ratih (risk): HTTP 200
+Content-Type: application/octet-stream
+X-Content-Type-Options: nosniff
+Cache-Control: no-store
+isi unduhan 500.000 byte, SHA-256 sama dengan yang diunggah dan dengan checksum_kartu di database: ya
+=> SELECT aksi, peran, objek, alasan FROM audit_log WHERE aksi = 'buka_berkas' ORDER BY id
+ aksi        | peran | objek              | alasan
+-------------+-------+--------------------+-----------------------------------------------------
+ buka_berkas | risk  | verifikasi:1/kartu | Peninjauan manual pengajuan verifikasi, tiket uji 1
+(1 row)
+rantai audit dihitung ulang: utuh = true
+
+# --- B. Yang bukan petugas risk: ditolak, dan tidak ada baris audit baru ---
+Dina (pemilik pengajuan): HTTP 403
+Eko (pemakai terverifikasi): HTTP 403
+tanpa token: HTTP 401
+Ratih tanpa alasan: HTTP 422
+Ratih dengan alasan 6 karakter (minimal 20): HTTP 422
+baris audit buka_berkas sebelum dan sesudah keempat percobaan: 1 dan 1
+
+# --- C. Bucket privat; URL GET bertanda tangan (alternatif yang ditolak) dipakai ulang tanpa catatan audit ---
+GET objek langsung ke penyimpanan tanpa tanda tangan: HTTP 403 AccessDenied
+# Alternatif: server menerbitkan URL GET berumur 5 menit. Di lab URL itu dibuat penanda tangan lab (server tidak punya endpoint seperti itu), hanya untuk memperlihatkan akibatnya.
+pemegang pertama: HTTP 200, 500.000 byte
+pemegang kedua (dikirim ulang oleh orang lain): HTTP 200, 500.000 byte
+baris audit buka_berkas sesudah dua unduhan lewat URL: 1 (tetap); unduh lewat server menulis satu baris per percobaan
+
+# --- D. File ditimpa sesudah diterima (pemegang URL unggah yang belum kedaluwarsa): checksum tidak cocok, file ditolak, percobaan tetap tercatat ---
+unduh kartu sesudah ditimpa: HTTP 500
+badan: {"type":"/problems/berkas-rusak","title":"Berkas tidak lolos pemeriksaan checksum","status":500}
+baris audit bertambah satu: 1 jadi 2
+swafoto yang tidak ditimpa tetap bisa dibuka: HTTP 200
+# Yang ditolak adalah isi yang tidak cocok dengan checksum yang dicatat saat diterima. File aslinya sudah hilang: penyimpanan tidak menyimpan versi lama (presign.txt bagian B).
+# Bila data tidak boleh ditimpa, pilihannya unggah lewat server (jalur POST /verifikasi di api-t4 sudah ada); ongkosnya server menyangga tiap file.

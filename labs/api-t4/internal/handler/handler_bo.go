@@ -41,6 +41,8 @@ func (s Server) petaBO(w http.ResponseWriter, err error, dilarang string) {
 		tulisProblem(w, Problem{Type: "/problems/status-sama", Title: "Akun sudah berstatus seperti itu", Status: 409})
 	case errors.Is(err, service.ErrBerkasRusak):
 		tulisProblem(w, Problem{Type: "/problems/berkas-rusak", Title: "Berkas tidak lolos pemeriksaan checksum", Status: 500})
+	case errors.Is(err, service.ErrBerkasDihapus):
+		tulisProblem(w, Problem{Type: "/problems/berkas-dihapus", Title: "Berkas sudah dihapus menurut masa simpan", Status: 410})
 	case errors.Is(err, service.ErrObjekTidakDipasang), errors.Is(err, service.ErrFlagTidakDipasang):
 		tulisProblem(w, Problem{Type: "/problems/tidak-dipasang", Title: "Komponen ini tidak dipasang di server ini", Status: 503})
 	case errors.Is(err, objek.ErrTidakAda):
