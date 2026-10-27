@@ -2000,6 +2000,38 @@
   "jawab": "Jawaban itu respons yang tersimpan sejak Jumat. Database sudah menyimpan stok 50 dan versi 3 (`m24.txt` bagian C). App membaca keadaan terbaru sesudah jawaban ulangan."
  },
  {
+  "id": "t3-m25-1",
+  "halaman": "t3-m25",
+  "judul": "3.22 M25: Kotak peringatan di riwayat Ani",
+  "url": "tahap-3/m25-kotak-peringatan/",
+  "tanya": "Catatan Dimas lolos validasi panjang dan karakter kontrol. Kenapa menolak tanda `<` saat catatan masuk bukan perbaikan yang baik?",
+  "jawab": "Catatan sah seperti \"5 < 10\" ikut ditolak (penalaran). Baris yang sudah ada di jurnal juga tidak bisa dihapus: role aplikasi hanya punya `SELECT` dan `INSERT`, dan `DELETE` ditolak (`skema.txt` bagian D). Catatan perlu ditulis sebagai teks di tempat ia tampil."
+ },
+ {
+  "id": "t3-m25-2",
+  "halaman": "t3-m25",
+  "judul": "3.22 M25: Kotak peringatan di riwayat Ani",
+  "url": "tahap-3/m25-kotak-peringatan/",
+  "tanya": "Cookie sesi Ani `HttpOnly`. Kenapa skrip yang berjalan di halaman dasbor tetap bisa mengubah harga?",
+  "jawab": "`HttpOnly` melarang skrip membaca cookie, bukan memakainya: `fetch` dari halaman yang sama ikut mengirim cookie (MDN Set-Cookie, Tidak dijalankan). Di bagian D `fetch` membawa cookie dan token CSRF halaman itu, jadi dijawab 200 dan harga berubah ke Rp2. Skrip D diperankan Playwright, bukan catatan Dimas."
+ },
+ {
+  "id": "t3-m25-3",
+  "halaman": "t3-m25",
+  "judul": "3.22 M25: Kotak peringatan di riwayat Ani",
+  "url": "tahap-3/m25-kotak-peringatan/",
+  "tanya": "Wulan menduga ekstensi browser Ani. Apa di rekaman yang menunjukkan dugaan itu tidak cocok?",
+  "jawab": "`driver.js` meluncurkan Chromium baru lewat `chromium.launch()` dan `newContext()`, tanpa persistent context, jadi tanpa ekstensi. Dialog berisi 1 tetap muncul di sana (`xss.txt` bagian A)."
+ },
+ {
+  "id": "t3-m25-4",
+  "halaman": "t3-m25",
+  "judul": "3.22 M25: Kotak peringatan di riwayat Ani",
+  "url": "tahap-3/m25-kotak-peringatan/",
+  "tanya": "Bagian D dan E memakai dasbor yang sama kecuali cara menulis catatan. Apa bedanya hasil, dan apa yang tidak berubah di database?",
+  "jawab": "D memakai `innerHTML` dan satu dialog berisi 1 muncul. E memakai `textContent`: 0 dialog, 0 elemen `<img>`, dan tag terlihat sebagai teks. Catatan di database sama di keduanya, dan hanya cara menulisnya ke halaman yang berbeda."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",
