@@ -1,6 +1,6 @@
 // Command pindairahasia mencari kunci produksi di berkas staging (lab t4-infra, M34, ADR 39): token berawalan kunci
 // produksi, atau token yang SHA-256-nya ada di daftar sidik rahasia produksi. Keluaran memuat berkas, nomor baris, dan
-// alasan; nilai kunci tidak pernah dicetak. Exit 1 bila ada temuan, 0 bila bersih, 2 bila argumen atau berkas salah.
+// alasan; nilai kunci tidak pernah dicetak. Exit 1 bila ada temuan (juga baris yang tidak bisa dipindai), 0 bila bersih, 2 bila argumen atau berkas salah.
 //
 //	pindairahasia -awalan gw_live_ -sidik produksi.sidik staging/.env staging/konfigurasi.json
 package main
@@ -37,6 +37,10 @@ func main() {
 			}
 		}
 		f.Close()
+		if err := sc.Err(); err != nil { // daftar sidik yang terpotong membuat aturan sidik diam-diam lebih lemah
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(2)
+		}
 	}
 	ada := false
 	for _, nama := range flag.Args() {
@@ -47,6 +51,10 @@ func main() {
 		}
 		for _, t := range rahasia.Pindai(nama, isi, *awalan, sidik) {
 			ada = true
+			if t.Alasan == rahasia.AlasanTakTerbaca {
+				fmt.Printf("%s:%d: baris tidak bisa dipindai (lebih panjang dari %d byte); sisa berkas tidak diperiksa\n", t.Berkas, t.Baris, rahasia.BatasBaris)
+				continue
+			}
 			fmt.Printf("%s:%d: kunci produksi (%s)\n", t.Berkas, t.Baris, t.Alasan)
 		}
 	}

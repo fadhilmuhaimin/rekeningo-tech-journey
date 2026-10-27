@@ -180,3 +180,47 @@ func TestIzinkanMenggantiDaftarLewatRuteLabDanUlangTidakMenghapusIzin(t *testing
 		t.Fatalf("GET /lab/alamat: %s", b)
 	}
 }
+
+func TestParseIzinIPv6TunggalHanyaSatuAlamatDanRingkasanDiurutkan(t *testing.T) {
+	if got := strings.Join(ip(t, "2001:db8::1"), " "); got != "2001:db8::1/128" {
+		t.Fatalf("IPv6 tunggal harus /128: %q", got)
+	}
+	d := daftarBaru()
+	izin, _ := parseIzin("2001:db8::1,172.18.0.3,10.5.0.0/16")
+	d.Atur(izin)
+	if !d.Periksa("2001:db8::1") || d.Periksa("2001:db8::2") {
+		t.Fatal("hanya alamat IPv6 yang terdaftar yang diterima")
+	}
+	if got := strings.Join(d.Ringkas().Izin, " "); got != "10.5.0.0/16 172.18.0.3/32 2001:db8::1/128" {
+		t.Fatalf("ringkasan izin harus diurutkan: %q", got)
+	}
+	r := d.Ringkas()
+	r.Diterima["bukan-milik-daftar"] = 99
+	r.Ditolak["bukan-milik-daftar"] = 99
+	if r := d.Ringkas(); r.Diterima["bukan-milik-daftar"] != 0 || r.Ditolak["bukan-milik-daftar"] != 0 {
+		t.Fatal("Ringkas harus mengembalikan salinan hitungan")
+	}
+}
+
+func TestIzinkanKeduaKaliMenggantiDaftarPertamaBukanMenambah(t *testing.T) {
+	_, h := vendorUji(t, "")
+	post := func(body string) int {
+		r := httptest.NewRequest("POST", "/lab/izinkan", strings.NewReader(body))
+		r.RemoteAddr = "203.0.113.9:1"
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w.Code
+	}
+	if c := post(`{"alamat":["172.18.0.3"]}`); c != 204 {
+		t.Fatalf("izinkan pertama: %d", c)
+	}
+	if c := post(`{"alamat":["172.18.0.4"]}`); c != 204 {
+		t.Fatalf("izinkan kedua: %d", c)
+	}
+	if w := kirimDari(h, "172.18.0.3", ""); w.Code != http.StatusForbidden {
+		t.Fatalf("alamat dari daftar pertama harus ditolak sesudah daftar diganti: %d", w.Code)
+	}
+	if w := kirimDari(h, "172.18.0.4", ""); w.Code != 200 {
+		t.Fatalf("alamat dari daftar kedua: %d", w.Code)
+	}
+}

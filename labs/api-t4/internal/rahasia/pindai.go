@@ -21,7 +21,14 @@ const (
 	// AlasanSidik: SHA-256 token sama dengan sidik rahasia produksi yang diberikan. Menangkap nilai yang disalin
 	// apa pun formatnya, tetapi hanya untuk rahasia yang sidiknya diketahui pemindai.
 	AlasanSidik = "sidik"
+	// AlasanTakTerbaca: baris yang tidak bisa dibaca pemindai (lebih panjang dari BatasBaris). Pemindai berhenti di
+	// baris itu dan sisa berkas tidak diperiksa, jadi hasil "bersih" tidak boleh keluar: baris itu dilaporkan sebagai
+	// temuan (gagal tertutup).
+	AlasanTakTerbaca = "tak-terbaca"
 )
+
+// BatasBaris: panjang baris terbesar yang dipindai, dalam byte.
+const BatasBaris = 1 << 20
 
 // token: rangkaian karakter yang mungkin membentuk satu kunci (huruf, angka, garis bawah, strip, plus, garis miring).
 var token = regexp.MustCompile(`[A-Za-z0-9_+/\-]{8,}`)
@@ -32,8 +39,10 @@ var token = regexp.MustCompile(`[A-Za-z0-9_+/\-]{8,}`)
 func Pindai(nama string, isi []byte, awalan string, sidikProduksi map[string]bool) []Temuan {
 	var hasil []Temuan
 	sc := bufio.NewScanner(bytes.NewReader(isi))
-	sc.Buffer(make([]byte, 0, 64<<10), 1<<20)
-	for n := 1; sc.Scan(); n++ {
+	sc.Buffer(make([]byte, 0, 64<<10), BatasBaris)
+	n := 0
+	for sc.Scan() {
+		n++
 		baris := sc.Text()
 		kandidat := token.FindAllString(baris, -1)
 		if i := strings.IndexAny(baris, "=:"); i >= 0 {
@@ -58,6 +67,9 @@ func Pindai(nama string, isi []byte, awalan string, sidikProduksi map[string]boo
 		if alasan != "" {
 			hasil = append(hasil, Temuan{Berkas: nama, Baris: n, Alasan: alasan})
 		}
+	}
+	if sc.Err() != nil { // bufio.ErrTooLong: tanpa ini baris panjang diam-diam menyembunyikan sisa berkas
+		hasil = append(hasil, Temuan{Berkas: nama, Baris: n + 1, Alasan: AlasanTakTerbaca})
 	}
 	return hasil
 }

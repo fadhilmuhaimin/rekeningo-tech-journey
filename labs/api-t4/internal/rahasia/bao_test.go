@@ -196,6 +196,43 @@ func TestSidikTidakMembukaNilaiDanDihitungDariSHA256(t *testing.T) {
 	if strings.Contains(string(j), "rahasia-penuh") {
 		t.Fatalf("status membocorkan nilai: %s", j)
 	}
+	if got := p.Status().Sidik; len(got) != 1 || len(got[0]) != 8 || got[0] != rahasia.Sidik("rahasia-penuh-12345") {
+		t.Fatalf("status hanya memuat delapan karakter pertama SHA-256: %v", got)
+	}
+}
+
+func TestPembacaanYangMenggantungBerakhirDenganGalatDalamBatasWaktu(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { <-r.Context().Done() }))
+	t.Cleanup(s.Close)
+	p := rahasia.Baru(s.URL, "token-uji", "/secret/data/pembayaran/webhook", 50*time.Millisecond)
+	ctx, batal := context.WithTimeout(context.Background(), 2*time.Second) // jaring pengaman tes; batas yang diuji adalah milik Pembaca
+	defer batal()
+	mulai := time.Now()
+	if err := p.Muat(ctx); err == nil {
+		t.Fatal("server yang menggantung harus galat")
+	}
+	if lama := time.Since(mulai); lama > time.Second {
+		t.Fatalf("pembacaan harus berhenti di batas waktu 50 ms, bukan menunggu: %v", lama)
+	}
+	if st := p.Status(); st.Gagal != 1 || st.GagalBeruntun != 1 {
+		t.Fatalf("status %+v", st)
+	}
+}
+
+func TestVersiDokumenMengikutiOpenBaoTermasukTurunSesudahRestartModeDev(t *testing.T) {
+	b, s := baoUji(t, dok(7, "a", ""))
+	p := pembaca(s)
+	p.Muat(context.Background())
+	if p.Status().Versi != 7 {
+		t.Fatalf("versi %d", p.Status().Versi)
+	}
+	b.atur(200, dok(1, "b", "")) // OpenBao mode dev dinyalakan lagi: data baru dari versi 1
+	if err := p.Muat(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if st := p.Status(); st.Versi != 1 || strings.Join(p.Daftar(), ",") != "b" {
+		t.Fatalf("versi dan daftar harus mengikuti pembacaan terakhir: %+v %v", st, p.Daftar())
+	}
 }
 
 func TestDaftarMengembalikanSalinanYangTidakMengubahIsiPembaca(t *testing.T) {

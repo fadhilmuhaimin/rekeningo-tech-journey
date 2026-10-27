@@ -47,9 +47,12 @@ func TestRahasiaFnDipanggilTiapPemeriksaanDanMenggantikanDaftarTetap(t *testing.
 	if err := periksa("v2"); err != nil {
 		t.Fatalf("v2: %v", err)
 	}
-	set() // secret manager belum pernah terbaca: tidak ada rahasia, semua ditolak
-	if err := periksa("v2"); !errors.Is(err, pembayaran.ErrTandaTangan) {
-		t.Fatalf("tanpa rahasia semua kiriman harus ditolak: %v", err)
+	set()
+	// secret manager belum pernah terbaca: tidak ada rahasia, semua ditolak; daftar tetap tidak menggantikan daftar dinamis yang kosong
+	for _, r := range []string{"v2", "tetap"} {
+		if err := periksa(r); !errors.Is(err, pembayaran.ErrTandaTangan) {
+			t.Fatalf("tanpa rahasia semua kiriman harus ditolak (%s): %v", r, err)
+		}
 	}
 }
 

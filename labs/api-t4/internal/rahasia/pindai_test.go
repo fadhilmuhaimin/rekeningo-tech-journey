@@ -63,3 +63,35 @@ func TestPindaiAwalanHanyaBerlakuDiAwalTokenBukanDiTengah(t *testing.T) {
 		t.Fatalf("awalan di tengah token bukan kunci produksi: %+v", got)
 	}
 }
+
+func TestPindaiSidikMenangkapTokenPendekDanBerhubungDanNilaiBerkarakterKhusus(t *testing.T) {
+	sidik := map[string]bool{
+		rahasia.SidikPenuh("hunter22"):        true, // tepat delapan karakter, di baris bebas tanpa = atau :
+		rahasia.SidikPenuh("abc-def-ghi-jkl"): true, // tanda hubung di dalam token, di array JSON
+		rahasia.SidikPenuh("p@ss.w0rd!"):      true, // karakter di luar token: hanya lewat nilai sesudah =, tanda kutip dibuang
+		rahasia.SidikPenuh("k7"):              true, // nilai pendek sesudah =
+	}
+	isi := "jalankan hunter22 sekarang\n[\"abc-def-ghi-jkl\"]\nPASS=\"p@ss.w0rd!\"\nK=k7\nbersih: tidak ada apa-apa di sini\n"
+	got := rahasia.Pindai("x", []byte(isi), "", sidik)
+	if len(got) != 4 {
+		t.Fatalf("temuan: %+v", got)
+	}
+	for i, g := range got {
+		if g.Baris != i+1 || g.Alasan != rahasia.AlasanSidik {
+			t.Errorf("temuan %d: %+v", i, g)
+		}
+	}
+}
+
+func TestPindaiBarisLebihPanjangDariBatasTidakMenyembunyikanSisaBerkas(t *testing.T) {
+	// Tanpa pemeriksaan galat pembaca, baris pertama yang terlalu panjang menghentikan pemindaian dan berkas ini
+	// tampak bersih padahal baris kedua memuat kunci produksi.
+	isi := "CATATAN=" + strings.Repeat("x", rahasia.BatasBaris+1) + "\nGATEWAY_KEY=" + prod + "\n"
+	got := rahasia.Pindai("besar.env", []byte(isi), "gw_live_", nil)
+	if len(got) != 1 || got[0].Baris != 1 || got[0].Alasan != rahasia.AlasanTakTerbaca || got[0].Berkas != "besar.env" {
+		t.Fatalf("baris yang tidak terbaca harus dilaporkan: %+v", got)
+	}
+	if got := rahasia.Pindai("pas.env", []byte("CATATAN="+strings.Repeat("x", rahasia.BatasBaris-100)+"\nGATEWAY_KEY="+prod+"\n"), "gw_live_", nil); len(got) != 1 || got[0].Baris != 2 || got[0].Alasan != rahasia.AlasanAwalan {
+		t.Fatalf("baris di bawah batas dipindai biasa: %+v", got)
+	}
+}

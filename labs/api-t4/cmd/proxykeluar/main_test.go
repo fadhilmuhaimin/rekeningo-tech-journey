@@ -5,9 +5,29 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
+
+// proxyLingkungan: proxy lain yang dipasang di HTTP_PROXY untuk seluruh proses tes, sebelum transport mana pun
+// membaca lingkungan (net/http membacanya sekali). Permintaan yang sampai ke sini berarti proxy keluar memakai proxy lain.
+var proxyLingkungan atomic.Int32
+
+func TestMain(m *testing.M) {
+	lain := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		proxyLingkungan.Add(1)
+		http.Error(w, "proxy lain", http.StatusTeapot)
+	}))
+	os.Setenv("HTTP_PROXY", lain.URL)
+	os.Setenv("http_proxy", lain.URL)
+	os.Unsetenv("NO_PROXY")
+	os.Unsetenv("no_proxy")
+	kode := m.Run()
+	lain.Close()
+	os.Exit(kode)
+}
 
 // Proxy keluar bertetap (lab t4-infra, M34, ADR 39): hanya tujuan terdaftar, tidak menambah klaim alamat, tidak
 // meneruskan header per koneksi, tidak menerima CONNECT.
@@ -148,5 +168,47 @@ func TestProxyTujuanTanpaPortDianggapPort80(t *testing.T) {
 	h.ServeHTTP(w, httptest.NewRequest("GET", "http://vendor:8284/x", nil))
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("port lain harus 403: %d", w.Code)
+	}
+}
+
+func TestProxyTidakMemakaiProxyLainDariLingkungan(t *testing.T) {
+	// Tujuan loopback dikecualikan dari HTTP_PROXY oleh net/http; nama ini bukan loopback, jadi transport yang membaca
+	// lingkungan akan mengirimnya ke proxyLingkungan. Proxy keluar harus menghubungi tujuan sendiri: nama ini tidak
+	// bisa di-resolve, jawabannya 502.
+	c := lewatProxy(t, "tujuan.lab.invalid:8284")
+	r, err := c.Get("http://tujuan.lab.invalid:8284/x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Body.Close()
+	if r.StatusCode != http.StatusBadGateway {
+		t.Fatalf("status %d, ingin 502 dari tujuan yang tidak terjangkau", r.StatusCode)
+	}
+	if n := proxyLingkungan.Load(); n != 0 {
+		t.Fatalf("proxy keluar mengirim %d permintaan lewat HTTP_PROXY; ia tidak boleh memakai proxy lain", n)
+	}
+}
+
+func TestProxyTidakMeneruskanHeaderPerKoneksiDariJawabanTujuan(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Keep-Alive", "timeout=5")
+		w.Header().Set("Proxy-Authenticate", "Basic realm=tujuan")
+		w.Header().Set("X-Tetap", "ya")
+		io.WriteString(w, "isi")
+	}))
+	t.Cleanup(s.Close)
+	c := lewatProxy(t, strings.TrimPrefix(s.URL, "http://"))
+	r, err := c.Get(s.URL + "/x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Body.Close()
+	if r.Header.Get("X-Tetap") != "ya" {
+		t.Fatalf("header biasa harus diteruskan: %v", r.Header)
+	}
+	for _, k := range []string{"Keep-Alive", "Proxy-Authenticate"} {
+		if v := r.Header.Get(k); v != "" {
+			t.Errorf("header per koneksi %s dari tujuan tidak boleh diteruskan: %q", k, v)
+		}
 	}
 }
