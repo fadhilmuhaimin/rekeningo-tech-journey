@@ -401,7 +401,7 @@ def rekam_latensi():
     jalankan_go("TEST_DATABASE_URL=<pemilik, schema tahap4_modul_tes> go test -tags t4modul -count=1 -v -run TestLatensiHTTPInternal ./internal/handler",
                 ["test", "-tags", "t4modul", "-count=1", "-v", "-run", "TestLatensiHTTPInternal", "./internal/handler"], env=env, hanya_lab=True)
     catat("# Hitungan untuk ADR 37: pada puncak 0,579 top-up per detik (naskah bagian 3), satu lompatan HTTP yang menahan koneksi")
-    catat("# selama W ms memakai L = 0,579 x W ms; dengan W = 50 ms L = 0,029 koneksi dari pool pembayaran 5 (Hitungan, Asumsi).")
+    catat("# selama W ms memakai L = 0,579 x W ms; dengan W = 50 ms L = 0,029 koneksi dari pool pembayaran 10 (2 instance x 5, Asumsi naskah; Hitungan).")
     tulis("latensi.txt", "tambahan latensi HTTP internal sebagai batas yang diperiksa", f"schema {TES}, monolith dan klien ledger di localhost")
 
 

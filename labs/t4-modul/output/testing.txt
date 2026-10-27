@@ -1,0 +1,91 @@
+# Lab t4-modul · tes Go API ledger, client ledger, modul pembayaran, dan batas modul
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_modul_tes dan t4m_*
+# Rekaman dari database bersih: make -C labs/t4-modul run.
+
+# --- A. go vet, dengan dan tanpa tag t4modul ---
+$ go vet ./...
+(tanpa keluaran)
+# exit status 0
+$ go vet -tags t4modul ./...
+(tanpa keluaran)
+# exit status 0
+
+# --- B. Tes API ledger (service dan HTTP) dan modul pembayaran dengan PostgreSQL sungguhan (schema tahap4_modul_tes) ---
+$ TEST_DATABASE_URL=<pemilik, schema tahap4_modul_tes> go test -count=1 -p 1 -v -run TestLedger ./internal/service ./internal/handler
+--- PASS: TestLedgerKreditTopupSatuJurnalPerKey
+--- PASS: TestLedgerKreditTopupSerentakSatuJurnal
+--- PASS: TestLedgerKunciHarusSamaDenganOrderDanDipakaiSatuPermintaan
+--- PASS: TestLedgerDitolakDibekukanDanBatasTingkatTidakMenahanKey
+--- PASS: TestLedgerUlanganTidakKenaBatasSaldo
+--- PASS: TestLedgerAkunTidakAda
+--- PASS: TestLedgerKeyHabisSesudah24JamMenjurnalLagi
+PASS
+ok    lab/apit4/internal/service
+--- PASS: TestLedgerHTTPKunciLayananDanIdempotencyKeyWajib
+--- PASS: TestLedgerTanpaKunciLayananRuteTidakAda
+--- PASS: TestLedgerKlienBaruUlangDitolak
+--- PASS: TestLedgerTimeoutPemanggilBukanGagal
+PASS
+ok    lab/apit4/internal/handler
+# exit status 0
+$ TEST_DATABASE_URL=<pemilik, schema tahap4_modul_tes> go test -count=1 -p 1 -v ./internal/modul/...
+?     lab/apit4/internal/modul  [no test files]
+?     lab/apit4/internal/modul/akun  [no test files]
+?     lab/apit4/internal/modul/akun/internal/data  [no test files]
+?     lab/apit4/internal/modul/ledger  [no test files]
+--- PASS: TestTeksTopupLangsungDenganDataTiruanLolos
+--- PASS: TestTeksTopupLewatKontrakAkunDenganDataTiruan
+--- PASS: TestWebhookSettlementSatuJurnalWalauDuaKiriman
+--- PASS: TestWebhookDuaEventSatuKejadianSatuJurnal
+--- PASS: TestWebhookSerentakEventSamaDanBeda
+--- PASS: TestMatiSesudahLedgerLaluKirimUlangSatuJurnal
+--- PASS: TestWebhookMatiLaluJobCekStatusSatuJurnal
+--- PASS: TestWebhookDanJobCekStatusSerentakSatuJurnal
+--- PASS: TestJumlahDariBarisTopupBukanDariKabar
+--- PASS: TestTandaTanganDanTimestamp
+--- PASS: TestStatusHanyaMaju
+--- PASS: TestLedgerTidakPastiTidakMenandaiApaPun
+--- PASS: TestLedgerMenolakDiparkirTanpaMengubahStatus
+--- PASS: TestOrderTidakDikenalDitolakDanDicatat
+--- PASS: TestPembayaranTidakMengimporRepoDanService
+PASS
+ok    lab/apit4/internal/modul/pembayaran
+# exit status 0
+
+# --- C. Tanpa TEST_DATABASE_URL: tes yang butuh database dilewati, tes tanpa itu tetap jalan; TES_DB_WAJIB=1 menggagalkannya ---
+$ go test -count=1 ./internal/modul/...
+?     lab/apit4/internal/modul  [no test files]
+?     lab/apit4/internal/modul/akun  [no test files]
+?     lab/apit4/internal/modul/akun/internal/data  [no test files]
+?     lab/apit4/internal/modul/ledger  [no test files]
+ok    lab/apit4/internal/modul/pembayaran
+# exit status 0
+$ TES_DB_WAJIB=1 go test -count=1 ./internal/modul/pembayaran
+--- FAIL: TestWebhookSettlementSatuJurnalWalauDuaKiriman
+    pembayaran_test.go:209: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestWebhookDuaEventSatuKejadianSatuJurnal
+    pembayaran_test.go:227: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestWebhookSerentakEventSamaDanBeda
+    pembayaran_test.go:244: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestMatiSesudahLedgerLaluKirimUlangSatuJurnal
+    pembayaran_test.go:270: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestWebhookMatiLaluJobCekStatusSatuJurnal
+    pembayaran_test.go:303: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestWebhookDanJobCekStatusSerentakSatuJurnal
+    pembayaran_test.go:321: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestJumlahDariBarisTopupBukanDariKabar
+    pembayaran_test.go:336: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestTandaTanganDanTimestamp
+    pembayaran_test.go:349: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestStatusHanyaMaju
+    pembayaran_test.go:387: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestLedgerTidakPastiTidakMenandaiApaPun
+    pembayaran_test.go:404: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestLedgerMenolakDiparkirTanpaMengubahStatus
+    pembayaran_test.go:424: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestOrderTidakDikenalDitolakDanDicatat
+    pembayaran_test.go:439: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+FAIL
+FAIL  lab/apit4/internal/modul/pembayaran
+FAIL
+# exit status 1

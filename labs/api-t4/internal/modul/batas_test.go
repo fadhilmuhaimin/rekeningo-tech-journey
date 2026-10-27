@@ -108,6 +108,7 @@ func TestPembagianCocokDenganKatalog(t *testing.T) {
 // Matriks: tiap role modul mencoba membaca tiap tabel. Yang berhasil hanya tabel modulnya sendiri dan kontrak kolom
 // ledger ke akun.
 func TestMatriksRoleModul(t *testing.T) {
+	pemilik := buka(t, "lab")
 	for _, r := range urutan {
 		db := buka(t, "t4m_"+r)
 		boleh, ditolak := 0, 0
@@ -117,6 +118,21 @@ func TestMatriksRoleModul(t *testing.T) {
 				_, err := db.Exec(fmt.Sprintf(`SELECT 1 FROM t4m_%s.%s LIMIT 0`, m, tb))
 				kode, _ := pg(err)
 				diizinkan := m == r || (r == "ledger" && tb == "akun")
+				if m != r {
+					// Menulis juga ditolak: INSERT, UPDATE, dan DELETE (WHERE false: hak diperiksa sebelum baris dibaca).
+					var kol string
+					if err := pemilik.QueryRow(`SELECT column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 ORDER BY ordinal_position LIMIT 1`, "t4m_"+m, tb).Scan(&kol); err != nil {
+						t.Fatal(err)
+					}
+					for _, q := range []string{
+						fmt.Sprintf(`INSERT INTO t4m_%s.%s (%s) SELECT NULL WHERE false`, m, tb, kol),
+						fmt.Sprintf(`UPDATE t4m_%s.%s SET %s = %s WHERE false`, m, tb, kol, kol),
+						fmt.Sprintf(`DELETE FROM t4m_%s.%s WHERE false`, m, tb)} {
+						if _, err := db.Exec(q); func() string { k, _ := pg(err); return k }() != "42501" {
+							salah = append(salah, fmt.Sprintf("%s: %s: dapat %v, ingin 42501", r, q, err))
+						}
+					}
+				}
 				switch {
 				case err == nil && diizinkan:
 					boleh++
@@ -377,4 +393,20 @@ func TestImporInternalModulLainDitolakKompiler(t *testing.T) {
 	}
 	lab("$ go build ./internal/modul/pembayaran/   (kontrol: berkas uji mengimpor lab/apit4/internal/modul/akun, paket publik)")
 	lab("(lolos, tanpa keluaran)")
+}
+
+// Log yang hanya bertambah: role tidak punya UPDATE atau DELETE pada audit_log, jurnal, dan posting. Trigger invarian
+// juga menolak, tetapi hak adalah lapis pertama dan satu-satunya yang berlaku bila trigger dimatikan.
+func TestRoleTidakBisaMengubahCatatanYangHanyaBertambah(t *testing.T) {
+	for _, c := range []struct{ role, tabel string }{{"t4m_platform", "t4m_platform.audit_log"}, {"t4m_ledger", "t4m_ledger.jurnal"}, {"t4m_ledger", "t4m_ledger.posting"}} {
+		db := buka(t, c.role)
+		for _, q := range []string{fmt.Sprintf(`DELETE FROM %s WHERE false`, c.tabel), fmt.Sprintf(`UPDATE %s SET id = id WHERE false`, c.tabel)} {
+			_, err := db.Exec(q)
+			kode, _ := pg(err)
+			if kode != "42501" {
+				t.Fatalf("%s: %s: kode %q, ingin 42501", c.role, q, kode)
+			}
+		}
+		lab("%s: UPDATE dan DELETE pada %s -> permission denied (42501)", c.role, strings.TrimPrefix(c.tabel, "t4m_"))
+	}
 }

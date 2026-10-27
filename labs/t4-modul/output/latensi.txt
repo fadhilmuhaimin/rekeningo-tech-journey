@@ -1,0 +1,16 @@
+# Lab t4-modul · tambahan latensi HTTP internal sebagai batas yang diperiksa
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_modul_tes, monolith dan klien ledger di localhost
+# Rekaman dari database bersih: make -C labs/t4-modul run.
+
+# --- A. Tambahan latensi HTTP internal: fungsi ledger yang sama dipanggil langsung dan lewat HTTP ---
+# Anggaran 50 ms (Hitungan dari naskah: tenggat penerbit 2.000 ms dikurangi lock_timeout 1.000 ms menyisakan 1.000 ms; 5% dari sisa itu adalah Asumsi lab).
+# Yang diukur hanya satu lompatan HTTP di localhost di satu mesin; jaringan antar host tidak diukur. Nilai mentah tidak direkam, hanya batasnya.
+$ TEST_DATABASE_URL=<pemilik, schema tahap4_modul_tes> go test -tags t4modul -count=1 -v -run TestLatensiHTTPInternal ./internal/handler
+200 panggilan langsung dan 200 lewat HTTP bergantian (10 pemanasan dibuang), fungsi ledger yang sama
+batas: tambahan p95 lewat HTTP di bawah 50ms: ya
+--- PASS: TestLatensiHTTPInternalDiBawahAnggaran
+PASS
+ok    lab/apit4/internal/handler
+# exit status 0
+# Hitungan untuk ADR 37: pada puncak 0,579 top-up per detik (naskah bagian 3), satu lompatan HTTP yang menahan koneksi
+# selama W ms memakai L = 0,579 x W ms; dengan W = 50 ms L = 0,029 koneksi dari pool pembayaran 5 (Hitungan, Asumsi).

@@ -214,9 +214,15 @@ func TestWebhookSettlementSatuJurnalWalauDuaKiriman(t *testing.T) {
 	if err != nil || h1.Hasil != "diproses" || h1.Jurnal == nil {
 		t.Fatalf("kiriman pertama: %+v, %v", h1, err)
 	}
+	if hasil, ada := l.event(t, e); !ada || hasil != "diproses" {
+		t.Fatalf("event sesudah kiriman pertama: %q ada=%v, ingin diproses", hasil, ada)
+	}
 	h2, err := l.kirim(e, order, "settlement", 200_000)
 	if err != nil || h2.Hasil != "ganda" {
 		t.Fatalf("event yang sama lagi: %+v, %v; ingin ganda", h2, err)
+	}
+	if hasil, _ := l.event(t, e); hasil != "diproses" {
+		t.Fatalf("event sesudah kiriman kedua: %q, ingin tetap diproses (kiriman ganda tidak menimpa catatannya)", hasil)
 	}
 	if l.jurnal(t, order) != 1 || l.saldo(t, a) != 200_000 || l.status(t, order) != "dibayar" {
 		t.Fatalf("jurnal %d, saldo %d, status %s", l.jurnal(t, order), l.saldo(t, a), l.status(t, order))
@@ -460,4 +466,54 @@ func TestPembayaranTidakMengimporRepoDanService(t *testing.T) {
 			}
 		}
 	}
+}
+
+// Webhook sudah menjurnal; di tengah jeda sebelum transaction-nya, job cek status menyelesaikan top-up yang sama.
+// Webhook yang tiba terlambat di transaction-nya menjawab ganda, bukan diproses, dan jurnalnya tetap satu.
+func TestWebhookKalahDariJobDiTengahMenjawabGanda(t *testing.T) {
+	l := siapkan(t)
+	a := l.akun(t, "terverifikasi")
+	order := l.topup(t, a, 100_000)
+	l.gw.bayar(order)
+	sudah := false
+	l.p.TitikGagal = func(titik string) {
+		if titik == "sesudah-ledger" && !sudah {
+			sudah = true
+			if h, err := l.p.CekStatus(context.Background(), order); err != nil || h.Hasil != "diproses" {
+				t.Errorf("job di tengah jeda: %+v, %v", h, err)
+			}
+		}
+	}
+	h, err := l.kirim(event(l), order, "settlement", 100_000)
+	l.p.TitikGagal = nil
+	if err != nil || h.Hasil != "ganda" || h.Jurnal == nil {
+		t.Fatalf("webhook yang kalah: %+v, %v; ingin ganda dengan jurnal", h, err)
+	}
+	if l.jurnal(t, order) != 1 || l.saldo(t, a) != 100_000 || l.status(t, order) != "dibayar" {
+		t.Fatalf("jurnal %d, saldo %d, status %s", l.jurnal(t, order), l.saldo(t, a), l.status(t, order))
+	}
+}
+
+// Job cek status hanya menanyakan top-up yang menunggu lebih lama dari umur: diperiksa dari dua sisi batas (29 lawan 31 menit).
+func TestJobCekStatusUmurDariDuaSisi(t *testing.T) {
+	l := siapkan(t)
+	a := l.akun(t, "terverifikasi")
+	order := l.topup(t, a, 100_000)
+	l.gw.bayar(order)
+	pukul := func(menit time.Duration) { l.p.Kini = func() time.Time { return time.Now().Add(menit * time.Minute) } }
+	pukul(29)
+	if _, err := l.p.CekBelumSelesai(t.Context(), 30*time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	if s := l.status(t, order); s != "menunggu" {
+		t.Fatalf("pada umur 29 menit: status %s, ingin menunggu (belum ditanyakan)", s)
+	}
+	pukul(31)
+	if _, err := l.p.CekBelumSelesai(t.Context(), 30*time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	if s := l.status(t, order); s != "dibayar" {
+		t.Fatalf("pada umur 31 menit: status %s, ingin dibayar", s)
+	}
+	l.p.Kini = nil
 }

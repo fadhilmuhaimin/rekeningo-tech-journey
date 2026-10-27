@@ -172,9 +172,25 @@ func TestLedgerAkunTidakAda(t *testing.T) {
 	}
 }
 
-// Batas pengaman: key hanya hidup 24 jam (ADR 14). Sesudah itu key yang sama dianggap baru, dan hanya status
-// topup_bank di service pembayaran yang menahan jurnal kedua. Tes ini mencatat batas itu, bukan memuji key.
-func TestLedgerKeyHabisSesudah24JamMenjurnalLagi(t *testing.T) {
+func TestLedgerJumlahTidakSah(t *testing.T) {
+	svc, db := siapkan(t)
+	a, _ := akunBaru(t, db, "karyawan", 0)
+	for nama, jumlah := range map[string]int64{"nol": 0, "negatif": -1, "lebih dari batas Rp5.000.000": MaksTopupBank + 1} {
+		order := kunciOrder()
+		var ev ErrValidasi
+		if _, err := svc.LedgerKreditTopup(context.Background(), order, order, a, jumlah); !errors.As(err, &ev) {
+			t.Fatalf("%s: ingin ErrValidasi, dapat %v", nama, err)
+		}
+	}
+	order := kunciOrder()
+	if _, err := svc.LedgerKreditTopup(context.Background(), order, order, a, MaksTopupBank); err != nil {
+		t.Fatalf("tepat di batas Rp5.000.000: %v", err)
+	}
+}
+
+// Batas pengaman: key hanya hidup 24 jam (ADR 14). Pada 23 jam key masih menahan; pada 25 jam key dianggap baru, dan
+// hanya status topup_bank di service pembayaran yang menahan jurnal kedua. Tes ini mencatat batas itu, bukan memuji key.
+func TestLedgerKeyHidup24JamLaluMenjurnalLagi(t *testing.T) {
 	svc, db := siapkan(t)
 	ctx := context.Background()
 	a, _ := akunBaru(t, db, "karyawan", 0)
@@ -182,10 +198,15 @@ func TestLedgerKeyHabisSesudah24JamMenjurnalLagi(t *testing.T) {
 	if _, err := svc.LedgerKreditTopup(ctx, order, order, a, 100_000); err != nil {
 		t.Fatal(err)
 	}
-	nanti := svc.DenganJam(func() time.Time { return time.Now().Add(UmurKunciLedger + time.Hour) })
-	h, err := nanti.LedgerKreditTopup(ctx, order, order, a, 100_000)
+	pukul := func(jam time.Duration) Service {
+		return svc.DenganJam(func() time.Time { return time.Now().Add(jam * time.Hour) })
+	}
+	if h, err := pukul(23).LedgerKreditTopup(ctx, order, order, a, 100_000); err != nil || !h.Ulang {
+		t.Fatalf("pada 23 jam: %+v, %v; ingin ulang (key masih hidup)", h, err)
+	}
+	h, err := pukul(25).LedgerKreditTopup(ctx, order, order, a, 100_000)
 	if err != nil || h.Ulang {
-		t.Fatalf("key habis: %+v, %v; ingin jurnal baru", h, err)
+		t.Fatalf("pada 25 jam: %+v, %v; ingin jurnal baru (key habis)", h, err)
 	}
 	if n := jurnalUntukKey(t, db, order); n != 2 {
 		t.Fatalf("jurnal %d, ingin 2: sesudah 24 jam key tidak menahan lagi (%s)", n, fmt.Sprint("ADR 14"))
