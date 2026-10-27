@@ -10,7 +10,8 @@ import (
 	"lab/apit4/internal/service"
 )
 
-// API ledger untuk service pembayaran (ADR 37, lab t4-modul). Bukan bagian kontrak publik (openapi.yaml): hanya
+// API ledger untuk service pembayaran (ADR 37, lab t4-modul). Berkas ini sengaja tidak bernama handler*.go: tes
+// kontrak_test.go membandingkan rute publik di handler*.go dengan openapi.yaml, dan rute ini bukan rute publik. Bukan bagian kontrak publik (openapi.yaml): hanya
 // service pembayaran yang memanggilnya, dengan kunci layanan di header X-Layanan-Kunci. Tanpa kunci yang
 // dikonfigurasi, rute ini tidak dipasang sama sekali.
 

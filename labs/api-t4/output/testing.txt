@@ -62,8 +62,61 @@ cek status top-up 1 sesudah kabar diparkir: gateway tidak dikonfigurasi
 --- PASS: TestHandlerQRBayarMemakaiIdempotencyKey
 --- PASS: TestHandlerQRLaporkan
 --- PASS: TestRuteHandlerSamaDenganOpenAPI
+ledger: key=lain status=422 jurnal=<nil> ulang=<nil>
+ledger: key=TB-http-1793089986838619000 status=201 jurnal=21 ulang=false
+ledger: key=TB-http-1793089986838619000 status=200 jurnal=21 ulang=true
+--- PASS: TestLedgerHTTPKunciLayananDanIdempotencyKeyWajib
+--- PASS: TestLedgerTanpaKunciLayananRuteTidakAda
+ledger: key=TB-klien-1793089986853727000 status=201 jurnal=22 ulang=false
+ledger: key=TB-klien-1793089986853727000 status=200 jurnal=22 ulang=true
+ledger: key=TB-klien-1793089986853727000 status=422 jurnal=<nil> ulang=<nil>
+ledger: key=TB-klien-1793089986853727000-b status=422 jurnal=<nil> ulang=<nil>
+--- PASS: TestLedgerKlienBaruUlangDitolak
+ledger: key=TB-lambat-1793089986867112000 status=201 jurnal=23 ulang=false
+ledger: key=TB-lambat-1793089986867112000 status=200 jurnal=23 ulang=true
+--- PASS: TestLedgerTimeoutPemanggilBukanGagal
 PASS
 ok    lab/apit4/internal/handler
+--- PASS: TestTeksTopupLangsungDenganDataTiruanLolos
+--- PASS: TestTeksTopupLewatKontrakAkunDenganDataTiruan
+ledger: key=TB-m1793089988423676000-1 status=201 jurnal=24 ulang=false
+--- PASS: TestWebhookSettlementSatuJurnalWalauDuaKiriman
+ledger: key=TB-m1793089988448509000-3 status=201 jurnal=25 ulang=false
+--- PASS: TestWebhookDuaEventSatuKejadianSatuJurnal
+ledger: key=TB-m1793089988464776000-6 status=201 jurnal=26 ulang=false
+ledger: key=TB-m1793089988464776000-6 status=200 jurnal=26 ulang=true
+ledger: key=TB-m1793089988464776000-6 status=200 jurnal=26 ulang=true
+ledger: key=TB-m1793089988464776000-6 status=200 jurnal=26 ulang=true
+ledger: key=TB-m1793089988464776000-6 status=200 jurnal=26 ulang=true
+ledger: key=TB-m1793089988464776000-6 status=200 jurnal=26 ulang=true
+--- PASS: TestWebhookSerentakEventSamaDanBeda
+ledger: key=TB-m1793089988498352000-11 status=201 jurnal=27 ulang=false
+ledger: key=TB-m1793089988498352000-11 status=200 jurnal=27 ulang=true
+--- PASS: TestMatiSesudahLedgerLaluKirimUlangSatuJurnal
+ledger: key=TB-m1793089988515778000-13 status=201 jurnal=28 ulang=false
+ledger: key=TB-m1793089988515778000-13 status=200 jurnal=28 ulang=true
+--- PASS: TestWebhookMatiLaluJobCekStatusSatuJurnal
+ledger: key=TB-m1793089988533334000-15 status=201 jurnal=29 ulang=false
+ledger: key=TB-m1793089988533334000-15 status=200 jurnal=29 ulang=true
+--- PASS: TestWebhookDanJobCekStatusSerentakSatuJurnal
+--- PASS: TestJumlahDariBarisTopupBukanDariKabar
+ledger: key=TB-m1793089988558038000-19 status=201 jurnal=30 ulang=false
+--- PASS: TestTandaTanganDanTimestamp
+ledger: key=TB-m1793089988572989000-23 status=201 jurnal=31 ulang=false
+--- PASS: TestStatusHanyaMaju
+ledger: key=TB-m1793089988588378000-27 status=201 jurnal=32 ulang=false
+--- PASS: TestLedgerTidakPastiTidakMenandaiApaPun
+ledger: key=TB-m1793089988602804000-29 status=422 jurnal=<nil> ulang=<nil>
+--- PASS: TestLedgerMenolakDiparkirTanpaMengubahStatus
+--- PASS: TestOrderTidakDikenalDitolakDanDicatat
+--- PASS: TestPembayaranTidakMengimporRepoDanService
+ledger: key=TB-m1793089988671122000-32 status=201 jurnal=33 ulang=false
+ledger: key=TB-m1793089988671122000-32 status=200 jurnal=33 ulang=true
+--- PASS: TestWebhookKalahDariJobDiTengahMenjawabGanda
+ledger: key=TB-m1793089988688013000-34 status=201 jurnal=34 ulang=false
+--- PASS: TestJobCekStatusUmurDariDuaSisi
+PASS
+ok    lab/apit4/internal/modul/pembayaran
 --- PASS: TestNaikAtomikDanBermasaBerlaku
 --- PASS: TestNaikMemperbaikiKeyTanpaMasaBerlaku
 --- PASS: TestJendelaTidakDiperpanjang
@@ -157,6 +210,14 @@ ok    lab/apit4/internal/repo
 --- PASS: TestLatarRentanMematikanProses
 --- PASS: TestRingkasanEksporLaporanKosong
 --- PASS: TestRingkasanEksporRentanPanikDiLaporanKosong
+--- PASS: TestLedgerKreditTopupSatuJurnalPerKey
+--- PASS: TestLedgerKreditTopupSerentakSatuJurnal
+--- PASS: TestLedgerKunciHarusSamaDenganOrderDanDipakaiSatuPermintaan
+--- PASS: TestLedgerDitolakDibekukanDanBatasTingkatTidakMenahanKey
+--- PASS: TestLedgerUlanganTidakKenaBatasSaldo
+--- PASS: TestLedgerAkunTidakAda
+--- PASS: TestLedgerJumlahTidakSah
+--- PASS: TestLedgerKeyHidup24JamLaluMenjurnalLagi
 --- PASS: TestSinkronBersamaanSatuPemenang
 --- PASS: TestSinkronKunciSamaBersamaanSekali
 --- PASS: TestSinkronMenolakPembayaran
@@ -298,6 +359,7 @@ ok    lab/apit4/cmd/api
 ok    lab/apit4/cmd/tiruan
 ok    lab/apit4/internal/cache
 ok    lab/apit4/internal/handler
+ok    lab/apit4/internal/modul/pembayaran
 ok    lab/apit4/internal/redisbatas
 ok    lab/apit4/internal/repo
 ok    lab/apit4/internal/service
@@ -358,8 +420,44 @@ ok    lab/apit4/internal/cache
     handler_qr_test.go:257: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHandlerQRLaporkan
     handler_qr_test.go:287: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestLedgerHTTPKunciLayananDanIdempotencyKeyWajib
+    ledger_layanan_test.go:97: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestLedgerKlienBaruUlangDitolak
+    ledger_layanan_test.go:139: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestLedgerTimeoutPemanggilBukanGagal
+    ledger_layanan_test.go:176: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 FAIL
 FAIL  lab/apit4/internal/handler
+--- FAIL: TestWebhookSettlementSatuJurnalWalauDuaKiriman
+    pembayaran_test.go:209: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestWebhookDuaEventSatuKejadianSatuJurnal
+    pembayaran_test.go:233: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestWebhookSerentakEventSamaDanBeda
+    pembayaran_test.go:250: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestMatiSesudahLedgerLaluKirimUlangSatuJurnal
+    pembayaran_test.go:276: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestWebhookMatiLaluJobCekStatusSatuJurnal
+    pembayaran_test.go:309: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestWebhookDanJobCekStatusSerentakSatuJurnal
+    pembayaran_test.go:327: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestJumlahDariBarisTopupBukanDariKabar
+    pembayaran_test.go:342: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestTandaTanganDanTimestamp
+    pembayaran_test.go:355: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestStatusHanyaMaju
+    pembayaran_test.go:393: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestLedgerTidakPastiTidakMenandaiApaPun
+    pembayaran_test.go:410: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestLedgerMenolakDiparkirTanpaMengubahStatus
+    pembayaran_test.go:430: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestOrderTidakDikenalDitolakDanDicatat
+    pembayaran_test.go:445: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestWebhookKalahDariJobDiTengahMenjawabGanda
+    pembayaran_test.go:474: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestJobCekStatusUmurDariDuaSisi
+    pembayaran_test.go:499: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+FAIL
+FAIL  lab/apit4/internal/modul/pembayaran
 TES_REDIS_WAJIB=1 tetapi TEST_REDIS_ADDR kosong: tes yang butuh Redis tidak boleh dilewati
 FAIL  lab/apit4/internal/redisbatas
 --- FAIL: TestAuditBerantaiUtuhDanBerurutan
