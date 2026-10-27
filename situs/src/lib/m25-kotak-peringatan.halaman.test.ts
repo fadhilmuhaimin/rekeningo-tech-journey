@@ -485,6 +485,7 @@ describe("sumber luar: MDN innerHTML, OWASP, Playwright, MDN Set-Cookie, dan bar
 describe("diagram Rantai: nilai simpul diturunkan dari rekaman dan kode", () => {
   test("tiga baris, sumber rekaman dengan catatan bahwa langkah gambar gagal dimuat tidak terekam; nilai angka dari xss.txt, run.py, dan skema.txt", () => {
     expect(diagram.id).toBe("t3-m25-kotak-peringatan");
+    expect(diagram.judul).toBe("Catatan Dimas: dari jurnal sampai kotak peringatan");
     expect(diagram.sumber).toEqual({ jenis: "rekaman", teks: "Rekaman lab t3-dasbor, xss.txt bagian A dan E, dan api-t3 skema.txt bagian D; langkah gambar gagal dimuat menurut MDN, tidak terekam" });
     expect(diagram.baris.map((b) => [b.label, b.sub])).toEqual([
       ["Dasbor menulis catatan lewat innerHTML", "xss.txt bagian A"],
@@ -552,6 +553,8 @@ describe("widget cari-bug: kode dari main.go, indeks baris bug, tebakan tidak bo
     expect(Object.keys(widget.alasan)).toEqual(["6"]);
   });
   test("teks widget: alasan memuat angka dari rekaman A, tebakan tidak menyebut baris atau kata kuncinya, label dan ringkas dikunci", () => {
+    expect(widget.id).toBe("t3-m25-caribug");
+    expect(widget.alasan["6"]).toBe(`Teks dari kolom keterangan ditulis lewat innerHTML, jadi browser mengurainya sebagai HTML. Catatan Dimas menjadi elemen img nyata (${jA.elemImgDiDaftar} elemen di daftar), gambar x gagal dimuat, dan onerror menjalankan alert(1) (Rekaman lab xss.txt bagian A).`);
     expect(widget.alasan["6"]).toContain(`(${jA.elemImgDiDaftar} elemen di daftar)`);
     expect(widget.alasan["6"]).toContain("onerror menjalankan alert(1) (Rekaman lab xss.txt bagian A)");
     expect(widget.alasan["6"]).toContain("Catatan Dimas menjadi elemen img nyata");
@@ -633,6 +636,20 @@ describe("glosarium dan halaman istilah XSS", () => {
     const glos = Glosarium.parse(baris2);
     expect(glos.find((x) => x.s === "istilah-xss")).toMatchObject({ t: "XSS (cross-site scripting)" });
     expect(glos.find((x) => x.s === "istilah-output-encoding")).toMatchObject({ t: "Output encoding" });
+  });
+  test("halaman istilah XSS dikunci utuh; URL sumber sama dengan tautan di halaman, tanggal sama dengan baris riset, dan rekaman ada", () => {
+    const hi = JSON.parse(istilahMentah) as typeof ISTILAH_TERKUNCI;
+    expect(hi).toEqual(ISTILAH_TERKUNCI);
+    const tautan = [...badan.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((m) => m[1]!);
+    for (const s of hi.sumber.filter((x): x is Extract<(typeof hi.sumber)[number], { url: string }> => "url" in x)) {
+      expect(tautan, s.url).toContain(s.url);
+      expect(s.catatan, s.judul).toContain("dibuka 2026-10-27");
+      expect(barisRiset(s.riset)).toContain("dibuka 2026-10-27");
+    }
+    const rek = hi.sumber.find((x) => "rekaman" in x) as { rekaman: string };
+    expect(terlacak?.has(rek.rekaman) ?? true).toBe(true);
+    expect(hi.cerita[0]!.teks).toContain(`Rp${rupiah(JUMLAH)}`);
+    expect(hi.mekanisme.join(" ")).toContain("bagian D");
   });
 });
 
@@ -820,3 +837,50 @@ const KALIMAT_TERKUNCI: string[] = [
   "</details>",
   "</Blok>",
 ];
+const ISTILAH_TERKUNCI = {
+  "istilah": "XSS (cross-site scripting)",
+  "sehari_hari": "XSS adalah celah yang membuat browser menjalankan skrip dari data yang seharusnya hanya tampil sebagai teks. Skrip itu berjalan sebagai halaman yang sedang dibuka, jadi ia memakai sesi orang yang membukanya.",
+  "cerita": [
+    {
+      "rujukan": "t3-m25",
+      "teks": "Dimas membayar Warung Ani Rp5.000 dengan catatan berupa tag gambar. Dasbor menulis catatan lewat innerHTML, dan Ani melihat kotak peringatan berisi 1 setiap kali membuka riwayat (`xss.txt` bagian A)."
+    }
+  ],
+  "mekanisme": [
+    "Seseorang menaruh teks berisi markup di kolom yang nanti ditampilkan, di sini catatan pembayaran.",
+    "Server menyimpan teks itu apa adanya. Di jurnal, baris itu tidak bisa dihapus.",
+    "Halaman menulis teks itu lewat `innerHTML`, jadi browser mengurainya sebagai HTML dan menjalankan atribut seperti `onerror`.",
+    "Skrip berjalan sebagai halaman itu: ia memakai cookie dan token halaman, jadi token CSRF yang benar tidak menahannya (bagian D).",
+    "Perbaikannya menulis teks lewat `textContent`, yang tidak mengurai HTML."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira hanya elemen `script` yang berbahaya. `innerHTML` memang tidak menjalankan `script`, tetapi atribut seperti `onerror` pada `img` tetap berjalan (MDN).",
+    "Mengira data dari database sendiri aman. Catatan yang tersimpan di sistem sendiri tetap ditulis orang lain, dan halaman harus menulisnya sebagai teks.",
+    "Mengira `HttpOnly` menghentikan serangan. Ia hanya melarang skrip membaca cookie, dan skrip tetap bisa mengirim request dengan cookie itu (bagian D)."
+  ],
+  "terkait": [
+    "Output encoding",
+    "Authentication",
+    "Token"
+  ],
+  "sumber": [
+    {
+      "riset": "R3-205",
+      "judul": "MDN: Element.innerHTML, bagian Security considerations",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML",
+      "catatan": "Halaman tanpa nomor versi, dibuka 2026-10-27. innerHTML mencegah elemen script berjalan tetapi rentan terhadap cara lain, dan contohnya memakai img dengan onerror."
+    },
+    {
+      "riset": "R3-206",
+      "judul": "OWASP: Cross Site Scripting Prevention Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
+      "catatan": "Halaman tanpa nomor versi, dibuka 2026-10-27. textContent membuat text node tanpa mengurai HTML, dan data dari sumber internal dianggap tercemar kecuali divalidasi ketat saat diambil."
+    },
+    {
+      "judul": "Rekaman lab t3-dasbor: xss.txt bagian A, D, dan E",
+      "rekaman": "labs/t3-dasbor/output/xss.txt",
+      "catatan": "A: innerHTML memunculkan satu dialog berisi 1. D: skrip di halaman dasbor mengubah harga walau cookie dan token benar. E: textContent tanpa dialog."
+    }
+  ]
+};
