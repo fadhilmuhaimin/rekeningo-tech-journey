@@ -52,7 +52,7 @@ func main() {
 		for _, t := range rahasia.Pindai(nama, isi, *awalan, sidik) {
 			ada = true
 			if t.Alasan == rahasia.AlasanTakTerbaca {
-				fmt.Printf("%s:%d: baris tidak bisa dipindai (lebih panjang dari %d byte); sisa berkas tidak diperiksa\n", t.Berkas, t.Baris, rahasia.BatasBaris)
+				fmt.Printf("%s:%d: baris tidak bisa dipindai (lebih panjang dari %d byte); sisa file tidak diperiksa\n", t.Berkas, t.Baris, rahasia.BatasBaris)
 				continue
 			}
 			fmt.Printf("%s:%d: kunci produksi (%s)\n", t.Berkas, t.Baris, t.Alasan)

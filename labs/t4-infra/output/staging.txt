@@ -22,13 +22,13 @@ $ pindairahasia -awalan gw_live_ staging.env penerbit.env   # tanpa daftar sidik
 staging.env:2: kunci produksi (awalan)
 # Aturan awalan menangkap kunci yang formatnya mengikuti vendor (gw_live_ lawan gw_test_), termasuk yang belum pernah dilihat pemindai. Kunci tanpa awalan hanya tertangkap oleh sidik, dan hanya bila sidiknya diketahui pemindai.
 $ pindairahasia -awalan gw_live_ -sidik produksi.sidik besar.env   # baris pertama 2 MiB, kunci produksi di baris kedua
-besar.env:1: baris tidak bisa dipindai (lebih panjang dari 1048576 byte); sisa berkas tidak diperiksa
+besar.env:1: baris tidak bisa dipindai (lebih panjang dari 1048576 byte); sisa file tidak diperiksa
 # exit status 1
-# Pemindai berhenti di baris yang tidak bisa dibacanya, jadi baris itu dilaporkan sebagai temuan: berkas tidak boleh tampak bersih hanya karena kunci produksi ada sesudah baris yang panjang.
-$ pindairahasia -awalan gw_live_ -sidik produksi.sidik tidak-ada.env   # berkas yang tidak ada
+# Pemindai berhenti di baris yang tidak bisa dibacanya, jadi baris itu dilaporkan sebagai temuan: file tidak boleh tampak bersih hanya karena kunci produksi ada sesudah baris yang panjang.
+$ pindairahasia -awalan gw_live_ -sidik produksi.sidik tidak-ada.env   # file yang tidak ada
 open tidak-ada.env: no such file or directory
 # exit status 2
-# Berkas yang tidak bisa dibaca dilaporkan sebagai galat (exit 2), tidak dihitung bersih.
+# File yang tidak bisa dibaca dilaporkan sebagai galat (exit 2), tidak dihitung bersih.
 # Perbaikan: staging memakai kunci staging dari secret/staging/* (berawalan gw_test_), kunci penerbit staging dibaca saat runtime, bukan ditulis di file:
 $ pindairahasia -awalan gw_live_ -sidik produksi.sidik staging.env penerbit.env
 # exit status 0, keluaran: (kosong)
