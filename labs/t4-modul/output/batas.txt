@@ -15,11 +15,11 @@ $ go test -count=1 -run TestTeksTopupLangsungDenganDataTiruanLolos -v ./internal
 PASS
 ok    lab/apit4/internal/modul/pembayaran
 # exit status 0
-# CI hijau sebelum dan sesudah migration, karena tidak ada langkah yang menjalankan SQL pembayaran terhadap skema yang sudah berubah.
+# Ketiga langkah CI tidak membuka koneksi database: tes pembayaran memakai driver tiruan, jadi migration tim Merchant tidak mengubah hasilnya.
 
 # Pemeriksaan terhadap skema nyata (di lingkungan yang meniru produksi):
 $ T4M_SCHEMA_SATU=tahap4_modul go test -tags t4modul -count=1 -v -run TestM32TanpaBatas ./internal/modul/
-sebelum rename, role aplikasi (satu role untuk semua modul): pembayaran.TeksTopupLangsung -> "Top-up Rp200000 masuk ke Dimas"
+sebelum rename, role aplikasi (satu role untuk semua modul): pembayaran.TeksTopupLangsung -> "Top-up Rp200000 masuk ke Budi"
 migration tim Merchant: ALTER TABLE akun RENAME COLUMN nama TO nama_tampil
 sesudah rename, pembayaran.TeksTopupLangsung dengan role dan skema yang sama -> column "nama" does not exist (42703)
 --- PASS: TestM32TanpaBatasRenameLolosDiCIGagalDiProduksi
@@ -71,7 +71,7 @@ pembayaran menulis awalan schema sendiri (SELECT nama FROM t4m_akun.akun): permi
 kontrol: role t4m_akun menjalankan SQL yang sama pada baris yang sama: berhasil
 --- PASS: TestPembayaranTidakBisaMembacaAkunLangsung
 sesudah ALTER TABLE akun RENAME COLUMN nama TO nama_tampil oleh pemilik schema akun dan kode modul akun ikut diubah:
-  modul akun membaca nama_tampil: berhasil; pembayaran.TeksTopup lewat kontrak akun: "Top-up Rp200000 masuk ke Dimas"
+  modul akun membaca nama_tampil: berhasil; pembayaran.TeksTopup lewat kontrak akun: "Top-up Rp200000 masuk ke Budi"
   kontrak kolom ledger (id, tingkat, status): berhasil; tidak ada modul lain yang menyentuh kolom nama
 --- PASS: TestRenameKolomNamaTidakMematahkanModulLain
 ALTER TABLE akun RENAME COLUMN tingkat TO tingkat_baru (kolom di kontrak ledger): tes kontrak ledger gagal: column "tingkat" does not exist (42703)

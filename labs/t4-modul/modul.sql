@@ -78,7 +78,9 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
--- Bawaan tiap role hanya schema-nya sendiri: SQL tanpa awalan schema ke tabel modul lain tidak menemukan tabelnya.
+-- search_path bawaan tiap role: schema-nya sendiri. PostgreSQL melewati schema di search_path yang tidak boleh diakses
+-- role itu (hak USAGE), jadi SQL tanpa awalan schema ke tabel modul lain tidak menemukan tabelnya (42P01), dan SQL dengan
+-- awalan ditolak hak (42501). Yang menolak adalah hak, bukan search_path.
 ALTER ROLE t4m_ledger SET search_path = t4m_ledger;
 ALTER ROLE t4m_akun SET search_path = t4m_akun;
 ALTER ROLE t4m_identitas SET search_path = t4m_identitas;
