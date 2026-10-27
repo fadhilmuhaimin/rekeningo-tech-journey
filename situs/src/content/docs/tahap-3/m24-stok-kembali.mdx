@@ -100,7 +100,7 @@ Server menjawab 200 dan versi naik ke 4. Katalog lalu memberi Budi stok 0 untuk 
 
 **Kenapa dua dugaan Raka tidak cocok.** Dasbor tidak salah: `PATCH` Sabtu diterima dengan versi 2 dan menghasilkan versi 3 (bagian B). Jam HP juga bukan sebabnya, karena isi permintaan di bagian A dan D hanya `{"stok": 0}`, tanpa jam HP dan tanpa versi.
 
-**Versi bersyarat menolak hal yang sama.** Lab merekam urutan yang sama lewat `POST /sinkron`, yang membawa versi dasar, yaitu versi baris yang dilihat HP saat Ani mengubahnya. Operasi bakso belum pernah sampai dan tiba pertama kali hari Senin dengan versi dasar 1, padahal versi sekarang 2:
+**Operasi bersyarat versi tidak menimpa stok yang lebih baru.** Lab merekam urutan serupa lewat `POST /sinkron`, yang membawa versi dasar, yaitu versi baris yang dilihat HP saat Ani mengubahnya. Operasi bakso belum pernah sampai dan tiba pertama kali hari Senin dengan versi dasar 1, padahal versi sekarang 2:
 
 <Snippet file="labs/t3-offline/output/versi.txt" lines="49:53" title="Rekaman lab: labs/t3-offline/output/versi.txt baris 49 sampai 53 (bagian C, operasi lama ditolak 409)" />
 
