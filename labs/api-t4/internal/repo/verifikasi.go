@@ -93,7 +93,9 @@ func (r Repo) SelesaikanVerifikasi(ctx context.Context, id int64, status, refere
 // gagal saat pekerjaan masuk dead-letter karena layanan verifikasi tidak tersedia).
 func (r Repo) TandaiVerifikasi(ctx context.Context, id int64, status string, kini time.Time) error {
 	if status == "gagal" {
-		_, err := r.db.ExecContext(ctx, `UPDATE verifikasi SET status = 'gagal', selesai = $2
+		// Status akhir juga memulai retensi: file pengajuan yang gagal tidak boleh tinggal selamanya (ADR 38).
+		_, err := r.db.ExecContext(ctx, `UPDATE verifikasi SET status = 'gagal', selesai = $2,
+			       hapus_pada = $2::timestamptz + interval '30 days'
 			WHERE id = $1 AND status IN ('diajukan', 'tidak_pasti')`, id, kini)
 		return err
 	}

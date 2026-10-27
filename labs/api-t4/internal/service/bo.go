@@ -196,6 +196,9 @@ func (s Service) BukaBerkas(ctx context.Context, pelaku, id int64, bagian, alasa
 	if err != nil {
 		return nil, err
 	}
+	if kunci == "" { // retensi sudah menghapus file (repo/berkas.go): baris audit percobaan ini tetap tertulis
+		return nil, ErrBerkasDihapus
+	}
 	isi, err := s.t4.Objek.Baca(ctx, kunci)
 	if errors.Is(err, objek.ErrTidakAda) {
 		return nil, ErrTidakDitemukan

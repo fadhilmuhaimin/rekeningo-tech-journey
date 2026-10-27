@@ -765,6 +765,62 @@ paths:
         '422': { $ref: '#/components/responses/Problem' }
         '429': { $ref: '#/components/responses/TerlaluSering' }
         '503': { $ref: '#/components/responses/Problem' }
+  /verifikasi/unggahan:
+    post:
+      operationId: mintaUnggahanVerifikasi
+      summary: Minta dua URL PUT bertanda tangan untuk mengunggah foto kartu identitas dan swafoto langsung ke penyimpanan objek (berumur pendek). URL adalah bearer token; jawabannya tidak boleh disimpan perantara
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanUnggahan' }
+      responses:
+        '201':
+          description: Dua kunci objek acak milik akun ini dan dua URL PUT
+          headers:
+            Cache-Control: { description: 'no-store', schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Unggahan' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: Sudah terverifikasi
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+        '503': { $ref: '#/components/responses/Problem' }
+  /verifikasi/terunggah:
+    post:
+      operationId: ajukanVerifikasiTerunggah
+      summary: Ajukan verifikasi untuk dua objek yang sudah diunggah lewat URL PUT. Server memeriksa ukuran, tipe isi, dan checksum yang dihitungnya sendiri dari objek di penyimpanan sebelum pengajuan ditulis; file yang ditolak dihapus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PermintaanTerunggah' }
+      responses:
+        '202':
+          description: Diterima; sama dengan POST /verifikasi
+          headers:
+            Location: { description: 'Alamat pengajuan, /verifikasi/{id}', schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Verifikasi' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: Sudah terverifikasi, atau pengajuan sebelumnya belum selesai
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/TerlaluSering' }
+        '503': { $ref: '#/components/responses/Problem' }
   /verifikasi/{id}:
     get:
       operationId: lihatVerifikasi
@@ -1560,6 +1616,29 @@ components:
       properties:
         berkas_kartu: { type: string, format: byte, description: 'JPEG atau PNG, base64' }
         berkas_swafoto: { type: string, format: byte, description: 'JPEG atau PNG, base64' }
+    PermintaanUnggahan:
+      type: object
+      properties:
+        ukuran_kartu: { type: integer, format: int64, minimum: 0, maximum: 1048576, description: 'Opsional. Bila disebut, panjang PUT ikut ditandatangani: penyimpanan menolak PUT yang panjangnya lain' }
+        ukuran_swafoto: { type: integer, format: int64, minimum: 0, maximum: 1048576 }
+    Unggahan:
+      type: object
+      required: [kunci_kartu, url_kartu, kunci_swafoto, url_swafoto, berlaku_sampai]
+      properties:
+        kunci_kartu: { type: string }
+        url_kartu: { type: string, description: 'PUT berumur pendek; siapa pun yang memegangnya bisa menulis ke kunci itu sampai berlaku_sampai' }
+        kunci_swafoto: { type: string }
+        url_swafoto: { type: string }
+        berlaku_sampai: { type: string, format: date-time }
+    PermintaanTerunggah:
+      type: object
+      required: [kunci_kartu, kunci_swafoto, checksum_kartu, checksum_swafoto, nomor_identitas]
+      properties:
+        kunci_kartu: { type: string }
+        kunci_swafoto: { type: string }
+        checksum_kartu: { type: string, description: 'SHA-256 heksadesimal yang dihitung app; server menghitung ulang dari objek' }
+        checksum_swafoto: { type: string }
+        nomor_identitas: { type: string, description: '16 angka (Asumsi lab). Diperiksa bentuknya lalu dibuang: tidak disimpan dan tidak masuk log' }
     Verifikasi:
       type: object
       required: [id, subjek, status, tingkat_diminta, checksum_kartu, checksum_swafoto, diajukan]

@@ -1,6 +1,6 @@
 // Package objek adalah penyimpanan objek tiruan di direktori lokal untuk file identitas (ADR 38). Database hanya
-// menyimpan kunci objek dan checksum. Penyimpanan objek sungguhan (S3 lokal, presigned URL) dibuktikan lab
-// t4-storage; lab api-t4 tidak memakai presigned URL dan tidak menjalankan layanan penyimpanan.
+// menyimpan kunci objek dan checksum. Bawaan lab api-t4 adalah direktori lokal (Dir). Penyimpanan objek S3 lokal
+// dengan presigned URL (S3) dan versi pertama M33 yang menyimpan file di kolom bytea (Bytea) dipakai lab t4-storage.
 package objek
 
 import (
@@ -19,6 +19,8 @@ type Penyimpan interface {
 	Simpan(ctx context.Context, kunci string, isi []byte) error
 	Baca(ctx context.Context, kunci string) ([]byte, error)
 	Hapus(ctx context.Context, kunci string) error
+	// Ukuran: panjang objek dalam byte tanpa membaca isinya (ErrTidakAda bila tidak ada).
+	Ukuran(ctx context.Context, kunci string) (int64, error)
 }
 
 // Dir menyimpan setiap objek sebagai satu file di bawah Akar.
@@ -65,4 +67,19 @@ func (d Dir) Hapus(_ context.Context, kunci string) error {
 		return err
 	}
 	return nil
+}
+
+func (d Dir) Ukuran(_ context.Context, kunci string) (int64, error) {
+	j, err := d.jalur(kunci)
+	if err != nil {
+		return 0, err
+	}
+	st, err := os.Stat(j)
+	if errors.Is(err, os.ErrNotExist) {
+		return 0, ErrTidakAda
+	}
+	if err != nil {
+		return 0, err
+	}
+	return st.Size(), nil
 }
