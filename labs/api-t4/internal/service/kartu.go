@@ -467,6 +467,18 @@ func (s Service) lepasHold(ctx context.Context, idPenerbit, akhir, alasan string
 			return nil
 		}
 		if o.JurnalTahanID != nil {
+			kartu, err := tx.KartuAtasID(ctx, o.KartuID)
+			if err != nil {
+				return err
+			}
+			// Urutan lock sama dengan otorisasi: buku milik akun lebih dulu, buku sistem (dana_tertahan) sesudahnya.
+			// KunciBukuID mengurutkan menurut id, dan di lab buku dana_tertahan (dibuat migrasi 000020) berid lebih
+			// kecil daripada buku pemilik (dibuat seed): tanpa baris ini reversal memegang dana_tertahan lalu
+			// menunggu buku pemilik, sedangkan otorisasi pemilik yang sama memegang buku pemilik lalu menunggu
+			// dana_tertahan (deadlock, SQLSTATE 40P01).
+			if _, err := tx.KunciBukuAkun(ctx, kartu.AkunID); err != nil {
+				return err
+			}
 			asal, err := tx.KartuPostingJurnal(ctx, *o.JurnalTahanID)
 			if err != nil {
 				return err
@@ -477,10 +489,6 @@ func (s Service) lepasHold(ctx context.Context, idPenerbit, akhir, alasan string
 				id[i], cermin[i] = p.BukuID, repo.Posting{BukuID: p.BukuID, Jumlah: -p.Jumlah}
 			}
 			if _, err := tx.KunciBukuID(ctx, id...); err != nil {
-				return err
-			}
-			kartu, err := tx.KartuAtasID(ctx, o.KartuID)
-			if err != nil {
 				return err
 			}
 			j, err := tx.CatatJurnal(ctx, "pembalik", alasan, kartu.AkunID, o.JurnalTahanID, cermin)
