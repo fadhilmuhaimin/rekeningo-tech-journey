@@ -181,6 +181,14 @@ const bentuk = (page) =>
       // Teks yang terpotong di node: kalimat pindah tabel dihapus (harus 0, keputusan 466) dan nama (dicetak saja).
       pindahPotong: [...f.querySelectorAll(".erd-tumbuh__pindah")].filter((x) => x.scrollHeight > x.clientHeight + 1).length,
       namaPotong: [...f.querySelectorAll(".erd-tumbuh__node code")].filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.textContent),
+      // Baris dan kepala bertanda dua baris (tumbuh.ts duaBaris, duaKepala) harus benar-benar dua baris: label atau status
+      // di bawah nama, bukan di sebelahnya dengan tinggi yang sudah dipesan untuk dua baris.
+      duaSebaris: [...f.querySelectorAll(".erd-tumbuh__baris.is-dua, .erd-tumbuh__kepala.is-dua")].filter((x) => {
+        const nama = x.querySelector("code").getBoundingClientRect();
+        const lain = x.querySelector(".erd-tumbuh__label, .erd-tumbuh__status")?.getBoundingClientRect();
+        return !lain || lain.top < nama.bottom - 1;
+      }).length,
+      duaBaris: f.querySelectorAll(".erd-tumbuh__baris.is-dua, .erd-tumbuh__kepala.is-dua").length,
       berdampingan: !!f.querySelector(".erd-tumbuh__panel.is-berdampingan"),
       lebarDok: document.documentElement.scrollWidth - innerWidth,
     };
@@ -201,7 +209,7 @@ for (const [lebar, tinggi, harus] of [
     lapor(b.bentuk === harus && b.node === 11 && b.edge === 11 && b.luar === 0 && b.statisSr && b.lebarDok <= 0, `${tag}: ${b.bentuk}, ${b.node} node, ${b.edge} edge, ${b.luar} di luar wadah, luapan halaman ${b.lebarDok} px`);
     lapor(b.pindahPotong === 0, `${tag}: kalimat pindah terpotong ${b.pindahPotong}`);
     await laporBawaan(page, tag);
-    lapor(b.namaPotong.length === 0, `${tag}: nama kolom dan tabel terpotong elipsis ${b.namaPotong.length}${b.namaPotong.length ? ` (${b.namaPotong.join(", ")})` : ""}`);
+    lapor(b.namaPotong.length === 0 && b.duaSebaris === 0, `${tag}: nama kolom dan tabel terpotong elipsis ${b.namaPotong.length}${b.namaPotong.length ? ` (${b.namaPotong.join(", ")})` : ""}, ${b.duaBaris} baris atau kepala dua baris, ${b.duaSebaris} yang label atau statusnya masih di sebelah nama`);
 
     // 3. Scroll tidak tertangkap (layar sempit).
     if (lebar < 500) {
@@ -374,8 +382,8 @@ for (const [lebar, tinggi, harus] of [
     const t4s = await bentuk(page);
     const zoom4 = await page.evaluate((FIG) => Number(/scale\(([\d.]+)\)/.exec(document.querySelector(`${FIG} .react-flow__viewport`).style.transform)?.[1] ?? 1), FIG);
     lapor(
-      t4s.node === 22 && t4s.edge === 35 && t4s.luar === 0 && t4s.lebarDok <= 0 && zoom4 >= 0.99 && t4s.namaPotong.length === 0,
-      `${tag}: Tahap 4 tunggal → ${t4s.bentuk}, ${t4s.node} node, ${t4s.edge} edge, zoom ${zoom4.toFixed(2)}, ${t4s.luar} di luar wadah, luapan ${t4s.lebarDok} px, nama terpotong ${t4s.namaPotong.length}${t4s.namaPotong.length ? ` (${t4s.namaPotong.join(", ")})` : ""}`,
+      t4s.node === 22 && t4s.edge === 35 && t4s.luar === 0 && t4s.lebarDok <= 0 && zoom4 >= 0.99 && t4s.namaPotong.length === 0 && t4s.duaSebaris === 0 && t4s.duaBaris >= (lebar < 500 ? 5 : 1),
+      `${tag}: Tahap 4 tunggal → ${t4s.bentuk}, ${t4s.node} node, ${t4s.edge} edge, zoom ${zoom4.toFixed(2)}, ${t4s.luar} di luar wadah, luapan ${t4s.lebarDok} px, nama terpotong ${t4s.namaPotong.length}${t4s.namaPotong.length ? ` (${t4s.namaPotong.join(", ")})` : ""}, ${t4s.duaBaris} baris atau kepala dua baris (${t4s.duaSebaris} masih sebaris)`,
     );
     await laporBawaan(page, `${tag} Tahap 4`);
     // Tabel pembagian modul: enam baris, 22 tabel, ringkasan foreign key lintas dari data.
