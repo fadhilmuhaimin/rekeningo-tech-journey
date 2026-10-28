@@ -1,0 +1,83 @@
+# Lab t4-ssrf · kelas alamat yang ditolak fetcher gambar versi aman, dan yang lolos bila IsPrivate satu-satunya pemeriksaan
+# go1.27.1 · tanpa database · server uji hanya di 127.0.0.1 di dalam proses tes
+# Rekaman: make -C labs/t4-ssrf run.
+$ go test -tags t4ssrf -count=1 -timeout 120s -v -run 'TestSSRFKelas' ./internal/unduh
+## kelas alamat: yang tidak ditangkap IsPrivate dan penanda bawaan lain, dan keputusan fetcher aman
+alamat                   IsPrivate IsLoopbk  IsLinkLoc IsUnspecif  aman   keterangan
+127.0.0.1                tidak     ya        tidak     tidak       tolak  loopback
+10.0.0.1                 ya        tidak     tidak     tidak       tolak  private (RFC 1918)
+169.254.77.7             tidak     tidak     ya        tidak       tolak  link-local (alamat contoh lab, bukan alamat metadata)
+fd00::5                  ya        tidak     tidak     tidak       tolak  ULA IPv6 (RFC 4193)
+100.64.0.1               tidak     tidak     tidak     tidak       tolak  CGNAT (RFC 6598)
+0.0.0.0                  tidak     tidak     tidak     ya          tolak  unspecified (0.0.0.0)
+::ffff:10.0.0.1          ya        tidak     tidak     tidak       tolak  IPv4-mapped ke private
+::ffff:100.64.0.1        tidak     tidak     tidak     tidak       tolak  IPv4-mapped ke CGNAT
+64:ff9b::a00:1           tidak     tidak     tidak     tidak       tolak  NAT64 (RFC 6052) membawa 10.0.0.1
+2002:a00:1::1            tidak     tidak     tidak     tidak       tolak  6to4 (RFC 3056) membawa 10.0.0.1
+2001::1                  tidak     tidak     tidak     tidak       tolak  Teredo (RFC 4380)
+198.18.0.1               tidak     tidak     tidak     tidak       tolak  benchmark (RFC 2544)
+64:ff9b:1::a00:1         tidak     tidak     tidak     tidak       tolak  NAT64 awalan lokal (RFC 8215) membawa 10.0.0.1
+::a00:1                  tidak     tidak     tidak     tidak       tolak  IPv4-compatible (usang, RFC 4291) membawa 10.0.0.1
+2001:db8::1              tidak     tidak     tidak     tidak       tolak  dokumentasi IPv6 (RFC 3849)
+fec0::1                  tidak     tidak     tidak     tidak       tolak  site-local (usang, RFC 3879)
+0.1.2.3                  tidak     tidak     tidak     tidak       tolak  "this network" 0.0.0.0/8 (RFC 791)
+192.0.0.9                tidak     tidak     tidak     tidak       tolak  protokol IETF 192.0.0.0/24 (RFC 6890)
+192.0.2.7                tidak     tidak     tidak     tidak       tolak  dokumentasi TEST-NET-1 (RFC 5737)
+198.51.100.7             tidak     tidak     tidak     tidak       tolak  dokumentasi TEST-NET-2 (RFC 5737)
+203.0.113.7              tidak     tidak     tidak     tidak       tolak  dokumentasi TEST-NET-3 (RFC 5737)
+240.0.0.1                tidak     tidak     tidak     tidak       tolak  cadangan 240.0.0.0/4 (RFC 1112)
+100::5                   tidak     tidak     tidak     tidak       tolak  discard-only 100::/64 (RFC 6666)
+100:0:0:1::5             tidak     tidak     tidak     tidak       tolak  dummy IPv6 prefix 100:0:0:1::/64 (RFC 9780)
+2001:2::5                tidak     tidak     tidak     tidak       tolak  benchmarking IPv6 2001:2::/48 (RFC 5180)
+3fff::1                  tidak     tidak     tidak     tidak       tolak  dokumentasi IPv6 3fff::/20 (RFC 9637)
+5f00::5                  tidak     tidak     tidak     tidak       tolak  SRv6 SIDs 5f00::/16 (RFC 9602)
+198.19.255.254           tidak     tidak     tidak     tidak       tolak  ujung atas benchmark 198.18.0.0/15 (RFC 2544)
+255.255.255.255          tidak     tidak     tidak     tidak       tolak  limited broadcast (RFC 919)
+2002:c0a8:101::1         tidak     tidak     tidak     tidak       tolak  6to4 membawa 192.168.1.1
+239.255.0.1              tidak     tidak     tidak     tidak       tolak  multicast IPv4 di luar skop tautan
+ff0e::1                  tidak     tidak     tidak     tidak       tolak  multicast IPv6 skop global
+93.184.216.34            tidak     tidak     tidak     tidak       lolos  alamat publik (kontrol: harus lolos)
+100.63.255.255           tidak     tidak     tidak     tidak       lolos  tepat di bawah CGNAT (kontrol: harus lolos)
+100.128.0.1              tidak     tidak     tidak     tidak       lolos  tepat di atas CGNAT (kontrol: harus lolos)
+2001:4860:4860::8888     tidak     tidak     tidak     tidak       lolos  IPv6 publik di luar 2001::/23 (kontrol: harus lolos)
+2606:4700:4700::1111     tidak     tidak     tidak     tidak       lolos  IPv6 publik (kontrol: harus lolos)
+ditolak fetcher aman: 32 dari 32 alamat terlarang; dari itu 29 lolos bila IsPrivate satu-satunya pemeriksaan
+dari 32 alamat terlarang yang sama, 26 lolos bila hanya empat penanda di tabel (IsPrivate, IsLoopback, IsLinkLocalUnicast, IsUnspecified) yang diperiksa
+--- PASS: TestSSRFKelasAlamatIsPrivateTidakCukup
+
+## alamat IPv6 berzona: zona ("%1", "%eth0") tidak boleh mengubah keputusan, karena netip.Prefix.Contains tidak mencocokkan alamat berzona
+netip.Prefix 2001:db8::/32 Contains 2001:db8::1: true; Contains 2001:db8::1%1: false
+alamat                   tanpa zona  %1        %eth0
+64:ff9b::a00:1           tolak       tolak     tolak
+64:ff9b:1::a00:1         tolak       tolak     tolak
+2002:a00:1::1            tolak       tolak     tolak
+2001::1                  tolak       tolak     tolak
+::a00:1                  tolak       tolak     tolak
+2001:db8::1              tolak       tolak     tolak
+fec0::1                  tolak       tolak     tolak
+100::5                   tolak       tolak     tolak
+100:0:0:1::5             tolak       tolak     tolak
+2001:2::5                tolak       tolak     tolak
+3fff::1                  tolak       tolak     tolak
+5f00::5                  tolak       tolak     tolak
+fd00::5                  tolak       tolak     tolak
+fe80::1                  tolak       tolak     tolak
+::1                      tolak       tolak     tolak
+::                       tolak       tolak     tolak
+ff0e::1                  tolak       tolak     tolak
+::ffff:10.0.0.1          tolak       tolak     tolak
+::ffff:100.64.0.1        tolak       tolak     tolak
+2001:4860:4860::8888     lolos       lolos     lolos
+2606:4700:4700::1111     lolos       lolos     lolos
+ditolak fetcher aman dengan zona: 19 dari 19 alamat terlarang; alamat publik berzona yang lolos: 2 dari 2
+--- PASS: TestSSRFKelasAlamatBerzonaSamaDenganTanpaZona
+
+## tepi blok registri alamat khusus IANA (berkas bertanggal 2025-10-09): tepi dalam ditolak, tepi luar lolos
+blok yang diuji: 27
+tepi dalam yang ditolak: 54 dari 54
+tepi luar yang lolos: 39 dari 39 (15 tetangga dilewati karena jatuh di blok terlarang lain, multicast, atau 0000::/8)
+blok registri yang terjangkau global dan di luar blok terlarang: 4 dari 4 lolos
+--- PASS: TestSSRFKelasTepiBlokRegistriIANA
+PASS
+ok    lab/apit4/internal/unduh
+# exit status 0
