@@ -1,6 +1,6 @@
 """Uji mutasi lab t4-audit: satu perubahan pada salinan kerja, lalu tes Go atau rekaman lab harus gagal.
 
-    python3 labs/t4-audit/mutasi/jalankan.py [id ...]      (tanpa argumen: semua mutan di daftar.py, ±15 menit)
+    python3 labs/t4-audit/mutasi/jalankan.py [id ...]      (tanpa argumen: semua mutan di daftar.py, ±30 menit)
 
 Salinan kerja dan hasil.jsonl ada di folder sementara (t4-audit-mutasi di folder temp sistem), bukan di repo; folder itu
 dihapus di akhir. Butuh lajur lab yang menyala (make -C labs/b3-race up) dan tidak boleh dijalankan bersamaan dengan
@@ -84,6 +84,16 @@ def runner_api():
     return rc != 0, gagal_tes(out) or ([out.strip().splitlines()[-1][:120]] if rc else [])
 
 
+def runner_luas():
+    """Tes bertag t4audit ditambah tes api-t4 tanpa tag untuk back office dan audit (bo_test.go, audit_test.go,
+    handler_bo_test.go): yang tertangkap hanya di sini sudah tertangkap `make -C labs/api-t4 cek`. Satu tes yang butuh
+    pengaturan role lain dilewati."""
+    rc, out = jalankan(["go", "test", "-tags", "t4audit", "-p", "1", "-count=1", "-run", "TestBO|TestAudit|TestPeriksa|TestHTTPBO",
+                        "-skip", "TestAuditRoleAplikasiDitolak", "./internal/repo", "./internal/service", "./internal/handler"],
+                       WORK / "api-t4", env_tes())
+    return rc != 0, gagal_tes(out) or ([out.strip().splitlines()[-1][:120]] if rc else [])
+
+
 def runner_mcp():
     rc, out = jalankan(["go", "test", "-p", "1", "-count=1", "./..."], WORK / "t4-audit/mcp", env_tes())
     return rc != 0, gagal_tes(out) or ([out.strip().splitlines()[-1][:120]] if rc else [])
@@ -140,6 +150,8 @@ def main():
                     for r in runners.split(","):
                         if r == "api":
                             t, d = runner_api()
+                        elif r == "luas":
+                            t, d = runner_luas()
                         elif r == "mcp":
                             t, d = runner_mcp()
                         elif r.startswith("lab:"):
