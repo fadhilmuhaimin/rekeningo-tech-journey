@@ -1444,57 +1444,57 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .ch-asal li { margin: 0.3rem 0; }
 .sl-markdown-content .ch code { overflow-wrap: anywhere; }
 
-/* Widget circuit breaker (W4-breaker, keputusan 1262): memakai tb-* (tebak) dan tm-tabel; cb-* untuk kontrol, papan detik demi detik, dan angka. Token saja, tanpa animasi. */
-.sl-markdown-content .cb-kelompok { margin: 0 0 0.7rem; }
-.sl-markdown-content .cb-label { margin: 0 0 0.3rem; color: var(--teks-2); font-size: var(--rk-ui-kecil); }
-.sl-markdown-content .cb-pilih { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.45rem; }
-.sl-markdown-content .cb-pilih li { margin: 0; max-width: 100%; }
-.sl-markdown-content .cb-tombol { width: auto; max-width: 100%; display: inline-block; overflow-wrap: anywhere; min-height: 2.25rem; padding: 0.3rem 0.65rem; }
-.sl-markdown-content .cb-tombol[aria-pressed="true"] { border-color: var(--k-system-edge); background: var(--k-system-fill); color: var(--k-system-ink); }
-.sl-markdown-content .cb-pilih--daftar { display: grid; }
-.sl-markdown-content .cb-pilih--daftar .cb-tombol { display: block; width: 100%; }
-.sl-markdown-content .cb :is(.tb-pilihan, .cb-pilih, .cb-angka, .cb-legenda) > * + * { margin-top: 0; }
-.sl-markdown-content .cb :is(.tb-pilihan, .cb-pilih) > li > button { margin-bottom: 0; }
-.sl-markdown-content .cb-kembali { margin: 0.2rem 0 0; }
-.sl-markdown-content .cb-status { margin: 0; }
-.sl-markdown-content .cb-vonis:not(:empty) { margin: 0.8rem 0 0; padding: 0.6rem 0.9rem; border-left: 3px solid var(--k-system-edge); background: var(--bg-2); border-radius: 0 8px 8px 0; }
-.sl-markdown-content .cb-vonis.is-tetap { border-left-color: var(--k-good-edge); }
-.sl-markdown-content .cb-vonis.is-buka { border-left-color: var(--k-warn-edge); }
-.sl-markdown-content .cb-vonis p { margin: 0; }
-.sl-markdown-content .cb-banding, .sl-markdown-content .cb-acuan, .sl-markdown-content .cb-catatan { margin: 0.6rem 0 0; }
-.sl-markdown-content .cb-judul { margin: 0.9rem 0 0.3rem; color: var(--judul); }
-.sl-markdown-content .cb-menit { margin: 0 0 0.6rem; }
-.sl-markdown-content .cb-menit-judul { margin: 0 0 0.2rem; color: var(--teks-2); font-size: var(--rk-ui-kecil); }
-.sl-markdown-content .cb-pita, .sl-markdown-content .cb-kotak { display: flex; align-items: flex-end; gap: 1px; }
-.sl-markdown-content .cb-pita { height: 0.6rem; margin-bottom: 0.15rem; }
-.sl-markdown-content .cb-kotak { height: 1.6rem; border-bottom: 1px solid var(--garis-2); }
-.sl-markdown-content .cb-p, .sl-markdown-content .cb-k { flex: 1 1 0; min-width: 0; display: block; }
-.sl-markdown-content .cb-p.is-closed { height: 25%; background: var(--k-good-edge); }
-.sl-markdown-content .cb-p.is-half-open { height: 60%; background: var(--k-system-edge); }
-.sl-markdown-content .cb-p.is-open { height: 100%; background: var(--k-warn-edge); }
-.sl-markdown-content .cb-k.is-ok { height: 30%; background: var(--k-good-edge); }
-.sl-markdown-content .cb-k:is(.is-5xx, .is-gagal) { height: 100%; background: var(--k-warn-edge); }
-.sl-markdown-content .cb-k.is-timeout { height: 55%; background: var(--k-warn-edge); }
-.sl-markdown-content .cb-k.is-4xx { height: 70%; background: var(--k-old-edge); }
-.sl-markdown-content .cb-k.is-tolak { height: 100%; box-shadow: inset 1px 0 0 var(--k-system-edge), inset -1px 0 0 var(--k-system-edge); }
-.sl-markdown-content .cb-k.is-diam { height: 1px; background: var(--garis-2); }
-.sl-markdown-content .cb-legenda { list-style: none; display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; margin: 0.4rem 0 0; padding: 0; font-size: var(--rk-ui-kecil); }
-.sl-markdown-content .cb-legenda li { margin: 0; display: flex; align-items: center; gap: 0.35rem; }
-.sl-markdown-content .cb-legenda .cb-p, .sl-markdown-content .cb-legenda .cb-k { flex: none; width: 0.8rem; height: 0.8rem; }
-.sl-markdown-content .cb-legenda .cb-p { height: 0.8rem; }
-.sl-markdown-content .cb-legenda-teks { margin: 0.4rem 0 0.6rem; }
-.sl-markdown-content .cb-angka { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem 0.8rem; margin: 0.3rem 0 0; }
-.sl-markdown-content .cb-angka > div { margin: 0; }
-.sl-markdown-content .cb-angka dt { color: var(--teks-2); font-size: var(--rk-ui-kecil); line-height: 1.35; }
-.sl-markdown-content .cb-angka dd { margin: 0; margin-inline-start: 0; padding: 0; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--judul); overflow-wrap: anywhere; }
-.sl-markdown-content .cb-riwayat { display: inline-flex; gap: 2px; vertical-align: middle; }
-.sl-markdown-content .cb-riwayat .cb-k { flex: none; width: 0.4rem; height: 0.8rem; }
-.sl-markdown-content .cb-hitung ul { list-style: none; margin: 0; padding: 0; }
-.sl-markdown-content .cb-hitung li { margin: 0; padding: 0.35rem 0; border-top: 1px solid var(--garis); overflow-wrap: anywhere; }
-.sl-markdown-content .cb .tb-pilih:focus-visible, .sl-markdown-content .cb .bb-btn:focus-visible { outline: 2px solid var(--aksen); outline-offset: 2px; }
-.sl-markdown-content .cb code { overflow-wrap: anywhere; }
+/* Widget circuit breaker (W4-breaker, keputusan 1262): memakai tb-* (tebak) dan tm-tabel; brk-* untuk kontrol, papan detik demi detik, dan angka. Token saja, tanpa animasi. */
+.sl-markdown-content .brk-kelompok { margin: 0 0 0.7rem; }
+.sl-markdown-content .brk-label { margin: 0 0 0.3rem; color: var(--teks-2); font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .brk-pilih { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.sl-markdown-content .brk-pilih li { margin: 0; max-width: 100%; }
+.sl-markdown-content .brk-tombol { width: auto; max-width: 100%; display: inline-block; overflow-wrap: anywhere; min-height: 2.25rem; padding: 0.3rem 0.65rem; }
+.sl-markdown-content .brk-tombol[aria-pressed="true"] { border-color: var(--k-system-edge); background: var(--k-system-fill); color: var(--k-system-ink); }
+.sl-markdown-content .brk-pilih--daftar { display: grid; }
+.sl-markdown-content .brk-pilih--daftar .brk-tombol { display: block; width: 100%; }
+.sl-markdown-content .brk :is(.tb-pilihan, .brk-pilih, .brk-angka, .brk-legenda) > * + * { margin-top: 0; }
+.sl-markdown-content .brk :is(.tb-pilihan, .brk-pilih) > li > button { margin-bottom: 0; }
+.sl-markdown-content .brk-kembali { margin: 0.2rem 0 0; }
+.sl-markdown-content .brk-status { margin: 0; }
+.sl-markdown-content .brk-vonis:not(:empty) { margin: 0.8rem 0 0; padding: 0.6rem 0.9rem; border-left: 3px solid var(--k-system-edge); background: var(--bg-2); border-radius: 0 8px 8px 0; }
+.sl-markdown-content .brk-vonis.is-tetap { border-left-color: var(--k-good-edge); }
+.sl-markdown-content .brk-vonis.is-buka { border-left-color: var(--k-warn-edge); }
+.sl-markdown-content .brk-vonis p { margin: 0; }
+.sl-markdown-content .brk-banding, .sl-markdown-content .brk-acuan, .sl-markdown-content .brk-catatan { margin: 0.6rem 0 0; }
+.sl-markdown-content .brk-judul { margin: 0.9rem 0 0.3rem; color: var(--judul); }
+.sl-markdown-content .brk-menit { margin: 0 0 0.6rem; }
+.sl-markdown-content .brk-menit-judul { margin: 0 0 0.2rem; color: var(--teks-2); font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .brk-pita, .sl-markdown-content .brk-kotak { display: flex; align-items: flex-end; gap: 1px; }
+.sl-markdown-content .brk-pita { height: 0.6rem; margin-bottom: 0.15rem; }
+.sl-markdown-content .brk-kotak { height: 1.6rem; border-bottom: 1px solid var(--garis-2); }
+.sl-markdown-content .brk-p, .sl-markdown-content .brk-k { flex: 1 1 0; min-width: 0; display: block; }
+.sl-markdown-content .brk-p.is-closed { height: 25%; background: var(--k-good-edge); }
+.sl-markdown-content .brk-p.is-half-open { height: 60%; background: var(--k-system-edge); }
+.sl-markdown-content .brk-p.is-open { height: 100%; background: var(--k-warn-edge); }
+.sl-markdown-content .brk-k.is-ok { height: 30%; background: var(--k-good-edge); }
+.sl-markdown-content .brk-k:is(.is-5xx, .is-gagal) { height: 100%; background: var(--k-warn-edge); }
+.sl-markdown-content .brk-k.is-timeout { height: 55%; background: var(--k-warn-edge); }
+.sl-markdown-content .brk-k.is-4xx { height: 70%; background: var(--k-old-edge); }
+.sl-markdown-content .brk-k.is-tolak { height: 100%; box-shadow: inset 1px 0 0 var(--k-system-edge), inset -1px 0 0 var(--k-system-edge); }
+.sl-markdown-content .brk-k.is-diam { height: 1px; background: var(--garis-2); }
+.sl-markdown-content .brk-legenda { list-style: none; display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; margin: 0.4rem 0 0; padding: 0; font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .brk-legenda li { margin: 0; display: flex; align-items: center; gap: 0.35rem; }
+.sl-markdown-content .brk-legenda .brk-p, .sl-markdown-content .brk-legenda .brk-k { flex: none; width: 0.8rem; height: 0.8rem; }
+.sl-markdown-content .brk-legenda .brk-p { height: 0.8rem; }
+.sl-markdown-content .brk-legenda-teks { margin: 0.4rem 0 0.6rem; }
+.sl-markdown-content .brk-angka { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem 0.8rem; margin: 0.3rem 0 0; }
+.sl-markdown-content .brk-angka > div { margin: 0; }
+.sl-markdown-content .brk-angka dt { color: var(--teks-2); font-size: var(--rk-ui-kecil); line-height: 1.35; }
+.sl-markdown-content .brk-angka dd { margin: 0; margin-inline-start: 0; padding: 0; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--judul); overflow-wrap: anywhere; }
+.sl-markdown-content .brk-riwayat { display: inline-flex; gap: 2px; vertical-align: middle; }
+.sl-markdown-content .brk-riwayat .brk-k { flex: none; width: 0.4rem; height: 0.8rem; }
+.sl-markdown-content .brk-hitung ul { list-style: none; margin: 0; padding: 0; }
+.sl-markdown-content .brk-hitung li { margin: 0; padding: 0.35rem 0; border-top: 1px solid var(--garis); overflow-wrap: anywhere; }
+.sl-markdown-content .brk .tb-pilih:focus-visible, .sl-markdown-content .brk .bb-btn:focus-visible { outline: 2px solid var(--aksen); outline-offset: 2px; }
+.sl-markdown-content .brk code { overflow-wrap: anywhere; }
 /* Tanpa JavaScript tebakan dan tombol tidak berfungsi: widget disembunyikan, tabel titik acuan di <noscript> yang tampil. */
-@media (scripting: none) { .sl-markdown-content .cb { display: none; } }
-.sl-markdown-content .cb-asal { margin: 0.8rem 0 0.4rem; }
-.sl-markdown-content .cb-asal ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
-.sl-markdown-content .cb-asal li { margin: 0.3rem 0; }
+@media (scripting: none) { .sl-markdown-content .brk { display: none; } }
+.sl-markdown-content .brk-asal { margin: 0.8rem 0 0.4rem; }
+.sl-markdown-content .brk-asal ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
+.sl-markdown-content .brk-asal li { margin: 0.3rem 0; }

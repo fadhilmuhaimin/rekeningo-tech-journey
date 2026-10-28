@@ -151,14 +151,14 @@ GRAFIS = {  # selector -> isinya: elemen tanpa teks yang hanya menulis latar; la
     ".sl-markdown-content .ch-seg.is-benar": "bagian garis waktu widget cache saat instance melihat isi yang benar (aria-hidden); lama dan jamnya tertulis sebagai teks",
     ".sl-markdown-content .ch-seg.is-stale": "bagian garis waktu widget cache saat instance melihat isi yang stale (aria-hidden); lamanya tertulis sebagai teks di hitungan",
     ".sl-markdown-content .ch-kursor": "penanda jam simulasi di garis waktu widget cache; jamnya tertulis di label slider",
-    ".sl-markdown-content .cb-p.is-closed": "pita status breaker closed di papan widget breaker (W4-breaker, aria-hidden); statusnya tertulis di kalimat penuh dan legenda",
-    ".sl-markdown-content .cb-p.is-half-open": "pita status breaker half-open di papan widget breaker (aria-hidden); statusnya tertulis di legenda",
-    ".sl-markdown-content .cb-p.is-open": "pita status breaker open di papan widget breaker (aria-hidden); detik membukanya tertulis di kalimat penuh",
-    ".sl-markdown-content .cb-k.is-ok": "kotak hasil berhasil di papan widget breaker (aria-hidden); jumlahnya tertulis di daftar angka",
-    ".sl-markdown-content .cb-k.is-5xx": "kotak hasil gagal 5xx di papan widget breaker (aria-hidden); jumlahnya tertulis di daftar angka",
-    ".sl-markdown-content .cb-k.is-gagal": "kotak percobaan gagal di papan queue widget breaker (aria-hidden); jumlah mati dan permintaan tertulis di daftar angka",
-    ".sl-markdown-content .cb-k.is-timeout": "kotak timeout di papan widget breaker (aria-hidden); jumlahnya tertulis di daftar angka",
-    ".sl-markdown-content .cb-k.is-4xx": "kotak jawaban 4xx di papan widget breaker (aria-hidden); jumlahnya tertulis di daftar angka",
+    ".sl-markdown-content .brk-p.is-closed": "pita status breaker closed di papan widget breaker (W4-breaker, aria-hidden); statusnya tertulis di kalimat penuh dan legenda",
+    ".sl-markdown-content .brk-p.is-half-open": "pita status breaker half-open di papan widget breaker (aria-hidden); statusnya tertulis di legenda",
+    ".sl-markdown-content .brk-p.is-open": "pita status breaker open di papan widget breaker (aria-hidden); detik membukanya tertulis di kalimat penuh",
+    ".sl-markdown-content .brk-k.is-ok": "kotak hasil berhasil di papan widget breaker (aria-hidden); jumlahnya tertulis di daftar angka",
+    ".sl-markdown-content .brk-k.is-5xx": "kotak hasil gagal 5xx di papan widget breaker (aria-hidden); jumlahnya tertulis di daftar angka",
+    ".sl-markdown-content .brk-k.is-gagal": "kotak percobaan gagal di papan queue widget breaker (aria-hidden); jumlah mati dan permintaan tertulis di daftar angka",
+    ".sl-markdown-content .brk-k.is-timeout": "kotak timeout di papan widget breaker (aria-hidden); jumlahnya tertulis di daftar angka",
+    ".sl-markdown-content .brk-k.is-4xx": "kotak jawaban 4xx di papan widget breaker (aria-hidden); jumlahnya tertulis di daftar angka",
 }
 INDUK_DOM = {  # blok BEM -> elemen BEM yang membungkus semua elemen lain blok itu di DOM (BEM tidak menyimpan kedalaman)
     "bb-hp": "bb-hp__screen",  # situs/src/lib/alur-statis.ts dan situs/lama/widgets/hp.js: .bb-hp > .bb-hp__screen > isi layar

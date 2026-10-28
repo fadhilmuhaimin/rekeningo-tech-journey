@@ -115,16 +115,16 @@ const siap = async (page) => {
   await page.waitForFunction(() => !document.querySelector("astro-island[ssr]"));
 };
 const fokusTeks = (page) => page.evaluate(() => document.activeElement?.textContent?.trim() ?? "");
-const grup = (w, kunci) => w.locator(".cb-kelompok", { has: w.page().locator(".cb-label", { hasText: new RegExp(`^${GRUP[kunci]}$`) }) });
-const tombol = (w, kunci, label) => grup(w, kunci).locator(".cb-tombol", { hasText: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`) });
+const grup = (w, kunci) => w.locator(".brk-kelompok", { has: w.page().locator(".brk-label", { hasText: new RegExp(`^${GRUP[kunci]}$`) }) });
+const tombol = (w, kunci, label) => grup(w, kunci).locator(".brk-tombol", { hasText: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`) });
 async function setel(w, set) {
   for (const k of ["jalur", "jenis", "error", "latensi", "breaker", "pulih", "serentak"]) {
     const label = set[k] ?? NOL[k];
     if ((await grup(w, k).count()) > 0) await tombol(w, k, label).click();
   }
 }
-const angkaDl = (w) => w.locator(".cb-angka > div").evaluateAll((d) => Object.fromEntries(d.map((x) => [x.querySelector("dt").textContent.trim(), x.querySelector("dd").textContent.trim()])));
-const tebakBenar = async (w) => { await w.locator(".tb-pilih").nth(2).click(); await w.locator(".cb-ubah").waitFor(); };
+const angkaDl = (w) => w.locator(".brk-angka > div").evaluateAll((d) => Object.fromEntries(d.map((x) => [x.querySelector("dt").textContent.trim(), x.querySelector("dd").textContent.trim()])));
+const tebakBenar = async (w) => { await w.locator(".tb-pilih").nth(2).click(); await w.locator(".brk-ubah").waitFor(); };
 
 // 1. Tebak dulu, keyboard, gerak: 2 ukuran × 2 reduced motion.
 for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no-preference", "reduce"]) {
@@ -135,9 +135,9 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
   const w = page.locator(W);
   const status = () => w.locator('[role="status"]').first().innerText();
 
-  const s2 = { total: await w.locator('[role="status"]').count(), vonis: await w.locator('.cb-vonis[role="status"]').count() };
+  const s2 = { total: await w.locator('[role="status"]').count(), vonis: await w.locator('.brk-vonis[role="status"]').count() };
   lapor(s2.total === 2 && s2.vonis === 1, `breaker ${nama}: ${s2.total} daerah role=status (hasil tebakan dan kalimat penuh), kalimat penuh ${s2.vonis === 1 ? "membawa" : "tanpa"} role=status`);
-  const sebelum = { ubah: await w.locator(".cb-ubah").count(), status: (await status()).trim(), tebak: await w.locator(".tb-pilihan button:not(:disabled)").count(), vonis: (await w.locator(".cb-vonis").innerText()).trim(), hasil: await w.locator(".cb-hasil").count() };
+  const sebelum = { ubah: await w.locator(".brk-ubah").count(), status: (await status()).trim(), tebak: await w.locator(".tb-pilihan button:not(:disabled)").count(), vonis: (await w.locator(".brk-vonis").innerText()).trim(), hasil: await w.locator(".brk-hasil").count() };
   lapor(sebelum.ubah === 0 && sebelum.status === "" && sebelum.tebak === 4 && sebelum.vonis === "" && sebelum.hasil === 0,
     `breaker ${nama}: sebelum menebak panel Ubah ${sebelum.ubah}, hasil "${sebelum.status}", ${sebelum.tebak} pilihan aktif, kalimat penuh "${sebelum.vonis}", panel hasil ${sebelum.hasil}`);
 
@@ -159,7 +159,7 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
   lapor(salah.pressed === "true" && salah.aktif === 0 && salah.fokus === L.ulang && salah.status.includes(L.belum),
     `breaker ${nama}: tebakan salah: aria-pressed ${salah.pressed}, ${salah.aktif} pilihan aktif, fokus di "${salah.fokus}", hasil "${salah.status.split("\n")[0]}"`);
   await page.keyboard.press("Enter");
-  const ulang = { fokus: await fokusTeks(page), ubah: await w.locator(".cb-ubah").count(), aktif: await w.locator(".tb-pilihan button:not(:disabled)").count(), vonis: (await w.locator(".cb-vonis").innerText()).trim() };
+  const ulang = { fokus: await fokusTeks(page), ubah: await w.locator(".brk-ubah").count(), aktif: await w.locator(".tb-pilihan button:not(:disabled)").count(), vonis: (await w.locator(".brk-vonis").innerText()).trim() };
   const norm = (t) => t.replace(/^A\s*/, "").replace(/\s+/g, " ").trim();
   lapor(norm(ulang.fokus) === norm(await w.locator(".tb-pilihan button").first().innerText()) && ulang.ubah === 0 && ulang.aktif === 4 && ulang.vonis === "",
     `breaker ${nama}: Coba pilihan lain: fokus di "${ulang.fokus.slice(0, 30)}", panel Ubah ${ulang.ubah}, ${ulang.aktif} pilihan aktif`);
@@ -168,7 +168,7 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
   const benar = w.locator(".tb-pilih").nth(2);
   await benar.focus();
   await page.keyboard.press("Enter");
-  const tepat = { pressed: await benar.getAttribute("aria-pressed"), fokus: await fokusTeks(page), ubah: await w.locator(".cb-ubah").count(), status: await status(), vonis: (await w.locator(".cb-vonis").innerText()).trim() };
+  const tepat = { pressed: await benar.getAttribute("aria-pressed"), fokus: await fokusTeks(page), ubah: await w.locator(".brk-ubah").count(), status: await status(), vonis: (await w.locator(".brk-vonis").innerText()).trim() };
   lapor(tepat.pressed === "true" && tepat.fokus === L.pilihNilai.jalur[0].label && tepat.ubah === 1 && tepat.status.includes(L.benar) && tepat.vonis === L.vonis["queue-membuka"].replace("{x}", "0").replace("{horizon}", String(HORIZON)).replace("{terkirim}", String(lulusB)).replace("{mati}", String(gagalB)).replace("{menunggu}", "0"),
     `breaker ${nama}: tebakan benar: aria-pressed ${tepat.pressed}, fokus di "${tepat.fokus}" (tombol pertama Ubah), hasil "${tepat.status.split("\n")[0]}", kalimat penuh "${tepat.vonis.slice(0, 60)}"`);
   const satuKalimat = !/\.\s/.test(tepat.vonis) && /\.$/.test(tepat.vonis);
@@ -191,13 +191,13 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
   const g1 = { slot: await grup(w, "serentak").count(), fokus: await fokusTeks(page) };
   await tombol(w, "jenis", EMPAT_GAGAL).focus();
   await page.keyboard.press("Enter");
-  const g2 = { pulih: await grup(w, "pulih").count(), fokus: await fokusTeks(page), tabel: await w.locator(".cb-tabel").count() };
+  const g2 = { pulih: await grup(w, "pulih").count(), fokus: await fokusTeks(page), tabel: await w.locator(".brk-tabel").count() };
   lapor(g1.slot === 0 && g1.fokus === SINKRON && g2.pulih === 0 && g2.fokus === EMPAT_GAGAL && g2.tabel === 0,
     `breaker ${nama}: sinkron menyembunyikan slot worker (${g1.slot}) dan tabel pekerjaan (${g2.tabel}), 4xx menyembunyikan pulih (${g2.pulih}); fokus tetap di "${g2.fokus.slice(0, 20)}"`);
 
   // Kembali ke pengaturan awal: semua kembali, fokus ke tombol pertama.
   await w.getByRole("button", { name: L.awal }).click();
-  const kembali = { fokus: await fokusTeks(page), pressed: await w.locator(".cb-tombol[aria-pressed='true']").evaluateAll((b) => b.map((x) => x.textContent.trim())), banding: (await w.locator(".cb-banding").innerText()).trim() };
+  const kembali = { fokus: await fokusTeks(page), pressed: await w.locator(".brk-tombol[aria-pressed='true']").evaluateAll((b) => b.map((x) => x.textContent.trim())), banding: (await w.locator(".brk-banding").innerText()).trim() };
   lapor(kembali.fokus === L.pilihNilai.jalur[0].label && kembali.pressed.join("|") === ["Queue: worker mengulang", "100%", "0 detik", "5xx: vendor gagal", "Dipasang", `Pulih pada detik ${PULIH}`, "1"].join("|") && kembali.banding === L.banding.sama,
     `breaker ${nama}: Kembali ke pengaturan awal: fokus "${kembali.fokus}", ${kembali.pressed.join(", ")}`);
 
@@ -216,14 +216,14 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
   for (const k of KASUS) {
     await w.getByRole("button", { name: L.awal }).click();
     await setel(w, k.set);
-    const vonis = (await w.locator(".cb-vonis").innerText()).trim();
-    const acuan = (await w.locator(".cb-acuan").innerText()).replace(/\s+/g, " ").trim();
+    const vonis = (await w.locator(".brk-vonis").innerText()).trim();
+    const acuan = (await w.locator(".brk-acuan").innerText()).replace(/\s+/g, " ").trim();
     const dl = await angkaDl(w);
     const geo = await w.evaluate((e) => {
       const hitung = (s) => e.querySelectorAll(s).length;
-      const baris = [...e.querySelectorAll(".cb-menit")].map((m) => {
-        const p = [...m.querySelectorAll(".cb-pita .cb-p")].map((x) => x.getBoundingClientRect());
-        const kt = [...m.querySelectorAll(".cb-kotak .cb-k")].map((x) => x.getBoundingClientRect());
+      const baris = [...e.querySelectorAll(".brk-menit")].map((m) => {
+        const p = [...m.querySelectorAll(".brk-pita .brk-p")].map((x) => x.getBoundingClientRect());
+        const kt = [...m.querySelectorAll(".brk-kotak .brk-k")].map((x) => x.getBoundingClientRect());
         // Satu deret mendatar: dasar semua kotak di satu garis (tinggi boleh beda), makin ke kanan, dan baris tidak menjulang.
         const mendatar = [p, kt].every((d) => d.every((r, i) => Math.abs(r.bottom - d[0].bottom) <= 1 && (i === 0 || r.left >= d[i - 1].right - 0.5)));
         return { p: p.length, k: kt.length, sejajar: p.every((r, i) => Math.abs(r.left - kt[i].left) <= 1 && Math.abs(r.width - kt[i].width) <= 1) && mendatar, lebar: Math.min(...p.map((r) => r.width)), kiri: p[0].left, kanan: p.at(-1).right, tinggi: m.getBoundingClientRect().height };
@@ -232,28 +232,28 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
       const w = e.getBoundingClientRect();
       return {
         baris,
-        pita: { closed: hitung(".cb-pita .is-closed"), open: hitung(".cb-pita .is-open"), "half-open": hitung(".cb-pita .is-half-open") },
-        sel: Object.fromEntries(["ok", "5xx", "timeout", "4xx", "tolak", "gagal", "diam"].map((k) => [k, hitung(`.cb-kotak .is-${k}`)])),
-        tinggiPita: { closed: tinggi(".cb-pita .is-closed"), open: tinggi(".cb-pita .is-open"), half: tinggi(".cb-pita .is-half-open") },
-        tinggiSel: { ok: tinggi(".cb-kotak .is-ok"), gagal: tinggi(".cb-kotak .is-5xx") ?? tinggi(".cb-kotak .is-gagal") },
+        pita: { closed: hitung(".brk-pita .is-closed"), open: hitung(".brk-pita .is-open"), "half-open": hitung(".brk-pita .is-half-open") },
+        sel: Object.fromEntries(["ok", "5xx", "timeout", "4xx", "tolak", "gagal", "diam"].map((k) => [k, hitung(`.brk-kotak .is-${k}`)])),
+        tinggiPita: { closed: tinggi(".brk-pita .is-closed"), open: tinggi(".brk-pita .is-open"), half: tinggi(".brk-pita .is-half-open") },
+        tinggiSel: { ok: tinggi(".brk-kotak .is-ok"), gagal: tinggi(".brk-kotak .is-5xx") ?? tinggi(".brk-kotak .is-gagal") },
         di_dalam: baris.every((b) => b.kiri >= w.left - 0.5 && b.kanan <= w.right + 0.5),
-        tersembunyi: e.querySelector(".cb-baris").getAttribute("aria-hidden"),
-        tabel: [...e.querySelectorAll(".cb-tabel tbody tr")].map((r) => [...r.children].map((c) => c.textContent.trim())),
-        kotakRiwayat: e.querySelectorAll(".cb-tabel .cb-riwayat .cb-k").length,
-        hitungAda: e.querySelectorAll(".cb-hitung").length,
-        catatan: [...e.querySelectorAll(".cb-catatan")].map((c) => c.textContent.trim()),
-        headerBaris: e.querySelectorAll(".cb-tabel tbody th[scope='row']").length,
-        caption: e.querySelector(".cb-tabel caption")?.textContent.trim() ?? null,
-        asal: e.querySelector(".cb-asal summary")?.textContent.trim() ?? null,
+        tersembunyi: e.querySelector(".brk-baris").getAttribute("aria-hidden"),
+        tabel: [...e.querySelectorAll(".brk-tabel tbody tr")].map((r) => [...r.children].map((c) => c.textContent.trim())),
+        kotakRiwayat: e.querySelectorAll(".brk-tabel .brk-riwayat .brk-k").length,
+        hitungAda: e.querySelectorAll(".brk-hitung").length,
+        catatan: [...e.querySelectorAll(".brk-catatan")].map((c) => c.textContent.trim()),
+        headerBaris: e.querySelectorAll(".brk-tabel tbody th[scope='row']").length,
+        caption: e.querySelector(".brk-tabel caption")?.textContent.trim() ?? null,
+        asal: e.querySelector(".brk-asal summary")?.textContent.trim() ?? null,
         cat: (() => {
           // Tiap jenis kotak dan pita yang tampil harus punya cat (warna latar atau bayangan dalam) dan tinggi; kalau tidak, hasilnya tak terlihat.
           const ada = (n) => n !== "rgba(0, 0, 0, 0)" && n !== "transparent";
-          const kosong = [...e.querySelectorAll(".cb-pita .cb-p, .cb-kotak .cb-k")].filter((x) => { const c = getComputedStyle(x); return (!ada(c.backgroundColor) && c.backgroundImage === "none" && c.boxShadow === "none") || x.getBoundingClientRect().height < 0.9; }).map((x) => x.className);
-          const vonis = e.querySelector(".cb-vonis:not(:empty)");
+          const kosong = [...e.querySelectorAll(".brk-pita .brk-p, .brk-kotak .brk-k")].filter((x) => { const c = getComputedStyle(x); return (!ada(c.backgroundColor) && c.backgroundImage === "none" && c.boxShadow === "none") || x.getBoundingClientRect().height < 0.9; }).map((x) => x.className);
+          const vonis = e.querySelector(".brk-vonis:not(:empty)");
           return { kosong: [...new Set(kosong)], tepiVonis: vonis ? ada(getComputedStyle(vonis).borderLeftColor) : true };
         })(),
-        tolakCat: (() => { const t = e.querySelector(".cb-kotak .is-tolak"); return t ? getComputedStyle(t).boxShadow : null; })(),
-        nama: [...e.querySelectorAll(".cb-kelompok")].map((g) => ({ nama: document.getElementById(g.getAttribute("aria-labelledby"))?.textContent.trim() ?? null, role: g.getAttribute("role") })),
+        tolakCat: (() => { const t = e.querySelector(".brk-kotak .is-tolak"); return t ? getComputedStyle(t).boxShadow : null; })(),
+        nama: [...e.querySelectorAll(".brk-kelompok")].map((g) => ({ nama: document.getElementById(g.getAttribute("aria-labelledby"))?.textContent.trim() ?? null, role: g.getAttribute("role") })),
       };
     });
     const sinkron = k.set.jalur === SINKRON;
@@ -293,7 +293,7 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
   await w.getByRole("button", { name: L.awal }).click();
   const kode = await w.locator("code").evaluateAll((c) => ({ n: c.length, salah: c.filter((x) => x.getAttribute("translate") !== "no").length }));
   lapor(kode.n >= 1 && kode.salah === 0, `breaker kode: ${kode.n} elemen code, ${kode.salah} tanpa translate="no"`);
-  const legenda = await w.locator(".cb-legenda li").evaluateAll((l) => l.map((x) => x.textContent.trim()));
+  const legenda = await w.locator(".brk-legenda li").evaluateAll((l) => l.map((x) => x.textContent.trim()));
   lapor(legenda.length === 6 && legenda.includes(L.papan.hasil.gagal) && legenda.includes(L.papan.status["half-open"]), `breaker legenda queue: ${legenda.join(" | ")}`);
   await ctx.close();
 }
@@ -345,10 +345,10 @@ for (const lebar of [320, 375]) for (const verdana of [false, true]) for (const 
   const ukur = await page.evaluate(() => {
     const w = document.querySelector("[data-circuit-breaker]");
     const r = w.getBoundingClientRect();
-    const luar = [...w.querySelectorAll("button, input, .bb-chip, table, .cb-baris, .cb-angka, .cb-legenda")].filter((e) => { const b = e.getBoundingClientRect(); return b.width > 0 && (b.right > r.right + 0.5 || b.left < r.left - 0.5); }).map((e) => e.className || e.tagName);
+    const luar = [...w.querySelectorAll("button, input, .bb-chip, table, .brk-baris, .brk-angka, .brk-legenda")].filter((e) => { const b = e.getBoundingClientRect(); return b.width > 0 && (b.right > r.right + 0.5 || b.left < r.left - 0.5); }).map((e) => e.className || e.tagName);
     const kecil = [...w.querySelectorAll("button, input")].filter((e) => { const b = e.getBoundingClientRect(); return b.height < 24 || b.width < 24; }).map((e) => e.textContent.trim() || e.type);
     const chip = [...w.querySelectorAll(".bb-chip")].map((c) => ({ t: c.textContent.trim().slice(0, 20), sw: c.scrollWidth <= c.clientWidth + 1 }));
-    const tabel = w.querySelector(".cb-tabel");
+    const tabel = w.querySelector(".brk-tabel");
     return { halaman: document.documentElement.scrollWidth - innerWidth, widget: w.scrollWidth - w.clientWidth, luar, kecil, chip, tabel: tabel ? tabel.scrollWidth - tabel.clientWidth : 0 };
   });
   lapor(ukur.halaman <= 0 && ukur.widget <= 0 && ukur.luar.length === 0 && ukur.kecil.length === 0 && ukur.chip.every((c) => c.sw) && ukur.tabel <= 0,

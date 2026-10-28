@@ -66,8 +66,8 @@ export default function CircuitBreaker({ aturan, awal, pertanyaan, pilihan, bena
     const a = akar.current;
     const sasaran =
       f === "pilihan" ? a?.querySelector<HTMLButtonElement>(".tb-pilihan .tb-pilih:not(:disabled)")
-      : f === "tombol" ? a?.querySelector<HTMLButtonElement>(".cb-tombol")
-      : (a?.querySelector<HTMLButtonElement>(".tb-tautan button") ?? a?.querySelector<HTMLButtonElement>(".cb-tombol"));
+      : f === "tombol" ? a?.querySelector<HTMLButtonElement>(".brk-tombol")
+      : (a?.querySelector<HTMLButtonElement>(".tb-tautan button") ?? a?.querySelector<HTMLButtonElement>(".brk-tombol"));
     sasaran?.focus();
   });
   // Fokus hanya dipindah bila fokus pembaca ada di kontrol yang akan dinonaktifkan atau hilang.
@@ -99,11 +99,11 @@ export default function CircuitBreaker({ aturan, awal, pertanyaan, pilihan, bena
   ];
   const sel: (SelSinkron | SelQueue)[] = h.sel;
   const baris = Array.from({ length: HORIZON / BARIS }, (_, i) => sel.slice(i * BARIS, (i + 1) * BARIS));
-  const kelasSel = (s: SelSinkron | SelQueue): string => "cb-k is-" + ("hasil" in s ? s.hasil : s.percobaan === 0 ? "diam" : s.gagal > 0 ? "gagal" : "ok");
+  const kelasSel = (s: SelSinkron | SelQueue): string => "brk-k is-" + ("hasil" in s ? s.hasil : s.percobaan === 0 ? "diam" : s.gagal > 0 ? "gagal" : "ok");
   const legenda: (keyof LabelSiap["papan"]["hasil"])[] = sinkron ? ["ok", "5xx", "timeout", "4xx", "tolak"] : ["ok", "gagal", "diam"];
 
   return (
-    <div ref={akar} className="bb-widget tb cb" role="group" aria-label={L.judul} data-circuit-breaker="">
+    <div ref={akar} className="bb-widget tb brk" role="group" aria-label={L.judul} data-circuit-breaker="">
       <div className="bb-widget__head">
         <p><strong>{L.judul}</strong></p>
         <span className="bb-chip is-warn">{L.sumber}</span>
@@ -124,7 +124,7 @@ export default function CircuitBreaker({ aturan, awal, pertanyaan, pilihan, bena
         })}
       </ol>
 
-      <p role="status" aria-live="polite" className="cb-status">{dipilih === null ? "" : tepat ? L.benar : L.belum}</p>
+      <p role="status" aria-live="polite" className="brk-status">{dipilih === null ? "" : tepat ? L.benar : L.belum}</p>
       {dipilih !== null && (
         <div ref={hasil} className={"tb-hasil " + (tepat ? "is-benar" : "is-salah")}>
           <p>{pilihan[dipilih]!.alasan}</p>
@@ -134,34 +134,34 @@ export default function CircuitBreaker({ aturan, awal, pertanyaan, pilihan, bena
       )}
 
       {dipilih !== null && (
-        <div className="cb-ubah">
+        <div className="brk-ubah">
           <p className="tb-tanya"><strong>{L.ubahJudul}</strong></p>
           {KELOMPOK.filter((k) => (k !== "pulih" || !empat) && (k !== "serentak" || !sinkron)).map((k) => (
-            <div key={k} role="group" aria-labelledby={`${id}-${k}`} className="cb-kelompok">
-              <p id={`${id}-${k}`} className="cb-label">{L.kelompok[k]}</p>
-              <ul className={"cb-pilih" + (k === "jenis" ? " cb-pilih--daftar" : "")}>
+            <div key={k} role="group" aria-labelledby={`${id}-${k}`} className="brk-kelompok">
+              <p id={`${id}-${k}`} className="brk-label">{L.kelompok[k]}</p>
+              <ul className={"brk-pilih" + (k === "jenis" ? " brk-pilih--daftar" : "")}>
                 {(opsi[k] as Opsi<Param[Kelompok]>[]).map((o) => (
                   <li key={String(o.nilai)}>
-                    <button type="button" className="tb-pilih cb-tombol" aria-pressed={param[k] === o.nilai} onClick={() => ubah(k, o.nilai)}>{o.label}</button>
+                    <button type="button" className="tb-pilih brk-tombol" aria-pressed={param[k] === o.nilai} onClick={() => ubah(k, o.nilai)}>{o.label}</button>
                   </li>
                 ))}
               </ul>
             </div>
           ))}
-          <p className="cb-kembali"><button type="button" className="bb-btn bb-btn--quiet" onClick={kembali}>{L.awal}</button></p>
+          <p className="brk-kembali"><button type="button" className="bb-btn bb-btn--quiet" onClick={kembali}>{L.awal}</button></p>
         </div>
       )}
 
-      <div role="status" aria-live="polite" className={"cb-vonis" + (dipilih !== null ? (ring.kebuka ? " is-buka" : " is-tetap") : "")}>
+      <div role="status" aria-live="polite" className={"brk-vonis" + (dipilih !== null ? (ring.kebuka ? " is-buka" : " is-tetap") : "")}>
         {dipilih !== null && <p><strong>{kalimatVonis(L.vonis, ring, param, aturan)}</strong></p>}
       </div>
 
       {dipilih !== null && (
-        <div className="cb-hasil">
-          <p className="bb-muted cb-banding">
+        <div className="brk-hasil">
+          <p className="bb-muted brk-banding">
             {!diubah ? L.banding.sama : isi(L.banding.beda, { awal: ringkasTeks(L.ringkas, ringAwal), kini: ringkasTeks(L.ringkas, ring) })}
           </p>
-          <p className="cb-acuan">
+          <p className="brk-acuan">
             {kunciAcuan ? (
               <>
                 <span className="bb-chip is-system">{L.cocok}</span> <Teks t={acuanTeks[kunciAcuan]!} />
@@ -171,24 +171,24 @@ export default function CircuitBreaker({ aturan, awal, pertanyaan, pilihan, bena
             )}
           </p>
 
-          <div className="cb-papan">
-            <p className="cb-judul"><strong>{L.papan.judul}</strong></p>
-            <div className="cb-baris" aria-hidden="true">
+          <div className="brk-papan">
+            <p className="brk-judul"><strong>{L.papan.judul}</strong></p>
+            <div className="brk-baris" aria-hidden="true">
               {baris.map((b, i) => (
-                <div key={i} className="cb-menit">
-                  <p className="cb-menit-judul">{isi(L.papan.baris, { dari: i * BARIS, sampai: (i + 1) * BARIS - 1 })}</p>
-                  <div className="cb-pita">{b.map((s) => <span key={s.detik} className={"cb-p is-" + s.status} />)}</div>
-                  <div className="cb-kotak">{b.map((s) => <span key={s.detik} className={kelasSel(s)} />)}</div>
+                <div key={i} className="brk-menit">
+                  <p className="brk-menit-judul">{isi(L.papan.baris, { dari: i * BARIS, sampai: (i + 1) * BARIS - 1 })}</p>
+                  <div className="brk-pita">{b.map((s) => <span key={s.detik} className={"brk-p is-" + s.status} />)}</div>
+                  <div className="brk-kotak">{b.map((s) => <span key={s.detik} className={kelasSel(s)} />)}</div>
                 </div>
               ))}
             </div>
-            <ul className="cb-legenda">
-              {(["closed", "open", "half-open"] as Status[]).map((s) => <li key={s}><span className={"cb-p is-" + s} aria-hidden="true" /> {L.papan.status[s]}</li>)}
-              {legenda.map((x) => <li key={x}><span className={"cb-k is-" + x} aria-hidden="true" /> {L.papan.hasil[x]}</li>)}
+            <ul className="brk-legenda">
+              {(["closed", "open", "half-open"] as Status[]).map((s) => <li key={s}><span className={"brk-p is-" + s} aria-hidden="true" /> {L.papan.status[s]}</li>)}
+              {legenda.map((x) => <li key={x}><span className={"brk-k is-" + x} aria-hidden="true" /> {L.papan.hasil[x]}</li>)}
             </ul>
-            <p className="bb-muted cb-legenda-teks">{L.papan.legenda}</p>
+            <p className="bb-muted brk-legenda-teks">{L.papan.legenda}</p>
 
-            <dl className="cb-angka">
+            <dl className="brk-angka">
               {h.jalur === "sinkron" ? (
                 <>
                   <div><dt>{L.angka.sinkron.permintaan}</dt><dd>{HORIZON}</dd></div>
@@ -209,14 +209,14 @@ export default function CircuitBreaker({ aturan, awal, pertanyaan, pilihan, bena
             </dl>
 
             {h.jalur === "queue" && (
-              <table className="bb-table tm-tabel cb-tabel">
+              <table className="bb-table tm-tabel brk-tabel">
                 <caption>{L.pekerjaan.judul}</caption>
                 <thead><tr>{L.pekerjaan.kolom.map((k) => <th key={k} scope="col">{k}</th>)}</tr></thead>
                 <tbody>
                   {h.pekerjaan.map((j) => (
                     <tr key={j.id}>
                       <th scope="row">{j.id}</th>
-                      <td>{j.percobaan} <span className="cb-riwayat" aria-hidden="true">{j.riwayat.map((x, i) => <span key={i} className={"cb-k is-" + x} />)}</span></td>
+                      <td>{j.percobaan} <span className="brk-riwayat" aria-hidden="true">{j.riwayat.map((x, i) => <span key={i} className={"brk-k is-" + x} />)}</span></td>
                       <td>{L.pekerjaan.status[j.status]}</td>
                     </tr>
                   ))}
@@ -226,21 +226,21 @@ export default function CircuitBreaker({ aturan, awal, pertanyaan, pilihan, bena
           </div>
 
           {!sinkron && (
-            <div className="cb-hitung">
-              <p className="cb-judul"><strong>{hitungan.judul}</strong></p>
+            <div className="brk-hitung">
+              <p className="brk-judul"><strong>{hitungan.judul}</strong></p>
               <ul>
                 <li>{hitungan.worker}</li>
                 <li>{hitungan.bersama}</li>
                 {param.breaker && <li>{hitungan.dijeda}</li>}
                 <li>{hitungan.outage}</li>
               </ul>
-              <p className="bb-muted cb-catatan">{hitungan.label}</p>
+              <p className="bb-muted brk-catatan">{hitungan.label}</p>
             </div>
           )}
 
-          {catatanAktif.map((k) => <p key={k} className="bb-muted cb-catatan"><Teks t={catatan[k]} /></p>)}
+          {catatanAktif.map((k) => <p key={k} className="bb-muted brk-catatan"><Teks t={catatan[k]} /></p>)}
 
-          <details className="cb-asal">
+          <details className="brk-asal">
             <summary>{asal.judul}</summary>
             <ul>{asal.butir.map((b, i) => <li key={i}><Teks t={b} /></li>)}</ul>
           </details>

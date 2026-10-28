@@ -375,3 +375,41 @@ describe("island tidak memuat berkas build", () => {
     }
   });
 });
+
+describe("kelas CSS widget tidak bertabrakan dengan widget lain (tema.css global)", () => {
+  // Awalan cb- sempat dipakai widget ini dan widget cari-bug: aturan `.cb-tombol` yang baru menimpa `display: flex` tombol baris kode
+  // di empat halaman lama, dan `.cb` menyembunyikan cari-bug tanpa JavaScript (tinjauan W4-breaker, keputusan 1265).
+  const BERSAMA = /^(?:tb|bb|tm|is|aria|data)-/;
+  const BUKAN_KELAS = new Set(["half-open"]); // nama status breaker, bukan kelas
+  const kelas = (berkas: string): Set<string> => {
+    const sumber = fs.readFileSync(berkas, "utf8");
+    const hasil = new Set<string>();
+    for (const m of sumber.matchAll(/"([^"\n]*)"|`([^`\n]*)`/g)) {
+      for (const t of (m[1] ?? m[2] ?? "").split(/\s+/)) if (/^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/.test(t) && !BERSAMA.test(t) && !BUKAN_KELAS.has(t)) hasil.add(t);
+    }
+    return hasil;
+  };
+  const WIDGETS = path.resolve(__dirname, "..");
+  const milik = kelas(path.resolve(__dirname, "CircuitBreaker.tsx"));
+  const lain = (dir: string): string[] =>
+    fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const p = path.join(dir, e.name);
+      return e.isDirectory() ? (p === __dirname ? [] : lain(p)) : /\.(tsx|astro)$/.test(e.name) ? [p] : [];
+    });
+  it("semua kelas milik widget memakai awalan brk (kecuali tb-, bb-, tm-, is- bersama)", () => {
+    expect(milik.size).toBeGreaterThan(20);
+    expect([...milik].filter((k) => !k.startsWith("brk-")).sort()).toEqual([]);
+  });
+  it("tidak ada kelas milik widget yang dipakai berkas widget atau komponen lain", () => {
+    const bentrok = [...lain(WIDGETS), ...lain(path.resolve(WIDGETS, "../components"))].flatMap((f) => [...kelas(f)].filter((k) => milik.has(k)).map((k) => `${path.basename(f)}: ${k}`));
+    expect(bentrok).toEqual([]);
+  });
+  it("aturan CSS widget di tema.css hanya memakai kelas brk, tb, bb, dan tm", () => {
+    const css = fs.readFileSync(path.resolve(__dirname, "../../styles/tema.css"), "utf8");
+    const awal = css.indexOf("/* Widget circuit breaker (W4-breaker");
+    expect(awal).toBeGreaterThan(0);
+    const blok = css.slice(awal);
+    expect(blok).not.toMatch(/\.cb\b/);
+    expect(blok).toMatch(/\.brk-tombol\b/);
+  });
+});
