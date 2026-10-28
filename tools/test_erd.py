@@ -21,10 +21,14 @@ spec.loader.exec_module(erd)
 JSON1 = "situs/data/erd/tahap-1.json"
 JSON2 = "situs/data/erd/tahap-2.json"
 JSON3 = "situs/data/erd/tahap-3.json"
+JSON4 = "situs/data/erd/tahap-4.json"
+JSONM = "situs/data/erd/modul-tahap-4.json"
+MODUL_SQL = erd.TAHAP[4]["modul"]
 SUMBER = erd.TAHAP[1]["sumber"][0]
 PEMBANDING = erd.TAHAP[1]["pembanding"][0]
 MIGRASI_T2 = [f for f in erd.TAHAP[2]["sumber"] if f.startswith("labs/api-t2/")]
 MIGRASI_T3 = [f for f in erd.TAHAP[3]["sumber"] if f.startswith("labs/api-t3/")]
+MIGRASI_T4 = [f for f in erd.TAHAP[4]["sumber"] if f.startswith("labs/api-t4/")]
 
 
 def ubah_json(fungsi, rel=JSON1):
@@ -87,13 +91,44 @@ KASUS = [  # nama, ubah salinan, exit harapan, teks yang harus ada di keluaran
      ubah_json(lambda d: d["selisih"]["tabel_dihapus"].append({"nama": "posting", "pindah_ke": "outbox"}), JSON3), 1, "tahap-3.json: selisih tidak sama"),
     ("tahap-2.json diubah tangan dengan format sah: selisih Tahap 3 menangkapnya",
      ubah_json(lambda d: next(t for t in d["tabel"] if t["nama"] == "sesi")["kolom"][1].update(tipe="integer"), JSON2), 1, "tahap-3.json: selisih tidak sama"),
+    # Tahap 4 (ERD4, keputusan 1254): migration api-t4 ikut hash; selisih dihitung ulang dari tahap-3.json dan tahap-4.json.
+    ("migration api-t4 berubah tanpa JSON Tahap 4 dibangun ulang", tambah_baris(MIGRASI_T4[-1]), 1, "tahap-4.json: file sumber berubah"),
+    ("migration api-t4 000020 berubah", tambah_baris(MIGRASI_T4[0]), 1, "tahap-4.json: file sumber berubah"),
+    ("migration api-t3 000019 berubah: Tahap 3 dan 4 sama-sama menangkapnya", tambah_baris(MIGRASI_T3[-1]), 1, "tahap-4.json: file sumber berubah"),
+    ("JSON Tahap 4 hilang", lambda r: (r / JSON4).unlink(), 1, "tahap-4.json: belum ada"),
+    ("tabel baru dihapus dari selisih Tahap 4",
+     ubah_json(lambda d: d["selisih"]["tabel_baru"].remove("topup_bank"), JSON4), 1, "tahap-4.json: selisih tidak sama"),
+    ("kolom baru dihapus dari selisih Tahap 4",
+     ubah_json(lambda d: d["selisih"]["kolom_baru"].pop(), JSON4), 1, "tahap-4.json: selisih tidak sama"),
+    ("aturan berubah dihapus dari selisih Tahap 4",
+     ubah_json(lambda d: d["selisih"]["aturan_berubah"].pop(), JSON4), 1, "tahap-4.json: selisih tidak sama"),
+    ("tabel dihapus diisi tangan di Tahap 4 yang hanya menambah",
+     ubah_json(lambda d: d["selisih"]["tabel_dihapus"].append({"nama": "outbox", "pindah_ke": "audit_log"}), JSON4), 1, "tahap-4.json: selisih tidak sama"),
+    ("tahap-3.json diubah tangan dengan format sah: selisih Tahap 4 menangkapnya",
+     ubah_json(lambda d: next(t for t in d["tabel"] if t["nama"] == "outbox")["kolom"][1].update(tipe="text"), JSON3), 1, "tahap-4.json: selisih tidak sama"),
+    # Kolom, UNIQUE, CHECK, atau index Tahap 4 yang diubah atau dihapus tangan dari tahap-4.json tidak punya sumber lain
+    # tanpa database, jadi bukan tugas --cek: penjaganya Vitest (situs/src/erd/tumbuh.test.ts, "penjaga skema" ERD4).
+    # Pembagian modul Tahap 4 (keputusan 1254).
+    ("modul.sql berubah tanpa JSON modul dibangun ulang", tambah_baris(MODUL_SQL), 1, "modul-tahap-4.json: labs/t4-modul/modul.sql berubah"),
+    ("JSON modul hilang", lambda r: (r / JSONM).unlink(), 1, "modul-tahap-4.json: belum ada"),
+    ("JSON modul bukan JSON", lambda r: (r / JSONM).write_text("[", encoding="utf-8"), 1, "modul-tahap-4.json: bukan JSON"),
+    ("JSON modul diubah tangan tanpa format erd.py",
+     lambda r: (r / JSONM).write_text(json.dumps(json.loads((r / JSONM).read_text())), encoding="utf-8"), 1, "modul-tahap-4.json: format"),
+    ("satu tabel dipindah modul di JSON modul",
+     ubah_json(lambda d: (d["modul"][0]["tabel"].remove("buku"), d["modul"][1]["tabel"].append("buku")), JSONM), 1, "modul-tahap-4.json: isi tidak sama"),
+    ("satu foreign key lintas modul dihapus di JSON modul", ubah_json(lambda d: d["lintas"].pop(), JSONM), 1, "modul-tahap-4.json: isi tidak sama"),
+    ("modul diganti nama di JSON modul", ubah_json(lambda d: d["modul"][4].update(nama="gateway"), JSONM), 1, "modul-tahap-4.json: isi tidak sama"),
+    ("hash modul.sql diganti tangan", ubah_json(lambda d: d["sumber"].update(sha256="0" * 64), JSONM), 1, "modul-tahap-4.json: labs/t4-modul/modul.sql berubah"),
+    ("foreign key lintas yang tidak menyeberang disisipkan di JSON modul",
+     ubah_json(lambda d: d["lintas"].append({"tabel": "sesi", "fk": "sesi_akun_id_fkey", "ke_tabel": "akun", "dari_modul": "akun", "ke_modul": "akun"}), JSONM), 1, "tidak menyeberang modul"),
+    ("kunci tambahan di JSON modul", ubah_json(lambda d: d.update(catatan="x"), JSONM), 1, "kunci tidak sama"),
 ]
 
 gagal = 0
 for nama, ubah, harap, wajib in KASUS:
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
-        for rel in sorted({f for c in erd.TAHAP.values() for f in erd.semua_file(c)}) + [JSON1, JSON2, JSON3]:
+        for rel in sorted({f for c in erd.TAHAP.values() for f in erd.semua_file(c)}) + [JSON1, JSON2, JSON3, JSON4, JSONM, MODUL_SQL]:
             (root / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(AKAR / rel, root / rel)
         ubah(root)
@@ -217,6 +252,48 @@ SELISIH += [
     ("alias tabel tidak dikira schema",
      lambda: bool(erd.bersihkan("UPDATE buku b SET saldo_cache = p.jumlah FROM posting p WHERE p.buku_id = b.id;\n",
                                 "uji", LAIN)), True),
+]
+# hitung_modul (ERD4): pembagian modul dibaca dari modul.sql tanpa database; salinan yang diubah harus gagal, bukan lolos palsu.
+def modul_salinan(ubah):
+    """hitung_modul pada salinan yang modul.sql-nya diubah `ubah(teks)`."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = pathlib.Path(tmp)
+        for rel in (MODUL_SQL, JSON4):
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(AKAR / rel, root / rel)
+        p = root / MODUL_SQL
+        p.write_text(ubah(p.read_text(encoding="utf-8")), encoding="utf-8")
+        return erd.hitung_modul(4, root)
+
+
+def hapus_baris(awal):
+    return lambda t: "\n".join(b for b in t.splitlines() if not b.startswith(awal)) + "\n"
+
+
+ASLI_MODUL = erd.hitung_modul(4)
+SELISIH += [
+    ("modul.sql asli: enam modul 6 + 4 + 1 + 4 + 5 + 2 tabel",
+     lambda: [(m["nama"], len(m["tabel"])) for m in ASLI_MODUL["modul"]],
+     [("ledger", 6), ("akun", 4), ("identitas", 1), ("merchant", 4), ("pembayaran", 5), ("platform", 2)]),
+    ("modul.sql asli: 21 foreign key menyeberang, 14 ke modul akun dan 7 ke tabel jurnal",
+     lambda: (len(ASLI_MODUL["lintas"]), sum(x["ke_modul"] == "akun" for x in ASLI_MODUL["lintas"]),
+              sum(x["ke_tabel"] == "jurnal" for x in ASLI_MODUL["lintas"])), (21, 14, 7)),
+    ("pembagian modul dari modul.sql lolos periksa_modul", lambda: erd.periksa_modul(ASLI_MODUL, 4), []),
+    ("tabel tanpa pernyataan SET SCHEMA ditolak", lambda: modul_salinan(hapus_baris("ALTER TABLE {s}.qr ")), SystemExit),
+    ("tabel dipindah dua kali ditolak",
+     lambda: modul_salinan(lambda t: t + "ALTER TABLE {s}.qr SET SCHEMA t4m_platform;\n"), SystemExit),
+    ("tabel dipindah ke schema yang tidak dibuat ditolak",
+     lambda: modul_salinan(lambda t: t.replace("{s}.qr SET SCHEMA t4m_merchant", "{s}.qr SET SCHEMA t4m_gaib")), SystemExit),
+    ("tabel yang tidak ada di tahap-4.json ditolak",
+     lambda: modul_salinan(lambda t: t + "ALTER TABLE {s}.tabel_gaib SET SCHEMA t4m_platform;\n"), SystemExit),
+    ("pernyataan yang dikomentari tidak dihitung",
+     lambda: modul_salinan(lambda t: t.replace("ALTER TABLE {s}.qr SET SCHEMA t4m_merchant;", "-- ALTER TABLE {s}.qr SET SCHEMA t4m_merchant;")), SystemExit),
+    ("schema tanpa tabel ditolak",
+     lambda: modul_salinan(lambda t: t.replace("CREATE SCHEMA t4m_platform;", "CREATE SCHEMA t4m_platform;\nCREATE SCHEMA t4m_kosong;")), SystemExit),
+    ("schema ganda ditolak",
+     lambda: modul_salinan(lambda t: t.replace("CREATE SCHEMA t4m_platform;", "CREATE SCHEMA t4m_platform;\nCREATE SCHEMA t4m_platform;")), SystemExit),
+    ("satu tabel pindah modul mengubah foreign key yang menyeberang",
+     lambda: len(modul_salinan(lambda t: t.replace("{s}.baris_pencairan SET SCHEMA t4m_ledger", "{s}.baris_pencairan SET SCHEMA t4m_platform"))["lintas"]), 24),
 ]
 for nama, jalan, harap in SELISIH:
     try:

@@ -24,6 +24,11 @@ ke mana isinya pindah, kolom baru, kolom dihapus, kolom berubah, dan aturan (PK,
 dihapus, atau berubah di tabel yang ada di kedua tahap; keputusan 460). Ke mana isi tabel pindah tidak bisa dibaca dari
 katalog, jadi ditulis tangan di `pindah`; tabel yang dihapus tanpa entri `pindah` membuat pembangunan gagal.
 Kolom yang berganti nama tercatat sebagai kolom dihapus + kolom baru.
+
+Pembagian modul Tahap 4 (ERD4, keputusan 1254): lab t4-modul memecah 22 tabel akhir api-t4 ke enam schema dengan
+`ALTER TABLE ... SET SCHEMA` di labs/t4-modul/modul.sql. erd.py membaca pernyataan itu (bukan salinan tangan), menulis
+situs/data/erd/modul-tahap-4.json (tabel per modul dan foreign key yang menyeberang schema, dihitung dari tahap-4.json),
+dan `--cek` menghitung ulang keduanya dari file sumbernya. ERD tetap satu schema: pembagian hanya informasi.
 """
 import hashlib
 import json
@@ -139,6 +144,60 @@ TAHAP = {
         ],
         "sebelumnya": 2,
         "pindah": {},  # Tahap 3 hanya menambah (expand): tidak ada tabel yang dihapus
+    },
+    4: {
+        # Akhir Tahap 4 di lab api-t4 (keputusan 1210, 1254): akhir Tahap 3 lalu api-t4 000020-000023 (expand empat
+        # rilis; tidak ada contract, jadi tidak ada tabel yang dihapus). Daftar file = urutan `buat_schema()` di
+        # labs/api-t4/dasar_t4.py: api-t1/schema.sql, batas saldo warung, SEMUA migration api-t2 (000009-000014), SEMUA
+        # migration api-t3 (000015-000019), lalu api-t4 (000020-000023). Pembagian enam schema per modul (labs/t4-modul,
+        # `ALTER TABLE ... SET SCHEMA` sesudah migration ini) bukan bagian skema akhir: ERD tetap satu schema, dan
+        # pengelompokannya ditulis di situs/data/erd/modul.json (diperiksa terhadap katalog lab di --cek).
+        "sumber": [
+            "labs/api-t1/schema.sql",
+            "labs/b4-migration/baru/000005_batas_saldo_warung.up.sql",
+            "labs/api-t2/migrasi/000009_akun_tahap2.up.sql",
+            "labs/api-t2/migrasi/000010_ledger_tabel.up.sql",
+            "labs/api-t2/migrasi/000011_ledger_pendukung.up.sql",
+            "labs/api-t2/migrasi/000012_ledger_migrasi.up.sql",
+            "labs/api-t2/migrasi/000013_saldo_contract.up.sql",
+            "labs/api-t2/migrasi/000014_wajib_ganti_password.up.sql",
+            "labs/api-t3/migrasi/000015_kota_peran_hr.up.sql",
+            "labs/api-t3/migrasi/000016_sesi_web.up.sql",
+            "labs/api-t3/migrasi/000017_perangkat_outbox.up.sql",
+            "labs/api-t3/migrasi/000018_katalog_promo.up.sql",
+            "labs/api-t3/migrasi/000019_operasi_sinkron.up.sql",
+            "labs/api-t4/migrasi/000020_akun_tingkat_buku_jenis.up.sql",
+            "labs/api-t4/migrasi/000021_topup_bank.up.sql",
+            "labs/api-t4/migrasi/000022_verifikasi_qr.up.sql",
+            "labs/api-t4/migrasi/000023_kartu_audit.up.sql",
+        ],
+        # Jalur kedua seperti Tahap 2 dan 3: database dari migration Tahap 1 (b4-migration), lalu migration Tahap 2, 3,
+        # dan 4 yang sama.
+        "pembanding": [
+            "labs/b4-migration/migrations/000001_akun_sesi.up.sql",
+            "labs/b4-migration/migrations/000002_topup.up.sql",
+            "labs/b4-migration/migrations/000003_transaksi.up.sql",
+            "labs/b4-migration/baru/000004_koreksi.up.sql",
+            "labs/b4-migration/baru/000005_batas_saldo_warung.up.sql",
+            "labs/api-t2/migrasi/000009_akun_tahap2.up.sql",
+            "labs/api-t2/migrasi/000010_ledger_tabel.up.sql",
+            "labs/api-t2/migrasi/000011_ledger_pendukung.up.sql",
+            "labs/api-t2/migrasi/000012_ledger_migrasi.up.sql",
+            "labs/api-t2/migrasi/000013_saldo_contract.up.sql",
+            "labs/api-t2/migrasi/000014_wajib_ganti_password.up.sql",
+            "labs/api-t3/migrasi/000015_kota_peran_hr.up.sql",
+            "labs/api-t3/migrasi/000016_sesi_web.up.sql",
+            "labs/api-t3/migrasi/000017_perangkat_outbox.up.sql",
+            "labs/api-t3/migrasi/000018_katalog_promo.up.sql",
+            "labs/api-t3/migrasi/000019_operasi_sinkron.up.sql",
+            "labs/api-t4/migrasi/000020_akun_tingkat_buku_jenis.up.sql",
+            "labs/api-t4/migrasi/000021_topup_bank.up.sql",
+            "labs/api-t4/migrasi/000022_verifikasi_qr.up.sql",
+            "labs/api-t4/migrasi/000023_kartu_audit.up.sql",
+        ],
+        "sebelumnya": 3,
+        "pindah": {},  # Tahap 4 hanya menambah (expand): tidak ada tabel yang dihapus
+        "modul": "labs/t4-modul/modul.sql",
     },
 }
 
@@ -452,10 +511,85 @@ def bangun(n):
     lama = p.read_text(encoding="utf-8") if p.exists() else None
     p.write_text(teks, encoding="utf-8")
     fk = sum(len(t["fk"]) for t in tabel)
+    if "modul" in cfg:
+        pm = path_modul(n)
+        md = hitung_modul(n)
+        galat_m = periksa_modul(md, n)
+        if galat_m:
+            gagal("JSON modul tidak lolos pemeriksaan:\n  " + "\n  ".join(galat_m))
+        pm.write_text(tulis_json(md), encoding="utf-8")
+        print(f"Tahap {n}: {len(md['modul'])} modul, {len(md['lintas'])} foreign key menyeberang schema modul; ditulis {pm.relative_to(AKAR)}")
     print(f"Tahap {n}: {len(tabel)} tabel, {fk} foreign key, PostgreSQL {versi}; "
           f"{'tidak berubah' if lama == teks else 'ditulis'} {p.relative_to(AKAR)}"
           + (f"; pembanding identik ({len(cfg['pembanding'])} file)" if cfg["pembanding"] else "")
           + (f"; PERINGATAN: {sisa} schema erd_t{n}_* lain masih ada" if sisa else ""))
+
+
+# ── Pembagian modul (Tahap 4) ───────────────────────────────────────────────────────────────────────────────────
+
+PERNYATAAN_PINDAH = re.compile(r"^ALTER\s+TABLE\s+\{s\}\.([a-z_][a-z0-9_]*)\s+SET\s+SCHEMA\s+(t4m_[a-z_]+)\s*;\s*(--.*)?$", re.I | re.M)
+PERNYATAAN_SCHEMA = re.compile(r"^CREATE\s+SCHEMA\s+(t4m_[a-z_]+)\s*;\s*(--.*)?$", re.I | re.M)
+KUNCI_MODUL = {
+    "akar": {"format", "tahap", "sumber", "modul", "lintas"},
+    "sumber": {"file", "sha256"},
+    "modul": {"nama", "schema", "tabel"},
+    "lintas": {"tabel", "fk", "ke_tabel", "dari_modul", "ke_modul"},
+}
+
+
+def path_modul(n, root=AKAR):
+    return root / "situs" / "data" / "erd" / f"modul-tahap-{n}.json"
+
+
+def hitung_modul(n, root=AKAR):
+    """Pembagian modul tahap n: dibaca dari pernyataan `ALTER TABLE {s}.<tabel> SET SCHEMA t4m_<modul>` di file lab,
+    lalu foreign key yang menyeberang schema dihitung dari tahap-<n>.json (katalog). Murni, tanpa database."""
+    rel = TAHAP[n]["modul"]
+    teks = (root / rel).read_text(encoding="utf-8")
+    kode = "\n".join(re.sub(r"--.*$", "", b) if not b.lstrip().startswith("ALTER TABLE") else b for b in teks.splitlines())
+    schema = [m.group(1) for m in PERNYATAAN_SCHEMA.finditer(kode)]
+    if len(set(schema)) != len(schema) or not schema:
+        gagal(f"{rel}: CREATE SCHEMA kosong atau ganda: {schema}")
+    peta, urut = {}, {x: [] for x in schema}
+    for m in PERNYATAAN_PINDAH.finditer(kode):
+        tabel, ke = m.group(1), m.group(2)
+        if ke not in urut:
+            gagal(f"{rel}: {tabel} dipindah ke schema {ke} yang tidak dibuat file ini")
+        if tabel in peta:
+            gagal(f"{rel}: tabel {tabel} dipindah dua kali")
+        peta[tabel] = ke
+        urut[ke].append(tabel)
+    data = json.loads(path_json(n, root).read_text(encoding="utf-8"))
+    ada = [t["nama"] for t in data["tabel"]]
+    if sorted(peta) != sorted(ada):
+        gagal(f"{rel}: tabel yang dipindah tidak sama dengan tabel tahap-{n}.json "
+              f"(hanya di modul: {sorted(set(peta) - set(ada))}; belum dibagi: {sorted(set(ada) - set(peta))})")
+    kosong = [x for x in schema if not urut[x]]
+    if kosong:
+        gagal(f"{rel}: schema tanpa tabel: {kosong}")
+    modul = [{"nama": x[len("t4m_"):], "schema": x, "tabel": urut[x]} for x in schema]
+    lintas = [{"tabel": t["nama"], "fk": f["nama"], "ke_tabel": f["ke_tabel"],
+               "dari_modul": peta[t["nama"]][len("t4m_"):], "ke_modul": peta[f["ke_tabel"]][len("t4m_"):]}
+              for t in data["tabel"] for f in t["fk"] if peta[t["nama"]] != peta[f["ke_tabel"]]]
+    return {"format": FORMAT, "tahap": n, "sumber": {"file": rel, "sha256": hashlib.sha256((root / rel).read_bytes()).hexdigest()},
+            "modul": modul, "lintas": lintas}
+
+
+def periksa_modul(data, n):
+    g = []
+    if not isinstance(data, dict) or set(data) != KUNCI_MODUL["akar"]:
+        return [f"akar: kunci tidak sama dengan {sorted(KUNCI_MODUL['akar'])}"]
+    if data["format"] != FORMAT or data["tahap"] != n:
+        g.append(f"format/tahap: {data['format']}/{data['tahap']}, harap {FORMAT}/{n}")
+    if not isinstance(data["sumber"], dict) or set(data["sumber"]) != KUNCI_MODUL["sumber"]:
+        g.append("sumber: kunci salah")
+    for i, m in enumerate(data["modul"] if isinstance(data["modul"], list) else []):
+        if not isinstance(m, dict) or set(m) != KUNCI_MODUL["modul"] or not m["tabel"] or not NAMA.match(str(m["nama"])):
+            g.append(f"modul[{i}]: bentuk salah")
+    for i, x in enumerate(data["lintas"] if isinstance(data["lintas"], list) else []):
+        if not isinstance(x, dict) or set(x) != KUNCI_MODUL["lintas"] or x["dari_modul"] == x["ke_modul"]:
+            g.append(f"lintas[{i}]: bentuk salah atau tidak menyeberang modul")
+    return g
 
 
 # ── Memeriksa (tanpa database) ──────────────────────────────────────────────────────────────────────────────────
@@ -612,11 +746,40 @@ def cek(root):
                 galat.append(f"{rel}: selisih tidak bisa dihitung ulang, {p_lama.relative_to(root)} tidak terbaca atau tidak sah")
             elif data["selisih"] != hitung:
                 galat.append(f"{rel}: selisih tidak sama dengan hitungan ulang dari tahap-{cfg['sebelumnya']}.json")
+        if "modul" in cfg:
+            pm = path_modul(n, root)
+            rm = pm.relative_to(root)
+            if not pm.exists():
+                galat.append(f"{rm}: belum ada. Bangun: labs/.venv/bin/python tools/erd.py --tahap {n}")
+                continue
+            try:
+                teks_m = pm.read_text(encoding="utf-8")
+                md = json.loads(teks_m)
+            except (OSError, json.JSONDecodeError) as e:
+                galat.append(f"{rm}: bukan JSON ({e})")
+                continue
+            gm = periksa_modul(md, n)
+            galat += [f"{rm}: {x}" for x in gm]
+            if gm:
+                continue
+            if teks_m != tulis_json(md):
+                galat.append(f"{rm}: format bukan keluaran erd.py (diubah tangan?)")
+            try:
+                hitung_m = hitung_modul(n, root)
+            except (OSError, SystemExit) as e:
+                galat.append(f"{rm}: pembagian modul tidak bisa dihitung ulang dari {cfg['modul']} ({e})")
+                continue
+            if md["sumber"]["sha256"] != hitung_m["sumber"]["sha256"]:
+                galat.append(f"{rm}: {cfg['modul']} berubah sesudah JSON dibangun. Bangun ulang: "
+                             f"labs/.venv/bin/python tools/erd.py --tahap {n}")
+            elif md != hitung_m:
+                galat.append(f"{rm}: isi tidak sama dengan hitungan ulang dari {cfg['modul']} dan tahap-{n}.json")
     if galat:
         print("GAGAL erd --cek:\n  " + "\n  ".join(galat))
         return 1
     ringkas = ", ".join(f"Tahap {n} {len(json.loads(path_json(n, root).read_text())['tabel'])} tabel" for n in sorted(TAHAP))
-    print(f"erd --cek lolos: {ringkas}; hash sumber cocok")
+    modul = ", ".join(f"modul Tahap {n}: {len(json.loads(path_modul(n, root).read_text())['modul'])} schema" for n, c in sorted(TAHAP.items()) if "modul" in c)
+    print(f"erd --cek lolos: {ringkas}; hash sumber cocok" + (f"; {modul}" if modul else ""))
     return 0
 
 
