@@ -1831,16 +1831,34 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### EVAL-3 · Evaluasi Tahap 3
 
 - jenis: crosscheck
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.32
 - selesai bila: `plan/EVALUASI-TAHAP-3.md` sesuai skill evaluasi-tahap oleh subagent yang tidak menulis halaman Tahap 3: kartu W1–W8 dengan satu baris bukti yang bisa diulang, tiga pertanyaan pembaca di tiga halaman acak (seed 3), uji baca oleh subagent segar (5 hal membingungkan). Ada TIDAK: paling banyak 3 tugas perbaikan disisipkan tepat sesudah tugas ini, lalu `EVAL-3-ulang` sekali; sisa TIDAK dan 5 hal membingungkan ke `plan/TINJAUAN-PEMILIK.md`.
-- catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya.
+- catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya. Selesai 2026-10-28 di PR #418 (keputusan 1128–1131): plan/EVALUASI-TAHAP-3.md; W1, W2, W4, W6, W7, W8 YA; W3 TIDAK (3.16 definisi di Gejala; alat baru eval_tahap.py gejala) dan W5 TIDAK (7 dari 30 halaman Coba bukan 'tebak lalu ubah satu hal' menurut huruf skill); pembaca segar: lima hal membingungkan (kosakata sebelum arti di 3.9 dan 3.24); tugas perbaikan EVAL3-F1; sisanya ke TINJAUAN-PEMILIK bagian Tahap 3.
+
+### EVAL3-F1 · Blok Gejala 3.16 tanpa definisi di adegan
+
+- jenis: perbaikan
+- status: selesai
+- percobaan: 0
+- bergantung: EVAL-3
+- selesai bila: kalimat 'Pemeriksaan password adalah saat server membandingkan password dengan hash yang tersimpan.' tidak ada di blok Gejala `situs/src/content/docs/tahap-3/m22-batas-login-dua-kali.mdx`; `python3 tools/eval_tahap.py gejala 3` exit 0; definisi pindah ke 'Yang sebenarnya'; penjaga halaman diberi kasus mutasi; kartu.json dan turunan sinkron.
+- catatan: Dari EVAL-3 (keputusan 1130), kategori rusak. Selesai 2026-10-29 di PR #421 (keputusan 1132–1134): definisi satu kalimat pindah ke kalimat Inti 'Yang sebenarnya'; adegan '20 dari 24 percobaan sampai diperiksa passwordnya' (cocok batas.txt A: 401 20, 429 4); penjaga 42 → 52 tes; mutasi 53/53 terarah dan 309/309 otomatis dengan dan tanpa kunci baris.
+
+### EVAL-3-ulang · Evaluasi ulang Tahap 3
+
+- jenis: crosscheck
+- status: selesai
+- percobaan: 1
+- bergantung: EVAL3-F1
+- selesai bila: subagent yang bukan penulis halaman Tahap 3 dan bukan pelaksana EVAL3-F1 menambah bagian 'Putaran 2' ke `plan/EVALUASI-TAHAP-3.md` dengan seed 3 yang sama: W3 (gejala 3, audit bahasa), W8 (rantai Berikutnya 3.1–3.32), W4 (ukur-axe 3.16 dan seluruh Tahap 3), W5 dinilai ulang; tahap dinyatakan selesai.
+- catatan: Selesai 2026-10-29 di PR #422 (keputusan 1135–1136): W1–W4 dan W6–W8 YA, W5 TIDAK; Tahap 3 dinyatakan selesai. Lab, ERD, dan uji baca segar tidak diulang karena `git diff --name-only c7fdcba5 HEAD -- labs situs/data/erd tools/erd.py` hanya memuat lab Tahap 4.
 
 ### DIRI-3 · Perbaikan diri sesudah Tahap 3
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: EVAL-3
 - selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-3.md` dan pelajaran MEMORI Tahap 3, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 3, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 3 selesai".
@@ -1848,7 +1866,7 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 
 ## Tahap 4
 
-Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan oleh `T4-siap` dari peta halaman naskah: lab sebelum `ERD4`, halaman sesudah widget. Nomor keputusan: 1200–1399 (konten +0–99, teknis +100–149, pengatur +150–199); 1000–1199 sudah dipakai halaman dan cadangan Tahap 3 (pengatur, 2026-10-26). Alokasi T4-siap (keputusan 1207 sampai 1209): lab k (urut antrean, 11 lab) memakai 4 nomor mulai 1210 + 4×(k−1) dan ID riset R4-300 + 5×(k−1) sampai +4; `ERD4` 1254–1257; `W4-webhook` 1258–1261; `W4-breaker` 1262–1265; halaman 4.n memakai 1266 + 4×(n−1) sampai +3 (4.31: 1386–1389) dan ID riset R4-110 + 5×(n−1) sampai +4 (4.31: R4-260 sampai R4-264); `KONSISTENSI-4` 1390–1393; cadangan 1394–1399 (`EVAL-4` 1394–1396, `DIRI-4` 1397–1399); Tahap 5 mulai 1400. Tiga nomor pertama tiap blok untuk pelaksana, yang keempat untuk peninjau. Lab, `ERD4`, dan `W4-*` tidak menunggu `DIRI-3`; setiap halaman Tahap 4 menunggu `KONSISTENSI-4` dan `DIRI-3` (skill diperbaiki sesudah Tahap 3). Aturan halaman Tahap 4 sampai 6 ada di `plan/BRIEF-HALAMAN.md`.
+Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan oleh `T4-siap` dari peta halaman naskah: lab sebelum `ERD4`, halaman sesudah widget. Nomor keputusan: 1200–1399 (konten +0–99, teknis +100–149, pengatur +150–199); 1000–1199 sudah dipakai halaman dan cadangan Tahap 3 (pengatur, 2026-10-26). Alokasi T4-siap (keputusan 1207 sampai 1209): lab k (urut antrean, 11 lab) memakai 4 nomor mulai 1210 + 4×(k−1) dan ID riset R4-300 + 5×(k−1) sampai +4; `ERD4` 1254–1257; `W4-webhook` 1258–1261; `W4-breaker` 1262–1265; halaman 4.n memakai 1266 + 4×(n−1) sampai +3 (4.31: 1386–1389) dan ID riset R4-110 + 5×(n−1) sampai +4 (4.31: R4-260 sampai R4-264); `KONSISTENSI-4` 1390–1393; cadangan 1394–1399 (`EVAL-4` 1394–1396, `DIRI-4` 1397–1399); Tahap 5 mulai 1400. Tiga nomor pertama tiap blok untuk pelaksana, yang keempat untuk peninjau. Lab, `ERD4`, dan `W4-*` tidak menunggu `DIRI-3`; setiap halaman Tahap 4 menunggu `KONSISTENSI-4` dan `DIRI-3` (skill diperbaiki sesudah Tahap 3). Aturan halaman Tahap 4 sampai 6 ada di `plan/BRIEF-HALAMAN.md`. Selesai 2026-10-29 di PR #423 (keputusan 1137–1141): kelima skill berubah ≤ 10 baris tiap skill dengan bukti PR Tahap 3 (gaya-bahasa +5, visualisasi +4, analisis-kritis +7, riset-tahap +5/−1, evaluasi-tahap +6/−1; perintah seed diperbaiki: 3.16, 3.9, 3.24, 3.31, 3.5 untuk seed 3); tiga butir brief ditolak setelah diverifikasi (ambang karakter Inti HP, berkas cek-status, aturan posisi Tebak); usulan ke plan/USULAN-PERBAIKAN.md bagian 'Dari DIRI-3'. Tahap 3 selesai.
 
 ### RISET-4 · Riset Tahap 4
 
@@ -1952,29 +1970,29 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan ole
 ### lab-t4-kartu · Lab t4-kartu: penerbit kartu tiruan, hold, dan kill switch
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-api-t4, lab-t4-modul
 - selesai bila: Lab `labs/t4-kartu` di atas `api-t4`: penerbit kartu tiruan di container dengan otorisasi real-time bertenggat 2 detik, clearing, dan reversal; ledger dipanggil lewat API dengan Idempotency-Key `id_penerbit` (ADR 37). Direkam: (a) tanpa hold, dua otorisasi serentak (jeda buatan di antara cek dan tulis) yang masing-masing di bawah saldo keduanya disetujui dan clearing kedua ditolak ledger; dengan hold (`ORDER BY id FOR UPDATE`, jurnal tahan), yang kedua ditolak; (b) `id_penerbit` yang sama dua kali menghasilkan satu hold; (c) `lock_timeout` 1 detik membuat jawaban keluar dalam tenggat saat buku terkunci; (d) job kedaluwarsa hold (7 hari, diperankan jamnya) dijalankan dua kali tidak melepas hold dua kali; (e) kill switch menolak otorisasi baru tanpa deploy (feature flag; OpenFeature go-sdk v1.20.0 dan flagd v0.19.0 bila dipakai, spesifikasi belum 1.0 [perlu verifikasi], kalau tidak flag di tabel dan disebut terang); (f) dua keadaan penerbit sesuai dokumentasi satu penerbit (R4-100): jawaban terlambat diputuskan penerbit menurut setelan timeout, dan menolak tetapi tidak menjangkau jaringan lalu jaringan menyetujui berarti dana tidak ditahan tetapi bisa ditangkap; rekonsiliasi kartu tetap perlu. Lab ini berbagi `labs/api-t4` lewat mode rentan (pola api-t1 dan api-t3), bukan salinan; sebelum mengubah api-t4 cek flag terhadap PR terbuka lain dan jalankan ulang `make cek` lab yang berbagi (peninjau menjalankannya lagi). Aturan lab (`plan/BRIEF-HALAMAN.md` bagian Tugas lab dan widget): schema sendiri di PostgreSQL bersama, `make -C labs/t4-kartu run`, gagal keras bila hasil berbeda dari pernyataan naskah (bila lab membantah naskah, naskah yang berubah lewat KONSISTENSI-4 dan halaman memakai rekaman); rekaman `output/*.txt` dari database bersih, diulang identik (status, saldo, urutan; angka mesin sebagai batas yang diperiksa; kepala rekaman menulis versi alat); port dan nama kontainer lewat `labs/lab_env.*` (keputusan 860–864), tanpa 54333 tertulis tetap (`tools/cek_port_lab.py`); pihak ketiga tiruan lokal di container; uji mutasi atas kode uang dan keamanan (tes atau lab gagal karena sebab yang diuji, bukan koneksi mati); klaim dari dokumentasi diberi versi dan tanggal, dan yang tidak terbukti ditulis Tidak dijalankan atau [perlu verifikasi] di README dan rekaman.
-- catatan: Jalur lab. Sumber halaman 4.22, 4.23. Tenggat 2 detik adalah parameter tiruan yang mengikuti dokumentasi satu penerbit; tanpa merek di halaman. ALOKASI: keputusan 1242–1245 (1242–1244 pelaksana, 1245 peninjau), ID riset R4-340 sampai R4-344.
+- catatan: Jalur lab. Sumber halaman 4.22, 4.23. Tenggat 2 detik adalah parameter tiruan yang mengikuti dokumentasi satu penerbit; tanpa merek di halaman. ALOKASI: keputusan 1242–1245 (1242–1244 pelaksana, 1245 peninjau), ID riset R4-340 sampai R4-344. Selesai 2026-10-28 di PR #415 (keputusan 1242–1245): labs/t4-kartu (penerbit tiruan, hold ORDER BY id FOR UPDATE, lock_timeout 1 detik, kedaluwarsa 7 hari, kill switch, dua service lewat API ledger); peninjau menemukan id_penerbit kembar disetujui dan ditolak sekaligus, masukan NUL/UTF-8 rusak → 22021 → 500 → penerbit tiruan membaca timeout lalu setuju tanpa hold, X-Penerbit-Kunci tak dijaga; temuan lab: lock_timeout per penantian bukan per transaction, batas harian dua service tak diserialisasi.
 
 ### lab-t4-audit · Lab t4-audit: audit log berantai, role, dan MCP server baca-saja
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-api-t4
 - selesai bila: Lab `labs/t4-audit` di atas `api-t4`: audit log append-only berantai hash (`hash` = SHA-256 dari hash sebelumnya dan isi baris). Direkam: (a) UPDATE pada baris tengah log biasa tidak terdeteksi; pada log berantai verifikasi gagal di baris itu; (b) menghapus ekor log berantai tidak terdeteksi tanpa jangkar luar dan terdeteksi dengan jangkar harian di luar database [perlu verifikasi]; (c) role aplikasi ditolak UPDATE dan DELETE, dibuktikan sebagai role itu dan bukan sebagai pemilik tabel atau superuser (keduanya melewati pembatasan); (d) persetujuan dua orang untuk ubah batas dan buka blokir; pembekuan darurat tanpa persetujuan; (e) MCP server baca-saja (spesifikasi 2026-07-28 dan go-sdk v1.8.0, [perlu verifikasi: versi]) tidak punya tool tulis dan tidak meneruskan token; (f) perilaku model terhadap isi catatan yang berisi instruksi (prompt injection tidak langsung, R4-102) Tidak dijalankan. Lab ini berbagi `labs/api-t4` lewat mode rentan (pola api-t1 dan api-t3), bukan salinan; sebelum mengubah api-t4 cek flag terhadap PR terbuka lain dan jalankan ulang `make cek` lab yang berbagi (peninjau menjalankannya lagi). Aturan lab (`plan/BRIEF-HALAMAN.md` bagian Tugas lab dan widget): schema sendiri di PostgreSQL bersama, `make -C labs/t4-audit run`, gagal keras bila hasil berbeda dari pernyataan naskah (bila lab membantah naskah, naskah yang berubah lewat KONSISTENSI-4 dan halaman memakai rekaman); rekaman `output/*.txt` dari database bersih, diulang identik (status, saldo, urutan; angka mesin sebagai batas yang diperiksa; kepala rekaman menulis versi alat); port dan nama kontainer lewat `labs/lab_env.*` (keputusan 860–864), tanpa 54333 tertulis tetap (`tools/cek_port_lab.py`); pihak ketiga tiruan lokal di container; uji mutasi atas kode uang dan keamanan (tes atau lab gagal karena sebab yang diuji, bukan koneksi mati); klaim dari dokumentasi diberi versi dan tanggal, dan yang tidak terbukti ditulis Tidak dijalankan atau [perlu verifikasi] di README dan rekaman.
-- catatan: Jalur lab. Sumber halaman 4.24, 4.25. ALOKASI: keputusan 1246–1249 (1246–1248 pelaksana, 1249 peninjau), ID riset R4-345 sampai R4-349.
+- catatan: Jalur lab. Sumber halaman 4.24, 4.25. ALOKASI: keputusan 1246–1249 (1246–1248 pelaksana, 1249 peninjau), ID riset R4-345 sampai R4-349. Selesai 2026-10-29 di PR #416 (keputusan 1246–1249): labs/t4-audit (audit log berantai, jangkar, role, persetujuan dua orang, MCP baca-saja go-sdk v1.8.0 di modul terpisah); peninjau menemukan ?alasan=%FF → 22021 → 500, label 'oleh pemilik tabel' dijalankan sebagai superuser, api_t4 boleh INSERT audit_log dan UPDATE status; rantai tanpa kunci rahasia bukan tanda tangan.
 
 ### lab-t4-pipeline · Lab t4-pipeline: oasdiff, SBOM, pindai, dan tanda tangan image
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-api-t4
 - selesai bila: Lab `labs/t4-pipeline`: pemeriksaan merge per modul atas kontrak dan image `api-t4` (versi dicek ulang saat lab ditulis: oasdiff v1.34.1, oapi-codegen v2.8.1, openapi-generator v7.26.0, gosec v2.30.0, syft v1.55.0, grype v0.121.0, cosign v3.1.4). Direkam: (a) oasdiff `breaking` mendeteksi perubahan enum dan penghapusan field; apakah ia mendeteksi parameter tingkat path (isu #1163 dan #1164) [perlu verifikasi]; (b) client Dart dibuat ulang dari kontrak dan diff-nya diperiksa; (c) gosec dan govulncheck menemukan satu temuan yang disiapkan; (d) pindai grype atas SBOM CycloneDX syft menemukan satu kerentanan yang disiapkan (grype butuh basis data kerentanan yang diunduh sekali; versinya dicatat di rekaman); (e) `cosign verify` gagal pada image tanpa tanda tangan atau yang ditandatangani lewat tag lalu berubah, dan berhasil pada digest (cosign#2047; kunci sendiri, keyless hanya dijelaskan). Butir (b) dan (c) boleh ditulis Tidak dijalankan bila waktu habis, dan halaman memakai labelnya. Registry image lokal di container; provenance SLSA dan atestasi app hanya disebut. Aturan lab (`plan/BRIEF-HALAMAN.md` bagian Tugas lab dan widget): schema sendiri di PostgreSQL bersama, `make -C labs/t4-pipeline run`, gagal keras bila hasil berbeda dari pernyataan naskah (bila lab membantah naskah, naskah yang berubah lewat KONSISTENSI-4 dan halaman memakai rekaman); rekaman `output/*.txt` dari database bersih, diulang identik (status, saldo, urutan; angka mesin sebagai batas yang diperiksa; kepala rekaman menulis versi alat); port dan nama kontainer lewat `labs/lab_env.*` (keputusan 860–864), tanpa 54333 tertulis tetap (`tools/cek_port_lab.py`); pihak ketiga tiruan lokal di container; uji mutasi atas kode uang dan keamanan (tes atau lab gagal karena sebab yang diuji, bukan koneksi mati); klaim dari dokumentasi diberi versi dan tanggal, dan yang tidak terbukti ditulis Tidak dijalankan atau [perlu verifikasi] di README dan rekaman.
-- catatan: Jalur lab. Sumber halaman 4.26. Bila unduhan basis data grype gagal lokal, tulis Tidak dijalankan dan sebut penyebabnya. ALOKASI: keputusan 1250–1253 (1250–1252 pelaksana, 1253 peninjau), ID riset R4-350 sampai R4-354.
+- catatan: Jalur lab. Sumber halaman 4.26. Bila unduhan basis data grype gagal lokal, tulis Tidak dijalankan dan sebut penyebabnya. ALOKASI: keputusan 1250–1253 (1250–1252 pelaksana, 1253 peninjau), ID riset R4-350 sampai R4-354. Selesai 2026-10-29 di PR #420 (keputusan 1250–1253): labs/t4-pipeline (oasdiff v1.34.1, openapi-generator v7.26.0, gosec v2.30.0, govulncheck v1.9.0, syft v1.55.0, grype v0.121.0, cosign v3.1.4 + registry:3); api-t4 TIDAK lolos gerbang ADR 44 hari ini (Go 1.27.1: govulncheck 10 stdlib dipanggil, grype 15 temuan 2 Critical); gosec -quiet, govulncheck json, grype SBOM kosong gagal terbuka (gerbang lab menutupnya); cosign tag dipindah sebelum tanda tangan lulus atas image salah; peninjau memperketat identitas tanda tangan dan 107 mutan baru.
 
 ### ERD4 · ERD Tahap 4 dari skema lab
 
