@@ -2,7 +2,7 @@
 // yang ditampilkan (status baru/berubah/tetap/dihapus per tabel dan per kolom), tata letak node dan edge, tinggi
 // yang dipesan sejak SSR, dan tautan halaman dari registry. Tanpa DOM dan tanpa React Flow; dites di tumbuh.test.ts.
 // Komponen ErdTumbuh.tsx hanya menerjemahkan hasilnya ke node dan edge React Flow.
-import type { DataErd, Kolom, PetaHalaman, Selisih, Tabel } from "./skema";
+import type { DataErd, Kolom, ModulErd, PetaHalaman, Selisih, Tabel } from "./skema";
 import { kunciKolom, ringkasTipe, type Kunci } from "./erd";
 
 // ── Status ──────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -105,7 +105,9 @@ export const UKURAN = {
   lebar: 232, // lebar node di tata lebar
   lebarMin: 200, // node paling sempit di tata satu kolom
   kepala: 44, // nama tabel + status
+  kepalaDua: 64, // nama tabel panjang: status pindah ke baris sendiri (ERD4, keputusan 1255)
   baris: 24, // satu kolom (line-height tetap di CSS)
+  labelBaris: 20, // tambahan tinggi bila label kunci pindah ke baris sendiri di bawah nama kolom (ERD4, keputusan 1255)
   bawah: 8, // padding bawah node
   hurufPindah: 18, // huruf per baris teks "Isinya pindah ke ..." yang pasti muat di node tersempit (keputusan 466)
   jarakX: 32,
@@ -145,8 +147,50 @@ export const teksPindah = (t: TabelTampil) => `Isinya pindah ke ${t.pindahKe}`;
  */
 export const barisPindah = (t: TabelTampil) => Math.max(2, Math.ceil(teksPindah(t).length / UKURAN.hurufPindah));
 
-export const tinggiNode = (t: TabelTampil) =>
-  UKURAN.kepala + (t.bayangan ? barisPindah(t) : t.kolom.length) * UKURAN.baris + UKURAN.bawah;
+/**
+ * Lebar teks di node (px), dari metrik font di erd-tumbuh.css (ERD4, keputusan 1255). Tata dihitung tanpa DOM, jadi
+ * muat atau tidaknya nama dan label di satu baris diperkirakan dari lebar huruf: nama kolom JetBrains Mono 13,6 px
+ * (0,6 em per huruf, 8,16 px), nama tabel 15,2 px tebal (9,12 px), label 12 px dan status 12,8 px tebal (proporsional,
+ * diukur di Chromium dengan Satoshi). Semua dibulatkan ke atas ±1% sampai 3%, supaya perkiraan yang meleset membuat satu baris
+ * lebih tinggi dari perlunya, tidak memotong nama. ukur-erd.mjs gagal bila ada nama yang terpotong elipsis.
+ */
+export const METRIK = {
+  hurufKolom: 8.25,
+  hurufKepala: 9.2,
+  label: { PK: 16, FK: 15.5, UNIQUE: 47, CHECK: 43 } as Record<string, number>,
+  ubah: { baru: 28, berubah: 50, dihapus: 47, tetap: 31 } as Record<string, number>,
+  jarakLabel: 4, // gap antarlabel (0,25 rem)
+  jarakBaris: 6.4, // gap nama ke label (0,4 rem)
+  jarakKepala: 8, // gap nama tabel ke status (0,5 rem)
+  tepi: 22.2, // border 2 × 1,5 px + padding kiri dan kanan 2 × 9,6 px
+} as const;
+
+/** Lebar label di sebelah nama kolom: label kunci, lalu "baru" atau "dihapus" bila beda dari status tabelnya. */
+export function lebarLabel(k: KolomTampil, t: TabelTampil): number {
+  const bagian = k.kunci.map((x) => METRIK.label[x.jenis]);
+  if (k.status && k.status !== "tetap" && k.status !== t.status) bagian.push(METRIK.ubah[k.status]);
+  return bagian.reduce((a, b) => a + b, 0) + Math.max(0, bagian.length - 1) * METRIK.jarakLabel;
+}
+
+/** `acuan`: lebar node yang dipakai tata: UKURAN.lebar di tata lebar, UKURAN.lebarMin di tata satu kolom (HP). */
+export function duaBaris(k: KolomTampil, t: TabelTampil, acuan: number): boolean {
+  const label = lebarLabel(k, t);
+  return label > 0 && k.kolom.nama.length * METRIK.hurufKolom + METRIK.jarakBaris + label > acuan - METRIK.tepi;
+}
+
+export function duaKepala(t: TabelTampil, acuan: number): boolean {
+  const status = t.status ? METRIK.ubah[t.status] + METRIK.jarakKepala : 0;
+  return t.nama.length * METRIK.hurufKepala + status > acuan - METRIK.tepi;
+}
+
+export const tinggiKepala = (t: TabelTampil, acuan: number) => (duaKepala(t, acuan) ? UKURAN.kepalaDua : UKURAN.kepala);
+
+export const tinggiBaris = (k: KolomTampil, t: TabelTampil, acuan: number) => UKURAN.baris + (duaBaris(k, t, acuan) ? UKURAN.labelBaris : 0);
+
+export const tinggiNode = (t: TabelTampil, acuan: number = UKURAN.lebar) =>
+  tinggiKepala(t, acuan) +
+  (t.bayangan ? barisPindah(t) * UKURAN.baris : t.kolom.reduce((n, k) => n + tinggiBaris(k, t, acuan), 0)) +
+  UKURAN.bawah;
 
 /** Foreign key yang digambar sebagai edge: dari tabel yang merujuk ke tabel yang dirujuk; tabel bayangan tanpa edge. */
 export function daftarFk(tabel: TabelTampil[]) {
@@ -213,19 +257,37 @@ export function urutan(tabel: TabelTampil[]): TabelTampil[][] {
  * rentang tegaknya tumpang-tindih (jarak < `celah`); garis yang rentangnya terpisah memakai lajur yang sama. Tanpa ini
  * satu garis = satu lajur, dan skema dengan 20 foreign key (Tahap 3) melebarkan tata di HP sampai 382 px: teks
  * diperkecil jadi 0,75 di layar 320 px.
+ *
+ * `kelompok` (ERD4, keputusan 1255): garis dengan kelompok sama (foreign key ke tabel yang sama) memakai SATU lajur,
+ * satu batang dengan cabang ke tiap tabel yang merujuk; rentang batangnya gabungan rentang anggotanya, dan urutan
+ * prioritasnya mengikuti anggota pertama. Tahap 4 punya 35 foreign key dan 14 di antaranya menuju `akun`: satu lajur
+ * per garis atau per rentang membuat tata satu kolom 438 px dan teks diperkecil jadi 0,66 di layar 320 px.
  */
-export function bagiLajur(butir: { id: string; dari: number; ke: number }[], celah: number): Map<string, number> {
-  const lajur: [number, number][][] = [];
-  const hasil = new Map<string, number>();
+export function bagiLajur(butir: { id: string; dari: number; ke: number; kelompok?: string }[], celah: number): Map<string, number> {
+  const satuan: { a: number; z: number; id: string[] }[] = [];
+  const kelompok = new Map<string, number>();
   for (const b of butir) {
     const [a, z] = b.dari <= b.ke ? [b.dari, b.ke] : [b.ke, b.dari];
+    const ada = b.kelompok === undefined ? undefined : kelompok.get(b.kelompok);
+    if (ada !== undefined) {
+      satuan[ada].a = Math.min(satuan[ada].a, a);
+      satuan[ada].z = Math.max(satuan[ada].z, z);
+      satuan[ada].id.push(b.id);
+      continue;
+    }
+    if (b.kelompok !== undefined) kelompok.set(b.kelompok, satuan.length);
+    satuan.push({ a, z, id: [b.id] });
+  }
+  const lajur: [number, number][][] = [];
+  const hasil = new Map<string, number>();
+  for (const { a, z, id } of satuan) {
     let i = lajur.findIndex((l) => l.every(([a2, z2]) => z + celah < a2 || z2 + celah < a));
     if (i < 0) {
       i = lajur.length;
       lajur.push([]);
     }
     lajur[i].push([a, z]);
-    hasil.set(b.id, i);
+    for (const x of id) hasil.set(x, i);
   }
   return hasil;
 }
@@ -250,7 +312,7 @@ export function tata(tabel: TabelTampil[], lebar: number): Tata {
     let y = U.bantalan;
     for (const t of grup.flat()) {
       atas.set(t.nama, y);
-      y += tinggiNode(t) + U.jarakY / 2;
+      y += tinggiNode(t, U.lebarMin) + U.jarakY / 2;
     }
     const bentang = (f: { dari: string; ke: string }) => Math.abs(atas.get(f.dari)! - atas.get(f.ke)!);
     const urut = [...fk].sort((a, b) => bentang(a) - bentang(b) || a.id.localeCompare(b.id));
@@ -258,11 +320,11 @@ export function tata(tabel: TabelTampil[], lebar: number): Tata {
     const muat = lajurSatu + U.lebarMin + U.bantalan <= lebar;
     const lajurKe = muat
       ? new Map(urut.map((f, i) => [f.id, i]))
-      : bagiLajur(urut.map((f) => ({ id: f.id, dari: atas.get(f.dari)! + U.keluarY, ke: atas.get(f.ke)! + U.masukY })), U.celahLajur);
+      : bagiLajur(urut.map((f) => ({ id: f.id, dari: atas.get(f.dari)! + U.keluarY, ke: atas.get(f.ke)! + U.masukY, kelompok: f.ke })), U.celahLajur);
     const nLajur = muat ? fk.length : Math.max(-1, ...lajurKe.values()) + 1;
     const lajurLebar = U.lajurAwal + Math.max(0, nLajur - 1) * U.lajur + U.bantalan;
     const w = Math.max(U.lebarMin, Math.min(U.lebar, lebar - lajurLebar - U.bantalan));
-    for (const t of grup.flat()) node.push({ nama: t.nama, x: lajurLebar, y: atas.get(t.nama)!, lebar: w, tinggi: tinggiNode(t) });
+    for (const t of grup.flat()) node.push({ nama: t.nama, x: lajurLebar, y: atas.get(t.nama)!, lebar: w, tinggi: tinggiNode(t, U.lebarMin) });
     const edge = urut.map((f) => ({ ...f, sumber: "kiri-keluar", tujuan: "kiri-masuk", jenis: "smoothstep" as const, offset: U.lajurAwal + lajurKe.get(f.id)! * U.lajur, titik: [] }));
     return { bentuk: "sempit", kolom: 1, node, edge, lebar: lajurLebar + w + U.bantalan, tinggi: y - U.jarakY / 2 + U.bantalan };
   }
@@ -275,9 +337,9 @@ export function tata(tabel: TabelTampil[], lebar: number): Tata {
   const tepi: { atas: number; bawah: number }[] = [];
   baris.forEach((b, r) => {
     const x0 = kiri + (lebarTata - lebarBaris(b.length)) / 2;
-    const h = Math.max(...b.map(tinggiNode));
+    const h = Math.max(...b.map((t) => tinggiNode(t, U.lebar)));
     b.forEach((t, i) => {
-      node.push({ nama: t.nama, x: x0 + i * (U.lebar + U.jarakX), y, lebar: U.lebar, tinggi: tinggiNode(t) });
+      node.push({ nama: t.nama, x: x0 + i * (U.lebar + U.jarakX), y, lebar: U.lebar, tinggi: tinggiNode(t, U.lebar) });
       barisKe.set(t.nama, r);
     });
     tepi.push({ atas: y, bawah: y + h });
@@ -316,6 +378,7 @@ export function tata(tabel: TabelTampil[], lebar: number): Tata {
       id: f.id,
       dari: tepi[barisKe.get(f.ke)!].bawah + U.belok + (o % 4) * 6, // yMasuk
       ke: tepi[barisKe.get(f.dari)!].atas - U.belok - (o % 4) * 6, // yNaik
+      kelompok: f.ke,
     }));
     const lajur = muatSisi ? new Map(urut.map((f, o) => [f.id, o])) : bagiLajur(rentang, U.celahLajur);
     urut.forEach((f, o) => lajurSisi.set(f.id, { sisi, i: lajur.get(f.id)!, o }));
@@ -443,4 +506,43 @@ export function tandaiHalamanIni(tautan: TautanTahap, path: string): TautanTahap
       Object.fromEntries(Object.entries(isi).map(([tabel, daftar]) => [tabel, daftar.map((t) => (t.href === path ? { ...t, href: null, catatan: "halaman ini" as const } : t))])),
     ]),
   );
+}
+
+// ── Pembagian modul (ERD4, keputusan 1254) ─────────────────────────────────────────────────────────────────────
+
+/** Modul pemilik satu tabel, atau null bila tahap ini tidak punya pembagian modul. */
+export const modulTabel = (m: ModulErd | undefined, tabel: string): string | null => m?.modul.find((x) => x.tabel.includes(tabel))?.nama ?? null;
+
+/**
+ * Foreign key yang menyeberang batas modul, dihitung dari ERD tahap itu dan pembagian modulnya (padanan hitung_modul()
+ * di tools/erd.py). Urutan: tabel menurut katalog, lalu foreign key menurut nama.
+ */
+export function lintasModul(d: DataErd, m: ModulErd): ModulErd["lintas"] {
+  return d.tabel.flatMap((t) =>
+    t.fk.flatMap((f) => {
+      const dari = modulTabel(m, t.nama);
+      const ke = modulTabel(m, f.ke_tabel);
+      return dari !== null && ke !== null && dari !== ke ? [{ tabel: t.nama, fk: f.nama, ke_tabel: f.ke_tabel, dari_modul: dari, ke_modul: ke }] : [];
+    }),
+  );
+}
+
+/** Build gagal bila pembagian modul tidak cocok dengan ERD-nya: semua tabel tepat sekali, foreign key lintas sama. */
+export function periksaModul(d: DataErd, m: ModulErd): void {
+  if (m.tahap !== d.tahap) throw new Error(`modul Tahap ${m.tahap} dipasang di ERD Tahap ${d.tahap}`);
+  const ada = m.modul.flatMap((x) => x.tabel);
+  const tabel = d.tabel.map((t) => t.nama);
+  if (ada.length !== new Set(ada).size || [...ada].sort().join() !== [...tabel].sort().join())
+    throw new Error(`modul Tahap ${d.tahap}: tabel di pembagian modul tidak sama dengan tabel ERD (${ada.length} lawan ${tabel.length})`);
+  if (JSON.stringify(lintasModul(d, m)) !== JSON.stringify(m.lintas))
+    throw new Error(`modul Tahap ${d.tahap}: foreign key lintas modul tidak sama dengan hitungan dari ERD`);
+}
+
+/** Satu kalimat untuk tabel pembagian modul: banyak tabel, banyak modul, dan ke mana foreign key menyeberang. */
+export function ringkasModul(m: ModulErd): string {
+  const tabel = m.modul.reduce((n, x) => n + x.tabel.length, 0);
+  const ke = new Map<string, number>();
+  for (const x of m.lintas) ke.set(x.ke_modul, (ke.get(x.ke_modul) ?? 0) + 1);
+  const rinci = [...ke].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([nama, n]) => `${n} ke modul ${nama}`);
+  return `${m.modul.length} modul, ${tabel} tabel; ${m.lintas.length} foreign key menyeberang batas modul${rinci.length ? ` (${rinci.join(", ")})` : ""}.`;
 }
