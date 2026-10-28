@@ -9,17 +9,19 @@ yang sudah lengkap (1 dan 2) masuk gerbang (`tools/cek_situs.sh`, keputusan 1164
 
 Semua perintah membaca berkas di repo (naskah, registry, MDX, situs/dist) dan tidak mengubah apa pun. `rantai` butuh
 `bun run --cwd situs build` lebih dulu. Exit 1 bila ada selisih nyata: W1 nomor, judul, bintang, lab, atau halaman
-"segera"; W6 ADR dengan opsi < 3 atau tanpa pre-mortem atau tanpa "kapan salah"; W8 halaman 404 atau tautan Berikutnya
+"segera"; W6 ADR dengan opsi < 3 atau tanpa pre-mortem atau pre-mortem yang penyebabnya bukan tiga atau tanpa "kapan salah"; W8 halaman 404 atau tautan Berikutnya
 yang hilang, halaman sesudah halaman terakhir yang sudah punya pengganti ada, urutan yang dilalui tidak sama dengan nomor
 tahap itu (halaman terlewat, tertukar, atau rantai berhenti sebelum halaman terakhir), atau tautan "Berikutnya" di akhir
 blok berbeda dari tombol Berikutnya. `coba` hanya mencetak (nilai W5 butuh penilaian: lihat isi widget).
 """
 import json
+import os
 import pathlib
 import re
 import sys
 
-AKAR = pathlib.Path(__file__).resolve().parent.parent
+# EVAL_AKAR menunjuk salinan repo kecil untuk uji diri (tools/test_eval_tahap.py); tanpa variabel itu akar repo ini.
+AKAR = pathlib.Path(os.environ.get("EVAL_AKAR") or pathlib.Path(__file__).resolve().parent.parent)
 DOCS = AKAR / "situs" / "src" / "content" / "docs"
 
 
@@ -134,11 +136,14 @@ def adr(n):
                 opsi = len(huruf)
                 break
         pm = re.search(r"Pre-mortem", sub) is not None
+        # Pre-mortem berisi tepat tiga penyebab bernomor sesudah baris "Pre-mortem" (skill analisis-kritis, Prosedur B butir 3).
+        blok_pm = re.search(r"Pre-mortem[^\n]*\n\n((?:\d+\. [^\n]*\n)+)", sub)
+        sebab = len(re.findall(r"^\d+\. ", blok_pm.group(1), flags=re.M)) if blok_pm else 0
         ks = re.search(r"Kapan keputusan ini salah", sub) is not None
         url = len(set(re.findall(r"https?://[^\s)>\"]+", t)))
-        ok = opsi >= 3 and pm and ks and url > 0
+        ok = opsi >= 3 and pm and sebab == 3 and ks and url > 0
         salah += 0 if ok else 1
-        print(f"{no} | {reg[no]['judul'][:48]} | opsi {opsi} | pre-mortem {pm} | kapan salah {ks} | tautan sumber di halaman {url} | {'ok' if ok else 'KURANG'}")
+        print(f"{no} | {reg[no]['judul'][:48]} | opsi {opsi} | pre-mortem {pm} ({sebab} penyebab) | kapan salah {ks} | tautan sumber di halaman {url} | {'ok' if ok else 'KURANG'}")
     return 1 if salah else 0
 
 
