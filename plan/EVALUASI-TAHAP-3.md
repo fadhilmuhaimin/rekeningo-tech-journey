@@ -1,6 +1,6 @@
 # Evaluasi Tahap 3 · Enam kota
 
-Dievaluasi 2026-10-28 sampai 2026-10-29 oleh subagent evaluasi (skill evaluasi-tahap) yang tidak menulis satu pun halaman Tahap 3. Seed acak: 3. Putaran: 1.
+Dievaluasi 2026-10-28 sampai 2026-10-29 oleh subagent evaluasi (skill evaluasi-tahap) yang tidak menulis satu pun halaman Tahap 3. Seed acak: 3. Putaran: 1 (bagian lain di bawah) dan 2 (bagian "Putaran 2" di akhir file).
 
 Dasar yang dievaluasi: `origin/main` c7fdcba5 (merge #414, halaman 3.32), 32 halaman 3.1 sampai 3.32; commit sesudahnya (c7005c07, #417) hanya mengubah `plan/`. Skill lain yang dipakai: analisis-kritis (bukti yang bisa diulang, tiga klaim dicek ke sumber primer), gaya-bahasa (teks dokumen ini dan pemeriksaan label), riset-tahap (jejak klaim). Nomor keputusan: 1128 sampai 1131.
 
@@ -161,6 +161,8 @@ Satu tugas perbaikan, disisipkan pengatur di `plan/ANTREAN.md` tepat sesudah EVA
 - `EVAL3-F1` · Blok Gejala 3.16 memuat definisi istilah di dalam adegan. Selesai bila: kalimat "Pemeriksaan password adalah saat server membandingkan password dengan hash yang tersimpan." tidak ada di blok Gejala `situs/src/content/docs/tahap-3/m22-batas-login-dua-kali.mdx`; "pemeriksaan password" di adegan diganti kata yang pembaca kenal tanpa definisi (mis. "diperiksa passwordnya"), dan definisinya sudah ada, atau ditambah, di blok "Yang sebenarnya"; `python3 tools/eval_tahap.py gejala 3` → exit 0; penjaga halaman 3.16 (`situs/src/widgets/batas-instance/halaman.test.ts` atau yang setara) diberi satu kasus yang gagal bila kalimat berpenanda definisi kembali ke Gejala, diuji mutasi; gerbang penuh lolos. Kategori: butir W yang gagal (W3).
 - `EVAL-3-ulang` · evaluasi ulang ringan dengan seed 3 yang sama, bergantung pada EVAL3-F1. `DIRI-3` bergantung pada EVAL-3-ulang.
 
+Hasil perbaikan dan evaluasi ulang: bagian "Putaran 2" di akhir file (2026-10-29, EVAL-3-ulang): W1 sampai W4 dan W6 sampai W8 YA, W5 TIDAK; tahap dinyatakan selesai.
+
 Tidak ada tugas halaman untuk W5, karena sebabnya sama dengan 2.32 dan 2.2: halaman rekap dan pilah bukan tempat yang wajar untuk masukan "ubah satu hal", dan prosa "Ubah satu hal" yang bertaut ke rekaman di lima halaman adalah keputusan desain. Keputusannya ada pada pemilik (TINJAUAN-PEMILIK butir 3 Tahap 2 dan butir 1 di bawah) dan pada DIRI-3.
 
 ## Untuk TINJAUAN-PEMILIK
@@ -226,3 +228,66 @@ Lajur lab di atas milik `rjt-konten3`; di worktree lain pakai nilai lajurnya (`l
 | Widget Tahap 3 | Gerbang: widget pool, outbox dan worker, dan cache lolos "tebak dulu, keyboard, angka dari rekaman, kontras, axe, luapan, CLS" |
 | KEPUTUSAN, MEMORI, STATUS | Dimutakhirkan pengatur lewat PR catatan (#417 melipat batch 23); evaluasi ini tidak mengubahnya |
 | Perubahan di PR ini | Dokumen ini; `tools/eval_tahap.py` (penyebab pre-mortem, `gejala`, `EVAL_AKAR`); `tools/test_eval_tahap.py` (baru, 26 kasus); `tools/cek_situs.sh` (rantai Tahap 3 dan uji diri alat). Tidak ada halaman, lab, naskah, skill, atau file bersama yang diubah |
+
+## Putaran 2
+
+Dievaluasi 2026-10-29 oleh subagent evaluasi (skill evaluasi-tahap) yang bukan penulis halaman Tahap 3 dan bukan pelaksana EVAL3-F1 (#421). Seed acak 3, sampel sama dengan putaran 1: `random.sample` memberi 3.10, 3.21, 3.20, 3.7, 3.14, 3.22 (halaman berlab lab, W2) dan 3.16, 3.9, 3.24, 3.31, 3.5 (W4 dan pertanyaan pembaca).
+
+Dasar: `origin/main` c52a6f34 (merge #421), 32 halaman 3.1 sampai 3.32. Skill lain yang dipakai: analisis-kritis (mutasi pada halaman dan penjaga, klaim "20 dari 24" dibandingkan dengan rekaman) dan gaya-bahasa (adegan di blok Gejala). Nomor keputusan: 1135 dan 1136.
+
+Dua batasan. Pertama, lab tidak dijalankan ulang. `git diff --name-only c7fdcba5 HEAD -- labs situs/data/erd tools/erd.py` memuat 25 file, semuanya di `labs/api-t4` (14), `labs/t4-kartu` (10), dan `labs/t4-modul` (1), yaitu lab Tahap 4. Tidak ada file di lab Tahap 3, di `situs/data/erd`, atau di `tools/erd.py`, jadi delapan lab dan ERD3 dari putaran 1 tetap berlaku. Kedua, uji baca oleh pembaca segar tidak diulang: satu-satunya halaman Tahap 3 yang berubah sejak putaran 1 adalah 3.16, dengan empat baris diganti (`git diff --stat c7fdcba5 HEAD -- situs/src/content/docs/tahap-3`).
+
+### Perubahan sejak putaran 1
+
+- 3.16 (EVAL3-F1, #421): kalimat "Pemeriksaan password adalah saat server membandingkan password dengan hash yang tersimpan" keluar dari blok Gejala. Adegan kini menulis "20 dari 24 percobaan sampai diperiksa passwordnya sebelum ada yang ditolak dengan 429", dan definisi satu kalimat ("Pemeriksaan password adalah langkah login yang membandingkan password yang dikirim dengan hash") ada di blok "Yang sebenarnya", baris 42. Penjaga halaman `situs/src/lib/m22-batas-login-dua-kali.halaman.test.ts` kini 52 tes.
+- Alat: `tools/eval_tahap.py`, `tools/test_eval_tahap.py`, dan `tools/cek_situs.sh` dari putaran 1 (#418). Gerbang kini menjalankan rantai Tahap 3 dan uji diri alat.
+- Di luar Tahap 3: lab Tahap 4 (`api-t4`, `t4-kartu`, `t4-modul`), dua baris `README.md` untuk `t4-kartu`, dan file `plan/`. Tidak ada yang menyentuh halaman, widget, atau data Tahap 3 selain 3.16.
+
+### Kartu nilai putaran 2
+
+| Butir | Putaran 1 | Putaran 2 | Bukti (perintah → keluaran) |
+| --- | --- | --- | --- |
+| W1 | YA | YA | `python3 tools/eval_tahap.py peta 3` → "naskah 32 halaman, registry 32 halaman", "halaman bercatatan: 0". Gerbang penuh tidak diulang: build baru dari c52a6f34 selesai dan CI PR #421 punya 11 check SUCCESS (`gh pr view 421 --json statusCheckRollup`). `gh run list --branch main --workflow cek` → run 40737571765 (merge #418) success; run 40743907354 (merge #421, EVAL3-F1) success |
+| W2 | YA | YA | Tidak diulang: diff lab dan ERD Tahap 3 kosong (bagian atas). Untuk kalimat baru di 3.16: "20 dari 24 percobaan" ← `labs/t3-instance/output/batas.txt:9` ("24 percobaan → 401: 20 · 429: 4 (401 sampai ke pemeriksaan password, 429 ditolak penahan per IP)") dan `:10` (401 a 10, b 10 · 429 a 2, b 2). Arti "diperiksa passwordnya" cocok dengan catatan "401 sampai ke pemeriksaan password" di baris yang sama. Rekaman mencatat jumlah, bukan urutan; "sebelum ada yang ditolak" dibaca dari mekanisme (10 per instance, round_robin). Catatan di bawah adegan berlabel "Angka cerita (Ilustrasi)" untuk staging, password, dan Dimas, dan menulis bahwa angka 24 dan 20 sama dengan rekaman |
+| W3 | TIDAK | YA | `python3 tools/eval_tahap.py gejala 3` → exit 0, 11 dari 11 "ok"; 3.16 kini 3 paragraf adegan, 81 kata (putaran 1: 91 kata dengan definisi). `python3 tools/audit_bahasa.py --check situs/src/content/docs/tahap-3` → "32 file · 0 error · 12 peringatan"; seluruh repo "335 file · 0 error · 285 peringatan", sama dengan putaran 1. Tiga blok Gejala dibaca ulang: 3.16, 3.22 (kotak peringatan di dasbor Ani), dan 3.14 (Rabu 12.05); semuanya kejadian dan dialog, istilah teknis hanya yang tokoh lihat atau ucapkan ("429", "instance", "staging", "password"). Mutasi pada halaman asli: kalimat definisi dikembalikan ke Gejala → `gejala 3` mencetak "3.16 ... DEFINISI: Pemeriksaan password adalah ..." dan penjaga 3.16 gagal di 3 dari 52 tes; sesudah dipulihkan `gejala 3` exit 0 dan penjaga 52/52. `python3 tools/test_eval_tahap.py` → "26/26 kasus uji eval_tahap lolos" |
+| W4 | YA | YA | `node tools/ukur-axe.mjs --url http://127.0.0.1:4326 --path /tahap-3/m22-batas-login-dua-kali/` → "1 halaman × 2 ukuran × 2 tema = 4 run; 0 halaman berpelanggaran; incomplete color-contrast 22", uji diri 4/4. Seluruh Tahap 3 (`--semua --awalan /tahap-3/`) → "32 halaman × 2 ukuran × 2 tema = 128 run; 0 halaman berpelanggaran", 25,7 detik. `layar.mjs` dengan `UKUR_HALAMAN` (3.16, 3.15, 3.17) → "LOLOS: 0 gagal, 0 margin tipis"; 3.16 tanpa Inti dicetak "info" (tidak terukur, sama dengan putaran 1), 3.15 dan 3.17 margin terkecil 31 px di 375×667. `python3 tools/contrast.py` → "889/889 lolos". Tangkapan 375×667 gelap `situs/tangkapan/tahap-3_m22-batas-login-dua-kali-hp-dark.png`: jalur "Tahap 3 › minggu 6", judul "3.16 M22", Prasyarat 3.15, dan adegan tanpa kalimat definisi. Uji keyboard tidak diulang: 3.16 hanya berubah teks |
+| W5 | TIDAK | TIDAK | Definisi di skill evaluasi-tahap belum berubah (`git log -- .claude/skills`: commit terakhir 1ef981c8, sebelum EVAL-3; DIRI-3 belum jalan). `python3 tools/eval_tahap.py coba 3` dan `bocor 3` → keluaran identik dengan putaran 1 (`diff` kosong). Penyebab TIDAK tetap: 3.31 (rekap) dan 3.2 (pilah) tanpa masukan "ubah satu hal", dan 3.7, 3.27, 3.21, 3.25, 3.30 memakai prosa bertaut rekaman. Tanpa itu butir ini YA menurut huruf skill untuk 23 halaman lain (tabel "Lampiran W5") |
+| W6 | YA | YA | `python3 tools/eval_tahap.py adr 3` → 12 baris "ok" (12 ADR, 3 sampai 5 opsi, pre-mortem 3 penyebab, kapan salah). Tiga klaim sumber primer dari putaran 1 tidak dicek ulang; tidak ada halaman ADR yang berubah |
+| W7 | YA | YA | `python3 tools/erd.py --cek` → "lolos: Tahap 1 5 tabel, Tahap 2 8 tabel, Tahap 3 14 tabel; hash sumber cocok". `situs/data/erd` dan `tools/erd.py` tidak berubah sejak c7fdcba5; bangun ulang dari PostgreSQL tidak dijalankan (batasan di atas) |
+| W8 | YA | YA | Build baru dari main ("234 page(s) built", 0 peringatan). `python3 tools/eval_tahap.py rantai 3` → "langkah dari 3.1 sampai 3.32: 32; 404 atau tautan hilang: 0"; `rantai 1` 42 langkah dan `rantai 2` 33 langkah, 0 hilang. `python3 tools/cek_tautan.py` → "234 HTML: 45135 tautan internal ... rusak: 0 path, 0 anchor". Berikutnya dari 3.32 menuju `/cerita/tahap-4/` ("Tahap 4 · Ceritanya"); `situs/data/cerita.json` menulis `t4-prd` dengan `ada: false`, jadi "Tahap 4 · Ceritanya" belum halaman lama dan tujuan itu sah. Begitu 4.1 ada, rantai 3 di gerbang menuntut Berikutnya pindah ke 4.1 |
+
+W1 sampai W4 wajib YA dan keempatnya YA. W5 tetap TIDAK.
+
+### Temuan baru
+
+- 3.16, adegan: "20 dari 24 percobaan sampai diperiksa passwordnya sebelum ada yang ditolak dengan 429". Rekaman memuat jumlah (401: 20, 429: 4), tidak urutan. Urutannya mengikuti mekanisme bucket 10 per instance di bawah round_robin, dan halaman menulis bahwa angka 24 dan 20 sama dengan rekaman. Polesan: satu kalimat di blok "Yang sebenarnya" yang menyebut bahwa rekaman hanya menghitung.
+- Lima hal membingungkan dari putaran 1: butir 4 (3.16 Gejala) sebagian selesai (definisi keluar dari adegan; ambiguitas "20 dari 24" kini jelas dari "dari 24"); butir 1, 2, 3, dan 5 tidak berubah karena halamannya tidak berubah.
+- Pelajaran: tugas perbaikan dengan satu kalimat, alat yang mengukurnya (`gejala`), dan penjaga halaman yang diuji mutasi menutup W3 dalam satu putaran. Mutasi pada halaman asli (kalimat definisi dikembalikan) gagal di alat dan di penjaga, jadi dua lapis itu saling menguatkan.
+
+### Hasil putaran 2
+
+Tahap 3 dinyatakan selesai apa pun hasilnya (skill evaluasi-tahap, "Setelah kartu" butir 2). Hasil: W1 sampai W4 dan W6 sampai W8 YA, W5 TIDAK.
+
+Butir yang tetap TIDAK (W5) dan lima hal membingungkan ada di bagian "Untuk TINJAUAN-PEMILIK" di atas, tanpa butir baru; butir 2 di sana (EVAL3-F1, W3) selesai dan dicoret. Pengatur menulis bagian "Tahap 3" di `plan/TINJAUAN-PEMILIK.md`; putaran ini tidak mengubah file itu.
+
+### Cara mengulang putaran 2
+
+```
+git fetch origin && git checkout -B tahap-3/eval-ulang origin/main
+bun install --cwd situs && bun run --cwd situs build
+python3 tools/eval_tahap.py peta 3        # W1
+python3 tools/eval_tahap.py gejala 3      # W3 (exit 0)
+python3 tools/eval_tahap.py coba 3 && python3 tools/eval_tahap.py bocor 3   # W5: bandingkan dengan putaran 1
+python3 tools/eval_tahap.py adr 3         # W6
+python3 tools/eval_tahap.py rantai 3      # W8 (juga rantai 1 dan 2)
+python3 tools/test_eval_tahap.py          # uji diri alat bukti
+python3 tools/audit_bahasa.py --check situs/src/content/docs/tahap-3   # W3
+python3 tools/erd.py --cek                # W7
+python3 tools/cek_tautan.py && python3 tools/contrast.py                # W8, W4
+git diff --name-only c7fdcba5 HEAD -- labs situs/data/erd tools/erd.py   # lab dan ERD Tahap 3 berubah atau tidak
+bun run --cwd situs preview --background --port 4326 --host 127.0.0.1
+cd situs && node tools/ukur-axe.mjs --url http://127.0.0.1:4326 --path /tahap-3/m22-batas-login-dua-kali/   # lalu --semua --awalan /tahap-3/
+printf '/tahap-3/m22-batas-login-dua-kali/\n/tahap-3/dua-instance/\n/tahap-3/rate-limit-redis/\n' > ../tmp/halaman.txt && UKUR_HALAMAN=$PWD/../tmp/halaman.txt node tools/layar.mjs --url http://127.0.0.1:4326
+bunx vitest run src/lib/m22-batas-login-dua-kali.halaman.test.ts      # penjaga 3.16: 52 tes
+bun run --cwd situs preview stop
+```
