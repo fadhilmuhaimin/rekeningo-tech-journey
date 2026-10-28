@@ -642,3 +642,55 @@ func TestSSRFKelasAlamatIsPrivateTidakCukup(t *testing.T) {
 		t.Fatalf("hanya %d alamat yang lolos IsPrivate padahal terlarang; tes ini tidak membuktikan IsPrivate tidak cukup", lolosIsPrivate)
 	}
 }
+
+// TestSSRFKelasAlamatBerzonaSamaDenganTanpaZona: alamat IPv6 dengan zona ("%1", "%eth0") harus dijawab sama dengan alamat
+// tanpa zona. netip.Prefix.Contains menjawab false untuk alamat berzona (dokumentasi paket netip), jadi zona yang tidak
+// dibuang membuat seluruh daftar alamatKhusus tidak pernah cocok. URL seperti https://[2001:db8::1%251]/ membawa zona itu
+// ke penyaring awal dan ke ControlContext, karena net/url dan netip.ParseAddr sama-sama menyimpannya. Klasifikasi murni:
+// tes ini sengaja tidak memanggil Unduh dengan alamat terlarang, karena pada kode yang rusak panggilan itu akan menghubungi
+// alamat tersebut.
+func TestSSRFKelasAlamatBerzonaSamaDenganTanpaZona(t *testing.T) {
+	fmt.Printf("\n## alamat IPv6 berzona: zona (\"%%1\", \"%%eth0\") tidak boleh mengubah keputusan, karena netip.Prefix.Contains tidak mencocokkan alamat berzona\n")
+	prefiks := netip.MustParsePrefix("2001:db8::/32")
+	fmt.Printf("netip.Prefix 2001:db8::/32 Contains 2001:db8::1: %v; Contains 2001:db8::1%%1: %v\n",
+		prefiks.Contains(netip.MustParseAddr("2001:db8::1")), prefiks.Contains(netip.MustParseAddr("2001:db8::1%1")))
+	if prefiks.Contains(netip.MustParseAddr("2001:db8::1%1")) {
+		t.Fatal("netip.Prefix.Contains kini mencocokkan alamat berzona; alasan baris di alamatDilarang perlu ditinjau ulang")
+	}
+	kasus := []struct {
+		alamat    string
+		terlarang bool
+	}{
+		{"64:ff9b::a00:1", true}, {"64:ff9b:1::a00:1", true}, {"2002:a00:1::1", true}, {"2001::1", true}, {"::a00:1", true},
+		{"2001:db8::1", true}, {"fec0::1", true}, {"100::5", true}, {"100:0:0:1::5", true}, {"2001:2::5", true},
+		{"3fff::1", true}, {"5f00::5", true},
+		{"fd00::5", true}, {"fe80::1", true}, {"::1", true}, {"::", true}, {"ff0e::1", true},
+		{"::ffff:10.0.0.1", true}, {"::ffff:100.64.0.1", true},
+		{"2001:4860:4860::8888", false}, {"2606:4700:4700::1111", false},
+	}
+	putusan := func(b bool) string { return map[bool]string{true: "tolak", false: "lolos"}[b] }
+	a := Aturan{}
+	fmt.Printf("%-24s %-11s %-9s %s\n", "alamat", "tanpa zona", "%1", "%eth0")
+	var terlarang, ditolakBerzona, kontrol, kontrolLolos int
+	for _, k := range kasus {
+		tanpa := a.alamatDilarang(netip.MustParseAddr(k.alamat))
+		satu := a.alamatDilarang(netip.MustParseAddr(k.alamat + "%1"))
+		eth := a.alamatDilarang(netip.MustParseAddr(k.alamat + "%eth0"))
+		fmt.Printf("%-24s %-11s %-9s %s\n", k.alamat, putusan(tanpa), putusan(satu), putusan(eth))
+		if tanpa != k.terlarang || satu != k.terlarang || eth != k.terlarang {
+			t.Errorf("%s: tanpa zona %v, %%1 %v, %%eth0 %v; ingin %v untuk ketiganya", k.alamat, tanpa, satu, eth, k.terlarang)
+		}
+		if k.terlarang {
+			terlarang++
+			if satu && eth {
+				ditolakBerzona++
+			}
+		} else {
+			kontrol++
+			if !satu && !eth {
+				kontrolLolos++
+			}
+		}
+	}
+	fmt.Printf("ditolak fetcher aman dengan zona: %d dari %d alamat terlarang; alamat publik berzona yang lolos: %d dari %d\n", ditolakBerzona, terlarang, kontrolLolos, kontrol)
+}

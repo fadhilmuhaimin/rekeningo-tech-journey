@@ -104,6 +104,10 @@ var alamatKhusus = func() []netip.Prefix {
 // alamatDilarang: apakah alamat ini terlarang sebagai tujuan unduhan. Alamat IPv4-mapped (::ffff:a.b.c.d)
 // diperlakukan sebagai IPv4-nya: tanpa Unmap, awalan IPv4 di daftar di atas tidak pernah cocok dengan bentuk itu.
 func (a Aturan) alamatDilarang(ip netip.Addr) bool {
+	// netip.Prefix.Contains menjawab false untuk alamat IPv6 berzona ("%eth0", "%1"). Tanpa baris ini sebuah URL seperti
+	// https://[64:ff9b::a00:1%251]/ melewati seluruh daftar alamatKhusus: penyaring awal dan ControlContext sama-sama
+	// mengurai host dengan zonanya. Zona dibuang sebelum alamat dicocokkan.
+	ip = ip.WithZone("")
 	ip = ip.Unmap()
 	if ip.IsLoopback() {
 		return !a.IzinkanLoopback
