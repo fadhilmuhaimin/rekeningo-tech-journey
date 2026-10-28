@@ -1,0 +1,74 @@
+# Lab t4-qr · payload QR bergaya EMV: tag 01, CRC di tag 63, salah baca lawan penggantian
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_qr · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-qr run.
+
+# --- A. Parameter CRC: polinomial 0x1021, nilai awal 0xFFFF; dua implementasi yang tidak saling memakai ---
+# CRC-16 di Go (internal/qrpayload) dibandingkan dengan binascii.crc_hqx dari pustaka standar Python, nilai awal 0xFFFF.
+# Nilai uji untuk "123456789" adalah 0x29B1, nilai 'check' CRC-16/IBM-3740 (nama lain CRC-16/CCITT-FALSE) di katalog CRC yang dibuka 2026-10-27.
+CRC('123456789') Go 29B1, Python 29B1
+CRC('') Go FFFF, Python FFFF
+CRC('A') Go B915, Python B915
+CRC('6304') Go 6007, Python 6007
+# Yang tidak dibuktikan lab ini: bahwa PDF spesifikasi EMVCo menetapkan parameter itu untuk tag 63. Sumber yang bisa dibuka (dokumen
+# turunan yang mengutip spesifikasi itu) menulisnya; PDF EMVCo belum dibuka [perlu verifikasi di PDF EMVCo].
+
+# --- B. Payload QR statis dan dinamis: tag 01 bernilai 11 atau 12, CRC di tag 63 paling belakang (id QR tetap milik lab) ---
+$ qrlab buat -jenis statis -id 00000000-0000-4000-8000-000000000001 -nama 'Toko Sumber Rejeki' -kota Jakarta
+00020101021126600016id.rekeningo.lab013600000000-0000-4000-8000-0000000000015204541153033605802ID5918Toko Sumber Rejeki6007Jakarta6304B29D
+ tag | panjang | nilai                                                        | arti
+-----+---------+--------------------------------------------------------------+----------------------------------------------------
+ 00  | 02      | 01                                                           | versi format
+ 01  | 02      | 11                                                           | 11 statis, 12 dinamis
+ 26  | 60      | 0016id.rekeningo.lab013600000000-0000-4000-8000-000000000001 | template merchant: pengenal lab dan id QR
+ 52  | 04      | 5411                                                         | kategori (nilai tetap lab)
+ 53  | 03      | 360                                                          | mata uang (nilai tetap lab)
+ 58  | 02      | ID                                                           | negara (nilai tetap lab)
+ 59  | 18      | Toko Sumber Rejeki                                           | nama merchant
+ 60  | 07      | Jakarta                                                      | kota merchant
+ 63  | 04      | B29D                                                         | CRC-16 atas semua yang di depannya termasuk "6304"
+(9 rows)
+$ qrlab urai <payload statis>
+{"jenis":"statis","id":"00000000-0000-4000-8000-000000000001","nama":"Toko Sumber Rejeki","kota":"Jakarta"}
+$ qrlab buat -jenis dinamis -id 00000000-0000-4000-8000-000000000001 -nama 'Toko Sumber Rejeki' -kota Jakarta -nominal 35000
+00020101021226600016id.rekeningo.lab013600000000-0000-4000-8000-0000000000015204541153033605405350005802ID5918Toko Sumber Rejeki6007Jakarta63044510
+ tag | panjang | nilai                                                        | arti
+-----+---------+--------------------------------------------------------------+----------------------------------------------------
+ 00  | 02      | 01                                                           | versi format
+ 01  | 02      | 12                                                           | 11 statis, 12 dinamis
+ 26  | 60      | 0016id.rekeningo.lab013600000000-0000-4000-8000-000000000001 | template merchant: pengenal lab dan id QR
+ 52  | 04      | 5411                                                         | kategori (nilai tetap lab)
+ 53  | 03      | 360                                                          | mata uang (nilai tetap lab)
+ 54  | 05      | 35000                                                        | nominal
+ 58  | 02      | ID                                                           | negara (nilai tetap lab)
+ 59  | 18      | Toko Sumber Rejeki                                           | nama merchant
+ 60  | 07      | Jakarta                                                      | kota merchant
+ 63  | 04      | 4510                                                         | CRC-16 atas semua yang di depannya termasuk "6304"
+(10 rows)
+$ qrlab urai <payload dinamis>
+{"jenis":"dinamis","id":"00000000-0000-4000-8000-000000000001","nominal":35000,"nama":"Toko Sumber Rejeki","kota":"Jakarta"}
+# Pembaca TLV di Python (tag mentah) menghasilkan jenis, id, nama, kota, dan nominal yang sama, nilai demi nilai, dengan JSON dari qrlab urai;
+# CRC kedua payload diperiksa ulang dengan binascii.crc_hqx.
+
+# --- C. Salah baca: satu karakter yang berubah membuat CRC tidak cocok ---
+karakter ke-115 (di nama merchant) diganti; galat crc: CRC tidak cocok
+karakter ke-51 (di id QR) diganti; galat crc: CRC tidak cocok
+karakter ke-96 (di nominal) diganti; galat crc: CRC tidak cocok
+salah baca satu karakter pada payload contoh statis milik tes (138 karakter): 8562 dari 8562 terdeteksi (8314 oleh CRC, 248 oleh tag 63 yang rusak)
+dua karakter bersebelahan bertukar tempat pada payload contoh yang sama: 104 dari 104 terdeteksi (hasil untuk payload ini, bukan jaminan umum)
+
+# --- D. Penggantian: CRC dihitung ulang tanpa kunci apa pun, dan payload yang diubah lolos ---
+payload asli     : 00020101021126600016id.rekeningo.lab013600000000-0000-4000-8000-0000000000015204541153033605802ID5918Toko Sumber Rejeki6007Jakarta6304B29D
+payload dipalsukan: 00020101021126600016id.rekeningo.lab013600000000-0000-4000-8000-0000000000025204541153033605802ID5918Toko Sumber Rejeki6007Jakarta63044D5E
+selisih: id QR berubah; CRC berubah dari B29D menjadi 4D5E
+$ qrlab urai <payload dipalsukan>
+{"jenis":"statis","id":"00000000-0000-4000-8000-000000000002","nama":"Toko Sumber Rejeki","kota":"Jakarta"}
+teks diganti tanpa menghitung CRC baru: galat crc: CRC tidak cocok
+teks diganti lalu CRC dihitung ulang dengan binascii.crc_hqx (tanpa alat lab): lolos, hasilnya sama persis dengan keluaran qrlab ganti
+# CRC tidak memakai kunci rahasia, jadi mendeteksi salah baca, bukan penggantian. Keaslian QR tidak bisa dibuktikan dari payload.
+
+# --- E. Isi yang bertentangan ditolak walau CRC-nya dihitung ulang (galatnya bukan CRC) ---
+tag 01 bernilai 13: galat inisiasi: tag 01 harus 11 atau 12
+tag 01 bernilai 10: galat inisiasi: tag 01 harus 11 atau 12
+tag 00 bernilai 02: galat bentuk: bentuk payload salah: tag 00 harus paling depan dan bernilai 01
+QR statis membawa nominal (tag 54): galat isi: isi payload tidak lengkap atau bertentangan: QR statis membawa nominal
+QR dinamis tanpa nominal (tag 01 jadi 12): galat isi: isi payload tidak lengkap atau bertentangan: QR dinamis tanpa nominal

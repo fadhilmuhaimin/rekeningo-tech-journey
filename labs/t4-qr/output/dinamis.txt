@@ -1,0 +1,167 @@
+# Lab t4-qr · QR dinamis: nominal terikat pada id QR, sekali pakai, dan kedaluwarsa 5 menit
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_qr · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-qr run.
+# Data awal lab: seed tidak mengisi kota merchant luar; dua merchant diberi kota lewat SQL pemilik schema supaya konfirmasi memuat kota.
+=> UPDATE akun SET kota_id = (SELECT id FROM kota WHERE nama = 'Jakarta') WHERE id = 30001
+UPDATE 1
+=> UPDATE akun SET kota_id = (SELECT id FROM kota WHERE nama = 'Surabaya') WHERE id = 30002
+UPDATE 1
+# server: ./api-t4 -lab -jam-lab (jam service diperankan lewat POST /lab/jam: 5 menit tidak ditunggu)
+
+# --- A. QR dinamis: nominal Rp35.000 terikat pada id QR dan berlaku 5 menit sejak dibuat ---
+$ curl -i -X POST '/qr' -H 'Authorization: Bearer <token sesi Bu Marni>' -d '{"jenis": "dinamis", "nominal": 35000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /qr/<qr dinamis 1>
+
+{"id":"<qr dinamis 1>","jenis":"dinamis","nominal":35000,"berlaku_sampai":"<waktu>"}
+$ curl -i -X GET '/qr/<qr dinamis 1>' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":"<qr dinamis 1>","jenis":"dinamis","nominal":35000,"berlaku_sampai":"<waktu>","merchant":{"nama":"Toko Sumber Rejeki","kota":"Jakarta"},"terverifikasi":true}
+berlaku_sampai dikurangi jam server: 300 detik
+$ qrlab buat -jenis dinamis -id <qr dinamis 1> -nama 'Toko Sumber Rejeki' -kota Jakarta -nominal 35000
+00020101021226600016id.rekeningo.lab0136<qr dinamis 1>5204541153033605405350005802ID5918Toko Sumber Rejeki6007Jakarta6304<crc>
+# Budi memindai QR dinamis
+pemindai: payload 00020101021226600016id.rekeningo.lab0136<qr dinamis 1>5204541153033605405350005802ID5918Toko Sumber Rejeki6007Jakarta6304<crc>
+pemindai: CRC cocok; jenis dinamis; id <qr dinamis 1>; nominal Rp35.000; nama di payload 'Toko Sumber Rejeki'; kota di payload 'Jakarta'
+server: GET /qr/{id} -> 200; nama 'Toko Sumber Rejeki'; kota 'Jakarta'; terverifikasi ya
+nama dan kota di payload sama dengan jawaban server: ya
+nominal di payload sama dengan jawaban server: ya (payload Rp35.000; server Rp35.000)
+
+# --- B. Sekali pakai: pembayaran pertama berhasil; pembayaran kedua oleh pembayar yang sama dan oleh pembayar lain ditolak ---
+$ curl -i -X POST '/qr/<qr dinamis 1>/bayar' -H 'Authorization: Bearer <token sesi Budi>' -d '{}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10201
+
+{"id":10201,"saldo":215000,"nominal":35000,"merchant":"Toko Sumber Rejeki"}
+$ curl -i -X POST '/qr/<qr dinamis 1>/bayar' -H 'Authorization: Bearer <token sesi Budi>' -d '{}'
+HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{"type":"/problems/qr-terpakai","title":"QR dinamis ini sudah dibayar","status":409}
+$ curl -i -X POST '/qr/<qr dinamis 1>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{}'
+HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{"type":"/problems/qr-terpakai","title":"QR dinamis ini sudah dibayar","status":409}
+$ curl -i -X GET '/qr/<qr dinamis 1>' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{"type":"/problems/tidak-ditemukan","title":"QR tidak ditemukan","status":404}
+=> SELECT jenis, status, nominal, jurnal_id IS NOT NULL AS ada_jurnal FROM qr
+ jenis   | status   | nominal | ada_jurnal
+---------+----------+---------+------------
+ dinamis | terpakai | 35000   | t
+(1 row)
+=> SELECT a.nama, b.saldo_cache AS saldo FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id IN (419, 40002, 30001) ORDER BY a.id
+ nama               | saldo
+--------------------+--------
+ Budi               | 215000
+ Toko Sumber Rejeki | 35000
+ Eko                | 500000
+(3 rows)
+
+# --- C. Nominal terikat pada id QR: payload dengan nominal Rp1 dan CRC baru lolos pemindai, tetapi server memotong Rp35.000 ---
+$ curl -i -X POST '/qr' -H 'Authorization: Bearer <token sesi Bu Marni>' -d '{"jenis": "dinamis", "nominal": 35000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /qr/<qr dinamis 2>
+
+{"id":"<qr dinamis 2>","jenis":"dinamis","nominal":35000,"berlaku_sampai":"<waktu>"}
+$ qrlab ganti -nominal 1 <payload dinamis 2>
+00020101021226600016id.rekeningo.lab0136<qr dinamis 2>520454115303360540115802ID5918Toko Sumber Rejeki6007Jakarta6304<crc>
+# pemindai membaca payload yang nominalnya dipalsukan
+pemindai: payload 00020101021226600016id.rekeningo.lab0136<qr dinamis 2>520454115303360540115802ID5918Toko Sumber Rejeki6007Jakarta6304<crc>
+pemindai: CRC cocok; jenis dinamis; id <qr dinamis 2>; nominal Rp1; nama di payload 'Toko Sumber Rejeki'; kota di payload 'Jakarta'
+server: GET /qr/{id} -> 200; nama 'Toko Sumber Rejeki'; kota 'Jakarta'; terverifikasi ya
+nama dan kota di payload sama dengan jawaban server: ya
+nominal di payload sama dengan jawaban server: tidak (payload Rp1; server Rp35.000)
+=> SELECT a.nama, b.saldo_cache AS saldo FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id IN (40002) ORDER BY a.id
+ nama | saldo
+------+--------
+ Eko  | 500000
+(1 row)
+$ curl -i -X POST '/qr/<qr dinamis 2>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{"nominal": 1}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nominal","pesan":"QR dinamis terikat ke nominal 35000"}]}
+$ curl -i -X POST '/qr/<qr dinamis 2>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{"nominal": 34999}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nominal","pesan":"QR dinamis terikat ke nominal 35000"}]}
+$ curl -i -X POST '/qr/<qr dinamis 2>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{"nominal": 35001}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nominal","pesan":"QR dinamis terikat ke nominal 35000"}]}
+=> SELECT a.nama, b.saldo_cache AS saldo FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id IN (40002) ORDER BY a.id
+ nama | saldo
+------+--------
+ Eko  | 500000
+(1 row)
+$ curl -i -X POST '/qr/<qr dinamis 2>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10202
+
+{"id":10202,"saldo":465000,"nominal":35000,"merchant":"Toko Sumber Rejeki"}
+=> SELECT a.nama, b.saldo_cache AS saldo FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id IN (40002) ORDER BY a.id
+ nama | saldo
+------+--------
+ Eko  | 465000
+(1 row)
+
+# --- D. Kedaluwarsa di kedua sisi batas 5 menit (Asumsi, ADR 40): jam diperankan 299, 300, dan 301 detik sesudah QR dibuat ---
+# Tiga QR dinamis Rp35.000 dibuat pada jam yang sama (jam server dibekukan).
+# jam server: dibuat + 299 detik
+$ curl -i -X GET '/qr/<qr dinamis 3>' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":"<qr dinamis 3>","jenis":"dinamis","nominal":35000,"berlaku_sampai":"<waktu>","merchant":{"nama":"Toko Sumber Rejeki","kota":"Jakarta"},"terverifikasi":true}
+$ curl -i -X POST '/qr/<qr dinamis 3>/bayar' -H 'Authorization: Bearer <token sesi Budi>' -d '{}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10203
+
+{"id":10203,"saldo":180000,"nominal":35000,"merchant":"Toko Sumber Rejeki"}
+# jam server: dibuat + 300 detik
+$ curl -i -X GET '/qr/<qr dinamis 4>' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{"type":"/problems/tidak-ditemukan","title":"QR tidak ditemukan","status":404}
+$ curl -i -X POST '/qr/<qr dinamis 4>/bayar' -H 'Authorization: Bearer <token sesi Budi>' -d '{}'
+HTTP/1.1 410 Gone
+Content-Type: application/problem+json
+
+{"type":"/problems/qr-kedaluwarsa","title":"QR ini sudah kedaluwarsa","status":410,"detail":"Minta merchant menampilkan QR yang baru."}
+# jam server: dibuat + 301 detik
+$ curl -i -X GET '/qr/<qr dinamis 5>' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{"type":"/problems/tidak-ditemukan","title":"QR tidak ditemukan","status":404}
+$ curl -i -X POST '/qr/<qr dinamis 5>/bayar' -H 'Authorization: Bearer <token sesi Budi>' -d '{}'
+HTTP/1.1 410 Gone
+Content-Type: application/problem+json
+
+{"type":"/problems/qr-kedaluwarsa","title":"QR ini sudah kedaluwarsa","status":410,"detail":"Minta merchant menampilkan QR yang baru."}
+=> SELECT status, count(*) AS jumlah FROM qr GROUP BY status ORDER BY status
+ status      | jumlah
+-------------+--------
+ kedaluwarsa | 2
+ terpakai    | 3
+(2 rows)
+=> SELECT a.nama, b.saldo_cache AS saldo FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id IN (419) ORDER BY a.id
+ nama | saldo
+------+--------
+ Budi | 180000
+(1 row)
+# Pada 300 detik (tepat batas) QR sudah kedaluwarsa; pada 299 detik masih terbayar. Penandaan kedaluwarsa ditulis saat ada pembayaran yang ditolak.

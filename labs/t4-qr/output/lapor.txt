@@ -1,0 +1,240 @@
+# Lab t4-qr · laporan QR palsu: pembekuan sebelum pemeriksaan, dampaknya pada merchant sah, dan pemulihan
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_qr · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-qr run.
+# Data awal lab: seed tidak mengisi kota merchant luar; dua merchant diberi kota lewat SQL pemilik schema supaya konfirmasi memuat kota.
+=> UPDATE akun SET kota_id = (SELECT id FROM kota WHERE nama = 'Jakarta') WHERE id = 30001
+UPDATE 1
+=> UPDATE akun SET kota_id = (SELECT id FROM kota WHERE nama = 'Surabaya') WHERE id = 30002
+UPDATE 1
+# server: ./api-t4 -lab -jam-lab (jam service dibekukan lewat POST /lab/jam: batas laju tidak terisi di tengah rekaman, jadi Retry-After sama di setiap run)
+
+# --- A. Setiap merchant menerbitkan satu QR statis ---
+$ curl -i -X POST '/qr' -H 'Authorization: Bearer <token sesi Bu Marni>' -d '{"jenis": "statis"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /qr/<qr statis Bu Marni>
+
+{"id":"<qr statis Bu Marni>","jenis":"statis"}
+$ curl -i -X POST '/qr' -H 'Authorization: Bearer <token sesi Toko Andalan>' -d '{"jenis": "statis"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /qr/<qr statis Toko Andalan>
+
+{"id":"<qr statis Toko Andalan>","jenis":"statis"}
+# Merchant 3 sampai 6 diberi satu QR statis lewat SQL pemilik schema (data awal lab; batas login per alamat 10 per menit membatasi jumlah login).
+=> INSERT INTO qr (akun_id, jenis) SELECT id, 'statis' FROM akun WHERE id BETWEEN 30003 AND 30006 ORDER BY id
+INSERT 0 4
+=> SELECT id, nama, status FROM akun WHERE id BETWEEN 30001 AND 30006 ORDER BY id
+ id    | nama               | status
+-------+--------------------+--------
+ 30001 | Toko Sumber Rejeki | aktif
+ 30002 | Toko Andalan       | aktif
+ 30003 | Merchant 3         | aktif
+ 30004 | Merchant 4         | aktif
+ 30005 | Merchant 5         | aktif
+ 30006 | Merchant 6         | aktif
+(6 rows)
+
+# --- B. Laporan terhadap stiker yang memang palsu: Budi melaporkan QR Toko Andalan yang tertempel di kasir Bu Marni ---
+$ curl -i -X POST '/qr/<qr statis Toko Andalan>/laporkan' -H 'Authorization: Bearer <token sesi Budi>' -d '{"alasan": "stiker ini ditempel di atas stiker toko yang asli di kasir"}'
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{"status":"merchant dibekukan sementara"}
+=> SELECT id, nama, status FROM akun WHERE id IN (30001, 30002) ORDER BY id
+ id    | nama               | status
+-------+--------------------+-----------
+ 30001 | Toko Sumber Rejeki | aktif
+ 30002 | Toko Andalan       | dibekukan
+(2 rows)
+$ curl -i -X GET '/qr/<qr statis Toko Andalan>' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{"type":"/problems/tidak-ditemukan","title":"QR tidak ditemukan","status":404}
+$ curl -i -X POST '/qr' -H 'Authorization: Bearer <token sesi Toko Andalan>' -d '{"jenis": "statis"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/akun-dibekukan","title":"Akun dibekukan","status":403}
+$ curl -i -X GET '/qr/<qr statis Bu Marni>' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":"<qr statis Bu Marni>","jenis":"statis","merchant":{"nama":"Toko Sumber Rejeki","kota":"Jakarta"},"terverifikasi":true}
+=> SELECT peran, aksi, objek, alasan FROM audit_log ORDER BY id
+ peran    | aksi       | objek                       | alasan
+----------+------------+-----------------------------+------------------------------------------------------------
+ karyawan | laporan_qr | qr:<qr statis Toko Andalan> | stiker ini ditempel di atas stiker toko yang asli di kasir
+(1 row)
+
+# --- C. Laporan terhadap stiker yang asli: Eko melaporkan QR Bu Marni sendiri; server tidak membedakan laporan yang benar dari yang salah ---
+# Sebelum laporan, Budi membayar Rp20.000 ke QR Bu Marni (HTTP 201; tidak dicetak).
+=> SELECT a.nama, b.saldo_cache AS saldo FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id IN (30001) ORDER BY a.id
+ nama               | saldo
+--------------------+-------
+ Toko Sumber Rejeki | 20000
+(1 row)
+$ curl -i -X POST '/qr/<qr statis Bu Marni>/laporkan' -H 'Authorization: Bearer <token sesi Eko>' -d '{"alasan": "QR ini tampak janggal dan mungkin palsu, mohon diperiksa"}'
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{"status":"merchant dibekukan sementara"}
+=> SELECT id, nama, status FROM akun WHERE id = 30001
+ id    | nama               | status
+-------+--------------------+-----------
+ 30001 | Toko Sumber Rejeki | dibekukan
+(1 row)
+$ curl -i -X GET '/qr/<qr statis Bu Marni>' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{"type":"/problems/tidak-ditemukan","title":"QR tidak ditemukan","status":404}
+$ curl -i -X POST '/qr/<qr statis Bu Marni>/bayar' -H 'Authorization: Bearer <token sesi Budi>' -d '{"nominal": 35000}'
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{"type":"/problems/tidak-ditemukan","title":"QR tidak ditemukan","status":404}
+$ curl -i -X POST '/qr' -H 'Authorization: Bearer <token sesi Bu Marni>' -d '{"jenis": "dinamis", "nominal": 35000}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/akun-dibekukan","title":"Akun dibekukan","status":403}
+=> SELECT a.nama, b.saldo_cache AS saldo FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id IN (30001) ORDER BY a.id
+ nama               | saldo
+--------------------+-------
+ Toko Sumber Rejeki | 20000
+(1 row)
+# Pembeli yang memindai stiker Bu Marni yang asli kini mendapat jawaban yang sama dengan QR yang tidak pernah ada (404).
+# Uang yang sudah diterima tidak ditarik: pembekuan mengubah status akun, bukan posting.
+
+# --- D. Akun yang baru didaftarkan (belum terverifikasi) dapat melaporkan: tiga merchant beku dalam satu jam, laporan keempat ditolak batas laju ---
+$ curl -i -X POST '/daftar' -d '{"nama": "Pelapor Baru", "email": "pelapor.baru@publik.example", "password": "sandi-lab-qr-12345"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /akun/50001
+
+{"id":50001,"jenis":"pemakai","tingkat":"belum"}
+$ curl -i -X POST '/qr/<qr statis Merchant 3>/laporkan' -H 'Authorization: Bearer <token sesi Pelapor Baru>' -d '{"alasan": "stiker di kasir tidak sama dengan papan toko 3"}'
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{"status":"merchant dibekukan sementara"}
+$ curl -i -X POST '/qr/<qr statis Merchant 4>/laporkan' -H 'Authorization: Bearer <token sesi Pelapor Baru>' -d '{"alasan": "stiker di kasir tidak sama dengan papan toko 4"}'
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{"status":"merchant dibekukan sementara"}
+$ curl -i -X POST '/qr/<qr statis Merchant 5>/laporkan' -H 'Authorization: Bearer <token sesi Pelapor Baru>' -d '{"alasan": "stiker di kasir tidak sama dengan papan toko 5"}'
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{"status":"merchant dibekukan sementara"}
+$ curl -i -X POST '/qr/<qr statis Merchant 6>/laporkan' -H 'Authorization: Bearer <token sesi Pelapor Baru>' -d '{"alasan": "stiker di kasir tidak sama dengan papan toko 6"}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 1200
+
+{"type":"/problems/rate-limit-akun","title":"Terlalu banyak kiriman dari akun ini","status":429,"detail":"Coba lagi dalam 1200 detik."}
+=> SELECT id, nama, status FROM akun WHERE id BETWEEN 30003 AND 30006 ORDER BY id
+ id    | nama       | status
+-------+------------+-----------
+ 30003 | Merchant 3 | dibekukan
+ 30004 | Merchant 4 | dibekukan
+ 30005 | Merchant 5 | dibekukan
+ 30006 | Merchant 6 | aktif
+(4 rows)
+# Satu laporan sudah cukup membekukan, di api-t4 hanya panjang alasan (20 sampai 200 karakter) dan laju laporan per akun (3 per jam, Asumsi lab) yang diperiksa; pelapor dan kebenaran isi laporan tidak diverifikasi.
+
+# --- E. Masukan berbentuk salah mengambil jatah laju sebelum ditolak: tiga alasan terlalu pendek (422), lalu laporan yang benar ditolak batas laju (429) ---
+$ curl -i -X POST '/qr/<qr statis Merchant 6>/laporkan' -H 'Authorization: Bearer <token sesi Pelapor Dua>' -d '{"alasan": "palsu"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"alasan","pesan":"wajib, 20 sampai 200 karakter: apa yang janggal pada QR ini"}]}
+$ curl -i -X POST '/qr/<qr statis Merchant 6>/laporkan' -H 'Authorization: Bearer <token sesi Pelapor Dua>' -d '{"alasan": "palsu"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"alasan","pesan":"wajib, 20 sampai 200 karakter: apa yang janggal pada QR ini"}]}
+$ curl -i -X POST '/qr/<qr statis Merchant 6>/laporkan' -H 'Authorization: Bearer <token sesi Pelapor Dua>' -d '{"alasan": "palsu"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"alasan","pesan":"wajib, 20 sampai 200 karakter: apa yang janggal pada QR ini"}]}
+$ curl -i -X POST '/qr/<qr statis Merchant 6>/laporkan' -H 'Authorization: Bearer <token sesi Pelapor Dua>' -d '{"alasan": "stiker di kasir tidak sama dengan papan toko 6"}'
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Retry-After: 1200
+
+{"type":"/problems/rate-limit-akun","title":"Terlalu banyak kiriman dari akun ini","status":429,"detail":"Coba lagi dalam 1200 detik."}
+=> SELECT id, nama, status FROM akun WHERE id = 30006
+ id    | nama       | status
+-------+------------+--------
+ 30006 | Merchant 6 | aktif
+(1 row)
+# Urutan di api-t4: bentuk id QR, batas laju per akun, lalu panjang alasan. Masukan yang salah mengambil token laju sebelum ditolak (disengaja di api-t4:
+# tiap percobaan dihitung, Asumsi lab), jadi pelapor yang salah ketik tiga kali tidak bisa melapor sampai token terisi lagi.
+
+# --- F. Pemulihan: tim risk membuka merchant dengan persetujuan petugas kedua; tidak ada pemulihan otomatis ---
+# Pembukaan yang tidak memenuhi syarat ditolak 403 (tiga sebab penyetuju dijawab sama, pelaku bukan petugas risk dijawab lain), dan Bu Marni tetap beku:
+# tanpa penyetuju
+$ curl -i -X POST '/bo/akun/30001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -d '{"alasan": "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/butuh-persetujuan","title":"Aksi ini butuh persetujuan petugas risk kedua","status":403,"detail":"Kirim token sesi app petugas risk lain di header X-Penyetuju-Token."}
+# penyetuju sama dengan pelaku
+$ curl -i -X POST '/bo/akun/30001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -H 'X-Penyetuju-Token: <token sesi Ratih>' -d '{"alasan": "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/butuh-persetujuan","title":"Aksi ini butuh persetujuan petugas risk kedua","status":403,"detail":"Kirim token sesi app petugas risk lain di header X-Penyetuju-Token."}
+# penyetuju bukan petugas risk (Budi)
+$ curl -i -X POST '/bo/akun/30001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -H 'X-Penyetuju-Token: <token sesi Budi>' -d '{"alasan": "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/butuh-persetujuan","title":"Aksi ini butuh persetujuan petugas risk kedua","status":403,"detail":"Kirim token sesi app petugas risk lain di header X-Penyetuju-Token."}
+# pelaku bukan petugas risk (Budi), penyetuju petugas risk
+$ curl -i -X POST '/bo/akun/30001/buka' -H 'Authorization: Bearer <token sesi Budi>' -H 'X-Penyetuju-Token: <token sesi Risk Dua>' -d '{"alasan": "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/dilarang","title":"Hanya akun tim risk yang boleh memakai back office","status":403}
+=> SELECT id, nama, status FROM akun WHERE id = 30001
+ id    | nama               | status
+-------+--------------------+-----------
+ 30001 | Toko Sumber Rejeki | dibekukan
+(1 row)
+# Dengan petugas risk yang menjalankan dan petugas risk lain sebagai penyetuju:
+$ curl -i -X POST '/bo/akun/30001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -H 'X-Penyetuju-Token: <token sesi Risk Dua>' -d '{"alasan": "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"}'
+HTTP/1.1 204 No Content
+
+
+=> SELECT id, nama, status FROM akun WHERE id BETWEEN 30001 AND 30006 ORDER BY id
+ id    | nama               | status
+-------+--------------------+-----------
+ 30001 | Toko Sumber Rejeki | aktif
+ 30002 | Toko Andalan       | dibekukan
+ 30003 | Merchant 3         | dibekukan
+ 30004 | Merchant 4         | dibekukan
+ 30005 | Merchant 5         | dibekukan
+ 30006 | Merchant 6         | aktif
+(6 rows)
+$ curl -i -X GET '/qr/<qr statis Bu Marni>' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":"<qr statis Bu Marni>","jenis":"statis","merchant":{"nama":"Toko Sumber Rejeki","kota":"Jakarta"},"terverifikasi":true}
+=> SELECT peran, aksi, objek FROM audit_log ORDER BY id
+ peran    | aksi        | objek
+----------+-------------+-----------------------------
+ karyawan | laporan_qr  | qr:<qr statis Toko Andalan>
+ pemakai  | laporan_qr  | qr:<qr statis Bu Marni>
+ pemakai  | laporan_qr  | qr:<qr statis Merchant 3>
+ pemakai  | laporan_qr  | qr:<qr statis Merchant 4>
+ pemakai  | laporan_qr  | qr:<qr statis Merchant 5>
+ risk     | buka_blokir | akun:30001
+(6 rows)
+# Lama sampai tim risk membuka merchant yang sah tidak terukur di lab (Asumsi); merchant tetap beku sampai ada tindakan petugas.
