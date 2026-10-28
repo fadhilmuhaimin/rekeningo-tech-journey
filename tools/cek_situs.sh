@@ -113,8 +113,9 @@ if [ "$MODE" != "--ukur" ]; then
   echo "== uji pemeriksa ID internal (lolos palsu, keputusan 1170, 1180)"; $PY tools/test_cek_id_tampil.py | tail -1
   echo "== tautan internal di dist: path, anchor, data widget (P6, keputusan 318)"; $PY tools/cek_tautan.py
   echo "== uji pemeriksa tautan (lolos palsu, keputusan 318)"; $PY tools/test_cek_tautan.py | tail -1
-  echo "== rantai Berikutnya Tahap 1 dan 2 di dist: urutan sama dengan nomor, tanpa 404, tanpa halaman lama sesudah jembatan (keputusan 1164)"
-  for T in 1 2; do
+  echo "== uji pemeriksa rantai dan ADR (lolos palsu, keputusan 1129)"; $PY tools/test_eval_tahap.py | tail -1
+  echo "== rantai Berikutnya Tahap 1 sampai 3 di dist: urutan sama dengan nomor, tanpa 404, tanpa halaman lama sesudah jembatan (keputusan 1164, 1129)"
+  for T in 1 2 3; do
     LOG=$(mktemp)
     if $PY tools/eval_tahap.py rantai "$T" >"$LOG" 2>&1; then tail -1 "$LOG"; rm -f "$LOG"
     else cat "$LOG"; rm -f "$LOG"; echo "GAGAL: rantai Berikutnya Tahap $T"; exit 1; fi
