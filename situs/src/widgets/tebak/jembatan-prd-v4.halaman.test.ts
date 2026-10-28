@@ -245,6 +245,10 @@ describe("kepala dokumen dan tabel PRD v3 ke PRD v4", () => {
   test("lingkup dan tim v4: 100.000 user dari registry, merchant di luar Lestari dari naskah, 10 sampai 15 engineer dalam tiga tim, 12 minggu", () => {
     expect(a4.user).toBe(100000);
     expect(rekap4).toContain(`${minggu4} minggu`);
+    expect(rekap4).toContain(`±${titik(a4.user)} user`);
+    expect(rekap3).toContain(`${minggu3} minggu`);
+    expect(a4.tim).toBe(`${cocok(prd4, /(\d+) engineer dalam tiga tim/)[1]} developer, ${Number(cocok(a4.tim, /(\d+) tim$/)[1])} tim`);
+    expect(Number(cocok(a4.tim, /(\d+) tim$/)[1])).toBe(3);
     expect(rekap4).toContain("merchant di luar Lestari");
     ada(prd4, "QR untuk merchant di luar Lestari", "naskah 4");
     ada(naskah4, "supaya orang di luar Lestari bisa memakai Rekeningo", "naskah 4");
@@ -554,7 +558,8 @@ describe("widget tebak: tepat satu jawaban, posisi dan panjang tidak membocorkan
     expect(new Set(data.pilihan.map((p) => p.alasan)).size).toBe(3);
     expect(data.sumber.jenis).toBe("asumsi");
     expect(data.label.sumber).toBe("Asumsi · penalaran dari halaman ADR Tahap 3");
-    expect(data.sumber.teks).toContain("hanya kapasitas worker yang berasal dari rekaman labs/t3-outbox/output/queue.txt bagian A; tidak ada lab untuk PRD v4");
+    expect(data.id).toBe(`${dari("t3-jembatan").id}-tebak`);
+    expect(data.sumber.teks).toBe(`Penalaran dari halaman ADR Tahap ${cerita.tahap[2]!.no} dan hitungan Asumsi di halaman ${dari("t3-estimasi").nomor}; hanya kapasitas worker yang berasal dari rekaman labs/t3-outbox/output/queue.txt bagian A; tidak ada lab untuk PRD v4`);
   });
   test("jawaban benar: ADR yang sama dengan naskah 4 dan dengan bullet halaman; tiga hal 3.28; 138,9 × 0,02 = 2,78 dari batas 18", () => {
     expect(jawab).toEqual([22, 25, 26, 32]);
