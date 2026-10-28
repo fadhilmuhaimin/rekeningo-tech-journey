@@ -162,7 +162,7 @@ Hasil pelaksana: 56 dari 57 tertangkap (30 kali oleh tes Go api-t4 bertag `t4aud
 
 ### Mutan peninjau
 
-Dijalankan peninjau dengan tambahan 54 mutan (seri Q, W, B, G, N di `mutasi/daftar.py`; runner `luas` menjalankan juga tes api-t4 tanpa tag untuk back office dan audit). Tiap `lama` muncul tepat sekali di berkasnya, dan tanpa perubahan harness lolos. Seluruh 111 mutan diulang sesudah gabung main dan sesudah semua tes tambahan: 107 tertangkap, 4 setara.
+Dijalankan peninjau dengan tambahan 54 mutan (seri Q, W, B, G, N di `mutasi/daftar.py`; runner `luas` menjalankan juga tes api-t4 tanpa tag untuk back office dan audit). Tiap `lama` muncul tepat sekali di berkasnya, dan tanpa perubahan harness lolos. Seluruh 111 mutan diulang sesudah gabung main (tiga tes terakhir ditambah sesudahnya, dan Q5, B6, B9 diulang): 107 tertangkap, 4 setara.
 
 | Mutan | Apa yang diubah | Yang menangkap sekarang |
 |---|---|---|
