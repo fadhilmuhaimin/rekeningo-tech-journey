@@ -269,3 +269,45 @@ func TestT4ARantaiBarisTengahDiubahDihapusDanBarisPalsuDiUjung(t *testing.T) {
 		t.Fatalf("baris palsu di ujung: %+v, ingin lolos", h2)
 	}
 }
+
+// Kelas bug "membandingkan sesudah menormalkan": hash disimpan sebagai teks, dan pembandingan harus persis. Huruf besar
+// dan spasi di ujung dianggap putus, bukan disamakan dengan hash yang bernilai sama.
+func TestT4ARantaiMenolakHashBerbentukLainWalauNilainyaSama(t *testing.T) {
+	r, db, pelaku := bersihAudit(t)
+	for nama, kasus := range map[string]struct {
+		ubah  string
+		rusak int64
+	}{
+		"hash huruf besar":                           {`UPDATE audit_log SET hash = upper(hash) WHERE id = 2`, 2},
+		"hash dengan spasi di ujung":                 {`UPDATE audit_log SET hash = hash || ' ' WHERE id = 2`, 2},
+		"hash_sebelumnya huruf besar":                {`UPDATE audit_log SET hash_sebelumnya = upper(hash_sebelumnya) WHERE id = 3`, 3},
+		"hash_sebelumnya dengan spasi di ujung":      {`UPDATE audit_log SET hash_sebelumnya = hash_sebelumnya || ' ' WHERE id = 3`, 3},
+		"hash_sebelumnya baris pertama dengan spasi": {`UPDATE audit_log SET hash_sebelumnya = hash_sebelumnya || ' ' WHERE id = 1`, 1},
+	} {
+		if _, err := db.Exec(`TRUNCATE audit_log RESTART IDENTITY`); err != nil {
+			t.Fatal(err)
+		}
+		isiLog(t, r, pelaku, 4)
+		if h, _ := ujiJangkar(t, r, nil); h.RusakDiID != 0 || h.Baris != 4 {
+			t.Fatalf("%s: rantai sudah putus sebelum diubah: %+v", nama, h)
+		}
+		if _, err := db.Exec(kasus.ubah); err != nil {
+			t.Fatalf("%s: %v", nama, err)
+		}
+		if h, _ := ujiJangkar(t, r, nil); h.RusakDiID != kasus.rusak {
+			t.Errorf("%s: putus di %d, ingin %d", nama, h.RusakDiID, kasus.rusak)
+		}
+	}
+}
+
+// Yang dilaporkan adalah baris pertama yang putus, walau lebih dari satu baris diubah.
+func TestT4ARantaiMelaporkanBarisPutusPertama(t *testing.T) {
+	r, db, pelaku := bersihAudit(t)
+	isiLog(t, r, pelaku, 5)
+	if _, err := db.Exec(`UPDATE audit_log SET aksi = 'dipalsukan' WHERE id IN (2, 4)`); err != nil {
+		t.Fatal(err)
+	}
+	if h, _ := ujiJangkar(t, r, nil); h.RusakDiID != 2 {
+		t.Fatalf("putus di %d, ingin baris pertama yang putus (2)", h.RusakDiID)
+	}
+}

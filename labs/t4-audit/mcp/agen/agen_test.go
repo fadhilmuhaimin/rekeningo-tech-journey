@@ -211,6 +211,16 @@ func TestVerifikasiRantaiUtuhPutusDanTepi(t *testing.T) {
 	isiVektor(t, pemilik, v)
 	pemilik.Exec(`UPDATE audit_log SET hash_sebelumnya = repeat('1', 64) WHERE id = 1`)
 	cek("hash sebelumnya baris pertama salah", 5, 1, 5, v[4].Hash)
+	isiVektor(t, pemilik, v)
+	pemilik.Exec(`UPDATE audit_log SET aksi = 'dipalsukan' WHERE id IN (2, 4)`)
+	cek("dua baris diubah: yang dilaporkan yang pertama", 5, 2, 5, v[4].Hash)
+	// Pembandingan persis: bentuk lain dari hash yang sama bukan hash yang sama.
+	isiVektor(t, pemilik, v)
+	pemilik.Exec(`UPDATE audit_log SET hash = upper(hash) WHERE id = 2`)
+	cek("hash huruf besar", 5, 2, 5, v[4].Hash)
+	isiVektor(t, pemilik, v)
+	pemilik.Exec(`UPDATE audit_log SET hash_sebelumnya = hash_sebelumnya || ' ' WHERE id = 4`)
+	cek("hash sebelumnya berspasi", 5, 4, 5, v[4].Hash)
 }
 
 func TestCariAuditSiapaMembukaDanBatas(t *testing.T) {

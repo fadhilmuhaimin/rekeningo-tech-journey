@@ -62,6 +62,8 @@ func TestT4ABerkasJangkarRusakDitolak(t *testing.T) {
 		"hash pendek":       `{"id":3,"hash":"abc"}` + "\n",
 		"hash huruf besar":  `{"id":3,"hash":"` + strings.ToUpper(hashA) + `"}` + "\n",
 		"hash tanpa nomor":  `{"hash":"` + hashA + `"}` + "\n",
+		"hash berspasi":     `{"id":3,"hash":"` + hashA + ` "}` + "\n",
+		"baris kosong":      `{"id":3,"hash":"` + hashA + `"}` + "\n\n",
 		"baris kedua rusak": `{"id":3,"hash":"` + hashA + `"}` + "\n" + `{"id":4,` + "\n",
 	} {
 		b := berkasBaru(t)
