@@ -226,6 +226,13 @@ class TesPerintahLab(unittest.TestCase):
         self.assertIn('"--network", "none"', teks)
         self.assertIn('IMG["openapi_generator"]', teks)
 
+    def test_govulncheck_memakai_salinan_basis_data_lokal(self):
+        import ast
+        sumber = (pathlib.Path(alat.__file__).parent / "run.py").read_text()
+        fungsi = [n for n in ast.walk(ast.parse(sumber)) if isinstance(n, ast.FunctionDef) and n.name == "pastikan_vulndb"]
+        self.assertEqual(len(fungsi), 1)
+        self.assertIn('return "file://" + str(tujuan)', ast.get_source_segment(sumber, fungsi[0]))
+
 
 if __name__ == "__main__":
     unittest.main()
