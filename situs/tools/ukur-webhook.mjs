@@ -237,14 +237,14 @@ for (const ukuran of [[375, 667], [1366, 657]]) {
     lapor((await aktifNo(w)) === 1 && (await fokusTeks(page)).startsWith("Langkah 1 dari 8"), `webhook langkah ${nama} ${mode}: tujuh kali "${L.sebelumnya}" kembali ke langkah 1 dengan fokus di langkah`);
   }
   // Fokus keyboard pada tombol jauh di bawah tidak tertutup bilah lengket (WCAG 2.4.11).
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await w.locator(`.wh-langkah__item[data-langkah="${IDS[7]}"]`).getByRole("button", { name: L.sebelumnya }).focus();
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await w.locator(`.wh-langkah__item[data-langkah="${IDS[1]}"]`).getByRole("button", { name: L.berikutnya }).focus();
   const tertutup = await page.evaluate(() => {
     const t = document.activeElement.getBoundingClientRect();
     const b = document.querySelector(".wh-bilah").getBoundingClientRect();
     return { tombolAtas: Math.round(t.top), bawahBilah: Math.round(b.bottom), ok: t.top >= b.bottom - 1 };
   });
-  lapor(tertutup.ok, `webhook langkah ${nama}: tombol yang difokus dari atas halaman di y ${tertutup.tombolAtas}, bilah berakhir di y ${tertutup.bawahBilah} (tidak tertutup)`);
+  lapor(tertutup.ok, `webhook langkah ${nama}: tombol yang difokus dari bawah halaman di y ${tertutup.tombolAtas}, bilah berakhir di y ${tertutup.bawahBilah} (tidak tertutup)`);
   // Pertama: langkah terakhir tidak punya "berikutnya", langkah pertama tidak punya "sebelumnya".
   const ujung = await page.evaluate(() => {
     const it = [...document.querySelectorAll(".wh-langkah__item")];
@@ -279,6 +279,20 @@ for (const ukuran of [[375, 667], [1366, 657]]) {
   }
   const salah = hasil.filter(([harap, a1, a2]) => a1 !== harap || a2 !== harap);
   lapor(salah.length === 0, `webhook gulir ${nama}: langkah aktif mengikuti gulir dan stabil ${JSON.stringify(hasil.map((h) => h[0]))}${salah.length ? "; salah " + JSON.stringify(salah) : ""}`);
+  // Sebelum menyentuh garis (tepi atas 40 px di bawah bilah) langkah sebelumnya masih aktif; sesudah menyentuhnya (14 px) langkah baru aktif.
+  const sebelumGaris = [];
+  for (const [i, jarak] of [[4, 40], [4, 14], [6, 40], [6, 14]]) {
+    for (let ulang = 0; ulang < 2; ulang++) {
+      await page.evaluate(([idx, j]) => {
+        const bilah = document.querySelector(".wh-bilah").getBoundingClientRect();
+        window.scrollBy(0, document.querySelectorAll(".wh-langkah__item")[idx].getBoundingClientRect().top - (bilah.bottom + j));
+      }, [i, jarak]);
+      await page.waitForTimeout(80);
+    }
+    await page.waitForTimeout(100);
+    sebelumGaris.push([i + 1, jarak, await aktifNo(w)]);
+  }
+  lapor(JSON.stringify(sebelumGaris.map((x) => x[2])) === JSON.stringify([4, 5, 6, 7]), `webhook gulir ${nama}: langkah baru aktif hanya sesudah tepi atasnya menyentuh garis ${JSON.stringify(sebelumGaris)}`);
   // Ganti versi di tengah gulir: langkah aktif dan posisi gulir tidak berubah.
   for (let ulang = 0; ulang < 2; ulang++) {
     await page.evaluate(() => { const b = document.querySelector(".wh-bilah").getBoundingClientRect(); const it = document.querySelectorAll(".wh-langkah__item")[3]; window.scrollBy(0, it.getBoundingClientRect().top - (b.bottom + 14)); });
