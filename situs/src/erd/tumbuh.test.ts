@@ -368,6 +368,20 @@ describe("ERD Tahap 3 dari lab api-t3 (ERD3)", () => {
     expect(bagiLajur([{ id: "a", dari: 0, ke: 10 }, { id: "b", dari: 13, ke: 20 }], 2).get("b")).toBe(0);
     expect(bagiLajur([], 2).size).toBe(0);
   });
+  it("bagiLajur dengan kelompok: anggota satu kelompok satu lajur, rentangnya gabungan, dan kelompok lain menghindarinya (ERD4, keputusan 1257)", () => {
+    // x: 10 sampai 20, 0 sampai 5, dan 30 sampai 40 = batang 0 sampai 40. y (22 sampai 26) di dalamnya, jadi bukan lajur 0.
+    // Bila gabungan salah (hanya batas bawah anggota terakhir atau batas atas terkecil), y ikut lajur 0 dan menimpa batang x.
+    const r = bagiLajur([
+      { id: "x1", dari: 10, ke: 20, kelompok: "x" }, { id: "x2", dari: 5, ke: 0, kelompok: "x" }, { id: "x3", dari: 30, ke: 40, kelompok: "x" },
+      { id: "y", dari: 22, ke: 26 }, { id: "z", dari: 50, ke: 60, kelompok: "z" },
+    ], 2);
+    expect(Object.fromEntries(r)).toEqual({ x1: 0, x2: 0, x3: 0, y: 1, z: 0 });
+    // Kelompok yang sama tidak memerlukan celah: anggota yang tumpang-tindih tetap satu lajur; kelompok berbeda yang tumpang-tindih dua lajur.
+    const t = bagiLajur([{ id: "a", dari: 0, ke: 10, kelompok: "p" }, { id: "b", dari: 5, ke: 15, kelompok: "p" }, { id: "c", dari: 6, ke: 9, kelompok: "q" }], 2);
+    expect(Object.fromEntries(t)).toEqual({ a: 0, b: 0, c: 1 });
+    // Tanpa kelompok, dua garis yang sama rentangnya tetap dua lajur (perilaku ERD3).
+    expect(Object.fromEntries(bagiLajur([{ id: "a", dari: 0, ke: 10 }, { id: "b", dari: 0, ke: 10 }], 2))).toEqual({ a: 0, b: 1 });
+  });
   it("tinggi pesanan SSR Tahap 3 sama dengan tinggi tata di setiap jumlah kolom", () => {
     const v = varPesan(x);
     let h = parseFloat(v["--erd-t1"]);
