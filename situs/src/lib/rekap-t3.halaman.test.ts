@@ -751,6 +751,9 @@ describe("kartu tebak lalu buka t3-rekap-kartu.json", () => {
       expect(angka(m[2]!), `kartu ${c.id}: angka di kurung ADR ${m[1]}`).toEqual(angka(baris[2]!));
     });
     const dari = (n: number) => kartu[n - 1]!;
+    // kata "tidak" di tanya hanya di kartu 1 (tidak menjawab), 2 (tidak menemukan) dan 3 (tidak ikut, tidak boleh); jawaban berakhir titik
+    expect(kartu.map((c) => (c.tanya.match(/\btidak\b/g) ?? []).length), "jumlah 'tidak' di tanya tiap kartu").toEqual([1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(kartu.every((c) => c.jawab.endsWith(".")), "jawaban kartu berakhir dengan titik").toBe(true);
     harus(dari(1).jawab, `Rekaman lab: pool ${ukB} penuh antara detik ke-${poolB[1]} dan ke-${poolB[2]}`);
     harus(dari(2).tanya, `Di rekaman, log tetap kosong selama ${logJ[1]} detik.`);
     harus(dari(2).jawab, "Dipersempit: trace Tidak dijalankan di api-t3.");
