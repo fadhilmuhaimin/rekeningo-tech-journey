@@ -174,7 +174,11 @@ function periksaSilang(R: Rekaman, kalimatLima: string): void {
   if (R.lajur.b.permintaanBuka !== R.breaker.gagalKe) salah.push(`lajur B: ${R.lajur.b.permintaanBuka} permintaan sebelum pulih harus ${R.breaker.gagalKe}`);
   if (R.lajur.d.permintaan !== R.breaker.gagalKe || R.lajur.d.rusak !== R.breaker.gagalKe) salah.push("lajur D: enam dokumen rusak dan enam permintaan");
   if (R.lajur.e.permintaan !== R.lajur.e.gagal * R.worker.percobaan + R.lajur.e.lulus) salah.push("lajur E: permintaan = rusak × percobaan + sehat");
+  const percobaanTotal = (t: TabelOutbox) => Object.entries(t).reduce((j, [k, v]) => j + Number(k.split(" ")[1]) * v, 0);
+  if (percobaanTotal(R.lajur.b.awal) !== R.lajur.b.permintaanBuka || percobaanTotal(R.lajur.b.akhir) !== R.lajur.b.permintaanAkhir) salah.push("lajur B: permintaan harus sama dengan jumlah percobaan di tabel outbox");
+  if (percobaanTotal(R.lajur.d.awal) !== R.lajur.d.permintaan || percobaanTotal(R.lajur.e.akhir) !== R.lajur.e.permintaan) salah.push("lajur D dan E: permintaan harus sama dengan jumlah percobaan di tabel outbox");
   const w = R.worker;
+  if (w.timeoutClient !== w.detik) salah.push(`batas waktu client ${w.timeoutClient} detik di worker.txt A harus sama dengan ${w.detik} detik per percobaan di bagian C`);
   if (Math.abs(w.laju * w.percobaan * w.detik - w.slot) > 0.005 || Math.abs(w.lajuUang * w.detikUang - w.slotUang) > 0.005 || Math.abs(w.slot + w.slotUang - w.bersama) > 0.005 || w.bersama !== w.kapasitas) salah.push("worker C: hitungan slot tidak cocok dengan rumusnya");
   if (Math.abs((100 * w.slot) / w.kapasitas - w.persen) > 0.05) salah.push("worker C: persen kapasitas tidak cocok");
   const o = R.outage;
