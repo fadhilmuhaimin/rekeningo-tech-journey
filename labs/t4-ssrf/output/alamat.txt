@@ -1,7 +1,7 @@
 # Lab t4-ssrf · kelas alamat yang ditolak fetcher gambar versi aman, dan yang lolos bila IsPrivate satu-satunya pemeriksaan
 # go1.27.1 · tanpa database · server uji hanya di 127.0.0.1 di dalam proses tes
 # Rekaman: make -C labs/t4-ssrf run.
-$ go test -tags t4ssrf -count=1 -v -run 'TestSSRFKelas' ./internal/unduh
+$ go test -tags t4ssrf -count=1 -timeout 120s -v -run 'TestSSRFKelas' ./internal/unduh
 ## kelas alamat: yang tidak ditangkap IsPrivate dan penanda bawaan lain, dan keputusan fetcher aman
 alamat                   IsPrivate IsLoopbk  IsLinkLoc IsUnspecif  aman   keterangan
 127.0.0.1                tidak     ya        tidak     tidak       tolak  loopback

@@ -160,7 +160,7 @@ def jalankan(mut):
     if b.returncode != 0:
         return dict(id=i, apa=apa, hasil="TIDAK-TERKOMPILASI", gagal=[b.stderr.strip()[:300]])
     try:
-        r = subprocess.run(["docker", "run", "--rm", "--network", "none", "-v", f"{d}:/t:ro", "golang:1.27-alpine", "/t/unduh.test", "-test.count=1"],
+        r = subprocess.run(["docker", "run", "--rm", "--network", "none", "-v", f"{d}:/t:ro", "golang:1.27-alpine", "/t/unduh.test", "-test.count=1", "-test.timeout=120s"],
                            capture_output=True, text=True, timeout=240)
     except subprocess.TimeoutExpired:
         return dict(id=i, apa=apa, hasil="TERTANGKAP-TIMEOUT", gagal=[])

@@ -76,8 +76,10 @@ def tulis(nama, judul):
 
 
 def jalankan_bertag(pola, apa):
-    perintah = f"go test -tags t4ssrf -count=1 -v -run '{pola}' {PAKET}"
-    rc, teks = go("test", "-tags", "t4ssrf", "-count=1", "-v", "-run", pola, PAKET)
+    # -timeout 120s: server uji yang menggantung (atau mutan tanpa batas waktu) menggagalkan lab dalam dua menit, bukan
+    # sesudah batas bawaan go test sepuluh menit. Satu bagian biasanya selesai dalam kurang dari 15 detik.
+    perintah = f"go test -tags t4ssrf -count=1 -timeout 120s -v -run '{pola}' {PAKET}"
+    rc, teks = go("test", "-tags", "t4ssrf", "-count=1", "-timeout", "120s", "-v", "-run", pola, PAKET)
     teks = bersih(teks)
     catat(f"$ {perintah}")
     catat(teks)
@@ -113,8 +115,8 @@ def rekam_testing():
     catat(bersih(teks) or "(tanpa temuan)")
     catat(f"# exit status {rc}")
     harap(rc, 0, "go vet bertag")
-    rc, teks = go("test", "-count=1", PAKET)
-    catat(f"$ go test -count=1 {PAKET}      (tes bawaan api-t4 untuk paket ini, tanpa tag)")
+    rc, teks = go("test", "-count=1", "-timeout", "120s", PAKET)
+    catat(f"$ go test -count=1 -timeout 120s {PAKET}      (tes bawaan api-t4 untuk paket ini, tanpa tag)")
     catat(bersih(teks))
     catat(f"# exit status {rc}")
     harap(rc, 0, "tes bawaan paket unduh")

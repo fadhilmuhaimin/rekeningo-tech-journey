@@ -11,6 +11,7 @@ package unduh
 // Dijalankan: go test -tags t4ssrf -run 'TestSSRFBatas|TestSSRFKelas' ./internal/unduh
 
 import (
+	"compress/gzip"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -227,6 +228,49 @@ func TestSSRFBatasUkuranDuaMiBDariDuaSisi(t *testing.T) {
 	fmt.Printf("%-52s %s\n", "aliran tanpa akhir", ringkasHasil(g, err))
 	if !errors.Is(err, ErrTerlaluBesar) {
 		t.Fatalf("aliran tanpa akhir: %v", err)
+	}
+}
+
+// TestSSRFBatasUkuranGzipDihitungSesudahDekompresi: jawaban gzip kecil yang meluas jadi besar (gzip bomb) tidak melewati batas
+// 2 MiB. Transport meminta gzip sendiri dan mendekompresi sebelum isi sampai ke pembaca, jadi batas berlaku untuk byte
+// sesudah dekompresi; Content-Length yang diterima client untuk jawaban seperti itu -1, sehingga pemeriksaan header tidak
+// berlaku dan yang menahan hanya pembatas baca.
+func TestSSRFBatasUkuranGzipDihitungSesudahDekompresi(t *testing.T) {
+	fmt.Println("\n## jawaban gzip: batas 2 MiB berlaku untuk byte sesudah dekompresi, juga untuk gzip bomb")
+	gzipDari := func(n int) *serverUji {
+		return mulaiServer(t, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+				t.Errorf("client tidak meminta gzip: %q", r.Header.Get("Accept-Encoding"))
+			}
+			w.Header().Set("Content-Encoding", "gzip")
+			zw := gzip.NewWriter(w)
+			zw.Write(isiPNG(n))
+			zw.Close()
+		}))
+	}
+	kasus := []struct {
+		label  string
+		n      int
+		terima bool
+	}{
+		{"2.097.152 byte (tepat 2 MiB) sesudah dekompresi", BatasUkuran, true},
+		{"2.097.153 byte (2 MiB + 1) sesudah dekompresi", BatasUkuran + 1, false},
+		{"32 MiB sesudah dekompresi (gzip bomb)", 32 << 20, false},
+	}
+	for _, k := range kasus {
+		s := gzipDari(k.n)
+		mulai := time.Now()
+		g, err := lokal(func(a *Aturan) { a.Waktu = 10 * time.Second }).Unduh(context.Background(), s.URL+"/")
+		fmt.Printf("%-52s %s\n", k.label, ringkasHasil(g, err))
+		if k.terima && (err != nil || g.Ukuran != BatasUkuran) {
+			t.Errorf("%s: %+v %v, ingin diterima", k.label, g, err)
+		}
+		if !k.terima && !errors.Is(err, ErrTerlaluBesar) {
+			t.Errorf("%s: %v, ingin ErrTerlaluBesar", k.label, err)
+		}
+		if time.Since(mulai) >= 5*time.Second {
+			t.Errorf("%s: selesai sesudah %s, ingin kurang dari 5 detik", k.label, time.Since(mulai))
+		}
 	}
 }
 

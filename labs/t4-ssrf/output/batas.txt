@@ -1,7 +1,7 @@
 # Lab t4-ssrf · batas fetcher gambar versi aman dari dua sisi (https, redirect, 2 MiB, 3 detik, status, tipe, pesan galat, nama IDNA)
 # go1.27.1 · tanpa database · server uji hanya di 127.0.0.1 di dalam proses tes
 # Rekaman: make -C labs/t4-ssrf run.
-$ go test -tags t4ssrf -count=1 -v -run 'TestSSRFBatas' ./internal/unduh
+$ go test -tags t4ssrf -count=1 -timeout 120s -v -run 'TestSSRFBatas' ./internal/unduh
 ## https saja: skema http ditolak sebelum permintaan, https dengan sertifikat yang dipercaya diterima, sertifikat asing ditolak
 http://<loopback>/gambar.png (bawaan)                ditolak (tujuan tidak diizinkan); permintaan sampai: 0
 https://<loopback>/gambar.png (sertifikat dipercaya) diterima (image/png, 75 byte); permintaan sampai: 1
@@ -27,6 +27,12 @@ redirect 308 ke server lain: ditolak (tujuan tidak diizinkan); server pertama di
 Content-Length 1 GiB (isi tidak pernah selesai)      ditolak (terlalu besar); ditolak sebelum isi dibaca (kurang dari 1 detik): true
 aliran tanpa akhir                                   ditolak (terlalu besar)
 --- PASS: TestSSRFBatasUkuranDuaMiBDariDuaSisi
+
+## jawaban gzip: batas 2 MiB berlaku untuk byte sesudah dekompresi, juga untuk gzip bomb
+2.097.152 byte (tepat 2 MiB) sesudah dekompresi      diterima (image/png, 2097152 byte)
+2.097.153 byte (2 MiB + 1) sesudah dekompresi        ditolak (terlalu besar)
+32 MiB sesudah dekompresi (gzip bomb)                ditolak (terlalu besar)
+--- PASS: TestSSRFBatasUkuranGzipDihitungSesudahDekompresi
 
 ## batas 3 detik untuk seluruh unduhan: yang selesai di dalam batas diterima, yang menggantung atau menetes ditolak
 menjawab sesudah 1 detik (dalam batas)           diterima (image/png, 75 byte)
