@@ -106,6 +106,19 @@ describe("pembaca rekaman cocok dengan pembaca kedua", () => {
   });
 });
 
+describe("invarian jurnal di ganda.txt A", () => {
+  test("jumlah posting satu jurnal bukan nol menggagalkan pembaca", () => {
+    const b = asli();
+    b.ganda = ganti(b.ganda, " 10202     | karyawan | 200000", " 10202     | karyawan | 200001");
+    expect(() => bacaAcuan(b)).toThrow(/tidak seimbang/);
+  });
+  test("jurnal dengan satu posting (jumlah nol) menggagalkan pembaca", () => {
+    const b = asli();
+    b.ganda = ganti(ganti(b.ganda, " 10202     | bank     | -200000", " 10202     | bank     | 0"), " 10202     | karyawan | 200000", " 10203     | karyawan | 0");
+    expect(() => bacaAcuan(b)).toThrow(/tidak seimbang/);
+  });
+});
+
 describe("pembantu pembaca", () => {
   test("angkaID membaca format id-ID dan menolak bukan angka", () => {
     expect(angkaID("10.000")).toBe(10000);
@@ -118,6 +131,9 @@ describe("pembantu pembaca", () => {
     expect(bagian(t, "B")).toContain("isi B");
     expect(bagian(t, "B")).not.toContain("isi A");
     expect(() => bagian(t, "C")).toThrow();
+    const f = "# --- F1. a ---\nisi F1\n# --- F2. b ---\nisi F2\n";
+    expect(bagian(f, "F1")).not.toContain("isi F2");
+    expect(bagian(f, "F2")).toContain("isi F2");
   });
   test("barisTabel menolak jumlah baris yang tidak cocok dengan (n rows)", () => {
     const t = " a | b\n---+---\n 1 | 2\n(2 rows)\n";

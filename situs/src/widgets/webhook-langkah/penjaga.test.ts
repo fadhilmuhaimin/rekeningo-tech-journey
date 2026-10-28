@@ -2,6 +2,7 @@
 // tangan, setiap sumber rekaman menunjuk berkas dan bagian yang ada, tanda Aman dan Masalah serta jenis sumber tiap langkah
 // sesuai tabel harapan, nomor ADR berasal dari registri, dan klaim tentang handler cocok dengan kode api-t4. Uji mutasi
 // (tmp, tidak di repo) mengubah satu nilai per jenis dan tes ini harus gagal.
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -166,5 +167,24 @@ describe("teks tampil", () => {
       expect(h.baris.length).toBeGreaterThanOrEqual(3);
       expect(h.baris.length).toBeLessThanOrEqual(4);
     }
+  });
+});
+
+/** Kunci teks: sidik teks yang dilihat pembaca. Perubahan kalimat apa pun (termasuk satu kata) mengubah sidik, jadi harus disengaja:
+ * baca ulang kalimatnya terhadap rekaman dan kode, lalu perbarui sidik di sini. Sidik tidak membuktikan kebenaran teks; ia hanya
+ * menahan perubahan yang tidak dibaca (mutan "sisip tidak" lolos tes lain karena kalimat bebas tidak dibandingkan dengan sumbernya). */
+const sidik = (x: unknown): string => createHash("sha256").update(JSON.stringify(x)).digest("hex").slice(0, 12);
+const KUNCI = {
+  tebak: "7ac2bb82a3f7",
+  mode: "c5f54831bdc7",
+  langkah: ["0c119d58a97b", "7143a96be93e", "61419038ef4f", "203325081e8d", "f85f0916bfda", "4a7a21278597", "6c7a70e43409", "ae930a366f32"],
+};
+describe("kunci teks tampil", () => {
+  test("tebakan dan label versi", () => {
+    expect(sidik(s.tebak)).toBe(KUNCI.tebak);
+    expect(sidik(s.mode)).toBe(KUNCI.mode);
+  });
+  test.each(KUNCI.langkah.map((k, i) => [i + 1, k] as const))("langkah %i", (i, kunci) => {
+    expect(sidik(s.langkah[i - 1]), `langkah ${i}: ${s.langkah[i - 1]!.judul}`).toBe(kunci);
   });
 });
