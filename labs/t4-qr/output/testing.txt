@@ -25,6 +25,8 @@ id QR diganti tanpa CRC baru: CRC tidak cocok; diganti dengan CRC dihitung ulang
 --- PASS: TestPayloadBatasPanjangNamaDanKota
 --- PASS: TestPayloadNominalDiTag54TanpaPemisah
 --- PASS: TestPayloadUraiTanpaCRCDanGantiMenolakBentukRusak
+--- PASS: TestPayloadMasukanPendekDanTerpotongDitolakTanpaPanik
+--- PASS: TestPayloadBatasBentukTLVNominalDanKarakter
 berkas Go non-tes di modul api-t4 yang mengimpor payload QR: cmd/qrlab/main.go saja (server tidak membaca payload)
 --- PASS: TestPayloadHanyaDipakaiQrlab
 PASS
@@ -45,7 +47,9 @@ payload dinamis dengan nominal Rp1 dan CRC dihitung ulang lolos pemindai; nomina
 --- PASS: TestQRPindaiPayloadDinamisDenganNominalDipalsukan
 saldo tepat Rp35.000 membayar QR Rp35.000 dan menyisakan Rp0; saldo Rp34.999 ditolak (ErrSaldoKurang) dan QR tetap aktif
 --- PASS: TestQRBatasSaldoTepatDanKurangSatuRupiah
+id QR berbentuk salah (kosong, huruf besar, kelebihan atau kekurangan karakter, huruf di luar heksadesimal, teks SQL) dijawab ErrTidakDitemukan untuk konfirmasi, pembayaran, dan laporan; 630 pemanggilan (30 putaran, 7 id, 3 jalur) tidak memakai jatah laju
+--- PASS: TestQRBatasIdBentukSalahDitolakSebelumJatahLaju
 PASS
 ok    lab/apit4/internal/service
 # exit status 0
-# 22 tes bertag t4qr lulus; tiap tes yang terdaftar oleh `go test -list` muncul sebagai PASS di atas.
+# 25 tes bertag t4qr lulus; tiap fungsi tes di dua berkas bertag (dibaca dari berkasnya, bukan dari pola -run) muncul sebagai PASS di atas.

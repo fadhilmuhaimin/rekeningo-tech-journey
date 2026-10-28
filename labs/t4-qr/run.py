@@ -483,7 +483,7 @@ def rekam_lapor():
 
     bagian("F. Pemulihan: tim risk membuka merchant dengan persetujuan petugas kedua; tidak ada pemulihan otomatis")
     alasan_buka = "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"
-    catat("# Pembukaan yang tidak memenuhi syarat ditolak 403 dengan jawaban yang sama untuk semua sebab, dan Bu Marni tetap beku:")
+    catat("# Pembukaan yang tidak memenuhi syarat ditolak 403 (tiga sebab penyetuju dijawab sama, pelaku bukan petugas risk dijawab lain), dan Bu Marni tetap beku:")
     for judul, pelaku, kepala in (("tanpa penyetuju", ratih, []),
                                   ("penyetuju sama dengan pelaku", ratih, [f"X-Penyetuju-Token: {ratih}"]),
                                   ("penyetuju bukan petugas risk (Budi)", ratih, [f"X-Penyetuju-Token: {budi}"]),

@@ -177,6 +177,37 @@ Retry-After: 1200
 # tiap percobaan dihitung, Asumsi lab), jadi pelapor yang salah ketik tiga kali tidak bisa melapor sampai token terisi lagi.
 
 # --- F. Pemulihan: tim risk membuka merchant dengan persetujuan petugas kedua; tidak ada pemulihan otomatis ---
+# Pembukaan yang tidak memenuhi syarat ditolak 403 (tiga sebab penyetuju dijawab sama, pelaku bukan petugas risk dijawab lain), dan Bu Marni tetap beku:
+# tanpa penyetuju
+$ curl -i -X POST '/bo/akun/30001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -d '{"alasan": "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/butuh-persetujuan","title":"Aksi ini butuh persetujuan petugas risk kedua","status":403,"detail":"Kirim token sesi app petugas risk lain di header X-Penyetuju-Token."}
+# penyetuju sama dengan pelaku
+$ curl -i -X POST '/bo/akun/30001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -H 'X-Penyetuju-Token: <token sesi Ratih>' -d '{"alasan": "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/butuh-persetujuan","title":"Aksi ini butuh persetujuan petugas risk kedua","status":403,"detail":"Kirim token sesi app petugas risk lain di header X-Penyetuju-Token."}
+# penyetuju bukan petugas risk (Budi)
+$ curl -i -X POST '/bo/akun/30001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -H 'X-Penyetuju-Token: <token sesi Budi>' -d '{"alasan": "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/butuh-persetujuan","title":"Aksi ini butuh persetujuan petugas risk kedua","status":403,"detail":"Kirim token sesi app petugas risk lain di header X-Penyetuju-Token."}
+# pelaku bukan petugas risk (Budi), penyetuju petugas risk
+$ curl -i -X POST '/bo/akun/30001/buka' -H 'Authorization: Bearer <token sesi Budi>' -H 'X-Penyetuju-Token: <token sesi Risk Dua>' -d '{"alasan": "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"}'
+HTTP/1.1 403 Forbidden
+Content-Type: application/problem+json
+
+{"type":"/problems/dilarang","title":"Hanya akun tim risk yang boleh memakai back office","status":403}
+=> SELECT id, nama, status FROM akun WHERE id = 30001
+ id    | nama               | status
+-------+--------------------+-----------
+ 30001 | Toko Sumber Rejeki | dibekukan
+(1 row)
+# Dengan petugas risk yang menjalankan dan petugas risk lain sebagai penyetuju:
 $ curl -i -X POST '/bo/akun/30001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -H 'X-Penyetuju-Token: <token sesi Risk Dua>' -d '{"alasan": "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"}'
 HTTP/1.1 204 No Content
 

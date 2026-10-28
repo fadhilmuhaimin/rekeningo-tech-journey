@@ -403,5 +403,5 @@ func TestQRBatasIdBentukSalahDitolakSebelumJatahLaju(t *testing.T) {
 	if err := svc.LaporkanQR(ctx, pelapor, q.ID, strings.Repeat("x", 20)); err != nil {
 		t.Fatalf("laporan yang sah sesudah masukan salah: %v (jatah laju terpakai oleh masukan salah?)", err)
 	}
-	fmt.Println("LAB|id QR berbentuk salah (kosong, huruf besar, kelebihan atau kekurangan karakter, huruf di luar heksadesimal, teks SQL) dijawab ErrTidakDitemukan untuk konfirmasi, pembayaran, dan laporan; 210 percobaan tidak memakai jatah laju")
+	fmt.Println("LAB|id QR berbentuk salah (kosong, huruf besar, kelebihan atau kekurangan karakter, huruf di luar heksadesimal, teks SQL) dijawab ErrTidakDitemukan untuk konfirmasi, pembayaran, dan laporan; 630 pemanggilan (30 putaran, 7 id, 3 jalur) tidak memakai jatah laju")
 }
