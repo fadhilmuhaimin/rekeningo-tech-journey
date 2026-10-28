@@ -90,9 +90,11 @@ const harap = (id, mode) => HARAP[id][mode] ?? HARAP[id].semua;
 
 const browser = awasi(await chromium.launch(), { alat: "webhook" });
 let gagal = 0;
+const CEPAT = process.argv.includes("--cepat"); // berhenti di pemeriksaan pertama yang gagal (uji mutasi komponen)
 const lapor = (ok, pesan) => {
   console.log(`${ok ? "ok" : "GAGAL"} ${pesan}`);
   if (!ok) gagal++;
+  if (!ok && CEPAT) process.exit(1);
 };
 const W = "[data-webhook-langkah]";
 
@@ -201,6 +203,7 @@ for (const ukuran of [[375, 667], [1366, 657]]) {
   for (const mode of ["pertama", "adr34"]) {
     await modeBtn(w, MODE_TEKS[mode]).click();
     const salah = [];
+    const tinggiBilah = [];
     for (let i = 0; i < IDS.length; i++) {
       const id = IDS[i];
       if (i > 0) await w.locator(`.wh-langkah__item[data-langkah="${IDS[i - 1]}"]`).getByRole("button", { name: L.berikutnya }).click();
@@ -216,18 +219,32 @@ for (const ukuran of [[375, 667], [1366, 657]]) {
         const r = item.getBoundingClientRect();
         const fokus = document.activeElement === item;
         const header = document.querySelector("header.header")?.getBoundingClientRect().bottom ?? 0;
-        return { atasBilah: Math.round(bilah.top), bawahBilah: Math.round(bilah.bottom), atasItem: Math.round(r.top), fokus, aria: item.getAttribute("aria-current"), lain: document.querySelectorAll('.wh-langkah__item[aria-current="step"]').length, header: Math.round(header) };
+        const lain = document.querySelectorAll(".wh-langkah__item")[idx === 0 ? 1 : 0];
+        const sorot = getComputedStyle(item).borderLeftColor !== getComputedStyle(lain).borderLeftColor && getComputedStyle(item).backgroundColor !== getComputedStyle(lain).backgroundColor;
+        return { sorot, tinggiBilah: Math.round(bilah.height), atasBilah: Math.round(bilah.top), bawahBilah: Math.round(bilah.bottom), atasItem: Math.round(r.top), fokus, aria: item.getAttribute("aria-current"), lain: document.querySelectorAll('.wh-langkah__item[aria-current="step"]').length, header: Math.round(header) };
       }, i);
       const ok = hilang.length === 0 && JSON.stringify(chips) === JSON.stringify(chipHarap) && st.startsWith(`Langkah ${i + 1} dari 8, `) && kalimat(st) === 1
         && (await aktifNo(w)) === i + 1 && tepi.aria === "step" && tepi.lain === 1
         && (i === 0 || (tepi.fokus && tepi.atasItem >= tepi.bawahBilah - 1 && tepi.atasItem <= tepi.bawahBilah + 40 && tepi.atasBilah >= tepi.header - 1 && tepi.atasBilah <= tepi.header + 20));
+      tinggiBilah.push(tepi.tinggiBilah);
+      if (!tepi.sorot) salah.push(`${id}: langkah aktif tidak disorot`);
       if (!ok) salah.push(`${id}: hilang ${JSON.stringify(hilang)}, chip ${JSON.stringify(chips)} harap ${JSON.stringify(chipHarap)}, status "${st.slice(0, 50)}", ${JSON.stringify(tepi)}`);
     }
+    lapor(Math.max(...tinggiBilah) - Math.min(...tinggiBilah) <= 1, `webhook langkah ${nama} ${mode}: tinggi bilah tetap di delapan langkah (${Math.min(...tinggiBilah)} sampai ${Math.max(...tinggiBilah)} px)`);
     lapor(salah.length === 0, `webhook langkah ${nama} ${mode}: 8 langkah lewat tombol: angka, status, chip, fokus di langkah, aria-current tunggal, bilah lengket di bawah header dan tak menutup langkah${salah.length ? "; " + salah.join(" | ") : ""}`);
     // Kembali ke awal lewat Langkah sebelumnya.
     for (let i = IDS.length - 1; i > 0; i--) await w.locator(`.wh-langkah__item[data-langkah="${IDS[i]}"]`).getByRole("button", { name: L.sebelumnya }).click();
     lapor((await aktifNo(w)) === 1 && (await fokusTeks(page)).startsWith("Langkah 1 dari 8"), `webhook langkah ${nama} ${mode}: tujuh kali "${L.sebelumnya}" kembali ke langkah 1 dengan fokus di langkah`);
   }
+  // Fokus keyboard pada tombol jauh di bawah tidak tertutup bilah lengket (WCAG 2.4.11).
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await w.locator(`.wh-langkah__item[data-langkah="${IDS[7]}"]`).getByRole("button", { name: L.sebelumnya }).focus();
+  const tertutup = await page.evaluate(() => {
+    const t = document.activeElement.getBoundingClientRect();
+    const b = document.querySelector(".wh-bilah").getBoundingClientRect();
+    return { tombolAtas: Math.round(t.top), bawahBilah: Math.round(b.bottom), ok: t.top >= b.bottom - 1 };
+  });
+  lapor(tertutup.ok, `webhook langkah ${nama}: tombol yang difokus dari atas halaman di y ${tertutup.tombolAtas}, bilah berakhir di y ${tertutup.bawahBilah} (tidak tertutup)`);
   // Pertama: langkah terakhir tidak punya "berikutnya", langkah pertama tidak punya "sebelumnya".
   const ujung = await page.evaluate(() => {
     const it = [...document.querySelectorAll(".wh-langkah__item")];
@@ -305,6 +322,8 @@ for (const ukuran of [[375, 667], [1366, 657]]) {
     const s = [...el.querySelectorAll('[role="status"]')];
     return { n: s.length, teks: s.map((x) => x.textContent.trim()), tombolDiStatus: s.some((x) => x.querySelector("button")) };
   });
+  const kotak = await w.locator(".wh-ringkas").evaluate((e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; });
+  lapor(kotak[0] <= 2 && kotak[1] <= 2, `webhook status langkah tersembunyi secara visual tetapi terbaca (kotak ${kotak.join("x")} px)`);
   const maks = Math.max(...st.teks.map(kalimat));
   lapor(st.n === 2 && maks <= 1 && !st.tombolDiStatus, `webhook status: ${st.n} wilayah role=status (harap 2: hasil tebakan dan langkah), paling banyak ${maks} kalimat, tanpa tombol di dalamnya`);
   await ctx.close();
