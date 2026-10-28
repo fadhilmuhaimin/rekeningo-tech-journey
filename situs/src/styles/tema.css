@@ -1493,6 +1493,8 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .cb-hitung li { margin: 0; padding: 0.35rem 0; border-top: 1px solid var(--garis); overflow-wrap: anywhere; }
 .sl-markdown-content .cb .tb-pilih:focus-visible, .sl-markdown-content .cb .bb-btn:focus-visible { outline: 2px solid var(--aksen); outline-offset: 2px; }
 .sl-markdown-content .cb code { overflow-wrap: anywhere; }
+/* Tanpa JavaScript tebakan dan tombol tidak berfungsi: widget disembunyikan, tabel titik acuan di <noscript> yang tampil. */
+@media (scripting: none) { .sl-markdown-content .cb { display: none; } }
 .sl-markdown-content .cb-asal { margin: 0.8rem 0 0.4rem; }
 .sl-markdown-content .cb-asal ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
 .sl-markdown-content .cb-asal li { margin: 0.3rem 0; }

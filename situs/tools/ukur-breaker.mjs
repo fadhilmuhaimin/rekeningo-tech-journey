@@ -224,7 +224,9 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
       const baris = [...e.querySelectorAll(".cb-menit")].map((m) => {
         const p = [...m.querySelectorAll(".cb-pita .cb-p")].map((x) => x.getBoundingClientRect());
         const kt = [...m.querySelectorAll(".cb-kotak .cb-k")].map((x) => x.getBoundingClientRect());
-        return { p: p.length, k: kt.length, sejajar: p.every((r, i) => Math.abs(r.left - kt[i].left) <= 1 && Math.abs(r.width - kt[i].width) <= 1), lebar: Math.min(...p.map((r) => r.width)), kiri: p[0].left, kanan: p.at(-1).right };
+        // Satu deret mendatar: dasar semua kotak di satu garis (tinggi boleh beda), makin ke kanan, dan baris tidak menjulang.
+        const mendatar = [p, kt].every((d) => d.every((r, i) => Math.abs(r.bottom - d[0].bottom) <= 1 && (i === 0 || r.left >= d[i - 1].right - 0.5)));
+        return { p: p.length, k: kt.length, sejajar: p.every((r, i) => Math.abs(r.left - kt[i].left) <= 1 && Math.abs(r.width - kt[i].width) <= 1) && mendatar, lebar: Math.min(...p.map((r) => r.width)), kiri: p[0].left, kanan: p.at(-1).right, tinggi: m.getBoundingClientRect().height };
       });
       const tinggi = (s) => { const x = e.querySelector(s); return x ? x.getBoundingClientRect().height : null; };
       const w = e.getBoundingClientRect();
@@ -243,6 +245,13 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
         headerBaris: e.querySelectorAll(".cb-tabel tbody th[scope='row']").length,
         caption: e.querySelector(".cb-tabel caption")?.textContent.trim() ?? null,
         asal: e.querySelector(".cb-asal summary")?.textContent.trim() ?? null,
+        cat: (() => {
+          // Tiap jenis kotak dan pita yang tampil harus punya cat (warna latar atau gradien); kalau tidak, hasilnya tak terlihat.
+          const ada = (n) => n !== "rgba(0, 0, 0, 0)" && n !== "transparent";
+          const kosong = [...e.querySelectorAll(".cb-pita .cb-p, .cb-kotak .cb-k")].filter((x) => { const c = getComputedStyle(x); return !ada(c.backgroundColor) && c.backgroundImage === "none"; }).map((x) => x.className);
+          const vonis = e.querySelector(".cb-vonis:not(:empty)");
+          return { kosong: [...new Set(kosong)], tepiVonis: vonis ? ada(getComputedStyle(vonis).borderLeftColor) : true };
+        })(),
         tolakCat: (() => { const t = e.querySelector(".cb-kotak .is-tolak"); return t ? getComputedStyle(t).backgroundImage : null; })(),
         nama: [...e.querySelectorAll(".cb-kelompok")].map((g) => ({ nama: document.getElementById(g.getAttribute("aria-labelledby"))?.textContent.trim() ?? null, role: g.getAttribute("role") })),
       };
@@ -258,6 +267,9 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
     ok &&= geo.catatan.length === (k.catatan ?? []).length + (k.hitung ? 1 : 0) && geo.asal === L.asal.judul;
     ok &&= geo.nama.length === 5 + (!k.set.jenis || k.set.jenis === NOL.jenis ? 1 : 0) + (sinkron ? 0 : 1) && geo.nama.every((g) => g.role === "group" && g.nama);
     ok &&= !sinkron ? geo.headerBaris === k.baris && geo.caption === L.pekerjaan.judul : geo.headerBaris === 0 && geo.caption === null;
+    const catOk = geo.cat.kosong.length === 0 && geo.cat.tepiVonis && geo.baris.every((b) => b.tinggi < 130);
+    if (!catOk) console.log(`   cat ${k.kunci}: tanpa cat [${geo.cat.kosong}], tepi vonis ${geo.cat.tepiVonis}, tinggi baris ${geo.baris.map((b) => b.tinggi.toFixed(0))}`);
+    ok &&= catOk;
     if (geo.sel.tolak > 0) ok &&= geo.tolakCat !== null && geo.tolakCat !== "none";
     // Papan: 3 baris × 60 pita dan kotak, sejajar, di dalam widget, aria-hidden, tinggi menurut arti.
     let papan = geo.baris.length === HORIZON / BARIS && geo.baris.every((b) => b.p === BARIS && b.k === BARIS && b.sejajar && b.lebar >= 2) && geo.di_dalam && geo.tersembunyi === "true";
@@ -349,9 +361,11 @@ for (const lebar of [320, 375]) for (const verdana of [false, true]) for (const 
     const tb = [...document.querySelectorAll("table")].find((x) => x.querySelector("caption")?.textContent.includes("Titik acuan"));
     if (!tb) return null;
     const c = tb.closest(".sl-markdown-content").getBoundingClientRect();
-    return { baris: tb.querySelectorAll("tbody tr").length, lebih: Math.max(0, Math.round(tb.getBoundingClientRect().right - c.right)), halaman: document.documentElement.scrollWidth - innerWidth, teks: tb.innerText.replace(/\s+/g, " ").slice(0, 120) };
+    const w = document.querySelector("[data-circuit-breaker]");
+    const mati = [...document.querySelectorAll("button, input")].filter((e) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== "hidden" && !e.closest("header, nav, starlight-menu-button, site-search, [data-pagefind-ui]") && w && w.contains(e)).length;
+    return { baris: tb.querySelectorAll("tbody tr").length, lebih: Math.max(0, Math.round(tb.getBoundingClientRect().right - c.right)), halaman: document.documentElement.scrollWidth - innerWidth, teks: tb.innerText.replace(/\s+/g, " ").slice(0, 120), widgetTampil: w ? getComputedStyle(w).display : null, mati };
   });
-  lapor(t !== null && t.baris === 8 && t.lebih <= 0 && t.halaman <= 0, `breaker tanpa JavaScript 320px: ${t ? `${t.baris} baris acuan, tabel melebihi wadah ${t.lebih} px, halaman +${t.halaman}; "${t.teks}"` : "tabel tidak ada"}`);
+  lapor(t !== null && t.baris === 8 && t.lebih <= 0 && t.halaman <= 0 && t.widgetTampil === "none" && t.mati === 0, `breaker tanpa JavaScript 320px: ${t ? `${t.baris} baris acuan, tabel melebihi wadah ${t.lebih} px, halaman +${t.halaman}, widget display ${t.widgetTampil} (tombol mati tampil: ${t.mati}); "${t.teks}"` : "tabel tidak ada"}`);
   await ctx.close();
 }
 
