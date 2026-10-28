@@ -125,9 +125,9 @@ func TestSSRFBatasHanyaHTTPSDenganSertifikatDibuatLab(t *testing.T) {
 // ---------- (e) redirect dimatikan ----------
 
 func TestSSRFBatasRedirectTidakDiikutiUntukSemuaKode(t *testing.T) {
-	fmt.Println("\n## redirect dimatikan: tiap kode 3xx ditolak dan server tujuan redirect tidak tersentuh")
+	fmt.Println("\n## redirect dimatikan: kode 300, 301, 302, 303, 304, 307, dan 308 ditolak dan server tujuan redirect tidak tersentuh")
 	dalam := mulaiServer(t, false, ruteUmum())
-	for _, kode := range []int{301, 302, 303, 307, 308} {
+	for _, kode := range []int{300, 301, 302, 303, 304, 307, 308} {
 		sebelum := dalam.kena.Load()
 		luar := mulaiServer(t, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, dalam.URL+"/gambar.png", kode)
@@ -496,6 +496,54 @@ func TestSSRFBatasJawabanDNSDenganAlamatTerlarangDiUrutanKedua(t *testing.T) {
 	}
 }
 
+// TestSSRFBatasURLRusakDitolakTanpaPanik: URL yang tidak bisa diurai atau tidak punya host ditolak sebagai tujuan tidak
+// diizinkan sebelum ada resolusi nama atau koneksi. Tanpa pemeriksaan galat URL.Parse, nilai nil dipakai dan server panik pada
+// masukan user; tanpa pemeriksaan Hostname, URL "https://:443/" jatuh ke resolver. Resolver buatan hanya menghitung panggilan.
+func TestSSRFBatasURLRusakDitolakTanpaPanik(t *testing.T) {
+	fmt.Println("\n## URL rusak atau tanpa host: ditolak sebagai tujuan tidak diizinkan sebelum resolusi nama atau koneksi")
+	var resolusi atomic.Int64
+	r := func(ctx context.Context, host string) ([]net.IPAddr, error) {
+		resolusi.Add(1)
+		return nil, &net.DNSError{Err: "no such host", Name: host, IsNotFound: true}
+	}
+	kasus := []struct{ label, alamat string }{
+		{"kosong", ""}, {"hanya spasi", " "}, {"tanpa skema", "contoh.test/a.png"}, {"skema tanpa host", "https:///a.png"},
+		{"host kosong dengan port", "https://:443/a.png"}, {"kurung siku tidak ditutup", "https://[::1/a.png"},
+		{"karakter kontrol di path", "https://contoh.test/\x7f"}, {"spasi di host", "https://contoh test/a.png"},
+		{"persen tidak sah di host", "https://%zz.test/a.png"}, {"userinfo", "https://pengguna:sandi@contoh.test/a.png"},
+		{"skema ftp", "ftp://contoh.test/a.png"}, {"skema file", "file:///etc/hosts"}, {"skema data", "data:image/png;base64,AAAA"},
+	}
+	for _, k := range kasus {
+		_, err := Aturan{IzinkanHTTP: true, Resolver: r, Waktu: time.Second}.Unduh(context.Background(), k.alamat)
+		fmt.Printf("%-28s %s\n", k.label, ringkasHasil(Gambar{}, err))
+		if !errors.Is(err, ErrTujuan) {
+			t.Errorf("%s (%q): %v, ingin ErrTujuan", k.label, k.alamat, err)
+		}
+	}
+	fmt.Printf("resolusi nama yang dipanggil: %d\n", resolusi.Load())
+	if resolusi.Load() != 0 {
+		t.Fatalf("resolver dipanggil %d kali untuk URL yang seharusnya ditolak lebih dulu", resolusi.Load())
+	}
+}
+
+// TestSSRFBatasNamaDenganDuaAlamatDialKeAlamatKeduaBilaPertamaMati: satu nama dengan dua alamat yang boleh dijangkau tetap
+// bisa diunduh bila alamat pertama tidak menjawab. Ini perilaku ketersediaan, bukan keamanan: kedua alamat sudah lolos
+// pemeriksaan, dan yang terlarang tidak pernah dicoba.
+func TestSSRFBatasNamaDenganDuaAlamatDialKeAlamatKeduaBilaPertamaMati(t *testing.T) {
+	fmt.Println("\n## nama dengan dua alamat: bila yang pertama tidak menjawab, dial lanjut ke alamat kedua yang boleh dijangkau")
+	s := mulaiServer(t, false, ruteUmum())
+	r := func(ctx context.Context, host string) ([]net.IPAddr, error) {
+		// ::1 menolak koneksi segera di port ini (server uji hanya mendengar di 127.0.0.1); 127.0.0.2 tidak dipakai karena di
+		// macOS koneksi ke alamat itu menggantung sampai batas waktu.
+		return []net.IPAddr{{IP: net.ParseIP("::1")}, {IP: net.ParseIP("127.0.0.1")}}, nil
+	}
+	g, err := lokal(func(a *Aturan) { a.Resolver = r }).Unduh(context.Background(), "http://dua-alamat.contoh:"+port(s)+"/gambar.png")
+	fmt.Printf("alamat pertama tanpa server, alamat kedua server uji: %s; permintaan sampai: %d\n", ringkasHasil(g, err), s.kena.Load())
+	if err != nil || g.Tipe != "image/png" || s.kena.Load() != 1 {
+		t.Fatalf("dua alamat: %+v %v, permintaan %d", g, err, s.kena.Load())
+	}
+}
+
 // ---------- (e) pesan galat tanpa isi respons ----------
 
 func TestSSRFBatasPesanGalatTanpaIsiResponsDanTanpaAlamat(t *testing.T) {
@@ -713,4 +761,89 @@ func TestSSRFKelasAlamatBerzonaSamaDenganTanpaZona(t *testing.T) {
 		}
 	}
 	fmt.Printf("ditolak fetcher aman dengan zona: %d dari %d alamat terlarang; alamat publik berzona yang lolos: %d dari %d\n", ditolakBerzona, terlarang, kontrolLolos, kontrol)
+}
+
+// tepiBlokRegistri: tepi tiap blok alamat khusus yang tidak boleh menjadi tujuan unduhan, diturunkan sekali dari registri
+// alamat khusus IPv4 dan IPv6 IANA (berkas XML bertanggal 2025-10-09, diunduh 2026-10-28, tidak disimpan di repo) lewat
+// skrip peninjau: blok dengan Globally Reachable false atau N/A, atau usang, hanya yang maksimal (tidak di dalam blok lain
+// yang juga terlarang). Tiga baris ditambahkan dari luar registri: ::/96 dan fec0::/10 (blok usang, keputusan 1238) dan
+// 64:ff9b::/96 (terjangkau global menurut registri, tetapi membawa alamat IPv4 sehingga tujuan sebenarnya bisa private).
+// Kolom: blok, alamat pertama dan terakhir di dalam blok (harus ditolak), dan alamat tepat di luarnya (harus lolos). Alamat
+// luar yang jatuh di blok terlarang lain, di multicast, atau di 0000::/8 yang dicadangkan IETF dikosongkan. Tabel ini
+// sengaja ditulis sebagai alamat, bukan dibaca dari daftar alamatKhusus: kalau tidak, tes membandingkan daftar dengan dirinya.
+var tepiBlokRegistri = []struct{ blok, awal, akhir, sebelum, sesudah string }{
+	{"0.0.0.0/8", "0.0.0.0", "0.255.255.255", "", "1.0.0.0"},
+	{"10.0.0.0/8", "10.0.0.0", "10.255.255.255", "9.255.255.255", "11.0.0.0"},
+	{"100.64.0.0/10", "100.64.0.0", "100.127.255.255", "100.63.255.255", "100.128.0.0"},
+	{"127.0.0.0/8", "127.0.0.0", "127.255.255.255", "126.255.255.255", "128.0.0.0"},
+	{"169.254.0.0/16", "169.254.0.0", "169.254.255.255", "169.253.255.255", "169.255.0.0"},
+	{"172.16.0.0/12", "172.16.0.0", "172.31.255.255", "172.15.255.255", "172.32.0.0"},
+	{"192.0.0.0/24", "192.0.0.0", "192.0.0.255", "191.255.255.255", "192.0.1.0"},
+	{"192.0.2.0/24", "192.0.2.0", "192.0.2.255", "192.0.1.255", "192.0.3.0"},
+	{"192.88.99.0/24", "192.88.99.0", "192.88.99.255", "192.88.98.255", "192.88.100.0"},
+	{"192.168.0.0/16", "192.168.0.0", "192.168.255.255", "192.167.255.255", "192.169.0.0"},
+	{"198.18.0.0/15", "198.18.0.0", "198.19.255.255", "198.17.255.255", "198.20.0.0"},
+	{"198.51.100.0/24", "198.51.100.0", "198.51.100.255", "198.51.99.255", "198.51.101.0"},
+	{"203.0.113.0/24", "203.0.113.0", "203.0.113.255", "203.0.112.255", "203.0.114.0"},
+	{"240.0.0.0/4", "240.0.0.0", "255.255.255.255", "", ""},
+	{"::/96", "::", "::ffff:ffff", "", ""},
+	{"64:ff9b::/96", "64:ff9b::", "64:ff9b::ffff:ffff", "", ""},
+	{"64:ff9b:1::/48", "64:ff9b:1::", "64:ff9b:1:ffff:ffff:ffff:ffff:ffff", "", ""},
+	{"100::/64", "100::", "100::ffff:ffff:ffff:ffff", "", ""},
+	{"100:0:0:1::/64", "100:0:0:1::", "100::1:ffff:ffff:ffff:ffff", "", "100:0:0:2::"},
+	{"2001::/23", "2001::", "2001:1ff:ffff:ffff:ffff:ffff:ffff:ffff", "2000:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "2001:200::"},
+	{"2001:db8::/32", "2001:db8::", "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff", "2001:db7:ffff:ffff:ffff:ffff:ffff:ffff", "2001:db9::"},
+	{"2002::/16", "2002::", "2002:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "2001:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "2003::"},
+	{"3fff::/20", "3fff::", "3fff:fff:ffff:ffff:ffff:ffff:ffff:ffff", "3ffe:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "3fff:1000::"},
+	{"5f00::/16", "5f00::", "5f00:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "5eff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "5f01::"},
+	{"fc00::/7", "fc00::", "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "fbff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "fe00::"},
+	{"fe80::/10", "fe80::", "febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "fe7f:ffff:ffff:ffff:ffff:ffff:ffff:ffff", ""},
+	{"fec0::/10", "fec0::", "feff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "", ""},
+}
+
+// alamatTerjangkauGlobalMenurutRegistri: blok registri yang terjangkau global dan di luar semua blok terlarang. Fetcher
+// tidak boleh menolaknya: daftar yang terlalu lebar memblokir layanan sah.
+var alamatTerjangkauGlobalMenurutRegistri = []string{"192.31.196.1", "192.52.193.1", "192.175.48.1", "2620:4f:8000::1"}
+
+// TestSSRFKelasTepiBlokRegistriIANA memeriksa daftar alamat khusus dari dua sisi tepi tiap blok: tepi dalam ditolak, tepi
+// luar lolos. Awalan yang terlalu sempit melewatkan alamat di dalam blok; yang terlalu lebar menolak alamat di luarnya.
+// Klasifikasi murni, tanpa jaringan.
+func TestSSRFKelasTepiBlokRegistriIANA(t *testing.T) {
+	fmt.Println("\n## tepi blok registri alamat khusus IANA (berkas bertanggal 2025-10-09): tepi dalam ditolak, tepi luar lolos")
+	a := Aturan{}
+	var dalamN, dalamTolak, luarN, luarLolos, dilewati int
+	for _, k := range tepiBlokRegistri {
+		for _, s := range []string{k.awal, k.akhir} {
+			dalamN++
+			if a.alamatDilarang(netip.MustParseAddr(s)) {
+				dalamTolak++
+			} else {
+				t.Errorf("%s: tepi dalam %s tidak ditolak", k.blok, s)
+			}
+		}
+		for _, s := range []string{k.sebelum, k.sesudah} {
+			if s == "" {
+				dilewati++
+				continue
+			}
+			luarN++
+			if !a.alamatDilarang(netip.MustParseAddr(s)) {
+				luarLolos++
+			} else {
+				t.Errorf("%s: tepi luar %s ditolak padahal bukan bagian blok terlarang", k.blok, s)
+			}
+		}
+	}
+	global, globalLolos := len(alamatTerjangkauGlobalMenurutRegistri), 0
+	for _, s := range alamatTerjangkauGlobalMenurutRegistri {
+		if !a.alamatDilarang(netip.MustParseAddr(s)) {
+			globalLolos++
+		} else {
+			t.Errorf("%s terjangkau global menurut registri tetapi ditolak", s)
+		}
+	}
+	fmt.Printf("blok yang diuji: %d\n", len(tepiBlokRegistri))
+	fmt.Printf("tepi dalam yang ditolak: %d dari %d\n", dalamTolak, dalamN)
+	fmt.Printf("tepi luar yang lolos: %d dari %d (%d tetangga dilewati karena jatuh di blok terlarang lain, multicast, atau 0000::/8)\n", luarLolos, luarN, dilewati)
+	fmt.Printf("blok registri yang terjangkau global dan di luar blok terlarang: %d dari %d lolos\n", globalLolos, global)
 }

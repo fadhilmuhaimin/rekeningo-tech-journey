@@ -19,7 +19,8 @@ ARCH = subprocess.run(["go", "env", "GOARCH"], capture_output=True, text=True).s
 U, K = "internal/unduh/unduh.go", "internal/klien/klien.go"
 PREFIX = ["0.0.0.0/8", "100.64.0.0/10", "192.0.0.0/24", "192.0.2.0/24", "198.18.0.0/15", "198.51.100.0/24",
           "203.0.113.0/24", "240.0.0.0/4", "64:ff9b::/96", "2002::/16", "2001::/32", "100::/64",
-          "64:ff9b:1::/48", "100:0:0:1::/64", "2001::/23", "2001:db8::/32", "3fff::/20", "5f00::/16", "::/96", "fec0::/10"]
+          "64:ff9b:1::/48", "100:0:0:1::/64", "2001::/23", "2001:db8::/32", "3fff::/20", "5f00::/16", "::/96", "fec0::/10",
+          "192.88.99.0/24"]
 NL = "\n"
 T2, T3, T4 = "\t\t", "\t\t\t", "\t\t\t\t"
 
@@ -97,6 +98,46 @@ gabung("C02", [(U, "case errors.Is(err, context.DeadlineExceeded):", "case false
                (U, "return ErrTidakMenjawab" + NL + "\t}" + NL + "\treturn ErrGagal", "return ErrGagal" + NL + "\t}" + NL + "\treturn ErrGagal")], "tidak ada pemetaan timeout sama sekali")
 gabung("C03", [(U, "Proxy:           nil,", "Proxy:           http.ProxyFromEnvironment,"),
                (U, "DisableKeepAlives: true,", "DisableKeepAlives: false,")], "proxy lingkungan dan keep-alive")
+
+# Mutan tambahan dari peninjau (seri V). Lebar awalan: tiap awalan di alamatKhusus diperlebar dan dipersempit satu bit,
+# kecuali yang sudah ada di W01 sampai W07 dan yang setara karena tumpang tindih dengan awalan lain.
+m("V01", U, 'ip = ip.WithZone("")' + NL, "", "zona IPv6 tidak dibuang sebelum dicocokkan")
+LEBAR = [("0.0.0.0/8", "0.0.0.0/7", "0.0.0.0/9"), ("192.0.0.0/24", "192.0.0.0/23", "192.0.0.0/25"),
+         ("192.0.2.0/24", "192.0.2.0/23", "192.0.2.0/25"), ("198.18.0.0/15", "198.18.0.0/14", None),
+         ("198.51.100.0/24", "198.51.100.0/23", "198.51.100.0/25"), ("203.0.113.0/24", "203.0.113.0/23", "203.0.113.0/25"),
+         ("64:ff9b::/96", "64:ff9b::/95", "64:ff9b::/97"), ("2002::/16", "2002::/15", None),
+         ("100::/64", "100::/63", "100::/65"), ("64:ff9b:1::/48", "64:ff9b:1::/47", "64:ff9b:1::/49"),
+         ("100:0:0:1::/64", "100:0:0:1::/63", "100:0:0:1::/65"), ("2001::/23", "2001::/22", "2001::/24"),
+         ("2001:db8::/32", "2001:db8::/31", "2001:db8::/33"), ("3fff::/20", "3fff::/19", "3fff::/21"),
+         ("5f00::/16", "5f00::/15", "5f00::/17"), ("::/96", "::/95", "::/97"), ("fec0::/10", "fec0::/9", "fec0::/11"),
+         ("192.88.99.0/24", "192.88.99.0/23", "192.88.99.0/25")]
+n = 10
+for asal, lebar, sempit in LEBAR:
+    m(f"V{n}", U, f'"{asal}"', f'"{lebar}"', f"{asal} diperlebar jadi {lebar.split('/')[1] and '/' + lebar.split('/')[1]}")
+    n += 1
+    if sempit:
+        m(f"V{n}", U, f'"{asal}"', f'"{sempit}"', f"{asal} dipersempit jadi /{sempit.split('/')[1]}")
+        n += 1
+m("V50", U, "TLSClientConfig: a.TLSConfig,", "TLSClientConfig: &tls.Config{InsecureSkipVerify: true},", "sertifikat server tidak diverifikasi")
+m("V51", K, "Transport: tr,", "Transport: nil,", "client memakai transport bawaan, bukan yang memeriksa alamat")
+m("V52", U, " || u.Hostname() == \"\"", "", "host kosong sesudah nomor port tidak ditolak di awal")
+m("V54", U, "if err != nil || u.Host == \"\" ||", "if u.Host == \"\" ||", "galat URL.Parse diabaikan")
+m("V59", U, "if _, err := netip.ParseAddr(h); err == nil {", "if _, err := netip.ParseAddr(h); err != nil {", "dial: nama dihubungi langsung, alamat literal lewat resolver")
+m("V61", U, "resp.StatusCode >= 300 && resp.StatusCode < 400", "resp.StatusCode >= 301 && resp.StatusCode < 400", "status 300 tidak dihitung pengalihan")
+m("V62", U, "resp.StatusCode >= 300 && resp.StatusCode < 400", "resp.StatusCode >= 300 && resp.StatusCode <= 400", "status 400 dihitung pengalihan")
+m("V63", U, 'case "image/png", "image/jpeg", "image/gif", "image/webp":', 'case "image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp":', "BMP diterima")
+m("V64", U, 'case "image/png", "image/jpeg", "image/gif", "image/webp":', 'case "image/png", "image/jpeg", "image/gif", "image/webp", "image/x-icon":', "ICO diterima")
+m("V66", U, "io.LimitReader(resp.Body, maks+1)", "io.LimitReader(resp.Body, 2*maks)", "pembaca dibatasi dua kali lipat batas")
+m("V69", U, "maks = BatasUkuran", "maks = BatasUkuran - 1", "batas ukuran bawaan satu byte kurang")
+m("V70", U, "waktu = BatasWaktu", "waktu = BatasWaktu / 2", "batas waktu bawaan separuh")
+m("V71", U, "h, _, err := net.SplitHostPort(address)\n\t\t\tif err != nil {\n\t\t\t\treturn ErrTujuan", "h, _, err := net.SplitHostPort(address)\n\t\t\tif err != nil {\n\t\t\t\treturn nil", "ControlContext: alamat tak terurai lolos")
+m("V74", U, "c, err := dialer.DialContext(ctx, network, net.JoinHostPort(x.IP.String(), port))", "_ = x" + NL + T4 + "c, err := dialer.DialContext(ctx, network, net.JoinHostPort(h, port))", "dial: nama dihubungi lagi, bukan alamat hasil resolusi kedua")
+m("V75", U, "for _, x := range semua {" + NL + T4 + "c, err := dialer.DialContext", "for _, x := range semua[:1] {" + NL + T4 + "c, err := dialer.DialContext", "dial hanya ke alamat pertama")
+m("V80", U, "MaxResponseHeaderBytes: BatasHeader,", "MaxResponseHeaderBytes: 2 * BatasHeader,", "batas header jawaban dua kali lipat")
+m("V81", U, "BatasHeader = 64 << 10", "BatasHeader = 48 << 10", "batas header jawaban 48 KiB")
+m("V90", K, "return http.ErrUseLastResponse", 'return errors.New("pengalihan")', "CheckRedirect mengembalikan galat, bukan jawaban pertama")
+m("V95", U, "ip.IsMulticast() ||", "ip.IsMulticast() && ip.Is4() ||", "multicast IPv6 tidak ditolak")
+m("V96", U, "ip.IsPrivate() || ", "ip.IsPrivate() && ip.Is4() || ", "ULA IPv6 tidak ditolak")
 
 
 def jalankan(mut):

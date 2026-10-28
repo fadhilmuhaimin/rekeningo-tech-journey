@@ -88,13 +88,15 @@ func Aman(ctx context.Context, alamat string) (Gambar, error) {
 // IsPrivate saja tidak cukup. Baris IPv6 sesudah 100::/64 dicocokkan dengan registri alamat khusus IPv6 IANA
 // (diakses 2026-10-28) oleh lab t4-ssrf: awalan NAT64 lokal, 100:0:0:1::/64, 2001::/23 (protokol IETF, memuat
 // 2001::/32), dokumentasi 2001:db8::/32 dan 3fff::/20, SRv6 5f00::/16, serta dua blok usang (IPv4-compatible ::/96
-// dan site-local fec0::/10) yang tidak dipakai host sungguhan.
+// dan site-local fec0::/10) yang tidak dipakai host sungguhan. Baris terakhir daftar, 192.88.99.0/24, adalah anycast
+// relay 6to4 yang usang menurut RFC 7526 (registri IPv4 menandai 192.88.99.2/32 tidak terjangkau global).
 var alamatKhusus = func() []netip.Prefix {
 	var p []netip.Prefix
 	for _, s := range []string{
 		"0.0.0.0/8", "100.64.0.0/10", "192.0.0.0/24", "192.0.2.0/24", "198.18.0.0/15", "198.51.100.0/24",
 		"203.0.113.0/24", "240.0.0.0/4", "64:ff9b::/96", "2002::/16", "2001::/32", "100::/64",
 		"64:ff9b:1::/48", "100:0:0:1::/64", "2001::/23", "2001:db8::/32", "3fff::/20", "5f00::/16", "::/96", "fec0::/10",
+		"192.88.99.0/24",
 	} {
 		p = append(p, netip.MustParsePrefix(s))
 	}

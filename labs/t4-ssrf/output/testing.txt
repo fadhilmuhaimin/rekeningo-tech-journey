@@ -10,5 +10,5 @@ $ go vet -tags t4ssrf ./internal/unduh
 $ go test -count=1 ./internal/unduh      (tes bawaan api-t4 untuk paket ini, tanpa tag)
 ok    lab/apit4/internal/unduh
 # exit status 0
-# fungsi tes di paket: 20 bawaan api-t4 tanpa tag, 14 milik lab ini (tag t4ssrf)
-# Penjaga pola -run: tiap dari 14 fungsi tes bertag muncul sebagai PASS di batas.txt atau alamat.txt.
+# fungsi tes di paket: 20 bawaan api-t4 tanpa tag, 17 milik lab ini (tag t4ssrf)
+# Penjaga pola -run: tiap dari 17 fungsi tes bertag muncul sebagai PASS di batas.txt atau alamat.txt.

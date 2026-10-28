@@ -71,6 +71,13 @@ ff0e::1                  tolak       tolak     tolak
 2606:4700:4700::1111     lolos       lolos     lolos
 ditolak fetcher aman dengan zona: 19 dari 19 alamat terlarang; alamat publik berzona yang lolos: 2 dari 2
 --- PASS: TestSSRFKelasAlamatBerzonaSamaDenganTanpaZona
+
+## tepi blok registri alamat khusus IANA (berkas bertanggal 2025-10-09): tepi dalam ditolak, tepi luar lolos
+blok yang diuji: 27
+tepi dalam yang ditolak: 54 dari 54
+tepi luar yang lolos: 39 dari 39 (15 tetangga dilewati karena jatuh di blok terlarang lain, multicast, atau 0000::/8)
+blok registri yang terjangkau global dan di luar blok terlarang: 4 dari 4 lolos
+--- PASS: TestSSRFKelasTepiBlokRegistriIANA
 PASS
 ok    lab/apit4/internal/unduh
 # exit status 0

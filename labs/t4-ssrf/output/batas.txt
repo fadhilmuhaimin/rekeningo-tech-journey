@@ -8,10 +8,12 @@ https://<loopback>/gambar.png (sertifikat dipercaya) diterima (image/png, 75 byt
 https://<loopback>/gambar.png (sertifikat asing)     ditolak (gambar tidak bisa diunduh); permintaan sampai: 0
 --- PASS: TestSSRFBatasHanyaHTTPSDenganSertifikatDibuatLab
 
-## redirect dimatikan: tiap kode 3xx ditolak dan server tujuan redirect tidak tersentuh
+## redirect dimatikan: kode 300, 301, 302, 303, 304, 307, dan 308 ditolak dan server tujuan redirect tidak tersentuh
+redirect 300 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0
 redirect 301 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0
 redirect 302 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0
 redirect 303 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0
+redirect 304 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0
 redirect 307 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0
 redirect 308 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0
 --- PASS: TestSSRFBatasRedirectTidakDiikutiUntukSemuaKode
@@ -88,6 +90,27 @@ jawaban DNS 4.097 alamat, yang terakhir private      ditolak (tujuan tidak diizi
 ## jawaban DNS campuran: alamat terlarang di urutan kedua menolak seluruh unduhan
 alamat yang boleh dijangkau lebih dulu, private kedua: ditolak (tujuan tidak diizinkan); permintaan sampai: 0
 --- PASS: TestSSRFBatasJawabanDNSDenganAlamatTerlarangDiUrutanKedua
+
+## URL rusak atau tanpa host: ditolak sebagai tujuan tidak diizinkan sebelum resolusi nama atau koneksi
+kosong                       ditolak (tujuan tidak diizinkan)
+hanya spasi                  ditolak (tujuan tidak diizinkan)
+tanpa skema                  ditolak (tujuan tidak diizinkan)
+skema tanpa host             ditolak (tujuan tidak diizinkan)
+host kosong dengan port      ditolak (tujuan tidak diizinkan)
+kurung siku tidak ditutup    ditolak (tujuan tidak diizinkan)
+karakter kontrol di path     ditolak (tujuan tidak diizinkan)
+spasi di host                ditolak (tujuan tidak diizinkan)
+persen tidak sah di host     ditolak (tujuan tidak diizinkan)
+userinfo                     ditolak (tujuan tidak diizinkan)
+skema ftp                    ditolak (tujuan tidak diizinkan)
+skema file                   ditolak (tujuan tidak diizinkan)
+skema data                   ditolak (tujuan tidak diizinkan)
+resolusi nama yang dipanggil: 0
+--- PASS: TestSSRFBatasURLRusakDitolakTanpaPanik
+
+## nama dengan dua alamat: bila yang pertama tidak menjawab, dial lanjut ke alamat kedua yang boleh dijangkau
+alamat pertama tanpa server, alamat kedua server uji: diterima (image/png, 75 byte); permintaan sampai: 1
+--- PASS: TestSSRFBatasNamaDenganDuaAlamatDialKeAlamatKeduaBilaPertamaMati
 
 ## pesan galat versi aman: tanpa isi respons, alamat, atau port; satu pesan untuk semua penolakan karena alamat
 200 berisi JSON layanan dalam      pesan: "bukan gambar"
