@@ -56,15 +56,21 @@ func TestT4ABerkasJangkarHanyaBertambahDanUrut(t *testing.T) {
 // Jangkar yang rusak tidak dilewati: itu sama dengan tidak punya jangkar.
 func TestT4ABerkasJangkarRusakDitolak(t *testing.T) {
 	for nama, isi := range map[string]string{
-		"bukan JSON":        "bukan json\n",
-		"nomor nol":         `{"id":0,"hash":"` + hashA + `"}` + "\n",
-		"nomor negatif":     `{"id":-4,"hash":"` + hashA + `"}` + "\n",
-		"hash pendek":       `{"id":3,"hash":"abc"}` + "\n",
-		"hash huruf besar":  `{"id":3,"hash":"` + strings.ToUpper(hashA) + `"}` + "\n",
-		"hash tanpa nomor":  `{"hash":"` + hashA + `"}` + "\n",
-		"hash berspasi":     `{"id":3,"hash":"` + hashA + ` "}` + "\n",
-		"baris kosong":      `{"id":3,"hash":"` + hashA + `"}` + "\n\n",
-		"baris kedua rusak": `{"id":3,"hash":"` + hashA + `"}` + "\n" + `{"id":4,` + "\n",
+		"bukan JSON":           "bukan json\n",
+		"nomor nol":            `{"id":0,"hash":"` + hashA + `"}` + "\n",
+		"nomor negatif":        `{"id":-4,"hash":"` + hashA + `"}` + "\n",
+		"hash pendek":          `{"id":3,"hash":"abc"}` + "\n",
+		"hash huruf besar":     `{"id":3,"hash":"` + strings.ToUpper(hashA) + `"}` + "\n",
+		"hash tanpa nomor":     `{"hash":"` + hashA + `"}` + "\n",
+		"hash berspasi":        `{"id":3,"hash":"` + hashA + ` "}` + "\n",
+		"hash berawalan":       `{"id":3,"hash":"ab` + hashA + `"}` + "\n",
+		"hash terlalu panjang": `{"id":3,"hash":"` + hashA + `a"}` + "\n",
+		"hash kosong":          `{"id":3,"hash":""}` + "\n",
+		"hash null":            `{"id":3,"hash":null}` + "\n",
+		"bukan objek":          "null\n",
+		"sisa sesudah JSON":    `{"id":3,"hash":"` + hashA + `"} x` + "\n",
+		"baris kosong":         `{"id":3,"hash":"` + hashA + `"}` + "\n\n",
+		"baris kedua rusak":    `{"id":3,"hash":"` + hashA + `"}` + "\n" + `{"id":4,` + "\n",
 	} {
 		b := berkasBaru(t)
 		if err := os.WriteFile(b.Path, []byte(isi), 0o644); err != nil {
@@ -73,6 +79,39 @@ func TestT4ABerkasJangkarRusakDitolak(t *testing.T) {
 		if got, err := b.Baca(); err == nil {
 			t.Errorf("%s: dibaca sebagai %v, ingin galat", nama, got)
 		}
+	}
+}
+
+// Baris lebih panjang dari batas pemindai (1 MiB) menggagalkan pembacaan, bukan memotong berkas diam-diam: jangkar sesudah
+// baris itu tidak boleh hilang dari pemeriksaan tanpa kabar.
+func TestT4ABerkasJangkarBarisTerlaluPanjangMenggagalkanPembacaan(t *testing.T) {
+	b := berkasBaru(t)
+	isi := `{"id":3,"hash":"` + hashA + `"}` + "\n" + `{"id":4,"hash":"` + hashB + `","x":"` + strings.Repeat("y", 2<<20) + `"}` + "\n" +
+		`{"id":5,"hash":"` + hashA + `"}` + "\n"
+	if err := os.WriteFile(b.Path, []byte(isi), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := b.Baca(); err == nil {
+		t.Fatalf("baris 2 MiB: dibaca sebagai %v, ingin galat", got)
+	}
+}
+
+// Berkas jangkar yang ada tetapi tidak bisa dibaca bukan "belum ada jangkar": pemeriksaan gagal.
+func TestT4ABerkasJangkarYangTidakBisaDibacaMenggagalkanPembacaan(t *testing.T) {
+	b := berkasBaru(t)
+	if err := os.WriteFile(b.Path, []byte(`{"id":3,"hash":"`+hashA+`"}`+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(b.Path, 0); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chmod(b.Path, 0o644)
+	if f, err := os.Open(b.Path); err == nil {
+		f.Close()
+		t.Skip("berkas tetap terbaca (dijalankan sebagai root?): tes ini tidak bisa membedakan")
+	}
+	if got, err := b.Baca(); err == nil {
+		t.Fatalf("berkas tanpa izin baca: dibaca sebagai %v, ingin galat", got)
 	}
 }
 

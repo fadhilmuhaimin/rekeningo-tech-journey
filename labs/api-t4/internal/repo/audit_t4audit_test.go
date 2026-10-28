@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -309,5 +310,126 @@ func TestT4ARantaiMelaporkanBarisPutusPertama(t *testing.T) {
 	}
 	if h, _ := ujiJangkar(t, r, nil); h.RusakDiID != 2 {
 		t.Fatalf("putus di %d, ingin baris pertama yang putus (2)", h.RusakDiID)
+	}
+}
+
+// Setiap kolom yang ikut di hash (waktu, pelaku, peran, aksi, objek, alasan, penyetuju) diuji sendiri: mengubah satu
+// kolom di baris tengah memutus rantai di baris itu. Tanpa tes per kolom, verifikasi yang diam-diam membuang satu
+// kolom dari hitungannya lolos, karena tes lain hanya mengubah `aksi`.
+func TestT4ARantaiMendeteksiPerubahanDiSetiapKolomYangDiHash(t *testing.T) {
+	r, db, pelaku := bersihAudit(t)
+	var lain int64
+	if err := db.QueryRow(`SELECT min(id) FROM akun WHERE jenis = 'risk' AND id <> $1`, pelaku).Scan(&lain); err != nil {
+		t.Fatalf("butuh dua akun risk: %v", err)
+	}
+	for kolom, ubah := range map[string]string{
+		"waktu":        `UPDATE audit_log SET waktu = waktu + interval '1 microsecond' WHERE id = 2`,
+		"pelaku_id":    `UPDATE audit_log SET pelaku_id = ` + itoa(lain) + ` WHERE id = 2`,
+		"peran":        `UPDATE audit_log SET peran = 'admin' WHERE id = 2`,
+		"aksi":         `UPDATE audit_log SET aksi = 'aksi_lain' WHERE id = 2`,
+		"objek":        `UPDATE audit_log SET objek = 'akun:2' WHERE id = 2`,
+		"alasan":       `UPDATE audit_log SET alasan = alasan || '.' WHERE id = 2`,
+		"penyetuju_id": `UPDATE audit_log SET penyetuju_id = ` + itoa(lain) + ` WHERE id = 2`,
+	} {
+		if _, err := db.Exec(`TRUNCATE audit_log RESTART IDENTITY`); err != nil {
+			t.Fatal(err)
+		}
+		isiLog(t, r, pelaku, 4)
+		if h, _ := ujiJangkar(t, r, nil); h.RusakDiID != 0 || h.Baris != 4 {
+			t.Fatalf("%s: rantai sudah putus sebelum diubah: %+v", kolom, h)
+		}
+		if _, err := db.Exec(ubah); err != nil {
+			t.Fatalf("%s: %v", kolom, err)
+		}
+		if h, _ := ujiJangkar(t, r, nil); h.RusakDiID != 2 {
+			t.Errorf("%s diubah di baris 2: putus di %d, ingin 2", kolom, h.RusakDiID)
+		}
+	}
+}
+
+func itoa(n int64) string { return strconv.FormatInt(n, 10) }
+
+// Rantai mengikuti nomor baris, bukan jam: jam yang mundur (koreksi NTP, dua server) tidak boleh membuat penulis
+// menyambung ke baris yang salah atau pemeriksa membaca dengan urutan lain.
+func TestT4ARantaiTidakBergantungPadaUrutanWaktu(t *testing.T) {
+	r, db, pelaku := bersihAudit(t)
+	jam := []time.Time{
+		time.Date(2026, 10, 26, 5, 0, 10, 0, time.UTC),
+		time.Date(2026, 10, 26, 5, 0, 30, 0, time.UTC),
+		time.Date(2026, 10, 26, 5, 0, 5, 0, time.UTC), // jam mundur 25 detik
+		time.Date(2026, 10, 26, 5, 0, 5, 0, time.UTC), // sama persis dengan baris sebelumnya
+		time.Date(2026, 10, 26, 4, 59, 0, 0, time.UTC),
+	}
+	for i, w := range jam {
+		err := r.DalamTx(context.Background(), func(tx Tx) error {
+			_, err := tx.TulisAudit(context.Background(), w, pelaku, "risk", "aksi_uji", "akun:1", "alasan uji urutan waktu rantai", nil)
+			return err
+		})
+		if err != nil {
+			t.Fatalf("baris %d: %v", i+1, err)
+		}
+	}
+	h, _ := ujiJangkar(t, r, nil)
+	if h.RusakDiID != 0 || h.Baris != 5 || h.IDTerakhir != 5 {
+		t.Fatalf("jam mundur: %+v, ingin rantai utuh 5 baris", h)
+	}
+	var sambung int
+	if err := db.QueryRow(`SELECT count(*) FROM audit_log a JOIN audit_log b ON b.id = a.id - 1 WHERE a.hash_sebelumnya = b.hash`).Scan(&sambung); err != nil || sambung != 4 {
+		t.Fatalf("%d sambungan menurut nomor baris, ingin 4 (%v)", sambung, err)
+	}
+}
+
+// Waktu dengan pecahan di bawah mikrodetik: hash dihitung dari waktu yang dipotong ke mikrodetik, persis yang disimpan
+// PostgreSQL, jadi pemeriksa yang membaca ulang mendapat hash yang sama. Tes lain memakai detik bulat.
+func TestT4ARantaiWaktuDenganPecahanSubDetik(t *testing.T) {
+	r, db, pelaku := bersihAudit(t)
+	for i, ns := range []int{123_456_789, 999_999_999, 500, 1_000, 999} {
+		w := time.Date(2026, 10, 26, 6, 0, i, ns, time.UTC)
+		err := r.DalamTx(context.Background(), func(tx Tx) error {
+			_, err := tx.TulisAudit(context.Background(), w, pelaku, "risk", "aksi_uji", "akun:1", "alasan uji pecahan waktu rantai", nil)
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if h, _ := ujiJangkar(t, r, nil); h.RusakDiID != 0 || h.Baris != 5 {
+		t.Fatalf("pecahan sub-detik: %+v, ingin rantai utuh 5 baris", h)
+	}
+	// 123.456.789 ns, 999.999.999 ns, dan 1.000 ns menyisakan 123456, 999999, dan 1 mikrodetik; 500 ns dan 999 ns dipotong
+	// menjadi nol. Yang disimpan harus persis hasil pemotongan (bukan pembulatan).
+	rows, err := db.Query(`SELECT (extract(microseconds FROM waktu)::bigint % 1000000) FROM audit_log ORDER BY id`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	var got []int64
+	for rows.Next() {
+		var us int64
+		if err := rows.Scan(&us); err != nil {
+			t.Fatal(err)
+		}
+		got = append(got, us)
+	}
+	want := []int64{123456, 999999, 0, 1, 0}
+	for i := range want {
+		if i >= len(got) || got[i] != want[i] {
+			t.Fatalf("mikrodetik tersimpan %v, ingin %v (dipotong, bukan dibulatkan)", got, want)
+		}
+	}
+}
+
+// Karakterisasi (bukan keinginan): HashAudit tidak menyandikan panjang kolom, jadi dua isi yang berbeda hanya di letak
+// pemisah 0x1f menghasilkan hash yang sama. Tidak terjangkau lewat service (alasan menolak karakter kontrol, objek
+// dibentuk dari angka dan kata tetap); tes ini mencatat batasnya supaya penyandian berubah bila kolom bebas bertambah.
+func TestT4AHashAuditTidakInjektifUntukPemisahDiDalamKolom(t *testing.T) {
+	w := time.Date(2026, 10, 26, 1, 0, 0, 0, time.UTC)
+	a := HashAudit(HashAwalAudit, w, 420, "risk", "aksi", "akun:1\x1fbagian", "sisa", 0)
+	b := HashAudit(HashAwalAudit, w, 420, "risk", "aksi", "akun:1", "bagian\x1fsisa", 0)
+	if a != b {
+		t.Skip("HashAudit sudah menyandikan batas kolom: hapus tes karakterisasi ini")
+	}
+	if c := HashAudit(HashAwalAudit, w, 420, "risk", "aksi", "akun:1bagian", "sisa", 0); c == a {
+		t.Fatal("tanpa pemisah di dalam kolom, hash harus berbeda")
 	}
 }

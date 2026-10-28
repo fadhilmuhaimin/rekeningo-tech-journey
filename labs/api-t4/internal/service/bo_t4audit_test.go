@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -123,5 +124,87 @@ func TestT4ASesiKeduaPelakuBukanPenyetujuKedua(t *testing.T) {
 	}
 	if jumlahAudit(t, db, risk, "buka_blokir") != 0 || jumlahAudit(t, db, risk, "ubah_batas") != 0 {
 		t.Fatal("percobaan ditolak meninggalkan baris audit")
+	}
+}
+
+// Penyetuju yang akunnya dibekukan sesudah sesinya terbit tidak sah: sesi masih berlaku, akunnya tidak lagi aktif.
+// (Sebelumnya hanya rekaman persetujuan.txt yang menangkapnya.)
+func TestT4APenyetujuYangDibekukanDitolak(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	risk2 := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "belum", 0)
+	if err := svc.BekukanBO(ctx, risk, sasaran, alasanUji); err != nil {
+		t.Fatal(err)
+	}
+	token := sesiBaru(t, db, risk2)
+	if _, err := db.Exec(`UPDATE akun SET status = 'dibekukan' WHERE id = $1`, risk2); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.BukaBlokirBO(ctx, risk, sasaran, alasanUji, token); !errors.Is(err, ErrButuhPersetujuan) {
+		t.Fatalf("buka blokir, penyetuju dibekukan: %v, ingin ErrButuhPersetujuan", err)
+	}
+	if err := svc.UbahBatasHarianBO(ctx, risk, sasaran, 100_000, alasanUji, token); !errors.Is(err, ErrButuhPersetujuan) {
+		t.Fatalf("ubah batas, penyetuju dibekukan: %v, ingin ErrButuhPersetujuan", err)
+	}
+	if st, _ := statusAkun(t, db, sasaran); st != "dibekukan" {
+		t.Fatalf("status %s, ingin tetap dibekukan", st)
+	}
+	if jumlahAudit(t, db, risk, "buka_blokir") != 0 || jumlahAudit(t, db, risk, "ubah_batas") != 0 {
+		t.Fatal("percobaan ditolak meninggalkan baris audit")
+	}
+}
+
+// Penyetuju harus akun risk: sesi app yang sah milik pemakai, karyawan, merchant, atau admin tidak cukup.
+func TestT4APenyetujuBukanAkunRiskDitolak(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "belum", 0)
+	if err := svc.BekukanBO(ctx, risk, sasaran, alasanUji); err != nil {
+		t.Fatal(err)
+	}
+	for _, jenis := range []string{"pemakai", "karyawan", "merchant", "admin"} {
+		lain := akunBO(t, db, jenis, "terverifikasi", 0)
+		if err := svc.BukaBlokirBO(ctx, risk, sasaran, alasanUji, sesiBaru(t, db, lain)); !errors.Is(err, ErrButuhPersetujuan) {
+			t.Errorf("penyetuju berjenis %s: %v, ingin ErrButuhPersetujuan", jenis, err)
+		}
+	}
+	if st, _ := statusAkun(t, db, sasaran); st != "dibekukan" {
+		t.Fatalf("status %s, ingin tetap dibekukan", st)
+	}
+}
+
+// Sesi penyetuju yang sudah kedaluwarsa tidak sah, walau tokennya pernah benar.
+func TestT4APenyetujuDenganSesiKedaluwarsaDitolak(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	risk2 := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "belum", 0)
+	if err := svc.BekukanBO(ctx, risk, sasaran, alasanUji); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.Baru(db).SimpanSesi(ctx, hashToken("sesi-kedaluwarsa-risk2"), risk2, time.Now().Add(-time.Minute), "app", nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.BukaBlokirBO(ctx, risk, sasaran, alasanUji, "sesi-kedaluwarsa-risk2"); !errors.Is(err, ErrButuhPersetujuan) {
+		t.Fatalf("sesi kedaluwarsa sebagai penyetuju: %v, ingin ErrButuhPersetujuan", err)
+	}
+}
+
+// Alasan dari staf masuk ke hash baris audit dengan pemisah 0x1f (HashAudit tidak menyandikan panjang kolom): teks yang
+// memuat 0x1e atau 0x1f bisa menggeser batas antar kolom tanpa mengubah hash. Penjaganya ada di periksaAlasan, yang
+// menolak semua karakter kontrol; tes ini mengunci tiap batasnya.
+func TestT4AAlasanMenolakKarakterKontrolTermasukPemisahHash(t *testing.T) {
+	dasar := strings.Repeat("a", 25)
+	for nama, ch := range map[string]string{"NUL": "\x00", "tab": "\t", "baris baru": "\n", "VT": "\x0b", "RS 0x1e": "\x1e", "US 0x1f": "\x1f", "DEL": "\x7f"} {
+		if _, err := periksaAlasan(dasar + ch + "b"); err == nil {
+			t.Errorf("alasan berisi %s diterima", nama)
+		}
+	}
+	if _, err := periksaAlasan(dasar + " " + "b"); err != nil {
+		t.Errorf("spasi biasa ditolak: %v", err)
 	}
 }
