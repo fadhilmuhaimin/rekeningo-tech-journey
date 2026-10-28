@@ -405,3 +405,30 @@ func TestQRBatasIdBentukSalahDitolakSebelumJatahLaju(t *testing.T) {
 	}
 	fmt.Println("LAB|id QR berbentuk salah (kosong, huruf besar, kelebihan atau kekurangan karakter, huruf di luar heksadesimal, teks SQL) dijawab ErrTidakDitemukan untuk konfirmasi, pembayaran, dan laporan; 630 pemanggilan (30 putaran, 7 id, 3 jalur) tidak memakai jatah laju")
 }
+
+// Alasan laporan dihitung dalam karakter (bukan byte) sesudah spasi di ujungnya dipangkas: 19 karakter berbyte dua
+// ditolak walau 38 byte, 150 karakter berbyte dua diterima walau 300 byte, dan 19 karakter berspasi di ujung ditolak.
+func TestQRBatasAlasanLaporanDalamKarakterSesudahDipangkas(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	merchant := qrAkun(t, db, "merchant", "terverifikasi", "aktif", 0)
+	q, err := svc.BuatQR(ctx, merchant, "statis", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pelapor := func() int64 { return qrAkun(t, db, "pemakai", "belum", "aktif", 0) }
+	butirValidasi(t, svc.LaporkanQR(ctx, pelapor(), q.ID, strings.Repeat("é", 19)), "alasan")
+	butirValidasi(t, svc.LaporkanQR(ctx, pelapor(), q.ID, "   "+strings.Repeat("x", 19)+"   "), "alasan")
+	butirValidasi(t, svc.LaporkanQR(ctx, pelapor(), q.ID, strings.Repeat("é", 201)), "alasan")
+	var status string
+	if err := db.QueryRow(`SELECT status FROM akun WHERE id = $1`, merchant).Scan(&status); err != nil || status != "aktif" {
+		t.Fatalf("laporan yang ditolak tidak boleh membekukan: status %q (%v)", status, err)
+	}
+	if err := svc.LaporkanQR(ctx, pelapor(), q.ID, strings.Repeat("é", 150)); err != nil {
+		t.Fatalf("laporan 150 karakter berbyte dua (300 byte): %v", err)
+	}
+	if err := db.QueryRow(`SELECT status FROM akun WHERE id = $1`, merchant).Scan(&status); err != nil || status != "dibekukan" {
+		t.Fatalf("status merchant %q (%v), ingin dibekukan", status, err)
+	}
+	fmt.Println("LAB|alasan laporan dihitung dalam karakter sesudah spasi di ujungnya dipangkas: 19 karakter berbyte dua dan 19 karakter berspasi ditolak, 150 karakter berbyte dua (300 byte) diterima")
+}

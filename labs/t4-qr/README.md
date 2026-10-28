@@ -35,8 +35,8 @@ Dependency baru di lab ini: tidak ada. Kode baru memakai pustaka standar Go; skr
 | File | Isi |
 |---|---|
 | `internal/qrpayload/qrpayload.go` | `CRC16`, `Bangun`, `Urai`, `UraiTanpaCRC`, `PasangCRC`, `Ganti`. Pustaka standar saja |
-| `internal/qrpayload/qrpayload_test.go` (tag `t4qr`) | 14 tes payload tanpa database: nilai uji CRC, CRC berawalan nol, payload contoh yang dihitung terpisah, semua salah baca satu karakter, kasus ditolak (bentuk, tag 01, tag 00, tag ganda, nominal, id), dan pemeriksaan bahwa hanya `cmd/qrlab` yang mengimpor paket ini |
-| `internal/service/qr_pindai_test.go` (tag `t4qr`) | 8 tes service dengan PostgreSQL: batas Rp200.000, nominal terikat, 5 menit, sekali pakai, pembekuan, saldo tepat, dan alur payload ke server |
+| `internal/qrpayload/qrpayload_test.go` (tag `t4qr`) | 16 tes payload tanpa database: nilai uji CRC, CRC berawalan nol, payload contoh yang dihitung terpisah, semua salah baca satu karakter, kasus ditolak (bentuk, tag 01, tag 00, tag ganda, nominal, id), batas bentuk TLV dan nominal 13 digit, masukan pendek dan terpotong yang tidak boleh panik, dan pemeriksaan bahwa hanya `cmd/qrlab` yang mengimpor paket ini |
+| `internal/service/qr_pindai_test.go` (tag `t4qr`) | 10 tes service dengan PostgreSQL: batas Rp200.000, nominal terikat, 5 menit, sekali pakai, pembekuan, saldo tepat, id QR berbentuk salah yang tidak memakai jatah laju, alasan laporan dihitung dalam karakter, dan alur payload ke server |
 | `cmd/qrlab/main.go` | Alat lab: `buat`, `urai`, `ganti`, `rusak`, `crc`. Bukan bagian server |
 | `.gitignore` | `/qrlab` (biner hasil build) |
 
@@ -65,15 +65,15 @@ Urutan tag naik, tag 63 di ujung. Yang berasal dari sumber yang bisa dibuka: nil
 | `crc.txt` | Bagian A: CRC di Go sama dengan `binascii.crc_hqx` pada empat masukan dan nilai uji 0x29B1. B: payload statis dan dinamis dengan id tetap, tabel TLV, tag 01 = 11 dan 12, isi yang dibaca Go sama nilai demi nilai dengan yang dibaca Python dari tag mentah. C: salah baca (tiga posisi, lalu semua 8.562 penggantian satu karakter dan semua 104 pertukaran dua karakter bersebelahan pada payload contoh). D: id diganti dengan CRC dihitung ulang lolos; tanpa CRC baru ditolak; CRC baru dari Python sama persis. E: tag 01, tag 00, nominal yang bertentangan ditolak walau CRC benar | 4.18, 4.19 |
 | `statis.txt` | Payload Toko Andalan dipindai dan dibayar Budi Rp35.000: jurnal seimbang ke Toko Andalan, nol posting di buku Bu Marni, tabel `qr` tanpa kolom lokasi; payload Bu Marni dengan id Toko Andalan lolos CRC dan membawa nama dan kota yang lain dari jawaban server; batas Rp200.000 di kedua sisi, nominal kosong, nol, dan negatif ditolak (422), dan dua pembayaran berturut-turut | 4.18, 4.19 |
 | `dinamis.txt` | `berlaku_sampai` = jam server + 300 detik; sekali pakai (409 untuk pembayar yang sama dan pembayar lain); payload dengan nominal Rp1 dan CRC baru lolos pemindai tetapi nominal Rp1, Rp34.999, dan Rp35.001 ditolak (422) dan body kosong memotong Rp35.000; jam diperankan 299, 300, dan 301 detik | 4.19 |
-| `lapor.txt` | Laporan terhadap stiker palsu membekukan Toko Andalan; laporan terhadap QR Bu Marni yang asli dari akun terverifikasi membekukannya dan QR-nya dijawab 404; akun yang baru didaftarkan membekukan tiga merchant dan laporan keempat ditolak batas laju; tiga masukan salah (alasan terlalu pendek) menghabiskan jatah laju sehingga laporan yang benar ditolak 429; tim risk membuka dengan penyetuju kedua | 4.18, 4.19 |
-| `testing.txt` | `go vet -tags t4qr`, 22 tes bertag `t4qr` dengan baris `LAB|` hasilnya, dan pemeriksaan bahwa tiap tes yang terdaftar muncul sebagai PASS | 4.19 |
+| `lapor.txt` | Laporan terhadap stiker palsu membekukan Toko Andalan; laporan terhadap QR Bu Marni yang asli dari akun terverifikasi membekukannya dan QR-nya dijawab 404; akun yang baru didaftarkan membekukan tiga merchant dan laporan keempat ditolak batas laju; tiga masukan salah (alasan terlalu pendek) menghabiskan jatah laju sehingga laporan yang benar ditolak 429; pembukaan tanpa penyetuju, dengan penyetuju yang sama dengan pelaku, dengan penyetuju yang bukan staf risk, dan oleh pelaku yang bukan staf risk ditolak 403; tim risk membuka dengan penyetuju kedua | 4.18, 4.19 |
+| `testing.txt` | `go vet -tags t4qr`, 26 tes bertag `t4qr` dengan baris `LAB|` hasilnya, dan pemeriksaan bahwa tiap fungsi tes di dua file bertag (dibaca dari file itu, bukan dari pola `-run`) muncul sebagai PASS | 4.19 |
 
 ## Pernyataan naskah dan rekamannya
 
 | Pernyataan (naskah, "Yang harus bisa dibuktikan lab") | Rekaman | Hasil |
 |---|---|---|
 | Payload yang CRC-nya dihitung ulang untuk payload lain lolos validasi CRC | `crc.txt` D; `statis.txt` C; `dinamis.txt` C | Terbukti: lolos pemindai lab; id QR, nama, kota, dan nominal bisa diganti tanpa kunci |
-| QR dinamis sekali pakai: pembayaran kedua ditolak | `dinamis.txt` B | Terbukti (409, satu jurnal terikat ke id QR) |
+| QR dinamis sekali pakai: pembayaran kedua ditolak | `dinamis.txt` B | Terbukti secara berurutan (409, satu jurnal terikat ke id QR). Pembayaran serentak ke QR yang sama tidak direkam di lab ini; `TestBayarQRDinamisSerentak` di `labs/api-t4/output/testing.txt` menjalankannya (satu berhasil, satu `ErrQRTerpakai`, 20 putaran) |
 | Pembayaran sesudah kedaluwarsa (5 menit, Asumsi) ditolak | `dinamis.txt` D | Terbukti di kedua sisi: 299 detik terbayar; 300 dan 301 detik 410. Jam diperankan, tidak ditunggu |
 | Nominal terikat pada id QR | `dinamis.txt` C | Terbukti: body selain nominal QR 422; payload yang nominalnya diganti tidak mengubah apa yang dipotong |
 | QR statis milik merchant lain menghasilkan jurnal sah ke merchant itu; server tidak punya cara mencegahnya | `statis.txt` B | Terbukti untuk api-t4: jurnal seimbang, merchant aktif dan terverifikasi, saldo cukup; tabel `qr` tidak punya lokasi atau pengenal stiker, dan permintaan bayar hanya membawa sesi, id QR, dan nominal |
@@ -186,6 +186,21 @@ Putaran pertama meloloskan tiga mutan:
 | S24 | saldo tepat sama dengan nominal ditolak | TestQRBatasSaldoTepatDanKurangSatuRupiah (hanya tes baru) |
 | S25 | saldo kurang satu rupiah lolos cek saldo | TestQRBatasSaldoTepatDanKurangSatuRupiah (hanya tes baru) |
 
+
+### Putaran peninjau (61 mutan baru, tidak sama dengan 64 milik pelaksana)
+
+Peninjau menjalankan 61 mutan lain pada salinan di luar repo (schema tes dibangun ulang per mutan): 22 pada `qrpayload.go`, 34 pada `qr.go` dan `repo/qr.go`, dan 5 pada `bo.go` (pembukaan merchant oleh dua staf risk). Hasil dibaca dari nama tes yang gagal. Sebelum tes tambahan, 12 dari 20 mutan payload dan 4 mutan service (M6, M7, M8, M27) lolos semua tes Go, termasuk tes lama api-t4. Tes tambahan menutup semuanya kecuali yang setara.
+
+| Kelompok | Jumlah | Tertangkap tes lab ini | Hanya tes lama api-t4 | Hanya rekaman lab | Tidak tertangkap |
+|---|---|---|---|---|---|
+| `qrpayload.go` (A1 sampai A20, C1, C2) | 22 | 20 | 0 | 0 | 2, setara (A3, A6) |
+| `qr.go` dan `repo/qr.go` (M1 sampai M34) | 34 | 18 | 9 | 4 (M11, M12, M13, M20) | 3: M3 setara; M21 dan M24 tanpa tes |
+| `bo.go` (B1 sampai B5) | 5 | 0 | 4 | 0 | 1, setara (B5) |
+
+- **Celah yang ditutup tes baru.** Panjang TLV 99, tag berhuruf, nominal 13 digit, batas karakter cetak (0x1F dan DEL), nominal nol pada QR statis, payload terpotong atau kosong dengan CRC benar (tiga mutan membuat `Urai` panik), `Ganti` tanpa tag 63 di ujung, id QR berbentuk salah (konfirmasi, pembayaran, laporan) yang tidak boleh memakai jatah laju, pembulatan masa berlaku (awal tes tidak lagi jatuh di batas menit), dan alasan laporan yang dihitung dalam karakter sesudah dipangkas.
+- **Setara.** A3 (panjang negatif tidak diperiksa) dan A6 (`ParseInt` basis 0): pemeriksaan `digit` sesudahnya menolak tanda dan garis bawah. M3: pembayar tidak bisa sama dengan merchant karena jenis akun diperiksa lebih dulu. B5: token kosong tetap ditolak karena sesi tidak ditemukan.
+- **Tidak tertangkap dan bukan milik lab ini.** M21 (jatah `qr-bayar` 20 per menit yang ditulis README api-t4) tidak punya tes apa pun. M24 (`ORDER BY id` pada `KunciBukuAkun`, ADR 13) lolos seluruh tes service dan repo api-t4; urutan hasil `WHERE akun_id = ANY($1)` tidak bergantung pada urutan argumen, jadi mutan itu belum tentu berbahaya, tetapi urutan lock tidak dijaga tes.
+- **Rekaman lab.** M11, M12 (jatah laporan), M13 (Retry-After berubah), dan M20 (`kota` hilang) hanya tertangkap oleh `run.py` atau `make cek`; M14, M15 (audit log hilang), dan M19 (`terverifikasi` salah) tertangkap oleh tes dan rekaman; tiga mutan `qrlab` yang dicoba (huruf kecil pada CRC, `-id` diabaikan, karakter yang dirusak sama dengan aslinya) menggagalkan `crc.txt`.
 
 ## Yang belum ada di lab ini
 
