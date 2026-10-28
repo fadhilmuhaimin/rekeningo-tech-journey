@@ -39,7 +39,7 @@ buka blokir, token Tim Risk Dua yang dibekukan: HTTP 403 /problems/butuh-persetu
 -----------
  dibekukan
 (1 row)
-# Dina masih dibekukan dan jumlah baris audit tidak berubah: percobaan yang ditolak tidak meninggalkan baris audit (log aplikasi biasa mencatatnya, tabel audit tidak).
+# Dina masih dibekukan dan jumlah baris audit tidak berubah: percobaan yang ditolak tidak meninggalkan baris audit: tabel audit hanya berisi aksi yang berhasil.
 $ curl -i -X POST '/bo/akun/40001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -H 'X-Penyetuju-Token: <token sesi Risk Dua>' -d '{"alasan": "Pemilik sudah dikonfirmasi lewat layanan pelanggan"}'
 HTTP/1.1 204 No Content
 
@@ -72,7 +72,8 @@ token yang sama dari Tim Risk Dua: buka blokir Eko HTTP 204, ubah batas Eko HTTP
  5  | 420       | buka_blokir | akun:40002                     | 421
  6  | 420       | ubah_batas  | akun:40002/batas_harian=400000 | 421
 (3 rows)
-# Tim Risk Dua tidak melihat aksi apa yang disetujui: token berlaku untuk apa saja selama sesinya hidup. Antrean persetujuan per aksi tidak ada (skema naskah tidak punya tabelnya): Tidak dijalankan.
+# Satu token menyetujui dua aksi yang berbeda: yang diperiksa server adalah siapa pemegang token (akun risk lain yang aktif), bukan apa yang disetujui. Server tidak menanyakan apa pun kepada penyetuju.
+# Antrean persetujuan per aksi (penyetuju melihat dan menyetujui satu aksi) tidak ada: skema naskah tidak punya tabelnya. Tidak dijalankan.
 
 # --- E. Pembekuan darurat punya batasnya: akun risk dan admin tidak bisa dibekukan, dan yang sudah beku tidak dibekukan dua kali ---
 bekukan akun risk (Tim Risk Dua): HTTP 403

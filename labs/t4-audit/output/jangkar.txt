@@ -5,6 +5,7 @@
 
 # --- A. Jangkar harian: hari 1 (baris 1 sampai 4), hari 2 (baris 5 dan 6), hari 3 belum dijangkarkan (baris 7 dan 8) ---
 # Berkas jangkar ada di folder sementara di luar database; tidak ada role database yang menyentuhnya. Hash baris tidak direkam (bergantung pada waktu aksi).
+# Hari diperankan: log dipulihkan dari salinan sampai baris tertentu, lalu pemeriksaan dijalankan. Tidak ada jam harian yang berjalan di lab.
 $ ./auditjob -db <role t4a_verifikator> -jangkar jangkar.jsonl
 baris=4 rantai=utuh jangkar_lama=0 temuan=0
 jangkar baru: nomor 4
@@ -73,8 +74,8 @@ jangkar baru: nomor 4
 
 # --- F. Berkas jangkar rusak: pemeriksaan gagal, tidak melewatinya ---
 $ ./auditjob -db <role t4a_verifikator> -jangkar jangkar.jsonl
-auditjob: auditjob: jangkar baris 3: invalid character 'b' looking for beginning of value
+auditjob: jangkar baris 3: invalid character 'b' looking for beginning of value
 # exit status 1
 $ ./auditjob -db <role t4a_verifikator> -jangkar jangkar.jsonl
-auditjob: auditjob: jangkar baris 1: nomor atau hash tidak sah
+auditjob: jangkar baris 1: nomor atau hash tidak sah
 # exit status 1

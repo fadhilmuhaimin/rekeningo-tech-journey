@@ -24,7 +24,7 @@
  id | aksi | objek
 ----+------+-------
 (0 rows)
-# Jawaban untuk Dina yang datanya dibuka enam kali dan untuk Eko yang tidak pernah dibuka sama: nol baris. 'Tidak ada catatan' sama nilainya dengan 'tidak tahu'.
+# Jawaban untuk Dina, yang akunnya disentuh enam aksi, dan untuk Eko, yang tidak pernah disentuh, sama: nol baris. 'Tidak ada catatan' sama nilainya dengan 'tidak tahu'.
 # server: ./api-t4 -lab -rentan bo-log-biasa (aksi yang sama dicatat di tabel biasa tanpa hash; role aplikasi punya hak tulis penuh atas tabel itu)
 
 # --- B. Log biasa: aksi tercatat, tetapi siapa pun yang bisa menulis tabelnya bisa mengubah catatan tanpa jejak ---
@@ -76,11 +76,11 @@ verifikasi rantai di mode ini: 0 baris, utuh: ya (rantai kosong: audit_log tidak
  6  | 420       | ubah_batas       | akun:40001/batas_harian=300000 | 421          | t
 (6 rows)
 verifikasi rantai: 6 baris, utuh: ya
-# Pemilik tabel t4a_pemilik mengubah baris 4 (membuka kartu identitas): petugas diganti 421.
-=> [t4a_pemilik] UPDATE audit_log SET pelaku_id = 421 WHERE id = 4
+# Pemilik tabel t4a_pemilik mengubah baris 3 (membuka kartu identitas Dina): petugas diganti 421.
+=> [t4a_pemilik] UPDATE audit_log SET pelaku_id = 421 WHERE id = 3
 UPDATE 1
-verifikasi rantai: 6 baris, utuh: tidak, rusak di baris 4
-# Baris 4 dikembalikan ke isi aslinya.
+verifikasi rantai: 6 baris, utuh: tidak, rusak di baris 3
+# Baris 3 dikembalikan ke isi aslinya.
 verifikasi rantai: 6 baris, utuh: ya
 # Pemilik tabel menambah baris ke-7 dengan hash yang ia hitung sendiri dari rumus yang sama (skrip lab, bukan app):
 # petugas 421 tercatat membuka swafoto Dina, aksi yang tidak pernah terjadi.
@@ -88,8 +88,8 @@ verifikasi rantai: 6 baris, utuh: ya
 INSERT 0 1
 verifikasi rantai: 7 baris, utuh: ya
 # Rantai tidak membuktikan siapa yang menulis baris: tanpa kunci rahasia, siapa pun yang bisa menulis dan tahu rumusnya bisa menambah baris yang lolos.
-# Pemilik tabel menghapus baris 3 (melihat pengajuan):
-=> [t4a_pemilik] DELETE FROM audit_log WHERE id = 3
+# Pemilik tabel menghapus baris 2 (melihat pengajuan):
+=> [t4a_pemilik] DELETE FROM audit_log WHERE id = 2
 DELETE 1
-verifikasi rantai: 6 baris, utuh: tidak, rusak di baris 4
-# Yang terdeteksi adalah penghapusan di tengah (baris 4 tidak lagi menyambung ke hash baris sebelumnya). Pemotongan di ujung: bagian jangkar.
+verifikasi rantai: 6 baris, utuh: tidak, rusak di baris 3
+# Yang terdeteksi adalah penghapusan di tengah: baris 3 tidak lagi menyambung ke hash baris sebelumnya, dan pemeriksaan menunjuk baris sesudah yang hilang. Pemotongan di ujung: bagian jangkar.

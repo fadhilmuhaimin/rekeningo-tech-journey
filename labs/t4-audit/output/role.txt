@@ -17,11 +17,14 @@
 -----------+-------------
  audit_log | t4a_pemilik
 (1 row)
-=> SELECT relacl FROM pg_class WHERE relname = 'audit_log' AND relnamespace = 'tahap4_audit'::regnamespace
- relacl
---------------------------------------------------------------------------------------------------------------------------
- ['t4a_pemilik=arwdDxtm/t4a_pemilik', 'api_t4=ar/t4a_pemilik', 't4a_verifikator=r/t4a_pemilik', 't4a_agen=r/t4a_pemilik']
-(1 row)
+=> SELECT unnest(relacl)::text AS hak FROM pg_class WHERE relname = 'audit_log' AND relnamespace = 'tahap4_audit'::regnamespace
+ hak
+----------------------------------
+ t4a_pemilik=arwdDxtm/t4a_pemilik
+ api_t4=ar/t4a_pemilik
+ t4a_verifikator=r/t4a_pemilik
+ t4a_agen=r/t4a_pemilik
+(4 rows)
 # relacl: api_t4=ar/t4a_pemilik berarti api_t4 punya a (INSERT) dan r (SELECT), diberikan oleh t4a_pemilik. Tidak ada w (UPDATE), d (DELETE), atau D (TRUNCATE).
 
 # --- B. Sebagai role aplikasi api_t4 (bukan pemilik, bukan superuser): UPDATE, DELETE, dan jalan memutar ditolak ---
