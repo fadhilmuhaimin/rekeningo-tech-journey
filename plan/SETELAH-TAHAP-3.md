@@ -529,3 +529,18 @@ Polesan dari tinjauan Tahap 3 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - 3.32 (peninjau): Cek diri 1 dan alasan pilihan benar Tebak menulis "dari batas 18" tanpa arti (dua pool dikali 10 − 1, 3.29); tambahkan arti satu kalimat atau tautan.
 - 3.32 (peninjau): kepala dokumen menulis 100.000 user dan 12 minggu tanpa label, padahal tabel di bawahnya melabelinya Asumsi; sama seperti kepala 3.1.
 - 3.32 (peninjau): catatan ANTREAN 4.1 menulis "Jembatan 3.32 menulis tiga tim gateway, kartu, dasbor" dan naskah 4 bagian 1 menulis "Jembatan 3.32 menyebut tiga tim itu gateway, kartu, dan dasbor"; halaman 3.32 tidak menyebutnya (keputusan 1126), jadi kedua catatan usang.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- 3.9: simbol t dipakai dua arti (10 detik push dan 0,3 detik lama kirim) di "Kenapa ini ada" dan tabel beban, dan L, λ, W, c tanpa arti di halaman; pakai dua simbol dan beri arti satu kalimat di pemakaian pertama.
+- 3.9: kata "klaim" dan "nomor 1 sampai 4" (nomor outbox) dipakai tanpa arti di bagian "Worker mengklaim baris".
+- 3.24: "flag" dan "diperankan" dipakai sebelum arti, dan bagian rekaman disebut dalam urutan B, C, E, C, D, A.
+- 3.16: bagian "Yang tidak berlipat" tidak menulis kesimpulan satu kalimat (kabar baik atau masalah), dan penomoran tebakan campur global dan per instance.
+- Label "Hitungan" dan "Ilustrasi mekanisme" dipakai di halaman dan widget (3.8, 3.10, 3.28; OutboxWorker, PoolLittle, CacheInvalidation) tetapi `/cara-pakai/` hanya mendefinisikan lima label.
+- `README.md` akar menulis `t3-bayar` untuk "3.1–3.3" (penomoran lama), dan 3.30 menulis "delapan lab Tahap 3" sementara folder `labs/t3-bayar` bernama mirip; sebut daftar folder yang dipindai.
+- Audit bahasa Tahap 3: 12 peringatan, antara lain kalimat 32 kata di `sengaja-belum.mdx` baris 3, kalimat 27 kata di `fitur-notifikasi.mdx` baris 36, dan dua blok `[bocor]` di `m26-transfer-bukan-budi.mdx` baris 28 dan 32.
+- `eval_tahap.py adr 1` gagal untuk 8 halaman Tahap 1 karena format ADR-nya lain (opsi tidak dalam tabel 3 kolom); perintah dirancang untuk Tahap 2 ke atas.
+- `tools/eval_tahap.py gejala`: `DEFINISI` peka huruf besar, jadi kalimat adegan yang berawal "Artinya ...", "Berarti ..." atau "Merupakan ..." lolos (dibuktikan lewat mutasi di penjaga 3.16); tambahkan `re.IGNORECASE` dan satu kasus uji di `tools/test_eval_tahap.py`.
+- `tools/eval_tahap.py gejala`: penanda hanya kata kunci; definisi tanpa kata itu (mis. "Hash ialah ...") hanya tertangkap istilah-pertama-di-adegan bila halaman memasang tes seperti penjaga 3.16.
+- 3.16: bagian "Yang tidak berlipat" masih tanpa kesimpulan satu kalimat, dan dua masalah di adegan (jatah berlipat per instance, satu key per alamat proxy) dibahas berurutan di halaman tanpa pemisah; tidak diubah di PR ini.
+- 3.16: kalimat adegan "20 dari 24 percobaan sampai diperiksa passwordnya sebelum ada yang ditolak dengan 429" membaca urutan dari mekanisme bucket (10 per instance, round_robin), sedangkan `labs/t3-instance/output/batas.txt` baris 9 hanya mencatat jumlah (401: 20, 429: 4); satu kalimat di blok "Yang sebenarnya" bisa menyebut bahwa rekaman menghitung dan tidak mengurutkan.
