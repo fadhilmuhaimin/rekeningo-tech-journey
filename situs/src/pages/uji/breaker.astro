@@ -1,0 +1,24 @@
+---
+// Halaman uji widget circuit breaker (W4-breaker, keputusan 1262). Bukan halaman cerita: tidak di registry, tidak di
+// sidebar, tidak diindeks. Angka acuan dari labs/t4-integrasi/output (breaker.txt, lajur.txt, worker.txt).
+// Dipakai situs/tools/ukur-breaker.mjs (tebak dulu, keyboard, ARIA, reduced motion, angka dari rekaman, papan, 320 px, CLS)
+// dan ukur-axe.mjs. Halaman 4.11 memasang komponen yang sama di PR halamannya.
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import CircuitBreaker from "../../components/CircuitBreaker.astro";
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Uji circuit breaker",
+    description: "Halaman uji widget circuit breaker.",
+    pagefind: false,
+    tableOfContents: false,
+    head: [{ tag: "meta", attrs: { name: "robots", content: "noindex" } }],
+  }}
+>
+  <p>
+    Halaman uji widget circuit breaker. Layanan verifikasi tiruan mati, dan sepuluh pekerjaan verifikasi menunggu di queue.
+  </p>
+  <CircuitBreaker />
+  <p>Teks sesudah widget, supaya halaman cukup panjang untuk diuji geser isi saat hydrate.</p>
+</StarlightPage>

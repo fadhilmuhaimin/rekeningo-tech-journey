@@ -1,0 +1,72 @@
+---
+/**
+ * Widget circuit breaker (W4-breaker, keputusan 1262): tebak berapa dari 10 pekerjaan verifikasi sudah mati ketika breaker
+ * membuka, lalu ubah satu hal (jalur sinkron atau queue, error rate, latensi, jenis jawaban error, breaker, pulihnya vendor,
+ * slot worker) dan lihat status closed, open, half-open dan permintaan yang ditolak cepat.
+ *   <CircuitBreaker />
+ * Angka acuan dibaca saat build dari labs/t4-integrasi/output/{breaker,lajur,worker}.txt dan README lab lewat rekaman.ts;
+ * rekaman yang berubah bentuk menggagalkan build. Teks dari data/widget/t4-circuit-breaker.json (skema.ts). Island
+ * di-render saat build (client:visible); tanpa JavaScript titik acuan rekaman tampil di <noscript> sebagai tabel.
+ * Satu widget per halaman. Dipasang di halaman 4.11 (Timeout, retry berkunci, circuit breaker, lajur per vendor, ADR 36) oleh
+ * PR halamannya; sampai itu hanya /uji/breaker/ yang memuatnya.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import CircuitBreakerIsland from "../widgets/circuit-breaker/CircuitBreaker";
+import { LabelBreaker } from "../widgets/circuit-breaker/skema";
+import { aturanDari, awalDari, bacaRekaman, daftarAcuan } from "../widgets/circuit-breaker/rekaman";
+import { periksaTombol, siapkanTeks } from "../widgets/circuit-breaker/teks";
+import labelMentah from "../../data/widget/t4-circuit-breaker.json";
+
+const baca = (f: string) => {
+  const abs = path.join(ROOT, f);
+  if (!fs.existsSync(abs)) throw new Error(`CircuitBreaker: ${f} tidak ada`);
+  return fs.readFileSync(abs, "utf8");
+};
+const R = bacaRekaman(
+  baca("labs/t4-integrasi/output/breaker.txt"),
+  baca("labs/t4-integrasi/output/lajur.txt"),
+  baca("labs/t4-integrasi/output/worker.txt"),
+  baca("labs/t4-integrasi/README.md"),
+);
+const A = aturanDari(R);
+const awal = awalDari(R);
+const acuan = daftarAcuan(R);
+const L = LabelBreaker.parse(labelMentah);
+
+periksaTombol(L, R);
+const T = siapkanTeks(L, R, acuan);
+
+const label = {
+  judul: L.judul, sumber: L.sumber, tebakDulu: L.tebakDulu, benar: L.benar, belum: L.belum, ulang: L.ulang, ubahJudul: L.ubahJudul,
+  kelompok: L.kelompok, awal: L.awal, papan: L.papan, angka: L.angka, pekerjaan: L.pekerjaan, vonis: L.vonis, ringkas: L.ringkas,
+  banding: L.banding, cocok: L.cocok, tanpaAcuan: L.tanpaAcuan,
+};
+
+// Tabel untuk tanpa JavaScript: titik acuan dan hasilnya di rekaman lab, dengan teks yang sama dengan island.
+const baris = acuan.map((d) => [T.namaAcuan[d.kunci]!, T.acuanTeks[d.kunci]!]);
+---
+<CircuitBreakerIsland
+  client:visible
+  aturan={A}
+  awal={awal}
+  pertanyaan={T.pertanyaan}
+  pilihan={T.pilihan}
+  benar={T.benar}
+  opsi={T.opsi}
+  acuan={acuan}
+  acuanTeks={T.acuanTeks}
+  catatan={T.catatan}
+  hitungan={T.hitungan}
+  asal={T.asal}
+  label={label}
+/>
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <table class="bb-table tm-tabel">
+    <caption>{L.tabel.judul}</caption>
+    <thead><tr>{L.tabel.kolom.map((k) => <th scope="col">{k}</th>)}</tr></thead>
+    <tbody>{baris.map((b) => <tr>{b.map((s, j) => (j === 0 ? <th scope="row">{s}</th> : <td>{s}</td>))}</tr>)}</tbody>
+  </table>
+</noscript>

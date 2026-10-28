@@ -1,0 +1,182 @@
+{
+  "judul": "Circuit breaker: kapan membuka dan siapa yang ditolak",
+  "sumber": "Simulasi; titik acuan dari rekaman lab",
+  "tebakDulu": "Tebak dulu.",
+  "pertanyaan": "Layanan verifikasi mati, dan {n} pekerjaan verifikasi menunggu di queue. Satu worker mengerjakannya satu per satu dan mengulang pekerjaan yang gagal tanpa jeda, seperti di lab, dengan paling banyak {percobaan} percobaan per pekerjaan. Breaker membuka sesudah lebih dari {lebihDari} gagal berturut-turut. Berapa pekerjaan sudah mati ketika breaker membuka?",
+  "pilihan": [
+    {
+      "teks": "Tidak ada: breaker melindungi semua pekerjaan.",
+      "jumlah": 0,
+      "alasan": "Breaker membuka pada kegagalan ke-{gagalKe}, tetapi satu pekerjaan hanya punya {percobaan} percobaan. Pekerjaan pertama habis lebih dulu."
+    },
+    {
+      "teks": "{gagalKe}: tiap kegagalan mematikan satu pekerjaan.",
+      "jumlah": 6,
+      "alasan": "{percobaan} kegagalan pertama menghabiskan pekerjaan pertama. Kegagalan berikutnya jatuh pada pekerjaan kedua, bukan pada pekerjaan baru."
+    },
+    {
+      "teks": "{mati}: hanya pekerjaan pertama, yang habis percobaannya.",
+      "jumlah": 1,
+      "alasan": "{percobaan} kegagalan pertama menghabiskan pekerjaan pertama. Kegagalan ke-{gagalKe} jatuh pada pekerjaan kedua dan membuka breaker, sehingga {menunggu} pekerjaan lain masih menunggu."
+    },
+    {
+      "teks": "Semua {n}: vendor yang mati menghabiskan semua percobaan.",
+      "jumlah": 10,
+      "alasan": "Itu terjadi tanpa breaker: {n} pekerjaan mati sesudah {permintaan} permintaan. Dengan breaker, lajur berhenti diklaim sesudah kegagalan ke-{gagalKe}."
+    }
+  ],
+  "benar": "Tepat.",
+  "belum": "Belum tepat.",
+  "ulang": "Coba pilihan lain",
+  "ubahJudul": "Ubah satu hal dan lihat akibatnya.",
+  "kelompok": {
+    "jalur": "Jalur",
+    "error": "Error rate vendor",
+    "latensi": "Latensi vendor",
+    "jenis": "Jawaban error vendor",
+    "breaker": "Breaker",
+    "pulih": "Vendor pulih",
+    "serentak": "Slot worker"
+  },
+  "pilihNilai": {
+    "jalur": [
+      { "nilai": "sinkron", "label": "Sinkron: user menunggu" },
+      { "nilai": "queue", "label": "Queue: worker mengulang" }
+    ],
+    "error": [
+      { "nilai": 0, "label": "0%" },
+      { "nilai": 30, "label": "30%" },
+      { "nilai": 60, "label": "60%" },
+      { "nilai": 100, "label": "100%" }
+    ],
+    "latensi": [
+      { "nilai": 0, "label": "0 detik" },
+      { "nilai": 2, "label": "2 detik" },
+      { "nilai": 4, "label": "4 detik, melewati timeout" }
+    ],
+    "jenis": [
+      { "nilai": "5xx", "label": "5xx: vendor gagal" },
+      { "nilai": "4xx-gagal", "label": "4xx dihitung gagal (bawaan pustaka)" },
+      { "nilai": "4xx-sukses", "label": "4xx dihitung sukses (kustom)" }
+    ],
+    "breaker": [
+      { "nilai": true, "label": "Dipasang" },
+      { "nilai": false, "label": "Tanpa breaker" }
+    ],
+    "pulih": [
+      { "nilai": "sementara", "label": "Pulih pada detik {pulihDetik}" },
+      { "nilai": "terus", "label": "Tidak pulih" }
+    ],
+    "serentak": [
+      { "nilai": 1, "label": "1" },
+      { "nilai": 4, "label": "4" }
+    ]
+  },
+  "awal": "Kembali ke pengaturan awal",
+  "papan": {
+    "judul": "Detik demi detik",
+    "baris": "Detik {dari} sampai {sampai}",
+    "legenda": "Pita di atas tiap baris menunjukkan status breaker. Tiap kotak adalah satu detik.",
+    "status": { "closed": "closed", "open": "open", "half-open": "half-open" },
+    "hasil": {
+      "ok": "Berhasil",
+      "5xx": "Gagal 5xx",
+      "timeout": "Timeout",
+      "4xx": "Jawaban 4xx",
+      "tolak": "Ditolak cepat",
+      "diam": "Tidak ada percobaan",
+      "gagal": "Percobaan gagal"
+    }
+  },
+  "angka": {
+    "sinkron": {
+      "permintaan": "Permintaan",
+      "kevendor": "Sampai ke vendor",
+      "ditolak": "Ditolak cepat",
+      "tunggu": "Pemanggil menunggu",
+      "ditolakSehat": "Ditolak saat vendor sudah pulih"
+    },
+    "queue": {
+      "terkirim": "Terkirim",
+      "menunggu": "Menunggu",
+      "mati": "Mati",
+      "kevendor": "Permintaan ke vendor",
+      "probe": "Permintaan percobaan di half-open"
+    },
+    "detik": "{x} detik",
+    "tanpaBreaker": "tanpa breaker {x}"
+  },
+  "pekerjaan": {
+    "judul": "Pekerjaan verifikasi",
+    "kolom": ["Pekerjaan", "Percobaan", "Status"],
+    "status": { "menunggu": "menunggu", "terkirim": "terkirim", "mati": "mati" }
+  },
+  "vonis": {
+    "sinkron-tanpa": "Tanpa breaker, semua {n} permintaan sampai ke vendor dan pemanggil menunggu {tunggu} detik.",
+    "sinkron-tetap": "Breaker tidak pernah membuka, jadi semua {n} permintaan sampai ke vendor.",
+    "sinkron-membuka": "Breaker membuka pada detik {x} dan menolak {ditolak} dari {n} permintaan tanpa menunggu vendor.",
+    "queue-tanpa": "Tanpa breaker, {mati} dari {n} pekerjaan mati sesudah {percobaan} percobaan, dan {kevendor} permintaan sampai ke vendor.",
+    "queue-tetap": "Breaker tidak pernah membuka: {terkirim} pekerjaan terkirim, {mati} mati, dan {menunggu} menunggu.",
+    "queue-membuka": "Breaker membuka pada detik {x}; sesudah {horizon} detik {terkirim} pekerjaan terkirim, {mati} mati, dan {menunggu} menunggu."
+  },
+  "ringkas": {
+    "sinkron": "{ditolak} ditolak, menunggu {tunggu} detik",
+    "queue": "{mati} mati, {terkirim} terkirim, {kevendor} permintaan ke vendor"
+  },
+  "banding": {
+    "sama": "Ini pengaturan awal.",
+    "beda": "Pengaturan awal: {awal}. Sekarang: {kini}."
+  },
+  "cocok": "Cocok dengan rekaman",
+  "tanpaAcuan": "Tanpa titik rekaman: hasil ini Simulasi, dihitung widget ini dengan aturan breaker dari rekaman, bukan direkam.",
+  "acuan": {
+    "sinkron-bawaan": "breaker.txt bagian A: breaker membuka pada kegagalan ke-{gagalKe}, menolak tanpa memanggil vendor, dan half-open sesudah {buka} detik dengan satu permintaan percobaan. Jalur sinkron sendiri tidak dipasang di lab.",
+    "sinkron-4xx-gagal": "breaker.txt bagian C: dengan IsSuccessful bawaan pustaka, {empatBawaan} jawaban 4xx berturut-turut membuka breaker.",
+    "sinkron-4xx-sukses": "breaker.txt bagian C: dengan IsSuccessful kustom, {empatKustom} jawaban 4xx berturut-turut tidak membuka breaker.",
+    "queue-tanpa": "lajur.txt bagian A: tanpa breaker, {n} pekerjaan mati sesudah {percobaan} percobaan dan {permintaan} permintaan, sebelum vendor pulih.",
+    "queue-satu": "lajur.txt bagian B: {mati} dari {n} pekerjaan mati dan {menunggu} menunggu; sesudah vendor pulih {lulus} pekerjaan lulus dalam {permintaanAkhir} permintaan.",
+    "queue-empat": "lajur.txt bagian C: dengan {serentak} worker serentak dan {lulusC} pekerjaan, tidak ada yang mati sebelum breaker membuka, dan semuanya lulus sesudah vendor pulih. Widget memakai {n} pekerjaan.",
+    "queue-4xx-gagal": "lajur.txt bagian D: {rusak} dokumen rusak di depan membuat breaker membuka dan menjeda {sehat} pekerjaan sehat di belakangnya.",
+    "queue-4xx-sukses": "lajur.txt bagian E: dengan 4xx dihitung sukses breaker tidak membuka; {matiE} pekerjaan rusak habis {percobaan} percobaan dan {lulusE} pekerjaan sehat lulus dalam {permintaanE} permintaan."
+  },
+  "namaAcuan": {
+    "sinkron-bawaan": "Sinkron, vendor mati, breaker dipasang",
+    "sinkron-4xx-gagal": "Sinkron, jawaban 4xx dihitung gagal",
+    "sinkron-4xx-sukses": "Sinkron, jawaban 4xx dihitung sukses",
+    "queue-tanpa": "Queue, tanpa breaker, satu worker",
+    "queue-satu": "Queue, breaker, satu worker",
+    "queue-empat": "Queue, breaker, {serentak} worker",
+    "queue-4xx-gagal": "Queue, dokumen rusak, 4xx dihitung gagal",
+    "queue-4xx-sukses": "Queue, dokumen rusak, 4xx dihitung sukses"
+  },
+  "catatan": {
+    "sinkron": "Breaker di jalur sinkron tidak dipasang di lab, jadi seluruh jalur ini Simulasi: dihitung widget ini, bukan direkam.",
+    "ambang": "Ambang breaker (kegagalan ke-{gagalKe}) lebih tinggi daripada batas percobaan ({percobaan}). Dengan satu worker, pekerjaan pertama mati sebelum breaker membuka (lajur.txt bagian B).",
+    "probe": "Permintaan percobaan di half-open memakai percobaan pekerjaan terdepan. Selama vendor tetap mati, tiap Timeout breaker menghabiskan satu percobaan (tes lab, bukan rekaman lajur.txt).",
+    "empatSukses": "Kode lab menghitung semua jawaban 4xx sebagai sukses bagi breaker, termasuk 429 dan 408.",
+    "empatDiulang": "Pekerjaan queue dengan jawaban 4xx tetap diulang {percobaan} kali walau jawabannya tidak berubah (lajur.txt bagian E).",
+    "harga": "Breaker baru mencoba lagi sesudah Timeout, jadi permintaan yang sebenarnya bisa berhasil ikut ditolak."
+  },
+  "hitungan": {
+    "judul": "Hitungan: pemakaian worker dan outage panjang",
+    "worker": "Bila tiap percobaan menunggu sampai timeout, verifikasi {laju} per detik × {percobaan} percobaan × {detik} detik = {slot} dari {kapasitas} slot worker.",
+    "bersama": "Bersama notifikasi uang ({lajuUang} per detik × {detikUang} detik = {slotUang} slot): {bersama} dari {kapasitas} slot.",
+    "label": "Hitungan, Asumsi: {laju} verifikasi per detik, {lajuUang} notifikasi uang per detik, dan {detikUang} detik per notifikasi adalah angka naskah. Hanya {serentak} slot dan batas waktu client {timeoutClient} detik yang terukur (worker.txt bagian A).",
+    "dijeda": "Selama lajur dijeda, tidak ada permintaan baru ke vendor dan percobaan tidak bertambah (worker.txt bagian B).",
+    "outage": "Outage {outageDetik} detik ÷ Timeout {buka} detik = {probe} permintaan percobaan. {probe} ÷ {percobaan} percobaan = sampai {matiMaks} dari {pekerjaan} pekerjaan mati sebelum vendor pulih (Hitungan atas angka naskah, tidak dijalankan)."
+  },
+  "asal": {
+    "judul": "Dari mana angka ini",
+    "butir": [
+      "Rekaman lab: ambang lebih dari {lebihDari} gagal berturut-turut, open {buka} detik, satu permintaan di half-open, dan penilaian 4xx (breaker.txt). Pekerjaan, percobaan, dan permintaan dari lajur.txt dan worker.txt.",
+      "Simulasi: jam bergerak satu detik per langkah, urutan error rate acak dengan benih tetap, vendor pulih pada detik {pulihDetik}, dan backoff 0 seperti di lab. Jalur sinkron tidak ada di lab.",
+      "Hitungan, Asumsi: slot worker dan outage panjang dihitung dari laju dan lama outage naskah, bukan dari rekaman.",
+      "Mesin keadaan mengikuti pustaka gobreaker {versi} dengan pengaturan bawaan. Di lab jamnya diperankan, jadi {buka} detik tidak ditunggu."
+    ]
+  },
+  "tanpaJs": "Tanpa JavaScript, widget ini tidak jalan. Titik rekaman lab ada di tabel berikut.",
+  "tabel": {
+    "judul": "Titik acuan dari rekaman lab",
+    "kolom": ["Pengaturan", "Hasil di rekaman"]
+  }
+}
