@@ -27,10 +27,24 @@ import (
 
 type penerbit struct {
 	api, kunci string
+	// apiOtorisasi: alamat yang menerima /penerbit/otorisasi; kosong = api. Clearing dan reversal selalu ke api.
+	// Lab t4-kartu memakainya untuk mengarahkan otorisasi ke service pembayaran dan penagihan ke monolith.
+	apiOtorisasi string
 
 	mu          sync.Mutex
 	tenggat     time.Duration
 	bilaTimeout string
+	// keputusan: catatan penerbit sendiri, menurut urutan jawaban. Dipakai lab untuk membandingkan apa yang
+	// diputuskan penerbit dengan apa yang tercatat di Rekeningo (rekonsiliasi kartu); bukan bagian protokol.
+	keputusan []catatanKeputusan
+}
+
+type catatanKeputusan struct {
+	IDPenerbit string `json:"id_penerbit"`
+	Jumlah     int64  `json:"jumlah"`
+	Keputusan  string `json:"keputusan"`
+	Sumber     string `json:"sumber"` // rekeningo: Rekeningo menjawab dalam tenggat; timeout: penerbit memutuskan sendiri
+	Alasan     string `json:"alasan,omitempty"`
 }
 
 // kartu menurunkan token dan empat digit dari key: key yang sama menghasilkan kartu yang sama, jadi pengulangan
@@ -50,8 +64,12 @@ func (p *penerbit) aturan() (time.Duration, string) {
 // teruskan memanggil Rekeningo dan mengembalikan status dan isi jawaban. err bila tidak ada jawaban (timeout,
 // koneksi putus).
 func (p *penerbit) teruskan(path string, body []byte, tenggat time.Duration) (int, []byte, error) {
+	dasar := p.api
+	if path == "/penerbit/otorisasi" && p.apiOtorisasi != "" {
+		dasar = p.apiOtorisasi
+	}
 	c := &http.Client{Timeout: tenggat}
-	req, _ := http.NewRequest(http.MethodPost, p.api+path, bytes.NewReader(body))
+	req, _ := http.NewRequest(http.MethodPost, dasar+path, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Penerbit-Kunci", p.kunci)
 	resp, err := c.Do(req)
@@ -61,6 +79,12 @@ func (p *penerbit) teruskan(path string, body []byte, tenggat time.Duration) (in
 	defer resp.Body.Close()
 	isi, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	return resp.StatusCode, isi, err
+}
+
+func (p *penerbit) catat(c catatanKeputusan) {
+	p.mu.Lock()
+	p.keputusan = append(p.keputusan, c)
+	p.mu.Unlock()
 }
 
 func jawab(w http.ResponseWriter, status int, isi any) {
@@ -73,13 +97,14 @@ func main() {
 	alamat := flag.String("addr", "127.0.0.1:"+portLab(18285), "alamat server")
 	api := flag.String("api", "http://127.0.0.1:"+portLab(18280), "alamat Rekeningo (api-t4)")
 	kunci := flag.String("kunci", "kunci-penerbit-lab", "nilai header X-Penerbit-Kunci (data lab, bukan secret)")
+	apiOtorisasi := flag.String("api-otorisasi", "", "alamat khusus untuk otorisasi (kosong = -api); clearing dan reversal tetap ke -api")
 	tenggat := flag.Duration("tenggat", 2*time.Second, "tenggat jawaban otorisasi dari Rekeningo")
 	bila := flag.String("bila-timeout", "setuju", "keputusan penerbit bila jawaban terlambat atau gagal: setuju atau tolak")
 	flag.Parse()
 	if *bila != "setuju" && *bila != "tolak" {
 		log.Fatalf("-bila-timeout harus setuju atau tolak, bukan %q", *bila)
 	}
-	p := &penerbit{api: strings.TrimRight(*api, "/"), kunci: *kunci, tenggat: *tenggat, bilaTimeout: *bila}
+	p := &penerbit{api: strings.TrimRight(*api, "/"), apiOtorisasi: strings.TrimRight(*apiOtorisasi, "/"), kunci: *kunci, tenggat: *tenggat, bilaTimeout: *bila}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /kartu", func(w http.ResponseWriter, r *http.Request) {
 		k := r.Header.Get("Idempotency-Key")
@@ -98,11 +123,20 @@ func main() {
 			Keputusan string `json:"keputusan"`
 			Alasan    string `json:"alasan"`
 		}
+		var tanya struct {
+			IDPenerbit string `json:"id_penerbit"`
+			Jumlah     int64  `json:"jumlah"`
+		}
+		json.Unmarshal(body, &tanya)
 		if err != nil || status != http.StatusOK || json.Unmarshal(isi, &k) != nil || (k.Keputusan != "setuju" && k.Keputusan != "tolak") {
 			// Tidak ada keputusan dari Rekeningo dalam tenggat: penerbit memutuskan menurut aturan timeout-nya.
+			// Balasan yang bukan 200 atau yang tidak terbaca diperlakukan sama dengan tidak ada jawaban: itu
+			// penyederhanaan tiruan ini, bukan perilaku penerbit nyata yang terbaca di dokumentasinya.
+			p.catat(catatanKeputusan{IDPenerbit: tanya.IDPenerbit, Jumlah: tanya.Jumlah, Keputusan: bila, Sumber: "timeout"})
 			jawab(w, http.StatusOK, map[string]string{"keputusan": bila, "sumber": "timeout"})
 			return
 		}
+		p.catat(catatanKeputusan{IDPenerbit: tanya.IDPenerbit, Jumlah: tanya.Jumlah, Keputusan: k.Keputusan, Sumber: "rekeningo", Alasan: k.Alasan})
 		out := map[string]string{"keputusan": k.Keputusan, "sumber": "rekeningo"}
 		if k.Alasan != "" {
 			out["alasan"] = k.Alasan
@@ -124,6 +158,18 @@ func main() {
 	}
 	mux.HandleFunc("POST /lab/clearing", teruskanLangsung("/penerbit/clearing"))
 	mux.HandleFunc("POST /lab/reversal", teruskanLangsung("/penerbit/reversal"))
+	mux.HandleFunc("GET /lab/keputusan", func(w http.ResponseWriter, r *http.Request) {
+		p.mu.Lock()
+		salinan := append([]catatanKeputusan{}, p.keputusan...)
+		p.mu.Unlock()
+		jawab(w, http.StatusOK, map[string]any{"keputusan": salinan})
+	})
+	mux.HandleFunc("POST /lab/reset", func(w http.ResponseWriter, r *http.Request) {
+		p.mu.Lock()
+		p.keputusan = nil
+		p.mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
 	mux.HandleFunc("POST /lab/aturan", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			BilaTimeout string `json:"bila_timeout"`

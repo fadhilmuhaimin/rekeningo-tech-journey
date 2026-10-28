@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -18,6 +19,7 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -42,6 +44,7 @@ func main() {
 	baoAlamat := flag.String("rahasia-bao", "", "alamat secret manager (OpenBao): rahasia webhook dibaca dari sana saat runtime dan dibaca ulang tiap -rahasia-segar, menggantikan -rahasia-webhook; token dari lingkungan BAO_TOKEN (ADR 39)")
 	baoPath := flag.String("rahasia-bao-path", "secret/data/pembayaran/webhook", "path KV v2 dokumen rahasia ({sekarang, lama})")
 	baoSegar := flag.Duration("rahasia-segar", 30*time.Second, "jeda membaca ulang dokumen rahasia (Asumsi: 30 detik)")
+	penerbitKunci := flag.String("penerbit-kunci", "", "nilai header X-Penerbit-Kunci yang diterima POST /penerbit/otorisasi (data lab, bukan secret); kosong = rute kartu tidak dipasang (ADR 42)")
 	pool := flag.Int("pool", 5, "batas koneksi database (Asumsi naskah: 2 instance x 5)")
 	cekTopup := flag.Bool("cek-topup", false, "job: tanyakan ke gateway semua top-up yang menunggu lebih dari -cek-umur, lalu keluar (ADR 35)")
 	cekUmur := flag.Duration("cek-umur", 30*time.Minute, "job -cek-topup: umur minimal top-up yang ditanyakan (Asumsi: 30 menit)")
@@ -63,7 +66,10 @@ func main() {
 	db.SetMaxIdleConns(*pool)
 	defer db.Close()
 
-	s := &pembayaran.Service{DB: db, Ledger: ledger.Baru(*ledgerURL, *ledgerKunci, *ledgerBatas),
+	ledgerKlien := ledger.Baru(*ledgerURL, *ledgerKunci, *ledgerBatas)
+	kartuAktif := &atomic.Bool{}
+	kartuAktif.Store(true)
+	s := &pembayaran.Service{DB: db, Ledger: ledgerKlien, Penahan: ledgerKlien, KartuAktif: kartuAktif,
 		Gateway: gateway.Baru(*gatewayURL, *gatewayBatas)}
 	for _, r := range strings.Split(*rahasiaWebhook, ",") {
 		if r = strings.TrimSpace(r); r != "" {
@@ -134,6 +140,36 @@ func main() {
 			jawab(w, http.StatusOK, h)
 		}
 	})
+	if *penerbitKunci != "" {
+		// Penerbit kartu memanggil service ini langsung (ADR 42): hold lewat API ledger, Idempotency-Key = id_penerbit.
+		mux.HandleFunc("POST /penerbit/otorisasi", func(w http.ResponseWriter, r *http.Request) {
+			if subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Penerbit-Kunci")), []byte(*penerbitKunci)) != 1 {
+				jawab(w, http.StatusUnauthorized, map[string]any{"error": "kunci penerbit salah atau tidak ada"})
+				return
+			}
+			var in struct {
+				IDPenerbit *string `json:"id_penerbit"`
+				Token      *string `json:"token"`
+				Jumlah     *int64  `json:"jumlah"`
+			}
+			if json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&in) != nil || in.IDPenerbit == nil || in.Token == nil || in.Jumlah == nil {
+				jawab(w, http.StatusBadRequest, map[string]any{"error": "body harus {id_penerbit, token, jumlah}"})
+				return
+			}
+			k, err := s.Otorisasi(r.Context(), pembayaran.PermintaanOtorisasi{IDPenerbit: *in.IDPenerbit, Token: *in.Token, Jumlah: *in.Jumlah})
+			switch {
+			case errors.Is(err, pembayaran.ErrKartuValidasi):
+				jawab(w, http.StatusUnprocessableEntity, map[string]any{"error": err.Error()})
+			case errors.Is(err, pembayaran.ErrOtorisasiBeda):
+				jawab(w, http.StatusConflict, map[string]any{"error": err.Error()})
+			case err != nil:
+				log.Printf("otorisasi %s: %v", *in.IDPenerbit, err)
+				jawab(w, http.StatusInternalServerError, map[string]any{"error": "galat server"})
+			default:
+				jawab(w, http.StatusOK, k)
+			}
+		})
+	}
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		ctx, batal := context.WithTimeout(r.Context(), time.Second)
 		defer batal()
@@ -165,6 +201,17 @@ func main() {
 				return
 			}
 			jawab(w, http.StatusCreated, map[string]any{"order_id": t.OrderID, "status": t.Status, "jumlah": t.Jumlah})
+		})
+		mux.HandleFunc("POST /lab/flag-kartu", func(w http.ResponseWriter, r *http.Request) {
+			var in struct {
+				Aktif *bool `json:"aktif"`
+			}
+			if json.NewDecoder(r.Body).Decode(&in) != nil || in.Aktif == nil {
+				http.Error(w, "body harus {aktif}", http.StatusBadRequest)
+				return
+			}
+			kartuAktif.Store(*in.Aktif)
+			w.WriteHeader(http.StatusNoContent)
 		})
 		mux.HandleFunc("GET /lab/rahasia", func(w http.ResponseWriter, r *http.Request) {
 			if bao == nil {
