@@ -14,7 +14,7 @@ import { createHash } from "node:crypto";
 import { DataErd, ModulErd, PetaHalaman, type Tabel } from "./skema";
 import {
   UKURAN, ambangKolom, bagiLajur, bisaBanding, daftarFk, jumlahKolom, namaTombol, peringkat, ringkasan, tampilSebelum, tampilTahap, tata,
-  tandaiHalamanIni, tautanHalaman, teksAturan, teksKolom, teksPindah, barisPindah, tinggiNode, urutan, varPesan, duaBaris, duaKepala, lintasModul, modulTabel,
+  tandaiHalamanIni, tautanHalaman, teksAturan, teksKolom, teksPindah, barisPindah, tinggiNode, urutan, varPesan, duaBaris, duaKepala, lintasModul, modulTabel, tinggiKepala,
   periksaModul, ringkasModul, type HalamanRegistry, type TabelTampil,
 } from "./tumbuh";
 import { muat, url } from "../../tools/registri.mjs";
@@ -497,6 +497,8 @@ describe("ERD Tahap 4 dari lab api-t4 (ERD4)", () => {
       const y = new Map(t.node.map((n) => [n.nama, n.y]));
       for (const e of t.edge) lajur.set(e.offset, (lajur.get(e.offset) ?? new Set()).add(e.ke));
       expect(lajur.size, `lajur @${lebar}`).toBeLessThanOrEqual(9);
+      // Jarak antar node tepat setengah jarakY: tinggi yang dipakai menentukan posisi sama dengan tinggi node yang digambar.
+      t.node.forEach((n, i) => i && expect(n.y, `${n.nama} @${lebar}`).toBe(t.node[i - 1].y + t.node[i - 1].tinggi + UKURAN.jarakY / 2));
       // Satu lajur boleh dipakai banyak garis hanya bila menuju tabel yang sama atau rentang tegaknya terpisah.
       const rentang = (e: (typeof t.edge)[number]) => [Math.min(y.get(e.dari)! + UKURAN.keluarY, y.get(e.ke)! + UKURAN.masukY), Math.max(y.get(e.dari)! + UKURAN.keluarY, y.get(e.ke)! + UKURAN.masukY)];
       for (const a of t.edge)
@@ -526,6 +528,9 @@ describe("ERD Tahap 4 dari lab api-t4 (ERD4)", () => {
     for (const n of lebar) expect(tanda(UKURAN.lebar), n).toContain(n);
     expect(x.filter((t) => duaKepala(t, UKURAN.lebarMin)).map((t) => t.nama)).toContain("kunci_idempotensi");
     expect(x.filter((t) => duaKepala(t, UKURAN.lebar))).toHaveLength(0);
+    const kunci = x.find((t) => t.nama === "kunci_idempotensi")!;
+    expect([tinggiKepala(kunci, UKURAN.lebarMin), tinggiKepala(kunci, UKURAN.lebar)]).toEqual([UKURAN.kepalaDua, UKURAN.kepala]);
+    expect(tinggiNode(kunci, UKURAN.lebarMin) - tinggiNode(kunci, UKURAN.lebar)).toBe(UKURAN.kepalaDua - UKURAN.kepala + UKURAN.labelBaris * kunci.kolom.filter((k) => duaBaris(k, kunci, UKURAN.lebarMin)).length);
     // Baris dua baris menambah tinggi node; yang muat tidak.
     const akun = x.find((t) => t.nama === "akun")!;
     expect(tinggiNode(akun, UKURAN.lebarMin)).toBe(UKURAN.kepala + akun.kolom.length * UKURAN.baris + UKURAN.labelBaris * akun.kolom.filter((k) => duaBaris(k, akun, UKURAN.lebarMin)).length + UKURAN.bawah);
@@ -596,6 +601,7 @@ describe("ERD Tahap 4 dari lab api-t4 (ERD4)", () => {
     };
     expect(lab4[3].tabel.map((t) => t.nama)).toEqual(Object.keys(harap));
     for (const t of lab4[3].tabel) expect(tanda(t), t.nama).toBe(harap[t.nama]);
+    expect(lab4[3].postgres).toBe(17); // chip "Rekaman lab · PostgreSQL 17" di widget dibaca dari sini (kontainer postgres:17 lab api-t4)
     expect(createHash("sha256").update(JSON.stringify(lab4[3].tabel)).digest("hex")).toBe("adfbc78f7e3fe41eab20ec9c74b181a85fb2f4ed444be1a91da7438633292a92");
   });
   it("pembagian modul: enam modul 6 + 4 + 1 + 4 + 5 + 2 dari lab, sama dengan tabel 'Modul (schema)' naskah 3b", () => {
@@ -622,6 +628,13 @@ describe("ERD Tahap 4 dari lab api-t4 (ERD4)", () => {
     expect(ke((x) => x.ke_tabel)).toEqual({ akun: 12, jurnal: 7, kota: 1, perangkat: 1 });
     expect(ke((x) => x.dari_modul)).toEqual({ identitas: 1, ledger: 3, merchant: 6, pembayaran: 7, platform: 4 });
     expect(ringkasModul(modul)).toBe("6 modul, 22 tabel; 21 foreign key menyeberang batas modul (14 ke modul akun, 7 ke modul ledger).");
+  });
+  it("ringkasan modul mengurutkan tujuan menurut banyaknya foreign key, lalu menurut nama; tanpa foreign key lintas tidak ada kurung", () => {
+    const l = modul.lintas[0];
+    const buat = (...ke: string[]) => ({ ...modul, lintas: ke.map((k, i) => ({ ...l, fk: `f${i}`, ke_modul: k, dari_modul: "x" })) });
+    expect(ringkasModul(buat("ledger", "ledger", "ledger", "akun"))).toBe("6 modul, 22 tabel; 4 foreign key menyeberang batas modul (3 ke modul ledger, 1 ke modul akun).");
+    expect(ringkasModul(buat("platform", "akun"))).toBe("6 modul, 22 tabel; 2 foreign key menyeberang batas modul (1 ke modul akun, 1 ke modul platform).");
+    expect(ringkasModul(buat())).toBe("6 modul, 22 tabel; 0 foreign key menyeberang batas modul.");
   });
   it("penjaga modul: tabel pindah modul, tabel hilang atau ganda, atau foreign key lintas diubah membuat build gagal", () => {
     const pindah = structuredClone(modul);
