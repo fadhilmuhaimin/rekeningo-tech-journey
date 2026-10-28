@@ -81,6 +81,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Fan-out** | Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut. | [[D4b]] |
 | **FCM** (Firebase Cloud Messaging) | Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya. | [[E4]] |
 | **Foreign key** | Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada. | [[B2.1]] |
+| **Gateway pembayaran** | Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk. | [[t3-jembatan]] |
 | **Golden signals** | Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation. | [[t3-observability]] |
 | **Graceful shutdown** | Mematikan proses dengan rapi: berhenti menerima koneksi baru, lalu menunggu request yang sedang jalan selesai sebelum keluar. | [[t3-dua-instance]] |
 | **gzip** | Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip. | [[t2-payload]] |
@@ -114,6 +115,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Log** | Catatan kejadian per request atau per peristiwa, ditulis aplikasi untuk dibaca saat menyelidiki masalah. | [[t3-observability]] |
 | **Lost update** | Perubahan yang hilang karena dua transaction membaca nilai lama yang sama lalu saling menimpa. | [[t2-race-lock]] |
 | **LSN** (Log Sequence Number) | Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu. | [[D3]] |
+| **Merchant** | Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung. | [[t3-jembatan]] |
 | **Metode idempoten** | Metode HTTP yang efeknya di server sama untuk satu request atau banyak request identik: PUT, DELETE, dan semua metode safe seperti GET. | [[t2-kursor]] |
 | **Metric** | Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error. | [[t3-observability]] |
 | **Microservice** | Gaya arsitektur yang memecah backend jadi beberapa service kecil yang di-deploy terpisah dan saling memanggil lewat jaringan. | [[B7.2]] |
@@ -196,6 +198,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **TTL** (Time To Live) | Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa. | [[B9]] |
 | **Tutup buku** | Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang. | [[t2-tutup-buku]] |
 | **Umur notifikasi tertua** | Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu. | [[t3-m27]] |
+| **VPS** (virtual private server) | Server virtual yang disewa dari penyedia hosting. Satu VPS adalah satu mesin: bila mesin mati, semua proses di dalamnya ikut mati. | [[t3-dua-instance]] |
 | **WAL** (Write-Ahead Log) | Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary. | [[D3]] |
 | **Webhook** | HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil. | [[B10.2]] |
 | **WebSocket** | Koneksi dua arah yang tetap terbuka antara app dan server. | [[E4]] |

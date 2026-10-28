@@ -699,3 +699,66 @@ describe("struktur halaman dan dunia angka tertutup", () => {
     expect(new Set([...teksWidget.matchAll(/ADR (\d+)/g)].map((m) => m[1]))).toEqual(new Set(["21", "22", "24", "25", "26", "28", "32"]));
   });
 });
+
+// ---- Token versi PRD dan nomor Tahap: urutan per baris diturunkan dari registry (mutasi "PRD v4" menjadi "PRD v5" lolos tanpa ini) ----
+describe("token versi PRD dan nomor Tahap: urutan di tiap baris sama dengan yang diturunkan dari registry", () => {
+  const N2 = cerita.tahap[1]!.no;
+  const N3 = cerita.tahap[2]!.no;
+  const N4 = cerita.tahap[3]!.no;
+  const N5 = cerita.tahap[4]!.no;
+  const T = (n: number) => `Tahap ${n}`;
+  const P = (n: number) => `PRD v${n}`;
+  const V = (n: number) => `v${n}`;
+  const ORD: Record<number, string> = { 2: "kedua", 3: "ketiga", 4: "keempat" };
+  const tok = (l: string): string[] => [...l.matchAll(/Tahap \d+|PRD v\d+|\bv\d+\b/g)].map((m) => m[0]);
+  test("nomor tahap di registry berurutan 2, 3, 4, 5", () => {
+    expect([N2, N3, N4, N5]).toEqual([2, 3, 4, 5]);
+    expect(N4).toBe(N3 + 1);
+  });
+  test("kalimat pembuka sama dengan pola 2.33 dengan nomor tahap berikutnya", () => {
+    harus(`Ini pratinjau ${P(N4)}, dokumen ${ORD[N4]} yang Sinta tulis untuk Rekeningo. Halaman ini hanya menampilkan apa yang diminta; membangunnya adalah isi ${T(N4)}.`);
+    ada(T2("jembatan-prd-v3.mdx"), `Ini pratinjau ${P(N3)}, dokumen ${ORD[N3]} yang Sinta tulis untuk Rekeningo. Halaman ini hanya menampilkan apa yang diminta; membangunnya adalah isi ${T(N3)}.`, "2.33");
+    ada(T2("jembatan-prd-v3.mdx"), `Tahap ${N3 - 1} selesai di sini. PRD v${N3} lengkap ada di [[t3-prd]].`, "2.33");
+    harus(`${T(N3)} selesai di sini. ${P(N4)} lengkap ada di [[t4-prd]].`);
+  });
+  test("urutan token tiap baris: PRD v, v, dan Tahap", () => {
+    const hasil = badan.split("\n").map(tok).filter((t) => t.length > 0);
+    expect(hasil).toEqual([
+      [P(N4), T(N4)], // pembuka
+      [P(N4)], // aria-label kepala
+      [P(N4)], // nama blok pertama
+      [T(N3)], // Minggu 10 Tahap 3
+      [P(N4), P(N3)], // PRD v4 mengubah lima hal dari PRD v3
+      [P(N3), P(N4)], // judul kolom tabel
+      [T(N3)], // Selama Tahap 3
+      [T(N4)], // noscript
+      [P(N4), P(N3), V(N4)], // Enam fitur
+      [T(N3)], // judul kolom keadaan
+      [P(N3), V(N4), V(N3)], // top-up
+      [P(N3), V(N4)], // verifikasi
+      [P(N3)], // QR
+      [P(N3), V(N4), V(N3)], // kartu
+      [P(N3)], // back office
+      [V(N5)], // ditunda ke v5
+      [V(N4)], // bukan lingkup v4
+      [P(N4), T(N4)], // rincian
+      [P(N4), T(N3)], // tiga pertanyaan
+      [T(N3)], // pertanyaan 1
+      [T(N2)], // pertanyaan 2
+      [T(N3), V(N4)], // pertanyaan 3
+      [T(N4)], // nama blok Menuju
+      [T(N4), P(N4), P(N4)], // empat ADR
+      [T(N4), T(N3)], // definisi
+      [T(N4), T(N4)], // lima ADR lain
+      [T(N3), P(N4)], // dua hal
+      [P(N4)], // kartu 1
+      [P(N4), T(N4)], // kartu 3
+      [T(N3), P(N4)], // penutup
+    ]);
+  });
+  test("front matter dan baris meta: token versi dan tahap", () => {
+    expect(tok(frontmatter)).toEqual([P(N4), P(N4), T(N3)]);
+    expect(frontmatter).toContain(`Minggu ${cocok(naskah4, /minggu ke-(\d+) Tahap 3/)[1]}. Sinta membagikan ${P(N4)} untuk PT Rekeningo`);
+    expect(frontmatter).toContain(`Dari ADR ${T(N3)}, tebak mana yang pecah lebih dulu.`);
+  });
+});
