@@ -58,3 +58,52 @@ Polesan dari tinjauan Tahap 4 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - Penanda Snippet `tanpa-redirect` pindah dari `internal/unduh/unduh.go` ke `internal/klien/klien.go`; halaman 4.21 merujuk berkas baru.
 - Tes worker dengan jendela breaker 150 ms bergantung jam nyata; aman sampai 30 proses sibuk di mesin ini (tujuh run), tetapi tetap bukan jam palsu seperti tes `internal/lajur`.
 - Mutan setara yang tidak ditutup: `len(hasil) <= Serentak` di `klaim` (hanya satu lajur punya vendor), timeout 0 di client unduh (konteks `WithTimeout` tetap memutus), dan `serentak_maks` yang menyimpan nilai terakhir di tiruan; jadi relevan bila lab menambah lajur vendor kedua.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- `RekonHarian`: jumlahkan semua jurnal `topup_bank` per order (bukan hanya yang dipegang `topup_bank`) dan buat insiden bila lebih dari satu; tes dan rekaman di lab `t4-webhook`.
+- Pindahkan handler `cmd/pembayaran` ke paket agar bisa dites unit; sekarang statusnya (401, 400, 503) dijaga rekaman `ledger.txt` bagian D, bukan tes.
+- Api-t4: `go test -race ./internal/handler` gagal di `TestTopupBankEndpoint` (data race, `handler_pembayaran_test.go:347`; berkas tidak disentuh PR ini, diduga pra-ada), perbaiki sebelum `-race` dijadikan gerbang.
+- Lab `t4-modul`: golden hak (`rancanganHak` di `batas_test.go`) harus diperbarui bersama `modul.sql`; pertimbangkan membangkitkannya dari satu sumber.
+- Turunkan kontrak kolom identitas, merchant, dan platform dari kode, dan bangun satu pool per modul di monolith.
+- Pindahkan kode ledger lama ke `internal/modul/ledger/internal/...` supaya compiler yang menjaga batasnya, bukan hanya `go list -deps`.
+- Tulis kontrak OpenAPI untuk API ledger, serta TLS dan rotasi kunci layanan.
+- Halaman 4.12 dan 4.13: Snippet dari `ledger_api.go` bagian `ledger-kredit`, `pembayaran.go` bagian `terapkan` dan `selesai`, dan `modul.sql`; rekaman `batas.txt` untuk M32.
+- Halaman 4.14 dan 4.15: kutip `ukuran.txt` (rasio), `presign.txt`, `unggah.txt`, `unduh.txt`, dan `retensi.txt` lewat Snippet berrentang baris; tahan label Hitungan, Asumsi, Ilustrasi (file karangan), dan [perlu verifikasi] persis seperti di rekaman.
+- `GET /bo/verifikasi/{id}/berkas/...` menjawab 500 `berkas-rusak` untuk checksum tidak cocok; 5xx untuk data yang rusak bisa dibaca sebagai galat server: 409 atau 422 lebih tepat (perubahan perilaku api-t4, bukan bagian lab ini).
+- Pembersihan file yatim dari URL yang diminta tetapi tidak pernah diajukan: tidak ada job (aturan lifecycle penyimpanan atau job penyapu).
+- Presigned POST dengan `content-length-range` dan aturan lifecycle SeaweedFS 4.51: dukungan belum diperiksa [perlu verifikasi].
+- Bagian `beban` di `make -C labs/api-t4 cek` sekali gagal pada load average 29 ("generator tidak tertinggal"), lulus pada ulangan; ambang lag 100 ms bergantung mesin.
+- `make -C labs/t4-storage run` ±3,5 menit karena `docker compose stop` dan `start` SeaweedFS di bagian `retensi` ±45 detik; bisa dipersingkat bila penyimpanan tiruan cukup.
+- Presign bagian C: batas bawah 3,5 detik diukur dari saat jawaban server dibaca skrip, sedangkan tanggal tanda tangan dipotong ke detik di server; jawaban yang terlambat lebih dari sekitar 0,5 detik menggagalkan bagian itu (gagal keras). Lulus di bawah 16 proses CPU sibuk (load average satu menit 66,8); bila menjadi goyah, ukur dari waktu penandatanganan yang dikembalikan server.
+- README lab menyebut "AWS S3 API Reference"; halaman berjudul itu kini ada di S3 User Guide (`developerguide/sigv4-query-string-auth.html`) dan alamat `API/` mengarah ke indeks: sebut User Guide dan tanggal akses di halaman 4.15.
+- Halaman 4.15: tulis bahwa URL tanpa `content-length` ditandatangani tidak membatasi ukuran dan bahwa ukuran opsional di API ini (lihat PERLU-DICEK-PEMILIK).
+- `go test -run` lab t4-storage memuat empat paket dan penjaga pola; bila ada berkas tes jalur berkas baru, tambahkan ke daftar di `rekam_testing` (`run.py`).
+- ADR 36: terapkan usulan 401 dan 403 dihitung gagal di `internal/lajur` dan rekam ulang `t4-integrasi` (lab ini tidak mengubah kode lajur).
+- Rekam matinya proxy keluar (semua panggilan keluar gagal bersamaan) dan CONNECT untuk HTTPS bila halaman 4.17 membahas titik gagal tunggal.
+- Jalankan `cmd/pindairahasia` atas state IaC staging dan seluruh konfigurasi staging di pipeline (halaman 4.26), bukan hanya dua file contoh.
+- Periksa tanda tangan rilis dengan cosign dan gpg bila alatnya dipasang di mesin pengembang.
+- Alert atas `gagal_beruntun` pembaca rahasia dan rotasi token service belum ada.
+- Pemindai: nilai yang diubah bentuknya (base64) atau dipecah beberapa baris tidak tertangkap; awalan peka huruf besar-kecil; file `produksi.sidik` berisi SHA-256 penuh dan menjadi bahan tebakan bila rahasia berentropi rendah. Perlu diputuskan sebelum pemindai masuk pipeline (halaman 4.26).
+- Dugaan dari kode, tidak dijalankan: `internal/klien.Baru` memakai transport bawaan yang membaca `HTTP_PROXY`, jadi bila service produksi diberi `HTTP_PROXY` untuk proxy keluar, pembacaan OpenBao ikut lewat proxy (tujuan tak terdaftar dijawab 403, pembacaan awal gagal, service tidak menyala) kecuali `NO_PROXY` memuat alamat OpenBao. Rekam bila halaman 4.17 membahas konfigurasi proxy.
+- `TestProxyTidakMemakaiProxyLainDariLingkungan` meresolve nama `.invalid` dan memakan ±1 sampai 5 detik tergantung resolver mesin.
+- `labs/api-t4/internal/service/qr.go`: pindahkan validasi bentuk (nominal kosong atau di bawah 1, alasan 20 sampai 200 karakter) sebelum `BatasAkun` dan `KunciQR` bila pemilik memutuskan masukan salah tidak memakai jatah laju.
+- `GET /qr/{id}` tidak membawa `kota` bila `akun.kota_id` kosong; client Flutter harus menangani field opsional itu.
+- Dua pemeriksaan di `qrpayload.go` berlapis tanpa efek beda (`n <= 0` dan awalan `0` pada nominal; `peta["26"] == ""` dan pengenal penerbit); boleh disederhanakan bila halaman tidak mengutipnya.
+- Rekaman `statis.txt` dan `dinamis.txt` bergantung pada UPDATE kota merchant di data awal lab; hapus langkah itu bila seed api-t4 kelak mengisi kota merchant luar.
+- `make -C labs/t4-qr test` hanya menjalankan tes payload; tes service butuh `TEST_DATABASE_URL`, jadi tes itu hanya lewat `run.py BAGIAN=testing`.
+- `qrlab ganti -nominal 0` tidak bisa membuang nominal dari payload dinamis (0 berarti tidak diisi); cukup untuk lab ini.
+- `labs/api-t4/README.md` menulis jatah `qr-bayar` 20 pembayaran per menit, tetapi tidak ada tes atau rekaman yang menjalankannya (mutan M21 lolos semua tes dan rekaman); tambahkan tes di lab api-t4.
+- `repo/ledger.go` `KunciBukuAkun`: menghapus `ORDER BY id` (ADR 13) lolos seluruh tes service dan repo api-t4 (mutan M24). Urutan hasil `WHERE akun_id = ANY($1)` tidak bergantung pada urutan argumen, jadi mutan itu mungkin tidak berbahaya dalam praktik, tetapi urutan lock tidak dijaga tes; jaga bila ADR 13 butuh bukti di tingkat SQL.
+- Samakan pesan penolakan untuk nama yang ada dan yang tidak ada (ubah `Unduh`, `ErrTujuan` lawan `ErrTidakMenjawab`; ubah `TestSSRFBatasPesanMembedakanNamaDikenalDariTidakDikenal`, `batas.txt`, README lab, dan ADR 41 bila disentuh).
+- Halaman 4.20 dan 4.21: kutip `batas.txt` dan `alamat.txt` lewat Snippet berrentang baris; jangan menulis "rekaman" untuk perilaku versi rentan yang hanya ada di tes unit api-t4.
+- Rekaman tingkat endpoint `POST /merchant/katalog/impor` dengan `-rentan unduh-rentan` di `api-t4` (`rekam_fitur`) bila pemilik ingin halaman 4.20 bersandar pada rekaman, bukan tes unit.
+- Tes untuk proxy dan keep-alive (mutan D06, D07, C03) butuh tujuan non-loopback; tidak mungkin di lab host.
+- `batas.txt` memakai batas waktu nyata (dua tes menunggu 3 detik, ±7 detik total; margin 2 detik di sisi "dalam batas"); di bawah beban CPU ekstrem bagian waktu bisa gagal keras, bukan merekam salah.
+- Memori yang ditahan header besar tidak diukur (80 MiB adalah batas atas dari hitungan).
+- `make -C labs/t4-ssrf mutasi` ±20 menit; bisa dibatasi dengan `MUTAN="D03 L05"`.
+- Alamat IPv6 di `0000::/8` di luar blok terdaftar (misalnya `::ffff:0:a00:1`, IPv4-translated usang menurut RFC 2765) lolos `alamatDilarang`; tidak ada host sungguhan di sana, tetapi `::/8` satu baris bila pemilik ingin daftar lebih ketat daripada registri.
+- Awalan NAT64 khusus operator (RFC 6052 bagian 2.2) tidak bisa didaftar di kode; yang menutupnya penempatan jaringan proses pengunduh (ADR 41), yang Tidak dijalankan. Halaman 4.21 menyebut batas ini.
+- Halaman 4.21: kutip `alamat.txt` bagian tepi blok registri (27 blok, 54 tepi dalam, 39 tepi luar) bila ingin menunjukkan daftar dicocokkan dengan registri dari dua sisi, dan bagian berzona bila membahas bentuk alamat yang melewati daftar; jangan menulis "29 dari 32" tanpa angka 26 dari 32 bila alasannya `IsPrivate` tidak cukup.
+- Mutan V66 (membaca sampai dua kali batas) tidak teramati: butuh pengukuran memori atau pembaca yang bisa dihitung byte-nya; fetcher tidak membatasi panjang URL sendiri (batas 2.048 karakter ada di `ImporKatalog`).
+- `make -C labs/t4-ssrf mutasi` kini 136 mutan (±30 menit); `MUTAN="V21 V80"` membatasi.
