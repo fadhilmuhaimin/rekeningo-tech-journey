@@ -1759,74 +1759,74 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 3 disisipkan ole
 ### 3.25 · Keamanan 6: TLS, HSTS, pinning + ADR 31
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.24, lab-t3-mitm, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Keamanan + ADR 3.25 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan tabel ADR 31 dan peta halaman Tahap 3; rekaman dari `labs/t3-mitm`; widget tebak; ADR 31 dengan opsi tanpa pinning, pin sertifikat daun (200 hari), pin CA; hasil dio#2418 dari lab menentukan mekanisme di Dart; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: - Selesai 2026-10-27 di PR #403 (keputusan 1096–1099): tls-pinning.mdx (Keamanan 6, ADR 31 opsi D: pin SPKI + 1 cadangan di connectionFactory), penjaga 763/763 mutasi; peninjau meluruskan atribusi Android/OkHttp, klaim rantai CA di dokumentasi Dart, HSTS hanya di tepi lab, batas pin (perangkat dikuasai penyerang).
 
 ### 3.26 · M27: Hari promo, notifikasi uang terlambat
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.25, W3-outbox, lab-t3-outbox, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Masalah 3.26 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M27) dan peta halaman Tahap 3; rekaman dari `labs/t3-outbox`; widget W3-outbox dalam mode queue dengan dan tanpa kelas; kapasitas worker c ÷ t dan umur notifikasi tertua; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: ADR 32 memperbarui ADR 23: halaman menautkan 3.9.
+- catatan: ADR 32 memperbarui ADR 23: halaman menautkan 3.9. Selesai 2026-10-27 di PR #404 (keputusan 1100–1103): m27-hari-promo.mdx, widget OutboxWorker antrean, penjaga 49 tes; peninjau memperbaiki teks widget ('satu urutan waktu' padahal ORDER BY id) dan gejala salah arah; 481 mutan.
 
 ### 3.27 · Tim dan infra Tahap 3: staging, pipeline, alert, on-call + ADR 32
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.26, lab-api-t3, lab-t3-outbox, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Tim dan infra 3.27 sesuai `plan/CERITA-TAHAP-3.md` bagian 4, tabel ADR 32, dan daftar isi halaman 3.27 di bawah tabel ADR dan peta halaman Tahap 3; rekaman dari `labs/api-t3` dan `labs/t3-outbox`; widget pilah; isi mengikuti PROPOSAL "Pipeline backend per tahap" dan "Pipeline app Flutter per tahap"; required reviewers dan plan pemilik berlabel [perlu verifikasi] (R3-15); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Pecah menjadi dua halaman bila lebih dari 10 menit baca (SETELAH-TAHAP-3); ambang alert adalah Asumsi sampai ada rekaman.
+- catatan: Pecah menjadi dua halaman bila lebih dari 10 menit baca (SETELAH-TAHAP-3); ambang alert adalah Asumsi sampai ada rekaman. Selesai 2026-10-27 di PR #406 (keputusan 1104–1107): tim-infra.mdx (ADR 32: kolom kelas, alert umur uang tertua, staging, giliran jaga), widget pilah; peninjau meluruskan klaim 'umur tak melewati ambang' (jeda retry acak), ambang vs PRD 95%, baris 3.7; halaman 17 menit baca.
 
 ### 3.28 · M28: Uji coba enam kota lolos, PRD v4 datang
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.27, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Masalah 3.28 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 (M28) dan peta halaman Tahap 3; tanpa lab; widget kalkulator; puncak 17,4 request per detik berlabel Asumsi, PRD v4 sebagai pemicu seperti M17; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: - Selesai 2026-10-28 di PR #408 (keputusan 1108–1111): m28-prd-v4.mdx, kalkulator tiga skenario, tabel sepuluh masalah M18–M27; peninjau meluruskan '0,87' dua arti, 'satu-satunya panggilan keluar', 'dua dari sepuluh' (tiga); ±800 mutan.
 
 ### 3.29 · Estimasi Tahap 3 → 4
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.28, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Konsep 3.29 sesuai `plan/CERITA-TAHAP-3.md` bagian 4 dan 5 dan peta halaman Tahap 3; tanpa lab; widget kalkulator dengan asumsi Tahap 3 dan 4 dari registry; hitungan ditulis rumusnya; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Registry `tahap[3].asumsi` (Tahap 4) masih versi lama; `T4-siap` memperbaruinya, halaman ini memakai angka naskah Tahap 4 bila sudah ada.
+- catatan: Registry `tahap[3].asumsi` (Tahap 4) masih versi lama; `T4-siap` memperbaruinya, halaman ini memakai angka naskah Tahap 4 bila sudah ada. Selesai 2026-10-27 di PR #407 (keputusan 1112–1115): estimasi.mdx tanpa lab, kalkulator; peninjau meluruskan ambang client dua pool 5 = 13,8 detik (bukan 15,5), klaim negatif lawan beban.txt, pemakaian worker pada 12/detik = 63% dan 80%.
 
 ### 3.30 · ADR 33: Sengaja belum dilakukan
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.29, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman ADR 3.30 sesuai `plan/CERITA-TAHAP-3.md` tabel ADR 33 dan peta halaman Tahap 3; tanpa lab; tanpa microservices, Kubernetes dan canary, read replica, PgBouncer, CDC, VPS kedua, cache saldo dan riwayat, pembayaran offline; masing-masing dengan angka tahap ini dan pemicunya; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: - Selesai 2026-10-28 di PR #411 (keputusan 1116–1119): sengaja-belum.mdx (ADR 33 opsi C, delapan yang ditunda), kasus Segment 2018; peninjau meluruskan pembeda cache katalog vs saldo (uang), pemicu CDC 'terus-menerus', klaim load test berlingkup, '62 jam' = tiga permintaan Rp63.000; 1.357 mutan.
 
 ### 3.31 · Yang dibawa keluar dari Tahap 3
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.30, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman Konsep 3.31 sesuai `plan/CERITA-TAHAP-3.md` bagian 5 dan peta halaman Tahap 3; tanpa lab; widget kartu; tiga belas konsep dengan satu kalimat dan kejadiannya dari tabel naskah bagian 5; Cek diri gabungan; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: -
+- catatan: - Selesai 2026-10-28 di PR #413 (keputusan 1120–1123): rekap.mdx (13 kalimat naskah, empat dipersempit), kartu rekap; peninjau meluruskan label '62 jam/17 jam', premis Cek diri 4, kartu 2; penjaga dengan dan tanpa kunci baris.
 
 ### 3.32 · Jembatan: pratinjau PRD v4
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 3.31, KONSISTENSI-3, DIRI-2
 - selesai bila: halaman PRD 3.32 sesuai `plan/CERITA-TAHAP-3.md` bagian 6 dan peta halaman Tahap 3; tanpa lab; widget tebak (dari ADR Tahap 3, mana yang pecah lebih dulu?); PRD v4 enam butir; "uang elektronik publik" tanpa klaim izin atau regulasi; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama.
-- catatan: Jawaban tebakan dibuka di halaman pertama Tahap 4.
+- catatan: Jawaban tebakan dibuka di halaman pertama Tahap 4. Selesai 2026-10-28 di PR #414 (keputusan 1124–1127): jembatan-prd-v4.mdx (tebakan pola 2.33: ADR 22, 25, 26, 32 pecah lebih dulu, Asumsi), glosarium Gateway pembayaran dan Merchant; peninjau meluruskan ADR 23, janji 'Tahap 4 membacanya satu per satu', 'dijalankan tim empat orang'; ±2.100 mutan. Tahap 3 selesai ditulis.
 
 ### EVAL-3 · Evaluasi Tahap 3
 
@@ -1907,47 +1907,47 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan ole
 ### lab-t4-modul · Lab t4-modul: batas modul, schema dan role, dan service pembayaran
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-api-t4, lab-t4-webhook
 - selesai bila: Lab `labs/t4-modul` di atas `api-t4`: batas modul `ledger`, `akun`, `identitas`, `merchant`, `pembayaran`, `platform`, schema dan role database per modul (`REVOKE CREATE ON SCHEMA public FROM PUBLIC`, R4-03), paket `internal/` Go yang memaksa batas impor di compiler (R4-02), dan service pembayaran terpisah yang meminta jurnal lewat API ledger dengan Idempotency-Key. Direkam: (a) perubahan nama kolom lintas modul (`akun.nama` menjadi `akun.nama_tampil`, M32) gagal di CI sebagai compile error atau `permission denied`, bukan di produksi, dan lolos pada versi tanpa batas; (b) dua panggilan pembayaran ke ledger dengan Idempotency-Key yang sama menghasilkan satu jurnal, juga bila satu datang dari jalur webhook dan satu dari job cek status (key `order_id`); (c) proses pembayaran yang dimatikan sesudah ledger menjurnal dan sebelum `topup_bank` ditandai `dibayar` menghasilkan satu jurnal sesudah kiriman ulang; (d) tambahan latensi HTTP internal terukur sebagai batas (anggaran untuk ADR 37 "kapan salah"); (e) CODEOWNERS dan review wajib Tidak dijalankan di lab (pola terakhir menang menurut dokumentasi, R4-04; review wajib bergantung plan repositori, [perlu verifikasi: plan pemilik]); halaman memakai dokumentasi dan checklist PR sebagai cadangan. Bentuk akhir pembagian modul dan schema ditetapkan di sini; selisih dengan tabel "Modul (schema)" bagian 3b ditulis di badan PR. Lab ini berbagi `labs/api-t4` lewat mode rentan (pola api-t1 dan api-t3), bukan salinan; sebelum mengubah api-t4 cek flag terhadap PR terbuka lain dan jalankan ulang `make cek` lab yang berbagi (peninjau menjalankannya lagi). Aturan lab (`plan/BRIEF-HALAMAN.md` bagian Tugas lab dan widget): schema sendiri di PostgreSQL bersama, `make -C labs/t4-modul run`, gagal keras bila hasil berbeda dari pernyataan naskah (bila lab membantah naskah, naskah yang berubah lewat KONSISTENSI-4 dan halaman memakai rekaman); rekaman `output/*.txt` dari database bersih, diulang identik (status, saldo, urutan; angka mesin sebagai batas yang diperiksa; kepala rekaman menulis versi alat); port dan nama kontainer lewat `labs/lab_env.*` (keputusan 860–864), tanpa 54333 tertulis tetap (`tools/cek_port_lab.py`); pihak ketiga tiruan lokal di container; uji mutasi atas kode uang dan keamanan (tes atau lab gagal karena sebab yang diuji, bukan koneksi mati); klaim dari dokumentasi diberi versi dan tanggal, dan yang tidak terbukti ditulis Tidak dijalankan atau [perlu verifikasi] di README dan rekaman.
-- catatan: Jalur lab. Sumber halaman 4.12, 4.13 (dan 4.5 untuk pembagian schema). `b7-2-modul` hanya bahan. Bila bentuk akhir berbeda dari 3b dan `ERD4` sudah selesai, KONSISTENSI-4 menyelaraskan naskah dan menjalankan ulang `tools/erd.py`. ALOKASI: keputusan 1222–1225 (1222–1224 pelaksana, 1225 peninjau), ID riset R4-315 sampai R4-319.
+- catatan: Jalur lab. Sumber halaman 4.12, 4.13 (dan 4.5 untuk pembagian schema). `b7-2-modul` hanya bahan. Bila bentuk akhir berbeda dari 3b dan `ERD4` sudah selesai, KONSISTENSI-4 menyelaraskan naskah dan menjalankan ulang `tools/erd.py`. ALOKASI: keputusan 1222–1225 (1222–1224 pelaksana, 1225 peninjau), ID riset R4-315 sampai R4-319. Selesai 2026-10-27 di PR #401 (keputusan 1222–1225): labs/t4-modul (enam schema t4m_* 22 tabel, role per modul, internal/ Go, service pembayaran terpisah, API ledger); peninjau menemukan tes yang tak dijalankan gerbang, RekonHarian tak melihat jurnal kedua sesudah key habis, matriks hak 50 baris ACL.
 
 ### lab-t4-storage · Lab t4-storage: file di bytea lawan object storage dan presigned URL
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-api-t4
 - selesai bila: Lab `labs/t4-storage` di atas `api-t4`: SeaweedFS 4.51 (endpoint S3 lokal; versi dicek ulang saat lab ditulis) atau, bila presign tidak didukung, tiruan Go yang disebut terang. Direkam: (a) dump dan pulih membesar sebanding dengan ukuran file di `bytea` (rasio ukuran; waktu hanya batas), lawan file di penyimpanan objek yang menyisakan kunci dan checksum di database (28 hari × 1 GB, Hitungan, Asumsi); (b) presigned URL dipakai ulang oleh pemegang lain sampai kedaluwarsa dan ditolak sesudahnya; PUT ke kunci yang sama menimpa; kedaluwarsa dan batas ukuran di SeaweedFS [perlu verifikasi]; (c) unduh lewat server memeriksa peran dan menulis `audit_log`; (d) checksum tidak cocok membuat file ditolak, dan ukuran diperiksa sesudah unggah; (e) retensi 30 hari (Asumsi produk, [perlu verifikasi]) oleh job idempoten bila murah; nomor identitas tidak masuk log. Lab ini berbagi `labs/api-t4` lewat mode rentan (pola api-t1 dan api-t3), bukan salinan; sebelum mengubah api-t4 cek flag terhadap PR terbuka lain dan jalankan ulang `make cek` lab yang berbagi (peninjau menjalankannya lagi). Aturan lab (`plan/BRIEF-HALAMAN.md` bagian Tugas lab dan widget): schema sendiri di PostgreSQL bersama, `make -C labs/t4-storage run`, gagal keras bila hasil berbeda dari pernyataan naskah (bila lab membantah naskah, naskah yang berubah lewat KONSISTENSI-4 dan halaman memakai rekaman); rekaman `output/*.txt` dari database bersih, diulang identik (status, saldo, urutan; angka mesin sebagai batas yang diperiksa; kepala rekaman menulis versi alat); port dan nama kontainer lewat `labs/lab_env.*` (keputusan 860–864), tanpa 54333 tertulis tetap (`tools/cek_port_lab.py`); pihak ketiga tiruan lokal di container; uji mutasi atas kode uang dan keamanan (tes atau lab gagal karena sebab yang diuji, bukan koneksi mati); klaim dari dokumentasi diberi versi dan tanggal, dan yang tidak terbukti ditulis Tidak dijalankan atau [perlu verifikasi] di README dan rekaman.
-- catatan: Jalur lab. Sumber halaman 4.14, 4.15. Bila SeaweedFS gagal diunduh atau tidak mendukung presign, lab memakai tiruan Go dan menulis Tidak dijalankan untuk perilaku SeaweedFS. ALOKASI: keputusan 1226–1229 (1226–1228 pelaksana, 1229 peninjau), ID riset R4-320 sampai R4-324.
+- catatan: Jalur lab. Sumber halaman 4.14, 4.15. Bila SeaweedFS gagal diunduh atau tidak mendukung presign, lab memakai tiruan Go dan menulis Tidak dijalankan untuk perilaku SeaweedFS. ALOKASI: keputusan 1226–1229 (1226–1228 pelaksana, 1229 peninjau), ID riset R4-320 sampai R4-324. Selesai 2026-10-28 di PR #405 (keputusan 1226–1229): labs/t4-storage (SeaweedFS 4.51, SigV4 stdlib, presign, retensi); peninjau menemukan kunci unggahan berbentuk salah yang menghapus file sah (500) dan batas baca di bukaObjek.
 
 ### lab-t4-infra · Lab t4-infra: proxy keluar bertetap, OpenBao mode dev, dan OpenTofu
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-api-t4
 - selesai bila: Lab `labs/t4-infra` (keputusan 1207: OpenTofu memakai provider `random` dan `local`, bukan provider Docker): proxy keluar bertetap, OpenBao mode dev (v2.7.1), dan OpenTofu (v1.13.2); versi dicek ulang saat lab ditulis. Direkam: (a) permintaan keluar lewat proxy bertetap datang dari satu alamat, sedangkan tanpa proxy alamatnya berubah di tiap pindahan (pindahan diperankan dua container dengan alamat berbeda); layanan verifikasi tiruan yang hanya menerima alamat terdaftar menolak 403 pada alamat baru (M34); (b) state OpenTofu memuat nilai secret bila ditulis di konfigurasi (`random_password` atau variabel) dan tidak bila dibaca dari secret manager saat runtime [perlu verifikasi]; (c) rotasi secret di OpenBao terbaca service tanpa deploy, dengan masa tumpang tindih; cara OpenBao mode dev berjalan di lab [perlu verifikasi]; (d) secret staging dan produksi terpisah: kunci produksi yang ada di staging dideteksi (Ilustrasi bila tidak direkam). Tidak dijalankan dan ditulis begitu di README: hosting terkelola, NAT cloud, failover PostgreSQL terkelola, provider Docker atau cloud, Terraform v1.17.0 dan Vault v2.2.1 (lisensi BSL, hanya dibandingkan). Aturan lab (`plan/BRIEF-HALAMAN.md` bagian Tugas lab dan widget): schema sendiri di PostgreSQL bersama, `make -C labs/t4-infra run`, gagal keras bila hasil berbeda dari pernyataan naskah (bila lab membantah naskah, naskah yang berubah lewat KONSISTENSI-4 dan halaman memakai rekaman); rekaman `output/*.txt` dari database bersih, diulang identik (status, saldo, urutan; angka mesin sebagai batas yang diperiksa; kepala rekaman menulis versi alat); port dan nama kontainer lewat `labs/lab_env.*` (keputusan 860–864), tanpa 54333 tertulis tetap (`tools/cek_port_lab.py`); pihak ketiga tiruan lokal di container; uji mutasi atas kode uang dan keamanan (tes atau lab gagal karena sebab yang diuji, bukan koneksi mati); klaim dari dokumentasi diberi versi dan tanggal, dan yang tidak terbukti ditulis Tidak dijalankan atau [perlu verifikasi] di README dan rekaman.
-- catatan: Jalur lab. Sumber halaman 4.16, 4.17. Pemangkasan tugas ini ada di keputusan 1207 (usulan peninjau PR #379). ALOKASI: keputusan 1230–1233 (1230–1232 pelaksana, 1233 peninjau), ID riset R4-325 sampai R4-329.
+- catatan: Jalur lab. Sumber halaman 4.16, 4.17. Pemangkasan tugas ini ada di keputusan 1207 (usulan peninjau PR #379). ALOKASI: keputusan 1230–1233 (1230–1232 pelaksana, 1233 peninjau), ID riset R4-325 sampai R4-329. Selesai 2026-10-28 di PR #409 (keputusan 1230–1233): labs/t4-infra (OpenBao v2.7.2, OpenTofu v1.13.2, proxy keluar, state, rotasi); peninjau menemukan pemindai gagal terbuka (baris > 1 MiB) dan versi lama KV v2 masih terbaca sesudah tumpang tindih; tanda tangan GPG checksum diperiksa.
 
 ### lab-t4-qr · Lab t4-qr: payload QR, CRC, dan QR statis lawan dinamis
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-api-t4
 - selesai bila: Lab `labs/t4-qr` (Go murni, kecil dan murah) di atas `api-t4`: payload QR bergaya EMV dengan tag 01 (11 statis, 12 dinamis) dan CRC di tag 63. Direkam: (a) payload yang CRC-nya dihitung ulang untuk payload lain lolos validasi CRC (CRC bukan autentikasi); (b) QR dinamis sekali pakai: pembayaran kedua dan pembayaran sesudah kedaluwarsa (5 menit, Asumsi) ditolak, dan nominal terikat id QR; (c) QR statis milik merchant lain menghasilkan jurnal sah ke merchant itu: server tidak punya cara mencegahnya; batas Rp200.000 per transaksi QR statis (Asumsi produk) dan layar konfirmasi dengan nama dan kota merchant terverifikasi; (d) laporan QR palsu membekukan merchant lebih dulu; (e) parameter CRC memakai CRC-16 dengan polinomial 0x1021 dan nilai awal 0xFFFF, diuji lawan nilai uji sumber sekunder (0x29B1 untuk "123456789"); PDF EMVCo belum dibuka, jadi [perlu verifikasi di PDF EMVCo]. Tanpa nama skema nasional; format mengikuti standar publik. Lab ini berbagi `labs/api-t4` lewat mode rentan (pola api-t1 dan api-t3), bukan salinan; sebelum mengubah api-t4 cek flag terhadap PR terbuka lain dan jalankan ulang `make cek` lab yang berbagi (peninjau menjalankannya lagi). Aturan lab (`plan/BRIEF-HALAMAN.md` bagian Tugas lab dan widget): schema sendiri di PostgreSQL bersama, `make -C labs/t4-qr run`, gagal keras bila hasil berbeda dari pernyataan naskah (bila lab membantah naskah, naskah yang berubah lewat KONSISTENSI-4 dan halaman memakai rekaman); rekaman `output/*.txt` dari database bersih, diulang identik (status, saldo, urutan; angka mesin sebagai batas yang diperiksa; kepala rekaman menulis versi alat); port dan nama kontainer lewat `labs/lab_env.*` (keputusan 860–864), tanpa 54333 tertulis tetap (`tools/cek_port_lab.py`); pihak ketiga tiruan lokal di container; uji mutasi atas kode uang dan keamanan (tes atau lab gagal karena sebab yang diuji, bukan koneksi mati); klaim dari dokumentasi diberi versi dan tanggal, dan yang tidak terbukti ditulis Tidak dijalankan atau [perlu verifikasi] di README dan rekaman.
-- catatan: Jalur lab. Sumber halaman 4.18, 4.19. Perilaku pembeli di layar konfirmasi tidak terukur di lab (Asumsi). ALOKASI: keputusan 1234–1237 (1234–1236 pelaksana, 1237 peninjau), ID riset R4-330 sampai R4-334.
+- catatan: Jalur lab. Sumber halaman 4.18, 4.19. Perilaku pembeli di layar konfirmasi tidak terukur di lab (Asumsi). ALOKASI: keputusan 1234–1237 (1234–1236 pelaksana, 1237 peninjau), ID riset R4-330 sampai R4-334. Selesai 2026-10-28 di PR #410 (keputusan 1234–1237): labs/t4-qr (CRC-16/IBM-3740, QR statis/dinamis, laporan palsu); peninjau menutup celah tes (12 dari 20 mutan payload lolos) dan merekam penolakan dua orang; aturan pelapor QR palsu = keputusan produk.
 
 ### lab-t4-ssrf · Lab t4-ssrf: fetcher gambar rentan lawan aman
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: lab-api-t4
 - selesai bila: Lab `labs/t4-ssrf` di atas `api-t4`: fetcher gambar katalog dalam dua versi, rentan dan aman, dengan tujuan tiruan di jaringan container. Direkam: (a) fetcher rentan menjangkau tujuan di jaringan container (loopback, private, link-local) dan pesan kesalahannya menampilkan sebagian isi respons; (b) redirect dari alamat luar ke alamat dalam lolos pada versi rentan; (c) deny-list string pada URL dilewati bentuk alamat lain (desimal, heksadesimal, IPv4-mapped IPv6, nama yang diselesaikan ke alamat dalam); (d) fetcher dengan `Dialer.ControlContext` menolak semuanya, termasuk saat nama diselesaikan ke alamat berbeda di antara dua pemeriksaan (resolver buatan di lab); (e) hanya https, redirect dimatikan, 2 MB dan 3 detik, tipe isi dari byte, pesan kesalahan tanpa isi respons; (f) dial ke nama IDNA [perlu verifikasi: golang/go#80417]; `IP.IsPrivate` tidak cukup sendirian (golang/go#79925). Alamat metadata instance cloud dan IMDSv2 Tidak dijalankan (R4-14). Lab ini berbagi `labs/api-t4` lewat mode rentan (pola api-t1 dan api-t3), bukan salinan; sebelum mengubah api-t4 cek flag terhadap PR terbuka lain dan jalankan ulang `make cek` lab yang berbagi (peninjau menjalankannya lagi). Aturan lab (`plan/BRIEF-HALAMAN.md` bagian Tugas lab dan widget): schema sendiri di PostgreSQL bersama, `make -C labs/t4-ssrf run`, gagal keras bila hasil berbeda dari pernyataan naskah (bila lab membantah naskah, naskah yang berubah lewat KONSISTENSI-4 dan halaman memakai rekaman); rekaman `output/*.txt` dari database bersih, diulang identik (status, saldo, urutan; angka mesin sebagai batas yang diperiksa; kepala rekaman menulis versi alat); port dan nama kontainer lewat `labs/lab_env.*` (keputusan 860–864), tanpa 54333 tertulis tetap (`tools/cek_port_lab.py`); pihak ketiga tiruan lokal di container; uji mutasi atas kode uang dan keamanan (tes atau lab gagal karena sebab yang diuji, bukan koneksi mati); klaim dari dokumentasi diberi versi dan tanggal, dan yang tidak terbukti ditulis Tidak dijalankan atau [perlu verifikasi] di README dan rekaman.
-- catatan: Jalur lab. Sumber halaman 4.20, 4.21. Server uji hanya mendengar di jaringan container; tidak ada target di luar container. ALOKASI: keputusan 1238–1241 (1238–1240 pelaksana, 1241 peninjau), ID riset R4-335 sampai R4-339.
+- catatan: Jalur lab. Sumber halaman 4.20, 4.21. Server uji hanya mendengar di jaringan container; tidak ada target di luar container. ALOKASI: keputusan 1238–1241 (1238–1240 pelaksana, 1241 peninjau), ID riset R4-335 sampai R4-339. Selesai 2026-10-28 di PR #412 (keputusan 1238–1241): labs/t4-ssrf DIPERSEMPIT ke verifikasi defensif atas internal/unduh (respons agen dihentikan pemeriksa keamanan saat demonstrasi fetcher rentan; butir a–d Tidak dijalankan); zona IPv6 melewati alamatKhusus (diperbaiki), blok 192.88.99.0/24 ditambah.
 
 ### lab-t4-kartu · Lab t4-kartu: penerbit kartu tiruan, hold, dan kill switch
 

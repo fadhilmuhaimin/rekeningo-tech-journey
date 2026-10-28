@@ -97,8 +97,8 @@ Prompt pemilik: Tahap 2 sampai 6 diselesaikan tanpa bertanya, pemilik meninjau d
 | Tahap | Riset | Naskah | Lab | ERD | Widget | Halaman | Evaluasi |
 |---|---|---|---|---|---|---|---|
 | 2 | selesai (#272) | naskah pemilik | 12/12 (lab-api-t2a #294, lab-c4a #304, 2.20-lab #317) | ERD2, ERD-1.12 selesai | semua tugas teknis dan widget Tahap 2 selesai | 33/33 (2.1–2.33); perbaikan EVAL2-F1 (#361) dan DIRI-2 (#359) selesai | EVAL-2 (#356) dan putaran 2 (#363): W1–W4, W6–W8 YA, W5 TIDAK; tahap dinyatakan selesai |
-| 3 | selesai (#325) | selesai (#331; konsistensi #360, 63 tambalan) | 8/8 lab di main (api-t3, t3-pool, t3-outbox, t3-instance, t3-cache, t3-offline, t3-mitm, t3-dasbor #355) | ERD3 selesai (#344) | W3-pool, W3-outbox, W3-cache selesai (#352, #354, #358) | 24/32 (3.1–3.24 merge; 3.25 dan 3.26 berjalan) | antre |
-| 4 | selesai (#329) | selesai (#379, 54 tambalan konsistensi; registry dan ANTREAN #384) | 3/11 (api-t4 #392, t4-webhook #396, t4-integrasi #398; t4-modul dan t4-storage berjalan) | antre | antre (W4-webhook, W4-breaker) | 0/31 | antre |
+| 3 | selesai (#325) | selesai (#331; konsistensi #360, 63 tambalan) | 8/8 lab di main (api-t3, t3-pool, t3-outbox, t3-instance, t3-cache, t3-offline, t3-mitm, t3-dasbor #355) | ERD3 selesai (#344) | W3-pool, W3-outbox, W3-cache selesai (#352, #354, #358) | 32/32 (3.1–3.32 merge 2026-10-28; perbaikan EVAL-3 menyusul) | antre |
+| 4 | selesai (#329) | selesai (#379, 54 tambalan konsistensi; registry dan ANTREAN #384) | 8/11 (api-t4 #392, webhook #396, integrasi #398, modul #401, storage #405, infra #409, qr #410, ssrf #412; kartu #415 dan audit berjalan) | antre | antre (W4-webhook, W4-breaker) | 0/31 | antre |
 | 5 | selesai (#330) | antre | - | antre | antre | - | antre |
 | 6 | selesai (#332) | antre | tanpa lab | tanpa ERD | tanpa widget | - | antre |
 
