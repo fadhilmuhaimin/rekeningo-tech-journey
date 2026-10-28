@@ -205,8 +205,8 @@ describe("naskah M22: gejala, yang dikira, dan yang sebenarnya", () => {
   });
   test("catatan Angka cerita: 24 dan 20 sama dengan rekaman, tetapi rekaman memakai password salah, dan hasil dengan password benar tidak direkam", () => {
     expect(R["dua-instance"]).toMatchObject({ percobaan: 24, sampai: 20 });
-    harus("Angka 24 dan 20 sama dengan rekaman di blok \"Yang sebenarnya\", yang memakai password salah, jadi tiap percobaan yang sampai ke pemeriksaan password berakhir 401. Hasil dengan password yang benar tidak direkam.");
-    harus("Tiap percobaan ke akun uji yang berbeda, dengan password dari daftar kebocoran. Batas per alamat tertulis 10, tetapi 20 percobaan sampai ke pemeriksaan password");
+    harus("Angka 24 dan 20 sama dengan rekaman di blok \"Yang sebenarnya\", yang memakai password salah, jadi tiap percobaan yang sampai diperiksa passwordnya berakhir 401. Hasil dengan password yang benar tidak direkam.");
+    harus(`Ia mengirim ${R["dua-instance"].percobaan} percobaan login dari satu alamat. Tiap percobaan ke akun uji yang berbeda, dengan password dari daftar kebocoran. Batas per alamat tertulis ${batasAlamat.kapasitas}, tetapi ${R["dua-instance"].sampai} dari ${R["dua-instance"].percobaan} percobaan sampai diperiksa passwordnya sebelum ada yang ditolak dengan 429.`);
     // klaim negatif berlingkup: di rekaman A sampai D tidak ada jawaban 200, dan semua pemanggilan tebak() di rekam_batas memakai password bawaan (SALAH)
     expect(runPy).toContain('SALAH = "tebakan-salah"');
     expect(runPy).toContain("def tebak(port, emails, password=SALAH):");
@@ -230,6 +230,127 @@ describe("naskah M22: gejala, yang dikira, dan yang sebenarnya", () => {
     expect(c4).toContain("akun yang terkunci oleh serangan ini: 0");
     harus("bagian F rekaman c4-ratelimit mengukurnya: 20 dari 24.");
     harus("Satu tebakan per akun tidak pernah menyentuh kunci akun, jadi penyemprotan banyak akun hanya dihentikan batas per alamat ([[t2-login-aman]], bagian C rekaman c4-ratelimit).");
+  });
+});
+
+describe("EVAL3-F1 (W3): blok Gejala hanya berisi kejadian, dan pemeriksaan password didefinisikan satu kali di Yang sebenarnya", () => {
+  // Penanda definisi dibaca dari tools/eval_tahap.py (perintah `gejala`), supaya tes ini ikut gagal bila alatnya dilemahkan.
+  const evalPy = baca("tools/eval_tahap.py");
+  // Alatnya peka huruf besar (kalimat berawal "Artinya ..." lolos); penjaga ini tidak, jadi lebih ketat dari alat.
+  const reDef = new RegExp(cocok(evalPy, /^DEFINISI = re\.compile\(r"(.+)"\)$/m)[1]!, "i");
+  const awalGejala = badan.indexOf('<Blok nama="Gejala" buka>');
+  const gejala = badan.slice(awalGejala, badan.indexOf("</Blok>", awalGejala));
+  const awalSebenarnya = badan.indexOf('<Blok nama="Yang sebenarnya">');
+  const awalRantai = badan.indexOf("<Rantai data={batas} />");
+  const DEFINISI = "Pemeriksaan password adalah langkah login yang membandingkan password yang dikirim dengan hash.";
+  const paragraf = (t: string) => t.split("\n\n").map((p) => p.trim()).filter((p) => p !== "");
+  const kalimat = (t: string) => paragraf(t).flatMap((p) => p.split(/(?<=[.!?])\s+/));
+
+  test("penanda definisi dibaca dari tools/eval_tahap.py dan masih memuat semua kata penandanya", () => {
+    for (const k of ["adalah", "yaitu", "disebut", "artinya", "berarti", "maksudnya", "merupakan"]) expect(reDef.source, k).toContain(k);
+    expect(evalPy).toContain("if nama != \"Gejala\":");
+  });
+  test("Gejala: tiga paragraf adegan dan satu catatan Angka cerita; tidak ada kalimat berpenanda definisi, catatan ikut diperiksa", () => {
+    const p = paragraf(gejala.replace('<Blok nama="Gejala" buka>', ""));
+    expect(p).toHaveLength(4);
+    expect(p.slice(0, 3).every((x) => !x.startsWith("*"))).toBe(true);
+    expect(p[3]).toMatch(/^\*Angka cerita \(Ilustrasi\):\*/);
+    expect(kalimat(gejala).filter((k) => reDef.test(k))).toEqual([]);
+  });
+  test("istilah pemeriksaan password: tidak dipakai di Gejala, di catatannya, atau di Tebak; pemakaian pertamanya adalah kalimat definisi di kalimat Inti Yang sebenarnya, sebelum Rantai", () => {
+    expect(gejala).not.toMatch(/pemeriksaan password/i);
+    expect(badan.slice(0, awalSebenarnya)).not.toMatch(/pemeriksaan password/i);
+    expect(badan.match(/Pemeriksaan password adalah/g)).toHaveLength(1);
+    const awalDefinisi = badan.indexOf(DEFINISI);
+    expect(awalDefinisi, "kalimat definisi hilang").toBeGreaterThan(awalSebenarnya);
+    expect(awalDefinisi).toBeLessThan(awalRantai);
+    expect(badan.search(/pemeriksaan password/i)).toBe(awalDefinisi);
+    expect(badan.slice(awalSebenarnya, awalRantai)).toContain(`Batas per alamat tidak salah hitung. Batas itu dihitung di memori tiap instance, dan dua instance punya dua penghitung yang tidak saling tahu. ${DEFINISI}\n`);
+  });
+  test("kata sehari-hari di adegan, catatan, dan Tebak ('diperiksa passwordnya'); jumlahnya dari rekaman: 20 dari 24, 401 20 dan 429 4", () => {
+    const A = R["dua-instance"];
+    expect(A).toMatchObject({ percobaan: 24, sampai: 20, ditolak: 4 });
+    expect(A.sampai + A.ditolak).toBe(A.percobaan);
+    expect(gejala).toContain(`${A.sampai} dari ${A.percobaan} percobaan sampai diperiksa passwordnya sebelum ada yang ditolak dengan 429.`);
+    expect(gejala).toContain("jadi tiap percobaan yang sampai diperiksa passwordnya berakhir 401.");
+    expect(badan).toContain("Berapa yang sampai diperiksa passwordnya?</summary>");
+    expect(badan.match(/diperiksa passwordnya/g)).toHaveLength(3);
+  });
+  test("'sebelum ada yang ditolak' benar untuk rekaman A: percobaan dikirim berurutan (run.py), round_robin, 10 token per instance, jadi penolakan pertama jatuh sesudah 20 lolos", () => {
+    const tebak = runPy.slice(runPy.indexOf("def tebak("), runPy.indexOf("def tampil_akun("));
+    expect(tebak).toContain('hs = [minta("POST", "/login", port, {"email": e, "password": password}) for e in emails]');
+    expect(tebak).not.toMatch(/Thread|concurrent|asyncio|Pool|submit\(/);
+    expect(bergilir).toContain("lb_policy round_robin");
+    const sisa: Record<string, number> = { a: batasAlamat.kapasitas, b: batasAlamat.kapasitas };
+    const kirim = (x: string): number => {
+      if (sisa[x]! > 0) {
+        sisa[x] = sisa[x]! - 1;
+        return 401;
+      }
+      return 429;
+    };
+    const hasil = Array.from({ length: R["dua-instance"].percobaan }, (_, i) => kirim(i % 2 === 0 ? "a" : "b"));
+    expect(hasil.filter((h) => h === 401)).toHaveLength(R["dua-instance"].sampai);
+    expect(hasil.filter((h) => h === 429)).toHaveLength(R["dua-instance"].ditolak);
+    expect(hasil.indexOf(429)).toBe(R["dua-instance"].sampai);
+    expect(hasil.slice(R["dua-instance"].sampai).every((h) => h === 429)).toBe(true);
+  });
+  test("definisi cocok dengan kode dan rekaman: langkah di periksaMasuk (dipanggil Login) yang membandingkan password dari request dengan hash akun, atau hash tiruan; rekaman A memakai istilah yang sama untuk 401", () => {
+    const awal = sesiGo.indexOf("func (s Service) periksaMasuk(");
+    const fn = sesiGo.slice(awal, sesiGo.indexOf("func (s Service) Login(", awal));
+    expect(fn).toContain("func (s Service) periksaMasuk(ctx context.Context, email, password string) (repo.AkunMasuk, error) {");
+    expect(fn).toContain("bcrypt.CompareHashAndPassword([]byte(a.PasswordHash), []byte(password))");
+    expect(fn).toContain("bcrypt.CompareHashAndPassword(hashPalsu, []byte(password))");
+    const login = sesiGo.slice(sesiGo.indexOf("func (s Service) Login("), sesiGo.indexOf("func (s Service) LoginWeb("));
+    expect(login).toContain("a, err := s.periksaMasuk(ctx, email, password)");
+    expect(bagA).toContain("(401 sampai ke pemeriksaan password, 429 ditolak penahan per IP)");
+    expect(runPy).toContain("(401 sampai ke pemeriksaan password, 429 ditolak penahan per IP)");
+    // sesudah definisi, istilah itu dipakai apa adanya oleh Rantai, widget, dan Cek diri 3
+    expect(badan.slice(awalRantai).match(/pemeriksaan password/g)).toHaveLength(1); // Cek diri 3
+    expect(JSON.stringify(diagramMentah).match(/pemeriksaan password/g)).toHaveLength(2); // dua simpul Rantai
+  });
+});
+
+describe("EVAL3-F1: kalimat tanpa penjaga turunan tidak lolos mutasi tanpa kunci baris (sisip 'tidak', angka +1, hapus baris)", () => {
+  const S = R["satu-instance"], A = R["dua-instance"];
+  test("tag lipat dan blok seimbang, jumlah dan kelasnya terkunci: satu details question, empat success, satu details polos; lima Blok", () => {
+    expect(badan.match(/<details\b/g)).toHaveLength(6);
+    expect(badan.match(/<\/details>/g)).toHaveLength(6);
+    expect(badan.match(/<details class="question">/g)).toHaveLength(1);
+    expect(badan.match(/<details class="success">/g)).toHaveLength(4);
+    expect(badan.match(/<details>\n<summary>/g)).toHaveLength(1);
+    expect(badan.match(/<Blok /g)).toHaveLength(5);
+    expect(badan.match(/<\/Blok>/g)).toHaveLength(5);
+  });
+  test("adegan dan Raka: catatan Angka cerita, percobaan satu instance dan pertanyaan Tebak memakai jumlah dari rekaman bagian B", () => {
+    harus("*Angka cerita (Ilustrasi):* staging, password dari daftar kebocoran, dan Dimas sebagai pencoba berasal dari naskah.");
+    harus(`Angka ${A.percobaan} dan ${A.sampai} sama dengan rekaman di blok "Yang sebenarnya"`);
+    harus(`Lalu ia menjalankan ${S.percobaan} percobaan yang sama langsung ke satu instance, tanpa proxy.`);
+    harus(`<summary>Tebak dulu: ${S.percobaan} percobaan ke ${S.percobaan} akun berbeda dari satu alamat, langsung ke satu instance. Berapa yang sampai diperiksa passwordnya?</summary>`);
+  });
+  test("Yang sebenarnya: kalimat pembuka tiap paragraf bertanda tebal, kapasitas dari pembatas.go, pembagian dari rekaman A, rentang dari semua pembagian di bagian C", () => {
+    harus(`**Satu bucket per key, di memori satu proses.** Setiap alamat punya bucket login berisi paling banyak ${batasAlamat.kapasitas} token, dan setiap request login mengambil satu token. Bucket itu hanya ada di peta milik proses yang menerimanya:`);
+    harus("Batas login ditulis sebagai kapasitas dan laju isi ulang per detik:");
+    expect(baruKode(pembatasGo, ambangIP, ambangIP)).toContain(`${batasAlamat.kapasitas}, ${batasAlamat.perMenit}.0 / 60`);
+    harus(`**Dua instance, dua jatah.** Proxy bergantian, jadi tiap instance menerima ${A.percobaan / 2} dari ${A.percobaan} percobaan.`);
+    const lolos = (k: number) => Math.min(k, batasAlamat.kapasitas) + Math.min(A.percobaan - k, batasAlamat.kapasitas);
+    const semua = Array.from({ length: A.percobaan + 1 }, (_, k) => lolos(k));
+    harus(`**Pilihan Caddy menentukan angkanya.** Kebijakan bawaan Caddy memilih instance secara acak, jadi hasilnya antara ${Math.min(...semua)} dan ${Math.max(...semua)}. Sepuluh bila`);
+    harus(`**Isi ulang ikut berlipat.** Tiap instance mengisi ulang ${batasAlamat.perMenit} token per menit.`);
+    const D = { dua: bagD.match(/→ 401: (\d+) · 429: (\d+)/) };
+    expect(D.dua!.slice(1, 3)).toEqual(["10", "2"]);
+    harus("**Yang tidak berlipat: kunci akun.** Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali dan 429 dua kali. Bucket per akun juga di memori, 5 per instance.");
+    harus("Yang longgar adalah penahan banjir per alamat. Satu tebakan per akun tidak pernah menyentuh kunci akun,");
+    harus(`Lab Tahap ${dari("t3-m22").tahap} mengulangnya dengan dua proses \`api-t3\` dan proxy sungguhan.`);
+    expect(compose).toContain("api-t3");
+    harus("Setiap `POST /login` mengambil satu token dari bucket alamat itu sebelum isi request dibaca, juga login yang passwordnya benar:");
+  });
+  test("Konsep yang lahir: butir keempat dan kelima dan kalimat penutup terkunci; tautannya ada di registry", () => {
+    harus("- [[t2-m16]]: kunci akun di database, yang tidak ikut berlipat.");
+    harus("- [[t3-dua-tempat]]: pola salinan di luar database yang kembali di memori dua instance.");
+    harus("Yang disimpan di memori satu proses berlipat saat prosesnya dua.");
+    expect(dari("t2-m16").nomor).toBe("2.27");
+    expect(dari("t3-dua-tempat").nomor).toBe("3.4");
   });
 });
 
@@ -632,20 +753,20 @@ const KALIMAT_TERKUNCI: string[] = [
   "<p class=\"meta\">Baca 6 menit · coba 3 menit · Prasyarat: [[t3-dua-instance]] · Jalur inti</p>",
   "<Blok nama=\"Gejala\" buka>",
   "Minggu 6 Tahap 3. Bayu memasang instance API kedua di staging dan meminta Dimas dari tim TI mengujinya. Dimas suka mencoba, dan ia mulai dari pintu login.",
-  "Ia mengirim 24 percobaan login dari satu alamat. Tiap percobaan ke akun uji yang berbeda, dengan password dari daftar kebocoran. Batas per alamat tertulis 10, tetapi 20 percobaan sampai ke pemeriksaan password sebelum ada yang ditolak dengan 429. Pemeriksaan password adalah saat server membandingkan password dengan hash yang tersimpan.",
+  "Ia mengirim 24 percobaan login dari satu alamat. Tiap percobaan ke akun uji yang berbeda, dengan password dari daftar kebocoran. Batas per alamat tertulis 10, tetapi 20 dari 24 percobaan sampai diperiksa passwordnya sebelum ada yang ditolak dengan 429.",
   "Dimas memberi tahu Bayu: \"Batasnya sepuluh, tetapi dua puluh yang lewat.\" Bayu meneruskannya ke Raka.",
-  "*Angka cerita (Ilustrasi):* staging, password dari daftar kebocoran, dan Dimas sebagai pencoba berasal dari naskah. Angka 24 dan 20 sama dengan rekaman di blok \"Yang sebenarnya\", yang memakai password salah, jadi tiap percobaan yang sampai ke pemeriksaan password berakhir 401. Hasil dengan password yang benar tidak direkam. Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].",
+  "*Angka cerita (Ilustrasi):* staging, password dari daftar kebocoran, dan Dimas sebagai pencoba berasal dari naskah. Angka 24 dan 20 sama dengan rekaman di blok \"Yang sebenarnya\", yang memakai password salah, jadi tiap percobaan yang sampai diperiksa passwordnya berakhir 401. Hasil dengan password yang benar tidak direkam. Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].",
   "</Blok>",
   "<Blok nama=\"Yang Raka kira\" buka>",
   "Raka mengira penghitung gagal login salah di kode. Ia membuka konstanta batas: 10 percobaan per alamat, terisi ulang 10 per menit, dan 5 percobaan per akun, terisi ulang 5 per menit. Angka itu sama dengan yang ditulis ADR 20 di [[t2-login-aman]].",
   "Lalu ia menjalankan 24 percobaan yang sama langsung ke satu instance, tanpa proxy.",
   "<details class=\"question\">",
-  "<summary>Tebak dulu: 24 percobaan ke 24 akun berbeda dari satu alamat, langsung ke satu instance. Berapa yang sampai ke pemeriksaan password?</summary>",
+  "<summary>Tebak dulu: 24 percobaan ke 24 akun berbeda dari satu alamat, langsung ke satu instance. Berapa yang sampai diperiksa passwordnya?</summary>",
   "Sepuluh. Di rekaman lab `batas.txt` bagian B, 10 percobaan menjawab 401 dan 14 ditolak 429. Penghitungnya benar. Yang berubah di staging adalah jumlah instance, bukan kodenya.",
   "</details>",
   "</Blok>",
   "<Blok nama=\"Yang sebenarnya\">",
-  "Batas per alamat tidak salah hitung. Batas itu dihitung di memori tiap instance, dan dua instance punya dua penghitung yang tidak saling tahu.",
+  "Batas per alamat tidak salah hitung. Batas itu dihitung di memori tiap instance, dan dua instance punya dua penghitung yang tidak saling tahu. Pemeriksaan password adalah langkah login yang membandingkan password yang dikirim dengan hash.",
   "<Rantai data={batas} />",
   "*Kondisi rekaman:* PostgreSQL 17.11, dua proses `api-t3` (a dan b) di host, dan proxy Caddy 2.11.7 di kontainer. Proxy memakai kebijakan `round_robin` (bawaan Caddy: `random`), supaya angkanya tetap. Jam bucket dibekukan supaya tidak terisi ulang di tengah rekaman, dan password yang dikirim salah.",
   "**Satu bucket per key, di memori satu proses.** Setiap alamat punya bucket login berisi paling banyak 10 token, dan setiap request login mengambil satu token. Bucket itu hanya ada di peta milik proses yang menerimanya:",
