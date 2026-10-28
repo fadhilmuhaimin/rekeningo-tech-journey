@@ -66,16 +66,16 @@ const jam = (s) => `${s} detik`;
 const KASUS = [
   { kunci: "queue-satu", set: {}, vonis: `Breaker membuka pada detik 0; sesudah ${HORIZON} detik ${lulusB} pekerjaan terkirim, ${gagalB} mati, dan 0 menunggu.`, acuan: "lajur.txt bagian B",
     angka: { Terkirim: lulusB, Menunggu: 0, Mati: gagalB, "Permintaan ke vendor": `${permB} (tanpa breaker ${permA})`, "Permintaan percobaan di half-open": 1 },
-    pita: { closed: HORIZON - BUKA - 1, open: BUKA, "half-open": 1 }, baris: N, mati: gagalB, hitung: true, catatan: ["Ambang breaker", "Permintaan percobaan di half-open"] },
+    pita: { closed: HORIZON - BUKA - 1, open: BUKA, "half-open": 1 }, baris: N, mati: gagalB, sel: { diam: HORIZON - 2, gagal: 1, ok: 1 }, hitung: true, catatan: ["Ambang breaker", "Permintaan percobaan di half-open"] },
   { kunci: "queue-tanpa", set: { breaker: "Tanpa breaker" }, vonis: `Tanpa breaker, ${N} dari ${N} pekerjaan mati sesudah ${K} percobaan, dan ${permA} permintaan sampai ke vendor.`, acuan: "lajur.txt bagian A",
     angka: { Terkirim: 0, Mati: N, "Permintaan ke vendor": `${permA}` }, tanpaProbe: true,
-    pita: { closed: HORIZON, open: 0, "half-open": 0 }, baris: N, mati: N, hitung: true, catatan: [] },
+    pita: { closed: HORIZON, open: 0, "half-open": 0 }, baris: N, mati: N, sel: { diam: HORIZON - 1, gagal: 1, ok: 0 }, hitung: true, catatan: [] },
   { kunci: "queue-empat", set: { serentak: String(slotC) }, vonis: `Breaker membuka pada detik 0; sesudah ${HORIZON} detik ${N} pekerjaan terkirim, ${lagiC} mati, dan 0 menunggu.`, acuan: "lajur.txt bagian C",
-    angka: { Terkirim: N, Mati: lagiC }, pita: { closed: HORIZON - BUKA - 1, open: BUKA, "half-open": 1 }, baris: N, mati: lagiC, hitung: true, catatan: ["Permintaan percobaan di half-open"] },
+    angka: { Terkirim: N, Mati: lagiC }, pita: { closed: HORIZON - BUKA - 1, open: BUKA, "half-open": 1 }, baris: N, mati: lagiC, sel: { diam: HORIZON - 2, gagal: 1, ok: 1 }, hitung: true, catatan: ["Permintaan percobaan di half-open"] },
   { kunci: "queue-4xx-gagal", set: { jenis: EMPAT_GAGAL, error: "60%" }, vonis: `Breaker membuka pada detik 0; sesudah ${HORIZON} detik 0 pekerjaan terkirim, ${matiD} mati, dan ${menungguD} menunggu.`, acuan: "lajur.txt bagian D",
-    angka: { Terkirim: 0, Mati: matiD, Menunggu: menungguD }, baris: N, mati: matiD, rusak: rusakD, hitung: true, catatan: ["Ambang breaker", "diulang", "Permintaan percobaan di half-open"] },
+    angka: { Terkirim: 0, Mati: matiD, Menunggu: menungguD }, baris: N, mati: matiD, rusak: rusakD, sel: { diam: HORIZON - 3, gagal: 3, ok: 0 }, hitung: true, catatan: ["Ambang breaker", "diulang", "Permintaan percobaan di half-open"] },
   { kunci: "queue-4xx-sukses", set: { jenis: EMPAT_SUKSES, error: "60%" }, vonis: `Breaker tidak pernah membuka: ${lulusE} pekerjaan terkirim, ${gagalE} mati, dan 0 menunggu.`, acuan: "lajur.txt bagian E",
-    angka: { Terkirim: lulusE, Mati: gagalE, "Permintaan ke vendor": `${permE} (tanpa breaker ${permE})` }, pita: { closed: HORIZON, open: 0, "half-open": 0 }, baris: N, mati: gagalE, hitung: true, catatan: ["429 dan 408", "diulang"] },
+    angka: { Terkirim: lulusE, Mati: gagalE, "Permintaan ke vendor": `${permE} (tanpa breaker ${permE})` }, pita: { closed: HORIZON, open: 0, "half-open": 0 }, baris: N, mati: gagalE, sel: { diam: HORIZON - 1, gagal: 1, ok: 0 }, hitung: true, catatan: ["429 dan 408", "diulang"] },
   { kunci: "sinkron-bawaan", set: { jalur: SINKRON, pulih: TIDAK_PULIH }, vonis: `Breaker membuka pada detik ${G - 1} dan menolak ${HORIZON - G - PROBE_SINKRON} dari ${HORIZON} permintaan tanpa menunggu vendor.`, acuan: "breaker.txt bagian A",
     angka: { Permintaan: HORIZON, "Sampai ke vendor": `${G + PROBE_SINKRON} (tanpa breaker ${HORIZON})`, "Ditolak cepat": HORIZON - G - PROBE_SINKRON },
     pita: { closed: G, open: HORIZON - G - PROBE_SINKRON, "half-open": PROBE_SINKRON }, sel: { tolak: HORIZON - G - PROBE_SINKRON, "5xx": G + PROBE_SINKRON, ok: 0 },
@@ -99,6 +99,7 @@ const lapor = (ok, pesan) => {
   if (!ok) gagal++;
 };
 const W = "[data-circuit-breaker]";
+const jenisTinggi = {}, jenisWarna = {}, pitaWarna = {}, pitaTinggi = {};
 
 async function buka(ukuran, opsi = {}) {
   const [w, h] = ukuran;
@@ -168,9 +169,11 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
   const benar = w.locator(".tb-pilih").nth(2);
   await benar.focus();
   await page.keyboard.press("Enter");
+  const animTebak = await page.evaluate(() => document.getAnimations().length);
   const tepat = { pressed: await benar.getAttribute("aria-pressed"), fokus: await fokusTeks(page), ubah: await w.locator(".brk-ubah").count(), status: await status(), vonis: (await w.locator(".brk-vonis").innerText()).trim() };
   lapor(tepat.pressed === "true" && tepat.fokus === L.pilihNilai.jalur[0].label && tepat.ubah === 1 && tepat.status.includes(L.benar) && tepat.vonis === L.vonis["queue-membuka"].replace("{x}", "0").replace("{horizon}", String(HORIZON)).replace("{terkirim}", String(lulusB)).replace("{mati}", String(gagalB)).replace("{menunggu}", "0"),
     `breaker ${nama}: tebakan benar: aria-pressed ${tepat.pressed}, fokus di "${tepat.fokus}" (tombol pertama Ubah), hasil "${tepat.status.split("\n")[0]}", kalimat penuh "${tepat.vonis.slice(0, 60)}"`);
+  lapor(reducedMotion === "reduce" ? animTebak === 0 : animTebak >= 1, `breaker ${nama}: gerak masuk jawaban tebakan: ${animTebak} animasi tepat sesudah menebak (reduced motion: 0, lainnya: sedikitnya 1)`);
   const satuKalimat = !/\.\s/.test(tepat.vonis) && /\.$/.test(tepat.vonis);
   lapor(satuKalimat, `breaker ${nama}: kalimat penuh role=status satu kalimat`);
 
@@ -250,9 +253,19 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
           const ada = (n) => n !== "rgba(0, 0, 0, 0)" && n !== "transparent";
           const kosong = [...e.querySelectorAll(".brk-pita .brk-p, .brk-kotak .brk-k")].filter((x) => { const c = getComputedStyle(x); return (!ada(c.backgroundColor) && c.backgroundImage === "none" && c.boxShadow === "none") || x.getBoundingClientRect().height < 0.9; }).map((x) => x.className);
           const vonis = e.querySelector(".brk-vonis:not(:empty)");
-          return { kosong: [...new Set(kosong)], tepiVonis: vonis ? ada(getComputedStyle(vonis).borderLeftColor) : true };
+          return { kosong: [...new Set(kosong)], tepiVonis: vonis ? ada(getComputedStyle(vonis).borderLeftColor) && parseFloat(getComputedStyle(vonis).borderLeftWidth) >= 3 : true };
         })(),
         tolakCat: (() => { const t = e.querySelector(".brk-kotak .is-tolak"); return t ? getComputedStyle(t).boxShadow : null; })(),
+        legenda: [...e.querySelectorAll(".brk-legenda li")].map((x) => x.textContent.trim()),
+        legendaLebar: Math.min(...[...e.querySelectorAll(".brk-legenda .brk-p, .brk-legenda .brk-k")].map((x) => x.getBoundingClientRect().width)),
+        riwayatLebar: e.querySelector(".brk-riwayat .brk-k") ? Math.min(...[...e.querySelectorAll(".brk-riwayat .brk-k")].map((x) => x.getBoundingClientRect().width)) : null,
+        hitungLi: [...e.querySelectorAll(".brk-hitung li")].map((x) => x.textContent.trim()),
+        // Tiap jenis kotak dan pita punya tinggi dan warna sendiri (bukan hanya warna): dikumpulkan lintas kasus dan dibandingkan sesudah loop.
+        tinggiJenis: Object.fromEntries(["ok", "5xx", "timeout", "4xx", "gagal"].map((j) => [j, tinggi(`.brk-kotak .is-${j}`)])),
+        warnaJenis: Object.fromEntries(["ok", "5xx", "timeout", "4xx", "gagal"].map((j) => { const x = e.querySelector(`.brk-kotak .is-${j}`); return [j, x ? getComputedStyle(x).backgroundColor : null]; })),
+        warnaPita: Object.fromEntries(["closed", "open", "half-open"].map((j) => { const x = e.querySelector(`.brk-pita .is-${j}`); return [j, x ? getComputedStyle(x).backgroundColor : null]; })),
+        // Tombol yang ditekan terlihat berbeda dari yang tidak (latar dan tepi), bukan hanya lewat aria-pressed.
+        tombol: (() => { const on = e.querySelector(".brk-tombol[aria-pressed='true']"), off = e.querySelector(".brk-tombol[aria-pressed='false']"); if (!on || !off) return null; const a = getComputedStyle(on), b = getComputedStyle(off); return { latar: a.backgroundColor !== b.backgroundColor, tepi: a.borderTopColor !== b.borderTopColor }; })(),
         nama: [...e.querySelectorAll(".brk-kelompok")].map((g) => ({ nama: document.getElementById(g.getAttribute("aria-labelledby"))?.textContent.trim() ?? null, role: g.getAttribute("role") })),
       };
     });
@@ -267,6 +280,14 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
     ok &&= geo.catatan.length === (k.catatan ?? []).length + (k.hitung ? 1 : 0) && geo.asal === L.asal.judul;
     ok &&= geo.nama.length === 5 + (!k.set.jenis || k.set.jenis === NOL.jenis ? 1 : 0) + (sinkron ? 0 : 1) && geo.nama.every((g) => g.role === "group" && g.nama);
     ok &&= !sinkron ? geo.headerBaris === k.baris && geo.caption === L.pekerjaan.judul : geo.headerBaris === 0 && geo.caption === null;
+    const legendaOk = geo.legenda.length === 3 + (sinkron ? 5 : 3) && geo.legenda.includes(L.papan.hasil.tolak) === sinkron && geo.legendaLebar >= 8;
+    const dijeda = geo.hitungLi.filter((t) => t.includes("lajur dijeda")).length;
+    const hitungOk = sinkron || (geo.hitungLi.length === (k.set.breaker === "Tanpa breaker" ? 3 : 4) && dijeda === (k.set.breaker === "Tanpa breaker" ? 0 : 1) && geo.riwayatLebar >= 3);
+    const tombolOk = geo.tombol !== null && geo.tombol.latar && geo.tombol.tepi;
+    if (!(legendaOk && hitungOk && tombolOk)) console.log(`   ${k.kunci}: legenda ${legendaOk} (${geo.legenda.length} butir, swatch ${geo.legendaLebar} px), hitungan ${hitungOk} (${geo.hitungLi.length} baris, dijeda ${dijeda}, riwayat ${geo.riwayatLebar}), tombol ditekan ${JSON.stringify(geo.tombol)}`);
+    ok &&= legendaOk && hitungOk && tombolOk;
+    for (const j of ["ok", "5xx", "timeout", "4xx", "gagal"]) { if (geo.tinggiJenis[j] !== null) { jenisTinggi[j] = geo.tinggiJenis[j]; jenisWarna[j] = geo.warnaJenis[j]; } }
+    for (const j of ["closed", "open", "half-open"]) if (geo.warnaPita[j] !== null) { pitaWarna[j] = geo.warnaPita[j]; if (geo.tinggiPita[j === "half-open" ? "half" : j] !== null) pitaTinggi[j] = geo.tinggiPita[j === "half-open" ? "half" : j]; }
     const catOk = geo.cat.kosong.length === 0 && geo.cat.tepiVonis && geo.baris.every((b) => b.tinggi < 130);
     if (!catOk) console.log(`   cat ${k.kunci}: tanpa cat [${geo.cat.kosong}], tepi vonis ${geo.cat.tepiVonis}, tinggi baris ${geo.baris.map((b) => b.tinggi.toFixed(0))}`);
     ok &&= catOk;
@@ -290,6 +311,9 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
     lapor(ok, `breaker angka ${k.kunci}: "${vonis.slice(0, 90)}"; acuan ${acuan === "" ? "-" : acuan.slice(0, 50)}; pita ${JSON.stringify(geo.pita)}; ${JSON.stringify(dl).slice(0, 100)}`);
   }
   // Nama berkas dan istilah pustaka tidak diterjemahkan peramban; kotak dan pita tersembunyi dari pembaca layar.
+  const unik = (o, daftar) => new Set(daftar.map((k) => o[k])).size === daftar.length && daftar.every((k) => o[k] !== undefined);
+  lapor(unik(jenisTinggi, ["ok", "5xx", "timeout", "4xx"]) && unik(jenisWarna, ["ok", "5xx", "4xx"]) && jenisWarna.ok !== jenisWarna.gagal && unik(pitaTinggi, ["closed", "open", "half-open"]) && unik(pitaWarna, ["closed", "open", "half-open"]),
+    `breaker jenis kotak dan pita dibedakan: tinggi ${JSON.stringify(jenisTinggi)}, warna kotak ${Object.keys(jenisWarna).length} jenis, pita ${JSON.stringify(pitaTinggi)}`);
   await w.getByRole("button", { name: L.awal }).click();
   const kode = await w.locator("code").evaluateAll((c) => ({ n: c.length, salah: c.filter((x) => x.getAttribute("translate") !== "no").length }));
   lapor(kode.n >= 1 && kode.salah === 0, `breaker kode: ${kode.n} elemen code, ${kode.salah} tanpa translate="no"`);
@@ -357,15 +381,15 @@ for (const lebar of [320, 375]) for (const verdana of [false, true]) for (const 
 }
 {
   const { ctx, page } = await buka([320, 640], { javaScriptEnabled: false });
-  const t = await page.evaluate(() => {
+  const t = await page.evaluate((js) => {
     const tb = [...document.querySelectorAll("table")].find((x) => x.querySelector("caption")?.textContent.includes("Titik acuan"));
     if (!tb) return null;
     const c = tb.closest(".sl-markdown-content").getBoundingClientRect();
     const w = document.querySelector("[data-circuit-breaker]");
     const mati = [...document.querySelectorAll("button, input")].filter((e) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== "hidden" && !e.closest("header, nav, starlight-menu-button, site-search, [data-pagefind-ui]") && w && w.contains(e)).length;
-    return { baris: tb.querySelectorAll("tbody tr").length, lebih: Math.max(0, Math.round(tb.getBoundingClientRect().right - c.right)), halaman: document.documentElement.scrollWidth - innerWidth, teks: tb.innerText.replace(/\s+/g, " ").slice(0, 120), widgetTampil: w ? getComputedStyle(w).display : null, mati };
-  });
-  lapor(t !== null && t.baris === 8 && t.lebih <= 0 && t.halaman <= 0 && t.widgetTampil === "none" && t.mati === 0, `breaker tanpa JavaScript 320px: ${t ? `${t.baris} baris acuan, tabel melebihi wadah ${t.lebih} px, halaman +${t.halaman}, widget display ${t.widgetTampil} (tombol mati tampil: ${t.mati}); "${t.teks}"` : "tabel tidak ada"}`);
+    return { baris: tb.querySelectorAll("tbody tr").length, lebih: Math.max(0, Math.round(tb.getBoundingClientRect().right - c.right)), halaman: document.documentElement.scrollWidth - innerWidth, teks: tb.innerText.replace(/\s+/g, " ").slice(0, 120), widgetTampil: w ? getComputedStyle(w).display : null, mati, rowH: tb.querySelectorAll("tbody th[scope='row']").length, penjelasan: document.body.innerText.includes(js) };
+  }, L.tanpaJs);
+  lapor(t !== null && t.baris === 8 && t.rowH === 8 && t.penjelasan && t.lebih <= 0 && t.halaman <= 0 && t.widgetTampil === "none" && t.mati === 0, `breaker tanpa JavaScript 320px: ${t ? `${t.baris} baris acuan, tabel melebihi wadah ${t.lebih} px, halaman +${t.halaman}, widget display ${t.widgetTampil} (tombol mati tampil: ${t.mati}); "${t.teks}"` : "tabel tidak ada"}`);
   await ctx.close();
 }
 
