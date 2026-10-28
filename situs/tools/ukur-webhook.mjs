@@ -71,7 +71,7 @@ const HARAP = {
     adr34: [[`Membalas ${REK.kirim2B}`, `1 jurnal, ${REK.bayar}`, "kiriman ulang tidak menambah baris"], ["Rekaman lab", "Ilustrasi"]],
   },
   terlambat: {
-    pertama: [["menunggu, padahal top-up sudah dibayar", "tanpa membaca status sekarang"], ["Rekaman lab"]],
+    pertama: [["menunggu, padahal top-up sudah dibayar", "tanpa memeriksa status sekarang"], ["Rekaman lab"]],
     adr34: [[`Membalas ${REK.jawabF1}`, "evt-f1 settlement diproses; evt-f2 pending diparkir", "dibayar, tidak mundur; gateway ditanya 0 kali"], ["Rekaman lab"]],
   },
   hilang: {
@@ -87,6 +87,16 @@ const HARAP = {
 };
 const IDS = L.langkah.map((l) => l.id);
 const harap = (id, mode) => HARAP[id][mode] ?? HARAP[id].semua;
+// Tanda tiap baris keadaan per langkah dan versi (langkah yang tidak tercantum: semua netral). Dipakai kelas warna, kata Aman dan Masalah,
+// dan tabel <noscript>.
+const TANDA = {
+  ulang: { pertama: ["netral", "buruk", "buruk", "buruk"], adr34: ["netral", "baik", "baik", "baik"] },
+  terlambat: { pertama: ["netral", "netral", "buruk"], adr34: ["netral", "baik", "netral", "baik"] },
+  hilang: { pertama: ["netral", "netral", "buruk"], adr34: ["netral", "buruk", "buruk", "buruk"] },
+  cek: { pertama: ["netral", "netral", "baik", "baik"], adr34: ["netral", "netral", "baik", "baik"] },
+  rekon: { pertama: ["netral", "netral", "netral", "baik"], adr34: ["netral", "netral", "netral", "baik"] },
+  hasil: { pertama: ["buruk", "buruk", "baik"], adr34: ["baik", "baik", "baik"] },
+};
 
 const browser = awasi(await chromium.launch(), { alat: "webhook" });
 let gagal = 0;
@@ -150,10 +160,13 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
   // Salah dulu: jawaban salah, lalu ulang.
   await w.locator(".tb-pilihan button").nth(0).click();
   const s2 = { status: await status(), ulang: await w.getByRole("button", { name: L.ulang }).count(), hasil: await w.locator(".tb-hasil").count() };
+  // Langkah aktif dimajukan dulu: "Coba pilihan lain" harus mengembalikannya ke langkah 1 (bukan menyisakan langkah lama).
+  await w.locator(`.wh-langkah__item[data-langkah="${IDS[0]}"]`).getByRole("button", { name: L.berikutnya }).click();
+  const majuSalah = await aktifNo(w);
   await w.getByRole("button", { name: L.ulang }).click();
   const s3 = { status: await status(), aktif: await w.locator(".tb-pilihan button:not(:disabled)").count(), fokus: await page.evaluate(() => !!document.activeElement?.closest(".tb-pilihan")), bilah: await w.locator(".wh-bilah").count() };
-  lapor(s2.status === L.belum && s2.ulang === 1 && s2.hasil === 1 && s3.status === "" && s3.aktif === 3 && s3.fokus && s3.bilah === 0,
-    `webhook ${nama}: jawaban salah "${s2.status}", tombol "${L.ulang}" ${s2.ulang}, sesudah ulang status kosong, ${s3.aktif} pilihan aktif, fokus di pilihan ${s3.fokus}, bilah ${s3.bilah}`);
+  lapor(s2.status === L.belum && s2.ulang === 1 && s2.hasil === 1 && majuSalah === 2 && s3.status === "" && s3.aktif === 3 && s3.fokus && s3.bilah === 0,
+    `webhook ${nama}: jawaban salah "${s2.status}", tombol "${L.ulang}" ${s2.ulang}, langkah aktif ${majuSalah} sebelum ulang, sesudah ulang status kosong, ${s3.aktif} pilihan aktif, fokus di pilihan ${s3.fokus}, bilah ${s3.bilah}`);
 
   // Benar lewat Enter.
   const pil = w.locator(".tb-pilihan button").nth(BENAR);
@@ -200,6 +213,10 @@ for (const ukuran of [[375, 667], [1366, 657]]) {
   await siap(page);
   const w = page.locator(W);
   await tebakBenar(w);
+  // Nama aksesibel kelompok: widget, pilihan versi, dan keadaan tiap langkah (SC 4.1.2).
+  const grup = async (nama) => page.getByRole("group", { name: nama, exact: true }).count();
+  const nama1 = [await grup(L.judul), await grup(`${L.ubahJudul}: ${L.modeJudul}`), ...(await Promise.all(L.langkah.map((l) => grup(`${L.keadaanJudul}: ${l.judul}`))))];
+  lapor(nama1.length === 10 && nama1.every((n) => n === 1), `webhook langkah ${nama}: kelompok widget, pilihan versi, dan keadaan delapan langkah masing-masing bernama (${nama1.join(",")})`);
   for (const mode of ["pertama", "adr34"]) {
     await modeBtn(w, MODE_TEKS[mode]).click();
     const salah = [];
@@ -304,6 +321,16 @@ for (const ukuran of [[375, 667], [1366, 657]]) {
   await page.waitForTimeout(200);
   const y1 = await page.evaluate(() => scrollY);
   lapor((await aktifNo(w)) === 4, `webhook gulir ${nama}: ganti versi di langkah 4 tidak memindahkan langkah aktif (${await aktifNo(w)}), gulir ${y0} lalu ${y1}`);
+  // Bilah lengket buram dan di atas isi yang lewat di bawahnya: isi tidak tembus ke teks bilah.
+  const bilahTes = await page.evaluate(() => {
+    const b = document.querySelector(".wh-bilah");
+    const r = b.getBoundingClientRect();
+    const cs = getComputedStyle(b);
+    const m = (cs.backgroundColor.match(/\(([^)]+)\)/)?.[1] ?? "0,0,0,0").split(/[\s,/]+/).filter(Boolean).map(Number);
+    const titik = [[r.left + r.width / 2, r.top + 4], [r.left + 10, r.top + r.height / 2], [r.right - 10, r.bottom - 4]];
+    return { posisi: cs.position, alfa: m.length > 3 ? m[3] : 1, diAtas: titik.every(([x, y]) => !!document.elementFromPoint(x, y)?.closest(".wh-bilah")), atas: Math.round(r.top) };
+  });
+  lapor(bilahTes.posisi === "sticky" && bilahTes.alfa === 1 && bilahTes.diAtas, `webhook gulir ${nama}: bilah ${bilahTes.posisi} di y ${bilahTes.atas}, latar buram (alfa ${bilahTes.alfa}), di atas isi langkah ${bilahTes.diAtas}`);
   await ctx.close();
 }
 
@@ -314,12 +341,6 @@ for (const ukuran of [[375, 667], [1366, 657]]) {
   const w = page.locator(W);
   await tebakBenar(w);
   const tanda = async (id) => w.locator(`.wh-langkah__item[data-langkah="${id}"] .wh-baris`).evaluateAll((b) => b.map((x) => x.classList.contains("is-baik") ? "baik" : x.classList.contains("is-buruk") ? "buruk" : "netral"));
-  const TANDA = {
-    ulang: { pertama: ["netral", "buruk", "buruk", "buruk"], adr34: ["netral", "baik", "baik", "baik"] },
-    terlambat: { pertama: ["netral", "netral", "buruk"], adr34: ["netral", "baik", "netral", "baik"] },
-    hilang: { pertama: ["netral", "netral", "buruk"], adr34: ["netral", "buruk", "buruk", "buruk"] },
-    hasil: { pertama: ["buruk", "buruk", "baik"], adr34: ["baik", "baik", "baik"] },
-  };
   const salah = [];
   for (const mode of ["pertama", "adr34"]) {
     await modeBtn(w, MODE_TEKS[mode]).click();
@@ -331,7 +352,27 @@ for (const ukuran of [[375, 667], [1366, 657]]) {
       if (JSON.stringify(kata) !== JSON.stringify(harapKata)) salah.push(`${id} ${mode}: kata tanda ${JSON.stringify(kata)}`);
     }
   }
-  lapor(salah.length === 0, `webhook tanda: Aman dan Masalah berpasangan dengan warna di empat langkah dua versi${salah.length ? "; " + salah.join(" | ") : ""}`);
+  lapor(salah.length === 0, `webhook tanda: Aman dan Masalah berpasangan dengan warna di enam langkah dua versi${salah.length ? "; " + salah.join(" | ") : ""}`);
+  // Warna baris Aman dan Masalah dan katanya memakai token baik dan peringatan (bukan sekadar kelas), gelap dan terang.
+  const warna = await w.evaluate(() => {
+    const probe = (v) => { const d = document.createElement("div"); d.style.cssText = `position:absolute;border-left:3px solid var(${v});color:var(${v});background-color:var(${v})`; document.body.append(d); const s = getComputedStyle(d); const r = { garis: s.borderLeftColor, tinta: s.color, isi: s.backgroundColor }; d.remove(); return r; };
+    const awal = document.documentElement.dataset.theme;
+    const beda = [];
+    for (const tema of ["dark", "light"]) {
+      document.documentElement.dataset.theme = tema;
+      for (const [kelas, token] of [["is-baik", "good"], ["is-buruk", "warn"]]) {
+        const baris = document.querySelector(`.wh-baris.${kelas}`);
+        const s = getComputedStyle(baris);
+        const kata = getComputedStyle(baris.querySelector(".wh-tanda"));
+        if (s.borderLeftColor !== probe(`--k-${token}-edge`).garis) beda.push(`${tema} ${kelas} garis`);
+        if (s.backgroundColor !== probe(`--k-${token}-fill`).isi) beda.push(`${tema} ${kelas} latar`);
+        if (kata.color !== probe(`--k-${token}-ink`).tinta) beda.push(`${tema} ${kelas} kata`);
+      }
+    }
+    if (awal === undefined) delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = awal;
+    return beda;
+  });
+  lapor(warna.length === 0, `webhook tanda: garis, latar, dan kata baris Aman dan Masalah memakai token baik dan peringatan di gelap dan terang${warna.length ? "; beda " + warna.join(", ") : ""}`);
   const st = await w.evaluate((el) => {
     const s = [...el.querySelectorAll('[role="status"]')];
     return { n: s.length, teks: s.map((x) => x.textContent.trim()), tombolDiStatus: s.some((x) => x.querySelector("button")) };
@@ -410,6 +451,31 @@ for (const ukuran of [[320, 640], [375, 667], [1366, 657]]) for (const font of [
 }
 
 // 8. Tanpa JS dan CLS: island disembunyikan, <noscript> memuat tabel semua langkah dan versi; render build lawan sesudah hydrate.
+// Isi tampilan hidup per langkah dan versi (baris keadaan "label: nilai (kata tanda)" dan sumber "chip: teks"), dibaca dari DOM widget;
+// tabel <noscript> harus memuat teks yang sama.
+const tampilJs = { pertama: [], adr34: [] };
+{
+  const c = await buka([1366, 657], { reducedMotion: "reduce" });
+  await siap(c.page);
+  const wc = c.page.locator(W);
+  await tebakBenar(wc);
+  for (const m of ["pertama", "adr34"]) {
+    await modeBtn(wc, MODE_TEKS[m]).click();
+    tampilJs[m] = await wc.locator(".wh-langkah__item").evaluateAll((items) => items.map((it) => {
+      const baris = [...it.querySelectorAll(".wh-baris")].map((b) => {
+        const t = b.querySelector(".wh-tanda");
+        const nilai = [...b.querySelector("dd").childNodes].filter((n) => n !== t).map((n) => n.textContent).join("").replace(/\s+/g, " ").trim();
+        return `${b.querySelector("dt").textContent}: ${nilai}${t ? ` (${t.textContent})` : ""}`;
+      }).join(". ");
+      const sumber = [...it.querySelectorAll(".wh-sumber__butir")].map((s) => {
+        const chip = s.querySelector(".bb-chip").textContent;
+        return `${chip}: ${s.textContent.replace(chip, "").replace(/\s+/g, " ").trim()}`;
+      }).join(" ");
+      return [baris, sumber];
+    }));
+  }
+  await c.ctx.close();
+}
 for (const ukuran of [[320, 640], [375, 667], [1366, 657]]) {
   const ukur = (page) => page.evaluate(() => {
     const wd = document.querySelector("[data-webhook-langkah]");
@@ -420,7 +486,26 @@ for (const ukuran of [[320, 640], [375, 667], [1366, 657]]) {
   const baris = await a.page.locator("noscript table tbody tr").count();
   const gulirTanpaJs = await a.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   const kolom = await a.page.locator("noscript table thead th").allInnerTexts();
+  const isi = await a.page.locator("noscript table tbody tr").evaluateAll((tr) => tr.map((r) => [...r.children].map((c) => c.textContent.replace(/\s+/g, " ").trim())));
+  const kepalaBaris = await a.page.locator("noscript table tbody th[scope='row']").count();
   await a.ctx.close();
+  // Isi tabel: tiap langkah dan versi memuat frasa angka dan status, kata Aman dan Masalah sebanyak baris bertandanya, dan chip sumbernya.
+  const salahTabel = [];
+  IDS.forEach((id, i) => ["pertama", "adr34"].forEach((m, k) => {
+    const r = isi[i * 2 + k];
+    if (!r) { salahTabel.push(`${id} ${m}: baris tidak ada`); return; }
+    const [, chip] = harap(id, m);
+    const tanda = (TANDA[id]?.[m] ?? []).filter((x) => x !== "netral");
+    const hitung = (kata) => r[1].split(`(${kata})`).length - 1;
+    const tidak = [
+      !r[0].startsWith(`Langkah ${i + 1} dari 8: `) || !r[0].endsWith(`(${MODE_TEKS[m]})`) ? "kepala baris" : "",
+      r[1] !== tampilJs[m][i][0] || r[2] !== tampilJs[m][i][1] ? "isi berbeda dari tampilan dengan JS" : "",
+      hitung(L.tanda.baik) !== tanda.filter((x) => x === "baik").length || hitung(L.tanda.buruk) !== tanda.filter((x) => x === "buruk").length ? "tanda" : "",
+      chip.map((c) => (c === "Tidak dijalankan" ? L.jenisChip.tidak : c)).some((c) => !r[2].includes(c)) ? "chip" : "",
+    ].filter(Boolean);
+    if (tidak.length) salahTabel.push(`${id} ${m}: ${tidak.join(", ")}`);
+  }));
+  lapor(salahTabel.length === 0 && kepalaBaris === 16, `webhook tanpa JS ${ukuran.join("x")}: isi tabel (sama dengan tampilan JS, tanda, chip, kepala baris) cocok di 16 baris, ${kepalaBaris} kepala baris scope=row${salahTabel.length ? "; " + salahTabel.join(" | ") : ""}`);
   lapor(statis.tampil === "none" && gulirTanpaJs <= 0 && baris === 16 && JSON.stringify(kolom) === JSON.stringify([L.kolomTabel.langkah, L.kolomTabel.hasil, L.kolomTabel.sumber]),
     `webhook tanpa JS ${ukuran.join("x")}: island ${statis.tampil} (harap none), ${baris} baris tabel (harap 16), gulir ke samping ${gulirTanpaJs} px, kolom ${JSON.stringify(kolom)}`);
   const b = await buka(ukuran);
