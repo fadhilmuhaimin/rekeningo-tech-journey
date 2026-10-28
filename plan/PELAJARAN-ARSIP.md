@@ -373,3 +373,28 @@ Pola per halaman: branch `tahap-1/<slug>` dari `main`; lab dulu bila perlu (PR s
 | 3.19 | #391 | 572 (jeda limit #6 ±8 jam; kerja ±80) | 3 | 0 |
 | 3.20 | #390 | 556 (jeda limit #6; kerja ±70) | 2 | 0 |
 | 3.21 | #393 | 43 | 2 | 0 |
+
+## Perlu dicek pemilik, halaman 3.22–3.24 dan lab webhook/integrasi (arsip 2026-10-28)
+
+- Halaman 3.22–3.24 (#397, #399, #400) dan lab t4-webhook/t4-integrasi (#396, #398): naskah M25 "skrip yang sama memanggil endpoint" vs penggerak Playwright dan naskah M26 dua mekanisme hotspot tanpa memilih (usulan revisi di PR; naskah tak diubah); kata "Passkey" ditandai DEPRECATED di WebAuthn L3 padahal naskah, PRD v3, dan judul 3.23 memakainya; tab Rails dan Serverpod [perlu verifikasi]; lab: setelah jurnal pembalik `topup_bank.status` tetap `dibayar` dan rekonsiliasi tak menghitung pembalik (putuskan sebelum 4.9 dan ADR 35); probe half-open memakai percobaan pekerjaan (sampai 42 dari 146 pekerjaan mati; pilih a, b, atau c sebelum 4.11 dan ADR 36); lima timeout beruntun menjadikan pengajuan `gagal` walau vendor menyimpan objek; ambang breaker (ke-6) di atas batas percobaan (5); nasib pembayaran sesudah top-up kedaluwarsa; run main merah be88d32 = MACET renderer luapan `/cerita/peta/` (kelas G2d), bukan kode.
+
+## Ukur antrean merge, baris 3.22–3.24 dan lab webhook/integrasi (arsip 2026-10-28)
+
+| Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
+| --- | --- | --- | --- | --- |
+| 3.22 | #397 | 24 | 2 | 0 |
+| 3.23 | #399 | 198 (jeda limit #7 ±105 menit; kerja ±95) | 2 | 0 |
+| 3.24 | #400 | 185 (jeda limit #7; kerja ±105) | 2 | 0 |
+| lab t4-webhook | #396 | 49 | 0 | 0 |
+| lab t4-integrasi | #398 | 228 (jeda limit #7; kerja ±130) | 2 | 0 |
+
+## Perlu dicek pemilik, 3.25–3.32 dan lab Tahap 4 (2026-10-28)
+
+- 3.25 (#403): premis ADR 31 (CA asing di daftar akar HP karyawan) belum diukur; Android API 24+ tak mempercayai CA user bawaan, iOS tak dibaca; opsi tanpa pinning tetap sah; naskah ADR 31 opsi "pin CA (tidak menahan CA yang salah di daftar akar)" keliru (pin CA lain justru menolak CA Dimas: m26.txt B); naskah Tahap 4 M34 pindah hosting merotasi kunci tetapi tak menyebut pin; pin hanya dibuktikan di Dart CLI macOS (Android/iOS/Flutter Tidak dijalankan); aturan 'penerbitan ulang memakai kunci yang sama' dari rekaman lab bukan dokumentasi penerbit; kasus industri hanya sikap penerbit CA.
+- 3.26–3.29 (#404, #406–#408): naskah M27 'menunggu lebih dari 30 detik' = jendela pengamatan lab; 'queue urut waktu' padahal urut id; PRD v3 'top-up massal boleh menyusul beberapa menit' vs 750 detik (12,5 menit) untuk 10.000; ambang umur uang 30 detik = jendela retry (alert umur tak menangkap push yang mati cepat; alert jumlah baris mati milik pemilik); satu instance mati hanya terbaca di dasbor (lab tanpa pengawas proses); paket GitHub untuk required reviewers [perlu verifikasi]; kapan salah '±8 orang' bertentangan buku SRE bab 11; naskah M28 'tutup buku bulan ketiga' di minggu 10 janggal terhadap M17; naskah 4 ambang client ±15,5 untuk '2 instance × 5' berlaku satu pool 10 (dua pool 5 = ±13,8); pool 2×5 dan 'verifikasi memakai empat worker yang sama' = Asumsi desain padahal keputusan baru di Tahap 4; frasa penutup 'bukan kapasitas' (naskah), 'ketergantungan, bukan jumlah request per detik' (3.28), 'Kapasitas bukan jumlah request per detik' (3.29) berbeda.
+- 3.30–3.32 (#411, #413, #414): backup pg_dump harian = jendela kehilangan data ≤ 24 jam (±7.500 transaksi uang) vs aturan Pak Hadi, PRD v3 tanpa RTO/RPO; ambang 70/100 koneksi dan 100 pesan/detik Asumsi penulis; ADR 33 tujuh butir (M28/3.28) vs delapan (tabel ADR 33/3.30); naskah bagian 5 empat kalimat lebih luas dari rekaman (trace, urutan id, umur tertua, 'bukan kapasitas'); tebakan 3.32 memakai pola 2.33 (jawaban tampil dengan bukti Tahap 3) padahal naskah/ANTREAN menulis jawaban dibuka di Tahap 4; naskah 3 bagian 6 'gateway, kartu, dasbor' vs Pembayaran/Merchant/Platform; tim 10–15 vs 13; naskah 4 bagian 1 lima ADR (12, 22, 25, 26, 32) tanpa ADR 23; halaman 3.5 masih 'tim 6–10 developer dalam 2 tim'.
+- Lab Tahap 4 (#401, #405, #409, #410, #412): ADR 34 sesudah 24 jam hanya status topup_bank menahan jurnal kedua: bila proses mati antara ledger dan transaction pembayaran, kiriman ulang sesudah key habis (25 jam) = jurnal kedua dan saldo naik dua kali tanpa terlihat RekonHarian (penutup: key top-up tak kedaluwarsa selagi menunggu, atau rekonsiliasi menjumlahkan semua jurnal per order); ADR 37 satu role per modul (lab: proses memakai satu role pewaris); ukuran_kartu/ukuran_swafoto opsional → URL tanpa batas ukuran; kunci objek tak unik antar pengajuan (retensi baris pertama bisa menghapus file yang dirujuk baris kedua); pembacaan rahasia terakhir tanpa batas umur dan versi lama KV v2 terbaca sesudah tumpang tindih; sidik GPG OpenTofu tak dicocokkan sumber ketiga; aturan pelapor QR palsu (laporan atas QR sudah dibayar dan dari akun merchant pesaing membekukan merchant); PDF EMVCo tak dibuka (R4-331 halaman JS); lab ssrf dipersempit (respons agen dihentikan pemeriksa keamanan): butir (a)–(d) demonstrasi versi rentan Tidak dijalankan; rekaman tingkat endpoint unduh-rentan tak ada di mana pun (fitur.txt:201 dan rentan.txt:53 menunjuk lab ssrf); ADR 41 '2 MB' vs kode 2 MiB, daftar kelas lebih sempit dari kode.
+
+## Ukur antrean merge, baris 3.25–3.32 dan lab Tahap 4 (2026-10-28)
+
+Tabel di MEMORI: #403 81, #404 64, #406 29, #407 38, #408 68, #411 1045 (sesi dimulai ulang), #413 67, #414 67, lab #401 111, #405 383, #409 71, #410 1099 (sesi dimulai ulang), #412 102 menit; median 71 menit dari 13 PR (pembanding pemilik 160); gabung main 1–3; run main merah be88d32 dan fe5aea3 (infra: MACET renderer/digest Playwright).
