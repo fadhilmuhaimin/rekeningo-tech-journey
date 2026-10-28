@@ -1,0 +1,248 @@
+{
+  "judul": "Webhook masuk, langkah demi langkah",
+  "sumberChip": "Rekaman lab t4-webhook, Hitungan, Asumsi, Ilustrasi",
+  "jenisChip": { "rekaman": "Rekaman lab", "hitungan": "Hitungan", "ilustrasi": "Ilustrasi", "asumsi": "Asumsi", "tidak": "Tidak dijalankan" },
+  "tebakDulu": "Tebak dulu:",
+  "benar": "Tepat.",
+  "belum": "Belum tepat.",
+  "ulang": "Coba pilihan lain",
+  "ubahJudul": "Ubah satu hal",
+  "modeJudul": "Versi handler",
+  "mode": { "pertama": "Versi pertama", "adr34": "Versi ADR {adrHandler}" },
+  "modeKalimat": { "pertama": "versi pertama", "adr34": "versi ADR {adrHandler}" },
+  "petunjuk": "Gulir ke bawah atau pakai tombol Langkah berikutnya. Keadaan di atas berganti mengikuti langkah.",
+  "keadaanJudul": "Keadaan sesudah langkah ini",
+  "langkahJudul": "Langkah",
+  "berikutnya": "Langkah berikutnya",
+  "sebelumnya": "Langkah sebelumnya",
+  "statusLangkah": "Langkah {n} dari {total}, {mode}: {ringkas}.",
+  "tanda": { "baik": "Aman", "buruk": "Masalah" },
+  "tanpaJs": "Tanpa JavaScript, widget ini menampilkan hasil tiap langkah dan tiap versi handler sebagai tabel.",
+  "kolomTabel": { "langkah": "Langkah", "versi": "Versi", "hasil": "Hasil", "sumber": "Sumber" },
+  "tebak": {
+    "pertanyaan": "Budi membayar {bayar}. Balasan {kode} untuk kabar pertama hilang di jalan, jadi gateway mengirim kabar settlement yang sama lagi. Berapa jurnal top-up tercatat di handler versi pertama?",
+    "pilihan": [
+      {
+        "nilai": 0,
+        "teks": "{n} jurnal: handler menolak kabar yang datang berulang",
+        "alasan": "Tidak. Handler versi pertama tidak mengenali event_id dan tidak punya tabel event, jadi tidak ada yang bisa ditolaknya."
+      },
+      {
+        "nilai": 1,
+        "teks": "{n} jurnal: handler tahu top-up itu sudah dibayar",
+        "alasan": "Tidak. Handler versi pertama menulis status dari isi kabar tanpa membaca status sekarang, jadi ia tidak tahu top-up itu sudah dibayar."
+      },
+      {
+        "nilai": 2,
+        "teks": "{n} jurnal: saldo naik {naikPertama} untuk {bayar} yang dibayar",
+        "alasan": "Ya. Handler versi pertama menjurnal setiap kabar settlement: {jurnalPertama} jurnal, masing-masing bank −{bayar} dan karyawan +{bayar}."
+      }
+    ]
+  },
+  "langkah": [
+    {
+      "id": "buat",
+      "judul": "Top-up dibuat",
+      "teks": "Budi mengisi {bayar} dari rekening banknya. Rekeningo meminta order ke gateway tiruan dan mencatat top-up dengan status menunggu. Belum ada kabar yang diterima.",
+      "hasil": {
+        "pertama": {
+          "ringkas": "top-up {bayar} menunggu dan belum ada kabar",
+          "baris": [
+            { "label": "Gateway", "nilai": "Order dibuat, belum dibayar", "tanda": "netral" },
+            { "label": "Handler", "nilai": "Belum ada kabar", "tanda": "netral" },
+            { "label": "webhook_event", "nilai": "{awalBaris} baris; handler ini tidak menulisnya", "tanda": "netral" },
+            { "label": "Jurnal top-up", "nilai": "{awalJurnal} jurnal", "tanda": "netral" }
+          ],
+          "sumber": [{ "jenis": "ilustrasi", "teks": "Keadaan awal skenario. Jumlah {bayar} sama dengan rekaman ganda.txt, bagian A." }]
+        },
+        "adr34": {
+          "ringkas": "top-up {bayar} menunggu dan belum ada kabar",
+          "baris": [
+            { "label": "Gateway", "nilai": "Order dibuat, belum dibayar", "tanda": "netral" },
+            { "label": "Handler", "nilai": "Belum ada kabar", "tanda": "netral" },
+            { "label": "webhook_event", "nilai": "{awalBaris} baris", "tanda": "netral" },
+            { "label": "Jurnal top-up", "nilai": "{awalJurnal} jurnal", "tanda": "netral" }
+          ],
+          "sumber": [{ "jenis": "ilustrasi", "teks": "Keadaan awal skenario. Jumlah {bayar} sama dengan rekaman ganda.txt, bagian A." }]
+        }
+      }
+    },
+    {
+      "id": "kabar1",
+      "judul": "Kabar pertama: settlement",
+      "teks": "Budi membayar di bank. Gateway mengirim kabar settlement dengan event_id {event1}. Handler memprosesnya, tetapi balasan {kode} hilang di jalan, jadi gateway menganggap kiriman itu gagal.",
+      "hasil": {
+        "pertama": {
+          "ringkas": "kabar {event1} menjurnal {jurnal1} jurnal",
+          "baris": [
+            { "label": "Gateway", "nilai": "Kiriman pertama: settlement {event1}", "tanda": "netral" },
+            { "label": "Handler", "nilai": "Menjurnal dari isi kabar; tidak memeriksa tanda tangan, event, atau status", "tanda": "netral" },
+            { "label": "webhook_event", "nilai": "{eventPertama} baris", "tanda": "netral" },
+            { "label": "Jurnal top-up", "nilai": "{jurnal1} jurnal: bank −{bayar}, karyawan +{bayar}", "tanda": "netral" }
+          ],
+          "sumber": [{ "jenis": "rekaman", "lab": "t4-webhook", "berkas": "ganda.txt", "bagian": "A", "teks": "Jurnal pertama dari tabel posting. Balasan yang hilang hanya direkam untuk versi ADR {adrHandler}." }]
+        },
+        "adr34": {
+          "ringkas": "kabar {event1} tercatat dan menjurnal {jurnal1} jurnal",
+          "baris": [
+            { "label": "Gateway", "nilai": "Kiriman pertama: settlement {event1}; koneksi diputus sesudah balasan mulai datang", "tanda": "netral" },
+            { "label": "Handler", "nilai": "COMMIT dulu, baru membalas", "tanda": "netral" },
+            { "label": "webhook_event", "nilai": "{eventAdr} baris: {event1}, {eventAdrJenis}, {eventAdrHasil}", "tanda": "netral" },
+            { "label": "Jurnal top-up", "nilai": "{jurnal1} jurnal", "tanda": "netral" }
+          ],
+          "sumber": [{ "jenis": "rekaman", "lab": "t4-webhook", "berkas": "ganda.txt", "bagian": "B", "teks": "Kiriman pertama sudah di-COMMIT sebelum balasan dikirim." }]
+        }
+      }
+    },
+    {
+      "id": "ulang",
+      "judul": "Kiriman ulang: event yang sama",
+      "teks": "Gateway mengulang kiriman yang tidak dijawab 2xx, dengan jeda {jadwal} menit (total {total} menit). Kiriman ulang pertama jatuh di menit {menitUlang1} dan membawa event_id yang sama. Di lab, kedua kiriman dikirim berurutan tanpa menunggu.",
+      "hasil": {
+        "pertama": {
+          "ringkas": "{jurnalPertama} jurnal untuk satu pembayaran, saldo naik {naikPertama}",
+          "baris": [
+            { "label": "Gateway", "nilai": "Kiriman ulang: settlement {event1} lagi", "tanda": "netral" },
+            { "label": "Handler", "nilai": "Membalas {kirim2Pertama}", "tanda": "buruk" },
+            { "label": "webhook_event", "nilai": "{eventPertama} baris: tidak ada yang mengenali event_id", "tanda": "buruk" },
+            { "label": "Jurnal top-up", "nilai": "{jurnalPertama} jurnal; saldo Budi naik {naikPertama} untuk {bayar} yang dibayar", "tanda": "buruk" }
+          ],
+          "sumber": [
+            { "jenis": "rekaman", "lab": "t4-webhook", "berkas": "ganda.txt", "bagian": "A", "teks": "{jurnalPertama} jurnal untuk satu pembayaran." },
+            { "jenis": "ilustrasi", "teks": "Menit {menitUlang1} berasal dari jadwal retry. Rekaman mengirim kedua kiriman berurutan." }
+          ]
+        },
+        "adr34": {
+          "ringkas": "{jurnalAdr} jurnal untuk satu pembayaran, kiriman ulang dijawab {kirim2Adr}",
+          "baris": [
+            { "label": "Gateway", "nilai": "Kiriman ulang: settlement {event1} lagi", "tanda": "netral" },
+            { "label": "Handler", "nilai": "Membalas {kirim2Adr}", "tanda": "baik" },
+            { "label": "webhook_event", "nilai": "{eventAdr} baris; kiriman ulang tidak menambah baris", "tanda": "baik" },
+            { "label": "Jurnal top-up", "nilai": "{jurnalAdr} jurnal, {bayar}", "tanda": "baik" }
+          ],
+          "sumber": [
+            { "jenis": "rekaman", "lab": "t4-webhook", "berkas": "ganda.txt", "bagian": "B", "teks": "INSERT ... ON CONFLICT DO NOTHING tidak menghasilkan baris untuk event_id yang sama." },
+            { "jenis": "ilustrasi", "teks": "Menit {menitUlang1} berasal dari jadwal retry. Rekaman mengirim kedua kiriman berurutan." }
+          ]
+        }
+      }
+    },
+    {
+      "id": "terlambat",
+      "judul": "Kabar terlambat: pending sesudah settlement",
+      "teks": "Di top-up lain, kabar pending tiba sesudah kabar settlement. Kabar tidak selalu tiba berurutan, jadi kabar yang lebih lama bisa datang belakangan.",
+      "hasil": {
+        "pertama": {
+          "ringkas": "status top-up mundur ke {statusPending}",
+          "baris": [
+            { "label": "Gateway", "nilai": "Pending tiba sesudah settlement", "tanda": "netral" },
+            { "label": "Handler", "nilai": "Menulis status dari isi kabar, tanpa membaca status sekarang", "tanda": "netral" },
+            { "label": "Status top-up", "nilai": "{statusPending}, padahal top-up sudah dibayar", "tanda": "buruk" }
+          ],
+          "sumber": [{ "jenis": "rekaman", "lab": "api-t4", "berkas": "rentan.txt", "bagian": "A", "teks": "Status mundur karena tidak ada status bersyarat." }]
+        },
+        "adr34": {
+          "ringkas": "kabar pending diparkir, status top-up tetap {statusTerlambatAdr}",
+          "baris": [
+            { "label": "Gateway", "nilai": "Pending tiba sesudah settlement", "tanda": "netral" },
+            { "label": "Handler", "nilai": "Membalas {jawabTerlambatAdr}", "tanda": "baik" },
+            { "label": "webhook_event", "nilai": "{eventTerlambatAdr}", "tanda": "netral" },
+            { "label": "Status top-up", "nilai": "{statusTerlambatAdr}, tidak mundur; gateway ditanya {tanyaTerlambat} kali", "tanda": "baik" }
+          ],
+          "sumber": [{ "jenis": "rekaman", "lab": "t4-webhook", "berkas": "urutan.txt", "bagian": "F1", "teks": "Status akhir tidak ditanyakan ke gateway karena jawabannya tidak bisa mengubahnya." }]
+        }
+      }
+    },
+    {
+      "id": "hilang",
+      "judul": "Kabar hilang: tidak pernah tercatat",
+      "teks": "Top-up Citra {uangHilang} sudah dibayar di bank, tetapi kabarnya tidak pernah tercatat. Gateway mengulang menurut jadwal, lalu berhenti. Webhook adalah satu-satunya jalan kabar.",
+      "hasil": {
+        "pertama": {
+          "ringkas": "tidak ada kabar dan tidak ada jurnal",
+          "baris": [
+            { "label": "Gateway", "nilai": "Tidak mengirim kabar apa pun", "tanda": "netral" },
+            { "label": "Handler", "nilai": "Tidak berjalan, karena tidak ada kiriman", "tanda": "netral" },
+            { "label": "Jurnal top-up", "nilai": "{awalJurnal} jurnal; uang sudah dibayar di bank", "tanda": "buruk" }
+          ],
+          "sumber": [
+            { "jenis": "rekaman", "lab": "t4-webhook", "berkas": "rekon.txt", "bagian": "A", "teks": "Citra sudah membayar di bank, gateway tidak mengirim webhook." },
+            { "jenis": "tidak", "teks": "Penolakan {kodeTolak} karena rahasia lama hanya direkam untuk versi ADR {adrHandler}. Handler versi pertama tidak memeriksa tanda tangan." }
+          ]
+        },
+        "adr34": {
+          "ringkas": "{kirimanN} kiriman ditolak {kodeTolak}, tidak ada kabar dan tidak ada jurnal",
+          "baris": [
+            { "label": "Gateway", "nilai": "{kirimanN} kiriman pada menit {menitDaftar}; berhenti: {berhenti}", "tanda": "netral" },
+            { "label": "Handler", "nilai": "{kodeTolak} pada semua kiriman: rahasia belum disamakan dengan rotasi gateway", "tanda": "buruk" },
+            { "label": "webhook_event", "nilai": "{eventHilang} baris; status top-up {statusHilang}", "tanda": "buruk" },
+            { "label": "Jurnal top-up", "nilai": "{awalJurnal} jurnal; {uangHilang} sudah di bank", "tanda": "buruk" }
+          ],
+          "sumber": [{ "jenis": "rekaman", "lab": "t4-webhook", "berkas": "retry.txt", "bagian": "B", "teks": "Waktu diperankan, tidak ditunggu: {total} menit adalah ±{jamTotal} jam." }]
+        }
+      }
+    },
+    {
+      "id": "cek",
+      "judul": "Jalan kedua: cek status ke gateway",
+      "teks": "Job cek status menanyakan top-up yang menunggu lebih dari {batasCek} menit langsung ke gateway. Job berjalan terpisah dari handler, jadi untuk top-up tanpa kabar hasilnya sama di kedua versi.",
+      "hasil": {
+        "semua": {
+          "ringkas": "umur {umur2} menit: {periksa2} top-up diperiksa dan {kredit2} dikredit",
+          "baris": [
+            { "label": "Job cek status", "nilai": "Umur {umur1} menit: diperiksa {periksa1}. Umur {umur2} menit: diperiksa {periksa2}, dikredit {kredit2}", "tanda": "netral" },
+            { "label": "Gateway", "nilai": "Ditanya langsung, tanpa menunggu kabar", "tanda": "netral" },
+            { "label": "Status top-up", "nilai": "{statusCek}, dengan jurnal", "tanda": "baik" },
+            { "label": "Jurnal top-up", "nilai": "{kredit2} jurnal lewat fungsi yang sama dengan webhook", "tanda": "baik" }
+          ],
+          "sumber": [
+            { "jenis": "rekaman", "lab": "t4-webhook", "berkas": "rekon.txt", "bagian": "A", "teks": "Umur top-up diputar mundur lewat UPDATE kolom dibuat oleh pemilik schema, hanya di lab." },
+            { "jenis": "asumsi", "teks": "Batas {batasCek} menit adalah pilihan tiruan, bukan angka gateway." }
+          ]
+        }
+      }
+    },
+    {
+      "id": "rekon",
+      "judul": "Rekonsiliasi harian",
+      "teks": "Tiap hari laporan settlement gateway dibandingkan satu per satu dengan jurnal. Selisih menjadi insiden bernomor. Koreksinya lewat jurnal baru, tidak lewat UPDATE pada posting atau saldo.",
+      "hasil": {
+        "semua": {
+          "ringkas": "{insiden} insiden: {dikoreksi} dikoreksi lewat jurnal, {terbuka} tetap terbuka",
+          "baris": [
+            { "label": "Laporan gateway", "nilai": "{barisLaporan} baris", "tanda": "netral" },
+            { "label": "Selisih", "nilai": "{insiden} insiden: tidak di ledger {tidakDiLedger}, tidak di gateway {tidakDiGateway}, jumlah beda {jumlahBeda}", "tanda": "netral" },
+            { "label": "Koreksi", "nilai": "{dikoreksi} lewat jurnal baru, {tanpaJurnal} selesai tanpa jurnal, {terbuka} tetap terbuka", "tanda": "netral" },
+            { "label": "Posting lama", "nilai": "Tidak berubah: sidik MD5 sama sebelum dan sesudah koreksi", "tanda": "baik" }
+          ],
+          "sumber": [{ "jenis": "rekaman", "lab": "t4-webhook", "berkas": "rekon.txt", "bagian": "B", "teks": "Direkam atas top-up lab, bukan top-up Citra." }]
+        }
+      }
+    },
+    {
+      "id": "hasil",
+      "judul": "Hasil: uang tercatat berapa kali",
+      "teks": "Handler yang memeriksa event dan status menahan jurnal kedua dan status yang mundur. Kabar yang tidak pernah datang hanya ditemukan jalan kedua.",
+      "hasil": {
+        "pertama": {
+          "ringkas": "ganda {jurnalPertama} jurnal, terlambat memundurkan status, hilang ditemukan jalan kedua",
+          "baris": [
+            { "label": "Ganda", "nilai": "{jurnalPertama} jurnal; saldo naik {naikPertama}", "tanda": "buruk" },
+            { "label": "Terlambat", "nilai": "Status mundur ke {statusPending}", "tanda": "buruk" },
+            { "label": "Hilang", "nilai": "{awalJurnal} jurnal dari webhook, {kredit2} dari jalan kedua", "tanda": "baik" }
+          ],
+          "sumber": [{ "jenis": "hitungan", "teks": "Turunan dari langkah kiriman ulang, kabar terlambat, dan cek status. Tidak ada angka baru." }]
+        },
+        "adr34": {
+          "ringkas": "ganda {jurnalAdr} jurnal, terlambat diparkir, hilang ditemukan jalan kedua",
+          "baris": [
+            { "label": "Ganda", "nilai": "{jurnalAdr} jurnal, {bayar}", "tanda": "baik" },
+            { "label": "Terlambat", "nilai": "Diparkir, status tetap {statusTerlambatAdr}", "tanda": "baik" },
+            { "label": "Hilang", "nilai": "{awalJurnal} jurnal dari webhook, {kredit2} dari jalan kedua", "tanda": "baik" }
+          ],
+          "sumber": [{ "jenis": "hitungan", "teks": "Turunan dari langkah kiriman ulang, kabar terlambat, dan cek status. Tidak ada angka baru." }]
+        }
+      }
+    }
+  ]
+}
