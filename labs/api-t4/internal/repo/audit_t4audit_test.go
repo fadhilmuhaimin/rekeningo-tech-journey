@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"os"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 )
@@ -431,5 +432,41 @@ func TestT4AHashAuditTidakInjektifUntukPemisahDiDalamKolom(t *testing.T) {
 	}
 	if c := HashAudit(HashAwalAudit, w, 420, "risk", "aksi", "akun:1bagian", "sisa", 0); c == a {
 		t.Fatal("tanpa pemisah di dalam kolom, hash harus berbeda")
+	}
+}
+
+// Penulis serentak tidak membuat cabang: tanpa kunci advisory dua penulis membaca hash terakhir yang sama. Tes yang sama
+// ada di audit_test.go (tanpa tag); salinan bertag ini membuat gerbang lab t4-audit tidak bergantung pada tes lain.
+func TestT4ARantaiPenulisSerentakTidakBercabang(t *testing.T) {
+	r, db, pelaku := bersihAudit(t)
+	const penulis, perPenulis = 8, 6
+	var wg sync.WaitGroup
+	galat := make(chan error, penulis*perPenulis)
+	for p := 0; p < penulis; p++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < perPenulis; i++ {
+				err := r.DalamTx(context.Background(), func(tx Tx) error {
+					_, err := tx.TulisAudit(context.Background(), time.Now(), pelaku, "risk", "serentak", "akun:1", "uji penulis serentak bertag", nil)
+					return err
+				})
+				if err != nil {
+					galat <- err
+				}
+			}
+		}()
+	}
+	wg.Wait()
+	close(galat)
+	for err := range galat {
+		t.Fatal(err)
+	}
+	if h, _ := ujiJangkar(t, r, nil); h.RusakDiID != 0 || h.Baris != penulis*perPenulis {
+		t.Fatalf("sesudah %d penulis serentak: %+v, ingin utuh dengan %d baris", penulis, h, penulis*perPenulis)
+	}
+	var cabang int
+	if err := db.QueryRow(`SELECT count(*) FROM (SELECT hash_sebelumnya FROM audit_log GROUP BY 1 HAVING count(*) > 1) x`).Scan(&cabang); err != nil || cabang != 0 {
+		t.Fatalf("%d hash dipakai sebagai hash_sebelumnya oleh lebih dari satu baris (%v)", cabang, err)
 	}
 }

@@ -210,6 +210,36 @@ func TestT4AAlasanMenolakKarakterKontrolTermasukPemisahHash(t *testing.T) {
 	if _, err := periksaAlasan(dasar + " " + "b"); err != nil {
 		t.Errorf("spasi biasa ditolak: %v", err)
 	}
+	// Panjang dihitung dalam karakter: 20 sampai 300 diterima, 19 dan 301 ditolak (huruf bukan ASCII dihitung satu).
+	for panjang, ingin := range map[int]bool{19: false, 20: true, 300: true, 301: false} {
+		if _, err := periksaAlasan(strings.Repeat("é", panjang)); (err == nil) != ingin {
+			t.Errorf("alasan %d karakter: galat %v, diterima seharusnya %v", panjang, err, ingin)
+		}
+	}
+}
+
+// Akun risk yang dibekukan tidak boleh bertindak, dan penolakannya tidak meninggalkan baris audit.
+func TestT4APetugasRiskYangDibekukanTidakBisaBertindak(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "belum", 0)
+	if _, err := db.Exec(`UPDATE akun SET status = 'dibekukan' WHERE id = $1`, risk); err != nil {
+		t.Fatal(err)
+	}
+	sebelum := totalAudit(t, db)
+	if err := svc.BekukanBO(ctx, risk, sasaran, alasanUji); !errors.Is(err, ErrDibekukan) {
+		t.Errorf("BekukanBO oleh risk dibekukan: %v, ingin ErrDibekukan", err)
+	}
+	if _, err := svc.LihatAkunBO(ctx, risk, sasaran); !errors.Is(err, ErrDibekukan) {
+		t.Errorf("LihatAkunBO oleh risk dibekukan: %v, ingin ErrDibekukan", err)
+	}
+	if st, _ := statusAkun(t, db, sasaran); st != "aktif" {
+		t.Errorf("status %s, ingin tetap aktif", st)
+	}
+	if totalAudit(t, db) != sebelum {
+		t.Error("penolakan meninggalkan baris audit")
+	}
 }
 
 // Tepi rentang batas harian yang boleh diatur tim risk: 1 dan MaksBatasHarianBO diterima, 0 dan MaksBatasHarianBO + 1
