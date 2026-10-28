@@ -105,7 +105,7 @@ Delapan yang lolos, dan kenapa tidak ditutup:
 - **Hanya memori yang berbeda (1):** V66 membaca sampai dua kali batas sebelum menolak; hasilnya sama dan memorinya tidak diukur.
 - **Kode yang tidak terjangkau (1):** V71. `net.Dialer` selalu meneruskan `host:port`, jadi cabang "alamat tak terurai" di `ControlContext` tidak pernah berjalan.
 
-Peninjau menjalankan seluruh 136 mutan di host (darwin/arm64, `CGO_ENABLED=0`) di bawah `sandbox-exec` yang hanya mengizinkan loopback, karena Docker tidak merespons saat itu; koneksi ke `1.1.1.1` dan `10.255.255.1` diperiksa ditolak dengan `EPERM`. Hasil 80 mutan pelaksana sama: 66 tertangkap, C01 macet (kini dihentikan `-test.timeout=120s` sebagai kegagalan), 13 lolos yang sama. `make mutasi` di container belum dijalankan ulang untuk 56 mutan baru.
+Peninjau menjalankan dua kali. Pertama seluruh 136 mutan di host (darwin/arm64, `CGO_ENABLED=0`) di bawah `sandbox-exec` yang hanya mengizinkan loopback, karena Docker sedang mati; koneksi ke `1.1.1.1` dan `10.255.255.1` diperiksa ditolak dengan `EPERM`. Hasil 80 mutan pelaksana sama: 66 tertangkap, C01 macet (kini dihentikan `-test.timeout=120s` sebagai kegagalan), 13 lolos yang sama. Sesudah Docker pulih, 56 mutan baru dijalankan lewat `make -C labs/t4-ssrf mutasi` (container `golang:1.27-alpine` tanpa jaringan, kontrol tanpa perubahan lolos): 48 tertangkap dan 8 lolos, mutan yang sama dengan hasil di host.
 
 ## Versi dasar dan sumber (dicek 2026-10-28)
 
