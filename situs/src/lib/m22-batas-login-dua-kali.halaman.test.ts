@@ -341,6 +341,8 @@ describe("EVAL3-F1: kalimat tanpa penjaga turunan tidak lolos mutasi tanpa kunci
     expect(D.dua!.slice(1, 3)).toEqual(["10", "2"]);
     harus("**Yang tidak berlipat: kunci akun.** Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali dan 429 dua kali. Bucket per akun juga di memori, 5 per instance.");
     harus("Yang longgar adalah penahan banjir per alamat. Satu tebakan per akun tidak pernah menyentuh kunci akun,");
+    harus(`Lab Tahap ${dari("t3-m22").tahap} mengulangnya dengan dua proses \`api-t3\` dan proxy sungguhan.`);
+    expect(compose).toContain("api-t3");
     harus("Setiap `POST /login` mengambil satu token dari bucket alamat itu sebelum isi request dibaca, juga login yang passwordnya benar:");
   });
   test("Konsep yang lahir: butir keempat dan kelima dan kalimat penutup terkunci; tautannya ada di registry", () => {
