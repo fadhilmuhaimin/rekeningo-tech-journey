@@ -42,7 +42,7 @@ KELOMPOK_UKUR=(
   "galur@lanskap-hp tangkap kontras"
   "cls gerak"
   "alur erd"
-  "diagram luapan pool outbox cache"
+  "diagram luapan pool outbox cache webhook"
 )
 ukuran_bagian() {
   case "$1" in
@@ -202,6 +202,9 @@ jalan_ukur() {
     outbox)
       echo "== widget outbox dan worker: tebak dulu, keyboard, ARIA, reduced motion, angka dari rekaman, tata letak 320, kontras, axe, CLS (W3-outbox)"
       (cd situs && node tools/ukur-outbox.mjs --url "$URL" | grep -v "^ok ") ;;
+    webhook)
+      echo "== widget webhook masuk langkah demi langkah: tebak dulu, keyboard, langkah dan gulir, angka dari rekaman, tata letak 320, kontras, axe, CLS (W4-webhook)"
+      (cd situs && node tools/ukur-webhook.mjs --url "$URL" | grep -v "^ok ") ;;
     alur)
       echo "== detail alur dekat jalur sesudah menebak 1366x657, fokus sesudah tebakan keyboard 375x667 (I5c-g), jawaban tebakan hanya di akhir jalur yang ditanyakan (keputusan 1184)"
       (cd situs && node tools/ukur-detail-alur.mjs --url "$URL") ;;

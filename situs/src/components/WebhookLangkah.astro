@@ -1,0 +1,59 @@
+---
+/**
+ * Widget webhook masuk, langkah demi langkah (W4-webhook, keputusan 1258). Pembaca menebak dulu, lalu menggulir delapan
+ * langkah (top-up dibuat, kabar pertama, kiriman ulang, kabar terlambat, kabar hilang, cek status, rekonsiliasi, hasil)
+ * dan mengubah satu hal: versi handler (versi pertama atau ADR dari registri).
+ *   <WebhookLangkah />      // 4.7
+ * Angka dibaca saat build dari labs/t4-webhook/output dan labs/api-t4/output/rentan.txt lewat rekaman.ts, dicocokkan
+ * dengan model (periksaModel), dan diisi ke teks dari data/widget/t4-webhook-langkah.json (skema.ts, logika.ts).
+ * Rekaman atau label yang berubah bentuk menggagalkan build. Island di-render saat build (client:visible); tanpa
+ * JavaScript island disembunyikan dan hasil tiap langkah dan versi tampil di <noscript> sebagai tabel.
+ * Satu widget per blok Coba.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { ROOT } from "../../tools/registri.mjs";
+import WebhookLangkahIsland from "../widgets/webhook-langkah/WebhookLangkah";
+import { bacaAcuan } from "../widgets/webhook-langkah/rekaman";
+import { bangun, MODE } from "../widgets/webhook-langkah/logika";
+import { LabelWebhook } from "../widgets/webhook-langkah/skema";
+import labelMentah from "../../data/widget/t4-webhook-langkah.json";
+import cerita from "../../data/cerita.json";
+
+const baca = (lab: string, f: string): string => {
+  const abs = path.join(ROOT, "labs", lab, "output", f);
+  if (!fs.existsSync(abs)) throw new Error(`WebhookLangkah: labs/${lab}/output/${f} tidak ada`);
+  return fs.readFileSync(abs, "utf8");
+};
+const acuan = bacaAcuan({
+  ganda: baca("t4-webhook", "ganda.txt"), retry: baca("t4-webhook", "retry.txt"), urutan: baca("t4-webhook", "urutan.txt"),
+  rekon: baca("t4-webhook", "rekon.txt"), rentan: baca("api-t4", "rentan.txt"),
+});
+const L = LabelWebhook.parse(labelMentah);
+const adr = (cerita.halaman as { id: string; adr?: number[] }[]).find((h) => h.id === "t4-webhook")?.adr?.[0];
+if (!adr) throw new Error("WebhookLangkah: registri t4-webhook tanpa nomor ADR");
+const siap = bangun(L, acuan, adr);
+const label = {
+  judul: L.judul, sumberChip: L.sumberChip, tebakDulu: L.tebakDulu, benar: L.benar, belum: L.belum, ulang: L.ulang, ubahJudul: L.ubahJudul,
+  modeJudul: L.modeJudul, petunjuk: L.petunjuk, keadaanJudul: L.keadaanJudul, berikutnya: L.berikutnya, sebelumnya: L.sebelumnya, tanda: L.tanda,
+};
+const tandaTeks = (t: string): string => (t === "baik" ? ` (${L.tanda.baik})` : t === "buruk" ? ` (${L.tanda.buruk})` : "");
+---
+<WebhookLangkahIsland client:visible siap={siap} label={label} />
+<noscript>
+  <style is:inline>[data-webhook-langkah] { display: none; }</style>
+  <p>{L.tanpaJs}</p>
+  <table class="tm-tabel">
+    <caption>{L.judul}</caption>
+    <thead><tr><th>{L.kolomTabel.langkah}</th><th>{L.kolomTabel.hasil}</th><th>{L.kolomTabel.sumber}</th></tr></thead>
+    <tbody>
+      {siap.langkah.flatMap((l) => MODE.map((m) => (
+        <tr>
+          <th scope="row">{l.penanda}: {l.judul} ({siap.mode.find((x) => x.id === m)!.teks})</th>
+          <td>{l.hasil[m].baris.map((b) => `${b.label}: ${b.nilai}${tandaTeks(b.tanda)}`).join(". ")}</td>
+          <td>{l.hasil[m].sumber.map((s) => `${s.chip}: ${s.teks}`).join(" ")}</td>
+        </tr>
+      )))}
+    </tbody>
+  </table>
+</noscript>
