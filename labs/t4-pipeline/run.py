@@ -872,7 +872,7 @@ def bagian_testing():
     for fungsi, kelas in sorted(nama, key=lambda t: (t[1], t[0])):
         catat(f"ok {kelas}.{fungsi}")
     catat(f"Ran {ran.group(1)} tests: OK")
-    tulis("testing.txt", "tes kebijakan gerbang")
+    tulis("testing.txt", "tes kebijakan gerbang dan pengambil alat")
 
 
 BAGIAN = {"kontrak": bagian_kontrak, "klien": bagian_klien, "sast": bagian_sast, "sbom": bagian_sbom, "tanda": bagian_tanda, "testing": bagian_testing}
