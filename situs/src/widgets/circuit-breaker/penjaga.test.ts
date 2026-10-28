@@ -322,6 +322,31 @@ describe("teks yang tampil dikunci kata demi kata terhadap angka rekaman", () =>
       `Mesin keadaan mengikuti pustaka gobreaker ${R.breaker.versi} dengan pengaturan bawaan. Di lab jamnya diperankan, jadi ${R.breaker.bukaDetik} detik tidak ditunggu.`,
     ]);
   });
+  it("judul, label kelompok, papan, daftar angka, tabel pekerjaan, dan teks tetap lainnya", () => {
+    expect([L.judul, L.sumber, L.tebakDulu, L.ubahJudul, L.tanpaAcuan, L.tanpaJs]).toEqual([
+      "Circuit breaker: kapan membuka dan siapa yang ditolak", "Simulasi; titik acuan dari rekaman lab", "Tebak dulu.", "Ubah satu hal dan lihat akibatnya.",
+      "Tanpa titik rekaman: hasil ini Simulasi.", "Tanpa JavaScript, widget ini tidak jalan. Titik rekaman lab ada di tabel berikut.",
+    ]);
+    expect(L.kelompok).toEqual({ jalur: "Jalur", error: "Error rate vendor", latensi: "Latensi vendor", jenis: "Jawaban error vendor", breaker: "Breaker", pulih: "Vendor pulih", serentak: "Slot worker" });
+    expect(L.pilihNilai.jalur.map((o) => o.label)).toEqual(["Sinkron: user menunggu", "Queue: worker mengulang"]);
+    expect(L.pilihNilai.latensi.map((o) => o.label)).toEqual(["0 detik", "2 detik", "4 detik, melewati timeout"]);
+    expect(L.papan).toEqual({
+      judul: "Detik demi detik", baris: "Detik {dari} sampai {sampai}", legenda: "Pita di atas tiap baris menunjukkan status breaker. Tiap kotak adalah satu detik.",
+      status: { closed: "closed", open: "open", "half-open": "half-open" },
+      hasil: { ok: "Berhasil", "5xx": "Gagal 5xx", timeout: "Timeout", "4xx": "Jawaban 4xx", tolak: "Ditolak cepat", diam: "Tidak ada percobaan", gagal: "Percobaan gagal" },
+    });
+    expect(L.angka).toEqual({
+      sinkron: { permintaan: "Permintaan", kevendor: "Sampai ke vendor", ditolak: "Ditolak cepat", tunggu: "Pemanggil menunggu", ditolakSehat: "Ditolak saat vendor sudah pulih" },
+      queue: { terkirim: "Terkirim", menunggu: "Menunggu", mati: "Mati", kevendor: "Permintaan ke vendor", probe: "Permintaan percobaan di half-open" },
+      detik: "{x} detik", tanpaBreaker: "tanpa breaker {x}",
+    });
+    expect(L.pekerjaan).toEqual({ judul: "Pekerjaan verifikasi", kolom: ["Pekerjaan", "Percobaan", "Status"], status: { menunggu: "menunggu", terkirim: "terkirim", mati: "mati" } });
+    expect(T.hitungan.judul).toBe("Hitungan: pemakaian worker dan outage panjang");
+    expect(T.hitungan.dijeda).toBe("Selama lajur dijeda, tidak ada permintaan baru ke vendor dan percobaan tidak bertambah (worker.txt bagian B).");
+    expect(T.hitungan.label).toBe(`Hitungan, Asumsi: ${R.worker.laju.toString().replace(".", ",")} verifikasi per detik, 7,52 notifikasi uang per detik, dan 0,3 detik per notifikasi adalah angka naskah. Hanya ${R.worker.serentak} slot dan batas waktu client ${R.worker.timeoutClient} detik yang terukur (worker.txt bagian A).`);
+    expect(T.asal.judul).toBe("Dari mana angka ini");
+    expect(T.acuanTeks["sinkron-bawaan"]).toBe(`breaker.txt bagian A: breaker membuka pada kegagalan ke-${R.breaker.gagalKe}, menolak tanpa memanggil vendor, dan half-open sesudah ${R.breaker.bukaDetik} detik dengan satu permintaan percobaan. Jalur sinkron sendiri tidak dipasang di lab.`);
+  });
   it("teks tetap, judul, dan tombol yang dibaca pembaca", () => {
     expect(L.tabel).toEqual({ judul: "Titik acuan dari rekaman lab", kolom: ["Pengaturan", "Hasil di rekaman"] });
     expect([L.benar, L.belum, L.ulang, L.awal, L.cocok]).toEqual(["Tepat.", "Belum tepat.", "Coba pilihan lain", "Kembali ke pengaturan awal", "Cocok dengan rekaman"]);
