@@ -901,8 +901,9 @@ describe("blok Putuskan dan Kunci", () => {
     // menyamakan halaman 3.5 dengannya. Kalimat lama "6–10 developer dalam 2 tim" tidak boleh kembali, di halaman maupun di blok Putuskan.
     expect(asumsi(4).tim).toBe("13 developer, 3 tim");
     expect(TIM_T4_HALAMAN).toBe("13 developer dalam tiga tim");
-    expect(blokPutuskan).not.toContain("6–10 developer");
-    expect(blokPutuskan).not.toContain("dalam 2 tim");
+    // Seluruh halaman, bukan hanya blok Putuskan: kalimat lama yang kembali di blok lain lolos dari pemeriksaan blok (peninjau, mutan M13).
+    expect(mdx).not.toContain("6–10 developer");
+    expect(mdx).not.toMatch(/\b(?:2|dua) tim\b/i);
   });
   test("Cek diri: lima kartu, jawaban memakai nilai turunan, dan kartu ulang digenerate dari pertanyaan yang sama", () => {
     const pertanyaan = [...blokKunci.matchAll(/^\*\*(\d)\.\*\* (.+)$/gm)].map((m) => [m[1], m[2]]);
