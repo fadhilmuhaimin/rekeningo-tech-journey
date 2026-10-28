@@ -4,6 +4,7 @@
     labs/.venv/bin/python tools/erd.py --tahap 1   # satu tahap
     python3 tools/erd.py --cek                     # gerbang, tanpa database: hash sumber, bentuk JSON, selisih
     python3 tools/erd.py --cek --root <salinan>    # dipakai tools/test_erd.py (uji mutasi pada salinan)
+    python3 tools/erd.py --naskah 4                # bandingkan blok mermaid naskah 3b dengan JSON (informasi, lab yang benar)
 
 Membangun: file sumber satu tahap dijalankan di schema sementara `erd_t<n>_<pid>` di dalam SATU transaction yang
 selalu di-ROLLBACK, lalu katalognya (pg_catalog) dibaca: tabel, kolom, PK, FK, UNIQUE, CHECK, index. Perintah schema
@@ -592,6 +593,119 @@ def periksa_modul(data, n):
     return g
 
 
+# ── Banding dengan blok mermaid naskah (informasi; lab yang benar) ───────────────────────────────────────────────
+
+BLOK_MERMAID = re.compile(r"```mermaid\nerDiagram\n(.*?)```", re.S)
+RELASI = re.compile(r"^\s+(\w+) ([|}o{]+)--([|o{]+) (\w+) :", re.M)
+ENTITAS = re.compile(r"^  (\w+) \{ ?(.*?) ?\}$", re.S | re.M)
+ALIAS_TIPE = {"timestamp with time zone": "timestamptz", "integer": "int"}
+
+
+def baca_mermaid(teks):
+    """Blok erDiagram pertama di teks naskah: ({entitas: [(kolom, tipe, kunci)]}, [(induk, kiri, kanan, anak)])."""
+    m = BLOK_MERMAID.search(teks)
+    if not m:
+        gagal("naskah tidak punya blok ```mermaid erDiagram")
+    blok = m.group(1)
+    relasi = [(a.lower(), k, r, b.lower()) for a, k, r, b in RELASI.findall(blok)]
+    entitas = {}
+    for e in ENTITAS.finditer(blok):
+        kolom = []
+        for baris in e.group(2).split("\n"):
+            p = baris.split()
+            if len(p) >= 2:
+                kolom.append((p[1], p[0], p[2] if len(p) > 2 else ""))
+        entitas[e.group(1).lower()] = kolom
+    return entitas, relasi
+
+
+def banding_mermaid(teks, data):
+    """Daftar selisih antara blok mermaid naskah dan ERD satu tahap (data = isi tahap-<n>.json): kolom yang hanya di salah
+    satu sisi, urutan kolom, tanda PK/FK/UK, pasangan foreign key, dan kardinalitas (FK boleh kosong, satu baris per induk).
+    Tabel tanpa entitas di naskah ("tidak berubah") tidak dibandingkan. Murni: tanpa database."""
+    entitas, relasi = baca_mermaid(teks)
+    tabel = {t["nama"]: t for t in data["tabel"]}
+    beda = []
+    for n, kolom in entitas.items():
+        t = tabel.get(n)
+        if t is None:
+            beda.append(f"{n}: entitas di naskah, tidak ada tabel di lab")
+            continue
+        lab = [(k["nama"], ALIAS_TIPE.get(k["tipe"], k["tipe"])) for k in t["kolom"]]
+        nas = [(a, b) for a, b, _ in kolom]
+        hanya_lab = [k[0] for k in lab if k not in nas]
+        hanya_nas = [k[0] for k in nas if k not in lab]
+        if hanya_lab or hanya_nas:
+            beda.append(f"{n}: kolom hanya di lab {hanya_lab}, hanya di naskah {hanya_nas}")
+        elif [k for k in lab if k in nas] != [k for k in nas if k in lab]:
+            beda.append(f"{n}: urutan kolom berbeda (lab: {', '.join(k[0] for k in lab)})")
+        for nama, _, kunci in kolom:
+            pk = t["pk"] == [nama]
+            fk = any(nama in f["kolom"] for f in t["fk"])
+            uk = any(u["kolom"] == [nama] for u in t["unik"])
+            harap = "PK" if pk else "FK" if fk else "UK" if uk else ""
+            if kunci != harap and any(k[0] == nama for k in lab):
+                beda.append(f"{n}.{nama}: tanda di naskah {kunci or '(kosong)'}, di lab {harap or '(kosong)'}")
+    nas_pasang = {}
+    for induk, kiri, kanan, anak in relasi:
+        nas_pasang.setdefault((anak, induk), []).append((kiri == "|o", kanan.endswith("|")))
+    lab_pasang = {}
+    for t in data["tabel"]:
+        kol = {k["nama"]: k for k in t["kolom"]}
+        for f in t["fk"]:
+            kosong = any(not kol[c]["wajib"] for c in f["kolom"])
+            unik = f["kolom"] == t["pk"] or any(u["kolom"] == f["kolom"] for u in t["unik"]) or any(
+                i["unik"] and i["definisi"].startswith("btree (" + ", ".join(f["kolom"]) + ")") for i in t["index"])
+            lab_pasang.setdefault((t["nama"], f["ke_tabel"]), []).append((kosong, unik))
+    for pasang in sorted(set(nas_pasang) | set(lab_pasang)):
+        a, b = sorted(nas_pasang.get(pasang, [])), sorted(lab_pasang.get(pasang, []))
+        if len(a) != len(b):
+            beda.append(f"relasi {pasang[0]} -> {pasang[1]}: {len(b)} foreign key di lab, {len(a)} garis di naskah")
+        elif a != b:
+            beda.append(f"relasi {pasang[0]} -> {pasang[1]}: kardinalitas naskah (boleh kosong, satu per induk) {a}, lab {b}")
+    return beda
+
+
+def salinan_lab(n):
+    """`NASKAH_3B` dan `LAB_TAMBAHAN` salinan tangan di run.py lab tahap n (hanya Tahap 4), atau None."""
+    run = AKAR / "labs" / f"api-t{n}" / "run.py"
+    if not run.is_file():
+        return None
+    m = re.search(r"^NASKAH_3B = (\{.*?^\})\n.*?^LAB_TAMBAHAN = (\{.*?\})", run.read_text(encoding="utf-8"), re.S | re.M)
+    if not m:
+        return None
+    import ast
+    return ast.literal_eval(m.group(1)), ast.literal_eval(m.group(2))
+
+
+def naskah(n):
+    """`--naskah N`: cetak selisih naskah dan lab. Exit 1 hanya bila salinan tangan di run.py lab tidak sama dengan blok
+    mermaid atau dengan kolom lab (salinan itu yang dipakai lab untuk gagal keras); selisih naskah dan lab hanya
+    informasi: skema lab yang benar, naskah diperbarui KONSISTENSI."""
+    teks = (AKAR / "plan" / f"CERITA-TAHAP-{n}.md").read_text(encoding="utf-8")
+    data = json.loads(path_json(n).read_text(encoding="utf-8"))
+    beda = banding_mermaid(teks, data)
+    print(f"Tahap {n}: {len(beda)} selisih naskah 3b dengan lab (lab yang benar)")
+    for b in beda:
+        print(f"  - {b}")
+    salin = salinan_lab(n)
+    if salin is None:
+        return 0
+    entitas, _ = baca_mermaid(teks)
+    tambahan = salin[1]
+    lab = {t["nama"]: [k["nama"] for k in t["kolom"]] for t in data["tabel"]}
+    galat = []
+    for tabel, kolom in salin[0].items():
+        if tabel not in entitas or kolom != [a for a, _, _ in entitas[tabel]]:
+            galat.append(f"{tabel}: salinan tangan di run.py tidak sama dengan blok mermaid")
+        if sorted(kolom + tambahan.get(tabel, [])) != sorted(lab.get(tabel, [])):
+            galat.append(f"{tabel}: salinan tangan (ditambah LAB_TAMBAHAN) tidak sama dengan kolom lab")
+    print(f"NASKAH_3B di labs/api-t{n}/run.py: {len(salin[0])} tabel, {'tidak sama' if galat else 'sama'} dengan mermaid dan lab")
+    for g in galat:
+        print(f"  - {g}")
+    return 1 if galat else 0
+
+
 # ── Memeriksa (tanpa database) ──────────────────────────────────────────────────────────────────────────────────
 
 KUNCI = {
@@ -787,6 +901,8 @@ def main(argv):
     root = pathlib.Path(argv[argv.index("--root") + 1]).resolve() if "--root" in argv else AKAR
     if "--cek" in argv:
         return cek(root)
+    if "--naskah" in argv:
+        return naskah(int(argv[argv.index("--naskah") + 1]))
     pilih = [int(argv[argv.index("--tahap") + 1])] if "--tahap" in argv else sorted(TAHAP)
     for n in pilih:
         if n not in TAHAP:

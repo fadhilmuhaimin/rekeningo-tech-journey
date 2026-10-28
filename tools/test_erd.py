@@ -295,6 +295,52 @@ SELISIH += [
     ("satu tabel pindah modul mengubah foreign key yang menyeberang",
      lambda: len(modul_salinan(lambda t: t.replace("{s}.baris_pencairan SET SCHEMA t4m_ledger", "{s}.baris_pencairan SET SCHEMA t4m_platform"))["lintas"]), 24),
 ]
+# banding_mermaid (ERD4): blok mermaid naskah 3b dibandingkan dengan JSON; data dan teks buatan, tanpa naskah asli.
+def kol(nama, tipe="bigint", wajib=True):
+    return {"nama": nama, "tipe": tipe, "wajib": wajib, "bawaan": None}
+
+
+DATA_M = {"tabel": [
+    dict(tabel("akun", "id"), kolom=[kol("id"), kol("nama", "text")], pk=["id"]),
+    dict(tabel("anak", "id"), kolom=[kol("id"), kol("akun_id"), kol("waktu", "timestamp with time zone", False)], pk=["id"],
+         fk=[{"nama": "anak_akun_id_fkey", "kolom": ["akun_id"], "ke_tabel": "akun", "ke_kolom": ["id"], "saat_hapus": "NO ACTION"}]),
+]}
+MERMAID = """Teks naskah.
+
+```mermaid
+erDiagram
+  AKUN ||--o{ ANAK : punya
+  AKUN { bigint id PK
+    text nama }
+  ANAK { bigint id PK
+    bigint akun_id FK
+    timestamptz waktu }
+```
+"""
+SELISIH += [
+    ("blok mermaid yang cocok: tanpa selisih", lambda: erd.banding_mermaid(MERMAID, DATA_M), []),
+    ("kolom yang hanya di naskah dilaporkan",
+     lambda: erd.banding_mermaid(MERMAID.replace("text nama }", "text nama\n    text email }"), DATA_M), ["akun: kolom hanya di lab [], hanya di naskah ['email']"]),
+    ("kolom yang hanya di lab dilaporkan",
+     lambda: erd.banding_mermaid(MERMAID.replace("    text nama }", "    }").replace("{ bigint id PK\n    }", "{ bigint id PK }"), DATA_M), ["akun: kolom hanya di lab ['nama'], hanya di naskah []"]),
+    ("tipe berbeda: kolom dilaporkan di kedua sisi",
+     lambda: erd.banding_mermaid(MERMAID.replace("text nama", "int nama"), DATA_M), ["akun: kolom hanya di lab ['nama'], hanya di naskah ['nama']"]),
+    ("urutan kolom berbeda dilaporkan",
+     lambda: len(erd.banding_mermaid(MERMAID.replace("bigint akun_id FK\n    timestamptz waktu", "timestamptz waktu\n    bigint akun_id FK"), DATA_M)), 1),
+    ("tanda PK yang salah dilaporkan",
+     lambda: erd.banding_mermaid(MERMAID.replace("bigint id PK\n    text nama", "bigint id\n    text nama"), DATA_M), ["akun.id: tanda di naskah (kosong), di lab PK"]),
+    ("tanda FK yang hilang dilaporkan",
+     lambda: erd.banding_mermaid(MERMAID.replace("bigint akun_id FK", "bigint akun_id"), DATA_M), ["anak.akun_id: tanda di naskah (kosong), di lab FK"]),
+    ("garis relasi yang hilang di naskah dilaporkan",
+     lambda: erd.banding_mermaid(MERMAID.replace("  AKUN ||--o{ ANAK : punya\n", ""), DATA_M), ["relasi anak -> akun: 1 foreign key di lab, 0 garis di naskah"]),
+    ("kardinalitas FK boleh kosong di naskah tetapi wajib di lab dilaporkan",
+     lambda: len(erd.banding_mermaid(MERMAID.replace("||--o{", "|o--o{"), DATA_M)), 1),
+    ("kardinalitas satu per induk di naskah tetapi bukan UNIQUE di lab dilaporkan",
+     lambda: len(erd.banding_mermaid(MERMAID.replace("||--o{", "||--o|"), DATA_M)), 1),
+    ("entitas di naskah tanpa tabel di lab dilaporkan",
+     lambda: erd.banding_mermaid(MERMAID.replace("  ANAK {", "  CUCU { bigint id PK }\n  ANAK {"), DATA_M), ["cucu: entitas di naskah, tidak ada tabel di lab"]),
+    ("naskah tanpa blok mermaid ditolak", lambda: erd.banding_mermaid("tidak ada blok", DATA_M), SystemExit),
+]
 for nama, jalan, harap in SELISIH:
     try:
         hasil = jalan()
