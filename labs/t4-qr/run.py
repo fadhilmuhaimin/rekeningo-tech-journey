@@ -482,7 +482,19 @@ def rekam_lapor():
     catat("# tiap percobaan dihitung, Asumsi lab), jadi pelapor yang salah ketik tiga kali tidak bisa melapor sampai token terisi lagi.")
 
     bagian("F. Pemulihan: tim risk membuka merchant dengan persetujuan petugas kedua; tidak ada pemulihan otomatis")
-    s, _ = curl("POST", "/bo/akun/30001/buka", {"alasan": "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"}, ratih, kepala=[f"X-Penyetuju-Token: {risk2}"])
+    alasan_buka = "Pemilik toko sudah dikonfirmasi, stiker yang tertempel bukan miliknya"
+    catat("# Pembukaan yang tidak memenuhi syarat ditolak 403 dengan jawaban yang sama untuk semua sebab, dan Bu Marni tetap beku:")
+    for judul, pelaku, kepala in (("tanpa penyetuju", ratih, []),
+                                  ("penyetuju sama dengan pelaku", ratih, [f"X-Penyetuju-Token: {ratih}"]),
+                                  ("penyetuju bukan petugas risk (Budi)", ratih, [f"X-Penyetuju-Token: {budi}"]),
+                                  ("pelaku bukan petugas risk (Budi), penyetuju petugas risk", budi, [f"X-Penyetuju-Token: {risk2}"])):
+        catat(f"# {judul}")
+        s, _ = curl("POST", "/bo/akun/30001/buka", {"alasan": alasan_buka}, pelaku, kepala=kepala)
+        harap(s, 403, f"pembukaan {judul}")
+    harap(satu("SELECT status FROM akun WHERE id = 30001"), "dibekukan", "Bu Marni tetap beku sesudah pembukaan yang ditolak")
+    sql("SELECT id, nama, status FROM akun WHERE id = 30001")
+    catat("# Dengan petugas risk yang menjalankan dan petugas risk lain sebagai penyetuju:")
+    s, _ = curl("POST", "/bo/akun/30001/buka", {"alasan": alasan_buka}, ratih, kepala=[f"X-Penyetuju-Token: {risk2}"])
     harap(s, 204, "tim risk membuka Bu Marni")
     sql("SELECT id, nama, status FROM akun WHERE id BETWEEN 30001 AND 30006 ORDER BY id")
     s, _ = curl("GET", f"/qr/{qm}", token=budi)
@@ -531,8 +543,16 @@ def rekam_testing():
     ada = {l.strip() for l in daftar.splitlines() if l.startswith("Test")}
     jalan = set(re.findall(r"^--- PASS: (\S+)", teks, flags=re.M))
     harap(sorted(ada - jalan), [], "tes bertag t4qr yang tidak dijalankan gerbang")
-    harap(len(ada) >= 20, True, "jumlah tes bertag t4qr")
-    catat(f"# {len(jalan)} tes bertag t4qr lulus; tiap tes yang terdaftar oleh `go test -list` muncul sebagai PASS di atas.")
+    # `go test -list` memakai pola yang sama dengan -run, jadi tes yang namanya tidak cocok dengan pola tidak pernah terdaftar.
+    # Daftar kedua dibaca dari berkas tes bertag itu sendiri: tiap fungsi Test di dalamnya harus muncul sebagai PASS.
+    tertulis = set()
+    for berkas in ("internal/qrpayload/qrpayload_test.go", "internal/service/qr_pindai_test.go"):
+        isi_berkas = (d.HERE / berkas).read_text()
+        harap(isi_berkas.splitlines()[0], "//go:build t4qr", f"baris pertama {berkas}")
+        tertulis |= set(re.findall(r"^func (Test\w+)\(", isi_berkas, flags=re.M))
+    harap(sorted(tertulis - jalan), [], "fungsi tes di berkas bertag t4qr yang tidak muncul sebagai PASS")
+    harap(len(tertulis) >= 20, True, "jumlah tes bertag t4qr")
+    catat(f"# {len(jalan)} tes bertag t4qr lulus; tiap fungsi tes di dua berkas bertag (dibaca dari berkasnya, bukan dari pola -run) muncul sebagai PASS di atas.")
     tulis("testing.txt", "tes Go payload QR dan service QR dengan batas di kedua sisi")
 
 
