@@ -49,6 +49,8 @@ Naskah menulis oasdiff v1.34.1, oapi-codegen v2.8.1, openapi-generator v7.26.0, 
 
 Brief tugas menyebut `registry:2`; lab memakai `registry:3` karena itu tag image resmi untuk rilis terbaru (distribution v3.1.2). Perilaku `registry:2` tidak dicoba [perlu verifikasi].
 
+Lisensi kode alat (GitHub API, 2026-10-29): oasdiff, gosec, syft, grype, cosign, openapi-generator, dan registry (distribution) memakai Apache-2.0; govulncheck (golang/vuln) memakai BSD-3-Clause. Syarat pemakaian data basis data grype dan basis data kerentanan Go belum dibaca [perlu verifikasi]; lab hanya mengunduhnya ke `.alat`, tanpa menyalinnya ke repo.
+
 Data yang diunduh sekali:
 
 | Data | Asal | Ukuran | Dikunci |
