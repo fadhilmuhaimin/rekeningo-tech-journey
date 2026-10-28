@@ -2272,6 +2272,30 @@
   "jawab": "Bukan. Lajunya hanya 0,231 unggahan per detik di puncak, atau 116 KB per detik. Yang berubah adalah ukuran: 365 ÷ 10,95 = 33 kali posting. Itu keputusan tentang tempat menyimpan file, dan dibahas di Tahap 4."
  },
  {
+  "id": "t3-jembatan-1",
+  "halaman": "t3-jembatan",
+  "judul": "3.32 Jembatan: pratinjau PRD v4",
+  "url": "tahap-3/jembatan-prd-v4/",
+  "tanya": "Puncak request naik 8 kali di PRD v4. Kenapa kenaikan itu tidak membuat pool atau worker pecah lebih dulu?",
+  "jawab": "Puncak ±138,9 request per detik adalah Asumsi. L semua request 138,9 × 0,02 = 2,78 koneksi dari batas 18. Pemakaian worker 56% dari 13,33 per detik (Hitungan; W dan jumlah pengirim Asumsi). Keduanya masih di bawah batas. Yang pecah lebih dulu adalah syarat yang ditulis ADR sendiri."
+ },
+ {
+  "id": "t3-jembatan-2",
+  "halaman": "t3-jembatan",
+  "judul": "3.32 Jembatan: pratinjau PRD v4",
+  "url": "tahap-3/jembatan-prd-v4/",
+  "tanya": "Sebutkan keadaan yang ditulis ADR 22, ADR 25, ADR 26, dan ADR 32 sendiri.",
+  "jawab": "ADR 22: panggilan luar yang harus atomik dengan uang. ADR 25: penerima yang menggerakkan uang. ADR 26: satu VPS sebagai titik gagal tunggal. ADR 32: tim yang naik ke tiga tim, sehingga rotasi dan alert dibagi lagi."
+ },
+ {
+  "id": "t3-jembatan-3",
+  "halaman": "t3-jembatan",
+  "judul": "3.32 Jembatan: pratinjau PRD v4",
+  "url": "tahap-3/jembatan-prd-v4/",
+  "tanya": "Kenapa \"pecah lebih dulu\" di halaman ini berlabel Asumsi, bukan Rekaman lab?",
+  "jawab": "Tidak ada lab yang menjalankan PRD v4. Penentuannya penalaran dari kalimat halaman ADR dan dari tiga hal yang belum pernah diuji di 3.28 M28. Urutan kejadian yang sebenarnya baru terlihat saat Tahap 4 dibangun."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",
