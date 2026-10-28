@@ -16,10 +16,10 @@ sys.path.insert(0, str(HERE))
 import alat  # noqa: E402
 
 GITHUB = "https://token.actions.githubusercontent.com"
-# alat -> (identitas yang diharapkan, penerbit OIDC, regexp?)
+# alat -> (identitas yang diharapkan: SAN sertifikat bundle rilis, tepat satu workflow rilis; penerbit OIDC; regexp?)
 IDENTITAS = {
-    "syft": (r"^https://github.com/anchore/syft/", GITHUB, True),
-    "grype": (r"^https://github.com/anchore/grype/", GITHUB, True),
+    "syft": ("https://github.com/anchore/syft/.github/workflows/release.yaml@refs/heads/main", GITHUB, False),
+    "grype": ("https://github.com/anchore/grype/.github/workflows/release.yaml@refs/heads/main", GITHUB, False),
     "cosign": ("keyless@projectsigstore.iam.gserviceaccount.com", "https://accounts.google.com", False),
 }
 TIDAK_DIJALANKAN = {
