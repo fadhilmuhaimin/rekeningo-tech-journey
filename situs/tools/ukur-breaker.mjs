@@ -66,28 +66,30 @@ const jam = (s) => `${s} detik`;
 const KASUS = [
   { kunci: "queue-satu", set: {}, vonis: `Breaker membuka pada detik 0; sesudah ${HORIZON} detik ${lulusB} pekerjaan terkirim, ${gagalB} mati, dan 0 menunggu.`, acuan: "lajur.txt bagian B",
     angka: { Terkirim: lulusB, Menunggu: 0, Mati: gagalB, "Permintaan ke vendor": `${permB} (tanpa breaker ${permA})`, "Permintaan percobaan di half-open": 1 },
-    pita: { closed: HORIZON - BUKA - 1, open: BUKA, "half-open": 1 }, baris: N, mati: gagalB },
+    pita: { closed: HORIZON - BUKA - 1, open: BUKA, "half-open": 1 }, baris: N, mati: gagalB, hitung: true, catatan: ["Ambang breaker", "Permintaan percobaan di half-open"] },
   { kunci: "queue-tanpa", set: { breaker: "Tanpa breaker" }, vonis: `Tanpa breaker, ${N} dari ${N} pekerjaan mati sesudah ${K} percobaan, dan ${permA} permintaan sampai ke vendor.`, acuan: "lajur.txt bagian A",
     angka: { Terkirim: 0, Mati: N, "Permintaan ke vendor": `${permA}` }, tanpaProbe: true,
-    pita: { closed: HORIZON, open: 0, "half-open": 0 }, baris: N, mati: N },
+    pita: { closed: HORIZON, open: 0, "half-open": 0 }, baris: N, mati: N, hitung: true, catatan: [] },
   { kunci: "queue-empat", set: { serentak: String(slotC) }, vonis: `Breaker membuka pada detik 0; sesudah ${HORIZON} detik ${N} pekerjaan terkirim, ${lagiC} mati, dan 0 menunggu.`, acuan: "lajur.txt bagian C",
-    angka: { Terkirim: N, Mati: lagiC }, pita: { closed: HORIZON - BUKA - 1, open: BUKA, "half-open": 1 }, baris: N, mati: lagiC },
+    angka: { Terkirim: N, Mati: lagiC }, pita: { closed: HORIZON - BUKA - 1, open: BUKA, "half-open": 1 }, baris: N, mati: lagiC, hitung: true, catatan: ["Permintaan percobaan di half-open"] },
   { kunci: "queue-4xx-gagal", set: { jenis: EMPAT_GAGAL, error: "60%" }, vonis: `Breaker membuka pada detik 0; sesudah ${HORIZON} detik 0 pekerjaan terkirim, ${matiD} mati, dan ${menungguD} menunggu.`, acuan: "lajur.txt bagian D",
-    angka: { Terkirim: 0, Mati: matiD, Menunggu: menungguD }, baris: N, mati: matiD, rusak: rusakD },
+    angka: { Terkirim: 0, Mati: matiD, Menunggu: menungguD }, baris: N, mati: matiD, rusak: rusakD, hitung: true, catatan: ["Ambang breaker", "diulang", "Permintaan percobaan di half-open"] },
   { kunci: "queue-4xx-sukses", set: { jenis: EMPAT_SUKSES, error: "60%" }, vonis: `Breaker tidak pernah membuka: ${lulusE} pekerjaan terkirim, ${gagalE} mati, dan 0 menunggu.`, acuan: "lajur.txt bagian E",
-    angka: { Terkirim: lulusE, Mati: gagalE, "Permintaan ke vendor": `${permE} (tanpa breaker ${permE})` }, pita: { closed: HORIZON, open: 0, "half-open": 0 }, baris: N, mati: gagalE },
+    angka: { Terkirim: lulusE, Mati: gagalE, "Permintaan ke vendor": `${permE} (tanpa breaker ${permE})` }, pita: { closed: HORIZON, open: 0, "half-open": 0 }, baris: N, mati: gagalE, hitung: true, catatan: ["429 dan 408", "diulang"] },
   { kunci: "sinkron-bawaan", set: { jalur: SINKRON, pulih: TIDAK_PULIH }, vonis: `Breaker membuka pada detik ${G - 1} dan menolak ${HORIZON - G - PROBE_SINKRON} dari ${HORIZON} permintaan tanpa menunggu vendor.`, acuan: "breaker.txt bagian A",
     angka: { Permintaan: HORIZON, "Sampai ke vendor": `${G + PROBE_SINKRON} (tanpa breaker ${HORIZON})`, "Ditolak cepat": HORIZON - G - PROBE_SINKRON },
-    pita: { closed: G, open: HORIZON - G - PROBE_SINKRON, "half-open": PROBE_SINKRON }, sel: { tolak: HORIZON - G - PROBE_SINKRON, "5xx": G + PROBE_SINKRON, ok: 0 } },
+    pita: { closed: G, open: HORIZON - G - PROBE_SINKRON, "half-open": PROBE_SINKRON }, sel: { tolak: HORIZON - G - PROBE_SINKRON, "5xx": G + PROBE_SINKRON, ok: 0 },
+    hitung: false, catatan: ["tidak dipasang di lab"], tanpaAngka: ["Ditolak saat vendor sudah pulih"] },
   { kunci: "sinkron-4xx-sukses", set: { jalur: SINKRON, jenis: EMPAT_SUKSES }, vonis: `Breaker tidak pernah membuka, jadi semua ${HORIZON} permintaan sampai ke vendor.`, acuan: "breaker.txt bagian C",
-    angka: { "Ditolak cepat": 0 }, pita: { closed: HORIZON, open: 0, "half-open": 0 }, sel: { tolak: 0, "4xx": HORIZON } },
+    angka: { "Ditolak cepat": 0 }, pita: { closed: HORIZON, open: 0, "half-open": 0 }, sel: { tolak: 0, "4xx": HORIZON },
+    hitung: false, catatan: ["tidak dipasang di lab", "429 dan 408"], tanpaAngka: ["Ditolak saat vendor sudah pulih"] },
   { kunci: "sinkron-4xx-gagal", set: { jalur: SINKRON, jenis: EMPAT_GAGAL, pulih: TIDAK_PULIH }, vonis: `Breaker membuka pada detik ${G - 1} dan menolak`, acuan: "breaker.txt bagian C",
-    sel: { "4xx": G + PROBE_SINKRON, tolak: HORIZON - G - PROBE_SINKRON } },
+    sel: { "4xx": G + PROBE_SINKRON, tolak: HORIZON - G - PROBE_SINKRON }, hitung: false, catatan: ["tidak dipasang di lab"], tanpaAngka: ["Ditolak saat vendor sudah pulih"] },
   { kunci: "sinkron-latensi", set: { jalur: SINKRON, error: "0%", latensi: "4 detik, melewati timeout" }, acuan: null,
     vonis: `Breaker membuka pada detik ${G - 1 + TIMEOUT} dan menolak ${BUKA + 1} dari ${HORIZON} permintaan tanpa menunggu vendor.`,
     angka: { "Pemanggil menunggu": `${(G + TIMEOUT - 1) * TIMEOUT} detik (tanpa breaker ${PULIH * TIMEOUT} detik)`, "Ditolak saat vendor sudah pulih": BUKA + 1 - PULIH + (G - 1 + TIMEOUT) },
-    sel: { tolak: BUKA + 1, timeout: G + TIMEOUT - 1 } },
-  { kunci: "sinkron-30", set: { jalur: SINKRON, error: "30%", pulih: TIDAK_PULIH }, vonis: `Breaker tidak pernah membuka, jadi semua ${HORIZON} permintaan sampai ke vendor.`, acuan: null, sel: { tolak: 0 } },
+    sel: { tolak: BUKA + 1, timeout: G + TIMEOUT - 1 }, hitung: false, catatan: ["tidak dipasang di lab", "Breaker baru mencoba lagi"] },
+  { kunci: "sinkron-30", set: { jalur: SINKRON, error: "30%", pulih: TIDAK_PULIH }, vonis: `Breaker tidak pernah membuka, jadi semua ${HORIZON} permintaan sampai ke vendor.`, acuan: null, sel: { tolak: 0 }, hitung: false, catatan: ["tidak dipasang di lab"], tanpaAngka: ["Ditolak saat vendor sudah pulih"] },
 ];
 
 const browser = awasi(await chromium.launch(), { alat: "breaker" });
@@ -236,6 +238,13 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
         tersembunyi: e.querySelector(".cb-baris").getAttribute("aria-hidden"),
         tabel: [...e.querySelectorAll(".cb-tabel tbody tr")].map((r) => [...r.children].map((c) => c.textContent.trim())),
         kotakRiwayat: e.querySelectorAll(".cb-tabel .cb-riwayat .cb-k").length,
+        hitungAda: e.querySelectorAll(".cb-hitung").length,
+        catatan: [...e.querySelectorAll(".cb-catatan")].map((c) => c.textContent.trim()),
+        headerBaris: e.querySelectorAll(".cb-tabel tbody th[scope='row']").length,
+        caption: e.querySelector(".cb-tabel caption")?.textContent.trim() ?? null,
+        asal: e.querySelector(".cb-asal summary")?.textContent.trim() ?? null,
+        tolakCat: (() => { const t = e.querySelector(".cb-kotak .is-tolak"); return t ? getComputedStyle(t).backgroundImage : null; })(),
+        nama: [...e.querySelectorAll(".cb-kelompok")].map((g) => ({ nama: document.getElementById(g.getAttribute("aria-labelledby"))?.textContent.trim() ?? null, role: g.getAttribute("role") })),
       };
     });
     const sinkron = k.set.jalur === SINKRON;
@@ -243,6 +252,13 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
     ok &&= k.acuan === null ? acuan.startsWith(L.tanpaAcuan.slice(0, 30)) && !acuan.includes(L.cocok) : acuan.startsWith(L.cocok) && acuan.includes(k.acuan);
     for (const [kunci, nilai] of Object.entries(k.angka ?? {})) ok &&= dl[kunci] === String(nilai);
     if (k.tanpaProbe) ok &&= !("Permintaan percobaan di half-open" in dl);
+    for (const t of k.tanpaAngka ?? []) ok &&= !(t in dl);
+    // Hitungan worker hanya di queue; catatan menurut kasus; judul tabel, header baris, ringkasan asal, nama kelompok, dan penanda ditolak.
+    ok &&= geo.hitungAda === (k.hitung ? 1 : 0) && (k.catatan ?? []).every((c) => geo.catatan.some((t) => t.includes(c)));
+    ok &&= geo.catatan.length === (k.catatan ?? []).length + (k.hitung ? 1 : 0) && geo.asal === L.asal.judul;
+    ok &&= geo.nama.length === 5 + (!k.set.jenis || k.set.jenis === NOL.jenis ? 1 : 0) + (sinkron ? 0 : 1) && geo.nama.every((g) => g.role === "group" && g.nama);
+    ok &&= !sinkron ? geo.headerBaris === k.baris && geo.caption === L.pekerjaan.judul : geo.headerBaris === 0 && geo.caption === null;
+    if (geo.sel.tolak > 0) ok &&= geo.tolakCat !== null && geo.tolakCat !== "none";
     // Papan: 3 baris × 60 pita dan kotak, sejajar, di dalam widget, aria-hidden, tinggi menurut arti.
     let papan = geo.baris.length === HORIZON / BARIS && geo.baris.every((b) => b.p === BARIS && b.k === BARIS && b.sejajar && b.lebar >= 2) && geo.di_dalam && geo.tersembunyi === "true";
     if (k.pita) for (const s of Object.keys(k.pita)) papan &&= geo.pita[s] === k.pita[s];
