@@ -608,6 +608,7 @@ def registry():
     docker("run", "-d", "--name", NAMA_REG, "-p", f"127.0.0.1:{PORT_REG}:5000", IMG["registry"])
     DOKTER.clear()
     try:
+        harap(docker("port", NAMA_REG, "5000/tcp")[1].split(), [f"127.0.0.1:{PORT_REG}"], "registry hanya mendengar 127.0.0.1")
         for _ in range(150):
             try:
                 with urllib.request.urlopen(f"http://127.0.0.1:{PORT_REG}/v2/", timeout=2) as r:

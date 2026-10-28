@@ -216,5 +216,16 @@ class TesPlatformDanBerkas(unittest.TestCase):
         self.assertIn("FROM " + alat.PIN["image"]["dasar"] + "\n", dockerfile)
 
 
+class TesPerintahLab(unittest.TestCase):
+    def test_generator_client_dijalankan_tanpa_jaringan(self):
+        import ast
+        sumber = (pathlib.Path(alat.__file__).parent / "run.py").read_text()
+        fungsi = [n for n in ast.walk(ast.parse(sumber)) if isinstance(n, ast.FunctionDef) and n.name == "jalankan_generator"]
+        self.assertEqual(len(fungsi), 1)
+        teks = ast.get_source_segment(sumber, fungsi[0])
+        self.assertIn('"--network", "none"', teks)
+        self.assertIn('IMG["openapi_generator"]', teks)
+
+
 if __name__ == "__main__":
     unittest.main()
