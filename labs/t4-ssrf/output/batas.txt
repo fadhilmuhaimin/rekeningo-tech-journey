@@ -74,9 +74,11 @@ titik penuh ideografis         ditolak: true; permintaan sampai: 0
 --- PASS: TestSSRFBatasBentukIDNATidakMelewatiFetcherAman
 
 ## masukan ekstrem: host dan path sangat panjang, header jawaban besar, rantai redirect, dan jawaban DNS panjang gagal tertutup
-host 100.000 karakter                                ditolak: true
-path 2 MiB                                           ditolak: true; selesai kurang dari 2 detik: true
+host 100.000 karakter (resolver buatan: tidak ada)   ditolak: true
+path 2 MiB (fetcher tanpa batas panjang)             ditolak: true; selesai kurang dari 2 detik: true; server uji sendiri menjawab 431
 header jawaban 32 KiB                                diterima (image/png, 75 byte)
+header jawaban 60 KiB                                diterima (image/png, 75 byte)
+header jawaban 68 KiB                                ditolak (gambar tidak bisa diunduh)
 header jawaban 128 KiB                               ditolak (gambar tidak bisa diunduh)
 header jawaban 11 MiB                                ditolak (gambar tidak bisa diunduh)
 rantai redirect tanpa akhir                          ditolak (tujuan tidak diizinkan); langkah yang tersentuh: 1
@@ -93,7 +95,7 @@ alamat yang boleh dijangkau lebih dulu, private kedua: ditolak (tujuan tidak dii
 404 berisi JSON layanan dalam      pesan: "gambar tidak bisa diunduh"
 500 berisi JSON layanan dalam      pesan: "gambar tidak bisa diunduh"
 penolakan karena alamat literal: 8 alamat (loopback terbuka dan tertutup, private, link-local, CGNAT, ULA, 0.0.0.0): 1 pesan berbeda: map[tujuan tidak diizinkan:8]
-pesan galat versi aman yang mungkin: 5 kalimat tetap; server uji disentuh oleh unduhan yang ditolak: 0
+pesan galat versi aman di kode: 5 kalimat tetap (dibaca dari unduh.go, bukan diamati di tiap jalur); server uji disentuh oleh unduhan yang ditolak: 0
 --- PASS: TestSSRFBatasPesanGalatTanpaIsiResponsDanTanpaAlamat
 
 ## batas yang belum tertutup: nama yang ada dan nama yang tidak ada dijawab dengan pesan berbeda

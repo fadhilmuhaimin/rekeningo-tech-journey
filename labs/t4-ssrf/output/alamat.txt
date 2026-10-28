@@ -42,7 +42,35 @@ ff0e::1                  tidak     tidak     tidak     tidak       tolak  multic
 2001:4860:4860::8888     tidak     tidak     tidak     tidak       lolos  IPv6 publik di luar 2001::/23 (kontrol: harus lolos)
 2606:4700:4700::1111     tidak     tidak     tidak     tidak       lolos  IPv6 publik (kontrol: harus lolos)
 ditolak fetcher aman: 32 dari 32 alamat terlarang; dari itu 29 lolos bila IsPrivate satu-satunya pemeriksaan
+dari 32 alamat terlarang yang sama, 26 lolos bila hanya empat penanda di tabel (IsPrivate, IsLoopback, IsLinkLocalUnicast, IsUnspecified) yang diperiksa
 --- PASS: TestSSRFKelasAlamatIsPrivateTidakCukup
+
+## alamat IPv6 berzona: zona ("%1", "%eth0") tidak boleh mengubah keputusan, karena netip.Prefix.Contains tidak mencocokkan alamat berzona
+netip.Prefix 2001:db8::/32 Contains 2001:db8::1: true; Contains 2001:db8::1%1: false
+alamat                   tanpa zona  %1        %eth0
+64:ff9b::a00:1           tolak       tolak     tolak
+64:ff9b:1::a00:1         tolak       tolak     tolak
+2002:a00:1::1            tolak       tolak     tolak
+2001::1                  tolak       tolak     tolak
+::a00:1                  tolak       tolak     tolak
+2001:db8::1              tolak       tolak     tolak
+fec0::1                  tolak       tolak     tolak
+100::5                   tolak       tolak     tolak
+100:0:0:1::5             tolak       tolak     tolak
+2001:2::5                tolak       tolak     tolak
+3fff::1                  tolak       tolak     tolak
+5f00::5                  tolak       tolak     tolak
+fd00::5                  tolak       tolak     tolak
+fe80::1                  tolak       tolak     tolak
+::1                      tolak       tolak     tolak
+::                       tolak       tolak     tolak
+ff0e::1                  tolak       tolak     tolak
+::ffff:10.0.0.1          tolak       tolak     tolak
+::ffff:100.64.0.1        tolak       tolak     tolak
+2001:4860:4860::8888     lolos       lolos     lolos
+2606:4700:4700::1111     lolos       lolos     lolos
+ditolak fetcher aman dengan zona: 19 dari 19 alamat terlarang; alamat publik berzona yang lolos: 2 dari 2
+--- PASS: TestSSRFKelasAlamatBerzonaSamaDenganTanpaZona
 PASS
 ok    lab/apit4/internal/unduh
 # exit status 0

@@ -377,8 +377,15 @@ func TestSSRFBatasBentukIDNATidakMelewatiFetcherAman(t *testing.T) {
 		{"angka dan titik lebar penuh", "\uFF11\uFF12\uFF17\uFF0E\uFF10\uFF0E\uFF10\uFF0E\uFF11"},
 		{"titik penuh ideografis", "127\u30020\u30020\u30021"},
 	} {
+		// Panggilan pertama (pemeriksaan awal) dijawab alamat publik yang hanya dibaca. Bila Go kelak meneruskan nama itu ke dial
+		// tanpa memetakannya, resolusi kedua dijawab loopback yang ditolak ControlContext: tidak ada jalur yang menghubungi
+		// alamat publik.
+		var panggilan atomic.Int64
 		publik := func(ctx context.Context, host string) ([]net.IPAddr, error) {
-			return []net.IPAddr{{IP: net.ParseIP("93.184.216.34")}}, nil // hanya dibaca pemeriksaan awal, tidak pernah dihubungi
+			if panggilan.Add(1) == 1 {
+				return []net.IPAddr{{IP: net.ParseIP("93.184.216.34")}}, nil
+			}
+			return []net.IPAddr{{IP: net.ParseIP("127.0.0.1")}}, nil
 		}
 		_, err := Aturan{IzinkanHTTP: true, Resolver: publik, Waktu: time.Second}.Unduh(context.Background(), "http://"+k.host+":"+port(s)+"/gambar.png")
 		fmt.Printf("%-30s ditolak: %v; permintaan sampai: %d\n", k.label, err != nil, s.kena.Load())
@@ -400,7 +407,7 @@ func TestSSRFBatasMasukanEkstremGagalTertutup(t *testing.T) {
 		return nil, &net.DNSError{Err: "no such host", Name: "x", IsNotFound: true}
 	}
 	_, err := Aturan{IzinkanHTTP: true, Resolver: tidakAda, Waktu: time.Second}.Unduh(ctx, "http://"+strings.Repeat("a", 100000)+".contoh/a.png")
-	fmt.Printf("%-52s ditolak: %v\n", "host 100.000 karakter", err != nil)
+	fmt.Printf("%-52s ditolak: %v\n", "host 100.000 karakter (resolver buatan: tidak ada)", err != nil)
 	if err == nil {
 		t.Fatal("host 100.000 karakter diterima")
 	}
@@ -408,17 +415,26 @@ func TestSSRFBatasMasukanEkstremGagalTertutup(t *testing.T) {
 	s := mulaiServer(t, false, ruteUmum())
 	mulai := time.Now()
 	_, err = lokal().Unduh(ctx, s.URL+"/"+strings.Repeat("a", 2<<20))
-	fmt.Printf("%-52s ditolak: %v; selesai kurang dari 2 detik: %v\n", "path 2 MiB", err != nil, time.Since(mulai) < 2*time.Second)
-	if err == nil || time.Since(mulai) >= 2*time.Second {
-		t.Fatalf("path 2 MiB: galat %v sesudah %s", err, time.Since(mulai))
+	lama := time.Since(mulai)
+	// Penolakan ini datang dari server uji (batas header permintaan 1 MiB milik net/http), bukan dari batas di fetcher: fetcher
+	// tidak membatasi panjang URL sendiri (batas 2.048 karakter ada di service impor katalog).
+	langsung, errLangsung := http.Get(s.URL + "/" + strings.Repeat("a", 2<<20))
+	if errLangsung != nil {
+		t.Fatal(errLangsung)
+	}
+	langsung.Body.Close()
+	fmt.Printf("%-52s ditolak: %v; selesai kurang dari 2 detik: %v; server uji sendiri menjawab %d\n", "path 2 MiB (fetcher tanpa batas panjang)", err != nil, lama < 2*time.Second, langsung.StatusCode)
+	if err == nil || lama >= 2*time.Second || langsung.StatusCode != http.StatusRequestHeaderFieldsTooLarge {
+		t.Fatalf("path 2 MiB: galat %v sesudah %s, status server uji %d", err, lama, langsung.StatusCode)
 	}
 
-	// Header jawaban: 32 KiB masih diterima, 128 KiB dan 11 MiB ditolak (BatasHeader 64 KiB).
+	// Header jawaban: 32 KiB dan 60 KiB masih diterima, 68 KiB, 128 KiB, dan 11 MiB ditolak (BatasHeader 64 KiB; selisih 4 KiB
+	// menampung baris status dan header lain).
 	for _, k := range []struct {
 		label  string
 		n      int
 		terima bool
-	}{{"32 KiB", 32 << 10, true}, {"128 KiB", 128 << 10, false}, {"11 MiB", 11 << 20, false}} {
+	}{{"32 KiB", 32 << 10, true}, {"60 KiB", 60 << 10, true}, {"68 KiB", 68 << 10, false}, {"128 KiB", 128 << 10, false}, {"11 MiB", 11 << 20, false}} {
 		h := mulaiServer(t, false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("X-Besar", strings.Repeat("a", k.n))
 			w.Write(pngKecil)
@@ -533,7 +549,7 @@ func TestSSRFBatasPesanGalatTanpaIsiResponsDanTanpaAlamat(t *testing.T) {
 	if buka.kena.Load() != 0 {
 		t.Fatalf("server terbuka disentuh %d kali oleh unduhan yang ditolak", buka.kena.Load())
 	}
-	fmt.Printf("pesan galat versi aman yang mungkin: %d kalimat tetap; server uji disentuh oleh unduhan yang ditolak: 0\n", len(semuaPesanAman()))
+	fmt.Printf("pesan galat versi aman di kode: %d kalimat tetap (dibaca dari unduh.go, bukan diamati di tiap jalur); server uji disentuh oleh unduhan yang ditolak: 0\n", len(semuaPesanAman()))
 }
 
 // TestSSRFBatasPesanMembedakanNamaDikenalDariTidakDikenal mencatat batas ADR 41 yang belum tertutup: untuk alamat literal
@@ -607,7 +623,7 @@ func TestSSRFKelasAlamatIsPrivateTidakCukup(t *testing.T) {
 		{"2001:4860:4860::8888", "IPv6 publik di luar 2001::/23 (kontrol: harus lolos)"},
 		{"2606:4700:4700::1111", "IPv6 publik (kontrol: harus lolos)"},
 	}
-	var tertangkapAman, lolosIsPrivate, kontrolN int
+	var tertangkapAman, lolosIsPrivate, lolosEmpatPenanda, kontrolN int
 	a := Aturan{}
 	for _, k := range kelas {
 		ip := netip.MustParseAddr(k.alamat)
@@ -633,11 +649,15 @@ func TestSSRFKelasAlamatIsPrivateTidakCukup(t *testing.T) {
 		if ditolak && !ip.IsPrivate() {
 			lolosIsPrivate++
 		}
+		if ditolak && !ip.IsPrivate() && !ip.IsLoopback() && !ip.IsLinkLocalUnicast() && !ip.IsUnspecified() {
+			lolosEmpatPenanda++
+		}
 		if ditolak {
 			tertangkapAman++
 		}
 	}
 	fmt.Printf("ditolak fetcher aman: %d dari %d alamat terlarang; dari itu %d lolos bila IsPrivate satu-satunya pemeriksaan\n", tertangkapAman, len(kelas)-kontrolN, lolosIsPrivate)
+	fmt.Printf("dari %d alamat terlarang yang sama, %d lolos bila hanya empat penanda di tabel (IsPrivate, IsLoopback, IsLinkLocalUnicast, IsUnspecified) yang diperiksa\n", len(kelas)-kontrolN, lolosEmpatPenanda)
 	if lolosIsPrivate < 5 {
 		t.Fatalf("hanya %d alamat yang lolos IsPrivate padahal terlarang; tes ini tidak membuktikan IsPrivate tidak cukup", lolosIsPrivate)
 	}
