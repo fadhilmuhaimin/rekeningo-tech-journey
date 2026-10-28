@@ -49,6 +49,13 @@ ERROR:  must be owner of table audit_log (SQLSTATE 42501)
 ERROR:  must be owner of table audit_log (SQLSTATE 42501)
 => [api_t4] DROP TABLE audit_log
 ERROR:  must be owner of table audit_log (SQLSTATE 42501)
+=> [api_t4] INSERT INTO audit_log (id, waktu, pelaku_id, peran, aksi, objek, hash_sebelumnya, hash) VALUES (1, now(), 420, 'risk', 'x', 'x', 'x', 'x')
+   ON CONFLICT (id) DO UPDATE SET alasan = 'diubah'
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [api_t4] MERGE INTO audit_log t USING (SELECT 1 AS id) s ON t.id = s.id WHEN MATCHED THEN UPDATE SET alasan = 'diubah'
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [api_t4] CREATE TRIGGER x BEFORE INSERT ON audit_log FOR EACH ROW EXECUTE FUNCTION pg_catalog.suppress_redundant_updates_trigger()
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
 # Dibaca dari pemilik schema: jumlah baris dan ringkasan semua hash sama dengan sebelum percobaan: ya.
 # UPDATE ... WHERE false tetap ditolak: PostgreSQL memeriksa hak saat perintah disusun, bukan saat ada baris yang cocok.
 
@@ -123,3 +130,14 @@ ERROR:  permission denied for table audit_log (SQLSTATE 42501)
 ERROR:  permission denied for table akun (SQLSTATE 42501)
 => [t4a_agen] TRUNCATE audit_log
 ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+
+# --- E. Yang hak tabel tidak menahan: role aplikasi boleh menambah baris, juga baris yang tak pernah terjadi ---
+# Log dipulihkan ke enam baris yang utuh (pemilik schema, bukan aplikasi), lalu role aplikasi menambah satu baris dengan hash yang dihitung skrip lab:
+=> [api_t4] INSERT INTO audit_log (...) VALUES (... 'buka_berkas', 'verifikasi:1/swafoto', ..., <hash_sebelumnya>, <hash hitungan skrip>)
+INSERT 0 1
+$ ./auditjob -db <role t4a_verifikator> -jangkar role-e.jsonl
+baris=7 rantai=utuh jangkar_lama=0 temuan=0
+jangkar baru: nomor 7
+# exit status 0
+# Hak tabel menahan UPDATE dan DELETE oleh aplikasi, bukan penambahan. Aplikasi yang diambil alih bisa menulis baris yang tak pernah terjadi,
+# dan rantai tanpa kunci rahasia tidak membedakannya dari baris asli (sama dengan pemilik tabel di rantai.txt bagian C).

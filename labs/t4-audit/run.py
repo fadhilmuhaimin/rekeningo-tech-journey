@@ -95,6 +95,14 @@ def sebagai(role, q, schema=SCH, tampil=True, harus=None, args=None):
     return sqlstate, baris
 
 
+def sambung_role(role, schema=SCH):
+    """Koneksi (autocommit) sebagai role itu, bukan sebagai pemilik schema lab: dipakai skrip yang berperan penyerang."""
+    c = psycopg.connect(f"host=127.0.0.1 port={d.DB_PORT} user={role} password={role} dbname=lab options=-csearch_path={schema} application_name=t4-audit",
+                        autocommit=True)
+    c.prepare_threshold = None
+    return c
+
+
 def versi_go():
     return d.versi_alat()
 
@@ -192,9 +200,10 @@ def hasil_rantai(ratih):
 # ---------- rantai.txt ----------
 
 def tulis_ulang_dari(id_awal, ubah):
-    """Penyerang dengan hak tulis (pemilik tabel): ubah satu baris lalu hitung ulang hash baris itu dan semua baris
-    sesudahnya dengan rumus yang sama (vektor.hash_baris, ditulis Python). Rantai tanpa kunci rahasia bukan tanda tangan."""
-    with d.sambung(SCH) as c:
+    """Penyerang dengan hak tulis (pemilik tabel, role t4a_pemilik): ubah satu baris lalu hitung ulang hash baris itu dan
+    semua baris sesudahnya dengan rumus yang sama (vektor.hash_baris, ditulis Python). Rantai tanpa kunci rahasia bukan
+    tanda tangan."""
+    with sambung_role("t4a_pemilik") as c:
         c.execute(ubah)
         rows = c.execute("""SELECT id, to_char(waktu AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), pelaku_id, peran, aksi, objek,
                              coalesce(alasan, ''), coalesce(penyetuju_id, 0) FROM audit_log WHERE id >= %s ORDER BY id""", (id_awal,)).fetchall()
@@ -403,6 +412,7 @@ def rekam_role():
     ratih, risk2, dina = token_staf()
     aksi_bo(ratih, risk2, dina)
     d.stop(PORT)
+    sql("CREATE TABLE audit_salinan AS SELECT * FROM audit_log", tampil=False)
     bagian("A. Siapa memegang apa: pemilik tabel, superuser, dan hak role aplikasi atas audit_log")
     sql("SELECT rolname, rolsuper FROM pg_roles WHERE rolname IN ('lab', 'api_t4', 't4a_pemilik', 't4a_verifikator', 't4a_agen') ORDER BY rolname")
     sql("SELECT tablename, tableowner FROM pg_tables WHERE tablename = 'audit_log' AND schemaname = 'tahap4_audit'")
@@ -420,7 +430,11 @@ def rekam_role():
               "SELECT id FROM audit_log WHERE id = 1 FOR UPDATE",
               "ALTER TABLE audit_log DISABLE TRIGGER ALL",
               "ALTER TABLE audit_log OWNER TO api_t4",
-              "DROP TABLE audit_log"):
+              "DROP TABLE audit_log",
+              "INSERT INTO audit_log (id, waktu, pelaku_id, peran, aksi, objek, hash_sebelumnya, hash) VALUES (1, now(), 420, 'risk', 'x', 'x', 'x', 'x')\n"
+              "ON CONFLICT (id) DO UPDATE SET alasan = 'diubah'",
+              "MERGE INTO audit_log t USING (SELECT 1 AS id) s ON t.id = s.id WHEN MATCHED THEN UPDATE SET alasan = 'diubah'",
+              "CREATE TRIGGER x BEFORE INSERT ON audit_log FOR EACH ROW EXECUTE FUNCTION pg_catalog.suppress_redundant_updates_trigger()"):
         sebagai("api_t4", q, harus="42501")
     with d.sambung(SCH) as c:
         sesudah = c.execute("SELECT count(*), md5(string_agg(hash, ',' ORDER BY id)) FROM audit_log").fetchone()
@@ -471,6 +485,25 @@ def rekam_role():
               "UPDATE akun SET status = 'dibekukan' WHERE id = 40001",
               "TRUNCATE audit_log"):
         sebagai("t4a_agen", q, harus="42501")
+
+    bagian("E. Yang hak tabel tidak menahan: role aplikasi boleh menambah baris, juga baris yang tak pernah terjadi")
+    catat("# Log dipulihkan ke enam baris yang utuh (pemilik schema, bukan aplikasi), lalu role aplikasi menambah satu baris dengan hash yang dihitung skrip lab:")
+    with d.sambung(SCH) as c:
+        c.execute("TRUNCATE audit_log")
+        c.execute("INSERT INTO audit_log SELECT * FROM audit_salinan")
+        terakhir = c.execute("SELECT hash FROM audit_log ORDER BY id DESC LIMIT 1").fetchone()[0]
+    palsu = vektor.hash_baris(terakhir, "2026-10-26T04:00:00.000000Z", 421, "risk", "buka_berkas", "verifikasi:1/swafoto",
+                              "Pemeriksaan lanjutan atas laporan pemilik akun", 0)
+    sebagai("api_t4", "INSERT INTO audit_log (waktu, pelaku_id, peran, aksi, objek, alasan, hash_sebelumnya, hash) VALUES "
+            "('2026-10-26T04:00:00Z', 421, 'risk', 'buka_berkas', 'verifikasi:1/swafoto', 'Pemeriksaan lanjutan atas laporan pemilik akun', %s, %s)",
+            args=(terakhir, palsu), harus="ok", tampil=False)
+    catat("=> [api_t4] INSERT INTO audit_log (...) VALUES (... 'buka_berkas', 'verifikasi:1/swafoto', ..., <hash_sebelumnya>, <hash hitungan skrip>)")
+    catat("INSERT 0 1")
+    berkas = JANGKAR_DIR / "role-e.jsonl"
+    berkas.unlink(missing_ok=True)
+    jalankan_job(berkas, "role-e.jsonl", 0)
+    catat("# Hak tabel menahan UPDATE dan DELETE oleh aplikasi, bukan penambahan. Aplikasi yang diambil alih bisa menulis baris yang tak pernah terjadi,")
+    catat("# dan rantai tanpa kunci rahasia tidak membedakannya dari baris asli (sama dengan pemilik tabel di rantai.txt bagian C).")
     tulis("role.txt", "hak role atas audit_log: aplikasi, pemilik tabel, superuser, dan role baca-saja")
 
 
