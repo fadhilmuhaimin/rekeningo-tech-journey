@@ -123,6 +123,34 @@ describe("generasi dan masukan", () => {
     expect(b.keadaan(2)).toBe("open");
     expect(b.perpindahan).toHaveLength(1);
   });
+  it("hasil lama yang tiba di half-open atau closed berikutnya diabaikan dan tidak menutup breaker", () => {
+    const b = new Breaker(BAWAAN);
+    const lama = b.sebelum(0);
+    gagalkan(b, 6);
+    expect(b.keadaan(61)).toBe("half-open");
+    if (lama.ok) b.sesudah(lama.generasi, true, 61);
+    expect(b.keadaan(61)).toBe("half-open");
+    const percobaan = b.sebelum(61);
+    if (percobaan.ok) b.sesudah(percobaan.generasi, true, 62);
+    expect(b.keadaan(62)).toBe("closed");
+    if (lama.ok) b.sesudah(lama.generasi, false, 63);
+    expect(b.gagalBerturut).toBe(0);
+    expect(b.keadaan(63)).toBe("closed");
+  });
+  it("hitungan menyala dari nol di tiap generasi: sesudah membuka gagal berturut-turut 0, dan sukses beruntun half-open dimulai dari nol", () => {
+    const b = new Breaker({ ...BAWAAN, maksHalfOpen: 2 });
+    gagalkan(b, 6);
+    expect(b.gagalBerturut).toBe(0);
+    expect(b.keadaan(61)).toBe("half-open");
+    const a1 = b.sebelum(61), a2 = b.sebelum(61);
+    if (a1.ok) b.sesudah(a1.generasi, true, 61);
+    if (a2.ok) b.sesudah(a2.generasi, false, 61);
+    expect(b.keadaan(61)).toBe("open");
+    expect(b.keadaan(122)).toBe("half-open");
+    const c1 = b.sebelum(122);
+    if (c1.ok) b.sesudah(c1.generasi, true, 122);
+    expect(b.keadaan(122)).toBe("half-open");
+  });
   it("pengaturan yang tidak masuk akal gagal keras", () => {
     for (const salah of [{ gagalLebihDari: -1 }, { gagalLebihDari: 1.5 }, { bukaDetik: 0 }, { bukaDetik: NaN }, { maksHalfOpen: 0 }, { maksHalfOpen: 1.2 }]) {
       expect(() => new Breaker({ ...BAWAAN, ...salah })).toThrow(/pengaturan tidak masuk akal/);

@@ -6,7 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { SIMULASI, aturanDari, bacaRekaman, daftarAcuan } from "./rekaman";
-import { VONIS, isi, jalurVonis, ringkas } from "./logika";
+import { VONIS, isi, jalurVonis, kalimatVonis, ringkas, ringkasTeks } from "./logika";
 import { KUNCI_ACUAN, LabelBreaker } from "./skema";
 import { nilaiBuild, periksaTombol, siapkanTeks } from "./teks";
 import labelMentah from "../../../data/widget/t4-circuit-breaker.json";
@@ -266,6 +266,73 @@ describe("tebakan, tombol, dan label kejujuran", () => {
     expect(T.acuanTeks["queue-4xx-sukses"]).toBe("lajur.txt bagian E: dengan 4xx dihitung sukses breaker tidak membuka; 6 pekerjaan rusak habis 5 percobaan dan 4 pekerjaan sehat lulus dalam 34 permintaan.");
     expect(T.acuanTeks["sinkron-4xx-gagal"]).toBe("breaker.txt bagian C: dengan IsSuccessful bawaan pustaka, 6 jawaban 4xx berturut-turut membuka breaker.");
     expect(T.acuanTeks["sinkron-4xx-sukses"]).toBe("breaker.txt bagian C: dengan IsSuccessful kustom, 6 jawaban 4xx berturut-turut tidak membuka breaker.");
+  });
+});
+
+describe("teks yang tampil dikunci kata demi kata terhadap angka rekaman", () => {
+  const param = (kunci: string) => acuan.find((d) => d.kunci === kunci)!.param;
+  const vonis = (kunci: string, ubah: { breaker?: boolean } = {}) => kalimatVonis(L.vonis, ringkas({ ...param(kunci), ...ubah }, A), { ...param(kunci), ...ubah }, A);
+  const N = R.lajur.pendaftar;
+  it("pertanyaan tebakan memuat pekerjaan, percobaan, dan ambang dari rekaman", () => {
+    expect(T.pertanyaan).toBe(`Layanan verifikasi mati. ${N} pekerjaan verifikasi menunggu di queue, dan satu worker mengerjakannya satu per satu dengan paling banyak ${R.worker.percobaan} percobaan per pekerjaan. Breaker membuka sesudah lebih dari ${R.breaker.lebihDari} gagal berturut-turut. Berapa pekerjaan sudah mati ketika breaker membuka?`);
+  });
+  it("pilihan tebakan dan alasannya", () => {
+    expect(T.pilihan).toEqual([
+      { teks: "Tidak ada: breaker melindungi semua pekerjaan.", alasan: `Breaker membuka pada kegagalan ke-${R.breaker.gagalKe}, tetapi satu pekerjaan hanya punya ${R.worker.percobaan} percobaan. Pekerjaan pertama habis lebih dulu.` },
+      { teks: `${R.breaker.gagalKe}: tiap kegagalan mematikan satu pekerjaan.`, alasan: `${R.worker.percobaan} kegagalan pertama menghabiskan pekerjaan pertama. Kegagalan berikutnya jatuh pada pekerjaan kedua, bukan pada pekerjaan baru.` },
+      { teks: `${R.lajur.b.awal["mati 5"]}: hanya pekerjaan pertama, yang sudah memakai semua percobaannya.`, alasan: `${R.worker.percobaan} kegagalan pertama menghabiskan pekerjaan pertama. Kegagalan ke-${R.breaker.gagalKe} jatuh pada pekerjaan kedua dan membuka breaker, sehingga ${R.lajur.b.awal["menunggu 0"]! + R.lajur.b.awal["menunggu 1"]!} pekerjaan lain masih menunggu.` },
+      { teks: `Semua ${N}: vendor yang mati menghabiskan semua percobaan.`, alasan: `Itu terjadi tanpa breaker: ${N} pekerjaan mati sesudah ${R.lajur.a.permintaan} permintaan. Dengan breaker, lajur berhenti diklaim sesudah kegagalan ke-${R.breaker.gagalKe}.` },
+    ]);
+  });
+  it("kalimat vonis untuk semua enam kategori", () => {
+    expect(vonis("queue-tanpa")).toBe(`Tanpa breaker, ${N} dari ${N} pekerjaan mati sesudah ${R.worker.percobaan} percobaan, dan ${R.lajur.a.permintaan} permintaan sampai ke vendor.`);
+    expect(vonis("queue-satu")).toBe(`Breaker membuka pada detik 0; sesudah 180 detik ${R.lajur.b.lulus} pekerjaan terkirim, ${R.lajur.b.gagal} mati, dan 0 menunggu.`);
+    expect(vonis("queue-4xx-sukses")).toBe(`Breaker tidak pernah membuka: ${R.lajur.e.lulus} pekerjaan terkirim, ${R.lajur.e.gagal} mati, dan 0 menunggu.`);
+    expect(vonis("sinkron-bawaan")).toBe(`Breaker membuka pada detik ${R.breaker.gagalKe - 1} dan menolak ${180 - R.breaker.gagalKe - 2} dari 180 permintaan tanpa menunggu vendor.`);
+    expect(vonis("sinkron-4xx-sukses")).toBe("Breaker tidak pernah membuka, jadi semua 180 permintaan sampai ke vendor.");
+    expect(vonis("sinkron-bawaan", { breaker: false })).toBe("Tanpa breaker, semua 180 permintaan sampai ke vendor dan pemanggil menunggu 0 detik.");
+  });
+  it("ringkasan pendek dan kalimat perbandingan dengan pengaturan awal", () => {
+    const awal = ringkas(param("queue-satu"), A), kini = ringkas(param("queue-tanpa"), A), sinkron = ringkas(param("sinkron-bawaan"), A);
+    expect(ringkasTeks(L.ringkas, awal)).toBe(`${R.lajur.b.gagal} mati, ${R.lajur.b.lulus} terkirim, ${R.lajur.b.permintaanAkhir} permintaan ke vendor`);
+    expect(isi(L.banding.beda, { awal: ringkasTeks(L.ringkas, awal), kini: ringkasTeks(L.ringkas, kini) })).toBe(
+      `Pengaturan awal: ${R.lajur.b.gagal} mati, ${R.lajur.b.lulus} terkirim, ${R.lajur.b.permintaanAkhir} permintaan ke vendor. Sekarang: ${N} mati, 0 terkirim, ${R.lajur.a.permintaan} permintaan ke vendor.`);
+    expect(ringkasTeks(L.ringkas, sinkron)).toBe(`${180 - R.breaker.gagalKe - 2} ditolak, menunggu 0 detik`);
+    expect(L.banding.sama).toBe("Ini pengaturan awal.");
+  });
+  it("catatan, nama titik acuan, label pulih, dan asal angka", () => {
+    expect(T.catatan).toEqual({
+      sinkron: "Breaker di jalur sinkron tidak dipasang di lab; seluruh jalur ini Simulasi.",
+      ambang: `Ambang breaker (kegagalan ke-${R.breaker.gagalKe}) lebih tinggi daripada batas percobaan (${R.worker.percobaan}). Dengan satu worker, pekerjaan pertama mati sebelum breaker membuka (lajur.txt bagian B).`,
+      probe: "Permintaan percobaan di half-open memakai percobaan pekerjaan terdepan. Selama vendor tetap mati, tiap Timeout breaker menghabiskan satu percobaan (tes lab, bukan rekaman lajur.txt).",
+      empatSukses: "Kode lab menghitung semua jawaban 4xx sebagai sukses bagi breaker, termasuk 429 dan 408.",
+      empatDiulang: `Pekerjaan queue dengan jawaban 4xx tetap diulang ${R.worker.percobaan} kali walau jawabannya tidak berubah (lajur.txt bagian E).`,
+      harga: "Breaker baru mencoba lagi sesudah Timeout, jadi permintaan yang sebenarnya bisa berhasil ikut ditolak.",
+    });
+    expect(T.namaAcuan).toEqual({
+      "sinkron-bawaan": "Sinkron, vendor mati, breaker dipasang", "sinkron-4xx-gagal": "Sinkron, jawaban 4xx dihitung gagal", "sinkron-4xx-sukses": "Sinkron, jawaban 4xx dihitung sukses",
+      "queue-tanpa": "Queue, tanpa breaker, satu worker", "queue-satu": "Queue, breaker, satu worker", "queue-empat": `Queue, breaker, ${R.worker.serentak} worker`,
+      "queue-4xx-gagal": "Queue, dokumen rusak, 4xx dihitung gagal", "queue-4xx-sukses": "Queue, dokumen rusak, 4xx dihitung sukses",
+    });
+    expect(T.opsi.pulih.map((o) => o.label)).toEqual([`Pulih pada detik ${SIMULASI.pulihDetik}`, "Tidak pulih"]);
+    expect(T.asal.butir).toEqual([
+      `Rekaman lab: ambang lebih dari ${R.breaker.lebihDari} gagal berturut-turut, open ${R.breaker.bukaDetik} detik, satu permintaan di half-open, dan penilaian 4xx (breaker.txt). Pekerjaan, percobaan, dan permintaan dari lajur.txt dan worker.txt.`,
+      `Simulasi: jam bergerak satu detik per langkah, urutan error rate acak dengan benih tetap, vendor pulih pada detik ${SIMULASI.pulihDetik}, dan backoff 0 seperti di lab. Jalur sinkron tidak ada di lab.`,
+      "Hitungan, Asumsi: slot worker dan outage panjang dihitung dari laju dan lama outage naskah, bukan dari rekaman.",
+      `Mesin keadaan mengikuti pustaka gobreaker ${R.breaker.versi} dengan pengaturan bawaan. Di lab jamnya diperankan, jadi ${R.breaker.bukaDetik} detik tidak ditunggu.`,
+    ]);
+  });
+  it("teks tetap, judul, dan tombol yang dibaca pembaca", () => {
+    expect(L.tabel).toEqual({ judul: "Titik acuan dari rekaman lab", kolom: ["Pengaturan", "Hasil di rekaman"] });
+    expect([L.benar, L.belum, L.ulang, L.awal, L.cocok]).toEqual(["Tepat.", "Belum tepat.", "Coba pilihan lain", "Kembali ke pengaturan awal", "Cocok dengan rekaman"]);
+    expect(L.pilihNilai.jalur.map((o) => o.nilai)).toEqual(["sinkron", "queue"]);
+    expect(L.pilihNilai.breaker.map((o) => [o.nilai, o.label])).toEqual([[true, "Dipasang"], [false, "Tanpa breaker"]]);
+    expect(L.pilihNilai.jenis.map((o) => o.nilai)).toEqual(["5xx", "4xx-gagal", "4xx-sukses"]);
+    expect(L.pilihNilai.jenis.map((o) => o.label)).toEqual(["5xx: vendor gagal", "4xx dihitung gagal (bawaan pustaka)", "4xx dihitung sukses (kustom)"]);
+    expect(L.pilihNilai.error.map((o) => o.nilai)).toEqual([0, 30, 60, 100]);
+    expect(L.pilihNilai.latensi.map((o) => o.nilai)).toEqual([0, 2, 4]);
+    expect(L.pilihNilai.serentak.map((o) => o.nilai)).toEqual([1, R.worker.serentak]);
+    expect(L.pilihNilai.pulih.map((o) => o.nilai)).toEqual(["sementara", "terus"]);
   });
 });
 

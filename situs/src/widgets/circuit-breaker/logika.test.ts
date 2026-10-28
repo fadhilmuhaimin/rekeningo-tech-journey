@@ -2,7 +2,7 @@
 // dihitung dari model ini sendiri (benih 1) dan dikunci di sini; kesesuaian dengan rekaman lab ada di acuan.test.ts.
 import { describe, expect, it } from "vitest";
 import {
-  HORIZON, cariAcuan, hitunganOutage, indeksBenar, isi, jalankan, koma, lajuPuncak, periksaMasukan, ribuan, ringkas, samaAcuan, simulasiQueue,
+  BARIS, HORIZON, cariAcuan, hitunganOutage, indeksBenar, isi, jalankan, koma, lajuPuncak, periksaMasukan, ribuan, ringkas, samaAcuan, simulasiQueue,
   simulasiSinkron, slotWorker, vendor, type AcuanDef, type Aturan, type Param,
 } from "./logika";
 
@@ -138,6 +138,10 @@ describe("jalur queue", () => {
     expect(hitungJob(h.pekerjaan)).toEqual({ "mati 5": 6, "terkirim 1": 4 });
     expect([h.kevendor, h.buka, h.kaliBuka]).toEqual([34, null, 0]);
   });
+  it("jumlah dokumen rusak dibulatkan ke terdekat: 30% dari 5 pekerjaan berarti dua", () => {
+    const h = simulasiQueue({ ...Q, error: 30, jenis: "4xx-sukses" }, { ...A, pekerjaan: 5 });
+    expect(h.pekerjaan.filter((j) => j.status === "mati").map((j) => j.id)).toEqual([1, 2]);
+  });
   it("jumlah dokumen rusak mengikuti error rate: 20% berarti dua pekerjaan terdepan", () => {
     const h = simulasiQueue({ ...Q, error: 20, jenis: "4xx-sukses" }, A);
     expect(h.pekerjaan.filter((j) => j.status === "mati").map((j) => j.id)).toEqual([1, 2]);
@@ -156,7 +160,7 @@ describe("jalur queue", () => {
     expect(h.kevendor).toBe(18);
   });
   it("percobaan tidak pernah melebihi batas dan pekerjaan yang selesai tidak diklaim lagi", () => {
-    for (const d of [{}, { serentak: 4 }, { breaker: false }, { latensi: 2 }, { pulih: "terus" as const }]) {
+    for (const d of [{}, { serentak: 4 }, { breaker: false }, { latensi: 2 }, { pulih: "terus" as const }, { latensi: 4, pulih: "terus" as const }, { latensi: 2, pulih: "terus" as const }]) {
       const h = simulasiQueue({ ...Q, ...d }, A);
       expect(h.pekerjaan.every((j) => j.percobaan <= A.percobaan && j.percobaan === j.riwayat.length)).toBe(true);
       expect(h.pekerjaan.filter((j) => j.status === "terkirim").every((j) => j.riwayat.at(-1) === "ok")).toBe(true);
@@ -206,12 +210,22 @@ describe("hitungan worker dan permintaan percobaan", () => {
     expect(koma(Number(koma(slotWorker(0.116, 5, 3), 2).replace(",", ".")) + 2.26, 1)).toBe("4,0");
     expect(koma(lajuPuncak(1000, 10), 3)).toBe("0,116");
     expect(koma(lajuPuncak(1000, 1), 4)).toBe("0,0116");
+    expect(lajuPuncak(86400, 1)).toBe(1);
+    expect(lajuPuncak(86400, 10)).toBe(10);
   });
   it("outage 12.600 detik, Timeout 60 detik, lima percobaan, 0,0116 per detik: 210 probe, sampai 42 dari 146 pekerjaan", () => {
     expect(hitunganOutage(12600, 60, 5, 0.0116)).toEqual({ pekerjaan: 146, probe: 210, matiMaks: 42 });
     expect(hitunganOutage(59, 60, 5, 0.0116)).toMatchObject({ probe: 0, matiMaks: 0 });
     expect(hitunganOutage(300, 60, 5, 0.0116).matiMaks).toBe(1);
+    expect(hitunganOutage(480, 60, 5, 0.0116)).toMatchObject({ probe: 8, matiMaks: 1 });
+    expect(hitunganOutage(13000, 60, 5, 0.0116).pekerjaan).toBe(151);
     expect(() => hitunganOutage(0, 60, 5, 1)).toThrow(/masukan/);
+  });
+});
+
+describe("papan", () => {
+  it("tiga baris satu menit: BARIS 60 dan HORIZON 180", () => {
+    expect([BARIS, HORIZON, HORIZON / BARIS]).toEqual([60, 180, 3]);
   });
 });
 

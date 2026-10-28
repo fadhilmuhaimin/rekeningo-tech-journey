@@ -9,8 +9,8 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { muncul } from "../../gerak/muncul";
 import {
-  BARIS, HORIZON, cariAcuan, isi, jalankan, jalurVonis, ringkas,
-  type AcuanDef, type Aturan, type HasilVendor, type Jalur, type Jenis, type Param, type Pekerjaan, type Pulih, type Ringkas, type SelQueue, type SelSinkron, type Status, type Vonis,
+  BARIS, HORIZON, cariAcuan, isi, jalankan, kalimatVonis, ringkas, ringkasTeks,
+  type AcuanDef, type Aturan, type HasilVendor, type Jalur, type Jenis, type Param, type Pekerjaan, type Pulih, type SelQueue, type SelSinkron, type Status, type Vonis,
 } from "./logika";
 
 export interface Opsi<T> { nilai: T; label: string }
@@ -48,7 +48,6 @@ function Teks({ t }: { t: string }) {
   return <>{t.split(KODE).map((b, i) => (i % 2 ? <code key={i} translate="no">{b}</code> : b))}</>;
 }
 const kodeHuruf = (i: number): string => String.fromCharCode(65 + i);
-const nilaiTeks = (n: number | null): string => (n === null ? "" : String(n));
 
 export default function CircuitBreaker({ aturan, awal, pertanyaan, pilihan, benar, opsi, acuan, acuanTeks, catatan, hitungan, asal, label: L }: Props) {
   const id = useId();
@@ -84,13 +83,6 @@ export default function CircuitBreaker({ aturan, awal, pertanyaan, pilihan, bena
   const ubah = (k: Kelompok, nilai: Param[Kelompok]) => setParam({ ...param, [k]: nilai } as Param);
 
   const tepat = dipilih === benar;
-  const nilaiVonis = (r: Ringkas, p: Param): Record<string, string | number> => ({
-    x: nilaiTeks(r.buka), n: p.jalur === "sinkron" ? HORIZON : aturan.pekerjaan, ditolak: r.ditolak, tunggu: r.tunggu, terkirim: r.terkirim, mati: r.mati,
-    menunggu: r.menunggu, kevendor: r.kevendor, percobaan: aturan.percobaan, horizon: HORIZON,
-  });
-  const kalimat = (r: Ringkas, p: Param) => isi(L.vonis[r.vonis], nilaiVonis(r, p));
-  const singkat = (r: Ringkas) =>
-    jalurVonis(r.vonis) === "sinkron" ? isi(L.ringkas.sinkron, { ditolak: r.ditolak, tunggu: r.tunggu }) : isi(L.ringkas.queue, { mati: r.mati, terkirim: r.terkirim, kevendor: r.kevendor });
   const diubah = KELOMPOK.some((k) => param[k] !== awal[k]);
   const kunciAcuan = cariAcuan(param, acuan);
   const sinkron = param.jalur === "sinkron";
@@ -161,13 +153,13 @@ export default function CircuitBreaker({ aturan, awal, pertanyaan, pilihan, bena
       )}
 
       <div role="status" aria-live="polite" className={"cb-vonis" + (dipilih !== null ? (ring.kebuka ? " is-buka" : " is-tetap") : "")}>
-        {dipilih !== null && <p><strong>{kalimat(ring, param)}</strong></p>}
+        {dipilih !== null && <p><strong>{kalimatVonis(L.vonis, ring, param, aturan)}</strong></p>}
       </div>
 
       {dipilih !== null && (
         <div className="cb-hasil">
           <p className="bb-muted cb-banding">
-            {!diubah ? L.banding.sama : isi(L.banding.beda, { awal: singkat(ringAwal), kini: singkat(ring) })}
+            {!diubah ? L.banding.sama : isi(L.banding.beda, { awal: ringkasTeks(L.ringkas, ringAwal), kini: ringkasTeks(L.ringkas, ring) })}
           </p>
           <p className="cb-acuan">
             {kunciAcuan ? (

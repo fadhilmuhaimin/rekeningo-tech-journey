@@ -7,7 +7,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { Breaker } from "./breaker";
 import { aturanDari, awalDari, bacaRekaman, daftarAcuan, SIMULASI } from "./rekaman";
-import { berhasilBagiBreaker, cariAcuan, hitunganOutage, koma, lajuPuncak, simulasiQueue, simulasiSinkron, slotWorker, type Pekerjaan } from "./logika";
+import { BARIS, berhasilBagiBreaker, cariAcuan, hitunganOutage, koma, lajuPuncak, simulasiQueue, simulasiSinkron, slotWorker, type Pekerjaan } from "./logika";
 import { LabelBreaker } from "./skema";
 import { periksaTombol, siapkanTeks } from "./teks";
 import labelMentah from "../../../data/widget/t4-circuit-breaker.json";
@@ -131,6 +131,12 @@ describe("hitungan dari rekaman worker.txt bagian C dan README", () => {
   it("outage 12.600 detik: 210 permintaan percobaan dan sampai 42 dari 146 pekerjaan (README)", () => {
     expect(hitunganOutage(R.outage.detik, R.breaker.bukaDetik, R.worker.percobaan, R.outage.lajuRataRata)).toEqual({ pekerjaan: R.outage.pekerjaan, probe: R.outage.probe, matiMaks: R.outage.matiMaks });
     expect([R.outage.detik, R.outage.probe, R.outage.matiMaks, R.outage.pekerjaan]).toEqual([12600, 210, 42, 146]);
+  });
+});
+
+describe("papan: satu baris sama dengan satu Timeout breaker", () => {
+  it("BARIS sama dengan Timeout di rekaman, sehingga tiap baris memuat satu siklus open", () => {
+    expect(BARIS).toBe(R.breaker.bukaDetik);
   });
 });
 

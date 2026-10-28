@@ -243,6 +243,20 @@ export function ringkas(p: Param, a: Aturan): Ringkas {
 /** Ke jalur mana sebuah kalimat vonis dan ringkasnya berlaku. */
 export const jalurVonis = (v: Vonis): Jalur => (v.startsWith("sinkron") ? "sinkron" : "queue");
 
+/** Nilai untuk templat vonis (role=status) dan ringkas; dihitung di sini supaya yang tampil bisa dites tanpa DOM. */
+export function nilaiVonis(r: Ringkas, p: Param, a: Aturan): Record<string, string | number> {
+  return {
+    x: r.buka === null ? "" : r.buka, n: p.jalur === "sinkron" ? HORIZON : a.pekerjaan, ditolak: r.ditolak, tunggu: r.tunggu, terkirim: r.terkirim,
+    mati: r.mati, menunggu: r.menunggu, kevendor: r.kevendor, percobaan: a.percobaan, horizon: HORIZON,
+  };
+}
+/** Satu kalimat penuh untuk role=status. */
+export const kalimatVonis = (templat: Record<Vonis, string>, r: Ringkas, p: Param, a: Aturan): string => isi(templat[r.vonis], nilaiVonis(r, p, a));
+/** Ringkasan pendek untuk perbandingan dengan pengaturan awal. */
+export function ringkasTeks(templat: { sinkron: string; queue: string }, r: Ringkas): string {
+  return jalurVonis(r.vonis) === "sinkron" ? isi(templat.sinkron, { ditolak: r.ditolak, tunggu: r.tunggu }) : isi(templat.queue, { mati: r.mati, terkirim: r.terkirim, kevendor: r.kevendor });
+}
+
 // --- Hitungan (Hitungan, Asumsi): pemakaian worker dan permintaan percobaan -------------------------------------------------
 
 /** Slot worker = laju × percobaan × detik per percobaan (hukum Little: L = λ × W). */
