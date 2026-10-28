@@ -133,6 +133,18 @@ class TesGosec(unittest.TestCase):
         with self.assertRaises(ValueError):
             g.putuskan_gosec([], [], {"files": 1, "found": 0}, "CRITICAL")
 
+    def test_temuan_terurut_menurut_berkas_baris_dan_aturan(self):
+        a = dict(ISU, file="/tmp/x/b.go", line="3")
+        b = dict(ISU, file="/tmp/x/a.go", line="9", rule_id="G202")
+        c = dict(ISU, file="/tmp/x/a.go", line="9", rule_id="G201")
+        temuan, _, _ = g.parse_gosec(gosec([a, b, c]), "/tmp/x")
+        self.assertEqual([(t["berkas"], t["baris"], t["aturan"]) for t in temuan], [("a.go", 9, "G201"), ("a.go", 9, "G202"), ("b.go", 3, "G701")])
+
+    def test_galat_terurut_walau_kunci_datang_terbalik(self):
+        teks = gosec(galat={"/tmp/x/r.go": [{"error": "expected ')'"}], "": [{"error": "# x\n./r.go:3:13: syntax error"}]})
+        _, galat, _ = g.parse_gosec(teks)
+        self.assertEqual(galat, ["(paket): ./r.go:3:13: syntax error", "r.go: expected ')'"])
+
 
 class TesGovulncheck(unittest.TestCase):
     def test_aliran_beberapa_objek_dibaca(self):
@@ -177,6 +189,28 @@ class TesGovulncheck(unittest.TestCase):
                                                                          {"module": "lab/x", "package": "lab/x", "function": "main"}]}}
         hasil = g.parse_govulncheck(aliran(CONFIG, finding("GO-1"), jejak))
         self.assertEqual([t["osv"] for t in hasil], ["GO-2", "GO-1"])
+
+    def test_temuan_modul_yang_datang_belakangan_tidak_menghapus_dipanggil(self):
+        # govulncheck memuat satu osv pada beberapa tingkat; urutannya tidak dijamin
+        jejak = {"finding": {"osv": "GO-1", "fixed_version": "v0.3.8", "trace": [
+            {"module": "golang.org/x/text", "version": "v0.3.7", "package": "golang.org/x/text/language", "function": "ParseAcceptLanguage"},
+            {"module": "lab/x", "package": "lab/x", "function": "main"}]}}
+        for urutan in ((jejak, finding("GO-1")), (finding("GO-1"), jejak)):
+            hasil = g.parse_govulncheck(aliran(CONFIG, *urutan))
+            self.assertEqual(sorted(t["dipanggil"] for t in hasil), [False, True])
+            self.assertFalse(g.putuskan_govulncheck(hasil)[0])
+
+    def test_kerentanan_stdlib_yang_dipanggil_menggagalkan_gerbang(self):
+        jejak = {"finding": {"osv": "GO-3", "fixed_version": "v1.27.2", "trace": [
+            {"module": "stdlib", "version": "v1.27.1", "package": "net/http", "function": "Do"},
+            {"module": "lab/x", "package": "lab/x", "function": "main"}]}}
+        lulus, alasan = g.putuskan_govulncheck(g.parse_govulncheck(aliran(CONFIG, jejak)))
+        self.assertFalse(lulus)
+        self.assertIn("GO-3", alasan)
+
+    def test_kerentanan_stdlib_yang_hanya_ada_di_versi_go_tidak_menggagalkan(self):
+        paket = {"finding": {"osv": "GO-6", "fixed_version": "v1.27.2", "trace": [{"module": "stdlib", "version": "v1.27.1", "package": "os"}]}}
+        self.assertTrue(g.putuskan_govulncheck(g.parse_govulncheck(aliran(CONFIG, paket)))[0])
 
     def test_bingkai_sendiri_dipilih_bukan_bingkai_stdlib(self):
         jejak = {"finding": {"osv": "GO-3", "fixed_version": "v1.27.2", "trace": [
@@ -291,6 +325,10 @@ class TesTandaTangan(unittest.TestCase):
     def test_digest_dibaca_dari_push(self):
         self.assertEqual(g.digest_dari_push(f"1.0: digest: {D_A} size: 856\n"), D_A)
 
+    def test_digest_push_mengabaikan_digest_di_baris_lain(self):
+        keluaran = f"The push refers to repository [r/api-t4]\nsha256:{'b' * 64}: Pushed\n1.0: digest: {D_A} size: 856\n"
+        self.assertEqual(g.digest_dari_push(keluaran), D_A)
+
     def test_push_tanpa_atau_dengan_dua_digest_ditolak(self):
         with self.assertRaises(ValueError):
             g.digest_dari_push("The push refers to repository")
@@ -366,6 +404,17 @@ class TesLangkahPipeline(unittest.TestCase):
 
     def test_berkas_bukan_go_di_modul_tidak_menjalankan_modul(self):
         self.assertEqual(g.langkah_untuk(["labs/api-t4/internal/modul/ledger/README.md"]), [])
+
+    def test_akhiran_go_harus_tepat(self):
+        self.assertEqual(g.langkah_untuk(["labs/api-t4/internal/modul/ledger/klien.go.bak", "labs/api-t4/internal/modul/ledger/klien.gox"]), [])
+
+    def test_titik_di_openapi_yaml_harfiah(self):
+        self.assertEqual(g.langkah_untuk(["labs/api-t4/openapiXyaml", "labs/api-t4/goXmod"]), [])
+
+    def test_kode_bersama_di_luar_modul_belum_dipetakan(self):
+        # Celah yang dicatat di README: aturan ini tidak menjalankan langkah apa pun untuk internal/service, internal/handler,
+        # internal/repo, dan migrasi. Pipeline sungguhan perlu aturan "jalankan semua" untuk kode bersama; lab tidak memutuskannya.
+        self.assertEqual(g.langkah_untuk(["labs/api-t4/internal/service/bayar.go", "labs/api-t4/migrasi/0001.sql"]), [])
 
 
 if __name__ == "__main__":

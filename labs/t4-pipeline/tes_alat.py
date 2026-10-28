@@ -63,6 +63,36 @@ def arsip_tar(isi_biner):
     return buf.getvalue()
 
 
+def arsip_tar_anggota(*anggota):
+    """Arsip tar.gz dari (nama, isi, jenis) per anggota; isi None untuk direktori."""
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as t:
+        for nama, isi, jenis in anggota:
+            info = tarfile.TarInfo(nama)
+            info.type = jenis
+            if jenis in (tarfile.DIRTYPE, tarfile.SYMTYPE):
+                info.mode = 0o755
+                info.linkname = "x" if jenis == tarfile.SYMTYPE else ""
+                t.addfile(info)
+            else:
+                info.size, info.mode = len(isi), 0o755
+                t.addfile(info, io.BytesIO(isi))
+    return buf.getvalue()
+
+
+class TesSha256(unittest.TestCase):
+    def test_seluruh_berkas_dihitung_walau_lebih_dari_satu_blok(self):
+        isi = bytes(range(256)) * (3 * 4096) + b"akhir"      # 3 MiB + 5 byte: lebih dari dua blok 1 MiB
+        d = pathlib.Path(tempfile.mkdtemp(prefix="tes-sha-"))
+        try:
+            (d / "besar.bin").write_bytes(isi)
+            self.assertEqual(alat.sha256(d / "besar.bin"), hashlib.sha256(isi).hexdigest())
+            (d / "besar.bin").write_bytes(isi[:-1] + b"X")    # satu byte terakhir berbeda
+            self.assertNotEqual(alat.sha256(d / "besar.bin"), hashlib.sha256(isi).hexdigest())
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
+
 class TesPastikan(unittest.TestCase):
     def setUp(self):
         self.d = pathlib.Path(tempfile.mkdtemp(prefix="tes-pastikan-"))
@@ -106,6 +136,18 @@ class TesPastikan(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 alat.pastikan(NAMA)
 
+    def test_dua_berkas_biner_dalam_arsip_ditolak(self):
+        self.arsip = arsip_tar_anggota(("a/oasdiff", b"satu", tarfile.REGTYPE), ("b/oasdiff", b"dua", tarfile.REGTYPE))
+        self.sha = hashlib.sha256(self.arsip).hexdigest()
+        with self.assertRaises(SystemExit) as k:
+            self.jalankan(self.unduh_palsu)
+        self.assertIn("tepat satu berkas", str(k.exception))
+
+    def test_direktori_dan_tautan_bernama_biner_diabaikan(self):
+        self.arsip = arsip_tar_anggota(("bin/oasdiff", None, tarfile.DIRTYPE), ("lain/oasdiff", None, tarfile.SYMTYPE), ("oasdiff", b"biner asli", tarfile.REGTYPE))
+        self.sha = hashlib.sha256(self.arsip).hexdigest()
+        self.assertEqual(self.jalankan(self.unduh_palsu).read_bytes(), b"biner asli")
+
     def test_tidak_mengunduh_lagi_bila_biner_sudah_ada(self):
         self.jalankan(self.unduh_palsu)
         self.diunduh.clear()
@@ -130,6 +172,11 @@ class TesPlatformDanBerkas(unittest.TestCase):
         with mock.patch("platform.system", return_value="Darwin"), mock.patch("platform.machine", return_value="arm64"):
             self.assertEqual(alat.platform_kunci("oasdiff"), ("darwin", "all"))
             self.assertEqual(alat.platform_kunci("syft"), ("darwin", "arm64"))
+
+    def test_oasdiff_linux_memakai_arsitektur_sendiri(self):
+        for mesin, harus in (("x86_64", "amd64"), ("aarch64", "arm64")):
+            with mock.patch("platform.system", return_value="Linux"), mock.patch("platform.machine", return_value=mesin):
+                self.assertEqual(alat.platform_kunci("oasdiff"), ("linux", harus))
 
     def test_linux_aarch64_dipetakan_ke_arm64(self):
         with mock.patch("platform.system", return_value="Linux"), mock.patch("platform.machine", return_value="aarch64"):
