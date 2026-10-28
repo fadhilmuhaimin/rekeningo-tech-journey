@@ -15,18 +15,18 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import { BaseEdge, Handle, MarkerType, Position, ReactFlow, type Edge, type EdgeProps, type Node, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/base.css";
 import "./erd-tumbuh.css";
-import type { DataErd } from "./skema";
+import type { DataErd, ModulErd } from "./skema";
 import { ringkasCek, ringkasIndex } from "./erd";
 import { muncul } from "../gerak/muncul";
 import {
-  LABEL_STATUS, UKURAN, ambangKolom, barisPindah, bisaBanding, namaTombol, ringkasan, tampilSebelum, tampilTahap, tata, teksAturan, teksKolom,
-  teksPindah, varPesan,
+  LABEL_STATUS, UKURAN, ambangKolom, barisPindah, bisaBanding, duaBaris, duaKepala, modulTabel, namaTombol, ringkasan, ringkasModul, tampilSebelum, tampilTahap, tata, teksAturan,
+  teksKolom, teksPindah, varPesan,
   type TabelTampil, type Tata, type TautanTahap,
 } from "./tumbuh";
 
 type Sisi = "satu" | "kiri" | "kanan";
 type Panel = { sisi: Sisi; tahap: number; tabel: TabelTampil[]; judul: string };
-type DataNode = { t: TabelTampil; dipilih: boolean; pilih: () => void; idDetail: string };
+type DataNode = { t: TabelTampil; dipilih: boolean; pilih: () => void; idDetail: string; acuan: number };
 
 const HANDLE: [string, "source" | "target", Position, CSSProperties?][] = [
   ["atas", "source", Position.Top],
@@ -38,7 +38,7 @@ const HANDLE: [string, "source" | "target", Position, CSSProperties?][] = [
 ];
 
 function NodeTabel({ data }: NodeProps<Node<DataNode>>) {
-  const { t, dipilih, pilih, idDetail } = data;
+  const { t, dipilih, pilih, idDetail, acuan } = data;
   return (
     <>
       {HANDLE.map(([id, jenis, posisi, gaya]) => (
@@ -52,7 +52,7 @@ function NodeTabel({ data }: NodeProps<Node<DataNode>>) {
         aria-label={namaTombol(t)}
         onClick={pilih}
       >
-        <span className="erd-tumbuh__kepala">
+        <span className={`erd-tumbuh__kepala${duaKepala(t, acuan) ? " is-dua" : ""}`}>
           <code translate="no">{t.nama}</code>
           {t.status && <span className="erd-tumbuh__status">{LABEL_STATUS[t.status]}</span>}
         </span>
@@ -63,7 +63,7 @@ function NodeTabel({ data }: NodeProps<Node<DataNode>>) {
           </span>
         ) : (
           t.kolom.map((k) => (
-            <span key={k.kolom.nama} className={`erd-tumbuh__baris is-${k.status ?? "awal"}`}>
+            <span key={k.kolom.nama} className={`erd-tumbuh__baris is-${k.status ?? "awal"}${duaBaris(k, t, acuan) ? " is-dua" : ""}`}>
               <code translate="no">{k.kolom.nama}</code>
               <span className="erd-tumbuh__label">
                 {k.kunci.map((x) => (
@@ -90,7 +90,7 @@ function EdgeJalur({ data, markerEnd }: EdgeProps<Edge<{ titik: [number, number]
 }
 const jenisEdge = { jalur: EdgeJalur };
 
-function Statis({ panel, tautan }: { panel: Panel; tautan: TautanTahap }) {
+function Statis({ panel, tautan, modul }: { panel: Panel; tautan: TautanTahap; modul?: ModulErd }) {
   return (
     <div className="erd-tumbuh__statis-panel">
       <p>
@@ -101,6 +101,7 @@ function Statis({ panel, tautan }: { panel: Panel; tautan: TautanTahap }) {
           <li key={t.nama} className={`is-${t.status ?? "awal"}`}>
             <code translate="no">{t.nama}</code>
             {t.status && ` (${LABEL_STATUS[t.status]})`}
+            {!t.bayangan && modulTabel(modul, t.nama) && `, modul ${modulTabel(modul, t.nama)}`}
             {t.bayangan ? (
               <>: isinya pindah ke {t.pindahKe}.</>
             ) : (
@@ -122,7 +123,7 @@ function Statis({ panel, tautan }: { panel: Panel; tautan: TautanTahap }) {
   );
 }
 
-function Detail({ t, panel, tautan, sebelum, no }: { t: TabelTampil; panel: Panel; tautan: TautanTahap; sebelum: number | null; no: number }) {
+function Detail({ t, panel, tautan, sebelum, no, modul }: { t: TabelTampil; panel: Panel; tautan: TautanTahap; sebelum: number | null; no: number; modul: string | null }) {
   // Tabel yang dihapus dijelaskan di halaman tahap tempat ia masih ada.
   const asal = t.status === "dihapus" && t.bayangan && sebelum ? sebelum : panel.tahap;
   const halaman = tautan[asal]?.[t.nama] ?? [];
@@ -132,6 +133,11 @@ function Detail({ t, panel, tautan, sebelum, no }: { t: TabelTampil; panel: Pane
         <code translate="no">{t.nama}</code> · Tahap {asal}
         {t.status && ` · ${LABEL_STATUS[t.status]}`}
       </p>
+      {modul && !t.bayangan && (
+        <p>
+          Modul: <strong>{modul}</strong>.
+        </p>
+      )}
       {t.pindahKe && (
         <p>
           Tabel ini dihapus di Tahap {no}. Isinya pindah ke {t.pindahKe}.
@@ -184,12 +190,14 @@ type Props = {
   tautan: TautanTahap;
   awal: number;
   uji?: number[];
+  /** Pembagian modul per tahap (ERD4); tahap tanpa entri tidak menampilkan pembagian modul. */
+  modul?: ModulErd[];
   /** Versi statis dari halaman (Erd.astro) menggantikan daftar bawaan; hanya untuk satu tahap, karena tidak mengikuti
    * tahap atau mode yang dipilih. */
   children?: ReactNode;
 };
 
-export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [], children }: Props) {
+export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [], modul = [], children }: Props) {
   if (children && data.length > 1) throw new Error(`ErdTumbuh ${id}: versi statis dari halaman hanya untuk satu tahap`);
   const panggung = useRef<HTMLDivElement>(null);
   const [lebar, setLebar] = useState<number | null>(null); // null = belum di-hydrate: versi statis
@@ -201,6 +209,7 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [], chi
   const dibuka = useRef(false);
   const banding = mauBanding && bisaBanding(data, no);
   const sebelum = data.find((d) => d.tahap === no)?.selisih?.terhadap ?? null;
+  const modulNo = modul.find((m) => m.tahap === no);
 
   useEffect(() => {
     const el = panggung.current;
@@ -302,7 +311,7 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [], chi
       )}
       <div ref={panggung} className="erd-tumbuh__panggung" style={pesan}>
         <div className={lebar === null ? "erd-tumbuh__statis" : "erd-tumbuh__statis sr-only"}>
-          {children ?? panel.map((p) => <Statis key={p.sisi} panel={p} tautan={tautan} />)}
+          {children ?? panel.map((p) => <Statis key={p.sisi} panel={p} tautan={tautan} modul={p.sisi === "kiri" ? modul.find((m) => m.tahap === p.tahap) : modulNo} />)}
         </div>
         <div className={`erd-tumbuh__panel${berdampingan ? " is-berdampingan" : ""}`} aria-hidden={lebar === null ? true : undefined}>
           {panel.map((p, i) => {
@@ -322,6 +331,8 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [], chi
                       t,
                       dipilih,
                       idDetail,
+                      // Lebar node yang dipakai tata untuk memutuskan label kunci satu baris atau dua (tumbuh.ts, METRIK).
+                      acuan: h.bentuk === "sempit" ? UKURAN.lebarMin : UKURAN.lebar,
                       pilih: () => {
                         dibuka.current = !dipilih;
                         setPilihan(dipilih ? null : { sisi: p.sisi, nama: n.nama });
@@ -403,13 +414,49 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [], chi
       )}
       <div id={idDetail} ref={detail} className="erd-tumbuh__detail">
         {tabelTerpilih && terpilih ? (
-          <Detail t={tabelTerpilih} panel={terpilih} tautan={tautan} sebelum={sebelum} no={no} />
+          <Detail t={tabelTerpilih} panel={terpilih} tautan={tautan} sebelum={sebelum} no={no} modul={modulTabel(modul.find((m) => m.tahap === terpilih.tahap), tabelTerpilih.nama)} />
         ) : (
           // Sebelum hydrate petunjuk sudah menempati ruangnya (tersembunyi), supaya hydrate tidak menggeser isi di bawah
           // diagram di HP, tempat petunjuk dua baris; tanpa JS tidak tampil (erd-tumbuh.css).
           <p className={`erd-tumbuh__petunjuk${lebar === null ? " is-belum" : ""}`}>Pilih tabel untuk membaca kolom lengkap dan halaman yang menjelaskannya.</p>
         )}
       </div>
+      {modulNo && (
+        <div className="erd-tumbuh__modul">
+          <table>
+            <caption>
+              <strong>Pembagian modul Tahap {no}</strong> <span className="bb-chip is-system">Rekaman lab · pembagian modul</span>
+              <br />
+              {ringkasModul(modulNo)}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Modul</th>
+                <th scope="col">Jumlah</th>
+                <th scope="col">Tabel</th>
+              </tr>
+            </thead>
+            <tbody>
+              {modulNo.modul.map((x) => (
+                <tr key={x.nama}>
+                  <th scope="row">
+                    <code translate="no">{x.nama}</code>
+                  </th>
+                  <td>{x.tabel.length}</td>
+                  <td>
+                    {x.tabel.map((n, i) => (
+                      <span key={n}>
+                        {i > 0 && ", "}
+                        <code translate="no">{n}</code>
+                      </span>
+                    ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       <p role="status" className="sr-only">
         {tabelTerpilih ? `Detail tabel ${tabelTerpilih.nama} terbuka di bawah diagram.` : ""}
       </p>

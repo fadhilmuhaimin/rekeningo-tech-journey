@@ -103,8 +103,26 @@ export const PetaHalaman = z
   })
   .strict();
 
+// Pembagian modul satu tahap (situs/data/erd/modul-tahap-<n>.json, ERD4): tools/erd.py membacanya dari modul.sql lab
+// t4-modul dan menghitung foreign key yang menyeberang schema dari tahap-<n>.json. Informasi, bukan bagian ERD.
+export const ModulErd = z
+  .object({
+    format: z.literal(1),
+    tahap: z.number().int().min(1),
+    sumber: z.object({ file: z.string().min(1), sha256: z.string().regex(/^[0-9a-f]{64}$/) }).strict(),
+    modul: z.array(z.object({ nama: Nama, schema: Nama, tabel: z.array(Nama).min(1) }).strict()).min(1),
+    lintas: z.array(
+      z
+        .object({ tabel: Nama, fk: Nama, ke_tabel: Nama, dari_modul: Nama, ke_modul: Nama })
+        .strict()
+        .refine((x) => x.dari_modul !== x.ke_modul, { message: "foreign key lintas harus menyeberang modul" }),
+    ),
+  })
+  .strict();
+
 export type Kolom = z.infer<typeof Kolom>;
 export type Tabel = z.infer<typeof Tabel>;
 export type DataErd = z.infer<typeof DataErd>;
 export type Selisih = z.infer<typeof Selisih>;
 export type PetaHalaman = z.infer<typeof PetaHalaman>;
+export type ModulErd = z.infer<typeof ModulErd>;
