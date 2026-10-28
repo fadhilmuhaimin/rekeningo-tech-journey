@@ -518,8 +518,10 @@ def bangun(n):
         galat_m = periksa_modul(md, n)
         if galat_m:
             gagal("JSON modul tidak lolos pemeriksaan:\n  " + "\n  ".join(galat_m))
+        lama_m = pm.read_text(encoding="utf-8") if pm.exists() else None
         pm.write_text(tulis_json(md), encoding="utf-8")
-        print(f"Tahap {n}: {len(md['modul'])} modul, {len(md['lintas'])} foreign key menyeberang schema modul; ditulis {pm.relative_to(AKAR)}")
+        print(f"Tahap {n}: {len(md['modul'])} modul, {len(md['lintas'])} foreign key menyeberang schema modul; "
+              f"{'tidak berubah' if lama_m == tulis_json(md) else 'ditulis'} {pm.relative_to(AKAR)}")
     print(f"Tahap {n}: {len(tabel)} tabel, {fk} foreign key, PostgreSQL {versi}; "
           f"{'tidak berubah' if lama == teks else 'ditulis'} {p.relative_to(AKAR)}"
           + (f"; pembanding identik ({len(cfg['pembanding'])} file)" if cfg["pembanding"] else "")
