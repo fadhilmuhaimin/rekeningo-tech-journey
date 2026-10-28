@@ -10,7 +10,16 @@ $ gosec -fmt=json ./...
 G701 HIGH/HIGH CWE-89 temuan.go:16 SQL injection via taint analysis: (*database/sql.DB).Query
 statistik: 2 berkas, 1 temuan; aman.go (query berparameter) tidak ada di daftar
 gerbang gosec (ambang MEDIUM): GAGAL (1 temuan keparahan MEDIUM atau lebih)
-# Aturannya G701 (analisis taint), bukan G201: gosec 2.30.0 memakai aturan itu untuk fmt.Sprintf ke database/sql.
+# Pada contoh ini aturannya G701 (analisis taint: os.Args[1] mengalir ke db.Query), bukan G201 atau G202.
+# Pola query lain tidak dicoba di lab ini.
+
+# --- A2. G701 melapor aliran dari sumber input: query yang sama dengan masukan konstanta ---
+$ gosec -fmt=json ./...   # temuan.go dengan cariAkun(db, "A1"): masukan konstanta
+(exit code 0)
+statistik: 2 berkas, 0 temuan; query yang sama dengan fmt.Sprintf tidak dilaporkan
+gerbang gosec (ambang MEDIUM): LULUS (tidak ada temuan di atas ambang)
+# LULUS di sini bukan bukti query aman: tanpa sumber input yang terlacak, G701 tidak melapor. G201 dan G202 ada di daftar
+# aturan gosec 2.30.0 (gosec -h) dan tidak melapor di kode ini.
 
 # --- B. gosec gagal terbuka: kode yang tidak terkompilasi ---
 $ gosec -fmt=json -quiet ./...
