@@ -193,6 +193,10 @@ describe("tebakan, tombol, dan label kejujuran", () => {
     expect(L.pilihan.filter((p) => p.jumlah === R.lajur.b.awal["mati 5"])).toHaveLength(1);
     expect(T.benar).toBe(L.pilihan.findIndex((p) => p.jumlah === R.lajur.b.awal["mati 5"]));
     expect(T.benar).toBe(2);
+    // Pilihan benar bukan yang terpanjang atau terpendek (petunjuk tanpa membaca soal).
+    const panjang = T.pilihan.map((p) => p.teks.length);
+    expect(panjang[T.benar]).toBeLessThan(Math.max(...panjang));
+    expect(panjang[T.benar]).toBeGreaterThan(Math.min(...panjang));
     expect(new Set(L.pilihan.map((p) => p.jumlah)).size).toBe(L.pilihan.length);
     expect(L.pilihan.map((p) => p.jumlah)).toEqual([0, R.breaker.gagalKe, R.lajur.b.awal["mati 5"], R.lajur.pendaftar]);
   });
@@ -251,7 +255,7 @@ describe("tebakan, tombol, dan label kejujuran", () => {
     expect(T.asal.butir.some((b) => b.startsWith("Hitungan, Asumsi:"))).toBe(true);
   });
   it("teks hitungan memuat angka yang sama dengan rekaman worker.txt dan README", () => {
-    expect(T.hitungan.worker).toBe(`Verifikasi: 0,116 per detik × 5 percobaan × 3 detik = 1,74 dari 4 slot worker.`);
+    expect(T.hitungan.worker).toBe(`Bila tiap percobaan menunggu sampai timeout, verifikasi 0,116 per detik × 5 percobaan × 3 detik = 1,74 dari 4 slot worker.`);
     expect(T.hitungan.bersama).toBe(`Bersama notifikasi uang (7,52 per detik × 0,3 detik = 2,26 slot): 4,0 dari 4 slot.`);
     expect(T.hitungan.outage).toBe("Outage 12.600 detik ÷ Timeout 60 detik = 210 permintaan percobaan. 210 ÷ 5 percobaan = sampai 42 dari 146 pekerjaan mati sebelum vendor pulih (Hitungan atas angka naskah, tidak dijalankan).");
     expect(T.hitungan.label).toContain("4 slot dan batas waktu client 3 detik yang terukur (worker.txt bagian A)");
@@ -261,7 +265,7 @@ describe("tebakan, tombol, dan label kejujuran", () => {
     expect(T.acuanTeks["sinkron-bawaan"]).toMatch(/^breaker\.txt bagian A: .*ke-6.* 60 detik/);
     expect(T.acuanTeks["queue-tanpa"]).toBe("lajur.txt bagian A: tanpa breaker, 10 pekerjaan mati sesudah 5 percobaan dan 50 permintaan, sebelum vendor pulih.");
     expect(T.acuanTeks["queue-satu"]).toBe("lajur.txt bagian B: 1 dari 10 pekerjaan mati dan 9 menunggu; sesudah vendor pulih 9 pekerjaan lulus dalam 15 permintaan.");
-    expect(T.acuanTeks["queue-empat"]).toBe("lajur.txt bagian C: dengan 4 worker serentak dan 8 pekerjaan, tidak ada yang mati sebelum breaker membuka, dan semuanya lulus sesudah vendor pulih.");
+    expect(T.acuanTeks["queue-empat"]).toBe("lajur.txt bagian C: dengan 4 worker serentak dan 8 pekerjaan, tidak ada yang mati sebelum breaker membuka, dan semuanya lulus sesudah vendor pulih. Widget memakai 10 pekerjaan.");
     expect(T.acuanTeks["queue-4xx-gagal"]).toBe("lajur.txt bagian D: 6 dokumen rusak di depan membuat breaker membuka dan menjeda 4 pekerjaan sehat di belakangnya.");
     expect(T.acuanTeks["queue-4xx-sukses"]).toBe("lajur.txt bagian E: dengan 4xx dihitung sukses breaker tidak membuka; 6 pekerjaan rusak habis 5 percobaan dan 4 pekerjaan sehat lulus dalam 34 permintaan.");
     expect(T.acuanTeks["sinkron-4xx-gagal"]).toBe("breaker.txt bagian C: dengan IsSuccessful bawaan pustaka, 6 jawaban 4xx berturut-turut membuka breaker.");
@@ -274,13 +278,16 @@ describe("teks yang tampil dikunci kata demi kata terhadap angka rekaman", () =>
   const vonis = (kunci: string, ubah: { breaker?: boolean } = {}) => kalimatVonis(L.vonis, ringkas({ ...param(kunci), ...ubah }, A), { ...param(kunci), ...ubah }, A);
   const N = R.lajur.pendaftar;
   it("pertanyaan tebakan memuat pekerjaan, percobaan, dan ambang dari rekaman", () => {
-    expect(T.pertanyaan).toBe(`Layanan verifikasi mati. ${N} pekerjaan verifikasi menunggu di queue, dan satu worker mengerjakannya satu per satu dengan paling banyak ${R.worker.percobaan} percobaan per pekerjaan. Breaker membuka sesudah lebih dari ${R.breaker.lebihDari} gagal berturut-turut. Berapa pekerjaan sudah mati ketika breaker membuka?`);
+    expect(T.pertanyaan).toBe(`Layanan verifikasi mati, dan ${N} pekerjaan verifikasi menunggu di queue. Satu worker mengerjakannya satu per satu dan mengulang pekerjaan yang gagal tanpa jeda, seperti di lab, dengan paling banyak ${R.worker.percobaan} percobaan per pekerjaan. Breaker membuka sesudah lebih dari ${R.breaker.lebihDari} gagal berturut-turut. Berapa pekerjaan sudah mati ketika breaker membuka?`);
+    // Jawaban 1 hanya berlaku bila pekerjaan yang gagal langsung diulang (backoff 0, lajur.txt bagian B): tanpa premis itu pertanyaannya menyesatkan.
+    expect(T.pertanyaan).toMatch(/mengulang pekerjaan yang gagal tanpa jeda, seperti di lab/);
+    expect(TEKS.lajur).toMatch(/worker yang berputar terus: kapasitas 1, lima percobaan, tanpa backoff, breaker/);
   });
   it("pilihan tebakan dan alasannya", () => {
     expect(T.pilihan).toEqual([
       { teks: "Tidak ada: breaker melindungi semua pekerjaan.", alasan: `Breaker membuka pada kegagalan ke-${R.breaker.gagalKe}, tetapi satu pekerjaan hanya punya ${R.worker.percobaan} percobaan. Pekerjaan pertama habis lebih dulu.` },
       { teks: `${R.breaker.gagalKe}: tiap kegagalan mematikan satu pekerjaan.`, alasan: `${R.worker.percobaan} kegagalan pertama menghabiskan pekerjaan pertama. Kegagalan berikutnya jatuh pada pekerjaan kedua, bukan pada pekerjaan baru.` },
-      { teks: `${R.lajur.b.awal["mati 5"]}: hanya pekerjaan pertama, yang sudah memakai semua percobaannya.`, alasan: `${R.worker.percobaan} kegagalan pertama menghabiskan pekerjaan pertama. Kegagalan ke-${R.breaker.gagalKe} jatuh pada pekerjaan kedua dan membuka breaker, sehingga ${R.lajur.b.awal["menunggu 0"]! + R.lajur.b.awal["menunggu 1"]!} pekerjaan lain masih menunggu.` },
+      { teks: `${R.lajur.b.awal["mati 5"]}: hanya pekerjaan pertama, yang habis percobaannya.`, alasan: `${R.worker.percobaan} kegagalan pertama menghabiskan pekerjaan pertama. Kegagalan ke-${R.breaker.gagalKe} jatuh pada pekerjaan kedua dan membuka breaker, sehingga ${R.lajur.b.awal["menunggu 0"]! + R.lajur.b.awal["menunggu 1"]!} pekerjaan lain masih menunggu.` },
       { teks: `Semua ${N}: vendor yang mati menghabiskan semua percobaan.`, alasan: `Itu terjadi tanpa breaker: ${N} pekerjaan mati sesudah ${R.lajur.a.permintaan} permintaan. Dengan breaker, lajur berhenti diklaim sesudah kegagalan ke-${R.breaker.gagalKe}.` },
     ]);
   });
@@ -302,7 +309,7 @@ describe("teks yang tampil dikunci kata demi kata terhadap angka rekaman", () =>
   });
   it("catatan, nama titik acuan, label pulih, dan asal angka", () => {
     expect(T.catatan).toEqual({
-      sinkron: "Breaker di jalur sinkron tidak dipasang di lab; seluruh jalur ini Simulasi.",
+      sinkron: "Breaker di jalur sinkron tidak dipasang di lab, jadi seluruh jalur ini Simulasi: dihitung widget ini, bukan direkam.",
       ambang: `Ambang breaker (kegagalan ke-${R.breaker.gagalKe}) lebih tinggi daripada batas percobaan (${R.worker.percobaan}). Dengan satu worker, pekerjaan pertama mati sebelum breaker membuka (lajur.txt bagian B).`,
       probe: "Permintaan percobaan di half-open memakai percobaan pekerjaan terdepan. Selama vendor tetap mati, tiap Timeout breaker menghabiskan satu percobaan (tes lab, bukan rekaman lajur.txt).",
       empatSukses: "Kode lab menghitung semua jawaban 4xx sebagai sukses bagi breaker, termasuk 429 dan 408.",
@@ -325,7 +332,7 @@ describe("teks yang tampil dikunci kata demi kata terhadap angka rekaman", () =>
   it("judul, label kelompok, papan, daftar angka, tabel pekerjaan, dan teks tetap lainnya", () => {
     expect([L.judul, L.sumber, L.tebakDulu, L.ubahJudul, L.tanpaAcuan, L.tanpaJs]).toEqual([
       "Circuit breaker: kapan membuka dan siapa yang ditolak", "Simulasi; titik acuan dari rekaman lab", "Tebak dulu.", "Ubah satu hal dan lihat akibatnya.",
-      "Tanpa titik rekaman: hasil ini Simulasi.", "Tanpa JavaScript, widget ini tidak jalan. Titik rekaman lab ada di tabel berikut.",
+      "Tanpa titik rekaman: hasil ini Simulasi, dihitung widget ini dengan aturan breaker dari rekaman, bukan direkam.", "Tanpa JavaScript, widget ini tidak jalan. Titik rekaman lab ada di tabel berikut.",
     ]);
     expect(L.kelompok).toEqual({ jalur: "Jalur", error: "Error rate vendor", latensi: "Latensi vendor", jenis: "Jawaban error vendor", breaker: "Breaker", pulih: "Vendor pulih", serentak: "Slot worker" });
     expect(L.pilihNilai.jalur.map((o) => o.label)).toEqual(["Sinkron: user menunggu", "Queue: worker mengulang"]);
