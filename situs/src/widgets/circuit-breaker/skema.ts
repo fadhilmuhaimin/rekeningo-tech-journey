@@ -11,7 +11,7 @@ export const KUNCI_ACUAN = ["sinkron-bawaan", "sinkron-4xx-gagal", "sinkron-4xx-
 const Acuan = z.enum(KUNCI_ACUAN);
 const Pilih = <T extends z.ZodType>(nilai: T, maks = 4) => z.array(z.object({ nilai, label: Teks }).strict()).min(2).max(maks);
 const Vonis = z.enum(["sinkron-tanpa", "sinkron-tetap", "sinkron-membuka", "queue-tanpa", "queue-tetap", "queue-membuka"]);
-const Hasil = z.enum(["ok", "5xx", "timeout", "4xx", "tolak", "diam"]);
+const Hasil = z.enum(["ok", "5xx", "timeout", "4xx", "tolak", "diam", "gagal"]);
 
 export const LabelBreaker = z
   .object({

@@ -84,7 +84,8 @@
       "timeout": "Timeout",
       "4xx": "Jawaban 4xx",
       "tolak": "Ditolak cepat",
-      "diam": "Tidak ada percobaan"
+      "diam": "Tidak ada percobaan",
+      "gagal": "Percobaan gagal"
     }
   },
   "angka": {
