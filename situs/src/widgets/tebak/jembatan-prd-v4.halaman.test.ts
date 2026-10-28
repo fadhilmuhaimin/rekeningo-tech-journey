@@ -437,8 +437,10 @@ describe("pertanyaan terbuka: tiga pertanyaan naskah 4, tiap klaim ada di halama
     const adr32 = isi(halamanAdr(32));
     ada(adr32, "4. Merge ke `main` menjalankan tes dengan PostgreSQL dan Redis sungguhan, dengan `TES_DB_WAJIB` dan `TES_REDIS_WAJIB` menyala, lalu migration dry-run dan k6 smoke 30 detik.", "3.27");
     harus("ADR 32 menetapkan bahwa tiap merge ke main menjalankan tes dengan PostgreSQL dan Redis sungguhan, lalu migration dry-run ([[t3-tim-infra]]).");
-    harus("Keduanya dijalankan tim empat orang di satu codebase Go (Asumsi cerita), bukan tiga tim yang memegang tabel yang sama.");
+    harus("Tiga tim di satu codebase belum pernah diuji di Tahap 3. Tahap 3 dikerjakan satu tim empat orang di satu codebase Go (Asumsi cerita), bukan tiga tim yang memegang tabel yang sama.");
     ada(T3("m28-prd-v4.mdx"), "Timnya empat orang (Asumsi cerita) di satu codebase Go", "3.28");
+    ada(T3("m28-prd-v4.mdx"), "| Tiga tim di satu codebase | Empat orang (Asumsi cerita) dan satu codebase Go | [[t3-tim-infra]] |", "3.28");
+    ada(T3("m28-prd-v4.mdx"), "**Tiga hal yang belum pernah diuji.**", "3.28");
     expect(halamanAdr(32).id).toBe("t3-tim-infra");
   });
   test("pertanyaan 3: verifikasi identitas ditunda ke v4 (3.1), ADR 30 menulis back office tim risk dan aturan 1 dan 2 (3.23)", () => {
@@ -499,16 +501,19 @@ describe("Menuju Tahap 4: empat ADR dari naskah 4, lima ADR lain dipindai dari h
     expect(dari("t3-adr-33").ada).toBe(true);
     ada(adr33, "| VPS kedua | Waktu pulih terukur atau jendela kehilangan data lebih besar dari yang bisa diterima Pak Hadi atau PRD. PRD v3 tidak menulis batas itu |", "3.30");
     ada(adr33, "[[t3-jembatan]] meminta kamu menebak keputusan Tahap 3 mana yang pecah lebih dulu. Tahap 4 membaca daftar ini terhadap PRD v4", "3.30");
-    harus("ADR 33 menulis pemicu VPS kedua: jendela kehilangan data yang lebih besar dari yang bisa diterima Pak Hadi atau PRD ([[t3-adr-33]]). PRD v3 tidak menulis batas itu.");
+    harus("ADR 33 menulis pemicu VPS kedua: waktu pulih atau jendela kehilangan data yang lebih besar dari yang bisa diterima Pak Hadi atau PRD ([[t3-adr-33]]). PRD v3 tidak menulis batas itu.");
     expect(badan.indexOf("[[t3-adr-33]]")).toBeGreaterThan(badan.indexOf("- ADR 32: tim naik"));
     expect(badan.indexOf("[[t3-adr-33]]")).toBeLessThan(badan.indexOf("Lima ADR lain"));
   });
   test("lima ADR lain: himpunan dipindai dari semua halaman ADR 22 sampai 32 yang menyebut Tahap 4, lalu dikurangi empat jawaban", () => {
     expect(sebut).toEqual([22, 23, 25, 26, 27, 28, 30, 31, 32]);
+    expect(badan).not.toContain("Tahap 4 membacanya");
     expect(lain).toEqual([23, 27, 28, 30, 31]);
     expect(adrT3.map((h) => h.adr![0]!).filter((n) => !sebut.includes(n))).toEqual([24, 29]);
-    harus(`${Kata(lain.length)} ADR lain juga menyebut Tahap 4 di halamannya. Tahap 4 membacanya satu per satu:`);
-    harus(`- ADR 23 menulis syarat yang sama dengan ADR 25: penerima sistem lain yang menggerakkan uang ([[${halamanAdr(23).id}]]).`);
+    harus(`${Kata(lain.length)} ADR lain juga menyebut Tahap 4 di halamannya. Halaman ini hanya mencatat kalimatnya:`);
+    harus(`- ADR 23 menulis syarat yang sama dengan ADR 25: penerima sistem lain yang menggerakkan uang ([[${halamanAdr(23).id}]]). Halaman ini menghitung syarat itu sekali, lewat ADR 25, jadi ADR 23 tidak menambah daftar di atas.`);
+    // ADR 23 memenuhi dua syarat "pecah lebih dulu" juga: kapan-salahnya sama dengan ADR 25 (penerima yang menggerakkan uang, webhook Tahap 4, wajib idempoten).
+    for (const n of [23, 25]) ada(isi(halamanAdr(n)), "wajib idempoten dengan key ([[t2-idempotency]])", `ADR ${n}`);
     harus(`- ADR 27: pendaftaran publik membuka endpoint daftar, verifikasi, dan top-up yang belum punya rate limit ([[${halamanAdr(27).id}]]).`);
     harus(`- ADR 28: puncak naik ±${naik} kali, jadi L katalog dihitung ulang ([[${halamanAdr(28).id}]]).`);
     harus(`- ADR 30: back office tim risk menampilkan data user luar ([[${halamanAdr(30).id}]]).`);
@@ -759,12 +764,13 @@ describe("token versi PRD dan nomor Tahap: urutan di tiap baris sama dengan yang
       [P(N4), T(N3)], // tiga pertanyaan
       [T(N3)], // pertanyaan 1
       [T(N2)], // pertanyaan 2
+      [T(N3), T(N3)], // pertanyaan 2, belum pernah diuji
       [T(N3), V(N4)], // pertanyaan 3
       [T(N4)], // nama blok Menuju
       [T(N4), P(N4), P(N4)], // empat ADR
       [T(N4), T(N3)], // definisi
       [P(N3)], // ADR 33: PRD v3 tidak menulis batas itu
-      [T(N4), T(N4)], // lima ADR lain
+      [T(N4)], // lima ADR lain
       [T(N3), P(N4)], // dua hal
       [P(N4)], // kartu 1
       [P(N4), T(N4)], // kartu 3
