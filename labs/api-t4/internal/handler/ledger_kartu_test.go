@@ -187,3 +187,62 @@ func TestLedgerKartuClientMemetakanJawaban(t *testing.T) {
 		t.Fatalf("kunci layanan salah: %v; harus ErrTidakSah", err)
 	}
 }
+
+// Client ledger.Klien.TahanKartu terhadap server tiruan yang menjawab apa saja: galat server, jawaban sukses yang tidak
+// bisa dibaca, dan koneksi yang putus dipetakan ke ErrTidakPasti (service pembayaran menjawab "tolak", gagal tertutup),
+// bukan ke galat biasa (500, yang oleh penerbit tiruan terbaca sebagai timeout dan disetujui). 503 hanya "sibuk" bila
+// alasannya sibuk. Tanpa database: yang diuji pemetaan client.
+func TestLedgerKartuClientMemetakanGalatServerDanJawabanRusak(t *testing.T) {
+	jawab := func(status int, isi string) *httptest.Server {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(status)
+			w.Write([]byte(isi))
+		}))
+		t.Cleanup(srv.Close)
+		return srv
+	}
+	permintaan := ledger.PermintaanTahan{IDPenerbit: "AUTH-x", AkunID: 1, Jumlah: 1000}
+	tabel := []struct {
+		nama   string
+		srv    *httptest.Server
+		sukses bool
+		galat  error
+		alasan string
+	}{
+		{"201 jurnal", jawab(201, `{"jurnal":5,"ulang":false}`), true, nil, ""},
+		{"500", jawab(500, `{"alasan":"galat-server"}`), false, ledger.ErrTidakPasti, ""},
+		{"502", jawab(502, ``), false, ledger.ErrTidakPasti, ""},
+		{"503 sibuk", jawab(503, `{"alasan":"sibuk"}`), false, ledger.ErrSibuk, ""},
+		{"503 alasan lain", jawab(503, `{"alasan":"pemeliharaan"}`), false, ledger.ErrTidakPasti, ""},
+		{"503 tanpa isi", jawab(503, ``), false, ledger.ErrTidakPasti, ""},
+		{"200 tanpa jurnal", jawab(200, `{}`), false, ledger.ErrTidakPasti, ""},
+		{"200 jurnal 0", jawab(200, `{"jurnal":0,"ulang":true}`), false, ledger.ErrTidakPasti, ""},
+		{"200 bukan JSON", jawab(200, `ok`), false, ledger.ErrTidakPasti, ""},
+		{"404 akun tidak ada", jawab(404, `{"alasan":"akun-tidak-ada"}`), false, ledger.ErrDitolak, "akun-tidak-ada"},
+		{"422 saldo kurang", jawab(422, `{"alasan":"saldo-kurang"}`), false, ledger.ErrDitolak, "saldo-kurang"},
+		{"401", jawab(401, `{"alasan":"kunci-layanan"}`), false, ledger.ErrTidakSah, ""},
+		{"400", jawab(400, `{"alasan":"body-tidak-sah"}`), false, ledger.ErrTidakSah, ""},
+	}
+	for _, c := range tabel {
+		h, err := ledger.Baru(c.srv.URL, kunciLayananTes, 2*time.Second).TahanKartu(t.Context(), "AUTH-x", permintaan)
+		switch {
+		case c.sukses:
+			if err != nil || h.Jurnal != 5 {
+				t.Errorf("%s: %+v, %v; harus sukses jurnal 5", c.nama, h, err)
+			}
+		case !errors.Is(err, c.galat):
+			t.Errorf("%s: %v; harus %v", c.nama, err, c.galat)
+		case c.alasan != "":
+			var pen ledger.Penolakan
+			if !errors.As(err, &pen) || pen.Alasan != c.alasan {
+				t.Errorf("%s: %v; harus Penolakan %q", c.nama, err, c.alasan)
+			}
+		}
+	}
+	mati := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	alamat := mati.URL
+	mati.Close()
+	if _, err := ledger.Baru(alamat, kunciLayananTes, 2*time.Second).TahanKartu(t.Context(), "AUTH-x", permintaan); !errors.Is(err, ledger.ErrTidakPasti) {
+		t.Errorf("koneksi ditolak: %v; harus ErrTidakPasti", err)
+	}
+}
