@@ -767,7 +767,7 @@ def buat_kunci(nama):
 
 def tanda_tangani(ref, kunci, judul, tampil_deprecated=False):
     kode, keluar, galat = cosign("sign", "--key", kunci, "--tlog-upload=false", "--use-signing-config=false", ref)
-    baris = [b for b in (keluar + galat).splitlines() if b.strip()]
+    baris = [b for b in (galat + keluar).splitlines() if b.strip()]   # stderr dulu: urutan dua aliran saat dicampur tidak tetap
     if not tampil_deprecated:
         baris = [b for b in baris if not b.startswith("Flag --")]
     perintah_tampil(f"cosign sign --key kunci-1/cosign.key --tlog-upload=false --use-signing-config=false {samar(ref)}", "\n".join(baris), kode)
