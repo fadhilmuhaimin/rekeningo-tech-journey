@@ -1,0 +1,8 @@
+/.alat/
+/.kerja/
+/.bin/
+__pycache__/
+*.key
+cosign.*
+*.tar.zst
+*.db

@@ -1,0 +1,72 @@
+{
+  "dicek": "2026-10-28",
+  "alat": {
+    "oasdiff": {
+      "versi": "1.34.1",
+      "repo": "oasdiff/oasdiff",
+      "arsip": "oasdiff_{versi}_{os}_{arsitektur}.tar.gz",
+      "checksum": "checksums.txt",
+      "biner": "oasdiff",
+      "sha256": {
+        "darwin_all": "64948ba30c5555d3d15b95a7f3eda22fa83c15cf37fd4dad1720c0deb0a07cb5",
+        "linux_amd64": "75775f65b0adebd26a8e013af51a799342dfdc6262d89efa9e3b7bdf89657d90",
+        "linux_arm64": "e8f99bbf102a4b7f235104da72d0b9d67702e78622d1d4d37169e698ee90a249"
+      }
+    },
+    "gosec": {
+      "versi": "2.30.0",
+      "repo": "securego/gosec",
+      "arsip": "gosec_{versi}_{os}_{arsitektur}.tar.gz",
+      "checksum": "gosec_{versi}_checksums.txt",
+      "biner": "gosec",
+      "sha256": {
+        "darwin_arm64": "cac8c480673fc179798402b6d86efc12b6bcf11c18bcf377fda02cc55846dd97",
+        "linux_amd64": "3fcce2c4e802ff4169217874602a7df355e9a37bcb6ffaa34b08f3d5f336cdfb",
+        "linux_arm64": "0867994920453070a5d6a713e35921a3058473e5c3bf777fdd5a2d6f95313fda"
+      }
+    },
+    "syft": {
+      "versi": "1.55.0",
+      "repo": "anchore/syft",
+      "arsip": "syft_{versi}_{os}_{arsitektur}.tar.gz",
+      "checksum": "syft_{versi}_checksums.txt",
+      "biner": "syft",
+      "sha256": {
+        "darwin_arm64": "1217c258bd5eb91ef3189cf22a82e02f9cac07e4ce934350f428e93aff674625",
+        "linux_amd64": "bb65249542db5fedeeb4d3f9b018b75e7264dbfbbb10486f044581a92f90490d",
+        "linux_arm64": "929bd163db2d7cd2255d3bcb8967208079813d7b46b0c952f7b794d8e2c7d304"
+      }
+    },
+    "grype": {
+      "versi": "0.121.0",
+      "repo": "anchore/grype",
+      "arsip": "grype_{versi}_{os}_{arsitektur}.tar.gz",
+      "checksum": "grype_{versi}_checksums.txt",
+      "biner": "grype",
+      "sha256": {
+        "darwin_arm64": "7be39d3a0428c664ce0183e4aba31ed9accffce9eda7e7f6fa84e9c512285f27",
+        "linux_amd64": "64e07133d3486115de647a66581461dccf5c732748a0a3119077395565f15519",
+        "linux_arm64": "86f570f75ca947ea3dd6486309232bcff6d78e44ba081ae75ab14eab72be3dae"
+      }
+    },
+    "cosign": {
+      "versi": "3.1.4",
+      "repo": "sigstore/cosign",
+      "arsip": "cosign-{os}-{arsitektur}",
+      "checksum": "cosign_checksums.txt",
+      "biner": null,
+      "sha256": {
+        "darwin_amd64": "9d1e4abe2b6be279ed0d2ff706fde1ccd738747c834e3e6d44039c238867334f",
+        "darwin_arm64": "9f9b8cd557cf2e5b3df3373a00baa005a86b02391e3e06dd0ce37b3a1533d3a4",
+        "linux_amd64": "424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa",
+        "linux_arm64": "ade83b7aac62e131cacfe96d958948b2150cc9efec46a570a2649b8e27dedad2"
+      }
+    }
+  },
+  "govulncheck": {"modul": "golang.org/x/vuln/cmd/govulncheck", "versi": "v1.9.0"},
+  "image": {
+    "registry": "registry:3@sha256:d4032d4cc323c1731c707931ecada07a53076eac38e3b61ae57533f170f2c6c3",
+    "openapi_generator": "openapitools/openapi-generator-cli:v7.26.0@sha256:a304ddf1e2e5f24f68fa3153568d6174cea4959d09aa8e3db6d526fd0782326d",
+    "dasar": "gcr.io/distroless/static-debian12:nonroot"
+  }
+}
