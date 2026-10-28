@@ -540,6 +540,15 @@
   "h": null
  },
  {
+  "t": "Gateway pembayaran",
+  "d": "Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk.",
+  "b": "t3-jembatan",
+  "n": "3.32 Pratinjau PRD v4",
+  "u": "/tahap-3/jembatan-prd-v4/",
+  "s": "istilah-gateway-pembayaran",
+  "h": null
+ },
+ {
   "t": "Golden signals",
   "d": "Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation.",
   "b": "t3-observability",
@@ -834,6 +843,15 @@
   "n": "5.2 Replica dan consistency",
   "u": "/d-system-design/d3-consistency/",
   "s": "istilah-lsn",
+  "h": null
+ },
+ {
+  "t": "Merchant",
+  "d": "Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung.",
+  "b": "t3-jembatan",
+  "n": "3.32 Pratinjau PRD v4",
+  "u": "/tahap-3/jembatan-prd-v4/",
+  "s": "istilah-merchant",
   "h": null
  },
  {
@@ -1572,6 +1590,15 @@
   "n": "3.26 M27",
   "u": "/tahap-3/m27-hari-promo/",
   "s": "istilah-umur-notifikasi-tertua",
+  "h": null
+ },
+ {
+  "t": "VPS (virtual private server)",
+  "d": "Server virtual yang disewa dari penyedia hosting. Satu VPS adalah satu mesin: bila mesin mati, semua proses di dalamnya ikut mati.",
+  "b": "t3-dua-instance",
+  "n": "3.15 Dua instance di belakang proxy",
+  "u": "/tahap-3/dua-instance/",
+  "s": "istilah-vps",
   "h": null
  },
  {
