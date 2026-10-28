@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"lab/apit4/internal/modul/ledger"
 )
@@ -61,12 +63,26 @@ type otorisasiBaris struct {
 	status          string
 }
 
+// bentukSah: teks dari penerbit tidak boleh memuat byte NUL, UTF-8 yang rusak, atau karakter kontrol. PostgreSQL menolaknya
+// dengan galat 22021 yang sampai ke penerbit sebagai 500, dan Idempotency-Key ke ledger tidak bisa membawanya.
+func bentukSah(s string) bool {
+	if !utf8.ValidString(s) {
+		return false
+	}
+	for _, r := range s {
+		if unicode.IsControl(r) {
+			return false
+		}
+	}
+	return true
+}
+
 func periksaPermintaan(in PermintaanOtorisasi) error {
 	switch {
-	case in.IDPenerbit == "" || len(in.IDPenerbit) > 64:
-		return fmt.Errorf("%w: id_penerbit wajib, paling banyak 64 karakter", ErrKartuValidasi)
-	case in.Token == "" || len(in.Token) > 128:
-		return fmt.Errorf("%w: token wajib, paling banyak 128 karakter", ErrKartuValidasi)
+	case in.IDPenerbit == "" || len(in.IDPenerbit) > 64 || !bentukSah(in.IDPenerbit):
+		return fmt.Errorf("%w: id_penerbit wajib, paling banyak 64 karakter, tanpa karakter kontrol", ErrKartuValidasi)
+	case in.Token == "" || len(in.Token) > 128 || !bentukSah(in.Token):
+		return fmt.Errorf("%w: token wajib, paling banyak 128 karakter, tanpa karakter kontrol", ErrKartuValidasi)
 	case in.Jumlah <= 0 || in.Jumlah > MaksJumlahKartu:
 		return fmt.Errorf("%w: jumlah harus lebih dari 0 dan paling banyak %d", ErrKartuValidasi, MaksJumlahKartu)
 	}
@@ -102,13 +118,26 @@ func jawabUlang(o otorisasiBaris, k kartuBaris, in PermintaanOtorisasi) (Keputus
 }
 
 // catatTolak menulis satu baris otorisasi berstatus ditolak. Dua penolakan serentak untuk id yang sama: yang kedua
-// tidak menulis apa pun (ON CONFLICT DO NOTHING) dan tetap dijawab tolak.
+// tidak menulis apa pun (ON CONFLICT DO NOTHING) dan tetap dijawab tolak. Bila baris yang sudah ada bukan penolakan
+// (permintaan kembar yang sama-sama belum melihat baris, lalu yang satunya menahan dana dan menulis baris `ditahan`
+// sebelum yang ini memeriksa batas harian), yang tercatat yang berlaku: id yang sama tidak boleh dijawab setuju dan
+// tolak sekaligus.
 func (s *Service) catatTolak(ctx context.Context, k kartuBaris, in PermintaanOtorisasi, alasan string) (Keputusan, error) {
-	_, err := s.DB.ExecContext(ctx, `
+	hasil, err := s.DB.ExecContext(ctx, `
 		INSERT INTO otorisasi_kartu (kartu_id, id_penerbit, jumlah, status) VALUES ($1, $2, $3, 'ditolak')
 		ON CONFLICT DO NOTHING`, k.id, in.IDPenerbit, in.Jumlah)
 	if err != nil {
 		return Keputusan{}, err
+	}
+	if n, _ := hasil.RowsAffected(); n == 0 {
+		o, err := s.bacaOtorisasi(ctx, in.IDPenerbit)
+		if err != nil {
+			return Keputusan{}, err
+		}
+		if o.status == "ditolak" && o.kartuID == k.id && o.jumlah == in.Jumlah {
+			return tolak(alasan), nil
+		}
+		return jawabUlang(o, k, in)
 	}
 	return tolak(alasan), nil
 }
@@ -142,6 +171,7 @@ func (s *Service) Otorisasi(ctx context.Context, in PermintaanOtorisasi) (Keputu
 	if k.status != "aktif" {
 		return s.catatTolak(ctx, k, in, "kartu-dibekukan")
 	}
+	s.titik("sebelum-batas") // lab: permintaan kembar bertemu di sini, sesudah membaca baris dan sebelum memeriksa batas
 	var hariIni int64
 	if err := s.DB.QueryRowContext(ctx, `
 		SELECT coalesce(sum(jumlah), 0) FROM otorisasi_kartu
