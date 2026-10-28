@@ -240,7 +240,9 @@ const umurUang = cari(QE, /umur tertua kelas uang: (\d+)/, "queue E uang");
 const lF = cari(bag(adr22, "F"), /L semua request = 17,4 × W rata-rata dari data kurang dari (\d,\d+) koneksi \(batas lab 17,4 × (\d+) ms; hitungan naskah dengan (\d+) ms: (\d,\d+)\)/, "adr22 F");
 
 // ================================================================================================================================
-describe("kata-kata halaman terkunci (lapis 2)", () => {
+// TANPA_LAPIS2=1 mematikan lapis 2 supaya uji mutasi mengukur lapis 1 (nilai turunan sumber) sendirian.
+const lapis2 = process.env.TANPA_LAPIS2 ? describe.skip : describe;
+lapis2("kata-kata halaman terkunci (lapis 2)", () => {
   test("baris MDX sama dengan nilai terkunci", () => {
     expect(barisMdx).toEqual(BARIS_MDX);
   });
@@ -731,9 +733,11 @@ describe("kartu tebak lalu buka t3-rekap-kartu.json", () => {
     const kunci = blok("Kunci");
     const soal = [...kunci.matchAll(/^\*\*(\d)\.\*\* (.+)$/gm)].map((m) => m[2]!);
     expect(soal).toHaveLength(5);
+    const jawab = [...kunci.matchAll(/<summary>Jawaban<\/summary>\n\n([\s\S]*?)\n\n<\/details>/g)].map((m) => m[1]!.replace(/\s+/g, " ").trim());
+    expect(jawab).toHaveLength(5);
     sini.forEach((c, i) => {
-      expect(c.tanya.replace(/`/g, "")).toBe(soal[i]!.replace(/`/g, ""));
-      expect(c.jawab.length).toBeGreaterThan(80);
+      expect(c.tanya).toBe(soal[i]!);
+      expect(c.jawab).toBe(jawab[i]!);
     });
   });
 });
