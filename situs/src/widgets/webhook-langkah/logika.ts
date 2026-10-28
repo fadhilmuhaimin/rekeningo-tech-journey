@@ -180,7 +180,7 @@ export function isi(teks: string, nilai: Record<string, string>, dipakai?: Set<s
 export interface BarisSiap { label: string; nilai: string; tanda: TandaWebhook }
 export interface SumberSiap { jenis: JenisSumberWebhook; chip: string; teks: string }
 export interface HasilSiap { ringkas: string; baris: BarisSiap[]; sumber: SumberSiap[] }
-export interface LangkahSiap { id: (typeof ID_LANGKAH)[number]; judul: string; teks: string; hasil: Record<Mode, HasilSiap> }
+export interface LangkahSiap { id: (typeof ID_LANGKAH)[number]; penanda: string; judul: string; teks: string; hasil: Record<Mode, HasilSiap> }
 export interface TebakSiap { pertanyaan: string; pilihan: { teks: string; alasan: string }[]; benar: number }
 export interface Siap {
   langkah: LangkahSiap[];
@@ -210,7 +210,7 @@ export function bangun(L: LabelWebhook, a: Acuan, adrHandler: number): Siap {
     });
     const h = l.hasil;
     const hasil = "semua" in h ? { pertama: susun("pertama", h.semua), adr34: susun("adr34", h.semua) } : { pertama: susun("pertama", h.pertama), adr34: susun("adr34", h.adr34) };
-    return { id: l.id, judul: f(l.judul), teks: f(l.teks), hasil };
+    return { id: l.id, penanda: f(L.langkahDari, { n: String(i + 1), total: String(total) }), judul: f(l.judul), teks: f(l.teks), hasil };
   });
 
   // Tebakan: jawaban benar = jumlah jurnal yang dihasilkan model versi pertama (sudah cocok dengan rekaman).
@@ -225,7 +225,7 @@ export function bangun(L: LabelWebhook, a: Acuan, adrHandler: number): Siap {
     tebak: { pertanyaan: f(L.tebak.pertanyaan), pilihan: pilihan.map(({ teks, alasan }) => ({ teks, alasan })), benar },
   };
   // Teks label lain yang memuat {placeholder} ikut diperiksa supaya tak ada templat yang tidak pernah diisi.
-  [L.judul, L.petunjuk, L.tebakDulu, L.benar, L.belum, L.ulang, L.ubahJudul, L.modeJudul, L.keadaanJudul, L.langkahJudul, L.berikutnya, L.sebelumnya, L.tanpaJs].forEach((t) => f(t));
+  [L.judul, L.petunjuk, L.tebakDulu, L.benar, L.belum, L.ulang, L.ubahJudul, L.modeJudul, L.keadaanJudul, L.berikutnya, L.sebelumnya, L.tanpaJs].forEach((t) => f(t));
   const mati = Object.keys(nilai).filter((k) => !dipakai.has(k));
   if (mati.length) throw new Error(`nilai pengisi tidak dipakai teks: ${mati.join(", ")}`);
   return siap;

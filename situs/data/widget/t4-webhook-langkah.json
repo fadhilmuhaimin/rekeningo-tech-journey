@@ -12,13 +12,13 @@
   "modeKalimat": { "pertama": "versi pertama", "adr34": "versi ADR {adrHandler}" },
   "petunjuk": "Gulir ke bawah atau pakai tombol Langkah berikutnya. Keadaan di atas berganti mengikuti langkah.",
   "keadaanJudul": "Keadaan sesudah langkah ini",
-  "langkahJudul": "Langkah",
+  "langkahDari": "Langkah {n} dari {total}",
   "berikutnya": "Langkah berikutnya",
   "sebelumnya": "Langkah sebelumnya",
   "statusLangkah": "Langkah {n} dari {total}, {mode}: {ringkas}.",
   "tanda": { "baik": "Aman", "buruk": "Masalah" },
   "tanpaJs": "Tanpa JavaScript, widget ini menampilkan hasil tiap langkah dan tiap versi handler sebagai tabel.",
-  "kolomTabel": { "langkah": "Langkah", "versi": "Versi", "hasil": "Hasil", "sumber": "Sumber" },
+  "kolomTabel": { "langkah": "Langkah dan versi", "hasil": "Hasil", "sumber": "Sumber" },
   "tebak": {
     "pertanyaan": "Budi membayar {bayar}. Balasan {kode} untuk kabar pertama hilang di jalan, jadi gateway mengirim kabar settlement yang sama lagi. Berapa jurnal top-up tercatat di handler versi pertama?",
     "pilihan": [
