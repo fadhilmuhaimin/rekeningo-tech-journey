@@ -1,0 +1,25 @@
+---
+// Halaman uji widget webhook masuk langkah demi langkah (W4-webhook, keputusan 1258). Bukan halaman cerita: tidak di
+// registry, tidak di sidebar, tidak diindeks. Halaman 4.7 memasang komponen yang sama. Dipakai situs/tools/ukur-webhook.mjs
+// (tebak dulu, gulir dan tombol, keyboard, ARIA, reduced motion, angka dari rekaman, papan lengket, 320 px, kontras, axe,
+// CLS, tanpa JS, ukuran JS).
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import WebhookLangkah from "../../components/WebhookLangkah.astro";
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Uji webhook masuk",
+    description: "Halaman uji widget webhook masuk langkah demi langkah.",
+    pagefind: false,
+    tableOfContents: false,
+    head: [{ tag: "meta", attrs: { name: "robots", content: "noindex" } }],
+  }}
+>
+  <p>Halaman uji widget webhook masuk. Delapan langkah dari lab t4-webhook: top-up, kabar pertama, kiriman ulang, kabar terlambat, kabar hilang, cek status, rekonsiliasi, dan hasil.</p>
+  <WebhookLangkah />
+  <p>Teks sesudah widget, supaya halaman cukup panjang untuk menggulir sampai langkah terakhir dan menguji geser isi saat hydrate.</p>
+  <p>Paragraf kedua sesudah widget. Halaman ini sengaja panjang supaya langkah terakhir bisa melewati garis aktif.</p>
+  <p>Paragraf ketiga sesudah widget, masih tentang halaman uji yang tidak dibaca pembaca.</p>
+  <p>Paragraf keempat sesudah widget.</p>
+</StarlightPage>

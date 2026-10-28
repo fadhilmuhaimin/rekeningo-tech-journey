@@ -1498,3 +1498,37 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .brk-asal { margin: 0.8rem 0 0.4rem; }
 .sl-markdown-content .brk-asal ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
 .sl-markdown-content .brk-asal li { margin: 0.3rem 0; }
+/* Widget webhook masuk langkah demi langkah (W4-webhook, keputusan 1258): memakai tb-* (tebak) dan qr-* (pilihan). wh-bilah lengket di bawah header
+   saat layar cukup tinggi (min-height) dan tingginya tetap; keadaan tiap langkah ada di dalam langkahnya. Langkah yang difokus tidak tertutup bilah
+   karena scroll-margin-top memakai tinggi bilah (--wh-bilah, WCAG 2.4.11). */
+.sl-markdown-content .wh-petunjuk { margin: 0.9rem 0 0.5rem; color: var(--teks-2); font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .wh-tebak { margin: 0.5rem 0 0; min-height: 1.4em; font-weight: 600; color: var(--judul); }
+.sl-markdown-content .wh-bilah { background: var(--bg); border: 1px solid var(--garis-2); border-radius: 8px; padding: 0.4rem 0.65rem 0.45rem; z-index: 3; }
+@media (min-height: 36em) { .sl-markdown-content .wh-bilah { position: sticky; top: calc(var(--sl-nav-height, 3.5rem) + 0.4rem); } }
+.sl-markdown-content .wh-ubah__judul { margin: 0 0 0.25rem; color: var(--teks-2); font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .wh-mode { margin: 0 0 0.3rem; }
+.sl-markdown-content .wh-tombol { min-height: 2rem; padding: 0.2rem 0.6rem; font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .wh-bilah__judul { margin: 0; min-height: 2.7em; color: var(--judul); font-size: var(--rk-ui-kecil); line-height: 1.35; }
+.sl-markdown-content .wh-keadaan { margin: 0.5rem 0 0; display: grid; gap: 0.25rem; }
+.sl-markdown-content .wh-baris { margin: 0; display: grid; grid-template-columns: 7.6rem minmax(0, 1fr); gap: 0 0.6rem; padding: 0.2rem 0.5rem; border-left: 3px solid var(--garis-2); line-height: 1.35; font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .wh-baris.is-baik { border-left-color: var(--k-good-edge); background: var(--k-good-fill); }
+.sl-markdown-content .wh-baris.is-buruk { border-left-color: var(--k-warn-edge); background: var(--k-warn-fill); }
+.sl-markdown-content .wh-baris dt { color: var(--teks-2); overflow-wrap: anywhere; }
+.sl-markdown-content .wh-baris dd { margin: 0; color: var(--judul); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.sl-markdown-content .wh-tanda { font-weight: 600; white-space: nowrap; }
+.sl-markdown-content .wh-baris.is-baik .wh-tanda { color: var(--k-good-ink); }
+.sl-markdown-content .wh-baris.is-buruk .wh-tanda { color: var(--k-warn-ink); }
+.sl-markdown-content .wh-sumber { margin: 0.4rem 0 0 !important; font-size: var(--rk-ui-kecil); line-height: 1.35; color: var(--teks-2); }
+.sl-markdown-content .wh-sumber__butir { display: inline; }
+.sl-markdown-content .wh-langkah { list-style: none; margin: 0.8rem 0 0; padding: 0; }
+.sl-markdown-content .wh-langkah__item { margin: 0; padding: 0.8rem 0.8rem 0.9rem; border-left: 3px solid var(--garis); scroll-margin-top: calc(var(--sl-nav-height, 3.5rem) + var(--wh-bilah, 7rem) + 1rem); }
+.sl-markdown-content .wh-langkah__item.is-aktif { border-left-color: var(--aksen); background: var(--bg-2); }
+.sl-markdown-content .wh-langkah__item:focus-visible { outline: 2px solid var(--aksen); outline-offset: 2px; }
+.sl-markdown-content .wh-langkah__item p { margin: 0 0 0.4rem; }
+.sl-markdown-content .wh-no { color: var(--teks-2); font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .wh-langkah__nav { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.7rem 0 0 !important; }
+.sl-markdown-content .wh-nav { min-height: 2.25rem; scroll-margin-top: calc(var(--sl-nav-height, 3.5rem) + var(--wh-bilah, 7rem) + 1rem); }
+.sl-markdown-content .wh .tb-pilih:focus-visible, .sl-markdown-content .wh .bb-btn:focus-visible { outline: 2px solid var(--aksen); outline-offset: 2px; }
+.sl-markdown-content .wh :is(.wh-keadaan, .wh-langkah, .tb-pilihan, .qr-pilih) > * + * { margin-top: 0; }
+.sl-markdown-content .wh :is(.tb-pilihan, .qr-pilih) > li > button { margin-bottom: 0; }
+@media (max-width: 30em) { .sl-markdown-content .wh-baris { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0.2rem 0.4rem; } .sl-markdown-content .wh-baris dt { font-size: 0.8em; } }
