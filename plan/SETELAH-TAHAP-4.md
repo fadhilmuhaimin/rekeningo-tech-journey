@@ -107,3 +107,36 @@ Polesan dari tinjauan Tahap 4 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - Halaman 4.21: kutip `alamat.txt` bagian tepi blok registri (27 blok, 54 tepi dalam, 39 tepi luar) bila ingin menunjukkan daftar dicocokkan dengan registri dari dua sisi, dan bagian berzona bila membahas bentuk alamat yang melewati daftar; jangan menulis "29 dari 32" tanpa angka 26 dari 32 bila alasannya `IsPrivate` tidak cukup.
 - Mutan V66 (membaca sampai dua kali batas) tidak teramati: butuh pengukuran memori atau pembaca yang bisa dihitung byte-nya; fetcher tidak membatasi panjang URL sendiri (batas 2.048 karakter ada di `ImporKatalog`).
 - `make -C labs/t4-ssrf mutasi` kini 136 mutan (±30 menit); `MUTAN="V21 V80"` membatasi.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- (Selesai di tinjauan: tes lama `TestOtorisasiLockTimeoutMenjawabSibuk` kini melepas lock lewat `t.Cleanup`.)
+- `kunci_idempotensi` dipakai bersama oleh `order_id` (`TB-`), Idempotency-Key user (UUID), dan `id_penerbit` tanpa awalan: `id_penerbit` yang bertabrakan dengan key lain dijawab `key-dipakai-permintaan-lain` dan bisa memblokir top-up dengan `order_id` yang sama; hanya penerbit berkunci yang bisa memicunya, tetapi awalan `KT-` di ledger menutupnya.
+- `LedgerTahanKartu` hanya memeriksa panjang `id_penerbit`; bentuk (karakter kontrol, UTF-8) diperiksa service pembayaran sebelum memanggilnya. Bila rute `POST /ledger/kartu/tahan` dibuka ke pemanggil lain, pindahkan pemeriksaan bentuk ke ledger.
+- Dua penantian lock lolos di bawah `lock_timeout`, tiga akan melewati tenggat: bila lab Tahap 5 mengukur p95 otorisasi pada beban, ukur juga jumlah penantian per transaction.
+- Job rekonsiliasi kartu (hold di ledger tanpa baris, otorisasi disetujui penerbit tanpa baris, penagihan tanpa otorisasi) belum ada.
+- Dua instance monolith dan kill switch lintas instance (ADR 27) belum direkam untuk kartu.
+- Halaman 4.25 memakai label "Rekaman lab" untuk apa yang terbukti di `rantai.txt`, `jangkar.txt`, `role.txt`, `persetujuan.txt`, dan `mcp.txt`, dan "Tidak dijalankan" untuk agen LLM, OAuth penuh, token exchange, tempat jangkar tulis-sekali, dan kunci rahasia atas baris; hash baris tidak ada di rekaman (bergantung pada waktu aksi), jadi halaman tidak menulis nilai hash.
+- Tabel `audit_log` tidak punya kolom nilai: perubahan batas ikut di kolom `objek` (`akun:40001/batas_harian=300000`); halaman yang menampilkan audit memakai bentuk itu apa adanya.
+- `auditjob` satu proses: dua job serentak bisa menambah jangkar yang sama dua kali (tidak dijalankan); produksi butuh satu penjadwal.
+- Pemeriksa harian dan jangkar tidak menjaga urutan menurut waktu: `waktu` diisi service dan tidak diverifikasi terhadap jam luar.
+- Daftar mutan di `labs/t4-audit/mutasi/daftar.py` bisa dipakai peninjau dan KONSISTENSI-4 untuk memeriksa kalimat halaman yang terkunci (tiap klaim "terdeteksi" dan "tidak terdeteksi" punya kasus tandingan di rekaman).
+- Berkas jangkar hilang atau menyusut tidak terbedakan dari hari pertama: butuh penanda inisialisasi (mis. flag `-inisialisasi`), peringatan bila jumlah jangkar berkurang, dan tempat tulis-sekali.
+- Token penyetuju tidak terikat pada satu aksi dan berlaku selama sesinya; penyetuju diperiksa di luar transaction (dibekukan di antaranya tetap lolos sekali). Antrean persetujuan per aksi memperbaiki keduanya.
+- Percobaan yang ditolak (penyetuju salah, alasan tidak sah, akun non-risk) tidak tercatat di `audit_log`: butuh log aplikasi terpisah atau tabel percobaan bila "siapa mencoba" harus terjawab.
+- Halaman 4.25: hak tabel menahan `UPDATE` dan `DELETE` oleh aplikasi, bukan `INSERT` (`role.txt` bagian E: baris yang tak pernah terjadi lolos dan dijangkarkan); dua orang ditegakkan kode service karena `api_t4` punya hak `UPDATE` kolom `status` di `akun` dan `batas_harian` di `buku`.
+- `HashAudit` tidak menyandikan panjang kolom: bila kolom teks bebas baru masuk ke hash, ganti dengan penyandian berpanjang (tes karakterisasi akan memberi tahu).
+- Spesifikasi MCP 2026-07-28 meminta server memvalidasi `Origin` dan membatasi laju pemanggilan alat dan menyaring keluaran; tidak dijalankan di lab (server di 127.0.0.1).
+- Halaman 4.26: `sast.txt` bagian A2 menunjukkan G701 butuh sumber input yang terlacak; jangan menulis "gosec menemukan SQL injection pada `fmt.Sprintf`" tanpa syarat itu.
+- Halaman 4.26: kutip `kontrak.txt` bagian C dan `tanda-tangan.txt` bagian B dan C lewat Snippet berrentang baris; jangan menulis "cosign menolak tag" (cosign menerimanya dengan peringatan); jangan menulis oasdiff "tidak mendeteksi" tingkat path tanpa menyebut `--flatten-params`.
+- Halaman 4.26: rekaman api-t4 memuat 15 temuan grype dan 10 kerentanan stdlib yang dipanggil karena Go 1.27.1; tulis sebagai Rekaman lab dengan versi Go, bukan sebagai kelemahan desain.
+- Bila pemilik ingin gerbang yang berjalan: workflow GitHub Actions per modul memakai `langkah_untuk`, `oasdiff breaking --flatten-params --severity-levels`, gosec tanpa `-quiet`, govulncheck JSON, SBOM lengkap, dan verifikasi digest; belum ada.
+- Naikkan Go ke 1.27.3 (tugas terpisah) lalu rekam ulang semua lab, `sast.txt` bagian E, dan `sbom.txt` bagian C.
+- Jalankan client Dart yang dihasilkan (Flutter SDK ada di mesin pemilik, `dart pub get` ke `PUB_CACHE` lokal) untuk membuktikan galat null check pada enum baru; sekarang hanya dibaca dari kode.
+- Kunci SHA-256 basis data Go bila drift mengganggu `make cek` di mesin baru; atau simpan hanya entri OSV yang dikutip.
+- Periksa arti baris cosign "verified offline" bila `--insecure-ignore-tlog` dipakai (perlu verifikasi).
+- `make test` (105 tes) belum masuk gerbang `tools/cek_situs.sh`; satu baris di sana bila pemilik ingin tes lab ini jalan di CI.
+- `unduh` di `alat.py` menulis langsung ke file tujuan: unduhan basis data grype yang terputus meninggalkan file parsial dan run berikutnya gagal di "SHA-256 arsip basis data grype" tanpa pemulihan; tulis ke file sementara lalu pindahkan.
+- `alat.pastikan` memeriksa checksum hanya saat mengunduh; biner yang sudah ada di `.alat` hanya diperiksa lewat `--version`. SHA-256 arsip basis data grype juga hanya diperiksa saat impor.
+- `putuskan_sbom` menerima daftar modul yang diharapkan kosong dan lulus; `parse_gosec` gagal dengan `IndexError` (bukan `ValueError`) bila satu galat paket berisi teks kosong. Keduanya tetap gagal tertutup di run, tetapi pesannya tidak jelas.
+- Bagian klien memakai `--skip-validate-spec` pada openapi-generator; README belum menyebutnya. `docker rmi` image lab di akhir run tidak dijaga tes.

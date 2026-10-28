@@ -17,8 +17,12 @@
   align-items: center;
   margin: 0 0 0.6rem;
 }
+/* Pemilih tahap membungkus ke baris berikutnya (ERD4, keputusan 1255): empat tombol "Tahap N" selebar ±330 px tidak muat di
+   layar 320 px (wadah 288 px) dan meluapkan halaman 3 px di Chromium Linux (font cadangan); sebelumnya teks tombol patah
+   jadi dua baris ("Tahap" / "1"). */
 .erd-tumbuh__pilih {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
 }
 .erd-tumbuh__kontrol button {
@@ -29,6 +33,7 @@
   background: var(--bg);
   color: var(--teks);
   font: inherit;
+  white-space: nowrap;
   cursor: pointer;
 }
 .erd-tumbuh__kontrol button[aria-pressed="true"] {
@@ -141,7 +146,7 @@
   cursor: default;
 }
 
-/* Node: kepala 44 px, baris 24 px, padding bawah 8 px (UKURAN di tumbuh.ts). */
+/* Node: kepala 44 px (64 px bila `.is-dua`), baris 24 px (44 px bila `.is-dua`), padding bawah 8 px (UKURAN di tumbuh.ts). */
 .erd-tumbuh__node {
   /* React Flow memberi node tanpa handler `pointer-events: none` (inline) dan tombol mewarisinya: tanpa baris ini klik
      dan tap tidak sampai ke tabel, hanya Enter (pola keputusan 681, 698). Geser dan zoom tetap mati. */
@@ -171,6 +176,18 @@
   gap: 0.5rem;
   height: 44px;
   border-bottom: 1px solid var(--garis-2);
+}
+/* Nama tabel panjang: status pindah ke baris sendiri di bawah nama (tumbuh.ts duaKepala, keputusan 1255). */
+.erd-tumbuh__kepala.is-dua {
+  height: 64px;
+  flex-wrap: wrap;
+  align-content: center;
+}
+.erd-tumbuh__kepala.is-dua > code {
+  flex: 0 0 100%;
+}
+.erd-tumbuh__kepala.is-dua > .erd-tumbuh__status {
+  margin-left: auto;
 }
 .erd-tumbuh .erd-tumbuh__kepala code {
   font-size: 0.95rem;
@@ -214,6 +231,21 @@
 .erd-tumbuh .erd-tumbuh__baris.is-dihapus > code {
   text-decoration: line-through;
   color: var(--teks-2);
+}
+/* Nama kolom dan label kunci tidak muat satu baris: label pindah ke baris sendiri, rata kanan (tumbuh.ts duaBaris,
+   keputusan 1255). Nama kolom tidak pernah dipotong elipsis; ukur-erd.mjs gagal bila ada yang terpotong. */
+.erd-tumbuh__baris.is-dua {
+  height: 44px;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+.erd-tumbuh .erd-tumbuh__baris.is-dua > code {
+  flex: 0 0 100%;
+}
+.erd-tumbuh__baris.is-dua > .erd-tumbuh__label {
+  margin-left: auto;
+  height: 20px;
+  line-height: 20px;
 }
 .erd-tumbuh__label {
   display: inline-flex;
@@ -294,4 +326,42 @@
   .erd-tumbuh__petunjuk {
     display: none;
   }
+}
+
+/* Pembagian modul (ERD4): tabel biasa di bawah detail; sel membungkus supaya tidak meluap di 320 px (WCAG 1.4.10). */
+.erd-tumbuh__modul {
+  margin-top: 1rem;
+}
+.erd-tumbuh__modul table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.erd-tumbuh__modul caption {
+  text-align: left;
+  padding-bottom: 0.4rem;
+  color: var(--teks-2);
+}
+.erd-tumbuh__modul th,
+.erd-tumbuh__modul td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--garis-2);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.erd-tumbuh__modul thead th {
+  color: var(--teks-2);
+  font-weight: 600;
+}
+.erd-tumbuh__modul tbody th {
+  font-weight: 600;
+}
+.erd-tumbuh__modul code {
+  font-size: 0.85rem;
+  background: none;
+  padding: 0;
+  /* Gaya global memberi code `overflow-wrap: break-word`, yang tidak memperkecil lebar minimum kolom: nama panjang
+     (`kunci_idempotensi`) memaksa tabel 305 px di wadah 288 px dengan font cadangan yang lebar. */
+  overflow-wrap: anywhere;
 }
