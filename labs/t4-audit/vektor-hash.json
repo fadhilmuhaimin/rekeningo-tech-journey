@@ -1,0 +1,57 @@
+[
+ {
+  "sebelumnya": "0000000000000000000000000000000000000000000000000000000000000000",
+  "waktu": "2026-10-26T01:02:03.000000Z",
+  "pelaku": 420,
+  "peran": "risk",
+  "aksi": "lihat_akun",
+  "objek": "akun:40001",
+  "alasan": "",
+  "penyetuju": 0,
+  "hash": "2803f3957b16264379dea7ee3e2c54c7032f418f1fb0ea272c5e1dd4fa812b6e"
+ },
+ {
+  "sebelumnya": "2803f3957b16264379dea7ee3e2c54c7032f418f1fb0ea272c5e1dd4fa812b6e",
+  "waktu": "2026-10-26T01:02:04.123456Z",
+  "pelaku": 420,
+  "peran": "risk",
+  "aksi": "bekukan",
+  "objek": "akun:40001",
+  "alasan": "Dugaan akun dipakai pihak lain, menunggu konfirmasi",
+  "penyetuju": 0,
+  "hash": "cfafabf6b4b12aa3c1e08e88d99189417659c940db04b00cb36d829ab78b28a1"
+ },
+ {
+  "sebelumnya": "cfafabf6b4b12aa3c1e08e88d99189417659c940db04b00cb36d829ab78b28a1",
+  "waktu": "2026-10-26T01:05:00.999999Z",
+  "pelaku": 420,
+  "peran": "risk",
+  "aksi": "buka_blokir",
+  "objek": "akun:40001",
+  "alasan": "Pemilik sudah dikonfirmasi lewat layanan pelanggan",
+  "penyetuju": 421,
+  "hash": "c45c22c0694326d2cd86d6afdba60022d07e73c7536ecc20e5ba4a7c0137a3b5"
+ },
+ {
+  "sebelumnya": "c45c22c0694326d2cd86d6afdba60022d07e73c7536ecc20e5ba4a7c0137a3b5",
+  "waktu": "2026-10-26T23:59:59.000001Z",
+  "pelaku": 421,
+  "peran": "risk",
+  "aksi": "buka_berkas",
+  "objek": "verifikasi:7/kartu",
+  "alasan": "Pemeriksaan lanjutan atas laporan pemilik: é ü 日本",
+  "penyetuju": 0,
+  "hash": "033830097917df672de202d659bc5a7c23a958e80fde70afe2fa12879a0c5010"
+ },
+ {
+  "sebelumnya": "033830097917df672de202d659bc5a7c23a958e80fde70afe2fa12879a0c5010",
+  "waktu": "2027-01-01T00:00:00.000000Z",
+  "pelaku": 421,
+  "peran": "risk",
+  "aksi": "ubah_batas",
+  "objek": "akun:40001/batas_harian=250000",
+  "alasan": "Batas dinaikkan sesuai permintaan tertulis",
+  "penyetuju": 420,
+  "hash": "ba1f8ef4ceb06f04f4e05a5ac4a4184a43daf8c94208742acacb6154135f30bc"
+ }
+]
