@@ -187,7 +187,8 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(dari("t3-dua-instance").prasyarat).toEqual(["t3-m21"]);
     expect(hal231).toMatch(/Server kedua \| Puncak yang diperkirakan[^\n]*\[\[t3-dua-instance\]\]/);
     // m28-prd-v4.mdx menaut 3.14 sebagai satu baris tabel sepuluh masalah Tahap 3; isi baris itu dijaga m28-prd-v4.halaman.test.ts (keputusan 1110)
-    const menaut = ["dua-instance.mdx", "m28-prd-v4.mdx", "prd-v3.mdx"];
+    // rekap.mdx (3.31) menaut 3.14 sebagai kejadian kalimat 6; isi kalimat itu dijaga rekap-t3.halaman.test.ts (keputusan 1122)
+    const menaut = ["dua-instance.mdx", "m28-prd-v4.mdx", "prd-v3.mdx", "rekap.mdx"];
     const sebenarnya = fs.readdirSync(path.join(akar, "situs/src/content/docs/tahap-3")).filter((f) => f.endsWith(".mdx") && f !== "m21-satu-proses-mati.mdx" && baca(`situs/src/content/docs/tahap-3/${f}`).includes("[[t3-m21"));
     expect(sebenarnya.sort()).toEqual(menaut);
   });
