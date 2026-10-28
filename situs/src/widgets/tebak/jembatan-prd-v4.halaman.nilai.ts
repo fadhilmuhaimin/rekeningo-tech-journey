@@ -104,7 +104,7 @@ export const BARIS_MDX: string[] = [
  "**3.** Kenapa \"pecah lebih dulu\" di halaman ini berlabel Asumsi, bukan Rekaman lab?",
  "<details class=\"success\">",
  "<summary>Jawaban</summary>",
- "Tidak ada lab yang menjalankan PRD v4. Penentuannya penalaran dari kalimat halaman ADR dan dari tiga hal yang belum pernah diuji di [[t3-m28]]. Urutan kejadian yang sebenarnya baru terlihat saat Tahap 4 dibangun.",
+ "Tidak ada lab yang menjalankan PRD v4. Penentuannya penalaran dari kalimat halaman ADR dan dari tiga hal yang belum pernah diuji di halaman 3.28. Urutan kejadian yang sebenarnya baru terlihat saat Tahap 4 dibangun.",
  "</details>",
  "Tahap 3 selesai di sini. PRD v4 lengkap ada di [[t4-prd]].",
  "</Blok>"
@@ -120,7 +120,7 @@ export const NILAI_TEBAK: string[] = [
  "adegan.0=\"Sinta membagikan PRD v4. Raka membuka ADR yang tim empat orang tulis di Tahap 3: ADR 22 sampai 33.\"",
  "adegan.1=\"Puncak PRD v4 ±138,9 request per detik (Asumsi), naik 8 kali dari ±17,4 di Tahap 3.\"",
  "pertanyaan=\"Dari ADR Tahap 3, mana yang pecah lebih dulu?\"",
- "pilihan.0.teks=\"ADR 24: satu worker outbox tidak muat lagi, karena notifikasi uang naik 8,7 kali, dari 0,868 ke 7,52 per detik.\"",
+ "pilihan.0.teks=\"ADR 24: satu worker outbox tidak muat, karena notifikasi uang naik 8,7 kali, dari 0,868 ke 7,52 per detik.\"",
  "pilihan.0.benar=false",
  "pilihan.0.alasan=\"Satu worker mengirim 13,33 per detik (c ÷ t = 4 ÷ 0,3, Asumsi), dan rekaman lab mengukurnya antara 12 dan 13,33 (queue.txt bagian A). Pemakaiannya naik dari 6,5% ke 56% pada puncak dan 72% saat makan siang (Hitungan, Asumsi; halaman 3.29). Naik jauh, tetapi masih di bawah 100%. Batas PostgreSQL sebagai queue belum diukur (Tidak dijalankan).\"",
  "pilihan.1.teks=\"ADR 22, ADR 25, ADR 26, dan ADR 32: uang yang digerakkan pihak ketiga, satu VPS untuk semuanya, dan tiga tim.\"",

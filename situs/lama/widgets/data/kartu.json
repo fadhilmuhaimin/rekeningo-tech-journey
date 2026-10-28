@@ -2293,7 +2293,7 @@
   "judul": "3.32 Jembatan: pratinjau PRD v4",
   "url": "tahap-3/jembatan-prd-v4/",
   "tanya": "Kenapa \"pecah lebih dulu\" di halaman ini berlabel Asumsi, bukan Rekaman lab?",
-  "jawab": "Tidak ada lab yang menjalankan PRD v4. Penentuannya penalaran dari kalimat halaman ADR dan dari tiga hal yang belum pernah diuji di 3.28 M28. Urutan kejadian yang sebenarnya baru terlihat saat Tahap 4 dibangun."
+  "jawab": "Tidak ada lab yang menjalankan PRD v4. Penentuannya penalaran dari kalimat halaman ADR dan dari tiga hal yang belum pernah diuji di halaman 3.28. Urutan kejadian yang sebenarnya baru terlihat saat Tahap 4 dibangun."
  },
  {
   "id": "C2-1",

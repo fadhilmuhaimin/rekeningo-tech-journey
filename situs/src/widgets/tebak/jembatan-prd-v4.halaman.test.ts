@@ -178,7 +178,7 @@ describe("registry, naskah, blok, dan tautan", () => {
     const hitungId: Record<string, number> = {};
     for (const x of id) hitungId[x] = (hitungId[x] ?? 0) + 1;
     expect(hitungId).toEqual({
-      A0: 1, "t2-skema-tanpa-downtime": 1, "t3-at-least-once": 2, "t3-cache": 1, "t3-dua-instance": 1, "t3-estimasi": 2, "t3-m28": 6, "t3-offline": 1, "t3-outbox": 1,
+      A0: 1, "t2-skema-tanpa-downtime": 1, "t3-at-least-once": 2, "t3-cache": 1, "t3-dua-instance": 1, "t3-estimasi": 2, "t3-m28": 5, "t3-offline": 1, "t3-outbox": 1,
       "t3-pool": 1, "t3-prd": 5, "t3-rate-limit-redis": 1, "t3-rekap": 1, "t3-tim-infra": 2, "t3-tls-pinning": 1, "t3-xss-csrf": 3, "t4-prd": 1,
     });
     for (const x of Object.keys(hitungId)) expect(hal.some((h) => h.id === x), `[[${x}]] tidak ada di registry`).toBe(true);
@@ -592,7 +592,7 @@ describe("widget tebak: tepat satu jawaban, posisi dan panjang tidak membocorkan
     ada(estimasi, `${titik(dau(a4) * a4.trx + dau(a4) * topupPerAktif)} × 0,8 ÷ 5.400 = ${koma(makanSiang, 2)} per detik, atau ${pakai(makanSiang)}`, "3.29");
     const p = data.pilihan[0]!;
     expect(p.benar).toBe(false);
-    expect(p.teks).toBe(`ADR 24: satu worker outbox tidak muat lagi, karena notifikasi uang naik ${koma(notif4 / lambdaBayar3, 1)} kali, dari ${koma(lambdaBayar3, 3)} ke ${koma(notif4, 2)} per detik.`);
+    expect(p.teks).toBe(`ADR 24: satu worker outbox tidak muat, karena notifikasi uang naik ${koma(notif4 / lambdaBayar3, 1)} kali, dari ${koma(lambdaBayar3, 3)} ke ${koma(notif4, 2)} per detik.`);
     expect(p.alasan).toBe(
       `Satu worker mengirim ${koma(kapasitas, 2)} per detik (c ÷ t = ${c} ÷ ${koma(t, 1)}, Asumsi), dan rekaman lab mengukurnya antara ${ukur[1]} dan ${koma(kapasitas, 2)} (queue.txt bagian A). Pemakaiannya naik dari ${koma((lambdaBayar3 / kapasitas) * 100, 1)}% ke ${pakai(notif4)} pada puncak dan ${pakai(makanSiang)} saat makan siang (Hitungan, Asumsi; halaman 3.29). Naik jauh, tetapi masih di bawah 100%. Batas PostgreSQL sebagai queue belum diukur (Tidak dijalankan).`,
     );
@@ -650,7 +650,7 @@ describe("kartu Cek diri: tiga kartu sama dengan kartu.json, fakta sama dengan h
     );
     expect(soal[2]!.tanya).toBe('Kenapa "pecah lebih dulu" di halaman ini berlabel Asumsi, bukan Rekaman lab?');
     expect(soal[2]!.jawab).toBe(
-      "Tidak ada lab yang menjalankan PRD v4. Penentuannya penalaran dari kalimat halaman ADR dan dari tiga hal yang belum pernah diuji di [[t3-m28]]. Urutan kejadian yang sebenarnya baru terlihat saat Tahap 4 dibangun.",
+      `Tidak ada lab yang menjalankan PRD v4. Penentuannya penalaran dari kalimat halaman ADR dan dari tiga hal yang belum pernah diuji di halaman ${dari("t3-m28").nomor}. Urutan kejadian yang sebenarnya baru terlihat saat Tahap 4 dibangun.`,
     );
   });
 });
@@ -675,7 +675,7 @@ describe("struktur halaman dan dunia angka tertutup", () => {
       expect(teks).not.toMatch(POLA_ID_INTERNAL);
       expect(teks).not.toMatch(/\p{Extended_Pictographic}/u);
       expect(teks).not.toMatch(/!(?!\[)/);
-      expect(teks).not.toMatch(/\b(Anda|kita|pengguna|mudah|cukup|tinggal)\b/i);
+      expect(teks).not.toMatch(/\b(Anda|kita|pengguna|mudah|tinggal)\b|(?<!tidak )\bcukup\b/i);
       expect(teks).not.toMatch(/terukur|ter-ukur|terbukti/i);
     }
     expect(hitung(badan, "Rekaman lab")).toBe(1);

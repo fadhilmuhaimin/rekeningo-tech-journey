@@ -12,7 +12,7 @@
   "pertanyaan": "Dari ADR Tahap 3, mana yang pecah lebih dulu?",
   "pilihan": [
     {
-      "teks": "ADR 24: satu worker outbox tidak muat lagi, karena notifikasi uang naik 8,7 kali, dari 0,868 ke 7,52 per detik.",
+      "teks": "ADR 24: satu worker outbox tidak muat, karena notifikasi uang naik 8,7 kali, dari 0,868 ke 7,52 per detik.",
       "benar": false,
       "alasan": "Satu worker mengirim 13,33 per detik (c ÷ t = 4 ÷ 0,3, Asumsi), dan rekaman lab mengukurnya antara 12 dan 13,33 (queue.txt bagian A). Pemakaiannya naik dari 6,5% ke 56% pada puncak dan 72% saat makan siang (Hitungan, Asumsi; halaman 3.29). Naik jauh, tetapi masih di bawah 100%. Batas PostgreSQL sebagai queue belum diukur (Tidak dijalankan)."
     },
