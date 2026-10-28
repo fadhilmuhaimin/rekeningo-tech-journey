@@ -1,0 +1,19 @@
+openapi: 3.0.3
+info: { title: Kontrak mini lab t4-pipeline, version: 1.0.0 }
+paths:
+  /riwayat:
+    parameters:
+      - { name: batas, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100 } }
+      - { name: tag, in: query, required: false, schema: { type: array, items: { type: string } }, style: form, explode: true }
+    get:
+      operationId: riwayat
+      responses:
+        '200': { description: ok }
+  /laporan:
+    get:
+      operationId: laporan
+      parameters:
+        - { name: batas, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100 } }
+        - { name: tag, in: query, required: false, schema: { type: array, items: { type: string } }, style: form, explode: true }
+      responses:
+        '200': { description: ok }
