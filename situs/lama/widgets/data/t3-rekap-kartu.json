@@ -1,0 +1,106 @@
+[
+  {
+    "id": "t3-rekap-k1",
+    "halaman": "t3-m18",
+    "judul": "3.6 M18: Seluruh app membeku jam 12.20",
+    "url": "tahap-3/m18-app-membeku/",
+    "tanya": "M18: layanan push menerima koneksi tetapi tidak menjawab, dan semua layar berhenti. Pembayarannya hanya 0,868 per detik (Asumsi naskah). Raka mengusulkan pool 50. Kalimat apa yang lahir?",
+    "jawab": "Pool habis karena lama, bukan karena banyak (ADR 22: panggilan keluar di luar transaction, timeout 3 detik, dan pool tetap 10). Rekaman lab: pool 50 penuh antara detik ke-57 dan ke-58, bukan tidak penuh."
+  },
+  {
+    "id": "t3-rekap-k2",
+    "halaman": "t3-m18",
+    "judul": "3.6 M18: Seluruh app membeku jam 12.20",
+    "url": "tahap-3/m18-app-membeku/",
+    "tanya": "M18: Raka membuka log server dan tidak menemukan satu baris pun untuk request yang menggantung. Di rekaman, log tetap kosong selama 4 detik. Kalimat apa yang lahir?",
+    "jawab": "Naskah: \"Tanpa trace, 'lambat' tidak punya alamat.\" Dipersempit: trace Tidak dijalankan di api-t3. Versi yang didukung rekaman: log kosong tidak membedakan request sehat dari yang menggantung, dan hanya database yang menunjuk client yang menunggu. Bagian API yang menunggu tetap tidak terlihat."
+  },
+  {
+    "id": "t3-rekap-k3",
+    "halaman": "t3-prd",
+    "judul": "3.1 PRD v3: Rekeningo untuk enam kota",
+    "url": "tahap-3/prd-v3/",
+    "tanya": "PRD v3: Pak Hadi menambah syarat bahwa Ani tidak boleh diberi tahu uang masuk sebelum uang itu tercatat. Layanan push tidak ikut COMMIT PostgreSQL. Kalimat apa yang lahir?",
+    "jawab": "Uang dan pemberitahuan ditulis di satu tempat dulu, dikirim dari tempat lain kemudian (ADR 23: outbox di PostgreSQL dan worker di proses terpisah). Di rekaman, outbox berisi satu baris menunggu sesudah 201, dan layanan push menerima 0 pesan sampai worker berjalan."
+  },
+  {
+    "id": "t3-rekap-k4",
+    "halaman": "t3-m19",
+    "judul": "3.10 M19: Ani tidak diberi tahu",
+    "url": "tahap-3/m19-tidak-diberi-tahu/",
+    "tanya": "M19: dua transfer ke Citra membuat saldonya naik Rp50.000, tetapi HP-nya menerima satu pesan. Poller membaca dengan kursor (dibuat, id). Kalimat apa yang lahir?",
+    "jawab": "Naskah: \"Urutan id bukan urutan commit.\" Dipersempit: yang terbalik di rekaman adalah dibuat, yaitu awal transaction, bukan nomor outbox. Versi yang didukung rekaman: dibuat bukan urutan COMMIT, dan nomor sequence tidak dijanjikan sama dengan urutan COMMIT (ADR 24: worker mengklaim baris, tanpa kursor)."
+  },
+  {
+    "id": "t3-rekap-k5",
+    "halaman": "t3-m20",
+    "judul": "3.12 M20: Notifikasi masuk dua kali",
+    "url": "tahap-3/m20-notifikasi-dua-kali/",
+    "tanya": "M20: HP Ani menampilkan \"Rp25.000 dari Budi\" dua kali, padahal hanya ada satu jurnal. Worker berhenti di antara kirim dan tandai terkirim. Kalimat apa yang lahir?",
+    "jawab": "Mengirim ulang itu benar; yang salah adalah penerima yang tidak mengenali ulangan (ADR 25: at-least-once, maksimal lima percobaan, dead-letter, dan penyaring notifikasi_id di app). Batas: penyaring di rekaman adalah lima baris Python, bukan kode Dart."
+  },
+  {
+    "id": "t3-rekap-k6",
+    "halaman": "t3-m21",
+    "judul": "3.14 M21: Satu proses mati, semua mati",
+    "url": "tahap-3/m21-satu-proses-mati/",
+    "tanya": "M21: panic di goroutine latar ekspor laporan mematikan satu-satunya proses API. Dengan dua instance di belakang proxy tanpa health check dan retry, satu instance yang mati membuat 10 dari 20 request dijawab 502. Kalimat apa yang lahir?",
+    "jawab": "Dua proses butuh proxy yang tahu mana yang hidup (ADR 26: dua instance di satu VPS, health check aktif, dan retry). Batas: satu Ekspor yang ditekan dua kali mematikan kedua instance, dan satu VPS tetap titik gagal tunggal."
+  },
+  {
+    "id": "t3-rekap-k7",
+    "halaman": "t3-m22",
+    "judul": "3.16 M22: Batas login jadi dua kali lipat",
+    "url": "tahap-3/m22-batas-login-dua-kali/",
+    "tanya": "M22: 24 percobaan login dari satu alamat lewat dua instance, dan 20 sampai ke pemeriksaan password, padahal batas per alamat 10. Kalimat apa yang lahir?",
+    "jawab": "Yang disimpan di memori satu proses berlipat saat prosesnya dua (ADR 27: hitungan batas login di Redis, batas waktu 50 milidetik, dan bucket lokal sebagai cadangan). Batas: kode lab memakai alamat koneksi, jadi di belakang proxy semua client berbagi satu key per alamat."
+  },
+  {
+    "id": "t3-rekap-k8",
+    "halaman": "t3-m23",
+    "judul": "3.18 M23: Dua harga di satu meja",
+    "url": "tahap-3/m23-dua-harga/",
+    "tanya": "M23: HR menyalakan promo, lalu HP Budi menampilkan nasi goreng Rp22.500 dan HP Citra Rp25.000. Citra ditagih Rp22.500. Kalimat apa yang lahir?",
+    "jawab": "Cache boleh stale untuk tampilan, tidak untuk uang (ADR 28: cache katalog di Redis bersama, TTL 60 detik, hapus kunci sesudah COMMIT, tagihan dari database). Batas: stok di cache juga stale, dan rekaman tidak memakai app Flutter."
+  },
+  {
+    "id": "t3-rekap-k9",
+    "halaman": "t3-m24",
+    "judul": "3.20 M24: Stok yang kembali ke angka lama",
+    "url": "tahap-3/m24-stok-kembali/",
+    "tanya": "M24: stok = 0 dari Jumat dikirim ulang 62 jam kemudian dan menimpa 30 porsi yang Ani isi hari Sabtu. Pengiriman ulang 17 jam sesudah Jumat justru dikenali. Kalimat apa yang lahir?",
+    "jawab": "Operasi yang menunggu lama harus bisa ditolak dengan benar (ADR 29: offline hanya stok dan harga, operasi bersyarat versi, dan kunci sinkron 14 hari). Batas: lama offline 62 jam adalah Asumsi naskah, dan jam dimajukan. HP diperankan curl, jadi queue lokal dan layar konflik di app Tidak dijalankan."
+  },
+  {
+    "id": "t3-rekap-k10",
+    "halaman": "t3-m25",
+    "judul": "3.22 M25: Kotak peringatan di riwayat Ani",
+    "url": "tahap-3/m25-kotak-peringatan/",
+    "tanya": "M25: catatan Rp5.000 dari Dimas berisi tag gambar, dan dasbor Ani menulisnya lewat innerHTML. Muncul satu kotak peringatan berisi 1. Kalimat apa yang lahir?",
+    "jawab": "Data dari sistem sendiri tetap input (ADR 30: tanpa innerHTML, CSP dengan nonce, token CSRF, dan cookie __Host-). Batas: hanya Chromium 156 yang diuji, dan dari passkey hanya pendaftaran kredensial yang direkam."
+  },
+  {
+    "id": "t3-rekap-k11",
+    "halaman": "t3-m26",
+    "judul": "3.24 M26: Transfer yang tidak dibuat Budi",
+    "url": "tahap-3/m26-transfer-bukan-budi/",
+    "tanya": "M26: app Budi menerima sertifikat apa pun karena flag dari staging, dan hotspot Dimas membaca token Budi. Dimas memakainya untuk transfer Rp150.000. Kalimat apa yang lahir?",
+    "jawab": "Sertifikat selalu divalidasi; pin selalu dengan cadangan (ADR 31: validasi selalu aktif, pin SPKI dengan satu cadangan, HSTS di dasbor, dan token 15 menit). Batas: proxy, server, dan client Dart berjalan di satu laptop, dan cadangan hanya menahan satu rotasi."
+  },
+  {
+    "id": "t3-rekap-k12",
+    "halaman": "t3-m27",
+    "judul": "3.26 M27: Hari promo, notifikasi uang terlambat",
+    "url": "tahap-3/m27-hari-promo/",
+    "tanya": "M27: notifikasi pembayaran Ani belum datang sampai 11.42 karena 10.000 promo mendahuluinya (Ilustrasi). Di rekaman, worker yang mengklaim menurut nomor mengirim 3,4% sampai 4,2% promo dalam 30 detik. Kalimat apa yang lahir?",
+    "jawab": "Naskah: \"Queue punya umur, dan yang tertua yang paling penting.\" Dipersempit: yang dihitung adalah umur notifikasi uang tertua, bukan umur tertua seluruh queue. Dengan promo menumpuk, umur tertua semua kelas lebih dari 30 detik, sedangkan kelas uang 0 (ADR 32: kelas queue, alert per kelas, staging, dan giliran jaga). Alert sungguhan Tidak dijalankan."
+  },
+  {
+    "id": "t3-rekap-k13",
+    "halaman": "t3-m28",
+    "judul": "3.28 M28: Uji coba enam kota lolos, PRD v4 datang",
+    "url": "tahap-3/m28-prd-v4/",
+    "tanya": "M28: tutup buku bulan ketiga selesai dengan selisih Rp0 (Ilustrasi), puncak 17,4 request per detik (Asumsi), dan Sinta membawa PRD v4. Raka menduga server harus lebih besar. Kalimat apa yang lahir?",
+    "jawab": "Naskah: \"Masalah Tahap 3 adalah ketergantungan, bukan kapasitas.\" Dipersempit: M18, M23, dan M27 memakai hitungan kapasitas sebagai alat, dan kapasitas satu server belum pernah diukur. Versi yang didukung: puncak 17,4 (Asumsi) tidak menunjuk sumber daya yang sesak, dan tiga hal yang diminta PRD v4 belum pernah diuji (ADR 33)."
+  }
+]
