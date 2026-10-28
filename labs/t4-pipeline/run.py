@@ -394,7 +394,175 @@ def bagian_klien():
     tulis("klien.txt", "client Dart dibuat ulang dari kontrak")
 
 
-BAGIAN = {"kontrak": bagian_kontrak, "klien": bagian_klien}
+
+# ---------- alat Go dan basis data ----------
+
+X_TEXT_BARU = "v0.43.0"        # x/text terbaru di proxy.golang.org pada 2026-10-29; contoh versi yang sudah diperbaiki
+
+
+def pastikan_govulncheck():
+    """govulncheck tidak punya arsip rilis: dipasang dengan `go install` dari proxy.golang.org (checksum modul diperiksa
+    sum.golang.org) ke .alat/bin, bukan ke GOPATH."""
+    biner = alat.ALAT / "bin" / "govulncheck"
+    versi = alat.PIN["govulncheck"]["versi"]
+    if not biner.exists():
+        (alat.ALAT / "bin").mkdir(parents=True, exist_ok=True)
+        kode, _, galat = jalankan(["go", "install", f"{alat.PIN['govulncheck']['modul']}@{versi}"], env=dict(os.environ, GOBIN=str(alat.ALAT / "bin")))
+        if kode != 0:
+            gagal(f"go install govulncheck: {galat.strip()[-300:]}")
+    kode, keluar, galat = jalankan([biner, "-version"], env=alat.lingkungan())
+    if f"govulncheck@{versi}" not in keluar + galat:
+        gagal(f"govulncheck melaporkan {(keluar + galat)!r}, harus govulncheck@{versi}")
+    return biner
+
+
+def pastikan_vulndb():
+    """Salinan basis data kerentanan Go (vuln.go.dev/vulndb.zip, ±3,5 MB), diunduh sekali ke .alat/vulndb."""
+    tujuan = alat.ALAT / "vulndb"
+    if not (tujuan / "index" / "db.json").exists():
+        info = alat.PIN["vulndb"]
+        zip_ = alat.ALAT / "vulndb.zip"
+        alat.unduh(info["url"], zip_)
+        with zipfile.ZipFile(zip_) as z:
+            z.extractall(tujuan)
+        zip_.unlink()
+    return "file://" + str(tujuan)
+
+
+def siapkan_db_grype():
+    """Basis data grype yang dikunci (alat.json): arsip diunduh sekali, SHA-256 diperiksa, lalu diimpor tanpa pembaruan
+    otomatis dan tanpa pemeriksaan umur. Mengembalikan lingkungan grype."""
+    info = alat.PIN["grype_db"]
+    cache = alat.ALAT / "grype-db"
+    env = alat.lingkungan(GRYPE_DB_CACHE_DIR=str(cache), GRYPE_DB_AUTO_UPDATE="false", GRYPE_DB_VALIDATE_AGE="false")
+    grype = alat.pastikan("grype")
+    if not (cache / "6" / "vulnerability.db").exists():
+        arsip = alat.ALAT / "db" / info["berkas"]
+        arsip.parent.mkdir(parents=True, exist_ok=True)
+        if not arsip.exists():
+            alat.unduh(info["url"], arsip)
+        harap(alat.sha256(arsip), info["sha256"], "SHA-256 arsip basis data grype")
+        kode, _, galat = jalankan([grype, "db", "import", arsip], env=env)
+        if kode != 0:
+            gagal(f"grype db import: {galat.strip()[-300:]}")
+    return env
+
+
+def salin_contoh(nama):
+    tujuan = KERJA / nama
+    if tujuan.exists():
+        shutil.rmtree(tujuan)
+    shutil.copytree(HERE / "contoh", tujuan)
+    return tujuan
+
+
+def jalankan_gosec(d, *bendera):
+    kode, keluar, galat = jalankan([alat.pastikan("gosec"), "-fmt=json", *bendera, "./..."], cwd=d, env=alat.lingkungan(**{k: v for k, v in env_alat().items()}))
+    return kode, keluar, galat
+
+
+def jalankan_govulncheck(d, db):
+    kode, keluar, galat = jalankan([pastikan_govulncheck(), "-format", "json", "-db", db, "./..."], cwd=d, env=env_alat())
+    if kode != 0:
+        gagal(f"govulncheck: exit {kode}: {galat.strip()[-300:]}")
+    return g.parse_govulncheck(keluar)
+
+
+def baris_vuln(t):
+    jejak = f": {t['jejak']}" if t["jejak"] else ""
+    return f"{t['osv']} {t['modul']} {t['versi']}, diperbaiki di {t['diperbaiki'] or '-'}{jejak}"
+
+
+def bagian_sast():
+    db = pastikan_vulndb()
+    contoh = salin_contoh("contoh")
+    catat("# Contoh yang disiapkan: labs/t4-pipeline/contoh, dua berkas Go (temuan.go dan aman.go) dan go.mod yang memuat")
+    catat("# golang.org/x/text v0.3.7. Bukan kode api-t4. gosec 2.30.0; govulncheck v1.9.0 dengan salinan basis data Go lokal.")
+
+    bagian("A. gosec: satu temuan yang disiapkan, dan kasus tandingannya")
+    kode, keluar, _ = jalankan_gosec(contoh)
+    temuan, galat, stat = g.parse_gosec(keluar, str(contoh))
+    perintah_tampil("gosec -fmt=json ./...", "", kode)
+    harap(kode, 1, "exit code gosec dengan temuan")
+    harap([(t["aturan"], t["keparahan"], t["keyakinan"], t["cwe"], t["berkas"], t["baris"]) for t in temuan],
+          [("G701", "HIGH", "HIGH", "89", "temuan.go", 16)], "temuan gosec atas contoh")
+    for t in temuan:
+        catat(f"{t['aturan']} {t['keparahan']}/{t['keyakinan']} CWE-{t['cwe']} {t['berkas']}:{t['baris']} {t['teks']}")
+    catat(f"statistik: {stat['files']} berkas, {stat['found']} temuan; aman.go (query berparameter) tidak ada di daftar")
+    harap(stat["files"], 2, "berkas yang dipindai gosec")
+    lulus, alasan = g.putuskan_gosec(temuan, galat, stat)
+    harap(lulus, False, "putusan gosec atas contoh")
+    catat(f"gerbang gosec (ambang MEDIUM): GAGAL ({alasan})")
+    catat("# Aturannya G701 (analisis taint), bukan G201: gosec 2.30.0 memakai aturan itu untuk fmt.Sprintf ke database/sql.")
+
+    bagian("B. gosec gagal terbuka: kode yang tidak terkompilasi")
+    rusak = salin_contoh("contoh-rusak")
+    (rusak / "rusak.go").write_text("package main\n\nfunc rusak( {\n")
+    kode_q, keluar_q, galat_q = jalankan_gosec(rusak, "-quiet")
+    perintah_tampil("gosec -fmt=json -quiet ./...", keluar_q + galat_q, kode_q)
+    harap((kode_q, keluar_q, galat_q), (0, "", ""), "gosec -quiet pada kode yang tidak terkompilasi")
+    catat("# Exit code 0 dan keluaran kosong: dibaca apa adanya, ini \"bersih\", padahal temuan.go masih memuat query yang sama.")
+    kode, keluar, _ = jalankan_gosec(rusak)
+    temuan, galat, stat = g.parse_gosec(keluar, str(rusak))
+    perintah_tampil("gosec -fmt=json ./...", "", kode)
+    harap(kode, 1, "exit code gosec tanpa -quiet pada kode yang tidak terkompilasi")
+    harap(temuan, [], "temuan gosec pada kode yang tidak terkompilasi")
+    for e in galat:
+        catat(f"galat pemindaian: {e}")
+    catat(f"temuan: {len(temuan)}; berkas dipindai: {stat['files']}")
+    lulus, alasan = g.putuskan_gosec(temuan, galat, stat)
+    harap(lulus, False, "putusan gosec atas kode rusak")
+    catat(f"gerbang gosec: GAGAL ({alasan})")
+
+    bagian("C. govulncheck: kerentanan dipanggil kode lawan sekadar ada di dependensi")
+    vuln = jalankan_govulncheck(contoh, db)
+    dipanggil = [t for t in vuln if t["dipanggil"]]
+    harap([t["osv"] for t in dipanggil], ["GO-2022-1059"], "kerentanan yang dipanggil kode contoh")
+    harap(dipanggil[0]["jejak"], "temuan.bahasaPilihan memanggil language.ParseAcceptLanguage", "jejak panggilan")
+    perintah_tampil("govulncheck -format json -db <salinan vuln.go.dev> ./...")
+    catat("dipanggil kode:")
+    for t in dipanggil:
+        catat("  " + baris_vuln(t))
+    lain = [t for t in vuln if not t["dipanggil"] and t["modul"] == "golang.org/x/text" and t["osv"] not in {d["osv"] for d in dipanggil}]
+    harap(len(lain) >= 1, True, "kerentanan lain di x/text yang tidak dipanggil")
+    catat("ada di modul yang sama, tidak dipanggil:")
+    for t in lain:
+        catat("  " + baris_vuln(t))
+    catat("# Temuan atas stdlib toolchain Go tidak dicetak: bergantung pada versi Go yang menjalankan pemindaian (header).")
+    lulus, alasan = g.putuskan_govulncheck(vuln)
+    harap(lulus, False, "putusan govulncheck atas contoh")
+    catat(f"gerbang govulncheck: GAGAL ({alasan})")
+
+    bagian(f"D. Kasus tandingan: golang.org/x/text {X_TEXT_BARU}, versi yang sudah diperbaiki")
+    baru = salin_contoh("contoh-baru")
+    kode, _, galat = jalankan(["go", "get", f"golang.org/x/text@{X_TEXT_BARU}"], cwd=baru, env=dict(os.environ, GOFLAGS="-mod=mod"))
+    harap(kode, 0, f"go get x/text {X_TEXT_BARU}: {galat.strip()[-200:]}")
+    perintah_tampil(f"go get golang.org/x/text@{X_TEXT_BARU}")
+    vuln = jalankan_govulncheck(baru, db)
+    harap([t for t in vuln if t["dipanggil"]], [], "kerentanan yang dipanggil setelah x/text diperbaiki")
+    harap([t for t in vuln if t["modul"] == "golang.org/x/text"], [], "temuan x/text setelah diperbaiki")
+    lulus, alasan = g.putuskan_govulncheck(vuln)
+    harap(lulus, True, "putusan govulncheck atas contoh yang diperbaiki")
+    perintah_tampil("govulncheck -format json -db <salinan vuln.go.dev> ./...", "tidak ada temuan atas golang.org/x/text; tidak ada yang dipanggil")
+    catat(f"gerbang govulncheck: LULUS ({alasan})")
+    kode, keluar, _ = jalankan_gosec(baru)
+    temuan, galat, stat = g.parse_gosec(keluar, str(baru))
+    harap([(t["aturan"], t["berkas"]) for t in temuan], [("G701", "temuan.go")], "temuan gosec setelah x/text diperbaiki")
+    catat("# gosec tetap menemukan G701: memperbaiki dependensi tidak memperbaiki kode sendiri, dan sebaliknya.")
+
+    bagian("E. Audit atas kode api-t4 yang sebenarnya (govulncheck, tidak ada perubahan pada api-t4)")
+    vuln = jalankan_govulncheck(API, db)
+    dipanggil = [t for t in vuln if t["dipanggil"]]
+    perintah_tampil("govulncheck -format json -db <salinan vuln.go.dev> ./...   # di labs/api-t4")
+    catat(f"dipanggil kode: {len(dipanggil)}")
+    for t in dipanggil:
+        catat("  " + baris_vuln(t))
+    lulus, alasan = g.putuskan_govulncheck(vuln)
+    catat(f"gerbang govulncheck atas api-t4: {'LULUS' if lulus else 'GAGAL'} ({alasan})")
+    tulis("sast.txt", "gosec dan govulncheck atas contoh yang disiapkan")
+
+
+BAGIAN = {"kontrak": bagian_kontrak, "klien": bagian_klien, "sast": bagian_sast}
 
 
 def main():

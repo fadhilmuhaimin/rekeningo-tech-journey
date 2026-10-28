@@ -57,7 +57,8 @@ def parse_gosec(teks_json, awalan_jalur=""):
             jalur = jalur[len(awalan_jalur):].lstrip("/")
         temuan.append({"aturan": i["rule_id"], "keparahan": i["severity"], "keyakinan": i["confidence"],
                        "cwe": i.get("cwe", {}).get("id", ""), "berkas": jalur, "baris": int(i["line"]), "teks": i["details"]})
-    galat = sorted(f"{k or '(paket)'}: {e['error'].splitlines()[-1]}" for k, v in (d.get("Golang errors") or {}).items() for e in v)
+    galat = sorted(f"{k.rsplit('/', 1)[-1] if k else '(paket)'}: {e['error'].splitlines()[-1]}"
+                   for k, v in (d.get("Golang errors") or {}).items() for e in v)
     stat = d.get("Stats") or {}
     return sorted(temuan, key=lambda t: (t["berkas"], t["baris"], t["aturan"])), galat, stat
 
@@ -112,11 +113,12 @@ def parse_govulncheck(teks):
         kunci = (f["osv"], modul, dipanggil)
         ada = temuan.get(kunci, {})
         langkah = ""
-        if dipanggil and len(jejak) >= 2:
-            # urutan jejak: fungsi rentan, pemanggil langsungnya, lalu pemanggil berikutnya sampai main
-            pemanggil = jejak[1]
-            langkah = (f'{pemanggil.get("package", "").rsplit("/", 1)[-1]}.{pemanggil.get("function", "")} memanggil '
-                       f'{jejak[0].get("package", "").rsplit("/", 1)[-1]}.{jejak[0]["function"]}')
+        if dipanggil:
+            # jejak dimulai dari fungsi rentan; kode kita adalah bingkai pertama yang tidak punya versi modul
+            milik = next((t for t in jejak[1:] if t.get("function") and not t.get("version")), None)
+            if milik:
+                langkah = (f'{milik.get("package", "").rsplit("/", 1)[-1]}.{milik["function"]} memanggil '
+                           f'{jejak[0].get("package", "").rsplit("/", 1)[-1]}.{jejak[0]["function"]}')
         temuan[kunci] = {"osv": f["osv"], "modul": modul, "versi": versi, "diperbaiki": f.get("fixed_version", ""),
                          "dipanggil": dipanggil, "jejak": ada.get("jejak") or langkah}
     return sorted(temuan.values(), key=lambda t: (not t["dipanggil"], t["osv"], t["modul"]))
@@ -137,8 +139,10 @@ def parse_sbom(teks_json):
     d = json.loads(teks_json)
     if d.get("bomFormat") != "CycloneDX":
         raise ValueError(f"bukan CycloneDX: bomFormat={d.get('bomFormat')!r}")
-    pustaka = sorted({(c["name"], c.get("version", "")) for c in d.get("components", []) if c.get("type") == "library"})
-    return {"spesifikasi": d.get("specVersion", ""), "pustaka": pustaka}
+    perpustakaan = [c for c in d.get("components", []) if c.get("type") == "library"]
+    pustaka = sorted({(c["name"], c.get("version", "")) for c in perpustakaan})
+    modul_go = sorted({(c["name"], c.get("version", "")) for c in perpustakaan if c.get("purl", "").startswith("pkg:golang/")})
+    return {"spesifikasi": d.get("specVersion", ""), "pustaka": pustaka, "go": modul_go}
 
 
 def sbom_lengkap(ringkas, diharapkan):
