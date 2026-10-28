@@ -1,0 +1,57 @@
+# Lab t4-qr · tes Go payload QR dan service QR dengan batas di kedua sisi
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_qr · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-qr run.
+
+# --- A. go vet dengan tag t4qr, lalu tes payload (tanpa database) dan tes service QR (PostgreSQL sungguhan, schema tahap4_qr_tes) ---
+$ go vet -tags t4qr ./internal/qrpayload ./internal/service ./cmd/qrlab
+(tanpa temuan)
+# exit status 0
+$ TEST_DATABASE_URL=<pemilik, schema tahap4_qr_tes> go test -v -count=1 -p 1 -tags t4qr -run 'TestPayload|TestQRBatas|TestQRPindai' ./internal/qrpayload ./internal/service
+CRC16("123456789") = 0x29B1 (nilai uji 0x29B1; pembanding Python binascii.crc_hqx dengan nilai awal 0xFFFF)
+--- PASS: TestPayloadCRCNilaiUji
+CRC berawalan nol: nominal 802 menghasilkan ujung payload 6304002A
+--- PASS: TestPayloadCRCDitulisEmpatKarakterDenganNolDiDepan
+--- PASS: TestPayloadBangunSamaDenganContohYangDihitungTerpisah
+--- PASS: TestPayloadTag01StatisSebelasDinamisDuaBelas
+salah baca satu karakter pada payload contoh statis milik tes (138 karakter): 8562 dari 8562 terdeteksi (8314 oleh CRC, 248 oleh tag 63 yang rusak)
+--- PASS: TestPayloadSalahBacaSatuKarakterTerdeteksiSemua
+dua karakter bersebelahan bertukar tempat pada payload contoh yang sama: 104 dari 104 terdeteksi (hasil untuk payload ini, bukan jaminan umum)
+--- PASS: TestPayloadDuaKarakterBertukarTempatTerdeteksi
+id QR diganti tanpa CRC baru: CRC tidak cocok; diganti dengan CRC dihitung ulang: lolos (CRC tidak memakai kunci)
+--- PASS: TestPayloadCRCBukanAutentikasi
+--- PASS: TestPayloadDitolakKarenaIsinya
+--- PASS: TestPayloadDitolakKarenaUjungDanCRC
+--- PASS: TestPayloadBangunMenolak
+--- PASS: TestPayloadBatasPanjangNamaDanKota
+--- PASS: TestPayloadNominalDiTag54TanpaPemisah
+--- PASS: TestPayloadUraiTanpaCRCDanGantiMenolakBentukRusak
+--- PASS: TestPayloadMasukanPendekDanTerpotongDitolakTanpaPanik
+--- PASS: TestPayloadBatasBentukTLVNominalDanKarakter
+berkas Go non-tes di modul api-t4 yang mengimpor payload QR: cmd/qrlab/main.go saja (server tidak membaca payload)
+--- PASS: TestPayloadHanyaDipakaiQrlab
+PASS
+ok    lab/apit4/internal/qrpayload
+QR statis: Rp1, Rp199.999, dan Rp200.000 diterima; Rp200.001, Rp0, Rp-1, dan nominal kosong ditolak (ErrValidasi nominal); tidak ada uang yang bergerak pada yang ditolak
+--- PASS: TestQRBatasStatisDuaRatusRibuDiKeduaSisi
+QR dinamis: Rp5.000.000 lolos dan Rp5.000.001 ditolak; nominal terikat pada id QR: Rp34.999 dan Rp35.001 untuk QR Rp35.000 ditolak (ErrValidasi nominal), body kosong membayar Rp35.000
+--- PASS: TestQRBatasDinamisNominalTerikatPadaIdQR
+QR dinamis berlaku_sampai = dibuat + 5 menit; 4 menit 59 detik: terlihat dan terbayar; tepat 5 menit dan 5 menit 1 detik: kedaluwarsa (ErrQRKedaluwarsa), uang tidak bergerak
+--- PASS: TestQRBatasKedaluwarsaLimaMenitDiKeduaSisi
+QR dinamis dibayar sekali: pembayaran kedua (pembayar yang sama dan pembayar lain) ErrQRTerpakai, satu jurnal terikat ke id QR, satu pemberitahuan untuk merchant
+--- PASS: TestQRBatasSekaliPakaiHanyaSatuJurnalPerIdQR
+laporan QR palsu dari akun belum terverifikasi: 19 dan 201 karakter ditolak, 20 dan 200 diterima; satu laporan membekukan merchant lebih dulu; QR-nya tidak ditemukan (ErrTidakDitemukan) bagi pembeli; saldo merchant tidak ditarik
+--- PASS: TestQRBatasLaporanMembekukanMerchantSebelumDiperiksa
+payload Marni dengan id QR pelaku dan CRC dihitung ulang lolos pemindai; konfirmasi menampilkan nama pelaku dari tabel akun; jurnal sah ke pelaku, tidak ke Marni
+--- PASS: TestQRPindaiPayloadStatisMilikMerchantLainMenjadiJurnalSah
+payload dinamis dengan nominal Rp1 dan CRC dihitung ulang lolos pemindai; nominal di server tetap Rp35.000: body Rp1 ditolak (ErrValidasi nominal), body kosong memotong Rp35.000
+--- PASS: TestQRPindaiPayloadDinamisDenganNominalDipalsukan
+saldo tepat Rp35.000 membayar QR Rp35.000 dan menyisakan Rp0; saldo Rp34.999 ditolak (ErrSaldoKurang) dan QR tetap aktif
+--- PASS: TestQRBatasSaldoTepatDanKurangSatuRupiah
+id QR berbentuk salah (kosong, huruf besar, kelebihan atau kekurangan karakter, huruf di luar heksadesimal, teks SQL) dijawab ErrTidakDitemukan untuk konfirmasi, pembayaran, dan laporan; 630 pemanggilan (30 putaran, 7 id, 3 jalur) tidak memakai jatah laju
+--- PASS: TestQRBatasIdBentukSalahDitolakSebelumJatahLaju
+alasan laporan dihitung dalam karakter sesudah spasi di ujungnya dipangkas: 19 karakter berbyte dua dan 19 karakter berspasi ditolak, 150 karakter berbyte dua (300 byte) diterima
+--- PASS: TestQRBatasAlasanLaporanDalamKarakterSesudahDipangkas
+PASS
+ok    lab/apit4/internal/service
+# exit status 0
+# 26 tes bertag t4qr lulus; tiap fungsi tes di dua berkas bertag (dibaca dari berkasnya, bukan dari pola -run) muncul sebagai PASS di atas.

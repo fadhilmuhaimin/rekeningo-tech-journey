@@ -1,0 +1,160 @@
+# Lab t4-qr · stiker QR statis milik merchant lain, nama di payload lawan nama dari server, dan batas Rp200.000
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_qr · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-qr run.
+# Data awal lab: seed tidak mengisi kota merchant luar; dua merchant diberi kota lewat SQL pemilik schema supaya konfirmasi memuat kota.
+=> UPDATE akun SET kota_id = (SELECT id FROM kota WHERE nama = 'Jakarta') WHERE id = 30001
+UPDATE 1
+=> UPDATE akun SET kota_id = (SELECT id FROM kota WHERE nama = 'Surabaya') WHERE id = 30002
+UPDATE 1
+# server: ./api-t4 -lab (satu proses; server hanya menerima id QR, tidak membaca payload)
+
+# --- A. Dua merchant sah menerbitkan QR statis; penerbit stiker membangun payload dari jawaban server ---
+$ curl -i -X POST '/qr' -H 'Authorization: Bearer <token sesi Bu Marni>' -d '{"jenis": "statis"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /qr/<qr statis Bu Marni>
+
+{"id":"<qr statis Bu Marni>","jenis":"statis"}
+$ curl -i -X POST '/qr' -H 'Authorization: Bearer <token sesi Toko Andalan>' -d '{"jenis": "statis"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /qr/<qr statis Toko Andalan>
+
+{"id":"<qr statis Toko Andalan>","jenis":"statis"}
+$ qrlab buat -jenis statis -id <qr statis Bu Marni> -nama 'Toko Sumber Rejeki' -kota Jakarta
+00020101021126600016id.rekeningo.lab0136<qr statis Bu Marni>5204541153033605802ID5918Toko Sumber Rejeki6007Jakarta6304<crc>
+$ qrlab buat -jenis statis -id <qr statis Toko Andalan> -nama 'Toko Andalan' -kota Surabaya
+00020101021126600016id.rekeningo.lab0136<qr statis Toko Andalan>5204541153033605802ID5912Toko Andalan6008Surabaya6304<crc>
+=> SELECT a.nama, b.saldo_cache AS saldo FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id IN (419, 30001, 30002) ORDER BY a.id
+ nama               | saldo
+--------------------+--------
+ Budi               | 250000
+ Toko Sumber Rejeki | 0
+ Toko Andalan       | 0
+(3 rows)
+
+# --- B. Stiker Toko Andalan ditempel di atas stiker Bu Marni; Budi memindai dan membayar Rp35.000 ---
+# Skenario (Ilustrasi): stiker Toko Andalan tertempel di kasir Bu Marni. Lab hanya memerankan pemindaian payload Toko Andalan dan pembayarannya; letak stiker tidak ada di sistem.
+# Budi memindai stiker yang tertempel di kasir Bu Marni
+pemindai: payload 00020101021126600016id.rekeningo.lab0136<qr statis Toko Andalan>5204541153033605802ID5912Toko Andalan6008Surabaya6304<crc>
+pemindai: CRC cocok; jenis statis; id <qr statis Toko Andalan>; nama di payload 'Toko Andalan'; kota di payload 'Surabaya'
+server: GET /qr/{id} -> 200; nama 'Toko Andalan'; kota 'Surabaya'; terverifikasi ya
+nama dan kota di payload sama dengan jawaban server: ya
+$ curl -i -X POST '/qr/<qr statis Toko Andalan>/bayar' -H 'Authorization: Bearer <token sesi Budi>' -d '{"nominal": 35000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10201
+
+{"id":10201,"saldo":215000,"nominal":35000,"merchant":"Toko Andalan"}
+=> SELECT a.nama, b.saldo_cache AS saldo FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id IN (419, 30001, 30002) ORDER BY a.id
+ nama               | saldo
+--------------------+--------
+ Budi               | 215000
+ Toko Sumber Rejeki | 0
+ Toko Andalan       | 35000
+(3 rows)
+=> SELECT j.jenis, a.nama, p.jumlah FROM jurnal j JOIN posting p ON p.jurnal_id = j.id JOIN buku b ON b.id = p.buku_id JOIN akun a ON a.id = b.akun_id WHERE j.id = (SELECT max(id) FROM jurnal) ORDER BY p.jumlah
+ jenis | nama         | jumlah
+-------+--------------+--------
+ bayar | Budi         | -35000
+ bayar | Toko Andalan | 35000
+(2 rows)
+=> SELECT a.nama AS penerima_pemberitahuan, o.jenis, o.status FROM outbox o JOIN akun a ON a.id = o.akun_id WHERE o.jurnal_id = (SELECT max(id) FROM jurnal)
+ penerima_pemberitahuan | jenis | status
+------------------------+-------+----------
+ Toko Andalan           | bayar | menunggu
+(1 row)
+=> SELECT count(*) AS posting_di_buku_bu_marni FROM posting p JOIN buku b ON b.id = p.buku_id WHERE b.akun_id = 30001
+ posting_di_buku_bu_marni
+--------------------------
+ 0
+(1 row)
+=> SELECT sum(p.jumlah) AS jumlah_posting FROM posting p WHERE p.jurnal_id = (SELECT max(id) FROM jurnal)
+ jumlah_posting
+----------------
+ 0
+(1 row)
+=> SELECT nama, jenis, tingkat, status FROM akun WHERE id IN (30001, 30002) ORDER BY id
+ nama               | jenis    | tingkat       | status
+--------------------+----------+---------------+--------
+ Toko Sumber Rejeki | merchant | terverifikasi | aktif
+ Toko Andalan       | merchant | terverifikasi | aktif
+(2 rows)
+=> SELECT column_name FROM information_schema.columns WHERE table_schema = 'tahap4_qr' AND table_name = 'qr' ORDER BY ordinal_position
+ column_name
+----------------
+ id
+ akun_id
+ jenis
+ nominal
+ berlaku_sampai
+ status
+ jurnal_id
+(7 rows)
+# Jurnal seimbang, merchant penerima aktif dan terverifikasi, saldo cukup: pembayaran sah menurut semua aturan yang dimiliki server.
+# Yang diterima server untuk membayar hanya sesi pembeli, id QR, dan nominal; tabel qr (kolom di atas) tidak punya lokasi atau pengenal stiker.
+# Tidak ada data yang menunjukkan di mana stiker itu tertempel, jadi tidak ada aturan yang bisa menolaknya.
+
+# --- C. Payload Bu Marni dengan id QR Toko Andalan dan CRC dihitung ulang: nama di payload lawan nama dari server ---
+$ qrlab ganti -id <qr statis Toko Andalan> <payload Bu Marni>
+00020101021126600016id.rekeningo.lab0136<qr statis Toko Andalan>5204541153033605802ID5918Toko Sumber Rejeki6007Jakarta6304<crc>
+# Budi memindai payload yang idnya diganti
+pemindai: payload 00020101021126600016id.rekeningo.lab0136<qr statis Toko Andalan>5204541153033605802ID5918Toko Sumber Rejeki6007Jakarta6304<crc>
+pemindai: CRC cocok; jenis statis; id <qr statis Toko Andalan>; nama di payload 'Toko Sumber Rejeki'; kota di payload 'Jakarta'
+server: GET /qr/{id} -> 200; nama 'Toko Andalan'; kota 'Surabaya'; terverifikasi ya
+nama dan kota di payload sama dengan jawaban server: tidak
+# Payload yang dipalsukan lolos CRC dan membawa nama dan kota Bu Marni, padahal id QR-nya milik Toko Andalan. Nama dan kota yang bisa
+# dipercaya hanya yang dijawab server dari tabel akun (merchant terverifikasi); nama di payload ditulis oleh siapa pun yang memegang payload.
+
+# --- D. Batas Rp200.000 per pembayaran QR statis (Asumsi produk): tepat di batas, satu rupiah di atasnya, dan pembayaran berulang ---
+=> SELECT a.nama, b.saldo_cache AS saldo FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id IN (40002) ORDER BY a.id
+ nama | saldo
+------+--------
+ Eko  | 500000
+(1 row)
+$ curl -i -X POST '/qr/<qr statis Toko Andalan>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{"nominal": 200000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10202
+
+{"id":10202,"saldo":300000,"nominal":200000,"merchant":"Toko Andalan"}
+$ curl -i -X POST '/qr/<qr statis Toko Andalan>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{"nominal": 200001}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nominal","pesan":"QR statis wajib bernominal lebih dari 0 dan paling banyak 200000"}]}
+$ curl -i -X POST '/qr/<qr statis Toko Andalan>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{"nominal": 0}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nominal","pesan":"QR statis wajib bernominal lebih dari 0 dan paling banyak 200000"}]}
+$ curl -i -X POST '/qr/<qr statis Toko Andalan>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{"nominal": -1}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nominal","pesan":"QR statis wajib bernominal lebih dari 0 dan paling banyak 200000"}]}
+$ curl -i -X POST '/qr/<qr statis Toko Andalan>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"nominal","pesan":"QR statis wajib bernominal lebih dari 0 dan paling banyak 200000"}]}
+$ curl -i -X POST '/qr/<qr statis Toko Andalan>/bayar' -H 'Authorization: Bearer <token sesi Eko>' -d '{"nominal": 200000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10203
+
+{"id":10203,"saldo":100000,"nominal":200000,"merchant":"Toko Andalan"}
+=> SELECT a.nama, b.saldo_cache AS saldo FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id IN (40002, 30002) ORDER BY a.id
+ nama         | saldo
+--------------+--------
+ Toko Andalan | 435000
+ Eko          | 100000
+(2 rows)
+# Nominal yang tidak diisi pembeli (body kosong) pada QR statis ditolak 422 seperti nominal di luar batas: tidak ada nominal bawaan.
+# Batas berlaku per pembayaran, bukan per QR atau per hari: dua pembayaran Rp200.000 berturut-turut sama-sama diterima.
+# Kerugian pembeli yang tidak memeriksa tujuan paling banyak Rp200.000 untuk satu pembayaran; batas itu tidak mencegah pembayaran berikutnya.
+
+# --- E. Yang diperankan lab dan yang tidak terukur ---
+# Diperankan lab: pemindai (qrlab urai, lalu GET /qr/{id}) dan pemalsu (qrlab ganti). Tidak ada app di lab ini.
+# Server mengembalikan nama dan kota yang diverifikasi di GET /qr/{id}; apakah pembeli membaca dan membandingkannya dengan papan toko tidak terukur di lab (Asumsi).
+# Yang terpakai server hanya id QR; nilai tag lain di payload (nama, kota, nominal pada QR dinamis) tidak diperiksa server.
