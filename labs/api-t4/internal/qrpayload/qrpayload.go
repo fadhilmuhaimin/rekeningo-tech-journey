@@ -33,6 +33,10 @@ const (
 	// Batas panjang nama dan kota merchant: pilihan lab (Asumsi), bukan batas dari spesifikasi.
 	MaksNama = 25
 	MaksKota = 15
+
+	// Nominal paling banyak 13 digit: batas yang sama dipakai Bangun dan Urai (pilihan lab), supaya payload yang
+	// dibangun selalu terbaca pemindai.
+	maksDigitNominal = 13
 )
 
 var (
@@ -105,8 +109,8 @@ func Bangun(i Isi) (string, error) {
 		}
 		tag01 = nilaiStatis
 	case Dinamis:
-		if i.Nominal == nil || *i.Nominal <= 0 {
-			return "", fmt.Errorf("%w: QR dinamis wajib bernominal lebih dari 0", ErrIsi)
+		if i.Nominal == nil || *i.Nominal <= 0 || len(strconv.FormatInt(*i.Nominal, 10)) > maksDigitNominal {
+			return "", fmt.Errorf("%w: QR dinamis wajib bernominal lebih dari 0 dan paling banyak %d digit", ErrIsi, maksDigitNominal)
 		}
 		tag01 = nilaiDinamis
 	default:
@@ -236,7 +240,7 @@ func UraiTanpaCRC(isi string) (Isi, error) {
 		return i, fmt.Errorf("%w: QR dinamis tanpa nominal", ErrIsi)
 	case adaNominal:
 		n, err := strconv.ParseInt(nom, 10, 64)
-		if err != nil || n <= 0 || len(nom) > 13 || nom[0] == '0' || !digit(nom) {
+		if err != nil || n <= 0 || len(nom) > maksDigitNominal || nom[0] == '0' || !digit(nom) {
 			return i, fmt.Errorf("%w: nominal %q", ErrIsi, nom)
 		}
 		i.Nominal = &n

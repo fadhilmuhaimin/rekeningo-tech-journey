@@ -291,6 +291,10 @@ func TestPayloadBangunMenolak(t *testing.T) {
 		{"kota kosong", Isi{Jenis: Statis, ID: idMarni, Nama: "T", Kota: ""}, ErrIsi},
 		{"nama bukan ASCII", Isi{Jenis: Statis, ID: idMarni, Nama: "Toko Ünggul", Kota: "K"}, ErrIsi},
 		{"kota dengan karakter kontrol", Isi{Jenis: Statis, ID: idMarni, Nama: "T", Kota: "Ban\ndung"}, ErrIsi},
+		{"nama dengan karakter 0x1F", Isi{Jenis: Statis, ID: idMarni, Nama: "T\x1fK", Kota: "K"}, ErrIsi},
+		{"nama dengan karakter DEL (0x7F)", Isi{Jenis: Statis, ID: idMarni, Nama: "T\x7fK", Kota: "K"}, ErrIsi},
+		{"statis dengan nominal nol", Isi{Jenis: Statis, ID: idMarni, Nominal: nom(0), Nama: "T", Kota: "K"}, ErrIsi},
+		{"dinamis nominal 14 digit (lebih dari yang terbaca Urai)", Isi{Jenis: Dinamis, ID: idMarni, Nominal: nom(10_000_000_000_000), Nama: "T", Kota: "K"}, ErrIsi},
 	}
 	for _, k := range kasus {
 		if _, err := Bangun(k.isi); !errors.Is(err, k.galat) {
@@ -337,9 +341,82 @@ func TestPayloadUraiTanpaCRCDanGantiMenolakBentukRusak(t *testing.T) {
 	if _, err := Ganti(dasar(tlv("00", "01")), func(*Isi) {}); err == nil {
 		t.Error("Ganti pada payload tak lengkap harus gagal")
 	}
+	// Isi yang terbaca sepenuhnya tetapi tidak berakhir dengan tag 63: Ganti menolaknya, tidak menyusun payload baru darinya.
+	if _, err := Ganti(emasStatis[:len(emasStatis)-8]+"ABCDEFGH", func(*Isi) {}); !errors.Is(err, ErrBentuk) {
+		t.Errorf("Ganti pada payload tanpa tag 63 di ujung: ingin ErrBentuk, dapat %v", err)
+	}
 	// Ganti yang menghasilkan isi tidak sah (statis diberi nominal) ditolak Bangun.
 	if _, err := Ganti(emasStatis, func(i *Isi) { i.Nominal = nom(5) }); !errors.Is(err, ErrIsi) {
 		t.Errorf("Ganti ke isi bertentangan: %v", err)
+	}
+}
+
+// Masukan dari luar yang pendek atau terpotong tidak boleh membuat pembaca panik atau lolos: setiap awalan dan setiap
+// sisa dari payload yang sah ditolak, begitu pula isi kosong dengan CRC yang benar dan teks pendek apa pun.
+func TestPayloadMasukanPendekDanTerpotongDitolakTanpaPanik(t *testing.T) {
+	for _, p := range []string{emasStatis, emasDinam} {
+		for n := 0; n < len(p); n++ {
+			if _, err := Urai(p[:n]); err == nil {
+				t.Errorf("awalan %d karakter lolos: %q", n, p[:n])
+			}
+			if _, err := Urai(p[n+1:]); err == nil {
+				t.Errorf("sisa sesudah %d karakter lolos: %q", n+1, p[n+1:])
+			}
+			// Ganti dan UraiTanpaCRC tidak memeriksa CRC, tetapi tetap tidak boleh panik pada potongan apa pun.
+			_, _ = Ganti(p[:n], func(*Isi) {})
+			_, _ = UraiTanpaCRC(p[:n])
+		}
+	}
+	for n := 0; n <= 12; n++ {
+		if _, err := Urai(strings.Repeat("0", n)); err == nil {
+			t.Errorf("%d karakter nol lolos", n)
+		}
+		if _, err := Urai(strings.Repeat("6", n)); err == nil {
+			t.Errorf("%d karakter enam lolos", n)
+		}
+	}
+	// Isi kosong dengan CRC yang benar: hanya "6304" dan CRC-nya.
+	if _, err := Urai(PasangCRC("6304")); !errors.Is(err, ErrBentuk) {
+		t.Errorf("payload hanya tag 63 dengan CRC benar: ingin ErrBentuk, dapat %v", err)
+	}
+	if _, err := Ganti(PasangCRC("6304"), func(*Isi) {}); err == nil {
+		t.Error("Ganti pada payload hanya tag 63 harus gagal")
+	}
+}
+
+// Batas bentuk TLV dan nominal: tag harus dua angka, panjang 99 adalah batas TLV, nominal paling banyak 13 digit dan
+// payload yang dibangun Bangun selalu terbaca Urai.
+func TestPayloadBatasBentukTLVNominalDanKarakter(t *testing.T) {
+	dasarDinamis := func(extra ...string) string {
+		return dasar(append([]string{tlv("00", "01"), tlv("01", "12"), tag26(idMarni)}, append(extra, tlv("59", "Toko Sumber Rejeki"), tlv("60", "Bandung"))...)...)
+	}
+	// Tag tidak dikenal dengan panjang 99 (batas dua digit) terbaca; tag berhuruf ditolak sebagai bentuk.
+	if _, err := Urai(dasarDinamis(tlv("54", "35000"), tlv("62", strings.Repeat("x", 99)))); err != nil {
+		t.Errorf("tag 62 berpanjang 99 ditolak: %v", err)
+	}
+	if _, err := Urai(dasarDinamis(tlv("54", "35000"), "ZZ04abcd")); !errors.Is(err, ErrBentuk) {
+		t.Errorf("tag berhuruf: ingin ErrBentuk, dapat %v", err)
+	}
+	// Nominal 13 digit terbaca; 14 digit ditolak (dan Bangun menolaknya lebih dulu, di TestPayloadBangunMenolak).
+	i, err := Urai(dasarDinamis(tlv("54", "9999999999999")))
+	if err != nil || i.Nominal == nil || *i.Nominal != 9_999_999_999_999 {
+		t.Errorf("nominal 13 digit: %+v %v", i, err)
+	}
+	if _, err := Urai(dasarDinamis(tlv("54", "10000000000000"))); !errors.Is(err, ErrIsi) {
+		t.Errorf("nominal 14 digit: ingin ErrIsi, dapat %v", err)
+	}
+	for _, n := range []int64{1, 9_999_999_999_999} {
+		p, err := Bangun(Isi{Jenis: Dinamis, ID: idMarni, Nominal: nom(n), Nama: "T", Kota: "K"})
+		if err != nil {
+			t.Fatalf("Bangun nominal %d: %v", n, err)
+		}
+		if g, err := Urai(p); err != nil || *g.Nominal != n {
+			t.Errorf("Urai(Bangun(nominal %d)): %+v %v", n, g, err)
+		}
+	}
+	// Batas karakter nama dan kota yang dicetak: spasi (0x20) dan tilde (0x7E) lolos, 0x1F dan DEL (0x7F) ditolak.
+	if _, err := Bangun(Isi{Jenis: Statis, ID: idMarni, Nama: " ~ ", Kota: "K"}); err != nil {
+		t.Errorf("nama berisi spasi dan tilde ditolak: %v", err)
 	}
 }
 
