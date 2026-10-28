@@ -6,20 +6,23 @@ yang sudah lengkap (1 dan 2) masuk gerbang (`tools/cek_situs.sh`, keputusan 1164
     python3 tools/eval_tahap.py bocor 2   # W5: jawaban tebakan widget lama (predict) yang sudah tertulis di teks sebelum blok Coba
     python3 tools/eval_tahap.py adr   2   # W6: opsi, pre-mortem, kapan salah, tautan sumber tiap halaman ADR
     python3 tools/eval_tahap.py rantai 2  # W8: ikuti tautan Berikutnya di situs/dist dari N.1 sampai halaman terakhir tahap
+    python3 tools/eval_tahap.py gejala 3  # W3: kalimat definisi (adalah, yaitu, disebut, ...) di dalam adegan blok Gejala halaman masalah
 
 Semua perintah membaca berkas di repo (naskah, registry, MDX, situs/dist) dan tidak mengubah apa pun. `rantai` butuh
 `bun run --cwd situs build` lebih dulu. Exit 1 bila ada selisih nyata: W1 nomor, judul, bintang, lab, atau halaman
-"segera"; W6 ADR dengan opsi < 3 atau tanpa pre-mortem atau tanpa "kapan salah"; W8 halaman 404 atau tautan Berikutnya
+"segera"; W6 ADR dengan opsi < 3 atau tanpa pre-mortem atau pre-mortem yang penyebabnya bukan tiga atau tanpa "kapan salah"; W8 halaman 404 atau tautan Berikutnya
 yang hilang, halaman sesudah halaman terakhir yang sudah punya pengganti ada, urutan yang dilalui tidak sama dengan nomor
 tahap itu (halaman terlewat, tertukar, atau rantai berhenti sebelum halaman terakhir), atau tautan "Berikutnya" di akhir
 blok berbeda dari tombol Berikutnya. `coba` hanya mencetak (nilai W5 butuh penilaian: lihat isi widget).
 """
 import json
+import os
 import pathlib
 import re
 import sys
 
-AKAR = pathlib.Path(__file__).resolve().parent.parent
+# EVAL_AKAR menunjuk salinan repo kecil untuk uji diri (tools/test_eval_tahap.py); tanpa variabel itu akar repo ini.
+AKAR = pathlib.Path(os.environ.get("EVAL_AKAR") or pathlib.Path(__file__).resolve().parent.parent)
 DOCS = AKAR / "situs" / "src" / "content" / "docs"
 
 
@@ -134,11 +137,14 @@ def adr(n):
                 opsi = len(huruf)
                 break
         pm = re.search(r"Pre-mortem", sub) is not None
+        # Pre-mortem berisi tepat tiga penyebab bernomor sesudah baris "Pre-mortem" (skill analisis-kritis, Prosedur B butir 3).
+        blok_pm = re.search(r"Pre-mortem[^\n]*\n\n((?:\d+\. [^\n]*\n)+)", sub)
+        sebab = len(re.findall(r"^\d+\. ", blok_pm.group(1), flags=re.M)) if blok_pm else 0
         ks = re.search(r"Kapan keputusan ini salah", sub) is not None
         url = len(set(re.findall(r"https?://[^\s)>\"]+", t)))
-        ok = opsi >= 3 and pm and ks and url > 0
+        ok = opsi >= 3 and pm and sebab == 3 and ks and url > 0
         salah += 0 if ok else 1
-        print(f"{no} | {reg[no]['judul'][:48]} | opsi {opsi} | pre-mortem {pm} | kapan salah {ks} | tautan sumber di halaman {url} | {'ok' if ok else 'KURANG'}")
+        print(f"{no} | {reg[no]['judul'][:48]} | opsi {opsi} | pre-mortem {pm} ({sebab} penyebab) | kapan salah {ks} | tautan sumber di halaman {url} | {'ok' if ok else 'KURANG'}")
     return 1 if salah else 0
 
 
@@ -200,7 +206,32 @@ def rantai(n):
     return 1 if masalah else 0
 
 
-PERINTAH = {"peta": peta, "coba": coba, "bocor": bocor, "adr": adr, "rantai": rantai}
+DEFINISI = re.compile(r"\b(adalah|yaitu|disebut|artinya|berarti|maksudnya|merupakan)\b")
+
+
+def gejala(n):
+    """W3: adegan di blok Gejala hanya berisi kejadian dan dialog; kalimat yang mendefinisikan istilah dicetak dan menggagalkan.
+
+    Catatan di blok itu (`*Angka cerita (Ilustrasi)...`, `*Asumsi ...`, `Arti label ...`) bukan adegan dan dilewati. Kata penanda
+    definisi hanya petunjuk: tiap kalimat yang tercetak dibaca orang (skill gaya-bahasa: konsep tidak di dalam adegan cerita)."""
+    reg, _ = registry(n)
+    salah = 0
+    for no in sorted(reg, key=urut):
+        if reg[no].get("jenis") != "masalah":
+            continue
+        t = berkas(reg[no]).read_text(encoding="utf-8")
+        for nama, _attr, isi in blok(t):
+            if nama != "Gejala":
+                continue
+            adegan = [p.strip() for p in isi.strip().split("\n\n") if p.strip() and not p.strip().startswith(("*", "Arti label"))]
+            kalimat = [k for p in adegan for k in re.split(r"(?<=[.!?])\s+", p)]
+            hit = [k for k in kalimat if DEFINISI.search(k)]
+            salah += 1 if hit else 0
+            print(f"{no} | {reg[no]['judul'][:44]} | {len(adegan)} paragraf adegan, {sum(len(p.split()) for p in adegan)} kata | " + ("DEFINISI: " + " / ".join(h[:140] for h in hit) if hit else "ok"))
+    return 1 if salah else 0
+
+
+PERINTAH = {"peta": peta, "coba": coba, "bocor": bocor, "adr": adr, "rantai": rantai, "gejala": gejala}
 
 if __name__ == "__main__":
     if len(sys.argv) != 3 or sys.argv[1] not in PERINTAH or not sys.argv[2].isdigit():

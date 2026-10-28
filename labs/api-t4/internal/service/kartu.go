@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/jackc/pgx/v5/pgconn"
 
@@ -148,12 +150,26 @@ func tolak(alasan string) Keputusan { return Keputusan{Keputusan: "tolak", Alasa
 // MaksJumlahKartu: batas wajar satu otorisasi (Asumsi lab), supaya angka mustahil ditolak sebelum menyentuh database.
 const MaksJumlahKartu = 50_000_000
 
+// bentukSahKartu: teks dari penerbit tidak boleh memuat byte NUL, UTF-8 yang rusak, atau karakter kontrol. PostgreSQL
+// menolaknya dengan galat 22021 yang sampai ke penerbit sebagai 500.
+func bentukSahKartu(s string) bool {
+	if !utf8.ValidString(s) {
+		return false
+	}
+	for _, r := range s {
+		if unicode.IsControl(r) {
+			return false
+		}
+	}
+	return true
+}
+
 func periksaOtorisasi(in PermintaanOtorisasi) error {
 	switch {
-	case in.IDPenerbit == "" || len(in.IDPenerbit) > 64:
-		return ErrValidasi{"id_penerbit", "wajib, paling banyak 64 karakter"}
-	case in.Token == "" || len(in.Token) > 128:
-		return ErrValidasi{"token", "wajib, paling banyak 128 karakter"}
+	case in.IDPenerbit == "" || len(in.IDPenerbit) > 64 || !bentukSahKartu(in.IDPenerbit):
+		return ErrValidasi{"id_penerbit", "wajib, paling banyak 64 karakter, tanpa karakter kontrol"}
+	case in.Token == "" || len(in.Token) > 128 || !bentukSahKartu(in.Token):
+		return ErrValidasi{"token", "wajib, paling banyak 128 karakter, tanpa karakter kontrol"}
 	case in.Jumlah <= 0 || in.Jumlah > MaksJumlahKartu:
 		return ErrValidasi{"jumlah", "harus lebih dari 0 dan paling banyak 50000000"}
 	}

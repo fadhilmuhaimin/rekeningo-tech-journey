@@ -1,0 +1,45 @@
+# Lab t4-kartu · kill switch otorisasi kartu tanpa deploy, dan batas flag di memori proses
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_kartu · server Go di 127.0.0.1:18280, penerbit tiruan di 127.0.0.1:18285, service pembayaran di 127.0.0.1:18286
+# Rekaman dari database bersih: make -C labs/t4-kartu run.
+# server: ./api-t4 -lab (kill switch: Dep.KartuAktif di memori proses, tabel tidak dipakai, OpenFeature tidak dipakai); penerbit tiruan: ./penerbit
+# Ira (akun 40308): saldo Rp200.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+
+# --- A. Kill switch mematikan otorisasi baru tanpa deploy dan tanpa memulai ulang proses ---
+AUTH-K1 Rp50.000: setuju (sumber: rekeningo)
+$ curl -i -X POST '/bo/flag/kartu' -H 'Authorization: Bearer <token sesi Ratih>' -d '{"aktif": false, "alasan": "Penerbit melaporkan lonjakan otorisasi yang tidak biasa"}'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"aktif":false}
+AUTH-K2 Rp20.000: tolak (sumber: rekeningo, alasan: kill-switch)
+# proses server yang sama (PID tidak berubah, tidak ada deploy): ya
+=> SELECT id_penerbit, status FROM otorisasi_kartu ORDER BY id
+ id_penerbit | status
+-------------+---------
+ AUTH-K1     | ditahan
+(1 row)
+=> SELECT count(*) AS jurnal_kartu_tahan FROM jurnal WHERE jenis = 'kartu_tahan' AND dibuat_oleh = 40308
+ jurnal_kartu_tahan
+--------------------
+ 1
+(1 row)
+# Otorisasi yang sudah disetujui sebelum kill switch tetap bisa ditagih: kill switch hanya menolak otorisasi baru.
+clearing AUTH-K1 Rp50.000: HTTP 200, status ditangkap
+=> SELECT aksi, objek, alasan FROM audit_log ORDER BY id
+ aksi       | objek           | alasan
+------------+-----------------+---------------------------------------------------------
+ flag_kartu | flag:kartu=mati | Penerbit melaporkan lonjakan otorisasi yang tidak biasa
+(1 row)
+
+# --- B. Batas: flag hidup di memori satu proses, jadi proses yang dimulai ulang kembali aktif tanpa ada yang menyalakannya ---
+AUTH-K3 Rp20.000: setuju (sumber: rekeningo)
+# Sesudah mulai ulang, kill switch yang dimatikan tadi kembali aktif. Menurut kodenya (Dep.KartuAktif) flag ada di satu proses, jadi dua instance punya flag sendiri-sendiri; dua instance Tidak dijalankan di lab ini. Flag di tabel atau penyedia flag di luar proses akan menutup kedua batas itu; keduanya juga Tidak dijalankan. Rilis bertahap 1%, 5%, 25%, 100% (Asumsi, ADR 42) juga Tidak dijalankan.
+
+# --- C. Kill switch di service pembayaran (jalur dua service): menolak tanpa baris dan tanpa panggilan ke ledger ---
+AUTH-K4 (service pembayaran, kill switch mati) Rp20.000: tolak (sumber: rekeningo, alasan: kill-switch)
+=> SELECT count(*) AS baris_otorisasi FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-K4'
+ baris_otorisasi
+-----------------
+ 0
+(1 row)
+AUTH-K5 (kill switch dinyalakan lagi) Rp20.000: setuju (sumber: rekeningo)

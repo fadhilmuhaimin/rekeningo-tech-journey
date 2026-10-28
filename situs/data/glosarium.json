@@ -558,6 +558,15 @@
   "h": null
  },
  {
+  "t": "Gateway pembayaran",
+  "d": "Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk.",
+  "b": "t3-jembatan",
+  "n": "3.32 Pratinjau PRD v4",
+  "u": "/tahap-3/jembatan-prd-v4/",
+  "s": "istilah-gateway-pembayaran",
+  "h": null
+ },
+ {
   "t": "Golden signals",
   "d": "Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation.",
   "b": "t3-observability",
@@ -852,6 +861,15 @@
   "n": "5.2 Replica dan consistency",
   "u": "/d-system-design/d3-consistency/",
   "s": "istilah-lsn",
+  "h": null
+ },
+ {
+  "t": "Merchant",
+  "d": "Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung.",
+  "b": "t3-jembatan",
+  "n": "3.32 Pratinjau PRD v4",
+  "u": "/tahap-3/jembatan-prd-v4/",
+  "s": "istilah-merchant",
   "h": null
  },
  {

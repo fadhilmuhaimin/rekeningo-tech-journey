@@ -532,6 +532,14 @@ window.ISTILAH = {
   "t": "HTTP method",
   "u": "tahap-1/http/"
  },
+ "Gateway pembayaran": {
+  "b": "t3-jembatan",
+  "d": "Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk.",
+  "n": "3.32 Pratinjau PRD v4",
+  "s": "istilah-gateway-pembayaran",
+  "t": "Gateway pembayaran",
+  "u": "tahap-3/jembatan-prd-v4/"
+ },
  "Golden signals": {
   "b": "t3-observability",
   "d": "Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation.",
@@ -861,6 +869,14 @@ window.ISTILAH = {
   "s": "istilah-mvcc",
   "t": "MVCC (Multi-Version Concurrency Control)",
   "u": "tahap-2/isolation-level/"
+ },
+ "Merchant": {
+  "b": "t3-jembatan",
+  "d": "Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung.",
+  "n": "3.32 Pratinjau PRD v4",
+  "s": "istilah-merchant",
+  "t": "Merchant",
+  "u": "tahap-3/jembatan-prd-v4/"
  },
  "Metode idempoten": {
   "b": "t2-kursor",
@@ -1987,6 +2003,14 @@ window.ISTILAH = {
   "t": "Foreign key",
   "u": "tahap-1/data-modeling/"
  },
+ "gateway pembayaran": {
+  "b": "t3-jembatan",
+  "d": "Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk.",
+  "n": "3.32 Pratinjau PRD v4",
+  "s": "istilah-gateway-pembayaran",
+  "t": "Gateway pembayaran",
+  "u": "tahap-3/jembatan-prd-v4/"
+ },
  "golden signals": {
   "b": "t3-observability",
   "d": "Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation.",
@@ -2236,6 +2260,14 @@ window.ISTILAH = {
   "s": "istilah-lost-update",
   "t": "Lost update",
   "u": "tahap-2/race-lock/"
+ },
+ "merchant": {
+  "b": "t3-jembatan",
+  "d": "Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung.",
+  "n": "3.32 Pratinjau PRD v4",
+  "s": "istilah-merchant",
+  "t": "Merchant",
+  "u": "tahap-3/jembatan-prd-v4/"
  },
  "metode idempoten": {
   "b": "t2-kursor",

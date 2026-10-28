@@ -1,0 +1,168 @@
+---
+title: "3.32 Jembatan: pratinjau PRD v4"
+description: Minggu 10. Sinta membagikan PRD v4 untuk PT Rekeningo yang dibuka ke publik, dengan enam fitur dan syarat baru Pak Hadi. Dari ADR Tahap 3, tebak mana yang pecah lebih dulu.
+---
+import Blok from "../../../components/Blok.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import dataTebak from "../../../../data/widget/t3-jembatan-tebak.json";
+import { muat, label, url as urlHalaman } from "../../../../tools/registri.mjs";
+
+export const hs = muat().halaman;
+export const tautanTebak = ["t3-m28", "t3-estimasi", "t4-prd"]
+  .map((id) => hs.find((h) => h.id === id && h.ada))
+  .filter(Boolean)
+  .map((h) => ({ label: label(h), href: urlHalaman(h) }));
+
+<p class="meta">Baca 6 menit · coba 1 menit · Prasyarat: [[t3-rekap]] · Jalur inti</p>
+
+Ini pratinjau PRD v4, dokumen keempat yang Sinta tulis untuk Rekeningo. Halaman ini hanya menampilkan apa yang diminta; membangunnya adalah isi Tahap 4.
+
+<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v4">
+  <dl><div><dt>Penulis</dt><dd>Sinta, unit Inisiatif Digital</dd></div><div><dt>Syarat baru</dt><dd>Pak Hadi, Kepala Divisi Keuangan</dd></div></dl>
+  <dl><div><dt>Lingkup</dt><dd>PT Rekeningo (fiktif): 100.000 user terdaftar, merchant di luar Lestari</dd></div><div><dt>Tim</dt><dd>10 sampai 15 engineer dalam tiga tim, 12 minggu</dd></div></dl>
+</div>
+
+<Blok nama="Pratinjau PRD v4" buka>
+
+Minggu 10 Tahap 3. Tutup buku bulan ketiga selesai dalam kurang dari sehari dengan selisih Rp0 ([[t3-m28]]). Direksi Grup Lestari lalu mendirikan PT Rekeningo, perusahaan fiktif, supaya orang di luar Lestari bisa memakai Rekeningo.
+
+PRD v4 mengubah lima hal dari PRD v3:
+
+| | PRD v3 | PRD v4 |
+|---|---|---|
+| Lingkup | Enam kota: ±10.000 karyawan, ±60 warung | Publik: 100.000 user terdaftar (Asumsi), merchant di luar Lestari |
+| User | Karyawan Grup Lestari; user di luar Lestari bukan lingkup | Siapa pun dengan rekening bank |
+| Uang masuk | Top-up oleh admin, dan top-up massal tiap Senin | Top-up dari rekening bank lewat gateway pembayaran |
+| Beban puncak (Asumsi) | ±17,4 request per detik | ±138,9 request per detik, naik 8 kali ([[t3-estimasi]]) |
+| Tim | 4 engineer, 10 minggu (Asumsi cerita) | 10 sampai 15 engineer dalam tiga tim, 12 minggu (Asumsi cerita) |
+
+Pak Hadi memperluas syaratnya: "Setiap rupiah dari luar harus cocok dengan catatan pihak yang mengirimnya. Kalau tidak cocok, namanya insiden, bukan angka yang saya koreksi."
+
+Angka di dokumen ini adalah angka cerita (Ilustrasi), kecuali yang ditulis Asumsi. Arti label Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].
+
+Selama Tahap 3, tim empat orang menulis ADR 22 sampai 33. Sebagian dari keputusan itu akan pecah lebih dulu daripada yang lain. Pecah berarti keputusan itu tidak lagi memadai.
+
+<Tebak client:visible data={dataTebak} tautan={tautanTebak} />
+
+<noscript>
+<p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: ADR 22, ADR 25, ADR 26, dan ADR 32. Alasannya ada di blok Menuju Tahap 4.</p>
+</noscript>
+
+</Blok>
+
+<Blok nama="Ruang lingkup">
+
+Enam fitur diminta di PRD v4: empat P0 dan dua P1. Tiga di antaranya sudah muncul di PRD v3 sebagai P2 yang ditunda ke v4.
+
+| Fitur | Prioritas | Keadaannya di Tahap 3 |
+|---|---|---|
+| PT Rekeningo berdiri sendiri | P0 | Satu VPS produksi menjalankan dua instance API, worker, dan Redis ([[t3-m28]]) |
+| Top-up dari rekening bank lewat gateway pembayaran | P0 | PRD v3 prioritas P2, ditunda ke v4. Integrasi bank bukan lingkup v3 ([[t3-prd]]) |
+| Verifikasi identitas | P0 | PRD v3 prioritas P2, ditunda ke v4 ([[t3-prd]]) |
+| QR untuk merchant di luar Lestari | P0 | Tidak ada di PRD v3, yang menulis user di luar Lestari sebagai bukan lingkup ([[t3-prd]]) |
+| Kartu virtual | P1 | PRD v3 prioritas P2, ditunda ke v4, dan tercatat bukan lingkup v3 ([[t3-prd]]) |
+| Back office untuk tim risk | P1 | Tidak ada di PRD v3. ADR 30 mencatat bahwa back office tim risk akan menampilkan data user luar ([[t3-xss-csrf]]) |
+
+Hal lain ditunda ke v5 (P2): laporan merchant real-time, notifikasi massal skala besar, cicilan dan tabungan, dan API publik untuk POS.
+
+Bukan lingkup v4: pembayaran offline, pencairan merchant otomatis lewat bank (tetap file), tarik tunai, dan kartu fisik. Multi-mata uang dan klaim izin atau kepatuhan regulasi apa pun juga bukan lingkup.
+
+Rincian tiap fitur ada di PRD v4 lengkap, di awal Tahap 4.
+
+</Blok>
+
+<Blok nama="Pertanyaan terbuka">
+
+PRD v4 punya tiga pertanyaan yang belum dijawab. Tebak dulu jawabannya, lalu buka apa yang sudah tercatat di Tahap 3 dan apa yang belum.
+
+<details class="question">
+<summary>Tebak dulu: kalau gateway mengirim kabar dua kali, terlambat, atau tidak mengirim sama sekali, siapa yang tahu?</summary>
+
+Tahap 3 mencatat syaratnya, bukan jawabannya. Pengiriman at-least-once bisa datang dua kali, dan penyaring di app tidak cukup bila penerimanya menggerakkan uang. Penerima wajib idempoten dengan key ([[t3-at-least-once]]).
+
+Yang belum ada: pihak ketiga yang menggerakkan uang. Satu-satunya panggilan HTTP keluar dari api-t3 adalah ke layanan push tiruan ([[t3-m28]]).
+
+</details>
+
+<details class="question">
+<summary>Tebak dulu: kalau tiga tim mengubah tabel yang sama, siapa yang tahu sebelum rilis?</summary>
+
+Tahap 2 menulis aturannya: perubahan skema besar dipecah jadi tiga rilis ([[t2-skema-tanpa-downtime]]). ADR 32 menetapkan bahwa tiap merge ke main menjalankan tes dengan PostgreSQL dan Redis sungguhan, lalu migration dry-run ([[t3-tim-infra]]).
+
+Tiga tim di satu codebase belum pernah diuji di Tahap 3. Tahap 3 dikerjakan satu tim empat orang di satu codebase Go (Asumsi cerita), bukan tiga tim yang memegang tabel yang sama.
+
+</details>
+
+<details class="question">
+<summary>Tebak dulu: kalau satu orang di dalam membaca data identitas, bagaimana ketahuan?</summary>
+
+Pertanyaan ini belum punya jawaban di Tahap 3, karena data identitas belum ada: verifikasi identitas ditunda ke v4 ([[t3-prd]]). ADR 30 mencatat bahwa back office tim risk akan menampilkan data user luar. Aturan 1 dan 2 di ADR itu berlaku di sana ([[t3-xss-csrf]]).
+
+</details>
+
+</Blok>
+
+<Blok nama="Menuju Tahap 4">
+
+Tahap 4 dimulai dari PRD v4 lengkap dan empat ADR yang pecah lebih dulu: ADR 22, ADR 25, ADR 26, dan ADR 32. Hitungan di [[t3-estimasi]] memberi puncak ±138,9 request per detik untuk PRD v4 (Asumsi), jadi yang pecah lebih dulu adalah syarat di dalam ADR, bukan kapasitas.
+
+Di halaman ini "pecah lebih dulu" berarti dua hal. Pertama, halaman ADR itu sendiri menulis keadaannya sebagai syarat salah atau hal yang datang di Tahap 4. Kedua, keadaan itu termasuk tiga hal yang belum pernah diuji di [[t3-m28]]. Itu penalaran dari halaman Tahap 3 (Asumsi), bukan urutan kejadian yang direkam.
+
+Empat keadaan itu ditulis di halaman ADR-nya:
+
+- ADR 22: bila panggilan luar harus atomik dengan uang, misalnya otorisasi kartu ([[t3-pool]]).
+- ADR 25: saat penerimanya menggerakkan uang, misalnya webhook dari gateway ([[t3-at-least-once]]).
+- ADR 26: satu VPS tetap titik gagal tunggal, dan itu diterima sengaja ([[t3-dua-instance]]).
+- ADR 32: tim naik dari empat ke 10 sampai 15 orang dalam tiga tim, jadi rotasi dan alert dibagi lagi per tim ([[t3-tim-infra]]).
+
+ADR 33 menulis pemicu VPS kedua: waktu pulih atau jendela kehilangan data yang lebih besar dari yang bisa diterima Pak Hadi atau PRD ([[t3-adr-33]]). PRD v3 tidak menulis batas itu.
+
+Lima ADR lain juga menyebut Tahap 4 di halamannya. Halaman ini hanya mencatat kalimatnya:
+
+- ADR 23 menulis syarat yang sama dengan ADR 25: penerima sistem lain yang menggerakkan uang ([[t3-outbox]]). Halaman ini menghitung syarat itu sekali, lewat ADR 25, jadi ADR 23 tidak menambah daftar di atas.
+- ADR 27: pendaftaran publik membuka endpoint daftar, verifikasi, dan top-up yang belum punya rate limit ([[t3-rate-limit-redis]]).
+- ADR 28: puncak naik ±8 kali, jadi L katalog dihitung ulang ([[t3-cache]]).
+- ADR 30: back office tim risk menampilkan data user luar ([[t3-xss-csrf]]).
+- ADR 31: pindah hosting mengganti server tepi dan mungkin kunci TLS-nya, jadi ADR ini ditinjau ulang sebelum pindah ([[t3-tls-pinning]]).
+
+Dua hal dari Tahap 3 belum selesai dan ikut masuk ke PRD v4:
+
+- Kapasitas satu server belum diukur. Load test dari aturan 5 ADR 21 Tidak dijalankan ([[t3-m28]]).
+- Idempotency-Key tetap opsional di bayar, transfer, dan pesanan. App 1.0 dan 1.1 tanpa key tetap rentan M10 ([[t3-offline]]).
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Puncak request naik 8 kali di PRD v4. Kenapa kenaikan itu tidak membuat pool atau worker pecah lebih dulu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Puncak ±138,9 request per detik adalah Asumsi. L semua request 138,9 × 0,02 = 2,78 koneksi dari batas 18. Pemakaian worker 56% dari 13,33 per detik (Hitungan; W dan jumlah pengirim Asumsi). Keduanya masih di bawah batas, jadi yang pecah lebih dulu adalah syarat yang ditulis ADR sendiri.
+
+</details>
+
+**2.** Sebutkan keadaan yang ditulis ADR 22, ADR 25, ADR 26, dan ADR 32 sendiri.
+
+<details class="success">
+<summary>Jawaban</summary>
+
+ADR 22: panggilan luar yang harus atomik dengan uang. ADR 25: penerima yang menggerakkan uang. ADR 26: satu VPS sebagai titik gagal tunggal. ADR 32: tim yang naik ke tiga tim, sehingga rotasi dan alert dibagi lagi.
+
+</details>
+
+**3.** Kenapa "pecah lebih dulu" di halaman ini berlabel Asumsi, bukan Rekaman lab?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak ada lab yang menjalankan PRD v4. Penentuannya penalaran dari kalimat halaman ADR dan dari tiga hal yang belum pernah diuji di halaman 3.28. Urutan kejadian yang sebenarnya baru terlihat saat Tahap 4 dibangun.
+
+</details>
+
+Tahap 3 selesai di sini. PRD v4 lengkap ada di [[t4-prd]].
+
+</Blok>

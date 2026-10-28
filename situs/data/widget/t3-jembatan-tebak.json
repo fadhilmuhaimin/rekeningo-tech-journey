@@ -1,0 +1,39 @@
+{
+  "id": "t3-jembatan-tebak",
+  "judul": "ADR Tahap 3 yang pecah lebih dulu",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Penalaran dari halaman ADR Tahap 3 dan hitungan Asumsi di halaman 3.29; hanya kapasitas worker yang berasal dari rekaman labs/t3-outbox/output/queue.txt bagian A; tidak ada lab untuk PRD v4"
+  },
+  "adegan": [
+    "Sinta membagikan PRD v4. Raka membuka ADR yang tim empat orang tulis di Tahap 3: ADR 22 sampai 33.",
+    "Puncak PRD v4 ±138,9 request per detik (Asumsi), naik 8 kali dari ±17,4 di Tahap 3."
+  ],
+  "pertanyaan": "Dari ADR Tahap 3, mana yang pecah lebih dulu?",
+  "pilihan": [
+    {
+      "teks": "ADR 24: satu worker outbox tidak muat, karena notifikasi uang naik 8,7 kali, dari 0,868 ke 7,52 per detik.",
+      "benar": false,
+      "alasan": "Satu worker mengirim 13,33 per detik (c ÷ t = 4 ÷ 0,3, Asumsi), dan rekaman lab mengukurnya antara 12 dan 13,33 (queue.txt bagian A). Pemakaiannya naik dari 6,5% ke 56% pada puncak dan 72% saat makan siang (Hitungan, Asumsi; halaman 3.29). Naik jauh, tetapi masih di bawah 100%. Batas PostgreSQL sebagai queue belum diukur (Tidak dijalankan)."
+    },
+    {
+      "teks": "ADR 22, ADR 25, ADR 26, dan ADR 32: uang yang digerakkan pihak ketiga, satu VPS untuk semuanya, dan tiga tim.",
+      "benar": true,
+      "alasan": "Halaman 3.28 mencatat tiga hal yang diminta PRD v4 dan belum pernah diuji: pihak ketiga yang menggerakkan uang, tiga tim di satu codebase, dan satu VPS sebagai titik gagal tunggal. Halaman ADR menulis keadaannya sendiri. ADR 22 salah bila panggilan luar harus atomik dengan uang, misalnya otorisasi kartu. ADR 25 salah saat penerimanya menggerakkan uang, misalnya webhook dari gateway. ADR 26 menerima satu VPS sebagai titik gagal tunggal. ADR 32 mencatat bahwa rotasi dan alert dibagi lagi per tim. Yang pecah lebih dulu adalah syarat di dalam ADR, bukan kapasitas: L semua request 138,9 × 0,02 = 2,78 koneksi dari batas 18 (Hitungan; W Asumsi, halaman 3.29). Penentuan \"lebih dulu\" adalah penalaran dari halaman ADR (Asumsi)."
+    },
+    {
+      "teks": "ADR 28: cache katalog tidak cukup lagi, karena puncak request naik 8 kali dan katalog dibaca 8 kali lebih sering.",
+      "benar": false,
+      "alasan": "Di Tahap 3 katalog dibaca 5,21 kali per detik dengan W 5 ms, jadi L = 5,21 × 0,005 = 0,026 koneksi (Asumsi; halaman 3.19). Dikali 8, L = 0,21 koneksi, sekitar 24 kali di bawah pemicu cache 5 koneksi di ADR 21 (Hitungan, semua masukan Asumsi). Beban tidak memaksa cache bahkan di Tahap 3: ADR 28 memilih cache dengan alasan yang bukan beban."
+    }
+  ],
+  "penutup": "Pihak ketiga yang menggerakkan uang, satu VPS, dan tiga tim adalah keadaan, bukan beban. Tidak ada lab untuk PRD v4, jadi urutan \"lebih dulu\" belum diuji. Tahap 4 dimulai dari PRD v4 lengkap dan keempat ADR ini.",
+  "label": {
+    "sumber": "Asumsi · penalaran dari halaman ADR Tahap 3",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}

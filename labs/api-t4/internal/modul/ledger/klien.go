@@ -39,7 +39,18 @@ var (
 	ErrDitolak = errors.New("ledger menolak permintaan")
 	// ErrTidakSah: kunci layanan salah atau permintaan salah bentuk (galat pemrograman, bukan keadaan data).
 	ErrTidakSah = errors.New("ledger menolak: kunci layanan atau bentuk permintaan")
+	// ErrSibuk: ledger menjawab 503 dengan alasan "sibuk": lock buku tidak didapat dalam lock_timeout, jadi tidak ada
+	// hold dan key tidak tertahan (hanya hold kartu; ADR 42). Pemanggil menolak otorisasi tanpa menunggu lebih lama.
+	ErrSibuk = errors.New("ledger sibuk: lock buku tidak didapat dalam lock_timeout")
 )
+
+// PermintaanTahan: satu hold otorisasi kartu (ADR 42). Akun dan jumlah datang dari baris kartu dan permintaan
+// penerbit di service pembayaran. Idempotency-Key = IDPenerbit.
+type PermintaanTahan struct {
+	IDPenerbit string `json:"id_penerbit"`
+	AkunID     int64  `json:"akun_id"`
+	Jumlah     int64  `json:"jumlah"`
+}
 
 // Penolakan membawa alasan dari ledger; errors.Is(err, ErrDitolak) benar.
 type Penolakan struct{ Alasan string }
@@ -60,8 +71,17 @@ func Baru(alamat, kunciLayanan string, timeout time.Duration) *Klien {
 
 // KreditTopup meminta jurnal top-up. kunci adalah Idempotency-Key (= p.OrderID).
 func (k *Klien) KreditTopup(ctx context.Context, kunci string, p Permintaan) (Hasil, error) {
-	b, _ := json.Marshal(p)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, k.url+"/ledger/jurnal-topup", bytes.NewReader(b))
+	return k.kirim(ctx, "/ledger/jurnal-topup", kunci, p)
+}
+
+// TahanKartu meminta hold otorisasi kartu. kunci adalah Idempotency-Key (= p.IDPenerbit, ADR 42).
+func (k *Klien) TahanKartu(ctx context.Context, kunci string, p PermintaanTahan) (Hasil, error) {
+	return k.kirim(ctx, "/ledger/kartu/tahan", kunci, p)
+}
+
+func (k *Klien) kirim(ctx context.Context, path, kunci string, isiPermintaan any) (Hasil, error) {
+	b, _ := json.Marshal(isiPermintaan)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, k.url+path, bytes.NewReader(b))
 	if err != nil {
 		return Hasil{}, err
 	}
@@ -90,6 +110,14 @@ func (k *Klien) KreditTopup(ctx context.Context, kunci string, p Permintaan) (Ha
 		}
 		json.Unmarshal(isi, &a)
 		return Hasil{}, Penolakan{Alasan: a.Alasan}
+	case resp.StatusCode == http.StatusServiceUnavailable:
+		var a struct {
+			Alasan string `json:"alasan"`
+		}
+		if json.Unmarshal(isi, &a) == nil && a.Alasan == "sibuk" {
+			return Hasil{}, ErrSibuk
+		}
+		return Hasil{}, fmt.Errorf("%w: status %d", ErrTidakPasti, resp.StatusCode)
 	case resp.StatusCode >= 500:
 		return Hasil{}, fmt.Errorf("%w: status %d", ErrTidakPasti, resp.StatusCode)
 	}

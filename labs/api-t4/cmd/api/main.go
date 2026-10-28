@@ -97,7 +97,7 @@ func main() {
 	objekBucket := flag.String("objek-bucket", "berkas", "bucket penyimpanan objek (-objek-s3)")
 	objekPresign := flag.Duration("objek-presign-umur", 0, "umur URL PUT bertanda tangan untuk unggah file identitas (ADR 38); 0 = 5 menit (Asumsi); lab saja untuk umur pendek")
 	retensi := flag.Bool("retensi-identitas", false, "job: hapus file identitas yang masa simpannya (hapus_pada) sudah sampai, lalu keluar (ADR 38)")
-	labSekarang := flag.String("lab-sekarang", "", "lab saja, dengan -retensi-identitas: waktu service RFC 3339 (waktu maya)")
+	labSekarang := flag.String("lab-sekarang", "", "lab saja, dengan -retensi-identitas atau -kedaluwarsa-hold: waktu service RFC 3339 (waktu maya)")
 	unduhHTTP := flag.Bool("unduh-izinkan-http", false, "lab saja: fetcher gambar versi aman menerima skema http (tiruan lokal tidak punya TLS); produksi hanya https (ADR 41)")
 	ledgerKunci := flag.String("ledger-kunci", "", "API ledger untuk service pembayaran (POST /ledger/jurnal-topup, ADR 37): kunci layanan di header X-Layanan-Kunci; kosong = rute tidak dipasang")
 	flag.Parse()
@@ -177,7 +177,7 @@ func main() {
 		os.Exit(jalankanRetensi(r, *umurSesi, dep, *labSekarang))
 	}
 	if *cekTopup || *rekon != "" || *kedaluwarsaHold || *koreksiRekon {
-		os.Exit(jalankanJobT4(r, *umurSesi, dep, *rentan, *cekTopup, *cekUmur, *rekon, *kedaluwarsaHold, *koreksiRekon))
+		os.Exit(jalankanJobT4(r, *umurSesi, dep, *rentan, *cekTopup, *cekUmur, *rekon, *kedaluwarsaHold, *koreksiRekon, *labSekarang))
 	}
 	if *rentan != "" {
 		log.Printf("PERINGATAN: mode rentan %s menyala", *rentan)
@@ -439,8 +439,16 @@ func pasangEndpointLabInstance(rute *http.ServeMux, db *sql.DB, svc service.Serv
 
 // jalankanJobT4: job sekali jalan Tahap 4. Exit 0 bila selesai (insiden yang ditemukan bukan kegagalan job), 2 bila
 // error. Satu proses, satu job.
-func jalankanJobT4(r repo.Repo, umurSesi time.Duration, dep service.Dep, rentan string, cekTopup bool, cekUmur time.Duration, rekon string, kedaluwarsaHold, koreksiRekon bool) int {
+func jalankanJobT4(r repo.Repo, umurSesi time.Duration, dep service.Dep, rentan string, cekTopup bool, cekUmur time.Duration, rekon string, kedaluwarsaHold, koreksiRekon bool, sekarang string) int {
 	svc := service.Baru(r, umurSesi).DenganT4(dep).DenganMode(rentan)
+	if sekarang != "" && kedaluwarsaHold { // lab saja: batas 7 hari diperankan, tidak ditunggu
+		t, err := time.Parse(time.RFC3339, sekarang)
+		if err != nil {
+			log.Printf("-lab-sekarang: %v", err)
+			return 2
+		}
+		svc = svc.DenganJam(func() time.Time { return t })
+	}
 	ctx := context.Background()
 	switch {
 	case cekTopup:
