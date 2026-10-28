@@ -206,7 +206,7 @@ describe("naskah M22: gejala, yang dikira, dan yang sebenarnya", () => {
   test("catatan Angka cerita: 24 dan 20 sama dengan rekaman, tetapi rekaman memakai password salah, dan hasil dengan password benar tidak direkam", () => {
     expect(R["dua-instance"]).toMatchObject({ percobaan: 24, sampai: 20 });
     harus("Angka 24 dan 20 sama dengan rekaman di blok \"Yang sebenarnya\", yang memakai password salah, jadi tiap percobaan yang sampai diperiksa passwordnya berakhir 401. Hasil dengan password yang benar tidak direkam.");
-    harus(`Tiap percobaan ke akun uji yang berbeda, dengan password dari daftar kebocoran. Batas per alamat tertulis ${batasAlamat.kapasitas}, tetapi ${R["dua-instance"].sampai} dari ${R["dua-instance"].percobaan} percobaan sampai diperiksa passwordnya sebelum ada yang ditolak dengan 429.`);
+    harus(`Ia mengirim ${R["dua-instance"].percobaan} percobaan login dari satu alamat. Tiap percobaan ke akun uji yang berbeda, dengan password dari daftar kebocoran. Batas per alamat tertulis ${batasAlamat.kapasitas}, tetapi ${R["dua-instance"].sampai} dari ${R["dua-instance"].percobaan} percobaan sampai diperiksa passwordnya sebelum ada yang ditolak dengan 429.`);
     // klaim negatif berlingkup: di rekaman A sampai D tidak ada jawaban 200, dan semua pemanggilan tebak() di rekam_batas memakai password bawaan (SALAH)
     expect(runPy).toContain('SALAH = "tebakan-salah"');
     expect(runPy).toContain("def tebak(port, emails, password=SALAH):");
@@ -236,7 +236,8 @@ describe("naskah M22: gejala, yang dikira, dan yang sebenarnya", () => {
 describe("EVAL3-F1 (W3): blok Gejala hanya berisi kejadian, dan pemeriksaan password didefinisikan satu kali di Yang sebenarnya", () => {
   // Penanda definisi dibaca dari tools/eval_tahap.py (perintah `gejala`), supaya tes ini ikut gagal bila alatnya dilemahkan.
   const evalPy = baca("tools/eval_tahap.py");
-  const reDef = new RegExp(cocok(evalPy, /^DEFINISI = re\.compile\(r"(.+)"\)$/m)[1]!);
+  // Alatnya peka huruf besar (kalimat berawal "Artinya ..." lolos); penjaga ini tidak, jadi lebih ketat dari alat.
+  const reDef = new RegExp(cocok(evalPy, /^DEFINISI = re\.compile\(r"(.+)"\)$/m)[1]!, "i");
   const awalGejala = badan.indexOf('<Blok nama="Gejala" buka>');
   const gejala = badan.slice(awalGejala, badan.indexOf("</Blok>", awalGejala));
   const awalSebenarnya = badan.indexOf('<Blok nama="Yang sebenarnya">');
@@ -264,7 +265,7 @@ describe("EVAL3-F1 (W3): blok Gejala hanya berisi kejadian, dan pemeriksaan pass
     expect(awalDefinisi, "kalimat definisi hilang").toBeGreaterThan(awalSebenarnya);
     expect(awalDefinisi).toBeLessThan(awalRantai);
     expect(badan.search(/pemeriksaan password/i)).toBe(awalDefinisi);
-    expect(badan.slice(awalSebenarnya, awalRantai)).toContain(`Batas itu dihitung di memori tiap instance, dan dua instance punya dua penghitung yang tidak saling tahu. ${DEFINISI}\n`);
+    expect(badan.slice(awalSebenarnya, awalRantai)).toContain(`Batas per alamat tidak salah hitung. Batas itu dihitung di memori tiap instance, dan dua instance punya dua penghitung yang tidak saling tahu. ${DEFINISI}\n`);
   });
   test("kata sehari-hari di adegan, catatan, dan Tebak ('diperiksa passwordnya'); jumlahnya dari rekaman: 20 dari 24, 401 20 dan 429 4", () => {
     const A = R["dua-instance"];
@@ -300,7 +301,8 @@ describe("EVAL3-F1 (W3): blok Gejala hanya berisi kejadian, dan pemeriksaan pass
     expect(fn).toContain("func (s Service) periksaMasuk(ctx context.Context, email, password string) (repo.AkunMasuk, error) {");
     expect(fn).toContain("bcrypt.CompareHashAndPassword([]byte(a.PasswordHash), []byte(password))");
     expect(fn).toContain("bcrypt.CompareHashAndPassword(hashPalsu, []byte(password))");
-    expect(sesiGo).toContain("a, err := s.periksaMasuk(ctx, email, password)");
+    const login = sesiGo.slice(sesiGo.indexOf("func (s Service) Login("), sesiGo.indexOf("func (s Service) LoginWeb("));
+    expect(login).toContain("a, err := s.periksaMasuk(ctx, email, password)");
     expect(bagA).toContain("(401 sampai ke pemeriksaan password, 429 ditolak penahan per IP)");
     expect(runPy).toContain("(401 sampai ke pemeriksaan password, 429 ditolak penahan per IP)");
     // sesudah definisi, istilah itu dipakai apa adanya oleh Rantai, widget, dan Cek diri 3
