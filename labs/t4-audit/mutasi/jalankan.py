@@ -27,7 +27,9 @@ spec = importlib.util.spec_from_file_location("daftar", SELF / "daftar.py")
 daftar = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(daftar)
 
-DB_PORT = os.environ.get("LAB_DB_PORT", "54333")
+sys.path.insert(0, str(AKAR))
+from lab_env import DB_PORT  # noqa: E402  (port database lab dari lingkungan, labs/README.md)
+DB_PORT = str(DB_PORT)
 TES = "tahap4_audit_tes"
 
 

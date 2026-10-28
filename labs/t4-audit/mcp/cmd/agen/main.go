@@ -16,9 +16,12 @@ import (
 )
 
 func main() {
-	alamat := flag.String("addr", "127.0.0.1:18300", "alamat dengar")
+	alamat := flag.String("addr", "", "alamat dengar (wajib; run.py mengisinya dari port lab)")
 	berstatus := flag.Bool("berstatus", false, "opsi bawaan SDK (sesi), hanya untuk membandingkan versi protokol di lab")
 	flag.Parse()
+	if *alamat == "" {
+		log.Fatal("-addr wajib")
+	}
 	dsn, token := os.Getenv("T4A_DATABASE_URL"), os.Getenv("T4A_TOKEN_AGEN")
 	if dsn == "" || token == "" {
 		log.Fatal("T4A_DATABASE_URL dan T4A_TOKEN_AGEN wajib")
