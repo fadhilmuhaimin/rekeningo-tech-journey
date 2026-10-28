@@ -268,6 +268,7 @@ describe("registry dan naskah: tiga belas kalimat, kejadian, minggu, dan ADR", (
     expect([h.nomor, h.tahap, h.jenis, h.bagian, h.ada, h.prasyarat, h.inti, h.peran]).toEqual(["3.31", 3, "konsep", 5, true, ["t3-adr-33"], true, undefined]);
     expect(h.masalah).toBe("Mengingat tiga belas konsep Tahap 3 dalam satu kalimat masing-masing");
     expect(per("t3-adr-33").nomor).toBe("3.30");
+    expect(per("t3-adr-33").ada, "3.30 sudah ada, jadi prasyarat 3.31 menaut halaman sungguhan, bukan (segera)").toBe(true);
     expect(per("t3-jembatan").nomor).toBe("3.32");
     expect(per("t3-jembatan").prasyarat).toEqual(["t3-rekap"]);
     expect(daftarBlok(mdx).map((b) => [b.nama, b.buka])).toEqual([["Mulai", true], ["Coba", true], ["Paham", false], ["Putuskan", false], ["Kunci", false]]);
@@ -359,6 +360,7 @@ describe("registry dan naskah: tiga belas kalimat, kejadian, minggu, dan ADR", (
     expect(mdx.match(/\*Dipersempit:\*/g)).toHaveLength(4);
     expect(mdx.match(/\*Batas:\*/g)).toHaveLength(8);
     harus(blok("Mulai"), "Empat dari tiga belas kalimat naskah lebih luas daripada yang direkam lab");
+    harus(blok("Mulai"), "jadi blok Paham menulis juga versi yang didukung rekaman, berlabel Dipersempit.");
     expect(kartu.filter((c) => c.jawab.includes("Dipersempit:")).map((c) => c.id)).toEqual(["t3-rekap-k2", "t3-rekap-k4", "t3-rekap-k12", "t3-rekap-k13"]);
     // kalimat Dipersempit memuat kalimat naskah dalam tanda kutip di kartu, persis
     for (const no of [2, 4, 12, 13]) {
@@ -378,6 +380,7 @@ describe("diagram Rantai t3-rekap-kejadian: urutan, minggu, dan sumber diturunka
   test("dua baris, dua belas simpul: PRD v3 lalu M18 sampai M28 berurutan, sumber berlabel Ilustrasi, judul dan simpul pendek", () => {
     const simpul = diagram.baris.flatMap((b) => b.simpul);
     expect(diagram.id).toBe("t3-rekap-kejadian");
+    expect(diagram.judul).toBe(`Kejadian Tahap ${per("t3-rekap").tahap} dalam urutan minggu`);
     expect(BERKAS_RANTAI).toBe("situs/data/diagram/t3-rekap-kejadian.json");
     expect(diagram.baris).toHaveLength(2);
     expect(diagram.baris.map((b) => b.simpul.length)).toEqual([6, 6]);
@@ -738,9 +741,48 @@ describe("kartu tebak lalu buka t3-rekap-kartu.json", () => {
     harus(kartu[12]!.tanya, `puncak ${PUNCAK_BULAT} request per detik (Asumsi)`);
   });
 
+  test("angka, label, dan frasa di tanya dan jawab kartu diturunkan dari rekaman dan tabel ADR (tanpa bergantung pada kunci baris)", () => {
+    // angka di kurung "(ADR n: ...)" sama dengan angka di kolom Keputusan baris tabel ADR yang sama
+    const tabel = blok("Putuskan").split("\n").filter((b) => /^\| \d+ \|/.test(b)).map((b) => b.split("|").map((x) => x.trim()));
+    kartu.forEach((c) => {
+      const m = c.jawab.match(/\(ADR (\d+): ([^)]*)\)/);
+      if (!m) return;
+      const baris = tabel.find((k) => Number(k[1]) === Number(m[1]))!;
+      expect(angka(m[2]!), `kartu ${c.id}: angka di kurung ADR ${m[1]}`).toEqual(angka(baris[2]!));
+    });
+    const dari = (n: number) => kartu[n - 1]!;
+    harus(dari(1).jawab, `Rekaman lab: pool ${ukB} penuh antara detik ke-${poolB[1]} dan ke-${poolB[2]}`);
+    harus(dari(2).tanya, `Di rekaman, log tetap kosong selama ${logJ[1]} detik.`);
+    harus(dari(2).jawab, "Dipersempit: trace Tidak dijalankan di api-t3.");
+    const status = cari(TA, /^HTTP\/1\.1 (\d+) Created$/, "transaksi A status")[1]!;
+    const pesan0 = cari(TA, /^push tiruan menerima: (\d+) \(pembayaran selesai/, "transaksi A push")[1]!;
+    harus(dari(3).jawab, `outbox berisi satu baris menunggu sesudah ${status}, dan layanan push menerima ${pesan0} pesan sampai worker berjalan.`);
+    harus(dari(5).tanya, `${rp(nominalA)} dari Budi`);
+    harus(dari(8).tanya, `HP Budi menampilkan nasi goreng ${rp(22500)} dan HP Citra ${rp(25000)}. Citra ditagih ${rp(22500)}.`);
+    harus(dari(9).tanya, `stok = 0 dari Jumat dikirim ulang ${jamD} jam kemudian dan menimpa 30 porsi yang Ani isi hari Sabtu.`);
+    harus(dari(9).jawab, `lama offline ${jamD} jam adalah Asumsi naskah, dan jam dimajukan.`);
+    harus(dari(9).jawab, "queue lokal dan layar konflik di app Tidak dijalankan.");
+    harus(dari(10).tanya, `Muncul satu kotak peringatan berisi ${dialogA}.`);
+    harus(dari(10).tanya, `catatan ${rp(5000)} dari Dimas`);
+    const versiChromium = cocok(baca("labs/t3-dasbor/README.md"), /Rekaman terakhir memakai Chromium (\d+)\.\d+\.\d+\.\d+ lewat Playwright/)[1]!;
+    harus(dari(10).jawab, `hanya Chromium ${versiChromium} yang diuji`);
+    harus(dari(12).tanya, `belum datang sampai 11.42 karena ${persenC[4]} promo mendahuluinya (Ilustrasi).`);
+    harus(dari(12).jawab, `umur tertua semua kelas lebih dari ${umurSemua[1]} detik, sedangkan kelas uang ${umurUang[1]}`);
+    harus(dari(12).jawab, "Alert sungguhan Tidak dijalankan.");
+    harus(dari(13).tanya, `selisih Rp0 (Ilustrasi), puncak ${PUNCAK_BULAT} request per detik (Asumsi)`);
+    harus(dari(13).jawab, `puncak ${PUNCAK_BULAT} (Asumsi) tidak menunjuk sumber daya yang sesak`);
+    harus(dari(13).tanya, "Sinta membawa PRD v4.");
+    harus(per("t3-m28").judul, "PRD v4 datang");
+    harus(dari(13).jawab, "Dipersempit: M18, M23, dan M27 memakai hitungan kapasitas sebagai alat");
+    harus(butir(13).batas, "M18, M23, dan M27 memakai hitungan kapasitas sebagai alat");
+    harus(dari(13).jawab, "tiga hal yang diminta PRD v4 belum pernah diuji (ADR 33).");
+    harus(fileHalaman("t3-m28"), "**Tiga hal yang belum pernah diuji.**");
+  });
+
   test("Cek diri 3.31 ikut ke kartu.json hasil sinkron: lima soal dengan halaman t3-rekap, dan soal serta jawaban sama dengan halaman", () => {
     const sini = kartuSemua.filter((c) => c.halaman === "t3-rekap");
     expect(sini).toHaveLength(5);
+    expect(sini.map((c) => c.id)).toEqual([1, 2, 3, 4, 5].map((n) => `t3-rekap-${n}`));
     expect(sini.every((c) => c.url === urlHalaman("t3-rekap") && c.judul === labelHalaman("t3-rekap"))).toBe(true);
     const kunci = blok("Kunci");
     const soal = [...kunci.matchAll(/^\*\*(\d)\.\*\* (.+)$/gm)].map((m) => m[2]!);
@@ -964,6 +1006,7 @@ describe("kalimat penghubung dan butir belum diuji: tiap baris ditulis lengkap, 
     expect(coba).toContain("Setiap kartu menunjukkan satu kejadian. Tebak kalimat yang lahir darinya, lalu buka jawabannya. Tautan di kartu membawa ke halaman kejadian itu.");
     expect(coba).toContain("Kartu yang kamu tandai **Ingat** baru muncul lagi sesuai jadwal kotaknya, seperti di [[Kartu]]. Daftar lengkap tiga belas kalimat, beserta batas masing-masing, selalu ada di blok Paham.");
     const paham = baris(blok("Paham"));
+    expect(paham).toContain("### Kenapa ini ada");
     expect(paham).toContain("Untuk ingatan beberapa hari kemudian, mengingat kembali jawaban lebih menguatkan daripada belajar ulang ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/), dibuka 2026-10-28). Karena itu setiap konsep diringkas jadi satu kalimat dan diikat ke satu kejadian. Halaman ini tidak menjelaskan ulang konsepnya.");
     expect(paham).toContain("Bila rekaman lab hanya mendukung sebagian dari kalimat naskah, halaman ini menulis dua hal: kalimat naskahnya, dan versi yang didukung rekaman. Angka dikutip dari halaman asalnya, dengan label yang sama. Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].");
     expect(paham).toContain("Tiga belas kalimat itu diuji lewat rekaman lab di mesin lokal, bukan di server sungguhan. Delapan hal yang ditulis terbuka di halamannya belum diuji.");
@@ -1052,6 +1095,18 @@ describe("struktur halaman: label, sumber ingatan, tanpa ID internal, dan kata y
     harus(baris, "PMID 16719566 = Cepeda dkk.");
     harus(baris, "Psychological Bulletin 132(3)");
     harus(baris, "3.31 Yang dibawa keluar dari Tahap 3 (Kenapa ini ada, Bacaan lanjut)");
+    // tiap kolom baris R3-250 ditulis lengkap: kolom halaman memakai nomor dan judul dari registry, kolom perubahan merujuk R2-215
+    const kol = baris.split(" | ");
+    expect(kol).toHaveLength(5);
+    expect(kol[0]).toBe("| R3-250");
+    expect(kol[1]).toBe("Mengingat kembali jawaban lebih menguatkan ingatan jangka panjang daripada belajar ulang; jarak ulang (halaman rekap Tahap 3, melengkapi R2-215)");
+    expect(kol[2]).toContain("NCBI E-utilities esummary (eutils.ncbi.nlm.nih.gov, dibuka 2026-10-28 dengan curl;");
+    expect(kol[2]).toContain("terbit Mar 2006");
+    expect(kol[2]).toContain("terbit Mei 2006");
+    expect(kol[2]).toContain("sudah dicatat di R2-215");
+    expect(kol[3]).toBe(`${labelHalaman("t3-rekap")} (Kenapa ini ada, Bacaan lanjut)`);
+    expect(kol[4]).toBe("Tidak berubah dari R2-215 |");
+    harus(riset2.split("\n").find((b) => b.startsWith("| R2-215 |"))!, "(halaman rekap)");
     const r215 = riset2.split("\n").find((b) => b.startsWith("| R2-215 |"))!;
     harus(r215, "PMID 16507066");
     harus(r215, "PMID 16719566");
