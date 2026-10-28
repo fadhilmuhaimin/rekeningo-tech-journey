@@ -562,7 +562,313 @@ def bagian_sast():
     tulis("sast.txt", "gosec dan govulncheck atas contoh yang disiapkan")
 
 
-BAGIAN = {"kontrak": bagian_kontrak, "klien": bagian_klien, "sast": bagian_sast}
+
+# ---------- registry lokal dan image ----------
+
+def docker(*argumen, cek=True):
+    kode, keluar, galat = jalankan(["docker", *argumen])
+    if cek and kode != 0:
+        gagal(f"docker {' '.join(argumen[:3])}: {(keluar + galat).strip()[-300:]}")
+    return kode, keluar, galat
+
+
+@contextlib.contextmanager
+def registry():
+    """Registry image resmi di container, hanya mendengar 127.0.0.1 (jaringan lokal). Menunggu siap dengan hitungan
+    percobaan, bukan jeda tetap. Image yang didorong ke sana dihapus dari Docker lokal di akhir."""
+    import socket
+    with socket.socket() as s:
+        if s.connect_ex(("127.0.0.1", PORT_REG)) == 0:
+            gagal(f"port {PORT_REG} sudah dipakai proses lain (registry lab di {NAMA_REG})")
+    docker("rm", "-f", NAMA_REG, cek=False)
+    docker("run", "-d", "--name", NAMA_REG, "-p", f"127.0.0.1:{PORT_REG}:5000", IMG["registry"])
+    DOKTER.clear()
+    try:
+        for _ in range(150):
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{PORT_REG}/v2/", timeout=2) as r:
+                    if r.status == 200:
+                        break
+            except OSError:
+                time.sleep(0.2)
+        else:
+            gagal("registry tidak siap")
+        yield
+    finally:
+        docker("rm", "-f", NAMA_REG, cek=False)
+        for ref in DOKTER:
+            docker("rmi", ref, cek=False)
+
+
+DOKTER = []        # referensi image yang dibuat lab, dihapus dari Docker lokal saat registry dimatikan
+
+
+def biner_linux():
+    """Biner api-t4 untuk Linux (sama dengan arsitektur Docker), dibangun sekali per run dari kode di labs/api-t4."""
+    jalur = KERJA / "konteks" / "api-t4"
+    if not jalur.exists():
+        arsitektur = docker("info", "--format", "{{.Architecture}}")[1].strip()
+        goarch = {"aarch64": "arm64", "arm64": "arm64", "x86_64": "amd64"}.get(arsitektur)
+        if not goarch:
+            gagal(f"arsitektur Docker {arsitektur!r} tidak didukung lab ini")
+        jalur.parent.mkdir(parents=True, exist_ok=True)
+        kode, _, galat = jalankan(["go", "build", "-trimpath", "-buildvcs=false", "-ldflags", "-s -w", "-o", jalur, "./cmd/api"],
+                                  cwd=API, env=dict(os.environ, GOOS="linux", GOARCH=goarch, CGO_ENABLED="0"))
+        if kode != 0:
+            gagal(f"go build api-t4: {galat.strip()[-300:]}")
+    return jalur
+
+
+def bangun_dorong(repo, tag, varian, nama):
+    """Bangun image dari Dockerfile lab dengan isi varian.txt = varian, dorong ke registry lokal, dan kembalikan digest
+    yang dibaca dari keluaran `docker push` (bukan ditulis tangan). Digest diberi label tetap `nama` di rekaman."""
+    konteks = reset_dir(KERJA / "konteks-" + nama.lower() if False else KERJA / f"konteks-{nama.lower()}")
+    shutil.copy(biner_linux(), konteks / "api-t4")
+    shutil.copy(HERE / "Dockerfile", konteks / "Dockerfile")
+    (konteks / "varian.txt").write_text(varian + "\n")
+    ref = f"{REG}/{repo}:{tag}"
+    docker("build", "-q", "-t", ref, str(konteks))
+    DOKTER.append(ref)
+    _, keluar, _ = docker("push", ref)
+    digest = g.digest_dari_push(keluar)
+    harap(digest not in DIGEST_NAMA, True, f"digest {nama} belum dipakai image lain")
+    DIGEST_NAMA[digest] = nama
+    return digest
+
+
+# ---------- SBOM dan grype ----------
+
+def buat_sbom(sumber, tujuan, cwd=None, **env):
+    kode, keluar, galat = jalankan([alat.pastikan("syft"), sumber, "-o", f"cyclonedx-json={tujuan}", "-q"], cwd=cwd,
+                                   env=alat.lingkungan(SYFT_CHECK_FOR_APP_UPDATE="false", **env))
+    if kode != 0 or not pathlib.Path(tujuan).exists():
+        gagal(f"syft {sumber}: exit {kode}: {(keluar + galat).strip()[-300:]}")
+    return g.parse_sbom(pathlib.Path(tujuan).read_text())
+
+
+def pindai_grype(sbom, env_db):
+    kode, keluar, galat = jalankan([alat.pastikan("grype"), f"sbom:{sbom}", "-o", "json", "-q"], env=env_db)
+    if kode != 0:
+        gagal(f"grype {sbom}: exit {kode}: {galat.strip()[-300:]}")
+    return g.parse_grype(keluar)
+
+
+def modul_go_tanpa_utama(ringkas):
+    return [(n, v) for n, v in ringkas["go"] if n not in MODUL_UTAMA]
+
+
+MODUL_UTAMA = ("contoh.lab/temuan", "lab/apit4")
+
+
+def catat_temuan_grype(temuan, db):
+    harap((db["skema"], db["dibangun"]), (alat.PIN["grype_db"]["skema"], alat.PIN["grype_db"]["dibangun"]), "basis data grype yang dikunci")
+    catat(f"basis data kerentanan: skema {db['skema']}, dibangun {db['dibangun']} (dikunci di alat.json; tidak diperbarui otomatis)")
+    if not temuan:
+        catat("temuan: tidak ada")
+    for t in temuan:
+        catat(f"  {t['id']:<22} {t['keparahan']:<9} {t['paket']} {t['versi']}, diperbaiki di {t['diperbaiki']}")
+
+
+def bagian_sbom():
+    env_db = siapkan_db_grype()
+    catat("# SBOM CycloneDX dibuat syft, dipindai grype dengan basis data yang dikunci (versi basis data di tiap hasil).")
+    catat("# Kerentanan yang disiapkan: golang.org/x/text v0.3.7 di contoh (go.mod). Yang diperiksa gerbang: SBOM memuat semua")
+    catat("# modul dari go.mod, dan tidak ada temuan di atas ambang High.")
+
+    bagian("A. SBOM contoh yang disiapkan dipindai grype")
+    contoh = salin_contoh("contoh")
+    ringkas = buat_sbom("dir:.", KERJA / "sbom-contoh.cdx.json", cwd=contoh)
+    perintah_tampil("syft dir:. -o cyclonedx-json", "")
+    harap(ringkas["spesifikasi"], "1.7", "versi spesifikasi CycloneDX")
+    harap(modul_go_tanpa_utama(ringkas), [("golang.org/x/text", "v0.3.7")], "modul Go di SBOM contoh")
+    catat(f"CycloneDX {ringkas['spesifikasi']}; modul Go selain modul utama: " + ", ".join(f"{n} {v}" for n, v in modul_go_tanpa_utama(ringkas)))
+    diharapkan = g.baca_go_mod((contoh / "go.mod").read_text())
+    harap(diharapkan, [("golang.org/x/text", "v0.3.7")], "modul di go.mod contoh")
+    temuan, db = pindai_grype(KERJA / "sbom-contoh.cdx.json", env_db)
+    perintah_tampil("grype sbom:sbom-contoh.cdx.json -o json", "")
+    catat_temuan_grype(temuan, db)
+    disiapkan = [t for t in temuan if t["id"] == "GHSA-69ch-w2m2-3vjp"]
+    harap([(t["paket"], t["versi"], t["keparahan"], t["diperbaiki"]) for t in disiapkan], [("golang.org/x/text", "v0.3.7", "High", "0.3.8")],
+          "temuan yang disiapkan di grype")
+    harap(all(t["paket"] == "golang.org/x/text" for t in temuan), True, "semua temuan grype atas contoh ada di x/text")
+    lulus, alasan = g.putuskan_sbom(ringkas, diharapkan, temuan, "High")
+    harap(lulus, False, "putusan grype atas contoh")
+    catat(f"gerbang SBOM dan grype (ambang High): GAGAL ({alasan})")
+    catat("# Yang disiapkan GHSA-69ch-w2m2-3vjp (sama dengan GO-2022-1059 di govulncheck); dua advisory lain ikut karena versi lama itu juga")
+    catat("# terkena temuan yang lebih baru. grype mencocokkan versi di SBOM; govulncheck hanya melapor yang dipanggil kode.")
+
+    bagian("B. Kasus tandingan: versi yang sudah diperbaiki, dan SBOM kosong yang tampak bersih")
+    baru = salin_contoh("contoh-baru")
+    kode, _, galat = jalankan(["go", "get", f"golang.org/x/text@{X_TEXT_BARU}"], cwd=baru, env=dict(os.environ, GOFLAGS="-mod=mod"))
+    harap(kode, 0, f"go get x/text {X_TEXT_BARU}: {galat.strip()[-200:]}")
+    ringkas_baru = buat_sbom("dir:.", KERJA / "sbom-baru.cdx.json", cwd=baru)
+    harap(modul_go_tanpa_utama(ringkas_baru), [("golang.org/x/text", X_TEXT_BARU)], "modul Go di SBOM contoh yang diperbaiki")
+    temuan, db = pindai_grype(KERJA / "sbom-baru.cdx.json", env_db)
+    perintah_tampil(f"syft dir:. -o cyclonedx-json   # x/text {X_TEXT_BARU}", "")
+    perintah_tampil("grype sbom:sbom-baru.cdx.json -o json", "")
+    catat_temuan_grype(temuan, db)
+    harap(temuan, [], "temuan grype atas x/text yang diperbaiki")
+    lulus, alasan = g.putuskan_sbom(ringkas_baru, g.baca_go_mod((baru / "go.mod").read_text()), temuan, "High")
+    harap(lulus, True, "putusan SBOM atas contoh yang diperbaiki")
+    catat(f"gerbang SBOM dan grype (ambang High): LULUS ({alasan})")
+    catat()
+    kosong = reset_dir(KERJA / "kosong")
+    ringkas_kosong = buat_sbom("dir:.", KERJA / "sbom-kosong.cdx.json", cwd=kosong)
+    temuan, db = pindai_grype(KERJA / "sbom-kosong.cdx.json", env_db)
+    perintah_tampil("syft dir:. -o cyclonedx-json   # folder kosong", "")
+    perintah_tampil("grype sbom:sbom-kosong.cdx.json -o json", "")
+    harap((ringkas_kosong["pustaka"], temuan), ([], []), "SBOM kosong tanpa temuan")
+    catat(f"CycloneDX {ringkas_kosong['spesifikasi']}; pustaka: 0; temuan grype: 0")
+    harap(g.melewati_ambang_grype(temuan, "High"), [], "grype atas SBOM kosong tidak menahan merge")
+    catat("grype saja (ambang High): LULUS, karena tidak ada yang dipindai")
+    lulus, alasan = g.putuskan_sbom(ringkas_kosong, diharapkan, temuan, "High")
+    harap(lulus, False, "putusan SBOM atas SBOM kosong")
+    catat(f"gerbang SBOM dan grype: GAGAL ({alasan})")
+
+    bagian("C. SBOM image api-t4 dari registry lokal dan pindai grype")
+    with registry():
+        digest = bangun_dorong("api-t4", "1.0", "asli", "A")
+        ref = f"{REG}/api-t4@{digest}"
+        ringkas_img = buat_sbom(f"registry:{ref}", KERJA / "sbom-image.cdx.json", SYFT_REGISTRY_INSECURE_USE_HTTP="true")
+    perintah_tampil(f"syft registry:{samar(ref)} -o cyclonedx-json", "")
+    go_img = modul_go_tanpa_utama(ringkas_img)
+    catat(f"CycloneDX {ringkas_img['spesifikasi']}; {len(go_img)} modul Go dari biner (stdlib termasuk), {len(ringkas_img['pustaka']) - len(ringkas_img['go'])} paket Debian dari image dasar")
+    diharapkan_img = g.baca_go_mod((API / "go.mod").read_text())
+    for n, v in diharapkan_img:
+        catat(f"  go.mod {n} {v}: {'ada di SBOM' if (n, v) in set(ringkas_img['go']) else 'TIDAK ADA di SBOM'}")
+    temuan, db = pindai_grype(KERJA / "sbom-image.cdx.json", env_db)
+    perintah_tampil("grype sbom:sbom-image.cdx.json -o json", "")
+    catat_temuan_grype(temuan, db)
+    lulus, alasan = g.putuskan_sbom(ringkas_img, diharapkan_img, temuan, "High")
+    catat(f"gerbang SBOM dan grype atas image api-t4 (ambang High): {'LULUS' if lulus else 'GAGAL'} ({alasan})")
+    lulus, alasan = g.putuskan_sbom(ringkas_img, diharapkan_img, temuan, "Critical")
+    catat(f"ambang Critical: {'LULUS' if lulus else 'GAGAL'} ({alasan}); tingkat Unknown dihitung paling berat")
+    tulis("sbom.txt", "SBOM CycloneDX dengan syft dan pindai grype")
+
+
+
+# ---------- cosign ----------
+
+def cosign(*argumen, kunci_sandi=KUNCI_UJI):
+    return jalankan([alat.pastikan("cosign"), *argumen], env=alat.lingkungan(COSIGN_PASSWORD=kunci_sandi, SYFT_REGISTRY_INSECURE_USE_HTTP="true"), cwd=KERJA)
+
+
+def buat_kunci(nama):
+    """Pasangan kunci cosign uji, dibuat per run di .kerja (di-gitignore). Bukan secret: tidak pernah dipakai di luar lab ini."""
+    d = reset_dir(KERJA / nama)
+    kode, _, galat = jalankan([alat.pastikan("cosign"), "generate-key-pair"], cwd=d, env=alat.lingkungan(COSIGN_PASSWORD=KUNCI_UJI))
+    harap(kode, 0, f"cosign generate-key-pair: {galat.strip()[-200:]}")
+    return d / "cosign.key", d / "cosign.pub"
+
+
+def tanda_tangani(ref, kunci, judul, tampil_deprecated=False):
+    kode, keluar, galat = cosign("sign", "--key", kunci, "--tlog-upload=false", "--use-signing-config=false", ref)
+    baris = [b for b in (keluar + galat).splitlines() if b.strip()]
+    if not tampil_deprecated:
+        baris = [b for b in baris if not b.startswith("Flag --")]
+    perintah_tampil(f"cosign sign --key kunci-1/cosign.key --tlog-upload=false --use-signing-config=false {samar(ref)}", "\n".join(baris), kode)
+    harap(kode, 0, f"cosign sign {judul}")
+
+
+def periksa_tanda_tangan(ref, pub, digest_dibangun, harap_kode, nama_kunci="kunci-1"):
+    """Jalankan cosign verify, catat, lalu minta putusan gerbang. Kode keluar cosign harus sama dengan yang diharapkan."""
+    kode, keluar, galat = cosign("verify", "--key", pub, "--insecure-ignore-tlog=true", ref)
+    harap(kode == 0, harap_kode == 0, f"cosign verify {samar(ref)} berhasil (exit code {kode}); harap_kode 1 berarti gagal dengan kode bukan nol")
+    ringkas = []
+    if kode == 0:
+        ditandatangani = sorted(g.digest_dalam_tanda_tangan(keluar))
+        harap(len(ditandatangani), 1, "digest di payload tanda tangan")
+        ringkas = [f"Verification for {samar(ref)} --", "  - The signatures were verified against the specified public key",
+                   f"tanda tangan memuat digest {samar(ditandatangani[0])}"]
+    else:
+        ringkas = [b for b in galat.splitlines() if b.startswith("Error:")][:1]
+    perintah_tampil(f"cosign verify --key {nama_kunci}/cosign.pub --insecure-ignore-tlog=true {samar(ref)}", "\n".join(ringkas), kode)
+    lulus, alasan = g.putuskan_tanda_tangan(ref, digest_dibangun, kode, keluar)
+    catat(f"gerbang image (dibangun {samar(digest_dibangun)}): {'LULUS' if lulus else 'GAGAL'} ({alasan})")
+    return lulus, kode, keluar
+
+
+def bagian_tanda():
+    catat("# Kunci cosign sendiri dibuat per run di .kerja (tidak di-commit); keyless, Fulcio, dan Rekor Tidak dijalankan.")
+    catat("# Registry image lokal (registry:3 resmi, hanya 127.0.0.1). Digest dibaca dari keluaran `docker push` dan diberi label A, B, ...")
+    catat("# Gerbang image memakai gerbang.putuskan_tanda_tangan: referensi harus digest, sama dengan digest yang dibangun CI, dan lolos cosign verify.")
+    kunci1, pub1 = buat_kunci("kunci-1")
+    kunci2, pub2 = buat_kunci("kunci-2")
+    with registry():
+        repo = f"{REG}/api-t4"
+        digest_a = bangun_dorong("api-t4", "1.0", "asli", "A")
+
+        bagian("A. Image tanpa tanda tangan")
+        catat("$ docker build, docker push  (image A: biner api-t4 untuk Linux di atas distroless, tag 1.0)")
+        catat(f"digest dibaca dari keluaran push: {samar(digest_a)}")
+        periksa_tanda_tangan(f"{repo}:1.0", pub1, digest_a, 1)
+        periksa_tanda_tangan(f"{repo}@{digest_a}", pub1, digest_a, 1)
+
+        bagian("B. Ditandatangani lewat tag, lalu tag dipindah ke image lain")
+        tanda_tangani(f"{repo}:1.0", kunci1, "lewat tag A", tampil_deprecated=True)
+        catat("# Tag diterima dengan peringatan, dan cosign menandatangani digest yang ditunjuk tag saat itu (A).")
+        lulus, _, _ = periksa_tanda_tangan(f"{repo}:1.0", pub1, digest_a, 0)
+        harap(lulus, False, "gerbang menolak referensi tag walau cosign verify berhasil")
+        lulus, _, _ = periksa_tanda_tangan(f"{repo}@{digest_a}", pub1, digest_a, 0)
+        harap(lulus, True, "gerbang menerima digest A yang ditandatangani")
+        catat()
+        digest_b = bangun_dorong("api-t4", "1.0", "ditukar", "B")
+        catat("$ docker build, docker push  (image B: biner yang sama, varian.txt berbeda; tag 1.0 yang sama dipindah ke B)")
+        catat(f"digest dibaca dari keluaran push: {samar(digest_b)}")
+        lulus, _, _ = periksa_tanda_tangan(f"{repo}:1.0", pub1, digest_a, 1)
+        harap(lulus, False, "tag yang dipindah tidak lolos")
+        lulus, _, _ = periksa_tanda_tangan(f"{repo}@{digest_a}", pub1, digest_a, 0)
+        harap(lulus, True, "digest A tetap lolos sesudah tag dipindah")
+        lulus, _, _ = periksa_tanda_tangan(f"{repo}@{digest_b}", pub1, digest_b, 1)
+        harap(lulus, False, "digest B tidak pernah ditandatangani")
+
+        bagian("C. Tag dipindah SEBELUM ditandatangani: yang ditandatangani bukan yang dibangun CI")
+        repo_ci = f"{REG}/api-t4-ci"
+        digest_c = bangun_dorong("api-t4-ci", "2.0", "asli", "C")
+        catat(f"$ docker push {samar(repo_ci)}:2.0   # hasil build CI: {samar(digest_c)}")
+        digest_d = bangun_dorong("api-t4-ci", "2.0", "ditukar", "D")
+        catat(f"$ docker push {samar(repo_ci)}:2.0   # pihak lain memindahkan tag ke image lain: {samar(digest_d)}")
+        tanda_tangani(f"{repo_ci}:2.0", kunci1, "lewat tag yang sudah dipindah")
+        catat("# CI menandatangani `2.0` dan cosign menandatangani yang ditunjuk tag saat itu, yaitu D, bukan C.")
+        lulus, kode, keluar = periksa_tanda_tangan(f"{repo_ci}:2.0", pub1, digest_c, 0)
+        harap((lulus, g.digest_dalam_tanda_tangan(keluar)), (False, {digest_d}), "tag memverifikasi image yang salah")
+        catat("# cosign verify atas tag berhasil dan memuat digest D. Referensi digest dari build CI (C) tidak punya tanda tangan:")
+        lulus, _, _ = periksa_tanda_tangan(f"{repo_ci}@{digest_c}", pub1, digest_c, 1)
+        harap(lulus, False, "digest C tidak ditandatangani")
+        catat("# Referensi digest D lolos cosign verify, tetapi D bukan yang dibangun CI:")
+        lulus, _, _ = periksa_tanda_tangan(f"{repo_ci}@{digest_d}", pub1, digest_c, 0)
+        harap(lulus, False, "digest D bukan digest yang dibangun")
+
+        bagian("D. Ditandatangani lewat digest")
+        repo_dg = f"{REG}/api-t4-digest"
+        digest_e = bangun_dorong("api-t4-digest", "3.0", "asli", "E")
+        catat(f"$ docker push {samar(repo_dg)}:3.0   # hasil build CI: {samar(digest_e)}")
+        tanda_tangani(f"{repo_dg}@{digest_e}", kunci1, "lewat digest")
+        lulus, _, _ = periksa_tanda_tangan(f"{repo_dg}@{digest_e}", pub1, digest_e, 0)
+        harap(lulus, True, "digest E ditandatangani dan dibangun CI")
+        catat("# Kunci publik lain (kunci-2, pasangan yang tidak dipakai menandatangani):")
+        lulus, _, _ = periksa_tanda_tangan(f"{repo_dg}@{digest_e}", pub2, digest_e, 1, nama_kunci="kunci-2")
+        harap(lulus, False, "kunci publik lain menolak")
+    tulis("tanda-tangan.txt", "cosign verify atas tag dan atas digest")
+
+
+# ---------- tes kebijakan gerbang ----------
+
+def bagian_testing():
+    kode, keluar, galat = jalankan([sys.executable, "-B", "-m", "unittest", "-v", "tes_gerbang"], cwd=HERE)
+    teks = keluar + galat
+    nama = re.findall(r"^(test_\w+) \((?:tes_gerbang)\.(\w+)\.\w+\) \.\.\. ok$", teks, re.M)
+    ran = re.search(r"^Ran (\d+) tests? in", teks, re.M)
+    harap(kode, 0, f"tes_gerbang: {teks[-400:]}")
+    harap(len(nama), int(ran.group(1)), "tes yang tampil ok lawan tes yang dijalankan")
+    catat("$ python3 -B -m unittest -v tes_gerbang")
+    for fungsi, kelas in sorted(nama, key=lambda t: (t[1], t[0])):
+        catat(f"ok {kelas}.{fungsi}")
+    catat(f"Ran {ran.group(1)} tests: OK")
+    tulis("testing.txt", "tes kebijakan gerbang")
+
+
+BAGIAN = {"kontrak": bagian_kontrak, "klien": bagian_klien, "sast": bagian_sast, "sbom": bagian_sbom, "tanda": bagian_tanda, "testing": bagian_testing}
 
 
 def main():

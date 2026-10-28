@@ -206,13 +206,15 @@ def putuskan_sbom(ringkas, diharapkan, temuan, ambang="High"):
 
 # ---------- digest dan tanda tangan ----------
 
-RE_DIGEST = re.compile(r"^[a-z0-9][^@\s]*@sha256:[0-9a-f]{64}$")
+RE_DIGEST = re.compile(r"(?P<nama>[a-z0-9][^@\s]*)@sha256:[0-9a-f]{64}")
 RE_PUSH = re.compile(r"\bdigest: (sha256:[0-9a-f]{64}) size: \d+")
 
 
 def referensi_digest(ref):
-    """Benar hanya untuk `nama@sha256:<64 heksadesimal>`. Tag, tag + digest, dan digest yang terpotong ditolak."""
-    return bool(RE_DIGEST.match(ref))
+    """Benar hanya untuk `nama@sha256:<64 heksadesimal>`. Tag, tag + digest, digest yang terpotong, dan akhiran baris baru
+    ditolak; titik dua di nama hanya boleh pada host:port, bukan pada segmen terakhir (tag)."""
+    m = RE_DIGEST.fullmatch(ref)
+    return bool(m) and ":" not in m.group("nama").rsplit("/", 1)[-1]
 
 
 def digest_dari_push(keluaran):

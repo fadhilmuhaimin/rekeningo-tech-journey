@@ -1,0 +1,66 @@
+# Lab t4-pipeline · SBOM CycloneDX dengan syft dan pindai grype
+# syft 1.55.0 · grype 0.121.0 · go1.27.1 · registry lokal di 127.0.0.1:18295
+# Rekaman dari run bersih: make -C labs/t4-pipeline run.
+# SBOM CycloneDX dibuat syft, dipindai grype dengan basis data yang dikunci (versi basis data di tiap hasil).
+# Kerentanan yang disiapkan: golang.org/x/text v0.3.7 di contoh (go.mod). Yang diperiksa gerbang: SBOM memuat semua
+# modul dari go.mod, dan tidak ada temuan di atas ambang High.
+
+# --- A. SBOM contoh yang disiapkan dipindai grype ---
+$ syft dir:. -o cyclonedx-json
+CycloneDX 1.7; modul Go selain modul utama: golang.org/x/text v0.3.7
+$ grype sbom:sbom-contoh.cdx.json -o json
+basis data kerentanan: skema v6.1.10, dibangun 2026-10-28T06:23:30Z (dikunci di alat.json; tidak diperbarui otomatis)
+  GHSA-69ch-w2m2-3vjp    High      golang.org/x/text v0.3.7, diperbaiki di 0.3.8
+  GO-2026-5970           High      golang.org/x/text v0.3.7, diperbaiki di 0.39.0
+  GO-2026-6629           High      golang.org/x/text v0.3.7, diperbaiki di 0.41.0
+gerbang SBOM dan grype (ambang High): GAGAL (3 temuan High atau lebih)
+# Yang disiapkan GHSA-69ch-w2m2-3vjp (sama dengan GO-2022-1059 di govulncheck); dua advisory lain ikut karena versi lama itu juga
+# terkena temuan yang lebih baru. grype mencocokkan versi di SBOM; govulncheck hanya melapor yang dipanggil kode.
+
+# --- B. Kasus tandingan: versi yang sudah diperbaiki, dan SBOM kosong yang tampak bersih ---
+$ syft dir:. -o cyclonedx-json   # x/text v0.43.0
+$ grype sbom:sbom-baru.cdx.json -o json
+basis data kerentanan: skema v6.1.10, dibangun 2026-10-28T06:23:30Z (dikunci di alat.json; tidak diperbarui otomatis)
+temuan: tidak ada
+gerbang SBOM dan grype (ambang High): LULUS (SBOM memuat semua modul yang diharapkan, tanpa temuan High atau lebih)
+
+$ syft dir:. -o cyclonedx-json   # folder kosong
+$ grype sbom:sbom-kosong.cdx.json -o json
+CycloneDX 1.7; pustaka: 0; temuan grype: 0
+grype saja (ambang High): LULUS, karena tidak ada yang dipindai
+gerbang SBOM dan grype: GAGAL (SBOM tidak memuat: golang.org/x/text v0.3.7)
+
+# --- C. SBOM image api-t4 dari registry lokal dan pindai grype ---
+$ syft registry:127.0.0.1:18295/api-t4@<digest A> -o cyclonedx-json
+CycloneDX 1.7; 13 modul Go dari biner (stdlib termasuk), 5 paket Debian dari image dasar
+  go.mod github.com/cespare/xxhash/v2 v2.3.0: ada di SBOM
+  go.mod github.com/jackc/pgpassfile v1.0.0: ada di SBOM
+  go.mod github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761: ada di SBOM
+  go.mod github.com/jackc/pgx/v5 v5.11.0: ada di SBOM
+  go.mod github.com/jackc/puddle/v2 v2.2.2: ada di SBOM
+  go.mod github.com/redis/go-redis/v9 v9.23.0: ada di SBOM
+  go.mod github.com/sony/gobreaker/v2 v2.4.0: ada di SBOM
+  go.mod go.uber.org/atomic v1.12.0: ada di SBOM
+  go.mod golang.org/x/crypto v0.57.0: ada di SBOM
+  go.mod golang.org/x/sync v0.23.0: ada di SBOM
+  go.mod golang.org/x/sys v0.48.0: ada di SBOM
+  go.mod golang.org/x/text v0.42.0: ada di SBOM
+$ grype sbom:sbom-image.cdx.json -o json
+basis data kerentanan: skema v6.1.10, dibangun 2026-10-28T06:23:30Z (dikunci di alat.json; tidak diperbarui otomatis)
+  GO-2026-5932           Unknown   golang.org/x/crypto v0.57.0, diperbaiki di -
+  GO-2026-6809           Unknown   stdlib go1.27.1, diperbaiki di 1.26.10, 1.27.3
+  GO-2026-6604           Critical  stdlib go1.27.1, diperbaiki di 1.26.9, 1.27.2
+  GO-2026-6612           Critical  stdlib go1.27.1, diperbaiki di 1.27.2
+  GO-2026-6603           High      stdlib go1.27.1, diperbaiki di 1.27.2
+  GO-2026-6605           High      stdlib go1.27.1, diperbaiki di 1.26.9, 1.27.2
+  GO-2026-6607           High      stdlib go1.27.1, diperbaiki di 1.26.9, 1.27.2
+  GO-2026-6608           High      stdlib go1.27.1, diperbaiki di 1.26.9, 1.27.2
+  GO-2026-6609           High      stdlib go1.27.1, diperbaiki di 1.26.9, 1.27.2
+  GO-2026-6610           High      stdlib go1.27.1, diperbaiki di 1.27.2
+  GO-2026-6611           High      stdlib go1.27.1, diperbaiki di 1.27.2
+  GO-2026-6613           High      stdlib go1.27.1, diperbaiki di 1.26.9, 1.27.2
+  GO-2026-6617           High      stdlib go1.27.1, diperbaiki di 1.27.2
+  GO-2026-6599           Medium    stdlib go1.27.1, diperbaiki di 1.26.9, 1.27.2
+  GO-2026-6600           Medium    stdlib go1.27.1, diperbaiki di 1.26.9, 1.27.2
+gerbang SBOM dan grype atas image api-t4 (ambang High): GAGAL (13 temuan High atau lebih)
+ambang Critical: GAGAL (4 temuan Critical atau lebih); tingkat Unknown dihitung paling berat

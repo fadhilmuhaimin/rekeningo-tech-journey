@@ -1,0 +1,111 @@
+# Lab t4-pipeline · cosign verify atas tag dan atas digest
+# cosign 3.1.4 · go1.27.1 · registry lokal di 127.0.0.1:18295
+# Rekaman dari run bersih: make -C labs/t4-pipeline run.
+# Kunci cosign sendiri dibuat per run di .kerja (tidak di-commit); keyless, Fulcio, dan Rekor Tidak dijalankan.
+# Registry image lokal (registry:3 resmi, hanya 127.0.0.1). Digest dibaca dari keluaran `docker push` dan diberi label A, B, ...
+# Gerbang image memakai gerbang.putuskan_tanda_tangan: referensi harus digest, sama dengan digest yang dibangun CI, dan lolos cosign verify.
+
+# --- A. Image tanpa tanda tangan ---
+$ docker build, docker push  (image A: biner api-t4 untuk Linux di atas distroless, tag 1.0)
+digest dibaca dari keluaran push: <digest A>
+$ cosign verify --key kunci-1/cosign.pub --insecure-ignore-tlog=true 127.0.0.1:18295/api-t4:1.0
+Error: no signatures found
+(exit code 10)
+gerbang image (dibangun <digest A>): GAGAL (referensi bukan digest (tag bisa dipindah))
+$ cosign verify --key kunci-1/cosign.pub --insecure-ignore-tlog=true 127.0.0.1:18295/api-t4@<digest A>
+Error: no signatures found
+(exit code 10)
+gerbang image (dibangun <digest A>): GAGAL (cosign verify gagal)
+
+# --- B. Ditandatangani lewat tag, lalu tag dipindah ke image lain ---
+$ cosign sign --key kunci-1/cosign.key --tlog-upload=false --use-signing-config=false 127.0.0.1:18295/api-t4:1.0
+Flag --tlog-upload has been deprecated, prefer using a --signing-config file with no transparency log services
+Flag --use-signing-config has been deprecated, an offline signing flag will be added in the future; TUF will continue to provide a signing config by default if one is not provided manually
+WARNING: Image reference 127.0.0.1:18295/api-t4:1.0 uses a tag, not a digest, to identify the image to sign.
+    This can lead you to sign a different image than the intended one. Please use a
+    digest (example.com/ubuntu@sha256:abc123...) rather than tag
+    (example.com/ubuntu:latest) for the input to cosign. The ability to refer to
+    images by tag will be removed in a future release.
+Signing artifact...
+Pushing signature to: 127.0.0.1:18295/api-t4
+(exit code 0)
+# Tag diterima dengan peringatan, dan cosign menandatangani digest yang ditunjuk tag saat itu (A).
+$ cosign verify --key kunci-1/cosign.pub --insecure-ignore-tlog=true 127.0.0.1:18295/api-t4:1.0
+Verification for 127.0.0.1:18295/api-t4:1.0 --
+  - The signatures were verified against the specified public key
+tanda tangan memuat digest <digest A>
+(exit code 0)
+gerbang image (dibangun <digest A>): GAGAL (referensi bukan digest (tag bisa dipindah))
+$ cosign verify --key kunci-1/cosign.pub --insecure-ignore-tlog=true 127.0.0.1:18295/api-t4@<digest A>
+Verification for 127.0.0.1:18295/api-t4@<digest A> --
+  - The signatures were verified against the specified public key
+tanda tangan memuat digest <digest A>
+(exit code 0)
+gerbang image (dibangun <digest A>): LULUS (tanda tangan sah atas digest yang dibangun)
+
+$ docker build, docker push  (image B: biner yang sama, varian.txt berbeda; tag 1.0 yang sama dipindah ke B)
+digest dibaca dari keluaran push: <digest B>
+$ cosign verify --key kunci-1/cosign.pub --insecure-ignore-tlog=true 127.0.0.1:18295/api-t4:1.0
+Error: no signatures found
+(exit code 10)
+gerbang image (dibangun <digest A>): GAGAL (referensi bukan digest (tag bisa dipindah))
+$ cosign verify --key kunci-1/cosign.pub --insecure-ignore-tlog=true 127.0.0.1:18295/api-t4@<digest A>
+Verification for 127.0.0.1:18295/api-t4@<digest A> --
+  - The signatures were verified against the specified public key
+tanda tangan memuat digest <digest A>
+(exit code 0)
+gerbang image (dibangun <digest A>): LULUS (tanda tangan sah atas digest yang dibangun)
+$ cosign verify --key kunci-1/cosign.pub --insecure-ignore-tlog=true 127.0.0.1:18295/api-t4@<digest B>
+Error: no signatures found
+(exit code 10)
+gerbang image (dibangun <digest B>): GAGAL (cosign verify gagal)
+
+# --- C. Tag dipindah SEBELUM ditandatangani: yang ditandatangani bukan yang dibangun CI ---
+$ docker push 127.0.0.1:18295/api-t4-ci:2.0   # hasil build CI: <digest C>
+$ docker push 127.0.0.1:18295/api-t4-ci:2.0   # pihak lain memindahkan tag ke image lain: <digest D>
+$ cosign sign --key kunci-1/cosign.key --tlog-upload=false --use-signing-config=false 127.0.0.1:18295/api-t4-ci:2.0
+WARNING: Image reference 127.0.0.1:18295/api-t4-ci:2.0 uses a tag, not a digest, to identify the image to sign.
+    This can lead you to sign a different image than the intended one. Please use a
+    digest (example.com/ubuntu@sha256:abc123...) rather than tag
+    (example.com/ubuntu:latest) for the input to cosign. The ability to refer to
+    images by tag will be removed in a future release.
+Signing artifact...
+Pushing signature to: 127.0.0.1:18295/api-t4-ci
+(exit code 0)
+# CI menandatangani `2.0` dan cosign menandatangani yang ditunjuk tag saat itu, yaitu D, bukan C.
+$ cosign verify --key kunci-1/cosign.pub --insecure-ignore-tlog=true 127.0.0.1:18295/api-t4-ci:2.0
+Verification for 127.0.0.1:18295/api-t4-ci:2.0 --
+  - The signatures were verified against the specified public key
+tanda tangan memuat digest <digest D>
+(exit code 0)
+gerbang image (dibangun <digest C>): GAGAL (referensi bukan digest (tag bisa dipindah))
+# cosign verify atas tag berhasil dan memuat digest D. Referensi digest dari build CI (C) tidak punya tanda tangan:
+$ cosign verify --key kunci-1/cosign.pub --insecure-ignore-tlog=true 127.0.0.1:18295/api-t4-ci@<digest C>
+Error: no signatures found
+(exit code 10)
+gerbang image (dibangun <digest C>): GAGAL (cosign verify gagal)
+# Referensi digest D lolos cosign verify, tetapi D bukan yang dibangun CI:
+$ cosign verify --key kunci-1/cosign.pub --insecure-ignore-tlog=true 127.0.0.1:18295/api-t4-ci@<digest D>
+Verification for 127.0.0.1:18295/api-t4-ci@<digest D> --
+  - The signatures were verified against the specified public key
+tanda tangan memuat digest <digest D>
+(exit code 0)
+gerbang image (dibangun <digest C>): GAGAL (digest di referensi bukan digest yang dibangun CI)
+
+# --- D. Ditandatangani lewat digest ---
+$ docker push 127.0.0.1:18295/api-t4-digest:3.0   # hasil build CI: <digest E>
+$ cosign sign --key kunci-1/cosign.key --tlog-upload=false --use-signing-config=false 127.0.0.1:18295/api-t4-digest@<digest E>
+Signing artifact...
+Pushing signature to: 127.0.0.1:18295/api-t4-digest
+(exit code 0)
+$ cosign verify --key kunci-1/cosign.pub --insecure-ignore-tlog=true 127.0.0.1:18295/api-t4-digest@<digest E>
+Verification for 127.0.0.1:18295/api-t4-digest@<digest E> --
+  - The signatures were verified against the specified public key
+tanda tangan memuat digest <digest E>
+(exit code 0)
+gerbang image (dibangun <digest E>): LULUS (tanda tangan sah atas digest yang dibangun)
+# Kunci publik lain (kunci-2, pasangan yang tidak dipakai menandatangani):
+$ cosign verify --key kunci-2/cosign.pub --insecure-ignore-tlog=true 127.0.0.1:18295/api-t4-digest@<digest E>
+Error: no matching attestations: failed to verify signature: could not verify envelope: accepted signatures do not match threshold, Found: 0, Expected 1
+(exit code 1)
+gerbang image (dibangun <digest E>): GAGAL (cosign verify gagal)
