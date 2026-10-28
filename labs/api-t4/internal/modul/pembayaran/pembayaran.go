@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"lab/apit4/internal/gateway"
@@ -82,6 +83,10 @@ type Service struct {
 	// manager saat runtime, jadi rotasi tidak butuh deploy (lab t4-infra, ADR 39).
 	RahasiaFn func() []string
 	Kini      func() time.Time
+
+	// Kartu virtual (kartu.go, ADR 42): hold lewat API ledger dan kill switch. KartuAktif nil berarti aktif.
+	Penahan    Penahan
+	KartuAktif *atomic.Bool
 
 	// Lab saja: dipanggil di titik tertentu ("sesudah-ledger": ledger sudah menjurnal, transaction pembayaran belum
 	// dibuka). Lab memasang SIGKILL ke proses sendiri di sini.

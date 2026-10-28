@@ -1,0 +1,129 @@
+# Lab t4-kartu · M37: otorisasi tanpa hold lawan dengan hold, dan id_penerbit yang sama dua kali
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_kartu · server Go di 127.0.0.1:18280, penerbit tiruan di 127.0.0.1:18285
+# Rekaman dari database bersih: make -C labs/t4-kartu run.
+# server: ./api-t4 -lab -rentan kartu-tanpa-hold -lab-jeda-cek-tulis 300ms (versi pertama handler otorisasi, M37); penerbit tiruan: ./penerbit
+# Tenggat penerbit tiruan dinaikkan ke 10 detik di bagian ini: yang direkam di sini bukan batas waktu, tetapi apakah dana ditahan.
+# Budi (akun 40301): saldo Rp100.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+
+# --- A. Tanpa hold (versi pertama): dua otorisasi serentak, masing-masing di bawah saldo, keduanya disetujui ---
+AUTH-A Rp80.000: setuju (sumber: rekeningo)
+AUTH-B Rp80.000: setuju (sumber: rekeningo)
+=> SELECT id_penerbit, status, jumlah, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu ORDER BY id_penerbit
+ id_penerbit | status  | jumlah | ada_jurnal_tahan
+-------------+---------+--------+------------------
+ AUTH-A      | ditahan | 80000  | f
+ AUTH-B      | ditahan | 80000  | f
+(2 rows)
+=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40301 OR b.jenis = 'dana_tertahan' ORDER BY b.jenis
+ jenis         | saldo_cache
+---------------+-------------
+ dana_tertahan | 0
+ pemakai       | 100000
+(2 rows)
+# Kontrol: otorisasi ketiga datang sesudah dua yang pertama selesai, bukan bersamaan.
+AUTH-C Rp80.000: setuju (sumber: rekeningo)
+# Yang membuat ini gagal bukan keserentakan: tanpa hold, tidak ada yang mengubah saldo yang dibaca otorisasi berikutnya. Jeda 300 ms hanya melebarkan celah di antara cek dan tulis.
+=> SELECT count(*) AS disetujui, sum(jumlah) AS jumlah_disetujui FROM otorisasi_kartu WHERE status = 'ditahan'
+ disetujui | jumlah_disetujui
+-----------+------------------
+ 3         | 240000
+(1 row)
+
+# --- B. Clearing datang berjam-jam kemudian: ledger menjaga saldo tidak negatif, padahal persetujuan sudah diberikan ---
+clearing AUTH-A Rp80.000: HTTP 200
+clearing AUTH-B Rp80.000: HTTP 409, /problems/saldo-kurang
+clearing AUTH-C Rp80.000: HTTP 409, /problems/saldo-kurang
+=> SELECT id_penerbit, status FROM otorisasi_kartu ORDER BY id_penerbit
+ id_penerbit | status
+-------------+-----------
+ AUTH-A      | ditangkap
+ AUTH-B      | ditahan
+ AUTH-C      | ditahan
+(3 rows)
+=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40301 OR b.jenis = 'settlement_kartu' ORDER BY b.jenis
+ jenis            | saldo_cache
+------------------+-------------
+ pemakai          | 20000
+ settlement_kartu | 80000
+(2 rows)
+# Disetujui kepada toko Rp240.000; saldo Budi Rp100.000. Hanya satu clearing yang punya penutup, dua yang lain ditolak ledger (409) dan tidak punya jurnal.
+# server: ./api-t4 -lab (versi benar, ADR 42); penerbit tiruan: ./penerbit
+# Budi (akun 40301): saldo Rp100.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+# Citra (akun 40302): saldo Rp100.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+# Dewi (akun 40303): saldo Rp100.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+
+# --- C. Dengan hold (ORDER BY id FOR UPDATE, jurnal tahan): dua otorisasi serentak, yang kedua melihat saldo sesudah lock ---
+# Lab memegang lock buku Budi (seperti transaction lain yang sedang berjalan), memulai AUTH-A, menunggu sampai AUTH-A mengantre di lock, baru memulai AUTH-B, lalu melepas lock.
+AUTH-A Rp80.000: setuju (sumber: rekeningo)
+AUTH-B Rp80.000: tolak (sumber: rekeningo, alasan: saldo-kurang)
+=> SELECT id_penerbit, status, jumlah, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu ORDER BY id_penerbit
+ id_penerbit | status  | jumlah | ada_jurnal_tahan
+-------------+---------+--------+------------------
+ AUTH-A      | ditahan | 80000  | t
+ AUTH-B      | ditolak | 80000  | f
+(2 rows)
+=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40301 OR b.jenis = 'dana_tertahan' ORDER BY b.jenis
+ jenis         | saldo_cache
+---------------+-------------
+ dana_tertahan | 80000
+ pemakai       | 20000
+(2 rows)
+=> SELECT j.jenis, p.jumlah, b.jenis AS buku FROM jurnal j JOIN posting p ON p.jurnal_id = j.id JOIN buku b ON b.id = p.buku_id WHERE j.jenis = 'kartu_tahan' ORDER BY p.id
+ jenis       | jumlah | buku
+-------------+--------+---------------
+ kartu_tahan | -80000 | pemakai
+ kartu_tahan | 80000  | dana_tertahan
+(2 rows)
+clearing AUTH-A Rp80.000: HTTP 200, status ditangkap
+=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40301 OR b.jenis IN ('dana_tertahan', 'settlement_kartu') ORDER BY b.jenis
+ jenis            | saldo_cache
+------------------+-------------
+ dana_tertahan    | 0
+ pemakai          | 20000
+ settlement_kartu | 80000
+(3 rows)
+
+# --- D. id_penerbit yang sama dua kali: satu hold. Berurutan, serentak (dua permintaan antre di lock yang sama), dan dengan jumlah lain ---
+AUTH-1 pertama Rp80.000: setuju (sumber: rekeningo)
+AUTH-1 kedua (berurutan) Rp80.000: setuju (sumber: rekeningo)
+=> SELECT count(*) AS baris_otorisasi FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-1'
+ baris_otorisasi
+-----------------
+ 1
+(1 row)
+=> SELECT count(*) AS jurnal_kartu_tahan FROM jurnal WHERE jenis = 'kartu_tahan' AND dibuat_oleh = 40302
+ jurnal_kartu_tahan
+--------------------
+ 1
+(1 row)
+=> SELECT saldo_cache FROM buku WHERE akun_id = 40302
+ saldo_cache
+-------------
+ 20000
+(1 row)
+# Serentak: lab memegang lock buku Dewi, dua permintaan AUTH-2 yang sama mengantre, lalu lock dilepas.
+kedua permintaan AUTH-2: setuju (sumber: rekeningo)
+=> SELECT count(*) AS baris_otorisasi FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-2'
+ baris_otorisasi
+-----------------
+ 1
+(1 row)
+=> SELECT count(*) AS jurnal_kartu_tahan FROM jurnal WHERE jenis = 'kartu_tahan' AND dibuat_oleh = 40303
+ jurnal_kartu_tahan
+--------------------
+ 1
+(1 row)
+# Sama dengan jumlah lain: id itu dipakai untuk otorisasi yang berbeda. Dipanggil langsung ke Rekeningo seperti yang dikirim penerbit:
+$ curl -i -X POST '/penerbit/otorisasi' -H 'X-Penerbit-Kunci: kunci-penerbit-lab' -d '{"id_penerbit":"AUTH-1","token":"<token kartu Citra>","jumlah":90000}'
+HTTP/1.1 409 Conflict
+Content-Type: application/problem+json
+
+{"type":"/problems/id-penerbit-dipakai","title":"id_penerbit sudah dipakai untuk otorisasi lain","status":409}
+# Lewat penerbit tiruan, balasan 409 yang sama tidak sampai ke penerbit sebagai penolakan:
+AUTH-1 Rp90.000: setuju (sumber: timeout)
+# Tiruan ini memperlakukan semua balasan yang bukan 200 sebagai tidak ada jawaban, lalu memutuskan menurut setelan timeout (setuju). Itu penyederhanaan tiruan; dokumentasi satu penerbit menyebut timeout 2 detik dan jawaban yang tidak valid sebagai dua kasus yang diputuskan setelan atau Autopilot, tanpa merinci status HTTP lain [perlu verifikasi].
+=> SELECT id_penerbit, status, jumlah FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-1'
+ id_penerbit | status  | jumlah
+-------------+---------+--------
+ AUTH-1      | ditahan | 80000
+(1 row)

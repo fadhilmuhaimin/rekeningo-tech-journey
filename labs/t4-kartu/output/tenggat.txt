@@ -1,0 +1,108 @@
+# Lab t4-kartu · lock_timeout di bawah tenggat penerbit, penerbit yang memutuskan sendiri, dan lompatan service pembayaran
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_kartu · monolith di 127.0.0.1:18280, penerbit tiruan di 127.0.0.1:18285, service pembayaran di 127.0.0.1:18286
+# Rekaman dari database bersih: make -C labs/t4-kartu run.
+# server: ./api-t4 -lab, lock_timeout kartu bawaan 1 detik; penerbit tiruan: ./penerbit, tenggat 2 detik, bila timeout: setuju
+# Eko (akun 40304): saldo Rp100.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+# Fajar (akun 40305): saldo Rp100.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+
+# --- A. lock_timeout 1 detik di bawah tenggat 2 detik: buku terkunci, jawaban keluar dalam tenggat sebagai tolak (sibuk) ---
+# Lab memegang lock buku Eko (transaction lain yang lambat), lalu penerbit meminta otorisasi Rp10.000.
+AUTH-L1 Rp10.000: tolak (sumber: rekeningo, alasan: sibuk)
+# lama jawaban: di antara lock_timeout (1 detik) dan tenggat (2 detik): ya (batas yang diperiksa, nilainya bergantung mesin dan tidak direkam)
+=> SELECT count(*) AS baris_otorisasi FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-L1'
+ baris_otorisasi
+-----------------
+ 0
+(1 row)
+=> SELECT count(*) AS jurnal_kartu_tahan FROM jurnal WHERE jenis = 'kartu_tahan' AND dibuat_oleh = 40304
+ jurnal_kartu_tahan
+--------------------
+ 0
+(1 row)
+
+# --- B. Sisi lain batas: lock lepas sebelum lock_timeout, jawabannya setuju dengan hold ---
+AUTH-L2 Rp10.000: setuju (sumber: rekeningo)
+=> SELECT id_penerbit, status, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu ORDER BY id
+ id_penerbit | status  | ada_jurnal_tahan
+-------------+---------+------------------
+ AUTH-L2     | ditahan | t
+(1 row)
+
+# --- C. lock_timeout 3 detik, lebih panjang dari tenggat: penerbit tidak menunggu dan memutuskan sendiri ---
+# server dimulai ulang dengan -kartu-lock-timeout 3s (salah setelan; ADR 42 menulis 1 detik). Lab memegang lock buku Eko, penerbit meminta otorisasi Rp10.000.
+AUTH-L3 Rp10.000: setuju (sumber: timeout)
+# lama jawaban: sekitar tenggat (2 detik), bukan lock_timeout (3 detik): ya (batas yang diperiksa)
+# Rekeningo berhenti menunggu lock begitu penerbit memutus koneksi (di sekitar tenggat 2 detik), sebelum lock_timeout 3 detik habis: ya (batas yang diperiksa). Lock dilepas lab sesudah itu, jadi tidak ada hold yang menyusul.
+=> SELECT count(*) AS baris_otorisasi FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-L3'
+ baris_otorisasi
+-----------------
+ 0
+(1 row)
+=> SELECT count(*) AS jurnal_kartu_tahan FROM jurnal WHERE jenis = 'kartu_tahan' AND keterangan LIKE '%AUTH-L3'
+ jurnal_kartu_tahan
+--------------------
+ 0
+(1 row)
+# Penerbit sudah menyetujui, Rekeningo tidak menahan apa pun dan tidak punya baris untuk id itu. Clearing yang datang kemudian:
+clearing AUTH-L3 Rp10.000: HTTP 404, /problems/otorisasi-tidak-ditemukan
+# Setelan penerbit diganti: bila timeout, tolak.
+AUTH-L4 Rp10.000: tolak (sumber: timeout)
+
+# --- D. Lewat service pembayaran (ADR 42 dan ADR 37): penerbit, service pembayaran, API ledger. Dua batas di dalam satu tenggat ---
+# server: ./api-t4 -lab -ledger-kunci <kunci layanan>; service pembayaran: ./pembayaran -lab -ledger-timeout 1500ms; penerbit tiruan mengirim otorisasi ke service pembayaran dan clearing ke monolith
+# Rantai batas: lock_timeout ledger 1 detik, lalu batas panggilan pembayaran ke ledger 1,5 detik, lalu tenggat penerbit 2 detik.
+AUTH-L5 Rp10.000: tolak (sumber: rekeningo, alasan: sibuk)
+# lama jawaban: di antara lock_timeout dan tenggat, termasuk lompatan HTTP penerbit ke pembayaran dan pembayaran ke ledger: ya (batas yang diperiksa)
+=> SELECT count(*) AS baris_otorisasi FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-L5'
+ baris_otorisasi
+-----------------
+ 0
+(1 row)
+=> SELECT count(*) AS jurnal_kartu_tahan FROM jurnal WHERE jenis = 'kartu_tahan' AND keterangan LIKE '%AUTH-L5'
+ jurnal_kartu_tahan
+--------------------
+ 0
+(1 row)
+# lock_timeout ledger 3 detik (salah setelan): batas panggilan pembayaran ke ledger (1,5 detik) yang menyelamatkan tenggat.
+AUTH-L6 Rp10.000: tolak (sumber: rekeningo, alasan: ledger-tidak-menjawab)
+# lama jawaban: sekitar batas panggilan ke ledger (1,5 detik) dan di bawah tenggat: ya (batas yang diperiksa)
+=> SELECT count(*) AS baris_otorisasi FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-L6'
+ baris_otorisasi
+-----------------
+ 0
+(1 row)
+=> SELECT count(*) AS jurnal_kartu_tahan FROM jurnal WHERE jenis = 'kartu_tahan' AND keterangan LIKE '%AUTH-L6'
+ jurnal_kartu_tahan
+--------------------
+ 0
+(1 row)
+
+# --- E. lock_timeout berlaku per penantian lock, bukan per transaction: buku dana_tertahan dipakai semua hold ---
+# Versi satu proses, lock_timeout 1 detik, tenggat 2 detik. Pemilik kartu: Fajar. Dua kunci yang bisa ditunggu otorisasi: buku Fajar (ADR 13) dan buku sistem dana_tertahan (satu baris untuk semua pemilik).
+# Pertama, hanya buku dana_tertahan yang dikunci transaction lain: otorisasi Fajar, yang tidak berhubungan dengan transaction itu, ikut ditolak sibuk.
+AUTH-L7 Rp10.000: tolak (sumber: rekeningo, alasan: sibuk)
+# lama jawaban: di antara lock_timeout dan tenggat: ya (batas yang diperiksa)
+=> SELECT count(*) AS jurnal_kartu_tahan FROM jurnal WHERE jenis = 'kartu_tahan' AND keterangan LIKE '%AUTH-L7'
+ jurnal_kartu_tahan
+--------------------
+ 0
+(1 row)
+# Kedua: kedua kunci dipegang lab. Buku Fajar dilepas sesudah 0,6 detik, buku dana_tertahan sesudah 0,6 detik berikutnya. Tiap penantian di bawah lock_timeout.
+AUTH-L8 Rp10.000: setuju (sumber: rekeningo)
+# lama jawaban: lebih dari lock_timeout (1 detik) dan di bawah tenggat (2 detik): ya (batas yang diperiksa). Disetujui, bukan ditolak sibuk: lock_timeout membatasi satu penantian, bukan seluruh transaction.
+# Hitungan: tiga penantian 0,9 detik, masing-masing masih di bawah lock_timeout, menjumlah 2,7 detik, di atas tenggat 2 detik; tiga penantian Tidak dijalankan. Jaminan jawaban sebelum tenggat membutuhkan batas waktu untuk seluruh panggilan (di jalur dua service: batas panggilan pembayaran ke ledger, bagian D).
+=> SELECT id_penerbit, status, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-L8'
+ id_penerbit | status  | ada_jurnal_tahan
+-------------+---------+------------------
+ AUTH-L8     | ditahan | t
+(1 row)
+
+# --- F. Latensi tanpa kontensi: 200 otorisasi berurutan, satu jalur lawan jalur lewat service pembayaran (batas, bukan nilai) ---
+penerbit ke monolith (satu proses): 200 otorisasi setuju; p95 di bawah batas lab 250 ms: ya; yang paling lambat di bawah tenggat 2000 ms: ya
+penerbit ke service pembayaran ke ledger (dua service): 200 otorisasi setuju; p95 di bawah batas lab 250 ms: ya; yang paling lambat di bawah tenggat 2000 ms: ya
+# Batas 250 ms adalah Asumsi lab (seperdelapan tenggat). Nilai p95 bergantung mesin dan tidak direkam; kapasitas dan beban serentak tidak diukur.
+=> SELECT count(*) AS otorisasi_setuju, sum(jumlah) AS jumlah FROM otorisasi_kartu WHERE status = 'ditahan' AND id_penerbit LIKE 'LAT-%'
+ otorisasi_setuju | jumlah
+------------------+--------
+ 400              | 80000
+(1 row)

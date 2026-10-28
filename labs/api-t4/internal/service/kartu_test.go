@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -260,6 +261,31 @@ func TestOtorisasiDitolakDiulangDijawabSama(t *testing.T) {
 	}
 }
 
+// Bentuk id_penerbit dan token yang salah ditolak sebagai galat validasi sebelum menyentuh database: byte NUL dan
+// UTF-8 rusak membuat PostgreSQL menjawab SQLSTATE 22021, yang sampai ke penerbit sebagai 500.
+func TestOtorisasiBentukMasukanSalahDitolakSebelumDatabase(t *testing.T) {
+	svc, db := svcKartu(t, Dep{})
+	akun := pemakaiBaru(t, db, "terverifikasi", 100_000)
+	token := kartuTes(t, db, akun, "aktif", 500_000)
+	for nama, in := range map[string]PermintaanOtorisasi{
+		"id 65":          {IDPenerbit: strings.Repeat("a", 65), Token: token, Jumlah: 1_000},
+		"token 129":      {IDPenerbit: "a", Token: strings.Repeat("t", 129), Jumlah: 1_000},
+		"id NUL":         {IDPenerbit: "AUTH-\x00x", Token: token, Jumlah: 1_000},
+		"id UTF-8 rusak": {IDPenerbit: "AUTH-\xff\xfe", Token: token, Jumlah: 1_000},
+		"id baris baru":  {IDPenerbit: "A\nB", Token: token, Jumlah: 1_000},
+		"token NUL":      {IDPenerbit: idOtorisasi(), Token: "tok\x00en", Jumlah: 1_000},
+	} {
+		_, err := svc.Otorisasi(context.Background(), in)
+		var ev ErrValidasi
+		if !errors.As(err, &ev) {
+			t.Errorf("%s: %v; harus ErrValidasi", nama, err)
+		}
+	}
+	if n := hitungKartu(t, db, `SELECT count(*) FROM otorisasi_kartu o JOIN kartu k ON k.id = o.kartu_id WHERE k.akun_id = $1`, akun); n != 0 {
+		t.Fatalf("%d baris otorisasi untuk permintaan salah bentuk, harus 0", n)
+	}
+}
+
 // Kartu atau akun yang dibekukan menolak; token yang tidak dikenal menolak tanpa baris; batas harian kartu dijaga.
 func TestOtorisasiDitolak(t *testing.T) {
 	svc, db := svcKartu(t, Dep{})
@@ -315,6 +341,7 @@ func TestOtorisasiLockTimeoutMenjawabSibuk(t *testing.T) {
 	if _, err := penahan.Exec(`SELECT id FROM buku WHERE akun_id = $1 FOR UPDATE`, akun); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { penahan.Rollback() }) // lock tidak boleh bocor ke tes berikutnya bila tes ini gagal di tengah
 	lepas := time.AfterFunc(4*time.Second, func() { penahan.Rollback() })
 	defer lepas.Stop()
 
