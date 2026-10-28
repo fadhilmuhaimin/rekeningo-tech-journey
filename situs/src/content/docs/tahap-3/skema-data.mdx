@@ -263,7 +263,7 @@ CREATE UNIQUE INDEX outbox_satu_per_jurnal ON outbox (jurnal_id, akun_id) WHERE 
 |---|---|---|
 | Partisi `posting` per bulan | ±5,5 juta posting per tahun (Asumsi); `posting` tetap tabel terbesar, dan belum ada rekaman lab dengan 5.475.000 posting | Tahap 5, saat `posting` diperkirakan ±440 juta per tahun ([[t2-skema]]) |
 | Menghapus data pribadi dari `jurnal.keterangan` | Jurnal tidak bisa dihapus: DELETE ditolak untuk role aplikasi (SQLSTATE 42501), sedangkan catatan user kini ikut masuk ke `keterangan` | Belum dijadwalkan ([[t2-adr-ledger]]) |
-| Memisah tabel per modul (schema) | 14 tabel masih dikerjakan satu tim 4 developer | Tahap 4, saat tabel diperkirakan ±22 dan tim 6–10 developer dalam 2 tim |
+| Memisah tabel per modul (schema) | 14 tabel masih dikerjakan satu tim 4 developer | Tahap 4, saat tabel diperkirakan ±22 dan tim 13 developer dalam tiga tim |
 
 </Blok>
 

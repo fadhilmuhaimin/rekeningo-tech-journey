@@ -112,7 +112,9 @@ const HARI = Number(rumus[2]);
 const BYTE_POSTING = Number(rumus[3]);
 const TRX_LEDGER = Number(naskah.match(/Transaksi uang (\d+) per user aktif per hari/)![1]);
 const BYTE_BARIS = asumsi(3).baris;
-const TIM_T4_HALAMAN = "6–10 developer dalam 2 tim"; // kalimat halaman 3.5 (naskah lama); lihat catatan T4-siap di bawah
+// Kalimat tim Tahap 4 di halaman 3.5 diturunkan dari registry ("13 developer, 3 tim"), bukan ditulis tangan. Kalimat lama
+// "6–10 developer dalam 2 tim" ikut dijaga tidak kembali (KONSISTENSI-4, butir 1).
+const TIM_T4_HALAMAN = ((m) => `${m[1]} developer dalam ${KATA[Number(m[2])]} tim`)(asumsi(4).tim.match(/^(\d+) developer, (\d+) tim$/)!);
 function tahunData(no: number) {
   const a = asumsi(no);
   const aktif = (a.user * a.aktif) / 100;
@@ -895,9 +897,12 @@ describe("blok Putuskan dan Kunci", () => {
     expect(blokPutuskan).toContain(`| Memisah tabel per modul (schema) | ${erd3.tabel.length} tabel masih dikerjakan satu tim ${asumsi(3).tim} | Tahap 4, saat tabel diperkirakan ±22 dan tim ${TIM_T4_HALAMAN} |`);
     expect(bagian3b).toContain("| 4 | 100.000 | ±22, dibagi per modul |");
     expect(asumsi(3).tim).toBe("4 developer");
-    // T4-siap (keputusan 1208) memindahkan registry dan naskah Tahap 4 ke 13 developer dalam tiga tim; halaman 3.5 belum diubah
-    // dan KONSISTENSI-4 memperbaikinya, lalu TIM_T4_HALAMAN dan baris ini mengikuti.
+    // T4-siap (keputusan 1208) memindahkan registry dan naskah Tahap 4 ke 13 developer dalam tiga tim; KONSISTENSI-4 (butir 1)
+    // menyamakan halaman 3.5 dengannya. Kalimat lama "6–10 developer dalam 2 tim" tidak boleh kembali, di halaman maupun di blok Putuskan.
     expect(asumsi(4).tim).toBe("13 developer, 3 tim");
+    expect(TIM_T4_HALAMAN).toBe("13 developer dalam tiga tim");
+    expect(blokPutuskan).not.toContain("6–10 developer");
+    expect(blokPutuskan).not.toContain("dalam 2 tim");
   });
   test("Cek diri: lima kartu, jawaban memakai nilai turunan, dan kartu ulang digenerate dari pertanyaan yang sama", () => {
     const pertanyaan = [...blokKunci.matchAll(/^\*\*(\d)\.\*\* (.+)$/gm)].map((m) => [m[1], m[2]]);
