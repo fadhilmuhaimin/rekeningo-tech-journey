@@ -3030,8 +3030,9 @@
       "prasyarat": [
         "t3-estimasi"
       ],
-      "ada": false,
-      "nomor": "3.30"
+      "ada": true,
+      "nomor": "3.30",
+      "menit": 19
     },
     {
       "id": "t3-rekap",
