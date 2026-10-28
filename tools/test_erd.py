@@ -5,7 +5,9 @@ hitung_selisih dengan data buatan dan bersihkan() dengan potongan SQL, tanpa dat
 
     python3 tools/test_erd.py
 """
+import contextlib
 import importlib.util
+import io
 import json
 import pathlib
 import shutil
@@ -95,6 +97,12 @@ KASUS = [  # nama, ubah salinan, exit harapan, teks yang harus ada di keluaran
     ("migration api-t4 berubah tanpa JSON Tahap 4 dibangun ulang", tambah_baris(MIGRASI_T4[-1]), 1, "tahap-4.json: file sumber berubah"),
     ("migration api-t4 000020 berubah", tambah_baris(MIGRASI_T4[0]), 1, "tahap-4.json: file sumber berubah"),
     ("migration api-t3 000019 berubah: Tahap 3 dan 4 sama-sama menangkapnya", tambah_baris(MIGRASI_T3[-1]), 1, "tahap-4.json: file sumber berubah"),
+    ("migration baru di labs/api-t4/migrasi yang belum terdaftar di TAHAP[4] (hash tidak berubah, JSON diam-diam usang)",
+     lambda r: (r / "labs/api-t4/migrasi/000024_baru.up.sql").write_text("ALTER TABLE akun ADD COLUMN x int;\n", encoding="utf-8"),
+     1, "migration lab belum terdaftar di TAHAP[4]: labs/api-t4/migrasi/000024_baru.up.sql"),
+    ("migration baru di labs/api-t3/migrasi yang belum terdaftar: Tahap 3 dan 4 sama-sama menangkapnya",
+     lambda r: (r / "labs/api-t3/migrasi/000099_baru.up.sql").write_text("SELECT 1;\n", encoding="utf-8"),
+     1, "migration lab belum terdaftar di TAHAP[3]: labs/api-t3/migrasi/000099_baru.up.sql"),
     ("JSON Tahap 4 hilang", lambda r: (r / JSON4).unlink(), 1, "tahap-4.json: belum ada"),
     ("tabel baru dihapus dari selisih Tahap 4",
      ubah_json(lambda d: d["selisih"]["tabel_baru"].remove("topup_bank"), JSON4), 1, "tahap-4.json: selisih tidak sama"),
@@ -288,6 +296,10 @@ SELISIH += [
      lambda: modul_salinan(lambda t: t + "ALTER TABLE {s}.tabel_gaib SET SCHEMA t4m_platform;\n"), SystemExit),
     ("pernyataan yang dikomentari tidak dihitung",
      lambda: modul_salinan(lambda t: t.replace("ALTER TABLE {s}.qr SET SCHEMA t4m_merchant;", "-- ALTER TABLE {s}.qr SET SCHEMA t4m_merchant;")), SystemExit),
+    ("pernyataan di dalam komentar blok tidak dihitung (keputusan 1257)",
+     lambda: modul_salinan(lambda t: t.replace("ALTER TABLE {s}.qr SET SCHEMA t4m_merchant;", "/*\nALTER TABLE {s}.qr SET SCHEMA t4m_merchant;\n*/")), SystemExit),
+    ("komentar blok yang tidak menyentuh pernyataan tidak mengubah hasil",
+     lambda: modul_salinan(lambda t: "/* satu komentar\ndua baris */\n" + t) == ASLI_MODUL | {"sumber": modul_salinan(lambda t: "/* satu komentar\ndua baris */\n" + t)["sumber"]}, True),
     ("schema tanpa tabel ditolak",
      lambda: modul_salinan(lambda t: t.replace("CREATE SCHEMA t4m_platform;", "CREATE SCHEMA t4m_platform;\nCREATE SCHEMA t4m_kosong;")), SystemExit),
     ("schema ganda ditolak",
@@ -340,6 +352,73 @@ SELISIH += [
     ("entitas di naskah tanpa tabel di lab dilaporkan",
      lambda: erd.banding_mermaid(MERMAID.replace("  ANAK {", "  CUCU { bigint id PK }\n  ANAK {"), DATA_M), ["cucu: entitas di naskah, tidak ada tabel di lab"]),
     ("naskah tanpa blok mermaid ditolak", lambda: erd.banding_mermaid("tidak ada blok", DATA_M), SystemExit),
+]
+# Penguatan sesudah tinjauan ERD4 (keputusan 1257): empat mutan banding_mermaid dan naskah() lolos uji mutasi peninjau.
+# tipe `integer` di lab = `int` di mermaid (ALIAS_TIPE); foreign key gabungan yang salah satu kolomnya boleh kosong = boleh kosong.
+DATA_I = {"tabel": [
+    dict(tabel("akun", "id"), kolom=[kol("id"), kol("jumlah", "integer")], pk=["id"]),
+    dict(tabel("anak", "id"), kolom=[kol("id"), kol("akun_id"), kol("seri", "integer", False)], pk=["id"],
+         fk=[{"nama": "anak_akun_fkey", "kolom": ["akun_id", "seri"], "ke_tabel": "akun", "ke_kolom": ["id", "jumlah"], "saat_hapus": "NO ACTION"}]),
+]}
+MERMAID_I = """```mermaid
+erDiagram
+  AKUN |o--o{ ANAK : punya
+  AKUN { bigint id PK
+    int jumlah }
+  ANAK { bigint id PK
+    bigint akun_id FK
+    int seri FK }
+```
+"""
+SELISIH += [
+    ("tipe integer di lab sama dengan int di mermaid; foreign key gabungan dengan satu kolom kosong boleh kosong",
+     lambda: erd.banding_mermaid(MERMAID_I, DATA_I), []),
+    ("foreign key gabungan yang salah satu kolomnya boleh kosong, tetapi naskah menulis wajib, dilaporkan",
+     lambda: len(erd.banding_mermaid(MERMAID_I.replace("|o--o{", "||--o{"), DATA_I)), 1),
+]
+
+
+def naskah_salinan(ubah):
+    """naskah(4) pada salinan (naskah, JSON Tahap 4, run.py lab) yang diubah `ubah(root)`: (exit code, baris galat salinan tangan)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = pathlib.Path(tmp)
+        for rel in ("plan/CERITA-TAHAP-4.md", JSON4, "labs/api-t4/run.py"):
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(AKAR / rel, root / rel)
+        ubah(root)
+        keluar = io.StringIO()
+        with contextlib.redirect_stdout(keluar):
+            kode = erd.naskah(4, root)
+        teks = keluar.getvalue()
+        return kode, [b.strip() for b in teks.splitlines() if "salinan tangan" in b or b.startswith("NASKAH_3B")]
+
+
+def ubah_teks(rel, lama_, baru_):
+    def f(root):
+        p = root / rel
+        t = p.read_text(encoding="utf-8")
+        assert t.count(lama_) == 1, lama_
+        p.write_text(t.replace(lama_, baru_), encoding="utf-8")
+    return f
+
+
+RUN4 = "labs/api-t4/run.py"
+SELISIH += [
+    ("naskah(4) pada salinan apa adanya: exit 0, salinan tangan lab sama dengan mermaid dan lab",
+     lambda: naskah_salinan(lambda r: None), (0, ["NASKAH_3B di labs/api-t4/run.py: 10 tabel, sama dengan mermaid dan lab"])),
+    ("naskah(4): salinan tangan lab tidak sama dengan blok mermaid, exit 1",
+     lambda: naskah_salinan(ubah_teks("plan/CERITA-TAHAP-4.md", "    text hash_sebelumnya\n    text hash }", "    text hash_sebelumnya\n    text hash_baru }")),
+     (1, ["NASKAH_3B di labs/api-t4/run.py: 10 tabel, tidak sama dengan mermaid dan lab",
+          "- audit_log: salinan tangan di run.py tidak sama dengan blok mermaid"])),
+    ("naskah(4): kolom tambahan lab (LAB_TAMBAHAN) dihapus dari salinan tangan, exit 1",
+     lambda: naskah_salinan(ubah_teks(RUN4, 'LAB_TAMBAHAN = {"topup_bank": ["tujuan_bayar"]}', "LAB_TAMBAHAN = {}")),
+     (1, ["NASKAH_3B di labs/api-t4/run.py: 10 tabel, tidak sama dengan mermaid dan lab",
+          "- topup_bank: salinan tangan (ditambah LAB_TAMBAHAN) tidak sama dengan kolom lab"])),
+    ("naskah(4): kolom di salinan tangan yang tidak ada di lab, exit 1",
+     lambda: naskah_salinan(ubah_teks(RUN4, '"kartu": ["id", "akun_id", "token_penerbit", "empat_digit", "status", "batas_harian"]',
+                                      '"kartu": ["id", "akun_id", "token_penerbit", "empat_digit", "status", "batas_harian", "gaib"]'))[0], 1),
+    ("naskah(4) tanpa run.py lab: tidak ada pemeriksaan salinan, exit 0",
+     lambda: naskah_salinan(lambda r: (r / RUN4).unlink()), (0, [])),
 ]
 for nama, jalan, harap in SELISIH:
     try:

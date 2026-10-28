@@ -92,6 +92,9 @@ TAHAP = {
             "labs/api-t2/migrasi/000013_saldo_contract.up.sql",
         ],
         "sebelumnya": 1,
+        # Migration di folder api-t2 yang sengaja tidak masuk ERD karena hanya mengubah isi (UPDATE), bukan skema: 000014
+        # (M16, keputusan 647) menandai akun Gedung A wajib ganti password. `--cek` melewatinya saat mencari migration baru.
+        "tanpa_skema": ["labs/api-t2/migrasi/000014_wajib_ganti_password.up.sql"],
         # Teks sesudah "Isinya pindah ke". Naskah 3b "Apa yang berubah dan kenapa" menulis pengganti tiap tabel;
         # lab menentukan nasib baris lamanya: 000012 mengubah setiap koreksi jadi jurnal selisih + pembalik dan
         # saldo kolom jadi jurnal pembuka, sedangkan baris topup dan transaksi v1 hanya disalin ke schema arsip
@@ -152,7 +155,7 @@ TAHAP = {
         # labs/api-t4/dasar_t4.py: api-t1/schema.sql, batas saldo warung, SEMUA migration api-t2 (000009-000014), SEMUA
         # migration api-t3 (000015-000019), lalu api-t4 (000020-000023). Pembagian enam schema per modul (labs/t4-modul,
         # `ALTER TABLE ... SET SCHEMA` sesudah migration ini) bukan bagian skema akhir: ERD tetap satu schema, dan
-        # pengelompokannya ditulis di situs/data/erd/modul.json (diperiksa terhadap katalog lab di --cek).
+        # pengelompokannya dibaca erd.py dari modul.sql ke situs/data/erd/modul-tahap-4.json (diperiksa ulang di --cek).
         "sumber": [
             "labs/api-t1/schema.sql",
             "labs/b4-migration/baru/000005_batas_saldo_warung.up.sql",
@@ -549,6 +552,7 @@ def hitung_modul(n, root=AKAR):
     lalu foreign key yang menyeberang schema dihitung dari tahap-<n>.json (katalog). Murni, tanpa database."""
     rel = TAHAP[n]["modul"]
     teks = (root / rel).read_text(encoding="utf-8")
+    teks = re.sub(r"/\*.*?\*/", "", teks, flags=re.S)  # komentar blok: pernyataan di dalamnya tidak dijalankan PostgreSQL (keputusan 1257)
     kode = "\n".join(re.sub(r"--.*$", "", b) if not b.lstrip().startswith("ALTER TABLE") else b for b in teks.splitlines())
     schema = [m.group(1) for m in PERNYATAAN_SCHEMA.finditer(kode)]
     if len(set(schema)) != len(schema) or not schema:
@@ -668,9 +672,9 @@ def banding_mermaid(teks, data):
     return beda
 
 
-def salinan_lab(n):
+def salinan_lab(n, root=AKAR):
     """`NASKAH_3B` dan `LAB_TAMBAHAN` salinan tangan di run.py lab tahap n (hanya Tahap 4), atau None."""
-    run = AKAR / "labs" / f"api-t{n}" / "run.py"
+    run = root / "labs" / f"api-t{n}" / "run.py"
     if not run.is_file():
         return None
     m = re.search(r"^NASKAH_3B = (\{.*?^\})\n.*?^LAB_TAMBAHAN = (\{.*?\})", run.read_text(encoding="utf-8"), re.S | re.M)
@@ -680,17 +684,17 @@ def salinan_lab(n):
     return ast.literal_eval(m.group(1)), ast.literal_eval(m.group(2))
 
 
-def naskah(n):
+def naskah(n, root=AKAR):
     """`--naskah N`: cetak selisih naskah dan lab. Exit 1 hanya bila salinan tangan di run.py lab tidak sama dengan blok
     mermaid atau dengan kolom lab (salinan itu yang dipakai lab untuk gagal keras); selisih naskah dan lab hanya
     informasi: skema lab yang benar, naskah diperbarui KONSISTENSI."""
-    teks = (AKAR / "plan" / f"CERITA-TAHAP-{n}.md").read_text(encoding="utf-8")
-    data = json.loads(path_json(n).read_text(encoding="utf-8"))
+    teks = (root / "plan" / f"CERITA-TAHAP-{n}.md").read_text(encoding="utf-8")
+    data = json.loads(path_json(n, root).read_text(encoding="utf-8"))
     beda = banding_mermaid(teks, data)
     print(f"Tahap {n}: {len(beda)} selisih naskah 3b dengan lab (lab yang benar)")
     for b in beda:
         print(f"  - {b}")
-    salin = salinan_lab(n)
+    salin = salinan_lab(n, root)
     if salin is None:
         return 0
     entitas, _ = baca_mermaid(teks)
@@ -847,6 +851,13 @@ def cek(root):
         if data["sumber"]["sha256"] != hash_sumber(cfg, root):
             galat.append(f"{rel}: file sumber berubah sesudah JSON dibangun. Bangun ulang: "
                          f"labs/.venv/bin/python tools/erd.py --tahap {n}")
+        # Migration baru di folder lab yang sudah dipakai tahap ini (buat_schema() lab menjalankan semua *.up.sql di
+        # foldernya) harus masuk daftar sumber; tanpa ini file baru tidak mengubah hash dan JSON diam-diam usang (keputusan 1257).
+        for folder in sorted({f.rsplit("/", 1)[0] for f in cfg["sumber"] if f.startswith("labs/api-t") and "/migrasi/" in f}):
+            baru = sorted(x.relative_to(root).as_posix() for x in (root / folder).glob("*.up.sql") if x.relative_to(root).as_posix() not in cfg["sumber"] + cfg.get("tanpa_skema", []))
+            if baru:
+                galat.append(f"{rel}: migration lab belum terdaftar di TAHAP[{n}]: {', '.join(baru)}. Tambahkan ke sumber dan pembanding, "
+                             f"lalu bangun ulang: labs/.venv/bin/python tools/erd.py --tahap {n}")
         if cfg["sebelumnya"] is None:
             if data["selisih"] is not None:
                 galat.append(f"{rel}: selisih harus null (tidak ada tahap sebelumnya)")
@@ -904,7 +915,7 @@ def main(argv):
     if "--cek" in argv:
         return cek(root)
     if "--naskah" in argv:
-        return naskah(int(argv[argv.index("--naskah") + 1]))
+        return naskah(int(argv[argv.index("--naskah") + 1]), root)
     pilih = [int(argv[argv.index("--tahap") + 1])] if "--tahap" in argv else sorted(TAHAP)
     for n in pilih:
         if n not in TAHAP:
