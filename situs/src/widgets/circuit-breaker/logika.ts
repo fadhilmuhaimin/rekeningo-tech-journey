@@ -216,7 +216,7 @@ export interface Ringkas {
   vonis: Vonis;
   buka: number | null; kaliBuka: number;
   kevendor: number; kevendorTanpa: number;
-  ditolak: number; tunggu: number; tungguTanpa: number; // sinkron
+  ditolak: number; ditolakSehat: number; tunggu: number; tungguTanpa: number; // sinkron
   mati: number; menunggu: number; terkirim: number; probe: number; // queue
   kebuka: boolean;
 }
@@ -228,12 +228,14 @@ export function ringkas(p: Param, a: Aturan): Ringkas {
   const dasar = { buka: h.buka, kaliBuka: h.kaliBuka, kevendor: h.kevendor, kevendorTanpa: tanpa.kevendor, kebuka: h.kaliBuka > 0 };
   if (h.jalur === "sinkron" && tanpa.jalur === "sinkron") {
     const vonis: Vonis = !p.breaker ? "sinkron-tanpa" : h.kaliBuka > 0 ? "sinkron-membuka" : "sinkron-tetap";
-    return { ...dasar, vonis, ditolak: h.ditolak, tunggu: h.tunggu, tungguTanpa: tanpa.tunggu, mati: 0, menunggu: 0, terkirim: 0, probe: 0 };
+    // Permintaan yang ditolak sesudah vendor pulih: ongkos breaker, karena ia baru mencoba lagi sesudah Timeout.
+    const sehat = p.jenis === "5xx" && p.pulih === "sementara" ? h.sel.filter((s) => s.hasil === "tolak" && s.detik >= a.pulihDetik).length : 0;
+    return { ...dasar, vonis, ditolak: h.ditolak, ditolakSehat: sehat, tunggu: h.tunggu, tungguTanpa: tanpa.tunggu, mati: 0, menunggu: 0, terkirim: 0, probe: 0 };
   }
   if (h.jalur !== "queue") throw new Error("ringkas: jalur tidak konsisten");
   const vonis: Vonis = !p.breaker ? "queue-tanpa" : h.kaliBuka > 0 ? "queue-membuka" : "queue-tetap";
   return {
-    ...dasar, vonis, ditolak: 0, tunggu: 0, tungguTanpa: 0, probe: h.probe,
+    ...dasar, vonis, ditolak: 0, ditolakSehat: 0, tunggu: 0, tungguTanpa: 0, probe: h.probe,
     mati: hitungStatus(h.pekerjaan, "mati"), menunggu: hitungStatus(h.pekerjaan, "menunggu"), terkirim: hitungStatus(h.pekerjaan, "terkirim"),
   };
 }
