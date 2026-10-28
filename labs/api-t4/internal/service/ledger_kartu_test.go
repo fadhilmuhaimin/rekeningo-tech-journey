@@ -186,6 +186,7 @@ func TestLedgerTahanKartuLockTimeoutSibuk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { penahan.Rollback() }) // lock tidak boleh bocor ke tes berikutnya bila tes ini gagal di tengah
 	if _, err := penahan.Exec(`SELECT id FROM buku WHERE akun_id = $1 FOR UPDATE`, akun); err != nil {
 		t.Fatal(err)
 	}
@@ -268,5 +269,132 @@ func TestLedgerTahanKartuKeyHabisSesudah24Jam(t *testing.T) {
 	}
 	if n := jurnalTahanUntuk(t, db, id); n != 2 {
 		t.Fatalf("%d jurnal, harus 2 (key habis)", n)
+	}
+}
+
+// buku sistem dana_tertahan adalah satu baris yang di-UPDATE oleh semua hold (CatatJurnal), jadi hold milik pemilik
+// lain yang tidak berhubungan ikut menunggu bila baris itu dikunci transaction lain. lock_timeout menjawabnya sibuk.
+func TestLedgerTahanKartuBukuDanaTertahanTerkunciMenolakSibuk(t *testing.T) {
+	svc, db := svcLedgerKartu(t, Dep{LockTimeoutKartu: 300 * time.Millisecond})
+	akun := pemakaiBaru(t, db, "terverifikasi", 100_000)
+	penahan, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { penahan.Rollback() }) // lock tidak boleh bocor ke tes berikutnya bila tes ini gagal di tengah
+	if _, err := penahan.Exec(`SELECT id FROM buku WHERE akun_id IS NULL AND jenis = 'dana_tertahan' FOR UPDATE`); err != nil {
+		t.Fatal(err)
+	}
+	lepas := time.AfterFunc(5*time.Second, func() { penahan.Rollback() })
+	defer lepas.Stop()
+	id := idOtorisasi()
+	mulai := time.Now()
+	_, err = svc.LedgerTahanKartu(context.Background(), id, id, akun, 10_000)
+	lama := time.Since(mulai)
+	if !errors.Is(err, ErrLedgerSibuk) {
+		t.Fatalf("buku dana_tertahan terkunci: %v, harus ErrLedgerSibuk", err)
+	}
+	if lama < 250*time.Millisecond || lama > 3*time.Second {
+		t.Fatalf("jawaban sibuk butuh %s, harus kira-kira lock_timeout 300 ms", lama)
+	}
+	penahan.Rollback()
+	if n := jurnalTahanUntuk(t, db, id); n != 0 {
+		t.Fatalf("%d jurnal sesudah ROLLBACK karena lock_timeout, harus 0", n)
+	}
+	if s := saldo(t, db, akun); s != 100_000 {
+		t.Fatalf("saldo %d, harus tetap 100000", s)
+	}
+}
+
+// lock_timeout berlaku per penantian lock, bukan per transaction (dokumentasi PostgreSQL: "applies separately to each
+// lock acquisition attempt"). Dua penantian berurutan, masing-masing di bawah lock_timeout, membuat hold selesai lebih
+// lama daripada lock_timeout tanpa galat: lock_timeout sendirian tidak menjamin jawaban sebelum tenggat penerbit.
+func TestLedgerTahanKartuLockTimeoutBerlakuPerPenantianBukanPerTransaction(t *testing.T) {
+	svc, db := svcLedgerKartu(t, Dep{LockTimeoutKartu: 500 * time.Millisecond})
+	akun := pemakaiBaru(t, db, "terverifikasi", 100_000)
+	kunciBuku := func(q string, args ...any) *sql.Tx {
+		tx, err := db.Begin()
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { tx.Rollback() })
+		if _, err := tx.Exec(q, args...); err != nil {
+			t.Fatal(err)
+		}
+		return tx
+	}
+	a := kunciBuku(`SELECT id FROM buku WHERE akun_id = $1 FOR UPDATE`, akun)
+	b := kunciBuku(`SELECT id FROM buku WHERE akun_id IS NULL AND jenis = 'dana_tertahan' FOR UPDATE`)
+	// Pengaman bila tes gagal di tengah: kedua lock lepas sendiri.
+	pengaman := time.AfterFunc(8*time.Second, func() { a.Rollback(); b.Rollback() })
+	defer pengaman.Stop()
+	time.AfterFunc(300*time.Millisecond, func() { a.Rollback() })
+	time.AfterFunc(600*time.Millisecond, func() { b.Rollback() })
+	id := idOtorisasi()
+	mulai := time.Now()
+	h, err := svc.LedgerTahanKartu(context.Background(), id, id, akun, 10_000)
+	lama := time.Since(mulai)
+	if err != nil || h.Ulang {
+		t.Fatalf("dua penantian masing-masing 300 ms: %+v, %v; harus berhasil", h, err)
+	}
+	if lama < 500*time.Millisecond {
+		t.Fatalf("selesai dalam %s; harus lebih dari lock_timeout 500 ms karena dua penantian berurutan", lama)
+	}
+}
+
+// Dua otorisasi dengan id berbeda mengantre di lock buku pemilik yang dipegang transaction lain. Sesudah lock lepas,
+// yang pertama menahan dan yang kedua membaca saldo SESUDAH lock, jadi ditolak saldo kurang. Tanpa FOR UPDATE keduanya
+// sudah membaca saldo Rp100.000 sebelum menunggu, dan yang kedua baru gagal di database saat COMMIT (galat mentah).
+// Sumber waktu hanya jumlah penunggu lock (disaring menurut application_name tes ini), bukan jeda tetap.
+func TestLedgerTahanKartuDuaIDMengantreDiLockSaldoDibacaSesudahLock(t *testing.T) {
+	svc, db := svcLedgerKartu(t, Dep{LockTimeoutKartu: 20 * time.Second})
+	akun := pemakaiBaru(t, db, "terverifikasi", 100_000)
+	penahan, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { penahan.Rollback() }) // lock tidak boleh bocor ke tes berikutnya bila tes ini gagal di tengah
+	if _, err := penahan.Exec(`SELECT id FROM buku WHERE akun_id = $1 FOR UPDATE`, akun); err != nil {
+		t.Fatal(err)
+	}
+	lepas := time.AfterFunc(30*time.Second, func() { penahan.Rollback() })
+	defer lepas.Stop()
+	penunggu := func() int64 {
+		return hitungKartu(t, db, `SELECT count(*) FROM pg_stat_activity WHERE application_name = $1 AND wait_event_type = 'Lock'`, appTes)
+	}
+	galat := make([]error, 2)
+	var wg sync.WaitGroup
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			id := idOtorisasi()
+			_, galat[i] = svc.LedgerTahanKartu(context.Background(), id, id, akun, 80_000)
+		}()
+	}
+	for mulai := time.Now(); penunggu() < 2; time.Sleep(10 * time.Millisecond) {
+		if time.Since(mulai) > 10*time.Second {
+			penahan.Rollback()
+			t.Fatal("dua otorisasi tidak mengantre di lock dalam 10 detik")
+		}
+	}
+	penahan.Rollback()
+	wg.Wait()
+	ok, kurang := 0, 0
+	for _, e := range galat {
+		switch {
+		case e == nil:
+			ok++
+		case errors.Is(e, ErrSaldoKurang):
+			kurang++
+		default:
+			t.Fatalf("galat tak terduga: %v (saldo harus dibaca sesudah lock)", e)
+		}
+	}
+	if ok != 1 || kurang != 1 {
+		t.Fatalf("%d berhasil dan %d saldo kurang; harus satu dan satu", ok, kurang)
+	}
+	if s := saldo(t, db, akun); s != 20_000 {
+		t.Fatalf("saldo %d, harus 20000", s)
 	}
 }

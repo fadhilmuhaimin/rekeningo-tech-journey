@@ -135,6 +135,7 @@ func TestLedgerKartuTahanLockDitahanMenjawab503SibukDanClientMemetakan(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { penahan.Rollback() }) // lock tidak boleh bocor ke tes berikutnya bila tes ini gagal di tengah
 	if _, err := penahan.Exec(`SELECT id FROM buku WHERE akun_id = $1 FOR UPDATE`, akun); err != nil {
 		t.Fatal(err)
 	}

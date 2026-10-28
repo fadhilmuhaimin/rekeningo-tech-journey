@@ -106,7 +106,7 @@ func jawabUlang(o otorisasiBaris, k kartuBaris, in PermintaanOtorisasi) (Keputus
 func (s *Service) catatTolak(ctx context.Context, k kartuBaris, in PermintaanOtorisasi, alasan string) (Keputusan, error) {
 	_, err := s.DB.ExecContext(ctx, `
 		INSERT INTO otorisasi_kartu (kartu_id, id_penerbit, jumlah, status) VALUES ($1, $2, $3, 'ditolak')
-		ON CONFLICT (id_penerbit) DO NOTHING`, k.id, in.IDPenerbit, in.Jumlah)
+		ON CONFLICT DO NOTHING`, k.id, in.IDPenerbit, in.Jumlah)
 	if err != nil {
 		return Keputusan{}, err
 	}
@@ -174,10 +174,12 @@ func (s *Service) Otorisasi(ctx context.Context, in PermintaanOtorisasi) (Keputu
 	ctx, batal := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer batal()
 	tahanSampai := s.kini().Add(UmurTahanKartu)
+	// ON CONFLICT tanpa sasaran: dua permintaan dengan id yang sama menabrak UNIQUE id_penerbit dan UNIQUE jurnal_tahan_id
+	// (jurnal tahan yang sama dari ledger). Dengan sasaran id_penerbit saja, tabrakan kedua jadi galat 23505 yang acak.
 	hasil, err := s.DB.ExecContext(ctx, `
 		INSERT INTO otorisasi_kartu (kartu_id, id_penerbit, jumlah, status, jurnal_tahan_id, tahan_sampai)
 		VALUES ($1, $2, $3, 'ditahan', $4, $5)
-		ON CONFLICT (id_penerbit) DO NOTHING`, k.id, in.IDPenerbit, in.Jumlah, h.Jurnal, tahanSampai)
+		ON CONFLICT DO NOTHING`, k.id, in.IDPenerbit, in.Jumlah, h.Jurnal, tahanSampai)
 	if err != nil {
 		return Keputusan{}, err
 	}

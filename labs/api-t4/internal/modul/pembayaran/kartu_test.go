@@ -398,3 +398,43 @@ func TestKartuBarisTetapDitulisBilaPenerbitSudahPergi(t *testing.T) {
 		t.Fatalf("saldo %d, harus 70000", s)
 	}
 }
+
+// Dua permintaan dengan id yang sama sama-sama sudah mendapat hold (jawaban 200 ulang dari ledger) sebelum salah
+// satunya menulis baris: yang kedua tidak boleh gagal di UNIQUE dan tidak boleh menulis baris kedua. Gerbang di titik
+// sesudah-ledger membuat keduanya bertemu di sana tanpa jeda tetap.
+func TestKartuIDSamaDiTitikSesudahLedgerSatuBarisDuaJawabanSetuju(t *testing.T) {
+	l := siapkanKartu(t)
+	akun, token := l.kartuBaru(t, 100_000, 500_000)
+	var sampai sync.WaitGroup
+	sampai.Add(2)
+	gerbang := make(chan struct{})
+	l.p.TitikGagal = func(titik string) {
+		if titik == "sesudah-ledger" {
+			sampai.Done()
+			<-gerbang
+		}
+	}
+	id := idKartu()
+	k := make([]pembayaran.Keputusan, 2)
+	e := make([]error, 2)
+	var wg sync.WaitGroup
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			k[i], e[i] = l.otorisasi(id, token, 30_000)
+		}()
+	}
+	sampai.Wait()
+	close(gerbang)
+	wg.Wait()
+	for i := range k {
+		harapKeputusan(t, k[i], e[i], "setuju", "")
+	}
+	if c := l.hitung(t, `SELECT count(*) FROM otorisasi_kartu WHERE id_penerbit = $1`, id); c != 1 {
+		t.Fatalf("%d baris, harus 1", c)
+	}
+	if c := l.hitung(t, `SELECT count(*) FROM jurnal WHERE jenis = 'kartu_tahan' AND dibuat_oleh = $1`, akun); c != 1 {
+		t.Fatalf("%d jurnal kartu_tahan, harus 1", c)
+	}
+}
