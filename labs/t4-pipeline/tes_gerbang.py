@@ -121,6 +121,11 @@ class TesGosec(unittest.TestCase):
         temuan, galat, stat = g.parse_gosec(gosec([isu]), "/tmp/x")
         self.assertFalse(g.putuskan_gosec(temuan, galat, stat, "HIGH")[0])
 
+    def test_ambang_high_menahan_high_dan_melewatkan_medium(self):
+        for keparahan, harus_lulus in (("MEDIUM", True), ("HIGH", False)):
+            temuan, galat, stat = g.parse_gosec(gosec([dict(ISU, severity=keparahan)]), "/tmp/x")
+            self.assertEqual(g.putuskan_gosec(temuan, galat, stat, "HIGH")[0], harus_lulus, keparahan)
+
     def test_bersih_lulus(self):
         self.assertTrue(g.putuskan_gosec([], [], {"files": 2, "found": 0})[0])
 
@@ -158,6 +163,14 @@ class TesGovulncheck(unittest.TestCase):
         lulus, alasan = g.putuskan_govulncheck(hasil)
         self.assertFalse(lulus)
         self.assertIn("GO-1", alasan)
+
+    def test_bingkai_pertama_menentukan_dipanggil(self):
+        jejak = {"finding": {"osv": "GO-4", "fixed_version": "", "trace": [
+            {"module": "m", "version": "v1", "package": "m/p", "function": "F"}, {"module": "lab/x", "package": "lab/x"}]}}
+        self.assertTrue(g.parse_govulncheck(aliran(CONFIG, jejak))[0]["dipanggil"])
+        paket = {"finding": {"osv": "GO-5", "fixed_version": "", "trace": [
+            {"module": "m", "version": "v1", "package": "m/p"}, {"module": "lab/x", "package": "lab/x", "function": "main"}]}}
+        self.assertFalse(g.parse_govulncheck(aliran(CONFIG, paket))[0]["dipanggil"])
 
     def test_urutan_dipanggil_lebih_dulu(self):
         jejak = {"finding": {"osv": "GO-2", "fixed_version": "", "trace": [{"module": "m", "version": "v1", "package": "m/p", "function": "F"},
@@ -257,10 +270,10 @@ def verify(digest):
 
 class TesTandaTangan(unittest.TestCase):
     def test_referensi_digest_sah(self):
-        self.assertTrue(g.referensi_digest("127.0.0.1:18295/api-t4@" + D_A))
+        self.assertTrue(g.referensi_digest("registry.lab:5000/api-t4@" + D_A))
 
     def test_tag_ditolak(self):
-        self.assertFalse(g.referensi_digest("127.0.0.1:18295/api-t4:1.0"))
+        self.assertFalse(g.referensi_digest("registry.lab:5000/api-t4:1.0"))
 
     def test_tag_dan_digest_sekaligus_ditolak(self):
         self.assertFalse(g.referensi_digest("repo:1.0@" + D_A))
@@ -297,7 +310,12 @@ class TesTandaTangan(unittest.TestCase):
     def test_putusan_menolak_tag_walau_cosign_berhasil(self):
         lulus, alasan = g.putuskan_tanda_tangan("r:1.0", D_A, 0, verify(D_A))
         self.assertFalse(lulus)
-        self.assertIn("bukan digest", alasan)
+        self.assertIn("referensi bukan digest", alasan)
+
+    def test_putusan_menolak_tag_yang_ditempeli_digest(self):
+        lulus, alasan = g.putuskan_tanda_tangan("r:1.0@" + D_A, D_A, 0, verify(D_A))
+        self.assertFalse(lulus)
+        self.assertIn("referensi bukan digest", alasan)
 
     def test_putusan_menolak_digest_lain_walau_cosign_berhasil(self):
         lulus, alasan = g.putuskan_tanda_tangan("r@" + D_B, D_A, 0, verify(D_B))
@@ -325,6 +343,9 @@ class TesTandaTangan(unittest.TestCase):
 class TesLangkahPipeline(unittest.TestCase):
     def test_perubahan_kontrak_menjalankan_kontrak_dan_klien(self):
         self.assertEqual(g.langkah_untuk(["labs/api-t4/openapi.yaml"]), ["klien", "kontrak"])
+
+    def test_nama_berkas_mirip_tidak_menjalankan_langkah(self):
+        self.assertEqual(g.langkah_untuk(["labs/api-t4/openapi.yaml.bak", "labs/api-t4/go.summary", "labs/api-t4/Dockerfile.dev"]), [])
 
     def test_perubahan_dependensi_menjalankan_audit_dan_sbom(self):
         self.assertEqual(g.langkah_untuk(["labs/api-t4/go.sum"]), ["audit-dependensi", "sbom"])

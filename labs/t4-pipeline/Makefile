@@ -15,7 +15,7 @@ cek: run
 
 # Tes kebijakan gerbang (tanpa alat, tanpa jaringan).
 test:
-	python3 -B -m unittest -v tes_gerbang
+	python3 -B -m unittest -v tes_gerbang tes_alat
 
 # Tanda tangan rilis alat (sigstore, butuh jaringan). Bukan bagian run: hasilnya dicatat di README dengan tanggal.
 verifikasi-alat:

@@ -862,13 +862,13 @@ def bagian_tanda():
 # ---------- tes kebijakan gerbang ----------
 
 def bagian_testing():
-    kode, keluar, galat = jalankan([sys.executable, "-B", "-m", "unittest", "-v", "tes_gerbang"], cwd=HERE)
+    kode, keluar, galat = jalankan([sys.executable, "-B", "-m", "unittest", "-v", "tes_gerbang", "tes_alat"], cwd=HERE)
     teks = keluar + galat
-    nama = re.findall(r"^(test_\w+) \((?:tes_gerbang)\.(\w+)\.\w+\) \.\.\. ok$", teks, re.M)
+    nama = re.findall(r"^(test_\w+) \(tes_\w+\.(\w+)\.\w+\) \.\.\. ok$", teks, re.M)
     ran = re.search(r"^Ran (\d+) tests? in", teks, re.M)
     harap(kode, 0, f"tes_gerbang: {teks[-400:]}")
     harap(len(nama), int(ran.group(1)), "tes yang tampil ok lawan tes yang dijalankan")
-    catat("$ python3 -B -m unittest -v tes_gerbang")
+    catat("$ python3 -B -m unittest -v tes_gerbang tes_alat")
     for fungsi, kelas in sorted(nama, key=lambda t: (t[1], t[0])):
         catat(f"ok {kelas}.{fungsi}")
     catat(f"Ran {ran.group(1)} tests: OK")
