@@ -154,6 +154,17 @@ describe("klaim tentang handler cocok dengan kode api-t4", () => {
     expect(st).toContain("target == cur");
     expect(blok("kredit-topup")).toContain("Idempotency-Key = order_id");
   });
+  const fungsi = (nama: string): string => {
+    const mulai = kode.indexOf(`func (s Service) ${nama}(`);
+    if (mulai < 0) throw new Error(`kode: fungsi ${nama} tidak ada`);
+    return kode.slice(mulai, kode.indexOf("\n}\n", mulai) + 3);
+  };
+  test("job cek status dan rekonsiliasi tidak membaca versi handler, jadi hasilnya sama di kedua versi (klaim langkah cek dan rekon)", () => {
+    // Kontrol positif: hanya TerimaWebhook membedakan mode rentan; bila pemeriksaan ini tak bisa gagal, tes ini tak berarti.
+    expect(fungsi("TerimaWebhook")).toContain("s.rentan");
+    for (const nama of ["CekTopup", "CekTopupBelumSelesai", "RekonHarian"]) expect(fungsi(nama), nama).not.toContain("s.rentan");
+    for (const nama of ["terapkan-status", "kredit-topup"]) expect(blok(nama), nama).not.toContain("s.rentan");
+  });
 });
 
 describe("teks tampil", () => {
@@ -175,9 +186,9 @@ describe("teks tampil", () => {
  * menahan perubahan yang tidak dibaca (mutan "sisip tidak" lolos tes lain karena kalimat bebas tidak dibandingkan dengan sumbernya). */
 const sidik = (x: unknown): string => createHash("sha256").update(JSON.stringify(x)).digest("hex").slice(0, 12);
 const KUNCI = {
-  tebak: "7ac2bb82a3f7",
+  tebak: "e7938bb5ffd1",
   mode: "c5f54831bdc7",
-  langkah: ["0c119d58a97b", "7143a96be93e", "61419038ef4f", "5829b1cfe9a9", "f85f0916bfda", "4a7a21278597", "6c7a70e43409", "ae930a366f32"],
+  langkah: ["0c119d58a97b", "7143a96be93e", "f35bb93a4006", "2269cf782230", "d5e4a4205ef4", "285d6748fd48", "8580bad4ee48", "ae930a366f32"],
 };
 describe("kunci teks tampil", () => {
   test("tebakan dan label versi", () => {
@@ -186,5 +197,25 @@ describe("kunci teks tampil", () => {
   });
   test.each(KUNCI.langkah.map((k, i) => [i + 1, k] as const))("langkah %i", (i, kunci) => {
     expect(sidik(s.langkah[i - 1]), `langkah ${i}: ${s.langkah[i - 1]!.judul}`).toBe(kunci);
+  });
+});
+
+/** Label tetap di luar langkah dan tebakan (tidak ikut `Siap`): judul, chip kepala, status tebakan, tombol, petunjuk, kata Aman dan Masalah,
+ * teks tanpa JavaScript, kepala tabel. Alat ukur membandingkannya dengan JSON yang sama, jadi tanpa kunci ini tertukarnya "Aman" dan
+ * "Masalah" atau "Tepat." dan "Belum tepat." lolos semua lapis (mutan tinjauan 13 dari 13 lolos). */
+const LABEL_TETAP = ["judul", "sumberChip", "tebakDulu", "benar", "belum", "ulang", "ubahJudul", "modeJudul", "petunjuk", "keadaanJudul", "berikutnya", "sebelumnya", "tanda", "tanpaJs", "kolomTabel"] as const;
+describe("kunci label tetap", () => {
+  test("semua label di luar langkah dan tebakan", () => {
+    expect(sidik(Object.fromEntries(LABEL_TETAP.map((k) => [k, mentah[k]])))).toBe("2242a2a51b41");
+  });
+  test("pasangan label yang artinya berlawanan tidak tertukar", () => {
+    expect(mentah.tanda).toEqual({ baik: "Aman", buruk: "Masalah" });
+    expect([mentah.benar, mentah.belum]).toEqual(["Tepat.", "Belum tepat."]);
+    expect([mentah.kolomTabel.langkah, mentah.kolomTabel.hasil, mentah.kolomTabel.sumber]).toEqual(["Langkah dan versi", "Hasil", "Sumber"]);
+    expect([mentah.berikutnya, mentah.sebelumnya]).toEqual(["Langkah berikutnya", "Langkah sebelumnya"]);
+  });
+  test("setiap kunci label tetap ada dan tidak ada label tetap baru tanpa kunci", () => {
+    const dalamSiap = ["langkah", "tebak", "mode", "modeKalimat", "statusLangkah", "langkahDari", "jenisChip"];
+    expect(Object.keys(mentah).filter((k) => !dalamSiap.includes(k)).sort()).toEqual([...LABEL_TETAP].sort());
   });
 });

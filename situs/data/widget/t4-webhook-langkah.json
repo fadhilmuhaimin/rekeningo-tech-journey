@@ -30,7 +30,7 @@
       {
         "nilai": 1,
         "teks": "{n} jurnal: handler tahu top-up itu sudah dibayar",
-        "alasan": "Tidak. Handler versi pertama menulis status dari isi kabar tanpa membaca status sekarang, jadi ia tidak tahu top-up itu sudah dibayar."
+        "alasan": "Tidak. Handler versi pertama menulis status dari isi kabar tanpa memeriksa status sekarang, jadi ia tidak tahu top-up itu sudah dibayar."
       },
       {
         "nilai": 2,
@@ -109,7 +109,7 @@
           ],
           "sumber": [
             { "jenis": "rekaman", "lab": "t4-webhook", "berkas": "ganda.txt", "bagian": "A", "teks": "{jurnalPertama} jurnal untuk satu pembayaran." },
-            { "jenis": "ilustrasi", "teks": "Menit {menitUlang1} berasal dari jadwal retry. Rekaman mengirim kedua kiriman berurutan." }
+            { "jenis": "ilustrasi", "teks": "Jeda dan menit {menitUlang1} berasal dari jadwal gateway tiruan (retry.txt, bagian A), yang mengikuti dokumentasi sebuah gateway nyata. Rekaman ganda mengirim kedua kiriman berurutan." }
           ]
         },
         "adr34": {
@@ -122,7 +122,7 @@
           ],
           "sumber": [
             { "jenis": "rekaman", "lab": "t4-webhook", "berkas": "ganda.txt", "bagian": "B", "teks": "INSERT ... ON CONFLICT DO NOTHING tidak menghasilkan baris untuk event_id yang sama." },
-            { "jenis": "ilustrasi", "teks": "Menit {menitUlang1} berasal dari jadwal retry. Rekaman mengirim kedua kiriman berurutan." }
+            { "jenis": "ilustrasi", "teks": "Jeda dan menit {menitUlang1} berasal dari jadwal gateway tiruan (retry.txt, bagian A), yang mengikuti dokumentasi sebuah gateway nyata. Rekaman ganda mengirim kedua kiriman berurutan." }
           ]
         }
       }
@@ -136,10 +136,10 @@
           "ringkas": "status top-up mundur ke {statusPending}",
           "baris": [
             { "label": "Gateway", "nilai": "Pending tiba sesudah settlement", "tanda": "netral" },
-            { "label": "Handler", "nilai": "Menulis status dari isi kabar, tanpa membaca status sekarang", "tanda": "netral" },
+            { "label": "Handler", "nilai": "Menulis status dari isi kabar, tanpa memeriksa status sekarang", "tanda": "netral" },
             { "label": "Status top-up", "nilai": "{statusPending}, padahal top-up sudah dibayar", "tanda": "buruk" }
           ],
-          "sumber": [{ "jenis": "rekaman", "lab": "api-t4", "berkas": "rentan.txt", "bagian": "A", "teks": "Status mundur karena tidak ada status bersyarat." }]
+          "sumber": [{ "jenis": "rekaman", "lab": "api-t4", "berkas": "rentan.txt", "bagian": "A", "teks": "Direkam di lab api-t4: status mundur karena tidak ada status bersyarat." }]
         },
         "adr34": {
           "ringkas": "kabar pending diparkir, status top-up tetap {statusTerlambatAdr}",
@@ -156,7 +156,7 @@
     {
       "id": "hilang",
       "judul": "Kabar hilang: tidak pernah tercatat",
-      "teks": "Top-up Citra {uangHilang} sudah dibayar di bank, tetapi kabarnya tidak pernah tercatat. Gateway mengulang menurut jadwal, lalu berhenti. Webhook adalah satu-satunya jalan kabar.",
+      "teks": "Top-up Citra {uangHilang} sudah dibayar di bank, tetapi kabarnya tidak pernah tercatat. Webhook adalah satu-satunya jalan kabar.",
       "hasil": {
         "pertama": {
           "ringkas": "tidak ada kabar dan tidak ada jurnal",
@@ -196,7 +196,7 @@
             { "label": "Jurnal top-up", "nilai": "{kredit2} jurnal lewat fungsi yang sama dengan webhook", "tanda": "baik" }
           ],
           "sumber": [
-            { "jenis": "rekaman", "lab": "t4-webhook", "berkas": "rekon.txt", "bagian": "A", "teks": "Umur top-up diputar mundur lewat UPDATE kolom dibuat oleh pemilik schema, hanya di lab." },
+            { "jenis": "rekaman", "lab": "t4-webhook", "berkas": "rekon.txt", "bagian": "A", "teks": "Umur top-up diputar mundur lewat UPDATE kolom dibuat oleh pemilik schema, hanya di lab. Direkam dengan server versi ADR {adrHandler}; kode job tidak membaca versi handler, jadi hasil di versi pertama dibaca dari kode dan tidak dijalankan." },
             { "jenis": "asumsi", "teks": "Batas {batasCek} menit adalah pilihan tiruan, bukan angka gateway." }
           ]
         }
@@ -215,7 +215,7 @@
             { "label": "Koreksi", "nilai": "{dikoreksi} lewat jurnal baru, {tanpaJurnal} selesai tanpa jurnal, {terbuka} tetap terbuka", "tanda": "netral" },
             { "label": "Posting lama", "nilai": "Tidak berubah: sidik MD5 sama sebelum dan sesudah koreksi", "tanda": "baik" }
           ],
-          "sumber": [{ "jenis": "rekaman", "lab": "t4-webhook", "berkas": "rekon.txt", "bagian": "B", "teks": "Direkam atas top-up lab, bukan top-up Citra." }]
+          "sumber": [{ "jenis": "rekaman", "lab": "t4-webhook", "berkas": "rekon.txt", "bagian": "B", "teks": "Direkam atas top-up lab, bukan top-up Citra. Direkam dengan server versi ADR {adrHandler}; kode job tidak membaca versi handler, jadi hasil di versi pertama dibaca dari kode dan tidak dijalankan." }]
         }
       }
     },
