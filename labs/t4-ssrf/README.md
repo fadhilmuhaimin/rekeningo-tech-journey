@@ -114,7 +114,7 @@ Peninjau menjalankan seluruh 136 mutan di host (darwin/arm64, `CGO_ENABLED=0`) d
 | Go | go1.27.1 (toolchain lokal) | tes dikompilasi juga sebagai biner linux/arm64 untuk uji mutasi di container `golang:1.27-alpine` (go1.27.1) tanpa jaringan |
 | golang/go#80417 | terbuka, dibuka 2026-07-15, label NeedsInvestigation; CL 802060 dan 802080 menyebutnya | GitHub API, dibaca 2026-10-28 |
 | golang/go#79925 | ditutup 2026-07-11 (`not_planned`): himpunan alamat `IsPrivate` tidak diubah, dokumentasi bukan tempat panduan SSRF | GitHub API, dibaca 2026-10-28 |
-| Registri alamat khusus IANA IPv4 dan IPv6 | file XML bertanggal 2025-10-09, diunduh 2026-10-28 | dipakai untuk membandingkan daftar `alamatKhusus`; filenya tidak disimpan di repo |
+| Registri alamat khusus IANA IPv4 dan IPv6 | file XML bertanggal 2025-10-09, diunduh 2026-10-28 | dipakai untuk membandingkan daftar `alamatKhusus`; filenya tidak disimpan di repo. `python3 tepi_registri.py <folder berisi kedua file>` menurunkan ulang tabel `tepiBlokRegistri` di tes (hasilnya identik; tidak dijalankan `make`, karena lab tidak mengunduh) |
 
 Dependency baru: tidak ada. Tes memakai pustaka standar Go.
 

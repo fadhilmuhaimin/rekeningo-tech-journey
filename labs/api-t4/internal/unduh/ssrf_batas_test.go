@@ -808,8 +808,8 @@ func TestSSRFKelasAlamatBerzonaSamaDenganTanpaZona(t *testing.T) {
 }
 
 // tepiBlokRegistri: tepi tiap blok alamat khusus yang tidak boleh menjadi tujuan unduhan, diturunkan sekali dari registri
-// alamat khusus IPv4 dan IPv6 IANA (berkas XML bertanggal 2025-10-09, diunduh 2026-10-28, tidak disimpan di repo) lewat
-// skrip peninjau: blok dengan Globally Reachable false atau N/A, atau usang, hanya yang maksimal (tidak di dalam blok lain
+// alamat khusus IPv4 dan IPv6 IANA (berkas XML bertanggal 2025-10-09, diunduh 2026-10-28, tidak disimpan di repo) oleh
+// labs/t4-ssrf/tepi_registri.py (tidak dijalankan oleh make): blok dengan Globally Reachable false atau N/A, atau usang, hanya yang maksimal (tidak di dalam blok lain
 // yang juga terlarang). Tiga baris ditambahkan dari luar registri: ::/96 dan fec0::/10 (blok usang, keputusan 1238) dan
 // 64:ff9b::/96 (terjangkau global menurut registri, tetapi membawa alamat IPv4 sehingga tujuan sebenarnya bisa private).
 // Kolom: blok, alamat pertama dan terakhir di dalam blok (harus ditolak), dan alamat tepat di luarnya (harus lolos). Alamat
