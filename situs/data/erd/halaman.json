@@ -33,6 +33,30 @@
       "produk": ["t3-cache", "t3-m23", "t3-offline"],
       "promo": ["t3-notifikasi", "t3-m27"],
       "operasi_sinkron": ["t3-m24", "t3-offline"]
+    },
+    "4": {
+      "akun": ["t4-topup-verifikasi", "t4-skema", "t4-m35", "t4-audit"],
+      "sesi": ["t3-m25", "t3-xss-csrf"],
+      "buku": ["t2-saldo-bukan-kolom", "t2-ledger", "t4-topup-verifikasi", "t4-kartu"],
+      "jurnal": ["t2-ledger", "t2-adr-ledger", "t3-outbox", "t4-webhook", "t4-kartu"],
+      "posting": ["t2-ledger", "t2-index"],
+      "kunci_idempotensi": ["E3", "t3-offline", "t4-webhook", "t4-modul"],
+      "batch_pencairan": ["t2-pencairan", "t2-job-rekonsiliasi"],
+      "baris_pencairan": ["t2-pencairan"],
+      "kota": ["t3-notifikasi", "t3-cache"],
+      "perangkat": ["t3-notifikasi", "t3-at-least-once"],
+      "outbox": ["t3-dua-tempat", "t3-outbox", "t3-klaim-baris", "t3-at-least-once", "t4-m31", "t4-breaker"],
+      "produk": ["t3-cache", "t3-m23", "t3-offline", "t4-m36", "t4-ssrf"],
+      "promo": ["t3-notifikasi", "t3-m27"],
+      "operasi_sinkron": ["t3-m24", "t3-offline"],
+      "topup_bank": ["t4-topup-verifikasi", "t4-m29", "t4-webhook", "t4-m30", "t4-rekonsiliasi"],
+      "webhook_event": ["t4-m29", "t4-webhook"],
+      "insiden_rekon": ["t4-m30", "t4-rekonsiliasi"],
+      "verifikasi": ["t4-topup-verifikasi", "t4-m31", "t4-m33", "t4-storage"],
+      "qr": ["t4-m35", "t4-qr"],
+      "kartu": ["t4-m37", "t4-kartu"],
+      "otorisasi_kartu": ["t4-m37", "t4-kartu"],
+      "audit_log": ["t4-m38", "t4-audit"]
     }
   }
 }

@@ -1,0 +1,49 @@
+# Lab t4-pipeline · client Dart dibuat ulang dari kontrak
+# openapi-generator-cli 7.26.0
+# Rekaman dari run bersih: make -C labs/t4-pipeline run.
+# Generator: openapi-generator-cli v7.26.0 (image resmi, digest dikunci di alat.json), generator `dart`, tanpa jaringan.
+# Kontrak sebelum = labs/api-t4/openapi.yaml. Client hasilnya: 258 berkas di package api_client.
+
+# --- A. Kontrak yang sama menghasilkan client yang sama ---
+$ diff -r klien-sebelum klien-sebelum-ulang
+(tidak ada perbedaan: dua generasi identik, jadi setiap beda di bagian lain berasal dari kontrak)
+
+# --- B. Satu field wajib dihapus dari respons GET /akun/{id}: client berubah di tiga berkas ---
+$ diff -rq klien-sebelum klien-field-wajib-hapus
+berbeda: doc/Akun.md
+berbeda: lib/model/akun.dart
+berbeda: test/akun_test.dart
+$ diff -u klien-sebelum/lib/model/akun.dart klien-field-wajib-hapus/lib/model/akun.dart
+--- sebelum/lib/model/akun.dart
++++ sesudah/lib/model/akun.dart
+-    required this.saldo,
+-  /// buku.saldo_cache; 0 untuk akun tanpa buku
+-  int saldo;
+-
+-    other.saldo == saldo &&
+-    (saldo.hashCode) +
+-  String toString() => 'Akun[id=$id, jenis=$jenis, nama=$nama, saldo=$saldo, nomorKaryawan=$nomorKaryawan, kotaId=$kotaId, tingkat=$tingkat, status=$status]';
++  String toString() => 'Akun[id=$id, jenis=$jenis, nama=$nama, nomorKaryawan=$nomorKaryawan, kotaId=$kotaId, tingkat=$tingkat, status=$status]';
+-      json[r'saldo'] = this.saldo;
+-        assert(json.containsKey(r'saldo'), 'Required key "Akun[saldo]" is missing from JSON.');
+-        assert(json[r'saldo'] != null, 'Required key "Akun[saldo]" has a null value in JSON.');
+-        saldo: mapValueOfType<int>(json, r'saldo')!,
+-    'saldo',
+
+# --- C. Satu nilai enum ditambah di respons GET /akun/{id}: client berubah di satu berkas ---
+$ diff -rq klien-sebelum klien-enum-respons-tambah
+berbeda: lib/model/akun.dart
+$ diff -u klien-sebelum/lib/model/akun.dart klien-enum-respons-tambah/lib/model/akun.dart
+--- sebelum/lib/model/akun.dart
++++ sesudah/lib/model/akun.dart
++  badan._(r'badan'),
++        case r'badan': return AkunJenisEnum.badan;
+
+# Bagaimana client lama membaca nilai baru (dibaca dari kode yang dihasilkan, Dart tidak dijalankan):
+$ sed -n 138p klien-sebelum/lib/model/akun.dart
+jenis: AkunJenisEnum.fromJson(json[r'jenis'])!,
+$ sed -n 224p klien-sebelum/lib/model/akun.dart
+static AkunJenisEnum? fromJson(dynamic value) => AkunJenisEnumTypeTransformer().decode(value);
+# decode tanpa argumen allowNull memakai bawaan true: nilai tak dikenal menjadi null, bukan galat. `jenis` wajib, jadi
+# null itu dipaksa non-null oleh `!`: client lama yang menerima `badan` berhenti dengan galat null check (semantik Dart),
+# bukan menampilkan nilai itu. Jalannya di Dart Tidak dijalankan.

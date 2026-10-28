@@ -1,0 +1,70 @@
+# Lab t4-pipeline · gosec dan govulncheck atas contoh yang disiapkan
+# gosec 2.30.0 · go1.27.1
+# Rekaman dari run bersih: make -C labs/t4-pipeline run.
+# Contoh yang disiapkan: labs/t4-pipeline/contoh, dua berkas Go (temuan.go dan aman.go) dan go.mod yang memuat
+# golang.org/x/text v0.3.7. Bukan kode api-t4. gosec 2.30.0; govulncheck v1.9.0 dengan salinan basis data Go lokal.
+
+# --- A. gosec: satu temuan yang disiapkan, dan kasus tandingannya ---
+$ gosec -fmt=json ./...
+(exit code 1)
+G701 HIGH/HIGH CWE-89 temuan.go:16 SQL injection via taint analysis: (*database/sql.DB).Query
+statistik: 2 berkas, 1 temuan; aman.go (query berparameter) tidak ada di daftar
+gerbang gosec (ambang MEDIUM): GAGAL (1 temuan keparahan MEDIUM atau lebih)
+# Pada contoh ini aturannya G701 (analisis taint: os.Args[1] mengalir ke db.Query), bukan G201 atau G202.
+# Pola query lain tidak dicoba di lab ini.
+
+# --- A2. G701 melapor aliran dari sumber input: query yang sama dengan masukan konstanta ---
+$ gosec -fmt=json ./...   # temuan.go dengan cariAkun(db, "A1"): masukan konstanta
+(exit code 0)
+statistik: 2 berkas, 0 temuan; query yang sama dengan fmt.Sprintf tidak dilaporkan
+gerbang gosec (ambang MEDIUM): LULUS (tidak ada temuan di atas ambang)
+# LULUS di sini bukan bukti query aman: tanpa sumber input yang terlacak, G701 tidak melapor. G201 dan G202 ada di daftar
+# aturan gosec 2.30.0 (gosec -h) dan tidak melapor di kode ini.
+
+# --- B. gosec gagal terbuka: kode yang tidak terkompilasi ---
+$ gosec -fmt=json -quiet ./...
+(exit code 0)
+# Exit code 0 dan keluaran kosong: dibaca apa adanya, ini "bersih", padahal temuan.go masih memuat query yang sama.
+$ gosec -fmt=json ./...
+(exit code 1)
+galat pemindaian: (paket): ./rusak.go:3:13: syntax error: unexpected {, expected )
+galat pemindaian: rusak.go: expected ')', found 'EOF'
+galat pemindaian: rusak.go: expected ')', found '{'
+galat pemindaian: rusak.go: expected ';', found 'EOF'
+galat pemindaian: rusak.go: missing ',' in parameter list
+temuan: 0; berkas dipindai: 3
+gerbang gosec: GAGAL (pemindaian tidak lengkap (5 galat paket))
+
+# --- C. govulncheck: kerentanan dipanggil kode lawan sekadar ada di dependensi ---
+$ govulncheck -format json -db <salinan vuln.go.dev> ./...
+dipanggil kode:
+  GO-2022-1059 golang.org/x/text v0.3.7, diperbaiki di v0.3.8: temuan.bahasaPilihan memanggil language.ParseAcceptLanguage
+ada di modul yang sama, tidak dipanggil:
+  GO-2026-5970 golang.org/x/text v0.3.7, diperbaiki di v0.39.0
+  GO-2026-6629 golang.org/x/text v0.3.7, diperbaiki di v0.41.0
+# Temuan atas stdlib toolchain Go tidak dicetak: bergantung pada versi Go yang menjalankan pemindaian (header).
+gerbang govulncheck: GAGAL (1 kerentanan dipanggil kode: GO-2022-1059)
+
+# --- D. Kasus tandingan: golang.org/x/text v0.43.0, versi yang sudah diperbaiki ---
+$ go get golang.org/x/text@v0.43.0
+$ govulncheck -format json -db <salinan vuln.go.dev> ./...
+tidak ada temuan atas golang.org/x/text; tidak ada yang dipanggil
+gerbang govulncheck: LULUS (tidak ada kerentanan yang dipanggil kode)
+# gosec tetap menemukan G701: memperbaiki dependensi tidak memperbaiki kode sendiri, dan sebaliknya.
+
+# --- E. Audit atas kode api-t4 yang sebenarnya (govulncheck, tidak ada perubahan pada api-t4) ---
+$ govulncheck -format json -db <salinan vuln.go.dev> ./...   # di labs/api-t4
+dipanggil kode: 10
+  GO-2026-6603 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6605 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6607 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6608 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6610 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6611 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6612 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6613 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6617 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6809 stdlib v1.27.1, diperbaiki di v1.27.3
+# Jejak panggilan tidak dicetak: untuk temuan stdlib govulncheck memilih salah satu dari banyak jejak, dan pilihannya
+# berubah antar run; yang tetap hanya daftar kerentanan yang dipanggil.
+gerbang govulncheck atas api-t4: GAGAL (10 kerentanan dipanggil kode: GO-2026-6603, GO-2026-6605, GO-2026-6607, GO-2026-6608, GO-2026-6610, GO-2026-6611, GO-2026-6612, GO-2026-6613, GO-2026-6617, GO-2026-6809)

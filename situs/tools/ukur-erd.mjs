@@ -15,6 +15,11 @@
 // - Tahap 3 (ERD3, keputusan 963, 964): /uji/erd/ membuka Tahap 2; memilih Tahap 3 dalam mode bandingkan = Tahap 2 di
 //   kiri (8 tabel) dan Tahap 3 di kanan (14 tabel, 6 baru, 2 berubah), 22 node dan 31 edge tanpa luapan dan tanpa teks
 //   diperkecil di bawah 0,79; detail outbox membuka halaman penjelasnya; mode tunggal Tahap 3 = 14 node dan 20 edge.
+// - Tahap 4 (ERD4, keputusan 1254, 1255): memilih Tahap 4 dalam mode tunggal = 22 node dan 35 edge (zoom 1 di 320, 375,
+//   dan 1366 px); Bandingkan dengan Tahap 3 = Tahap 3 di kiri (14 tabel) dan Tahap 4 di kanan (22 tabel: 8 baru, 5
+//   berubah), 36 node dan 55 edge, zoom ≥ 0,8; tidak ada nama kolom atau tabel yang terpotong elipsis di Tahap 1 sampai 4
+//   (label kunci yang tidak muat pindah ke baris sendiri); tabel pembagian modul (6 modul, 22 tabel, 21 foreign key lintas)
+//   tanpa luapan di 320 px; detail kartu memuat modul pembayaran dan halaman 4.x; axe gelap dan terang.
 // - 1.12 Data modeling (ERD-1.12, keputusan 697): ErdTumbuh Tahap 1 di blok Paham, versi statis Erd.astro tanpa JS
 //   dan untuk pembaca layar, klik/tap, scroll, CLS saat blok dibuka; React Flow baru dimuat sesudah blok dibuka;
 //   setiap halaman di dist/ yang memakai ErdTumbuh diperiksa bawaannya.
@@ -176,6 +181,30 @@ const bentuk = (page) =>
       // Teks yang terpotong di node: kalimat pindah tabel dihapus (harus 0, keputusan 466) dan nama (dicetak saja).
       pindahPotong: [...f.querySelectorAll(".erd-tumbuh__pindah")].filter((x) => x.scrollHeight > x.clientHeight + 1).length,
       namaPotong: [...f.querySelectorAll(".erd-tumbuh__node code")].filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.textContent),
+      // Baris dan kepala bertanda dua baris (tumbuh.ts duaBaris, duaKepala) harus benar-benar dua baris: label atau status
+      // di bawah nama dan rata kanan, bukan di sebelahnya dengan tinggi yang sudah dipesan untuk dua baris.
+      duaSebaris: [...f.querySelectorAll(".erd-tumbuh__baris.is-dua, .erd-tumbuh__kepala.is-dua")].filter((x) => {
+        const nama = x.querySelector("code").getBoundingClientRect();
+        const lain = x.querySelector(".erd-tumbuh__label, .erd-tumbuh__status")?.getBoundingClientRect();
+        // Di baris sendiri dan rata kanan (margin-left: auto), bukan di bawah nama sebelah kiri.
+        return !lain || lain.top < nama.bottom - 1 || Math.abs(lain.right - x.getBoundingClientRect().right) > 2;
+      }).length,
+      duaBaris: f.querySelectorAll(".erd-tumbuh__baris.is-dua, .erd-tumbuh__kepala.is-dua").length,
+      // Tinggi node yang dihitung tata (tumbuh.ts tinggiNode) harus sama dengan tinggi isinya di CSS: jarak dari bawah baris
+      // terakhir ke bawah node (padding bawah + border) sama di semua node. Isi lebih pendek menyisakan ruang kosong, isi
+      // lebih tinggi dipotong `overflow: hidden` (kolom terakhir hilang), dan tata di sekitarnya bergeser dari gambarnya.
+      // Node pindah (tabel dihapus) dilewati; pembanding = nilai tengah semua node di figure ini.
+      isiBeda: (() => {
+        const ukur = [...f.querySelectorAll(".erd-tumbuh__node")]
+          .filter((n) => !n.querySelector(".erd-tumbuh__pindah"))
+          .map((n) => {
+            const zoom = Number(/scale\(([\d.]+)\)/.exec(n.closest(".react-flow__viewport")?.style.transform ?? "")?.[1] ?? 1);
+            const baris = [...n.querySelectorAll(".erd-tumbuh__baris")].at(-1);
+            return [n.querySelector(".erd-tumbuh__kepala code").textContent, (n.getBoundingClientRect().bottom - baris.getBoundingClientRect().bottom) / zoom];
+          });
+        const tengah = [...ukur].map((u) => u[1]).sort((a, b) => a - b)[Math.floor(ukur.length / 2)];
+        return ukur.filter((u) => Math.abs(u[1] - tengah) > 1.5 || u[1] < 0).map((u) => u[0]);
+      })(),
       berdampingan: !!f.querySelector(".erd-tumbuh__panel.is-berdampingan"),
       lebarDok: document.documentElement.scrollWidth - innerWidth,
     };
@@ -196,7 +225,7 @@ for (const [lebar, tinggi, harus] of [
     lapor(b.bentuk === harus && b.node === 11 && b.edge === 11 && b.luar === 0 && b.statisSr && b.lebarDok <= 0, `${tag}: ${b.bentuk}, ${b.node} node, ${b.edge} edge, ${b.luar} di luar wadah, luapan halaman ${b.lebarDok} px`);
     lapor(b.pindahPotong === 0, `${tag}: kalimat pindah terpotong ${b.pindahPotong}`);
     await laporBawaan(page, tag);
-    if (b.namaPotong.length) console.log(`info ${tag}: nama terpotong elipsis di node (lengkap di detail dan versi statis): ${b.namaPotong.join(", ")}`);
+    lapor(b.namaPotong.length === 0 && b.duaSebaris === 0 && b.isiBeda.length === 0, `${tag}: nama kolom dan tabel terpotong elipsis ${b.namaPotong.length}${b.namaPotong.length ? ` (${b.namaPotong.join(", ")})` : ""}, ${b.duaBaris} baris atau kepala dua baris, ${b.duaSebaris} yang label atau statusnya masih di sebelah nama, tinggi isi beda dari tata ${b.isiBeda.length}${b.isiBeda.length ? ` (${b.isiBeda.slice(0, 4).join(", ")})` : ""}`);
 
     // 3. Scroll tidak tertangkap (layar sempit).
     if (lebar < 500) {
@@ -331,7 +360,7 @@ for (const [lebar, tinggi, harus] of [
         st3.judul.join("|") === "Tahap 2, sebelum|Tahap 3, sesudah" && st3.pressed === "true" && st3.teks.includes("Tahap 2") && Math.min(...st3.zoom) >= 0.79,
       `${tag}: Tahap 3 bandingkan → ${t3.berdampingan ? "berdampingan" : "bertumpuk"}, ${t3.node} node, ${t3.edge} edge, ${st3.baru} baru, ${st3.berubah} berubah, ${st3.dihapus} dihapus, zoom ${st3.zoom.map((z) => z.toFixed(2)).join("/")}, ${t3.luar} di luar wadah, luapan ${t3.lebarDok} px, "${st3.teks}"`,
     );
-    lapor(t3.pindahPotong === 0, `${tag}: Tahap 3 bandingkan, kalimat pindah terpotong ${t3.pindahPotong}`);
+    lapor(t3.pindahPotong === 0 && t3.namaPotong.length === 0, `${tag}: Tahap 3 bandingkan, kalimat pindah terpotong ${t3.pindahPotong}, nama terpotong ${t3.namaPotong.length}${t3.namaPotong.length ? ` (${t3.namaPotong.join(", ")})` : ""}`);
     await laporBawaan(page, `${tag} Tahap 3 bandingkan`);
     // Klik atau tap di tengah tabel outbox (tabel baru): detail memuat status, kolom, index, dan halaman penjelasnya.
     {
@@ -361,24 +390,110 @@ for (const [lebar, tinggi, harus] of [
     const zoomT3 = await page.evaluate((FIG) => Number(/scale\(([\d.]+)\)/.exec(document.querySelector(`${FIG} .react-flow__viewport`).style.transform)?.[1] ?? 1), FIG);
     lapor(t3s.node === 14 && t3s.edge === 20 && t3s.luar === 0 && t3s.lebarDok <= 0 && zoomT3 >= (lebar < 500 ? 0.99 : 0.79), `${tag}: Tahap 3 tunggal → ${t3s.bentuk}, ${t3s.node} node, ${t3s.edge} edge, zoom ${zoomT3.toFixed(2)}, ${t3s.luar} di luar wadah, luapan ${t3s.lebarDok} px`);
     await laporBawaan(page, `${tag} Tahap 3`);
+
+    // 6d. Tahap 4 (ERD4, keputusan 1254, 1255): mode tunggal, lalu Bandingkan dengan Tahap 3.
+    await page.evaluate((FIG) => [...document.querySelectorAll(`${FIG} .erd-tumbuh__pilih button`)].find((x) => x.textContent.includes("Tahap 4")).click(), FIG);
+    await page.waitForFunction((FIG) => document.querySelectorAll(`${FIG} .react-flow__node`).length === 22, FIG, { timeout: 15000 });
+    await page.waitForTimeout(400);
+    const t4s = await bentuk(page);
+    const zoom4 = await page.evaluate((FIG) => Number(/scale\(([\d.]+)\)/.exec(document.querySelector(`${FIG} .react-flow__viewport`).style.transform)?.[1] ?? 1), FIG);
+    lapor(
+      t4s.node === 22 && t4s.edge === 35 && t4s.luar === 0 && t4s.lebarDok <= 0 && zoom4 >= 0.99 && t4s.namaPotong.length === 0 && t4s.duaSebaris === 0 && t4s.isiBeda.length === 0 && t4s.duaBaris >= (lebar < 500 ? 5 : 1),
+      `${tag}: Tahap 4 tunggal → ${t4s.bentuk}, ${t4s.node} node, ${t4s.edge} edge, zoom ${zoom4.toFixed(2)}, ${t4s.luar} di luar wadah, luapan ${t4s.lebarDok} px, nama terpotong ${t4s.namaPotong.length}${t4s.namaPotong.length ? ` (${t4s.namaPotong.join(", ")})` : ""}, ${t4s.duaBaris} baris atau kepala dua baris (${t4s.duaSebaris} masih sebaris), tinggi isi beda dari tata ${t4s.isiBeda.length}${t4s.isiBeda.length ? ` (${t4s.isiBeda.slice(0, 4).join(", ")})` : ""}`,
+    );
+    await laporBawaan(page, `${tag} Tahap 4`);
+    // Tabel pembagian modul: enam baris, 22 tabel, ringkasan foreign key lintas dari data.
+    const mod = await page.evaluate((FIG) => {
+      const m = document.querySelector(`${FIG} .erd-tumbuh__modul`);
+      const t = m?.querySelector("table");
+      return {
+        baris: [...(m?.querySelectorAll("tbody tr") ?? [])].map((tr) => `${tr.querySelector("th").textContent}:${tr.querySelector("td").textContent}`),
+        kodeTabel: m?.querySelectorAll("tbody td:last-child code").length ?? 0,
+        caption: t?.querySelector("caption")?.textContent ?? "",
+        luap: t ? t.scrollWidth - t.clientWidth : 999,
+      };
+    }, FIG);
+    lapor(
+      mod.baris.length === 6 && mod.kodeTabel === 22 && mod.baris[0] === "ledger:6" && mod.baris[4] === "pembayaran:5" && mod.caption.includes("21 foreign key menyeberang batas modul (14 ke modul akun, 7 ke modul ledger)") && mod.luap <= 0,
+      `${tag}: tabel pembagian modul ${mod.baris.length} baris, ${mod.kodeTabel} tabel, luapan tabel ${mod.luap} px, "${mod.caption.slice(-90)}"`,
+    );
+    await page.click(`${FIG} .erd-tumbuh__banding`);
+    await page.waitForFunction((FIG) => document.querySelectorAll(`${FIG} .react-flow__node`).length === 36, FIG, { timeout: 15000 });
+    await page.waitForTimeout(500);
+    const t4 = await bentuk(page);
+    const st4 = await page.evaluate((FIG) => {
+      const f = document.querySelector(FIG);
+      const n = (k) => f.querySelectorAll(`.erd-tumbuh__node.is-${k}`).length;
+      return {
+        baru: n("baru"), berubah: n("berubah"), dihapus: n("dihapus"),
+        zoom: [...f.querySelectorAll(".react-flow__viewport")].map((v) => Number(/scale\(([\d.]+)\)/.exec(v.style.transform)?.[1] ?? 1)),
+        judul: [...f.querySelectorAll(".erd-tumbuh__sisi-judul strong")].map((x) => x.textContent),
+        teks: f.querySelector(".erd-tumbuh__banding")?.textContent,
+      };
+    }, FIG);
+    lapor(
+      t4.node === 36 && t4.edge === 55 && t4.luar === 0 && t4.lebarDok <= 0 && t4.berdampingan === lebar > 500 && st4.baru === 8 && st4.berubah === 5 && st4.dihapus === 0 &&
+        st4.judul.join("|") === "Tahap 3, sebelum|Tahap 4, sesudah" && st4.teks.includes("Tahap 3") && Math.min(...st4.zoom) >= (lebar < 500 ? 0.99 : 0.8) && t4.namaPotong.length === 0 && t4.pindahPotong === 0,
+      `${tag}: Tahap 4 bandingkan → ${t4.berdampingan ? "berdampingan" : "bertumpuk"}, ${t4.node} node, ${t4.edge} edge, ${st4.baru} baru, ${st4.berubah} berubah, ${st4.dihapus} dihapus, zoom ${st4.zoom.map((z) => z.toFixed(2)).join("/")}, ${t4.luar} di luar wadah, luapan ${t4.lebarDok} px, nama terpotong ${t4.namaPotong.length}${t4.namaPotong.length ? ` (${t4.namaPotong.join(", ")})` : ""}`,
+    );
+    await laporBawaan(page, `${tag} Tahap 4 bandingkan`);
+    // Klik atau tap di tengah tabel kartu (tabel baru): modul pembayaran, kolom, dan halaman 4.x yang masih segera.
+    {
+      const k = await klikTabel(page, "Tabel kartu", lebar < 500);
+      lapor(
+        k.kena.startsWith("Tabel kartu") && k.ditekan === "true" && k.detail.includes("kartu · Tahap 4 · baru") && k.detail.includes("token_penerbit") && k.detail.includes("Modul: pembayaran") &&
+          k.detail.includes("Dijelaskan di") && k.detail.includes("4.23") && k.detail.includes("(segera)"),
+        `${tag}: ${lebar < 500 ? "tap" : "klik"} di tengah tabel kartu kena ${k.kena.startsWith("Tabel") ? "tombol" : k.kena} → aria-pressed ${k.ditekan}, detail ${k.detail.length} karakter, tautan ${k.tautan.join(" ") || "(segera)"}`,
+      );
+    }
+    if (AXE && reducedMotion === "no-preference") {
+      for (const tema of ["dark", "light"]) {
+        await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), tema);
+        await page.addScriptTag({ path: AXE });
+        const v = await page.evaluate(async (tag) => {
+          const x = await window.axe.run(document, { runOnly: { type: "tag", values: tag } });
+          return x.violations.map((p) => `${p.id}(${p.nodes.length}: ${p.nodes[0]?.target?.join(" ")})`);
+        }, TAG_WCAG);
+        lapor(v.length === 0, `axe ${tag} Tahap 4 bandingkan ${tema}: ${v.length ? v.join(", ") : "0 pelanggaran"}`);
+      }
+    }
     await ctx.close();
   }
 }
 
-// 6c. Layar 320 px (WCAG 1.4.10 reflow): Tahap 2 dan 3 tanpa luapan halaman, teks tidak diperkecil di bawah 0,85.
+// 6c. Layar 320 px (WCAG 1.4.10 reflow): Tahap 2, 3, dan 4 tanpa luapan halaman, teks tidak diperkecil di bawah 0,85 (Tahap 4: zoom 1).
 {
   const ctx = await browser.newContext({ viewport: { width: 320, height: 568 }, hasTouch: true });
   const page = await ctx.newPage();
   await siap(page);
-  for (const [no, node, edge] of [[2, 11, 11], [3, 14, 20]]) {
+  for (const [no, node, edge] of [[2, 11, 11], [3, 14, 20], [4, 22, 35]]) {
     await page.evaluate(([FIG, no]) => [...document.querySelectorAll(`${FIG} .erd-tumbuh__pilih button`)].find((x) => x.textContent.includes(`Tahap ${no}`)).click(), [FIG, no]);
     await page.waitForFunction(([FIG, n]) => document.querySelectorAll(`${FIG} .react-flow__node`).length === n, [FIG, node], { timeout: 15000 });
     await page.waitForTimeout(300);
     const b = await bentuk(page);
     const zoom = await page.evaluate((FIG) => Number(/scale\(([\d.]+)\)/.exec(document.querySelector(`${FIG} .react-flow__viewport`).style.transform)?.[1] ?? 1), FIG);
-    lapor(b.bentuk === "sempit" && b.node === node && b.edge === edge && b.luar === 0 && b.lebarDok <= 0 && zoom >= 0.85, `320×568 Tahap ${no}: ${b.bentuk}, ${b.node} node, ${b.edge} edge, zoom ${zoom.toFixed(2)}, ${b.luar} di luar wadah, luapan ${b.lebarDok} px`);
+    lapor(b.bentuk === "sempit" && b.node === node && b.edge === edge && b.luar === 0 && b.lebarDok <= 0 && zoom >= 0.85 && b.namaPotong.length === 0, `320×568 Tahap ${no}: ${b.bentuk}, ${b.node} node, ${b.edge} edge, zoom ${zoom.toFixed(2)}, ${b.luar} di luar wadah, luapan ${b.lebarDok} px, nama terpotong ${b.namaPotong.length}${b.namaPotong.length ? ` (${b.namaPotong.join(", ")})` : ""}`);
+    if (no === 4) {
+      const m = await page.evaluate((FIG) => { const t = document.querySelector(`${FIG} .erd-tumbuh__modul table`); return t ? t.scrollWidth - t.clientWidth : 999; }, FIG);
+      lapor(m <= 0 && zoom >= 0.99, `320×568 Tahap 4: zoom ${zoom.toFixed(2)} (teks tidak diperkecil), tabel pembagian modul luapan ${m} px`);
+    }
   }
   await laporBawaan(page, "320×568");
+  // Font cadangan lebih lebar dari Satoshi (CI Linux memakai Inter, dan keputusan 1255 menambah tombol keempat): empat tombol
+  // "Tahap N" membungkus ke baris berikutnya, satu baris tiap tombol, dan tidak meluapkan halaman (CI main 28 Okt: 3 px).
+  await page.addStyleTag({ content: "html, body, button, .erd-tumbuh { font-family: Verdana, sans-serif !important }" });
+  await page.waitForTimeout(200);
+  const pk = await page.evaluate((FIG) => {
+    const f = document.querySelector(FIG);
+    const p = f.querySelector(".erd-tumbuh__pilih");
+    return {
+      dok: document.documentElement.scrollWidth - innerWidth,
+      keluar: Math.max(0, Math.round(p.getBoundingClientRect().right - f.getBoundingClientRect().right)),
+      tombol: [...p.querySelectorAll("button")].length,
+      tinggi: Math.max(...[...p.querySelectorAll("button")].map((b) => b.getBoundingClientRect().height)),
+    };
+  }, FIG);
+  lapor(pk.dok <= 0 && pk.keluar === 0 && pk.tombol === 4 && pk.tinggi <= 48, `320×568 font lebar (Verdana): pemilih ${pk.tombol} tombol membungkus, tombol setinggi ${Math.round(pk.tinggi)} px, ${pk.keluar} px di luar figure, luapan halaman ${pk.dok} px`);
   await ctx.close();
 }
 

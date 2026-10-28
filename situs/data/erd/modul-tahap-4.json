@@ -1,0 +1,217 @@
+{
+  "format": 1,
+  "tahap": 4,
+  "sumber": {
+    "file": "labs/t4-modul/modul.sql",
+    "sha256": "d1a2e792d864df54d96d54c31840494f68c755d9e25ff042cb800fe5cb042867"
+  },
+  "modul": [
+    {
+      "nama": "ledger",
+      "schema": "t4m_ledger",
+      "tabel": [
+        "buku",
+        "jurnal",
+        "posting",
+        "kunci_idempotensi",
+        "batch_pencairan",
+        "baris_pencairan"
+      ]
+    },
+    {
+      "nama": "akun",
+      "schema": "t4m_akun",
+      "tabel": [
+        "akun",
+        "sesi",
+        "perangkat",
+        "kota"
+      ]
+    },
+    {
+      "nama": "identitas",
+      "schema": "t4m_identitas",
+      "tabel": [
+        "verifikasi"
+      ]
+    },
+    {
+      "nama": "merchant",
+      "schema": "t4m_merchant",
+      "tabel": [
+        "produk",
+        "promo",
+        "operasi_sinkron",
+        "qr"
+      ]
+    },
+    {
+      "nama": "pembayaran",
+      "schema": "t4m_pembayaran",
+      "tabel": [
+        "topup_bank",
+        "webhook_event",
+        "insiden_rekon",
+        "kartu",
+        "otorisasi_kartu"
+      ]
+    },
+    {
+      "nama": "platform",
+      "schema": "t4m_platform",
+      "tabel": [
+        "outbox",
+        "audit_log"
+      ]
+    }
+  ],
+  "lintas": [
+    {
+      "tabel": "buku",
+      "fk": "buku_akun_id_fkey",
+      "ke_tabel": "akun",
+      "dari_modul": "ledger",
+      "ke_modul": "akun"
+    },
+    {
+      "tabel": "jurnal",
+      "fk": "jurnal_dibuat_oleh_fkey",
+      "ke_tabel": "akun",
+      "dari_modul": "ledger",
+      "ke_modul": "akun"
+    },
+    {
+      "tabel": "kunci_idempotensi",
+      "fk": "kunci_idempotensi_akun_id_fkey",
+      "ke_tabel": "akun",
+      "dari_modul": "ledger",
+      "ke_modul": "akun"
+    },
+    {
+      "tabel": "outbox",
+      "fk": "outbox_akun_id_fkey",
+      "ke_tabel": "akun",
+      "dari_modul": "platform",
+      "ke_modul": "akun"
+    },
+    {
+      "tabel": "outbox",
+      "fk": "outbox_jurnal_id_fkey",
+      "ke_tabel": "jurnal",
+      "dari_modul": "platform",
+      "ke_modul": "ledger"
+    },
+    {
+      "tabel": "produk",
+      "fk": "produk_akun_id_fkey",
+      "ke_tabel": "akun",
+      "dari_modul": "merchant",
+      "ke_modul": "akun"
+    },
+    {
+      "tabel": "promo",
+      "fk": "promo_dibuat_oleh_fkey",
+      "ke_tabel": "akun",
+      "dari_modul": "merchant",
+      "ke_modul": "akun"
+    },
+    {
+      "tabel": "promo",
+      "fk": "promo_kota_id_fkey",
+      "ke_tabel": "kota",
+      "dari_modul": "merchant",
+      "ke_modul": "akun"
+    },
+    {
+      "tabel": "operasi_sinkron",
+      "fk": "operasi_sinkron_perangkat_id_fkey",
+      "ke_tabel": "perangkat",
+      "dari_modul": "merchant",
+      "ke_modul": "akun"
+    },
+    {
+      "tabel": "topup_bank",
+      "fk": "topup_bank_akun_id_fkey",
+      "ke_tabel": "akun",
+      "dari_modul": "pembayaran",
+      "ke_modul": "akun"
+    },
+    {
+      "tabel": "topup_bank",
+      "fk": "topup_bank_jurnal_id_fkey",
+      "ke_tabel": "jurnal",
+      "dari_modul": "pembayaran",
+      "ke_modul": "ledger"
+    },
+    {
+      "tabel": "webhook_event",
+      "fk": "webhook_event_jurnal_id_fkey",
+      "ke_tabel": "jurnal",
+      "dari_modul": "pembayaran",
+      "ke_modul": "ledger"
+    },
+    {
+      "tabel": "insiden_rekon",
+      "fk": "insiden_rekon_jurnal_id_fkey",
+      "ke_tabel": "jurnal",
+      "dari_modul": "pembayaran",
+      "ke_modul": "ledger"
+    },
+    {
+      "tabel": "verifikasi",
+      "fk": "verifikasi_akun_id_fkey",
+      "ke_tabel": "akun",
+      "dari_modul": "identitas",
+      "ke_modul": "akun"
+    },
+    {
+      "tabel": "qr",
+      "fk": "qr_akun_id_fkey",
+      "ke_tabel": "akun",
+      "dari_modul": "merchant",
+      "ke_modul": "akun"
+    },
+    {
+      "tabel": "qr",
+      "fk": "qr_jurnal_id_fkey",
+      "ke_tabel": "jurnal",
+      "dari_modul": "merchant",
+      "ke_modul": "ledger"
+    },
+    {
+      "tabel": "kartu",
+      "fk": "kartu_akun_id_fkey",
+      "ke_tabel": "akun",
+      "dari_modul": "pembayaran",
+      "ke_modul": "akun"
+    },
+    {
+      "tabel": "otorisasi_kartu",
+      "fk": "otorisasi_kartu_jurnal_tahan_id_fkey",
+      "ke_tabel": "jurnal",
+      "dari_modul": "pembayaran",
+      "ke_modul": "ledger"
+    },
+    {
+      "tabel": "otorisasi_kartu",
+      "fk": "otorisasi_kartu_jurnal_tangkap_id_fkey",
+      "ke_tabel": "jurnal",
+      "dari_modul": "pembayaran",
+      "ke_modul": "ledger"
+    },
+    {
+      "tabel": "audit_log",
+      "fk": "audit_log_pelaku_id_fkey",
+      "ke_tabel": "akun",
+      "dari_modul": "platform",
+      "ke_modul": "akun"
+    },
+    {
+      "tabel": "audit_log",
+      "fk": "audit_log_penyetuju_id_fkey",
+      "ke_tabel": "akun",
+      "dari_modul": "platform",
+      "ke_modul": "akun"
+    }
+  ]
+}

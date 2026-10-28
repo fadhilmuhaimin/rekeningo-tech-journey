@@ -12,10 +12,12 @@ Tujuan: menyatakan sebuah tahap selesai dengan bukti yang bisa diulang orang lai
 Halaman acak dipilih dengan seed nomor tahap, supaya evaluasi ulang memeriksa halaman yang sama:
 
 ```
-python3 -c "import json,random; h=[x for x in json.load(open('situs/data/cerita.json'))['halaman'] if str(x.get('id','')).startswith('N.')]; random.seed(N); print([x['id'] for x in random.sample(h,5)])"
+python3 -c "import json,random; h=[x for x in json.load(open('situs/data/cerita.json'))['halaman'] if x.get('tahap')==N and x.get('nomor')]; random.seed(N); print([x['nomor'] for x in random.sample(h,5)])"
 ```
 
 Lima halaman pertama untuk axe (W4), tiga pertama untuk pertanyaan pembaca. Sesuaikan kunci (`id`, `path`) dengan isi registry saat itu dan tulis perintah persisnya di kartu.
+
+Jalankan perintah itu dan cetak keluarannya sebelum memakai hasilnya: `id` registry kini berbentuk `t3-prd`, jadi filter lama `startswith('N.')` memberi 0 halaman dan `random.sample` gagal (EVAL-3). Untuk W2 tambahkan `and x.get('lab')` dan ambil enam: seed 3 memberi 3.10, 3.21, 3.20, 3.7, 3.14, 3.22; untuk W4 dan pertanyaan pembaca, 3.16, 3.9, 3.24, 3.31, 3.5.
 
 ## Delapan butir
 
@@ -37,6 +39,9 @@ Cara W4: axe dijalankan dengan `runOnly` tag `wcag2a`, `wcag2aa`, `wcag21aa`, `w
 - W2: label dibandingkan dengan definisi di gaya-bahasa, bukan hanya dihitung ada. Dari angka sampel, paling sedikit tiga yang berlabel diperiksa terhadap definisi itu. Label Rekaman lab pada hasil rumus yang masukannya Asumsi dihitung salah. Contoh: tabel Little di 2.30 menulis "(W: Rekaman lab)", sehingga L terbaca rekaman (#341); kartu 2.32 menyebut bacaan atas naskah sebagai "didukung rekaman" (#351).
 - W5: kartu mencatat keluaran `python3 tools/eval_tahap.py bocor N` (jawaban tebakan yang sudah tertulis sebelum blok Coba) dan tebakan yang tidak menyembunyikan hasil (lipatan, TabSet). Catatan itu tidak mengubah YA atau TIDAK butir ini, karena Inti hasil-dulu adalah desain pemilik sampai pemilik memutuskan (2.12, 2.14, 2.16; TINJAUAN-PEMILIK butir 3). Halaman rekap dan pilah tetap ada di daftar dengan alasan jenisnya, tidak dikecualikan.
 - W8: langkah sesudah halaman jembatan juga diperiksa. Berikutnya dari jembatan tidak boleh menuju halaman bertanda `lama`, `diganti_oleh`, atau `lebur_ke`; `python3 tools/eval_tahap.py rantai N` mencetaknya. Tahap 2: 2.33 menuju "Tahap 2 · Ceritanya", lalu delapan halaman lama (tugas EVAL2-F1).
+- W1, W3, W6 punya perintah. `python3 tools/eval_tahap.py peta N` membandingkan nomor, judul, jenis, ★, dan lab dengan naskah. `gejala N` mencetak kalimat definisi di blok Gejala: 3.16 lolos audit bahasa 0 error dan tinjauan sampai alat ini ada (#418). `adr N` memeriksa opsi, pre-mortem tepat tiga, dan kapan salah. Parser opsi butuh tabel dengan tiga kolom "A. ..." atau lebih, jadi `adr 1` gagal untuk 8 dari 10 halaman Tahap 1: baca halaman itu dengan tangan.
+- W5: "ubah satu hal" dihitung bila ada kontrol di DOM sesudah hidrasi: tombol `aria-pressed`, kotak centang, slider, pilihan skenario atau varian, atau banding. Prosa "Ubah satu hal" yang bertaut ke rekaman dan tabel statis dicatat sebagai prosa dan tidak dihitung. `eval_tahap.py coba` hanya mencari kata "tebak" dan "ubah", jadi kontrol dibaca dari DOM dan data widget (`predict`, `varian`, `toggles`). Tahap 3: 23 dari 30 halaman ber-Coba punya kontrol, 3.2 dan 3.31 tidak, dan 3.7, 3.21, 3.25, 3.27, 3.30 hanya prosa (EVAL-3 Lampiran W5).
+- Evaluasi ulang boleh melewati lab, ERD, dan uji baca bila `git diff --name-only <commit putaran 1> HEAD -- labs situs/data/erd tools/erd.py` tidak memuat folder lab tahap itu. Kartu menulis perintah dan keluarannya, dan halaman yang berubah dibaca ulang. Putaran 2 Tahap 3 (#422) hanya membaca ulang 3.16 dan memutasi halaman aslinya. Kalimat definisi dikembalikan: `gejala 3` mencetak DEFINISI dan penjaga 3.16 gagal 3 dari 52 tes.
 
 W1–W4 wajib YA. Satu butir = satu baris bukti di kartu; bukti yang tidak bisa diulang (mis. "sudah dilihat") tidak dihitung.
 
