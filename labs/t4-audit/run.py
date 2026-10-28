@@ -478,6 +478,7 @@ def rekam_role():
               "SELECT nama FROM akun WHERE id = 40001",
               "SELECT * FROM akun",
               "SELECT berkas_kartu_kunci, checksum_kartu FROM verifikasi",
+              "SELECT berkas_swafoto_kunci, checksum_swafoto, referensi_vendor FROM verifikasi",
               "SELECT count(*) FROM sesi",
               "INSERT INTO audit_log (waktu, pelaku_id, peran, aksi, objek, hash_sebelumnya, hash) VALUES (now(), 420, 'risk', 'x', 'x', 'x', 'x')",
               "UPDATE audit_log SET alasan = 'x'",
@@ -503,7 +504,7 @@ def rekam_role():
     berkas.unlink(missing_ok=True)
     jalankan_job(berkas, "role-e.jsonl", 0)
     catat("# Hak tabel menahan UPDATE dan DELETE oleh aplikasi, bukan penambahan. Aplikasi yang diambil alih bisa menulis baris yang tak pernah terjadi,")
-    catat("# dan rantai tanpa kunci rahasia tidak membedakannya dari baris asli (sama dengan pemilik tabel di rantai.txt bagian C).")
+    catat("# rantai tanpa kunci rahasia tidak membedakannya dari baris asli (sama dengan pemilik tabel di rantai.txt bagian C), dan pemeriksaan harian menjangkarkannya.")
     tulis("role.txt", "hak role atas audit_log: aplikasi, pemilik tabel, superuser, dan role baca-saja")
 
 

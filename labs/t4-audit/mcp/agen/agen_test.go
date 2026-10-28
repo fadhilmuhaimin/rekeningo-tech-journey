@@ -6,6 +6,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -505,5 +509,159 @@ func TestVerifierMenolakTokenKosongBahkanBilaDiharapkanKosong(t *testing.T) {
 	}
 	if ti, err := Verifier("benar")(context.Background(), "benar", nil); err != nil || ti.Expiration.Before(time.Now()) {
 		t.Fatalf("%v %v", ti, err)
+	}
+}
+
+// Daftar putih menggantikan daftar hitam: pemindaian kata terlarang tidak melihat `http.Head`, `net.DialTimeout`, atau
+// `tls.Dial`. Di sini yang dihitung adalah semua rujukan ke paket net/http, net, crypto/tls, dan os di sumber server
+// (bukan tesnya); satu rujukan baru yang bisa membuka sambungan keluar membuat tes ini gagal.
+func TestSumberHanyaMemakaiRujukanHttpYangDiizinkanUntukServer(t *testing.T) {
+	diizinkan := map[string]bool{
+		"http.Handler": true, "http.Request": true, // agen.go: pembungkus handler dan tanda tangan Verifier
+		"http.ListenAndServe": true,                    // cmd/agen: mendengar di alamat dari -addr
+		"os.Getenv":           true, "os.Stderr": true, // cmd/agen: kredensial dari lingkungan, log ke stderr
+	}
+	terlarang := map[string]bool{"net": true, "crypto/tls": true, "os/exec": true, "net/url": true, "net/http/httputil": true, "plugin": true, "syscall": true, "unsafe": true}
+	fset := token.NewFileSet()
+	dilihat := map[string]bool{}
+	for f := range sumberAgen(t) {
+		file, err := parser.ParseFile(fset, f, nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, im := range file.Imports {
+			if terlarang[strings.Trim(im.Path.Value, `"`)] {
+				t.Errorf("%s mengimpor %s", f, im.Path.Value)
+			}
+		}
+		ast.Inspect(file, func(n ast.Node) bool {
+			s, ok := n.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+			if id, ok := s.X.(*ast.Ident); ok && (id.Name == "http" || id.Name == "os") {
+				ref := id.Name + "." + s.Sel.Name
+				dilihat[ref] = true
+				if !diizinkan[ref] {
+					t.Errorf("%s memakai %s (tidak ada di daftar putih sumber server)", f, ref)
+				}
+			}
+			return true
+		})
+	}
+	for _, wajib := range []string{"http.Handler", "http.Request", "http.ListenAndServe"} {
+		if !dilihat[wajib] {
+			t.Errorf("daftar putih tidak lagi memeriksa apa pun: %s tidak ditemukan di sumber", wajib)
+		}
+	}
+}
+
+// Hak role baca-saja dicocokkan dengan daftar putih dari katalog (bukan dari daftar kolom yang sudah terpikir): setiap
+// kolom di schema yang bisa dibaca, dan tiap hak tulis, dihitung. Satu kolom tambahan (mis. kunci objek swafoto) atau
+// satu hak tulis baru di peran.sql membuat tes ini gagal.
+func TestHakRoleBacaSajaPersisSamaDenganDaftarPutih(t *testing.T) {
+	pemilik := bukaDB(t, "T4A_TEST_DATABASE_URL")
+	bacaKolom := func(role string) []string {
+		t.Helper()
+		rows, err := pemilik.Query(`SELECT table_name || '.' || column_name FROM information_schema.columns
+			WHERE table_schema = current_schema()
+			  AND has_column_privilege($1, format('%I.%I', table_schema, table_name), column_name, 'SELECT')
+			ORDER BY 1`, role)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer rows.Close()
+		var hasil []string
+		for rows.Next() {
+			var s string
+			rows.Scan(&s)
+			hasil = append(hasil, s)
+		}
+		return hasil
+	}
+	kolomAudit := func() []string {
+		rows, err := pemilik.Query(`SELECT 'audit_log.' || column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'audit_log' ORDER BY 1`)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer rows.Close()
+		var hasil []string
+		for rows.Next() {
+			var s string
+			rows.Scan(&s)
+			hasil = append(hasil, s)
+		}
+		return hasil
+	}()
+	if len(kolomAudit) < 9 {
+		t.Fatalf("kolom audit_log tidak terbaca: %v", kolomAudit)
+	}
+	agen := append([]string{"akun.id", "akun.jenis", "akun.status", "akun.tingkat", "verifikasi.akun_id", "verifikasi.id", "verifikasi.status", "verifikasi.subjek"}, kolomAudit...)
+	sort.Strings(agen)
+	if got := bacaKolom("t4a_agen"); strings.Join(got, ",") != strings.Join(agen, ",") {
+		t.Errorf("kolom yang bisa dibaca t4a_agen:\n%v\nintinya:\n%v", got, agen)
+	}
+	if got := bacaKolom("t4a_verifikator"); strings.Join(got, ",") != strings.Join(kolomAudit, ",") {
+		t.Errorf("kolom yang bisa dibaca t4a_verifikator:\n%v\nintinya:\n%v", got, kolomAudit)
+	}
+	for _, role := range []string{"t4a_agen", "t4a_verifikator"} {
+		var n int
+		err := pemilik.QueryRow(`SELECT count(*) FROM information_schema.columns
+			WHERE table_schema = current_schema()
+			  AND has_column_privilege($1, format('%I.%I', table_schema, table_name), column_name, 'INSERT,UPDATE,REFERENCES')`, role).Scan(&n)
+		if err != nil || n != 0 {
+			t.Errorf("%s: %d kolom dengan hak INSERT, UPDATE, atau REFERENCES (%v)", role, n, err)
+		}
+		err = pemilik.QueryRow(`SELECT count(*) FROM pg_class c WHERE c.relnamespace = current_schema()::regnamespace AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
+			AND has_table_privilege($1, c.oid, 'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')`, role).Scan(&n)
+		if err != nil || n != 0 {
+			t.Errorf("%s: %d tabel dengan hak tulis (%v)", role, n, err)
+		}
+		err = pemilik.QueryRow(`SELECT count(*) FROM pg_class c WHERE c.relnamespace = current_schema()::regnamespace
+			AND CASE WHEN c.relkind = 'S' THEN has_sequence_privilege($1, c.oid, 'USAGE,UPDATE') ELSE false END`, role).Scan(&n)
+		if err != nil || n != 0 {
+			t.Errorf("%s: %d sequence dengan hak USAGE atau UPDATE (%v)", role, n, err)
+		}
+	}
+}
+
+// Batas bawaan dan batas atas jumlah baris dibuktikan lewat jumlah baris yang kembali, bukan dengan membandingkan konstanta
+// dengan dirinya sendiri; dan pencarian siapa-membuka tidak mencocokkan awalan nomor akun atau nomor pengajuan.
+func TestBatasBawaanDanAwalanTidakBocorLintasAkun(t *testing.T) {
+	pemilik := bukaDB(t, "T4A_TEST_DATABASE_URL")
+	g := Gudang{DB: bukaDB(t, "T4A_TEST_AGEN_URL")}
+	ctx := context.Background()
+	if BatasBawaan != 20 || BatasMaks != 100 {
+		t.Fatalf("bawaan %d dan maksimum %d: deskripsi alat menyebut 20 dan 100", BatasBawaan, BatasMaks)
+	}
+	v := bacaVektor(t)
+	var banyak []vektorBaris
+	for i := 0; i < 130; i++ {
+		b := v[0]
+		b.Objek = "akun:50001"
+		b.Aksi = "lihat_akun"
+		b.Hash = fmt.Sprintf("%064x", i+1) // hash harus unik; rantainya tidak dihitung di tes ini
+		b.Sebelumnya = fmt.Sprintf("%064x", i)
+		banyak = append(banyak, b)
+	}
+	isiVektor(t, pemilik, banyak)
+	for _, kasus := range []struct{ minta, ingin int }{{0, 20}, {-1, 20}, {1, 1}, {20, 20}, {21, 21}, {100, 100}, {101, 100}, {1 << 30, 100}} {
+		if b, err := g.CariAudit(ctx, "akun:50001", kasus.minta); err != nil || len(b) != kasus.ingin {
+			t.Errorf("CariAudit batas %d: %d baris (%v), ingin %d", kasus.minta, len(b), err, kasus.ingin)
+		}
+		if b, err := g.SiapaMembuka(ctx, 50001, kasus.minta); err != nil || len(b) != kasus.ingin {
+			t.Errorf("SiapaMembuka batas %d: %d baris (%v), ingin %d", kasus.minta, len(b), err, kasus.ingin)
+		}
+	}
+	// Awalan nomor akun: 5000 dan 500010 bukan 50001.
+	for _, akun := range []int64{5000, 500, 5, 500011} {
+		if b, _ := g.SiapaMembuka(ctx, akun, 100); len(b) != 0 {
+			t.Errorf("siapa membuka akun %d mencocokkan %d baris milik akun lain", akun, len(b))
+		}
+	}
+	for _, objek := range []string{"akun:5000", "akun:500010", "akun:50001/"} {
+		if b, _ := g.CariAudit(ctx, objek, 100); len(b) != 0 {
+			t.Errorf("cari %q mencocokkan %d baris", objek, len(b))
+		}
 	}
 }

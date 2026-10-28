@@ -118,6 +118,8 @@ ERROR:  permission denied for table akun (SQLSTATE 42501)
 ERROR:  permission denied for table akun (SQLSTATE 42501)
 => [t4a_agen] SELECT berkas_kartu_kunci, checksum_kartu FROM verifikasi
 ERROR:  permission denied for table verifikasi (SQLSTATE 42501)
+=> [t4a_agen] SELECT berkas_swafoto_kunci, checksum_swafoto, referensi_vendor FROM verifikasi
+ERROR:  permission denied for table verifikasi (SQLSTATE 42501)
 => [t4a_agen] SELECT count(*) FROM sesi
 ERROR:  permission denied for table sesi (SQLSTATE 42501)
 => [t4a_agen] INSERT INTO audit_log (waktu, pelaku_id, peran, aksi, objek, hash_sebelumnya, hash) VALUES (now(), 420, 'risk', 'x', 'x', 'x', 'x')
@@ -140,4 +142,4 @@ baris=7 rantai=utuh jangkar_lama=0 temuan=0
 jangkar baru: nomor 7
 # exit status 0
 # Hak tabel menahan UPDATE dan DELETE oleh aplikasi, bukan penambahan. Aplikasi yang diambil alih bisa menulis baris yang tak pernah terjadi,
-# dan rantai tanpa kunci rahasia tidak membedakannya dari baris asli (sama dengan pemilik tabel di rantai.txt bagian C).
+# rantai tanpa kunci rahasia tidak membedakannya dari baris asli (sama dengan pemilik tabel di rantai.txt bagian C), dan pemeriksaan harian menjangkarkannya.

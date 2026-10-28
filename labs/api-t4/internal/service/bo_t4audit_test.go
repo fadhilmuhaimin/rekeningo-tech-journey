@@ -208,3 +208,37 @@ func TestT4AAlasanMenolakKarakterKontrolTermasukPemisahHash(t *testing.T) {
 		t.Errorf("spasi biasa ditolak: %v", err)
 	}
 }
+
+// Tepi rentang batas harian yang boleh diatur tim risk: 1 dan MaksBatasHarianBO diterima, 0 dan MaksBatasHarianBO + 1
+// ditolak. Tes lain hanya menguji nilai jauh di luar rentang, jadi `>=` di tepi atas lolos.
+func TestT4AUbahBatasHarianDiTepiRentang(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	risk2 := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "terverifikasi", 0)
+	batas := func() int64 {
+		var b int64
+		if err := db.QueryRow(`SELECT batas_harian FROM buku WHERE akun_id = $1`, sasaran).Scan(&b); err != nil {
+			t.Fatal(err)
+		}
+		return b
+	}
+	for _, nilai := range []int64{0, MaksBatasHarianBO + 1} {
+		sebelum := batas()
+		if err := svc.UbahBatasHarianBO(ctx, risk, sasaran, nilai, alasanUji, sesiBaru(t, db, risk2)); !errors.As(err, new(ErrValidasi)) {
+			t.Errorf("nilai %d: %v, ingin ErrValidasi", nilai, err)
+		}
+		if batas() != sebelum {
+			t.Errorf("nilai %d ditolak tetapi batas berubah ke %d", nilai, batas())
+		}
+	}
+	for _, nilai := range []int64{1, MaksBatasHarianBO} {
+		if err := svc.UbahBatasHarianBO(ctx, risk, sasaran, nilai, alasanUji, sesiBaru(t, db, risk2)); err != nil {
+			t.Errorf("nilai %d: %v, ingin diterima", nilai, err)
+		}
+		if batas() != nilai {
+			t.Errorf("batas %d, ingin %d", batas(), nilai)
+		}
+	}
+}
