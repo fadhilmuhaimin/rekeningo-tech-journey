@@ -1617,14 +1617,6 @@ window.ISTILAH = {
   "t": "Umur notifikasi tertua",
   "u": "tahap-3/m27-hari-promo/"
  },
- "VPS": {
-  "b": "t3-dua-instance",
-  "d": "Server virtual yang disewa dari penyedia hosting. Satu VPS adalah satu mesin: bila mesin mati, semua proses di dalamnya ikut mati.",
-  "n": "3.15 Dua instance di belakang proxy",
-  "s": "istilah-vps",
-  "t": "VPS (virtual private server)",
-  "u": "tahap-3/dua-instance/"
- },
  "WAL": {
   "b": "D3",
   "d": "Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary.",
