@@ -43,6 +43,8 @@ describe("model handler versi ADR 34", () => {
     expect(r2.jawaban).toBe("ganda");
     expect(r2.keadaan.jurnal).toBe(1);
     expect(r2.keadaan.event.map((e) => e.id)).toEqual(["e1", "e9"]);
+    // webhookAman: terapkanStatus menjawab "ganda" (target sama dengan status), dan SelesaiEvent menulis jawaban itu ke webhook_event.hasil.
+    expect(r2.keadaan.event[1]).toEqual({ id: "e9", jenis: "settlement", hasil: "ganda" });
   });
   test("pending sesudah dibayar diparkir, status tidak mundur", () => {
     const r1 = terima("adr34", AWAL, settle);

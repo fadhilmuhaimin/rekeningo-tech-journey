@@ -16,7 +16,7 @@ export const ID_LANGKAH = ["buat", "kabar1", "ulang", "terlambat", "hilang", "ce
 export type StatusKabar = "pending" | "settlement";
 export interface Kabar { id: string; status: StatusKabar }
 export type Jawaban = "diproses" | "ganda" | "diparkir";
-export interface BarisEvent { id: string; jenis: StatusKabar; hasil: "diproses" | "diparkir" }
+export interface BarisEvent { id: string; jenis: StatusKabar; hasil: "diproses" | "diparkir" | "ganda" }
 export interface Keadaan { status: "menunggu" | "dibayar"; jurnal: number; event: BarisEvent[] }
 
 export const AWAL: Keadaan = { status: "menunggu", jurnal: 0, event: [] };
@@ -34,12 +34,13 @@ export function terima(mode: Mode, k: Keadaan, kabar: Kabar): { keadaan: Keadaan
     return { keadaan: { ...k, status: "menunggu" }, jawaban: "diproses" };
   }
   if (k.event.some((e) => e.id === kabar.id)) return { keadaan: k, jawaban: "ganda" }; // INSERT ... ON CONFLICT DO NOTHING: nol baris
-  const catat = (hasil: "diproses" | "diparkir"): BarisEvent[] => [...k.event, { id: kabar.id, jenis: kabar.status, hasil }];
+  const catat = (hasil: BarisEvent["hasil"]): BarisEvent[] => [...k.event, { id: kabar.id, jenis: kabar.status, hasil }];
   if (kabar.status === "pending") {
     if (k.status === "dibayar") return { keadaan: { ...k, event: catat("diparkir") }, jawaban: "diparkir" }; // mundur dari status akhir
     return { keadaan: { ...k, event: catat("diproses") }, jawaban: "diproses" };
   }
-  if (k.status === "dibayar") return { keadaan: { ...k, event: catat("diproses") }, jawaban: "ganda" }; // target sama dengan status
+  // target sama dengan status: terapkanStatus menjawab "ganda", dan SelesaiEvent menulis jawaban itu ke webhook_event.hasil
+  if (k.status === "dibayar") return { keadaan: { ...k, event: catat("ganda") }, jawaban: "ganda" };
   return { keadaan: { ...k, jurnal: k.jurnal + 1, status: "dibayar", event: catat("diproses") }, jawaban: "diproses" };
 }
 
