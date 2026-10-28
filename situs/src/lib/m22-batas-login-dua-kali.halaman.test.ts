@@ -311,6 +311,47 @@ describe("EVAL3-F1 (W3): blok Gejala hanya berisi kejadian, dan pemeriksaan pass
   });
 });
 
+describe("EVAL3-F1: kalimat tanpa penjaga turunan tidak lolos mutasi tanpa kunci baris (sisip 'tidak', angka +1, hapus baris)", () => {
+  const S = R["satu-instance"], A = R["dua-instance"];
+  test("tag lipat dan blok seimbang, jumlah dan kelasnya terkunci: satu details question, empat success, satu details polos; lima Blok", () => {
+    expect(badan.match(/<details\b/g)).toHaveLength(6);
+    expect(badan.match(/<\/details>/g)).toHaveLength(6);
+    expect(badan.match(/<details class="question">/g)).toHaveLength(1);
+    expect(badan.match(/<details class="success">/g)).toHaveLength(4);
+    expect(badan.match(/<details>\n<summary>/g)).toHaveLength(1);
+    expect(badan.match(/<Blok /g)).toHaveLength(5);
+    expect(badan.match(/<\/Blok>/g)).toHaveLength(5);
+  });
+  test("adegan dan Raka: catatan Angka cerita, percobaan satu instance dan pertanyaan Tebak memakai jumlah dari rekaman bagian B", () => {
+    harus("*Angka cerita (Ilustrasi):* staging, password dari daftar kebocoran, dan Dimas sebagai pencoba berasal dari naskah.");
+    harus(`Angka ${A.percobaan} dan ${A.sampai} sama dengan rekaman di blok "Yang sebenarnya"`);
+    harus(`Lalu ia menjalankan ${S.percobaan} percobaan yang sama langsung ke satu instance, tanpa proxy.`);
+    harus(`<summary>Tebak dulu: ${S.percobaan} percobaan ke ${S.percobaan} akun berbeda dari satu alamat, langsung ke satu instance. Berapa yang sampai diperiksa passwordnya?</summary>`);
+  });
+  test("Yang sebenarnya: kalimat pembuka tiap paragraf bertanda tebal, kapasitas dari pembatas.go, pembagian dari rekaman A, rentang dari semua pembagian di bagian C", () => {
+    harus(`**Satu bucket per key, di memori satu proses.** Setiap alamat punya bucket login berisi paling banyak ${batasAlamat.kapasitas} token, dan setiap request login mengambil satu token. Bucket itu hanya ada di peta milik proses yang menerimanya:`);
+    harus("Batas login ditulis sebagai kapasitas dan laju isi ulang per detik:");
+    expect(baruKode(pembatasGo, ambangIP, ambangIP)).toContain(`${batasAlamat.kapasitas}, ${batasAlamat.perMenit}.0 / 60`);
+    harus(`**Dua instance, dua jatah.** Proxy bergantian, jadi tiap instance menerima ${A.percobaan / 2} dari ${A.percobaan} percobaan.`);
+    const lolos = (k: number) => Math.min(k, batasAlamat.kapasitas) + Math.min(A.percobaan - k, batasAlamat.kapasitas);
+    const semua = Array.from({ length: A.percobaan + 1 }, (_, k) => lolos(k));
+    harus(`**Pilihan Caddy menentukan angkanya.** Kebijakan bawaan Caddy memilih instance secara acak, jadi hasilnya antara ${Math.min(...semua)} dan ${Math.max(...semua)}. Sepuluh bila`);
+    harus(`**Isi ulang ikut berlipat.** Tiap instance mengisi ulang ${batasAlamat.perMenit} token per menit.`);
+    const D = { dua: bagD.match(/→ 401: (\d+) · 429: (\d+)/) };
+    expect(D.dua!.slice(1, 3)).toEqual(["10", "2"]);
+    harus("**Yang tidak berlipat: kunci akun.** Dua belas tebakan ke satu akun lewat dua instance menjawab 401 sepuluh kali dan 429 dua kali. Bucket per akun juga di memori, 5 per instance.");
+    harus("Yang longgar adalah penahan banjir per alamat. Satu tebakan per akun tidak pernah menyentuh kunci akun,");
+    harus("Setiap `POST /login` mengambil satu token dari bucket alamat itu sebelum isi request dibaca, juga login yang passwordnya benar:");
+  });
+  test("Konsep yang lahir: butir keempat dan kelima dan kalimat penutup terkunci; tautannya ada di registry", () => {
+    harus("- [[t2-m16]]: kunci akun di database, yang tidak ikut berlipat.");
+    harus("- [[t3-dua-tempat]]: pola salinan di luar database yang kembali di memori dua instance.");
+    harus("Yang disimpan di memori satu proses berlipat saat prosesnya dua.");
+    expect(dari("t2-m16").nomor).toBe("2.27");
+    expect(dari("t3-dua-tempat").nomor).toBe("3.4");
+  });
+});
+
 describe("rekaman batas.txt: bagian A sampai D dan rentang Snippet", () => {
   test("bagian A: round_robin, 24 percobaan, 401 20 dan 429 4, per instance a 10 dan b 10, 429 a 2 dan b 2; tiap instance menerima 12", () => {
     expect(bagA).toContain("# --- A. Bucket di memori, dua instance, round_robin: 24 percobaan ke 24 akun berbeda dari satu alamat ---");
