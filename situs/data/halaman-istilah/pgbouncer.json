@@ -1,0 +1,40 @@
+{
+  "istilah": "PgBouncer",
+  "sehari_hari": "PgBouncer adalah program kecil di depan PostgreSQL yang menampung koneksi dari aplikasi, lalu meminjamkan koneksi ke database hanya saat dibutuhkan. Jumlah koneksi ke PostgreSQL bisa lebih kecil dari jumlah client.",
+  "cerita": [
+    {
+      "rujukan": "t3-pool",
+      "teks": "Dua instance dengan pool 10, worker, dan koneksi admin memakai 30 dari 100 koneksi (Hitungan atas Asumsi). Halaman itu menulis bahwa pooler layak dipertimbangkan bila instance × pool mendekati max_connections."
+    },
+    {
+      "rujukan": "t3-adr-33",
+      "teks": "ADR 33 menunda PgBouncer dengan pemicu 70 dari 100 koneksi, yaitu enam instance dengan pool 10 (Asumsi halaman itu). Mode transaction dan prepared statement pgx membuat pemasangannya perlu diperiksa dulu."
+    }
+  ],
+  "mekanisme": [
+    "Aplikasi tersambung ke PgBouncer, bukan langsung ke PostgreSQL. PgBouncer menyimpan sejumlah koneksi ke PostgreSQL.",
+    "Di mode session, satu koneksi ke PostgreSQL dipinjamkan selama client tersambung. Di mode transaction, koneksi dipinjamkan hanya selama satu transaction, lalu kembali ke kumpulan.",
+    "Mode statement lebih agresif lagi: transaction yang berisi beberapa statement dilarang.",
+    "Mode transaction memutus beberapa fitur berbasis sesi. Menurut dokumentasi PgBouncer, SET dan RESET, LISTEN, PREPARE dan DEALLOCATE, dan advisory lock tingkat sesi tidak berjalan di mode itu, jadi aplikasi harus tidak memakainya."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Memakai mode transaction sambil tetap memakai SET, LISTEN, PREPARE, atau advisory lock tingkat sesi. Fitur itu tidak berjalan di mode transaction, dan kesalahannya muncul sebagai perilaku aneh, bukan sebagai error saat dipasang.",
+    "Mengira driver cocok tanpa pengaturan. Komentar kode pgx v5.11.0 menulis bahwa bawaan pgx menyiapkan dan menyimpan prepared statement secara otomatis, dan itu bisa tidak cocok dengan PgBouncer kecuali PgBouncer dikonfigurasi untuk prepared statement tingkat protokol."
+  ],
+  "terkait": ["Connection pool", "Idle in transaction", "Proxy"],
+  "sumber": [
+    {
+      "riset": "R3-246",
+      "judul": "PgBouncer: features",
+      "url": "https://www.pgbouncer.org/features.html",
+      "catatan": "Mode session, transaction, dan statement, dan tabel fitur SQL yang tidak berjalan di mode transaction. Prepared statement tingkat protokol butuh max_prepared_statements bernilai bukan nol. Dibuka 2026-10-27."
+    },
+    {
+      "riset": "R3-246",
+      "judul": "pgx v5.11.0: conn.go",
+      "url": "https://github.com/jackc/pgx/blob/v5.11.0/conn.go",
+      "catatan": "Komentar DefaultQueryExecMode: pgx menyiapkan dan menyimpan prepared statement secara otomatis, yang bisa tidak cocok dengan proxy seperti PgBouncer. Dibuka 2026-10-27."
+    }
+  ]
+}

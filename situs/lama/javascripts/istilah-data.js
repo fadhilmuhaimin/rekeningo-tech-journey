@@ -184,6 +184,15 @@ window.ISTILAH = {
   "t": "CA (Certificate Authority)",
   "u": "tahap-3/tls-pinning/"
  },
+ "CDC": {
+  "b": "t3-adr-33",
+  "d": "Cara mengeluarkan perubahan data dengan membaca log transaksi database, sehingga urutannya sama dengan urutan commit.",
+  "h": "istilah/cdc/",
+  "n": "3.30 ADR 33",
+  "s": "istilah-cdc",
+  "t": "CDC (change data capture)",
+  "u": "tahap-3/sengaja-belum/"
+ },
  "CI": {
   "b": "B1.4",
   "d": "Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung.",
@@ -261,6 +270,15 @@ window.ISTILAH = {
   "s": "istilah-cache-aside",
   "t": "Cache-aside",
   "u": "tahap-3/cache-invalidation/"
+ },
+ "Canary": {
+  "b": "t3-adr-33",
+  "d": "Rilis perubahan ke sebagian kecil lalu lintas lebih dulu, dengan penilaian baik atau buruk sebelum sisanya mendapat versi baru.",
+  "h": "istilah/canary/",
+  "n": "3.30 ADR 33",
+  "s": "istilah-canary",
+  "t": "Canary",
+  "u": "tahap-3/sengaja-belum/"
  },
  "Certificate Authority": {
   "b": "t3-tls-pinning",
@@ -1111,6 +1129,15 @@ window.ISTILAH = {
   "t": "Payload",
   "u": "tahap-2/ukuran-payload/"
  },
+ "PgBouncer": {
+  "b": "t3-adr-33",
+  "d": "Pooler koneksi PostgreSQL yang menampung banyak koneksi client dan meminjamkan sedikit koneksi ke database, dengan beberapa fitur sesi yang tidak berjalan di mode transaction.",
+  "h": "istilah/pgbouncer/",
+  "n": "3.30 ADR 33",
+  "s": "istilah-pgbouncer",
+  "t": "PgBouncer",
+  "u": "tahap-3/sengaja-belum/"
+ },
  "Phantom read": {
   "b": "t2-isolation-level",
   "d": "Anomali: query yang sama dalam satu transaction mengembalikan kumpulan baris berbeda, karena transaction lain menambah atau menghapus baris.",
@@ -1781,6 +1808,15 @@ window.ISTILAH = {
   "s": "istilah-cache-aside",
   "t": "Cache-aside",
   "u": "tahap-3/cache-invalidation/"
+ },
+ "canary": {
+  "b": "t3-adr-33",
+  "d": "Rilis perubahan ke sebagian kecil lalu lintas lebih dulu, dengan penilaian baik atau buruk sebelum sisanya mendapat versi baru.",
+  "h": "istilah/canary/",
+  "n": "3.30 ADR 33",
+  "s": "istilah-canary",
+  "t": "Canary",
+  "u": "tahap-3/sengaja-belum/"
  },
  "certificate pinning": {
   "b": "t3-tls-pinning",

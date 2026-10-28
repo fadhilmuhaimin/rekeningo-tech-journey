@@ -2272,6 +2272,30 @@
   "jawab": "Bukan. Lajunya hanya 0,231 unggahan per detik di puncak, atau 116 KB per detik. Yang berubah adalah ukuran: 365 ÷ 10,95 = 33 kali posting. Itu keputusan tentang tempat menyimpan file, dan dibahas di Tahap 4."
  },
  {
+  "id": "t3-adr-33-1",
+  "halaman": "t3-adr-33",
+  "judul": "3.30 ADR 33: Sengaja belum dilakukan",
+  "url": "tahap-3/sengaja-belum/",
+  "tanya": "Dua instance memakai 30 dari 100 koneksi. Berapa instance dengan pool 10 sampai koneksi mencapai 70?",
+  "jawab": "Enam instance, jadi empat lagi di atas dua yang ada. Rumusnya instance × 10 + 4 + 3 + 3 = 70, jadi instance = (70 − 10) ÷ 10 = 6. Angka 70 adalah Asumsi halaman ini, dan worker 4 serta admin 3 adalah Asumsi naskah."
+ },
+ {
+  "id": "t3-adr-33-2",
+  "halaman": "t3-adr-33",
+  "judul": "3.30 ADR 33: Sengaja belum dilakukan",
+  "url": "tahap-3/sengaja-belum/",
+  "tanya": "Cache katalog sudah dipasang di 3.19 Cache dan invalidation. Kenapa cache saldo dan riwayat belum?",
+  "jawab": "Cache katalog hanya menyimpan jawaban baca katalog, dan harga serta stok yang dipakai pembayaran dibaca dari database. Saldo adalah uang. Salinan di luar database tidak ikut COMMIT dan ROLLBACK. L riwayat yang kecil (0,024 koneksi) bukan pembedanya: L katalog juga kecil (0,026), dan cache katalog tetap dipasang."
+ },
+ {
+  "id": "t3-adr-33-3",
+  "halaman": "t3-adr-33",
+  "judul": "3.30 ADR 33: Sengaja belum dilakukan",
+  "url": "tahap-3/sengaja-belum/",
+  "tanya": "VPS kedua hanya untuk API. Kenapa titik gagal tunggal tetap ada?",
+  "jawab": "PostgreSQL tetap di VPS pertama, jadi VPS itu mati berarti uang berhenti. Menghapus titik itu butuh database kedua dengan replikasi. Replikasi asinkron bisa kehilangan commit saat failover, dan yang sinkron membuat tiap commit menunggu (dokumentasi PostgreSQL 17). Ini penalaran dari dokumentasi, bukan hasil lab."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",
