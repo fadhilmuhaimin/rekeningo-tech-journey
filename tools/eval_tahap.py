@@ -6,6 +6,7 @@ yang sudah lengkap (1 dan 2) masuk gerbang (`tools/cek_situs.sh`, keputusan 1164
     python3 tools/eval_tahap.py bocor 2   # W5: jawaban tebakan widget lama (predict) yang sudah tertulis di teks sebelum blok Coba
     python3 tools/eval_tahap.py adr   2   # W6: opsi, pre-mortem, kapan salah, tautan sumber tiap halaman ADR
     python3 tools/eval_tahap.py rantai 2  # W8: ikuti tautan Berikutnya di situs/dist dari N.1 sampai halaman terakhir tahap
+    python3 tools/eval_tahap.py gejala 3  # W3: kalimat definisi (adalah, yaitu, disebut, ...) di dalam adegan blok Gejala halaman masalah
 
 Semua perintah membaca berkas di repo (naskah, registry, MDX, situs/dist) dan tidak mengubah apa pun. `rantai` butuh
 `bun run --cwd situs build` lebih dulu. Exit 1 bila ada selisih nyata: W1 nomor, judul, bintang, lab, atau halaman
@@ -205,7 +206,32 @@ def rantai(n):
     return 1 if masalah else 0
 
 
-PERINTAH = {"peta": peta, "coba": coba, "bocor": bocor, "adr": adr, "rantai": rantai}
+DEFINISI = re.compile(r"\b(adalah|yaitu|disebut|artinya|berarti|maksudnya|merupakan)\b")
+
+
+def gejala(n):
+    """W3: adegan di blok Gejala hanya berisi kejadian dan dialog; kalimat yang mendefinisikan istilah dicetak dan menggagalkan.
+
+    Catatan di blok itu (`*Angka cerita (Ilustrasi)...`, `*Asumsi ...`, `Arti label ...`) bukan adegan dan dilewati. Kata penanda
+    definisi hanya petunjuk: tiap kalimat yang tercetak dibaca orang (skill gaya-bahasa: konsep tidak di dalam adegan cerita)."""
+    reg, _ = registry(n)
+    salah = 0
+    for no in sorted(reg, key=urut):
+        if reg[no].get("jenis") != "masalah":
+            continue
+        t = berkas(reg[no]).read_text(encoding="utf-8")
+        for nama, _attr, isi in blok(t):
+            if nama != "Gejala":
+                continue
+            adegan = [p.strip() for p in isi.strip().split("\n\n") if p.strip() and not p.strip().startswith(("*", "Arti label"))]
+            kalimat = [k for p in adegan for k in re.split(r"(?<=[.!?])\s+", p)]
+            hit = [k for k in kalimat if DEFINISI.search(k)]
+            salah += 1 if hit else 0
+            print(f"{no} | {reg[no]['judul'][:44]} | {len(adegan)} paragraf adegan, {sum(len(p.split()) for p in adegan)} kata | " + ("DEFINISI: " + " / ".join(h[:140] for h in hit) if hit else "ok"))
+    return 1 if salah else 0
+
+
+PERINTAH = {"peta": peta, "coba": coba, "bocor": bocor, "adr": adr, "rantai": rantai, "gejala": gejala}
 
 if __name__ == "__main__":
     if len(sys.argv) != 3 or sys.argv[1] not in PERINTAH or not sys.argv[2].isdigit():

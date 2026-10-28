@@ -125,6 +125,28 @@ def jalankan(akar, perintah):
     return p.returncode, p.stdout + p.stderr
 
 
+GEJALA = """---
+title: "9.2 M99: masalah uji"
+---
+<Blok nama="Gejala" buka>
+
+Minggu 4. Budi membuka app dan saldonya tidak muncul.
+
+{tambah}Ani bertanya kepada Raka kenapa layarnya berputar.
+
+*Angka cerita (Ilustrasi):* sembilan menit adalah angka naskah, tanpa rekaman.
+
+Arti label Rekaman lab ada di [[A0]], yaitu keluaran program.
+
+</Blok>
+"""
+
+
+def masalah(akar, tambah=""):
+    registry_ubah(akar, lambda d: tandai(d, "t9-b", jenis="masalah"))
+    tulis(akar, "situs/src/content/docs/tahap-9/b.mdx", GEJALA.format(tambah=tambah))
+
+
 def tandai(d, id_, **kv):
     for h in d["halaman"]:
         if h["id"] == id_:
@@ -156,6 +178,10 @@ KASUS = [
      lambda a: registry_ubah(a, lambda d: tandai(d, "t10-prd", ada=True)), 1, ["halaman lama (penggantinya ada)=True"]),
     ("rantai: jembatan menuju halaman yang tidak ada", "rantai", lambda a: hapus(a, "situs/dist/cerita/tahap-10/index.html"), 1, ["ada=False"]),
     ("rantai: berhenti sebelum halaman terakhir", "rantai", lambda a: tulis(a, "situs/dist/tahap-9/b/index.html", halaman_html("b", "/tahap-9/a/")), 1, ["rantai berhenti atau berputar"]),
+    ("gejala: adegan bersih, catatan label dengan kata penanda dilewati", "gejala", lambda a: masalah(a), 0, ["9.2 | Konsep uji | 2 paragraf adegan", "| ok"]),
+    ("gejala: kalimat definisi di dalam adegan", "gejala", lambda a: masalah(a, "Pemeriksaan password adalah saat server membandingkan hash.\n\n"), 1, ["DEFINISI: Pemeriksaan password adalah"]),
+    ("gejala: halaman bukan masalah tidak diperiksa", "gejala", lambda a: (masalah(a, "Pemeriksaan password adalah saat server membandingkan hash.\n\n"), registry_ubah(a, lambda d: tandai(d, "t9-b", jenis="konsep"))), 0, ["| ok"] if False else []),
+    ("gejala: penanda yaitu di dalam adegan", "gejala", lambda a: masalah(a, "Timeout, yaitu batas waktu tunggu, lewat.\n\n"), 1, ["DEFINISI: Timeout, yaitu"]),
     ("bocor: jawaban tebakan sudah tertulis sebelum blok Coba", "bocor", None, 0, ["tertulis sebelum blok Coba: ['Rp0']"]),
     ("bocor: jawaban tidak tertulis sebelum blok Coba", "bocor",
      lambda a: tulis(a, "situs/dist/tahap-9/b/index.html", halaman_html("Halaman b tanpa angka jawaban", "/tahap-9/c/")), 0, ["tertulis sebelum blok Coba: []"]),
