@@ -1,0 +1,224 @@
+---
+title: "3.31 Yang dibawa keluar dari Tahap 3"
+description: Tiga belas kalimat dari Tahap 3, masing-masing terikat ke kejadian dan halaman asalnya. Ada kartu untuk menebaknya, ringkasan ADR 22 sampai 33, dan Cek diri gabungan.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import kejadian from "../../../../data/diagram/t3-rekap-kejadian.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 10 menit · coba 3 menit · Prasyarat: [[t3-adr-33]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Tahap 3 meninggalkan tiga belas kalimat, satu per konsep.
+
+<Rantai data={kejadian} ringkas />
+
+Tiga kalimat lahir dari PRD v3 dan M18, dan sepuluh lainnya dari M19 sampai M28, satu per masalah. Setiap kalimat terikat ke satu kejadian dan ke halaman asalnya. Empat dari tiga belas kalimat naskah lebih luas daripada yang direkam lab, jadi blok Paham menulis juga versi yang didukung rekaman, berlabel Dipersempit.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Layanan push berhenti menjawab dan semua layar membeku. Kenapa menaikkan pool dari 10 ke 50 hanya menunda penuhnya?
+2. Saldo Citra naik, tetapi satu notifikasi tidak datang. Apa yang dibaca poller, dan kenapa satu baris terlewat?
+3. Tutup buku lolos dengan Rp0 dan PRD v4 datang. Apa yang belum diuji?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah punya tiga belas kalimat Tahap 3, masing-masing dengan kejadiannya.">
+
+Setiap kartu menunjukkan satu kejadian. Tebak kalimat yang lahir darinya, lalu buka jawabannya. Tautan di kartu membawa ke halaman kejadian itu.
+
+<WidgetLama nama="kartu" src="data/t3-rekap-kartu.json" />
+
+Kartu yang kamu tandai **Ingat** baru muncul lagi sesuai jadwal kotaknya, seperti di [[Kartu]]. Daftar lengkap tiga belas kalimat, beserta batas masing-masing, selalu ada di blok Paham.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Konsep Tahap 3 tersebar di tiga puluh halaman, dari [[t3-prd]] sampai [[t3-adr-33]]. Tiga di antaranya, [[t3-fitur-teknis]], [[t3-notifikasi]], dan [[t3-skema]], mendukung kalimat di bawah tetapi tidak melahirkan kalimat sendiri.
+
+Untuk ingatan beberapa hari kemudian, mengingat kembali jawaban lebih menguatkan daripada belajar ulang ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/), dibuka 2026-10-28). Karena itu setiap konsep diringkas jadi satu kalimat dan diikat ke satu kejadian. Halaman ini tidak menjelaskan ulang konsepnya.
+
+Bila rekaman lab hanya mendukung sebagian dari kalimat naskah, halaman ini menulis dua hal: kalimat naskahnya, dan versi yang didukung rekaman. Angka dikutip dari halaman asalnya, dengan label yang sama. Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].
+
+### Tiga belas kalimat
+
+1. **Pool habis karena lama, bukan karena banyak.** Di [[t3-m18]], layanan push menerima koneksi tetapi tidak menjawab, dan semua layar berhenti, padahal pembayaran hanya 0,868 per detik (Asumsi naskah). Pool 10 penuh antara detik ke-11 dan ke-12, sedangkan pool 50 baru penuh antara detik ke-57 dan ke-58 (`m18.txt` bagian A dan B, lab t3-pool). Konsep dan ADR 22: [[t3-pool]].
+
+
+2. **Tanpa trace, "lambat" tidak punya alamat.** Di [[t3-m18]], Raka tidak menemukan satu baris log pun untuk request yang menggantung. Di rekaman, satu pembayaran yang menggantung diamati 4 detik. Log tidak bertambah, metric pool menjawab dipakai 1 dari maks 10, dan database melaporkan satu sesi `idle in transaction` (`jejak.txt` bagian J, lab t3-pool). Konsep: [[t3-observability]].
+
+   *Dipersempit:* trace Tidak dijalankan, karena kode api-t3 tidak membaca `traceparent`. Versi yang didukung rekaman: log kosong tidak membedakan sehat dari menggantung, dan bagian API yang menunggu tetap tidak terlihat.
+
+3. **Uang dan pemberitahuan ditulis di satu tempat dulu, dikirim dari tempat lain kemudian.** [[t3-prd]] menambah syarat Pak Hadi: Ani tidak boleh diberi tahu uang masuk sebelum uang itu tercatat. Push di dalam transaction membekukan app di [[t3-m18]], dan layanan push tidak ikut COMMIT PostgreSQL ([[t3-dua-tempat]]). Jadi pembayaran menulis jurnal dan satu baris outbox di satu transaction. Di rekaman, Budi membayar Rp25.000 dan API menjawab 201, tetapi layanan push menerima 0 pesan sampai worker berjalan (`transaksi.txt` bagian A, lab t3-outbox). Konsep dan ADR 23: [[t3-outbox]].
+
+   *Batas:* rekaman hanya menjalankan opsi outbox. Opsi kirim sesudah COMMIT, queue di Redis, dan CDC Tidak dijalankan.
+
+4. **Urutan id bukan urutan commit.** Di [[t3-m19]], dua transfer ke Citra membuat saldonya naik Rp50.000, tetapi HP-nya menerima satu pesan. Poller membaca dengan kursor `(dibuat, id)`, dan baris Budi, yang mulai lebih dulu tetapi COMMIT belakangan, tertinggal di belakang kursor (`kursor.txt` bagian B, lab t3-outbox). Worker yang mengklaim baris mengirim kedua pesan (bagian C). Konsep dan ADR 24: [[t3-klaim-baris]].
+
+   *Dipersempit:* yang terbalik di rekaman adalah `dibuat`, yaitu awal transaction, bukan nomor outbox. Versi yang didukung rekaman: `dibuat` bukan urutan COMMIT, dan nomor sequence tidak dijanjikan sama dengan urutan COMMIT (sumbernya di [[t3-m19]], Tidak dijalankan).
+
+5. **Mengirim ulang itu benar; yang salah adalah penerima yang tidak mengenali ulangan.** Di [[t3-m20]], HP Ani menampilkan "Rp25.000 dari Budi" dua kali, padahal hanya ada satu jurnal. Di rekaman, worker berhenti sesudah push menjawab dan sebelum baris ditandai `terkirim`, jadi klaim 5 detik habis dan worker lain mengirim ulang. Layanan push menerima 2 pesan dengan 1 `notifikasi_id`, dan penyaring tiruan menampilkan 1 (`ganda.txt` bagian A dan C, lab t3-outbox). Konsep dan ADR 25: [[t3-at-least-once]].
+
+   *Batas:* penyaring itu lima baris Python di lab, bukan kode app Dart.
+
+6. **Dua proses butuh proxy yang tahu mana yang hidup.** Di [[t3-m21]], panic di goroutine latar ekspor laporan mematikan satu-satunya proses API. Panic di handler memutus satu koneksi dan `/healthz` tetap 200, tetapi panic di goroutine latar mematikan proses dengan kode keluar 2 (`panic.txt` bagian B, lab t3-instance). Di belakang proxy tanpa health check dan retry, satu instance yang mati membuat 10 dari 20 request dijawab 502 (`proxy.txt` bagian C; lab memakai `round_robin`). Konsep dan ADR 26: [[t3-dua-instance]].
+
+   *Batas:* satu Ekspor yang ditekan dua kali mematikan kedua instance, dan proxy menjawab 503 (`panic.txt` bagian D). Satu VPS tetap titik gagal tunggal, dan VPS yang mati Tidak dijalankan.
+
+7. **Yang disimpan di memori satu proses berlipat saat prosesnya dua.** Di [[t3-m22]], 24 percobaan login dari satu alamat lewat dua instance membuat 20 sampai ke pemeriksaan password. Batas per alamat tertulis 10 (`batas.txt` bagian A, lab t3-instance). Dengan satu hitungan di Redis, hanya 10 yang sampai (bagian E). Saat Redis dihentikan, batas jatuh ke bucket lokal dan 20 dari 24 sampai lagi (bagian I). Konsep dan ADR 27: [[t3-rate-limit-redis]].
+
+   *Batas:* kode lab tidak membaca `X-Forwarded-For`, jadi di belakang proxy semua client berbagi satu key per alamat (dibaca dari kode, Tidak dijalankan).
+
+8. **Cache boleh stale untuk tampilan, tidak untuk uang.** Di [[t3-m23]], HR menyalakan promo, lalu HP Budi menampilkan nasi goreng Rp22.500 dan HP Citra Rp25.000. Cache katalog ada di memori tiap instance dengan TTL 300 detik, dan promo hanya membuang entri di instance yang menerimanya. Citra tetap ditagih Rp22.500, karena `Pesan` membaca harga dari database, dan harga lama hilang di detik ke-300 (`memori.txt` bagian B sampai D, lab t3-cache). Konsep dan ADR 28: [[t3-cache]].
+
+   *Batas:* stok di cache juga stale (50 di cache instance B, 49 di database), dan rekaman tidak memakai app Flutter.
+
+9. **Operasi yang menunggu lama harus bisa ditolak dengan benar.** Di [[t3-m24]], stok = 0 dari Jumat dikirim ulang 62 jam kemudian dan menimpa 30 porsi yang Ani isi hari Sabtu. Key berlaku 24 jam. Nasi goreng yang dikirim ulang 17 jam sesudah Jumat dikenali, dan stoknya tetap 50. Ayam geprek yang dikirim ulang 62 jam sesudah Jumat menimpa stok 30 (`m24.txt` bagian C dan D, lab t3-offline). Dengan versi dasar, operasi yang belum pernah sampai dijawab 409, dan produk tidak berubah (`versi.txt` bagian C). Konsep dan ADR 29: [[t3-offline]].
+
+   *Batas:* lama offline 62 jam adalah Asumsi naskah, dan jam service dimajukan tanpa ada yang menunggu. HP diperankan curl, jadi queue lokal dan layar konflik di app Tidak dijalankan. Umur queue 7 hari dan kunci 14 hari juga Asumsi naskah.
+
+10. **Data dari sistem sendiri tetap input.** Di [[t3-m25]], catatan Rp5.000 dari Dimas berisi tag gambar, dan dasbor Ani menulisnya lewat `innerHTML`. Di Chromium yang baru diluncurkan tanpa ekstensi muncul satu kotak peringatan berisi 1 (`xss.txt` bagian A, lab t3-dasbor). Hanya CSP atau hanya `textContent` menghasilkan 0 dialog (bagian C dan E). Skrip yang dijalankan penggerak lab di halaman yang sama mengubah harga walau token CSRF, Origin, dan cookie `HttpOnly` benar (bagian D). Konsep dan ADR 30: [[t3-xss-csrf]].
+
+    *Batas:* hanya Chromium 156 yang diuji, dan dari passkey hanya pendaftaran kredensial yang direkam.
+
+11. **Sertifikat selalu divalidasi; pin selalu dengan cadangan.** Di [[t3-m26]], app Budi menerima sertifikat apa pun karena flag dari staging, jadi hotspot Dimas membaca token Budi. Dimas memakainya untuk transfer Rp150.000 ke dirinya, dan dengan validasi aktif hotspot melihat 0 request (`m26.txt` bagian B, C, dan E, lab t3-mitm). Pin di `connectionFactory` menahan CA Dimas yang sudah dipercaya (`dio.txt` bagian B), tetapi app yang hanya mem-pin satu kunci ditolak saat server rotasi (`pin.txt` bagian C). Konsep dan ADR 31: [[t3-tls-pinning]].
+
+    *Batas:* proxy, server, dan client Dart berjalan di satu laptop, jadi perangkat dan Wi-Fi sungguhan Tidak dijalankan. Cadangan hanya menahan satu rotasi.
+
+12. **Queue punya umur, dan yang tertua yang paling penting.** Di [[t3-m27]], notifikasi pembayaran Ani belum datang sampai 11.42 karena 10.000 promo mendahuluinya (Ilustrasi naskah). Di rekaman, worker yang mengklaim menurut nomor mengirim 3,4% sampai 4,2% promo dalam 30 detik dan belum menyentuh notifikasi uang (`queue.txt` bagian C, lab t3-outbox). Worker yang mengklaim menurut kelas mengirimnya dalam kurang dari 1,5 detik (bagian E). Konsep dan ADR 32: [[t3-tim-infra]].
+
+    *Dipersempit:* yang dihitung adalah umur notifikasi uang tertua, bukan umur tertua seluruh queue. Dengan promo menumpuk, umur tertua semua kelas lebih dari 30 detik, sedangkan umur tertua kelas uang 0 (`queue.txt` bagian E). Alert sungguhan Tidak dijalankan.
+
+13. **Masalah Tahap 3 adalah ketergantungan, bukan kapasitas.** Di [[t3-m28]], tutup buku bulan ketiga selesai dengan selisih Rp0 (Ilustrasi naskah), lalu Sinta datang dengan PRD v4. Puncak 17,4 request per detik adalah Asumsi (dibulatkan dari 17,36), dan L = 17,4 × 0,02 = 0,35 koneksi dari pool 10 juga Asumsi. Rekaman hanya memeriksa batas: L kurang dari 17,4 × 50 ms, yaitu 0,87 koneksi (`adr22.txt` bagian F, lab t3-pool). Konsep dan beban PRD v4: [[t3-estimasi]].
+
+    *Dipersempit:* M18, M23, dan M27 memakai hitungan kapasitas sebagai alat, dan pemicunya tetap ketergantungan. Pool dan worker dijawab tanpa memperbesar apa pun. Hitungan katalog menunjukkan cache tidak dibutuhkan beban (Asumsi), dan ADR 28 tetap memasangnya sebagai pilihan desain. Kapasitas satu server belum diukur. Di delapan lab Tahap 3 tidak ada file yang memuat nama perkakas load test (dipindai: k6, wrk, locust, vegeta, hey, dan Apache Bench).
+
+### Yang belum diuji
+
+Tiga belas kalimat itu diuji lewat rekaman lab di mesin lokal, bukan di server sungguhan. Delapan hal yang ditulis terbuka di halamannya belum diuji.
+
+- Kapasitas satu server dan load test: [[t3-m28]].
+- Trace di api-t3: [[t3-observability]].
+- Penyaring `notifikasi_id` di app Dart: [[t3-at-least-once]].
+- VPS yang mati dan pengawas proses: [[t3-dua-instance]].
+- Membaca `X-Forwarded-For` dari proxy tepercaya di kode lab: [[t3-rate-limit-redis]].
+- Queue lokal dan layar konflik di app: [[t3-offline]].
+- Pin di Wi-Fi dan perangkat sungguhan: [[t3-tls-pinning]].
+- Alert, staging, dan giliran jaga: [[t3-tim-infra]].
+
+Komponen yang sengaja belum dipasang punya halaman sendiri di [[t3-adr-33]], dan halaman ini tidak mengulangnya.
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Dua belas keputusan Tahap 3
+
+Keputusan di balik kalimat-kalimat itu tertulis di ADR 22 sampai 33. Alasan dan kapan keputusan itu salah ada di halaman masing-masing.
+
+| ADR | Keputusan | Lahir dari |
+|---|---|---|
+| 22 | Panggilan keluar di luar transaction, timeout 3 detik, pool tetap 10 | M18, [[t3-pool]] |
+| 23 | Outbox di PostgreSQL, worker di proses terpisah | PRD v3 dan M18, [[t3-outbox]] |
+| 24 | Worker mengklaim baris, tanpa kursor | M19, [[t3-klaim-baris]] |
+| 25 | At-least-once dengan batas lima percobaan, dead-letter, dan penyaring di app | M20, [[t3-at-least-once]] |
+| 26 | Dua instance di satu VPS, health check aktif, dan retry | M21, [[t3-dua-instance]] |
+| 27 | Hitungan batas login di Redis, dengan batas waktu 50 milidetik dan bucket lokal sebagai cadangan | M22, [[t3-rate-limit-redis]] |
+| 28 | Cache katalog di Redis bersama, TTL 60 detik, hapus kunci sesudah COMMIT, tagihan dari database | M23, [[t3-cache]] |
+| 29 | Offline hanya stok dan harga, operasi bersyarat versi, kunci sinkron 14 hari | M24, [[t3-offline]] |
+| 30 | Tanpa `innerHTML`, CSP dengan nonce, token CSRF, dan cookie `__Host-` | M25, [[t3-xss-csrf]] |
+| 31 | Validasi selalu aktif, pin SPKI dengan satu cadangan, HSTS di dasbor, token 15 menit | M26, [[t3-tls-pinning]] |
+| 32 | Kelas queue, alert umur uang tertua per kelas, staging, dan giliran jaga | M27, [[t3-tim-infra]] |
+| 33 | Komponen yang belum diperlukan sengaja belum dipasang, masing-masing dengan angka Tahap 3 dan pemicunya, dan load test kapasitas dijadwalkan sebelum fitur PRD v4 pertama yang menambah beban | M28, [[t3-adr-33]] |
+
+ADR 32 merevisi ADR 23 dengan kolom `kelas` di outbox. Angka di kolom Keputusan adalah pilihan tiap ADR, dan token 15 menit serta kunci sinkron 14 hari berlabel Asumsi naskah di halamannya.
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Layanan push berhenti menjawab dan semua layar membeku. Raka mengusulkan pool 50. Kapan pool 50 penuh, dan apa yang menahan masalahnya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Pool 50 penuh pada 50 ÷ 0,868 = 57,6 detik, bukan 11,5 detik (Asumsi), dan di rekaman antara detik ke-57 dan ke-58 (`m18.txt` bagian B). Penyebabnya tetap lamanya panggilan ke push. ADR 22 memindahkan panggilan keluar dari transaction, memasang timeout 3 detik, dan menahan pool di 10.
+
+</details>
+
+**2.** Raka mengganti kursor `(dibuat, id)` di poller outbox dengan kursor `id` saja. Apa yang terekam, dan apa yang ditulis ADR 24?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Di rekaman, nomor outbox tidak terbalik dan yang terbalik hanya `dibuat`, jadi kursor `id` akan menangkap kasus M19 di lab. Nomor sequence tetap tidak dijanjikan sama dengan urutan COMMIT (Tidak dijalankan). ADR 24 memakai klaim per baris, dan harganya urutan antar pesan tidak dijaga.
+
+</details>
+
+**3.** Dua instance meloloskan 20 dari 24 percobaan login, dan cache katalog menampilkan dua harga. Apa sebab yang sama, dan apa yang tetap benar?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Keduanya disimpan di memori satu proses, jadi tiap instance punya salinan sendiri (`batas.txt` bagian A, `memori.txt` bagian B). Yang tetap benar ada di database: tagihan Rp22.500, dan kunci akun yang menahan tebakan di 5 (`batas.txt` bagian D).
+
+</details>
+
+**4.** Dengan kunci sinkron 14 hari, operasi soto yang sudah sampai hari Jumat dikirim ulang hari Senin. Kenapa stok 30 dari hari Sabtu tetap utuh, dan apa yang menolak operasi bakso yang belum pernah sampai?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Kunci menjawab apakah permintaan pernah datang. Baris kunci Jumat masih ada hari Senin, jadi soto dijawab `ulang: true` dan stok 30 tidak berubah (`versi.txt` bagian C). Bakso belum pernah sampai, jadi tidak ada kunci yang mengenalinya. Yang menolaknya versi: versi dasar 1 sudah lewat, jawabannya 409, dan produk tidak berubah (bagian yang sama).
+
+</details>
+
+**5.** Cookie sesi Ani `HttpOnly`, dan token CSRF serta Origin benar. Kenapa skrip di halaman dasbor tetap bisa mengubah harga, dan apa yang menahannya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Skrip berjalan sebagai halaman itu sendiri. `HttpOnly` melarang membaca cookie, bukan memakainya, jadi `fetch` dari halaman dijawab 200 (`xss.txt` bagian D). Yang menahannya adalah `textContent` atau CSP, masing-masing sendiri: 0 dialog di bagian C dan E.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Tidak ada panggilan HTTP, push, atau email di antara `BEGIN` dan `COMMIT` ([[t3-pool]]).
+- [ ] Tidak ada token, password, atau session identifier di log, termasuk header `Authorization` ([[t3-observability]]).
+- [ ] Ada tes yang membuktikan jurnal dan outbox hilang bersama saat ROLLBACK ([[t3-outbox]]).
+- [ ] Poller tidak membaca dengan kursor `(dibuat, id)` atau nomor `id` untuk pesan yang tidak boleh terlewat ([[t3-klaim-baris]]).
+- [ ] `notifikasi_id` dibuat saat `INSERT`, bukan saat kirim, dan dikirim sama di semua percobaan ([[t3-at-least-once]]).
+- [ ] Proxy punya health check aktif dan `lb_retries`, bukan hanya daftar upstream ([[t3-dua-instance]]).
+- [ ] Hitungan rate limit untuk lebih dari satu instance hidup di tempat bersama, dan bukan di memori satu proses ([[t3-rate-limit-redis]]).
+- [ ] Tagihan dan keputusan uang dibaca dari database di dalam transaction, bukan dari cache ([[t3-cache]]).
+- [ ] Server menolak versi yang berbeda dengan 409 dan keadaan terkini, bukan menimpa dan bukan membuang diam-diam ([[t3-offline]]).
+- [ ] Data dari database atau user ditulis lewat `textContent` atau escape template, dan tidak ada `innerHTML` yang memuat data ([[t3-xss-csrf]]).
+- [ ] Tidak ada `badCertificateCallback` yang selalu mengembalikan `true`, dan tidak ada flag staging yang ikut ke build rilis ([[t3-tls-pinning]]).
+- [ ] Alert baru menunjuk gejala yang dirasakan user, dan umur notifikasi dihitung per kelas uang ([[t3-tim-infra]]).
+- [ ] Kapasitas server tidak disebut tanpa load test ([[t3-estimasi]]).
+
+### Bacaan lanjut
+
+- [Roediger & Karpicke 2006, Psychological Science 17(3)](https://pubmed.ncbi.nlm.nih.gov/16507066/)
+- [Cepeda dkk. 2006, Psychological Bulletin 132(3)](https://pubmed.ncbi.nlm.nih.gov/16719566/)
+- [[Kartu]]: soal Cek diri dari semua halaman yang sudah kamu baca
+
+</Blok>
+
+<SkripLama daftar={["cerita","kartu"]} />

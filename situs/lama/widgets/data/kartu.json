@@ -2272,6 +2272,70 @@
   "jawab": "Bukan. Lajunya hanya 0,231 unggahan per detik di puncak, atau 116 KB per detik. Yang berubah adalah ukuran: 365 ÷ 10,95 = 33 kali posting. Itu keputusan tentang tempat menyimpan file, dan dibahas di Tahap 4."
  },
  {
+  "id": "t3-adr-33-1",
+  "halaman": "t3-adr-33",
+  "judul": "3.30 ADR 33: Sengaja belum dilakukan",
+  "url": "tahap-3/sengaja-belum/",
+  "tanya": "Dua instance memakai 30 dari 100 koneksi. Berapa instance dengan pool 10 sampai koneksi mencapai 70?",
+  "jawab": "Enam instance, jadi empat lagi di atas dua yang ada. Rumusnya instance × 10 + 4 + 3 + 3 = 70, jadi instance = (70 − 10) ÷ 10 = 6. Angka 70 adalah Asumsi halaman ini, dan worker 4 serta admin 3 adalah Asumsi naskah."
+ },
+ {
+  "id": "t3-adr-33-2",
+  "halaman": "t3-adr-33",
+  "judul": "3.30 ADR 33: Sengaja belum dilakukan",
+  "url": "tahap-3/sengaja-belum/",
+  "tanya": "Cache katalog sudah dipasang di 3.19 Cache dan invalidation. Kenapa cache saldo dan riwayat belum?",
+  "jawab": "Cache katalog hanya menyimpan jawaban baca katalog, dan harga serta stok yang dipakai pembayaran dibaca dari database. Saldo adalah uang. Salinan di luar database tidak ikut COMMIT dan ROLLBACK. L riwayat yang kecil (0,024 koneksi) bukan pembedanya: L katalog juga kecil (0,026), dan cache katalog tetap dipasang."
+ },
+ {
+  "id": "t3-adr-33-3",
+  "halaman": "t3-adr-33",
+  "judul": "3.30 ADR 33: Sengaja belum dilakukan",
+  "url": "tahap-3/sengaja-belum/",
+  "tanya": "VPS kedua hanya untuk API. Kenapa titik gagal tunggal tetap ada?",
+  "jawab": "PostgreSQL tetap di VPS pertama, jadi VPS itu mati berarti uang berhenti. Menghapus titik itu butuh database kedua dengan replikasi. Replikasi asinkron bisa kehilangan commit saat failover, dan yang sinkron membuat tiap commit menunggu (dokumentasi PostgreSQL 17). Ini penalaran dari dokumentasi, bukan hasil lab."
+ },
+ {
+  "id": "t3-rekap-1",
+  "halaman": "t3-rekap",
+  "judul": "3.31 Yang dibawa keluar dari Tahap 3",
+  "url": "tahap-3/rekap/",
+  "tanya": "Layanan push berhenti menjawab dan semua layar membeku. Raka mengusulkan pool 50. Kapan pool 50 penuh, dan apa yang menahan masalahnya?",
+  "jawab": "Pool 50 penuh pada 50 ÷ 0,868 = 57,6 detik, bukan 11,5 detik (Asumsi), dan di rekaman antara detik ke-57 dan ke-58 (`m18.txt` bagian B). Penyebabnya tetap lamanya panggilan ke push. ADR 22 memindahkan panggilan keluar dari transaction, memasang timeout 3 detik, dan menahan pool di 10."
+ },
+ {
+  "id": "t3-rekap-2",
+  "halaman": "t3-rekap",
+  "judul": "3.31 Yang dibawa keluar dari Tahap 3",
+  "url": "tahap-3/rekap/",
+  "tanya": "Raka mengganti kursor `(dibuat, id)` di poller outbox dengan kursor `id` saja. Apa yang terekam, dan apa yang ditulis ADR 24?",
+  "jawab": "Di rekaman, nomor outbox tidak terbalik dan yang terbalik hanya `dibuat`, jadi kursor `id` akan menangkap kasus M19 di lab. Nomor sequence tetap tidak dijanjikan sama dengan urutan COMMIT (Tidak dijalankan). ADR 24 memakai klaim per baris, dan harganya urutan antar pesan tidak dijaga."
+ },
+ {
+  "id": "t3-rekap-3",
+  "halaman": "t3-rekap",
+  "judul": "3.31 Yang dibawa keluar dari Tahap 3",
+  "url": "tahap-3/rekap/",
+  "tanya": "Dua instance meloloskan 20 dari 24 percobaan login, dan cache katalog menampilkan dua harga. Apa sebab yang sama, dan apa yang tetap benar?",
+  "jawab": "Keduanya disimpan di memori satu proses, jadi tiap instance punya salinan sendiri (`batas.txt` bagian A, `memori.txt` bagian B). Yang tetap benar ada di database: tagihan Rp22.500, dan kunci akun yang menahan tebakan di 5 (`batas.txt` bagian D)."
+ },
+ {
+  "id": "t3-rekap-4",
+  "halaman": "t3-rekap",
+  "judul": "3.31 Yang dibawa keluar dari Tahap 3",
+  "url": "tahap-3/rekap/",
+  "tanya": "Dengan kunci sinkron 14 hari, operasi soto yang sudah sampai hari Jumat dikirim ulang hari Senin. Kenapa stok 30 dari hari Sabtu tetap utuh, dan apa yang menolak operasi bakso yang belum pernah sampai?",
+  "jawab": "Kunci menjawab apakah permintaan pernah datang. Baris kunci Jumat masih ada hari Senin, jadi soto dijawab `ulang: true` dan stok 30 tidak berubah (`versi.txt` bagian C). Bakso belum pernah sampai, jadi tidak ada kunci yang mengenalinya. Yang menolaknya versi: versi dasar 1 sudah lewat, jawabannya 409, dan produk tidak berubah (bagian yang sama)."
+ },
+ {
+  "id": "t3-rekap-5",
+  "halaman": "t3-rekap",
+  "judul": "3.31 Yang dibawa keluar dari Tahap 3",
+  "url": "tahap-3/rekap/",
+  "tanya": "Cookie sesi Ani `HttpOnly`, dan token CSRF serta Origin benar. Kenapa skrip di halaman dasbor tetap bisa mengubah harga, dan apa yang menahannya?",
+  "jawab": "Skrip berjalan sebagai halaman itu sendiri. `HttpOnly` melarang membaca cookie, bukan memakainya, jadi `fetch` dari halaman dijawab 200 (`xss.txt` bagian D). Yang menahannya adalah `textContent` atau CSP, masing-masing sendiri: 0 dialog di bagian C dan E."
+ },
+ {
   "id": "C2-1",
   "halaman": "C2",
   "judul": "Observability: log, metric, trace",
