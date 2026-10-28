@@ -236,13 +236,13 @@ describe("naskah: ADR 33, M28, dan daftar delapan komponen", () => {
     const m28 = baris(naskah).find((b) => b.startsWith("| M28 |"))!;
     expect(m28).toContain("| 10 |");
     expect(m28).toContain("Perlu server lebih besar");
-    expect(m28).toContain("ADR 33 \"Sengaja belum dilakukan\": tanpa microservices, Kubernetes, read replica, PgBouncer, CDC, VPS kedua, cache saldo");
+    expect(m28).toContain("ADR 33 \"Sengaja belum dilakukan\": tanpa microservices, Kubernetes, read replica, PgBouncer, CDC, VPS kedua, cache saldo |");
     // 3.28 mengikuti baris M28 naskah (tujuh butir); tabel ADR 33 naskah delapan butir: halaman ini menjelaskan selisihnya
     const h328 = baca("situs/src/content/docs/tahap-3/m28-prd-v4.mdx");
     expect(h328).toContain("- [[t3-adr-33]]: ADR 33, \"Sengaja belum dilakukan\". Microservices, Kubernetes, read replica, PgBouncer, CDC, VPS kedua, dan cache saldo ditunda, masing-masing dengan alasan dari angka.");
     expect(m28.match(/tanpa ([^|]+?) \|/)).not.toBeNull();
-    expect(m28).toContain("tanpa microservices, Kubernetes, read replica, PgBouncer, CDC, VPS kedua, cache saldo");
-    expect(m28.match(/tanpa microservices, Kubernetes, read replica, PgBouncer, CDC, VPS kedua, cache saldo/)![0].split(", ")).toHaveLength(7);
+    expect(m28.endsWith("tanpa microservices, Kubernetes, read replica, PgBouncer, CDC, VPS kedua, cache saldo |"), "daftar M28 berakhir di cache saldo").toBe(true);
+    expect(m28.match(/tanpa (microservices, Kubernetes, read replica, PgBouncer, CDC, VPS kedua, cache saldo) \|$/)![1]!.split(", ")).toHaveLength(7);
     expect(dari("t3-m28").ada).toBe(true);
     harus("Halaman [[t3-m28]] dan baris M28 di naskah menyebut tujuh butir. Tabel ADR 33 di naskah menambah pembayaran offline, dan memasangkan canary dengan Kubernetes serta riwayat dengan cache saldo, jadi hasilnya delapan baris.");
     harus("Minggu 10, uji coba enam kota lolos, lalu Sinta datang dengan PRD v4 ([[t3-m28]]). Dugaan pertama adalah server yang lebih besar.");
@@ -391,7 +391,7 @@ describe("tinjauan 3.30: cache katalog lawan pemicu, CDC lonjakan lawan laju, bu
     expect(baris(naskah).find((b) => b.startsWith("| 23 |"))).toContain("pesan terus mengalir ratusan per detik");
     expect(baris(naskah).find((b) => b.startsWith("| 32 |"))).toContain("laju promo 5 per detik dijadwalkan di lab lewat `coba_lagi`");
     expect(baris(naskah).find((b) => b.startsWith("| 32 |"))).toContain("belum ada di kode api-t3");
-    expect(baca("situs/src/content/docs/tahap-3/tim-infra.mdx")).toContain("5 per detik");
+    expect(baca("situs/src/content/docs/tahap-3/tim-infra.mdx")).toContain("Aturan 2 belum ada di kode. `UmumkanPromo` menulis semua baris sekaligus dengan `coba_lagi` bawaan, dan rekaman bagian F menjadwalkan 5 per detik");
     const k = baris(badan).find((b) => b.startsWith("| CDC | Dua consumer"))!;
     expect(k).toContain("atau pesan outbox masuk 100 per detik terus-menerus");
     expect(k).toContain("Laju baris outbox per detik di luar lonjakan");
