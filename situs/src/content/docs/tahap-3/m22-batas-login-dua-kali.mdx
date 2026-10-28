@@ -14,11 +14,11 @@ import batas from "../../../../data/diagram/t3-m22-batas-dua-jatah.json";
 
 Minggu 6 Tahap 3. Bayu memasang instance API kedua di staging dan meminta Dimas dari tim TI mengujinya. Dimas suka mencoba, dan ia mulai dari pintu login.
 
-Ia mengirim 24 percobaan login dari satu alamat. Tiap percobaan ke akun uji yang berbeda, dengan password dari daftar kebocoran. Batas per alamat tertulis 10, tetapi 20 percobaan sampai ke pemeriksaan password sebelum ada yang ditolak dengan 429. Pemeriksaan password adalah saat server membandingkan password dengan hash yang tersimpan.
+Ia mengirim 24 percobaan login dari satu alamat. Tiap percobaan ke akun uji yang berbeda, dengan password dari daftar kebocoran. Batas per alamat tertulis 10, tetapi 20 dari 24 percobaan sampai diperiksa passwordnya sebelum ada yang ditolak dengan 429.
 
 Dimas memberi tahu Bayu: "Batasnya sepuluh, tetapi dua puluh yang lewat." Bayu meneruskannya ke Raka.
 
-*Angka cerita (Ilustrasi):* staging, password dari daftar kebocoran, dan Dimas sebagai pencoba berasal dari naskah. Angka 24 dan 20 sama dengan rekaman di blok "Yang sebenarnya", yang memakai password salah, jadi tiap percobaan yang sampai ke pemeriksaan password berakhir 401. Hasil dengan password yang benar tidak direkam. Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].
+*Angka cerita (Ilustrasi):* staging, password dari daftar kebocoran, dan Dimas sebagai pencoba berasal dari naskah. Angka 24 dan 20 sama dengan rekaman di blok "Yang sebenarnya", yang memakai password salah, jadi tiap percobaan yang sampai diperiksa passwordnya berakhir 401. Hasil dengan password yang benar tidak direkam. Arti label Rekaman lab dan Tidak dijalankan ada di [[A0]].
 
 </Blok>
 
@@ -29,7 +29,7 @@ Raka mengira penghitung gagal login salah di kode. Ia membuka konstanta batas: 1
 Lalu ia menjalankan 24 percobaan yang sama langsung ke satu instance, tanpa proxy.
 
 <details class="question">
-<summary>Tebak dulu: 24 percobaan ke 24 akun berbeda dari satu alamat, langsung ke satu instance. Berapa yang sampai ke pemeriksaan password?</summary>
+<summary>Tebak dulu: 24 percobaan ke 24 akun berbeda dari satu alamat, langsung ke satu instance. Berapa yang sampai diperiksa passwordnya?</summary>
 
 Sepuluh. Di rekaman lab `batas.txt` bagian B, 10 percobaan menjawab 401 dan 14 ditolak 429. Penghitungnya benar. Yang berubah di staging adalah jumlah instance, bukan kodenya.
 
@@ -39,7 +39,7 @@ Sepuluh. Di rekaman lab `batas.txt` bagian B, 10 percobaan menjawab 401 dan 14 d
 
 <Blok nama="Yang sebenarnya">
 
-Batas per alamat tidak salah hitung. Batas itu dihitung di memori tiap instance, dan dua instance punya dua penghitung yang tidak saling tahu.
+Batas per alamat tidak salah hitung. Batas itu dihitung di memori tiap instance, dan dua instance punya dua penghitung yang tidak saling tahu. Pemeriksaan password adalah langkah login yang membandingkan password yang dikirim dengan hash.
 
 <Rantai data={batas} />
 
