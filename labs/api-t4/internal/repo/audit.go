@@ -82,24 +82,35 @@ type HasilVerifikasiAudit struct {
 	Baris        int    `json:"baris"`
 	RusakDiID    int64  `json:"rusak_di_id,omitempty"`
 	HashTerakhir string `json:"hash_terakhir"`
+	// IDTerakhir: nomor baris terakhir yang dibaca lintasan ini (0 bila log kosong). Bersama HashTerakhir ia membentuk
+	// jangkar yang diambil dari lintasan yang sama dengan pemeriksaannya, bukan dari pembacaan kedua.
+	IDTerakhir int64 `json:"id_terakhir,omitempty"`
 }
 
 // VerifikasiAudit membaca seluruh log menurut nomor dan menghitung ulang rantainya. Berhenti di baris pertama yang
 // hash_sebelumnya-nya bukan hash baris sebelumnya, atau yang hash-nya bukan hasil hitung ulang isinya.
 func (r Repo) VerifikasiAudit(ctx context.Context) (HasilVerifikasiAudit, error) {
+	h, _, err := r.verifikasiRantai(ctx, nil)
+	return h, err
+}
+
+// verifikasiRantai adalah satu lintasan atas audit_log. Hash baris yang nomornya ada di perlu ikut dikembalikan,
+// supaya jangkar (audit_jangkar.go) bisa dicocokkan tanpa membaca log dua kali.
+func (r Repo) verifikasiRantai(ctx context.Context, perlu map[int64]bool) (HasilVerifikasiAudit, map[int64]string, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, waktu, pelaku_id, peran, aksi, objek, coalesce(alasan, ''), coalesce(penyetuju_id, 0), hash_sebelumnya, hash
 		FROM audit_log ORDER BY id`)
 	if err != nil {
-		return HasilVerifikasiAudit{}, err
+		return HasilVerifikasiAudit{}, nil, err
 	}
 	defer rows.Close()
 	h := HasilVerifikasiAudit{HashTerakhir: HashAwalAudit}
+	hashPerID := map[int64]string{}
 	for rows.Next() {
 		var b BarisAudit
 		var sebelum, hash string
 		if err := rows.Scan(&b.ID, &b.Waktu, &b.PelakuID, &b.Peran, &b.Aksi, &b.Objek, &b.Alasan, &b.Penyetuju, &sebelum, &hash); err != nil {
-			return h, err
+			return h, nil, err
 		}
 		h.Baris++
 		if h.RusakDiID == 0 && (sebelum != h.HashTerakhir ||
@@ -107,6 +118,10 @@ func (r Repo) VerifikasiAudit(ctx context.Context) (HasilVerifikasiAudit, error)
 			h.RusakDiID = b.ID
 		}
 		h.HashTerakhir = hash
+		h.IDTerakhir = b.ID
+		if perlu[b.ID] {
+			hashPerID[b.ID] = hash
+		}
 	}
-	return h, rows.Err()
+	return h, hashPerID, rows.Err()
 }

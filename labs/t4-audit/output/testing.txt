@@ -1,0 +1,84 @@
+# Lab t4-audit · go vet dan tes Go untuk rantai, jangkar, persetujuan, dan server MCP
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_audit · server Go di 127.0.0.1:18280
+# go-sdk v1.8.0, spesifikasi MCP 2026-07-28
+# Rekaman dari database bersih: make -C labs/t4-audit run.
+
+# --- A. go vet dan tes Go atas rantai, jangkar, dan back office (api-t4, tag t4audit; schema tahap4_audit_tes) ---
+$ go vet -tags t4audit ./...
+(tanpa keluaran)
+# exit status 0
+$ TEST_DATABASE_URL=<pemilik, schema tahap4_audit_tes> go test -tags t4audit -p 1 -count=1 -v -run TestT4A ./internal/repo/ ./internal/jangkar/ ./internal/service/
+--- PASS: TestT4AVektorHashDariPython
+--- PASS: TestT4AJangkarMendeteksiEkorDipotongYangRantaiSajaTidak
+--- PASS: TestT4AJangkarMendeteksiRantaiYangDitulisUlangSampaiUjung
+--- PASS: TestT4AJangkarTidakMencakupBarisSesudahJangkarTerakhir
+--- PASS: TestT4AJangkarLogDikosongkan
+--- PASS: TestT4ARantaiBarisTengahDiubahDihapusDanBarisPalsuDiUjung
+--- PASS: TestT4ARantaiMenolakHashBerbentukLainWalauNilainyaSama
+--- PASS: TestT4ARantaiMelaporkanBarisPutusPertama
+--- PASS: TestT4ARantaiMendeteksiPerubahanDiSetiapKolomYangDiHash
+--- PASS: TestT4ARantaiTidakBergantungPadaUrutanWaktu
+--- PASS: TestT4ARantaiWaktuDenganPecahanSubDetik
+--- PASS: TestT4AHashAuditTidakInjektifUntukPemisahDiDalamKolom
+--- PASS: TestT4ARantaiPenulisSerentakTidakBercabang
+PASS
+ok    lab/apit4/internal/repo
+--- PASS: TestT4ABerkasJangkarBelumAdaBerartiBelumAdaJangkar
+--- PASS: TestT4ABerkasJangkarHanyaBertambahDanUrut
+--- PASS: TestT4ABerkasJangkarRusakDitolak
+--- PASS: TestT4ABerkasJangkarBarisTerlaluPanjangMenggagalkanPembacaan
+--- PASS: TestT4ABerkasJangkarYangTidakBisaDibacaMenggagalkanPembacaan
+--- PASS: TestT4AJalankanMenjangkarkanBarisTerakhirSekaliDanTidakDuaKali
+--- PASS: TestT4AJalankanTidakMenjangkarkanKeadaanRusak
+--- PASS: TestT4AJalankanJangkarRusakMenggagalkanPemeriksaan
+PASS
+ok    lab/apit4/internal/jangkar
+--- PASS: TestT4AModeLogBiasaMenulisKeTabelBiasaDanBukanKeAuditLog
+--- PASS: TestT4APenyetujuBersesiWebDitolak
+--- PASS: TestT4APersetujuanTidakTerikatPadaSatuAksi
+--- PASS: TestT4ASesiKeduaPelakuBukanPenyetujuKedua
+--- PASS: TestT4APenyetujuYangDibekukanDitolak
+--- PASS: TestT4APenyetujuBukanAkunRiskDitolak
+--- PASS: TestT4APenyetujuDenganSesiKedaluwarsaDitolak
+--- PASS: TestT4AAlasanMenolakKarakterKontrolTermasukPemisahHash
+--- PASS: TestT4APetugasRiskYangDibekukanTidakBisaBertindak
+--- PASS: TestT4AUbahBatasHarianDiTepiRentang
+--- PASS: TestT4AAlasanUTF8TidakSahDitolakSebelumMenyentuhApaPun
+--- PASS: TestT4APersetujuanSerentakSatuCatatanPerAksiDanRantaiUtuh
+PASS
+ok    lab/apit4/internal/service
+# exit status 0
+# 33 tes bertag t4audit di api-t4, semuanya muncul PASS di keluaran di atas.
+
+# --- B. Modul MCP (go.mod sendiri): vet, tes, dan checksum modul ---
+$ go vet ./...   # di labs/t4-audit/mcp
+(tanpa keluaran)
+# exit status 0
+$ go test -p 1 -count=1 -v ./...   # di labs/t4-audit/mcp
+--- PASS: TestHashBarisCocokDenganVektorPython
+--- PASS: TestDaftarAlatPersisBacaSajaDanTanpaFiturLain
+--- PASS: TestAlatTulisTidakAdaDanTidakAdaYangBerubah
+--- PASS: TestVerifikasiRantaiUtuhPutusDanTepi
+--- PASS: TestCariAuditSiapaMembukaDanBatas
+--- PASS: TestBatasJumlahBaris
+--- PASS: TestArgumenBermusuhanBukanSQL
+--- PASS: TestIsiCatatanBerisiInstruksiHanyaDataDanTidakMengubahApaPun
+--- PASS: TestRoleAgenTidakBisaMenulisDanTidakMembacaDataIdentitas
+--- PASS: TestSumberTidakMemuatAlatTulisResourcePromptAtauKlienKeluar
+--- PASS: TestTokenMasukTidakDiteruskanDanTokenLainDitolak
+--- PASS: TestVerifierMenolakTokenKosongBahkanBilaDiharapkanKosong
+--- PASS: TestSumberHanyaMemakaiRujukanHttpYangDiizinkanUntukServer
+--- PASS: TestHakRoleBacaSajaPersisSamaDenganDaftarPutih
+--- PASS: TestBatasBawaanDanAwalanTidakBocorLintasAkun
+PASS
+ok    lab/t4audit-mcp/agen
+?     lab/t4audit-mcp/cmd/agen  [no test files]
+?     lab/t4audit-mcp/cmd/klien  [no test files]
+# exit status 0
+# 15 tes di modul MCP, semuanya muncul PASS di keluaran di atas.
+$ go mod verify   # di labs/t4-audit/mcp
+all modules verified
+# exit status 0
+# go.sum:
+  github.com/modelcontextprotocol/go-sdk v1.8.0 h1:KIvahhYqwtbeniWVPs3TcXEA7b8jEtwfBpOTAI+Urx4=
+  github.com/modelcontextprotocol/go-sdk v1.8.0/go.mod h1:dL7u98E/zjJTGzEq+j30jQ8K2k1mb6LeAH4inEcSGts=

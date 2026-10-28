@@ -52,6 +52,11 @@ const (
 // tanpa karakter kontrol. Dihitung dalam karakter, bukan byte.
 func periksaAlasan(a string) (string, error) {
 	a = strings.TrimSpace(a)
+	// Alasan berbyte UTF-8 tidak sah (mis. ?alasan=%FF di jalur berkas) lolos hitungan karakter dan baru ditolak
+	// PostgreSQL (22021) saat baris audit ditulis: jawabannya 500, bukan 422.
+	if !utf8.ValidString(a) {
+		return "", ErrValidasi{"alasan", "harus teks UTF-8 yang sah"}
+	}
 	n := utf8.RuneCountInString(a)
 	if n < minAlasan || n > maksAlasan {
 		return "", ErrValidasi{"alasan", fmt.Sprintf("wajib, %d sampai %d karakter: kenapa aksi ini dilakukan", minAlasan, maksAlasan)}
