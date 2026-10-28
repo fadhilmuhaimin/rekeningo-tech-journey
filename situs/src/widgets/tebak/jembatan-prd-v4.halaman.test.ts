@@ -170,6 +170,8 @@ describe("registry, naskah, blok, dan tautan", () => {
     expect(cekTemplat("prd", b)).toEqual([]);
     expect(b.filter((x) => x.buka).map((x) => x.nama)).toEqual(["Pratinjau PRD v4"]);
     expect(badan).toContain('export const tautanTebak = ["t3-m28", "t3-estimasi", "t4-prd"]');
+    // Mutasi tinjauan: baris .map akhir dihapus lolos build dan tes, lalu tautan hasil tebakan tampil tanpa label dan href.
+    expect(badan).toContain('export const hs = muat().halaman;\nexport const tautanTebak = ["t3-m28", "t3-estimasi", "t4-prd"]\n  .map((id) => hs.find((h) => h.id === id && h.ada))\n  .filter(Boolean)\n  .map((h) => ({ label: label(h), href: urlHalaman(h) }));');
     expect(badan).toContain('import dataTebak from "../../../../data/widget/t3-jembatan-tebak.json";');
     expect(hitung(badan, "<Tebak client:visible data={dataTebak} tautan={tautanTebak} />")).toBe(1);
   });
@@ -319,7 +321,7 @@ describe("kepala dokumen dan tabel PRD v3 ke PRD v4", () => {
   test("ADR 22 sampai 33: dua belas ADR Tahap 3, masing-masing satu halaman di registry; tim empat orang", () => {
     const adr = hal.filter((h) => h.tahap === 3 && h.adr).flatMap((h) => h.adr!).sort((x, y) => x - y);
     expect(adr).toEqual(Array.from({ length: 12 }, (_, i) => 22 + i));
-    harus(`Selama Tahap 3, tim ${kata(tim3)} orang menulis ADR ${adr[0]} sampai ${adr[adr.length - 1]}.`);
+    harus(`Selama Tahap 3, tim ${kata(tim3)} orang menulis ADR ${adr[0]} sampai ${adr[adr.length - 1]}. Sebagian dari keputusan itu akan pecah lebih dulu daripada yang lain. Pecah berarti keputusan itu tidak lagi memadai.`);
     ada(naskah4, "Tim tumbuh dari 4 menjadi 13 orang", "naskah 4");
     expect(T3("m28-prd-v4.mdx")).toContain("Timnya empat orang (Asumsi cerita) di satu codebase Go");
     dalamWidget(`tim ${kata(tim3)} orang tulis di Tahap 3: ADR ${adr[0]} sampai ${adr[adr.length - 1]}.`);
@@ -410,7 +412,7 @@ describe("pertanyaan terbuka: tiga pertanyaan naskah 4, tiap klaim ada di halama
       "Kalau satu orang di dalam membaca data identitas, bagaimana ketahuan?",
     ]);
     for (const q of tanya) harus(`<summary>Tebak dulu: ${q.charAt(0).toLowerCase()}${q.slice(1)}</summary>`);
-    harus("PRD v4 punya tiga pertanyaan yang belum dijawab.");
+    harus("PRD v4 punya tiga pertanyaan yang belum dijawab. Tebak dulu jawabannya, lalu buka apa yang sudah tercatat di Tahap 3 dan apa yang belum.");
     ada(prd4, "Ketiganya tidak dijawab PRD dan menjadi masalah terbesar Tahap 4.", "naskah 4");
     expect(hitung(badan, '<details class="question">')).toBe(tanya.length);
   });
@@ -418,7 +420,7 @@ describe("pertanyaan terbuka: tiga pertanyaan naskah 4, tiap klaim ada di halama
     const alo = isi(halamanAdr(25));
     ada(alo, "Saat penerimanya menggerakkan uang, misalnya webhook dari gateway di Tahap 4. Penyaring \"yang sudah tampil\" tidak cukup, dan penerima wajib idempoten dengan key", "3.13");
     ada(alo, "notifikasi yang terlambat, hilang, atau muncul dua kali", "3.13");
-    harus("Pengiriman at-least-once bisa datang dua kali, dan penyaring di app tidak cukup bila penerimanya menggerakkan uang. Penerima wajib idempoten dengan key ([[t3-at-least-once]]).");
+    harus("Tahap 3 mencatat syaratnya, bukan jawabannya. Pengiriman at-least-once bisa datang dua kali, dan penyaring di app tidak cukup bila penerimanya menggerakkan uang. Penerima wajib idempoten dengan key ([[t3-at-least-once]]).");
     ada(T3("m28-prd-v4.mdx"), "Satu-satunya panggilan HTTP keluar dari `api-t3` adalah ke layanan push tiruan", "3.28");
     harus("Yang belum ada: pihak ketiga yang menggerakkan uang. Satu-satunya panggilan HTTP keluar dari api-t3 adalah ke layanan push tiruan ([[t3-m28]]).");
   });
@@ -433,7 +435,7 @@ describe("pertanyaan terbuka: tiga pertanyaan naskah 4, tiap klaim ada di halama
   test("pertanyaan 2: tiga rilis (2.22), aturan 4 ADR 32 (3.27), tim empat orang di satu codebase Go (3.28)", () => {
     const skema = T2("skema-tanpa-downtime.mdx");
     ada(skema, "Perubahan besar dipecah jadi tiga rilis", "2.22");
-    harus(`perubahan skema besar dipecah jadi ${kata(3)} rilis ([[t2-skema-tanpa-downtime]])`);
+    harus(`Tahap 2 menulis aturannya: perubahan skema besar dipecah jadi ${kata(3)} rilis ([[t2-skema-tanpa-downtime]]).`);
     const adr32 = isi(halamanAdr(32));
     ada(adr32, "4. Merge ke `main` menjalankan tes dengan PostgreSQL dan Redis sungguhan, dengan `TES_DB_WAJIB` dan `TES_REDIS_WAJIB` menyala, lalu migration dry-run dan k6 smoke 30 detik.", "3.27");
     harus("ADR 32 menetapkan bahwa tiap merge ke main menjalankan tes dengan PostgreSQL dan Redis sungguhan, lalu migration dry-run ([[t3-tim-infra]]).");
@@ -578,6 +580,9 @@ describe("widget tebak: tepat satu jawaban, posisi dan panjang tidak membocorkan
   test("jawaban benar: ADR yang sama dengan naskah 4 dan dengan bullet halaman; tiga hal 3.28; 138,9 × 0,02 = 2,78 dari batas 18", () => {
     expect(jawab).toEqual([22, 25, 26, 32]);
     harus(`Jawaban yang tepat: ADR ${jawab[0]}, ADR ${jawab[1]}, ADR ${jawab[2]}, dan ADR ${jawab[3]}. Alasannya ada di blok Menuju Tahap 4.`);
+    // Mutasi tinjauan: noscript yang diubah jadi div atau diberi hidden, dan atribut kepala dokumen, lolos tanpa kunci baris.
+    harus(`<noscript>\n<p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: ADR ${jawab[0]}, ADR ${jawab[1]}, ADR ${jawab[2]}, dan ADR ${jawab[3]}. Alasannya ada di blok Menuju Tahap 4.</p>\n</noscript>`);
+    harus('<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v4">');
     const a = data.pilihan[j]!.alasan;
     ada(a, "Halaman 3.28 mencatat tiga hal yang diminta PRD v4 dan belum pernah diuji: pihak ketiga yang menggerakkan uang, tiga tim di satu codebase, dan satu VPS sebagai titik gagal tunggal.");
     ada(a, "ADR 22 salah bila panggilan luar harus atomik dengan uang, misalnya otorisasi kartu. ADR 25 salah saat penerimanya menggerakkan uang, misalnya webhook dari gateway. ADR 26 menerima satu VPS sebagai titik gagal tunggal. ADR 32 mencatat bahwa rotasi dan alert dibagi lagi per tim.");
