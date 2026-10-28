@@ -46,7 +46,7 @@ clearing AUTH-P3 Rp150.000 (diperankan lab): HTTP 409, /problems/otorisasi-statu
  AUTH-P3     | tolak              | rekeningo | ditolak           | cocok
 (3 rows)
 # AUTH-P1 setuju di penerbit tanpa baris di Rekeningo. AUTH-P3 ditolak di keduanya: penagihannya diperankan lab, tidak ada di catatan keputusan penerbit tiruan, dan banding ini tidak melihatnya. Berkas penagihan dari penerbit (clearing) tidak ada di lab; selisih jenis ini Tidak dijalankan sebagai rekonsiliasi.
-# Tanpa rekonsiliasi kartu, uang yang disetujui tanpa hold tidak terlihat oleh siapa pun sampai penagihannya ditolak ledger.
+# Tanpa rekonsiliasi kartu, uang yang disetujui tanpa hold tidak terlihat di Rekeningo sampai penagihannya ditolak ledger.
 
 # --- D. Jawaban terlambat sesudah hold selesai: penerbit memutuskan tolak, Rekeningo menahan dana (dua service) ---
 # Service pembayaran ditahan di titik sesudah ledger menahan dana dan sebelum baris otorisasi ditulis (lab saja), sampai tenggat penerbit lewat. Setelan penerbit: bila timeout, tolak.
@@ -72,7 +72,7 @@ AUTH-P4 Rp60.000: tolak (sumber: timeout)
 -------------+--------------------+---------+------------------+----------------------------------------------
  AUTH-P4     | tolak              | timeout | ditahan          | tolak di penerbit, dana ditahan di Rekeningo
 (1 row)
-# Dana Rp60.000 tertahan untuk keputusan yang di penerbit sudah tolak. Yang melepasnya hanya job kedaluwarsa sesudah 7 hari; jam maya di bawah.
+# Dana Rp60.000 tertahan untuk keputusan yang di penerbit sudah tolak. Tanpa reversal dari penerbit, yang melepasnya job kedaluwarsa sesudah 7 hari; jam maya di bawah.
 $ ./api-t4 -kedaluwarsa-hold -lab-sekarang <waktu>   # tahan_sampai ditambah 1 detik
 hold kartu: diperiksa 1, dilepas 1
 => SELECT id_penerbit, status FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-P4'

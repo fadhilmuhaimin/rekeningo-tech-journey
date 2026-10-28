@@ -24,6 +24,7 @@ ok    lab/apit4/internal/service
 --- PASS: TestLedgerKartuTahanBaruLaluUlangDanBentrok
 --- PASS: TestLedgerKartuTahanLockDitahanMenjawab503SibukDanClientMemetakan
 --- PASS: TestLedgerKartuClientMemetakanJawaban
+--- PASS: TestLedgerKartuClientMemetakanGalatServerDanJawabanRusak
 PASS
 ok    lab/apit4/internal/handler
 # exit status 0
@@ -41,15 +42,22 @@ $ TEST_DATABASE_URL=<pemilik, schema tahap4_kartu_tes> LAB_TES_SCHEMA=tahap4_kar
 --- PASS: TestKartuBatasHarianDuaSerentakKeduanyaLolosDiJalurDuaService
 --- PASS: TestKartuBarisTetapDitulisBilaPenerbitSudahPergi
 --- PASS: TestKartuIDSamaDiTitikSesudahLedgerSatuBarisDuaJawabanSetuju
+--- PASS: TestKartuIDSamaBatasHarianDiperiksaSesudahBarisPertamaDijawabSama
+--- PASS: TestKartuDuaPenolakanSerentakUntukIDSamaSatuBaris
+--- PASS: TestKartuAkunDibekukanDiLedgerDitolakTanpaHold
+--- PASS: TestKartuBatasHarianMenghitungYangDitahanDanDitagihBukanYangDilepas
+--- PASS: TestKartuBatasHarianMemakaiHariKalenderWIB
+--- PASS: TestKartuDuaPenolakanSerentakIDSamaJumlahBedaSatuMenang
+--- PASS: TestKartuIDSamaDuaKartuSatuAkunDiTitikSesudahLedgerSatuMenang
 PASS
 ok    lab/apit4/internal/modul/pembayaran
 # exit status 0
-# 28 tes cocok dengan pola dan semuanya PASS (pola yang tidak mencocokkan satu tes membuat klaim 'tertangkap' tidak berlaku, jadi daftar -list dibandingkan dengan yang berjalan).
+# 36 tes cocok dengan pola dan semuanya PASS (pola yang tidak mencocokkan satu tes membuat klaim 'tertangkap' tidak berlaku, jadi daftar -list dibandingkan dengan yang berjalan).
 
 # --- B. Tanpa TEST_DATABASE_URL: tes yang butuh database dilewati; TES_DB_WAJIB=1 menggagalkannya ---
 $ go test -count=1 -run '^TestKartu' ./internal/modul/pembayaran
 ok    lab/apit4/internal/modul/pembayaran
 # exit status 0
 $ TES_DB_WAJIB=1 go test -count=1 -run '^TestKartu' ./internal/modul/pembayaran
-13 dari 13 tes modul gagal, masing-masing dengan pesan: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong (13 pesan)
+20 dari 20 tes modul gagal, masing-masing dengan pesan: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong (20 pesan)
 # exit status 1

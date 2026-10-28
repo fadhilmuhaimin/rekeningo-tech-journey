@@ -29,11 +29,11 @@ Dependency baru di lab ini: tidak ada. Paket baru memakai pustaka standar, pgx, 
 ## Yang ditambahkan ke api-t4
 
 - `internal/service/ledger_kartu.go`, rute `POST /ledger/kartu/tahan` di `internal/handler/ledger_layanan.go` (hanya dengan `-ledger-kunci`, seperti `jurnal-topup`): hold sebagai satu transaction di ledger. Urutannya: `lock_timeout` dipasang, key diklaim (Idempotency-Key = `id_penerbit`), buku pemilik dikunci (`ORDER BY id FOR UPDATE`), akun dan saldo diperiksa sesudah lock, jurnal `kartu_tahan` (pemilik ke `dana_tertahan`) ditulis, key diikat ke jurnalnya. Penolakan di-ROLLBACK, jadi key tidak tertahan. Jawaban: 201, 200 untuk ulangan, 422 (`saldo-kurang`, `akun-dibekukan`, `key-dipakai-permintaan-lain`, `tidak-sah`), 404, 503 `sibuk` untuk `lock_timeout`.
-- `internal/modul/pembayaran/kartu.go` dan `cmd/pembayaran -penerbit-kunci`: otorisasi di service pembayaran. Urutannya: validasi, kill switch, kartu, jawaban untuk id yang sudah pernah dijawab, status kartu dan batas harian (dibaca dari tabel sendiri, tanpa lock), satu panggilan ke API ledger, lalu baris `otorisasi_kartu`. Ledger yang tidak menjawab dijawab "tolak"; `lock_timeout` ledger dijawab "tolak, sibuk"; baris ditulis dengan konteks yang dilepas dari pembatalan permintaan. Modul tidak mengimpor `internal/repo` dan `internal/service` (dijaga tes batas t4-modul).
+- `internal/modul/pembayaran/kartu.go` dan `cmd/pembayaran -penerbit-kunci`: otorisasi di service pembayaran. Urutannya: validasi, kill switch, kartu, jawaban untuk id yang sudah pernah dijawab, status kartu dan batas harian (dibaca dari tabel sendiri, tanpa lock), satu panggilan ke API ledger, lalu baris `otorisasi_kartu`. Ledger yang tidak menjawab dijawab "tolak"; `lock_timeout` ledger dijawab "tolak, sibuk"; baris ditulis dengan konteks yang dilepas dari pembatalan permintaan. Dua permintaan kembar yang sama-sama belum melihat baris dijawab menurut baris yang tercatat lebih dulu: penolakan batas harian tidak menimpa persetujuan yang baru ditulis kembarannya. `id_penerbit` dan token yang memuat karakter kontrol atau UTF-8 rusak ditolak 422 sebelum menyentuh database (di kedua jalur); PostgreSQL menjawab SQLSTATE 22021 untuk byte NUL, yang sampai ke penerbit sebagai 500. Pintu `POST /penerbit/otorisasi` memeriksa `X-Penerbit-Kunci` (tanpa kunci atau kunci salah dijawab 401, `dua-service.txt` A). Modul tidak mengimpor `internal/repo` dan `internal/service` (dijaga tes batas t4-modul).
 - `internal/modul/ledger/klien.go`: `TahanKartu` dan `ErrSibuk` (503 `sibuk`); `KreditTopup` dan `TahanKartu` memakai satu fungsi kirim yang sama.
 - `cmd/penerbit`: catatan keputusan penerbit (`GET /lab/keputusan`, `POST /lab/reset`) dan `-api-otorisasi` (otorisasi ke service pembayaran, clearing dan reversal tetap ke monolith).
 - `cmd/api`: `-lab-sekarang` berlaku juga untuk job `-kedaluwarsa-hold`, supaya batas 7 hari diperankan.
-- Tes Go baru: `internal/service/ledger_kartu_test.go` (11), `internal/handler/ledger_kartu_test.go` (4), `internal/modul/pembayaran/kartu_test.go` (13).
+- Tes Go baru: `internal/service/ledger_kartu_test.go` (11), `internal/handler/ledger_kartu_test.go` (5), `internal/modul/pembayaran/kartu_test.go` (20), dan satu tes bentuk masukan di `internal/service/kartu_test.go` (jalur satu proses).
 
 ## Rekaman
 
@@ -44,7 +44,7 @@ Dependency baru di lab ini: tidak ada. Paket baru memakai pustaka standar, pgx, 
 | `kedaluwarsa.txt` | hold berumur 7 hari dengan jam maya (sebelum, tepat, sesudah batas, diulang); dua job bersamaan; hold yang sudah ditagih; reversal sesudah kedaluwarsa | 4.23 |
 | `kill-switch.txt` | kill switch tanpa deploy, tidak berlaku untuk otorisasi yang sudah disetujui, hilang saat proses dimulai ulang; di service pembayaran | 4.23 |
 | `penerbit.txt` | dua keadaan penerbit menurut dokumentasi; rekonsiliasi kartu yang dijalankan lab; jawaban terlambat sesudah hold selesai | 4.22, 4.23 |
-| `dua-service.txt` | hold lewat API ledger, key = `id_penerbit`; service pembayaran dimatikan di antara ledger dan baris; batas harian | 4.23 |
+| `dua-service.txt` | hold lewat API ledger, key = `id_penerbit`; kunci penerbit di pintu service pembayaran; service pembayaran dimatikan di antara ledger dan baris; batas harian | 4.23 |
 | `testing.txt` | `go vet`, tes lab ini dengan PostgreSQL sungguhan, `TES_DB_WAJIB` | 4.23 |
 
 ### Yang dibuktikan
@@ -89,6 +89,14 @@ Mutan yang lolos di putaran awal dan membuat tes atau rekaman berubah:
 - Dua mutan pertama tidak dikompilasi atau jangkarnya salah (L6 `status` tak terpakai, C4) dan ditulis ulang; yang tidak dikompilasi tidak dihitung.
 
 L13 setara perilaku: hash permintaan tanpa akun tidak mengubah hasil karena akun dibandingkan terpisah (`a != akun` sesudah `IsiKunci`).
+
+### Mutasi peninjau
+
+Peninjau memakai 61 mutan lain atas kode uang dan keamanan. Cakupannya ledger, API ledger, client, service pembayaran, jalur satu proses, penerbit tiruan, dan job kedaluwarsa. Tiap mutan diuji pada salinan terpisah dengan schema yang dibangun ulang.
+
+Delapan mutan lolos dari tes dan rekaman milik pelaksana. Tujuh lolos dari tes Go: jawaban sukses yang tak terbaca dan 5xx di client ledger, zona waktu dan status yang dihitung di batas harian service pembayaran, alasan penolakan akun dibekukan dari ledger, `ON CONFLICT` di penolakan, dan pencocokan baris kembar. Satu lolos dari tes Go dan dari rekaman: `X-Penerbit-Kunci` di pintu service pembayaran. Semuanya kini tertangkap tes baru atau pemeriksaan di `dua-service.txt`.
+
+Satu mutan tetap lolos karena setara perilaku: pemeriksaan ulang `tahan_sampai` di dalam `lepasHold`. Kueri `HoldKedaluwarsa` sudah menyaringnya, dan tidak ada yang mengubah `tahan_sampai`.
 
 | Mutan | Bagian | Perilaku yang diubah | Tes atau rekaman yang menangkap | Hasil |
 |---|---|---|---|---|

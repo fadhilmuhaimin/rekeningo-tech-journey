@@ -39,6 +39,7 @@ ok    lab/apit4/internal/service
 --- PASS: TestLedgerKartuTahanBaruLaluUlangDanBentrok
 --- PASS: TestLedgerKartuTahanLockDitahanMenjawab503SibukDanClientMemetakan
 --- PASS: TestLedgerKartuClientMemetakanJawaban
+--- PASS: TestLedgerKartuClientMemetakanGalatServerDanJawabanRusak
 --- PASS: TestLedgerHTTPStatusDanAlasanPerPenolakan
 --- PASS: TestLedgerHTTPKunciLayananDanIdempotencyKeyWajib
 --- PASS: TestLedgerTanpaKunciLayananRuteTidakAda
@@ -71,6 +72,13 @@ ok    lab/apit4/internal/modul/ledger
 --- PASS: TestKartuBatasHarianDuaSerentakKeduanyaLolosDiJalurDuaService
 --- PASS: TestKartuBarisTetapDitulisBilaPenerbitSudahPergi
 --- PASS: TestKartuIDSamaDiTitikSesudahLedgerSatuBarisDuaJawabanSetuju
+--- PASS: TestKartuIDSamaBatasHarianDiperiksaSesudahBarisPertamaDijawabSama
+--- PASS: TestKartuDuaPenolakanSerentakUntukIDSamaSatuBaris
+--- PASS: TestKartuAkunDibekukanDiLedgerDitolakTanpaHold
+--- PASS: TestKartuBatasHarianMenghitungYangDitahanDanDitagihBukanYangDilepas
+--- PASS: TestKartuBatasHarianMemakaiHariKalenderWIB
+--- PASS: TestKartuDuaPenolakanSerentakIDSamaJumlahBedaSatuMenang
+--- PASS: TestKartuIDSamaDuaKartuSatuAkunDiTitikSesudahLedgerSatuMenang
 --- PASS: TestKabarGatewayDipetakanKeStatusTopup
 --- PASS: TestTopupTidakPastiYangDibayarTetapDikredit
 --- PASS: TestTandaTanganDiperiksaSebelumJSONDiurai
@@ -107,31 +115,45 @@ ok    lab/apit4/internal/modul/pembayaran
 # exit status 0
 $ TES_DB_WAJIB=1 go test -count=1 ./internal/modul/pembayaran
 --- FAIL: TestKartuOtorisasiMenahanLewatLedgerLaluMenulisBaris
-    kartu_test.go:104: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    kartu_test.go:105: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKartuIDSamaDuaKaliSatuHoldTanpaPanggilanLedgerKedua
-    kartu_test.go:130: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    kartu_test.go:131: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKartuIDSamaSerentakSatuHoldSatuBaris
-    kartu_test.go:146: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    kartu_test.go:147: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKartuSaldoKurangDitolakDanDiulangTanpaLedger
-    kartu_test.go:176: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    kartu_test.go:177: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKartuDibekukanDanBatasHarianTanpaLedger
-    kartu_test.go:194: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    kartu_test.go:195: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKartuKillSwitchTanpaBarisDanTanpaLedger
-    kartu_test.go:216: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    kartu_test.go:217: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKartuTokenTidakDikenalDanValidasi
-    kartu_test.go:232: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    kartu_test.go:233: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKartuIDDipakaiUntukOtorisasiLainDitolak
-    kartu_test.go:256: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    kartu_test.go:262: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKartuLedgerSibukDanTidakMenjawabDitolakTanpaBaris
-    kartu_test.go:278: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    kartu_test.go:284: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKartuMatiSesudahLedgerPulihLewatUlanganPenerbit
-    kartu_test.go:301: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    kartu_test.go:307: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKartuBatasHarianDuaSerentakKeduanyaLolosDiJalurDuaService
-    kartu_test.go:345: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    kartu_test.go:351: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKartuBarisTetapDitulisBilaPenerbitSudahPergi
-    kartu_test.go:382: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    kartu_test.go:388: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKartuIDSamaDiTitikSesudahLedgerSatuBarisDuaJawabanSetuju
-    kartu_test.go:408: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+    kartu_test.go:414: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuIDSamaBatasHarianDiperiksaSesudahBarisPertamaDijawabSama
+    kartu_test.go:460: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuDuaPenolakanSerentakUntukIDSamaSatuBaris
+    kartu_test.go:509: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuAkunDibekukanDiLedgerDitolakTanpaHold
+    kartu_test.go:541: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuBatasHarianMenghitungYangDitahanDanDitagihBukanYangDilepas
+    kartu_test.go:564: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuBatasHarianMemakaiHariKalenderWIB
+    kartu_test.go:589: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuDuaPenolakanSerentakIDSamaJumlahBedaSatuMenang
+    kartu_test.go:611: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuIDSamaDuaKartuSatuAkunDiTitikSesudahLedgerSatuMenang
+    kartu_test.go:655: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKabarGatewayDipetakanKeStatusTopup
     pembayaran_status_test.go:19: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestTopupTidakPastiYangDibayarTetapDikredit

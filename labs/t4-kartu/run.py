@@ -739,7 +739,7 @@ def rekam_penerbit():
     tabel = rekon_kartu("catatan penerbit tiruan lawan otorisasi_kartu, satu baris per otorisasi yang dijawab penerbit")
     harap([b[4] for b in tabel], ["setuju di penerbit, tidak ditahan di Rekeningo", "cocok", "cocok"], "hasil banding bagian C")
     catat("# AUTH-P1 setuju di penerbit tanpa baris di Rekeningo. AUTH-P3 ditolak di keduanya: penagihannya diperankan lab, tidak ada di catatan keputusan penerbit tiruan, dan banding ini tidak melihatnya. Berkas penagihan dari penerbit (clearing) tidak ada di lab; selisih jenis ini Tidak dijalankan sebagai rekonsiliasi.")
-    catat("# Tanpa rekonsiliasi kartu, uang yang disetujui tanpa hold tidak terlihat oleh siapa pun sampai penagihannya ditolak ledger.")
+    catat("# Tanpa rekonsiliasi kartu, uang yang disetujui tanpa hold tidak terlihat di Rekeningo sampai penagihannya ditolak ledger.")
 
     bagian("D. Jawaban terlambat sesudah hold selesai: penerbit memutuskan tolak, Rekeningo menahan dana (dua service)")
     d.stop(PORT)
@@ -762,7 +762,7 @@ def rekam_penerbit():
     tabel = rekon_kartu("catatan penerbit tiruan lawan otorisasi_kartu sesudah gerbang dilepas")
     baris = [b for b in tabel if b[0] == "AUTH-P4"][0]
     harap(baris[4], "tolak di penerbit, dana ditahan di Rekeningo", "AUTH-P4 dalam rekonsiliasi")
-    catat("# Dana Rp60.000 tertahan untuk keputusan yang di penerbit sudah tolak. Yang melepasnya hanya job kedaluwarsa sesudah 7 hari; jam maya di bawah.")
+    catat("# Dana Rp60.000 tertahan untuk keputusan yang di penerbit sudah tolak. Tanpa reversal dari penerbit, yang melepasnya job kedaluwarsa sesudah 7 hari; jam maya di bawah.")
     t = waktu_db("AUTH-P4") + datetime.timedelta(seconds=1)
     job_kedaluwarsa(t, label="tahan_sampai ditambah 1 detik")
     sql("SELECT id_penerbit, status FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-P4'")
@@ -827,6 +827,14 @@ def rekam_dua_service():
     harap(s4, 401, "kunci layanan salah")
     sql("SELECT count(*) AS key_tertahan FROM kunci_idempotensi WHERE kunci = 'AUTH-G2'")
     catat("# Penolakan saldo kurang di-ROLLBACK: key AUTH-G2 tidak tertahan.")
+    catat("# Kunci penerbit di pintu service pembayaran (bukan kunci layanan di atas): tanpa kunci atau dengan kunci salah, permintaan ditolak 401 sebelum menyentuh kartu, ledger, atau baris.")
+    hold_sebelum = posting_hold()
+    for label, kepala in (("tanpa kunci", []), ("kunci salah", ["X-Penerbit-Kunci: salah"])):
+        s, _ = curl("POST", "/penerbit/otorisasi", {"id_penerbit": "AUTH-G9", "token": lina, "jumlah": 5_000}, port=PORT_PEMB, tampil=False, kepala=kepala)
+        catat(f"POST /penerbit/otorisasi ke service pembayaran, {label}: HTTP {s}")
+        harap(s, 401, f"kunci penerbit {label}")
+    sql("SELECT count(*) AS baris_otorisasi FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-G9'")
+    harap((int(satu("SELECT count(*) FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-G9'")), posting_hold()), (0, hold_sebelum), "kunci penerbit salah: tanpa baris dan tanpa hold")
     s, h = clearing("AUTH-G1", 80_000)
     harap(s, 200, "clearing lewat monolith")
     catat(f"clearing AUTH-G1 {rp(80_000)} lewat monolith (baris ditulis service pembayaran): HTTP {s}, status {h['status']}")

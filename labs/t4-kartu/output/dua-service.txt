@@ -34,6 +34,14 @@ kunci layanan salah: HTTP 401, kunci-layanan
  0
 (1 row)
 # Penolakan saldo kurang di-ROLLBACK: key AUTH-G2 tidak tertahan.
+# Kunci penerbit di pintu service pembayaran (bukan kunci layanan di atas): tanpa kunci atau dengan kunci salah, permintaan ditolak 401 sebelum menyentuh kartu, ledger, atau baris.
+POST /penerbit/otorisasi ke service pembayaran, tanpa kunci: HTTP 401
+POST /penerbit/otorisasi ke service pembayaran, kunci salah: HTTP 401
+=> SELECT count(*) AS baris_otorisasi FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-G9'
+ baris_otorisasi
+-----------------
+ 0
+(1 row)
 clearing AUTH-G1 Rp80.000 lewat monolith (baris ditulis service pembayaran): HTTP 200, status ditangkap
 => SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40311 OR b.jenis IN ('dana_tertahan', 'settlement_kartu') ORDER BY b.jenis
  jenis            | saldo_cache
