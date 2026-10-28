@@ -49,7 +49,9 @@ saldo tepat Rp35.000 membayar QR Rp35.000 dan menyisakan Rp0; saldo Rp34.999 dit
 --- PASS: TestQRBatasSaldoTepatDanKurangSatuRupiah
 id QR berbentuk salah (kosong, huruf besar, kelebihan atau kekurangan karakter, huruf di luar heksadesimal, teks SQL) dijawab ErrTidakDitemukan untuk konfirmasi, pembayaran, dan laporan; 630 pemanggilan (30 putaran, 7 id, 3 jalur) tidak memakai jatah laju
 --- PASS: TestQRBatasIdBentukSalahDitolakSebelumJatahLaju
+alasan laporan dihitung dalam karakter sesudah spasi di ujungnya dipangkas: 19 karakter berbyte dua dan 19 karakter berspasi ditolak, 150 karakter berbyte dua (300 byte) diterima
+--- PASS: TestQRBatasAlasanLaporanDalamKarakterSesudahDipangkas
 PASS
 ok    lab/apit4/internal/service
 # exit status 0
-# 25 tes bertag t4qr lulus; tiap fungsi tes di dua berkas bertag (dibaca dari berkasnya, bukan dari pola -run) muncul sebagai PASS di atas.
+# 26 tes bertag t4qr lulus; tiap fungsi tes di dua berkas bertag (dibaca dari berkasnya, bukan dari pola -run) muncul sebagai PASS di atas.
