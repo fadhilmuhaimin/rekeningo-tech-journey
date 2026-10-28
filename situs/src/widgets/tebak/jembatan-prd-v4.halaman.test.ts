@@ -178,13 +178,13 @@ describe("registry, naskah, blok, dan tautan", () => {
     const hitungId: Record<string, number> = {};
     for (const x of id) hitungId[x] = (hitungId[x] ?? 0) + 1;
     expect(hitungId).toEqual({
-      A0: 1, "t2-skema-tanpa-downtime": 1, "t3-at-least-once": 2, "t3-cache": 1, "t3-dua-instance": 1, "t3-estimasi": 2, "t3-m28": 5, "t3-offline": 1, "t3-outbox": 1,
+      A0: 1, "t2-skema-tanpa-downtime": 1, "t3-at-least-once": 2, "t3-cache": 1, "t3-adr-33": 1, "t3-dua-instance": 1, "t3-estimasi": 2, "t3-m28": 5, "t3-offline": 1, "t3-outbox": 1,
       "t3-pool": 1, "t3-prd": 5, "t3-rate-limit-redis": 1, "t3-rekap": 1, "t3-tim-infra": 2, "t3-tls-pinning": 1, "t3-xss-csrf": 3, "t4-prd": 1,
     });
     for (const x of Object.keys(hitungId)) expect(hal.some((h) => h.id === x), `[[${x}]] tidak ada di registry`).toBe(true);
     const sesuai: [string, string, string][] = [
       ["t2-skema-tanpa-downtime", "2.22", "Ubah skema tanpa downtime"], ["t3-prd", "3.1", "PRD v3"], ["t3-pool", "3.8", "Connection pool"], ["t3-outbox", "3.9", "Outbox transaksional"],
-      ["t3-at-least-once", "3.13", "At-least-once"], ["t3-dua-instance", "3.15", "Dua instance"], ["t3-rate-limit-redis", "3.17", "Rate limit lintas instance"],
+      ["t3-adr-33", "3.30", "ADR 33"], ["t3-at-least-once", "3.13", "At-least-once"], ["t3-dua-instance", "3.15", "Dua instance"], ["t3-rate-limit-redis", "3.17", "Rate limit lintas instance"],
       ["t3-cache", "3.19", "Cache dan invalidation"], ["t3-offline", "3.21", "Offline-first"], ["t3-xss-csrf", "3.23", "Keamanan 5"], ["t3-tls-pinning", "3.25", "Keamanan 6"],
       ["t3-tim-infra", "3.27", "Tim dan infra Tahap 3"], ["t3-m28", "3.28", "M28"], ["t3-estimasi", "3.29", "Estimasi Tahap 3"], ["t3-rekap", "3.31", "Yang dibawa keluar"],
     ];
@@ -494,6 +494,15 @@ describe("Menuju Tahap 4: empat ADR dari naskah 4, lima ADR lain dipindai dari h
     ada(isi(halamanAdr(26)), "VPS kedua dijawab di Tahap 4", "3.15");
     ada(isi(halamanAdr(32)), "Tim naik dari empat menjadi 10 sampai 15 orang dalam tiga tim (naskah Tahap 3, jembatan), jadi rotasi dan alert dibagi lagi per tim.", "3.27");
   });
+  test("ADR 33 menulis pemicu VPS kedua: jendela kehilangan data lebih besar dari yang bisa diterima Pak Hadi atau PRD; PRD v3 tidak menulis batas itu", () => {
+    const adr33 = isi(halamanAdr(33));
+    expect(dari("t3-adr-33").ada).toBe(true);
+    ada(adr33, "| VPS kedua | Waktu pulih terukur atau jendela kehilangan data lebih besar dari yang bisa diterima Pak Hadi atau PRD. PRD v3 tidak menulis batas itu |", "3.30");
+    ada(adr33, "[[t3-jembatan]] meminta kamu menebak keputusan Tahap 3 mana yang pecah lebih dulu. Tahap 4 membaca daftar ini terhadap PRD v4", "3.30");
+    harus("ADR 33 menulis pemicu VPS kedua: jendela kehilangan data yang lebih besar dari yang bisa diterima Pak Hadi atau PRD ([[t3-adr-33]]). PRD v3 tidak menulis batas itu.");
+    expect(badan.indexOf("[[t3-adr-33]]")).toBeGreaterThan(badan.indexOf("- ADR 32: tim naik"));
+    expect(badan.indexOf("[[t3-adr-33]]")).toBeLessThan(badan.indexOf("Lima ADR lain"));
+  });
   test("lima ADR lain: himpunan dipindai dari semua halaman ADR 22 sampai 32 yang menyebut Tahap 4, lalu dikurangi empat jawaban", () => {
     expect(sebut).toEqual([22, 23, 25, 26, 27, 28, 30, 31, 32]);
     expect(lain).toEqual([23, 27, 28, 30, 31]);
@@ -696,7 +705,7 @@ describe("struktur halaman dan dunia angka tertutup", () => {
     const ribu = new Set([titik(a3.user), titik(a4.user)]);
     expect([...new Set([...badan.matchAll(/\d{1,3}(?:\.\d{3})+/g)].map((m) => m[0]))].sort()).toEqual([...ribu].sort());
     expect([...new Set([...badan.matchAll(/\d+%/g)].map((m) => m[0]))]).toEqual([`${Math.round((notif4 / kapasitas) * 100)}%`]);
-    expect(new Set([...badan.matchAll(/ADR (\d+)/g)].map((m) => m[1]))).toEqual(new Set(["21", "22", "23", "25", "26", "27", "28", "30", "31", "32"]));
+    expect(new Set([...badan.matchAll(/ADR (\d+)/g)].map((m) => m[1]))).toEqual(new Set(["21", "22", "23", "25", "26", "27", "28", "30", "31", "32", "33"]));
     expect(new Set([...badan.matchAll(/Tahap \d+(?: → \d+)?/g)].map((m) => m[0]))).toEqual(new Set(["Tahap 2", "Tahap 3", "Tahap 4"]));
     const tokenW = [...teksWidget.matchAll(/\d+,\d+/g)].map((m) => m[0]);
     const bolehW = new Set([koma(p4, 1), koma(p3, 1), koma(lPool, 2), koma(WPOOL, 2), koma(kapasitas, 2), koma(lambdaBayar3, 3), koma(notif4, 2), koma(notif4 / lambdaBayar3, 1), koma((lambdaBayar3 / kapasitas) * 100, 1), koma(katalog, 2), koma(wCache, 3), koma(katalog * wCache, 3), koma(lCache4, 2), koma(t, 1), String(ukur[2]), "0,005"]);
@@ -754,6 +763,7 @@ describe("token versi PRD dan nomor Tahap: urutan di tiap baris sama dengan yang
       [T(N4)], // nama blok Menuju
       [T(N4), P(N4), P(N4)], // empat ADR
       [T(N4), T(N3)], // definisi
+      [P(N3)], // ADR 33: PRD v3 tidak menulis batas itu
       [T(N4), T(N4)], // lima ADR lain
       [T(N3), P(N4)], // dua hal
       [P(N4)], // kartu 1

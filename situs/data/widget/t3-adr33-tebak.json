@@ -1,0 +1,44 @@
+{
+  "id": "t3-adr33-tebak",
+  "judul": "Empat pemicu berupa angka: mana yang paling dekat?",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Hitungan atas Asumsi naskah Tahap 3; riwayat 1,4 ms dari rekaman lab Tahap 2 (n1.txt bagian E); pemicu 70 dan 100 adalah Asumsi halaman ini"
+  },
+  "adegan": [
+    "Empat dari delapan komponen yang ditunda punya pemicu berupa angka beban: koneksi database, bacaan laporan, riwayat dan saldo, dan laju notifikasi uang.",
+    "Angka Tahap 3: puncak 17,36 request per detik, 0,868 notifikasi uang per detik, dua instance dengan pool 10, W 20 ms untuk request biasa dan 1,4 ms untuk riwayat halaman pertama."
+  ],
+  "pertanyaan": "Mana dari keempatnya yang paling dekat ke pemicunya sekarang?",
+  "pilihan": [
+    {
+      "teks": "PgBouncer, untuk koneksi database",
+      "benar": true,
+      "alasan": "Koneksi: 2 × 10 + 4 + 3 + 3 = 30 dari 100. Pemicu 70 berarti 30 ÷ 70 = 43% jalan, dan enam instance pool 10 sampai di sana."
+    },
+    {
+      "teks": "Read replica, untuk bacaan laporan",
+      "benar": false,
+      "alasan": "L baca paling banyak (17,36 − 0,868) × 0,02 = 0,33 koneksi, dari pemicu 5: 6,6%. W 20 ms adalah Asumsi, dan tidak semua request selain uang adalah baca."
+    },
+    {
+      "teks": "CDC, untuk urutan commit outbox",
+      "benar": false,
+      "alasan": "Notifikasi uang 0,868 per detik dari pemicu 100 per detik, awal dari ratusan per detik di ADR 23: 0,9%. Consumernya satu, dan ia tidak bergantung pada urutan."
+    },
+    {
+      "teks": "Cache saldo dan riwayat di Redis",
+      "benar": false,
+      "alasan": "L riwayat paling banyak 17,36 × 0,0014 = 0,024 koneksi, dari pemicu 5: 0,49%. Bila W sepuluh kali lebih besar, 0,24 koneksi: 4,9%."
+    }
+  ],
+  "penutup": "Yang terdekat pun baru 43% dari pemicunya, dan pemicunya Asumsi. Empat komponen lain tidak muncul di sini karena dipicu kejadian atau alat ukur yang belum ada.",
+  "label": {
+    "sumber": "Asumsi · hitungan",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}

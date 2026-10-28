@@ -79,6 +79,7 @@ export const BARIS_MDX: string[] = [
  "- ADR 25: saat penerimanya menggerakkan uang, misalnya webhook dari gateway ([[t3-at-least-once]]).",
  "- ADR 26: satu VPS tetap titik gagal tunggal, dan itu diterima sengaja ([[t3-dua-instance]]).",
  "- ADR 32: tim naik dari empat ke 10 sampai 15 orang dalam tiga tim, jadi rotasi dan alert dibagi lagi per tim ([[t3-tim-infra]]).",
+ "ADR 33 menulis pemicu VPS kedua: jendela kehilangan data yang lebih besar dari yang bisa diterima Pak Hadi atau PRD ([[t3-adr-33]]). PRD v3 tidak menulis batas itu.",
  "Lima ADR lain juga menyebut Tahap 4 di halamannya. Tahap 4 membacanya satu per satu:",
  "- ADR 23 menulis syarat yang sama dengan ADR 25: penerima sistem lain yang menggerakkan uang ([[t3-outbox]]).",
  "- ADR 27: pendaftaran publik membuka endpoint daftar, verifikasi, dan top-up yang belum punya rate limit ([[t3-rate-limit-redis]]).",
@@ -111,7 +112,7 @@ export const BARIS_MDX: string[] = [
 ];
 // Bentuk baris tiap baris MDX: - = baris kosong, # = baris isi. Baris kosong menentukan cara MDX mengurai paragraf, daftar,
 // tabel, dan tag JSX, jadi satu baris kosong yang hilang harus gagal.
-export const BENTUK_MDX = "########-#####-#-#-####-#-#-#-#######-#-#-#-#-###-#-#-#-########-#-#-#-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-#-#-#-#-####-#-#####-#-##-#-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-#-";
+export const BENTUK_MDX = "########-#####-#-#-####-#-#-#-#######-#-#-#-#-###-#-#-#-########-#-#-#-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-#-#-#-#-####-#-#-#####-#-##-#-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-#-";
 export const NILAI_TEBAK: string[] = [
  "id=\"t3-jembatan-tebak\"",
  "judul=\"ADR Tahap 3 yang pecah lebih dulu\"",

@@ -54,6 +54,8 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Cache** | Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli. | [[B9]] |
 | **Cache invalidation** | Membuang atau memperbarui entri cache saat data aslinya berubah, supaya salinan tidak tertinggal. | [[t3-cache]] |
 | **Cache-aside** | Cara memakai cache: aplikasi memeriksa cache lebih dulu, membaca database bila entrinya tidak ada, lalu menyimpan hasilnya di cache. | [[t3-cache]] |
+| **Canary** | Rilis perubahan ke sebagian kecil lalu lintas lebih dulu, dengan penilaian baik atau buruk sebelum sisanya mendapat versi baru. | [[t3-adr-33]] |
+| **CDC** (change data capture) | Cara mengeluarkan perubahan data dengan membaca log transaksi database, sehingga urutannya sama dengan urutan commit. | [[t3-adr-33]] |
 | **Certificate pinning** | App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem. | [[t3-tls-pinning]] |
 | **CI** (Continuous Integration) | Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung. | [[B1.4]] |
 | **Circuit breaker** | Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda. | [[B11]] |
@@ -142,6 +144,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Pagination kursor** (keyset) | Pagination yang meminta baris sesudah nilai urutan baris terakhir yang sudah tampil, bukan halaman ke-N, jadi tetap stabil saat baris baru masuk. | [[t2-kursor]] |
 | **Partitioning** | Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data. | [[D2]] |
 | **Passkey** (WebAuthn) | Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun. | [[t3-xss-csrf]] |
+| **PgBouncer** | Pooler koneksi PostgreSQL yang menampung banyak koneksi client dan meminjamkan sedikit koneksi ke database, dengan beberapa fitur sesi yang tidak berjalan di mode transaction. | [[t3-adr-33]] |
 | **Phantom read** | Anomali: query yang sama dalam satu transaction mengembalikan kumpulan baris berbeda, karena transaction lain menambah atau menghapus baris. | [[t2-isolation-level]] |
 | **PKCE** | Tambahan pada alur OAuth untuk app mobile yang mencegah authorization code dipakai oleh aplikasi lain. | [[B5.2]] |
 | **Polling** | App menanyakan status ke server berulang kali dengan jeda tetap. | [[E4]] |

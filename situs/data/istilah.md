@@ -67,6 +67,9 @@
 *[cache invalidation]: Membuang atau memperbarui entri cache saat data aslinya berubah, supaya salinan tidak tertinggal.
 *[Cache-aside]: Cara memakai cache: aplikasi memeriksa cache lebih dulu, membaca database bila entrinya tidak ada, lalu menyimpan hasilnya di cache.
 *[cache-aside]: Cara memakai cache: aplikasi memeriksa cache lebih dulu, membaca database bila entrinya tidak ada, lalu menyimpan hasilnya di cache.
+*[Canary]: Rilis perubahan ke sebagian kecil lalu lintas lebih dulu, dengan penilaian baik atau buruk sebelum sisanya mendapat versi baru.
+*[canary]: Rilis perubahan ke sebagian kecil lalu lintas lebih dulu, dengan penilaian baik atau buruk sebelum sisanya mendapat versi baru.
+*[CDC]: Cara mengeluarkan perubahan data dengan membaca log transaksi database, sehingga urutannya sama dengan urutan commit.
 *[Certificate pinning]: App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem.
 *[certificate pinning]: App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem.
 *[CI]: Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung.
@@ -229,6 +232,7 @@
 *[Passkey]: Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.
 *[passkey]: Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.
 *[WebAuthn]: Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.
+*[PgBouncer]: Pooler koneksi PostgreSQL yang menampung banyak koneksi client dan meminjamkan sedikit koneksi ke database, dengan beberapa fitur sesi yang tidak berjalan di mode transaction.
 *[Phantom read]: Anomali: query yang sama dalam satu transaction mengembalikan kumpulan baris berbeda, karena transaction lain menambah atau menghapus baris.
 *[phantom read]: Anomali: query yang sama dalam satu transaction mengembalikan kumpulan baris berbeda, karena transaction lain menambah atau menghapus baris.
 *[PKCE]: Tambahan pada alur OAuth untuk app mobile yang mencegah authorization code dipakai oleh aplikasi lain.
