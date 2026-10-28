@@ -107,7 +107,8 @@ func TestQRBatasDinamisNominalTerikatPadaIdQR(t *testing.T) {
 func TestQRBatasKedaluwarsaLimaMenitDiKeduaSisi(t *testing.T) {
 	svc, db := siapkan(t)
 	ctx := context.Background()
-	t0 := time.Date(2026, 10, 27, 9, 0, 0, 0, time.UTC)
+	// Awal yang tidak jatuh di batas menit atau detik, supaya pembulatan masa berlaku (ke menit, ke detik) menggeser batas dan tertangkap.
+	t0 := time.Date(2026, 10, 27, 9, 0, 17, 250_000_000, time.UTC)
 	kini := t0
 	svc = svc.DenganJam(func() time.Time { return kini })
 	merchant := qrAkun(t, db, "merchant", "terverifikasi", "aktif", 0)
@@ -368,4 +369,39 @@ func TestQRBatasSaldoTepatDanKurangSatuRupiah(t *testing.T) {
 		t.Fatalf("saldo kurang %d, pas %d, merchant %d", saldo(t, db, kurang), saldo(t, db, pas), saldo(t, db, merchant))
 	}
 	fmt.Println("LAB|saldo tepat Rp35.000 membayar QR Rp35.000 dan menyisakan Rp0; saldo Rp34.999 ditolak (ErrSaldoKurang) dan QR tetap aktif")
+}
+
+// Id QR yang bentuknya salah ditolak ErrTidakDitemukan sebelum menyentuh database dan sebelum mengambil token laju:
+// jatah laporan (3 per jam) dan jatah pembayaran (20 per menit) utuh sesudah puluhan masukan salah.
+func TestQRBatasIdBentukSalahDitolakSebelumJatahLaju(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	merchant := qrAkun(t, db, "merchant", "terverifikasi", "aktif", 0)
+	pembeli := qrAkun(t, db, "pemakai", "belum", "aktif", 100_000)
+	pelapor := qrAkun(t, db, "pemakai", "belum", "aktif", 0)
+	q, err := svc.BuatQR(ctx, merchant, "statis", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	salah := []string{"", "ngawur", strings.ToUpper(q.ID), q.ID + "0", q.ID[:35], "00000000-0000-4000-8000-00000000000g", "'; DROP TABLE qr; --"}
+	for putaran := 0; putaran < 30; putaran++ {
+		for _, id := range salah {
+			if _, err := svc.LihatQR(ctx, id); !errors.Is(err, ErrTidakDitemukan) {
+				t.Fatalf("LihatQR(%q): ingin ErrTidakDitemukan, dapat %v", id, err)
+			}
+			if _, err := svc.BayarQR(ctx, pembeli, id, qrNom(1_000)); !errors.Is(err, ErrTidakDitemukan) {
+				t.Fatalf("BayarQR(%q): ingin ErrTidakDitemukan, dapat %v", id, err)
+			}
+			if err := svc.LaporkanQR(ctx, pelapor, id, strings.Repeat("x", 20)); !errors.Is(err, ErrTidakDitemukan) {
+				t.Fatalf("LaporkanQR(%q): ingin ErrTidakDitemukan, dapat %v", id, err)
+			}
+		}
+	}
+	if _, err := svc.BayarQR(ctx, pembeli, q.ID, qrNom(1_000)); err != nil {
+		t.Fatalf("pembayaran yang sah sesudah masukan salah: %v (jatah laju terpakai oleh masukan salah?)", err)
+	}
+	if err := svc.LaporkanQR(ctx, pelapor, q.ID, strings.Repeat("x", 20)); err != nil {
+		t.Fatalf("laporan yang sah sesudah masukan salah: %v (jatah laju terpakai oleh masukan salah?)", err)
+	}
+	fmt.Println("LAB|id QR berbentuk salah (kosong, huruf besar, kelebihan atau kekurangan karakter, huruf di luar heksadesimal, teks SQL) dijawab ErrTidakDitemukan untuk konfirmasi, pembayaran, dan laporan; 210 percobaan tidak memakai jatah laju")
 }
