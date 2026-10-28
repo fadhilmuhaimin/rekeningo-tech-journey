@@ -6,7 +6,7 @@ import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
 import prdDiagram from "../../../../data/diagram/t4-prd-sebelum-sesudah.json";
 
-<p class="meta">Baca 11 menit · Prasyarat: [[t3-jembatan]] · Jalur inti</p>
+<p class="meta">Baca 13 menit · Prasyarat: [[t3-jembatan]] · Jalur inti</p>
 
 Sinta menulis PRD keempat ini untuk **PT Rekeningo** (fiktif), perusahaan yang dibuka untuk publik. Ringkasannya sudah tampil di [[t3-jembatan]]. Halaman ini memuat dokumen lengkapnya, dan blok terakhir membuka jawaban atas tebakan di sana.
 
@@ -203,11 +203,13 @@ Tidak ada yang menjawabnya sebelum kode ditulis. Ketiganya jadi masalah terbesar
 
 Di [[t3-jembatan]] kamu menebak ADR Tahap 3 mana yang pecah lebih dulu. Jawabannya ADR 22, ADR 25, ADR 26, dan ADR 32. Pecah berarti halaman ADR itu sendiri menulis keadaannya sebagai syarat salah atau hal yang datang di Tahap 4. Urutan "lebih dulu" adalah penalaran dari halaman ADR (Asumsi), bukan urutan kejadian yang direkam.
 
-PRD lengkap menunjukkan baris mana yang memenuhi tiap syarat. ADR 12 dari Tahap 1 ikut dibaca ulang. Syarat kelima ADR itu sudah terpenuhi sejak PRD dibagikan, jadi tidak ada yang datang sebagai kejutan.
+PRD lengkap menunjukkan baris mana yang membuka tiap syarat. ADR 12 dari Tahap 1 ikut dibaca ulang. Keadaan yang kelima ADR itu tunggu sudah tertulis di PRD sejak dibagikan, jadi tidak ada yang datang sebagai kejutan.
+
+**M28, tiga hal yang belum pernah diuji.** [[t3-m28]] mencatat pihak ketiga yang menggerakkan uang, tiga tim di satu codebase, dan satu VPS sebagai titik gagal tunggal. PRD v4 memuat ketiganya: baris "Top-up dari rekening bank lewat gateway", bagian "Batasan", dan baris "PT Rekeningo berdiri sendiri".
 
 **ADR 22, panggilan luar: dibuka baris "Kartu virtual".** Halaman ADR 22 menulis kapan keputusannya salah: bila panggilan luar harus atomik dengan uang, misalnya otorisasi kartu di Tahap 4 ([[t3-pool]]). Otorisasi kartu masuk PRD v4 sebagai P1.
 
-Halaman itu menambahkan bahwa aturan 1 tidak bisa dipenuhi di sana, dan jalur itu butuh pengaman lain. Di PRD v4 penerbit kartu yang memanggil Rekeningo untuk meminta persetujuan (README lab `api-t4`, penerbit tiruan lokal). Revisi ADR 22 dijawab dua halaman: [[t4-breaker]] untuk panggilan keluar ke gateway dan vendor, dan [[t4-kartu]] untuk otorisasi kartu.
+Halaman itu menambahkan bahwa aturan 1 tidak bisa dipenuhi di sana, dan jalur itu butuh pengaman lain. Di PRD v4 penerbit kartu yang meminta persetujuan, dan Rekeningo yang menjawab. Bila jawaban terlambat, penerbit memutuskan menurut setelannya, bukan menurut Rekeningo (Rekaman lab t4-kartu, `penerbit.txt` bagian A, dengan penerbit tiruan lokal). Revisi ADR 22 dijawab dua halaman: [[t4-breaker]] untuk panggilan keluar ke gateway dan vendor, dan [[t4-kartu]] untuk otorisasi kartu.
 
 **ADR 25, penerima yang menggerakkan uang: dibuka baris "Top-up dari rekening bank".** Saldo bertambah saat gateway memberi tahu, jadi penerima kabar itu menggerakkan uang. ADR 25 menulis bahwa penyaring "yang sudah tampil" tidak cukup di sana, dan penerima wajib idempoten dengan key ([[t3-at-least-once]]). Jawabannya ada di [[t4-webhook]].
 
@@ -219,7 +221,7 @@ VPS yang mati menghentikan keduanya (penalaran). ADR 26 menerima titik gagal tun
 
 **ADR 12, service kedua dan tes contract: dibuka bagian "Batasan".** ADR 12 menunda service kedua sampai beberapa tim bentrok di satu repo. Rencananya Tahap 4: modular monolith dan satu service pembayaran. Ia juga menjadwalkan tes contract OpenAPI di CI untuk Tahap 4 ([[t1-adr-12]]).
 
-Tiga tim yang bentrok di satu codebase dijawab [[t4-modul]], dan tes contract dikerjakan [[t4-tim-infra]]. ADR 12 juga memperingatkan bahwa pembayaran yang menyentuh dua service tidak lagi bisa dibungkus satu transaction.
+Tiga tim di satu codebase adalah keadaan yang ADR 12 tunggu. Bentroknya muncul di [[t4-m32]] dan dijawab [[t4-modul]], sedangkan tes contract dikerjakan [[t4-tim-infra]]. ADR 12 juga memperingatkan bahwa pembayaran yang menyentuh dua service tidak lagi bisa dibungkus satu transaction.
 
 **Bukan kapasitas.** Puncak naik 8 kali, tetapi [[t3-estimasi]] tidak menemukan satu komponen pun di tabelnya yang melewati batasnya hanya karena jumlah request. Yang terdekat adalah worker notifikasi: 6,94 + 0,579 = 7,52 per detik, dibagi kapasitas 13,33 per detik, sama dengan 56%. Di Tahap 3 pemakaiannya 6,5% (Hitungan; kapasitas dari 4 pengirim dan 0,3 detik per pengiriman adalah Asumsi). Yang pecah lebih dulu adalah syarat di dalam ADR, bukan kapasitas.
 
@@ -235,6 +237,6 @@ Lima ADR lain juga menyebut Tahap 4 di halamannya, dengan syaratnya sendiri. Hal
 
 Backup `pg_dump` harian berjendela sampai 24 jam, dan sehari memuat rata-rata ±65.000 transaksi uang dan top-up: 60.000 + 5.000 (Hitungan atas Asumsi). PostgreSQL terkelola bisa menggantikan jadwal itu, tetapi jendelanya menurut penyedia belum diketahui. Jadi pemicu ADR 33 tetap pertanyaan terbuka.
 
-M28 menulis bahwa pihak ketiga yang menggerakkan uang, tiga tim di satu codebase, dan satu VPS belum pernah diuji ([[t3-m28]]). Ketiganya sekarang punya baris di PRD ini, dan masalah pertama datang di [[t4-m29]].
+Masalah pertama dari semua ini datang di [[t4-m29]].
 
 </Blok>
