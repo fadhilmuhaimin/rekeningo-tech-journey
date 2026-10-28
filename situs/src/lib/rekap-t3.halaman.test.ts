@@ -31,6 +31,7 @@ const baca = (rel: string): string => {
 };
 
 const BERKAS = "situs/src/content/docs/tahap-3/rekap.mdx";
+const BERKAS_RANTAI = "situs/data/diagram/t3-rekap-kejadian.json";
 const mdx = baca(BERKAS);
 const potong = mdx.split(/^---\n/m);
 const frontmatter = potong[1]!;
@@ -376,6 +377,8 @@ function bersihKata(teks: string): number {
 describe("diagram Rantai t3-rekap-kejadian: urutan, minggu, dan sumber diturunkan dari naskah dan halaman M", () => {
   test("dua baris, dua belas simpul: PRD v3 lalu M18 sampai M28 berurutan, sumber berlabel Ilustrasi, judul dan simpul pendek", () => {
     const simpul = diagram.baris.flatMap((b) => b.simpul);
+    expect(diagram.id).toBe("t3-rekap-kejadian");
+    expect(BERKAS_RANTAI).toBe("situs/data/diagram/t3-rekap-kejadian.json");
     expect(diagram.baris).toHaveLength(2);
     expect(diagram.baris.map((b) => b.simpul.length)).toEqual([6, 6]);
     expect(simpul[0]!.teks).toBe("PRD v3");
@@ -938,6 +941,8 @@ describe("kalimat penghubung dan butir belum diuji: tiap baris ditulis lengkap, 
   });
 
   test("blok Coba dan 'Kenapa ini ada' memuat kalimat penghubung lengkap", () => {
+    expect(mdx).toContain(`<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah punya ${tabelNaskah5.length === 13 ? "tiga belas" : "?"} kalimat Tahap 3, masing-masing dengan kejadiannya.">`);
+    expect(daftarBlok(mdx).map((b) => b.nama)).toEqual(["Mulai", "Coba", "Paham", "Putuskan", "Kunci"]);
     const coba = baris(blok("Coba"));
     expect(coba).toContain("Setiap kartu menunjukkan satu kejadian. Tebak kalimat yang lahir darinya, lalu buka jawabannya. Tautan di kartu membawa ke halaman kejadian itu.");
     expect(coba).toContain("Kartu yang kamu tandai **Ingat** baru muncul lagi sesuai jadwal kotaknya, seperti di [[Kartu]]. Daftar lengkap tiga belas kalimat, beserta batas masing-masing, selalu ada di blok Paham.");
@@ -988,6 +993,7 @@ describe("struktur halaman: label, sumber ingatan, tanpa ID internal, dan kata y
     const kunci = blok("Kunci");
     expect(kunci.match(/<details class="success">/g)).toHaveLength(5);
     expect(kunci.match(/^\*\*\d\.\*\* /gm)).toHaveLength(5);
+    expect([...kunci.matchAll(/^\*\*(\d)\.\*\* /gm)].map((m) => m[1])).toEqual(["1", "2", "3", "4", "5"]);
     expect(badan.match(/^### /gm)).toHaveLength(7);
     expect(badan.match(/^## /gm)).toHaveLength(1);
     expect((badan.match(/<Rantai /g) ?? []).length).toBe(1);
