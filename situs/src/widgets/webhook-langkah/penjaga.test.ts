@@ -111,7 +111,7 @@ describe("sumber rekaman menunjuk berkas dan bagian yang ada", () => {
   });
   test("teks sumber yang tampil memuat berkas dan bagiannya", () => {
     for (const l of s.langkah) for (const h of Object.values(l.hasil)) {
-      for (const src of h.sumber) if (src.jenis === "rekaman") expect(src.teks).toMatch(/^[a-z]+\.txt, bagian [A-Z]\d?\. /);
+      for (const src of h.sumber) if (src.jenis === "rekaman") expect(src.teks).toMatch(/^[a-z]+\.txt, bagian [A-Z]\. /);
     }
   });
   test("chip tiap jenis sumber memakai label yang sama dengan /cara-pakai/", () => {
@@ -177,7 +177,7 @@ const sidik = (x: unknown): string => createHash("sha256").update(JSON.stringify
 const KUNCI = {
   tebak: "7ac2bb82a3f7",
   mode: "c5f54831bdc7",
-  langkah: ["0c119d58a97b", "7143a96be93e", "61419038ef4f", "203325081e8d", "f85f0916bfda", "4a7a21278597", "6c7a70e43409", "ae930a366f32"],
+  langkah: ["0c119d58a97b", "7143a96be93e", "61419038ef4f", "5829b1cfe9a9", "f85f0916bfda", "4a7a21278597", "6c7a70e43409", "ae930a366f32"],
 };
 describe("kunci teks tampil", () => {
   test("tebakan dan label versi", () => {

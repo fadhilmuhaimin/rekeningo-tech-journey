@@ -149,7 +149,7 @@
             { "label": "webhook_event", "nilai": "{eventTerlambatAdr}", "tanda": "netral" },
             { "label": "Status top-up", "nilai": "{statusTerlambatAdr}, tidak mundur; gateway ditanya {tanyaTerlambat} kali", "tanda": "baik" }
           ],
-          "sumber": [{ "jenis": "rekaman", "lab": "t4-webhook", "berkas": "urutan.txt", "bagian": "F1", "teks": "Status akhir tidak ditanyakan ke gateway karena jawabannya tidak bisa mengubahnya." }]
+          "sumber": [{ "jenis": "rekaman", "lab": "t4-webhook", "berkas": "urutan.txt", "bagian": "F1", "teks": "Bagian ini memuat beberapa kasus berurutan; ini yang pertama. Status akhir tidak ditanyakan ke gateway karena jawabannya tidak bisa mengubahnya." }]
         }
       }
     },

@@ -205,7 +205,7 @@ export function bangun(L: LabelWebhook, a: Acuan, adrHandler: number): Siap {
       sumber: h.sumber.map((s) => ({
         jenis: s.jenis,
         chip: L.jenisChip[s.jenis],
-        teks: s.jenis === "rekaman" ? `${s.berkas}, bagian ${s.bagian}. ${f(s.teks)}` : f(s.teks),
+        teks: s.jenis === "rekaman" ? `${s.berkas}, bagian ${(s.bagian ?? "").replace(/\d+$/, "")}. ${f(s.teks)}` : f(s.teks),
       })),
     });
     const h = l.hasil;
