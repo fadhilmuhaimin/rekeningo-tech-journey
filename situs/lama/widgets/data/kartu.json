@@ -2324,8 +2324,8 @@
   "halaman": "t3-rekap",
   "judul": "3.31 Yang dibawa keluar dari Tahap 3",
   "url": "tahap-3/rekap/",
-  "tanya": "Operasi stok yang dikirim ulang 62 jam sesudah Jumat menimpa stok 30. Kenapa kunci yang hidup 14 hari tidak menolak operasi itu, dan apa yang menolaknya?",
-  "jawab": "Kunci menjawab apakah permintaan pernah datang, dan versi menjawab apakah keadaan sudah berubah. Operasi bakso yang belum pernah sampai dijawab 409 karena versi dasar 1 sudah lewat, dan produk tidak berubah (`versi.txt` bagian C)."
+  "tanya": "Dengan kunci sinkron 14 hari, operasi soto yang sudah sampai hari Jumat dikirim ulang hari Senin. Kenapa stok 30 dari hari Sabtu tetap utuh, dan apa yang menolak operasi bakso yang belum pernah sampai?",
+  "jawab": "Kunci menjawab apakah permintaan pernah datang. Baris kunci Jumat masih ada hari Senin, jadi soto dijawab `ulang: true` dan stok 30 tidak berubah (`versi.txt` bagian C). Bakso belum pernah sampai, jadi tidak ada kunci yang mengenalinya. Yang menolaknya versi: versi dasar 1 sudah lewat, jawabannya 409, dan produk tidak berubah (bagian yang sama)."
  },
  {
   "id": "t3-rekap-5",

@@ -575,11 +575,18 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     expect(ada(VC, /^\{"sekarang":\{"id":361,.*"stok":30,"versi":2\},"status":"konflik","ulang":false\}$/)).toBe(true);
     expect(angka(butir(9).pertama)).toEqual(["0", jamD, "30", keyJam[2]!, jamC, "50", jamD, "30", "409", "29"]);
     harus(butir(9).pertama, `stok = 0 dari Jumat dikirim ulang ${jamD} jam kemudian dan menimpa 30 porsi yang Ani isi hari Sabtu.`);
-    harus(butir(9).pertama, `Key berlaku ${keyJam[2]} jam. Pengiriman ulang ${jamC} jam sesudah Jumat dikenali dan stok tetap 50, tetapi yang ${jamD} jam menimpa stok 30 (\`m24.txt\` bagian C dan D, lab t3-offline).`);
+    harus(butir(9).pertama, `Key berlaku ${keyJam[2]} jam. Nasi goreng yang dikirim ulang ${jamC} jam sesudah Jumat dikenali, dan stoknya tetap 50. Ayam geprek yang dikirim ulang ${jamD} jam sesudah Jumat menimpa stok 30 (\`m24.txt\` bagian C dan D, lab t3-offline).`);
+    // nasi goreng (produk 1, bagian C) dan ayam geprek (produk 61, bagian D) adalah dua produk berbeda di rekaman
+    expect(ada(MCc, /FROM produk WHERE id = 1$/)).toBe(true);
+    expect(ada(MCc, /^ 1 +\| Nasi goreng \| 50 +\| 3$/)).toBe(true);
+    expect(ada(MDd, /FROM produk WHERE id = 61$/)).toBe(true);
+    expect(ada(MDd, /^ 61 +\| Ayam geprek \| 30 +\| 3$/)).toBe(true);
     harus(butir(9).pertama, "Dengan versi dasar, operasi yang belum pernah sampai dijawab 409, dan produk tidak berubah (`versi.txt` bagian C).");
-    harus(butir(9).batas, "HP diperankan curl dan waktu dimajukan, jadi queue lokal dan layar konflik di app Tidak dijalankan. Umur queue 7 hari dan kunci 14 hari adalah Asumsi naskah.");
+    harus(butir(9).batas, `lama offline ${jamD} jam adalah Asumsi naskah, dan jam service dimajukan tanpa ada yang menunggu. HP diperankan curl, jadi queue lokal dan layar konflik di app Tidak dijalankan. Umur queue 7 hari dan kunci 14 hari juga Asumsi naskah.`);
+    harus(fileHalaman("t3-m24"), `Lama offline ${jamD} jam, dari Jumat 16.50 sampai Senin 06.50, adalah Asumsi naskah`);
+    harus(m24, "Ilustrasi mekanisme: waktu diperankan, tidak ada yang menunggu");
     harus(fileHalaman("t3-offline"), "Waktu di lab diperankan (Ilustrasi mekanisme), dan HP diperankan curl");
-    expect(angka(butir(9).batas)).toEqual(["7", "14"]);
+    expect(angka(butir(9).batas)).toEqual([jamD, "7", "14"]);
     harus(fileHalaman("t3-offline"), "Angka 7 dan 14 hari adalah pilihan naskah (Asumsi)");
     harus(fileHalaman("t3-m24"), "Rekaman hanya mengapit batas itu: 17 jam dikenali, 62 jam tidak.");
   });
@@ -589,7 +596,7 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     expect(fetchD).toBe("200");
     expect(angka(butir(10).pertama)).toEqual(["5.000", String(dialogA), String(dialogC), "30"]);
     harus(butir(10).pertama, `catatan ${rp(5000)} dari Dimas berisi tag gambar, dan dasbor Ani menulisnya lewat \`innerHTML\`.`);
-    harus(butir(10).pertama, `Di Chromium baru muncul satu kotak peringatan berisi 1 (\`xss.txt\` bagian A, lab t3-dasbor). Hanya CSP atau hanya \`textContent\` menghasilkan ${dialogC} dialog (bagian C dan E).`);
+    harus(butir(10).pertama, `Di Chromium yang baru diluncurkan tanpa ekstensi muncul satu kotak peringatan berisi 1 (\`xss.txt\` bagian A, lab t3-dasbor). Hanya CSP atau hanya \`textContent\` menghasilkan ${dialogC} dialog (bagian C dan E).`);
     harus(butir(10).pertama, "Skrip yang dijalankan penggerak lab di halaman yang sama mengubah harga walau token CSRF, Origin, dan cookie `HttpOnly` benar (bagian D).");
     expect(ada(XD, /harga produk 1 sebelum: Rp25000, sesudah skrip yang sama memanggil \/api\/menu\/harga: Rp2$/)).toBe(true);
     expect(ada(XD, /\(Playwright, Chromium nyata\)/)).toBe(true);
@@ -602,6 +609,7 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     harus(wa, '"langkah": "navigator.credentials.create"');
     harus(wa, "# Tidak dijalankan: login passkey penuh");
     harus(fileHalaman("t3-m25"), "Browser lain Tidak dijalankan.");
+    harus(fileHalaman("t3-m25"), "membuka riwayat Warung Ani di Chromium baru yang tidak dipasangi ekstensi");
   });
 
   test("kalimat 11: Rp150.000 ke Dimas, 0 request dengan validasi, 0 request dengan pin di connectionFactory, rotasi: pin satu kunci ditolak dan cadangan tetap terhubung", () => {
@@ -656,9 +664,10 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     harus(m28, "Hitungan kapasitas atau beban muncul di [[t3-m18]] (pool), [[t3-m23]] (katalog), dan [[t3-m27]] (worker).");
     harus(m28, "Pool dan worker dijawab tanpa memperbesar apa pun.");
     harus(m28, "Di [[t3-m23]] hasilnya menunjukkan cache tidak dibutuhkan beban (Asumsi).");
-    harus(butir(13).batas, "M18, M23, dan M27 memakai hitungan kapasitas sebagai alat, dan pemicunya tetap ketergantungan. Pool dan worker dijawab tanpa memperbesar apa pun, dan hitungan katalog menunjukkan cache tidak dibutuhkan beban (Asumsi).");
-    harus(butir(13).batas, "Kapasitas satu server belum diukur. Di delapan lab Tahap 3 tidak ada perintah yang menjalankan perkakas load test (dipindai: k6, wrk, locust, vegeta, hey, dan Apache Bench).");
-    expect(angka(butir(13).batas)).toEqual(["18", "23", "27", "3", "6"]);
+    harus(butir(13).batas, "M18, M23, dan M27 memakai hitungan kapasitas sebagai alat, dan pemicunya tetap ketergantungan. Pool dan worker dijawab tanpa memperbesar apa pun. Hitungan katalog menunjukkan cache tidak dibutuhkan beban (Asumsi), dan ADR 28 tetap memasangnya sebagai pilihan desain.");
+    harus(fileHalaman("t3-cache"), "Karena itu ADR 28 di bawah adalah pilihan desain dengan alasan yang ditulis, bukan hasil ukur.");
+    harus(butir(13).batas, "Kapasitas satu server belum diukur. Di delapan lab Tahap 3 tidak ada file yang memuat nama perkakas load test (dipindai: k6, wrk, locust, vegeta, hey, dan Apache Bench).");
+    expect(angka(butir(13).batas)).toEqual(["18", "23", "27", "28", "3", "6"]);
     harus(m28, "Di delapan lab Tahap 3 tidak ada perintah yang menjalankan perkakas load test");
     harus(m28, "Kapasitas satu server tetap belum diukur.");
     harus(m28, "Masalah Tahap 3 adalah ketergantungan, bukan jumlah request per detik.");
@@ -770,7 +779,12 @@ describe("tabel ADR di blok Putuskan", () => {
       const judul = cocok(fileHalaman(idAdr(n)), new RegExp(`^### ADR ${n}: (.+)$`, "m"))[1]!;
       expect(k[2]!.replace(/`/g, ""), `ADR ${n}`).toBe(judul.charAt(0).toUpperCase() + judul.slice(1));
     }
-    expect(baris[11]![2]).toBe("Komponen yang belum diperlukan sengaja belum dipasang, dengan angka Tahap 3 dan pemicunya");
+    expect(baris[11]![2]).toBe("Komponen yang belum diperlukan sengaja belum dipasang, masing-masing dengan angka Tahap 3 dan pemicunya, dan load test kapasitas dijadwalkan sebelum fitur PRD v4 pertama yang menambah beban");
+    // 3.30 (ADR 33, opsi C): tiap komponen punya pemicu, dan load test kapasitas dijadwalkan (aturan 1 dan 5)
+    const t330 = fileHalaman("t3-adr-33");
+    harus(t330, "**Keputusan: opsi C.** Tujuh aturan:");
+    harus(t330, "Tiap komponen punya pemicu di tabel \"Kapan keputusan ini salah\"");
+    harus(t330, "dijadwalkan sebelum fitur PRD v4 pertama yang menambah λ atau W.");
     harus(naskah, '| ADR 33 "Sengaja belum dilakukan"');
     expect(per("t3-adr-33").adr).toEqual([33]);
     expect(per("t3-adr-33").judul).toBe("ADR 33: Sengaja belum dilakukan");
@@ -837,8 +851,11 @@ describe("daftar periksa kode AI, Cek diri, dan halaman tanpa kalimat sendiri da
     harus(jawab[2]!, "(`batas.txt` bagian A, `memori.txt` bagian B)");
     harus(fileHalaman("t3-rate-limit-redis"), "Kunci akun di database tetap menahan tebakan ke satu akun di 5 (bagian D).");
     // 4: soto dikenali (ulang true, stok 30), bakso 409 karena versi dasar 1 sudah lewat
-    harus(jawab[3]!, "Operasi bakso yang belum pernah sampai dijawab 409 karena versi dasar 1 sudah lewat, dan produk tidak berubah (`versi.txt` bagian C).");
-    harus(jawab[3]!, "Kunci menjawab apakah permintaan pernah datang, dan versi menjawab apakah keadaan sudah berubah.");
+    harus(jawab[3]!, "Kunci menjawab apakah permintaan pernah datang. Baris kunci Jumat masih ada hari Senin, jadi soto dijawab `ulang: true` dan stok 30 tidak berubah (`versi.txt` bagian C).");
+    harus(jawab[3]!, "Bakso belum pernah sampai, jadi tidak ada kunci yang mengenalinya. Yang menolaknya versi: versi dasar 1 sudah lewat, jawabannya 409, dan produk tidak berubah (bagian yang sama).");
+    expect(ada(VC, /^\{"sekarang":\{"id":181,.*"stok":30,"versi":3\},"status":"diterapkan","ulang":true\}$/)).toBe(true);
+    expect(ada(VC, /^\{"sekarang":\{"id":361,.*"stok":30,"versi":2\},"status":"konflik","ulang":false\}$/)).toBe(true);
+    expect(ada(VC, /kunci hidup 14 hari, bukan 24 jam/)).toBe(true);
     harus(fileHalaman("t3-m24"), "Key menjawab apakah permintaan ini pernah datang. Versi baris menjawab apakah keadaan sudah berubah sejak operasi dibuat.");
     expect(ada(VC, /kunci tidak dikenal, tetapi versi dasar 1 sudah lewat/)).toBe(true);
     // 5: fetch 200 dengan cookie dan token yang sah, 0 dialog di C dan E, SameSite=Lax menahan form lintas situs
@@ -915,7 +932,7 @@ describe("klaim negatif berlingkup, dijaga pemindaian berkas terlacak", () => {
       "kode lab tidak membaca `X-Forwarded-For`, jadi di belakang proxy semua client berbagi satu key per alamat",
       "Opsi kirim sesudah COMMIT, queue di Redis, dan CDC Tidak dijalankan.",
       "Kapasitas satu server belum diukur.",
-      "Di delapan lab Tahap 3 tidak ada perintah yang menjalankan perkakas load test",
+      "Di delapan lab Tahap 3 tidak ada file yang memuat nama perkakas load test",
       "dan nomor sequence tidak dijanjikan sama dengan urutan COMMIT",
       "dan rekaman tidak memakai app Flutter",
       "Tidak dijalankan",

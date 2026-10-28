@@ -13,7 +13,7 @@
     "judul": "3.6 M18: Seluruh app membeku jam 12.20",
     "url": "tahap-3/m18-app-membeku/",
     "tanya": "M18: Raka membuka log server dan tidak menemukan satu baris pun untuk request yang menggantung. Di rekaman, log tetap kosong selama 4 detik. Kalimat apa yang lahir?",
-    "jawab": "Naskah: \"Tanpa trace, 'lambat' tidak punya alamat.\" Dipersempit: trace Tidak dijalankan di api-t3. Versi yang didukung rekaman: log kosong tidak membedakan request sehat dari yang menggantung, dan hanya metric pool dan database yang menunjuk. Bagian API yang menunggu tetap tidak terlihat."
+    "jawab": "Naskah: \"Tanpa trace, 'lambat' tidak punya alamat.\" Dipersempit: trace Tidak dijalankan di api-t3. Versi yang didukung rekaman: log kosong tidak membedakan request sehat dari yang menggantung, dan hanya database yang menunjuk client yang menunggu. Bagian API yang menunggu tetap tidak terlihat."
   },
   {
     "id": "t3-rekap-k3",
@@ -69,7 +69,7 @@
     "judul": "3.20 M24: Stok yang kembali ke angka lama",
     "url": "tahap-3/m24-stok-kembali/",
     "tanya": "M24: stok = 0 dari Jumat dikirim ulang 62 jam kemudian dan menimpa 30 porsi yang Ani isi hari Sabtu. Pengiriman ulang 17 jam sesudah Jumat justru dikenali. Kalimat apa yang lahir?",
-    "jawab": "Operasi yang menunggu lama harus bisa ditolak dengan benar (ADR 29: offline hanya stok dan harga, operasi bersyarat versi, dan kunci sinkron 14 hari). Batas: HP diperankan curl, jadi queue lokal dan layar konflik di app Tidak dijalankan."
+    "jawab": "Operasi yang menunggu lama harus bisa ditolak dengan benar (ADR 29: offline hanya stok dan harga, operasi bersyarat versi, dan kunci sinkron 14 hari). Batas: lama offline 62 jam adalah Asumsi naskah, dan jam dimajukan. HP diperankan curl, jadi queue lokal dan layar konflik di app Tidak dijalankan."
   },
   {
     "id": "t3-rekap-k10",
