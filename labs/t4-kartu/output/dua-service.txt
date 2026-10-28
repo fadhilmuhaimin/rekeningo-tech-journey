@@ -1,0 +1,108 @@
+# Lab t4-kartu · otorisasi lewat service pembayaran dan API ledger: Idempotency-Key = id_penerbit, proses mati, dan batas harian
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_kartu · monolith di 127.0.0.1:18280 (API ledger), service pembayaran di 127.0.0.1:18286, penerbit tiruan di 127.0.0.1:18285
+# Rekaman dari database bersih: make -C labs/t4-kartu run.
+# server: ./api-t4 -lab -ledger-kunci <kunci layanan> (sisi ledger: POST /ledger/kartu/tahan); service pembayaran: ./pembayaran -lab -penerbit-kunci <kunci penerbit> (otorisasi); penerbit tiruan mengirim otorisasi ke pembayaran dan clearing ke monolith
+# Lina (akun 40311): saldo Rp100.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+
+# --- A. Otorisasi lewat service pembayaran: hold di ledger dengan Idempotency-Key = id_penerbit, baris otorisasi sesudahnya ---
+AUTH-G1 Rp80.000: setuju (sumber: rekeningo)
+=> SELECT id_penerbit, status, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu ORDER BY id
+ id_penerbit | status  | ada_jurnal_tahan
+-------------+---------+------------------
+ AUTH-G1     | ditahan | t
+(1 row)
+=> SELECT status, jurnal_id IS NOT NULL AS terikat_jurnal FROM kunci_idempotensi WHERE kunci = 'AUTH-G1'
+ status  | terikat_jurnal
+---------+----------------
+ selesai | t
+(1 row)
+=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40311 OR b.jenis = 'dana_tertahan' ORDER BY b.jenis
+ jenis         | saldo_cache
+---------------+-------------
+ dana_tertahan | 80000
+ pemakai       | 20000
+(2 rows)
+AUTH-G1 diulang penerbit Rp80.000: setuju (sumber: rekeningo)
+# Ulangan dijawab service pembayaran dari baris otorisasi, tanpa panggilan kedua ke ledger. Sisi ledger dipanggil langsung dengan key yang sama:
+POST /ledger/kartu/tahan Idempotency-Key AUTH-G1 (akun 40311, Rp80.000): HTTP 200, ulang=true
+sama, jumlah Rp70.000: HTTP 422, key-dipakai-permintaan-lain
+id lain AUTH-G2 Rp80.000 (saldo tinggal Rp20.000): HTTP 422, saldo-kurang
+kunci layanan salah: HTTP 401, kunci-layanan
+=> SELECT count(*) AS key_tertahan FROM kunci_idempotensi WHERE kunci = 'AUTH-G2'
+ key_tertahan
+--------------
+ 0
+(1 row)
+# Penolakan saldo kurang di-ROLLBACK: key AUTH-G2 tidak tertahan.
+clearing AUTH-G1 Rp80.000 lewat monolith (baris ditulis service pembayaran): HTTP 200, status ditangkap
+=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40311 OR b.jenis IN ('dana_tertahan', 'settlement_kartu') ORDER BY b.jenis
+ jenis            | saldo_cache
+------------------+-------------
+ dana_tertahan    | 0
+ pemakai          | 20000
+ settlement_kartu | 80000
+(3 rows)
+
+# --- B. Service pembayaran dimatikan (SIGKILL) sesudah ledger menahan dan sebelum baris ditulis ---
+# Mina (akun 40312): saldo Rp100.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+# Titik kematian disuntik: proses mengirim SIGKILL ke dirinya sendiri tepat sesudah ledger menjawab, tanpa baris dan tanpa jawaban ke penerbit.
+AUTH-G3 Rp30.000: setuju (sumber: timeout)
+# proses service pembayaran: keluar dengan sinyal 9 (SIGKILL); penerbit tidak mendengar jawaban dan memutuskan menurut setelannya (setuju)
+=> SELECT count(*) AS baris_otorisasi FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-G3'
+ baris_otorisasi
+-----------------
+ 0
+(1 row)
+=> SELECT count(*) AS jurnal_kartu_tahan_ledger FROM jurnal WHERE jenis = 'kartu_tahan' AND keterangan LIKE '%AUTH-G3'
+ jurnal_kartu_tahan_ledger
+---------------------------
+ 1
+(1 row)
+hold di ledger tanpa baris otorisasi: 1
+# Service pembayaran dinyalakan lagi; penerbit mengulang otorisasi yang sama (id_penerbit sama):
+AUTH-G3 diulang Rp30.000: setuju (sumber: rekeningo)
+=> SELECT id_penerbit, status, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-G3'
+ id_penerbit | status  | ada_jurnal_tahan
+-------------+---------+------------------
+ AUTH-G3     | ditahan | t
+(1 row)
+=> SELECT count(*) AS jurnal_kartu_tahan_ledger FROM jurnal WHERE jenis = 'kartu_tahan' AND keterangan LIKE '%AUTH-G3'
+ jurnal_kartu_tahan_ledger
+---------------------------
+ 1
+(1 row)
+=> SELECT saldo_cache FROM buku WHERE akun_id = 40312
+ saldo_cache
+-------------
+ 70000
+(1 row)
+# Ulangan mendapat hold yang sama (key ledger) dan baris ditulis: satu hold, bukan dua.
+# Bila penerbit tidak pernah mengulang, hold itu yatim: ada di ledger, tidak punya baris, dan job kedaluwarsa bekerja dari baris otorisasi_kartu.
+AUTH-G4 Rp30.000: setuju (sumber: timeout)
+$ ./api-t4 -kedaluwarsa-hold -lab-sekarang <waktu>   # 8 hari sesudah otorisasi
+hold kartu: diperiksa 1, dilepas 1
+# Job melepas AUTH-G3 (punya baris) dan tidak menyentuh AUTH-G4 (tanpa baris).
+hold di ledger tanpa baris otorisasi: 1
+=> SELECT saldo_cache FROM buku WHERE akun_id = 40312
+ saldo_cache
+-------------
+ 70000
+(1 row)
+# Saldo Mina Rp70.000: Rp30.000 (AUTH-G4) tertahan tanpa baris yang bisa dikedaluwarsakan. Penutupnya rekonsiliasi (hold di ledger tanpa baris), yang belum ada di lab ini.
+
+# --- C. Batas harian kartu: versi satu proses memeriksanya sesudah lock buku, jalur dua service membacanya sebelum hold dan tanpa lock ---
+# Nia (akun 40313): saldo Rp1.000.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+# Oki (akun 40314): saldo Rp1.000.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+# Batas harian kedua kartu diturunkan ke Rp100.000 (data lab). Dua otorisasi Rp60.000 serentak: masing-masing di bawah batas, bersama di atasnya. Dipanggil langsung, tanpa tenggat.
+# Satu proses (monolith): lab memegang lock buku Nia, dua otorisasi mengantre, lock dilepas.
+AUTH-H1 Rp60.000 langsung ke monolith: HTTP 200, setuju
+AUTH-H2 Rp60.000 langsung ke monolith: HTTP 200, tolak (batas-harian)
+# Dua service: service pembayaran ditahan di titik sesudah ledger menahan; lab menunggu sampai kedua hold ada di ledger, lalu melepas.
+AUTH-H3 Rp60.000 langsung ke service pembayaran: HTTP 200, setuju
+AUTH-H4 Rp60.000 langsung ke service pembayaran: HTTP 200, setuju
+=> SELECT k.batas_harian, sum(o.jumlah) AS jumlah_disetujui FROM otorisasi_kartu o JOIN kartu k ON k.id = o.kartu_id WHERE k.akun_id = 40314 AND o.status = 'ditahan' GROUP BY k.batas_harian
+ batas_harian | jumlah_disetujui
+--------------+------------------
+ 100000       | 120000
+(1 row)
+# Dua service: kedua otorisasi disetujui dan jumlahnya Rp120.000, di atas batas Rp100.000. Pemeriksaan batas dibaca sebelum hold dan baris baru tertulis sesudahnya, jadi tidak ada yang serialisasi keduanya. Celah ini tidak ada di naskah dan tidak ditutup di lab ini.

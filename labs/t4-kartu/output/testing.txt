@@ -1,0 +1,55 @@
+# Lab t4-kartu · tes Go untuk hold kartu di ledger, API ledger, dan otorisasi di service pembayaran
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_kartu_tes
+# Rekaman dari database bersih: make -C labs/t4-kartu run.
+
+# --- A. go vet, lalu tes hold kartu di ledger, API ledger, dan otorisasi di service pembayaran dengan PostgreSQL sungguhan (schema tahap4_kartu_tes) ---
+$ go vet ./...
+(tanpa temuan)
+# exit status 0
+$ TEST_DATABASE_URL=<pemilik, schema tahap4_kartu_tes> LAB_TES_SCHEMA=tahap4_kartu_tes TES_DB_WAJIB=1 go test -v -count=1 -p 1 -run 'LedgerTahanKartu|LedgerKartu' ./internal/service ./internal/handler
+--- PASS: TestLedgerTahanKartuMenahanDanaSekaliPerKey
+--- PASS: TestLedgerTahanKartuSerentakKeySamaSatuHold
+--- PASS: TestLedgerTahanKartuSaldoKurangTidakMenahanKey
+--- PASS: TestLedgerTahanKartuAkunDibekukanDanTidakAda
+--- PASS: TestLedgerTahanKartuKeyBentrokDanValidasi
+--- PASS: TestLedgerTahanKartuLockTimeoutSibuk
+--- PASS: TestLedgerTahanKartuDuaIDSerentakSatuSaldo
+--- PASS: TestLedgerTahanKartuKeyHabisSesudah24Jam
+--- PASS: TestLedgerTahanKartuBukuDanaTertahanTerkunciMenolakSibuk
+--- PASS: TestLedgerTahanKartuLockTimeoutBerlakuPerPenantianBukanPerTransaction
+--- PASS: TestLedgerTahanKartuDuaIDMengantreDiLockSaldoDibacaSesudahLock
+PASS
+ok    lab/apit4/internal/service
+--- PASS: TestLedgerKartuTahanStatusDanAlasan
+--- PASS: TestLedgerKartuTahanBaruLaluUlangDanBentrok
+--- PASS: TestLedgerKartuTahanLockDitahanMenjawab503SibukDanClientMemetakan
+--- PASS: TestLedgerKartuClientMemetakanJawaban
+PASS
+ok    lab/apit4/internal/handler
+# exit status 0
+$ TEST_DATABASE_URL=<pemilik, schema tahap4_kartu_tes> LAB_TES_SCHEMA=tahap4_kartu_tes TES_DB_WAJIB=1 go test -v -count=1 -p 1 -run '^TestKartu' ./internal/modul/pembayaran
+--- PASS: TestKartuOtorisasiMenahanLewatLedgerLaluMenulisBaris
+--- PASS: TestKartuIDSamaDuaKaliSatuHoldTanpaPanggilanLedgerKedua
+--- PASS: TestKartuIDSamaSerentakSatuHoldSatuBaris
+--- PASS: TestKartuSaldoKurangDitolakDanDiulangTanpaLedger
+--- PASS: TestKartuDibekukanDanBatasHarianTanpaLedger
+--- PASS: TestKartuKillSwitchTanpaBarisDanTanpaLedger
+--- PASS: TestKartuTokenTidakDikenalDanValidasi
+--- PASS: TestKartuIDDipakaiUntukOtorisasiLainDitolak
+--- PASS: TestKartuLedgerSibukDanTidakMenjawabDitolakTanpaBaris
+--- PASS: TestKartuMatiSesudahLedgerPulihLewatUlanganPenerbit
+--- PASS: TestKartuBatasHarianDuaSerentakKeduanyaLolosDiJalurDuaService
+--- PASS: TestKartuBarisTetapDitulisBilaPenerbitSudahPergi
+--- PASS: TestKartuIDSamaDiTitikSesudahLedgerSatuBarisDuaJawabanSetuju
+PASS
+ok    lab/apit4/internal/modul/pembayaran
+# exit status 0
+# 28 tes cocok dengan pola dan semuanya PASS (pola yang tidak mencocokkan satu tes membuat klaim 'tertangkap' tidak berlaku, jadi daftar -list dibandingkan dengan yang berjalan).
+
+# --- B. Tanpa TEST_DATABASE_URL: tes yang butuh database dilewati; TES_DB_WAJIB=1 menggagalkannya ---
+$ go test -count=1 -run '^TestKartu' ./internal/modul/pembayaran
+ok    lab/apit4/internal/modul/pembayaran
+# exit status 0
+$ TES_DB_WAJIB=1 go test -count=1 -run '^TestKartu' ./internal/modul/pembayaran
+13 dari 13 tes modul gagal, masing-masing dengan pesan: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong (13 pesan)
+# exit status 1

@@ -1,0 +1,87 @@
+# Lab t4-kartu · dua keadaan penerbit menurut dokumentasi satu penerbit, dan rekonsiliasi kartu yang masih perlu
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_kartu · server Go di 127.0.0.1:18280, penerbit tiruan di 127.0.0.1:18285, service pembayaran di 127.0.0.1:18286
+# Rekaman dari database bersih: make -C labs/t4-kartu run.
+# server: ./api-t4 -lab -kartu-lock-timeout 3s (setelan yang salah, supaya jawaban terlambat terjadi); penerbit tiruan: ./penerbit, tenggat 2 detik
+# Joko (akun 40309): saldo Rp100.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+# Kiki (akun 40310): saldo Rp100.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+
+# --- A. Keadaan pertama (dokumentasi satu penerbit): jawaban terlambat diputuskan penerbit menurut setelannya, bukan menurut Rekeningo ---
+# Buku Joko dikunci transaction lain lebih lama dari tenggat. Setelan penerbit: bila timeout, setuju.
+AUTH-P1 Rp80.000: setuju (sumber: timeout)
+# Penerbit sudah menyetujui Rp80.000; di Rekeningo tidak ada hold dan tidak ada baris. Saldo Joko tidak berkurang, jadi dana yang sama bisa dibelanjakan lagi:
+AUTH-P2 Rp80.000: setuju (sumber: rekeningo)
+clearing AUTH-P1 Rp80.000 (penagihan datang): HTTP 404, /problems/otorisasi-tidak-ditemukan
+clearing AUTH-P2 Rp80.000: HTTP 200, status ditangkap
+=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40309 OR b.jenis = 'settlement_kartu' ORDER BY b.jenis
+ jenis            | saldo_cache
+------------------+-------------
+ pemakai          | 20000
+ settlement_kartu | 80000
+(2 rows)
+# Disetujui penerbit kepada toko: Rp160.000 (AUTH-P1 dan AUTH-P2); saldo Joko awal Rp100.000; yang punya penutup di ledger: Rp80.000.
+
+# --- B. Keadaan kedua (dokumentasi satu penerbit): menolak, tetapi jaringan kartu menyetujui; dana tidak ditahan tetapi bisa ditagih ---
+# Dokumentasi: bila penerbit menolak tetapi tidak dapat menghubungi jaringan kartu dan jaringan menyetujui, dana tidak ditahan tetapi bisa tetap ditangkap.
+# Yang diperankan lab: Rekeningo menolak AUTH-P3 (saldo kurang). Jaringan yang menyetujui dan menagihnya diperankan lab dengan mengirim clearing sendiri; penerbit tiruan tidak punya jaringan dan tidak memerankan keadaan ini.
+AUTH-P3 Rp150.000: tolak (sumber: rekeningo, alasan: saldo-kurang)
+clearing AUTH-P3 Rp150.000 (diperankan lab): HTTP 409, /problems/otorisasi-status
+=> SELECT id_penerbit, status, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-P3'
+ id_penerbit | status  | ada_jurnal_tahan
+-------------+---------+------------------
+ AUTH-P3     | ditolak | f
+(1 row)
+=> SELECT b.saldo_cache FROM buku b WHERE b.akun_id = 40310
+ saldo_cache
+-------------
+ 100000
+(1 row)
+# Rekeningo tidak menjurnal penagihan atas otorisasi yang ditolaknya (409), apa pun saldo pemiliknya; di sini saldo Kiki memang tidak cukup. Penagihan Rp150.000 itu tidak punya penutup di ledger, dan tidak ada catatan lain di Rekeningo yang mencatat bahwa penagihan itu pernah datang selain jawaban 409.
+
+# --- C. Rekonsiliasi kartu: dijalankan lab (SQL dan catatan penerbit tiruan); job rekonsiliasi kartu belum ada di api-t4 ---
+# catatan penerbit tiruan lawan otorisasi_kartu, satu baris per otorisasi yang dijawab penerbit
+ id_penerbit | keputusan_penerbit | sumber    | status_rekeningo  | hasil_banding
+-------------+--------------------+-----------+-------------------+------------------------------------------------
+ AUTH-P1     | setuju             | timeout   | (tidak ada baris) | setuju di penerbit, tidak ditahan di Rekeningo
+ AUTH-P2     | setuju             | rekeningo | ditangkap         | cocok
+ AUTH-P3     | tolak              | rekeningo | ditolak           | cocok
+(3 rows)
+# AUTH-P1 setuju di penerbit tanpa baris di Rekeningo. AUTH-P3 ditolak di keduanya: penagihannya diperankan lab, tidak ada di catatan keputusan penerbit tiruan, dan banding ini tidak melihatnya. Berkas penagihan dari penerbit (clearing) tidak ada di lab; selisih jenis ini Tidak dijalankan sebagai rekonsiliasi.
+# Tanpa rekonsiliasi kartu, uang yang disetujui tanpa hold tidak terlihat oleh siapa pun sampai penagihannya ditolak ledger.
+
+# --- D. Jawaban terlambat sesudah hold selesai: penerbit memutuskan tolak, Rekeningo menahan dana (dua service) ---
+# Service pembayaran ditahan di titik sesudah ledger menahan dana dan sebelum baris otorisasi ditulis (lab saja), sampai tenggat penerbit lewat. Setelan penerbit: bila timeout, tolak.
+AUTH-P4 Rp60.000: tolak (sumber: timeout)
+=> SELECT count(*) AS jurnal_kartu_tahan_ledger FROM jurnal WHERE jenis = 'kartu_tahan' AND keterangan LIKE '%AUTH-P4'
+ jurnal_kartu_tahan_ledger
+---------------------------
+ 1
+(1 row)
+=> SELECT count(*) AS baris_otorisasi FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-P4'
+ baris_otorisasi
+-----------------
+ 0
+(1 row)
+# Gerbang dilepas: service pembayaran menulis baris (jawabannya tidak didengar siapa pun).
+=> SELECT id_penerbit, status, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-P4'
+ id_penerbit | status  | ada_jurnal_tahan
+-------------+---------+------------------
+ AUTH-P4     | ditahan | t
+(1 row)
+# catatan penerbit tiruan lawan otorisasi_kartu sesudah gerbang dilepas
+ id_penerbit | keputusan_penerbit | sumber  | status_rekeningo | hasil_banding
+-------------+--------------------+---------+------------------+----------------------------------------------
+ AUTH-P4     | tolak              | timeout | ditahan          | tolak di penerbit, dana ditahan di Rekeningo
+(1 row)
+# Dana Rp60.000 tertahan untuk keputusan yang di penerbit sudah tolak. Yang melepasnya hanya job kedaluwarsa sesudah 7 hari; jam maya di bawah.
+$ ./api-t4 -kedaluwarsa-hold -lab-sekarang <waktu>   # tahan_sampai ditambah 1 detik
+hold kartu: diperiksa 1, dilepas 1
+=> SELECT id_penerbit, status FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-P4'
+ id_penerbit | status
+-------------+-------------
+ AUTH-P4     | kedaluwarsa
+(1 row)
+=> SELECT b.saldo_cache FROM buku b WHERE b.akun_id = 40310
+ saldo_cache
+-------------
+ 100000
+(1 row)

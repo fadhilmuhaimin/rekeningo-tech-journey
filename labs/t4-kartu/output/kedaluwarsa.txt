@@ -1,0 +1,80 @@
+# Lab t4-kartu · kedaluwarsa hold 7 hari dengan jam maya, dua job bersamaan, dan hold yang sudah ditagih
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_kartu · server Go di 127.0.0.1:18280, penerbit tiruan di 127.0.0.1:18285
+# Rekaman dari database bersih: make -C labs/t4-kartu run.
+# server: ./api-t4 -lab; job: ./api-t4 -kedaluwarsa-hold -lab-sekarang <waktu maya> (proses terpisah)
+# Gita (akun 40306): saldo Rp100.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+# Hana (akun 40307): saldo Rp100.000, kartu virtual diterbitkan lewat POST /kartu (token acak dari penerbit tiruan tidak direkam)
+
+# --- A. Hold berumur 7 hari; batas diperankan dengan jam maya, tidak ditunggu ---
+AUTH-D1 Rp80.000: setuju (sumber: rekeningo)
+=> SELECT id_penerbit, status, jumlah, (tahan_sampai - dibuat) BETWEEN interval '7 days' - interval '5 seconds' AND interval '7 days' + interval '5 seconds' AS tahan_sampai_tujuh_hari FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-D1'
+ id_penerbit | status  | jumlah | tahan_sampai_tujuh_hari
+-------------+---------+--------+-------------------------
+ AUTH-D1     | ditahan | 80000  | t
+(1 row)
+$ ./api-t4 -kedaluwarsa-hold -lab-sekarang <waktu>   # tahan_sampai dikurangi 1 detik
+hold kartu: diperiksa 0, dilepas 0
+$ ./api-t4 -kedaluwarsa-hold -lab-sekarang <waktu>   # tepat tahan_sampai
+hold kartu: diperiksa 0, dilepas 0
+$ ./api-t4 -kedaluwarsa-hold -lab-sekarang <waktu>   # tahan_sampai ditambah 1 detik
+hold kartu: diperiksa 1, dilepas 1
+$ ./api-t4 -kedaluwarsa-hold -lab-sekarang <waktu>   # diulang, sesudah dilepas
+hold kartu: diperiksa 0, dilepas 0
+# Batas: hold yang jatuh tepat pada tahan_sampai belum dilepas (kueri memakai tanda kurang dari, bukan kurang dari atau sama dengan); satu detik sesudahnya dilepas.
+=> SELECT id_penerbit, status FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-D1'
+ id_penerbit | status
+-------------+-------------
+ AUTH-D1     | kedaluwarsa
+(1 row)
+=> SELECT j.jenis, count(*) AS jumlah FROM jurnal j WHERE j.jenis IN ('kartu_tahan', 'pembalik') AND j.dibuat_oleh = 40306 GROUP BY j.jenis ORDER BY j.jenis
+ jenis       | jumlah
+-------------+--------
+ kartu_tahan | 1
+ pembalik    | 1
+(2 rows)
+=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40306 OR b.jenis = 'dana_tertahan' ORDER BY b.jenis
+ jenis         | saldo_cache
+---------------+-------------
+ dana_tertahan | 0
+ pemakai       | 100000
+(2 rows)
+
+# --- B. Dua job bersamaan memperebutkan hold yang sama: satu melepas, yang lain tidak ---
+AUTH-D2 Rp80.000: setuju (sumber: rekeningo)
+# Lab memegang lock baris otorisasi AUTH-D2, memulai dua proses job (jam maya: tahan_sampai ditambah 1 detik), menunggu sampai keduanya menunggu lock baris itu, lalu melepas lock.
+keluaran dua job (urut abjad, siapa yang menang tidak ditentukan):
+  hold kartu: diperiksa 1, dilepas 0
+  hold kartu: diperiksa 1, dilepas 1
+=> SELECT id_penerbit, status FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-D2'
+ id_penerbit | status
+-------------+-------------
+ AUTH-D2     | kedaluwarsa
+(1 row)
+=> SELECT count(*) AS jurnal_pembalik FROM jurnal WHERE jenis = 'pembalik' AND dibuat_oleh = 40307
+ jurnal_pembalik
+-----------------
+ 1
+(1 row)
+=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40307 OR b.jenis = 'dana_tertahan' ORDER BY b.jenis
+ jenis         | saldo_cache
+---------------+-------------
+ dana_tertahan | 0
+ pemakai       | 100000
+(2 rows)
+# Dua lapis menahan pelepasan kedua: baris otorisasi dikunci dan statusnya harus masih ditahan; jurnal pembalik punya UNIQUE (membalik_jurnal_id). Lab ini merekam lapis pertama; lapis kedua dijaga tes Go.
+
+# --- C. Hold yang sudah ditagih tidak dilepas job; reversal sesudah kedaluwarsa menjawab 200 tanpa jurnal kedua ---
+AUTH-D3 Rp30.000: setuju (sumber: rekeningo)
+$ ./api-t4 -kedaluwarsa-hold -lab-sekarang <waktu>   # hold yang sudah ditagih
+hold kartu: diperiksa 0, dilepas 0
+=> SELECT id_penerbit, status FROM otorisasi_kartu WHERE id_penerbit = 'AUTH-D3'
+ id_penerbit | status
+-------------+-----------
+ AUTH-D3     | ditangkap
+(1 row)
+reversal AUTH-D2 (sudah kedaluwarsa): HTTP 200, status kedaluwarsa
+=> SELECT count(*) AS jurnal_pembalik FROM jurnal WHERE jenis = 'pembalik' AND dibuat_oleh = 40307
+ jurnal_pembalik
+-----------------
+ 1
+(1 row)
