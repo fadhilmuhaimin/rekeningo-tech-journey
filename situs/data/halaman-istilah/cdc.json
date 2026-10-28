@@ -1,0 +1,44 @@
+{
+  "istilah": "CDC (change data capture)",
+  "sehari_hari": "CDC (change data capture) adalah cara mengeluarkan perubahan data dengan membaca log transaksi database, bukan dengan menanyai tabelnya berkala. Karena log ditulis menurut urutan commit, event yang keluar mengikuti urutan itu.",
+  "cerita": [
+    {
+      "rujukan": "t3-klaim-baris",
+      "teks": "Worker mengklaim baris outbox satu per satu, dan urutan id bukan urutan commit. Halaman itu menunda CDC karena satu consumer dengan notifikasi yang berdiri sendiri tidak butuh urutan penuh."
+    },
+    {
+      "rujukan": "t3-adr-33",
+      "teks": "ADR 33 menunda CDC dengan pemicu dua consumer atau lebih yang bergantung pada urutan commit, atau pesan outbox 100 per detik (Asumsi halaman itu). Notifikasi uang Tahap 3 datang 0,868 per detik di puncak."
+    }
+  ],
+  "mekanisme": [
+    "PostgreSQL menulis setiap perubahan ke WAL sebelum data berubah. Logical decoding membaca perubahan itu lewat replication slot.",
+    "Alat CDC seperti Debezium membaca slot itu dan mengirim perubahan sebagai event, dalam urutan yang sama dengan urutan commit.",
+    "Slot bertahan saat crash dan tidak tahu keadaan consumernya. Selama slot belum dibaca, PostgreSQL menyimpan WAL dan baris katalog sistem yang dibutuhkannya.",
+    "Pada kasus ekstrem, slot yang tidak dibaca membuat database berhenti demi mencegah wraparound transaction ID. Slot yang tidak dipakai lagi harus dihapus."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira CDC gratis karena tidak ada polling. Slot yang tertinggal menahan WAL di disk database, dan itu menjadi masalah database, bukan masalah consumer.",
+    "Mengira urutan di tabel outbox sama dengan urutan commit. Menurut Morling, timestamp atau kolom sequence tidak menjamin urutan commit, sedangkan CDC dari log transaksi menjaminnya."
+  ],
+  "terkait": [
+    "At-least-once",
+    "Polling",
+    "WAL (Write-Ahead Log)"
+  ],
+  "sumber": [
+    {
+      "riset": "R3-247",
+      "judul": "PostgreSQL 17: logical decoding, penjelasan",
+      "url": "https://www.postgresql.org/docs/17/logicaldecoding-explanation.html",
+      "catatan": "Slot bertahan saat crash, tidak tahu keadaan consumer, menahan WAL dan baris katalog, dan dalam kasus ekstrem membuat database berhenti. Dibuka 2026-10-27."
+    },
+    {
+      "riset": "R3-145",
+      "judul": "Gunnar Morling: Revisiting the Outbox Pattern",
+      "url": "https://www.morling.dev/blog/revisiting-the-outbox-pattern/",
+      "catatan": "Dengan membaca log transaksi, event keluar dalam urutan yang sama dengan commit; urutan di tabel outbox tidak dijamin sama. Tulisan 2024-10-31, dibuka 2026-10-27."
+    }
+  ]
+}
