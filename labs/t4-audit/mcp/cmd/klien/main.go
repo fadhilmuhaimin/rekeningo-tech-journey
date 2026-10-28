@@ -117,4 +117,11 @@ func main() {
 	}
 	sc, _ := json.Marshal(res.StructuredContent)
 	fmt.Printf("isError=%s structuredContent=%s\n", ya(res.IsError), sc)
+	if res.IsError {
+		for _, c := range res.Content {
+			if t, ok := c.(*mcp.TextContent); ok {
+				fmt.Printf("teks galat: %s\n", strings.ReplaceAll(t.Text, "\n", " "))
+			}
+		}
+	}
 }

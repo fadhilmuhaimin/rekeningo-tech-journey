@@ -1,0 +1,95 @@
+# Lab t4-audit · log biasa lawan log berantai: mengubah, menambah, dan menghapus baris audit
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_audit · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-audit run.
+# server: ./api-t4 -lab -rentan bo-tanpa-audit (back office versi pertama: semua aksi berjalan, tidak ada catatan)
+
+# --- A. Versi pertama: aksi berjalan, tidak ada catatan. Pak Hadi bertanya siapa yang membuka data Dina (akun 40001) ---
+=> SELECT status, batas_harian FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id = 40001
+ status | batas_harian
+--------+--------------
+ aktif  | 300000
+(1 row)
+# Enam aksi sudah terjadi: Ratih melihat akun, melihat pengajuan, membuka kartu identitas, membekukan, membuka, mengubah batas.
+=> SELECT count(*) AS baris_audit FROM audit_log
+ baris_audit
+-------------
+ 0
+(1 row)
+=> SELECT id, aksi, objek FROM audit_log WHERE objek = 'akun:40001' OR objek LIKE 'verifikasi:%'
+ id | aksi | objek
+----+------+-------
+(0 rows)
+# Eko (akun 40002) tidak pernah dilihat siapa pun. Jawaban untuk Eko:
+=> SELECT id, aksi, objek FROM audit_log WHERE objek = 'akun:40002' OR objek LIKE 'verifikasi:%'
+ id | aksi | objek
+----+------+-------
+(0 rows)
+# Jawaban untuk Dina yang datanya dibuka enam kali dan untuk Eko yang tidak pernah dibuka sama: nol baris. 'Tidak ada catatan' sama nilainya dengan 'tidak tahu'.
+# server: ./api-t4 -lab -rentan bo-log-biasa (aksi yang sama dicatat di tabel biasa tanpa hash; role aplikasi punya hak tulis penuh atas tabel itu)
+
+# --- B. Log biasa: aksi tercatat, tetapi siapa pun yang bisa menulis tabelnya bisa mengubah catatan tanpa jejak ---
+=> SELECT id, pelaku_id, aksi, objek, penyetuju_id FROM audit_biasa ORDER BY id
+ id | pelaku_id | aksi             | objek                          | penyetuju_id
+----+-----------+------------------+--------------------------------+--------------
+ 1  | 420       | lihat_akun       | akun:40001                     |
+ 2  | 420       | lihat_verifikasi | verifikasi:1                   |
+ 3  | 420       | buka_berkas      | verifikasi:1/kartu             |
+ 4  | 420       | bekukan          | akun:40001                     |
+ 5  | 420       | buka_blokir      | akun:40001                     | 421
+ 6  | 420       | ubah_batas       | akun:40001/batas_harian=300000 | 421
+(6 rows)
+# Yang menulis ulang di sini adalah role aplikasi api_t4 (hak SELECT, INSERT, UPDATE, DELETE atas audit_biasa, setelan versi pertama).
+=> [api_t4] UPDATE audit_biasa SET pelaku_id = 421 WHERE aksi = 'buka_berkas'
+UPDATE 1
+=> [api_t4] DELETE FROM audit_biasa WHERE aksi = 'bekukan'
+DELETE 1
+=> SELECT id, pelaku_id, aksi, objek, penyetuju_id FROM audit_biasa ORDER BY id
+ id | pelaku_id | aksi             | objek                          | penyetuju_id
+----+-----------+------------------+--------------------------------+--------------
+ 1  | 420       | lihat_akun       | akun:40001                     |
+ 2  | 420       | lihat_verifikasi | verifikasi:1                   |
+ 3  | 421       | buka_berkas      | verifikasi:1/kartu             |
+ 5  | 420       | buka_blokir      | akun:40001                     | 421
+ 6  | 420       | ubah_batas       | akun:40001/batas_harian=300000 | 421
+(5 rows)
+# Kartu identitas Dina sekarang tercatat dibuka oleh petugas 421, dan pembekuan tidak pernah terjadi. Tidak ada pemeriksaan yang bisa dijalankan atas tabel ini:
+# isinya hanya isi baris. Satu-satunya petunjuk adalah nomor yang bolong, dan UPDATE tidak meninggalkan petunjuk apa pun.
+=> SELECT count(*) AS baris, max(id) AS nomor_terbesar, max(id) - count(*) AS nomor_bolong FROM audit_biasa
+ baris | nomor_terbesar | nomor_bolong
+-------+----------------+--------------
+ 5     | 6              | 1
+(1 row)
+verifikasi rantai di mode ini: 0 baris, utuh: ya (rantai kosong: audit_log tidak dipakai, jadi 'utuh' tidak berarti apa-apa)
+# server: ./api-t4 -lab (audit log berantai hash: hash = SHA-256 dari hash sebelumnya dan isi baris)
+
+# --- C. Log berantai: aksi yang sama, lalu pemilik tabel (bukan superuser) mengubah, menambah, dan menghapus ---
+=> SELECT id, pelaku_id, aksi, objek, penyetuju_id,
+          hash_sebelumnya = coalesce((SELECT b.hash FROM audit_log b WHERE b.id = a.id - 1), repeat('0', 64)) AS bersambung
+   FROM audit_log a ORDER BY id
+ id | pelaku_id | aksi             | objek                          | penyetuju_id | bersambung
+----+-----------+------------------+--------------------------------+--------------+------------
+ 1  | 420       | lihat_akun       | akun:40001                     |              | t
+ 2  | 420       | lihat_verifikasi | verifikasi:1                   |              | t
+ 3  | 420       | buka_berkas      | verifikasi:1/kartu             |              | t
+ 4  | 420       | bekukan          | akun:40001                     |              | t
+ 5  | 420       | buka_blokir      | akun:40001                     | 421          | t
+ 6  | 420       | ubah_batas       | akun:40001/batas_harian=300000 | 421          | t
+(6 rows)
+verifikasi rantai: 6 baris, utuh: ya
+# Pemilik tabel t4a_pemilik mengubah baris 4 (membuka kartu identitas): petugas diganti 421.
+=> [t4a_pemilik] UPDATE audit_log SET pelaku_id = 421 WHERE id = 4
+UPDATE 1
+verifikasi rantai: 6 baris, utuh: tidak, rusak di baris 4
+# Baris 4 dikembalikan ke isi aslinya.
+verifikasi rantai: 6 baris, utuh: ya
+# Pemilik tabel menambah baris ke-7 dengan hash yang ia hitung sendiri dari rumus yang sama (skrip lab, bukan app):
+# petugas 421 tercatat membuka swafoto Dina, aksi yang tidak pernah terjadi.
+=> [t4a_pemilik] INSERT INTO audit_log (...) VALUES (... 'buka_berkas', 'verifikasi:1/swafoto', ..., <hash_sebelumnya>, <hash hitungan skrip>)
+INSERT 0 1
+verifikasi rantai: 7 baris, utuh: ya
+# Rantai tidak membuktikan siapa yang menulis baris: tanpa kunci rahasia, siapa pun yang bisa menulis dan tahu rumusnya bisa menambah baris yang lolos.
+# Pemilik tabel menghapus baris 3 (melihat pengajuan):
+=> [t4a_pemilik] DELETE FROM audit_log WHERE id = 3
+DELETE 1
+verifikasi rantai: 6 baris, utuh: tidak, rusak di baris 4
+# Yang terdeteksi adalah penghapusan di tengah (baris 4 tidak lagi menyambung ke hash baris sebelumnya). Pemotongan di ujung: bagian jangkar.

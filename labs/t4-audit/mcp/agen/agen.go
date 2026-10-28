@@ -253,9 +253,20 @@ func Verifier(diharapkan string) auth.TokenVerifier {
 	}
 }
 
-// Handler membungkus server di HTTP: token wajib, lalu protokol MCP.
+// Handler membungkus server di HTTP: token wajib, lalu protokol MCP. Mode tanpa sesi (Stateless): dengan opsi bawaan
+// SDK (berstatus), client go-sdk v1.8.0 jatuh kembali ke jabat tangan lama dan memakai 2025-11-25, bukan 2026-07-28;
+// lihat HandlerBerstatus dan rekaman mcp.txt bagian A.
 func Handler(g Gudang, tokenMasuk string, log *slog.Logger) http.Handler {
+	return handler(g, tokenMasuk, log, &mcp.StreamableHTTPOptions{Logger: log, Stateless: true, JSONResponse: true})
+}
+
+// HandlerBerstatus memakai opsi bawaan SDK (sesi dengan Mcp-Session-Id). Hanya untuk membandingkan versi protokol di lab.
+func HandlerBerstatus(g Gudang, tokenMasuk string, log *slog.Logger) http.Handler {
+	return handler(g, tokenMasuk, log, &mcp.StreamableHTTPOptions{Logger: log})
+}
+
+func handler(g Gudang, tokenMasuk string, log *slog.Logger, opsi *mcp.StreamableHTTPOptions) http.Handler {
 	srv := NewServer(g, log)
-	mcpHandler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return srv }, &mcp.StreamableHTTPOptions{Logger: log})
+	mcpHandler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return srv }, opsi)
 	return auth.RequireBearerToken(Verifier(tokenMasuk), nil)(mcpHandler)
 }

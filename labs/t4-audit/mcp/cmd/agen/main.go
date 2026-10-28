@@ -17,6 +17,7 @@ import (
 
 func main() {
 	alamat := flag.String("addr", "127.0.0.1:18300", "alamat dengar")
+	berstatus := flag.Bool("berstatus", false, "opsi bawaan SDK (sesi), hanya untuk membandingkan versi protokol di lab")
 	flag.Parse()
 	dsn, token := os.Getenv("T4A_DATABASE_URL"), os.Getenv("T4A_TOKEN_AGEN")
 	if dsn == "" || token == "" {
@@ -35,5 +36,9 @@ func main() {
 		return a
 	}}))
 	logger.Info("mendengar", "alamat", *alamat)
-	log.Fatal(http.ListenAndServe(*alamat, agen.Handler(agen.Gudang{DB: db}, token, logger)))
+	h := agen.Handler
+	if *berstatus {
+		h = agen.HandlerBerstatus
+	}
+	log.Fatal(http.ListenAndServe(*alamat, h(agen.Gudang{DB: db}, token, logger)))
 }

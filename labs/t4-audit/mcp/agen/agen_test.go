@@ -435,6 +435,9 @@ func TestTokenMasukTidakDiteruskanDanTokenLainDitolak(t *testing.T) {
 		t.Fatalf("token benar ditolak: %v", err)
 	}
 	defer cs.Close()
+	if v := cs.InitializeResult().ProtocolVersion; v != "2026-07-28" {
+		t.Errorf("versi protokol %s, ingin 2026-07-28 (mode tanpa sesi)", v)
+	}
 	var semua strings.Builder
 	for _, p := range []*mcp.CallToolParams{
 		{Name: "verifikasi_rantai", Arguments: map[string]any{}},

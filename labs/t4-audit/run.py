@@ -31,6 +31,7 @@ d.OUT = HERE / "output"
 ROLE = ("t4a_pemilik", "t4a_agen", "t4a_verifikator")
 DASAR_MCP = 18300
 PORT_MCP = d.port_lab(DASAR_MCP)
+PORT_MCP2 = d.port_lab(DASAR_MCP + 1)   # server yang sama dengan opsi bawaan SDK (berstatus), hanya untuk membandingkan versi protokol
 MCP = HERE / "mcp"
 BIN_AGEN, BIN_KLIEN, BIN_JOB = HERE / "agen", HERE / "klien", HERE / "auditjob"
 JANGKAR_DIR = pathlib.Path(tempfile.gettempdir()) / f"t4-audit-jangkar-{d.DB_PORT}"
@@ -148,6 +149,16 @@ def kunci_json():
     return {"berkas_kartu": base64.b64encode(PNG).decode(), "berkas_swafoto": base64.b64encode(PNG + b"swafoto").decode()}
 
 
+def ambil_biner(path, token):
+    """GET yang jawabannya berkas biner (isi file identitas): mengembalikan status dan panjang isi."""
+    req = urllib.request.Request(f"http://127.0.0.1:{PORT}{path}", headers={"Authorization": f"Bearer {token}"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return r.status, len(r.read())
+    except urllib.error.HTTPError as e:
+        return e.code, len(e.read())
+
+
 def aksi_bo(ratih, risk2, dina, tambahan=False):
     """Enam aksi back office yang menulis audit (Dina memilih pemilik data): lihat akun, lihat pengajuan, buka kartu
     identitas, bekukan, buka blokir dengan penyetuju, ubah batas dengan penyetuju. tambahan: dua baris lagi."""
@@ -155,7 +166,8 @@ def aksi_bo(ratih, risk2, dina, tambahan=False):
     harap(curl("GET", "/bo/akun/40001", token=ratih, tampil=False)[0], 200, "lihat akun")
     harap(curl("GET", "/bo/verifikasi/1", token=ratih, tampil=False)[0], 200, "lihat pengajuan")
     q = "?alasan=Pemeriksaan+kartu+identitas+atas+laporan+pemilik+akun"
-    harap(curl("GET", "/bo/verifikasi/1/berkas/kartu" + q, token=ratih, tampil=False)[0], 200, "buka kartu identitas")
+    s, isi = ambil_biner(f"/bo/verifikasi/1/berkas/kartu{q}", ratih)
+    harap((s, isi), (200, len(PNG)), "buka kartu identitas")
     harap(curl("POST", "/bo/akun/40001/bekukan", {"alasan": "Dugaan akun dipakai pihak lain, menunggu konfirmasi"}, ratih, tampil=False)[0], 204, "bekukan")
     harap(curl("POST", "/bo/akun/40001/buka", {"alasan": "Pemilik sudah dikonfirmasi lewat layanan pelanggan"}, ratih,
                kepala=[f"X-Penyetuju-Token: {risk2}"], tampil=False)[0], 204, "buka blokir")
@@ -207,7 +219,7 @@ def rekam_rantai():
     sql("SELECT id, aksi, objek FROM audit_log WHERE objek = 'akun:40001' OR objek LIKE 'verifikasi:%'")
     catat("# Eko (akun 40002) tidak pernah dilihat siapa pun. Jawaban untuk Eko:")
     sql("SELECT id, aksi, objek FROM audit_log WHERE objek = 'akun:40002' OR objek LIKE 'verifikasi:%'")
-    catat("# Jawaban untuk Dina yang datanya dibuka enam kali dan untuk Eko yang tidak pernah dibuka sama: nol baris. 'Tidak ada catatan' sama nilainya dengan 'tidak tahu'.")
+    catat("# Jawaban untuk Dina, yang akunnya disentuh enam aksi, dan untuk Eko, yang tidak pernah disentuh, sama: nol baris. 'Tidak ada catatan' sama nilainya dengan 'tidak tahu'.")
     d.stop(PORT)
 
     # B. log biasa
@@ -238,13 +250,13 @@ def rekam_rantai():
        hash_sebelumnya = coalesce((SELECT b.hash FROM audit_log b WHERE b.id = a.id - 1), repeat('0', 64)) AS bersambung
 FROM audit_log a ORDER BY id""")
     catat(f"verifikasi rantai: {hasil_rantai(ratih)}")
-    catat("# Pemilik tabel t4a_pemilik mengubah baris 4 (membuka kartu identitas): petugas diganti 421.")
-    sebagai("t4a_pemilik", "UPDATE audit_log SET pelaku_id = 421 WHERE id = 4", harus="ok")
+    catat("# Pemilik tabel t4a_pemilik mengubah baris 3 (membuka kartu identitas Dina): petugas diganti 421.")
+    sebagai("t4a_pemilik", "UPDATE audit_log SET pelaku_id = 421 WHERE id = 3", harus="ok")
     h = verifikasi_rantai(ratih)
-    harap((h["utuh"], h.get("rusak_di_id")), (False, 4), "rantai putus di baris 4")
+    harap((h["utuh"], h.get("rusak_di_id")), (False, 3), "rantai putus di baris 3")
     catat(f"verifikasi rantai: {hasil_rantai(ratih)}")
-    sebagai("t4a_pemilik", "UPDATE audit_log SET pelaku_id = 420 WHERE id = 4", tampil=False, harus="ok")
-    catat("# Baris 4 dikembalikan ke isi aslinya.")
+    sebagai("t4a_pemilik", "UPDATE audit_log SET pelaku_id = 420 WHERE id = 3", tampil=False, harus="ok")
+    catat("# Baris 3 dikembalikan ke isi aslinya.")
     catat(f"verifikasi rantai: {hasil_rantai(ratih)}")
     catat("# Pemilik tabel menambah baris ke-7 dengan hash yang ia hitung sendiri dari rumus yang sama (skrip lab, bukan app):")
     catat("# petugas 421 tercatat membuka swafoto Dina, aksi yang tidak pernah terjadi.")
@@ -261,12 +273,12 @@ FROM audit_log a ORDER BY id""")
     harap((h["baris"], h["utuh"]), (7, True), "baris palsu di ujung lolos")
     catat(f"verifikasi rantai: {hasil_rantai(ratih)}")
     catat("# Rantai tidak membuktikan siapa yang menulis baris: tanpa kunci rahasia, siapa pun yang bisa menulis dan tahu rumusnya bisa menambah baris yang lolos.")
-    catat("# Pemilik tabel menghapus baris 3 (melihat pengajuan):")
-    sebagai("t4a_pemilik", "DELETE FROM audit_log WHERE id = 3", harus="ok")
+    catat("# Pemilik tabel menghapus baris 2 (melihat pengajuan):")
+    sebagai("t4a_pemilik", "DELETE FROM audit_log WHERE id = 2", harus="ok")
     h = verifikasi_rantai(ratih)
-    harap((h["utuh"], h.get("rusak_di_id")), (False, 4), "rantai putus di baris sesudah yang dihapus")
+    harap((h["utuh"], h.get("rusak_di_id")), (False, 3), "rantai putus di baris sesudah yang dihapus")
     catat(f"verifikasi rantai: {hasil_rantai(ratih)}")
-    catat("# Yang terdeteksi adalah penghapusan di tengah (baris 4 tidak lagi menyambung ke hash baris sebelumnya). Pemotongan di ujung: bagian jangkar.")
+    catat("# Yang terdeteksi adalah penghapusan di tengah: baris 3 tidak lagi menyambung ke hash baris sebelumnya, dan pemeriksaan menunjuk baris sesudah yang hilang. Pemotongan di ujung: bagian jangkar.")
     tulis("rantai.txt", "log biasa lawan log berantai: mengubah, menambah, dan menghapus baris audit")
 
 
@@ -275,7 +287,7 @@ FROM audit_log a ORDER BY id""")
 def job(berkas, role="t4a_verifikator"):
     """cmd/auditjob sebagai role baca-saja. Mengembalikan (exit, baris keluaran)."""
     r = subprocess.run([str(BIN_JOB), "-db", url_role(role), "-jangkar", str(berkas)], capture_output=True, text=True)
-    return r.returncode, [l for l in r.stdout.splitlines() if l.strip()] + [f"auditjob: {l}" for l in r.stderr.splitlines()]
+    return r.returncode, [l for l in r.stdout.splitlines() if l.strip()] + [l for l in r.stderr.splitlines() if l.strip()]
 
 
 def jalankan_job(berkas, nama, harus_exit, role="t4a_verifikator"):
@@ -314,6 +326,7 @@ def rekam_jangkar():
 
     bagian("A. Jangkar harian: hari 1 (baris 1 sampai 4), hari 2 (baris 5 dan 6), hari 3 belum dijangkarkan (baris 7 dan 8)")
     catat("# Berkas jangkar ada di folder sementara di luar database; tidak ada role database yang menyentuhnya. Hash baris tidak direkam (bergantung pada waktu aksi).")
+    catat("# Hari diperankan: log dipulihkan dari salinan sampai baris tertentu, lalu pemeriksaan dijalankan. Tidak ada jam harian yang berjalan di lab.")
     pulihkan_log(sampai=4)
     jalankan_job(dasar, "jangkar.jsonl", 0)
     pulihkan_log(sampai=6)
@@ -393,7 +406,7 @@ def rekam_role():
     bagian("A. Siapa memegang apa: pemilik tabel, superuser, dan hak role aplikasi atas audit_log")
     sql("SELECT rolname, rolsuper FROM pg_roles WHERE rolname IN ('lab', 'api_t4', 't4a_pemilik', 't4a_verifikator', 't4a_agen') ORDER BY rolname")
     sql("SELECT tablename, tableowner FROM pg_tables WHERE tablename = 'audit_log' AND schemaname = 'tahap4_audit'")
-    sql("SELECT relacl FROM pg_class WHERE relname = 'audit_log' AND relnamespace = 'tahap4_audit'::regnamespace")
+    sql("SELECT unnest(relacl)::text AS hak FROM pg_class WHERE relname = 'audit_log' AND relnamespace = 'tahap4_audit'::regnamespace")
     catat("# relacl: api_t4=ar/t4a_pemilik berarti api_t4 punya a (INSERT) dan r (SELECT), diberikan oleh t4a_pemilik. Tidak ada w (UPDATE), d (DELETE), atau D (TRUNCATE).")
     with d.sambung(SCH) as c:
         sebelum = c.execute("SELECT count(*), md5(string_agg(hash, ',' ORDER BY id)) FROM audit_log").fetchone()
@@ -430,13 +443,13 @@ def rekam_role():
     sebagai("t4a_pemilik", "GRANT UPDATE ON audit_log TO t4a_pemilik", harus="ok")
     sebagai("t4a_pemilik", "UPDATE audit_log SET alasan = 'diubah lagi' WHERE id = 2", harus="ok")
     catat("# Superuser melewati semua pemeriksaan hak (dokumentasi GRANT, PostgreSQL 17): tidak ada pencabutan yang menghalanginya.")
-    catat("# Pemilik schema yang membaca tabel verifikasi tidak meninggalkan baris audit:")
+    catat("# Engineer yang membaca tabel verifikasi sebagai pemilik schema (role lab) tidak meninggalkan baris audit:")
     with d.sambung(SCH) as c:
         n1 = c.execute("SELECT count(*) FROM audit_log").fetchone()[0]
-    sebagai("t4a_pemilik", "SELECT count(*) AS pengajuan_dibaca FROM verifikasi", harus="ok")
+    sebagai("lab", "SELECT count(*) AS pengajuan_dibaca FROM verifikasi", harus="ok")
     with d.sambung(SCH) as c:
         n2 = c.execute("SELECT count(*) FROM audit_log").fetchone()[0]
-    harap(n2, n1, "membaca verifikasi sebagai pemilik tidak menulis audit")
+    harap(n2, n1, "membaca verifikasi sebagai pemilik schema tidak menulis audit")
     catat("# Baris audit sebelum dan sesudah membaca: sama.")
 
     bagian("D. Role baca-saja: pemeriksa harian (t4a_verifikator) dan agen back office (t4a_agen)")
@@ -485,7 +498,7 @@ def rekam_persetujuan():
 
     bagian("A. Pembekuan darurat: satu petugas cukup, wajib alasan, dan tercatat tanpa penyetuju")
     s, _ = curl("POST", "/bo/akun/40001/bekukan", {"alasan": "terlalu pendek"}, ratih)
-    harap(s, 400, "alasan pendek")
+    harap(s, 422, "alasan pendek")
     sql("SELECT count(*) AS baris_audit FROM audit_log")
     s, _ = curl("POST", "/bo/akun/40001/bekukan", {"alasan": "Dugaan akun dipakai pihak lain, menunggu konfirmasi"}, ratih)
     harap(s, 204, "pembekuan darurat")
@@ -513,7 +526,7 @@ def rekam_persetujuan():
     catat("# Tim Risk Dua diaktifkan lagi.")
     sql("SELECT status FROM akun WHERE id = 40001")
     harap(audit_n(), sebelum, "percobaan ditolak tidak menulis audit")
-    catat("# Dina masih dibekukan dan jumlah baris audit tidak berubah: percobaan yang ditolak tidak meninggalkan baris audit (log aplikasi biasa mencatatnya, tabel audit tidak).")
+    catat("# Dina masih dibekukan dan jumlah baris audit tidak berubah: percobaan yang ditolak tidak meninggalkan baris audit: tabel audit hanya berisi aksi yang berhasil.")
     s, _ = curl("POST", "/bo/akun/40001/buka", {"alasan": A}, ratih, kepala=[f"X-Penyetuju-Token: {risk2}"])
     harap(s, 204, "buka blokir dengan penyetuju sah")
     sql("SELECT id, pelaku_id, aksi, objek, penyetuju_id FROM audit_log ORDER BY id")
@@ -546,7 +559,8 @@ def rekam_persetujuan():
     harap((s1, s2), (204, 204), "satu token, dua aksi")
     catat(f"token yang sama dari Tim Risk Dua: buka blokir Eko HTTP {s1}, ubah batas Eko HTTP {s2}")
     sql("SELECT id, pelaku_id, aksi, objek, penyetuju_id FROM audit_log WHERE objek LIKE 'akun:40002%' ORDER BY id")
-    catat("# Tim Risk Dua tidak melihat aksi apa yang disetujui: token berlaku untuk apa saja selama sesinya hidup. Antrean persetujuan per aksi tidak ada (skema naskah tidak punya tabelnya): Tidak dijalankan.")
+    catat("# Satu token menyetujui dua aksi yang berbeda: yang diperiksa server adalah siapa pemegang token (akun risk lain yang aktif), bukan apa yang disetujui. Server tidak menanyakan apa pun kepada penyetuju.")
+    catat("# Antrean persetujuan per aksi (penyetuju melihat dan menyetujui satu aksi) tidak ada: skema naskah tidak punya tabelnya. Tidak dijalankan.")
 
     bagian("E. Pembekuan darurat punya batasnya: akun risk dan admin tidak bisa dibekukan, dan yang sudah beku tidak dibekukan dua kali")
     admin = d.satu("SELECT min(id) FROM akun WHERE jenis = 'admin'", SCH)
@@ -577,10 +591,39 @@ def keadaan():
     return (tuple(a), b, k, bt)
 
 
-def klien(token, *args):
+def samarkan_klien(teks):
+    """Waktu dan token disamarkan; tanggal telanjang tidak (versi protokol 2026-07-28 adalah tanggal)."""
+    teks = d.WAKTU.sub("<waktu>", teks)
+    teks = re.sub(r"\b[0-9a-f]{64}\b", "<hash>", teks)   # hash baris audit bergantung pada waktu aksi
+    for asli, label in sorted(d.samaran.items(), key=lambda x: -len(x[0])):
+        teks = teks.replace(asli, label)
+    return teks
+
+
+def klien(token, *args, port=None):
     env = dict(d.ENV, T4A_TOKEN_KLIEN=token)
-    r = subprocess.run([str(BIN_KLIEN), "-url", f"http://127.0.0.1:{PORT_MCP}/mcp", *args], capture_output=True, text=True, env=env)
-    return r.returncode, d.samarkan((r.stdout + r.stderr).strip())
+    r = subprocess.run([str(BIN_KLIEN), "-url", f"http://127.0.0.1:{port or PORT_MCP}/mcp", *args], capture_output=True, text=True, env=env)
+    return r.returncode, samarkan_klien((r.stdout + r.stderr).strip())
+
+
+META = {"io.modelcontextprotocol/protocolVersion": SPEK, "io.modelcontextprotocol/clientInfo": {"name": "rpc-mentah", "version": "0"},
+        "io.modelcontextprotocol/clientCapabilities": {}}
+
+
+def rpc_mentah(token, metode, params=None, nama=None):
+    """JSON-RPC mentah lewat HTTP tanpa SDK client (spesifikasi 2026-07-28: tanpa sesi, _meta di tiap permintaan)."""
+    isi = json.dumps({"jsonrpc": "2.0", "id": 1, "method": metode, "params": {**(params or {}), "_meta": META}}).encode()
+    req = urllib.request.Request(f"http://127.0.0.1:{PORT_MCP}/mcp", data=isi, method="POST")
+    for k, v in (("Authorization", f"Bearer {token}"), ("Content-Type", "application/json"), ("Accept", "application/json, text/event-stream"),
+                 ("MCP-Protocol-Version", SPEK), ("Mcp-Method", metode)):
+        req.add_header(k, v)
+    if nama:
+        req.add_header("Mcp-Name", nama)
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return r.status, r.read().decode()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read().decode()
 
 
 def http(metode, url, token=None, isi=None):
@@ -617,8 +660,24 @@ def rekam_mcp():
     harap(sorted(re.findall(r"^  (\w+):", teks, flags=re.M)), ["cari_audit", "ringkasan_akun", "siapa_membuka", "verifikasi_rantai"], "daftar alat")
     harap("readOnlyHint=ya" in teks and teks.count("readOnlyHint=ya") == 4, True, "semua alat berpetunjuk baca-saja")
     harap(teks.splitlines()[0], f"protokol yang dipakai: {SPEK}", "versi protokol yang dinegosiasikan")
+    d.mulai(BIN_AGEN, PORT_MCP2, ["-berstatus"], env_lain=mulai_env)
+    rc, teks2 = klien(token_agen, "-daftar", port=PORT_MCP2)
+    harap(rc, 0, "klien -daftar, server berstatus")
+    catat("# Server yang sama dengan opsi bawaan SDK (berstatus: sesi dengan Mcp-Session-Id): client yang sama jatuh kembali ke jabat tangan lama.")
+    catat("$ ./klien -daftar   # ke server berstatus")
+    catat(teks2.splitlines()[0])
+    harap(teks2.splitlines()[0], "protokol yang dipakai: 2025-11-25", "server berstatus memakai versi lama")
+    harap(sorted(re.findall(r"^  (\w+):", teks2, flags=re.M)), sorted(re.findall(r"^  (\w+):", teks, flags=re.M)), "alat sama di server berstatus")
+    d.stop(PORT_MCP2)
+    catat("# Daftar alat di server itu sama; yang berbeda hanya versi protokol. Server utama lab ini tanpa sesi, seperti arah spesifikasi 2026-07-28.")
+    catat("# Tanpa SDK client, JSON-RPC mentah (kepala Mcp-Method dan _meta wajib di spesifikasi 2026-07-28):")
+    s_, isi_ = rpc_mentah(token_agen, "tools/list")
+    harap(s_, 200, "tools/list mentah")
+    nama_mentah = sorted(t["name"] for t in json.loads(isi_)["result"]["tools"])
+    harap(nama_mentah, ["cari_audit", "ringkasan_akun", "siapa_membuka", "verifikasi_rantai"], "alat dari JSON-RPC mentah")
+    catat(f"POST /mcp tools/list: HTTP {s_}; alat: {', '.join(nama_mentah)}")
     catat("# readOnlyHint adalah petunjuk dari server, bukan jaminan: spesifikasi menyuruh client menganggap anotasi alat tidak tepercaya kecuali dari server tepercaya.")
-    catat("# Jaminannya ada di tempat lain: tidak ada alat tulis, dan role database yang dipakai server tidak punya hak tulis (bagian F).")
+    catat("# Jaminannya ada di tempat lain: tidak ada alat tulis, dan role database yang dipakai server tidak punya hak tulis (bagian G).")
 
     bagian("B. Memanggil alat tulis yang tidak ada: galat protokol, dan tidak ada yang berubah")
     sebelum = keadaan()
@@ -628,6 +687,10 @@ def rekam_mcp():
         rc, teks = klien(token_agen, "-alat", nama, "-args", json.dumps(args))
         catat(teks)
         harap(teks.startswith("galat JSON-RPC kode -32602") and "unknown tool" in teks, True, f"alat {nama} tidak ada")
+    s_, isi_ = rpc_mentah(token_agen, "tools/call", {"name": "bekukan_akun", "arguments": {"akun_id": 40002}}, nama="bekukan_akun")
+    err = json.loads(isi_).get("error", {})
+    catat(f"POST /mcp tools/call bekukan_akun (JSON-RPC mentah, tanpa SDK client): HTTP {s_}, galat kode {err.get('code')}: {err.get('message')}")
+    harap((err.get("code"), "unknown tool" in err.get("message", "")), (-32602, True), "alat tidak ada, JSON-RPC mentah")
     harap(keadaan(), sebelum, "keadaan database sesudah memanggil alat yang tidak ada")
     catat("# Keadaan audit_log, akun, verifikasi, dan buku dibandingkan sebelum dan sesudah enam panggilan: sama (jumlah baris dan ringkasan hash, status, tingkat, batas).")
 
@@ -681,7 +744,7 @@ def rekam_mcp():
     log = d.stop(PORT_MCP)
     isi_log = "\n".join(log)
     harap((token_agen in isi_log, ratih in isi_log), (False, False), "token tidak muncul di log server MCP")
-    catat(f"log server MCP ({len(log)} baris) memuat token agen: tidak; token sesi Ratih: tidak.")
+    catat("log server MCP memuat token agen: tidak; token sesi Ratih: tidak.")
     catat("# Log server MCP, nama alat saja:")
     for l in sorted({l.replace("level=INFO ", "") for l in log if "alat dipanggil" in l}):
         catat("  " + l)
