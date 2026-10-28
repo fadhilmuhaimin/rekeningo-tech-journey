@@ -463,6 +463,21 @@ for (const [lebar, tinggi, harus] of [
     }
   }
   await laporBawaan(page, "320×568");
+  // Font cadangan lebih lebar dari Satoshi (CI Linux memakai Inter, dan keputusan 1255 menambah tombol keempat): empat tombol
+  // "Tahap N" membungkus ke baris berikutnya, satu baris tiap tombol, dan tidak meluapkan halaman (CI main 28 Okt: 3 px).
+  await page.addStyleTag({ content: "html, body, button, .erd-tumbuh { font-family: Verdana, sans-serif !important }" });
+  await page.waitForTimeout(200);
+  const pk = await page.evaluate((FIG) => {
+    const f = document.querySelector(FIG);
+    const p = f.querySelector(".erd-tumbuh__pilih");
+    return {
+      dok: document.documentElement.scrollWidth - innerWidth,
+      keluar: Math.max(0, Math.round(p.getBoundingClientRect().right - f.getBoundingClientRect().right)),
+      tombol: [...p.querySelectorAll("button")].length,
+      tinggi: Math.max(...[...p.querySelectorAll("button")].map((b) => b.getBoundingClientRect().height)),
+    };
+  }, FIG);
+  lapor(pk.dok <= 0 && pk.keluar === 0 && pk.tombol === 4 && pk.tinggi <= 48, `320×568 font lebar (Verdana): pemilih ${pk.tombol} tombol membungkus, tombol setinggi ${Math.round(pk.tinggi)} px, ${pk.keluar} px di luar figure, luapan halaman ${pk.dok} px`);
   await ctx.close();
 }
 
