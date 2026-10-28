@@ -922,6 +922,61 @@ describe("klaim negatif berlingkup, dijaga pemindaian berkas terlacak", () => {
 });
 
 // ================================================================================================================================
+describe("kalimat penghubung dan butir belum diuji: tiap baris ditulis lengkap, dengan nilai yang bergantung sumber diturunkan", () => {
+  const baris = (teks: string): string[] => teks.split("\n").map((b) => b.trim()).filter(Boolean);
+  test("tiga pertanyaan 'Sudah tahu?' memuat pool dari rekaman dan Rp0 dari naskah, dan menunjuk berikutnya", () => {
+    harus(naskah, "selisih Rp0");
+    const mulai = blok("Mulai");
+    for (const q of [
+      `1. Layanan push berhenti menjawab dan semua layar membeku. Kenapa menaikkan pool dari ${ukA} ke ${ukB} hanya menunda penuhnya?`,
+      "2. Saldo Citra naik, tetapi satu notifikasi tidak datang. Apa yang dibaca poller, dan kenapa satu baris terlewat?",
+      "3. Tutup buku lolos dengan Rp0 dan PRD v4 datang. Apa yang belum diuji?",
+    ]) expect(baris(mulai), q).toContain(q);
+    expect(baris(mulai)).toContain("Yakin dengan ketiganya? Lompat ke [[berikutnya]].");
+    expect(baris(mulai)).toContain("<summary>Sudah tahu? Cek 3 pertanyaan</summary>");
+    expect(ada(KB, /saldo_citra_naik/)).toBe(true);
+  });
+
+  test("blok Coba dan 'Kenapa ini ada' memuat kalimat penghubung lengkap", () => {
+    const coba = baris(blok("Coba"));
+    expect(coba).toContain("Setiap kartu menunjukkan satu kejadian. Tebak kalimat yang lahir darinya, lalu buka jawabannya. Tautan di kartu membawa ke halaman kejadian itu.");
+    expect(coba).toContain("Kartu yang kamu tandai **Ingat** baru muncul lagi sesuai jadwal kotaknya, seperti di [[Kartu]]. Daftar lengkap tiga belas kalimat, beserta batas masing-masing, selalu ada di blok Paham.");
+    const paham = baris(blok("Paham"));
+    expect(paham).toContain("Untuk ingatan beberapa hari kemudian, mengingat kembali jawaban lebih menguatkan daripada belajar ulang ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/), dibuka 2026-10-28). Karena itu setiap konsep diringkas jadi satu kalimat dan diikat ke satu kejadian. Halaman ini tidak menjelaskan ulang konsepnya.");
+    expect(paham).toContain("Bila rekaman lab hanya mendukung sebagian dari kalimat naskah, halaman ini menulis dua hal: kalimat naskahnya, dan versi yang didukung rekaman. Angka dikutip dari halaman asalnya, dengan label yang sama. Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].");
+    expect(paham).toContain("Tiga belas kalimat itu diuji lewat rekaman lab di mesin lokal, bukan di server sungguhan. Delapan hal yang ditulis terbuka di halamannya belum diuji.");
+  });
+
+  test("delapan butir 'Yang belum diuji' ditulis lengkap, dengan tautan dari registry", () => {
+    const paham = blok("Paham");
+    const butirBelum = paham.slice(paham.indexOf("### Yang belum diuji")).split("\n").filter((b) => b.startsWith("- "));
+    expect(butirBelum).toEqual([
+      `- Kapasitas satu server dan load test: [[${idM(28)}]].`,
+      "- Trace di api-t3: [[t3-observability]].",
+      "- Penyaring `notifikasi_id` di app Dart: [[t3-at-least-once]].",
+      "- VPS yang mati dan pengawas proses: [[t3-dua-instance]].",
+      "- Membaca `X-Forwarded-For` dari proxy tepercaya di kode lab: [[t3-rate-limit-redis]].",
+      "- Queue lokal dan layar konflik di app: [[t3-offline]].",
+      "- Pin di Wi-Fi dan perangkat sungguhan: [[t3-tls-pinning]].",
+      "- Alert, staging, dan giliran jaga: [[t3-tim-infra]].",
+    ]);
+  });
+
+  test("heading, pengantar, kepala tabel ADR, dan butir Kartu di Bacaan lanjut ditulis lengkap", () => {
+    const putus = baris(blok("Putuskan"));
+    expect(putus).toContain("### Dua belas keputusan Tahap 3");
+    expect(putus).toContain("Keputusan di balik kalimat-kalimat itu tertulis di ADR 22 sampai 33. Alasan dan kapan keputusan itu salah ada di halaman masing-masing.");
+    expect(putus).toContain("| ADR | Keputusan | Lahir dari |");
+    expect(putus).toContain("|---|---|---|");
+    expect(cocok(blok("Putuskan"), /ADR (\d+) sampai (\d+)/).slice(1, 3)).toEqual(["22", "33"]);
+    const kunci = baris(blok("Kunci"));
+    expect(kunci).toContain("- [[Kartu]]: soal Cek diri dari semua halaman yang sudah kamu baca");
+    expect(kunci).toContain("### Bacaan lanjut");
+    expect(kunci).toContain("### Cek diri");
+    expect(kunci).toContain("### Saat me-review kode AI, cek ini");
+  });
+});
+
 describe("struktur halaman: label, sumber ingatan, tanpa ID internal, dan kata yang dilarang", () => {
   test("blok Mulai: Inti satu kalimat pendek, Rantai ringkas, tiga pertanyaan; blok Kunci: lima soal dengan lima Jawaban; satu tebakan details question", () => {
     const mulai = blok("Mulai");
