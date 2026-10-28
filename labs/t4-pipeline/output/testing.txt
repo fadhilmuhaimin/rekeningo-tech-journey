@@ -1,5 +1,5 @@
 # Lab t4-pipeline · tes kebijakan gerbang
-#
+# unittest (pustaka standar Python)
 # Rekaman dari run bersih: make -C labs/t4-pipeline run.
 $ python3 -B -m unittest -v tes_gerbang
 ok TesGosec.test_ambang_tidak_dikenal_ditolak

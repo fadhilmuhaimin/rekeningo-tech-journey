@@ -46,14 +46,16 @@ gerbang govulncheck: LULUS (tidak ada kerentanan yang dipanggil kode)
 # --- E. Audit atas kode api-t4 yang sebenarnya (govulncheck, tidak ada perubahan pada api-t4) ---
 $ govulncheck -format json -db <salinan vuln.go.dev> ./...   # di labs/api-t4
 dipanggil kode: 10
-  GO-2026-6603 stdlib v1.27.1, diperbaiki di v1.27.2: handler.Write memanggil http2.Write
-  GO-2026-6605 stdlib v1.27.1, diperbaiki di v1.27.2: unduh.Unduh memanggil http.CloseIdleConnections
-  GO-2026-6607 stdlib v1.27.1, diperbaiki di v1.27.2: pembayaran.TandaTangan memanggil tls.Write
-  GO-2026-6608 stdlib v1.27.1, diperbaiki di v1.27.2: unduh.Unduh memanggil textproto.ReadMIMEHeader
-  GO-2026-6610 stdlib v1.27.1, diperbaiki di v1.27.2: unduh.Rentan memanggil http2.RoundTrip
-  GO-2026-6611 stdlib v1.27.1, diperbaiki di v1.27.2: handler.WriteHeader memanggil http2.WriteHeader
-  GO-2026-6612 stdlib v1.27.1, diperbaiki di v1.27.2: api.main memanggil http2.ServeConn
-  GO-2026-6613 stdlib v1.27.1, diperbaiki di v1.27.2: redisbatas.Tutup memanggil http.Close
-  GO-2026-6617 stdlib v1.27.1, diperbaiki di v1.27.2: pembayaran.TandaTangan memanggil http2.Write
-  GO-2026-6809 stdlib v1.27.1, diperbaiki di v1.27.3: push.Kirim memanggil x509.Verify
+  GO-2026-6603 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6605 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6607 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6608 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6610 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6611 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6612 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6613 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6617 stdlib v1.27.1, diperbaiki di v1.27.2
+  GO-2026-6809 stdlib v1.27.1, diperbaiki di v1.27.3
+# Jejak panggilan tidak dicetak: untuk temuan stdlib govulncheck memilih salah satu dari banyak jejak, dan pilihannya
+# berubah antar run; yang tetap hanya daftar kerentanan yang dipanggil.
 gerbang govulncheck atas api-t4: GAGAL (10 kerentanan dipanggil kode: GO-2026-6603, GO-2026-6605, GO-2026-6607, GO-2026-6608, GO-2026-6610, GO-2026-6611, GO-2026-6612, GO-2026-6613, GO-2026-6617, GO-2026-6809)

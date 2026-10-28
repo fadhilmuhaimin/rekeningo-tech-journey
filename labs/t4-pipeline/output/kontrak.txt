@@ -1,5 +1,5 @@
 # Lab t4-pipeline · kontrak OpenAPI dan oasdiff breaking
-# oasdiff 1.34.1 · go1.27.1 · registry lokal di 127.0.0.1:18295
+# oasdiff 1.34.1
 # Rekaman dari run bersih: make -C labs/t4-pipeline run.
 # Kontrak sebelum = labs/api-t4/openapi.yaml di main. Tiap varian di bawah adalah satu PR
 # yang mengubah satu hal di kontrak itu; gerbang kontrak menjalankan `oasdiff breaking` dengan ambang ERR.

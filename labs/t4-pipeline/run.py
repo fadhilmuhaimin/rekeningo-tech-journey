@@ -76,6 +76,8 @@ def samar(teks):
 
 def tulis(nama, judul, kepala_tambahan=()):
     dipakai = [f"{n} {VERSI[n]}" for n in KEPALA_ALAT[nama]]
+    if nama == "testing.txt":
+        dipakai.append("unittest (pustaka standar Python)")
     if nama == "klien.txt":
         dipakai.append("openapi-generator-cli " + re.search(r":v([\d.]+)@", IMG["openapi_generator"]).group(1))
     if nama in KEPALA_GO:
@@ -468,8 +470,8 @@ def jalankan_govulncheck(d, db):
     return g.parse_govulncheck(keluar)
 
 
-def baris_vuln(t):
-    jejak = f": {t['jejak']}" if t["jejak"] else ""
+def baris_vuln(t, dengan_jejak=True):
+    jejak = f": {t['jejak']}" if dengan_jejak and t["jejak"] else ""
     return f"{t['osv']} {t['modul']} {t['versi']}, diperbaiki di {t['diperbaiki'] or '-'}{jejak}"
 
 
@@ -556,7 +558,9 @@ def bagian_sast():
     perintah_tampil("govulncheck -format json -db <salinan vuln.go.dev> ./...   # di labs/api-t4")
     catat(f"dipanggil kode: {len(dipanggil)}")
     for t in dipanggil:
-        catat("  " + baris_vuln(t))
+        catat("  " + baris_vuln(t, dengan_jejak=False))
+    catat("# Jejak panggilan tidak dicetak: untuk temuan stdlib govulncheck memilih salah satu dari banyak jejak, dan pilihannya")
+    catat("# berubah antar run; yang tetap hanya daftar kerentanan yang dipanggil.")
     lulus, alasan = g.putuskan_govulncheck(vuln)
     catat(f"gerbang govulncheck atas api-t4: {'LULUS' if lulus else 'GAGAL'} ({alasan})")
     tulis("sast.txt", "gosec dan govulncheck atas contoh yang disiapkan")
