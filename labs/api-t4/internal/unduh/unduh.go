@@ -49,6 +49,8 @@ const (
 	BatasUkuran = 2 << 20
 	// BatasWaktu: waktu total satu unduhan, termasuk resolusi nama, koneksi, dan pembacaan isi (ADR 41, ADR 22).
 	BatasWaktu = 3 * time.Second
+	// BatasHeader: header jawaban paling besar 64 KiB (Asumsi lab: header gambar yang sehat jauh di bawahnya).
+	BatasHeader = 64 << 10
 	// batasRentan: versi pertama hanya membatasi isi pada angka yang wajar, bukan pada kebutuhan gambar.
 	batasRentan = 10 << 20
 	// awalGalatRentan: berapa byte pertama isi respons yang ikut di pesan galat versi rentan.
@@ -82,12 +84,19 @@ func Aman(ctx context.Context, alamat string) (Gambar, error) {
 // alamatKhusus: kelas alamat yang tidak boleh menjadi tujuan unduhan selain yang sudah dikenali netip
 // (loopback, private termasuk fc00::/7, link-local, multicast, unspecified). Daftar ini menutup yang tidak
 // tercakup IsPrivate: bagian "this network", CGNAT, protokol IETF, dokumentasi, benchmark, cadangan, dan
-// awalan IPv6 yang membawa alamat IPv4 (NAT64, 6to4, Teredo). golang/go#79925: IsPrivate saja tidak cukup.
+// awalan IPv6 yang membawa alamat IPv4 (NAT64 termasuk awalan lokal RFC 8215, 6to4, Teredo). golang/go#79925:
+// IsPrivate saja tidak cukup. Baris IPv6 sesudah 100::/64 dicocokkan dengan registri alamat khusus IPv6 IANA
+// (diakses 2026-10-28) oleh lab t4-ssrf: awalan NAT64 lokal, 100:0:0:1::/64, 2001::/23 (protokol IETF, memuat
+// 2001::/32), dokumentasi 2001:db8::/32 dan 3fff::/20, SRv6 5f00::/16, serta dua blok usang (IPv4-compatible ::/96
+// dan site-local fec0::/10) yang tidak dipakai host sungguhan. Baris terakhir daftar, 192.88.99.0/24, adalah anycast
+// relay 6to4 yang usang menurut RFC 7526 (registri IPv4 menandai 192.88.99.2/32 tidak terjangkau global).
 var alamatKhusus = func() []netip.Prefix {
 	var p []netip.Prefix
 	for _, s := range []string{
 		"0.0.0.0/8", "100.64.0.0/10", "192.0.0.0/24", "192.0.2.0/24", "198.18.0.0/15", "198.51.100.0/24",
 		"203.0.113.0/24", "240.0.0.0/4", "64:ff9b::/96", "2002::/16", "2001::/32", "100::/64",
+		"64:ff9b:1::/48", "100:0:0:1::/64", "2001::/23", "2001:db8::/32", "3fff::/20", "5f00::/16", "::/96", "fec0::/10",
+		"192.88.99.0/24",
 	} {
 		p = append(p, netip.MustParsePrefix(s))
 	}
@@ -97,6 +106,10 @@ var alamatKhusus = func() []netip.Prefix {
 // alamatDilarang: apakah alamat ini terlarang sebagai tujuan unduhan. Alamat IPv4-mapped (::ffff:a.b.c.d)
 // diperlakukan sebagai IPv4-nya: tanpa Unmap, awalan IPv4 di daftar di atas tidak pernah cocok dengan bentuk itu.
 func (a Aturan) alamatDilarang(ip netip.Addr) bool {
+	// netip.Prefix.Contains menjawab false untuk alamat IPv6 berzona ("%eth0", "%1"). Tanpa baris ini sebuah URL seperti
+	// https://[64:ff9b::a00:1%251]/ melewati seluruh daftar alamatKhusus: penyaring awal dan ControlContext sama-sama
+	// mengurai host dengan zonanya. Zona dibuang sebelum alamat dicocokkan.
+	ip = ip.WithZone("")
 	ip = ip.Unmap()
 	if ip.IsLoopback() {
 		return !a.IzinkanLoopback
@@ -203,6 +216,9 @@ func (a Aturan) Unduh(ctx context.Context, alamat string) (Gambar, error) {
 			return nil, galat
 		},
 		DisableKeepAlives: true,
+		// Batas 2 MiB berlaku untuk isi. Tanpa batas ini header jawaban boleh sampai 10 MB (bawaan Transport), dan
+		// delapan unduhan serentak bisa menahan puluhan MB memori dari satu server yang sengaja mengirim header besar.
+		MaxResponseHeaderBytes: BatasHeader,
 	}
 	c := klien.BaruDenganTransport(waktu, tr) // timeout dan aturan "redirect tidak diikuti" dari satu pembuat client
 	defer tr.CloseIdleConnections()
