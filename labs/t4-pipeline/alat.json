@@ -63,10 +63,26 @@
       }
     }
   },
-  "govulncheck": {"modul": "golang.org/x/vuln/cmd/govulncheck", "versi": "v1.9.0"},
+  "govulncheck": {
+    "modul": "golang.org/x/vuln/cmd/govulncheck",
+    "versi": "v1.9.0"
+  },
   "image": {
     "registry": "registry:3@sha256:d4032d4cc323c1731c707931ecada07a53076eac38e3b61ae57533f170f2c6c3",
     "openapi_generator": "openapitools/openapi-generator-cli:v7.26.0@sha256:a304ddf1e2e5f24f68fa3153568d6174cea4959d09aa8e3db6d526fd0782326d",
     "dasar": "gcr.io/distroless/static-debian12:nonroot"
+  },
+  "grype_db": {
+    "berkas": "vulnerability-db_v6.1.10_2026-10-28T00:24:28Z_1793168610.tar.zst",
+    "url": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.10_2026-10-28T00:24:28Z_1793168610.tar.zst",
+    "sha256": "b08902b91738f1a9bc7fd61942f331d8e5e76a5df0c0b5f8c17c18bd787ee278",
+    "ukuran_unduhan": 196243021,
+    "skema": "v6.1.10",
+    "dibangun": "2026-10-28T06:23:30Z"
+  },
+  "vulndb": {
+    "url": "https://vuln.go.dev/vulndb.zip",
+    "ukuran_unduhan": 3516204,
+    "diunduh": "2026-10-29"
   }
 }

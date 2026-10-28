@@ -1,0 +1,113 @@
+# Lab t4-pipeline · kontrak OpenAPI dan oasdiff breaking
+# oasdiff 1.34.1 · go1.27.1 · registry lokal di 127.0.0.1:18295
+# Rekaman dari run bersih: make -C labs/t4-pipeline run.
+# Kontrak sebelum = labs/api-t4/openapi.yaml di main. Tiap varian di bawah adalah satu PR
+# yang mengubah satu hal di kontrak itu; gerbang kontrak menjalankan `oasdiff breaking` dengan ambang ERR.
+# Alat: oasdiff version 1.34.1
+
+# --- A. Perubahan enum dan penghapusan field pada kontrak api-t4 (oasdiff breaking --fail-on ERR) ---
+# Kontrol: kontrak yang sama dibandingkan dengan dirinya sendiri.
+$ oasdiff breaking sebelum.yaml sebelum.yaml --fail-on ERR
+No changes detected
+(exit code 0)
+
+# Varian enum-respons-tambah
+$ oasdiff breaking sebelum.yaml enum-respons-tambah.yaml --fail-on ERR
+1 changes: 1 error, 0 warning, 0 info
+error	[response-property-enum-value-added] at enum-respons-tambah.yaml
+	in API GET /akun/{id}
+		added the new `badan` enum value to the `jenis` response property for the response status `200`
+		The server may now return a value the previous contract excluded, so a client written against it may not handle the response. If the value set is meant to grow, declare it with x-extensible-enum.
+(exit code 1)
+
+# Varian enum-request-hapus
+$ oasdiff breaking sebelum.yaml enum-request-hapus.yaml --fail-on ERR
+1 changes: 1 error, 0 warning, 0 info
+error	[request-property-enum-value-removed] at enum-request-hapus.yaml
+	in API POST /daftar
+		removed the enum value `merchant` of the request property `jenis`
+(exit code 1)
+
+# Varian field-wajib-hapus
+$ oasdiff breaking sebelum.yaml field-wajib-hapus.yaml --fail-on ERR
+1 changes: 1 error, 0 warning, 0 info
+error	[response-required-property-removed] at field-wajib-hapus.yaml
+	in API GET /akun/{id}
+		removed the required property `saldo` from the response with the `200` status
+(exit code 1)
+
+# Varian enum-request-tambah
+$ oasdiff breaking sebelum.yaml enum-request-tambah.yaml --fail-on ERR
+No breaking changes to report, but the specs are different.
+Run 'oasdiff diff' to see structural differences.
+(exit code 0)
+
+# Varian enum-respons-hapus
+$ oasdiff breaking sebelum.yaml enum-respons-hapus.yaml --fail-on ERR
+No breaking changes to report, but the specs are different.
+Run 'oasdiff diff' to see structural differences.
+(exit code 0)
+
+# Varian field-opsional-hapus
+$ oasdiff breaking sebelum.yaml field-opsional-hapus.yaml --fail-on ERR
+No breaking changes to report, but the specs are different.
+Run 'oasdiff diff' to see structural differences.
+(exit code 0)
+
+# Ringkasan gerbang kontrak (ambang ERR)
+enum-respons-tambah    GAGAL  (1 temuan ERR)
+enum-request-hapus     GAGAL  (1 temuan ERR)
+field-wajib-hapus      GAGAL  (1 temuan ERR)
+enum-request-tambah    LULUS  (0 temuan ERR)
+enum-respons-hapus     LULUS  (0 temuan ERR)
+field-opsional-hapus   LULUS  (0 temuan ERR)
+
+# --- B. Ambang keparahan: penghapusan field opsional tidak menggagalkan gerbang pada ambang ERR maupun WARN ---
+$ oasdiff breaking sebelum.yaml field-opsional-hapus.yaml --fail-on WARN
+No breaking changes to report, but the specs are different.
+Run 'oasdiff diff' to see structural differences.
+(exit code 0)
+$ oasdiff changelog sebelum.yaml field-opsional-hapus.yaml
+1 changes: 0 error, 0 warning, 1 info
+info	[response-optional-property-removed] at field-opsional-hapus.yaml
+	in API GET /akun/{id}
+		removed the optional property `nomor_karyawan` from the response with the `200` status
+(exit code 0)
+# `breaking` hanya memuat ERR dan WARN; field opsional yang dihapus berstatus INFO. Klien lama yang membaca
+# field itu tidak ditahan gerbang. Tingkat bisa dinaikkan dengan berkas --severity-levels:
+$ cat tingkat.txt
+response-optional-property-removed err
+$ oasdiff breaking sebelum.yaml field-opsional-hapus.yaml --severity-levels tingkat.txt --fail-on ERR
+1 changes: 1 error, 0 warning, 0 info
+error	[response-optional-property-removed] at field-opsional-hapus.yaml
+	in API GET /akun/{id}
+		removed the optional property `nomor_karyawan` from the response with the `200` status
+(exit code 1)
+
+# --- C. Parameter tingkat path dan style/explode: kontrak mini (kontrak api-t4 tidak memakai keduanya) ---
+# Kontrak mini: /riwayat memuat parameter `batas` dan `tag` di tingkat path; /laporan memuat dua parameter yang sama
+# di tingkat operasi. Tiap varian mengubah parameter di salah satunya. Gerbang di sini memakai ambang WARN.
+
+# Varian wajib: tingkat path lawan tingkat operasi
+path, bawaan               LULUS  (0 temuan): tidak ada temuan
+path, --flatten-params     GAGAL  (1 temuan): ERR request-parameter-became-required GET /riwayat
+operasi, bawaan            GAGAL  (1 temuan): ERR request-parameter-became-required GET /laporan
+
+# Varian hapus: tingkat path lawan tingkat operasi
+path, bawaan               LULUS  (0 temuan): tidak ada temuan
+path, --flatten-params     GAGAL  (1 temuan): WARN request-parameter-removed GET /riwayat
+operasi, bawaan            GAGAL  (1 temuan): WARN request-parameter-removed GET /laporan
+
+# Varian sempit: tingkat path lawan tingkat operasi
+path, bawaan               LULUS  (0 temuan): tidak ada temuan
+path, --flatten-params     GAGAL  (1 temuan): ERR request-parameter-max-decreased GET /riwayat
+operasi, bawaan            GAGAL  (1 temuan): ERR request-parameter-max-decreased GET /laporan
+
+# Varian explode: tingkat path lawan tingkat operasi
+path, bawaan               LULUS  (0 temuan): tidak ada temuan
+path, --flatten-params     LULUS  (0 temuan): tidak ada temuan
+operasi, bawaan            LULUS  (0 temuan): tidak ada temuan
+
+# Yang direkam: perubahan parameter di tingkat path lolos dari `oasdiff breaking` bawaan dan baru tertangkap dengan
+# --flatten-params (perubahan yang sama di tingkat operasi tertangkap tanpa flag). Perubahan style dan explode tidak
+# tertangkap di kedua tingkat, juga dengan --flatten-params.
