@@ -22,7 +22,7 @@ Butuh Go (go1.27.1 dipakai saat lab ditulis). Kode yang diperiksa dan tesnya ada
 |---|---|---|
 | `batas.txt` | Batas ADR 41 dari dua sisi: skema `http` ditolak sebelum permintaan, https dengan sertifikat yang dipercaya diterima, sertifikat asing ditolak; redirect 300, 301, 302, 303, 304, 307, dan 308 tidak diikuti dan server tujuannya tidak tersentuh; tepat 2 MiB diterima dan 2 MiB + 1 byte ditolak (dengan dan tanpa Content-Length), `Content-Length` 1 GiB ditolak sebelum isi dibaca; batas 3 detik untuk seluruh unduhan (menjawab sesudah 1 detik diterima, tidak pernah menjawab dan isi yang menetes ditolak di antara 3 dan 5 detik); hanya status 200; hanya PNG, JPEG, GIF, dan WebP menurut byte awal, dan header `Content-Type` tidak dipercaya; header jawaban paling besar 64 KiB (32 KiB dan 60 KiB diterima, 68 KiB, 128 KiB, dan 11 MiB ditolak); masukan ekstrem yang gagal tertutup (host 100.000 karakter dan path 2 MiB ditolak oleh resolver buatan dan oleh server uji, bukan oleh batas di fetcher; rantai redirect tanpa akhir, jawaban DNS 4.097 alamat dengan satu alamat private di ujung, dan alamat terlarang di urutan kedua jawaban DNS); 13 bentuk URL rusak atau tanpa host ditolak sebelum ada resolusi nama; nama dengan dua alamat tetap bisa diunduh bila alamat pertama tidak menjawab; pesan galat tanpa isi respons, alamat, atau port, dan satu pesan untuk semua penolakan karena alamat literal; satu batas yang belum tertutup (nama yang ada lawan nama yang tidak ada); URL bernama IDNA ditolak | 4.20, 4.21 |
 | `alamat.txt` | Untuk 37 alamat: jawaban empat penanda bawaan Go (`IsPrivate`, `IsLoopback`, `IsLinkLocalUnicast`, `IsUnspecified`) dan keputusan fetcher aman. Hasil: 32 dari 32 alamat terlarang ditolak, 5 alamat publik sebagai kontrol lolos, dan 29 dari 32 alamat terlarang lolos bila `IsPrivate` satu-satunya pemeriksaan (Hitungan dari rekaman ini); 26 dari 32 tetap lolos bila hanya empat penanda di tabel yang diperiksa. Bagian kedua menguji 19 alamat IPv6 terlarang dengan zona (`%1` dan `%eth0`): 19 dari 19 ditolak, dan dua alamat publik berzona lolos. Bagian ketiga menguji tepi 27 blok registri IANA dari dua sisi: 54 tepi dalam ditolak (54 dari 54), 39 tepi luar lolos (39 dari 39), dan 4 alamat yang terjangkau global menurut registri lolos | 4.21 |
-| `testing.txt` | `go vet` dengan dan tanpa tag, tes bawaan `api-t4` untuk paket `unduh` (20 fungsi, tanpa tag), dan penjaga bahwa tiap dari 14 fungsi tes bertag muncul sebagai PASS | 4.21 |
+| `testing.txt` | `go vet` dengan dan tanpa tag, tes bawaan `api-t4` untuk paket `unduh` (20 fungsi, tanpa tag), dan penjaga bahwa tiap dari 18 fungsi tes bertag muncul sebagai PASS | 4.21 |
 
 Rekaman ulang identik per byte (`make cek`, dijalankan dua kali). Alamat contoh private dan link-local di `alamat.txt` adalah angka karangan lab; alamat metadata instance cloud dan IMDSv2 tidak dijalankan dan tidak ditulis sebagai tujuan.
 
@@ -59,7 +59,7 @@ Naskah tidak diubah. Yang terbaca dari lab ini untuk KONSISTENSI-4:
 
 ## Uji mutasi
 
-Skrip: `make -C labs/t4-ssrf mutasi` (±20 menit; butuh Docker; hasil dicetak, tidak ditulis ke `output/`). Tiap mutan mengubah satu hal di salinan `internal/unduh/unduh.go` atau `internal/klien/klien.go` (tiga mutan gabungan, C01 sampai C03, mengubah beberapa lapis sekaligus). Tes dikompilasi sebagai biner Linux dan dijalankan di container tanpa jaringan (`--network none`), supaya mutan yang melemahkan pemeriksaan alamat tidak bisa menyambung ke jaringan mesin. Yang dijalankan adalah tes bawaan `api-t4` untuk paket ini ditambah tes bertag lab ini. Mutan yang tidak bisa dikompilasi tidak dihitung.
+Skrip: `make -C labs/t4-ssrf mutasi` (±30 menit untuk 136 mutan; butuh Docker; hasil dicetak, tidak ditulis ke `output/`). Tiap mutan mengubah satu hal di salinan `internal/unduh/unduh.go` atau `internal/klien/klien.go` (tiga mutan gabungan, C01 sampai C03, mengubah beberapa lapis sekaligus). Tes dikompilasi sebagai biner Linux dan dijalankan di container tanpa jaringan (`--network none`), supaya mutan yang melemahkan pemeriksaan alamat tidak bisa menyambung ke jaringan mesin. Yang dijalankan adalah tes bawaan `api-t4` untuk paket ini ditambah tes bertag lab ini. Mutan yang tidak bisa dikompilasi tidak dihitung.
 
 Hasil (80 mutan baru; 66 membuat suite gagal, satu (C01) membuat suite macet lewat 240 detik, 13 lolos):
 
@@ -82,6 +82,30 @@ Tiga belas mutan yang lolos, dan kenapa tidak ditutup:
 - **Tidak teramati dengan server uji di loopback (3):** D06 (Go tidak memakai proxy untuk tujuan loopback) serta D07 dan C03 (transport dibuat per unduhan dan ditutup, jadi koneksi tidak dipakai ulang). Pemeriksaannya ada di kode tetapi tidak ada tes yang membuktikannya: Tidak dijalankan.
 
 Dua mutan lolos pada tes yang pertama ditulis dan ditutup tes lanjutan: X01 (pemeriksaan awal hanya delapan jawaban DNS pertama) dan D01 (hanya jawaban pertama), dengan `TestSSRFBatasMasukanEkstremGagalTertutup` dan `TestSSRFBatasJawabanDNSDenganAlamatTerlarangDiUrutanKedua`. Sebelum label Content-Length diperbaiki, mutan L06 (`Content-Length` tepat 2 MiB ditolak) lolos karena server uji ternyata menjawab chunked; kini tes membuktikan header yang diterima client.
+
+### Mutan tambahan dari peninjau (56 mutan: P21 dan V01 sampai V96)
+
+Peninjau menambah satu awalan ke `PREFIX` (P21, `192.88.99.0/24`) dan 55 mutan seri V di `mutasi.py`: lebar awalan diperlebar dan dipersempit satu bit untuk tiap awalan (kecuali yang sudah ada di W01 sampai W07), sertifikat tidak diverifikasi, client memakai transport bawaan, URL tanpa host atau yang gagal diurai, kode status, tipe isi, batas baca, batas waktu dan header, dan `ControlContext`. Terhadap tes pelaksana ditambah tes berzona dan batas header 60 dan 68 KiB, 35 dari 52 mutan seri V yang bisa dijalankan lolos: 30 dari 32 mutan lebar awalan lolos, karena tiap awalan hanya punya satu alamat contoh di dalamnya dan hampir tidak ada alamat tepat di luarnya. Sesudah tes tepi blok registri IANA, URL rusak, kode redirect 300 dan 304, dan alamat kedua, 48 dari 56 tertangkap dan 8 lolos:
+
+| Kelompok | Mutan | Tertangkap | Lolos |
+|---|---|---|---|
+| Zona IPv6 dan awalan baru (V01, P21) | 2 | 2 | - |
+| Lebar awalan, satu bit lebih lebar dan lebih sempit (V10 sampai V43) | 34 | 28 | V21, V24, V26, V28, V38, V40 |
+| TLS, client, dan dial (V50, V51, V59, V74, V75, V90) | 6 | 6 | - |
+| URL tanpa host atau tidak terurai (V52, V54) | 2 | 2 | - |
+| Status, tipe isi, batas ukuran dan waktu (V61 sampai V70) | 7 | 6 | V66 |
+| Batas header jawaban (V80, V81) | 2 | 2 | - |
+| `ControlContext` dengan alamat tak terurai (V71) | 1 | 0 | V71 |
+| Penanda bawaan Go per IPv6 (V95, V96) | 2 | 2 | - |
+
+Delapan yang lolos, dan kenapa tidak ditutup:
+
+- **Setara persis karena tumpang tindih (3):** V24 (`100::/63` = `100::/64` ditambah `100:0:0:1::/64`, keduanya terlarang), V28 (`100:0:0:1::/63`, himpunan yang sama), V40 (`fec0::/9` = `fe80::/10` ditambah `fec0::/10`).
+- **Selisihnya ruang `0000::/8` yang dicadangkan IETF, tanpa host sungguhan (3):** V21 (`64:ff9b::/95`), V26 (`64:ff9b:1::/47`), V38 (`::/95`). Tes tepi sengaja melewati tetangga di ruang itu.
+- **Hanya memori yang berbeda (1):** V66 membaca sampai dua kali batas sebelum menolak; hasilnya sama dan memorinya tidak diukur.
+- **Kode yang tidak terjangkau (1):** V71. `net.Dialer` selalu meneruskan `host:port`, jadi cabang "alamat tak terurai" di `ControlContext` tidak pernah berjalan.
+
+Peninjau menjalankan seluruh 136 mutan di host (darwin/arm64, `CGO_ENABLED=0`) di bawah `sandbox-exec` yang hanya mengizinkan loopback, karena Docker tidak merespons saat itu; koneksi ke `1.1.1.1` dan `10.255.255.1` diperiksa ditolak dengan `EPERM`. Hasil 80 mutan pelaksana sama: 66 tertangkap, C01 macet (kini dihentikan `-test.timeout=120s` sebagai kegagalan), 13 lolos yang sama. `make mutasi` di container belum dijalankan ulang untuk 56 mutan baru.
 
 ## Versi dasar dan sumber (dicek 2026-10-28)
 
