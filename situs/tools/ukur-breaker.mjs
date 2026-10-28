@@ -246,13 +246,13 @@ for (const ukuran of [[375, 667], [1366, 657]]) for (const reducedMotion of ["no
         caption: e.querySelector(".cb-tabel caption")?.textContent.trim() ?? null,
         asal: e.querySelector(".cb-asal summary")?.textContent.trim() ?? null,
         cat: (() => {
-          // Tiap jenis kotak dan pita yang tampil harus punya cat (warna latar atau gradien); kalau tidak, hasilnya tak terlihat.
+          // Tiap jenis kotak dan pita yang tampil harus punya cat (warna latar atau bayangan dalam) dan tinggi; kalau tidak, hasilnya tak terlihat.
           const ada = (n) => n !== "rgba(0, 0, 0, 0)" && n !== "transparent";
-          const kosong = [...e.querySelectorAll(".cb-pita .cb-p, .cb-kotak .cb-k")].filter((x) => { const c = getComputedStyle(x); return !ada(c.backgroundColor) && c.backgroundImage === "none"; }).map((x) => x.className);
+          const kosong = [...e.querySelectorAll(".cb-pita .cb-p, .cb-kotak .cb-k")].filter((x) => { const c = getComputedStyle(x); return (!ada(c.backgroundColor) && c.backgroundImage === "none" && c.boxShadow === "none") || x.getBoundingClientRect().height < 0.9; }).map((x) => x.className);
           const vonis = e.querySelector(".cb-vonis:not(:empty)");
           return { kosong: [...new Set(kosong)], tepiVonis: vonis ? ada(getComputedStyle(vonis).borderLeftColor) : true };
         })(),
-        tolakCat: (() => { const t = e.querySelector(".cb-kotak .is-tolak"); return t ? getComputedStyle(t).backgroundImage : null; })(),
+        tolakCat: (() => { const t = e.querySelector(".cb-kotak .is-tolak"); return t ? getComputedStyle(t).boxShadow : null; })(),
         nama: [...e.querySelectorAll(".cb-kelompok")].map((g) => ({ nama: document.getElementById(g.getAttribute("aria-labelledby"))?.textContent.trim() ?? null, role: g.getAttribute("role") })),
       };
     });
