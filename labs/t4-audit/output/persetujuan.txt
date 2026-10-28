@@ -1,0 +1,91 @@
+# Lab t4-audit · persetujuan dua orang, pembekuan darurat, dan batas aturannya
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_audit · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-audit run.
+# server: ./api-t4 -lab; Ratih adalah akun 420, Tim Risk Dua 421, Dina 40001, Eko 40002, Budi 419 (karyawan)
+
+# --- A. Pembekuan darurat: satu petugas cukup, wajib alasan, dan tercatat tanpa penyetuju ---
+$ curl -i -X POST '/bo/akun/40001/bekukan' -H 'Authorization: Bearer <token sesi Ratih>' -d '{"alasan": "terlalu pendek"}'
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"alasan","pesan":"wajib, 20 sampai 300 karakter: kenapa aksi ini dilakukan"}]}
+=> SELECT count(*) AS baris_audit FROM audit_log
+ baris_audit
+-------------
+ 0
+(1 row)
+GET /bo/verifikasi/1/berkas/kartu?alasan=...%FF: HTTP 422 (byte UTF-8 tidak sah (%FF) di alasan ditolak sebelum menyentuh audit atau berkas)
+GET /bo/verifikasi/1/berkas/kartu?alasan=...%00: HTTP 422 (byte NUL (%00) di alasan ditolak sebelum menyentuh audit atau berkas)
+$ curl -i -X POST '/bo/akun/40001/bekukan' -H 'Authorization: Bearer <token sesi Ratih>' -d '{"alasan": "Dugaan akun dipakai pihak lain, menunggu konfirmasi"}'
+HTTP/1.1 204 No Content
+
+
+=> SELECT id, pelaku_id, aksi, objek, penyetuju_id FROM audit_log ORDER BY id
+ id | pelaku_id | aksi    | objek      | penyetuju_id
+----+-----------+---------+------------+--------------
+ 1  | 420       | bekukan | akun:40001 |
+(1 row)
+
+# --- B. Buka blokir butuh petugas risk kedua yang berbeda: semua cara yang salah dijawab 403 yang sama, tanpa status berubah dan tanpa baris audit ---
+buka blokir, tanpa token penyetuju: HTTP 403 /problems/butuh-persetujuan
+buka blokir, token Ratih sendiri: HTTP 403 /problems/butuh-persetujuan
+buka blokir, token sesi kedua Ratih (login lagi, token berbeda, akun sama): HTTP 403 /problems/butuh-persetujuan
+buka blokir, token Dina (pemakai): HTTP 403 /problems/butuh-persetujuan
+buka blokir, token Budi (karyawan): HTTP 403 /problems/butuh-persetujuan
+buka blokir, token sembarang: HTTP 403 /problems/butuh-persetujuan
+# Pemilik schema membekukan Tim Risk Dua (421) lewat SQL, lalu Ratih memakai token Tim Risk Dua:
+buka blokir, token Tim Risk Dua yang dibekukan: HTTP 403 /problems/butuh-persetujuan
+# Tim Risk Dua diaktifkan lagi.
+=> SELECT status FROM akun WHERE id = 40001
+ status
+-----------
+ dibekukan
+(1 row)
+# Dina masih dibekukan dan jumlah baris audit tidak berubah: percobaan yang ditolak tidak meninggalkan baris audit: tabel audit hanya berisi aksi yang berhasil.
+$ curl -i -X POST '/bo/akun/40001/buka' -H 'Authorization: Bearer <token sesi Ratih>' -H 'X-Penyetuju-Token: <token sesi Risk Dua>' -d '{"alasan": "Pemilik sudah dikonfirmasi lewat layanan pelanggan"}'
+HTTP/1.1 204 No Content
+
+
+=> SELECT id, pelaku_id, aksi, objek, penyetuju_id FROM audit_log ORDER BY id
+ id | pelaku_id | aksi        | objek      | penyetuju_id
+----+-----------+-------------+------------+--------------
+ 1  | 420       | bekukan     | akun:40001 |
+ 2  | 420       | buka_blokir | akun:40001 | 421
+(2 rows)
+
+# --- C. Ubah batas harian: aturan penyetuju sama, nilai dibatasi, alasan wajib ---
+ubah batas, tanpa penyetuju: HTTP 403 /problems/butuh-persetujuan
+ubah batas, penyetuju sesi kedua Ratih: HTTP 403 /problems/butuh-persetujuan
+ubah batas ke Rp5.000.001 (batas lab Rp5.000.000), penyetuju sah: HTTP 422
+ubah batas dengan alasan 'pendek', penyetuju sah: HTTP 422
+ubah batas ke Rp300.000, penyetuju sah: HTTP 204
+=> SELECT b.batas_harian FROM buku b WHERE b.akun_id = 40001
+ batas_harian
+--------------
+ 300000
+(1 row)
+
+# --- D. Persetujuan adalah pemegang token, bukan keputusan per aksi: satu token penyetuju yang sama dipakai untuk dua aksi atas dua akun ---
+token yang sama dari Tim Risk Dua: buka blokir Eko HTTP 204, ubah batas Eko HTTP 204
+=> SELECT id, pelaku_id, aksi, objek, penyetuju_id FROM audit_log WHERE objek LIKE 'akun:40002%' ORDER BY id
+ id | pelaku_id | aksi        | objek                          | penyetuju_id
+----+-----------+-------------+--------------------------------+--------------
+ 4  | 420       | bekukan     | akun:40002                     |
+ 5  | 420       | buka_blokir | akun:40002                     | 421
+ 6  | 420       | ubah_batas  | akun:40002/batas_harian=400000 | 421
+(3 rows)
+# Satu token menyetujui dua aksi yang berbeda: yang diperiksa server adalah siapa pemegang token (akun risk lain yang aktif), bukan apa yang disetujui. Server tidak menanyakan apa pun kepada penyetuju.
+# Antrean persetujuan per aksi (penyetuju melihat dan menyetujui satu aksi) tidak ada: skema naskah tidak punya tabelnya. Tidak dijalankan.
+
+# --- E. Pembekuan darurat punya batasnya: akun risk dan admin tidak bisa dibekukan, dan yang sudah beku tidak dibekukan dua kali ---
+bekukan akun risk (Tim Risk Dua): HTTP 403
+bekukan akun admin (400): HTTP 403
+bekukan Dina (aktif) lalu sekali lagi: HTTP 204, lalu HTTP 409
+Dina yang dibekukan meminta top-up: HTTP 403
+=> SELECT aksi, count(*) AS baris FROM audit_log GROUP BY aksi ORDER BY aksi
+ aksi        | baris
+-------------+-------
+ bekukan     | 3
+ buka_blokir | 2
+ ubah_batas  | 2
+(3 rows)

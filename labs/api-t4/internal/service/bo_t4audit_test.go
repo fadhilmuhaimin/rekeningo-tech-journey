@@ -1,0 +1,380 @@
+//go:build t4audit
+
+package service
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"lab/apit4/internal/repo"
+)
+
+// Tes lab t4-audit atas back office: mode log biasa, penyetuju bersesi web, dan persetujuan yang tidak terikat pada satu
+// aksi. Hanya dengan -tags t4audit; tabel audit_biasa dibuat labs/t4-audit/run.py (audit_biasa.sql).
+
+func jumlahBiasa(t *testing.T, db *sql.DB, pelaku int64, aksi string) int {
+	t.Helper()
+	var n int
+	if err := db.QueryRow(`SELECT count(*) FROM audit_biasa WHERE pelaku_id = $1 AND aksi = $2`, pelaku, aksi).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	return n
+}
+
+func TestT4AModeLogBiasaMenulisKeTabelBiasaDanBukanKeAuditLog(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	biasa := svc.DenganMode(RentanLogBiasa)
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "belum", 0)
+	sebelumRantai := totalAudit(t, db)
+	if err := biasa.BekukanBO(ctx, risk, sasaran, alasanUji); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := biasa.LihatAkunBO(ctx, risk, sasaran); err != nil {
+		t.Fatal(err)
+	}
+	if jumlahBiasa(t, db, risk, "bekukan") != 1 || jumlahBiasa(t, db, risk, "lihat_akun") != 1 {
+		t.Fatal("mode log biasa tidak menulis tepat satu baris per aksi di audit_biasa")
+	}
+	if totalAudit(t, db) != sebelumRantai {
+		t.Fatal("mode log biasa menulis ke audit_log berantai")
+	}
+	// Mode biasa tidak memutus rantai yang sudah ada, dan rantai tidak melihat baris biasa.
+	if h, err := svc.VerifikasiAuditBO(ctx, risk); err != nil || h.RusakDiID != 0 {
+		t.Fatalf("%+v %v", h, err)
+	}
+	// Mode normal sesudahnya menulis ke rantai lagi.
+	if err := svc.BukaBlokirBO(ctx, risk, sasaran, alasanUji, sesiBaru(t, db, akunBO(t, db, "risk", "terverifikasi", 0))); err != nil {
+		t.Fatal(err)
+	}
+	if totalAudit(t, db) != sebelumRantai+1 {
+		t.Fatal("mode normal tidak menulis ke audit_log")
+	}
+}
+
+// Sesi web tidak bisa menjadi persetujuan: token yang diterima hanya sesi app (jenis 'app').
+func TestT4APenyetujuBersesiWebDitolak(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	risk2 := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "belum", 0)
+	if err := svc.BekukanBO(ctx, risk, sasaran, alasanUji); err != nil {
+		t.Fatal(err)
+	}
+	csrf := "csrf-uji"
+	if err := repo.Baru(db).SimpanSesi(ctx, hashToken("sesi-web-risk2"), risk2, time.Now().Add(time.Hour), "web", &csrf); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.BukaBlokirBO(ctx, risk, sasaran, alasanUji, "sesi-web-risk2"); !errors.Is(err, ErrButuhPersetujuan) {
+		t.Fatalf("sesi web sebagai penyetuju: %v, ingin ErrButuhPersetujuan", err)
+	}
+	if st, _ := statusAkun(t, db, sasaran); st != "dibekukan" {
+		t.Fatal("akun terbuka tanpa persetujuan yang sah")
+	}
+}
+
+// Karakterisasi (bukan keinginan): persetujuan adalah pemegang token, bukan keputusan per aksi. Satu token penyetuju yang
+// sama dipakai untuk dua aksi berbeda atas dua akun berbeda, dan keduanya berhasil. Antrean persetujuan per aksi
+// tidak ada di lab ini (skema naskah tidak punya tabelnya).
+func TestT4APersetujuanTidakTerikatPadaSatuAksi(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	risk2 := akunBO(t, db, "risk", "terverifikasi", 0)
+	a := akunBO(t, db, "pemakai", "belum", 0)
+	b := akunBO(t, db, "pemakai", "belum", 0)
+	if err := svc.BekukanBO(ctx, risk, a, alasanUji); err != nil {
+		t.Fatal(err)
+	}
+	token := sesiBaru(t, db, risk2)
+	if err := svc.BukaBlokirBO(ctx, risk, a, alasanUji, token); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.UbahBatasHarianBO(ctx, risk, b, 300_000, alasanUji, token); err != nil {
+		t.Fatalf("token penyetuju yang sama untuk aksi lain: %v", err)
+	}
+	var n int
+	if err := db.QueryRow(`SELECT count(*) FROM audit_log WHERE pelaku_id = $1 AND penyetuju_id = $2`, risk, risk2).Scan(&n); err != nil || n != 2 {
+		t.Fatalf("%d baris dengan penyetuju yang sama, ingin 2 (%v)", n, err)
+	}
+}
+
+// Penyetuju dan pelaku dibandingkan menurut nomor akun, bukan menurut token: sesi kedua akun yang sama tetap pelaku itu.
+func TestT4ASesiKeduaPelakuBukanPenyetujuKedua(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "belum", 0)
+	if err := svc.BekukanBO(ctx, risk, sasaran, alasanUji); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 2; i++ {
+		if err := svc.BukaBlokirBO(ctx, risk, sasaran, alasanUji, sesiBaru(t, db, risk)); !errors.Is(err, ErrButuhPersetujuan) {
+			t.Fatalf("sesi ke-%d milik pelaku sendiri: %v", i+1, err)
+		}
+		if err := svc.UbahBatasHarianBO(ctx, risk, sasaran, 100_000, alasanUji, sesiBaru(t, db, risk)); !errors.Is(err, ErrButuhPersetujuan) {
+			t.Fatalf("ubah batas, sesi ke-%d milik pelaku sendiri: %v", i+1, err)
+		}
+	}
+	if jumlahAudit(t, db, risk, "buka_blokir") != 0 || jumlahAudit(t, db, risk, "ubah_batas") != 0 {
+		t.Fatal("percobaan ditolak meninggalkan baris audit")
+	}
+}
+
+// Penyetuju yang akunnya dibekukan sesudah sesinya terbit tidak sah: sesi masih berlaku, akunnya tidak lagi aktif.
+// (Sebelumnya hanya rekaman persetujuan.txt yang menangkapnya.)
+func TestT4APenyetujuYangDibekukanDitolak(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	risk2 := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "belum", 0)
+	if err := svc.BekukanBO(ctx, risk, sasaran, alasanUji); err != nil {
+		t.Fatal(err)
+	}
+	token := sesiBaru(t, db, risk2)
+	if _, err := db.Exec(`UPDATE akun SET status = 'dibekukan' WHERE id = $1`, risk2); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.BukaBlokirBO(ctx, risk, sasaran, alasanUji, token); !errors.Is(err, ErrButuhPersetujuan) {
+		t.Fatalf("buka blokir, penyetuju dibekukan: %v, ingin ErrButuhPersetujuan", err)
+	}
+	if err := svc.UbahBatasHarianBO(ctx, risk, sasaran, 100_000, alasanUji, token); !errors.Is(err, ErrButuhPersetujuan) {
+		t.Fatalf("ubah batas, penyetuju dibekukan: %v, ingin ErrButuhPersetujuan", err)
+	}
+	if st, _ := statusAkun(t, db, sasaran); st != "dibekukan" {
+		t.Fatalf("status %s, ingin tetap dibekukan", st)
+	}
+	if jumlahAudit(t, db, risk, "buka_blokir") != 0 || jumlahAudit(t, db, risk, "ubah_batas") != 0 {
+		t.Fatal("percobaan ditolak meninggalkan baris audit")
+	}
+}
+
+// Penyetuju harus akun risk: sesi app yang sah milik pemakai, karyawan, merchant, atau admin tidak cukup.
+func TestT4APenyetujuBukanAkunRiskDitolak(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "belum", 0)
+	if err := svc.BekukanBO(ctx, risk, sasaran, alasanUji); err != nil {
+		t.Fatal(err)
+	}
+	for _, jenis := range []string{"pemakai", "karyawan", "merchant", "admin"} {
+		lain := akunBO(t, db, jenis, "terverifikasi", 0)
+		if err := svc.BukaBlokirBO(ctx, risk, sasaran, alasanUji, sesiBaru(t, db, lain)); !errors.Is(err, ErrButuhPersetujuan) {
+			t.Errorf("penyetuju berjenis %s: %v, ingin ErrButuhPersetujuan", jenis, err)
+		}
+	}
+	if st, _ := statusAkun(t, db, sasaran); st != "dibekukan" {
+		t.Fatalf("status %s, ingin tetap dibekukan", st)
+	}
+}
+
+// Sesi penyetuju yang sudah kedaluwarsa tidak sah, walau tokennya pernah benar.
+func TestT4APenyetujuDenganSesiKedaluwarsaDitolak(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	risk2 := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "belum", 0)
+	if err := svc.BekukanBO(ctx, risk, sasaran, alasanUji); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.Baru(db).SimpanSesi(ctx, hashToken("sesi-kedaluwarsa-risk2"), risk2, time.Now().Add(-time.Minute), "app", nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.BukaBlokirBO(ctx, risk, sasaran, alasanUji, "sesi-kedaluwarsa-risk2"); !errors.Is(err, ErrButuhPersetujuan) {
+		t.Fatalf("sesi kedaluwarsa sebagai penyetuju: %v, ingin ErrButuhPersetujuan", err)
+	}
+}
+
+// Alasan dari staf masuk ke hash baris audit dengan pemisah 0x1f (HashAudit tidak menyandikan panjang kolom): teks yang
+// memuat 0x1e atau 0x1f bisa menggeser batas antar kolom tanpa mengubah hash. Penjaganya ada di periksaAlasan, yang
+// menolak semua karakter kontrol; tes ini mengunci tiap batasnya.
+func TestT4AAlasanMenolakKarakterKontrolTermasukPemisahHash(t *testing.T) {
+	dasar := strings.Repeat("a", 25)
+	for nama, ch := range map[string]string{"NUL": "\x00", "tab": "\t", "baris baru": "\n", "VT": "\x0b", "RS 0x1e": "\x1e", "US 0x1f": "\x1f", "DEL": "\x7f",
+		"UTF-8 tidak sah": "\xff", "UTF-8 terpotong": "\xe6\x97", "UTF-8 berlebih": "\xc0\xaf", "surrogate": "\xed\xa0\x80"} {
+		if _, err := periksaAlasan(dasar + ch + "b"); err == nil {
+			t.Errorf("alasan berisi %s diterima", nama)
+		}
+	}
+	if _, err := periksaAlasan(dasar + " " + "b"); err != nil {
+		t.Errorf("spasi biasa ditolak: %v", err)
+	}
+	// Panjang dihitung dalam karakter: 20 sampai 300 diterima, 19 dan 301 ditolak (huruf bukan ASCII dihitung satu).
+	for panjang, ingin := range map[int]bool{19: false, 20: true, 300: true, 301: false} {
+		if _, err := periksaAlasan(strings.Repeat("é", panjang)); (err == nil) != ingin {
+			t.Errorf("alasan %d karakter: galat %v, diterima seharusnya %v", panjang, err, ingin)
+		}
+	}
+}
+
+// Akun risk yang dibekukan tidak boleh bertindak, dan penolakannya tidak meninggalkan baris audit.
+func TestT4APetugasRiskYangDibekukanTidakBisaBertindak(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "belum", 0)
+	if _, err := db.Exec(`UPDATE akun SET status = 'dibekukan' WHERE id = $1`, risk); err != nil {
+		t.Fatal(err)
+	}
+	sebelum := totalAudit(t, db)
+	if err := svc.BekukanBO(ctx, risk, sasaran, alasanUji); !errors.Is(err, ErrDibekukan) {
+		t.Errorf("BekukanBO oleh risk dibekukan: %v, ingin ErrDibekukan", err)
+	}
+	if _, err := svc.LihatAkunBO(ctx, risk, sasaran); !errors.Is(err, ErrDibekukan) {
+		t.Errorf("LihatAkunBO oleh risk dibekukan: %v, ingin ErrDibekukan", err)
+	}
+	if st, _ := statusAkun(t, db, sasaran); st != "aktif" {
+		t.Errorf("status %s, ingin tetap aktif", st)
+	}
+	if totalAudit(t, db) != sebelum {
+		t.Error("penolakan meninggalkan baris audit")
+	}
+}
+
+// Tepi rentang batas harian yang boleh diatur tim risk: 1 dan MaksBatasHarianBO diterima, 0 dan MaksBatasHarianBO + 1
+// ditolak. Tes lain hanya menguji nilai jauh di luar rentang, jadi `>=` di tepi atas lolos.
+func TestT4AUbahBatasHarianDiTepiRentang(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	risk2 := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "terverifikasi", 0)
+	batas := func() int64 {
+		var b int64
+		if err := db.QueryRow(`SELECT batas_harian FROM buku WHERE akun_id = $1`, sasaran).Scan(&b); err != nil {
+			t.Fatal(err)
+		}
+		return b
+	}
+	for _, nilai := range []int64{0, MaksBatasHarianBO + 1} {
+		sebelum := batas()
+		if err := svc.UbahBatasHarianBO(ctx, risk, sasaran, nilai, alasanUji, sesiBaru(t, db, risk2)); !errors.As(err, new(ErrValidasi)) {
+			t.Errorf("nilai %d: %v, ingin ErrValidasi", nilai, err)
+		}
+		if batas() != sebelum {
+			t.Errorf("nilai %d ditolak tetapi batas berubah ke %d", nilai, batas())
+		}
+	}
+	for _, nilai := range []int64{1, MaksBatasHarianBO} {
+		if err := svc.UbahBatasHarianBO(ctx, risk, sasaran, nilai, alasanUji, sesiBaru(t, db, risk2)); err != nil {
+			t.Errorf("nilai %d: %v, ingin diterima", nilai, err)
+		}
+		if batas() != nilai {
+			t.Errorf("batas %d, ingin %d", batas(), nilai)
+		}
+	}
+}
+
+// Masukan berbyte UTF-8 tidak sah ditolak sebagai 422 di pintu masuk, sebelum menyentuh akun atau audit: PostgreSQL menolak
+// byte itu dengan 22021 saat baris audit ditulis, dan dulu itu sampai ke pemanggil sebagai 500.
+func TestT4AAlasanUTF8TidakSahDitolakSebelumMenyentuhApaPun(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "belum", 0)
+	rusak := strings.Repeat("a", 25) + "\xff"
+	sebelum := totalAudit(t, db)
+	if err := svc.BekukanBO(ctx, risk, sasaran, rusak); !errors.As(err, new(ErrValidasi)) {
+		t.Errorf("BekukanBO: %v, ingin ErrValidasi", err)
+	}
+	if _, err := svc.BukaBerkas(ctx, risk, 1, "kartu", rusak); !errors.As(err, new(ErrValidasi)) {
+		t.Errorf("BukaBerkas: %v, ingin ErrValidasi", err)
+	}
+	if st, _ := statusAkun(t, db, sasaran); st != "aktif" {
+		t.Errorf("status %s, ingin tetap aktif", st)
+	}
+	if totalAudit(t, db) != sebelum {
+		t.Error("alasan tidak sah meninggalkan baris audit")
+	}
+}
+
+// Dua petugas risk (atau enam permintaan) membuka blokir akun yang sama serentak: tepat satu berhasil dan menulis satu
+// baris audit, sisanya 409, dan rantai tetap utuh. Perubahan batas serentak: semua berhasil, dan nilai akhir sama dengan
+// nilai di baris audit terakhir (audit tidak menyimpang dari keadaan).
+func TestT4APersetujuanSerentakSatuCatatanPerAksiDanRantaiUtuh(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	// Rantai diperiksa utuh: mulai dari log kosong, karena tes lain di schema ini sengaja merusak rantainya.
+	if _, err := db.Exec(`TRUNCATE audit_log RESTART IDENTITY`); err != nil {
+		t.Fatal(err)
+	}
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	risk2 := akunBO(t, db, "risk", "terverifikasi", 0)
+	risk3 := akunBO(t, db, "risk", "terverifikasi", 0)
+	a := akunBO(t, db, "pemakai", "belum", 0)
+	if err := svc.BekukanBO(ctx, risk, a, alasanUji); err != nil {
+		t.Fatal(err)
+	}
+	const n = 6
+	jalankan := func(kerja func(i int, token string) error, penyetuju func(i int) int64) []error {
+		var mulai, selesai sync.WaitGroup
+		mulai.Add(1)
+		hasil := make([]error, n)
+		for i := 0; i < n; i++ {
+			token := sesiBaru(t, db, penyetuju(i))
+			selesai.Add(1)
+			go func() {
+				defer selesai.Done()
+				mulai.Wait()
+				hasil[i] = kerja(i, token)
+			}()
+		}
+		mulai.Done()
+		selesai.Wait()
+		return hasil
+	}
+	gantian := func(i int) int64 { return []int64{risk2, risk3}[i%2] }
+	berhasil, sama := 0, 0
+	for i, err := range jalankan(func(_ int, token string) error { return svc.BukaBlokirBO(ctx, risk, a, alasanUji, token) }, gantian) {
+		switch {
+		case err == nil:
+			berhasil++
+		case errors.Is(err, ErrStatusSama):
+			sama++
+		default:
+			t.Errorf("permintaan %d: %v", i, err)
+		}
+	}
+	if berhasil != 1 || sama != n-1 {
+		t.Errorf("buka blokir serentak: %d berhasil dan %d berstatus sama, ingin 1 dan %d", berhasil, sama, n-1)
+	}
+	if got := jumlahAudit(t, db, risk, "buka_blokir"); got != 1 {
+		t.Errorf("%d baris audit buka_blokir, ingin 1", got)
+	}
+	if st, _ := statusAkun(t, db, a); st != "aktif" {
+		t.Errorf("status %s, ingin aktif", st)
+	}
+	for i, err := range jalankan(func(i int, token string) error {
+		return svc.UbahBatasHarianBO(ctx, risk, a, int64(100_000+10_000*i), alasanUji, token)
+	}, gantian) {
+		if err != nil {
+			t.Errorf("ubah batas %d: %v", i, err)
+		}
+	}
+	var akhir int64
+	var objek string
+	if err := db.QueryRow(`SELECT b.batas_harian, (SELECT objek FROM audit_log WHERE pelaku_id = $1 AND aksi = 'ubah_batas' ORDER BY id DESC LIMIT 1)
+		FROM buku b WHERE b.akun_id = $2`, risk, a).Scan(&akhir, &objek); err != nil {
+		t.Fatal(err)
+	}
+	if want := fmt.Sprintf("akun:%d/batas_harian=%d", a, akhir); objek != want {
+		t.Errorf("baris audit terakhir %q, ingin %q: audit menyimpang dari keadaan akhir", objek, want)
+	}
+	if got := jumlahAudit(t, db, risk, "ubah_batas"); got != n {
+		t.Errorf("%d baris audit ubah_batas, ingin %d", got, n)
+	}
+	if h, err := svc.VerifikasiAuditBO(ctx, risk); err != nil || h.RusakDiID != 0 {
+		t.Fatalf("rantai sesudah permintaan serentak: %+v %v", h, err)
+	}
+}

@@ -1,0 +1,145 @@
+# Lab t4-audit · hak role atas audit_log: aplikasi, pemilik tabel, superuser, dan role baca-saja
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.1 · pgx v5.11.0 · schema tahap4_audit · server Go di 127.0.0.1:18280
+# Rekaman dari database bersih: make -C labs/t4-audit run.
+
+# --- A. Siapa memegang apa: pemilik tabel, superuser, dan hak role aplikasi atas audit_log ---
+=> SELECT rolname, rolsuper FROM pg_roles WHERE rolname IN ('lab', 'api_t4', 't4a_pemilik', 't4a_verifikator', 't4a_agen') ORDER BY rolname
+ rolname         | rolsuper
+-----------------+----------
+ api_t4          | f
+ lab             | t
+ t4a_agen        | f
+ t4a_pemilik     | f
+ t4a_verifikator | f
+(5 rows)
+=> SELECT tablename, tableowner FROM pg_tables WHERE tablename = 'audit_log' AND schemaname = 'tahap4_audit'
+ tablename | tableowner
+-----------+-------------
+ audit_log | t4a_pemilik
+(1 row)
+=> SELECT unnest(relacl)::text AS hak FROM pg_class WHERE relname = 'audit_log' AND relnamespace = 'tahap4_audit'::regnamespace
+ hak
+----------------------------------
+ t4a_pemilik=arwdDxtm/t4a_pemilik
+ api_t4=ar/t4a_pemilik
+ t4a_verifikator=r/t4a_pemilik
+ t4a_agen=r/t4a_pemilik
+(4 rows)
+# relacl: api_t4=ar/t4a_pemilik berarti api_t4 punya a (INSERT) dan r (SELECT), diberikan oleh t4a_pemilik. Tidak ada w (UPDATE), d (DELETE), atau D (TRUNCATE).
+
+# --- B. Sebagai role aplikasi api_t4 (bukan pemilik, bukan superuser): UPDATE, DELETE, dan jalan memutar ditolak ---
+=> [api_t4] SELECT count(*) AS baris FROM audit_log
+ baris
+-------
+ 6
+(1 row)
+=> [api_t4] UPDATE audit_log SET alasan = 'diubah' WHERE id = 2
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [api_t4] UPDATE audit_log SET alasan = 'diubah' WHERE false
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [api_t4] DELETE FROM audit_log WHERE id = 6
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [api_t4] TRUNCATE audit_log
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [api_t4] SELECT id FROM audit_log WHERE id = 1 FOR UPDATE
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [api_t4] ALTER TABLE audit_log DISABLE TRIGGER ALL
+ERROR:  must be owner of table audit_log (SQLSTATE 42501)
+=> [api_t4] ALTER TABLE audit_log OWNER TO api_t4
+ERROR:  must be owner of table audit_log (SQLSTATE 42501)
+=> [api_t4] DROP TABLE audit_log
+ERROR:  must be owner of table audit_log (SQLSTATE 42501)
+=> [api_t4] INSERT INTO audit_log (id, waktu, pelaku_id, peran, aksi, objek, hash_sebelumnya, hash) VALUES (1, now(), 420, 'risk', 'x', 'x', 'x', 'x')
+   ON CONFLICT (id) DO UPDATE SET alasan = 'diubah'
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [api_t4] MERGE INTO audit_log t USING (SELECT 1 AS id) s ON t.id = s.id WHEN MATCHED THEN UPDATE SET alasan = 'diubah'
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [api_t4] CREATE TRIGGER x BEFORE INSERT ON audit_log FOR EACH ROW EXECUTE FUNCTION pg_catalog.suppress_redundant_updates_trigger()
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+# Dibaca dari pemilik schema: jumlah baris dan ringkasan semua hash sama dengan sebelum percobaan: ya.
+# UPDATE ... WHERE false tetap ditolak: PostgreSQL memeriksa hak saat perintah disusun, bukan saat ada baris yang cocok.
+
+# --- C. Sisi yang melewati pembatasan: pemilik tabel dan superuser. Hak tabel membatasi aplikasi, bukan mereka ---
+=> [t4a_pemilik] UPDATE audit_log SET alasan = 'diubah pemilik tabel' WHERE id = 2
+UPDATE 1
+=> [lab] UPDATE audit_log SET alasan = 'diubah superuser' WHERE id = 3
+UPDATE 1
+=> [lab] DELETE FROM audit_log WHERE id = 5
+DELETE 1
+# Dua baris diubah dan satu dihapus. Hak tabel tidak menghalangi mereka. Yang menangkapnya adalah rantai dan jangkar (bagian rantai dan jangkar):
+$ ./auditjob -db <role t4a_verifikator> -jangkar role.jsonl
+baris=5 rantai=putus di baris 2 jangkar_lama=0 temuan=0
+# exit status 2
+# Pemilik tabel boleh mencabut hak dirinya sendiri, tetapi bisa memberikannya lagi:
+=> [t4a_pemilik] REVOKE UPDATE, DELETE, TRUNCATE ON audit_log FROM t4a_pemilik
+REVOKE
+=> [t4a_pemilik] UPDATE audit_log SET alasan = 'diubah lagi' WHERE id = 2
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [t4a_pemilik] GRANT UPDATE ON audit_log TO t4a_pemilik
+GRANT
+=> [t4a_pemilik] UPDATE audit_log SET alasan = 'diubah lagi' WHERE id = 2
+UPDATE 1
+# Superuser melewati semua pemeriksaan hak (dokumentasi GRANT, PostgreSQL 17): tidak ada pencabutan yang menghalanginya.
+# Engineer yang membaca tabel verifikasi sebagai pemilik schema (role lab) tidak meninggalkan baris audit:
+=> [lab] SELECT count(*) AS pengajuan_dibaca FROM verifikasi
+ pengajuan_dibaca
+------------------
+ 1
+(1 row)
+# Baris audit sebelum dan sesudah membaca: sama.
+
+# --- D. Role baca-saja: pemeriksa harian (t4a_verifikator) dan agen back office (t4a_agen) ---
+=> [t4a_verifikator] SELECT count(*) AS baris FROM audit_log
+ baris
+-------
+ 5
+(1 row)
+=> [t4a_verifikator] SELECT id FROM akun WHERE id = 420
+ERROR:  permission denied for table akun (SQLSTATE 42501)
+=> [t4a_verifikator] INSERT INTO audit_log (waktu, pelaku_id, peran, aksi, objek, hash_sebelumnya, hash) VALUES (now(), 420, 'risk', 'x', 'x', 'x', 'x')
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [t4a_verifikator] UPDATE audit_log SET alasan = 'x'
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [t4a_agen] SELECT id, jenis, status, tingkat FROM akun WHERE id = 40001
+ id    | jenis   | status | tingkat
+-------+---------+--------+---------
+ 40001 | pemakai | aktif  | belum
+(1 row)
+=> [t4a_agen] SELECT id, akun_id, subjek, status FROM verifikasi
+ id | akun_id | subjek  | status
+----+---------+---------+----------
+ 1  | 40001   | pemakai | diajukan
+(1 row)
+=> [t4a_agen] SELECT email FROM akun WHERE id = 40001
+ERROR:  permission denied for table akun (SQLSTATE 42501)
+=> [t4a_agen] SELECT nama FROM akun WHERE id = 40001
+ERROR:  permission denied for table akun (SQLSTATE 42501)
+=> [t4a_agen] SELECT * FROM akun
+ERROR:  permission denied for table akun (SQLSTATE 42501)
+=> [t4a_agen] SELECT berkas_kartu_kunci, checksum_kartu FROM verifikasi
+ERROR:  permission denied for table verifikasi (SQLSTATE 42501)
+=> [t4a_agen] SELECT berkas_swafoto_kunci, checksum_swafoto, referensi_vendor FROM verifikasi
+ERROR:  permission denied for table verifikasi (SQLSTATE 42501)
+=> [t4a_agen] SELECT count(*) FROM sesi
+ERROR:  permission denied for table sesi (SQLSTATE 42501)
+=> [t4a_agen] INSERT INTO audit_log (waktu, pelaku_id, peran, aksi, objek, hash_sebelumnya, hash) VALUES (now(), 420, 'risk', 'x', 'x', 'x', 'x')
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [t4a_agen] UPDATE audit_log SET alasan = 'x'
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [t4a_agen] DELETE FROM audit_log
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+=> [t4a_agen] UPDATE akun SET status = 'dibekukan' WHERE id = 40001
+ERROR:  permission denied for table akun (SQLSTATE 42501)
+=> [t4a_agen] TRUNCATE audit_log
+ERROR:  permission denied for table audit_log (SQLSTATE 42501)
+
+# --- E. Yang hak tabel tidak menahan: role aplikasi boleh menambah baris, juga baris yang tak pernah terjadi ---
+# Log dipulihkan ke enam baris yang utuh (pemilik schema, bukan aplikasi), lalu role aplikasi menambah satu baris dengan hash yang dihitung skrip lab:
+=> [api_t4] INSERT INTO audit_log (...) VALUES (... 'buka_berkas', 'verifikasi:1/swafoto', ..., <hash_sebelumnya>, <hash hitungan skrip>)
+INSERT 0 1
+$ ./auditjob -db <role t4a_verifikator> -jangkar role-e.jsonl
+baris=7 rantai=utuh jangkar_lama=0 temuan=0
+jangkar baru: nomor 7
+# exit status 0
+# Hak tabel menahan UPDATE dan DELETE oleh aplikasi, bukan penambahan. Aplikasi yang diambil alih bisa menulis baris yang tak pernah terjadi,
+# rantai tanpa kunci rahasia tidak membedakannya dari baris asli (sama dengan pemilik tabel di rantai.txt bagian C), dan pemeriksaan harian menjangkarkannya.
