@@ -118,7 +118,7 @@ func main() {
 	switch *rentan {
 	case "", service.RentanPushDalamTx, service.RentanEksporPanic, service.RentanStokTimpa, rentanTanpaShutdown, "kursor", "urut-waktu",
 		service.RentanWebhookV1, service.RentanWebhookCekTulis, service.RentanKartuTanpaHold, service.RentanUnduhRentan, service.RentanTanpaAudit,
-		service.RentanVerifikasiTanpaKey, service.RentanBerkasBytea:
+		service.RentanVerifikasiTanpaKey, service.RentanBerkasBytea, service.RentanLogBiasa:
 	default:
 		log.Fatalf("mode rentan tidak dikenal: %s", *rentan)
 	}
@@ -221,7 +221,7 @@ func main() {
 	case service.RentanPushDalamTx:
 		svc = svc.DenganRentan(*rentan, push.Baru(*pushURL, *pushBatas))
 	case service.RentanEksporPanic, service.RentanWebhookV1, service.RentanWebhookCekTulis, service.RentanKartuTanpaHold,
-		service.RentanUnduhRentan, service.RentanTanpaAudit:
+		service.RentanUnduhRentan, service.RentanTanpaAudit, service.RentanLogBiasa:
 		svc = svc.DenganMode(*rentan)
 	}
 	// Batas login bersama (ADR 27): hitungan di Redis, jatuh ke bucket lokal bila Redis gagal atau lewat batas waktu.
