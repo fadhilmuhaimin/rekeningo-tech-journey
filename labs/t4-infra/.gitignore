@@ -1,0 +1,5 @@
+/.bin/
+/.bin-host/
+/.cache-tofu/
+/.kerja/
+__pycache__/
