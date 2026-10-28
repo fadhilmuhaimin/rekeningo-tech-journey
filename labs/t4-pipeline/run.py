@@ -767,7 +767,10 @@ def buat_kunci(nama):
 
 def tanda_tangani(ref, kunci, judul, tampil_deprecated=False):
     kode, keluar, galat = cosign("sign", "--key", kunci, "--tlog-upload=false", "--use-signing-config=false", ref)
-    baris = [b for b in (galat + keluar).splitlines() if b.strip()]   # stderr dulu: urutan dua aliran saat dicampur tidak tetap
+    baris = [b for b in (galat + keluar).splitlines() if b.strip()]
+    # Dua baris kemajuan ditulis dari goroutine berbeda dan urutannya berubah di bawah beban: tulis dalam urutan tetap.
+    kemajuan = sorted((b for b in baris if b.startswith(("Signing artifact", "Pushing signature"))), key=lambda b: b.startswith("Pushing"))
+    baris = [b for b in baris if not b.startswith(("Signing artifact", "Pushing signature"))] + kemajuan
     if not tampil_deprecated:
         baris = [b for b in baris if not b.startswith("Flag --")]
     perintah_tampil(f"cosign sign --key kunci-1/cosign.key --tlog-upload=false --use-signing-config=false {samar(ref)}", "\n".join(baris), kode)
