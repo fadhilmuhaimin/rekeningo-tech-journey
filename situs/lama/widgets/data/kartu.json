@@ -2301,7 +2301,7 @@
   "judul": "3.32 Jembatan: pratinjau PRD v4",
   "url": "tahap-3/jembatan-prd-v4/",
   "tanya": "Puncak request naik 8 kali di PRD v4. Kenapa kenaikan itu tidak membuat pool atau worker pecah lebih dulu?",
-  "jawab": "Puncak ±138,9 request per detik adalah Asumsi. L semua request 138,9 × 0,02 = 2,78 koneksi dari batas 18. Pemakaian worker 56% dari 13,33 per detik (Hitungan; W dan jumlah pengirim Asumsi). Keduanya masih di bawah batas. Yang pecah lebih dulu adalah syarat yang ditulis ADR sendiri."
+  "jawab": "Puncak ±138,9 request per detik adalah Asumsi. L semua request 138,9 × 0,02 = 2,78 koneksi dari batas 18. Pemakaian worker 56% dari 13,33 per detik (Hitungan; W dan jumlah pengirim Asumsi). Keduanya masih di bawah batas, jadi yang pecah lebih dulu adalah syarat yang ditulis ADR sendiri."
  },
  {
   "id": "t3-jembatan-2",

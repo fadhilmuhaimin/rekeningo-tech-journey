@@ -656,7 +656,7 @@ describe("kartu Cek diri: tiga kartu sama dengan kartu.json, fakta sama dengan h
   test("jawaban memuat fakta yang sama dengan hitungan: 8 kali, 138,9, 2,78 dari batas 18, 56% dari 13,33, empat ADR", () => {
     expect(soal[0]!.tanya).toBe(`Puncak request naik ${naik} kali di PRD v4. Kenapa kenaikan itu tidak membuat pool atau worker pecah lebih dulu?`);
     expect(soal[0]!.jawab).toBe(
-      `Puncak ±${koma(p4, 1)} request per detik adalah Asumsi. L semua request ${koma(p4, 1)} × ${koma(WPOOL, 2)} = ${koma(lPool, 2)} koneksi dari batas 18. Pemakaian worker ${Math.round((notif4 / kapasitas) * 100)}% dari ${koma(kapasitas, 2)} per detik (Hitungan; W dan jumlah pengirim Asumsi). Keduanya masih di bawah batas. Yang pecah lebih dulu adalah syarat yang ditulis ADR sendiri.`,
+      `Puncak ±${koma(p4, 1)} request per detik adalah Asumsi. L semua request ${koma(p4, 1)} × ${koma(WPOOL, 2)} = ${koma(lPool, 2)} koneksi dari batas 18. Pemakaian worker ${Math.round((notif4 / kapasitas) * 100)}% dari ${koma(kapasitas, 2)} per detik (Hitungan; W dan jumlah pengirim Asumsi). Keduanya masih di bawah batas, jadi yang pecah lebih dulu adalah syarat yang ditulis ADR sendiri.`,
     );
     expect(soal[1]!.tanya).toBe("Sebutkan keadaan yang ditulis ADR 22, ADR 25, ADR 26, dan ADR 32 sendiri.");
     expect(soal[1]!.jawab).toBe(

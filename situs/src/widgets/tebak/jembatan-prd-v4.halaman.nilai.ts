@@ -95,7 +95,7 @@ export const BARIS_MDX: string[] = [
  "**1.** Puncak request naik 8 kali di PRD v4. Kenapa kenaikan itu tidak membuat pool atau worker pecah lebih dulu?",
  "<details class=\"success\">",
  "<summary>Jawaban</summary>",
- "Puncak ±138,9 request per detik adalah Asumsi. L semua request 138,9 × 0,02 = 2,78 koneksi dari batas 18. Pemakaian worker 56% dari 13,33 per detik (Hitungan; W dan jumlah pengirim Asumsi). Keduanya masih di bawah batas. Yang pecah lebih dulu adalah syarat yang ditulis ADR sendiri.",
+ "Puncak ±138,9 request per detik adalah Asumsi. L semua request 138,9 × 0,02 = 2,78 koneksi dari batas 18. Pemakaian worker 56% dari 13,33 per detik (Hitungan; W dan jumlah pengirim Asumsi). Keduanya masih di bawah batas, jadi yang pecah lebih dulu adalah syarat yang ditulis ADR sendiri.",
  "</details>",
  "**2.** Sebutkan keadaan yang ditulis ADR 22, ADR 25, ADR 26, dan ADR 32 sendiri.",
  "<details class=\"success\">",
