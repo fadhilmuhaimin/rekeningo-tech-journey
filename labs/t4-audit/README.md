@@ -98,7 +98,7 @@ Naskah tidak diubah (usulan masuk badan PR, `### USULAN-CERITA`). Yang rekaman p
 
 Dijalankan pelaksana lab ini: 57 mutan baru, satu perubahan per mutan pada salinan terpisah di folder sementara (`mutasi/jalankan.py`, daftar di `mutasi/daftar.py`; bisa diulang peninjau). Schema tes, role, dan `audit_log` dibangun ulang sebelum tiap mutan, karena `audit_log` append-only dan role bersifat global: satu mutan yang menulis hash lain meracuni run berikutnya. Hasil dibaca dari nama tes yang gagal atau dari pesan `run.py` yang gagal keras atau rekaman yang berbeda, bukan dari koneksi yang mati. Lima mutan pertama (R1, O1, O2, O3, O9) tidak dikompilasi atau jangkarnya salah, lalu diulang dalam bentuk yang sah.
 
-Hasil: 56 dari 57 tertangkap (30 kali oleh tes Go api-t4 bertag `t4audit`, 16 kali oleh tes modul MCP, 22 kali oleh rekaman lab; satu mutan bisa tertangkap beberapa runner). Satu lolos dan dianggap setara: K9 membuang `Sync` sesudah menulis jangkar, dan durabilitas tulisan tidak bisa diuji tanpa mematikan proses atau mesin. Dua kelas bug punya tes sendiri sebelum uji mutasi dijalankan, karena sering terlewat: pelaporan baris pertama yang putus (V1; `MelaporkanBarisPutusPertama`) dan perbandingan hash yang menormalkan bentuk (huruf besar, spasi; `MenolakHashBerbentukLainWalauNilainyaSama`, K1). Di antara tes bertag t4audit, mutan O3 (penyetuju yang dibekukan) semula hanya tertangkap rekaman `persetujuan.txt`; tinjauan menambah `PenyetujuYangDibekukanDitolak`.
+Hasil pelaksana: 56 dari 57 tertangkap (30 kali oleh tes Go api-t4 bertag `t4audit`, 16 kali oleh tes modul MCP, 22 kali oleh rekaman lab; satu mutan bisa tertangkap beberapa runner). Satu lolos dan dianggap setara: K9 membuang `Sync` sesudah menulis jangkar, dan durabilitas tulisan tidak bisa diuji tanpa mematikan proses atau mesin. Dua kelas bug punya tes sendiri sebelum uji mutasi dijalankan, karena sering terlewat: pelaporan baris pertama yang putus (V1; `MelaporkanBarisPutusPertama`) dan perbandingan hash yang menormalkan bentuk (huruf besar, spasi; `MenolakHashBerbentukLainWalauNilainyaSama`, K1). Di antara tes bertag t4audit, mutan O3 (penyetuju yang dibekukan) semula hanya tertangkap rekaman `persetujuan.txt`; tinjauan menambah `PenyetujuYangDibekukanDitolak`.
 
 | Kode | File | Mutan | Ditangkap oleh |
 |---|---|---|---|
@@ -159,6 +159,27 @@ Hasil: 56 dari 57 tertangkap (30 kali oleh tes Go api-t4 bertag `t4audit`, 16 ka
 | M10 | `mcp/agen/agen.go` | server berstatus (opsi bawaan SDK) | `TokenMasukTidakDiteruskanDanTokenLainDitolak`; rekaman mcp |
 | M12 | `mcp/agen/agen.go` | rumus hash modul MCP memakai milidetik | `HashBarisCocokDenganVektorPython` |
 | M13 | `mcp/agen/agen.go` | verifikasi MCP tanpa sambungan hash sebelumnya | `VerifikasiRantaiUtuhPutusDanTepi` |
+
+### Mutan peninjau
+
+Dijalankan peninjau dengan tambahan 54 mutan (seri Q, W, B, G, N di `mutasi/daftar.py`; runner `luas` menjalankan juga tes api-t4 tanpa tag untuk back office dan audit). Tiap `lama` muncul tepat sekali di berkasnya, dan tanpa perubahan harness lolos. Seluruh 111 mutan diulang sesudah gabung main dan sesudah semua tes tambahan: 107 tertangkap, 4 setara.
+
+| Mutan | Apa yang diubah | Yang menangkap sekarang |
+|---|---|---|
+| Q10, Q11 | verifikasi memotong waktu ke detik; verifikasi membuang `penyetuju_id` dari hitungan | `RantaiMendeteksiPerubahanDiSetiapKolomYangDiHash`, `RantaiWaktuDenganPecahanSubDetik` (semula hanya tes tanpa tag) |
+| Q5 | kunci advisory penulis dibuang | `RantaiPenulisSerentakTidakBercabang` (semula hanya tes tanpa tag) |
+| W1, W2 | regex hash jangkar tanpa `^` atau dengan `{64,}` | `BerkasJangkarRusakDitolak` (kasus berawalan dan terlalu panjang) |
+| W3 | semua galat membuka berkas jangkar dibaca "belum ada jangkar" | `BerkasJangkarYangTidakBisaDibacaMenggagalkanPembacaan` |
+| W4 | galat pemindai (baris lebih dari 1 MiB) dibuang | `BerkasJangkarBarisTerlaluPanjangMenggagalkanPembacaan` |
+| B1, B2 | `periksaAlasan` menerima 0x1f atau 0x7f | `AlasanMenolakKarakterKontrolTermasukPemisahHash` |
+| B4, B5 | tepi bawah dan atas batas harian | `UbahBatasHarianDiTepiRentang` |
+| B6 | petugas risk yang dibekukan boleh bertindak | `PetugasRiskYangDibekukanTidakBisaBertindak` (semula hanya tes tanpa tag) |
+| B9 | batas atas panjang alasan 3.000 | `AlasanMenolakKarakterKontrolTermasukPemisahHash` (semula hanya tes tanpa tag) |
+| G3 | agen membaca kunci objek swafoto | `HakRoleBacaSajaPersisSamaDenganDaftarPutih`, rekaman `role.txt` |
+| N2, N4 | `siapa_membuka` mencocokkan awalan nomor akun; `BatasBawaan` 21 | `BatasBawaanDanAwalanTidakBocorLintasAkun` |
+| N16, N17 | `http.Head` atau `http.Post` di sumber server MCP | `SumberHanyaMemakaiRujukanHttpYangDiizinkanUntukServer` |
+
+Setara (tidak bisa dibedakan dari perilaku asli): K9 (`Sync`), Q13 (`TrimSpace` pada `hash_sebelumnya`: hash baris dihitung dari nilai yang tidak dipangkas, jadi baris tetap putus), N13 dan N14 (`Utuh` selalu ditimpa dari `RusakDiID`; `Baris == 0` berarti `RusakDiID == 0`). Hanya rekaman yang menangkap: K11, O4, O6, O7, O8, P1, P4, P5, P8, W6, W7, B8, G1, G5 sampai G9, N5, N8, N12; tes bertag yang menjaga hal yang sama belum ada.
 
 Tidak termasuk: mutasi atas `vektor.py` dan `run.py` (alat lab; tiga implementasi hash saling dibandingkan lewat `vektor-hash.json`, dan bila salah satu salah, tes atau rekaman gagal).
 
