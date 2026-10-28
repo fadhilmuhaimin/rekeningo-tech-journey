@@ -379,7 +379,8 @@ def bagian_klien():
           sorted(["+  badan._(r'badan'),", "+        case r'badan': return AkunJenisEnum.badan;"]), "baris yang berubah (enum)")
     for b in baris:
         catat(b)
-    lama = (gen / "klien-sebelum/lib/model/akun.dart").read_text().splitlines()
+    kode_dart = (gen / "klien-sebelum/lib/model/akun.dart").read_text()
+    lama = kode_dart.splitlines()
     nomor = [i + 1 for i, b in enumerate(lama) if "jenis: AkunJenisEnum.fromJson(json[r'jenis'])!," in b]
     harap(len(nomor), 1, "baris penguraian enum wajib di client")
     catat()
@@ -390,6 +391,10 @@ def bagian_klien():
     harap(len(dekode), 1, "baris decode enum di client")
     catat(f"$ sed -n {dekode[0]}p klien-sebelum/lib/model/akun.dart")
     catat(lama[dekode[0] - 1].strip())
+    blok_enum = kode_dart.split("class AkunJenisEnumTypeTransformer", 1)[1].split("\nclass ", 1)[0]
+    harap(len(re.findall(r"AkunJenisEnum\? decode\(dynamic data, \{bool allowNull = true\}\)", blok_enum)), 1, "decode enum jenis memakai allowNull = true")
+    harap(bool(re.search(r"default:\s*if \(!allowNull\) \{\s*throw ArgumentError\([^)]*\);\s*\}\s*\}\s*\}\s*return null;", blok_enum)), True,
+          "nilai tak dikenal tanpa allowNull=false berakhir di return null")
     catat("# decode tanpa argumen allowNull memakai bawaan true: nilai tak dikenal menjadi null, bukan galat. `jenis` wajib, jadi")
     catat("# null itu dipaksa non-null oleh `!`: client lama yang menerima `badan` berhenti dengan galat null check (semantik Dart),")
     catat("# bukan menampilkan nilai itu. Jalannya di Dart Tidak dijalankan.")
@@ -495,7 +500,22 @@ def bagian_sast():
     lulus, alasan = g.putuskan_gosec(temuan, galat, stat)
     harap(lulus, False, "putusan gosec atas contoh")
     catat(f"gerbang gosec (ambang MEDIUM): GAGAL ({alasan})")
-    catat("# Aturannya G701 (analisis taint), bukan G201: gosec 2.30.0 memakai aturan itu untuk fmt.Sprintf ke database/sql.")
+    catat("# Pada contoh ini aturannya G701 (analisis taint: os.Args[1] mengalir ke db.Query), bukan G201 atau G202.")
+    catat("# Pola query lain tidak dicoba di lab ini.")
+
+    bagian("A2. G701 melapor aliran dari sumber input: query yang sama dengan masukan konstanta")
+    tanpa = salin_contoh("contoh-tanpa-taint")
+    (tanpa / "temuan.go").write_text(ganti_tepat_satu((tanpa / "temuan.go").read_text(), "cariAkun(db, os.Args[1])", 'cariAkun(db, "A1")'))
+    kode, keluar, _ = jalankan_gosec(tanpa)
+    temuan, galat, stat = g.parse_gosec(keluar, str(tanpa))
+    perintah_tampil("gosec -fmt=json ./...   # temuan.go dengan cariAkun(db, \"A1\"): masukan konstanta", "", kode)
+    harap((kode, temuan, galat, stat["files"], stat["found"]), (0, [], [], 2, 0), "gosec atas contoh dengan masukan konstanta")
+    catat(f"statistik: {stat['files']} berkas, {stat['found']} temuan; query yang sama dengan fmt.Sprintf tidak dilaporkan")
+    lulus, alasan = g.putuskan_gosec(temuan, galat, stat)
+    harap(lulus, True, "putusan gosec atas contoh tanpa sumber input")
+    catat(f"gerbang gosec (ambang MEDIUM): LULUS ({alasan})")
+    catat("# LULUS di sini bukan bukti query aman: tanpa sumber input yang terlacak, G701 tidak melapor. G201 dan G202 ada di daftar")
+    catat("# aturan gosec 2.30.0 (gosec -h) dan tidak melapor di kode ini.")
 
     bagian("B. gosec gagal terbuka: kode yang tidak terkompilasi")
     rusak = salin_contoh("contoh-rusak")
@@ -626,7 +646,7 @@ def biner_linux():
 def bangun_dorong(repo, tag, varian, nama):
     """Bangun image dari Dockerfile lab dengan isi varian.txt = varian, dorong ke registry lokal, dan kembalikan digest
     yang dibaca dari keluaran `docker push` (bukan ditulis tangan). Digest diberi label tetap `nama` di rekaman."""
-    konteks = reset_dir(KERJA / "konteks-" + nama.lower() if False else KERJA / f"konteks-{nama.lower()}")
+    konteks = reset_dir(KERJA / f"konteks-{nama.lower()}")
     shutil.copy(biner_linux(), konteks / "api-t4")
     shutil.copy(HERE / "Dockerfile", konteks / "Dockerfile")
     (konteks / "varian.txt").write_text(varian + "\n")
