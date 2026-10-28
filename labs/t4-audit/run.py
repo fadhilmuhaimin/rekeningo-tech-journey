@@ -534,6 +534,11 @@ def rekam_persetujuan():
     s, _ = curl("POST", "/bo/akun/40001/bekukan", {"alasan": "terlalu pendek"}, ratih)
     harap(s, 422, "alasan pendek")
     sql("SELECT count(*) AS baris_audit FROM audit_log")
+    for nama, kode in (("byte UTF-8 tidak sah (%FF)", "%FF"), ("byte NUL (%00)", "%00")):
+        s, _ = ambil_biner(f"/bo/verifikasi/1/berkas/kartu?alasan=Pemeriksaan+kartu+identitas+atas+laporan{kode}", ratih)
+        harap(s, 422, f"alasan di query dengan {nama}")
+        catat(f"GET /bo/verifikasi/1/berkas/kartu?alasan=...{kode}: HTTP {s} ({nama} di alasan ditolak sebelum menyentuh audit atau berkas)")
+    harap(audit_n(), 0, "alasan tidak sah tidak menulis audit")
     s, _ = curl("POST", "/bo/akun/40001/bekukan", {"alasan": "Dugaan akun dipakai pihak lain, menunggu konfirmasi"}, ratih)
     harap(s, 204, "pembekuan darurat")
     sql("SELECT id, pelaku_id, aksi, objek, penyetuju_id FROM audit_log ORDER BY id")

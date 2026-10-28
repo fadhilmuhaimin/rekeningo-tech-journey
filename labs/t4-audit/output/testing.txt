@@ -41,10 +41,12 @@ ok    lab/apit4/internal/jangkar
 --- PASS: TestT4APenyetujuDenganSesiKedaluwarsaDitolak
 --- PASS: TestT4AAlasanMenolakKarakterKontrolTermasukPemisahHash
 --- PASS: TestT4AUbahBatasHarianDiTepiRentang
+--- PASS: TestT4AAlasanUTF8TidakSahDitolakSebelumMenyentuhApaPun
+--- PASS: TestT4APersetujuanSerentakSatuCatatanPerAksiDanRantaiUtuh
 PASS
 ok    lab/apit4/internal/service
 # exit status 0
-# 29 tes bertag t4audit di api-t4, semuanya muncul PASS di keluaran di atas.
+# 31 tes bertag t4audit di api-t4, semuanya muncul PASS di keluaran di atas.
 
 # --- B. Modul MCP (go.mod sendiri): vet, tes, dan checksum modul ---
 $ go vet ./...   # di labs/t4-audit/mcp

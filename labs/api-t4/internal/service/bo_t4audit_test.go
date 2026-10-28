@@ -6,7 +6,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -199,7 +201,8 @@ func TestT4APenyetujuDenganSesiKedaluwarsaDitolak(t *testing.T) {
 // menolak semua karakter kontrol; tes ini mengunci tiap batasnya.
 func TestT4AAlasanMenolakKarakterKontrolTermasukPemisahHash(t *testing.T) {
 	dasar := strings.Repeat("a", 25)
-	for nama, ch := range map[string]string{"NUL": "\x00", "tab": "\t", "baris baru": "\n", "VT": "\x0b", "RS 0x1e": "\x1e", "US 0x1f": "\x1f", "DEL": "\x7f"} {
+	for nama, ch := range map[string]string{"NUL": "\x00", "tab": "\t", "baris baru": "\n", "VT": "\x0b", "RS 0x1e": "\x1e", "US 0x1f": "\x1f", "DEL": "\x7f",
+		"UTF-8 tidak sah": "\xff", "UTF-8 terpotong": "\xe6\x97", "UTF-8 berlebih": "\xc0\xaf", "surrogate": "\xed\xa0\x80"} {
 		if _, err := periksaAlasan(dasar + ch + "b"); err == nil {
 			t.Errorf("alasan berisi %s diterima", nama)
 		}
@@ -240,5 +243,108 @@ func TestT4AUbahBatasHarianDiTepiRentang(t *testing.T) {
 		if batas() != nilai {
 			t.Errorf("batas %d, ingin %d", batas(), nilai)
 		}
+	}
+}
+
+// Masukan berbyte UTF-8 tidak sah ditolak sebagai 422 di pintu masuk, sebelum menyentuh akun atau audit: PostgreSQL menolak
+// byte itu dengan 22021 saat baris audit ditulis, dan dulu itu sampai ke pemanggil sebagai 500.
+func TestT4AAlasanUTF8TidakSahDitolakSebelumMenyentuhApaPun(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	sasaran := akunBO(t, db, "pemakai", "belum", 0)
+	rusak := strings.Repeat("a", 25) + "\xff"
+	sebelum := totalAudit(t, db)
+	if err := svc.BekukanBO(ctx, risk, sasaran, rusak); !errors.As(err, new(ErrValidasi)) {
+		t.Errorf("BekukanBO: %v, ingin ErrValidasi", err)
+	}
+	if _, err := svc.BukaBerkas(ctx, risk, 1, "kartu", rusak); !errors.As(err, new(ErrValidasi)) {
+		t.Errorf("BukaBerkas: %v, ingin ErrValidasi", err)
+	}
+	if st, _ := statusAkun(t, db, sasaran); st != "aktif" {
+		t.Errorf("status %s, ingin tetap aktif", st)
+	}
+	if totalAudit(t, db) != sebelum {
+		t.Error("alasan tidak sah meninggalkan baris audit")
+	}
+}
+
+// Dua petugas risk (atau enam permintaan) membuka blokir akun yang sama serentak: tepat satu berhasil dan menulis satu
+// baris audit, sisanya 409, dan rantai tetap utuh. Perubahan batas serentak: semua berhasil, dan nilai akhir sama dengan
+// nilai di baris audit terakhir (audit tidak menyimpang dari keadaan).
+func TestT4APersetujuanSerentakSatuCatatanPerAksiDanRantaiUtuh(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	// Rantai diperiksa utuh: mulai dari log kosong, karena tes lain di schema ini sengaja merusak rantainya.
+	if _, err := db.Exec(`TRUNCATE audit_log RESTART IDENTITY`); err != nil {
+		t.Fatal(err)
+	}
+	risk := akunBO(t, db, "risk", "terverifikasi", 0)
+	risk2 := akunBO(t, db, "risk", "terverifikasi", 0)
+	risk3 := akunBO(t, db, "risk", "terverifikasi", 0)
+	a := akunBO(t, db, "pemakai", "belum", 0)
+	if err := svc.BekukanBO(ctx, risk, a, alasanUji); err != nil {
+		t.Fatal(err)
+	}
+	const n = 6
+	jalankan := func(kerja func(i int, token string) error, penyetuju func(i int) int64) []error {
+		var mulai, selesai sync.WaitGroup
+		mulai.Add(1)
+		hasil := make([]error, n)
+		for i := 0; i < n; i++ {
+			token := sesiBaru(t, db, penyetuju(i))
+			selesai.Add(1)
+			go func() {
+				defer selesai.Done()
+				mulai.Wait()
+				hasil[i] = kerja(i, token)
+			}()
+		}
+		mulai.Done()
+		selesai.Wait()
+		return hasil
+	}
+	gantian := func(i int) int64 { return []int64{risk2, risk3}[i%2] }
+	berhasil, sama := 0, 0
+	for i, err := range jalankan(func(_ int, token string) error { return svc.BukaBlokirBO(ctx, risk, a, alasanUji, token) }, gantian) {
+		switch {
+		case err == nil:
+			berhasil++
+		case errors.Is(err, ErrStatusSama):
+			sama++
+		default:
+			t.Errorf("permintaan %d: %v", i, err)
+		}
+	}
+	if berhasil != 1 || sama != n-1 {
+		t.Errorf("buka blokir serentak: %d berhasil dan %d berstatus sama, ingin 1 dan %d", berhasil, sama, n-1)
+	}
+	if got := jumlahAudit(t, db, risk, "buka_blokir"); got != 1 {
+		t.Errorf("%d baris audit buka_blokir, ingin 1", got)
+	}
+	if st, _ := statusAkun(t, db, a); st != "aktif" {
+		t.Errorf("status %s, ingin aktif", st)
+	}
+	for i, err := range jalankan(func(i int, token string) error {
+		return svc.UbahBatasHarianBO(ctx, risk, a, int64(100_000+10_000*i), alasanUji, token)
+	}, gantian) {
+		if err != nil {
+			t.Errorf("ubah batas %d: %v", i, err)
+		}
+	}
+	var akhir int64
+	var objek string
+	if err := db.QueryRow(`SELECT b.batas_harian, (SELECT objek FROM audit_log WHERE pelaku_id = $1 AND aksi = 'ubah_batas' ORDER BY id DESC LIMIT 1)
+		FROM buku b WHERE b.akun_id = $2`, risk, a).Scan(&akhir, &objek); err != nil {
+		t.Fatal(err)
+	}
+	if want := fmt.Sprintf("akun:%d/batas_harian=%d", a, akhir); objek != want {
+		t.Errorf("baris audit terakhir %q, ingin %q: audit menyimpang dari keadaan akhir", objek, want)
+	}
+	if got := jumlahAudit(t, db, risk, "ubah_batas"); got != n {
+		t.Errorf("%d baris audit ubah_batas, ingin %d", got, n)
+	}
+	if h, err := svc.VerifikasiAuditBO(ctx, risk); err != nil || h.RusakDiID != 0 {
+		t.Fatalf("rantai sesudah permintaan serentak: %+v %v", h, err)
 	}
 }

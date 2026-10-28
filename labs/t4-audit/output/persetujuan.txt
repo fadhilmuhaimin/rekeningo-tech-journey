@@ -14,6 +14,8 @@ Content-Type: application/problem+json
 -------------
  0
 (1 row)
+GET /bo/verifikasi/1/berkas/kartu?alasan=...%FF: HTTP 422 (byte UTF-8 tidak sah (%FF) di alasan ditolak sebelum menyentuh audit atau berkas)
+GET /bo/verifikasi/1/berkas/kartu?alasan=...%00: HTTP 422 (byte NUL (%00) di alasan ditolak sebelum menyentuh audit atau berkas)
 $ curl -i -X POST '/bo/akun/40001/bekukan' -H 'Authorization: Bearer <token sesi Ratih>' -d '{"alasan": "Dugaan akun dipakai pihak lain, menunggu konfirmasi"}'
 HTTP/1.1 204 No Content
 
