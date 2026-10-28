@@ -174,7 +174,10 @@ export function simulasiQueue(p: Param, a: Aturan): HasilQueue {
     proses(t);
     const status = b ? b.keadaan(t) : "closed";
     const baris: SelQueue = { detik: t, status, percobaan: 0, gagal: 0 };
-    for (;;) {
+    // Tiap putaran menerima paling sedikit satu percobaan baru dan percobaan seluruhnya terbatas: lebih dari itu berarti klaim ganda,
+    // dan tab pembaca tidak boleh membeku (tinjauan W4-breaker, keputusan 1265).
+    for (let putaran = 0; ; putaran++) {
+      if (putaran > a.pekerjaan * a.percobaan + 2) throw new Error("simulasi queue tidak berhenti: percobaan melebihi batas");
       proses(t);
       const k = b ? b.keadaan(t) : "closed";
       if (k === "open") break;

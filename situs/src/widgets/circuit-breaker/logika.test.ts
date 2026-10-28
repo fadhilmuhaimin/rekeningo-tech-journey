@@ -168,6 +168,17 @@ describe("jalur queue", () => {
   });
 });
 
+describe("worker: pekerjaan yang sedang berjalan tidak diklaim lagi (tinjauan W4-breaker, keputusan 1265)", () => {
+  // Dengan 10 pekerjaan dan paling banyak 4 slot, pekerjaan yang berjalan selalu di luar `batas`; slot lebih banyak daripada pekerjaan
+  // yang menunggu baru menunjukkan klaim ganda. Dua pekerjaan, empat slot, latensi 2 detik: tiap pekerjaan 5 percobaan berurutan.
+  it("dua pekerjaan dan empat slot: tiap pekerjaan lima percobaan satu per satu, sepuluh permintaan, tanpa klaim ganda", () => {
+    const h = simulasiQueue({ ...Q, breaker: false, latensi: 2, serentak: 4 }, { ...A, pekerjaan: 2 });
+    expect(h.pekerjaan.map((j) => [j.status, j.percobaan, j.riwayat.length])).toEqual([["mati", 5, 5], ["mati", 5, 5]]);
+    expect(h.kevendor).toBe(10);
+    expect(h.sel.filter((s) => s.percobaan > 0).map((s) => [s.detik, s.percobaan])).toEqual([[0, 2], [2, 2], [4, 2], [6, 2], [8, 2]]);
+  });
+});
+
 describe("ringkas, jalankan, dan kalimat", () => {
   it("jalankan memilih jalur dan memberi tanda jalur", () => {
     expect(jalankan(S, A).jalur).toBe("sinkron");

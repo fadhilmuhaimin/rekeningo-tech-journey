@@ -250,6 +250,15 @@ describe("tebakan, tombol, dan label kejujuran", () => {
     expect(T.hitungan.outage).toMatch(/Hitungan atas angka naskah, tidak dijalankan/);
     expect(T.catatan.probe).toMatch(/tes lab, bukan rekaman/);
     expect(L.tanpaAcuan).toMatch(/Simulasi/);
+    // Arti Simulasi di pemakaian pertama di prosa (gaya-bahasa: label turunan tidak ada di /cara-pakai/).
+    expect(L.tanpaAcuan).toMatch(/Simulasi, dihitung widget ini/);
+    expect(T.catatan.sinkron).toMatch(/Simulasi: dihitung widget ini, bukan direkam/);
+    // Jawaban 1 hanya berlaku bila pekerjaan yang gagal langsung diulang (backoff 0, lajur.txt bagian B): tanpa premis itu pertanyaannya menyesatkan.
+    expect(T.pertanyaan).toMatch(/mengulang pekerjaan yang gagal tanpa jeda, seperti di lab/);
+    expect(TEKS.lajur).toMatch(/worker yang berputar terus: kapasitas 1, lima percobaan, tanpa backoff, breaker/);
+    expect(T.hitungan.worker).toMatch(/^Bila tiap percobaan menunggu sampai timeout, verifikasi/);
+    expect(T.acuanTeks["queue-empat"]).toContain(`Widget memakai ${R.lajur.pendaftar} pekerjaan.`);
+    expect(R.lajur.c.lulus).not.toBe(R.lajur.pendaftar); // rekaman bagian C memakai pekerjaan lebih sedikit daripada widget
     expect(T.asal.butir.some((b) => b.startsWith("Simulasi:"))).toBe(true);
     expect(T.asal.butir.some((b) => b.startsWith("Rekaman lab:"))).toBe(true);
     expect(T.asal.butir.some((b) => b.startsWith("Hitungan, Asumsi:"))).toBe(true);
@@ -279,9 +288,6 @@ describe("teks yang tampil dikunci kata demi kata terhadap angka rekaman", () =>
   const N = R.lajur.pendaftar;
   it("pertanyaan tebakan memuat pekerjaan, percobaan, dan ambang dari rekaman", () => {
     expect(T.pertanyaan).toBe(`Layanan verifikasi mati, dan ${N} pekerjaan verifikasi menunggu di queue. Satu worker mengerjakannya satu per satu dan mengulang pekerjaan yang gagal tanpa jeda, seperti di lab, dengan paling banyak ${R.worker.percobaan} percobaan per pekerjaan. Breaker membuka sesudah lebih dari ${R.breaker.lebihDari} gagal berturut-turut. Berapa pekerjaan sudah mati ketika breaker membuka?`);
-    // Jawaban 1 hanya berlaku bila pekerjaan yang gagal langsung diulang (backoff 0, lajur.txt bagian B): tanpa premis itu pertanyaannya menyesatkan.
-    expect(T.pertanyaan).toMatch(/mengulang pekerjaan yang gagal tanpa jeda, seperti di lab/);
-    expect(TEKS.lajur).toMatch(/worker yang berputar terus: kapasitas 1, lima percobaan, tanpa backoff, breaker/);
   });
   it("pilihan tebakan dan alasannya", () => {
     expect(T.pilihan).toEqual([
