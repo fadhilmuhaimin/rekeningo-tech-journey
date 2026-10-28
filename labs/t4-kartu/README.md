@@ -33,7 +33,7 @@ Dependency baru di lab ini: tidak ada. Paket baru memakai pustaka standar, pgx, 
 - `internal/modul/ledger/klien.go`: `TahanKartu` dan `ErrSibuk` (503 `sibuk`); `KreditTopup` dan `TahanKartu` memakai satu fungsi kirim yang sama.
 - `cmd/penerbit`: catatan keputusan penerbit (`GET /lab/keputusan`, `POST /lab/reset`) dan `-api-otorisasi` (otorisasi ke service pembayaran, clearing dan reversal tetap ke monolith).
 - `cmd/api`: `-lab-sekarang` berlaku juga untuk job `-kedaluwarsa-hold`, supaya batas 7 hari diperankan.
-- Tes Go baru: `internal/service/ledger_kartu_test.go` (11), `internal/handler/ledger_kartu_test.go` (4), `internal/modul/pembayaran/kartu_test.go` (12).
+- Tes Go baru: `internal/service/ledger_kartu_test.go` (11), `internal/handler/ledger_kartu_test.go` (4), `internal/modul/pembayaran/kartu_test.go` (13).
 
 ## Rekaman
 
@@ -78,4 +78,71 @@ Dependency baru di lab ini: tidak ada. Paket baru memakai pustaka standar, pgx, 
 
 ## Uji mutasi lab ini
 
-<<MUTASI>>
+Satu perubahan per mutan pada kode uang dan keamanan milik lab ini, pada salinan kerja di folder sementara (`tmp/mutasi_kartu.py`, skrip sementara, tidak di repo); schema tes dibangun ulang sebelum tiap mutan dan kode dipulihkan dengan membuat salinan baru. Hasil dibaca dari nama tes yang gagal (Go) atau dari pesan `GAGAL` lab (rekaman), bukan dari koneksi mati atau proses yang tidak menyala. Hasil: 52 dari 53 mutan tertangkap karena sebab yang diuji, dan satu setara perilaku (L13). 46 mutan diuji lewat tes Go, tujuh hanya terlihat oleh rekaman lab. PostgreSQL 17.11.
+
+Mutan yang lolos di putaran awal dan membuat tes atau rekaman berubah:
+
+- **L3** (buku pemilik dikunci tanpa `FOR UPDATE`) lolos karena dua goroutine tanpa lock hampir tidak pernah tumpang tindih. Tes `DuaIDMengantreDiLockSaldoDibacaSesudahLock` ditambah: lab memegang lock buku, menunggu sampai dua otorisasi terhitung mengantre lewat `pg_stat_activity` (disaring menurut `application_name`), baru melepasnya.
+- **P11** (`ON CONFLICT` hanya pada `id_penerbit`) lolos karena tes serentak biasa tidak bertemu di jendela balapan. Tes dengan gerbang di titik sesudah-ledger diulang 40 kali menangkapnya, dan sekaligus menemukan kesalahan nyata di versi pertama kode: dua permintaan dengan id yang sama yang bertemu di titik itu kadang gagal dengan `23505` pada UNIQUE `jurnal_tahan_id` (jurnal tahan yang sama), bukan pada `id_penerbit`. Perbaikannya `ON CONFLICT DO NOTHING` tanpa sasaran.
+- **K2** dan **K4** pertama kali tertangkap oleh `KeyError` di skrip lab (jawaban tanpa `alasan`), bukan oleh pesan `GAGAL`; pemeriksaannya diganti `.get`.
+- Tes yang memegang lock bocor lock bila gagal di tengah: mutan L15 pernah menggantung seluruh paket sampai batas waktu `go test`. Semua tes yang memegang lock kini melepasnya lewat `t.Cleanup`.
+- Dua mutan pertama tidak dikompilasi atau jangkarnya salah (L6 `status` tak terpakai, C4) dan ditulis ulang; yang tidak dikompilasi tidak dihitung.
+
+L13 setara perilaku: hash permintaan tanpa akun tidak mengubah hasil karena akun dibandingkan terpisah (`a != akun` sesudah `IsiKunci`).
+
+| Mutan | Bagian | Perilaku yang diubah | Tes atau rekaman yang menangkap | Hasil |
+|---|---|---|---|---|
+| L1 | hold di ledger | key boleh berbeda dari id_penerbit | `LedgerTahanKartuKeyBentrokDanValidasi` | tertangkap |
+| L2 | hold di ledger | tanda posting hold dibalik | `LedgerTahanKartuDuaIDMengantreDiLockSaldoDibacaSesudahLock`, `LedgerTahanKartuDuaIDSerentakSatuSaldo` dan 2 lain | tertangkap |
+| L3 | hold di ledger | buku pemilik dikunci tanpa FOR UPDATE | `LedgerTahanKartuDuaIDMengantreDiLockSaldoDibacaSesudahLock`, `LedgerTahanKartuDuaIDSerentakSatuSaldo` | tertangkap |
+| L4 | hold di ledger | saldo tepat ditolak | `LedgerTahanKartuSaldoKurangTidakMenahanKey` | tertangkap |
+| L5 | hold di ledger | saldo tidak diperiksa sesudah lock | `LedgerTahanKartuDuaIDMengantreDiLockSaldoDibacaSesudahLock`, `LedgerTahanKartuDuaIDSerentakSatuSaldo` dan 1 lain | tertangkap |
+| L6 | hold di ledger | akun dibekukan boleh ditahan | `LedgerTahanKartuAkunDibekukanDanTidakAda` | tertangkap |
+| L7 | hold di ledger | key tidak diikat ke jurnalnya | `LedgerTahanKartuKeyHabisSesudah24Jam`, `LedgerTahanKartuMenahanDanaSekaliPerKey` dan 1 lain | tertangkap |
+| L8 | hold di ledger | lock_timeout tidak dipasang | `LedgerTahanKartuBukuDanaTertahanTerkunciMenolakSibuk`, `LedgerTahanKartuLockTimeoutSibuk` | tertangkap |
+| L9 | hold di ledger | lock_timeout tidak dipetakan ke ErrLedgerSibuk | `LedgerTahanKartuBukuDanaTertahanTerkunciMenolakSibuk`, `LedgerTahanKartuLockTimeoutSibuk` | tertangkap |
+| L10 | hold di ledger | key hidup 48 jam | `LedgerTahanKartuKeyHabisSesudah24Jam` | tertangkap |
+| L11 | hold di ledger | key hidup 12 jam | `LedgerTahanKartuKeyHabisSesudah24Jam` | tertangkap |
+| L12 | hold di ledger | hash permintaan tanpa jumlah | `LedgerTahanKartuKeyBentrokDanValidasi` | tertangkap |
+| L13 | hold di ledger | hash permintaan tanpa akun | - | setara perilaku: akun dibandingkan terpisah dari hash (`a != akun` sesudah `IsiKunci`), jadi hash tanpa akun tidak mengubah hasil |
+| L14 | hold di ledger | jumlah 0 diterima | `LedgerTahanKartuKeyBentrokDanValidasi` | tertangkap |
+| L15 | hold di ledger | hold masuk buku settlement | `LedgerTahanKartuBukuDanaTertahanTerkunciMenolakSibuk`, `LedgerTahanKartuLockTimeoutBerlakuPerPenantianBukanPerTransaction` dan 1 lain | tertangkap |
+| L16 | hold di ledger | jenis jurnal hold salah | `LedgerTahanKartuKeyBentrokDanValidasi`, `LedgerTahanKartuKeyHabisSesudah24Jam` dan 2 lain | tertangkap |
+| H1 | API ledger | sibuk dijawab 500 | `LedgerKartuTahanLockDitahanMenjawab503SibukDanClientMemetakan` | tertangkap |
+| H2 | API ledger | saldo kurang dijawab 409 | `LedgerKartuClientMemetakanJawaban`, `LedgerKartuTahanStatusDanAlasan` | tertangkap |
+| H3 | API ledger | kunci layanan tidak diperiksa di rute hold | `LedgerKartuClientMemetakanJawaban`, `LedgerKartuTahanStatusDanAlasan` | tertangkap |
+| H4 | API ledger | ulangan dijawab 201 | `LedgerKartuTahanBaruLaluUlangDanBentrok` | tertangkap |
+| H5 | API ledger | Idempotency-Key tidak wajib di rute hold | `LedgerKartuTahanStatusDanAlasan` | tertangkap |
+| H6 | API ledger | alasan akun dibekukan berubah | `LedgerKartuTahanStatusDanAlasan` | tertangkap |
+| C1 | client ledger | 503 sibuk dipetakan ke tidak pasti | `LedgerKartuTahanLockDitahanMenjawab503SibukDanClientMemetakan` | tertangkap |
+| C2 | client ledger | 422 bukan penolakan | `LedgerKartuClientMemetakanJawaban` | tertangkap |
+| C3 | client ledger | Idempotency-Key tidak dikirim | `LedgerKartuClientMemetakanJawaban`, `LedgerKartuTahanBaruLaluUlangDanBentrok` dan 2 lain | tertangkap |
+| C4 | client ledger | hold memanggil rute top-up | `LedgerKartuClientMemetakanJawaban`, `LedgerKartuTahanLockDitahanMenjawab503SibukDanClientMemetakan` | tertangkap |
+| P1 | service pembayaran | kill switch tidak diperiksa | `KartuKillSwitchTanpaBarisDanTanpaLedger` | tertangkap |
+| P2 | service pembayaran | id sama dengan jumlah lain dianggap ulangan | `KartuIDDipakaiUntukOtorisasiLainDitolak` | tertangkap |
+| P3 | service pembayaran | id sama dengan kartu lain dianggap ulangan | `KartuIDDipakaiUntukOtorisasiLainDitolak` | tertangkap |
+| P4 | service pembayaran | tepat di batas harian ditolak | `KartuDibekukanDanBatasHarianTanpaLedger` | tertangkap |
+| P5 | service pembayaran | batas harian tidak diperiksa | `KartuDibekukanDanBatasHarianTanpaLedger` | tertangkap |
+| P6 | service pembayaran | kartu dibekukan boleh menahan | `KartuDibekukanDanBatasHarianTanpaLedger` | tertangkap |
+| P7 | service pembayaran | ledger sibuk menjadi galat | `KartuLedgerSibukDanTidakMenjawabDitolakTanpaBaris` | tertangkap |
+| P8 | service pembayaran | ledger tidak menjawab disetujui (fail terbuka) | `KartuLedgerSibukDanTidakMenjawabDitolakTanpaBaris` | tertangkap |
+| P9 | service pembayaran | penolakan saldo kurang tanpa baris | `KartuSaldoKurangDitolakDanDiulangTanpaLedger` | tertangkap |
+| P10 | service pembayaran | hold berumur 8 hari | `KartuOtorisasiMenahanLewatLedgerLaluMenulisBaris` | tertangkap |
+| P11 | service pembayaran | ON CONFLICT hanya pada id_penerbit (UNIQUE jurnal_tahan_id menabrak) | `KartuIDSamaDiTitikSesudahLedgerSatuBarisDuaJawabanSetuju` | tertangkap |
+| P20 | service pembayaran | baris ditahan tanpa ON CONFLICT | `KartuIDSamaDiTitikSesudahLedgerSatuBarisDuaJawabanSetuju`, `KartuIDSamaSerentakSatuHoldSatuBaris` | tertangkap |
+| P12 | service pembayaran | titik sesudah-ledger dihapus | `KartuMatiSesudahLedgerPulihLewatUlanganPenerbit` | tertangkap |
+| P13 | service pembayaran | baris ditulis dengan konteks permintaan | `KartuBarisTetapDitulisBilaPenerbitSudahPergi` | tertangkap |
+| P14 | service pembayaran | status baris sesudah hold salah | `KartuBarisTetapDitulisBilaPenerbitSudahPergi`, `KartuMatiSesudahLedgerPulihLewatUlanganPenerbit` dan 1 lain | tertangkap |
+| P15 | service pembayaran | jurnal hold tidak disimpan di baris | `KartuBarisTetapDitulisBilaPenerbitSudahPergi`, `KartuMatiSesudahLedgerPulihLewatUlanganPenerbit` dan 1 lain | tertangkap |
+| P16 | service pembayaran | kartu tak dikenal disetujui | `KartuTokenTidakDikenalDanValidasi` | tertangkap |
+| P17 | service pembayaran | jumlah di atas batas wajar diterima | `KartuTokenTidakDikenalDanValidasi` | tertangkap |
+| P18 | service pembayaran | penolakan dicatat sebagai ditahan | `KartuDibekukanDanBatasHarianTanpaLedger`, `KartuSaldoKurangDitolakDanDiulangTanpaLedger` | tertangkap |
+| P19 | service pembayaran | alasan kill switch salah | `KartuKillSwitchTanpaBarisDanTanpaLedger` | tertangkap |
+| K1 | satu proses (rekaman) | kedaluwarsa hold memakai kurang dari atau sama dengan | rekaman kedaluwarsa A: job tepat di batas memeriksa 1, harus 0 | tertangkap |
+| K2 | satu proses (rekaman) | lock_timeout bawaan 3 detik (di atas tenggat) | rekaman tenggat A: setuju oleh timeout, harus tolak sibuk | tertangkap |
+| K3 | satu proses (rekaman) | hold berumur 6 hari di versi satu proses | rekaman kedaluwarsa A: umur hold bukan 7 hari | tertangkap |
+| K4 | satu proses (rekaman) | kill switch tidak berlaku | rekaman kill-switch A: disetujui, harus tolak kill-switch | tertangkap |
+| T1 | penerbit tiruan (rekaman) | penerbit tiruan tidak menghormati tenggat | rekaman tenggat C: tolak oleh Rekeningo, harus setuju oleh timeout | tertangkap |
+| T2 | penerbit tiruan (rekaman) | penerbit tiruan selalu menolak bila timeout | rekaman tenggat C: tolak oleh timeout, harus setuju | tertangkap |
+| T3 | penerbit tiruan (rekaman) | otorisasi tidak dikirim ke service pembayaran | rekaman dua-service A: ledger menjawab 422, harus 200 ulang | tertangkap |
+

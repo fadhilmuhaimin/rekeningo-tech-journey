@@ -22,8 +22,23 @@ $ TEST_DATABASE_URL=<pemilik, schema tahap4_modul_tes> go test -count=1 -p 1 -v 
 --- PASS: TestLedgerAkunTidakAda
 --- PASS: TestLedgerJumlahTidakSah
 --- PASS: TestLedgerKeyHidup24JamLaluMenjurnalLagi
+--- PASS: TestLedgerTahanKartuMenahanDanaSekaliPerKey
+--- PASS: TestLedgerTahanKartuSerentakKeySamaSatuHold
+--- PASS: TestLedgerTahanKartuSaldoKurangTidakMenahanKey
+--- PASS: TestLedgerTahanKartuAkunDibekukanDanTidakAda
+--- PASS: TestLedgerTahanKartuKeyBentrokDanValidasi
+--- PASS: TestLedgerTahanKartuLockTimeoutSibuk
+--- PASS: TestLedgerTahanKartuDuaIDSerentakSatuSaldo
+--- PASS: TestLedgerTahanKartuKeyHabisSesudah24Jam
+--- PASS: TestLedgerTahanKartuBukuDanaTertahanTerkunciMenolakSibuk
+--- PASS: TestLedgerTahanKartuLockTimeoutBerlakuPerPenantianBukanPerTransaction
+--- PASS: TestLedgerTahanKartuDuaIDMengantreDiLockSaldoDibacaSesudahLock
 PASS
 ok    lab/apit4/internal/service
+--- PASS: TestLedgerKartuTahanStatusDanAlasan
+--- PASS: TestLedgerKartuTahanBaruLaluUlangDanBentrok
+--- PASS: TestLedgerKartuTahanLockDitahanMenjawab503SibukDanClientMemetakan
+--- PASS: TestLedgerKartuClientMemetakanJawaban
 --- PASS: TestLedgerHTTPStatusDanAlasanPerPenolakan
 --- PASS: TestLedgerHTTPKunciLayananDanIdempotencyKeyWajib
 --- PASS: TestLedgerTanpaKunciLayananRuteTidakAda
@@ -43,6 +58,19 @@ PASS
 ok    lab/apit4/internal/modul/ledger
 --- PASS: TestTeksTopupLangsungDenganDataTiruanLolos
 --- PASS: TestTeksTopupLewatKontrakAkunDenganDataTiruan
+--- PASS: TestKartuOtorisasiMenahanLewatLedgerLaluMenulisBaris
+--- PASS: TestKartuIDSamaDuaKaliSatuHoldTanpaPanggilanLedgerKedua
+--- PASS: TestKartuIDSamaSerentakSatuHoldSatuBaris
+--- PASS: TestKartuSaldoKurangDitolakDanDiulangTanpaLedger
+--- PASS: TestKartuDibekukanDanBatasHarianTanpaLedger
+--- PASS: TestKartuKillSwitchTanpaBarisDanTanpaLedger
+--- PASS: TestKartuTokenTidakDikenalDanValidasi
+--- PASS: TestKartuIDDipakaiUntukOtorisasiLainDitolak
+--- PASS: TestKartuLedgerSibukDanTidakMenjawabDitolakTanpaBaris
+--- PASS: TestKartuMatiSesudahLedgerPulihLewatUlanganPenerbit
+--- PASS: TestKartuBatasHarianDuaSerentakKeduanyaLolosDiJalurDuaService
+--- PASS: TestKartuBarisTetapDitulisBilaPenerbitSudahPergi
+--- PASS: TestKartuIDSamaDiTitikSesudahLedgerSatuBarisDuaJawabanSetuju
 --- PASS: TestKabarGatewayDipetakanKeStatusTopup
 --- PASS: TestTopupTidakPastiYangDibayarTetapDikredit
 --- PASS: TestTandaTanganDiperiksaSebelumJSONDiurai
@@ -78,6 +106,32 @@ ok    lab/apit4/internal/modul/ledger
 ok    lab/apit4/internal/modul/pembayaran
 # exit status 0
 $ TES_DB_WAJIB=1 go test -count=1 ./internal/modul/pembayaran
+--- FAIL: TestKartuOtorisasiMenahanLewatLedgerLaluMenulisBaris
+    kartu_test.go:104: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuIDSamaDuaKaliSatuHoldTanpaPanggilanLedgerKedua
+    kartu_test.go:130: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuIDSamaSerentakSatuHoldSatuBaris
+    kartu_test.go:146: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuSaldoKurangDitolakDanDiulangTanpaLedger
+    kartu_test.go:176: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuDibekukanDanBatasHarianTanpaLedger
+    kartu_test.go:194: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuKillSwitchTanpaBarisDanTanpaLedger
+    kartu_test.go:216: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuTokenTidakDikenalDanValidasi
+    kartu_test.go:232: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuIDDipakaiUntukOtorisasiLainDitolak
+    kartu_test.go:256: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuLedgerSibukDanTidakMenjawabDitolakTanpaBaris
+    kartu_test.go:278: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuMatiSesudahLedgerPulihLewatUlanganPenerbit
+    kartu_test.go:301: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuBatasHarianDuaSerentakKeduanyaLolosDiJalurDuaService
+    kartu_test.go:345: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuBarisTetapDitulisBilaPenerbitSudahPergi
+    kartu_test.go:382: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestKartuIDSamaDiTitikSesudahLedgerSatuBarisDuaJawabanSetuju
+    kartu_test.go:408: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestKabarGatewayDipetakanKeStatusTopup
     pembayaran_status_test.go:19: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestTopupTidakPastiYangDibayarTetapDikredit
