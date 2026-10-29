@@ -213,6 +213,8 @@ const AWALAN_SCHEMA = modul.modul[0]!.schema.slice(0, modul.modul[0]!.schema.ind
 // ---- turunan dari migration -----------------------------------------------------------------------------------------------
 const DROP_CHECK = migrasi.reduce((n, m) => n + (m.isi.match(/DROP CONSTRAINT/g) ?? []).length, 0);
 const BUKU_SISTEM = (migrasi[0]!.isi.match(/INSERT INTO buku \(jenis\) VALUES (.*);/)![1]!.match(/\('/g) ?? []).length;
+const FUNGSI_SALDO = migrasi[0]!.isi.match(/CREATE OR REPLACE FUNCTION (\w+)\(\)/)![1]!;
+const TINGKAT_AKUN = migrasi[0]!.isi.match(/UPDATE akun SET tingkat = '(\w+)' WHERE/)![1]!;
 const LOCK = [...new Set(migrasi.map((m) => m.isi.match(/SET LOCAL lock_timeout = '(\w+)'/)![1]!))];
 const NOMOR_MIG = migrasi.map((m) => m.nama.slice(0, 6));
 
@@ -386,14 +388,14 @@ Role aplikasi di tabel ini adalah login database yang dipakai server, dengan hak
 
 | Tahap 3 | Tahap 4 | Alasan | Masalah atau syarat |
 |---|---|---|---|
-| (tidak ada) | \`topup_bank\` (akun, order_id, jumlah, status: ${V("topup_bank", "topup_bank_status_check")}; tujuan_bayar, kedaluwarsa_pada, jurnal_id) | Satu top-up satu baris; \`order_id\` dan \`jurnal_id\` UNIK | [[t4-m29\\|M29]], [[t4-m30\\|M30]] |
+| (tidak ada) | \`topup_bank\` (akun, order_id, jumlah, status: ${V("topup_bank", "topup_bank_status_check")}; tujuan_bayar, kedaluwarsa_pada, jurnal_id) | Satu top-up satu baris; \`order_id\` dan \`jurnal_id\` UNIQUE | [[t4-m29\\|M29]], [[t4-m30\\|M30]] |
 | (tidak ada) | \`webhook_event\` (event_id sebagai kunci utama, topup_id, jenis, hasil: ${V("webhook_event", "webhook_event_hasil_check")}; jurnal_id) | Event yang sama ditolak kunci utama, dan hasilnya tercatat | [[t4-m29\\|M29]] |
 | (tidak ada) | \`insiden_rekon\` (tanggal, order_id, topup_id, jenis: ${V("insiden_rekon", "insiden_rekon_jenis_check")}; selisih, status, jurnal_id) | Selisih dengan laporan gateway jadi satu baris bernomor; UNIQUE pada tanggal, order_id, dan jenis | [[t4-m30\\|M30]] |
 | (tidak ada) | \`verifikasi\` (akun, subjek: ${ATAU(bt(nilaiCek(erd4, "verifikasi", "verifikasi_subjek_check")))}, status, tingkat_diminta, referensi_vendor, kunci objek dan checksum kartu dan swafoto, hapus_pada) | File ada di penyimpanan objek; database hanya menyimpan kunci dan checksum | [[t4-m31\\|M31]], [[t4-m33\\|M33]] |
 | (tidak ada) | \`qr\` (akun, jenis: ${ATAU(nilaiCek(erd4, "qr", "qr_jenis_check"))}, nominal, berlaku_sampai, status, jurnal_id) | QR dinamis wajib punya nominal dan batas waktu, dan paling banyak satu jurnal | [[t4-m35\\|M35]] |
-| (tidak ada) | \`kartu\` (akun, token_penerbit UNIK, empat_digit, status, batas_harian) | Nomor kartu penuh tidak disimpan; hanya token dan empat digit | [[t4-m37\\|M37]] |
-| (tidak ada) | \`otorisasi_kartu\` (kartu, id_penerbit UNIK, jumlah, status: ${V("otorisasi_kartu", "otorisasi_kartu_status_check")}; jurnal_tahan_id, jurnal_tangkap_id, tahan_sampai) | Otorisasi dikenali ulang, dan dana tertahan adalah jurnal di ledger | [[t4-m37\\|M37]] |
-| (tidak ada) | \`audit_log\` (waktu, pelaku, peran, aksi, objek, alasan, penyetuju, hash_sebelumnya, hash UNIK) | Role aplikasi hanya menambah baris, dan tiap baris memuat hash baris sebelumnya | [[t4-m38\\|M38]] |
+| (tidak ada) | \`kartu\` (akun, token_penerbit UNIQUE, empat_digit, status, batas_harian) | Nomor kartu penuh tidak disimpan; hanya token dan empat digit | [[t4-m37\\|M37]] |
+| (tidak ada) | \`otorisasi_kartu\` (kartu, id_penerbit UNIQUE, jumlah, status: ${V("otorisasi_kartu", "otorisasi_kartu_status_check")}; jurnal_tahan_id, jurnal_tangkap_id, tahan_sampai) | Otorisasi dikenali ulang, dan dana tertahan adalah jurnal di ledger | [[t4-m37\\|M37]] |
+| (tidak ada) | \`audit_log\` (waktu, pelaku, peran, aksi, objek, alasan, penyetuju, hash_sebelumnya, hash UNIQUE) | Role aplikasi hanya menambah baris, dan tiap baris memuat hash baris sebelumnya | [[t4-m38\\|M38]] |
 
 | Tahap 3 | Tahap 4 | Alasan | Masalah atau syarat |
 |---|---|---|---|
@@ -407,7 +409,7 @@ Role aplikasi di tabel ini adalah login database yang dipakai server, dengan hak
 
 **Idempotency-Key lintas service.** API ledger menerima \`order_id\` top-up sebagai Idempotency-Key. Key yang berbeda dari \`order_id\` ditolak dengan ${S422}, dan permintaan dengan key yang sama menghasilkan satu jurnal (Rekaman lab t4-modul, \`ledger.txt\` bagian A). Mekanismenya dibahas di [[t2-idempotency]] dan [[t4-modul]].
 
-**Semua bermuara di \`akun\` dan \`jurnal\`.** ${K(penunjuk(erd3, "akun"))} tabel Tahap 3 menunjuk \`akun\` dan ${W(penunjuk(erd3, "jurnal"))} menunjuk \`jurnal\`; di Tahap 4 jumlahnya ${W(penunjuk(erd4, "akun"))} dan ${W(penunjuk(erd4, "jurnal"))}. Jumlah foreign key naik dari ${FK3} ke ${FK4}, dihitung dari kedua ERD. ${K(FK4 - FK3)} yang baru menuju \`akun\` (${W(menuju(erd4, "akun") - menuju(erd3, "akun"))}), \`jurnal\` (${W(menuju(erd4, "jurnal") - menuju(erd3, "jurnal"))}), \`topup_bank\` (${W(menuju(erd4, "topup_bank"))}), dan \`kartu\` (${W(menuju(erd4, "kartu"))}).
+**\`akun\` dan \`jurnal\` paling banyak dirujuk.** ${K(penunjuk(erd3, "akun"))} tabel Tahap 3 menunjuk \`akun\` dan ${W(penunjuk(erd3, "jurnal"))} menunjuk \`jurnal\`; di Tahap 4 jumlahnya ${W(penunjuk(erd4, "akun"))} dan ${W(penunjuk(erd4, "jurnal"))}. Jumlah foreign key naik dari ${FK3} ke ${FK4}, dihitung dari kedua ERD. ${K(FK4 - FK3)} yang baru menuju \`akun\` (${W(menuju(erd4, "akun") - menuju(erd3, "akun"))}), \`jurnal\` (${W(menuju(erd4, "jurnal") - menuju(erd3, "jurnal"))}), \`topup_bank\` (${W(menuju(erd4, "topup_bank"))}), dan \`kartu\` (${W(menuju(erd4, "kartu"))}).
 
 **Tabel uang: kolom sama, nilai jenis baru.** \`buku\` dan \`jurnal\` tidak mendapat kolom. Yang berubah adalah dua aturan CHECK pada kolom \`jenis\`, dan aturan \`buku_pemilik\` yang kini menyebut \`pemakai\` dan \`merchant\` sebagai buku milik akun. Migration menulisnya sebagai berikut, dan menambah ${W(BUKU_SISTEM)} buku sistem:
 
@@ -426,7 +428,9 @@ Satu hal kecil di \`topup_bank\`: \`jurnal_id\` UNIQUE, tetapi top-up yang belum
 
 Kedua kalimat dicek ke dokumentasi dan tidak dijalankan di lab (Tidak dijalankan).
 
-**${K(migrasi.length)} rilis yang hanya menambah.** Ke${W(migrasi.length)} migration Tahap 4, ${NOMOR_MIG[0]} sampai ${NOMOR_MIG.at(-1)}, membuat tabel, menambah kolom, dan menambah aturan. ${K(DROP_CHECK)} aturan CHECK dihapus lalu dibuat lagi dengan nilai yang lebih banyak, dan tidak ada tabel atau kolom yang dihapus. Setiap file membuka dengan \`SET LOCAL lock_timeout = '${LOCK[0]}'\`.
+**${K(migrasi.length)} rilis tanpa menghapus tabel atau kolom.** Ke${W(migrasi.length)} migration Tahap 4, ${NOMOR_MIG[0]} sampai ${NOMOR_MIG.at(-1)}, membuat tabel, menambah kolom, dan menambah aturan. ${K(DROP_CHECK)} aturan CHECK dihapus lalu dibuat lagi dengan nilai yang lebih banyak, dan tidak ada tabel atau kolom yang dihapus. Setiap file membuka dengan \`SET LOCAL lock_timeout = '${LOCK[0]}'\`.
+
+Migration ${NOMOR_MIG[0]} juga mengganti fungsi trigger \`${FUNGSI_SALDO}\`, supaya saldo tidak negatif berlaku untuk buku \`pemakai\` dan \`merchant\`, dan menandai akun yang sudah ada sebagai \`${TINGKAT_AKUN}\`. ERD tidak menggambar trigger dan isi tabel, jadi keduanya hanya terbaca di migration.
 
 Lab menjalankan ke${W(migrasi.length)}nya dalam satu transaction di schema kosong (Rekaman lab, \`skema.txt\` bagian A). Tidak dijalankan: ke${W(migrasi.length)} migration di atas database berisi data sementara server Tahap 3 masih melayani request, dan lama pemeriksaan CHECK baru pada \`jurnal\` berukuran produksi. Rilis seperti itu direkam di Tahap 2 ([[t2-m13]]).
 
@@ -438,7 +442,7 @@ ${MODUL_BARIS}
 
 Role \`ledger\` terhitung membaca ${W(terbaca.get("ledger")!.baca)} tabel karena tiga kolom \`akun\` (\`id\`, \`tingkat\`, \`status\`) boleh dibacanya. Role lain hanya membaca tabel sendiri, dan tabel lain ditolak dengan SQLSTATE ${S_DITOLAK}. Jumlah foreign key yang menyeberang adalah ${LINTAS}: ${KE_AKUN_MODUL} menuju modul \`akun\` (${KE_TABEL("akun")} ke \`akun\`, ${W(KE_TABEL("kota"))} ke \`kota\`, ${W(KE_TABEL("perangkat"))} ke \`perangkat\`) dan ${KE_LEDGER} menuju \`jurnal\`.
 
-Ke${W(NMODUL)} role ada dan diuji, tetapi hanya satu proses yang memakai role modulnya sendiri. Proses monolith memakai satu role, \`t4m_monolit\`, yang mewarisi ${W(NMODUL - 1)} role modul tanpa \`pembayaran\`. Role \`t4m_pembayaran\` dipakai oleh proses terpisah, yaitu service pembayaran. Satu pool koneksi per modul belum dibangun (Rekaman lab t4-modul, README bagian "Yang belum ada").
+Ke${W(NMODUL)} role ada dan diuji, tetapi hanya satu proses yang memakai role modulnya sendiri. Proses monolith memakai satu role, \`t4m_monolit\`, yang mewarisi ${W(NMODUL - 1)} role modul tanpa \`pembayaran\`. Role \`t4m_pembayaran\` dipakai oleh proses terpisah, yaitu service pembayaran. Satu pool koneksi per modul belum dibangun (README lab t4-modul, bagian "Yang belum ada").
 
 Foreign key lintas schema tetap ada, dan akun yang tidak ada ditolak dengan SQLSTATE ${S_FK_LINTAS}. Di lab, role \`pembayaran\` menulis \`topup_bank\` untuk akun yang ada tanpa hak apa pun di schema \`akun\`. Menurut dokumentasi PostgreSQL, schema tidak terpisah ketat: user boleh mengakses objek di schema mana pun bila punya hak ([PostgreSQL 17, 5.10](https://www.postgresql.org/docs/17/ddl-schemas.html)). Pemisahan modul karena itu ada di hak role, bukan di schema saja.
 
@@ -459,7 +463,7 @@ Rancangan juga hanya menyebut \`dana_tertahan\` sebagai buku sistem. Lab menamba
 
 ### Pertumbuhan skala database, Tahap 3 sampai 5
 
-Semua angka di tabel ini adalah **Asumsi** cerita. Rumusnya ditulis supaya kamu bisa mengganti angkanya:
+Angka di tabel ini adalah **Asumsi** cerita, kecuali jumlah tabel inti Tahap 3 dan 4, yang dihitung dari ERD. Rumusnya ditulis supaya kamu bisa mengganti angkanya:
 
 - transaksi per hari = user × aktif × ${TRX}
 - posting per tahun = transaksi per hari × ${POSTING_PER_TRX} × ${HARI}
@@ -545,7 +549,7 @@ ${K(BERUBAH.length)} tabel: \`akun\` (kolom ${btDan(KBARU.filter((k) => k.tabel 
 <details class="success">
 <summary>Jawaban</summary>
 
-Pencocokan top-up dan jurnal ada di \`topup_bank\`: \`order_id\` UNIK, dan \`jurnal_id\` UNIK menunjuk jurnalnya. Baris kedua dengan \`order_id\` yang sama ditolak dengan SQLSTATE ${S_ORDER_GANDA}. \`jurnal\` hanya menerima nilai \`jenis\` baru, termasuk \`topup_bank\`.
+Pencocokan top-up dan jurnal ada di \`topup_bank\`: \`order_id\` UNIQUE, dan \`jurnal_id\` UNIQUE menunjuk jurnalnya. Baris kedua dengan \`order_id\` yang sama ditolak dengan SQLSTATE ${S_ORDER_GANDA}. \`jurnal\` hanya menerima nilai \`jenis\` baru, termasuk \`topup_bank\`.
 
 </details>
 
@@ -638,7 +642,7 @@ const TEBAK_HARAPAN = {
     {
       teks: "jurnal mendapat kolom order_id dari gateway, supaya satu jurnal bisa dicocokkan dengan satu top-up.",
       benar: false,
-      alasan: `Tidak ada kolom baru di jurnal. Pencocokan ada di topup_bank: ${UNIK_TB[0]} UNIK, dan ${UNIK_TB[1]} UNIK menunjuk ke jurnalnya. Baris kedua dengan ${UNIK_TB[0]} yang sama ditolak dengan SQLSTATE ${S_ORDER_GANDA}.`,
+      alasan: `Tidak ada kolom baru di jurnal. Pencocokan ada di topup_bank: ${UNIK_TB[0]} UNIQUE, dan ${UNIK_TB[1]} UNIQUE menunjuk ke jurnalnya. Baris kedua dengan ${UNIK_TB[0]} yang sama ditolak dengan SQLSTATE ${S_ORDER_GANDA}.`,
     },
     {
       teks: PILIHAN_BENAR,
@@ -722,6 +726,7 @@ describe("registry, kepala, dan struktur blok", () => {
   test("gaya: tanpa Anda, kita, tanda seru, atau emoji", () => {
     for (const t of [mdx, JSON.stringify(rantaiMentah), JSON.stringify(tebakMentah)]) {
       expect(t).not.toMatch(/\bAnda\b|\bkita\b|\bKita\b/);
+      expect(t, "satu kosakata: UNIQUE, bukan UNIK (ERD dan 3.5 memakai UNIQUE)").not.toMatch(/\bUNIK\b/);
       expect(t.replace(/<!--[\s\S]*?-->/g, "")).not.toMatch(/!(?!\[)/);
       expect(t).not.toMatch(/\p{Extended_Pictographic}/u);
     }
@@ -731,6 +736,29 @@ describe("registry, kepala, dan struktur blok", () => {
 
 // ---- turunan dari sumber: nilai yang dipakai di atas diperiksa terhadap naskah dan rekaman ----------------------------------
 describe("nilai turunan cocok dengan naskah dan rekaman", () => {
+  test("akun dan jurnal adalah dua tabel yang paling banyak dirujuk foreign key di Tahap 3 dan 4, jadi judul tidak menulis 'semua'", () => {
+    for (const e of [erd3, erd4]) {
+      const hitung = new Map<string, number>();
+      for (const f of fkSemua(e)) hitung.set(f.ke_tabel, (hitung.get(f.ke_tabel) ?? 0) + 1);
+      const urut = [...hitung.entries()].sort((x, y) => y[1] - x[1]);
+      expect(urut.slice(0, 2).map((x) => x[0])).toEqual(["akun", "jurnal"]);
+      expect(urut[1]![1]).toBeGreaterThan(urut[2]![1]);
+      expect(urut.length).toBeGreaterThan(2);
+    }
+    expect(badan).toContain("**`akun` dan `jurnal` paling banyak dirujuk.**");
+    expect(badan).not.toMatch(/\*\*Semua bermuara/);
+  });
+  test("migration 000020 mengganti fungsi saldo tidak negatif untuk pemakai dan merchant dan mengisi tingkat akun lama, dan halaman menyebutnya", () => {
+    expect(migrasi[0]!.isi).toMatch(/NOT IN \('karyawan', 'pemakai', 'merchant'\)/);
+    expect(FUNGSI_SALDO).toBe("cek_saldo_karyawan");
+    expect(TINGKAT_AKUN).toBe("terverifikasi");
+    expect(badan).toContain("mengganti fungsi trigger `cek_saldo_karyawan`");
+    expect(badan).toContain("ERD tidak menggambar trigger dan isi tabel");
+  });
+  test("label: README lab bukan Rekaman lab", () => {
+    expect(badan).not.toMatch(/Rekaman lab[^)\n]*README/);
+    expect(badan).toContain("(README lab t4-modul, bagian \"Yang belum ada\")");
+  });
   test("ERD: 14 + 8 = 22 tabel, 35 foreign key, empat kolom baru, tanpa yang dihapus (sesuai naskah)", () => {
     expect([N3, NBARU, N4, FK3, FK4]).toEqual([14, 8, 22, 20, 35]);
     expect(naskah).toContain(`Jumlahnya ${N4} tabel: ${N3} dari Tahap 3 dan ${NBARU} baru`);
@@ -782,7 +810,7 @@ describe("nilai turunan cocok dengan naskah dan rekaman", () => {
       const t = per4.get(nama[1]!)!;
       const kolom = t.kolom.map((c) => c.nama);
       for (let isi of nama[2]!.split(/[,;]/).map((x) => x.trim())) {
-        isi = isi.replace(/^(status|jenis|hasil|subjek): /, "").replace(/ UNIK$/, "");
+        isi = isi.replace(/^(status|jenis|hasil|subjek): /, "").replace(/ UNIQUE$/, "");
         const first = isi.split(" ")[0]!.replace(/`/g, "");
         if (/^(menunggu|dibayar|kedaluwarsa|gagal|tidak_pasti|diproses|ganda|diparkir|ditolak|tidak_di_ledger|tidak_di_gateway|jumlah_beda|statis|ditahan|ditangkap|dibalik|pemakai|merchant|atau|dinamis)$/.test(first)) continue;
         if (first === "kunci") { expect(kolom).toEqual(expect.arrayContaining(["berkas_kartu_kunci", "berkas_swafoto_kunci", "checksum_kartu", "checksum_swafoto"])); continue; }
@@ -790,7 +818,7 @@ describe("nilai turunan cocok dengan naskah dan rekaman", () => {
       }
     }
   });
-  test("klaim UNIK di tabel: order_id, jurnal_id, token_penerbit, id_penerbit, hash UNIQUE di ERD; topup_bank.jurnal_id boleh kosong", () => {
+  test("klaim UNIQUE di tabel: order_id, jurnal_id, token_penerbit, id_penerbit, hash UNIQUE di ERD; topup_bank.jurnal_id boleh kosong", () => {
     const unik = (t: string): string[] => per4.get(t)!.unik.flatMap((u) => u.kolom);
     expect(unik("topup_bank").sort()).toEqual(["jurnal_id", "order_id"]);
     expect(unik("kartu")).toContain("token_penerbit");
@@ -1054,6 +1082,7 @@ describe("label sumber dan baris riset R4-130 sampai R4-134", () => {
   test("R4-132 dan R4-133 menulis hitungan yang sama dengan halaman, dari angka yang tertulis", () => {
     const r132 = baris[2]!;
     for (const n of [P3, P4, P5, BYTE3, BYTE4, P5 * BYTE_POSTING, aktif(a3) * TRX, TRX_HARI4, aktif(a5) * TRX]) expect(r132, String(n)).toContain(titik(n));
+    for (const k of [`transaksi per hari = user × aktif × ${TRX}`, `posting per tahun = transaksi × ${POSTING_PER_TRX} × ${HARI}`, `ukuran = posting × ${BYTE_POSTING} byte`]) expect(r132, k).toContain(k);
     const r133 = baris[3]!;
     for (const n of [GB_REG2 * 1e9, GB_REG3 * 1e9, BYTE4, FILE_KB]) expect(r133, String(n)).toContain(titik(n));
     for (const k of ["365 GB", "365 ÷ 10,95 = 33,3", "365 ÷ 6,57 = 55,6", "730 MB", "60 MB", "292 MB", "182,5 MB", "7.117.500.000", "136,5 MB"]) expect(r133, k).toContain(k);
@@ -1070,7 +1099,7 @@ describe("label sumber dan baris riset R4-130 sampai R4-134", () => {
     for (const b of badan.split("\n")) {
       if (/\|\s*Rekaman lab/.test(b) && b.startsWith("|")) throw new Error(`label Rekaman lab di sel tabel hitungan: ${b.slice(0, 80)}`);
     }
-    expect(badan).toContain("Semua angka di tabel ini adalah **Asumsi** cerita.");
+    expect(badan).toContain("Angka di tabel ini adalah **Asumsi** cerita, kecuali jumlah tabel inti Tahap 3 dan 4, yang dihitung dari ERD.");
     expect(badan).toContain("/cara-pakai/#label-sumber");
     expect(per("t4-skema").lab).toEqual(["api-t3", "api-t4"]);
   });

@@ -19,7 +19,7 @@
     {
       "teks": "jurnal mendapat kolom order_id dari gateway, supaya satu jurnal bisa dicocokkan dengan satu top-up.",
       "benar": false,
-      "alasan": "Tidak ada kolom baru di jurnal. Pencocokan ada di topup_bank: order_id UNIK, dan jurnal_id UNIK menunjuk ke jurnalnya. Baris kedua dengan order_id yang sama ditolak dengan SQLSTATE 23505."
+      "alasan": "Tidak ada kolom baru di jurnal. Pencocokan ada di topup_bank: order_id UNIQUE, dan jurnal_id UNIQUE menunjuk ke jurnalnya. Baris kedua dengan order_id yang sama ditolak dengan SQLSTATE 23505."
     },
     {
       "teks": "Tidak ada kolom baru. buku dan jurnal menerima nilai jenis baru, dan posting sama persis.",

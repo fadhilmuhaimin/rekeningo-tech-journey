@@ -71,14 +71,14 @@ Role aplikasi di tabel ini adalah login database yang dipakai server, dengan hak
 
 | Tahap 3 | Tahap 4 | Alasan | Masalah atau syarat |
 |---|---|---|---|
-| (tidak ada) | `topup_bank` (akun, order_id, jumlah, status: menunggu, dibayar, kedaluwarsa, gagal, tidak_pasti; tujuan_bayar, kedaluwarsa_pada, jurnal_id) | Satu top-up satu baris; `order_id` dan `jurnal_id` UNIK | [[t4-m29\|M29]], [[t4-m30\|M30]] |
+| (tidak ada) | `topup_bank` (akun, order_id, jumlah, status: menunggu, dibayar, kedaluwarsa, gagal, tidak_pasti; tujuan_bayar, kedaluwarsa_pada, jurnal_id) | Satu top-up satu baris; `order_id` dan `jurnal_id` UNIQUE | [[t4-m29\|M29]], [[t4-m30\|M30]] |
 | (tidak ada) | `webhook_event` (event_id sebagai kunci utama, topup_id, jenis, hasil: diproses, ganda, diparkir, ditolak; jurnal_id) | Event yang sama ditolak kunci utama, dan hasilnya tercatat | [[t4-m29\|M29]] |
 | (tidak ada) | `insiden_rekon` (tanggal, order_id, topup_id, jenis: tidak_di_ledger, tidak_di_gateway, jumlah_beda; selisih, status, jurnal_id) | Selisih dengan laporan gateway jadi satu baris bernomor; UNIQUE pada tanggal, order_id, dan jenis | [[t4-m30\|M30]] |
 | (tidak ada) | `verifikasi` (akun, subjek: `pemakai` atau `merchant`, status, tingkat_diminta, referensi_vendor, kunci objek dan checksum kartu dan swafoto, hapus_pada) | File ada di penyimpanan objek; database hanya menyimpan kunci dan checksum | [[t4-m31\|M31]], [[t4-m33\|M33]] |
 | (tidak ada) | `qr` (akun, jenis: statis atau dinamis, nominal, berlaku_sampai, status, jurnal_id) | QR dinamis wajib punya nominal dan batas waktu, dan paling banyak satu jurnal | [[t4-m35\|M35]] |
-| (tidak ada) | `kartu` (akun, token_penerbit UNIK, empat_digit, status, batas_harian) | Nomor kartu penuh tidak disimpan; hanya token dan empat digit | [[t4-m37\|M37]] |
-| (tidak ada) | `otorisasi_kartu` (kartu, id_penerbit UNIK, jumlah, status: ditahan, ditangkap, dibalik, kedaluwarsa, ditolak; jurnal_tahan_id, jurnal_tangkap_id, tahan_sampai) | Otorisasi dikenali ulang, dan dana tertahan adalah jurnal di ledger | [[t4-m37\|M37]] |
-| (tidak ada) | `audit_log` (waktu, pelaku, peran, aksi, objek, alasan, penyetuju, hash_sebelumnya, hash UNIK) | Role aplikasi hanya menambah baris, dan tiap baris memuat hash baris sebelumnya | [[t4-m38\|M38]] |
+| (tidak ada) | `kartu` (akun, token_penerbit UNIQUE, empat_digit, status, batas_harian) | Nomor kartu penuh tidak disimpan; hanya token dan empat digit | [[t4-m37\|M37]] |
+| (tidak ada) | `otorisasi_kartu` (kartu, id_penerbit UNIQUE, jumlah, status: ditahan, ditangkap, dibalik, kedaluwarsa, ditolak; jurnal_tahan_id, jurnal_tangkap_id, tahan_sampai) | Otorisasi dikenali ulang, dan dana tertahan adalah jurnal di ledger | [[t4-m37\|M37]] |
+| (tidak ada) | `audit_log` (waktu, pelaku, peran, aksi, objek, alasan, penyetuju, hash_sebelumnya, hash UNIQUE) | Role aplikasi hanya menambah baris, dan tiap baris memuat hash baris sebelumnya | [[t4-m38\|M38]] |
 
 | Tahap 3 | Tahap 4 | Alasan | Masalah atau syarat |
 |---|---|---|---|
@@ -92,7 +92,7 @@ Role aplikasi di tabel ini adalah login database yang dipakai server, dengan hak
 
 **Idempotency-Key lintas service.** API ledger menerima `order_id` top-up sebagai Idempotency-Key. Key yang berbeda dari `order_id` ditolak dengan 422, dan permintaan dengan key yang sama menghasilkan satu jurnal (Rekaman lab t4-modul, `ledger.txt` bagian A). Mekanismenya dibahas di [[t2-idempotency]] dan [[t4-modul]].
 
-**Semua bermuara di `akun` dan `jurnal`.** Delapan tabel Tahap 3 menunjuk `akun` dan lima menunjuk `jurnal`; di Tahap 4 jumlahnya tiga belas dan sepuluh. Jumlah foreign key naik dari 20 ke 35, dihitung dari kedua ERD. Lima belas yang baru menuju `akun` (enam), `jurnal` (enam), `topup_bank` (dua), dan `kartu` (satu).
+**`akun` dan `jurnal` paling banyak dirujuk.** Delapan tabel Tahap 3 menunjuk `akun` dan lima menunjuk `jurnal`; di Tahap 4 jumlahnya tiga belas dan sepuluh. Jumlah foreign key naik dari 20 ke 35, dihitung dari kedua ERD. Lima belas yang baru menuju `akun` (enam), `jurnal` (enam), `topup_bank` (dua), dan `kartu` (satu).
 
 **Tabel uang: kolom sama, nilai jenis baru.** `buku` dan `jurnal` tidak mendapat kolom. Yang berubah adalah dua aturan CHECK pada kolom `jenis`, dan aturan `buku_pemilik` yang kini menyebut `pemakai` dan `merchant` sebagai buku milik akun. Migration menulisnya sebagai berikut, dan menambah tiga buku sistem:
 
@@ -111,7 +111,9 @@ Satu hal kecil di `topup_bank`: `jurnal_id` UNIQUE, tetapi top-up yang belum dib
 
 Kedua kalimat dicek ke dokumentasi dan tidak dijalankan di lab (Tidak dijalankan).
 
-**Empat rilis yang hanya menambah.** Keempat migration Tahap 4, 000020 sampai 000023, membuat tabel, menambah kolom, dan menambah aturan. Enam aturan CHECK dihapus lalu dibuat lagi dengan nilai yang lebih banyak, dan tidak ada tabel atau kolom yang dihapus. Setiap file membuka dengan `SET LOCAL lock_timeout = '3s'`.
+**Empat rilis tanpa menghapus tabel atau kolom.** Keempat migration Tahap 4, 000020 sampai 000023, membuat tabel, menambah kolom, dan menambah aturan. Enam aturan CHECK dihapus lalu dibuat lagi dengan nilai yang lebih banyak, dan tidak ada tabel atau kolom yang dihapus. Setiap file membuka dengan `SET LOCAL lock_timeout = '3s'`.
+
+Migration 000020 juga mengganti fungsi trigger `cek_saldo_karyawan`, supaya saldo tidak negatif berlaku untuk buku `pemakai` dan `merchant`, dan menandai akun yang sudah ada sebagai `terverifikasi`. ERD tidak menggambar trigger dan isi tabel, jadi keduanya hanya terbaca di migration.
 
 Lab menjalankan keempatnya dalam satu transaction di schema kosong (Rekaman lab, `skema.txt` bagian A). Tidak dijalankan: keempat migration di atas database berisi data sementara server Tahap 3 masih melayani request, dan lama pemeriksaan CHECK baru pada `jurnal` berukuran produksi. Rilis seperti itu direkam di Tahap 2 ([[t2-m13]]).
 
@@ -128,7 +130,7 @@ Lab menjalankan keempatnya dalam satu transaction di schema kosong (Rekaman lab,
 
 Role `ledger` terhitung membaca tujuh tabel karena tiga kolom `akun` (`id`, `tingkat`, `status`) boleh dibacanya. Role lain hanya membaca tabel sendiri, dan tabel lain ditolak dengan SQLSTATE 42501. Jumlah foreign key yang menyeberang adalah 21: 14 menuju modul `akun` (12 ke `akun`, satu ke `kota`, satu ke `perangkat`) dan 7 menuju `jurnal`.
 
-Keenam role ada dan diuji, tetapi hanya satu proses yang memakai role modulnya sendiri. Proses monolith memakai satu role, `t4m_monolit`, yang mewarisi lima role modul tanpa `pembayaran`. Role `t4m_pembayaran` dipakai oleh proses terpisah, yaitu service pembayaran. Satu pool koneksi per modul belum dibangun (Rekaman lab t4-modul, README bagian "Yang belum ada").
+Keenam role ada dan diuji, tetapi hanya satu proses yang memakai role modulnya sendiri. Proses monolith memakai satu role, `t4m_monolit`, yang mewarisi lima role modul tanpa `pembayaran`. Role `t4m_pembayaran` dipakai oleh proses terpisah, yaitu service pembayaran. Satu pool koneksi per modul belum dibangun (README lab t4-modul, bagian "Yang belum ada").
 
 Foreign key lintas schema tetap ada, dan akun yang tidak ada ditolak dengan SQLSTATE 23503. Di lab, role `pembayaran` menulis `topup_bank` untuk akun yang ada tanpa hak apa pun di schema `akun`. Menurut dokumentasi PostgreSQL, schema tidak terpisah ketat: user boleh mengakses objek di schema mana pun bila punya hak ([PostgreSQL 17, 5.10](https://www.postgresql.org/docs/17/ddl-schemas.html)). Pemisahan modul karena itu ada di hak role, bukan di schema saja.
 
@@ -149,7 +151,7 @@ Rancangan juga hanya menyebut `dana_tertahan` sebagai buku sistem. Lab menambah 
 
 ### Pertumbuhan skala database, Tahap 3 sampai 5
 
-Semua angka di tabel ini adalah **Asumsi** cerita. Rumusnya ditulis supaya kamu bisa mengganti angkanya:
+Angka di tabel ini adalah **Asumsi** cerita, kecuali jumlah tabel inti Tahap 3 dan 4, yang dihitung dari ERD. Rumusnya ditulis supaya kamu bisa mengganti angkanya:
 
 - transaksi per hari = user × aktif × 3
 - posting per tahun = transaksi per hari × 2 × 365
@@ -237,7 +239,7 @@ Lima tabel: `akun` (kolom `tingkat` dan `status`, tiga nilai `jenis` baru), `buk
 <details class="success">
 <summary>Jawaban</summary>
 
-Pencocokan top-up dan jurnal ada di `topup_bank`: `order_id` UNIK, dan `jurnal_id` UNIK menunjuk jurnalnya. Baris kedua dengan `order_id` yang sama ditolak dengan SQLSTATE 23505. `jurnal` hanya menerima nilai `jenis` baru, termasuk `topup_bank`.
+Pencocokan top-up dan jurnal ada di `topup_bank`: `order_id` UNIQUE, dan `jurnal_id` UNIQUE menunjuk jurnalnya. Baris kedua dengan `order_id` yang sama ditolak dengan SQLSTATE 23505. `jurnal` hanya menerima nilai `jenis` baru, termasuk `topup_bank`.
 
 </details>
 
