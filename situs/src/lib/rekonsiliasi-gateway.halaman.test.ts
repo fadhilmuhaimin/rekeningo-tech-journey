@@ -388,11 +388,13 @@ describe("rekaman rekon.txt: bagian A (cek status), B (rekonsiliasi dan koreksi)
     const f = UR.teks(uAwalF3, uAkhirF3);
     expect(f).toContain("settlement sesudah expire: 200 diparkir");
     expect(f).toContain("koreksi rekon: diperiksa 2, dikoreksi lewat jurnal 0, selesai tanpa jurnal baru 0, tetap terbuka 2, galat 0");
+    const pertama = [...f.matchAll(/^ tidak_di_ledger \| (\d+) +\| terbuka$/gm)].map((m) => Number(m[1])).sort((a, b) => b - a);
+    expect(pertama).toEqual([60000, 50000]);
     expect(f).toContain("tidak_di_ledger | 50000   | terbuka | t");
     expect(f).toContain("tidak_di_ledger | 60000   | terbuka | t");
     expect(f).toContain("yang satu melewati batas tingkat, yang lain top-up kedaluwarsa");
     expect(f).toContain("PRD v4 belum menjawab pengembalian dana");
-    harus("satu melewati batas tingkat, satu top-up sudah `kedaluwarsa` (Rp60.000 dan Rp50.000). PRD v4 belum punya jalur pengembalian dana:");
+    harus(`satu melewati batas tingkat, satu top-up sudah \`kedaluwarsa\` (${rp(pertama[0]!)} dan ${rp(pertama[1]!)}). PRD v4 belum punya jalur pengembalian dana:`);
   });
   test("proses-mati.txt C: key 23 jam satu jurnal, 25 jam dua jurnal; rekonsiliasi membaca 150.000 dari 300.000 yang dikredit, sama dengan gateway 150.000", () => {
     const c = PM.teks(pC, pAkhir2);
@@ -418,6 +420,9 @@ describe("rekaman rekon.txt: bagian A (cek status), B (rekonsiliasi dan koreksi)
     harus("Gateway tiruan di lab berhenti mengirim sesudah kiriman ke-6, 342 menit sesudah kiriman pertama (`retry.txt` bagian A dan B).");
     expect(retry).toContain("jeda antar percobaan (sejak percobaan sebelumnya): 2, 10, 30, 90, 210 menit (total 342 menit)");
     expect(2 + 10 + 30 + 90 + 210).toBe(342);
+    const kodeRetry = runWebhook.slice(runWebhook.indexOf("def rekam_retry():"), runWebhook.indexOf("# ---------- urutan.txt"));
+    expect(kodeRetry).toContain("ct = buat_topup(citra, 500_000)");
+    expect(retry).toContain("Rp500.000");
   });
   test("tandatangan.txt C dan rotasi.txt D: masa tumpang tindih menerima dua rahasia, rahasia lama ditolak sesudahnya; urutan terbalik ditolak; OpenBao v2.7.2, jeda baca 50 ms dan 30 detik", () => {
     const t = TT.teks(tAwal, tAkhir);
