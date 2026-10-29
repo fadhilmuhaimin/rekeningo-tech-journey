@@ -554,6 +554,28 @@ describe("kalimat bebas yang ditulis halaman (tanpa padanan satu baris di naskah
     expect(naskah4).toContain("**Pertanyaan terbuka di PRD.**");
     expect(naskah4).toContain("Halaman 4.1 membuka jawaban tebakan di halaman 3.32 (dari ADR Tahap 3, mana yang pecah lebih dulu?)");
   });
+  test("setiap tabel punya kepala, garis pemisah dengan jumlah kolom sama, dan baris sama lebar", () => {
+    const baris = badan.split("\n");
+    let jumlahTabel = 0;
+    for (let i = 0; i < baris.length; i++) {
+      if (!baris[i]!.startsWith("|") || (i > 0 && baris[i - 1]!.startsWith("|"))) continue;
+      jumlahTabel++;
+      const kolom = sel(baris[i]!).length;
+      expect(baris[i + 1], `garis pemisah tabel di baris ${i + 1}`).toBe(`|${"---|".repeat(kolom)}`);
+      for (let j = i + 2; j < baris.length && baris[j]!.startsWith("|"); j++) expect(sel(baris[j]!).length, `lebar baris ${j + 1}`).toBe(kolom);
+    }
+    expect(jumlahTabel).toBe(9);
+  });
+  test("kepala dokumen, judul, dan id diagram persis", () => {
+    harus(`<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v4">
+  <dl><div><dt>Penulis</dt><dd>Sinta, unit Inisiatif Digital</dd></div><div><dt>Syarat baru</dt><dd>Pak Hadi, Kepala Divisi Keuangan</dd></div></dl>
+  <dl><div><dt>Lingkup</dt><dd>PT Rekeningo (fiktif): 100.000 user terdaftar, merchant di luar Lestari</dd></div><div><dt>Waktu</dt><dd>12 minggu, 13 engineer dalam tiga tim</dd></div></dl>
+</div>`);
+    expect(front).toMatch(/^title: "4\.1 PRD v4: Rekeningo dibuka ke publik"$/m);
+    expect(rantai.id).toBe("t4-prd-sebelum-sesudah");
+    expect(badan).toContain(`data/diagram/${rantai.id}.json`);
+    harus("Puncak naik 8 kali, tetapi [[t3-estimasi]]");
+  });
   test("kepala tabel dan atribut", () => {
     for (const k of ["| PRD | Aturan Pak Hadi |", "| Besaran | Nilai | Cara hitung |", "| Tim | Memegang |", "| User | Kebutuhan baru | Yang membuatnya berhenti memakai |", "| Prioritas | Fitur | Keterangan |"]) {
       expect(badan.split("\n"), k).toContain(k);
