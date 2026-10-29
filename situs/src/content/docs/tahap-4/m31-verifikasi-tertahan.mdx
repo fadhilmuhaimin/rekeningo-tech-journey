@@ -76,13 +76,13 @@ Di cerita layanan tidak menjawab, jadi tiap percobaan menunggu sampai timeout. R
 
 Di Tahap 3 pekerjaan mati diputar ulang dengan `UPDATE` tangan ([[t3-at-least-once]]). Dokumentasi Amazon SQS menyebut dead-letter queue redrive untuk memindahkan pesan keluar dari dead-letter queue ([Amazon SQS: dead-letter queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html), dibuka 2026-10-29, Tidak dijalankan).
 
-Di `labs/api-t4` tidak ada kode yang membaca pekerjaan `mati` lagi: setiap `UPDATE outbox` di kode Go dan SQL, selain tes, hanya menyentuh baris berstatus `menunggu` (Tidak dijalankan: dibaca dari kode).
+Di `labs/api-t4` tidak ada kode yang mengklaim atau memutar ulang pekerjaan `mati`: setiap `UPDATE outbox` di kode Go dan SQL, selain tes, hanya menyentuh baris berstatus `menunggu`. Satu-satunya kode yang membaca baris `mati` adalah penghitung status untuk metrik, dan ia hanya menghitung (Tidak dijalankan: dibaca dari kode).
 
 Pendaftar yang gagal boleh mengajukan lagi, karena indeks `verifikasi_satu_berjalan` hanya menghitung status `diajukan` dan `tidak_pasti` (Tidak dijalankan: dibaca dari SQL migration). Indeks unik sebagian menegakkan keunikan hanya di baris yang memenuhi predikatnya ([PostgreSQL 17, bagian 11.8](https://www.postgresql.org/docs/17/indexes-partial.html), dibuka 2026-10-29, Tidak dijalankan).
 
-**Worker punya empat slot, dan percobaan yang tidak dijawab memegang satu slot sampai timeout.** Satu worker mengerjakan paling banyak 4 pekerjaan sekaligus, dan tiap pekerjaan yang berjalan memegang satu slot sampai selesai.
+**Worker punya empat slot, dan percobaan yang tidak dijawab memegang satu slot sampai timeout.** Satu worker mengerjakan paling banyak 4 pekerjaan sekaligus, dan tiap pekerjaan yang berjalan memegang satu slot sampai selesai. Bagian A `lajur.txt` menyetel kapasitas worker ke 1 supaya pekerjaan terbaca satu per satu; bawaan api-t4 adalah 4.
 
-Rekaman `worker.txt` bagian A mengukur dua hal. Paling banyak 4 permintaan bersamaan sampai di layanan. Tiap percobaan yang menggantung ditahan antara 2,9 dan 3,6 detik sampai client menyerah (batas waktu client 3 detik):
+Rekaman `worker.txt` bagian A mengukur dua hal. Paling banyak 4 permintaan bersamaan sampai di layanan. Empat percobaan pertama yang menggantung ditahan antara 2,9 dan 3,6 detik sampai client menyerah (batas yang diperiksa lab; batas waktu client 3 detik):
 
 <Snippet file="labs/t4-integrasi/output/worker.txt" lines="5:12" title="Rekaman lab: labs/t4-integrasi/output/worker.txt, bagian A (empat slot, tiga detik)" />
 
@@ -109,7 +109,11 @@ Semua baris tabel adalah Hitungan atas Asumsi, kecuali lama 12.600 detik yang be
 
 Masukan lain adalah Asumsi: 1.000 pendaftar per hari, faktor puncak 10, dan konstanta worker di lab. Dua lagi dari pemberitahuan uang: 7,52 per detik pada puncak, dan 0,3 detik tiap pengiriman.
 
-Pola retry ditujukan bagi gangguan sementara. Dokumentasi pola itu menulis bahwa retry tidak berguna bila gangguan kemungkinan lama. Aplikasi lalu menghabiskan waktu dan sumber daya untuk mengulang permintaan yang kemungkinan gagal ([Retry pattern, Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/patterns/retry), diperbarui 2024-07-18, dibuka 2026-10-29, Tidak dijalankan). Gangguan 12.600 detik adalah 12.600 ÷ 45 = 280 kali umur satu pekerjaan (Hitungan atas Ilustrasi dan Asumsi).
+Umur 45 detik memakai tepat 3 detik tiap percobaan. Rekaman menahan percobaan sampai 3,6 detik. Jadi umurnya bisa mendekati 5 × 3,6 + 2 + 4 + 8 + 16 = 48 detik, di bawah satu menit (Hitungan atas Asumsi).
+
+Worker mengklaim sampai 4 pekerjaan sebagai satu putaran (fungsi `Putaran`). Ia menunggu semuanya selesai sebelum putaran berikutnya, jadi slot terpakai sama atau lebih lama dari hitungan di tabel (Tidak dijalankan: dibaca dari kode).
+
+Pola retry ditujukan bagi gangguan sementara. Dokumentasi pola itu menulis bahwa pola ini mungkin tidak berguna bila gangguan kemungkinan lama. Aplikasi mungkin menghabiskan waktu dan sumber daya untuk mengulang permintaan yang kemungkinan gagal ([Retry pattern, Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/patterns/retry), diperbarui 2024-07-18, dibuka 2026-10-29, Tidak dijalankan). Gangguan 12.600 detik adalah 12.600 ÷ 45 = 280 kali umur satu pekerjaan (Hitungan atas Ilustrasi dan Asumsi).
 
 Pada laju rata-rata worker hampir tidak terasa, 0,174 dari 4 slot. Yang terasa di laju itu adalah 146 pendaftar yang gagal. Pada puncak, pekerjaan yang pasti gagal memegang 1,74 slot. Bersama pemberitahuan uang, tidak ada slot bebas untuk menghabiskan pekerjaan yang sudah menumpuk.
 

@@ -314,7 +314,7 @@ describe("naskah M31: gejala, yang dikira, dan yang sebenarnya", () => {
     expect(a).not.toMatch(/"-breaker"/);
     expect(runInt).toMatch(/PEKERJA_SATU = \[[^\]]*"-serentak", "1", "-backoff", "0s", "-maks-percobaan", "5"/);
   });
-  test("pekerjaan mati tidak diklaim lagi: tidak ada kode Go atau SQL (bukan tes) di labs/api-t4 yang membaca baris outbox mati; setiap UPDATE outbox hanya menyentuh status menunggu", () => {
+  test("pekerjaan mati tidak diklaim lagi: tidak ada kode Go atau SQL (bukan tes) di labs/api-t4 yang mengklaim atau memutar ulang baris outbox mati; setiap UPDATE outbox hanya menyentuh status menunggu; satu-satunya pembaca baris mati adalah penghitung status", () => {
     const semuaBerkas = terlacak ? [...terlacak] : (fs.readdirSync(path.join(akar, "labs/api-t4"), { recursive: true }) as string[]).map((f) => `labs/api-t4/${f}`);
     const berkas = semuaBerkas.filter((f) => f.startsWith("labs/api-t4/") && /\.(go|sql)$/.test(f) && !f.endsWith("_test.go"));
     expect(berkas.length).toBeGreaterThan(30);
@@ -333,7 +333,25 @@ describe("naskah M31: gejala, yang dikira, dan yang sebenarnya", () => {
       expect(isi, f).not.toMatch(/WHERE[^`;]*status\s*=\s*'mati'/);
     }
     expect(jumlah).toBe(5);
-    harus("Di `labs/api-t4` tidak ada kode yang membaca pekerjaan `mati` lagi: setiap `UPDATE outbox` di kode Go dan SQL, selain tes, hanya menyentuh baris berstatus `menunggu` (Tidak dijalankan: dibaca dari kode).");
+    // semua pembaca outbox: klaim, kursor, dan umur tertua memakai status menunggu; penghitung status membaca semua status
+    // (termasuk mati) hanya untuk dihitung; pembersih hanya membuang yang selesai
+    const kelas: Record<string, number> = { menunggu: 0, hitung: 0, bersih: 0 };
+    for (const f of berkas) {
+      const isi = baca(f);
+      for (const m of isi.matchAll(/FROM\s+outbox\b/g)) {
+        const mulai = Math.max(isi.lastIndexOf("`", m.index!), 0);
+        const akhir = isi.indexOf("`", m.index!);
+        const pernyataan = isi.slice(m.index!, akhir < 0 ? undefined : akhir);
+        if (/^FROM\s+outbox\s+WHERE\s+status\s*=\s*'menunggu'/.test(pernyataan)) kelas.menunggu!++;
+        else if (/^FROM\s+outbox\s+GROUP BY status\s*$/.test(pernyataan.trim())) { kelas.hitung!++; expect(isi.slice(mulai, akhir), f).toMatch(/SELECT status, count\(\*\) FROM outbox GROUP BY status/); }
+        else if (/^FROM\s+outbox\s+WHERE\s+status\s+IN\s+\('terkirim', 'dilewati'\)/.test(pernyataan)) kelas.bersih!++;
+        else throw new Error(`pembaca outbox tak dikenal di ${f}: ${pernyataan.slice(0, 80)}`);
+      }
+    }
+    expect(kelas.menunggu).toBe(3);
+    expect(kelas.hitung).toBe(1);
+    expect(kelas.bersih).toBe(1);
+    harus("Di `labs/api-t4` tidak ada kode yang mengklaim atau memutar ulang pekerjaan `mati`: setiap `UPDATE outbox` di kode Go dan SQL, selain tes, hanya menyentuh baris berstatus `menunggu`. Satu-satunya kode yang membaca baris `mati` adalah penghitung status untuk metrik, dan ia hanya menghitung (Tidak dijalankan: dibaca dari kode).");
     expect(hal313).toContain("memutarnya ulang dengan satu `UPDATE` yang mengembalikan `status` ke `menunggu`");
     harus("Di Tahap 3 pekerjaan mati diputar ulang dengan `UPDATE` tangan ([[t3-at-least-once]]).");
   });
@@ -394,7 +412,7 @@ describe("rekaman lajur.txt, worker.txt, retry.txt: bagian dan rentang Snippet",
     expect(wBagA).toContain("antara 2,9 dan 3,6 detik sampai client menyerah (batas diperiksa; batas waktu client 3 detik)");
     expect(SERENTAK).toBe(4);
     expect(TIMEOUT).toBe(3);
-    harus("Rekaman `worker.txt` bagian A mengukur dua hal. Paling banyak 4 permintaan bersamaan sampai di layanan. Tiap percobaan yang menggantung ditahan antara 2,9 dan 3,6 detik sampai client menyerah (batas waktu client 3 detik):");
+    harus("Rekaman `worker.txt` bagian A mengukur dua hal. Paling banyak 4 permintaan bersamaan sampai di layanan. Empat percobaan pertama yang menggantung ditahan antara 2,9 dan 3,6 detik sampai client menyerah (batas yang diperiksa lab; batas waktu client 3 detik):");
     harus("Kelas pekerjaan di `outbox` hanya mengatur urutan klaim: pemberitahuan uang (kelas 0) diklaim sebelum verifikasi (kelas 1). Kelas tidak membebaskan slot yang sudah dipegang.");
     harus("Empat pemberitahuan uang lalu menunggu paling sedikit 2,0 detik (batas bawah yang diperiksa lab; nilainya tidak direkam).");
     expect(readme).toContain("2. **Kelas antrean tidak membebaskan slot.**");
@@ -552,13 +570,14 @@ describe("sumber luar: baris riset, tanggal akses, tautan, dan kutipan", () => {
     expect(b).toContain("000022_verifikasi_qr.up.sql");
     harus("Indeks unik sebagian menegakkan keunikan hanya di baris yang memenuhi predikatnya (");
   });
-  test("R4-157 (Azure Retry pattern): retry untuk gangguan sementara; tidak berguna bila gangguan kemungkinan lama; tanggal ms.date", () => {
+  test("R4-157 (Azure Retry pattern): retry untuk gangguan sementara; mungkin tidak berguna bila gangguan kemungkinan lama (sumber: might); tanggal ms.date", () => {
     const c = barisRiset("R4-157");
     expect(c).toContain("ms.date 2024-07-18");
     expect(c).toContain("When a fault is likely to be long lasting");
     expect(c).toContain("The application might be wasting time and resources trying to repeat a request that's likely to fail.");
     expect(c).toContain("typically self-correcting");
-    harus("Pola retry ditujukan bagi gangguan sementara. Dokumentasi pola itu menulis bahwa retry tidak berguna bila gangguan kemungkinan lama.");
+    harus("Pola retry ditujukan bagi gangguan sementara. Dokumentasi pola itu menulis bahwa pola ini mungkin tidak berguna bila gangguan kemungkinan lama. Aplikasi mungkin menghabiskan waktu dan sumber daya untuk mengulang permintaan yang kemungkinan gagal (");
+    expect(c).toContain('pola ini "might not be useful" "When a fault is likely to be long lasting');
     harus("diperbarui 2024-07-18, dibuka 2026-10-29, Tidak dijalankan)");
     expect(badan).not.toMatch(/menjamin|pasti berguna/);
   });
@@ -592,13 +611,13 @@ describe("sumber luar: baris riset, tanggal akses, tautan, dan kutipan", () => {
     expect(badan.indexOf("penalaran")).toBe(badan.indexOf("(Tidak dijalankan, penalaran: ") + "(Tidak dijalankan, ".length);
     expect(badan.match(/penalaran/g)).toHaveLength(1);
     for (const m of badan.matchAll(/\(Tidak dijalankan: dibaca dari [^)]*\)/g)) expect(m[0]).toMatch(/^\(Tidak dijalankan: dibaca dari (kode|SQL migration)\)$/);
-    expect(badan.match(/\(Tidak dijalankan: dibaca dari (?:kode|SQL migration)\)/g)).toHaveLength(2);
+    expect(badan.match(/\(Tidak dijalankan: dibaca dari (?:kode|SQL migration)\)/g)).toHaveLength(3);
     expect(badan).not.toMatch(/\(dibaca dari|\(penalaran/);
     expect(badan.match(/Hitungan/g)!.length).toBe(badan.match(/Hitungan atas (?:Asumsi|Ilustrasi)|Hitungan di tabel/g)!.length);
     expect(badan.match(/\(Hitungan\)/g)).toBeNull();
     expect(badan.match(/Hitungan atas Ilustrasi dan Asumsi/g)).toHaveLength(1);
-    expect(badan.match(/Hitungan atas Asumsi/g)).toHaveLength(4);
-    expect(badan.match(/Tidak dijalankan/g)).toHaveLength(7);
+    expect(badan.match(/Hitungan atas Asumsi/g)).toHaveLength(5);
+    expect(badan.match(/Tidak dijalankan/g)).toHaveLength(8);
     expect(badan.match(/Asumsi/g)!.length).toBeGreaterThanOrEqual(8);
     expect(badan.match(/\(Ilustrasi\)/g)).toHaveLength(2);
     expect(badan.match(/\*Angka cerita \(Ilustrasi\):\*/g)).toHaveLength(1);
@@ -938,5 +957,95 @@ describe("tinjauan 1304: kalimat yang lolos tanpa kunci baris", () => {
     harus("**2.** Layanan sudah pulih. Kenapa sepuluh pendaftar tidak lulus dengan sendirinya?");
     harus(`**3.** Rumus 0,116 × ${MAKS_PERCOBAAN} × ${TIMEOUT} menghasilkan 1,74. Apa arti 1,74, dan premis apa yang dipakainya?`);
     expect(0.116 * MAKS_PERCOBAAN * TIMEOUT).toBeCloseTo(1.74, 10);
+  });
+});
+
+
+describe("tinjauan 1305: mutan yang lolos tanpa kunci baris, dan klaim yang sumbernya bantah", () => {
+  const koma = (n: number): string => n.toLocaleString("id-ID", { maximumFractionDigits: 3 });
+  test("umur satu pekerjaan: batas konstanta 45 detik dan batas rekaman 3,6 detik per percobaan (48 detik) diturunkan dari run.py dan konstanta worker", () => {
+    const atas = Number(cocok(runInt, /2900 <= x <= (\d+)/)[1]) / 1000;
+    expect(atas).toBe(3.6);
+    expect(runInt).toContain('lama = st["lama_ms"][:4]');
+    expect(runInt).toContain("len(lama) >= 4 and all(2900 <= x <= 3600 for x in lama)");
+    const jedaTotal = JEDA.reduce((a, b) => a + b, 0);
+    const umurAtas = MAKS_PERCOBAAN * atas + jedaTotal;
+    expect(umurAtas).toBeCloseTo(48, 9);
+    expect(umurAtas).toBeLessThan(60);
+    harus(`antara ${koma(2900 / 1000)} dan ${koma(atas)} detik sampai client menyerah`);
+    harus(`Rekaman menahan percobaan sampai ${koma(atas)} detik. Jadi umurnya bisa mendekati ${MAKS_PERCOBAAN} × ${koma(atas)} + ${JEDA.join(" + ")} = ${koma(umurAtas)} detik, di bawah satu menit (Hitungan atas Asumsi).`);
+    harus(`Umur ${UMUR} detik memakai tepat ${TIMEOUT} detik tiap percobaan.`);
+  });
+  test("slot dibebaskan per putaran: Putaran menunggu semua pekerjaan (wg.Wait) sebelum klaim berikutnya, dan Jalankan memanggil Putaran berurutan", () => {
+    expect(workerGo).toMatch(/for i, n := range baris \{\s*wg\.Add\(1\)\s*go func\(\) \{[\s\S]*?\}\(\)\s*\}\s*wg\.Wait\(\)\s*return ringkasHasil\(hasil\), nil/);
+    expect(workerGo).toMatch(/for ctx\.Err\(\) == nil \{\s*r, err := w\.Putaran\(context\.WithoutCancel\(ctx\)\)/);
+    harus("Worker mengklaim sampai 4 pekerjaan sebagai satu putaran (fungsi `Putaran`). Ia menunggu semuanya selesai sebelum putaran berikutnya, jadi slot terpakai sama atau lebih lama dari hitungan di tabel (Tidak dijalankan: dibaca dari kode).");
+    expect(SERENTAK).toBe(4);
+  });
+  test("kapasitas worker di lajur.txt bagian A adalah 1 (run.py dan rekaman), bawaan api-t4 adalah 4", () => {
+    expect(lBagA).toContain("# worker: kapasitas 1, lima percobaan, tanpa backoff");
+    expect(lBagA).toContain("$ ./api-t4 -peran worker -sekali -serentak 1 -backoff 0s -maks-percobaan 5");
+    expect(runInt).toContain('"-serentak", "1"');
+    expect(SERENTAK).toBe(4);
+    harus("Bagian A `lajur.txt` menyetel kapasitas worker ke 1 supaya pekerjaan terbaca satu per satu; bawaan api-t4 adalah 4.");
+  });
+  test("worker.txt bagian A: keempat slot dipegang percobaan verifikasi yang menggantung (delapan pekerjaan menunggu, empat berjalan)", () => {
+    expect(wBagA).toContain("# 8 pekerjaan verifikasi (kelas 1) menunggu di outbox");
+    expect(wBagA).toContain("# Empat percobaan verifikasi sedang berjalan: keempat slot worker terpakai.");
+    expect(SERENTAK).toBe(4);
+    harus("Di rekaman itu keempat slot dipegang percobaan verifikasi yang menggantung.");
+  });
+  test("retry.txt bagian D: lima timeout berakhir mati dengan lima percobaan, lima permintaan, satu objek, dan pengajuan gagal", () => {
+    expect(rBagD).toContain("# mode setengah di setiap percobaan: objek dibuat di vendor, jawaban terpotong. Lima percobaan, backoff 1 ms:");
+    expect(rBagD).toMatch(/ mati {1,3}\| 5\n\(1 row\)/);
+    expect(rBagD).toMatch(/ gagal\n\(1 row\)/);
+    expect(rBagD).toContain("# setelah lima timeout: 5 permintaan masuk, 1 objek dibuat (kunci berbeda = objek berbeda)");
+    expect(MAKS_PERCOBAAN).toBe(5);
+    harus("Akhirnya sama bila jawabannya terpotong lima kali: pekerjaan berstatus `mati` dan pengajuan `gagal` (`retry.txt` bagian D).");
+  });
+  test("Gejala dan Yang Raka kira: kesimpulan Raka mengikuti tebakan naskah (foto buram) dan jawabannya (layanan tidak menjawab)", () => {
+    expect(naskah).toContain("Foto buram atau pendaftar salah mengambil foto");
+    expect(naskah).toContain("Layanan verifikasi tiruan tidak menjawab selama 3 jam 30 menit (Ilustrasi)");
+    harus("Jumlah pendaftar yang masuk sama dengan jumlah yang gagal. Foto buram menggagalkan sebagian pendaftar, bukan semuanya. Raka menyimpulkan penyebabnya ada sesudah foto sampai di server.");
+    harus("Layanan verifikasi tidak menjawab. Tiap pengajuan masuk ke `outbox` sebagai satu pekerjaan");
+  });
+  test("skenario: tiap kalimat 3 jam 30 menit berlabel Ilustrasi (jam cerita bukan rekaman), dan tidak ada label Rekaman lab di dekatnya", () => {
+    const semuaString: string[] = [];
+    const jalan = (v: unknown): void => {
+      if (typeof v === "string") semuaString.push(v);
+      else if (Array.isArray(v)) v.forEach(jalan);
+      else if (v && typeof v === "object") Object.values(v).forEach(jalan);
+    };
+    jalan(skenario);
+    const kena = semuaString.filter((s) => s.includes("3 jam 30 menit"));
+    expect(kena.length).toBeGreaterThanOrEqual(1);
+    for (const s of kena) {
+      expect(s).toMatch(/3 jam 30 menit \(Ilustrasi\)/);
+      expect(s).not.toMatch(/3 jam 30 menit \(Rekaman lab\)/);
+    }
+    expect(skenario.langkah[0]!.jelas).toContain("Di cerita layanan tidak menjawab selama 3 jam 30 menit (Ilustrasi). Di rekaman waktunya dipendekkan: tiruan langsung menjawab 503.");
+  });
+  test("baris riset: kutipan sumber luar yang dibuka 2026-10-29 tercatat persis, dan angka R4-158 dihitung ulang", () => {
+    const a = barisRiset("R4-155");
+    expect(a).toContain('`maxReceiveCount` adalah "the number of times a consumer can receive a message from a source queue before it is moved to a dead-letter queue"');
+    expect(a).toContain("Tidak berubah dari R3 (3.13 membuka halaman yang sama 2026-10-26)");
+    expect(hal313).toContain("sqs-dead-letter-queues.html), dibuka 2026-10-26");
+    const b = barisRiset("R4-156");
+    expect(b).toContain("Example 11.3 membuat `CREATE UNIQUE INDEX tests_success_constraint ON tests (subject, target) WHERE success;`");
+    const c = barisRiset("R4-157");
+    expect(c).toContain("ms.date 2024-07-18, updated_at 2025-12-09, dibuka 2026-10-29)");
+    const d = barisRiset("R4-158");
+    const laju = PER_HARI / 86400;
+    const bulat = (n: number, d: number): string => n.toFixed(d).replace(".", ",");
+    expect(d).toContain(`Laju 1.000 ÷ 86.400 = ${bulat(laju, 6)} (0,0116)`);
+    expect(d).toContain(`0,0116 × 12.600 = ${bulat(0.0116 * DETIK_GANGGUAN, 2)} (tanpa pembulatan ${bulat(laju * DETIK_GANGGUAN, 2)})`);
+    expect(d).toContain(`selang 1 ÷ 0,0116 = ${bulat(1 / 0.0116, 1)} detik`);
+    expect(d).toContain(`umur pekerjaan 5 × 3 + 2 + 4 + 8 + 16 = ${UMUR} detik`);
+    expect(d).toContain(`0,0116 × 5 × 3 = ${bulat(0.0116 * 15, 3)}`);
+    expect(d).toContain(`0,116 × 5 × 3 = ${bulat(0.116 * 15, 2)} (tanpa pembulatan ${bulat(laju * 10 * 15, 3)})`);
+    expect(d).toContain(`65.000 ÷ 86.400 × 10 = ${bulat((65000 / 86400) * 10, 3)} (7,52)`);
+    expect(d).toContain(`7,52 × 0,3 = ${bulat(7.52 * 0.3, 3)} (${bulat(7.52 * 0.3, 2)}; tanpa pembulatan ${bulat((65000 / 86400) * 10 * 0.3, 3)})`);
+    expect(d).toContain(`1,74 + 2,26 = ${bulat(1.74 + 2.26, 2)} (${bulat(laju * 150 + (65000 / 86400) * 3, 2)} tanpa pembulatan)`);
+    expect(d).toContain(`12.600 ÷ ${UMUR} = ${DETIK_GANGGUAN / UMUR}`);
   });
 });
