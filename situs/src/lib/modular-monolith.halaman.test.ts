@@ -717,6 +717,40 @@ describe("penutup celah turunan: versi, tanggal akses, sel tabel, struktur data,
   });
 });
 
+describe("penutup tanpa kunci: tabel hak, daftar aturan, pertanyaan Cek diri, dan string data yang tidak punya sumber angka", () => {
+  test("baris halaman yang membawa angka atau tautan sumber", () => {
+    harus("| Modul | Tabel | Role | Terbaca | Ditolak (42501) |");
+    harus("7. ADR wajib untuk perubahan lintas modul, dengan template MADR 4.0.0 yang minimal.");
+    harus("**2.** Role pembayaran tidak punya hak apa pun di schema akun, tetapi menulis `topup_bank` untuk akun yang ada berhasil. Kenapa, dan apa akibatnya bila database dipisah?");
+    harus(`Database tidak menahan modul membaca tabel modul lain, karena \`t4m_monolit\` mewarisi lima role dan membaca ${monolit[1]} tabel. Batas di sana hanya \`internal/\` untuk paket baru, review, dan tes kontrak.`);
+    harus("- [MADR 4.0.0](https://adr.github.io/madr/)");
+    expect(peranBaris.ledger).toBeDefined();
+  });
+  test("string Rantai, diagram, Tebak, perbandingan, dan halaman istilah yang hanya punya penjaga kata", () => {
+    expect(rantai.judul).toBe("Rename kolom akun.nama tanpa batas dan dengan batas");
+    expect(rantai.baris[0]!.simpul[1]!.sub).toBe("akun.nama jadi nama_tampil");
+    expect(rantai.baris[1]!.simpul[1]!.sub).toBe("oleh modul akun, kode ikut berubah");
+    expect(rantai.catatan).toBe("Kode pembayaran yang membaca akun.nama ditulis lab mengikuti uraian M32 (Ilustrasi). Schema, role, dan pesan galat adalah PostgreSQL yang dijalankan lab.");
+    expect(Arsitektur.parse(arsitektur).caption).toBe("Lima modul berjalan dalam satu proses dengan role t4m_monolit, dan satu modul di proses sendiri dengan role t4m_pembayaran. Biru = baru di tahap ini. Nama schema dan role adalah milik lab.");
+    expect(tebak.adegan).toEqual([
+      "Modul sudah dibagi ke enam schema, dan tiap modul punya role sendiri. Role t4m_pembayaran tidak punya hak apa pun di schema akun.",
+      "Kode pembayaran menjalankan SQL lamanya apa adanya: SELECT nama FROM akun, tanpa awalan schema.",
+    ]);
+    expect(tebak.pilihan[0]!.teks).toBe("Berhasil. Semua tabel ada di satu database, jadi role mana pun bisa membacanya.");
+    expect(tebak.pilihan[0]!.alasan).toBe("Satu database tidak berarti satu hak. Secara bawaan role tidak bisa mengakses objek di schema yang bukan miliknya, tanpa hak USAGE dari pemilik schema.");
+    expect(tebak.pilihan[2]!.teks).toBe('column "nama" does not exist (42703), karena kolomnya sudah diganti namanya.');
+    expect(tebak.pilihan[3]!.alasan).toBe("search_path, daftar schema yang dicari bila nama tabel tanpa awalan, hanya memuat schema pembayaran untuk role ini. Schema tanpa hak USAGE dilewati diam-diam, jadi nama akun tidak ditemukan.");
+    expect(banding.opsi[1]!.baris[0]!.map((n) => n.id)).toEqual(["b-kode", "b-role", "b-schema"]);
+    expect(banding.opsi[0]!.baris[0]!.map((n) => n.id)).toEqual(["a-kode", "a-role", "a-schema"]);
+    expect(banding.fitur[1]!.catatan.satu).toBe('Tes pembayaran tetap hijau, lalu kode pembayaran yang sama dijawab column "nama" does not exist (42703) (batas.txt bagian A).');
+    expect(istilah.sehari_hari).toBe("Modular monolith adalah satu aplikasi yang di-deploy sebagai satu unit, dengan kode dan tabel yang dibagi ke modul. Tiap modul punya pemilik dan satu pintu masuk. Batasnya dijaga mesin, bukan hanya kesepakatan tim.");
+    expect(istilah.mekanisme[3]).toBe("Modul lain memanggil paket publik atau API modul, bukan membaca tabelnya.");
+    expect(istilah.sumber[0]).toMatchObject({ catatan: "Kode di bawah direktori internal hanya bisa diimpor kode yang berbagi path impor di atas direktori itu.", url: "https://pkg.go.dev/cmd/go" });
+    expect(istilah.sumber[2]).toMatchObject({ judul: "Rekaman lab t4-modul: batas.txt bagian B", rekaman: "labs/t4-modul/output/batas.txt", catatan: "Enam schema, matriks hak enam role, SQL M32 ditolak, dan impor internal ditolak compiler." });
+    expect(istilah.cerita[0]!.teks).toBe("Rekeningo membagi 22 tabel ke enam schema, satu schema satu modul. SQL pembayaran ke tabel akun ditolak PostgreSQL, dan impor paket `internal/data` milik modul akun ditolak `go build` (`batas.txt` bagian B).");
+  });
+});
+
 describe("kunci kalimat dan sidik kata penentu (lapis 2 dan penutup mutasi tanpa kunci)", () => {
   const tekstual = (x: unknown, keluar: string[] = []): string[] => {
     if (typeof x === "string") keluar.push(x);
