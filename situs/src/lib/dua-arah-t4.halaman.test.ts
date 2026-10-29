@@ -404,6 +404,38 @@ describe("rekaman: rentan.txt A, topup.txt G, ganda, serentak, tandatangan, urut
     harus(`transfer ${rp(transfer)} tetap dijawab 201.`);
     harus("top-up dijawab 502 dan berstatus `gagal`");
   });
+  test("kalimat berangka (Cek 3 pertanyaan, kartu Cek diri, butir bukti, Putuskan) memakai angka dan kode status dari rekaman", () => {
+    const kode = (baris: string[], awal: string): number => Number(baris.find((b) => b.startsWith(awal))!.match(/HTTP\/1\.1 (\d+)/)![1]);
+    const k502 = kode(bagG, "HTTP/1.1 502");
+    const k201 = kode(bagG, "HTTP/1.1 201");
+    const k202 = kode(bagG, "HTTP/1.1 202");
+    const iPalsu = idx(bagA, (b) => b.startsWith("$ curl -i -X POST '/webhooks/pembayaran'"));
+    const kPalsu = Number(bagA[iPalsu + 1]!.match(/HTTP\/1\.1 (\d+)/)![1]);
+    const dua = kata(jurnalKaryawan.length);
+    expect([k502, k201, k202, kPalsu]).toEqual([502, 201, 202, 200]);
+    harus(`Gateway mengirim kabar yang sama dua kali, dan saldo Budi naik ${rp(naik)} untuk pembayaran ${rp(bayar)}. Hal mana dari tiga hal yang rusak?`);
+    harus(`Seseorang yang bukan gateway mengirim POST dengan jumlah ${rp(palsu)}. Kenapa handler versi pertama menerimanya?`);
+    harus(`**1.** Gateway mengirim kabar yang sama dua kali, dan saldo Budi naik ${rp(naik)} untuk ${rp(bayar)}. Hal mana yang rusak, dan apa buktinya?`);
+    harus(`Di \`rentan.txt\` bagian A, kiriman yang sama dua kali menghasilkan ${dua} jurnal ${rp(bayar)}.`);
+    harus(`**2.** Seseorang mengirim POST berisi jumlah ${rp(palsu)} tanpa tanda tangan.`);
+    harus(`Di \`rentan.txt\` bagian A, POST itu dijawab ${kPalsu} dan ${rp(palsu)} dikreditkan ke Budi.`);
+    harus(`Di \`topup.txt\` bagian G, gateway dimatikan: top-up dijawab ${k502} dan berstatus \`gagal\`, sedangkan transfer ${rp(transfer)} tetap dijawab ${k201}.`);
+    harus(`- **Baris 1, hal 2:** Rekaman lab \`rentan.txt\` bagian A. POST tanpa tanda tangan dijawab ${kPalsu} diproses.`);
+    harus(`Di bagian yang sama, POST tanpa tanda tangan dengan jumlah ${rp(palsu)} dijawab ${kPalsu} dan dikreditkan ke Budi:`);
+    harus(`Di sisi server, kabar dari gateway adalah jawaban yang sama: klaim yang harus dicek.`);
+    harus(`menganggap jawaban ${kPalsu} sebagai bukti uang pindah.`);
+    // Putuskan: dua kiriman bersamaan dijawab 200 diproses dan menghasilkan dua jurnal (ganda-serentak.txt A); B menjawab diproses lalu ganda.
+    const sA = serentakA.find((b) => b.startsWith("dua kiriman bersamaan"))!;
+    expect(sA.match(/200 diproses/g)).toHaveLength(Number(2));
+    harus(`Rekaman lab \`ganda-serentak.txt\` bagian A: dua kiriman bersamaan, keduanya dijawab ${kPalsu} diproses, ${kata(Number(serentakA.join("\n").match(/jurnal_topup_bank\n-+\n (\d+)\n/)![1]))} jurnal`);
+    const sB = serentakB.find((b) => b.startsWith("dua kiriman bersamaan, event_id yang sama"))!;
+    expect(sB).toContain("200 diproses, 200 ganda");
+    harus("Rekaman lab `ganda-serentak.txt` bagian B, `tandatangan.txt` bagian B, dan `urutan.txt` bagian F (kasus pertama)");
+    harus(`Di \`urutan.txt\` bagian F (kasus pertama), kabar \`pending\` sesudah \`settlement\` dijawab ${kPalsu} diparkir dan status tetap \`dibayar\`.`);
+    harus(`Lab memasang jeda ${bagBrentan.join("\n").match(/-lab-jeda-cek-tulis (\d+)ms/)![1]} ms di antara cek dan tulis`);
+    harus(`dan rekaman memakai ${topup[3]!.match(/-gateway-timeout (\d+)ms/)![1]} ms supaya cepat.`);
+    harus(`batas itu ${topup[3]!.match(/bawaan (\d+) detik/)![1]} detik`);
+  });
   test("rentang Snippet diturunkan dari baris rekaman dan fungsi kode, bukan ditulis tangan", () => {
     const [a1, a2] = rentangFungsi("func (s Service) webhookV1(");
     const [b1, b2] = rentangFungsi("func (s Service) kreditV1(");
