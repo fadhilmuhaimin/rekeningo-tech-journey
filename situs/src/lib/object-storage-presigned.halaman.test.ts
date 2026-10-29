@@ -777,6 +777,11 @@ describe("Cek diri, kartu, halaman istilah, glosarium, dan baris RISET", () => {
       expect(b.split("|").length, `${id} harus 5 kolom`).toBe(7);
       if (id !== "R4-184") expect(b, id).toContain("2026-10-30");
     }
+    for (const id of ["R4-180", "R4-181", "R4-182", "R4-183"]) {
+      const tgl = [...baris(id).matchAll(/\d{4}-\d{2}-\d{2}/g)].map((m) => m[0]);
+      expect(tgl.filter((t) => t !== "2021-05-05").every((t) => t === "2026-10-30"), `${id}: setiap tanggal akses 2026-10-30`).toBe(true);
+      expect(tgl.includes("2021-05-05"), `${id}: tanggal edit wiki 2021-05-05 hanya di baris wiki PostgreSQL`).toBe(id === "R4-181");
+    }
     const luar = [...new Set([...halaman.matchAll(/\]\((https?:\/\/[^)]+)\)/g)].map((m) => m[1]!))];
     const semuaRiset = ["R4-180", "R4-181", "R4-182", "R4-183"].map(baris).join("\n");
     for (const u of luar) {
