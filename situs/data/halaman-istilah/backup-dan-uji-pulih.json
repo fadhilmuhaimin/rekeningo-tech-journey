@@ -37,7 +37,7 @@
       "riset": "R4-178",
       "judul": "Rekaman lab t4-storage: dump dan pulih",
       "rekaman": "labs/t4-storage/output/ukuran.txt",
-      "catatan": "Bagian B: tabel berkas_bytea dipulihkan ke database lain, 16 baris dan 8.000.000 byte, md5 tiap baris sama. Waktu tidak direkam."
+      "catatan": "Bagian B: tabel yang berisi file di kolom bytea dipulihkan ke database lain, 16 baris dan 8.000.000 byte, md5 tiap baris sama. Waktu tidak direkam."
     }
   ]
 }

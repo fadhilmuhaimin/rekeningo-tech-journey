@@ -47,7 +47,7 @@
       "ke": "db",
       "judul": "Delapan pengajuan menyimpan 16 file di kolom bytea",
       "kirim": "# server: ./api-t4 -lab -rentan berkas-bytea (penyimpanan objek = tabel berkas_bytea)\n=> SELECT count(*) AS baris, sum(octet_length(isi)) AS byte_isi FROM berkas_bytea\n baris | byte_isi\n-------+----------\n 16    | 8000000\n(1 row)",
-      "jelas": "Tiap pengajuan membawa dua file 500.000 byte. Delapan pengajuan menyimpan 16 baris dan 8.000.000 byte di tabel berkas_bytea, di database yang sama dengan data transaksi."
+      "jelas": "Tiap pengajuan membawa dua file 500.000 byte. Delapan pengajuan menyimpan 16 baris dan 8.000.000 byte di satu tabel, di database yang sama dengan data transaksi."
     },
     {
       "dari": "db",
@@ -87,7 +87,7 @@
         "dari": "api",
         "ke": "objek",
         "judul": "File dikirim ke penyimpanan objek",
-        "kirim": "# penyimpanan objek: SeaweedFS 4.51 di container, endpoint S3 lokal, bucket privat 'berkas'\n# server: ./api-t4 -lab -objek-s3 <endpoint lokal> (file lewat URL PUT bertanda tangan)\n# Di penyimpanan objek: 16 objek, 8.000.000 byte; di database: baris verifikasi dengan kunci dan checksum saja.",
+        "kirim": "# server: ./api-t4 -lab -objek-s3 <endpoint lokal> (file lewat URL PUT bertanda tangan)\n# Di penyimpanan objek: 16 objek, 8.000.000 byte; di database: baris verifikasi dengan kunci dan checksum saja.",
         "jelas": "Delapan pengajuan yang sama menaruh 16 file, 8.000.000 byte, di penyimpanan objek yang berjalan di container lab."
       },
       {

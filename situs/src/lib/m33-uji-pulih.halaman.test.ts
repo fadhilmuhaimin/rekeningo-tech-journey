@@ -356,12 +356,12 @@ describe("kode lab dan hitungan: Simpan di luar transaction, 1 MiB, tabel Hitung
     const baris = [...badan.matchAll(/^\| ([^|\n]+) \| ([^|\n]+) \| ([^|\n]+) \|$/gm)].map((m) => [m[1]!, m[2]!, m[3]!]).filter((r) => r[0] !== "Besaran" && !r[0]!.startsWith("---"));
     const dump = HARI * GB_HARI * RASIO;
     expect(baris).toEqual([
-      ["File per hari", `${fmt(asumsi.upload!)} × ${asumsi.fileKB} KB`, `${fmt(KB_HARI)} KB, yaitu ${fmt(GB_HARI)} GB`],
+      ["File per hari", `${fmt(asumsi.upload!)} × ${asumsi.fileKB} KB`, `${fmt(GB_HARI)} GB`],
       ["File 28 hari", `${HARI} × ${fmt(GB_HARI)} GB`, `${fmt(FILE_HARI)} GB`],
       ["Posting per hari", `${fmt(POSTING_TAHUN)} ÷ 365`, fmt(POSTING_HARI)],
-      ["Posting 28 hari", `${fmt(POSTING_HARI)} × ${HARI} × ${BYTE_POSTING} byte`, `${fmt(POSTING_BYTE)} byte, yaitu ${fmt(POSTING_GB, 2)} GB`],
+      ["Posting 28 hari", `${fmt(POSTING_HARI)} × ${HARI} × ${BYTE_POSTING} byte`, `${fmt(POSTING_GB, 2)} GB`],
       ["File lawan posting", `${FILE_HARI} ÷ ${fmt(POSTING_GB, 2)}`, `${fmt(FILE_HARI / POSTING_GB, 1)} kali`],
-      ["File dari file dan posting", `${FILE_HARI} ÷ (${FILE_HARI} + ${fmt(POSTING_GB, 2)})`, `${fmt((FILE_HARI / (FILE_HARI + POSTING_GB)) * 100, 1)}%`],
+      ["Bagian file", `${FILE_HARI} ÷ (${FILE_HARI} + ${fmt(POSTING_GB, 2)})`, `${fmt((FILE_HARI / (FILE_HARI + POSTING_GB)) * 100, 1)}%`],
       ["Dump dari file", `${HARI} × ${fmt(RASIO, 1)}`, `${fmt(dump, 1)} GB`],
     ]);
     // rekaman bagian D mencetak hasil yang sama
@@ -375,7 +375,8 @@ describe("kode lab dan hitungan: Simpan di luar transaction, 1 MiB, tabel Hitung
     expect(dump).toBeCloseTo(30.8, 10);
     expect(barisM33).toContain("±28 GB file lawan ±0,84 GB posting (43,8 juta ÷ 365 × 28 × 250 B; Hitungan, Asumsi)");
     expect(barisM33).toContain("(28 ÷ 28,84 = 97,1%; Hitungan dari Asumsi)");
-    harus("Hitungan hanya membandingkan file dan posting. Tabel lain, mis. `outbox` dan `audit_log`, tidak ikut, jadi 97,1% adalah batas atas bagian file.");
+    harus(`Satuan: ${fmt(asumsi.upload!)} × ${asumsi.fileKB} KB = ${fmt(KB_HARI)} KB = ${fmt(GB_HARI)} GB, dan ${fmt(POSTING_HARI)} × ${HARI} × ${BYTE_POSTING} byte = ${fmt(POSTING_BYTE)} byte = ${fmt(POSTING_GB, 2)} GB.`);
+    harus("Bagian file adalah file dibagi jumlah file dan posting. Tabel lain, mis. `outbox` dan `audit_log`, tidak ikut, jadi 97,1% adalah batas atas.");
   });
   test("33,3 kali sama dengan 33 kali di 4.5 (365 ÷ 10,95); 28 hari dan setahun berbanding sama", () => {
     expect(365 / 10.95).toBeCloseTo(FILE_HARI / POSTING_GB, 3);

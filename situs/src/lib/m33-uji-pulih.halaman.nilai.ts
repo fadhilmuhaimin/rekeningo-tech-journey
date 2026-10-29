@@ -4,8 +4,8 @@
 export const SIDIK = {
   riset: ["95617fe9b60c0777","a2b62823d003196f","0b80f88a53a507f4","ab036be27f63e55a","f94ce3251477a810"],
   diagram: "507168b802877390",
-  skenario: "00162f5c0d3c8fc0",
-  istilah: "a954ab5f042071d3",
+  skenario: "4a2f5c16f38ae0f0",
+  istilah: "40a65be7892d5a1b",
 };
 
 export const KALIMAT_TERKUNCI: string[] = [
@@ -52,14 +52,15 @@ export const KALIMAT_TERKUNCI: string[] = [
   "Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, berlabel sama dengan masukan terlemahnya, di sini Asumsi.",
   "| Besaran | Rumus | Hasil |",
   "| --- | --- | --- |",
-  "| File per hari | 2.000 × 500 KB | 1.000.000 KB, yaitu 1 GB |",
+  "| File per hari | 2.000 × 500 KB | 1 GB |",
   "| File 28 hari | 28 × 1 GB | 28 GB |",
   "| Posting per hari | 43.800.000 ÷ 365 | 120.000 |",
-  "| Posting 28 hari | 120.000 × 28 × 250 byte | 840.000.000 byte, yaitu 0,84 GB |",
+  "| Posting 28 hari | 120.000 × 28 × 250 byte | 0,84 GB |",
   "| File lawan posting | 28 ÷ 0,84 | 33,3 kali |",
-  "| File dari file dan posting | 28 ÷ (28 + 0,84) | 97,1% |",
+  "| Bagian file | 28 ÷ (28 + 0,84) | 97,1% |",
   "| Dump dari file | 28 × 1,1 | 30,8 GB |",
-  "Semua baris adalah Hitungan atas Asumsi. Hitungan hanya membandingkan file dan posting. Tabel lain, mis. `outbox` dan `audit_log`, tidak ikut, jadi 97,1% adalah batas atas bagian file.",
+  "Satuan: 2.000 × 500 KB = 1.000.000 KB = 1 GB, dan 120.000 × 28 × 250 byte = 840.000.000 byte = 0,84 GB.",
+  "Semua baris adalah Hitungan atas Asumsi. Bagian file adalah file dibagi jumlah file dan posting. Tabel lain, mis. `outbox` dan `audit_log`, tidak ikut, jadi 97,1% adalah batas atas.",
   "Baris terakhir juga memakai rasio 1,1 dari rekaman, yang hanya diukur sampai 8 MB pada file karangan (Ilustrasi). Bagian D `ukuran.txt` mencetak 1,00 GB, 28,00 GB, 0,84 GB, dan 97,1%; angka itu hasil rumus, bukan pengukuran.",
   "Perbandingan setahun di [[t4-skema]], 365 ÷ 10,95, dibulatkan menjadi 33 kali. Perbandingan 28 hari sama, karena file dan posting tumbuh per hari.",
   "Rata-rata 500 KB adalah Asumsi. Server lab menolak file kartu di atas 1 MiB, yaitu 1.048.576 byte (`unggah.txt` bagian C). Bila semua file sebesar batas itu, file per hari 2.000 × 1.048.576 byte = 2,10 GB. Itu sedikit di atas dua kali hitungan di atas (Hitungan atas Asumsi).",

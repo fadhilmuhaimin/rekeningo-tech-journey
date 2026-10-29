@@ -52,7 +52,7 @@ RULES = [
      "TINGGI", "Untuk pros/cons pakai 'Kelebihan / Kekurangan'. 'Rugi Rp70.000' (kerugian uang) tidak terkena pola ini."),
     ("pemakai/pengguna (user)", r"\bpemakai\b|\bpengguna(nya)?\b", "TINGGI", "Pakai 'user' (mis. 'user iseng', 'HP user'). 'Pemakaian' (usage) tidak terkena."),
     ("klien (client)", r"\bklien\w*", "TINGGI", "Pakai 'client' (mis. 'HTTP client', 'client app')."),
-    ("berkas (file)", r"\bberkas\w*", "TINGGI", "Pakai 'file'."),
+    ("berkas (file)", r"\bberkas(?![_-])\w*", "TINGGI", "Pakai 'file'."),   # nama kode berkas_x dan berkas-x (tabel, kolom, mode lab) bukan prosa
     ("kontrak (API)", r"\bkontrak\b", "RENDAH", "'Kontrak API' lazim dipakai; boleh tetap, jelaskan sekali (= bentuk request/response yang disepakati)."),
     ("bawang (lapisan)", r"\bbawang\b", "TINGGI", "Hapus. Pakai 'urutan middleware' + diagram berurutan."),
     ("jabat tangan", r"jabat tangan", "TINGGI", "Pakai 'handshake' (TCP/TLS)."),
