@@ -853,7 +853,7 @@ describe("tanpa kunci baris: kalimat tambahan, jawaban skenario, dan isi istilah
   test("halaman istilah: setiap kalimat bagian cerita, mekanisme, jebakan, dan catatan sumber sama dengan yang diturunkan dari rekaman dan hitungan", () => {
     expect(istilah.sehari_hari).toBe("Backup adalah salinan isi database dalam satu file. Uji pulih memulihkan salinan itu ke database lain, sungguhan, untuk membuktikan ia bisa dipakai.");
     expect(istilah.cerita).toEqual([
-      { rujukan: "t3-tim-infra", teks: "Backup pg_dump harian diuji pulih tiap minggu di staging (Asumsi). Pemulihan itu menjadi satu-satunya tempat waktu pulih terlihat." },
+      { rujukan: "t3-tim-infra", teks: "Backup pg_dump harian diuji pulih tiap minggu di staging (Asumsi). Waktu pulih diukur dari uji pulih itu, dan pemicu ADR 33 memakai waktu itu." },
       { rujukan: "t4-m33", teks: `Uji pulih mingguan naik dari ${MENIT_LAMA} menit ke ${JAM_BARU[1]} jam ${JAM_BARU[2]} menit (Ilustrasi), karena foto kartu identitas di kolom bytea ikut tiap dump. Rekaman lab mengukur ukurannya: dump ${fmt(RASIO, 1)} kali ukuran file.` },
     ]);
     expect(istilah.mekanisme).toEqual([
