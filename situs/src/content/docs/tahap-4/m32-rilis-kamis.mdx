@@ -1,0 +1,153 @@
+---
+title: "4.12 M32: Rilis Kamis memecahkan top-up"
+description: Minggu 6. Rilis tim Merchant mengganti nama satu kolom, dan top-up gagal padahal kode tim Pembayaran tidak berubah dan tesnya lolos.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import renameTesHijau from "../../../../data/diagram/t4-m32-rename-tes-hijau.json";
+
+<p class="meta">Baca 6 menit · coba 3 menit · Prasyarat: [[t2-skema-tanpa-downtime]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 6 Tahap 4. Kamis pukul 15.20 tim Merchant merilis versi baru. Pukul 15.22 tombol "Terima top-up" memunculkan kesalahan, dan notifikasi "Rp200.000 masuk" tidak muncul di HP penerima.
+
+Rollback rilis itu selesai pukul 15.58. Nadia bertanya ke tim Pembayaran, yang memegang top-up. Jawabannya satu kalimat: "Kami tidak mengubah apa pun."
+
+*Angka cerita (Ilustrasi):* hari, jam, dan nominal berasal dari cerita, bukan dari rekaman. Dari kesalahan pertama sampai rollback selesai berlalu 15.58 − 15.22 = 36 menit (Hitungan: angka yang dihitung dari angka lain di halaman). Arti Ilustrasi, Rekaman lab, dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Rilis Kamis datang dari tim Merchant, yang memegang merchant luar, QR, katalog, dan dasbor web ([[t4-prd]]). Top-up bukan bagian mereka. Karena itu dugaan pertama Raka jatuh ke tim yang memegang top-up: rilis tim Pembayaran yang rusak.
+
+Nadia membaca daftar commit timnya sendiri. Hasilnya sama dengan jawaban timnya: tidak ada perubahan di kode top-up (Ilustrasi).
+
+Raka lalu memeriksa tes tim Pembayaran. Tiga langkah CI-nya hijau: `go build`, `go vet`, dan `go test` (Rekaman lab, bagian A di blok berikutnya). Kode top-up tidak berubah, tesnya hijau, dan top-up tetap gagal.
+
+<details class="question">
+<summary>Tebak dulu: kode top-up tidak berubah dan tesnya hijau, tetapi top-up gagal sesudah rilis tim lain. Apa yang bisa berubah di bawah kode yang sama?</summary>
+
+Skema database. Tim Merchant mengganti nama satu kolom di tabel `akun`, dan kode top-up masih membaca nama lamanya. Database menjawab `column "nama" does not exist`, dengan kode SQLSTATE 42703 (Rekaman lab, bagian A).
+
+SQLSTATE adalah kode lima karakter yang dipakai PostgreSQL untuk jenis galat. Kode 42703 berarti kolom tidak ada ([dokumentasi PostgreSQL 17.11, lampiran kode galat](https://www.postgresql.org/docs/17/errcodes-appendix.html), dibuka 2026-10-29, Tidak dijalankan). Kenapa tesnya tetap hijau ada di blok berikutnya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Kode top-up tidak rusak oleh timnya sendiri. Yang berubah ada di bawah kodenya: tim Merchant menjalankan satu migration, yaitu file yang mengubah skema database ([[B4.1]]). Isinya satu perintah, `ALTER TABLE akun RENAME COLUMN nama TO nama_tampil` (Rekaman lab, bagian A; migration di cerita memakai perintah yang sama, Ilustrasi).
+
+Perintah itu mengganti nama kolom dan tidak mengubah data yang tersimpan ([dokumentasi PostgreSQL 17.11, ALTER TABLE](https://www.postgresql.org/docs/17/sql-altertable.html), dibuka 2026-10-29, Tidak dijalankan).
+
+*Kondisi rekaman:* PostgreSQL 17.11, go1.27.1, dan pgx v5.11.0, dari database bersih. Semua modul memakai satu schema, yaitu ruang nama untuk tabel di dalam satu database (`tahap4_modul`). Mereka juga memakai satu role, yaitu identitas login database yang punya hak sendiri (`api_t4`). Dengan role itu SQL langsung ke tabel `akun` berhasil sebelum rename.
+
+**Kode yang membaca kolom milik modul lain.** Modul adalah sekelompok kode di satu codebase yang dipegang satu tim. Modul pembayaran, milik tim Pembayaran, membaca `akun.nama` dengan SQL langsung untuk teks notifikasi. Di lab fungsinya bernama `TeksTopupLangsung`:
+
+<Snippet file="labs/api-t4/internal/modul/pembayaran/notifikasi.go" lines="24:30" lang="go" title="Kode lab: labs/api-t4/internal/modul/pembayaran/notifikasi.go baris 24 sampai 30 (SQL langsung ke tabel akun)" />
+
+Kode top-up di `labs/api-t4/internal/service/pembayaran.go` tidak punya query ke kolom `nama` (Tidak dijalankan: dibaca dari kode). `TeksTopupLangsung` ditulis lab mengikuti cerita. Karena itu bagian ini Ilustrasi mekanisme: kodenya ditulis mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Hasilnya bukan rekaman kode produksi.
+
+**Kenapa tesnya tetap hijau.** Tes modul pembayaran memakai data tiruan, seperti tes tiap tim di cerita. Data tiruan adalah pengganti database yang membalas data tetap tanpa membuka koneksi. Di lab, driver tiruan membalas satu baris berisi "Budi" untuk perintah apa pun (Tidak dijalankan: dibaca dari kode):
+
+<Snippet file="labs/api-t4/internal/modul/pembayaran/notifikasi_test.go" lines="33:46" lang="go" title="Kode lab: labs/api-t4/internal/modul/pembayaran/notifikasi_test.go baris 33 sampai 46 (driver tiruan membalas satu baris)" />
+
+Perintah apa pun termasuk perintah yang menyebut kolom yang sudah tidak ada. Tes itu tidak menyentuh skema, jadi rename tidak mengubah hasilnya. Tiga langkah CI lolos tanpa koneksi database:
+
+<Snippet file="labs/t4-modul/output/batas.txt" lines="7:17" title="Rekaman lab: labs/t4-modul/output/batas.txt, bagian A (tiga langkah CI tim Pembayaran lolos)" />
+
+**Kolom yang hilang hanya terlihat di database.** Rekaman menjalankan fungsi yang sama dua kali dengan role dan skema yang sama, sebelum dan sesudah migration:
+
+<Snippet file="labs/t4-modul/output/batas.txt" lines="22:24" title="Rekaman lab: labs/t4-modul/output/batas.txt, bagian A (rename lolos di CI, gagal di database)" />
+
+<Rantai data={renameTesHijau} />
+
+**Siapa yang tahu sebelum rilis?** Pertanyaan kedua di PRD v4 berbunyi: kalau tiga tim mengubah tabel yang sama, siapa yang tahu sebelum rilis ([[t4-prd]])? Di M32 jawabannya tidak seorang pun, karena tiga hal:
+
+1. Tes tiap tim memakai data tiruan, jadi tidak membawa skema tim lain.
+2. Folder migration dipakai bersama tanpa pemilik, dan yang meninjau migration itu anggota tim Merchant sendiri (Ilustrasi: dari cerita, tidak ada di lab).
+3. ADR 17 sudah ada ([[t2-skema-tanpa-downtime]]). Aturan 1 memecah perubahan menjadi expand, migrate, dan contract, dengan contract tidak pernah satu file dengan expand, dan berlaku untuk tabel `akun`. Satu `RENAME COLUMN` menambah nama baru dan menghapus nama lama dalam satu perintah, jadi tidak memenuhi aturan itu (Tidak dijalankan: dibaca dari ADR 17).
+
+Di cerita tidak ada mesin yang memeriksa aturan 1 lintas tim sebelum rilis (Ilustrasi). Aturan itu juga tidak menjawab siapa pembaca terakhir kolom lama. Modul pembayaran membacanya di file yang bukan milik tim Merchant.
+
+Martin Fowler menulis tentang beberapa aplikasi yang berbagi satu database. Menurutnya database itu menjadi "point of coupling" di antara aplikasi tersebut ([Integration Database](https://martinfowler.com/bliki/IntegrationDatabase.html), 25 Mei 2004, dibuka 2026-10-29, Tidak dijalankan). Di M32 yang berbagi database adalah modul dari tiga tim di satu aplikasi, jadi ini analogi, bukan kasus yang sama.
+
+**Yang tidak direkam.**
+
+- Rekaman tidak menjalankan jalur top-up penuh sesudah rename. Apakah jurnal top-up sudah tertulis saat kesalahan muncul, rekaman tidak menjawabnya.
+- Query lain di `labs/api-t4/internal/repo` juga membaca `akun.nama`, misalnya `Akun`, `Katalog`, dan `TutupBuku` (Tidak dijalankan: dibaca dari kode). Rekaman tidak menjalankan satu pun dari query itu sesudah rename.
+- Rollback, jam rilis, folder migration, dan peninjau dari tim Merchant hanya ada di cerita (Ilustrasi).
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `batas.txt` bagian A, dengan satu varian dari bagian B. Tebak dulu apa yang terjadi pada kode top-up sesudah rename, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t4-m32.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: modul pembayaran dan modul akun dipisah schema dan role**. Kode pembayaran yang sama gagal sejak sebelum rename, dan rename kolom tidak mematahkan modul lain. Cara pemisahan dan alasan memilihnya ada di [[t4-modul]]. Layar HP digambar dari cerita (Ilustrasi): lab tidak punya app Flutter.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: tiga langkah CI lolos, lalu sesudah rename `pembayaran.TeksTopupLangsung` dijawab `column "nama" does not exist` (42703).
+
+Bila modul dipisah schema dan role, kode yang sama dijawab `relation "akun" does not exist` (42P01) atau `permission denied for schema t4m_akun` (42501). Rekaman bagian B ada di lipatan di bawah.
+</noscript>
+
+<details>
+<summary>Rekaman bagian B (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/t4-modul/output/batas.txt" lines="77:79" title="Rekaman lab: labs/t4-modul/output/batas.txt, bagian B (modul dipisah: kode yang sama ditolak)" />
+
+<Snippet file="labs/t4-modul/output/batas.txt" lines="81:82" title="Rekaman lab: labs/t4-modul/output/batas.txt, bagian B (rename oleh pemilik schema akun tidak mematahkan pembayaran)" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t4-modul]]: batas modul yang dijaga compiler dan database, CODEOWNERS, dan ADR wajib untuk perubahan lintas modul. Keputusannya ADR 37.
+- [[t2-skema-tanpa-downtime]]: expand, migrate, dan contract, aturan yang sudah ada sebelum M32.
+- [[t4-tim-infra]]: pipeline per modul dan pemeriksaan sebelum rilis. Keputusannya ADR 44.
+
+Di M32 ADR 17 sudah tertulis dan tidak menghentikan migration itu. Siapa yang tahu sebelum rilis harus dijawab oleh sesuatu yang berjalan sebelum rilis.
+
+### Cek diri
+
+**1.** Tes tim Pembayaran hijau sebelum dan sesudah migration Merchant, tetapi top-up gagal. Kenapa tesnya tidak menangkapnya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tesnya memakai driver tiruan, yang tidak membuka koneksi. Driver itu membalas satu baris "Budi" untuk perintah apa pun, jadi skema tidak ikut diuji (Tidak dijalankan: dibaca dari `notifikasi_test.go`). Terhadap database, fungsi yang sama dijawab `column "nama" does not exist` (`batas.txt` bagian A).
+
+</details>
+
+**2.** Kenapa halaman ini menyebut `TeksTopupLangsung` Ilustrasi mekanisme, bukan rekaman kode top-up?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Kode top-up di `labs/api-t4/internal/service/pembayaran.go` tidak membaca `akun.nama`. `TeksTopupLangsung` ditulis lab mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Rekaman membuktikan mekanismenya, bukan kode produksi.
+
+</details>
+
+**3.** Kenapa ADR 17 tidak menghentikan migration Merchant?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Aturan 1 memisahkan expand dan contract dan berlaku untuk tabel `akun`, tetapi satu `RENAME COLUMN` menjalankan keduanya sekaligus (Tidak dijalankan: dibaca dari ADR 17). Di cerita tidak ada pemeriksaan yang menjalankan aturan itu sebelum rilis (Ilustrasi).
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />

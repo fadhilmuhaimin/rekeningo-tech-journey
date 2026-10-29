@@ -2704,6 +2704,30 @@
   "jawab": "Jadwal lima kali dengan jeda 2, 10, 30, 90, dan 210 menit ada di dokumentasi gateway kedua, yang tidak menyebut rotasi. Masa tumpang tindih sampai 24 jam dan pengulangan sampai tiga hari ada di dokumentasi gateway pertama (Tidak dijalankan). Tiruan lab memakai jadwal gateway kedua dengan rotasi langsung."
  },
  {
+  "id": "t4-m32-1",
+  "halaman": "t4-m32",
+  "judul": "4.12 M32: Rilis Kamis memecahkan top-up",
+  "url": "tahap-4/m32-rilis-kamis/",
+  "tanya": "Tes tim Pembayaran hijau sebelum dan sesudah migration Merchant, tetapi top-up gagal. Kenapa tesnya tidak menangkapnya?",
+  "jawab": "Tesnya memakai driver tiruan, yang tidak membuka koneksi. Driver itu membalas satu baris \"Budi\" untuk perintah apa pun, jadi skema tidak ikut diuji (Tidak dijalankan: dibaca dari `notifikasi_test.go`). Terhadap database, fungsi yang sama dijawab `column \"nama\" does not exist` (`batas.txt` bagian A)."
+ },
+ {
+  "id": "t4-m32-2",
+  "halaman": "t4-m32",
+  "judul": "4.12 M32: Rilis Kamis memecahkan top-up",
+  "url": "tahap-4/m32-rilis-kamis/",
+  "tanya": "Kenapa halaman ini menyebut `TeksTopupLangsung` Ilustrasi mekanisme, bukan rekaman kode top-up?",
+  "jawab": "Kode top-up di `labs/api-t4/internal/service/pembayaran.go` tidak membaca `akun.nama`. `TeksTopupLangsung` ditulis lab mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Rekaman membuktikan mekanismenya, bukan kode produksi."
+ },
+ {
+  "id": "t4-m32-3",
+  "halaman": "t4-m32",
+  "judul": "4.12 M32: Rilis Kamis memecahkan top-up",
+  "url": "tahap-4/m32-rilis-kamis/",
+  "tanya": "Kenapa ADR 17 tidak menghentikan migration Merchant?",
+  "jawab": "Aturan 1 memisahkan expand dan contract dan berlaku untuk tabel `akun`, tetapi satu `RENAME COLUMN` menjalankan keduanya sekaligus (Tidak dijalankan: dibaca dari ADR 17). Di cerita tidak ada pemeriksaan yang menjalankan aturan itu sebelum rilis (Ilustrasi)."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",
