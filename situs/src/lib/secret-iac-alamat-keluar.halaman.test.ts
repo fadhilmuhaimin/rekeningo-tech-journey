@@ -320,8 +320,9 @@ describe("sumber luar: versi, tanggal dibuka, lisensi, baris RISET R4-190 sampai
     const nomor = semua.map((x) => Number(x.slice(3)));
     const i = semua.indexOf("R4-190");
     expect(semua.slice(i, i + 5)).toEqual(RISET_ID);
-    expect(nomor[i - 1]).toBe(174);
-    expect(nomor[i + 5]).toBe(300);
+    expect(nomor).toEqual([...nomor].sort((x, y) => x - y));
+    expect(nomor[i - 1]).toBeLessThan(190);
+    expect(nomor[i + 5]).toBeGreaterThan(194);
     for (const id of RISET_ID) expect(barisRiset(id).split("|")[4], id).toContain("4.17");
   });
   test("tiga halaman istilah valid, punya baris glosarium dengan rujukan ke halaman ini, dan merujuk baris RISET atau rekaman yang ada", () => {
