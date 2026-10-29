@@ -39,6 +39,7 @@ const fitur = rek("api-t4", "fitur.txt");
 const retry = rek("t4-webhook", "retry.txt");
 const readmeWebhook = baca("labs/t4-webhook/README.md");
 const openapi = baca("labs/api-t4/openapi.yaml").split("\n");
+const kodeKartu = baca("labs/api-t4/internal/service/kartu.go");
 
 interface H { lama?: boolean; lebur_ke?: string; id: string; judul: string; tahap: number | string; jenis?: string; bagian?: number | string; nomor?: string; ada?: boolean; prasyarat?: string[]; path: string; adr?: number[]; inti?: boolean }
 const HALAMAN = cerita.halaman as unknown as H[];
@@ -311,6 +312,19 @@ describe("tabel konsep: tautan diturunkan dari kolom konsep naskah dan judul reg
       expect(new Set(idDalam(baris2[i]![1]!)), `baris ${i + 1} (${n[0]})`).toEqual(harapan);
     });
   });
+  test("tiap tautan: konsep di labelnya menunjuk ke halaman yang sama dengan ID-nya (menukar ID antar tautan di satu baris tertangkap)", () => {
+    let jumlah = 0;
+    for (const [i, b] of baris2.entries()) {
+      for (const m of b[1]!.matchAll(/\[\[([^\]|\\]+)\\?\|([^\]]+)\]\]/g)) {
+        const [, id, label] = m;
+        const kunci = Object.keys(KONSEP_KE_JUDUL).filter((k) => new RegExp(`(^|[^a-z])${k}([^a-z]|$)`).test(label!.toLowerCase()));
+        expect(kunci.length, `baris ${i + 1}: label "${label}" tanpa konsep di kamus`).toBeGreaterThan(0);
+        for (const k of kunci) expect(idDariJudul(KONSEP_KE_JUDUL[k]!), `baris ${i + 1}: "${label}" → ${id}`).toBe(id);
+        jumlah++;
+      }
+    }
+    expect(jumlah).toBe(idDalam(blokKonsep.split("\n").filter((x) => x.startsWith("| ")).join("\n")).length);
+  });
   test("label tautan menyebut konsep naskah baris itu, dan semua [[ID]] ada di registry dan menunjuk Tahap 4 atau yang lebih awal", () => {
     tabelNaskah.forEach((n, i) => {
       const label = [...baris2[i]![1]!.matchAll(/\[\[[^\]|\\]+\\?\|([^\]]+)\]\]/g)].map((m) => m[1]!.toLowerCase()).join(" ");
@@ -345,6 +359,10 @@ describe("tabel konsep: tautan diturunkan dari kolom konsep naskah dan judul reg
     expect(per("t4-modul").adr).toEqual([37]);
     expect(blokKonsep).toContain("[[t4-modul|ADR 37]]");
     expect(paragraf).toContain("pihak luar hanya memberi klaim");
+    // kata bilangan diturunkan dari jumlah tautan masalah (dua) dan webhook sebagai yang pertama (tiga); "terpisah" dari naskah
+    expect(paragraf).toContain(`muncul lagi di ${kata(idDalam(paragraf).length)} masalah lain.`);
+    expect(paragraf).toContain(`Aturan Tahap 4 sama untuk ke${kata(idDalam(paragraf).length + 1)}nya:`);
+    expect(blokKonsep).toContain("Sesudah service pembayaran terpisah ([[t4-modul|ADR 37]]), pencatatannya lewat Idempotency-Key.");
   });
 });
 
@@ -379,6 +397,9 @@ describe("pertanyaan pertama Tahap 4 dan klaim dokumentasi gateway", () => {
     expect(blokTanya).toContain("Kabar itu bisa datang dua kali, terlambat, tidak berurutan, palsu, atau tidak datang sama sekali.");
     expect(blokTanya).toContain("lahir pertanyaan pertama Tahap 4, sebelum satu baris kode ditulis: kabar dari luar adalah klaim, bukan fakta.");
     expect(blokTanya).toContain("Rekeningo tidak bisa membuat gateway ikut COMMIT atau ROLLBACK.");
+    // pertanyaan pertama: tepat satu jurnal untuk satu kabar, dengan keadaan yang sama dengan daftar naskah (tinjauan 4.2)
+    expect(blokTanya).toContain("Bagaimana satu kabar dari gateway menghasilkan tepat satu jurnal, padahal kabar itu bisa datang dua kali, terlambat, atau tidak datang sama sekali?");
+    expect(blokTanya).toContain("Karena itu klaim dicek lebih dulu, lalu dicatat satu kali.");
   });
   test("klaim dokumentasi: tanggal akses halaman sama dengan baris riset, dan baris riset memuat tiga kutipan", () => {
     const baris = riset.split("\n").find((b) => b.startsWith("| R4-115 "))!;
@@ -389,6 +410,11 @@ describe("pertanyaan pertama Tahap 4 dan klaim dokumentasi gateway", () => {
     expect(baris).toContain("might occasionally receive the same event more than once");
     expect(baris).toContain("doesn't guarantee the delivery of events in the order");
     expect(baris).toContain("an attacker could send fake webhook events");
+    // bagian dokumentasi tempat tiap kutipan dibaca, dan jadwal ulangan yang dibaca dari bagian lain (tinjauan 4.2)
+    expect(baris).toContain("(bagian Handle duplicate events)");
+    expect(baris).toContain("(bagian Event ordering)");
+    expect(baris).toContain("(bagian Verify events are sent from Stripe)");
+    expect(baris).toContain("pengiriman ulang sampai tiga hari dengan exponential back off di mode live (bagian Automatic retries)");
     // satu hari toleransi: tanggal akses ditulis menurut WITA, sedangkan CI dan new Date() memakai UTC
     expect(tgl <= new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)).toBe(true);
     expect(tgl >= riset.match(/Semua tautan dibuka (\d{4}-\d{2}-\d{2})/)![1]!).toBe(true);
@@ -401,6 +427,7 @@ describe("pertanyaan pertama Tahap 4 dan klaim dokumentasi gateway", () => {
     expect(per("t4-m29").judul).toBe("M29: Top-up Budi masuk dua kali");
     expect(blokTanya).toContain("Alasannya dibahas di [[t4-dua-arah]], dan kejadiannya, top-up Budi yang masuk dua kali, di [[t4-m29]].");
     expect(blokTanya).toContain("Dari tiga pertanyaan terbuka PRD v4 di [[t4-prd]], yang pertama menyangkut kabar dari gateway.");
+    expect(naskahTeks).toContain("- Kalau gateway mengirim kabar dua kali, terlambat, atau tidak mengirim sama sekali, siapa yang tahu?");
     expect(naskahTeks).toContain("**Pertanyaan terbuka di PRD.**");
     expect(naskahTeks).toContain("Ketiganya tidak dijawab PRD dan menjadi masalah terbesar Tahap 4");
   });
@@ -425,7 +452,7 @@ describe("kartu pilah: jawaban dari kolom naskah dan klaim dari rekaman", () => 
   test("sepuluh kartu, empat kelompok (tiga kolom naskah dan pihak luar), dan blok Coba menyebut jumlahnya", () => {
     expect(pilah.item).toHaveLength(SUMBER_ITEM.length);
     expect(pilah.kelompok).toEqual(["App", "Backend", "Database", "Pihak luar"]);
-    expect(blokCoba).toContain(`${huruf1(kata(pilah.item.length))} pekerjaan dari PRD v${v}.`);
+    expect(blokCoba).toContain(`${huruf1(kata(pilah.item.length))} pekerjaan dari PRD v${v}. Pilah masing-masing ke tempat yang mengerjakannya, lalu periksa jawabanmu.`);
     expect(blokCoba).toContain('src="data/t4-fitur-pilah.json"');
     expect(blokCoba).toContain("Nama endpoint, tabel, dan status berasal dari Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) api-t4, dan jadwal ulangan gateway dari lab t4-webhook. Gateway dan layanan verifikasi adalah tiruan lokal.");
     expect(pilah.judul).toBe(`PRD v${v}: pekerjaan ini milik siapa?`);
@@ -504,6 +531,9 @@ describe("kartu pilah: jawaban dari kolom naskah dan klaim dari rekaman", () => 
     expect(pilah.item[4]!.kenapa).toContain("GET /qr/{id} (fitur.txt bagian A)");
     expect(pilah.item[5]!.kenapa).toContain(`otorisasi ${rp(80000)} yang disetujui meninggalkan satu baris berstatus ditahan dengan jurnal tahan (fitur.txt bagian C)`);
     expect(pilah.item[5]!.kenapa).toContain("Rekeningo tidak bisa menarik kembali persetujuan yang sudah dikirim ke penerbit");
+    // penerbit sendiri bisa membalik persetujuan (reversal, fitur.txt bagian C): kalimat tidak boleh universal tanpa pelaku
+    expect(fitur.join("\n")).toContain("dibalik");
+    expect(kodeKartu).toContain("func (s Service) Reversal(");
     expect(naskahTeks).toContain("persetujuan sudah diberikan dan tidak bisa ditarik");
   });
   test("kartu verifikasi: jawaban lulus menaikkan tingkat akun (verifikasi.txt C), layanan verifikasi tiruan", () => {
@@ -631,6 +661,10 @@ describe("turunan tambahan: heading, JSX, label, istilah, dan nomor tahap", () =
     expect(blokKonsep).toContain("PostgreSQL tetap satu-satunya source of truth");
     expect(blokKonsep).toContain("pencatatannya lewat Idempotency-Key.");
     expect(blokKonsep).toContain("satu transaction dengan efeknya");
+    // arah klaim: dicek dulu, baru dipercaya dan dicatat (tinjauan 4.2: membalik "dicek sebelum dipercaya" lolos tanpa kunci baris)
+    expect(naskahTeks).toContain("Klaim itu dicek, lalu dicatat sekali");
+    expect(blokKonsep).toContain("juga klaim yang dicek sebelum dipercaya.");
+    expect(blokKonsep).toContain("Klaim itu dicek, lalu dicatat sekali.");
   });
   test("nomor tahap dan versi PRD: Tahap 4 sembilan kali, Tahap 3 sekali (outbox), Tahap 1 sekali (kisaran 1 sampai 3), PRD hanya v4", () => {
     const badan = mdx.split("---").slice(2).join("---").replace(/^import .*$/gm, "");
