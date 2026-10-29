@@ -921,7 +921,7 @@ describe("penutup tanpa kunci: nomor ADR, M34, status HTTP, versi dokumentasi, S
   "cerita": [
    {
     "rujukan": "t4-infra-secret",
-    "teks": "Rekeningo memakai OpenTofu. Alat itu menyimpan catatan resource yang sudah dibuatnya di file state. Di lab, secret yang ditulis di konfigurasi ikut tersimpan di state, walau keluaran CLI menulis `(sensitive value)` (`state.txt` bagian A)."
+    "teks": "Rekeningo memakai OpenTofu. Alat itu menyimpan catatan resource yang sudah dibuatnya di file state. Di lab, password dari random_password dan kunci dari variabel yang dipakai satu resource ikut tersimpan di state, walau keluaran CLI menulis `(sensitive value)` (`state.txt` bagian A)."
    }
   ],
   "mekanisme": [
