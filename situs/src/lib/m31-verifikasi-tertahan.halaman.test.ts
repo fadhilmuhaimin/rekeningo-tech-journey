@@ -456,6 +456,7 @@ describe("kode lab dan hitungan: konstanta worker, umur satu pekerjaan, slot", (
     expect(hal313).toContain("Layanan push yang mati lebih lama dari 45 detik memasukkan baris yang masuk di awal gangguan ke dead-letter.");
   });
   test("tabel Hitungan dihitung ulang: tiap rumus dievaluasi dari angka yang tertulis, hasilnya sama dengan sel Hasil (dibulatkan seperti ditulis)", () => {
+    expect(cocok(badan, /^\| (Besaran) \| (Rumus) \| (Hasil) \|$/m).slice(1)).toEqual(["Besaran", "Rumus", "Hasil"]);
     const sel = [...badan.matchAll(/^\| ([^|\n]+) \| ([^|\n]+) \| ([^|\n]+) \|$/gm)].map((m) => [m[1]!.trim(), m[2]!.trim(), m[3]!.trim()] as const).filter((r) => r[0] !== "Besaran" && !/^-+$/.test(r[0]));
     expect(sel.map((r) => r[0])).toEqual([
       "Laju rata-rata", "Pendaftar dalam 12.600 detik", "Umur satu pekerjaan", "Slot terpakai, laju rata-rata", "Laju puncak",
@@ -519,6 +520,10 @@ describe("sumber luar: baris riset, tanggal akses, tautan, dan kutipan", () => {
     const tgl = [...new Set([...badan.matchAll(/dibuka (\d{4}-\d{2}-\d{2})/g)].map((m) => m[1]!))];
     expect(tgl).toEqual(["2026-10-29"]);
     for (const id of ["R4-155", "R4-156", "R4-157"]) expect(barisRiset(id), id).toContain(`dibuka ${tgl[0]}`);
+    // tanggal akses menempel pada URL sumber di kolom sumber primer, bukan hanya di kolom konsep
+    expect(barisRiset("R4-155")).toContain(`sqs-dead-letter-queues.html, dibuka ${tgl[0]})`);
+    expect(barisRiset("R4-156")).toContain(`indexes-partial.html, dibuka ${tgl[0]})`);
+    expect(barisRiset("R4-157")).toContain(`ms.date 2024-07-18, updated_at 2025-12-09, dibuka ${tgl[0]})`);
     expect(new Date(tgl[0]!).getTime()).toBeLessThanOrEqual(Date.now() + 86400000);
   });
   test("tiga tautan eksternal sama dengan URL di baris riset; tiap tautan berteks deskriptif", () => {
@@ -559,7 +564,7 @@ describe("sumber luar: baris riset, tanggal akses, tautan, dan kutipan", () => {
   });
   test("R4-158 (Hitungan) dan R4-159 (selisih lab dan naskah): angka di baris riset sama dengan hitungan halaman dan README lab", () => {
     const d = barisRiset("R4-158"), e = barisRiset("R4-159");
-    for (const s of ["146,16", "145,83", "86,2 detik", "45 detik", "0,174", "1,74", "2,26", "4,00", "3,99", "280", "7,523"]) expect(d, s).toContain(s);
+    for (const s of ["146,16", "145,83", "86,2 detik", "45 detik", "0,174", "1,74", "2,26", "4,00", "3,99", "12.600 ÷ 45 = 280", "7,523"]) expect(d, s).toContain(s);
     expect(d).toContain("Serentak 4, MaksPercobaan 5, DasarBackoff 2 detik, MaksBackoff 60 detik, Selang 200 ms");
     expect(1 / 0.0116).toBeCloseTo(86.2, 1);
     expect(e).toContain("PostgreSQL 17.11, go1.27.1");
@@ -657,6 +662,10 @@ describe("skenario alur t4-m31.json: valid, nilai dari rekaman, tebakan, dan var
     expect(skenario.sumber.catatan).toContain("make -C labs/t4-integrasi run BAGIAN=retry");
     expect(readme).toContain("make -C labs/t4-integrasi run BAGIAN=lajur        # satu bagian: lajur retry worker breaker testing");
     expect(skenario.sumber.catatan).toContain("Tulisan di layar HP adalah Ilustrasi dari naskah: lab tidak punya app Flutter dan tidak merekam layar.");
+    expect(skenario.sumber.catatan).toContain("Dua run terpisah dengan data awal yang sama.");
+    expect(skenario.sumber.catatan).toContain("Jeda antar percobaan tidak ditunggu di jalur utama.");
+    expect(runInt).toContain('bagian("A. Tanpa lajur dan tanpa breaker');
+    expect(runInt.match(/siapkan\(\)\n    mulai_semua\(\)\n    \(akun3, tok3\)/g)).toHaveLength(1);
   });
   test("tebakan: empat pilihan, jawaban benar (nol, semua habis percobaan) tidak di posisi pertama atau keempat dan tidak yang terpanjang; stem tidak membantah pilihan; penjelasan dari rekaman", () => {
     const o = skenario.predict.options;
@@ -738,6 +747,8 @@ describe("skenario alur t4-m31.json: valid, nilai dari rekaman, tebakan, dan var
     expect(skenario.langkah[0]!.jelas).toContain("Semua permintaan ke layanan dijawab 503.");
     expect(lBagA).toContain("503 untuk semua permintaan");
     expect(skenario.langkah[6]!.jelas).toBe("Baris berstatus mati tidak diklaim lagi: worker mengklaim 0 pekerjaan.");
+    expect(skenario.varian.langkah[1]!.jelas).toContain("tidak_pasti berarti hasilnya tidak diketahui: client menyerah sebelum layanan menjawab.");
+    expect(rBagC).toContain("Client menyerah sesudah 300 ms; vendor mungkin sudah mengerjakannya, hasilnya tidak diketahui");
     expect(skenario.varian.langkah[1]!.jelas).toContain("empat percobaan tersisa");
     expect(MAKS_PERCOBAAN - 1).toBe(4);
     expect(skenario.varian.langkah[0]!.jelas).toContain("batas bawaan server 3 detik");
@@ -851,6 +862,22 @@ describe("tinjauan 1304: kalimat yang lolos tanpa kunci baris", () => {
   const PG = cocok(lajur, /PostgreSQL (\d+\.\d+) \(/)[1]!, GO = cocok(lajur, /go(\d+\.\d+\.\d+) ·/)[1]!;
   const BANYAK = Number(cocok(lajur, /# (\d+) pendaftar mengajukan verifikasi/)[1]);
   const koma = (n: number) => n.toFixed(2).replace(".", ",");
+  test("kalimat pembuka tebal tiap bagian Yang sebenarnya dan kalimat pertama Coba sendiri diturunkan dari rekaman, bukan dikunci saja", () => {
+    harus("**Pekerjaan verifikasi mengikuti aturan percobaan yang sama dengan pemberitahuan.**");
+    expect(hal313).toContain("Worker mengirim pemberitahuan paling banyak lima kali, lalu memindahkannya ke dead-letter");
+    harus(`**Sepuluh pendaftar, nol yang lulus.** Layanan tiruan yang mati`);
+    expect(lBagA).not.toMatch(/ lulus /);
+    expect(lBagA).toMatch(/ gagal +\| 10\n/);
+    harus("**Layanan pulih, tetapi tidak ada yang mengantrekan ulang.**");
+    expect(lBagA).toContain("tidak ada yang mengantrekannya ulang");
+    harus('**Berapa lama pendaftar melihat "Sedang diverifikasi"?** Konstanta worker di lab menjawabnya:');
+    harus("**Yang tidak ada di jalur ini.** Di rekaman bagian A");
+    harus("Sesudah langkah terakhir, centang **Ubah satu hal: layanan gagal sekali, lalu pulih sebelum percobaan habis**.");
+    expect(skenario.varian.label).toBe("layanan gagal sekali, lalu pulih sebelum percobaan habis");
+    harus("**Worker punya empat slot, dan percobaan yang tidak dijawab memegang satu slot sampai timeout.**");
+    expect(SERENTAK).toBe(4);
+    expect(wBagA).toContain("slotnya sampai timeout");
+  });
   test("Gejala: 146 dari naskah, jam dari naskah, dan kalimat cerita sama dengan naskah (foto kartu identitas dan swafoto ke layanan verifikasi, Ratih, daftar tinjauan)", () => {
     expect(N146).toBe(146);
     harus(`Pukul ${JAM_CEK} Ratih membuka daftar tinjauan tim risk. Daftarnya panjang dan isinya sama: ${N146} pendaftar berstatus "Verifikasi gagal". Ia bertanya ke Raka kenapa semuanya gagal.`);
