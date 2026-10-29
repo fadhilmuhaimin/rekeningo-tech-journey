@@ -672,7 +672,7 @@ describe("tinjauan: paragraf penuh dibandingkan utuh, tanpa kunci baris", () => 
     expect(skenario.varian.langkah[2]!.judul).toBe(`Kontrol: ${kata(KONTROL)} alamat yang bukan terlarang tetap lolos`);
     expect(skenario.sumber.catatan).toBe("Lab t4-ssrf, go1.27.1, tanpa database, server uji hanya di 127.0.0.1 di dalam proses tes (make -C labs/t4-ssrf run). Jalur utama: alamat.txt (alamat terlarang) dan batas.txt (redirect dan pesan galat). Ubah satu hal: alamat.txt, hanya IsPrivate yang diperiksa. Lab ini hanya menjalankan versi aman; versi pertama Tidak dijalankan di lab ini. Alamat contoh adalah angka karangan lab. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log.");
     expect(barisRiset("R4-205")).toContain('"Server-Side Request Forgery Prevention"');
-    expect(barisRiset("R4-205")).toContain('"Deny-list (Last Resort)"'.replace(/"/g, "\""));
+    expect(barisRiset("R4-205")).toContain('"Deny-list (Last Resort)"');
     expect(barisRiset("R4-206")).toContain('"If CheckRedirect is nil, the Client uses its default policy, which is to stop after 10 consecutive requests."');
     expect(barisRiset("R4-206")).toContain('"If the server replies with a redirect, the Client first uses the CheckRedirect function to determine whether the redirect should be followed."');
     expect(barisRiset("R4-207")).toContain('dijawab "bukan gambar", 403, 404, dan 500 dijawab "gambar tidak bisa diunduh"');
