@@ -278,7 +278,7 @@ describe("naskah M31: gejala, yang dikira, dan yang sebenarnya", () => {
     expect(Math.round(laju * DETIK_GANGGUAN)).toBe(146);
     harus("Naskah memakai 1.000 pendaftar per hari (Asumsi), jadi 1.000 ÷ 86.400 = 0,0116 pendaftar per detik.");
     harus("Angka 0,0116 adalah pembulatan dari 0,011574, dan tanpa pembulatan hasilnya 145,8, yang juga menjadi 146.");
-    harus("Itu Hitungan atas Asumsi: hasil rumus dari angka yang tertulis di halaman ini, berlabel sama dengan masukan terlemahnya.");
+    harus("Itu Hitungan atas Asumsi dan Ilustrasi: hasil rumus dari angka yang tertulis di halaman ini, berlabel sama dengan masukan terlemahnya.");
     expect(barisM31).toContain("Jumlahnya 0,0116 per detik × 12.600 detik = 146");
     expect(badan.match(/\b146\b/g)!.length).toBeGreaterThanOrEqual(8);
   });
@@ -431,7 +431,7 @@ describe("kode lab dan hitungan: konstanta worker, umur satu pekerjaan, slot", (
     expect(kodeKirim).toMatch(/default:\s*log\.Printf\([^\n]*\)\s*return w\.tundaVerifikasi\(ctx, n, v\.ID\)/);
     expect(kodeTundaWorker).toContain("mati := n.Percobaan >= w.cfg.MaksPercobaan");
     expect(kodeTundaWorker).toContain("Backoff(n.Percobaan, w.cfg.DasarBackoff, w.cfg.MaksBackoff, w.acak())");
-    harus("Tanpa penjaga lain, jawaban galat dari layanan menaikkan hitungan percobaan pekerjaan itu, baik 503 maupun timeout.");
+    harus("Tanpa pengaman tambahan, jawaban galat dari layanan menaikkan hitungan percobaan pekerjaan itu, baik 503 maupun timeout.");
     expect(rBagD).toContain("# mode setengah di setiap percobaan");
     harus("Percobaan kelima yang gagal memindahkan pekerjaan ke dead-letter dan menandai pengajuan `gagal`:");
   });
@@ -450,7 +450,7 @@ describe("kode lab dan hitungan: konstanta worker, umur satu pekerjaan, slot", (
   test("umur satu pekerjaan: 5 × 3 + 2 + 4 + 8 + 16 = 45 detik dari konstanta dan timeout (ADR 22), dan 12.600 ÷ 45 = 280", () => {
     expect(UMUR).toBe(45);
     expect(DETIK_GANGGUAN / UMUR).toBe(280);
-    harus("Gangguan 12.600 detik adalah 12.600 ÷ 45 = 280 kali umur satu pekerjaan (Hitungan).");
+    harus("Gangguan 12.600 detik adalah 12.600 ÷ 45 = 280 kali umur satu pekerjaan (Hitungan atas Ilustrasi dan Asumsi).");
     expect(hal38).toContain("### ADR 22: panggilan keluar di luar transaction, timeout 3 detik, pool tetap 10");
     harus("| Umur satu pekerjaan | 5 × 3 + 2 + 4 + 8 + 16 | paling lama 45 detik |");
     expect(hal313).toContain("Layanan push yang mati lebih lama dari 45 detik memasukkan baris yang masuk di awal gangguan ke dead-letter.");
@@ -493,7 +493,7 @@ describe("kode lab dan hitungan: konstanta worker, umur satu pekerjaan, slot", (
     expect(PUNCAK).toBe(10);
   });
   test("label tabel dan klaim 'semua baris Hitungan atas Asumsi': rekaman hanya mengukur 4 slot dan timeout 3 detik; masukan lain Asumsi (naskah dan konstanta lab)", () => {
-    harus("Semua baris tabel adalah Hitungan atas Asumsi. Rekaman mengukur dua masukannya, yaitu 4 slot dan timeout 3 detik. Hasil 4,00 adalah 3,99 tanpa pembulatan.");
+    harus(`Semua baris tabel adalah Hitungan atas Asumsi, kecuali lama ${DETIK_GANGGUAN.toLocaleString("id-ID")} detik yang berasal dari jam cerita (Ilustrasi). Rekaman mengukur dua masukannya, yaitu 4 slot dan timeout 3 detik. Hasil 4,00 adalah 3,99 tanpa pembulatan.`);
     harus("Masukan lain adalah Asumsi: 1.000 pendaftar per hari, faktor puncak 10, dan konstanta worker di lab. Dua lagi dari pemberitahuan uang: 7,52 per detik pada puncak, dan 0,3 detik tiap pengiriman.");
     expect(workerGo).toContain("Asumsi lab, belum di naskah: klaim 5 detik");
     expect(wBagC).toContain("# 0,116 verifikasi per detik (naskah: 1.000 pendaftar per hari x puncak 10), 7,52 notifikasi uang per detik, dan 0,3 detik per notifikasi adalah Asumsi naskah;");
@@ -583,18 +583,19 @@ describe("sumber luar: baris riset, tanggal akses, tautan, dan kutipan", () => {
   });
   test("label sumber: arti empat label ditaut ke A0 di Gejala; Hitungan dan penalaran didefinisikan di pemakaian pertama; label turunan berdampingan dengan label sumber; jumlah label", () => {
     harus("Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].");
-    expect(badan.indexOf("Hitungan")).toBe(badan.indexOf("Itu Hitungan atas Asumsi: hasil rumus dari angka yang tertulis di halaman ini") + "Itu ".length);
+    expect(badan.indexOf("Hitungan")).toBe(badan.indexOf("Itu Hitungan atas Asumsi dan Ilustrasi: hasil rumus dari angka yang tertulis di halaman ini") + "Itu ".length);
     expect(badan.indexOf("penalaran")).toBe(badan.indexOf("(Tidak dijalankan, penalaran: ") + "(Tidak dijalankan, ".length);
     expect(badan.match(/penalaran/g)).toHaveLength(1);
     for (const m of badan.matchAll(/\(Tidak dijalankan: dibaca dari [^)]*\)/g)) expect(m[0]).toMatch(/^\(Tidak dijalankan: dibaca dari (kode|SQL migration)\)$/);
     expect(badan.match(/\(Tidak dijalankan: dibaca dari (?:kode|SQL migration)\)/g)).toHaveLength(2);
     expect(badan).not.toMatch(/\(dibaca dari|\(penalaran/);
-    expect(badan.match(/Hitungan/g)!.length).toBe(badan.match(/Hitungan atas Asumsi|\(Hitungan\)|Itu Hitungan|Hitungan di tabel/g)!.length + 0);
-    expect(badan.match(/\(Hitungan\)/g)).toHaveLength(1);
+    expect(badan.match(/Hitungan/g)!.length).toBe(badan.match(/Hitungan atas (?:Asumsi|Ilustrasi)|Hitungan di tabel/g)!.length);
+    expect(badan.match(/\(Hitungan\)/g)).toBeNull();
+    expect(badan.match(/Hitungan atas Ilustrasi dan Asumsi/g)).toHaveLength(1);
     expect(badan.match(/Hitungan atas Asumsi/g)).toHaveLength(4);
     expect(badan.match(/Tidak dijalankan/g)).toHaveLength(7);
     expect(badan.match(/Asumsi/g)!.length).toBeGreaterThanOrEqual(8);
-    expect(badan.match(/\(Ilustrasi\)/g)).toHaveLength(1);
+    expect(badan.match(/\(Ilustrasi\)/g)).toHaveLength(2);
     expect(badan.match(/\*Angka cerita \(Ilustrasi\):\*/g)).toHaveLength(1);
     expect(badan.match(/Rekaman lab/g)!.length).toBeGreaterThanOrEqual(5);
     expect(badan).not.toMatch(/Rekaman lab[^.]*Hitungan|Hitungan[^.]*Rekaman lab\)/);
@@ -775,6 +776,7 @@ describe("kartu Cek diri: tiga kartu, sama dengan kartu.json", () => {
     expect(kartu.map((k) => k.jawab)).toEqual(jawaban);
     expect(kartu[0]!.jawab).toContain("(`lajur.txt` bagian A)");
     expect(kartu[1]!.jawab).toContain("(`lajur.txt` bagian A)");
+    expect(kartu[0]!.jawab).toContain("(Hitungan atas Asumsi dan Ilustrasi)");
     expect(kartu[2]!.jawab).toContain("(Hitungan atas Asumsi)");
   });
   test("jawaban kartu menurunkan klaimnya: 146 dari 12.600, 10 dari 10, diklaim 0 dengan 10 akun belum, 1,74 dari 4 slot", () => {
@@ -782,7 +784,7 @@ describe("kartu Cek diri: tiga kartu, sama dengan kartu.json", () => {
     expect(lBagA).toContain("worker: diklaim 0");
     expect(lBagA).toMatch(/ belum +\| 10\n/);
     expect(0.116 * 5 * 3).toBeCloseTo(1.74, 10);
-    harus("Pada laju rata-rata, 0,0116 × 12.600 = 146 pendaftar masuk dalam 3 jam 30 menit, sebanyak yang gagal (Hitungan atas Asumsi).");
+    harus("Pada laju rata-rata, 0,0116 × 12.600 = 146 pendaftar masuk dalam 3 jam 30 menit, sebanyak yang gagal (Hitungan atas Asumsi dan Ilustrasi).");
     harus("Pada puncak, 1,74 dari 4 slot worker dipegang pekerjaan verifikasi yang pasti gagal: 0,116 pendaftar per detik, 5 percobaan, 3 detik tiap percobaan.");
     harus("Premisnya tiap percobaan menunggu sampai timeout, dan 0,116 adalah Asumsi (Hitungan atas Asumsi).");
   });

@@ -2653,7 +2653,7 @@
   "judul": "4.10 M31: 146 pendaftar tertahan \"Sedang diverifikasi\"",
   "url": "tahap-4/m31-verifikasi-tertahan/",
   "tanya": "Fotonya jelas, tetapi 146 pendaftar gagal. Kenapa angka 146 menunjuk ke sebab selain foto?",
-  "jawab": "Pada laju rata-rata, 0,0116 × 12.600 = 146 pendaftar masuk dalam 3 jam 30 menit, sebanyak yang gagal (Hitungan atas Asumsi). Foto buram menggagalkan sebagian pendaftar, bukan semuanya, dan layanan yang mati menggagalkan 10 dari 10 (`lajur.txt` bagian A)."
+  "jawab": "Pada laju rata-rata, 0,0116 × 12.600 = 146 pendaftar masuk dalam 3 jam 30 menit, sebanyak yang gagal (Hitungan atas Asumsi dan Ilustrasi). Foto buram menggagalkan sebagian pendaftar, bukan semuanya, dan layanan yang mati menggagalkan 10 dari 10 (`lajur.txt` bagian A)."
  },
  {
   "id": "t4-m31-2",

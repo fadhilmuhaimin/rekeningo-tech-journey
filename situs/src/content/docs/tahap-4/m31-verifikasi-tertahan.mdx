@@ -29,7 +29,7 @@ Ratih menduga fotonya buram, atau pendaftar salah memotret kartunya. Raka memeri
 
 Lalu Raka menghitung. Naskah memakai 1.000 pendaftar per hari (Asumsi), jadi 1.000 ÷ 86.400 = 0,0116 pendaftar per detik. Dari 09.10 sampai 12.40 ada 12.600 detik, dan 0,0116 × 12.600 = 146 pendaftar.
 
-Itu Hitungan atas Asumsi: hasil rumus dari angka yang tertulis di halaman ini, berlabel sama dengan masukan terlemahnya. Angka 0,0116 adalah pembulatan dari 0,011574, dan tanpa pembulatan hasilnya 145,8, yang juga menjadi 146.
+Itu Hitungan atas Asumsi dan Ilustrasi: hasil rumus dari angka yang tertulis di halaman ini, berlabel sama dengan masukan terlemahnya. Angka 0,0116 adalah pembulatan dari 0,011574, dan tanpa pembulatan hasilnya 145,8, yang juga menjadi 146.
 
 Jumlah pendaftar yang masuk sama dengan jumlah yang gagal. Foto buram menggagalkan sebagian pendaftar, bukan semuanya. Raka menyimpulkan penyebabnya ada sesudah foto sampai di server.
 
@@ -58,7 +58,7 @@ Layanan verifikasi mati dan tiap pekerjaan menghabiskan lima percobaannya. Sesud
 
 Aturan percobaannya sama dengan pemberitahuan di [[t3-at-least-once]]: lima percobaan dengan jeda yang makin lama (backoff), lalu dead-letter. Dead-letter adalah status `mati`: pekerjaan tidak diklaim lagi dan menunggu dibaca manusia.
 
-Tanpa penjaga lain, jawaban galat dari layanan menaikkan hitungan percobaan pekerjaan itu, baik 503 maupun timeout. Timeout adalah batas waktu client: client menyerah bila layanan tidak menjawab dalam 3 detik ([[t3-pool]]). Percobaan kelima yang gagal memindahkan pekerjaan ke dead-letter dan menandai pengajuan `gagal`:
+Tanpa pengaman tambahan, jawaban galat dari layanan menaikkan hitungan percobaan pekerjaan itu, baik 503 maupun timeout. Timeout adalah batas waktu client: client menyerah bila layanan tidak menjawab dalam 3 detik ([[t3-pool]]). Percobaan kelima yang gagal memindahkan pekerjaan ke dead-letter dan menandai pengajuan `gagal`:
 
 <Snippet file="labs/api-t4/internal/worker/verifikasi.go" lines="93:102" lang="go" title="Kode lab: labs/api-t4/internal/worker/verifikasi.go baris 93 sampai 102 (tundaVerifikasi)" />
 
@@ -105,11 +105,11 @@ Jeda sesudah percobaan ke-1 sampai ke-4 paling lama 2, 4, 8, dan 16 detik, dan b
 | Slot pemberitahuan uang, puncak | 7,52 × 0,3 | 2,26 dari 4 |
 | Keduanya bersama | 1,74 + 2,26 | 4,00 dari 4 |
 
-Semua baris tabel adalah Hitungan atas Asumsi. Rekaman mengukur dua masukannya, yaitu 4 slot dan timeout 3 detik. Hasil 4,00 adalah 3,99 tanpa pembulatan.
+Semua baris tabel adalah Hitungan atas Asumsi, kecuali lama 12.600 detik yang berasal dari jam cerita (Ilustrasi). Rekaman mengukur dua masukannya, yaitu 4 slot dan timeout 3 detik. Hasil 4,00 adalah 3,99 tanpa pembulatan.
 
 Masukan lain adalah Asumsi: 1.000 pendaftar per hari, faktor puncak 10, dan konstanta worker di lab. Dua lagi dari pemberitahuan uang: 7,52 per detik pada puncak, dan 0,3 detik tiap pengiriman.
 
-Pola retry ditujukan bagi gangguan sementara. Dokumentasi pola itu menulis bahwa retry tidak berguna bila gangguan kemungkinan lama. Aplikasi lalu menghabiskan waktu dan sumber daya untuk mengulang permintaan yang kemungkinan gagal ([Retry pattern, Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/patterns/retry), diperbarui 2024-07-18, dibuka 2026-10-29, Tidak dijalankan). Gangguan 12.600 detik adalah 12.600 ÷ 45 = 280 kali umur satu pekerjaan (Hitungan).
+Pola retry ditujukan bagi gangguan sementara. Dokumentasi pola itu menulis bahwa retry tidak berguna bila gangguan kemungkinan lama. Aplikasi lalu menghabiskan waktu dan sumber daya untuk mengulang permintaan yang kemungkinan gagal ([Retry pattern, Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/patterns/retry), diperbarui 2024-07-18, dibuka 2026-10-29, Tidak dijalankan). Gangguan 12.600 detik adalah 12.600 ÷ 45 = 280 kali umur satu pekerjaan (Hitungan atas Ilustrasi dan Asumsi).
 
 Pada laju rata-rata worker hampir tidak terasa, 0,174 dari 4 slot. Yang terasa di laju itu adalah 146 pendaftar yang gagal. Pada puncak, pekerjaan yang pasti gagal memegang 1,74 slot. Bersama pemberitahuan uang, tidak ada slot bebas untuk menghabiskan pekerjaan yang sudah menumpuk.
 
@@ -159,7 +159,7 @@ Pihak luar yang mati bukan kesalahan pendaftar, dan percobaan mereka tidak boleh
 <details class="success">
 <summary>Jawaban</summary>
 
-Pada laju rata-rata, 0,0116 × 12.600 = 146 pendaftar masuk dalam 3 jam 30 menit, sebanyak yang gagal (Hitungan atas Asumsi). Foto buram menggagalkan sebagian pendaftar, bukan semuanya, dan layanan yang mati menggagalkan 10 dari 10 (`lajur.txt` bagian A).
+Pada laju rata-rata, 0,0116 × 12.600 = 146 pendaftar masuk dalam 3 jam 30 menit, sebanyak yang gagal (Hitungan atas Asumsi dan Ilustrasi). Foto buram menggagalkan sebagian pendaftar, bukan semuanya, dan layanan yang mati menggagalkan 10 dari 10 (`lajur.txt` bagian A).
 
 </details>
 
