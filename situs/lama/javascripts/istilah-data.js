@@ -158,6 +158,15 @@ window.ISTILAH = {
   "t": "Backoff",
   "u": "tahap-2/retry-idempotency/"
  },
+ "Backup dan uji pulih": {
+  "b": "t4-m33",
+  "d": "Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai.",
+  "h": "istilah/backup-dan-uji-pulih/",
+  "n": "4.14 M33",
+  "s": "istilah-backup-dan-uji-pulih",
+  "t": "Backup dan uji pulih",
+  "u": "tahap-4/m33-uji-pulih/"
+ },
  "Branch protection": {
   "b": "t2-tim-infra",
   "d": "Aturan di GitHub tentang apa yang boleh masuk ke satu branch: persetujuan wajib, status check wajib, dan larangan force push.",
@@ -1809,6 +1818,15 @@ window.ISTILAH = {
   "s": "istilah-backoff",
   "t": "Backoff",
   "u": "tahap-2/retry-idempotency/"
+ },
+ "backup dan uji pulih": {
+  "b": "t4-m33",
+  "d": "Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai.",
+  "h": "istilah/backup-dan-uji-pulih/",
+  "n": "4.14 M33",
+  "s": "istilah-backup-dan-uji-pulih",
+  "t": "Backup dan uji pulih",
+  "u": "tahap-4/m33-uji-pulih/"
  },
  "branch protection": {
   "b": "t2-tim-infra",

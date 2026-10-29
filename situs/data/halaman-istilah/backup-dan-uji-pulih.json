@@ -1,0 +1,43 @@
+{
+  "istilah": "Backup dan uji pulih",
+  "sehari_hari": "Backup adalah salinan isi database dalam satu file. Uji pulih memulihkan salinan itu ke database lain, sungguhan, untuk membuktikan ia bisa dipakai.",
+  "cerita": [
+    {
+      "rujukan": "t3-tim-infra",
+      "teks": "Backup pg_dump harian diuji pulih tiap minggu di staging (Asumsi). Waktu pulih diukur dari uji pulih itu, dan pemicu ADR 33 memakai waktu itu."
+    },
+    {
+      "rujukan": "t4-m33",
+      "teks": "Uji pulih mingguan naik dari 12 menit ke 3 jam 40 menit (Ilustrasi), karena foto kartu identitas di kolom bytea ikut tiap dump. Rekaman lab mengukur ukurannya: dump 1,1 kali ukuran file."
+    }
+  ],
+  "mekanisme": [
+    "Backup di Rekeningo adalah dump, yaitu keluaran pg_dump: isi database yang ditulis ke satu file.",
+    "Uji pulih menulis isi dump itu kembali ke database lain dengan pg_restore, lalu hasilnya dibandingkan dengan sumbernya.",
+    "Di lab t4-storage, hasil pulih sama dengan sumbernya: jumlah baris, jumlah byte, dan md5 tiap baris.",
+    "Lamanya bergantung ukuran dump dan mesin. Lab hanya memeriksa batas 120 detik untuk 8 MB, jadi waktu untuk puluhan GB Tidak dijalankan."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menganggap backup yang berhasil ditulis pasti bisa dipulihkan. Backup yang belum pernah dipulihkan belum terbukti bisa dipakai.",
+    "Menambah disk saat uji pulih makin lama. Di halaman 4.14, disk hanya menampung hasil pulih, sedangkan dalam 28 hari file 97,1% dari file dan posting (Hitungan atas Asumsi)."
+  ],
+  "terkait": [
+    "Staging",
+    "Object storage"
+  ],
+  "sumber": [
+    {
+      "riset": "R4-176",
+      "judul": "PostgreSQL 17: pg_dump",
+      "url": "https://www.postgresql.org/docs/17/app-pgdump.html",
+      "catatan": "Format custom terkompresi secara bawaan, dan bawaan kompresi data tabel adalah gzip pada tingkat sedang. Dibuka 2026-10-29."
+    },
+    {
+      "riset": "R4-178",
+      "judul": "Rekaman lab t4-storage: dump dan pulih",
+      "rekaman": "labs/t4-storage/output/ukuran.txt",
+      "catatan": "Bagian B: tabel yang berisi file di kolom bytea dipulihkan ke database lain, 16 baris dan 8.000.000 byte, md5 tiap baris sama. Waktu tidak direkam."
+    }
+  ]
+}

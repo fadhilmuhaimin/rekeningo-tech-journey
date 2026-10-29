@@ -2856,6 +2856,30 @@
   "jawab": "CODEOWNERS menunjuk pemilik dan meminta mereka me-review PR yang menyentuh pola mereka. Review wajib baru berlaku bila admin menyalakan \"Require review from Code Owners\". Apakah paket repositori pemilik mengizinkannya [perlu verifikasi]."
  },
  {
+  "id": "t4-m33-1",
+  "halaman": "t4-m33",
+  "judul": "4.14 M33: Uji pulih mingguan makin lama",
+  "url": "tahap-4/m33-uji-pulih/",
+  "tanya": "Disk staging ditambah, tetapi uji pulih tetap makin lama. Kenapa disk bukan sebabnya?",
+  "jawab": "Disk menampung hasil pemulihan, tetapi tidak mengubah isi dump. Dalam 28 hari ada 28 GB file lawan 0,84 GB posting, jadi file 97,1% dari file dan posting (Hitungan atas Asumsi). Rekaman memberi rasio dump terhadap file 1,1 (`ukuran.txt` bagian A)."
+ },
+ {
+  "id": "t4-m33-2",
+  "halaman": "t4-m33",
+  "judul": "4.14 M33: Uji pulih mingguan makin lama",
+  "url": "tahap-4/m33-uji-pulih/",
+  "tanya": "Dump `-Fc` terkompresi, tetapi rasionya terhadap file 1,1, bukan di bawah 1. Kenapa, dan di mana angka itu belum tentu berlaku?",
+  "jawab": "Isi file di lab adalah byte acak, yang tidak bisa dimampatkan, dan `bytea` ditulis sebagai heksadesimal (`ukuran.txt` bagian A). Foto JPEG nyata sudah terkompresi, jadi rasionya mungkin mirip, tetapi rasio foto nyata tidak diukur (Ilustrasi)."
+ },
+ {
+  "id": "t4-m33-3",
+  "halaman": "t4-m33",
+  "judul": "4.14 M33: Uji pulih mingguan makin lama",
+  "url": "tahap-4/m33-uji-pulih/",
+  "tanya": "Dump di penyimpanan objek hampir tidak membesar. Apakah file sudah aman tercadangkan?",
+  "jawab": "Belum. Dump tidak membawa file, jadi file perlu cadangan sendiri. Pencadangan penyimpanan objek Tidak dijalankan di lab (`ukuran.txt` bagian C)."
+ },
+ {
   "id": "t4-m34-1",
   "halaman": "t4-m34",
   "judul": "4.16 M34: Semua verifikasi ditolak sesudah pindah hosting",
