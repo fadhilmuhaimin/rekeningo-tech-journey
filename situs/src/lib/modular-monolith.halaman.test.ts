@@ -920,6 +920,12 @@ describe("tinjauan peninjau: kolom halaman RISET, mekanisme langkah pertama, ver
     harus("dan kabarnya baru datang lagi sesudah 24 jam.");
     harus("Idempotency-Key ledger hidup 24 jam");
   });
+  test("kalimat penutup celah putaran tiga: keenam role, satu transaction, dan beban per service", () => {
+    expect(MODUL.length).toBe(6);
+    harus("Satu-satunya hak lintas modul pada keenam role itu adalah kontrak kolom:");
+    harus("Sesudah pembayaran jadi proses sendiri, satu transaction tidak lagi membungkus ledger dan catatan pembayaran.");
+    harus("Angka itu menunjukkan beban per service dan tidak punya ambang bersumber.");
+  });
   test("klaim rename kolom berlingkup pembayaran: tidak ada kalimat universal tentang modul lain", () => {
     const semua = halaman + JSON.stringify(banding) + JSON.stringify(rantai) + JSON.stringify(tebak) + JSON.stringify(istilah);
     expect(semua).not.toMatch(/tidak mematahkan modul lain|hanya mematahkan modul|tidak mematahkan modul\b/);
