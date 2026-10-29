@@ -155,7 +155,7 @@ Di `ledger.txt` bagian C, webhook ditahan di antara dua langkah dan job cek stat
 
 Jurnal pertama tidak dipegang `topup_bank`, jadi SQL rekonsiliasi harian yang sama membaca Rp150.000 dari Rp300.000 yang dikreditkan ke akun, padahal gateway mencatat Rp150.000. Job-nya sendiri Tidak dijalankan di lab ini.
 
-Dalam 24 jam penutupnya adalah kiriman ulang gateway dan job cek status (umur 30 menit, Asumsi naskah). Sesudah itu tidak ada penutup di kode yang diperiksa. Apakah jurnal kedua boleh ditulis sesudah key habis adalah keputusan produk yang belum final, jadi halaman ini mencatatnya sebagai pertanyaan terbuka.
+Dalam 24 jam penutupnya adalah kiriman ulang gateway dan job cek status (umur 30 menit, Asumsi naskah). Sesudah itu tidak ada penutup di kode api-t4 yang diperiksa lab: `RekonHarian` hanya membaca jurnal yang dipegang `topup_bank`. Apakah jurnal kedua boleh ditulis sesudah key habis adalah keputusan produk yang belum final, jadi halaman ini mencatatnya sebagai pertanyaan terbuka.
 
 **Tambahan latensi.** Satu lompatan HTTP menambah waktu. Anggarannya 50 ms. Tenggat penerbit kartu 2.000 ms dikurangi `lock_timeout` 1.000 ms menyisakan 1.000 ms, dan 5% dari sisa itu adalah 50 ms (Hitungan atas Asumsi lab: hasil rumus dari angka yang tertulis di halaman ini). Rekaman `latensi.txt` memanggil fungsi ledger yang sama langsung dan lewat HTTP, 200 kali bergantian di localhost:
 
@@ -163,7 +163,7 @@ Dalam 24 jam penutupnya adalah kiriman ulang gateway dan job cek status (umur 30
 
 Rekaman hanya memuat batasnya: tambahan p95 di bawah 50 ms, ya. Nilai mentah tidak direkam. Jaringan antar host dan TLS tidak diukur.
 
-README lab mencatat lima run peninjau di bawah beban CPU dengan tambahan p95 antara −1,4 dan 6,9 ms, dan angka itu tidak bisa diulang dari repo. Pada puncak 0,579 top-up per detik, satu lompatan 50 ms menahan koneksi 0,579 × 0,05 = 0,029 dari pool pembayaran 10 (Hitungan atas Asumsi naskah).
+README lab mencatat lima run peninjau di bawah beban CPU dengan tambahan p95 antara −1,4 dan 6,9 ms, dan angka itu tidak bisa diulang dari repo. Pada puncak 0,579 top-up per detik, satu lompatan 50 ms (0,05 detik) menahan koneksi 0,579 × 0,05 = 0,029 dari pool pembayaran 10 (Hitungan atas Asumsi naskah).
 
 **CODEOWNERS dan ADR wajib.** CODEOWNERS adalah file yang menunjuk pemilik tiap bagian repo di GitHub. Dokumentasi GitHub menulis bahwa file itu dicari di `.github/`, root, atau `docs/`, dan yang pertama ditemukan dipakai. Pola terakhir yang cocok menang, ukuran file harus di bawah 3 MB, dan pemilik harus punya akses tulis ([GitHub: About code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners), dibuka 2026-10-29).
 
@@ -195,7 +195,7 @@ Expand, migrate, lalu contract, karena RENAME menghapus nama lama dalam satu per
 * Good, because modul lain tetap jalan di tiap rilis.
 * Bad, because perubahan memakan tiga rilis.`} />
 
-Aturan "ADR wajib" itu sendiri dijaga review dan checklist PR, bukan mesin. Pemeriksa yang menolak PR tanpa ADR tidak ada di lab (Tidak dijalankan). Pipeline per modul dan tes contract dikerjakan [[t4-tim-infra]].
+Aturan "ADR wajib" itu sendiri dijaga review dan checklist PR, bukan mesin. Pemeriksa yang menolak PR tanpa ADR tidak ada di lab t4-modul (Tidak dijalankan). Pipeline per modul dan tes contract dikerjakan [[t4-tim-infra]].
 
 ### Di stack lain
 
@@ -267,7 +267,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 
 ### ADR 37: modular monolith dengan batas yang dijaga mesin, dan satu service pembayaran
 
-**Kebutuhan.** Tiga tim bentrok di satu codebase dan satu schema ([[t4-m32]]), dan PRD v4 meminta PT berdiri sendiri: kredensial gateway dan data kartu butuh batas yang bisa diaudit ([[t4-prd]]). Timnya 13 developer (5 + 4 + 4, Asumsi cerita). Bebannya bukan alasan memecah. Puncaknya 20.000 × 60 ÷ 86.400 × 10 = 138,9 request per detik dan 20.000 × 3 ÷ 86.400 × 10 = 6,94 transaksi uang per detik. Masukannya Asumsi: 100.000 user, 20% aktif, 60 request dan 3 transaksi per user aktif per hari, faktor puncak 10. Kapasitas satu server tetap belum terukur.
+**Kebutuhan.** Tiga tim bentrok di satu codebase dan satu schema ([[t4-m32]]), dan PRD v4 meminta PT berdiri sendiri: kredensial gateway dan data kartu butuh batas yang bisa diaudit ([[t4-prd]]). Timnya 13 developer (5 + 4 + 4, Asumsi cerita). Bebannya bukan alasan memecah. Puncaknya 20.000 × 60 ÷ 86.400 × 10 = 138,9 request per detik dan 20.000 × 3 ÷ 86.400 × 10 = 6,94 transaksi uang per detik. Masukannya Asumsi: 100.000 user dengan 20% aktif (20.000 user aktif), 60 request dan 3 transaksi per user aktif per hari, faktor puncak 10. Kapasitas satu server tetap belum terukur.
 
 **Status:** diterima sesudah M32. Revisi atas ADR 12 (service kedua), dan membuat ADR 34 dan ADR 42 menjadi dua langkah idempoten. Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR.
 

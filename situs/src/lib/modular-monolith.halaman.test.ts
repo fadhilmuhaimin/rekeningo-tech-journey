@@ -232,7 +232,8 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     expect(PC.join("\n")).toContain("Jam ledger diperankan (POST /lab/jam), tanpa menunggu 24 jam sungguhan");
     harus("jam ledger diperankan (`POST /lab/jam`), bukan 24 jam sungguhan.");
     expect(readme).toContain("Jalur penutupnya dalam 24 jam adalah kiriman ulang gateway dan job cek status (umur 30 menit, Asumsi naskah). Sesudah itu tidak ada penutup di kode yang diperiksa");
-    harus("Dalam 24 jam penutupnya adalah kiriman ulang gateway dan job cek status (umur 30 menit, Asumsi naskah). Sesudah itu tidak ada penutup di kode yang diperiksa.");
+    harus("Dalam 24 jam penutupnya adalah kiriman ulang gateway dan job cek status (umur 30 menit, Asumsi naskah). Sesudah itu tidak ada penutup di kode api-t4 yang diperiksa lab: `RekonHarian` hanya membaca jurnal yang dipegang `topup_bank`.");
+    expect(readme).toContain("`RekonHarian` api-t4 membaca hanya posting dari jurnal yang dipegang `topup_bank` (`repo.LedgerTopupTanggal`)");
     harus("Job-nya sendiri Tidak dijalankan di lab ini.");
     expect(PC.join("\n")).toContain("SQL yang sama, Tidak dijalankan sebagai job");
     harus("Apakah jurnal kedua boleh ditulis sesudah key habis adalah keputusan produk yang belum final, jadi halaman ini mencatatnya sebagai pertanyaan terbuka.");
@@ -252,7 +253,8 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     harus(`${kali[1]} kali bergantian di localhost`);
     harus(`tambahan p95 di bawah ${p95[1]} ms, ya. Nilai mentah tidak direkam. Jaringan antar host dan TLS tidak diukur.`);
     harus("README lab mencatat lima run peninjau di bawah beban CPU dengan tambahan p95 antara −1,4 dan 6,9 ms, dan angka itu tidak bisa diulang dari repo.");
-    harus(`satu lompatan 50 ms menahan koneksi ${koma(topupPuncak, 3)} × 0,05 = ${hitungL[1]} dari pool pembayaran ${hitungL[2]} (Hitungan atas Asumsi naskah).`);
+    harus(`satu lompatan 50 ms (0,05 detik) menahan koneksi ${koma(topupPuncak, 3)} × 0,05 = ${hitungL[1]} dari pool pembayaran ${hitungL[2]} (Hitungan atas Asumsi naskah).`);
+    expect(Number(p95[1]) / 1000).toBe(0.05);
     harus(`Pembanding: sisa anggaran 1.000 ms dan ${hitungL[1]} koneksi dari pool ${hitungL[2]} pada ${koma(topupPuncak, 3)} top-up per detik.`);
     expect(naskah).toContain("0,579");
   });
@@ -263,7 +265,7 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     expect(naskah).toContain("6,94");
     expect(aktif).toBe(20000);
     harus(`Puncaknya ${titik(aktif)} × ${asumsi.req} ÷ 86.400 × ${asumsi.puncak} = ${koma(rps, 1)} request per detik dan ${titik(aktif)} × ${asumsi.trx} ÷ 86.400 × ${asumsi.puncak} = ${koma(trx, 2)} transaksi uang per detik.`);
-    harus(`Masukannya Asumsi: ${titik(asumsi.user!)} user, ${asumsi.aktif}% aktif, ${asumsi.req} request dan ${asumsi.trx} transaksi per user aktif per hari, faktor puncak ${asumsi.puncak}.`);
+    harus(`Masukannya Asumsi: ${titik(asumsi.user!)} user dengan ${asumsi.aktif}% aktif (${titik(aktif)} user aktif), ${asumsi.req} request dan ${asumsi.trx} transaksi per user aktif per hari, faktor puncak ${asumsi.puncak}.`);
     expect(tim.reduce((a, b) => a + b, 0)).toBe(13);
     expect(naskah).toContain("| Ukuran tim | tiga tim | 5 + 4 + 4 | 13 orang");
     expect(naskah).toContain("**Tim Pembayaran** (5 orang, dipimpin Nadia)");
@@ -658,7 +660,7 @@ describe("penutup celah turunan: versi, tanggal akses, sel tabel, struktur data,
     harus("*Tidak dijalankan. Dicek ke [Node.js v26.13.0: Packages]", 1);
     expect(halaman.match(/\*Tidak dijalankan\. Dicek ke/g)).toHaveLength(5);
     harus("*Tidak dijalankan. Dicek ke [Serverpod 4.0.0: Modules]");
-    harus(`Pada puncak ${koma(topupPuncak, 3)} top-up per detik, satu lompatan 50 ms menahan koneksi`);
+    harus(`Pada puncak ${koma(topupPuncak, 3)} top-up per detik, satu lompatan 50 ms (0,05 detik) menahan koneksi`);
   });
   test("kalimat berangka di Cek diri diturunkan dari rekaman", () => {
     harus(`Berapa jurnal ada pada kiriman ulang +${geser[0]![0]} jam dan +${geser[1]![0]} jam?`);
@@ -806,8 +808,12 @@ describe("klaim yang dibantah sumbernya sendiri dan kalimat mekanisme", () => {
     harus("Pool per modul belum dibangun, jadi satu role per proses hanya ada di service pembayaran.");
     harus("Pemisahan schema tidak memutus foreign key.");
     harus("memisahkan database fisik per modul berarti membuangnya (Tidak dijalankan).");
-    harus("Aturan \"ADR wajib\" itu sendiri dijaga review dan checklist PR, bukan mesin. Pemeriksa yang menolak PR tanpa ADR tidak ada di lab (Tidak dijalankan).");
+    harus("Aturan \"ADR wajib\" itu sendiri dijaga review dan checklist PR, bukan mesin. Pemeriksa yang menolak PR tanpa ADR tidak ada di lab t4-modul (Tidak dijalankan).");
     harus("CODEOWNERS dan review wajib Tidak dijalankan di lab, karena keduanya fitur GitHub. Cadangannya checklist PR manual.");
+    for (const f of ["labs/t4-modul/Makefile", "labs/t4-modul/modul.sql"]) expect(baca(f), f).not.toMatch(/CODEOWNERS|docs\/adr|madr/i);
+    expect(baca("labs/t4-modul/run.py")).not.toMatch(/docs\/adr|madr/i);
+    for (const b of baca("labs/t4-modul/run.py").split("\n").filter((x) => /CODEOWNERS/.test(x))) expect(b, b).toMatch(/Tidak dijalankan/);
+    expect(fs.readdirSync(path.join(akar, "labs/t4-modul")).filter((n) => /adr|codeowners/i.test(n))).toEqual([]);
     harus("Plan repositori pemilik belum diketahui [perlu verifikasi: plan pemilik].");
     harus("Pemilik hanya diminta me-review.");
     harus("Review wajib menyala bila admin mengaktifkan opsi \"Require review from Code Owners\" di aturan itu.");
