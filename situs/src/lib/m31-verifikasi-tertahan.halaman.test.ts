@@ -218,6 +218,8 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(dari("t4-m31").prasyarat).toEqual(["t3-at-least-once"]);
     expect(dari("t4-breaker").prasyarat).toEqual(["t4-m31"]);
     harus("- [[t4-breaker]]: timeout, retry berkunci, circuit breaker, dan lajur per vendor. Keputusannya ADR 36.");
+    harus("- [[t4-dua-arah]]: pihak luar yang lambat atau mati tidak boleh menahan pembayaran antar akun, syarat ketiga di sana.");
+    expect(naskah).toContain("Pihak luar yang lambat atau mati tidak menahan pembayaran antar akun");
   });
   test("halaman tidak membuka isi 4.11: ADR 36 hanya sekali (konsep), tanpa gobreaker, half-open, IsSuccessful, ambang, atau angka batas 60 detik breaker", () => {
     expect([...new Set(badan.match(/ADR \d+/g))].sort()).toEqual(["ADR 22", "ADR 25", "ADR 36"]);
@@ -313,7 +315,8 @@ describe("naskah M31: gejala, yang dikira, dan yang sebenarnya", () => {
     expect(runInt).toMatch(/PEKERJA_SATU = \[[^\]]*"-serentak", "1", "-backoff", "0s", "-maks-percobaan", "5"/);
   });
   test("pekerjaan mati tidak diklaim lagi: tidak ada kode Go atau SQL (bukan tes) di labs/api-t4 yang membaca baris outbox mati; setiap UPDATE outbox hanya menyentuh status menunggu", () => {
-    const berkas = [...(terlacak ?? [])].filter((f) => f.startsWith("labs/api-t4/") && /\.(go|sql)$/.test(f) && !f.endsWith("_test.go"));
+    const semuaBerkas = terlacak ? [...terlacak] : (fs.readdirSync(path.join(akar, "labs/api-t4"), { recursive: true }) as string[]).map((f) => `labs/api-t4/${f}`);
+    const berkas = semuaBerkas.filter((f) => f.startsWith("labs/api-t4/") && /\.(go|sql)$/.test(f) && !f.endsWith("_test.go"));
     expect(berkas.length).toBeGreaterThan(30);
     let jumlah = 0;
     for (const f of berkas) {
@@ -333,6 +336,15 @@ describe("naskah M31: gejala, yang dikira, dan yang sebenarnya", () => {
     harus("Di `labs/api-t4` tidak ada kode yang membaca pekerjaan `mati` lagi: setiap `UPDATE outbox` di kode Go dan SQL, selain tes, hanya menyentuh baris berstatus `menunggu` (Tidak dijalankan: dibaca dari kode).");
     expect(hal313).toContain("memutarnya ulang dengan satu `UPDATE` yang mengembalikan `status` ke `menunggu`");
     harus("Di Tahap 3 pekerjaan mati diputar ulang dengan `UPDATE` tangan ([[t3-at-least-once]]).");
+  });
+  test("cerita tidak menjawab, rekaman 503: timeout lima kali berakhir sama (retry.txt bagian D) dan lajur A memakai 503, bukan menggantung", () => {
+    expect(rBagD).toMatch(/ mati +\| 5\n\(1 row\)/);
+    expect(rBagD).toMatch(/ gagal\n\(1 row\)/);
+    expect(rBagD).toContain("# mode setengah di setiap percobaan: objek dibuat di vendor, jawaban terpotong. Lima percobaan, backoff 1 ms:");
+    expect(lBagA).toContain("503 untuk semua permintaan");
+    expect(lBagA).not.toMatch(/menggantung/);
+    expect(naskah).toContain("Layanan verifikasi tiruan tidak menjawab selama 3 jam 30 menit (Ilustrasi)");
+    harus("Di cerita layanan tidak menjawab, jadi tiap percobaan menunggu sampai timeout. Rekaman memakai 503 supaya cepat. Akhirnya sama bila jawabannya terpotong lima kali: pekerjaan berstatus `mati` dan pengajuan `gagal` (`retry.txt` bagian D).");
   });
   test("pengajuan gagal boleh diajukan lagi: indeks unik sebagian hanya untuk diajukan dan tidak_pasti (migration 000022), gagal tidak termasuk", () => {
     expect(migrasi).toContain("CREATE UNIQUE INDEX verifikasi_satu_berjalan ON verifikasi (akun_id, subjek) WHERE status IN ('diajukan', 'tidak_pasti');");

@@ -68,6 +68,8 @@ Tanpa penjaga lain, jawaban galat dari layanan menaikkan hitungan percobaan peke
 
 Sepuluh pekerjaan berstatus `mati` dengan 5 percobaan, dan sepuluh pengajuan berstatus `gagal`. Layanan menerima 50 permintaan (10 × 5) dan tidak membuat satu objek pun. Pendaftar tidak melakukan kesalahan apa pun, tetapi menanggung semua percobaan yang habis.
 
+Di cerita layanan tidak menjawab, jadi tiap percobaan menunggu sampai timeout. Rekaman memakai 503 supaya cepat. Akhirnya sama bila jawabannya terpotong lima kali: pekerjaan berstatus `mati` dan pengajuan `gagal` (`retry.txt` bagian D).
+
 **Layanan pulih, tetapi tidak ada yang mengantrekan ulang.** Layanan lalu pulih dan worker dijalankan lagi. Ia mengklaim 0 pekerjaan, dan kesepuluh akun tetap `belum` terverifikasi:
 
 <Snippet file="labs/t4-integrasi/output/lajur.txt" lines="25:32" title="Rekaman lab: labs/t4-integrasi/output/lajur.txt, bagian A (layanan pulih, worker dijalankan lagi)" />
@@ -144,7 +146,7 @@ Bila layanan hanya gagal sekali lalu pulih, pengajuan itu lulus dengan dua permi
 - [[t3-at-least-once]]: lima percobaan lalu dead-letter (ADR 25), aturan yang di sini menghabiskan pekerjaan yang tidak bersalah.
 - [[t3-pool]]: batas waktu 3 detik untuk tiap panggilan keluar (ADR 22).
 - [[t4-topup-verifikasi]]: jalur pengajuan sampai tingkat akun naik, saat layanan sehat.
-- [[t4-dua-arah]]: pihak ketiga yang lambat atau mati tidak boleh menahan pekerjaan yang lain.
+- [[t4-dua-arah]]: pihak luar yang lambat atau mati tidak boleh menahan pembayaran antar akun, syarat ketiga di sana.
 
 Pihak luar yang mati bukan kesalahan pendaftar, dan percobaan mereka tidak boleh ikut habis.
 
