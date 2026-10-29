@@ -33,7 +33,15 @@ EXTRA_GLOBS = ("situs/data/*.json", "situs/data/halaman-istilah/*.json", "situs/
 OLD = ()
 
 MAX_WORDS = 25
+
 MAX_SENTENCES = 4
+
+# Nama kode yang memuat kata terlarang (tabel `berkas_bytea`, mode lab `berkas-bytea`) tampil utuh di data widget dan
+# halaman istilah, karena kutipan rekaman lab tidak boleh diubah, dan JSON tidak punya backtick seperti Markdown.
+# Pengecualian hanya untuk file data (JSON, SVG). Prosa .md/.mdx tidak dikecualikan: nama kode di sana ditulis dalam
+# backtick dan sudah dibuang oleh prose_lines. Pola dibatasi pada pemisah `_` atau `-` yang diikuti huruf, dan tidak
+# berlaku untuk "berkas-berkas" (bentuk jamak): kata "berkas" di prosa tetap ditandai (keputusan 1321).
+NAMA_KODE_DATA = {"berkas (file)": re.compile(r"\bberkas[_-](?!berkas\b)[a-z][a-z0-9_-]*", re.I)}
 
 # (kunci, regex, tingkat, usulan)
 RULES = [
@@ -136,9 +144,11 @@ def scan(files=None, skip_code=False):
         rel = f.relative_to(ROOT)
         text = f.read_text(encoding="utf-8")
         lines = prose_lines(text, f.suffix in HALAMAN) if skip_code else enumerate(text.splitlines(), 1)
+        data = f.suffix not in HALAMAN
         for i, line in lines:
             for key, rx, lvl, fix in RULES:
-                if re.search(rx, line, re.I):
+                teks = NAMA_KODE_DATA[key].sub("", line) if data and key in NAMA_KODE_DATA else line
+                if re.search(rx, teks, re.I):
                     hits[key].append((str(rel), i, line.strip()))
     return hits
 

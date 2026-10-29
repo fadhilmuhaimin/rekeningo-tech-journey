@@ -99,6 +99,7 @@ if [ "$MODE" != "--ukur" ]; then
   echo "== istilah";              $PY tools/build_istilah.py --check
   echo "== audit bahasa";         $PY tools/audit_bahasa.py --check | tail -1
   $PY tools/audit_bahasa.py --check >/dev/null
+  echo "== uji audit bahasa: pengecualian nama kode tidak melemahkan aturan (keputusan 1321)"; $PY tools/test_audit_bahasa.py | tail -1
 
   echo "== build strict"
   LOG=$(mktemp)

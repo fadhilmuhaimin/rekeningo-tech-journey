@@ -225,6 +225,15 @@
   "h": "/istilah/backoff/"
  },
  {
+  "t": "Backup dan uji pulih",
+  "d": "Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai.",
+  "b": "t4-m33",
+  "n": "4.14 M33",
+  "u": "/tahap-4/m33-uji-pulih/",
+  "s": "istilah-backup-dan-uji-pulih",
+  "h": "/istilah/backup-dan-uji-pulih/"
+ },
+ {
   "t": "BFF (Backend for Frontend)",
   "d": "Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile.",
   "b": "B11.2",
