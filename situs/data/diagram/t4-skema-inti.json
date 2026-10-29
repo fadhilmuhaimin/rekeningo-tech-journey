@@ -1,0 +1,53 @@
+{
+  "id": "t4-skema-inti",
+  "judul": "Skema Tahap 3 ke Tahap 4: tabel dan ukuran",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Baris 1 rekaman lab, baris 2 Asumsi"
+  },
+  "baris": [
+    {
+      "label": "Tabel",
+      "sub": "dari ERD lab",
+      "simpul": [
+        {
+          "teks": "14 tabel",
+          "sub": "akhir Tahap 3",
+          "nada": "old"
+        },
+        {
+          "teks": "+ 8 tabel",
+          "sub": "tabel uang tanpa kolom baru",
+          "nada": "system"
+        },
+        {
+          "teks": "22 tabel",
+          "sub": "enam modul",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Per tahun",
+      "sub": "Asumsi",
+      "simpul": [
+        {
+          "teks": "posting ±11 GB",
+          "sub": "10,95 GB",
+          "nada": "system"
+        },
+        {
+          "teks": "file 365 GB",
+          "sub": "33 kali posting",
+          "nada": "warn"
+        },
+        {
+          "teks": "tabel simpan kunci file",
+          "sub": "kunci dan checksum",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Abu-abu: Tahap 3. Biru: yang ditambahkan. Kuning: yang tumbuh paling cepat. Hijau: hasilnya. Rumus ukuran ada di blok Paham."
+}
