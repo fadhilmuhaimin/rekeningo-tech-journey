@@ -157,7 +157,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "| Kiriman webhook yang sama datang dua kali? | Widget memakai satu kiriman | [[t4-m29]] |",
  "| Kabar hilang, dan job cek status juga belum jalan? | Widget memakai umur job 0 detik | [[t4-m30]] |",
  "| Layanan verifikasi mati beberapa jam? | Widget memakai vendor yang menjawab | [[t4-m31]] |",
- "| Di mana file identitas disimpan, dan siapa boleh membacanya? | Halaman ini hanya menyebut kunci objek dan checksum | [[t4-m33]] |",
+ "| Di mana file identitas disimpan, dan siapa boleh membacanya? | Halaman ini hanya menyebut kunci objek dan checksum | [[t4-storage]] |",
  "| Bagaimana nasib uang yang sudah di bank tetapi melewati batas saldo? | PRD v4 belum menjawab | Pertanyaan terbuka: tim risk memutuskan (Asumsi) |",
  "| Siapa yang tahu email mana yang sudah terdaftar? | `POST /daftar` menjawab `409` untuk email yang sudah ada dan hanya dibatasi laju per alamat (README lab) | Pertanyaan terbuka |",
  "</Blok>",
