@@ -252,6 +252,7 @@ describe("naskah M35: gejala, yang dikira, dan yang sebenarnya", () => {
     expect(barisM35).toContain("Miliknya merchant sah yang terverifikasi dengan identitasnya sendiri, jadi pembayaran valid: jurnal seimbang, merchant aktif, saldo cukup.");
     expect(barisM35).toContain('Layar konfirmasi versi pertama hanya bertanya "Bayar?" dengan nama merchant berhuruf kecil, dan Budi tidak membandingkannya dengan papan toko.');
     expect(NOMINAL_CERITA).toEqual([35000, 48000, 22000]);
+    expect(barisM35).toContain(`pada satu payload contoh 138 karakter, ${rib(TERDETEKSI)} dari ${rib(DICOBA)} penggantian satu karakter terdeteksi, ${rib(OLEH_CRC)} oleh CRC dan ${OLEH_TAG} oleh tag 63 yang rusak, dan ${TUKAR[1]} dari ${TUKAR[2]} pertukaran dua karakter bersebelahan`);
     expect(HARI).toBe("Rabu");
   });
   test("selisih naskah dan rekaman ditulis jujur: naskah menyebut Toko Sumber Rejeki di app Budi, rekaman menyebut Toko Andalan; halaman memakai nama rekaman", () => {
@@ -390,9 +391,11 @@ describe("rekaman crc.txt: parameter, tabel tag, salah baca, penggantian, dan Hi
     harus("Rumus CRC punya parameter, dan lab memakai CRC-16/IBM-3740: polinomial 0x1021 dan nilai awal 0xFFFF.");
     harus("nilai uji 0x29B1 untuk teks `123456789`");
     expect(readme).toContain("CRC-16/IBM-3740, alias CRC-16/CCITT-FALSE: polinomial 0x1021, nilai awal 0xFFFF, tanpa pembalikan bit, tanpa XOR akhir, nilai uji 0x29B1");
-    expect(payloadGo).toContain("0x1021");
-    expect(payloadGo).toContain("0xFFFF");
-    expect(runLab).toContain("crc_hqx");
+    expect(payloadGo).toContain("\t\t\t\tcrc = crc<<1 ^ 0x1021");
+    expect(payloadGo).toContain("\tcrc := uint16(0xFFFF)");
+    expect(payloadGo).toContain("polinomial 0x1021, nilai awal 0xFFFF");
+    expect(payloadGo).toContain('CRC-16 berpolinomial 0x1021 dengan nilai awal 0xFFFF dihitung atas semua data object termasuk "6304"');
+    expect(runLab).toContain('return f"{binascii.crc_hqx(teks.encode(), 0xFFFF):04X}"');
   });
   test("B: tag 01 bernilai 11 untuk statis dan 12 untuk dinamis dan tag 63 berpanjang 4 dari tabel rekaman; CRC mencakup 6304", () => {
     expect(bagCB).toMatch(/\n 01\s+\| 02\s+\| 11\s+\| 11 statis, 12 dinamis/);
@@ -471,6 +474,8 @@ describe("rekaman crc.txt: parameter, tabel tag, salah baca, penggantian, dan Hi
     expect(readme).toContain("**PDF EMVCo**: parameter CRC, daftar tag wajib, dan batas panjang nama dan kota belum dibaca dari spesifikasi asli");
     harus("Lab memakai format bergaya EMV: tag 00, 01, dan 63 serta cara menghitung CRC berasal dari sumber yang bisa dibuka, dan selebihnya pilihan lab (Asumsi).");
     expect(readme).toContain('Format payload "bergaya EMV", bukan implementasi EMVCo penuh');
+    expect(crc).toContain("# Yang tidak dibuktikan lab ini: bahwa PDF spesifikasi EMVCo menetapkan parameter itu untuk tag 63.");
+    expect(crc).toContain("PDF EMVCo belum dibuka [perlu verifikasi di PDF EMVCo].");
   });
 });
 
@@ -527,6 +532,13 @@ describe("kode lab: pemindai dan pemalsu adalah skrip lab; rentang Snippet ditur
     expect(S.baris[sPindai - 1]).toMatch(/^pemindai: payload /);
     expect(S.baris[sGantiAkhir - 1]).toBe("nama dan kota di payload sama dengan jawaban server: tidak");
   });
+  test("teks yang tampil di tiap Snippet (rentang rekaman) dikunci dengan sidik: rekaman yang berubah menggagalkan tes dan memaksa halaman dibaca ulang", () => {
+    const tampil = tag.map((t, i) => {
+      const [a, b] = lines[i]!.split(":").map(Number) as [number, number];
+      return sidik(baca(berkasSnippet[i]!).split("\n").slice(a - 1, b).join("\n"));
+    });
+    expect(tampil).toEqual(SIDIK.snippet);
+  });
   test("rekaman yang tampil di Snippet tidak membawa ID riset, nomor PR, nomor keputusan, atau rujukan naskah internal", () => {
     const tampil = [
       S.teks(sPindai, sPindaiAkhir), S.teks(sJurnal, sJurnalAkhir), S.teks(sPosting, sPostingAkhir), S.teks(sAkun, sAkunAkhir),
@@ -578,6 +590,7 @@ describe("halaman istilah CRC: baris glosarium, rujukan, sumber, dan angka dari 
     expect(wiki!.judul).toBe("Wikipedia: Cyclic redundancy check (dibuka 2026-10-30)");
     expect(badan).toContain(`(${wiki!.url}), dibuka 2026-10-30`);
     expect(rek!.rekaman).toBe("labs/t4-qr/output/crc.txt");
+    expect(rek!.judul).toBe("Rekaman lab t4-qr: crc.txt bagian A sampai D");
     expect(kat!.catatan).toBe("Parameter polinomial 0x1021, nilai awal 0xFFFF, nilai uji 0x29B1 untuk 123456789. Katalog menjelaskan parameter CRC itu, bukan isi spesifikasi EMVCo.");
     expect(wiki!.catatan).toBe("Sumber sekunder: CRC dirancang untuk kesalahan tak sengaja dan tidak cocok untuk melindungi dari perubahan yang disengaja.");
     expect(rek!.catatan).toBe("Payload bergaya EMV dengan CRC di tag 63. Pemindai dan pemalsu adalah skrip lab, bukan app dan bukan penyerang.");
@@ -643,9 +656,9 @@ describe("skenario alur t4-m35.json: valid, nilai dari rekaman, tebakan, dan var
     harus('<WidgetLama nama="alur" src="data/skenario/t4-m35.json" />');
     expect(badan).toContain('<SkripLama daftar={["hp","alur-core","alur"]} />');
     expect(skenario.sumber.catatan).toContain("make -C labs/t4-qr run");
-    expect(readme).toContain("make -C labs/t4-qr run ");
+    expect(readme).toContain("make -C labs/t4-qr run                       # semua bagian, ±20 detik, menulis labs/t4-qr/output/*.txt");
     expect(runLab).toContain("def rekam_statis");
-    expect(runLab).toContain("def rekam_crc");
+    expect(runLab).toContain("def rekam_crc():");
     expect(skenario.sumber.catatan).toContain(`Lab t4-qr, PostgreSQL ${cocok(statis, /# PostgreSQL (\d+\.\d+) /)[1]}, dari database bersih`);
     expect(skenario.sumber.catatan).toContain("stiker yang tertempel di kasir adalah Ilustrasi");
   });
@@ -816,6 +829,10 @@ const daun = (o: unknown, jalur = ""): [string, string | number | boolean][] => 
 describe("nilai terkunci terpisah dari kalimat: baris riset, daun diagram dan skenario, dan profil kata penentu per baris", () => {
   test("lima baris riset utuh sama dengan nilai terkunci (tanggal akses, kutipan, kolom)", () => {
     expect(["R4-195", "R4-196", "R4-197", "R4-198", "R4-199"].map(barisRiset)).toEqual(RISET_TERKUNCI);
+    const id = riset.split("\n").map((b) => b.match(/^\| R4-(\d+) \|/)?.[1]).filter((x): x is string => !!x).map(Number);
+    expect(id.length).toBeGreaterThan(130);
+    expect(id.every((n, i) => i === 0 || n > id[i - 1]!), "baris riset urut ID naik dan tanpa ID ganda").toBe(true);
+    expect(id.slice(id.indexOf(195), id.indexOf(195) + 5)).toEqual([195, 196, 197, 198, 199]);
   });
   test("tiap nilai diagram dan skenario (string, angka, boolean) sama dengan nilai terkunci, jalur demi jalur", () => {
     expect(daun(diagramMentah)).toEqual(DIAGRAM_DAUN);

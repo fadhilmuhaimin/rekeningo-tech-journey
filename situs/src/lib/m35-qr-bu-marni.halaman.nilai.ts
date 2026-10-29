@@ -8,6 +8,7 @@ export const SIDIK = {
   skenario: "5640442d90d236f5",
   istilah: "0ca42739dbb1c004",
   glosarium: "38a27b798af80c2f",
+  snippet: ["de7350c38e45bf93","08dea5f210bdbf68","daa8223560bb63e0","c08aa4e9697168c7","5ca9744d88b404fa","f01b25b3d436019e","7d67c1c8604735d6","96d5450b66e528a0"],
 };
 
 // Nilai terpisah dari kalimat terkunci: lima baris riset utuh, tiap daun diagram dan skenario, dan profil kata penentu
