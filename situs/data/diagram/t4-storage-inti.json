@@ -1,0 +1,26 @@
+{
+  "id": "t4-storage-inti",
+  "judul": "Dua PUT ke URL yang sama, lalu umur URL habis",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-storage, presign.txt B dan C" },
+  "baris": [
+    {
+      "label": "Satu URL",
+      "sub": "dua pemegang",
+      "simpul": [
+        { "teks": "PUT 120.000 byte", "sub": "app Dina: 200" },
+        { "teks": "PUT 90.000 byte", "sub": "pemegang lain: 200" },
+        { "teks": "isi: 90.000 byte", "sub": "milik pemegang lain", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Umur habis",
+      "sub": "5 detik di lab",
+      "simpul": [
+        { "teks": "PUT lagi", "sub": "URL yang sama" },
+        { "teks": "ditolak 403", "sub": "AccessDenied" },
+        { "teks": "isi tidak berubah", "sub": "oleh PUT yang ditolak", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Umur URL di lab 5 detik supaya kedaluwarsa bisa ditunggu. ADR 38 memakai 5 menit (Asumsi)."
+}

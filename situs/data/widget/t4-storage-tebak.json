@@ -1,0 +1,44 @@
+{
+  "id": "t4-storage-tebak",
+  "judul": "Satu URL unggah, dua pemegang",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t4-storage/output/presign.txt bagian A, B, dan C"
+  },
+  "adegan": [
+    "Dina meminta URL unggah ke server, dan app-nya mengirim file 120.000 byte lewat URL itu. Umur URL belum habis.",
+    "Orang lain memegang URL yang sama. Ia tidak membawa token sesi Dina, dan mengirim file 90.000 byte ke kunci objek yang sama."
+  ],
+  "pertanyaan": "Apa isi objek di penyimpanan sesudah PUT kedua?",
+  "pilihan": [
+    {
+      "teks": "Penyimpanan menolak PUT kedua karena kunci sudah terisi, jadi isinya tetap 120.000 byte milik Dina.",
+      "benar": false,
+      "alasan": "Penyimpanan menjawab 200 untuk PUT kedua. PUT ke kunci yang sama tidak ditolak (presign.txt bagian B)."
+    },
+    {
+      "teks": "PUT kedua diterima dan menimpa objek, jadi isinya 90.000 byte milik pemegang lain.",
+      "benar": true,
+      "alasan": "presign.txt bagian B: PUT pertama 200, PUT kedua 200, dan isi objek sekarang 90.000 byte milik pemegang lain. Penyimpanan tidak memberi peringatan dan tidak menyimpan versi lama."
+    },
+    {
+      "teks": "PUT kedua ditolak 403 karena pemegang kedua tidak membawa token sesi Dina.",
+      "benar": false,
+      "alasan": "URL tidak memuat token sesi dan tidak membutuhkannya. Yang diperiksa penyimpanan hanya tanda tangan di URL dan umurnya (presign.txt bagian A dan B)."
+    },
+    {
+      "teks": "Penyimpanan menyimpan kedua isi sebagai dua versi, dan server memilih yang terbaru.",
+      "benar": false,
+      "alasan": "Setelah PUT kedua hanya ada satu objek, 90.000 byte (presign.txt bagian B). Server tidak ikut dalam PUT ini, jadi tidak ada yang memilih versi."
+    }
+  ],
+  "penutup": "URL unggah memberi izin kepada siapa pun yang memegangnya, sampai umurnya habis: sesudah itu PUT ditolak 403 (bagian C). Karena itu server memeriksa isi file sesudah unggah, bukan siapa yang mengirimnya.",
+  "label": {
+    "sumber": "Rekaman lab · presign.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}
