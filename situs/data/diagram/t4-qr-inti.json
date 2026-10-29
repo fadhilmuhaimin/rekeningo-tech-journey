@@ -1,24 +1,22 @@
 {
   "id": "t4-qr-inti",
-  "judul": "Payload yang diganti lolos CRC dan server menjawab nama sendiri; QR dinamis hanya sekali bayar",
-  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-qr · crc.txt D, statis.txt C, dinamis.txt B dan D" },
+  "judul": "Payload yang diganti lolos CRC, QR dinamis sekali bayar",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-qr · crc, statis, dinamis" },
   "baris": [
     {
       "label": "Payload diganti",
-      "sub": "crc.txt D, statis.txt C",
       "simpul": [
         { "teks": "CRC dihitung ulang", "sub": "rumus terbuka, tanpa key" },
         { "teks": "Pemindai menerima", "sub": "CRC cocok", "nada": "warn" },
-        { "teks": "Nama dari server berbeda", "sub": "Toko Andalan, bukan Toko Sumber Rejeki", "nada": "good" }
+        { "teks": "Nama dari server berbeda", "sub": "bukan nama di payload", "nada": "good" }
       ]
     },
     {
       "label": "QR dinamis",
-      "sub": "dinamis.txt B dan D",
       "simpul": [
-        { "teks": "Bayar pertama: 201", "sub": "Rp35.000 terikat pada id QR" },
-        { "teks": "Bayar kedua: 409", "sub": "pembayar sama atau lain", "nada": "good" },
-        { "teks": "Sesudah 300 detik: 410", "sub": "299 detik masih terbayar", "nada": "good" }
+        { "teks": "Bayar pertama: 201", "sub": "terikat pada id QR" },
+        { "teks": "Bayar kedua: 409", "sub": "pembayar mana pun", "nada": "good" },
+        { "teks": "Sesudah 300 detik: 410", "sub": "299 detik: terbayar", "nada": "good" }
       ]
     }
   ],

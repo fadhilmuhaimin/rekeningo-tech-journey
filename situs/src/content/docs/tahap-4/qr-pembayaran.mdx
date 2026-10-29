@@ -16,11 +16,11 @@ import dataTebak from "../../../../data/widget/t4-qr-tebak.json";
 
 ## Inti
 
-Yang menjaga pembeli adalah nama merchant dari server dan QR dinamis yang sekali bayar, bukan CRC di stiker.
+Nama merchant dari server dan QR dinamis menjaga pembeli, bukan CRC di stiker.
 
 <Rantai data={intiDiagram} ringkas />
 
-Payload adalah teks di dalam QR, dan CRC adalah empat karakter di ujungnya yang dihitung dari teks di depannya. Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `crc.txt` bagian D, id di payload diganti dan CRC dihitung ulang tanpa key. Pemindai lab menerimanya. Di `statis.txt` bagian C, payload yang dipalsukan membawa nama Toko Sumber Rejeki, tetapi server menjawab nama Toko Andalan, merchant terverifikasi pemilik id itu.
+Merchant adalah penerima pembayaran, dan payload adalah teks di dalam QR. CRC adalah empat karakter di ujung payload, dihitung dari teks di depannya. Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `crc.txt` bagian D, id di payload diganti dan CRC dihitung ulang tanpa key, dan pemindai lab menerimanya. Di `statis.txt` bagian C, payload yang dipalsukan membawa nama Toko Sumber Rejeki, tetapi server menjawab nama Toko Andalan, merchant terverifikasi pemilik id itu.
 
 QR statis dipakai berulang oleh toko kecil, dengan batas Rp200.000 per pembayaran. QR dinamis dibuat per pembayaran: nominalnya terikat pada id QR, dan hanya satu pembayaran yang berhasil. Batas Rp200.000 dan masa berlaku 5 menit adalah Asumsi, yaitu pilihan produk yang tidak diukur. Batas itu hanya membatasi kerugian per pembayaran, karena dua pembayaran Rp200.000 berturut-turut diterima (`statis.txt` bagian D).
 
@@ -39,7 +39,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 <Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: CRC yang dihitung ulang lolos pemindai, dan nama yang layak ditampilkan di layar konfirmasi adalah nama yang dijawab server.">
 
-Tebak dulu apa yang dilakukan pemindai atas payload yang id QR-nya diganti dan CRC-nya dihitung ulang, lalu baca alasan tiap pilihan. Adegannya memakai `crc.txt` bagian D dan `statis.txt` bagian C. Pemindai dan pemalsu adalah skrip lab, bukan app dan bukan penyerang.
+Tebak dulu apa yang dilakukan pemindai atas payload yang id QR-nya diganti dan CRC-nya dihitung ulang, lalu baca alasan tiap pilihan. Adegannya memakai `crc.txt` bagian D dan `statis.txt` bagian C. Pemindai dan pemalsu adalah skrip lab, bukan app dan bukan penyerang. Tag adalah dua angka di awal tiap potongan payload yang menamai potongan itu.
 
 Hasilnya berlabel Rekaman lab. Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini. Asumsi adalah angka pilihan produk atau penulis tanpa rekaman, dan Ilustrasi adalah skenario yang bukan hasil sistem.
 
@@ -81,7 +81,7 @@ PDF spesifikasi EMVCo belum terbaca, jadi parameter CRC dan nilai tag menurut sp
 
 RFC 2104 menulis HMAC sebagai mekanisme otentikasi pesan dengan fungsi hash kriptografis. Key rahasia dipakai untuk menghitung dan memeriksa nilainya ([RFC 2104](https://datatracker.ietf.org/doc/html/rfc2104), Februari 1997, dibuka 2026-10-30, Tidak dijalankan). Itu yang tidak dimiliki CRC. Key saja belum menjawab M35, dan alasannya ada di opsi C pada ADR 40.
 
-**QR statis dan QR dinamis dibuat dengan cara berbeda.** Server tidak membangun payload. Ia membuat baris `qr` berisi id, nominal, dan masa berlaku, lalu `qrlab buat` memerankan penerbit stiker atau app merchant yang menyusun payload dari jawaban server. Di `labs/api-t4`, hanya `cmd/qrlab` yang mengimpor paket payload, dan server tidak membacanya (dijaga tes, README lab).
+**QR statis dan QR dinamis dibuat dengan cara berbeda.** Server tidak membangun payload. Ia membuat baris `qr` berisi id, nominal, dan masa berlaku, lalu `qrlab buat` memerankan penerbit stiker atau app merchant yang menyusun payload dari jawaban server. Di kode `labs/api-t4` selain tes, hanya `cmd/qrlab` yang mengimpor paket payload, dan server tidak membacanya (dijaga tes, README lab).
 
 | | QR statis (tag 01 = 11) | QR dinamis (tag 01 = 12) |
 |---|---|---|
