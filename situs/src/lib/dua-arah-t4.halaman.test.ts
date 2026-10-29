@@ -676,6 +676,21 @@ describe("setiap kalimat di halaman punya asal", () => {
     }
     expect(tabel).toBe(4);
   });
+  test("isi tiap tabel dikunci per baris dan kolom: tukar sel atau tukar baris menggagalkan tes", () => {
+    const tabel: string[][][] = [];
+    let cur: string[][] | null = null;
+    for (const l of badan.split("\n")) {
+      if (l.startsWith("|")) {
+        if (!cur) { cur = []; tabel.push(cur); }
+        if (!/^\|[-| ]+\|$/.test(l)) cur.push(sel(l));
+      } else cur = null;
+    }
+    expect(tabel).toEqual(TABEL);
+  });
+  test("nomor daftar bernomor eksplisit: 1, 2, 3 di Cek 3 pertanyaan dan 1 sampai 4 di Cek diri", () => {
+    expect([...badan.matchAll(/^(\d+)\. /gm)].map((m) => m[1])).toEqual(["1", "2", "3"]);
+    expect([...badan.matchAll(/^\*\*(\d+)\.\*\* /gm)].map((m) => m[1])).toEqual(["1", "2", "3", "4"]);
+  });
   test("kepala tabel dikunci", () => {
     expect(badan.split("\n").filter((b, n, a) => b.startsWith("|") && !(a[n - 1] ?? "").startsWith("|"))).toEqual([
       "| Hal yang harus selalu benar | Syarat dari | Isinya |",
@@ -767,7 +782,7 @@ describe("label kejujuran dan arti istilah", () => {
     expect(rantai.sumber.jenis).toBe("rekaman");
     expect(widget.label.sumber).toBe("Ilustrasi: ringkasan handler versi pertama");
     for (const k of ["2", "11", "15"]) expect(widget.alasan[k]).toContain("(Rekaman lab rentan.txt bagian A)");
-    harus("- **Baris 4, hal 1:** Tidak dijalankan untuk versi pertama, karena ia tidak punya job yang menanyakan status ke gateway atau mencocokkan laporannya. Rekaman lab `rekon.txt` bagian A dan B memerankan webhook yang tidak pernah datang pada versi lain.");
+    harus("- **Baris 4, hal 1:** Tidak dijalankan untuk versi pertama, karena versi minggu 2 belum punya job yang menanyakan status ke gateway atau mencocokkan laporannya. Rekaman lab `rekon.txt` bagian A dan B memerankan webhook yang tidak pernah datang pada versi lain.");
     harus("Batas waktu tidak ada karena handler tidak memeriksa timestamp (dibaca dari kode `webhookV1`).");
     harus("Sel Terjaga dan Tidak berlaku adalah penalaran dari urutan kode, bukan rekaman terpisah, kecuali baris 6 yang memakai rekaman `topup.txt` bagian G di atas.");
     harus("Kode di bawah adalah Ilustrasi, yaitu contoh dan bukan hasil sistem: ringkasan handler versi pertama, dengan bentuk transaction yang sama dengan `DalamTx` di lab. Perilakunya direkam di Rekaman lab lewat mode rentan `webhook-v1`.");
@@ -942,6 +957,118 @@ const BARIS_PERBAIKAN = [
   "\t})",
   "}"
 ];
+const TABEL: string[][][] = [
+  [
+    [
+      "Hal yang harus selalu benar",
+      "Syarat dari",
+      "Isinya"
+    ],
+    [
+      "1. Dicatat satu kali",
+      "Pak Hadi",
+      "Uang dari luar dicatat satu kali, walau kabarnya datang dua kali, terlambat, atau tidak berurutan"
+    ],
+    [
+      "2. Dipercaya setelah dicek",
+      "Laras",
+      "Kabar dari luar dipercaya hanya sesudah dicek: tanda tangan atas byte mentah, dan status ke sumbernya bila ada keraguan"
+    ],
+    [
+      "3. Tidak menahan yang lain",
+      "Direksi, lanjutan Tahap 3",
+      "Pihak luar yang lambat atau mati tidak menahan pembayaran antar akun"
+    ]
+  ],
+  [
+    [
+      "Kejadian",
+      "1. Dicatat satu kali",
+      "2. Dipercaya setelah dicek",
+      "3. Tidak menahan yang lain"
+    ],
+    [
+      "Kiriman normal, sekali",
+      "Terjaga",
+      "Rusak: POST dari siapa pun diterima",
+      "Terjaga: handler tidak memanggil pihak luar; lamanya tidak diukur"
+    ],
+    [
+      "Kiriman yang sama datang lagi sesudah balasan hilang",
+      "Rusak: jurnal kedua dengan jumlah yang sama",
+      "Tidak berlaku",
+      "Terjaga"
+    ],
+    [
+      "Kabar menunggu datang sesudah dibayar",
+      "Rusak: status mundur ke menunggu",
+      "Tidak berlaku",
+      "Terjaga"
+    ],
+    [
+      "Gateway tidak pernah mengirim",
+      "Rusak: uang ada di bank, tidak ada jurnal, tidak ada yang tahu",
+      "Tidak berlaku",
+      "Terjaga"
+    ],
+    [
+      "Isi diubah atau kiriman lama diputar ulang",
+      "Rusak: jumlah di isi dipercaya",
+      "Rusak: tanpa tanda tangan dan tanpa batas waktu",
+      "Terjaga"
+    ],
+    [
+      "Gateway tidak menjawab saat Rekeningo membuat top-up",
+      "Tidak berlaku",
+      "Tidak berlaku",
+      "Terjaga: bergantung pada timeout; ADR 22 menahannya di 3 detik, dan pengulangannya perlu pengaman sendiri (ADR 36)"
+    ]
+  ],
+  [
+    [
+      "Cara menerima kabar dari gateway",
+      "Yang rusak atau dijaga",
+      "Bukti"
+    ],
+    [
+      "Terima dan percaya isi kabar (versi pertama)",
+      "Hal 1 dan hal 2 rusak, di kejadian berbeda",
+      "Rekaman lab `rentan.txt` bagian A"
+    ],
+    [
+      "Periksa tanda tangan, lalu cek status dan tulis (cek-lalu-tulis)",
+      "Hal 2 terjaga; hal 1 rusak untuk dua kiriman bersamaan",
+      "Rekaman lab `ganda-serentak.txt` bagian A: dua kiriman bersamaan, keduanya dijawab 200 diproses, dua jurnal"
+    ],
+    [
+      "Periksa tanda tangan, lalu catat event dengan kunci utama di transaction yang sama dengan efeknya",
+      "Hal 2 terjaga. Hal 1 terjaga untuk id event yang sama; untuk dua event berbeda, kunci utama saja tidak cukup",
+      "Rekaman lab `ganda-serentak.txt` bagian B, `tandatangan.txt` bagian B, dan `urutan.txt` bagian F (kasus pertama)"
+    ]
+  ],
+  [
+    [
+      "Yang ditunda",
+      "Kenapa ditunda",
+      "Muncul lagi di"
+    ],
+    [
+      "Tanda tangan, tabel event, dan status yang hanya maju",
+      "Halaman ini hanya merumuskan pertanyaan Laras",
+      "[[t4-webhook]]"
+    ],
+    [
+      "Mencocokkan catatan sendiri dengan laporan gateway",
+      "Jawaban untuk pertanyaan Pak Hadi",
+      "[[t4-rekonsiliasi]]"
+    ],
+    [
+      "Retry, circuit breaker, dan lajur per pihak ketiga",
+      "Jawaban untuk pertanyaan Bayu",
+      "[[t4-breaker]]"
+    ]
+  ]
+];
 const KALIMAT_PENULIS: string[] = [
   "Inti",
   "Kabar dari gateway adalah klaim, bukan fakta, dan gateway tidak ikut COMMIT.",
@@ -1018,7 +1145,7 @@ const KALIMAT_PENULIS: string[] = [
   "**Baris 1, hal 2:** Rekaman lab `rentan.txt` bagian A. POST tanpa tanda tangan dijawab 200 diproses.",
   "**Baris 2, hal 1:** Rekaman lab `ganda.txt` bagian A. Event yang sama dua kali, berurutan, menghasilkan dua jurnal. Balasan yang hilang sebagai pemicu kiriman kedua hanya direkam untuk versi lain (`ganda.txt` bagian B).",
   "**Baris 3, hal 1:** Rekaman lab `rentan.txt` bagian A. Status top-up kembali ke `menunggu`. Settlement berikutnya dikredit lagi karena handler menjurnal tiap settlement tanpa melihat status (`ganda.txt` bagian A).",
-  "**Baris 4, hal 1:** Tidak dijalankan untuk versi pertama, karena ia tidak punya job yang menanyakan status ke gateway atau mencocokkan laporannya. Rekaman lab `rekon.txt` bagian A dan B memerankan webhook yang tidak pernah datang pada versi lain.",
+  "**Baris 4, hal 1:** Tidak dijalankan untuk versi pertama, karena versi minggu 2 belum punya job yang menanyakan status ke gateway atau mencocokkan laporannya. Rekaman lab `rekon.txt` bagian A dan B memerankan webhook yang tidak pernah datang pada versi lain.",
   "**Baris 5, hal 1 dan hal 2:** Rekaman lab `rentan.txt` bagian A. Jumlah di isi kabar dikreditkan, dan kiriman tanpa tanda tangan diterima. Batas waktu tidak ada karena handler tidak memeriksa timestamp (dibaca dari kode `webhookV1`).",
   "Di app Flutter kamu mungkin pernah memanggil API pembayaran dan menganggap jawaban 200 sebagai bukti uang pindah. Di sisi server, kabar dari gateway adalah jawaban yang sama: klaim yang harus dicek.",
   "**Pola ini kembali.** Kabar dari luar adalah klaim, bukan fakta, muncul lagi di layanan verifikasi ([[t4-m31]]) dan di penerbit kartu yang memanggil Rekeningo dengan tenggat 2 detik ([[t4-m37]]). Halaman itu yang merekamnya.",
