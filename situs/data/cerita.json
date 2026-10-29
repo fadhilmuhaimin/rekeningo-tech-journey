@@ -3345,8 +3345,9 @@
         "api-t3",
         "api-t4"
       ],
-      "ada": false,
-      "nomor": "4.5"
+      "ada": true,
+      "nomor": "4.5",
+      "menit": 19
     },
     {
       "id": "t4-m29",

@@ -1,0 +1,282 @@
+---
+title: "4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya"
+description: 14 tabel Tahap 3 menjadi 22 tabel Tahap 4, dibagi ke enam modul. Tabel uang tidak mendapat kolom, lalu ukuran database diperkirakan sampai Tahap 5.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t4-skema-inti.json";
+import ErdHalaman from "../../../components/ErdHalaman.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import dataTebak from "../../../../data/widget/t4-skema-tebak.json";
+import Snippet from "../../../components/Snippet.astro";
+
+<p class="meta">Baca 16 menit · coba 3 menit · Prasyarat: [[t4-dua-arah]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Tahap 4 menambah delapan tabel dan empat kolom, lalu membagi 22 tabel ke enam modul. Tabel uang tidak mendapat kolom, hanya nilai jenis baru.
+
+<Rantai data={intiDiagram} ringkas />
+
+ERD di halaman ini dibaca dari database lab, bukan digambar tangan. Skema akhir Tahap 3 punya 14 tabel, dan skema akhir Tahap 4 di lab api-t4 punya 22. Delapan tabel baru adalah `topup_bank`, `webhook_event`, `insiden_rekon`, `verifikasi`, `qr`, `kartu`, `otorisasi_kartu`, dan `audit_log`. Empat kolom baru ada di `akun` (`tingkat`, `status`), `outbox` (`tujuan`), dan `produk` (`gambar_url`).
+
+Uang dari bank memakai ledger yang sama. Tabel `posting` tetap sama, dan `buku` serta `jurnal` hanya menerima nilai baru di aturan `jenis`. Tabel terbesar tetap `posting` (±44 juta baris per tahun), tetapi yang tumbuh paling cepat adalah file: 365 GB per tahun, 33 kali posting. Angka ukuran adalah Asumsi dengan rumus di blok Paham, dan arti semua label ada di [Label sumber](/cara-pakai/#label-sumber).
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Tabel Tahap 3 mana yang berubah di Tahap 4, dan mana yang tidak?
+2. Kenapa uang dari bank tidak menambah kolom di `buku` atau `jurnal`?
+3. Dari rumus apa 10,95 GB posting per tahun, dan kenapa file 365 GB tidak masuk tabel?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: tabel uang tidak mendapat kolom baru, dan uang dari bank masuk lewat tabel baru bernama topup_bank yang menunjuk ke jurnal.">
+
+Tebak dulu, lalu cek jawabanmu di ERD di bawahnya. ERD adalah gambar tabel, kolom, dan foreign key di antaranya. Kedua ERD dibangun dari skema lab: Tahap 3 dari migration sampai api-t3 000019, dan Tahap 4 dari migration yang sama ditambah api-t4 000020 sampai 000023.
+
+<Tebak client:visible data={dataTebak} />
+
+<noscript>
+<p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: tidak ada kolom baru. buku dan jurnal menerima nilai jenis baru, dan posting sama persis.</p>
+</noscript>
+
+Diagram dibuka di Tahap 4. Tiap tabel diberi label baru, berubah, atau tetap menurut Tahap 3, dan kolom yang bertambah diberi label baru. Di bawah diagram ada tabel pembagian modul.
+
+<ErdHalaman id="erd-t4" tahap={[3, 4]} />
+
+**Ubah satu hal:** tekan **Bandingkan dengan Tahap 3**. Di layar lebar kedua skema tampil berdampingan, dan di HP skema Tahap 3 tampil di atas skema Tahap 4. Pilih `jurnal` di Tahap 4: tidak ada kolom berlabel baru, tetapi aturan `jurnal_jenis_check` berlabel berubah. Lalu pilih `topup_bank`: dua foreign key (ke `akun` dan ke `jurnal`) dan dua aturan UNIQUE (`order_id` dan `jurnal_id`).
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+PRD v4 meminta top-up dari bank, verifikasi identitas, QR merchant luar, kartu virtual, dan back office ([[t4-prd]]). [[t4-fitur-teknis]] menurunkannya jadi pekerjaan, dan halaman ini menunjukkan akibatnya pada tabel.
+
+Setiap perubahan di bawah punya alasan dan masalah yang memicunya. Tanpa catatan itu, tim berikutnya tidak tahu kenapa `topup_bank` menunjuk ke `jurnal` dan kenapa 22 tabel dibagi ke enam schema.
+
+### Cara kerjanya
+
+**Apa yang berubah dan kenapa.** Tabel pertama memuat delapan tabel baru, dan tabel kedua memuat lima tabel Tahap 3 yang berubah. Nama tabel, kolom, dan nilai status ada di skema lab api-t4 (Rekaman lab, `skema.txt` bagian A, B, dan E). Kolom Alasan adalah pertimbangan tim, bukan hasil ukur.
+
+| Tahap 3 | Tahap 4 | Alasan | Masalah atau syarat |
+|---|---|---|---|
+| (tidak ada) | `topup_bank` (akun, order_id, jumlah, status: menunggu, dibayar, kedaluwarsa, gagal, tidak_pasti; tujuan_bayar, kedaluwarsa_pada, jurnal_id) | Satu top-up satu baris; `order_id` dan `jurnal_id` UNIK | [[t4-m29\|M29]], [[t4-m30\|M30]] |
+| (tidak ada) | `webhook_event` (event_id sebagai kunci utama, topup_id, jenis, hasil: diproses, ganda, diparkir, ditolak; jurnal_id) | Event yang sama ditolak kunci utama, dan hasilnya tercatat | [[t4-m29\|M29]] |
+| (tidak ada) | `insiden_rekon` (tanggal, order_id, topup_id, jenis: tidak_di_ledger, tidak_di_gateway, jumlah_beda; selisih, status, jurnal_id) | Selisih dengan laporan gateway jadi satu baris bernomor; UNIQUE pada tanggal, order_id, dan jenis | [[t4-m30\|M30]] |
+| (tidak ada) | `verifikasi` (akun, subjek: `pemakai` atau `merchant`, status, tingkat_diminta, referensi_vendor, kunci objek dan checksum kartu dan swafoto, hapus_pada) | File ada di penyimpanan objek; database hanya menyimpan kunci dan checksum | [[t4-m31\|M31]], [[t4-m33\|M33]] |
+| (tidak ada) | `qr` (akun, jenis: statis atau dinamis, nominal, berlaku_sampai, status, jurnal_id) | QR dinamis wajib punya nominal dan batas waktu, dan paling banyak satu jurnal | [[t4-m35\|M35]] |
+| (tidak ada) | `kartu` (akun, token_penerbit UNIK, empat_digit, status, batas_harian) | Nomor kartu penuh tidak disimpan; hanya token dan empat digit | [[t4-m37\|M37]] |
+| (tidak ada) | `otorisasi_kartu` (kartu, id_penerbit UNIK, jumlah, status: ditahan, ditangkap, dibalik, kedaluwarsa, ditolak; jurnal_tahan_id, jurnal_tangkap_id, tahan_sampai) | Otorisasi dikenali ulang, dan dana tertahan adalah jurnal di ledger | [[t4-m37\|M37]] |
+| (tidak ada) | `audit_log` (waktu, pelaku, peran, aksi, objek, alasan, penyetuju, hash_sebelumnya, hash UNIK) | Role aplikasi hanya menambah baris, dan tiap baris memuat hash baris sebelumnya | [[t4-m38\|M38]] |
+
+| Tahap 3 | Tahap 4 | Alasan | Masalah atau syarat |
+|---|---|---|---|
+| `akun` (`jenis`: karyawan, warung, admin, sistem, hr) | `akun` + `tingkat` (belum, terverifikasi) dan `status` (aktif, dibekukan); `jenis` + `pemakai`, `merchant`, `risk` | Tingkat menentukan batas saldo; tim risk membekukan akun lewat status. Tiga nilai `jenis` baru ditandai oasdiff sebagai perubahan yang bisa merusak client berenum tertutup (Rekaman lab api-t4, `kontrak.txt`) | [[t4-m35\|M35]], [[t4-m38\|M38]] |
+| `buku` (`jenis`: karyawan, warung, tunjangan, kas_pencairan, pembuka, selisih) | `buku` tanpa kolom baru; `jenis` + `pemakai`, `merchant`, `bank`, `dana_tertahan`, `settlement_kartu` | Buku `bank` adalah lawan uang yang masuk dari luar, dan `dana_tertahan` menampung dana kartu yang belum ditagih | [[t4-m29\|M29]], [[t4-m37\|M37]] |
+| `jurnal` (`jenis`: pembuka, selisih, topup, bayar, transfer, pencairan, pembalik) | `jurnal` tanpa kolom baru; `jenis` + `topup_bank`, `kartu_tahan`, `kartu_tangkap` | Pembayaran QR memakai jenis `bayar` yang sudah ada | [[t4-m29\|M29]], [[t4-m37\|M37]] |
+| `outbox` (kelas, jenis) | `outbox` + `tujuan` (push, verifikasi); `jenis` + `verifikasi` | Pekerjaan verifikasi memakai mekanisme klaim yang sama dengan notifikasi, dan tidak punya jurnal | [[t4-m31\|M31]] |
+| `produk` | `produk` + `gambar_url` | Merchant luar mengimpor katalog dengan URL gambar | [[t4-m36\|M36]] |
+
+**Yang tidak berubah.** Sembilan tabel Tahap 3 sama persis di kedua ERD: `sesi`, `posting`, `kunci_idempotensi`, `batch_pencairan`, `baris_pencairan`, `kota`, `perangkat`, `promo`, dan `operasi_sinkron`. Kolom, foreign key, UNIQUE, CHECK, dan index-nya sama, dan `tools/erd.py` menghitung selisih itu dari kedua skema. Tidak ada tabel atau kolom yang dihapus.
+
+**Idempotency-Key lintas service.** API ledger menerima `order_id` top-up sebagai Idempotency-Key. Key yang berbeda dari `order_id` ditolak dengan 422, dan permintaan dengan key yang sama menghasilkan satu jurnal (Rekaman lab t4-modul, `ledger.txt` bagian A). Mekanismenya dibahas di [[t2-idempotency]] dan [[t4-modul]].
+
+**Semua bermuara di `akun` dan `jurnal`.** Delapan tabel Tahap 3 menunjuk `akun` dan lima menunjuk `jurnal`; di Tahap 4 jumlahnya tiga belas dan sepuluh. Jumlah foreign key naik dari 20 ke 35, dihitung dari kedua ERD. Lima belas yang baru menuju `akun` (enam), `jurnal` (enam), `topup_bank` (dua), dan `kartu` (satu).
+
+**Tabel uang: kolom sama, nilai jenis baru.** `buku` dan `jurnal` tidak mendapat kolom. Yang berubah adalah dua aturan CHECK pada kolom `jenis`, dan aturan `buku_pemilik` yang kini menyebut `pemakai` dan `merchant` sebagai buku milik akun. Migration menulisnya sebagai berikut, dan menambah tiga buku sistem:
+
+<Snippet file="labs/api-t4/migrasi/000020_akun_tingkat_buku_jenis.up.sql" lines="19:29" lang="sql" title="labs/api-t4/migrasi/000020_akun_tingkat_buku_jenis.up.sql" />
+
+Di data awal lab buku `bank` bersaldo −Rp100.400.000, dan 200 buku `pemakai` berjumlah Rp100.400.000 (Rekaman lab, `skema.txt` bagian C). Itulah arti "makin negatif, makin banyak uang masuk dari luar".
+
+**Aturan di database.** Tabel baru membawa aturan sendiri, dan lab merekam penolakannya dengan INSERT yang harus gagal (Rekaman lab, `skema.txt` bagian E). Jumlah nol dan `order_id` yang sama ditolak database, bukan hanya service. Bagian yang sama merekam penolakan `event_id` yang sama, QR dinamis tanpa nominal, dan jenis jurnal yang tidak dikenal:
+
+<Snippet file="labs/api-t4/output/skema.txt" lines="211:218" title="Rekaman lab: labs/api-t4/output/skema.txt (bagian E)" />
+
+Satu hal kecil di `topup_bank`: `jurnal_id` UNIQUE, tetapi top-up yang belum dibayar punya `jurnal_id` kosong. Dokumentasi PostgreSQL menulis dua hal tentangnya:
+
+- Dua nilai kosong tidak dianggap sama dalam UNIQUE, jadi banyak baris boleh punya `jurnal_id` kosong ([PostgreSQL 17, 5.5.3](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS)).
+- Foreign key yang kolomnya kosong tidak diperiksa ([PostgreSQL 17, 5.5.5](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-FK)).
+
+Kedua kalimat dicek ke dokumentasi dan tidak dijalankan di lab (Tidak dijalankan).
+
+**Empat rilis yang hanya menambah.** Keempat migration Tahap 4, 000020 sampai 000023, membuat tabel, menambah kolom, dan menambah aturan. Enam aturan CHECK dihapus lalu dibuat lagi dengan nilai yang lebih banyak, dan tidak ada tabel atau kolom yang dihapus. Setiap file membuka dengan `SET LOCAL lock_timeout = '3s'`.
+
+Lab menjalankan keempatnya dalam satu transaction di schema kosong (Rekaman lab, `skema.txt` bagian A). Tidak dijalankan: keempat migration di atas database berisi data sementara server Tahap 3 masih melayani request, dan lama pemeriksaan CHECK baru pada `jurnal` berukuran produksi. Rilis seperti itu direkam di Tahap 2 ([[t2-m13]]).
+
+**Pembagian modul dan schema.** Di database lab, 22 tabel dibagi ke enam schema, satu schema satu modul. Pembagian ini bentuk akhir dari lab t4-modul, dan nama schema di lab berawalan `t4m_`. Tabel di bawah menghitung semuanya dari katalog database lab (Rekaman lab t4-modul, `batas.txt` bagian B).
+
+| Modul (schema) | Tabel | Jumlah | Foreign key keluar yang menyeberang | Tabel terbaca oleh rolenya (ditolak) |
+|---|---|---|---|---|
+| `ledger` | `buku`, `jurnal`, `posting`, `kunci_idempotensi`, `batch_pencairan`, `baris_pencairan` | 6 | 3 | 7 (15) |
+| `akun` | `akun`, `sesi`, `perangkat`, `kota` | 4 | 0 | 4 (18) |
+| `identitas` | `verifikasi` | 1 | 1 | 1 (21) |
+| `merchant` | `produk`, `promo`, `operasi_sinkron`, `qr` | 4 | 6 | 4 (18) |
+| `pembayaran` (service sendiri) | `topup_bank`, `webhook_event`, `insiden_rekon`, `kartu`, `otorisasi_kartu` | 5 | 7 | 5 (17) |
+| `platform` | `outbox`, `audit_log` | 2 | 4 | 2 (20) |
+
+Role `ledger` terhitung membaca tujuh tabel karena tiga kolom `akun` (`id`, `tingkat`, `status`) boleh dibacanya. Role lain hanya membaca tabel sendiri, dan tabel lain ditolak dengan SQLSTATE 42501. Jumlah foreign key yang menyeberang adalah 21: 14 menuju modul `akun` (12 ke `akun`, satu ke `kota`, satu ke `perangkat`) dan 7 menuju `jurnal`.
+
+Keenam role ada dan diuji, tetapi hanya satu proses yang memakai role modulnya sendiri. Proses monolith memakai satu role, `t4m_monolit`, yang mewarisi lima role modul tanpa `pembayaran`. Role `t4m_pembayaran` dipakai oleh proses terpisah, yaitu service pembayaran. Satu pool koneksi per modul belum dibangun (Rekaman lab t4-modul, README bagian "Yang belum ada").
+
+Foreign key lintas schema tetap ada, dan akun yang tidak ada ditolak dengan SQLSTATE 23503. Di lab, role `pembayaran` menulis `topup_bank` untuk akun yang ada tanpa hak apa pun di schema `akun`. Menurut dokumentasi PostgreSQL, schema tidak terpisah ketat: user boleh mengakses objek di schema mana pun bila punya hak ([PostgreSQL 17, 5.10](https://www.postgresql.org/docs/17/ddl-schemas.html)). Pemisahan modul karena itu ada di hak role, bukan di schema saja.
+
+Alasan modul dipisah dibahas di [[t4-m32]] dan [[t4-modul]].
+
+**Rancangan lawan lab.** Rancangan skema Tahap 4, diagram yang ditulis tim sebelum ada migration, dicocokkan dengan skema lab. Semua tabel dan hampir semua kolom sama. Enam selisih ditemukan, dan yang benar adalah skema lab (Rekaman lab, `skema.txt` bagian B dan perintah `tools/erd.py --naskah 4`).
+
+| Yang digambar rancangan | Skema lab |
+|---|---|
+| `outbox.tujuan` ada di tengah kolom | Kolom terakhir, karena migration menambahnya sesudah kolom lama |
+| `produk.gambar_url` ada di tengah kolom | Kolom terakhir, alasan yang sama |
+| `topup_bank` tanpa `tujuan_bayar` | Ada `tujuan_bayar`: nomor tujuan dari gateway, kosong bila gateway belum menjawab |
+| `audit_log.hash` tanpa tanda | UNIQUE (`audit_log_hash_key`) |
+| `webhook_event.jurnal_id`: satu jurnal untuk satu baris | Tanpa UNIQUE, jadi satu jurnal boleh dirujuk banyak baris |
+| `insiden_rekon.jurnal_id`: satu jurnal untuk satu baris | Tanpa UNIQUE, alasan yang sama |
+
+Rancangan juga hanya menyebut `dana_tertahan` sebagai buku sistem. Lab menambah lima jenis buku dan tiga jenis jurnal, dan aturan CHECK, UNIQUE, serta index sebagian yang tidak digambar rancangan.
+
+### Pertumbuhan skala database, Tahap 3 sampai 5
+
+Semua angka di tabel ini adalah **Asumsi** cerita. Rumusnya ditulis supaya kamu bisa mengganti angkanya:
+
+- transaksi per hari = user × aktif × 3
+- posting per tahun = transaksi per hari × 2 × 365
+- ukuran per tahun = posting per tahun × 250 byte, termasuk index
+
+| Tahap | User | Aktif | Tabel inti | Baris terbesar per tahun | Ukuran per tahun |
+|---|---|---|---|---|---|
+| 3 | 10.000 | 25% | 14 | `posting` ±5,5 juta | ±1,4 GB |
+| 4 | 100.000 | 20% | 22, dibagi per modul | `posting` ±44 juta | ±11 GB |
+| 5 | 1.000.000 | 20% | ±30 | `posting` ±440 juta | ±110 GB |
+
+Contoh Tahap 4: 100.000 × 20% × 3 = 60.000 transaksi per hari. 60.000 × 2 × 365 = 43.800.000 posting, dan 43.800.000 × 250 byte = 10.950.000.000 byte, ditulis ±11 GB. Tahap 3 dengan cara yang sama menghasilkan 5.475.000 posting dan 1.368.750.000 byte ([[t3-skema]]).
+
+Posting naik 8,0 kali dari Tahap 3 ke Tahap 4 (43.800.000 ÷ 5.475.000) dan 10,0 kali ke Tahap 5 (438.000.000 ÷ 43.800.000). Tabel inti Tahap 3 dan 4 dihitung dari ERD. Tahap 5 adalah rencana naskah tanpa lab: jumlah ±30 tabel belum dicek ke skema, dan ±440 juta posting adalah hasil rumus di atas.
+
+**Tiga angka untuk satu tahun data Tahap 4.** Ketiganya menghitung hal yang berbeda, jadi tidak ditukar. Aktif 20% dari 100.000 user adalah 20.000 user.
+
+| Sumber | Yang dihitung | Hasil | Label |
+|---|---|---|---|
+| Rumus registry dengan 2 transaksi (halaman lama Tahap 4) | 20.000 × 2 × 365 × 300 byte, satu baris per transaksi | ±4,38 GB | Asumsi |
+| Rumus registry dengan 3 transaksi | 20.000 × 3 × 365 × 300 byte, satu baris per transaksi | ±6,57 GB | Asumsi |
+| Rumus ledger (halaman ini) | 43.800.000 posting × 250 byte | ±10,95 GB | Asumsi |
+
+Selisih ketiganya bukan kesalahan hitung. Dari baris pertama ke kedua, transaksi naik dari 2 ke 3 per user (3 ÷ 2 = 1,5). Dari baris kedua ke ketiga, satuannya berbeda: rumus ledger menghitung dua posting 250 byte (500 byte per transaksi), rumus registry satu baris 300 byte. Perbandingannya 500 ÷ 300 = 1,67, dan ketiganya satu orde besaran.
+
+**File tumbuh paling cepat.** Registry memakai 2.000 unggahan per hari (1.000 pendaftar × 2 file) dan 500 KB per file, keduanya Asumsi. 2.000 × 500 KB × 365 hari = 365.000.000 KB, yaitu 365 GB per tahun (1 KB = 1.000 byte). Itu 33 kali posting ledger (365 ÷ 10,95) dan 56 kali rumus registry dengan 3 transaksi (365 ÷ 6,57).
+
+Karena itu `verifikasi` hanya menyimpan kunci objek dan checksum kartu dan swafoto, bukan isi file (Rekaman lab, ERD Tahap 4). Alasannya dibahas di [[t4-m33]].
+
+**Tabel baru Tahap 4 kecil, kecuali `outbox` tanpa retensi.** Ukuran per baris adalah Asumsi: 400 byte untuk `webhook_event` dan `audit_log`, 500 byte untuk `verifikasi`, dan 300 byte untuk `outbox`.
+
+| Tabel | Rumus | Hasil | Label |
+|---|---|---|---|
+| `webhook_event` tanpa pembersihan | 5.000 × 365 × 400 byte | ±730 MB | Asumsi (satu event per top-up) |
+| `webhook_event` dengan retensi 30 hari | 5.000 × 30 × 400 byte | ±60 MB | Asumsi |
+| `audit_log` | 2.000 × 365 × 400 byte | ±292 MB | Asumsi (±10 staf × 200 aksi per hari) |
+| `verifikasi` | 1.000 × 365 × 500 byte | ±183 MB | Asumsi (1.000 pendaftar per hari) |
+| `outbox` tanpa pembersihan | 65.000 × 365 × 300 byte | ±7,12 GB | Asumsi (60.000 transaksi uang + 5.000 top-up per hari) |
+| `outbox` dengan retensi 7 hari | 65.000 × 7 × 300 byte | ±136,5 MB | Asumsi |
+
+Top-up per hari adalah 20.000 × 0,25 = 5.000 (0,25 top-up per user aktif per hari, Asumsi). Lab belum punya retensi untuk `webhook_event`: README lab t4-webhook mencatatnya sebagai belum ada. Job pembersih `outbox` ada di lab Tahap 3 ([[t3-skema]]).
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Situasi | Pilihan |
+|---|---|
+| Fitur baru membawa uang dari luar, mis. top-up dari bank atau kartu | Tabel sendiri yang menunjuk ke `jurnal_id`; `posting` tidak berubah, dan ledger hanya menerima nilai `jenis` baru |
+| Nilai baru di kolom `jenis` | Aturan CHECK diganti dalam migration yang sama dengan kodenya, dan jawaban API yang memuat nilai itu dicek oasdiff |
+| Aturan yang harus benar di semua jalur | CHECK, UNIQUE, dan index sebagian di database, diuji dengan INSERT yang harus ditolak |
+| Batas antar tim | Schema dan role per modul; foreign key lintas schema tetap ada, jadi modul masih satu database |
+| File besar, mis. foto kartu identitas | Di penyimpanan objek, dan tabel hanya menyimpan kunci dan checksum |
+| Perkiraan ukuran sebelum ada data | Rumus dengan angka berlabel; besaran yang menghitung hal berbeda ditulis sebagai besaran berbeda |
+
+**Biaya skema Tahap 4.** Foreign key naik dari 20 ke 35, dan `akun` dirujuk tiga belas tabel, bukan delapan. Ada 21 foreign key yang menyeberang batas modul, jadi memisahkan database fisik per modul berarti membuangnya (Tidak dijalankan di lab t4-modul). Skema belum punya status untuk top-up yang jurnalnya sudah dibalik, dan itu pertanyaan terbuka: statusnya tetap `dibayar` (README lab t4-webhook, bagian "Yang belum ada").
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Partisi `posting` per bulan | ±44 juta posting per tahun (Asumsi); belum ada rekaman lab dengan 43.800.000 posting | Tahap 5, saat `posting` diperkirakan ±440 juta per tahun (Asumsi) |
+| Database fisik terpisah per modul | 21 foreign key lintas schema masih ada, dan satu role monolith membaca lima modul | Belum dijadwalkan; lihat [[t4-modul]] |
+| Satu pool koneksi per modul | Lab t4-modul belum membangunnya; monolith memakai satu role dan satu pool | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Tabel Tahap 3 mana yang berubah di Tahap 4, dan apa yang berubah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Lima tabel: `akun` (kolom `tingkat` dan `status`, tiga nilai `jenis` baru), `buku` (lima nilai `jenis` baru), `jurnal` (tiga nilai `jenis` baru), `outbox` (kolom `tujuan` dan nilai `verifikasi`), dan `produk` (kolom `gambar_url`). Sembilan tabel lainnya tidak berubah.
+
+</details>
+
+**2.** Kenapa `jurnal` tidak mendapat kolom untuk top-up dari bank?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Pencocokan top-up dan jurnal ada di `topup_bank`: `order_id` UNIK, dan `jurnal_id` UNIK menunjuk jurnalnya. Baris kedua dengan `order_id` yang sama ditolak dengan SQLSTATE 23505. `jurnal` hanya menerima nilai `jenis` baru, termasuk `topup_bank`.
+
+</details>
+
+**3.** `qr` menolak QR dinamis tanpa nominal. Aturan apa yang menolaknya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+CHECK `qr_dinamis_terikat` mewajibkan `nominal` dan `berlaku_sampai` terisi persis ketika `jenis` adalah `dinamis`. Melanggarnya ditolak dengan SQLSTATE 23514.
+
+</details>
+
+**4.** Dari rumus apa ±11 GB posting per tahun di Tahap 4, dan kenapa ±6,57 GB dan ±10,95 GB berbeda?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+100.000 × 20% × 3 = 60.000 transaksi per hari. Lalu 60.000 × 2 posting × 365 hari = 43.800.000 posting, dan 43.800.000 × 250 byte = 10.950.000.000 byte. Angka ±6,57 GB menghitung satu baris 300 byte per transaksi, sedangkan ±10,95 GB menghitung dua posting 250 byte per transaksi.
+
+</details>
+
+**5.** Berapa kali lipat ukuran file setahun dibanding posting setahun, dan apa akibatnya pada tabel `verifikasi`?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+File 2.000 × 500 KB × 365 = 365 GB, sekitar 33 kali posting (365 ÷ 10,95). Karena itu `verifikasi` menyimpan kunci objek dan checksum, bukan isi file. Semua angka ini Asumsi.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Fitur uang dari luar menambah tabel yang menunjuk ke `jurnal_id`, dan kolom status atau sumber tidak ditambahkan ke `jurnal` atau `posting`.
+- [ ] Nilai `jenis` baru ditulis di aturan CHECK pada migration yang sama, dan INSERT dengan nilai yang tidak dikenal diuji harus ditolak.
+- [ ] Aturan yang melindungi data (CHECK, UNIQUE) ada di migration, bukan hanya di service.
+- [ ] Kode satu modul tidak membaca tabel modul lain langsung, dan role modul hanya punya hak atas schema miliknya.
+- [ ] Rumus ukuran data menyebut apa yang dihitung (baris atau posting), ukuran per barisnya, dan label sumbernya.
+
+### Bacaan lanjut
+
+- [PostgreSQL 17: Unique Constraints](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS)
+- [PostgreSQL 17: Schemas](https://www.postgresql.org/docs/17/ddl-schemas.html)
+
+</Blok>

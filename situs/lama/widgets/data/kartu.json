@@ -2552,6 +2552,46 @@
   "jawab": "Kiriman pertama diterapkan dan versi naik jadi 2. Kiriman kedua masih membawa versi 1, jadi `UPDATE ... WHERE versi = 1` tidak mengubah baris apa pun dan server menjawab konflik. Yang memutuskan adalah user di HP kedua, setelah app menampilkan kedua harga."
  },
  {
+  "id": "t4-skema-1",
+  "halaman": "t4-skema",
+  "judul": "4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya",
+  "url": "tahap-4/skema-data/",
+  "tanya": "Tabel Tahap 3 mana yang berubah di Tahap 4, dan apa yang berubah?",
+  "jawab": "Lima tabel: `akun` (kolom `tingkat` dan `status`, tiga nilai `jenis` baru), `buku` (lima nilai `jenis` baru), `jurnal` (tiga nilai `jenis` baru), `outbox` (kolom `tujuan` dan nilai `verifikasi`), dan `produk` (kolom `gambar_url`). Sembilan tabel lainnya tidak berubah."
+ },
+ {
+  "id": "t4-skema-2",
+  "halaman": "t4-skema",
+  "judul": "4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya",
+  "url": "tahap-4/skema-data/",
+  "tanya": "Kenapa `jurnal` tidak mendapat kolom untuk top-up dari bank?",
+  "jawab": "Pencocokan top-up dan jurnal ada di `topup_bank`: `order_id` UNIK, dan `jurnal_id` UNIK menunjuk jurnalnya. Baris kedua dengan `order_id` yang sama ditolak dengan SQLSTATE 23505. `jurnal` hanya menerima nilai `jenis` baru, `topup_bank`."
+ },
+ {
+  "id": "t4-skema-3",
+  "halaman": "t4-skema",
+  "judul": "4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya",
+  "url": "tahap-4/skema-data/",
+  "tanya": "`qr` menolak QR dinamis tanpa nominal. Aturan apa yang menolaknya?",
+  "jawab": "CHECK `qr_dinamis_terikat` mewajibkan `nominal` dan `berlaku_sampai` terisi persis ketika `jenis` adalah `dinamis`. Melanggarnya ditolak dengan SQLSTATE 23514."
+ },
+ {
+  "id": "t4-skema-4",
+  "halaman": "t4-skema",
+  "judul": "4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya",
+  "url": "tahap-4/skema-data/",
+  "tanya": "Dari rumus apa ±11 GB posting per tahun di Tahap 4, dan kenapa ±6,57 GB dan ±10,95 GB berbeda?",
+  "jawab": "100.000 × 20% × 3 = 60.000 transaksi per hari. Lalu 60.000 × 2 posting × 365 hari = 43.800.000 posting, dan 43.800.000 × 250 byte = 10.950.000.000 byte. Angka ±6,57 GB menghitung satu baris 300 byte per transaksi, sedangkan ±10,95 GB menghitung dua posting 250 byte per transaksi."
+ },
+ {
+  "id": "t4-skema-5",
+  "halaman": "t4-skema",
+  "judul": "4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya",
+  "url": "tahap-4/skema-data/",
+  "tanya": "Berapa kali lipat ukuran file setahun dibanding posting setahun, dan apa akibatnya pada tabel `verifikasi`?",
+  "jawab": "File 2.000 × 500 KB × 365 = 365 GB, sekitar 33 kali posting (365 ÷ 10,95). Karena itu `verifikasi` menyimpan kunci objek dan checksum, bukan isi file. Semua angka ini Asumsi."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",

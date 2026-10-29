@@ -1,0 +1,44 @@
+{
+  "id": "t4-skema-tebak",
+  "judul": "Tabel uang di Tahap 4",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/api-t4/output/skema.txt bagian A, C, D, dan E; ERD dari situs/data/erd/tahap-3.json dan tahap-4.json"
+  },
+  "adegan": [
+    "Raka membuka ERD Tahap 3 dan ERD Tahap 4 berdampingan. Tahap 3 punya 14 tabel dan Tahap 4 punya 22.",
+    "Uang dari rekening bank harus masuk ke ledger yang sudah ada. Raka bertanya apakah tabel uang ikut berubah."
+  ],
+  "pertanyaan": "Apa yang berubah di tabel buku, jurnal, dan posting?",
+  "pilihan": [
+    {
+      "teks": "Tidak ada yang berubah. Uang dari bank memakai jenis buku dan jenis jurnal yang sudah ada.",
+      "benar": false,
+      "alasan": "Aturan jenis berubah di buku dan jurnal. Buku menerima lima jenis baru, termasuk bank, dan jurnal menerima tiga, termasuk topup_bank. Uang dari bank tidak punya tempat tanpa jenis itu."
+    },
+    {
+      "teks": "jurnal mendapat kolom order_id dari gateway, supaya satu jurnal bisa dicocokkan dengan satu top-up.",
+      "benar": false,
+      "alasan": "Tidak ada kolom baru di jurnal. Pencocokan ada di topup_bank: order_id UNIK, dan jurnal_id UNIK menunjuk ke jurnalnya. Baris kedua dengan order_id yang sama ditolak dengan SQLSTATE 23505."
+    },
+    {
+      "teks": "Tidak ada kolom baru. buku dan jurnal menerima nilai jenis baru, dan posting sama persis.",
+      "benar": true,
+      "alasan": "Kolom baru Tahap 4 hanya empat, dan tak satu pun ada di buku, jurnal, atau posting. Buku bank mencatat uang yang masuk dari luar, sebagai lawan buku pemakai. Role aplikasi bahkan tidak boleh mengubah posting: UPDATE ditolak dengan SQLSTATE 42501."
+    },
+    {
+      "teks": "posting mendapat kolom sumber, supaya baris dari bank dibedakan dari baris pembayaran biasa.",
+      "benar": false,
+      "alasan": "posting tidak berubah. Asal uang tercatat di jurnal dan buku: di data awal lab, buku bank bersaldo −Rp100.400.000, dan 200 buku pemakai berjumlah Rp100.400.000."
+    }
+  ],
+  "penutup": "Uang dari luar tidak mengubah bentuk ledger. Ia mengikuti jurnal lewat tabel baru, dan yang bertambah di tabel uang hanya nama jenis.",
+  "label": {
+    "sumber": "Rekaman lab · skema.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}
