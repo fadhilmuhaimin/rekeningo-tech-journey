@@ -829,3 +829,77 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
     expect(badan.indexOf("backoff")).toBe(badan.indexOf("(backoff)") + 1);
   });
 });
+
+// ---- tinjauan (keputusan 1304): penutup mutan yang lolos di putaran TANPA kunci baris dan sidik ----------------------------
+// Putaran tanpa kunci meloloskan 49 mutan: angka di Gejala (146), kalimat penghubung yang tidak berangka (sisipan "tidak"),
+// kondisi rekaman, nomor soal Cek diri, dan butir Konsep yang lahir. Tiap tes di bawah menurunkan kalimatnya dari rekaman,
+// kode, naskah, atau registry, bukan dari daftar baris.
+describe("tinjauan 1304: kalimat yang lolos tanpa kunci baris", () => {
+  const kata: Record<number, string> = { 1: "satu", 2: "dua", 3: "tiga", 4: "empat", 5: "lima", 10: "sepuluh" };
+  const barisNaskah = naskah.split("\n").find((b) => b.startsWith("| M31 |"))!;
+  const N146 = Number(cocok(barisNaskah, /lalu (\d+) pendaftar berstatus/)[1]);
+  const PG = cocok(lajur, /PostgreSQL (\d+\.\d+) \(/)[1]!, GO = cocok(lajur, /go(\d+\.\d+\.\d+) ·/)[1]!;
+  const BANYAK = Number(cocok(lajur, /# (\d+) pendaftar mengajukan verifikasi/)[1]);
+  const koma = (n: number) => n.toFixed(2).replace(".", ",");
+  test("Gejala: 146 dari naskah, jam dari naskah, dan kalimat cerita sama dengan naskah (foto kartu identitas dan swafoto ke layanan verifikasi, Ratih, daftar tinjauan)", () => {
+    expect(N146).toBe(146);
+    harus(`Pukul ${JAM_CEK} Ratih membuka daftar tinjauan tim risk. Daftarnya panjang dan isinya sama: ${N146} pendaftar berstatus "Verifikasi gagal". Ia bertanya ke Raka kenapa semuanya gagal.`);
+    harus(`Sejak ${JAM_MULAI} layar mereka menulis "Sedang diverifikasi". Sesudahnya layar yang sama berganti menjadi "Verifikasi gagal", padahal foto mereka jelas.`);
+    harus("Rekeningo sudah terbuka untuk publik, dan pendaftar baru memotret kartu identitas dan swafoto lewat app.");
+    expect(naskah).toContain("foto kartu identitas dan swafoto dikirim ke layanan verifikasi");
+    expect(barisNaskah).toContain("Ratih membuka daftar tinjauan");
+    expect(barisNaskah).toContain(`Sabtu ${JAM_MULAI} sampai ${JAM_CEK}`);
+    expect(naskah).toContain("Direksi Grup Lestari mendirikan **PT Rekeningo** (fiktif) supaya orang di luar Lestari bisa memakai Rekeningo.");
+  });
+  test("Yang Raka kira: tebakan Ratih sama dengan kolom 'Yang dikira' naskah, Raka menghitung, dan kalimat Tebak dulu memakai lima percobaan dari konstanta", () => {
+    harus("Ratih menduga fotonya buram, atau pendaftar salah memotret kartunya. Raka memeriksa app lebih dulu.");
+    expect(barisNaskah).toContain("| Foto buram atau pendaftar salah mengambil foto |");
+    harus("Lalu Raka menghitung. Naskah memakai 1.000 pendaftar per hari (Asumsi)");
+    harus("Layanan verifikasi tidak menjawab. Tiap pengajuan masuk ke `outbox` sebagai satu pekerjaan, dan worker mencobanya sampai " + `${kata[MAKS_PERCOBAAN]} kali. Sesudah percobaan kelima pekerjaan itu masuk dead-letter, dan pengajuannya ditandai \`gagal\`. Pendaftar yang tidak bersalah ikut gagal.`);
+    harus("<summary>Tebak dulu: foto semua pendaftar jelas, tetapi 146 dari 146 gagal. Apa yang terjadi pada tiap pengajuan di server?</summary>");
+    expect(MAKS_PERCOBAAN).toBe(5);
+  });
+  test("Yang sebenarnya: inti, kondisi rekaman (versi dari kepala rekaman), jalur pengajuan, aturan percobaan, dan angka rekaman 503, 50, 0, 10 tertulis dengan nilai dari rekaman", () => {
+    harus(`Layanan verifikasi mati dan tiap pekerjaan menghabiskan ${kata[MAKS_PERCOBAAN]} percobaannya. Sesudah layanan pulih, tidak ada yang mengantrekan pekerjaan itu lagi.`);
+    harus(`*Kondisi rekaman:* PostgreSQL ${PG}, go${GO}, server Go \`api-t4\`, satu worker, dan layanan verifikasi tiruan lokal dalam mode mati. Data awal sama di kedua baris, dan keduanya run terpisah.`);
+    expect(retry).toContain(`PostgreSQL ${PG}`);
+    expect(retry).toContain(`go${GO}`);
+    expect(lBagA).toContain("kapasitas 1");
+    harus("Pengajuan menulis satu baris `verifikasi` dan satu pekerjaan di `outbox` dengan tujuan `verifikasi`.");
+    expect(lBagA).toContain(`${BANYAK} baris verifikasi dan ${BANYAK} pekerjaan di outbox`);
+    harus(`Aturan percobaannya sama dengan pemberitahuan di [[t3-at-least-once]]: ${kata[MAKS_PERCOBAAN]} percobaan dengan jeda yang makin lama (backoff), lalu dead-letter.`);
+    harus(`Layanan tiruan yang mati menjawab ${cocok(lBagA, /\((\d+) untuk semua permintaan\)/)[1]} untuk semua permintaan. Sepuluh pendaftar mengajukan verifikasi, dan satu worker mengerjakan pekerjaannya satu per satu tanpa menunggu jeda:`);
+    expect(BANYAK).toBe(10);
+    harus(`Sepuluh pekerjaan berstatus \`mati\` dengan ${MAKS_PERCOBAAN} percobaan, dan sepuluh pengajuan berstatus \`gagal\`. Layanan menerima ${BANYAK * MAKS_PERCOBAAN} permintaan (${BANYAK} × ${MAKS_PERCOBAAN}) dan tidak membuat satu objek pun. Pendaftar tidak melakukan kesalahan apa pun, tetapi menanggung semua percobaan yang habis.`);
+    harus(`Layanan lalu pulih dan worker dijalankan lagi. Ia mengklaim ${cocok(lBagA, /worker: diklaim (\d+),/)[1]} pekerjaan, dan kesepuluh akun tetap \`belum\` terverifikasi:`);
+    harus(`Satu worker mengerjakan paling banyak ${SERENTAK} pekerjaan sekaligus, dan tiap pekerjaan yang berjalan memegang satu slot sampai selesai.`);
+  });
+  test("pemakaian worker dan jalur yang tidak ada: kalimat penutup blok memakai 1,74 dari tabel, slot bebas habis, dan bagian A tanpa breaker dan tanpa lajur dijeda", () => {
+    const puncak = koma(0.0116 * PUNCAK * MAKS_PERCOBAAN * TIMEOUT);
+    expect(puncak).toBe("1,74");
+    harus(`Pada puncak, pekerjaan yang pasti gagal memegang ${puncak} slot. Bersama pemberitahuan uang, tidak ada slot bebas untuk menghabiskan pekerjaan yang sudah menumpuk.`);
+    harus("Di rekaman bagian A, api-t4 berjalan tanpa breaker dan tanpa penjeda pekerjaan. Tidak ada yang menghentikan percobaan saat layanan jelas mati, dan tidak ada yang mengantrekan ulang sesudah layanan pulih. Pekerjaan yang tidak bersalah menanggung keduanya, dan jawabannya ada di [[t4-breaker]].");
+    expect(lBagA).not.toMatch(/-breaker|dijeda|half-open/);
+    expect(lBagA).toContain("# --- A. Tanpa lajur dan tanpa breaker (ADR 25 apa adanya)");
+    expect(wBagC).toContain("tidak ada sisa kapasitas untuk menguras antrean");
+  });
+  test("Coba sendiri dan noscript: kalimat varian dan hasil jalur utama memakai angka rekaman", () => {
+    harus("Pendaftar itu lulus pada percobaan berikutnya, dengan satu objek di layanan (`retry.txt` bagian C).");
+    expect(rBagC).toContain("1 objek dibuat");
+    harus("Tulisan di layar HP adalah Ilustrasi dari naskah: lab tidak punya app Flutter.");
+    harus("Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia.");
+    harus(`Hasilnya: sepuluh pekerjaan berstatus mati dengan ${MAKS_PERCOBAAN} percobaan, dan sepuluh pengajuan berstatus gagal. Layanan menerima ${BANYAK * MAKS_PERCOBAAN} permintaan tanpa membuat objek, dan sesudah layanan pulih worker mengklaim ${cocok(lBagA, /worker: diklaim (\d+),/)[1]} pekerjaan.`);
+    harus("Rekaman lengkapnya ada di lipatan di bawah.");
+  });
+  test("Konsep yang lahir dan Cek diri: ADR dan batas waktu dari registry dan halaman 3.8, soal bernomor 1 sampai 3, pertanyaan memakai 146 dan 0,116 × 5 × 3", () => {
+    harus(`- [[t3-at-least-once]]: ${kata[MAKS_PERCOBAAN]} percobaan lalu dead-letter (ADR ${dari("t3-at-least-once").adr![0]}), aturan yang di sini menghabiskan pekerjaan yang tidak bersalah.`);
+    harus(`- [[t3-pool]]: batas waktu ${TIMEOUT} detik untuk tiap panggilan keluar (ADR ${dari("t3-pool").adr![0]}).`);
+    harus("- [[t4-topup-verifikasi]]: jalur pengajuan sampai tingkat akun naik, saat layanan sehat.");
+    harus("Pihak luar yang mati bukan kesalahan pendaftar, dan percobaan mereka tidak boleh ikut habis.");
+    expect([...badan.matchAll(/^\*\*(\d)\.\*\* /gm)].map((x) => Number(x[1]))).toEqual([1, 2, 3]);
+    harus(`**1.** Fotonya jelas, tetapi ${N146} pendaftar gagal. Kenapa angka ${N146} menunjuk ke sebab selain foto?`);
+    harus("**2.** Layanan sudah pulih. Kenapa sepuluh pendaftar tidak lulus dengan sendirinya?");
+    harus(`**3.** Rumus 0,116 × ${MAKS_PERCOBAAN} × ${TIMEOUT} menghasilkan 1,74. Apa arti 1,74, dan premis apa yang dipakainya?`);
+    expect(0.116 * MAKS_PERCOBAAN * TIMEOUT).toBeCloseTo(1.74, 10);
+  });
+});
