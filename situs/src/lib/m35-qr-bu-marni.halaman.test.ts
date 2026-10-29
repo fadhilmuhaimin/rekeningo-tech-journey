@@ -158,6 +158,7 @@ const CRC_ASLI = cocok(bagCD, /payload asli\s+: [^\n]*6304(\w{4})\n/)[1]!;
 const CRC_PALSU = cocok(bagCD, /payload dipalsukan: [^\n]*6304(\w{4})\n/)[1]!;
 const HEX = cocok(bagCB, /\n 63\s+\| (\d+)\s+\| \w{4}\s+\| CRC-16 atas semua yang di depannya termasuk "6304"/)[1]!;
 const BIT = Number(HEX) * 4;
+const TAG_CRC = cocok(bagCB, /\n (63)\s+\| 04\s+\|/)[1]!;
 const EMAS = cocok(payloadTesGo, /emasStatis = "([^"]+)"/)[1]!;
 const ABJAD = cocok(payloadTesGo, /const abjad = "([^"]+)"/)[1]!;
 const DI_LUAR_ABJAD = [...EMAS].filter((c) => !ABJAD.includes(c)).length;
@@ -779,9 +780,25 @@ describe("tinjauan: nilai yang diturunkan dari sumber, bukan dari kunci baris", 
     expect(badan).not.toMatch(/\bR\d-\d{2,3}\b|keputusan \d{3,4}|PR #?\d{3}/);
     expect(badan).not.toMatch(/Rekaman lab[^.\n]{0,60}(Rp48\.000|Rp22\.000|Rp105\.000|Rabu)/);
   });
+  test("kalimat Inti, adegan Raka, tag 63, dan noscript dari naskah dan rekaman: CRC menangkap salah baca bukan penggantian; layar tidak menghentikan Budi; tiga laporan; app Budi", () => {
+    harus("CRC menangkap salah baca, bukan penggantian. Layar konfirmasi versi pertama hanya bertanya \"Bayar?\", jadi tidak ada langkah yang menghentikan Budi.");
+    expect(barisM35).toContain("CRC mendeteksi salah baca");
+    expect(barisM35).toContain("bukan penggantian");
+    expect(bagCD).toContain("mendeteksi salah baca, bukan penggantian");
+    harus(`Raka membaca ${kata(NOMINAL_CERITA.length)} laporan itu dan melihat satu pola: pembayaran tercatat berhasil di app, tetapi uangnya tidak sampai ke toko yang dituju.`);
+    harus("Budi, salah satu pelanggan itu, menunjukkan app-nya.");
+    expect(barisM35).toContain("Di app Budi tercatat");
+    expect(barisM35).toContain("Bu Marni mengeluh: tiga pelanggan bilang");
+    harus(`Tag ${TAG_CRC} di ujung memuat CRC:`);
+    expect(bagCB).toMatch(/\n 63\s+\| 04\s+\| \w{4}\s+\| CRC-16/);
+    expect(badan.match(/Tag \d+/g)).toEqual(["Tag 01", "Tag 63"]);
+    const noscript = cocok(badan, /<noscript>([\s\S]*?)<\/noscript>/)[1]!;
+    expect(noscript).toContain("Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: pembayaran");
+    expect(noscript).toContain("Payload yang id QR-nya diganti dengan CRC dihitung ulang lolos pemindai, sedangkan salah baca satu karakter ditolak:");
+  });
 });
 
-const PENENTU = ["tidak", "belum", "hanya", "tetap", "sama", "sebelum", "sesudah", "satu", "dua", "tiga", "empat", "tujuh", "Raka", "Budi", "Marni", "Rabu", "pertama", "kedua", "ketiga", "bukan", "tanpa", "kecuali", "setiap", "semua", "selalu", "Rekaman lab", "Tidak dijalankan", "Ilustrasi", "Asumsi", "Hitungan", "naik", "turun", "lolos", "ditolak", "menolak", "diterima", "sah", "palsu", "dipalsukan", "201", "CRC", "payload", "tag", "stiker", "merchant", "Toko Andalan", "Toko Sumber Rejeki", "statis", "dinamis", "server", "lab", "key", "rahasia", "Bayar", "nama", "kota", "ADR 40", "EMVCo", "Wikipedia", "8.562", "8.314", "248", "104", "138", "65.536", "16", "Rp35.000", "Rp48.000", "Rp22.000", "Rp105.000", "Rp215.000", "Rp250.000", "B29D", "4D5E", "0x1021", "0xFFFF", "0x29B1"];
+const PENENTU = ["tidak", "belum", "hanya", "tetap", "sama", "sebelum", "sesudah", "satu", "dua", "tiga", "empat", "tujuh", "Raka", "Budi", "Marni", "Rabu", "pertama", "kedua", "ketiga", "bukan", "tanpa", "kecuali", "setiap", "semua", "selalu", "Rekaman lab", "Tidak dijalankan", "Ilustrasi", "Asumsi", "Hitungan", "naik", "turun", "lolos", "ditolak", "menolak", "diterima", "sah", "palsu", "dipalsukan", "201", "CRC", "payload", "tag", "stiker", "merchant", "Toko Andalan", "Toko Sumber Rejeki", "statis", "dinamis", "server", "lab", "key", "rahasia", "Bayar", "nama", "kota", "ADR 40", "EMVCo", "Wikipedia", "8.562", "8.314", "248", "104", "138", "65.536", "16", "Rp35.000", "Rp48.000", "Rp22.000", "Rp105.000", "Rp215.000", "Rp250.000", "B29D", "4D5E", "0x1021", "0xFFFF", "0x29B1", "salah baca", "penggantian", "menangkap", "app", "laporan", "Hasilnya", "Hasil", "63", "01", "00", "Layar", "papan toko", "kamera", "Flutter", "polinomial", "nilai awal", "heksadesimal", "bit", "karakter", "posisi", "lokasi", "kolom", "posting", "jurnal", "saldo", "buku", "pemindai", "pemalsu", "pelaku", "pembeli", "Pihak"];
 const profil = (teks: string): string =>
   PENENTU.map((k) => {
     const n = (teks.match(new RegExp(`(?<![\\p{L}-])${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}-])`, "gu")) ?? []).length;
