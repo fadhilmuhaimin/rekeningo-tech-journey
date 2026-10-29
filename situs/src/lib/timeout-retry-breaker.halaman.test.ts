@@ -859,6 +859,149 @@ describe("penutup celah mutasi tanpa kunci: label, sumber, tanggal, dan sidik ka
   });
 });
 
+
+// Penutup tahap dua (keputusan 1307): seri mutasi tanpa kunci meloloskan hapus-kalimat, hapus-baris, angka, versi, sel tabel, slot tab, dan nilai
+// JSON yang tidak punya sumber turunan. Di sini struktur halaman (jumlah kalimat per baris) dan semua token angka dicatat sebagai sidik agregat,
+// setiap token versi dan tanggal harus ada di sumbernya, tabel opsi ADR dan objek JSON dibandingkan utuh dengan nilai turunan, dan setiap slot
+// tab diperiksa isinya.
+describe("penutup tahap dua: sidik struktur, sidik angka, versi di sumber, sel tabel, slot tab, objek JSON", () => {
+  const SPLIT = /(?<=[.!?])\s+(?=[A-Z0-9"(\[*_`])/;
+  const isiHalaman = (): { baris: string[]; kode: string[][] } => {
+    const semua = halaman.slice(halaman.indexOf("<Blok")).split("\n");
+    const baris: string[] = [];
+    const kode: string[][] = [];
+    let dalam = false;
+    for (const b of semua) {
+      if (!dalam && /<Snippet lang="[a-z]+" code=\{`/.test(b)) { dalam = true; kode.push([b]); continue; }
+      if (dalam) { kode[kode.length - 1]!.push(b); if (/`\} \/>$/.test(b)) dalam = false; continue; }
+      if (b.trim() !== "") baris.push(b);
+    }
+    return { baris, kode };
+  };
+  const { baris: prosa, kode: blokKode } = isiHalaman();
+  const struktur = prosa.map((b) => {
+    if (b.startsWith("#")) return `${b.match(/^#+/)![0]}`;
+    if (b.startsWith("|")) return `|:${b.split("|").length - 2}`;
+    if (b.startsWith("<")) return b.match(/^<\/?[A-Za-z]+/)![0];
+    const n = b.split(SPLIT).length;
+    if (b.startsWith("- ")) return `-:${n}`;
+    if (/^\d+\. /.test(b)) return `${b.match(/^\d+/)![0]}.:${n}`;
+    if (/^\*\*\d+\.\*\*/.test(b)) return `**${b.match(/\d+/)![0]}**:${n}`;
+    return `p:${n}`;
+  });
+  const angkaToken = prosa
+    .filter((b) => !b.startsWith("<Snippet") && !b.startsWith("import "))
+    .flatMap((b) => [...b.replace(/\]\([^)]*\)/g, "]").matchAll(/(?<![\w.])\d+(?:[.,]\d+)*(?!\w)/g)].map((m) => m[0]));
+
+  test("sidik struktur: jumlah kalimat per baris, nomor daftar, tabel, dan tag", () => {
+    expect(struktur.join(" ")).toBe(SIDIK_STRUKTUR);
+  });
+  test("sidik angka: urutan semua token angka di prosa", () => {
+    expect(angkaToken.join(" ")).toBe(SIDIK_ANGKA);
+    for (const sel of ["10", "50", "6", "9", "1", "5"]) expect(angkaToken).toContain(sel);
+  });
+  test("tiga blok kode Ilustrasi utuh", () => {
+    expect(blokKode.map((x) => x.join("\n"))).toEqual([
+      '<Snippet lang="js" code={`const jawab = await fetch(url, {\n  method: "POST",\n  headers: { "Idempotency-Key": String(pengajuan.id) },\n  body,\n  signal: AbortSignal.timeout(3000),\n});`} />',
+      "<Snippet lang=\"php\" code={`$jawab = Http::timeout(3)\n    ->withHeaders(['Idempotency-Key' => (string) $pengajuan->id])\n    ->retry(5, 100, throw: false)\n    ->post($url, $badan);`} />",
+      '<Snippet lang="python" code={`jawab = requests.post(\n    url,\n    json=badan,\n    headers={"Idempotency-Key": str(pengajuan.id)},\n    timeout=(3.05, 3),\n)`} />',
+    ]);
+  });
+  test("setiap token versi dan tanggal di halaman ada di sumbernya (README lab, rekaman, atau baris RISET halaman ini)", () => {
+    const sumber = [readme, lajurTxt, breakerTxt, retryTxt, workerTxt, ...["R4-160", "R4-161", "R4-162", "R4-163", "R4-164"].map(baris), istilah.sumber.map((x) => x.judul).join("\n")].join("\n");
+    const token = [...prosa.join("\n").replace(/\]\([^)]*\)/g, "]").matchAll(/v\d+\.\d+\.\d+|\d+\.\d+\.\d+|\d+\.x|API v\d|\b\d{4}-\d{2}-\d{2}\b|Go \d+\.\d+(?:\.\d+)?|PostgreSQL \d+\.\d+/g)].map((m) => m[0]);
+    expect(token.length).toBeGreaterThan(25);
+    for (const t of new Set(token)) expect(sumber, `token versi tidak ada di sumber: ${t}`).toContain(t.replace(/^Go /, "").replace(/^PostgreSQL /, ""));
+    const url = [...halaman.matchAll(/\]\((https?:\/\/[^)]+)\)/g)].map((m) => m[1]!);
+    expect(url.filter((u) => u.includes("gobreaker")).every((u) => u.endsWith("@v2.4.0"))).toBe(true);
+    expect(url.filter((u) => u.includes("laravel.com")).every((u) => u.includes("/docs/13.x/"))).toBe(true);
+  });
+  test("tabel opsi ADR 36 utuh, sel demi sel", () => {
+    const t = tabel("| | A. Retry bebas tanpa key |", 5).slice(2);
+    expect(t).toEqual([
+      ["Cara kerja", "Tiap percobaan memakai Idempotency-Key baru, atau tanpa key", "Breaker membungkus panggilan di sinkron dan di worker. Penolakan breaker tetap lewat jalur gagal ADR 25", "Tiap vendor punya service dan queue sendiri", "Semua client lewat satu fungsi dengan timeout 3 detik. Key dari id pengajuan. Lajur per `tujuan` dijeda selagi breaker terbuka, tanpa menghitung percobaan"],
+      ["Kelebihan", "Tidak ada key untuk dikelola", "Panggilan ke vendor yang mati berhenti", "Satu vendor mati hanya menjatuhkan service-nya", "Pekerjaan tidak memakai percobaan saat vendor jelas mati, dan retry tidak membuat objek kedua"],
+      ["Kekurangan", "Percobaan yang hasilnya tidak diketahui bisa membuat objek kedua di vendor", "Klaim ke lajur yang terbuka menaikkan percobaan tanpa memanggil vendor (penalaran dari kode)", "Service tambahan per vendor: deploy, pemantauan, dan versi dependency sendiri-sendiri", "Satu komponen lagi, dengan keadaan di memori satu proses worker dan lima celah yang lab temukan"],
+      ["Biaya operasional", "Rendah, tetapi objek ganda baru terlihat di rekonsiliasi", "Status breaker per proses, dan ambang yang harus dipilih", "Tinggi: Segment menulis lebih dari 140 service", "Alert untuk breaker yang terbuka lebih dari 10 menit (Asumsi)"],
+      ["Bukti", "Rekaman lab `retry.txt` B: dua objek untuk satu pendaftar", "Tidak dijalankan. Dokumentasi Azure menulis pola ini mungkin kurang cocok bila ada dead-letter", "Tidak dijalankan. Kasus Segment di bawah", "Rekaman lab `retry.txt` A dan C, `breaker.txt` A sampai C, `lajur.txt` B, `worker.txt` B. Jalur sinkron Tidak dijalankan"],
+    ]);
+    const kepala = tabel("| | A. Retry bebas tanpa key |", 5)[0]!;
+    expect(kepala).toEqual(["", "A. Retry bebas tanpa key", "B. Breaker di semua jalur, termasuk queue, tanpa penjeda klaim", "C. Satu service per vendor", "D. Satu pembuat client, key dari id, breaker sinkron, lajur dijeda"]);
+    expect(t[3]![3]).toContain(`${baris("R4-162").match(/lebih dari (\d+) service/)![1]} service`);
+  });
+  test("slot tab: tiap slot memuat stack yang labelnya sama, dan baris pembuka tiap tab", () => {
+    const slot = [...halaman.matchAll(/<Fragment slot="(t\d)">\n\n(.*)\n/g)].map((m) => [m[1], m[2]]);
+    expect(slot).toEqual([
+      ["t0", "*Dijalankan: lab api-t4 dan t4-integrasi, PostgreSQL 17.11, Go 1.27.1, dan gobreaker v2.4.0 (rekaman `lajur.txt`, `retry.txt`, `breaker.txt`).*"],
+      ["t1", "*Tidak dijalankan. Dicek ke [MDN: AbortSignal.timeout()](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/timeout_static), halaman tanpa nomor versi, dan ke README [opossum](https://github.com/nodeshift/opossum) 10.0.0 (npm, terbit 2026-06-24), dibuka 2026-10-29. Kode di bawah adalah Ilustrasi.*"],
+      ["t2", "*Tidak dijalankan. Dicek ke [Laravel 13.x: HTTP Client](https://laravel.com/docs/13.x/http-client), dibuka 2026-10-29. Kode di bawah adalah Ilustrasi.*"],
+      ["t3", "*Tidak dijalankan. Dicek ke dokumentasi [requests: Advanced Usage](https://requests.readthedocs.io/en/latest/user/advanced/), dibuka 2026-10-29. Dokumentasi Django tidak dibaca untuk panggilan keluar [perlu verifikasi]. Kode di bawah adalah Ilustrasi.*"],
+      ["t4", "*Tidak dijalankan. Dicek ke dokumentasi Dart 3.13.7: [HttpClient.connectionTimeout](https://api.dart.dev/stable/latest/dart-io/HttpClient/connectionTimeout.html) dan [Future.timeout](https://api.dart.dev/dart-async/Future/timeout.html), dibuka 2026-10-29.*"],
+      ["t5", "*Tidak dijalankan. Dicek ke [Supabase: Edge Functions limits](https://supabase.com/docs/guides/functions/limits), dokumen tanpa nomor versi, dibuka 2026-10-29.*"],
+    ]);
+    const bagianTab = halaman.slice(halaman.indexOf('<TabSet id="stack"'), halaman.indexOf("</TabSet>"));
+    const potong = bagianTab.split(/<Fragment slot="t\d">/).slice(1);
+    expect(potong).toHaveLength(6);
+    expect(potong[0]).toContain("labs/api-t4/internal/worker/verifikasi.go");
+    expect(potong[1]).toContain("AbortSignal.timeout(3000)");
+    expect(potong[2]).toContain("Http::timeout(3)");
+    expect(potong[3]).toContain("requests.post(");
+    expect(potong[4]).toContain("`connectionTimeout`");
+    expect(potong[5]).toContain("Request idle timeout 150 detik");
+    for (const k of [1, 2, 3, 4, 5]) expect(potong[k]).not.toContain("labs/api-t4/internal");
+  });
+  test("objek Rantai utuh dengan angka turunan dari rekaman", () => {
+    expect(rantai).toEqual({
+      id: "t4-breaker-inti",
+      judul: "Vendor mati, tanpa dan dengan lajur dijeda",
+      sumber: { jenis: "rekaman", teks: "Rekaman lab t4-integrasi, lajur.txt A dan B" },
+      baris: [
+        { label: "Tanpa breaker", sub: `${pendaftarA} pekerjaan`, simpul: [
+          { teks: `${permintaanA} permintaan`, sub: `${R.lajur.percobaan} tiap pekerjaan` },
+          { teks: `${matiA} mati`, sub: "pengajuan gagal", nada: "warn" },
+          { teks: `pulih: ${klaimSesudahPulih} diklaim`, sub: "tak ada yang mengantre ulang", nada: "warn" },
+        ] },
+        { label: "Lajur dijeda", sub: `${pendaftarA} pekerjaan`, simpul: [
+          { teks: `${permintaanBuka} permintaan`, sub: `lajur dijeda, ${objekBuka} objek` },
+          { teks: "vendor pulih", sub: "satu permintaan percobaan" },
+          { teks: `${lulusB} lulus, ${R.lajur.b.gagal} mati`, sub: `dari ${pendaftarA} pekerjaan`, nada: "good" },
+        ] },
+      ],
+      catatan: `Vendor adalah layanan verifikasi tiruan lokal. Kedua baris memakai satu worker, ${bilangan(R.lajur.percobaan)} percobaan, dan tanpa jeda antar percobaan. Breaker di baris kedua memakai Timeout ${timeoutB} detik, bukan ${A.bukaDetik} detik bawaan pustaka.`,
+    });
+  });
+  test("objek halaman istilah utuh dengan angka turunan dari rekaman", () => {
+    expect(istilah).toEqual({
+      istilah: "Circuit breaker",
+      sehari_hari: "Circuit breaker adalah penjaga di depan layanan luar. Sesudah beberapa kegagalan berturut-turut ia berhenti memanggil layanan itu, lalu mencoba lagi sesudah jeda.",
+      cerita: [{ rujukan: "t4-breaker", teks: `Layanan verifikasi tiruan mati. Tanpa breaker, ${pendaftarA} pekerjaan menghabiskan ${permintaanA} permintaan dan semuanya mati. Dengan breaker, lajur verifikasi dijeda sesudah kegagalan keenam, dan ${lulusB} dari ${pendaftarA} pekerjaan lulus sesudah vendor pulih (\`lajur.txt\` bagian A dan B).` }],
+      mekanisme: [
+        "Di status closed, panggilan lewat dan breaker menghitung kegagalan berturut-turut.",
+        `Sesudah kegagalan ke-${gagalKe}, breaker pindah ke open: panggilan ditolak seketika dan vendor tidak dipanggil (\`breaker.txt\` bagian A).`,
+        `Sesudah ${A.bukaDetik} detik, breaker pindah ke half-open dan mengizinkan satu permintaan percobaan. Permintaan kedua ditolak selama yang pertama belum selesai.`,
+        `Permintaan percobaan yang sukses menutup breaker. Yang gagal membuka breaker lagi untuk ${R.breaker.bukaLagiDetik} detik penuh (\`breaker.txt\` bagian B).`,
+      ],
+      stack: null,
+      jebakan: [
+        "Menghitung jawaban 4xx sebagai kegagalan vendor. Bawaan pustaka gobreaker melakukannya, dan enam dokumen rusak dengan vendor sehat membuka breaker (`breaker.txt` bagian C, `lajur.txt` bagian D).",
+        `Memasang ambang yang lebih tinggi daripada batas percobaan satu pekerjaan. Pekerjaan pertama habis ${bilangan(R.lajur.percobaan)} percobaan sebelum kegagalan keenam membuka breaker (\`lajur.txt\` bagian B).`,
+        "Memakai pekerjaan nyata sebagai permintaan percobaan di half-open. Tiap permintaan percobaan yang gagal memakai satu percobaan pekerjaan terdepan.",
+      ],
+      terkait: ["Timeout", "Retry", "Idempotency key", "Dead-letter queue"],
+      sumber: [
+        { riset: "R4-160", judul: "gobreaker v2.4.0 (pkg.go.dev, dibuka 2026-10-29)", url: "https://pkg.go.dev/github.com/sony/gobreaker/v2@v2.4.0", catatan: "Bawaan: membuka bila gagal berturut-turut lebih dari 5, Timeout open 60 detik, satu permintaan di half-open, dan setiap error non-nil dihitung gagal." },
+        { riset: "R4-163", judul: "Azure Architecture Center: Circuit Breaker pattern (diperbarui 2025-02-05, dibuka 2026-10-29)", url: "https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker", catatan: "Tiga status closed, open, dan half-open. Aplikasi tidak boleh terus mengulang operasi yang kecil kemungkinannya berhasil." },
+        { judul: "Rekaman lab t4-integrasi: breaker.txt bagian A sampai C", rekaman: "labs/t4-integrasi/output/breaker.txt", catatan: `Jam diperankan: open sesudah gagal ke-${gagalKe}, open pada ${koma(sebelumBuka, 3)} detik dan half-open pada ${koma(sesudahBuka, 3)} detik, 4xx bawaan lawan kustom.` },
+      ],
+    });
+  });
+  test("baris riset halaman ini: jumlah tanggal akses per baris, dan tanggal dibuka tidak berubah di sebagian saja", () => {
+    const hitung = Object.fromEntries(["R4-160", "R4-161", "R4-162", "R4-163", "R4-164"].map((id) => [id, (baris(id).match(/2026-10-29/g) ?? []).length]));
+    expect(hitung).toEqual({ "R4-160": 3, "R4-161": 1, "R4-162": 1, "R4-163": 2, "R4-164": 1 });
+    for (const [id, kata] of [["R4-160", "more than 5"], ["R4-161", "A Timeout of zero means no timeout."], ["R4-163", "255 karakter"], ["R4-163", "ms.date 2025-02-05"]] as const) expect(baris(id), `${id} ${kata}`).toContain(kata);
+  });
+});
+
 const JumlahRekamanLab = 10;
 const JumlahTidakDijalankan = 18;
 const JumlahAsumsi = 7;
@@ -867,6 +1010,8 @@ const JumlahHitungan = 7;
 const JumlahPenalaran = 5;
 const TanggalDibuka = 10;
 const TanggalAkses = 11;
+const SIDIK_STRUKTUR = "<Blok ## p:1 <Rantai p:4 p:4 <details <summary 1.:3 2.:3 3.:2 p:2 </details </Blok <Blok p:3 p:2 p:4 <CircuitBreaker p:2 p:3 </Blok <Blok ### p:3 p:2 ### p:5 <Snippet p:3 p:2 <Snippet p:4 p:2 p:2 <Snippet <Snippet p:4 p:3 p:2 p:3 <Snippet p:4 p:4 <Snippet p:3 p:3 <Snippet p:3 p:2 <Snippet p:3 <Snippet p:2 p:3 p:1 <Snippet p:3 |:3 |:3 |:3 |:3 |:3 |:3 p:3 p:1 1.:4 2.:4 3.:5 4.:4 5.:4 ### p:2 p:3 <TabSet <Fragment p:1 <Snippet p:3 </Fragment <Fragment p:3 p:4 </Fragment <Fragment p:3 p:3 </Fragment <Fragment p:4 p:4 </Fragment <Fragment p:2 p:5 </Fragment <Fragment p:2 p:5 </Fragment </TabSet </Blok <Blok ### p:4 p:3 |:5 |:5 |:5 |:5 |:5 |:5 |:5 p:1 1.:3 2.:3 3.:5 4.:4 5.:3 6.:4 p:1 -:2 -:5 -:2 p:2 p:2 p:4 p:2 1.:5 2.:5 3.:6 p:1 -:2 -:3 -:3 -:5 -:3 p:2 ### |:3 |:3 |:3 |:3 |:3 |:3 </Blok <Blok ### **1**:2 <details <summary p:2 </details **2**:2 <details <summary p:2 </details **3**:1 <details <summary p:3 </details **4**:2 <details <summary p:3 </details ### -:1 -:1 -:1 -:1 -:1 -:1 ### -:1 -:1 -:1 -:1 -:1 -:1 -:1 -:1 -:1 -:1 -:1 </Blok";
+const SIDIK_ANGKA = "10 50 10 10 9 10 1 3 1 10 2 3 10 180 10 1 10 50 4 8 10 2025 02 05 2026 10 29 3 1.27.3 1.27.1 2026 10 29 3 22 300 3 2 1 503 503 200 2 1 36 2 255 500 24 2026 10 29 5 60 2026 01 01 2026 10 29 59,999 60,001 60 60 60 10 3 8 6 0,5 9 1 9 3 3 30 60 2,0 2,0 2,9 3,6 3 4 3 0,116 7,52 0,3 1.000 86.400 10 0,116 0,116 5 3 1,74 4 7,52 0,3 2,26 4 1,74 2,26 4,0 4 3 1 4 8 1 2 2 0 3 12.600 12.600 60 210 210 5 42 146 4 10 34 6 5 4 400 499 401 403 408 429 5 2026 10 29 17.11 1.27.1 25 10.0.0 2026 06 24 2026 10 29 10 10 6 13 2026 10 29 30 10 2026 10 29 3.13.7 2026 10 29 2026 10 29 150 504 150 400 2 150 50 3 36 10 10 0,116 7,52 4 22 25 25 3 140 10 1 3 22 2 3 6 60 4 5 6 401 403 408 429 10 10 2018 2018 07 10 140 2026 10 29 140 6 1 2 12.600 42 146 3 422 4 34 10 401 403 408 429 403 0,116 1,74 4 4,0 4 3 0,0116 0,174 403 401 403 1 2 401 403 408 429 140 1 10 50 5 10 0 2 2 1 3 10 4 422 36 4 36 4 10 34 13";
 const SIDIK_HALAMAN: Record<string, number> = { tidak: 90, bukan: 17, belum: 13, hanya: 16, tanpa: 30, sesudah: 27, sebelum: 6, juga: 3, setiap: 2, semua: 7, "lebih dari": 6, "paling banyak": 2, selalu: 1, sama: 18, "lebih tinggi": 2, sampai: 13 };
 const SIDIK_RANTAI: Record<string, number> = { tidak: 0, bukan: 1, belum: 0, hanya: 0, tanpa: 3, sesudah: 0, sebelum: 0, juga: 0, setiap: 0, semua: 0, "lebih dari": 0, "paling banyak": 0, selalu: 0, sama: 0, "lebih tinggi": 0, sampai: 0 };
 const SIDIK_ISTILAH: Record<string, number> = { tidak: 2, bukan: 0, belum: 1, hanya: 0, tanpa: 1, sesudah: 7, sebelum: 1, juga: 0, setiap: 1, semua: 0, "lebih dari": 1, "paling banyak": 0, selalu: 0, sama: 0, "lebih tinggi": 1, sampai: 1 };
