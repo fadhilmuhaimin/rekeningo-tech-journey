@@ -1,0 +1,147 @@
+{
+  "id": "t4-dua-arah-caribug",
+  "judul": "Handler versi pertama minggu 2: terima kabar, jurnalkan, balas 200",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Ringkasan urutan handler minggu 2 dari naskah Tahap 4 bagian 3. Urutannya sama dengan webhookV1 di labs/api-t4: JSON diurai, settlement dijurnal sebesar jumlah di isi kabar, dan status ditulis tanpa syarat. Bentuk BeginTx, defer Rollback, dan Commit sama dengan DalamTx di lab; kunci baris dan nama fungsi disederhanakan. Perilakunya direkam di rentan.txt bagian A lewat mode rentan webhook-v1."
+  },
+  "bahasa": "go",
+  "baris": [
+    "func (s Service) TerimaWebhook(ctx context.Context, body []byte) error {",
+    "\tvar k KabarGateway",
+    "\tif err := json.Unmarshal(body, &k); err != nil {",
+    "\t\treturn ErrValidasi",
+    "\t}",
+    "\ttx, err := s.db.BeginTx(ctx, nil)",
+    "\tif err != nil {",
+    "\t\treturn err",
+    "\t}",
+    "\tdefer tx.Rollback()",
+    "\tif k.Status == \"settlement\" {",
+    "\t\tif err := jurnalTopup(ctx, tx, k.OrderID, k.Jumlah); err != nil {",
+    "\t\t\treturn err",
+    "\t\t}",
+    "\t}",
+    "\tif err := ubahStatus(ctx, tx, k.OrderID, k.Status); err != nil {",
+    "\t\treturn err",
+    "\t}",
+    "\treturn tx.Commit()",
+    "}"
+  ],
+  "bug": [
+    2,
+    11,
+    15
+  ],
+  "alasan": {
+    "2": "Hal 2. Tidak ada baris sebelum ini yang memeriksa tanda tangan atau timestamp, jadi byte yang tiba langsung dipercaya sebagai kabar gateway. Di rekaman, POST tanpa tanda tangan dengan jumlah Rp1.234.567 dijawab 200 diproses (Rekaman lab rentan.txt bagian A).",
+    "11": "Hal 1 dan hal 2. Tiap kabar settlement menjurnal lagi, tanpa memeriksa apakah event atau order itu sudah dijurnal, dan jumlahnya diambil dari isi kabar. Di rekaman, event yang sama dua kali menghasilkan dua jurnal Rp200.000, dan jumlah Rp1.234.567 dari POST tanpa tanda tangan dikreditkan ke Budi (Rekaman lab rentan.txt bagian A).",
+    "15": "Hal 1. Status ditulis tanpa syarat, jadi kabar pending yang datang sesudah settlement menimpa status dibayar. Di rekaman, status top-up kembali ke menunggu (Rekaman lab rentan.txt bagian A)."
+  },
+  "aman": {
+    "5": "BeginTx membuka transaction untuk jurnal dan status. Baris ini bukan masalahnya: keduanya ikut satu COMMIT atau batal bersama. Yang menentukan adalah apa yang ditulis di dalamnya tanpa dicek.",
+    "10": "Hanya kabar settlement yang menjurnal, dan itu benar. Yang kurang adalah pemeriksaan apakah kabar ini sudah pernah diproses.",
+    "18": "COMMIT di akhir sudah tepat untuk data di PostgreSQL. Yang salah adalah apa yang ditulis sebelum COMMIT tanpa dicek."
+  },
+  "tebak": {
+    "q": "Tiga baris di handler ini membuat dua dari tiga hal yang harus selalu benar tidak lagi terjaga. Baris mana?",
+    "petunjuk": "Tiga hal itu: uang dari luar dicatat satu kali, kabar dari luar dipercaya hanya sesudah dicek, dan pihak luar yang lambat atau mati tidak menahan pembayaran antar akun. Untuk tiap baris, tanya: kalau kabar ini datang dua kali, datang dari siapa pun, atau datang sesudah kabar yang lebih baru, hal mana yang rusak?"
+  },
+  "perbaikan": {
+    "label": "Tiga bagian diganti: periksa dulu, catat event, status hanya maju",
+    "baris": [
+      "func (s Service) TerimaWebhook(ctx context.Context, body []byte, timestamp, tanda string) error {",
+      "\tif err := periksaTandaTangan(timestamp, tanda, body); err != nil {",
+      "\t\treturn err",
+      "\t}",
+      "\tvar k KabarGateway",
+      "\tif err := json.Unmarshal(body, &k); err != nil {",
+      "\t\treturn ErrValidasi",
+      "\t}",
+      "\treturn s.repo.DalamTx(ctx, func(tx Tx) error {",
+      "\t\tbaru, err := tx.CatatEvent(ctx, k.EventID)",
+      "\t\tif err != nil || !baru {",
+      "\t\t\treturn err",
+      "\t\t}",
+      "\t\treturn terapkanStatus(ctx, tx, k.OrderID, k.Status, k.Jumlah)",
+      "\t})",
+      "}"
+    ],
+    "catatan": "Tanda tangan diperiksa atas byte mentah sebelum JSON diurai, event dicatat dengan kunci utama di transaction yang sama dengan efeknya, dan status hanya maju. Di rekaman versi ini, isi yang diubah dan timestamp 360 detik lalu ditolak dengan 401 (tandatangan.txt bagian B), event yang sama dijawab 200 ganda tanpa jurnal kedua (ganda.txt bagian B), dan kabar pending sesudah settlement diparkir dengan status tetap dibayar (urutan.txt bagian F, kasus pertama). Caranya dan kapan ia salah ada di halaman 4.7."
+  },
+  "kejadian": {
+    "judul": "Enam kejadian di versi pertama",
+    "hal": [
+      "1. Dicatat satu kali",
+      "2. Dipercaya setelah dicek",
+      "3. Tidak menahan yang lain"
+    ],
+    "status": {
+      "ya": "Terjaga",
+      "tidak": "Rusak",
+      "na": "Tidak berlaku"
+    },
+    "baris": [
+      {
+        "nama": "Kiriman normal, sekali",
+        "sel": [
+          { "status": "ya" },
+          { "status": "tidak", "detail": "POST dari siapa pun diterima" },
+          { "status": "ya", "detail": "Handler tidak memanggil pihak luar; lamanya tidak diukur" }
+        ]
+      },
+      {
+        "nama": "Kiriman yang sama datang lagi sesudah balasan hilang",
+        "sel": [
+          { "status": "tidak", "detail": "Jurnal kedua dengan jumlah yang sama" },
+          { "status": "na" },
+          { "status": "ya" }
+        ]
+      },
+      {
+        "nama": "Kabar menunggu datang sesudah dibayar",
+        "sel": [
+          { "status": "tidak", "detail": "Status mundur ke menunggu" },
+          { "status": "na" },
+          { "status": "ya" }
+        ]
+      },
+      {
+        "nama": "Gateway tidak pernah mengirim",
+        "sel": [
+          { "status": "tidak", "detail": "Uang ada di bank, tidak ada jurnal, tidak ada yang tahu" },
+          { "status": "na" },
+          { "status": "ya" }
+        ]
+      },
+      {
+        "nama": "Isi diubah atau kiriman lama diputar ulang",
+        "sel": [
+          { "status": "tidak", "detail": "Jumlah di isi dipercaya" },
+          { "status": "tidak", "detail": "Tanpa tanda tangan dan tanpa batas waktu" },
+          { "status": "ya" }
+        ]
+      },
+      {
+        "nama": "Gateway tidak menjawab saat Rekeningo membuat top-up",
+        "sel": [
+          { "status": "na" },
+          { "status": "na" },
+          { "status": "ya", "detail": "Bergantung pada timeout: ADR 22 menahannya di 3 detik, dan pengulangannya perlu pengaman sendiri (ADR 36)" }
+        ]
+      }
+    ]
+  },
+  "label": {
+    "sumber": "Ilustrasi: ringkasan handler versi pertama",
+    "tebakDulu": "Tebak dulu:",
+    "perintah": "Klik baris yang membuat paling sedikit satu dari tiga hal tidak terjaga, lalu Periksa.",
+    "periksa": "Periksa tanda saya",
+    "ulang": "Ulang",
+    "benar": "sumber masalah",
+    "lewat": "terlewat",
+    "salahTanda": "baris ini tidak salah",
+    "perbaikanTombol": "Lihat versi benar",
+    "ringkas": "Kamu menandai {benar} dari {bug} baris yang bermasalah, dan {salah} baris lain ikut ditandai."
+  }
+}

@@ -1057,12 +1057,14 @@ describe("rancangan lawan lab: enam selisih", () => {
 describe("label sumber dan baris riset R4-130 sampai R4-134", () => {
   const baris = risetBaris.filter((b) => /^\| R4-13[0-4] \|/.test(b));
   const id = (b: string): string => sel(b)[0]!;
-  test("lima baris berurutan, tepat sesudah R4-115 dan sebelum R4-300, tanpa ID ganda di seluruh berkas, lima kolom", () => {
+  test("lima baris berurutan, sesudah nomor yang lebih kecil dan sebelum nomor yang lebih besar, tanpa ID ganda di seluruh berkas, lima kolom", () => {
     expect(baris.map(id)).toEqual(["R4-130", "R4-131", "R4-132", "R4-133", "R4-134"]);
     const semua = risetBaris.filter((b) => /^\| R4-\d+ \|/.test(b)).map(id);
     expect(new Set(semua).size).toBe(semua.length);
     const i = semua.indexOf("R4-130");
-    expect(semua.slice(i, i + 6)).toEqual(["R4-130", "R4-131", "R4-132", "R4-133", "R4-134", "R4-300"]);
+    expect(semua.slice(i, i + 5)).toEqual(["R4-130", "R4-131", "R4-132", "R4-133", "R4-134"]);
+    // Tetangga boleh berubah (halaman lain menambah baris sendiri); urutan naik terjaga di kedua sisi.
+    expect(Number(semua[i + 5]!.slice(3))).toBeGreaterThan(134);
     expect(Number(semua[i - 1]!.slice(3))).toBeLessThan(130);
     expect(semua.indexOf("R4-115")).toBeLessThan(i);
     for (const b of baris) expect(sel(b), b.slice(0, 20)).toHaveLength(5);
