@@ -31,7 +31,7 @@ Raka membaca laporan itu dan menghitung dua persetujuan untuk satu saldo. Ia men
 
 Penerbit kartu adalah pihak yang menerbitkan nomor kartu virtual. Tiap kali Budi membeli sesuatu, penerbit meminta izin ke Rekeningo lewat otorisasi: "setujui pembelian Rp80.000 dari kartu ini?". Rekeningo menjawab setuju atau tolak, dan penerbit menunggu paling lama 2 detik ([dokumentasi satu penerbit kartu](https://docs.stripe.com/issuing/controls/real-time-authorizations), dibuka 2026-10-30, Tidak dijalankan). Di lab, penerbit adalah proses tiruan di komputer sendiri: tidak ada kartu, nomor, atau layanan nyata.
 
-Dugaan Raka bisa diperiksa dari catatan keputusan penerbit. Bila penerbit mengirim permintaan yang sama dua kali, kedua permintaan membawa `id_penerbit` yang sama. Bila penerbit menyetujui sendiri tanpa Rekeningo, catatannya menulis penerbit sebagai pemutus.
+Dugaan Raka bisa diperiksa dari catatan keputusan penerbit. Tiap otorisasi membawa `id_penerbit`, nomor yang penerbit berikan untuk otorisasi itu. Bila penerbit mengirim permintaan yang sama dua kali, kedua permintaan membawa nomor yang sama. Bila penerbit menyetujui sendiri tanpa Rekeningo, catatannya menulis penerbit sebagai pemutus.
 
 <details class="question">
 <summary>Tebak dulu: kedua persetujuan datang dari Rekeningo, bukan dari penerbit, dan id_penerbit keduanya berbeda. Apa yang tidak dilakukan Rekeningo sesudah menyetujui yang pertama?</summary>
@@ -64,7 +64,9 @@ Pola ini bernama cek-lalu-tulis: kode membaca satu nilai, memutuskan dari nilai 
 
 Jeda lab di cuplikan memperlebar celah di antara cek dan tulis, supaya hasilnya tidak bergantung pada waktu. Lebar celah tanpa jeda tidak diukur.
 
-**Tidak ada dana yang berpindah.** Hold adalah dana di saldo yang dipisahkan sementara untuk satu otorisasi, supaya otorisasi berikutnya membaca saldo yang sudah berkurang. Handler ini tidak membuat hold. Status `ditahan` di tabel hanyalah nama status: kolom `ada_jurnal_tahan` bernilai `f`, dan buku `dana_tertahan` berisi 0.
+**Tidak ada dana yang berpindah.** Hold adalah dana di saldo yang dipisahkan sementara untuk satu otorisasi, supaya otorisasi berikutnya membaca saldo yang sudah berkurang. Dana itu dicatat di buku sistem `dana_tertahan` lewat satu jurnal. Handler ini tidak membuat hold.
+
+Status `ditahan` di tabel hanyalah nama status: kolom `ada_jurnal_tahan` bernilai `f`, dan buku `dana_tertahan` berisi 0.
 
 Lab juga mengirim otorisasi ketiga sesudah dua yang pertama selesai, bukan bersamaan:
 
@@ -72,13 +74,13 @@ Lab juga mengirim otorisasi ketiga sesudah dua yang pertama selesai, bukan bersa
 
 Otorisasi ketiga tetap disetujui. Tiga persetujuan Rp80.000 berjumlah Rp240.000 untuk saldo Rp100.000 (3 × Rp80.000, Hitungan). Di [[t2-m9]], kegagalan butuh dua request yang tumpang tindih. Di sini menunggu pun tidak menolong, karena langkah tulis tidak mengubah saldo yang dibaca otorisasi berikutnya.
 
-**Penagihan datang kemudian, dan ledger menolaknya.** Penagihan dari toko lewat penerbit disebut clearing. Di cerita ia datang berjam-jam sesudah otorisasi, sedangkan lab memanggilnya segera sesudah otorisasi karena jedanya tidak diukur. Lab menagih ketiga otorisasi satu per satu:
+**Penagihan datang kemudian, dan ledger menolaknya.** Penagihan dari toko lewat penerbit disebut clearing. Di cerita ia datang esok harinya, sedangkan lab memanggilnya segera sesudah otorisasi karena jedanya tidak diukur. Lab menagih ketiga otorisasi satu per satu:
 
 <Snippet file="labs/t4-kartu/output/otorisasi.txt" lines="33:49" title="Rekaman lab: labs/t4-kartu/output/otorisasi.txt, bagian B (penagihan dan saldo)" />
 
-Penagihan pertama menutup Rp80.000 dari saldo, jadi saldo Budi tinggal Rp20.000 (Hitungan: Rp100.000 − Rp80.000). Dua penagihan lain ditolak dengan 409, karena Rp20.000 kurang dari Rp80.000. Dari Rp240.000 yang disetujui, Rp160.000 tidak punya saldo yang menutupinya (Rp240.000 − Rp80.000, Hitungan).
+Penagihan pertama memindahkan Rp80.000 dari saldo ke buku `settlement_kartu`, jadi saldo Budi tinggal Rp20.000 (Hitungan: Rp100.000 − Rp80.000). Dua penagihan lain ditolak dengan 409, karena Rp20.000 kurang dari Rp80.000. Dari Rp240.000 yang disetujui, Rp160.000 tidak punya saldo yang menutupinya (Rp240.000 − Rp80.000, Hitungan).
 
-Penolakan itu datang dari database. Aturan saldo tidak boleh negatif ([[t2-ledger]]) diperiksa saat COMMIT dan berlaku juga untuk buku pemakai. Kode lab memetakan pelanggarannya ke 409 `saldo-kurang`. Rekamannya hanya menunjukkan 409, jadi sebabnya dibaca dari kode: fungsi `Clearing` di `labs/api-t4/internal/service/kartu.go`, migrasi `000010` di `labs/api-t2/migrasi`, dan migrasi `000020` di `labs/api-t4/migrasi` (Tidak dijalankan).
+Penolakan itu datang dari database. Aturan saldo tidak boleh negatif ([[t2-ledger]]) diperiksa saat COMMIT dan berlaku juga untuk buku jenis `pemakai`. Kode lab memetakan pelanggarannya ke 409 `saldo-kurang`. Rekamannya hanya menunjukkan 409, jadi sebabnya dibaca dari kode: fungsi `Clearing` di `labs/api-t4/internal/service/kartu.go`, migrasi `000010` di `labs/api-t2/migrasi`, dan migrasi `000020` di `labs/api-t4/migrasi` (Tidak dijalankan).
 
 Ledger menjaga uang, tetapi terlambat. Persetujuan sudah sampai ke penerbit dan toko.
 
@@ -96,8 +98,8 @@ Itu angka yang sama dengan cerita Budi, dari jalan yang berbeda. Apa yang membed
 
 **Yang belum terjawab.**
 
-- Penerbit tiruan membaca setiap balasan selain 200 sebagai tidak ada jawaban, lalu memutuskan menurut setelan timeout. Di rekaman, satu balasan 409 dari Rekeningo menjadi persetujuan dengan sumber `timeout` (`otorisasi.txt` bagian D). Dokumentasi satu penerbit kartu memberi dua alasan kegagalan, `webhook_error` dan `webhook_timeout`, tetapi tidak merinci status HTTP selain 200. Apakah balasan 409 atau 500 diperlakukan sebagai kegagalan itu [perlu verifikasi]: artinya belum bisa dicek ke sumber primer.
-- Penagihan atas otorisasi yang tidak dikenal (404) atau yang ditolak Rekeningo (409) tidak dijurnal di lab, apa pun saldo pemilik kartu (`penerbit.txt` bagian B). Apakah penagihan itu didebit, ditolak, atau menjadi insiden bernomor adalah keputusan produk yang belum final.
+- Penerbit tiruan membaca setiap balasan selain 200 sebagai tidak ada jawaban, lalu memutuskan menurut setelan timeout. Di rekaman, satu balasan 409 dari Rekeningo menjadi persetujuan dengan sumber `timeout` (`otorisasi.txt` bagian D). Dokumentasi satu penerbit kartu memberi dua alasan kegagalan, `webhook_error` dan `webhook_timeout`, tetapi tidak merinci status HTTP selain 200. Apakah balasan 409 atau 500 dihitung sebagai kegagalan itu, belum bisa dicek ke sumber primer [perlu verifikasi].
+- Penagihan atas otorisasi yang tidak dikenal (404) atau yang ditolak Rekeningo (409) tidak dijurnal di lab. Rekaman `penerbit.txt` bagian B memakai saldo pemilik yang tidak cukup. Apakah penagihan itu didebit, ditolak, atau menjadi insiden bernomor adalah keputusan produk yang belum final.
 - Rekonsiliasi kartu, yaitu mencocokkan catatan penerbit dengan tabel `otorisasi_kartu`, belum ada sebagai job di lab. Perbandingannya dijalankan dengan SQL di `penerbit.txt` bagian C, dan menemukan `AUTH-P1`: setuju di penerbit, tidak ditahan di Rekeningo.
 
 **Yang tidak direkam.**
