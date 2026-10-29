@@ -50,7 +50,7 @@ Foto kartu identitas dan swafoto disimpan di kolom `bytea`, jadi tiap backup dan
 
 *Kondisi rekaman:* PostgreSQL 17.11, go1.27.1, server Go `api-t4`, dan SeaweedFS 4.51 untuk baris kedua. Dua run dari database bersih. Tiap pengajuan membawa dua file 500.000 byte, berisi tanda tangan PNG lalu byte acak (Ilustrasi), jadi rasio untuk foto nyata tidak diukur.
 
-**Dump dan restore menyentuh setiap byte di tabel.** Dump adalah keluaran `pg_dump`: isi database yang ditulis ke satu file. Restore menulis isi dump itu kembali ke database lain dengan `pg_restore`.
+**Dump dan restore membawa isi tabel, termasuk kolom file.** Dump adalah keluaran `pg_dump`: isi database yang ditulis ke satu file. Restore menulis isi dump itu kembali ke database lain dengan `pg_restore`.
 
 Raka memilih `bytea` di minggu 3 karena file "ikut transaction dan ikut backup". File memang ikut backup, karena ia ada di database. Wiki PostgreSQL mencantumkan ACID dan backup yang lebih mudah sebagai kelebihan menyimpan file di database. Kekurangannya: "Backups can take significantly longer" ([wiki PostgreSQL: BinaryFilesInDB](https://wiki.postgresql.org/wiki/BinaryFilesInDB), diedit 2021-05-05, dibuka 2026-10-29, Tidak dijalankan).
 
