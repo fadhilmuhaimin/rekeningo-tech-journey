@@ -1,0 +1,39 @@
+{
+  "istilah": "Alamat keluar",
+  "sehari_hari": "Alamat keluar adalah alamat IP yang dilihat server tujuan saat service Rekeningo memanggilnya. Bila tujuan itu menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.",
+  "cerita": [
+    {
+      "rujukan": "t4-m34",
+      "teks": "Senin pukul 07.50, sesudah Rekeningo pindah ke infrastruktur PT, setiap pendaftar baru gagal diverifikasi. Vendor menjawab 403 karena alamat host baru belum didaftarkan (cerita, Ilustrasi)."
+    }
+  ],
+  "mekanisme": [
+    "Vendor menyimpan daftar alamat yang boleh memanggilnya (allowlist). Di lab, layanan verifikasi tiruan memeriksa alamat ujung koneksi TCP, bukan header (`alamat.txt` bagian A).",
+    "Host baru memanggil dari alamat yang berbeda dan belum terdaftar. Tiga pekerjaan menghabiskan 15 penolakan 403, tiga pengajuan berstatus gagal (`alamat.txt` bagian A).",
+    "Bila panggilan keluar lewat proxy keluar, vendor melihat alamat proxy, bukan alamat host. Pindahan host tidak mengubah alamat itu (`alamat.txt` bagian B)."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira 403 dari vendor berarti vendor mati. Vendor menjawab, dan yang ditolak adalah pemanggilnya.",
+    "Mengandalkan breaker untuk menahan penolakan alamat. Dengan aturan ADR 36, 403 dihitung sukses dan breaker tidak pernah terbuka (`alamat.txt` bagian C).",
+    "Mendaftarkan alamat sesudah pindah. Di cerita, pendaftaran satu alamat butuh dua hari kerja (Asumsi)."
+  ],
+  "terkait": [
+    "Proxy",
+    "Circuit breaker"
+  ],
+  "sumber": [
+    {
+      "riset": "R4-185",
+      "judul": "RFC 9110, bagian 15.5.4: 403 Forbidden (dibuka 2026-10-30)",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.html#name-403-forbidden",
+      "catatan": "403 berarti server memahami permintaan dan menolak memenuhinya."
+    },
+    {
+      "riset": "R4-187",
+      "judul": "Rekaman lab t4-infra: alamat.txt bagian A sampai C",
+      "rekaman": "labs/t4-infra/output/alamat.txt",
+      "catatan": "Alamat host adalah alamat container Docker di satu jaringan lab, bukan alamat akun cloud."
+    }
+  ]
+}
