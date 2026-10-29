@@ -18,7 +18,7 @@ import cerita from "../../data/cerita.json";
 import diagramMentah from "../../data/diagram/t4-m30-rahasia-berganti.json";
 import { DataRantai } from "./rantai";
 import { daftarBlok, cekTemplat } from "./blok";
-import { KALIMAT_TERKUNCI, SIDIK } from "./m30-saldo-tidak-naik.halaman.nilai";
+import { DIAGRAM_DAUN, KALIMAT_TERKUNCI, PROFIL_BARIS, RISET_TERKUNCI, SIDIK, SKENARIO_DAUN } from "./m30-saldo-tidak-naik.halaman.nilai";
 
 const akar = path.resolve(__dirname, "../../..");
 const terlacak: Set<string> | null = (() => {
@@ -125,6 +125,9 @@ const kAkhirCocok = kJikaTidakCocok + 2;
 const kTerima = K.nomor((b) => b.startsWith("func (s Service) TerimaWebhook("));
 const H2 = bagian(handlerGo);
 const hKasus = H2.nomor((b) => b === "\tcase errors.Is(err, service.ErrTandaTangan):");
+const RUN = bagian(runWebhook);
+const rB = RUN.nomor((b) => b.includes('bagian("B. M30:')), rC = RUN.nomor((b) => b.includes('bagian("C. Disamakan')), rD = RUN.nomor((b) => b.includes('bagian("D. Pembanding'));
+const kodeB = RUN.teks(rB, rC - 1), kodeC = RUN.teks(rC, rD - 1);
 const tag = [...badan.matchAll(/<Snippet ([^>]*?)\/>/g)].map((m) => m[1]!);
 const lines = tag.map((t) => t.match(/lines="([^"]+)"/)?.[1]);
 const berkasSnippet = tag.map((t) => t.match(/file="([^"]+)"/)?.[1]);
@@ -150,6 +153,8 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(dari("t4-m30")).toMatchObject({ ada: true, nomor: "4.8", jenis: "masalah", inti: true, prasyarat: ["t4-webhook"], lab: ["t4-webhook"], tahap: 4, peran: ["mobile", "backend"] });
     expect(dari("t4-webhook").nomor).toBe("4.7");
     expect(frontmatter).toContain('title: "4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong"');
+    expect(frontmatter).toContain(`description: Minggu 4. Citra mengisi ${rp(NOMINAL)} dari rekening banknya, tetapi saldo di app tidak naik. Gateway mengirim kabarnya enam kali, dan Rekeningo menolak semuanya karena secret penanda tangannya sudah berganti.`);
+    expect(MENIT_KIRIMAN).toHaveLength(6);
     expect(dari("t4-m30").judul).toBe("M30: Saldo Citra tidak naik, padahal bank sudah memotong");
     expect(naskah).toContain("| 4.8 | 4 | M30: Saldo Citra tidak naik, padahal bank sudah memotong | Masalah | ★ | t4-webhook | alur |");
     const m = cocok(badan, /<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: \[\[t4-webhook\]\] · Jalur inti<\/p>/);
@@ -222,7 +227,10 @@ describe("naskah M30: gejala, yang dikira, dan yang sebenarnya", () => {
     harus("Statusnya masih \"menunggu\" sejak Sabtu malam, dan layanan pelanggan meneruskan pesannya ke Raka.");
     harus(`*Angka cerita (Ilustrasi):* hari, jam, dan jumlah ${TUJUH} top-up berasal dari naskah, bukan dari rekaman. Nominal ${rp(NOMINAL)} sama dengan top-up Citra di rekaman (Rekaman lab).`);
     harus("Arti Ilustrasi, Rekaman lab, dan Tidak dijalankan ada di [[A0]].");
-    expect(runWebhook).toContain(`ct = buat_topup(citra, ${String(NOMINAL).replace(/(\d)(?=(\d{3})$)/, "$1_")})`);
+    expect(kodeB).toContain(`ct = buat_topup(citra, ${String(NOMINAL).replace(/(\d)(?=(\d{3})$)/, "$1_")})\n    gateway_bayar(ct["order_id"])\n    s, _ = gw("/lab/rahasia", {"rahasia": RAHASIA2})`);
+    expect(kodeB).toContain('harap([p["kode"] for p in h["percobaan"]], [401] * 6, "enam kali 401")');
+    expect(kodeB).toContain('harap(h["berhenti"], "jadwal habis", "gateway berhenti")');
+    expect(kodeB.match(/buat_topup\(/g)).toHaveLength(1);
     expect(bagB).toContain(`# Uang ${rp(NOMINAL)} sudah di bank, status top-up menunggu, tidak ada event dan tidak ada jurnal.`);
   });
   test("adegan Gejala tanpa kalimat definisi dan tanpa konsep; yang dikira sebelum yang sebenarnya; tiga dugaan Raka", () => {
@@ -289,7 +297,9 @@ describe("rekaman retry.txt: bagian A, B, dan C dan rentang Snippet", () => {
     expect(bagC).toContain("# menit 2 sampai 12: rahasia di api-t4 disamakan, server dinyalakan ulang dengan <baru>,<lama>");
     expect(bagC).toMatch(/ 3 +\| 12 +\| 200 diproses/);
     expect(bagC).toMatch(/ dibayar \| t\n/);
-    expect(runWebhook).toContain("et = buat_topup(eko, 200_000)");
+    expect(kodeC).toContain("et = buat_topup(eko, 200_000)");
+    expect(kodeC).toContain('harap([p["kode"] for p in h2["percobaan"]], [200], "kiriman ke-3 diterima")');
+    expect(kodeC).toContain('harap(jurnal_topup(et["order_id"]), 1, "satu jurnal")');
     expect(runWebhook).toContain('url_jam=f"http://127.0.0.1:{PORT}/lab/jam", sampai=2)');
     expect(runWebhook).toContain('url_jam=f"http://127.0.0.1:{PORT}/lab/jam", dari=3)');
     expect(runWebhook).toContain('ganti_api(["-jam-lab", "-rahasia-webhook", f"{RAHASIA2},{RAHASIA1}"]');
@@ -525,6 +535,7 @@ describe("sumber luar: baris riset, tanggal akses, dan kutipan", () => {
     expect(kartu).toHaveLength(3);
     expect(JSON.stringify(kartu)).not.toMatch(/\bR\d-\d{2,3}\b|\bkeputusan \d{3,4}\b|Stripe|Midtrans/);
     expect(badan).not.toMatch(/\p{Extended_Pictographic}/u);
+    expect(badan).toMatch(/^### Cek diri$/m);
     expect(badan).not.toMatch(/\d+ ?B\b/); // satuan byte ditulis lengkap
   });
   test("label sumber: arti tiga label ditaut ke A0 di Gejala; Hitungan didefinisikan di pemakaian pertama; jumlah label sama dengan yang diharapkan", () => {
@@ -715,6 +726,11 @@ describe("kartu Cek diri dan konsep yang lahir", () => {
     expect(kartu[1]!.jawab).toContain("dengan jam cerita berlabel Ilustrasi");
     expect(kartu[2]!.jawab).toContain("Masa tumpang tindih sampai 24 jam dan pengulangan sampai tiga hari ada di dokumentasi gateway pertama (Tidak dijalankan).");
     expect(kartu[2]!.jawab).toContain("Jadwal lima kali dengan jeda 2, 10, 30, 90, dan 210 menit ada di dokumentasi gateway kedua, yang tidak menyebut rotasi.");
+    const cek = badan.slice(badan.indexOf("### Cek diri"));
+    const butir = [...cek.matchAll(/\*\*(\d+)\.\*\* ([^\n]+)\n\n<details class="success">\n<summary>Jawaban<\/summary>\n\n([\s\S]*?)\n\n<\/details>/g)];
+    expect(butir.map((m) => m[1])).toEqual(["1", "2", "3"]);
+    expect(kartu.map((k) => k.tanya)).toEqual(butir.map((m) => m[2]));
+    expect(kartu.map((k) => k.jawab)).toEqual(butir.map((m) => m[3]));
     expect(kartu.map((k) => k.tanya)).toEqual([
       "Gateway mengirim enam kiriman untuk top-up Citra, dan database tidak memuat satu pun event. Kenapa tidak ada event?",
       `Bayu menyamakan secret Minggu ${JAM_SAMA}. Kenapa top-up Citra dari Sabtu malam tetap tidak naik?`,
@@ -727,6 +743,33 @@ describe("kartu Cek diri dan konsep yang lahir", () => {
     expect([...blok.matchAll(/^- \[\[([^\]]+)\]\]/gm)].map((m) => m[1])).toEqual(["t4-rekonsiliasi", "t4-webhook", "t4-infra-secret", "t3-at-least-once"]);
     harus("Gateway hanya mengulang selama jadwalnya, dan ia tidak tahu kenapa Rekeningo menolak. Jalan kedua untuk kabar uang harus sudah ada sebelum jadwal itu habis.");
     expect(badan.trimEnd().endsWith('<SkripLama daftar={["hp","alur-core","alur"]} />')).toBe(true);
+  });
+});
+
+const PENENTU = ["tidak", "belum", "hanya", "tetap", "sama", "sebelum", "sesudah", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "Citra", "Eko", "Bayu", "Raka", "Budi", "Dina", "Sabtu", "Minggu", "Senin", "pertama", "kedua", "bukan", "tanpa", "kecuali", "setiap", "semua", "selalu", "Rekaman lab", "Tidak dijalankan", "Ilustrasi", "Asumsi", "Hitungan", "naik", "turun", "habis", "gagal", "diterima", "ditolak"];
+const profil = (teks: string): string =>
+  PENENTU.map((k) => {
+    const n = (teks.match(new RegExp(`(?<![\\p{L}-])${k}(?![\\p{L}-])`, "gu")) ?? []).length;
+    return n ? `${k}:${n}` : "";
+  }).filter(Boolean).join(" ");
+const daun = (o: unknown, jalur = ""): [string, string | number | boolean][] => {
+  if (typeof o === "string" || typeof o === "number" || typeof o === "boolean") return [[jalur, o]];
+  if (Array.isArray(o)) return o.flatMap((v, i) => daun(v, `${jalur}[${i}]`));
+  if (o && typeof o === "object") return Object.entries(o).flatMap(([k, v]) => daun(v, `${jalur}.${k}`));
+  return [];
+};
+
+describe("nilai terkunci terpisah dari kalimat: baris riset, daun diagram dan skenario, dan profil kata penentu per baris", () => {
+  test("dua baris riset utuh sama dengan nilai terkunci (tanggal akses, kutipan, kolom)", () => {
+    expect(["R4-145", "R4-146"].map(barisRiset)).toEqual(RISET_TERKUNCI);
+  });
+  test("tiap nilai diagram dan skenario (string, angka, boolean) sama dengan nilai terkunci, jalur demi jalur", () => {
+    expect(daun(diagramMentah)).toEqual(DIAGRAM_DAUN);
+    expect(daun(skenario)).toEqual(SKENARIO_DAUN);
+  });
+  test("profil kata penentu tiap baris badan (polaritas, urutan waktu, bilangan, tokoh, hari, urutan gateway, label sumber) sama dengan nilai terkunci", () => {
+    const baris = badan.split("\n").map((b) => b.trim()).filter((b) => b !== "");
+    expect(baris.map(profil)).toEqual(PROFIL_BARIS);
   });
 });
 

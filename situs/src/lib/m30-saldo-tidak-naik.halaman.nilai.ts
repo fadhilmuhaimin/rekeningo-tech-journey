@@ -8,6 +8,667 @@ export const SIDIK = {
   skenario: "921763da081f4cf3",
 };
 
+// Nilai terpisah dari kalimat terkunci: dua baris riset utuh, tiap daun diagram dan skenario, dan profil kata penentu
+// per baris badan (polaritas, urutan waktu, bilangan, tokoh, hari, urutan gateway, label sumber).
+export const RISET_TERKUNCI: string[] = [
+  "| R4-145 | Rotasi secret penanda tangan: secret lama tetap aktif sampai 24 jam (gateway nyata pertama, dibuka untuk halaman 4.8) | Stripe docs, \"Receive Stripe events in your webhook endpoint\" (docs.stripe.com/webhooks, dibuka 2026-10-29), bagian Roll endpoint signing secrets periodically: \"You can choose to immediately expire the current secret or delay its expiration for up to 24 hours to allow yourself time to update the verification code on your server. During this time, multiple secrets are active for the endpoint. Stripe generates one signature per secret until expiration.\"; bagian Preventing replay attacks: \"we generate a new signature and timestamp for the new delivery attempt\"; bagian Automatic retries: \"for up to three days with an exponential back off in live mode\" | 4.8 (Yang sebenarnya, tabel Dua gateway nyata): secret lama bisa tetap aktif sampai 24 jam dengan satu tanda tangan per secret, dan kiriman yang gagal diulang sampai tiga hari di mode live; ditulis tanpa merek sebagai gateway pertama | Tidak berubah dari R4-08 dan R4-126 (dicek ulang 2026-10-29) |",
+  "| R4-146 | Kegagalan lain lima kali, 401 dan rotasi tidak disebut, dan anjuran menanyakan status (gateway nyata kedua, dibuka untuk halaman 4.8) | Midtrans docs, \"HTTP(S) Notification / Webhooks\" (docs.midtrans.com/docs/https-notification-webhooks, dibuka 2026-10-29), seluruh halaman terbaca (100.000 karakter pertama dan sisa 6.898 karakter): tabel status memuat \"2XX\" (\"No retries\"), \"500\" (\"Retry only once\"), \"503\" (\"Retry four times\"), \"400/404\" (\"Retry two times\"), \"301/302/303\" (\"No retries\"), dan \"Other\" (\"Retry five times\"); \"Midtrans retry at most 5 times\"; \"Midtrans put a random time shift for each attempt based on above interval\" dengan contoh \"the first retry time might be 33s (up to 2m) after previous attempt\"; \"you should use the GET Status API\" bila notifikasi terlambat; halaman tidak menyebut kode 401 atau 403 sendiri dan tidak menyebut rotasi atau penggantian server key | 4.8: kode 401 jatuh ke baris \"Other\" lima kali (pembacaan, bukan kutipan; Asumsi untuk tiruan); jeda dihitung sejak percobaan sebelumnya (tersirat dari contoh geseran); dokumentasi tidak menyebut rotasi; dokumentasi menyarankan menanyakan status bila notifikasi terlambat | Tidak berubah dari R4-08, R4-125, dan R4-136 (dicek ulang 2026-10-29) |"
+];
+export const DIAGRAM_DAUN: [string, string | number | boolean][] = [
+ [
+  ".id",
+  "t4-m30-rahasia-berganti"
+ ],
+ [
+  ".judul",
+  "Secret berganti, kiriman ditolak"
+ ],
+ [
+  ".sumber.jenis",
+  "rekaman"
+ ],
+ [
+  ".sumber.teks",
+  "Rekaman lab t4-webhook · retry.txt bagian B dan C"
+ ],
+ [
+  ".baris[0].label",
+  "Secret diganti, api-t4 belum"
+ ],
+ [
+  ".baris[0].sub",
+  "jadwal 2, 10, 30, 90, 210 menit"
+ ],
+ [
+  ".baris[0].simpul[0].teks",
+  "Tanda tangan secret baru"
+ ],
+ [
+  ".baris[0].simpul[0].sub",
+  "api-t4 memegang yang lama"
+ ],
+ [
+  ".baris[0].simpul[1].teks",
+  "Enam kiriman, enam 401"
+ ],
+ [
+  ".baris[0].simpul[1].sub",
+  "menit 0 sampai 342"
+ ],
+ [
+  ".baris[0].simpul[1].nada",
+  "warn"
+ ],
+ [
+  ".baris[0].simpul[2].teks",
+  "Jadwal habis"
+ ],
+ [
+  ".baris[0].simpul[2].sub",
+  "nol event, nol jurnal"
+ ],
+ [
+  ".baris[0].simpul[2].nada",
+  "warn"
+ ],
+ [
+  ".baris[1].label",
+  "Disamakan di menit 2 sampai 12"
+ ],
+ [
+  ".baris[1].sub",
+  "api-t4 dinyalakan ulang"
+ ],
+ [
+  ".baris[1].simpul[0].teks",
+  "Kiriman 1 dan 2: 401"
+ ],
+ [
+  ".baris[1].simpul[0].sub",
+  "secret belum sama"
+ ],
+ [
+  ".baris[1].simpul[1].teks",
+  "Secret disamakan"
+ ],
+ [
+  ".baris[1].simpul[1].sub",
+  "baru dan lama diterima"
+ ],
+ [
+  ".baris[1].simpul[2].teks",
+  "Kiriman 3: 200 diproses"
+ ],
+ [
+  ".baris[1].simpul[2].sub",
+  "top-up dibayar, satu jurnal"
+ ],
+ [
+  ".baris[1].simpul[2].nada",
+  "good"
+ ],
+ [
+  ".catatan",
+  "Baris pertama memakai top-up Citra Rp500.000 dan baris kedua top-up Eko Rp200.000, dengan alur yang sama. Kotak oranye adalah akibat yang direkam."
+ ]
+];
+export const SKENARIO_DAUN: [string, string | number | boolean][] = [
+ [
+  ".versi",
+  2
+ ],
+ [
+  ".judul",
+  "Secret berganti: enam kiriman untuk top-up Citra, enam 401"
+ ],
+ [
+  ".sumber.jenis",
+  "rekaman"
+ ],
+ [
+  ".sumber.file",
+  "labs/t4-webhook/output/retry.txt"
+ ],
+ [
+  ".sumber.fileVarian",
+  "labs/t4-webhook/output/retry.txt"
+ ],
+ [
+  ".sumber.catatan",
+  "Server Go api-t4 dan gateway tiruan lokal dengan PostgreSQL 17.11, dari database bersih (make -C labs/t4-webhook run BAGIAN=retry). Jalur utama: bagian B, top-up Citra Rp500.000, api-t4 memegang secret lama dan gateway menandatangani dengan secret baru. Ubah satu hal: bagian C, top-up Eko Rp200.000 dengan alur yang sama, dan secret di api-t4 disamakan di antara kiriman 2 dan 3; itu top-up lain, bukan top-up Citra. Waktu diperankan: gateway tiruan memainkan jadwal atas perintah skrip lab dan menandatangani tiap kiriman dengan waktu maya, jadi tidak ada yang menunggu 342 menit. Baris diawali tanda panah diringkas dari rekaman yang sama, bukan baris log. Layar HP digambar dari isi rekaman: lab tidak punya app Flutter, dan rekaman tidak mencetak saldo, jadi layar tidak menampilkan saldo. Jam 09.40 di layar HP mengikuti jam cerita (Ilustrasi) dan adalah pilihan penulis."
+ ],
+ [
+  ".pengantar",
+  "Gateway merotasi secret, dan api-t4 belum disamakan. Tebak dulu, lalu ikuti enam kiriman untuk top-up Citra sampai HP-nya. Sesudah langkah terakhir, centang 'Ubah satu hal'."
+ ],
+ [
+  ".komponen[0].id",
+  "gw"
+ ],
+ [
+  ".komponen[0].label",
+  "Gateway (tiruan)"
+ ],
+ [
+  ".komponen[1].id",
+  "api"
+ ],
+ [
+  ".komponen[1].label",
+  "api-t4"
+ ],
+ [
+  ".komponen[2].id",
+  "db"
+ ],
+ [
+  ".komponen[2].label",
+  "PostgreSQL"
+ ],
+ [
+  ".perangkat[0].id",
+  "hp"
+ ],
+ [
+  ".perangkat[0].label",
+  "HP pemilik top-up"
+ ],
+ [
+  ".layarAwal.hp.judul",
+  "Rekeningo"
+ ],
+ [
+  ".layarAwal.hp.waktu",
+  "09.40"
+ ],
+ [
+  ".layarAwal.hp.sinyal",
+  3
+ ],
+ [
+  ".layarAwal.hp.isi[0].jenis",
+  "teks"
+ ],
+ [
+  ".layarAwal.hp.isi[0].teks",
+  "Top-up Citra Rp500.000"
+ ],
+ [
+  ".layarAwal.hp.isi[1].jenis",
+  "baris"
+ ],
+ [
+  ".layarAwal.hp.isi[1].kiri",
+  "Status"
+ ],
+ [
+  ".layarAwal.hp.isi[1].kanan",
+  "menunggu"
+ ],
+ [
+  ".predict.q",
+  "Gateway menandatangani dengan secret baru, dan api-t4 masih memegang secret lama. Gateway mengirim kiriman ke-6 pada menit 342. Apa jawaban api-t4, dan apa yang terjadi sesudahnya?"
+ ],
+ [
+  ".predict.options[0]",
+  "401, lalu gateway terus mengulang sampai secret disamakan"
+ ],
+ [
+  ".predict.options[1]",
+  "200 diproses: api-t4 menerima kiriman terakhir"
+ ],
+ [
+  ".predict.options[2]",
+  "401, lalu gateway berhenti; top-up tetap menunggu tanpa event dan tanpa jurnal"
+ ],
+ [
+  ".predict.options[3]",
+  "500: api-t4 gagal mengurai kiriman"
+ ],
+ [
+  ".predict.answer",
+  2
+ ],
+ [
+  ".predict.varian",
+  false
+ ],
+ [
+  ".predict.explain",
+  "Secret di api-t4 tidak berubah selama jadwal, jadi kiriman ke-6 juga dijawab 401. Jadwal gateway berhenti di situ. Rekaman retry.txt bagian B: enam kiriman 401, webhook_event 0 baris, dan top-up menunggu tanpa jurnal."
+ ],
+ [
+  ".langkah[0].dari",
+  "gw"
+ ],
+ [
+  ".langkah[0].judul",
+  "Gateway merotasi secret dan memakai yang baru"
+ ],
+ [
+  ".langkah[0].kirim",
+  "# Gateway merotasi rahasia dan langsung menandatangani dengan yang baru; menit 0 = kiriman pertama dengan rahasia baru (waktu maya)."
+ ],
+ [
+  ".langkah[0].jelas",
+  "Citra sudah membayar di bank, diperankan perintah lab ke gateway tiruan. Gateway langsung menandatangani dengan secret baru, tanpa masa tumpang tindih. api-t4 masih memegang secret yang lama."
+ ],
+ [
+  ".langkah[1].dari",
+  "gw"
+ ],
+ [
+  ".langkah[1].ke",
+  "api"
+ ],
+ [
+  ".langkah[1].judul",
+  "Kiriman 1 (menit 0)"
+ ],
+ [
+  ".langkah[1].kirim",
+  "→ kiriman 1, menit 0: tanda tangan dengan secret baru"
+ ],
+ [
+  ".langkah[1].jelas",
+  "Kiriman pertama membawa kabar bahwa order Citra sudah dibayar. api-t4 menghitung tanda tangan dengan secret lama, dan hasilnya tidak sama (kode PeriksaTandaTangan)."
+ ],
+ [
+  ".langkah[2].dari",
+  "api"
+ ],
+ [
+  ".langkah[2].ke",
+  "gw"
+ ],
+ [
+  ".langkah[2].judul",
+  "api-t4 menjawab 401"
+ ],
+ [
+  ".langkah[2].kirim",
+  " kiriman | menit sejak kiriman pertama | jawaban api-t4\n 1       | 0                           | 401"
+ ],
+ [
+  ".langkah[2].jelas",
+  "Tanda tangan yang salah dijawab 401 sebelum JSON diurai, jadi tidak ada baris event dan tidak ada jurnal."
+ ],
+ [
+  ".langkah[2].nada",
+  "warn"
+ ],
+ [
+  ".langkah[3].dari",
+  "gw"
+ ],
+ [
+  ".langkah[3].ke",
+  "api"
+ ],
+ [
+  ".langkah[3].judul",
+  "Gateway mengulang: kiriman 2 sampai 6"
+ ],
+ [
+  ".langkah[3].kirim",
+  "→ kiriman 2 sampai 6 pada menit 2, 12, 42, 132, dan 342"
+ ],
+ [
+  ".langkah[3].jelas",
+  "Gateway tidak tahu kenapa kirimannya ditolak. Ia mengulang menurut jadwal, dengan jeda 2, 10, 30, 90, dan 210 menit sejak percobaan sebelumnya. Waktunya diperankan, tidak ditunggu."
+ ],
+ [
+  ".langkah[4].dari",
+  "api"
+ ],
+ [
+  ".langkah[4].ke",
+  "gw"
+ ],
+ [
+  ".langkah[4].judul",
+  "Kelima ulangan juga dijawab 401"
+ ],
+ [
+  ".langkah[4].kirim",
+  " 2       | 2                           | 401\n 3       | 12                          | 401\n 4       | 42                          | 401\n 5       | 132                         | 401\n 6       | 342                         | 401"
+ ],
+ [
+  ".langkah[4].jelas",
+  "Secret di api-t4 tidak berubah selama jadwal berjalan, jadi tiap kiriman ditolak."
+ ],
+ [
+  ".langkah[4].nada",
+  "warn"
+ ],
+ [
+  ".langkah[5].dari",
+  "gw"
+ ],
+ [
+  ".langkah[5].judul",
+  "Jadwal habis, gateway berhenti"
+ ],
+ [
+  ".langkah[5].kirim",
+  "gateway berhenti: jadwal habis (342 menit sesudah kiriman pertama, ±5,7 jam)"
+ ],
+ [
+  ".langkah[5].jelas",
+  "Kiriman keenam adalah yang terakhir. Gateway tidak mengirim lagi."
+ ],
+ [
+  ".langkah[5].nada",
+  "warn"
+ ],
+ [
+  ".langkah[6].dari",
+  "api"
+ ],
+ [
+  ".langkah[6].ke",
+  "db"
+ ],
+ [
+  ".langkah[6].judul",
+  "Tidak ada event, tidak ada jurnal"
+ ],
+ [
+  ".langkah[6].kirim",
+  "=> SELECT count(*) AS webhook_event FROM webhook_event\n webhook_event\n---------------\n 0\n(1 row)\n=> SELECT status, jurnal_id FROM topup_bank\n status   | jurnal_id\n----------+-----------\n menunggu |\n(1 row)"
+ ],
+ [
+  ".langkah[6].jelas",
+  "Tabel webhook_event kosong, dan top-up Citra tetap menunggu tanpa jurnal. Rekaman tidak mencetak saldo, tetapi tanpa jurnal untuk top-up itu saldo Citra tidak bertambah Rp500.000."
+ ],
+ [
+  ".langkah[6].nada",
+  "warn"
+ ],
+ [
+  ".langkah[6].layar.hp.judul",
+  "Rekeningo"
+ ],
+ [
+  ".langkah[6].layar.hp.waktu",
+  "09.40"
+ ],
+ [
+  ".langkah[6].layar.hp.sinyal",
+  3
+ ],
+ [
+  ".langkah[6].layar.hp.isi[0].jenis",
+  "teks"
+ ],
+ [
+  ".langkah[6].layar.hp.isi[0].teks",
+  "Top-up Citra Rp500.000"
+ ],
+ [
+  ".langkah[6].layar.hp.isi[1].jenis",
+  "baris"
+ ],
+ [
+  ".langkah[6].layar.hp.isi[1].kiri",
+  "Status"
+ ],
+ [
+  ".langkah[6].layar.hp.isi[1].kanan",
+  "menunggu"
+ ],
+ [
+  ".langkah[6].layar.hp.isi[1].nada",
+  "warn"
+ ],
+ [
+  ".varian.label",
+  "secret di api-t4 disamakan sebelum jadwal habis"
+ ],
+ [
+  ".varian.mulai",
+  0
+ ],
+ [
+  ".varian.langkah[0].dari",
+  "gw"
+ ],
+ [
+  ".varian.langkah[0].ke",
+  "api"
+ ],
+ [
+  ".varian.langkah[0].judul",
+  "Kiriman 1 dan 2 ditolak"
+ ],
+ [
+  ".varian.langkah[0].kirim",
+  "kiriman 1 dan 2: 401, 401 (sesuai perintah lab)"
+ ],
+ [
+  ".varian.langkah[0].jelas",
+  "Ini top-up lain, milik Eko Rp200.000, dengan alur yang sama: secret baru di gateway dan secret lama di api-t4. Skrip lab menghentikan jadwal sesudah kiriman kedua."
+ ],
+ [
+  ".varian.langkah[0].nada",
+  "warn"
+ ],
+ [
+  ".varian.langkah[1].dari",
+  "api"
+ ],
+ [
+  ".varian.langkah[1].judul",
+  "Secret disamakan, api-t4 dinyalakan ulang"
+ ],
+ [
+  ".varian.langkah[1].kirim",
+  "# menit 2 sampai 12: rahasia di api-t4 disamakan, server dinyalakan ulang dengan <baru>,<lama>"
+ ],
+ [
+  ".varian.langkah[1].jelas",
+  "Satu-satunya yang berubah adalah secret di api-t4: yang baru dipakai, yang lama masih diterima. Isi kiriman dan jam maya sama."
+ ],
+ [
+  ".varian.langkah[2].dari",
+  "gw"
+ ],
+ [
+  ".varian.langkah[2].ke",
+  "api"
+ ],
+ [
+  ".varian.langkah[2].judul",
+  "Gateway mengirim kiriman ke-3 (menit 12)"
+ ],
+ [
+  ".varian.langkah[2].kirim",
+  "→ kiriman 3, menit 12: tanda tangan dengan secret baru"
+ ],
+ [
+  ".varian.langkah[2].jelas",
+  "Skrip lab melanjutkan jadwal dari kiriman ke-3, pada menit 12."
+ ],
+ [
+  ".varian.langkah[3].dari",
+  "api"
+ ],
+ [
+  ".varian.langkah[3].ke",
+  "gw"
+ ],
+ [
+  ".varian.langkah[3].judul",
+  "api-t4 menjawab 200"
+ ],
+ [
+  ".varian.langkah[3].kirim",
+  " kiriman | menit sejak kiriman pertama | jawaban api-t4\n 3       | 12                          | 200 diproses"
+ ],
+ [
+  ".varian.langkah[3].jelas",
+  "Tanda tangan cocok sekarang, jadi kabarnya diproses."
+ ],
+ [
+  ".varian.langkah[3].nada",
+  "good"
+ ],
+ [
+  ".varian.langkah[4].dari",
+  "api"
+ ],
+ [
+  ".varian.langkah[4].ke",
+  "db"
+ ],
+ [
+  ".varian.langkah[4].judul",
+  "Top-up dibayar, satu jurnal"
+ ],
+ [
+  ".varian.langkah[4].kirim",
+  "=> SELECT status, jurnal_id IS NOT NULL AS ada_jurnal FROM topup_bank WHERE id = 2\n status  | ada_jurnal\n---------+------------\n dibayar | t\n(1 row)"
+ ],
+ [
+  ".varian.langkah[4].jelas",
+  "Uangnya tercatat satu kali. Rekaman bagian C tidak mencetak saldo, jadi layar tidak menampilkannya."
+ ],
+ [
+  ".varian.langkah[4].nada",
+  "good"
+ ],
+ [
+  ".varian.langkah[4].layar.hp.judul",
+  "Rekeningo"
+ ],
+ [
+  ".varian.langkah[4].layar.hp.waktu",
+  "09.40"
+ ],
+ [
+  ".varian.langkah[4].layar.hp.sinyal",
+  3
+ ],
+ [
+  ".varian.langkah[4].layar.hp.isi[0].jenis",
+  "teks"
+ ],
+ [
+  ".varian.langkah[4].layar.hp.isi[0].teks",
+  "Top-up Eko Rp200.000"
+ ],
+ [
+  ".varian.langkah[4].layar.hp.isi[1].jenis",
+  "baris"
+ ],
+ [
+  ".varian.langkah[4].layar.hp.isi[1].kiri",
+  "Status"
+ ],
+ [
+  ".varian.langkah[4].layar.hp.isi[1].kanan",
+  "dibayar"
+ ],
+ [
+  ".varian.langkah[4].layar.hp.isi[1].nada",
+  "good"
+ ]
+];
+export const PROFIL_BARIS: string[] = [
+ "",
+ "",
+ "",
+ "",
+ "",
+ "",
+ "",
+ "",
+ "Citra:1 Sabtu:1 Minggu:1",
+ "belum:1 Citra:1 Raka:1 Sabtu:1 Minggu:1 naik:1",
+ "tidak:1 satu:1 tujuh:2 Senin:1",
+ "sama:1 tujuh:1 Citra:1 bukan:1 Rekaman lab:2 Tidak dijalankan:1 Ilustrasi:2",
+ "",
+ "Raka:1",
+ "tidak:1 sama:1 satu:2 Citra:1 Raka:1 pertama:1 tanpa:2 Rekaman lab:1 diterima:1",
+ "tidak:2 hanya:1 Citra:1 kedua:1 diterima:1",
+ "Raka:1",
+ "",
+ "tidak:2 satu:1 Citra:1",
+ "tidak:2 sebelum:1 satu:1 ditolak:1",
+ "tetap:1 enam:1 Rekaman lab:1",
+ "",
+ "",
+ "",
+ "tidak:1 sebelum:1 habis:1",
+ "hanya:1",
+ "tidak:1 Sabtu:1 Ilustrasi:1",
+ "",
+ "tidak:1",
+ "sebelum:2 satu:1 Tidak dijalankan:1 diterima:1",
+ "",
+ "gagal:1",
+ "tidak:1 lima:1 enam:1 Citra:1 pertama:1",
+ "enam:1 Rekaman lab:1 habis:1",
+ "Hitungan:1",
+ "tidak:1 hanya:1 lima:1",
+ "tidak:2 satu:1 dua:1 empat:1 lima:1 kedua:1 Tidak dijalankan:2",
+ "tidak:1 bukan:1 Asumsi:1",
+ "Rekaman lab:1",
+ "tidak:1 satu:1 dua:1 pertama:1 kedua:1 Tidak dijalankan:1",
+ "",
+ "",
+ "sama:1 tiga:1 lima:1 pertama:1 kedua:1 tanpa:1 gagal:1",
+ "tidak:1 tetap:1 satu:1 pertama:1 kedua:1 tanpa:1",
+ "satu:1 dua:1 kedua:1 bukan:1 tanpa:1",
+ "tidak:1 sebelum:2 sesudah:1 Bayu:1 Minggu:1 pertama:1 Ilustrasi:1",
+ "tidak:1 hanya:1 sesudah:2 Citra:1 Sabtu:2 Minggu:1 pertama:1",
+ "tidak:1 sebelum:1 Citra:1 Raka:2",
+ "tujuh:1 Senin:1 kedua:1 tanpa:1 Ilustrasi:1",
+ "hanya:1 sama:1 sebelum:2 satu:1 bukan:1 Tidak dijalankan:1",
+ "tidak:1 belum:2 sesudah:1 kedua:1 Tidak dijalankan:1 habis:1",
+ "sesudah:1",
+ "tidak:1 sama:1 Citra:1 Senin:1 kedua:1 Tidak dijalankan:1",
+ "kedua:1",
+ "",
+ "",
+ "enam:1 Citra:2",
+ "",
+ "tidak:1 sama:1 sebelum:1 satu:2 Eko:1 habis:1 diterima:1",
+ "",
+ "tidak:1 tetap:1 satu:1 Citra:1 tanpa:1",
+ "sebelum:1 satu:1 habis:1",
+ "",
+ "",
+ "tanpa:1",
+ "satu:1 Rekaman lab:1",
+ "",
+ "",
+ "",
+ "kedua:1",
+ "",
+ "",
+ "sama:1",
+ "tidak:1 hanya:1 sebelum:1 kedua:1 habis:1",
+ "",
+ "tidak:2 satu:1 enam:1 Citra:1",
+ "",
+ "",
+ "sebelum:1 enam:1",
+ "",
+ "tidak:1 tetap:1 Citra:1 Bayu:1 Sabtu:1 Minggu:1 naik:1",
+ "",
+ "",
+ "tidak:1 sebelum:2 pertama:1 semua:1 Ilustrasi:1 Hitungan:1",
+ "",
+ "tidak:1 satu:1",
+ "",
+ "",
+ "tidak:1 tiga:1 lima:1 pertama:1 kedua:2 Tidak dijalankan:1",
+ "",
+ "",
+ ""
+];
+
 export const KALIMAT_TERKUNCI: string[] = [
   "import Blok from \"../../../components/Blok.astro\";",
   "import Rantai from \"../../../components/Rantai.astro\";",
