@@ -1,0 +1,213 @@
+---
+title: "4.4 Dua arah ke pihak ketiga: dipanggil masuk, memanggil keluar"
+description: Rekeningo menerima kabar dari gateway dan memanggil gateway, dan gateway tidak ikut COMMIT. Cara paling pendek menulis handler kabarnya tidak menjaga tiga hal yang harus selalu benar.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import CariBug from "../../../widgets/cari-bug/CariBug.tsx";
+import intiDiagram from "../../../../data/diagram/t4-dua-arah-inti.json";
+import caribug from "../../../../data/widget/t4-dua-arah-caribug.json";
+
+<p class="meta">Baca 10 menit · coba 3 menit · Prasyarat: [[t4-topup-verifikasi]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Kabar dari gateway adalah klaim, bukan fakta, dan gateway tidak ikut COMMIT.
+
+<Rantai data={intiDiagram} ringkas />
+
+Rekeningo berhubungan dengan gateway, layanan pihak ketiga yang memproses pembayaran dari rekening bank, dalam dua arah. Gateway mengirim webhook ke Rekeningo, yaitu request yang memberi tahu status pembayaran berubah, dan Rekeningo memanggil gateway untuk membuat top-up. Handler versi pertama minggu 2 menjurnal top-up bila statusnya `settlement`, artinya pembayaran sudah diterima, lalu membalas 200. Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) memerankannya dengan mode rentan `webhook-v1`.
+
+Tiga hal harus selalu benar: uang dari luar dicatat satu kali, kabar dari luar dipercaya hanya sesudah dicek, dan pihak luar yang lambat atau mati tidak menahan pembayaran antar akun. Handler ini melanggar hal pertama dan hal kedua. Hal ketiga bergantung pada arah sebaliknya, yaitu panggilan Rekeningo ke gateway.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Gateway mengirim kabar yang sama dua kali, dan saldo Budi naik Rp400.000 untuk pembayaran Rp200.000. Hal mana dari tiga hal yang rusak?
+2. Seseorang yang bukan gateway mengirim POST dengan jumlah Rp1.234.567. Kenapa handler versi pertama menerimanya?
+3. Gateway mati saat Budi membuat top-up. Kenapa transfer Budi tetap selesai?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: tiga baris, mengurai isi tanpa memeriksa pengirimnya, menjurnal tiap kiriman, dan menulis status tanpa syarat, membuat dua dari tiga hal tidak terjaga.">
+
+Minggu 2, Nadia dan satu engineer baru menulis handler paling pendek untuk `POST /webhooks/pembayaran`. Gateway tiruan di staging belum menandatangani kiriman, jadi urutan ini tampak cukup. Status `pending` berarti pembayaran belum diterima, dan `settlement` berarti sudah.
+
+Kode di bawah adalah Ilustrasi, yaitu contoh dan bukan hasil sistem: ringkasan handler versi pertama, dengan bentuk transaction yang sama dengan `DalamTx` di lab. Perilakunya direkam di Rekaman lab lewat mode rentan `webhook-v1`.
+
+<CariBug client:visible data={caribug} />
+
+<noscript>
+<p>Tanpa JavaScript, baris di atas tidak bisa ditandai. Tiga baris yang bermasalah adalah baris 3, baris 12, dan baris 16. Hasilnya ada di tabel Enam kejadian di blok Paham.</p>
+</noscript>
+
+Tiga baris yang kamu tandai mengisi keenam kejadian di atas. Terjaga berarti hal itu tetap benar pada kejadian itu, dan Rusak berarti tidak. Keenamnya menghasilkan enam sel Rusak: empat untuk hal pertama, dua untuk hal kedua, dan nol untuk hal ketiga.
+
+**Ubah satu hal:** tekan Lihat versi benar sesudah memeriksa. Tiga bagian diganti, dan di versi itu handler memeriksa tanda tangan, mencatat event, dan hanya memajukan status.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Di Tahap 3 uang ada di PostgreSQL dan kabar keluar dari sana ([[t3-dua-tempat]]). Di Tahap 4 arahnya bertambah. Budi mengisi Rp200.000 dari rekening banknya, dan uangnya masuk karena kabar dari gateway.
+
+Kabar itu bisa datang dua kali, terlambat, tidak berurutan, palsu, atau tidak datang sama sekali. Rekeningo tidak bisa membuat gateway ikut COMMIT atau ROLLBACK. Dari dua kalimat itu lahir tiga hal yang harus selalu benar, masing-masing dengan pemilik syaratnya:
+
+| Hal yang harus selalu benar | Syarat dari | Isinya |
+|---|---|---|
+| 1. Dicatat satu kali | Pak Hadi | Uang dari luar dicatat satu kali, walau kabarnya datang dua kali, terlambat, atau tidak berurutan |
+| 2. Dipercaya setelah dicek | Laras | Kabar dari luar dipercaya hanya sesudah dicek: tanda tangan atas byte mentah, dan status ke sumbernya bila ada keraguan |
+| 3. Tidak menahan yang lain | Direksi, lanjutan Tahap 3 | Pihak luar yang lambat atau mati tidak menahan pembayaran antar akun |
+
+Tanda tangan di sini adalah kode yang dihitung dari isi kabar dan rahasia yang hanya diketahui gateway dan Rekeningo. Byte mentah adalah isi kabar persis seperti yang tiba, sebelum diurai menjadi JSON.
+
+Di minggu 2, tiga pertanyaan ditanam:
+
+- Laras bertanya siapa yang boleh mengirim ke alamat itu.
+- Pak Hadi bertanya bagaimana ia tahu satu pembayaran di bank sama dengan satu jurnal di ledger.
+- Bayu bertanya apa yang terjadi bila gateway mati sehari.
+
+Jawabannya ada di [[t4-m29]], [[t4-m30]], dan [[t4-m31]].
+
+### Cara kerjanya
+
+**Dipanggil masuk: handler versi pertama.** Handler membungkus jurnal dan status dalam satu transaction. Di dalamnya tidak ada yang memeriksa kabarnya. `kreditV1` menjurnal sebesar jumlah di isi kabar, lalu menandai top-up `dibayar` tanpa syarat:
+
+<Snippet file="labs/api-t4/internal/service/pembayaran.go" lines="364:381" lang="go" title="labs/api-t4/internal/service/pembayaran.go" />
+
+<Snippet file="labs/api-t4/internal/service/pembayaran.go" lines="386:402" lang="go" title="labs/api-t4/internal/service/pembayaran.go" />
+
+**Kiriman yang sama dua kali.** Gateway mengulang kiriman yang jawabannya bukan 2xx, paling banyak lima kali, dan jeda pertamanya 2 menit ([dokumentasi notifikasi HTTP sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29). Gateway pembayaran lain menulis bahwa urutan kabar tidak dijamin dan satu event bisa diterima lebih dari sekali ([dokumentasi webhook gateway pembayaran lain](https://docs.stripe.com/webhooks), dibuka 2026-10-29). Dari sisi handler, kiriman ulang sama persis dengan kiriman baru, jadi tiap settlement dijurnal:
+
+<Snippet file="labs/api-t4/output/rentan.txt" lines="9:17" title="Rekaman lab: labs/api-t4/output/rentan.txt" />
+
+**Kabar menunggu sesudah dibayar.** Skrip lab mengirim kabar `pending` sesudah dua kiriman settlement, dan perintahnya tidak tercetak di rekaman. Status top-up kembali ke `menunggu`, karena `UbahStatusTanpaSyarat` menulis status tanpa melihat yang sekarang. Di bagian yang sama, POST tanpa tanda tangan dengan jumlah Rp1.234.567 dijawab 200 dan dikreditkan ke Budi:
+
+<Snippet files={["labs/api-t4/output/rentan.txt:29:34", "labs/api-t4/output/rentan.txt:35:40"]} title="Rekaman lab: labs/api-t4/output/rentan.txt" />
+
+**Memanggil keluar: client ke gateway.** Arah kedua adalah Rekeningo yang memanggil, untuk membuat top-up dan mendapat tujuan bayar. Client HTTP Go dengan pengaturan bawaan tidak punya batas waktu, karena nol berarti tanpa batas ([dokumentasi net/http, Go 1.27.1](https://pkg.go.dev/net/http@go1.27.1#Client), dibuka 2026-10-29). Di `api-t4` batas itu 3 detik ([[t3-pool]]), dan rekaman memakai 500 ms supaya cepat.
+
+Saat gateway mati, top-up gagal dan transfer tetap selesai:
+
+<Snippet files={["labs/api-t4/output/topup.txt:108:118", "labs/api-t4/output/topup.txt:119:125"]} title="Rekaman lab: labs/api-t4/output/topup.txt" />
+
+Di mode lab lain, gateway membuat order lalu tidak pernah menjawab. Client menyerah sesudah batas waktunya, dan status top-up menjadi `tidak_pasti`, bukan `gagal`:
+
+<Snippet file="labs/api-t4/output/topup.txt" lines="126:133" title="Rekaman lab: labs/api-t4/output/topup.txt" />
+
+**Enam kejadian.** Tabel yang terisi di blok Coba, lengkap dengan hal yang rusak:
+
+| Kejadian | 1. Dicatat satu kali | 2. Dipercaya setelah dicek | 3. Tidak menahan yang lain |
+|---|---|---|---|
+| Kiriman normal, sekali | Terjaga | Rusak: POST dari siapa pun diterima | Terjaga: handler tidak memanggil pihak luar; lamanya tidak diukur |
+| Kiriman yang sama datang lagi sesudah balasan hilang | Rusak: jurnal kedua dengan jumlah yang sama | Tidak berlaku | Terjaga |
+| Kabar menunggu datang sesudah dibayar | Rusak: status mundur ke menunggu | Tidak berlaku | Terjaga |
+| Gateway tidak pernah mengirim | Rusak: uang ada di bank, tidak ada jurnal, tidak ada yang tahu | Tidak berlaku | Terjaga |
+| Isi diubah atau kiriman lama diputar ulang | Rusak: jumlah di isi dipercaya | Rusak: tanpa tanda tangan dan tanpa batas waktu | Terjaga |
+| Gateway tidak menjawab saat Rekeningo membuat top-up | Tidak berlaku | Tidak berlaku | Terjaga: bergantung pada timeout; ADR 22 menahannya di 3 detik, dan pengulangannya perlu pengaman sendiri (ADR 36) |
+
+Sel Terjaga dan Tidak berlaku adalah penalaran dari urutan kode, bukan rekaman terpisah, kecuali baris 6 yang memakai rekaman `topup.txt` bagian G di atas. Setiap sel Rusak punya dasarnya sendiri:
+
+- **Baris 1, hal 2:** Rekaman lab `rentan.txt` bagian A. POST tanpa tanda tangan dijawab 200 diproses.
+- **Baris 2, hal 1:** Rekaman lab `ganda.txt` bagian A. Event yang sama dua kali, berurutan, menghasilkan dua jurnal. Balasan yang hilang sebagai pemicu kiriman kedua hanya direkam untuk versi lain (`ganda.txt` bagian B).
+- **Baris 3, hal 1:** Rekaman lab `rentan.txt` bagian A. Status top-up kembali ke `menunggu`. Settlement berikutnya dikredit lagi karena handler menjurnal tiap settlement tanpa melihat status (`ganda.txt` bagian A).
+- **Baris 4, hal 1:** Tidak dijalankan untuk versi pertama, karena ia tidak punya job yang menanyakan status ke gateway atau mencocokkan laporannya. Rekaman lab `rekon.txt` bagian A dan B memerankan webhook yang tidak pernah datang pada versi lain.
+- **Baris 5, hal 1 dan hal 2:** Rekaman lab `rentan.txt` bagian A. Jumlah di isi kabar dikreditkan, dan kiriman tanpa tanda tangan diterima. Batas waktu tidak ada karena handler tidak memeriksa timestamp (dibaca dari kode `webhookV1`).
+
+Di app Flutter kamu mungkin pernah memanggil API pembayaran dan menganggap jawaban 200 sebagai bukti uang pindah. Di sisi server, kabar dari gateway adalah jawaban yang sama: klaim yang harus dicek.
+
+**Pola ini kembali.** Kabar dari luar adalah klaim, bukan fakta, muncul lagi di layanan verifikasi ([[t4-m31]]) dan di penerbit kartu yang memanggil Rekeningo dengan tenggat 2 detik ([[t4-m37]]). Halaman itu yang merekamnya.
+
+Aturannya sama: PostgreSQL tetap satu-satunya source of truth, dan pihak ketiga hanya memberi klaim. Klaim itu dicek, lalu dicatat sekali: dalam transaction yang sama dengan efeknya selama satu proses, atau lewat Idempotency-Key sesudah service pembayaran terpisah ([[t4-modul]]).
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Cara menerima kabar dari gateway | Yang rusak atau dijaga | Bukti |
+|---|---|---|
+| Terima dan percaya isi kabar (versi pertama) | Hal 1 dan hal 2 rusak, di kejadian berbeda | Rekaman lab `rentan.txt` bagian A |
+| Periksa tanda tangan, lalu cek status dan tulis (cek-lalu-tulis) | Hal 2 terjaga; hal 1 rusak untuk dua kiriman bersamaan | Rekaman lab `ganda-serentak.txt` bagian A: dua kiriman bersamaan, keduanya dijawab 200 diproses, dua jurnal |
+| Periksa tanda tangan, lalu catat event dengan kunci utama di transaction yang sama dengan efeknya | Hal 2 terjaga. Hal 1 terjaga untuk id event yang sama; untuk dua event berbeda, kunci utama saja tidak cukup | Rekaman lab `ganda-serentak.txt` bagian B, `tandatangan.txt` bagian B, dan `urutan.txt` bagian F (kasus pertama) |
+
+**Biaya cara ketiga.** Ongkosnya satu tabel event, dan kabar yang tidak memajukan status diparkir, bukan diterapkan. Di `urutan.txt` bagian F (kasus pertama), kabar `pending` sesudah `settlement` dijawab 200 diparkir dan status tetap `dibayar`. Cara kerjanya, alasan memilihnya, dan kapan keputusan itu salah ada di [[t4-webhook]].
+
+**Jeda lab di cek-lalu-tulis.** Dua kiriman bersamaan sama-sama menjurnal. Lab memasang jeda 300 ms di antara cek dan tulis supaya hasilnya tidak bergantung pada waktu, dan lebar celah tanpa jeda tidak diukur.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Tanda tangan, tabel event, dan status yang hanya maju | Halaman ini hanya merumuskan pertanyaan Laras | [[t4-webhook]] |
+| Mencocokkan catatan sendiri dengan laporan gateway | Jawaban untuk pertanyaan Pak Hadi | [[t4-rekonsiliasi]] |
+| Retry, circuit breaker, dan lajur per pihak ketiga | Jawaban untuk pertanyaan Bayu | [[t4-breaker]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Gateway mengirim kabar yang sama dua kali, dan saldo Budi naik Rp400.000 untuk Rp200.000. Hal mana yang rusak, dan apa buktinya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Hal pertama: uang dari luar harus dicatat satu kali. Di `rentan.txt` bagian A, kiriman yang sama dua kali menghasilkan dua jurnal Rp200.000. Baris yang menjurnal tidak memeriksa apakah event atau order itu sudah dijurnal.
+
+</details>
+
+**2.** Seseorang mengirim POST berisi jumlah Rp1.234.567 tanpa tanda tangan. Kenapa handler menerimanya, dan hal mana yang rusak?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Hal kedua. Handler tidak memeriksa timestamp atau tanda tangan, jadi kabar dari siapa pun dipercaya. Di `rentan.txt` bagian A, POST itu dijawab 200 dan Rp1.234.567 dikreditkan ke Budi.
+
+</details>
+
+**3.** Gateway mati saat Budi membuat top-up. Kenapa transfer Budi tetap selesai?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Jalur transfer tidak memanggil gateway. Di `topup.txt` bagian G, gateway dimatikan: top-up dijawab 502 dan berstatus `gagal`, sedangkan transfer Rp25.000 tetap dijawab 201.
+
+</details>
+
+**4.** Di handler versi pertama, kenapa baris `BeginTx` dan `Commit` bukan baris yang salah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Keduanya sudah tepat untuk data di PostgreSQL: jurnal dan status ikut satu COMMIT atau batal bersama. Transaction tidak memeriksa kabar. Ia menyimpan apa pun yang ditulis di dalamnya, termasuk jumlah yang palsu.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Handler webhook memeriksa tanda tangan atas byte mentah sebelum JSON diurai.
+- [ ] Event yang sama, dikenali dari id-nya, tidak menjurnal dua kali.
+- [ ] Status hanya maju: kabar yang mundur tidak menimpa status yang sudah lebih jauh.
+- [ ] Jumlah dibandingkan dengan jumlah order sendiri, bukan dipercaya dari isi kabar.
+- [ ] Client ke gateway punya batas waktu eksplisit, karena nol berarti tanpa batas ([net/http](https://pkg.go.dev/net/http@go1.27.1#Client)).
+- [ ] Tidak ada panggilan ke gateway di dalam transaction yang memegang lock ([[t3-m18]]).
+
+### Bacaan lanjut
+
+- [Notifikasi HTTP sebuah gateway pembayaran: status, batas tunggu, jadwal ulangan](https://docs.midtrans.com/docs/https-notification-webhooks) (dibuka 2026-10-29)
+- [Webhook gateway pembayaran lain: urutan, event ganda, retry](https://docs.stripe.com/webhooks) (dibuka 2026-10-29)
+- [Go: net/http, tipe Client](https://pkg.go.dev/net/http@go1.27.1#Client) (Go 1.27.1)
+
+</Blok>
