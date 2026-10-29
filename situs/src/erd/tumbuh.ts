@@ -80,7 +80,7 @@ export function tampilTahap(semua: DataErd[], no: number, bayangan = true): Tabe
 export function tampilTahapHalaman(semua: DataErd[], no: number, bayangan = true): TabelTampil[] {
   const d = cariTahap(semua, no);
   const lengkap = !d.selisih || semua.some((x) => x.tahap === d.selisih!.terhadap);
-  return tampilTahap(lengkap ? semua : semua.map((x) => (x === d ? { ...x, selisih: undefined } : x)), no, bayangan);
+  return tampilTahap(lengkap ? semua : semua.map((x) => (x === d ? { ...x, selisih: null } : x)), no, bayangan);
 }
 
 /** Sisi kiri mode bandingkan: tahap sebelumnya, dengan tabel dan kolom yang dihapus di tahap `no` ditandai. */
