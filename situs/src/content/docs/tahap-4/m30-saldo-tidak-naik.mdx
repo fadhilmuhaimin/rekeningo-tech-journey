@@ -25,7 +25,7 @@ Senin pagi Pak Hadi mencocokkan laporan gateway dengan ledger, seperti tiap hari
 
 <Blok nama="Yang Raka kira" buka>
 
-Dugaan pertama Raka datang dari sisi yang ia pegang: layar status di app tidak menyegarkan diri. Ia menyingkirkannya dengan membaca status top-up Citra langsung dari database. Hasilnya sama dengan layar: `menunggu`, tanpa jurnal, dan tanpa satu pun event dari gateway (Rekaman lab, bagian B di blok berikutnya).
+Dugaan pertama Raka datang dari sisi yang ia pegang: layar status di app tidak menyegarkan diri. Ia menyingkirkannya dengan membaca status top-up Citra langsung dari database. Hasilnya sama dengan layar: `menunggu`, tanpa jurnal, dan tanpa satu pun event dari gateway (Rekaman lab, bagian B di blok berikutnya). Event adalah satu baris di tabel `webhook_event`, dicatat untuk tiap kabar yang diterima.
 
 Dugaan kedua: top-up Citra hilang. Barisnya ada dan berstatus `menunggu`, jadi top-up tidak hilang. Yang tidak ada hanya kabar dari gateway bahwa uangnya sudah diterima.
 
@@ -54,7 +54,7 @@ Sabtu 18.00 (Ilustrasi) gateway tiruan merotasi secretnya dan langsung menandata
 
 *Kondisi rekaman:* PostgreSQL 17.11, server Go `api-t4`, dan gateway tiruan lokal. Gateway memainkan jadwal ulangnya atas perintah skrip lab. Waktunya diperankan: gateway tidak menunggu 342 menit, tetapi menandatangani tiap kiriman dengan waktu maya dan memberi tahu jam itu ke api-t4.
 
-**Penolakan terjadi sebelum event ditulis.** Di rekaman bagian B service memeriksa tanda tangan lebih dulu, sebelum JSON diurai. Daftar secret yang diterima berisi satu secret, yaitu yang lama. Handler mengubah kegagalan itu menjadi 401 (dibaca dari kode):
+**Penolakan terjadi sebelum event ditulis.** Di rekaman bagian B service memeriksa tanda tangan lebih dulu, sebelum JSON diurai. Daftar secret yang diterima berisi satu secret, yaitu yang lama. Handler mengubah kegagalan itu menjadi 401 (Tidak dijalankan: dibaca dari kode):
 
 <Snippet file="labs/api-t4/internal/service/pembayaran.go" lines="86:95" lang="go" title="Kode lab: labs/api-t4/internal/service/pembayaran.go baris 86 sampai 95 (tanda tangan dicocokkan dengan daftar secret)" />
 
@@ -91,9 +91,11 @@ Karena itu keputusan Raka, menunggu sehari, tidak menolong Citra. Gateway sudah 
 
 Batas 03.28 berlaku untuk tiruan. Gateway kedua menggeser tiap percobaan secara acak, jadi batasnya di sana bergeser sedikit. Jumlah top-up di rentang itu bergantung pada berapa orang mengisi saldo; naskah menyebut tujuh top-up tanpa jurnal pada hari Senin (Ilustrasi).
 
-**Penyebabnya secret, bukan waktu atau isi.** Di bagian C hanya satu hal yang berbeda sebelum kiriman ke-3: secret di api-t4 disamakan. Isi kiriman dan jam maya yang dipasang sebelum tiap kiriman sama (dibaca dari `run.py`). Kiriman 1 dan 2 dijawab 401, dan kiriman 3 pada menit 12 dijawab 200 diproses.
+**Penyebabnya secret, bukan waktu atau isi.** Di bagian C hanya satu hal yang berbeda sebelum kiriman ke-3: secret di api-t4 disamakan. Isi kiriman dan jam maya yang dipasang sebelum tiap kiriman sama (Tidak dijalankan: dibaca dari `run.py`). Kiriman 1 dan 2 dijawab 401, dan kiriman 3 pada menit 12 dijawab 200 diproses.
 
-**Tidak ada jalan kedua.** Di cerita, minggu 4 belum punya job yang menanyakan status top-up ke gateway, dan belum ada yang mencocokkan laporan gateway dengan ledger. Skrip rekaman bagian B tidak menjalankan job apa pun sesudah jadwal habis (Tidak dijalankan: dibaca dari `run.py`). Catatan penutup rekaman itu menunjuk ke job yang lahir sesudah M30: cek status dan rekonsiliasi yang menemukan uangnya.
+**Tidak ada jalan kedua.** Di cerita, minggu 4 belum punya job yang menanyakan status top-up ke gateway, dan belum ada yang mencocokkan laporan gateway dengan ledger. Skrip rekaman bagian B tidak menjalankan job apa pun sesudah jadwal habis (Tidak dijalankan: dibaca dari `run.py`).
+
+Catatan penutup rekaman itu menyebut keduanya, cek status dan rekonsiliasi, sebagai yang menemukan uangnya. Keduanya lahir sesudah M30.
 
 Dokumentasi gateway kedua sendiri menyarankan menanyakan status transaksi lewat API-nya bila notifikasi terlambat (dokumentasi yang sama, Tidak dijalankan). Webhook di versi ini adalah satu-satunya jalan kabar uang masuk. Pertanyaan PRD v4, siapa yang tahu bila kabar tidak datang, di sini dijawab dengan buruk: Citra lewat pesan, dan Pak Hadi lewat laporan hari Senin.
 

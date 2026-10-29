@@ -213,6 +213,7 @@ describe("naskah M30: gejala, yang dikira, dan yang sebenarnya", () => {
     expect(barisM30).toContain("saldo di app belum naik dan status top-up \"menunggu\" sejak Sabtu malam");
     expect(barisM30).toContain("Senin pagi laporan settlement gateway berisi tujuh top-up yang tidak punya jurnal (Ilustrasi)");
     expect(barisM30).toContain("Service pembayaran masih memeriksa dengan secret lama");
+    expect(barisM30).toContain("Webhook adalah satu-satunya jalan kabar, dan tidak ada jalan kedua.");
   });
   test("kalimat Gejala: angka dan jam dari baris naskah dan rekaman, bukan ditulis tangan; jumlah tujuh dan Ilustrasi dari naskah", () => {
     harus(`Sabtu malam Citra mengisi saldo ${rp(NOMINAL)} dari rekening banknya lewat app. Rekeningnya terpotong ${rp(NOMINAL)}, dan app menampilkan top-up itu berstatus "menunggu".`);
@@ -248,7 +249,8 @@ describe("naskah M30: gejala, yang dikira, dan yang sebenarnya", () => {
   test("dugaan pertama dan kedua dibantah rekaman: status menunggu, jurnal_id kosong, satu baris top-up, nol event", () => {
     expect(bagB).toContain("=> SELECT status, jurnal_id FROM topup_bank");
     expect(bagB).toMatch(/ status +\| jurnal_id\n-+\+-+\n menunggu \|\n\(1 row\)/);
-    harus("Hasilnya sama dengan layar: `menunggu`, tanpa jurnal, dan tanpa satu pun event dari gateway (Rekaman lab, bagian B di blok berikutnya).");
+    harus("Hasilnya sama dengan layar: `menunggu`, tanpa jurnal, dan tanpa satu pun event dari gateway (Rekaman lab, bagian B di blok berikutnya). Event adalah satu baris di tabel `webhook_event`, dicatat untuk tiap kabar yang diterima.");
+    expect(bagB).toContain("=> SELECT count(*) AS webhook_event FROM webhook_event");
     harus("Barisnya ada dan berstatus `menunggu`, jadi top-up tidak hilang.");
   });
 });
@@ -292,7 +294,7 @@ describe("rekaman retry.txt: bagian A, B, dan C dan rentang Snippet", () => {
     expect(runWebhook).toContain('url_jam=f"http://127.0.0.1:{PORT}/lab/jam", dari=3)');
     expect(runWebhook).toContain('ganti_api(["-jam-lab", "-rahasia-webhook", f"{RAHASIA2},{RAHASIA1}"]');
     harus("Bagian C memakai top-up Eko Rp200.000 dengan alur yang sama: kiriman ke-3 pada menit 12 diterima, dan jurnalnya satu.");
-    harus("**Penyebabnya secret, bukan waktu atau isi.** Di bagian C hanya satu hal yang berbeda sebelum kiriman ke-3: secret di api-t4 disamakan. Isi kiriman dan jam maya yang dipasang sebelum tiap kiriman sama (dibaca dari `run.py`). Kiriman 1 dan 2 dijawab 401, dan kiriman 3 pada menit 12 dijawab 200 diproses.");
+    harus("**Penyebabnya secret, bukan waktu atau isi.** Di bagian C hanya satu hal yang berbeda sebelum kiriman ke-3: secret di api-t4 disamakan. Isi kiriman dan jam maya yang dipasang sebelum tiap kiriman sama (Tidak dijalankan: dibaca dari `run.py`). Kiriman 1 dan 2 dijawab 401, dan kiriman 3 pada menit 12 dijawab 200 diproses.");
   });
   test("run.py: tiap kiriman bagian B dan C memasang jam maya (url_jam) sebelum dikirim; hanya secret yang berubah di antara kiriman 2 dan 3", () => {
     const run = bagian(runWebhook);
@@ -322,7 +324,7 @@ describe("rekaman retry.txt: bagian A, B, dan C dan rentang Snippet", () => {
     expect(kodeRekon).toMatch(/catat_job\(["'`][^"'`]*-rekon/);
     expect(retry).not.toMatch(/-cek-topup|-rekon/);
     expect(T.teks(tB, tAkhirB)).toContain("cek status dan rekonsiliasi (rekon.txt) yang menemukannya");
-    harus("Catatan penutup rekaman itu menunjuk ke job yang lahir sesudah M30: cek status dan rekonsiliasi yang menemukan uangnya.");
+    harus("Catatan penutup rekaman itu menyebut keduanya, cek status dan rekonsiliasi, sebagai yang menemukan uangnya. Keduanya lahir sesudah M30.");
   });
   test("rentang Snippet diturunkan dari baris rekaman dan kode, bukan ditulis tangan; berkas dan judul sesuai", () => {
     expect(tag).toHaveLength(5);
@@ -383,7 +385,7 @@ describe("kode lab: tanda tangan lebih dulu, 401, daftar secret, dan tiruan gate
     const fungsi = H2.teks(iAwal, iAkhir);
     expect(fungsi.match(/Status: 401/g)).toHaveLength(1);
     expect(fungsi).not.toMatch(/s\.svc\.(Catat|Tulis|Kredit)/);
-    harus("Handler mengubah kegagalan itu menjadi 401 (dibaca dari kode):");
+    harus("Handler mengubah kegagalan itu menjadi 401 (Tidak dijalankan: dibaca dari kode):");
   });
   test("di rekaman bagian B daftar secret api-t4 berisi satu secret: args_t4 memasang satu -rahasia-webhook dan bagian B hanya menambah -jam-lab", () => {
     expect(dasarT4).toContain('"-rahasia-webhook", RAHASIA_WEBHOOK,');
@@ -538,9 +540,9 @@ describe("sumber luar: baris riset, tanggal akses, dan kutipan", () => {
     expect(badan.match(/\(Rekaman lab,/g)).toHaveLength(1);
     expect(badan.match(/\(Asumsi\)/g)).toHaveLength(1);
     expect(badan.match(/Tidak dijalankan\)/g)).toHaveLength(5); // dua tautan sumber, tiruan tanpa 3xx, satu anjuran status, satu jawaban kartu ketiga
-    expect(badan.match(/\(dibaca dari kode\)/g)).toHaveLength(1);
-    expect(badan.match(/\(Tidak dijalankan: dibaca dari `run\.py`\)/g)).toHaveLength(1);
-    expect(badan.match(/\(dibaca dari `run\.py`\)/g)).toHaveLength(1);
+    expect(badan.match(/\(Tidak dijalankan: dibaca dari kode\)/g)).toHaveLength(1);
+    expect(badan.match(/\(Tidak dijalankan: dibaca dari `run\.py`\)/g)).toHaveLength(2);
+    expect(badan).not.toMatch(/\(dibaca dari/); // label turunan selalu berdampingan dengan satu label sumber
   });
 });
 
