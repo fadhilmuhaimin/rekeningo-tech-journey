@@ -2901,7 +2901,7 @@
   "judul": "4.15 Keamanan 7: File identitas: object storage, presigned URL + ADR 38",
   "url": "tahap-4/object-storage-presigned/",
   "tanya": "Dua orang membuka file lewat URL GET bertanda tangan, lalu staf risk membukanya lewat server. Berapa baris audit yang bertambah di tiap jalur?",
-  "jawab": "Lewat URL, dua pemegang mendapat 200 dan baris audit tetap 1. Lewat server, Ratih mendapat 200 dan satu baris tertulis (`unduh.txt` bagian A dan C)."
+  "jawab": "Lewat URL, dua pemegang mendapat 200 dan tidak ada baris audit yang bertambah (jumlahnya tetap 1). Lewat server, Ratih mendapat 200 dan satu baris bertambah (`unduh.txt` bagian A dan C)."
  },
  {
   "id": "t4-storage-4",

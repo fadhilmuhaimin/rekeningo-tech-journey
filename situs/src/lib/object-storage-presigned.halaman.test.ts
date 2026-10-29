@@ -273,7 +273,7 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     expect([panjang[1], panjang[2]]).toEqual(["48", "64"]);
     expect(KD.some((b) => b.startsWith("bagian file di bytea = 28,00 / (28,00 + 0,84) = 97,1%"))).toBe(true);
   });
-  test("Asumsi dan hitungan: 2.000 × 500 KB, 365 GB, 10,95 GB, 33,3 kali, 0,2315 per detik, 115,7 dan 1.157 KB per detik, base64", () => {
+  test("Asumsi dan hitungan: 2.000 × 500 KB, 365 GB, 10,95 GB, 33,3 kali, 0,2315 per detik, 115,75 dan 1.157 KB per detik, base64", () => {
     expect([UNGGAH, FILE_KB, PUNCAK, UNGGAH5, BYTE_POSTING]).toEqual([2000, 500, 10, 20000, 250]);
     expect(posting).toBe(43800000);
     expect(perHari).toBe(1000000);
@@ -282,7 +282,9 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     expect(gbPosting).toBeCloseTo(10.95, 10);
     expect(kali.toFixed(1)).toBe("33.3");
     expect(lambda.toFixed(4)).toBe("0.2315");
-    expect(kbDetik.toFixed(1)).toBe("115.7");
+    expect(kbDetik.toFixed(1)).toBe("115.7"); // nilai tepat 115,74
+    expect((Number(lambda.toFixed(4)) * FILE_KB).toFixed(2)).toBe("115.75"); // hitungan dari angka yang tertulis di halaman: 0,2315 × 500
+    expect(halaman).toContain("| Byte puncak | 0,2315 × 500 KB | 115,75 KB, dibulatkan 116 KB per detik |");
     expect(Math.round(kbDetik)).toBe(116);
     expect(Math.round(kbDetik5)).toBe(1157);
     expect(Math.round(kbDetik5 / kbDetik)).toBe(10);
@@ -422,7 +424,7 @@ describe("object-storage-presigned.mdx: tiap angka turunan dari rekaman, kode, n
     expect(t[4]!).toEqual(["Posting per tahun", `${koma(posting / 1e6, 1)} juta × ${BYTE_POSTING} byte`, `${koma(gbPosting, 2)} GB`]);
     expect(t[5]!).toEqual(["File lawan posting", `${gbTahun} ÷ ${koma(gbPosting, 2)}`, `${koma(kali, 1)} kali`]);
     expect(t[6]!).toEqual(["Unggahan puncak", `${titik(UNGGAH)} ÷ 86.400 × ${PUNCAK}`, `${koma(lambda, 4)} per detik`]);
-    expect(t[7]!).toEqual(["Byte puncak", `${koma(lambda, 4)} × ${FILE_KB} KB`, `${koma(kbDetik, 1)} KB, dibulatkan ${Math.round(kbDetik)} KB per detik`]);
+    expect(t[7]!).toEqual(["Byte puncak", `${koma(lambda, 4)} × ${FILE_KB} KB`, `${koma(Number(lambda.toFixed(4)) * FILE_KB, 2)} KB, dibulatkan ${Math.round(kbDetik)} KB per detik`]); // dari 0,2315 yang tertulis, bukan nilai tepat
     harus(`Unggahan ${titik(UNGGAH)} per hari, ${FILE_KB} KB per file (1 KB = 1.000 byte), dan faktor puncak ${PUNCAK}. Posting ${koma(posting / 1e6, 1)} juta per tahun dengan ${BYTE_POSTING} byte tiap posting.`);
     const h = tabel("| Kejadian | Jawaban | Sumber |", 3);
     expect(h.slice(2).map((x) => x[0])).toEqual(["Checksum dari app salah", `Kartu tepat 1 MiB (${titik(satuMiB)} byte)`, "Kartu 1 MiB + 1 byte", "PDF di kunci kartu", "Kartu belum diunggah", "Kunci milik akun lain"]);
@@ -457,7 +459,7 @@ describe("object-storage-presigned.mdx: tiap angka turunan dari rekaman, kode, n
     expect(readme).toContain("masukan yang diperiksa bentuknya lalu dibuang (Asumsi lab, 16 angka)");
     harus("Penolakan peran dan alasan tidak menulis baris audit di lab ini.");
     harus("Membuat ukuran wajib adalah keputusan produk yang belum diambil.");
-    harus("Karena server tetap membaca tiap file, byte tidak hilang dari server.");
+    harus("Karena server tetap membaca tiap file, byte tetap melewati server sekali.");
     harus("kecepatan unggah dari HP tidak diukur");
   });
   test("Snippet: rentang diturunkan dari fungsi dan bagian rekaman, tanpa komentar lab internal", () => {
@@ -563,7 +565,9 @@ describe("ADR 38: tabel opsi, enam aturan, kasus industri, pre-mortem, kapan sal
     expect(r182).toContain("cabang master, dibuka 2026-10-30");
     harus("`proxy_download` bawaannya `false`, jadi unduh langsung adalah bawaannya");
     harus("Dokumentasi yang sama memperingatkan bahwa URL itu tidak terikat ke satu user");
-    harus("Batasnya: itu dokumentasi produk untuk file repositori, tanpa angka beban dan tanpa foto identitas.");
+    harus("Batasnya: itu dokumentasi produk untuk data GitLab sendiri, seperti artefak CI dan unggahan user, tanpa angka beban dan tanpa foto identitas.");
+    expect(r182).toContain("User uploads");
+    expect(r182).toContain("repositori Git tidak disebut");
     expect(r180).toContain("`s3:signatureAge` menolak permintaan presigned URL bila tanda tangan lebih tua dari 10 menit (600000 ms)");
     harus("menolak permintaan presigned URL bila tanda tangannya lebih tua dari 10 menit (`s3:signatureAge`, dibuka 2026-10-30)");
     expect(r180).toContain("presigned URLs are bearer tokens that grant access to those who possess them");
@@ -730,7 +734,7 @@ describe("Cek diri, kartu, halaman istilah, glosarium, dan baris RISET", () => {
     });
     expect(tanya[0]![2]).toContain(`${titik(isiAkhir)} byte milik pemegang lain`);
     expect(tanya[1]![2]).toContain(`jawabannya ${statusD}, dan baris audit naik dari ${auditD[1]} ke ${auditD[2]}`);
-    expect(tanya[2]![2]).toBe(`Lewat URL, dua pemegang mendapat ${urlC[0]![1]} dan baris audit tetap ${auditC}. Lewat server, Ratih mendapat 200 dan satu baris tertulis (\`unduh.txt\` bagian A dan C).`);
+    expect(tanya[2]![2]).toBe(`Lewat URL, dua pemegang mendapat ${urlC[0]![1]} dan tidak ada baris audit yang bertambah (jumlahnya tetap ${auditC}). Lewat server, Ratih mendapat 200 dan satu baris bertambah (\`unduh.txt\` bagian A dan C).`);
     expect(tanya[3]![2]).toBe(`${titik(UNGGAH)} × ${FILE_KB} KB × 365 = ${gbTahun} GB, dan ${koma(posting / 1e6, 1)} juta × ${BYTE_POSTING} byte = ${koma(gbPosting, 2)} GB. Lalu ${gbTahun} ÷ ${koma(gbPosting, 2)} = ${koma(kali, 1)} (Hitungan atas Asumsi naskah).`);
     expect(tanya[3]![1]).toBe(`Dari angka apa file identitas dihitung ${koma(kali, 1)} kali posting ledger dalam setahun?`);
   });

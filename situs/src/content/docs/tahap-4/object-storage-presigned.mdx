@@ -84,7 +84,7 @@ Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan labelny
 | Posting per tahun | 43,8 juta × 250 byte | 10,95 GB |
 | File lawan posting | 365 ÷ 10,95 | 33,3 kali |
 | Unggahan puncak | 2.000 ÷ 86.400 × 10 | 0,2315 per detik |
-| Byte puncak | 0,2315 × 500 KB | 115,7 KB, dibulatkan 116 KB per detik |
+| Byte puncak | 0,2315 × 500 KB | 115,75 KB, dibulatkan 116 KB per detik |
 
 **Server tidak membawa byte unggahan, tetapi membaca tiap file sekali.** App mengunggah ke penyimpanan lewat URL, lalu mengajukan kunci dan checksum ke server (`unggah.txt` bagian A). Sebelum menulis pengajuan, server meminta ukuran objek lewat HEAD, yaitu permintaan tanpa isi. Lalu ia membaca isinya, membaca tipe dari byte, dan menghitung ulang checksum:
 
@@ -103,7 +103,7 @@ Checksum dari app hanyalah klaim, dan yang disimpan adalah hitungan server. Hasi
 
 OWASP menulis bahwa Content-Type dari pengunggah tidak bisa dipercaya, karena siapa pun bisa memalsukannya. ASVS 5.0.0 V5.2.2 meminta isi file cocok dengan tipenya ([OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html) dan [ASVS v5.0.0](https://github.com/OWASP/ASVS/blob/v5.0.0/5.0/en/0x14-V5-File-Handling.md), dibuka 2026-10-30). Jadi server memeriksa byte, bukan nama atau header.
 
-Karena server tetap membaca tiap file, byte tidak hilang dari server. Yang pindah ke penyimpanan adalah koneksi unggah dari HP yang lambat, dan manfaat itu Tidak dijalankan: kecepatan unggah dari HP tidak diukur.
+Karena server tetap membaca tiap file, byte tetap melewati server sekali. Yang pindah ke penyimpanan adalah koneksi unggah dari HP yang lambat, dan manfaat itu Tidak dijalankan: kecepatan unggah dari HP tidak diukur.
 
 **URL unggah adalah bearer token yang punya umur.** Bearer token adalah izin yang berlaku bagi siapa pun yang membawanya. Dokumentasi AWS menulis bahwa presigned URL pada intinya bearer token. Bila objek dengan kunci yang sama sudah ada, penyimpanan menggantinya ([AWS S3: presigned URL](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html), dibuka 2026-10-30).
 
@@ -121,7 +121,7 @@ Penyimpanan menghitung umur dari tanggal di dalam URL. URL bertanggal 10 menit l
 
 Kunci diganti, metode diganti (URL PUT dipakai untuk GET), dan permintaan tanpa tanda tangan semuanya ditolak 403 (bagian E). Umur paling lama 604.800 detik, yaitu 7 hari, dan 604.801 ditolak 400 (bagian D). Dokumentasi AWS menulis bahwa URL dari kredensial sementara berakhir bersama kredensialnya.
 
-**Ukuran dibatasi di penyimpanan hanya bila panjangnya ikut ditandatangani.** URL tanpa panjang menerima 5.242.880 byte, yaitu 5 MiB. Bila app menyebut `ukuran_kartu` saat meminta URL, panjang itu masuk tanda tangan. PUT 1.001 byte atau 999 byte untuk URL 1.000 byte ditolak 403 (bagian F).
+**Penyimpanan di lab menegakkan ukuran bila panjangnya ikut ditandatangani.** URL tanpa panjang menerima 5.242.880 byte, yaitu 5 MiB. Bila app menyebut `ukuran_kartu` saat meminta URL, panjang itu masuk tanda tangan. PUT 1.001 byte atau 999 byte untuk URL 1.000 byte ditolak 403 (bagian F).
 
 Di lab `ukuran_kartu` dan `ukuran_swafoto` opsional, jadi pemeriksaan server sesudah unggah tetap yang menutupnya. Membuat ukuran wajib adalah keputusan produk yang belum diambil.
 
@@ -246,7 +246,7 @@ Halaman fitur ([[t4-topup-verifikasi]]) bertanya di mana file identitas disimpan
 | | A. File di `bytea` | B. Disk lokal VPS | C. Semua lewat server | D. Penyimpanan objek, presigned PUT, unduh lewat server |
 |---|---|---|---|---|
 | Cara kerja | File di kolom `bytea` di database yang sama dengan data transaksi | File di direktori server aplikasi, database menyimpan nama file | App mengirim byte ke server (JSON base64 di `POST /verifikasi`), server menulis ke penyimpanan, dan unduh juga lewat server | File di penyimpanan objek privat. App mengunggah lewat URL berumur 5 menit, dan unduh hanya lewat endpoint server |
-| Kelebihan | PostgreSQL menulis bahwa akses dan keamanan disederhanakan, dan cadangan tidak perlu melacak file di luar database | Tanpa layanan baru | Tidak ada URL yang bisa dipegang pihak lain, dan jalur unggahnya sudah ada di api-t4 (`verifikasi.txt` bagian B) | Database hanya memegang kunci dan checksum (rasio dump di bawah 0,01). Ukuran, tipe, dan checksum diperiksa server sesudah unggah |
+| Kelebihan | Wiki PostgreSQL menulis bahwa akses dan keamanan disederhanakan, dan cadangan tidak perlu melacak file di luar database | Tanpa layanan baru | Tidak ada URL yang bisa dipegang pihak lain, dan jalur unggahnya sudah ada di api-t4 (`verifikasi.txt` bagian B) | Database hanya memegang kunci dan checksum (rasio dump di bawah 0,01). Ukuran, tipe, dan checksum diperiksa server sesudah unggah |
 | Kekurangan | Dump membesar sebanding dengan file: rasio 1,1, dan dump teks 2,0 (`ukuran.txt` bagian A). Wiki PostgreSQL (terakhir diedit 2021-05-05) menulis bahwa cadangan bisa jauh lebih lama | Nasib file terikat pada satu server. Dua instance tidak berbagi direktori (penalaran penulis, [[t3-dua-instance]]) | Server menyangga tiap byte unggahan, dan base64 menambah 4 untuk tiap 3 byte (Hitungan). Batas badan di handler 3 MiB (kode) | URL adalah bearer token: PUT kedua menimpa (`presign.txt` bagian B). File sah masih bisa ditimpa sampai URL habis (`unduh.txt` bagian D). Server tetap membaca tiap file sekali |
 | Biaya operasional | Cadangan dan uji pulih mengangkut file | Salinan dan pemindahan file saat pindah hosting ([[t4-m34]]) | Handler dan koneksi HP yang lambat ditahan server (Tidak dijalankan) | Satu komponen baru: kredensial penyimpanan, pencadangan file terpisah, dan job retensi |
 | Bukti | `ukuran.txt` bagian A dan D, [PostgreSQL wiki](https://wiki.postgresql.org/wiki/BinaryFilesInDB) | `verifikasi.txt` bagian B (direktori lokal), tanpa rekaman perbandingan | Kode `handler_pembayaran.go`, `verifikasi.txt` bagian B | `presign.txt`, `unggah.txt`, `unduh.txt`, `retensi.txt`, `ukuran.txt` bagian C |
@@ -271,7 +271,7 @@ Hitungan base64 memakai RFC 4648: 4 karakter untuk tiap 3 byte. Satu file 500.00
 
 **Kasus industri: GitLab.** Dokumentasi GitLab menulis bahwa untuk file di penyimpanan objek, client bisa menerima pre-signed URL berbatas waktu, dan `proxy_download` bawaannya `false`, jadi unduh langsung adalah bawaannya. Dokumentasi yang sama memperingatkan bahwa URL itu tidak terikat ke satu user ([GitLab: object storage](https://docs.gitlab.com/administration/object_storage/), cabang master, dibuka 2026-10-30).
 
-Batasnya: itu dokumentasi produk untuk file repositori, tanpa angka beban dan tanpa foto identitas. Rekeningo memilih sebaliknya untuk unduh karena tiap pembukaan file identitas harus meninggalkan baris audit, dan itu penilaian penulis.
+Batasnya: itu dokumentasi produk untuk data GitLab sendiri, seperti artefak CI dan unggahan user, tanpa angka beban dan tanpa foto identitas. Rekeningo memilih sebaliknya untuk unduh karena tiap pembukaan file identitas harus meninggalkan baris audit, dan itu penilaian penulis.
 
 AWS menulis contoh kebijakan bucket yang menolak permintaan presigned URL bila tanda tangannya lebih tua dari 10 menit (`s3:signatureAge`, dibuka 2026-10-30). Kebijakan itu menambah lapis di atas umur 5 menit, dan Tidak dijalankan.
 
@@ -330,7 +330,7 @@ Saat file diunduh: checksum tidak cocok, jawabannya 500, dan baris audit naik da
 <details class="success">
 <summary>Jawaban</summary>
 
-Lewat URL, dua pemegang mendapat 200 dan baris audit tetap 1. Lewat server, Ratih mendapat 200 dan satu baris tertulis (`unduh.txt` bagian A dan C).
+Lewat URL, dua pemegang mendapat 200 dan tidak ada baris audit yang bertambah (jumlahnya tetap 1). Lewat server, Ratih mendapat 200 dan satu baris bertambah (`unduh.txt` bagian A dan C).
 
 </details>
 
