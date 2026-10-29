@@ -818,6 +818,140 @@ describe("penutup celah mutasi tanpa kunci: klaim mekanisme, label, sumber, dan 
   });
 });
 
+// Penutup tahap dua (keputusan 1291): seri mutasi 599 mutan tanpa kunci baris meloloskan kalimat yang membawa klaim karena `toContain`
+// puas dengan satu kemunculan, padahal kalimat yang sama ada dua kali (pertanyaan di Mulai dan di Cek diri), atau karena kata
+// bilangan dan kata benda ("satu", "dua", "gateway") tidak dijaga. Di sini jumlah kemunculan dihitung, dan kata bilangan diturunkan
+// dari rekaman atau kode.
+describe("penutup tahap dua: kalimat klaim dihitung kemunculannya, kata bilangan diturunkan dari sumber", () => {
+  const H = (fragmen: string, n = 1): void => expect(halaman.split(fragmen).length - 1, `kemunculan "${fragmen.slice(0, 70)}"`).toBe(n);
+  const baris = (id: string): string => riset.split("\n").find((b) => b.startsWith(`| ${id} |`)) ?? "";
+  const bilangan = (n: number): string => ["nol", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh"][n]!;
+  const kode200 = hasilA[1]!.split(" ")[0]!;
+  const adrNo = (registry.halaman as unknown as { id: string; adr?: number[] }[]).find((h) => h.id === "t4-webhook")!.adr![0]!;
+  const adrModul = Number(((registry.halaman as unknown as { id: string; judul: string }[]).find((h) => h.id === "t4-modul")!.judul.match(/ADR (\d+)/) ?? [])[1]);
+
+  test("pertanyaan Mulai dan Cek diri: dua kemunculan tiap kalimat, kata bilangan dari ganda.txt", () => {
+    expect(hasilA).toHaveLength(3);
+    H(`${"1. "}Gateway mengirim event yang sama ${bilangan(jurnalGanda.length)} kali karena balasan ${kode200} yang pertama hilang. Berapa jurnal yang ditulis handler versi pertama, dan berapa yang ditulis handler ADR ${adrNo}?`);
+    H(`**1.** Gateway mengirim event yang sama ${bilangan(jurnalGanda.length)} kali karena balasan ${kode200} yang pertama hilang. Berapa jurnal yang ditulis handler versi pertama, dan berapa yang ditulis handler ADR ${adrNo}?`);
+    H("2. Kenapa tanda tangan dihitung atas byte yang tiba, bukan atas JSON yang sudah diurai?");
+    H("**2.** Kenapa tanda tangan dihitung atas byte yang tiba, bukan atas JSON yang sudah diurai?");
+    H("3. Kabar `pending` datang sesudah `settlement`. Apa yang terjadi pada status top-up, dan apakah gateway ditanya?");
+    H("**3.** Kabar `pending` datang sesudah `settlement`. Apa yang terjadi pada status top-up, dan apakah gateway ditanya?");
+    H(`**4.** Event kedua dengan \`event_id\` berbeda datang ${barisG[1]![1]!.replace(" jam", "")} jam kemudian untuk order yang sama. Lapis mana yang menahan jurnal kedua?`);
+    H(`Status top-up yang hanya maju. Idempotency-Key ledger hidup ${umurKeyJam} jam, jadi sesudah ${barisG[1]![1]!.replace(" jam", "")} jam ia sudah habis.`);
+    H("Tanpa lapis status, event kedua diproses dan jurnalnya dua (`urutan.txt` bagian G, kasus 4).");
+    expect(barisG[3]![0]).toMatch(/^4\. /);
+    expect(barisG[3]![3]).toBe("2");
+  });
+
+  test("kalimat mekanisme: bilangan dan kata benda cocok dengan kode dan rekaman", () => {
+    H("Dokumentasi satu gateway nyata menulis tiga sifat kabar itu.");
+    H("Di lab, gateway tiruan menghitung HMAC-SHA256 atas timestamp, satu titik, dan byte body.");
+    expect(kodeService).toContain('fmt.Fprintf(m, "%d.", timestamp)');
+    H("1. Tanda tangan HMAC-SHA256 atas timestamp, satu titik, dan byte mentah diperiksa sebelum JSON diurai, dengan perbandingan berwaktu tetap.");
+    H("Bentuk gaya 3 [perlu verifikasi] ke dokumentasi gateway yang memakainya.");
+    H("| Kejadian | Gaya 1: HMAC dan timestamp | Gaya 2: SHA-512 atas field | Gaya 3: token statis |");
+    H("**Event dicatat satu kali, oleh database.** Tabel `webhook_event` memakai `event_id` sebagai kunci utama.");
+    H("Fungsi `terapkanStatus` memajukan status satu top-up, dan kabar yang tidak maju diparkir:");
+    H(`Di \`urutan.txt\` bagian F, kabar \`pending\` sesudah \`settlement\` dijawab \`${UF1.find((b) => b.startsWith("kabar pending sesudah settlement: "))!.split(": ")[1]}\`, status tetap \`dibayar\`, dan gateway ditanya ${ditanyaF1} kali.`);
+    H(`Kabar dijawab \`200 diparkir\`, status tetap \`dibayar\`, dan gateway ditanya ${ditanyaF1} kali.`);
+    H(`Pada top-up yang masih \`menunggu\`, kabar yang diparkir karena batas saldo tingkat membuat gateway ditanya ${ditanyaF2} kali di luar transaction, dan kreditnya tetap ditolak.`);
+    H("Dua event berbeda untuk satu kejadian ditahan oleh tiga lapis: `event_id`, status top-up, dan Idempotency-Key ledger sebesar `order_id`");
+    H("| Kasus | Event kedua datang | Jawaban event kedua | Jurnal untuk satu order |");
+    H("Fungsi itu mencatat event, mengunci baris top-up, menerapkan status, dan menutup event dalam satu transaction.");
+    H("Bila transaction gagal, ROLLBACK membuang event dan jurnal bersama, dan handler menjawab galat, bukan 2xx.");
+    H(`Dokumentasi itu juga menunggu jawaban paling lama 15 detik dan menyarankan jawaban dalam 5 detik. Jawaban \`401\` termasuk kategori lainnya, jadi penolakan karena rahasia salah diulang lima kali.`);
+    expect(baris("R4-140")).toContain('"up-to 15 seconds"');
+    expect(baris("R4-140")).toContain('"ideally within 5 seconds"');
+    expect(baris("R4-140")).toContain('lainnya \\"Retry five times\\"'.replace(/\\"/g, '"'));
+    expect(kodeKiriman.find((k) => k[0] === "401")![1]).toBe(6);
+    expect(jedaMenit).toHaveLength(5);
+  });
+
+  test("tab stack: header Go, Node, Laravel, Django, Serverpod, Supabase membawa klaim yang dicek ke dokumentasi", () => {
+    H(`handler membaca byte lewat \`io.ReadAll\` dengan batas ${maksWebhookKb} KB (\`http.MaxBytesReader\`), lalu menyerahkannya ke \`TerimaWebhook\` bersama dua header. Tanda tangan yang salah dan timestamp yang kedaluwarsa dijawab sama, yaitu \`401\`.`);
+    expect(kodeHandler).toContain('r.Header.Get("X-Gateway-Timestamp"), r.Header.Get("X-Gateway-Signature")');
+    H("**Skenario:** satu kabar bertanda tangan masuk ke endpoint.");
+    H("Route webhook perlu `type` yang cocok dengan header gateway.");
+    H("Dokumentasi menulis bahwa rute webhook sebuah gateway harus dikecualikan karena gateway tidak tahu token apa yang dikirim");
+    H("[Django 6.1: request dan response](https://docs.djangoproject.com/en/6.1/ref/request-response/)");
+    H("[Django 6.1: HttpRequest.body](https://docs.djangoproject.com/en/6.1/ref/request-response/)");
+    H("- [Dokumentasi notifikasi HTTP(S) sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks)");
+    H("Apakah string hasil `readAsString()` bisa dikodekan ulang menjadi byte yang sama dengan yang ditandatangani gateway tidak ditulis di sana [perlu verifikasi].");
+    H("karena gateway memverifikasi lewat tanda tangan.");
+    H("`express.raw()` menghasilkan `Buffer`, dan `express.json()` menghasilkan objek yang sudah diurai.");
+    H("Halaman itu tidak menyebut pembacaan byte mentah dan tidak menyebut webhook.");
+    H("Jadi pemeriksaan JWT dimatikan untuk fungsi itu, dan tanda tangan yang memeriksa asal kiriman.");
+  });
+
+  test("ADR 34: kata bilangan dan kata benda di Kebutuhan, tabel opsi, aturan, kasus industri, pre-mortem, dan kapan salah", () => {
+    H("Top-up dari bank naik jadi saldo karena kabar gateway, dan kabar itu bisa datang dua kali, bersamaan, mundur, atau palsu ([[t4-dua-arah]]).");
+    const adr = tabel("| | A. Cek-lalu-tulis tanpa tabel event |", 5);
+    expect(adr[1]!.slice(1)).toEqual([
+      "Satu tabel lebih sedikit",
+      "Handler cepat, dan lonjakan kiriman tidak menahan koneksi",
+      "Satu perbandingan string",
+      "Event ganda, kiriman lama, dan isi yang diubah ditolak oleh pemeriksaan yang berbeda",
+    ]);
+    expect(adr[2]!.slice(1)).toEqual([
+      "Dua kiriman bersamaan sama-sama melihat `menunggu` dan sama-sama menjurnal",
+      "Gateway tidak mengulang kiriman yang sudah dijawab 200, jadi kabar yang gagal di worker tidak diulang",
+      "Isi yang diubah dan kiriman lama sama-sama diterima",
+      "Handler menahan satu koneksi selama satu transaction",
+    ]);
+    expect(adr[3]!.slice(1)).toEqual([
+      "Rendah, tetapi celahnya tidak terlihat sampai uang dobel",
+      "Satu komponen lagi: queue, worker, dan pemantauan queue",
+      "Nol, tetapi tidak ada perlindungan isi",
+      "Satu tabel `webhook_event` dan satu rahasia per gateway",
+    ]);
+    H(`3. Selama ledger ada di satu proses (sampai ADR ${adrModul}), event, status top-up, jurnal, dan baris outbox ditulis dalam satu transaction.`);
+    H("4. Status top-up hanya maju. Kabar yang tidak maju diparkir, dan gateway ditanya, di luar transaction, hanya bila top-up masih `menunggu` atau `tidak_pasti`.");
+    H("7. Sesudah ADR 37, ledger dipanggil lewat API di luar transaction pembayaran dengan key itu. Lalu `webhook_event` dan `topup_bank` ditulis dalam satu transaction, dan 2xx dibalas sesudah COMMIT ([[t4-modul]]).");
+    expect(adrModul).toBe(37);
+    H("- **A ditolak** karena dua kiriman bersamaan lolos cek status, dan hasilnya dua jurnal (`ganda-serentak.txt` bagian A).");
+    H("Dokumentasi Stripe menulis bahwa endpoint harus memverifikasi tanda tangan atas body mentah, dan library resminya bertoleransi 5 menit. Event ganda dikenali lewat event ID.");
+    H("Bila dua objek Event berbeda dikirim untuk satu kejadian, id objek di `data.object` bersama `event.type` dipakai");
+    expect(baris("R4-140")).toContain('"Our libraries have a default tolerance of 5 minutes"');
+    H("Batasnya: ini dokumentasi sisi pengirim satu produk, tanpa angka beban atau kerugian.");
+    H("**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:");
+    expect(riset).toBeTruthy();
+    H(`sesudah ${umurKeyJam} jam hanya status \`topup_bank\` yang menahan, dan status itu masih \`menunggu\`.`);
+    H(`kiriman ulang pada +${MC.find((b) => b.startsWith("# jam ledger digeser 23 jam"))!.match(/digeser (\d+) jam/)![1]} jam menghasilkan ${tabelC[0]![0]} jurnal, dan pada +${MC.find((b) => b.startsWith("# jam ledger digeser 25 jam"))!.match(/digeser (\d+) jam/)![1]} jam ${tabelC[1]![0]} jurnal: saldo naik dua kali.`);
+    H("2. Gateway tidak mengirim `event_id` yang stabil. Kunci utama menjadi tidak berguna. Pencegahannya hash isi sebagai kunci, dan itu dicek ke dokumentasi gateway sebelum integrasi.");
+    H("- Saat gateway tidak mengirim `event_id` yang stabil. Kunci diganti hash isi.");
+    H("Hanya status `topup_bank` yang menahan jurnal kedua, dan itu benar hanya bila transaction pembayaran pernah selesai.");
+    H("- Saat urutan antar kabar penting bagi bisnis. Gateway tidak menjamin urutan, dan ADR ini hanya mencegah status mundur.");
+    H("- [ ] `event_id` adalah kunci utama, dan hasil nol baris dari `ON CONFLICT DO NOTHING` ditangani sebagai ganda.");
+    H("- [ ] Event, status, dan jurnal ditulis dalam satu transaction, dan 2xx dibalas sesudah COMMIT.");
+    H(`Kabar dijawab \`200 diparkir\`, status tetap \`dibayar\`, dan gateway ditanya ${ditanyaF1} kali. Top-up yang sudah berstatus akhir tidak ditanyakan`);
+  });
+
+  test("halaman istilah HMAC: tiap kalimat terkunci terhadap sumbernya", () => {
+    expect(istilahHmac).toMatchObject({
+      sehari_hari: "HMAC adalah tanda yang dihitung dari isi pesan dan satu rahasia yang dipegang pengirim dan penerima. Penerima menghitung ulang tanda itu, dan bila cocok, pesan berasal dari pemegang rahasia dan isinya tidak diubah.",
+    });
+    expect((istilahHmac as unknown as { mekanisme: string[] }).mekanisme).toEqual([
+      "Pengirim dan penerima memegang rahasia yang sama, dan rahasia itu tidak ikut terkirim.",
+      "Pengirim menghitung HMAC atas pesan dengan rahasia itu, lalu mengirim hasilnya bersama pesan.",
+      "Penerima menghitung ulang atas byte yang tiba, lalu membandingkan hasilnya dengan perbandingan berwaktu tetap.",
+      "Bila hasilnya beda, pesan ditolak: isinya berubah atau pengirimnya tidak tahu rahasia. Timestamp yang ikut dihitung membuat kiriman lama bisa ditolak.",
+    ]);
+    expect((istilahHmac as unknown as { jebakan: string[] }).jebakan).toEqual([
+      "Menghitung atas JSON yang sudah diurai lalu ditulis ulang. Spasi dan baris baru berbeda, jadi HMAC berbeda walau isinya sah (`tandatangan.txt` bagian A).",
+      "Membandingkan dengan `==` biasa. Dokumentasi gateway nyata menyuruh perbandingan berwaktu tetap, dan dokumentasi Go menulis bahwa `hmac.Equal` tidak membocorkan informasi lewat waktu.",
+    ]);
+    expect(istilahHmac.cerita[0]!.teks).toBe(`Gateway tiruan menghitung HMAC-SHA256 atas timestamp, satu titik, dan byte body, lalu mengirim hasilnya di header. Rekeningo menghitung ulang atas byte yang tiba: body berindentasi ${byteBody} byte cocok, dan isi yang diubah dijawab 401 (\`tandatangan.txt\` bagian A dan B).`);
+    expect(istilahHmac.sumber.map((x) => [x.judul, x.catatan])).toEqual([
+      ["Stripe: webhooks (dibuka 2026-10-29)", "Tanda tangan dihitung dengan HMAC dan SHA-256 atas timestamp, satu titik, dan body mentah. Dokumentasi menyuruh perbandingan waktu tetap dan menulis bahwa manipulasi apa pun pada body mentah membuat verifikasi gagal."],
+      ["Go: crypto/hmac (Go 1.27.3, dibuka 2026-10-29)", "Equal membandingkan dua MAC tanpa membocorkan informasi lewat waktu."],
+      ["Rekaman lab t4-webhook: tandatangan.txt bagian A dan B", "Bagian A: body 109 byte cocok atas byte mentah dan tidak cocok bila diurai ulang (fungsi pembanding di skrip lab). Bagian B: isi diubah dan timestamp 360 detik lalu dijawab 401."],
+    ]);
+    expect(baris("R4-140")).toContain("use a constant-time-string comparison");
+  });
+});
+
 // Nilai sidik dan hitungan label, dicatat sesudah halaman dibaca kalimat demi kalimat (lihat komentar penutup).
 const RekamanLab = 9;
 const TidakDijalankan = 10;
