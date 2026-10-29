@@ -702,7 +702,7 @@ describe("rujukan [[ID]], registry, struktur, dan kata", () => {
     // presigned URL, penyimpanan objek, checksum, bearer token, bytea, HEAD, job dan retensi: arti di pemakaian pertama
     const pertama = (k: string): number => badanHalaman.search(new RegExp(k));
     expect(badanHalaman.slice(pertama("Presigned URL"), pertama("Presigned URL") + 120)).toContain("Presigned URL adalah alamat di penyimpanan objek yang sudah ditandatangani server.");
-    expect(badanHalaman).toContain("Penyimpanan objek menyimpan file sebagai objek berkunci di luar database.");
+    expect(badanHalaman).toContain("Penyimpanan objek (object storage) menyimpan file sebagai objek berkunci di luar database.");
     expect(pertama("checksum")).toBeGreaterThan(0);
     expect(badanHalaman.indexOf("yaitu sidik SHA-256 dari isi file")).toBeLessThan(badanHalaman.indexOf('<Blok nama="Coba"'));
     expect(badanHalaman.indexOf("Bearer token adalah izin yang berlaku bagi siapa pun yang membawanya.")).toBeGreaterThan(badanHalaman.indexOf('<Blok nama="Paham"'));
