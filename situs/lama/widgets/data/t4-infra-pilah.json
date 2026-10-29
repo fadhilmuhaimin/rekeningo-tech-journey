@@ -1,0 +1,37 @@
+{
+  "judul": "Pindah ke layanan terkelola atau tetap di mesin VPS?",
+  "kelompok": ["Pindah ke layanan terkelola", "Tetap di mesin VPS"],
+  "item": [
+    {
+      "teks": "Proses app: API monolith dan service pembayaran.",
+      "jawab": 1,
+      "kenapa": "Hosting terkelola menjawab sebagian titik gagal tunggal ADR 26: data, file, dan secret, bukan ketersediaan app. Mesin pengganti dibuat dari file IaC, tetapi app berhenti selama mesin diganti, dan VPS kedua tetap ditunda ADR 33 (Tidak dijalankan: lab memakai tiruan di Compose)."
+    },
+    {
+      "teks": "Data PostgreSQL: tabel akun, jurnal, dan outbox.",
+      "jawab": 0,
+      "kenapa": "Data tidak lagi mati bersama satu VPS. Backup pg_dump harian punya jendela kehilangan data sampai 24 jam. Jendela di layanan terkelola menurut penyedia belum diketahui [perlu verifikasi: penyedia dipilih saat halaman ditulis], dan failover Tidak dijalankan."
+    },
+    {
+      "teks": "File identitas: foto kartu dan swafoto.",
+      "jawab": 0,
+      "kenapa": "File pindah ke penyimpanan objek, dan database hanya menyimpan kunci objek dan checksum (ADR 38). Penyimpanan objek terkelola Tidak dijalankan: lab memakai tiruan di Compose."
+    },
+    {
+      "teks": "Kode yang membaca secret saat berjalan.",
+      "jawab": 1,
+      "kenapa": "Service membaca nilainya sendiri dengan token baca-saja. Di rotasi.txt bagian B service hanya diberi token, tanpa rahasia lewat flag atau file. Yang pindah adalah nilainya, bukan kode pembacanya, dan bukan OpenTofu yang membaca."
+    },
+    {
+      "teks": "Nilai secret: kunci gateway dan rahasia webhook.",
+      "jawab": 0,
+      "kenapa": "Nilai pindah ke secret manager (lab: OpenBao mode dev). Operator menulis versi baru, service membacanya tanpa deploy, dan state OpenTofu tidak memuat nilainya (state.txt bagian B, rotasi.txt bagian C). Secret manager milik penyedia Tidak dijalankan."
+    },
+    {
+      "teks": "Worker yang memanggil layanan verifikasi di luar.",
+      "jawab": 1,
+      "kenapa": "Worker tetap bagian app. Yang berubah hanya jalan keluarnya: host baru memakai HTTP_PROXY yang sama, dan vendor hanya melihat alamat proxy (alamat.txt bagian B). Proxy keluar itu sendiri titik gagal tunggal baru, dan matinya tidak direkam."
+    }
+  ],
+  "penutup": "Tiga yang pindah adalah penyimpanan: data, file, dan secret. Tiga yang tetap adalah yang menjalankan kode. Satu mesin berhenti masih menghentikan app, dan itulah yang ditunda ADR 33."
+}

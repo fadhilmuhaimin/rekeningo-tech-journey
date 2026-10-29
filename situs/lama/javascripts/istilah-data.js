@@ -32,6 +32,15 @@ window.ISTILAH = {
   "t": "API gateway",
   "u": "c-operasional/c4-security-dasar/"
  },
+ "Alamat keluar": {
+  "b": "t4-m34",
+  "d": "Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.",
+  "h": "istilah/alamat-keluar/",
+  "n": "4.16 M34",
+  "s": "istilah-alamat-keluar",
+  "t": "Alamat keluar",
+  "u": "tahap-4/m34-verifikasi-ditolak/"
+ },
  "Alert": {
   "b": "t3-tim-infra",
   "d": "Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.",
@@ -314,6 +323,14 @@ window.ISTILAH = {
   "s": "istilah-certificate-pinning",
   "t": "Certificate pinning",
   "u": "tahap-3/tls-pinning/"
+ },
+ "Checksum": {
+  "b": "t4-storage",
+  "d": "Sidik dari isi file, misalnya SHA-256. Bila satu byte berubah, sidiknya berubah, jadi checksum dipakai untuk mendeteksi file yang rusak atau ditimpa.",
+  "n": "4.15 File identitas dan presigned URL",
+  "s": "istilah-checksum",
+  "t": "Checksum",
+  "u": "tahap-4/object-storage-presigned/"
  },
  "Circuit breaker": {
   "b": "t4-breaker",
@@ -651,6 +668,15 @@ window.ISTILAH = {
   "s": "istilah-idor",
   "t": "IDOR (Insecure Direct Object Reference)",
   "u": "tahap-1/idor-token-app/"
+ },
+ "IaC": {
+  "b": "t4-infra-secret",
+  "d": "Infrastruktur, seperti mesin, database, dan alamat jaringan, ditulis sebagai file konfigurasi yang di-review seperti kode, lalu dibuat oleh sebuah alat.",
+  "h": "istilah/iac/",
+  "n": "4.17 Secret manager, IaC, alamat keluar",
+  "s": "istilah-iac",
+  "t": "IaC (infrastructure as code)",
+  "u": "tahap-4/secret-iac-alamat-keluar/"
  },
  "Idempotency key": {
   "b": "t2-idempotency",
@@ -1208,6 +1234,15 @@ window.ISTILAH = {
   "t": "Posting",
   "u": "tahap-2/ledger/"
  },
+ "Presigned URL": {
+  "b": "t4-storage",
+  "d": "URL ke satu objek di penyimpanan yang sudah ditandatangani pemilik kredensial, sehingga pemegangnya bisa memakainya sampai umurnya habis.",
+  "h": "istilah/presigned-url/",
+  "n": "4.15 File identitas dan presigned URL",
+  "s": "istilah-presigned-url",
+  "t": "Presigned URL",
+  "u": "tahap-4/object-storage-presigned/"
+ },
  "Primary": {
   "b": "D3",
   "d": "Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.",
@@ -1239,6 +1274,15 @@ window.ISTILAH = {
   "s": "istilah-proxy",
   "t": "Proxy",
   "u": "b-fondasi/b11-2-proxy-bff/"
+ },
+ "Proxy keluar": {
+  "b": "t4-infra-secret",
+  "d": "Proxy dengan alamat tetap yang dilewati panggilan keluar ke vendor, supaya vendor yang memakai allowlist selalu melihat satu alamat.",
+  "h": "istilah/proxy-keluar/",
+  "n": "4.17 Secret manager, IaC, alamat keluar",
+  "s": "istilah-proxy-keluar",
+  "t": "Proxy keluar (egress proxy)",
+  "u": "tahap-4/secret-iac-alamat-keluar/"
  },
  "Pull request review": {
   "b": "t2-tim-infra",
@@ -1449,6 +1493,15 @@ window.ISTILAH = {
   "s": "istilah-saldo-cache",
   "t": "Saldo cache",
   "u": "tahap-2/saldo-bukan-kolom/"
+ },
+ "Secret manager": {
+  "b": "t4-infra-secret",
+  "d": "Layanan yang menyimpan secret di luar kode dan file konfigurasi, dan dibaca aplikasi lewat API dengan token saat ia membutuhkannya.",
+  "h": "istilah/secret-manager/",
+  "n": "4.17 Secret manager, IaC, alamat keluar",
+  "s": "istilah-secret-manager",
+  "t": "Secret manager",
+  "u": "tahap-4/secret-iac-alamat-keluar/"
  },
  "Secure storage": {
   "b": "t1-idor",
@@ -1733,6 +1786,15 @@ window.ISTILAH = {
   "t": "XSS (cross-site scripting)",
   "u": "tahap-3/m25-kotak-peringatan/"
  },
+ "alamat keluar": {
+  "b": "t4-m34",
+  "d": "Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.",
+  "h": "istilah/alamat-keluar/",
+  "n": "4.16 M34",
+  "s": "istilah-alamat-keluar",
+  "t": "Alamat keluar",
+  "u": "tahap-4/m34-verifikasi-ditolak/"
+ },
  "alert": {
   "b": "t3-tim-infra",
   "d": "Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.",
@@ -1889,6 +1951,14 @@ window.ISTILAH = {
   "s": "istilah-certificate-pinning",
   "t": "Certificate pinning",
   "u": "tahap-3/tls-pinning/"
+ },
+ "checksum": {
+  "b": "t4-storage",
+  "d": "Sidik dari isi file, misalnya SHA-256. Bila satu byte berubah, sidiknya berubah, jadi checksum dipakai untuk mendeteksi file yang rusak atau ditimpa.",
+  "n": "4.15 File identitas dan presigned URL",
+  "s": "istilah-checksum",
+  "t": "Checksum",
+  "u": "tahap-4/object-storage-presigned/"
  },
  "circuit breaker": {
   "b": "t4-breaker",
@@ -2568,6 +2638,15 @@ window.ISTILAH = {
   "t": "Proxy",
   "u": "b-fondasi/b11-2-proxy-bff/"
  },
+ "proxy keluar": {
+  "b": "t4-infra-secret",
+  "d": "Proxy dengan alamat tetap yang dilewati panggilan keluar ke vendor, supaya vendor yang memakai allowlist selalu melihat satu alamat.",
+  "h": "istilah/proxy-keluar/",
+  "n": "4.17 Secret manager, IaC, alamat keluar",
+  "s": "istilah-proxy-keluar",
+  "t": "Proxy keluar (egress proxy)",
+  "u": "tahap-4/secret-iac-alamat-keluar/"
+ },
  "pull request review": {
   "b": "t2-tim-infra",
   "d": "Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung.",
@@ -2701,6 +2780,15 @@ window.ISTILAH = {
   "s": "istilah-saldo-cache",
   "t": "Saldo cache",
   "u": "tahap-2/saldo-bukan-kolom/"
+ },
+ "secret manager": {
+  "b": "t4-infra-secret",
+  "d": "Layanan yang menyimpan secret di luar kode dan file konfigurasi, dan dibaca aplikasi lewat API dengan token saat ia membutuhkannya.",
+  "h": "istilah/secret-manager/",
+  "n": "4.17 Secret manager, IaC, alamat keluar",
+  "s": "istilah-secret-manager",
+  "t": "Secret manager",
+  "u": "tahap-4/secret-iac-alamat-keluar/"
  },
  "secure storage": {
   "b": "t1-idor",

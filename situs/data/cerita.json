@@ -3610,8 +3610,9 @@
       "lab": [
         "t4-storage"
       ],
-      "ada": false,
-      "nomor": "4.15"
+      "ada": true,
+      "nomor": "4.15",
+      "menit": 21
     },
     {
       "id": "t4-m34",
@@ -3635,8 +3636,9 @@
       "lab": [
         "t4-infra"
       ],
-      "ada": false,
-      "nomor": "4.16"
+      "ada": true,
+      "nomor": "4.16",
+      "menit": 11
     },
     {
       "id": "t4-infra-secret",
@@ -3662,8 +3664,9 @@
       "lab": [
         "t4-infra"
       ],
-      "ada": false,
-      "nomor": "4.17"
+      "ada": true,
+      "nomor": "4.17",
+      "menit": 19
     },
     {
       "id": "t4-m35",
