@@ -753,6 +753,29 @@ describe("penutup tanpa kunci: tabel hak, daftar aturan, pertanyaan Cek diri, da
   });
 });
 
+describe("penutup tanpa kunci, putaran dua: teks tautan, p95, dan versi PostgreSQL di Cek diri", () => {
+  test("kalimat dan daftar yang membawa angka di teks tautan atau satuan", () => {
+    harus("([MADR 4.0.0](https://adr.github.io/madr/), rilis 2024-09-17, dibuka 2026-10-29)");
+    harus("- Saat tambahan p95 satu lompatan HTTP melewati 50 ms.");
+    expect(latensi).toContain("tambahan p95 lewat HTTP");
+    expect(readme).toContain("tambahan p95 antara −1,4 dan 6,9 ms");
+    harus("Pemeriksaan kunci asing berjalan sebagai pemilik tabel yang dirujuk, menurut kode sumber PostgreSQL 17.");
+    expect(readme).toContain("Penyebabnya, menurut kode sumber PostgreSQL 17 (`src/backend/utils/adt/ri_triggers.c`, cabang REL_17_STABLE");
+    const bacaan = halaman.slice(halaman.indexOf("### Bacaan lanjut"), halaman.indexOf("<SkripLama")).split("\n").filter((b) => b.startsWith("- "));
+    expect(bacaan).toEqual([
+      "- [GitHub: About code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)",
+      "- [MADR 4.0.0](https://adr.github.io/madr/)",
+      "- [cmd/go: Internal packages](https://pkg.go.dev/cmd/go)",
+      "- [PostgreSQL 17: Schemas and Privileges](https://www.postgresql.org/docs/17/ddl-schemas.html)",
+      "- [Fowler: MonolithFirst](https://martinfowler.com/bliki/MonolithFirst.html)",
+      "- [Shopify: Deconstructing the Monolith](https://shopify.engineering/deconstructing-monolith-designing-software-maximizes-developer-productivity)",
+      "- [Segment: Goodbye Microservices](https://www.twilio.com/en-us/blog/developers/best-practices/goodbye-microservices)",
+      "- [Node.js: Packages](https://nodejs.org/api/packages.html)",
+      "- [Django 6.1: banyak database](https://docs.djangoproject.com/en/6.1/topics/db/multi-db/)",
+    ]);
+  });
+});
+
 describe("kunci kalimat dan sidik kata penentu (lapis 2 dan penutup mutasi tanpa kunci)", () => {
   const tekstual = (x: unknown, keluar: string[] = []): string[] => {
     if (typeof x === "string") keluar.push(x);
