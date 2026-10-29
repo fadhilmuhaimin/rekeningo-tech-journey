@@ -72,6 +72,17 @@ export function tampilTahap(semua: DataErd[], no: number, bayangan = true): Tabe
   return hasil;
 }
 
+/**
+ * Seperti tampilTahap untuk satu halaman: tahap yang selisihnya merujuk tahap di luar data halaman (Tahap 3 di halaman yang
+ * hanya memuat Tahap 3 dan 4) tampil tanpa status, karena pembandingnya tidak ada. tampilTahap tetap menolak data yang
+ * tidak lengkap; fungsi ini hanya dipakai widget, supaya tombol tahap pertama tidak melempar galat dan melepas seluruh widget.
+ */
+export function tampilTahapHalaman(semua: DataErd[], no: number, bayangan = true): TabelTampil[] {
+  const d = cariTahap(semua, no);
+  const lengkap = !d.selisih || semua.some((x) => x.tahap === d.selisih!.terhadap);
+  return tampilTahap(lengkap ? semua : semua.map((x) => (x === d ? { ...x, selisih: undefined } : x)), no, bayangan);
+}
+
 /** Sisi kiri mode bandingkan: tahap sebelumnya, dengan tabel dan kolom yang dihapus di tahap `no` ditandai. */
 export function tampilSebelum(semua: DataErd[], no: number): TabelTampil[] {
   const s = cariTahap(semua, no).selisih;

@@ -1101,6 +1101,8 @@ describe("blok Kunci dan struktur halaman", () => {
     expect((astro.match(/modul=\{modul\}/g) ?? []).length).toBe(2);
     const tsx = baca("situs/src/erd/ErdTumbuh.tsx");
     expect(tsx).toContain("className={`erd-tumbuh__kontrol${lebar === null ? \" is-belum\" : \"\"}`}");
+    expect((tsx.match(/tampilTahapHalaman\(/g) ?? []).length).toBe(3);
+    expect(tsx).not.toMatch(/[^a-zA-Z]tampilTahap\(/);
     const css = baca("situs/src/erd/erd-tumbuh.css");
     expect(css).toMatch(/\.erd-tumbuh__kontrol\.is-belum \{\n {2}visibility: hidden;\n\}/);
     expect(css).toMatch(/@media \(scripting: none\) \{\n {2}\.erd-tumbuh__kontrol \{\n {4}display: none;\n {2}\}\n\}/);

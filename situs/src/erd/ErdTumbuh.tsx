@@ -19,7 +19,7 @@ import type { DataErd, ModulErd } from "./skema";
 import { ringkasCek, ringkasIndex } from "./erd";
 import { muncul } from "../gerak/muncul";
 import {
-  LABEL_STATUS, UKURAN, ambangKolom, barisPindah, bisaBanding, duaBaris, duaKepala, modulTabel, namaTombol, ringkasan, ringkasModul, tampilSebelum, tampilTahap, tata, teksAturan,
+  LABEL_STATUS, UKURAN, ambangKolom, barisPindah, bisaBanding, duaBaris, duaKepala, modulTabel, namaTombol, ringkasan, ringkasModul, tampilSebelum, tampilTahapHalaman, tata, teksAturan,
   teksKolom, teksPindah, varPesan,
   type TabelTampil, type Tata, type TautanTahap,
 } from "./tumbuh";
@@ -251,12 +251,12 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [], mod
       banding && sebelum
         ? [
             { sisi: "kiri", tahap: sebelum, tabel: tampilSebelum(data, no), judul: `Tahap ${sebelum}, sebelum` },
-            { sisi: "kanan", tahap: no, tabel: tampilTahap(data, no, false), judul: `Tahap ${no}, sesudah` },
+            { sisi: "kanan", tahap: no, tabel: tampilTahapHalaman(data, no, false), judul: `Tahap ${no}, sesudah` },
           ]
-        : [{ sisi: "satu", tahap: no, tabel: tampilTahap(data, no), judul: `Tahap ${no}` }],
+        : [{ sisi: "satu", tahap: no, tabel: tampilTahapHalaman(data, no), judul: `Tahap ${no}` }],
     [data, no, banding, sebelum],
   );
-  const pesan = useMemo(() => varPesan(tampilTahap(data, awal)) as CSSProperties, [data, awal]);
+  const pesan = useMemo(() => varPesan(tampilTahapHalaman(data, awal)) as CSSProperties, [data, awal]);
   // Bandingkan berdampingan bila setiap sisi muat tata dua kolom (ambangKolom(2), 572 px) pada zoom ≥ 0,85 (desktop);
   // selain itu bertumpuk dengan zoom 1. Di 1366 px sisi selebar ±497 px: Tahap 1 dan 2 zoom ±0,87. Pengecualian yang
   // diterima (keputusan 964): tata Tahap 3 dua kolom 620 px karena 20 foreign key, jadi sisi kanan zoom ±0,80 (teks
