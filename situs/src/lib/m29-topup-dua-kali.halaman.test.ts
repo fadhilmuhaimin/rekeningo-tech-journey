@@ -226,6 +226,26 @@ describe("naskah M29: gejala, yang dikira, dan yang sebenarnya", () => {
     harus('Kalimat naskah "kiriman `dibayar` berikutnya dikredit lagi" terbaca dari kode, bukan dari rekaman.');
     expect(naskah).toContain('Dua hal tidak terekam. Kalimat "kiriman `dibayar` berikutnya dikredit lagi" hanya benar menurut kode `webhookV1`');
   });
+  test("kalimat Gejala dan catatan Angka cerita: angka dari baris naskah dan rekaman, bukan ditulis tangan", () => {
+    const m = cocok(barisM29, /Budi mengisi (Rp[\d.]+) dari rekening banknya\. Saldo di app naik dari (Rp[\d.]+) ke (Rp[\d.]+)\./);
+    harus(`Budi mengisi saldo ${m[1]} dari rekening banknya lewat app. Saldo di app naik dari ${m[2]} ke ${m[3]}.`);
+    harus(`Laporan gateway memuat satu pembayaran ${m[1]} dari Budi. Ledger memuat dua jurnal top-up untuk pembayaran itu.`);
+    harus(`*Angka cerita (Ilustrasi):* saldo ${m[2]} ke ${m[3]} dan laporan pencocokan Pak Hadi berasal dari naskah, bukan dari rekaman.`);
+    harus(`Kenaikannya sama, ${rp(650000 - 250000)} (Hitungan:`);
+    const naik = cocok(rBagA, /saldo Budi naik (Rp[\d.]+) untuk (Rp[\d.]+) yang dibayar\./);
+    expect(naik[1]).toBe(rp(650000 - 250000));
+    expect(naik[2]).toBe(m[1]);
+    harus(`Saldo Budi naik ${naik[1]} untuk ${naik[2]} yang dibayar.`);
+    harus("Paginya Pak Hadi mencocokkan laporan gateway dengan jurnal di ledger, seperti tiap hari.");
+    harus("Gateway tidak menerima jawaban 2xx. Handler sudah menyimpan jurnal dari kiriman pertama, tetapi balasan 200 tidak sampai.");
+    harus("Gateway tidak rusak. Ia mengirim ulang kabar yang tidak dijawab 2xx, dan handler pertama menambah saldo dari tiap kiriman yang datang.");
+    harus("Jawaban selain 2xx, juga timeout, dicatat sebagai kiriman yang belum berhasil.");
+    harus("Di lab `api-t4`, role aplikasi ditolak");
+    expect(skemaTxt).toContain("Role app (api_t4)");
+    harus("dua kiriman `evt-1` ke handler pertama, sampai HP Budi.");
+    harus(`pola yang sama dilihat dari sisi pengirim, di Tahap ${dari("t3-at-least-once").tahap}.`);
+    expect([...badan.matchAll(/^\*\*(\d)\.\*\* /gm)].map((x) => Number(x[1]))).toEqual([1, 2, 3]);
+  });
   test("pertanyaan Pak Hadi di minggu 2 dari naskah bagian 3, dan jawabannya 'dimulai di' 4.7 dan 4.9", () => {
     expect(naskah).toContain("Pak Hadi bertanya bagaimana ia tahu satu pembayaran di bank sama dengan satu jurnal di ledger.");
     harus("Di minggu 2 Pak Hadi bertanya bagaimana ia tahu satu pembayaran di bank sama dengan satu jurnal di ledger.");
@@ -447,6 +467,7 @@ describe("sumber luar: baris riset, tanggal akses, dan kutipan", () => {
     const tgl = cocok(badan, /\(dibuka (\d{4}-\d{2}-\d{2}), Tidak dijalankan\)/)[1]!;
     expect(tgl).toBe("2026-10-29");
     for (const id of IDS) expect(barisRiset(id), id).toContain(`dibuka ${tgl}`);
+    for (const id of ["R4-135", "R4-136"]) expect(barisRiset(id), id).toContain(`(dicek ulang ${tgl})`);
     expect(new Date(tgl).getTime()).toBeLessThanOrEqual(Date.now() + 86400000);
   });
   test("R4-135 dan R4-136: kutipan yang menopang kalimat halaman (duplikat, timeout, tiga hari, lima kali, jeda menit, tanpa merek di halaman)", () => {
@@ -634,6 +655,40 @@ describe("skenario alur t4-m29.json: valid, nilai dari rekaman, tebakan, dan var
     ]);
     expect(skenario.langkah.map((l) => l.nada)).toEqual([undefined, undefined, undefined, "warn", "warn", "warn", "warn"]);
     expect(skenario.varian.langkah.map((l) => l.nada)).toEqual([undefined, undefined, "warn", undefined, undefined]);
+  });
+  test("angka di teks skenario (di luar sumber dan label komponen): urutan dan nilai diturunkan dari rekaman, run.py, naskah, dan skema.txt", () => {
+    const angka = (s: string): string[] => s.replace(/Rp(?=\d)/g, "").match(/(?<![A-Za-z0-9.-])\d+(?:\.\d+)*(?![A-Za-z])/g) ?? [];
+    const daun = (o: unknown, jalur = ""): [string, string][] => {
+      if (typeof o === "string") return [[jalur, o]];
+      if (Array.isArray(o)) return o.flatMap((v, i) => daun(v, `${jalur}[${i}]`));
+      if (o && typeof o === "object") return Object.entries(o).flatMap(([k, v]) => daun(v, `${jalur}.${k}`));
+      return [];
+    };
+    const tokens = daun(skenario).filter(([j]) => !j.startsWith(".sumber") && !j.startsWith(".komponen")).flatMap(([, v]) => angka(v));
+    const NOM = titik(Number(cocok(runWebhook, /buat_topup\(budi, ([\d_]+)\)/)[1]!.replace(/_/g, "")));
+    const H200 = cocok(bagA, /hasil kiriman: (\d+) diproses/)[1]!;
+    const J = [...bagA.matchAll(/^ (\d+) +\| bank /gm)].map((x) => x[1]!);
+    expect(J).toEqual(["10201", "10202"]);
+    const ORDER = cocok(bagA, /<order (\d+)>/)[1]!;
+    const KALI = cocok(bagA, /"kali":(\d+)/)[1]!;
+    const AKUN = cocok(rentan, /GET '\/akun\/(\d+)'/)[1]!;
+    const AKHIR = cocok(rentan, /"saldo":(\d+)/)[1]!;
+    const AWAL = cocok(skemaTxt, / 419 +\| Budi +\| karyawan \| terverifikasi \| (\d+)/)[1]!;
+    const NAIK = titik(Number(AKHIR) - Number(AWAL));
+    const cerita = cocok(naskah.split("\n").find((b) => b.startsWith("| M29 |"))!, /naik dari (Rp[\d.]+) ke (Rp[\d.]+)\./);
+    const N0 = cerita[1]!.slice(2), N1 = cerita[2]!.slice(2);
+    const NOL = cocok(rBagA, /event_tercatat\n-+\n (\d+)\n/)[1]!;
+    const ADR = String(dari("t4-webhook").adr![0]);
+    const JAM = "12.05";
+    expect(tokens).toEqual([
+      NOM, JAM, NOM, H200, H200, H200, H200, NOL,
+      ORDER, KALI, NOM, J[0], J[0], NOM, NOM, H200, "1", H200, "2",
+      J[1], J[1], NOM, NOM, H200, H200, H200, H200,
+      NAIK, AKUN, AKHIR, AWAL, titik(Number(AWAL)), titik(Number(AKHIR)), NOM, N0, N1, JAM, NOM,
+      H200, "1", ADR, H200, "1", "2", H200, H200, JAM, NOM,
+    ]);
+    expect(N0).toBe("50.000");
+    expect(N1).toBe("450.000");
   });
   test("tanpa JavaScript: noscript memuat hasil tebakan dan varian dengan angka yang sama dengan rekaman; rekaman A dan B di lipatan", () => {
     const ns = cocok(badan, /<noscript>\n([\s\S]*?)<\/noscript>/)[1]!;
