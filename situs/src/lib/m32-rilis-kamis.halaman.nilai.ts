@@ -3,7 +3,7 @@
 // ulang pembangkit, dan baca selisihnya sebelum commit: sidik hanya menandai bahwa sesuatu berubah, bukan bahwa ia benar.
 export const SIDIK = {
   frontmatter: "d2599ecc4db70c05",
-  riset: ["2d55ece6795162a3","31d997a5bb21787d","c77d2801b54c4a69","edecd1de8950e2d3"],
+  riset: ["95ef53b340dce350","31d997a5bb21787d","c77d2801b54c4a69","edecd1de8950e2d3"],
   diagram: "d17f9a9bffa401ac",
   skenario: "505961dbfd4e74b0",
 };
@@ -11,7 +11,7 @@ export const SIDIK = {
 // Nilai terpisah dari kalimat terkunci: empat baris riset utuh, tiap daun diagram dan skenario, dan profil kata penentu
 // per baris badan (polaritas, urutan waktu, bilangan, tokoh, hari, urutan gateway, label sumber).
 export const RISET_TERKUNCI: string[] = [
-  "| R4-165 | Kode galat PostgreSQL 42703, 42P01, dan 42501 (dibuka untuk halaman 4.12) | PostgreSQL 17.11 Documentation, Appendix A \"PostgreSQL Error Codes\", Table A.1, Class 42 \"Syntax Error or Access Rule Violation\" (postgresql.org/docs/17/errcodes-appendix.html, dibuka 2026-10-29): `42703` `undefined_column`, `42P01` `undefined_table`, `42501` `insufficient_privilege` | 4.12 (Tebak dulu: arti 42703 satu kalimat; noscript menyebut 42P01 dan 42501 dari rekaman bagian B) | Tidak berubah |",
+  "| R4-165 | Kode galat PostgreSQL 42703, 42P01, dan 42501 (dibuka untuk halaman 4.12) | PostgreSQL 17.11 Documentation, Appendix A \"PostgreSQL Error Codes\", Table A.1, Class 42 \"Syntax Error or Access Rule Violation\" (postgresql.org/docs/17/errcodes-appendix.html, dibuka 2026-10-29): `42703` `undefined_column`, `42P01` `undefined_table`, `42501` `insufficient_privilege`; pengantar lampiran: \"All messages emitted by the PostgreSQL server are assigned five-character error codes that follow the SQL standard's conventions for SQLSTATE codes.\" (tanda kutip ganda di sekitar SQLSTATE pada sumber ditulis lurus) | 4.12 (Tebak dulu: arti 42703 satu kalimat; noscript menyebut 42P01 dan 42501 dari rekaman bagian B) | Tidak berubah |",
   "| R4-166 | ALTER TABLE ... RENAME COLUMN: yang dijanjikan dokumentasi (dibuka untuk halaman 4.12) | PostgreSQL 17 Documentation, ALTER TABLE (postgresql.org/docs/17/sql-altertable.html, dibuka 2026-10-29), bagian Description: \"The RENAME forms change the name of a table (or an index, sequence, view, materialized view, or foreign table), the name of an individual column in a table, or the name of a constraint of the table. When renaming a constraint that has an underlying index, the index is renamed as well. There is no effect on the stored data.\"; contoh `ALTER TABLE distributors RENAME COLUMN address TO city;`; halaman itu tidak menyebut akibat rename pada query yang masih memakai nama lama, jadi akibat itu hanya ada di rekaman (`batas.txt` bagian A, 42703) | 4.12 (Yang sebenarnya: rename mengganti nama kolom dan tidak mengubah data tersimpan; akibatnya pada query ditulis dari rekaman, bukan dari dokumentasi) | Tidak berubah |",
   "| R4-167 | Integration Database: database bersama sebagai titik kopling (dibuka untuk halaman 4.12) | Martin Fowler, \"Integration Database\" (martinfowler.com/bliki/IntegrationDatabase.html, terbit 25 Mei 2004, diperbarui 2015-07-01, dibuka 2026-10-29): \"An integration database is a database which acts as the data store for multiple applications, and thus integrates data across these applications\"; \"On the whole integration databases lead to serious problems becaue the database becomes a point of coupling between the applications that access it.\"; \"This is usually a deep coupling that significantly increases the risk involved in changing those applications and making it harder to evolve them.\" Tulisan itu membahas beberapa aplikasi yang berbagi satu database, bukan modul dari tiga tim di satu aplikasi: halaman menulisnya sebagai analogi (tingkat 4, tulisan praktisi, atribusi bukan fakta) | 4.12 (Yang sebenarnya: kalimat \"point of coupling\" dengan atribusi dan satu kalimat batas analogi) | Tidak berubah |",
   "| R4-168 | Rekaman dan kode lab t4-modul untuk M32 (dibaca untuk halaman 4.12, tanpa menjalankan ulang) | `labs/t4-modul/output/batas.txt` bagian A (tiga langkah CI lolos tanpa koneksi database; sebelum rename `TeksTopupLangsung` menjawab \"Top-up Rp200000 masuk ke Budi\"; sesudah rename `column \"nama\" does not exist (42703)`) dan bagian B (`relation \"akun\" does not exist (42P01)`, `permission denied for schema t4m_akun (42501)`, kontrol role `t4m_akun` berhasil, rename oleh pemilik schema akun tidak mematahkan `pembayaran.TeksTopup`); kepala rekaman: PostgreSQL 17.11, go1.27.1, pgx v5.11.0. Kode: `labs/api-t4/internal/modul/pembayaran/notifikasi.go` baris 24 sampai 30 (`SELECT nama FROM akun WHERE id = $1`), `notifikasi_test.go` baris 33 sampai 46 (driver tiruan membalas satu baris \"Budi\" untuk perintah apa pun), `labs/api-t4/internal/modul/satu_test.go` (rename oleh role pemilik). `labs/api-t4/internal/service/pembayaran.go` tidak punya SQL sendiri yang memilih `nama`, tetapi `BuatTopupBank` memanggil `repo.Akun` (`repo.go` baris 34 sampai 40, `SELECT a.id, a.jenis, a.nama, ...`); `labs/api-t4/internal/repo` membaca `a.nama` di `Akun`, `AkunBO`, `Katalog`, `CekCache`, `TutupBuku`, dan satu query QR di `qr.go` (dibaca dari kode, tidak dijalankan sesudah rename) | 4.12 (semua angka, kode galat, dan pernyataan \"dibaca dari kode\") | Tidak berubah |"
@@ -500,7 +500,8 @@ export const PROFIL_BARIS: string[] = [
  "nama:1",
  "sesudah:1 satu:1",
  "nama:1",
- "tidak:2 sama:1 sebelum:1 satu:1 Ilustrasi:1 gagal:1",
+ "tidak:1 sama:1 sebelum:1 satu:1 gagal:1",
+ "tidak:1 hanya:1 satu:1 Ilustrasi:1",
  "",
  "tidak:1 sesudah:1 satu:1 tiga:1 lolos:1 42703:1 nama:1",
  "sama:1 42P01:1 42501:1",
@@ -588,7 +589,8 @@ export const KALIMAT_TERKUNCI: string[] = [
   "<Blok nama=\"Coba sendiri\">",
   "Widget ini mengikuti rekaman `batas.txt` bagian A, dengan satu varian dari bagian B. Tebak dulu apa yang terjadi pada kode top-up sesudah rename, lalu tekan Berikutnya atau panah kanan.",
   "<WidgetLama nama=\"alur\" src=\"data/skenario/t4-m32.json\" />",
-  "Sesudah langkah terakhir, centang **Ubah satu hal: modul pembayaran dan modul akun dipisah schema dan role**. Kode pembayaran yang sama gagal sejak sebelum rename, dan rename kolom tidak mematahkan modul lain. Cara pemisahan dan alasan memilihnya ada di [[t4-modul]]. Layar HP digambar dari cerita (Ilustrasi): lab tidak punya app Flutter.",
+  "Sesudah langkah terakhir, centang **Ubah satu hal: modul pembayaran dan modul akun dipisah schema dan role**. Kode pembayaran yang sama gagal sejak sebelum rename, dan rename kolom tidak mematahkan modul lain. Cara pemisahan dan alasan memilihnya ada di [[t4-modul]].",
+  "Di lab hanya modul pembayaran, yang berjalan sebagai service sendiri, memakai role modulnya sendiri. Modul lain di proses monolith berbagi satu role. Layar HP digambar dari cerita (Ilustrasi): lab tidak punya app Flutter.",
   "<noscript>",
   "Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: tiga langkah CI lolos, lalu sesudah rename `pembayaran.TeksTopupLangsung` dijawab `column \"nama\" does not exist` (42703).",
   "Bila modul dipisah schema dan role, kode yang sama dijawab `relation \"akun\" does not exist` (42P01) atau `permission denied for schema t4m_akun` (42501). Rekaman bagian B ada di lipatan di bawah.",

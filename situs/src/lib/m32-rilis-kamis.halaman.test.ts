@@ -73,7 +73,7 @@ interface Skenario {
   langkah: Langkah[];
   varian: { label: string; mulai: number; langkah: Langkah[] };
 }
-interface H { id: string; judul: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
+interface H { id: string; judul: string; label?: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
 const hal = cerita.halaman as unknown as H[];
 const dari = (id: string): H => {
   const h = hal.find((x) => x.id === id);
@@ -304,6 +304,9 @@ describe("rekaman batas.txt: bagian A dan B, nilai yang dikutip, dan rentang Sni
     expect(ns).toContain("Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia.");
     expect(ns).toContain("Rekaman bagian B ada di lipatan di bawah.");
     harus("Kode pembayaran yang sama gagal sejak sebelum rename, dan rename kolom tidak mematahkan modul lain.");
+    harus("Di lab hanya modul pembayaran, yang berjalan sebagai service sendiri, memakai role modulnya sendiri. Modul lain di proses monolith berbagi satu role.");
+    expect(readmeModul).toContain("proses monolith memakai satu role, `t4m_monolit`, yang mewarisi lima role modul");
+    expect(readmeModul).toContain("Role `t4m_pembayaran` dipakai sungguhan oleh proses terpisah.");
     expect(readmeModul).toContain("kode itu tidak bisa jalan sama sekali sebelum rename");
   });
   test("rentang Snippet diturunkan dari baris rekaman dan kode, bukan ditulis tangan; berkas dan judul sesuai; urutan di halaman", () => {
@@ -430,6 +433,7 @@ describe("ADR 17, kolom sebagai kopling, dan dokumentasi: dibaca dari sumber", (
     expect(b).toContain("`42P01` `undefined_table`");
     expect(b).toContain("`42501` `insufficient_privilege`");
     expect(b).toContain("PostgreSQL 17.11 Documentation");
+    expect(b).toContain("five-character error codes that follow the SQL standard's conventions for SQLSTATE codes");
     harus("SQLSTATE adalah kode lima karakter yang dipakai PostgreSQL untuk jenis galat. Kode 42703 berarti kolom tidak ada (");
     expect(b.includes(KODE_A) && b.includes(KODE_B1) && b.includes(KODE_B2)).toBe(true);
   });

@@ -94,7 +94,9 @@ Widget ini mengikuti rekaman `batas.txt` bagian A, dengan satu varian dari bagia
 
 <WidgetLama nama="alur" src="data/skenario/t4-m32.json" />
 
-Sesudah langkah terakhir, centang **Ubah satu hal: modul pembayaran dan modul akun dipisah schema dan role**. Kode pembayaran yang sama gagal sejak sebelum rename, dan rename kolom tidak mematahkan modul lain. Cara pemisahan dan alasan memilihnya ada di [[t4-modul]]. Layar HP digambar dari cerita (Ilustrasi): lab tidak punya app Flutter.
+Sesudah langkah terakhir, centang **Ubah satu hal: modul pembayaran dan modul akun dipisah schema dan role**. Kode pembayaran yang sama gagal sejak sebelum rename, dan rename kolom tidak mematahkan modul lain. Cara pemisahan dan alasan memilihnya ada di [[t4-modul]].
+
+Di lab hanya modul pembayaran, yang berjalan sebagai service sendiri, memakai role modulnya sendiri. Modul lain di proses monolith berbagi satu role. Layar HP digambar dari cerita (Ilustrasi): lab tidak punya app Flutter.
 
 <noscript>
 Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: tiga langkah CI lolos, lalu sesudah rename `pembayaran.TeksTopupLangsung` dijawab `column "nama" does not exist` (42703).
