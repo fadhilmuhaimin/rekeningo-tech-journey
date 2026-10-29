@@ -146,9 +146,9 @@
  {
   "t": "ADR (Architecture Decision Record)",
   "d": "Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.",
-  "b": "D5",
-  "n": "Template ADR (versi lama)",
-  "u": "/d-system-design/d5-adr/",
+  "b": "t4-modul",
+  "n": "4.13 Modular monolith",
+  "u": "/tahap-4/modular-monolith/",
   "s": "istilah-adr",
   "h": null
  },
@@ -223,6 +223,15 @@
   "u": "/tahap-2/retry-idempotency/",
   "s": "istilah-backoff",
   "h": "/istilah/backoff/"
+ },
+ {
+  "t": "Backup dan uji pulih",
+  "d": "Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai.",
+  "b": "t4-m33",
+  "n": "4.14 M33",
+  "u": "/tahap-4/m33-uji-pulih/",
+  "s": "istilah-backup-dan-uji-pulih",
+  "h": "/istilah/backup-dan-uji-pulih/"
  },
  {
   "t": "BFF (Backend for Frontend)",
@@ -938,11 +947,11 @@
  {
   "t": "Modular monolith",
   "d": "Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.",
-  "b": "B7.2",
-  "n": "Modular monolith (versi lama)",
-  "u": "/b-fondasi/b7-2-batas-modul/",
+  "b": "t4-modul",
+  "n": "4.13 Modular monolith",
+  "u": "/tahap-4/modular-monolith/",
   "s": "istilah-modular-monolith",
-  "h": null
+  "h": "/istilah/modular-monolith/"
  },
  {
   "t": "Monolith",

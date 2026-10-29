@@ -2792,6 +2792,94 @@
   "jawab": "Breaker bawaan menghitung 4xx sebagai gagal, membuka, dan menjeda 4 pengajuan sehat di belakang dokumen rusak (`lajur.txt` bagian D). Penilaian ADR 36 tidak membukanya, jadi 4 pengajuan sehat lulus. Enam dokumen rusak tetap memakai lima percobaan, sehingga 10 pengajuan menghasilkan 34 permintaan (bagian E)."
  },
  {
+  "id": "t4-m32-1",
+  "halaman": "t4-m32",
+  "judul": "4.12 M32: Rilis Kamis memecahkan top-up",
+  "url": "tahap-4/m32-rilis-kamis/",
+  "tanya": "Tes tim Pembayaran hijau sebelum dan sesudah migration Merchant, tetapi top-up gagal. Kenapa tesnya tidak menangkapnya?",
+  "jawab": "Tesnya memakai driver tiruan, yang tidak membuka koneksi. Driver itu membalas satu baris \"Budi\" untuk perintah apa pun, jadi skema tidak ikut diuji (Tidak dijalankan: dibaca dari `notifikasi_test.go`). Terhadap database, fungsi yang sama dijawab `column \"nama\" does not exist` (`batas.txt` bagian A)."
+ },
+ {
+  "id": "t4-m32-2",
+  "halaman": "t4-m32",
+  "judul": "4.12 M32: Rilis Kamis memecahkan top-up",
+  "url": "tahap-4/m32-rilis-kamis/",
+  "tanya": "Kenapa halaman ini menyebut `TeksTopupLangsung` Ilustrasi mekanisme, bukan rekaman kode top-up?",
+  "jawab": "Kode top-up di `labs/api-t4` tidak memilih `nama` dengan SQL sendiri. Ia membaca kolom itu lewat `repo.Akun` (Tidak dijalankan: dibaca dari kode). Rekaman tidak menjalankan jalur itu. `TeksTopupLangsung` ditulis lab mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Rekaman membuktikan mekanismenya, bukan kode produksi."
+ },
+ {
+  "id": "t4-m32-3",
+  "halaman": "t4-m32",
+  "judul": "4.12 M32: Rilis Kamis memecahkan top-up",
+  "url": "tahap-4/m32-rilis-kamis/",
+  "tanya": "Kenapa ADR 17 tidak menghentikan migration Merchant?",
+  "jawab": "Aturan 1 memisahkan expand dan contract dan berlaku untuk tabel `akun`, tetapi satu `RENAME COLUMN` menjalankan keduanya sekaligus (Tidak dijalankan: dibaca dari ADR 17). Di cerita tidak ada pemeriksaan yang menjalankan aturan itu sebelum rilis (Ilustrasi)."
+ },
+ {
+  "id": "t4-modul-1",
+  "halaman": "t4-modul",
+  "judul": "4.13 Modular monolith, CODEOWNERS, ADR wajib + ADR 37",
+  "url": "tahap-4/modular-monolith/",
+  "tanya": "Role pembayaran menjalankan `SELECT nama FROM akun` apa adanya sesudah modul dipisah. Apa jawaban PostgreSQL, dan kenapa bukan `permission denied`?",
+  "jawab": "`relation \"akun\" does not exist` (42P01). `search_path` role pembayaran hanya memuat schema pembayaran, jadi tabel akun tidak ditemukan. `permission denied for schema t4m_akun` (42501) muncul bila SQL memakai awalan schema (`batas.txt` bagian B)."
+ },
+ {
+  "id": "t4-modul-2",
+  "halaman": "t4-modul",
+  "judul": "4.13 Modular monolith, CODEOWNERS, ADR wajib + ADR 37",
+  "url": "tahap-4/modular-monolith/",
+  "tanya": "Role pembayaran tidak punya hak apa pun di schema akun, tetapi menulis `topup_bank` untuk akun yang ada berhasil. Kenapa, dan apa akibatnya bila database dipisah?",
+  "jawab": "Pemeriksaan kunci asing berjalan sebagai pemilik tabel yang dirujuk, menurut kode sumber PostgreSQL 17. Akun yang tidak ada ditolak 23503. Ada 21 kunci asing lintas schema, jadi memisahkan database fisik berarti membuangnya (Tidak dijalankan)."
+ },
+ {
+  "id": "t4-modul-3",
+  "halaman": "t4-modul",
+  "judul": "4.13 Modular monolith, CODEOWNERS, ADR wajib + ADR 37",
+  "url": "tahap-4/modular-monolith/",
+  "tanya": "Service pembayaran mati sesudah ledger menjurnal, lalu gateway mengirim ulang kabarnya. Berapa jurnal ada pada kiriman ulang +23 jam dan +25 jam?",
+  "jawab": "Satu jurnal pada +23 jam, karena key ledger masih hidup. Dua jurnal pada +25 jam: key sudah habis dan `topup_bank` masih `menunggu`. Rekonsiliasi harian membaca Rp150.000 dari Rp300.000 yang dikreditkan (`proses-mati.txt` bagian C)."
+ },
+ {
+  "id": "t4-modul-4",
+  "halaman": "t4-modul",
+  "judul": "4.13 Modular monolith, CODEOWNERS, ADR wajib + ADR 37",
+  "url": "tahap-4/modular-monolith/",
+  "tanya": "Proses monolith memakai satu role untuk lima modul. Apa akibatnya bagi batas antar modul di dalam proses itu?",
+  "jawab": "Database tidak menahan modul membaca tabel modul lain, karena `t4m_monolit` mewarisi lima role dan membaca 17 tabel. Batas di sana hanya `internal/` untuk paket baru, review, dan tes kontrak."
+ },
+ {
+  "id": "t4-modul-5",
+  "halaman": "t4-modul",
+  "judul": "4.13 Modular monolith, CODEOWNERS, ADR wajib + ADR 37",
+  "url": "tahap-4/modular-monolith/",
+  "tanya": "Apa yang CODEOWNERS lakukan sendiri, dan apa yang butuh branch protection?",
+  "jawab": "CODEOWNERS menunjuk pemilik dan meminta mereka me-review PR yang menyentuh pola mereka. Review wajib baru berlaku bila admin menyalakan \"Require review from Code Owners\". Apakah paket repositori pemilik mengizinkannya [perlu verifikasi]."
+ },
+ {
+  "id": "t4-m33-1",
+  "halaman": "t4-m33",
+  "judul": "4.14 M33: Uji pulih mingguan makin lama",
+  "url": "tahap-4/m33-uji-pulih/",
+  "tanya": "Disk staging ditambah, tetapi uji pulih tetap makin lama. Kenapa disk bukan sebabnya?",
+  "jawab": "Disk menampung hasil pemulihan, tetapi tidak mengubah isi dump. Dalam 28 hari ada 28 GB file lawan 0,84 GB posting, jadi file 97,1% dari file dan posting (Hitungan atas Asumsi). Rekaman memberi rasio dump terhadap file 1,1 (`ukuran.txt` bagian A)."
+ },
+ {
+  "id": "t4-m33-2",
+  "halaman": "t4-m33",
+  "judul": "4.14 M33: Uji pulih mingguan makin lama",
+  "url": "tahap-4/m33-uji-pulih/",
+  "tanya": "Dump `-Fc` terkompresi, tetapi rasionya terhadap file 1,1, bukan di bawah 1. Kenapa, dan di mana angka itu belum tentu berlaku?",
+  "jawab": "Isi file di lab adalah byte acak, yang tidak bisa dimampatkan, dan `bytea` ditulis sebagai heksadesimal (`ukuran.txt` bagian A). Foto JPEG nyata sudah terkompresi, jadi rasionya mungkin mirip, tetapi rasio foto nyata tidak diukur (Ilustrasi)."
+ },
+ {
+  "id": "t4-m33-3",
+  "halaman": "t4-m33",
+  "judul": "4.14 M33: Uji pulih mingguan makin lama",
+  "url": "tahap-4/m33-uji-pulih/",
+  "tanya": "Dump di penyimpanan objek hampir tidak membesar. Apakah file sudah aman tercadangkan?",
+  "jawab": "Belum. Dump tidak membawa file, jadi file perlu cadangan sendiri. Pencadangan penyimpanan objek Tidak dijalankan di lab (`ukuran.txt` bagian C)."
+ },
+ {
   "id": "t4-storage-1",
   "halaman": "t4-storage",
   "judul": "4.15 Keamanan 7: File identitas: object storage, presigned URL + ADR 38",
