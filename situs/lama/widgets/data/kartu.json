@@ -2565,7 +2565,7 @@
   "judul": "4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya",
   "url": "tahap-4/skema-data/",
   "tanya": "Kenapa `jurnal` tidak mendapat kolom untuk top-up dari bank?",
-  "jawab": "Pencocokan top-up dan jurnal ada di `topup_bank`: `order_id` UNIK, dan `jurnal_id` UNIK menunjuk jurnalnya. Baris kedua dengan `order_id` yang sama ditolak dengan SQLSTATE 23505. `jurnal` hanya menerima nilai `jenis` baru, `topup_bank`."
+  "jawab": "Pencocokan top-up dan jurnal ada di `topup_bank`: `order_id` UNIK, dan `jurnal_id` UNIK menunjuk jurnalnya. Baris kedua dengan `order_id` yang sama ditolak dengan SQLSTATE 23505. `jurnal` hanya menerima nilai `jenis` baru, termasuk `topup_bank`."
  },
  {
   "id": "t4-skema-3",
