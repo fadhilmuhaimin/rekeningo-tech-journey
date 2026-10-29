@@ -19,9 +19,9 @@ Saldo naik karena gateway memberi tahu. Tingkat akun naik karena verifikasi lulu
 
 <Rantai data={intiDiagram} ringkas />
 
-Budi memilih top-up Rp200.000, dan server menjawab `201` dengan tujuan bayar. Statusnya `menunggu`, saldonya masih Rp250.000, dan belum ada jurnal (rekaman lab `topup.txt` bagian A). Saldo baru naik sesudah gateway mengirim webhook bertanda tangan, dan saldo Budi menjadi Rp450.000 (bagian B).
+Budi memilih top-up Rp200.000, dan server menjawab `201` dengan tujuan bayar (nomor untuk membayar di app bank). Statusnya `menunggu`, saldonya masih Rp250.000, dan belum ada jurnal (rekaman lab `topup.txt` bagian A). Saldo baru naik sesudah gateway mengirim webhook bertanda tangan, dan saldo Budi menjadi Rp450.000 (bagian B).
 
-Dina baru mendaftar dan belum terverifikasi, jadi kiriman ke rekan dijawab `403`. Ia mengirim foto kartu identitas dan swafoto (foto wajahnya sendiri), dan server menjawab `202` tanpa menunggu siapa pun. Worker memanggil layanan verifikasi sesudahnya, pengajuan `lulus`, dan tingkat Dina menjadi `terverifikasi` (`verifikasi.txt` bagian A sampai C).
+Dina belum terverifikasi, jadi kiriman ke rekan dijawab `403`. Ia mengirim foto kartu identitas dan swafoto (foto wajahnya sendiri), dan server menjawab `202` tanpa menunggu siapa pun. Worker memanggil layanan verifikasi sesudahnya, pengajuan `lulus`, dan tingkat Dina menjadi `terverifikasi` (`verifikasi.txt` bagian A sampai C).
 
 ### Baris PRD
 
@@ -74,7 +74,7 @@ Layar HP digambar dari isi rekaman. File yang dikirim lab adalah PNG satu piksel
 
 ### Top-up: baris dulu, gateway kemudian
 
-`POST /topup-bank` menulis baris `topup_bank` lebih dulu, lalu memanggil gateway di luar transaction. Panggilan itu memakai `order_id` sebagai Idempotency-Key dan batas waktu 3 detik. Jawaban gateway menentukan status barisnya:
+`POST /topup-bank` menulis baris `topup_bank` lebih dulu, lalu memanggil gateway di luar transaction. Panggilan itu memakai `order_id` sebagai Idempotency-Key dan batas waktu 3 detik (bawaan server; rekaman memakai 500 ms supaya cepat). Jawaban gateway menentukan status barisnya:
 
 <Snippet file="labs/api-t4/internal/service/pembayaran.go" lines="133:159" lang="go" title="labs/api-t4/internal/service/pembayaran.go" />
 
@@ -100,7 +100,7 @@ Sesudah Budi membayar, gateway mengirim webhook. Server memeriksa tanda tangan a
 
 <Snippet file="labs/api-t4/output/topup.txt" lines="27:49" title="Rekaman lab: labs/api-t4/output/topup.txt (bagian B)" />
 
-Enam kiriman yang dimanipulasi di bagian E dijawab `401`: tanpa tanda tangan, rahasia lain, isi diubah, JSON ditulis ulang, dan timestamp 400 detik lalu atau di depan (toleransi 300 detik, Asumsi). Jawaban `200` dikirim hanya sesudah COMMIT. Kiriman yang sama bisa datang dua kali, dan itu dibahas di [[t4-m29]] dan [[t4-webhook]].
+Enam kiriman yang dimanipulasi di bagian E dijawab `401`. Keenamnya: tanpa tanda tangan, rahasia lain, isi diubah, JSON ditulis ulang, serta timestamp 400 detik lalu dan di depan (toleransi 300 detik, Asumsi). Jawaban `200` dikirim hanya sesudah COMMIT. Kiriman yang sama bisa datang dua kali, dan itu dibahas di [[t4-m29]] dan [[t4-webhook]].
 
 Pemberitahuan ke Budi ikut ditulis di transaction yang sama dan dikirim worker sesudah COMMIT, seperti di [[t3-notifikasi]]. Baris outbox top-up bank berkelas 0, seperti bayar dan transfer di Tahap 3 (bagian B).
 
@@ -195,7 +195,7 @@ Kerangka ini mengambil dua foto dan mengirimkannya sebagai base64:
 
 <Snippet lang="dart" code={`final picker = ImagePicker();
 
-// Kartu identitas: kamera belakang (bawaan). Swafoto: kamera depan.
+// Kartu identitas: kamera belakang (bawaan). Swafoto: minta kamera depan.
 final XFile? kartu = await picker.pickImage(
   source: ImageSource.camera,
   maxWidth: lebarMaksFoto,
@@ -217,7 +217,12 @@ final pengajuan = await api.ajukanVerifikasi(
 
 *Tidak dijalankan. Kerangkanya dari [image_picker 1.2.4](https://pub.dev/packages/image_picker) dan [XFile di cross_file 0.4.0](https://pub.dev/documentation/cross_file/latest/cross_file/XFile-class.html). Keduanya dibuka 2026-10-29. `lebarMaksFoto`, `kualitasFoto`, dan `api.ajukanVerifikasi` buatan sendiri; nilai dua konstanta pertama harus diukur terhadap batas 1 MiB di bawah.*
 
-Tiga hal dari dokumentasinya memengaruhi layar ini. `pickImage` memakai kamera belakang bawaan, dan `preferredCameraDevice` memilih kamera depan untuk swafoto ([API pickImage](https://pub.dev/documentation/image_picker/latest/image_picker/ImagePicker/pickImage.html)). Di iOS, `Info.plist` harus memuat `NSCameraUsageDescription`, sedangkan di Android readme menulis tidak ada konfigurasi tambahan ([readme image_picker](https://pub.dev/packages/image_picker)). Dan `maxWidth`, `maxHeight`, serta `imageQuality` hanya mengecilkan jenis gambar tertentu: JPEG, dan di Android juga PNG dan WebP.
+Empat hal dari dokumentasinya memengaruhi layar ini:
+
+- `pickImage` memakai kamera belakang bawaan, dan `preferredCameraDevice` meminta kamera depan untuk swafoto. Di Android permintaan itu tidak dijamin berhasil: dokumentasinya menulis Android tidak punya parameter terdokumentasi untuk memilih kamera ([API pickImage](https://pub.dev/documentation/image_picker/latest/image_picker/ImagePicker/pickImage.html)).
+- Di iOS, `Info.plist` harus memuat `NSCameraUsageDescription`, sedangkan di Android readme menulis tidak ada konfigurasi tambahan ([readme image_picker](https://pub.dev/packages/image_picker)).
+- `imageQuality` hanya memampatkan jenis gambar tertentu, misalnya JPEG, dan di Android juga PNG dan WebP. Untuk jenis lain pustaka mencatat peringatan.
+- `maxWidth` dan `maxHeight` membatasi lebar dan tinggi gambar paling besar.
 
 Server menolak file lebih dari 1 MiB (Asumsi lab, dibaca dari kode), jadi app mengecilkan foto lebih dulu dan memeriksa ukuran hasilnya. Base64 menambah sepertiga. Dua file 1 MiB menjadi 2 × 4 ÷ 3 = 2,67 MiB di satu JSON (Hitungan). Server menerima body paling besar 3 MiB (dibaca dari kode).
 

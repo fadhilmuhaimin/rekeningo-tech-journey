@@ -171,7 +171,7 @@
     {
       "dari": "worker",
       "ke": "app",
-      "judul": "Worker mengirim pemberitahuan, saldo Budi naik",
+      "judul": "Worker mengirim pemberitahuan, app menampilkan saldo baru",
       "kirim": "$ ./api-t4 -peran worker -sekali\nworker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0\npush tiruan menerima: 1 pesan\nGET /akun/419 → saldo 450000",
       "jelas": "Pemberitahuan lewat layanan push tiruan, seperti di Tahap 3. Saldo Rp450.000 dibaca dari server, bukan dihitung app.",
       "nada": "good",

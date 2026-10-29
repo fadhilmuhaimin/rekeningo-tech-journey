@@ -141,7 +141,7 @@
       "ke": "api",
       "judul": "Kiriman yang tadi ditolak kini lolos",
       "kirim": "POST /kiriman → 201 {\"id\":10201,\"saldo\":890000,\"sisa_batas_harian\":490000}",
-      "jelas": "Kiriman yang sama dengan langkah 1 sekarang diterima. Dina terverifikasi, jadi batas saldonya naik dari Rp1.000.000 ke Rp10.000.000 (Asumsi produk).",
+      "jelas": "Kiriman yang sama dengan langkah 1 sekarang diterima, karena Dina terverifikasi. Batas saldonya juga naik dari Rp1.000.000 ke Rp10.000.000 (Asumsi produk).",
       "nada": "good",
       "layar": {
         "dina": {

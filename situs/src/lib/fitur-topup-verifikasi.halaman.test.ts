@@ -269,7 +269,7 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
 
 describe("fitur-topup-verifikasi.mdx: tiap angka turunan dari rekaman, kode, dan naskah", () => {
   test("Inti dan Rantai", () => {
-    harus(`Budi memilih top-up ${rp(jumlahTopup)}, dan server menjawab \`201\` dengan tujuan bayar. Statusnya \`${statusA}\`, saldonya masih ${rp(saldoAwal)}, dan belum ada jurnal (rekaman lab \`topup.txt\` bagian A).`);
+    harus(`Budi memilih top-up ${rp(jumlahTopup)}, dan server menjawab \`201\` dengan tujuan bayar (nomor untuk membayar di app bank). Statusnya \`${statusA}\`, saldonya masih ${rp(saldoAwal)}, dan belum ada jurnal (rekaman lab \`topup.txt\` bagian A).`);
     harus(`dan saldo Budi menjadi ${rp(saldoAkhir)} (bagian B).`);
     harus("jadi kiriman ke rekan dijawab `403`.");
     harus("server menjawab `202` tanpa menunggu siapa pun.");
@@ -374,9 +374,9 @@ describe("fitur-topup-verifikasi.mdx: tiap angka turunan dari rekaman, kode, dan
   });
 
   test("Backend: status, tingkat, batas saldo, verifikasi, batas laju", () => {
-    harus("Panggilan itu memakai `order_id` sebagai Idempotency-Key dan batas waktu 3 detik.");
+    harus(`Panggilan itu memakai \`order_id\` sebagai Idempotency-Key dan batas waktu 3 detik (bawaan server; rekaman memakai ${timeoutPendek} ms supaya cepat).`);
     harus(`Kode memetakan settlement ke \`${statusGateway.settlement}\`, pending ke \`${statusGateway.pending}\`, expire ke \`${statusGateway.expire}\`, dan failure ke \`${statusGateway.failure}\` (Tidak dijalankan: dibaca dari kode).`);
-    harus(`Enam kiriman yang dimanipulasi di bagian E dijawab \`401\`: tanpa tanda tangan, rahasia lain, isi diubah, JSON ditulis ulang, dan timestamp ${geser} detik lalu atau di depan (toleransi ${toleransi} detik, Asumsi).`);
+    harus(`Enam kiriman yang dimanipulasi di bagian E dijawab \`401\`. Keenamnya: tanpa tanda tangan, rahasia lain, isi diubah, JSON ditulis ulang, serta timestamp ${geser} detik lalu dan di depan (toleransi ${toleransi} detik, Asumsi).`);
     expect(TE.filter((b) => /^(tanpa tanda tangan|rahasia lain|isi diubah|JSON ditulis ulang|timestamp)/.test(b) && /: 401$/.test(b))).toHaveLength(6);
     expect(TE.some((b) => b.startsWith(`timestamp ${geser} detik di depan: 401`))).toBe(true);
     harus(`order berlaku ${umurTopupJam} jam sejak dibuat (Asumsi lab)`);
@@ -430,7 +430,7 @@ describe("fitur-topup-verifikasi.mdx: tiap angka turunan dari rekaman, kode, dan
   test("Di app: dokumentasi image_picker 1.2.4, cross_file 0.4.0, dan batas ukuran dari kode", () => {
     harus("[image_picker 1.2.4](https://pub.dev/packages/image_picker)");
     harus("[XFile di cross_file 0.4.0](https://pub.dev/documentation/cross_file/latest/cross_file/XFile-class.html)");
-    harus("`pickImage` memakai kamera belakang bawaan, dan `preferredCameraDevice` memilih kamera depan untuk swafoto");
+    harus("`pickImage` memakai kamera belakang bawaan, dan `preferredCameraDevice` meminta kamera depan untuk swafoto. Di Android permintaan itu tidak dijamin berhasil: dokumentasinya menulis Android tidak punya parameter terdokumentasi untuk memilih kamera");
     harus("`Info.plist` harus memuat `NSCameraUsageDescription`");
     harus("JPEG, dan di Android juga PNG dan WebP");
     const dart = halaman.match(/<Snippet lang="dart" code=\{`([^`]+)`\} \/>/)![1]!;
@@ -497,7 +497,7 @@ describe("fitur-topup-verifikasi.mdx: tiap angka turunan dari rekaman, kode, dan
       rp(jumlahTopup), rp(saldoAwal), rp(saldoAkhir), rp(batasBelum), rp(batasVerif), rp(saldoDina), rp(60000),
       titik(saldoDina), titik(60000), titik(saldoDinaSesudah), titik(saldoDinaSesudah + 60000), titik(3600), titik(10000),
       String(retryDaftar), String(retryTopup), String(geser), String(toleransi), koma(2 * maksFileMiB * 4 / 3, 2),
-      "256", "512", "403", "201", "202", "422", "409", "401", "429", "200",
+      "256", "512", "403", "201", "202", "422", "409", "401", "429", "200", String(timeoutPendek),
     ]);
     for (const m of prosa.matchAll(/Rp[\d.]+|\d{1,3}(?:\.\d{3})+|\d+,\d+|\b\d{3,}\b/g)) {
       const token = m[0].replace(/[.,]$/, "");
@@ -535,9 +535,10 @@ describe("fitur-topup-verifikasi.mdx: kode status, kelas, nama lab, dan kalimat 
     harus("Tipe file dibaca dari byte pertama, bukan dari nama atau header yang dikirim user:");
     expect(kodeVerifikasi).toContain("Tipe isi dari byte pertama, bukan dari nama atau header yang dikirim user.");
     harus("Pemeriksaan ini mengenali awal file, bukan memastikan seluruh file adalah gambar utuh.");
-    harus("Dan `maxWidth`, `maxHeight`, serta `imageQuality` hanya mengecilkan jenis gambar tertentu: JPEG, dan di Android juga PNG dan WebP.");
+    harus("`imageQuality` hanya memampatkan jenis gambar tertentu, misalnya JPEG, dan di Android juga PNG dan WebP. Untuk jenis lain pustaka mencatat peringatan.");
+    harus("`maxWidth` dan `maxHeight` membatasi lebar dan tinggi gambar paling besar.");
     harus("Saldo baru naik sesudah gateway mengirim webhook bertanda tangan");
-    harus("Dina baru mendaftar dan belum terverifikasi, jadi kiriman ke rekan dijawab `403`.");
+    harus("Dina belum terverifikasi, jadi kiriman ke rekan dijawab `403`.");
     harus("Fitur ini butuh app baru: app yang terpasang tidak punya layar top-up dari bank dan layar verifikasi.");
     harus("Dina adalah akun contoh di lab: user umum yang belum terverifikasi.");
     harus("Pertanyaan terbuka PRD v4 ada di fitur ini:");
