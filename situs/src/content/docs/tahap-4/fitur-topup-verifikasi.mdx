@@ -1,0 +1,256 @@
+---
+title: "4.3 Fitur: top-up dari bank dan verifikasi identitas"
+description: Budi mengisi saldo dari rekening bank, dan saldonya naik sesudah gateway memberi tahu. Dina mengirim foto kartu identitas dan swafoto, dan batas saldonya naik sesudah layanan verifikasi meluluskan pengajuan.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t4-topup-verifikasi-inti.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Snippet from "../../../components/Snippet.astro";
+
+<p class="meta">Baca 12 menit · coba 4 menit · Prasyarat: [[t4-fitur-teknis]] · Jalur inti</p>
+
+<Blok nama="Yang diminta PRD" buka>
+
+## Inti
+
+Saldo naik karena gateway memberi tahu. Tingkat akun naik karena verifikasi lulus.
+
+<Rantai data={intiDiagram} ringkas />
+
+Budi memilih top-up Rp200.000, dan server menjawab `201` dengan tujuan bayar (nomor untuk membayar di app bank). Statusnya `menunggu`, saldonya masih Rp250.000, dan belum ada jurnal (rekaman lab `topup.txt` bagian A). Saldo baru naik sesudah gateway mengirim webhook bertanda tangan, dan saldo Budi menjadi Rp450.000 (bagian B).
+
+Dina belum terverifikasi, jadi kiriman ke rekan dijawab `403`. Ia mengirim foto kartu identitas dan swafoto (foto wajahnya sendiri), dan server menjawab `202` tanpa menunggu siapa pun. Worker memanggil layanan verifikasi sesudahnya, pengajuan `lulus`, dan tingkat Dina menjadi `terverifikasi` (`verifikasi.txt` bagian A sampai C).
+
+### Baris PRD
+
+| Prioritas | Fitur | Keterangan |
+|---|---|---|
+| P0 | Top-up dari rekening bank lewat gateway | User memilih nominal, mendapat tujuan bayar dari gateway, membayar di app bank, dan saldo bertambah saat gateway memberi tahu. Gateway lambat atau mati tidak menahan bayar dan transfer antar akun. Selisih dengan laporan gateway tercatat sebagai insiden |
+| P0 | Verifikasi identitas | Pendaftaran sendiri dan pemulihan akun memakai verifikasi yang sama: foto kartu identitas dan swafoto dikirim ke layanan verifikasi. Dua tingkat (Asumsi produk): belum terverifikasi, boleh top-up dan membayar QR dengan saldo paling banyak Rp1.000.000; terverifikasi, saldo paling banyak Rp10.000.000, boleh transfer dan memegang kartu. 10.000 akun Lestari ditandai terverifikasi lewat HR |
+
+Tujuan PRD v4 untuk dua fitur ini: orang di luar Lestari mengisi saldo dari rekening banknya, dan Rekeningo tahu siapa mereka sebelum batas saldonya naik. Pak Hadi menambah satu syarat. Katanya: *"Setiap rupiah dari luar harus cocok dengan catatan pihak yang mengirimnya. Kalau tidak cocok, namanya insiden, bukan angka yang saya koreksi."*
+
+Target PRD untuk dua fitur ini (Asumsi):
+
+- 99% top-up tercatat dalam kurang dari 5 menit sejak gateway mengirim kabar.
+- 0 top-up tercatat dua kali.
+- 90% verifikasi selesai dalam kurang dari 10 menit.
+
+Lab hanya merekam urutan kejadian, jadi ketiga target itu belum diukur. Janji 5 menit dihitung sejak kabar dikirim. Top-up yang kabarnya tidak pernah datang baru ditanyakan ke gateway sesudah menunggu lebih dari 30 menit (Asumsi lab, `topup.txt` bagian H).
+
+Pertanyaan terbuka PRD v4 ada di fitur ini: kalau gateway mengirim kabar dua kali, terlambat, atau tidak sama sekali, siapa yang tahu? Widget di blok Coba menunjukkan jalur normal dan satu jalur kabar yang hilang. Kabar yang datang dua kali dibahas di [[t4-m29]], kabar yang terlambat atau tidak berurutan di [[t4-webhook]], dan kabar yang tidak datang di [[t4-m30]].
+
+Fitur ini butuh app baru: app yang terpasang tidak punya layar top-up dari bank dan layar verifikasi. Naskah belum memberi nomor versi app Tahap 4, jadi halaman ini tidak menyebut nomornya. Arti label Asumsi, Rekaman lab, dan Tidak dijalankan ada di [[A0]]. Dina adalah akun contoh di lab: user umum yang belum terverifikasi.
+
+</Blok>
+
+<Blok nama="Coba: top-up dari bank" buka aman="Kalau berhenti di sini, kamu sudah tahu: top-up Budi baru menjadi uang saat gateway memberi tahu, dan kabar yang hilang ditemukan job cek status.">
+
+Widget ini mengikuti rekaman `topup.txt` dari HP Budi sampai saldonya naik. Tebak dulu, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t4-topup.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: gateway membuat order, tetapi jawabannya tidak pernah sampai**. Statusnya `tidak_pasti`, bukan `gagal` (bagian G). Budi sudah membayar di app bank, tetapi webhook tidak datang, dan job cek status yang akhirnya mengkreditkannya (bagian H).
+
+Jadi webhook bukan satu-satunya jalan kabar. Layar HP digambar dari isi rekaman: lab `api-t4` tidak punya app Flutter, dan pembayaran di app bank diperankan perintah lab ke gateway tiruan.
+
+</Blok>
+
+<Blok nama="Coba: verifikasi identitas" aman="Kalau berhenti di sini, kamu sudah tahu: server menjawab 202 tanpa menunggu layanan verifikasi, dan tingkat akun naik di worker.">
+
+Widget ini mengikuti rekaman `verifikasi.txt` dari HP Dina sampai kirimannya lolos. Tebak dulu, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t4-verifikasi.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: Dina mengirim pengajuan kedua selagi yang pertama belum selesai**. Server menjawab `409`, dan tabel tetap berisi satu baris verifikasi dan satu baris outbox (bagian B).
+
+Layar HP digambar dari isi rekaman. File yang dikirim lab adalah PNG satu piksel, bukan foto kartu identitas, dan kamera tidak direkam.
+
+</Blok>
+
+<Blok nama="Di backend: top-up, tingkat, verifikasi, dan batas laju">
+
+### Top-up: baris dulu, gateway kemudian
+
+`POST /topup-bank` menulis baris `topup_bank` lebih dulu, lalu memanggil gateway di luar transaction. Panggilan itu memakai `order_id` sebagai Idempotency-Key dan batas waktu 3 detik (bawaan server; rekaman memakai 500 ms supaya cepat). Jawaban gateway menentukan status barisnya:
+
+<Snippet file="labs/api-t4/internal/service/pembayaran.go" lines="133:159" lang="go" title="labs/api-t4/internal/service/pembayaran.go" />
+
+Status juga bisa datang dari kabar gateway. Kode memetakan settlement ke `dibayar`, pending ke `menunggu`, expire ke `kedaluwarsa`, dan failure ke `gagal` (Tidak dijalankan: dibaca dari kode). Nama pending dan settlement juga dipakai dokumentasi satu gateway pembayaran publik. Pending berarti menunggu pembayaran, dan settlement berarti dana sudah masuk ([dokumentasi notifikasi gateway](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29, Tidak dijalankan).
+
+| Status | Kapan | Rekaman |
+|---|---|---|
+| `menunggu` | Order dibuat dan tujuan bayar ada | `topup.txt` A |
+| `dibayar` | Kabar settlement diterima dan jurnal ditulis | `topup.txt` B |
+| `tidak_pasti` | Gateway tidak menjawab dalam batas waktu, order mungkin sudah ada | `topup.txt` G |
+| `gagal` | Gateway menolak atau tidak terjangkau, order belum dibuat; kabar failure memetakan ke status ini juga | `topup.txt` G (penolakan); kabar failure tidak direkam |
+| `kedaluwarsa` | Kabar expire dari gateway; order berlaku 24 jam sejak dibuat (Asumsi lab) | Tidak direkam: hanya nilai yang diizinkan tabel (`skema.txt`) |
+
+Gateway yang mati tidak menahan pembayaran. Rekaman bagian G memerankan gateway mati, dan `POST /transfers` sesudahnya tetap dijawab `201`:
+
+<Snippet file="labs/api-t4/output/topup.txt" lines="107:125" title="Rekaman lab: labs/api-t4/output/topup.txt (bagian G)" />
+
+Rekaman bagian G juga memerankan gateway yang menggantung sesudah membuat order, dan itulah jalur varian di widget.
+
+### Kabar masuk: satu transaction
+
+Sesudah Budi membayar, gateway mengirim webhook. Server memeriksa tanda tangan atas byte mentah sebelum JSON diurai, lalu satu transaction menulis event, status top-up, jurnal, dan baris outbox:
+
+<Snippet file="labs/api-t4/output/topup.txt" lines="27:49" title="Rekaman lab: labs/api-t4/output/topup.txt (bagian B)" />
+
+Enam kiriman yang dimanipulasi di bagian E dijawab `401`. Keenamnya: tanpa tanda tangan, rahasia lain, isi diubah, JSON ditulis ulang, serta timestamp 400 detik lalu dan di depan (toleransi 300 detik, Asumsi). Jawaban `200` dikirim hanya sesudah COMMIT. Kiriman yang sama bisa datang dua kali, dan itu dibahas di [[t4-m29]] dan [[t4-webhook]].
+
+Pemberitahuan ke Budi ikut ditulis di transaction yang sama dan dikirim worker sesudah COMMIT, seperti di [[t3-notifikasi]]. Baris outbox top-up bank berkelas 0, seperti bayar dan transfer di Tahap 3 (bagian B).
+
+### Dua tingkat dan batas saldo
+
+Tingkat akun menentukan batas saldo. Kedua batas di tabel ini Asumsi produk, dan nilainya ada di kode:
+
+<Snippet files={["labs/api-t4/internal/service/t4_aturan.go:11:14", "labs/api-t4/internal/service/t4_aturan.go:41:46"]} lang="go" title="labs/api-t4/internal/service/t4_aturan.go" />
+
+| Tingkat | Batas saldo | Menurut PRD | Rekaman |
+|---|---|---|---|
+| `belum` | Rp1.000.000 | Top-up dan bayar QR | Top-up Rp200.000 untuk saldo Rp900.000 ditolak `422` (`topup.txt` I); kiriman ke rekan ditolak `403` (`verifikasi.txt` A) |
+| `terverifikasi` | Rp10.000.000 | Ditambah transfer dan kartu | Kiriman ke rekan lolos `201` (`verifikasi.txt` C) |
+
+Batas diperiksa dua kali. Pemeriksaan awal terjadi saat top-up dibuat, tanpa lock, supaya user tidak membayar ke bank untuk top-up yang pasti ditolak. Pemeriksaan yang menentukan terjadi saat kredit, sesudah buku akun dikunci.
+
+Dina belum terverifikasi dan bersaldo Rp900.000. Ia membuat dua top-up Rp60.000, dan keduanya lolos pemeriksaan awal:
+
+<Snippet file="labs/api-t4/output/topup.txt" lines="158:176" title="Rekaman lab: labs/api-t4/output/topup.txt (bagian I)" />
+
+Hanya satu yang dikredit. Saldo 900.000 + 60.000 = 960.000 lolos, tetapi 960.000 + 60.000 = 1.020.000 melewati Rp1.000.000. Hitungan di sini berarti angka yang dihitung dari angka rekaman yang tertulis di atas, bukan angka yang diukur.
+
+Uang Rp60.000 yang kedua sudah ada di bank dan tidak dikreditkan. PRD v4 belum menjawab pengembalian dananya. Lab memarkir kabarnya, dan rekonsiliasi harian mencatatnya sebagai `tidak_di_ledger` (`topup.txt` J). Siapa yang memutuskan nasib uang itu adalah pertanyaan terbuka, dan lab memakai asumsi tim risk.
+
+### Verifikasi: dua file, satu baris, satu pekerjaan
+
+`POST /verifikasi` menerima dua file, menyimpannya di penyimpanan objek tiruan, lalu menulis satu baris `verifikasi` dan satu baris outbox bertujuan `verifikasi` di satu transaction. Database hanya menyimpan kunci objek dan checksum SHA-256. Isi file ada di penyimpanan objek:
+
+<Snippet file="labs/api-t4/output/verifikasi.txt" lines="29:38" title="Rekaman lab: labs/api-t4/output/verifikasi.txt (bagian B)" />
+
+Tipe file dibaca dari byte pertama, bukan dari nama atau header yang dikirim user:
+
+<Snippet file="labs/api-t4/internal/service/verifikasi.go" lines="26:38" lang="go" title="labs/api-t4/internal/service/verifikasi.go" />
+
+`http.DetectContentType` membaca paling banyak 512 byte pertama ([dokumentasi Go: net/http](https://pkg.go.dev/net/http#DetectContentType), dibuka 2026-10-29, Tidak dijalankan). Pemeriksaan ini mengenali awal file, bukan memastikan seluruh file adalah gambar utuh. Apa yang terjadi pada file di penyimpanan dibahas di [[t4-storage]].
+
+Worker mengklaim baris outbox itu dan memanggil layanan verifikasi tiruan. Id pengajuan dikirim sebagai Idempotency-Key. Pengajuan yang lulus menaikkan tingkat akun:
+
+<Snippet file="labs/api-t4/output/verifikasi.txt" lines="41:57" title="Rekaman lab: labs/api-t4/output/verifikasi.txt (bagian C)" />
+
+Penutupan pengajuan dan kenaikan tingkat ada di satu transaction. Pengajuan yang sudah selesai tidak berubah lagi:
+
+<Snippet file="labs/api-t4/internal/repo/verifikasi.go" lines="69:90" lang="go" title="labs/api-t4/internal/repo/verifikasi.go" />
+
+Hanya pengajuan dari akun berjenis `pemakai` yang masuk ke vendor. Menurut kode `catatPengajuan`, pengajuan merchant tidak menulis baris outbox, karena tim risk yang memutuskannya (Tidak dijalankan: dibaca dari kode). Layanan verifikasi yang mati sehari dibahas di [[t4-m31]].
+
+### Pendaftaran terbuka: batas laju
+
+Pendaftaran terbuka membuka endpoint untuk orang yang tidak dikenal. README lab `api-t3` menulis bahwa `/perangkat`, `/pesanan`, `/promo`, dan `/sinkron` belum punya rate limit sendiri. Lab `api-t4` memasang batas pada keempatnya dan pada tiga endpoint publik baru. Semua batas adalah token bucket di memori satu proses, dan semua angkanya Asumsi lab:
+
+| Endpoint | Batas | Per | Rekaman |
+|---|---|---|---|
+| `/daftar` | 5 per jam | alamat | `batas.txt` A dan C |
+| `/topup-bank` | 10 per jam | akun | `batas.txt` B |
+| `/topup-bank` | 30 per jam | alamat | Tidak dijalankan: dibaca dari kode |
+| `/verifikasi` | 3 per jam | akun | Tidak dijalankan: dibaca dari kode |
+| `/verifikasi` | 10 per jam | alamat | Tidak dijalankan: dibaca dari kode |
+
+Pendaftaran keenam dari satu alamat ditolak `429`. Lima token per jam berarti satu token per 720 detik (3.600 ÷ 5, Hitungan), dan jawabannya memuat `Retry-After: 720`:
+
+<Snippet file="labs/api-t4/output/batas.txt" lines="8:20" title="Rekaman lab: labs/api-t4/output/batas.txt (bagian A)" />
+
+Top-up memakai batas per akun. Permintaan ke-11 dijawab `429` dengan `Retry-After: 360` (3.600 ÷ 10, Hitungan). Bucket tiap endpoint terpisah, jadi Budi yang kehabisan token di `/pesanan` tetap bisa membayar:
+
+<Snippet files={["labs/api-t4/output/batas.txt:34:40", "labs/api-t4/output/batas.txt:69:75"]} title="Rekaman lab: labs/api-t4/output/batas.txt (bagian B)" />
+
+Batas per alamat memakai alamat TCP peminta (`batas.txt` C). Di belakang proxy semua client berbagi satu alamat, dan dua instance menghitung sendiri-sendiri. Penghitung bersama dibahas di [[t3-rate-limit-redis]] dan belum dipasang pada endpoint baru ini.
+
+</Blok>
+
+<Blok nama="Di app: dua layar yang harus jujur">
+
+Raka mengerjakan sisi app. Lab `api-t4` tidak punya app Flutter, jadi bagian ini tidak direkam. Semua rujukan dokumentasi di blok ini berlabel Tidak dijalankan: dicek ke dokumentasi pada 2026-10-29, tidak dijalankan.
+
+### Layar top-up: status dari server
+
+Jawaban `201` berarti order sudah dibuat, bukan uang sudah masuk. App menampilkan tujuan bayar dan status dari server, dan tidak menaikkan saldo sendiri. Tabel ini Asumsi penulis tentang tampilannya. Nilai statusnya dari server:
+
+| Status dari server | Yang ditampilkan |
+|---|---|
+| `menunggu` | Tujuan bayar dan "Menunggu pembayaran" |
+| `dibayar` | Saldo baru, dibaca dari `GET /akun/{id}` |
+| `tidak_pasti` | "Sedang dicek", tanpa tujuan bayar dan tanpa tombol top-up kedua |
+| `gagal` | "Top-up tidak dibuat". Detail dari server: pembayaran dan transfer tidak terpengaruh (`topup.txt` G) |
+| `kedaluwarsa` | "Waktu bayar habis" |
+
+App membaca ulang `GET /topup-bank/{id}` saat layar dibuka dan saat pemberitahuan tiba. Pemberitahuan mempercepat, tetapi tidak dijamin sampai ([[t3-notifikasi]]).
+
+### Layar verifikasi: dua foto
+
+Kerangka ini mengambil dua foto dan mengirimkannya sebagai base64:
+
+<Snippet lang="dart" code={`final picker = ImagePicker();
+
+// Kartu identitas: kamera belakang (bawaan). Swafoto: minta kamera depan.
+final XFile? kartu = await picker.pickImage(
+  source: ImageSource.camera,
+  maxWidth: lebarMaksFoto,
+  imageQuality: kualitasFoto,
+);
+final XFile? swafoto = await picker.pickImage(
+  source: ImageSource.camera,
+  preferredCameraDevice: CameraDevice.front,
+  maxWidth: lebarMaksFoto,
+  imageQuality: kualitasFoto,
+);
+if (kartu == null || swafoto == null) return; // user membatalkan
+
+// POST /verifikasi. 202 berarti diajukan, bukan lulus.
+final pengajuan = await api.ajukanVerifikasi(
+  fileKartu: base64Encode(await kartu.readAsBytes()),
+  fileSwafoto: base64Encode(await swafoto.readAsBytes()),
+);`} />
+
+*Tidak dijalankan. Kerangkanya dari [image_picker 1.2.4](https://pub.dev/packages/image_picker) dan [XFile di cross_file 0.4.0](https://pub.dev/documentation/cross_file/latest/cross_file/XFile-class.html). Keduanya dibuka 2026-10-29. `lebarMaksFoto`, `kualitasFoto`, dan `api.ajukanVerifikasi` buatan sendiri; nilai dua konstanta pertama harus diukur terhadap batas 1 MiB di bawah.*
+
+Empat hal dari dokumentasinya memengaruhi layar ini:
+
+- `pickImage` memakai kamera belakang bawaan, dan `preferredCameraDevice` meminta kamera depan untuk swafoto. Di Android permintaan itu tidak dijamin berhasil: dokumentasinya menulis Android tidak punya parameter terdokumentasi untuk memilih kamera ([API pickImage](https://pub.dev/documentation/image_picker/latest/image_picker/ImagePicker/pickImage.html)).
+- Di iOS, `Info.plist` harus memuat `NSCameraUsageDescription`, sedangkan di Android readme menulis tidak ada konfigurasi tambahan ([readme image_picker](https://pub.dev/packages/image_picker)).
+- `imageQuality` hanya memampatkan jenis gambar tertentu, misalnya JPEG, dan di Android juga PNG dan WebP. Untuk jenis lain pustaka mencatat peringatan.
+- `maxWidth` dan `maxHeight` membatasi lebar dan tinggi gambar paling besar.
+
+Server menolak file lebih dari 1 MiB (Asumsi lab, dibaca dari kode), jadi app mengecilkan foto lebih dulu dan memeriksa ukuran hasilnya. Base64 menambah sepertiga. Dua file 1 MiB menjadi 2 × 4 ÷ 3 = 2,67 MiB di satu JSON (Hitungan). Server menerima body paling besar 3 MiB (dibaca dari kode).
+
+Foto kartu identitas dan swafoto adalah data pribadi. Layar menyebut untuk apa foto dipakai, dan lamanya foto disimpan dibahas di [[t4-storage]]. Lab mengisi `hapus_pada` saat pengajuan selesai (`verifikasi.txt` C), dengan jeda 30 hari menurut kode (Asumsi).
+
+</Blok>
+
+<Blok nama="Konsep yang akan dibutuhkan">
+
+- [[t4-dua-arah]]: kabar dari gateway adalah klaim, bukan fakta. Webhook masuk dan panggilan keluar ke gateway.
+- [[t4-skema]]: tabel baru `topup_bank` dan `verifikasi`, serta kolom `tingkat` di `akun`.
+- [[t4-m29]] dan [[t4-webhook]]: kiriman yang datang dua kali, tanda tangan, dan urutan.
+- [[t4-m30]] dan [[t4-rekonsiliasi]]: kabar yang tidak pernah datang, job cek status, dan rekonsiliasi harian.
+- [[t4-m31]] dan [[t4-breaker]]: layanan verifikasi yang mati, retry berkunci, dan circuit breaker.
+- [[t4-m33]] dan [[t4-storage]]: file identitas di penyimpanan objek.
+- [[t3-rate-limit-redis]]: penghitung batas laju yang dipakai bersama oleh dua instance.
+
+**Pertanyaan yang belum dijawab** di halaman ini:
+
+| Pertanyaan | Kenapa belum dijawab | Dijawab di |
+|---|---|---|
+| Kiriman webhook yang sama datang dua kali? | Widget memakai satu kiriman | [[t4-m29]] |
+| Kabar hilang, dan job cek status juga belum jalan? | Widget memakai umur job 0 detik | [[t4-m30]] |
+| Layanan verifikasi mati sehari? | Widget memakai vendor yang menjawab | [[t4-m31]] |
+| Di mana file identitas disimpan, dan siapa boleh membacanya? | Halaman ini hanya menyebut kunci objek dan checksum | [[t4-m33]] |
+| Bagaimana nasib uang yang sudah di bank tetapi melewati batas saldo? | PRD v4 belum menjawab | Pertanyaan terbuka: tim risk memutuskan (Asumsi) |
+| Siapa yang tahu email mana yang sudah terdaftar? | `POST /daftar` menjawab `409` untuk email yang sudah ada dan hanya dibatasi laju per alamat (README lab) | Pertanyaan terbuka |
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />
