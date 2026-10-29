@@ -1,0 +1,41 @@
+{
+  "istilah": "Proxy keluar (egress proxy)",
+  "sehari_hari": "Proxy keluar adalah program perantara yang diberi alamat tetap. Aplikasi mengirim panggilan ke vendor lewat proxy itu, jadi vendor selalu melihat alamat proxy, bukan alamat mesin aplikasi.",
+  "cerita": [
+    {
+      "rujukan": "t4-infra-secret",
+      "teks": "Vendor tiruan hanya menerima alamat yang terdaftar. Tanpa proxy, host baru ditolak 403 sebanyak 15 kali untuk tiga pekerjaan. Dengan proxy yang didaftarkan sekali, host baru lulus tanpa penolakan (`alamat.txt` bagian A dan B)."
+    }
+  ],
+  "mekanisme": [
+    "Vendor menyimpan allowlist, yaitu daftar alamat sumber yang boleh memanggilnya, dan menolak alamat lain.",
+    "Operator mendaftarkan alamat proxy keluar ke vendor satu kali.",
+    "Aplikasi diberi variabel lingkungan HTTP_PROXY. Client HTTP Go membacanya, jadi kode aplikasi tidak berubah.",
+    "Saat aplikasi pindah host, vendor tetap melihat alamat proxy. Proxy itu sendiri menjadi titik gagal tunggal baru."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Memercayai header X-Forwarded-For untuk menentukan alamat sumber. Header itu diisi client. Vendor tiruan lab memeriksa alamat peer TCP.",
+    "Mengira proxy menyelesaikan semuanya. Alamat proxy hanya tetap selama proxy itu tidak dipindah, dan matinya proxy tidak direkam di lab."
+  ],
+  "terkait": ["Proxy", "Reverse proxy", "Secret manager"],
+  "sumber": [
+    {
+      "riset": "R4-192",
+      "judul": "Go: net/http, ProxyFromEnvironment (Go 1.27.3, dibuka 2026-10-30)",
+      "url": "https://pkg.go.dev/net/http#ProxyFromEnvironment",
+      "catatan": "Client memakai proxy dari HTTP_PROXY, HTTPS_PROXY, dan NO_PROXY. Permintaan ke host localhost dikecualikan."
+    },
+    {
+      "riset": "R4-192",
+      "judul": "Amazon VPC: NAT gateways (dibuka 2026-10-30)",
+      "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html",
+      "catatan": "NAT gateway publik wajib punya Elastic IP, dan internet gateway memetakan alamat privat NAT gateway ke alamat itu."
+    },
+    {
+      "judul": "Rekaman lab t4-infra: alamat.txt bagian A dan B",
+      "rekaman": "labs/t4-infra/output/alamat.txt",
+      "catatan": "Pindah host tanpa proxy dijawab 403, dan dengan proxy terdaftar sekali vendor hanya melihat alamat proxy."
+    }
+  ]
+}

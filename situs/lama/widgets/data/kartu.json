@@ -2856,6 +2856,46 @@
   "jawab": "CODEOWNERS menunjuk pemilik dan meminta mereka me-review PR yang menyentuh pola mereka. Review wajib baru berlaku bila admin menyalakan \"Require review from Code Owners\". Apakah paket repositori pemilik mengizinkannya [perlu verifikasi]."
  },
  {
+  "id": "t4-infra-secret-1",
+  "halaman": "t4-infra-secret",
+  "judul": "4.17 Secret manager, IaC, alamat keluar tetap + ADR 39",
+  "url": "tahap-4/secret-iac-alamat-keluar/",
+  "tanya": "Vendor sehat menolak host baru dengan 403. Apa yang berubah di bagian B rekaman, dan apa yang didaftarkan?",
+  "jawab": "Yang didaftarkan sekali adalah alamat proxy keluar, bukan alamat host. Host baru memakai `HTTP_PROXY` yang sama, vendor hanya melihat proxy, dan tiga pengajuan sesudah pindahan lulus tanpa penolakan (`alamat.txt` bagian B)."
+ },
+ {
+  "id": "t4-infra-secret-2",
+  "halaman": "t4-infra-secret",
+  "judul": "4.17 Secret manager, IaC, alamat keluar tetap + ADR 39",
+  "url": "tahap-4/secret-iac-alamat-keluar/",
+  "tanya": "Konfigurasi OpenTofu menulis `random_password` dan variabel yang dipakai satu resource. CLI menulis `(sensitive value)`. Apakah state memuat nilainya?",
+  "jawab": "Ya. Tanda sensitif hanya menyembunyikan nilai dari keluaran CLI, dan state tetap menyimpannya sebagai teks (`state.txt` bagian A; dokumentasi OpenTofu)."
+ },
+ {
+  "id": "t4-infra-secret-3",
+  "halaman": "t4-infra-secret",
+  "judul": "4.17 Secret manager, IaC, alamat keluar tetap + ADR 39",
+  "url": "tahap-4/secret-iac-alamat-keluar/",
+  "tanya": "Operator menulis versi baru secret di OpenBao, lalu gateway beralih. Kabar gateway ditolak 401. Apa urutan yang aman?",
+  "jawab": "Operator menulis ke OpenBao lebih dulu, service membaca, dan baru penanda tangan beralih. Jeda baca bawaan 30 detik adalah Asumsi, jadi jendela terbalik menolak sampai ±17 kabar pada laju puncak (`rotasi.txt` bagian D)."
+ },
+ {
+  "id": "t4-infra-secret-4",
+  "halaman": "t4-infra-secret",
+  "judul": "4.17 Secret manager, IaC, alamat keluar tetap + ADR 39",
+  "url": "tahap-4/secret-iac-alamat-keluar/",
+  "tanya": "Rotasi sudah menulis dokumen tanpa `lama`, dan service menolak kabar bertanda tangan secret lama. Apakah secret lama sudah mati?",
+  "jawab": "Belum. Versi lama dokumen tetap terbaca token service sampai operator menjalankan destroy (`rotasi.txt` bagian C). Rotasi karena kebocoran selesai sesudah destroy."
+ },
+ {
+  "id": "t4-infra-secret-5",
+  "halaman": "t4-infra-secret",
+  "judul": "4.17 Secret manager, IaC, alamat keluar tetap + ADR 39",
+  "url": "tahap-4/secret-iac-alamat-keluar/",
+  "tanya": "Data, file, dan secret sudah di layanan terkelola. Apa yang masih berhenti saat mesin app diganti, dan keputusan mana yang menundanya?",
+  "jawab": "App berhenti selama mesin diganti. VPS kedua ditunda ADR 33, karena PRD v4 belum menulis batas waktu pulih atau jendela kehilangan data."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",
