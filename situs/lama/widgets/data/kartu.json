@@ -2792,6 +2792,30 @@
   "jawab": "Breaker bawaan menghitung 4xx sebagai gagal, membuka, dan menjeda 4 pengajuan sehat di belakang dokumen rusak (`lajur.txt` bagian D). Penilaian ADR 36 tidak membukanya, jadi 4 pengajuan sehat lulus. Enam dokumen rusak tetap memakai lima percobaan, sehingga 10 pengajuan menghasilkan 34 permintaan (bagian E)."
  },
  {
+  "id": "t4-m32-1",
+  "halaman": "t4-m32",
+  "judul": "4.12 M32: Rilis Kamis memecahkan top-up",
+  "url": "tahap-4/m32-rilis-kamis/",
+  "tanya": "Tes tim Pembayaran hijau sebelum dan sesudah migration Merchant, tetapi top-up gagal. Kenapa tesnya tidak menangkapnya?",
+  "jawab": "Tesnya memakai driver tiruan, yang tidak membuka koneksi. Driver itu membalas satu baris \"Budi\" untuk perintah apa pun, jadi skema tidak ikut diuji (Tidak dijalankan: dibaca dari `notifikasi_test.go`). Terhadap database, fungsi yang sama dijawab `column \"nama\" does not exist` (`batas.txt` bagian A)."
+ },
+ {
+  "id": "t4-m32-2",
+  "halaman": "t4-m32",
+  "judul": "4.12 M32: Rilis Kamis memecahkan top-up",
+  "url": "tahap-4/m32-rilis-kamis/",
+  "tanya": "Kenapa halaman ini menyebut `TeksTopupLangsung` Ilustrasi mekanisme, bukan rekaman kode top-up?",
+  "jawab": "Kode top-up di `labs/api-t4` tidak memilih `nama` dengan SQL sendiri. Ia membaca kolom itu lewat `repo.Akun` (Tidak dijalankan: dibaca dari kode). Rekaman tidak menjalankan jalur itu. `TeksTopupLangsung` ditulis lab mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Rekaman membuktikan mekanismenya, bukan kode produksi."
+ },
+ {
+  "id": "t4-m32-3",
+  "halaman": "t4-m32",
+  "judul": "4.12 M32: Rilis Kamis memecahkan top-up",
+  "url": "tahap-4/m32-rilis-kamis/",
+  "tanya": "Kenapa ADR 17 tidak menghentikan migration Merchant?",
+  "jawab": "Aturan 1 memisahkan expand dan contract dan berlaku untuk tabel `akun`, tetapi satu `RENAME COLUMN` menjalankan keduanya sekaligus (Tidak dijalankan: dibaca dari ADR 17). Di cerita tidak ada pemeriksaan yang menjalankan aturan itu sebelum rilis (Ilustrasi)."
+ },
+ {
   "id": "t4-modul-1",
   "halaman": "t4-modul",
   "judul": "4.13 Modular monolith, CODEOWNERS, ADR wajib + ADR 37",
