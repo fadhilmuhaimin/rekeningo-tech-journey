@@ -1,0 +1,44 @@
+{
+  "istilah": "CRC (cyclic redundancy check)",
+  "sehari_hari": "CRC adalah angka pendek yang dihitung dari seluruh isi sebuah data, untuk mendeteksi data yang salah terbaca atau rusak saat dikirim. Penerima menghitungnya lagi dan menolak data bila angkanya berbeda.",
+  "cerita": [
+    {
+      "rujukan": "t4-m35",
+      "teks": "Stiker QR milik merchant lain tertempel di kasir Bu Marni, dan pembayaran Budi lolos. CRC di stiker itu cocok, karena CRC menangkap salah baca dan bukan penggantian (cerita, Ilustrasi)."
+    }
+  ],
+  "mekanisme": [
+    "Payload QR memuat CRC di tag 63: empat karakter heksadesimal yang dihitung dari semua teks di depannya, termasuk 6304 (`crc.txt` bagian B).",
+    "Rumus CRC punya parameter. Lab memakai CRC-16/IBM-3740: polinomial 0x1021 dan nilai awal 0xFFFF. Go dan Python menghasilkan nilai yang sama (`crc.txt` bagian A).",
+    "Satu karakter yang berubah membuat CRC tidak cocok. Pada satu payload contoh, 8.562 dari 8.562 penggantian satu karakter dan 104 dari 104 pertukaran dua karakter bersebelahan terdeteksi (`crc.txt` bagian C).",
+    "CRC tidak memakai secret key. Isi yang diganti lalu diberi CRC yang dihitung ulang lolos, dan hasilnya sama dengan `binascii.crc_hqx` dari Python (`crc.txt` bagian D)."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira CRC yang cocok berarti payload itu asli. CRC hanya menunjukkan bahwa teksnya utuh, bukan siapa yang menulisnya.",
+    "Mengira 8.562 dari 8.562 berlaku untuk semua payload dan semua jenis kesalahan. Angka itu untuk satu payload contoh dan dua jenis kesalahan (`crc.txt` bagian C)."
+  ],
+  "terkait": [
+    "HMAC (hash-based message authentication code)"
+  ],
+  "sumber": [
+    {
+      "riset": "R4-196",
+      "judul": "Katalog CRC: CRC-16/IBM-3740 (dibuka 2026-10-30)",
+      "url": "https://reveng.sourceforge.io/crc-catalogue/16.htm",
+      "catatan": "Parameter polinomial 0x1021, nilai awal 0xFFFF, nilai uji 0x29B1 untuk 123456789. Katalog menjelaskan parameter CRC itu, bukan isi spesifikasi EMVCo."
+    },
+    {
+      "riset": "R4-197",
+      "judul": "Wikipedia: Cyclic redundancy check (dibuka 2026-10-30)",
+      "url": "https://en.wikipedia.org/wiki/Cyclic_redundancy_check",
+      "catatan": "Sumber sekunder: CRC dirancang untuk kesalahan tak sengaja dan tidak cocok untuk melindungi dari perubahan yang disengaja."
+    },
+    {
+      "riset": "R4-195",
+      "judul": "Rekaman lab t4-qr: crc.txt bagian A sampai D",
+      "rekaman": "labs/t4-qr/output/crc.txt",
+      "catatan": "Payload bergaya EMV dengan CRC di tag 63. Pemindai dan pemalsu adalah skrip lab, bukan app dan bukan penyerang."
+    }
+  ]
+}

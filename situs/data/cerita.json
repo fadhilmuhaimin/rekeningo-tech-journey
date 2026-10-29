@@ -3610,8 +3610,9 @@
       "lab": [
         "t4-storage"
       ],
-      "ada": false,
-      "nomor": "4.15"
+      "ada": true,
+      "nomor": "4.15",
+      "menit": 21
     },
     {
       "id": "t4-m34",
@@ -3689,8 +3690,9 @@
       "lab": [
         "t4-qr"
       ],
-      "ada": false,
-      "nomor": "4.18"
+      "ada": true,
+      "nomor": "4.18",
+      "menit": 11
     },
     {
       "id": "t4-qr",

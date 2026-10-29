@@ -342,6 +342,15 @@
   "h": "/istilah/certificate-pinning/"
  },
  {
+  "t": "Checksum",
+  "d": "Sidik dari isi file, misalnya SHA-256. Bila satu byte berubah, sidiknya berubah, jadi checksum dipakai untuk mendeteksi file yang rusak atau ditimpa.",
+  "b": "t4-storage",
+  "n": "4.15 File identitas dan presigned URL",
+  "u": "/tahap-4/object-storage-presigned/",
+  "s": "istilah-checksum",
+  "h": null
+ },
+ {
   "t": "CI (Continuous Integration)",
   "d": "Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung.",
   "b": "B1.4",
@@ -394,6 +403,15 @@
   "u": "/tahap-1/deployment-rollback/",
   "s": "istilah-container",
   "h": null
+ },
+ {
+  "t": "CRC (cyclic redundancy check)",
+  "d": "Angka pendek yang dihitung dari isi data untuk mendeteksi data yang salah terbaca atau rusak saat dikirim; rumusnya terbuka dan tanpa key, jadi bukan bukti keaslian.",
+  "b": "t4-m35",
+  "n": "4.18 M35",
+  "u": "/tahap-4/m35-qr-bu-marni/",
+  "s": "istilah-crc",
+  "h": "/istilah/crc/"
  },
  {
   "t": "CRDT (Conflict-free Replicated Data Type)",
@@ -1186,6 +1204,15 @@
   "u": "/tahap-2/ledger/",
   "s": "istilah-posting",
   "h": "/istilah/posting/"
+ },
+ {
+  "t": "Presigned URL",
+  "d": "URL ke satu objek di penyimpanan yang sudah ditandatangani pemilik kredensial, sehingga pemegangnya bisa memakainya sampai umurnya habis.",
+  "b": "t4-storage",
+  "n": "4.15 File identitas dan presigned URL",
+  "u": "/tahap-4/object-storage-presigned/",
+  "s": "istilah-presigned-url",
+  "h": "/istilah/presigned-url/"
  },
  {
   "t": "Primary",
