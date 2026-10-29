@@ -965,6 +965,23 @@ describe("tanpa kunci baris: kalimat naratif per paragraf, nomor soal, rujukan b
   });
 });
 
+describe("tanpa kunci baris: front matter diturunkan dari naskah dan Gejala (penutup mutan peninjau)", () => {
+  test("description memuat minggu, kedua waktu, dan kolom bytea yang sama dengan naskah M33 dan Gejala; title sama dengan peta naskah", () => {
+    const desc = frontmatter.split("\n").find((l) => l.startsWith("description: "))!;
+    const gejala = badan.slice(badan.indexOf('<Blok nama="Gejala"'), badan.indexOf("</Blok>"));
+    const minggu = cocok(barisM33, /\| M33 \| (\d+) \|/)[1]!;
+    expect(desc).toContain(`Minggu ${minggu}.`);
+    for (const waktu of ["12 menit", "3 jam 40 menit"]) {
+      expect(barisM33, `naskah: ${waktu}`).toContain(waktu);
+      expect(gejala, `Gejala: ${waktu}`).toContain(waktu);
+      expect(desc, `description: ${waktu}`).toContain(waktu);
+    }
+    expect(desc).toContain("Foto kartu identitas dan swafoto disimpan di kolom bytea");
+    expect(barisM33).toContain("kolom `bytea`");
+    expect(frontmatter).toContain('title: "4.14 M33: Uji pulih mingguan makin lama"');
+  });
+});
+
 function sidikRiset(): string[] {
   return IDS.map((id) => sidik(barisRiset(id)));
 }
