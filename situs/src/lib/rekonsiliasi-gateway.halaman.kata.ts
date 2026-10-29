@@ -14,14 +14,14 @@ export const NEGASI: string[] = [
   "<p>Tanpa JavaScript, widget tidak berjalan.",
   "Di lab selisih itu ditutup tanpa jurnal, karena gateway menjawab settlement dengan jumlah yang sama dan hanya tanggalnya yang lain (`rekon.txt` bagian B).",
   "Kabar dari gateway adalah klaim ([[t4-dua-arah]]), dan klaim bisa tidak pernah datang.",
-  "Di [[t4-m30]] penyebabnya rahasia webhook yang tidak sama.",
+  "Di [[t4-m30]] penyebabnya secret webhook yang tidak sama.",
   "Jadi Rekeningo butuh jalan yang tidak bergantung pada gateway mengirim.",
   "Gateway pertama menyediakan laporan yang mencocokkan setoran di rekening bank dengan kumpulan transaksi yang diselesaikannya (dokumentasi laporan sebuah gateway pembayaran, dibuka 2026-10-29, Tidak dijalankan).",
   "Gateway kedua menulis bahwa notifikasi yang terlambat diperiksa dengan GET Status API (dokumentasi notifikasi sebuah gateway pembayaran lain, dibuka 2026-10-29, Tidak dijalankan).",
   "Di app Flutter kamu mungkin pernah membuat layar status pembayaran yang tidak menunggu notifikasi push selamanya, tetapi menanyakan statusnya ke server.",
   "kode lab memakainya sebagai bawaan, dan PRD v4 tidak menulis angkanya.",
   "Gateway ditanya sebelum transaction dibuka, jadi panggilan jaringan tidak memegang lock ([[t3-pool]]).",
-  "Webhook yang datang terlambat sesudah cek status dijawab `ganda`, bukan dijurnal lagi (Tidak dijalankan:",
+  "Webhook `settlement` yang datang sesudah cek status mengkredit top-up dijawab `ganda`, bukan dijurnal lagi (Tidak dijalankan:",
   "Gateway yang tidak mengenal order membuat top-up menjadi `gagal` (Tidak dijalankan:",
   "Rekaman bagian A memakai top-up Citra Rp500.000 yang webhook-nya tidak pernah datang.",
   "Job tidak menanyakan top-up berumur 0 dan 29 menit, dan menanyakan yang berumur 31 menit:",
@@ -34,7 +34,9 @@ export const NEGASI: string[] = [
   "Jadi menjalankan rekonsiliasi lagi untuk tanggal yang sama tidak menggandakan insiden.",
   "Hasilnya lima insiden, semuanya `terbuka`, dan belum ada koreksi:",
   "Insiden yang sudah selesai karena job lain dilewati, jadi dua job bersamaan tidak menjurnal dua kali ([[t2-job-rekonsiliasi]]).",
+  "Aturan koreksi per jenis adalah pilihan lab (Asumsi), bukan syarat PRD v4.",
   "Tabel di bawah dibaca dari kode (Tidak dijalankan).",
+  "Akun Dina di lab belum terverifikasi, jadi saldonya tidak boleh melewati Rp1.000.000 (`rekon.txt` bagian B).",
   "| `tidak_di_ledger` | Top-up `menunggu` atau `tidak_pasti`, jumlah sama dengan laporan, akun tidak dibekukan dan tidak melewati batas tingkat.",
   "Hasilnya jurnal top-up | Akun melewati batas tingkat, top-up `kedaluwarsa` atau `gagal`, order tidak dikenal |",
   "ditutup tanpa jurnal.",
@@ -76,7 +78,7 @@ export const NEGASI: string[] = [
   "- Gateway tidak menyediakan laporan atau cek status per order.",
   "Tidak ada pembanding, dan lapis ini tidak bisa dibangun.",
   "Angka itu menandakan penyebab sistematis, bukan insiden tunggal.",
-  "- Lebih dari 1% top-up bergantung pada cek status, karena kabarnya ditolak atau tidak datang.",
+  "- Lebih dari 1% top-up, yaitu sisa dari target 99% dalam kurang dari 5 menit, bergantung pada cek status karena kabarnya ditolak atau tidak datang.",
   "Janji 5 menit tidak mencakupnya, tetapi batas 30 menit perlu ditinjau.",
   "- Jurnal kedua sesudah key habis tidak terlihat rekonsiliasi (`proses-mati.txt` bagian C).",
   "key top-up tidak kedaluwarsa selagi top-up menunggu, atau rekonsiliasi menjumlahkan semua jurnal per order.",
@@ -98,9 +100,9 @@ export const NEGASI: string[] = [
   "- [ ] Koreksi yang membuat saldo negatif atau mengkredit akun yang tidak boleh tetap terbuka."
 ];
 
-export const ANGKA: string[] = ["15","3","4","30","2","4","30","401","500.000","30","3","1","2","3","10.000","1","1.14.2","660.000","650.000","10.000","1","15.000","2","60.000","2","5.000","3","40.000","1","30.000","10.000","1","1","15.000","60.000","5.000","40.000","30.000","10.000","3","40.000","4","4","30","6","342","2026","10","29","2026","10","29","30","4","30","4","3","500.000","0","29","31","30","15.000","60.000","5.000","40.000","30.000","17","17","17","2026","10","29","2","60.000","40.000","20.000","310.000","330.000","15.000","5.000","30.000","5","60.000","50.000","4","24","25","1","4","29","0","200.000","1","4","4","4","30","401","35","2.7.2","50","30","401","4","35","4","99","5","0","4","4","30","500.000","401","4","1","40.000","2","60.000","3","4","1","30","2","2","3","4","5","20","5.000","20.000","0,25","20","5.000","0,4","1","5.000","1","50","30","5","30","4","20","4","4","4","1","10.000","15.000","60.000","5.000","40.000","30.000","10.000","2","40.000","3","60.000","4","4","2026","10","29","2026","10","29","17","17","2026","10","29"];
+export const ANGKA: string[] = ["15","3","4","30","2","4","30","401","500.000","30","3","1","2","3","10.000","1","1.14.2","660.000","650.000","10.000","1","15.000","2","60.000","2","5.000","3","40.000","1","30.000","10.000","1","1","15.000","60.000","5.000","40.000","30.000","10.000","3","40.000","4","4","30","6","342","2026","10","29","2026","10","29","30","4","30","4","3","500.000","0","29","31","30","15.000","60.000","5.000","40.000","30.000","17","17","17","2026","10","29","2","4","1.000.000","60.000","40.000","20.000","310.000","330.000","15.000","5.000","30.000","5","60.000","50.000","4","24","25","1","4","29","0","200.000","1","4","4","4","30","401","35","2.7.2","50","30","401","4","35","4","99","5","0","4","4","30","500.000","401","4","1","40.000","2","60.000","3","4","1","30","2","2","3","4","5","20","5.000","20.000","0,25","20","5.000","0,4","1","99","5","5.000","1","50","30","5","30","4","20","4","4","4","1","10.000","15.000","60.000","5.000","40.000","30.000","10.000","2","40.000","3","60.000","4","4","2026","10","29","2026","10","29","17","17","2026","10","29"];
 
-export const LABEL: string[] = ["Rekaman lab","Simulasi","Rekaman lab","Hitungan","Hitungan","Tidak dijalankan","Asumsi","Tidak dijalankan","Asumsi","Tidak dijalankan","Tidak dijalankan","Asumsi","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Asumsi","Rekaman lab","Tidak dijalankan","Rekaman lab","Rekaman lab","Asumsi","Asumsi","Asumsi","Hitungan","Hitungan","Asumsi","Simulasi"];
+export const LABEL: string[] = ["Rekaman lab","Simulasi","Rekaman lab","Hitungan","Hitungan","Tidak dijalankan","Asumsi","Tidak dijalankan","Asumsi","Tidak dijalankan","Tidak dijalankan","Asumsi","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Rekaman lab","Asumsi","Rekaman lab","Tidak dijalankan","Rekaman lab","Rekaman lab","Asumsi","Asumsi","Asumsi","Hitungan","Hitungan","Asumsi","Simulasi"];
 
 // Id tautan [[id]] berurutan, dipisah spasi (satu string: pemindai rahasia salah membaca "secret" lalu daftar id dipisah koma).
 export const TAUTAN: string = "t4-m30 t2-job-rekonsiliasi t4-m30 berikutnya t4-dua-arah t4-m30 t4-dua-arah t3-pool t2-job-rekonsiliasi t4-m29 t4-m30 t4-infra-secret t4-topup-verifikasi t4-prd t2-job-rekonsiliasi";
@@ -295,13 +297,13 @@ export const ISTILAH: unknown = {
       "riset": "R4-150",
       "judul": "Laporan rekonsiliasi payout di sebuah gateway pembayaran",
       "url": "https://docs.stripe.com/reports/payout-reconciliation",
-      "catatan": "Laporan membantu mencocokkan setoran di rekening bank dengan kumpulan pembayaran dan transaksi lain yang berkaitan dengannya. Pencocokannya per setoran, bukan per pembayaran."
+      "catatan": "Laporan membantu mencocokkan setoran di rekening bank dengan kumpulan pembayaran dan transaksi lain yang berkaitan dengannya. Pencocokannya per setoran, bukan per pembayaran. Dibuka 2026-10-29."
     },
     {
       "riset": "R4-151",
       "judul": "Notifikasi HTTP di gateway pembayaran lain",
       "url": "https://docs.midtrans.com/docs/https-notification-webhooks",
-      "catatan": "Untuk notifikasi yang terlambat, dokumentasi menyarankan memeriksa status transaksi lewat GET Status API."
+      "catatan": "Untuk notifikasi yang terlambat, dokumentasi menyarankan memeriksa status transaksi lewat GET Status API. Dibuka 2026-10-29."
     },
     {
       "riset": "R4-153",

@@ -28,13 +28,13 @@
       "riset": "R4-150",
       "judul": "Laporan rekonsiliasi payout di sebuah gateway pembayaran",
       "url": "https://docs.stripe.com/reports/payout-reconciliation",
-      "catatan": "Laporan membantu mencocokkan setoran di rekening bank dengan kumpulan pembayaran dan transaksi lain yang berkaitan dengannya. Pencocokannya per setoran, bukan per pembayaran."
+      "catatan": "Laporan membantu mencocokkan setoran di rekening bank dengan kumpulan pembayaran dan transaksi lain yang berkaitan dengannya. Pencocokannya per setoran, bukan per pembayaran. Dibuka 2026-10-29."
     },
     {
       "riset": "R4-151",
       "judul": "Notifikasi HTTP di gateway pembayaran lain",
       "url": "https://docs.midtrans.com/docs/https-notification-webhooks",
-      "catatan": "Untuk notifikasi yang terlambat, dokumentasi menyarankan memeriksa status transaksi lewat GET Status API."
+      "catatan": "Untuk notifikasi yang terlambat, dokumentasi menyarankan memeriksa status transaksi lewat GET Status API. Dibuka 2026-10-29."
     },
     {
       "riset": "R4-153",

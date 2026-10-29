@@ -638,7 +638,10 @@ describe("sumber luar: baris riset, tanggal akses, kutipan, dan label sumber", (
     expect(new Set(ids).size).toBe(ids.length);
     const awal = ids.indexOf("R4-150");
     expect(ids.slice(awal, awal + 5)).toEqual(["R4-150", "R4-151", "R4-152", "R4-153", "R4-154"]);
-    expect(ids[awal - 1]).toBe("R4-138");
+    // ID sebelum R4-150 milik halaman lain dan bergeser tiap kali halaman tetangga merge: yang dijaga adalah urutan naik tanpa ganda.
+    const nomor = ids.map((i) => Number(i.slice(3)));
+    expect(nomor).toEqual([...nomor].sort((x, y) => x - y));
+    expect(nomor[awal - 1]!).toBeLessThan(150);
     for (const i of ["R4-150", "R4-151", "R4-152"]) expect(barisRiset(i), i).toContain("dibuka 2026-10-29");
     expect(badan.match(/dibuka 2026-10-29/g)).toHaveLength(6);
     expect(["R4-150", "R4-151", "R4-152", "R4-153", "R4-154"].map((i) => sidik(barisRiset(i)))).toEqual(SIDIK.riset);
@@ -798,7 +801,7 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
     }
     expect(hd).toEqual([
       [2, "Inti"], [3, "Kenapa jalan kedua dibutuhkan"], [3, "Cek status: bertanya ke satu order"], [3, "Rekonsiliasi harian: tiga jenis selisih"],
-      [3, "Koreksi lewat jurnal normal: satu insiden, satu transaction"], [3, "Yang tidak terlihat rekonsiliasi, dan yang tidak bisa ditutup"], [3, "Rotasi rahasia dengan masa tumpang tindih"],
+      [3, "Koreksi lewat jurnal normal: satu insiden, satu transaction"], [3, "Yang tidak terlihat rekonsiliasi, dan yang tidak bisa ditutup"], [3, "Rotasi secret dengan masa tumpang tindih"],
       [3, "ADR 35: dua lapis, insiden bernomor, dan koreksi lewat jurnal normal"], [3, "Sengaja belum dilakukan"], [3, "Cek diri"], [3, "Saat me-review kode AI, cek ini"], [3, "Bacaan lanjut"],
     ]);
     expect([...badan.matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1]))).toEqual([1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 5]);
