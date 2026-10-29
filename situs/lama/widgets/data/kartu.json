@@ -2584,6 +2584,30 @@
   "jawab": "Keduanya sudah tepat untuk data di PostgreSQL: jurnal dan status ikut satu COMMIT atau batal bersama. Transaction tidak memeriksa kabar. Ia menyimpan apa pun yang ditulis di dalamnya, termasuk jumlah yang palsu."
  },
  {
+  "id": "t4-m30-1",
+  "halaman": "t4-m30",
+  "judul": "4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong",
+  "url": "tahap-4/m30-saldo-tidak-naik/",
+  "tanya": "Gateway mengirim enam kiriman untuk top-up Citra, dan database tidak memuat satu pun event. Kenapa tidak ada event?",
+  "jawab": "Tanda tangan kiriman memakai secret baru, sedangkan api-t4 masih memegang secret lama. Tiap kiriman dijawab 401 sebelum event ditulis (`retry.txt` bagian B: enam kiriman 401, `webhook_event` 0 baris)."
+ },
+ {
+  "id": "t4-m30-2",
+  "halaman": "t4-m30",
+  "judul": "4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong",
+  "url": "tahap-4/m30-saldo-tidak-naik/",
+  "tanya": "Bayu menyamakan secret Minggu 09.10. Kenapa top-up Citra dari Sabtu malam tetap tidak naik?",
+  "jawab": "Jadwal terpanjang gateway 342 menit. Kiriman pertama yang datang sebelum 09.10 − 342 menit = 03.28 sudah memakai semua percobaannya sebelum 09.10, jadi gateway tidak mengirim lagi (Hitungan atas jadwal `retry.txt` bagian A, dengan jam cerita berlabel Ilustrasi)."
+ },
+ {
+  "id": "t4-m30-3",
+  "halaman": "t4-m30",
+  "judul": "4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong",
+  "url": "tahap-4/m30-saldo-tidak-naik/",
+  "tanya": "Kenapa halaman ini tidak menulis jadwal ulang dan masa tumpang tindih secret sebagai perilaku satu gateway?",
+  "jawab": "Jadwal lima kali dengan jeda 2, 10, 30, 90, dan 210 menit ada di dokumentasi gateway kedua, yang tidak menyebut rotasi. Masa tumpang tindih sampai 24 jam dan pengulangan sampai tiga hari ada di dokumentasi gateway pertama (Tidak dijalankan). Tiruan lab memakai jadwal gateway kedua dengan rotasi langsung."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",

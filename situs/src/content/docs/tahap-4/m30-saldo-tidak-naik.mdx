@@ -1,0 +1,165 @@
+---
+title: "4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong"
+description: Minggu 4. Citra mengisi Rp500.000 dari rekening banknya, tetapi saldo di app tidak naik. Gateway mengirim kabarnya enam kali, dan Rekeningo menolak semuanya karena secret penanda tangannya sudah berganti.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import rahasiaBerganti from "../../../../data/diagram/t4-m30-rahasia-berganti.json";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t4-webhook]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 4 Tahap 4. Sabtu malam Citra mengisi saldo Rp500.000 dari rekening banknya lewat app. Rekeningnya terpotong Rp500.000, dan app menampilkan top-up itu berstatus "menunggu".
+
+Minggu pukul 09.40 Citra menulis ke layanan pelanggan. Uangnya sudah keluar dari bank, tetapi saldo di app belum naik. Statusnya masih "menunggu" sejak Sabtu malam, dan layanan pelanggan meneruskan pesannya ke Raka.
+
+Senin pagi Pak Hadi mencocokkan laporan gateway dengan ledger, seperti tiap hari. Laporan itu memuat tujuh top-up yang sudah dibayar di bank. Ledger tidak punya jurnal untuk satu pun dari tujuh itu.
+
+*Angka cerita (Ilustrasi):* hari, jam, dan jumlah tujuh top-up berasal dari naskah, bukan dari rekaman. Nominal Rp500.000 sama dengan top-up Citra di rekaman (Rekaman lab). Arti Ilustrasi, Rekaman lab, dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Dugaan pertama Raka datang dari sisi yang ia pegang: layar status di app tidak menyegarkan diri. Ia menyingkirkannya dengan membaca status top-up Citra langsung dari database. Hasilnya sama dengan layar: `menunggu`, tanpa jurnal, dan tanpa satu pun event dari gateway (Rekaman lab, bagian B di blok berikutnya).
+
+Dugaan kedua: top-up Citra hilang. Barisnya ada dan berstatus `menunggu`, jadi top-up tidak hilang. Yang tidak ada hanya kabar dari gateway bahwa uangnya sudah diterima.
+
+Dugaan ketiga: gateway sedang lambat. Raka memutuskan menunggu sehari.
+
+<details class="question">
+<summary>Tebak dulu: gateway sudah mengirim kabar "dibayar" untuk top-up Citra, tetapi database tidak memuat satu pun event. Kenapa tidak ada event?</summary>
+
+Kabarnya sampai ke Rekeningo, tetapi ditolak sebelum satu pun baris event ditulis. Penolakannya 401, karena tanda tangan di kiriman tidak cocok dengan secret yang dipegang Rekeningo. Kenapa tidak cocok ada di blok berikutnya.
+
+Rekaman lab memerankannya: enam kiriman dijawab 401, dan tabel `webhook_event` tetap kosong.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Gateway tidak lambat. Ia mengirim kabarnya sesuai jadwal, dan Rekeningo menolak tiap kiriman dengan 401. Jadwal gateway habis sebelum penyebab penolakannya diperbaiki.
+
+Penyebabnya ada di secret. Secret adalah kata rahasia yang hanya diketahui gateway dan Rekeningo; rekaman lab menulisnya rahasia. Gateway memakainya untuk menghitung tanda tangan tiap kiriman ([[t4-webhook]]), dan Rekeningo memakainya untuk memeriksa tanda tangan itu. Rotasi berarti mengganti secret dengan yang baru.
+
+Sabtu 18.00 (Ilustrasi) gateway tiruan merotasi secretnya dan langsung menandatangani dengan secret baru. Service pembayaran masih memegang secret lama. Tanda tangan baru tidak cocok dengan secret lama, jadi tiap kiriman dijawab 401.
+
+<Rantai data={rahasiaBerganti} />
+
+*Kondisi rekaman:* PostgreSQL 17.11, server Go `api-t4`, dan gateway tiruan lokal. Gateway memainkan jadwal ulangnya atas perintah skrip lab. Waktunya diperankan: gateway tidak menunggu 342 menit, tetapi menandatangani tiap kiriman dengan waktu maya dan memberi tahu jam itu ke api-t4.
+
+**Penolakan terjadi sebelum event ditulis.** Service memeriksa tanda tangan lebih dulu, sebelum JSON diurai. Di rekaman bagian B daftar secret yang diterima berisi satu secret, yaitu yang lama. Handler mengubah kegagalan itu menjadi 401 (dibaca dari kode):
+
+<Snippet file="labs/api-t4/internal/service/pembayaran.go" lines="86:95" lang="go" title="Kode lab: labs/api-t4/internal/service/pembayaran.go baris 86 sampai 95 (tanda tangan dicocokkan dengan daftar secret)" />
+
+<Snippet file="labs/api-t4/internal/handler/handler_pembayaran.go" lines="198:199" lang="go" title="Kode lab: labs/api-t4/internal/handler/handler_pembayaran.go baris 198 sampai 199 (gagal tanda tangan jadi 401)" />
+
+**Enam kiriman, enam 401.** Gateway tiruan mengirim kiriman pertama dan lima ulangan untuk top-up Citra Rp500.000. Semuanya dijawab 401. Sesudah kiriman keenam gateway berhenti, dan database tidak memuat event maupun jurnal:
+
+<Snippet file="labs/t4-webhook/output/retry.txt" lines="21:44" title="Rekaman lab: labs/t4-webhook/output/retry.txt, bagian B (enam kiriman 401, jadwal habis)" />
+
+Jeda antar percobaan 2, 10, 30, 90, dan 210 menit sejak percobaan sebelumnya. Kiriman jatuh pada menit 0, 2, 12, 42, 132, dan 342. Totalnya 342 menit, atau 342 ÷ 60 = 5,7 jam (Hitungan: angka yang dihitung dari angka lain di halaman).
+
+**Kenapa 401 diulang sampai lima kali.** Gateway tidak tahu kenapa Rekeningo menolak. Ia hanya melihat kode status.
+
+Dokumentasi gateway kedua memuat jumlah ulangan per kode status ([dokumentasi notifikasi HTTP sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29, Tidak dijalankan). Tanpa ulangan untuk 2xx, satu kali untuk 500, empat kali untuk 503, dua kali untuk 400 dan 404, dan lima kali untuk kegagalan lain.
+
+Kode 401 tidak disebut sendiri di dokumentasi itu. Ia jatuh ke baris kegagalan lain, dan itu pembacaan, bukan kutipan. Tiruan memakai pembacaan itu (Asumsi), dan tabel bagian A merekam jumlah kirimannya per kode:
+
+<Snippet file="labs/t4-webhook/output/retry.txt" lines="5:16" title="Rekaman lab: labs/t4-webhook/output/retry.txt, bagian A (jumlah kiriman per kode status)" />
+
+**Dua gateway nyata, dua kebiasaan.** Jadwal tiruan datang dari dokumentasi gateway kedua. Perilaku rotasi yang berbeda ada di dokumentasi gateway pertama ([dokumentasi webhook gateway pembayaran lain](https://docs.stripe.com/webhooks), dibuka 2026-10-29, Tidak dijalankan). Keduanya tidak boleh dibaca sebagai satu gateway:
+
+| | Dokumentasi gateway nyata | Tiruan lab |
+|---|---|---|
+| Kiriman yang gagal | Gateway pertama: diulang sampai tiga hari dalam mode live. Gateway kedua: paling banyak lima kali, jeda 2, 10, 30, 90, dan 210 menit, digeser acak | Lima ulangan dengan jeda yang sama, tanpa geseran (`retry.txt` bagian A) |
+| Rotasi secret | Gateway pertama: secret lama bisa tetap aktif sampai 24 jam, dengan satu tanda tangan per secret. Gateway kedua: tidak disebut di halaman yang dibuka | Langsung memakai secret baru, tanpa masa tumpang tindih (`retry.txt` bagian B) |
+
+Masa tumpang tindih adalah jangka waktu ketika secret lama dan secret baru sama-sama berlaku. Kegagalan seperti M30 butuh dua sifat sekaligus: rotasi tanpa masa tumpang tindih, dan jadwal ulang yang lebih pendek daripada waktu penyamaan secret. Gabungan itu bukan perilaku yang tertulis di salah satu dari kedua dokumentasi.
+
+**Kiriman yang tidak datang lagi.** Bayu menyamakan secret Minggu 09.10 (Ilustrasi), atau 910 menit sesudah rotasi pukul 18.00. Jadwal terpanjang gateway 342 menit. Kiriman pertama sebelum 09.10 − 342 menit = 03.28 memakai keenam percobaannya sebelum 09.10.
+
+Semuanya dijawab 401, dan gateway tidak mengirim lagi. Rentang itu dimulai dari rotasi: Sabtu 18.00 sampai Minggu 03.28, atau 910 − 342 = 568 menit. Top-up Citra, Sabtu malam, ada di rentang itu. Kiriman pertama sesudah 03.28 masih punya percobaan sesudah 09.10, jadi tercatat, hanya terlambat.
+
+Batas 03.28 berlaku untuk tiruan. Gateway kedua menggeser tiap percobaan secara acak, jadi batasnya di sana bergeser sedikit. Jumlah top-up di rentang itu bergantung pada berapa orang mengisi saldo; naskah menyebut tujuh top-up tanpa jurnal pada hari Senin (Ilustrasi).
+
+**Penyebabnya secret, bukan waktu atau isi.** Di bagian C hanya satu hal yang berbeda sebelum kiriman ke-3: secret di api-t4 disamakan. Isi kiriman dan jam maya yang dipasang sebelum tiap kiriman sama (dibaca dari `run.py`). Kiriman 1 dan 2 dijawab 401, dan kiriman 3 pada menit 12 dijawab 200 diproses.
+
+**Tidak ada jalan kedua.** Di cerita, minggu 4 belum punya job yang menanyakan status top-up ke gateway, dan belum ada yang mencocokkan laporan gateway dengan ledger. Skrip rekaman bagian B tidak menjalankan job apa pun sesudah jadwal habis (Tidak dijalankan: dibaca dari `run.py`). Catatan penutup rekaman itu menunjuk ke job yang lahir sesudah M30: cek status dan rekonsiliasi yang menemukan uangnya.
+
+Dokumentasi gateway kedua sendiri menyarankan menanyakan status transaksi lewat API-nya bila notifikasi terlambat (dokumentasi yang sama, Tidak dijalankan). Webhook di versi ini adalah satu-satunya jalan kabar uang masuk. Pertanyaan PRD v4, siapa yang tahu bila kabar tidak datang, di sini dijawab dengan buruk: Citra lewat pesan, dan Pak Hadi lewat laporan hari Senin.
+
+Jalan kedua, dan cara selisih seperti ini menjadi insiden bernomor, dibuka di [[t4-rekonsiliasi]].
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `retry.txt` bagian B: enam kiriman untuk top-up Citra, sampai HP Citra. Tebak dulu, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t4-m30.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: secret di api-t4 disamakan sebelum jadwal habis**. Bagian C memakai top-up Eko Rp200.000 dengan alur yang sama: kiriman ke-3 pada menit 12 diterima, dan jurnalnya satu. Layar HP di widget digambar dari isi rekaman: lab tidak punya app Flutter.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: api-t4 menjawab 401 untuk keenam kiriman (menit 0, 2, 12, 42, 132, dan 342), tabel webhook_event kosong, dan top-up Citra tetap menunggu tanpa jurnal.
+
+Bila secret disamakan sebelum jadwal habis, kiriman ke-3 pada menit 12 dijawab 200 diproses, dan top-up berstatus dibayar dengan satu jurnal. Rekaman bagian C ada di lipatan di bawah.
+</noscript>
+
+<details>
+<summary>Rekaman bagian C (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/t4-webhook/output/retry.txt" lines="46:57" title="Rekaman lab: labs/t4-webhook/output/retry.txt, bagian C (secret disamakan, uang tercatat satu kali)" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t4-rekonsiliasi]]: jalan kedua untuk kabar uang, dan selisih antara bank dan ledger yang menjadi insiden bernomor. Keputusannya ADR 35.
+- [[t4-webhook]]: tanda tangan yang diperiksa Rekeningo, dan penolakannya berupa 401.
+- [[t4-infra-secret]]: tempat secret disimpan dan urutan menggantinya.
+- [[t3-at-least-once]]: pola yang sama dilihat dari sisi pengirim: kiriman diulang menurut jadwal, lalu berhenti.
+
+Gateway hanya mengulang selama jadwalnya, dan ia tidak tahu kenapa Rekeningo menolak. Jalan kedua untuk kabar uang harus sudah ada sebelum jadwal itu habis.
+
+### Cek diri
+
+**1.** Gateway mengirim enam kiriman untuk top-up Citra, dan database tidak memuat satu pun event. Kenapa tidak ada event?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tanda tangan kiriman memakai secret baru, sedangkan api-t4 masih memegang secret lama. Tiap kiriman dijawab 401 sebelum event ditulis (`retry.txt` bagian B: enam kiriman 401, `webhook_event` 0 baris).
+
+</details>
+
+**2.** Bayu menyamakan secret Minggu 09.10. Kenapa top-up Citra dari Sabtu malam tetap tidak naik?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Jadwal terpanjang gateway 342 menit. Kiriman pertama sebelum 09.10 − 342 menit = 03.28 sudah memakai semua percobaannya sebelum 09.10. Jadi gateway tidak mengirim lagi (Hitungan atas jadwal `retry.txt` bagian A, dengan jam cerita berlabel Ilustrasi).
+
+</details>
+
+**3.** Kenapa halaman ini tidak menulis jadwal ulang dan masa tumpang tindih secret sebagai perilaku satu gateway?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Jadwal lima kali dengan jeda 2, 10, 30, 90, dan 210 menit ada di dokumentasi gateway kedua, yang tidak menyebut rotasi. Masa tumpang tindih sampai 24 jam dan pengulangan sampai tiga hari ada di dokumentasi gateway pertama (Tidak dijalankan). Tiruan lab memakai jadwal gateway kedua dengan rotasi langsung.
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />
