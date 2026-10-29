@@ -1,0 +1,25 @@
+{
+  "id": "t4-m33-file-di-bytea",
+  "judul": "File di kolom bytea membesarkan dump; file di penyimpanan objek tidak",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-storage · ukuran.txt bagian A, B, dan C" },
+  "baris": [
+    {
+      "label": "File di kolom bytea",
+      "sub": "8 pengajuan, 16 file",
+      "simpul": [
+        { "teks": "16 file, 8.000.000 byte", "sub": "di tabel berkas_bytea" },
+        { "teks": "Dump 1,1 kali ukuran file", "sub": "format custom, terkompresi", "nada": "warn" },
+        { "teks": "Pulih: isi sama", "sub": "md5 tiap baris cocok", "nada": "good" }
+      ]
+    },
+    {
+      "label": "File di penyimpanan objek",
+      "sub": "8 pengajuan, 16 file",
+      "simpul": [
+        { "teks": "16 objek, 8.000.000 byte", "sub": "di luar database" },
+        { "teks": "Dump di bawah 0,01 kali ukuran file", "sub": "database memegang kunci dan checksum", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Dua run dari database bersih. Isi file karangan 500.000 byte (Ilustrasi), dan waktu dump dan pulih tidak direkam."
+}

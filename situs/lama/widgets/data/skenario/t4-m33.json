@@ -1,0 +1,117 @@
+{
+  "versi": 2,
+  "judul": "File identitas di kolom bytea: dump makin besar, dan pemulihan ikut",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t4-storage/output/ukuran.txt",
+    "catatan": "Server Go api-t4, PostgreSQL 17.11 dari database bersih, dan SeaweedFS 4.51 untuk varian (make -C labs/t4-storage run BAGIAN=ukuran). Jalur utama: ukuran.txt bagian A, B, dan D. Ubah satu hal: bagian C, run terpisah dengan data awal yang sama. Delapan pengajuan, dua file 500.000 byte tiap pengajuan. Isi file karangan (Ilustrasi): tanda tangan PNG lalu byte acak, jadi rasio untuk foto nyata tidak diukur. Waktu dump dan pulih tidak direkam. Lab tidak punya app Flutter dan tidak merekam layar. Baris diawali tanda panah tidak ada di skenario ini."
+  },
+  "pengantar": "Delapan pengajuan verifikasi sudah menyimpan foto kartu identitas dan swafoto. Tebak dulu, lalu ikuti dump dan pemulihannya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    {
+      "id": "api",
+      "label": "api-t4"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    },
+    {
+      "id": "dump",
+      "label": "pg_dump"
+    },
+    {
+      "id": "pulih",
+      "label": "Database pulih"
+    },
+    {
+      "id": "objek",
+      "label": "Penyimpanan objek (SeaweedFS)"
+    }
+  ],
+  "predict": {
+    "q": "Delapan pengajuan menyimpan 16 file, 8.000.000 byte, di kolom bytea. Lab mengukur dump terkompresi (pg_dump -Fc) sebelum pengajuan pertama dan sesudah 2, 4, dan 8 pengajuan. Berapa kali ukuran file yang ditambahkan ke dump?",
+    "options": [
+      "Hampir nol: dump hanya menyimpan struktur tabel dan beberapa baris kecil",
+      "Sedikit di atas satu kali: dump membawa semua byte file hampir tanpa kompresi",
+      "Sekitar setengah: kompresi bawaan mengecilkan file hampir separuhnya, seperti file teks",
+      "Sekitar dua kali: tiap byte file ditulis sebagai dua karakter di dalam dump"
+    ],
+    "answer": 1,
+    "varian": false,
+    "explain": "Rekaman ukuran.txt bagian A: rasio dump terhadap file 1,1 pada 2, 4, dan 8 pengajuan. pg_dump menulis bytea sebagai teks heksadesimal lalu memampatkannya, dan byte acak tidak bisa dimampatkan lebih jauh. Dump teks biasa atas tabel itu 2,0 kali ukuran file."
+  },
+  "langkah": [
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Delapan pengajuan menyimpan 16 file di kolom bytea",
+      "kirim": "# server: ./api-t4 -lab -rentan berkas-bytea (penyimpanan objek = tabel berkas_bytea)\n=> SELECT count(*) AS baris, sum(octet_length(isi)) AS byte_isi FROM berkas_bytea\n baris | byte_isi\n-------+----------\n 16    | 8000000\n(1 row)",
+      "jelas": "Tiap pengajuan membawa dua file 500.000 byte. Delapan pengajuan menyimpan 16 baris dan 8.000.000 byte di tabel berkas_bytea, di database yang sama dengan data transaksi."
+    },
+    {
+      "dari": "db",
+      "ke": "dump",
+      "judul": "Dump terkompresi membesar 1,1 kali ukuran file",
+      "kirim": "# Selisih ukuran dump terhadap dump sebelum pengajuan pertama, dibagi byte isi file (n pengajuan x 2 file x 500.000 byte):\n2 pengajuan (2.000.000 byte file): rasio dump/file = 1,1\n4 pengajuan (4.000.000 byte file): rasio dump/file = 1,1\n8 pengajuan (8.000.000 byte file): rasio dump/file = 1,1",
+      "jelas": "Lab menghitung selisih ukuran dump terhadap dump sebelum pengajuan pertama, dibagi byte isi file. Rasionya tetap 1,1 pada 2, 4, dan 8 pengajuan: dump membesar sebanding dengan file.",
+      "nada": "warn"
+    },
+    {
+      "dari": "dump",
+      "judul": "Dump teks biasa 2,0 kali ukuran file",
+      "kirim": "# Rasio tetap sedikit di atas 1 pada tiap ukuran: dump membesar sebanding dengan ukuran file (batas yang diperiksa: 0,99 sampai 1,25). pg_dump menulis bytea sebagai teks heksadesimal lalu memampatkannya; byte acak tidak bisa dimampatkan lebih jauh, dan JPEG nyata sudah terkompresi.\n# Dump teks biasa (pg_dump -Fp) atas tabel berkas_bytea saja: rasio dump/file = 2,0 (bytea ditulis sebagai heksadesimal: dua karakter per byte)",
+      "jelas": "bytea ditulis sebagai heksadesimal, dua karakter per byte. Format custom memampatkan teks itu, tetapi byte acak tidak bisa dimampatkan lebih jauh.",
+      "nada": "warn"
+    },
+    {
+      "dari": "dump",
+      "ke": "pulih",
+      "judul": "Dump dipulihkan ke database lain, isinya sama",
+      "kirim": "$ psql lab_pulih -c 'SELECT count(*), sum(octet_length(isi)) FROM berkas_bytea'\n16|8000000   # 16 baris, 8.000.000 byte: sama dengan sebelum dump\nisi tiap baris sesudah pulih sama dengan sebelum dump (md5 per baris, diurutkan; bukan hanya jumlah baris dan byte): ya\n# Waktu dump dan pulih tidak direkam (bergantung mesin). Hanya batasnya yang diperiksa: dump dan pulih 8 MB selesai dalam 120 detik. Waktu untuk puluhan GB tidak diukur (Tidak dijalankan).",
+      "jelas": "Sesudah pulih ada 16 baris dan 8.000.000 byte, dan isi tiap baris sama dengan sebelum dump. Waktu tidak direkam karena bergantung mesin; hanya batas 120 detik untuk 8 MB yang diperiksa."
+    },
+    {
+      "dari": "dump",
+      "judul": "Dalam 28 hari 97,1% data adalah file",
+      "kirim": "# 2.000 unggahan per hari = 1.000 pengajuan x 2 file (naskah); satu baris verifikasi per pengajuan\nfile per hari   = 2.000 x 500 KB               = 1,00 GB\nfile 28 hari    = 28 x 1,00 GB               = 28,00 GB\nposting 28 hari = 43,8 juta / 365 x 28 x 250 B = 0,84 GB\nbagian file di bytea = 28,00 / (28,00 + 0,84) = 97,1%",
+      "jelas": "Bagian D rekaman mencetak hitungan dari Asumsi naskah, bukan hasil lab: 1 GB file per hari, 28 GB dalam 28 hari, 0,84 GB posting, dan file 97,1% dari data yang dicadangkan.",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "file di penyimpanan objek, bukan di kolom bytea",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "api",
+        "ke": "objek",
+        "judul": "File dikirim ke penyimpanan objek",
+        "kirim": "# penyimpanan objek: SeaweedFS 4.51 di container, endpoint S3 lokal, bucket privat 'berkas'\n# server: ./api-t4 -lab -objek-s3 <endpoint lokal> (file lewat URL PUT bertanda tangan)\n# Di penyimpanan objek: 16 objek, 8.000.000 byte; di database: baris verifikasi dengan kunci dan checksum saja.",
+        "jelas": "Delapan pengajuan yang sama menaruh 16 file, 8.000.000 byte, di penyimpanan objek yang berjalan di container lab."
+      },
+      {
+        "dari": "api",
+        "ke": "db",
+        "judul": "Database hanya memegang kunci dan checksum",
+        "kirim": "=> SELECT count(*) AS pengajuan, min(length(berkas_kartu_kunci)) AS panjang_kunci, min(length(checksum_kartu)) AS panjang_checksum FROM verifikasi\n pengajuan | panjang_kunci | panjang_checksum\n-----------+---------------+------------------\n 8         | 48            | 64\n(1 row)",
+        "jelas": "Baris verifikasi menyimpan kunci objek paling pendek 48 karakter dan checksum paling pendek 64 karakter, bukan isi file."
+      },
+      {
+        "dari": "db",
+        "ke": "dump",
+        "judul": "Dump hampir tidak membesar",
+        "kirim": "# Selisih ukuran dump terhadap dump sebelum pengajuan pertama, dibagi byte isi file di penyimpanan:\n2 pengajuan (2.000.000 byte file di penyimpanan): rasio dump/file di bawah 0,01: ya\n4 pengajuan (4.000.000 byte file di penyimpanan): rasio dump/file di bawah 0,01: ya\n8 pengajuan (8.000.000 byte file di penyimpanan): rasio dump/file di bawah 0,01: ya",
+        "jelas": "Rasio dump terhadap file di bawah 0,01 pada 2, 4, dan 8 pengajuan.",
+        "nada": "good"
+      },
+      {
+        "dari": "dump",
+        "judul": "Dump tidak membawa file",
+        "kirim": "# Dump tidak membawa file. File punya salinan sendiri yang harus dicadangkan terpisah: pencadangan SeaweedFS Tidak dijalankan di lab ini.",
+        "jelas": "File punya salinan sendiri yang harus dicadangkan terpisah. Pencadangan penyimpanan objek tidak dijalankan di lab ini.",
+        "nada": "warn"
+      }
+    ]
+  }
+}

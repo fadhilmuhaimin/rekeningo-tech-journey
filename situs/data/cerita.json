@@ -3579,8 +3579,9 @@
       "lab": [
         "t4-storage"
       ],
-      "ada": false,
-      "nomor": "4.14"
+      "ada": true,
+      "nomor": "4.14",
+      "menit": 10
     },
     {
       "id": "t4-storage",
