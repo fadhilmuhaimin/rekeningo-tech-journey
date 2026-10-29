@@ -1,0 +1,47 @@
+{
+  "istilah": "Circuit breaker",
+  "sehari_hari": "Circuit breaker adalah penjaga di depan layanan luar. Sesudah beberapa kegagalan berturut-turut ia berhenti memanggil layanan itu, lalu mencoba lagi sesudah jeda.",
+  "cerita": [
+    {
+      "rujukan": "t4-breaker",
+      "teks": "Layanan verifikasi tiruan mati. Tanpa breaker, 10 pekerjaan menghabiskan 50 permintaan dan semuanya mati. Dengan breaker, lajur verifikasi dijeda sesudah kegagalan keenam, dan 9 dari 10 pekerjaan lulus sesudah vendor pulih (`lajur.txt` bagian A dan B)."
+    }
+  ],
+  "mekanisme": [
+    "Di status closed, panggilan lewat dan breaker menghitung kegagalan berturut-turut.",
+    "Sesudah kegagalan ke-6, breaker pindah ke open: panggilan ditolak seketika dan vendor tidak dipanggil (`breaker.txt` bagian A).",
+    "Sesudah 60 detik, breaker pindah ke half-open dan mengizinkan satu permintaan percobaan. Permintaan kedua ditolak selama yang pertama belum selesai.",
+    "Permintaan percobaan yang sukses menutup breaker. Yang gagal membuka breaker lagi untuk 60 detik penuh (`breaker.txt` bagian B)."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menghitung jawaban 4xx sebagai kegagalan vendor. Bawaan pustaka gobreaker melakukannya, dan enam dokumen rusak dengan vendor sehat membuka breaker (`breaker.txt` bagian C, `lajur.txt` bagian D).",
+    "Memasang ambang yang lebih tinggi daripada batas percobaan satu pekerjaan. Pekerjaan pertama habis lima percobaan sebelum kegagalan keenam membuka breaker (`lajur.txt` bagian B).",
+    "Memakai pekerjaan nyata sebagai permintaan percobaan di half-open. Tiap permintaan percobaan yang gagal memakai satu percobaan pekerjaan terdepan."
+  ],
+  "terkait": [
+    "Timeout",
+    "Retry",
+    "Idempotency key",
+    "Dead-letter queue"
+  ],
+  "sumber": [
+    {
+      "riset": "R4-160",
+      "judul": "gobreaker v2.4.0 (pkg.go.dev, dibuka 2026-10-29)",
+      "url": "https://pkg.go.dev/github.com/sony/gobreaker/v2@v2.4.0",
+      "catatan": "Bawaan: membuka bila gagal berturut-turut lebih dari 5, Timeout open 60 detik, satu permintaan di half-open, dan setiap error non-nil dihitung gagal."
+    },
+    {
+      "riset": "R4-163",
+      "judul": "Azure Architecture Center: Circuit Breaker pattern (diperbarui 2025-02-05, dibuka 2026-10-29)",
+      "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker",
+      "catatan": "Tiga status closed, open, dan half-open. Aplikasi tidak boleh terus mengulang operasi yang kecil kemungkinannya berhasil."
+    },
+    {
+      "judul": "Rekaman lab t4-integrasi: breaker.txt bagian A sampai C",
+      "rekaman": "labs/t4-integrasi/output/breaker.txt",
+      "catatan": "Jam diperankan: open sesudah gagal ke-6, open pada 59,999 detik dan half-open pada 60,001 detik, 4xx bawaan lawan kustom."
+    }
+  ]
+}

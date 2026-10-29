@@ -1,0 +1,26 @@
+{
+  "id": "t4-breaker-inti",
+  "judul": "Vendor mati, tanpa dan dengan lajur dijeda",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-integrasi, lajur.txt A dan B" },
+  "baris": [
+    {
+      "label": "Tanpa breaker",
+      "sub": "10 pekerjaan",
+      "simpul": [
+        { "teks": "50 permintaan", "sub": "5 tiap pekerjaan" },
+        { "teks": "10 mati", "sub": "pengajuan gagal", "nada": "warn" },
+        { "teks": "pulih: 0 diklaim", "sub": "tak ada yang mengantre ulang", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Lajur dijeda",
+      "sub": "10 pekerjaan",
+      "simpul": [
+        { "teks": "6 permintaan", "sub": "lajur dijeda, 0 objek" },
+        { "teks": "vendor pulih", "sub": "satu permintaan percobaan" },
+        { "teks": "9 lulus, 1 mati", "sub": "dari 10 pekerjaan", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Vendor adalah layanan verifikasi tiruan lokal. Kedua baris memakai satu worker, lima percobaan, dan tanpa jeda antar percobaan. Breaker di baris kedua memakai Timeout 3 detik, bukan 60 detik bawaan pustaka."
+}
