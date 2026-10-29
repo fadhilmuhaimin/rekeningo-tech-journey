@@ -212,6 +212,7 @@ const AWALAN_SCHEMA = modul.modul[0]!.schema.slice(0, modul.modul[0]!.schema.ind
 
 // ---- turunan dari migration -----------------------------------------------------------------------------------------------
 const DROP_CHECK = migrasi.reduce((n, m) => n + (m.isi.match(/DROP CONSTRAINT/g) ?? []).length, 0);
+const BUKU_SISTEM = (migrasi[0]!.isi.match(/INSERT INTO buku \(jenis\) VALUES (.*);/)![1]!.match(/\('/g) ?? []).length;
 const LOCK = [...new Set(migrasi.map((m) => m.isi.match(/SET LOCAL lock_timeout = '(\w+)'/)![1]!))];
 const NOMOR_MIG = migrasi.map((m) => m.nama.slice(0, 6));
 
@@ -406,7 +407,7 @@ Setiap perubahan di bawah punya alasan dan masalah yang memicunya. Tanpa catatan
 
 **Semua bermuara di \`akun\` dan \`jurnal\`.** ${K(penunjuk(erd3, "akun"))} tabel Tahap 3 menunjuk \`akun\` dan ${W(penunjuk(erd3, "jurnal"))} menunjuk \`jurnal\`; di Tahap 4 jumlahnya ${W(penunjuk(erd4, "akun"))} dan ${W(penunjuk(erd4, "jurnal"))}. Jumlah foreign key naik dari ${FK3} ke ${FK4}, dihitung dari kedua ERD. ${K(FK4 - FK3)} yang baru menuju \`akun\` (${W(menuju(erd4, "akun") - menuju(erd3, "akun"))}), \`jurnal\` (${W(menuju(erd4, "jurnal") - menuju(erd3, "jurnal"))}), \`topup_bank\` (${W(menuju(erd4, "topup_bank"))}), dan \`kartu\` (${W(menuju(erd4, "kartu"))}).
 
-**Tabel uang: kolom sama, nilai jenis baru.** \`buku\` dan \`jurnal\` tidak mendapat kolom. Yang berubah adalah dua aturan CHECK pada kolom \`jenis\`, dan aturan \`buku_pemilik\` yang kini menyebut \`pemakai\` dan \`merchant\` sebagai buku milik akun. Migration menulisnya sebagai berikut, dan menambah tiga buku sistem:
+**Tabel uang: kolom sama, nilai jenis baru.** \`buku\` dan \`jurnal\` tidak mendapat kolom. Yang berubah adalah dua aturan CHECK pada kolom \`jenis\`, dan aturan \`buku_pemilik\` yang kini menyebut \`pemakai\` dan \`merchant\` sebagai buku milik akun. Migration menulisnya sebagai berikut, dan menambah ${W(BUKU_SISTEM)} buku sistem:
 
 <Snippet file="labs/api-t4/migrasi/000020_akun_tingkat_buku_jenis.up.sql" lines="${R_MIG[0]}:${R_MIG[1]}" lang="sql" title="labs/api-t4/migrasi/000020_akun_tingkat_buku_jenis.up.sql" />
 
@@ -958,6 +959,37 @@ describe("rujukan rekaman, README, migration, dan kontrak", () => {
     expect(sql).toContain("ALTER TABLE outbox ADD COLUMN tujuan");
     expect(sql).toContain("ALTER TABLE produk ADD COLUMN gambar_url");
     expect(sql).not.toMatch(/ALTER TABLE (buku|jurnal|posting) ADD COLUMN/);
+  });
+});
+
+describe("klaim tabel uang, modul, dan Idempotency-Key terhadap rekaman dan ERD", () => {
+  test("batas.txt bagian B: tiap schema memuat jumlah dan nama tabel yang sama dengan pembagian modul", () => {
+    for (const m of modul.modul) {
+      const b = batasB.find((x) => x.startsWith(`schema ${m.schema}: `));
+      expect(b, m.schema).toBeDefined();
+      expect(b).toBe(`schema ${m.schema}: ${m.tabel.length} tabel (${[...m.tabel].sort().join(", ")})`);
+    }
+    expect(BUKU_SISTEM).toBe(3);
+  });
+  test("aturan buku_pemilik menyebut pemakai dan merchant hanya di Tahap 4, dan outbox menulis verifikasi tanpa jurnal", () => {
+    const pemilik = (e: Erd): string => e.tabel.find((t) => t.nama === "buku")!.cek.find((c) => c.nama === "buku_pemilik")!.ekspresi;
+    expect(pemilik(erd4)).toMatch(/'pemakai'.*'merchant'/);
+    expect(pemilik(erd3)).not.toMatch(/'pemakai'|'merchant'/);
+    const promo = per4.get("outbox")!.cek.find((c) => c.nama === "outbox_jurnal_atau_promo")!.ekspresi;
+    expect(promo).toContain("jurnal_id IS NULL");
+    expect(promo).toContain("'verifikasi'::text");
+    expect(migrasi[0]!.isi).toContain("Pekerjaan verifikasi tidak punya jurnal, seperti promo.");
+  });
+  test("ledger.txt bagian A: permintaan sah 201, ulangan dengan key yang sama 200, dan satu jurnal untuk key itu", () => {
+    const i = ledgerTxt.findIndex((b) => b === "# permintaan sah, lalu ulangan yang sama");
+    const status = ledgerTxt.slice(i, i + 40).filter((b) => b.startsWith("HTTP/1.1")).map((b) => b.match(/HTTP\/1\.1 (\d{3})/)![1]);
+    expect(status.slice(0, 2)).toEqual(["201", "200"]);
+  });
+  test("rekaman E: penolakan tiap aturan tabel baru tercatat dengan SQLSTATE dan nama aturannya", () => {
+    const teks = E.join("\n");
+    for (const k of ["23514 · constraint topup_bank_jumlah_check", "23505 · constraint topup_bank_order_id_key", "23514 · constraint topup_bank_status_check", "23505 · constraint webhook_event_pkey", "23514 · constraint webhook_event_hasil_check", "23514 · constraint qr_dinamis_terikat", "23514 · constraint outbox_tujuan_sesuai_jenis", "23514 · constraint jurnal_jenis_check"]) {
+      expect(teks, k).toContain(k);
+    }
   });
 });
 
