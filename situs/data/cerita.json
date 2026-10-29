@@ -3473,8 +3473,9 @@
       "lab": [
         "t4-integrasi"
       ],
-      "ada": false,
-      "nomor": "4.10"
+      "ada": true,
+      "nomor": "4.10",
+      "menit": 11
     },
     {
       "id": "t4-breaker",
