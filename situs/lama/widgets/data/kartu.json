@@ -2704,6 +2704,38 @@
   "jawab": "Jadwal lima kali dengan jeda 2, 10, 30, 90, dan 210 menit ada di dokumentasi gateway kedua, yang tidak menyebut rotasi. Masa tumpang tindih sampai 24 jam dan pengulangan sampai tiga hari ada di dokumentasi gateway pertama (Tidak dijalankan). Tiruan lab memakai jadwal gateway kedua dengan rotasi langsung."
  },
  {
+  "id": "t4-rekonsiliasi-1",
+  "halaman": "t4-rekonsiliasi",
+  "judul": "4.9 Rekonsiliasi dengan gateway + ADR 35",
+  "url": "tahap-4/rekonsiliasi-gateway/",
+  "tanya": "Total laporan gateway dan total jurnal hanya berbeda Rp10.000, tetapi rekonsiliasi per order menemukan lima insiden. Bagaimana itu mungkin?",
+  "jawab": "Kelima selisih saling meniadakan: +15.000, +60.000, +5.000, −40.000, dan −30.000 berjumlah +10.000, sama dengan selisih total (Simulasi, sama dengan `rekon.txt` bagian B). Dua total yang hampir sama tidak menunjukkan order yang bermasalah."
+ },
+ {
+  "id": "t4-rekonsiliasi-2",
+  "halaman": "t4-rekonsiliasi",
+  "judul": "4.9 Rekonsiliasi dengan gateway + ADR 35",
+  "url": "tahap-4/rekonsiliasi-gateway/",
+  "tanya": "Insiden −Rp40.000 ditutup tanpa jurnal baru, padahal selisihnya ada. Kenapa itu benar?",
+  "jawab": "Gateway ditanya lebih dulu dan menjawab settlement dengan jumlah yang sama. Hanya tanggal settlement yang berbeda, jadi ledger sudah benar dan tidak ada rupiah yang berubah (`rekon.txt` bagian B)."
+ },
+ {
+  "id": "t4-rekonsiliasi-3",
+  "halaman": "t4-rekonsiliasi",
+  "judul": "4.9 Rekonsiliasi dengan gateway + ADR 35",
+  "url": "tahap-4/rekonsiliasi-gateway/",
+  "tanya": "Insiden +Rp60.000 tetap terbuka walau uangnya sudah di bank. Kenapa job tidak mengkreditnya?",
+  "jawab": "Akun Dina akan melewati batas tingkatnya bila dikredit, dan job tidak memaksa kredit ke akun seperti itu. Uangnya tertahan di bank sampai tim risk memutuskan, karena PRD v4 belum punya jalur pengembalian dana (`rekon.txt` bagian B dan `urutan.txt` bagian F)."
+ },
+ {
+  "id": "t4-rekonsiliasi-4",
+  "halaman": "t4-rekonsiliasi",
+  "judul": "4.9 Rekonsiliasi dengan gateway + ADR 35",
+  "url": "tahap-4/rekonsiliasi-gateway/",
+  "tanya": "Rekonsiliasi dijalankan dua kali untuk tanggal yang sama. Kenapa insiden tidak ganda?",
+  "jawab": "`insiden_rekon` punya `UNIQUE (tanggal, order_id, jenis)`, dan pencatatan memakai `ON CONFLICT DO NOTHING`. Di `rekon.txt` bagian C, laporan delapan baris hanya menambah tiga insiden baru."
+ },
+ {
   "id": "t4-m31-1",
   "halaman": "t4-m31",
   "judul": "4.10 M31: 146 pendaftar tertahan \"Sedang diverifikasi\"",
