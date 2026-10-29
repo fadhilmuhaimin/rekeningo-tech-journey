@@ -1224,6 +1224,15 @@
   "h": "/istilah/pull-request-review/"
  },
  {
+  "t": "QR statis dan dinamis",
+  "d": "QR statis dicetak sekali dan dipakai berulang dengan nominal diisi pembeli; QR dinamis dibuat per pembayaran, nominalnya terikat, dan hanya sekali bayar.",
+  "b": "t4-qr",
+  "n": "4.19 QR pembayaran",
+  "u": "/tahap-4/qr-pembayaran/",
+  "s": "istilah-qr-statis-dan-dinamis",
+  "h": "/istilah/qr-statis-dan-dinamis/"
+ },
+ {
   "t": "Query plan",
   "d": "Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.",
   "b": "t2-index",

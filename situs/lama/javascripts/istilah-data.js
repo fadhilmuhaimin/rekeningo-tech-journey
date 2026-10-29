@@ -1249,6 +1249,15 @@ window.ISTILAH = {
   "t": "Pull request review",
   "u": "tahap-2/tim-infra/"
  },
+ "QR statis dan dinamis": {
+  "b": "t4-qr",
+  "d": "QR statis dicetak sekali dan dipakai berulang dengan nominal diisi pembeli; QR dinamis dibuat per pembayaran, nominalnya terikat, dan hanya sekali bayar.",
+  "h": "istilah/qr-statis-dan-dinamis/",
+  "n": "4.19 QR pembayaran",
+  "s": "istilah-qr-statis-dan-dinamis",
+  "t": "QR statis dan dinamis",
+  "u": "tahap-4/qr-pembayaran/"
+ },
  "Query plan": {
   "b": "t2-index",
   "d": "Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.",

@@ -1,0 +1,38 @@
+{
+  "istilah": "QR statis dan dinamis",
+  "sehari_hari": "QR statis dicetak sekali dan dipakai berulang, dengan nominal diisi pembeli. QR dinamis dibuat untuk satu pembayaran: nominalnya terikat pada id QR, dan ia berhenti berlaku sesudah dibayar atau sesudah masa berlakunya.",
+  "cerita": [
+    {
+      "rujukan": "t4-qr",
+      "teks": "Rekeningo memakai QR dinamis untuk merchant yang punya layar kasir, dan QR statis berbatas Rp200.000 per pembayaran untuk toko kecil. Di lab, QR dinamis Rp35.000 dibayar sekali dan dijawab 409 untuk pembayaran kedua (`dinamis.txt` bagian B)."
+    }
+  ],
+  "mekanisme": [
+    "Payload QR memuat tag 01: bernilai 11 untuk QR statis dan 12 untuk QR dinamis (`crc.txt` bagian B).",
+    "QR statis tidak membawa nominal. Pembeli mengisinya, dan server menerima 1 sampai Rp200.000 per pembayaran, yang adalah Asumsi produk (`statis.txt` bagian D).",
+    "QR dinamis terikat pada nominal di server. Body dengan nominal lain dijawab 422, dan pembayaran kedua atas id yang sama dijawab 409 (`dinamis.txt` bagian B dan C).",
+    "QR dinamis berlaku 300 detik, yang adalah Asumsi: pada detik ke-299 masih terbayar, dan pada detik ke-300 dijawab 410 dengan jam yang diperankan (`dinamis.txt` bagian D)."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira QR dinamis mencegah penempelan stiker di semua kasus. Rekaman hanya menunjukkan bahwa id yang sudah dibayar atau lewat 300 detik ditolak, bukan di mana QR itu tertempel.",
+    "Mengira batas Rp200.000 berlaku per QR atau per hari. Batas itu per pembayaran: dua pembayaran Rp200.000 berturut-turut diterima (`statis.txt` bagian D)."
+  ],
+  "terkait": [
+    "HMAC (hash-based message authentication code)",
+    "Jurnal"
+  ],
+  "sumber": [
+    {
+      "riset": "R4-101",
+      "judul": "Mastercard Developers: Generate QR Code for Merchants (dibuka 2026-10-26)",
+      "url": "https://developer.mastercard.com/mastercard-checkout-solutions/documentation/use-cases/sqr/generate-qr-codes/sqr-generate-qr/",
+      "catatan": "Tag 01 bernilai 11 untuk QR statis dan 12 untuk QR dinamis. Spesifikasi EMVCo aslinya belum terbaca."
+    },
+    {
+      "judul": "Rekaman lab t4-qr: dinamis.txt dan statis.txt",
+      "rekaman": "labs/t4-qr/output/dinamis.txt",
+      "catatan": "Bagian B sampai D: sekali pakai, nominal terikat, dan kedaluwarsa pada detik ke-300 dengan jam yang diperankan."
+    }
+  ]
+}
