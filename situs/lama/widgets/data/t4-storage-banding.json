@@ -1,0 +1,131 @@
+{
+  "judul": "File identitas: dibuka lewat URL atau lewat server",
+  "opsi": [
+    {
+      "id": "url",
+      "nama": "A · Unduh lewat URL bertanda tangan (alternatif yang ditolak)",
+      "baris": [
+        [
+          {
+            "id": "a-pemegang",
+            "label": "Pemegang URL",
+            "sub": "staf risk atau orang lain"
+          }
+        ],
+        [
+          {
+            "id": "a-url",
+            "label": "URL GET",
+            "sub": "berumur, tanpa token sesi"
+          },
+          {
+            "id": "a-simpan",
+            "label": "Penyimpanan objek",
+            "sub": "bucket privat"
+          },
+          {
+            "id": "a-audit",
+            "label": "audit_log",
+            "sub": "tidak ikut jalur ini"
+          }
+        ]
+      ],
+      "judulBaris": [
+        "Pemanggil",
+        "Jalur unduh"
+      ]
+    },
+    {
+      "id": "server",
+      "nama": "B · ADR 38: unduh hanya lewat server",
+      "baris": [
+        [
+          {
+            "id": "b-staf",
+            "label": "Staf risk",
+            "sub": "token sesi"
+          }
+        ],
+        [
+          {
+            "id": "b-server",
+            "label": "Server",
+            "sub": "peran, alasan, checksum"
+          },
+          {
+            "id": "b-audit",
+            "label": "audit_log",
+            "sub": "satu baris per percobaan sah"
+          },
+          {
+            "id": "b-simpan",
+            "label": "Penyimpanan objek",
+            "sub": "bucket privat"
+          }
+        ]
+      ],
+      "judulBaris": [
+        "Pemanggil",
+        "Jalur unduh"
+      ]
+    }
+  ],
+  "fitur": [
+    {
+      "label": "Staf risk membuka file",
+      "sorot": {
+        "url": ["a-pemegang", "a-url", "a-simpan"],
+        "server": ["b-staf", "b-server", "b-audit", "b-simpan"]
+      },
+      "catatan": {
+        "url": "Pemegang pertama mendapat 200 dan 500.000 byte, dan baris audit tetap 1 (unduh.txt bagian C).",
+        "server": "Ratih dari tim risk mendapat 200 dan 500.000 byte yang SHA-256-nya sama dengan yang diunggah. Satu baris audit_log tertulis dengan alasannya, dan rantai audit utuh (unduh.txt bagian A)."
+      },
+      "nada": {
+        "url": "warn"
+      }
+    },
+    {
+      "label": "URL dikirim ke orang lain",
+      "sorot": {
+        "url": ["a-pemegang", "a-url"],
+        "server": ["b-staf", "b-server"]
+      },
+      "catatan": {
+        "url": "Pemegang kedua juga mendapat 200 dan 500.000 byte, dan baris audit tetap 1 (unduh.txt bagian C).",
+        "server": "Tidak ada URL yang bisa dikirim ulang. Dina dan Eko ditolak 403, permintaan tanpa token 401, dan baris audit tetap 1 (unduh.txt bagian B)."
+      },
+      "nada": {
+        "url": "warn"
+      }
+    },
+    {
+      "label": "Alasan tidak diisi",
+      "sorot": {
+        "url": ["a-url"],
+        "server": ["b-server"]
+      },
+      "catatan": {
+        "url": "Tidak ada tempat memeriksa alasan: URL dibuat penanda tangan lab, bukan endpoint server (unduh.txt bagian C).",
+        "server": "Ratih tanpa alasan dijawab 422, dan alasan 6 karakter (minimal 20) juga 422. Baris audit tetap 1 (unduh.txt bagian B)."
+      },
+      "nada": {
+        "url": "warn"
+      }
+    },
+    {
+      "label": "File sudah ditimpa",
+      "sorot": {
+        "url": ["a-simpan"],
+        "server": ["b-server", "b-simpan"]
+      },
+      "catatan": {
+        "url": "Tidak direkam. Pemeriksaan checksum ada di BukaBerkas, yang hanya dipakai jalur server, jadi jalur URL tidak menjalankannya (Tidak dijalankan: dibaca dari kode).",
+        "server": "Unduh kartu yang ditimpa dijawab 500 karena checksum tidak cocok. Baris audit naik dari 1 ke 2, dan swafoto yang tidak ditimpa tetap 200 (unduh.txt bagian D)."
+      },
+      "nada": {
+        "url": "warn"
+      }
+    }
+  ]
+}
