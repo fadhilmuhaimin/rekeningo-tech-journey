@@ -1,0 +1,54 @@
+{
+  "baris": [
+    [
+      {
+        "label": "Modul ledger",
+        "zona": "monolith",
+        "lepas": true,
+        "catatan": "Schema t4m_ledger, 6 tabel. Satu-satunya tempat uang bergerak; modul lain meminta jurnal lewat API ledger."
+      },
+      {
+        "label": "Modul akun",
+        "zona": "monolith",
+        "lepas": true,
+        "catatan": "Schema t4m_akun, 4 tabel. Modul lain memanggil paket akun, bukan membaca tabelnya."
+      },
+      {
+        "label": "Modul identitas",
+        "zona": "monolith",
+        "lepas": true,
+        "catatan": "Schema t4m_identitas, 1 tabel: verifikasi."
+      },
+      {
+        "label": "Modul merchant",
+        "zona": "monolith",
+        "lepas": true,
+        "catatan": "Schema t4m_merchant, 4 tabel: produk, promo, operasi_sinkron, qr."
+      },
+      {
+        "label": "Modul platform",
+        "zona": "monolith",
+        "catatan": "Schema t4m_platform, 2 tabel: outbox dan audit_log."
+      }
+    ],
+    [
+      {
+        "label": "Service pembayaran",
+        "zona": "pembayaran",
+        "baru": true,
+        "catatan": "Schema t4m_pembayaran, 5 tabel, role sendiri. Meminta jurnal lewat API ledger dengan Idempotency-Key dan tidak membaca tabel modul lain."
+      }
+    ]
+  ],
+  "zona": [
+    {
+      "id": "monolith",
+      "label": "Satu proses"
+    },
+    {
+      "id": "pembayaran",
+      "label": "Proses sendiri"
+    }
+  ],
+  "caption": "Lima modul berjalan dalam satu proses dengan role t4m_monolit, dan satu modul di proses sendiri dengan role t4m_pembayaran. Biru = baru di tahap ini. Nama schema dan role adalah milik lab."
+}

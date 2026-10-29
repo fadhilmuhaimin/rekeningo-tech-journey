@@ -436,6 +436,8 @@ for (const h of lain) {
   const ctx = await browser.newContext({ viewport: { width: 375, height: 667 } });
   const page = await ctx.newPage();
   await page.goto(dasar + h, { waitUntil: "networkidle" });
+  // Diagram di blok yang tertutup (Paham di 4.13) tidak pernah terlihat, jadi island client:visible tidak hydrate: buka blok induknya dulu.
+  await page.evaluate(() => document.querySelectorAll("figure.diagram").forEach((f) => f.closest("details")?.setAttribute("open", "")));
   for (const f of await page.locator("figure.diagram").all()) await f.scrollIntoViewIfNeeded();
   await page.waitForFunction(() => [...document.querySelectorAll("figure.diagram")].every((f) => f.querySelector(".react-flow__node .diagram__kotak")), null, { timeout: 15000 });
   const kotak = await page.locator("figure.diagram .diagram__kotak").count();
