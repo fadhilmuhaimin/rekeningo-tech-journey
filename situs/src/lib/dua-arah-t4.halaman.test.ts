@@ -857,8 +857,8 @@ describe("label kejujuran dan arti istilah", () => {
     expect(widget.label.sumber).toBe("Ilustrasi: ringkasan handler versi pertama");
     for (const k of ["2", "11", "15"]) expect(widget.alasan[k]).toContain("(Rekaman lab rentan.txt bagian A)");
     harus("- **Baris 4, hal 1:** Tidak dijalankan untuk versi pertama, karena versi minggu 2 belum punya job yang menanyakan status ke gateway atau mencocokkan laporannya. Rekaman lab `rekon.txt` bagian A dan B memerankan webhook yang tidak pernah datang pada versi lain.");
-    harus("Batas waktu tidak ada karena handler tidak memeriksa timestamp (dibaca dari kode `webhookV1`).");
-    harus("Sel Terjaga dan Tidak berlaku adalah penalaran dari urutan kode, bukan rekaman terpisah, kecuali baris 6 yang memakai rekaman `topup.txt` bagian G di atas.");
+    harus("Batas waktu tidak ada karena handler tidak memeriksa timestamp (Tidak dijalankan: dibaca dari kode `webhookV1`).");
+    harus("Sel Terjaga dan Tidak berlaku berlabel Tidak dijalankan: dibaca dari urutan kode, bukan dari rekaman terpisah, kecuali baris 6 yang memakai rekaman `topup.txt` bagian G di atas.");
     harus("Kode di bawah adalah Ilustrasi, yaitu contoh dan bukan hasil sistem: ringkasan handler versi pertama, dengan bentuk transaction yang sama dengan `DalamTx` di lab. Perilakunya direkam di Rekaman lab lewat mode rentan `webhook-v1`.");
   });
   test("istilah gateway, webhook, settlement, pending, Terjaga, dan Rusak diberi arti di pemakaian pertama", () => {
@@ -915,7 +915,7 @@ const KLAIM_NEGATIF = [
   "Balasan yang hilang sebagai pemicu kiriman kedua hanya direkam untuk versi lain (`ganda.txt` bagian B).",
   "Settlement berikutnya dikredit lagi karena handler menjurnal tiap settlement tanpa melihat status (`ganda.txt` bagian A).",
   "Jumlah di isi kabar dikreditkan, dan kiriman tanpa tanda tangan diterima.",
-  "Batas waktu tidak ada karena handler tidak memeriksa timestamp (dibaca dari kode `webhookV1`).",
+  "Batas waktu tidak ada karena handler tidak memeriksa timestamp (Tidak dijalankan: dibaca dari kode `webhookV1`).",
   "Aturannya sama: PostgreSQL tetap satu-satunya source of truth, dan pihak ketiga hanya memberi klaim.",
   "Lab memasang jeda 300 ms di antara cek dan tulis supaya hasilnya tidak bergantung pada waktu, dan lebar celah tanpa jeda tidak diukur.",
   "** Seseorang mengirim POST berisi jumlah Rp1.234.567 tanpa tanda tangan.",
@@ -1215,12 +1215,12 @@ const KALIMAT_PENULIS: string[] = [
   "Tidak berlaku",
   "Tidak berlaku",
   "Terjaga: bergantung pada timeout; ADR 22 menahannya di 3 detik, dan pengulangannya perlu pengaman sendiri (ADR 36)",
-  "Sel Terjaga dan Tidak berlaku adalah penalaran dari urutan kode, bukan rekaman terpisah, kecuali baris 6 yang memakai rekaman `topup.txt` bagian G di atas. Setiap sel Rusak punya dasarnya sendiri:",
+  "Sel Terjaga dan Tidak berlaku berlabel Tidak dijalankan: dibaca dari urutan kode, bukan dari rekaman terpisah, kecuali baris 6 yang memakai rekaman `topup.txt` bagian G di atas. Setiap sel Rusak punya dasarnya sendiri:",
   "**Baris 1, hal 2:** Rekaman lab `rentan.txt` bagian A. POST tanpa tanda tangan dijawab 200 diproses.",
   "**Baris 2, hal 1:** Rekaman lab `ganda.txt` bagian A. Event yang sama dua kali, berurutan, menghasilkan dua jurnal. Balasan yang hilang sebagai pemicu kiriman kedua hanya direkam untuk versi lain (`ganda.txt` bagian B).",
   "**Baris 3, hal 1:** Rekaman lab `rentan.txt` bagian A. Status top-up kembali ke `menunggu`. Settlement berikutnya dikredit lagi karena handler menjurnal tiap settlement tanpa melihat status (`ganda.txt` bagian A).",
   "**Baris 4, hal 1:** Tidak dijalankan untuk versi pertama, karena versi minggu 2 belum punya job yang menanyakan status ke gateway atau mencocokkan laporannya. Rekaman lab `rekon.txt` bagian A dan B memerankan webhook yang tidak pernah datang pada versi lain.",
-  "**Baris 5, hal 1 dan hal 2:** Rekaman lab `rentan.txt` bagian A. Jumlah di isi kabar dikreditkan, dan kiriman tanpa tanda tangan diterima. Batas waktu tidak ada karena handler tidak memeriksa timestamp (dibaca dari kode `webhookV1`).",
+  "**Baris 5, hal 1 dan hal 2:** Rekaman lab `rentan.txt` bagian A. Jumlah di isi kabar dikreditkan, dan kiriman tanpa tanda tangan diterima. Batas waktu tidak ada karena handler tidak memeriksa timestamp (Tidak dijalankan: dibaca dari kode `webhookV1`).",
   "Di app Flutter kamu mungkin pernah memanggil API pembayaran dan menganggap jawaban 200 sebagai bukti uang pindah. Di sisi server, kabar dari gateway adalah jawaban yang sama: klaim yang harus dicek.",
   "**Pola ini kembali.** Kabar dari luar adalah klaim, bukan fakta, muncul lagi di layanan verifikasi ([[t4-m31]]) dan di penerbit kartu yang memanggil Rekeningo dengan tenggat 2 detik ([[t4-m37]]). Halaman itu yang merekamnya.",
   "Aturannya sama: PostgreSQL tetap satu-satunya source of truth, dan pihak ketiga hanya memberi klaim. Klaim itu dicek, lalu dicatat sekali: dalam transaction yang sama dengan efeknya selama satu proses, atau lewat Idempotency-Key sesudah service pembayaran terpisah ([[t4-modul]]).",
