@@ -73,7 +73,7 @@ Server berada di dalam jaringan, jadi ia bisa menjangkau layanan yang tidak terl
 
 OWASP menyebut daftar tolak (deny-list) rawan dilewati dan menganjurkan daftar izin (allowlist). Allowlist adalah daftar tujuan yang boleh, dan semua yang lain ditolak. Di api-t4, satu tes unit memastikan versi pertama meloloskan bentuk alamat lain sedangkan versi aman menolaknya, dan nama tesnya tercatat lulus (`testing.txt` api-t4). Bentuk yang lolos bergantung resolver platform, jadi halaman ini tidak menyalin satu pun.
 
-**Pemeriksaan di ControlContext melihat alamat yang dihubungi.** `Dialer.ControlContext` adalah hook di `net.Dialer` yang dipanggil sesudah koneksi dibuat dan sebelum benar-benar dihubungi. Dokumentasi Go menulis bahwa parameter alamat yang diterimanya belum tentu sama dengan yang diberikan ke Dial ([Go: package net](https://pkg.go.dev/net#Dialer), go1.27.3, dibuka 2026-10-30). Kode lab memeriksa alamat itu:
+**Pemeriksaan di ControlContext melihat alamat yang dihubungi.** `Dialer.ControlContext` adalah hook, yaitu fungsi yang kamu pasang di `net.Dialer` dan dipanggil Go sesudah koneksi dibuat dan sebelum benar-benar dihubungi. Dokumentasi Go menulis bahwa parameter alamat yang diterimanya belum tentu sama dengan yang diberikan ke Dial ([Go: package net](https://pkg.go.dev/net#Dialer), go1.27.3, dibuka 2026-10-30). Kode lab memeriksa alamat itu:
 
 <Snippet file="labs/api-t4/internal/unduh/unduh.go" region="control-context" lang="go" title="labs/api-t4/internal/unduh/unduh.go (ControlContext)" />
 
@@ -185,7 +185,7 @@ Tab Go dijalankan di lab. Tab lain Tidak dijalankan, dan hanya dicek ke dokument
 
 *Tidak dijalankan. Dicek ke [Dart: HttpClientRequest.followRedirects](https://api.dart.dev/stable/latest/dart-io/HttpClientRequest/followRedirects.html), Dart 3.13.7, dan ke dokumentasi Serverpod lewat [llms-full.txt](https://docs.serverpod.dev/llms-full.txt), dibuka 2026-10-30.*
 
-**Yang berbeda di stack ini:** `followRedirects` di `dart:io` bawaannya `true`. Pencarian teks `SSRF`, `followRedirects`, dan `server-side request` di llms-full.txt Serverpod tidak menemukan apa pun, jadi dokumentasi Serverpod tidak membahasnya.
+**Yang berbeda di stack ini:** `followRedirects` di `dart:io` bawaannya `true`. Pencarian teks `SSRF`, `followRedirects`, dan `server-side request` di llms-full.txt Serverpod tidak menemukan apa pun, jadi file itu tidak membahas ketiganya.
 
 </Fragment>
 <Fragment slot="t5">

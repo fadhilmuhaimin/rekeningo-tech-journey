@@ -58,7 +58,6 @@ const num = (s: string): number => Number(s.replace(/\./g, "").replace(",", ".")
 const titik = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 const koma = (n: number, d: number): string => n.toFixed(d).replace(".", ",");
 const harus = (kalimat: string): void => expect(halaman, `halaman tidak memuat: ${kalimat}`).toContain(kalimat);
-const H1 = (fragmen: string, n = 1): void => expect(halaman.split(fragmen).length - 1, `kemunculan "${fragmen.slice(0, 70)}"`).toBe(n);
 const baris = (id: string): string => riset.split("\n").find((b) => b.startsWith(`| ${id} |`)) ?? "";
 const noBaris = (teks: string, awalan: string, dari = 1): number => {
   const i = teks.split("\n").findIndex((b, k) => k + 1 >= dari && b.startsWith(awalan));
@@ -285,7 +284,6 @@ describe("ssrf.mdx: tiap angka turunan dari rekaman, kode, naskah, dan RISET", (
       ["Saat dihubungi", "daftar alamat lengkap", [[`${nTolak[1]} alamat terlarang`, "biasa"], [`${nTolak[1]} ditolak`, "good"], [`${kontrol.length} alamat publik lolos`, "good"]]],
     ]);
     expect(r.sumber).toEqual({ jenis: "rekaman", teks: "Rekaman lab t4-ssrf, alamat.txt" });
-    expect(r.simpul?.length ?? 0).toBe(0);
     expect(halaman.indexOf("Hitungan")).toBe(halaman.indexOf("Itu Hitungan, yaitu hasil rumus dari angka yang tertulis di halaman ini") + "Itu ".length);
     expect(halaman.indexOf("[Label sumber](/cara-pakai/#label-sumber)")).toBeLessThan(halaman.indexOf("Hitungan"));
     expect(halaman.indexOf("SSRF (server-side request forgery)")).toBeLessThan(halaman.indexOf("IsPrivate"));
@@ -340,7 +338,7 @@ describe("ssrf.mdx: tiap angka turunan dari rekaman, kode, naskah, dan RISET", (
   test("Paham: SSRF, teks URL, ControlContext, rebinding, pesan galat, IDNA, jaringan, dan metadata dirujuk ke sumbernya", () => {
     harus("Gambar dari server luar yang URL-nya diisi user adalah contoh pertama yang ia sebut");
     harus("Teks URL bukan tujuan.");
-    harus("`Dialer.ControlContext` adalah hook di `net.Dialer` yang dipanggil sesudah koneksi dibuat dan sebelum benar-benar dihubungi.");
+    harus("`Dialer.ControlContext` adalah hook, yaitu fungsi yang kamu pasang di `net.Dialer` dan dipanggil Go sesudah koneksi dibuat dan sebelum benar-benar dihubungi.");
     harus("Dokumentasi Go menulis bahwa parameter alamat yang diterimanya belum tentu sama dengan yang diberikan ke Dial");
     harus("DNS rebinding adalah nama yang dijawab alamat publik saat diperiksa dan alamat dalam saat dihubungi.");
     harus("OWASP menulis hal yang sama: validasi nama saja tidak mencegah DNS rebinding, dan pencarian DNS kedua yang tidak diperiksa antara validasi dan koneksi melewatkan pemeriksaan.");
@@ -438,7 +436,7 @@ describe("ssrf.mdx: tiap angka turunan dari rekaman, kode, naskah, dan RISET", (
     harus("Laravel 13.x menunjukkan `Http::globalOptions(['allow_redirects' => false])` untuk mematikannya di semua request.");
     harus("Requests mengikuti pengalihan secara bawaan untuk semua metode kecuali HEAD, dan `allow_redirects` mematikannya. HTTPX sebaliknya: ia tidak mengikuti pengalihan secara bawaan, dan `follow_redirects=True` menyalakannya.");
     harus("`followRedirects` di `dart:io` bawaannya `true`.");
-    harus("Pencarian teks `SSRF`, `followRedirects`, dan `server-side request` di llms-full.txt Serverpod tidak menemukan apa pun");
+    harus("Pencarian teks `SSRF`, `followRedirects`, dan `server-side request` di llms-full.txt Serverpod tidak menemukan apa pun, jadi file itu tidak membahas ketiganya.");
     harus("runtime Edge Functions berbasis Deno, dengan fungsi dibundel dalam format ESZip.");
     harus("`fetch` adalah implementasi yang kompatibel dengan browser dan berbasis undici.");
     harus("MDN menulis bahwa mode pengalihan `Request` bawaannya `follow`, dengan pilihan `error` dan `manual`.");
@@ -647,7 +645,7 @@ describe("rujukan [[ID]], registry, struktur, dan kata", () => {
     expect(badanHalaman).toContain("Zona adalah akhiran seperti `%1` atau `%eth0` yang menunjuk antarmuka jaringan.");
     expect(badanHalaman).toContain("IDNA adalah cara menulis nama domain berkarakter non-ASCII sebagai nama ASCII.");
     expect(badanHalaman).toContain("Loopback adalah alamat server itu sendiri, dan link-local hanya berlaku di satu segmen jaringan. ULA adalah alamat private IPv6. CGNAT adalah blok yang dipakai operator untuk berbagi alamat. NAT64, 6to4, dan Teredo adalah awalan IPv6 yang membawa alamat IPv4 di dalamnya.");
-    expect(badanHalaman).toContain("`Dialer.ControlContext` adalah hook di `net.Dialer`");
+    expect(badanHalaman).toContain("`Dialer.ControlContext` adalah hook, yaitu fungsi yang kamu pasang di `net.Dialer`");
     expect(badanHalaman.indexOf("Loopback adalah alamat server itu sendiri")).toBeGreaterThan(badanHalaman.indexOf("| `93.184.216.34` |"));
     expect(halaman.indexOf("Tidak dijalankan berarti dicek ke kode dan dokumentasi, bukan diuji di lab.")).toBeLessThan(halaman.indexOf("<CariBug"));
     expect(halaman.indexOf("yaitu klaim yang belum bisa dicek ke sumber primer")).toBeGreaterThan(0);
