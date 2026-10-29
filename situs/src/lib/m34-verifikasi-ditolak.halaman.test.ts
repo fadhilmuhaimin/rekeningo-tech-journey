@@ -241,6 +241,8 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(hal411).toContain("| Hasil netral (`IsExcluded`) untuk 401, 403, 408, 429 | Penilaian jawaban ini belum diputuskan | [[t4-m34]] |");
     expect(hal411).toContain("Apakah 401, 403, 408, dan 429 dihitung netral belum diputuskan.");
     expect(hal411).toContain("Jawaban 4xx dihitung sukses supaya permintaan yang salah tidak membukanya.");
+    expect(hal411).toContain("Tiap permintaan percobaan di half-open memakai percobaan pekerjaan terdepan");
+    harus("tiap permintaan percobaan di half-open memakai satu percobaan pekerjaan terdepan, jadi sebagian pekerjaan bisa tetap mati ([[t4-breaker]], Tidak dijalankan untuk M34).");
     expect(hal411).toContain("Breaker membuka sesudah gagal berturut-turut ke-6, terbuka 60 detik");
     expect(hal325).toContain("Pindah hosting di Tahap 4 ([[t4-m34]]) adalah rotasi berikutnya yang kamu tahu akan datang. ADR ini ditinjau ulang sebelum pindah.");
     harus("**Tiga hal lain dari pindahan yang sama.**");

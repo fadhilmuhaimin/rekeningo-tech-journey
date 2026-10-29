@@ -83,7 +83,7 @@ Terbuka tidak memperbaiki penyebabnya. Lajur pulih sesudah operator mendaftarkan
 Tiga hal terbaca dari rekaman itu:
 
 1. Breaker bawaan membuat tujuh pekerjaan menunggu, bukan mati. Aturan ADR 36 membuat delapan pekerjaan mati.
-2. Menunggu berlangsung sampai alamat didaftarkan. Di lab pendaftaran seketika. Di cerita butuh dua hari kerja (Asumsi), dan rekaman tidak menjalankan selama itu.
+2. Menunggu berlangsung sampai alamat didaftarkan. Di lab pendaftaran seketika. Di cerita butuh dua hari kerja (Asumsi), dan rekaman tidak menjalankan selama itu. Selama menunggu panjang, tiap permintaan percobaan di half-open memakai satu percobaan pekerjaan terdepan, jadi sebagian pekerjaan bisa tetap mati ([[t4-breaker]], Tidak dijalankan untuk M34).
 3. Satu pekerjaan tetap mati. Ambang breaker 6 lebih tinggi daripada batas lima percobaan, jadi pekerjaan pertama habis sebelum breaker terbuka. Pendaftarnya tetap gagal, dan tidak ada yang mengantrekannya ulang, seperti di M31.
 
 **Penilaian 401 dan 403 belum diputuskan.** ADR 36 menulis bahwa apakah 401, 403, 408, dan 429 dihitung netral belum diputuskan ([[t4-breaker]]). Lab mengusulkan 401 dan 403 dihitung gagal, dan 400 dan 422 tetap sukses (usul lab, bukan keputusan). Usul itu mengubah pekerjaan yang mati menjadi menunggu, tetapi tidak mendaftarkan alamat.
