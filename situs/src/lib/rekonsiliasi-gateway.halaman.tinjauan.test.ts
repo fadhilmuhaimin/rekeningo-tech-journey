@@ -93,7 +93,7 @@ describe("batas cek status diturunkan dari kode dan rekaman", () => {
 
 describe("koreksi insiden diturunkan dari kode dan rekaman", () => {
   test("insiden terbuka dikerjakan menurut nomor; tidak ada UPDATE pada posting atau saldo_cache di kode koreksi; status top-up tidak diubah koreksi tidak_di_gateway", () => {
-    expect(koreksiRepoGo).toContain("WHERE status = 'terbuka' ORDER BY id");
+    expect(koreksiRepoGo).toContain("WHERE status = 'terbuka' ORDER BY id`"); // naik; README lab: urutan menurun menghasilkan hasil sama, hanya urutan kerja berbeda
     harus("Job `-koreksi-rekon` mengerjakan insiden yang masih `terbuka` menurut nomornya.");
     expect(`${koreksiGo}\n${koreksiRepoGo}`).not.toMatch(/UPDATE\s+(posting|buku)\b/i);
     harus("Tidak ada koreksi dengan `UPDATE` pada posting atau `buku.saldo_cache`.");
