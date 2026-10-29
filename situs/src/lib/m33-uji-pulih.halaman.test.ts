@@ -936,6 +936,9 @@ describe("tanpa kunci baris: kalimat naratif per paragraf, nomor soal, rujukan b
     expect([...barisRiset("R4-179").matchAll(/R4-1\d\d/g)].map((m) => m[0])).toEqual(["R4-179", "R4-178", "R4-178"]);
     expect([...barisRiset("R4-175").matchAll(/R4-1\d\d/g)].map((m) => m[0])).toEqual(["R4-175", "R4-176"]);
     for (const id of ["R4-175", "R4-176", "R4-177"]) for (const q of barisRiset(id).matchAll(/"([^"]{8,})"/g)) expect(q[1], id).toMatch(/^[A-Za-z0-9“” ,.'`_\-\[\]\(\)\/:;=]+$/);
+    expect(barisRiset("R4-178").match(/"([^"]{4,})"/g)).toEqual(['"Selisih dengan naskah"', '"ikut transaction"']);
+    harus("Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: dump terkompresi");
+    harus("- [[t4-topup-verifikasi]]: jalur pengajuan verifikasi, tempat foto diterima.");
     expect(barisRiset("R4-176").match(/"([^"]+)"/g)).toEqual(['"is also compressed by default"', '"For the custom and directory archive formats, this specifies compression of individual table-data segments, and the default is to compress using gzip at a moderate level."']);
     expect(barisRiset("R4-175").match(/"([^"]+)"/g)).toEqual(['"The “hex” format encodes binary data as 2 hexadecimal digits per byte, most significant nibble first."', '"The output format depends on the configuration parameter bytea_output; the default is hex."']);
     expect(barisRiset("R4-177").match(/"([^"]+)"/g)).toEqual(['"BinaryFilesInDB"', '"last edited on 5 May 2021"', '"Database storage has some common characteristics whichever specific storage you pick"', '"Pluses overall"', '"ACID"', '"Backups are easier there is no need to track external files"', '"Minuses overall"', '"Performance hit storing files in database"', '"Backups can take significantly longer"', '"ikut transaction dan ikut backup"']);
