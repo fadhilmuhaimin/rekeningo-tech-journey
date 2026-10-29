@@ -1,0 +1,404 @@
+---
+title: "4.13 Modular monolith, CODEOWNERS, ADR wajib + ADR 37"
+description: Rekeningo membagi satu codebase ke enam modul dengan batas yang dijaga compiler dan hak database, bukan ingatan tim. ADR 37 menimbang tiga cara lain dan menulis kapan pilihan ini salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import DiagramArsitektur from "../../../diagram/DiagramArsitektur";
+import { Arsitektur } from "../../../diagram/skema";
+import intiDiagram from "../../../../data/diagram/t4-modul-inti.json";
+import arsitekturModul from "../../../../data/arsitektur/t4-modul.json";
+import dataTebak from "../../../../data/widget/t4-modul-tebak.json";
+
+<p class="meta">Baca 20 menit · coba 4 menit · Prasyarat: [[t4-m32]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Batas antar tim dijaga mesin: database menolak SQL ke tabel tim lain, dan compiler menolak impor kodenya.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `batas.txt` bagian A, semua modul memakai satu schema dan satu role. Schema adalah ruang nama untuk tabel di dalam satu database, dan role adalah identitas login database dengan hak sendiri. Tiga langkah CI tim Pembayaran lolos tanpa membuka database, karena tesnya memakai driver tiruan. Sesudah `ALTER TABLE akun RENAME COLUMN nama TO nama_tampil`, fungsi pembayaran yang sama dijawab `column "nama" does not exist` (42703). Fungsi itu ditulis lab mengikuti uraian [[t4-m32]] (Ilustrasi: contoh yang bukan hasil sistem), sedangkan schema, role, dan pesan galatnya dijalankan PostgreSQL.
+
+Di bagian B, enam schema punya role sendiri. SQL pembayaran yang sama dijawab `relation "akun" does not exist` (42P01), dan `permission denied for schema t4m_akun` (42501) bila memakai awalan schema. Impor paket `internal/data` milik modul akun ditolak `go build`. Rename kolom oleh modul akun tidak mematahkan pembayaran.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Role pembayaran menjalankan `SELECT nama FROM akun` apa adanya sesudah modul dipisah. Apa jawaban PostgreSQL, dan kenapa bukan `permission denied`?
+2. Paket di modul pembayaran mengimpor paket `internal/data` milik modul akun. Siapa yang menolaknya, dan kapan?
+3. Service pembayaran mati sesudah ledger menjurnal dan sebelum `topup_bank` ditandai. Berapa jurnal ada sesudah gateway mengirim ulang kabarnya?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: SQL lintas modul gagal sebelum rilis bila role dan schema dipisah, dan rename kolom hanya mematahkan modul yang membacanya lewat kontrak.">
+
+Rekaman lab menjalankan SQL M32 dengan role pembayaran sesudah modul dipisah. Tebak dulu apa jawaban PostgreSQL, lalu pilih satu kejadian di widget perbandingan.
+
+<Tebak client:visible data={dataTebak} />
+
+<noscript>
+<p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: relation "akun" does not exist (42P01), karena schema akun tidak ada di search_path role pembayaran (batas.txt bagian B).</p>
+</noscript>
+
+Widget perbandingan menaruh dua susunan berdampingan untuk satu kejadian. Sisi A satu schema dan satu role, sisi B enam schema dengan role dan `internal/` per modul. Rekaman mendukung semua catatan kecuali sisi A pada kejadian ketiga, yang Tidak direkam. Tidak dijalankan berarti dicek ke dokumentasi atau kode tanpa menjalankannya.
+
+<WidgetLama nama="banding" src="data/t4-modul-banding.json" />
+
+<noscript>
+<p>Tanpa JavaScript widget perbandingan tidak tampil. Isinya ada di blok Paham dan di tabel ADR 37 pada blok Putuskan.</p>
+</noscript>
+
+**Ubah satu hal:** pilih Modul akun mengganti nama kolom. Sisi A menjawab 42703 sesudah rename, dan sisi B tidak mematahkan pembayaran. Pilih Pembayaran mengimpor paket data akun: hanya sisi B yang menolak.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t4-m32]] menunjukkan rilis tim Merchant yang mematahkan top-up, padahal tes tim Pembayaran lolos. Tiga tim memakai satu codebase dan satu schema. Pembayaran 5 orang, Merchant 4, dan Platform 4, jadi 5 + 4 + 4 = 13 developer (Asumsi: angka cerita atau pilihan penulis tanpa rekaman). Modul adalah sekelompok kode dan tabel yang dipegang satu tim.
+
+ADR 12 menunda service kedua sampai beberapa tim bentrok di satu repo ([[t1-adr-12]]), dan keadaan itu sudah terjadi. Martin Fowler menulis bahwa aplikasi baru sebaiknya dimulai sebagai monolith dengan modularitas yang dijaga, karena batas service yang salah mahal diperbaiki ([MonolithFirst](https://martinfowler.com/bliki/MonolithFirst.html), 3 Juni 2015, dibuka 2026-10-29). Halaman ini mengerjakan bagian pertama kalimat itu. [[t4-webhook]] menulis janji yang ditepati di sini: ledger dipanggil lewat API di luar transaction pembayaran.
+
+### Cara kerjanya
+
+Lima modul berjalan di satu proses, dan satu modul berjalan di proses sendiri. Klik satu kotak untuk membaca catatannya.
+
+<DiagramArsitektur client:visible id="diagram-t4-modul" judul="Modul dan schema Tahap 4" data={Arsitektur.parse(arsitekturModul)} />
+
+Tabel modul dan tabelnya sudah ada di [[t4-skema]]. Bagian ini menunjukkan apa yang menjaga batasnya.
+
+**Batas di database: schema, role, dan hak.** Dokumentasi PostgreSQL 17 menulis bahwa secara bawaan user tidak bisa mengakses objek di schema yang bukan miliknya, dan pemilik schema harus memberi hak USAGE ([PostgreSQL 17: Schemas and Privileges](https://www.postgresql.org/docs/17/ddl-schemas.html), dibuka 2026-10-29). Di lab, tiap modul punya satu role yang hanya memegang hak untuk schema-nya. Rekaman bagian B menghitung tabel yang terbaca dan yang ditolak per role:
+
+<Snippet file="labs/t4-modul/output/batas.txt" lines="42:47" title="Rekaman lab: labs/t4-modul/output/batas.txt (bagian B)" />
+
+| Modul | Tabel | Role | Terbaca | Ditolak (42501) |
+|---|---|---|---|---|
+| `ledger` | 6 | `t4m_ledger` | 7 | 15 |
+| `akun` | 4 | `t4m_akun` | 4 | 18 |
+| `identitas` | 1 | `t4m_identitas` | 1 | 21 |
+| `merchant` | 4 | `t4m_merchant` | 4 | 18 |
+| `pembayaran` | 5 | `t4m_pembayaran` | 5 | 17 |
+| `platform` | 2 | `t4m_platform` | 2 | 20 |
+
+Sumber tabel: `batas.txt` bagian B, Rekaman lab. Satu-satunya hak lintas modul adalah kontrak kolom: ledger membaca `id`, `tingkat`, dan `status` dari tabel akun, sehingga tabel akun terhitung terbaca untuk ledger (6 + 1 = 7). Kolom `nama` bukan kontrak siapa pun, jadi ledger menerima `permission denied` bila membacanya:
+
+<Snippet file="labs/t4-modul/output/batas.txt" lines="49:51" title="Rekaman lab: labs/t4-modul/output/batas.txt (bagian B, kontrak kolom)" />
+
+Kontrak itu hanya dua baris hak di file SQL lab. Hak USAGE pada schema akun membuat tabelnya terlihat bagi ledger, dan hak SELECT hanya pada tiga kolom:
+
+<Snippet file="labs/t4-modul/modul.sql" lines="111:114" lang="sql" title="labs/t4-modul/modul.sql" />
+
+Tanpa awalan schema, SQL M32 tidak menemukan tabel akun. `search_path` adalah daftar schema yang dicari bila nama tabel ditulis tanpa awalan. PostgreSQL mengabaikan schema di daftar itu bila role tidak punya hak USAGE ([PostgreSQL 17: search_path](https://www.postgresql.org/docs/17/runtime-config-client.html), dibuka 2026-10-29). Dengan awalan, yang menolak adalah hak:
+
+<Snippet file="labs/t4-modul/output/batas.txt" lines="77:79" title="Rekaman lab: labs/t4-modul/output/batas.txt (bagian B, M32 dengan batas)" />
+
+Baris ketiga adalah kontrol: role `t4m_akun` menjalankan SQL yang sama pada baris yang sama dan berhasil. Jadi yang berubah adalah siapa yang boleh, bukan datanya.
+
+**Batas di compiler: `internal/`.** Dokumentasi `cmd/go` menulis aturannya: kode di bawah direktori `internal` hanya bisa diimpor kode yang berbagi path di atasnya ([cmd/go: Internal packages](https://pkg.go.dev/cmd/go), halaman Go 1.27.3 sedangkan lab memakai Go 1.27.1, dibuka 2026-10-29). Modul akun menaruh SQL-nya di `internal/data` dan hanya membuka satu paket publik:
+
+<Snippet file="labs/api-t4/internal/modul/akun/akun.go" lines="13:19" lang="go" title="labs/api-t4/internal/modul/akun/akun.go" />
+
+Rekaman menambahkan satu file ke paket pembayaran yang mengimpor `internal/data` milik akun. `go build` menolaknya, dan impor paket publik `akun` sebagai kontrol lolos:
+
+<Snippet file="labs/t4-modul/output/batas.txt" lines="87:91" title="Rekaman lab: labs/t4-modul/output/batas.txt (bagian B, impor internal/)" />
+
+Batas compiler hanya berlaku untuk paket baru di `internal/modul/`. Kode ledger lama di `internal/repo` dan `internal/service` belum dipindah. Untuk kode itu, tes `go list -deps` memeriksa bahwa modul pembayaran tidak bergantung pada repo, service, atau handler. Itu pemeriksaan di tes, bukan penolakan compiler:
+
+<Snippet file="labs/api-t4/internal/modul/pembayaran/pembayaran_test.go" lines="457:469" lang="go" title="labs/api-t4/internal/modul/pembayaran/pembayaran_test.go" />
+
+**Satu role per modul baru kontrak.** Lima modul di satu proses memakai satu role, `t4m_monolit`, yang mewarisi kelima role modul tanpa `t4m_pembayaran`:
+
+<Snippet file="labs/t4-modul/modul.sql" lines="135:137" lang="sql" title="labs/t4-modul/modul.sql" />
+
+Rekaman menulis: role `t4m_monolit` membaca 17 tabel dari lima modul dan ditolak pada 5 tabel pembayaran (`batas.txt` bagian B, 17 + 5 = 22). Akibatnya, di dalam proses monolith database tidak menahan ledger membaca tabel akun di luar kontrak. Yang menahannya hanya `internal/`, review, dan tes kontrak.
+
+Pool adalah kumpulan koneksi database yang dipakai bergantian. Pool per modul belum dibangun, jadi satu role per proses hanya ada di service pembayaran.
+
+**Kunci asing menyeberang batas.** Pemisahan schema tidak memutus foreign key. Rekaman menghitung 21 kunci asing yang menyeberang schema. Ada 14 menuju modul akun (12 ke `akun`, 1 ke `kota`, 1 ke `perangkat`) dan 7 menuju `jurnal`. Tujuh di antaranya berasal dari schema pembayaran:
+
+<Snippet file="labs/t4-modul/output/batas.txt" lines="59:63" title="Rekaman lab: labs/t4-modul/output/batas.txt (bagian B, kunci asing)" />
+
+Role pembayaran menulis `topup_bank` untuk akun yang ada tanpa hak apa pun di schema akun, dan akun yang tidak ada ditolak (23503). Komentar di kode sumber PostgreSQL 17 menulis bahwa pemeriksaan kunci asing dijalankan sebagai pemilik tabel tempat query berjalan. Untuk baris baru di `topup_bank`, itu tabel yang dirujuk (`ri_PlanCheck` dan `ri_PerformCheck` di `ri_triggers.c`, cabang REL_17_STABLE, dibuka 2026-10-29; Tidak dijalankan: dibaca dari kode sumber).
+
+README lab mencatat bahwa dokumentasi resmi hanya menyebut hak REFERENCES untuk membuat constraint. Kunci asing menjaga integritas, tetapi memisahkan database fisik per modul berarti membuangnya (Tidak dijalankan).
+
+**Service pembayaran: dua langkah idempoten.** Sesudah pembayaran jadi proses sendiri, satu transaction tidak lagi membungkus ledger dan catatan pembayaran. ADR 12 sudah memperingatkannya ([[t1-adr-12]]). Langkah pertama meminta jurnal lewat API ledger dengan Idempotency-Key sebesar `order_id`, di luar transaction pembayaran. Langkah kedua menulis `webhook_event` dan `topup_bank` dalam satu transaction.
+
+Rekaman `ledger.txt` bagian A memanggil API itu langsung. Tanpa kunci layanan dijawab `401`, tanpa Idempotency-Key `400`, dan key yang bukan `order_id` `422`. Permintaan sah dijawab `201`, dan ulangannya `200` dengan jurnal yang sama:
+
+<Snippet file="labs/t4-modul/output/ledger.txt" lines="26:36" title="Rekaman lab: labs/t4-modul/output/ledger.txt (bagian A)" />
+
+Key yang sama dengan jumlah lain dijawab `422`. Timeout atau 5xx dari ledger dibaca client sebagai hasil yang tidak diketahui (dibaca dari kode client ledger, Tidak dijalankan). Fungsi pembayaran lalu menjalankan dua langkah itu berurutan, dengan titik gagal yang disuntik lab:
+
+<Snippet file="labs/api-t4/internal/modul/pembayaran/pembayaran.go" region="terapkan" lang="go" title="labs/api-t4/internal/modul/pembayaran/pembayaran.go" />
+
+Di `proses-mati.txt` bagian A, titik `sesudah-ledger` mengirim SIGKILL ke proses pembayaran sendiri tepat sesudah ledger menjawab, tanpa balasan ke gateway. Hasilnya satu jurnal, `topup_bank` masih `menunggu`, dan `webhook_event` kosong. Gateway tiruan mengirim ulang event yang sama, dijawab `200 diproses`, dan jurnalnya tetap satu. Bagian B menutupnya lewat job cek status (`-cek-topup`), yang memeriksa 1 top-up dan mengkredit 1, tanpa kiriman ulang.
+
+Di `ledger.txt` bagian C, webhook ditahan di antara dua langkah dan job cek status berjalan dengan key yang sama. Log ledger mencatat dua panggilan, `201` lalu `200`, dan jurnalnya satu. Webhook yang kalah menjawab `ganda`. Bagian D merekam sisi gateway: tanda tangan palsu dijawab `401`, dan kabar sah saat ledger tidak menjawab dijawab `503`, bukan 2xx, jadi gateway mengulang.
+
+**Pertanyaan terbuka: key yang habis.** Idempotency-Key ledger hidup 24 jam ([[t2-idempotency]]). Di bagian C `proses-mati.txt`, jam ledger diperankan (`POST /lab/jam`), bukan 24 jam sungguhan. Kiriman ulang pada +23 jam menghasilkan satu jurnal. Pada +25 jam key sudah habis, `topup_bank` masih `menunggu`, dan jurnal kedua ditulis:
+
+<Snippet file="labs/t4-modul/output/proses-mati.txt" lines="81:88" title="Rekaman lab: labs/t4-modul/output/proses-mati.txt (bagian C, yang dibaca rekonsiliasi)" />
+
+Jurnal pertama tidak dipegang `topup_bank`, jadi SQL rekonsiliasi harian yang sama membaca Rp150.000 dari Rp300.000 yang dikreditkan ke akun, padahal gateway mencatat Rp150.000. Job-nya sendiri Tidak dijalankan di lab ini.
+
+Dalam 24 jam penutupnya adalah kiriman ulang gateway dan job cek status (umur 30 menit, Asumsi naskah). Sesudah itu tidak ada penutup di kode yang diperiksa. Apakah jurnal kedua boleh ditulis sesudah key habis adalah keputusan produk yang belum final, jadi halaman ini mencatatnya sebagai pertanyaan terbuka.
+
+**Tambahan latensi.** Satu lompatan HTTP menambah waktu. Anggarannya 50 ms. Tenggat penerbit kartu 2.000 ms dikurangi `lock_timeout` 1.000 ms menyisakan 1.000 ms, dan 5% dari sisa itu adalah 50 ms (Hitungan atas Asumsi lab: hasil rumus dari angka yang tertulis di halaman ini). Rekaman `latensi.txt` memanggil fungsi ledger yang sama langsung dan lewat HTTP, 200 kali bergantian di localhost:
+
+<Snippet file="labs/t4-modul/output/latensi.txt" lines="9:11" title="Rekaman lab: labs/t4-modul/output/latensi.txt" />
+
+Rekaman hanya memuat batasnya: tambahan p95 di bawah 50 ms, ya. Nilai mentah tidak direkam. Jaringan antar host dan TLS tidak diukur.
+
+README lab mencatat lima run peninjau di bawah beban CPU dengan tambahan p95 antara −1,4 dan 6,9 ms, dan angka itu tidak bisa diulang dari repo. Pada puncak 0,579 top-up per detik, satu lompatan 50 ms menahan koneksi 0,579 × 0,05 = 0,029 dari pool pembayaran 10 (Hitungan atas Asumsi naskah).
+
+**CODEOWNERS dan ADR wajib.** CODEOWNERS adalah file yang menunjuk pemilik tiap bagian repo di GitHub. Dokumentasi GitHub menulis bahwa file itu dicari di `.github/`, root, atau `docs/`, dan yang pertama ditemukan dipakai. Pola terakhir yang cocok menang, ukuran file harus di bawah 3 MB, dan pemilik harus punya akses tulis ([GitHub: About code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners), dibuka 2026-10-29).
+
+Pemilik hanya diminta me-review. Branch protection adalah aturan GitHub tentang apa yang boleh masuk ke satu branch. Review wajib menyala bila admin mengaktifkan opsi "Require review from Code Owners" di aturan itu. Contoh untuk Rekeningo:
+
+<Snippet lang="text" code={`# Ilustrasi: pola terakhir yang cocok menang, jadi baris khusus ditaruh sesudah baris umum
+/internal/modul/                @tim-platform
+/internal/modul/pembayaran/     @tim-pembayaran
+/internal/modul/merchant/       @tim-merchant
+/db/migrations/                 @tim-platform`} />
+
+Nama tim dan folder `merchant` di contoh itu Ilustrasi: naskah hanya membagi tim menjadi Pembayaran (gateway dan kartu), Merchant (QR dan dasbor), dan Platform (sisanya). Halaman paket GitHub mencantumkan code owners dan protected branches di bawah Pro dan Team untuk repositori privat. Halaman itu tidak menulis kalimat eksplisit tentang paket Free ([GitHub: plans](https://docs.github.com/en/get-started/learning-about-github/githubs-plans), dibuka 2026-10-29). Plan repositori pemilik belum diketahui [perlu verifikasi: plan pemilik]. CODEOWNERS dan review wajib Tidak dijalankan di lab, karena keduanya fitur GitHub. Cadangannya checklist PR manual.
+
+ADR wajib berarti perubahan yang melewati batas modul membawa satu ADR di PR yang sama: kolom di kontrak, API ledger, atau paket publik modul. Template MADR 4.0.0 yang minimal memuat empat bagian: Context and Problem Statement, Considered Options, Decision Outcome, dan Consequences ([MADR 4.0.0](https://adr.github.io/madr/), rilis 2024-09-17, dibuka 2026-10-29). Contoh isi untuk rename kolom M32:
+
+<Snippet lang="markdown" code={`# Ganti nama kolom akun.nama (Ilustrasi)
+
+## Context and Problem Statement
+Modul pembayaran membaca nama lewat kontrak akun. Nama kolom akan berubah.
+
+## Considered Options
+* Satu migration RENAME COLUMN
+* Expand, migrate, lalu contract dalam tiga rilis
+
+## Decision Outcome
+Expand, migrate, lalu contract, karena RENAME menghapus nama lama dalam satu perintah.
+
+### Consequences
+* Good, because modul lain tetap jalan di tiap rilis.
+* Bad, because perubahan memakan tiga rilis.`} />
+
+Aturan "ADR wajib" itu sendiri dijaga review dan checklist PR, bukan mesin. Pemeriksa yang menolak PR tanpa ADR tidak ada di lab (Tidak dijalankan). Pipeline per modul dan tes contract dikerjakan [[t4-tim-infra]].
+
+### Di stack lain
+
+**Skenario:** satu modul ingin membaca tabel milik modul lain. Yang ditanyakan: apa yang menolaknya, dan di mana batas itu ditulis.
+
+Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-29. Kode di tab lain adalah Ilustrasi.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: lab t4-modul, PostgreSQL 17.11 dan Go 1.27.1 (rekaman `batas.txt`).*
+
+<Snippet file="labs/t4-modul/modul.sql" lines="84:90" lang="sql" title="labs/t4-modul/modul.sql" />
+
+**Yang berbeda di stack ini:** compiler menolak impor `internal/` lintas modul, dan database menolak SQL lewat hak per role. Dua batas itu berdiri sendiri-sendiri: rekaman bagian B menunjukkan SQL ditolak walau kodenya bisa dikompilasi.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [Node.js v26.13.0: Packages](https://nodejs.org/api/packages.html) dan [node-postgres: Pool](https://node-postgres.com/apis/pool), dibuka 2026-10-29. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="json" code={`{
+  "name": "@rekeningo/akun",
+  "exports": { ".": "./publik.js" }
+}`} />
+
+**Yang berbeda di stack ini:** dokumentasi menulis bahwa bila field `exports` diisi, subpath lain package itu terenkapsulasi dan tidak tersedia bagi importer. Dokumentasi tidak menyatakan bahwa `exports` membatasi impor relatif antar folder dalam satu package, jadi batas itu berlaku untuk modul yang dipecah menjadi package. Dokumentasi node-postgres menulis bahwa konfigurasi pool diteruskan ke setiap client di pool itu, dan tidak membahas role per modul. Satu role per modul berarti satu pool per modul (penalaran dari dokumentasi, Tidak dijalankan).
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Database](https://laravel.com/docs/13.x/database) dan [Service Providers](https://laravel.com/docs/13.x/providers), dibuka 2026-10-29. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="php" code={`DB::connection('pembayaran')->select('select nama from akun');`} />
+
+**Yang berbeda di stack ini:** `config/database.php` bisa memuat banyak koneksi bernama, dan `DB::connection(...)` memilihnya. Halaman Database tidak menyebut `search_path` atau schema PostgreSQL untuk membagi modul, dan halaman Service Providers tidak membahas batas antar bagian aplikasi. Dokumentasi itu tidak menyediakan batas modul di sisi kode (Tidak dijalankan: dibaca dari dua halaman itu).
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: banyak database](https://docs.djangoproject.com/en/6.1/topics/db/multi-db/) dan [databases](https://docs.djangoproject.com/en/6.1/ref/databases/), dibuka 2026-10-29. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="python" code={`DATABASE_ROUTERS = ["rekeningo.routers.PerModul"]`} />
+
+**Yang berbeda di stack ini:** `DATABASES` dan `DATABASE_ROUTERS` memetakan app ke database yang berbeda. Dokumentasi menulis bahwa Django tidak mendukung foreign key atau relasi many-to-many yang menyeberang beberapa database. Pada 21 kunci asing lintas schema di lab, pemisahan lewat database berbeda akan memutus semuanya. Halaman databases tidak membahas pemilihan schema PostgreSQL, dan tidak ada halaman yang dibuka membahas aturan impor antar app.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod 4.0.0: Modules](https://docs.serverpod.dev/concepts/server-fundamentals/modules) dan [Connection](https://docs.serverpod.dev/concepts/data-and-the-database/database/connection), dibuka 2026-10-29.*
+
+**Yang berbeda di stack ini:** modul Serverpod punya namespace sendiri untuk endpoint dan method, dan dokumentasi menyarankan awalan nama modul untuk tabelnya supaya tidak bentrok. Halaman Connection menulis bahwa `searchPaths` bisa diatur di konfigurasi koneksi. Dokumentasi yang dibuka tidak membahas schema atau role per modul, dan tidak membahas batas modul di sisi kode.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Securing your API](https://supabase.com/docs/guides/api/securing-your-api) dan [Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security), dibuka 2026-10-29. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="sql" code={`GRANT USAGE ON SCHEMA pembayaran TO service_role;`} />
+
+**Yang berbeda di stack ini:** dokumentasi menulis bahwa tabel tidak terjangkau lewat Data API kecuali sebuah role diberi hak atasnya, dan tabel internal tetap di schema yang tidak diekspos. Itu batas database yang sama dengan hak USAGE di lab, dengan role bawaan Supabase. Dokumentasi tidak menyajikan schema per modul sebagai praktik, dan tidak membahas batas modul di sisi kode.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 37: modular monolith dengan batas yang dijaga mesin, dan satu service pembayaran
+
+**Kebutuhan.** Tiga tim bentrok di satu codebase dan satu schema ([[t4-m32]]), dan PRD v4 meminta PT berdiri sendiri: kredensial gateway dan data kartu butuh batas yang bisa diaudit ([[t4-prd]]). Timnya 13 developer (5 + 4 + 4, Asumsi cerita). Bebannya bukan alasan memecah. Puncaknya 20.000 × 60 ÷ 86.400 × 10 = 138,9 request per detik dan 20.000 × 3 ÷ 86.400 × 10 = 6,94 transaksi uang per detik. Masukannya Asumsi: 100.000 user, 20% aktif, 60 request dan 3 transaksi per user aktif per hari, faktor puncak 10. Kapasitas satu server tetap belum terukur.
+
+**Status:** diterima sesudah M32. Revisi atas ADR 12 (service kedua), dan membuat ADR 34 dan ADR 42 menjadi dua langkah idempoten. Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR.
+
+| | A. Satu paket tanpa batas | B. Semua modul jadi service | C. Modular monolith tanpa service pembayaran | D. Modular monolith dan satu service pembayaran |
+|---|---|---|---|---|
+| Cara kerja | Satu schema, satu role, tim mengimpor dan membaca tabel siapa saja | Tiap modul punya proses dan database sendiri, saling memanggil lewat HTTP | Enam modul di satu proses, schema dan `internal/` per modul | Lima modul di satu proses, pembayaran di proses sendiri dengan role sendiri |
+| Kelebihan | Tidak ada pekerjaan baru | Tiap tim men-deploy sendiri tanpa menunggu tim lain | Satu deploy, satu pipeline, dan transaction tetap satu | Kredensial gateway dan data kartu tidak terbuka untuk seluruh proses |
+| Kekurangan | Rename satu kolom mematahkan modul lain tanpa peringatan | 6 modul menjadi 6 unit deploy, dan transaction antar modul hilang | Kredensial gateway dan data kartu terbuka untuk seluruh proses | Dua unit deploy, dan satu transaction tidak lagi membungkus pembayaran |
+| Biaya operasional | Nol, sampai rilis rusak | 6 pipeline, 6 set secret, dan jaringan antar service | Satu pipeline, tetapi satu role membaca semua | 2 pipeline dan satu jalur HTTP internal yang dipantau |
+| Bukti | Rekaman lab `batas.txt` A: CI hijau, lalu 42703 | Tidak dijalankan. Segment menggabung 140+ service kembali menjadi satu | Tidak dijalankan: dibaca dari naskah | Rekaman lab `batas.txt` B, `ledger.txt`, `proses-mati.txt`, dan `latensi.txt` |
+
+**Keputusan: opsi D.** Tujuh aturan:
+
+1. Modul `ledger`, `akun`, `identitas`, `merchant`, dan `platform` hidup di satu repo dan satu proses. Modul `pembayaran` (gateway, kartu, webhook) adalah satu service terpisah karena kredensial gateway, audit, dan tim.
+2. Satu schema dan satu role database per modul (22 tabel dalam enam schema, 6, 4, 1, 4, 5, dan 2). Di lab keenam role ada dan diuji sebagai kontrak, tetapi proses monolith memakai satu role, `t4m_monolit`, dan pool per modul belum dibangun.
+3. Paket `internal/` Go memaksa batas impor di compiler untuk paket baru di `internal/modul/`. Kode ledger lama belum dipindah, dan batasnya di sana hanya tes `go list -deps` untuk modul pembayaran.
+4. Ledger tetap satu-satunya tempat uang bergerak. Pembayaran meminta jurnal lewat API ledger dengan Idempotency-Key sebesar `order_id` (top-up) atau `id_penerbit` (otorisasi), di luar transaction pembayaran, lalu menulis catatannya dalam satu transaction ([[t4-webhook]], [[t4-kartu]]).
+5. Satu kegagalan di antara dua langkah itu dijaga key, kiriman ulang gateway, dan job cek status dalam 24 jam. Penutup sesudahnya adalah pertanyaan terbuka di blok Paham.
+6. CODEOWNERS per modul, dengan review wajib bila admin menyalakannya di branch protection ([perlu verifikasi: plan pemilik]).
+7. ADR wajib untuk perubahan lintas modul, dengan template MADR 4.0.0 yang minimal.
+
+**Kenapa D, bukan A, B, atau C.**
+
+- **A ditolak** karena aturan "jangan baca tabel tim lain" hanya ada di dokumen, dan M32 melewatinya tanpa peringatan di CI (`batas.txt` bagian A).
+- **B ditolak** untuk tim ini: 13 ÷ 6 = 2,17 developer per service, dan 6 unit deploy lawan 2 pada D (Hitungan atas Asumsi). Kunci asing lintas schema juga harus dibuang bila database dipisah (Tidak dijalankan).
+- **C ditolak** karena kredensial gateway dan data kartu terbuka untuk seluruh proses (dibaca dari naskah, Tidak dijalankan).
+
+**Kasus industri: Shopify dan Segment.** Shopify Engineering menulis bahwa aplikasi mereka dikerjakan lebih dari sepuluh tahun oleh lebih dari seribu developer. Mereka memilih modular monolith dengan komponen ber-API publik, bukan microservices ([Deconstructing the Monolith](https://shopify.engineering/deconstructing-monolith-designing-software-maximizes-developer-productivity), 21 Februari 2019, dibuka 2026-10-29). Alat pemeriksa mereka menandai pelanggaran batas domain. Batasnya: satu aplikasi Rails, dengan developer lebih dari 1.000 ÷ 13 ≈ 77 kali Tahap 4 (Hitungan), dan penegakan saat runtime masih mereka riset.
+
+Segment menulis bahwa mereka menggabungkan lebih dari 140 service menjadi satu. Sebelum itu mereka memecah per tujuan pengiriman. Mereka mencatat 32 perbaikan pada library bersama selama masa microservice dan 46 dalam setahun sesudah penggabungan ([Goodbye Microservices](https://www.twilio.com/en-us/blog/developers/best-practices/goodbye-microservices), 10 Juli 2018, dibuka 2026-10-29). Batasnya: pipeline pengiriman event ke tujuan, bukan sistem uang. Pelajarannya untuk Rekeningo hanya satu: kegagalan pihak ketiga diisolasi dengan antrean dan breaker, tanpa satu service per pihak ([[t4-breaker]]).
+
+Ambang jumlah developer untuk microservices tidak punya sumber primer: pencarian 2026-10-29 menemukan angka yang bertentangan di tulisan konsultan, dan tidak satu pun studi [perlu verifikasi]. Angka itu tidak dipakai halaman ini sebagai pembanding. Fowler menulis bahwa microservices tidak perlu dipertimbangkan sebelum sistem terlalu kompleks untuk dikelola sebagai monolith ([Microservice Premium](https://martinfowler.com/bliki/MicroservicePremium.html), 13 Mei 2015, dibuka 2026-10-29).
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Batas di dalam proses monolith hanya konvensi: satu role membaca lima modul, jadi satu PR bisa membaca tabel akun di luar kontrak dan lolos review. Pencegahannya `internal/`, CODEOWNERS, dan tes kontrak kolom (`batas.txt` bagian B). Pool per modul menunggu tahap berikutnya.
+2. Jurnal kedua sesudah key habis. Pembayaran mati di antara dua langkah, dan kabarnya baru datang lagi sesudah 24 jam. Rekaman menunjukkan jurnal kedua, dan SQL rekonsiliasi membaca separuh jumlah yang dikreditkan (job-nya Tidak dijalankan). Pencegahannya belum ada: itu pertanyaan terbuka.
+3. Review CODEOWNERS menjadi antrean. PR menunggu pemilik lebih dari sehari, dan tim mencari jalan di luar pola yang dimiliki (penalaran). Pencegahannya pemilik cadangan per modul dan pantauan umur PR.
+
+**Kapan keputusan ini salah.**
+
+- Saat tambahan p95 satu lompatan HTTP melewati 50 ms. Pembanding: sisa anggaran 1.000 ms dan 0,029 koneksi dari pool 10 pada 0,579 top-up per detik. Rekaman hanya memuat batasnya, satu mesin, localhost.
+- Saat review CODEOWNERS menunggu lebih dari satu hari (Asumsi).
+- Saat kegagalan di tengah panggilan pembayaran ke ledger menghasilkan selisih yang tidak tertutup rekonsiliasi dalam satu hari kerja. Rekaman `proses-mati.txt` bagian C menunjukkan jurnal kedua sesudah 25 jam. SQL rekonsiliasi yang sama membaca Rp150.000 dari Rp300.000 (job-nya Tidak dijalankan).
+- Saat satu modul punya profil beban atau tim yang membuat deploy bersama tidak lagi masuk akal. Dari 13 developer dan 6,94 transaksi uang per detik, itu belum terlihat (Asumsi).
+
+**Yang akan merevisinya.** [[t4-tim-infra]] menambah pipeline per modul dan tes contract, dan [[t4-kartu]] memakai jalur ledger yang sama untuk otorisasi. ADR 12 direvisi di bagian service kedua. Pool per modul dan database fisik terpisah belum dijadwalkan.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Satu pool koneksi per modul | Lab belum membangunnya: monolith memakai satu role dan satu pool | Belum dijadwalkan |
+| Database fisik terpisah per modul | 21 kunci asing lintas schema harus dibuang. Tidak dijalankan | Belum dijadwalkan |
+| Memindahkan kode ledger lama ke `internal/modul/` | Batas compiler hanya untuk paket baru. Lab menjaga kode lama dengan tes `go list -deps` | Belum dijadwalkan |
+| Kontrak kolom untuk identitas, merchant, dan platform | Lab hanya menurunkan kontrak ledger ke akun | Belum dijadwalkan |
+| Pemeriksa ADR wajib dan review CODEOWNERS di CI | Fitur GitHub, Tidak dijalankan. Plan pemilik [perlu verifikasi] | [[t4-tim-infra]] |
+| TLS antar service dan rotasi kunci layanan | Kunci layanan di header adalah data lab | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Role pembayaran menjalankan `SELECT nama FROM akun` apa adanya sesudah modul dipisah. Apa jawaban PostgreSQL, dan kenapa bukan `permission denied`?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+`relation "akun" does not exist` (42P01). `search_path` role pembayaran hanya memuat schema pembayaran, jadi tabel akun tidak ditemukan. `permission denied for schema t4m_akun` (42501) muncul bila SQL memakai awalan schema (`batas.txt` bagian B).
+
+</details>
+
+**2.** Role pembayaran tidak punya hak apa pun di schema akun, tetapi menulis `topup_bank` untuk akun yang ada berhasil. Kenapa, dan apa akibatnya bila database dipisah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Pemeriksaan kunci asing berjalan sebagai pemilik tabel yang dirujuk, menurut kode sumber PostgreSQL 17. Akun yang tidak ada ditolak 23503. Ada 21 kunci asing lintas schema, jadi memisahkan database fisik berarti membuangnya (Tidak dijalankan).
+
+</details>
+
+**3.** Service pembayaran mati sesudah ledger menjurnal, lalu gateway mengirim ulang kabarnya. Berapa jurnal ada pada kiriman ulang +23 jam dan +25 jam?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Satu jurnal pada +23 jam, karena key ledger masih hidup. Dua jurnal pada +25 jam: key sudah habis dan `topup_bank` masih `menunggu`. Rekonsiliasi harian membaca Rp150.000 dari Rp300.000 yang dikreditkan (`proses-mati.txt` bagian C).
+
+</details>
+
+**4.** Proses monolith memakai satu role untuk lima modul. Apa akibatnya bagi batas antar modul di dalam proses itu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Database tidak menahan modul membaca tabel modul lain, karena `t4m_monolit` mewarisi lima role dan membaca 17 tabel. Batas di sana hanya `internal/` untuk paket baru, review, dan tes kontrak.
+
+</details>
+
+**5.** Apa yang CODEOWNERS lakukan sendiri, dan apa yang butuh branch protection?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+CODEOWNERS menunjuk pemilik dan meminta mereka me-review PR yang menyentuh pola mereka. Review wajib baru berlaku bila admin menyalakan "Require review from Code Owners". Apakah paket repositori pemilik mengizinkannya [perlu verifikasi].
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] SQL sebuah modul hanya menyentuh tabel di schema modul itu. Modul lain dipanggil lewat paket publik atau API.
+- [ ] Paket baru menaruh SQL-nya di `internal/`, dan tidak mengimpor `internal/` modul lain.
+- [ ] Panggilan ke ledger membawa Idempotency-Key dari id kejadian (`order_id`), bukan nilai baru tiap percobaan.
+- [ ] Timeout atau 5xx dari ledger dianggap hasil tidak diketahui: tidak menandai apa pun dan diulang dengan key yang sama.
+- [ ] Kolom yang masuk kontrak lintas modul tidak diganti namanya dalam satu migration ([[t2-skema-tanpa-downtime]]).
+- [ ] PR yang mengubah kontrak lintas modul memuat ADR.
+
+### Bacaan lanjut
+
+- [GitHub: About code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)
+- [MADR 4.0.0](https://adr.github.io/madr/)
+- [cmd/go: Internal packages](https://pkg.go.dev/cmd/go)
+- [PostgreSQL 17: Schemas and Privileges](https://www.postgresql.org/docs/17/ddl-schemas.html)
+- [Fowler: MonolithFirst](https://martinfowler.com/bliki/MonolithFirst.html)
+- [Shopify: Deconstructing the Monolith](https://shopify.engineering/deconstructing-monolith-designing-software-maximizes-developer-productivity)
+- [Segment: Goodbye Microservices](https://www.twilio.com/en-us/blog/developers/best-practices/goodbye-microservices)
+- [Node.js: Packages](https://nodejs.org/api/packages.html)
+- [Django 6.1: banyak database](https://docs.djangoproject.com/en/6.1/topics/db/multi-db/)
+
+<SkripLama daftar={["cerita","banding"]} />
+
+</Blok>
