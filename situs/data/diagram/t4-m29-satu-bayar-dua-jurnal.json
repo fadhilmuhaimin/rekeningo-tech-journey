@@ -22,5 +22,5 @@
       ]
     }
   ],
-  "catatan": "Di kedua baris Budi membayar sekali dan gateway tiruan mengirim dua kali. Yang berbeda hanya apa yang dilakukan handler pada kiriman kedua."
+  "catatan": "Di kedua baris Budi membayar sekali dan gateway tiruan mengirim dua kali. Yang berbeda: handler di baris kedua mencatat event_id, dan balasan pertamanya hilang di jalan."
 }

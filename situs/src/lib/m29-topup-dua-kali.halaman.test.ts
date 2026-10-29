@@ -202,7 +202,7 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(badan.match(/ADR 34/g)).toHaveLength(3);
     expect(badan).not.toMatch(/HMAC|ON CONFLICT|toleransi|SKIP LOCKED|byte mentah|Idempotency-Key/);
     expect(dari("t4-webhook").adr).toEqual([34]);
-    harus("Rumusan keputusannya, ADR 34, ada di [[t4-webhook]].");
+    harus("dan keputusannya (ADR 34) ada di [[t4-webhook]].");
   });
 });
 
@@ -231,13 +231,13 @@ describe("naskah M29: gejala, yang dikira, dan yang sebenarnya", () => {
     harus(`Budi mengisi saldo ${m[1]} dari rekening banknya lewat app. Saldo di app naik dari ${m[2]} ke ${m[3]}.`);
     harus(`Laporan gateway memuat satu pembayaran ${m[1]} dari Budi. Ledger memuat dua jurnal top-up untuk pembayaran itu.`);
     harus(`*Angka cerita (Ilustrasi):* saldo ${m[2]} ke ${m[3]} dan laporan pencocokan Pak Hadi berasal dari naskah, bukan dari rekaman.`);
-    harus(`Kenaikannya sama, ${rp(650000 - 250000)} (Hitungan:`);
+    harus(`Kenaikannya sama, ${rp(650000 - 250000)} (Hitungan, angka yang dihitung dari angka lain di halaman:`);
     const naik = cocok(rBagA, /saldo Budi naik (Rp[\d.]+) untuk (Rp[\d.]+) yang dibayar\./);
     expect(naik[1]).toBe(rp(650000 - 250000));
     expect(naik[2]).toBe(m[1]);
     harus(`Saldo Budi naik ${naik[1]} untuk ${naik[2]} yang dibayar.`);
     harus("Paginya Pak Hadi mencocokkan laporan gateway dengan jurnal di ledger, seperti tiap hari.");
-    harus("Gateway tidak menerima jawaban 2xx. Handler sudah menyimpan jurnal dari kiriman pertama, tetapi balasan 200 tidak sampai.");
+    harus("Gateway tidak menerima jawaban 2xx. Kemungkinan terbesar: handler sudah menyimpan jurnal dari kiriman pertama, tetapi balasan 200 tidak sampai.");
     harus("Gateway tidak rusak. Ia mengirim ulang kabar yang tidak dijawab 2xx, dan handler pertama menambah saldo dari tiap kiriman yang datang.");
     harus("Jawaban selain 2xx, juga timeout, dicatat sebagai kiriman yang belum berhasil.");
     harus("Di lab `api-t4`, role aplikasi ditolak");
@@ -252,7 +252,7 @@ describe("naskah M29: gejala, yang dikira, dan yang sebenarnya", () => {
     expect(dari("t4-rekonsiliasi").nomor).toBe("4.9");
   });
   test("Hitungan di Gejala diulang dari angka di teks: 650.000 − 250.000 dan 450.000 − 50.000 sama dengan 400.000 = 2 × 200.000", () => {
-    const m = cocok(badan, /\(Hitungan: ([\d.]+) − ([\d.]+) dan ([\d.]+) − ([\d.]+)\)/);
+    const m = cocok(badan, /\(Hitungan, angka yang dihitung dari angka lain di halaman: ([\d.]+) − ([\d.]+) dan ([\d.]+) − ([\d.]+)\)/);
     const [a, b, c, d] = m.slice(1).map((x) => Number(x.replace(/\./g, "")));
     expect([a! - b!, c! - d!]).toEqual([400000, 400000]);
     expect(a).toBe(650000);
@@ -429,8 +429,8 @@ describe("kode lab: handler pertama, cek-lalu-tulis, kunci baris, dan penolakan 
     expect(kodeKreditV1).toContain('return tx.UbahStatusTanpaSyarat(ctx, tp.OrderID, "dibayar")');
     expect(kodeKreditV1).not.toMatch(/jurnal_id|JurnalID|EventID|webhook_event/);
     expect(repoGo).toMatch(/UPDATE topup_bank SET status = \$2 WHERE order_id = \$1`, orderID, ke\)/);
-    harus("membaca baris top-up dengan `FOR UPDATE`, lalu menulis jurnal sebesar `jumlah` di isi kiriman. Ia tidak membaca status top-up, tidak menyimpan `event_id`, dan tidak memeriksa tanda tangan:");
-    harus("`webhookV1` menjurnal tiap `settlement` tanpa membaca status.");
+    harus("membaca baris top-up dengan `FOR UPDATE`, lalu menulis jurnal sebesar `jumlah` di isi kiriman. Ia tidak memeriksa status top-up dan tanda tangan, dan tidak menyimpan `event_id`:");
+    harus("`webhookV1` menjurnal tiap `settlement` tanpa memeriksa status.");
   });
   test("tanda tangan: mode webhook-v1 melewati PeriksaTandaTangan, mode lain memeriksanya; kode tidak memeriksa waktu kiriman di mode itu", () => {
     expect(kodeTerima).toContain("if s.rentan != RentanWebhookV1 {");
@@ -522,12 +522,16 @@ describe("sumber luar: baris riset, tanggal akses, dan kutipan", () => {
   });
   test("label sumber: arti tiga label ditaut ke A0 di Gejala; Hitungan dan Penalaran didefinisikan di pemakaian pertama; jumlah label sama dengan yang diharapkan", () => {
     harus("Arti Ilustrasi, Rekaman lab, dan Tidak dijalankan ada di [[A0]].");
-    harus("Hitungan adalah angka yang dihitung dari angka lain yang tertulis di halaman.");
-    harus("Penalaran adalah kesimpulan dari kode atau rekaman lain, tanpa rekaman sendiri.");
-    expect(badan.indexOf("Hitungan adalah")).toBeLessThan(badan.indexOf("(dibuka 2026-10-29"));
-    expect(badan.indexOf("Penalaran adalah")).toBeLessThan(badan.indexOf("(penalaran, tidak direkam)"));
-    expect(badan.indexOf("(Hitungan:")).toBeLessThan(badan.indexOf("Hitungan adalah"));
-    expect(badan.match(/\(penalaran, tidak direkam\)/g)).toHaveLength(3);
+    // keputusan 1289: tanpa paragraf definisi di adegan Gejala (python3 tools/eval_tahap.py gejala 4); Hitungan diberi arti
+    // sebaris di pemakaian pertama, penalaran di pemakaian pertama di blok Yang sebenarnya
+    harus("(Hitungan, angka yang dihitung dari angka lain di halaman:");
+    harus("(penalaran: kesimpulan dari kode atau rekaman lain, tanpa rekaman sendiri)");
+    const blokGejala = badan.slice(badan.indexOf('<Blok nama="Gejala" buka>'), badan.indexOf("</Blok>"));
+    expect(blokGejala).not.toMatch(/ (adalah|yaitu|artinya|berarti|merupakan|disebut) /);
+    expect(badan.indexOf("(penalaran: ")).toBeLessThan(badan.indexOf("(penalaran, tidak direkam)"));
+    expect(badan.indexOf("penalaran")).toBe(badan.indexOf("(penalaran: ") + 1);
+    expect(badan.indexOf("Hitungan")).toBe(badan.indexOf("(Hitungan, ") + 1);
+    expect(badan.match(/\(penalaran, tidak direkam\)/g)).toHaveLength(1);
     expect(badan.match(/\(Tidak dijalankan\)/g)).toHaveLength(3);
     expect(badan.match(/Tidak dijalankan\)/g)).toHaveLength(7);
     expect(badan.match(/\(dibaca dari kode[^)]*\)/g)).toHaveLength(3);
@@ -553,7 +557,7 @@ describe("diagram Rantai: nilai simpul diturunkan dari rekaman", () => {
     expect(bagA).toContain('"event_id":"evt-1"');
     expect(bagB).toContain("kiriman 2 (event yang sama): 200 ganda");
     expect(bagB).toContain("nol baris");
-    expect(diagram.catatan).toBe("Di kedua baris Budi membayar sekali dan gateway tiruan mengirim dua kali. Yang berbeda hanya apa yang dilakukan handler pada kiriman kedua.");
+    expect(diagram.catatan).toBe("Di kedua baris Budi membayar sekali dan gateway tiruan mengirim dua kali. Yang berbeda: handler di baris kedua mencatat event_id, dan balasan pertamanya hilang di jalan.");
     expect(diagram.baris.flatMap((b) => b.simpul.map((s) => [s.teks, s.nada]))).toEqual([
       ["Kiriman evt-1", "biasa"], ["Kiriman evt-1 lagi", "warn"], [`Jurnal kedua ${rp(jumlah)}`, "warn"],
       ["Kiriman 1 di-COMMIT", "biasa"], ["Kiriman 2, event_id sama", "biasa"], ["Dijawab ganda", "good"],
@@ -760,3 +764,136 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
     expect(badan.match(/^import /gm)).toHaveLength(6);
   });
 });
+
+// ---- tinjauan (keputusan 1289): penutup mutan yang lolos di putaran TANPA kunci baris dan sidik --------------------------
+// Putaran tanpa kunci (tes "setiap baris badan terkunci" dilewati dan sidik dihapus) meloloskan 17 mutan: COMMIT diganti
+// ROLLBACK, status mundur ke `gagal`, label "diukur di lab" menggantikan "tidak diukur", label "rekaman" menggantikan
+// "penalaran", bahasa Snippet, nama mode, kelas details, dari/ke langkah skenario, dan parafrasa RFC dan PostgreSQL.
+// Tiap tes di bawah menurunkan klaimnya dari rekaman, kode, atau baris riset, bukan dari daftar baris.
+describe("tinjauan 1289: klaim yang lolos tanpa kunci baris", () => {
+  test("'sesudah COMMIT': rekaman bagian B dan kode tiruan menyebut COMMIT sebelum balasan; halaman memuat kalimat yang sama", () => {
+    expect(bagB).toContain("Kiriman pertama sudah di-COMMIT sebelum balasan dikirim");
+    expect(tiruanGo).toContain("tanda Rekeningo sudah selesai dan COMMIT");
+    harus("Gateway tiruan menutup koneksi begitu balasan mulai datang, sesudah COMMIT.");
+    expect(badan).not.toMatch(/sesudah ROLLBACK|sebelum COMMIT/);
+  });
+  test("label tidak lebih kuat dari sumber: alasan pemutusan tidak diukur (naskah), kiriman kedua di cerita adalah penalaran, jawaban Pak Hadi tanpa rekaman", () => {
+    expect(naskah).toContain("alasan desain yang tidak diukur");
+    harus("Alasan itu dari naskah dan tidak diukur.");
+    harus("adalah penalaran dari bagian A, bagian B, dan dokumentasi gateway.");
+    expect(badan).not.toMatch(/Alasan itu (diukur|direkam)|adalah rekaman dari bagian A/);
+    // handler pertama: tidak ada bagian rekaman yang memutus balasan, jadi sebab di cerita memang tidak direkam
+    expect(bagA + rBagA).not.toMatch(/putus|diputus/);
+    harus("Handler pertama tidak punya jawabannya: tidak ada catatan yang menghubungkan satu kiriman dengan satu jurnal.");
+    expect(pembayaranGo).toContain("jurnal_id topup_bank tidak diisi");
+    expect(rBagA).toMatch(/event_tercatat\n-+\n 0\n/);
+  });
+  test("status mundur: kabar pending di run.py, pemetaan pending ke menunggu, cabang non-settlement tanpa syarat, dan status menunggu di rekaman", () => {
+    expect(runApi).toContain('kirim_webhook(event_id="evt-101", order_id=t1["order_id"], status="pending", tanpa_tanda_tangan=True)');
+    expect(pembayaranGo).toContain('"pending": "menunggu"');
+    expect(kodeV1).toMatch(/if k\.Status != "settlement" \{[\s\S]*?UbahStatusTanpaSyarat\(ctx, k\.OrderID, statusGateway\[k\.Status\]\)/);
+    expect(rBagA).toMatch(/SELECT status FROM topup_bank WHERE id = 1\n status\n-+\n menunggu\n/);
+    harus("Kabar `pending` yang datang sesudah `dibayar` mengembalikan status ke `menunggu`, karena handler mengganti status tanpa syarat.");
+  });
+  test("bahasa Snippet mengikuti jenis berkas: .go memakai lang go, rekaman .txt tanpa lang", () => {
+    expect(tag).toHaveLength(7);
+    for (const t of tag) {
+      const f = t.match(/file="([^"]+)"/)![1]!;
+      const l = t.match(/lang="([^"]+)"/)?.[1];
+      if (f.endsWith(".go")) expect(l, f).toBe("go");
+      else expect(l, f).toBeUndefined();
+    }
+  });
+  test("nama mode di prosa sama dengan mode yang dipakai rekaman: webhook-cek-tulis di ganda-serentak, webhook-v1 di ganda dan rentan", () => {
+    expect(serentak).toContain("-rentan webhook-cek-tulis");
+    expect(ganda).toContain("-rentan webhook-v1");
+    expect(rentan).toContain("$ ./api-t4 -rentan webhook-v1 -lab");
+    harus("Mode `webhook-cek-tulis` memerankannya: handler membaca status di luar transaction");
+    harus("dengan mode rentan `webhook-v1`, dan gateway tiruan lokal.");
+  });
+  test("Tebak dulu di blok Yang Raka kira memakai details class question dengan ringkasan 'Tebak dulu:'; jalur Cek diri memakai class success", () => {
+    expect(badan.match(/<details class="question">\n<summary>Tebak dulu: /g)).toHaveLength(1);
+    expect(badan.match(/<details class="success">\n<summary>Jawaban<\/summary>/g)).toHaveLength(3);
+    expect(badan.match(/<details>\n<summary>Rekaman bagian A dan B/g)).toHaveLength(1);
+  });
+  test("skenario: arah dari dan ke tiap langkah mengikuti isi kirim (jurnal api ke db, kiriman gateway ke api, balasan api ke gateway), dan jelas tidak bertentangan dengan kirim", () => {
+    const arah = (l: Langkah): string => `${l.dari}>${l.ke ?? ""}`;
+    expect(skenario.langkah.map(arah)).toEqual(["gw>api", "api>db", "api>gw", "gw>api", "api>db", "api>gw", "api>"]);
+    expect(skenario.varian.langkah.map(arah)).toEqual(["gw>api", "api>db", "api>gw", "gw>api", "api>db"]);
+    for (const l of [...skenario.langkah, ...skenario.varian.langkah]) {
+      if (/^→ jurnal \d+|^→ webhook_event:/.test(l.kirim)) expect(arah(l), l.judul).toBe("api>db");
+      if (/^→ kiriman \d: 200/.test(l.kirim) || /^hasil kiriman:/.test(l.kirim)) expect(arah(l), l.judul).toBe("api>gw");
+      if (/200 (diproses|ganda)/.test(l.kirim)) expect(l.jelas, l.judul).not.toMatch(/ditolak|gagal|galat|salah/i);
+    }
+    expect(skenario.langkah[2]!.jelas).toContain("Kiriman pertama diterima.");
+  });
+  test("parafrasa sumber luar: RFC 9110 (SHOULD NOT, idempoten, belum pernah diterapkan) dan PostgreSQL 17 (Read Committed, hanya data yang sudah di-COMMIT)", () => {
+    const rfc = barisRiset("R4-138"), pg = barisRiset("R4-137");
+    expect(rfc).toContain("A client SHOULD NOT automatically retry a request with a non-idempotent method");
+    expect(rfc).toContain("actually idempotent");
+    expect(rfc).toContain("the original request was never applied");
+    harus("kecuali ia tahu permintaan itu idempoten atau belum pernah diterapkan");
+    expect(pg).toContain("Read Committed");
+    expect(pg).toContain("sees only data committed before the query began");
+    harus("Di isolation level bawaan, Read Committed, pembacaan biasa hanya melihat data yang sudah di-COMMIT sebelum perintahnya mulai");
+    expect(labPakaiIsolasiBawaan).toBe(true);
+    expect(badan).not.toMatch(/juga melihat data yang belum/);
+  });
+  test("kalimat mekanisme tanpa rekaman: jurnal kedua adalah jurnal top-up biasa (bukan pembalik), alasan pemutusan dari naskah, dan koreksi ledger lewat jurnal pembalik, bukan DELETE", () => {
+    expect(kodeKreditV1).toContain('tx.CatatJurnal(ctx, "topup_bank"');
+    expect(kodeKreditV1).not.toMatch(/membalik|pembalik/i);
+    harus("Kiriman kedua menjadi jurnal kedua.");
+    expect(naskah).toContain("memutusnya lebih awal membatalkan konteks permintaan dan bisa mem-rollback transaction");
+    harus("Gateway tiruan menunggu byte pertama karena memutus lebih awal bisa membatalkan konteks permintaan dan mem-rollback transaction.");
+    harus("Kesalahan di ledger dikoreksi dengan jurnal pembalik, bukan dengan `DELETE` ([[t2-ledger]]).");
+  });
+});
+
+describe("tinjauan 1289 (lanjutan): kalimat baru hasil perbaikan peninjau", () => {
+  test("dua syarat dari naskah bagian 3 dan bukti rekaman: kiriman ganda dan bersamaan melanggar 'dicatat satu kali', kabar palsu melanggar 'dipercaya sesudah dicek'", () => {
+    expect(naskah).toContain("1. Uang dari luar dicatat satu kali, walau kabarnya datang dua kali, terlambat, atau tidak berurutan");
+    expect(naskah).toContain("2. Kabar dari luar dipercaya hanya sesudah dicek");
+    expect(bagA).toContain("hasil kiriman: 200 diproses, 200 diproses");
+    expect(sBagA).toContain("dua kiriman bersamaan, tanda tangan sah (diurutkan): 200 diproses, 200 diproses");
+    expect(serentak).toContain("tanda tangan diperiksa"); // kiriman bersamaan lolos walau tanda tangan diperiksa: akarnya bukan 'kabar dipercaya tanpa cek'
+    expect(rBagA).toContain('{"event_id": "evt-palsu", "order_id": "<order 4>", "status": "settlement", "jumlah": 1234567}');
+    harus('Kiriman ganda dan kiriman bersamaan melanggar syarat "dicatat satu kali", karena tidak ada kunci yang menjaga pencatatan.');
+    harus('Kabar palsu melanggar syarat "dipercaya sesudah dicek".');
+    expect(badan).not.toMatch(/satu akar|akar yang sama/);
+  });
+  test("M30 di Konsep yang lahir: kabarnya tidak pernah menjadi jurnal (retry.txt bagian B, naskah M30), bukan 'tidak datang' (kiriman 401 datang dan ditolak)", () => {
+    expect(retry).toContain("tidak ada event dan tidak ada jurnal");
+    expect(retry).toMatch(/ 1 +\| 0 +\| 401/);
+    expect(naskah.split("\n").find((b) => b.startsWith("| M30 |"))).toContain("tujuh top-up yang tidak punya jurnal");
+    harus("- [[t4-m30]]: sisi lain kabar dari luar. Kabarnya tidak pernah menjadi jurnal.");
+    expect(badan).not.toMatch(/tidak datang sama sekali/);
+  });
+  test("Tebak dulu: bagian B memerankan handler lain (versi ADR 34: tabel event), bukan handler pertama; bukan bagian B ganda-serentak", () => {
+    expect(bagB).toContain("versi ADR 34: tanda tangan, tabel event, status hanya maju");
+    expect(ganda).toContain("-rentan webhook-v1");
+    harus("Rekaman lab `ganda.txt` bagian B memerankannya pada handler lain, yang memakai tabel event (bedanya ada di blok berikutnya).");
+    harus("Kemungkinan terbesar: handler sudah menyimpan jurnal dari kiriman pertama, tetapi balasan 200 tidak sampai.");
+    expect(badan).not.toMatch(/ganda-serentak\.txt` bagian B|pada handler yang sama/);
+  });
+  test("kiriman berikutnya setelah jurnal dihapus: tidak ada DELETE atau kiriman ulang di rekaman handler pertama; kreditV1 menjurnal tiap panggilan", () => {
+    expect(bagA + rBagA).not.toMatch(/DELETE FROM jurnal/);
+    expect(kodeKreditV1).toContain("CatatJurnal");
+    harus("Itu kesimpulan dari kode handler pertama, bukan dari rekaman.");
+    expect(badan).not.toMatch(/Itu hasil rekaman handler pertama/);
+  });
+  test("cek-lalu-tulis: kode menjawab ganda bila status sudah dibayar (kalimat 'perbaikan yang paling dekat')", () => {
+    expect(kodeCekTulis).toMatch(/if tp\.Status == "dibayar" \{\s*return HasilWebhook\{Hasil: "ganda"\}, nil/);
+    harus("Perbaikan yang paling dekat adalah membaca status top-up dan menjawab `ganda` bila sudah `dibayar`.");
+  });
+  test("layar HP skenario: sinyal sama di semua layar (pilihan penulis, seperti jam)", () => {
+    const sinyal = [...skenarioMentah.matchAll(/"sinyal": ?(\d+)/g)].map((m) => m[1]);
+    expect(sinyal).toHaveLength(3);
+    expect(new Set(sinyal)).toEqual(new Set(["3"]));
+  });
+});
+
+// Lab tidak mengatur isolation level: pembacaan status di webhookCekTulis memakai bawaan PostgreSQL (Read Committed).
+const labPakaiIsolasiBawaan = (() => {
+  const sumber = ["labs/api-t4/internal/service/pembayaran.go", "labs/api-t4/internal/repo/pembayaran.go"].map((f) => baca(f)).join("\n");
+  return !/Isolation|ISOLATION|isolation level/.test(sumber.replace(/\/\/[^\n]*/g, "")) && /BeginTx\(ctx, nil\)|DalamTx/.test(sumber + baca("labs/api-t4/internal/modul/pembayaran/pembayaran.go"));
+})();

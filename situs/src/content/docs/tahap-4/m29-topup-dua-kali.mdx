@@ -19,9 +19,9 @@ Paginya Pak Hadi mencocokkan laporan gateway dengan jurnal di ledger, seperti ti
 
 Pak Hadi memanggil Raka. "Setiap rupiah dari luar harus cocok dengan catatan pihak yang mengirimnya. Kalau tidak cocok, namanya insiden, bukan angka yang saya koreksi."
 
-*Angka cerita (Ilustrasi):* saldo Rp50.000 ke Rp450.000 dan laporan pencocokan Pak Hadi berasal dari naskah, bukan dari rekaman. Rekaman memakai data awal lab: saldo Budi Rp250.000, dan Rp650.000 sesudah dua jurnal (Rekaman lab). Kenaikannya sama, Rp400.000 (Hitungan: 650.000 − 250.000 dan 450.000 − 50.000).
+*Angka cerita (Ilustrasi):* saldo Rp50.000 ke Rp450.000 dan laporan pencocokan Pak Hadi berasal dari naskah, bukan dari rekaman. Rekaman memakai data awal lab: saldo Budi Rp250.000, dan Rp650.000 sesudah dua jurnal (Rekaman lab). Kenaikannya sama, Rp400.000 (Hitungan, angka yang dihitung dari angka lain di halaman: 650.000 − 250.000 dan 450.000 − 50.000).
 
-Hitungan adalah angka yang dihitung dari angka lain yang tertulis di halaman. Penalaran adalah kesimpulan dari kode atau rekaman lain, tanpa rekaman sendiri. Lab tidak menjalankan rekonsiliasi ([[t4-rekonsiliasi]]) atas handler pertama (Tidak dijalankan). Arti Ilustrasi, Rekaman lab, dan Tidak dijalankan ada di [[A0]].
+Lab tidak menjalankan rekonsiliasi ([[t4-rekonsiliasi]]) atas handler pertama (Tidak dijalankan). Arti Ilustrasi, Rekaman lab, dan Tidak dijalankan ada di [[A0]].
 
 </Blok>
 
@@ -33,14 +33,14 @@ Jadi yang ganda bukan app. Raka menyimpulkan gateway punya bug dan mengirim kaba
 
 Aturan Pak Hadi melarangnya, dan ledger melarangnya juga. Kesalahan di ledger dikoreksi dengan jurnal pembalik, bukan dengan `DELETE` ([[t2-ledger]]). Di lab `api-t4`, role aplikasi ditolak dengan `permission denied` saat mencoba `DELETE` pada `jurnal` (`skema.txt` bagian D).
 
-Menghapus satu jurnal juga tidak menutup sebabnya. Kiriman berikutnya yang sama menjadi jurnal ganda lagi (penalaran, tidak direkam).
+Menghapus satu jurnal juga tidak menutup sebabnya. Kiriman berikutnya yang sama menjadi jurnal ganda lagi. Itu kesimpulan dari kode handler pertama, bukan dari rekaman.
 
 <details class="question">
 <summary>Tebak dulu: gateway mengirim kabar "dibayar" untuk order yang sama dua kali, padahal Budi membayar sekali. Apa yang membuat gateway mengirimnya lagi?</summary>
 
-Gateway tidak menerima jawaban 2xx. Handler sudah menyimpan jurnal dari kiriman pertama, tetapi balasan 200 tidak sampai. Dari sisi gateway, kabarnya belum diterima, jadi ia mengirimnya lagi.
+Gateway tidak menerima jawaban 2xx. Kemungkinan terbesar: handler sudah menyimpan jurnal dari kiriman pertama, tetapi balasan 200 tidak sampai. Dari sisi gateway, kabarnya belum diterima, jadi ia mengirimnya lagi.
 
-Di rekaman lab `ganda.txt` bagian B, gateway tiruan menutup koneksi begitu balasan mulai datang. Kiriman kedua dengan `event_id` yang sama dijawab `ganda`. Itu bukan bug gateway. Kenapa gateway nyata melakukannya ada di blok berikutnya.
+Rekaman lab `ganda.txt` bagian B memerankannya pada handler lain, yang memakai tabel event (bedanya ada di blok berikutnya). Gateway tiruan menutup koneksi begitu balasan mulai datang, dan kiriman kedua dengan `event_id` (pengenal tiap kabar dari gateway) yang sama dijawab `ganda`. Itu bukan bug gateway. Kenapa gateway nyata melakukannya ada di blok berikutnya.
 
 </details>
 
@@ -60,9 +60,9 @@ Gateway pertama mengirim ulang sampai tiga hari di mode live. Gateway kedua meng
 
 **Pengirim tidak bisa membedakan "tidak sampai" dari "sampai, tetapi jawabannya hilang".** RFC 9110 bagian 9.2.2 menulis bahwa kegagalan komunikasi bisa terjadi sebelum client membaca jawaban server. Karena itu client sebaiknya tidak mengulang otomatis permintaan yang tidak idempoten (SHOULD NOT), kecuali ia tahu permintaan itu idempoten atau belum pernah diterapkan (Tidak dijalankan).
 
-Dokumentasi kedua gateway tidak menyebut RFC itu, dan tidak menyebut koneksi yang putus sesudah handler selesai. Gateway tetap mengulang, jadi penjagaan duplikat pindah ke penerima (penalaran, tidak direkam).
+Dokumentasi kedua gateway tidak menyebut RFC itu, dan tidak menyebut koneksi yang putus sesudah handler selesai. Gateway tetap mengulang, jadi penjagaan duplikat pindah ke penerima (penalaran: kesimpulan dari kode atau rekaman lain, tanpa rekaman sendiri).
 
-**Handler pertama menjurnal tiap kiriman.** `event_id` adalah pengenal yang diberikan gateway pada tiap kabar. Handler pertama mengurai JSON, membaca baris top-up dengan `FOR UPDATE`, lalu menulis jurnal sebesar `jumlah` di isi kiriman. Ia tidak membaca status top-up, tidak menyimpan `event_id`, dan tidak memeriksa tanda tangan:
+**Handler pertama menjurnal tiap kiriman.** `event_id` adalah pengenal yang diberikan gateway pada tiap kabar. Handler pertama mengurai JSON, membaca baris top-up dengan `FOR UPDATE`, lalu menulis jurnal sebesar `jumlah` di isi kiriman. Ia tidak memeriksa status top-up dan tanda tangan, dan tidak menyimpan `event_id`:
 
 <Snippet file="labs/api-t4/internal/service/pembayaran.go" lines="364:402" lang="go" title="Kode lab: labs/api-t4/internal/service/pembayaran.go baris 364 sampai 402 (handler pertama)" />
 
@@ -80,7 +80,7 @@ Saldo Budi naik Rp400.000 untuk Rp200.000 yang dibayar. Tabel `webhook_event` te
 
 Gateway tiruan menunggu byte pertama karena memutus lebih awal bisa membatalkan konteks permintaan dan mem-rollback transaction. Alasan itu dari naskah dan tidak diukur. Bahwa kiriman kedua di cerita datang karena balasan hilang pada handler pertama adalah penalaran dari bagian A, bagian B, dan dokumentasi gateway.
 
-**Memeriksa status dulu belum cukup.** Perbaikan yang paling dekat adalah membaca status top-up dan menjawab `ganda` bila sudah `dibayar`. Mode `webhook-cek-tulis` memerankannya: handler membaca status di luar transaction dan tanpa mengunci baris, lalu menulis jurnal di transaction sendiri (dibaca dari kode). Pembacaan biasa hanya melihat data yang sudah di-COMMIT sebelum perintahnya mulai (dokumentasi PostgreSQL 17, bagian 13.2.1, Tidak dijalankan).
+**Memeriksa status dulu belum cukup.** Perbaikan yang paling dekat adalah membaca status top-up dan menjawab `ganda` bila sudah `dibayar`. Mode `webhook-cek-tulis` memerankannya: handler membaca status di luar transaction dan tanpa mengunci baris, lalu menulis jurnal di transaction sendiri (dibaca dari kode). Di isolation level bawaan, Read Committed, pembacaan biasa hanya melihat data yang sudah di-COMMIT sebelum perintahnya mulai (dokumentasi PostgreSQL 17, bagian 13.2.1, Tidak dijalankan).
 
 Dua kiriman bersamaan sama-sama membaca `menunggu`, dan keduanya menjurnal. Jeda 300 ms di antara cek dan tulis adalah pilihan lab untuk melebarkan celah (Asumsi). Lebar celah tanpa jeda tidak diukur:
 
@@ -90,11 +90,11 @@ Dua kiriman bersamaan sama-sama membaca `menunggu`, dan keduanya menjurnal. Jeda
 
 <Snippet file="labs/api-t4/output/rentan.txt" lines="29:40" title="Rekaman lab: labs/api-t4/output/rentan.txt, bagian A (status mundur, kabar tanpa tanda tangan)" />
 
-Kalimat naskah "kiriman `dibayar` berikutnya dikredit lagi" terbaca dari kode, bukan dari rekaman. `webhookV1` menjurnal tiap `settlement` tanpa membaca status. Satu-satunya `settlement` tambahan yang terekam adalah kabar tanpa tanda tangan itu (dibaca dari kode, Tidak dijalankan).
+Kalimat naskah "kiriman `dibayar` berikutnya dikredit lagi" terbaca dari kode, bukan dari rekaman. `webhookV1` menjurnal tiap `settlement` tanpa memeriksa status. Satu-satunya `settlement` tambahan yang terekam adalah kabar tanpa tanda tangan itu (dibaca dari kode, Tidak dijalankan).
 
 Handler juga tidak memeriksa tanda tangan atau waktu, jadi isi yang diubah dan kiriman lama yang diputar ulang ikut diterima (dibaca dari kode, Tidak dijalankan).
 
-**Tiga kegagalan, satu akar.** Kiriman ganda, kiriman bersamaan, dan kabar palsu punya akar yang sama: kabar dari luar diperlakukan sebagai fakta. [[t4-dua-arah]] menyebutnya klaim yang dicek dulu, lalu dicatat satu kali. Rumusan keputusannya, ADR 34, ada di [[t4-webhook]].
+**Tiga kegagalan, dua syarat.** Kiriman ganda dan kiriman bersamaan melanggar syarat "dicatat satu kali", karena tidak ada kunci yang menjaga pencatatan. Kabar palsu melanggar syarat "dipercaya sesudah dicek". [[t4-dua-arah]] merumuskan keduanya: kabar dari luar adalah klaim yang dicek dulu, lalu dicatat satu kali, dan keputusannya (ADR 34) ada di [[t4-webhook]].
 
 **Jawaban untuk Pak Hadi.** Di minggu 2 Pak Hadi bertanya bagaimana ia tahu satu pembayaran di bank sama dengan satu jurnal di ledger. Handler pertama tidak punya jawabannya: tidak ada catatan yang menghubungkan satu kiriman dengan satu jurnal. Jawabannya dimulai di [[t4-webhook]] dan dilengkapi [[t4-rekonsiliasi]].
 
@@ -127,7 +127,7 @@ Bila handler memakai tabel event_id dan balasan pertama hilang di jalan, kiriman
 
 - [[t4-webhook]]: webhook masuk dengan `event_id` unik dalam transaction yang sama dengan jurnal, tanda tangan atas isi kiriman persis seperti diterima, dan status yang hanya maju. Keputusannya ADR 34.
 - [[t4-dua-arah]]: tiga hal yang harus selalu benar bila kabar datang dari luar.
-- [[t4-m30]]: sisi lain kabar dari luar. Kabarnya tidak datang sama sekali.
+- [[t4-m30]]: sisi lain kabar dari luar. Kabarnya tidak pernah menjadi jurnal.
 - [[t4-rekonsiliasi]]: mencocokkan jurnal dengan laporan gateway, dan selisihnya menjadi insiden bernomor.
 - [[t3-at-least-once]]: pola yang sama dilihat dari sisi pengirim, di Tahap 3.
 
