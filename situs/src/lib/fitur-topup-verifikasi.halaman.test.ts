@@ -769,3 +769,151 @@ describe("kunci kalimat: teks halaman, diagram, dan skenario terkunci per baris 
     expect(sekarang.json).toEqual(KUNCI_JSON);
   });
 });
+
+// Penutup celah seri mutasi peninjau (keputusan 1277). Seri 228 mutan tanpa kunci baris meloloskan 53; yang membawa klaim ditutup di sini
+// dengan nilai yang diturunkan dari kode, rekaman, dan RISET. "Sidik kata penentu" bukan turunan melainkan kunci agregat: ia menangkap
+// sisipan atau pembalikan kata penentu di mana pun, termasuk di kalimat naratif yang tidak punya sumber angka.
+describe("penutup celah mutasi tanpa kunci: klaim mekanisme, label, sumber, dan sidik kata penentu", () => {
+  const fungsi = (teks: string, kepala: string): string => {
+    const awal = teks.indexOf(kepala);
+    if (awal < 0) throw new Error(`fungsi tidak ditemukan: ${kepala}`);
+    return teks.slice(awal, teks.indexOf("\n}\n", awal) + 3);
+  };
+  const nilaiString = (x: unknown, keluar: string[] = []): string[] => {
+    if (typeof x === "string") keluar.push(x);
+    else if (Array.isArray(x)) for (const y of x) nilaiString(y, keluar);
+    else if (x && typeof x === "object") for (const y of Object.values(x)) nilaiString(y, keluar);
+    return keluar;
+  };
+  const sidik = (teks: string, kata: string[]): Record<string, number> =>
+    Object.fromEntries(kata.map((k) => [k, (teks.toLowerCase().match(new RegExp(`(?<![\\w-])${k}(?![\\w-])`, "g")) ?? []).length]));
+  const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling banyak"];
+  const tanpaSelalu = (o: Record<string, number>): Record<string, number> => o;
+
+  test("klaim mekanisme diturunkan dari kode: panggilan gateway di luar transaction, tanda tangan sebelum JSON, satu transaction untuk kabar masuk", () => {
+    const buat = fungsi(kodePembayaran, "func (s Service) BuatTopupBank(");
+    expect(buat).toContain("s.t4.Gateway.BuatOrder(");
+    expect(buat).not.toContain("DalamTx(");
+    expect(buat.indexOf("s.repo.BuatTopupBank(")).toBeLessThan(buat.indexOf("s.t4.Gateway.BuatOrder("));
+    harus("lalu memanggil gateway di luar transaction.");
+    const terima = fungsi(kodePembayaran, "func (s Service) TerimaWebhook(");
+    expect(terima.indexOf("s.PeriksaTandaTangan(timestamp, tanda, body)")).toBeGreaterThan(0);
+    expect(terima.indexOf("s.PeriksaTandaTangan(timestamp, tanda, body)")).toBeLessThan(terima.indexOf("json.Unmarshal(body"));
+    harus("Server memeriksa tanda tangan atas byte mentah sebelum JSON diurai, lalu satu transaction menulis event, status top-up, jurnal, dan baris outbox:");
+    const aman = fungsi(kodePembayaran, "func (s Service) webhookAman(");
+    expect((aman.match(/DalamTx\(/g) ?? []).length).toBe(1);
+    for (const f of ["tx.CatatEvent(", "s.terapkanStatus(ctx, tx,", "tx.SelesaiEvent("]) expect(aman, f).toContain(f);
+    const kredit = fungsi(kodePembayaran, "func (s Service) kreditTopup(");
+    for (const f of ["tx.CatatJurnal(", "tx.UbahTopupDibayar(", 's.beritahu(ctx, tx, id, tp.AkunID, "topup"']) expect(kredit, f).toContain(f);
+    expect(kredit).not.toContain("DalamTx(");
+    const catat = fungsi(kodeVerifikasi, "func (s Service) catatPengajuan(");
+    expect((catat.match(/DalamTx\(/g) ?? []).length).toBe(1);
+    for (const f of ["tx.BuatVerifikasi(", "tx.TulisOutboxVerifikasi("]) expect(catat, f).toContain(f);
+    harus("lalu menulis satu baris `verifikasi` dan satu baris outbox bertujuan `verifikasi` di satu transaction.");
+    expect(kodeRepoVerifikasi).toContain("hapus_pada = $4::timestamptz + interval '30 days'");
+  });
+
+  test("klaim batas laju: per akun, alamat TCP, bucket di memori satu proses, dan nomor tujuan bayar dari kode tiruan", () => {
+    harus("Top-up memakai batas per akun.");
+    harus("Batas per alamat memakai alamat TCP peminta (`batas.txt` C).");
+    harus("Semua batas adalah token bucket di memori satu proses, dan semua angkanya Asumsi lab:");
+    expect(batas).toContain("token bucket di memori satu proses");
+    expect(batas).toContain("Batas ini per alamat TCP.");
+    expect(kodeBatas).toContain("Token bucket di memori satu proses");
+    expect(baca("labs/api-t4/cmd/tiruan/main.go")).toContain('fmt.Sprintf("88%014d"');
+    harus("dengan tujuan bayar (nomor untuk membayar di app bank).");
+    expect(baca("labs/api-t4/internal/service/bayar.go")).not.toMatch(/gateway/i);
+    expect(baca("labs/api-t4/internal/service/kirim.go")).not.toMatch(/gateway/i);
+  });
+
+  test("label sumber yang menempel pada kalimat: Asumsi tidak naik menjadi Rekaman lab", () => {
+    harus("Kedua batas di tabel ini Asumsi produk, dan nilainya ada di kode:");
+    harus("Tabel ini Asumsi penulis tentang tampilannya.");
+    harus("Semua rujukan dokumentasi di blok ini berlabel Tidak dijalankan: dicek ke dokumentasi pada 2026-10-29, tidak dijalankan.");
+    harus("(Asumsi lab, `topup.txt` bagian H)");
+    expect((halaman.match(/Rekaman lab/g) ?? []).length).toBe(8);
+    expect((halaman.match(/rekaman lab/g) ?? []).length).toBe(1);
+    expect((halaman.match(/Asumsi/g) ?? []).length).toBe(12);
+    expect((halaman.match(/Tidak dijalankan/g) ?? []).length).toBe(10);
+    expect((halaman.match(/\(Hitungan\)|, Hitungan\)/g) ?? []).length).toBe(3);
+  });
+
+  test("kerangka Dart: kamera, jumlah pemanggilan, pembatalan, dan base64 dua file", () => {
+    const dart = halaman.match(/<Snippet lang="dart" code=\{`([^`]+)`\} \/>/)![1]!;
+    expect((dart.match(/source: ImageSource\.camera,/g) ?? []).length).toBe(2);
+    expect((dart.match(/ImageSource\.gallery/g) ?? []).length).toBe(0);
+    expect((dart.match(/preferredCameraDevice: CameraDevice\.front,/g) ?? []).length).toBe(1);
+    expect((dart.match(/pickImage\(/g) ?? []).length).toBe(2);
+    expect((dart.match(/base64Encode\(await (kartu|swafoto)\.readAsBytes\(\)\)/g) ?? []).length).toBe(2);
+    expect(dart).toContain("if (kartu == null || swafoto == null) return; // user membatalkan");
+    expect(dart).toContain("Swafoto: minta kamera depan.");
+  });
+
+  test("frontmatter, import diagram, dan Rantai: jenis dan catatan sumber, id, dan judul", () => {
+    expect(halaman).toContain('description: Budi mengisi saldo dari rekening bank, dan saldonya naik sesudah gateway memberi tahu. Dina mengirim foto kartu identitas dan swafoto, dan batas saldonya naik sesudah layanan verifikasi meluluskan pengajuan.');
+    expect(halaman).toContain('import intiDiagram from "../../../../data/diagram/t4-topup-verifikasi-inti.json";');
+    expect(rantai.id).toBe("t4-topup-verifikasi-inti");
+    expect(rantai.sumber.jenis).toBe("rekaman");
+    expect(rantai.judul).toBe("Saldo naik sesudah gateway memberi tahu, dan tingkat akun naik sesudah verifikasi lulus");
+    expect(rantai.catatan).toBe("Gateway dan layanan verifikasi adalah tiruan lokal di lab. App Flutter tidak ada di lab, jadi layar HP di widget digambar dari isi rekaman.");
+  });
+
+  test("skenario: kalimat mekanisme, judul langkah, label komponen, dan pengantar", () => {
+    expect(skTopup.komponen.map((k) => k.label)).toEqual(["App Budi", "Server Go", "Gateway (tiruan)", "PostgreSQL", "Worker"]);
+    expect(skTopup.perangkat.map((k) => k.label)).toEqual(["HP Budi"]);
+    expect(skVerif.komponen.map((k) => k.label)).toEqual(["App Dina", "Server Go", "PostgreSQL", "Worker", "Layanan verifikasi (tiruan)"]);
+    expect(skVerif.perangkat.map((k) => k.label)).toEqual(["HP Dina"]);
+    expect(skTopup.pengantar).toBe("Budi mengisi Rp200.000 dari rekening banknya. Tebak dulu, lalu ikuti satu top-up dari HP Budi sampai saldonya naik. Sesudah langkah terakhir, centang 'Ubah satu hal'.");
+    expect(skTopup.langkah.map((l) => l.judul)[3]).toBe("Server meminta gateway membuat order");
+    expect(skTopup.langkah[3]!.kirim).toContain("POST /orders\nIdempotency-Key: <order_id>");
+    expect(skTopup.langkah[7]!.judul).toBe("Server menjawab 200 sesudah COMMIT");
+    expect(skTopup.langkah[7]!.jelas).toContain("Balasan 2xx dikirim hanya sesudah COMMIT.");
+    expect(skTopup.langkah[8]!.judul).toBe("Worker mengirim pemberitahuan, app menampilkan saldo baru");
+    expect(skTopup.varian.label).toBe("gateway membuat order, tetapi jawabannya tidak pernah sampai");
+    expect(skTopup.varian.langkah[1]!.judul).toBe("Status tidak_pasti, bukan gagal");
+    expect(skVerif.langkah[1]!.kirim).toContain(`tiap file paling besar ${maksFileMiB} MiB`);
+    expect(skVerif.langkah[3]!.jelas).toContain("ditulis di satu transaction, sesudah kedua file tersimpan.");
+    expect(skVerif.langkah[5]!.jelas).toContain("Id pengajuan dikirim sebagai Idempotency-Key");
+    expect(skVerif.langkah[6]!.jelas).toContain("ditulis di satu transaction, menurut kode repo.");
+    expect(skVerif.langkah[7]!.jelas).toContain("karena Dina terverifikasi. Batas saldonya juga naik");
+    expect(skVerif.varian.label).toBe("Dina mengirim pengajuan kedua selagi yang pertama belum selesai");
+  });
+
+  test("RISET R4-120 sampai R4-122: kutipan sumber dan versi tidak dipendekkan", () => {
+    const baris = (id: string): string => riset.split("\n").find((b) => b.startsWith(`| ${id} |`)) ?? "";
+    expect(baris("R4-122")).toContain('Pending "created and is waiting to be paid by the customer"');
+    expect(baris("R4-122")).toContain('Settlement "successfully settled. Funds have been credited to your account"');
+    expect(baris("R4-121")).toContain('"at most the first 512 bytes"');
+    expect(baris("R4-120")).toContain("iOS wajib `NSCameraUsageDescription` di Info.plist");
+    expect(baris("R4-120")).toContain('readme Android menulis "No configuration required"');
+    expect(baris("R4-120")).toContain("kompresi hanya untuk jenis tertentu (JPEG, di Android juga PNG dan WebP;");
+  });
+
+  test("penutup tahap kedua: atribusi syarat, urutan worker, label dibaca dari kode, daftar empat hal, Android tidak dijamin, Base64", () => {
+    const kutipan = "Setiap rupiah dari luar harus cocok dengan catatan pihak yang mengirimnya. Kalau tidak cocok, namanya insiden, bukan angka yang saya koreksi.";
+    expect(naskah).toContain(`Aturan Pak Hadi dipertahankan dan diperluas: *"${kutipan}"*`);
+    harus(`Pak Hadi menambah satu syarat. Katanya: *"${kutipan}"*`);
+    harus("Worker memanggil layanan verifikasi sesudahnya, pengajuan `lulus`, dan tingkat Dina menjadi `terverifikasi` (`verifikasi.txt` bagian A sampai C).");
+    expect(VC.findIndex((b) => b.startsWith("$ ./api-t4 -peran worker -sekali"))).toBeLessThan(VC.findIndex((b) => b === '{"objek":1,"permintaan":1}'));
+    expect(VB.some((b) => b === "HTTP 202")).toBe(true);
+    harus("Menurut kode `catatPengajuan`, pengajuan merchant tidak menulis baris outbox, karena tim risk yang memutuskannya (Tidak dijalankan: dibaca dari kode).");
+    expect((halaman.match(/dibaca dari kode/g) ?? []).length).toBe(7);
+    expect(halaman).not.toMatch(/diukur di lab|direkam di lab/);
+    harus("Empat hal dari dokumentasinya memengaruhi layar ini:");
+    const daftar = halaman.slice(halaman.indexOf("Empat hal dari dokumentasinya"), halaman.indexOf("Server menolak file lebih dari")).split("\n").filter((b) => b.startsWith("- "));
+    expect(daftar).toHaveLength(4);
+    expect(riset).toContain('this function is not guaranteed to work');
+    expect(riset).toContain("Android tidak punya parameter terdokumentasi untuk memilih kamera");
+    harus("Di iOS, `Info.plist` harus memuat `NSCameraUsageDescription`, sedangkan di Android readme menulis tidak ada konfigurasi tambahan");
+    expect(riset).toContain("iOS wajib `NSCameraUsageDescription` di Info.plist");
+    harus("Base64 menambah sepertiga. Dua file");
+    expect(4 / 3 - 1).toBeCloseTo(1 / 3, 10);
+  });
+
+  test("sidik kata penentu halaman, skenario, dan Rantai (kunci agregat, bukan turunan)", () => {
+    expect(tanpaSelalu(sidik(halaman, KATA))).toEqual({ tidak: 43, bukan: 10, belum: 17, hanya: 9, tanpa: 6, sesudah: 11, sebelum: 2, juga: 6, setiap: 1, semua: 4, "lebih dari": 2, "paling banyak": 3 });
+    expect(sidik(nilaiString(skTopup).join("\n"), KATA)).toEqual({ tidak: 13, bukan: 5, belum: 1, hanya: 3, tanpa: 6, sesudah: 6, sebelum: 3, juga: 0, setiap: 0, semua: 0, "lebih dari": 1, "paling banyak": 0 });
+    expect(sidik(nilaiString(skVerif).join("\n"), KATA)).toEqual({ tidak: 7, bukan: 4, belum: 6, hanya: 2, tanpa: 0, sesudah: 4, sebelum: 5, juga: 1, setiap: 1, semua: 0, "lebih dari": 0, "paling banyak": 0 });
+    expect(sidik(nilaiString(rantai).join("\n"), KATA)).toEqual({ tidak: 1, bukan: 0, belum: 0, hanya: 0, tanpa: 0, sesudah: 2, sebelum: 0, juga: 0, setiap: 0, semua: 0, "lebih dari": 0, "paling banyak": 0 });
+  });
+});
