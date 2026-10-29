@@ -123,6 +123,8 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     expect(alB.baris).toContain("# tiga alamat berbeda satu sama lain (host lama, host baru, proxy): ya");
     harus("Tiga pengajuan sesudah pindahan lulus tanpa satu penolakan.", 1);
     harus("Di rekaman itu tiga alamat berbeda satu sama lain: host lama, host baru, dan proxy.");
+    expect(terimaB).toBe(lulusB * 2);
+    harus(`Angka ${terimaB} di keluaran menghitung tiga pengajuan sebelum pindahan dan tiga sesudahnya.`);
     expect(rantai.baris[0]!.simpul[1]!.sub).toBe(`${lulusB} lulus, 0 ditolak`);
     expect(rantai.baris[0]!.simpul[0]!.sub).toBe(`${tolakA} penolakan, ${gagalA} pengajuan gagal`);
   });
@@ -276,7 +278,8 @@ describe("sumber luar: versi, tanggal dibuka, lisensi, baris RISET R4-190 sampai
     harus("OpenBao v2.7.2", 3);
     harus("Terraform v1.17.1", 2);
     harus("Vault v2.2.1", 2);
-    harus("README lab menulis Terraform v1.17.0, dan v1.17.1 terbit 2026-10-28.");
+    harus("Terraform v1.17.1 (terbit 2026-10-28) dan Vault v2.2.1 hanya dibandingkan.");
+    expect(riset).toContain("Terraform v1.17.1 terbit 2026-10-28");
     harus("Go 1.27.3", 1);
     harus("Go 1.27.1", 2);
     expect(kodeKlien.length).toBeGreaterThan(0);
@@ -408,7 +411,8 @@ describe("rujukan [[ID]], registry, struktur lima blok, widget pilah, dan Rantai
     expect(pertama("Hitungan")).toBe(pertama("Itu Hitungan: hasil rumus dari angka yang tertulis di halaman ini") + "Itu ".length);
     expect(pertama("allowlist, yaitu daftar alamat sumber yang boleh memanggilnya")).toBeLessThan(pertama("Proxy keluar adalah program perantara"));
     expect(pertama("OpenTofu adalah alat IaC (infrastructure as code)")).toBeGreaterThan(0);
-    expect(pertama("yaitu layanan penyimpan secret")).toBeGreaterThan(0);
+    expect(pertama("path OpenBao, yaitu secret manager, layanan penyimpan secret")).toBeGreaterThan(0);
+    expect(pertama("path OpenBao, yaitu secret manager")).toBeLessThan(pertama("Lab memakai OpenBao v2.7.2"));
     expect(pertama("yaitu saat service berjalan")).toBeGreaterThan(0);
     expect(pertama("yaitu plugin untuk satu jenis layanan")).toBeGreaterThan(0);
     expect(pertama("yaitu token yang hanya boleh membaca satu path")).toBeGreaterThan(0);
@@ -524,8 +528,10 @@ describe("penutup tanpa kunci: nomor ADR, M34, status HTTP, versi dokumentasi, S
       [/yang ditunda ADR (\d+)\. Pemicu ADR (\d+) belum ada di PRD/, [A.tiga, A.tiga]],
       [/yang ADR (\d+) tunda, dengan pembanding/, [A.tiga]],
       [/kedua ditunda ADR (\d+), karena PRD v4 belum menulis/, [A.tiga]],
+      [/Untuk rotasi karena kebocoran, ADR (\d+) menambah langkah destroy/, [A.sendiri]],
+      [/Untuk rotasi karena kebocoran, ADR (\d+) menetapkan destroy/, [A.sendiri]],
     ], (halaman.match(/ADR \d+/g) ?? []).length);
-    expect(halaman.match(/ADR \d+/g)!.length).toBe(21);
+    expect(halaman.match(/ADR \d+/g)!.length).toBe(23);
   });
   test("nomor masalah M34 sama dengan id registry halaman 4.16, dan tidak ada M lain", () => {
     const nomor = entri("t4-m34")!.id.match(/m(\d+)$/)![1];
@@ -574,7 +580,7 @@ describe("penutup tanpa kunci: nomor ADR, M34, status HTTP, versi dokumentasi, S
     expect(barisRiset("R4-192")).toContain("pkg.go.dev/net/http#ProxyFromEnvironment (Go 1.27.3)");
     expect(barisRiset("R4-192")).toContain("Lab memakai Go 1.27.1");
     expect(barisRiset("R4-190")).toContain("Terraform v1.17.1 terbit 2026-10-28");
-    harus("v1.17.1 terbit 2026-10-28");
+    harus("Terraform v1.17.1 (terbit 2026-10-28)", 1);
     const jumlahTanggal = Object.fromEntries(RISET_ID.map((id) => [id, (barisRiset(id).match(/2026-10-30/g) ?? []).length]));
     expect(jumlahTanggal).toEqual({ "R4-190": 2, "R4-191": 1, "R4-192": 1, "R4-193": 1, "R4-194": 1 });
   });
@@ -591,7 +597,9 @@ describe("penutup tanpa kunci: nomor ADR, M34, status HTTP, versi dokumentasi, S
     harus(`Pendaftar baru datang ${titik(pendaftar)} per hari (Asumsi).`);
     const puncak = koma(topupPuncak, 3);
     harus(`Jeda baca bawaan ${jedaBaca} detik adalah Asumsi`);
-    harus(`melebihi ${jedaBaca} detik atau laju puncak melebihi ${puncak} top-up per detik`);
+    harus(`Saat jeda baca melebihi ${jedaBaca} detik atau operator menulis lambat, rotasi urutan terbalik`);
+    harus(`Itu juga terjadi bila laju puncak melebihi ${puncak} top-up per detik.`);
+    harus(`jendela penolakan paling lama ${jedaBaca} detik, jadi paling banyak ${puncak} × ${jedaBaca}`);
     harus(`menolak sampai ±${Math.round(Number(puncak.replace(",", ".")) * jedaBaca)} kabar pada laju puncak`);
     const versiDokumen = Number(cari(bagian(RO, "C").baris, /^service sesudah rotasi: jumlah rahasia \d+, versi dokumen (\d+)/)[1]);
     harus(`operator menulis versi ${versiDokumen}, dan service yang sama membaca dua rahasia`);
@@ -648,7 +656,7 @@ describe("penutup tanpa kunci: nomor ADR, M34, status HTTP, versi dokumentasi, S
       ["di `.env` VPS ([[t1-secret]])", ["t1-secret"]],
       ["Begitu uang publik masuk ([[t4-prd]]), satu mesin", ["t4-prd"]],
       ["dan itu bahan [[t4-m34]], bukan halaman ini", ["t4-m34"]],
-      ["tidak dijawab 2xx ([[t4-m30]]).", ["t4-m30"]],
+      ["berbeda per kode status ([[t4-m30]]).", ["t4-m30"]],
       ["ADR 35 di [[t4-rekonsiliasi]] menulis", ["t4-rekonsiliasi"]],
       ["adalah pekerjaan pipeline di [[t4-tim-infra]].", ["t4-tim-infra"]],
       ["batas waktu pulih atau jendela kehilangan data ([[t4-prd]]).", ["t4-prd"]],
@@ -749,7 +757,7 @@ describe("penutup tanpa kunci: nomor ADR, M34, status HTTP, versi dokumentasi, S
   "https://www.hashicorp.com/en/blog/hashicorp-adopts-business-source-license"
  ],
  [
-  "CircleCI: laporan insiden 4 Januari 2023",
+  "CircleCI: laporan insiden keamanan",
   "https://circleci.com/blog/jan-4-2023-incident-report/"
  ],
  [
