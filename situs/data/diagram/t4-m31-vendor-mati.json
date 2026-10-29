@@ -1,0 +1,27 @@
+{
+  "id": "t4-m31-vendor-mati",
+  "judul": "Layanan verifikasi mati: pekerjaan habis sebelum layanan pulih",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-integrasi · lajur.txt bagian A dan retry.txt bagian C" },
+  "baris": [
+    {
+      "label": "Layanan mati dari awal",
+      "sub": "10 pendaftar, lima percobaan tiap pekerjaan",
+      "simpul": [
+        { "teks": "10 pekerjaan menunggu", "sub": "percobaan 0" },
+        { "teks": "50 permintaan, 0 objek", "sub": "layanan menjawab 503", "nada": "warn" },
+        { "teks": "10 dead-letter, 10 gagal", "sub": "percobaan 5 tiap pekerjaan", "nada": "warn" },
+        { "teks": "Layanan pulih, diklaim 0", "sub": "10 akun tetap belum", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Layanan gagal sekali, lalu pulih",
+      "sub": "satu pendaftar, batas waktu 300 ms",
+      "simpul": [
+        { "teks": "Percobaan 1 timeout", "sub": "pengajuan tidak_pasti" },
+        { "teks": "Layanan pulih", "sub": "pekerjaan menunggu, percobaan 1" },
+        { "teks": "Lulus, satu objek", "sub": "2 permintaan masuk", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Dua run terpisah. Baris kedua memakai layanan yang menggantung, bukan menjawab 503, dan pulih sesudah percobaan pertama."
+}

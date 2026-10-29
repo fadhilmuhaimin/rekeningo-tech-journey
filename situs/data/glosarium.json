@@ -1278,6 +1278,15 @@
   "h": null
  },
  {
+  "t": "Rekonsiliasi",
+  "d": "Mencocokkan catatan sendiri dengan catatan pihak lain, order demi order, lalu mencatat selisihnya sebagai insiden bernomor, bukan mengoreksinya dengan tangan.",
+  "b": "t4-rekonsiliasi",
+  "n": "4.9 Rekonsiliasi dengan gateway",
+  "u": "/tahap-4/rekonsiliasi-gateway/",
+  "s": "istilah-rekonsiliasi",
+  "h": "/istilah/rekonsiliasi/"
+ },
+ {
   "t": "Repeatable Read",
   "d": "Isolation level yang memakai satu snapshot untuk seluruh transaction, diambil saat perintah pertama; transaction yang menulis bisa ditolak SQLSTATE 40001.",
   "b": "t2-isolation-level",
