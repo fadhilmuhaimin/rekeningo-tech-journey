@@ -209,11 +209,11 @@ PRD lengkap menunjukkan baris mana yang membuka tiap syarat. ADR 12 dari Tahap 1
 
 **ADR 22, panggilan luar: dibuka baris "Kartu virtual".** Halaman ADR 22 menulis kapan keputusannya salah: bila panggilan luar harus atomik dengan uang, misalnya otorisasi kartu di Tahap 4 ([[t3-pool]]). Otorisasi kartu masuk PRD v4 sebagai P1.
 
-Halaman itu menambahkan bahwa aturan 1 tidak bisa dipenuhi di sana, dan jalur itu butuh pengaman lain. Di PRD v4 penerbit kartu yang meminta persetujuan, dan Rekeningo yang menjawab. Bila jawaban terlambat, penerbit memutuskan menurut setelannya, bukan menurut Rekeningo (Rekaman lab t4-kartu, `penerbit.txt` bagian A, dengan penerbit tiruan lokal). Revisi ADR 22 dijawab dua halaman: [[t4-breaker]] untuk panggilan keluar ke gateway dan vendor, dan [[t4-kartu]] untuk otorisasi kartu.
+Halaman itu menambahkan bahwa aturan 1 tidak bisa dipenuhi di sana, dan jalur itu butuh pengaman lain. Pada kartu virtual, penerbit kartu yang meminta persetujuan, dan Rekeningo yang menjawab. Bila jawaban terlambat, penerbit memutuskan menurut setelannya, bukan menurut Rekeningo (Rekaman lab t4-kartu, `penerbit.txt` bagian A, dengan penerbit tiruan lokal). Revisi ADR 22 dijawab dua halaman: [[t4-breaker]] untuk panggilan keluar ke gateway dan vendor, dan [[t4-kartu]] untuk otorisasi kartu.
 
 **ADR 25, penerima yang menggerakkan uang: dibuka baris "Top-up dari rekening bank".** Saldo bertambah saat gateway memberi tahu, jadi penerima kabar itu menggerakkan uang. ADR 25 menulis bahwa penyaring "yang sudah tampil" tidak cukup di sana, dan penerima wajib idempoten dengan key ([[t3-at-least-once]]). Jawabannya ada di [[t4-webhook]].
 
-**ADR 26, satu VPS: dibuka baris "PT Rekeningo berdiri sendiri".** Satu VPS menjalankan dua instance API, worker, dan Redis. Dalam mode rentan (bug M21), satu instance berhenti sendiri dan 20 dari 20 request lewat proxy tetap dijawab 200. Instance kedua ikut berhenti, dan 10 dari 10 request dijawab 503 (Rekaman lab t3-instance, `panic.txt` bagian D).
+**ADR 26, satu VPS: dibuka baris "PT Rekeningo berdiri sendiri".** Satu VPS menjalankan dua instance API, worker, dan Redis. Dalam mode rentan (bug M21), laporan kosong menghentikan satu instance, dan 20 dari 20 request lewat proxy tetap dijawab 200. Laporan kosong yang kedua menghentikan instance kedua, dan 10 dari 10 request dijawab 503 (Rekaman lab t3-instance, `panic.txt` bagian D).
 
 VPS yang mati menghentikan keduanya (penalaran). ADR 26 menerima titik gagal tunggal itu dengan sengaja ([[t3-dua-instance]]). Begitu uang publik masuk, akibatnya jauh lebih besar. [[t4-infra-secret]] menjawab sebagian: data dan secret, bukan ketersediaan app (Tidak dijalankan: hosting terkelola hanya dijelaskan).
 
@@ -223,13 +223,13 @@ VPS yang mati menghentikan keduanya (penalaran). ADR 26 menerima titik gagal tun
 
 Tiga tim di satu codebase adalah keadaan yang ADR 12 tunggu. Bentroknya muncul di [[t4-m32]] dan dijawab [[t4-modul]], sedangkan tes contract dikerjakan [[t4-tim-infra]]. ADR 12 juga memperingatkan bahwa pembayaran yang menyentuh dua service tidak lagi bisa dibungkus satu transaction.
 
-**Bukan kapasitas.** Puncak naik 8 kali, tetapi [[t3-estimasi]] tidak menemukan satu komponen pun di tabelnya yang melewati batasnya hanya karena jumlah request. Yang terdekat adalah worker notifikasi: 6,94 + 0,579 = 7,52 per detik, dibagi kapasitas 13,33 per detik, sama dengan 56%. Di Tahap 3 pemakaiannya 6,5% (Hitungan; kapasitas dari 4 pengirim dan 0,3 detik per pengiriman adalah Asumsi). Yang pecah lebih dulu adalah syarat di dalam ADR, bukan kapasitas.
+**Bukan kapasitas.** Puncak naik 8 kali, tetapi [[t3-estimasi]] tidak menemukan satu komponen pun di tabelnya yang melewati batasnya hanya karena jumlah request. Yang terdekat adalah worker notifikasi: 6,94 transaksi uang + 0,579 top-up = 7,52 notifikasi per detik, dibagi kapasitas 13,33 per detik, sama dengan 56%. Di Tahap 3 pemakaiannya 6,5%, yaitu 0,868 notifikasi per detik ÷ 13,33 (Hitungan; kapasitas dari 4 pengirim dan 0,3 detik per pengiriman adalah Asumsi). Yang pecah lebih dulu adalah syarat di dalam ADR, bukan kapasitas.
 
 Lima ADR lain juga menyebut Tahap 4 di halamannya, dengan syaratnya sendiri. Halaman ini hanya mencatat kalimatnya:
 
 - ADR 23 menulis syarat yang sama dengan ADR 25: penerima sistem lain yang menggerakkan uang ([[t3-outbox]]). Halaman ini menghitungnya sekali, lewat ADR 25.
 - ADR 27: pendaftaran publik membuka endpoint daftar, verifikasi, dan top-up yang belum punya rate limit ([[t3-rate-limit-redis]]).
-- ADR 28: puncak naik 8 kali, jadi L katalog dihitung ulang ([[t3-cache]]).
+- ADR 28: puncak naik 8 kali, jadi L, jumlah koneksi yang tertahan oleh baca katalog, dihitung ulang ([[t3-cache]]).
 - ADR 30: back office tim risk menampilkan data user luar ([[t3-xss-csrf]]).
 - ADR 31: pindah hosting mengganti server tepi dan mungkin kunci TLS-nya, jadi ADR ini ditinjau ulang sebelum pindah ([[t3-tls-pinning]]).
 

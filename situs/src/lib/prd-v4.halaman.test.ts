@@ -38,7 +38,12 @@ const dari = (id: string): H => {
 };
 const koma = (n: number, d = 1) => n.toFixed(d).replace(".", ",");
 const titik = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-const harus = (kalimat: string) => expect(badan, `halaman tidak memuat: ${kalimat}`).toContain(kalimat);
+// Tiap kalimat yang dikunci dicatat; tes terakhir memastikan tidak ada kalimat prosa di halaman di luar catatan ini (keputusan 1269).
+const terkunci: string[] = [];
+const harus = (kalimat: string) => {
+  terkunci.push(kalimat);
+  expect(badan, `halaman tidak memuat: ${kalimat}`).toContain(kalimat);
+};
 const di = (sumber: string, nama: string, kalimat: string) => expect(sumber, `${nama} tidak memuat: ${kalimat}`).toContain(kalimat);
 const barisTabel = (awal: string): string[] => {
   const b = badan.split("\n").find((x) => x.startsWith(awal));
@@ -177,7 +182,9 @@ describe("beban dan lingkup: angka turunan dari registry dan naskah", () => {
     expect(Math.round((notif / Number(koma(kapasitas, 2).replace(",", "."))) * 100)).toBe(56);
     expect(Math.round((lambda3 / Number(koma(kapasitas, 2).replace(",", "."))) * 100 * 10) / 10).toBe(6.5);
     expect(koma(lambda3, 3)).toBe("0,868");
-    harus(`Yang terdekat adalah worker notifikasi: ${koma(trxDetik4, 2)} + ${koma(topupDetik, 3)} = ${koma(notif, 2)} per detik, dibagi kapasitas ${koma(kapasitas, 2)} per detik, sama dengan 56%. Di Tahap 3 pemakaiannya 6,5% (Hitungan; kapasitas dari ${cWorker} pengirim dan ${koma(tWorker, 1)} detik per pengiriman adalah Asumsi).`);
+    harus(`Yang terdekat adalah worker notifikasi: ${koma(trxDetik4, 2)} transaksi uang + ${koma(topupDetik, 3)} top-up = ${koma(notif, 2)} notifikasi per detik, dibagi kapasitas ${koma(kapasitas, 2)} per detik, sama dengan 56%. Di Tahap 3 pemakaiannya 6,5%, yaitu ${koma(lambda3, 3)} notifikasi per detik ÷ ${koma(kapasitas, 2)} (Hitungan; kapasitas dari ${cWorker} pengirim dan ${koma(tWorker, 1)} detik per pengiriman adalah Asumsi).`);
+    // 0,868 adalah "Notifikasi uang per detik, puncak" Tahap 3 di tabel 3.29 (satu notifikasi tiap transaksi uang).
+    di(est3, "3.29", `| Notifikasi uang per detik, puncak | ${koma(lambda3, 3)} | ${koma(notif, 2)} | ${koma(kapasitas, 2)} per detik |`);
     di(est3, "3.29", "| Pemakaian worker, puncak | 6,5% | 56% | 100% |");
     di(est3, "3.29", "Di tabel halaman ini, tidak satu komponen pun melewati batasnya hanya karena jumlah request.");
     harus("[[t3-estimasi]] tidak menemukan satu komponen pun di tabelnya yang melewati batasnya hanya karena jumlah request.");
@@ -241,6 +248,7 @@ describe("isi PRD: tujuan, user, fitur, metrik, batasan, tokoh, risiko, pertanya
     const dimdx = badan.split("**Metrik keberhasilan (target, Asumsi)**")[1]!.split("\n\n")[1]!.split("\n").filter((b) => b.startsWith("- "));
     expect(naskah).toHaveLength(6);
     expect(dimdx).toHaveLength(6);
+    terkunci.push(...dimdx); // enam metrik dibandingkan satu per satu dengan naskah di bawah
     naskah.forEach((n, i) => {
       if (i === 4) expect(dimdx[i]).toBe(`${n.slice(0, -1)}, yaitu catatan siapa membuka atau mengubah apa, kapan.`);
       else expect(dimdx[i], `metrik ${i + 1}`).toBe(n);
@@ -397,7 +405,7 @@ describe("yang dibuka lagi dari Tahap 3: ADR, rekaman, dan nomor halaman", () =>
     di(r, "penerbit.txt", "# --- A. Keadaan pertama (dokumentasi satu penerbit): jawaban terlambat diputuskan penerbit menurut setelannya, bukan menurut Rekeningo ---");
     di(r, "penerbit.txt", "AUTH-P1 Rp80.000: setuju (sumber: timeout)");
     di(r, "penerbit.txt", "penerbit tiruan di 127.0.0.1:18285");
-    harus("Di PRD v4 penerbit kartu yang meminta persetujuan, dan Rekeningo yang menjawab. Bila jawaban terlambat, penerbit memutuskan menurut setelannya, bukan menurut Rekeningo (Rekaman lab t4-kartu, `penerbit.txt` bagian A, dengan penerbit tiruan lokal).");
+    harus("Pada kartu virtual, penerbit kartu yang meminta persetujuan, dan Rekeningo yang menjawab. Bila jawaban terlambat, penerbit memutuskan menurut setelannya, bukan menurut Rekeningo (Rekaman lab t4-kartu, `penerbit.txt` bagian A, dengan penerbit tiruan lokal).");
     di(baca("labs/api-t4/README.md"), "README api-t4", "Penerbit kartu memanggil Rekeningo untuk meminta persetujuan (otorisasi)");
   });
   test("ADR 25: penerima yang menggerakkan uang wajib idempoten dengan key; jawabannya di halaman webhook", () => {
@@ -425,7 +433,7 @@ describe("yang dibuka lagi dari Tahap 3: ADR, rekaman, dan nomor halaman", () =>
     expect(m503.slice(1).map(Number)).toEqual([10, 10]);
     expect(D.join("\n")).toContain("a berhenti sendiri (kode keluar 2)");
     expect(D.join("\n")).toContain("b berhenti sendiri (kode keluar 2)");
-    harus(`Satu VPS menjalankan dua instance API, worker, dan Redis. Dalam mode rentan (bug M21), satu instance berhenti sendiri dan ${m200[2]} dari ${m200[1]} request lewat proxy tetap dijawab 200. Instance kedua ikut berhenti, dan ${m503[2]} dari ${m503[1]} request dijawab 503 (Rekaman lab t3-instance, \`panic.txt\` bagian D).`);
+    harus(`Satu VPS menjalankan dua instance API, worker, dan Redis. Dalam mode rentan (bug M21), laporan kosong menghentikan satu instance, dan ${m200[2]} dari ${m200[1]} request lewat proxy tetap dijawab 200. Laporan kosong yang kedua menghentikan instance kedua, dan ${m503[2]} dari ${m503[1]} request dijawab 503 (Rekaman lab t3-instance, \`panic.txt\` bagian D).`);
     di(j32, "3.32", "| PT Rekeningo berdiri sendiri | P0 | Satu VPS produksi menjalankan dua instance API, worker, dan Redis ([[t3-m28]]) |");
     const d = T(3, "dua-instance.mdx");
     di(d, "3.15", "Satu VPS tetap titik gagal tunggal. Ini diterima sengaja dan dijawab di [[t3-jembatan]] dan [[t3-adr-33]].");
@@ -458,7 +466,9 @@ describe("yang dibuka lagi dari Tahap 3: ADR, rekaman, dan nomor halaman", () =>
     harus("Lima ADR lain juga menyebut Tahap 4 di halamannya, dengan syaratnya sendiri. Halaman ini hanya mencatat kalimatnya:");
     di(j32, "3.32", "Lima ADR lain juga menyebut Tahap 4 di halamannya.");
     harus("- ADR 27: pendaftaran publik membuka endpoint daftar, verifikasi, dan top-up yang belum punya rate limit ([[t3-rate-limit-redis]]).");
-    harus("- ADR 28: puncak naik 8 kali, jadi L katalog dihitung ulang ([[t3-cache]]).");
+    harus("- ADR 28: puncak naik 8 kali, jadi L, jumlah koneksi yang tertahan oleh baca katalog, dihitung ulang ([[t3-cache]]).");
+    // L di sini adalah koneksi tertahan (L = λ × W) seperti di halaman ADR 28.
+    di(T(3, "cache-invalidation.mdx"), "3.19", "L = λ × W = 5,21 × 0,005 = 0,026 koneksi dari pool 10");
     harus("- ADR 30: back office tim risk menampilkan data user luar ([[t3-xss-csrf]]).");
     harus("- ADR 31: pindah hosting mengganti server tepi dan mungkin kunci TLS-nya, jadi ADR ini ditinjau ulang sebelum pindah ([[t3-tls-pinning]]).");
     for (const k of ["- ADR 27: pendaftaran publik membuka endpoint daftar, verifikasi, dan top-up yang belum punya rate limit ([[t3-rate-limit-redis]]).", "- ADR 28: puncak naik ±8 kali, jadi L katalog dihitung ulang ([[t3-cache]]).", "- ADR 30: back office tim risk menampilkan data user luar ([[t3-xss-csrf]]).", "- ADR 31: pindah hosting mengganti server tepi dan mungkin kunci TLS-nya, jadi ADR ini ditinjau ulang sebelum pindah ([[t3-tls-pinning]])."]) di(j32, "3.32", k);
@@ -574,7 +584,7 @@ describe("kalimat bebas yang ditulis halaman (tanpa padanan satu baris di naskah
     expect(front).toMatch(/^title: "4\.1 PRD v4: Rekeningo dibuka ke publik"$/m);
     expect(rantai.id).toBe("t4-prd-sebelum-sesudah");
     expect(badan).toContain(`data/diagram/${rantai.id}.json`);
-    harus("Puncak naik 8 kali, tetapi [[t3-estimasi]]");
+    harus("Puncak naik 8 kali, tetapi [[t3-estimasi]] tidak menemukan satu komponen pun di tabelnya yang melewati batasnya hanya karena jumlah request.");
   });
   test("kepala tabel dan atribut", () => {
     for (const k of ["| PRD | Aturan Pak Hadi |", "| Besaran | Nilai | Cara hitung |", "| Tim | Memegang |", "| User | Kebutuhan baru | Yang membuatnya berhenti memakai |", "| Prioritas | Fitur | Keterangan |"]) {
@@ -669,6 +679,10 @@ describe("diagram Rantai t4-prd-sebelum-sesudah.json", () => {
     expect(rantai.catatan).toBe("Kotak biru adalah fitur dan kondisi P0 di PRD v4. Kotak terakhir adalah metrik top-up.");
     expect(badan).toContain('import prdDiagram from "../../../../data/diagram/t4-prd-sebelum-sesudah.json";');
     harus("<Rantai data={prdDiagram} />");
+    // Satu Rantai dan satu impor: komponen yang digandakan lolos tes ini sebelum keputusan 1269.
+    expect(hitung(badan, "<Rantai"), "jumlah <Rantai").toBe(1);
+    expect(hitung(badan, "<Blok "), "jumlah <Blok").toBe(8);
+    expect(hitung(mdx, "import "), "jumlah impor").toBe(3);
     expect(rantai.baris.map((b) => b.simpul.length)).toEqual([4, 4]);
   });
   test("Rantai ringkas: jumlah kata per simpul pendek supaya dua baris muat di HP", () => {
@@ -703,7 +717,7 @@ describe("semua angka di halaman bisa diturunkan", () => {
     String(a4.puncak), String(a4.aktif), String(a3.aktif), String(a4.req), // 10, 20, 25, 60
     "8", "10", "7,98", koma(138.9 / 17.4, 2), // pengali puncak
     koma(topupPerUser, 2), // 0,25
-    "7,52", koma(kapasitas, 2), "56", "6,5", String(cWorker), koma(tWorker, 1), // worker: 4, 0,3
+    "7,52", koma(kapasitas, 2), "56", "6,5", String(cWorker), koma(tWorker, 1), koma(lambda3, 3), // worker: 4, 0,3, 0,868
     titik(trxHari4 + topupHari), // 65.000
     "0", "1", "2", "3", "4", "5", "12", "13", "15", // Rp0, nomor daftar, M10 pecahan, tim 5 + 4 + 4, 12 minggu, 13 engineer, 10 sampai 15
     "99", "90", "100", // metrik: 99%, 90%, 100%
@@ -772,5 +786,19 @@ describe("label kejujuran dan arti istilah", () => {
     expect(glos).toContain("Layanan pihak ketiga yang menerima pembayaran dari rekening bank");
     expect(glos).toContain("Pihak yang menerima pembayaran lewat Rekeningo.");
     harus("Empat istilah dipakai di bagian ini dan bagian berikutnya.");
+  });
+});
+
+describe("kalimat prosa tanpa kunci", () => {
+  // Putaran mutasi peninjau (keputusan 1269): kalimat baru yang ditambahkan di akhir paragraf atau daftar lolos semua tes
+  // di atas, karena tiap tes mengunci kalimat yang sudah ada. Tes ini berjalan terakhir dan menolak baris prosa yang
+  // sisanya, sesudah semua kalimat terkunci dibuang, masih berisi teks. Tabel dan tag HTML dikunci per sel di tes lain.
+  test("tiap baris prosa habis dikunci: kalimat tambahan di luar daftar kunci gagal", () => {
+    if (terkunci.length < 60) return; // dijalankan sebagian (-t): daftar kunci belum lengkap
+    const prosa = badan.split("\n").filter((b) => b.trim() !== "" && !/^\s*(\||<|import )/.test(b));
+    let sisa = prosa.join("\n");
+    for (const k of [...terkunci].sort((x, y) => y.length - x.length)) sisa = sisa.split(k).join("\u0000");
+    const tinggal = sisa.replace(/\u0000/g, " ").replace(/^\s*(?:[-*]|\d+\.)\s+/gm, "").replace(/[\s*:.,;()]+/g, " ").trim();
+    expect(tinggal, "kalimat prosa yang tidak dikunci").toBe("");
   });
 });
