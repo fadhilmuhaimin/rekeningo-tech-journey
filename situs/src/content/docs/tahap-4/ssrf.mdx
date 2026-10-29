@@ -240,7 +240,7 @@ Batasnya: itu tulisan vendor tentang layanannya sendiri, untuk satu layanan meta
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
 1. Daftar alamat tidak lengkap lagi, karena registri IANA berubah atau ada kelas yang terlewat. Pencegahannya tes tepi dari registri (27 blok, `alamat.txt`) dan pembacaan ulang registri saat berubah. Pengunduhan ulang registri otomatis belum dibuat (usul penulis).
-2. Pesan galat membedakan nama dalam yang ada dari yang tidak, sehingga pemanggil bisa mendaftar nama layanan dalam (`batas.txt`). Pencegahannya menyamakan kedua pesan, dan tes yang menetapkan perilaku sekarang diubah bersamanya (usul penulis, belum dikerjakan).
+2. Pesan galat membedakan nama dalam yang ada dari yang tidak, sehingga pemanggil yang mencoba banyak nama bisa membedakan nama layanan dalam yang ada dari yang tidak (`batas.txt`). Pencegahannya menyamakan kedua pesan, dan tes yang menetapkan perilaku sekarang diubah bersamanya (usul penulis, belum dikerjakan).
 3. Perilaku Go untuk nama IDNA berubah di versi baru, sedangkan isu golang/go#80417 masih terbuka. Pencegahannya menjalankan tes IDNA yang sama di tiap versi Go sebelum dipakai (usul penulis, belum dikerjakan).
 
 **Kapan keputusan ini salah.**
