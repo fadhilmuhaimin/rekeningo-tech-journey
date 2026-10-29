@@ -526,7 +526,7 @@ describe("ADR 36: tabel opsi, enam aturan, kasus industri, pre-mortem, kapan sal
     expect(t[0]!.map((x) => x.split(". ")[0])).toEqual(["", "A", "B", "C", "D"]);
     expect(t.slice(2).map((x) => x[0])).toEqual(["Cara kerja", "Kelebihan", "Kekurangan", "Biaya operasional", "Bukti"]);
     expect(t[6]![1]).toBe("Rekaman lab `retry.txt` B: dua objek untuk satu pendaftar");
-    expect(t[6]![2]).toBe("Tidak dijalankan. Dokumentasi Azure menulis pola ini sering tidak perlu bila ada dead-letter");
+    expect(t[6]![2]).toBe("Tidak dijalankan. Dokumentasi Azure menulis pola ini mungkin kurang cocok bila ada dead-letter");
     expect(t[6]![3]).toBe("Tidak dijalankan. Kasus Segment di bawah");
     expect(t[6]![4]).toBe("Rekaman lab `retry.txt` A dan C, `breaker.txt` A sampai C, `lajur.txt` B, `worker.txt` B. Jalur sinkron Tidak dijalankan");
     expect(t[5]![3]).toContain(`Segment menulis lebih dari ${140} service`);
@@ -867,6 +867,6 @@ const JumlahHitungan = 7;
 const JumlahPenalaran = 5;
 const TanggalDibuka = 10;
 const TanggalAkses = 11;
-const SIDIK_HALAMAN: Record<string, number> = { tidak: 91, bukan: 17, belum: 13, hanya: 16, tanpa: 30, sesudah: 27, sebelum: 6, juga: 3, setiap: 2, semua: 7, "lebih dari": 6, "paling banyak": 2, selalu: 1, sama: 18, "lebih tinggi": 2, sampai: 13 };
+const SIDIK_HALAMAN: Record<string, number> = { tidak: 90, bukan: 17, belum: 13, hanya: 16, tanpa: 30, sesudah: 27, sebelum: 6, juga: 3, setiap: 2, semua: 7, "lebih dari": 6, "paling banyak": 2, selalu: 1, sama: 18, "lebih tinggi": 2, sampai: 13 };
 const SIDIK_RANTAI: Record<string, number> = { tidak: 0, bukan: 1, belum: 0, hanya: 0, tanpa: 3, sesudah: 0, sebelum: 0, juga: 0, setiap: 0, semua: 0, "lebih dari": 0, "paling banyak": 0, selalu: 0, sama: 0, "lebih tinggi": 0, sampai: 0 };
 const SIDIK_ISTILAH: Record<string, number> = { tidak: 2, bukan: 0, belum: 1, hanya: 0, tanpa: 1, sesudah: 7, sebelum: 1, juga: 0, setiap: 1, semua: 0, "lebih dari": 1, "paling banyak": 0, selalu: 0, sama: 0, "lebih tinggi": 1, sampai: 1 };
