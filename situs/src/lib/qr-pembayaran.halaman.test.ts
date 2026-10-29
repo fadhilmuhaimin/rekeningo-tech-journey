@@ -18,7 +18,8 @@ import { DataTebak } from "../widgets/tebak/skema";
 import { DataRantai } from "./rantai";
 import { cekTemplat, daftarBlok } from "./blok";
 import { HalamanIstilah } from "./istilah";
-import { KALIMAT_TERKUNCI, RISET_TERKUNCI, SIDIK } from "./qr-pembayaran.halaman.nilai";
+import { KALIMAT_TERKUNCI, PROFIL_BARIS, RISET_TERKUNCI, SIDIK } from "./qr-pembayaran.halaman.nilai";
+import { profil } from "./qr-pembayaran.halaman.profil";
 
 const akar = path.resolve(__dirname, "../../..");
 const terlacak: Set<string> | null = (() => {
@@ -314,7 +315,7 @@ describe("rekaman statis.txt dan dinamis.txt: nama dari server, batas, sekali pa
     harus("terbayar pada 299 detik, dijawab 410 pada 300 dan 301 detik");
     harus("Kode memakai `Before`, jadi tepat pada 300 detik QR sudah kedaluwarsa");
     harus("masa berlaku 5 menit");
-    harus("Pembeli diminta meminta merchant menampilkan QR yang baru (`dinamis.txt` bagian D).");
+    harus("Jawaban 410 menyuruh pembeli meminta merchant menampilkan QR yang baru (`dinamis.txt` bagian D).");
   });
   test("QR statis: batas Rp200.000 per pembayaran (201 di batas, 422 untuk 200001, 0, -1, dan body kosong); dua pembayaran berturut-turut; saldo Eko", () => {
     expect(BATAS_STATIS).toBe(200000);
@@ -635,6 +636,7 @@ describe("data Tebak, diagram Rantai, halaman istilah, baris riset, dan kartu Ce
       expect(k.judul).toBe("4.19 QR pembayaran: statis, dinamis, konfirmasi + ADR 40");
       expect(k.url).toBe("tahap-4/qr-pembayaran/");
     });
+    kartu.forEach((k) => expect(badan, k.id).toContain(k.jawab.slice(0, 70)));
     expect(badan.match(/<details class="success">/g)).toHaveLength(4);
     expect(badan.match(/- \[ \] /g)).toHaveLength(6);
   });
@@ -655,6 +657,24 @@ describe("tinjauan: klaim negatif dan penolakan kalimat tambahan", () => {
       if (!/^\|[-| ]+\|$/.test(b) && !b.startsWith("| |")) for (const x of sel) expect(x.trim().length, b).toBeGreaterThan(0);
     }
     expect(tabel).toHaveLength(5 + 7 + 7);
+  });
+});
+
+describe("profil kata penentu per baris: polaritas, bilangan, label, tautan, tokoh, kode, dan sel tabel", () => {
+  test("setiap baris badan punya profil yang sama dengan PROFIL_BARIS", () => {
+    const baris = badan.split("\n");
+    expect(baris.length).toBe(PROFIL_BARIS.length);
+    baris.forEach((b, n) => expect(profil(b), `baris badan ${n + 1}: ${b.slice(0, 90)}`).toBe(PROFIL_BARIS[n]));
+  });
+  test("profil menangkap mutasi kata penentu: sisipan tidak, angka, label, tautan, heading, dan sel tabel yang tertukar", () => {
+    const k = "Pembayaran kedua dijawab 409 dan QR dinamis sekali bayar (Rekaman lab, [[t4-m35]]).";
+    expect(profil(k)).not.toBe(profil("Pembayaran kedua tidak dijawab 409 dan QR dinamis sekali bayar (Rekaman lab, [[t4-m35]])."));
+    expect(profil(k)).not.toBe(profil(k.replace("409", "410")));
+    expect(profil(k)).not.toBe(profil(k.replace("Rekaman lab", "Ilustrasi")));
+    expect(profil(k)).not.toBe(profil(k.replace("[[t4-m35]]", "[[t4-m36]]")));
+    expect(profil("### Judul")).not.toBe(profil("##### Judul"));
+    expect(profil("| Nominal | Diisi pembeli | Terikat pada id QR |")).not.toBe(profil("| Nominal | Terikat pada id QR | Diisi pembeli |"));
+    expect(profil("")).toBe("");
   });
 });
 

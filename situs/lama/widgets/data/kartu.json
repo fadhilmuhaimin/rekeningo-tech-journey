@@ -2933,7 +2933,7 @@
   "judul": "4.19 QR pembayaran: statis, dinamis, konfirmasi + ADR 40",
   "url": "tahap-4/qr-pembayaran/",
   "tanya": "Satu laporan dari akun yang belum terverifikasi membekukan merchant. Apa akibatnya bagi merchant yang sah, dan keputusan apa yang belum diambil?",
-  "jawab": "QR merchant itu dijawab 404 dan ia tetap beku sampai petugas risk dengan penyetuju kedua membukanya (`lapor.txt` bagian C, D, dan F). Yang belum diputuskan adalah bobot pelapor, atau pemeriksaan sebelum pembekuan."
+  "jawab": "QR merchant itu dijawab 404 dan ia tetap beku sampai staf risk dengan penyetuju kedua membukanya (`lapor.txt` bagian C, D, dan F). Yang belum diputuskan adalah bobot pelapor, atau pemeriksaan sebelum pembekuan."
  },
  {
   "id": "B11-1",
