@@ -284,8 +284,9 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [], mod
         <strong>{judul}</strong>
       </figcaption>
       {/* Satu tahap (1.12): tanpa pemilih, karena satu tombol yang selalu tertekan tidak memilih apa pun (keputusan 697). */}
+      {/* Sebelum hydrate tombol tersembunyi tetapi menempati ruangnya (tanpa JavaScript tidak tampil, erd-tumbuh.css), karena tombol yang tidak berfungsi tidak boleh terlihat. */}
       {data.length > 1 && (
-        <div className="erd-tumbuh__kontrol">
+        <div className={`erd-tumbuh__kontrol${lebar === null ? " is-belum" : ""}`}>
           <div role="group" aria-label="Pilih tahap" className="erd-tumbuh__pilih">
             {data.map((d) => (
               <button key={d.tahap} type="button" aria-pressed={no === d.tahap} onClick={() => ganti(d.tahap, banding)}>

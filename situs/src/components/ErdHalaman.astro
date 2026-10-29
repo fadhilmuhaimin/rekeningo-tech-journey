@@ -12,8 +12,8 @@
  */
 import ErdTumbuh from "../erd/ErdTumbuh";
 import Erd from "./Erd.astro";
-import { DataErd, PetaHalaman } from "../erd/skema";
-import { tandaiHalamanIni, tautanHalaman } from "../erd/tumbuh";
+import { DataErd, ModulErd, PetaHalaman } from "../erd/skema";
+import { periksaModul, tandaiHalamanIni, tautanHalaman } from "../erd/tumbuh";
 import petaHalaman from "../../data/erd/halaman.json";
 import { muat, url } from "../../tools/registri.mjs";
 
@@ -30,16 +30,26 @@ const data = tahap.map((n) => {
   if (!isi) throw new Error(`ErdHalaman ${id}: situs/data/erd/tahap-${n}.json tidak ada`);
   return DataErd.parse(isi);
 });
+// Pembagian modul (ERD4): dipasang bila ada situs/data/erd/modul-tahap-<n>.json untuk tahap yang ditampilkan; build gagal
+// bila pembagiannya tidak cocok dengan ERD tahap itu (periksaModul).
+const berkasModul = import.meta.glob("../../data/erd/modul-tahap-*.json", { eager: true, import: "default" });
+const modul = tahap.flatMap((n) => {
+  const isi = berkasModul[`../../data/erd/modul-tahap-${n}.json`];
+  if (!isi) return [];
+  const m = ModulErd.parse(isi);
+  periksaModul(data.find((d) => d.tahap === m.tahap)!, m);
+  return [m];
+});
 const awal = Astro.props.awal ?? tahap[tahap.length - 1];
 const judul = Astro.props.judul ?? (tahap.length === 1 ? `Skema akhir Tahap ${tahap[0]}` : "Skema data dari tahap ke tahap");
 const tautan = tandaiHalamanIni(tautanHalaman(PetaHalaman.parse(petaHalaman), data, muat().halaman, url), Astro.url.pathname);
 ---
 {
   tahap.length === 1 ? (
-    <ErdTumbuh client:visible id={id} judul={judul} data={data} tautan={tautan} awal={awal}>
+    <ErdTumbuh client:visible id={id} judul={judul} data={data} tautan={tautan} awal={awal} modul={modul}>
       <Erd data={data[0]} judul={judul} tanpaJudul />
     </ErdTumbuh>
   ) : (
-    <ErdTumbuh client:visible id={id} judul={judul} data={data} tautan={tautan} awal={awal} />
+    <ErdTumbuh client:visible id={id} judul={judul} data={data} tautan={tautan} awal={awal} modul={modul} />
   )
 }
