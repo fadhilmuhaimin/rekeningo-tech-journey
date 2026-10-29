@@ -148,6 +148,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "<Blok nama=\"Putuskan\">",
  "### ADR 38: file identitas di penyimpanan objek, unggah lewat presigned PUT 5 menit, unduh hanya lewat server",
  "**Kebutuhan.** Verifikasi identitas meminta foto kartu dan swafoto dari tiap pendaftar ([[t4-topup-verifikasi]]). Asumsi naskah memberi 2.000 file per hari, 365 GB per tahun, dan 33,3 kali posting ledger (tabel di blok Paham). File yang ikut dicadangkan di `bytea` membuat uji pulih makin lama ([[t4-m33]]).",
+ "Halaman fitur ([[t4-topup-verifikasi]]) bertanya di mana file identitas disimpan dan siapa boleh membacanya. Jawabannya: di penyimpanan objek yang bucket-nya privat, dan hanya staf risk yang menyebut alasan, lewat server yang menulis `audit_log`.",
  "**Status:** diterima sesudah M33 (minggu 7). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR.",
  "| | A. File di `bytea` | B. Disk lokal VPS | C. Semua lewat server | D. Penyimpanan objek, presigned PUT, unduh lewat server |",
  "|---|---|---|---|---|",

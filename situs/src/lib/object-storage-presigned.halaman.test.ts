@@ -648,6 +648,12 @@ describe("rujukan [[ID]], registry, struktur, dan kata", () => {
     expect(naskah).toContain("| 43 |");
     harus("[[t4-m38]] bertanya siapa yang membuka data Budi, dan ADR 43 meninjau audit berantai yang dipakai unduh.");
     harus("[[t4-infra-secret]] memindahkan kredensial penyimpanan ke secret manager.");
+    // janji halaman 4.3: "siapa boleh membacanya" dijawab di halaman ini, dan tautan 4.3 ke halaman ini ada
+    const hal43 = baca("situs/src/content/docs/tahap-4/fitur-topup-verifikasi.mdx");
+    expect(hal43).toContain("Di mana file identitas disimpan, dan siapa boleh membacanya?");
+    expect(hal43).toContain("Apa yang terjadi pada file di penyimpanan dibahas di [[t4-storage]].");
+    harus("Halaman fitur ([[t4-topup-verifikasi]]) bertanya di mana file identitas disimpan dan siapa boleh membacanya. Jawabannya: di penyimpanan objek yang bucket-nya privat, dan hanya staf risk yang menyebut alasan, lewat server yang menulis `audit_log`.");
+    expect(dari("t4-storage").nomor).toBe("4.15");
     expect(dari("t4-infra-secret").adr).toEqual([39]);
     expect(dari("t4-audit").adr).toEqual([43]);
     expect(dari("t4-m38").jenis).toBe("masalah");
