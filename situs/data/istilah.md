@@ -263,6 +263,8 @@
 *[read replica]: Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.
 *[Read-your-writes]: Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal.
 *[read-your-writes]: Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal.
+*[Rekonsiliasi]: Mencocokkan catatan sendiri dengan catatan pihak lain, order demi order, lalu mencatat selisihnya sebagai insiden bernomor, bukan mengoreksinya dengan tangan.
+*[rekonsiliasi]: Mencocokkan catatan sendiri dengan catatan pihak lain, order demi order, lalu mencatat selisihnya sebagai insiden bernomor, bukan mengoreksinya dengan tangan.
 *[Repeatable Read]: Isolation level yang memakai satu snapshot untuk seluruh transaction, diambil saat perintah pertama; transaction yang menulis bisa ditolak SQLSTATE 40001.
 *[Replication lag]: Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.
 *[replication lag]: Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.

@@ -1,0 +1,71 @@
+{
+ "id": "t4-rekonsiliasi",
+ "title": "Satu hari rekonsiliasi: lima order di laporan gateway, lima jurnal di ledger",
+ "setup": "CREATE TABLE laporan (order_id TEXT PRIMARY KEY, hari TEXT NOT NULL, jumlah INTEGER NOT NULL);\nCREATE TABLE jurnal_topup (order_id TEXT PRIMARY KEY, hari TEXT NOT NULL, jumlah INTEGER NOT NULL);\nCREATE TABLE insiden_rekon (id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT NOT NULL, jenis TEXT NOT NULL CHECK (jenis IN ('tidak_di_ledger', 'tidak_di_gateway', 'jumlah_beda')), selisih INTEGER NOT NULL, UNIQUE (order_id, jenis));\n-- laporan settlement gateway: satu baris per order yang diselesaikan gateway; hari = 'rekon' berarti masuk laporan hari yang dicocokkan\nINSERT INTO laporan VALUES ('citra-1', 'rekon', 500000), ('budi-1', 'rekon', 15000), ('dina-1', 'rekon', 60000), ('dina-2', 'rekon', 60000), ('budi-2', 'rekon', 25000), ('budi-3', 'lain', 40000);\n-- jurnal top-up di ledger yang dipegang topup_bank: jumlah posting positif, dan hari jurnal itu ditulis\nINSERT INTO jurnal_topup VALUES ('citra-1', 'rekon', 500000), ('dina-1', 'rekon', 60000), ('budi-2', 'rekon', 20000), ('budi-3', 'rekon', 40000), ('eko-1', 'rekon', 30000);",
+ "check": "SELECT nama, nilai FROM (\n  SELECT 1 AS u, 'total laporan gateway' AS nama, SUM(jumlah) AS nilai FROM laporan WHERE hari = 'rekon'\n  UNION ALL SELECT 2, 'total jurnal di ledger', SUM(jumlah) FROM jurnal_topup WHERE hari = 'rekon'\n  UNION ALL SELECT 3, 'selisih total', (SELECT SUM(jumlah) FROM laporan WHERE hari = 'rekon') - (SELECT SUM(jumlah) FROM jurnal_topup WHERE hari = 'rekon')\n  UNION ALL SELECT 4, 'insiden bernomor', COUNT(*) FROM insiden_rekon\n  UNION ALL SELECT 10 + id, 'insiden ' || id || ': ' || jenis || ' ' || order_id, selisih FROM insiden_rekon\n) ORDER BY u",
+ "predict": {
+  "q": "Total laporan gateway Rp660.000 dan total jurnal Rp650.000 hanya berbeda Rp10.000. Berapa insiden yang ditemukan panel After, yang mencocokkan per order_id?",
+  "options": [
+   "1 insiden, sebesar selisih total Rp10.000",
+   "3 insiden, satu per jenis selisih",
+   "5 insiden: tiga selisih positif dan dua negatif",
+   "7 insiden, satu per order"
+  ],
+  "answer": 2,
+  "explain": "Dua dari tujuh order cocok persis. Lima sisanya selisih: dua order ada di laporan tanpa jurnal (+15.000 dan +60.000), satu jumlahnya beda (+5.000), dan dua jurnal tidak ada di laporan hari itu (-40.000 dan -30.000). Kelimanya dijumlahkan menjadi +10.000, sama dengan selisih total: total yang hampir sama menutupi lima selisih."
+ },
+ "panels": {
+  "before": {
+   "label": "Before: hanya membandingkan dua total",
+   "onError": "stop",
+   "steps": [
+    {
+     "actor": "Keuangan",
+     "sql": "SELECT (SELECT SUM(jumlah) FROM laporan WHERE hari = 'rekon') - (SELECT SUM(jumlah) FROM jurnal_topup WHERE hari = 'rekon') AS selisih_total",
+     "note": "satu angka: laporan gateway dikurangi jurnal"
+    }
+   ]
+  },
+  "after": {
+   "label": "After: mencocokkan per order_id",
+   "onError": "stop",
+   "steps": [
+    {
+     "actor": "job",
+     "sql": "INSERT INTO insiden_rekon (order_id, jenis, selisih)\nSELECT l.order_id, 'tidak_di_ledger', l.jumlah FROM laporan l\nWHERE l.hari = 'rekon' AND NOT EXISTS (SELECT 1 FROM jurnal_topup j WHERE j.order_id = l.order_id)",
+     "note": "ada di laporan, belum ada jurnal",
+     "rowsLabel": {
+      "2": "2 insiden tidak_di_ledger"
+     }
+    },
+    {
+     "actor": "job",
+     "sql": "INSERT INTO insiden_rekon (order_id, jenis, selisih)\nSELECT l.order_id, 'jumlah_beda', l.jumlah - j.jumlah FROM laporan l JOIN jurnal_topup j ON j.order_id = l.order_id\nWHERE l.hari = 'rekon' AND l.jumlah <> j.jumlah",
+     "note": "ada di keduanya, jumlah berbeda",
+     "rowsLabel": {
+      "1": "1 insiden jumlah_beda"
+     }
+    },
+    {
+     "actor": "job",
+     "sql": "INSERT INTO insiden_rekon (order_id, jenis, selisih)\nSELECT j.order_id, 'tidak_di_gateway', -j.jumlah FROM jurnal_topup j\nWHERE j.hari = 'rekon' AND NOT EXISTS (SELECT 1 FROM laporan l WHERE l.order_id = j.order_id AND l.hari = 'rekon')",
+     "note": "ada jurnal hari itu, tidak ada di laporan hari itu",
+     "rowsLabel": {
+      "2": "2 insiden tidak_di_gateway"
+     }
+    }
+   ]
+  }
+ },
+ "toggles": [
+  {
+   "label": "Gateway menulis settlement budi-3 pada hari yang dicocokkan, bukan hari lain",
+   "pairs": [
+    [
+     "('budi-3', 'lain', 40000)",
+     "('budi-3', 'rekon', 40000)"
+    ]
+   ]
+  }
+ ]
+}

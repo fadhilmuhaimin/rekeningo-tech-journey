@@ -1,0 +1,46 @@
+{
+  "istilah": "Rekonsiliasi",
+  "sehari_hari": "Rekonsiliasi adalah mencocokkan catatan sendiri dengan catatan pihak lain, order demi order. Yang tidak cocok dicatat sebagai selisih, bukan diubah supaya terlihat cocok.",
+  "cerita": [
+    {
+      "rujukan": "t2-job-rekonsiliasi",
+      "teks": "File untuk bank dibaca ulang dan dicocokkan dengan ledger sebelum diberi nama akhir. File yang memuat Warung 508 dua kali ditolak."
+    },
+    {
+      "rujukan": "t4-rekonsiliasi",
+      "teks": "Laporan settlement gateway dicocokkan per order dengan jurnal top-up. Lima dari tujuh order tidak cocok, dan tiap selisih menjadi insiden bernomor."
+    }
+  ],
+  "mekanisme": [
+    "Dua catatan dari sumber berbeda diambil untuk periode yang sama, di Rekeningo laporan gateway dan jurnal di ledger.",
+    "Keduanya dipasangkan lewat pengenal bersama, yaitu order_id. Order yang hanya ada di satu sisi, atau yang jumlahnya berbeda, menjadi selisih.",
+    "Tiap selisih ditulis sebagai satu baris dengan nomor dan kunci unik, jadi menjalankan job lagi tidak menggandakannya.",
+    "Selisih dikoreksi dengan jurnal baru bila aturannya jelas. Yang butuh keputusan orang tetap terbuka."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Membandingkan dua total saja. Pada data simulasi halaman 4.9, selisih total Rp10.000 menutupi lima selisih per order yang saling meniadakan.",
+    "Menganggap tanggal settlement di laporan sama dengan tanggal jurnal. Di lab t4-webhook, satu order yang settlement-nya tertulis di tanggal lain tampil sebagai selisih -Rp40.000, padahal ledger sudah benar."
+  ],
+  "terkait": ["Ledger", "Jurnal", "Job terjadwal", "Idempotency key"],
+  "sumber": [
+    {
+      "riset": "R4-150",
+      "judul": "Laporan rekonsiliasi payout di sebuah gateway pembayaran",
+      "url": "https://docs.stripe.com/reports/payout-reconciliation",
+      "catatan": "Laporan membantu mencocokkan setoran di rekening bank dengan kumpulan pembayaran dan transaksi lain yang berkaitan dengannya. Pencocokannya per setoran, bukan per pembayaran."
+    },
+    {
+      "riset": "R4-151",
+      "judul": "Notifikasi HTTP di gateway pembayaran lain",
+      "url": "https://docs.midtrans.com/docs/https-notification-webhooks",
+      "catatan": "Untuk notifikasi yang terlambat, dokumentasi menyarankan memeriksa status transaksi lewat GET Status API."
+    },
+    {
+      "riset": "R4-153",
+      "judul": "Rekaman lab t4-webhook: rekonsiliasi harian dan koreksi insiden",
+      "rekaman": "labs/t4-webhook/output/rekon.txt",
+      "catatan": "Bagian B: lima insiden dari tujuh order (dua tidak_di_ledger, satu jumlah_beda, dua tidak_di_gateway). Tiga ditutup lewat jurnal, satu tanpa jurnal, satu tetap terbuka."
+    }
+  ]
+}

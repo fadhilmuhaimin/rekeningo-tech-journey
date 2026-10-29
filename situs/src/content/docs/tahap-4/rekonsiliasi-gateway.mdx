@@ -1,0 +1,289 @@
+---
+title: "4.9 Rekonsiliasi dengan gateway + ADR 35"
+description: Webhook bukan satu-satunya jalan kabar. Cek status menanyakan top-up yang menunggu, rekonsiliasi harian mencocokkan laporan gateway dengan jurnal per order, dan selisih menjadi insiden bernomor yang dikoreksi lewat jurnal normal.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import intiDiagram from "../../../../data/diagram/t4-rekonsiliasi-inti.json";
+
+<p class="meta">Baca 15 menit · coba 3 menit · Prasyarat: [[t4-m30]], [[t2-job-rekonsiliasi]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Kalau webhook putus, uang di bank tidak punya jurnal; cek status dan rekonsiliasi menemukannya, dan selisih menjadi insiden bernomor.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di [[t4-m30]], gateway mengirim kabar enam kali dan semuanya ditolak 401. Jadwal ulangannya habis, Rp500.000 sudah di bank, dan top-up Citra tetap `menunggu` tanpa jurnal (Rekaman lab, lihat [Label sumber](/cara-pakai/#label-sumber): `retry.txt` bagian B).
+
+Jalan kedua ada dua. **Cek status** adalah job yang menanyakan keadaan top-up yang masih `menunggu` lebih dari 30 menit langsung ke gateway. **Rekonsiliasi harian** adalah job yang mencocokkan laporan settlement gateway dengan jurnal di ledger, order demi order. Laporan settlement adalah daftar order yang diselesaikan gateway pada satu tanggal.
+
+Selisih yang ditemukan menjadi **insiden**: satu baris di tabel `insiden_rekon` dengan nomornya sendiri. Koreksinya lewat jurnal normal, bukan `UPDATE` pada saldo. Itu aturan Pak Hadi: setiap rupiah dari luar harus cocok dengan catatan pengirimnya, dan selisih adalah insiden, bukan angka yang dikoreksi dengan tangan.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Webhook Citra tidak pernah datang. Sesudah berapa menit top-up itu ditanyakan ke gateway, dan oleh job yang mana?
+2. Rekonsiliasi menemukan lima selisih. Kenapa job koreksinya tidak menulis `UPDATE` pada saldo?
+3. Total laporan gateway dan total ledger hanya berbeda Rp10.000. Kenapa itu tidak berarti hanya ada satu selisih kecil?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: dua total yang hampir sama bisa menutupi lima selisih, dan hanya pencocokan per order yang menunjukkannya satu per satu.">
+
+Bagian B rekaman `rekon.txt` memerankan satu hari di lab: lima order di laporan gateway dan lima jurnal top-up di ledger. Widget di bawah memuat data yang sama. Nama order seperti `budi-1` mengikuti pemilik akun di skrip lab.
+
+**Simulasi** di halaman ini berarti SQL dijalankan di browser kamu oleh SQLite (sql.js 1.14.2), bukan oleh PostgreSQL dan bukan oleh kode Go lab. Datanya disalin dari skrip lab, dan hasilnya diperiksa tes terhadap rekaman. Hasil simulasi tidak pernah berlabel Rekaman lab.
+
+<WidgetLama nama="runsql" src="data/t4-rekonsiliasi.json" />
+
+<noscript>
+<p>Tanpa JavaScript, widget tidak berjalan. Hasilnya: total laporan gateway Rp660.000 dan total jurnal Rp650.000, selisih total Rp10.000. Pencocokan per order menemukan lima insiden: tidak_di_ledger budi-1 +15.000 dan dina-2 +60.000, jumlah_beda budi-2 +5.000, tidak_di_gateway budi-3 −40.000 dan eko-1 −30.000.</p>
+</noscript>
+
+Panel Before mengurangi dua total dan mendapat Rp10.000. Panel After mencocokkan per `order_id` dan mendapat lima insiden, sedangkan `citra-1` dan `dina-1` cocok. **Hitungan** berarti angka yang bisa kamu ulang dari angka lain di halaman ini. Kelimanya berjumlah 15.000 + 60.000 + 5.000 − 40.000 − 30.000 = 10.000, sama dengan selisih total (Hitungan dari angka di widget).
+
+**Ubah satu hal:** centang kotak di bawah panel. Settlement `budi-3` pindah ke hari yang dicocokkan, dan insiden −40.000 hilang. Di lab selisih itu ditutup tanpa jurnal, karena gateway menjawab settlement dengan jumlah yang sama dan hanya tanggalnya yang lain (`rekon.txt` bagian B).
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa jalan kedua dibutuhkan
+
+Kabar dari gateway adalah klaim ([[t4-dua-arah]]), dan klaim bisa tidak pernah datang. Di [[t4-m30]] penyebabnya rahasia webhook yang tidak sama. Gateway tiruan di lab berhenti mengirim sesudah kiriman ke-6, 342 menit sesudah kiriman pertama (`retry.txt` bagian A dan B).
+
+Jadi Rekeningo butuh jalan yang tidak bergantung pada gateway mengirim. Jalan itu bertanya sendiri, ke satu order (cek status) dan ke seluruh laporan satu hari (rekonsiliasi). Dokumentasi dua gateway nyata memuat bentuk yang sejalan, masing-masing satu.
+
+Gateway pertama menulis bahwa notifikasi yang terlambat diperiksa dengan GET Status API (dokumentasi notifikasi sebuah gateway pembayaran, dibuka 2026-10-29, Tidak dijalankan). Gateway kedua menyediakan laporan yang mencocokkan setoran di rekening bank dengan kumpulan transaksi yang diselesaikannya (dokumentasi laporan sebuah gateway pembayaran lain, dibuka 2026-10-29, Tidak dijalankan). Laporan itu mencocokkan per setoran, sedangkan laporan gateway tiruan di lab memuat satu baris per order (Asumsi).
+
+Di app Flutter kamu mungkin pernah membuat layar status pembayaran yang tidak menunggu notifikasi push selamanya, tetapi menanyakan statusnya ke server. Cek status adalah versi sisi server dari pertanyaan itu.
+
+### Cek status: bertanya ke satu order
+
+Job `-cek-topup` memilih top-up yang masih `menunggu` atau `tidak_pasti` dan lebih tua dari 30 menit. `tidak_pasti` berarti Rekeningo berhenti menunggu jawaban gateway saat membuat top-up ([[t4-dua-arah]]). Angka 30 menit adalah Asumsi: kode lab memakainya sebagai bawaan, dan PRD v4 tidak menulis angkanya.
+
+Gateway ditanya sebelum transaction dibuka, jadi panggilan jaringan tidak memegang lock ([[t3-pool]]). Jawabannya diterapkan lewat fungsi yang sama dengan webhook:
+
+<Snippet file="labs/api-t4/internal/service/pembayaran.go" lines="446:483" lang="go" title="Kode lab: labs/api-t4/internal/service/pembayaran.go baris 446 sampai 483 (CekTopup)" />
+
+Karena fungsinya sama, status hanya maju dan jurnal memakai Idempotency-Key `order_id`. Webhook yang datang terlambat sesudah cek status dijawab `ganda`, bukan dijurnal lagi (Tidak dijalankan: dibaca dari kode `terapkanStatus`). Gateway yang tidak mengenal order membuat top-up menjadi `gagal` (Tidak dijalankan: dibaca dari kode `CekTopup`).
+
+Rekaman bagian A memakai top-up Citra Rp500.000 yang webhook-nya tidak pernah datang. Job tidak menanyakan top-up berumur 0 dan 29 menit, dan menanyakan yang berumur 31 menit:
+
+<Snippet file="labs/t4-webhook/output/rekon.txt" lines="8:24" title="Rekaman lab: labs/t4-webhook/output/rekon.txt, bagian A (cek status)" />
+
+Umur top-up diputar mundur lewat `UPDATE` kolom `dibuat` oleh pemilik schema, dan itu hanya di lab. Batas 30 menit terjaga dari dua sisi. Seberapa sering job berjalan tidak ditentukan lab: rekaman memanggilnya dengan tangan.
+
+### Rekonsiliasi harian: tiga jenis selisih
+
+Job `-rekon <tanggal>` meminta laporan settlement satu tanggal dari gateway. Sisi ledger memuat top-up yang jurnalnya ditulis pada tanggal itu, ditambah order yang disebut laporan. Keduanya dicocokkan per `order_id`, dan selisihnya dihitung sebagai jumlah gateway dikurangi jumlah ledger.
+
+| Jenis selisih | Artinya | Selisih | Di rekaman bagian B |
+|---|---|---|---|
+| `tidak_di_ledger` | Order ada di laporan, tetapi Rekeningo tidak punya top-up untuk order itu atau top-up belum `dibayar` | jumlah di laporan | +15.000 dan +60.000 |
+| `jumlah_beda` | Order ada di keduanya, tetapi jumlah jurnal tidak sama dengan laporan | laporan dikurangi jurnal | +5.000 |
+| `tidak_di_gateway` | Top-up `dibayar` dengan jurnal pada tanggal itu, tetapi laporan tanggal itu tidak memuatnya | jumlah jurnal, bertanda minus | −40.000 dan −30.000 |
+
+Kodenya membaca laporan, memasangkannya dengan ledger, lalu mencatat insiden. Ia tidak memanggil fungsi yang menulis jurnal:
+
+<Snippet file="labs/api-t4/internal/service/pembayaran.go" lines="520:577" lang="go" title="Kode lab: labs/api-t4/internal/service/pembayaran.go baris 520 sampai 577 (RekonHarian)" />
+
+Sisi ledger dibaca dari jurnal yang dipegang `topup_bank.jurnal_id`. Itu penting di bagian "Yang tidak terlihat rekonsiliasi" di bawah:
+
+<Snippet file="labs/api-t4/internal/repo/pembayaran.go" lines="172:192" lang="go" title="Kode lab: labs/api-t4/internal/repo/pembayaran.go baris 172 sampai 192 (LedgerTopupTanggal)" />
+
+Tabel `insiden_rekon` punya `UNIQUE (tanggal, order_id, jenis)`, dan pencatatannya memakai `ON CONFLICT DO NOTHING`. Menurut dokumentasi PostgreSQL 17, perintah itu hanya menghindari penyisipan baris sebagai aksi alternatifnya ([PostgreSQL 17: INSERT](https://www.postgresql.org/docs/17/sql-insert.html), dibuka 2026-10-29). Jadi menjalankan rekonsiliasi lagi untuk tanggal yang sama tidak menggandakan insiden.
+
+<Snippet file="labs/api-t4/migrasi/000021_topup_bank.up.sql" lines="31:42" lang="sql" title="Kode lab: labs/api-t4/migrasi/000021_topup_bank.up.sql (insiden_rekon)" />
+
+Rekaman bagian B memuat lima order yang bermasalah dari tujuh order di hari itu. Hasilnya lima insiden, semuanya `terbuka`, dan belum ada koreksi:
+
+<Snippet file="labs/t4-webhook/output/rekon.txt" lines="29:39" title="Rekaman lab: labs/t4-webhook/output/rekon.txt, bagian B (rekonsiliasi harian)" />
+
+Bagian C menjalankan rekonsiliasi lagi untuk tanggal yang sama sesudah tiga top-up baru. Laporan kini memuat delapan baris, dan hanya tiga insiden baru yang tercatat:
+
+<Snippet file="labs/t4-webhook/output/rekon.txt" lines="87:88" title="Rekaman lab: labs/t4-webhook/output/rekon.txt, bagian C (rekonsiliasi kedua)" />
+
+### Koreksi lewat jurnal normal: satu insiden, satu transaction
+
+Job `-koreksi-rekon` mengerjakan insiden yang masih `terbuka` menurut nomornya. Tiap insiden punya satu transaction, dan barisnya dikunci `FOR UPDATE` lebih dulu. Insiden yang sudah selesai karena job lain dilewati, jadi dua job bersamaan tidak menjurnal dua kali ([[t2-job-rekonsiliasi]]).
+
+<Snippet file="labs/api-t4/internal/service/koreksi_rekon.go" region="koreksi-satu" lang="go" title="Kode lab: labs/api-t4/internal/service/koreksi_rekon.go (koreksiSatu)" />
+
+Aturan koreksi per jenis adalah pilihan lab (Asumsi), karena naskah hanya menulis "koreksi lewat jurnal normal". Tabel di bawah dibaca dari kode (Tidak dijalankan). Rekaman bagian B hanya memuat satu contoh tiap jenis, ditambah dua insiden yang tetap terbuka.
+
+| Jenis | Dikoreksi bila | Tetap terbuka bila |
+|---|---|---|
+| `tidak_di_ledger` | Top-up `menunggu` atau `tidak_pasti`, jumlah sama dengan laporan, akun tidak dibekukan dan tidak melewati batas tingkat. Hasilnya jurnal top-up | Akun melewati batas tingkat, top-up `kedaluwarsa` atau `gagal`, order tidak dikenal |
+| `jumlah_beda` | Laporan lebih besar dari jurnal. Hasilnya jurnal top-up kedua sebesar selisih | Selisih nol atau negatif, akun dibekukan, batas tingkat terlewati |
+| `tidak_di_gateway` | Gateway ditanya lebih dulu. Settlement dengan jumlah sama: ditutup tanpa jurnal. Order tidak dikenal atau bukan settlement: jurnal pembalik bila saldo cukup | Gateway tidak menjawab, jumlah settlement berbeda, saldo tidak cukup untuk jurnal pembalik |
+
+Keterangan jurnal koreksi `jumlah_beda` dan jurnal pembalik memuat nomor insidennya. Jurnal top-up dari `tidak_di_ledger` memakai keterangan top-up biasa (Tidak dijalankan: dibaca dari kode `koreksiJumlahBeda`, `koreksiTidakDiGateway`, dan `kreditTopup`). Hasil rekaman bagian B:
+
+<Snippet file="labs/t4-webhook/output/rekon.txt" lines="49:59" title="Rekaman lab: labs/t4-webhook/output/rekon.txt, bagian B (koreksi)" />
+
+Dari lima insiden, tiga ditutup lewat jurnal, satu ditutup tanpa jurnal, dan satu tetap terbuka. Insiden +60.000 tetap terbuka karena akun Dina melewati batas tingkatnya. Insiden −40.000 ditutup tanpa jurnal karena gateway menjawab settlement dengan jumlah yang sama.
+
+<Snippet file="labs/t4-webhook/output/rekon.txt" lines="60:70" title="Rekaman lab: labs/t4-webhook/output/rekon.txt, bagian B (saldo dan invarian)" />
+
+Saldo Budi naik Rp20.000, dari 310.000 ke 330.000: jurnal top-up Rp15.000 dan jurnal koreksi Rp5.000. Saldo Eko turun Rp30.000 lewat jurnal pembalik. Saldo Citra dan Dina tidak berubah. Posting yang sudah ada tidak berubah (sidik MD5 sama), dan enam posting baru berasal dari tiga jurnal baru.
+
+Menjalankan koreksi lagi hanya memeriksa satu insiden, yaitu yang masih terbuka, dan tidak menulis jurnal baru:
+
+<Snippet file="labs/t4-webhook/output/rekon.txt" lines="74:75" title="Rekaman lab: labs/t4-webhook/output/rekon.txt, bagian B (koreksi dijalankan lagi)" />
+
+Dua job koreksi yang dijalankan bersamaan atas tiga insiden baru mengoreksi tiga insiden bersama-sama. Pembagian antar job bergantung pada waktu, jadi rekaman tidak mencatatnya:
+
+<Snippet file="labs/t4-webhook/output/rekon.txt" lines="89:95" title="Rekaman lab: labs/t4-webhook/output/rekon.txt, bagian C (dua job bersamaan)" />
+
+### Yang tidak terlihat rekonsiliasi, dan yang tidak bisa ditutup
+
+Rekonsiliasi dan job koreksi tidak menjawab semuanya. Lima batas di bawah ini ada di kode lab. Tiga di antaranya menunggu keputusan pemilik, dan halaman ini menulisnya sebagai pertanyaan terbuka, bukan keputusan.
+
+**Settlement sesudah kedaluwarsa dan akun di atas batas tingkat.** Dua insiden `tidak_di_ledger` tetap terbuka sesudah job koreksi: satu melewati batas tingkat, satu top-up sudah `kedaluwarsa` (Rp60.000 dan Rp50.000). PRD v4 belum punya jalur pengembalian dana:
+
+<Snippet file="labs/t4-webhook/output/urutan.txt" lines="34:57" title="Rekaman lab: labs/t4-webhook/output/urutan.txt, bagian F (settlement sesudah expire)" />
+
+**Jurnal kedua sesudah Idempotency-Key habis.** Key ledger hidup 24 jam. Bila proses pembayaran mati sesudah ledger menjurnal dan kiriman ulang datang 25 jam kemudian, ledger menjurnal lagi. Rekonsiliasi membaca jurnal yang dipegang `topup_bank`, jadi jurnal kedua itu tidak terlihat.
+
+Kolom pertama query terakhir di rekaman memakai subquery yang sama dengan `LedgerTopupTanggal`. Lab tidak menjalankannya sebagai job:
+
+<Snippet files={["labs/t4-modul/output/proses-mati.txt:63:78", "labs/t4-modul/output/proses-mati.txt:80:88"]} title="Rekaman lab: labs/t4-modul/output/proses-mati.txt, bagian C (key 23 jam dan 25 jam)" />
+
+**Handler pertama tidak mengisi `jurnal_id`.** `kreditV1` menjurnal tanpa mengikat jurnalnya ke top-up. Atas order Budi di [[t4-m29]], rekonsiliasi akan membaca jumlah jurnal 0. Ia mencatat `jumlah_beda` +Rp200.000, bukan "dua jurnal" (Tidak dijalankan: dibaca dari kode `kreditV1` dan `LedgerTopupTanggal`; lab tidak menjalankan rekonsiliasi atas handler pertama).
+
+**Sesudah jurnal pembalik, status tetap `dibayar`.** Kode koreksi `tidak_di_gateway` tidak mengubah status top-up, dan rekonsiliasi menjumlahkan posting positif jurnal asal tanpa jurnal pembaliknya. Settlement yang datang lagi sesudah kredit dibalik tidak terlihat sebagai selisih (Tidak dijalankan: dibaca dari kode `koreksiTidakDiGateway` dan `LedgerTopupTanggal`). Penutupnya mungkin status baru atau rekonsiliasi atas jumlah bersih.
+
+Satu hal lagi: di `labs/api-t4/cmd` dan `labs/api-t4/internal`, `TutupInsiden` hanya dipanggil oleh job koreksi (Tidak dijalankan: dibaca dari kode). Insiden yang menunggu keputusan manusia belum punya jalur penutupan di lab.
+
+### Rotasi rahasia dengan masa tumpang tindih
+
+[[t4-m30]] menunjukkan rahasia webhook yang berganti di gateway lebih dulu daripada di Rekeningo, dan semua kiriman ditolak 401. ADR 35 menambahkan satu aturan: dua rahasia diterima sampai rotasi selesai. Rekaman memakai opsi `-rahasia-webhook <baru>,<lama>` di server lab. Rahasia pertama dipakai menandatangani, dan yang kedua hanya diterima sebagai masa tumpang tindih:
+
+<Snippet file="labs/t4-webhook/output/tandatangan.txt" lines="21:32" title="Rekaman lab: labs/t4-webhook/output/tandatangan.txt, bagian C (rotasi)" />
+
+Gateway tiruan merotasi langsung tanpa masa tumpang tindih, jadi yang diuji adalah sisi Rekeningo (`tandatangan.txt` bagian C). Masa tumpang tindih hanya menolong bila urutannya benar. Rahasia ditulis ke secret manager lebih dulu, service membacanya, dan baru sesudah itu gateway beralih. Bila gateway beralih lebih dulu, kabar ditolak sampai service selesai membaca:
+
+<Snippet file="labs/t4-infra/output/rotasi.txt" lines="44:49" title="Rekaman lab: labs/t4-infra/output/rotasi.txt, bagian D (urutan terbalik)" />
+
+Lab memakai OpenBao v2.7.2 dalam mode dev. Jeda baca 50 milidetik di lab dan 30 detik di service adalah pilihan lab (Asumsi). Lamanya jendela 401 tidak diukur. Mekanisme secret manager dibahas di [[t4-infra-secret]].
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 35: dua lapis, insiden bernomor, dan koreksi lewat jurnal normal
+
+**Kebutuhan.** PRD v4 menargetkan 99% top-up tercatat dalam kurang dari 5 menit sejak gateway mengirim kabar, dan 0 top-up tercatat dua kali. Keduanya target, bukan hasil lab ([[t4-topup-verifikasi]]). PRD yang sama menulis bahwa setiap selisih rekonsiliasi harian menjadi insiden bernomor yang ditutup dalam satu hari kerja ([[t4-prd]]). M30 menunjukkan Rp500.000 di bank tanpa jurnal, karena webhook adalah satu-satunya jalan kabar (`retry.txt` bagian B).
+
+**Empat opsi.**
+
+| Opsi | Cara kerja | Kelebihan | Kekurangan | Bukti |
+|---|---|---|---|---|
+| A. Percaya webhook saja | Jurnal ditulis hanya saat kabar datang | Tanpa job tambahan | Kabar yang tidak datang tidak punya jalan kedua | Rekaman lab `retry.txt` bagian B: enam kiriman 401, jadwal habis, top-up `menunggu` |
+| B. Polling semua top-up tiap menit | Tiap top-up `menunggu` ditanyakan ke gateway sekali semenit | Kabar yang hilang ketahuan cepat | Hanya order yang Rekeningo kenal, satu per satu. Tidak membandingkan laporan satu hari dengan jurnal, jadi `jumlah_beda` dan `tidak_di_gateway` tidak terlihat | Tidak dijalankan: dibaca dari kode `CekTopup` |
+| C. Koreksi tangan oleh Keuangan | Orang mengubah saldo atau menghapus jurnal | Cepat untuk satu kasus | Melanggar aturan Pak Hadi. Role aplikasi di lab ditolak saat `DELETE` pada `jurnal` (`skema.txt` bagian D, api-t4) | Rekaman lab |
+| D. Dua lapis dengan insiden bernomor (dipilih) | Cek status per order, rekonsiliasi harian per tanggal, koreksi lewat jurnal normal | Dua jalan yang tidak bergantung pada webhook, dan catatan yang bisa diaudit | Dua job, aturan koreksi per jenis, dan insiden yang menunggu keputusan orang | Rekaman lab `rekon.txt` bagian A, B, dan C |
+
+**Pre-mortem: tiga cara keputusan ini gagal dalam enam bulan.**
+
+1. Laporan dan ledger berbeda tanggal, sehingga job melaporkan selisih palsu. Di rekaman, insiden −40.000 hanya soal tanggal settlement. Pencegahannya sudah ada: gateway ditanya sebelum insiden ditutup, dan yang jumlahnya sama ditutup tanpa jurnal.
+2. Koreksi otomatis memperbesar masalah, misalnya jurnal pembalik yang membuat saldo negatif atau kredit ke akun yang tidak boleh. Pencegahannya sudah ada: insiden seperti itu tetap terbuka, dan insiden +60.000 di rekaman tetap terbuka.
+3. Insiden terbuka menumpuk tanpa pemilik. Ini belum dicegah. Lab tidak punya batas umur insiden dan tidak punya jalur penutupan oleh manusia, sedangkan PRD v4 meminta insiden ditutup dalam satu hari kerja.
+
+**Keputusan.**
+
+1. Job cek status: top-up `menunggu` atau `tidak_pasti` lebih dari 30 menit (Asumsi) ditanyakan ke gateway lewat job yang idempoten ([[t2-job-rekonsiliasi]]). Hasil `dibayar` dikredit lewat jurnal normal dengan Idempotency-Key `order_id`.
+2. Rekonsiliasi harian: laporan settlement dibandingkan per `order_id` dengan jurnal. Tiga jenis selisih menjadi `insiden_rekon` bernomor yang dibaca Keuangan.
+3. Tidak ada koreksi dengan `UPDATE` pada posting atau `buku.saldo_cache`. Koreksi memakai jurnal top-up atau jurnal pembalik, satu transaction per insiden.
+4. Selisih negatif dan pembalikan yang membuat saldo negatif tetap terbuka bagi tim risk dan Keuangan.
+5. Rotasi rahasia webhook memakai masa tumpang tindih: dua rahasia diterima sampai rotasi selesai, dengan urutan secret manager lebih dulu.
+
+**Kapan keputusan ini salah.**
+
+- Gateway tidak menyediakan laporan atau cek status per order. Tidak ada pembanding, dan lapis ini tidak bisa dibangun.
+- Selisih harian lebih dari 20 baris (Asumsi). Dengan 5.000 top-up per hari (20.000 user aktif × 0,25, Asumsi), 20 ÷ 5.000 = 0,4% (Hitungan). Angka itu menandakan penyebab sistematis, bukan insiden tunggal.
+- Lebih dari 1% top-up bergantung pada cek status, karena kabarnya ditolak atau tidak datang. Dari 5.000 top-up per hari, 1% adalah 50 top-up (Hitungan dari Asumsi). Jalan kedua menjadi jalan utama, dan tiap top-up itu menunggu minimal 30 menit sebelum ditanyakan. Janji 5 menit tidak mencakupnya, tetapi batas 30 menit perlu ditinjau.
+- Jurnal kedua sesudah key habis tidak terlihat rekonsiliasi (`proses-mati.txt` bagian C). Penutup yang mungkin: key top-up tidak kedaluwarsa selagi top-up menunggu, atau rekonsiliasi menjumlahkan semua jurnal per order. Keputusan itu milik pemilik.
+- Top-up yang tidak bisa dikredit dan status sesudah jurnal pembalik tidak punya jawaban produk (PRD v4 belum menjawab pengembalian dana).
+
+**Yang akan merevisinya.** Belum ada ADR yang menjadwalkan revisi. Pertanyaan terbuka di atas menunggu keputusan pemilik, dan batas 20 baris menunggu data nyata.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Kapan dibahas |
+|---|---|---|
+| Batas umur dan pemilik insiden | PRD v4 meminta penutupan dalam satu hari kerja, tetapi lab tidak punya jalur penutupan oleh manusia | Belum dijadwalkan; menunggu keputusan pemilik |
+| Pemberitahuan ke pemilik akun saat kreditnya dibalik | Lab tidak mengirimnya, dan PRD v4 tidak memintanya | Belum dijadwalkan |
+| Pengembalian dana untuk top-up yang tertahan | PRD v4 belum punya jalurnya | Belum dijadwalkan; keputusan produk |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Total laporan gateway dan total jurnal hanya berbeda Rp10.000, tetapi rekonsiliasi per order menemukan lima insiden. Bagaimana itu mungkin?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Kelima selisih saling meniadakan: +15.000, +60.000, +5.000, −40.000, dan −30.000 berjumlah +10.000, sama dengan selisih total (Simulasi, sama dengan `rekon.txt` bagian B). Dua total yang hampir sama tidak menunjukkan order yang bermasalah.
+
+</details>
+
+**2.** Insiden −Rp40.000 ditutup tanpa jurnal baru, padahal selisihnya ada. Kenapa itu benar?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Gateway ditanya lebih dulu dan menjawab settlement dengan jumlah yang sama. Hanya tanggal settlement yang berbeda, jadi ledger sudah benar dan tidak ada rupiah yang berubah (`rekon.txt` bagian B).
+
+</details>
+
+**3.** Insiden +Rp60.000 tetap terbuka walau uangnya sudah di bank. Kenapa job tidak mengkreditnya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Akun Dina akan melewati batas tingkatnya bila dikredit, dan job tidak memaksa kredit ke akun seperti itu. Uangnya tertahan di bank sampai tim risk memutuskan, karena PRD v4 belum punya jalur pengembalian dana (`rekon.txt` bagian B dan `urutan.txt` bagian F).
+
+</details>
+
+**4.** Rekonsiliasi dijalankan dua kali untuk tanggal yang sama. Kenapa insiden tidak ganda?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+`insiden_rekon` punya `UNIQUE (tanggal, order_id, jenis)`, dan pencatatan memakai `ON CONFLICT DO NOTHING`. Di `rekon.txt` bagian C, laporan delapan baris hanya menambah tiga insiden baru.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Rekonsiliasi membandingkan per `order_id`, bukan hanya dua total.
+- [ ] Insiden punya kunci unik, jadi job aman dijalankan dua kali.
+- [ ] Koreksi memakai jurnal baru. Tidak ada `UPDATE` atau `DELETE` pada posting atau saldo.
+- [ ] Panggilan ke gateway terjadi sebelum transaction dibuka.
+- [ ] Koreksi yang membuat saldo negatif atau mengkredit akun yang tidak boleh tetap terbuka.
+- [ ] Rotasi rahasia menerima dua rahasia sampai selesai, dan secret manager ditulis lebih dulu.
+
+### Bacaan lanjut
+
+- [Notifikasi HTTP sebuah gateway pembayaran: GET Status API untuk notifikasi yang terlambat](https://docs.midtrans.com/docs/https-notification-webhooks) (dibuka 2026-10-29)
+- [Laporan rekonsiliasi payout di gateway pembayaran lain](https://docs.stripe.com/reports/payout-reconciliation) (dibuka 2026-10-29)
+- [PostgreSQL 17: INSERT, ON CONFLICT DO NOTHING](https://www.postgresql.org/docs/17/sql-insert.html) (dibuka 2026-10-29)
+
+</Blok>
+
+<SkripLama daftar={["runsql-core","runsql"]} />

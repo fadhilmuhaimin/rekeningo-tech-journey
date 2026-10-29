@@ -1303,6 +1303,15 @@ window.ISTILAH = {
   "t": "Read-your-writes",
   "u": "d-system-design/d3-consistency/"
  },
+ "Rekonsiliasi": {
+  "b": "t4-rekonsiliasi",
+  "d": "Mencocokkan catatan sendiri dengan catatan pihak lain, order demi order, lalu mencatat selisihnya sebagai insiden bernomor, bukan mengoreksinya dengan tangan.",
+  "h": "istilah/rekonsiliasi/",
+  "n": "4.9 Rekonsiliasi dengan gateway",
+  "s": "istilah-rekonsiliasi",
+  "t": "Rekonsiliasi",
+  "u": "tahap-4/rekonsiliasi-gateway/"
+ },
  "Repeatable Read": {
   "b": "t2-isolation-level",
   "d": "Isolation level yang memakai satu snapshot untuk seluruh transaction, diambil saat perintah pertama; transaction yang menulis bisa ditolak SQLSTATE 40001.",
@@ -2577,6 +2586,15 @@ window.ISTILAH = {
   "s": "istilah-read-your-writes",
   "t": "Read-your-writes",
   "u": "d-system-design/d3-consistency/"
+ },
+ "rekonsiliasi": {
+  "b": "t4-rekonsiliasi",
+  "d": "Mencocokkan catatan sendiri dengan catatan pihak lain, order demi order, lalu mencatat selisihnya sebagai insiden bernomor, bukan mengoreksinya dengan tangan.",
+  "h": "istilah/rekonsiliasi/",
+  "n": "4.9 Rekonsiliasi dengan gateway",
+  "s": "istilah-rekonsiliasi",
+  "t": "Rekonsiliasi",
+  "u": "tahap-4/rekonsiliasi-gateway/"
  },
  "replication lag": {
   "b": "D3",
