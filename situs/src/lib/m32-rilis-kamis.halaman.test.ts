@@ -303,7 +303,10 @@ describe("rekaman batas.txt: bagian A dan B, nilai yang dikutip, dan rentang Sni
     expect(ns).toContain(`dijawab \`${PESAN_B1}\` (${KODE_B1}) atau \`${PESAN_B2}\` (${KODE_B2}).`);
     expect(ns).toContain("Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia.");
     expect(ns).toContain("Rekaman bagian B ada di lipatan di bawah.");
-    harus("Kode pembayaran yang sama gagal sejak sebelum rename, dan rename kolom tidak mematahkan modul lain.");
+    harus("Kode pembayaran yang sama gagal sejak sebelum rename. Pemilik schema akun lalu menjalankan rename dan mengubah kode modul akun. Modul pembayaran tetap bekerja karena mengambil nama lewat modul akun, bukan lewat tabelnya (Rekaman lab, bagian B).");
+    harus("Kode lama di `labs/api-t4/internal/repo` tidak ikut dipindah, dan rekaman tidak menjalankannya sesudah rename.");
+    expect(readmeModul).toContain("Kode ledger lama (`internal/repo`, `internal/service`) tetap di tempatnya");
+    expect(badan).not.toContain("tidak mematahkan modul lain");
     harus("Di lab hanya modul pembayaran, yang berjalan sebagai service sendiri, memakai role modulnya sendiri. Modul lain di proses monolith berbagi satu role.");
     expect(readmeModul).toContain("proses monolith memakai satu role, `t4m_monolit`, yang mewarisi lima role modul");
     expect(readmeModul).toContain("Role `t4m_pembayaran` dipakai sungguhan oleh proses terpisah.");
@@ -358,8 +361,10 @@ describe("kode lab: SQL langsung, driver tiruan, rename oleh pemilik, dan klaim 
     expect(notifTes).toContain('dest[0] = "Budi"');
     expect(notifTes).toContain("// Tes modul pembayaran dengan data tiruan, seperti tes tiap tim pada M32: tidak ada skema tim lain di sini, jadi");
     expect(notifTes).toContain("// tes ini lolos sebelum dan sesudah kolom akun.nama diganti nama. Driver tiruan membalas satu baris untuk perintah");
-    harus('Di lab, driver tiruan membalas satu baris berisi "Budi" untuk perintah apa pun (Tidak dijalankan: dibaca dari kode):');
-    harus("Tes modul pembayaran memakai data tiruan, seperti tes tiap tim di cerita. Data tiruan adalah pengganti database yang membalas data tetap tanpa membuka koneksi.");
+    harus('Driver tiruan di tes itu membalas satu baris berisi "Budi" untuk perintah apa pun (Tidak dijalankan: dibaca dari kode):');
+    harus("Tes pembayaran di cerita memakai data tiruan, yaitu pengganti database yang membalas data tetap tanpa membuka koneksi. Rekaman menjalankan satu tes bernama lewat `-run`, dan tes itu memakai data tiruan.");
+    expect(bagA).toContain("$ go test -count=1 -run TestTeksTopupLangsungDenganDataTiruanLolos -v ./internal/modul/pembayaran");
+    expect(badan).not.toContain("Tes modul pembayaran memakai data tiruan");
     harus("Perintah apa pun termasuk perintah yang menyebut kolom yang sudah tidak ada. Tes itu tidak menyentuh skema, jadi rename tidak mengubah hasilnya. Tiga langkah CI lolos tanpa koneksi database:");
     expect(bagA).toContain("# Ketiga langkah CI tidak membuka koneksi database: tes pembayaran memakai driver tiruan, jadi migration tim Merchant tidak mengubah hasilnya.");
     expect(notifTes).not.toMatch(/pgx|sql\.Open\("pgx"/);
@@ -436,10 +441,10 @@ describe("ADR 17, kolom sebagai kopling, dan dokumentasi: dibaca dari sumber", (
     expect(v.map((m) => m[2])).toEqual(["lampiran kode galat", "ALTER TABLE"]);
     expect(v.map((m) => m[1])).toEqual([v165, v166]);
     const m32 = cocok(dari("t4-m32").judul, /^(M\d+):/)[1]!;
-    harus(`Di ${m32} jawabannya tidak seorang pun, karena tiga hal:`);
+    harus(`Di ${m32} tidak ada orang atau pemeriksaan di luar tim Merchant yang melihat migration itu sebelum rilis. Sebabnya tiga:`);
     harus(`Di ${m32} ADR 17 sudah tertulis dan tidak menghentikan migration itu.`);
     harus(`Di ${m32} yang berbagi database adalah modul dari tiga tim di satu aplikasi`);
-    const daftar = badan.slice(badan.indexOf("karena tiga hal:"), badan.indexOf("Di cerita tidak ada mesin yang memeriksa"));
+    const daftar = badan.slice(badan.indexOf("Sebabnya tiga:"), badan.indexOf("Di cerita tidak ada mesin yang memeriksa"));
     expect([...daftar.matchAll(/^(\d+)\. /gm)].map((x) => x[1])).toEqual(["1", "2", "3"]);
   });
   test("R4-165: kode 42703, 42P01, dan 42501 menurut dokumentasi PostgreSQL 17; halaman menulis arti 42703 satu kalimat", () => {
@@ -702,5 +707,128 @@ describe("kalimat terkunci: setiap baris badan halaman sama dengan nilai yang di
   test("baris badan, tidak kosong, sama dengan KALIMAT_TERKUNCI (urutan dan isi)", () => {
     const baris = badan.split("\n").map((b) => b.trim()).filter((b) => b !== "");
     expect(baris).toEqual(KALIMAT_TERKUNCI);
+  });
+});
+
+// ---- tinjauan peninjau: celah yang hanya terlihat tanpa kunci baris --------------------------------------------------------
+// Mutan peninjau yang lolos saat kunci baris dan sidik dimatikan: tim yang salah disebut, label Ilustrasi hilang, janji antar blok,
+// identifier terpotong, nilai diagram yang berbalik arti, dan definisi label yang berubah di /cara-pakai/. Tiap tes menurunkan
+// nilainya dari naskah, PRD 4.1, rekaman, kode lab, atau halaman label, bukan dari teks halaman ini.
+describe("tinjauan: nilai yang diturunkan dari sumber, bukan dari kunci baris", () => {
+  const blok = (nama: string): string => cocok(badan, new RegExp(`<Blok nama="${nama}"[^>]*>([\\s\\S]*?)</Blok>`))[1]!;
+  const himpunan = (teks: string, re: RegExp): string[] => [...new Set([...teks.matchAll(re)].map((m) => m[1]!))];
+  const sebelumTag = (tag: string): string => {
+    const i = badan.indexOf(tag);
+    expect(i, `tag ${tag}`).toBeGreaterThanOrEqual(0);
+    const potong = badan.slice(0, i).trimEnd();
+    return potong.slice(potong.lastIndexOf("\n\n") + 2);
+  };
+  test("tim: yang merilis, yang meninjau, dan yang memegang top-up sama dengan naskah M32 dan tabel tim di 4.1", () => {
+    const rename = cocok(barisM32, /Tim (\w+) mengganti nama kolom/)[1]!;
+    const pemeriksa = cocok(barisM32, /anggota tim (\w+) sendiri/)[1]!;
+    const topup = cocok(barisM32, /Tim (\w+): "Kami tidak mengubah apa pun\."/)[1]!;
+    expect(pemeriksa).toBe(rename);
+    expect(rename).not.toBe(topup);
+    cocok(hal41, new RegExp(`\\| ${topup}: \\d+ orang, dipimpin \\w+ \\| gateway, top-up`));
+    cocok(hal41, new RegExp(`\\| ${rename}: \\d+ orang, dipimpin \\w+ \\| merchant luar, QR`));
+    expect(himpunan(badan, new RegExp(`Kamis pukul ${JAM_RILIS.replace(".", "\\.")} tim (\\w+) merilis`, "g"))).toEqual([rename]);
+    expect(himpunan(badan, /Rilis Kamis datang dari tim (\w+)/g)).toEqual([rename]);
+    expect(himpunan(badan, /tim (\w+) menjalankan satu migration/g)).toEqual([rename]);
+    expect(himpunan(badan, /anggota tim (\w+) sendiri/g)).toEqual([pemeriksa]);
+    expect(himpunan(badan, /di luar tim (\w+) yang melihat migration/g)).toEqual([rename]);
+    expect(himpunan(badan, /Nadia bertanya ke tim (\w+)/g)).toEqual([topup]);
+    expect(himpunan(badan, /milik tim (\w+), membaca/g)).toEqual([topup]);
+    expect(himpunan(badan, /Raka lalu memeriksa tes tim (\w+)\./g)).toEqual([topup]);
+    expect(himpunan(skenario.pengantar, /^Tim (\w+) mengganti nama satu kolom/g)).toEqual([rename]);
+    expect(himpunan(skenario.predict.q, /^Tim (\w+) mengganti nama kolom/g)).toEqual([rename]);
+    expect(himpunan(skenario.langkah[2]!.judul, /^Migration (\w+) mengganti/g)).toEqual([rename]);
+    expect(himpunan(skenario.langkah[2]!.kirim, /migration tim (\w+):/g)).toEqual([rename]);
+    expect(himpunan(skenario.komponen.map((k) => k.label).join("\n"), /CI tim (\w+)/g)).toEqual([topup]);
+    expect(himpunan(skenario.langkah[0]!.judul, /CI tim (\w+) lolos/g)).toEqual([topup]);
+    expect(himpunan(diagram.baris[0]!.label, /CI tim (\w+)/g)).toEqual([topup]);
+    expect(badan).not.toMatch(/tidak seorang pun/);
+    harus("Di M32 tidak ada orang atau pemeriksaan di luar tim Merchant yang melihat migration itu sebelum rilis. Sebabnya tiga:");
+  });
+  test("Gejala: satu label Ilustrasi (naskah memberi label itu pada jam rollback) dan satu Hitungan; sebab 2 berlabel Ilustrasi karena lab tidak memuatnya", () => {
+    expect(barisM32.match(/\(Ilustrasi\)/g)).toHaveLength(1);
+    const g = blok("Gejala");
+    expect(g.match(/\(Ilustrasi\)/g)).toHaveLength(1);
+    expect(g).toContain("*Angka cerita (Ilustrasi):*");
+    expect(g.match(/\(Hitungan: /g)).toHaveLength(1);
+    const sebab = cocok(badan, /^2\. (Folder migration dipakai bersama[^\n]*)$/m)[1]!;
+    expect(sebab).toMatch(/\(Ilustrasi: dari cerita, tidak ada di lab\)\.$/);
+    expect(barisM32).toContain("Folder migration dipakai bersama tanpa pemilik, dan yang meninjau perubahan itu anggota tim Merchant sendiri");
+  });
+  test("identifier berkutip di prosa ada di sumber yang dikutip: rekaman, kode lab, daftar berkas, ADR 17, naskah, README", () => {
+    const daftar = ["labs/api-t4/internal/modul/pembayaran", "labs/api-t4/internal/repo", "labs/api-t4/internal/service", "labs/t4-modul", "labs/t4-modul/output"]
+      .flatMap((d) => fs.readdirSync(path.join(akar, d)));
+    const sumber = [batas, notifGo, notifTes, satuTes, layananGo, readmeModul, adr17, naskah, hal41, baca("labs/api-t4/internal/modul/pembayaran/pembayaran_test.go"),
+      ...fs.readdirSync(path.join(akar, "labs/api-t4/internal/repo")).filter((f) => f.endsWith(".go")).map((f) => baca(`labs/api-t4/internal/repo/${f}`)), baca("labs/api-t4/internal/service/topup.go"), baca("labs/t4-modul/output/testing.txt"), daftar.join("\n")].join("\n");
+    const kutip = himpunan(badan, /`([A-Za-z_][\w.]*)`/g).filter((x) => /[A-Z_]/.test(x) || x.includes("."));
+    expect(kutip.length).toBeGreaterThan(8);
+    for (const x of kutip) expect(sumber, `identifier "${x}" tidak ada di sumber`).toContain(x);
+    expect(kutip).toContain("TeksTopupLangsung");
+  });
+  test("janji antar blok: 'ada di blok berikutnya' ditepati; noscript menunjuk lipatan bagian B; kalimat pembuka Snippet dan widget menyebut isinya", () => {
+    expect(blok("Yang Raka kira")).toContain("Kenapa tesnya tetap hijau ada di blok berikutnya.");
+    expect(blok("Yang sebenarnya")).toContain("**Kenapa tesnya tetap hijau.**");
+    const coba = blok("Coba sendiri");
+    expect(coba).toContain("Rekaman bagian B ada di lipatan di bawah.");
+    expect(coba).toContain("<details>\n<summary>Rekaman bagian B (juga untuk pembaca tanpa JavaScript)</summary>");
+    expect(coba.indexOf("<noscript>")).toBeLessThan(coba.indexOf("<summary>Rekaman bagian B"));
+    expect(coba).toContain("[[t4-modul]]");
+    const fungsi = cocok(NK.baris[kFungsi - 1]!, /^func (\w+)\(/)[1]!;
+    expect(sebelumTag('<Snippet file="labs/api-t4/internal/modul/pembayaran/notifikasi.go"')).toContain(`\`${fungsi}\``);
+    expect(notifTes).toContain('dest[0] = "Budi"');
+    expect(sebelumTag('<Snippet file="labs/api-t4/internal/modul/pembayaran/notifikasi_test.go"')).toMatch(/Driver tiruan di tes itu membalas satu baris berisi "Budi"/);
+    const pengantarWidget = sebelumTag('<WidgetLama nama="alur"');
+    const alurJs = baca("situs/lama/widgets/alur.js");
+    expect(alurJs).toContain("panah kiri/kanan");
+    expect(alurJs).toContain("Berikutnya →");
+    expect(pengantarWidget).toContain("Tebak dulu");
+    expect(pengantarWidget).toContain("Berikutnya atau panah kanan");
+  });
+  test("kalimat yang mengutip sumber: judul 'Siapa yang tahu sebelum rilis?' dari PRD 4.1; 'sebelum dan sesudah migration' dari baris sebelum/sesudah rename di rekaman A", () => {
+    const q = cocok(hal41, /^2\. Kalau tiga tim .*(siapa yang tahu sebelum rilis)\?$/m)[1]!;
+    harus(`**${q[0]!.toUpperCase()}${q.slice(1)}?**`);
+    expect(T.baris[aSebelum - 1]).toMatch(/^sebelum rename, /);
+    expect(T.baris[aSesudah - 1]).toMatch(/^sesudah rename, /);
+    harus("Rekaman menjalankan fungsi yang sama dua kali dengan role dan skema yang sama, sebelum dan sesudah migration:");
+  });
+  test("diagram Rantai: arti tiap simpul sejalan dengan rekaman A (tanpa koneksi, satu schema dan satu role, tes hijau tetapi top-up gagal)", () => {
+    expect(bagA).toContain("tidak membuka koneksi database");
+    expect(diagram.baris[0]!.sub).toBe("tanpa koneksi database");
+    expect(batas).toMatch(/\(satu schema\)/);
+    expect(batas).toMatch(/satu role aplikasi \(\w+\) untuk semua modul/);
+    expect(diagram.baris[1]!.sub).toBe("satu schema, satu role");
+    expect(bagA).toContain("PASS: TestTeksTopupLangsungDenganDataTiruanLolos");
+    expect(bagA).toContain("does not exist");
+    expect(diagramMentah.judul).toBe("Tes hijau, kolom berganti nama, top-up gagal");
+    expect(diagram.baris[0]!.label).toBe("Yang dilihat CI tim Pembayaran");
+    expect(diagram.baris[1]!.label).toBe("Yang terjadi di database");
+  });
+  test("/cara-pakai/ mendefinisikan tiga label yang dirujuk Gejala (A0), dan baris riset R4-168 menyebut rentang repo.go yang memuat SELECT a.nama", () => {
+    for (const l of ["Rekaman lab", "Ilustrasi", "Tidak dijalankan"]) expect(cara, l).toMatch(new RegExp(`^- \\*\\*${l}\\*\\*: `, "m"));
+    expect(cara).toContain("- **Ilustrasi**: contoh atau widget yang disusun dari konsep, bukan direkam dari sistem sungguhan.");
+    expect(cara).toContain("- **Tidak dijalankan**: kode hanya dicek ke dokumentasi resmi, tidak dijalankan di lab.");
+    const repoGo = bagian(baca("labs/api-t4/internal/repo/repo.go"));
+    const mulai = repoGo.nomor((b) => b.startsWith("func (r Repo) Akun("));
+    const pilih = repoGo.nomor((b) => b.includes("SELECT a.id, a.jenis, a.nama"), mulai);
+    const r = cocok(barisRiset("R4-168"), /`repo\.go` baris (\d+) sampai (\d+)/);
+    expect(Number(r[1])).toBe(mulai);
+    expect(Number(r[2])).toBeGreaterThanOrEqual(pilih);
+    expect(Number(r[2])).toBeLessThan(mulai + 14);
+  });
+  test("tes lain di paket pembayaran memakai PostgreSQL dan dilewati tanpa TEST_DATABASE_URL (bullet 'Yang tidak direkam')", () => {
+    const pembTes = baca("labs/api-t4/internal/modul/pembayaran/pembayaran_test.go");
+    const testing = baca("labs/t4-modul/output/testing.txt");
+    expect(pembTes).toContain('t.Skip("TEST_DATABASE_URL kosong: tes ini butuh PostgreSQL")');
+    expect(testing).toContain("# --- B. Tes API ledger (service dan HTTP) dan modul pembayaran dengan PostgreSQL sungguhan");
+    expect(testing).toContain("# --- C. Tanpa TEST_DATABASE_URL: tes yang butuh database dilewati, tes tanpa itu tetap jalan");
+    harus("- Sebagian tes lain di paket `internal/modul/pembayaran` memakai PostgreSQL dan dilewati bila `TEST_DATABASE_URL` kosong (Rekaman lab, `testing.txt` bagian B dan C). Rekaman tidak menjalankannya sesudah rename.");
+    const baris = riset.split("\n").filter((b) => b.startsWith("| R4-169 |"));
+    expect(baris).toHaveLength(1);
+    expect(baris[0]).toContain("testing.txt");
+    expect(baris[0]).toContain("`t.Skip` bila `TEST_DATABASE_URL` kosong");
   });
 });

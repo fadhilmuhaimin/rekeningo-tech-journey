@@ -56,7 +56,7 @@ Perintah itu mengganti nama kolom dan tidak mengubah data yang tersimpan ([dokum
 
 `TeksTopupLangsung` ditulis lab mengikuti cerita. Karena itu bagian ini Ilustrasi mekanisme: kodenya ditulis mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Hasilnya bukan rekaman kode produksi.
 
-**Kenapa tesnya tetap hijau.** Tes modul pembayaran memakai data tiruan, seperti tes tiap tim di cerita. Data tiruan adalah pengganti database yang membalas data tetap tanpa membuka koneksi. Di lab, driver tiruan membalas satu baris berisi "Budi" untuk perintah apa pun (Tidak dijalankan: dibaca dari kode):
+**Kenapa tesnya tetap hijau.** Tes pembayaran di cerita memakai data tiruan, yaitu pengganti database yang membalas data tetap tanpa membuka koneksi. Rekaman menjalankan satu tes bernama lewat `-run`, dan tes itu memakai data tiruan. Driver tiruan di tes itu membalas satu baris berisi "Budi" untuk perintah apa pun (Tidak dijalankan: dibaca dari kode):
 
 <Snippet file="labs/api-t4/internal/modul/pembayaran/notifikasi_test.go" lines="33:46" lang="go" title="Kode lab: labs/api-t4/internal/modul/pembayaran/notifikasi_test.go baris 33 sampai 46 (driver tiruan membalas satu baris)" />
 
@@ -70,7 +70,7 @@ Perintah apa pun termasuk perintah yang menyebut kolom yang sudah tidak ada. Tes
 
 <Rantai data={renameTesHijau} />
 
-**Siapa yang tahu sebelum rilis?** Pertanyaan kedua di PRD v4 berbunyi: kalau tiga tim mengubah tabel yang sama, siapa yang tahu sebelum rilis ([[t4-prd]])? Di M32 jawabannya tidak seorang pun, karena tiga hal:
+**Siapa yang tahu sebelum rilis?** Pertanyaan kedua di PRD v4 berbunyi: kalau tiga tim mengubah tabel yang sama, siapa yang tahu sebelum rilis ([[t4-prd]])? Di M32 tidak ada orang atau pemeriksaan di luar tim Merchant yang melihat migration itu sebelum rilis. Sebabnya tiga:
 
 1. Tes tiap tim memakai data tiruan, jadi tidak membawa skema tim lain.
 2. Folder migration dipakai bersama tanpa pemilik, dan yang meninjau migration itu anggota tim Merchant sendiri (Ilustrasi: dari cerita, tidak ada di lab).
@@ -83,6 +83,7 @@ Martin Fowler menulis tentang beberapa aplikasi yang berbagi satu database. Menu
 **Yang tidak direkam.**
 
 - Rekaman tidak menjalankan jalur top-up penuh sesudah rename. Apakah jurnal top-up sudah tertulis saat kesalahan muncul, rekaman tidak menjawabnya.
+- Sebagian tes lain di paket `internal/modul/pembayaran` memakai PostgreSQL dan dilewati bila `TEST_DATABASE_URL` kosong (Rekaman lab, `testing.txt` bagian B dan C). Rekaman tidak menjalankannya sesudah rename.
 - Query lain di `labs/api-t4/internal/repo` juga membaca `akun.nama`, misalnya `Akun`, `Katalog`, dan `TutupBuku` (Tidak dijalankan: dibaca dari kode). Rekaman tidak menjalankan satu pun dari query itu sesudah rename.
 - Rollback, jam rilis, folder migration, dan peninjau dari tim Merchant hanya ada di cerita (Ilustrasi).
 
@@ -94,7 +95,9 @@ Widget ini mengikuti rekaman `batas.txt` bagian A, dengan satu varian dari bagia
 
 <WidgetLama nama="alur" src="data/skenario/t4-m32.json" />
 
-Sesudah langkah terakhir, centang **Ubah satu hal: modul pembayaran dan modul akun dipisah schema dan role**. Kode pembayaran yang sama gagal sejak sebelum rename, dan rename kolom tidak mematahkan modul lain. Cara pemisahan dan alasan memilihnya ada di [[t4-modul]].
+Sesudah langkah terakhir, centang **Ubah satu hal: modul pembayaran dan modul akun dipisah schema dan role**. Kode pembayaran yang sama gagal sejak sebelum rename. Pemilik schema akun lalu menjalankan rename dan mengubah kode modul akun. Modul pembayaran tetap bekerja karena mengambil nama lewat modul akun, bukan lewat tabelnya (Rekaman lab, bagian B).
+
+Kode lama di `labs/api-t4/internal/repo` tidak ikut dipindah, dan rekaman tidak menjalankannya sesudah rename. Cara pemisahan dan alasan memilihnya ada di [[t4-modul]].
 
 Di lab hanya modul pembayaran, yang berjalan sebagai service sendiri, memakai role modulnya sendiri. Modul lain di proses monolith berbagi satu role. Layar HP digambar dari cerita (Ilustrasi): lab tidak punya app Flutter.
 
