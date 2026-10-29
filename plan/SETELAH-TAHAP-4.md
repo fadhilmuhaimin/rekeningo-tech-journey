@@ -140,3 +140,46 @@ Polesan dari tinjauan Tahap 4 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - `alat.pastikan` memeriksa checksum hanya saat mengunduh; biner yang sudah ada di `.alat` hanya diperiksa lewat `--version`. SHA-256 arsip basis data grype juga hanya diperiksa saat impor.
 - `putuskan_sbom` menerima daftar modul yang diharapkan kosong dan lulus; `parse_gosec` gagal dengan `IndexError` (bukan `ValueError`) bila satu galat paket berisi teks kosong. Keduanya tetap gagal tertutup di run, tetapi pesannya tidak jelas.
 - Bagian klien memakai `--skip-validate-spec` pada openapi-generator; README belum menyebutnya. `docker rmi` image lab di akhir run tidak dijaga tes.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- ERD Tahap 4 di HP setinggi ±5.800 px (22 tabel bertumpuk satu kolom); usul untuk halaman 4.5: lipat per modul (enam bagian dari `modul-tahap-4.json`) atau tampilkan hanya modul yang dipilih.
+- `ukur-erd.mjs`: tambah CLS hydrate dengan Tahap 4 sebagai tahap awal (`awal={4}`) saat halaman 4.5 ditulis; ukur juga mode font telat (Verdana) karena `METRIK` diukur dengan Satoshi dan JetBrains Mono terpasang.
+- Penjaga serupa ERD3 dan ERD4 (baris katalog dan hash `tabel`) untuk `tahap-1.json` dan `tahap-2.json`; atau `tabel_sha256` di format JSON (keputusan 1256, alternatif).
+- Tahap 4 bandingkan di 1366 px setinggi ±3.150 px dengan teks 0,83 sampai 0,85; halaman 4.5 bisa memilih tampil tunggal bila ingin teks tidak diperkecil.
+- `ErdTumbuh` memuat bundel React Flow (±57 KB gzip) hanya untuk halaman uji dan halaman skema; ukuran JS `/uji/erd/` dicatat di `plan/AUDIT-TAMPILAN.md`.
+- Peninjau: dengan font Verdana di layar 320 px Tahap 4 punya 4 nama terpotong (`buku.akun_id`, kepala `batch_pencairan`, `baris_pencairan`, `operasi_sinkron` dengan status "tetap"; Courier New 3, Georgia 1, Arial 0; Tahap 3 nol di semua font yang dicoba): `METRIK` mengandalkan Satoshi dan JetBrains Mono, dan kepala `batch_pencairan` hanya punya sisa ±0,8 px pada perkiraan di node 200 px. Pertimbangkan membungkus kepala atau memberi margin, dan ukur dengan font cadangan seperti butir SETELAH-TAHAP-4 di atas.
+- Peninjau: trigger invarian ledger (tiga constraint trigger dan fungsi `tolak_ubah`) tidak tampil di ERD semua tahap (tercatat di `erd.py`); halaman skema Tahap 2 sampai 4 bisa menambah baris "Dijaga trigger" di detail `jurnal` dan `posting` dari katalog.
+- Peninjau: tombol pemilih tahap dan "Bandingkan" tampil dan tidak berfungsi tanpa JavaScript (sama di main); BRIEF-HALAMAN meminta tombol seperti itu disembunyikan, jadi sembunyikan sebelum hydrate di halaman 4.5.
+- Peninjau: `banding_mermaid` menghitung index UNIQUE parsial (`WHERE`) sebagai relasi satu-ke-satu; belum ada kasusnya di Tahap 4, tambah syarat definisi tanpa `WHERE`.
+- Peninjau: hash `modul-tahap-4.json` mencakup seluruh `modul.sql` termasuk baris GRANT, jadi perubahan hak di lab `t4-modul` memaksa `erd.py --tahap 4` ulang (butuh database) walau pembagian tabel sama; bila mengganggu, hash hanya baris `CREATE SCHEMA` dan `ALTER TABLE ... SET SCHEMA`.
+- Peninjau: commit widget `690e4356` 546 baris non-generated (255 tes) melampaui batas 300; tidak bisa dipecah sesudah PR.
+- Peninjau: `ukur-erd.mjs` bagian 6d belum mengukur CLS, versi tanpa JavaScript, dan axe dengan Tahap 4 sebagai tahap awal; diukur peninjau di salinan (CLS 0,0000 di 320, 375, 1366 px, tanpa JS tampil benar, axe 320 px 0), jadikan pemeriksaan tetap saat halaman 4.5 punya `awal={4}`.
+- Halaman 4.7: pasang `<WebhookLangkah />` di blok Coba dan jangan menyalin angka widget; kalimat bebas tiap langkah terkunci sidik, jadi perubahan teks harus memperbarui `KUNCI` di `penjaga.test.ts`.
+- `/uji/webhook/` belum ada di daftar halaman `ukur-axe.mjs`; alat widget memeriksa axe sendiri (tiga keadaan, dua tema).
+- Rekonsiliasi atas dua jurnal dari handler versi pertama belum punya rekaman; bila 4.9 ingin klaim, butuh bagian lab.
+- `scroll-margin-top` pada langkah setara di Chromium; Firefox dan Safari belum diuji.
+- Papan keadaan lengket dua kolom untuk desktop lebar belum dicoba.
+- `ukur-webhook.mjs` +427 baris dalam satu commit (aturan 300 baris non-generated): pecah menurut bagian bila diubah lagi.
+- Tombol "Langkah sebelumnya" (quiet) berlatar putih di dalam langkah aktif mode terang desktop; pertimbangkan latar transparan.
+- Sesudah "Langkah berikutnya" fokus pindah ke langkah tujuan, jadi pengguna keyboard menekan Tab satu sampai dua kali sebelum tombol berikutnya; pertimbangkan memindahkan fokus ke tombol Langkah berikutnya milik langkah tujuan.
+- `rentan.txt` A tidak mencetak perintah yang mengirim kabar pending (hanya hasil `SELECT`); lab api-t4 sebaiknya mencatatnya supaya halaman 4.7 bisa menelusuri kejadiannya.
+- `z-index` bilah lengket setara dengan DOM sekarang; bila elemen berposisi lain masuk ke widget, tambahkan pemeriksaan tumpang tindih di `ukur-webhook.mjs`.
+- Horizon 180 detik tidak memuat outage panjang; 210 permintaan percobaan dan sampai 42 dari 146 pekerjaan hanya Hitungan. Bila 4.11 butuh melihatnya, tambah penggeser lama outage dengan jam diperankan.
+- Hanya vendor yang pulih di bawah Timeout (detik 30) atau tidak pernah pulih; vendor yang pulih sesudah permintaan percobaan pertama (probe gagal lalu sukses) belum punya tombol.
+- `IsExcluded` (hasil netral v2.4.0, `breaker.txt` bagian D) dan Interval nonnol tidak dimodelkan.
+- Gerak masuk jawaban tebakan (`muncul`) tidak diukur di halaman uji; satu mutan yang menghapusnya hidup.
+- `ukur-breaker.mjs` menjalankan Playwright dengan batas bawaan 30 detik per aksi yang gagal; mutasi yang merusak halaman membuatnya lambat (±40 detik per mutan).
+- Legenda papan memakai swatch seragam 0,8 rem: kode tinggi kotak (Gagal 5xx 100%, Jawaban 4xx 70%, Timeout 55%, Berhasil 30%) hanya terbaca di papan; Gagal 5xx dan Timeout satu warna dan satu swatch di legenda. Tampilkan tinggi relatif di swatch.
+- Lima mutan tampilan masih hidup dan kosmetik atau setara: daftar jenis jawaban flex bukan grid, bobot huruf angka, jarak antar tombol 0, dan pilih tebakan tanpa `setParam(awal)` (setara).
+- Kotak "Ditolak cepat" dibuat dari dua bayangan dalam 1 px: di lebar kotak bukan bilangan bulat garisnya bergantian tajam dan buram (kosmetik).
+- "lajur" dan "dijeda" dipakai di Hitungan dan alasan tebakan tanpa arti di dalam widget: 4.10 atau 4.11 menjelaskannya sebelum widget.
+- `ukur-breaker.mjs` kini ±450 baris dan lambat saat halaman rusak (±40 detik per mutan); pertimbangkan dipecah per bagian.
+- Audit bahasa naskah 4 memberi 13 peringatan (3 sebelum tugas ini); sepuluh baru adalah kalimat atau paragraf panjang di tambalan: pecah bila pemilik meninjau naskah.
+- Daftar kelompok di kepala naskah 4 ditulis dua kali (kepala dan tambalan di tempatnya); bila pemilik meninjau, lipat kepala menjadi satu paragraf seperti naskah 3.
+- `python3 tools/erd.py --naskah 4` hanya menandai selisih informasi; bila blok mermaid kelak disamakan dengan lab, `test_erd.py` (mutasi `text hash_sebelumnya`) ikut berubah.
+- Tinjauan 1393: halaman 3.5 menulis "13 developer dalam tiga tim" sedangkan 3.27, 3.29, dan 3.32 menulis "10 sampai 15" (orang atau engineer) dan tanpa label Asumsi cerita di 3.5; samakan satu bentuk saat pemilik memutuskan angkanya.
+- Tinjauan 1393: kalimat "13 orang dalam tiga tim" ada dua kali di naskah 4, jadi `tim-infra-t3.halaman.test.ts:194` (`toContain`) tidak menangkap perubahan salah satunya; angka tambalan naskah 4 (0,5787; ±13,8; 13,333; 8,7 kali; ±65.000; Pembayaran 5) tanpa penjaga sampai halaman 4.x menurunkannya.
+- Tinjauan 1393: catatan ANTREAN yang bertentangan dengan naskah sesudah tambalan (pengatur yang mengubah): blok 4.1 ("Jembatan 3.32 menulis tiga tim gateway, kartu, dasbor"; salah menurut keputusan 1126), blok 4.5 ("Halaman 3.5 menulis tim 6–10 dalam 2 tim"; sudah diperbaiki di PR ini), blok 4.16 ("breaker ADR 36 terbuka dengan benar"; ADR 36 menghitung 403 sukses, breaker bawaan yang terbuka), blok 4.17 ("OpenBao v2.7.1"; lab v2.7.2), blok 4.21 ("2 MB"; kode 2 MiB). Registry dan RINGKAS tidak bertentangan.
+- Tinjauan 1393: "Simulasi" (label widget W4-breaker, disebut di ADR 36 naskah) bukan salah satu dari lima label di `/cara-pakai/`; halaman 4.11 memakai Ilustrasi atau memberi satu kalimat arti di pemakaian pertama. Halaman 4.26 jangan menulis gosec memakai G701 untuk setiap `fmt.Sprintf` ke `database/sql` (README t4-pipeline temuan 4). `fitur.txt` dan `rentan.txt` di `api-t4` menunjuk rekaman unduh-rentan di lab ssrf yang tidak ada.
+- Tinjauan 1393: IsExcluded (hasil netral gobreaker v2.4.0, `breaker.txt` D) dan `tidak_pasti` yang berakhir `gagal` belum jadi kalimat ADR 36; halaman 4.11 boleh memuatnya.

@@ -1,0 +1,242 @@
+---
+title: "4.1 PRD v4: Rekeningo dibuka ke publik"
+description: Dokumen produk keempat Rekeningo. Sinta menulisnya untuk PT Rekeningo yang dibuka ke publik, Pak Hadi memperluas satu syaratnya, dan 13 engineer dalam tiga tim punya 12 minggu.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import prdDiagram from "../../../../data/diagram/t4-prd-sebelum-sesudah.json";
+
+<p class="meta">Baca 13 menit · Prasyarat: [[t3-jembatan]] · Jalur inti</p>
+
+Sinta menulis PRD keempat ini untuk **PT Rekeningo** (fiktif), perusahaan yang dibuka untuk publik. Ringkasannya sudah tampil di [[t3-jembatan]]. Halaman ini memuat dokumen lengkapnya, dan blok terakhir membuka jawaban atas tebakan di sana.
+
+<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v4">
+  <dl><div><dt>Penulis</dt><dd>Sinta, unit Inisiatif Digital</dd></div><div><dt>Syarat baru</dt><dd>Pak Hadi, Kepala Divisi Keuangan</dd></div></dl>
+  <dl><div><dt>Lingkup</dt><dd>PT Rekeningo (fiktif): 100.000 user terdaftar, merchant di luar Lestari</dd></div><div><dt>Waktu</dt><dd>12 minggu, 13 engineer dalam tiga tim</dd></div></dl>
+</div>
+
+<Blok nama="Latar masalah" buka>
+
+Uji coba enam kota lolos di minggu 10 Tahap 3: tutup buku bulan ketiga selesai dalam kurang dari sehari, dengan selisih Rp0 ([[t3-m28]]). Direksi Grup Lestari lalu mendirikan PT Rekeningo supaya orang di luar Lestari bisa memakai Rekeningo.
+
+Sasarannya 100.000 user terdaftar, dan 20% aktif tiap hari ([Asumsi](/cara-pakai/#label-sumber)). Tiga hal berubah sekaligus.
+
+<Rantai data={prdDiagram} />
+
+1. **Uang datang dari luar.** User mengisi saldo dari rekening bank lewat gateway pembayaran, dan Rekeningo bukan lagi satu-satunya yang tahu kapan uang masuk.
+2. **User tidak dikenal.** Tidak ada HR Lestari yang menjamin siapa mereka, jadi identitas diverifikasi lewat layanan luar dan foto kartu identitas disimpan.
+3. **Tim dan perusahaan berpisah dari Lestari.** Ada tiga tim, infrastruktur sendiri, dan akses ke data yang harus bisa dipertanggungjawabkan.
+
+Angka di dokumen ini adalah angka cerita (Ilustrasi: contoh, bukan hasil sistem), kecuali yang ditulis Asumsi, Hitungan, atau Rekaman lab. Asumsi adalah angka beban atau pilihan yang rumusnya atau alasannya ditulis di halaman.
+
+Hitungan adalah rumus yang ditulis di halaman, dan ia memakai label masukan terlemahnya. Arti lengkap label sumber ada di [Label sumber](/cara-pakai/#label-sumber).
+
+Tahap 4 berangkat dari api-t3 di akhir Tahap 3, belum dari sistem yang sudah dibereskan. Dua hal yang dicatat [[t3-jembatan]] masih terbuka:
+
+- Kapasitas satu server belum diukur. Load test dari aturan 5 ADR 21 Tidak dijalankan ([[t3-m28]]).
+- Idempotency-Key tetap opsional di bayar, transfer, dan pesanan. App 1.0 dan 1.1 tanpa key tetap rentan terhadap M10 ([[t3-offline]]).
+
+</Blok>
+
+<Blok nama="Tujuan">
+
+1. PT Rekeningo berdiri sendiri: infrastruktur, kredensial, dan akses data terpisah dari Lestari.
+2. Siapa pun dengan rekening bank mengisi saldo dan membayar di merchant luar.
+3. Identitas user terverifikasi sebelum batas besar.
+4. Tim risk bisa membekukan dan menelusuri akun, dan setiap akses staf tercatat.
+
+</Blok>
+
+<Blok nama="User dan kebutuhan barunya">
+
+Empat istilah dipakai di bagian ini dan bagian berikutnya. **QR** adalah kode yang dipindai kamera HP, dan di sini memuat tujuan pembayaran ke satu merchant. **Kartu virtual** adalah nomor kartu tanpa kartu fisik, untuk belanja online.
+
+**Back office** adalah aplikasi web internal untuk staf, bukan untuk user. **Rekonsiliasi** adalah mencocokkan catatan sendiri dengan catatan pihak lain.
+
+| User | Kebutuhan baru | Yang membuatnya berhenti memakai |
+|---|---|---|
+| User umum (Budi dan Citra di luar kampus) | Mengisi saldo dari bank; membayar QR; kartu virtual | Saldo naik dua kali atau tidak naik; verifikasi yang gagal tanpa alasan; data yang bocor |
+| Merchant luar (Bu Marni dan ±400 lainnya, Asumsi) | Menerima QR; kelola katalog; dicairkan ke rekening bank | Pembayaran yang tidak masuk laporan; QR yang bisa diganti orang |
+| Warung Lestari (Ani dan ±59 lainnya) | Tetap seperti Tahap 3, ditambah QR | Notifikasi atau laporan yang terganggu urusan publik |
+| Tim risk (Ratih) | Melihat akun dan verifikasi; menyetujui merchant; membekukan akun; mengubah batas | Data yang tidak cukup, atau akses yang tidak tercatat |
+| Keuangan (Pak Hadi) | Rekonsiliasi harian dengan gateway; selisih bernomor | Selisih yang dikoreksi dengan tangan |
+| Security reviewer (Laras) | Bukti, bukan janji, sebelum dibuka ke publik | Temuan yang ditutup dengan "sudah dibahas" |
+
+</Blok>
+
+<Blok nama="Ruang lingkup">
+
+Lingkupnya publik: 100.000 user terdaftar dan 20.000 aktif per hari, dikerjakan 13 orang selama 12 minggu. [[t3-jembatan]] menyebut empat fitur P0, dua fitur P1, dan satu baris P2. PRD lengkap menambah keterangan tiap fitur, metrik, risiko, dan pertanyaan terbuka.
+
+| Prioritas | Fitur | Keterangan |
+|---|---|---|
+| P0 | PT Rekeningo berdiri sendiri | Infrastruktur, kredensial, dan akses data milik PT, terpisah dari Lestari. Lestari menjadi satu merchant dan satu pelanggan korporat. Setiap akses staf ke data identitas tercatat |
+| P0 | Top-up dari rekening bank lewat gateway | User memilih nominal, mendapat tujuan bayar dari gateway, membayar di app bank, dan saldo bertambah saat gateway memberi tahu. Gateway lambat atau mati tidak menahan bayar dan transfer antar akun. Selisih dengan laporan gateway tercatat sebagai insiden |
+| P0 | Verifikasi identitas | Pendaftaran sendiri dan pemulihan akun memakai verifikasi yang sama: foto kartu identitas dan swafoto dikirim ke layanan verifikasi. Dua tingkat (Asumsi produk): belum terverifikasi, boleh top-up dan membayar QR dengan saldo paling banyak Rp1.000.000; terverifikasi, saldo paling banyak Rp10.000.000, boleh transfer dan memegang kartu. 10.000 akun Lestari ditandai terverifikasi lewat HR |
+| P0 | QR untuk merchant di luar Lestari | Pembeli memindai QR merchant dan membayar dari saldo. Merchant diajukan, diverifikasi tim risk, dan dicairkan ke rekening bank lewat file seperti Tahap 2 |
+| P1 | Kartu virtual | User terverifikasi menerbitkan kartu virtual dari saldonya untuk belanja online; penerbit kartu tiruan; batas per kartu; pembekuan dari app; rilis bertahap |
+| P1 | Back office untuk tim risk | Lihat akun dan verifikasi, setujui merchant, bekukan akun, ubah batas dengan persetujuan dua orang; semua aksi tercatat |
+| P2 | Ditunda ke v5 | Laporan merchant real-time, notifikasi massal skala besar, cicilan dan tabungan, API publik untuk POS |
+
+Asumsi produk adalah Asumsi yang berupa pilihan produk. Dua batas saldo di baris verifikasi, Rp1.000.000 dan Rp10.000.000, tidak berasal dari hitungan atau rekaman.
+
+**Bukan lingkup v4:** pembayaran offline, pencairan merchant otomatis lewat bank (tetap file), tarik tunai, kartu fisik, multi-mata uang, dan klaim izin atau kepatuhan regulasi apa pun.
+
+</Blok>
+
+<Blok nama="Metrik dan batasan">
+
+**Metrik keberhasilan (target, Asumsi)**
+
+- 20.000 user aktif per hari (20% dari 100.000, registry).
+- 99% top-up tercatat dalam kurang dari 5 menit sejak gateway mengirim kabar.
+- 0 top-up tercatat dua kali; setiap selisih rekonsiliasi harian menjadi insiden bernomor yang ditutup dalam satu hari kerja.
+- 90% verifikasi selesai dalam kurang dari 10 menit.
+- 100% akses staf ke file dan data identitas tercatat di audit log, yaitu catatan siapa membuka atau mengubah apa, kapan.
+- Deploy tanpa error yang terlihat user.
+
+Metrik kedua mulai dihitung saat gateway mengirim kabar, bukan saat user membayar di app bank.
+
+**Batasan**
+
+- 13 engineer dalam tiga tim selama 12 minggu (Asumsi cerita).
+- Infrastruktur baru milik PT, dengan anggaran naik untuk layanan terkelola (Asumsi).
+- Semua pihak ketiga berupa tiruan lokal di lab.
+- Security review oleh Laras lolos sebelum dibuka ke publik.
+
+Aturan Pak Hadi dipertahankan dan diperluas:
+
+| PRD | Aturan Pak Hadi |
+|---|---|
+| v1 | "Tidak ada angka yang berubah tanpa catatan siapa, kapan, kenapa." |
+| v2 | "Setiap rupiah di saldo siapa pun harus bisa ditelusuri ke kejadian yang membuatnya, tanpa tabel koreksi tangan." |
+| v3 | Aturan v2 tetap berlaku, ditambah: "Ani tidak boleh diberi tahu uang masuk sebelum uang itu benar-benar tercatat." |
+| v4 | Aturan v3 tetap berlaku, ditambah: "Setiap rupiah dari luar harus cocok dengan catatan pihak yang mengirimnya. Kalau tidak cocok, namanya insiden, bukan angka yang saya koreksi." |
+
+**Beban yang diharapkan (Asumsi)**
+
+| Besaran | Nilai | Cara hitung |
+|---|---|---|
+| User terdaftar | 100.000 | PRD v4 |
+| User aktif harian (DAU) | 20.000 | 100.000 × 20% (asumsi) |
+| Request per hari | 1.200.000 | 20.000 × 60 request (asumsi) |
+| Puncak request per detik | ±138,9 | 1.200.000 ÷ 86.400 × 10 = 138,89 (asumsi) |
+| Transaksi uang per hari (bayar, transfer, QR) | 60.000 | 20.000 × 3 transaksi (asumsi) |
+| Transaksi uang per detik di puncak | 6,94 | 60.000 ÷ 86.400 × 10 (asumsi) |
+| Top-up dari bank per hari | 5.000 | 20.000 × 0,25 top-up (asumsi) |
+| Top-up dari bank per detik di puncak | 0,579 | 5.000 ÷ 86.400 × 10 (asumsi) |
+
+Puncaknya naik 8 kali dari puncak PRD v3 (±17,4): 10 × (20 ÷ 25) × (60 ÷ 60) = 8. User naik 10 kali, user aktif turun dari 25% ke 20%, dan request per user tetap 60. Dari angka yang dibulatkan, 138,9 ÷ 17,4 = 7,98, dan selisihnya dari 8 hanya pembulatan. Rumusnya sama dengan [[t3-estimasi]].
+
+</Blok>
+
+<Blok nama="Tim dan risiko">
+
+Tim tumbuh dari 4 menjadi 13 orang dalam tiga tim selama 12 minggu (Asumsi cerita). Enam minggu pertama menerima engineer baru bertahap.
+
+| Tim | Memegang |
+|---|---|
+| Pembayaran: 5 orang, dipimpin Nadia | gateway, top-up, rekonsiliasi, dan kartu |
+| Merchant: 4 orang, dipimpin Wulan | merchant luar, QR, katalog, dan dasbor web |
+| Platform: 4 orang, dipimpin Bayu | akun, identitas, outbox, infrastruktur, dan keamanan; paket inti app dipegang Raka |
+
+Tahap 4 punya empat tokoh baru:
+
+| Tokoh baru | Laras |
+|---|---|
+| Siapa | Security engineer yang bergabung di minggu 2. Sepuluh tahun audit konfigurasi dan uji penetrasi, belum pernah memegang sistem uang dari dalam |
+| Ingin | Keamanan yang bisa dibuktikan, bukan dijanjikan |
+| Kelemahan | Menandai hampir semua temuan sebagai kritis, sehingga rilis yang aman ikut tertunda |
+| Yang dibawanya | Security review sebelum dibuka ke publik; sudut pandang pihak yang mencoba |
+
+| Tokoh baru | Ratih |
+|---|---|
+| Siapa | Analis risiko, memimpin tim risk (3 orang) dan memakai back office setiap hari |
+| Ingin | Membekukan akun yang mencurigakan secepat mungkin |
+| Kelemahan | Percaya angka skor tanpa memeriksa buktinya, dan ingin akses ke semua data |
+| Yang dibawanya | Sudut pandang back office: limit, pembekuan, data identitas, audit |
+
+| Tokoh baru | Bu Marni |
+|---|---|
+| Siapa | Pemilik toko kelontong di seberang kampus, merchant luar pertama |
+| Ingin | Dibayar tepat tanpa alat tambahan |
+| Kelemahan | Memasang satu stiker QR sejak hari pertama dan tidak memeriksanya lagi |
+| Yang dibawanya | Sisi merchant di luar Lestari |
+
+| Tokoh baru | Pihak yang mencoba |
+|---|---|
+| Siapa | Tidak dikenal. Memegang peran yang di Tahap 1 sampai 3 dipegang Dimas |
+| Ingin | Mengambil uang atau data |
+| Kelemahan | Tidak diketahui; selalu mencoba bagian yang paling jarang diperiksa |
+| Yang dibawanya | Setiap adegan keamanan Tahap 4 |
+
+Tokoh lama tetap ada:
+
+- Raka memegang paket inti app dan masih menulis backend bila perlu.
+- Nadia memimpin tim Pembayaran, Bayu memimpin tim Platform, dan Wulan memimpin tim Merchant.
+- Budi kini juga memakai Rekeningo di luar kampus, dengan uang dari rekening pribadinya. Citra mengisi saldo dari bank dan membayar patungan lewat QR.
+- Ani satu dari ±60 warung Lestari, dan kini juga menerima QR.
+- Dimas tidak muncul di Tahap 4.
+
+Sinta menulis empat risiko:
+
+1. Rekeningo pertama kali menerima kabar dari luar yang menggerakkan uang. Di lab situs ini, pengirim kabar itu tiruan lokal.
+2. Rekeningo menyimpan data pribadi orang yang tidak dikenal.
+3. Tiga tim mengerjakan satu codebase sekaligus.
+4. Pendaftaran terbuka membuka endpoint yang belum punya rate limit: daftar, verifikasi, dan top-up ([[t3-rate-limit-redis]]).
+
+</Blok>
+
+<Blok nama="Pertanyaan terbuka">
+
+Tiga pertanyaan ini ada di PRD v4, tapi belum dijawab:
+
+1. Kalau gateway mengirim kabar dua kali, terlambat, atau tidak mengirim sama sekali, siapa yang tahu?
+2. Kalau tiga tim mengubah tabel yang sama, siapa yang tahu sebelum rilis?
+3. Kalau satu orang di dalam membaca data identitas, bagaimana ketahuan?
+
+Tidak ada yang menjawabnya sebelum kode ditulis. Ketiganya jadi masalah terbesar Tahap 4. Jawabannya dimulai di [[t4-m29]] dan [[t4-m30]] untuk pertanyaan pertama, [[t4-m32]] untuk yang kedua, dan [[t4-m38]] untuk yang ketiga.
+
+</Blok>
+
+<Blok nama="Yang dibuka lagi dari Tahap 3">
+
+Di [[t3-jembatan]] kamu menebak ADR Tahap 3 mana yang pecah lebih dulu. Jawabannya ADR 22, ADR 25, ADR 26, dan ADR 32. Pecah berarti halaman ADR itu sendiri menulis keadaannya sebagai syarat salah atau hal yang datang di Tahap 4. Urutan "lebih dulu" adalah penalaran dari halaman ADR (Asumsi), bukan urutan kejadian yang direkam.
+
+PRD lengkap menunjukkan baris mana yang membuka tiap syarat. ADR 12 dari Tahap 1 ikut dibaca ulang. Keadaan yang kelima ADR itu tunggu sudah tertulis di PRD sejak dibagikan, jadi tidak ada yang datang sebagai kejutan.
+
+**M28, tiga hal yang belum pernah diuji.** [[t3-m28]] mencatat pihak ketiga yang menggerakkan uang, tiga tim di satu codebase, dan satu VPS sebagai titik gagal tunggal. PRD v4 memuat ketiganya: baris "Top-up dari rekening bank lewat gateway", bagian "Batasan", dan baris "PT Rekeningo berdiri sendiri".
+
+**ADR 22, panggilan luar: dibuka baris "Kartu virtual".** Halaman ADR 22 menulis kapan keputusannya salah: bila panggilan luar harus atomik dengan uang, misalnya otorisasi kartu di Tahap 4 ([[t3-pool]]). Otorisasi kartu masuk PRD v4 sebagai P1.
+
+Halaman itu menambahkan bahwa aturan 1 tidak bisa dipenuhi di sana, dan jalur itu butuh pengaman lain. Pada kartu virtual, penerbit kartu yang meminta persetujuan, dan Rekeningo yang menjawab. Bila jawaban terlambat, penerbit memutuskan menurut setelannya, bukan menurut Rekeningo (Rekaman lab t4-kartu, `penerbit.txt` bagian A, dengan penerbit tiruan lokal). Revisi ADR 22 dijawab dua halaman: [[t4-breaker]] untuk panggilan keluar ke gateway dan vendor, dan [[t4-kartu]] untuk otorisasi kartu.
+
+**ADR 25, penerima yang menggerakkan uang: dibuka baris "Top-up dari rekening bank".** Saldo bertambah saat gateway memberi tahu, jadi penerima kabar itu menggerakkan uang. ADR 25 menulis bahwa penyaring "yang sudah tampil" tidak cukup di sana, dan penerima wajib idempoten dengan key ([[t3-at-least-once]]). Jawabannya ada di [[t4-webhook]].
+
+**ADR 26, satu VPS: dibuka baris "PT Rekeningo berdiri sendiri".** Satu VPS menjalankan dua instance API, worker, dan Redis. Dalam mode rentan (bug M21), laporan kosong menghentikan satu instance, dan 20 dari 20 request lewat proxy tetap dijawab 200. Laporan kosong yang kedua menghentikan instance kedua, dan 10 dari 10 request dijawab 503 (Rekaman lab t3-instance, `panic.txt` bagian D).
+
+VPS yang mati menghentikan keduanya (penalaran). ADR 26 menerima titik gagal tunggal itu dengan sengaja ([[t3-dua-instance]]). Begitu uang publik masuk, akibatnya jauh lebih besar. [[t4-infra-secret]] menjawab sebagian: data dan secret, bukan ketersediaan app (Tidak dijalankan: hosting terkelola hanya dijelaskan).
+
+**ADR 32, rotasi dan alert: dibuka bagian "Batasan".** ADR 32 menulis bahwa tim naik dari empat menjadi 10 sampai 15 orang dalam tiga tim, jadi rotasi dan alert dibagi lagi per tim ([[t3-tim-infra]]). PRD v4 menulis 13 orang dalam tiga tim, yaitu Pembayaran, Merchant, dan Platform.
+
+**ADR 12, service kedua dan tes contract: dibuka bagian "Batasan".** ADR 12 menunda service kedua sampai beberapa tim bentrok di satu repo. Rencananya Tahap 4: modular monolith dan satu service pembayaran. Ia juga menjadwalkan tes contract OpenAPI di CI untuk Tahap 4 ([[t1-adr-12]]).
+
+Tiga tim di satu codebase adalah keadaan yang ADR 12 tunggu. Bentroknya muncul di [[t4-m32]] dan dijawab [[t4-modul]], sedangkan tes contract dikerjakan [[t4-tim-infra]]. ADR 12 juga memperingatkan bahwa pembayaran yang menyentuh dua service tidak lagi bisa dibungkus satu transaction.
+
+**Bukan kapasitas.** Puncak naik 8 kali, tetapi [[t3-estimasi]] tidak menemukan satu komponen pun di tabelnya yang melewati batasnya hanya karena jumlah request. Yang terdekat adalah worker notifikasi: 6,94 transaksi uang + 0,579 top-up = 7,52 notifikasi per detik, dibagi kapasitas 13,33 per detik, sama dengan 56%. Di Tahap 3 pemakaiannya 6,5%, yaitu 0,868 notifikasi per detik ÷ 13,33 (Hitungan; kapasitas dari 4 pengirim dan 0,3 detik per pengiriman adalah Asumsi). Yang pecah lebih dulu adalah syarat di dalam ADR, bukan kapasitas.
+
+Lima ADR lain juga menyebut Tahap 4 di halamannya, dengan syaratnya sendiri. Halaman ini hanya mencatat kalimatnya:
+
+- ADR 23 menulis syarat yang sama dengan ADR 25: penerima sistem lain yang menggerakkan uang ([[t3-outbox]]). Halaman ini menghitungnya sekali, lewat ADR 25.
+- ADR 27: pendaftaran publik membuka endpoint daftar, verifikasi, dan top-up yang belum punya rate limit ([[t3-rate-limit-redis]]).
+- ADR 28: puncak naik 8 kali, jadi L, jumlah koneksi yang tertahan oleh baca katalog, dihitung ulang ([[t3-cache]]).
+- ADR 30: back office tim risk menampilkan data user luar ([[t3-xss-csrf]]).
+- ADR 31: pindah hosting mengganti server tepi dan mungkin kunci TLS-nya, jadi ADR ini ditinjau ulang sebelum pindah ([[t3-tls-pinning]]).
+
+**ADR 33, VPS kedua.** Pemicunya adalah waktu pulih atau jendela kehilangan data yang lebih besar dari yang bisa diterima Pak Hadi atau PRD ([[t3-adr-33]]). PRD v3 tidak menulis batas itu, dan PRD v4 juga tidak.
+
+Backup `pg_dump` harian berjendela sampai 24 jam, dan sehari memuat rata-rata ±65.000 transaksi uang dan top-up: 60.000 + 5.000 (Hitungan atas Asumsi). PostgreSQL terkelola bisa menggantikan jadwal itu, tetapi jendelanya menurut penyedia belum diketahui. Jadi pemicu ADR 33 tetap pertanyaan terbuka.
+
+Masalah pertama dari semua ini datang di [[t4-m29]].
+
+</Blok>

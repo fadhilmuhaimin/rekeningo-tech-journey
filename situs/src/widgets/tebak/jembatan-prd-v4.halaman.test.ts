@@ -195,7 +195,7 @@ describe("registry, naskah, blok, dan tautan", () => {
       expect(dari(idh).judul.startsWith(awalJudul), `${idh} di registry`).toBe(true);
       if (idh.startsWith("t3-")) expect(naskah3, `${nomor} di peta`).toMatch(new RegExp(`\\| ${nomor.replace(".", "\\.")} \\| \\d+b? \\| ${awalJudul.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
     }
-    // t4-prd belum ada: tautan tampil lewat mekanisme "segera" registry.
+    // t4-prd ada sejak halaman 4.1 (keputusan 1266): tautan tampil sebagai tautan biasa, bukan "segera".
     expect(dari("t4-prd")).toMatchObject({ nomor: "4.1", jenis: "prd", tahap: 4, path: "tahap-4/prd-v4.md" });
     expect(bagian(naskah4, "## Peta halaman Tahap 4")).toContain("| 4.1 | 1 | PRD v4: Rekeningo dibuka ke publik | PRD | ★ | – | – |");
     expect(dari("A0").ada).toBe(true);
@@ -222,7 +222,7 @@ describe("registry, naskah, blok, dan tautan", () => {
     expect(semua).not.toMatch(/\[\[t4-(?!prd\]\])/);
     expect(semua).not.toMatch(/ADR (3[4-9]|4\d)\b|\bM(29|3\d)\b|circuit breaker|object storage|presigned|SSRF|OpenTofu|Serverpod|rekonsiliasi|audit log|\bCRC\b|modular monolith|secret manager|kill switch/i);
     expect(hitung(badan, "[[t4-prd]]")).toBe(1);
-    expect(dari("t4-prd").ada).toBe(false);
+    expect(dari("t4-prd").ada).toBe(true);
   });
 });
 
