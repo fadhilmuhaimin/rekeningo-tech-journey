@@ -928,6 +928,23 @@ describe("penutup tahap dua: kalimat klaim dihitung kemunculannya, kata bilangan
     H(`Kabar dijawab \`200 diparkir\`, status tetap \`dibayar\`, dan gateway ditanya ${ditanyaF1} kali. Top-up yang sudah berstatus akhir tidak ditanyakan`);
   });
 
+  test("hitungan koneksi di kapan salah, rute di kode Ilustrasi, dan semua tanggal akses baris RISET", () => {
+    H(`Pada laju puncak, W = 5 detik memakai L = ${lPuncakW5[2]} koneksi.`);
+    expect(lPuncakW5[2]).toBe("2,9");
+    const rute = kodeHandler.match(/mux\.HandleFunc\("POST (\/webhooks\/pembayaran)"/)![1]!;
+    expect(rute).toBe("/webhooks/pembayaran");
+    expect(halaman).toContain(`"${rute}",\n  express.raw(`);
+    expect(halaman).toContain(`'${rute.slice(1)}',\n    ]);`);
+    expect(halaman).toContain("    mentah = request.body  # bytes, dibaca sebelum json.loads");
+    expect(halaman).toContain("def webhook_pembayaran(request):");
+    const tanggalAkses = (id: string): string[] => baris(id).match(/2026-10-\d\d/g) ?? [];
+    expect(tanggalAkses("R4-140")).toEqual(["2026-10-29", "2026-10-29", "2026-10-20", "2026-10-29"]);
+    expect(tanggalAkses("R4-141")).toEqual(["2026-10-29", "2026-10-29"]);
+    expect(tanggalAkses("R4-142")).toEqual(["2026-10-29", "2026-10-29", "2026-10-29"]);
+    expect(tanggalAkses("R4-143")).toEqual(["2026-10-29"]);
+    expect(tanggalAkses("R4-144")).toEqual(["2026-10-29"]);
+  });
+
   test("halaman istilah HMAC: tiap kalimat terkunci terhadap sumbernya", () => {
     expect(istilahHmac).toMatchObject({
       sehari_hari: "HMAC adalah tanda yang dihitung dari isi pesan dan satu rahasia yang dipegang pengirim dan penerima. Penerima menghitung ulang tanda itu, dan bila cocok, pesan berasal dari pemegang rahasia dan isinya tidak diubah.",
