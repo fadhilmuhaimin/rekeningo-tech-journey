@@ -297,6 +297,8 @@ describe("rekaman ganda.txt, rentan.txt, ganda-serentak.txt: bagian dan rentang 
     expect(bagA).toMatch(/ 10201 +\| bank +\| -200000\n 10201 +\| karyawan \| 200000\n 10202 +\| bank +\| -200000\n 10202 +\| karyawan \| 200000\n\(4 rows\)/);
     expect(bagA).not.toMatch(/putus|diputus|ganda\b/);
     expect(runWebhook).toContain('h = kirim_webhook(event_id="evt-1", order_id=t["order_id"], kali=2, tanpa_tanda_tangan=True)');
+    expect(runWebhook).toContain('harap(h, ["200 diproses", "200 diproses"], "versi pertama memproses dua kali")');
+    expect(runWebhook).toContain('harap(satu("SELECT count(*) FROM webhook_event"), 0, "versi pertama tidak punya tabel event")');
     harus("Gateway tiruan mengirim `evt-1` dua kali, berurutan. Keduanya dijawab `200 diproses`, dan ledger memuat dua jurnal Rp200.000:");
   });
   test("ganda.txt B: handler versi ADR 34, koneksi diputus sesudah balasan mulai datang, kiriman 2 dijawab ganda, satu jurnal, evt-1 diproses", () => {
@@ -651,6 +653,9 @@ describe("kartu Cek diri: tiga kartu, sama dengan kartu.json", () => {
     expect(kartu.map((k) => k.id)).toEqual(["t4-m29-1", "t4-m29-2", "t4-m29-3"]);
     expect(kartu.every((k) => k.judul === "4.6 M29: Top-up Budi masuk dua kali" && k.url === "tahap-4/m29-topup-dua-kali/")).toBe(true);
     expect(kartu.map((k) => k.tanya)).toEqual([...badan.matchAll(/^\*\*\d\.\*\* (.+)$/gm)].map((m) => m[1]!));
+    const jawaban = [...badan.matchAll(/<summary>Jawaban<\/summary>\n\n([\s\S]*?)\n\n<\/details>/g)].map((m) => m[1]!);
+    expect(jawaban).toHaveLength(3);
+    expect(kartu.map((k) => k.jawab)).toEqual(jawaban);
     expect(kartu[0]!.jawab).toContain("(`skema.txt` bagian D)");
     expect(kartu[1]!.jawab).toContain("(`ganda.txt` bagian B)");
     expect(kartu[2]!.jawab).toContain("(`ganda-serentak.txt` bagian A, dengan jeda lab 300 ms di antara cek dan tulis)");
