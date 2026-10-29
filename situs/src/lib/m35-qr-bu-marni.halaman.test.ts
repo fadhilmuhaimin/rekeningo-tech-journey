@@ -827,6 +827,49 @@ describe("tinjauan: nilai yang diturunkan dari sumber, bukan dari kunci baris", 
     expect(noscript).toContain("Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: pembayaran");
     expect(noscript).toContain("Payload yang id QR-nya diganti dengan CRC dihitung ulang lolos pemindai, sedangkan salah baca satu karakter ditolak:");
   });
+  // Tinjauan 1337: kalimat yang di putaran mutasi tanpa kunci profil (hanya tes turunan) tidak ditangkap, sekarang punya sumber sendiri.
+  test("Gejala dan Inti: stiker bukan lagi stikernya (naskah); stiker sah milik merchant terverifikasi (naskah dan rekaman); QR statis dipakai berulang dan nominal diisi pembeli (rekaman bagian B dan D)", () => {
+    harus("Saat Bu Marni memeriksa kasirnya, stiker QR di sana bukan lagi stikernya.");
+    expect(barisM35).toContain("Stiker QR di kasir Bu Marni bukan lagi stikernya (Ilustrasi).");
+    harus("Stiker itu milik merchant sah yang terverifikasi dengan identitasnya sendiri, jadi server tidak melihat yang palsu.");
+    expect(barisM35).toContain("Miliknya merchant sah yang terverifikasi dengan identitasnya sendiri, jadi pembayaran valid");
+    harus("QR statis dipakai berulang untuk banyak pembayaran, dan pembeli mengisi nominalnya sendiri.");
+    const diterima = [...statis.matchAll(/\{"id":\d+,"saldo":\d+,"nominal":(\d+),"merchant":"Toko Andalan"\}/g)].map((m) => Number(m[1]));
+    expect(diterima.length).toBeGreaterThanOrEqual(3);
+    expect([...statis.matchAll(/POST '\/qr\/<qr statis Toko Andalan>\/bayar' -H 'Authorization: Bearer <token sesi (\w+)>' -d '\{"nominal": \d+\}'/g)].map((m) => m[1])).toContain("Budi");
+    harus("Karena itu pembayaran ke stiker yang tertempel di toko lain tidak berbeda dari pembayaran ke stiker yang benar.");
+  });
+  test("Isi QR: tiap potongan berawalan tag dua angka lalu panjang dua angka (tabel crc.txt bagian B); widget mengikuti bagian yang sama dengan skenario; nama yang bisa dipercaya dari rekaman", () => {
+    harus("Isinya potongan berurutan, dan tiap potongan diawali tag, yaitu dua angka yang menamai bagian itu, lalu panjangnya.");
+    const barisTabel = bagCB.split("\n").filter((b) => /^ \d{2}\s+\|/.test(b));
+    expect(barisTabel.length).toBeGreaterThanOrEqual(18);
+    expect(barisTabel.every((b) => /^ \d{2}\s+\| \d{2}\s+\|/.test(b))).toBe(true);
+    harus("Widget ini mengikuti rekaman `statis.txt` bagian A, B, dan C, dengan satu varian dari `crc.txt` bagian C dan D.");
+    expect(skenario.sumber.catatan).toContain("Jalur utama: statis.txt bagian A, B, dan C");
+    expect(skenario.sumber.catatan).toContain("Ubah satu hal: crc.txt bagian C dan D");
+    harus("Nama yang bisa dipercaya adalah nama yang dijawab server dari tabel akun merchant terverifikasi.");
+    expect(bagSC).toContain("dipercaya hanya yang dijawab server dari tabel akun (merchant terverifikasi)");
+    harus("Naskah menulis layar itu menampilkan nama merchant berhuruf kecil, dan Budi tidak membandingkannya dengan papan toko (Ilustrasi).");
+    harus("Yang terbukti hanya satu hal.");
+    harus("Pelaku yang mengganti isi payload lalu menghitung CRC baru lolos.");
+    expect(bagCD).toContain("teks diganti lalu CRC dihitung ulang dengan binascii.crc_hqx (tanpa alat lab): lolos");
+  });
+  test("skenario dan baris riset memakai angka dan versi dari rekaman dan halaman (nominal, saldo, jumlah, ruang CRC, versi alat), bukan angka tulisan tangan", () => {
+    expect(skenario.pengantar).toContain(`Rp${rib(NOMINAL)}`);
+    expect(skenario.predict.q).toContain(`Rp${rib(NOMINAL)}`);
+    expect(skenario.predict.explain).toContain(`turun dari Rp${rib(SALDO_AWAL)} ke Rp${rib(SALDO_AKHIR)}`);
+    const r198 = barisRiset("R4-198");
+    expect(r198).toContain(`Rp35.000 + Rp48.000 + Rp22.000 = Rp${rib(TOTAL_CERITA)}`);
+    expect(r198).toContain(`Rp${rib(SALDO_AWAL)} - Rp${rib(NOMINAL)} = Rp${rib(SALDO_AKHIR)}`);
+    expect(r198).toContain(`${rib(OLEH_CRC)} + ${OLEH_TAG} = ${rib(TERDETEKSI)}`);
+    expect(r198).toContain(`2^${BIT} = ${rib(RUANG)}`);
+    const kepalaRiset = cocok(S.baris[1]!, /^# PostgreSQL (\d+\.\d+) \([^)]*\) · (go[\d.]+) · pgx (v[\d.]+) /);
+    expect(barisRiset("R4-195")).toContain(`PostgreSQL ${kepalaRiset[1]}, ${kepalaRiset[2]}, pgx ${kepalaRiset[3]}`);
+    // revisi Wikipedia dan alias katalog adalah fakta luar yang dikunci nilai terkunci dan dibuka ulang peninjau; di sini hanya konsistensi ke halaman
+    expect(barisRiset("R4-197")).toContain("en.wikipedia.org/wiki/Cyclic_redundancy_check, dibuka 2026-10-30, oldid ");
+    expect(barisRiset("R4-196")).toContain("alias CRC-16/AUTOSAR dan CRC-16/CCITT-FALSE");
+    expect(readme).toContain("CRC-16/IBM-3740, alias CRC-16/CCITT-FALSE");
+  });
 });
 
 const PENENTU = ["tidak", "belum", "hanya", "tetap", "sama", "sebelum", "sesudah", "satu", "dua", "tiga", "empat", "tujuh", "Raka", "Budi", "Marni", "Rabu", "pertama", "kedua", "ketiga", "bukan", "tanpa", "kecuali", "setiap", "semua", "selalu", "Rekaman lab", "Tidak dijalankan", "Ilustrasi", "Asumsi", "Hitungan", "naik", "turun", "lolos", "ditolak", "menolak", "diterima", "sah", "palsu", "dipalsukan", "201", "CRC", "payload", "tag", "stiker", "merchant", "Toko Andalan", "Toko Sumber Rejeki", "statis", "dinamis", "server", "lab", "key", "secret key", "rahasia", "Bayar", "nama", "kota", "ADR 40", "EMVCo", "Wikipedia", "8.562", "8.314", "248", "104", "138", "65.536", "16", "Rp35.000", "Rp48.000", "Rp22.000", "Rp105.000", "Rp215.000", "Rp250.000", "B29D", "4D5E", "0x1021", "0xFFFF", "0x29B1", "salah baca", "penggantian", "menangkap", "app", "laporan", "Hasilnya", "Hasil", "63", "01", "00", "Layar", "papan toko", "kamera", "Flutter", "polinomial", "nilai awal", "heksadesimal", "bit", "karakter", "posisi", "lokasi", "kolom", "posting", "jurnal", "saldo", "buku", "pemindai", "pemalsu", "pelaku", "pembeli", "Pihak"];
