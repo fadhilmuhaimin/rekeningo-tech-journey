@@ -2892,7 +2892,7 @@
   "halaman": "t4-m35",
   "judul": "4.18 M35: QR di kasir Bu Marni",
   "url": "tahap-4/m35-qr-bu-marni/",
-  "tanya": "Pembayaran Budi lolos semua aturan server. Kenapa server tidak bisa menolaknya?",
+  "tanya": "Pembayaran Budi lolos pemeriksaan jurnal, merchant, dan saldo. Kenapa server tidak bisa menolaknya?",
   "jawab": "Permintaan bayar hanya membawa sesi, id QR, dan nominal, dan tabel `qr` tidak punya lokasi atau pengenal stiker. Jurnal seimbang, merchant aktif dan terverifikasi, dan saldo cukup (`statis.txt` bagian B)."
  },
  {

@@ -82,7 +82,7 @@
       },
       {
         "dari": "stk",
-        "judul": "Semua penggantian satu karakter pada payload contoh terdeteksi",
+        "judul": "Setiap penggantian yang dicoba pada payload contoh terdeteksi",
         "kirim": "salah baca satu karakter pada payload contoh statis milik tes (138 karakter): 8562 dari 8562 terdeteksi (8314 oleh CRC, 248 oleh tag 63 yang rusak)\ndua karakter bersebelahan bertukar tempat pada payload contoh yang sama: 104 dari 104 terdeteksi (hasil untuk payload ini, bukan jaminan umum)",
         "jelas": "Hasil ini berlaku untuk satu payload contoh dan dua jenis kesalahan. Sifat CRC terhadap kesalahan lain tidak dibuktikan lab."
       },

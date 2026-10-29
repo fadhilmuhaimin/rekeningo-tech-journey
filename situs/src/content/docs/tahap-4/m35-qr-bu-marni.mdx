@@ -30,7 +30,7 @@ Raka membaca tiga laporan itu dan melihat satu pola: pembayaran tercatat berhasi
 Dugaan itu bisa diperiksa. Bila app salah mencatat, jurnal pembayaran Budi tidak seimbang, merchant penerimanya tidak aktif, atau saldo Budi berkurang tanpa ada yang menerima. Rekaman di blok berikutnya memeriksa ketiganya.
 
 <details class="question">
-<summary>Tebak dulu: pembayaran Budi lolos semua pemeriksaan, dan jurnalnya seimbang. Data apa yang tidak dimiliki server?</summary>
+<summary>Tebak dulu: pembayaran Budi lolos pemeriksaan jurnal, merchant, dan saldo. Data apa yang tidak dimiliki server?</summary>
 
 Letak stiker. Tabel `qr` tidak punya kolom lokasi atau pengenal stiker, dan permintaan bayar hanya membawa sesi pembeli, id QR, dan nominal (Rekaman lab, `statis.txt` bagian B).
 
@@ -72,7 +72,7 @@ Ketiga, kedua merchant aktif dan terverifikasi. Tabel `qr` hanya menyimpan tujuh
 
 <Snippet file="labs/t4-qr/output/statis.txt" lines="77:93" title="Rekaman lab: labs/t4-qr/output/statis.txt, bagian B (merchant dan kolom tabel qr)" />
 
-Rekaman menutup bagian itu dengan satu kesimpulan: pembayaran sah menurut semua aturan yang dimiliki server. Yang diterima server hanya sesi pembeli, id QR, dan nominal, jadi tidak ada aturan yang bisa menolaknya (`statis.txt` bagian B).
+Rekaman menutup bagian itu dengan satu kesimpulan: pembayaran sah menurut semua aturan yang dimiliki server. Yang diterima server untuk membayar hanya sesi pembeli, id QR, dan nominal, jadi tidak ada aturan di server lab yang bisa menolaknya (`statis.txt` bagian B).
 
 **Isi QR dan CRC.** Payload adalah teks yang dibaca pemindai dari gambar QR. Isinya potongan berurutan, dan tiap potongan diawali tag, yaitu dua angka yang menamai bagian itu, lalu panjangnya.
 
@@ -90,9 +90,11 @@ Rumus CRC punya parameter, dan lab memakai CRC-16/IBM-3740: polinomial 0x1021 da
 
 <Snippet file="labs/t4-qr/output/crc.txt" lines="53:57" title="Rekaman lab: labs/t4-qr/output/crc.txt, bagian C (salah baca)" />
 
-Lab lalu mencoba semua penggantian satu karakter pada payload contoh sepanjang 138 karakter. Hasilnya 8.562 dari 8.562 terdeteksi: 8.314 oleh CRC dan 248 oleh tag 63 yang rusak, dan 8.314 + 248 = 8.562 (Hitungan). Dua karakter bersebelahan yang bertukar tempat juga terdeteksi, 104 dari 104.
+Lab lalu mengganti tiap karakter satu payload contoh milik tes Go, sepanjang 138 karakter, dengan karakter lain dari 63 pilihan: angka, huruf, dan spasi. Hasilnya 8.562 dari 8.562 terdeteksi: 8.314 oleh CRC dan 248 oleh tag 63 yang rusak, dan 8.314 + 248 = 8.562 (Hitungan).
 
-Itu hasil untuk satu payload dan dua jenis kesalahan, bukan jaminan untuk payload lain atau kesalahan lain.
+Jumlah 8.562 sama dengan 138 × 62 + 6. Tiap posisi diganti dengan 62 karakter lain, kecuali enam posisi berisi titik atau strip yang diganti dengan 63 karakter (Hitungan, dibaca dari kode tes `TestPayloadSalahBacaSatuKarakterTerdeteksiSemua`). Payload itu bukan payload di cuplikan di atas: kotanya Bandung, bukan Jakarta.
+
+Pertukaran dua karakter bersebelahan yang berbeda juga terdeteksi, 104 dari 104. Itu hasil untuk satu payload dan dua jenis kesalahan, bukan jaminan untuk payload lain atau kesalahan lain.
 
 **CRC tidak menangkap penggantian.** Pelaku yang mengganti isi payload lalu menghitung CRC baru lolos. Di lab, id QR diganti dan CRC berubah dari `B29D` menjadi `4D5E`, dan pemindai menerimanya:
 
@@ -158,7 +160,7 @@ CRC dihitung tanpa key rahasia, jadi ia menangkap salah baca, bukan penggantian.
 
 </details>
 
-**2.** Pembayaran Budi lolos semua aturan server. Kenapa server tidak bisa menolaknya?
+**2.** Pembayaran Budi lolos pemeriksaan jurnal, merchant, dan saldo. Kenapa server tidak bisa menolaknya?
 
 <details class="success">
 <summary>Jawaban</summary>
