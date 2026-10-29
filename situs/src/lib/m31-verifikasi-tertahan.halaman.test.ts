@@ -709,7 +709,15 @@ describe("skenario alur t4-m31.json: valid, nilai dari rekaman, tebakan, dan var
     expect(naskah).toContain('"Verifikasi gagal"');
     const sinyal = [...skenarioMentah.matchAll(/"sinyal": ?(\d+)/g)].map((m) => m[1]);
     expect(new Set(sinyal)).toEqual(new Set(["3"]));
-    expect(skenarioMentah).not.toMatch(/"waktu"/);
+    // jam di layar HP adalah pilihan penulis (Ilustrasi): layar awal, 'Sedang diverifikasi', 'Verifikasi gagal' kurang dari satu menit
+    // kemudian (umur satu pekerjaan paling lama 45 detik), layar sesudah layanan pulih, dan layar akhir varian
+    const waktu = [...skenarioMentah.matchAll(/"waktu": ?"([^"]+)"/g)].map((m) => m[1]!);
+    expect(waktu).toEqual(["09.12", "09.12", "09.13", "12.45", "09.12"]);
+    expect(jam(waktu[2]!) - jam(waktu[1]!)).toBeLessThanOrEqual(60);
+    expect(UMUR).toBeLessThan(60);
+    expect(jam(waktu[0]!)).toBeGreaterThanOrEqual(jam(JAM_MULAI));
+    expect(jam(waktu[3]!)).toBeGreaterThan(jam(JAM_CEK));
+    expect(skenario.sumber.catatan).toContain("Jam di layar HP adalah pilihan penulis.");
   });
   test("arah, nada, dan judul tiap langkah mengikuti isi kirim; jelas tidak bertentangan dengan rekaman", () => {
     const arah = (l: Langkah): string => `${l.dari}>${l.ke ?? ""}`;

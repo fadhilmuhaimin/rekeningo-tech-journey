@@ -4,7 +4,7 @@
 export const SIDIK = {
   riset: ["3b2b2732e1cb8e0c","d968d1b8e4de132f","52f8dacf0f7a0bbc","83f65b4e938eb938","4501705748dd1173"],
   diagram: "aaebc28532f41efb",
-  skenario: "3dd7ff31f39632c8",
+  skenario: "a71f6b80ee666dea",
 };
 
 export const KALIMAT_TERKUNCI: string[] = [

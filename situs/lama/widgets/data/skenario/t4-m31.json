@@ -5,7 +5,7 @@
     "jenis": "rekaman",
     "file": "labs/t4-integrasi/output/lajur.txt",
     "fileVarian": "labs/t4-integrasi/output/retry.txt",
-    "catatan": "Server Go api-t4, worker, dan layanan verifikasi tiruan lokal dengan PostgreSQL 17.11 dari database bersih. Jalur utama: lajur.txt bagian A (make -C labs/t4-integrasi run BAGIAN=lajur): layanan tiruan mati, 10 pendaftar, satu worker dengan lima percobaan. Ubah satu hal: retry.txt bagian C (make -C labs/t4-integrasi run BAGIAN=retry): satu pendaftar, layanan menggantung dengan batas waktu client 300 ms lalu pulih. Dua run terpisah dengan data awal yang sama. Baris diawali tanda panah diringkas dari rekaman yang sama, bukan baris log. Tulisan di layar HP adalah Ilustrasi dari naskah: lab tidak punya app Flutter dan tidak merekam layar. Jeda antar percobaan tidak ditunggu di jalur utama."
+    "catatan": "Server Go api-t4, worker, dan layanan verifikasi tiruan lokal dengan PostgreSQL 17.11 dari database bersih. Jalur utama: lajur.txt bagian A (make -C labs/t4-integrasi run BAGIAN=lajur): layanan tiruan mati, 10 pendaftar, satu worker dengan lima percobaan. Ubah satu hal: retry.txt bagian C (make -C labs/t4-integrasi run BAGIAN=retry): satu pendaftar, layanan menggantung dengan batas waktu client 300 ms lalu pulih. Dua run terpisah dengan data awal yang sama. Baris diawali tanda panah diringkas dari rekaman yang sama, bukan baris log. Tulisan di layar HP adalah Ilustrasi dari naskah: lab tidak punya app Flutter dan tidak merekam layar. Jeda antar percobaan tidak ditunggu di jalur utama. Jam di layar HP adalah pilihan penulis."
   },
   "pengantar": "Layanan verifikasi mati, dan sepuluh pendaftar sudah mengajukan. Tebak dulu, lalu ikuti worker sampai layanan pulih. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
   "komponen": [
@@ -35,6 +35,7 @@
   "layarAwal": {
     "pendaftar": {
       "judul": "Rekeningo",
+      "waktu": "09.12",
       "sinyal": 3,
       "isi": [
         {
@@ -77,6 +78,7 @@
       "layar": {
         "pendaftar": {
           "judul": "Rekeningo",
+          "waktu": "09.12",
           "sinyal": 3,
           "isi": [
             {
@@ -111,6 +113,7 @@
       "layar": {
         "pendaftar": {
           "judul": "Rekeningo",
+          "waktu": "09.13",
           "sinyal": 3,
           "nada": "warn",
           "isi": [
@@ -145,6 +148,7 @@
       "layar": {
         "pendaftar": {
           "judul": "Rekeningo",
+          "waktu": "12.45",
           "sinyal": 3,
           "nada": "warn",
           "isi": [
@@ -199,6 +203,7 @@
         "layar": {
           "pendaftar": {
             "judul": "Rekeningo",
+            "waktu": "09.12",
             "sinyal": 3,
             "isi": [
               {
