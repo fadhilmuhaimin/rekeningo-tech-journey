@@ -216,7 +216,7 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(dari("t4-rekonsiliasi")).toMatchObject({ ada: true, nomor: "4.9", jenis: "konsep", inti: true, prasyarat: ["t4-m30", "t2-job-rekonsiliasi"], lab: ["t4-webhook"], tahap: 4, peran: ["backend"], adr: [35] });
     expect(frontmatter).toContain('title: "4.9 Rekonsiliasi dengan gateway + ADR 35"');
     expect(dari("t4-rekonsiliasi").judul).toBe("Rekonsiliasi dengan gateway + ADR 35");
-    expect(naskah).toContain("| 4.9 | 4 | Rekonsiliasi dengan gateway + ADR 35 | Konsep+ADR | ★ | t4-webhook |");
+    expect(naskah).toContain("| 4.9 | 4 | Rekonsiliasi dengan gateway + ADR 35 | Konsep + ADR | ★ | t4-webhook | runsql |");
     const m = cocok(badan, /<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: \[\[t4-m30\]\], \[\[t2-job-rekonsiliasi\]\] · Jalur inti<\/p>/);
     expect(dari("t4-rekonsiliasi").menit).toBe(Number(m[1]) + Number(m[2]));
     expect(dari("t4-m30").nomor).toBe("4.8");
@@ -323,7 +323,7 @@ describe("rekaman rekon.txt: bagian A (cek status), B (rekonsiliasi dan koreksi)
     expect(dariRun.map((i) => `${i.jenis} ${i.selisih}`).sort()).toEqual(insiden.map((i) => `${i.jenis} ${i.selisih}`).sort());
     // tabel jenis di halaman
     for (const [jenis, sel] of [["tidak_di_ledger", `${plus(15000)} dan ${plus(60000)}`], ["jumlah_beda", plus(5000)], ["tidak_di_gateway", `${plus(-40000)} dan ${plus(-30000)}`]] as const) {
-      const baris = badan.split("\n").find((b) => b.startsWith(`| \`${jenis}\` | `) && b.includes("| jumlah") === false ? b.startsWith(`| \`${jenis}\` | `) && b.endsWith(`| ${sel} |`) : false);
+      const baris = badan.split("\n").find((b) => b.startsWith(`| \`${jenis}\` | `) && b.endsWith(`| ${sel} |`));
       expect(baris, jenis).toBeDefined();
     }
     expect(plus(-40000).startsWith("−")).toBe(true);
@@ -365,7 +365,7 @@ describe("rekaman rekon.txt: bagian A (cek status), B (rekonsiliasi dan koreksi)
     harus(`Saldo Budi naik ${rp(20000)}, dari ${titik(saldoAwal.Budi!)} ke ${titik(saldoAkhir.Budi!)}: jurnal top-up ${rp(15000)} dan jurnal koreksi ${rp(5000)}. Saldo Eko turun ${rp(30000)} lewat jurnal pembalik.`);
     harus("Saldo Citra dan Dina tidak berubah. Posting yang sudah ada tidak berubah (sidik MD5 sama), dan enam posting baru berasal dari tiga jurnal baru.");
     harus("Insiden +60.000 tetap terbuka karena akun Dina melewati batas tingkatnya. Insiden −40.000 ditutup tanpa jurnal karena gateway menjawab settlement dengan jumlah yang sama.");
-    expect(bagB).toContain("# t2b tetap terbuka: akun melewati batas tingkat, perlu keputusan tim risk.");
+    expect(bagB).toContain("t2b tetap terbuka: akun melewati batas tingkat, perlu keputusan tim risk.");
     expect(bagB).toContain("t4 ditutup tanpa jurnal: gateway menjawab settlement dengan jumlah yang sama, hanya tanggalnya lain.");
     expect(bagianRunB).toContain('gateway_bayar(t4["order_id"], tanggal="2020-01-01")');
     expect(bagianRunB).toContain('"Dina kedua diparkir"');
@@ -679,7 +679,7 @@ describe("sumber luar: baris riset, tanggal akses, kutipan, dan label sumber", (
     for (const m of badan.matchAll(/\(dibaca dari kode[^)]*\)/g)) expect(m[0], "label turunan tanpa label sumber").toContain("Tidak dijalankan");
     expect(badan).not.toMatch(/\(penalaran/);
     const dibacaDariKode = badan.match(/\(Tidak dijalankan: dibaca dari kode[^)]*\)/g) ?? [];
-    expect(dibacaDariKode).toHaveLength(8);
+    expect(dibacaDariKode).toHaveLength(6);
     expect(cara).toContain("Label sumber");
   });
   test("simulasi widget tidak memakai kata Rekaman untuk hasilnya: kartu dan jawaban menulis (Simulasi, sama dengan rekon.txt bagian B)", () => {
@@ -701,7 +701,7 @@ describe("diagram Rantai, widget runsql, dan noscript: nilai diturunkan dari rek
     expect(bagianRunA).toContain("buat_topup(citra, 500_000)");
     expect(rekonB!.simpul.map((s) => s.teks)).toEqual([`${insiden.length} selisih`, `${koreksiJurnal + tanpaJurnal} ditutup`, `${terbuka} terbuka`]);
     expect(rekonB!.simpul[1]!.sub).toBe(`${koreksiJurnal} lewat jurnal baru, ${tanpaJurnal} tanpa jurnal`);
-    expect(rekonB!.simpul[0]!.nada).toBeUndefined();
+    expect(rekonB!.simpul[0]!.nada).toBe("biasa");
     expect(rekonB!.simpul[1]!.nada).toBe("good");
     expect(rekonB!.simpul[2]!.nada).toBe("warn");
     expect(diagram.sumber.jenis).toBe("rekaman");
@@ -805,7 +805,7 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
       "description: Webhook bukan satu-satunya jalan kabar. Cek status menanyakan top-up yang menunggu, rekonsiliasi harian mencocokkan laporan gateway dengan jurnal per order, dan selisih menjadi insiden bernomor yang dikoreksi lewat jurnal normal.",
     ]);
   });
-  test("jumlah elemen: lima Blok, satu Rantai, enam belas Snippet, satu WidgetLama, satu SkripLama, satu noscript, satu details question, empat Cek diri, tujuh impor", () => {
+  test("jumlah elemen: lima Blok, satu Rantai, enam belas Snippet, satu WidgetLama, satu SkripLama, satu noscript, satu details question, empat Cek diri, enam impor", () => {
     expect(badan.match(/<Blok /g)).toHaveLength(5);
     expect(badan.match(/<\/Blok>/g)).toHaveLength(5);
     expect(badan.match(/<Rantai /g)).toHaveLength(1);
@@ -815,7 +815,7 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
     expect(badan.match(/<noscript>/g)).toHaveLength(1);
     expect(badan.match(/<details class="question">/g)).toHaveLength(1);
     expect(badan.match(/<details class="success">/g)).toHaveLength(4);
-    expect(badan.match(/^import /gm)).toHaveLength(7);
+    expect(badan.match(/^import /gm)).toHaveLength(6);
     expect(badan.match(/^- \[ \] /gm)).toHaveLength(6);
   });
   test("tabel ADR: empat opsi A sampai D dengan D dipilih; lima keputusan; tiga penyebab pre-mortem; lima butir kapan salah; tabel sengaja belum tiga baris", () => {
