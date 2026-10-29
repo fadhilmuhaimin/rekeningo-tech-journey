@@ -482,7 +482,8 @@ describe("kode lab dan hitungan: konstanta worker, umur satu pekerjaan, slot", (
     expect(r7![1]).toBe("7,52 × 0,3");
     expect(r8![1]).toBe("1,74 + 2,26");
     for (const r of [r4, r6, r7, r8]) expect(r![2]).toContain(`dari ${SERENTAK}`);
-    expect(r8![2]).toBe("4,00 dari 4 (3,99 tanpa pembulatan)");
+    expect(r8![2]).toBe("4,00 dari 4");
+    harus("Hasil 4,00 adalah 3,99 tanpa pembulatan.");
     // 3,99 tanpa pembulatan: 1,736 + 2,257
     const tanpa = (PER_HARI / 86400) * PUNCAK * MAKS_PERCOBAAN * TIMEOUT + ((60000 + 5000) / 86400) * PUNCAK * T_NOTIF;
     expect(tanpa.toFixed(2)).toBe("3.99");
@@ -492,7 +493,7 @@ describe("kode lab dan hitungan: konstanta worker, umur satu pekerjaan, slot", (
     expect(PUNCAK).toBe(10);
   });
   test("label tabel dan klaim 'semua baris Hitungan atas Asumsi': rekaman hanya mengukur 4 slot dan timeout 3 detik; masukan lain Asumsi (naskah dan konstanta lab)", () => {
-    harus("Semua baris tabel adalah Hitungan atas Asumsi. Rekaman mengukur dua masukannya, yaitu 4 slot dan timeout 3 detik.");
+    harus("Semua baris tabel adalah Hitungan atas Asumsi. Rekaman mengukur dua masukannya, yaitu 4 slot dan timeout 3 detik. Hasil 4,00 adalah 3,99 tanpa pembulatan.");
     harus("Masukan lain adalah Asumsi: 1.000 pendaftar per hari, faktor puncak 10, dan konstanta worker di lab. Dua lagi dari pemberitahuan uang: 7,52 per detik pada puncak, dan 0,3 detik tiap pengiriman.");
     expect(workerGo).toContain("Asumsi lab, belum di naskah: klaim 5 detik");
     expect(wBagC).toContain("# 0,116 verifikasi per detik (naskah: 1.000 pendaftar per hari x puncak 10), 7,52 notifikasi uang per detik, dan 0,3 detik per notifikasi adalah Asumsi naskah;");

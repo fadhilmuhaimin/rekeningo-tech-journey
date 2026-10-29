@@ -96,16 +96,18 @@ Jeda sesudah percobaan ke-1 sampai ke-4 paling lama 2, 4, 8, dan 16 detik, dan b
 
 | Besaran | Rumus | Hasil |
 | --- | --- | --- |
-| Laju rata-rata | 1.000 ÷ 86.400 | 0,0116 pendaftar per detik |
+| Laju rata-rata | 1.000 ÷ 86.400 | 0,0116 per detik |
 | Pendaftar dalam 12.600 detik | 0,0116 × 12.600 | 146 |
 | Umur satu pekerjaan | 5 × 3 + 2 + 4 + 8 + 16 | paling lama 45 detik |
 | Slot terpakai, laju rata-rata | 0,0116 × 5 × 3 | 0,174 dari 4 |
-| Laju puncak | 0,0116 × 10 | 0,116 pendaftar per detik |
+| Laju puncak | 0,0116 × 10 | 0,116 per detik |
 | Slot terpakai, puncak | 0,116 × 5 × 3 | 1,74 dari 4 |
 | Slot pemberitahuan uang, puncak | 7,52 × 0,3 | 2,26 dari 4 |
-| Keduanya bersama | 1,74 + 2,26 | 4,00 dari 4 (3,99 tanpa pembulatan) |
+| Keduanya bersama | 1,74 + 2,26 | 4,00 dari 4 |
 
-Semua baris tabel adalah Hitungan atas Asumsi. Rekaman mengukur dua masukannya, yaitu 4 slot dan timeout 3 detik. Masukan lain adalah Asumsi: 1.000 pendaftar per hari, faktor puncak 10, dan konstanta worker di lab. Dua lagi dari pemberitahuan uang: 7,52 per detik pada puncak, dan 0,3 detik tiap pengiriman.
+Semua baris tabel adalah Hitungan atas Asumsi. Rekaman mengukur dua masukannya, yaitu 4 slot dan timeout 3 detik. Hasil 4,00 adalah 3,99 tanpa pembulatan.
+
+Masukan lain adalah Asumsi: 1.000 pendaftar per hari, faktor puncak 10, dan konstanta worker di lab. Dua lagi dari pemberitahuan uang: 7,52 per detik pada puncak, dan 0,3 detik tiap pengiriman.
 
 Pola retry ditujukan bagi gangguan sementara. Dokumentasi pola itu menulis bahwa retry tidak berguna bila gangguan kemungkinan lama. Aplikasi lalu menghabiskan waktu dan sumber daya untuk mengulang permintaan yang kemungkinan gagal ([Retry pattern, Azure Architecture Center](https://learn.microsoft.com/en-us/azure/architecture/patterns/retry), diperbarui 2024-07-18, dibuka 2026-10-29, Tidak dijalankan). Gangguan 12.600 detik adalah 12.600 ÷ 45 = 280 kali umur satu pekerjaan (Hitungan).
 
