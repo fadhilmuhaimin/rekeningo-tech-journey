@@ -908,6 +908,68 @@ describe("tinjauan: nilai yang diturunkan dari sumber, bukan dari kunci baris", 
   });
 });
 
+// ---- tinjauan 1329: kalimat berklaim yang selamat dari putaran tanpa kunci baris --------------------------------------------
+// Mutan yang menghapus kalimat terakhir, menukar dua kalimat pertama, atau membalik satu klaim (pendaftaran lab seketika,
+// alamat proxy lawan host, label Ilustrasi, hidup lawan mati, allowlist, perilaku vendor nyata, tanggal RFC) lolos saat kunci
+// baris dimatikan. Tiap tes menurunkan nilainya dari rekaman, README, naskah, dan RFC, bukan dari teks halaman ini.
+describe("tinjauan 1329: kalimat berklaim dari rekaman, README, naskah, dan RFC", () => {
+  test("pendaftaran seketika di lab, proxy, dan jawaban vendor sehat: dari komentar rekaman alamat.txt", () => {
+    expect(alamat).toContain("didaftarkan seketika di tiruan; di vendor nyata makan dua hari kerja, Asumsi naskah");
+    harus("Di lab pendaftaran seketika.");
+    expect(bagB).toContain("yang didaftarkan sekali adalah alamat proxy; pindahan host tidak mengubah alamat yang dilihat vendor");
+    harus("Yang didaftarkan sekali adalah alamat proxy, dan pindahan host tidak mengubahnya");
+    harus("jadi vendor selalu melihat alamat proxy itu.");
+    expect(bagB).toContain("# Alamat host baru tidak pernah sampai ke vendor.");
+    expect(bagA).toContain("# Vendor sehat dan menjawab dengan benar: penyebabnya alamat sumber, bukan vendor.");
+    harus("Vendor hidup dan menjawab. Yang ditolak adalah alamat tempat Rekeningo memanggilnya.");
+    expect(cBawaanA).toContain("Tetapi penyebabnya tidak hilang: alamat host baru belum didaftarkan.");
+    harus("Terbuka tidak memperbaiki penyebabnya. Lajur pulih sesudah operator mendaftarkan alamat host baru:");
+    harus(`Vendor tidak mati: ia menjawab, dan sebelum pindahan ia meluluskan ${kata(LAMA_A)} pendaftar dari host lama.`);
+    expect(bagA).toContain("tidak ada yang mendaftarkannya");
+    harus("**Sesudah pindahan.** Tidak ada yang mendaftarkan alamat host baru.");
+  });
+  test("pindahan, host baru, dan penutup bagian C: Rekaman bagian C menjalankan pindahan yang sama", () => {
+    harus("Pindahan diperankan dengan menyalakan host baru sebelum host lama dimatikan, dan lab memeriksa bahwa alamat keduanya berbeda. Alamat itu milik container di jaringan lab, bukan milik akun cloud.");
+    expect(readmeInfra).toContain("\"Pindahan\" adalah host kedua yang dinyalakan sebelum host pertama dimatikan; alamatnya berbeda (diperiksa");
+    expect(bagA).toContain("Host baru dinyalakan sebelum host lama dimatikan; alamatnya berbeda (diperiksa)");
+    harus(`**Kenapa breaker tidak menolong.** Rekaman bagian C menjalankan pindahan yang sama untuk ${kata(PEKERJAAN_C)} pekerjaan`);
+    expect(bagC.startsWith("# --- C. Pindahan tanpa proxy")).toBe(true);
+    harus("Sebabnya satu aturan. ADR 36 menghitung jawaban 4xx sebagai sukses");
+  });
+  test("allowlist, label kejadian Rekeningo, perilaku vendor nyata, dan tebakan: dari naskah, README, dan RFC", () => {
+    harus("Vendor di cerita memakai allowlist, yaitu daftar alamat yang boleh memanggilnya. Alamat di luar daftar dijawab 403, dan mendaftarkan satu alamat butuh dua hari kerja (Asumsi dari cerita).");
+    expect(barisM34).toContain("hanya menerima permintaan dari alamat IP yang didaftarkan");
+    harus("Kejadian di Rekeningo berasal dari cerita (Ilustrasi), dan mekanismenya direkam lab bila disebut.");
+    harus("State Rekeningo sendiri hanya ada di cerita.");
+    harus("Alat itu mencatat sumber daya yang dibuatnya di state, yaitu file yang menyimpan atribut tiap sumber daya. Atribut itu bisa berisi password.");
+    // OpenTofu 1.13.x menulis "this may contain initial passwords" (bisa memuat), bukan "selalu memuat" (R4-186).
+    expect(barisRiset("R4-186")).toContain("this may contain initial passwords");
+    harus("Perilaku vendor nyata atas alamat yang tidak terdaftar Tidak dijalankan. Jawaban 403 adalah pilihan tiruan lab.");
+    expect(readmeInfra).toContain("Vendor tiruan menolak permintaan dari alamat yang tidak terdaftar dengan 403");
+    harus("Yang ditolak bukan isi permintaan dan bukan vendor yang mati: yang ditolak pemanggilnya.");
+    harus("Akhir pekan itu Rekeningo berpindah tempat, jadi yang berubah adalah alamat IP yang dilihat vendor (Rekaman lab, bagian A di blok berikutnya).");
+    // RFC 9110 memuat "Category: Standards Track" dan "June 2022" di kepalanya (rfc-editor.org/rfc/rfc9110.txt, dibuka 2026-10-30).
+    expect(barisRiset("R4-185")).toContain("RFC 9110 HTTP Semantics (Juni 2022, ");
+  });
+  test("gejala dan yang dikira dari naskah; urutan dugaan Raka; pengantar widget; kalimat widget dari varian", () => {
+    expect(barisM34).toContain("Semua pendaftar baru melihat \"Verifikasi gagal\"; ±");
+    harus("Semua pendaftar baru melihat \"Verifikasi gagal\".");
+    expect(barisM34).toContain("Log vendor menolak dengan 403.");
+    harus(`rata-rata ±${PER_JAM} orang per jam. Log vendor menolak dengan 403.`);
+    harus("Dugaan itu masuk akal. Pada M31 layanan verifikasi tidak menjawab, dan tiap pekerjaan menghabiskan lima percobaan.");
+    expect(skenario.pengantar).toContain("Tebak dulu apa yang dijawab layanan itu, lalu ikuti langkahnya.");
+    expect(skenario.pengantar).toContain("Sesudah langkah terakhir, centang 'Ubah satu hal'.");
+    harus("Tebak dulu apa yang dijawab vendor atas permintaan host baru, lalu tekan Berikutnya atau panah kanan.");
+    harus(`Sesudah langkah terakhir, centang **Ubah satu hal: ${skenario.varian.label}**.`);
+    harus("Proxy keluar adalah server perantara yang meneruskan panggilan keluar Rekeningo ke vendor");
+    harus(`${kata(TERIMA_B)} permintaan diterima dari satu alamat, tanpa penolakan (Rekaman lab, bagian B).`);
+    harus("Batasnya: proxy keluar menjadi titik gagal tunggal baru, dan lab tidak merekam matinya proxy.");
+    harus("Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia.");
+    expect(bagB).toContain("# Batasnya: proxy keluar adalah titik gagal tunggal baru");
+    expect(bagB).toContain("(di cloud: NAT dengan IP tetap, Tidak dijalankan)");
+  });
+});
+
 const PENENTU = ["tidak", "belum", "hanya", "tetap", "sama", "sebelum", "sesudah", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "Raka", "Nadia", "Laras", "Senin", "pertama", "kedua", "bukan", "tanpa", "kecuali", "setiap", "semua", "selalu", "Rekaman lab", "Tidak dijalankan", "Ilustrasi", "Asumsi", "Hitungan", "naik", "turun", "gagal", "lulus", "ditolak", "403", "4xx", "sukses", "terbuka", "menunggu", "mati", "401", "408", "429", "ADR 31", "ADR 36", "ADR 25", "ADR 39", "ADR 44", "state", "secret", "proxy", "allowlist", "alamat", "host", "vendor", "breaker", "bawaan", "pindahan", "lab"];
 const profil = (teks: string): string =>
   PENENTU.map((k) => {
