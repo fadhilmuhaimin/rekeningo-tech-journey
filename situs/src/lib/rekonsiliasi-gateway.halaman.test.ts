@@ -775,8 +775,8 @@ describe("kartu Cek diri, halaman istilah, dan glosarium", () => {
     expect(h.istilah).toBe("Rekonsiliasi");
     expect(h.sumber!.map((s) => s.riset)).toEqual(["R4-150", "R4-151", "R4-153"]);
     for (const s of h.sumber!) expect(barisRiset(s.riset!)).toBeDefined();
-    expect(h.sumber![0]!.url).toBe("https://docs.stripe.com/reports/payout-reconciliation");
-    expect(h.sumber![1]!.url).toBe("https://docs.midtrans.com/docs/https-notification-webhooks");
+    expect((h.sumber![0] as { url: string }).url).toBe("https://docs.stripe.com/reports/payout-reconciliation");
+    expect((h.sumber![1] as { url: string }).url).toBe("https://docs.midtrans.com/docs/https-notification-webhooks");
     expect("rekaman" in h.sumber![2]! ? h.sumber![2]!.rekaman : "").toBe("labs/t4-webhook/output/rekon.txt");
     expect(h.cerita!.map((c) => c.rujukan)).toEqual(["t2-job-rekonsiliasi", "t4-rekonsiliasi"]);
     expect(h.cerita![1]!.teks).toContain("Lima dari tujuh order tidak cocok");
