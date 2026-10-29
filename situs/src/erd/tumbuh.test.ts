@@ -13,7 +13,7 @@ import petaT2 from "./uji/halaman.json";
 import { createHash } from "node:crypto";
 import { DataErd, ModulErd, PetaHalaman, type Tabel } from "./skema";
 import {
-  UKURAN, ambangKolom, bagiLajur, bisaBanding, daftarFk, jumlahKolom, namaTombol, peringkat, ringkasan, tampilSebelum, tampilTahap, tata,
+  UKURAN, ambangKolom, bagiLajur, bisaBanding, daftarFk, jumlahKolom, namaTombol, peringkat, ringkasan, tampilSebelum, tampilTahap, tampilTahapHalaman, tata,
   tandaiHalamanIni, tautanHalaman, teksAturan, teksKolom, teksPindah, barisPindah, tinggiNode, urutan, varPesan, duaBaris, duaKepala, lintasModul, modulTabel, tinggiKepala,
   periksaModul, ringkasModul, type HalamanRegistry, type TabelTampil,
 } from "./tumbuh";
@@ -71,6 +71,13 @@ describe("status per tahap", () => {
   });
   it("tahap yang dirujuk selisih harus ada", () => {
     expect(() => tampilTahap([semua[1]], 2)).toThrow(/Tahap 1 tidak ada/);
+  });
+  it("tampilTahapHalaman: tahap pertama halaman yang selisihnya merujuk tahap di luar data tampil tanpa status, bukan galat", () => {
+    const t = tampilTahapHalaman([semua[1]], 2);
+    expect(t).toHaveLength(tampilTahap(semua, 2).filter((x) => !x.bayangan).length);
+    expect(t.every((x) => x.status === null && !x.bayangan && x.kolom.every((k) => k.status === null))).toBe(true);
+    expect(tampilTahapHalaman(semua, 2)).toEqual(tampilTahap(semua, 2));
+    expect(tampilTahapHalaman(semua, 1)).toEqual(tampilTahap(semua, 1));
   });
 });
 
@@ -252,6 +259,8 @@ describe("ERD Tahap 3 dari lab api-t3 (ERD3)", () => {
     expect(kiri.every((t) => t.kolom.every((k) => k.status === null))).toBe(true);
     expect([bisaBanding(lab3, 2), bisaBanding(lab3, 3), bisaBanding([lab3[0], lab3[2]], 3)]).toEqual([true, true, false]);
     expect(() => tampilTahap([lab3[0], lab3[2]], 3)).toThrow(/Tahap 2 tidak ada/);
+    // Halaman yang hanya memuat Tahap 3 dan 4 (4.5) atau Tahap 2 dan 3 (3.5): tahap pertama tampil tanpa status, bukan galat.
+    expect(nama(tampilTahapHalaman([lab3[0], lab3[2]], 3))).toEqual(tampilTahap(lab3, 3).filter((t) => !t.bayangan).map((t) => `${t.nama}:null`));
   });
   it("penjaga selisih: menghapus satu tabel baru dari selisih mengubah statusnya, dan kolom baru tanpa tabelnya tidak lolos", () => {
     const d3 = structuredClone(lab3[2]);
