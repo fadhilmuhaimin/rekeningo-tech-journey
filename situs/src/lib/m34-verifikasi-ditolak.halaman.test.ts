@@ -382,6 +382,8 @@ describe("rekaman alamat.txt: bagian A, B, dan C, nilai yang dikutip, dan rentan
   test("rekaman alamat.txt yang tampil di Snippet: angka sisi vendor sama dengan klaim halaman (diterima, diproses, objek, outbox), tiap bagian", () => {
     const sesudahA = T.teks(aSesudahMulai, aTiap - 1);
     expect(bagianSebelum).toContain(`#   permintaan yang diproses: ${LULUS_A}, objek dibuat: ${LULUS_A}`);
+    expect(T.teks(tA, aSebelum - 1)).toMatch(new RegExp(`terkirim\\s+\\| 1\\s+\\| ${LULUS_A}\\b`));
+    expect(skenario.langkah[0]!.jelas).toContain(`pekerjaan lulus dengan ${kata(1)} percobaan tiap pekerjaan.`);
     expect(sesudahA).toContain(`#   diterima, per alamat sumber yang dilihat vendor: {'host lama': ${LAMA_A}}`);
     expect(sesudahA).toContain(`#   permintaan yang diproses: ${LAMA_A}, objek dibuat: ${LAMA_A}`);
     expect(T.baris[aTiap - 1]).toContain(`# Tiap pekerjaan memakai lima percobaan atas jawaban 403 yang tidak akan berubah (${PEKERJAAN_A} pekerjaan x ${PERCOBAAN} percobaan = ${TOLAK_A} penolakan).`);
@@ -395,6 +397,10 @@ describe("rekaman alamat.txt: bagian A, B, dan C, nilai yang dikutip, dan rentan
     expect(bAwal).toContain(`#   diterima, per alamat sumber yang dilihat vendor: {'proxy keluar': ${LULUS_B_SEBELUM}}`);
     expect(bAwal).toContain(`#   permintaan yang diproses: ${LULUS_B_SEBELUM}, objek dibuat: ${LULUS_B_SEBELUM}`);
     expect(bAwal).toContain("#   ditolak 403, per alamat sumber: (tidak ada)");
+    expect(bAwal).toContain("#   daftar alamat di vendor: proxy keluar");
+    expect(T.teks(tB, bLama)).toMatch(new RegExp(`terkirim\\s+\\| 1\\s+\\| ${LULUS_B_SEBELUM}\\b`));
+    expect(T.teks(tB, bLama)).toContain("# Yang didaftarkan di vendor: alamat proxy keluar, satu kali.");
+    expect(T.baris[bBeda - 3]).toContain("# Pindahan: host baru (alamat berbeda, tidak didaftarkan di vendor) dinyalakan dengan HTTP_PROXY yang sama, host lama dimatikan:");
     expect(T.teks(bSesudah, bBatas)).toContain(`#   permintaan yang diproses: ${TERIMA_B}, objek dibuat: ${TERIMA_B}`);
     expect(T.teks(bBeda, bSesudah)).toMatch(new RegExp(`terkirim\\s+\\| 1\\s+\\| ${TERIMA_B}\\b`));
     expect(T.baris[bBatas - 2]).toContain("# Alamat host baru tidak pernah sampai ke vendor.");
@@ -415,6 +421,7 @@ describe("rekaman alamat.txt: bagian A, B, dan C, nilai yang dikutip, dan rentan
     expect(akhir).toContain(`#   ditolak 403, per alamat sumber: {'host baru': ${TOLAK_BAWAAN}}`);
     expect(akhir).toContain(`#   permintaan yang diproses: ${LULUS_AKHIR}, objek dibuat: ${LULUS_AKHIR}`);
     expect(cBawaanB).toContain("# Operator mendaftarkan alamat host baru di vendor.");
+    expect(T.baris[cTerbuka + 4]).toContain("# Breaker terbuka dengan benar: pekerjaan menunggu, bukan mati");
     harus("Lajur pulih sesudah operator mendaftarkan alamat host baru:");
     expect([...bagC.matchAll(/-breaker-timeout (\d+)s/g)].map((m) => m[1])).toEqual([TIMEOUT_BREAKER, TIMEOUT_BREAKER]);
     expect(bagC.match(/-breaker-bawaan/g)).toHaveLength(1);
