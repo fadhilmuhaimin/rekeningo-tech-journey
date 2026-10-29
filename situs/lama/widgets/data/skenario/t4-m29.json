@@ -1,0 +1,183 @@
+{
+  "versi": 2,
+  "judul": "Gateway mengirim kabar yang sama dua kali, saldo Budi naik dua kali",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/api-t4/output/rentan.txt",
+    "fileVarian": "labs/t4-webhook/output/ganda.txt",
+    "catatan": "Server Go api-t4 dan gateway tiruan lokal dengan PostgreSQL 17.11, dari database bersih. Jalur utama: rentan.txt bagian A di labs/api-t4 (make -C labs/api-t4 run), handler versi pertama (mode rentan webhook-v1). Perintah dan jurnalnya sama dengan ganda.txt bagian A di labs/t4-webhook (make -C labs/t4-webhook run BAGIAN=ganda): run terpisah dengan data awal yang sama. Ubah satu hal: ganda.txt bagian B, handler dengan tabel event, dan balasan 200 pertama diputus di jalan. Gateway tiruan mengirim tiap kiriman atas perintah skrip lab, bukan mengulang sendiri, dan menutup koneksi begitu balasan mulai datang: itu perilaku tiruan, bukan jaringan nyata. Baris diawali tanda panah diringkas dari tabel PostgreSQL di rekaman yang sama, bukan baris log. Layar HP digambar dari isi rekaman: lab tidak punya app Flutter, dan rekaman bagian B tidak mencetak saldo, jadi layar akhir varian tidak menampilkan saldo. Jam 12.05 di layar HP adalah pilihan penulis."
+  },
+  "pengantar": "Budi mengisi Rp200.000 dari rekening banknya, dan gateway mengirim kabar 'dibayar' ke handler pertama. Tebak dulu, lalu ikuti kedua kiriman sampai HP Budi. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    {
+      "id": "gw",
+      "label": "Gateway (tiruan)"
+    },
+    {
+      "id": "api",
+      "label": "api-t4"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    }
+  ],
+  "perangkat": [
+    {
+      "id": "budi",
+      "label": "HP Budi"
+    }
+  ],
+  "layarAwal": {
+    "budi": {
+      "judul": "Rekeningo",
+      "waktu": "12.05",
+      "sinyal": 3,
+      "saldo": 250000,
+      "saldoLabel": "Saldo Budi",
+      "isi": [
+        {
+          "jenis": "teks",
+          "teks": "Top-up Rp200.000 menunggu pembayaran"
+        }
+      ]
+    }
+  },
+  "predict": {
+    "q": "Gateway mengirim kabar evt-1 untuk kedua kalinya ke handler pertama. Handler membaca baris top-up dengan FOR UPDATE, tetapi tidak menyimpan event_id dan tidak memeriksa status top-up. Apa jawabannya?",
+    "options": [
+      "200 ganda: status top-up sudah dibayar, jadi tidak ada jurnal baru",
+      "200 ganda: event_id evt-1 sudah pernah tercatat di tabel event",
+      "Galat: database menolak jurnal kedua untuk order yang sama",
+      "200 diproses: jurnal kedua ditulis dengan jumlah yang sama"
+    ],
+    "answer": 3,
+    "varian": false,
+    "explain": "Handler pertama tidak punya tabel event dan tidak memeriksa status, jadi kiriman kedua menjadi jurnal kedua. Rekaman ganda.txt bagian A: 200 diproses dua kali dan dua jurnal untuk satu pembayaran. Tabel webhook_event tetap 0 baris (rentan.txt bagian A), dan database tidak menolak jurnal kedua."
+  },
+  "langkah": [
+    {
+      "dari": "gw",
+      "ke": "api",
+      "judul": "Gateway mengirim kabar evt-1: settlement",
+      "kirim": "$ curl -X POST gateway/lab/webhook -d '{\"event_id\":\"evt-1\",\"order_id\":\"<order 1>\",\"kali\":2,\"tanpa_tanda_tangan\":true}'   # event yang sama, dua kali, berurutan",
+      "jelas": "Budi sudah membayar Rp200.000 di bank, diperankan perintah lab ke gateway tiruan. Perintah ini menyuruh gateway tiruan mengirim kabar yang sama dua kali, berurutan, tanpa tanda tangan. Kiriman pertama dulu."
+    },
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Handler pertama menulis jurnal 10201",
+      "kirim": "→ jurnal 10201: bank −Rp200.000, karyawan +Rp200.000",
+      "jelas": "Handler membaca baris top-up dengan FOR UPDATE, tidak memeriksa statusnya, lalu menulis satu jurnal sebesar jumlah di isi kabar (kode webhookV1 dan kreditV1)."
+    },
+    {
+      "dari": "api",
+      "ke": "gw",
+      "judul": "Handler menjawab 200",
+      "kirim": "→ kiriman 1: 200 diproses",
+      "jelas": "Kiriman pertama diterima. Sampai di sini semuanya benar."
+    },
+    {
+      "dari": "gw",
+      "ke": "api",
+      "judul": "Gateway mengirim kabar yang sama lagi",
+      "kirim": "→ kiriman 2: event_id evt-1 yang sama, tanpa tanda tangan",
+      "jelas": "Kiriman kedua membawa event_id yang sama. Handler pertama tidak menyimpan event_id, jadi tidak ada yang bisa dikenali.",
+      "nada": "warn"
+    },
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Handler pertama menulis jurnal kedua 10202",
+      "kirim": "→ jurnal 10202: bank −Rp200.000, karyawan +Rp200.000",
+      "jelas": "Jumlahnya sama dengan jurnal pertama, dan database tidak menolaknya: dua jurnal dengan order yang sama tidak melanggar aturan apa pun.",
+      "nada": "warn"
+    },
+    {
+      "dari": "api",
+      "ke": "gw",
+      "judul": "Handler menjawab 200 lagi",
+      "kirim": "hasil kiriman: 200 diproses, 200 diproses",
+      "jelas": "Kedua kiriman dijawab 200 diproses. Tidak ada tanda bahwa yang kedua ganda.",
+      "nada": "warn"
+    },
+    {
+      "dari": "api",
+      "judul": "Saldo Budi naik Rp400.000",
+      "kirim": "$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'\n→ saldo Budi: 650000 (data awal 250000)",
+      "jelas": "Saldo naik dari Rp250.000 ke Rp650.000 untuk pembayaran Rp200.000. Di cerita angkanya Rp50.000 ke Rp450.000 (Ilustrasi): kenaikannya sama.",
+      "nada": "warn",
+      "layar": {
+        "budi": {
+          "judul": "Rekeningo",
+          "waktu": "12.05",
+          "sinyal": 3,
+          "saldo": 650000,
+          "saldoLabel": "Saldo Budi",
+          "nada": "warn",
+          "isi": [
+            {
+              "jenis": "teks",
+              "teks": "Top-up Rp200.000 masuk"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "handler dengan tabel event_id, dan balasan 200 pertama hilang di jalan",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "gw",
+        "ke": "api",
+        "judul": "Gateway mengirim kabar evt-1",
+        "kirim": "→ kiriman 1: evt-1, bertanda tangan",
+        "jelas": "Handler versi ADR 34 memeriksa tanda tangan, lalu mencatat event_id dan menulis jurnal dalam satu transaction."
+      },
+      {
+        "dari": "api",
+        "ke": "db",
+        "judul": "Handler mencatat event_id dan jurnal, lalu COMMIT",
+        "kirim": "→ webhook_event: evt-1, settlement, diproses; satu jurnal",
+        "jelas": "Uangnya sudah tercatat sekali, sebelum handler mengirim balasan."
+      },
+      {
+        "dari": "api",
+        "ke": "gw",
+        "judul": "Balasan 200 putus di jalan",
+        "kirim": "kiriman 1 (koneksi diputus gateway begitu balasan mulai datang): koneksi diputus sesudah balasan mulai datang",
+        "jelas": "Gateway tidak menerima jawaban. Gateway tiruan menutup koneksi begitu balasan mulai datang, sesudah COMMIT. Itu perilaku tiruan, bukan jaringan nyata.",
+        "nada": "warn"
+      },
+      {
+        "dari": "gw",
+        "ke": "api",
+        "judul": "Kiriman evt-1 yang sama datang lagi",
+        "kirim": "kiriman 2 (event yang sama): 200 ganda",
+        "jelas": "Perintah kedua dari skrip lab menggantikan pengulangan gateway, yang tidak ditunggu di lab. Handler menemukan event_id yang sama dan menjawab ganda."
+      },
+      {
+        "dari": "api",
+        "ke": "db",
+        "judul": "event_id sudah ada: satu jurnal",
+        "kirim": " evt-1    | settlement | diproses | t\n# Kiriman pertama sudah di-COMMIT sebelum balasan dikirim, jadi kiriman ulang menemukan event_id yang sama: nol baris, balas 200 tanpa jurnal.",
+        "jelas": "Tidak ada jurnal kedua: uangnya tercatat sekali. Rekaman bagian B tidak mencetak saldo, jadi layar HP tidak menampilkannya.",
+        "layar": {
+          "budi": {
+            "judul": "Rekeningo",
+            "waktu": "12.05",
+            "sinyal": 3,
+            "isi": [
+              {
+                "jenis": "teks",
+                "teks": "Top-up Rp200.000 masuk"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
