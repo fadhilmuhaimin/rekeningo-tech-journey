@@ -1,0 +1,26 @@
+{
+  "id": "t4-m30-rahasia-berganti",
+  "judul": "Secret berganti, kiriman ditolak",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-webhook · retry.txt bagian B dan C" },
+  "baris": [
+    {
+      "label": "Secret diganti, api-t4 belum",
+      "sub": "jadwal 2, 10, 30, 90, 210 menit",
+      "simpul": [
+        { "teks": "Tanda tangan secret baru", "sub": "api-t4 memegang yang lama" },
+        { "teks": "Enam kiriman, enam 401", "sub": "menit 0 sampai 342", "nada": "warn" },
+        { "teks": "Jadwal habis", "sub": "nol event, nol jurnal", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Disamakan di menit 2 sampai 12",
+      "sub": "api-t4 dinyalakan ulang",
+      "simpul": [
+        { "teks": "Kiriman 1 dan 2: 401", "sub": "secret belum sama" },
+        { "teks": "Secret disamakan", "sub": "baru dan lama diterima" },
+        { "teks": "Kiriman 3: 200 diproses", "sub": "top-up dibayar, satu jurnal", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Baris pertama memakai top-up Citra Rp500.000 dan baris kedua top-up Eko Rp200.000, dengan alur yang sama. Kotak oranye adalah akibat yang direkam."
+}
