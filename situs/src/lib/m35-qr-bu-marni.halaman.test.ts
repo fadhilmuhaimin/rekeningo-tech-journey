@@ -847,6 +847,8 @@ describe("tinjauan: nilai yang diturunkan dari sumber, bukan dari kunci baris", 
     harus("Widget ini mengikuti rekaman `statis.txt` bagian A, B, dan C, dengan satu varian dari `crc.txt` bagian C dan D.");
     expect(skenario.sumber.catatan).toContain("Jalur utama: statis.txt bagian A, B, dan C");
     expect(skenario.sumber.catatan).toContain("Ubah satu hal: crc.txt bagian C dan D");
+    harus("Tebak dulu apa yang dijawab server atas pembayaran ke stiker itu, lalu tekan Berikutnya atau panah kanan.");
+    expect(skenario.predict.q).toContain("Apa yang dijawab server?");
     harus("Nama yang bisa dipercaya adalah nama yang dijawab server dari tabel akun merchant terverifikasi.");
     expect(bagSC).toContain("dipercaya hanya yang dijawab server dari tabel akun (merchant terverifikasi)");
     harus("Naskah menulis layar itu menampilkan nama merchant berhuruf kecil, dan Budi tidak membandingkannya dengan papan toko (Ilustrasi).");
