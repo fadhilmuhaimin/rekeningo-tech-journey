@@ -3504,8 +3504,9 @@
       "lab": [
         "t4-integrasi"
       ],
-      "ada": false,
-      "nomor": "4.11"
+      "ada": true,
+      "nomor": "4.11",
+      "menit": 23
     },
     {
       "id": "t4-m32",
