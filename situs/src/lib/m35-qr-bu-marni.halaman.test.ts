@@ -350,7 +350,7 @@ describe("rekaman statis.txt: bagian A, B, dan C, nilai yang dikutip, dan klaim 
     expect(bagSC).toContain("Nama dan kota yang bisa");
   });
   test("klaim negatif berlingkup: tabel qr tanpa lokasi (kolom dari katalog schema), lab tanpa app dan tanpa gambar QR (folder labs/t4-qr), naskah tanpa asal nama di layar", () => {
-    const berkasLab = [...(terlacak ?? new Set<string>())].filter((f) => f.startsWith("labs/t4-qr/"));
+    const berkasLab = terlacak ? [...terlacak].filter((f) => f.startsWith("labs/t4-qr/")) : (fs.readdirSync(path.join(akar, "labs/t4-qr"), { recursive: true }) as string[]).map((f) => `labs/t4-qr/${f}`);
     expect(berkasLab.length).toBeGreaterThan(5);
     expect(berkasLab.filter((f) => /\.(png|jpe?g|svg|gif|webp|dart)$|pubspec\.yaml$/i.test(f))).toEqual([]);
     expect(readme).toContain("Tidak ada app di lab ini.");
