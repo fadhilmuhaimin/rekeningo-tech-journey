@@ -1,0 +1,28 @@
+{
+  "id": "t4-prd-sebelum-sesudah",
+  "judul": "Sesudah Tahap 3 dan yang diminta PRD v4",
+  "sumber": { "jenis": "ilustrasi", "teks": "Ringkasan PRD v4" },
+  "baris": [
+    {
+      "label": "Sesudah Tahap 3",
+      "sub": "yang belum ada",
+      "simpul": [
+        { "teks": "Uang masuk dari admin", "sub": "bukan dari rekening bank" },
+        { "teks": "User dikenal HR", "sub": "belum ada verifikasi identitas" },
+        { "teks": "Satu VPS, empat engineer", "sub": "satu codebase, satu tim" },
+        { "teks": "Hanya karyawan Lestari", "sub": "10.000 user, ±60 warung", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Rekeningo v4",
+      "sub": "publik, 12 minggu",
+      "simpul": [
+        { "teks": "Top-up dari bank", "sub": "lewat gateway pembayaran", "nada": "system" },
+        { "teks": "Identitas diverifikasi", "sub": "dua tingkat saldo", "nada": "system" },
+        { "teks": "Tiga tim, satu PT", "sub": "13 engineer, infrastruktur sendiri", "nada": "system" },
+        { "teks": "0 top-up tercatat dua kali", "sub": "selisih jadi insiden bernomor", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kotak biru adalah fitur dan kondisi P0 di PRD v4. Kotak terakhir adalah metrik top-up."
+}
