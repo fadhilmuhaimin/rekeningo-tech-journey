@@ -13,8 +13,8 @@
       ]
     },
     {
-      "label": "Di luar database",
-      "sub": "satu top-up",
+      "label": "Satu top-up",
+      "sub": "dua tempat",
       "simpul": [
         { "teks": "Kabar gateway", "sub": "gateway tidak ikut COMMIT atau ROLLBACK", "nada": "warn" },
         { "teks": "Jurnal top-up", "sub": "PostgreSQL: berhasil atau batal sebagai satu unit", "nada": "system" }

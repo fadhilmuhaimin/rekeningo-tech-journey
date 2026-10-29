@@ -237,7 +237,7 @@ describe("tabel pekerjaan: tujuh baris naskah", () => {
 describe("Inti dan diagram Rantai: jumlah tabel dari ERD dan rekaman", () => {
   const baru = erd4.selisih.tabel_baru;
   test("kalimat pertama menyebut jumlah tabel baru dan jumlah tabel akhir dari ERD; kalimat kedua tidak menyebut tabel", () => {
-    expect(blokMulai).toContain(`PRD v${v} menambah ${kata(baru.length)} tabel, dari ${erd3.tabel.length} menjadi ${erd4.tabel.length}. Pekerjaan yang membuka Tahap 4 terjadi di luar database: menerima kabar dari gateway pembayaran.`);
+    expect(blokMulai).toContain(`Tim menambah ${kata(baru.length)} tabel untuk PRD v${v}, dari ${erd3.tabel.length} menjadi ${erd4.tabel.length}. Pekerjaan yang membuka Tahap 4 terjadi di luar database: menerima kabar dari gateway pembayaran.`);
     expect(erd4.tabel).toHaveLength(erd3.tabel.length + baru.length);
     expect(erd4.tabel).toHaveLength(22);
     expect(naskahTeks).toContain("Jumlahnya 22 tabel: 14 dari Tahap 3 dan 8 baru");
@@ -263,7 +263,7 @@ describe("Inti dan diagram Rantai: jumlah tabel dari ERD dan rekaman", () => {
     expect(db!.simpul[2]!.sub).toBe(`skema lab ${lab}`);
     expect(rantai.sumber).toEqual({ jenis: "ilustrasi", teks: "Baris 1: rekaman lab api-t3 dan api-t4. Baris 2: Ilustrasi" });
     expect(rantai.sumber.teks).toContain(lab);
-    expect(rantai.baris.map((b) => b.label)).toEqual(["Database", "Di luar database"]);
+    expect(rantai.baris.map((b) => b.label)).toEqual(["Database", "Satu top-up"]);
     expect(luar!.simpul.map((s) => [s.teks, s.nada])).toEqual([["Kabar gateway", "warn"], ["Jurnal top-up", "system"]]);
     expect(luar!.simpul[0]!.sub).toBe("gateway tidak ikut COMMIT atau ROLLBACK");
     expect(luar!.simpul[1]!.sub).toBe("PostgreSQL: berhasil atau batal sebagai satu unit");
@@ -400,7 +400,7 @@ describe("pertanyaan pertama Tahap 4 dan klaim dokumentasi gateway", () => {
     expect(per("t4-dua-arah").judul).toContain("Dua arah ke pihak ketiga");
     expect(per("t4-m29").judul).toBe("M29: Top-up Budi masuk dua kali");
     expect(blokTanya).toContain("Alasannya dibahas di [[t4-dua-arah]], dan kejadiannya, top-up Budi yang masuk dua kali, di [[t4-m29]].");
-    expect(blokTanya).toContain("Tiga pertanyaan terbuka PRD v4 yang ikut menentukan jawabannya ada di [[t4-prd]].");
+    expect(blokTanya).toContain("Dari tiga pertanyaan terbuka PRD v4 di [[t4-prd]], yang pertama menyangkut kabar dari gateway.");
     expect(naskahTeks).toContain("**Pertanyaan terbuka di PRD.**");
     expect(naskahTeks).toContain("Ketiganya tidak dijawab PRD dan menjadi masalah terbesar Tahap 4");
   });
@@ -503,7 +503,7 @@ describe("kartu pilah: jawaban dari kolom naskah dan klaim dari rekaman", () => 
     expect(c).toContain("dana_tertahan");
     expect(pilah.item[4]!.kenapa).toContain("GET /qr/{id} (fitur.txt bagian A)");
     expect(pilah.item[5]!.kenapa).toContain(`otorisasi ${rp(80000)} yang disetujui meninggalkan satu baris berstatus ditahan dengan jurnal tahan (fitur.txt bagian C)`);
-    expect(pilah.item[5]!.kenapa).toContain("Persetujuan yang sudah dikirim ke penerbit tidak bisa ditarik kembali");
+    expect(pilah.item[5]!.kenapa).toContain("Rekeningo tidak bisa menarik kembali persetujuan yang sudah dikirim ke penerbit");
     expect(naskahTeks).toContain("persetujuan sudah diberikan dan tidak bisa ditarik");
   });
   test("kartu verifikasi: jawaban lulus menaikkan tingkat akun (verifikasi.txt C), layanan verifikasi tiruan", () => {
@@ -544,7 +544,7 @@ describe("kunci kalimat: semua baris prosa halaman", () => {
   const syarat = syaratNaskah.map((b, i) => `${i + 1}. ${b.replace(/^\d\. /, "").replace(/ \(syarat [^)]+\)\.$/, ".").replace("tanda tangan atas byte mentah", "tanda tangan atas isi kiriman persis seperti diterima (byte mentah)")} Ini syarat ${["Pak Hadi", "Laras", "Direksi"][i]}.`);
   const HARAP = [
     "## Inti",
-    `PRD v${v} menambah ${kata(baru.length)} tabel, dari ${erd3.tabel.length} menjadi ${erd4.tabel.length}. Pekerjaan yang membuka Tahap 4 terjadi di luar database: menerima kabar dari gateway pembayaran.`,
+    `Tim menambah ${kata(baru.length)} tabel untuk PRD v${v}, dari ${erd3.tabel.length} menjadi ${erd4.tabel.length}. Pekerjaan yang membuka Tahap 4 terjadi di luar database: menerima kabar dari gateway pembayaran.`,
     `${huruf1(kata(baru.length))} tabel baru ada di skema lab api-t4, dari \`${baru[0]}\` sampai \`${baru[baru.length - 1]}\`. Tabel \`akun\` bertambah kolom \`${akunKolom[0]}\` dan \`${akunKolom[1]}\`.`,
     `Baris kedua dari ${kata(tabelNaskah.length)} baris pekerjaan di bawah, ${tabelNaskah[1]![0]!.toLowerCase()}, menyentuh dua tempat sekaligus. PostgreSQL bisa COMMIT atau ROLLBACK sebagai satu unit, tetapi gateway tidak ikut unit itu. Dari baris itu lahir pertanyaan pertama Tahap 4.`,
     `${huruf1(kata(pilah.item.length))} pekerjaan dari PRD v${v}. Pilah masing-masing ke tempat yang mengerjakannya, lalu periksa jawabanmu. Nama endpoint, tabel, dan status berasal dari Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) api-t4, dan jadwal ulangan gateway dari lab t4-webhook. Gateway dan layanan verifikasi adalah tiruan lokal.`,
@@ -560,7 +560,7 @@ describe("kunci kalimat: semua baris prosa halaman", () => {
     "Rekeningo tidak bisa membuat gateway ikut COMMIT atau ROLLBACK. Tiga hal harus selalu benar, dan masing-masing punya pemiliknya:",
     ...syarat,
     "Dari tiga syarat itu lahir pertanyaan pertama Tahap 4, sebelum satu baris kode ditulis: kabar dari luar adalah klaim, bukan fakta. Klaim di sini berarti pernyataan yang belum terbukti, bukan klaim baris outbox di Tahap 3. Karena itu klaim dicek lebih dulu, lalu dicatat satu kali. Bagaimana satu kabar dari gateway menghasilkan tepat satu jurnal, padahal kabar itu bisa datang dua kali, terlambat, atau tidak datang sama sekali?",
-    "Cara pertama yang ditulis tim memperlakukan kabar itu sebagai fakta, dan ternyata keliru. Alasannya dibahas di [[t4-dua-arah]], dan kejadiannya, top-up Budi yang masuk dua kali, di [[t4-m29]]. Tiga pertanyaan terbuka PRD v4 yang ikut menentukan jawabannya ada di [[t4-prd]].",
+    "Cara pertama yang ditulis tim memperlakukan kabar itu sebagai fakta, dan ternyata keliru. Alasannya dibahas di [[t4-dua-arah]], dan kejadiannya, top-up Budi yang masuk dua kali, di [[t4-m29]]. Dari tiga pertanyaan terbuka PRD v4 di [[t4-prd]], yang pertama menyangkut kabar dari gateway.",
     "Tabel ini menyebut konsep untuk tiap fitur. Sebagian baru, sebagian dari Tahap 1 sampai 3 yang dipakai lagi. Tahap 4 membahas yang baru satu per satu, saat masalahnya muncul.",
     "Pola kabar dari luar muncul lagi di dua masalah lain. Jawaban layanan verifikasi ([[t4-m31]]) dan permintaan otorisasi dari penerbit kartu ([[t4-m37]]) juga klaim yang dicek sebelum dipercaya. Aturan Tahap 4 sama untuk ketiganya: PostgreSQL tetap satu-satunya source of truth, dan pihak luar hanya memberi klaim.",
     "Klaim itu dicek, lalu dicatat sekali. Selama semuanya satu proses, pencatatannya satu transaction dengan efeknya. Sesudah service pembayaran terpisah ([[t4-modul|ADR 37]]), pencatatannya lewat Idempotency-Key.",
@@ -671,7 +671,7 @@ describe("kunci tambahan: bagian yang tidak diturunkan dari satu sumber", () => 
   });
   test("diagram: id dan subjudul baris", () => {
     expect(rantai.id).toBe("t4-fitur-tabel");
-    expect(rantai.baris.map((b) => b.sub)).toEqual(["jumlah tabel di skema lab", "satu top-up"]);
+    expect(rantai.baris.map((b) => b.sub)).toEqual(["jumlah tabel di skema lab", "dua tempat"]);
   });
   test("kartu pilah: teks dan penjelasan sepuluh kartu serta penutup, persis", () => {
     const harap: [string, string][] = [
@@ -697,7 +697,7 @@ describe("kunci tambahan: bagian yang tidak diturunkan dari satu sumber", () => 
   ],
   [
     "Menahan dana pemilik kartu sebelum menjawab setuju pada otorisasi",
-    "Persetujuan yang sudah dikirim ke penerbit tidak bisa ditarik kembali, jadi backend menahan dana lebih dulu sebagai jurnal di ledger. Di rekaman lab api-t4, otorisasi Rp80.000 yang disetujui meninggalkan satu baris berstatus ditahan dengan jurnal tahan (fitur.txt bagian C)."
+    "Rekeningo tidak bisa menarik kembali persetujuan yang sudah dikirim ke penerbit, jadi backend menahan dana lebih dulu sebagai jurnal di ledger. Di rekaman lab api-t4, otorisasi Rp80.000 yang disetujui meninggalkan satu baris berstatus ditahan dengan jurnal tahan (fitur.txt bagian C)."
   ],
   [
     "Memutuskan apakah pengajuan verifikasi seorang user lulus",

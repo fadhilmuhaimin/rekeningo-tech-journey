@@ -14,7 +14,7 @@ import SkripLama from "../../../components/SkripLama.astro";
 
 ## Inti
 
-PRD v4 menambah delapan tabel, dari 14 menjadi 22. Pekerjaan yang membuka Tahap 4 terjadi di luar database: menerima kabar dari gateway pembayaran.
+Tim menambah delapan tabel untuk PRD v4, dari 14 menjadi 22. Pekerjaan yang membuka Tahap 4 terjadi di luar database: menerima kabar dari gateway pembayaran.
 
 <Rantai data={tabelBaru} ringkas />
 
@@ -76,7 +76,7 @@ Rekeningo tidak bisa membuat gateway ikut COMMIT atau ROLLBACK. Tiga hal harus s
 
 Dari tiga syarat itu lahir pertanyaan pertama Tahap 4, sebelum satu baris kode ditulis: kabar dari luar adalah klaim, bukan fakta. Klaim di sini berarti pernyataan yang belum terbukti, bukan klaim baris outbox di Tahap 3. Karena itu klaim dicek lebih dulu, lalu dicatat satu kali. Bagaimana satu kabar dari gateway menghasilkan tepat satu jurnal, padahal kabar itu bisa datang dua kali, terlambat, atau tidak datang sama sekali?
 
-Cara pertama yang ditulis tim memperlakukan kabar itu sebagai fakta, dan ternyata keliru. Alasannya dibahas di [[t4-dua-arah]], dan kejadiannya, top-up Budi yang masuk dua kali, di [[t4-m29]]. Tiga pertanyaan terbuka PRD v4 yang ikut menentukan jawabannya ada di [[t4-prd]].
+Cara pertama yang ditulis tim memperlakukan kabar itu sebagai fakta, dan ternyata keliru. Alasannya dibahas di [[t4-dua-arah]], dan kejadiannya, top-up Budi yang masuk dua kali, di [[t4-m29]]. Dari tiga pertanyaan terbuka PRD v4 di [[t4-prd]], yang pertama menyangkut kabar dari gateway.
 
 </Blok>
 
