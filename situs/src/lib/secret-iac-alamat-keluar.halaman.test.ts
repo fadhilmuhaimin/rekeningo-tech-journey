@@ -1062,3 +1062,72 @@ describe("kunci kalimat dan sidik kata penentu (lapis 2 dan penutup mutasi tanpa
     expect(halaman).toContain('description: "Pindahan membawa tiga hal yang tidak tertulis di kode: alamat keluar, secret, dan state IaC. ADR 39 memindahkan data, file, dan secret ke layanan terkelola, menulis cara menjaga ketiganya, dan menulis kapan pilihan itu salah."');
   });
 });
+
+// Penutup mutasi tinjauan: kalimat mekanisme yang sebelumnya hanya terjaga oleh kunci baris (TANPA_KUNCI=1) atau sidik kata (TANPA_KUNCI=2)
+// diturunkan dari rekaman, kode, README, naskah, RISET, dan glosarium. Tes ini tidak ikut dimatikan oleh TANPA_KUNCI.
+describe("kalimat mekanisme diturunkan dari sumbernya, tanpa bergantung pada kunci baris atau sidik kata", () => {
+  const hurufRotasi = (re: RegExp): string => [...rotasi.matchAll(/^# --- ([A-Z])\. (.+)$/gm)].find((x) => re.test(x[2]!))![1]!;
+  test("huruf bagian rekaman rotasi yang disebut halaman cocok dengan judul bagian itu", () => {
+    const hMode = hurufRotasi(/cara berjalan/);
+    const hBaca = hurufRotasi(/membaca rahasia dari OpenBao saat runtime/);
+    const hRotasi = hurufRotasi(/Rotasi dengan masa tumpang tindih/);
+    const hTerbalik = hurufRotasi(/Urutan terbalik/);
+    const hMati = hurufRotasi(/OpenBao mati/);
+    expect([hMode, hBaca, hRotasi, hTerbalik, hMati]).toEqual(["A", "B", "C", "D", "E"]);
+    harus(`Rekaman \`rotasi.txt\` bagian ${hMode} membuktikannya`);
+    harus(`token yang tidak dikenal membuat service tidak menyala (\`rotasi.txt\` bagian ${hBaca})`);
+    harus(`Bagian ${hTerbalik} membalik urutan`);
+    harus(`kabarnya ditolak 401 sampai service membaca (\`rotasi.txt\` bagian ${hTerbalik})`);
+    harus(`alert atas kegagalan beruntun belum ada (\`rotasi.txt\` bagian ${hMati})`);
+    harus(`menjalankan destroy (\`rotasi.txt\` bagian ${hRotasi}).`);
+    harus(`(\`rotasi.txt\` bagian ${hTerbalik}).`, 2);
+  });
+  test("mode dev, urutan rotasi, dan struktur dokumen secret sama dengan rekaman dan kode", () => {
+    expect(rotasi).toContain("Mode dev menyimpan data di memori dan tidak menyimpannya ke disk");
+    expect(rotasi).toContain("OpenBao v2.7.2 mode dev");
+    harus("Lab memakai OpenBao v2.7.2 dalam mode dev. Mode dev menyimpan data di memori, kehilangan data di tiap restart");
+    expect(kodeBao).toContain('Sekarang string `json:"sekarang"`');
+    expect(kodeBao).toContain('Lama     string `json:"lama"`');
+    harus("Dokumen secret berisi dua nilai, `sekarang` dan `lama`.");
+    expect(rotasi).toContain("tulis ke OpenBao dulu, tunggu service membacanya");
+    expect(rotasi).toContain("baru gateway beralih");
+    harus("Urutan aman adalah tulis ke OpenBao, tunggu service membaca, baru penanda tangan beralih.");
+    harus("tulis dulu, tunggu service membaca, baru penanda tangan beralih, lalu akhiri tumpang tindih.");
+    harus("yang dijalankan di lab. Terraform v1.17.1 (terbit 2026-10-28) dan Vault v2.2.1 hanya dibandingkan.");
+    expect(readme).toMatch(/Terraform v1\.17\.0, Vault v2\.2\.1 \| hanya dibandingkan/);
+    expect(rotasi).toContain("belum selesai sebelum versi lama dihancurkan");
+    harus("Itu aturan keputusan, bukan hasil rekaman.");
+  });
+  test("lisensi, NAT, dan jawaban Cek diri diturunkan dari RISET dan rekaman", () => {
+    expect(barisRiset("R4-192")).toContain("NAT gateway publik wajib diasosiasikan dengan Elastic IP");
+    harus("NAT gateway publik wajib memegang satu Elastic IP sejak dibuat");
+    expect(barisRiset("R4-190")).toContain("Business Source License");
+    expect(barisRiset("R4-190")).toContain("versi berbayar IBM");
+    harus("Terraform v1.17.1 dan Vault v2.2.1 memakai Business Source License.");
+    harus("bersaing dengan versi berbayar IBM.");
+    expect(bagian(ST, "A").baris).toContain("state memuat nilai password dari random_password: ya");
+    harus("Ya. Tanda sensitif hanya menyembunyikan nilai dari keluaran CLI, dan state tetap menyimpannya sebagai teks");
+    harus(`memakai ${BILANGAN[percobaanA]} percobaan atas jawaban 403`);
+    expect(alamat).toContain("Alamat host baru tidak pernah sampai ke vendor");
+    harus("Vendor hanya melihat proxy.");
+    expect(naskah).toContain("PostgreSQL terkelola, penyimpanan objek, dan secret manager di akun cloud PT (Tidak dijalankan; lab: tiruan di Compose)");
+    harus("di layanan terkelola di akun cloud PT (Tidak dijalankan: lab memakai tiruan di Compose)");
+    expect(readme).toContain("matinya proxy tidak direkam");
+    harus("Matinya proxy tidak direkam. Pencegahannya daftar vendor yang memakai allowlist di repo IaC dan pemeriksaan sebelum pindah (Ilustrasi: belum dibuat).");
+  });
+  test("struktur: Rantai ringkas dan noscript memuat jawaban pilah dari data", () => {
+    harus("<Rantai data={intiDiagram} ringkas />");
+    harus("<noscript>");
+    harus("</noscript>");
+    expect(halaman).toMatch(/<noscript>[\s\S]*\{pilah\.item\.map\(\(it\) => \(\n<li><strong>\{pilah\.kelompok\[it\.jawab\]\}\.<\/strong> \{it\.teks\} \{it\.kenapa\}<\/li>\n\)\)\}[\s\S]*<\/noscript>/);
+  });
+  test("definisi glosarium tiga istilah: sama dengan glosarium.json dan memuat frasa kunci dari halaman istilah", () => {
+    const g = glosariumJson as { t: string; d: string; s: string }[];
+    for (const [slug, h, frasa] of [["secret-manager", istSecret, "di luar kode"], ["iac", istIac, "file konfigurasi"], ["proxy-keluar", istProxy, "alamat tetap"]] as const) {
+      const baris = g.find((x) => x.s === `istilah-${slug}`)!;
+      expect(glosariumMdx, slug).toContain(`| ${baris.d} | [[t4-infra-secret]] |`);
+      expect(baris.d, slug).toContain(frasa);
+      expect(h.sehari_hari, slug).toContain(frasa);
+    }
+  });
+});
