@@ -146,9 +146,9 @@
  {
   "t": "ADR (Architecture Decision Record)",
   "d": "Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.",
-  "b": "D5",
-  "n": "Template ADR (versi lama)",
-  "u": "/d-system-design/d5-adr/",
+  "b": "t4-modul",
+  "n": "4.13 Modular monolith",
+  "u": "/tahap-4/modular-monolith/",
   "s": "istilah-adr",
   "h": null
  },
@@ -929,11 +929,11 @@
  {
   "t": "Modular monolith",
   "d": "Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.",
-  "b": "B7.2",
-  "n": "Modular monolith (versi lama)",
-  "u": "/b-fondasi/b7-2-batas-modul/",
+  "b": "t4-modul",
+  "n": "4.13 Modular monolith",
+  "u": "/tahap-4/modular-monolith/",
   "s": "istilah-modular-monolith",
-  "h": null
+  "h": "/istilah/modular-monolith/"
  },
  {
   "t": "Monolith",

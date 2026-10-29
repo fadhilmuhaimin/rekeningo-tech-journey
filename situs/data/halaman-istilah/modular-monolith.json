@@ -1,0 +1,45 @@
+{
+  "istilah": "Modular monolith",
+  "sehari_hari": "Modular monolith adalah satu aplikasi yang di-deploy sebagai satu unit, dengan kode dan tabel yang dibagi ke modul. Tiap modul punya pemilik dan satu pintu masuk. Batasnya dijaga mesin, bukan hanya kesepakatan tim.",
+  "cerita": [
+    {
+      "rujukan": "t4-modul",
+      "teks": "Rekeningo membagi 22 tabel ke enam schema, satu schema satu modul. SQL pembayaran ke tabel akun ditolak PostgreSQL, dan impor paket `internal/data` milik modul akun ditolak `go build` (`batas.txt` bagian B)."
+    }
+  ],
+  "mekanisme": [
+    "Kode dibagi ke modul. Tiap modul membuka satu paket publik dan menyimpan sisanya di bagian dalam.",
+    "Compiler atau aturan impor menolak kode modul lain yang menyentuh bagian dalam itu. Di Go, direktori `internal` bekerja seperti itu.",
+    "Tabel tiap modul ada di schema sendiri, dengan role yang hanya memegang hak untuk schema itu.",
+    "Modul lain memanggil paket publik atau API modul, bukan membaca tabelnya."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menamai folder sebagai modul tanpa batas yang dijaga mesin. Aturan yang hanya ada di dokumen dilanggar saat tim bertambah (M32).",
+    "Mengira satu role per modul sudah berlaku. Di lab, proses monolith memakai satu role yang mewarisi lima role modul, jadi batas database di dalam proses belum berlaku (`batas.txt` bagian B)."
+  ],
+  "terkait": [
+    "Monolith",
+    "CODEOWNERS",
+    "ADR (Architecture Decision Record)"
+  ],
+  "sumber": [
+    {
+      "riset": "R4-315",
+      "judul": "cmd/go: Internal packages (Go 1.27.3, dibuka 2026-10-29)",
+      "url": "https://pkg.go.dev/cmd/go",
+      "catatan": "Kode di bawah direktori internal hanya bisa diimpor kode yang berbagi path impor di atas direktori itu."
+    },
+    {
+      "riset": "R4-173",
+      "judul": "Fowler: MonolithFirst (2015-06-03, dibuka 2026-10-29)",
+      "url": "https://martinfowler.com/bliki/MonolithFirst.html",
+      "catatan": "Bangun aplikasi baru sebagai monolith dulu. Monolith dengan modularitas di batas API dan data disebut jalan yang logis, tetapi Fowler menulis ia akan lebih tenang bila lebih banyak kisah yang berhasil lewat jalan itu."
+    },
+    {
+      "judul": "Rekaman lab t4-modul: batas.txt bagian B",
+      "rekaman": "labs/t4-modul/output/batas.txt",
+      "catatan": "Enam schema, matriks hak enam role, SQL M32 ditolak, dan impor internal ditolak compiler."
+    }
+  ]
+}

@@ -3556,8 +3556,9 @@
       "lab": [
         "t4-modul"
       ],
-      "ada": false,
-      "nomor": "4.13"
+      "ada": true,
+      "nomor": "4.13",
+      "menit": 24
     },
     {
       "id": "t4-m33",
