@@ -820,6 +820,60 @@ describe("baris riset: angka dan versi diturunkan dari rekaman, registry, naskah
   });
 });
 
+describe("tanpa kunci baris: kalimat tambahan, jawaban skenario, dan isi istilah diturunkan dari sumber", () => {
+  const bagianFile = (FILE_HARI / (FILE_HARI + POSTING_GB)) * 100;
+  test("judul bagian Hitungan, kalimat batas rata-rata, kalimat Coba sendiri, dan butir Konsep yang lahir memuat angka dari hitungan dan halaman tetangga", () => {
+    harus(`**Dalam ${HARI} hari, file ${fmt(bagianFile, 1)}% dari file dan posting.**`);
+    harus(`Rata-rata ${asumsi.fileKB} KB adalah Asumsi.`);
+    harus("Dump hampir tidak membesar, tetapi file perlu cadangan sendiri (`ukuran.txt` bagian C). Lab tidak punya app Flutter dan tidak merekam layar.");
+    const t = cocok(hal45, /Itu 33 kali posting ledger \((\d+) ÷ ([\d,]+)\)/);
+    harus(`- [[t4-skema]]: file ${t[1]} GB per tahun lawan posting ${t[2]} GB, sekitar ${Math.round(Number(t[1]) / angka(t[2]!))} kali.`);
+    expect(angka(t[1]!) / angka(t[2]!)).toBeCloseTo(FILE_HARI / POSTING_GB, 3);
+    expect(asumsi.upload! * asumsi.fileKB! * 365).toBe(365000000);
+    harus("Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].");
+    for (const label of ["Rekaman lab", "Ilustrasi", "Asumsi", "Tidak dijalankan"]) expect(cara, label).toContain(label);
+    harus("Dump yang kecil tidak berarti file lepas dari tanggung jawab backup.");
+    harus("File bukan data transaksi: database menyimpan kunci dan checksum, dan file hidup di tempat lain.");
+    expect(naskah).toContain("File bukan data transaksi: database menyimpan kunci, bukan isi");
+  });
+  test("penjelasan langkah skenario memuat rasio dan jumlah dari rekaman, dan judul skenario sama", () => {
+    expect(skenario.judul).toBe("File identitas di kolom bytea: dump makin besar, dan pemulihan ikut");
+    expect(skenario.langkah[0]!.jelas).toBe("Tiap pengajuan membawa dua file 500.000 byte. Delapan pengajuan menyimpan 16 baris dan 8.000.000 byte di satu tabel, di database yang sama dengan data transaksi.");
+    expect(skenario.langkah[1]!.jelas).toBe(`Lab menghitung selisih ukuran dump terhadap dump sebelum pengajuan pertama, dibagi byte isi file. Rasionya tetap ${fmt(RASIO, 1)} pada 2, 4, dan 8 pengajuan: dump membesar sebanding dengan file.`);
+    expect(skenario.langkah[2]!.jelas).toBe("bytea ditulis sebagai heksadesimal, dua karakter per byte. Format custom memampatkan teks itu, tetapi byte acak tidak bisa dimampatkan lebih jauh.");
+    expect(skenario.langkah[3]!.jelas).toBe("Sesudah pulih ada 16 baris dan 8.000.000 byte, dan isi tiap baris sama dengan sebelum dump. Waktu tidak direkam karena bergantung mesin; hanya batas 120 detik untuk 8 MB yang diperiksa.");
+    expect(skenario.varian.langkah[0]!.jelas).toBe("Delapan pengajuan yang sama menaruh 16 file, 8.000.000 byte, di penyimpanan objek yang berjalan di container lab.");
+    expect(skenario.varian.langkah[1]!.jelas).toBe("Baris verifikasi menyimpan kunci objek paling pendek 48 karakter dan checksum paling pendek 64 karakter, bukan isi file.");
+    expect(skenario.varian.langkah[2]!.jelas).toBe("Rasio dump terhadap file di bawah 0,01 pada 2, 4, dan 8 pengajuan.");
+    expect(skenario.varian.langkah[3]!.jelas).toBe("File punya salinan sendiri yang harus dicadangkan terpisah. Pencadangan penyimpanan objek tidak dijalankan di lab ini.");
+    expect(skenario.pengantar).toBe("Delapan pengajuan verifikasi sudah menyimpan foto kartu identitas dan swafoto. Tebak dulu, lalu ikuti dump dan pemulihannya. Sesudah langkah terakhir, centang 'Ubah satu hal'.");
+    for (const n of [2, 4, 8]) expect(skenario.langkah[1]!.kirim).toContain(`${n} pengajuan (${fmt(n * 2 * 500000)} byte file): rasio dump/file = 1,1`);
+    for (const n of [2, 4, 8]) expect(skenario.varian.langkah[2]!.kirim).toContain(`${n} pengajuan (${fmt(n * 2 * 500000)} byte file di penyimpanan): rasio dump/file di bawah 0,01: ya`);
+  });
+  test("halaman istilah: setiap kalimat bagian cerita, mekanisme, jebakan, dan catatan sumber sama dengan yang diturunkan dari rekaman dan hitungan", () => {
+    expect(istilah.sehari_hari).toBe("Backup adalah salinan isi database dalam satu file. Uji pulih memulihkan salinan itu ke database lain, sungguhan, untuk membuktikan ia bisa dipakai.");
+    expect(istilah.cerita).toEqual([
+      { rujukan: "t3-tim-infra", teks: "Backup pg_dump harian diuji pulih tiap minggu di staging (Asumsi). Pemulihan itu menjadi satu-satunya tempat waktu pulih terlihat." },
+      { rujukan: "t4-m33", teks: `Uji pulih mingguan naik dari ${MENIT_LAMA} menit ke ${JAM_BARU[1]} jam ${JAM_BARU[2]} menit (Ilustrasi), karena foto kartu identitas di kolom bytea ikut tiap dump. Rekaman lab mengukur ukurannya: dump ${fmt(RASIO, 1)} kali ukuran file.` },
+    ]);
+    expect(istilah.mekanisme).toEqual([
+      "Backup di Rekeningo adalah dump, yaitu keluaran pg_dump: isi database yang ditulis ke satu file.",
+      "Uji pulih menulis isi dump itu kembali ke database lain dengan pg_restore, lalu hasilnya dibandingkan dengan sumbernya.",
+      "Di lab t4-storage, hasil pulih sama dengan sumbernya: jumlah baris, jumlah byte, dan md5 tiap baris.",
+      "Lamanya bergantung ukuran dump dan mesin. Lab hanya memeriksa batas 120 detik untuk 8 MB, jadi waktu untuk puluhan GB Tidak dijalankan.",
+    ]);
+    expect(istilah.jebakan).toEqual([
+      "Menganggap backup yang berhasil ditulis pasti bisa dipulihkan. Backup yang belum pernah dipulihkan belum terbukti bisa dipakai.",
+      `Menambah disk saat uji pulih makin lama. Di halaman 4.14, disk hanya menampung hasil pulih, sedangkan dalam ${HARI} hari file ${fmt(bagianFile, 1)}% dari file dan posting (Hitungan atas Asumsi).`,
+    ]);
+    expect(istilah.stack).toBeNull();
+    expect(istilah.sumber![0]).toEqual({ riset: "R4-176", judul: "PostgreSQL 17: pg_dump", url: "https://www.postgresql.org/docs/17/app-pgdump.html", catatan: "Format custom terkompresi secara bawaan, dan bawaan kompresi data tabel adalah gzip pada tingkat sedang. Dibuka 2026-10-29." });
+    expect(istilah.sumber![1]).toEqual({ riset: "R4-178", judul: "Rekaman lab t4-storage: dump dan pulih", rekaman: "labs/t4-storage/output/ukuran.txt", catatan: "Bagian B: tabel yang berisi file di kolom bytea dipulihkan ke database lain, 16 baris dan 8.000.000 byte, md5 tiap baris sama. Waktu tidak direkam." });
+    expect(bagB).toContain("16|8000000");
+    expect(barisRiset("R4-176")).toContain("dibuka 2026-10-29");
+  });
+});
+
 function sidikRiset(): string[] {
   return IDS.map((id) => sidik(barisRiset(id)));
 }
