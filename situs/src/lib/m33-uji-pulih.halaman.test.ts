@@ -874,6 +874,26 @@ describe("tanpa kunci baris: kalimat tambahan, jawaban skenario, dan isi istilah
   });
 });
 
+describe("tanpa kunci baris: kalimat Inti, definisi Hitungan, dan penutup tabel", () => {
+  test("Inti memuat bytea dari naskah dan jawaban yang sama dengan tebakan; definisi Hitungan sama dengan halaman 4.10; penutup tabel memuat rasio dan hasil bagian D", () => {
+    const sibling = baca("situs/src/content/docs/tahap-4/m31-verifikasi-tertahan.mdx");
+    expect(sibling).toContain("hasil rumus dari angka yang tertulis di halaman ini, berlabel sama dengan masukan terlemahnya");
+    harus("Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, berlabel sama dengan masukan terlemahnya, di sini Asumsi.");
+    expect(barisM33).toContain("Foto kartu identitas dan swafoto disimpan di kolom `bytea`");
+    harus("Foto kartu identitas dan swafoto disimpan di kolom `bytea`, jadi tiap backup dan tiap uji pulih mengangkut file, bukan hanya data transaksi.");
+    const bagianFile = (FILE_HARI / (FILE_HARI + POSTING_GB)) * 100;
+    harus(`Baris terakhir juga memakai rasio ${fmt(RASIO, 1)} dari rekaman, yang hanya diukur sampai 8 MB pada file karangan (Ilustrasi).`);
+    harus(`Bagian D \`ukuran.txt\` mencetak ${fmt(GB_HARI, 2)} GB, ${fmt(FILE_HARI, 2)} GB, ${fmt(POSTING_GB, 2)} GB, dan ${fmt(bagianFile, 1)}%; angka itu hasil rumus, bukan pengukuran.`);
+    harus("Uji pulih mengambil backup, yaitu salinan isi database dalam satu file, lalu memulihkannya ke database lain untuk membuktikan salinan itu bisa dipakai.");
+    harus("Dugaan itu menjelaskan hari Sabtu, tetapi tidak menjelaskan kenapa pemulihan makin lama.");
+    harus("Disk yang lebih besar menunda penuhnya, tetapi tidak membuat pemulihan mengerjakan lebih sedikit data. Yang berubah adalah isi backup.");
+    harus("Raka melihat disk staging penuh dan menduga disknya terlalu kecil. Ia mengusulkan menambah disk.");
+    harus("Dump dan restore membawa isi tabel, termasuk kolom file.");
+    harus("File memang ikut backup, karena ia ada di database.");
+    harus("Alasan \"ikut transaction\" tidak terbukti di lab.");
+  });
+});
+
 function sidikRiset(): string[] {
   return IDS.map((id) => sidik(barisRiset(id)));
 }
