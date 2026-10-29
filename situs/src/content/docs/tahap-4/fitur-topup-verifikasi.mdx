@@ -100,7 +100,7 @@ Sesudah Budi membayar, gateway mengirim webhook. Server memeriksa tanda tangan a
 
 <Snippet file="labs/api-t4/output/topup.txt" lines="27:49" title="Rekaman lab: labs/api-t4/output/topup.txt (bagian B)" />
 
-Kiriman tanpa tanda tangan, dengan rahasia lain, dengan isi yang diubah, atau dengan timestamp 400 detik lalu dijawab `401` (bagian E, toleransi 300 detik, Asumsi). Jawaban `200` dikirim hanya sesudah COMMIT. Kiriman yang sama bisa datang dua kali, dan itu dibahas di [[t4-m29]] dan [[t4-webhook]].
+Enam kiriman yang dimanipulasi di bagian E dijawab `401`: tanpa tanda tangan, rahasia lain, isi diubah, JSON ditulis ulang, dan timestamp 400 detik lalu atau di depan (toleransi 300 detik, Asumsi). Jawaban `200` dikirim hanya sesudah COMMIT. Kiriman yang sama bisa datang dua kali, dan itu dibahas di [[t4-m29]] dan [[t4-webhook]].
 
 Pemberitahuan ke Budi ikut ditulis di transaction yang sama dan dikirim worker sesudah COMMIT, seperti di [[t3-notifikasi]]. Baris outbox top-up bank berkelas 0, seperti bayar dan transfer di Tahap 3 (bagian B).
 
