@@ -3254,8 +3254,9 @@
       "prasyarat": [
         "t3-jembatan"
       ],
-      "ada": false,
-      "nomor": "4.1"
+      "ada": true,
+      "nomor": "4.1",
+      "menit": 13
     },
     {
       "id": "t4-fitur-teknis",
@@ -3273,8 +3274,9 @@
       "prasyarat": [
         "t4-prd"
       ],
-      "ada": false,
-      "nomor": "4.2"
+      "ada": true,
+      "nomor": "4.2",
+      "menit": 9
     },
     {
       "id": "t4-topup-verifikasi",

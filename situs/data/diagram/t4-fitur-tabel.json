@@ -1,0 +1,25 @@
+{
+  "id": "t4-fitur-tabel",
+  "judul": "Dari PRD v4: tabel dan kabar dari gateway",
+  "sumber": { "jenis": "ilustrasi", "teks": "Baris 1: rekaman lab api-t3 dan api-t4. Baris 2: Ilustrasi" },
+  "baris": [
+    {
+      "label": "Database",
+      "sub": "jumlah tabel di skema lab",
+      "simpul": [
+        { "teks": "14 tabel", "sub": "akhir Tahap 3", "nada": "old" },
+        { "teks": "+ 8 tabel", "sub": "topup_bank sampai audit_log", "nada": "system" },
+        { "teks": "22 tabel", "sub": "skema lab api-t4", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Satu top-up",
+      "sub": "dua tempat",
+      "simpul": [
+        { "teks": "Kabar gateway", "sub": "gateway tidak ikut COMMIT atau ROLLBACK", "nada": "warn" },
+        { "teks": "Jurnal top-up", "sub": "PostgreSQL: berhasil atau batal sebagai satu unit", "nada": "system" }
+      ]
+    }
+  ],
+  "catatan": "Abu-abu: akhir Tahap 3. Biru: yang ditambahkan. Hijau: hasilnya. Kuning: pekerjaan yang tidak ikut COMMIT."
+}
