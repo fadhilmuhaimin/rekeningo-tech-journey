@@ -1,0 +1,201 @@
+{
+  "versi": 2,
+  "judul": "Dina mengirim foto kartu identitas dan swafoto, tingkat akunnya naik sesudah verifikasi lulus",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/api-t4/output/verifikasi.txt",
+    "fileVarian": "labs/api-t4/output/verifikasi.txt",
+    "catatan": "Server Go, worker, dan layanan verifikasi tiruan lokal dengan PostgreSQL 17.11 dari database bersih (make -C labs/api-t4 run). Jalur utama: verifikasi.txt bagian A sampai C; langkah 9 memakai topup.txt bagian I untuk penolakan sebelum verifikasi. Ubah satu hal: pengajuan kedua di bagian B. Baris diawali tanda panah diringkas dari tabel PostgreSQL di rekaman yang sama, bukan baris log, dan jawaban JSON dipotong ke field yang dibahas. File yang dikirim adalah PNG satu piksel dari lab, bukan foto kartu identitas. Layar HP digambar dari isi rekaman: lab api-t4 tidak punya app Flutter, dan kamera tidak direkam."
+  },
+  "pengantar": "Dina belum terverifikasi dan ingin mengirim uang ke rekan. Tebak dulu, lalu ikuti satu pengajuan verifikasi dari HP Dina sampai tingkat akunnya naik. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "app", "label": "App Dina" },
+    { "id": "api", "label": "Server Go" },
+    { "id": "db", "label": "PostgreSQL" },
+    { "id": "worker", "label": "Worker" },
+    { "id": "vendor", "label": "Layanan verifikasi (tiruan)" }
+  ],
+  "perangkat": [{ "id": "dina", "label": "HP Dina" }],
+  "layarAwal": {
+    "dina": {
+      "judul": "Kirim ke rekan",
+      "sinyal": 3,
+      "saldo": 900000,
+      "saldoLabel": "Saldo Dina",
+      "isi": [
+        { "jenis": "baris", "kiri": "Ke nomor karyawan K00419", "kanan": "Rp10.000" },
+        { "jenis": "tombol", "teks": "Kirim" }
+      ]
+    }
+  },
+  "predict": {
+    "q": "Dina menekan Kirim di layar verifikasi dan mendapat 202. Siapa yang memanggil layanan verifikasi, dan kapan?",
+    "options": [
+      "Server, sebelum menjawab 202: Dina menunggu hasilnya di layar",
+      "App Dina, langsung ke layanan verifikasi, sambil menunggu 202",
+      "Tim risk, dengan tangan, untuk setiap pengajuan user biasa",
+      "Worker, sesudah 202: Dina lebih dulu melihat status diajukan"
+    ],
+    "answer": 3,
+    "varian": false,
+    "explain": "Rekaman verifikasi.txt bagian B: 202 berstatus diajukan, dan satu baris outbox berstatus menunggu. Bagian C: worker memproses baris itu, dan layanan verifikasi mencatat 1 permintaan, jadi server tidak memanggilnya sebelum 202."
+  },
+  "langkah": [
+    {
+      "dari": "app",
+      "ke": "api",
+      "judul": "Kiriman ke rekan ditolak",
+      "kirim": "POST /kiriman\n{\"ke_nomor_karyawan\": \"K00419\", \"nominal\": 10000}\n403 /problems/butuh-verifikasi",
+      "jelas": "Dina belum terverifikasi, jadi kiriman ke rekan ditolak. Jawabannya menunjuk POST /verifikasi.",
+      "nada": "warn",
+      "layar": {
+        "dina": {
+          "judul": "Kirim ke rekan",
+          "sinyal": 3,
+          "saldo": 900000,
+          "saldoLabel": "Saldo Dina",
+          "isi": [
+            { "jenis": "toast", "teks": "Fitur ini butuh akun terverifikasi", "nada": "warn" },
+            { "jenis": "tombol", "teks": "Verifikasi identitas" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "app",
+      "judul": "Dina memotret kartu identitas dan swafoto",
+      "kirim": "app  foto kartu identitas dan swafoto\napp  JPEG atau PNG, tiap file paling besar 1 MiB",
+      "jelas": "Layar kamera tidak direkam. App mengirim kedua file sebagai base64 di dalam satu JSON.",
+      "layar": {
+        "dina": {
+          "judul": "Verifikasi identitas",
+          "sinyal": 3,
+          "isi": [
+            { "jenis": "baris", "kiri": "Kartu identitas", "kanan": "foto 1" },
+            { "jenis": "baris", "kiri": "Swafoto", "kanan": "foto 2" },
+            { "jenis": "tombol", "teks": "Kirim" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "app",
+      "ke": "api",
+      "judul": "Request verifikasi dikirim",
+      "kirim": "POST /verifikasi\n(isi: dua file gambar dalam base64)",
+      "jelas": "Server memeriksa ukuran dan tipe isi dari byte pertama, bukan dari nama file, lalu batas laju per akun."
+    },
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Dua file ke penyimpanan objek, satu baris verifikasi, satu baris outbox",
+      "kirim": "→ penyimpanan objek: dua file, isinya tidak masuk tabel\n→ verifikasi 1: akun 40001, diajukan, checksum SHA-256 dua file\n→ outbox: akun 40001, kelas 1, verifikasi, tujuan verifikasi, menunggu",
+      "jelas": "Baris verifikasi dan baris outbox ditulis di satu transaction, sesudah kedua file tersimpan. Database hanya menyimpan kunci objek dan checksum.",
+      "nada": "good"
+    },
+    {
+      "dari": "api",
+      "ke": "app",
+      "judul": "Dina mendapat 202",
+      "kirim": "202 {\"id\":1,\"status\":\"diajukan\",\"tingkat_diminta\":\"terverifikasi\"}",
+      "jelas": "Server tidak menunggu layanan verifikasi. Yang Dina lihat adalah status diajukan, bukan hasilnya.",
+      "layar": {
+        "dina": {
+          "judul": "Verifikasi identitas",
+          "sinyal": 3,
+          "isi": [
+            { "jenis": "baris", "kiri": "Status", "kanan": "Diajukan" },
+            { "jenis": "teks", "teks": "Hasil menyusul" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "worker",
+      "ke": "vendor",
+      "judul": "Worker memanggil layanan verifikasi",
+      "kirim": "$ ./api-t4 -peran worker -sekali\nworker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0\n→ layanan verifikasi menerima: 1 objek, 1 permintaan",
+      "jelas": "Worker adalah proses terpisah dari server. Id pengajuan dikirim sebagai Idempotency-Key, dan bagian D rekaman yang sama merekam pengulangannya."
+    },
+    {
+      "dari": "worker",
+      "ke": "db",
+      "judul": "Pengajuan lulus, tingkat akun naik",
+      "kirim": "→ verifikasi 1: lulus\n→ akun 40001: tingkat terverifikasi\n→ outbox: terkirim, percobaan 1",
+      "jelas": "Penutupan pengajuan dan kenaikan tingkat ditulis di satu transaction, menurut kode repo. Status hanya berubah bila pengajuan masih berjalan.",
+      "nada": "good",
+      "layar": {
+        "dina": {
+          "judul": "Verifikasi identitas",
+          "sinyal": 3,
+          "nada": "good",
+          "isi": [
+            { "jenis": "baris", "kiri": "Status", "kanan": "Lulus", "nada": "good" },
+            { "jenis": "teks", "teks": "Akun terverifikasi" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "app",
+      "ke": "api",
+      "judul": "Kiriman yang tadi ditolak kini lolos",
+      "kirim": "POST /kiriman → 201 {\"id\":10201,\"saldo\":890000,\"sisa_batas_harian\":490000}",
+      "jelas": "Kiriman yang sama dengan langkah 1 sekarang diterima, karena Dina terverifikasi. Batas saldonya juga naik dari Rp1.000.000 ke Rp10.000.000 (Asumsi produk).",
+      "nada": "good",
+      "layar": {
+        "dina": {
+          "judul": "Kirim ke rekan",
+          "sinyal": 3,
+          "saldo": 890000,
+          "saldoLabel": "Saldo Dina",
+          "nada": "good",
+          "isi": [
+            { "jenis": "toast", "teks": "Kiriman berhasil", "nada": "good" },
+            { "jenis": "baris", "kiri": "Ke nomor karyawan K00419", "kanan": "−Rp10.000" }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "app",
+      "ke": "api",
+      "judul": "Top-up Rp200.000 yang tadi ditolak kini diterima",
+      "kirim": "POST /topup-bank {\"jumlah\": 200000} → 201 menunggu\n(sebelum verifikasi, untuk saldo Rp900.000: 422)",
+      "jelas": "Sebelum verifikasi, top-up Rp200.000 untuk saldo Rp900.000 ditolak 422 (topup.txt bagian I). Sesudahnya batas saldo Rp10.000.000 mengizinkannya.",
+      "nada": "good"
+    }
+  ],
+  "varian": {
+    "label": "Dina mengirim pengajuan kedua selagi yang pertama belum selesai",
+    "mulai": 5,
+    "langkah": [
+      {
+        "dari": "app",
+        "ke": "api",
+        "judul": "Pengajuan kedua ditolak",
+        "kirim": "POST /verifikasi\n409 /problems/verifikasi-berjalan\n\"Pengajuan sebelumnya belum selesai\"",
+        "jelas": "Server menolak pengajuan kedua selama pengajuan pertama belum selesai.",
+        "nada": "warn",
+        "layar": {
+          "dina": {
+            "judul": "Verifikasi identitas",
+            "sinyal": 3,
+            "isi": [
+              { "jenis": "toast", "teks": "Pengajuan sebelumnya belum selesai", "nada": "warn" },
+              { "jenis": "baris", "kiri": "Status", "kanan": "Diajukan" }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "api",
+        "ke": "db",
+        "judul": "Tetap satu baris verifikasi dan satu baris outbox",
+        "kirim": "=> SELECT ... FROM verifikasi → 1 baris\n=> SELECT ... FROM outbox → 1 baris",
+        "jelas": "Pengajuan kedua tidak meninggalkan baris. Penolakannya dijaga indeks unik sebagian di database, verifikasi_satu_berjalan.",
+        "nada": "good"
+      }
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "t4-topup-verifikasi-inti",
+  "judul": "Saldo naik sesudah gateway memberi tahu, dan tingkat akun naik sesudah verifikasi lulus",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab api-t4 · topup.txt A dan B, verifikasi.txt A sampai C" },
+  "baris": [
+    {
+      "label": "Top-up Budi",
+      "sub": "Rp200.000",
+      "simpul": [
+        { "teks": "201 menunggu", "sub": "saldo masih Rp250.000" },
+        { "teks": "webhook diproses", "sub": "satu transaction" },
+        { "teks": "saldo Rp450.000", "sub": "jurnal 10201", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Verifikasi Dina",
+      "sub": "saldo Rp900.000",
+      "simpul": [
+        { "teks": "kiriman 403", "sub": "butuh verifikasi", "nada": "warn" },
+        { "teks": "202 diajukan", "sub": "worker memanggil vendor" },
+        { "teks": "terverifikasi", "sub": "kiriman 201", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Gateway dan layanan verifikasi adalah tiruan lokal di lab. App Flutter tidak ada di lab, jadi layar HP di widget digambar dari isi rekaman."
+}
