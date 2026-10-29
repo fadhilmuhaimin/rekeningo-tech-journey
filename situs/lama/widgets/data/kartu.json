@@ -2573,7 +2573,7 @@
   "judul": "4.4 Dua arah ke pihak ketiga: dipanggil masuk, memanggil keluar",
   "url": "tahap-4/dua-arah-pihak-ketiga/",
   "tanya": "Gateway mati saat Budi membuat top-up. Kenapa transfer Budi tetap selesai?",
-  "jawab": "Jalur transfer tidak memanggil gateway. Di `topup.txt` bagian G, gateway dimatikan: top-up dijawab 502 dan berstatus `gagal`, sedangkan transfer Rp25.000 tetap dijawab 201."
+  "jawab": "Jalur transfer tidak memanggil gateway. Di `topup.txt` bagian G, gateway tiruan dibuat menjawab 503: top-up dijawab 502 dan berstatus `gagal`, sedangkan transfer Rp25.000 tetap dijawab 201."
  },
  {
   "id": "t4-dua-arah-4",

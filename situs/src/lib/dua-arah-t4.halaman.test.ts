@@ -412,14 +412,17 @@ describe("rekaman: rentan.txt A, topup.txt G, ganda, serentak, tandatangan, urut
     const iPalsu = idx(bagA, (b) => b.startsWith("$ curl -i -X POST '/webhooks/pembayaran'"));
     const kPalsu = Number(bagA[iPalsu + 1]!.match(/HTTP\/1\.1 (\d+)/)![1]);
     const dua = kata(jurnalKaryawan.length);
-    expect([k502, k201, k202, kPalsu]).toEqual([502, 201, 202, 200]);
+    // Mode mati gateway tiruan menjawab 503 (komentar rekaman) dan itu sama dengan kode cmd/tiruan/main.go.
+    const k503 = Number(bagG.find((b) => b.startsWith("# gateway tiruan mode mati"))!.match(/dijawab (\d+)/)![1]);
+    expect([k502, k503, k201, k202, kPalsu]).toEqual([502, 503, 201, 202, 200]);
+    expect(baca("labs/api-t4/cmd/tiruan/main.go")).toMatch(/case "mati":\s+http\.Error\(w, "layanan tidak tersedia", http\.StatusServiceUnavailable\)/);
     harus(`Gateway mengirim kabar yang sama dua kali, dan saldo Budi naik ${rp(naik)} untuk pembayaran ${rp(bayar)}. Hal mana dari tiga hal yang rusak?`);
     harus(`Seseorang yang bukan gateway mengirim POST dengan jumlah ${rp(palsu)}. Kenapa handler versi pertama menerimanya?`);
     harus(`**1.** Gateway mengirim kabar yang sama dua kali, dan saldo Budi naik ${rp(naik)} untuk ${rp(bayar)}. Hal mana yang rusak, dan apa buktinya?`);
     harus(`Di \`rentan.txt\` bagian A, kiriman yang sama dua kali menghasilkan ${dua} jurnal ${rp(bayar)}.`);
     harus(`**2.** Seseorang mengirim POST berisi jumlah ${rp(palsu)} tanpa tanda tangan.`);
     harus(`Di \`rentan.txt\` bagian A, POST itu dijawab ${kPalsu} dan ${rp(palsu)} dikreditkan ke Budi.`);
-    harus(`Di \`topup.txt\` bagian G, gateway dimatikan: top-up dijawab ${k502} dan berstatus \`gagal\`, sedangkan transfer ${rp(transfer)} tetap dijawab ${k201}.`);
+    harus(`Di \`topup.txt\` bagian G, gateway tiruan dibuat menjawab ${k503}: top-up dijawab ${k502} dan berstatus \`gagal\`, sedangkan transfer ${rp(transfer)} tetap dijawab ${k201}.`);
     harus(`- **Baris 1, hal 2:** Rekaman lab \`rentan.txt\` bagian A. POST tanpa tanda tangan dijawab ${kPalsu} diproses.`);
     harus(`Di bagian yang sama, POST tanpa tanda tangan dengan jumlah ${rp(palsu)} dijawab ${kPalsu} dan dikreditkan ke Budi:`);
     harus(`Di sisi server, kabar dari gateway adalah jawaban yang sama: klaim yang harus dicek.`);
@@ -435,6 +438,37 @@ describe("rekaman: rentan.txt A, topup.txt G, ganda, serentak, tandatangan, urut
     harus(`Lab memasang jeda ${bagBrentan.join("\n").match(/-lab-jeda-cek-tulis (\d+)ms/)![1]} ms di antara cek dan tulis`);
     harus(`dan rekaman memakai ${topup[3]!.match(/-gateway-timeout (\d+)ms/)![1]} ms supaya cepat.`);
     harus(`batas itu ${topup[3]!.match(/bawaan (\d+) detik/)![1]} detik`);
+  });
+  test("rujukan bagian rekaman di butir dasar sel Rusak dan di Paham: huruf bagian diturunkan dari baris rekaman yang memuat faktanya", () => {
+    // Huruf bagian (A, B, F1, ...) dari kepala "# --- X." terdekat di atas baris pertama yang cocok (tinjauan: tukar A dan B lolos tanpa tes ini).
+    const huruf = (baris: string[], cocok: (b: string) => boolean): string => {
+      for (let j = idx(baris, cocok); j >= 0; j--) {
+        const m = baris[j]!.match(/^# --- ([A-Z]\d?)\./);
+        if (m) return m[1]!;
+      }
+      throw new Error("kepala bagian rekaman tidak ditemukan");
+    };
+    const rStatus = huruf(rentan, (b) => b === "=> SELECT status FROM topup_bank WHERE id = 1");
+    const rPalsu = huruf(rentan, (b) => b.includes('"event_id": "evt-palsu"'));
+    const gDua = huruf(ganda, (b) => b === "hasil kiriman: 200 diproses, 200 diproses");
+    const gGanda = huruf(ganda, (b) => b.startsWith("kiriman 2 (event yang sama): 200 ganda"));
+    const reCek = huruf(rekon, (b) => b.includes("webhook Citra tidak pernah datang"));
+    const reHilang = huruf(rekon, (b) => b.includes("webhook hilang"));
+    const tMati = huruf(topup, (b) => b.startsWith("# gateway tiruan mode mati"));
+    expect([rStatus, rPalsu, gDua, gGanda, reCek, reHilang, tMati]).toEqual(["A", "A", "A", "B", "A", "B", "G"]);
+    harus(`- **Baris 2, hal 1:** Rekaman lab \`ganda.txt\` bagian ${gDua}. Event yang sama dua kali`);
+    harus(`hanya direkam untuk versi lain (\`ganda.txt\` bagian ${gGanda}).`);
+    harus(`- **Baris 3, hal 1:** Rekaman lab \`rentan.txt\` bagian ${rStatus}. Status top-up kembali ke \`menunggu\``);
+    harus(`tanpa melihat status (\`ganda.txt\` bagian ${gDua}).`);
+    harus(`Rekaman lab \`rekon.txt\` bagian ${reCek} dan ${reHilang} memerankan webhook yang tidak pernah datang`);
+    harus(`- **Baris 5, hal 1 dan hal 2:** Rekaman lab \`rentan.txt\` bagian ${rPalsu}. Jumlah di isi kabar dikreditkan`);
+    harus(`kecuali baris 6 yang memakai rekaman \`topup.txt\` bagian ${tMati} di atas.`);
+    // Tiap rujukan "bagian X" di halaman menyebut berkas dan huruf yang ada di rekamannya.
+    const berkas: Record<string, string[]> = { "rentan.txt": rentan, "topup.txt": topup, "ganda.txt": ganda, "ganda-serentak.txt": serentak, "tandatangan.txt": tandatangan, "urutan.txt": urutan, "rekon.txt": rekon };
+    for (const m of badan.matchAll(/`([a-z-]+\.txt)`,? bagian ([A-Z])\d?/g)) {
+      expect(berkas[m[1]!], `berkas ${m[1]}`).toBeDefined();
+      expect(berkas[m[1]!]!.some((b) => new RegExp(`^# --- ${m[2]}\\d?\\.`).test(b)), `${m[1]} bagian ${m[2]} tidak ada di rekaman`).toBe(true);
+    }
   });
   test("rentang Snippet diturunkan dari baris rekaman dan fungsi kode, bukan ditulis tangan", () => {
     const [a1, a2] = rentangFungsi("func (s Service) webhookV1(");
@@ -479,12 +513,16 @@ describe("kode lab: webhookV1, kreditV1, TerimaWebhook, DalamTx, dan bentuk widg
     expect(f).toContain("tx.UbahStatusTanpaSyarat(ctx, k.OrderID, statusGateway[k.Status])");
     expect(f).toContain("s.kreditV1(ctx, tx, tp, k.Jumlah, &h)");
     expect(f).not.toMatch(/PeriksaTandaTangan|CatatEvent|KunciLedger|[Tt]imestamp/);
+    // "menulis status tanpa melihat yang sekarang": UPDATE tanpa syarat status di WHERE (tinjauan: mutan "AND status = 'menunggu'" lolos).
+    const repoSrc = baca("labs/api-t4/internal/repo/pembayaran.go");
+    const ub = repoSrc.slice(repoSrc.indexOf("func (t Tx) UbahStatusTanpaSyarat("));
+    expect(ub.slice(0, ub.indexOf("\n}\n"))).toContain("`UPDATE topup_bank SET status = $2 WHERE order_id = $1`");
     const k = fungsi("func (s Service) kreditV1(");
     expect(k).toContain("Jumlah: -jumlah");
     expect(k).toContain("Jumlah: jumlah");
     expect(k).toContain('return tx.UbahStatusTanpaSyarat(ctx, tp.OrderID, "dibayar")');
     expect(k).not.toMatch(/PeriksaTandaTangan|CatatEvent|KunciLedger|tp\.Jumlah/);
-    harus("Handler membungkus jurnal dan status dalam satu transaction. Di dalamnya tidak ada yang memeriksa kabarnya. `kreditV1` menjurnal sebesar jumlah di isi kabar, lalu menandai top-up `dibayar` tanpa syarat:");
+    harus("Handler membungkus jurnal dan status dalam satu transaction. Di dalamnya hanya `order_id` yang dicari; pengirim, jumlah, dan urutan status tidak diperiksa. `kreditV1` menjurnal sebesar jumlah di isi kabar, lalu menandai top-up `dibayar` tanpa syarat:");
     harus("Status top-up kembali ke `menunggu`, karena `UbahStatusTanpaSyarat` menulis status tanpa melihat yang sekarang.");
     expect(sumber).toContain("tx.CatatEvent(ctx, k.EventID, k.Status)");
   });
@@ -555,12 +593,12 @@ describe("label, versi, sumber, dan baris riset", () => {
   test("klaim dokumentasi gateway: kalimat halaman ada di baris riset (2xx, lima kali, jeda 2 menit, urutan, ganda, Timeout nol)", () => {
     const baris = (id: string): string => riset.split("\n").find((b) => b.startsWith(`| ${id} |`))!;
     const r125 = baris("R4-125");
-    for (const k of ['2XX \\| No retries', '"Other" lima kali', 'at most 5 times', 'jeda ke-1 "2 minutes"', "up-to 15 seconds"]) expect(r125, k).toContain(k);
+    for (const k of ['2XX \\| No retries', '"Other" lima kali', 'at most 5 times', 'jeda ke-1 "2 minutes"', "up-to 15 seconds", '301, 302, dan 303 "No retries"']) expect(r125, k).toContain(k);
     const r126 = baris("R4-126");
     for (const k of ["doesn't guarantee the delivery of events in the order", "more than once", "two separate Event objects"]) expect(r126, k).toContain(k);
     const r127 = baris("R4-127");
     expect(r127).toContain("A Timeout of zero means no timeout.");
-    harus("Gateway mengulang kiriman yang jawabannya bukan 2xx, paling banyak lima kali, dan jeda pertamanya 2 menit ([dokumentasi notifikasi HTTP sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29). Gateway pembayaran lain menulis bahwa urutan kabar tidak dijamin dan satu event bisa diterima lebih dari sekali ([dokumentasi webhook gateway pembayaran lain](https://docs.stripe.com/webhooks), dibuka 2026-10-29).");
+    harus("Gateway mengulang kiriman yang dijawab status 4xx atau 5xx, paling banyak lima kali, jeda pertama 2 menit ([dokumentasi notifikasi HTTP sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29). Gateway pembayaran lain menulis bahwa urutan kabar tidak dijamin dan satu event bisa diterima lebih dari sekali ([dokumentasi webhook gateway pembayaran lain](https://docs.stripe.com/webhooks), dibuka 2026-10-29).");
     harus("Client HTTP Go dengan pengaturan bawaan tidak punya batas waktu, karena nol berarti tanpa batas");
   });
   test("baris riset R4-125 sampai R4-127 urut, tanpa ID ganda, dan tidak ada ID R4 di halaman", () => {
@@ -760,11 +798,13 @@ describe("klaim negatif dan klaim universal berlingkup", () => {
     // Lingkup: handler ilustrasi di widget tidak memanggil jaringan; rekaman bagian A tidak mencetak perintah pending.
     expect(widget.baris.filter((b) => /http|Client|\.Do\(|\.Post\(/i.test(b))).toEqual([]);
     expect(bagA.join("\n")).not.toContain("evt-101");
-    // "tidak ada yang memeriksa kabarnya" (handler versi pertama): fungsi webhookV1 dan kreditV1 tidak memanggil pemeriksaan apa pun.
+    // "hanya order_id yang dicari; pengirim, jumlah, dan urutan status tidak diperiksa" (handler versi pertama): webhookV1 mencari top-up
+    // lewat order_id (TopupBankUntukUbah) dan tidak memanggil pemeriksaan lain.
     const kode = pembayaranSrc.join("\n");
     const a = kode.indexOf("func (s Service) webhookV1(");
     const b = kode.indexOf("// --8<-- [end:webhook-v1]");
-    expect(kode.slice(a, b)).not.toMatch(/PeriksaTandaTangan|CatatEvent|KunciLedger|CekTopup|terapkanStatus/);
+    expect(kode.slice(a, b)).not.toMatch(/PeriksaTandaTangan|CatatEvent|KunciLedger|CekTopup|terapkanStatus|tp\.Jumlah|tp\.Status/);
+    expect(kode.slice(a, b)).toContain("tx.TopupBankUntukUbah(ctx, k.OrderID)");
     // "hanya direkam untuk versi lain" (balasan hilang): lingkup berkas ganda.txt dan topup.txt bagian C.
     expect(ganda.join("\n")).toContain("kiriman 1 (koneksi diputus gateway begitu balasan mulai datang)");
     expect(bagianLab(ganda, "# --- A. Handler versi pertama", "# --- B. Versi ADR 34").join("\n")).not.toContain("koneksi diputus");
@@ -776,7 +816,7 @@ describe("semua angka di halaman bisa diturunkan", () => {
     const boleh = new Set<string>([
       "4.4", "1", "2", "3", "4", "5", "6",
       String(widget.bug.length), String(dari("t4-dua-arah").menit), "3",
-      "200", "201", "502", "2xx",
+      "200", "201", "502", "503", "2xx",
       "2.000", // placeholder tidak dipakai
     ].filter((x) => x !== "2.000"));
     const angkaHalaman = (s: string): string[] => [...s.matchAll(/(?<![\w`.-])(\d[\d.,]*)(?![\w-])/g)].map((m) => m[1]!.replace(/[.,]$/, ""));
@@ -799,6 +839,8 @@ describe("semua angka di halaman bisa diturunkan", () => {
   });
   test("angka kunci: 3 detik, 500 ms, 300 ms, 2 menit, lima kali, 3 baris, 6 kejadian sama dengan sumbernya", () => {
     expect(topup[3]).toContain("-gateway-timeout 500ms (bawaan 3 detik");
+    // "3 detik" juga dibaca dari kode klien, bukan hanya dari kepala rekaman (tinjauan: mutan 3 s menjadi 5 s di klien.go lolos).
+    expect(baca("labs/api-t4/internal/klien/klien.go")).toMatch(/const BatasBawaan = 3 \* time\.Second/);
     expect(bagBrentan.join("\n")).toContain("300ms");
     expect(baca("plan/RISET-TAHAP-4.md")).toContain("jeda ke-1 \"2 minutes\"");
     harus("Di `api-t4` batas itu 3 detik ([[t3-pool]]), dan rekaman memakai 500 ms supaya cepat.");
@@ -866,7 +908,7 @@ const KLAIM_NEGATIF = [
   "Tiga hal harus selalu benar: uang dari luar dicatat satu kali, kabar dari luar dipercaya hanya sesudah dicek, dan pihak luar yang lambat atau mati tidak menahan pembayaran antar akun.",
   "Tiga bagian diganti, dan di versi itu handler memeriksa tanda tangan, mencatat event, dan hanya memajukan status.",
   "Tanda tangan di sini adalah kode yang dihitung dari isi kabar dan rahasia yang hanya diketahui gateway dan Rekeningo.",
-  "Di dalamnya tidak ada yang memeriksa kabarnya.",
+  "Di dalamnya hanya `order_id` yang dicari; pengirim, jumlah, dan urutan status tidak diperiksa.",
   "Status top-up kembali ke `menunggu`, karena `UbahStatusTanpaSyarat` menulis status tanpa melihat yang sekarang.",
   "Client HTTP Go dengan pengaturan bawaan tidak punya batas waktu, karena nol berarti tanpa batas ([dokumentasi net/http, Go 1.27.1](https://pkg.go.dev/net/http@go1.27.1#Client), dibuka 2026-10-29).",
   "POST tanpa tanda tangan dijawab 200 diproses.",
@@ -1138,11 +1180,11 @@ const KALIMAT_PENULIS: string[] = [
   "Bayu bertanya apa yang terjadi bila gateway mati sehari.",
   "Jawabannya ada di [[t4-m29]], [[t4-m30]], dan [[t4-m31]].",
   "Cara kerjanya",
-  "**Dipanggil masuk: handler versi pertama.** Handler membungkus jurnal dan status dalam satu transaction. Di dalamnya tidak ada yang memeriksa kabarnya. `kreditV1` menjurnal sebesar jumlah di isi kabar, lalu menandai top-up `dibayar` tanpa syarat:",
-  "**Kiriman yang sama dua kali.** Gateway mengulang kiriman yang jawabannya bukan 2xx, paling banyak lima kali, dan jeda pertamanya 2 menit ([dokumentasi notifikasi HTTP sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29). Gateway pembayaran lain menulis bahwa urutan kabar tidak dijamin dan satu event bisa diterima lebih dari sekali ([dokumentasi webhook gateway pembayaran lain](https://docs.stripe.com/webhooks), dibuka 2026-10-29). Dari sisi handler, kiriman ulang sama persis dengan kiriman baru, jadi tiap settlement dijurnal:",
+  "**Dipanggil masuk: handler versi pertama.** Handler membungkus jurnal dan status dalam satu transaction. Di dalamnya hanya `order_id` yang dicari; pengirim, jumlah, dan urutan status tidak diperiksa. `kreditV1` menjurnal sebesar jumlah di isi kabar, lalu menandai top-up `dibayar` tanpa syarat:",
+  "**Kiriman yang sama dua kali.** Gateway mengulang kiriman yang dijawab status 4xx atau 5xx, paling banyak lima kali, jeda pertama 2 menit ([dokumentasi notifikasi HTTP sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29). Gateway pembayaran lain menulis bahwa urutan kabar tidak dijamin dan satu event bisa diterima lebih dari sekali ([dokumentasi webhook gateway pembayaran lain](https://docs.stripe.com/webhooks), dibuka 2026-10-29). Dari sisi handler, kiriman ulang sama persis dengan kiriman baru, jadi tiap settlement dijurnal:",
   "**Kabar menunggu sesudah dibayar.** Skrip lab mengirim kabar `pending` sesudah dua kiriman settlement, dan perintahnya tidak tercetak di rekaman. Status top-up kembali ke `menunggu`, karena `UbahStatusTanpaSyarat` menulis status tanpa melihat yang sekarang. Di bagian yang sama, POST tanpa tanda tangan dengan jumlah Rp1.234.567 dijawab 200 dan dikreditkan ke Budi:",
   "**Memanggil keluar: client ke gateway.** Arah kedua adalah Rekeningo yang memanggil, untuk membuat top-up dan mendapat tujuan bayar. Client HTTP Go dengan pengaturan bawaan tidak punya batas waktu, karena nol berarti tanpa batas ([dokumentasi net/http, Go 1.27.1](https://pkg.go.dev/net/http@go1.27.1#Client), dibuka 2026-10-29). Di `api-t4` batas itu 3 detik ([[t3-pool]]), dan rekaman memakai 500 ms supaya cepat.",
-  "Saat gateway mati, top-up gagal dan transfer tetap selesai:",
+  "Saat gateway tiruan menjawab 503, top-up gagal dan transfer tetap selesai:",
   "Di mode lab lain, gateway membuat order lalu tidak pernah menjawab. Client menyerah sesudah batas waktunya, dan status top-up menjadi `tidak_pasti`, bukan `gagal`:",
   "**Enam kejadian.** Tabel yang terisi di blok Coba, lengkap dengan hal yang rusak:",
   "Kejadian",
@@ -1216,7 +1258,7 @@ const KALIMAT_PENULIS: string[] = [
   "**2.** Seseorang mengirim POST berisi jumlah Rp1.234.567 tanpa tanda tangan. Kenapa handler menerimanya, dan hal mana yang rusak?",
   "Hal kedua. Handler tidak memeriksa timestamp atau tanda tangan, jadi kabar dari siapa pun dipercaya. Di `rentan.txt` bagian A, POST itu dijawab 200 dan Rp1.234.567 dikreditkan ke Budi.",
   "**3.** Gateway mati saat Budi membuat top-up. Kenapa transfer Budi tetap selesai?",
-  "Jalur transfer tidak memanggil gateway. Di `topup.txt` bagian G, gateway dimatikan: top-up dijawab 502 dan berstatus `gagal`, sedangkan transfer Rp25.000 tetap dijawab 201.",
+  "Jalur transfer tidak memanggil gateway. Di `topup.txt` bagian G, gateway tiruan dibuat menjawab 503: top-up dijawab 502 dan berstatus `gagal`, sedangkan transfer Rp25.000 tetap dijawab 201.",
   "**4.** Di handler versi pertama, kenapa baris `BeginTx` dan `Commit` bukan baris yang salah?",
   "Keduanya sudah tepat untuk data di PostgreSQL: jurnal dan status ikut satu COMMIT atau batal bersama. Transaction tidak memeriksa kabar. Ia menyimpan apa pun yang ditulis di dalamnya, termasuk jumlah yang palsu.",
   "Saat me-review kode AI, cek ini",

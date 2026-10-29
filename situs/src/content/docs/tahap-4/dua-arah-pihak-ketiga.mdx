@@ -80,13 +80,13 @@ Jawabannya ada di [[t4-m29]], [[t4-m30]], dan [[t4-m31]].
 
 ### Cara kerjanya
 
-**Dipanggil masuk: handler versi pertama.** Handler membungkus jurnal dan status dalam satu transaction. Di dalamnya tidak ada yang memeriksa kabarnya. `kreditV1` menjurnal sebesar jumlah di isi kabar, lalu menandai top-up `dibayar` tanpa syarat:
+**Dipanggil masuk: handler versi pertama.** Handler membungkus jurnal dan status dalam satu transaction. Di dalamnya hanya `order_id` yang dicari; pengirim, jumlah, dan urutan status tidak diperiksa. `kreditV1` menjurnal sebesar jumlah di isi kabar, lalu menandai top-up `dibayar` tanpa syarat:
 
 <Snippet file="labs/api-t4/internal/service/pembayaran.go" lines="364:381" lang="go" title="labs/api-t4/internal/service/pembayaran.go" />
 
 <Snippet file="labs/api-t4/internal/service/pembayaran.go" lines="386:402" lang="go" title="labs/api-t4/internal/service/pembayaran.go" />
 
-**Kiriman yang sama dua kali.** Gateway mengulang kiriman yang jawabannya bukan 2xx, paling banyak lima kali, dan jeda pertamanya 2 menit ([dokumentasi notifikasi HTTP sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29). Gateway pembayaran lain menulis bahwa urutan kabar tidak dijamin dan satu event bisa diterima lebih dari sekali ([dokumentasi webhook gateway pembayaran lain](https://docs.stripe.com/webhooks), dibuka 2026-10-29). Dari sisi handler, kiriman ulang sama persis dengan kiriman baru, jadi tiap settlement dijurnal:
+**Kiriman yang sama dua kali.** Gateway mengulang kiriman yang dijawab status 4xx atau 5xx, paling banyak lima kali, jeda pertama 2 menit ([dokumentasi notifikasi HTTP sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29). Gateway pembayaran lain menulis bahwa urutan kabar tidak dijamin dan satu event bisa diterima lebih dari sekali ([dokumentasi webhook gateway pembayaran lain](https://docs.stripe.com/webhooks), dibuka 2026-10-29). Dari sisi handler, kiriman ulang sama persis dengan kiriman baru, jadi tiap settlement dijurnal:
 
 <Snippet file="labs/api-t4/output/rentan.txt" lines="9:17" title="Rekaman lab: labs/api-t4/output/rentan.txt" />
 
@@ -96,7 +96,7 @@ Jawabannya ada di [[t4-m29]], [[t4-m30]], dan [[t4-m31]].
 
 **Memanggil keluar: client ke gateway.** Arah kedua adalah Rekeningo yang memanggil, untuk membuat top-up dan mendapat tujuan bayar. Client HTTP Go dengan pengaturan bawaan tidak punya batas waktu, karena nol berarti tanpa batas ([dokumentasi net/http, Go 1.27.1](https://pkg.go.dev/net/http@go1.27.1#Client), dibuka 2026-10-29). Di `api-t4` batas itu 3 detik ([[t3-pool]]), dan rekaman memakai 500 ms supaya cepat.
 
-Saat gateway mati, top-up gagal dan transfer tetap selesai:
+Saat gateway tiruan menjawab 503, top-up gagal dan transfer tetap selesai:
 
 <Snippet files={["labs/api-t4/output/topup.txt:108:118", "labs/api-t4/output/topup.txt:119:125"]} title="Rekaman lab: labs/api-t4/output/topup.txt" />
 
@@ -182,7 +182,7 @@ Hal kedua. Handler tidak memeriksa timestamp atau tanda tangan, jadi kabar dari 
 <details class="success">
 <summary>Jawaban</summary>
 
-Jalur transfer tidak memanggil gateway. Di `topup.txt` bagian G, gateway dimatikan: top-up dijawab 502 dan berstatus `gagal`, sedangkan transfer Rp25.000 tetap dijawab 201.
+Jalur transfer tidak memanggil gateway. Di `topup.txt` bagian G, gateway tiruan dibuat menjawab 503: top-up dijawab 502 dan berstatus `gagal`, sedangkan transfer Rp25.000 tetap dijawab 201.
 
 </details>
 
