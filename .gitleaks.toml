@@ -5,7 +5,7 @@ useDefault = true
 # Sintaks `[allowlist]` (tunggal) sengaja dipakai: CI memakai gitleaks-action v3 dengan gitleaks 8.24.3, yang belum
 # membaca `[[allowlists]]` di tingkat atas (kondisi AND, commits per berkas); `[allowlist]` jalan di 8.24.3 dan 8.30.1.
 [allowlist]
-description = "folder lokal yang di-.gitignore, dan lima key idempotensi tiruan di riwayat commit ec8703e (keputusan 972) dan tujuh nomor order tiruan di commit 3692ef96 (keputusan 1223)"
+description = "folder lokal yang di-.gitignore, dan lima key idempotensi tiruan di riwayat commit ec8703e (keputusan 972) dan tujuh nomor order tiruan di commit 3692ef96 (keputusan 1223), dan satu id halaman di commit 36e03835 (keputusan 1299)"
 paths = ['''^\.venv/''', '''^site/''']
 # Lima key tiruan yang sempat direkam di labs/t3-offline/output/{m24,kunci24}.txt (commit ec8703e). Bukan rahasia;
 # riwayat tidak boleh ditulis ulang (tanpa force-push). Dicocokkan terhadap rahasia yang ditemukan dan berjangkar
@@ -14,4 +14,7 @@ paths = ['''^\.venv/''', '''^site/''']
 # Tujuh nomor order tiruan "TB-klien-<nanodetik>", "TB-lambat-<nanodetik>", dan "TB-m<nanodetik>-<n>" yang sempat tercetak di
 # labs/api-t4/output/testing.txt (commit 3692ef96, log "ledger: key=..." dari tes lab t4-modul, keputusan 1223); log itu
 # sudah dimatikan di tes dan rekaman sekarang tidak memuatnya. Berjangkar `^...$` seperti di atas.
-regexes = ['''^1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b(01|02|03|a1|a2)$''', '''^TB-(klien|lambat)-[0-9]{19}(-b)?$''', '''^TB-m[0-9]{19}-[0-9]+$''']
+# Satu id halaman "t4-topup-verifikasi" yang terbaca generic-api-key karena berada tepat sesudah id "t4-infra-secret" dalam daftar tautan di
+# situs/src/lib/rekonsiliasi-gateway.halaman.kata.ts (commit 36e03835, keputusan 1299); format daftar sudah diganti satu string dan riwayat tidak
+# boleh ditulis ulang. Bukan rahasia. Berjangkar `^...$`.
+regexes = ['''^1b4e28ba-2fa1-4d3f-9a6c-0e5d1f7a3b(01|02|03|a1|a2)$''', '''^TB-(klien|lambat)-[0-9]{19}(-b)?$''', '''^TB-m[0-9]{19}-[0-9]+$''', '''^t4-topup-verifikasi$''']

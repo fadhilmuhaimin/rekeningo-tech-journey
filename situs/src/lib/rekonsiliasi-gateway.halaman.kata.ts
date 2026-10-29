@@ -102,7 +102,8 @@ export const ANGKA: string[] = ["15","3","4","30","2","4","30","401","500.000","
 
 export const LABEL: string[] = ["Rekaman lab","Simulasi","Rekaman lab","Hitungan","Hitungan","Tidak dijalankan","Asumsi","Tidak dijalankan","Asumsi","Tidak dijalankan","Tidak dijalankan","Asumsi","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Asumsi","Rekaman lab","Tidak dijalankan","Rekaman lab","Rekaman lab","Asumsi","Asumsi","Asumsi","Hitungan","Hitungan","Asumsi","Simulasi"];
 
-export const TAUTAN: string[] = ["t4-m30","t2-job-rekonsiliasi","t4-m30","berikutnya","t4-dua-arah","t4-m30","t4-dua-arah","t3-pool","t2-job-rekonsiliasi","t4-m29","t4-m30","t4-infra-secret","t4-topup-verifikasi","t4-prd","t2-job-rekonsiliasi"];
+// Id tautan [[id]] berurutan, dipisah spasi (satu string: pemindai rahasia salah membaca "secret" lalu daftar id dipisah koma).
+export const TAUTAN: string = "t4-m30 t2-job-rekonsiliasi t4-m30 berikutnya t4-dua-arah t4-m30 t4-dua-arah t3-pool t2-job-rekonsiliasi t4-m29 t4-m30 t4-infra-secret t4-topup-verifikasi t4-prd t2-job-rekonsiliasi";
 
 export const TABEL: string[] = [
   "| Jenis selisih | Artinya | Selisih | Di rekaman bagian B |",

@@ -861,7 +861,7 @@ describe("kunci kata: negasi, angka, label sumber, dan tautan (berkas kata.ts, d
     expect(LABEL).not.toContain("Ilustrasi"); // halaman tanpa Ilustrasi: semua angka dari rekaman, hitungan, atau asumsi berlabel
   });
   test("deret tautan [[id]] sama dengan daftar", () => {
-    expect([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1])).toEqual(TAUTAN);
+    expect([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1]).join(" ")).toBe(TAUTAN);
   });
 });
 
