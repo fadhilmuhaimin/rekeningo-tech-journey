@@ -641,6 +641,82 @@ describe("rujukan [[ID]], registry, struktur lima blok, dan data widget", () => 
   });
 });
 
+describe("penutup celah turunan: versi, tanggal akses, sel tabel, struktur data, dan kalimat berangka di Cek diri", () => {
+  test("versi dokumentasi Go dan tanggal akses baris RISET diturunkan, bukan ditulis tangan", () => {
+    const goDoc = barisRiset("R4-315").match(/Go (\d+\.\d+\.\d+), dibuka/)![1]!;
+    const goLab = batas.match(/ · go(\d+\.\d+\.\d+) · /)![1]!;
+    harus(`halaman Go ${goDoc} sedangkan lab memakai Go ${goLab}`);
+    expect(barisRiset("R4-170").match(/2026-10-29/g)).toHaveLength(2);
+    for (const id of ["R4-171", "R4-172", "R4-174"]) expect(barisRiset(id).match(/2026-10-29/g), id).toHaveLength(1);
+    expect(barisRiset("R4-173").match(/2026-10-29/g)).toHaveLength(2);
+    expect(barisRiset("R4-172").match(/4\.0\.0/g)).toHaveLength(2);
+    expect(barisRiset("R4-174").match(/4\.0\.0/g)).toHaveLength(1);
+    expect(barisRiset("R4-172")).toContain("adr/madr/4.0.0/template");
+    expect(barisRiset("R4-172")).toContain("rilis 2024-09-17");
+    expect(barisRiset("R4-173").match(/2019-02-21|2018-07-10/g)).toHaveLength(2);
+    harus("Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-29.");
+    harus("*Tidak dijalankan. Dicek ke [Node.js v26.13.0: Packages]", 1);
+    expect(halaman.match(/\*Tidak dijalankan\. Dicek ke/g)).toHaveLength(5);
+    harus("*Tidak dijalankan. Dicek ke [Serverpod 4.0.0: Modules]");
+    harus(`Pada puncak ${koma(topupPuncak, 3)} top-up per detik, satu lompatan 50 ms menahan koneksi`);
+  });
+  test("kalimat berangka di Cek diri diturunkan dari rekaman", () => {
+    harus(`Berapa jurnal ada pada kiriman ulang +${geser[0]![0]} jam dan +${geser[1]![0]} jam?`);
+    harus(`Rekonsiliasi harian membaca ${rp(Number(rekon[1]))} dari ${rp(Number(rekon[2]))} yang dikreditkan (\`proses-mati.txt\` bagian C).`);
+    harus("`permission denied for schema t4m_akun` (42501) muncul bila SQL memakai awalan schema (`batas.txt` bagian B).");
+    harus("Akun yang tidak ada ditolak 23503.");
+    harus(`Ada ${fk[1]} kunci asing lintas schema, jadi memisahkan database fisik berarti membuangnya (Tidak dijalankan).`);
+    harus("Timeout atau 5xx dari ledger dianggap hasil tidak diketahui: tidak menandai apa pun dan diulang dengan key yang sama.");
+    expect(halaman.match(/<details class="success">/g)).toHaveLength(5);
+    expect(halaman.match(/<summary>Jawaban<\/summary>/g)).toHaveLength(5);
+    expect(halaman.match(/^\*\*\d\.\*\* /gm)).toHaveLength(5);
+    harus("**1.** Role pembayaran menjalankan `SELECT nama FROM akun` apa adanya sesudah modul dipisah. Apa jawaban PostgreSQL, dan kenapa bukan `permission denied`?");
+    harus("1. Role pembayaran menjalankan `SELECT nama FROM akun` apa adanya sesudah modul dipisah. Apa jawaban PostgreSQL, dan kenapa bukan `permission denied`?");
+    harus(`3. Service pembayaran mati sesudah ledger menjurnal dan sebelum \`topup_bank\` ditandai. Berapa jurnal ada sesudah gateway mengirim ulang kabarnya?`);
+  });
+  test("tabel ADR dan tabel Sengaja belum: tiap baris ada utuh", () => {
+    harus("| Cara kerja | Satu schema, satu role, tim mengimpor dan membaca tabel siapa saja | Tiap modul punya proses dan database sendiri, saling memanggil lewat HTTP | Enam modul di satu proses, schema dan `internal/` per modul | Lima modul di satu proses, pembayaran di proses sendiri dengan role sendiri |");
+    harus("| Kelebihan | Tidak ada pekerjaan baru | Tiap tim men-deploy sendiri tanpa menunggu tim lain | Satu deploy, satu pipeline, dan transaction tetap satu | Kredensial gateway dan data kartu tidak terbuka untuk seluruh proses |");
+    harus("| Kekurangan | Rename satu kolom mematahkan modul lain tanpa peringatan | 6 modul menjadi 6 unit deploy, dan transaction antar modul hilang | Kredensial gateway dan data kartu terbuka untuk seluruh proses | Dua unit deploy, dan satu transaction tidak lagi membungkus pembayaran |");
+    harus("| Satu pool koneksi per modul | Lab belum membangunnya: monolith memakai satu role dan satu pool | Belum dijadwalkan |");
+    harus("| Memindahkan kode ledger lama ke `internal/modul/` | Batas compiler hanya untuk paket baru. Lab menjaga kode lama dengan tes `go list -deps` | Belum dijadwalkan |");
+    harus("| Kontrak kolom untuk identitas, merchant, dan platform | Lab hanya menurunkan kontrak ledger ke akun | Belum dijadwalkan |");
+    harus("| TLS antar service dan rotasi kunci layanan | Kunci layanan di header adalah data lab | Belum dijadwalkan |");
+    harus("| Yang ditunda | Kenapa ditunda | Muncul lagi di |");
+    expect(readme).toContain("Kontrak kolom hanya diturunkan untuk yang dipakai kode lab (ledger ke akun); kontrak identitas, merchant, dan platform belum.");
+    expect(readme).toContain("Kunci layanan di header `X-Layanan-Kunci` adalah data lab");
+    expect(readme).toContain("Batas compiler hanya untuk paket baru di `internal/modul/`");
+  });
+  test("struktur data: nada Rantai, panah lepas diagram, simpul yang disorot widget, dan label simpul", () => {
+    expect(rantai.id).toBe("t4-modul-inti");
+    expect(tebak.id).toBe("t4-modul-tebak");
+    expect(rantai.baris.map((b) => b.simpul.map((n) => (n as { nada?: string }).nada ?? "biasa"))).toEqual([["biasa", "biasa", "warn"], ["biasa", "biasa", "good"]]);
+    expect(Arsitektur.parse(arsitektur).baris.flat().map((k) => k.lepas ?? false)).toEqual([true, true, true, true, false, false]);
+    expect(banding.fitur.map((f) => f.sorot)).toEqual([
+      { satu: ["a-kode", "a-role", "a-schema"], modul: ["b-kode", "b-role"] },
+      { satu: ["a-akun", "a-schema", "a-kode"], modul: ["b-akun", "b-role-akun", "b-schema-akun"] },
+      { satu: ["a-kode", "a-akun"], modul: ["b-kode", "b-akun"] },
+    ]);
+    expect(banding.opsi.map((o) => o.baris.map((r) => r.map((n) => n.label)))).toEqual([
+      [["Kode pembayaran", "Role api_t4", "Schema tahap4_modul"], ["Kode akun"]],
+      [["Kode pembayaran", "Role t4m_pembayaran", "Schema t4m_pembayaran"], ["Paket akun", "Role t4m_akun", "Schema t4m_akun"]],
+    ]);
+    expect(banding.opsi.map((o) => o.judulBaris)).toEqual([["Pembayaran", "Modul akun"], ["Pembayaran", "Modul akun"]]);
+    expect(modulSql).toContain("ALTER ROLE t4m_akun SET search_path = t4m_akun;");
+    expect(tebak.label).toEqual({ sumber: "Rekaman lab · batas.txt", tebakDulu: "Tebak dulu:", benar: "Tepat", belum: "Belum tepat", ulang: "Coba pilihan lain", jawaban: "Jawaban yang tepat" });
+    expect(tebak.pertanyaan).toBe("Apa jawaban PostgreSQL?");
+    expect(banding.fitur[0]!.catatan.modul).toBe('Ditolak sebelum rilis: tanpa awalan schema dijawab relation "akun" does not exist (42P01), dengan awalan permission denied for schema t4m_akun (42501) (batas.txt bagian B).');
+    expect(banding.fitur[1]!.catatan.modul).toBe("Rename oleh pemilik schema akun, dengan kode akun ikut berubah, tidak mematahkan modul lain: pembayaran tetap jalan lewat kontrak akun (batas.txt bagian B).");
+    expect(banding.fitur[2]!.catatan.modul).toBe("go build menolak: use of internal package ... not allowed. Impor paket publik akun lolos (batas.txt bagian B).");
+    expect(banding.fitur[2]!.catatan.satu).toBe("Tidak direkam: lab tidak membangun versi tanpa internal/. Aturan Go hanya berlaku untuk path yang memuat internal (Tidak dijalankan: dibaca dari dokumentasi cmd/go).");
+    expect(istilah.mekanisme[2]).toBe("Tabel tiap modul ada di schema sendiri, dengan role yang hanya memegang hak untuk schema itu.");
+    expect(istilah.mekanisme[0]).toBe("Kode dibagi ke modul. Tiap modul membuka satu paket publik dan menyimpan sisanya di bagian dalam.");
+    expect(istilah.jebakan[0]).toContain("Aturan yang hanya ada di dokumen dilanggar saat tim bertambah (M32).");
+    expect(istilah.sumber[0]).toMatchObject({ riset: "R4-315", judul: "cmd/go: Internal packages (Go 1.27.3, dibuka 2026-10-29)" });
+    expect(istilah.sumber[1]).toMatchObject({ riset: "R4-173", judul: "Fowler: MonolithFirst (2015-06-03, dibuka 2026-10-29)" });
+  });
+});
+
 describe("kunci kalimat dan sidik kata penentu (lapis 2 dan penutup mutasi tanpa kunci)", () => {
   const tekstual = (x: unknown, keluar: string[] = []): string[] => {
     if (typeof x === "string") keluar.push(x);
