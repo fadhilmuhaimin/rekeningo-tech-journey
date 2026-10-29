@@ -2736,6 +2736,30 @@
   "jawab": "`insiden_rekon` punya `UNIQUE (tanggal, order_id, jenis)`, dan pencatatan memakai `ON CONFLICT DO NOTHING`. Di `rekon.txt` bagian C, laporan delapan baris hanya menambah tiga insiden baru."
  },
  {
+  "id": "t4-m31-1",
+  "halaman": "t4-m31",
+  "judul": "4.10 M31: 146 pendaftar tertahan \"Sedang diverifikasi\"",
+  "url": "tahap-4/m31-verifikasi-tertahan/",
+  "tanya": "Fotonya jelas, tetapi 146 pendaftar gagal. Kenapa angka 146 menunjuk ke sebab selain foto?",
+  "jawab": "Pada laju rata-rata, 0,0116 × 12.600 = 146 pendaftar masuk dalam 3 jam 30 menit, sebanyak yang gagal (Hitungan atas Asumsi dan Ilustrasi). Foto buram menggagalkan sebagian pendaftar, bukan semuanya, dan layanan yang mati menggagalkan 10 dari 10 (`lajur.txt` bagian A)."
+ },
+ {
+  "id": "t4-m31-2",
+  "halaman": "t4-m31",
+  "judul": "4.10 M31: 146 pendaftar tertahan \"Sedang diverifikasi\"",
+  "url": "tahap-4/m31-verifikasi-tertahan/",
+  "tanya": "Layanan sudah pulih. Kenapa sepuluh pendaftar tidak lulus dengan sendirinya?",
+  "jawab": "Tiap pekerjaan sudah habis lima percobaan dan berstatus `mati`, jadi worker tidak mengklaimnya lagi. Worker mengklaim 0 pekerjaan, dan sepuluh akun tetap `belum` terverifikasi (`lajur.txt` bagian A)."
+ },
+ {
+  "id": "t4-m31-3",
+  "halaman": "t4-m31",
+  "judul": "4.10 M31: 146 pendaftar tertahan \"Sedang diverifikasi\"",
+  "url": "tahap-4/m31-verifikasi-tertahan/",
+  "tanya": "Rumus 0,116 × 5 × 3 menghasilkan 1,74. Apa arti 1,74, dan premis apa yang dipakainya?",
+  "jawab": "Pada puncak, 1,74 dari 4 slot worker dipegang pekerjaan verifikasi yang pasti gagal: 0,116 pendaftar per detik, 5 percobaan, 3 detik tiap percobaan. Premisnya tiap percobaan menunggu sampai timeout, dan 0,116 adalah Asumsi (Hitungan atas Asumsi)."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",

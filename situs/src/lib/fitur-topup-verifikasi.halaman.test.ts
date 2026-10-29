@@ -664,7 +664,7 @@ describe("rujukan [[ID]] dan registry", () => {
       "Kiriman yang sama bisa datang dua kali, dan itu dibahas di [[t4-m29]] dan [[t4-webhook]].",
       "dikirim worker sesudah COMMIT, seperti di [[t3-notifikasi]].",
       "Apa yang terjadi pada file di penyimpanan dibahas di [[t4-storage]].",
-      "Layanan verifikasi yang mati sehari dibahas di [[t4-m31]].",
+      "Layanan verifikasi yang mati beberapa jam dibahas di [[t4-m31]].",
       "Penghitung bersama dibahas di [[t3-rate-limit-redis]] dan belum dipasang pada endpoint baru ini.",
       "tetapi tidak dijamin sampai ([[t3-notifikasi]]).",
       "lamanya foto disimpan dibahas di [[t4-storage]].",
@@ -678,7 +678,7 @@ describe("rujukan [[ID]] dan registry", () => {
       "- [[t3-rate-limit-redis]]: penghitung batas laju yang dipakai bersama oleh dua instance.",
       "| Kiriman webhook yang sama datang dua kali? | Widget memakai satu kiriman | [[t4-m29]] |",
       "| Kabar hilang, dan job cek status juga belum jalan? | Widget memakai umur job 0 detik | [[t4-m30]] |",
-      "| Layanan verifikasi mati sehari? | Widget memakai vendor yang menjawab | [[t4-m31]] |",
+      "| Layanan verifikasi mati beberapa jam? | Widget memakai vendor yang menjawab | [[t4-m31]] |",
       "| Di mana file identitas disimpan, dan siapa boleh membacanya? | Halaman ini hanya menyebut kunci objek dan checksum | [[t4-m33]] |",
     ]) harus(kalimat);
     expect(semua).toHaveLength(28);
