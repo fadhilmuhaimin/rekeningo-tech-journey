@@ -4,7 +4,7 @@
 export const SIDIK = {
   frontmatter: "805e7ce8bce69be9",
   riset: ["239e6e74beb06e05","1b3632655c2f0f18","346eb631969580bd","67909f4dd109abb9","fe70d8b353139f75"],
-  diagram: "7b7da6e96feab02c",
+  diagram: "b3647a1174ff5496",
   skenario: "5640442d90d236f5",
   istilah: "e9a5b56b95e54f49",
   glosarium: "38a27b798af80c2f",
@@ -26,7 +26,7 @@ export const DIAGRAM_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".judul",
-  "Stiker sah milik merchant lain lolos semua pemeriksaan, dan isi stiker yang diubah lolos CRC"
+  "Stiker sah milik merchant lain lolos pemeriksaan server, dan isi stiker yang diubah lolos angka pemeriksa"
  ],
  [
   ".sumber.jenis",
@@ -102,7 +102,7 @@ export const DIAGRAM_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".baris[1].simpul[2].sub",
-  "CRC cocok"
+  "angka pemeriksa cocok"
  ],
  [
   ".baris[1].simpul[2].nada",

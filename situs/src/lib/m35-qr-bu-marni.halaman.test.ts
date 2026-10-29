@@ -589,6 +589,8 @@ describe("halaman istilah CRC: baris glosarium, rujukan, sumber, dan angka dari 
 describe("diagram Rantai: nilai simpul diturunkan dari rekaman", () => {
   test("dua baris: stiker sah milik merchant lain (statis.txt bagian B) dan isi stiker diubah (crc.txt bagian D); teks dan sub dihitung dari rekaman", () => {
     expect(diagram.id).toBe("t4-m35-stiker-berganti");
+    expect(diagram.judul).toBe("Stiker sah milik merchant lain lolos pemeriksaan server, dan isi stiker yang diubah lolos angka pemeriksa");
+    expect(diagram.judul).not.toMatch(/CRC|semua/);
     expect(diagram.sumber).toEqual({ jenis: "rekaman", teks: "Rekaman lab t4-qr · statis.txt bagian B dan crc.txt bagian D" });
     expect(diagram.baris).toHaveLength(2);
     const [a, d] = diagram.baris;
@@ -600,7 +602,7 @@ describe("diagram Rantai: nilai simpul diturunkan dari rekaman", () => {
     expect(d!.label).toBe("Isi stiker diubah");
     expect(d!.sub).toBe("crc.txt bagian D");
     expect(d!.simpul.map((s) => s.teks)).toEqual(["Id QR diganti", "Angka pemeriksa dihitung ulang", "Pemindai menerima"]);
-    expect(d!.simpul.map((s) => s.sub)).toEqual(["teks lain tetap", "rumus terbuka, tanpa key", "CRC cocok"]);
+    expect(d!.simpul.map((s) => s.sub)).toEqual(["teks lain tetap", "rumus terbuka, tanpa key", "angka pemeriksa cocok"]);
     expect(d!.simpul.map((s) => s.nada)).toEqual(["biasa", "biasa", "warn"]);
     expect(bagSB).toContain("nama dan kota di payload sama dengan jawaban server: ya");
     expect(POSTING_BUKU_MARNI).toBe(0);

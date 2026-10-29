@@ -1,6 +1,6 @@
 {
   "id": "t4-m35-stiker-berganti",
-  "judul": "Stiker sah milik merchant lain lolos semua pemeriksaan, dan isi stiker yang diubah lolos CRC",
+  "judul": "Stiker sah milik merchant lain lolos pemeriksaan server, dan isi stiker yang diubah lolos angka pemeriksa",
   "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-qr · statis.txt bagian B dan crc.txt bagian D" },
   "baris": [
     {
@@ -18,7 +18,7 @@
       "simpul": [
         { "teks": "Id QR diganti", "sub": "teks lain tetap" },
         { "teks": "Angka pemeriksa dihitung ulang", "sub": "rumus terbuka, tanpa key" },
-        { "teks": "Pemindai menerima", "sub": "CRC cocok", "nada": "warn" }
+        { "teks": "Pemindai menerima", "sub": "angka pemeriksa cocok", "nada": "warn" }
       ]
     }
   ],
