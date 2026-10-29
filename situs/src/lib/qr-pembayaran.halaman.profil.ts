@@ -9,9 +9,11 @@ export function profil(baris: string): string {
   const bagian = [
     `h${(baris.match(/^#+/) ?? [""])[0].length}`,
     `n:${j(/\b(?:tidak|bukan|belum|tanpa|jangan|tak|kecuali)\b/gi)}`,
-    `b:${j(/\d[\d.,]*/g)}`,
+    `b:${j(/\d[\d.,]*|\b(?:satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh|pertama|kedua|ketiga|keempat|kelima|keenam)\b/gi)}`,
     `l:${j(/Rekaman lab|Asumsi|Hitungan|Ilustrasi|Tidak dijalankan|\[perlu verifikasi[^\]]*\]|Dijalankan|Lab dijalankan/g)}`,
     `k:${j(/\b(?:semua|setiap|selalu|hanya|paling|sebelum|sesudah|lalu|kemudian|dulu|karena|bila|tetapi|sedangkan|sekali|berulang|lebih|kurang|mana pun|sama|berbeda|ditolak|diterima|dijawab|menolak|menerima|lolos|gagal|benar|salah|sah|beku|dibekukan|membekukan|terpakai|kedaluwarsa|terbayar|terikat|diganti|dipalsukan|dihitung|belum|sudah|lagi)\b/gi)}`,
+    `s:${j(/\b(?:statis|dinamis)\b/gi)}`,
+    `a:${j(/\b(?:server|app|pemindai|pemalsu|pembeli|merchant|pembayar|penyetuju|staf risk|tim risk|penerbit|user|client|payload|CRC|HMAC|key)\b/gi)}`,
     `t:${j(/Budi|Bu Marni|Eko|Toko Andalan|Toko Sumber Rejeki|Raka|Nadia|Laras|Ratih/g)}`,
     `c:${j(/`[^`]+`/g)}`,
     `i:${j(/\[\[[^\]]+\]\]/g)}`,

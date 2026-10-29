@@ -131,16 +131,22 @@ const TOKEN_DAFTAR = Number(cocok(batasGo, /"daftar":\s+\{(\d+), /)[1]!);
 const MERCHANT_LUAR = Number(cocok(prd, /Merchant luar \(Bu Marni dan ±(\d+) lainnya, Asumsi\)/)[1]!);
 const WARUNG = Number(cocok(naskah, /±(\d+) warung Lestari, kini juga menerima QR/)[1]!);
 const adr40 = naskah.split("\n").find((b) => b.startsWith("| 40 |"))!;
+const OPSI = cocok(adr40.split(" | ")[2]!, /^([^(]*?) \(.*?\); ([^(]*?) \(.*?\); ([^(]*?) \(/).slice(1).map((x) => x.toLowerCase());
+const KATA: Record<number, string> = { 1: "satu", 2: "dua", 3: "tiga", 4: "empat", 5: "lima" };
 
 describe("registry, meta, susunan blok, dan tautan", () => {
   test("4.19 ada, konsep, jalur inti, prasyarat 4.18, lab t4-qr, ADR 40, peran mobile, security, dan backend; judul sama dengan peta naskah", () => {
     expect(dari("t4-qr")).toMatchObject({ ada: true, nomor: "4.19", jenis: "konsep", bagian: 4, inti: true, prasyarat: ["t4-m35"], lab: ["t4-qr"], tahap: 4, peran: ["mobile", "security", "backend"], adr: [40] });
     expect(dari("t4-m35").nomor).toBe("4.18");
     expect(naskah).toContain("| 4.19 | 4 | QR pembayaran: statis, dinamis, konfirmasi + ADR 40 | Konsep + ADR | ★ | t4-qr | tebak |");
-    expect(frontmatter).toContain(`title: "4.19 ${dari("t4-qr").judul}"`);
+    expect(frontmatter.split("\n")).toContain(`title: "4.19 ${dari("t4-qr").judul}"`);
     expect(dari("t4-qr").judul).toBe("QR pembayaran: statis, dinamis, konfirmasi + ADR 40");
     const m = cocok(badan, /<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: \[\[t4-m35\]\] · Jalur inti<\/p>/);
     expect(dari("t4-qr").menit).toBe(Number(m[1]) + Number(m[2]));
+  });
+  test("description frontmatter dibangun dari batas statis di kode dan jumlah opsi yang ditolak di naskah", () => {
+    expect(frontmatter.split("\n")).toContain(`description: Rekeningo memakai QR dinamis yang sekali bayar dan QR statis berbatas Rp${rib(KONST_STATIS)} dengan nama merchant dari server. ADR 40 menimbang ${KATA[OPSI.length]} cara lain dan menulis kapan pilihan ini salah.`);
+    expect(frontmatter.split("\n").filter((b) => b.trim())).toHaveLength(2);
   });
   test("menit baca masuk akal terhadap jumlah kata (sekitar 200 kata per menit)", () => {
     const isi = badan.replace(/^import .*$/gm, "").replace(/<[^>]+>/g, " ").replace(/\[\[[^\]]+\]\]/g, "x");
@@ -215,8 +221,7 @@ describe("naskah: ADR 40, peta halaman, dan angka beban", () => {
     harus("Batas harian atau per QR belum ada di PRD v4.");
   });
   test("opsi yang ditolak ADR 40 sama dengan kolom opsi naskah, dalam urutan A, B, C; opsi D adalah pilihan", () => {
-    const kolom = adr40.split(" | ")[2]!;
-    const opsi = cocok(kolom, /^([^(]*?) \(.*?\); ([^(]*?) \(.*?\); ([^(]*?) \(/).slice(1).map((x) => x.toLowerCase());
+    const opsi = OPSI;
     expect(opsi).toEqual(["statis saja", "dinamis saja", "qr statis bertanda tangan"]);
     const kepala = cocok(badan, /^\| \| (A\. [^|]+) \| (B\. [^|]+) \| (C\. [^|]+) \| (D\. [^|]+) \|$/m);
     expect(kepala[1]!.toLowerCase()).toContain(opsi[0]);
