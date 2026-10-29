@@ -62,9 +62,9 @@ Panel Before mengurangi dua total dan mendapat Rp10.000. Panel After mencocokkan
 
 Kabar dari gateway adalah klaim ([[t4-dua-arah]]), dan klaim bisa tidak pernah datang. Di [[t4-m30]] penyebabnya rahasia webhook yang tidak sama. Gateway tiruan di lab berhenti mengirim sesudah kiriman ke-6, 342 menit sesudah kiriman pertama (`retry.txt` bagian A dan B).
 
-Jadi Rekeningo butuh jalan yang tidak bergantung pada gateway mengirim. Jalan itu bertanya sendiri, ke satu order (cek status) dan ke seluruh laporan satu hari (rekonsiliasi). Dokumentasi dua gateway nyata memuat bentuk yang sejalan, masing-masing satu.
+Jadi Rekeningo butuh jalan yang tidak bergantung pada gateway mengirim. Jalan itu bertanya sendiri, ke satu order (cek status) dan ke seluruh laporan satu hari (rekonsiliasi). Dokumentasi dua gateway nyata memuat masing-masing satu dari dua bentuk itu.
 
-Gateway pertama menulis bahwa notifikasi yang terlambat diperiksa dengan GET Status API (dokumentasi notifikasi sebuah gateway pembayaran, dibuka 2026-10-29, Tidak dijalankan). Gateway kedua menyediakan laporan yang mencocokkan setoran di rekening bank dengan kumpulan transaksi yang diselesaikannya (dokumentasi laporan sebuah gateway pembayaran lain, dibuka 2026-10-29, Tidak dijalankan). Laporan itu mencocokkan per setoran, sedangkan laporan gateway tiruan di lab memuat satu baris per order (Asumsi).
+Gateway pertama menyediakan laporan yang mencocokkan setoran di rekening bank dengan kumpulan transaksi yang diselesaikannya (dokumentasi laporan sebuah gateway pembayaran, dibuka 2026-10-29, Tidak dijalankan). Laporan itu mencocokkan per setoran, sedangkan laporan gateway tiruan di lab memuat satu baris per order (Asumsi). Gateway kedua menulis bahwa notifikasi yang terlambat diperiksa dengan GET Status API (dokumentasi notifikasi sebuah gateway pembayaran lain, dibuka 2026-10-29, Tidak dijalankan).
 
 Di app Flutter kamu mungkin pernah membuat layar status pembayaran yang tidak menunggu notifikasi push selamanya, tetapi menanyakan statusnya ke server. Cek status adalah versi sisi server dari pertanyaan itu.
 

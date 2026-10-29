@@ -16,8 +16,8 @@ export const NEGASI: string[] = [
   "Kabar dari gateway adalah klaim ([[t4-dua-arah]]), dan klaim bisa tidak pernah datang.",
   "Di [[t4-m30]] penyebabnya rahasia webhook yang tidak sama.",
   "Jadi Rekeningo butuh jalan yang tidak bergantung pada gateway mengirim.",
-  "Gateway pertama menulis bahwa notifikasi yang terlambat diperiksa dengan GET Status API (dokumentasi notifikasi sebuah gateway pembayaran, dibuka 2026-10-29, Tidak dijalankan).",
-  "Gateway kedua menyediakan laporan yang mencocokkan setoran di rekening bank dengan kumpulan transaksi yang diselesaikannya (dokumentasi laporan sebuah gateway pembayaran lain, dibuka 2026-10-29, Tidak dijalankan).",
+  "Gateway pertama menyediakan laporan yang mencocokkan setoran di rekening bank dengan kumpulan transaksi yang diselesaikannya (dokumentasi laporan sebuah gateway pembayaran, dibuka 2026-10-29, Tidak dijalankan).",
+  "Gateway kedua menulis bahwa notifikasi yang terlambat diperiksa dengan GET Status API (dokumentasi notifikasi sebuah gateway pembayaran lain, dibuka 2026-10-29, Tidak dijalankan).",
   "Di app Flutter kamu mungkin pernah membuat layar status pembayaran yang tidak menunggu notifikasi push selamanya, tetapi menanyakan statusnya ke server.",
   "kode lab memakainya sebagai bawaan, dan PRD v4 tidak menulis angkanya.",
   "Gateway ditanya sebelum transaction dibuka, jadi panggilan jaringan tidak memegang lock ([[t3-pool]]).",
@@ -100,7 +100,7 @@ export const NEGASI: string[] = [
 
 export const ANGKA: string[] = ["15","3","4","30","2","4","30","401","500.000","30","3","1","2","3","10.000","1","1.14.2","660.000","650.000","10.000","1","15.000","2","60.000","2","5.000","3","40.000","1","30.000","10.000","1","1","15.000","60.000","5.000","40.000","30.000","10.000","3","40.000","4","4","30","6","342","2026","10","29","2026","10","29","30","4","30","4","3","500.000","0","29","31","30","15.000","60.000","5.000","40.000","30.000","17","17","17","2026","10","29","2","60.000","40.000","20.000","310.000","330.000","15.000","5.000","30.000","5","60.000","50.000","4","24","25","1","4","29","0","200.000","1","4","4","4","30","401","35","2.7.2","50","30","401","4","35","4","99","5","0","4","4","30","500.000","401","4","1","40.000","2","60.000","3","4","1","30","2","2","3","4","5","20","5.000","20.000","0,25","20","5.000","0,4","1","5.000","1","50","30","5","30","4","20","4","4","4","1","10.000","15.000","60.000","5.000","40.000","30.000","10.000","2","40.000","3","60.000","4","4","2026","10","29","2026","10","29","17","17","2026","10","29"];
 
-export const LABEL: string[] = ["Rekaman lab","Simulasi","Rekaman lab","Hitungan","Hitungan","Tidak dijalankan","Tidak dijalankan","Asumsi","Asumsi","Tidak dijalankan","Tidak dijalankan","Asumsi","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Asumsi","Rekaman lab","Tidak dijalankan","Rekaman lab","Rekaman lab","Asumsi","Asumsi","Asumsi","Hitungan","Hitungan","Asumsi","Simulasi"];
+export const LABEL: string[] = ["Rekaman lab","Simulasi","Rekaman lab","Hitungan","Hitungan","Tidak dijalankan","Asumsi","Tidak dijalankan","Asumsi","Tidak dijalankan","Tidak dijalankan","Asumsi","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Tidak dijalankan","Asumsi","Rekaman lab","Tidak dijalankan","Rekaman lab","Rekaman lab","Asumsi","Asumsi","Asumsi","Hitungan","Hitungan","Asumsi","Simulasi"];
 
 export const TAUTAN: string[] = ["t4-m30","t2-job-rekonsiliasi","t4-m30","berikutnya","t4-dua-arah","t4-m30","t4-dua-arah","t3-pool","t2-job-rekonsiliasi","t4-m29","t4-m30","t4-infra-secret","t4-topup-verifikasi","t4-prd","t2-job-rekonsiliasi"];
 

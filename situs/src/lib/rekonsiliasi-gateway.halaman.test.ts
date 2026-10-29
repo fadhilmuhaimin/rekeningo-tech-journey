@@ -650,8 +650,14 @@ describe("sumber luar: baris riset, tanggal akses, kutipan, dan label sumber", (
     expect(barisRiset("R4-151")).toContain("you should use the GET Status API to check for current status of the transaction");
     expect(barisRiset("R4-152")).toContain("postgresql.org/docs/17/sql-insert.html");
     expect(barisRiset("R4-152")).toContain("ON CONFLICT DO NOTHING simply avoids inserting a row as its alternative action");
-    harus("Gateway pertama menulis bahwa notifikasi yang terlambat diperiksa dengan GET Status API (dokumentasi notifikasi sebuah gateway pembayaran, dibuka 2026-10-29, Tidak dijalankan).");
-    harus("Gateway kedua menyediakan laporan yang mencocokkan setoran di rekening bank dengan kumpulan transaksi yang diselesaikannya (dokumentasi laporan sebuah gateway pembayaran lain, dibuka 2026-10-29, Tidak dijalankan). Laporan itu mencocokkan per setoran, sedangkan laporan gateway tiruan di lab memuat satu baris per order (Asumsi).");
+    harus("Gateway pertama menyediakan laporan yang mencocokkan setoran di rekening bank dengan kumpulan transaksi yang diselesaikannya (dokumentasi laporan sebuah gateway pembayaran, dibuka 2026-10-29, Tidak dijalankan). Laporan itu mencocokkan per setoran, sedangkan laporan gateway tiruan di lab memuat satu baris per order (Asumsi).");
+    harus("Gateway kedua menulis bahwa notifikasi yang terlambat diperiksa dengan GET Status API (dokumentasi notifikasi sebuah gateway pembayaran lain, dibuka 2026-10-29, Tidak dijalankan).");
+    // penamaan sama dengan 4.6: gateway pertama = sumber R4-135 (tiga hari, laporan R4-150), gateway kedua = sumber R4-136 (lima kali, GET status R4-151)
+    expect(hal46).toContain("Gateway pertama mengirim ulang sampai tiga hari di mode live. Gateway kedua mengirim ulang paling banyak lima kali");
+    expect(barisRiset("R4-135")).toContain("docs.stripe.com/webhooks");
+    expect(barisRiset("R4-136")).toContain("docs.midtrans.com");
+    expect(barisRiset("R4-150")).toContain("docs.stripe.com");
+    expect(barisRiset("R4-151")).toContain("docs.midtrans.com");
     harus("Menurut dokumentasi PostgreSQL 17, perintah itu hanya menghindari penyisipan baris sebagai aksi alternatifnya ([PostgreSQL 17: INSERT](https://www.postgresql.org/docs/17/sql-insert.html), dibuka 2026-10-29).");
     // laporan tiruan memuat satu baris per order: Settlement mengembalikan OrderID dan Jumlah per baris
     expect(fRekon.teks).toContain("orders[i] = b.OrderID");
