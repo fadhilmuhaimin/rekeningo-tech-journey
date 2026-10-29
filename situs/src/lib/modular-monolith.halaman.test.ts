@@ -154,7 +154,16 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     expect(modulSql).toContain("GRANT t4m_ledger, t4m_akun, t4m_identitas, t4m_merchant, t4m_platform TO t4m_monolit;");
     expect(modulSql).not.toMatch(/TO t4m_monolit;[\s\S]*t4m_pembayaran TO t4m_monolit/);
     harus("Lima modul di satu proses memakai satu role, `t4m_monolit`, yang mewarisi kelima role modul tanpa `t4m_pembayaran`:");
-    harus("di dalam proses monolith database tidak menahan ledger membaca tabel akun di luar kontrak. Yang menahannya hanya `internal/`, review, dan tes kontrak.");
+    harus("di dalam proses monolith database tidak menahan ledger membaca tabel akun di luar kontrak. Yang menahannya hanya `internal/` untuk paket baru, review, dan tes kontrak.");
+    harus("Batas database itu juga belum melindungi kode lama. `internal/repo` masih membaca `akun.nama` langsung di pencarian warung, cek penerima transfer, katalog, back office, dan cek cache saldo (Tidak dijalankan: dibaca dari kode). Rename kolom itu bisa mematahkan semuanya. Rekaman bagian B hanya menjalankan pembayaran dan kontrak ledger, jadi \"tidak mematahkan\" di rekaman berlaku untuk pembayaran saja.");
+    // Kode lama itu benar membaca akun.nama (dibaca dari kode lab, bukan asumsi): tiap fungsi yang disebut halaman ada dan memuat kolomnya.
+    const repoDir = "labs/api-t4/internal/repo/";
+    for (const [f, fungsi] of [["repo.go", "CariWarung"], ["repo.go", "AkunLewatNomor"], ["katalog.go", "Katalog"], ["bo.go", "AkunBO"], ["ledger.go", "CekCache"]] as const) {
+      const kode = baca(repoDir + f);
+      const awal = kode.indexOf(`) ${fungsi}(`);
+      expect(awal, `${f} ${fungsi}`).toBeGreaterThan(0);
+      expect(kode.slice(awal, awal + 700), `${f} ${fungsi}`).toMatch(/\bnama\b/);
+    }
   });
   test("kunci asing lintas schema: 21, empat belas ke akun dan tujuh ke jurnal, tujuh berasal dari pembayaran", () => {
     const [total, akun, kota, perangkat, jurnal] = fk.slice(1).map(Number) as [number, number, number, number, number];
@@ -183,7 +192,8 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     for (const b of ["go build ./...", "go vet ./internal/modul/...", "go test -count=1 -run TestTeksTopupLangsungDenganDataTiruanLolos"]) expect(BA.join("\n")).toContain(`$ ${b}`);
     harus("`relation \"akun\" does not exist` (42P01), dan `permission denied for schema t4m_akun` (42501) bila memakai awalan schema");
     harus("fungsi pembayaran yang sama dijawab `column \"nama\" does not exist` (42703)");
-    harus("Tiga langkah CI tim Pembayaran lolos tanpa membuka database, karena tesnya memakai driver tiruan.");
+    harus("Tiga langkah CI tim Pembayaran lolos tanpa membuka database: `go build`, `go vet`, dan satu tes yang dipilih lewat `-run` dan memakai driver tiruan.");
+    expect(batas).toMatch(/\$ go test -count=1 -run TestTeksTopupLangsungDenganDataTiruanLolos /);
     expect(BB.join("\n")).toContain('use of internal package lab/apit4/internal/modul/akun/internal/data not allowed');
     expect(BB).toContain("(lolos, tanpa keluaran)");
     expect(BB.join("\n")).toContain("ALTER TABLE akun RENAME COLUMN tingkat TO tingkat_baru (kolom di kontrak ledger): tes kontrak ledger gagal: column \"tingkat\" does not exist (42703)");
@@ -204,7 +214,7 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     harus("tanda tangan palsu dijawab `401`, dan kabar sah saat ledger tidak menjawab dijawab `503`, bukan 2xx, jadi gateway mengulang.");
     expect(kodeKlien).toContain('req.Header.Set("Idempotency-Key", kunci)');
     expect(kodeKlien).toMatch(/func \(k \*Klien\) kirim[\s\S]*?ErrTidakPasti[\s\S]*?resp\.StatusCode >= 500/);
-    harus("Timeout atau 5xx dari ledger dibaca client sebagai hasil yang tidak diketahui (Tidak dijalankan: dibaca dari kode client ledger).");
+    harus("Untuk top-up, timeout atau 5xx dari ledger dibaca client sebagai hasil yang tidak diketahui (Tidak dijalankan: dibaca dari kode client ledger).");
   });
   test("proses mati: satu jurnal sesudah kiriman ulang, job cek status, dan batas key 24 jam (+23 jam satu jurnal, +25 jam dua jurnal)", () => {
     expect(PA.join("\n")).toContain("# proses service pembayaran: keluar dengan sinyal 9 (SIGKILL)");
@@ -272,7 +282,7 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     harus("Pembayaran 5 orang, Merchant 4, dan Platform 4, jadi 5 + 4 + 4 = 13 developer");
     harus("Timnya 13 developer (5 + 4 + 4, Asumsi cerita).");
     harus(`**B ditolak** untuk tim ini: 13 ÷ 6 = ${koma(13 / 6, 2)} developer per service, dan ${MODUL.length} unit deploy lawan 2 pada D (Hitungan atas Asumsi).`);
-    harus(`developer lebih dari 1.000 ÷ 13 ≈ ${Math.round(1000 / 13)} kali Tahap 4 (Hitungan)`);
+    harus(`developer lebih dari 1.000 ÷ 13 ≈ ${Math.round(1000 / 13)} kali Tahap 4 (Hitungan atas Asumsi)`);
     harus("Dari 13 developer dan 6,94 transaksi uang per detik, itu belum terlihat (Asumsi).");
     harus("| Biaya operasional | Nol, sampai rilis rusak | 6 pipeline, 6 set secret, dan jaringan antar service | Satu pipeline, tetapi satu role membaca semua | 2 pipeline dan satu jalur HTTP internal yang dipantau |");
     harus("| Kekurangan | Rename satu kolom mematahkan modul lain tanpa peringatan | 6 modul menjadi 6 unit deploy, dan transaction antar modul hilang |");
@@ -364,7 +374,9 @@ describe("kode: kontrak publik, titik gagal, dan tes batas yang dikutip Snippet"
     }
     const kode = [...halaman.matchAll(/<Snippet lang="(\w+)" code=\{`((?:[^`\\]|\\.)+)`\} \/>/g)].map((m) => [m[1]!, m[2]!]);
     expect(kode.map((k) => k[0])).toEqual(["text", "markdown", "json", "php", "python", "sql"]);
-    expect(kode[0]![1]).toContain("/internal/modul/pembayaran/     @tim-pembayaran");
+    expect(kode[0]![1]).toContain("/internal/modul/pembayaran/     @rekeningo/tim-pembayaran");
+    // GitHub: tim ditulis @organisasi/nama-tim (about-code-owners); @tim-x tanpa organisasi dibaca sebagai nama pengguna.
+    for (const b of kode[0]![1].split("\n").filter((x) => !x.startsWith("#"))) expect(b.trim().split(/\s+/)[1], b).toMatch(/^@[a-z]+\/tim-[a-z]+$/);
     expect(kode[0]![1].split("\n")[0]).toContain("Ilustrasi: pola terakhir yang cocok menang");
     expect(kode[1]![1]).toContain("# Ganti nama kolom akun.nama (Ilustrasi)");
     expect(kode[2]![1]).toContain('"exports": { ".": "./publik.js" }');
@@ -434,7 +446,7 @@ describe("sumber luar: tanggal dibuka, baris RISET R4-170 sampai R4-174, templat
     expect(barisRiset("R4-171")).toContain("pola terakhir yang cocok menang");
     expect(barisRiset("R4-172")).toContain("2024-09-17");
     for (const h of ["Context and Problem Statement", "Considered Options", "Decision Outcome", "Consequences"]) expect(barisRiset("R4-172"), h).toContain(h);
-    harus("Template MADR 4.0.0 yang minimal memuat empat bagian: Context and Problem Statement, Considered Options, Decision Outcome, dan Consequences");
+    harus("Template MADR 4.0.0 yang minimal memuat tiga bagian tetap: Context and Problem Statement, Considered Options, dan Decision Outcome. Bagian Consequences di dalamnya opsional");
     harus("rilis 2024-09-17");
     for (const h of ["Context and Problem Statement", "Considered Options", "Decision Outcome", "Consequences"]) expect(halaman.split(`${h}`).length - 1, h).toBeGreaterThanOrEqual(2);
     expect(barisRiset("R4-170")).toContain("is silently ignored");
@@ -512,7 +524,7 @@ describe("rujukan [[ID]], registry, struktur lima blok, dan data widget", () => 
     const blok = [...halaman.matchAll(/<Blok ([^>]*)>/g)].map((m) => m[1]!);
     expect(blok).toEqual([
       'nama="Mulai" buka',
-      'nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: SQL lintas modul gagal sebelum rilis bila role dan schema dipisah, dan rename kolom hanya mematahkan modul yang membacanya lewat kontrak."',
+      'nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: SQL pembayaran ke tabel modul lain gagal sebelum rilis bila role dan schema dipisah, dan rename kolom tidak mematahkan pembayaran. Kode lama di proses monolith belum dijaga cara itu."',
       'nama="Paham"',
       'nama="Putuskan"',
       'nama="Kunci"',
@@ -668,7 +680,7 @@ describe("penutup celah turunan: versi, tanggal akses, sel tabel, struktur data,
     harus("`permission denied for schema t4m_akun` (42501) muncul bila SQL memakai awalan schema (`batas.txt` bagian B).");
     harus("Akun yang tidak ada ditolak 23503.");
     harus(`Ada ${fk[1]} kunci asing lintas schema, jadi memisahkan database fisik berarti membuangnya (Tidak dijalankan).`);
-    harus("Timeout atau 5xx dari ledger dianggap hasil tidak diketahui: tidak menandai apa pun dan diulang dengan key yang sama.");
+    harus("Untuk top-up, timeout atau 5xx dari ledger dianggap hasil tidak diketahui: tidak menandai apa pun dan diulang dengan key yang sama.");
     expect(halaman.match(/<details class="success">/g)).toHaveLength(5);
     expect(halaman.match(/<summary>Jawaban<\/summary>/g)).toHaveLength(5);
     expect(halaman.match(/^\*\*\d\.\*\* /gm)).toHaveLength(5);
@@ -708,7 +720,7 @@ describe("penutup celah turunan: versi, tanggal akses, sel tabel, struktur data,
     expect(tebak.label).toEqual({ sumber: "Rekaman lab · batas.txt", tebakDulu: "Tebak dulu:", benar: "Tepat", belum: "Belum tepat", ulang: "Coba pilihan lain", jawaban: "Jawaban yang tepat" });
     expect(tebak.pertanyaan).toBe("Apa jawaban PostgreSQL?");
     expect(banding.fitur[0]!.catatan.modul).toBe('Ditolak sebelum rilis: tanpa awalan schema dijawab relation "akun" does not exist (42P01), dengan awalan permission denied for schema t4m_akun (42501) (batas.txt bagian B).');
-    expect(banding.fitur[1]!.catatan.modul).toBe("Rename oleh pemilik schema akun, dengan kode akun ikut berubah, tidak mematahkan modul lain: pembayaran tetap jalan lewat kontrak akun (batas.txt bagian B).");
+    expect(banding.fitur[1]!.catatan.modul).toBe("Rename oleh pemilik schema akun, dengan kode akun ikut berubah, tidak mematahkan pembayaran: ia tetap jalan lewat paket publik akun (batas.txt bagian B). Kode lama yang membaca akun.nama langsung tidak dijalankan.");
     expect(banding.fitur[2]!.catatan.modul).toBe("go build menolak: use of internal package ... not allowed. Impor paket publik akun lolos (batas.txt bagian B).");
     expect(banding.fitur[2]!.catatan.satu).toBe("Tidak direkam: lab tidak membangun versi tanpa internal/. Aturan Go hanya berlaku untuk path yang memuat internal (Tidak dijalankan: dibaca dari dokumentasi cmd/go).");
     expect(istilah.mekanisme[2]).toBe("Tabel tiap modul ada di schema sendiri, dengan role yang hanya memegang hak untuk schema itu.");
@@ -820,15 +832,15 @@ describe("kunci kalimat dan sidik kata penentu (lapis 2 dan penutup mutasi tanpa
   });
   test("frontmatter dan deskripsi", () => {
     expect(halaman.startsWith('---\ntitle: "4.13 Modular monolith, CODEOWNERS, ADR wajib + ADR 37"\n')).toBe(true);
-    expect(halaman).toContain("description: Rekeningo membagi satu codebase ke enam modul dengan batas yang dijaga compiler dan hak database, bukan ingatan tim. ADR 37 menimbang tiga cara lain dan menulis kapan pilihan ini salah.");
+    expect(halaman).toContain("description: Rekeningo membagi satu codebase ke enam modul. Compiler dan hak database menjaga batasnya di tempat yang bisa, bukan ingatan tim. ADR 37 menimbang tiga cara lain dan menulis kapan pilihan ini salah.");
   });
 });
 
 describe("klaim yang dibantah sumbernya sendiri dan kalimat mekanisme", () => {
   test("kalimat mekanisme, lingkup klaim negatif, dan kata penuh", () => {
-    harus("Batas antar tim dijaga mesin: database menolak SQL ke tabel tim lain, dan compiler menolak impor kodenya.");
+    harus("Batas antar tim dijaga mesin: database menolak SQL pembayaran ke tabel tim lain, dan compiler menolak impor kodenya.");
     harus("Batas compiler hanya berlaku untuk paket baru di `internal/modul/`. Kode ledger lama di `internal/repo` dan `internal/service` belum dipindah.");
-    harus("Pool per modul belum dibangun, jadi satu role per proses hanya ada di service pembayaran.");
+    harus("Pool per modul belum dibangun, jadi hanya service pembayaran yang benar-benar memakai role modulnya sendiri.");
     harus("Pemisahan schema tidak memutus foreign key.");
     harus("memisahkan database fisik per modul berarti membuangnya (Tidak dijalankan).");
     harus("Aturan \"ADR wajib\" itu sendiri dijaga review dan checklist PR, bukan mesin. Pemeriksa yang menolak PR tanpa ADR tidak ada di lab t4-modul (Tidak dijalankan).");
@@ -852,14 +864,17 @@ describe("klaim yang dibantah sumbernya sendiri dan kalimat mekanisme", () => {
     // Klaim universal dan negatif berlingkup: tidak ada kata penuh tanpa lingkup.
     expect(halaman).not.toMatch(/\b(selalu|pasti|dijamin|semua stack)\b/i);
     // Kasus industri dibaca sampai batasnya, atribusi tepat.
-    harus("Batasnya: satu aplikasi Rails, dengan developer lebih dari 1.000 ÷ 13 ≈ 77 kali Tahap 4 (Hitungan), dan penegakan saat runtime masih mereka riset.");
-    harus("Batasnya: pipeline pengiriman event ke tujuan, bukan sistem uang.");
+    harus("Batasnya: satu aplikasi Rails, dengan developer lebih dari 1.000 ÷ 13 ≈ 77 kali Tahap 4 (Hitungan atas Asumsi), dan penegakan saat runtime masih mereka riset.");
+    harus("Batasnya: pipeline pengiriman event ke tujuan, bukan sistem uang, dan satu service gabungan bukan bukti untuk batas modul yang dijaga mesin.");
     harus("Pelajarannya untuk Rekeningo hanya satu: kegagalan pihak ketiga diisolasi dengan antrean dan breaker, tanpa satu service per pihak");
     harus("Halaman ini tidak memakainya sebagai pembanding.");
-    harus("Martin Fowler menulis bahwa aplikasi baru sebaiknya dimulai sebagai monolith dengan modularitas yang dijaga, karena batas service yang salah mahal diperbaiki");
+    harus("Martin Fowler menulis bahwa aplikasi baru sebaiknya dimulai sebagai monolith, karena batas service yang tepat sulit ditebak di awal");
+    harus("Ia menyebut jalan yang logis: monolith dengan modularitas di batas API dan penyimpanan datanya. Ia juga menulis bahwa ia akan lebih tenang bila lebih banyak kisah yang berhasil lewat jalan itu.");
+    harus("Halaman ini menjawab keraguan itu dengan batas yang dijaga mesin, di tempat yang bisa.");
+    harus("dan bahwa monolith itu perlu modularitas yang baik ([Microservice Premium]");
     harus("Fowler menulis bahwa microservices tidak perlu dipertimbangkan sebelum sistem terlalu kompleks untuk dikelola sebagai monolith");
     harus("Halaman paket GitHub mencantumkan code owners dan protected branches di bawah Pro dan Team untuk repositori privat. Halaman itu tidak menulis kalimat eksplisit tentang paket Free");
-    harus("Nama tim dan folder `merchant` di contoh itu Ilustrasi: naskah hanya membagi tim menjadi Pembayaran (gateway dan kartu), Merchant (QR dan dasbor), dan Platform (sisanya).");
+    harus("Nama organisasi, nama tim (format `@organisasi/nama-tim`), dan folder `merchant` di contoh itu Ilustrasi: naskah hanya membagi tim menjadi Pembayaran (gateway dan kartu), Merchant (QR dan dasbor), dan Platform (sisanya).");
     expect(naskah).toContain("memegang gateway, top-up, rekonsili");
     expect(naskah).toContain("**Tim Merchant** (4 orang");
     expect(naskah).toContain("**Tim Platform** (4 orang");
@@ -867,10 +882,52 @@ describe("klaim yang dibantah sumbernya sendiri dan kalimat mekanisme", () => {
   test("tiga opsi ditolak masing-masing punya alasan, dan opsi D punya bukti rekaman", () => {
     harus("- **A ditolak** karena aturan \"jangan baca tabel tim lain\" hanya ada di dokumen, dan M32 melewatinya tanpa peringatan di CI (`batas.txt` bagian A).");
     harus("- **C ditolak** karena kredensial gateway dan data kartu terbuka untuk seluruh proses (Tidak dijalankan: dibaca dari naskah).");
-    harus("| Bukti | Rekaman lab `batas.txt` A: CI hijau, lalu 42703 | Tidak dijalankan. Segment menggabung 140+ service kembali menjadi satu | Tidak dijalankan: dibaca dari naskah | Rekaman lab `batas.txt` B, `ledger.txt`, `proses-mati.txt`, dan `latensi.txt` |");
+    harus("| Bukti | Rekaman lab `batas.txt` A: CI hijau, lalu 42703 | Tidak dijalankan. Segment menggabung 140+ service (bukan 6) menjadi satu; batasnya ada di kasus industri | Tidak dijalankan: dibaca dari naskah | Rekaman lab `batas.txt` B, `ledger.txt`, `proses-mati.txt`, dan `latensi.txt` |");
     harus("| | A. Satu paket tanpa batas | B. Semua modul jadi service | C. Modular monolith tanpa service pembayaran | D. Modular monolith dan satu service pembayaran |");
     expect(registryJudul("t4-breaker")).toContain("circuit breaker");
     for (const f of ["batas.txt", "ledger.txt", "proses-mati.txt", "latensi.txt"]) expect(fs.existsSync(path.join(akar, "labs/t4-modul/output", f))).toBe(true);
   });
 });
 function registryJudul(id: string): string { return entri(id)?.judul ?? ""; }
+
+// Penutup celah dari tinjauan: mutan yang lolos TANPA kunci baris pada putaran peninjau (kolom halaman di baris RISET, arah kalimat mekanisme,
+// versi PostgreSQL, angka 24 jam, penomoran Cek diri) kini mati lewat turunan dari sumber, bukan hanya lewat kunci baris.
+describe("tinjauan peninjau: kolom halaman RISET, mekanisme langkah pertama, versi PostgreSQL, 24 jam, dan nomor Cek diri", () => {
+  test("lima baris R4-170 sampai R4-174 menyebut halaman 4.13 di kolom Yang dipakai halaman", () => {
+    for (const id of ["R4-170", "R4-171", "R4-172", "R4-173", "R4-174"]) {
+      const kolom = barisRiset(id).split("|").map((k) => k.trim());
+      expect(kolom[1], id).toBe(id);
+      expect(kolom[kolom.length - 3], `${id}: kolom Yang dipakai halaman`).toBe("4.13");
+    }
+  });
+  test("langkah pertama dan kedua service pembayaran: di luar transaction, lalu satu transaction, sama dengan kode", () => {
+    harus("Langkah pertama meminta jurnal lewat API ledger dengan Idempotency-Key sebesar `order_id`, di luar transaction pembayaran. Langkah kedua menulis `webhook_event` dan `topup_bank` dalam satu transaction.");
+    expect(kodeBayar).toMatch(/ledger diminta menjurnal lewat API dengan key = order_id \(di luar\s+\/\/ transaction\), lalu event dan status ditulis dalam satu transaction/);
+    harus("Impor paket `internal/data` milik modul akun, paket Go yang hanya boleh diimpor kode di dalam modul itu, ditolak `go build`.");
+    harus("Rekaman bagian B menghitung tabel yang terbaca dan yang ditolak per role:");
+  });
+  test("versi PostgreSQL di prosa, teks tautan, URL, dan cabang kode sumber sama dengan versi lab", () => {
+    const lab = batas.match(/PostgreSQL (\d+)\.\d+/)![1]!;
+    expect(lab).toBe("17");
+    harus(`Dokumentasi PostgreSQL ${lab} menulis bahwa secara bawaan user`);
+    harus(`[PostgreSQL ${lab}: Schemas and Privileges](https://www.postgresql.org/docs/${lab}/ddl-schemas.html)`, 2);
+    harus(`Komentar di kode sumber PostgreSQL ${lab} menulis bahwa pemeriksaan kunci asing`);
+    harus(`cabang REL_${lab}_STABLE`);
+  });
+  test("umur Idempotency-Key 24 jam di prosa sama dengan rekaman dan naskah", () => {
+    expect(prosesMati).toMatch(/Idempotency-Key ledger hidup 24 jam|key hidup 24 jam|batas key 24 jam/);
+    harus("dan job cek status dalam 24 jam.");
+    harus("dan kabarnya baru datang lagi sesudah 24 jam.");
+    harus("Idempotency-Key ledger hidup 24 jam");
+  });
+  test("klaim rename kolom berlingkup pembayaran: tidak ada kalimat universal tentang modul lain", () => {
+    const semua = halaman + JSON.stringify(banding) + JSON.stringify(rantai) + JSON.stringify(tebak) + JSON.stringify(istilah);
+    expect(semua).not.toMatch(/tidak mematahkan modul lain|hanya mematahkan modul|tidak mematahkan modul\b/);
+    expect(semua.match(/tidak mematahkan pembayaran/g)!.length).toBeGreaterThanOrEqual(3);
+  });
+  test("pertanyaan Cek diri bernomor 1 sampai 5 berurutan dan sama banyak dengan jawabannya", () => {
+    const nomor = [...halaman.matchAll(/^\*\*(\d)\.\*\* /gm)].map((m) => Number(m[1]));
+    expect(nomor).toEqual([1, 2, 3, 4, 5]);
+    expect(halaman.split("<summary>Jawaban</summary>").length - 1).toBe(5);
+  });
+});

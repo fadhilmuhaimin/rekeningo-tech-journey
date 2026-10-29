@@ -32,7 +32,7 @@
       "alasan": "search_path, daftar schema yang dicari bila nama tabel tanpa awalan, hanya memuat schema pembayaran untuk role ini. Schema tanpa hak USAGE dilewati diam-diam, jadi nama akun tidak ditemukan."
     }
   ],
-  "penutup": "Pemisahan memaksa kode pembayaran memakai kontrak modul akun. SQL langsung yang dulu berhasil kini gagal sebelum rilis, bukan sesudah rename.",
+  "penutup": "Pemisahan memaksa kode pembayaran memakai paket publik modul akun. SQL langsung yang dulu berhasil kini gagal sebelum rilis, bukan sesudah rename.",
   "label": {
     "sumber": "Rekaman lab · batas.txt",
     "tebakDulu": "Tebak dulu:",

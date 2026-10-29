@@ -118,7 +118,7 @@
       },
       "catatan": {
         "satu": "Tes pembayaran tetap hijau, lalu kode pembayaran yang sama dijawab column \"nama\" does not exist (42703) (batas.txt bagian A).",
-        "modul": "Rename oleh pemilik schema akun, dengan kode akun ikut berubah, tidak mematahkan modul lain: pembayaran tetap jalan lewat kontrak akun (batas.txt bagian B)."
+        "modul": "Rename oleh pemilik schema akun, dengan kode akun ikut berubah, tidak mematahkan pembayaran: ia tetap jalan lewat paket publik akun (batas.txt bagian B). Kode lama yang membaca akun.nama langsung tidak dijalankan."
       },
       "nada": {
         "satu": "warn"

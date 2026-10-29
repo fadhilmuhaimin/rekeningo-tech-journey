@@ -34,7 +34,7 @@
       "riset": "R4-173",
       "judul": "Fowler: MonolithFirst (2015-06-03, dibuka 2026-10-29)",
       "url": "https://martinfowler.com/bliki/MonolithFirst.html",
-      "catatan": "Membangun aplikasi baru sebagai monolith dengan modularitas yang dijaga."
+      "catatan": "Bangun aplikasi baru sebagai monolith dulu. Monolith dengan modularitas di batas API dan data disebut jalan yang logis, tetapi Fowler menulis ia akan lebih tenang bila lebih banyak kisah yang berhasil lewat jalan itu."
     },
     {
       "judul": "Rekaman lab t4-modul: batas.txt bagian B",
