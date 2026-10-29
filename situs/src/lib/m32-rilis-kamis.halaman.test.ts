@@ -343,7 +343,7 @@ describe("kode lab: SQL langsung, driver tiruan, rename oleh pemilik, dan klaim 
     expect(notifGo).toContain("// TeksTopupLangsung adalah kode modul pembayaran seperti pada M32 (satu schema, satu role, tanpa batas): nama");
     expect(layananGo).not.toMatch(/\b(a|akun)\.nama\b|SELECT nama|nama FROM|nama_tampil/);
     // BuatTopupBank membaca akun lewat repo.Akun, dan repo.Akun memilih a.nama: jalur top-up nyata tidak bebas dari kolom itu
-    const topup = layananGo.slice(layananGo.indexOf("func (s Service) BuatTopupBank("), layananGo.indexOf("func (s Service) LihatTopupBank("));
+    const topup = cocok(layananGo, /func \(s Service\) BuatTopupBank\([\s\S]*?\n}\n/)[0];
     expect(topup).toContain("a, err := s.repo.Akun(ctx, peminta)");
     const repoGo = baca("labs/api-t4/internal/repo/repo.go");
     expect(repoGo.slice(repoGo.indexOf("func (r Repo) Akun("), repoGo.indexOf("func (r Repo) AkunLewatEmail("))).toContain("SELECT a.id, a.jenis, a.nama,");
@@ -426,6 +426,21 @@ describe("ADR 17, kolom sebagai kopling, dan dokumentasi: dibaca dari sumber", (
     expect(badan.match(/dibuka \d{4}-\d{2}-\d{2}/g)).toHaveLength(3);
     const tanpaTautan = badan.replace(/\]\(https?:\/\/[^)]+\)/g, "]");
     expect(tanpaTautan).not.toMatch(/Stripe|Midtrans|Xendit|https?:\/\//);
+  });
+  test("versi dokumentasi PostgreSQL di teks tautan sama dengan judul halaman di baris riset; M32 dan daftar tiga sebab konsisten", () => {
+    const verDoc = cocok(barisRiset("R4-165"), /"PostgreSQL (\d+\.\d+) Documentation"|PostgreSQL (\d+\.\d+) Documentation, Appendix A/);
+    const v165 = (verDoc[1] ?? verDoc[2])!;
+    const v166 = cocok(barisRiset("R4-166"), /judul halaman "PostgreSQL (\d+\.\d+) Documentation"/)[1]!;
+    expect(barisRiset("R4-166")).toContain(`PostgreSQL ${v166} Documentation, ALTER TABLE`);
+    const v = [...badan.matchAll(/\[dokumentasi PostgreSQL (\d+\.\d+), ([^\]]+)\]/g)];
+    expect(v.map((m) => m[2])).toEqual(["lampiran kode galat", "ALTER TABLE"]);
+    expect(v.map((m) => m[1])).toEqual([v165, v166]);
+    const m32 = cocok(dari("t4-m32").judul, /^(M\d+):/)[1]!;
+    harus(`Di ${m32} jawabannya tidak seorang pun, karena tiga hal:`);
+    harus(`Di ${m32} ADR 17 sudah tertulis dan tidak menghentikan migration itu.`);
+    harus(`Di ${m32} yang berbagi database adalah modul dari tiga tim di satu aplikasi`);
+    const daftar = badan.slice(badan.indexOf("karena tiga hal:"), badan.indexOf("Di cerita tidak ada mesin yang memeriksa"));
+    expect([...daftar.matchAll(/^(\d+)\. /gm)].map((x) => x[1])).toEqual(["1", "2", "3"]);
   });
   test("R4-165: kode 42703, 42P01, dan 42501 menurut dokumentasi PostgreSQL 17; halaman menulis arti 42703 satu kalimat", () => {
     const b = barisRiset("R4-165");
@@ -537,7 +552,11 @@ describe("skenario alur t4-m32.json: valid, nilai dari rekaman, tebakan, dan var
     expect(badan).toContain('<SkripLama daftar={["hp","alur-core","alur"]} />');
     expect(readmeModul).toContain("make -C labs/t4-modul run BAGIAN=ledger");
     expect(skenario.sumber.catatan).toContain("make -C labs/t4-modul run BAGIAN=batas");
-    expect(readmeModul).toContain("satu bagian: batas ledger proses-mati latensi testing");
+    expect(readmeModul).toMatch(/make -C labs\/t4-modul run BAGIAN=ledger\s+# satu bagian: batas ledger proses-mati latensi testing\n/);
+    expect(baca("labs/t4-modul/run.py")).toContain('BAGIAN = {"batas": rekam_batas, "ledger": rekam_ledger,');
+    // judul bagian A dan B di rekaman: A tanpa batas (satu schema, satu role), B dengan batas (enam schema)
+    expect(T.baris[tA - 1]).toBe(`# --- A. M32 pada versi tanpa batas: satu schema (${SKEMA_SATU}), satu role aplikasi (${ROLE_SATU}) untuk semua modul ---`);
+    expect(T.baris[tB - 1]).toBe("# --- B. Dengan batas: enam schema modul, satu role per modul, dan paket internal/ Go ---");
   });
   test("tebakan: empat pilihan, jawaban benar (42703, tes hijau) sama dengan rekaman, tiga pilihan lain bertentangan, benar bukan yang terpanjang, posisi berbeda dari tebakan Tahap 4 lain", () => {
     const p = skenario.predict;
