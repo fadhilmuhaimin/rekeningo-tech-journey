@@ -821,6 +821,8 @@ describe("nilai turunan cocok dengan naskah dan rekaman", () => {
     }
     expect(AWALAN_SCHEMA).toBe("t4m_");
     expect(S_DITOLAK).toBe("42501");
+    expect([...terbaca.values()].every((t) => t.kode === S_DITOLAK), "semua role menolak dengan kode yang sama").toBe(true);
+    expect(terbaca.size).toBe(NMODUL);
   });
   test("klaim tentang role: kontrak kolom ledger, role lain hanya tabel sendiri, monolith satu role, pembayaran proses terpisah, pool belum dibangun", () => {
     const baris = (nama: string): string => batasB.find((b) => b.startsWith(`role t4m_${nama}:`))!;
@@ -860,6 +862,13 @@ describe("nilai turunan cocok dengan naskah dan rekaman", () => {
     expect(naskah).toContain("| 3 | 10.000 | 14 | `posting` ±5,5 juta | ±1,4 GB |");
     expect(naskah).toContain("| 4 | 100.000 | 22, dibagi per modul | `posting` ±44 juta (20.000 × 3 × 2 × 365 = 43,8 juta) | ±11 GB (10,95 GB) |");
     expect(naskah).toContain("1.000 pendaftar × 2 file");
+    expect(naskah).toContain(`*Posting per tahun = transaksi per hari × ${POSTING_PER_TRX} × ${HARI}*, ±${BYTE_POSTING} byte per posting termasuk index`);
+    expect(naskah).toContain("Halaman lama Tahap 4 menulis ±4,4 GB (rumus registry dengan 2 transaksi per user: 20.000 × 2 × 365 × 300 B = 4,38 GB)");
+    expect(naskah).toContain("22 tabel (6, 4, 1, 4, 5, 2), dan 21 foreign key lintas modul");
+    expect(naskah).toContain("14 menuju tabel modul `akun` (12 ke `akun`, satu ke `kota`, satu ke `perangkat`) dan 7 menuju `jurnal`");
+    expect(naskah).toContain("(400 B per baris adalah Asumsi)");
+    expect(naskah).toContain("(500 B Asumsi)");
+    expect([WH[3], WH[4], AL[5], VR[3], OB[3], OB[5]]).toEqual([titik(MB(WH_HARI * HARI * WH_B)), titik(MB(WH_HARI * WH_RET * WH_B)), titik(MB(AL_HARI * HARI * AL_B)), titik(MB(VR_HARI * HARI * VR_B)), koma(GB(OB_HARI * HARI * OB_B), 2), koma(MB(OB_HARI * OB_RET * OB_B), 1)]);
     expect(naskah).toContain("`audit_log` 2.000 aksi per hari");
     expect([WH_HARI, WH_B, WH_RET, AL_HARI, AL_B, VR_HARI, VR_B, OB_HARI, OB_B, OB_RET]).toEqual([5000, 400, 30, 2000, 400, 1000, 500, 65000, 300, 7]);
     expect([titik(MB(WH_HARI * HARI * WH_B)), titik(MB(WH_HARI * WH_RET * WH_B)), titik(MB(AL_HARI * HARI * AL_B)), titik(MB(VR_HARI * HARI * VR_B)), koma(GB(OB_HARI * HARI * OB_B), 2), koma(MB(OB_HARI * OB_RET * OB_B), 1)]).toEqual(["730", "60", "292", "183", "7,12", "136,5"]);
@@ -896,6 +905,7 @@ describe("rujukan rekaman, README, migration, dan kontrak", () => {
       const i = D.findIndex((b) => b.endsWith(sql));
       expect(i, sql).toBeGreaterThan(0);
       expect(D[i + 1]).toContain("permission denied");
+      expect(D[i + 2]).toContain("SQLSTATE 42501");
     }
   });
   test("rekaman E: jumlah nol, order_id ganda, event_id ganda, QR dinamis tanpa nominal, dan jenis jurnal asing ditolak, dengan SQLSTATE yang ditulis", () => {
