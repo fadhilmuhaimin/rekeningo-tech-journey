@@ -1,0 +1,17 @@
+{
+  "judul": "PRD v4: pekerjaan ini milik siapa?",
+  "kelompok": ["App", "Backend", "Database", "Pihak luar"],
+  "item": [
+    { "teks": "Mengambil foto kartu identitas dan swafoto, lalu mengirimnya", "jawab": 0, "kenapa": "Kamera ada di HP, jadi mengambil dan mengirim kedua foto adalah pekerjaan app. Server menerimanya di POST /verifikasi dan database hanya menyimpan kunci objek dan checksum, bukan isi file (verifikasi.txt bagian B)." },
+    { "teks": "Mengirim kabar bahwa pembayaran sudah diterima, dan mengirimnya lagi bila tidak dijawab 2xx", "jawab": 3, "kenapa": "Pengirimnya gateway, bukan Rekeningo. Rekeningo hanya menerima. Gateway tiruan di lab mengulang dengan jeda 2, 10, 30, 90, dan 210 menit, jadwal yang meniru dokumentasi satu gateway nyata (retry.txt bagian A di lab t4-webhook)." },
+    { "teks": "Memeriksa tanda tangan atas byte mentah kabar dari gateway sebelum JSON diurai", "jawab": 1, "kenapa": "Pemeriksaan ada di handler POST /webhooks/pembayaran. Di rekaman lab api-t4, kabar tanpa tanda tangan, dengan isi yang diubah, dan dengan timestamp 400 detik lalu sama-sama dijawab 401 (topup.txt bagian E)." },
+    { "teks": "Menolak baris kedua dengan event_id yang sama di tabel event webhook", "jawab": 2, "kenapa": "event_id adalah kunci utama tabel webhook_event. INSERT kedua dengan event_id yang sama ditolak dengan SQLSTATE 23505, apa pun yang dikirim backend (skema.txt bagian E)." },
+    { "teks": "Menampilkan nama merchant di layar konfirmasi sebelum pembeli membayar QR", "jawab": 0, "kenapa": "Layar konfirmasi ada di HP pembeli. Nama yang ditampilkan datang dari jawaban server pada GET /qr/{id} (fitur.txt bagian A)." },
+    { "teks": "Menahan dana pemilik kartu sebelum menjawab setuju pada otorisasi", "jawab": 1, "kenapa": "Persetujuan yang sudah dikirim ke penerbit tidak bisa ditarik kembali, jadi backend menahan dana lebih dulu sebagai jurnal di ledger. Di rekaman lab api-t4, otorisasi Rp80.000 yang disetujui meninggalkan satu baris berstatus ditahan dengan jurnal tahan (fitur.txt bagian C)." },
+    { "teks": "Memutuskan apakah pengajuan verifikasi seorang user lulus", "jawab": 3, "kenapa": "Keputusannya datang dari layanan verifikasi, pihak luar yang di lab diperankan proses tiruan lokal. Rekeningo menyimpan hasilnya: jawaban lulus menaikkan tingkat akun (verifikasi.txt bagian C)." },
+    { "teks": "Menolak top-up dengan jumlah nol walau kode backend salah menghitung", "jawab": 2, "kenapa": "CHECK (jumlah > 0) di tabel topup_bank menolak barisnya. Di rekaman lab, INSERT dengan jumlah 0 ditolak dengan SQLSTATE 23514 (skema.txt bagian E)." },
+    { "teks": "Menampilkan tujuan bayar dan status top-up kepada Budi", "jawab": 0, "kenapa": "Layar status ada di app. Jawaban POST /topup-bank memuat tujuan_bayar dan status menunggu (topup.txt bagian A), dan GET /topup-bank/{id} menjawab status top-up milik sendiri." },
+    { "teks": "Menanyakan ke gateway status top-up yang menunggu terlalu lama, lalu menjurnalnya bila sudah dibayar", "jawab": 1, "kenapa": "Ini job di backend. Top-up yang masih menunggu atau tidak pasti sesudah batas umurnya ditanyakan ke gateway, dan kreditnya lewat fungsi yang sama dengan webhook (topup.txt bagian H)." }
+  ],
+  "penutup": "Pembagian tiga tempat dari Tahap 1 sampai 3 masih berlaku di Tahap 4. Tahap ini menambah tempat keempat, pihak luar, yang tidak bisa Rekeningo COMMIT atau ROLLBACK, dan itu yang membuat pertanyaan pertama Tahap 4 sulit."
+}

@@ -3273,8 +3273,9 @@
       "prasyarat": [
         "t4-prd"
       ],
-      "ada": false,
-      "nomor": "4.2"
+      "ada": true,
+      "nomor": "4.2",
+      "menit": 9
     },
     {
       "id": "t4-topup-verifikasi",
