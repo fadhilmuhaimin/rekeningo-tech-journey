@@ -436,6 +436,25 @@ describe("kode lab: tanda tangan lebih dulu, 401, daftar secret, dan tiruan gate
   });
 });
 
+describe("angka dan kata di prosa yang tidak punya baris tabel sendiri: diturunkan dari naskah, registry, dan rekaman", () => {
+  test("minggu dan tahap di kalimat pertama dari baris M30 dan registry; kode status dari rekaman dan dokumentasi; jam rotasi dan jadwal", () => {
+    const minggu = cocok(barisM30, /^\| M30 \| (\d+) \|/)[1]!;
+    harus(`Minggu ${minggu} Tahap ${dari("t4-m30").tahap}. Sabtu malam Citra mengisi saldo`);
+    expect(frontmatter).toContain(`description: Minggu ${minggu}. Citra mengisi`);
+    // setiap kode status tiga angka di halaman adalah kode yang direkam atau yang disebut dokumentasi tiruan
+    const kode = [...badan.matchAll(/(?<![\d.,-])([45]\d\d)(?!\d|\.\d| menit)/g)].map((m) => m[1]!);
+    const rekaman = new Set(MENIT_KIRIMAN.map((k) => String(k.kode)));
+    const doc = new Set(["400", "404", "500", "503"]);
+    expect(kode.every((k) => rekaman.has(k) || doc.has(k)), `kode di halaman: ${kode.join(",")}`).toBe(true);
+    expect(kode.filter((k) => rekaman.has(k)).length).toBe(badan.match(/\b401\b/g)!.length);
+    harus(`Sabtu ${JAM_ROTASI} (Ilustrasi) gateway tiruan merotasi secretnya dan langsung menandatangani dengan secret baru.`);
+    harus(`gateway tidak menunggu ${JADWAL_TERPANJANG} menit, tetapi menandatangani tiap kiriman dengan waktu maya dan memberi tahu jam itu ke api-t4.`);
+    harus("Webhook di versi ini adalah satu-satunya jalan kabar uang masuk.");
+    expect(barisM30).toContain("Webhook adalah satu-satunya jalan kabar");
+    harus(`Rekeningnya terpotong ${rp(NOMINAL)}, dan app menampilkan top-up itu berstatus "menunggu".`);
+  });
+});
+
 describe("Hitungan jam: penyamaan secret lawan jadwal terpanjang", () => {
   test("910 menit dari rotasi ke penyamaan, 342 menit jadwal, batas 03.28, rentang 568 menit; semuanya dihitung dari jam naskah dan menit rekaman", () => {
     expect(SEJAK_ROTASI).toBe(910);
