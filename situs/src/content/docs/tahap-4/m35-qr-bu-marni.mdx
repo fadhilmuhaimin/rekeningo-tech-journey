@@ -1,0 +1,183 @@
+---
+title: "4.18 M35: QR di kasir Bu Marni"
+description: Minggu 8. Tiga pelanggan Bu Marni membayar dengan QR, dan uangnya tidak masuk laporan tokonya, karena stiker di kasirnya diganti stiker merchant lain yang sah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import stikerBerganti from "../../../../data/diagram/t4-m35-stiker-berganti.json";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t4-topup-verifikasi]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 8 Tahap 4, hari Rabu. Bu Marni, pemilik toko kelontong di seberang kampus, mengeluh ke Rekeningo. Tiga pelanggannya bilang sudah membayar dengan QR: Rp35.000, Rp48.000, dan Rp22.000. Tidak ada yang masuk ke laporan tokonya.
+
+Budi, salah satu pelanggan itu, menunjukkan app-nya. Di sana tercatat "Berhasil: Toko Andalan, Rp35.000". Saat Bu Marni memeriksa kasirnya, stiker QR di sana bukan lagi stikernya.
+
+Ketiga pembayaran itu berjumlah Rp105.000 (Rp35.000 + Rp48.000 + Rp22.000).
+
+*Angka cerita (Ilustrasi):* hari Rabu, tiga nominal, dan stiker yang berganti berasal dari naskah, bukan dari rekaman. Nama Toko Andalan dipakai rekaman lab untuk merchant pemilik stiker itu. Rp105.000 adalah Hitungan, yaitu angka yang dihitung dari angka lain di halaman, dan masukannya Ilustrasi. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka membaca tiga laporan itu dan melihat satu pola: pembayaran tercatat berhasil di app, tetapi uangnya tidak sampai ke toko yang dituju. Ia menduga app salah mencatat tujuan pembayaran.
+
+Dugaan itu bisa diperiksa di database. Bila app salah mencatat, uang Budi sebenarnya masuk ke buku Bu Marni, dan jurnalnya menyebut Bu Marni, bukan toko yang tertulis di app. Raka memeriksa tiga hal: jurnal pembayaran Budi, buku Bu Marni, dan status merchant penerimanya. Rekaman di blok berikutnya memuat ketiganya.
+
+<details class="question">
+<summary>Tebak dulu: pembayaran Budi lolos pemeriksaan jurnal, merchant, dan saldo. Data apa yang tidak dimiliki server?</summary>
+
+Letak stiker. Tabel `qr` tidak punya kolom lokasi atau pengenal stiker, dan permintaan bayar hanya membawa sesi pembeli, id QR, dan nominal (Rekaman lab, `statis.txt` bagian B).
+
+Karena itu pembayaran ke stiker yang tertempel di toko lain tidak berbeda dari pembayaran ke stiker yang benar.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Pembayaran Budi sah menurut server, karena yang berganti adalah stikernya, dan server tidak menyimpan di mana stiker itu tertempel.
+
+<Rantai data={stikerBerganti} ringkas />
+
+Pihak yang mencoba, orang yang tidak dikenal, menempelkan stiker QR statis miliknya di atas stiker Bu Marni. QR statis dipakai berulang untuk banyak pembayaran, dan pembeli mengisi nominalnya sendiri. Stiker itu milik merchant sah yang terverifikasi dengan identitasnya sendiri, jadi server tidak melihat yang palsu.
+
+Angka pemeriksa di stiker itu bernama CRC: empat karakter di ujung payload, yaitu teks di dalam QR, yang dihitung dari semua teks di depannya. CRC menangkap salah baca, bukan penggantian. Layar konfirmasi versi pertama hanya bertanya "Bayar?", jadi tidak ada langkah yang menghentikan Budi.
+
+*Kondisi rekaman:* PostgreSQL 17.11, go1.27.1, dan pgx v5.11.0, dari database bersih, dengan server `api-t4` satu proses. Lab tidak punya app dan tidak punya gambar QR, karena payload adalah teks.
+
+Pemindai adalah skrip yang membaca payload lalu meminta `GET /qr/{id}`, dan pemalsu adalah perintah `qrlab ganti`. Keduanya skrip lab, bukan app dan bukan penyerang. Letak stiker tidak ada di sistem, jadi penempelan stiker adalah Ilustrasi.
+
+**Server menilai pembayaran itu sah.** Lab menerbitkan dua QR statis, satu untuk Bu Marni dan satu untuk Toko Andalan, lalu membangun payload keduanya dari jawaban server. Budi memindai payload Toko Andalan, seolah stikernya tertempel di kasir Bu Marni, dan membayar Rp35.000:
+
+<Snippet file="labs/t4-qr/output/statis.txt" lines="39:48" title="Rekaman lab: labs/t4-qr/output/statis.txt, bagian B (pindai dan bayar)" />
+
+Pemindai membaca nama Toko Andalan di payload, dan server menjawab nama yang sama. Pembayaran diterima dengan 201, dan saldo Budi menjadi Rp215.000, yaitu Rp250.000 dikurangi Rp35.000 (Hitungan; saldo awal dari `statis.txt` bagian A).
+
+Tiga pemeriksaan Raka lolos. Pertama, jurnal seimbang: Rp35.000 keluar dari Budi dan Rp35.000 masuk ke Toko Andalan, jadi jumlahnya nol.
+
+<Snippet file="labs/t4-qr/output/statis.txt" lines="56:61" title="Rekaman lab: labs/t4-qr/output/statis.txt, bagian B (jurnal pembayaran)" />
+
+Kedua, buku Bu Marni tidak tersentuh. Tidak ada satu posting pun dari pembayaran itu di bukunya:
+
+<Snippet file="labs/t4-qr/output/statis.txt" lines="67:71" title="Rekaman lab: labs/t4-qr/output/statis.txt, bagian B (posting di buku Bu Marni)" />
+
+Ketiga, kedua merchant aktif dan terverifikasi. Tabel `qr` hanya menyimpan tujuh kolom, dan tidak ada yang berisi lokasi atau pengenal stiker:
+
+<Snippet file="labs/t4-qr/output/statis.txt" lines="77:93" title="Rekaman lab: labs/t4-qr/output/statis.txt, bagian B (merchant dan kolom tabel qr)" />
+
+Rekaman menutup bagian itu dengan satu kesimpulan: pembayaran sah menurut semua aturan yang dimiliki server. Yang diterima server untuk membayar hanya sesi pembeli, id QR, dan nominal, jadi tidak ada aturan di server lab yang bisa menolaknya (`statis.txt` bagian B).
+
+**Isi QR dan CRC.** Payload adalah teks yang dibaca pemindai dari gambar QR. Isinya potongan berurutan, dan tiap potongan diawali tag, yaitu dua angka yang menamai bagian itu, lalu panjangnya.
+
+Tag 01 bernilai 11 untuk QR statis dan 12 untuk QR dinamis, yang dibuat baru untuk tiap pembayaran. Tag 63 di ujung memuat CRC:
+
+<Snippet file="labs/t4-qr/output/crc.txt" lines="16:29" title="Rekaman lab: labs/t4-qr/output/crc.txt, bagian B (payload QR statis dan tag-nya)" />
+
+CRC dihitung dari semua teks di depannya, termasuk `6304`, yaitu tag dan panjang CRC itu sendiri. Pemindai menghitung CRC lagi dari teks yang ia baca dan menolak payload bila hasilnya berbeda.
+
+Lab memakai format bergaya EMV. Nilai tag 00 dan 01, serta cara menghitung CRC, berasal dari dokumen pihak ketiga yang mengutip EMVCo (sumber sekunder); selebihnya pilihan lab (Asumsi). Halaman EMVCo mendaftarkan spesifikasi QR merchant-presented sebagai versi 1.1 (27 November 2020; dibuka 2026-10-30), tetapi PDF-nya belum terbaca. Parameter CRC menurut spesifikasi itu [perlu verifikasi di PDF EMVCo].
+
+Rumus CRC punya parameter, dan lab memakai CRC-16/IBM-3740: polinomial 0x1021 dan nilai awal 0xFFFF. [Katalog CRC](https://reveng.sourceforge.io/crc-catalogue/16.htm) memuatnya dengan nilai uji 0x29B1 untuk teks `123456789` (halaman terakhir diperbarui 11 Desember 2024, dibuka 2026-10-30, Tidak dijalankan). Lab menghasilkan nilai yang sama dengan dua implementasi, yaitu Go dan `binascii.crc_hqx` dari Python (Rekaman lab, `crc.txt` bagian A).
+
+**CRC menangkap salah baca.** Satu karakter yang berubah membuat CRC tidak cocok. Lab mencobanya di tiga posisi pada payload QR dinamis contoh, karena hanya payload itu yang memuat nominal:
+
+<Snippet file="labs/t4-qr/output/crc.txt" lines="53:57" title="Rekaman lab: labs/t4-qr/output/crc.txt, bagian C (salah baca)" />
+
+Lab lalu mengganti tiap karakter satu payload contoh milik tes Go, sepanjang 138 karakter, dengan karakter lain dari 63 pilihan: angka, huruf, dan spasi. Hasilnya 8.562 dari 8.562 terdeteksi: 8.314 oleh CRC dan 248 oleh tag 63 yang rusak, dan 8.314 + 248 = 8.562 (Hitungan).
+
+Jumlah 8.562 sama dengan 138 × 62 + 6. Tiap posisi diganti dengan 62 karakter lain, kecuali enam posisi berisi titik atau strip yang diganti dengan 63 karakter (Hitungan, dibaca dari kode tes `TestPayloadSalahBacaSatuKarakterTerdeteksiSemua`). Payload itu bukan payload di cuplikan di atas: kotanya Bandung, bukan Jakarta.
+
+Pertukaran dua karakter bersebelahan yang berbeda juga terdeteksi, 104 dari 104. Itu hasil untuk satu payload dan dua jenis kesalahan, bukan jaminan untuk payload lain atau kesalahan lain.
+
+**CRC tidak menangkap penggantian.** Pelaku yang mengganti isi payload lalu menghitung CRC baru lolos. Di lab, id QR diganti dan CRC berubah dari `B29D` menjadi `4D5E`, dan pemindai menerimanya:
+
+<Snippet file="labs/t4-qr/output/crc.txt" lines="60:66" title="Rekaman lab: labs/t4-qr/output/crc.txt, bagian D (penggantian dengan CRC dihitung ulang)" />
+
+Bila teks diganti tanpa CRC baru, pemindai menolaknya. Hasil `qrlab ganti` sama persis dengan hasil `binascii.crc_hqx` yang dijalankan tanpa alat lab.
+
+CRC dihitung tanpa secret key: rumusnya terbuka, jadi siapa pun yang memegang payload bisa menghitungnya lagi. CRC punya empat karakter heksadesimal, yaitu 4 × 4 = 16 bit, dan 2^16 = 65.536 nilai yang mungkin (Hitungan). Pelaku tidak menebak salah satu dari 65.536 nilai itu, karena satu perhitungan memberinya nilai yang benar.
+
+Wikipedia menulis hal serupa tentang CRC pada umumnya. CRC tidak cocok untuk melindungi dari perubahan yang disengaja. Penyerang bisa mengubah pesan dan menghitung ulang CRC ([Wikipedia: Cyclic redundancy check](https://en.wikipedia.org/wiki/Cyclic_redundancy_check), dibuka 2026-10-30, sumber sekunder, Tidak dijalankan).
+
+**Layar konfirmasi versi pertama hanya bertanya "Bayar?".** Naskah menulis layar itu menampilkan nama merchant berhuruf kecil, dan Budi tidak membandingkannya dengan papan toko (Ilustrasi). Lab tidak punya app dan tidak punya layar itu, jadi apakah pembeli membaca nama itu tidak terukur (Asumsi).
+
+Yang terbukti hanya satu hal. Payload Bu Marni yang id QR-nya diganti ke id Toko Andalan, dengan CRC dihitung ulang, lolos pemindai dan membawa nama Toko Sumber Rejeki. Server menjawab nama Toko Andalan:
+
+<Snippet file="labs/t4-qr/output/statis.txt" lines="102:105" title="Rekaman lab: labs/t4-qr/output/statis.txt, bagian C (nama di payload lawan nama dari server)" />
+
+Nama dan kota di payload ditulis oleh siapa pun yang memegang payload. Nama yang bisa dipercaya adalah nama yang dijawab server dari tabel akun merchant terverifikasi. Naskah Tahap 4 tidak menulis dari mana layar pertama mengambil nama itu.
+
+**Yang tidak direkam.**
+
+- App Flutter, layar konfirmasi, papan toko, dan perilaku pembeli tidak ada di lab (Asumsi).
+- Hari Rabu, nominal Rp48.000 dan Rp22.000, stiker fisik, dan laporan Bu Marni hanya ada di cerita (Ilustrasi). Lab memakai Rp35.000 sebagai nominal pembayaran.
+- Gambar QR dan kamera Tidak dijalankan: payload di lab adalah teks.
+- Siapa yang menempelkan stiker tidak pernah dibuktikan. Lab memerankan pihak itu dengan merchant sah milik lab.
+- Skema pembayaran nasional dan regulasi tidak dipakai, dan halaman ini tidak mengklaim kepatuhan atau izin apa pun.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `statis.txt` bagian A, B, dan C, dengan satu varian dari `crc.txt` bagian C dan D. Tebak dulu apa yang dijawab server atas pembayaran ke stiker itu, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t4-m35.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: stiker salah terbaca satu karakter, bukan diganti**. CRC menolak payload yang salah baca, tetapi payload yang diganti dengan CRC dihitung ulang lolos. Lab tidak punya app Flutter dan tidak merekam layar.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: pembayaran Rp35.000 diterima dengan 201 ke Toko Andalan, jurnal seimbang, dan buku Bu Marni tanpa posting.
+
+Payload yang id QR-nya diganti dengan CRC dihitung ulang lolos pemindai, sedangkan salah baca satu karakter ditolak: 8.562 dari 8.562 pada payload contoh. Rekamannya ada di cuplikan pada blok sebelumnya.
+</noscript>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t4-qr]]: QR statis lawan dinamis, layar konfirmasi dengan nama merchant terverifikasi, dan pelaporan QR palsu. Keputusannya ADR 40.
+- [[t4-prd]]: PRD v4 menulis risiko "QR yang bisa diganti orang" untuk merchant luar.
+- [[t4-skema]]: tabel `qr` dan aturan yang dijaga database.
+- [[t4-fitur-teknis]]: QR merchant luar sebagai fitur dan pekerjaan teknisnya.
+
+Stiker bisa diganti dan CRC tidak menahannya. Yang bisa diperiksa pembeli adalah nama merchant yang dijawab server, dan itu dibahas di [[t4-qr]].
+
+### Cek diri
+
+**1.** CRC di stiker cocok, tetapi pembayaran masuk ke toko lain. Kenapa CRC tidak mencegahnya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+CRC dihitung tanpa secret key, jadi ia menangkap salah baca, bukan penggantian. Payload yang id QR-nya diganti lolos setelah CRC dihitung ulang, dari `B29D` menjadi `4D5E` (`crc.txt` bagian D).
+
+</details>
+
+**2.** Pembayaran Budi lolos pemeriksaan jurnal, merchant, dan saldo. Kenapa server tidak bisa menolaknya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Permintaan bayar hanya membawa sesi, id QR, dan nominal, dan tabel `qr` tidak punya lokasi atau pengenal stiker. Jurnal seimbang, merchant aktif dan terverifikasi, dan saldo cukup (`statis.txt` bagian B).
+
+</details>
+
+**3.** Lab merekam 8.562 dari 8.562 salah baca terdeteksi. Apakah itu berarti CRC menangkap semua salah baca?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. Angka itu untuk satu payload contoh 138 karakter dan dua jenis kesalahan: satu karakter berubah dan dua karakter bersebelahan bertukar. Sifat CRC terhadap kesalahan lain tidak dibuktikan lab (`crc.txt` bagian C).
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />

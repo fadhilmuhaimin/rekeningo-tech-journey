@@ -1,0 +1,26 @@
+{
+  "id": "t4-m35-stiker-berganti",
+  "judul": "Stiker sah milik merchant lain lolos pemeriksaan server, dan isi stiker yang diubah lolos angka pemeriksa",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-qr · statis.txt bagian B dan crc.txt bagian D" },
+  "baris": [
+    {
+      "label": "Stiker sah milik merchant lain",
+      "sub": "statis.txt bagian B",
+      "simpul": [
+        { "teks": "Budi memindai stiker", "sub": "nama cocok dengan server" },
+        { "teks": "Server: QR sah", "sub": "merchant aktif, saldo cukup" },
+        { "teks": "Rp35.000 ke Toko Andalan", "sub": "jurnal seimbang, buku Bu Marni kosong", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Isi stiker diubah",
+      "sub": "crc.txt bagian D",
+      "simpul": [
+        { "teks": "Id QR diganti", "sub": "teks lain tetap" },
+        { "teks": "Angka pemeriksa dihitung ulang", "sub": "rumus terbuka, tanpa key" },
+        { "teks": "Pemindai menerima", "sub": "angka pemeriksa cocok", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Penempelan stiker adalah Ilustrasi; lab hanya memerankan pemindai dan pemalsu. Kotak oranye adalah akibat yang direkam."
+}

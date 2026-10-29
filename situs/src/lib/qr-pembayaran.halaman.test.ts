@@ -620,8 +620,11 @@ describe("data Tebak, diagram Rantai, halaman istilah, baris riset, dan kartu Ce
     const id = riset.split("\n").filter((b) => b.startsWith("| R4-")).map((b) => b.split(" | ")[0]!.slice(2));
     for (const x of ["R4-200", "R4-201", "R4-202", "R4-203", "R4-204"]) expect(id.filter((y) => y === x), x).toHaveLength(1);
     const i = (x: string) => id.indexOf(x);
-    expect([i("R4-187") + 1, i("R4-187") + 2, i("R4-187") + 3, i("R4-187") + 4, i("R4-187") + 5]).toEqual([i("R4-200"), i("R4-201"), i("R4-202"), i("R4-203"), i("R4-204")]);
-    expect(i("R4-204") + 1).toBe(i("R4-300"));
+    expect(id.slice(i("R4-200"), i("R4-200") + 5)).toEqual(["R4-200", "R4-201", "R4-202", "R4-203", "R4-204"]);
+    expect(id[i("R4-204") + 1]).toBe("R4-300");
+    expect(i("R4-200")).toBeGreaterThan(i("R4-187"));
+    const tigaDigit = id.filter((x) => /^R4-\d{3}$/.test(x));
+    expect(tigaDigit).toEqual([...tigaDigit].sort());
     expect(new Set(id).size).toBe(id.length);
     expect(["R4-200", "R4-201", "R4-202", "R4-203", "R4-204"].map((x) => barisRiset(x))).toEqual(RISET_TERKUNCI);
     const r204 = barisRiset("R4-204");

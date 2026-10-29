@@ -76,6 +76,8 @@
 *[CDC]: Cara mengeluarkan perubahan data dengan membaca log transaksi database, sehingga urutannya sama dengan urutan commit.
 *[Certificate pinning]: App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem.
 *[certificate pinning]: App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem.
+*[Checksum]: Sidik dari isi file, misalnya SHA-256. Bila satu byte berubah, sidiknya berubah, jadi checksum dipakai untuk mendeteksi file yang rusak atau ditimpa.
+*[checksum]: Sidik dari isi file, misalnya SHA-256. Bila satu byte berubah, sidiknya berubah, jadi checksum dipakai untuk mendeteksi file yang rusak atau ditimpa.
 *[CI]: Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung.
 *[Continuous Integration]: Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung.
 *[Circuit breaker]: Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda.
@@ -86,6 +88,7 @@
 *[connection pool]: Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request.
 *[Container]: Paket aplikasi beserta semua dependensinya yang berjalan dengan cara sama di laptop maupun server.
 *[container]: Paket aplikasi beserta semua dependensinya yang berjalan dengan cara sama di laptop maupun server.
+*[CRC]: Angka pendek yang dihitung dari isi data untuk mendeteksi data yang salah terbaca atau rusak saat dikirim; rumusnya terbuka dan tanpa key, jadi bukan bukti keaslian.
 *[CRDT]: Jenis data yang dirancang supaya perubahan dari beberapa salinan yang boleh berbeda sementara bisa digabung otomatis.
 *[Credential stuffing]: Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama.
 *[credential stuffing]: Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama.
@@ -135,6 +138,7 @@
 *[HMAC]: Nilai yang dihitung dari isi pesan dan rahasia bersama, supaya penerima bisa memeriksa bahwa pesan tidak diubah dan berasal dari pemegang rahasia.
 *[HSTS]: Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.
 *[HTTP Strict Transport Security]: Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.
+*[IaC]: Infrastruktur, seperti mesin, database, dan alamat jaringan, ditulis sebagai file konfigurasi yang di-review seperti kode, lalu dibuat oleh sebuah alat.
 *[Idempotency key]: Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.
 *[idempotency key]: Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.
 *[Idle in transaction]: Keadaan sesi database yang sudah membuka transaction tetapi sedang tidak menjalankan query, dan menunggu perintah berikutnya dari client.
@@ -245,6 +249,7 @@
 *[polling]: App menanyakan status ke server berulang kali dengan jeda tetap.
 *[Posting]: Satu baris uang di dalam jurnal untuk satu buku: negatif bila uang keluar, positif bila masuk; saldo buku adalah jumlah posting-nya.
 *[posting]: Satu baris uang di dalam jurnal untuk satu buku: negatif bila uang keluar, positif bila masuk; saldo buku adalah jumlah posting-nya.
+*[Presigned URL]: URL ke satu objek di penyimpanan yang sudah ditandatangani pemilik kredensial, sehingga pemegangnya bisa memakainya sampai umurnya habis.
 *[Primary]: Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.
 *[primary]: Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.
 *[Primary key]: Kolom yang nilainya unik dan dipakai untuk mengenali satu baris.
@@ -252,6 +257,8 @@
 *[Problem Details]: Format error JSON standar dari RFC 9457, dengan field seperti type, title, status, dan detail.
 *[Proxy]: Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.
 *[proxy]: Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.
+*[Proxy keluar]: Proxy dengan alamat tetap yang dilewati panggilan keluar ke vendor, supaya vendor yang memakai allowlist selalu melihat satu alamat.
+*[proxy keluar]: Proxy dengan alamat tetap yang dilewati panggilan keluar ke vendor, supaya vendor yang memakai allowlist selalu melihat satu alamat.
 *[Pull request review]: Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung.
 *[pull request review]: Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung.
 *[QR statis dan dinamis]: QR statis dicetak sekali dan dipakai berulang dengan nominal diisi pembeli; QR dinamis dibuat per pembayaran, nominalnya terikat, dan hanya sekali bayar.
@@ -291,6 +298,8 @@
 *[saga]: Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi.
 *[Saldo cache]: Salinan jumlah posting satu buku di kolom buku.saldo_cache, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting.
 *[saldo cache]: Salinan jumlah posting satu buku di kolom buku.saldo_cache, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting.
+*[Secret manager]: Layanan yang menyimpan secret di luar kode dan file konfigurasi, dan dibaca aplikasi lewat API dengan token saat ia membutuhkannya.
+*[secret manager]: Layanan yang menyimpan secret di luar kode dan file konfigurasi, dan dibaca aplikasi lewat API dengan token saat ia membutuhkannya.
 *[Secure storage]: Penyimpanan terenkripsi milik sistem operasi HP untuk rahasia kecil seperti token sesi: Keychain di iOS, kunci di Android Keystore.
 *[secure storage]: Penyimpanan terenkripsi milik sistem operasi HP untuk rahasia kecil seperti token sesi: Keychain di iOS, kunci di Android Keystore.
 *[SELECT FOR UPDATE]: Perintah SQL yang membaca baris sekaligus menguncinya sampai transaction selesai, sehingga transaction lain yang mau mengubah atau mengunci baris itu menunggu.

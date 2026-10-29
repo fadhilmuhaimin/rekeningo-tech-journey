@@ -679,13 +679,13 @@ describe("rujukan [[ID]] dan registry", () => {
       "| Kiriman webhook yang sama datang dua kali? | Widget memakai satu kiriman | [[t4-m29]] |",
       "| Kabar hilang, dan job cek status juga belum jalan? | Widget memakai umur job 0 detik | [[t4-m30]] |",
       "| Layanan verifikasi mati beberapa jam? | Widget memakai vendor yang menjawab | [[t4-m31]] |",
-      "| Di mana file identitas disimpan, dan siapa boleh membacanya? | Halaman ini hanya menyebut kunci objek dan checksum | [[t4-m33]] |",
+      "| Di mana file identitas disimpan, dan siapa boleh membacanya? | Halaman ini hanya menyebut kunci objek dan checksum | [[t4-storage]] |",
     ]) harus(kalimat);
     expect(semua).toHaveLength(28);
     expect(semua[0]).toBe("t4-fitur-teknis");
     expect(semua.filter((id) => id === "t3-notifikasi")).toHaveLength(2);
     const hitung = Object.fromEntries([...new Set(semua)].map((id) => [id, semua.filter((x) => x === id).length]));
-    expect(hitung).toEqual({ "t4-fitur-teknis": 1, "t4-m29": 4, "t4-webhook": 3, "t4-m30": 3, "t4-storage": 3, "t4-m31": 3, "t3-notifikasi": 2, "t3-rate-limit-redis": 2, "t4-m33": 2, A0: 1, "t4-dua-arah": 1, "t4-skema": 1, "t4-rekonsiliasi": 1, "t4-breaker": 1 });
+    expect(hitung).toEqual({ "t4-fitur-teknis": 1, "t4-m29": 4, "t4-webhook": 3, "t4-m30": 3, "t4-storage": 4, "t4-m31": 3, "t3-notifikasi": 2, "t3-rate-limit-redis": 2, "t4-m33": 1, A0: 1, "t4-dua-arah": 1, "t4-skema": 1, "t4-rekonsiliasi": 1, "t4-breaker": 1 });
     expect(semua.filter((id) => id === "t3-rate-limit-redis")).toHaveLength(2);
   });
   test("tiap janji 'dibahas di' menunjuk halaman yang judulnya memuat topiknya", () => {
