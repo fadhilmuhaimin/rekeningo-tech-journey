@@ -3,73 +3,146 @@
   "opsi": [
     {
       "id": "satu",
-      "nama": "A · Satu schema, satu role",
+      "nama": "A · Batas hanya di dokumen: satu schema, satu role",
       "baris": [
         [
-          { "id": "a-kode", "label": "Kode pembayaran", "sub": "SELECT nama FROM akun" },
-          { "id": "a-role", "label": "Role api_t4", "sub": "satu role untuk semua modul" },
-          { "id": "a-schema", "label": "Schema tahap4_modul", "sub": "22 tabel di satu schema" }
+          {
+            "id": "a-kode",
+            "label": "Kode pembayaran",
+            "sub": "SELECT nama FROM akun"
+          },
+          {
+            "id": "a-role",
+            "label": "Role api_t4",
+            "sub": "satu role untuk semua modul"
+          },
+          {
+            "id": "a-schema",
+            "label": "Schema tahap4_modul",
+            "sub": "22 tabel di satu schema"
+          }
         ],
         [
-          { "id": "a-akun", "label": "Kode akun", "sub": "tabel akun di schema yang sama" }
+          {
+            "id": "a-akun",
+            "label": "Kode akun",
+            "sub": "tabel akun di schema yang sama"
+          }
         ]
       ],
-      "judulBaris": ["Pembayaran", "Modul akun"]
+      "judulBaris": [
+        "Pembayaran",
+        "Modul akun"
+      ]
     },
     {
       "id": "modul",
-      "nama": "B · Schema, role, dan internal/ per modul",
+      "nama": "B · Batas dijaga mesin: schema, role, dan internal/ per modul",
       "baris": [
         [
-          { "id": "b-kode", "label": "Kode pembayaran", "sub": "SELECT nama FROM akun" },
-          { "id": "b-role", "label": "Role t4m_pembayaran", "sub": "hanya schema pembayaran" },
-          { "id": "b-schema", "label": "Schema t4m_pembayaran", "sub": "5 tabel" }
+          {
+            "id": "b-kode",
+            "label": "Kode pembayaran",
+            "sub": "SELECT nama FROM akun"
+          },
+          {
+            "id": "b-role",
+            "label": "Role t4m_pembayaran",
+            "sub": "hanya schema pembayaran"
+          },
+          {
+            "id": "b-schema",
+            "label": "Schema t4m_pembayaran",
+            "sub": "5 tabel"
+          }
         ],
         [
-          { "id": "b-akun", "label": "Paket akun", "sub": "kontrak publik, SQL di internal/data" },
-          { "id": "b-role-akun", "label": "Role t4m_akun", "sub": "pemilik akses ke tabel akun" },
-          { "id": "b-schema-akun", "label": "Schema t4m_akun", "sub": "4 tabel" }
+          {
+            "id": "b-akun",
+            "label": "Paket akun",
+            "sub": "kontrak publik, SQL di internal/data"
+          },
+          {
+            "id": "b-role-akun",
+            "label": "Role t4m_akun",
+            "sub": "pemilik akses ke tabel akun"
+          },
+          {
+            "id": "b-schema-akun",
+            "label": "Schema t4m_akun",
+            "sub": "4 tabel"
+          }
         ]
       ],
-      "judulBaris": ["Pembayaran", "Modul akun"]
+      "judulBaris": [
+        "Pembayaran",
+        "Modul akun"
+      ]
     }
   ],
   "fitur": [
     {
       "label": "Pembayaran membaca akun.nama",
       "sorot": {
-        "satu": ["a-kode", "a-role", "a-schema"],
-        "modul": ["b-kode", "b-role"]
+        "satu": [
+          "a-kode",
+          "a-role",
+          "a-schema"
+        ],
+        "modul": [
+          "b-kode",
+          "b-role"
+        ]
       },
       "catatan": {
         "satu": "Berhasil: SQL langsung dijawab \"Top-up Rp200000 masuk ke Budi\", karena satu role boleh membaca semua tabel (batas.txt bagian A).",
         "modul": "Ditolak sebelum rilis: tanpa awalan schema dijawab relation \"akun\" does not exist (42P01), dengan awalan permission denied for schema t4m_akun (42501) (batas.txt bagian B)."
       },
-      "nada": { "satu": "warn" }
+      "nada": {
+        "satu": "warn"
+      }
     },
     {
       "label": "Modul akun mengganti nama kolom",
       "sorot": {
-        "satu": ["a-akun", "a-schema", "a-kode"],
-        "modul": ["b-akun", "b-role-akun", "b-schema-akun"]
+        "satu": [
+          "a-akun",
+          "a-schema",
+          "a-kode"
+        ],
+        "modul": [
+          "b-akun",
+          "b-role-akun",
+          "b-schema-akun"
+        ]
       },
       "catatan": {
         "satu": "Tes pembayaran tetap hijau, lalu kode pembayaran yang sama dijawab column \"nama\" does not exist (42703) (batas.txt bagian A).",
         "modul": "Rename oleh pemilik schema akun, dengan kode akun ikut berubah, tidak mematahkan modul lain: pembayaran tetap jalan lewat kontrak akun (batas.txt bagian B)."
       },
-      "nada": { "satu": "warn" }
+      "nada": {
+        "satu": "warn"
+      }
     },
     {
       "label": "Pembayaran mengimpor paket data akun",
       "sorot": {
-        "satu": ["a-kode", "a-akun"],
-        "modul": ["b-kode", "b-akun"]
+        "satu": [
+          "a-kode",
+          "a-akun"
+        ],
+        "modul": [
+          "b-kode",
+          "b-akun"
+        ]
       },
       "catatan": {
         "satu": "Tidak direkam: lab tidak membangun versi tanpa internal/. Aturan Go hanya berlaku untuk path yang memuat internal (Tidak dijalankan: dibaca dari dokumentasi cmd/go).",
         "modul": "go build menolak: use of internal package ... not allowed. Impor paket publik akun lolos (batas.txt bagian B)."
       },
-      "nada": { "satu": "warn" }
+      "nada": {
+        "satu": "warn"
+      }
     }
   ]
 }

@@ -204,7 +204,7 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     harus("tanda tangan palsu dijawab `401`, dan kabar sah saat ledger tidak menjawab dijawab `503`, bukan 2xx, jadi gateway mengulang.");
     expect(kodeKlien).toContain('req.Header.Set("Idempotency-Key", kunci)');
     expect(kodeKlien).toMatch(/func \(k \*Klien\) kirim[\s\S]*?ErrTidakPasti[\s\S]*?resp\.StatusCode >= 500/);
-    harus("Timeout atau 5xx dari ledger dibaca client sebagai hasil yang tidak diketahui (dibaca dari kode client ledger, Tidak dijalankan).");
+    harus("Timeout atau 5xx dari ledger dibaca client sebagai hasil yang tidak diketahui (Tidak dijalankan: dibaca dari kode client ledger).");
   });
   test("proses mati: satu jurnal sesudah kiriman ulang, job cek status, dan batas key 24 jam (+23 jam satu jurnal, +25 jam dua jurnal)", () => {
     expect(PA.join("\n")).toContain("# proses service pembayaran: keluar dengan sinyal 9 (SIGKILL)");
@@ -289,7 +289,8 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     expect(baris).toContain("Kondisi itu terekam di ADR 34 (`proses-mati.txt` C)");
     harus("Saat review CODEOWNERS menunggu lebih dari satu hari (Asumsi).");
     harus("Saat kegagalan di tengah panggilan pembayaran ke ledger menghasilkan selisih yang tidak tertutup rekonsiliasi dalam satu hari kerja.");
-    harus("Ambang jumlah developer untuk microservices tidak punya sumber primer: pencarian 2026-10-29 menemukan angka yang bertentangan di tulisan konsultan, dan tidak satu pun studi [perlu verifikasi].");
+    harus("Naskah menyebut heuristik praktisi bahwa microservices baru masuk akal di atas ±50 developer. Itu sumber tingkat 4, bukan studi terkontrol. Pencarian 2026-10-29 tidak menemukan sumber primer untuk angka itu, dan tulisan konsultan memberi angka yang saling bertentangan [perlu verifikasi].");
+    expect(baris).toContain("microservices baru masuk akal di atas ±50 developer");
     expect(riset).toContain("Ambang jumlah developer: pencarian 2026-10-29 tidak menemukan sumber primer");
     // Daftar bernomor: pertanyaan Mulai, tujuh aturan ADR, dan tiga penyebab pre-mortem.
     [3, 3, 3, 1, 1, 1, 1].forEach((jumlah, i) => harus(`\n${i + 1}. `, jumlah));
@@ -621,6 +622,7 @@ describe("rujukan [[ID]], registry, struktur lima blok, dan data widget", () => 
     // Perbandingan: tiga kejadian, dua opsi, catatan memuat kode dari rekaman.
     expect(banding.fitur.map((f) => f.label)).toEqual(["Pembayaran membaca akun.nama", "Modul akun mengganti nama kolom", "Pembayaran mengimpor paket data akun"]);
     expect(banding.opsi.map((o) => o.id)).toEqual(["satu", "modul"]);
+    expect(banding.opsi.map((o) => o.nama)).toEqual(["A · Batas hanya di dokumen: satu schema, satu role", "B · Batas dijaga mesin: schema, role, dan internal/ per modul"]);
     expect(banding.opsi[0]!.baris[0]![2]!.sub).toBe(`${totalTabel} tabel di satu schema`);
     expect(banding.opsi[1]!.baris[0]![2]!.sub).toBe(`${tabelPerSchema.pembayaran} tabel`);
     expect(banding.opsi[1]!.baris[1]![2]!.sub).toBe(`${tabelPerSchema.akun} tabel`);
@@ -714,7 +716,7 @@ describe("klaim yang dibantah sumbernya sendiri dan kalimat mekanisme", () => {
     harus("Batasnya: satu aplikasi Rails, dengan developer lebih dari 1.000 ÷ 13 ≈ 77 kali Tahap 4 (Hitungan), dan penegakan saat runtime masih mereka riset.");
     harus("Batasnya: pipeline pengiriman event ke tujuan, bukan sistem uang.");
     harus("Pelajarannya untuk Rekeningo hanya satu: kegagalan pihak ketiga diisolasi dengan antrean dan breaker, tanpa satu service per pihak");
-    harus("Angka itu tidak dipakai halaman ini sebagai pembanding.");
+    harus("Halaman ini tidak memakainya sebagai pembanding.");
     harus("Martin Fowler menulis bahwa aplikasi baru sebaiknya dimulai sebagai monolith dengan modularitas yang dijaga, karena batas service yang salah mahal diperbaiki");
     harus("Fowler menulis bahwa microservices tidak perlu dipertimbangkan sebelum sistem terlalu kompleks untuk dikelola sebagai monolith");
     harus("Halaman paket GitHub mencantumkan code owners dan protected branches di bawah Pro dan Team untuk repositori privat. Halaman itu tidak menulis kalimat eksplisit tentang paket Free");
@@ -725,7 +727,7 @@ describe("klaim yang dibantah sumbernya sendiri dan kalimat mekanisme", () => {
   });
   test("tiga opsi ditolak masing-masing punya alasan, dan opsi D punya bukti rekaman", () => {
     harus("- **A ditolak** karena aturan \"jangan baca tabel tim lain\" hanya ada di dokumen, dan M32 melewatinya tanpa peringatan di CI (`batas.txt` bagian A).");
-    harus("- **C ditolak** karena kredensial gateway dan data kartu terbuka untuk seluruh proses (dibaca dari naskah, Tidak dijalankan).");
+    harus("- **C ditolak** karena kredensial gateway dan data kartu terbuka untuk seluruh proses (Tidak dijalankan: dibaca dari naskah).");
     harus("| Bukti | Rekaman lab `batas.txt` A: CI hijau, lalu 42703 | Tidak dijalankan. Segment menggabung 140+ service kembali menjadi satu | Tidak dijalankan: dibaca dari naskah | Rekaman lab `batas.txt` B, `ledger.txt`, `proses-mati.txt`, dan `latensi.txt` |");
     harus("| | A. Satu paket tanpa batas | B. Semua modul jadi service | C. Modular monolith tanpa service pembayaran | D. Modular monolith dan satu service pembayaran |");
     expect(registryJudul("t4-breaker")).toContain("circuit breaker");

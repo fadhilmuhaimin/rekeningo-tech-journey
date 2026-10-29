@@ -86,7 +86,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "**Service pembayaran: dua langkah idempoten.** Sesudah pembayaran jadi proses sendiri, satu transaction tidak lagi membungkus ledger dan catatan pembayaran. ADR 12 sudah memperingatkannya ([[t1-adr-12]]). Langkah pertama meminta jurnal lewat API ledger dengan Idempotency-Key sebesar `order_id`, di luar transaction pembayaran. Langkah kedua menulis `webhook_event` dan `topup_bank` dalam satu transaction.",
  "Rekaman `ledger.txt` bagian A memanggil API itu langsung. Tanpa kunci layanan dijawab `401`, tanpa Idempotency-Key `400`, dan key yang bukan `order_id` `422`. Permintaan sah dijawab `201`, dan ulangannya `200` dengan jurnal yang sama:",
  "<Snippet file=\"labs/t4-modul/output/ledger.txt\" lines=\"26:36\" title=\"Rekaman lab: labs/t4-modul/output/ledger.txt (bagian A)\" />",
- "Key yang sama dengan jumlah lain dijawab `422`. Timeout atau 5xx dari ledger dibaca client sebagai hasil yang tidak diketahui (dibaca dari kode client ledger, Tidak dijalankan). Fungsi pembayaran lalu menjalankan dua langkah itu berurutan, dengan titik gagal yang disuntik lab:",
+ "Key yang sama dengan jumlah lain dijawab `422`. Timeout atau 5xx dari ledger dibaca client sebagai hasil yang tidak diketahui (Tidak dijalankan: dibaca dari kode client ledger). Fungsi pembayaran lalu menjalankan dua langkah itu berurutan, dengan titik gagal yang disuntik lab:",
  "<Snippet file=\"labs/api-t4/internal/modul/pembayaran/pembayaran.go\" region=\"terapkan\" lang=\"go\" title=\"labs/api-t4/internal/modul/pembayaran/pembayaran.go\" />",
  "Di `proses-mati.txt` bagian A, titik `sesudah-ledger` mengirim SIGKILL ke proses pembayaran sendiri tepat sesudah ledger menjawab, tanpa balasan ke gateway. Hasilnya satu jurnal, `topup_bank` masih `menunggu`, dan `webhook_event` kosong. Gateway tiruan mengirim ulang event yang sama, dijawab `200 diproses`, dan jurnalnya tetap satu. Bagian B menutupnya lewat job cek status (`-cek-topup`), yang memeriksa 1 top-up dan mengkredit 1, tanpa kiriman ulang.",
  "Di `ledger.txt` bagian C, webhook ditahan di antara dua langkah dan job cek status berjalan dengan key yang sama. Log ledger mencatat dua panggilan, `201` lalu `200`, dan jurnalnya satu. Webhook yang kalah menjawab `ganda`. Bagian D merekam sisi gateway: tanda tangan palsu dijawab `401`, dan kabar sah saat ledger tidak menjawab dijawab `503`, bukan 2xx, jadi gateway mengulang.",
@@ -134,7 +134,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "  \"name\": \"@rekeningo/akun\",",
  "  \"exports\": { \".\": \"./publik.js\" }",
  "}`} />",
- "**Yang berbeda di stack ini:** dokumentasi menulis bahwa bila field `exports` diisi, subpath lain package itu terenkapsulasi dan tidak tersedia bagi importer. Dokumentasi tidak menyatakan bahwa `exports` membatasi impor relatif antar folder dalam satu package, jadi batas itu berlaku untuk modul yang dipecah menjadi package. Dokumentasi node-postgres menulis bahwa konfigurasi pool diteruskan ke setiap client di pool itu, dan tidak membahas role per modul. Satu role per modul berarti satu pool per modul (penalaran dari dokumentasi, Tidak dijalankan).",
+ "**Yang berbeda di stack ini:** dokumentasi menulis bahwa bila field `exports` diisi, subpath lain package itu terenkapsulasi dan tidak tersedia bagi importer. Dokumentasi tidak menyatakan bahwa `exports` membatasi impor relatif antar folder dalam satu package, jadi batas itu berlaku untuk modul yang dipecah menjadi package. Dokumentasi node-postgres menulis bahwa konfigurasi pool diteruskan ke setiap client di pool itu, dan tidak membahas role per modul. Satu role per modul berarti satu pool per modul (Tidak dijalankan: disimpulkan dari dokumentasi).",
  "</Fragment>",
  "<Fragment slot=\"t2\">",
  "*Tidak dijalankan. Dicek ke [Laravel 13.x: Database](https://laravel.com/docs/13.x/database) dan [Service Providers](https://laravel.com/docs/13.x/providers), dibuka 2026-10-29. Kode di bawah adalah Ilustrasi.*",
@@ -179,14 +179,14 @@ export const KALIMAT_TERKUNCI: string[] = [
  "**Kenapa D, bukan A, B, atau C.**",
  "- **A ditolak** karena aturan \"jangan baca tabel tim lain\" hanya ada di dokumen, dan M32 melewatinya tanpa peringatan di CI (`batas.txt` bagian A).",
  "- **B ditolak** untuk tim ini: 13 ÷ 6 = 2,17 developer per service, dan 6 unit deploy lawan 2 pada D (Hitungan atas Asumsi). Kunci asing lintas schema juga harus dibuang bila database dipisah (Tidak dijalankan).",
- "- **C ditolak** karena kredensial gateway dan data kartu terbuka untuk seluruh proses (dibaca dari naskah, Tidak dijalankan).",
+ "- **C ditolak** karena kredensial gateway dan data kartu terbuka untuk seluruh proses (Tidak dijalankan: dibaca dari naskah).",
  "**Kasus industri: Shopify dan Segment.** Shopify Engineering menulis bahwa aplikasi mereka dikerjakan lebih dari sepuluh tahun oleh lebih dari seribu developer. Mereka memilih modular monolith dengan komponen ber-API publik, bukan microservices ([Deconstructing the Monolith](https://shopify.engineering/deconstructing-monolith-designing-software-maximizes-developer-productivity), 21 Februari 2019, dibuka 2026-10-29). Alat pemeriksa mereka menandai pelanggaran batas domain. Batasnya: satu aplikasi Rails, dengan developer lebih dari 1.000 ÷ 13 ≈ 77 kali Tahap 4 (Hitungan), dan penegakan saat runtime masih mereka riset.",
  "Segment menulis bahwa mereka menggabungkan lebih dari 140 service menjadi satu. Sebelum itu mereka memecah per tujuan pengiriman. Mereka mencatat 32 perbaikan pada library bersama selama masa microservice dan 46 dalam setahun sesudah penggabungan ([Goodbye Microservices](https://www.twilio.com/en-us/blog/developers/best-practices/goodbye-microservices), 10 Juli 2018, dibuka 2026-10-29). Batasnya: pipeline pengiriman event ke tujuan, bukan sistem uang. Pelajarannya untuk Rekeningo hanya satu: kegagalan pihak ketiga diisolasi dengan antrean dan breaker, tanpa satu service per pihak ([[t4-breaker]]).",
- "Ambang jumlah developer untuk microservices tidak punya sumber primer: pencarian 2026-10-29 menemukan angka yang bertentangan di tulisan konsultan, dan tidak satu pun studi [perlu verifikasi]. Angka itu tidak dipakai halaman ini sebagai pembanding. Fowler menulis bahwa microservices tidak perlu dipertimbangkan sebelum sistem terlalu kompleks untuk dikelola sebagai monolith ([Microservice Premium](https://martinfowler.com/bliki/MicroservicePremium.html), 13 Mei 2015, dibuka 2026-10-29).",
+ "Naskah menyebut heuristik praktisi bahwa microservices baru masuk akal di atas ±50 developer. Itu sumber tingkat 4, bukan studi terkontrol. Pencarian 2026-10-29 tidak menemukan sumber primer untuk angka itu, dan tulisan konsultan memberi angka yang saling bertentangan [perlu verifikasi]. Halaman ini tidak memakainya sebagai pembanding. Fowler menulis bahwa microservices tidak perlu dipertimbangkan sebelum sistem terlalu kompleks untuk dikelola sebagai monolith ([Microservice Premium](https://martinfowler.com/bliki/MicroservicePremium.html), 13 Mei 2015, dibuka 2026-10-29).",
  "**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:",
  "1. Batas di dalam proses monolith hanya konvensi: satu role membaca lima modul, jadi satu PR bisa membaca tabel akun di luar kontrak dan lolos review. Pencegahannya `internal/`, CODEOWNERS, dan tes kontrak kolom (`batas.txt` bagian B). Pool per modul menunggu tahap berikutnya.",
  "2. Jurnal kedua sesudah key habis. Pembayaran mati di antara dua langkah, dan kabarnya baru datang lagi sesudah 24 jam. Rekaman menunjukkan jurnal kedua, dan SQL rekonsiliasi membaca separuh jumlah yang dikreditkan (job-nya Tidak dijalankan). Pencegahannya belum ada: itu pertanyaan terbuka.",
- "3. Review CODEOWNERS menjadi antrean. PR menunggu pemilik lebih dari sehari, dan tim mencari jalan di luar pola yang dimiliki (penalaran). Pencegahannya pemilik cadangan per modul dan pantauan umur PR.",
+ "3. Review CODEOWNERS menjadi antrean. PR menunggu pemilik lebih dari sehari, dan tim mencari jalan di luar pola yang dimiliki (Ilustrasi: skenario, bukan hasil sistem). Pencegahannya pemilik cadangan per modul dan pantauan umur PR.",
  "**Kapan keputusan ini salah.**",
  "- Saat tambahan p95 satu lompatan HTTP melewati 50 ms. Pembanding: sisa anggaran 1.000 ms dan 0,029 koneksi dari pool 10 pada 0,579 top-up per detik. Rekaman hanya memuat batasnya, satu mesin, localhost.",
  "- Saat review CODEOWNERS menunggu lebih dari satu hari (Asumsi).",
@@ -417,7 +417,7 @@ export const KUNCI_JSON = {
   "#id",
   "satu",
   "#nama",
-  "A · Satu schema, satu role",
+  "A · Batas hanya di dokumen: satu schema, satu role",
   "#baris",
   "#id",
   "a-kode",
@@ -449,7 +449,7 @@ export const KUNCI_JSON = {
   "#id",
   "modul",
   "#nama",
-  "B · Schema, role, dan internal/ per modul",
+  "B · Batas dijaga mesin: schema, role, dan internal/ per modul",
   "#baris",
   "#id",
   "b-kode",
@@ -594,6 +594,6 @@ export const KUNCI_JSON = {
   "Enam schema, matriks hak enam role, SQL M32 ditolak, dan impor internal ditolak compiler."
  ]
 };
-export const SIDIK_HALAMAN: Record<string, number> = {"tidak":81,"bukan":17,"belum":17,"hanya":25,"tanpa":20,"sesudah":18,"sebelum":4,"juga":1,"setiap":1,"semua":4,"lebih dari":6,"paling banyak":0,"selalu":0,"sama":15,"satu":84,"dua":13,"tiga":8,"lima":8,"enam":5,"bila":12,"karena":11};
-export const SIDIK_JSON: Record<string, Record<string, number>> = {"rantai":{"tidak":1,"bukan":0,"belum":0,"hanya":0,"tanpa":3,"sesudah":0,"sebelum":0,"juga":0,"setiap":0,"semua":0,"lebih dari":0,"paling banyak":0,"selalu":0,"sama":0,"satu":2,"dua":0,"tiga":0,"lima":0,"enam":0,"bila":0,"karena":0},"arsitektur":{"tidak":1,"bukan":1,"belum":0,"hanya":0,"tanpa":0,"sesudah":0,"sebelum":0,"juga":0,"setiap":0,"semua":0,"lebih dari":0,"paling banyak":0,"selalu":0,"sama":0,"satu":3,"dua":0,"tiga":0,"lima":1,"enam":0,"bila":0,"karena":0},"tebak":{"tidak":9,"bukan":2,"belum":2,"hanya":1,"tanpa":6,"sesudah":3,"sebelum":1,"juga":0,"setiap":0,"semua":1,"lebih dari":0,"paling banyak":0,"selalu":0,"sama":0,"satu":3,"dua":0,"tiga":0,"lima":0,"enam":1,"bila":2,"karena":2},"banding":{"tidak":4,"bukan":0,"belum":0,"hanya":2,"tanpa":2,"sesudah":0,"sebelum":1,"juga":0,"setiap":0,"semua":2,"lebih dari":0,"paling banyak":0,"selalu":0,"sama":2,"satu":17,"dua":0,"tiga":0,"lima":0,"enam":0,"bila":0,"karena":1},"istilah":{"tidak":0,"bukan":2,"belum":1,"hanya":4,"tanpa":1,"sesudah":0,"sebelum":0,"juga":0,"setiap":0,"semua":0,"lebih dari":0,"paling banyak":0,"selalu":0,"sama":0,"satu":8,"dua":0,"tiga":0,"lima":1,"enam":3,"bila":0,"karena":0}};
-export const JUMLAH_LABEL: Record<string, number> = {"rekamanLab":13,"tidakDijalankan":23,"asumsi":9,"ilustrasi":9,"hitungan":4,"perluVerifikasi":5};
+export const SIDIK_HALAMAN: Record<string, number> = {"tidak":80,"bukan":19,"belum":17,"hanya":25,"tanpa":20,"sesudah":18,"sebelum":4,"juga":1,"setiap":1,"semua":4,"lebih dari":6,"paling banyak":0,"selalu":0,"sama":15,"satu":83,"dua":13,"tiga":8,"lima":8,"enam":5,"bila":12,"karena":11};
+export const SIDIK_JSON: Record<string, Record<string, number>> = {"rantai":{"tidak":1,"bukan":0,"belum":0,"hanya":0,"tanpa":3,"sesudah":0,"sebelum":0,"juga":0,"setiap":0,"semua":0,"lebih dari":0,"paling banyak":0,"selalu":0,"sama":0,"satu":2,"dua":0,"tiga":0,"lima":0,"enam":0,"bila":0,"karena":0},"arsitektur":{"tidak":1,"bukan":1,"belum":0,"hanya":0,"tanpa":0,"sesudah":0,"sebelum":0,"juga":0,"setiap":0,"semua":0,"lebih dari":0,"paling banyak":0,"selalu":0,"sama":0,"satu":3,"dua":0,"tiga":0,"lima":1,"enam":0,"bila":0,"karena":0},"tebak":{"tidak":9,"bukan":2,"belum":2,"hanya":1,"tanpa":6,"sesudah":3,"sebelum":1,"juga":0,"setiap":0,"semua":1,"lebih dari":0,"paling banyak":0,"selalu":0,"sama":0,"satu":3,"dua":0,"tiga":0,"lima":0,"enam":1,"bila":2,"karena":2},"banding":{"tidak":4,"bukan":0,"belum":0,"hanya":3,"tanpa":2,"sesudah":0,"sebelum":1,"juga":0,"setiap":0,"semua":2,"lebih dari":0,"paling banyak":0,"selalu":0,"sama":2,"satu":17,"dua":0,"tiga":0,"lima":0,"enam":0,"bila":0,"karena":1},"istilah":{"tidak":0,"bukan":2,"belum":1,"hanya":4,"tanpa":1,"sesudah":0,"sebelum":0,"juga":0,"setiap":0,"semua":0,"lebih dari":0,"paling banyak":0,"selalu":0,"sama":0,"satu":8,"dua":0,"tiga":0,"lima":1,"enam":3,"bila":0,"karena":0}};
+export const JUMLAH_LABEL: Record<string, number> = {"rekamanLab":13,"tidakDijalankan":23,"asumsi":9,"ilustrasi":10,"hitungan":4,"perluVerifikasi":5};

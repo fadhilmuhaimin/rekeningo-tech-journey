@@ -141,7 +141,7 @@ Rekaman `ledger.txt` bagian A memanggil API itu langsung. Tanpa kunci layanan di
 
 <Snippet file="labs/t4-modul/output/ledger.txt" lines="26:36" title="Rekaman lab: labs/t4-modul/output/ledger.txt (bagian A)" />
 
-Key yang sama dengan jumlah lain dijawab `422`. Timeout atau 5xx dari ledger dibaca client sebagai hasil yang tidak diketahui (dibaca dari kode client ledger, Tidak dijalankan). Fungsi pembayaran lalu menjalankan dua langkah itu berurutan, dengan titik gagal yang disuntik lab:
+Key yang sama dengan jumlah lain dijawab `422`. Timeout atau 5xx dari ledger dibaca client sebagai hasil yang tidak diketahui (Tidak dijalankan: dibaca dari kode client ledger). Fungsi pembayaran lalu menjalankan dua langkah itu berurutan, dengan titik gagal yang disuntik lab:
 
 <Snippet file="labs/api-t4/internal/modul/pembayaran/pembayaran.go" region="terapkan" lang="go" title="labs/api-t4/internal/modul/pembayaran/pembayaran.go" />
 
@@ -222,7 +222,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
   "exports": { ".": "./publik.js" }
 }`} />
 
-**Yang berbeda di stack ini:** dokumentasi menulis bahwa bila field `exports` diisi, subpath lain package itu terenkapsulasi dan tidak tersedia bagi importer. Dokumentasi tidak menyatakan bahwa `exports` membatasi impor relatif antar folder dalam satu package, jadi batas itu berlaku untuk modul yang dipecah menjadi package. Dokumentasi node-postgres menulis bahwa konfigurasi pool diteruskan ke setiap client di pool itu, dan tidak membahas role per modul. Satu role per modul berarti satu pool per modul (penalaran dari dokumentasi, Tidak dijalankan).
+**Yang berbeda di stack ini:** dokumentasi menulis bahwa bila field `exports` diisi, subpath lain package itu terenkapsulasi dan tidak tersedia bagi importer. Dokumentasi tidak menyatakan bahwa `exports` membatasi impor relatif antar folder dalam satu package, jadi batas itu berlaku untuk modul yang dipecah menjadi package. Dokumentasi node-postgres menulis bahwa konfigurasi pool diteruskan ke setiap client di pool itu, dan tidak membahas role per modul. Satu role per modul berarti satu pool per modul (Tidak dijalankan: disimpulkan dari dokumentasi).
 
 </Fragment>
 <Fragment slot="t2">
@@ -293,19 +293,19 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 
 - **A ditolak** karena aturan "jangan baca tabel tim lain" hanya ada di dokumen, dan M32 melewatinya tanpa peringatan di CI (`batas.txt` bagian A).
 - **B ditolak** untuk tim ini: 13 ÷ 6 = 2,17 developer per service, dan 6 unit deploy lawan 2 pada D (Hitungan atas Asumsi). Kunci asing lintas schema juga harus dibuang bila database dipisah (Tidak dijalankan).
-- **C ditolak** karena kredensial gateway dan data kartu terbuka untuk seluruh proses (dibaca dari naskah, Tidak dijalankan).
+- **C ditolak** karena kredensial gateway dan data kartu terbuka untuk seluruh proses (Tidak dijalankan: dibaca dari naskah).
 
 **Kasus industri: Shopify dan Segment.** Shopify Engineering menulis bahwa aplikasi mereka dikerjakan lebih dari sepuluh tahun oleh lebih dari seribu developer. Mereka memilih modular monolith dengan komponen ber-API publik, bukan microservices ([Deconstructing the Monolith](https://shopify.engineering/deconstructing-monolith-designing-software-maximizes-developer-productivity), 21 Februari 2019, dibuka 2026-10-29). Alat pemeriksa mereka menandai pelanggaran batas domain. Batasnya: satu aplikasi Rails, dengan developer lebih dari 1.000 ÷ 13 ≈ 77 kali Tahap 4 (Hitungan), dan penegakan saat runtime masih mereka riset.
 
 Segment menulis bahwa mereka menggabungkan lebih dari 140 service menjadi satu. Sebelum itu mereka memecah per tujuan pengiriman. Mereka mencatat 32 perbaikan pada library bersama selama masa microservice dan 46 dalam setahun sesudah penggabungan ([Goodbye Microservices](https://www.twilio.com/en-us/blog/developers/best-practices/goodbye-microservices), 10 Juli 2018, dibuka 2026-10-29). Batasnya: pipeline pengiriman event ke tujuan, bukan sistem uang. Pelajarannya untuk Rekeningo hanya satu: kegagalan pihak ketiga diisolasi dengan antrean dan breaker, tanpa satu service per pihak ([[t4-breaker]]).
 
-Ambang jumlah developer untuk microservices tidak punya sumber primer: pencarian 2026-10-29 menemukan angka yang bertentangan di tulisan konsultan, dan tidak satu pun studi [perlu verifikasi]. Angka itu tidak dipakai halaman ini sebagai pembanding. Fowler menulis bahwa microservices tidak perlu dipertimbangkan sebelum sistem terlalu kompleks untuk dikelola sebagai monolith ([Microservice Premium](https://martinfowler.com/bliki/MicroservicePremium.html), 13 Mei 2015, dibuka 2026-10-29).
+Naskah menyebut heuristik praktisi bahwa microservices baru masuk akal di atas ±50 developer. Itu sumber tingkat 4, bukan studi terkontrol. Pencarian 2026-10-29 tidak menemukan sumber primer untuk angka itu, dan tulisan konsultan memberi angka yang saling bertentangan [perlu verifikasi]. Halaman ini tidak memakainya sebagai pembanding. Fowler menulis bahwa microservices tidak perlu dipertimbangkan sebelum sistem terlalu kompleks untuk dikelola sebagai monolith ([Microservice Premium](https://martinfowler.com/bliki/MicroservicePremium.html), 13 Mei 2015, dibuka 2026-10-29).
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
 1. Batas di dalam proses monolith hanya konvensi: satu role membaca lima modul, jadi satu PR bisa membaca tabel akun di luar kontrak dan lolos review. Pencegahannya `internal/`, CODEOWNERS, dan tes kontrak kolom (`batas.txt` bagian B). Pool per modul menunggu tahap berikutnya.
 2. Jurnal kedua sesudah key habis. Pembayaran mati di antara dua langkah, dan kabarnya baru datang lagi sesudah 24 jam. Rekaman menunjukkan jurnal kedua, dan SQL rekonsiliasi membaca separuh jumlah yang dikreditkan (job-nya Tidak dijalankan). Pencegahannya belum ada: itu pertanyaan terbuka.
-3. Review CODEOWNERS menjadi antrean. PR menunggu pemilik lebih dari sehari, dan tim mencari jalan di luar pola yang dimiliki (penalaran). Pencegahannya pemilik cadangan per modul dan pantauan umur PR.
+3. Review CODEOWNERS menjadi antrean. PR menunggu pemilik lebih dari sehari, dan tim mencari jalan di luar pola yang dimiliki (Ilustrasi: skenario, bukan hasil sistem). Pencegahannya pemilik cadangan per modul dan pantauan umur PR.
 
 **Kapan keputusan ini salah.**
 
