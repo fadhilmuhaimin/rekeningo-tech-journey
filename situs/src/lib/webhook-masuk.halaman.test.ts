@@ -380,9 +380,11 @@ describe("webhook-masuk.mdx: tiap angka turunan dari rekaman, kode, dan naskah",
     const t = tabel("| Kejadian | Gaya 1: HMAC dan timestamp |", 4);
     expect(t.map((x) => x.slice(1))).toEqual(gayaBaris.map((x) => x.slice(1)));
     expect(t.map((x) => rapi(x[0]!))).toEqual(gayaBaris.map((x) => x[0]));
-    harus("Sumber tabel: `tandatangan.txt` bagian D, Rekaman lab untuk gaya 1 dan pembanding murni untuk gaya 2 dan 3.");
+    harus("Sumber tabel: `tandatangan.txt` bagian D, Rekaman lab dari fungsi pembanding di skrip lab untuk ketiga gaya. Handler api-t4 hanya menjalankan gaya 1, dan bagian A sampai C merekam sebagian barisnya di sana.");
     harus("Gaya 1 menolak kiriman 6 menit tetapi menerima kiriman 60 detik. Jadi yang menahan kiriman yang diputar ulang di dalam toleransi bukan tanda tangan, melainkan `event_id`.");
-    harus("Tiga gaya tanda tangan dibandingkan di lab: gaya 1 dijalankan api-t4, sedangkan gaya 2 dan gaya 3 hanya fungsi pembanding di skrip lab. Bentuk gaya 3 [perlu verifikasi]");
+    harus("Tiga gaya tanda tangan dibandingkan di lab lewat tiga fungsi verifikasi di skrip lab, bukan lewat handler. Hanya gaya 1 sama dengan yang dijalankan api-t4. Bentuk gaya 3 [perlu verifikasi]");
+    expect(TD.some((b) => b.startsWith("# Gaya 1 = yang dijalankan api-t4 (bagian A sampai C)"))).toBe(true);
+    expect(tanda).toContain("pembanding murni: tiga fungsi verifikasi di run.py, bukan handler yang berjalan");
     harus("Fungsi pembanding itu ada di skrip lab, bukan di handler api-t4.");
   });
 
@@ -405,7 +407,7 @@ describe("webhook-masuk.mdx: tiap angka turunan dari rekaman, kode, dan naskah",
     harus(`Key itu hidup ${umurKeyJam} jam. Di \`urutan.txt\` bagian G, jam service diputar 25 jam:`);
     const t = tabel("| Kasus | Event kedua datang |", 4);
     expect(t.map((x) => x.map(rapi))).toEqual(barisG.map((x) => x.map(rapi)));
-    harus("Sesudah 24 jam hanya status top-up yang menahan jurnal kedua. Kasus 4 memerankan keadaan itu dengan mematikan lapis status.");
+    harus("Sesudah 24 jam hanya status top-up yang menahan jurnal kedua. Kasus 2 lawan kasus 4 menunjukkannya: dengan lapis status jurnal tetap satu, tanpa lapis status jurnal menjadi dua.");
     harus("Sumber tabel: `urutan.txt` bagian G, Rekaman lab.");
   });
 
@@ -433,7 +435,7 @@ describe("webhook-masuk.mdx: tiap angka turunan dari rekaman, kode, dan naskah",
     const adr = tabel("| | A. Cek-lalu-tulis tanpa tabel event |", 5);
     expect(adr.map((x) => x[0])).toEqual(["Cara kerja", "Kelebihan", "Kekurangan", "Biaya operasional", "Bukti"]);
     expect(adr[4]![1]).toBe("Rekaman lab `ganda-serentak.txt` A: dua jurnal");
-    expect(adr[4]![3]).toBe("Rekaman lab `tandatangan.txt` D, kolom gaya 3: isi diubah dan kiriman 6 menit diterima");
+    expect(adr[4]![3]).toBe("Rekaman lab `tandatangan.txt` D (fungsi pembanding, bukan handler), kolom gaya 3: isi diubah dan kiriman 6 menit diterima");
     expect(adr[4]![4]).toBe("Rekaman lab `ganda.txt` B, `ganda-serentak.txt` B, `urutan.txt` F dan G, `tandatangan.txt` B");
     expect(adr[4]![2]).toContain(`\`retry.txt\` A: 2xx adalah ${kodeKiriman[0]![1]} kiriman`);
     const aturan = halaman.slice(halaman.indexOf("**Keputusan: opsi D.**"), halaman.indexOf("Bentuk kedua aturan 7")).split("\n").filter((b) => /^\d+\. /.test(b));
@@ -447,13 +449,13 @@ describe("webhook-masuk.mdx: tiap angka turunan dari rekaman, kode, dan naskah",
     harus("Bentuk kedua aturan 7 terekam di `labs/t4-modul` `proses-mati.txt` bagian A.");
     harus("Saat itu ledger punya 1 jurnal, `topup_bank` masih `menunggu`, dan `webhook_event` kosong. Gateway mengirim ulang event yang sama, dijawab `200 diproses`, dan jurnalnya tetap satu.");
     harus(`Di \`proses-mati.txt\` bagian C, kiriman ulang pada +23 jam menghasilkan ${tabelC[0]![0]} jurnal, dan pada +25 jam ${tabelC[1]![0]} jurnal: saldo naik dua kali.`);
-    harus(`Kueri yang sama dengan \`RekonHarian\` memberi ${titik(Number(hasilKurang[1]))} yang dibaca lawan ${titik(Number(hasilKurang[2]))} yang dikreditkan, jadi jurnal kedua itu tidak menjadi insiden.`);
+    harus(`SQL yang sama dengan \`RekonHarian\` memberi ${titik(Number(hasilKurang[1]))} yang dibaca lawan ${titik(Number(hasilKurang[2]))} yang dikreditkan, dijalankan sebagai kueri dan bukan sebagai job. Menurut SQL itu, jurnal kedua tidak terlihat sebagai insiden.`);
     harus("Gateway mengulang lebih lama dari umur Idempotency-Key. Jadwal tiruan berhenti di 342 menit, tetapi dokumentasi Stripe menulis tiga hari.");
     harus("Bila semua kiriman gagal, λ naik ke 3,47 per detik dan pool penuh sejak W > 2,6 detik.");
     harus("Saat pemrosesan satu kabar melebihi 5 detik, yaitu sepertiga dari 15 detik batas tunggu satu gateway nyata.");
     expect(15 / 3).toBe(5);
     harus(`Pada batas atas ${lBatas[4]} per detik, L = ${lW5[2]} melewati pool ${poolPenuh[1]} (Hitungan, Asumsi).`);
-    harus("yang baru bekerja sesudah 30 menit (Asumsi lab)");
+    harus("hanya ditemukan job cek status, yang baru memeriksa top-up sesudah 30 menit (Asumsi lab), dan rekonsiliasi harian.");
     expect(baca("labs/t4-webhook/README.md")).toContain("umur cek status 30 menit");
     harus("Dokumentasi yang sama menyarankan membalas 2xx sebelum logika yang berat dan memproses kabar lewat queue asinkron.");
     harus("Saat gateway mengulang lebih lama dari 24 jam, umur Idempotency-Key ([[t2-idempotency]]).");
@@ -471,6 +473,7 @@ describe("webhook-masuk.mdx: tiap angka turunan dari rekaman, kode, dan naskah",
     expect(baca("labs/t4-webhook/README.md")).toContain("retensi `webhook_event` 30 hari: tidak ada");
     expect(baca("labs/t4-webhook/README.md")).toContain("Pengembalian dana untuk top-up yang tertahan");
     expect(riset).toContain('"IP allowlisting" disebut bersama tanda tangan sebagai "both of these protections"');
+    harus("| Daftar IP pengirim | Dokumentasi Stripe menyebutnya bersama tanda tangan sebagai dua perlindungan yang dipakai bersamaan. Lab tidak merekamnya: Tidak dijalankan | Belum dijadwalkan |");
   });
 
   test("Cek diri: empat jawaban memakai angka rekaman", () => {
@@ -793,7 +796,7 @@ describe("penutup celah mutasi tanpa kunci: klaim mekanisme, label, sumber, dan 
   };
 
   test("klaim label sumber: jumlah label per jenis, dan Asumsi tidak naik menjadi Rekaman lab", () => {
-    harus("Sumber tabel: `tandatangan.txt` bagian D, Rekaman lab untuk gaya 1 dan pembanding murni untuk gaya 2 dan 3.");
+    harus("Sumber tabel: `tandatangan.txt` bagian D, Rekaman lab dari fungsi pembanding di skrip lab untuk ketiga gaya. Handler api-t4 hanya menjalankan gaya 1, dan bagian A sampai C merekam sebagian barisnya di sana.");
     harus("Toleransi 5 menit (300 detik) adalah Asumsi untuk tiruan");
     harus("Jadwal itu Ilustrasi yang mengikuti dokumentasi satu gateway nyata, dengan waktu yang diperankan, bukan ditunggu.");
     harus("Jadwal tiruan berhenti di 342 menit");
@@ -851,6 +854,7 @@ describe("penutup tahap dua: kalimat klaim dihitung kemunculannya, kata bilangan
     expect(kodeService).toContain('fmt.Fprintf(m, "%d.", timestamp)');
     H("1. Tanda tangan HMAC-SHA256 atas timestamp, satu titik, dan byte mentah diperiksa sebelum JSON diurai, dengan perbandingan berwaktu tetap.");
     H("Bentuk gaya 3 [perlu verifikasi] ke dokumentasi gateway yang memakainya.");
+    H("- **C ditolak** karena isi yang diubah dan kiriman yang diputar ulang sama-sama diterima (`tandatangan.txt` bagian D, fungsi pembanding).");
     H("| Kejadian | Gaya 1: HMAC dan timestamp | Gaya 2: SHA-512 atas field | Gaya 3: token statis |");
     H("**Event dicatat satu kali, oleh database.** Tabel `webhook_event` memakai `event_id` sebagai kunci utama.");
     H("Fungsi `terapkanStatus` memajukan status satu top-up, dan kabar yang tidak maju diparkir:");
@@ -975,6 +979,6 @@ const TidakDijalankan = 10;
 const JumlahAsumsi = 10;
 const JumlahIlustrasi = 7;
 const JumlahHitungan = 6;
-const SIDIK_HALAMAN: Record<string, number> = { tidak: 57, bukan: 16, belum: 9, hanya: 26, tanpa: 14, sesudah: 26, sebelum: 9, juga: 3, setiap: 0, semua: 5, "lebih dari": 2, "paling banyak": 0, selalu: 1, sama: 18 };
+const SIDIK_HALAMAN: Record<string, number> = { tidak: 57, bukan: 19, belum: 9, hanya: 27, tanpa: 15, sesudah: 26, sebelum: 9, juga: 3, setiap: 0, semua: 5, "lebih dari": 2, "paling banyak": 0, selalu: 1, sama: 19 };
 const SIDIK_RANTAI: Record<string, number> = { tidak: 1, bukan: 1, belum: 0, hanya: 0, tanpa: 1, sesudah: 0, sebelum: 0, juga: 0, setiap: 0, semua: 0, "lebih dari": 0, "paling banyak": 0, selalu: 0, sama: 0 };
 const SIDIK_ISTILAH: Record<string, number> = { tidak: 5, bukan: 0, belum: 0, hanya: 0, tanpa: 1, sesudah: 0, sebelum: 0, juga: 0, setiap: 0, semua: 0, "lebih dari": 0, "paling banyak": 0, selalu: 0, sama: 1 };

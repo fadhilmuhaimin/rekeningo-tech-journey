@@ -70,7 +70,7 @@ Tanda tangan juga membatasi usia kiriman. Kiriman 240 detik lalu diproses, sedan
 
 Toleransi 5 menit (300 detik) adalah Asumsi untuk tiruan, yang mengikuti bawaan library satu gateway nyata. Dokumentasinya menyarankan tidak memakai nilai 0, karena nilai itu mematikan cek usia. Perbandingan memakai `hmac.Equal`, yang menurut dokumentasi Go tidak membocorkan informasi lewat waktu ([Go: crypto/hmac](https://pkg.go.dev/crypto/hmac), halaman Go 1.27.3 sedangkan lab memakai Go 1.27.1, dibuka 2026-10-29).
 
-Dokumentasi Stripe menulis bahwa tanda tangan dan timestamp dibuat baru tiap percobaan, dan tiruan lab melakukan hal yang sama (Asumsi untuk tiruan). Jadi kiriman ulang yang sah tetap lolos cek usia. Tiga gaya tanda tangan dibandingkan di lab: gaya 1 dijalankan api-t4, sedangkan gaya 2 dan gaya 3 hanya fungsi pembanding di skrip lab. Bentuk gaya 3 [perlu verifikasi] ke dokumentasi gateway yang memakainya.
+Dokumentasi Stripe menulis bahwa tanda tangan dan timestamp dibuat baru tiap percobaan, dan tiruan lab melakukan hal yang sama (Asumsi untuk tiruan). Jadi kiriman ulang yang sah tetap lolos cek usia. Tiga gaya tanda tangan dibandingkan di lab lewat tiga fungsi verifikasi di skrip lab, bukan lewat handler. Hanya gaya 1 sama dengan yang dijalankan api-t4. Bentuk gaya 3 [perlu verifikasi] ke dokumentasi gateway yang memakainya.
 
 | Kejadian | Gaya 1: HMAC dan timestamp | Gaya 2: SHA-512 atas field | Gaya 3: token statis |
 |---|---|---|---|
@@ -82,7 +82,7 @@ Dokumentasi Stripe menulis bahwa tanda tangan dan timestamp dibuat baru tiap per
 | Isi sah diformat ulang (indentasi), tanda tangan lama | ditolak | diterima | diterima |
 | Pengirim tidak tahu rahasia | ditolak | ditolak | ditolak |
 
-Sumber tabel: `tandatangan.txt` bagian D, Rekaman lab untuk gaya 1 dan pembanding murni untuk gaya 2 dan 3. Gaya 1 menolak kiriman 6 menit tetapi menerima kiriman 60 detik. Jadi yang menahan kiriman yang diputar ulang di dalam toleransi bukan tanda tangan, melainkan `event_id`.
+Sumber tabel: `tandatangan.txt` bagian D, Rekaman lab dari fungsi pembanding di skrip lab untuk ketiga gaya. Handler api-t4 hanya menjalankan gaya 1, dan bagian A sampai C merekam sebagian barisnya di sana. Gaya 1 menolak kiriman 6 menit tetapi menerima kiriman 60 detik. Jadi yang menahan kiriman yang diputar ulang di dalam toleransi bukan tanda tangan, melainkan `event_id`.
 
 **Event dicatat satu kali, oleh database.** Tabel `webhook_event` memakai `event_id` sebagai kunci utama. Fungsi `CatatEvent` menulis dengan `INSERT ... ON CONFLICT DO NOTHING`, dan nol baris berarti event itu sudah pernah tercatat:
 
@@ -111,7 +111,7 @@ Dua event berbeda untuk satu kejadian ditahan oleh tiga lapis: `event_id`, statu
 | 3. Tanpa lapis status, event kedua langsung | 0 jam | ganda | 1 |
 | 4. Tanpa lapis status, 25 jam kemudian (key sudah habis) | 25 jam | diproses | 2 |
 
-Sumber tabel: `urutan.txt` bagian G, Rekaman lab. Sesudah 24 jam hanya status top-up yang menahan jurnal kedua. Kasus 4 memerankan keadaan itu dengan mematikan lapis status.
+Sumber tabel: `urutan.txt` bagian G, Rekaman lab. Sesudah 24 jam hanya status top-up yang menahan jurnal kedua. Kasus 2 lawan kasus 4 menunjukkannya: dengan lapis status jurnal tetap satu, tanpa lapis status jurnal menjadi dua.
 
 **Balasan 2xx dikirim sesudah COMMIT.** Handler membaca body, `TerimaWebhook` memeriksa tanda tangan dan mengurai JSON, lalu memanggil `webhookAman`. Fungsi itu mencatat event, mengunci baris top-up, menerapkan status, dan menutup event dalam satu transaction. Untuk `settlement`, penerapan status menulis jurnal dan baris outbox:
 
@@ -229,7 +229,7 @@ const body = await req.text();
 | Kelebihan | Satu tabel lebih sedikit | Handler cepat, dan lonjakan kiriman tidak menahan koneksi | Satu perbandingan string | Event ganda, kiriman lama, dan isi yang diubah ditolak oleh pemeriksaan yang berbeda |
 | Kekurangan | Dua kiriman bersamaan sama-sama melihat `menunggu` dan sama-sama menjurnal | Gateway tidak mengulang kiriman yang sudah dijawab 200, jadi kabar yang gagal di worker tidak diulang | Isi yang diubah dan kiriman lama sama-sama diterima | Handler menahan satu koneksi selama satu transaction |
 | Biaya operasional | Rendah, tetapi celahnya tidak terlihat sampai uang dobel | Satu komponen lagi: queue, worker, dan pemantauan queue | Nol, tetapi tidak ada perlindungan isi | Satu tabel `webhook_event` dan satu rahasia per gateway |
-| Bukti | Rekaman lab `ganda-serentak.txt` A: dua jurnal | Tidak dijalankan. Dokumentasi gateway nyata menyarankannya, dan `retry.txt` A: 2xx adalah 1 kiriman | Rekaman lab `tandatangan.txt` D, kolom gaya 3: isi diubah dan kiriman 6 menit diterima | Rekaman lab `ganda.txt` B, `ganda-serentak.txt` B, `urutan.txt` F dan G, `tandatangan.txt` B |
+| Bukti | Rekaman lab `ganda-serentak.txt` A: dua jurnal | Tidak dijalankan. Dokumentasi gateway nyata menyarankannya, dan `retry.txt` A: 2xx adalah 1 kiriman | Rekaman lab `tandatangan.txt` D (fungsi pembanding, bukan handler), kolom gaya 3: isi diubah dan kiriman 6 menit diterima | Rekaman lab `ganda.txt` B, `ganda-serentak.txt` B, `urutan.txt` F dan G, `tandatangan.txt` B |
 
 **Keputusan: opsi D.** Tujuh aturan:
 
@@ -246,8 +246,8 @@ Bentuk kedua aturan 7 terekam di `labs/t4-modul` `proses-mati.txt` bagian A. Ser
 **Kenapa D, bukan A, B, atau C.**
 
 - **A ditolak** karena dua kiriman bersamaan lolos cek status, dan hasilnya dua jurnal (`ganda-serentak.txt` bagian A).
-- **B ditolak** karena jawaban 200 yang dikirim sebelum kabar tercatat menghentikan ulangan gateway. Kabar yang gagal di worker hanya ditemukan job cek status dan rekonsiliasi, yang baru bekerja sesudah 30 menit (Asumsi lab).
-- **C ditolak** karena isi yang diubah dan kiriman yang diputar ulang sama-sama diterima (`tandatangan.txt` bagian D).
+- **B ditolak** karena jawaban 200 yang dikirim sebelum kabar tercatat menghentikan ulangan gateway. Kabar yang gagal di worker hanya ditemukan job cek status, yang baru memeriksa top-up sesudah 30 menit (Asumsi lab), dan rekonsiliasi harian.
+- **C ditolak** karena isi yang diubah dan kiriman yang diputar ulang sama-sama diterima (`tandatangan.txt` bagian D, fungsi pembanding).
 
 **Kasus industri: dokumentasi Stripe.** Dokumentasi Stripe menulis bahwa endpoint harus memverifikasi tanda tangan atas body mentah, dan library resminya bertoleransi 5 menit. Event ganda dikenali lewat event ID. Bila dua objek Event berbeda dikirim untuk satu kejadian, id objek di `data.object` bersama `event.type` dipakai ([Stripe: webhooks](https://docs.stripe.com/webhooks), dibuka 2026-10-29).
 
@@ -255,7 +255,7 @@ Dokumentasi yang sama menyarankan membalas 2xx sebelum logika yang berat dan mem
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
-1. Gateway mengulang lebih lama dari umur Idempotency-Key. Jadwal tiruan berhenti di 342 menit, tetapi dokumentasi Stripe menulis tiga hari. Bila service pembayaran mati di antara ledger dan transaction pembayaran, sesudah 24 jam hanya status `topup_bank` yang menahan, dan status itu masih `menunggu`. Di `proses-mati.txt` bagian C, kiriman ulang pada +23 jam menghasilkan 1 jurnal, dan pada +25 jam 2 jurnal: saldo naik dua kali. Kueri yang sama dengan `RekonHarian` memberi 150.000 yang dibaca lawan 300.000 yang dikreditkan, jadi jurnal kedua itu tidak menjadi insiden. Ini temuan lab, dan pencegahannya belum diputuskan: key top-up tidak kedaluwarsa selagi `topup_bank` menunggu, atau rekonsiliasi menjumlahkan semua jurnal per order. Pemilik yang memutuskan.
+1. Gateway mengulang lebih lama dari umur Idempotency-Key. Jadwal tiruan berhenti di 342 menit, tetapi dokumentasi Stripe menulis tiga hari. Bila service pembayaran mati di antara ledger dan transaction pembayaran, sesudah 24 jam hanya status `topup_bank` yang menahan, dan status itu masih `menunggu`. Di `proses-mati.txt` bagian C, kiriman ulang pada +23 jam menghasilkan 1 jurnal, dan pada +25 jam 2 jurnal: saldo naik dua kali. SQL yang sama dengan `RekonHarian` memberi 150.000 yang dibaca lawan 300.000 yang dikreditkan, dijalankan sebagai kueri dan bukan sebagai job. Menurut SQL itu, jurnal kedua tidak terlihat sebagai insiden. Ini temuan lab, dan pencegahannya belum diputuskan: key top-up tidak kedaluwarsa selagi `topup_bank` menunggu, atau rekonsiliasi menjumlahkan semua jurnal per order. Pemilik yang memutuskan.
 2. Gateway tidak mengirim `event_id` yang stabil. Kunci utama menjadi tidak berguna. Pencegahannya hash isi sebagai kunci, dan itu dicek ke dokumentasi gateway sebelum integrasi.
 3. Badai ulang. Bila semua kiriman gagal, λ naik ke 3,47 per detik dan pool penuh sejak W > 2,6 detik. Pencegahannya batas waktu di tiap panggilan yang memegang koneksi, dan pemantauan koneksi terpakai.
 
@@ -273,7 +273,7 @@ Dokumentasi yang sama menyarankan membalas 2xx sebelum logika yang berat dan mem
 | Yang ditunda | Kenapa ditunda | Muncul lagi di |
 |---|---|---|
 | Queue pemrosesan kabar | Pada laju puncak, satu kabar 5 detik memakai 2,9 koneksi dari 10 (Hitungan). Dipasang bila satu kabar melewati 5 detik | Belum dijadwalkan |
-| Daftar IP pengirim | Dokumentasi Stripe menyebutnya sebagai lapis kedua bersama tanda tangan. Lab tidak merekamnya: Tidak dijalankan | Belum dijadwalkan |
+| Daftar IP pengirim | Dokumentasi Stripe menyebutnya bersama tanda tangan sebagai dua perlindungan yang dipakai bersamaan. Lab tidak merekamnya: Tidak dijalankan | Belum dijadwalkan |
 | Pembersihan `webhook_event` | Retensi tabel itu belum ditentukan. README lab menulis belum ada | Belum dijadwalkan |
 | Jalur pengembalian dana untuk top-up yang tertahan | PRD v4 belum menjawabnya | [[t4-rekonsiliasi]] |
 
