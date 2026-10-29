@@ -2584,6 +2584,30 @@
   "jawab": "Keduanya sudah tepat untuk data di PostgreSQL: jurnal dan status ikut satu COMMIT atau batal bersama. Transaction tidak memeriksa kabar. Ia menyimpan apa pun yang ditulis di dalamnya, termasuk jumlah yang palsu."
  },
  {
+  "id": "t4-m29-1",
+  "halaman": "t4-m29",
+  "judul": "4.6 M29: Top-up Budi masuk dua kali",
+  "url": "tahap-4/m29-topup-dua-kali/",
+  "tanya": "Ledger memuat dua jurnal untuk satu pembayaran Budi. Kenapa Raka tidak menghapus jurnal kedua dengan tangan?",
+  "jawab": "Kesalahan di ledger dikoreksi dengan jurnal pembalik, bukan dengan `DELETE`, dan role aplikasi ditolak saat mencoba menghapus `jurnal` (`skema.txt` bagian D). Menghapusnya juga tidak menutup sebabnya: kiriman berikutnya yang sama menjadi jurnal ganda lagi (Tidak dijalankan, penalaran)."
+ },
+ {
+  "id": "t4-m29-2",
+  "halaman": "t4-m29",
+  "judul": "4.6 M29: Top-up Budi masuk dua kali",
+  "url": "tahap-4/m29-topup-dua-kali/",
+  "tanya": "Gateway mengirim kabar yang sama dua kali. Kenapa itu bukan bug gateway?",
+  "jawab": "Dokumentasi dua gateway pembayaran nyata menulis bahwa kabar yang gagal terkirim dikirim ulang dan duplikat bisa terjadi (Tidak dijalankan). Balasan 200 yang hilang di jalan terlihat dari sisi gateway sebagai kabar yang belum diterima (`ganda.txt` bagian B)."
+ },
+ {
+  "id": "t4-m29-3",
+  "halaman": "t4-m29",
+  "judul": "4.6 M29: Top-up Budi masuk dua kali",
+  "url": "tahap-4/m29-topup-dua-kali/",
+  "tanya": "Handler membaca status dulu dan menjawab `ganda` bila sudah `dibayar`. Kenapa dua kiriman bersamaan tetap menghasilkan dua jurnal?",
+  "jawab": "Kedua kiriman membaca status sebelum salah satu menulis, jadi keduanya melihat `menunggu` (`ganda-serentak.txt` bagian A, dengan jeda lab 300 ms di antara cek dan tulis). Pembacaan itu tidak mengunci baris."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",

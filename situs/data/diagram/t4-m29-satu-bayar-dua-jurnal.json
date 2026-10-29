@@ -1,0 +1,26 @@
+{
+  "id": "t4-m29-satu-bayar-dua-jurnal",
+  "judul": "Satu pembayaran, dua jurnal",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-webhook · ganda.txt bagian A dan B" },
+  "baris": [
+    {
+      "label": "Handler pertama",
+      "sub": "tanpa tabel event, tanpa pemeriksaan status",
+      "simpul": [
+        { "teks": "Kiriman evt-1", "sub": "jurnal pertama Rp200.000" },
+        { "teks": "Kiriman evt-1 lagi", "sub": "tidak dikenali", "nada": "warn" },
+        { "teks": "Jurnal kedua Rp200.000", "sub": "satu pembayaran, dua jurnal", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Handler dengan tabel event_id",
+      "sub": "balasan 200 pertama hilang di jalan",
+      "simpul": [
+        { "teks": "Kiriman 1 di-COMMIT", "sub": "balasan putus di jalan" },
+        { "teks": "Kiriman 2, event_id sama", "sub": "nol baris di tabel event" },
+        { "teks": "Dijawab ganda", "sub": "satu jurnal", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Di kedua baris Budi membayar sekali dan gateway tiruan mengirim dua kali. Yang berbeda: handler di baris kedua mencatat event_id, dan balasan pertamanya hilang di jalan."
+}
