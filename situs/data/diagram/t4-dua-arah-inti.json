@@ -1,0 +1,26 @@
+{
+  "id": "t4-dua-arah-inti",
+  "judul": "Dua kiriman yang tidak dicek",
+  "sumber": {"jenis": "rekaman", "teks": "Rekaman lab api-t4, rentan.txt bagian A"},
+  "baris": [
+    {
+      "label": "Dikirim dua kali",
+      "sub": "tanpa tanda tangan",
+      "simpul": [
+        {"teks": "dikirim 2 kali", "sub": "jawaban 200 dua kali, bayar Rp200.000"},
+        {"teks": "2 jurnal", "sub": "Rp200.000 dan Rp200.000", "nada": "warn"},
+        {"teks": "saldo naik Rp400.000", "sub": "bukan Rp200.000", "nada": "warn"}
+      ]
+    },
+    {
+      "label": "Dikirim siapa pun",
+      "sub": "tanpa tanda tangan",
+      "simpul": [
+        {"teks": "isi: Rp1.234.567", "sub": "bukan jumlah order"},
+        {"teks": "200 diproses", "sub": "pengirim tidak dicek", "nada": "warn"},
+        {"teks": "dikreditkan ke Budi", "sub": "Rp1.234.567", "nada": "warn"}
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah akibat yang direkam. Kedua baris memakai handler versi pertama dengan gateway tiruan lokal."
+}
