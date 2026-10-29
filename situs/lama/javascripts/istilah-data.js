@@ -297,6 +297,14 @@ window.ISTILAH = {
   "t": "Certificate pinning",
   "u": "tahap-3/tls-pinning/"
  },
+ "Checksum": {
+  "b": "t4-storage",
+  "d": "Sidik dari isi file, misalnya SHA-256. Bila satu byte berubah, sidiknya berubah, jadi checksum dipakai untuk mendeteksi file yang rusak atau ditimpa.",
+  "n": "4.15 File identitas dan presigned URL",
+  "s": "istilah-checksum",
+  "t": "Checksum",
+  "u": "tahap-4/object-storage-presigned/"
+ },
  "Circuit breaker": {
   "b": "t4-breaker",
   "d": "Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda.",
@@ -1189,6 +1197,15 @@ window.ISTILAH = {
   "t": "Posting",
   "u": "tahap-2/ledger/"
  },
+ "Presigned URL": {
+  "b": "t4-storage",
+  "d": "URL ke satu objek di penyimpanan yang sudah ditandatangani pemilik kredensial, sehingga pemegangnya bisa memakainya sampai umurnya habis.",
+  "h": "istilah/presigned-url/",
+  "n": "4.15 File identitas dan presigned URL",
+  "s": "istilah-presigned-url",
+  "t": "Presigned URL",
+  "u": "tahap-4/object-storage-presigned/"
+ },
  "Primary": {
   "b": "D3",
   "d": "Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.",
@@ -1861,6 +1878,14 @@ window.ISTILAH = {
   "s": "istilah-certificate-pinning",
   "t": "Certificate pinning",
   "u": "tahap-3/tls-pinning/"
+ },
+ "checksum": {
+  "b": "t4-storage",
+  "d": "Sidik dari isi file, misalnya SHA-256. Bila satu byte berubah, sidiknya berubah, jadi checksum dipakai untuk mendeteksi file yang rusak atau ditimpa.",
+  "n": "4.15 File identitas dan presigned URL",
+  "s": "istilah-checksum",
+  "t": "Checksum",
+  "u": "tahap-4/object-storage-presigned/"
  },
  "circuit breaker": {
   "b": "t4-breaker",

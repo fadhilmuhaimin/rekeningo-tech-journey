@@ -1,0 +1,40 @@
+{
+  "istilah": "Presigned URL",
+  "sehari_hari": "Presigned URL adalah URL ke satu objek di penyimpanan yang sudah ditandatangani oleh pemilik kredensial. Siapa pun yang memegangnya boleh memakainya sampai umurnya habis.",
+  "cerita": [
+    {
+      "rujukan": "t4-storage",
+      "teks": "App Dina dan pemegang lain memakai URL unggah yang sama, dan keduanya mendapat 200. Isi objek menjadi 90.000 byte milik pemegang lain. Sesudah umur URL habis, PUT ditolak 403 (`presign.txt` bagian B dan C)."
+    }
+  ],
+  "mekanisme": [
+    "Server memegang kredensial penyimpanan dan menandatangani satu permintaan: metode, kunci objek, dan umur.",
+    "URL memuat tanda tangan, tanggal penandatanganan, dan umur. Token sesi aplikasi tidak ikut (`presign.txt` bagian A).",
+    "Penyimpanan memeriksa tanda tangan dan umur, bukan siapa pengirimnya. Kunci, metode, atau tanda tangan yang diganti ditolak 403 (bagian E).",
+    "Sesudah umur habis URL ditolak 403 (bagian C). Pada Signature Version 4 umur paling lama 604.800 detik, yaitu 7 hari (bagian D)."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menganggap URL itu terikat ke satu user. Pemegang lain mendapat 200 dan menimpa objek (`presign.txt` bagian B).",
+    "Menulis URL ke log akses atau jawaban galat. URL yang tercatat adalah izin yang bocor sampai umurnya habis.",
+    "Tidak menandatangani panjang file. URL tanpa panjang menerima 5 MiB (`presign.txt` bagian F)."
+  ],
+  "terkait": [
+    "Signed URL",
+    "Object storage",
+    "Checksum"
+  ],
+  "sumber": [
+    {
+      "riset": "R4-180",
+      "judul": "AWS S3 User Guide: presigned URL (dibuka 2026-10-30)",
+      "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html",
+      "catatan": "Presigned URL pada intinya bearer token. Objek dengan kunci yang sama diganti, dan URL dari kredensial sementara berakhir bersama kredensialnya."
+    },
+    {
+      "judul": "Rekaman lab t4-storage: presign.txt bagian A sampai F",
+      "rekaman": "labs/t4-storage/output/presign.txt",
+      "catatan": "PUT kedua dari pemegang lain menimpa objek, URL kedaluwarsa ditolak 403, dan URL tanpa panjang menerima 5 MiB."
+    }
+  ]
+}

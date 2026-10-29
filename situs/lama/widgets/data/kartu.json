@@ -2792,6 +2792,38 @@
   "jawab": "Breaker bawaan menghitung 4xx sebagai gagal, membuka, dan menjeda 4 pengajuan sehat di belakang dokumen rusak (`lajur.txt` bagian D). Penilaian ADR 36 tidak membukanya, jadi 4 pengajuan sehat lulus. Enam dokumen rusak tetap memakai lima percobaan, sehingga 10 pengajuan menghasilkan 34 permintaan (bagian E)."
  },
  {
+  "id": "t4-storage-1",
+  "halaman": "t4-storage",
+  "judul": "4.15 Keamanan 7: File identitas: object storage, presigned URL + ADR 38",
+  "url": "tahap-4/object-storage-presigned/",
+  "tanya": "Dina dan pemegang lain memakai URL unggah yang sama. Isi siapa yang tersisa, dan apa yang terjadi sesudah umur URL habis?",
+  "jawab": "PUT kedua diterima dan menimpa objek, jadi isinya 90.000 byte milik pemegang lain, tanpa versi lama (`presign.txt` bagian B). Sesudah umur habis PUT ditolak 403 dan objek tidak berubah (bagian C)."
+ },
+ {
+  "id": "t4-storage-2",
+  "halaman": "t4-storage",
+  "judul": "4.15 Keamanan 7: File identitas: object storage, presigned URL + ADR 38",
+  "url": "tahap-4/object-storage-presigned/",
+  "tanya": "File sudah diterima dan URL unggah belum habis. Kapan server tahu file itu ditimpa?",
+  "jawab": "Saat file diunduh: checksum tidak cocok, jawabannya 500, dan baris audit naik dari 1 ke 2. Swafoto yang tidak ditimpa tetap 200 (`unduh.txt` bagian D)."
+ },
+ {
+  "id": "t4-storage-3",
+  "halaman": "t4-storage",
+  "judul": "4.15 Keamanan 7: File identitas: object storage, presigned URL + ADR 38",
+  "url": "tahap-4/object-storage-presigned/",
+  "tanya": "Dua orang membuka file lewat URL GET bertanda tangan, lalu staf risk membukanya lewat server. Berapa baris audit yang bertambah di tiap jalur?",
+  "jawab": "Lewat URL, dua pemegang mendapat 200 dan baris audit tetap 1. Lewat server, Ratih mendapat 200 dan satu baris tertulis (`unduh.txt` bagian A dan C)."
+ },
+ {
+  "id": "t4-storage-4",
+  "halaman": "t4-storage",
+  "judul": "4.15 Keamanan 7: File identitas: object storage, presigned URL + ADR 38",
+  "url": "tahap-4/object-storage-presigned/",
+  "tanya": "Dari angka apa file identitas dihitung 33,3 kali posting ledger dalam setahun?",
+  "jawab": "2.000 × 500 KB × 365 = 365 GB, dan 43,8 juta × 250 byte = 10,95 GB. Lalu 365 ÷ 10,95 = 33,3 (Hitungan atas Asumsi naskah)."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",

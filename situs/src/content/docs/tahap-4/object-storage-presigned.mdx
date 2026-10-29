@@ -1,0 +1,364 @@
+---
+title: "4.15 Keamanan 7: File identitas: object storage, presigned URL + ADR 38"
+description: Foto kartu identitas ada di penyimpanan objek, dan presigned URL adalah izin yang dipegang siapa pun yang membawanya sampai umurnya habis. ADR 38 menimbang tiga cara lain dan menulis kapan pilihan ini salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import intiDiagram from "../../../../data/diagram/t4-storage-inti.json";
+import dataTebak from "../../../../data/widget/t4-storage-tebak.json";
+
+<p class="meta">Baca 17 menit · coba 4 menit · Prasyarat: [[t4-m33]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+URL unggah berumur 5 menit bisa dipakai siapa pun yang memegangnya, termasuk untuk menimpa file.
+
+<Rantai data={intiDiagram} ringkas />
+
+Presigned URL adalah alamat di penyimpanan objek yang sudah ditandatangani server. Penyimpanan objek menyimpan file sebagai objek berkunci di luar database. Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)), app Dina mengirim 120.000 byte dan pemegang lain mengirim 90.000 byte lewat URL yang sama (`presign.txt` bagian B).
+
+Sesudah umur URL habis, PUT ditolak dengan 403 (bagian C). File dibuka lewat server, bukan lewat URL. Server memeriksa peran dan alasan staf risk, lalu menulis satu baris audit (`unduh.txt` bagian A dan B). Server juga menyimpan checksum, yaitu sidik SHA-256 dari isi file, jadi file yang ditimpa sesudah diterima ketahuan saat diunduh (bagian D).
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Dina dan pemegang lain memakai URL unggah yang sama. Isi siapa yang tersisa di objek, dan kenapa penyimpanan menerima PUT kedua?
+2. Dua orang membuka file lewat URL unduh bertanda tangan. Berapa baris audit yang bertambah, dan apa bedanya bila file dibuka lewat server?
+3. File sudah diterima dan URL unggah belum habis. Kapan server tahu file itu ditimpa?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: URL unggah adalah izin yang dipegang siapa pun yang membawanya, jadi server memeriksa isi file sesudah unggah dan membuka file hanya lewat server.">
+
+Tebak dulu apa yang terjadi saat dua pihak memakai satu URL unggah. Adegannya memakai `presign.txt` bagian A sampai C.
+
+<Tebak client:visible data={dataTebak} />
+
+<noscript>
+<p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: PUT kedua diterima dan menimpa objek, jadi isinya 90.000 byte milik pemegang lain (presign.txt bagian B).</p>
+</noscript>
+
+Widget perbandingan menaruh dua cara membuka file berdampingan: URL GET bertanda tangan, dan endpoint server pilihan ADR 38. Pilih satu kejadian, lalu baca catatan di tiap sisi. Semua catatan memakai `unduh.txt`, kecuali satu yang berlabel Tidak dijalankan. Arti label ada di [Label sumber](/cara-pakai/#label-sumber).
+
+<WidgetLama nama="banding" src="data/t4-storage-banding.json" />
+
+<noscript>
+<p>Tanpa JavaScript widget perbandingan tidak tampil. Isinya ada di tabel hasil di blok Paham dan di tabel ADR 38 di blok Putuskan.</p>
+</noscript>
+
+**Ubah satu hal:** pilih Staf risk membuka file, lalu URL dikirim ke orang lain. Sisi A menjawab 200 untuk pemegang kedua dan baris audit tetap 1. Sisi B tidak punya URL yang bisa dikirim ulang, dan Dina serta Eko ditolak 403.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t4-m33]] menunjukkan uji pulih yang makin lama, karena foto kartu identitas dan swafoto ikut dicadangkan sebagai kolom `bytea`. Kolom `bytea` adalah tipe PostgreSQL untuk byte mentah. Halaman ini memutuskan ke mana file itu pindah dan siapa yang boleh menyentuhnya.
+
+PRD v4 mensyaratkan security review oleh Laras sebelum Rekeningo dibuka ke publik, dan Laras meminta bukti, bukan janji ([[t4-prd]]). Karena itu tiap klaim di bawah memakai rekaman lab `t4-storage` atau berlabel Tidak dijalankan. Penyerang di halaman ini adalah pihak yang mencoba: pemegang URL yang tidak diundang, bukan peretas yang masuk ke server.
+
+### Cara kerjanya
+
+**Database memegang kunci dan checksum, bukan file.** Di tabel `verifikasi`, kunci objek panjangnya 48 karakter dan checksum 64 karakter (`ukuran.txt` bagian C). Dump database dari file di `bytea` membesar sebanding dengan file. Rasio dump terhadap byte file 1,1 pada 2, 4, dan 8 pengajuan, dan 2,0 untuk dump teks (bagian A).
+
+Dengan penyimpanan objek, rasio itu di bawah 0,01 pada ukuran yang sama (bagian C). Dokumentasi PostgreSQL 17 menulis bahwa keluaran `bytea` bawaannya heksadesimal, dua digit per byte. Format custom `pg_dump` terkompresi bawaan ([bytea hex format](https://www.postgresql.org/docs/17/datatype-binary.html) dan [pg_dump](https://www.postgresql.org/docs/17/app-pgdump.html), dibuka 2026-10-30).
+
+Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan labelnya sama dengan masukan terlemahnya. Semua masukan di bawah adalah Asumsi naskah. Unggahan 2.000 per hari, 500 KB per file (1 KB = 1.000 byte), dan faktor puncak 10. Posting 43,8 juta per tahun dengan 250 byte tiap posting.
+
+| Besaran | Rumus | Hasil |
+|---|---|---|
+| File per hari | 2.000 × 500 KB | 1.000.000 KB, yaitu 1 GB |
+| File per tahun | 1 GB × 365 | 365 GB |
+| Posting per tahun | 43,8 juta × 250 byte | 10,95 GB |
+| File lawan posting | 365 ÷ 10,95 | 33,3 kali |
+| Unggahan puncak | 2.000 ÷ 86.400 × 10 | 0,2315 per detik |
+| Byte puncak | 0,2315 × 500 KB | 115,7 KB, dibulatkan 116 KB per detik |
+
+**Server tidak membawa byte unggahan, tetapi membaca tiap file sekali.** App mengunggah ke penyimpanan lewat URL, lalu mengajukan kunci dan checksum ke server (`unggah.txt` bagian A). Sebelum menulis pengajuan, server meminta ukuran objek lewat HEAD, yaitu permintaan tanpa isi. Lalu ia membaca isinya, membaca tipe dari byte, dan menghitung ulang checksum:
+
+<Snippet file={`labs/api-t4/internal/service/berkas.go`} lines="164:196" lang="go" title={`labs/api-t4/internal/service/berkas.go (periksaObjek)`} />
+
+Checksum dari app hanyalah klaim, dan yang disimpan adalah hitungan server. Hasil rekamannya:
+
+| Kejadian | Jawaban | Sumber |
+|---|---|---|
+| Checksum dari app salah | 422, kedua objek dihapus, 0 baris `verifikasi` | `unggah.txt` bagian B |
+| Kartu tepat 1 MiB (1.048.576 byte) | 202 | bagian C |
+| Kartu 1 MiB + 1 byte | penyimpanan 200, server 422, objek dihapus | bagian C |
+| PDF di kunci kartu | 422 `harus gambar JPEG atau PNG` | bagian D |
+| Kartu belum diunggah | 422 `belum diunggah` | bagian D |
+| Kunci milik akun lain | 422, objek milik akun itu tetap ada | bagian D |
+
+OWASP menulis bahwa Content-Type dari pengunggah tidak bisa dipercaya, karena siapa pun bisa memalsukannya. ASVS 5.0.0 V5.2.2 meminta isi file cocok dengan tipenya ([OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html) dan [ASVS v5.0.0](https://github.com/OWASP/ASVS/blob/v5.0.0/5.0/en/0x14-V5-File-Handling.md), dibuka 2026-10-30). Jadi server memeriksa byte, bukan nama atau header.
+
+Karena server tetap membaca tiap file, byte tidak hilang dari server. Yang pindah ke penyimpanan adalah koneksi unggah dari HP yang lambat, dan manfaat itu Tidak dijalankan: kecepatan unggah dari HP tidak diukur.
+
+**URL unggah adalah bearer token yang punya umur.** Bearer token adalah izin yang berlaku bagi siapa pun yang membawanya. Dokumentasi AWS menulis bahwa presigned URL pada intinya bearer token. Bila objek dengan kunci yang sama sudah ada, penyimpanan menggantinya ([AWS S3: presigned URL](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html), dibuka 2026-10-30).
+
+SeaweedFS 4.51 di lab berperilaku sama:
+
+<Snippet file="labs/t4-storage/output/presign.txt" lines="19:21" title="Rekaman lab: labs/t4-storage/output/presign.txt, bagian B" />
+
+Kode lab yang menandatangani URL berukuran kecil, dan komentarnya menulis risikonya sendiri:
+
+<Snippet file="labs/api-t4/internal/objek/s3.go" lines="178:191" lang="go" title="labs/api-t4/internal/objek/s3.go (PresignPUT)" />
+
+Rekaman `presign.txt` mengukur sisanya. URL tidak memuat token sesi Dina, dan jawaban yang membawanya berheader `Cache-Control: no-store` (bagian A). Sesudah umur 5 detik di lab, PUT ditolak 403 dan objek tidak berubah (bagian C).
+
+Penyimpanan menghitung umur dari tanggal di dalam URL. URL bertanggal 10 menit lalu dengan umur 300 detik ditolak 403. URL bertanggal 30 menit di depan diterima 200 (bagian D). Jadi jam server yang menandatangani harus benar (SeaweedFS 4.51; penyimpanan lain [perlu verifikasi]).
+
+Kunci diganti, metode diganti (URL PUT dipakai untuk GET), dan permintaan tanpa tanda tangan semuanya ditolak 403 (bagian E). Umur paling lama 604.800 detik, yaitu 7 hari, dan 604.801 ditolak 400 (bagian D). Dokumentasi AWS menulis bahwa URL dari kredensial sementara berakhir bersama kredensialnya.
+
+**Ukuran dibatasi di penyimpanan hanya bila panjangnya ikut ditandatangani.** URL tanpa panjang menerima 5.242.880 byte, yaitu 5 MiB. Bila app menyebut `ukuran_kartu` saat meminta URL, panjang itu masuk tanda tangan. PUT 1.001 byte atau 999 byte untuk URL 1.000 byte ditolak 403 (bagian F).
+
+Di lab `ukuran_kartu` dan `ukuran_swafoto` opsional, jadi pemeriksaan server sesudah unggah tetap yang menutupnya. Membuat ukuran wajib adalah keputusan produk yang belum diambil.
+
+**Checksum di penyimpanan hanya bila header-nya ikut ditandatangani.** Header `x-amz-checksum-sha256` yang cocok diterima 200, dan yang beda ditolak 400 `BadDigest` tanpa menyimpan objek (bagian G). PUT tanpa header itu diterima tanpa pemeriksaan isi, jadi server menghitung ulang sendiri. Dokumentasi AWS menulis bahwa Signature Version 4 mendukung checksum SHA-256 dan lainnya, sedangkan Signature Version 2 hanya MD5.
+
+**File yang sudah diterima masih bisa ditimpa.** Selama URL unggah belum habis, pemegangnya bisa menimpa file yang sudah sah. Server baru tahu saat file diunduh:
+
+<Snippet file="labs/t4-storage/output/unduh.txt" lines="36:39" title="Rekaman lab: labs/t4-storage/output/unduh.txt, bagian D" />
+
+Isi aslinya hilang, karena penyimpanan di lab tidak menyimpan versi lama. Wiki SeaweedFS menulis bahwa object versioning didukung ([SeaweedFS: Amazon S3 API](https://github.com/seaweedfs/seaweedfs/wiki/Amazon-S3-API), dibuka 2026-10-30). Memakainya Tidak dijalankan.
+
+**Unduh hanya lewat server: peran, alasan, audit, checksum.** Endpoint untuk staf risk memeriksa peran dan alasan. Ia menulis baris `audit_log` dalam satu transaction, baru membaca file dan membandingkan checksum:
+
+<Snippet files={["labs/api-t4/internal/service/bo.go:185:197", "labs/api-t4/internal/service/bo.go:207:220"]} lang="go" title="labs/api-t4/internal/service/bo.go (BukaBerkas: audit lebih dulu, lalu checksum)" />
+
+Ratih dari tim risk mendapat 200, dengan `Content-Type: application/octet-stream`, `nosniff`, dan `no-store`. Isinya 500.000 byte dengan SHA-256 sama seperti yang diunggah, dan satu baris audit tertulis (`unduh.txt` bagian A). Lima percobaan lain ditolak: Dina 403, Eko 403, tanpa token 401, Ratih tanpa alasan 422, dan alasan 6 karakter 422. Baris audit tetap 1 (bagian B).
+
+Penolakan peran dan alasan tidak menulis baris audit di lab ini. Baris yang tertulis adalah percobaan yang lolos pemeriksaan, dan ia tertulis sebelum file dibaca, jadi file hilang atau rusak tetap meninggalkan catatan. Apakah penolakan harus ditulis ke `audit_log` adalah pertanyaan terbuka, dan pencatatan di tempat lain Tidak dijalankan.
+
+**URL unduh bertanda tangan: alternatif yang ditolak.** Bucket privat menolak GET tanpa tanda tangan dengan 403. URL GET yang dibuat penanda tangan lab dipakai pemegang pertama dan pemegang kedua, dan keduanya mendapat 200 dan 500.000 byte. Baris audit tetap 1 (bagian C).
+
+Dokumentasi GitLab menulis hal serupa. Pre-signed URL berbatas waktu tetapi tidak terikat ke satu user. Siapa pun yang memperolehnya bisa mengakses objek tanpa autentikasi ([GitLab: object storage](https://docs.gitlab.com/administration/object_storage/), cabang master, dibuka 2026-10-30).
+
+**Retensi 30 hari dijalankan job, dan barisnya tetap sebagai catatan.** Angka 30 hari adalah Asumsi produk [perlu verifikasi], dan halaman ini tidak mengklaim kepatuhan terhadap aturan apa pun. Di `retensi.txt`, file lulus, ditolak, dan gagal punya masa simpan tepat 30 hari (bagian A).
+
+Job dengan jam diperankan menghapus 0 file pada hari ke-29 dan 1 detik sebelum batas. Tepat di batas ia menghapus, karena aturannya `hapus_pada <= sekarang` (bagian B dan D). Saat penyimpanan mati, job mencatat galat 1, baris belum ditandai, dan file diulang pada putaran berikutnya (bagian C).
+
+Putaran kedua dengan jam yang sama memeriksa 0 baris. Sesudah retensi, kunci objek di baris kosong dan membuka file dijawab 410, dengan percobaan yang tetap tercatat (bagian E).
+
+Pengajuan berstatus `gagal` semula tidak punya `hapus_pada`, jadi filenya tidak pernah dihapus. Lab memperbaikinya.
+
+**Nomor identitas dan URL tidak masuk log.** Nomor identitas yang dikirim sebagai angka JSON dijawab 422 tanpa mengutip nilainya. Saat penyimpanan dimatikan, pengajuan dijawab 500 dan log memuat galat koneksi tanpa URL.
+
+Log dua proses server berisi 5 baris. Tidak satu pun memuat nomor identitas, tanda tangan URL, byte file, kunci objek, atau token sesi (`unggah.txt` bagian E). Log container SeaweedFS pada setelan lab memuat 0 baris dengan `X-Amz-Signature` atau `X-Amz-Credential` (`presign.txt` bagian H). Log proxy atau penyeimbang beban di depan penyimpanan Tidak dijalankan, dan di sana URL yang tercatat adalah izin yang bocor.
+
+PRD v4 tidak punya bidang nomor identitas, jadi lab menerimanya sebagai masukan 16 angka yang dibuang (Asumsi lab).
+
+### Di stack lain
+
+**Skenario:** app mengunggah foto langsung ke penyimpanan lewat URL bertanda tangan. Yang ditanyakan: siapa membuat URL, berapa lama berlaku, dan apakah PUT ke kunci yang sama menimpa.
+
+Tab Go dijalankan di lab. Tab lain Tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-30. Kode di tab lain adalah Ilustrasi.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: lab api-t4 dan t4-storage, PostgreSQL 17.11, Go 1.27.1, dan SeaweedFS 4.51 (rekaman `presign.txt`).*
+
+**Yang berbeda di stack ini:** penandatangan SigV4 ditulis sendiri dengan pustaka standar, sekitar 60 baris, supaya tidak ada dependency baru. Umur URL adalah parameter, dengan bawaan 5 menit di kode service (Asumsi). PUT ke kunci yang sama menimpa, dan satu-satunya penjaga adalah isi yang diperiksa server sesudahnya.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke README paket [@aws-sdk/s3-request-presigner](https://github.com/aws/aws-sdk-js-v3/tree/main/packages/s3-request-presigner), versi 3.1160.0 di cabang main, dibuka 2026-10-30. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="js" code={`const url = await getSignedUrl(
+  client,
+  new PutObjectCommand({ Bucket: "identitas", Key: kunci }),
+  { expiresIn: 300 },
+);`} />
+
+**Yang berbeda di stack ini:** `expiresIn` opsional, dan README menulis bawaannya 900 detik, yaitu 15 menit. Header seperti `x-amz-checksum-sha256` hanya ikut ditandatangani bila disebut di `unhoistableHeaders`. README tidak membahas penimpaan kunci yang sama.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: File Storage](https://laravel.com/docs/13.x/filesystem), bagian Temporary URLs, dibuka 2026-10-30. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="php" code={`['url' => $url, 'headers' => $headers] = Storage::temporaryUploadUrl(
+    'identitas/40001/kunci', now()->plus(minutes: 5)
+);`} />
+
+**Yang berbeda di stack ini:** `temporaryUploadUrl` mengembalikan URL dan header yang harus ikut dikirim app. Dokumentasi menulis bahwa metode ini terutama berguna di lingkungan serverless, dan tidak menyebut penimpaan atau batas ukuran.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [django-storages 1.14.6: Amazon S3](https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html), dibuka 2026-10-30.*
+
+**Yang berbeda di stack ini:** halaman itu hanya mendokumentasikan URL baca bertanda tangan: `AWS_QUERYSTRING_AUTH` bawaan `True`, dan `AWS_QUERYSTRING_EXPIRE` bawaan 3600 detik, yaitu 1 jam. Halaman itu tidak mendokumentasikan URL unggah bertanda tangan. Tab ini tidak bisa menjawab di mana URL unggah dibuat [perlu verifikasi]. `AWS_S3_FILE_OVERWRITE` bawaan `True`: file bernama sama saling menimpa.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke dokumentasi Serverpod 4.0, bagian File uploads, dibuka 2026-10-30 lewat [llms-full.txt](https://docs.serverpod.dev/llms-full.txt). Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="dart" code={`await session.storage.createUploadDescription(
+  storageId: 'private',
+  path: path,
+  options: UploadOptions(
+    expirationDuration: Duration(minutes: 5),
+    maxFileSize: 1024 * 1024,
+    contentLength: ukuran,
+    preventOverwrite: true,
+  ),
+);`} />
+
+**Yang berbeda di stack ini:** `UploadOptions` punya `expirationDuration` (bawaan 10 menit), `maxFileSize` (bawaan 10 MiB), `contentLength`, dan `preventOverwrite` (bawaan `false`). Dokumentasi menulis bahwa dengan `preventOverwrite: true` unggahan gagal bila file sudah ada di path itu. Kode `labs/api-t4` tidak memasang padanannya.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke referensi JavaScript Supabase [createSignedUploadUrl](https://supabase.com/docs/reference/javascript/file-buckets-createsigneduploadurl) dan [uploadToSignedUrl](https://supabase.com/docs/reference/javascript/file-buckets-uploadtosignedurl), dibuka 2026-10-30.*
+
+**Yang berbeda di stack ini:** URL unggah berlaku 2 jam dan bisa dipakai tanpa autentikasi lanjutan. Penimpaan diatur lewat `{ upsert: true }` saat URL dibuat, dan `uploadToSignedUrl` menulis bahwa opsi itu tidak berpengaruh di sana. Bawaan opsinya tidak tertulis di halaman yang dibuka [perlu verifikasi].
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 38: file identitas di penyimpanan objek, unggah lewat presigned PUT 5 menit, unduh hanya lewat server
+
+**Kebutuhan.** Verifikasi identitas meminta foto kartu dan swafoto dari tiap pendaftar ([[t4-topup-verifikasi]]). Asumsi naskah memberi 2.000 file per hari, 365 GB per tahun, dan 33,3 kali posting ledger (tabel di blok Paham). File yang ikut dicadangkan di `bytea` membuat uji pulih makin lama ([[t4-m33]]).
+
+**Status:** diterima sesudah M33 (minggu 7). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR.
+
+| | A. File di `bytea` | B. Disk lokal VPS | C. Semua lewat server | D. Penyimpanan objek, presigned PUT, unduh lewat server |
+|---|---|---|---|---|
+| Cara kerja | File di kolom `bytea` di database yang sama dengan data transaksi | File di direktori server aplikasi, database menyimpan nama file | App mengirim byte ke server (JSON base64 di `POST /verifikasi`), server menulis ke penyimpanan, dan unduh juga lewat server | File di penyimpanan objek privat. App mengunggah lewat URL berumur 5 menit, dan unduh hanya lewat endpoint server |
+| Kelebihan | PostgreSQL menulis bahwa akses dan keamanan disederhanakan, dan cadangan tidak perlu melacak file di luar database | Tanpa layanan baru | Tidak ada URL yang bisa dipegang pihak lain, dan jalur unggahnya sudah ada di api-t4 (`verifikasi.txt` bagian B) | Database hanya memegang kunci dan checksum (rasio dump di bawah 0,01). Ukuran, tipe, dan checksum diperiksa server sesudah unggah |
+| Kekurangan | Dump membesar sebanding dengan file: rasio 1,1, dan dump teks 2,0 (`ukuran.txt` bagian A). Wiki PostgreSQL (terakhir diedit 2021-05-05) menulis bahwa cadangan bisa jauh lebih lama | Nasib file terikat pada satu server. Dua instance tidak berbagi direktori (penalaran penulis, [[t3-dua-instance]]) | Server menyangga tiap byte unggahan, dan base64 menambah 4 untuk tiap 3 byte (Hitungan). Batas badan di handler 3 MiB (kode) | URL adalah bearer token: PUT kedua menimpa (`presign.txt` bagian B). File sah masih bisa ditimpa sampai URL habis (`unduh.txt` bagian D). Server tetap membaca tiap file sekali |
+| Biaya operasional | Cadangan dan uji pulih mengangkut file | Salinan dan pemindahan file saat pindah hosting ([[t4-m34]]) | Handler dan koneksi HP yang lambat ditahan server (Tidak dijalankan) | Satu komponen baru: kredensial penyimpanan, pencadangan file terpisah, dan job retensi |
+| Bukti | `ukuran.txt` bagian A dan D, [PostgreSQL wiki](https://wiki.postgresql.org/wiki/BinaryFilesInDB) | `verifikasi.txt` bagian B (direktori lokal), tanpa rekaman perbandingan | Kode `handler_pembayaran.go`, `verifikasi.txt` bagian B | `presign.txt`, `unggah.txt`, `unduh.txt`, `retensi.txt`, `ukuran.txt` bagian C |
+
+Hitungan base64 memakai RFC 4648: 4 karakter untuk tiap 3 byte. Satu file 500.000 byte menjadi sekitar 666.668 karakter, dan dua file 1.333.336 karakter, di bawah batas badan 3 MiB (3.145.728 byte).
+
+**Keputusan: opsi D.** Enam aturan:
+
+1. File identitas hanya ada di penyimpanan objek yang bucket-nya privat. Database menyimpan kunci objek dan checksum SHA-256 (`ukuran.txt` bagian C).
+2. Unggah lewat presigned PUT berumur 5 menit (Asumsi), dengan kunci acak dari server di bawah awalan akun. Jawaban yang membawa URL berheader `no-store`, dan permintaan URL dibatasi 3 per akun per jam (Asumsi lab).
+3. Sesudah unggah server memeriksa ukuran (paling besar 1 MiB di lab), tipe dari byte, dan checksum hitungannya. File yang tidak lolos dihapus (`unggah.txt` bagian B sampai D).
+4. Unduh hanya lewat endpoint server yang memeriksa peran risk dan alasan, menulis `audit_log` sebelum membaca file, dan membandingkan checksum (`unduh.txt` bagian A sampai D). Tidak ada URL unduh.
+5. File dihapus 30 hari sesudah verifikasi selesai (Asumsi produk, [perlu verifikasi]) oleh job idempoten. Barisnya tetap, dan unduh sesudahnya dijawab 410 (`retensi.txt`).
+6. Nomor identitas dan URL tidak masuk log atau jawaban galat (`unggah.txt` bagian E). Bidang nomor identitas belum ada di PRD v4, jadi bentuknya keputusan produk.
+
+**Kenapa D, bukan A sampai C.**
+
+- **A ditolak** karena cadangan dan uji pulih mengangkut file, yang 33,3 kali lebih besar dari posting dalam setahun (Hitungan). Alasan "ikut transaction" tidak dibuktikan lab: `bytea` di lab ditulis dengan satu pernyataan di luar transaction pengajuan.
+- **B ditolak** karena file terikat pada satu server, dan [[t4-m34]] memindahkan infrastruktur. Itu penalaran penulis, tanpa rekaman perbandingan.
+- **C ditolak untuk unggah, dipakai untuk unduh.** Alasan naskah, server tidak menyangga setiap file, hanya sebagian benar: server tetap membaca tiap objek untuk menghitung checksum. Yang dihindari adalah koneksi unggah dari HP, dan manfaat itu belum diukur. Pembandingnya kecil: unggahan puncak 116 KB per detik. Unggah lewat server tetap sah bila data tidak boleh ditimpa (`unduh.txt` bagian D).
+- **Unduh lewat URL ditolak** karena URL itu bisa dikirim ulang tanpa catatan (`unduh.txt` bagian C), dan pembukaan file tidak punya alasan tercatat.
+
+**Kasus industri: GitLab.** Dokumentasi GitLab menulis bahwa untuk file di penyimpanan objek, client bisa menerima pre-signed URL berbatas waktu, dan `proxy_download` bawaannya `false`, jadi unduh langsung adalah bawaannya. Dokumentasi yang sama memperingatkan bahwa URL itu tidak terikat ke satu user ([GitLab: object storage](https://docs.gitlab.com/administration/object_storage/), cabang master, dibuka 2026-10-30).
+
+Batasnya: itu dokumentasi produk untuk file repositori, tanpa angka beban dan tanpa foto identitas. Rekeningo memilih sebaliknya untuk unduh karena tiap pembukaan file identitas harus meninggalkan baris audit, dan itu penilaian penulis.
+
+AWS menulis contoh kebijakan bucket yang menolak permintaan presigned URL bila tanda tangannya lebih tua dari 10 menit (`s3:signatureAge`, dibuka 2026-10-30). Kebijakan itu menambah lapis di atas umur 5 menit, dan Tidak dijalankan.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. URL bocor lewat log di depan penyimpanan. Log akses proxy bisa mencatat query string yang memuat tanda tangan (penalaran penulis, Tidak dijalankan), dan lab hanya memeriksa log container penyimpanan (`presign.txt` bagian H). Pencegahannya umur 5 menit dan `no-store`, ditambah log akses yang menyamarkan query string (usul penulis, belum diuji).
+2. File sah ditimpa sesudah diterima, dan baru ketahuan saat diunduh (`unduh.txt` bagian D). Pencegahannya menyalin file yang diterima ke kunci yang tidak pernah ditandatangani, lalu menghapus kunci unggah (usul penulis, belum direkam). Pilihan lain adalah unggah lewat server.
+3. Retensi tidak menjangkau file yatim, yaitu file dari URL yang diminta tetapi tidak pernah diajukan, karena job hanya memilih baris `verifikasi`. Kunci objek juga tidak unik antar pengajuan, jadi retensi satu baris bisa menghapus file yang dirujuk baris lain. Keduanya dibaca dari kode (migration `verifikasi` dan `HapusBerkasJatuhTempo`), Tidak dijalankan. Pencegahannya sapuan atau aturan lifecycle dan indeks unik, keduanya belum dibuat.
+
+**Kapan keputusan ini salah.**
+
+- Saat unggahan membawa data yang tidak boleh ditimpa. Opsi C kembali untuk unggah.
+- Saat unduhan staf melewati sebagian besar kapasitas jaringan instance. Bila staf membuka tiap file, unduh sama dengan unggah: 116 KB per detik puncak. Registry Tahap 5 memberi 1.157 KB per detik, yaitu 20.000 × 500 KB ÷ 86.400 × 10 (Hitungan atas Asumsi, sepuluh kali Tahap 4). Kapasitas jaringan instance tidak diukur lab (Tidak dijalankan).
+- Saat masa simpan 30 hari tidak cocok dengan aturan yang berlaku bagi PT. Angkanya Asumsi produk, dan tidak ada klaim kepatuhan di sini.
+- Saat foto nyata lebih besar dari batas 1 MiB di lab. Naskah memakai 500 KB per file, dan rasio dump untuk foto nyata tidak diukur.
+- Saat kredensial penyimpanan bocor: siapa pun bisa menandatangani URL baru (Tidak dijalankan).
+
+**Yang akan merevisinya.** [[t4-infra-secret]] memindahkan kredensial penyimpanan ke secret manager. [[t4-m38]] bertanya siapa yang membuka data Budi, dan ADR 43 meninjau audit berantai yang dipakai unduh.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Pencadangan dan pemulihan penyimpanan objek | Lab tidak menjalankannya, dan file punya salinan sendiri yang dicadangkan terpisah | Belum dijadwalkan |
+| Pemindai antivirus untuk file yang diunggah | ASVS 5.0.0 V5.4.3 memintanya di level 2, dan tidak ada pemindai di lab | Belum dijadwalkan |
+| Sapuan file yatim dan aturan lifecycle | Job retensi hanya menjangkau baris `verifikasi` | Belum dijadwalkan |
+| Ukuran wajib dan presigned POST dengan batas ukuran | Keputusan produk, dan dukungan SeaweedFS 4.51 untuk POST tidak diperiksa [perlu verifikasi] | Belum dijadwalkan |
+| Enkripsi at rest dan versioning bucket | Tidak dijalankan di lab | [[t4-infra-secret]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Dina dan pemegang lain memakai URL unggah yang sama. Isi siapa yang tersisa, dan apa yang terjadi sesudah umur URL habis?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+PUT kedua diterima dan menimpa objek, jadi isinya 90.000 byte milik pemegang lain, tanpa versi lama (`presign.txt` bagian B). Sesudah umur habis PUT ditolak 403 dan objek tidak berubah (bagian C).
+
+</details>
+
+**2.** File sudah diterima dan URL unggah belum habis. Kapan server tahu file itu ditimpa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Saat file diunduh: checksum tidak cocok, jawabannya 500, dan baris audit naik dari 1 ke 2. Swafoto yang tidak ditimpa tetap 200 (`unduh.txt` bagian D).
+
+</details>
+
+**3.** Dua orang membuka file lewat URL GET bertanda tangan, lalu staf risk membukanya lewat server. Berapa baris audit yang bertambah di tiap jalur?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Lewat URL, dua pemegang mendapat 200 dan baris audit tetap 1. Lewat server, Ratih mendapat 200 dan satu baris tertulis (`unduh.txt` bagian A dan C).
+
+</details>
+
+**4.** Dari angka apa file identitas dihitung 33,3 kali posting ledger dalam setahun?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+2.000 × 500 KB × 365 = 365 GB, dan 43,8 juta × 250 byte = 10,95 GB. Lalu 365 ÷ 10,95 = 33,3 (Hitungan atas Asumsi naskah).
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Kunci objek acak dari server di bawah awalan akun, dan umur URL dalam menit, bukan hari.
+- [ ] Jawaban yang memuat URL berheader `no-store`, dan galat tidak mengutip URL (galat `net/http` di Go memuat URL lengkap).
+- [ ] Server menghitung ulang checksum dari isi objek, dan checksum dari app hanya klaim.
+- [ ] File dibuka lewat endpoint yang memeriksa peran dan alasan, lalu menulis audit sebelum membaca file.
+- [ ] Ada job retensi, dan ada cara menyapu file yang tidak punya baris di database.
+- [ ] Nomor identitas dan URL tidak masuk log.
+
+### Bacaan lanjut
+
+- [AWS S3: Download and upload objects with presigned URLs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html)
+- [OWASP: File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html)
+- [OWASP ASVS 5.0.0: V5 File Handling](https://github.com/OWASP/ASVS/blob/v5.0.0/5.0/en/0x14-V5-File-Handling.md)
+- [GitLab: Object storage](https://docs.gitlab.com/administration/object_storage/)
+- [PostgreSQL wiki: Storing binary files in the database](https://wiki.postgresql.org/wiki/BinaryFilesInDB)
+- [SeaweedFS: Amazon S3 API](https://github.com/seaweedfs/seaweedfs/wiki/Amazon-S3-API)
+
+</Blok>
+
+<SkripLama daftar={["cerita","banding"]} />
