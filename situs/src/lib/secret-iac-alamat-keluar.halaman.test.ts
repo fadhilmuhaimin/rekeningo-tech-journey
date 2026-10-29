@@ -489,6 +489,454 @@ describe("klaim yang berlingkup: kata penuh, negatif, dan label", () => {
   });
 });
 
+describe("penutup tanpa kunci: nomor ADR, M34, status HTTP, versi dokumentasi, Snippet, tab, rujukan, tautan, tabel, dan isi data", () => {
+  const adr = (id: string): number => entri(id)!.adr![0]!;
+  const A = { dua: adr("t3-dua-instance"), tiga: adr("t3-adr-33"), satu: adr("t1-secret"), rekon: adr("t4-rekonsiliasi"), breaker: adr("t4-breaker"), storage: adr("t4-storage"), sendiri: adr("t4-infra-secret") };
+  const hitungKonteks = (daftar: [RegExp, number[]][], jumlahTotal: number): void => {
+    let jumlah = 0;
+    for (const [re, harapan] of daftar) {
+      const cocok = [...halaman.matchAll(new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g"))];
+      expect(cocok.length, re.source).toBeGreaterThanOrEqual(1);
+      for (const m of cocok) {
+        expect(m.slice(1).map(Number), re.source).toEqual(harapan);
+        jumlah += harapan.length;
+      }
+    }
+    expect(jumlah).toBe(jumlahTotal);
+  };
+  test("setiap nomor ADR di prosa sama dengan nomor yang dibawa registry untuk halaman yang dirujuknya, dan semua kemunculan terhitung", () => {
+    hitungKonteks([
+      [/\+ ADR (\d+)"\ndescription/, [A.sendiri]],
+      [/ADR (\d+) memindahkan data, file/, [A.sendiri]],
+      [/^### ADR (\d+): layanan/m, [A.sendiri]],
+      [/dari ADR (\d+) dan ADR (\d+)\. Tebak dulu/, [A.dua, A.storage]],
+      [/diterima ADR (\d+) dan ADR (\d+) \(\[\[t3-dua-instance\]\], \[\[t3-adr-33\]\]\)/, [A.dua, A.tiga]],
+      [/\. ADR (\d+) menaruh nilai asli hanya di `\.env` VPS \(\[\[t1-secret\]\]\)/, [A.satu]],
+      [/Breaker ADR (\d+) tidak menolong/, [A.breaker]],
+      [/ADR (\d+) di \[\[t4-rekonsiliasi\]\]/, [A.rekon]],
+      [/tetap ditunda ADR (\d+), karena PRD v4 tidak menulis/, [A.tiga]],
+      [/yang ADR (\d+) dan ADR (\d+) terima/, [A.dua, A.tiga]],
+      [/titik gagal tunggal ADR (\d+)\. Opsi A di bawah adalah ADR (\d+) yang/, [A.dua, A.satu]],
+      [/Dijaga ADR (\d+) \|/, [A.satu]],
+      [/dan ADR (\d+) menundanya/, [A.tiga]],
+      [/yang ditunda ADR (\d+)\. Pemicu ADR (\d+) belum ada di PRD/, [A.tiga, A.tiga]],
+      [/yang ADR (\d+) tunda, dengan pembanding/, [A.tiga]],
+      [/kedua ditunda ADR (\d+), karena PRD v4 belum menulis/, [A.tiga]],
+    ], (halaman.match(/ADR \d+/g) ?? []).length);
+    expect(halaman.match(/ADR \d+/g)!.length).toBe(21);
+  });
+  test("nomor masalah M34 sama dengan id registry halaman 4.16, dan tidak ada M lain", () => {
+    const nomor = entri("t4-m34")!.id.match(/m(\d+)$/)![1];
+    const semua = halaman.match(/\bM\d+\b/g) ?? [];
+    expect(semua.length).toBe(3);
+    expect(new Set(semua)).toEqual(new Set([`M${nomor}`]));
+  });
+  test("status HTTP di prosa sama dengan rekaman dan README, dan semua kemunculan terhitung", () => {
+    const st = (b: string[] | string, re: RegExp): number => Number((typeof b === "string" ? b.match(re) : cari(b, re))![1]);
+    const tolak = st(alA.baris, /^#   ditolak (\d{3}), per alamat sumber: \{'host baru'/);
+    const restart = st(bagian(RO, "A").baris, /sesudah container dihentikan dan dinyalakan lagi, GET secret\/pembayaran\/webhook dengan token root dev: (\d{3})/);
+    const tulis = st(bagian(RO, "B").baris, /mencoba menulis dokumen rahasia: (\d{3}) /);
+    const terbalik = st(bagian(RO, "D").baris, /Selama service belum membaca, kabar bertanda v3 ditolak (\d{3})\./);
+    const baca = st(bagian(SG, "A").baris, /token staging membaca secret\/staging\/gateway: (\d{3})/);
+    const prod = st(bagian(SG, "A").baris, /token staging membaca secret\/produksi\/gateway: (\d{3})/);
+    const tulisProd = st(bagian(SG, "A").baris, /token staging menulis secret\/produksi\/gateway: (\d{3})/);
+    const connect = st(readme, /CONNECT \(HTTPS\) dijawab (\d{3})/);
+    expect(prod).toBe(tulisProd);
+    hitungKonteks([
+      [/dijawab (\d{3}) lima kali per pekerjaan/, [tolak]],
+      [/menolak host baru dengan (\d{3})\./, [tolak]],
+      [/atas jawaban (\d{3}) yang tidak akan berubah/, [tolak]],
+      [/Breaker ADR 36 tidak menolong jawaban (\d{3}), dan itu/, [tolak]],
+      [/dijawab (\d{3}) dan vendor tiruan tidak memakai TLS/, [connect]],
+      [/CONNECT dijawab (\d{3})\. Tidak dijalankan/, [connect]],
+      [/secret yang tadi ditulis dijawab (\d{3})\./, [restart]],
+      [/Percobaan menulis dijawab (\d{3}), dan token/, [tulis]],
+      [/kabarnya ditolak (\d{3}) sampai service membaca/, [terbalik]],
+      [/Kabar gateway ditolak (\d{3})\. Apa urutan/, [terbalik]],
+      [/secret staging dengan jawaban (\d{3}), dan membaca atau menulis secret produksi dengan jawaban (\d{3}) \(`staging\.txt`/, [baca, prod]],
+    ], (halaman.match(/\b(?:200|401|403|404|501)\b/g) ?? []).length);
+    expect((halaman.match(/\b(?:200|401|403|404|501)\b/g) ?? []).length).toBe(13);
+  });
+  test("versi dokumentasi stack sama dengan baris RISET dan URL-nya; jumlah tanggal di baris RISET sama dengan yang tertulis", () => {
+    const pasangan: [string, string][] = [
+      ["Node.js v26.13.0: environment variables", "Node.js v26.13.0 (nodejs.org/api/environment_variables)"],
+      ["Laravel 13.x: Configuration", "Laravel 13.x (laravel.com/docs/13.x/configuration)"],
+      ["Django 6.1: settings", "Django 6.1 (docs.djangoproject.com/en/6.1/ref/settings"],
+      ["Serverpod 4.0.0: configuration", "Serverpod 4.0.0 (docs.serverpod.dev/concepts/server-fundamentals/configuration)"],
+    ];
+    for (const [h, r] of pasangan) {
+      harus(h);
+      expect(barisRiset("R4-194"), r).toContain(r);
+    }
+    harus("Django 6.1: SECRET_KEY_FALLBACKS");
+    expect(barisRiset("R4-192")).toContain("pkg.go.dev/net/http#ProxyFromEnvironment (Go 1.27.3)");
+    expect(barisRiset("R4-192")).toContain("Lab memakai Go 1.27.1");
+    expect(barisRiset("R4-190")).toContain("Terraform v1.17.1 terbit 2026-10-28");
+    harus("v1.17.1 terbit 2026-10-28");
+    const jumlahTanggal = Object.fromEntries(RISET_ID.map((id) => [id, (barisRiset(id).match(/2026-10-30/g) ?? []).length]));
+    expect(jumlahTanggal).toEqual({ "R4-190": 2, "R4-191": 1, "R4-192": 1, "R4-193": 1, "R4-194": 1 });
+  });
+  test("Snippet: file ada, judul memuat path, judul rekaman memuat bagian yang benar, dan bahasa sesuai ekstensi", () => {
+    const semua = [...halaman.matchAll(/<Snippet file="([^"]+)" lines="(\d+):(\d+)"(?: lang="(\w+)")? title="([^"]+)" \/>/g)];
+    expect(semua.length).toBe(12);
+    const teks: Record<string, string> = { "labs/t4-infra/output/alamat.txt": alamat, "labs/t4-infra/output/state.txt": state, "labs/t4-infra/output/rotasi.txt": rotasi, "labs/t4-infra/output/staging.txt": staging };
+    for (const [, file, a, , lang, judul] of semua) {
+      expect(fs.existsSync(path.join(akar, file!)), file).toBe(true);
+      if (file!.includes("/output/")) {
+        expect(lang).toBeUndefined();
+        const bag = pecah(teks[file!]!);
+        const huruf = Object.keys(bag).find((k) => bag[k]!.awal <= Number(a) && Number(a) <= bag[k]!.akhir)!;
+        expect(judul, file).toContain(`Rekaman lab: ${file} (bagian ${huruf}`);
+      } else {
+        expect(judul).toBe(file);
+        expect(lang).toBe(file!.endsWith(".tf") ? "hcl" : "go");
+      }
+    }
+  });
+  test("tab stack: slot berurutan, label tab berurutan, dan baris catatan tiap tab menyebut stack-nya", () => {
+    const labels: string[] = JSON.parse(halaman.match(/labels=\{(\[[^\]]+\])\}/)![1]!);
+    const KUNCI = ["Go", "Node.js", "Laravel", "Django", "Serverpod", "Supabase"];
+    labels.forEach((l, k) => expect(l).toContain(KUNCI[k]!));
+    const slot = [...halaman.matchAll(/<Fragment slot="t(\d)">\n\n\*([^\n]+)\*/g)];
+    expect(slot.length).toBe(6);
+    slot.forEach((m, k) => {
+      expect(Number(m[1])).toBe(k);
+      expect(m[2], `slot ${k}`).toContain(k === 0 ? "lab t4-infra" : KUNCI[k]!);
+      expect(m[2]!.startsWith(k === 0 ? "Dijalankan:" : "Tidak dijalankan.")).toBe(true);
+    });
+  });
+  test("rujukan [[ID]]: tiap kemunculan menempel pada kalimatnya dan jumlahnya sama dengan daftar", () => {
+    const daftar: [string, string[]][] = [
+      ["Prasyarat: [[t4-m34]] · Jalur inti", ["t4-m34"]],
+      ["Lompat ke [[berikutnya]].", ["berikutnya"]],
+      ["[[t4-m34]] menulis tiga akibat satu pindahan", ["t4-m34"]],
+      ["([[t3-dua-instance]], [[t3-adr-33]])", ["t3-dua-instance", "t3-adr-33"]],
+      ["di `.env` VPS ([[t1-secret]])", ["t1-secret"]],
+      ["Begitu uang publik masuk ([[t4-prd]]), satu mesin", ["t4-prd"]],
+      ["dan itu bahan [[t4-m34]], bukan halaman ini", ["t4-m34"]],
+      ["tidak dijawab 2xx ([[t4-m30]]).", ["t4-m30"]],
+      ["ADR 35 di [[t4-rekonsiliasi]] menulis", ["t4-rekonsiliasi"]],
+      ["adalah pekerjaan pipeline di [[t4-tim-infra]].", ["t4-tim-infra"]],
+      ["batas waktu pulih atau jendela kehilangan data ([[t4-prd]]).", ["t4-prd"]],
+      ["**Kebutuhan.** [[t4-m34]] menunjukkan", ["t4-m34"]],
+      ["dan akses data sendiri ([[t4-prd]]). Satu VPS", ["t4-prd"]],
+      ["**Yang akan merevisinya.** [[t4-tim-infra]] menjalankan", ["t4-tim-infra"]],
+      ["halaman lama [[B11.2]] tidak dibahas di sini, dan [[t4-adr-45]] menyebutnya", ["B11.2", "t4-adr-45"]],
+      ["Tidak dijalankan | [[t3-adr-33]] |", ["t3-adr-33"]],
+      ["Rekaman hanya dua file contoh | [[t4-tim-infra]] |", ["t4-tim-infra"]],
+    ];
+    let jumlah = 0;
+    for (const [konteks, ids] of daftar) {
+      harus(konteks);
+      jumlah += ids.length;
+    }
+    expect(jumlah).toBe((halaman.match(/\[\[[^\]]+\]\]/g) ?? []).length);
+  });
+  test("tautan: teks dan URL tiap tautan luar sama dengan daftar, dalam urutan halaman", () => {
+    const harapan: string[][] = [
+ [
+  "net/http: ProxyFromEnvironment",
+  "https://pkg.go.dev/net/http#ProxyFromEnvironment"
+ ],
+ [
+  "NAT gateways",
+  "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html"
+ ],
+ [
+  "sensitive data in state",
+  "https://opentofu.org/docs/language/state/sensitive-data/"
+ ],
+ [
+  "ephemerality",
+  "https://opentofu.org/docs/language/ephemerality/"
+ ],
+ [
+  "HashiCorp adopts Business Source License",
+  "https://www.hashicorp.com/en/blog/hashicorp-adopts-business-source-license"
+ ],
+ [
+  "dev server",
+  "https://openbao.org/docs/concepts/dev-server/"
+ ],
+ [
+  "KV versi 2",
+  "https://openbao.org/docs/secrets/kv/kv-v2/"
+ ],
+ [
+  "Node.js v26.13.0: environment variables",
+  "https://nodejs.org/api/environment_variables.html"
+ ],
+ [
+  "Laravel 13.x: Configuration",
+  "https://laravel.com/docs/13.x/configuration"
+ ],
+ [
+  "Django 6.1: settings",
+  "https://docs.djangoproject.com/en/6.1/ref/settings/#secret-key-fallbacks"
+ ],
+ [
+  "Serverpod 4.0.0: configuration",
+  "https://docs.serverpod.dev/concepts/server-fundamentals/configuration"
+ ],
+ [
+  "Supabase: Vault",
+  "https://supabase.com/docs/guides/database/vault"
+ ],
+ [
+  "laporan insiden",
+  "https://circleci.com/blog/jan-4-2023-incident-report/"
+ ],
+ [
+  "OpenTofu: sensitive data in state",
+  "https://opentofu.org/docs/language/state/sensitive-data/"
+ ],
+ [
+  "OpenTofu: ephemerality",
+  "https://opentofu.org/docs/language/ephemerality/"
+ ],
+ [
+  "OpenBao: dev server",
+  "https://openbao.org/docs/concepts/dev-server/"
+ ],
+ [
+  "OpenBao: KV versi 2",
+  "https://openbao.org/docs/secrets/kv/kv-v2/"
+ ],
+ [
+  "Go: net/http, ProxyFromEnvironment",
+  "https://pkg.go.dev/net/http#ProxyFromEnvironment"
+ ],
+ [
+  "Amazon VPC: NAT gateways",
+  "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html"
+ ],
+ [
+  "HashiCorp: adopts Business Source License",
+  "https://www.hashicorp.com/en/blog/hashicorp-adopts-business-source-license"
+ ],
+ [
+  "CircleCI: laporan insiden 4 Januari 2023",
+  "https://circleci.com/blog/jan-4-2023-incident-report/"
+ ],
+ [
+  "Django 6.1: SECRET_KEY_FALLBACKS",
+  "https://docs.djangoproject.com/en/6.1/ref/settings/#secret-key-fallbacks"
+ ]
+];
+    const ada = [...halaman.matchAll(/\[([^\]]+)\]\((https:\/\/[^)]+)\)/g)].map((m) => [m[1]!, m[2]!]);
+    expect(ada).toEqual(harapan);
+  });
+  test("daftar bernomor berurutan dari 1 dan tidak ada yang terlewat", () => {
+    const baris = halaman.split("\n");
+    const daftar: number[][] = [];
+    let kini: number[] = [];
+    for (const b of baris) {
+      const m = b.match(/^(\d+)\. /);
+      if (m) kini.push(Number(m[1]));
+      else if (kini.length && b.trim() !== "" && !/^\s/.test(b)) { daftar.push(kini); kini = []; }
+    }
+    if (kini.length) daftar.push(kini);
+    expect(daftar).toEqual([[1, 2, 3], [1, 2, 3, 4, 5, 6], [1, 2, 3]]);
+  });
+  test("tabel ADR dan tabel Sengaja belum: tiap baris ada utuh dan urutan barisnya sama", () => {
+    const adrBaris: string[] = [
+ "|---|---|---|---|---|",
+ "| Cara kerja | Data, file, dan secret di satu mesin. Nilai secret di `.env` mesin itu | Dua mesin, PostgreSQL direplikasi sendiri | Data, file, dan secret di layanan terkelola. Mesin dibuat dari IaC. Alamat keluar lewat proxy atau NAT | OpenBao atau Vault dijalankan di VPS yang sama atau kedua |",
+ "| Kelebihan | Tidak ada pekerjaan baru. Dijaga ADR 11 | Menutup titik gagal tunggal data | Data, file, dan secret tidak mati bersama satu mesin. Rotasi tanpa deploy | Rotasi tanpa deploy, dan kontrol penuh atas alatnya |",
+ "| Kekurangan | M34 dan uang publik. `.env` hilang atau terbaca pihak lain bersama mesin | Operasi replikasi dan failover milik tim sendiri, dan ADR 33 menundanya | App tetap berhenti saat mesin diganti. Biaya layanan belum dihitung | Secret manager ikut menjadi titik gagal. Mode dev hanya untuk lab |",
+ "| Biaya operasional | Nol, sampai pindahan atau kebocoran | Dua mesin, replikasi, dan giliran jaga | Satu repo IaC, satu proxy atau NAT, dan akun cloud PT | Penyimpanan yang bertahan, unseal, dan token per service |",
+ "| Bukti | Rekaman `alamat.txt` A dan `state.txt` A | Tidak dijalankan: dibaca dari naskah | Rekaman `alamat.txt` B, `state.txt` B, `rotasi.txt` C. Layanan terkelola Tidak dijalankan | Rekaman `rotasi.txt` A dan E atas mode dev. Produksi Tidak dijalankan |"
+];
+    const sengaja: string[] = [
+ "| Yang ditunda | Kenapa ditunda | Muncul lagi di |",
+ "|---|---|---|",
+ "| VPS kedua dan failover | PRD v4 belum menulis batas waktu pulih atau jendela kehilangan data. Tidak dijalankan | [[t3-adr-33]] |",
+ "| Batas umur pembacaan secret dan alert atas kegagalan beruntun | Lab memilih memakai pembacaan terakhir. Belum diputuskan | Belum dijadwalkan |",
+ "| Instance atau akun terpisah untuk staging dan produksi | Lab memakai satu instance dengan dua kebijakan. Tidak dijalankan | Belum dijadwalkan |",
+ "| Enkripsi state dan plan, backend state jarak jauh | State lab adalah file lokal. Tidak dijalankan | Belum dijadwalkan |",
+ "| Proxy kedua dan HTTPS lewat proxy | Matinya proxy tidak direkam, dan CONNECT dijawab 501. Tidak dijalankan | Belum dijadwalkan |",
+ "| Pemindai atas seluruh konfigurasi, state IaC, dan riwayat git | Rekaman hanya dua file contoh | [[t4-tim-infra]] |"
+];
+    const adrTabel = halaman.split("| | A. Satu VPS dan `.env` |")[1]!.split("\n\n")[0]!.split("\n").filter((b) => b.startsWith("|"));
+    expect(adrTabel).toEqual(adrBaris);
+    expect(halaman.split("### Sengaja belum dilakukan\n\n")[1]!.split("\n\n")[0]!.split("\n")).toEqual(sengaja);
+    const tabelState = halaman.split("| Bagian | Cara di konfigurasi | State memuat nilainya | Penanda sensitif di state |\n")[1]!.split("\n\n")[0]!.split("\n");
+    expect(tabelState.length).toBe(4);
+    expect(halaman.split("**Keputusan: opsi C.** Enam aturan:")[1]!.split("**Kenapa C")[0]!.match(/^\d\. /gm)!.join("")).toBe("1. 2. 3. 4. 5. 6. ");
+  });
+  test("Rantai, pilah, dan halaman istilah: nilai berfakta dan struktur sama dengan yang diturunkan", () => {
+    expect(rantai).toEqual({
+ "id": "t4-infra-secret-inti",
+ "judul": "Alamat keluar dan state OpenTofu sesudah pindahan",
+ "sumber": {
+  "jenis": "rekaman",
+  "teks": "Rekaman lab t4-infra, alamat.txt bagian A dan B, state.txt bagian A dan B"
+ },
+ "baris": [
+  {
+   "label": "Alamat keluar",
+   "sub": "host baru",
+   "simpul": [
+    {
+     "teks": "tanpa proxy: ditolak 403",
+     "sub": "15 penolakan, 3 pengajuan gagal",
+     "nada": "warn"
+    },
+    {
+     "teks": "dengan proxy: lulus",
+     "sub": "3 lulus, 0 ditolak",
+     "nada": "good"
+    }
+   ]
+  },
+  {
+   "label": "State OpenTofu",
+   "sub": "tofu apply",
+   "simpul": [
+    {
+     "teks": "konfigurasi: ada di state",
+     "sub": "nilai dari password dan variabel",
+     "nada": "warn"
+    },
+    {
+     "teks": "OpenBao: tak ada di state",
+     "sub": "konfigurasi hanya alamat dan path",
+     "nada": "good"
+    }
+   ]
+  }
+ ],
+ "catatan": "Vendor adalah layanan verifikasi tiruan lokal, dan proxy keluar adalah container lab. Bagian state memakai provider random dan local, bukan provider cloud."
+});
+    expect(pilah.judul).toBe("Pindah ke layanan terkelola atau tetap di mesin VPS?");
+    expect(pilah.penutup).toBe("Tiga yang pindah adalah penyimpanan: data, file, dan secret. Tiga yang tetap adalah yang menjalankan kode. Satu mesin berhenti masih menghentikan app, dan itulah yang ditunda ADR 33.");
+    expect(pilah.item.map((i) => i.teks)).toEqual([
+ "Proses app: API monolith dan service pembayaran.",
+ "Data PostgreSQL: tabel akun, jurnal, dan outbox.",
+ "File identitas: foto kartu dan swafoto.",
+ "Kode yang membaca secret saat berjalan.",
+ "Nilai secret: kunci gateway dan rahasia webhook.",
+ "Worker yang memanggil layanan verifikasi di luar."
+]);
+    expect(pilah.item.map((i) => i.kenapa)).toEqual([
+ "Hosting terkelola menjawab sebagian titik gagal tunggal ADR 26: data, file, dan secret, bukan ketersediaan app. Mesin pengganti dibuat dari file IaC, tetapi app berhenti selama mesin diganti, dan VPS kedua tetap ditunda ADR 33 (Tidak dijalankan: lab memakai tiruan di Compose).",
+ "Data tidak lagi mati bersama satu VPS. Backup pg_dump harian punya jendela kehilangan data sampai 24 jam. Jendela di layanan terkelola menurut penyedia belum diketahui [perlu verifikasi: penyedia dipilih saat halaman ditulis], dan failover Tidak dijalankan.",
+ "File pindah ke penyimpanan objek, dan database hanya menyimpan kunci objek dan checksum (ADR 38). Penyimpanan objek terkelola Tidak dijalankan: lab memakai tiruan di Compose.",
+ "Service membaca nilainya sendiri dengan token baca-saja. Di rotasi.txt bagian B service hanya diberi token, tanpa rahasia lewat flag atau file. Yang pindah adalah nilainya, bukan kode pembacanya, dan bukan OpenTofu yang membaca.",
+ "Nilai pindah ke secret manager (lab: OpenBao mode dev). Operator menulis versi baru, service membacanya tanpa deploy, dan state OpenTofu tidak memuat nilainya (state.txt bagian B, rotasi.txt bagian C). Secret manager milik penyedia Tidak dijalankan.",
+ "Worker tetap bagian app. Yang berubah hanya jalan keluarnya: host baru memakai HTTP_PROXY yang sama, dan vendor hanya melihat alamat proxy (alamat.txt bagian B). Proxy keluar itu sendiri titik gagal tunggal baru, dan matinya tidak direkam."
+]);
+    const ist = { "secret-manager": istSecret, iac: istIac, "proxy-keluar": istProxy } as Record<string, { istilah: string; cerita: unknown; sumber: unknown; terkait: unknown }>;
+    const harapanIst = {
+ "secret-manager": {
+  "istilah": "Secret manager",
+  "cerita": [
+   {
+    "rujukan": "t4-infra-secret",
+    "teks": "Service pembayaran hanya diberi token baca-saja. Rahasia webhook dibaca dari OpenBao saat service berjalan. Sesudah operator menulis versi baru, service membacanya tanpa deploy (`rotasi.txt` bagian B dan C)."
+   }
+  ],
+  "sumber": [
+   {
+    "riset": "R4-191",
+    "judul": "OpenBao: dev server (dibuka 2026-10-30)",
+    "url": "https://openbao.org/docs/concepts/dev-server/",
+    "catatan": "Mode dev menyimpan data terenkripsi di memori, kehilangan data di tiap restart, dan tidak untuk produksi. Mesin KV versi 2 terpasang di secret/."
+   },
+   {
+    "riset": "R4-191",
+    "judul": "OpenBao: KV versi 2 (dibuka 2026-10-30)",
+    "url": "https://openbao.org/docs/secrets/kv/kv-v2/",
+    "catatan": "Menulis versi baru membiarkan versi sebelumnya terbaca. Perintah destroy menghapus data versi itu."
+   },
+   {
+    "judul": "Rekaman lab t4-infra: rotasi.txt bagian A sampai E",
+    "rekaman": "labs/t4-infra/output/rotasi.txt",
+    "catatan": "Service membaca secret saat runtime dengan token baca-saja. Rotasi dengan masa tumpang tindih terbaca tanpa deploy, dan versi lama terbaca sampai di-destroy."
+   }
+  ],
+  "terkait": [
+   "IaC (infrastructure as code)",
+   "Proxy keluar (egress proxy)",
+   "Staging"
+  ]
+ },
+ "iac": {
+  "istilah": "IaC (infrastructure as code)",
+  "cerita": [
+   {
+    "rujukan": "t4-infra-secret",
+    "teks": "Rekeningo memakai OpenTofu. Alat itu menyimpan catatan resource yang sudah dibuatnya di file state. Di lab, secret yang ditulis di konfigurasi ikut tersimpan di state, walau keluaran CLI menulis `(sensitive value)` (`state.txt` bagian A)."
+   }
+  ],
+  "sumber": [
+   {
+    "riset": "R4-191",
+    "judul": "OpenTofu: sensitive data in state (dibuka 2026-10-30)",
+    "url": "https://opentofu.org/docs/language/state/sensitive-data/",
+    "catatan": "State lokal adalah file JSON teks biasa dan bisa memuat password awal. Dokumentasi menyuruh state diperlakukan sebagai data sensitif."
+   },
+   {
+    "riset": "R4-190",
+    "judul": "OpenTofu: lisensi MPL-2.0 dan rilis v1.13.2 (dibuka 2026-10-30)",
+    "url": "https://github.com/opentofu/opentofu/releases/tag/v1.13.2",
+    "catatan": "Rilis stabil terbaru pada 2026-10-30, terbit 2026-10-21."
+   },
+   {
+    "judul": "Rekaman lab t4-infra: state.txt bagian A sampai C",
+    "rekaman": "labs/t4-infra/output/state.txt",
+    "catatan": "Nilai dari random_password, variabel, dan data source local ada di state. Konfigurasi yang hanya menulis alamat dan path tidak memuat nilainya."
+   }
+  ],
+  "terkait": [
+   "Secret manager",
+   "Staging",
+   "ADR (Architecture Decision Record)"
+  ]
+ },
+ "proxy-keluar": {
+  "istilah": "Proxy keluar (egress proxy)",
+  "cerita": [
+   {
+    "rujukan": "t4-infra-secret",
+    "teks": "Vendor tiruan hanya menerima alamat yang terdaftar. Tanpa proxy, host baru ditolak 403 sebanyak 15 kali untuk tiga pekerjaan. Dengan proxy yang didaftarkan sekali, host baru lulus tanpa penolakan (`alamat.txt` bagian A dan B)."
+   }
+  ],
+  "sumber": [
+   {
+    "riset": "R4-192",
+    "judul": "Go: net/http, ProxyFromEnvironment (Go 1.27.3, dibuka 2026-10-30)",
+    "url": "https://pkg.go.dev/net/http#ProxyFromEnvironment",
+    "catatan": "Client memakai proxy dari HTTP_PROXY, HTTPS_PROXY, dan NO_PROXY. Permintaan ke host localhost dikecualikan."
+   },
+   {
+    "riset": "R4-192",
+    "judul": "Amazon VPC: NAT gateways (dibuka 2026-10-30)",
+    "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html",
+    "catatan": "NAT gateway publik wajib punya Elastic IP, dan internet gateway memetakan alamat privat NAT gateway ke alamat itu."
+   },
+   {
+    "judul": "Rekaman lab t4-infra: alamat.txt bagian A dan B",
+    "rekaman": "labs/t4-infra/output/alamat.txt",
+    "catatan": "Pindah host tanpa proxy dijawab 403, dan dengan proxy terdaftar sekali vendor hanya melihat alamat proxy."
+   }
+  ],
+  "terkait": [
+   "Proxy",
+   "Reverse proxy",
+   "Secret manager"
+  ]
+ }
+} as Record<string, unknown>;
+    for (const slug of Object.keys(harapanIst)) {
+      const h = ist[slug]!;
+      expect({ istilah: h.istilah, cerita: h.cerita, sumber: h.sumber, terkait: h.terkait }, slug).toEqual(harapanIst[slug]);
+    }
+    expect(istProxy.cerita![0]!.teks).toContain(`403 sebanyak ${tolakA} kali untuk ${BILANGAN[pekerjaanA]} pekerjaan`);
+    expect(istIac.cerita![0]!.teks).toContain("`state.txt` bagian A");
+  });
+});
+
 describe("kunci kalimat dan sidik kata penentu (lapis 2 dan penutup mutasi tanpa kunci)", () => {
   const tekstual = (x: unknown, keluar: string[] = []): string[] => {
     if (typeof x === "string") keluar.push(x);
