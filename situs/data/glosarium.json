@@ -648,6 +648,15 @@
   "h": "/istilah/hsts/"
  },
  {
+  "t": "IaC (infrastructure as code)",
+  "d": "Infrastruktur, seperti mesin, database, dan alamat jaringan, ditulis sebagai file konfigurasi yang di-review seperti kode, lalu dibuat oleh sebuah alat.",
+  "b": "t4-infra-secret",
+  "n": "4.17 Secret manager, IaC, alamat keluar",
+  "u": "/tahap-4/secret-iac-alamat-keluar/",
+  "s": "istilah-iac",
+  "h": "/istilah/iac/"
+ },
+ {
   "t": "Idempotency key",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
   "b": "t2-idempotency",
@@ -1215,6 +1224,15 @@
   "h": null
  },
  {
+  "t": "Proxy keluar (egress proxy)",
+  "d": "Proxy dengan alamat tetap yang dilewati panggilan keluar ke vendor, supaya vendor yang memakai allowlist selalu melihat satu alamat.",
+  "b": "t4-infra-secret",
+  "n": "4.17 Secret manager, IaC, alamat keluar",
+  "u": "/tahap-4/secret-iac-alamat-keluar/",
+  "s": "istilah-proxy-keluar",
+  "h": "/istilah/proxy-keluar/"
+ },
+ {
   "t": "Pull request review",
   "d": "Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung.",
   "b": "t2-tim-infra",
@@ -1402,6 +1420,15 @@
   "u": "/tahap-2/saldo-bukan-kolom/",
   "s": "istilah-saldo-cache",
   "h": "/istilah/saldo-cache/"
+ },
+ {
+  "t": "Secret manager",
+  "d": "Layanan yang menyimpan secret di luar kode dan file konfigurasi, dan dibaca aplikasi lewat API dengan token saat ia membutuhkannya.",
+  "b": "t4-infra-secret",
+  "n": "4.17 Secret manager, IaC, alamat keluar",
+  "u": "/tahap-4/secret-iac-alamat-keluar/",
+  "s": "istilah-secret-manager",
+  "h": "/istilah/secret-manager/"
  },
  {
   "t": "Secure storage",

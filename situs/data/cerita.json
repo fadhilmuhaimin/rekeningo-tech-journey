@@ -3663,8 +3663,9 @@
       "lab": [
         "t4-infra"
       ],
-      "ada": false,
-      "nomor": "4.17"
+      "ada": true,
+      "nomor": "4.17",
+      "menit": 19
     },
     {
       "id": "t4-m35",

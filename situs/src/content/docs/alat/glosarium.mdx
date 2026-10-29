@@ -93,6 +93,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Health check** | Pemeriksaan berkala yang dilakukan proxy atau orkestrator ke tiap instance untuk memutuskan apakah instance itu boleh menerima request. | [[t3-dua-instance]] |
 | **HMAC** (hash-based message authentication code) | Nilai yang dihitung dari isi pesan dan rahasia bersama, supaya penerima bisa memeriksa bahwa pesan tidak diubah dan berasal dari pemegang rahasia. | [[t4-webhook]] |
 | **HSTS** (HTTP Strict Transport Security) | Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser. | [[t3-tls-pinning]] |
+| **IaC** (infrastructure as code) | Infrastruktur, seperti mesin, database, dan alamat jaringan, ditulis sebagai file konfigurasi yang di-review seperti kode, lalu dibuat oleh sebuah alat. | [[t4-infra-secret]] |
 | **Idempotency key** | Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali. | [[t2-idempotency]] |
 | **Idle in transaction** | Keadaan sesi database yang sudah membuka transaction tetapi sedang tidak menjalankan query, dan menunggu perintah berikutnya dari client. | [[t3-observability]] |
 | **IDOR** (Insecure Direct Object Reference) | Celah saat server memakai ID dari request tanpa bertanya apakah peminta boleh menyentuh data itu. OWASP API Security menyebutnya BOLA. | [[t1-idor]] |
@@ -156,6 +157,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Primary key** | Kolom yang nilainya unik dan dipakai untuk mengenali satu baris. | [[B2.1]] |
 | **Problem Details** | Format error JSON standar dari RFC 9457, dengan field seperti `type`, `title`, `status`, dan `detail`. | [[B6]] |
 | **Proxy** | Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request. | [[B11.2]] |
+| **Proxy keluar** (egress proxy) | Proxy dengan alamat tetap yang dilewati panggilan keluar ke vendor, supaya vendor yang memakai allowlist selalu melihat satu alamat. | [[t4-infra-secret]] |
 | **Pull request review** | Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung. | [[t2-tim-infra]] |
 | **Query plan** | Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan `EXPLAIN`. | [[t2-index]] |
 | **Queue** | Daftar pekerjaan yang menunggu diproses oleh worker, satu per satu atau paralel. | [[t3-outbox]] |
@@ -177,6 +179,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Router** | Bagian framework yang mencocokkan method dan path request dengan handler yang tepat. | [[B1.1]] |
 | **Saga** | Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi. | [[D3]] |
 | **Saldo cache** | Salinan jumlah posting satu buku di kolom `buku.saldo_cache`, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting. | [[t2-saldo-bukan-kolom]] |
+| **Secret manager** | Layanan yang menyimpan secret di luar kode dan file konfigurasi, dan dibaca aplikasi lewat API dengan token saat ia membutuhkannya. | [[t4-infra-secret]] |
 | **Secure storage** | Penyimpanan terenkripsi milik sistem operasi HP untuk rahasia kecil seperti token sesi: Keychain di iOS, kunci di Android Keystore. | [[t1-idor]] |
 | **SELECT FOR UPDATE** | Perintah SQL yang membaca baris sekaligus menguncinya sampai transaction selesai, sehingga transaction lain yang mau mengubah atau mengunci baris itu menunggu. | [[t2-race-lock]] |
 | **Semantic conflict** | Dua perubahan yang digabung tanpa konflik teks, tetapi gabungannya membuat program berperilaku lain dari yang diharapkan masing-masing. | [[t2-m14]] |

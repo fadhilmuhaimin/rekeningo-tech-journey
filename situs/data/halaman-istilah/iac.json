@@ -1,0 +1,41 @@
+{
+  "istilah": "IaC (infrastructure as code)",
+  "sehari_hari": "IaC berarti infrastruktur, seperti mesin, database, dan alamat jaringan, ditulis sebagai file konfigurasi yang disimpan dan di-review seperti kode. Alatnya membaca file itu lalu membuat atau mengubah infrastrukturnya.",
+  "cerita": [
+    {
+      "rujukan": "t4-infra-secret",
+      "teks": "Rekeningo memakai OpenTofu. Alat itu menyimpan catatan resource yang sudah dibuatnya di file state. Di lab, password dari random_password dan kunci dari variabel yang dipakai satu resource ikut tersimpan di state, walau keluaran CLI menulis `(sensitive value)` (`state.txt` bagian A)."
+    }
+  ],
+  "mekanisme": [
+    "Kamu menulis konfigurasi yang menyebut resource apa yang harus ada.",
+    "Alat IaC membandingkan konfigurasi dengan state, yaitu catatan resource yang sudah dibuatnya, lalu membuat rencana perubahan.",
+    "Setelah rencana disetujui, alat itu menjalankannya lewat provider, yaitu plugin yang bicara dengan satu jenis layanan.",
+    "State menyimpan atribut resource sebagai teks. Nilai yang melewati resource atau data source ikut tersimpan di sana, jadi state diperlakukan sebagai data sensitif."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira tanda sensitif mencegah nilai masuk state. Tanda itu hanya menyembunyikan nilai dari keluaran CLI (`state.txt` bagian A).",
+    "Mengira membaca secret lewat data source menjaga state bersih. Data source juga menyimpan atribut yang dibacanya (`state.txt` bagian C, provider local)."
+  ],
+  "terkait": ["Secret manager", "Staging", "ADR (Architecture Decision Record)"],
+  "sumber": [
+    {
+      "riset": "R4-191",
+      "judul": "OpenTofu: sensitive data in state (dibuka 2026-10-30)",
+      "url": "https://opentofu.org/docs/language/state/sensitive-data/",
+      "catatan": "State lokal adalah file JSON teks biasa dan bisa memuat password awal. Dokumentasi menyuruh state diperlakukan sebagai data sensitif."
+    },
+    {
+      "riset": "R4-190",
+      "judul": "OpenTofu: lisensi MPL-2.0 dan rilis v1.13.2 (dibuka 2026-10-30)",
+      "url": "https://github.com/opentofu/opentofu/releases/tag/v1.13.2",
+      "catatan": "Rilis stabil terbaru pada 2026-10-30, terbit 2026-10-21."
+    },
+    {
+      "judul": "Rekaman lab t4-infra: state.txt bagian A sampai C",
+      "rekaman": "labs/t4-infra/output/state.txt",
+      "catatan": "Nilai dari random_password, variabel, dan data source local ada di state. Konfigurasi yang hanya menulis alamat dan path tidak memuat nilainya."
+    }
+  ]
+}
