@@ -405,6 +405,15 @@
   "h": null
  },
  {
+  "t": "CRC (cyclic redundancy check)",
+  "d": "Angka pendek yang dihitung dari isi data untuk mendeteksi data yang salah terbaca atau rusak saat dikirim; rumusnya terbuka dan tanpa key, jadi bukan bukti keaslian.",
+  "b": "t4-m35",
+  "n": "4.18 M35",
+  "u": "/tahap-4/m35-qr-bu-marni/",
+  "s": "istilah-crc",
+  "h": "/istilah/crc/"
+ },
+ {
   "t": "CRDT (Conflict-free Replicated Data Type)",
   "d": "Jenis data yang dirancang supaya perubahan dari beberapa salinan yang boleh berbeda sementara bisa digabung otomatis.",
   "b": "t3-offline",

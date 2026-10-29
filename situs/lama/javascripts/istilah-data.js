@@ -236,6 +236,15 @@ window.ISTILAH = {
   "t": "COMMIT",
   "u": "tahap-1/transaction/"
  },
+ "CRC": {
+  "b": "t4-m35",
+  "d": "Angka pendek yang dihitung dari isi data untuk mendeteksi data yang salah terbaca atau rusak saat dikirim; rumusnya terbuka dan tanpa key, jadi bukan bukti keaslian.",
+  "h": "istilah/crc/",
+  "n": "4.18 M35",
+  "s": "istilah-crc",
+  "t": "CRC (cyclic redundancy check)",
+  "u": "tahap-4/m35-qr-bu-marni/"
+ },
  "CRDT": {
   "b": "t3-offline",
   "d": "Jenis data yang dirancang supaya perubahan dari beberapa salinan yang boleh berbeda sementara bisa digabung otomatis.",

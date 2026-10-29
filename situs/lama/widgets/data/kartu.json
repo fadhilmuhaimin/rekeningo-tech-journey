@@ -2976,6 +2976,30 @@
   "jawab": "App berhenti selama mesin diganti. VPS kedua ditunda ADR 33, karena PRD v4 belum menulis batas waktu pulih atau jendela kehilangan data."
  },
  {
+  "id": "t4-m35-1",
+  "halaman": "t4-m35",
+  "judul": "4.18 M35: QR di kasir Bu Marni",
+  "url": "tahap-4/m35-qr-bu-marni/",
+  "tanya": "CRC di stiker cocok, tetapi pembayaran masuk ke toko lain. Kenapa CRC tidak mencegahnya?",
+  "jawab": "CRC dihitung tanpa secret key, jadi ia menangkap salah baca, bukan penggantian. Payload yang id QR-nya diganti lolos setelah CRC dihitung ulang, dari `B29D` menjadi `4D5E` (`crc.txt` bagian D)."
+ },
+ {
+  "id": "t4-m35-2",
+  "halaman": "t4-m35",
+  "judul": "4.18 M35: QR di kasir Bu Marni",
+  "url": "tahap-4/m35-qr-bu-marni/",
+  "tanya": "Pembayaran Budi lolos pemeriksaan jurnal, merchant, dan saldo. Kenapa server tidak bisa menolaknya?",
+  "jawab": "Permintaan bayar hanya membawa sesi, id QR, dan nominal, dan tabel `qr` tidak punya lokasi atau pengenal stiker. Jurnal seimbang, merchant aktif dan terverifikasi, dan saldo cukup (`statis.txt` bagian B)."
+ },
+ {
+  "id": "t4-m35-3",
+  "halaman": "t4-m35",
+  "judul": "4.18 M35: QR di kasir Bu Marni",
+  "url": "tahap-4/m35-qr-bu-marni/",
+  "tanya": "Lab merekam 8.562 dari 8.562 salah baca terdeteksi. Apakah itu berarti CRC menangkap semua salah baca?",
+  "jawab": "Tidak. Angka itu untuk satu payload contoh 138 karakter dan dua jenis kesalahan: satu karakter berubah dan dua karakter bersebelahan bertukar. Sifat CRC terhadap kesalahan lain tidak dibuktikan lab (`crc.txt` bagian C)."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",
