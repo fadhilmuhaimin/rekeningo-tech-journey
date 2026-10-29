@@ -435,3 +435,13 @@ Tabel di MEMORI: #418 12, #421 12, #422 8, #423 13 menit; lab #415 344, #416 385
 | Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
 | --- | --- | --- | --- | --- |
 | EVAL/DIRI Tahap 3; lab t4-kartu, audit, pipeline | #418, #421, #422, #423; #415, #416, #420 | 12, 12, 8, 13; 344 (sesi dimulai ulang), 385 (idem), 65 | 1, 0, 0, 0; 2, 2, 2 | 0 |
+
+## Perlu dicek pemilik, halaman 4.11–4.14 (2026-10-30)
+
+- Naskah/README vs kode: naskah M32 dan README `labs/t4-modul` 'kode top-up api-t4 tidak membaca akun.nama' salah (BuatTopupBank pembayaran.go:120, Topup topup.go:74 → repo.Akun repo.go:37 memilih a.nama; minimal tujuh pembaca nama termasuk riwayat dan cari warung); naskah menolak 'breaker di semua jalur termasuk queue' dengan alasan yang bertentangan dengan ADR 36 sendiri dan lajur.txt A (opsi B ditolak dari penalaran kode: klaim menaikkan percobaan; usulan lab bagian F); naskah M31 '5 percobaan dengan backoff' vs jawaban 1 hanya dengan backoff 0; naskah M33 12 menit → 3 jam 40 menit (18,3 kali) vs file ±4 kali (Ilustrasi), rasio dump 1,1 hanya file karangan sampai 8 MB, '97%' perlu 'dari file dan posting'; naskah ADR 37 'Kapan salah' dan ADR 45 memuat ±50 developer tanpa sumber primer (hanya blog: SoftwareSeni 20-50, levelop 50-100); M32 tak menyebut alasan Merchant mengganti nama padahal tabel akun dipegang Platform.
+- Keputusan produk/teknis: kode lama internal/repo dipindah ke internal/modul atau lewat kontrak (rename akun.nama mematahkan lima fungsi); satu role t4m_monolit dan pool per modul belum ada; plan GitHub pemilik untuk review code owner wajib (code owners dan protected branches di Pro/Team untuk repositori privat; Free tak eksplisit); ambang gagal ke-6 lawan batas lima percobaan, permintaan percobaan half-open (sampai 42 dari 146), 4xx diulang lima kali, 401/403/408/429 dihitung sukses, tidak_pasti jadi gagal pada percobaan kelima; tiga [perlu verifikasi] (Django, Serverpod panggilan keluar, AbortSignal.timeout Edge Function); RPO/RTO tak ada di PRD v3/v4; pencadangan penyimpanan objek Tidak dijalankan; apakah jurnal top-up sudah tertulis saat kesalahan Kamis 15.22 (aturan Pak Hadi) tak direkam.
+- Lingkungan: cache Playwright (`~/Library/Caches/ms-playwright`) HILANG: gerbang lokal browser memakai Google Chrome 156 sistem lewat preload; `npx playwright install chromium-headless-shell` mengunduh file dan butuh izin pemilik; Firefox dan Safari tak diuji.
+
+## Ukur antrean merge, baris halaman 4.1–4.10 (arsip 2026-10-30)
+
+Tabel di MEMORI: 4.1–4.3 127/140/105, 4.4–4.6 61/60/69, 4.7–4.10 377/329/341/354 menit (jeda limit #9 ±3,5 jam + sesi menganggur; kerja ±100 per halaman); median 134 menit dari 10 PR (pembanding pemilik 160); run main merah 0.
