@@ -18,7 +18,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "## Inti",
  "URL unggah berumur 5 menit bisa dipakai siapa pun yang memegangnya, termasuk untuk menimpa file.",
  "<Rantai data={intiDiagram} ringkas />",
- "Presigned URL adalah alamat di penyimpanan objek yang sudah ditandatangani server. Penyimpanan objek (object storage) menyimpan file sebagai objek berkunci di luar database. Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)), app Dina mengirim 120.000 byte dan pemegang lain mengirim 90.000 byte lewat URL yang sama (`presign.txt` bagian B).",
+ "Presigned URL adalah alamat di penyimpanan objek yang sudah ditandatangani server. Penyimpanan objek (object storage) menyimpan file sebagai objek berkunci di luar database. Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)), app Dina mengirim 120.000 byte dan pemegang lain mengirim 90.000 byte lewat URL yang sama (`presign.txt` bagian B). Umur 5 menit di kalimat pertama adalah Asumsi, dan rekaman memakai umur 5 detik supaya habisnya bisa ditunggu.",
  "Sesudah umur URL habis, PUT ditolak dengan 403 (bagian C). File dibuka lewat server, bukan lewat URL. Server memeriksa peran dan alasan staf risk, lalu menulis satu baris audit (`unduh.txt` bagian A dan B). Server juga menyimpan checksum, yaitu sidik SHA-256 dari isi file, jadi file yang ditimpa sesudah diterima ketahuan saat diunduh (bagian D).",
  "<details class=\"question\">",
  "<summary>Sudah tahu? Cek 3 pertanyaan</summary>",

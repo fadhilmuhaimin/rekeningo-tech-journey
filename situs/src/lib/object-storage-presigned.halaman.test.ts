@@ -277,6 +277,8 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
   test("Asumsi dan hitungan: 2.000 × 500 KB, 365 GB, 10,95 GB, 33,3 kali, 0,2315 per detik, 115,75 dan 1.157 KB per detik, base64", () => {
     expect([UNGGAH, FILE_KB, PUNCAK, UNGGAH5, BYTE_POSTING]).toEqual([2000, 500, 10, 20000, 250]);
     expect(posting).toBe(43800000);
+    expect(naskah, "naskah M33: Asumsi naskah yang dipakai halaman").toContain(`${titik(UNGGAH)} unggahan × ${FILE_KB} KB = ${gbHari} GB per hari`);
+    expect(naskah).toContain("ADR 38: file di penyimpanan objek; unggah lewat presigned PUT berumur pendek; unduh hanya lewat server yang menulis audit");
     expect(perHari).toBe(1000000);
     expect(gbHari).toBe(1);
     expect(gbTahun).toBe(365);
@@ -359,6 +361,8 @@ describe("object-storage-presigned.mdx: tiap angka turunan dari rekaman, kode, n
     harus(`URL unggah berumur ${umurKode} menit bisa dipakai siapa pun yang memegangnya, termasuk untuk menimpa file.`);
     harus(`app Dina mengirim ${titik(put1)} byte dan pemegang lain mengirim ${titik(put2)} byte lewat URL yang sama (\`presign.txt\` bagian B)`);
     harus("Sesudah umur URL habis, PUT ditolak dengan 403 (bagian C).");
+    harus(`Umur ${umurKode} menit di kalimat pertama adalah Asumsi, dan rekaman memakai umur ${umurLab} detik supaya habisnya bisa ditunggu.`);
+    expect(presignTxt).toContain("-objek-presign-umur 5s (umur pendek supaya kedaluwarsa bisa ditunggu)");
     harus("Server juga menyimpan checksum, yaitu sidik SHA-256 dari isi file");
     const r = DataRantai.parse(rantaiMentah);
     expect(r.baris.length).toBe(2);
