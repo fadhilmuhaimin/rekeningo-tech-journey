@@ -33,7 +33,15 @@ EXTRA_GLOBS = ("situs/data/*.json", "situs/data/halaman-istilah/*.json", "situs/
 OLD = ()
 
 MAX_WORDS = 25
+
 MAX_SENTENCES = 4
+
+# Nama kode yang memuat kata terlarang (tabel `berkas_bytea`, mode lab `berkas-bytea`) tampil utuh di data widget dan
+# halaman istilah, karena kutipan rekaman lab tidak boleh diubah, dan JSON tidak punya backtick seperti Markdown.
+# Pengecualian hanya untuk file data (JSON, SVG). Prosa .md/.mdx tidak dikecualikan: nama kode di sana ditulis dalam
+# backtick dan sudah dibuang oleh prose_lines. Pola dibatasi pada pemisah `_` atau `-` yang diikuti huruf, dan tidak
+# berlaku untuk "berkas-berkas" (bentuk jamak): kata "berkas" di prosa tetap ditandai (keputusan 1321).
+NAMA_KODE_DATA = {"berkas (file)": re.compile(r"\bberkas[_-](?!berkas\b)[a-z][a-z0-9_-]*", re.I)}
 
 # (kunci, regex, tingkat, usulan)
 RULES = [
@@ -52,7 +60,7 @@ RULES = [
      "TINGGI", "Untuk pros/cons pakai 'Kelebihan / Kekurangan'. 'Rugi Rp70.000' (kerugian uang) tidak terkena pola ini."),
     ("pemakai/pengguna (user)", r"\bpemakai\b|\bpengguna(nya)?\b", "TINGGI", "Pakai 'user' (mis. 'user iseng', 'HP user'). 'Pemakaian' (usage) tidak terkena."),
     ("klien (client)", r"\bklien\w*", "TINGGI", "Pakai 'client' (mis. 'HTTP client', 'client app')."),
-    ("berkas (file)", r"\bberkas(?![_-])\w*", "TINGGI", "Pakai 'file'."),   # nama kode berkas_x dan berkas-x (tabel, kolom, mode lab) bukan prosa
+    ("berkas (file)", r"\bberkas\w*", "TINGGI", "Pakai 'file'."),
     ("kontrak (API)", r"\bkontrak\b", "RENDAH", "'Kontrak API' lazim dipakai; boleh tetap, jelaskan sekali (= bentuk request/response yang disepakati)."),
     ("bawang (lapisan)", r"\bbawang\b", "TINGGI", "Hapus. Pakai 'urutan middleware' + diagram berurutan."),
     ("jabat tangan", r"jabat tangan", "TINGGI", "Pakai 'handshake' (TCP/TLS)."),
@@ -136,9 +144,11 @@ def scan(files=None, skip_code=False):
         rel = f.relative_to(ROOT)
         text = f.read_text(encoding="utf-8")
         lines = prose_lines(text, f.suffix in HALAMAN) if skip_code else enumerate(text.splitlines(), 1)
+        data = f.suffix not in HALAMAN
         for i, line in lines:
             for key, rx, lvl, fix in RULES:
-                if re.search(rx, line, re.I):
+                teks = NAMA_KODE_DATA[key].sub("", line) if data and key in NAMA_KODE_DATA else line
+                if re.search(rx, teks, re.I):
                     hits[key].append((str(rel), i, line.strip()))
     return hits
 
