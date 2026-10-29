@@ -487,8 +487,10 @@ describe("diagram Rantai: nilai simpul diturunkan dari rekaman", () => {
     expect(diagram.catatan).toBe("Alamat contoh adalah angka karangan lab, dan server uji hanya di 127.0.0.1 di dalam proses tes. Kotak oranye adalah akibat yang direkam.");
     expect(diagram.judul).toBe("Yang direkam dari sisi pembela: alamat dalam, redirect, dan pesan galat");
   });
-  test("diagram dikunci dengan sidik jari dan tampil dengan Rantai biasa di blok Yang sebenarnya", () => {
+  test("diagram dikunci dengan sidik jari", () => {
     expect(sidik(JSON.stringify(diagramMentah))).toBe(SIDIK.diagram);
+  });
+  test("diagram tampil dengan Rantai biasa di blok Yang sebenarnya", () => {
     harus("<Rantai data={pratinjauJson} />");
     expect(badan.match(/<Rantai /g)).toHaveLength(1);
     expect(mdx).toContain('import pratinjauJson from "../../../../data/diagram/t4-m36-pratinjau-json.json";');
@@ -612,6 +614,69 @@ describe("kartu Cek diri dan konsep yang lahir", () => {
     expect(noscript).toContain("Rekaman alamat ada di lipatan di bawah.");
     expect(badan.match(/<details>\n<summary>Rekaman alamat \(juga untuk pembaca tanpa JavaScript\)<\/summary>/g)).toHaveLength(1);
     expect(badan.match(/<details[ >]/g)).toHaveLength(1 + 1 + 3);
+  });
+});
+
+// ---- tinjauan: paragraf penuh yang selamat dari putaran tanpa kunci baris ----------------------------------------------------
+// Mutan "tidak", hapus kalimat terakhir, tukar dua kalimat, dan bilangan di paragraf narasi lolos saat kunci baris dimatikan.
+// Tiap paragraf di bawah dibandingkan utuh (tanpa kunci baris), supaya perubahan satu kata di dalamnya tertangkap oleh tes yang
+// tidak memakai KALIMAT_TERKUNCI. Paragraf yang memuat 32, 29, atau 26 diturunkan dari tabel alamat.txt.
+describe("tinjauan: paragraf penuh dibandingkan utuh, tanpa kunci baris", () => {
+  test("paragraf narasi dan klaim berlingkup: gejala, dugaan, kode, tes unit, lingkup lab, widget, noscript", () => {
+    harus("Kolom itu tidak berisi gambar. Isinya teks JSON dengan kata `penyimpanan-internal`.");
+    harus("*Angka cerita (Ilustrasi):* hari, nama toko, kata `penyimpanan-internal`, dan temuan Laras berasal dari cerita, bukan dari rekaman. Arti Ilustrasi, Rekaman lab, Asumsi, Tidak dijalankan, dan [perlu verifikasi] ada di [[A0]].");
+    harus("Dugaan itu masuk akal. Merchant mengisi kolom `gambar_url` di file CSV sendiri, dan pratinjau dibuat dari kolom itu. Tetapi file CSV hanya memuat alamat, bukan isi gambar.");
+    harus("Merchant tidak mengirim JSON itu. Server Rekeningo yang mengambilnya dari alamat yang diisi merchant, lalu mengembalikannya.");
+    harus("**Server yang mengunduh, bukan merchant.** Impor katalog menerima daftar produk, dan tiap produk punya field `gambar_url`. Di cerita daftar itu berasal dari file CSV, dan di kode lab daftar itu dikirim sebagai JSON. Server mengunduh tiap alamat untuk membuat pratinjau, lalu mengembalikan hasil tiap baris dengan dua kolom, `pratinjau` dan `galat` (Tidak dijalankan: dibaca dari kode):");
+    harus("**Kenapa ini masalah.** Alamat itu diisi merchant, tetapi yang memintanya adalah server Rekeningo, dengan akses jaringan milik server. Merchant luar tidak punya akses ke jaringan dalam, yaitu jaringan tempat service Rekeningo saling memanggil. Server punya. Masalah seperti ini disebut SSRF (server-side request forgery): aplikasi dipakai untuk menghubungi alamat yang dipilih pihak luar.");
+    harus("OWASP memakai contoh serupa, yaitu user yang mengisi URL gambar avatarnya untuk diunduh aplikasi ([OWASP SSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html), dibuka 2026-10-30, Tidak dijalankan). Di cerita, pihak yang mencoba adalah merchant luar yang mengisi `gambar_url` dengan nama layanan penyimpanan objek di jaringan dalam (Ilustrasi). Penyimpanan objek dibahas di [[t4-storage]]. Konsep dan keputusannya ada di [[t4-ssrf]].");
+    harus("**Empat kelemahan versi pertama.** Versi pertama bernama `Rentan` di kode lab. Keempat kelemahan ini dibaca dari kode (Tidak dijalankan: dibaca dari kode):");
+    harus("2. Alamat hasil resolusi tidak diperiksa. Resolusi DNS adalah proses mengubah nama di URL menjadi alamat IP, dan jawabannya langsung dipakai.");
+    harus("3. Redirect diikuti. Redirect adalah jawaban server yang menyuruh client pindah ke alamat lain.");
+    harus("Butir 1 adalah deny-list, yaitu daftar yang dilarang. Alamat yang sama bisa ditulis dengan cara lain, dan nama yang diselesaikan ke alamat dalam tidak memuat dua teks itu. OWASP menulis bahwa deny-list mudah dilewati dan hanya pilihan terakhir (Tidak dijalankan: dibaca dari sumber). Bentuk penulisan yang lolos bergantung pada resolver platform, yaitu bagian sistem yang mengubah nama menjadi alamat, jadi halaman ini tidak mencatatnya.");
+    harus("Butir 3 datang dari client bawaan. Dokumentasi Go menulis bahwa tanpa `CheckRedirect` client berhenti sesudah 10 request beruntun ([net/http, Client](https://pkg.go.dev/net/http#Client), go1.27.3, dibuka 2026-10-30, Tidak dijalankan). OWASP menyarankan redirect dimatikan di client. Pemeriksaan teks hanya melihat URL pertama, jadi alamat luar yang menjawab redirect ke alamat dalam tidak diperiksa lagi.");
+    harus("Butir 4 menjawab kenapa isi layanan dalam sampai ke merchant:");
+    harus("Jadi \"kolom pratinjau\" di cerita adalah Ilustrasi, dan di kode lab teks itu ada di kolom `galat`. Dua tes unit `api-t4` menjaga butir 3 dan butir 4, dan keduanya tercatat lulus. Hanya nama tes dan hasilnya yang tercatat, tanpa rekaman tingkat endpoint (Rekaman lab api-t4, tidak dijalankan ulang di lab ini):");
+    harus("**Yang direkam: sisi pembela.** Lab `t4-ssrf` hanya menjalankan versi aman dari fetcher, yaitu fungsi yang mengunduh gambar dari URL. Menjalankan versi pertama terhadap layanan tiruan di jaringan container Tidak dijalankan di lab ini, karena lingkup lab dipersempit ke verifikasi sisi pembela.");
+    harus("*Kondisi rekaman:* go1.27.1, tanpa database, dan server uji hanya di 127.0.0.1 di dalam proses tes. Alamat contoh di rekaman adalah angka karangan lab.");
+    harus("**Pesan galat.** Isi JSON dari server uji tidak ikut ke pesan versi aman. Delapan penolakan karena alamat literal memakai satu pesan yang sama:");
+    harus("Widget ini mengikuti rekaman `alamat.txt` dan `batas.txt`, dengan satu varian dari `alamat.txt`. Tebak dulu pesan yang diterima merchant, lalu tekan Berikutnya atau panah kanan.");
+    harus("Batasnya: tabel itu memuat alamat contoh, bukan semua alamat yang mungkin. Kenapa satu pemeriksaan tidak cukup dibahas di [[t4-ssrf]].");
+    harus("Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: jawaban 200 yang bukan gambar dijawab \"bukan gambar\", dan tujuan redirect tersentuh nol kali.");
+  });
+  test("paragraf dengan bilangan: alamat, ubah satu hal, dan noscript diturunkan dari tabel alamat.txt", () => {
+    const L = TERLARANG - PRIVAT.length, E = TERLARANG - EMPAT.length;
+    harus(`**Alamat.** Alamat terlarang adalah alamat yang tidak boleh menjadi tujuan unduhan, misalnya alamat mesin itu sendiri (loopback) dan alamat jaringan internal (private). Rekaman menguji ${TERLARANG} alamat contoh, dan versi aman menolak ${TERLARANG} dari ${TERLARANG}.`);
+    harus(`Sesudah langkah terakhir, centang **Ubah satu hal: pemeriksaan alamat hanya memakai IsPrivate**. Daftar alamat terlarang yang ditulis fetcher menolak ${TERLARANG} dari ${TERLARANG}. Bila \`IsPrivate\` satu-satunya pemeriksaan, ${L} lolos. Bila hanya empat penanda bawaan Go yang diperiksa, ${E} lolos (Rekaman lab, \`alamat.txt\`).`);
+    harus(`Bila hanya \`IsPrivate\` yang diperiksa, ${L} dari ${TERLARANG} alamat terlarang lolos. Rekaman alamat ada di lipatan di bawah.`);
+  });
+  test("tebakan di details: jawabannya utuh; heading Cek diri tingkat 3; Rantai tampil biasa dengan data yang diimpor", () => {
+    const d = cocok(badan, /<details class="question">\n<summary>([^\n]+)<\/summary>\n\n([\s\S]*?)\n\n<\/details>/);
+    expect(d[2]).toBe("Dari jawaban layanan yang beralamat di kolom itu. Server Rekeningo mengunduh alamat tersebut, dan jawabannya bukan gambar melainkan teks JSON dari layanan lain. Teks itu lalu ikut dikirim kembali ke merchant (dibaca dari kode di blok berikutnya, Tidak dijalankan).");
+    expect(badan).toMatch(/^### Cek diri$/m);
+    expect(badan.match(/^#+ /gm)).toEqual(["### "]);
+    harus("<Rantai data={pratinjauJson} />");
+    expect(badan).not.toContain("<Rantai data={pratinjauJson} ringkas />");
+    expect(badan.match(/^\*\*[^*\n]+\*\*/gm)!.map((s) => s.replace(/\*/g, ""))).toEqual(["Server yang mengunduh, bukan merchant.", "Kenapa ini masalah.", "Empat kelemahan versi pertama.", "Yang direkam: sisi pembela.", "Alamat.", "Redirect.", "Pesan galat.", "Yang tidak direkam.", "1.", "2.", "3."]);
+    expect(cara).toContain("Rekaman lab");
+    for (const k of ["Ilustrasi", "Asumsi", "Tidak dijalankan", "[perlu verifikasi]"]) expect(cara, k).toContain(k);
+  });
+  test("skenario: judul langkah, judul skenario, dan catatan sumber utuh; kutipan baris riset utuh", () => {
+    expect(skenario.judul).toBe("Fetcher gambar versi aman: alamat dalam, redirect, dan pesan galat");
+    expect(skenario.langkah.map((l) => l.judul)).toEqual([
+      "Alamat di jaringan dalam: ditolak, server tujuan tidak tersentuh",
+      "Alamat luar menjawab redirect: tidak diikuti",
+      "Server menjawab 200 dengan isi JSON: bukan gambar",
+      "Merchant hanya menerima kalimat tetap",
+    ]);
+    expect(skenario.varian.langkah[2]!.judul).toBe(`Kontrol: ${kata(KONTROL)} alamat yang bukan terlarang tetap lolos`);
+    expect(skenario.sumber.catatan).toBe("Lab t4-ssrf, go1.27.1, tanpa database, server uji hanya di 127.0.0.1 di dalam proses tes (make -C labs/t4-ssrf run). Jalur utama: alamat.txt (alamat terlarang) dan batas.txt (redirect dan pesan galat). Ubah satu hal: alamat.txt, hanya IsPrivate yang diperiksa. Lab ini hanya menjalankan versi aman; versi pertama Tidak dijalankan di lab ini. Alamat contoh adalah angka karangan lab. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log.");
+    expect(barisRiset("R4-205")).toContain('"Server-Side Request Forgery Prevention"');
+    expect(barisRiset("R4-205")).toContain('"Deny-list (Last Resort)"'.replace(/"/g, "\""));
+    expect(barisRiset("R4-206")).toContain('"If CheckRedirect is nil, the Client uses its default policy, which is to stop after 10 consecutive requests."');
+    expect(barisRiset("R4-206")).toContain('"If the server replies with a redirect, the Client first uses the CheckRedirect function to determine whether the redirect should be followed."');
+    expect(barisRiset("R4-207")).toContain('dijawab "bukan gambar", 403, 404, dan 500 dijawab "gambar tidak bisa diunduh"');
+    expect(barisRiset("R4-207")).toContain("`labs/t4-ssrf/output/alamat.txt` baris 44 sampai 45");
   });
 });
 
