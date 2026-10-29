@@ -1,0 +1,26 @@
+{
+  "id": "t4-rekonsiliasi-inti",
+  "judul": "Dua jalan kedua",
+  "sumber": {"jenis": "rekaman", "teks": "Rekaman lab, rekon.txt"},
+  "baris": [
+    {
+      "label": "Cek status",
+      "sub": "webhook Citra tidak pernah datang",
+      "simpul": [
+        {"teks": "menunggu 31 menit", "sub": "lewat batas 30 menit"},
+        {"teks": "gateway ditanya", "sub": "dari luar transaction"},
+        {"teks": "dibayar, 1 jurnal", "sub": "Rp500.000 tercatat", "nada": "good"}
+      ]
+    },
+    {
+      "label": "Rekonsiliasi harian",
+      "sub": "laporan gateway lawan jurnal",
+      "simpul": [
+        {"teks": "5 selisih", "sub": "tiga jenis, per order"},
+        {"teks": "4 ditutup", "sub": "3 lewat jurnal baru, 1 tanpa jurnal", "nada": "good"},
+        {"teks": "1 terbuka", "sub": "menunggu keputusan tim risk", "nada": "warn"}
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah selisih yang tidak dikoreksi job. Kedua baris memakai gateway tiruan lokal dan server api-t4."
+}

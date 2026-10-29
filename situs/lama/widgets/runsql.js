@@ -103,6 +103,8 @@
 
       var ran = false;
       function run() {
+        // Tombol yang mati saat berjalan melepas fokus ke <body>; kembalikan sesudah selesai (WCAG 2.4.3), hanya bila pembaca menekannya.
+        var hadFocus = document.activeElement === runBtn;
         runBtn.disabled = true;
         status.textContent = "Menjalankan...";
         loadSQL().then(function (SQL) {
@@ -129,9 +131,11 @@
           ran = true;
           runBtn.disabled = false;
           runBtn.textContent = "Jalankan ulang";
+          if (hadFocus) runBtn.focus();
         }).catch(function (e) {
           status.textContent = "Gagal menjalankan: " + e.message;
           runBtn.disabled = false;
+          if (hadFocus) runBtn.focus();
         });
       }
       runBtn.addEventListener("click", run);
