@@ -3368,8 +3368,9 @@
       "lab": [
         "t4-webhook"
       ],
-      "ada": false,
-      "nomor": "4.6"
+      "ada": true,
+      "nomor": "4.6",
+      "menit": 10
     },
     {
       "id": "t4-webhook",
