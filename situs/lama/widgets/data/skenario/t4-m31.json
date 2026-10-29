@@ -1,0 +1,219 @@
+{
+  "versi": 2,
+  "judul": "Layanan verifikasi mati: sepuluh pendaftar gagal, padahal fotonya jelas",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t4-integrasi/output/lajur.txt",
+    "fileVarian": "labs/t4-integrasi/output/retry.txt",
+    "catatan": "Server Go api-t4, worker, dan layanan verifikasi tiruan lokal dengan PostgreSQL 17.11 dari database bersih. Jalur utama: lajur.txt bagian A (make -C labs/t4-integrasi run BAGIAN=lajur): layanan tiruan mati, 10 pendaftar, satu worker dengan lima percobaan. Ubah satu hal: retry.txt bagian C (make -C labs/t4-integrasi run BAGIAN=retry): satu pendaftar, layanan menggantung dengan batas waktu client 300 ms lalu pulih. Dua run terpisah dengan data awal yang sama. Baris diawali tanda panah diringkas dari rekaman yang sama, bukan baris log. Tulisan di layar HP adalah Ilustrasi dari naskah: lab tidak punya app Flutter dan tidak merekam layar. Jeda antar percobaan tidak ditunggu di jalur utama. Jam di layar HP adalah pilihan penulis."
+  },
+  "pengantar": "Layanan verifikasi mati, dan sepuluh pendaftar sudah mengajukan. Tebak dulu, lalu ikuti worker sampai layanan pulih. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    {
+      "id": "api",
+      "label": "api-t4"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    },
+    {
+      "id": "worker",
+      "label": "Worker"
+    },
+    {
+      "id": "vendor",
+      "label": "Layanan verifikasi (tiruan)"
+    }
+  ],
+  "perangkat": [
+    {
+      "id": "pendaftar",
+      "label": "HP pendaftar"
+    }
+  ],
+  "layarAwal": {
+    "pendaftar": {
+      "judul": "Rekeningo",
+      "waktu": "09.12",
+      "sinyal": 3,
+      "isi": [
+        {
+          "jenis": "teks",
+          "teks": "Kirim foto kartu identitas dan swafoto"
+        },
+        {
+          "jenis": "tombol",
+          "teks": "Kirim"
+        }
+      ]
+    }
+  },
+  "predict": {
+    "q": "Layanan verifikasi mati dan sepuluh pendaftar sudah mengajukan. Satu worker mengerjakan pekerjaannya satu per satu, dengan batas lima percobaan dan tanpa menunggu jeda. Layanan baru pulih sesudah itu, lalu worker dijalankan lagi. Berapa pendaftar yang lulus?",
+    "options": [
+      "Sepuluh: pekerjaan menunggu sampai layanan pulih, lalu semuanya diproses",
+      "Nol: semua pekerjaan sudah habis lima percobaan sebelum layanan pulih",
+      "Lima: separuh pekerjaan habis percobaan, separuh sisanya masih menunggu",
+      "Satu: hanya pekerjaan terakhir yang masih punya percobaan"
+    ],
+    "answer": 1,
+    "varian": false,
+    "explain": "Rekaman lajur.txt bagian A: 10 pekerjaan berstatus mati dengan 5 percobaan, 10 pengajuan berstatus gagal, dan layanan menerima 50 permintaan tanpa membuat objek. Sesudah layanan pulih, worker mengklaim 0 pekerjaan dan 10 akun tetap belum terverifikasi."
+  },
+  "langkah": [
+    {
+      "dari": "vendor",
+      "judul": "Layanan verifikasi tiruan mati",
+      "kirim": "# server: ./api-t4 -lab; layanan verifikasi tiruan: ./tiruan -peran verifikasi, mode mati (503 untuk semua permintaan)",
+      "jelas": "Semua permintaan ke layanan dijawab 503. Di cerita layanan tidak menjawab selama 3 jam 30 menit (Ilustrasi). Di rekaman waktunya dipendekkan: tiruan langsung menjawab 503.",
+      "nada": "warn"
+    },
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Sepuluh pendaftar mengajukan verifikasi",
+      "kirim": "# 10 pendaftar mengajukan verifikasi: 10 baris verifikasi dan 10 pekerjaan di outbox (lajur verifikasi)\n=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan\n status   | percobaan | jumlah\n----------+-----------+--------\n menunggu | 0         | 10",
+      "jelas": "Tiap pengajuan menulis satu baris verifikasi dan satu pekerjaan di outbox. Semuanya menunggu, dan belum satu pun dicoba.",
+      "layar": {
+        "pendaftar": {
+          "judul": "Rekeningo",
+          "waktu": "09.12",
+          "sinyal": 3,
+          "isi": [
+            {
+              "jenis": "teks",
+              "teks": "Sedang diverifikasi"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "worker",
+      "ke": "vendor",
+      "judul": "Worker memanggil layanan, dan layanan menjawab 503",
+      "kirim": "→ worker: kapasitas 1, lima percobaan, jeda antar percobaan tidak ditunggu\n→ tiap pekerjaan: percobaan 1 sampai 5, dijawab 503",
+      "jelas": "Worker mencoba tiap pekerjaan lima kali berturut-turut. Jeda antar percobaan (backoff) tidak ditunggu di rekaman: pekerjaan yang gagal langsung diklaim lagi."
+    },
+    {
+      "dari": "vendor",
+      "judul": "Layanan menerima 50 permintaan dan tidak membuat objek",
+      "kirim": "# vendor mati: 50 permintaan masuk, 0 objek dibuat (kunci berbeda = objek berbeda)",
+      "jelas": "Sepuluh pekerjaan kali lima percobaan sama dengan 50 permintaan. Tidak satu pun menghasilkan objek di layanan.",
+      "nada": "warn"
+    },
+    {
+      "dari": "worker",
+      "ke": "db",
+      "judul": "Tiap pekerjaan habis lima percobaan dan masuk dead-letter",
+      "kirim": "=> SELECT status, percobaan, count(*) AS jumlah FROM outbox WHERE tujuan = 'verifikasi' GROUP BY status, percobaan ORDER BY status, percobaan\n status | percobaan | jumlah\n--------+-----------+--------\n mati   | 5         | 10\n→ verifikasi: gagal, 10 pengajuan",
+      "jelas": "Sepuluh dari sepuluh pekerjaan berstatus mati, dan sepuluh pengajuan berstatus gagal. Pendaftar tidak melakukan kesalahan apa pun.",
+      "nada": "warn",
+      "layar": {
+        "pendaftar": {
+          "judul": "Rekeningo",
+          "waktu": "09.13",
+          "sinyal": 3,
+          "nada": "warn",
+          "isi": [
+            {
+              "jenis": "teks",
+              "teks": "Verifikasi gagal"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "vendor",
+      "judul": "Layanan pulih",
+      "kirim": "# Vendor pulih. Pekerjaan yang sudah dead-letter tidak diklaim lagi dan tidak ada yang mengantrekannya ulang:",
+      "jelas": "Layanan menjawab normal lagi."
+    },
+    {
+      "dari": "worker",
+      "ke": "db",
+      "judul": "Worker berjalan lagi dan tidak mengklaim apa pun",
+      "kirim": "$ ./api-t4 -peran worker -sekali -serentak 1 -backoff 0s -maks-percobaan 5\nworker: diklaim 0, terkirim 0, dilewati 0, ditunda 0, mati 0",
+      "jelas": "Baris berstatus mati tidak diklaim lagi: worker mengklaim 0 pekerjaan.",
+      "nada": "warn"
+    },
+    {
+      "dari": "db",
+      "judul": "Sepuluh akun tetap belum terverifikasi",
+      "kirim": "=> SELECT tingkat, count(*) AS jumlah FROM akun WHERE id BETWEEN 40003 AND 40012 GROUP BY tingkat\n tingkat | jumlah\n---------+--------\n belum   | 10",
+      "jelas": "Sesudah layanan pulih tidak ada yang berubah. Kesepuluh pendaftar tetap berstatus gagal.",
+      "nada": "warn",
+      "layar": {
+        "pendaftar": {
+          "judul": "Rekeningo",
+          "waktu": "12.45",
+          "sinyal": 3,
+          "nada": "warn",
+          "isi": [
+            {
+              "jenis": "teks",
+              "teks": "Verifikasi gagal"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "layanan gagal sekali, lalu pulih sebelum percobaan habis",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "worker",
+        "ke": "vendor",
+        "judul": "Layanan menggantung, client menyerah sesudah 300 ms",
+        "kirim": "# Vendor menggantung. Client menyerah sesudah 300 ms; vendor mungkin sudah mengerjakannya, hasilnya tidak diketahui:",
+        "jelas": "Rekaman ini memakai layanan yang menggantung, bukan menjawab 503. Batas waktu client diperpendek ke 300 ms supaya rekaman cepat; batas bawaan server 3 detik."
+      },
+      {
+        "dari": "worker",
+        "ke": "db",
+        "judul": "Pengajuan tidak_pasti, pekerjaan menunggu",
+        "kirim": "=> SELECT status FROM verifikasi\n status\n-------------\n tidak_pasti\n=> SELECT status, percobaan FROM outbox WHERE tujuan = 'verifikasi'\n status   | percobaan\n----------+-----------\n menunggu | 1",
+        "jelas": "tidak_pasti berarti hasilnya tidak diketahui: client menyerah sebelum layanan menjawab. Pekerjaan masih menunggu dengan satu percobaan terpakai, jadi empat percobaan tersisa.",
+        "nada": "warn"
+      },
+      {
+        "dari": "vendor",
+        "judul": "Layanan pulih",
+        "kirim": "→ layanan menjawab normal lagi",
+        "jelas": "Layanan pulih sebelum percobaan pekerjaan ini habis."
+      },
+      {
+        "dari": "worker",
+        "ke": "vendor",
+        "judul": "Worker mencoba lagi dengan kunci yang sama",
+        "kirim": "→ percobaan berikutnya memakai Idempotency-Key yang sama, dan dijawab sukses",
+        "jelas": "Pekerjaan masih punya percobaan, jadi worker memanggil layanan lagi. Kunci yang sama membuat layanan tidak membuat objek kedua."
+      },
+      {
+        "dari": "worker",
+        "ke": "db",
+        "judul": "Pengajuan lulus, satu objek",
+        "kirim": "# Vendor pulih: pengajuan yang sama lulus.\n=> SELECT status FROM verifikasi\n status\n--------\n lulus\n# sesudah pulih: 2 permintaan masuk, 1 objek dibuat (kunci berbeda = objek berbeda)",
+        "jelas": "Dua permintaan masuk dan satu objek dibuat. Pendaftar ini lulus karena layanan pulih sebelum percobaan habis.",
+        "nada": "good",
+        "layar": {
+          "pendaftar": {
+            "judul": "Rekeningo",
+            "waktu": "09.12",
+            "sinyal": 3,
+            "isi": [
+              {
+                "jenis": "teks",
+                "teks": "Identitas terverifikasi"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

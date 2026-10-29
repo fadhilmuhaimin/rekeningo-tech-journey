@@ -3423,8 +3423,9 @@
       "lab": [
         "t4-webhook"
       ],
-      "ada": false,
-      "nomor": "4.8"
+      "ada": true,
+      "nomor": "4.8",
+      "menit": 11
     },
     {
       "id": "t4-rekonsiliasi",
@@ -3474,8 +3475,9 @@
       "lab": [
         "t4-integrasi"
       ],
-      "ada": false,
-      "nomor": "4.10"
+      "ada": true,
+      "nomor": "4.10",
+      "menit": 11
     },
     {
       "id": "t4-breaker",

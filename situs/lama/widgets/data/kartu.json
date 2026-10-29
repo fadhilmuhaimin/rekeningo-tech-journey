@@ -2680,6 +2680,54 @@
   "jawab": "Status top-up yang hanya maju. Idempotency-Key ledger hidup 24 jam, jadi sesudah 25 jam ia sudah habis. Tanpa lapis status, event kedua diproses dan jurnalnya dua (`urutan.txt` bagian G, kasus 4)."
  },
  {
+  "id": "t4-m30-1",
+  "halaman": "t4-m30",
+  "judul": "4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong",
+  "url": "tahap-4/m30-saldo-tidak-naik/",
+  "tanya": "Gateway mengirim enam kiriman untuk top-up Citra, dan database tidak memuat satu pun event. Kenapa tidak ada event?",
+  "jawab": "Tanda tangan kiriman memakai secret baru, sedangkan api-t4 masih memegang secret lama. Tiap kiriman dijawab 401 sebelum event ditulis (`retry.txt` bagian B: enam kiriman 401, `webhook_event` 0 baris)."
+ },
+ {
+  "id": "t4-m30-2",
+  "halaman": "t4-m30",
+  "judul": "4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong",
+  "url": "tahap-4/m30-saldo-tidak-naik/",
+  "tanya": "Bayu menyamakan secret Minggu 09.10. Kenapa top-up Citra dari Sabtu malam tetap tidak naik?",
+  "jawab": "Jadwal terpanjang gateway 342 menit. Kiriman pertama sebelum 09.10 − 342 menit = 03.28 sudah memakai semua percobaannya sebelum 09.10. Jadi gateway tidak mengirim lagi (Hitungan atas jadwal `retry.txt` bagian A, dengan jam cerita berlabel Ilustrasi)."
+ },
+ {
+  "id": "t4-m30-3",
+  "halaman": "t4-m30",
+  "judul": "4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong",
+  "url": "tahap-4/m30-saldo-tidak-naik/",
+  "tanya": "Kenapa halaman ini tidak menulis jadwal ulang dan masa tumpang tindih secret sebagai perilaku satu gateway?",
+  "jawab": "Jadwal lima kali dengan jeda 2, 10, 30, 90, dan 210 menit ada di dokumentasi gateway kedua, yang tidak menyebut rotasi. Masa tumpang tindih sampai 24 jam dan pengulangan sampai tiga hari ada di dokumentasi gateway pertama (Tidak dijalankan). Tiruan lab memakai jadwal gateway kedua dengan rotasi langsung."
+ },
+ {
+  "id": "t4-m31-1",
+  "halaman": "t4-m31",
+  "judul": "4.10 M31: 146 pendaftar tertahan \"Sedang diverifikasi\"",
+  "url": "tahap-4/m31-verifikasi-tertahan/",
+  "tanya": "Fotonya jelas, tetapi 146 pendaftar gagal. Kenapa angka 146 menunjuk ke sebab selain foto?",
+  "jawab": "Pada laju rata-rata, 0,0116 × 12.600 = 146 pendaftar masuk dalam 3 jam 30 menit, sebanyak yang gagal (Hitungan atas Asumsi dan Ilustrasi). Foto buram menggagalkan sebagian pendaftar, bukan semuanya, dan layanan yang mati menggagalkan 10 dari 10 (`lajur.txt` bagian A)."
+ },
+ {
+  "id": "t4-m31-2",
+  "halaman": "t4-m31",
+  "judul": "4.10 M31: 146 pendaftar tertahan \"Sedang diverifikasi\"",
+  "url": "tahap-4/m31-verifikasi-tertahan/",
+  "tanya": "Layanan sudah pulih. Kenapa sepuluh pendaftar tidak lulus dengan sendirinya?",
+  "jawab": "Tiap pekerjaan sudah habis lima percobaan dan berstatus `mati`, jadi worker tidak mengklaimnya lagi. Worker mengklaim 0 pekerjaan, dan sepuluh akun tetap `belum` terverifikasi (`lajur.txt` bagian A)."
+ },
+ {
+  "id": "t4-m31-3",
+  "halaman": "t4-m31",
+  "judul": "4.10 M31: 146 pendaftar tertahan \"Sedang diverifikasi\"",
+  "url": "tahap-4/m31-verifikasi-tertahan/",
+  "tanya": "Rumus 0,116 × 5 × 3 menghasilkan 1,74. Apa arti 1,74, dan premis apa yang dipakainya?",
+  "jawab": "Pada puncak, 1,74 dari 4 slot worker dipegang pekerjaan verifikasi yang pasti gagal: 0,116 pendaftar per detik, 5 percobaan, 3 detik tiap percobaan. Premisnya tiap percobaan menunggu sampai timeout, dan 0,116 adalah Asumsi (Hitungan atas Asumsi)."
+ },
+ {
   "id": "t4-breaker-1",
   "halaman": "t4-breaker",
   "judul": "4.11 Timeout, retry berkunci, circuit breaker, lajur per vendor + ADR 36",
