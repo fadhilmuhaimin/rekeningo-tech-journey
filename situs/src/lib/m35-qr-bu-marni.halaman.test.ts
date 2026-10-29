@@ -451,7 +451,7 @@ describe("rekaman crc.txt: parameter, tabel tag, salah baca, penggantian, dan Hi
     harus(`CRC punya empat karakter heksadesimal, yaitu 4 × 4 = ${BIT} bit, dan 2^${BIT} = ${rib(RUANG)} nilai yang mungkin (Hitungan).`);
     expect(Number(HEX)).toBe(4);
     harus(`Pelaku tidak menebak salah satu dari ${rib(RUANG)} nilai itu, karena satu perhitungan memberinya nilai yang benar.`);
-    harus("CRC dihitung tanpa key rahasia: rumusnya terbuka, jadi siapa pun yang memegang payload bisa menghitungnya lagi.");
+    harus("CRC dihitung tanpa secret key: rumusnya terbuka, jadi siapa pun yang memegang payload bisa menghitungnya lagi.");
   });
   test("sumber luar: katalog CRC dan Wikipedia dengan URL dan tanggal akses sama dengan halaman dan riset; EMVCo: versi, tanggal, dan PDF belum terbaca [perlu verifikasi]", () => {
     const k = barisRiset("R4-196");
@@ -559,7 +559,7 @@ describe("halaman istilah CRC: baris glosarium, rujukan, sumber, dan angka dari 
       "Payload QR memuat CRC di tag 63: empat karakter heksadesimal yang dihitung dari semua teks di depannya, termasuk 6304 (`crc.txt` bagian B).",
       "Rumus CRC punya parameter. Lab memakai CRC-16/IBM-3740: polinomial 0x1021 dan nilai awal 0xFFFF. Go dan Python menghasilkan nilai yang sama (`crc.txt` bagian A).",
       `Satu karakter yang berubah membuat CRC tidak cocok. Pada satu payload contoh, ${rib(TERDETEKSI)} dari ${rib(DICOBA)} penggantian satu karakter dan ${TUKAR[1]} dari ${TUKAR[2]} pertukaran dua karakter bersebelahan terdeteksi (\`crc.txt\` bagian C).`,
-      "CRC tidak memakai key rahasia. Isi yang diganti lalu diberi CRC yang dihitung ulang lolos, dan hasilnya sama dengan `binascii.crc_hqx` dari Python (`crc.txt` bagian D).",
+      "CRC tidak memakai secret key. Isi yang diganti lalu diberi CRC yang dihitung ulang lolos, dan hasilnya sama dengan `binascii.crc_hqx` dari Python (`crc.txt` bagian D).",
     ]);
     expect(istilah.jebakan).toEqual([
       "Mengira CRC yang cocok berarti payload itu asli. CRC hanya menunjukkan bahwa teksnya utuh, bukan siapa yang menulisnya.",
@@ -800,7 +800,7 @@ describe("tinjauan: nilai yang diturunkan dari sumber, bukan dari kunci baris", 
   });
 });
 
-const PENENTU = ["tidak", "belum", "hanya", "tetap", "sama", "sebelum", "sesudah", "satu", "dua", "tiga", "empat", "tujuh", "Raka", "Budi", "Marni", "Rabu", "pertama", "kedua", "ketiga", "bukan", "tanpa", "kecuali", "setiap", "semua", "selalu", "Rekaman lab", "Tidak dijalankan", "Ilustrasi", "Asumsi", "Hitungan", "naik", "turun", "lolos", "ditolak", "menolak", "diterima", "sah", "palsu", "dipalsukan", "201", "CRC", "payload", "tag", "stiker", "merchant", "Toko Andalan", "Toko Sumber Rejeki", "statis", "dinamis", "server", "lab", "key", "rahasia", "Bayar", "nama", "kota", "ADR 40", "EMVCo", "Wikipedia", "8.562", "8.314", "248", "104", "138", "65.536", "16", "Rp35.000", "Rp48.000", "Rp22.000", "Rp105.000", "Rp215.000", "Rp250.000", "B29D", "4D5E", "0x1021", "0xFFFF", "0x29B1", "salah baca", "penggantian", "menangkap", "app", "laporan", "Hasilnya", "Hasil", "63", "01", "00", "Layar", "papan toko", "kamera", "Flutter", "polinomial", "nilai awal", "heksadesimal", "bit", "karakter", "posisi", "lokasi", "kolom", "posting", "jurnal", "saldo", "buku", "pemindai", "pemalsu", "pelaku", "pembeli", "Pihak"];
+const PENENTU = ["tidak", "belum", "hanya", "tetap", "sama", "sebelum", "sesudah", "satu", "dua", "tiga", "empat", "tujuh", "Raka", "Budi", "Marni", "Rabu", "pertama", "kedua", "ketiga", "bukan", "tanpa", "kecuali", "setiap", "semua", "selalu", "Rekaman lab", "Tidak dijalankan", "Ilustrasi", "Asumsi", "Hitungan", "naik", "turun", "lolos", "ditolak", "menolak", "diterima", "sah", "palsu", "dipalsukan", "201", "CRC", "payload", "tag", "stiker", "merchant", "Toko Andalan", "Toko Sumber Rejeki", "statis", "dinamis", "server", "lab", "key", "secret key", "rahasia", "Bayar", "nama", "kota", "ADR 40", "EMVCo", "Wikipedia", "8.562", "8.314", "248", "104", "138", "65.536", "16", "Rp35.000", "Rp48.000", "Rp22.000", "Rp105.000", "Rp215.000", "Rp250.000", "B29D", "4D5E", "0x1021", "0xFFFF", "0x29B1", "salah baca", "penggantian", "menangkap", "app", "laporan", "Hasilnya", "Hasil", "63", "01", "00", "Layar", "papan toko", "kamera", "Flutter", "polinomial", "nilai awal", "heksadesimal", "bit", "karakter", "posisi", "lokasi", "kolom", "posting", "jurnal", "saldo", "buku", "pemindai", "pemalsu", "pelaku", "pembeli", "Pihak"];
 const profil = (teks: string): string =>
   PENENTU.map((k) => {
     const n = (teks.match(new RegExp(`(?<![\\p{L}-])${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}-])`, "gu")) ?? []).length;

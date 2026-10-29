@@ -11,7 +11,7 @@
     "Payload QR memuat CRC di tag 63: empat karakter heksadesimal yang dihitung dari semua teks di depannya, termasuk 6304 (`crc.txt` bagian B).",
     "Rumus CRC punya parameter. Lab memakai CRC-16/IBM-3740: polinomial 0x1021 dan nilai awal 0xFFFF. Go dan Python menghasilkan nilai yang sama (`crc.txt` bagian A).",
     "Satu karakter yang berubah membuat CRC tidak cocok. Pada satu payload contoh, 8.562 dari 8.562 penggantian satu karakter dan 104 dari 104 pertukaran dua karakter bersebelahan terdeteksi (`crc.txt` bagian C).",
-    "CRC tidak memakai key rahasia. Isi yang diganti lalu diberi CRC yang dihitung ulang lolos, dan hasilnya sama dengan `binascii.crc_hqx` dari Python (`crc.txt` bagian D)."
+    "CRC tidak memakai secret key. Isi yang diganti lalu diberi CRC yang dihitung ulang lolos, dan hasilnya sama dengan `binascii.crc_hqx` dari Python (`crc.txt` bagian D)."
   ],
   "stack": null,
   "jebakan": [

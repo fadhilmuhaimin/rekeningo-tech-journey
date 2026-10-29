@@ -102,7 +102,7 @@ Pertukaran dua karakter bersebelahan yang berbeda juga terdeteksi, 104 dari 104.
 
 Bila teks diganti tanpa CRC baru, pemindai menolaknya. Hasil `qrlab ganti` sama persis dengan hasil `binascii.crc_hqx` yang dijalankan tanpa alat lab.
 
-CRC dihitung tanpa key rahasia: rumusnya terbuka, jadi siapa pun yang memegang payload bisa menghitungnya lagi. CRC punya empat karakter heksadesimal, yaitu 4 × 4 = 16 bit, dan 2^16 = 65.536 nilai yang mungkin (Hitungan). Pelaku tidak menebak salah satu dari 65.536 nilai itu, karena satu perhitungan memberinya nilai yang benar.
+CRC dihitung tanpa secret key: rumusnya terbuka, jadi siapa pun yang memegang payload bisa menghitungnya lagi. CRC punya empat karakter heksadesimal, yaitu 4 × 4 = 16 bit, dan 2^16 = 65.536 nilai yang mungkin (Hitungan). Pelaku tidak menebak salah satu dari 65.536 nilai itu, karena satu perhitungan memberinya nilai yang benar.
 
 Wikipedia menulis hal serupa tentang CRC pada umumnya. CRC tidak cocok untuk melindungi dari perubahan yang disengaja. Penyerang bisa mengubah pesan dan menghitung ulang CRC ([Wikipedia: Cyclic redundancy check](https://en.wikipedia.org/wiki/Cyclic_redundancy_check), dibuka 2026-10-30, sumber sekunder, Tidak dijalankan).
 
@@ -156,7 +156,7 @@ Stiker bisa diganti dan CRC tidak menahannya. Yang bisa diperiksa pembeli adalah
 <details class="success">
 <summary>Jawaban</summary>
 
-CRC dihitung tanpa key rahasia, jadi ia menangkap salah baca, bukan penggantian. Payload yang id QR-nya diganti lolos setelah CRC dihitung ulang, dari `B29D` menjadi `4D5E` (`crc.txt` bagian D).
+CRC dihitung tanpa secret key, jadi ia menangkap salah baca, bukan penggantian. Payload yang id QR-nya diganti lolos setelah CRC dihitung ulang, dari `B29D` menjadi `4D5E` (`crc.txt` bagian D).
 
 </details>
 

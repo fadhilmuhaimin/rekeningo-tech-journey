@@ -2885,7 +2885,7 @@
   "judul": "4.18 M35: QR di kasir Bu Marni",
   "url": "tahap-4/m35-qr-bu-marni/",
   "tanya": "CRC di stiker cocok, tetapi pembayaran masuk ke toko lain. Kenapa CRC tidak mencegahnya?",
-  "jawab": "CRC dihitung tanpa key rahasia, jadi ia menangkap salah baca, bukan penggantian. Payload yang id QR-nya diganti lolos setelah CRC dihitung ulang, dari `B29D` menjadi `4D5E` (`crc.txt` bagian D)."
+  "jawab": "CRC dihitung tanpa secret key, jadi ia menangkap salah baca, bukan penggantian. Payload yang id QR-nya diganti lolos setelah CRC dihitung ulang, dari `B29D` menjadi `4D5E` (`crc.txt` bagian D)."
  },
  {
   "id": "t4-m35-2",
