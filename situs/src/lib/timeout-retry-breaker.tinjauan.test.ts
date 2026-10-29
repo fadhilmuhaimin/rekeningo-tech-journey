@@ -57,6 +57,19 @@ describe("tautan luar: alamat ada di baris riset, teks tautan menyebut sumbernya
     expect(new Set(dalam.map(kunci))).toEqual(new Set(luar.map(kunci)));
     expect(new Set(dalam).size).toBe(dalam.length);
   });
+  test("teks tautan di prosa sama dengan teks tautan yang sama di Bacaan lanjut", () => {
+    const lanjut = halaman.slice(halaman.indexOf("### Bacaan lanjut"));
+    const prosa = halaman.slice(0, halaman.indexOf("### Bacaan lanjut"));
+    const dalam = new Map([...lanjut.matchAll(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g)].map((m) => [m[2]!, m[1]!]));
+    let dibandingkan = 0;
+    for (const m of prosa.matchAll(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g)) {
+      const teksLanjut = dalam.get(m[2]!);
+      if (teksLanjut === undefined) continue;
+      dibandingkan++;
+      expect(teksLanjut, `teks tautan ${m[2]}`).toContain(m[1]!);
+    }
+    expect(dibandingkan).toBeGreaterThanOrEqual(10);
+  });
   test("alamat sumber halaman istilah ada di baris riset", () => {
     for (const s of istilah.sumber.filter((x) => x.url)) expect(sumberRiset).toContain(tanpaSkema(s.url!));
   });
@@ -75,6 +88,11 @@ describe("penyedia dokumentasi dan tab yang dijalankan", () => {
     const buka = [...halaman.matchAll(/<Fragment slot="t(\d)">\n\n\*(\w+(?: dijalankan)?)/g)].map((m) => `${m[1]}:${m[2]}`);
     expect(buka).toEqual(["0:Dijalankan", "1:Tidak dijalankan", "2:Tidak dijalankan", "3:Tidak dijalankan", "4:Tidak dijalankan", "5:Tidak dijalankan"]);
     expect(label[0]).toBe("Go");
+  });
+  test("nama bidang pustaka untuk lama terbuka adalah Timeout, dari dokumentasi dan kode lab", () => {
+    expect(baris("R4-160")).toContain("If Timeout is less than or equal to 0, the timeout value of the CircuitBreaker is set to 60 seconds");
+    expect(baca("labs/api-t4/internal/lajur/lajur.go")).toContain("Timeout: o.Timeout");
+    expect(halaman).toContain("Pustaka menamai lama terbuka itu Timeout, berbeda dari timeout client 3 detik di atas.");
   });
   test("kalimat opossum mengikuti baris riset: persentase kegagalan, bukan hitungan berturut-turut", () => {
     expect(baris("R4-164")).toContain("persentase kegagalan dibandingkan errorThresholdPercentage");
