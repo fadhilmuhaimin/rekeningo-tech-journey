@@ -2552,6 +2552,38 @@
   "jawab": "Kiriman pertama diterapkan dan versi naik jadi 2. Kiriman kedua masih membawa versi 1, jadi `UPDATE ... WHERE versi = 1` tidak mengubah baris apa pun dan server menjawab konflik. Yang memutuskan adalah user di HP kedua, setelah app menampilkan kedua harga."
  },
  {
+  "id": "t4-dua-arah-1",
+  "halaman": "t4-dua-arah",
+  "judul": "4.4 Dua arah ke pihak ketiga: dipanggil masuk, memanggil keluar",
+  "url": "tahap-4/dua-arah-pihak-ketiga/",
+  "tanya": "Gateway mengirim kabar yang sama dua kali, dan saldo Budi naik Rp400.000 untuk Rp200.000. Hal mana yang rusak, dan apa buktinya?",
+  "jawab": "Hal pertama: uang dari luar harus dicatat satu kali. Di `rentan.txt` bagian A, kiriman yang sama dua kali menghasilkan dua jurnal Rp200.000. Baris yang menjurnal tidak memeriksa apakah event atau order itu sudah dijurnal."
+ },
+ {
+  "id": "t4-dua-arah-2",
+  "halaman": "t4-dua-arah",
+  "judul": "4.4 Dua arah ke pihak ketiga: dipanggil masuk, memanggil keluar",
+  "url": "tahap-4/dua-arah-pihak-ketiga/",
+  "tanya": "Seseorang mengirim POST berisi jumlah Rp1.234.567 tanpa tanda tangan. Kenapa handler menerimanya, dan hal mana yang rusak?",
+  "jawab": "Hal kedua. Handler tidak memeriksa timestamp atau tanda tangan, jadi kabar dari siapa pun dipercaya. Di `rentan.txt` bagian A, POST itu dijawab 200 dan Rp1.234.567 dikreditkan ke Budi."
+ },
+ {
+  "id": "t4-dua-arah-3",
+  "halaman": "t4-dua-arah",
+  "judul": "4.4 Dua arah ke pihak ketiga: dipanggil masuk, memanggil keluar",
+  "url": "tahap-4/dua-arah-pihak-ketiga/",
+  "tanya": "Gateway mati saat Budi membuat top-up. Kenapa transfer Budi tetap selesai?",
+  "jawab": "Jalur transfer tidak memanggil gateway. Di `topup.txt` bagian G, gateway tiruan dibuat menjawab 503: top-up dijawab 502 dan berstatus `gagal`, sedangkan transfer Rp25.000 tetap dijawab 201."
+ },
+ {
+  "id": "t4-dua-arah-4",
+  "halaman": "t4-dua-arah",
+  "judul": "4.4 Dua arah ke pihak ketiga: dipanggil masuk, memanggil keluar",
+  "url": "tahap-4/dua-arah-pihak-ketiga/",
+  "tanya": "Di handler versi pertama, kenapa baris `BeginTx` dan `Commit` bukan baris yang salah?",
+  "jawab": "Keduanya sudah tepat untuk data di PostgreSQL: jurnal dan status ikut satu COMMIT atau batal bersama. Transaction tidak memeriksa kabar. Ia menyimpan apa pun yang ditulis di dalamnya, termasuk jumlah yang palsu."
+ },
+ {
   "id": "t4-m29-1",
   "halaman": "t4-m29",
   "judul": "4.6 M29: Top-up Budi masuk dua kali",
