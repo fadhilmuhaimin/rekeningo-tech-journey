@@ -361,7 +361,7 @@ describe("kode lab dan hitungan: Simpan di luar transaction, 1 MiB, tabel Hitung
       ["Posting per hari", `${fmt(POSTING_TAHUN)} ÷ 365`, fmt(POSTING_HARI)],
       ["Posting 28 hari", `${fmt(POSTING_HARI)} × ${HARI} × ${BYTE_POSTING} byte`, `${fmt(POSTING_BYTE)} byte, yaitu ${fmt(POSTING_GB, 2)} GB`],
       ["File lawan posting", `${FILE_HARI} ÷ ${fmt(POSTING_GB, 2)}`, `${fmt(FILE_HARI / POSTING_GB, 1)} kali`],
-      ["Bagian file di data", `${FILE_HARI} ÷ (${FILE_HARI} + ${fmt(POSTING_GB, 2)})`, `${fmt((FILE_HARI / (FILE_HARI + POSTING_GB)) * 100, 1)}%`],
+      ["File dari file dan posting", `${FILE_HARI} ÷ (${FILE_HARI} + ${fmt(POSTING_GB, 2)})`, `${fmt((FILE_HARI / (FILE_HARI + POSTING_GB)) * 100, 1)}%`],
       ["Dump dari file", `${HARI} × ${fmt(RASIO, 1)}`, `${fmt(dump, 1)} GB`],
     ]);
     // rekaman bagian D mencetak hasil yang sama
@@ -375,6 +375,7 @@ describe("kode lab dan hitungan: Simpan di luar transaction, 1 MiB, tabel Hitung
     expect(dump).toBeCloseTo(30.8, 10);
     expect(barisM33).toContain("±28 GB file lawan ±0,84 GB posting (43,8 juta ÷ 365 × 28 × 250 B; Hitungan, Asumsi)");
     expect(barisM33).toContain("(28 ÷ 28,84 = 97,1%; Hitungan dari Asumsi)");
+    harus("Hitungan hanya membandingkan file dan posting. Tabel lain, mis. `outbox` dan `audit_log`, tidak ikut, jadi 97,1% adalah batas atas bagian file.");
   });
   test("33,3 kali sama dengan 33 kali di 4.5 (365 ÷ 10,95); 28 hari dan setahun berbanding sama", () => {
     expect(365 / 10.95).toBeCloseTo(FILE_HARI / POSTING_GB, 3);
@@ -408,6 +409,7 @@ describe("kode lab dan hitungan: Simpan di luar transaction, 1 MiB, tabel Hitung
     expect(60000 + 5000).toBe(65000);
     harus("Backup `pg_dump` harian berjendela sampai 24 jam: bila server hilang sebelum backup berikutnya, kejadian sejak backup terakhir ikut hilang.");
     harus("Sehari memuat rata-rata ±65.000 transaksi uang dan top-up, yaitu 60.000 + 5.000 (Hitungan atas Asumsi).");
+    harus("**Batas waktu pulih belum ada di PRD.**");
     harus("Berapa lama pulih dianggap wajar tidak ada di PRD v4 ([[t4-prd]]), dan PRD v3 juga tidak menulisnya.");
     harus("Pemicu VPS kedua di [[t3-adr-33]] bergantung pada angka itu, jadi ia tetap pertanyaan terbuka.");
   });
@@ -570,13 +572,13 @@ describe("skenario alur t4-m33.json: valid, nilai dari rekaman, tebakan, dan var
     expect(skenario.varian.langkah.map((l) => l.nada)).toEqual([undefined, undefined, "good", "warn"]);
     expect(skenario.langkah.map((l) => l.judul)).toEqual([
       "Delapan pengajuan menyimpan 16 file di kolom bytea", `Dump terkompresi membesar ${fmt(RASIO, 1)} kali ukuran file`, `Dump teks biasa ${fmt(RASIO_TEKS, 1)} kali ukuran file`,
-      "Dump dipulihkan ke database lain, isinya sama", "Dalam 28 hari 97,1% data adalah file",
+      "Dump dipulihkan ke database lain, isinya sama", "Dalam 28 hari file 97,1% dari file dan posting",
     ]);
     expect(skenario.varian.langkah.map((l) => l.judul)).toEqual([
       "File dikirim ke penyimpanan objek", "Database hanya memegang kunci dan checksum", "Dump hampir tidak membesar", "Dump tidak membawa file",
     ]);
     expect(skenario.langkah[3]!.jelas).toContain("hanya batas 120 detik untuk 8 MB yang diperiksa");
-    expect(skenario.langkah[4]!.jelas).toBe("Bagian D rekaman mencetak hitungan dari Asumsi naskah, bukan hasil lab: 1 GB file per hari, 28 GB dalam 28 hari, 0,84 GB posting, dan file 97,1% dari data yang dicadangkan.");
+    expect(skenario.langkah[4]!.jelas).toBe("Bagian D rekaman mencetak hitungan dari Asumsi naskah, bukan hasil lab: 1 GB file per hari, 28 GB dalam 28 hari, 0,84 GB posting, dan file 97,1% dari file dan posting bersama.");
     expect(bagD).toContain("bagian file di bytea = 28,00 / (28,00 + 0,84) = 97,1%");
     const v = JSON.stringify(skenario.varian.langkah);
     expect(v).not.toMatch(/1,1|2,0 kali|Tebakanmu|benar|salah/);
@@ -616,7 +618,7 @@ describe("halaman istilah dan glosarium: Backup dan uji pulih", () => {
     expect(istilah.sumber!.map((s) => s.riset)).toEqual(["R4-176", "R4-178"]);
     expect(istilah.cerita![1]!.teks).toContain(`dump ${fmt(RASIO, 1)} kali ukuran file`);
     expect(istilah.mekanisme!.join(" ")).toContain("batas 120 detik untuk 8 MB");
-    expect(istilah.jebakan![1]).toContain("97,1%");
+    expect(istilah.jebakan![1]).toContain("file 97,1% dari file dan posting");
     expect(JSON.stringify(istilah)).not.toMatch(/R\d-\d{2,3}[^"]*"[^"]*$|keputusan \d/);
   });
 });
@@ -635,7 +637,7 @@ describe("kartu Cek diri: tiga kartu, sama dengan kartu.json", () => {
     expect(kartu.map((k) => k.jawab)).toEqual(jawaban);
   });
   test("jawaban kartu menurunkan klaimnya: 28 GB lawan 0,84 GB dan 97,1%, rasio 1,1, byte acak dan heksadesimal, cadangan file tidak dijalankan", () => {
-    harus(`Dalam 28 hari ada ${fmt(FILE_HARI)} GB file lawan ${fmt(POSTING_GB, 2)} GB posting, jadi ${fmt((FILE_HARI / (FILE_HARI + POSTING_GB)) * 100, 1)}% data adalah file (Hitungan atas Asumsi).`);
+    harus(`Dalam 28 hari ada ${fmt(FILE_HARI)} GB file lawan ${fmt(POSTING_GB, 2)} GB posting, jadi file ${fmt((FILE_HARI / (FILE_HARI + POSTING_GB)) * 100, 1)}% dari file dan posting (Hitungan atas Asumsi).`);
     harus(`Rekaman memberi rasio dump terhadap file ${fmt(RASIO, 1)} (\`ukuran.txt\` bagian A).`);
     harus(`**2.** Dump \`-Fc\` terkompresi, tetapi rasionya terhadap file ${fmt(RASIO, 1)}, bukan di bawah 1.`);
     harus("Isi file di lab adalah byte acak, yang tidak bisa dimampatkan, dan `bytea` ditulis sebagai heksadesimal (`ukuran.txt` bagian A).");

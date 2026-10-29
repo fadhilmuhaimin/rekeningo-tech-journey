@@ -20,7 +20,7 @@
   "stack": null,
   "jebakan": [
     "Menganggap backup yang berhasil ditulis pasti bisa dipulihkan. Backup yang belum pernah dipulihkan belum terbukti bisa dipakai.",
-    "Menambah disk saat uji pulih makin lama. Di halaman 4.14, disk hanya menampung hasil pulih, sedangkan 97,1% isi dump 28 hari adalah file (Hitungan atas Asumsi)."
+    "Menambah disk saat uji pulih makin lama. Di halaman 4.14, disk hanya menampung hasil pulih, sedangkan dalam 28 hari file 97,1% dari file dan posting (Hitungan atas Asumsi)."
   ],
   "terkait": [
     "Staging",

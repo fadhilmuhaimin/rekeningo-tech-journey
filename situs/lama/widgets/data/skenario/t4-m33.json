@@ -73,9 +73,9 @@
     },
     {
       "dari": "dump",
-      "judul": "Dalam 28 hari 97,1% data adalah file",
+      "judul": "Dalam 28 hari file 97,1% dari file dan posting",
       "kirim": "# 2.000 unggahan per hari = 1.000 pengajuan x 2 file (naskah); satu baris verifikasi per pengajuan\nfile per hari   = 2.000 x 500 KB               = 1,00 GB\nfile 28 hari    = 28 x 1,00 GB               = 28,00 GB\nposting 28 hari = 43,8 juta / 365 x 28 x 250 B = 0,84 GB\nbagian file di bytea = 28,00 / (28,00 + 0,84) = 97,1%",
-      "jelas": "Bagian D rekaman mencetak hitungan dari Asumsi naskah, bukan hasil lab: 1 GB file per hari, 28 GB dalam 28 hari, 0,84 GB posting, dan file 97,1% dari data yang dicadangkan.",
+      "jelas": "Bagian D rekaman mencetak hitungan dari Asumsi naskah, bukan hasil lab: 1 GB file per hari, 28 GB dalam 28 hari, 0,84 GB posting, dan file 97,1% dari file dan posting bersama.",
       "nada": "warn"
     }
   ],

@@ -2765,7 +2765,7 @@
   "judul": "4.14 M33: Uji pulih mingguan makin lama",
   "url": "tahap-4/m33-uji-pulih/",
   "tanya": "Disk staging ditambah, tetapi uji pulih tetap makin lama. Kenapa disk bukan sebabnya?",
-  "jawab": "Disk menampung hasil pemulihan, tetapi tidak mengubah isi dump. Dalam 28 hari ada 28 GB file lawan 0,84 GB posting, jadi 97,1% data adalah file (Hitungan atas Asumsi). Rekaman memberi rasio dump terhadap file 1,1 (`ukuran.txt` bagian A)."
+  "jawab": "Disk menampung hasil pemulihan, tetapi tidak mengubah isi dump. Dalam 28 hari ada 28 GB file lawan 0,84 GB posting, jadi file 97,1% dari file dan posting (Hitungan atas Asumsi). Rekaman memberi rasio dump terhadap file 1,1 (`ukuran.txt` bagian A)."
  },
  {
   "id": "t4-m33-2",
